@@ -1,0 +1,168 @@
+[gd_scene format=3 uid="uid://drw2swcktasrs"]
+
+[ext_resource type="Script" uid="uid://cb1uyory0hjch" path="res://player.gd" id="1_0e48y"]
+[ext_resource type="Script" uid="uid://dmdjyi56rg52r" path="res://node_2d.gd" id="1_0hol4"]
+[ext_resource type="Texture2D" uid="uid://4isfgsoefdsj" path="res://art/hero.png" id="2_epypp"]
+[ext_resource type="Script" uid="uid://d03clvv4pbprm" path="res://sprite_2d.gd" id="3_epypp"]
+[ext_resource type="Script" uid="uid://dg70ucnly0vfo" path="res://spellcaster.gd" id="5_q6r6c"]
+[ext_resource type="PackedScene" uid="uid://y7tlse0k5u05" path="res://enemy.tscn" id="6_kdubu"]
+[ext_resource type="PackedScene" uid="uid://b1hixuy10pdai" path="res://WaterBlock.tscn" id="7_water"]
+[ext_resource type="PackedScene" uid="uid://bv1rtgtdf0u33" path="res://GrassBlock.tscn" id="8_grass"]
+[ext_resource type="Script" uid="uid://cobo4pu24xgn6" path="res://health_bar.gd" id="9_health"]
+[ext_resource type="PackedScene" path="res://Goal.tscn" id="10_goal"]
+[ext_resource type="PackedScene" uid="uid://cs4witjvs5yak" path="res://NeutralBlock.tscn" id="11_neutral"]
+[ext_resource type="Script" uid="uid://5ejmjdctr8ge" path="res://level_controller.gd" id="12_level"]
+[ext_resource type="Texture2D" path="res://art/ground.png" id="13_ground"]
+[ext_resource type="Texture2D" path="res://art/shadow.png" id="14_shadow"]
+[ext_resource type="Script" path="res://spellbook.gd" id="15_book"]
+[ext_resource type="Texture2D" path="res://art/ui/bar_bg.png" id="16_bar_bg"]
+[ext_resource type="Texture2D" path="res://art/ui/bar_fill.png" id="17_bar_fill"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bar_bg"]
+texture = ExtResource("16_bar_bg")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bar_fill"]
+texture = ExtResource("17_bar_fill")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ffaqx"]
+radius = 24.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
+radius = 14.0
+
+[node name="Node2D" type="Node2D" unique_id=1970241566]
+script = ExtResource("1_0hol4")
+
+[node name="Background" type="Sprite2D" parent="."]
+position = Vector2(526, 243)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("13_ground")
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1752997044]
+position = Vector2(52, 286)
+up_direction = Vector2(0.7071068, -0.7071068)
+script = ExtResource("1_0e48y")
+
+[node name="Shadow" type="Sprite2D" parent="Player"]
+visible = false
+position = Vector2(0, 14)
+texture = ExtResource("14_shadow")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=1838915320]
+texture = ExtResource("2_epypp")
+script = ExtResource("3_epypp")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=250636848]
+shape = SubResource("CircleShape2D_ffaqx")
+
+[node name="Feet" type="Area2D" parent="Player"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/Feet"]
+shape = SubResource("CircleShape2D_feet")
+
+[node name="Spellcaster" type="Node2D" parent="Player" unique_id=724747822]
+script = ExtResource("5_q6r6c")
+
+[node name="Line2D" type="Line2D" parent="Player/Spellcaster" unique_id=871678799]
+points = PackedVector2Array(164, 81)
+width = 5.0
+
+[node name="Enemy" parent="." unique_id=314713057 instance=ExtResource("6_kdubu")]
+position = Vector2(583, 71)
+
+[node name="Enemy2" parent="." unique_id=1906467829 instance=ExtResource("6_kdubu")]
+position = Vector2(448, 280)
+
+[node name="WaterBlock" parent="." unique_id=1027220553 instance=ExtResource("7_water")]
+position = Vector2(501, 357)
+
+[node name="GrassBlock" parent="." unique_id=8273441 instance=ExtResource("8_grass")]
+position = Vector2(613, 222)
+
+[node name="BridgeLandLeft" parent="." unique_id=829951284 instance=ExtResource("8_grass")]
+position = Vector2(444, 356)
+
+[node name="BridgeWater" parent="." unique_id=1598317139 instance=ExtResource("7_water")]
+position = Vector2(498, 324)
+
+[node name="BridgeLandRight" parent="." unique_id=185292978 instance=ExtResource("8_grass")]
+position = Vector2(556, 354)
+
+[node name="GrassWall" parent="." unique_id=1094077699 instance=ExtResource("8_grass")]
+position = Vector2(900, 223)
+initial_state = 1
+
+[node name="Goal" parent="." unique_id=1018189193 instance=ExtResource("10_goal")]
+position = Vector2(1000, 223)
+
+[node name="NeutralFloor1" parent="." unique_id=1815000795 instance=ExtResource("11_neutral")]
+position = Vector2(338, 356)
+
+[node name="NeutralFloor2" parent="." unique_id=1235002744 instance=ExtResource("11_neutral")]
+position = Vector2(391, 358)
+
+[node name="NeutralFloor3" parent="." unique_id=2095900807 instance=ExtResource("11_neutral")]
+position = Vector2(391, 324)
+
+[node name="NeutralFloor4" parent="." unique_id=1175714943 instance=ExtResource("11_neutral")]
+position = Vector2(339, 324)
+
+[node name="NeutralFloor5" parent="." unique_id=1193492219 instance=ExtResource("11_neutral")]
+position = Vector2(442, 324)
+
+[node name="LevelController" type="Node" parent="." unique_id=73068389]
+process_mode = 3
+script = ExtResource("12_level")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1781308146]
+
+[node name="HealthBar" type="ProgressBar" parent="UI" unique_id=38445881]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 240.0
+offset_bottom = 48.0
+theme_override_styles/background = SubResource("StyleBoxTexture_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxTexture_bar_fill")
+value = 100.0
+show_percentage = false
+script = ExtResource("9_health")
+
+[node name="VictoryLabel" type="Label" parent="UI" unique_id=1893836407 groups=["victory_ui"]]
+visible = false
+offset_left = 300.0
+offset_top = 200.0
+offset_right = 700.0
+offset_bottom = 260.0
+theme_override_font_sizes/font_size = 40
+text = "¡VICTORIA!"
+horizontal_alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="UI" unique_id=1782990566 groups=["gameover_ui"]]
+visible = false
+offset_left = 300.0
+offset_top = 200.0
+offset_right = 700.0
+offset_bottom = 290.0
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 40
+text = "HAS MUERTO
+Pulsa R para reintentar"
+horizontal_alignment = 1
+
+[node name="Spellbook" type="Control" parent="UI"]
+process_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("15_book")

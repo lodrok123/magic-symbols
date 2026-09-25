@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://cs4witjvs5yak"]
+
+[ext_resource type="Script" uid="uid://dvbe4rxa3dp8u" path="res://neutral_block.gd" id="1_neutral"]
+[ext_resource type="Texture2D" uid="uid://dtehabsgc3ucb" path="res://art/floor.png" id="2_floor"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_neutral"]
+size = Vector2(52, 32)
+
+[node name="NeutralBlock" type="Area2D" unique_id=1695592432]
+script = ExtResource("1_neutral")
+
+[node name="Visual" type="Sprite2D" parent="." unique_id=1534045175]
+texture = ExtResource("2_floor")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1669202898]
+position = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_neutral")

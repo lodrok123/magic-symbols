@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://goal.gd" id="1_goal"]
+[ext_resource type="Texture2D" path="res://art/goal.png" id="2_goal"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_goal"]
+size = Vector2(64, 64)
+
+[node name="Goal" type="Area2D"]
+script = ExtResource("1_goal")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("2_goal")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_goal")

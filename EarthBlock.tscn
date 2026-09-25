@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://earth_block.gd" id="1_earth"]
+[ext_resource type="Texture2D" path="res://art/earth.png" id="2_earth"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_earth_detect"]
+size = Vector2(64, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_earth_solid"]
+size = Vector2(60, 60)
+
+[node name="EarthBlock" type="Area2D"]
+script = ExtResource("1_earth")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("2_earth")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_earth_detect")
+
+[node name="SolidBody" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody"]
+shape = SubResource("RectangleShape2D_earth_solid")

@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://b1hixuy10pdai"]
+
+[ext_resource type="Script" uid="uid://dp13ore41x6i3" path="res://water_block.gd" id="1_x4xny"]
+[ext_resource type="Texture2D" uid="uid://cnsfrs7pkrsav" path="res://art/water.png" id="2_water"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ffaqx"]
+size = Vector2(56, 33)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mwskr"]
+size = Vector2(54, 31)
+
+[node name="WaterBlock" type="Area2D" unique_id=401599327]
+script = ExtResource("1_x4xny")
+
+[node name="Visual" type="Sprite2D" parent="." unique_id=39454032]
+texture = ExtResource("2_water")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=353041144]
+position = Vector2(0, 1.5)
+shape = SubResource("RectangleShape2D_ffaqx")
+
+[node name="SolidBody" type="StaticBody2D" parent="." unique_id=1776075584]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody" unique_id=55582952]
+position = Vector2(0, 1.5)
+shape = SubResource("RectangleShape2D_mwskr")

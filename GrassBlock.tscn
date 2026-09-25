@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://bv1rtgtdf0u33"]
+
+[ext_resource type="Script" uid="uid://bhh8p5k8dqqws" path="res://grass_block.gd" id="1_grass"]
+[ext_resource type="Texture2D" uid="uid://c3tfbevdndy26" path="res://art/grass.png" id="2_grass"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grass_detect"]
+size = Vector2(48, 30)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_grass_solid"]
+size = Vector2(48, 29)
+
+[node name="GrassBlock" type="Area2D" unique_id=2072394330]
+script = ExtResource("1_grass")
+
+[node name="Visual" type="Sprite2D" parent="." unique_id=374332971]
+texture = ExtResource("2_grass")
+
+[node name="Fx" type="Sprite2D" parent="." unique_id=1689898339]
+visible = false
+position = Vector2(0, -12)
+scale = Vector2(0.55, 0.55)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=42830188]
+position = Vector2(0, 2)
+shape = SubResource("RectangleShape2D_grass_detect")
+
+[node name="SolidBody" type="StaticBody2D" parent="." unique_id=1077604180]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody" unique_id=1349803845]
+position = Vector2(1, 1.5)
+shape = SubResource("RectangleShape2D_grass_solid")
+
+[node name="DamageTimer" type="Timer" parent="." unique_id=747601014]
+wait_time = 0.5

@@ -1,0 +1,23 @@
+# --- Godot 4 ---
+# Cache de importación: se regenera sola al abrir el proyecto. Es lo
+# único que NO debe viajar: pesa mucho y es distinta en cada máquina.
+.godot/
+/android/
+
+# Los .import SÍ se suben: guardan los AJUSTES de importación y el uid
+# de cada recurso. Sin ellos, el otro ordenador reimporta con valores
+# por defecto y, peor, genera uid distintos — y las escenas referencian
+# por uid, así que se romperían las referencias.
+
+# Rutas y claves de firma de la máquina donde se exporta.
+export_presets.cfg
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Temporales del proyecto ---
+_to_delete/
+*.tmp
+*.bak

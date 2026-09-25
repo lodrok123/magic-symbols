@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RuneData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://rune_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/fx/lightning.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+rune_type = 9
+display_name = "Rayo"
+color = Color(0.99, 0.92, 0.35, 1)
+damage = 55.0
+tags = Array[String](["rayo", "electrico"])
+vfx_sheet = ExtResource("2")
+vfx_frames = 18

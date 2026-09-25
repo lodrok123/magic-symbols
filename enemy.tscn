@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://y7tlse0k5u05"]
+
+[ext_resource type="Script" uid="uid://dqubdjbrjy8mv" path="res://enemy.gd" id="1_4gyqm"]
+[ext_resource type="Texture2D" uid="uid://x5nf6ts0xt1s" path="res://art/enemy.png" id="2_enemy"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_mwskr"]
+size = Vector2(49, 49)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_solid"]
+size = Vector2(40, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_strike"]
+size = Vector2(44, 40)
+
+[node name="Enemy" type="Area2D" unique_id=1999641743]
+script = ExtResource("1_4gyqm")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=761253672]
+texture = ExtResource("2_enemy")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=734797414]
+position = Vector2(-3.5, 3.5)
+shape = SubResource("RectangleShape2D_mwskr")
+
+[node name="SolidBody" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody"]
+shape = SubResource("RectangleShape2D_solid")
+
+[node name="StrikeArea" type="Area2D" parent="."]
+position = Vector2(46, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StrikeArea"]
+shape = SubResource("RectangleShape2D_strike")
+
+[node name="DamageTimer" type="Timer" parent="." unique_id=332853161]
