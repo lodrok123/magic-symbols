@@ -118,7 +118,7 @@ position = Vector2(557, 245)
 position = Vector2(669, 241)
 
 [node name="NeutralFloor5" parent="." unique_id=1193492219 instance=ExtResource("11_neutral")]
-position = Vector2(610, 367)
+position = Vector2(609, 379)
 
 [node name="LevelController" type="Node" parent="." unique_id=73068389]
 process_mode = 3
