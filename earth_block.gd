@@ -27,6 +27,7 @@ const GRASS_BLOCK_SCENE: PackedScene = preload("res://GrassBlock.tscn")
 func _ready() -> void:
 	add_to_group(GROUP_NAME)
 	add_to_group(CLIMBABLE_GROUP)
+	add_to_group("ground")
 	_enforce_block_limit()
 
 
@@ -43,6 +44,7 @@ func _enforce_block_limit() -> void:
 		var oldest: Node = blocks.pop_front()
 		if is_instance_valid(oldest):
 			print("Límite de ", MAX_EARTH_BLOCKS, " bloques de tierra: se desmorona el más antiguo.")
+			BlockFx.burst(oldest, "tierra")
 			oldest.queue_free()
 
 
@@ -62,6 +64,7 @@ func on_spell_hit(rune_data: RuneData, _direction: Vector2 = Vector2.ZERO) -> vo
 		# Sin esto, construir mal te cuesta un bloque hasta que el FIFO
 		# lo empuje solo; con esto, rectificar es una jugada.
 		print("El tiempo desmorona el bloque de tierra.")
+		BlockFx.burst(self, "magia")
 		queue_free()
 
 
@@ -70,4 +73,5 @@ func _sprout() -> void:
 	get_tree().current_scene.add_child(grass)
 	grass.global_position = global_position
 	print("La tierra regada brota: ahora es vegetación.")
+	BlockFx.burst(self, "tierra")
 	queue_free()

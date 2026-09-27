@@ -64,6 +64,7 @@ var fx_time: float = 0.0
 
 
 func _ready() -> void:
+	add_to_group("ground")
 	add_to_group(FLAMMABLE_GROUP)
 
 	FIRE_RUNE.setup_sprite($Fx)
@@ -122,6 +123,18 @@ func on_spell_hit(rune_data: RuneData, direction: Vector2 = Vector2.ZERO) -> voi
 		_water()
 	elif rune_data.tags.has("viento"):
 		_fan_flames(direction)
+
+
+## QUÉ PUEDE LLEVARSE EL VIENTO DE AQUÍ.
+##
+## El bloque no sabe que existe el viento: solo declara qué elemento
+## tiene activo ahora mismo. Quien pregunte decidirá qué hace con él.
+## Es el mismo trato que on_spell_hit, pero al revés — allí el mundo
+## recibe, aquí el mundo ofrece.
+func carried_element() -> RuneData:
+	if state == State.BURNING or state == State.IGNITING:
+		return FIRE_RUNE
+	return null
 
 
 ## Pública a propósito: es la forma en que un bloque en llamas contagia
@@ -201,8 +214,50 @@ func _spread_fire(radius: float, wind: Vector2) -> void:
 func _set_state(new_state: State) -> void:
 	if new_state == state:
 		return
+
+	var anterior: State = state
 	state = new_state
 	_apply_state()
+	_apply_particles(anterior)
+
+
+## --- Partículas ---
+## El fuego dibujado sobre el bloque ya estaba; lo que faltaba es que el
+## bloque SUELTE cosas. En isométrico eso importa más que en cenital: el
+## volumen es un engaño, y lo que lo sostiene no es el dibujo sino que
+## el humo salga de la cara de arriba y suba. El cerebro se traga la
+## profundidad en cuanto ve algo comportarse con ella.
+##
+## Se mira la TRANSICIÓN y no solo el estado nuevo, porque los
+## estallidos marcan un instante —justo cuando algo cambia— mientras que
+## el fuego y el humo son continuos mientras dure.
+var flame_fx: GPUParticles2D = null
+var smoke_fx: GPUParticles2D = null
+
+
+func _apply_particles(anterior: State) -> void:
+	_set_emitter(state == State.BURNING)
+
+	if state == State.BURNING and anterior == State.IGNITING:
+		BlockFx.burst(self, "chispas")      # prende de golpe
+	elif state == State.ASHES:
+		BlockFx.burst(self, "ceniza")       # se consume
+	elif anterior == State.BURNING and state == State.THIN:
+		BlockFx.burst(self, "ceniza")       # lo apagas: vaharada de humo
+
+
+## Los emisores continuos se crean la PRIMERA vez que hacen falta y a
+## partir de ahí solo se encienden y se apagan. Crearlos y destruirlos
+## en cada cambio de estado daría tirones: montar un material de
+## partículas no es gratis.
+func _set_emitter(encendido: bool) -> void:
+	if encendido and flame_fx == null:
+		flame_fx = BlockFx.flames(self)
+		smoke_fx = BlockFx.smoke(self)
+
+	if flame_fx:
+		flame_fx.emitting = encendido
+		smoke_fx.emitting = encendido
 
 
 ## Todo el "qué aspecto, qué colisión y qué temporizadores tiene cada
@@ -241,6 +296,7 @@ func _apply_state() -> void:
 			fire_timer.start(BURN_TIME)
 			spread_timer.start()
 			_start_burning_damage()
+			Sfx.play(self, "prender")
 			print("¡La hierba está en llamas!")
 
 		State.ASHES:

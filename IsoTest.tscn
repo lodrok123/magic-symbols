@@ -1,0 +1,115 @@
+[gd_scene format=3 uid="uid://b63du6tbd4y0t"]
+
+[ext_resource type="Script" uid="uid://dfduxhfnxjwth" path="res://iso_test.gd" id="1_iso"]
+[ext_resource type="Script" uid="uid://cb1uyory0hjch" path="res://player.gd" id="2_player"]
+[ext_resource type="Texture2D" uid="uid://4isfgsoefdsj" path="res://art/hero.png" id="3_hero"]
+[ext_resource type="Script" uid="uid://d03clvv4pbprm" path="res://sprite_2d.gd" id="4_sprite"]
+[ext_resource type="Script" uid="uid://dg70ucnly0vfo" path="res://spellcaster.gd" id="5_caster"]
+[ext_resource type="Script" uid="uid://cobo4pu24xgn6" path="res://health_bar.gd" id="6_health"]
+[ext_resource type="Script" uid="uid://5ejmjdctr8ge" path="res://level_controller.gd" id="7_level"]
+[ext_resource type="Script" uid="uid://b7n7blpd3jjyc" path="res://spellbook.gd" id="8_book"]
+[ext_resource type="Texture2D" uid="uid://4dwfnnrrujrv" path="res://art/ui/bar_bg.png" id="9_bar_bg"]
+[ext_resource type="Texture2D" uid="uid://dr8jecsrqi2yc" path="res://art/ui/bar_fill.png" id="10_bar_fill"]
+[ext_resource type="Texture2D" uid="uid://cnnwi5krna36v" path="res://art/shadow.png" id="11_shadow"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 24.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_feet"]
+radius = 23.345236
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bar_bg"]
+texture = ExtResource("9_bar_bg")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bar_fill"]
+texture = ExtResource("10_bar_fill")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+
+[node name="IsoTest" type="Node2D" unique_id=572326107]
+y_sort_enabled = true
+script = ExtResource("1_iso")
+
+[node name="Player" type="CharacterBody2D" parent="." unique_id=1032221193]
+y_sort_enabled = true
+up_direction = Vector2(0.7071068, -0.7071068)
+script = ExtResource("2_player")
+
+[node name="Shadow" type="Sprite2D" parent="Player" unique_id=262871403]
+visible = false
+position = Vector2(0, 14)
+texture = ExtResource("11_shadow")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player" unique_id=1428112811]
+texture = ExtResource("3_hero")
+script = ExtResource("4_sprite")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1111280316]
+shape = SubResource("CircleShape2D_body")
+
+[node name="Feet" type="Area2D" parent="Player" unique_id=1145833470]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player/Feet" unique_id=819872614]
+shape = SubResource("CircleShape2D_feet")
+
+[node name="Spellcaster" type="Node2D" parent="Player" unique_id=1091745558]
+script = ExtResource("5_caster")
+
+[node name="Line2D" type="Line2D" parent="Player/Spellcaster" unique_id=1504496930]
+width = 5.0
+
+[node name="LevelController" type="Node" parent="." unique_id=1290573535]
+process_mode = 3
+script = ExtResource("7_level")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=274345274]
+
+[node name="HealthBar" type="ProgressBar" parent="UI" unique_id=463044720]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 240.0
+offset_bottom = 48.0
+theme_override_styles/background = SubResource("StyleBoxTexture_bar_bg")
+theme_override_styles/fill = SubResource("StyleBoxTexture_bar_fill")
+value = 100.0
+show_percentage = false
+script = ExtResource("6_health")
+
+[node name="VictoryLabel" type="Label" parent="UI" unique_id=1906031859 groups=["victory_ui"]]
+visible = false
+offset_left = 300.0
+offset_top = 200.0
+offset_right = 700.0
+offset_bottom = 260.0
+theme_override_font_sizes/font_size = 40
+text = "¡VICTORIA!"
+horizontal_alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="UI" unique_id=1925974191 groups=["gameover_ui"]]
+visible = false
+offset_left = 300.0
+offset_top = 200.0
+offset_right = 700.0
+offset_bottom = 290.0
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_font_sizes/font_size = 40
+text = "HAS MUERTO
+Pulsa R para reintentar"
+horizontal_alignment = 1
+
+[node name="Spellbook" type="Control" parent="UI" unique_id=1194468000]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("8_book")

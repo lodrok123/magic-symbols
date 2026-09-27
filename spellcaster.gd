@@ -53,11 +53,52 @@ const ALIGNMENT_THRESHOLD: float = 0.45
 ## QUÉ elemento (un solo trazo cerrado) y HACIA DÓNDE (un trazo recto
 ## por cada dirección, tantos como quieras). Dibujar cuatro trazos en
 ## cuatro sectores del círculo lanza cuatro proyectiles a la vez.
-var current_element: Runes.Type = Runes.Type.NONE
+## --- LAS PÁGINAS DEL GRIMORIO ---
+##
+## Un mago con un solo hechizo listo no tiene decisiones: tiene el
+## hechizo. Con tres preparados, entrar en una sala es elegir con qué
+## entras, y eso convierte el libro en PREPARACIÓN y la partida en
+## EJECUCIÓN — dos ritmos distintos, que es justo lo que le faltaba a un
+## juego donde abrir el libro detiene el tiempo.
+##
+## Las páginas NO se gastan al usarse. Podrían, y sería más "táctico",
+## pero aquí solo añadiría ir y venir: el libro para el tiempo, así que
+## rehacer un hechizo gastado no cuesta riesgo, cuesta tedio. Un hechizo
+## preparado es una herramienta en el cinturón, no una poción. (Si algún
+## día se quiere lo contrario, es vaciar la página en cast_page.)
+const PAGES: int = 3
 
-## Cada entrada es {"pattern": Runes.Pattern, "direction": Vector2}.
-## Un hechizo son ahora N componentes, no una pareja fija de runas.
-var current_components: Array = []
+## En cuál se está dibujando ahora mismo.
+var page: int = 0
+
+## Tres fichas iguales. Cada una es un hechizo entero: su elemento, sus
+## componentes y su propio historial de deshacer.
+##
+## El historial VA POR PÁGINA y no es un detalle: con uno compartido,
+## deshacer después de cambiar de página borraría un trazo de la página
+## de al lado, y el jugador vería desaparecer algo que no estaba mirando.
+var pages: Array = []
+
+
+## --- El hechizo que se está componiendo ---
+##
+## Estas tres siguen existiendo con el mismo nombre y el mismo
+## significado que siempre, pero ya no guardan nada: son una VENTANA a la
+## página activa. Todo el código que las usaba —el grimorio al pintar, la
+## receta al construir, deshacer— funciona igual sin enterarse de que
+## ahora hay tres. Esa es la razón de hacerlo con propiedades y no
+## renombrando medio archivo.
+var current_element: Runes.Type:
+	get:
+		return pages[page]["element"]
+	set(value):
+		pages[page]["element"] = value
+
+## Cada entrada es {"direction": Vector2, "sigils": Array}.
+## Un hechizo son N componentes, no una pareja fija de runas.
+var current_components: Array:
+	get:
+		return pages[page]["components"]
 
 ## Qué hizo cada trazo, en orden, para poder deshacerlo.
 ##
@@ -65,7 +106,9 @@ var current_components: Array = []
 ## deshacer funcione bien al rectificar el elemento: si dibujas fuego,
 ## luego agua y luego deshaces, vuelve a ser fuego — no se queda sin
 ## elemento. Cada entrada apunta el valor ANTERIOR.
-var undo_history: Array = []
+var undo_history: Array:
+	get:
+		return pages[page]["undo"]
 
 const MIN_STROKE_LENGTH: float = 40.0
 
@@ -76,6 +119,16 @@ const MIN_STROKE_LENGTH: float = 40.0
 ## resolver el hechizo. El libro lo encuentra por este grupo.
 func _ready() -> void:
 	add_to_group("spellcaster")
+
+	# Las páginas se crean aquí y no en la declaración porque las tres
+	# propiedades de arriba leen pages[page]: si alguien preguntara antes
+	# de esto, se encontraría una lista vacía.
+	for i in range(PAGES):
+		pages.append({
+			"element": Runes.Type.NONE,
+			"components": [],
+			"undo": [],
+		})
 
 
 ## --- Interfaz pública, la que usa el grimorio ---
@@ -112,18 +165,24 @@ func add_gesture(strokes: Array, sector: Vector2) -> void:
 
 	if sector == Vector2.ZERO:
 		_add_element(strokes)
-	elif strokes.size() > 1:
-		# Varios trazos en un sector solo pueden ser un sello: un patrón
-		# se dibuja de una raya. Es la misma idea de siempre — el CÓMO se
-		# dibuja ya dice qué es, sin preguntarlo.
-		_add_sigil_gesture(strokes, sector)
 	else:
-		_add_component(sector)
+		# TODO GESTO DE SECTOR PASA POR EL $P, tenga un trazo o siete.
+		#
+		# Antes solo pasaban los de varios trazos, y esa condición era el
+		# bug: el rombo, la levitación y la barrera se dibujan DE UN SOLO
+		# TRAZO, así que jamás llegaban al reconocedor. Caían directos al
+		# atajo del producto escalar, que solo sabe devolver tres cosas, y
+		# de ahí que en la partida todo saliera flecha o pilar. No es que
+		# los reconociera mal: es que ni los miraba.
+		#
+		# Medido sobre las plantillas ya grabadas, los seis sellos se
+		# distinguen entre sí SIN UNA SOLA CONFUSIÓN (margen mediano del
+		# 50% al 324%, muy por encima del corte del 30%). La puntería
+		# estaba; lo que faltaba era dejarla trabajar.
+		_add_sigil_gesture(strokes, sector)
 
 
 ## Un sello se compara SOLO contra sellos, nunca contra los elementos.
-## Si no se reconoce, se cae al patrón por dirección de trazo: más vale
-## una flecha que nada.
 func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 	if not gesture_library.has_any(GestureLibrary.SIGILS):
 		print("Aún no hay sellos grabados.")
@@ -133,26 +192,70 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 	var result: Dictionary = GestureRecognizer.recognize(
 		strokes, gesture_library.templates_for(GestureLibrary.SIGILS))
 
-	print("[$P sello] ", result["name"],
+	# Se imprime también el RIVAL. Un rechazo sin rival no se puede
+	# arreglar: "barrera al 4%" parece mala suerte, y "barrera contra
+	# rombo al 4%" dice exactamente qué hay que tocar.
+	print("[$P sello] ", result["name"], " vs ", result["second_name"],
 		"  margen ", "%.0f%%" % (100.0 * minf(result["margin"], 9.99)),
 		"" if result["accepted"] else "  -> RECHAZADO")
 
-	if not result["accepted"] or not Sigils.is_known(result["name"]):
-		_add_component(sector)
+	if result["accepted"] and Sigils.is_known(result["name"]):
+		Sfx.play(self, "sello_ok")
+		add_sigil(sector, result["name"])
 		return
 
-	add_sigil(sector, result["name"])
+	# EL ATAJO YA NO ES LA RED DE SEGURIDAD DE TODO.
+	#
+	# Que un sello rechazado se convirtiera calladamente en una flecha era
+	# cómodo y era mentira: el juego respondía con total seguridad —"Sello
+	# 'flecha'"— a un gesto que no había entendido, así que nunca te
+	# enterabas de que había que repetirlo. Y encima premiaba el fallo con
+	# el sello más potente, que es exactamente al revés de lo que enseña
+	# un buen reconocedor.
+	#
+	# El atajo sigue existiendo, porque una raya recta ES el azúcar
+	# deliberado del trazo simple. Pero solo para eso: para una raya.
+	# Cualquier otra cosa rechazada se dice en voz alta.
+	if _is_straight(strokes):
+		_add_component(sector)
+	else:
+		Sfx.play(self, "sello_no")
+		print("No he reconocido ese sello. Vuelve a dibujarlo.")
+
+
+## ¿Es el gesto una simple raya?
+##
+## Se mide comparando el RECORRIDO con la distancia de punta a punta: una
+## línea recta vale 1.0 y cualquier símbolo se dispara enseguida. Medido
+## sobre las plantillas ya grabadas, el sello más recto que existe da 1.18
+## y las medianas van de 1.74 a 15.87, así que el corte en 1.25 separa sin
+## rozar a nadie. Un trazo hecho a pulso ronda 1.02-1.10.
+const STRAIGHT_RATIO: float = 1.25
+
+
+func _is_straight(strokes: Array) -> bool:
+	if strokes.size() != 1:
+		return false
+
+	var recorrido: float = _get_total_length()
+	var punta_a_punta: float = stroke_points[0].distance_to(stroke_points[-1])
+	if punta_a_punta < 1.0:
+		return false
+
+	return recorrido / punta_a_punta <= STRAIGHT_RATIO
 
 
 func _add_element(strokes: Array) -> void:
 	var rune: Runes.Type = _recognize_shape(strokes)
 
 	if rune == Runes.Type.NONE:
+		Sfx.play(self, "sello_no")
 		print("No he reconocido esa forma.")
 		return
 
 	# Un elemento nuevo sustituye al anterior: solo hay uno por hechizo,
 	# y así rectificar es simplemente volver a dibujarlo.
+	Sfx.play(self, "sello_ok")
 	undo_history.append({"kind": "element", "previous": current_element})
 	current_element = rune
 	print("Elemento: ", rune_database[rune].display_name)
@@ -169,7 +272,16 @@ func _add_component(sector: Vector2) -> void:
 
 ## Añade un sello a un sector. Si ese sector ya tenía algo dibujado, el
 ## sello se SUMA a lo que hubiera: así es como se combinan.
+##
+## EL FILTRO DE EJE SE APLICA AQUÍ y no en cada sitio que añade sellos,
+## porque aquí pasan los dos caminos —el $P y el atajo de la raya— y una
+## regla que se pueda esquivar por uno de los dos no es una regla.
 func add_sigil(sector: Vector2, sigil_name: String) -> void:
+	if not Sigils.allowed_on(sigil_name, sector):
+		print("'", sigil_name, "' no vale hacia ahí: una flecha vuela plana.",
+			" Prueba con levitación, barrera o pilar.")
+		return
+
 	var component := _component_at(sector)
 	component["sigils"].append(sigil_name)
 
@@ -254,6 +366,9 @@ func undo_last() -> void:
 			print("Deshecho un sello.")
 
 
+## Vacía LA PÁGINA ACTIVA, no las tres. Borrar las otras dos por
+## equivocación sería el peor error posible de esta pantalla: se pierde
+## trabajo que el jugador no estaba ni mirando.
 func clear_sequence() -> void:
 	current_element = Runes.Type.NONE
 	current_components.clear()
@@ -261,32 +376,99 @@ func clear_sequence() -> void:
 	stroke_points.clear()
 
 
-func cast_current() -> void:
-	var element_data: RuneData = current_element_data()
+## --- Pasar página ---
 
-	if element_data == null:
-		print("El libro se cierra sin ningún elemento dibujado.")
-		clear_sequence()
+func select_page(indice: int) -> void:
+	if indice < 0 or indice >= PAGES or indice == page:
+		return
+	page = indice
+	stroke_points.clear()
+
+
+## ¿Tiene esta página algo dibujado? Lo usa el libro para pintar las
+## pestañas, y quien pregunta no debería tener que saber que una página
+## es un diccionario.
+func page_ready(indice: int) -> bool:
+	if indice < 0 or indice >= PAGES:
+		return false
+	var p: Dictionary = pages[indice]
+	return p["element"] != Runes.Type.NONE and not p["components"].is_empty()
+
+
+## El elemento de una página cualquiera, para pintar su pestaña del color
+## que le toca.
+func page_element_data(indice: int) -> RuneData:
+	if indice < 0 or indice >= PAGES:
+		return null
+	var tipo: Runes.Type = pages[indice]["element"]
+	if tipo == Runes.Type.NONE:
+		return null
+	return rune_database.get(tipo)
+
+
+## Al cerrar el libro se lanza la página en la que estabas.
+##
+## SE MANTIENE EL GESTO DE SIEMPRE —dibujas, cierras, sale— porque era
+## bueno y porque cambiarlo obligaría a reaprender lo único que el
+## jugador ya tenía interiorizado. Las páginas no lo sustituyen: lo
+## amplían. Lo que antes era "el hechizo" ahora es "la página en la que
+## estabas", y las otras dos siguen ahí para las teclas 1-3.
+func cast_current() -> void:
+	cast_page(page)
+
+
+## Lanza una página cualquiera, esté el libro abierto o cerrado.
+##
+## LA PÁGINA NO SE BORRA AL LANZARLA, y ese es el cambio de verdad: un
+## hechizo preparado deja de ser de un solo uso y pasa a ser algo que
+## llevas encima. Entrar en una sala con fuego en la 1, hielo en la 2 y
+## viento en la 3 es una decisión que se toma ANTES, con el tiempo
+## parado, y se ejecuta después sin volver a pararlo.
+func cast_page(indice: int) -> void:
+	if indice < 0 or indice >= PAGES:
 		return
 
-	if current_components.is_empty():
-		print("Falta hacia dónde: dibuja un trazo recto en algún sector.")
-		clear_sequence()
+	var ficha: Dictionary = pages[indice]
+	var element_data: RuneData = rune_database.get(ficha["element"])
+	var componentes: Array = ficha["components"]
+
+	if element_data == null:
+		print("La página ", indice + 1, " no tiene ningún elemento dibujado.")
+		return
+
+	if componentes.is_empty():
+		print("A la página ", indice + 1,
+			" le falta hacia dónde: dibuja un trazo en algún sector.")
 		return
 
 	# Cada componente arma su receta con los sellos que le cayeron
 	# encima, y la receta terminada decide qué sale. Aquí no hay ni una
 	# sola combinación escrita: todas emergen de leer juntos los pocos
 	# parámetros que los sellos dejaron puestos.
-	for component in current_components:
+	for component in componentes:
 		var recipe := SpellRecipe.new(component["direction"])
 		for sigil_name in component["sigils"]:
 			recipe.apply(sigil_name)
 		recipe.build(self, element_data)
 
-	print("¡Hechizo lanzado! ", element_data.display_name,
-		" x", current_components.size(), " componentes")
-	clear_sequence()
+	_play_cast_animation()
+
+	print("¡Hechizo lanzado! (página ", indice + 1, ") ",
+		element_data.display_name, " x", componentes.size(), " componentes")
+
+
+## "He lanzado un hechizo" es un SUCESO: no se puede deducir mirando la
+## posición de nadie, así que hay que avisar. Es el único de los cinco
+## clips que necesita esto — andar y respirar se observan, y el golpe y
+## la muerte llegan por la señal de vida.
+##
+## Se busca el animador en vez de guardarlo: así el Spellcaster funciona
+## igual en un actor que no tenga animación, sin comprobaciones ni
+## configuración. Si no hay, no pasa nada.
+func _play_cast_animation() -> void:
+	var animador := ActorAnimator.find_in(get_parent())
+	if animador:
+		animador.play("cast")
 
 
 ## --- Reconocimiento (interno) ---
@@ -347,7 +529,14 @@ func _recognize_with_templates(strokes: Array) -> Runes.Type:
 	var result: Dictionary = GestureRecognizer.recognize(
 		strokes, gesture_library.templates_for(GestureLibrary.ELEMENTS))
 
-	print("[$P] ", result["name"],
+	# Quedarse sin plantillas NO es fallar la puntería, y decir "no te he
+	# entendido" cuando el problema es que la biblioteca está a medias
+	# manda a buscar por el sitio equivocado.
+	if result.get("needs_more_samples", false):
+		_warn_missing_templates()
+		return Runes.Type.NONE
+
+	print("[$P] ", result["name"], " vs ", result["second_name"],
 		"  parecido ", "%.2f" % result["score"],
 		"  margen ", "%.0f%%" % (100.0 * minf(result["margin"], 9.99)),
 		"" if result["accepted"] else "  -> RECHAZADO")
@@ -356,6 +545,20 @@ func _recognize_with_templates(strokes: Array) -> Runes.Type:
 		return Runes.Type.NONE
 
 	return GESTURE_TO_RUNE.get(result["name"], Runes.Type.NONE)
+
+
+## Dice QUÉ falta, no solo que algo falla. Un mensaje que enumera los
+## elementos sin grabar ahorra el rato de buscar el fallo donde no está.
+func _warn_missing_templates() -> void:
+	var faltan: PackedStringArray = []
+	for nombre in GestureLibrary.ELEMENTS:
+		if gesture_library.sample_count(nombre) == 0:
+			faltan.append(nombre)
+
+	print("No se puede reconocer: hacen falta al menos DOS elementos")
+	print("  grabados para poder distinguirlos. Sin grabar: ",
+		", ".join(faltan))
+	print("  Abre el libro con T, pulsa G y dibuja cada uno.")
 
 
 ## Qué forma es el gesto dibujado en el núcleo.

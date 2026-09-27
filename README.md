@@ -24,9 +24,12 @@ elementos).
 
 Con el grimorio abierto:
 
-- Dibuja en el **núcleo** (el círculo central) → eliges el **elemento**.
-- Dibuja en un **sector** (uno de los 8 alrededor) → eliges **qué forma
-  toma y hacia dónde va**.
+- Dibuja en el **núcleo** (el círculo central) → eliges el **elemento**
+  (fuego, agua, tierra, rayo, hielo, tiempo, viento).
+- Dibuja en un **sector** (uno de los 8 alrededor) → añades un **sello**
+  con su dirección. Varios sellos en el mismo sector **se combinan**:
+  barrera + levitación da una columna, levitación + flecha un tornado que
+  se mueve. Ninguna de esas combinaciones está programada — emergen.
 - Al cerrar el libro con `T`, se lanza lo que hayas compuesto.
 
 Dibujar en varios sectores lanza varios componentes a la vez: cuatro
@@ -36,9 +39,11 @@ flechas en cuatro sectores son cuatro proyectiles en cuatro direcciones.
 
 Dentro del grimorio, `G` entra y sale del modo de grabación, donde
 dibujar **no lanza nada**: guarda el trazo como muestra del gesto
-seleccionado. `1`–`9` y `← →` eligen qué gesto se graba; `Retroceso`
-borra la última muestra y `Supr` (dos veces) borra todas las de ese
-gesto.
+seleccionado. `1`–`9` eligen gesto y **`← →` recorren la lista entera** —
+hacen falta, porque hay 13 grabables y solo 9 teclas. `Retroceso` borra la
+última muestra y `Supr` (dos veces) borra todas las de ese gesto.
+
+**Los dibujos de cada runa están en `docs/runas.png`.**
 
 Graba **varias muestras por gesto** (cuatro o cinco): el mismo trazo
 sale distinto rápido que despacio, grande que pequeño, y con una sola
@@ -54,6 +59,8 @@ datos, no código**:
 - Un **elemento** es un archivo `.tres` (`fire_rune.tres`,
   `ice_rune.tres`…) con su color, su daño y sus etiquetas. Inventar un
   elemento es crear un `.tres` y añadir una línea a `spellcaster.gd`.
+- Una **animación** es una hoja de sprites que cumple un contrato escrito
+  (`docs/ANIMACION.md`). Cambiar de personaje es cambiar los PNG.
 - Un **gesto** es una plantilla grabada en `gesture_library.tres`.
   Cambiar cómo se dibuja el fuego es redibujarlo, no reescribir una
   función que lo detecte.
@@ -95,7 +102,20 @@ tope en 2048. `tools/gen_fx.py` genera las tiras ya en ese formato.
 
 ## Créditos de recursos
 
-- Packs de interfaz, runas y bosque: **Kenney** (CC0).
-- Terreno y personajes: pack **Spellweald**.
-- Tiras de efectos de rayo, hielo y tiempo: generadas con
-  `tools/gen_fx.py`.
+- **Kenney Sketch Town** (CC0) — los cubos de terreno.
+- **Kenney** — packs de interfaz, runas y partículas (CC0).
+- Reconocedor de gestos **$P** de Vatavu, Anthony y Wobbrock (New BSD).
+- Personaje, y efectos de rayo/hielo/tiempo: generados por los scripts de
+  `tools/`. Son de relleno y están pensados para sustituirse.
+
+## Las herramientas de `tools/`
+
+Se guardan en el repo para que cada paso sea **repetible**, en vez de
+acordarse de que un día alguien recortó unos PNG a mano:
+
+| script | qué genera |
+|---|---|
+| `gen_iso_tiles.py` | los cubos de terreno, desde el zip de Sketch Town |
+| `gen_actor.py` | las cinco hojas de animación del personaje |
+| `gen_fx.py` | las tiras de efecto de rayo, hielo y tiempo |
+| `gen_floor.py` | la textura de fondo sin costuras |

@@ -40,14 +40,19 @@ const ELEMENTS: PackedStringArray = [
 ## otro lado de la división elemento/función, porque los dos lados nunca
 ## se comparan entre sí.
 ##
-## "levitar" se cae de la lista: nunca llegó a hacer nada y cada gesto
-## grabado es un competidor más para los de su propia familia.
+## "levitacion" vuelve, ahora que SÍ hace algo: aporta permanencia y
+## altura, que es lo que saca al juego de "disparar en todas
+## direcciones". Medido contra los demás sellos da 99,6% de acierto y
+## cero confusiones con pilar — que era la duda, porque los dos son un
+## palo vertical. No se parecen porque el $P no normaliza el giro: uno
+## lleva la barra abajo y el otro la punta arriba.
 const SIGILS: PackedStringArray = [
 	"flecha",      # flecha apuntando a la derecha
 	"pilar",       # ⊥
-	"barrera",     # dos arcos concéntricos
+	"barrera",     # círculo cerrado
+	"levitacion",  # flecha hacia arriba
 	"repeticion",  # dos triángulos: multiplica lo que haya en su sector
-	"rombo",       # aumento
+	"amplificar",  # multiplica el daño y sube la intensidad del efecto
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -55,7 +60,7 @@ const SIGILS: PackedStringArray = [
 ## arriba, para que el número de la tecla no se aprenda dos veces.
 const RECORDABLE: PackedStringArray = [
 	"fuego", "agua", "tierra", "rayo", "hielo", "tiempo", "viento",
-	"flecha", "pilar", "barrera", "repeticion", "rombo",
+	"flecha", "pilar", "barrera", "levitacion", "repeticion", "amplificar",
 ]
 
 ## nombre -> Array de nubes ya normalizadas (PackedVector2Array). Se

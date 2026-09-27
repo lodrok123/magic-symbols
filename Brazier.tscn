@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://brazier.gd" id="1_brazier"]
+[ext_resource type="Texture2D" path="res://art/brazier.png" id="2_tex"]
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_brazier"]
+points = PackedVector2Array(0, -27, 58, 0, 0, 27, -58, 0)
+
+[node name="Brazier" type="Area2D"]
+script = ExtResource("1_brazier")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("ConvexPolygonShape2D_brazier")

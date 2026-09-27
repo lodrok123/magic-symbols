@@ -1,266 +1,342 @@
 # Magic Symbols — Notas de arquitectura
 
 Prototipo de aprendizaje en Godot 4. Idea central: dibujar símbolos con el
-ratón para lanzar hechizos, combinando un elemento (fuego, agua, viento,
-tierra) con un patrón de conjuro (flecha, pilar, barrera). Inspiración:
-Magicka (combinar elementos), Witch Hat Atelier (el trazo del símbolo
-importa), Breath of the Wild (reacciones físicas entre elementos).
+ratón para lanzar hechizos, combinando un **elemento** (siete) con
+**sellos** que dicen qué forma toma y hacia dónde va. Inspiración: Magicka
+(combinar elementos), Witch Hat Atelier (el trazo del símbolo importa),
+Breath of the Wild (reacciones físicas entre elementos).
+
+> **La idea que sostiene todo el proyecto: el comportamiento son datos, no
+> código.** Un elemento es un `.tres`. Un gesto es una plantilla grabada.
+> Una reacción es una etiqueta. Una combinación de sellos no está escrita
+> en ninguna parte: emerge de leer juntos unos pocos parámetros.
+
+---
+
+## Estado: dos ramas
+
+| rama | qué es |
+|---|---|
+| `main` | el juego en **vista cenital**, el que funcionaba antes de la prueba |
+| `prueba-isometrico` | **vista isométrica** con arte de Sketch Town. Todo lo nuevo está aquí |
+
+La rama isométrica se abrió para responder una pregunta —*¿merece la pena
+el cambio?*— antes de pagar el coste de migrar. La respuesta fue que sí,
+pero `main` sigue intacto hasta que se consolide.
+
+En la rama isométrica, **`node_2d.tscn` (el nivel viejo) se ve mal a
+propósito**: sus bloques siguen colocados en la rejilla antigua y ahora
+llevan cubos isométricos encima. El nivel bueno es `IsoTest.tscn`, que es
+además la escena principal.
 
 ---
 
 ## Cómo se juega ahora mismo
 
-**Movimiento**: `WASD` en las cuatro direcciones. `Shift` salta (impulso
-corto que ignora colisiones: sirve para cruzar huecos, esquivar bloques o
-saltar por encima del fuego). `R` reinicia el nivel en cualquier momento,
-incluso con el juego pausado por victoria o muerte.
+**Movimiento**: `WASD`. `Shift` salta (impulso corto que ignora
+colisiones). `R` reinicia el nivel en cualquier momento, incluso con el
+juego pausado por victoria o muerte.
 
 **Lanzar hechizos** — con el grimorio:
+
 1. `T` abre el libro. **El tiempo se detiene** mientras esté abierto.
-2. Dibujas dentro del círculo. Un **trazo cerrado** (triángulo, círculo,
-   cuadrado, estrella) elige el **elemento**. Un **trazo recto** añade un
-   **componente** con su propia dirección.
-3. Puedes dibujar **varios trazos rectos**, y de tipos distintos: cuatro
-   pilares de tierra en cuatro sectores son cuatro sitios a los que
-   subirse; una flecha y dos barreras, un ataque con cobertura.
+2. Dibujas en el **núcleo** para elegir el **elemento**.
+3. Dibujas en un **sector** (uno de los 8) para añadir un **sello** con su
+   propia dirección. Puedes poner varios sellos en el mismo sector: se
+   **combinan**.
 4. `T` cierra el libro **y lanza** todos los componentes a la vez.
 
-### Sectores y patrones
+Cuatro flechas en cuatro sectores son cuatro proyectiles en cuatro
+direcciones. Pero lo interesante empezó cuando dejó de ser solo eso (ver
+*El lenguaje de sellos*).
 
-La corona entre el núcleo y el borde está repartida en **8 sectores**
-(los cuatro ejes y las cuatro diagonales). El sector de un trazo se
-calcula desde el **centro del trazo** (la media de sus puntos), no desde
+### Sectores
+
+La corona entre el núcleo y el borde está repartida en **8 sectores**. El
+sector de un gesto se calcula desde el **centro** de sus puntos, no desde
 donde empieza: el centro es lo único que no cambia si lo dibujas de ida o
-de vuelta. Un trazo hecho sobre el núcleo no cae en ningún sector — no
-hay dirección que deducir.
+de vuelta.
 
-**El sector da la dirección; el sentido del trazo da el patrón.** No hizo
-falta inventar símbolos nuevos ni tocar el reconocedor: la información ya
-estaba en el trazo, solo había que leerla comparándolo con su sector.
+**Lo que decide el significado es DÓNDE dibujas, no qué forma tiene.**
+Núcleo = elemento; sector = sello. Antes lo decidía la forma (cerrada =
+elemento, recta = patrón), y eso dejaba fuera cualquier gesto abierto: un
+semicírculo no se cierra, así que jamás habría podido ser un elemento.
+Mirar la posición liberó el vocabulario por completo.
 
-| Trazo, respecto al centro | Patrón  | Dónde aparece            |
-|---------------------------|---------|--------------------------|
-| hacia **fuera**           | Flecha  | sale volando             |
-| hacia **dentro**          | Pilar   | a 2 casillas, lejos      |
-| de **lado**               | Barrera | a 1 casilla, pegado a ti |
-
-Pilar y barrera son la misma mecánica y solo se diferencian en la
-distancia — pero esa distancia **es** la diferencia de intención: el
-pilar es un sitio al que llegar, la barrera un escudo. Se mide con el
-producto escalar entre el trazo y su sector: vale 1 hacia fuera, −1 hacia
-dentro y 0 de lado.
-
-Con la runa de tierra esto da las tres cosas de golpe: flecha = proyectil
-de piedra, pilar = lugar escalable en esa dirección, barrera = piedra
-pegada a ti (cuatro barreras = encerrarse). Y funciona **sin ninguna
-regla nueva**: la tierra ya construía solo cuando el hechizo llegaba
-quieto, y flecha es el único patrón que llega con dirección.
-
-Antes se dibujaba encima del juego con los enemigos moviéndose, y se
-lanzaba con `Espacio`. El libro resuelve las dos cosas: el dibujo tiene
-su sitio y el tiempo parado quita la presión de dibujar con prisa.
-
-### Vocabulario de runas
-
-**Elementos** — se dibujan **en el núcleo**:
-
-| Forma       | Elemento | Etiquetas          |
-|-------------|----------|--------------------|
-| círculo     | Agua     | `agua`, `frio`     |
-| triángulo   | Fuego    | `fuego`, `calor`   |
-| cuadrado    | Viento   | `viento`           |
-| semicírculo | Tierra   | `tierra`           |
-
-> **El significado lo da DÓNDE dibujas, no qué forma tiene.** Núcleo =
-> elemento; sector = componente. Antes lo decidía la forma (cerrada =
-> elemento, recta = patrón), y eso dejaba fuera cualquier gesto abierto:
-> un semicírculo no se cierra, así que nunca habría podido ser un
-> elemento. Mirar la posición libera el vocabulario de gestos por
-> completo y elimina de paso una heurística frágil. La estrella se
-> descartó por otro motivo, puramente práctico: con ratón se falla.
-
-**Patrones** (trazo abierto, se distinguen por su dirección):
-
-| Trazo      | Patrón   | Qué hace                                        |
-|------------|----------|-------------------------------------------------|
-| izq / der  | Flecha   | Proyectil que sale del jugador en esa dirección |
-| arriba     | Pilar    | El elemento aparece quieto delante del jugador  |
-| abajo      | Barrera  | 4 copias del elemento rodean al jugador         |
-
-Existe un quinto "elemento" que el jugador **no puede dibujar**: el
-**vapor** (`steam_rune.tres`). Solo lo genera el mundo, al evaporarse el
-agua. Es el primer caso de un elemento que existe únicamente como
-consecuencia de una reacción.
+**Atajo que sobrevive**: un trazo recto suelto en un sector sigue valiendo
+como el sello equivalente, según su sentido respecto al centro — hacia
+fuera flecha, hacia dentro pilar, de lado barrera. El trazo es azúcar; el
+sello es el lenguaje, y solo el sello se puede combinar.
 
 ---
 
-## Las piezas del sistema, de abajo a arriba
+## Vocabulario
 
-### `runes.gd` — el vocabulario de formas
+La hoja de referencia dibujada está en **`docs/runas.png`**.
 
-Un único `enum Runes.Type`. Vive en su propio script (no dentro de
-`Spellcaster`) para que cualquier otro script pueda usarlo sin depender
-del nodo del jugador.
+### Elementos — se dibujan en el NÚCLEO
 
-> ⚠️ **Cuidado al reordenar un enum**: los valores se guardan en las
-> escenas como números. Cuando `GrassBlock.State` pasó de 3 a 5 estados,
-> el `initial_state = 2` del `GrassWall` dejó de significar `GROWN` y pasó
-> a significar `IGNITING`. Si reordenas un enum, revisa las escenas que lo
-> exportan.
+| Gesto | Elemento | Etiquetas | Daño |
+|---|---|---|---|
+| triángulo abierto abajo `∧` | Fuego | `fuego`, `calor` | 40 |
+| onda `~` | Agua | `agua` | 40 |
+| rombo `◇` | Tierra | `tierra` | 0 |
+| zigzag | Rayo | `rayo`, `electrico` | 55 |
+| copo de 3 trazos | Hielo | `hielo`, `frio` | 20 |
+| `X` | Tiempo | `tiempo`, `disipar` | 0 |
+| 3 líneas horizontales | Viento | `viento` | 0 |
 
-### `spellcaster.gd` — captura y reconocimiento de gestos
+Existe un octavo elemento que el jugador **no puede dibujar**: el
+**vapor**. Solo lo genera el mundo al evaporarse el agua. Es el primer
+caso de un elemento que existe únicamente como consecuencia.
 
-- Captura los puntos del ratón mientras se dibuja (`stroke_points`).
-- Distingue **trazo abierto** (dirección: ángulo entre primer y último
-  punto) de **trazo cerrado** (el final vuelve cerca del principio).
-- En los cerrados, cuenta **esquinas**: cambios de ángulo mayores de 40°
-  entre segmentos consecutivos. Un círculo dibujado a mano da 0–1 porque
-  cada giro es suave; una estrella da muchos.
-- La clasificación es una **escalera de tramos** (`<=1`, `<=3`, `<=5`,
-  resto). Añadir un quinto elemento es insertar un tramo, no reescribir
-  las condiciones existentes.
-- **Limitación conocida**: contar esquinas no distingue formas parecidas
-  (una gota vs. un círculo). Para eso hará falta el algoritmo **$1
-  Unistroke Recognizer**. Pospuesto a propósito.
+> **El agua perdió la etiqueta `frio`.** La llevaba de paso desde el
+> principio, y al aparecer el hielo como elemento propio había que
+> repartir: el agua moja, el hielo congela. Esto **cambió una solución de
+> nivel** — el puente ya no se cruza congelando con agua, hay que usar
+> hielo.
 
-### `spellbook.gd` — el grimorio
+### Sellos — se dibujan en un SECTOR
 
-La interfaz de dibujo, abierta con `T`. Está pintada **entera por
-código** (`_draw()`: arcos, líneas y círculos), sin una sola imagen: su
-aspecto se cambia tocando números, no buscando arte.
+| Gesto | Sello | Aporta |
+|---|---|---|
+| `→` | flecha | `travels`, `reach +1` |
+| `⊥` | pilar | `origin = 128` (dos casillas) |
+| círculo cerrado | barrera | `spread` (ocupa área) |
+| `↑` | levitación | `lifetime +2s`, `height +1` |
+| dos triángulos | repetición | `copies ×2` |
+| `<` | rombo | `power ×2` |
 
-**Es solo la cara del sistema.** Captura el trazo y lo pinta; quién
-reconoce ese trazo y qué hechizo sale de él sigue siendo del
-`Spellcaster`, al que encuentra por el grupo `"spellcaster"`. Si mañana
-cambias el reconocimiento de gestos, este archivo no se entera.
+Los dos lados **nunca compiten al reconocer**: un gesto del núcleo solo se
+compara contra elementos, y uno de sector solo contra sellos. Esa
+separación es lo que permite que la barrera sea un círculo aunque haya
+elementos redondeados, y la razón de que el vocabulario pueda crecer sin
+que cada gesto nuevo degrade a todos los anteriores.
 
-Detalles que no son evidentes:
+---
 
-- **`process_mode = ALWAYS`** (puesto en la escena), como el
-  `LevelController`: sin eso, el libro se congelaría con su propia pausa
-  y no podrías ni cerrarlo.
-- **Se abre con `T`, no con `TAB`**: `TAB` es la tecla que Godot usa por
-  defecto para saltar de un control de interfaz al siguiente, así que
-  siempre habría riesgo de que las dos cosas se pisaran.
-- **Al cerrar se despausa ANTES de lanzar**, para que el hechizo nazca en
-  un mundo que ya corre.
-- **El libro no se abre si el árbol ya estaba pausado**: esa pausa es de
-  la pantalla de muerte o de victoria, y cerrarlo luego la descongelaría.
-- **El trazo debe nacer dentro del círculo**, y salirse de él lo termina.
-  Se prefirió eso a recortar el punto contra el borde: recortar
-  deformaría el gesto y el reconocimiento fallaría sin que se entienda
-  por qué.
+## El lenguaje de sellos: `sigils.gd` + `spell_recipe.gd`
 
-El núcleo central toma su color y su nombre del `RuneData` del elemento,
-así que tampoco conoce la lista de elementos que existen. El anillo
-exterior muestra **solo el patrón ya dibujado**, no las opciones
-disponibles: decisión de diseño, más cercana a Witch Hat Atelier.
+Esta es la pieza de la que más se aprende del proyecto.
 
-### `gesture_recognizer.gd` — el reconocedor $1 Unistroke
+Seis sellos son quince parejas, veinte tríos y quince cuartetos. Escribir
+a mano qué hace cada combinación mata el sistema: cada sello nuevo
+obligaría a decidir qué pasa con todos los anteriores.
 
-Algoritmo de Wobbrock, Wilson y Li (UIST 2007, Universidad de
-Washington), portado a GDScript. Licencia **New BSD**: uso libre incluso
-comercial, conservando el aviso de la cabecera.
+**Por eso no hay ni una combinación escrita.** Cada sello declara solo lo
+suyo en una tabla (`sigils.gd`), lo vuelca en una receta común
+(`spell_recipe.gd`), y es la receta terminada la que se interpreta al
+final.
+
+### Cómo se acumula cada parámetro
+
+No es arbitrario: dice qué significa apilar ese sello.
+
+| parámetro | acumula | significado |
+|---|---|---|
+| `travels`, `spread` | se encienden | o viaja o no |
+| `origin` | el mayor manda | el más lejano gana |
+| `reach`, `lifetime`, `height` | **se suman** | más flechas, más lejos; más levitaciones, más rato |
+| `copies`, `power` | **se multiplican** | dos repeticiones son cuatro |
+
+### Lo que emerge
+
+Ninguna de estas líneas existe en el código:
+
+| sellos | resultado |
+|---|---|
+| flecha | proyectil |
+| pilar | aparece a dos casillas, quieto |
+| barrera | corro que te rodea |
+| **pilar + flecha** | muro **a lo largo** del camino |
+| **barrera + flecha** | muro **de través** que barre de frente |
+| **barrera + levitación** | columna (corro × altura) |
+| **levitación** (+ aire) | tornado quieto que permanece |
+| **levitación + flecha** | tornado que se desplaza |
+| **levitación + flecha ×2** | chorro que ocupa dos casillas y permanece |
+| **repetición + cualquiera** | abanico de copias |
+
+Dos reglas que salieron solas y merece la pena señalar:
+
+**Qué área ocupa `barrera` depende de si además viaja.** Quieta, el corro
+rodea. Viajando, se pone de través y barre — porque un corro alrededor de
+algo que avanza no significaría nada. Una lectura, dos resultados.
+
+**Lo que permanece, atraviesa.** `piercing = lifetime > 0`. Un tornado no
+se deshace contra el primer arbusto: lo arrastra y sigue. No hizo falta
+una regla nueva, solo leer un parámetro que ya estaba.
+
+### Tope de manifestaciones
+
+`MAX_MANIFESTATIONS = 24` por componente. Los parámetros se multiplican
+entre sí: un corro de 6 × 3 alturas × 4 copias son **72 hechizos de un
+solo trazo**. Sin tope, la combinación más creativa sería también la que
+tira los fotogramas, y eso enseña justo lo contrario de lo que queremos.
+
+El tope se aplica al final, en `build()`, y no dentro de cada paso: así
+ninguna regla necesita saber cuántas manifestaciones llevan las demás.
+
+### Nota sobre `pilar`
+
+Ya no hace pilares —los hace `barrera + levitación`—, pero **no sobra**:
+dice *dónde* (aparece lejos) mientras que barrera dice *cuánto espacio*.
+Son ejes distintos, y por eso `pilar + flecha` y `barrera + flecha` dan
+dos armas diferentes. Lo que sobra es el nombre; renombrarlo a `alcance`
+está pendiente.
+
+---
+
+## Reconocimiento de gestos
+
+### `gesture_recognizer.gd` — el reconocedor **$P**
+
+Algoritmo **$P (Point-Cloud Recognizer)** de Vatavu, Anthony y Wobbrock
+(ICMI 2012), portado a GDScript. Licencia **New BSD**.
 Original: https://depts.washington.edu/acelab/proj/dollar/
 
-Sustituye al conteo de esquinas porque este no distingue un **rombo de
-un cuadrado** (ambos tienen 4 esquinas) ni un rayo de una estrella. Con
-los sellos por delante, hacía falta algo que distinga *formas*, no
-cantidades.
+**Por qué $P y no $1.** El $1 es *unistroke*: un gesto, un trazo. En
+cuanto un sello necesita varios —el copo son tres líneas, el viento tres
+rayas— deja de servir. El $P trata el gesto como una **nube de puntos sin
+orden**: da igual cuántos trazos lo formen, en qué orden los dibujes y en
+qué sentido vaya cada uno.
 
-Cómo funciona: remuestrea el trazo a 64 puntos repartidos por igual, lo
-escala y lo centra, y lo compara punto a punto con una biblioteca de
-plantillas. El paso que de verdad hace el trabajo es el **remuestreo**:
-después de él, dos trazos de la misma forma tienen sus puntos en sitios
-equivalentes aunque uno se dibujara despacio (muchos puntos amontonados)
-y el otro de un tirón.
+**Parámetros elegidos midiendo, no a ojo:**
 
-> ⚠️ **Rotación acotada a ±20°, no invarianza total.** El $1 original
-> normaliza el ángulo para reconocer una figura la dibujes como la
-> dibujes. Pero **un rombo es un cuadrado girado 45°**, así que con
-> invarianza total los dos gestos se vuelven el mismo. Medido con 150
-> gestos sintéticos: con invarianza total, cuadrado y rombo aciertan
-> 12/30 y 15/30 — azar puro entre dos opciones —, y el total baja al
-> 77%. Con rotación acotada, ambos 30/30 y el total 98%. Los trazos
-> rectos ni pasan por aquí: su orientación ya la resuelve el sector.
+- **`NUM_POINTS = 16`**. Con 270 gestos deformados, 16 puntos aciertan el
+  95,9% y 32 el 97,0% — pero 32 tarda **seis veces más** (105 ms frente a
+  17 ms), y el coste crece con cada plantilla grabada. Un punto de acierto
+  no lo compensa.
 
-La búsqueda del mejor ángulo usa **sección áurea**: como el parecido en
-función del ángulo tiene un solo valle, cada vuelta descarta la mitad
-peor del intervalo. Unas diez comparaciones en vez de cuarenta.
+- **Rechazo por MARGEN, no por parecido.** Lo natural sería descartar por
+  debajo de cierto parecido. Con el $P **no funciona, y está medido**: los
+  aciertos puntúan 0,91 de media, los fallos 0,87 y un garabato aleatorio
+  0,83. Los tres rangos se solapan casi del todo. Lo que sí separa es
+  cuánto le saca el primero al segundo: en los aciertos el segundo es un
+  103% peor; en fallos y garabatos, un 10–12%. `MIN_MARGIN = 0.30`.
+
+> ⚠️ **Con UN SOLO gesto grabado no se puede reconocer nada.** Antes aquí
+> se aceptaba sin más —"es el único candidato posible"— y fue un error
+> serio: al renombrar los elementos quedó una única plantilla y el juego
+> empezó a leer **cualquier** trazo como esa runa, en silencio. Sin
+> segundo candidato no hay margen, y sin margen no hay medida. Ahora
+> rechaza y dice por consola qué elementos faltan por grabar.
 
 ### `gesture_library.gd` / `.tres` — los gestos como dato
 
-Igual que un elemento es un `RuneData` y no código, **un gesto es un
-dato y no una heurística**. Añadir una forma nueva es dibujarla, no
-escribir una función que la detecte. Ese es todo el sentido del $1.
+Un gesto es un **dato**, no una heurística. Añadir una forma es dibujarla,
+no escribir una función que la detecte.
 
-Cada gesto guarda **varias muestras** a propósito (3-5): el mismo trazo
-sale distinto rápido que despacio. Con una sola muestra el reconocedor
-es frágil.
+Cada gesto guarda **varias muestras** (4-5): el mismo trazo sale distinto
+rápido que despacio, grande que pequeño.
 
-**Modo de grabación**: dentro del grimorio, `G` lo activa, las teclas
-`1..9` eligen qué gesto se graba y cada trazo guarda una muestra. El
-libro se pone naranja para que no haya duda de que no vas a lanzar nada.
+**Modo de grabación**: dentro del libro, `G` lo activa; `1..9` eligen
+gesto y **`← →` recorren la lista entera** — hacen falta porque hay 13
+grabables y solo 9 teclas. `Retroceso` borra la última muestra, `Supr` dos
+veces borra todas las de ese gesto.
 
-Vive dentro del propio libro a propósito: así las plantillas se graban
-**en las mismas condiciones** en que luego se dibujan — mismo tamaño de
-círculo, mismo ratón, mismo pulso. Una herramienta aparte grabaría
-gestos que no se parecen a los de la partida real.
+Vive dentro del propio libro a propósito: las plantillas se graban **en
+las mismas condiciones** en que luego se dibujan. Una herramienta aparte
+grabaría gestos que no se parecen a los de la partida real.
 
-Guarda en disco tras cada muestra (perder 40 trazos por cerrar el juego
-sin pensar sería para tirar la mesa). Solo funciona desde el editor:
-`res://` es de solo lectura en un juego exportado, y está bien — es una
-herramienta de desarrollo, no una función del juego.
+> El panel de grabación va **pegado a la esquina superior izquierda**, y
+> es una corrección: colgado bajo el anillo (radio 250, centrado en una
+> ventana de 648 de alto) las dos últimas líneas caían en y=650 y y=672,
+> **fuera de la pantalla**. Con ellas desaparecían la fila de sellos y el
+> aviso de las flechas. Las esquinas no dependen de lo alta que sea la
+> ventana.
 
-**Migración con red**: mientras la biblioteca esté vacía manda el conteo
-de esquinas; en cuanto haya plantillas, manda el $1. Los mensajes de
-consola van marcados con `[esquinas]` o `[$1]` para poder comparar los
-dos en la misma partida.
+### Cómo se eligieron las formas
 
-### `rune_data.gd` + archivos `.tres` — las propiedades de cada elemento
+Todo el set está medido con un banco de pruebas que deforma cada gesto
+(tamaño, proporción, giro, temblor y densidad de puntos = velocidad):
 
-Un elemento no es solo un color: es un `Resource` con propiedades
-(`color`, `damage`, `tags`). Añadir una propiedad nueva es añadir un
-`@export var` y rellenarlo en el `.tres` — sin tocar ninguna lógica.
+| | suave | temblor 0,05 · giro 22° |
+|---|---|---|
+| set inicial (fuego = `P`) | 100% | 69,3% |
+| **set actual** (fuego = `∧`) | 100% | **75,0%** |
 
-Las **`tags`** son la pieza más importante de todo el diseño. Los objetos
-del mundo no preguntan "¿eres fuego?", preguntan "¿traes la etiqueta
-`calor`?". Gracias a eso, el día que haya tres runas de fuego distintas,
-todas derretirán hielo sin tocar el código del hielo.
+El cambio clave fue sacar la `P`: `P` ↔ `agua` producía 7 de cada 11
+fallos porque son dos trazos con el mismo recorrido general (suben, hacen
+panza y vuelven).
 
-### `spell.gd` + `spell_factory.gd` — el hechizo y el contrato `on_spell_hit`
+**La barrera pasó a círculo** por la misma vía: dos arcos concéntricos
+fallaban 38 de 40 con temblor medio; el círculo cerrado falla **1 de 40**.
+Y solo es posible porque el agua ya no es un círculo — la regla de separar
+las formas conflictivas entre familias es literalmente lo que lo permite.
 
-El hechizo lleva su `RuneData` completo. Al tocar cualquier `Area2D`, no
+**Levitación `↑` mide 99,6%** y cero confusiones con `pilar ⊥`, que era la
+duda porque ambos son un palo vertical. No se parecen porque el $P **no
+normaliza el giro**: uno lleva la barra abajo, el otro la punta arriba.
+
+> **Casi todos los fallos son RECHAZOS, no confusiones.** El sistema dice
+> "no te he entendido" en vez de lanzar el hechizo equivocado. En un juego
+> de magia eso es exactamente lo que quieres: fallar es gratis,
+> equivocarse de elemento no.
+
+---
+
+## Las piezas del sistema
+
+### `runes.gd` — el vocabulario de tipos
+
+Un único `enum Runes.Type`, en su propio script para que cualquiera pueda
+usarlo sin depender del nodo del jugador.
+
+> ⚠️ **Los enum no se reordenan.** Los `.tres` y las escenas guardan el
+> **número**, no el nombre. Cuando `GrassBlock.State` pasó de 3 a 5
+> estados, el `initial_state = 2` del `GrassWall` dejó de significar
+> `GROWN` y pasó a `IGNITING`. Por eso `ELEMENT_LIGHTNING`, `ELEMENT_ICE`
+> y `ELEMENT_TIME` van **al final**, y los viejos `SHAPE_*` conservan su
+> nombre aunque ya no describa nada.
+
+### `rune_data.gd` + `.tres` — las propiedades de cada elemento
+
+Un elemento es un `Resource` con `color`, `damage`, `tags`, `vfx_sheet`.
+Añadir una propiedad es un `@export var` y rellenarlo — sin tocar lógica.
+
+Las **`tags`** son la pieza más importante del diseño. Los objetos del
+mundo no preguntan "¿eres fuego?", preguntan "¿traes `calor`?". El día que
+haya tres runas de fuego, todas derretirán hielo sin tocar el hielo.
+
+### `spell.gd` + `spell_factory.gd` — el contrato `on_spell_hit`
+
+El hechizo lleva su `RuneData` completo. Al tocar cualquier `Area2D` no
 sabe qué ha tocado: comprueba si tiene `on_spell_hit()` y se lo pasa.
 
-```gdscript
-func _hit(area: Area2D) -> void:
-	if area.has_method("on_spell_hit"):
-		area.on_spell_hit(rune_data, direction)
-```
+**Este es el patrón clave del proyecto.** Combate y puzzles usan el mismo
+mecanismo, y `Spell` nunca tiene una lista de "cosas que existen".
 
-**Este es el patrón clave del proyecto**: cualquier objeto que implemente
-`on_spell_hit()` reacciona a los hechizos, sin que `Spell` tenga una lista
-de "cosas que existen". Combate y puzzles usan el mismo mecanismo.
+Tres tipos de hechizo, decididos por sus parámetros:
 
-Un hechizo puede ser de dos tipos, decidido por su `direction`:
-
-- **Con dirección** → vuela y desaparece al primer impacto.
-- **Sin dirección (ZERO)** → se queda quieto un tiempo
-  (`stationary_lifetime`) y puede afectar a varias cosas. Así están hechos
-  el pilar, la barrera y las nubes de vapor: **el vapor no es una escena
-  nueva, es un hechizo quieto con otra ficha**.
+- **Con dirección** → vuela y muere al primer impacto.
+- **Sin dirección** → se queda quieto `stationary_lifetime` y puede
+  afectar a varias cosas. Así son el pilar, la barrera y el vapor: **el
+  vapor no es una escena nueva, es un hechizo quieto con otra ficha**.
+- **Con `piercing`** → vuela y **no** muere al chocar. Lo pone la receta
+  cuando hay permanencia.
 
 Un hechizo quieto que nace ya solapado con un bloque no recibiría nunca
-`area_entered` (nadie "entra": ya estaban juntos), así que al nacer espera
-un ciclo de física (`await get_tree().physics_frame`) y mira a mano con
-`get_overlapping_areas()`.
+`area_entered`, así que al nacer espera un ciclo de física
+(`await get_tree().physics_frame`) y mira a mano.
 
-**`spell_factory.gd`** centraliza la creación porque **el orden importa**:
-`add_child()` ejecuta `_ready()` al instante, así que todo lo que `_ready`
-necesite leer (`direction`, `stationary_lifetime`) debe asignarse **antes**
-de meter el nodo en el árbol, y lo que necesite estar en escena
-(`global_position`, `$ColorRect`) **después**.
+> ⚠️ **`spell_factory.gd` existe porque el ORDEN importa.** `add_child()`
+> ejecuta `_ready()` al instante, así que todo lo que `_ready` necesite
+> leer (`direction`, `stationary_lifetime`) debe asignarse **antes** de
+> meter el nodo en el árbol, y lo que necesite estar en escena
+> (`global_position`) **después**. Esto ya causó un bug real: los hechizos
+> se creaban invisibles porque la dirección se ponía un instante tarde y
+> todos se creían quietos.
+
+**El viento arrastra lo que toca.** Un hechizo de viento que cruza fuego
+deja de ser viento y pasa a ser viento *cargado* de fuego: su color, su
+daño y sus etiquetas. Sigue volando, pero ahora prende lo que encuentra
+más allá.
+
+No es un caso especial viento-contra-fuego. El viento pregunta *"¿llevas
+algo que se pueda arrastrar?"* (`carried_element()`) y el bloque responde.
+Un bloque futuro que devuelva veneno hará viento venenoso sin que ni el
+viento ni el veneno se enteren el uno del otro. **Solo se carga una vez**,
+o al cruzar una hoguera larga iría cambiando casilla a casilla.
 
 ---
 
@@ -268,102 +344,69 @@ de meter el nodo en el árbol, y lo que necesite estar en escena
 
 ### `neutral_block.gd` — el suelo de los niveles
 
-**Por qué existe**: si todos los bloques reaccionan, el jugador no puede
-distinguir decorado de puzzle. Este es la base mayoritariamente inerte.
-Nunca bloquea el paso (no tiene `SolidBody`); sus reacciones son de
-superficie.
+Si todos los bloques reaccionan, el jugador no distingue decorado de
+puzzle. Este es la base mayoritariamente inerte: nunca bloquea el paso,
+sus reacciones son de superficie.
 
-| Estado | Con agua | Con fuego              | Con tierra           |
-|--------|----------|------------------------|----------------------|
-| DRY    | → WET    | —                      | construye EarthBlock |
-| WET    | → ICY    | → DRY **+ vapor**      | construye EarthBlock |
-| ICY    | —        | → WET                  | construye EarthBlock |
+| Estado | agua | frío | calor | rayo | disipar |
+|---|---|---|---|---|---|
+| DRY | → WET | → ICY | — | — | — |
+| WET | → ICY | → ICY | → DRY **+ vapor** | **conduce** | → DRY |
+| ICY | — | — | → WET | — | → DRY |
+
+El hielo **hiela de golpe**; el agua pide dos impactos. Uno es la ruta
+larga y barata, el otro la corta.
 
 En `ICY` es **resbaladizo**, no sólido: el bloque no empuja al jugador,
-solo le avisa (`add_ice_contact()` / `remove_ice_contact()`) y es el
-jugador quien decide qué significa. El jugador cuenta contactos en vez de
-usar un `bool` porque puede tocar dos bloques helados a la vez.
+solo le avisa (`add_ice_contact()`) y es el jugador quien decide qué
+significa. Cuenta contactos en vez de un `bool` porque puede tocar dos
+bloques helados a la vez.
 
-> Detalle sutil: avisar de "sales del hielo" se hace mirando la
-> **transición** (`ICY → otro`), no el estado nuevo. Si no, un bloque que
-> pasa de seco a mojado restaría un contacto que nunca sumó.
+> Detalle sutil: avisar de "sales del hielo" se mira en la **transición**
+> (`ICY → otro`), no en el estado nuevo. Si no, un bloque que pasa de seco
+> a mojado restaría un contacto que nunca sumó.
 
-### Altura: subirse a las cosas en un juego sin eje Z
+### `water_block.gd`
 
-Este juego es cenital, así que no existe una coordenada de altura. La
-altura es una **convención** montada con tres piezas que hay que mantener
-de acuerdo entre sí:
+`frio` congela (pasable), `calor` derrite, y **agua + fuego = vapor** esté
+helada o líquida.
 
-1. **Un número**: `Player.elevation` (0 = suelo, 1 = subido). Un solo
-   nivel basta para todo lo que hay; apilar más sería subir ese número,
-   no rehacer la idea.
-2. **Un truco visual**: el sprite se dibuja `ELEVATION_OFFSET` píxeles
-   más arriba y se enciende una sombra en el suelo. La sombra no es
-   decorativa: sin ella, un sprite desplazado 16px solo parece mal
-   colocado. Con ella, se lee "está en alto".
-3. **Una regla física**: arriba se apaga la máscara de colisión con el
-   mundo (`set_collision_mask_value(1, false)`). No es que atravieses las
-   cosas, es que estás por encima. Lo que te limita ya no son las
-   paredes, es **el borde de la estructura**: en cuanto lo pasas, caes.
+**`rayo` la electrifica**: hiere a quien esté encima y **pasa la corriente
+a las charcas vecinas** (grupo `water_blocks`, radio 80). El hielo **no**
+conduce: es superficie, no balsa — lo que da la jugada inversa, congelar
+para cruzar seguro.
 
-**Se sube saltando**, sin tecla ni animación nuevas: al terminar el
-salto, si hay algo trepable debajo, te quedas encima. **Se baja andando**
-hasta salirse.
+> ⚠️ **El pestillo `is_electrified` no es opcional.** La descarga nace
+> encima de la propia charca, así que en cuanto corre un ciclo de física
+> se golpea a sí misma y suelta otra, y otra. Es un bucle infinito que
+> cuelga el juego al primer rayo. Mismo pestillo en el charco neutro.
 
-Un `CharacterBody2D` no puede preguntar con qué áreas se solapa, así que
-el jugador lleva un `Area2D` pequeño llamado `Feet` que sí puede, y que
-mantiene la lista `supports`. Es una lista y no un contador porque un
-bloque puede **desaparecer solo** (convertirse en vegetación, o
-desmoronarse al llegar al tope de 20): en ese caso nunca llega el aviso
-de "has salido de mí". Por eso se filtra con `is_instance_valid()` antes
-de usarla — y por eso, si te quitan el suelo de debajo, te caes.
-
-Lo que marca qué se puede escalar es el **grupo `"climbable"`**, no el
-tipo de nodo. Es el mismo criterio que `on_spell_hit`: cualquier cosa
-futura (una caja, una plataforma) se vuelve trepable con solo entrar en
-ese grupo.
-
-**Simplificación conocida**: mientras estás arriba, `receive_damage()`
-ignora todo golpe. Es el motivo de ser de la altura (las llamas y los
-enemigos del suelo no te alcanzan), pero es una regla tajante: el día que
-haya enemigos voladores o a distancia, habrá que decirle a esa función
-desde qué altura viene el golpe. El `Spellcaster` tampoco sube con el
-sprite, así que los hechizos siguen saliendo a ras de suelo.
+`disipar` derrite el hielo y desmorona lo construido encima.
 
 ### `earth_block.gd` — lo que el jugador construye
 
-Sólido y **trepable**, se crea con la runa de tierra sobre suelo neutro o
-sobre agua (no en el aire: da una regla clara y limita el spam de forma
-natural). Sobre agua funciona como pasadero: una segunda forma de cruzar,
-distinta de congelarla, que no depende del frío pero gasta bloques y
-obliga a ir saltando.
+Sólido y **trepable**. Se crea sobre suelo neutro o sobre agua, no en el
+aire: da una regla clara y limita el spam de forma natural.
 
-Solo construye con **pilar o barrera**, no con flecha. Para distinguirlos
-no hizo falta un dato nuevo: una flecha llega con dirección (va volando)
-y un pilar o una barrera llegan quietos, con dirección cero. Si algún día
-aparece un patrón quieto que no deba construir, entonces sí habrá que
-pasar el patrón explícitamente.
+Solo construye con hechizos **quietos**. No hizo falta un dato nuevo: una
+flecha llega con dirección y un pilar llega con dirección cero.
 
 Dónde se puede construir lo decide **quien recibe el hechizo**, no la
-tierra: `NeutralBlock` y `WaterBlock` llaman a `EarthBuilder.build_on()`,
-y cada uno guarda su propio `occupant` para no apilar dos cosas en la
-misma casilla. La receta de construir vive en `earth_builder.gd` una sola
-vez, ya que la necesitan dos sitios y mañana probablemente más.
+tierra: `NeutralBlock` y `WaterBlock` llaman a `EarthBuilder.build_on()` y
+cada uno guarda su `occupant` para no apilar dos cosas en la misma
+casilla.
 
-**Tope: 20 bloques simultáneos** (`MAX_EARTH_BLOCKS`). Cada bloque es un
-área + un cuerpo estático que el motor consulta cada ciclo; sin límite, la
-memoria y la física se degradan rápido. La política es **FIFO**: al pasarse
-del tope desaparece el **más antiguo**, nunca el recién creado — así el
-jugador nunca siente que su última acción "no hizo nada".
+**Tope: 20 bloques**, política **FIFO** — desaparece el más antiguo, nunca
+el recién creado, así el jugador nunca siente que su última acción no hizo
+nada. **`disipar` los desmorona**, y eso importa más de lo que parece: con
+un tope, disipar es cómo *recuperas presupuesto*. Rectificar pasa a ser
+una jugada.
 
-**Tierra + agua = vegetación**: en vez de darle al bloque de tierra un
-estado "con hierba" (y duplicar toda la lógica de incendios), el bloque se
-sustituye a sí mismo por un `GrassBlock`. Cada script sigue haciendo una
-sola cosa.
+**Tierra + agua = vegetación**: el bloque se sustituye a sí mismo por un
+`GrassBlock` en vez de añadirse un estado "con hierba" y duplicar toda la
+lógica de incendios.
 
 ### `grass_block.gd` — simulación de incendio
-
-Cinco estados con un ciclo de vida real:
 
 ```
 THIN ──agua──> GROWN          (hierba baja / tupida y sólida)
@@ -371,215 +414,300 @@ THIN ──agua──> GROWN          (hierba baja / tupida y sólida)
   └──fuego───────┴──> IGNITING ──1s──> BURNING ──5s──> ASHES
                           │               │              │
                           └───agua────────┴──agua────────┘
-                                   (vuelve a THIN)
 ```
 
-- **IGNITING** (1s): ha prendido pero aún no quema. Es la ventana de
-  reacción del jugador.
-- **BURNING** (5s): hace daño y **contagia** a la vegetación en un radio de
-  110px cada 1.2s (los bloques están a ~90px, así que salta a los vecinos).
-- **ASHES**: se consumió. Inerte, ya no arde. Regándolo rebrota.
+- **IGNITING** (1s): ha prendido pero aún no quema. Ventana de reacción.
+- **BURNING** (5s): hace daño y **contagia** en radio 110 cada 1,2s.
+- **ASHES**: inerte. Regándolo rebrota.
 
-El fuego se apaga solo: un incendio no dura para siempre, lo que convierte
-el tiempo en un recurso del puzzle.
+**`rayo` salta la fase de prender**: cae y arde. Es la vía rápida y cara
+frente al fuego, que aún puedes apagar mientras prende.
 
-**Viento sobre llamas** hace dos cosas, como un incendio real: lanza una
-lengua de fuego hacia delante (un hechizo que vuela) y **salta
+**`disipar` apaga, pero no riega**: devuelve a THIN sin hacerla crecer ni
+resucitarla de la ceniza. El tiempo deshace magia, no obra milagros.
+
+El fuego **se apaga solo**: un incendio no dura para siempre, lo que
+convierte el tiempo en un recurso del puzzle.
+
+**Viento sobre llamas** lanza una lengua de fuego hacia delante y **salta
 directamente** a la vegetación a favor de viento, hasta 230px y solo en un
-cono en esa dirección (producto escalar > 0.3).
-
-`ignite()` es pública a propósito: es como un bloque contagia a otro, sin
-fabricar un hechizo para cada contagio.
-
-### `water_block.gd`
-
-`frio` congela (pasable), `calor` derrite. **Agua + fuego = vapor** tanto
-si estaba helada (se derrite) como líquida (hierve).
-
-`viento` sobre agua congelada propaga el frío hacia delante.
+cono (producto escalar > 0,3).
 
 ### `enemy.gd`
 
-Patrulla entre dos puntos (`patrol_distance` desde su posición inicial) y
-hace `damage_per_second` de daño por contacto mientras el jugador esté
-encima.
+Patrulla entre dos puntos y hace `damage_per_second` por contacto. Tiene
+además un **golpe frontal**: si te quedas plantado delante más de 0,5s,
+recibes 20 de daño con 1,5s de recarga. La espera es lo que lo hace justo
+— convierte "estar delante" en una decisión y no en un accidente.
 
-Para decidir si un hechizo le duele **no lista elementos a ignorar**, mira
-el dato que importa: `rune_data.damage <= 0`. Así viento, tierra y vapor
-se ignoran solos, y cualquier elemento futuro también.
+La zona de golpe se consulta por solapamiento en vez de por señales,
+porque **el área se mueve cada fotograma**: con señales habría que confiar
+en que entran y salen en el orden correcto al girar.
+
+Para decidir si un hechizo le duele no lista elementos a ignorar, mira el
+dato que importa: `rune_data.damage <= 0`.
+
+---
+
+## Vista isométrica
+
+### `iso_grid.gd` — la conversión
+
+Toda la vista isométrica se reduce a una función y su inversa; el resto
+del juego sigue pensando en **casillas**, que es como se piensan los
+puzles.
+
+La geometría **no es inventada**: viene del propio pack, que declara
+`<grid orientation="isometric" width="232" height="110"/>`. A media
+escala: rombo **116×55**, paso **(58, 27.5)**, altura de nivel **55,5**.
+
+> Medir el sprite a ojo habría salido mal: en estas piezas la hierba
+> **desborda** el borde del cubo, así que la parte verde mide 154 px de
+> alto pero el rombo real son 110. Fiarse del recorte habría descuadrado
+> el mapa 44 px por casilla.
+
+### Las tres trampas del isométrico
+
+**1. `y_sort` no es opcional.** Sin ordenar por profundidad, el orden de
+dibujado es el orden del árbol y un bloque del fondo puede taparle la cara
+a uno de delante.
+
+**2. Apilar rompe el `y_sort` ingenuo.** Un bloque subido 55 px tiene
+*menos* Y, así que Godot lo dibuja **detrás** de la losa sobre la que se
+apoya — invisible. La solución es contraintuitiva: **el nodo se queda a
+ras de suelo** y la altura se le da solo al sprite. Así la profundidad que
+ve `y_sort` es la de su casilla.
+
+> Y el desempate dentro de la misma casilla **no** se hace con `z_index`:
+> `z_index` manda *sobre* `y_sort`, así que el cubo elevado se pintaría
+> por encima de todo, incluidos los bloques que tiene delante. Se hace con
+> una décima de píxel de empujón, que no mueve nada visible.
+
+**3. Todo se ordena por donde toca el suelo.** Los bloques llevan su
+origen en el centro de la cara superior, pero un personaje lo lleva en
+mitad del cuerpo. Sin corregirlo, el jugador se ordena como si estuviera
+media figura más al fondo de donde pisa.
+
+**Las colisiones son rombos, no rectángulos.** Dos casillas en diagonal
+comparten solo una esquina; con rectángulos se solapan y el jugador se
+engancha en bordes que visualmente no existen.
+
+> **Pendiente conocido**: las colisiones isométricas siguen siendo poco
+> realistas —el rombo es una aproximación y los cubos elevados no tienen
+> volumen de colisión de verdad—. Se afinará con niveles reales delante,
+> no antes: hacerlo ahora sería ajustar contra un mapa de prueba
+> desechable.
+
+---
+
+## Animación
+
+El contrato completo está en **`docs/ANIMACION.md`**. Lo esencial:
+
+- Celdas de **64×64**, **8 filas** en orden `E SE S SO O NO N NE`, pies en
+  **y = 52**.
+- Cinco clips: `walk` (8), `idle` (4), `cast` (6), `hurt` (3),
+  `death` (6).
+- **`ActorAnimator` no sabe nada del mago**: sabe leer hojas con esa
+  forma. Cambiar de personaje es cambiar los PNG.
+- Valida las hojas al arrancar y avisa si alguna no cuadra.
+
+**La decisión que sostiene el resto: andar avanza con la DISTANCIA
+recorrida, no con el tiempo.** Si fuera por tiempo, los pies patinarían en
+cuanto cambiase la velocidad. Consecuencia práctica: `stride` describe la
+anatomía del personaje, no su prisa — para que vaya más lento se toca
+`velocidad` en `player.gd` y el ciclo se ajusta solo. Tocar las dos cosas
+lo frena dos veces.
+
+Andar y respirar se **observan** (mirando si el padre cambió de posición);
+el golpe y la muerte también, escuchando la señal `health_changed` que el
+jugador ya emitía para la barra de vida. Solo `cast` hay que avisarlo: "he
+empezado a lanzar" no se deduce de una posición.
+
+---
+
+## Partículas — `block_fx.gd`
+
+En isométrico el volumen es un engaño: son dibujos planos colocados en
+rombo. **Lo que sostiene el engaño no es el dibujo, es que las cosas
+ocurran en el sitio correcto** — que el humo salga de la cara de arriba
+del cubo y suba. El cerebro da por buena la profundidad en cuanto ve algo
+comportarse con ella.
+
+Por eso los emisores nacen en la **cara superior** y se reparten en un
+óvalo ancho y bajo: emitir desde un punto delata que debajo no hay
+volumen.
+
+Conectado a: llamas y humo mientras la hierba arde, chispazo al prender,
+ceniza al consumirse, escombros al desmoronarse un bloque de tierra,
+chispas al electrificarse el agua, destello al disipar.
+
+> Los estallidos **cuelgan de la escena, no del bloque**. La mitad ocurren
+> porque el bloque *desaparece*, y un hijo se va con su padre: colgados
+> del bloque no se vería ninguno de los que más importan.
+
+Los emisores continuos se crean la primera vez y luego solo se encienden y
+apagan — montar un material de partículas en cada cambio de estado daría
+tirones.
 
 ---
 
 ## Bloqueo físico vs. detección de hechizos
 
-Un objeto interactivo necesita **dos tipos de colisión** en el mismo nodo:
+Un objeto interactivo necesita **dos colisiones** en el mismo nodo:
 
-- Un `Area2D` (raíz) — detecta cuándo un `Spell` lo toca. No bloquea.
+- Un `Area2D` (raíz) — detecta el `Spell`. No bloquea.
 - Un `StaticBody2D` hijo (`SolidBody`) — este sí bloquea al `Player`. Se
-  activa/desactiva con `set_deferred("disabled", true/false)`.
+  activa con `set_deferred("disabled", ...)`.
 
 `set_deferred` en vez de asignar directamente: cambiar una forma de
-colisión en mitad del paso de física puede ser inestable; `set_deferred`
-aplica el cambio de forma segura al terminar el ciclo actual.
+colisión en mitad del paso de física puede ser inestable.
 
 ---
 
 ## Interfaz y estados de partida
 
-- **`health_bar.gd`**: un `ProgressBar` en un `CanvasLayer`. Encuentra al
-  jugador por el **grupo** `"player"` y se suscribe a su señal
-  `health_changed`. El jugador no sabe que existe una barra de vida.
-- **Victoria** (`goal.gd`) y **muerte** (`player.gd::_die()`) siguen el
-  mismo patrón: buscan su cartel por grupo (`"victory_ui"` /
+- **`health_bar.gd`**: encuentra al jugador por el grupo `"player"` y se
+  suscribe a `health_changed`. El jugador no sabe que existe una barra.
+- **Victoria** y **muerte** buscan su cartel por grupo (`"victory_ui"` /
   `"gameover_ui"`), lo hacen visible y pausan el árbol.
-- **`level_controller.gd`**: nodo aparte con `process_mode = ALWAYS`, para
-  seguir leyendo la tecla `R` **estando en pausa**. No se puede poner
-  ALWAYS en el nodo raíz porque los hijos lo heredan y entonces nada se
-  pausaría. Antes de recargar hace `get_tree().paused = false`, porque el
-  flag vive en el `SceneTree` y sobreviviría al cambio de escena.
-- `receive_damage()` del jugador tiene una guarda `is_dead`: sin ella, los
-  temporizadores de daño ya en marcha seguirían llamando a `_die()` en
-  bucle.
+- **`level_controller.gd`**: nodo aparte con `process_mode = ALWAYS` para
+  leer `R` estando en pausa. No se puede poner ALWAYS en la raíz porque
+  los hijos lo heredan y entonces nada se pausaría.
+- El grimorio también es `ALWAYS`: sin eso se congelaría con su propia
+  pausa y no podrías ni cerrarlo.
+- `receive_damage()` tiene guarda `is_dead`: sin ella los temporizadores
+  de daño en marcha seguirían llamando a `_die()` en bucle.
 
 ---
 
-## Decisiones de diseño ya tomadas
+## Arte
 
-- **Vista 2D top-down**, no isométrica: los puzzles de rejilla son mucho
-  más simples de razonar, e isométrico añadiría proyección y arte sin
-  aportar a la mecánica.
-- **Sin arte propio todavía** — todo son `ColorRect`. Deliberado: validar
-  mecánicas antes que estética.
-- **2 runas por hechizo** (elemento + patrón), a propósito, para no
-  bloquear el progreso del mundo mientras crece el vocabulario de gestos.
+### Terreno: **Kenney Sketch Town** (CC0)
+
+Cubos isométricos de material, que mapean 1:1 con los bloques que el juego
+ya tenía. No es casualidad que encaje: el pack son cubos de material y el
+juego ya estaba modelado como bloques de material.
+
+| archivo | pieza | bloque |
+|---|---|---|
+| `art/floor.png` | `dirt_low` | NeutralBlock (losa baja: se pisa) |
+| `art/earth.png` | `dirt_center` | EarthBlock (cubo entero: da altura) |
+| `art/grass.png` | `grass_center` | GrassBlock fina |
+| `art/grass_grown.png` | `grass_center` + `tree_single` | GrassBlock tupida |
+| `art/water.png` | `water_center` | WaterBlock |
+| `art/goal.png` | `structure_arch` | Meta |
+
+Los compuestos se montan **sobre el mismo lienzo de 256×352**: al no mover
+nada, la alineación sale sola y no hay que calcular desplazamientos.
+
+`tools/gen_iso_tiles.py` los extrae del zip. Se guarda en el repo para que
+el paso sea **repetible**: si mañana cambia la escala, se toca ahí y se
+relanza, en vez de acordarse de que un día alguien recortó unos PNG a
+mano.
+
+### La paleta, medida del propio pack
+
+Dos hallazgos que cambiaron el personaje por completo:
+
+1. **No hay contorno negro.** El borde es el mismo color al **57%**.
+2. **La cara en sombra solo baja al 89%**, no a la mitad.
+
+Con contorno negro y sombras duras, el mago parecía de otro juego.
+
+### Personaje
+
+De relleno, generado por `tools/gen_actor.py`, y **deliberadamente
+sustituible**. Kenney no tiene ni un personaje isométrico: sus 16 packs
+isométricos son todos entorno. Un personaje con 8 direcciones y 5
+animaciones son 40 dibujos coherentes entre sí, y por eso casi nadie lo
+regala.
+
+Las cinco poses salen del **mismo muñeco**: un script por animación
+parecía más simple y no lo era — retocar la túnica habría que hacerlo en
+cinco sitios y el personaje se desincronizaría consigo mismo.
+
+### Efectos (`art/fx/`)
+
+Fuego, agua, viento y tierra vienen de un pack de VFX muestreado a ~18
+fotogramas. Rayo, hielo y tiempo los genera `tools/gen_fx.py`.
+
+> ⚠️ **Los fotogramas van en REJILLA de 6 columnas, no en tira.** Una tira
+> de 19 fotogramas de 128px mide 2432px, y muchas tarjetas tienen el tope
+> en 2048: el juego arrancaba con un reguero de `Texture dimensions exceed
+> device maximum`. **Regla: ninguna textura del proyecto pasa de
+> ~1024–1280px de lado.**
+
+**La animación es un dato del elemento**, no del hechizo. `spell.gd` nunca
+pregunta "¿eres fuego?", solo "¿traes tira?".
+
+### Packs en bruto: `.gdignore`
+
+`Assets/`, `Spellbook/` y los dos packs de partículas llevan un
+`.gdignore`. **Godot importa toda imagen que haya dentro del proyecto, la
+use el juego o no**, y `Spellbook/fire/strong/strongFire.png` mide
+**35 623 × 635 px** — ninguna tarjeta la acepta. De ahí la cascada de
+`Attempting to use an uninitialized RID`.
+
+Efecto secundario bueno: son ~3000 archivos que Godot deja de importar, y
+la primera apertura del proyecto se vuelve rápida.
+
+---
+
+## Decisiones de diseño
+
+- **Vista isométrica** (en prueba). Revierte la decisión anterior de
+  quedarse en cenital. El motivo no fue estético: el pack son cubos de
+  material que mapean 1:1 con los bloques del juego, teselan sin huecos, y
+  **la altura por fin se dibuja de verdad** en vez de fingirse. El coste
+  aceptado es que el apaño de la elevación sigue ahí.
+- **Se descartó la vista lateral tipo Noita** por una razón concreta: en
+  lateral el agua tiene que acumularse y caer, lo que obliga a rediseñar
+  `water_block.gd` entero y con él la mitad de las reacciones. En
+  isométrico el agua sigue siendo una losa.
 - **Las reacciones viven en el objeto que reacciona**, nunca en el
-  elemento. El fuego no sabe que existe la hierba; la hierba sabe qué
-  hacer cuando le llega algo con la etiqueta `calor`.
+  elemento. El fuego no sabe que existe la hierba.
+- **Las combinaciones no se escriben, emergen.**
+- **El arte generado no es una derrota**: es lo único que da 8 direcciones
+  y 5 animaciones coherentes, y retocarlo es barato mientras aún se está
+  decidiendo.
 
 ---
 
-## Arte actual
+## Errores que costaron caros
 
-Los sprites salen del pack **Kenney Mini Forest** (CC0, uso libre incluso
-comercial). Es un pack **3D**, pero incluye *previews* renderizadas de
-64×64 con transparencia que funcionan perfectamente como sprites 2D en
-perspectiva 3/4 — justo la cámara "top-down ligeramente inclinada" que
-buscábamos.
+Los que volverían a morder:
 
-Las texturas usadas se copiaron a `art/` con nombres propios del juego, en
-vez de referenciar rutas del pack. Así, cambiar de pack mañana es
-sustituir 8 archivos, sin tocar ninguna escena:
-
-| Archivo             | Origen              | Se usa en          |
-|---------------------|---------------------|--------------------|
-| `art/floor.png`     | `patch-dirt`        | NeutralBlock       |
-| `art/water.png`     | `patch-dirt` teñido | WaterBlock         |
-| `art/grass.png`     | `patch-grass`       | GrassBlock (baja)  |
-| `art/grass_grown.png`| `plant`            | GrassBlock (crecida)|
-| `art/earth.png`     | `rocks-low`         | EarthBlock         |
-| `art/hero.png`      | `character-archer`  | Player             |
-| `art/enemy.png`     | `target`            | Enemy              |
-| `art/goal.png`      | `flag`              | Goal               |
-
-El pack no traía agua, así que `water.png` es la **misma losa de tierra
-recoloreada a azul**. Conserva silueta, perspectiva y sombreado del resto
-del pack, que es lo que hace que no desentone — un cuadrado azul plano
-habría cantado muchísimo.
-
-**Convención de nodos**: cada bloque tiene un `Sprite2D` llamado `Visual`.
-Los estados se pintan con `modulate`, que **multiplica** el color de la
-textura: blanco `(1,1,1)` la deja tal cual, por debajo la oscurece, por
-encima de 1 la aclara. Así el suelo mojado, el hielo o las cenizas son la
-misma textura teñida, sin necesitar un archivo por estado. La única
-excepción es la hierba, que sí cambia de textura al crecer porque una mata
-alta no es "hierba baja más oscura".
-
-### Efectos de hechizo (`art/fx/`)
-
-Cada elemento tiene su animación, tomada de un pack de VFX organizado por
-elemento e intensidad (`weak`/`medium`/`strong`). Las originales son ~30
-fotogramas sueltos de ~500×500 por animación: cargar las 537 del pack
-serían **cientos de MB de VRAM**, así que se muestrearon ~18 fotogramas de
-cada variante *weak* y se montaron en una hoja de 128px por fotograma
-(unos 80 KB por elemento).
-
-> ⚠️ **Los fotogramas van en REJILLA de 6 columnas, no en una tira.** El
-> primer intento fue una tira horizontal, que para 19 fotogramas medía
-> 2432px de ancho. Algunas tarjetas gráficas tienen el tamaño máximo de
-> textura en 2048px, y el juego arrancaba con un reguero de
-> `Texture dimensions exceed device maximum` y texturas nulas. La misma
-> animación en 6 columnas mide 768px. **Regla práctica: ninguna textura
-> del proyecto debería pasar de ~1024–1280px de lado.** Por eso el fondo
-> también es de 1280×800 escalado ×1.6 en la escena, en vez de una imagen
-> de 2048px.
-
-Godot recorta la rejilla solo: `hframes` y `vframes` dicen en cuántas
-columnas y filas está partida la textura, y `frame` recorre las celdas de
-izquierda a derecha y de arriba abajo. No hace falta un
-`AnimationPlayer` ni un archivo por fotograma — basta con avanzar `frame`
-por tiempo, contando hasta los fotogramas **reales** y no hasta el total
-de celdas (la última fila puede tener celdas vacías, que aparecerían como
-parpadeos).
-
-Configurar el sprite lo hace el propio elemento (`RuneData.setup_sprite()`),
-para que los dos sitios que animan efectos —el hechizo y la hierba
-ardiendo— no repitan esa configuración ni el riesgo de desfasarse.
-
-**La animación es un dato del elemento**, no del hechizo: `RuneData` tiene
-`vfx_sheet` y `vfx_frames`, igual que tiene `color` y `damage`. `spell.gd`
-nunca pregunta "¿eres fuego?", solo "¿traes tira?". Un elemento nuevo con
-su animación se verá animado sin tocar una línea de `spell.gd`.
-
-El `ColorRect` sigue ahí como **respaldo** para elementos sin animación
-propia (el vapor): al menos transmiten su color.
-
-La hierba ardiendo reutiliza la tira de `FIRE_RUNE`, no un PNG aparte: si
-cambias la animación de fuego, cambia en los hechizos y en los incendios a
-la vez. Cada bloque arranca su contador de animación al prender, para que
-dos hierbas encendidas en momentos distintos no ardan sincronizadas (que
-es lo que delataría que son el mismo dibujo repetido).
-
-Queda pendiente y fácil: las variantes **medium** y **strong** del pack
-están sin usar. El gancho natural es que la intensidad del efecto refleje
-la potencia del hechizo.
-
-**Rejilla**: todo se normalizó a casillas de **64×64 centradas en el
-origen** del nodo. Antes cada bloque tenía su `ColorRect` y sus formas de
-colisión descuadradas unos píxeles de tanto moverlos a mano, lo que con
-sprites reales se habría notado enseguida.
-
----
-
-## Dirección de arte (referencia: *Children of Morta*)
-
-El pack actual es un placeholder digno. Estas notas fijan hacia dónde ir:
-
-- **Iluminación**: es el rasgo más característico. Escenas base oscuras y
-  desaturadas con **focos de luz cálida** (antorchas, fuego, magia) que
-  tiñen el entorno. En Godot esto se monta con un `CanvasModulate` oscuro
-  global + `PointLight2D` en las fuentes de luz. Encaja perfectamente con
-  este juego: **el fuego que lanzas debería iluminar la escena**, y un
-  incendio propagándose cambiaría la iluminación de toda la sala.
-- **Paleta**: ocres, marrones y rojos apagados de base; el color saturado
-  se reserva para lo interactivo (el azul del agua, el naranja del fuego).
-  Esto ya es lo que hacen los `ColorRect` actuales — conviene mantener ese
-  criterio al pasar a arte real: **lo que brilla, es jugable**.
-- **Cámara**: top-down ligeramente inclinada, no cenital pura.
-
-El siguiente paso de arte **no es cambiar sprites, es la iluminación**: es
-lo que más acerca al referente y no necesita ningún asset nuevo.
+| error | señal | causa |
+|---|---|---|
+| Hechizos invisibles | nada en pantalla | `add_child()` corre `_ready()` al instante; la dirección se ponía después |
+| Flechas que se autodestruían | el proyectil no sale | chocaban contra el `Area2D` de los pies del propio lanzador |
+| `Texture dimensions exceed device maximum` | cascada de RID nulos | tira de 2432px; y una imagen de 35 623px en un pack sin usar |
+| Enum renumerado | un bloque arranca en otro estado | las escenas guardan el número, no el nombre |
+| `preload` de un archivo borrado | el juego no arranca | es un error de **compilación**, no de ejecución |
+| Todo se reconoce como una runa | sin aviso ninguno | con una sola plantilla no hay margen que medir |
+| Texto de interfaz invisible | la ayuda "no existe" | dibujado en y=672 con ventana de 648 |
+| Bucle infinito al electrificar | cuelgue | la descarga nace encima de quien la lanza |
+| Sombrero recortado | parecía una gorra | el sprite se salía de la celda por arriba |
+| Sombra animada en vez del personaje | el mago no anda | "el primer Sprite2D" era la sombra invisible |
 
 ---
 
 ## Pendiente / próximos pasos naturales
 
-- **UI radial de runas** (estilo Witch Hat Atelier / runa vikinga): círculo
-  exterior que contiene el trazo, núcleo central con el elemento, anillo de
-  propiedades alrededor. Es la siguiente pieza grande.
-- **Rueda hidráulica**: primer objeto que reaccione a la etiqueta `vapor`.
-  El gancho ya existe — solo falta el objeto.
-- **Excepciones del viento**: hoy el viento propaga elementos de forma
-  generalista. Falta distinguir qué bloques puede mover físicamente.
+- **Consolidar la rama isométrica** en `main`, o descartarla.
+- **Colisiones isométricas de verdad**, con niveles reales delante.
+- **Grabar el set completo de gestos** — hoy solo hay `viento` y cuatro
+  sellos; el resto están definidos pero sin plantillas.
+- **Renombrar `pilar` a `alcance`**, que es lo que hace.
+- **Animar al enemigo**: es `_animate(enemigo)` más su propia hoja.
+- **Iluminación** (`CanvasModulate` + `PointLight2D`): el fuego que lanzas
+  debería iluminar la escena. Sigue siendo lo que más acercaría al
+  referente sin un solo asset nuevo.
+- **Rueda hidráulica**: primer objeto que reaccione a `vapor`. El gancho
+  existe, falta el objeto.
+- **Combinaciones sugeridas sin implementar**: `repetición + barrera` →
+  corros concéntricos; `rombo + levitación` → que el aumento escale la
+  *permanencia* cuando hay algo que permanece.
 - Separar el mapa único en escenas de nivel independientes.
-- Ampliar el vocabulario de gestos (necesitará $1 Unistroke).
-- Sonido, y el ciclo de iluminación descrito arriba.
+- Sonido.

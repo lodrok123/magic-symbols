@@ -16,6 +16,8 @@ enum State { DRY, WET, ICY }
 
 const STEAM_RUNE: RuneData = preload("res://steam_rune.tres")
 const LIGHTNING_RUNE: RuneData = preload("res://lightning_rune.tres")
+const WATER_RUNE: RuneData = preload("res://water_rune.tres")
+const ICE_RUNE: RuneData = preload("res://ice_rune.tres")
 
 ## Cuánto dura la nube de vapor que sale al evaporar el charco.
 const STEAM_LIFETIME: float = 2.5
@@ -31,6 +33,7 @@ var occupant: Node = null
 
 
 func _ready() -> void:
+	add_to_group("ground")
 	state = initial_state
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
@@ -64,6 +67,15 @@ func on_spell_hit(rune_data: RuneData, direction: Vector2 = Vector2.ZERO) -> voi
 		_electrify()
 	elif rune_data.tags.has("disipar"):
 		_dispel()
+
+
+## Un charco o una placa de hielo sí tienen algo que el viento pueda
+## llevarse; el suelo seco no.
+func carried_element() -> RuneData:
+	match state:
+		State.WET: return WATER_RUNE
+		State.ICY: return ICE_RUNE
+		_: return null
 
 
 ## El agua avanza un escalón cada vez, igual que hace la hierba al

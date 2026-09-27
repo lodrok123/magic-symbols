@@ -3,6 +3,7 @@ extends Area2D
 const WATER_RUNE: RuneData = preload("res://water_rune.tres")
 const STEAM_RUNE: RuneData = preload("res://steam_rune.tres")
 const LIGHTNING_RUNE: RuneData = preload("res://lightning_rune.tres")
+const ICE_RUNE: RuneData = preload("res://ice_rune.tres")
 
 const STEAM_LIFETIME: float = 2.5
 
@@ -37,6 +38,14 @@ var occupant: Node = null
 
 func _ready() -> void:
 	add_to_group(WATER_GROUP)
+	# El agua también es suelo: no te caes al vacío por estar sobre ella
+	# (bloquea el paso salvo congelada, pero eso es otra cosa).
+	add_to_group("ground")
+	# ...y ahora también es CABLE. Una charca era ya lo único por lo que
+	# viajaba la corriente; apuntándola al circuito general, la misma
+	# balsa que corta el paso puede alimentar una placa o abrir una
+	# puerta, sin que el agua se entere de que existen.
+	add_to_group(Circuit.GROUP)
 
 
 ## `direction` es la dirección en la que iba el hechizo que golpeó. El
@@ -79,15 +88,19 @@ func _conduct() -> void:
 
 	is_electrified = true
 	$Visual.modulate = Color(1.5, 1.45, 0.7)
+	BlockFx.burst(self, "chispas")
+	Sfx.play(self, "chispa")
+	Glow.flash(self, Glow.LUZ_RAYO, 150.0, 1.6, CONDUCT_TIME)
 	print("¡La charca se electrifica!")
 
 	SpellFactory.cast(self, global_position, Vector2.ZERO, LIGHTNING_RUNE, CONDUCT_TIME)
 
-	for other in get_tree().get_nodes_in_group(WATER_GROUP):
-		if other == self or not is_instance_valid(other):
-			continue
-		if global_position.distance_to(other.global_position) <= CONDUCT_RADIUS:
-			other.on_spell_hit(LIGHTNING_RUNE)
+	# Antes esto recorría solo las OTRAS CHARCAS, y esa era justo la
+	# limitación que dejaba al rayo sin usos: la corriente podía viajar,
+	# pero únicamente por donde ya había agua. Ahora avisa a todo el
+	# circuito —charcas, placas, puertas— y el agua sigue sin saber qué
+	# hay al otro lado.
+	Circuit.spread(self, LIGHTNING_RUNE)
 
 	# Al apagarse vuelve a poder conducir: el corte es para que la onda
 	# no rebote dentro del mismo relámpago, no para gastar la charca.
@@ -109,11 +122,19 @@ func _dispel() -> void:
 	if is_frozen:
 		_unfreeze()
 
+	BlockFx.burst(self, "magia")
+
 	if is_instance_valid(occupant):
 		occupant.queue_free()
 		print("El tiempo se lleva lo que había construido encima.")
 
 	occupant = null
+
+
+## Lo que el viento puede arrastrar de una charca: frío si está helada,
+## agua si corre. Las dos cosas empapan lo que encuentren detrás.
+func carried_element() -> RuneData:
+	return ICE_RUNE if is_frozen else WATER_RUNE
 
 
 func _freeze() -> void:
@@ -122,6 +143,7 @@ func _freeze() -> void:
 	# aclara, así el hielo es la misma losa de agua pero pálida.
 	$Visual.modulate = Color(0.85, 1.0, 1.1)
 	solid_shape.set_deferred("disabled", true)
+	Sfx.play(self, "congelar")
 	print("¡El agua se ha congelado! Ahora puedes cruzar.")
 
 ## Cada CollisionShape2D tiene una casilla disabled —

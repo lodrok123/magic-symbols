@@ -7,7 +7,7 @@
 script = ExtResource("1")
 rune_type = 11
 display_name = "Tiempo"
-color = Color(0.78, 0.72, 0.95, 1)
+color = Color(0.72, 0.58, 0.98, 1)
 damage = 0.0
 tags = Array[String](["tiempo", "disipar"])
 vfx_sheet = ExtResource("2")

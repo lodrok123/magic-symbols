@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://archer.gd" id="1_archer"]
+[ext_resource type="Texture2D" path="res://art/archer.png" id="2_tex"]
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_archer"]
+points = PackedVector2Array(0, -18, 38, 0, 0, 18, -38, 0)
+
+[node name="Archer" type="Area2D"]
+script = ExtResource("1_archer")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -20)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("ConvexPolygonShape2D_archer")

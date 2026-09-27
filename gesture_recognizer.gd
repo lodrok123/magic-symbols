@@ -69,11 +69,20 @@ static func normalize(strokes: Array) -> PackedVector2Array:
 	return _translate_to_origin(_scale_to_unit(resampled))
 
 
-## Devuelve {"name", "score", "margin", "accepted"}.
+## Devuelve {"name", "second_name", "score", "margin", "accepted"}.
 ## Lo que hay que mirar es `accepted`, no `score` (ver MIN_MARGIN).
+##
+## `second_name` existe SOLO para depurar, y se gana el sitio: el margen
+## dice cuánto ha faltado, pero no contra QUIÉN, y sin eso un rechazo no
+## se puede arreglar. Con el rival delante, "barrera rechazado al 4%" deja
+## de ser mala suerte y pasa a ser "barrera y rombo se parecen demasiado",
+## que ya es una frase sobre la que se puede actuar.
 static func recognize(strokes: Array, templates: Dictionary) -> Dictionary:
 	var candidate := normalize(strokes)
-	var unknown := {"name": "", "score": 0.0, "margin": 0.0, "accepted": false}
+	var unknown := {
+		"name": "", "second_name": "", "score": 0.0, "margin": 0.0,
+		"accepted": false, "needs_more_samples": true,
+	}
 
 	if candidate.is_empty():
 		return unknown
@@ -94,6 +103,7 @@ static func recognize(strokes: Array, templates: Dictionary) -> Dictionary:
 		return unknown
 
 	var first_name := ""
+	var second_name := ""
 	var first := INF
 	var second := INF
 
@@ -101,22 +111,44 @@ static func recognize(strokes: Array, templates: Dictionary) -> Dictionary:
 		var d: float = best_per_gesture[name]
 		if d < first:
 			second = first
+			second_name = first_name
 			first = d
 			first_name = name
 		elif d < second:
 			second = d
+			second_name = name
 
-	# Si solo hay un gesto en la biblioteca no hay con qué comparar, así
-	# que se acepta sin más: es el único candidato posible.
-	var margin := INF
-	if second < INF:
-		margin = (second - first) / maxf(first, 0.0001)
+	# CON UN SOLO GESTO GRABADO NO SE PUEDE RECONOCER NADA.
+	#
+	# Antes aquí se aceptaba sin más —"es el único candidato posible"— y
+	# fue un error serio. Al renombrar los elementos quedó una única
+	# plantilla de elemento en la biblioteca, y el juego empezó a leer
+	# CUALQUIER trazo como esa runa: círculos, triángulos y garabatos,
+	# todo era viento. Y sin avisar, que es lo peor.
+	#
+	# El $P no mide "cuánto se parece" —eso está medido y no sirve para
+	# decidir—, mide CUÁNTO LE SACA EL PRIMERO AL SEGUNDO. Sin segundo
+	# no hay medida, y sin medida no hay reconocimiento. Lo honesto es
+	# rechazar y que quien llame lo diga en voz alta.
+	if second == INF:
+		return {
+			"name": first_name,
+			"second_name": "",
+			"score": 1.0 - first / HALF_DIAGONAL,
+			"margin": 0.0,
+			"accepted": false,
+			"needs_more_samples": true,
+		}
+
+	var margin := (second - first) / maxf(first, 0.0001)
 
 	return {
 		"name": first_name,
+		"second_name": second_name,
 		"score": 1.0 - first / HALF_DIAGONAL,
 		"margin": margin,
 		"accepted": margin >= MIN_MARGIN,
+		"needs_more_samples": false,
 	}
 
 
