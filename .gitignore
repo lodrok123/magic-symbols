@@ -18,6 +18,8 @@ export_presets.cfg
 *.exe
 # Vídeos y zips: pesan y no son fuente de nada que el juego lea.
 *.mp4
+# ...salvo las referencias de animación de los VFX (pequeñas, 6 MB).
+!poc_25d/vfx/referencias/*.mp4
 *.avi
 *.zip
 # Salida intermedia del pipeline (renders, reportes): se regenera.

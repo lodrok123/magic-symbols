@@ -19,7 +19,7 @@ extends Node3D
 ## `nadando`: velocidad x0,4, sin lanzar ni saltar, clip swim_forward (si el modelo no lo tiene, walk), sin daño. Sale
 ## al tocar una casilla de suelo llano.
 
-const MAX_NIVELES_SUBIBLES: int = 2
+const MAX_NIVELES_SUBIBLES: int = 1
 const GRAVEDAD: float = 22.0
 const VEL_SALTO: float = 8.4
 const TOLERANCIA_SUELO: float = 0.55        ## desnivel que se camina sin saltar (de puente a suelo, escalón)
@@ -111,6 +111,8 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	for n in p_mundo.get_tree().get_nodes_in_group("reactivo3d"):
 		if n is CollisionObject3D:
 			(n as CollisionObject3D).collision_layer |= Lanzador3D.CAPA_REACTIVO
+	Lanzador3D.colocar_barreras(p_mundo)
+	Lanzador3D.calcular_huellas(p_mundo)
 	PlayLog.nueva_partida()
 	PlayLog3D.montar(p_mundo, l)
 	for g in (p_mundo.get("_goblins") as Array):
@@ -303,7 +305,8 @@ func _process(delta: float) -> void:
 		return
 
 	var entrada := Vector2.ZERO
-	var libre: bool = not bloqueado and mundo.get("_velo") == null and not get_tree().paused
+	var libre: bool = not bloqueado and mundo.get("_velo") == null and not get_tree().paused \
+			and not (lanz != null and lanz.libro_abierto())     # con el libro abierto el tiempo corre, pero tú estás escribiendo
 	if libre:
 		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 			entrada.x -= 1.0
@@ -350,10 +353,15 @@ func _mover_con_choque(paso: Vector3) -> void:
 func _puede_estar(p: Vector3) -> bool:
 	var c: Vector2i = Lanzador3D.celda_de(p)
 	var actual: Vector2i = Lanzador3D.celda_de(position)
+	var parcial: bool = Lanzador3D.es_parcial(c)
 	if c == actual:
+		if parcial and Lanzador3D.choca_huella(c, p) and not Lanzador3D.choca_huella(c, position):
+			return false                   # dentro de una casilla bloqueada solo se roza lo que no es el objeto
 		return Lanzador3D.en_mapa(c)
+	if parcial and Lanzador3D.choca_huella(c, p):
+		return false
 	var nivel: int = Lanzador3D.altura_en(actual)
-	if not Lanzador3D.pisable(c, nivel, true, MAX_NIVELES_SUBIBLES, true):
+	if not Lanzador3D.pisable(c, nivel, true, MAX_NIVELES_SUBIBLES, true, parcial):
 		return false
 	if nadando:
 		return Lanzador3D.altura_en(c) == 0          # del agua solo se sale a suelo llano

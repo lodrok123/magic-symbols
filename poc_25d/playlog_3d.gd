@@ -42,6 +42,11 @@ var _t_vivas: float = 0.0
 var _vivas_max: int = 0
 var _vram_max: float = 0.0
 var _resumen_hecho: bool = false
+var _colisiones_visibles: bool = false
+var _t_colisiones: float = 0.0
+var _pool_col: Array[MeshInstance3D] = []
+var _caja_col: BoxMesh = null
+var _mat_col: Dictionary = {}
 
 
 ## --- Registro (estático) ---
@@ -123,6 +128,14 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_F12:
 		_panel.visible = not _panel.visible
 		get_viewport().set_input_as_handled()
+	elif ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_F10:
+		_colisiones_visibles = not _colisiones_visibles
+		if _colisiones_visibles:
+			_t_colisiones = 99.0       # redibuja ya
+		else:
+			_borrar_colisiones()
+		PlayLog.event("ver_colisiones", {"activo": _colisiones_visibles})
+		get_viewport().set_input_as_handled()
 
 
 func _process(delta: float) -> void:
@@ -136,10 +149,86 @@ func _process(delta: float) -> void:
 		_vivas_max = maxi(_vivas_max, casillas_vivas())
 		_vram_max = maxf(_vram_max, float(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)) / 1048576.0)
 		_volcar_errores()
+	if _colisiones_visibles:
+		_t_colisiones += delta
+		if _t_colisiones >= 0.3:
+			_t_colisiones = 0.0
+			_pintar_colisiones()
 	_t_panel += delta
 	if _panel.visible and _t_panel >= 0.25:
 		_t_panel = 0.0
 		_panel.text = texto_panel()
+
+
+## --- F10: dibuja lo que BLOQUEA el paso del jugador, alrededor de él ---
+## rojo = casilla bloqueada del mapa (objeto, pared, arbusto) · naranja = hierba crecida (sólida) ·
+## violeta = tierra/columna (nivel ≥ 1; se sube saltando) · azul = agua (se nada) · cian = hielo (se pisa).
+const RADIO_COLISIONES: int = 7
+
+func _material_col(clave: String, color: Color) -> StandardMaterial3D:
+	if not _mat_col.has(clave):
+		var m := StandardMaterial3D.new()
+		m.albedo_color = color
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.no_depth_test = true
+		_mat_col[clave] = m
+	return _mat_col[clave]
+
+
+func _borrar_colisiones() -> void:
+	for n in _pool_col:
+		if is_instance_valid(n):
+			n.visible = false
+
+
+func _pintar_colisiones() -> void:
+	if mundo == null:
+		return
+	var jug: Variant = mundo.get("_jugador")
+	if jug == null:
+		return
+	if _caja_col == null:
+		_caja_col = BoxMesh.new()
+		_caja_col.size = Vector3(Lanzador3D.casilla * 0.94, 0.06, Lanzador3D.casilla * 0.94)
+	var c0: Vector2i = Lanzador3D.celda_de((jug as Node3D).position)
+	var bloq: Dictionary = mundo.get("_bloqueadas")
+	var hf: Dictionary = mundo.get("_hf")
+	var helada: Dictionary = mundo.get("_helada")
+	var usados: int = 0
+	for y in range(c0.y - RADIO_COLISIONES, c0.y + RADIO_COLISIONES + 1):
+		for x in range(c0.x - RADIO_COLISIONES, c0.x + RADIO_COLISIONES + 1):
+			var c := Vector2i(x, y)
+			if not Lanzador3D.en_mapa(c):
+				continue
+			var clave: String = ""
+			var l: String = Lanzador3D.letra_de(c)
+			if l == "~":
+				clave = "hielo" if helada.has(c) else "agua"
+			elif bloq.has(c):
+				clave = "rojo"
+			elif hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
+				clave = "naranja"
+			elif Lanzador3D.altura_en(c) >= 1:
+				clave = "violeta"
+			if clave == "":
+				continue
+			var colores: Dictionary = {"rojo": Color(1, 0.1, 0.1, 0.45), "naranja": Color(1, 0.6, 0.0, 0.5),
+				"violeta": Color(0.7, 0.2, 1, 0.45), "agua": Color(0.2, 0.4, 1, 0.3), "hielo": Color(0.4, 1, 1, 0.4)}
+			var mi: MeshInstance3D
+			if usados < _pool_col.size():
+				mi = _pool_col[usados]
+			else:
+				mi = MeshInstance3D.new()
+				mi.mesh = _caja_col
+				mundo.add_child(mi)
+				_pool_col.append(mi)
+			mi.material_override = _material_col(clave, colores[clave])
+			mi.position = Lanzador3D.centro_de(c, Lanzador3D.y_pies(c) + 0.12)
+			mi.visible = true
+			usados += 1
+	for i in range(usados, _pool_col.size()):
+		_pool_col[i].visible = false
 
 
 ## --- Lo que se mide ---

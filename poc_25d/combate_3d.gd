@@ -45,10 +45,23 @@ const RANGO_ATAQUE: float = 1.2
 const PREPARAR_GOLPE: float = 0.6
 const DESCANSO_GOLPE: float = 1.6
 const DANO_GOLPE: float = 20.0
-const T_ANIM_ATAQUE: float = 0.8
+const T_ANIM_ATAQUE: float = 0.8              ## solo si el modelo no tiene clip de ataque
+## El ataque se reproduce ENTERO (el clip dura 3-5 s): mientras dura, el goblin no anda ni se gira.
+const VEL_ANIM_GUERRERO: float = 1.0
+const VEL_ANIM_ARQUERO: float = 1.25
+const MOMENTO_GOLPE_GUERRERO: float = 0.19    ## fracción del clip LeftSlash en que cae el golpe (~0,6 s de 3,2)
 const VIDA_MAXIMA: float = 100.0
 const ORO_BOTIN: int = 10
 const ALTO_BARRA_EXTRA: float = 0.28
+
+## --- Arquero (modelo goblin_archer*): dispara desde lejos y retrocede si te acercas ---
+const ARQUERO_ALCANCE: float = 6.5
+const ARQUERO_MIN: float = 2.4
+const PREPARAR_FLECHA: float = 0.9
+const DESCANSO_FLECHA: float = 2.2
+const DANO_FLECHA: float = 12.0
+const VEL_FLECHA: float = 9.0
+const RADIO_IMPACTO_FLECHA: float = 0.75
 
 var pj: Pj3D = null
 var mundo: Node3D = null
@@ -80,6 +93,7 @@ var moviendo: int = 0                   ## 0 quieto, 1 anda, 2 corre
 var anim_orden: String = ""             ## animación puntual que se reproduce una vez
 var casa: Vector3 = Vector3.ZERO
 var muerto: bool = false
+var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 
 var _direccion: float = 1.0
 var _carga: float = 0.0
@@ -90,6 +104,9 @@ var _barra_t: float = 0.0
 var _vida_mostrada: float = 1.0
 var _destello: float = 0.0
 var _t_anim: float = 0.0
+var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
+var _ataque_vel: float = 1.0
+var _ataque_id: int = 0        ## cambia al cancelar el ataque: los golpes/flechas pendientes se descartan
 var _materiales: Array = []
 var _bases: Array = []
 var _barra_fondo: MeshInstance3D = null
@@ -131,6 +148,9 @@ func _ready() -> void:
 	cs.position = Vector3(0, forma.height * 0.5, 0)
 	add_child(cs)
 	health = vida_max
+	arquero = pj != null and pj.id.begins_with("goblin_archer")
+	if arquero:
+		nombre = "Goblin arquero"
 	_vida_mostrada = 1.0
 	_ultima_celda_ok()
 	# Materiales del modelo (cada copia tiene los suyos) y su color de partida
@@ -335,6 +355,7 @@ func _efectos(delta: float) -> void:
 	congelado = maxf(0.0, congelado - delta)
 	lento = maxf(0.0, lento - delta)
 	_t_anim = maxf(0.0, _t_anim - delta)
+	_ataque = maxf(0.0, _ataque - delta)
 	_descanso = maxf(0.0, _descanso - delta)
 
 
@@ -345,19 +366,26 @@ func _ia(delta: float) -> void:
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(7.0 * delta, 0.0, 1.0))
 	if stun_timer > 0.0:
 		stun_timer -= delta
+		_cancelar_ataque()
 		_carga = 0.0
 		moviendo = 0
 		return
 	if congelado > 0.0:
+		_cancelar_ataque()
 		moviendo = 0
 		_carga = 0.0
 		return
 	if interrupcion > 0.0:
 		interrupcion -= delta
+		_cancelar_ataque()
 		_carga = 0.0
 		moviendo = 0
 		return
 
+	# Animación de ataque a medias: se queda quieto y mirando donde estaba hasta que acabe.
+	if _ataque > 0.0:
+		moviendo = 0
+		return
 	var vel: float = vel_mult()
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
@@ -380,6 +408,9 @@ func _ia(delta: float) -> void:
 
 	match estado:
 		"persigue", "busca":
+			if arquero and estado == "persigue":
+				_ia_arquero(delta, vel)
+				return
 			var meta: Vector3 = jugador.position if estado == "persigue" else ultima_pos
 			var d: Vector3 = meta - position
 			d.y = 0.0
@@ -428,10 +459,104 @@ func _atacar(delta: float) -> void:
 	if _carga >= PREPARAR_GOLPE:
 		_carga = 0.0
 		_descanso = DESCANSO_GOLPE
-		anim_orden = "attack"
-		_t_anim = T_ANIM_ATAQUE
-		# El golpe cae a mitad de la animación.
-		get_tree().create_timer(0.25, false).timeout.connect(_conectar)
+		_iniciar_ataque(VEL_ANIM_GUERRERO, MOMENTO_GOLPE_GUERRERO, _conectar)
+
+
+## El arquero mantiene la distancia: se acerca hasta ARQUERO_ALCANCE, retrocede dentro de ARQUERO_MIN y dispara en medio.
+func _ia_arquero(delta: float, vel: float) -> void:
+	var d: Vector3 = jugador.position - position
+	d.y = 0.0
+	var dist: float = d.length()
+	if dist > 0.05:
+		mirada = d.normalized()
+	if dist > ARQUERO_ALCANCE:
+		_carga = 0.0
+		moviendo = 2 if vel > 0.8 else 1
+		_mover_paso(mirada * VEL_PERSEGUIR * vel * delta)
+	elif dist < ARQUERO_MIN:
+		_carga = 0.0
+		moviendo = 1
+		if not _mover_paso(-mirada * VEL_PATRULLA * 1.6 * vel * delta):
+			moviendo = 0
+			if dist <= RANGO_ATAQUE:
+				_atacar(delta)      # acorralado: pega con el arco
+	else:
+		moviendo = 0
+		if _descanso > 0.0:
+			_carga = 0.0
+			return
+		_carga += delta
+		if _carga >= PREPARAR_FLECHA:
+			_carga = 0.0
+			_descanso = DESCANSO_FLECHA
+			_iniciar_ataque(VEL_ANIM_ARQUERO, pj.momento_golpe("attack"), _soltar_flecha)
+
+
+## Lanza la animación de ataque entera y programa el golpe/la flecha en su momento. Hasta que acaba no se mueve.
+func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
+	var dur: float = pj.duracion("attack")
+	if dur <= 0.0:
+		dur = T_ANIM_ATAQUE
+		vel_anim = 1.0
+		momento = 0.3
+	var total: float = dur / vel_anim
+	_ataque = total
+	_t_anim = total
+	_ataque_vel = vel_anim
+	anim_orden = "attack"
+	_ataque_id += 1
+	get_tree().create_timer(total * momento, false).timeout.connect(_efecto_ataque.bind(_ataque_id, efecto))
+	PlayLog.event("goblin_ataca", {"duracion": snappedf(total, 0.01), "efecto_en": snappedf(total * momento, 0.01)})
+
+
+func _efecto_ataque(id: int, efecto: Callable) -> void:
+	if id == _ataque_id:
+		efecto.call()
+
+
+## Golpe, parálisis, hielo o muerte: la animación se corta y el golpe/flecha pendiente ya no sale.
+func _cancelar_ataque() -> void:
+	if _ataque > 0.0:
+		_ataque = 0.0
+		_t_anim = 0.0
+		_ataque_id += 1
+
+
+## La flecha sale hacia donde ESTÁ el jugador ahora y tarda en llegar: si se ha movido, falla.
+func _soltar_flecha() -> void:
+	if muerto or jugador == null or not is_instance_valid(jugador) or jugador.muerto or stun_timer > 0.0 \
+			or interrupcion > 0.0 or congelado > 0.0:
+		return
+	var origen: Vector3 = position + Vector3(0.0, altura * 0.65, 0.0)
+	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
+	var bloqueada: bool = not Lanzador3D.linea_libre(position, jugador.position)
+	var flecha := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = Vector3(0.05, 0.05, 0.6)
+	flecha.mesh = caja
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.62, 0.45, 0.25)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flecha.material_override = mat
+	mundo.add_child(flecha)
+	flecha.position = origen
+	flecha.look_at(destino, Vector3.UP)
+	var t: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
+	var tw: Tween = flecha.create_tween()
+	tw.tween_property(flecha, "position", destino, t)
+	tw.tween_callback(_flecha_llega.bind(flecha, destino, bloqueada))
+	PlayLog.event("flecha_goblin", {"bloqueada": bloqueada})
+
+
+func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
+	if is_instance_valid(flecha):
+		flecha.queue_free()
+	if bloqueada or jugador == null or not is_instance_valid(jugador) or jugador.muerto:
+		return
+	var dx: float = jugador.position.x - destino.x
+	var dz: float = jugador.position.z - destino.z
+	if Vector2(dx, dz).length() <= RADIO_IMPACTO_FLECHA and absf(jugador.position.y + 0.8 - destino.y) < Lanzador3D.ALTO_NIVEL:
+		jugador.recibir_dano(DANO_FLECHA, position)
 
 
 func _conectar() -> void:
@@ -501,7 +626,12 @@ func _animar() -> void:
 		var orden: String = anim_orden
 		anim_orden = ""
 		pj.animacion_actual = ""
-		pj.jugar(orden)
+		if orden == "attack":
+			pj.set_velocidad_animacion(_ataque_vel)
+			pj.jugar(orden, true)
+		else:
+			pj.set_velocidad_animacion(1.0)
+			pj.jugar(orden)
 		if orden == "hit":
 			_t_anim = maxf(_t_anim, 0.35)
 	if _t_anim > 0.0:

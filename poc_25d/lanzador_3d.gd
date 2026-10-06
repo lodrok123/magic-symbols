@@ -41,9 +41,10 @@ const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
 const ALTO_NIVEL: float = 2.3 * 0.45
 
 ## --- Modo lanzar (§0b) ---
-const RALENTIZADO: float = 0.7              ## Engine.time_scale mientras se apunta
-const ALCANCE_ORIGEN: float = 3.0           ## casillas: lo más lejos de ti que puede nacer un hechizo
-const PEGARSE_AL_JUGADOR: float = 0.8       ## casillas: señalar tan cerca de ti es nacer en ti
+const TIEMPO_LANZAR: float = 0.3           ## Engine.time_scale mientras se apunta (5.2; Pablo lo confirmó el 6/10)
+const TIEMPO_LIBRO: float = 0.3             ## Engine.time_scale con el libro abierto: ya no pausa, los goblins siguen (5.2)
+const RALENTIZADO: float = TIEMPO_LANZAR
+const ALCANCE_ORIGEN: float = 3.0           ## casillas: radio del anillo que se dibuja al apuntar (el hechizo NO nace ahí: 5.1)
 const ARRASTRE_MINIMO: float = 0.45         ## casillas: menos que esto es un clic, no un arrastre
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
 
@@ -56,7 +57,8 @@ const RADIO_GOLPE: float = 0.42             ## casillas: radio de cada manifesta
 const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a su escala
 
 ## --- Tierra e hielo con duración (§0b) ---
-const MAX_TIERRA_APILADA: int = 2           ## bloques de tierra uno encima de otro
+const ESCALA_CUPULA: float = 0.2            ## la cúpula de la barrera se dibuja al 20 % del radio del aro (pedido de Pablo 22:03)
+const MAX_TIERRA_APILADA: int = 1           ## bloques de tierra uno encima de otro
 const MAX_NIVELES_TIERRA: int = 8           ## tope de bloques vivos a la vez (FIFO)
 const DURACION_TIERRA: float = 25.0         ## segundos
 const DURACION_HIELO: float = 20.0          ## segundos, salvo casillas en `hielo_permanente`
@@ -94,6 +96,8 @@ var altura: int = 0                     ## nivel del hechizo que pregunta a una 
 
 var capa_ui: CanvasLayer = null
 var libro: Control = null
+var _libro_lento: bool = false
+var _ts_libro: float = 1.0
 var _aviso: Label = null
 var _guia: Label = null
 
@@ -198,9 +202,71 @@ static func celda_solida(c: Vector2i, nivel: int) -> bool:
 	return altura_en(c) >= 1 + nivel
 
 
+## ---- Huellas: lo que ocupa DE VERDAD cada objeto que bloquea una casilla ----
+## La rejilla bloquea casillas enteras (2,3 u) aunque el modelo sea un barril de 1 u o un puesto que ocupa casilla y media.
+## Para el JUGADOR se afina: en una casilla bloqueada solo choca dentro del círculo de los objetos que la tocan (más el
+## cuerpo). Sin huella conocida (telaraña, barrera, puente, paredes de árboles...) la casilla sigue entera.
+## Los hechizos y los goblins siguen usando la casilla entera.
+static var huellas: Dictionary = {}        ## Vector2i -> Array de Vector3(x, z, radio)
+const MARGEN_HUELLA: float = 0.3
+
+
+static func calcular_huellas(p_mundo: Node3D) -> int:
+	huellas.clear()
+	var lotes: Variant = p_mundo.get("_lotes")
+	if not (lotes is Dictionary) or (lotes as Dictionary).is_empty():
+		return 0
+	var bloq: Dictionary = p_mundo.get("_bloqueadas")
+	var n: int = 0
+	for id in (lotes as Dictionary):
+		var partes: Array = p_mundo.call("_plantilla", String(id))
+		var caja := AABB()
+		var primero: bool = true
+		for parte in partes:
+			var m: Mesh = (parte as Array)[0] as Mesh
+			if m == null:
+				continue
+			var a: AABB = ((parte as Array)[1] as Transform3D) * m.get_aabb()
+			caja = a if primero else caja.merge(a)
+			primero = false
+		if primero:
+			continue
+		for t in ((lotes as Dictionary)[id] as Array):
+			var tr: Transform3D = t
+			var c: Vector2i = celda_de(tr.origin)
+			var esc: float = tr.basis.get_scale().x
+			var centro: Vector3 = tr * caja.get_center()
+			var r: float = 0.5 * maxf(caja.size.x, caja.size.z) * esc
+			for dy in range(-1, 2):
+				for dx in range(-1, 2):
+					var q := c + Vector2i(dx, dy)
+					if bloq.has(q) and letra_de(q) != "#" and letra_de(q) != "~":
+						if not huellas.has(q):
+							huellas[q] = []
+						(huellas[q] as Array).append(Vector3(centro.x, centro.z, r))
+						n += 1
+	return n
+
+
+## ¿Es una casilla bloqueada cuya forma real conocemos (y por tanto se puede rozar)?
+static func es_parcial(c: Vector2i) -> bool:
+	return huellas.has(c) and mundo_s != null and (mundo_s.get("_bloqueadas") as Dictionary).has(c)
+
+
+## ¿Está el punto dentro de lo que ocupa de verdad un objeto de esa casilla?
+static func choca_huella(c: Vector2i, p: Vector3) -> bool:
+	if not huellas.has(c):
+		return true
+	for h in (huellas[c] as Array):
+		var hv: Vector3 = h
+		if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + MARGEN_HUELLA:
+			return true
+	return false
+
+
 ## ¿Puede ESTAR alguien de pie en `c`? Lo usan el jugador y los goblins. `nivel` es en el que está;
 ## `sube` si puede subir uno (saltando); `max_nivel` lo más alto donde se puede estar; `nada` si puede entrar en agua.
-static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: bool) -> bool:
+static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: bool, ignora_bloqueo: bool = false) -> bool:
 	if not en_mapa(c):
 		return false
 	var l: String = letra_de(c)
@@ -210,7 +276,7 @@ static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: b
 			pass                                     # hielo: se pisa
 		else:
 			return nada                              # agua: solo nadando
-	elif bloqueadas.has(c):
+	elif bloqueadas.has(c) and not ignora_bloqueo:
 		return false
 	var hf: Dictionary = mundo_s.get("_hf")
 	if hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
@@ -254,6 +320,7 @@ static func elemento_de(rune: RuneData) -> String:
 
 func _ready() -> void:
 	super._ready()
+	process_mode = Node.PROCESS_MODE_ALWAYS      # para deshacer la pausa del libro (5.2)
 	add_to_group("player")      # el libro busca ahí un nodo 2D desde el que sonar (Sfx)
 	Repertoire.aim_with_mouse = true
 	Repertoire.max_sigils_per_page = HUECOS_POR_PAGINA
@@ -359,11 +426,27 @@ func add_gesture(strokes: Array, sector: Vector2) -> void:
 ## Al cerrar el libro se lanza la página en la que estabas. El libro fijó el sitio al abrir; aquí no hace falta:
 ## el hechizo se apunta DESPUÉS, en el modo lanzar.
 func cast_current() -> void:
+	_fin_libro_lento()
 	cast_page(page)
 
 
+## Lo llama el libro justo ANTES de abrirse (y de pausar el árbol). 5.2: el libro ya no pausa; el tiempo va al
+## TIEMPO_LIBRO y `_process` deshace la pausa que pone spellbook.gd mientras el libro esté abierto.
 func remember_aim() -> void:
-	pass
+	if not _libro_lento:
+		_libro_lento = true
+		_ts_libro = Engine.time_scale
+		Engine.time_scale = TIEMPO_LIBRO
+
+
+func _fin_libro_lento() -> void:
+	if _libro_lento:
+		_libro_lento = false
+		Engine.time_scale = 1.0 if _ts_libro <= 0.0 else _ts_libro
+
+
+func libro_abierto() -> bool:
+	return libro != null and bool(libro.get("is_open"))
 
 
 func cast_page(indice: int) -> void:
@@ -411,6 +494,9 @@ func cast_page(indice: int) -> void:
 	var receta := Receta3D.new(Vector2.RIGHT)
 	for s in fusion["sigils"]:
 		receta.apply(s)
+	# Flecha y barrera solo orientan el eje: SIEMPRE nacen en el jugador. El glifo de "lejos" (origin) no las desplaza.
+	if receta.travels or receta.spread:
+		receta.origin = 0.0
 	receta.calidad = calidad
 
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
@@ -506,13 +592,8 @@ func _actualizar_puntero(pos_pantalla: Vector2) -> void:
 	var yo: Vector3 = (jugador as Node3D).position
 	var hacia: Vector3 = _punto_vivo - yo
 	hacia.y = 0.0
-	var tope: float = ALCANCE_ORIGEN * casilla
-	if hacia.length() > tope:
-		hacia = hacia.normalized() * tope            # más lejos, se queda en el borde
-	if hacia.length() < PEGARSE_AL_JUGADOR * casilla:
-		hacia = Vector3.ZERO                         # tan cerca de ti es nacer en ti
-	_origen_vivo = yo + hacia
-	_origen_vivo.y = yo.y
+	# 5.1: el ratón da SOLO la dirección; todo nace en el jugador (lanzar lejos trivializaba el puzle).
+	_origen_vivo = yo
 
 
 ## Dirección con la que sale ahora: el arrastre desde el origen fijado; sin arrastre, de ti hacia el origen.
@@ -536,6 +617,13 @@ func _direccion_actual() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	if libro_abierto():
+		if get_tree().paused:
+			get_tree().paused = false        # 5.2: el libro de spellbook.gd pausa; aquí solo se ralentiza
+	elif _libro_lento:
+		_fin_libro_lento()                   # cerrado por otro camino (sin lanzar)
+	if get_tree().paused:
+		return                               # pausa real (muerte, victoria): nada se mueve
 	super._process(delta)
 	_avanzar_caducidades(delta)
 	if modo_lanzar:
@@ -980,13 +1068,13 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	# Lo que construye: tierra quieta (un bloque por casilla) y columna (barrera + levitación).
 	var columna: bool = receta.blocks and receta.height > 0 and receta.spread and not onda
 	if columna:
-		_levantar_columna(campo, receta.vida(), mini(receta.height + 1, 2), rune.color)
+		_levantar_columna(campo, receta.vida(), 1, rune.color)
 	elif rune.tags.has("tierra") and receta.es_quieto() and not muro:
 		var celdas: Dictionary = {}
 		for pt in campo.puntos:
 			celdas[celda_de(pt as Vector3)] = true
 		for c in celdas:
-			construir_tierra(c as Vector2i)
+			construir_tierra(c as Vector2i, false)   # el anillo (Vfx3D "corro") ya dibuja la tierra
 	return cuenta
 
 
@@ -1034,19 +1122,33 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 	var pie_o := Vector3(origen.x, y_pies(celda_de(origen)), origen.z)
 	var pie_c := Vector3(centro.x, y_pies(celda_de(centro)), centro.z)
 	var dura: float = receta.vida()
-	if muro:
-		var d: Vector3 = (c3.dirs[0] as Vector3) if not c3.dirs.is_empty() else Vector3(0, 0, 1)
-		fx.lanzar_forma("muro", elemento, pie_c - d * 1.0, pie_c, {"radio": clampf(radio, 0.6, 3.0), "dura": 0.9})
-	elif columna:
-		pass                                   # lo dibuja _levantar_columna casilla a casilla
+	if columna:
+		return                                 # lo dibuja _levantar_columna casilla a casilla
+	if muro or receta.line:
+		# Barrera que avanza (barrera + flecha) o muro de `linea`: MURO, con la duración real del campo.
+		var d: Vector3 = (c3.dirs[0] as Vector3) if not c3.dirs.is_empty() else Vector3.ZERO
+		if d.length() < 0.01:
+			d = pie_c - pie_o
+			d.y = 0.0
+		if d.length() < 0.01:
+			d = Vector3(0, 0, 1)
+		fx.lanzar_forma("muro", elemento, pie_c - d.normalized() * 1.0, pie_c, {"radio": clampf(radio, 0.6, 3.0), "dura": dura})
 	else:
-		fx.lanzar_forma("corro", elemento, pie_o, pie_c, {"radio": clampf(radio, 0.6, 3.5), "dura": minf(dura, 3.0)})
+		# Barrera quieta / área: ANILLO (corro) sobre la circunferencia real del campo. La tierra lo deja durar lo que sus
+		# bloques (que son colisión invisible); lo demás, 3 s como mucho.
+		if elemento == "tierra" or receta.expande():
+			# La tierra conserva el anillo de piedra (Pablo) y el pulso/onda es un aro que se abre.
+			var dura_corro: float = DURACION_TIERRA if elemento == "tierra" else minf(dura, 3.0)
+			fx.lanzar_forma("corro", elemento, pie_o, pie_c, {"radio": clampf(radio, 0.6, 3.5), "dura": dura_corro})
+		else:
+			# Barrera estática: CÚPULA translúcida que envuelve al personaje (referencias de Pablo; Pipeline 21:40).
+			fx.lanzar_forma("cupula", elemento, pie_o, pie_c, {"radio": clampf(radio * ESCALA_CUPULA, 0.5, 3.5), "dura": dura})
 
 
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
 ## MAX_NIVELES_TIERRA vivos a la vez (el más viejo se deshace antes). No se construye sobre agua, sobre algo
 ## sólido ni encima de alguien.
-func construir_tierra(c: Vector2i) -> bool:
+func construir_tierra(c: Vector2i, dibujar: bool = true) -> bool:
 	if not en_mapa(c) or es_agua(c):
 		return false
 	var l: String = letra_de(c)
@@ -1091,6 +1193,7 @@ func construir_tierra(c: Vector2i) -> bool:
 	caja.material = mat
 	var mi := MeshInstance3D.new()
 	mi.mesh = caja
+	mi.visible = dibujar                    # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
 	var centro: Vector3 = centro_de(c, alto_suelo + ALTO_NIVEL * (float(n) - 0.5))
 	bloque.position = centro - Vector3(0, ALTO_NIVEL * 0.6, 0)
@@ -1272,18 +1375,53 @@ func clear_sequence() -> void:
 ## =====================================================================================================
 
 class Receta3D extends SpellRecipe:
+	## 5.4: glifo `linea` (un muro delante). Va aquí porque `Sigils.FORM` es de Pablo: cuando exista la entrada
+	## `"linea"` en `Sigils.FORM` (ver diario) se usa la suya; mientras tanto basta con este parche.
+	var line: bool = false
+
+	func apply(sigil_name: String) -> void:
+		if sigil_name != "linea":
+			super.apply(sigil_name)
+			return
+		var repetido: bool = _aplicados.has(sigil_name)
+		_aplicados[sigil_name] = int(_aplicados.get(sigil_name, 0)) + 1
+		line = true
+		spread = true
+		blocks = true
+		barriers += 1                              # varias líneas: el muro se ensancha, como varias barreras
+		cooldown = maxf(cooldown, 2.0)
+		if repetido:
+			cooldown += Sigils.STACK_COOLDOWN
+
+	## Muro quieto delante del lanzador: una fila perpendicular a la mirada, a 1,5 casillas. Con flecha, el muro que
+	## avanza de siempre (SpellRecipe); con pulso, el mismo muro (empujarlo y estirarlo llega con la física de 5.4b).
+	func _spread_points(centros: Array, dir: Vector2) -> Array:
+		if not line or travels:
+			return super._spread_points(centros, dir)
+		var salida: Array = []
+		var perp := dir.orthogonal()
+		var mitad: int = Sigils.wall_half(barriers)
+		for centro in centros:
+			for k in range(-mitad, mitad + 1):
+				salida.append(centro + dir * TILE * 1.5 + perp * TILE * float(k))
+		return salida
+
+	## ¿Es un muro (de línea o de barrera + flecha)?
+	func es_muro() -> bool:
+		return line or _es_barrera_movil()
+
 	## Nombre de la forma, para la animación de lanzar y la matriz de VFX del Pipeline (4.6, 4.6b).
 	func forma() -> String:
 		if es_volador():
 			return "proyectil"
-		if es_barrera_movil():
+		if es_barrera_movil() or (line and not travels):
 			return "muro"
 		if expande():
 			return "onda"
 		if spread and height > 0:
 			return "columna"
 		if spread:
-			return "corro"
+			return "corro"         # barrera sola / área sin barrera: ANILLO cerrado alrededor del lanzador
 		if sigue():
 			return "flotante"
 		return "punto"
@@ -1419,7 +1557,10 @@ class Campo extends Node3D:
 			var c: Vector2i = Lanzador3D.celda_de(p)
 			if viaja or (vel[i] as Vector3) != Vector3.ZERO:
 				if Lanzador3D.celda_solida(c, nivel):
-					vivos[i] = false              # un muro que avanza se detiene contra lo sólido
+					# Se detiene contra lo sólido, pero ANTES lo golpea: una barrera de fuego, una telaraña o un goblin
+					# tras una casilla bloqueada tienen que notar el muro o la onda que se les echa encima.
+					_golpear(espacio, p, dirs[i] as Vector3)
+					vivos[i] = false
 					continue
 			puntos[i] = p
 			algun_vivo = true
@@ -1444,3 +1585,87 @@ class Campo extends Node3D:
 				continue
 			_golpeados[obj] = true
 			lanz._golpear(obj as Node, rune, dir, p, nivel, atrae, p)
+
+
+## =====================================================================================================
+##  Barrera de fuego (letra B del plano): se apaga con agua o frío, como en el 2D
+## =====================================================================================================
+
+## Pone una BarreraFuego en cada casilla "B" del plano. Busca la llama (Vfx3D.fuego_fijo) y la luz que la maqueta
+## puso ahí para poder apagarlas. Las llama Jugador3D.montar() una vez montado el mundo.
+static func colocar_barreras(p_mundo: Node3D) -> int:
+	var n: int = 0
+	var fx: Node = p_mundo.get("_fx")
+	var lado: int = int(p_mundo.get("_lado"))
+	for y in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, y)
+			if String(p_mundo.call("_letra", c)) != "B":
+				continue
+			var centro: Vector3 = centro_de(c, alto_suelo)
+			var b := BarreraFuego.new()
+			b.mundo = p_mundo
+			b.celda = c
+			b.position = centro + Vector3(0.0, ALTO_NIVEL, 0.0)
+			var cs := CollisionShape3D.new()
+			var caja := BoxShape3D.new()
+			caja.size = Vector3(casilla * 0.95, ALTO_NIVEL * 2.0, casilla * 0.95)
+			cs.shape = caja
+			b.add_child(cs)
+			b.collision_layer = CAPA_REACTIVO
+			b.collision_mask = 0
+			if fx != null:
+				for h in fx.get_children():
+					if h is Node3D and not (h is Light3D) \
+							and Vector2((h as Node3D).position.x - centro.x, (h as Node3D).position.z - centro.z).length() < 0.1 \
+							and absf((h as Node3D).position.y - centro.y) < 0.05:
+						b.llama = h
+						break
+			for l in p_mundo.find_children("*", "OmniLight3D", true, false):
+				var lp: Vector3 = (l as Node3D).global_position
+				if Vector2(lp.x - centro.x, lp.z - centro.z).length() < 0.1 and lp.y > centro.y + 0.3 and lp.y < centro.y + 1.3:
+					b.luz = l
+					break
+			p_mundo.add_child(b)
+			n += 1
+	return n
+
+
+class BarreraFuego extends Area3D:
+	var mundo: Node3D = null
+	var celda: Vector2i = Vector2i.ZERO
+	var llama: Node3D = null
+	var luz: Node3D = null
+	var apagada: bool = false
+
+	func nivel_altura() -> int:
+		return 1
+
+	func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+		if apagada or rune_data == null:
+			return
+		if not (rune_data.tags.has("agua") or rune_data.tags.has("frio")):
+			return
+		apagar_ahora()
+		# El agua salpica: también apaga las casillas de fuego pegadas (así el hueco cabe, y no hay que acertar fila a fila).
+		for h in mundo.get_children():
+			if h is BarreraFuego and not (h as BarreraFuego).apagada:
+				var d: Vector2i = (h as BarreraFuego).celda - celda
+				if absi(d.x) + absi(d.y) == 1:
+					(h as BarreraFuego).apagar_ahora()
+
+	func apagar_ahora() -> void:
+		if apagada:
+			return
+		apagada = true
+		var fx: Variant = mundo.get("_fx")
+		if fx != null:
+			if llama != null:
+				fx.apagar(llama)
+			fx.vapor(Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 0.3))
+		if luz != null and is_instance_valid(luz):
+			luz.queue_free()
+		(mundo.get("_bloqueadas") as Dictionary).erase(celda)
+		collision_layer = 0
+		PlayLog.event("barrera_fuego_apagada", {"celda": [celda.x, celda.y]})
+		Combate3D.flotante(mundo, Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 1.2), "¡Apagada!", Color(0.5, 0.8, 1.0))

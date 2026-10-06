@@ -16,9 +16,10 @@ extends RefCounted
 ## Las planas (anillo, runa, grieta, disco) son decales tumbados en y = 0, de doble cara y sin contorno.
 
 const NOMBRES: Array = ["llama", "ascua", "nube", "burbuja", "gota", "chispa", "estrella", "copo", "hoja", "piedra",
-	"cristal", "pua", "corona", "rayo", "remolino", "anillo", "runa", "grieta", "disco", "telarana"]
+	"cristal", "pua", "corona", "rayo", "remolino", "anillo", "runa", "grieta", "disco", "telarana",
+	"pared_fuego", "pared_agua", "pared_viento", "pared_rayo", "pared_hielo"]
 const PLANAS: Array = ["anillo", "runa", "grieta", "disco"]
-const DOBLE_CARA: Array = ["remolino", "anillo", "runa", "grieta", "disco", "telarana"]
+const DOBLE_CARA: Array = ["pared_fuego", "pared_agua", "pared_viento", "pared_rayo", "pared_hielo", "remolino", "anillo", "runa", "grieta", "disco", "telarana"]
 ## Sin contorno inflado: hilos finos (la telaraña de pie, en el plano XY, radio 1).
 const SIN_CONTORNO: Array = ["telarana"]
 ## PIEZAS DE EFECTO (12:49, Pablo: «las llamas parecen un dibujo, no un efecto; contornos muy definidos y colores de sprite»).
@@ -26,8 +27,12 @@ const SIN_CONTORNO: Array = ["telarana"]
 ## de la base a la punta (blanco amarillento → naranja → rojo que se desvanece), sin iluminación y con mezcla ADITIVA, que brilla
 ## y se funde con lo de detrás como el fuego de Breath of the Wild. El humo (nube) es gris translúcido, mezcla normal, sin contorno.
 ## La llama va en mezcla NORMAL translúcida (no aditiva): sobre el suelo claro de pastel la aditiva se quema a blanco.
-const EFECTO_ADITIVO: Array = ["ascua", "chispa", "estrella", "rayo"]
+const EFECTO_ADITIVO: Array = ["ascua", "chispa", "estrella"]
 const EFECTO_SUAVE: Array = ["nube"]
+## AGUA, VIENTO Y HIELO con el mismo lenguaje que el fuego (6/10, revisión de los otros elementos): translúcidos, con degradado de la base a
+## la punta y sin contorno negro (el contorno los hacía parecer pegatinas). Mezcla normal (no aditiva) para que no se quemen sobre el suelo claro.
+const EFECTO_TRANS: Array = ["gota", "burbuja", "corona", "remolino", "cristal", "copo", "rayo",
+	"pared_fuego", "pared_agua", "pared_viento", "pared_rayo", "pared_hielo"]
 ## La llama es una lengua lisa con su propio shader (CODIGO_FUEGO).
 const FUEGO: Array = ["llama"]
 
@@ -129,7 +134,7 @@ static func malla(nombre: String) -> ArrayMesh:
 	var m: ArrayMesh
 	if FUEGO.has(nombre):
 		m = _construir_fuego(tris)
-	elif EFECTO_ADITIVO.has(nombre) or EFECTO_SUAVE.has(nombre):
+	elif EFECTO_ADITIVO.has(nombre) or EFECTO_SUAVE.has(nombre) or EFECTO_TRANS.has(nombre):
 		m = _construir_efecto(tris, nombre)
 	else:
 		m = _construir(tris, not PLANAS.has(nombre) and not SIN_CONTORNO.has(nombre), DOBLE_CARA.has(nombre))
@@ -157,7 +162,7 @@ static func material_tinte(color: Color, doble: bool = false, nombre: String = "
 		mfu.set_shader_parameter("tinte", color)
 		_tintes[clave] = mfu
 		return mfu
-	if EFECTO_ADITIVO.has(nombre) or EFECTO_SUAVE.has(nombre):
+	if EFECTO_ADITIVO.has(nombre) or EFECTO_SUAVE.has(nombre) or EFECTO_TRANS.has(nombre):
 		var mf: StandardMaterial3D = _mat_efecto(EFECTO_ADITIVO.has(nombre)).duplicate() as StandardMaterial3D
 		var k: float = 1.2 if EFECTO_ADITIVO.has(nombre) else 1.0
 		mf.albedo_color = Color(color.r * k, color.g * k, color.b * k, color.a)
@@ -250,8 +255,35 @@ static func _color_efecto(nombre: String, t: float) -> Color:
 		var x: float = clampf(t, 0.0, 1.0) * float(paradas.size() - 1)
 		var i: int = mini(int(x), paradas.size() - 2)
 		return (paradas[i] as Color).lerp(paradas[i + 1], x - float(i))
+	var q: float = clampf(t, 0.0, 1.0)
+	match nombre:
+		"gota", "corona":      # agua: azul vivo abajo, casi blanco y transparente arriba (el brillo de la superficie)
+			return Color(0.30, 0.66, 1.0, 0.82).lerp(Color(0.82, 0.96, 1.0, 0.5), q)
+		"burbuja":
+			return Color(0.75, 0.93, 1.0, 0.28).lerp(Color(1.0, 1.0, 1.0, 0.5), q)
+		"remolino":              # viento: cintas verde pálido que se desvanecen hacia arriba
+			return Color(0.62, 0.98, 0.76, 0.92).lerp(Color(0.97, 1.0, 0.98, 0.25), q)
+		"cristal":               # hielo: la base turquesa translúcida y la punta casi blanca y más opaca
+			return Color(0.42, 0.82, 1.0, 0.7).lerp(Color(0.97, 1.0, 1.0, 0.95), pow(q, 0.8))
+		"rayo":                 # amarillo intenso en la base, casi blanco en la punta (translúcido: no se quema sobre el suelo claro)
+			return Color(1.0, 0.82, 0.18, 0.96).lerp(Color(1.0, 0.98, 0.72, 0.96), q)
+		"pared_fuego":          # referencia de Pablo (fire_ring): amarillo claro abajo, naranja y melocotón arriba, punta que se apaga
+			var pf: Array = [Color(1.0, 0.92, 0.45, 0.95), Color(1.0, 0.66, 0.26, 0.9), Color(0.98, 0.5, 0.26, 0.72), Color(0.95, 0.4, 0.24, 0.25)]
+			var xf: float = q * float(pf.size() - 1)
+			var jf: int = mini(int(xf), pf.size() - 2)
+			return (pf[jf] as Color).lerp(pf[jf + 1], xf - float(jf))
+		"pared_agua":           # cortina de agua: azul vivo abajo, cresta casi blanca arriba
+			return Color(0.25, 0.6, 1.0, 0.85).lerp(Color(0.85, 0.97, 1.0, 0.7), pow(q, 1.4))
+		"pared_viento":         # lámina de aire: verde pálido casi transparente, algo más densa en el centro
+			return Color(0.62, 0.98, 0.76, 0.75).lerp(Color(0.95, 1.0, 0.97, 0.3), q)
+		"pared_rayo":           # plasma: amarillo intenso abajo, casi blanco arriba
+			return Color(1.0, 0.8, 0.15, 0.92).lerp(Color(1.0, 0.98, 0.7, 0.8), q)
+		"pared_hielo":          # cristales fundidos: turquesa translúcido abajo, puntas blancas
+			return Color(0.4, 0.8, 1.0, 0.78).lerp(Color(0.97, 1.0, 1.0, 0.96), pow(q, 0.8))
+		"copo":
+			return Color(0.8, 0.96, 1.0, 0.85).lerp(Color(1.0, 1.0, 1.0, 0.85), q)
 	if nombre == "nube":
-		return Color(0.72, 0.70, 0.76, 0.38).lerp(Color(0.52, 0.51, 0.57, 0.1), clampf(t, 0.0, 1.0))
+		return Color(0.80, 0.78, 0.82, 0.26).lerp(Color(0.66, 0.65, 0.7, 0.05), clampf(t, 0.0, 1.0))
 	# brasas, chispas, destellos, rayos: núcleo blanco que se tiñe con el color de la partícula
 	return Color(1.0, 1.0, 1.0, 1.0).lerp(Color(0.85, 0.85, 0.85, 0.7), clampf(t, 0.0, 1.0))
 
@@ -277,7 +309,7 @@ static func _construir_efecto(tris: Array, nombre: String) -> ArrayMesh:
 		if n.length_squared() < 0.0000001:
 			continue
 		n = n.normalized()
-		var f: float = 0.82 + 0.18 * absf(n.dot(luz))
+		var f: float = (0.74 + 0.26 * absf(n.dot(luz))) if EFECTO_TRANS.has(nombre) else (0.82 + 0.18 * absf(n.dot(luz)))
 		for v in [a, b, c]:
 			var col: Color = _color_efecto(nombre, ((v as Vector3).y - ymin) / rango)
 			st.set_color(Color(col.r * f, col.g * f, col.b * f, col.a))
@@ -393,7 +425,7 @@ static func _tris_de(nombre: String) -> Array:
 		"ascua":
 			return _octaedro(0.5, 0.7, 0.5)
 		"nube":
-			return _icosaedro(0.5, 0.14, 0.85, 3)
+			return _icosaedro(0.5, 0.07, 0.9, 5)
 		"burbuja":
 			return _icosaedro(0.5, 0.02, 1.0, 5)
 		"gota":
@@ -430,6 +462,16 @@ static func _tris_de(nombre: String) -> Array:
 			return _anillo_plano(0.5, 0.0, 8)
 		"telarana":
 			return _telarana()
+		"pared_fuego":
+			return _pared(_alturas_picos(9, 0.6, 1.0, 11), 0.22, 0.0, true)
+		"pared_agua":
+			return _pared(_alturas_ola(26), 0.26, 0.05, false)
+		"pared_viento":
+			return _pared(_alturas_ola(20, 0.9, 0.08), 0.06, 0.12, false)
+		"pared_rayo":
+			return _pared(_alturas_picos(9, 0.7, 1.0, 5), 0.05, 0.03, true)
+		"pared_hielo":
+			return _pared(_alturas_picos(8, 0.6, 1.0, 3), 0.24, 0.0, true)
 	push_warning("Formas3D: forma desconocida '%s'" % nombre)
 	return _octaedro(0.5, 0.5, 0.5)
 
@@ -572,17 +614,76 @@ static func _estrella_plana(puntas: int, r_ext: float, r_int: float, g: float) -
 	return _orientar(t, Vector3.ZERO)
 
 
+## Alturas pseudoaleatorias (fijas) para una pared de `n` picos: entre `minimo` y `maximo` (fracción de la altura total).
+static func _alturas_picos(n: int, minimo: float, maximo: float, semilla: int) -> Array:
+	var a: Array = []
+	for i in range(n):
+		var r: float = float(((i + 1) * 7919 + semilla * 104729) % 1000) / 999.0
+		a.append(lerpf(minimo, maximo, r))
+	return a
+
+
+## Alturas de una ola suave de `n`+1 puntos (cresta que sube y baja), de `base` ± `amp` de la altura total.
+static func _alturas_ola(n: int, base: float = 0.8, amp: float = 0.12) -> Array:
+	var a: Array = []
+	for i in range(n + 1):
+		a.append(base + amp * sin(float(i) * 0.9) + amp * 0.6 * sin(float(i) * 2.3 + 1.0))
+	return a
+
+
+## PARED continua de 1 de largo (eje X, de -0,5 a 0,5), 1 de alto (Y, base en 0) y `grueso` de semigrosor (Z) en la base.
+## `alturas`: con `picos` son las puntas (entre ellas, valles al 35 %); sin `picos` son los puntos de la cresta, de lado a lado.
+## `onda`: cuánto ondula la pared de lado (Z). Tres niveles (base, medio algo abombado, cresta) para que se lea el facetado.
+static func _pared(alturas: Array, grueso: float, onda: float, picos: bool) -> Array:
+	var cresta: Array = []                      # puntos (x, altura) de la cresta
+	if picos:
+		var n: int = alturas.size()
+		cresta.append(Vector2(-0.5, float(alturas[0]) * 0.4))
+		for k in range(n):
+			var xk: float = -0.5 + (float(k) + 0.5) / float(n)
+			cresta.append(Vector2(xk, float(alturas[k])))
+			var xv: float = -0.5 + float(k + 1) / float(n)
+			var vecino: float = float(alturas[mini(k + 1, n - 1)])
+			cresta.append(Vector2(xv, minf(float(alturas[k]), vecino) * 0.38))
+	else:
+		var m: int = alturas.size()
+		for i in range(m):
+			cresta.append(Vector2(-0.5 + float(i) / float(m - 1), float(alturas[i])))
+	var A: Array = []
+	var B: Array = []
+	var C: Array = []
+	for j in range(cresta.size()):
+		var c: Vector2 = cresta[j]
+		var z0: float = onda * sin(c.x * 11.0)
+		A.append([Vector3(c.x, 0.0, z0 + grueso), Vector3(c.x, 0.0, z0 - grueso)])
+		B.append([Vector3(c.x, c.y * 0.5, z0 + grueso * 0.75), Vector3(c.x, c.y * 0.5, z0 - grueso * 0.75)])
+		C.append(Vector3(c.x, c.y, z0))
+	var t: Array = []
+	for j in range(cresta.size() - 1):
+		for s in range(2):
+			t.append([A[j][s], A[j + 1][s], B[j + 1][s]])
+			t.append([A[j][s], B[j + 1][s], B[j][s]])
+			t.append([B[j][s], B[j + 1][s], C[j + 1]])
+			t.append([B[j][s], C[j + 1], C[j]])
+	var u: int = cresta.size() - 1
+	for e in [0, u]:
+		t.append([A[e][0], A[e][1], B[e][1]])
+		t.append([A[e][0], B[e][1], B[e][0]])
+		t.append([B[e][0], B[e][1], C[e]])
+	return t
+
+
 ## Remolino: cuatro bandas de viento, cada una más ancha y más alta que la anterior, con huecos y giradas entre sí.
 static func _remolino() -> Array:
 	var t: Array = []
-	var lados: int = 8
+	var lados: int = 12
 	for k in range(4):
 		var r0: float = 0.16 + 0.11 * float(k)
-		var r1: float = r0 + 0.07
+		var r1: float = r0 + 0.11
 		var y0: float = 0.28 * float(k)
 		var y1: float = y0 + 0.2
 		var fase: float = float(k) * 1.1
-		for i in range(5):                                  # 5 de 8 tramos: la banda no cierra el círculo
+		for i in range(8):                                  # 8 de 12 tramos: la banda no cierra el círculo
 			var a0: float = fase + float(i) / float(lados) * TAU
 			var a1: float = fase + float(i + 1) / float(lados) * TAU
 			var p0 := Vector3(cos(a0) * r0, y0, sin(a0) * r0)
@@ -602,7 +703,7 @@ static func _rayo() -> Array:
 		var c: Vector2 = (tr as Array)[0]
 		var giro: float = (tr as Array)[1]
 		var b := Basis(Vector3(0.0, 0.0, 1.0), giro)
-		var piezas: Array = _octaedro(0.11, 0.26, 0.11)
+		var piezas: Array = _octaedro(0.17, 0.27, 0.17)
 		for p in piezas:
 			var n: Array = []
 			for v in p:

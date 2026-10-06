@@ -67,7 +67,7 @@ var is_lit: bool = false             ## arde (igual que en el 2D: el hielo y el 
 var activo: bool = false             ## tótem activado
 var usado: bool = false              ## placa pisada / puente tendido
 
-var _mats: Array = []                ## [StandardMaterial3D copiado, Color original]
+var _mats: Array = []                ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
 var _llama: Node3D = null
 var _luz: OmniLight3D = null
@@ -415,9 +415,10 @@ func _recoger_materiales() -> void:
 		for s in range(mi.mesh.get_surface_count()):
 			var mat: Material = mi.get_active_material(s)
 			if mat is StandardMaterial3D:
-				var copia: StandardMaterial3D = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+				var copia: Material = (mat as StandardMaterial3D).duplicate() as Material
+				copia = Ocluso3D.convertir(copia)      # con el círculo de transparencia del jugador (si está activo)
 				mi.set_surface_override_material(s, copia)
-				_mats.append([copia, copia.albedo_color])
+				_mats.append([copia, Ocluso3D.color_de(copia)])
 	for n in visual.find_children("*", "SpriteBase3D", true, false):
 		_sprites.append([n, (n as SpriteBase3D).modulate])
 	if visual is SpriteBase3D:
@@ -427,17 +428,14 @@ func _recoger_materiales() -> void:
 ## Tinta todo hacia `hacia` (multiplicando el color original): k = 0 sano … 1 el tinte.
 func _pintar_tinte(k: float, hacia: Color = APAGADO) -> void:
 	for m in _mats:
-		(m[0] as StandardMaterial3D).albedo_color = (m[1] as Color).lerp((m[1] as Color) * hacia, k)
+		Ocluso3D.poner_color(m[0] as Material, (m[1] as Color).lerp((m[1] as Color) * hacia, k))
 	for s in _sprites:
 		(s[0] as SpriteBase3D).modulate = (s[1] as Color).lerp((s[1] as Color) * hacia, k)
 
 
 func _pintar_emision(c: Color, energia: float) -> void:
 	for m in _mats:
-		var mat: StandardMaterial3D = m[0] as StandardMaterial3D
-		mat.emission_enabled = energia > 0.001
-		mat.emission = c
-		mat.emission_energy_multiplier = energia
+		Ocluso3D.poner_emision(m[0] as Material, c, energia)
 
 
 ## Lleva el chamuscado (combustibles) o el brillo (tótem) a `destino` en FUNDIDO s.

@@ -322,6 +322,12 @@ void fragment() {
 
 ## Decorado en lotes (MultiMesh por pieza). El prerender del Test 2D lo apaga: necesita cada pieza como nodo.
 @export var decorado_por_lotes: bool = true
+## Círculo de transparencia alrededor del jugador: lo que queda entre la cámara y él (árboles, setos, el puesto) se
+## vuelve translúcido en ese círculo. Solo afecta al decorado en lotes y a los objetos reactivos (Ocluso3D).
+@export var transparencia_jugador: bool = true
+@export var radio_transparencia: float = 1.9
+## Quita la parte delantera del toldo del puesto de mercado (desde la cámara tapaba al tendero).
+@export var recortar_toldo: bool = true
 ## Hierba de todo el mapa a la vez (el prerender 2D la necesita entera). Si no, solo alrededor de la chibi.
 @export var hierba_completa: bool = false
 ## Al empezar, tapa la pantalla un instante y lanza los seis elementos para compilar sus shaders (el prerender 2D lo apaga).
@@ -437,6 +443,8 @@ func _ready() -> void:
 	_efectos.add_child(_fx)
 	_fx.impacto.connect(_al_impactar)
 
+	if transparencia_jugador and decorado_por_lotes:
+		Ocluso3D.preparar()
 	_cargar_bibliotecas()
 	_construir_suelo()
 	_colocar_letras()
@@ -1119,6 +1127,15 @@ func _plantilla(id: String) -> Array:
 	if n != null:
 		_mallas_de(n, Transform3D.IDENTITY, res)
 		n.free()
+	for parte in res:
+		var malla: Mesh = parte[0] as Mesh
+		if recortar_toldo and id == "puesto_mercado":
+			malla = Ocluso3D.recortar_toldo(malla)
+		if transparencia_jugador:
+			malla = Ocluso3D.malla_con_hueco(malla)
+			if parte[2] != null:
+				parte[2] = Ocluso3D.convertir(parte[2] as Material)
+		parte[0] = malla
 	_plantillas[id] = res
 	return res
 
@@ -1333,7 +1350,9 @@ func _colocar_letras() -> void:
 					_bloqueadas[c] = true
 					if h % 6 == 0:
 						_poner("arbusto" if h % 2 == 0 else "roca_grande", c, ALTO, true)
-					elif h % 4 != 3:
+					else:
+						# Toda casilla de pared lleva un árbol: antes 1 de cada 4 quedaba sin modelo y era un hueco que parecía
+						# paso pero bloqueaba (pared invisible). Juego, 2026-10-06.
 						_poner("arbol_redondo" if h % 3 != 0 else "pino", c, ALTO, true)
 				"~":
 					_bloqueadas[c] = true
@@ -1373,7 +1392,9 @@ func _colocar_letras() -> void:
 						_luz(_centro_celda(c, ALTO + 1.4), col, 1.0, 3.5)
 				"B":
 					_bloqueadas[c] = true
-					_fuego(_centro_celda(c, ALTO), true)
+					# La barrera es una PARED: se extiende a lo largo de la fila de B vecinas (vertical si hay B arriba o abajo).
+					var vertical: bool = _letra(c + Vector2i(0, 1)) == "B" or _letra(c + Vector2i(0, -1)) == "B"
+					_fuego(_centro_celda(c, ALTO), true, 1.0, Vector3.BACK if vertical else Vector3.RIGHT)
 				"F":
 					if objetos_reactivos:
 						_reactivo_pieza("fogata", "fogata", c, ALTO, true, false, -1.0, "", true)
@@ -1634,8 +1655,8 @@ func _particulas(ruta: String, p: Vector3, cantidad: int, vida: float, caja: Vec
 
 
 ## Fuego: llamas 3D, brasas y humo (Vfx3D.fuego_fijo), con luz cálida. `barrera` = muro de llamas que ocupa la casilla.
-func _fuego(p: Vector3, barrera: bool, escala: float = 1.0) -> void:
-	_fx.fuego_fijo(p, barrera, escala)
+func _fuego(p: Vector3, barrera: bool, escala: float = 1.0, eje: Vector3 = Vector3.RIGHT) -> void:
+	_fx.fuego_fijo(p, barrera, escala, eje, S)
 	_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.6 if barrera else 1.1, 4.0 if barrera else 3.0)
 
 
@@ -2163,6 +2184,8 @@ func _process(delta: float) -> void:
 			_hierba.set_radio(clampi(ceili(_tam_camara * 0.95 / _hierba.lado_bloque) + 1, 2, 7))
 			_hierba.actualizar(_jugador.position)
 		_foco = _foco.lerp(_centro(_jugador), 1.0 - exp(-SEGUIMIENTO * delta))
+		if transparencia_jugador and decorado_por_lotes:
+			Ocluso3D.actualizar(_jugador.position + Vector3(0.0, 0.8, 0.0), radio_transparencia)
 		var amb: Node = _efectos.get_node_or_null("Ambiente1")
 		if amb != null:
 			(amb as Node3D).position = _jugador.position + Vector3(0.0, 5.0, 0.0)

@@ -1,5 +1,7 @@
 # Diseño futuro — lo que se quiere, no lo que hay
 
+ACTUALIZADO 06/10/2026 
+
 ATLAS DE PRIORIDADES:
 P0: Prioridad muy alta, Implementar primero
 P1: Prioridad alta
@@ -53,21 +55,21 @@ shaders, un estilo coherente por shader y no por dibujo, y rendimiento
 (grimorio, $P, receta, etiquetas, estados, mochila, niveles por letras) no
 cambia.
 
+
 **Criterio de decisión, escrito antes de seguir.** El 3D gana si de este
 documento se necesitan **al menos tres** de:
 
-1. altura real (saltar sobre bloques, columna de barrera + levitación que se vea sólida);
-2. luz del fuego sobre la escena;
-3. apuntar en 360° con cast point en el ratón (playtest del 4/10);
-4. agua que se comporte como fluido (§2);
-5. muchos personajes o clips nuevos (§5: cada clip en 2D es una noche de render);
+1. altura real (saltar sobre bloques, columna de barrera + levitación que se vea sólida); Pendiente, de momento 1 altura seria suficiente para el diseño. 
+2. luz del fuego sobre la escena; 
+3. apuntar en 360° con cast point en el ratón (playtest del 4/10); Si implementar, con la siguiente regla. Todos los hechizos salen del jugador por tanto no se puede permitir el spam en una localización a no ser que se diseñe un glifo con esa propiedad, porque trivializa el puzzle.
+4. agua que se comporte como fluido (§2); No se necesita mecánica de fluidos, sino algo sencillo tipo (rellenar un espacio con agua) 
+5. muchos personajes o clips nuevos (§5: cada clip en 2D es una noche de render); Preparar plan de assets para construir un nivel mas ambicioso con temática "bosque"
 6. agua helada, charcos, ceniza y hierba como **estado por casilla** sin un PNG por estado (§6).
 
 Con dos o menos, el 2D isométrico basta y lo que toca es terminar de
 sustituir `art/` por el pipeline.
 
-**Condición de fin de la prueba** (una semana desde el 5/10, es decir, el
-12/10; las tareas con dueño están en `PLAN_ARREGLOS.md`, fase 4 "Test 3"): `PruebaTest2` jugable con el grimorio real (no F1–F6), fuego que
+**Condición de fin de la prueba** (PRUEBA TERMINADA Y DECISIÓN TOMADA): `PruebaTest2` jugable con el grimorio real (no F1–F6), fuego que
 prende hierba y se contagia, un goblin con `Combate`, y una tabla de
 medición (ms por fotograma a 40×40, MB de VRAM, tiempo de traducir
 `spell_form`). Con eso Pablo decide y lo escribe aquí; si es 3D, la
@@ -75,11 +77,13 @@ migración entra en `PLAN_ARREGLOS.md` como fase 4 con pasos; si es 2D,
 `poc_25d/` se archiva (`.gdignore` + `_descartado`) y lo aprendido
 (shaders de estado, rampa de luz) se queda como referencia.
 
+
 **Lo que no se hace mientras tanto:** añadir contenido a la maqueta que no
 sirva para responder la pregunta (grimorios equipables, carteles con runa,
 bibliotecas de Meshy). Cada asset nuevo en `poc_25d` tiene que justificar
 qué criterio de los seis ayuda a medir.
 
+Preparar tambien un set de VFX teniendo en mente las combinaciones posible. 
 ---
 
 ## 0b. Decisiones del 6/10/2026 para el Test 3 (P0, cerradas)
@@ -96,13 +100,20 @@ Hay un **máximo de bloques escalables a la vez** (`MAX_NIVELES_SUBIBLES`,
 de partida 2: no se sube a una torre de tres), para que apilar no sea la
 solución de todo.
 
-**Lanzar = un modo, no un instante.** Al abrir el libro el tiempo se para
-(como hoy). Al cerrarlo con un hechizo compuesto se entra en **modo
-lanzar**: el tiempo va al **70 %** (ralentizado un 30 %; ajustar), el
+**Lanzar = un modo, no un instante.** Al abrir el libro hay una
+transición: el grimorio **aparece "mágicamente" en las manos** de la
+protagonista (lo barato: una animación sutil de transporte a las manos; no
+cogerlo de la cadera). **Con el libro abierto el tiempo ya no se para: va
+al 30 %** (`TIEMPO_LIBRO = 0.3`, confirmado el 6/10, se ajustará). El
+objetivo es castigar al jugador no preparado: componer un hechizo largo en
+medio del combate cuesta. Al cerrarlo con un hechizo compuesto se entra en
+**modo lanzar**: el tiempo sigue al **30 %** (`TIEMPO_LANZAR = 0.3`), el
 personaje hace la animación `readandwrite` con partículas sutiles del
-elemento, y mientras tanto el jugador controla **dirección y posición** del
-hechizo con el ratón: el origen es el punto señalado, con alcance máximo de
-**3 casillas** (más lejos, se queda en el borde). Soltar lanza. La animación
+elemento, y mientras tanto el jugador controla la **dirección** con el
+ratón. **El origen es siempre el jugador** (decisión del 6/10: lanzar en un
+punto lejano trivializa el puzle; solo un glifo puede dejar algo lejos,
+p. ej. levitación al final de una flecha); el alcance máximo de **3
+casillas** es distancia de viaje. Soltar lanza. La animación
 de lanzar **no es una general**: cada forma declara la suya en datos
 (`anim_cast` en la tabla de formas/VFX) y se usa la más coherente con lo que
 sale (una flecha de fuego horizontal → el lanzamiento horizontal; una
@@ -124,18 +135,22 @@ hielo no caduca).
 
 ## 1. Elementos combinables en el núcleo (P2)
 
-**Qué.** Cuatro elementos base: **fuego, agua, viento y tierra**. A partir de
+**Qué.** Cinco elementos base: **fuego, agua, viento, tierra y rayo**. A partir de
 cierto punto de la progresión se puede dibujar un **segundo elemento en el
 núcleo**, y la pareja da un elemento derivado:
 
 | pareja | derivado | estado |
 |---|---|---|
 | fuego + tierra | magma | por definir |
-| fuego + viento | relámpago | el menos intuitivo; ver decisiones |
+| fuego + viento | xxxx | pensar alternativa |
 | fuego + agua | vapor | **ya existe** como elemento que genera el mundo |
 | agua + viento | hielo | hoy es elemento base |
 | agua + tierra | naturaleza | por definir; ver decisiones |
 | viento + tierra | arena / polvo | por definir |
+| rayo + tierra | | por definir |
+| rayo + viento | tormenta | añade nubes de tormenta estáticas (ver si funciona) |
+
+
 
 Dos elementos iguales no producen nada (o amplifican; ver decisiones).
 
@@ -162,9 +177,6 @@ debilidades de `combate_comun` siguen funcionando porque van por etiqueta.
   confusiones en el reconocedor, lo que es una ganancia.
 
 **Qué decidir antes de empezar.**
-- **Relámpago = fuego + viento** es poco intuitivo. Alternativa legítima:
-  el rayo sigue siendo base y solo hay cinco derivados. Se evita explicar
-  una tormenta.
 - **Naturaleza (agua + tierra) ya existe en el mundo**: tierra + agua da
   `GrassBlock`. Si además es un elemento lanzable, hay dos caminos para lo
   mismo. O se define como algo distinto (*crecimiento*: hace brotar
@@ -194,7 +206,7 @@ esto es la dirección hacia la que empujar ese contrato.
 | fuego | quemar; **útil sobre todo contra lo que lleva madera** | etiqueta `quema_madera` en el fuego y `madera` en los combustibles (`combustible.gd` ya tiene las letras `z l h r`) |
 | agua | apagar incendios, hacer crecer la hierba en casos concretos, **rellenar espacios y comportarse como fluido** | `apaga`, `riega` son etiquetas; lo del fluido es otra cosa, ver coste |
 | tierra | bloques sólidos; dejar paso / cerrar paso; peso | ya existe (`earth_block`, placa de peso); falta decidir qué más hace solo ella |
-| rayo | conductividad entre elementos y metal; aturdir | `conduce`, `aturde`; hoy es base, en §1 pasa a derivado (se guarda el código) |
+| rayo | conductividad entre elementos y metal; aturdir | `conduce`, `aturde`; se queda como base, en el futuro pensar combinaciones |
 | hielo | congelar acciones; es **sólido** en general, salvo un "spray de congelación" en casos concretos | sólido/spray no son dos elementos: son dos glifos (barrera = bloque, flecha = spray) |
 | viento | mover lo ligero, llevar llamas, empujar | ya arrastra (`carried_element`); falta: molinos, nubes de esporas, apagar velas a distancia |
 
@@ -218,6 +230,24 @@ compra a la librera.
 Las soluciones largas tienen que dar hechizos con sentido: flecha +
 elemento dispara un bloque pequeño del elemento que se mueve; si añades
 barrera, es un muro que se mueve.
+
+Cada glifo tiene una propiedad que traspasa en una cadena y una forma base. Los glifos a implementar y revisar son los siguientes:
+
+| glifo | glifo aislado | cómo se traduciría en una cadena|
+flecha | bola del elemento que se desplaza desde el jugador en la dirección (importante tener en cuenta el elemento de la flecha para que no quede irreal) | en una cadena debe proporcionar al otro glifo la posibilidad de desplazarse una distancia d determinada, multiples flechas extienden la duración.
+barrera | escudo del elemento creado | proporciona redondez al hechizo. Por tanto, los hechizos con barrera deberán trasladarse la forma circular. Mas barreras proporcionan un radio mayor.
+levitación | permite al jugador un elemento móvil cercano al jugador (pensar en una llama que te acompaña o un pedazo de roca flotante) | proporciona que el elemento quede estatico en un punto, con flecha permite que el elemento haga una trayectoria y se quede estatico en un punto. Con barrera proporciona un pilar que se pone delante del jugador.
+pulso | crea un pulso elemental (que empuja) | mezclado con barrera crearía un pulso con la barrera (extendiéndola d distancia pero menos distancia que flecha), con flecha puede crear un hechizo que en vez de salir disparado en linea recta cree una curva 
+línea | crea un muro enfrente de un elemento (tener en cuenta que hielo y tierra dejan un bloque solido delante que se puede usar para bloquear proyectiles y los otros generar el elemento fluido)| combinado con pulso genera un muro que empuja y se estira, con flecha muro de fuego, barrera muro solido delante. con levitación un "lanzallamas" al permanecer en el sitio. 
+
+**Referencias visuales (6/10):** hay varias animaciones de lanzallamas,
+muros y barreras dejadas como referencia para el Pipeline (tarea 5.10 del
+plan). El **pulso** toma como referencia la animación **`fire ring`**: un
+aro que sale del jugador y se expande. Es lo que distingue en pantalla el
+pulso (anillo que crece y empuja) de la barrera (anillo quieto que protege).
+
+
+
 
 **Decidido (4/10/2026): un glifo por sector.** Lo que eso cambia:
 
@@ -246,13 +276,6 @@ potencia) más los cinco parámetros de los glifos nuevos (`bounces`,
 a una tabla de combinaciones con prioridad, que es lo que `sigils.gd`
 evita a propósito.
 
-**Lo que de verdad falta: los sprites.** Hay combinaciones cuya receta
-sale bien pero cuya forma visual no existe. La tarea no es cambiar la
-semántica sino hacer la **matriz receta → forma visual**
-(`spell_form.gd` / `spell_material.gd`) y ver qué celdas no tienen dibujo.
-Es un documento de media hora y produce directamente la lista de assets
-que pedir al Pipeline. Las combinaciones que salgan "gratis" en pruebas se
-toman sin tocar código.
 
 **Qué cuesta.** La regla del libro (un glifo por sector + una receta por
 página con ratón) toca `spellcaster.gd` (`_component_at`, `add_sigil`) y
@@ -276,7 +299,7 @@ con el rombo de color al lado de la barra.
 **Cómo encaja el escudo.** Por duck typing, como todo lo demás: un nodo
 hijo `Escudo` con su propio `on_spell_hit`, la etiqueta `madera` y una
 forma de colisión que intercepta proyectiles (`blocks`, el mismo parámetro
-que ya tiene la barrera). Si recibe `quema_madera`, se destruye y el goblin
+que ya tiene la barrera), implementar que con el escudo activo los disparos directos (por ejemplo una flecha) no se aplican en el enemigo con el escudo. Si recibe `quema_madera`, se destruye y el goblin
 queda expuesto. Ni el goblin ni el fuego se enteran. Es la misma idea que
 `Combate`: **comportamiento como componente**, no como `if` dentro del
 enemigo. Cada enemigo nuevo debería poder describirse como "base + lista

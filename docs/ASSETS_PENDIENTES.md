@@ -167,3 +167,41 @@ Ya sustituidas por una versión mejor y puestas en reserva: `arbol_redondo`, `pi
 
 `alchemist_elf` y `goblin_archer_chibi` solo existen como `character.json` + atlas 2D (`export_godot/characters/`); **no hay `*_master.glb` en el repo** (el informe del ensamblado apunta a `C:\Users\paranda\Documents\magic-symbols\pipeline\characters\<id>\<id>_master.glb`, otra carpeta). Hasta que se copien a `poc_25d/` el 3D usa el sustituto (librera / guerrero). `COPIAR_MODELOS.cmd` ya los incluye.
 
+
+## 8. Plan de assets «bosque» (5.12 · Pipeline · 6/10)
+
+Para un nivel más ambicioso que el Test 2. Reglas comunes: **textura ≤ 1024²**, un solo material por GLB, ancla en la base (pivote en el suelo), sin animación salvo donde se indica, estilo pastel/chibi del resto. «Pantalla» = alto aproximado en pantalla con la cámara ortográfica actual (casilla = 2,3 u). Tope de triángulos pensado para UHD 620: se prefiere lote (`lamina`) de varias piezas por GLB. Las letras son las del plano de `prueba_test2.gd._mapa()`; las marcadas **(nueva)** no existen aún y las define Juego al montar el nivel.
+
+### Decorado (lámina GLB por grupo)
+
+| Asset | Pantalla | Tope tris | Letra | Notas |
+|---|---|---|---|---|
+| Árbol grande ×3 variantes (redondo, pino, retorcido) | 3,5–4,5 u | 1500 | `#` (pared de bosque, variante por semilla) | copa opaca, tronco visible; ya existe `arbol_redondo` como base |
+| Arbusto ×2 | 0,7 u | 400 | `h` (nueva variante) | relleno no bloqueante |
+| Roca ×2 tamaños (pequeña 0,6 u, grande 1,4 u) | 0,6 / 1,4 u | 500 / 900 | `r` | la grande bloquea |
+| Tocón | 0,5 u | 300 | `r` (nueva variante) | |
+| Seto | 1 casilla de largo, 0,9 u | 600 | `h` | sustituye al `seto_seco` retirado |
+| Telaraña | 1 casilla, plano | 150 | **(nueva) `w`** | plano con alfa; ralentiza al pasar (decisión de Juego) |
+| Puente de madera | 1×3 casillas | 900 | `b` sobre `~` | se cruza de E a O |
+| Pasarela (tablones) | 1×2 casillas | 600 | `b` | zona pantanosa |
+| Cabaña / puesto | 2×2 casillas, 3 u | 2500 | `M` | ya hay `puesto_mercado`; la cabaña es nueva (puerta hacia la cámara) |
+| Tótem ×3 (rayo, agua, tierra) | 2 u | 800 | `T` | emisión que se enciende al activar (usa `Ocluso3D.poner_emision`) |
+| Antorcha | 1,2 u | 250 | **(nueva) `i`** | luz con `OmniLight3D` solo cerca de la cámara |
+| Fogata | 0,6 u | 400 | `F` | las llamas ya las pone `Vfx3D.fuego_fijo` |
+| Nubes de tormenta | — | — | — | **ya hechas por código** (`Vfx3D.lanzar_forma("tormenta", …)`), no hay que encargarlas |
+| Orilla de agua (esquina interior/exterior/recta) | 1 casilla | 300 c/u | `~` bordes | con mezcla a baldosa de hierba |
+| Cascada pequeña | 1×2 casillas, 2 u | 700 | **(nueva) `c`** | agua con scroll UV (shader de agua existente) |
+| Camino (recto, curva, cruce) | 1 casilla, plano | 100 c/u | `.` variante | extiende `path_arriba` |
+
+### Personajes (mismos clips mínimos de 4.8 → §1)
+
+| Personaje | Estado | Clips mínimos |
+|---|---|---|
+| Héroe | existe (`chibi_elf`) | idle, walk, run, cast, hit, death, roll, `readandwrite`, `swim_forward` |
+| Goblin guerrero | existe | idle, walk, attack, hit, death |
+| Goblin arquero | existe (`goblin_archer_chibi`); falta clip de arco visible | idle, walk, attack, hit, death + `walk_back` |
+| Guardabosques | **nuevo** | idle, talk, walk |
+| Librera | existe (`bookseller_chibi`) | idle, talk |
+| Alquimista | existe (`alchemist_elf`) | idle, talk, walk |
+
+**Prioridad Meshy:** 1) árboles ×3 y roca grande (cubren el 70 % del plano), 2) puente + pasarela + orilla, 3) tótems, 4) guardabosques, 5) resto.

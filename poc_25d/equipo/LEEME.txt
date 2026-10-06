@@ -19,3 +19,9 @@ Grimorios de la elfa (5 de octubre, noche), de los tres GLB de Meshy de grimorio
   - grimorio_3.glb  legendario (rojo y oro)
   Centrados en el origen, alto 0,34 en +Y, lomo y pluma hacia -X, tapa hacia +Z (el marco del de codigo).
   Equipo3D.nivel_grimorio elige cual; tecla N en PruebaTest2, LabVfx3D y CatalogoAssets.
+
+Arquero (6 de octubre), de Meshy_AI_Tribal_Bow_and_Arrow (una sola malla con arco y flecha, partida en dos):
+  - arco.glb     empuñe en el origen, limbos a lo largo de +Y, cuerda hacia +X, 0,78 de alto   (9,9 k triángulos, 1 MB)
+  - flecha.glb   centrada en el origen, punta hacia +Y, 0,6 de largo                             (4,0 k, 0,7 MB)
+  Texturas a 1024. El arco va en la mano DERECHA del arquero (EQUIPO["goblin_archer_chibi"]); la flecha aún no se
+  cuelga de nada: el Juego puede usarla de proyectil con Equipo3D.pieza("flecha").

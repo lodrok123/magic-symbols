@@ -24,7 +24,10 @@ const ELEMENTOS: Array = ["fuego", "agua", "tierra", "viento", "rayo", "hielo"]
 ## Formas de un hechizo (la matriz receta -> forma de DISENO_FUTURO §3 reducida a lo que necesita el Test 3).
 ## proyectil = vuela hasta el punto · corro = anillo de manifestaciones alrededor del punto ·
 ## columna = una sola, alta y sólida, en el punto · muro = una fila que avanza desde el punto hacia donde se apunta.
-const FORMAS: Array = ["proyectil", "corro", "columna", "muro"]
+const FORMAS: Array = ["proyectil", "corro", "columna", "muro", "bola", "pilar", "onda", "chorro", "acompanante", "tormenta", "cupula"]
+## Nombres de la fase 5 (formas v2 de DISENO_FUTURO §3): bola = proyectil · pilar = columna · onda = pulso que se abre desde el
+## punto · chorro = lanzallamas: un chorro continuo del elemento del origen hacia el destino · acompanante = una manifestación
+## que flota junto al jugador. Las dos primeras son alias: se pueden usar los nombres viejos o los nuevos.
 const COLOR: Dictionary = {
 	"fuego": Color(1.0, 0.55, 0.25), "agua": Color(0.45, 0.75, 1.0), "tierra": Color(0.85, 0.66, 0.40),
 	"viento": Color(0.75, 0.97, 0.85), "rayo": Color(1.0, 0.93, 0.40), "hielo": Color(0.72, 0.92, 1.0),
@@ -40,10 +43,10 @@ const FORMA_DE: Dictionary = {
 ## Color de cada pieza cuando quien la pide no le da uno (blanco). Lo que sí llega con color (el del elemento) manda.
 const COLOR_DE: Dictionary = {
 	"llama": Color(1.0, 1.0, 1.0), "ascua": Color(1.0, 0.55, 0.2), "nube": Color(0.88, 0.87, 0.92),
-	"burbuja": Color(0.72, 0.92, 1.0), "gota": Color(0.45, 0.75, 1.0), "chispa": Color(1.0, 0.93, 0.4),
-	"estrella": Color(1.0, 0.95, 0.55), "copo": Color(0.72, 0.92, 1.0), "hoja": Color(0.62, 0.88, 0.5),
-	"piedra": Color(0.72, 0.58, 0.42), "cristal": Color(0.72, 0.92, 1.0), "pua": Color(0.78, 0.6, 0.4),
-	"corona": Color(0.5, 0.78, 1.0), "rayo": Color(1.0, 0.93, 0.4), "remolino": Color(0.78, 0.97, 0.85),
+	"burbuja": Color(1.0, 1.0, 1.0), "gota": Color(1.0, 1.0, 1.0), "chispa": Color(1.0, 0.93, 0.4),
+	"estrella": Color(1.0, 0.95, 0.55), "copo": Color(1.0, 1.0, 1.0), "hoja": Color(0.62, 0.88, 0.5),
+	"piedra": Color(0.72, 0.58, 0.42), "cristal": Color(1.0, 1.0, 1.0), "pua": Color(0.78, 0.6, 0.4),
+	"corona": Color(1.0, 1.0, 1.0), "rayo": Color(1.0, 1.0, 1.0), "remolino": Color(1.0, 1.0, 1.0),
 	"anillo": Color(0.85, 0.74, 0.56), "runa": Color(0.7, 0.9, 1.0), "grieta": Color(0.3, 0.22, 0.26),
 	"disco": Color(0.27, 0.19, 0.16),
 }
@@ -170,15 +173,26 @@ func destellos(p: Vector3, color: Color) -> Node3D:
 
 ## Fuego que no se apaga (antorchas, fuentes, barreras): llamas en 3D, brasas y humo. `barrera` = muro de llamas que
 ## ocupa la casilla; `esc` agranda o encoge. `p` = base del fuego. Devuelve la raíz (hija de este nodo) por si hay que quitarla.
-func fuego_fijo(p: Vector3, barrera: bool, esc: float = 1.0) -> Node3D:
+func fuego_fijo(p: Vector3, barrera: bool, esc: float = 1.0, eje: Vector3 = Vector3.RIGHT, largo: float = 2.3) -> Node3D:
 	var raiz := Node3D.new()
 	raiz.name = "fuego_fijo"
 	raiz.position = p
 	add_child(raiz)
-	var ancho: float = 0.97 if barrera else 0.12 * esc
+	var ancho: float = largo * 0.5 if barrera else 0.12 * esc
 	if barrera:
-		# Muro de lenguas altas y estrechas que ondulan, como el de Link's Awakening.
-		_lenguas(raiz, 6, ancho, 1.05, 1.65, 0.07, int(p.x * 3.0 + p.z * 5.0))
+		# PARED continua de fuego (referencia de Pablo, fire_ring): una sola malla facetada de `largo` de ancho a lo largo de `eje`.
+		# Es hija directa de la raíz para que `apagar` (_soltar) la oculte. Casillas vecinas con el mismo eje forman una pared seguida.
+		var m: MeshInstance3D = Formas3D.instancia("pared_fuego", Color.WHITE)
+		var lleno := Vector3(largo * 1.01, 1.45, 0.95)
+		m.scale = lleno
+		m.rotation.y = atan2(-eje.z, eje.x)
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(m)
+		var fase: float = float(int(p.x * 3.0 + p.z * 5.0) % 7) * 0.13
+		var tw := m.create_tween().set_loops()
+		tw.tween_interval(fase)
+		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
 	else:
 		# Una lengua principal que se inclina hacia un lado (la «lengua prominente») y dos pequeñas a su costado.
 		_lenguas(raiz, 1, 0.0, 0.7 * esc, 0.78 * esc, 0.42, int(p.x * 3.0 + p.z * 5.0))
@@ -189,6 +203,8 @@ func fuego_fijo(p: Vector3, barrera: bool, esc: float = 1.0) -> Node3D:
 	var b := _particulas("brasa", 10 if barrera else 5, 1.4, 1.3, 0.12 * esc, true, COLOR["fuego"], Vector3(0.0, -0.3, 0.0))
 	_caja_emision(b, ancho, Vector3(0.0, 0.0, 0.0))
 	(b.process_material as ParticleProcessMaterial).spread = 25.0
+	if barrera:
+		(b.process_material as ParticleProcessMaterial).emission_box_extents = Vector3(ancho if absf(eje.x) > 0.5 else 0.25, 0.04, ancho if absf(eje.z) > 0.5 else 0.25)
 	raiz.add_child(b)
 	b.emitting = true
 	return raiz
@@ -212,7 +228,8 @@ func apagar(n: Node3D) -> void:
 
 ## Lanza un hechizo de `elemento` con la `forma` dada (FORMAS). `pie_origen` = pies del lanzador; `pie_destino` = el
 ## punto señalado (pies). Opciones: "radio" (corro: radio del anillo; muro: semiancho; 1,2 por defecto) y "dura"
-## (segundos que se ve cada manifestación; por defecto 2,0 el corro, 3,0 la columna y 0,9 el muro). Una forma
+## (segundos que se ve cada manifestación; por defecto 2,0 el corro, 3,0 la columna/pilar, 0,9 el muro, 0,7 la onda, 1,6 el chorro y 6,0
+## el acompañante); "largo" (chorro: hasta dónde llega, 4,0 por defecto). Una forma
 ## desconocida cae al proyectil, que es la forma por defecto de cada elemento. Solo es la parte visual: las
 ## manifestaciones con colisión son cosa del Lanzador.
 func lanzar_forma(forma: String, elemento: String, pie_origen: Vector3, pie_destino: Vector3,
@@ -228,6 +245,20 @@ func lanzar_forma(forma: String, elemento: String, pie_origen: Vector3, pie_dest
 			_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
 		"muro":
 			_muro(elemento, pie_origen, pie_destino, radio, float(opciones.get("dura", 0.9)))
+		"bola":
+			lanzar(elemento, pie_origen, pie_destino)
+		"pilar":
+			_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
+		"onda":
+			_onda_forma(elemento, pie_origen, pie_destino, maxf(radio, 1.8) if not opciones.has("radio") else radio, float(opciones.get("dura", 0.7)))
+		"chorro":
+			_chorro_forma(elemento, pie_origen, pie_destino, float(opciones.get("largo", 4.0)), float(opciones.get("dura", 1.6)))
+		"acompanante":
+			_acompanante(elemento, pie_origen, pie_destino, float(opciones.get("dura", 6.0)))
+		"cupula":
+			_cupula(elemento, pie_origen, pie_destino, radio if opciones.has("radio") else 1.4, float(opciones.get("dura", 4.0)))
+		"tormenta":
+			_tormenta(pie_destino, radio if opciones.has("radio") else 2.2, float(opciones.get("dura", 6.0)))
 		_:
 			if forma != "proyectil" and forma != "":
 				push_warning("Vfx3D: forma desconocida '%s'; se usa proyectil" % forma)
@@ -236,17 +267,417 @@ func lanzar_forma(forma: String, elemento: String, pie_origen: Vector3, pie_dest
 
 ## --- Formas ---
 
-## Anillo de ocho manifestaciones bajas alrededor del punto, con un círculo rúnico en el suelo.
+## CORRO = un ANILLO CERRADO de pared del elemento alrededor del punto (la referencia fire_ring): tramos de pared
+## colocados sobre la circunferencia de `radio` (en el suelo), cada uno tangente, que aparecen en cadena y se hunden a la
+## vez. Se ve solo el anillo (nada de círculo plano en el suelo); el interior queda libre. Cada elemento lo dibuja a su
+## manera, igual que el muro (`_pared`).
 func _corro(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float) -> void:
 	_carga(elemento, pie_origen)
 	var c: Color = COLOR[elemento]
-	var marca := Color(c.r, c.g, c.b, 0.55)
-	_despues(0.25, _marca.bind("circulo_runico", centro, radio * 2.5 / escala, marca, dura))
-	for i in range(8):
-		var ang: float = float(i) / 8.0 * TAU
-		var p: Vector3 = centro + Vector3(cos(ang), 0.0, sin(ang)) * radio
-		_brote(elemento, p, 0.6, 0.95, 0.25 + float(i) * 0.04, dura, true)
+	var r: float = maxf(radio, 0.6) * escala
+	if elemento == "tierra" and _cargar_piedra():
+		# El anillo de rocas entero (stone_ring), con su radio medio sobre la circunferencia pedida.
+		var k: float = r / R_PIEDRA
+		var giro: float = float(int(centro.x * 7.0 + centro.z * 13.0) % 360) * PI / 180.0
+		_despues(0.25, _roca.bind(_p_anillo, centro, giro, Vector3(k, minf(k, 3.4 * escala) * 1.0, k), 0.0, dura))
+		for i in range(4):
+			var ang: float = float(i) / 4.0 * TAU + giro
+			var p: Vector3 = centro + Vector3(cos(ang), 0.0, sin(ang)) * r
+			_despues(0.25, _estallido.bind(p + Vector3(0, 0.2, 0), "piedrecitas", 8, 0.9, 2.6, 0.2, false, Color.WHITE,
+				Vector3(0, -7.0, 0)))
+		_despues(0.25, _temblor.bind(0.08))
+		_despues(0.25, _luz.bind(centro + Vector3(0.0, 0.6, 0.0), c, 1.0, 3.0 + radio, 0.5))
+		return
+	if elemento == "rayo" and _cargar_energia():
+		# La cúpula de energía entera sobre el área; sube desde el suelo como en el vídeo.
+		var k: float = r / R_ENERGIA
+		var giro_e: float = float(int(centro.x * 7.0 + centro.z * 13.0) % 360) * PI / 180.0
+		_despues(0.25, _roca.bind(_e_domo, centro, giro_e, Vector3(k, k * 0.85, k), 0.0, dura))
+		for i in range(3):
+			var ang: float = float(i) / 3.0 * TAU + giro_e
+			_despues(0.3 + 0.1 * float(i), _estallido.bind(centro + Vector3(cos(ang), 0.1, sin(ang)) * r, "chispa_electrica", 8, 0.5, 2.0, 0.4, true,
+				Color.WHITE, Vector3.ZERO))
+		_despues(0.25, _luz.bind(centro + Vector3(0.0, 0.8, 0.0), Color(0.4, 0.7, 1.0), 2.0, 3.5 + radio, minf(dura, 1.5)))
+		return
+	var n: int = clampi(int(ceil(TAU * r / 1.1)), 8, 18)
+	var cuerda: float = 2.0 * r * sin(PI / float(n))
+	var ang0: float = atan2(centro.z - pie_origen.z, centro.x - pie_origen.x)
+	for i in range(n):
+		var ang: float = ang0 + float(i) / float(n) * TAU
+		var radial := Vector3(cos(ang), 0.0, sin(ang))
+		var lado := Vector3(-radial.z, 0.0, radial.x)
+		_pared(elemento, centro + radial * r, lado, cuerda * 1.12 / escala, 1.3, 0.25 + 0.03 * float(i), dura, i % 4 == 0)
 	_despues(0.25, _luz.bind(centro + Vector3(0.0, 0.6, 0.0), c, 1.4, 3.0 + radio, 0.5))
+
+
+## --- Formas v2 (fase 5) ---
+
+## ONDA: un pulso que se abre desde `centro` (pie_destino; pasad los pies del jugador en los dos si empuja desde él) hasta `radio`.
+## Dos aros que se abren seguidos, un estallido de piezas del elemento y una luz; la tierra además tiembla.
+func _onda_forma(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float) -> void:
+	_carga(elemento, pie_origen)
+	var c: Color = COLOR[elemento]
+	var r: float = maxf(radio, 0.8)
+	var aro: Color = Color(c.r, c.g, c.b, 0.85)
+	if elemento == "fuego":
+		aro = Color(1.0, 0.7, 0.25, 0.85)
+	_despues(0.2, _onda.bind(centro, "ondas", 0.4, r * 2.0, dura, aro))
+	_despues(0.32, _onda.bind(centro, "ondas", 0.3, r * 1.5, dura, Color(1, 1, 1, 0.6)))
+	var p: Vector3 = centro + Vector3(0.0, 0.25, 0.0)
+	match elemento:
+		"fuego":
+			_despues(0.2, _estallido.bind(p, "llama", 14, 0.7, r * 2.2, 0.45, false, Color.WHITE, Vector3(0, 1.2, 0)))
+			_despues(0.2, _estallido.bind(p, "brasa", 18, 1.0, r * 2.4, 0.12, true, c, Vector3(0, -0.4, 0)))
+		"agua":
+			_despues(0.2, _estallido.bind(p, "gota", 22, 0.9, r * 2.4, 0.2, false, Color.WHITE, Vector3(0, -7.0, 0)))
+			_despues(0.2, _estallido.bind(p, "salpicadura", 6, 0.6, r * 1.6, 0.45, false, Color(1, 1, 1, 0.8), Vector3.ZERO))
+		"tierra":
+			_despues(0.2, _estallido.bind(p, "piedrecitas", 16, 0.9, r * 2.2, 0.22, false, Color.WHITE, Vector3(0, -7.0, 0)))
+			_despues(0.2, _estallido.bind(p, "polvo", 10, 1.1, r * 1.8, 0.7, false, Color(1, 1, 1, 0.6), Vector3(0, 0.3, 0)))
+			_despues(0.22, _temblor.bind(0.09))
+		"viento":
+			_despues(0.2, _estallido.bind(p, "hoja", 22, 1.2, r * 2.6, 0.3, false, Color.WHITE, Vector3(0, 0.2, 0), 1, true))
+			_despues(0.2, _remolino.bind(centro + Vector3(0.0, 0.4, 0.0), r * 1.1, 0.0, dura, 1.0))
+		"rayo":
+			_despues(0.2, _estallido.bind(p, "chispa_electrica", 24, 0.5, r * 2.8, 0.4, true, Color.WHITE, Vector3.ZERO))
+			_despues(0.2, _chispazo_aro.bind(centro, r))
+		"hielo":
+			_despues(0.2, _estallido.bind(p, "copo", 22, 1.2, r * 2.0, 0.2, true, c, Vector3(0, -0.5, 0)))
+			_despues(0.2, _estallido.bind(p, "cristal_hielo", 6, 0.8, r * 1.5, 0.35, false, Color.WHITE, Vector3(0, -5.0, 0)))
+	_despues(0.2, _luz.bind(p + Vector3(0.0, 0.4, 0.0), c, 1.6, 3.0 + r, 0.6))
+
+
+## Unos rayitos repartidos por la circunferencia (onda de rayo).
+func _chispazo_aro(centro: Vector3, r: float) -> void:
+	for i in range(6):
+		var ang: float = float(i) / 6.0 * TAU + randf() * 0.5
+		var q: Vector3 = centro + Vector3(cos(ang), 0.0, sin(ang)) * r * 0.8
+		var m: MeshInstance3D = _pieza_de_pie("rayo", q, 1.1 * escala, Color(1, 1, 1, 0.95))
+		_crecer_y_borrar(m, 0.08, 0.2)
+		_parpadear(m, 0.0, 0.3)
+
+
+## CHORRO (lanzallamas): un flujo continuo de piezas del elemento que sale de la mano (a ~0,9 de altura sobre `pie_origen`) hacia
+## `pie_destino`, de `largo` unidades y `dura` segundos. El agua cae en arco, la tierra escupe piedras, el viento lleva hojas,
+## el rayo chispas y el hielo copos. Lleva una luz que acompaña el chorro.
+func _chorro_forma(elemento: String, pie_origen: Vector3, pie_destino: Vector3, largo: float, dura: float) -> void:
+	var dir := Vector3(pie_destino.x - pie_origen.x, 0.0, pie_destino.z - pie_origen.z)
+	if dir.length() < 0.01:
+		dir = Vector3(0.0, 0.0, 1.0)
+	dir = dir.normalized()
+	var c: Color = COLOR[elemento]
+	var L: float = maxf(largo, 1.0) * escala
+	var vida: float = 0.55
+	var vel: float = L / vida
+	var base: Vector3 = pie_origen + Vector3(0.0, 0.9 * escala, 0.0) + dir * 0.5 * escala
+	_carga(elemento, pie_origen)
+	var raiz := Node3D.new()
+	raiz.position = base
+	add_child(raiz)
+	var capas: Array = []     # [pieza, n, tamaño, aditivo, color, gravedad, abanico]
+	match elemento:
+		"fuego":
+			capas = [["llama", 26, 0.55, false, Color.WHITE, Vector3(0, 1.5, 0), 11.0], ["brasa", 18, 0.13, true, c, Vector3(0, -0.5, 0), 18.0]]
+		"agua":
+			capas = [["gota", 40, 0.2, false, Color.WHITE, Vector3(0, -6.0, 0), 7.0], ["salpicadura", 6, 0.35, false, Color(1, 1, 1, 0.7), Vector3(0, -5.0, 0), 8.0]]
+		"tierra":
+			capas = [["piedrecitas", 30, 0.26, false, Color.WHITE, Vector3(0, -8.0, 0), 12.0], ["polvo", 8, 0.7, false, Color(1, 1, 1, 0.55), Vector3(0, 0.3, 0), 14.0]]
+		"viento":
+			capas = [["hoja", 34, 0.3, false, Color.WHITE, Vector3(0, 0.3, 0), 14.0]]
+		"rayo":
+			capas = [["chispa_electrica", 36, 0.4, true, Color.WHITE, Vector3.ZERO, 16.0], ["destello", 8, 0.3, true, Color(1.0, 0.95, 0.5), Vector3.ZERO, 8.0]]
+		"hielo":
+			capas = [["copo", 34, 0.2, true, c, Vector3(0, -0.6, 0), 12.0], ["cristal_hielo", 6, 0.3, false, Color.WHITE, Vector3(0, -4.0, 0), 9.0]]
+	for cp in capas:
+		var gp := _particulas(String(cp[0]), int(cp[1]), vida, vel / escala, float(cp[2]), bool(cp[3]), cp[4] as Color, cp[5] as Vector3)
+		var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+		pm.damping_min = 0.0
+		pm.damping_max = 0.0
+		pm.direction = dir
+		pm.spread = float(cp[6])
+		pm.initial_velocity_min = vel * 0.7
+		pm.initial_velocity_max = vel * 1.0
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		pm.emission_sphere_radius = 0.1 * escala
+		gp.local_coords = false
+		gp.explosiveness = 0.0
+		gp.emitting = false
+		raiz.add_child(gp)
+		_despues(0.25, gp.set.bind("emitting", true))
+	# La luz recorre el chorro.
+	if con_luces:
+		var l := OmniLight3D.new()
+		l.light_color = c
+		l.light_energy = 1.5
+		l.omni_range = 3.2 * escala
+		l.position = Vector3(0.0, 0.1, 0.0) + dir * L * 0.35
+		raiz.add_child(l)
+		var tl := l.create_tween()
+		tl.tween_interval(0.25 + maxf(dura, 0.2))
+		tl.tween_property(l, "light_energy", 0.0, 0.25)
+	_despues(0.25 + maxf(dura, 0.2), _soltar_chorro.bind(raiz))
+
+
+func _soltar_chorro(raiz: Node3D) -> void:
+	if raiz == null or not is_instance_valid(raiz):
+		return
+	for h in raiz.get_children():
+		if h is GPUParticles3D:
+			(h as GPUParticles3D).emitting = false
+	_despues(1.2, raiz.queue_free)
+
+
+## ACOMPAÑANTE: una manifestación pequeña del elemento que flota junto al jugador (en `pie_destino`) `dura` s: llama, burbuja,
+## piedras que giran, remolino, orbe de chispas o cristal. Sube y baja suave y gira; aparece creciendo y se apaga encogiendo.
+func _acompanante(elemento: String, pie_origen: Vector3, pie_destino: Vector3, dura: float) -> void:
+	_carga(elemento, pie_origen)
+	var c: Color = COLOR[elemento]
+	var raiz := Node3D.new()
+	raiz.position = pie_destino + Vector3(0.0, 1.15 * escala, 0.0)
+	raiz.scale = Vector3.ONE * 0.05
+	add_child(raiz)
+	var cuerpo := Node3D.new()
+	raiz.add_child(cuerpo)
+	match elemento:
+		"fuego":
+			_pieza("llama", cuerpo, 0.7 * escala, Color.WHITE).position = Vector3(0.0, -0.3 * escala, 0.0)
+			var gp := _particulas("brasa", 8, 0.9, 0.5, 0.08, true, c, Vector3(0, 0.6, 0))
+			cuerpo.add_child(gp)
+		"agua":
+			_pieza("burbuja", cuerpo, 0.55 * escala, Color(1, 1, 1, 0.9))
+			var g := _pieza("gota", cuerpo, 0.3 * escala, Color.WHITE)
+			g.position = Vector3(0.0, -0.12 * escala, 0.0)
+		"tierra":
+			for i in range(3):
+				var r := Node3D.new()
+				cuerpo.add_child(r)
+				var pr: MeshInstance3D = _pieza("piedra", r, (0.26 + 0.06 * float(i)) * escala, Color.WHITE)
+				pr.position = Vector3(0.28 * escala, 0.1 * escala * float(i - 1), 0.0)
+				r.rotation.y = float(i) / 3.0 * TAU
+				var tw_r := r.create_tween().set_loops()
+				tw_r.tween_property(r, "rotation:y", TAU, 2.4 + 0.5 * float(i)).as_relative()
+		"viento":
+			_pieza("remolino_viento", cuerpo, 0.65 * escala, Color.WHITE)
+			_girar(cuerpo, 1.1)
+		"rayo":
+			var e: MeshInstance3D = _pieza("estrella", cuerpo, 0.5 * escala, Color(1.0, 0.95, 0.5))
+			var z: MeshInstance3D = _pieza("rayo", cuerpo, 0.7 * escala, Color(1, 1, 1, 0.95))
+			z.position = Vector3(0.0, -0.3 * escala, 0.0)
+			_parpadear(z, 0.0, dura)
+			var tw_e := e.create_tween().set_loops()
+			tw_e.tween_property(e, "scale", Vector3.ONE * 1.35, 0.12)
+			tw_e.tween_property(e, "scale", Vector3.ONE * 0.8, 0.16)
+		"hielo":
+			_pieza("cristal_hielo", cuerpo, 0.6 * escala, Color.WHITE).position = Vector3(0.0, -0.3 * escala, 0.0)
+			var gc := _particulas("copo", 8, 1.1, 0.4, 0.1, true, c, Vector3(0, -0.4, 0))
+			cuerpo.add_child(gc)
+			_girar(cuerpo, 3.0)
+	if con_luces:
+		var l := OmniLight3D.new()
+		l.light_color = c
+		l.light_energy = 0.9
+		l.omni_range = 2.4 * escala
+		raiz.add_child(l)
+	var y0: float = raiz.position.y
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var bob := raiz.create_tween().set_loops()
+	bob.tween_property(raiz, "position:y", y0 + 0.12 * escala, 0.9).set_trans(Tween.TRANS_SINE)
+	bob.tween_property(raiz, "position:y", y0 - 0.06 * escala, 0.9).set_trans(Tween.TRANS_SINE)
+	var fin := raiz.create_tween()
+	fin.tween_interval(0.3 + maxf(dura, 0.5))
+	fin.tween_property(raiz, "scale", Vector3.ONE * 0.02, 0.35).set_ease(Tween.EASE_IN)
+	fin.tween_callback(raiz.queue_free)
+
+
+## --- CÚPULA (barrera de referencia: vídeos de tools/) y PERFILES de elemento ---
+## Idea de diseño (Pablo, 6/10): forma = geometría + movimiento; elemento = DATOS. Un perfil es una fila de esta tabla; una
+## combinación nueva (vapor, tormenta, lo que decida el Juego) es una fila nueva, no código nuevo en cada forma. Los casos
+## especiales (el modelo de energía del rayo, la piedra de la tierra) se afinan después sobre los perfiles.
+## Campos: nucleo = color del interior (alfa = opacidad) · borde = color del borde brillante · flujo = hacia dónde corre el
+## ruido (en unidades de modelo por segundo) · escala = tamaño del ruido · venas = 0..1 relámpagos sobre la superficie ·
+## facetas = 0 (suave) o nº de niveles (aspecto cristal) · llamas = 0..1 más densidad abajo · particula = pieza que flota dentro.
+const PERFIL: Dictionary = {
+	"fuego": {"nucleo": Color(1.0, 0.5, 0.08, 0.34), "borde": Color(1.0, 0.82, 0.25), "flujo": Vector3(0.0, -0.9, 0.0),
+		"escala": 2.6, "venas": 0.0, "facetas": 0, "llamas": 1.0, "particula": "brasa", "luz": Color(1.0, 0.6, 0.25)},
+	"agua": {"nucleo": Color(0.3, 0.62, 1.0, 0.30), "borde": Color(0.65, 0.9, 1.0), "flujo": Vector3(0.0, -0.18, 0.1),
+		"escala": 1.6, "venas": 0.0, "facetas": 0, "llamas": 0.0, "particula": "burbuja", "luz": Color(0.45, 0.75, 1.0)},
+	"tierra": {"nucleo": Color(0.52, 0.38, 0.22, 0.38), "borde": Color(0.85, 0.66, 0.4), "flujo": Vector3(0.0, 0.0, 0.0),
+		"escala": 3.2, "venas": 0.0, "facetas": 5, "llamas": 0.0, "particula": "piedrecitas", "luz": Color(0.85, 0.66, 0.4)},
+	"viento": {"nucleo": Color(0.55, 0.95, 0.8, 0.34), "borde": Color(0.9, 1.0, 0.95), "flujo": Vector3(1.4, 0.0, 0.0),
+		"escala": 1.4, "venas": 0.0, "facetas": 0, "llamas": 0.0, "particula": "hoja", "luz": Color(0.75, 0.97, 0.85)},
+	"rayo": {"nucleo": Color(0.2, 0.45, 0.95, 0.30), "borde": Color(0.5, 0.82, 1.0), "flujo": Vector3(0.2, -0.3, 0.0),
+		"escala": 1.9, "venas": 1.0, "facetas": 0, "llamas": 0.0, "particula": "chispa_electrica", "luz": Color(0.45, 0.75, 1.0)},
+	"hielo": {"nucleo": Color(0.6, 0.88, 1.0, 0.42), "borde": Color(0.92, 1.0, 1.0), "flujo": Vector3(0.0, 0.0, 0.0),
+		"escala": 3.0, "venas": 0.0, "facetas": 4, "llamas": 0.0, "particula": "copo", "luz": Color(0.72, 0.92, 1.0)},
+}
+const CODIGO_CUPULA: String = """
+shader_type spatial;
+render_mode blend_mix, unshaded, cull_disabled, depth_draw_never;
+uniform vec4 nucleo : source_color;
+uniform vec4 borde : source_color;
+uniform vec3 flujo;
+uniform float escala = 2.0;
+uniform float venas = 0.0;
+uniform float facetas = 0.0;
+uniform float llamas = 0.0;
+uniform float aparece = 1.0;   // 0..1 crece desde el suelo, y se apaga al final
+varying vec3 p_mod;
+float h31(vec3 p) { p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float ruido(vec3 x) {
+	vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(h31(i), h31(i + vec3(1,0,0)), f.x), mix(h31(i + vec3(0,1,0)), h31(i + vec3(1,1,0)), f.x), f.y),
+		mix(mix(h31(i + vec3(0,0,1)), h31(i + vec3(1,0,1)), f.x), mix(h31(i + vec3(0,1,1)), h31(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+float fbm(vec3 x) { float a = 0.5; float r = 0.0; for (int k = 0; k < 3; k++) { r += a * ruido(x); x *= 2.03; a *= 0.5; } return r; }
+void vertex() { p_mod = VERTEX; }
+void fragment() {
+	vec3 q = p_mod * escala + flujo * TIME;
+	q.y *= mix(1.0, 0.35, llamas);
+	float n = smoothstep(0.25, 0.8, fbm(q));
+	if (facetas > 0.5) { n = floor(n * facetas) / facetas; }
+	float fres = pow(1.0 - abs(dot(normalize(NORMAL), normalize(VIEW))), 2.2);
+	float alt = clamp(p_mod.y * 1.0 + 0.5, 0.0, 1.0);        // 0 abajo, 1 arriba (modelo de radio 0,5)
+	float base = mix(1.0, 1.0 - alt, llamas);                  // las llamas se concentran abajo
+	float cuerpo = nucleo.a * (0.35 + 1.6 * n) * (0.45 + 0.55 * base);
+	float vena = 0.0;
+	if (venas > 0.0) {
+		float t = floor(TIME * 9.0);
+		float m = fbm(p_mod * escala * 1.6 + vec3(t * 0.37, t * 0.11, 0.0));
+		vena = (1.0 - smoothstep(0.0, 0.035, abs(m - 0.5))) * step(0.55, h31(vec3(t, floor(p_mod.y * 3.0), 1.0)) ) * venas;
+	}
+	float corte = smoothstep(aparece - 0.04, aparece, alt);   // la cúpula sube del suelo hacia arriba
+	vec3 col = mix(nucleo.rgb, borde.rgb, clamp(fres * 1.2 + n * 0.25 * llamas + vena, 0.0, 1.0));
+	ALBEDO = col + vena * vec3(1.0);
+	ALPHA = clamp(cuerpo + fres * 0.7 + vena * 0.9, 0.0, 0.92) * (1.0 - corte);
+}
+"""
+var _sh_cupula: Shader = null
+
+
+## Cúpula esférica del elemento sobre el punto (la barrera de los vídeos de referencia): sube del suelo, flota con el ruido del
+## elemento y se hunde al final. Solo dibuja. `radio` en unidades de mundo.
+func _cupula(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float) -> void:
+	_carga(elemento, pie_origen)
+	var perfil: Dictionary = PERFIL.get(elemento, PERFIL["fuego"])
+	if _sh_cupula == null:
+		_sh_cupula = Shader.new()
+		_sh_cupula.code = CODIGO_CUPULA
+	var r: float = maxf(radio, 0.6) * escala
+	var raiz := Node3D.new()
+	raiz.position = centro
+	add_child(raiz)
+	var malla := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 28
+	sm.rings = 14
+	malla.mesh = sm
+	var mat := ShaderMaterial.new()
+	mat.shader = _sh_cupula
+	for k in ["nucleo", "borde", "flujo", "escala", "venas", "facetas", "llamas"]:
+		var v: Variant = perfil[k]
+		mat.set_shader_parameter(k, float(v) if v is int else v)
+	mat.set_shader_parameter("aparece", 0.0)
+	malla.material_override = mat
+	malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	malla.scale = Vector3.ONE * (2.0 * r)
+	malla.position = Vector3(0.0, r * 0.6, 0.0)      # esfera casi entera sobre el suelo (como en la referencia)
+	raiz.add_child(malla)
+	var gp: GPUParticles3D = _particulas(String(perfil["particula"]), 14, 1.4, 0.4, 0.12, true, COLOR[elemento], Vector3(0, 0.3, 0))
+	(gp.process_material as ParticleProcessMaterial).emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	(gp.process_material as ParticleProcessMaterial).emission_sphere_radius = r * 0.8
+	gp.position = Vector3(0.0, r * 0.6, 0.0)
+	raiz.add_child(gp)
+	_luz(centro + Vector3(0.0, r * 0.6, 0.0), perfil["luz"], 1.4, 3.0 + radio, minf(dura, 1.2))
+	var tw := raiz.create_tween()
+	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("aparece", v), 0.0, 1.05, 0.5).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(maxf(dura - 0.9, 0.2))
+	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("aparece", v), 1.05, 0.0, 0.4).set_ease(Tween.EASE_IN)
+	tw.tween_callback(gp.set.bind("emitting", false))
+	tw.tween_interval(1.0)
+	tw.tween_callback(raiz.queue_free)
+
+
+## TORMENTA (5.11): nubes oscuras estáticas sobre el área (`radio`, centro = pie_destino) que sueltan un rayo cada
+## ~0,8 s sobre una casilla de debajo. Solo dibuja; el daño del rayo (y su `impacto`) son cosa del Lanzador, que puede
+## llamar a `lanzar_forma("columna", "rayo", ...)` cuando quiera dañar. El elemento es siempre rayo+viento.
+func _tormenta(centro: Vector3, radio: float, dura: float) -> void:
+	var r: float = radio * escala
+	var raiz := Node3D.new()
+	raiz.position = centro + Vector3(0.0, 3.3 * escala, 0.0)
+	raiz.scale = Vector3.ONE * 0.05
+	add_child(raiz)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.36, 0.38, 0.46)
+	mat.roughness = 1.0
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(centro.x * 73.0 + centro.z * 131.0) + 7
+	var n_nubes: int = clampi(int(ceil(r / 0.9)) + 2, 3, 6)
+	var nubes: Array = []
+	for i in range(n_nubes):
+		var a: float = TAU * float(i) / float(n_nubes) + rng.randf() * 0.5
+		var d: float = r * (0.25 + 0.55 * rng.randf()) * (0.0 if i == 0 else 1.0)
+		var nube := Node3D.new()
+		nube.position = Vector3(cos(a) * d, rng.randf_range(-0.15, 0.15) * escala, sin(a) * d)
+		raiz.add_child(nube)
+		nubes.append(nube)
+		for j in range(4):
+			var esf := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.5
+			sm.height = 1.0
+			sm.radial_segments = 10
+			sm.rings = 5
+			esf.mesh = sm
+			var mi: StandardMaterial3D = mat.duplicate()
+			mi.albedo_color = mat.albedo_color.lightened(rng.randf_range(-0.05, 0.12))
+			esf.material_override = mi
+			esf.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var t: float = float(j) - 1.5
+			esf.position = Vector3(t * 0.42, rng.randf_range(-0.05, 0.1), rng.randf_range(-0.2, 0.2)) * escala
+			esf.scale = Vector3(1.0, 0.6, 0.85) * rng.randf_range(0.8, 1.25) * escala
+			nube.add_child(esf)
+		var deriva := nube.create_tween().set_loops()
+		var x0: float = nube.position.x
+		deriva.tween_property(nube, "position:x", x0 + 0.25 * escala, 2.0 + 0.3 * float(i)).set_trans(Tween.TRANS_SINE)
+		deriva.tween_property(nube, "position:x", x0 - 0.25 * escala, 2.0 + 0.3 * float(i)).set_trans(Tween.TRANS_SINE)
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var t_fin: float = maxf(dura, 1.5)
+	var n_rayos: int = int(t_fin / 0.8)
+	for k in range(n_rayos):
+		var cuando: float = 0.7 + 0.8 * float(k) + rng.randf() * 0.3
+		var a2: float = rng.randf() * TAU
+		var d2: float = r * sqrt(rng.randf())
+		var suelo: Vector3 = centro + Vector3(cos(a2) * d2, 0.0, sin(a2) * d2)
+		_despues(cuando, _rayo_de_nube.bind(suelo, raiz))
+	var fin := raiz.create_tween()
+	fin.tween_interval(t_fin)
+	fin.tween_property(raiz, "scale", Vector3.ONE * 0.02, 0.6).set_ease(Tween.EASE_IN)
+	fin.tween_callback(raiz.queue_free)
+
+
+## Un rayo de la tormenta: bajada parpadeante + destello + chispas. Sin marca, sin temblor y sin señal `impacto`.
+func _rayo_de_nube(suelo: Vector3, raiz: Node3D) -> void:
+	if not is_instance_valid(raiz):
+		return
+	var alto: float = 3.3 * escala
+	var rayo: MeshInstance3D = _pieza_de_pie("rayo", suelo, 1.0, Color.WHITE)
+	rayo.scale = Vector3(1.2, alto, 1.2)
+	var tw := rayo.create_tween()
+	for i in range(2):
+		tw.tween_callback(rayo.set.bind("visible", true))
+		tw.tween_interval(0.05)
+		tw.tween_callback(rayo.set.bind("visible", false))
+		tw.tween_interval(0.04)
+	tw.tween_callback(rayo.set.bind("visible", true))
+	tw.tween_interval(0.1)
+	tw.tween_callback(rayo.queue_free)
+	_estallido(suelo + Vector3(0, 0.3, 0), "chispa_electrica", 8, 0.45, 2.2, 0.3, true, Color.WHITE, Vector3.ZERO, 1, true)
+	_luz(suelo + Vector3(0, 1.4, 0), COLOR["rayo"], 3.0, 5.0, 0.3)
 
 
 ## Una sola manifestación alta (dos niveles de bloque) en el punto.
@@ -260,23 +691,124 @@ func _columna(elemento: String, pie_origen: Vector3, destino: Vector3, dura: flo
 		_despues(0.3, _temblor.bind(0.08))
 
 
-## Una fila de manifestaciones que avanza desde el punto hacia donde se apunta (origen -> destino): cuatro filas
-## separadas 0,75 u y cinco manifestaciones por fila, cada una un momento después de la anterior.
+## MURO = una PARED continua del elemento (no una cuadrícula de brotes): `semiancho` * 2 + 0,6 de largo, perpendicular a
+## origen -> destino y con su centro un poco por delante de `inicio`. Cada elemento la dibuja a su manera (`_pared`).
 func _muro(elemento: String, pie_origen: Vector3, inicio: Vector3, semiancho: float, dura: float) -> void:
 	_carga(elemento, pie_origen)
-	var c: Color = COLOR[elemento]
 	var dir := Vector3(inicio.x - pie_origen.x, 0.0, inicio.z - pie_origen.z)
 	if dir.length() < 0.01:
 		dir = Vector3(0.0, 0.0, 1.0)
 	dir = dir.normalized()
 	var lado := Vector3(-dir.z, 0.0, dir.x)
-	for fila in range(4):
-		var t0: float = 0.25 + float(fila) * 0.22
-		var centro: Vector3 = inicio + dir * (0.75 * escala * float(fila))
-		for j in range(5):
-			var f: float = float(j) / 4.0 * 2.0 - 1.0
-			_brote(elemento, centro + lado * (semiancho * f), 0.62, 1.15, t0, dura, true)
-		_despues(t0, _luz.bind(centro + Vector3(0.0, 0.6, 0.0), c, 1.0, 2.6, 0.45))
+	_pared(elemento, inicio + dir * 0.2 * escala, lado, semiancho * 2.0 + 0.6, 1.7, 0.25, dura)
+
+
+## Una PARED continua de `elemento`: `largo` x `alto` (unidades; se multiplican por `escala`), centrada en `centro` (en el suelo)
+## y extendida a lo largo de `lado`. Aparece tras `retraso` s, dura `dura` s y se hunde.
+##   fuego: facetas amarillo → naranja con puntas (la referencia fire_ring) · agua: cortina con cresta ondulada ·
+##   tierra: hilera de bloques de tierra pegados, de alturas distintas · viento: lámina ondulada de aire con hojas ·
+##   rayo: plasma en zigzag que parpadea · hielo: cristales fundidos en una pared de puntas.
+## `extras` = false (los tramos del corro, salvo uno de cada cuatro) omite luz, partículas, temblor y polvo: un anillo junta
+## 8-18 tramos y no hace falta una luz y un emisor por cada uno.
+func _pared(elemento: String, centro: Vector3, lado: Vector3, largo: float, alto: float, retraso: float, dura: float,
+		extras: bool = true) -> void:
+	var rot: float = atan2(-lado.z, lado.x)
+	var w: float = largo * escala
+	var h: float = alto * escala
+	var c: Color = COLOR[elemento]
+	if elemento == "rayo" and _cargar_energia():
+		var s_e: float = h / ALTO_ENERGIA / 1.0
+		var ne: int = maxi(1, int(round(w / (_e_ancho * s_e))))
+		for i in range(ne):
+			var f: float = (float(i) + 0.5) / float(ne) - 0.5
+			var lleno_e := Vector3(w / float(ne) / _e_ancho, s_e, s_e)
+			var giro_e: float = rot + (PI if i % 2 == 1 else 0.0)
+			_roca(_e_tramos[i % 2] as Mesh, centro + lado * (f * w), giro_e, lleno_e, retraso + 0.04 * absf(f) * float(ne), dura)
+		if extras:
+			_despues(retraso, _estallido.bind(centro + Vector3(0, 0.5, 0), "chispa_electrica", 10, 0.5, 2.0, 0.4, true, Color.WHITE, Vector3.ZERO))
+			_despues(retraso, _luz.bind(centro + Vector3(0.0, h * 0.6, 0.0), Color(0.4, 0.7, 1.0), 1.6, 3.0 + w * 0.4, minf(dura, 1.2)))
+		return
+	if elemento == "tierra" and _cargar_piedra():
+		# Hilera de tramos de roca pegados: cada uno estirado para que quepan justos, de alturas distintas.
+		var s_u: float = 3.2 * escala      # la misma escala que el anillo del corro: las rocas se ven igual de grandes
+		var nt: int = maxi(1, int(round(w / (_p_ancho * s_u))))
+		for i in range(nt):
+			var f: float = (float(i) + 0.5) / float(nt) - 0.5
+			var var_h: float = 0.85 + 0.3 * float(((i + 1) * 7919) % 100) / 99.0
+			var lleno := Vector3(w / float(nt) / _p_ancho, s_u * var_h * (h / (1.7 * escala)), s_u)
+			var giro: float = rot + (PI if i % 2 == 1 else 0.0)
+			_roca(_p_tramos[i % 2] as Mesh, centro + lado * (f * w), giro, lleno, retraso + 0.05 * absf(f) * float(nt), dura)
+		if extras:
+			_despues(retraso, _estallido.bind(centro + Vector3(0, 0.2, 0), "piedrecitas", 12, 0.9, 2.6, 0.2, false, Color.WHITE,
+				Vector3(0, -7.0, 0)))
+			_despues(retraso, _luz.bind(centro + Vector3(0.0, h * 0.5, 0.0), c, 0.8, 3.0, 0.4))
+			_despues(retraso, _temblor.bind(0.06))
+		return
+	if elemento == "tierra":
+		var n: int = maxi(2, int(ceil(w / 0.7)))
+		for i in range(n):
+			var f: float = (float(i) + 0.5) / float(n) - 0.5
+			var altura: float = h * (0.78 + 0.22 * float(((i + 1) * 7919) % 100) / 99.0)
+			var b: Node3D = _bloque_tierra(centro + lado * (f * w), w / float(n) * 1.04, altura / escala * escala,
+				retraso + 0.05 * absf(f) * float(n), dura)
+			b.rotation.y = rot
+		if extras:
+			_despues(retraso, _estallido.bind(centro + Vector3(0, 0.2, 0), "piedrecitas", 12, 0.9, 2.6, 0.2, false, Color.WHITE,
+				Vector3(0, -7.0, 0)))
+			_despues(retraso, _luz.bind(centro + Vector3(0.0, h * 0.5, 0.0), c, 0.8, 3.0, 0.4))
+			_despues(retraso, _temblor.bind(0.06))
+		return
+	var raiz := Node3D.new()
+	raiz.position = centro
+	add_child(raiz)
+	var m: MeshInstance3D = Formas3D.instancia("pared_" + elemento, Color.WHITE)
+	m.rotation.y = rot
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var lleno := Vector3(w, h, 1.1 * escala)
+	m.scale = Vector3(lleno.x, lleno.y * 0.05, lleno.z)
+	m.visible = false
+	raiz.add_child(m)
+	var tw := m.create_tween()
+	tw.tween_interval(retraso)
+	tw.tween_callback(m.set.bind("visible", true))
+	tw.tween_property(m, "scale", lleno, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if elemento == "fuego" or elemento == "agua":
+		# ondula sin parar mientras dura
+		var onda := m.create_tween().set_loops()
+		onda.tween_interval(retraso + 0.22)
+		onda.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
+		onda.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
+	tw.tween_interval(maxf(dura, 0.0))
+	tw.tween_property(m, "scale", Vector3(lleno.x, 0.0, lleno.z), 0.3).set_ease(Tween.EASE_IN)
+	if elemento == "rayo":
+		_parpadear(m, retraso, dura)
+	# Partículas a lo largo de la pared (hijas de la raíz: giran con ella).
+	var gp: GPUParticles3D = null
+	match elemento if extras else "":
+		"fuego":
+			gp = _particulas("brasa", 16, 1.3, 1.3, 0.12, true, c, Vector3(0.0, -0.3, 0.0))
+		"agua":
+			gp = _particulas("gota", 16, 1.0, 2.2, 0.17, false, Color.WHITE, Vector3(0.0, -7.0, 0.0))
+		"viento":
+			gp = _particulas("hoja", 14, 1.4, 1.1, 0.2, false, Color.WHITE, Vector3(0.0, 0.2, 0.0))
+		"rayo":
+			gp = _particulas("chispa_electrica", 12, 0.5, 2.0, 0.35, true, Color.WHITE, Vector3.ZERO)
+		"hielo":
+			gp = _particulas("copo", 12, 1.3, 0.8, 0.17, true, c, Vector3(0.0, -0.4, 0.0))
+	if gp != null:
+		var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		pm.emission_box_extents = Vector3(w * 0.5, 0.04, 0.2 * escala)
+		pm.direction = Vector3.UP
+		pm.spread = 20.0
+		gp.position = Vector3(0.0, 0.1, 0.0)
+		gp.rotation.y = rot
+		gp.emitting = false
+		raiz.add_child(gp)
+		_despues(retraso, gp.set.bind("emitting", true))
+	if extras:
+		_despues(retraso, _luz.bind(centro + Vector3(0.0, h * 0.6, 0.0), c, 1.6, 3.0 + w * 0.4, minf(dura, 1.2)))
+	_despues(retraso + dura + 0.3, _soltar.bind(raiz))
 
 
 ## Una manifestación del elemento que brota en `suelo` tras `retraso` s y dura `dura` s: `ancho` x `alto` en
@@ -303,7 +835,7 @@ func _brote(elemento: String, suelo: Vector3, ancho: float, alto: float, retraso
 			_tallo("salpicadura", suelo, w * 1.1, h * 0.85, Color(1, 1, 1, 0.92), false, retraso, dura)
 			_chorro(suelo, "gota", int((8.0 + 6.0 * alto) * k), 1.1, 2.0 + alto * 1.6, 0.18, false, Color.WHITE,
 				Vector3(0.0, -7.0, 0.0), w * 0.35, retraso, dura * 0.8)
-			_despues(retraso, _onda.bind(suelo, "ondas", 0.3 * ancho, 1.5 * ancho, 0.8, Color(1, 1, 1, 0.8)))
+			_despues(retraso, _onda.bind(suelo, "ondas", 0.3 * ancho, 1.5 * ancho, 0.8, Color(0.7, 0.9, 1.0, 0.8)))
 		"tierra":
 			# Un BLOQUE de tierra que sube del suelo (con polvo y piedrecitas): la tierra no es una pieza especial, es un bloque.
 			_bloque_tierra(suelo, w * 1.05, h, retraso, dura)
@@ -321,8 +853,11 @@ func _brote(elemento: String, suelo: Vector3, ancho: float, alto: float, retraso
 				Vector3(0.0, 0.2, 0.0), w * 0.5, retraso, dura * 0.8)
 		"rayo":
 			# Haz que baja del cielo y parpadea mientras dura; chispas en la base.
-			var r := _tallo("rayo", suelo, w * 0.8, h * (1.0 if ligero else 1.5), Color(1, 1, 1, 0.9), false, retraso, dura)
+			var r := _tallo("rayo", suelo, w * 0.8, h * (1.0 if ligero else 1.5), Color(1, 1, 1, 0.95), false, retraso, dura)
 			_parpadear(r, retraso, dura)
+			# Halo: el mismo rayo más ancho y muy translúcido (el resplandor que lo rodea).
+			var halo := _tallo("rayo", suelo, w * 1.9, h * (1.0 if ligero else 1.5), Color(1.0, 0.9, 0.4, 0.28), false, retraso, dura)
+			_parpadear(halo, retraso, dura)
 			_chorro(suelo, "chispa_electrica", int(8.0 * k), 0.5, 2.0, 0.4, true, Color.WHITE, Vector3.ZERO,
 				w * 0.4, retraso, dura)
 		"hielo":
@@ -348,6 +883,194 @@ func _tallo(nombre: String, suelo: Vector3, ancho: float, alto: float, color: Co
 	tw.tween_property(m, "scale", Vector3(lleno.x * 0.2, 0.0, lleno.z * 0.2), 0.3).set_ease(Tween.EASE_IN)
 	tw.tween_callback(m.queue_free)
 	return m
+
+
+## --- Tierra de piedra: la variante `stone_ring` (vfx/anillo_piedra.glb) ---
+## Un anillo de rocas de 1 x 0,41 x 1 (radio medio 0,38, base en y = 0). El CORRO de tierra es el anillo entero; el MURO de
+## tierra son tramos de ese mismo anillo DESENROLLADOS (un sector del círculo estirado en recta), así las dos formas llevan las
+## mismas rocas. Si falta el .glb se usan los bloques de tierra de siempre.
+const ANILLO_PIEDRA: String = "res://poc_25d/vfx/anillo_piedra.glb"
+const R_PIEDRA: float = 0.38
+const ALTO_PIEDRA: float = 0.41
+static var _p_anillo: Mesh = null
+static var _p_tramos: Array = []     ## Array[Mesh]: tramos rectos; su ancho en `_p_ancho`
+static var _p_ancho: float = 1.0
+static var _p_probado: bool = false
+
+
+func _cargar_piedra() -> bool:
+	if _p_probado:
+		return _p_anillo != null
+	_p_probado = true
+	if not ResourceLoader.exists(ANILLO_PIEDRA):
+		return false
+	var ps: PackedScene = load(ANILLO_PIEDRA) as PackedScene
+	if ps == null:
+		return false
+	var raiz: Node = ps.instantiate()
+	var mi: MeshInstance3D = raiz as MeshInstance3D
+	if mi == null:
+		var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+		mi = l[0] as MeshInstance3D if not l.is_empty() else null
+	if mi != null and mi.mesh != null:
+		_p_anillo = mi.mesh
+		var theta: float = deg_to_rad(42.0)
+		_p_tramos = [_tramo_piedra(_p_anillo, 0.0, theta), _tramo_piedra(_p_anillo, PI, theta)]
+		_p_ancho = 2.0 * theta * R_PIEDRA
+	raiz.free()
+	return _p_anillo != null
+
+
+## Un tramo RECTO: los triángulos del anillo cuyo centro cae en el sector `centro` ± `theta`, desenrollados (x = arco, z = hacia
+## dentro) y centrados en el origen. Conserva UV y material; las normales se giran con la roca.
+func _tramo_piedra(malla: Mesh, centro: float, theta: float, radio_ref: float = R_PIEDRA, aplanar: float = 1.0,
+		r_min: float = 0.16) -> Mesh:
+	var res := ArrayMesh.new()
+	for si in range(malla.get_surface_count()):
+		var arr: Array = malla.surface_get_arrays(si)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var nn: PackedVector3Array = arr[Mesh.ARRAY_NORMAL] if arr[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		var nuevo := PackedInt32Array()
+		var t: int = 0
+		while t + 2 < idx.size():
+			var m: Vector3 = (v[idx[t]] + v[idx[t + 1]] + v[idx[t + 2]]) / 3.0
+			var d: float = wrapf(atan2(m.z, m.x) - centro + PI, 0.0, TAU) - PI
+			var r: float = Vector2(m.x, m.z).length()
+			var cerca: bool = absf(d) <= theta and r > r_min
+			for k in range(3):
+				var qk: Vector3 = v[idx[t + k]]
+				if absf(wrapf(atan2(qk.z, qk.x) - centro + PI, 0.0, TAU) - PI) > theta * 1.12:
+					cerca = false      # un triángulo que se estira por el borde del sector saldría como una espina
+			if cerca:
+				nuevo.append(idx[t])
+				nuevo.append(idx[t + 1])
+				nuevo.append(idx[t + 2])
+			t += 3
+		var v2 := PackedVector3Array()
+		v2.resize(v.size())
+		var n2 := PackedVector3Array()
+		n2.resize(v.size())
+		for i in range(v.size()):
+			var q: Vector3 = v[i]
+			var phi: float = wrapf(atan2(q.z, q.x) - centro + PI, 0.0, TAU) - PI
+			var rr: float = Vector2(q.x, q.z).length()
+			var ang: float = phi + centro
+			var e_t := Vector3(-sin(ang), 0.0, cos(ang))
+			var e_r := Vector3(cos(ang), 0.0, sin(ang))
+			v2[i] = Vector3(radio_ref * phi, q.y, (radio_ref - rr) * aplanar)
+			if i < nn.size():
+				var nv: Vector3 = nn[i]
+				n2[i] = Vector3(nv.dot(e_t), nv.y, -nv.dot(e_r)).normalized()
+		arr[Mesh.ARRAY_VERTEX] = v2
+		if nn.size() == v.size():
+			arr[Mesh.ARRAY_NORMAL] = n2
+		arr[Mesh.ARRAY_TANGENT] = null
+		arr[Mesh.ARRAY_INDEX] = nuevo
+		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		res.surface_set_material(res.get_surface_count() - 1, malla.surface_get_material(si))
+	return res
+
+
+## Una malla de piedra de pie en `suelo`: crece, se queda `dura` s y se hunde.
+func _roca(malla: Mesh, suelo: Vector3, giro: float, lleno: Vector3, retraso: float, dura: float) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	m.mesh = malla
+	m.position = suelo
+	m.rotation.y = giro
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	m.scale = Vector3(lleno.x, lleno.y * 0.05, lleno.z)
+	m.visible = false
+	add_child(m)
+	var tw := m.create_tween()
+	tw.tween_interval(retraso)
+	tw.tween_callback(m.set.bind("visible", true))
+	tw.tween_property(m, "scale", lleno, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(maxf(dura, 0.0))
+	tw.tween_property(m, "scale", Vector3(lleno.x, 0.0, lleno.z), 0.3).set_ease(Tween.EASE_IN)
+	tw.tween_callback(m.queue_free)
+	return m
+
+
+## --- Rayo: la barrera de energía `energy_ring` (vfx/anillo_energia.glb) + el relampagueo del vídeo de Pablo ---
+## Una cúpula de 1 x 0,78 x 1 (radio 0,49, base en y = 0) con ramas de rayo en relieve. El CORRO de rayo es la cúpula entera sobre
+## el área; el MURO son dos tramos de esa cúpula aplanados en un panel. El material es un shader propio (sin luz, translúcido):
+## borde azul brillante por fresnel, bruma azul que se mueve por dentro y tramos que se encienden de golpe en blanco.
+const ENERGIA: String = "res://poc_25d/vfx/anillo_energia.glb"
+const R_ENERGIA: float = 0.49
+const ALTO_ENERGIA: float = 0.78
+const CODIGO_ENERGIA: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
+
+uniform float brillo = 1.0;
+varying vec3 vpos;
+
+float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float vn(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(h(i), h(i + vec2(1.0, 0.0)), f.x), mix(h(i + vec2(0.0, 1.0)), h(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void vertex() {
+	vpos = VERTEX;
+}
+
+void fragment() {
+	float t = TIME;
+	float fr = pow(1.0 - abs(dot(normalize(NORMAL), normalize(VIEW))), 2.0);
+	float nb = vn(vpos.xz * 5.0 + vpos.y * 3.0 + vec2(t * 0.35, -t * 0.2)) * 0.6 + vn(vpos.xz * 11.0 - vec2(t * 0.5, 0.0)) * 0.4;
+	vec3 nucleo = vec3(0.10, 0.28, 0.70) * (0.6 + 0.9 * nb);
+	vec3 borde = vec3(0.32, 0.74, 1.0);
+	vec3 col = mix(nucleo, borde, fr);
+	float a = mix(0.22 + 0.22 * nb, 0.95, fr);
+	float tramo = floor(t * 14.0);
+	float zona = vn(vpos.xy * 7.0 + vec2(vpos.z * 5.0, tramo * 3.17));
+	float chispa = smoothstep(0.74, 0.88, zona) * step(0.4, h(vec2(tramo, 3.0)));
+	col += vec3(0.9, 0.95, 1.0) * chispa * 1.5;
+	a = clamp(a + chispa * 0.7, 0.0, 1.0);
+	float destello = step(0.94, h(vec2(floor(t * 9.0), 7.0)));
+	col += vec3(0.5, 0.75, 1.0) * destello * 0.4;
+	ALBEDO = col * brillo;
+	ALPHA = a;
+}
+"""
+static var _e_domo: Mesh = null
+static var _e_tramos: Array = []
+static var _e_ancho: float = 1.0
+static var _e_probado: bool = false
+
+
+func _cargar_energia() -> bool:
+	if _e_probado:
+		return _e_domo != null
+	_e_probado = true
+	if not ResourceLoader.exists(ENERGIA):
+		return false
+	var ps: PackedScene = load(ENERGIA) as PackedScene
+	if ps == null:
+		return false
+	var raiz: Node = ps.instantiate()
+	var mi: MeshInstance3D = raiz as MeshInstance3D
+	if mi == null:
+		var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+		mi = l[0] as MeshInstance3D if not l.is_empty() else null
+	if mi != null and mi.mesh != null:
+		var sh := Shader.new()
+		sh.code = CODIGO_ENERGIA
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		var m: Mesh = mi.mesh.duplicate() as Mesh
+		for i in range(m.get_surface_count()):
+			m.surface_set_material(i, mat)
+		_e_domo = m
+		var theta: float = deg_to_rad(40.0)
+		_e_tramos = [_tramo_piedra(m, 0.0, theta, R_ENERGIA, 0.3, 0.1), _tramo_piedra(m, PI, theta, R_ENERGIA, 0.3, 0.1)]
+		_e_ancho = 2.0 * theta * R_ENERGIA
+	raiz.free()
+	return _e_domo != null
 
 
 ## Un BLOQUE de tierra de verdad (caja con la textura de tierra del suelo y contorno) que sube del suelo tras `retraso`, se
@@ -498,25 +1221,37 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 	add_child(cabeza)
 	cabeza.position = origen
 	var c: Color = COLOR[elemento]
+	# La pieza (llama, gota, cristal, remolino) es larga en +Y: se tumba 90° para que su punta mire hacia donde va el hechizo
+	# (giro de la flecha + elemento). Su giro propio (`_girar`) pasa a ser alrededor del eje de avance.
+	var avance: Vector3 = (destino - origen).normalized()
+	if avance.length() < 0.01:
+		avance = Vector3.FORWARD
+	var lat: Vector3 = Vector3.UP.cross(avance)
+	if lat.length() < 0.01:
+		lat = Vector3.RIGHT
+	lat = lat.normalized()
+	var pivote := Node3D.new()
+	pivote.basis = Basis(lat, avance, lat.cross(avance).normalized())
+	cabeza.add_child(pivote)
 	match elemento:
 		"fuego":
-			var llama: MeshInstance3D = _pieza("llama", cabeza, 0.55 * escala, Color.WHITE)
+			var llama: MeshInstance3D = _pieza("llama", pivote, 0.55 * escala, Color.WHITE)
 			llama.position.y = -0.3 * 0.55 * escala
 			_girar(llama, 0.35)
 			_estela(cabeza, "brasa", 30, 0.5, 0.14, true, c)
 			_estela(cabeza, "humo", 10, 0.7, 0.3, false, Color.WHITE)
 		"agua":
-			var gota: MeshInstance3D = _pieza("gota", cabeza, 0.42 * escala, Color.WHITE)
+			var gota: MeshInstance3D = _pieza("gota", pivote, 0.42 * escala, Color.WHITE)
 			_girar(gota, 0.6)
 			_estela(cabeza, "gota", 26, 0.35, 0.14, false, Color.WHITE)
 			_estela(cabeza, "burbuja", 8, 0.6, 0.12, false, Color.WHITE)
 		"viento":
-			var r: MeshInstance3D = _pieza("remolino_viento", cabeza, 0.7 * escala, Color.WHITE)
+			var r: MeshInstance3D = _pieza("remolino_viento", pivote, 0.7 * escala, Color.WHITE)
 			r.position.y = -0.35 * escala
 			_girar(r, 0.3)
 			_estela(cabeza, "hoja", 14, 0.6, 0.16, false, Color.WHITE)
 		"hielo":
-			var cr: MeshInstance3D = _pieza("cristal_hielo", cabeza, 0.55 * escala, Color.WHITE)
+			var cr: MeshInstance3D = _pieza("cristal_hielo", pivote, 0.55 * escala, Color.WHITE)
 			cr.position.y = -0.25 * escala
 			_girar(cr, 0.8)
 			_estela(cabeza, "copo", 24, 0.5, 0.12, true, c)
@@ -662,7 +1397,7 @@ func _forma_de(nombre: String) -> String:
 func _tinte(forma: String, color: Color) -> Color:
 	if color.r > 0.97 and color.g > 0.97 and color.b > 0.97:
 		return COLOR_DE.get(forma, Color.WHITE)
-	return Color(color, 1.0)
+	return color if forma == "rayo" else Color(color, 1.0)       # el halo del rayo pide alfa propio
 
 
 ## Una pieza 3D, hija de `padre`, de `tam` unidades de alto (de ancho si es plana).

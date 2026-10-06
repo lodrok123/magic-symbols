@@ -38,6 +38,11 @@ const EQUIPO: Dictionary = {
 	"chibi_test": [
 		["grimorio", "Hips", Vector3(0.36, 0.02, -0.06), Vector3(0.0, 90.0, -8.0)],
 	],
+	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano DERECHA (en ArcheryShot es la que lo sostiene estirada; la cuerda mira al arquero).
+	# equipo/flecha.glb (punta hacia +Y, centrada) queda para el Juego (proyectil o carcaj): Equipo3D.pieza("flecha").
+	"goblin_archer_chibi": [
+		["arco", "RightHand", Vector3(0.0, 0.07, 0.0), Vector3(0.0, 0.0, -90.0)],
+	],
 	"goblin_warrior": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],

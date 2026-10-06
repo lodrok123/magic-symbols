@@ -47,6 +47,8 @@ const ANIM_CAST: Dictionary = {
 const CLIPS_DE: Dictionary = {
 	"goblin_warrior_chibi": {"hit": "slapreaction"},
 	"goblin_espadachin": {"hit": "slapreaction"},
+	# El arquero no tiene clips de espada ni de retroceso con esos nombres: dispara con ArcheryShot y retrocede con Walk002.
+	"goblin_archer_chibi": {"attack": "archeryshot", "walk_back": "walk002"},
 }
 
 ## Clips mínimos por tipo de personaje (la misma lista que docs/ASSETS_PENDIENTES.md §1).
@@ -370,20 +372,110 @@ func _poner_chispas(elemento: String) -> void:
 	_chispas = at
 
 
+## --- 5.9 Transición del libro: el grimorio APARECE EN LAS MANOS al abrir el libro y se deshace al cerrarlo ---
+## Es una copia aparte del grimorio (el de la cadera/espalda no se toca ni se "coge"): una pieza nueva en la mano izquierda que
+## crece desde 0 en `dur` s con unas motas del elemento (o blancas) y, al cerrar, se encoge y se borra. El tween ignora el
+## `Engine.time_scale` (el libro abierto va al 30 %): dura `dur` segundos REALES.
+var libro_mano: Array = [Vector3(0.0, 0.10, 0.05), Vector3(90.0, 0.0, 0.0)]    ## posición y giro respecto a la mano
+var _libro: Node3D = null
+var _libro_tween: Tween = null
+
+
+func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
+	if _modelo == null:
+		return
+	if _libro_tween != null and _libro_tween.is_valid():
+		_libro_tween.kill()
+	if not abrir:
+		if _libro == null or not is_instance_valid(_libro):
+			_libro = null
+			return
+		var viejo: Node3D = _libro
+		_libro = null
+		_libro_tween = viejo.create_tween().set_ignore_time_scale(true)
+		_libro_tween.tween_property(viejo, "scale", viejo.scale * 0.02, dur).set_ease(Tween.EASE_IN)
+		_libro_tween.tween_callback(func() -> void:
+			if is_instance_valid(viejo) and viejo.get_parent() != null:
+				viejo.get_parent().queue_free())
+		return
+	if _libro != null and is_instance_valid(_libro):
+		return
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return
+	var sk: Skeleton3D = sks[0] as Skeleton3D
+	var h: int = Equipo3D._hueso(sk, "LeftHand")
+	if h < 0:
+		h = Equipo3D._hueso(sk, "RightHand")
+	if h < 0:
+		return
+	var escala: float = 1.0
+	var n: Node = sk
+	while n != null and n != _modelo:
+		if n is Node3D:
+			escala *= (n as Node3D).scale.y
+		n = n.get_parent()
+	var at := BoneAttachment3D.new()
+	at.name = "LibroMano"
+	at.bone_name = sk.get_bone_name(h)
+	sk.add_child(at)
+	var g: Node3D = Equipo3D.pieza("grimorio")
+	g.position = (libro_mano[0] as Vector3) / maxf(escala, 0.0001)
+	g.rotation_degrees = libro_mano[1] as Vector3
+	var lleno: Vector3 = Vector3.ONE / maxf(escala, 0.0001)
+	g.scale = lleno * 0.02
+	at.add_child(g)
+	_libro = g
+	_libro_tween = g.create_tween().set_ignore_time_scale(true)
+	_libro_tween.tween_property(g, "scale", lleno, dur).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# Unas motas que suben al aparecer (las de la mano que lanza, en blanco).
+	var mundo: float = alto_modelo() * scale.y
+	var local: float = maxf(at.global_transform.basis.get_scale().y, 0.0001)
+	var v := Vfx3D.new()
+	var gp: GPUParticles3D = v.chispas_mano("viento", mundo / local)
+	v.free()
+	gp.one_shot = true
+	gp.lifetime = maxf(dur * 2.5, 0.6)
+	gp.explosiveness = 0.8
+	at.add_child(gp)
+	gp.emitting = true
+	get_tree().create_timer(gp.lifetime + 0.4, true, false, true).timeout.connect(gp.queue_free)
+
+
 func _quitar_chispas() -> void:
 	if _chispas != null and is_instance_valid(_chispas):
 		_chispas.queue_free()
 	_chispas = null
 
 
-func jugar(nombre: String) -> void:
+func jugar(nombre: String, una_vez: bool = false) -> void:
 	if _ap == null or nombre == animacion_actual:
 		return
 	var clip: String = _buscar_clip(nombre)
 	if clip == "":
 		return
 	animacion_actual = nombre
+	# `una_vez`: el clip se reproduce entero y se queda en su último fotograma (muerte, golpe, disparo); para repetirlo hay que
+	# pasar antes por otro clip (jugar("idle")). Sin `una_vez` va en bucle, como siempre.
+	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE if una_vez else Animation.LOOP_LINEAR
 	_ap.play(clip)
+
+
+## Lo que dura el clip de `nombre` (s) a velocidad 1, o 0 si no existe. La IA lo usa para no cortar una animación a medias
+## (p. ej. el disparo del arquero dura 5 s, no 0,8).
+func duracion(nombre: String) -> float:
+	if _ap == null:
+		return 0.0
+	var clip: String = _buscar_clip(nombre)
+	return _ap.get_animation(clip).length if clip != "" else 0.0
+
+
+## En qué momento del clip `nombre` sale el golpe/la flecha, como fracción de su duración (0..1). Medido a ojo en el clip:
+## ArcheryShot alza el arco hacia 1,5 s, apunta de 2,3 a 4,1 s y suelta a ~4,2 s (0,84).
+const MOMENTO_GOLPE: Dictionary = {"goblin_archer_chibi": {"attack": 0.84}}
+
+func momento_golpe(nombre: String) -> float:
+	return float((MOMENTO_GOLPE.get(id, {}) as Dictionary).get(nombre, 0.5))
 
 
 ## Velocidad de las animaciones (1 = normal). Sirve para que la elfa siga animada a velocidad normal
