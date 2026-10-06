@@ -79,6 +79,11 @@ const ZOOM: float = 1.45
 const MARGEN: float = 150.0
 const SEGUIMIENTO: float = 6.0
 
+## Capas de colision: 1 = todo lo solido; 2 = ademas, los muros del mundo (arboles y props
+## macizos). El jugador elevado apaga la capa 1 (esta POR ENCIMA de bloques y bordes), pero la
+## capa 2 la conserva siempre: asi no se salta el muro del mundo subido a una estructura (1.2).
+const MURO_MUNDO: int = 3
+
 const RAIZ_BOSQUE: String = "res://export_godot/terrain/bosque_01/sprites/"
 const PANEL_UI: String = "res://Assets/kenney_fantasy-ui-borders/PNG/Default/Panel/panel-000.png"
 
@@ -1400,6 +1405,7 @@ func _arbol(cell: Vector2i) -> void:
 	nodo.add_child(s)
 
 	var cuerpo := StaticBody2D.new()
+	cuerpo.collision_layer = MURO_MUNDO   # capa 1 + capa 2: elevado tampoco lo atraviesas
 	var forma := CollisionShape2D.new()
 	forma.shape = IsoGrid.footprint(0.93)
 	cuerpo.add_child(forma)
@@ -1544,6 +1550,7 @@ func _colocar_props() -> void:
 
 		if bool(datos[1]):
 			var cuerpo := StaticBody2D.new()
+			cuerpo.collision_layer = MURO_MUNDO
 			var forma := CollisionShape2D.new()
 			forma.shape = IsoGrid.footprint(0.40)
 			cuerpo.add_child(forma)

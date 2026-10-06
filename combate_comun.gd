@@ -173,6 +173,9 @@ func _arco_cercano(dano: float) -> void:
 	for n in get_tree().get_nodes_in_group("goblins"):
 		if n == host or not is_instance_valid(n):
 			continue
+		# Un cadaver no recibe el arco (1.2): el pestillo es la vida, como en receive_damage().
+		if float(n.get("health")) <= 0.0:
+			continue
 		var d: float = host.global_position.distance_to((n as Node2D).global_position)
 		if d < dmin:
 			dmin = d

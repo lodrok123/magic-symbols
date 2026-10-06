@@ -1,0 +1,325 @@
+tipo	fichero	pieza	triangulos	textura_res	texel_density	veredicto	motivo	en_uso
+glb_personaje	bookseller_chibi.glb	bookseller_chibi_Mesh	31424	1024x1024	632	ok	arista mediana 1.7 px a zoom 6; texel density 632 px/u (3.51 texel/px a zoom 6, 1.17 a zoom 2)	si
+glb_personaje	chibi_elf.glb	chibi_elf_Mesh	31158	1024x1024	480	regular	arista mediana 2.0 px a zoom 6; texel density 480 px/u (2.67 texel/px a zoom 6, 0.89 a zoom 2)	si
+glb_equipo	equipo/armas_goblin.glb	garrote	5162	2048x2048	1262	ok	arista mediana 2.1 px a zoom 6; texel density 1262 px/u (7.01 texel/px a zoom 6, 2.34 a zoom 2)	no (sustituido por garrote/escudo/daga sueltos)
+glb_equipo	equipo/armas_goblin.glb	escudo	5484	2048x2048	1335	ok	arista mediana 2.1 px a zoom 6; texel density 1335 px/u (7.41 texel/px a zoom 6, 2.47 a zoom 2)	no (sustituido por garrote/escudo/daga sueltos)
+glb_equipo	equipo/armas_goblin.glb	espada_goblin	3350	2048x2048	1567	ok	arista mediana 2.2 px a zoom 6; texel density 1567 px/u (8.71 texel/px a zoom 6, 2.90 a zoom 2)	no (sustituido por garrote/escudo/daga sueltos)
+glb_equipo	equipo/daga.glb	daga	3350	1024x1024	909	ok	arista mediana 1.9 px a zoom 6; texel density 909 px/u (5.05 texel/px a zoom 6, 1.68 a zoom 2)	si
+glb_equipo	equipo/escudo.glb	escudo	5484	1024x1024	667	ok	arista mediana 2.1 px a zoom 6; texel density 667 px/u (3.71 texel/px a zoom 6, 1.24 a zoom 2)	si
+glb_equipo	equipo/garrote.glb	garrote	5162	1024x1024	631	ok	arista mediana 2.1 px a zoom 6; texel density 631 px/u (3.50 texel/px a zoom 6, 1.17 a zoom 2)	si
+glb_equipo	equipo/grimorio_1.glb	grimorio_1	14287	1024x1024	808	ok	arista mediana 0.6 px a zoom 6; texel density 808 px/u (4.49 texel/px a zoom 6, 1.50 a zoom 2)	si
+glb_equipo	equipo/grimorio_2.glb	grimorio_2	14804	1024x1024	1020	ok	arista mediana 0.9 px a zoom 6; texel density 1020 px/u (5.67 texel/px a zoom 6, 1.89 a zoom 2)	si
+glb_equipo	equipo/grimorio_3.glb	grimorio_3	15470	1024x1024	696	ok	arista mediana 1.1 px a zoom 6; texel density 696 px/u (3.87 texel/px a zoom 6, 1.29 a zoom 2)	si
+glb_personaje	goblin_warrior_chibi.glb	goblin_warrior_chibi_Mesh	31391	1024x1024	668	ok	arista mediana 1.8 px a zoom 6; texel density 668 px/u (3.71 texel/px a zoom 6, 1.24 a zoom 2)	si
+glb_master_meshy	grimorio/Meshy_AI_Enchanted_Grove_Grimo_1005095044_texture.glb	Meshy_AI_Enchanted_Grove_Grimo_1005095044_texture	14804	2048x2048	694	ok	master Meshy sin escalar (extension ~1 u); 14804 tri	no (master sin partir)
+glb_master_meshy	grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb	Meshy_AI_Sunbound_Grimoire_1005095027_texture	15470	2048x2048	473	ok	master Meshy sin escalar (extension ~1 u); 15470 tri	no (master sin partir)
+glb_master_meshy	grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture.glb	Meshy_AI_Whispering_Leaf_Journ_1005095038_texture	14287	2048x2048	550	ok	master Meshy sin escalar (extension ~1 u); 14287 tri	no (master sin partir)
+glb_pieza	meshy/arboles_2.glb	arbol_redondo_2	3701	2048x2048	91	malo	arista mediana 50 px a zoom 6 (150 px a zoom 2), 3701 tri para 756 px de alto; texel density 91 px/u (0.50 texel/px a zoom 6, 0.17 a zoom 2)	si
+glb_pieza	meshy/arboles_2.glb	pino_2	1780	2048x2048	89	malo	arista mediana 50 px a zoom 6 (149 px a zoom 2), 1780 tri para 828 px de alto; texel density 89 px/u (0.50 texel/px a zoom 6, 0.17 a zoom 2)	si
+glb_pieza	meshy/arboles_2.glb	arbusto_otono	9587	2048x2048	220	regular	arista mediana 10 px a zoom 6 (30 px a zoom 2), 9587 tri para 234 px de alto; texel density 220 px/u (1.22 texel/px a zoom 6, 0.41 a zoom 2); [no, sustituida por seto_seco (piezas/seto_seco); queda de reserva]	no, sustituida por seto_seco (piezas/seto_seco); queda de reserva
+glb_pieza	meshy/bosque.glb	arbol_redondo	2006	2048x2048	91	malo	arista mediana 57 px a zoom 6 (170 px a zoom 2), 2006 tri para 756 px de alto; texel density 91 px/u (0.51 texel/px a zoom 6, 0.17 a zoom 2); [no, sustituida por arbol_redondo_2 (arboles_2)]	no, sustituida por arbol_redondo_2 (arboles_2)
+glb_pieza	meshy/bosque.glb	pino	1038	2048x2048	91	malo	arista mediana 68 px a zoom 6 (204 px a zoom 2), 1038 tri para 828 px de alto; texel density 91 px/u (0.51 texel/px a zoom 6, 0.17 a zoom 2); [no, sustituida por pino_2 (arboles_2)]	no, sustituida por pino_2 (arboles_2)
+glb_pieza	meshy/bosque.glb	arbusto	700	2048x2048	142	malo	arista mediana 28 px a zoom 6 (83 px a zoom 2), 700 tri para 180 px de alto; texel density 142 px/u (0.79 texel/px a zoom 6, 0.26 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	arbusto_flores	812	2048x2048	147	malo	arista mediana 25 px a zoom 6 (74 px a zoom 2), 812 tri para 180 px de alto; texel density 147 px/u (0.81 texel/px a zoom 6, 0.27 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	matas	382	2048x2048	189	regular	arista mediana 17 px a zoom 6 (50 px a zoom 2), 382 tri para 81 px de alto; texel density 189 px/u (1.05 texel/px a zoom 6, 0.35 a zoom 2); [no (retirada)]	no (retirada)
+glb_pieza	meshy/bosque.glb	flores	394	2048x2048	1166	ok	master Meshy sin escalar (extension ~1 u); 394 tri; [no (retirada)]	no (retirada)
+glb_pieza	meshy/bosque.glb	roca_grande	814	2048x2048	104	malo	arista mediana 35 px a zoom 6 (105 px a zoom 2), 814 tri para 252 px de alto; texel density 104 px/u (0.58 texel/px a zoom 6, 0.19 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	piedras	304	2048x2048	204	regular	arista mediana 14 px a zoom 6 (41 px a zoom 2), 304 tri para 63 px de alto; texel density 204 px/u (1.13 texel/px a zoom 6, 0.38 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	tocon	274	2048x2048	113	malo	arista mediana 35 px a zoom 6 (106 px a zoom 2), 274 tri para 108 px de alto; texel density 113 px/u (0.63 texel/px a zoom 6, 0.21 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	tronco	430	2048x2048	171	malo	arista mediana 18 px a zoom 6 (55 px a zoom 2), 430 tri para 126 px de alto; texel density 171 px/u (0.95 texel/px a zoom 6, 0.32 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	setas	500	2048x2048	335	regular	arista mediana 6 px a zoom 6 (17 px a zoom 2), 500 tri para 63 px de alto; texel density 335 px/u (1.86 texel/px a zoom 6, 0.62 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	valla	248	2048x2048	161	malo	geometria prismatica: 248 tri aceptables; texel density 161 px/u (0.89 texel/px a zoom 6, 0.30 a zoom 2)	si
+glb_pieza	meshy/bosque.glb	cartel	344	2048x2048	125	malo	geometria prismatica: 344 tri aceptables; texel density 125 px/u (0.69 texel/px a zoom 6, 0.23 a zoom 2); [no, sustituida por cartel (piezas/lamina_1)]	no, sustituida por cartel (piezas/lamina_1)
+glb_master_meshy	meshy/entrada/_procesados/Armas_Goblin_texture.glb	Armas_Goblin_texture	14388	2048x2048	1602	ok	master Meshy sin escalar (extension ~1 u); 14388 tri	no (master sin partir)
+glb_master_meshy	meshy/entrada/_procesados/Market_Ruin_texture.glb	Market_Ruin_texture	15212	2048x2048	1633	ok	master Meshy sin escalar (extension ~1 u); 15212 tri	no (master sin partir)
+glb_master_meshy	meshy/entrada/_procesados/Meshy_AI_Enchanted_Forest_Trea_1005002832_texture.glb	Meshy_AI_Enchanted_Forest_Trea_1005002832_texture	10541	2048x2048	901	ok	master Meshy sin escalar (extension ~1 u); 10541 tri	no (master sin partir)
+glb_master_meshy	meshy/entrada/_procesados/Meshy_AI_Mystic_Adventure_Prop_1004234516_texture.glb	Meshy_AI_Mystic_Adventure_Prop_1004234516_texture	5665	2048x2048	1029	ok	master Meshy sin escalar (extension ~1 u); 5665 tri	no (master sin partir)
+glb_master_meshy	meshy/entrada/_procesados/Meshy_AI_Whimsical_Forest_Elem_1004232552_texture.glb	Meshy_AI_Whimsical_Forest_Elem_1004232552_texture	8246	2048x2048	1168	ok	master Meshy sin escalar (extension ~1 u); 8246 tri	no (master sin partir)
+glb_master_meshy	meshy/entrada/_procesados/Tree_Trio_texture.glb	Tree_Trio_texture	15200	2048x2048	1153	ok	master Meshy sin escalar (extension ~1 u); 15200 tri	no (master sin partir)
+glb_pieza	meshy/magia.glb	seto_seco	3384	2048x2048	164	malo	arista mediana 27 px a zoom 6 (81 px a zoom 2), 3384 tri para 234 px de alto; texel density 164 px/u (0.91 texel/px a zoom 6, 0.30 a zoom 2); [no, sustituida por seto_seco (piezas/seto_seco)]	no, sustituida por seto_seco (piezas/seto_seco)
+glb_pieza	meshy/magia.glb	dummy	758	2048x2048	257	regular	geometria prismatica: 758 tri aceptables; texel density 257 px/u (1.43 texel/px a zoom 6, 0.48 a zoom 2)	si
+glb_pieza	meshy/magia.glb	seta_reactiva	566	2048x2048	162	malo	arista mediana 17 px a zoom 6 (50 px a zoom 2), 566 tri para 162 px de alto; texel density 162 px/u (0.90 texel/px a zoom 6, 0.30 a zoom 2)	si
+glb_pieza	meshy/magia.glb	flor_reactiva	1118	2048x2048	241	regular	arista mediana 16 px a zoom 6 (49 px a zoom 2), 1118 tri para 162 px de alto; texel density 241 px/u (1.34 texel/px a zoom 6, 0.45 a zoom 2)	si
+glb_pieza	meshy/magia.glb	raiz_reactiva	1474	2048x2048	339	regular	arista mediana 11 px a zoom 6 (32 px a zoom 2), 1474 tri para 162 px de alto; texel density 339 px/u (1.88 texel/px a zoom 6, 0.63 a zoom 2)	si
+glb_pieza	meshy/magia.glb	portal_salida	926	2048x2048	93	malo	arista mediana 54 px a zoom 6 (162 px a zoom 2), 926 tri para 540 px de alto; texel density 93 px/u (0.52 texel/px a zoom 6, 0.17 a zoom 2)	si
+glb_pieza	meshy/magia.glb	puente	747	2048x2048	114	malo	arista mediana 16 px a zoom 6 (49 px a zoom 2), 747 tri para 141 px de alto; texel density 114 px/u (0.64 texel/px a zoom 6, 0.21 a zoom 2)	si
+glb_pieza	meshy/magia.glb	pocion	706	2048x2048	483	regular	arista mediana 10 px a zoom 6 (30 px a zoom 2), 706 tri para 81 px de alto; texel density 483 px/u (2.69 texel/px a zoom 6, 0.90 a zoom 2)	si
+glb_pieza	meshy/magia.glb	pilar	618	2048x2048	104	malo	geometria prismatica: 618 tri aceptables; texel density 104 px/u (0.58 texel/px a zoom 6, 0.19 a zoom 2)	si
+glb_pieza	meshy/magia.glb	pasadero	244	2048x2048	71	malo	arista mediana 44 px a zoom 6 (131 px a zoom 2), 244 tri para 48 px de alto; texel density 71 px/u (0.40 texel/px a zoom 6, 0.13 a zoom 2); [no, sustituida por pasadero (piezas/lamina_1)]	no, sustituida por pasadero (piezas/lamina_1)
+glb_pieza	meshy/mercado.glb	puesto_mercado	6404	2048x2048	131	malo	arista mediana 17 px a zoom 6 (51 px a zoom 2), 6404 tri para 432 px de alto; texel density 131 px/u (0.73 texel/px a zoom 6, 0.24 a zoom 2)	si
+glb_pieza	meshy/mercado.glb	arco_ruina	3978	2048x2048	86	malo	arista mediana 22 px a zoom 6 (67 px a zoom 2), 3978 tri para 612 px de alto; texel density 86 px/u (0.48 texel/px a zoom 6, 0.16 a zoom 2)	si
+glb_pieza	meshy/mercado.glb	roca_cristal	3450	2048x2048	328	regular	arista mediana 8 px a zoom 6 (24 px a zoom 2), 3450 tri para 252 px de alto; texel density 328 px/u (1.82 texel/px a zoom 6, 0.61 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	arco_puerta	1134	2048x2048	101	malo	geometria prismatica: 1134 tri aceptables; texel density 101 px/u (0.56 texel/px a zoom 6, 0.19 a zoom 2); [no, sustituida por arco_ruina (mercado)]	no, sustituida por arco_ruina (mercado)
+glb_pieza	meshy/objetos.glb	totem_runico	1054	2048x2048	165	malo	arista mediana 25 px a zoom 6 (76 px a zoom 2), 1054 tri para 324 px de alto; texel density 165 px/u (0.92 texel/px a zoom 6, 0.31 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	brasero	769	2048x2048	157	malo	arista mediana 28 px a zoom 6 (85 px a zoom 2), 769 tri para 252 px de alto; texel density 157 px/u (0.87 texel/px a zoom 6, 0.29 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	fogata	462	2048x2048	151	malo	arista mediana 25 px a zoom 6 (76 px a zoom 2), 462 tri para 96 px de alto; texel density 151 px/u (0.84 texel/px a zoom 6, 0.28 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	puesto	413	2048x2048	114	malo	geometria prismatica: 413 tri aceptables; texel density 114 px/u (0.63 texel/px a zoom 6, 0.21 a zoom 2); [no, sustituida por puesto_mercado (mercado)]	no, sustituida por puesto_mercado (mercado)
+glb_pieza	meshy/objetos.glb	caja_pequena	210	2048x2048	208	regular	geometria prismatica: 210 tri aceptables; texel density 208 px/u (1.16 texel/px a zoom 6, 0.39 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	placa_peso	114	2048x2048	118	malo	geometria prismatica: 114 tri aceptables; texel density 118 px/u (0.65 texel/px a zoom 6, 0.22 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	juncos	368	2048x2048	164	malo	arista mediana 19 px a zoom 6 (58 px a zoom 2), 368 tri para 144 px de alto; texel density 164 px/u (0.91 texel/px a zoom 6, 0.30 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	barril	278	2048x2048	156	malo	arista mediana 32 px a zoom 6 (95 px a zoom 2), 278 tri para 144 px de alto; texel density 156 px/u (0.86 texel/px a zoom 6, 0.29 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	cofre	260	2048x2048	221	regular	arista mediana 23 px a zoom 6 (68 px a zoom 2), 260 tri para 108 px de alto; texel density 221 px/u (1.23 texel/px a zoom 6, 0.41 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	caja	217	2048x2048	189	regular	geometria prismatica: 217 tri aceptables; texel density 189 px/u (1.05 texel/px a zoom 6, 0.35 a zoom 2)	si
+glb_pieza	meshy/objetos.glb	caja_cristal	194	2048x2048	1042	ok	master Meshy sin escalar (extension ~1 u); 194 tri; [no (retirada)]	no (retirada)
+glb_pieza	meshy/objetos.glb	baldosa_guardado	106	2048x2048	119	malo	geometria prismatica: 106 tri aceptables; texel density 119 px/u (0.66 texel/px a zoom 6, 0.22 a zoom 2); [no, sustituida por baldosa_guardado (piezas/lamina_1)]	no, sustituida por baldosa_guardado (piezas/lamina_1)
+glb_pieza	meshy/piezas/lamina_1.glb	cartel	8179	2048x2048	770	ok	geometria prismatica: 8179 tri aceptables; texel density 770 px/u (4.28 texel/px a zoom 6, 1.43 a zoom 2)	si
+glb_pieza	meshy/piezas/lamina_1.glb	baldosa_guardado	5011	2048x2048	362	regular	geometria prismatica: 5011 tri aceptables; texel density 362 px/u (2.01 texel/px a zoom 6, 0.67 a zoom 2)	si
+glb_pieza	meshy/piezas/lamina_1.glb	pasadero	2365	2048x2048	266	regular	arista mediana 11 px a zoom 6 (33 px a zoom 2), 2365 tri para 62 px de alto; texel density 266 px/u (1.48 texel/px a zoom 6, 0.49 a zoom 2)	si
+glb_pieza	meshy/piezas/seto_seco.glb	seto_seco	10360	2048x2048	265	regular	arista mediana 13 px a zoom 6 (40 px a zoom 2), 10360 tri para 234 px de alto; texel density 265 px/u (1.47 texel/px a zoom 6, 0.49 a zoom 2)	si
+glb_atlas	bookseller_chibi.glb	(atlas base color, 1 pieza/s)	31424	1024x1024		ok	JPG 0.29 bytes/px (no comprimido en exceso); UV usadas 67% del atlas	
+glb_atlas	chibi_elf.glb	(atlas base color, 1 pieza/s)	31158	1024x1024		ok	JPG 0.34 bytes/px (no comprimido en exceso); UV usadas 49% del atlas	
+glb_atlas	equipo/armas_goblin.glb	(atlas base color, 3 pieza/s)	13996	2048x2048		ok	JPG 0.82 bytes/px (no comprimido en exceso); UV usadas 64% del atlas	
+glb_atlas	equipo/daga.glb	(atlas base color, 1 pieza/s)	3350	1024x1024		ok	JPG 0.32 bytes/px (no comprimido en exceso); UV usadas 15% del atlas	
+glb_atlas	equipo/escudo.glb	(atlas base color, 1 pieza/s)	5484	1024x1024		ok	JPG 0.32 bytes/px (no comprimido en exceso); UV usadas 30% del atlas	
+glb_atlas	equipo/garrote.glb	(atlas base color, 1 pieza/s)	5162	1024x1024		ok	JPG 0.32 bytes/px (no comprimido en exceso); UV usadas 19% del atlas	
+glb_atlas	equipo/grimorio_1.glb	(atlas base color, 1 pieza/s)	14287	1024x1024		ok	JPG 0.22 bytes/px (no comprimido en exceso); UV usadas 78% del atlas	
+glb_atlas	equipo/grimorio_2.glb	(atlas base color, 1 pieza/s)	14804	1024x1024		ok	JPG 0.27 bytes/px (no comprimido en exceso); UV usadas 78% del atlas	
+glb_atlas	equipo/grimorio_3.glb	(atlas base color, 1 pieza/s)	15470	1024x1024		ok	JPG 0.25 bytes/px (no comprimido en exceso); UV usadas 88% del atlas	
+glb_atlas	goblin_warrior_chibi.glb	(atlas base color, 1 pieza/s)	31391	1024x1024		ok	JPG 0.27 bytes/px (no comprimido en exceso); UV usadas 66% del atlas	
+glb_atlas	grimorio/Meshy_AI_Enchanted_Grove_Grimo_1005095044_texture.glb	(atlas base color, 1 pieza/s)	14804	2048x2048		ok	JPG 0.63 bytes/px (no comprimido en exceso); UV usadas 78% del atlas	
+glb_atlas	grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb	(atlas base color, 1 pieza/s)	15470	2048x2048		ok	JPG 0.63 bytes/px (no comprimido en exceso); UV usadas 88% del atlas	
+glb_atlas	grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture.glb	(atlas base color, 1 pieza/s)	14287	2048x2048		ok	JPG 0.58 bytes/px (no comprimido en exceso); UV usadas 78% del atlas	
+glb_atlas	meshy/arboles_2.glb	(atlas base color, 3 pieza/s)	15068	2048x2048		ok	JPG 0.69 bytes/px (no comprimido en exceso); UV usadas 60% del atlas	
+glb_atlas	meshy/bosque.glb	(atlas base color, 13 pieza/s)	8246	2048x2048		ok	JPG 0.78 bytes/px (no comprimido en exceso); UV usadas 60% del atlas	
+glb_atlas	meshy/entrada/_procesados/Armas_Goblin_texture.glb	(atlas base color, 1 pieza/s)	14388	2048x2048		ok	JPG 0.82 bytes/px (no comprimido en exceso); UV usadas 66% del atlas	
+glb_atlas	meshy/entrada/_procesados/Market_Ruin_texture.glb	(atlas base color, 1 pieza/s)	15212	2048x2048		ok	JPG 0.80 bytes/px (no comprimido en exceso); UV usadas 65% del atlas	
+glb_atlas	meshy/entrada/_procesados/Meshy_AI_Enchanted_Forest_Trea_1005002832_texture.glb	(atlas base color, 1 pieza/s)	10541	2048x2048		ok	JPG 0.92 bytes/px (no comprimido en exceso); UV usadas 67% del atlas	
+glb_atlas	meshy/entrada/_procesados/Meshy_AI_Mystic_Adventure_Prop_1004234516_texture.glb	(atlas base color, 1 pieza/s)	5665	2048x2048		ok	JPG 0.83 bytes/px (no comprimido en exceso); UV usadas 72% del atlas	
+glb_atlas	meshy/entrada/_procesados/Meshy_AI_Whimsical_Forest_Elem_1004232552_texture.glb	(atlas base color, 1 pieza/s)	8246	2048x2048		ok	JPG 0.78 bytes/px (no comprimido en exceso); UV usadas 60% del atlas	
+glb_atlas	meshy/entrada/_procesados/Tree_Trio_texture.glb	(atlas base color, 1 pieza/s)	15200	2048x2048		ok	JPG 0.69 bytes/px (no comprimido en exceso); UV usadas 60% del atlas	
+glb_atlas	meshy/magia.glb	(atlas base color, 10 pieza/s)	10541	2048x2048		ok	JPG 0.92 bytes/px (no comprimido en exceso); UV usadas 67% del atlas	
+glb_atlas	meshy/mercado.glb	(atlas base color, 3 pieza/s)	13832	2048x2048		ok	JPG 0.80 bytes/px (no comprimido en exceso); UV usadas 62% del atlas	
+glb_atlas	meshy/objetos.glb	(atlas base color, 13 pieza/s)	5579	2048x2048		ok	JPG 0.83 bytes/px (no comprimido en exceso); UV usadas 71% del atlas	
+glb_atlas	meshy/piezas/lamina_1.glb	(atlas base color, 3 pieza/s)	15555	2048x2048		ok	JPG 0.68 bytes/px (no comprimido en exceso); UV usadas 67% del atlas	
+glb_atlas	meshy/piezas/seto_seco.glb	(atlas base color, 1 pieza/s)	10360	2048x2048		ok	JPG 0.60 bytes/px (no comprimido en exceso); UV usadas 64% del atlas	
+referencia	Sprites/cartografa_arcana.png			4224x4032		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	Sprites/cartografa_arcana/cartografa_arcana.png			4224x4032		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+sprite_2d_legado	art/archer.png			64x64		regular	sprite 2D heredado 64x64; solo 64x64	no
+sprite_2d_legado	art/archer_idle.png			640x1024		ok	sprite 2D heredado 640x1024	no
+sprite_2d_legado	art/arrow.png			24x8		ok	sprite 2D heredado 24x8	no
+sprite_2d_legado	art/baldosa.png			220x159		ok	sprite 2D heredado 220x159	no
+sprite_2d_legado	art/baldosa_runa.png			220x159		ok	sprite 2D heredado 220x159	no
+sprite_2d_legado	art/bosque/setas_chamuscado.png			184x175		ok	sprite 2D heredado 184x175	no
+sprite_2d_legado	art/bosque/setas_sano.png			184x175		ok	sprite 2D heredado 184x175	no
+sprite_2d_legado	art/bosque/seto_chamuscado.png			208x199		ok	sprite 2D heredado 208x199	no
+sprite_2d_legado	art/bosque/seto_sano.png			208x199		ok	sprite 2D heredado 208x199	no
+sprite_2d_legado	art/bosque/telarana_quemada.png			244x214		ok	sprite 2D heredado 244x214	no
+sprite_2d_legado	art/bosque/telarana_sana.png			244x214		ok	sprite 2D heredado 244x214	no
+sprite_2d_legado	art/bosque/totem_agua_off.png			128x210		ok	sprite 2D heredado 128x210	no
+sprite_2d_legado	art/bosque/totem_agua_on.png			128x210		ok	sprite 2D heredado 128x210	no
+sprite_2d_legado	art/bosque/totem_fuego_off.png			128x210		ok	sprite 2D heredado 128x210	no
+sprite_2d_legado	art/bosque/totem_fuego_on.png			128x210		ok	sprite 2D heredado 128x210	no
+sprite_2d_legado	art/bosque/totem_off.png			185x209		ok	sprite 2D heredado 185x209	no
+sprite_2d_legado	art/bosque/totem_on.png			185x209		ok	sprite 2D heredado 185x209	no
+sprite_2d_legado	art/bosque/totem_rayo_off.png			128x209		ok	sprite 2D heredado 128x209	no
+sprite_2d_legado	art/bosque/totem_rayo_on.png			128x209		ok	sprite 2D heredado 128x209	no
+sprite_2d_legado	art/bosque/tronco_chamuscado.png			224x159		ok	sprite 2D heredado 224x159	no
+sprite_2d_legado	art/bosque/tronco_sano.png			224x159		ok	sprite 2D heredado 224x159	no
+sprite_2d_legado	art/brazier.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/conductor.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/door_closed.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/door_open.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/earth.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/empujable_hielo.png			200x207		ok	sprite 2D heredado 200x207	no
+sprite_2d_legado	art/empujable_tierra.png			200x206		ok	sprite 2D heredado 200x206	no
+sprite_2d_legado	art/enemy.png			64x64		regular	sprite 2D heredado 64x64; solo 64x64	no
+sprite_2d_legado	art/floor.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/floor_b.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/floor_tile.png			128x128		ok	sprite 2D heredado 128x128	no
+sprite_2d_legado	art/fogata_apagada.png			47x42		ok	sprite 2D heredado 47x42	no
+sprite_2d_legado	art/fogata_base.png			47x42		ok	sprite 2D heredado 47x42	no
+sprite_2d_legado	art/fogata_llama.png			47x42		ok	sprite 2D heredado 47x42	no
+sprite_2d_legado	art/fx/earth.png			768x512		ok	sprite 2D heredado 768x512	no
+sprite_2d_legado	art/fx/fire.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/fire_high.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/fire_mid.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/ice.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/lightning.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/time.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/fx/water.png			768x512		ok	sprite 2D heredado 768x512	no
+sprite_2d_legado	art/fx/wind.png			768x384		ok	sprite 2D heredado 768x384	no
+sprite_2d_legado	art/goal.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/goblin_attack.png			768x1024		ok	sprite 2D heredado 768x1024	no
+sprite_2d_legado	art/goblin_idle.png			768x1024		ok	sprite 2D heredado 768x1024	no
+sprite_2d_legado	art/grass.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/grass_b.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/grass_grown.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/ground.png			1280x800		regular	sprite 2D heredado 1280x800; laplaciano 1: plano liso sin detalle	no
+sprite_2d_legado	art/hero.png			64x64		regular	sprite 2D heredado 64x64; solo 64x64	no
+sprite_2d_legado	art/hero_cast.png			384x512		ok	sprite 2D heredado 384x512	no
+sprite_2d_legado	art/hero_death.png			384x512		ok	sprite 2D heredado 384x512	no
+sprite_2d_legado	art/hero_hurt.png			192x512		ok	sprite 2D heredado 192x512	no
+sprite_2d_legado	art/hero_idle.png			256x512		ok	sprite 2D heredado 256x512	no
+sprite_2d_legado	art/hero_walk.png			512x512		ok	sprite 2D heredado 512x512	no
+sprite_2d_legado	art/hielo_1_nevado.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/hielo_2_escarcha.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/hielo_3_claro.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/maga_cast.png			128x1024		regular	sprite 2D heredado 128x1024; 4 ficheros byte a byte identicos (65790 B): placeholder duplicado	no
+sprite_2d_legado	art/maga_death.png			128x1024		regular	sprite 2D heredado 128x1024; 4 ficheros byte a byte identicos (65790 B): placeholder duplicado	no
+sprite_2d_legado	art/maga_hurt.png			128x1024		regular	sprite 2D heredado 128x1024; 4 ficheros byte a byte identicos (65790 B): placeholder duplicado	no
+sprite_2d_legado	art/maga_idle.png			128x1024		regular	sprite 2D heredado 128x1024; 4 ficheros byte a byte identicos (65790 B): placeholder duplicado	no
+sprite_2d_legado	art/maga_walk.png			1536x1024		ok	sprite 2D heredado 1536x1024	no
+sprite_2d_legado	art/particles/dirt.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/particles/flame.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/particles/glow.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/particles/magic.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/particles/smoke.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/particles/spark.png			64x64		ok	sprite 2D heredado 64x64	no
+sprite_2d_legado	art/piedras_N.png			130x64		ok	sprite 2D heredado 130x64	no
+sprite_2d_legado	art/piedras_S.png			128x62		ok	sprite 2D heredado 128x62	no
+sprite_2d_legado	art/placa.png			220x135		ok	sprite 2D heredado 220x135	no
+sprite_2d_legado	art/prop_boulder.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_cabin.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_grove.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_pine.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_rocks.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_stump.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/prop_tree.png			128x288		ok	sprite 2D heredado 128x288	no
+sprite_2d_legado	art/puente_L.png			175x183		ok	sprite 2D heredado 175x183	no
+sprite_2d_legado	art/puente_R.png			189x169		ok	sprite 2D heredado 189x169	no
+sprite_2d_legado	art/puente_base.png			415x288		ok	sprite 2D heredado 415x288	no
+sprite_2d_legado	art/puente_completo.png			239x145		ok	sprite 2D heredado 239x145	no
+sprite_2d_legado	art/puente_orilla_N.png			197x121		ok	sprite 2D heredado 197x121	no
+sprite_2d_legado	art/puente_orilla_S.png			234x147		ok	sprite 2D heredado 234x147	no
+sprite_2d_legado	art/puente_placa.png			229x112		ok	sprite 2D heredado 229x112	no
+sprite_2d_legado	art/puente_tablas.png			211x125		ok	sprite 2D heredado 211x125	no
+sprite_2d_legado	art/puente_tendido.png			415x294		ok	sprite 2D heredado 415x294	no
+sprite_2d_legado	art/puesto.png			340x265		ok	sprite 2D heredado 340x265	no
+sprite_2d_legado	art/recogibles/oro.png			92x73		ok	sprite 2D heredado 92x73	no
+sprite_2d_legado	art/recogibles/pocion.png			84x105		ok	sprite 2D heredado 84x105	no
+sprite_2d_legado	art/rita_cast.png			768x1024		ok	sprite 2D heredado 768x1024	no
+sprite_2d_legado	art/rita_death.png			896x1024		ok	sprite 2D heredado 896x1024	no
+sprite_2d_legado	art/rita_hurt.png			384x1024		ok	sprite 2D heredado 384x1024	no
+sprite_2d_legado	art/rita_idle.png			768x1024		ok	sprite 2D heredado 768x1024	no
+sprite_2d_legado	art/rita_walk.png			1536x1024		ok	sprite 2D heredado 1536x1024	no
+sprite_2d_legado	art/shadow.png			64x32		ok	sprite 2D heredado 64x32	no
+sprite_2d_legado	art/ui/bar_bg.png			16x32		ok	sprite 2D heredado 16x32	no
+sprite_2d_legado	art/ui/bar_fill.png			16x32		ok	sprite 2D heredado 16x32	no
+sprite_2d_legado	art/ui/glyphs/agua.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/amplificar.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/atraccion.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/barrera.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/espejo.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/flecha.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/fuego.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/hielo.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/levitacion.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/pulso.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/rayo.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/rebote.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/repeticion.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/retardo.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/tierra.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/glyphs/viento.png			96x96		ok	sprite 2D heredado 96x96	no
+sprite_2d_legado	art/ui/grimorio.png			1470x1070		ok	sprite 2D heredado 1470x1070	no
+sprite_2d_legado	art/ui/panel.png			128x128		ok	sprite 2D heredado 128x128	no
+sprite_2d_legado	art/ui/ring.png			256x256		ok	sprite 2D heredado 256x256	no
+sprite_2d_legado	art/ui/slot.png			128x128		ok	sprite 2D heredado 128x128	no
+sprite_2d_legado	art/ui/slot_core.png			128x128		ok	sprite 2D heredado 128x128	no
+sprite_2d_legado	art/ui/slot_empty.png			128x128		ok	sprite 2D heredado 128x128	no
+sprite_2d_legado	art/warrior.png			64x64		regular	sprite 2D heredado 64x64; solo 64x64	no
+sprite_2d_legado	art/water.png			128x176		ok	sprite 2D heredado 128x176	no
+sprite_2d_legado	art/water_b.png			128x176		ok	sprite 2D heredado 128x176	no
+referencia	cartografa_arcana.png			4224x4032		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/guia_arte.png			1511x1026		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/lamina_glifos.png			516x485		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/lamina_maleza.png			1448x1086		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/personaje_ancla.png			1254x1254		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/plantilla_losa.png			256x352		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_direcciones.png			1983x793		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_grimorio.png			1652x939		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_grimorio_grande.png			1470x1070		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_grimorio_pasar.png			1672x941		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_idle_fuente.png			1145x1374		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_personaje.png			256x256		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_pluma.png			279x1120		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/referencia_pluma_recorte.png			1122x1402		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/rita_fuente.png			2048x256		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	docs/runas.png			930x1330		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	export_godot/terrain/bosque_01/map.png			1540x1020		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+referencia	export_godot/terrain/bosque_01/map_sano.png			1540x1020		ok	imagen de referencia/documentacion, no se usa como textura de juego	no
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/dirt.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/dirt_proc0.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/dirt_proc1.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/dirt_proc2.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/forest_grass.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/grass.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/leaves.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/moss.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/moss_stone.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/mud.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/path.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/path_proc0.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/path_proc1.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/path_proc2.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/pathgrass.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/shore.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/stone.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_frozen_1_nevado.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_frozen_2_escarcha.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_frozen_3_claro.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_proc0.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_proc1.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/blocks/water_proc2.png			128x102		ok	sprite/bloque 2D del export 128x102 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/clumps/mata_bush_sano.png			80x46		ok	sprite/bloque 2D del export 80x46 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/grass/hierba_sano_0.png			128x96		ok	sprite/bloque 2D del export 128x96 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/barrel.png			44x57		ok	sprite/bloque 2D del export 44x57 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/boulder.png			49x38		ok	sprite/bloque 2D del export 49x38 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/bush.png			42x40		ok	sprite/bloque 2D del export 42x40 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/bush_berry.png			47x40		ok	sprite/bloque 2D del export 47x40 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/cairn.png			39x42		ok	sprite/bloque 2D del export 39x42 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/campfire.png			47x42		ok	sprite/bloque 2D del export 47x42 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/crate.png			51x56		ok	sprite/bloque 2D del export 51x56 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/fern.png			38x32		ok	sprite/bloque 2D del export 38x32 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/flowers.png			29x30		ok	sprite/bloque 2D del export 29x30 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/grass_clump.png			30x28		ok	sprite/bloque 2D del export 30x28 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/groundcover.png			32x16		ok	sprite/bloque 2D del export 32x16 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/lavender.png			20x34		ok	sprite/bloque 2D del export 20x34 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/log.png			33x47		ok	sprite/bloque 2D del export 33x47 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/mushrooms.png			27x20		ok	sprite/bloque 2D del export 27x20 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/rocks.png			41x21		ok	sprite/bloque 2D del export 41x21 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/signpost.png			51x74		ok	sprite/bloque 2D del export 51x74 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/props/stump.png			39x38		ok	sprite/bloque 2D del export 39x38 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/trees/tree_birch_0.png			46x110		ok	sprite/bloque 2D del export 46x110 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/trees/tree_dead_0.png			36x96		ok	sprite/bloque 2D del export 36x96 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/trees/tree_green_d_0.png			76x108		ok	sprite/bloque 2D del export 76x108 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/trees/tree_oak_0.png			76x108		ok	sprite/bloque 2D del export 76x108 (pixel art, no usado en el Test 3D)	no (export 2D)
+sprite_2d_legado	export_godot/terrain/bosque_01/sprites/trees/tree_pine_0.png			62x128		ok	sprite/bloque 2D del export 62x128 (pixel art, no usado en el Test 3D)	no (export 2D)
+textura_suelo	poc_25d/suelo_meshy/cuerpo.png			1024x1024	445	ok	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x1.4 el salto de vecinos (tileable); laplaciano 32 (muy lisa)	si
+textura_suelo	poc_25d/suelo_meshy/dirt_arriba.png			1024x1024	445	regular	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x1.9 el salto de vecinos (tileable); laplaciano 26 (muy lisa); luminosidad 0.91 demasiado alta (paleta bosque 0,2-0,76)	si
+textura_suelo	poc_25d/suelo_meshy/hierba_arriba.png			1024x1024	445	ok	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x1.3 el salto de vecinos (tileable); laplaciano 88 (muy lisa)	si
+textura_suelo	poc_25d/suelo_meshy/hierba_borde.png			885x172		ok	sprite RGBA; nitidez lap 482	si
+textura_suelo	poc_25d/suelo_meshy/hierba_matojos.png			512x512		ok	sprite RGBA; nitidez lap 2231	si
+textura_suelo	poc_25d/suelo_meshy/path_arriba.png			1024x1024	445	regular	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x2.1 el salto de vecinos (tileable); laplaciano 18 (muy lisa); luminosidad 0.99 demasiado alta (paleta bosque 0,2-0,76)	si
+textura_suelo	poc_25d/suelo_meshy/stone_arriba.png			1024x1024	445	ok	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x1.7 el salto de vecinos (tileable); laplaciano 44 (muy lisa)	si
+textura_suelo	poc_25d/suelo_meshy/water_arriba.png			1024x1024	445	regular	1024 px sobre casilla 2,3 u (445 px/u; 2.5 texel/px a zoom 6, 0.82 a zoom 2); costura x1.9 el salto de vecinos (tileable); laplaciano 28 (muy lisa); luminosidad 0.91 demasiado alta (paleta bosque 0,2-0,76)	si
+sprite_vfx	poc_25d/vfx/anillo_polvo.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/brasa.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/burbuja.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/chispa_electrica.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/circulo_runico.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/copo.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/cristal_hielo.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/destello.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/esporas.png			256x256		ok	sprite 256x256; blando por diseno (lap 57)	si
+sprite_vfx	poc_25d/vfx/gota.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/grieta.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/hoja.png			256x256		ok	sprite 256x256; blando por diseno (lap 65)	si
+sprite_vfx	poc_25d/vfx/humo.png			256x256		ok	sprite 256x256; blando por diseno (lap 51)	si
+sprite_vfx	poc_25d/vfx/llama.png			256x256		regular	sprite 256x256; alfa toca el borde (55% de la fila de borde): recorte	si
+sprite_vfx	poc_25d/vfx/llama_pequena.png			256x256		regular	sprite 256x256; alfa toca el borde (10% de la fila de borde): recorte	si
+sprite_vfx	poc_25d/vfx/llama_tira8.png			2048x256		ok	sprite 2048x256	si
+sprite_vfx	poc_25d/vfx/ondas.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/pasadero.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/petalo.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/piedrecitas.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/polvo.png			256x256		ok	sprite 256x256; blando por diseno (lap 45)	si
+sprite_vfx	poc_25d/vfx/pua_tierra.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/rayo.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/remolino_viento.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/roca_grande.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/roca_mediana.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/salpicadura.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/telarana.png			256x256		ok	sprite 256x256	si
+sprite_vfx	poc_25d/vfx/terrones.png			256x256		ok	sprite 256x256	si

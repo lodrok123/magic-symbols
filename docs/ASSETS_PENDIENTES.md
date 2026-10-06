@@ -88,3 +88,82 @@ hojas al recolectar. Hoja de 8 fotogramas por efecto, 64 x 64.
 ## 6. Sonido
 Los de `audio/` ya cubren hechizos, pasos, puertas y libro. Faltan (ahora se sintetizan en `sonidos.gd`):
 abrir mochila, moneda, beber poción, comprar, recoger planta, prueba superada, golpe recibido corto.
+
+## 7. Auditoría de modelos y texturas (6/10 · Pipeline)
+
+Pedida por Pablo: «hay texturas muy low poly»; tabla de todo y lista para re-renderizar. **324 filas** (GLB de personajes, equipo, bibliotecas de Meshy, piezas sueltas, texturas de suelo y sprites de VFX) en `docs/auditoria_texturas.tsv` (TSV a propósito: Godot importa los `.csv` como traducciones). Medido a mano con script (sin motor): triángulos por pieza, tamaño de la textura, **densidad de texel** (px de textura por unidad de mundo) y arista mediana de triángulo en pantalla.
+
+**Criterio.** Un metro mide 180 px con el zoom inicial (6) y 540 px con el mínimo (2). Arista mediana en pantalla a zoom 6: ≤ 12 px bien · 12–25 regular · > 25 malo (se ve facetado/«low poly»). Densidad de texel: ≥ 512 px/u bien · 180–512 regular · < 180 malo (borroso al acercar). Las piezas prismáticas (cajas, vallas, placas) aguantan pocos triángulos: ahí solo cuenta la textura.
+
+**Causa raíz (la misma en casi todo).** Meshy da ~15 000 triángulos y UNA textura de 2048² por generación, y las láminas (bosque, objetos, magia, mercado, arboles_2) lo reparten entre ~13 piezas: cada una recibe ~1 000 triángulos y ~1/13 de la textura. Un árbol de 4,2 u con 3 700 triángulos y 91 px/u se ve poligonal y borroso aunque «tenga» textura 2048. **Se arregla generando las piezas SUELTAS** (una por generación: todo el presupuesto y toda la textura para ella; `meshy/REGENERAR.md` §1, `INTEGRAR_PIEZAS.cmd` las deja en `meshy/piezas/<id>.glb` y `prueba_test2.gd` las prefiere a la lámina). Los personajes no tienen el problema (31 000 triángulos, 480–630 px/u).
+
+### Resumen (solo lo que está en uso)
+
+| tipo | ok | regular | malo |
+|---|---|---|---|
+| glb_atlas | 26 | 0 | 0 |
+| glb_equipo | 6 | 0 | 0 |
+| glb_personaje | 2 | 1 | 0 |
+| glb_pieza | 1 | 13 | 20 |
+| sprite_vfx | 27 | 2 | 0 |
+| textura_suelo | 5 | 3 | 0 |
+
+### A re-renderizar YA (malas y a la vista)
+
+Orden = lo que más se ve: árboles y rocas (decenas de copias), luego los objetos de juego y el decorado de la plaza. Cada una se pide **suelta**, 1 pieza por generación; presupuesto orientativo al pedirla: 6 000–10 000 triángulos para árboles/arcos/puesto, 2 500–4 000 para objetos medianos, 1 000–2 000 para pequeños; textura 2048².
+
+| pieza | biblioteca | triángulos | px/u | arista a zoom 6 | veredicto |
+|---|---|---|---|---|---|
+| `arbol_redondo_2` | arboles_2.glb | 3701 | 91 | 50 px | malo |
+| `pino_2` | arboles_2.glb | 1780 | 89 | 50 px | malo |
+| `arbusto` | bosque.glb | 700 | 142 | 28 px | malo |
+| `arbusto_flores` | bosque.glb | 812 | 147 | 25 px | malo |
+| `roca_grande` | bosque.glb | 814 | 104 | 35 px | malo |
+| `tocon` | bosque.glb | 274 | 113 | 35 px | malo |
+| `tronco` | bosque.glb | 430 | 171 | 18 px | malo |
+| `totem_runico` | objetos.glb | 1054 | 165 | 25 px | malo |
+| `brasero` | objetos.glb | 769 | 157 | 28 px | malo |
+| `fogata` | objetos.glb | 462 | 151 | 25 px | malo |
+| `puesto_mercado` | mercado.glb | 6404 | 131 | 17 px | malo |
+| `arco_ruina` | mercado.glb | 3978 | 86 | 22 px | malo |
+| `portal_salida` | magia.glb | 926 | 93 | 54 px | malo |
+| `puente` | magia.glb | 747 | 114 | 16 px | malo |
+| `pilar` | magia.glb | 618 | 104 | — | malo |
+| `barril` | objetos.glb | 278 | 156 | 32 px | malo |
+| `juncos` | objetos.glb | 368 | 164 | 19 px | malo |
+| `valla` | bosque.glb | 248 | 161 | — | malo |
+| `seta_reactiva` | magia.glb | 566 | 162 | 17 px | malo |
+| `placa_peso` | objetos.glb | 114 | 118 | — | malo |
+
+### Regulares (después, si hay presupuesto de Meshy)
+
+| pieza | biblioteca | triángulos | px/u | arista a zoom 6 | veredicto |
+|---|---|---|---|---|---|
+| `piedras` | bosque.glb | 304 | 204 | 14 px | regular |
+| `setas` | bosque.glb | 500 | 335 | 6 px | regular |
+| `dummy` | magia.glb | 758 | 257 | — | regular |
+| `flor_reactiva` | magia.glb | 1118 | 241 | 16 px | regular |
+| `raiz_reactiva` | magia.glb | 1474 | 339 | 11 px | regular |
+| `pocion` | magia.glb | 706 | 483 | 10 px | regular |
+| `roca_cristal` | mercado.glb | 3450 | 328 | 8 px | regular |
+| `caja_pequena` | objetos.glb | 210 | 208 | — | regular |
+| `cofre` | objetos.glb | 260 | 221 | 23 px | regular |
+| `caja` | objetos.glb | 217 | 189 | — | regular |
+| `baldosa_guardado` | piezas/lamina_1.glb | 5011 | 362 | — | regular |
+| `pasadero` | piezas/lamina_1.glb | 2365 | 266 | 11 px | regular |
+| `seto_seco` | piezas/seto_seco.glb | 10360 | 265 | 13 px | regular |
+
+### Texturas de suelo y otros
+
+- `dirt_arriba`, `path_arriba`, `water_arriba` (1024² sobre una casilla de 2,3 u = 445 px/u, regular; **Pablo las aprobó**): si se renuevan, 2048² (≈ 890 px/u) mantiene el aspecto y sube a «bien». No urgente.
+- `chibi_elf.glb` sale «regular» (480 px/u) y el resto de personajes «bien»: sin acción.
+- Sprites de `vfx/` (`llama`, `llama_pequena` tocan el borde del lienzo): quedan fuera con el paso a partículas 3D (ver DIARIO).
+
+### Retiradas / sin uso (no hace falta rehacerlas)
+
+Ya sustituidas por una versión mejor y puestas en reserva: `arbol_redondo`, `pino`, `cartel`, `seto_seco`, `pasadero`, `arco_puerta`, `puesto`, `baldosa_guardado`. Se pueden borrar de las láminas cuando se quiera liberar memoria (cada lámina pesa 5–7 MB de GLB + 2 JPG de 2–3 MB).
+
+### Personajes nuevos sin GLB
+
+`alchemist_elf` y `goblin_archer_chibi` solo existen como `character.json` + atlas 2D (`export_godot/characters/`); **no hay `*_master.glb` en el repo** (el informe del ensamblado apunta a `C:\Users\paranda\Documents\magic-symbols\pipeline\characters\<id>\<id>_master.glb`, otra carpeta). Hasta que se copien a `poc_25d/` el 3D usa el sustituto (librera / guerrero). `COPIAR_MODELOS.cmd` ya los incluye.
+

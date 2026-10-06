@@ -76,7 +76,6 @@ var _t_contagio: float = 0.0
 var _k: float = 0.0                  ## 0 sano … 1 chamuscado
 var _tween: Tween = null
 var _disco: MeshInstance3D = null
-var _mat_disco: StandardMaterial3D = null
 var _motas: Node3D = null
 var _plegado: bool = true
 
@@ -299,22 +298,10 @@ func _contagiar(radio: float, viento: Vector3) -> void:
 
 func _montar_totem() -> void:
 	var c: Color = COLOR_ELEMENTO.get(elemento, Color.WHITE)
-	# Círculo rúnico en el suelo: apagado hasta que se activa.
-	var q := QuadMesh.new()
-	q.size = Vector2(S * 1.1, S * 1.1)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.albedo_texture = load("res://poc_25d/vfx/circulo_runico.png") as Texture2D
-	m.albedo_color = Color(c, 0.18)
-	q.material = m
-	_mat_disco = m
-	_disco = MeshInstance3D.new()
-	_disco.mesh = q
-	_disco.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
-	_disco.position = Vector3(0.0, 0.03, 0.0)
-	_disco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Círculo rúnico en el suelo (pieza 3D plana, Formas3D "runa"): apagado = casi del color del suelo; al activarse, el del elemento.
+	_disco = Formas3D.instancia("runa", c.lerp(Color(0.62, 0.6, 0.56), 0.72))
+	_disco.scale = Vector3(S * 1.1, 1.0, S * 1.1)
+	_disco.position = Vector3(0.0, 0.02, 0.0)      # = Y_DECAL - ALTO de prueba_test2.gd: una sola altura para todo decal
 	add_child(_disco)
 	_pintar_emision(c, 0.0)
 
@@ -338,8 +325,8 @@ func _activar_totem() -> void:
 		_motas.add_child(suelo)
 		suelo.global_position = global_position + Vector3(0.0, 0.1, 0.0)
 	_animar_k(1.0)
-	if _mat_disco != null:
-		_mat_disco.albedo_color = Color(c, 0.9)
+	if _disco != null:
+		_disco.set_surface_override_material(0, Formas3D.material_tinte(c, true))
 	activado.emit("totem", elemento)
 
 

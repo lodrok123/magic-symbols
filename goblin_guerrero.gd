@@ -157,6 +157,8 @@ func _conectar(jugador: Node2D) -> void:
 
 
 func on_spell_hit(rune_data: RuneData, direction: Vector2 = Vector2.ZERO) -> void:
+	if health <= 0.0:
+		return    # muerto: las descargas que siguen en el aire no le hacen nada (1.2)
 	combate.golpe(rune_data, direction)
 	# Un golpe te hace mirar a quien viene (y avisa si no te había visto)
 	if objetivo == null:
@@ -185,6 +187,9 @@ func push(dir: Vector2, force: float) -> void:
 
 func _die() -> void:
 	set_physics_process(false)
+	# Ya no es un objetivo: ni el arco del rayo ni ningun circuito lo vuelven a encontrar (1.2).
+	remove_from_group("goblins")
+	remove_from_group("enemies")
 	monitoring = false                 # ya no hace daño por contacto ni recibe más golpes
 	monitorable = false
 	combate.morir()

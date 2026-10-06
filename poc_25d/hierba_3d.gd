@@ -19,9 +19,13 @@ extends Node3D
 ##   briznas  matojos 3D de color liso, hechos por código (muchos y pequeños)
 ##   tarjetas matojos PINTADOS (suelo_meshy/hierba_matojos.png, 2 x 2 dibujos) que miran a la cámara
 
-@export var densidad: float = 10.0          ## matojos por unidad cuadrada en hierba plena
+## Densidad y tamaño de bloque bajados el 6/10 (Pipeline): a zoom 6 se ven ~11x7 u y se generaban 25 bloques de 9,2 u
+## (~2.100 u2) con 10 matojos/u2 x 9 briznas = ~5,7 M de triángulos y un tirón de CPU (8.460 matojos por bloque nuevo).
+## Ahora 3,5 matojos/u2 x 5 briznas (más anchas, para que la mata siga tapando) y bloques de 4,6 u: ~5x menos triángulos,
+## el recorte por bloque es más fino y cada bloque nuevo cuesta ~1/10. El volumen lo ponen las tarjetas pintadas.
+@export var densidad: float = 3.5           ## matojos por unidad cuadrada en hierba plena
 @export var flores_por_unidad: float = 0.18
-@export var alto_matojo: float = 0.27      ## la chibi mide ~1
+@export var alto_matojo: float = 0.30      ## la chibi mide ~1
 @export var color_base: Color = Color(0.50, 0.72, 0.40)
 @export var color_punta: Color = Color(0.86, 0.96, 0.62)
 @export var viento: float = 1.0
@@ -30,10 +34,10 @@ extends Node3D
 @export var densidad_tarjetas: float = 3.0   ## matojos pintados por unidad cuadrada
 @export var alto_tarjeta: float = 0.46
 @export var atlas_tarjetas: String = "res://poc_25d/suelo_meshy/hierba_matojos.png"
-@export var lado_bloque: float = 9.2         ## lado de cada bloque, en unidades (4 casillas de la maqueta)
+@export var lado_bloque: float = 4.6         ## lado de cada bloque, en unidades (2 casillas de la maqueta)
 @export var radio_sembrar: int = 2           ## con actualizar(): bloques alrededor del jugador que se siembran
 @export var radio_liberar: int = 4           ## ... y a partir de cuántos se liberan
-@export var bloques_por_fotograma: int = 1   ## como mucho, para repartir el coste al andar
+@export var bloques_por_fotograma: int = 2   ## como mucho, para repartir el coste al andar (bloques pequeños: 2 cuestan menos que 1 de los viejos)
 @export var brillo: float = 1.0              ## multiplica el color (la maqueta oscurece el suelo y la hierba igual)
 
 const NOMBRES_MODO: Array = ["briznas", "tarjetas pintadas", "briznas + tarjetas"]
@@ -421,19 +425,19 @@ func set_viento(v: float) -> void:
 		_mat_tarjeta.set_shader_parameter("viento", v)
 
 
-## Un matojo: 9 briznas curvadas que salen del centro (alto 1, se escala por copia). UV.y = altura 0..1.
+## Un matojo: 5 briznas curvadas que salen del centro (alto 1, se escala por copia). UV.y = altura 0..1.
 func _malla_matojo() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
-	for i in range(9):
-		var ang: float = float(i) / 9.0 * TAU + rng.randf() * 0.5
+	for i in range(5):
+		var ang: float = float(i) / 5.0 * TAU + rng.randf() * 0.5
 		var dir := Vector3(cos(ang), 0.0, sin(ang))
 		var lado := Vector3(-dir.z, 0.0, dir.x)
 		var alto: float = 0.7 + rng.randf() * 0.5
 		var inclin: float = 0.18 + rng.randf() * 0.3
-		var ancho: float = 0.13 + rng.randf() * 0.05
+		var ancho: float = 0.21 + rng.randf() * 0.06     ## más ancha: son 5 briznas y no 9
 		var base: Vector3 = dir * 0.12 * rng.randf()
 		var medio: Vector3 = base + dir * inclin * 0.35 + Vector3.UP * alto * 0.55
 		var punta: Vector3 = base + dir * inclin + Vector3.UP * alto

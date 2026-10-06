@@ -98,7 +98,14 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	p_mundo.add_child(l)
 	l.construir_interfaz()
 	if l.fx != null:
-		l.fx.impacto.connect(l.al_impactar)
+		# H4: el impacto pasa por el Lanzador, que descarta agua/hielo sobre casillas elevadas y luego llama a
+		# PruebaTest2._al_impactar y a su propio al_impactar (el orden de siempre). Se sustituye la conexion del mundo.
+		var directo := Callable(p_mundo, "_al_impactar")
+		if l.fx.impacto.is_connected(directo):
+			l.fx.impacto.disconnect(directo)
+			l.fx.impacto.connect(l.impacto_filtrado)
+		else:
+			l.fx.impacto.connect(l.al_impactar)     # el mundo no la habia conectado: no se duplica nada
 
 	# Los objetos del Pipeline (Reactivo3D) nacen sin capa (layer 0) hasta que existe el Lanzador: se les da CAPA_REACTIVO.
 	for n in p_mundo.get_tree().get_nodes_in_group("reactivo3d"):

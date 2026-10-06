@@ -59,7 +59,7 @@ Marca `[x]` al terminar y anota en `docs/DIARIO.md` lo que cruce la frontera.
   empujables; (d) lo que quede de `test_jugabilidad.gd` pasa a ser el cuerpo
   de `test_1.gd`. Tras cada paso, las cuatro escenas arrancan con F6.
   Al final, `test_jugabilidad.gd` desaparece o queda como alias vacío.
-- [ ] **1.2 Hilos abiertos de `CONTEXTO.md`** (bugs conocidos):
+- [x] **1.2 Hilos abiertos de `CONTEXTO.md`** *(hecha el 6/10 por el Juego; sin probar en Godot)* (bugs conocidos):
   - el jugador **se salta el muro del mundo** estando elevado (subirse
     desactiva la máscara de capa 1);
   - el **arquero recibe daño desmedido**: el circuito sigue soltando
@@ -124,12 +124,12 @@ delante porque desbloquean arte ya entregado.
 
 ### Juego
 
-- [ ] **3.0 Lo que pide el diario del Pipeline** (poco código, arte ya entregado):
+- [x] **3.0 Lo que pide el diario del Pipeline** *(el código ya estaba hecho; verificado el 6/10 que los `water_frozen_*` existen. Falta que el Pipeline borre `art/hielo_1..3`, ver diario)* (poco código, arte ya entregado):
   `goblin_guerrero._die()` → `anim_orden = "death"`, esperar ~1 s y `queue_free()`;
   `nivel_base._agua()` → rutas nuevas de `water_frozen_{1_nevado,2_escarcha,3_claro}.png` y
   después borrar `art/hielo_1..3` (avisar al Pipeline por el diario para que los borre él);
   `receive_damage()` de guerrero y arquero → `interrupcion = maxf(interrupcion, 0.3)`.
-- [ ] **3.1 (P0) Regla del libro: un glifo por sector** (`DISENO_FUTURO` §3). `spellcaster.gd`:
+- [x] **3.1 (P0) Regla del libro: un glifo por sector** *(hecha el 6/10 en `spellcaster.gd`; el libro ya dibujaba el hueco ocupado; sin probar en Godot)* (`DISENO_FUTURO` §3). `spellcaster.gd`:
   con `aim_with_mouse`, `_component_at` devuelve siempre el mismo componente; `add_sigil`
   rechaza con aviso el segundo glifo de un sector. `spellbook.gd`: dibujar el hueco ocupado.
   Comprobar en Test2 que `barrera + levitación` en dos sectores sigue dando columna.

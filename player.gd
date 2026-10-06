@@ -559,6 +559,8 @@ func _apply_elevation() -> void:
 	# la estructura, y lo que te limita es su borde — en cuanto lo pasas,
 	# _update_elevation() te devuelve al suelo.
 	set_collision_mask_value(1, elevation == 0)
+	# Los muros del mundo (capa 2, ver nivel_base.MURO_MUNDO) se respetan siempre, subido o no.
+	set_collision_mask_value(2, true)
 
 
 ## Misma idea que Enemy.receive_damage(), pero aquí en el jugador.

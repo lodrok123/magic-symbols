@@ -436,6 +436,17 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 		_feedback("Página llena: %d sellos" % limite)
 		return
 
+	# LA REGLA DEL LIBRO (3.1, DISENO_FUTURO §3): con el raton apuntando, UN GLIFO POR SECTOR.
+	# El sector es un hueco: ocupado, el segundo trazo se rechaza con aviso, no en silencio.
+	# (Sin raton cada sector sigue siendo un componente y los sellos se suman, como siempre.)
+	if Repertoire.aim_with_mouse and _sector_ocupado(sector):
+		Sfx.play(self, "sello_no")
+		var puesto: String = String(_component_at(sector)["sigils"][0])
+		print("Hueco ocupado: ya hay '", puesto, "' ahi. Borra con clic derecho o usa otro sector.")
+		_feedback("Hueco ocupado: ya hay '%s'" % puesto)
+		PlayLog.event("fallo", {"tipo": "hueco_ocupado", "nuevo": sigil_name, "ocupado": puesto})
+		return
+
 	var component := _component_at(sector)
 	component["sigils"].append(sigil_name)
 	component["quality"].append(clampf(calidad, 0.0, 1.0))
@@ -464,10 +475,35 @@ func place_element(gesture_name: String) -> void:
 	print("Elemento (paleta): ", gesture_name)
 
 
-## Todos los glifos puestos así van al mismo sector (la derecha): con el ratón
-## apuntando el sector solo es un hueco, y sin él una flecha plana vale ahí.
+## Sin ratón, todos los glifos puestos así van al mismo sector (la derecha). Con el ratón
+## apuntando el sector es un hueco y rige un glifo por sector: cada uno va al primer hueco libre.
 func place_sigil(sigil_name: String) -> void:
-	add_sigil(Vector2.RIGHT, sigil_name, 1.0)
+	# Con el raton, un glifo por sector: la paleta va ocupando el primer hueco libre.
+	var hueco: Vector2 = Vector2.RIGHT
+	if Repertoire.aim_with_mouse:
+		hueco = _primer_hueco_libre()
+	add_sigil(hueco, sigil_name, 1.0)
+
+
+## Los sectores del libro: ocho, el primero a la derecha (los mismos que calcula Spellbook).
+const HUECOS: int = 8
+
+
+func _sector_ocupado(sector: Vector2) -> bool:
+	for component in current_components:
+		if component["direction"].is_equal_approx(sector) and not component["sigils"].is_empty():
+			return true
+	return false
+
+
+## El primer sector sin glifo; si estan todos llenos, la derecha (add_sigil lo rechazara).
+func _primer_hueco_libre() -> Vector2:
+	for i in range(HUECOS):
+		var angulo: float = TAU / float(HUECOS) * float(i)
+		var dir := Vector2(cos(angulo), sin(angulo))
+		if not _sector_ocupado(dir):
+			return dir
+	return Vector2.RIGHT
 
 
 ## Cuántos sellos lleva la PÁGINA ACTIVA en total, sumando todos los

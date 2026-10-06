@@ -994,7 +994,29 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 ## formas de Vfx3D.lanzar_forma son solo visuales y no emiten `impacto`, así que una casilla se marca aquí, una vez.
 func marcar_celda(elemento: String, c: Vector2i) -> void:
 	if mundo != null and en_mapa(c) and mundo.has_method("_al_impactar"):
-		mundo.call("_al_impactar", elemento, centro_de(c, y_pies(c)))
+		if _agua_o_hielo_en_altura(elemento, c):
+			return
+		var punto: Vector3 = centro_de(c, y_pies(c))
+		mundo.call("_al_impactar", elemento, punto)
+		al_impactar(elemento, punto)     # el hielo de un muro o corro tambien caduca a los 20 s (L3)
+
+
+## H4 (DISENO_FUTURO §0b): agua, hielo y charcos SOLO existen a nivel 0. Una casilla con tierra o con una columna
+## encima (altura >= 1) no recibe ese estado del suelo: el hechizo golpea el bloque, no el suelo de debajo.
+func _agua_o_hielo_en_altura(elemento: String, c: Vector2i) -> bool:
+	if (elemento == "agua" or elemento == "hielo") and altura_en(c) >= 1:
+		PlayLog.event("estado_en_altura_rechazado", {"elemento": elemento, "celda": [c.x, c.y], "nivel": altura_en(c)})
+		return true
+	return false
+
+
+## Todo impacto de Vfx3D pasa por aqui ANTES de llegar al suelo de PruebaTest2 (Jugador3D.montar la conecta en lugar
+## de PruebaTest2._al_impactar): filtra H4 y despues deja que el mundo y `al_impactar` hagan lo de siempre.
+func impacto_filtrado(elemento: String, punto: Vector3) -> void:
+	if not _agua_o_hielo_en_altura(elemento, celda_de(punto)):
+		if mundo != null and mundo.has_method("_al_impactar"):
+			mundo.call("_al_impactar", elemento, punto)
+	al_impactar(elemento, punto)
 
 
 ## El dibujo de lo que se queda: UNA llamada a Vfx3D.lanzar_forma por hechizo (columna: una por casilla).

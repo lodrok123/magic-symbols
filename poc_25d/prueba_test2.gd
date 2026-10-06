@@ -6,7 +6,7 @@ extends Node3D
 ## (bosque.glb, objetos.glb, magia.glb), partículas (fuego, humo, brasas, esporas, destellos, pétalos) y los
 ## personajes chibi del pipeline. Es solo visual: se pasea con la chibi; no hay hechizos ni pruebas.
 ##
-## Teclas: WASD mover · Shift correr · R/F inclinación · 1/2/3 presets · + / - zoom · H sombras · P partículas
+## Teclas: WASD mover · Shift correr · + / - zoom (la inclinación está fija a 60°, ver INCLINACION) · H sombras · P partículas
 ##         K decorado on/off · G hierba 3D on/off · L luz plana/suave de personajes · [ / ] tamaño de la chibi
 ##
 ## Rendimiento (docs/PLAN_ACCION_TEST2.md §1.3): el decorado va por LOTES (un MultiMesh por pieza y malla, no un
@@ -23,6 +23,9 @@ const VEL_CORRER: float = 3.0
 const ZOOM_INICIAL: float = 6.0
 const ZOOM_MINIMO: float = 2.0
 const SEGUIMIENTO: float = 14.0
+## Inclinación de la cámara, BLOQUEADA (Pablo, 6/10: «de momento lockeamos en 60 grados, siguiendo al personaje»). Solo el zoom +/- sigue libre.
+## Para volver a probar otros ángulos, cambiar esta constante (las teclas R/F y 1/2/3 se quitaron).
+const INCLINACION: float = 60.0
 
 const RAIZ: String = "res://poc_25d/"
 const SUELO: String = "res://poc_25d/suelo_meshy/"
@@ -59,8 +62,14 @@ const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
 ## Espadachín: el mismo modelo del guerrero con espada (Pj3D.MODELO_DE + Equipo3D.EQUIPO). Ocupa las "A" del
 ## mapa hasta que haya arquero en 3D.
 const PJ_ESPADACHIN: Array = ["goblin_espadachin", "goblin_warrior_chibi"]
+## Personajes nuevos (6/10): la alquimista de los mercados, el arquero y el guardabosques. Sus GLB aún no están en el repo
+## (COPIAR_MODELOS.cmd los copia desde el pipeline): mientras falten, `_personaje` usa el siguiente de la lista.
+const PJ_ALQUIMISTA: Array = ["alchemist_elf", "bookseller_chibi", "chibi_test"]
+const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_warrior_chibi"]
+const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
-	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85}
+	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
+	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0}
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
 const MEDIDA: Dictionary = {
@@ -75,8 +84,30 @@ const MEDIDA: Dictionary = {
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "pasadero": S * 0.8, "placa_peso": S * 0.8,
 	"baldosa_guardado": S * 0.85}
 
+## --- Alturas del suelo (6/10, Pipeline; criterio de Link's Awakening: cada casilla tiene UN nivel y lo plano va a ras) ---
+## Antes cada pieza plana (placa, baldosa) se escalaba por su ancho y sobresalía lo que diera su malla (grosores distintos),
+## los discos de runa iban a +0,03 y +0,05 puestos a ojo, y las bases irregulares de Meshy dejaban huecos o flotaban.
+## Ahora: lo plano sobresale un grosor FIJO (PLANAS), todo decal va a una de dos alturas y toda pieza se hunde HUNDIR.
+## `ALTO` y `ALTO_AGUA` no cambian de valor: el Lanzador y el Jugador los leen de aquí (ver diario).
+const Y_DECAL: float = ALTO + 0.02        ## discos, runas y marcas sobre el suelo desnudo (igual que Vfx3D._marca)
+const Y_SOBRE_PLANA: float = ALTO + 0.07  ## decal encima de una pieza plana (baldosa de guardado): grosor de la baldosa + 0,03
+const HUNDIR: float = 0.03                ## cuánto se entierra cada pieza: la base irregular de Meshy no deja hueco ni flota
+## Piezas planas: lo que sobresale del suelo, en unidades, da igual lo gruesa que venga la malla (el resto queda enterrado).
+const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10}
+## Sombra de contacto (elipse plana, borde duro) bajo cada pieza en pie: ancla la pieza al suelo como en Link's Awakening.
+## Radio en unidades antes de la variación de tamaño de cada copia. Lo que no está aquí no lleva sombra (plano o diminuto).
+const SOMBRA_CONTACTO: Dictionary = {
+	"arbol_redondo": 0.95, "arbol_redondo_2": 0.95, "pino": 0.8, "pino_2": 0.8, "arbusto": 0.6, "arbusto_flores": 0.6,
+	"arbusto_otono": 0.7, "seto_seco": 0.7, "roca_grande": 0.75, "roca_cristal": 0.6, "tronco": 0.6, "tocon": 0.4,
+	"totem_runico": 0.5, "brasero": 0.45, "fogata": 0.5, "puesto": 1.0, "puesto_mercado": 1.0, "dummy": 0.45,
+	"cartel": 0.4, "barril": 0.4, "cofre": 0.45, "caja": 0.45, "caja_pequena": 0.35, "valla": 0.4, "arco_ruina": 0.9,
+	"arco_puerta": 0.9, "portal_salida": 0.9, "seta_reactiva": 0.4, "flor_reactiva": 0.4, "raiz_reactiva": 0.4,
+}
+
 ## Estado de la hierba por casilla (ESTADOS_SUELO.md §1.2). Una casilla sin entrada es hierba FINA.
 enum Fase { CRECIDA = 1, PRENDIENDO = 2, ARDIENDO = 3, CENIZAS = 4 }
+const MAX_ARDIENDO: int = 60         ## casillas de hierba encendidas a la vez; más allá no se propaga
+const MAX_FX_HIERBA: int = 24        ## de ellas, las que llevan partículas (el resto solo oscurece el suelo)
 const T_PRENDIENDO: float = 1.0      ## s en PRENDIENDO antes de ARDIENDO (IGNITE_TIME)
 const T_ARDIENDO: float = 5.0        ## s ardiendo antes de CENIZAS (BURN_TIME); R sube lineal en ese tiempo
 const FRENTE_VEL: float = 0.5        ## casillas/s a las que crece el frente de contagio (32 px/s ÷ 64)
@@ -100,6 +131,19 @@ const COLOR_ELEMENTO: Dictionary = {
 ## textura hecha en CPU (`_campo_ruido`), así la hierba 3D (Hierba3D) sabe exactamente dónde está el borde.
 ## Además: dos muestras de cada textura a escalas y giros distintos mezcladas por ruido (no se ve la
 ## repetición en cuadros) y una variación suave de tono a gran escala.
+const CODIGO_SOMBRA: String = """
+shader_type spatial;
+render_mode unshaded, depth_draw_never, cull_disabled, shadows_disabled;
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	if (dot(p, p) > 1.0) {
+		discard;
+	}
+	ALBEDO = vec3(0.04, 0.07, 0.05);
+	ALPHA = 0.30;      // opacidad de la sombra de contacto (borde duro, sin degradado)
+}
+"""
+
 const CODIGO_SUELO: String = """
 shader_type spatial;
 render_mode cull_disabled;
@@ -285,6 +329,9 @@ void fragment() {
 ## Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7: seto, tronco, telaraña, tótems, fogatas, antorchas, puente
 ## y placa). El prerender del Test 2D los apaga: allí son decorado.
 @export var objetos_reactivos: bool = true
+## Qué nivel monta esta escena: "test2" (el laboratorio de elementos, 40×40) o "jugabilidad" (el Test de jugabilidad
+## de siempre, 23×23, con sus cuatro tareas: ver jugabilidad_3d.gd). Lo elige PruebaJugabilidad3D.tscn.
+@export var nivel: String = "test2"
 
 var _mapa: PackedStringArray = PackedStringArray()
 var _lado: int = 40
@@ -300,6 +347,9 @@ var _mat_suelo: ShaderMaterial = null
 var _img_estado: Image = null             ## 40×40 RGBA8: R quemado · G mojado · B helado · A pisado
 var _tex_estado: ImageTexture = null
 var _estado_sucio: bool = false
+var _mojada: Dictionary = {}             ## Vector2i -> ms hasta los que la hierba no prende (la acaba de mojar el agua)
+const T_MOJADA_MS: int = 8000
+const RADIO_APAGAR: int = 2               ## el agua apaga en un cuadrado de (2r+1) casillas, no solo en la del impacto
 var _hf: Dictionary = {}                  ## Vector2i -> {fase, t, v, frente, contagia, fx}: hierba que no es FINA
 var _pisadas: Dictionary = {}             ## casillas con A > 0 (se levantan solas)
 var _helada: Dictionary = {}              ## casillas de agua helada (se pueden pisar)
@@ -325,18 +375,37 @@ var _camara: Camera3D = null
 var _sol: DirectionalLight3D = null
 var _foco: Vector3 = Vector3.ZERO
 var _tam_camara: float = ZOOM_INICIAL
-var _incl: float = 20.0
+var _incl: float = INCLINACION
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: PackedStringArray = PackedStringArray()
 var _lotes: Dictionary = {}          ## id -> Array[Transform3D] de las copias puestas
 var _plantillas: Dictionary = {}     ## id -> [[Mesh, Transform3D local, Material], ...] (vacío si no hay pieza)
 var _n_lotes: int = 0
+var _sombras: Array[Transform3D] = []   ## elipses de contacto de las piezas puestas en lotes (se dibujan en un solo MultiMesh)
 var _reactivos: Array[Reactivo3D] = []   ## los objetos de 4.7 (para enlazar el tótem de rayo con el puente)
+## Los datos del nivel (de test_2.gd o de jugabilidad_3d.gd, según `nivel`).
+var _reglas: Jugabilidad3D = null        ## solo en el nivel "jugabilidad": las reglas y las tareas
+var _guardados: Array = []
+var _suelo_obj: Array = []
+var _rotulos: Dictionary = {}
+var _color_prueba: Dictionary = {}
+var _empuj_def: Array = EMPUJABLES
 
 
 func _ready() -> void:
-	_mapa = TEST2.MAPA_TEST2
+	if nivel == "jugabilidad":
+		_reglas = Jugabilidad3D.new()
+		_reglas.name = "Reglas"
+		_mapa = Jugabilidad3D.MAPA
+		_guardados = Jugabilidad3D.GUARDADOS
+		_empuj_def = Jugabilidad3D.empujables()
+	else:
+		_mapa = TEST2.MAPA_TEST2
+		_guardados = TEST2.GUARDADOS_T2
+		_suelo_obj = TEST2.SUELO_T2
+		_rotulos = TEST2.ROTULOS
+		_color_prueba = TEST2.COLOR_PRUEBA
 	_lado = _mapa.size()
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 
@@ -400,6 +469,9 @@ func _ready() -> void:
 	_actualizar_hud()
 	_precalentar(capa)
 	Jugador3D.montar(self)
+	if _reglas != null:
+		add_child(_reglas)
+		_reglas.iniciar(self)
 
 
 ## --- Utilidades de rejilla ---
@@ -425,6 +497,13 @@ func _es_agua(l: String) -> bool:
 ## Tipo de suelo de una casilla para la mezcla: 0 hierba, 1 camino, 2 tierra, 3 piedra.
 func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
+	if _reglas != null:
+		# Test de jugabilidad: el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
+		if l == "g" or l == "F" or l == "T" or l == "B":
+			return 2
+		if l == "X" or l == "E" or l == "S" or l == "p" or l == "a" or l == "w" or _es_agua(l):
+			return 1
+		return 0
 	if l == "g" or l == "F" or l == "T" or l == "B":
 		return 2
 	if l == "X" or l == "E" or l == "S" or l == "n" or l == "Q" or l == "M":
@@ -804,6 +883,12 @@ func _normalizar(modelo: Node3D, id: String) -> Node3D:
 	var cx: float = caja.position.x + caja.size.x * 0.5
 	var cz: float = caja.position.z + caja.size.z * 0.5
 	modelo.position = -Vector3(cx, caja.position.y, cz) * f
+	if PLANAS.has(id):
+		# Pieza plana: se entierra salvo un grosor fijo, sea cual sea el que traiga la malla (placa 0,05, baldosa 0,04).
+		var grosor: float = float(PLANAS[id])
+		var alto_final: float = caja.size.y * f
+		if alto_final > grosor:
+			modelo.position.y -= alto_final - grosor
 	return raiz
 
 
@@ -827,7 +912,7 @@ func _caja(n: Node, acum: Transform3D) -> AABB:
 ## Pone una pieza en una casilla, algo desplazada, girada y con un tamaño variado para que no marque la rejilla.
 func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: bool = true, giro_fijo: float = -1.0) -> Node3D:
 	var id: String = _id_real(id_pedido)
-	var p: Vector3 = _centro_celda(c, y)
+	var p: Vector3 = _centro_celda(c, y if PLANAS.has(id) else y - HUNDIR)
 	var h: int = _hash(c.x, c.y, id_pedido.length())
 	var escala: float = 1.0
 	if variar:
@@ -842,6 +927,9 @@ func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: boo
 		if not _lotes.has(id):
 			_lotes[id] = []
 		(_lotes[id] as Array).append(Transform3D(Basis(Vector3.UP, deg_to_rad(giro)).scaled(Vector3.ONE * escala), p))
+		if SOMBRA_CONTACTO.has(id):
+			var r: float = float(SOMBRA_CONTACTO[id]) * escala
+			_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r * 2.0, 1.0, r * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
 		return null
 	var n: Node3D = _pieza(id)
 	if n == null:
@@ -864,7 +952,7 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 	var modelo: Node3D = raiz.get_child(0) as Node3D
 	raiz.remove_child(modelo)
 	raiz.free()
-	var p: Vector3 = _centro_celda(c, y)
+	var p: Vector3 = _centro_celda(c, y if PLANAS.has(_id_real(id_pedido)) else y - HUNDIR)
 	var h: int = _hash(c.x, c.y, id_pedido.length())
 	var escala: float = 1.0
 	if variar:
@@ -873,6 +961,10 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 	var giro: float = giro_fijo if giro_fijo >= 0.0 else float(h % 360)
 	if bloquea:
 		_bloqueadas[c] = true
+	# Sombra de contacto solo de los que se quedan (tótem, fogata, brasero); seto, tronco y telaraña se consumen.
+	if (tipo == "totem" or tipo == "fogata" or tipo == "brasero") and SOMBRA_CONTACTO.has(_id_real(id_pedido)):
+		var rs: float = float(SOMBRA_CONTACTO[_id_real(id_pedido)]) * escala
+		_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(rs * 2.0, 1.0, rs * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
 	var r: Reactivo3D = _nuevo_reactivo(tipo, c, p, modelo, elemento)
 	r.scale = Vector3.ONE * escala
 	r.rotation_degrees = Vector3(0.0, giro, 0.0)
@@ -897,13 +989,9 @@ func _nuevo_reactivo(tipo: String, c: Vector2i, p: Vector3, visual: Node3D, elem
 
 ## La telaraña: un sprite de pie que mira a la cámara (como antes), pero ahora arde.
 func _poner_telarana(c: Vector2i) -> void:
-	var s3 := Sprite3D.new()
+	# Ya no es un sprite: hilos 3D (Formas3D "telarana") en un plano de pie que mira a la cámara, radio 1.
+	var s3: MeshInstance3D = Formas3D.instancia("telarana", Color(0.93, 0.93, 0.97))
 	s3.name = "telarana"
-	s3.texture = _tex(VFX + "telarana.png")
-	s3.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-	s3.pixel_size = 2.0 / float(maxi(s3.texture.get_width(), 1)) if s3.texture != null else 0.01
-	s3.shaded = false
-	s3.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
 	s3.position = Vector3(0.0, 1.0, 0.0)
 	var r: Reactivo3D = _nuevo_reactivo("telarana", c, _centro_celda(c, ALTO), s3, "")
 	_props.add_child(r)
@@ -947,7 +1035,7 @@ func _al_consumir(c: Vector2i) -> void:
 func _al_activar(tipo: String, _elemento: String) -> void:
 	if tipo == "puente":
 		for r in _reactivos:
-			if r.tipo == "puente":
+			if is_instance_valid(r) and r.tipo == "puente":
 				_bloqueadas.erase(r.celda)
 
 
@@ -1090,6 +1178,33 @@ func _construir_lotes() -> void:
 					mi.material_override = parte[2] as Material
 				_props.add_child(mi)
 				_n_lotes += 1
+	_construir_sombras()
+
+
+## Un solo MultiMesh con la elipse de contacto de todas las piezas en pie (una llamada de dibujo).
+func _construir_sombras() -> void:
+	if _sombras.is_empty():
+		return
+	var sh := Shader.new()
+	sh.code = CODIGO_SOMBRA
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.render_priority = -1       # primero: el resto de decals y la hierba se dibujan encima
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	q.orientation = PlaneMesh.FACE_Y
+	q.material = mat
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = q
+	mm.instance_count = _sombras.size()
+	for i in range(_sombras.size()):
+		mm.set_instance_transform(i, _sombras[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.name = "sombras_contacto"
+	mi.multimesh = mm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_efectos.add_child(mi)
 
 
 ## Hielo = la textura del agua desaturada y aclarada (no hay textura de hielo propia).
@@ -1116,7 +1231,7 @@ func _textura_hielo(agua: Texture2D) -> Texture2D:
 ## definitivas (tierra_lado, hielo_arriba, hielo_lado, grietas en suelo_meshy/) son opcionales: sin ellas se usa
 ## la del suelo, el agua desaturada y unas grietas hechas con ruido.
 func _colocar_empujables() -> void:
-	for e in EMPUJABLES:
+	for e in _empuj_def:
 		var tipo: String = String(e[0])
 		var c: Vector2i = e[1]
 		var lado: float = S * 0.62
@@ -1254,7 +1369,7 @@ func _colocar_letras() -> void:
 					else:
 						_poner("totem_runico", c, ALTO, true, false, 0.0)
 						var col: Color = COLOR_ELEMENTO[el]
-						_disco(VFX + "circulo_runico.png", _centro_celda(c, ALTO + 0.03), S * 1.1, col)
+						_disco(VFX + "circulo_runico.png", _centro_celda(c, Y_DECAL), S * 1.1, col)
 						_luz(_centro_celda(c, ALTO + 1.4), col, 1.0, 3.5)
 				"B":
 					_bloqueadas[c] = true
@@ -1272,12 +1387,21 @@ func _colocar_letras() -> void:
 						_poner("brasero", c, ALTO, true, false)
 						_fuego(_centro_celda(c, ALTO + 1.25), false, 0.6)
 				"n", "Q":
-					_poner("puesto", c, ALTO, true, false, 0.0)
-					_bloqueadas[c + Vector2i(1, 0)] = true
-					_npc(PJ_LIBRERA, _centro_celda(c, ALTO) + Vector3(0.0, 0.0, -S * 0.35))
+					poner_puesto(c, PJ_LIBRERA if l == "n" else PJ_ALQUIMISTA)
 				"M":
 					_npc(PJ_LIBRERA, _centro_celda(c, ALTO))
 					_bloqueadas[c] = true
+				"m":
+					# Guardabosques (el que habla en el Test de jugabilidad): la regla le pone nombre y diálogo.
+					var gb: Pj3D = _npc(PJ_GUARDABOSQUES, _centro_celda(c, ALTO))
+					_bloqueadas[c] = true
+					if _reglas != null:
+						_reglas.registrar_npc("guardabosques", gb)
+				"p", "a", "w":
+					# Losas del suelo (contacto, desbloqueo de agua y de viento): las pinta y vigila la regla.
+					_sin_hierba[c] = true
+					if _reglas != null:
+						_reglas.registrar_losa(l, c)
 				"D":
 					_poner("dummy", c, ALTO, true, false, 0.0)
 				"s", "f", "q":
@@ -1285,14 +1409,20 @@ func _colocar_letras() -> void:
 					_poner(planta, c, ALTO, true)
 					_esporas(_centro_celda(c, ALTO + 0.5))
 				"A", "W":
-					var g: Pj3D = _personaje(PJ_ESPADACHIN if l == "A" else PJ_GOBLIN, _centro_celda(c, ALTO))
+					var quien: Array = PJ_GOBLIN
+					if l == "A":
+						quien = PJ_ARQUERO if _reglas != null else PJ_ESPADACHIN
+					var g: Pj3D = _personaje(quien, _centro_celda(c, ALTO))
 					if g != null:
 						_goblins.append(g)
 				"X":
 					# El arco nuevo (arco_ruina, mercado.glb) ya tiene la abertura hacia la cámara; el viejo
 					# (arco_puerta, objetos.glb) la tiene a +-X y hay que girarlo. Se cruza de norte a sur.
 					var arco: String = _id_real("arco_puerta")
-					_poner(arco, c, ALTO, false, false, 0.0 if arco == "arco_ruina" else 90.0)
+					var giro_arco: float = 0.0 if arco == "arco_ruina" else 90.0
+					if _reglas != null:
+						giro_arco += 90.0       # la puerta del test de jugabilidad se cruza de oeste a este
+					_poner(arco, c, ALTO, false, false, giro_arco)
 				"E":
 					_poner("portal_salida", c, ALTO, false, false, 0.0)
 					_destellos(_centro_celda(c, ALTO + 1.5), Color(0.75, 0.9, 1.0))
@@ -1312,30 +1442,32 @@ func _colocar_letras() -> void:
 
 ## Lo que test_2.gd coloca fuera del plano: guardados, objetos del suelo y carteles de cada cámara.
 func _colocar_extras() -> void:
-	for g in TEST2.GUARDADOS_T2:
+	if _reglas != null:
+		_reglas.colocar(self)
+	for g in _guardados:
 		var c: Vector2i = g
 		_poner("baldosa_guardado", c, ALTO, false, false, 0.0)
-		_disco(VFX + "circulo_runico.png", _centro_celda(c, ALTO + 0.05), S * 0.8, Color(0.6, 0.85, 1.0))
-	for o in TEST2.SUELO_T2:
+		_disco(VFX + "circulo_runico.png", _centro_celda(c, Y_SOBRE_PLANA), S * 0.8, Color(0.6, 0.85, 1.0))
+	for o in _suelo_obj:
 		var datos: Array = o
 		var c2 := Vector2i(int(datos[1]), int(datos[2]))
 		if String(datos[0]) == "pocion":
 			_poner("pocion", c2, ALTO, false)
 		else:
 			_oro(_centro_celda(c2, ALTO))
-	for k in TEST2.ROTULOS:
-		var c3: Vector2i = TEST2.ROTULOS[k]
+	for k in _rotulos:
+		var c3: Vector2i = _rotulos[k]
 		# El tablero del cartel de Meshy mira a 41° del eje: girado así queda de cara a la cámara (+Z).
 		_poner("cartel", c3, ALTO, true, false, GIRO_CARTEL)
 		_runa_cartel(String(k), _centro_celda(c3, ALTO))
-		_runa_suelo(String(k), _centro_celda(c3 + Vector2i(0, 1), ALTO + 0.03))
+		_runa_suelo(String(k), _centro_celda(c3 + Vector2i(0, 1), Y_DECAL))
 		_sin_hierba[c3 + Vector2i(0, 1)] = true
 		var l3 := Label3D.new()
 		l3.text = String(k).to_upper()
 		l3.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		l3.font_size = 64
 		l3.outline_size = 12
-		l3.modulate = TEST2.COLOR_PRUEBA[k]
+		l3.modulate = _color_prueba[k]
 		l3.position = _centro_celda(c3, ALTO + 1.9)
 		l3.pixel_size = 0.006
 		_props.add_child(l3)
@@ -1385,7 +1517,7 @@ func _runa_suelo(elem: String, p: Vector3) -> void:
 
 
 ## Montoncito de monedas (no hay modelo de oro todavía).
-func _oro(p: Vector3) -> void:
+func _oro(p: Vector3) -> Node3D:
 	var moneda := CylinderMesh.new()
 	moneda.top_radius = 0.09
 	moneda.bottom_radius = 0.09
@@ -1395,11 +1527,15 @@ func _oro(p: Vector3) -> void:
 	m.albedo_color = Color(1.0, 0.82, 0.35)
 	m.roughness = 0.4
 	moneda.material = m
+	var monton := Node3D.new()
+	monton.position = p
+	_props.add_child(monton)
 	for i in range(6):
 		var mi := MeshInstance3D.new()
 		mi.mesh = moneda
-		mi.position = p + Vector3(float(i % 3 - 1) * 0.07, 0.015 + floorf(float(i) / 3.0) * 0.032, float((i * 7) % 3 - 1) * 0.05)
-		_props.add_child(mi)
+		mi.position = Vector3(float(i % 3 - 1) * 0.07, 0.015 + floorf(float(i) / 3.0) * 0.032, float((i * 7) % 3 - 1) * 0.05)
+		monton.add_child(mi)
+	return monton
 
 
 ## --- Personajes ---
@@ -1418,10 +1554,19 @@ func _personaje(opciones: Array, p: Vector3) -> Pj3D:
 	return null
 
 
-func _npc(opciones: Array, p: Vector3) -> void:
+func _npc(opciones: Array, p: Vector3) -> Pj3D:
 	var n: Pj3D = _personaje(opciones, p)
 	if n != null:
 		n.rotation.y = 0.0
+	return n
+
+
+## El puesto de venta en `c` (ocupa c y c+x) con su tendero dentro, de cara a la cámara. Lo usan las letras n/Q y el
+## Test de jugabilidad (PUESTO_CELDA).
+func poner_puesto(c: Vector2i, tendero: Array) -> Pj3D:
+	_poner("puesto", c, ALTO, true, false, 0.0)
+	_bloqueadas[c + Vector2i(1, 0)] = true
+	return _npc(tendero, _centro_celda(c, ALTO) + Vector3(0.0, 0.0, -S * 0.35))
 
 
 ## --- Efectos ---
@@ -1488,27 +1633,18 @@ func _particulas(ruta: String, p: Vector3, cantidad: int, vida: float, caja: Vec
 	return gp
 
 
-## Fuego: llama animada, brasas y humo, con luz cálida. `barrera` = muro de llamas que ocupa la casilla.
+## Fuego: llamas 3D, brasas y humo (Vfx3D.fuego_fijo), con luz cálida. `barrera` = muro de llamas que ocupa la casilla.
 func _fuego(p: Vector3, barrera: bool, escala: float = 1.0) -> void:
-	var ancho: float = S * 0.42 if barrera else 0.12 * escala
-	_particulas(VFX + "llama_tira8.png", p + Vector3(0, 0.35 * escala, 0), 22 if barrera else 8, 0.8,
-		Vector3(ancho, 0.05, ancho), 0.5, 10.0, (1.2 if barrera else 0.9) * escala, true, 8, Vector3.ZERO, 0.5)
-	_particulas(VFX + "brasa.png", p + Vector3(0, 0.3, 0), 10 if barrera else 5, 1.4,
-		Vector3(ancho, 0.05, ancho), 1.3, 25.0, 0.18 * escala, true, 1, Vector3(0, -0.3, 0), 0.2)
-	_particulas(VFX + "humo.png", p + Vector3(0, 1.0 * escala, 0), 4, 3.0,
-		Vector3(ancho * 0.5, 0.05, ancho * 0.5), 0.5, 12.0, 1.0 * escala, false, 1, Vector3.ZERO, 1.6,
-		Color(1, 1, 1, 0.55))
+	_fx.fuego_fijo(p, barrera, escala)
 	_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.6 if barrera else 1.1, 4.0 if barrera else 3.0)
 
 
 func _esporas(p: Vector3) -> void:
-	_particulas(VFX + "esporas.png", p, 4, 3.5, Vector3(0.4, 0.2, 0.4), 0.15, 40.0, 0.35, true, 1,
-		Vector3.ZERO, 0.6, Color(0.9, 1.0, 0.8, 0.8))
+	_fx.esporas(p)
 
 
 func _destellos(p: Vector3, color: Color) -> void:
-	_particulas(VFX + "destello.png", p, 10, 1.6, Vector3(0.9, 1.0, 0.3), 0.2, 180.0, 0.35, true, 1,
-		Vector3.ZERO, 0.0, color)
+	_fx.destellos(p, color)
 	_luz(p, color, 1.0, 4.0)
 
 
@@ -1538,27 +1674,13 @@ func _luz(p: Vector3, color: Color, energia: float, rango: float) -> void:
 	_efectos.add_child(l)
 
 
-## Un sprite plano tumbado en el suelo (círculo rúnico...), que gira despacio.
-func _disco(ruta: String, p: Vector3, tam: float, color: Color) -> void:
-	var q := QuadMesh.new()
-	q.size = Vector2(tam, tam)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.albedo_texture = _tex(ruta)
-	m.albedo_color = color
-	q.material = m
-	var mi := MeshInstance3D.new()
-	mi.mesh = q
-	mi.position = p
-	mi.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+## Un círculo rúnico plano (pieza 3D de Formas3D) tumbado en el suelo, que gira despacio. `_ruta` ya no se usa (era el sprite).
+func _disco(_ruta: String, p: Vector3, tam: float, color: Color) -> void:
+	var mi: MeshInstance3D = Formas3D.instancia("runa", color)
+	mi.scale = Vector3(tam, 1.0, tam)
 	var pivote := Node3D.new()
-	pivote.position = Vector3.ZERO
 	pivote.add_child(mi)
 	_efectos.add_child(pivote)
-	mi.position = Vector3.ZERO
 	pivote.position = p
 	_girar.append(pivote)
 
@@ -1630,6 +1752,8 @@ func _al_impactar(elemento: String, punto: Vector3) -> void:
 	var c: Vector2i = _celda_de(punto)
 	if not _en_mapa(c):
 		return
+	if elemento == "agua" or elemento == "hielo":
+		_apagar_area(c, punto)
 	if _es_agua(_letra(c)):
 		_impacto_en_agua(elemento, c)
 	elif _es_hierba(c):
@@ -1708,16 +1832,55 @@ func _quitar_fx(c: Vector2i) -> void:
 
 func _poner_fase(c: Vector2i, fase: int) -> void:
 	var viejo: Dictionary = _hf.get(c, {})
+	# Tope: una GPU integrada no aguanta medio mapa en llamas (el 6/10 se congeló). Más allá de MAX_ARDIENDO casillas encendidas a la
+	# vez no se propaga más; más allá de MAX_FX_HIERBA siguen ardiendo (quemado en el suelo) pero sin partículas.
+	var ardiendo: int = 0
+	var con_fx: int = 0
+	for k in _hf:
+		var dk: Dictionary = _hf[k]
+		var fk: int = int(dk["fase"])
+		if fk == Fase.PRENDIENDO or fk == Fase.ARDIENDO:
+			ardiendo += 1
+			if dk.get("fx") != null:
+				con_fx += 1
+	if fase == Fase.PRENDIENDO and ardiendo >= MAX_ARDIENDO:
+		return
+	if fase == Fase.PRENDIENDO and int(_mojada.get(c, 0)) > Time.get_ticks_msec():
+		return                                  # mojada: no prende (si no, el fuego vecino la reenciende al instante)
 	_quitar_fx(c)
 	var d: Dictionary = {"fase": fase, "t": 0.0, "v": 0.0, "frente": float(viejo.get("frente", 0.0)),
 		"contagia": bool(viejo.get("contagia", true)), "fx": null}
-	d["fx"] = _fx.llamas(_centro_celda(c, ALTO), 0.5 if fase == Fase.PRENDIENDO else 1.0, S * 0.32)
+	if con_fx < MAX_FX_HIERBA:
+		d["fx"] = _fx.llamas(_centro_celda(c, ALTO), 0.5 if fase == Fase.PRENDIENDO else 1.0, S * 0.32)
 	_hf[c] = d
 	if _hierba != null:
 		_hierba.set_crecida(c, 0.0)       # deja de ser alta: se achicharra
 
 
 ## Apagada o regada tras arder: FINA otra vez, sin rastro.
+## El agua (y el hielo) apagan todo lo que arde alrededor del impacto y dejan la hierba mojada unos segundos.
+func _apagar_area(c: Vector2i, punto: Vector3) -> void:
+	var ahora: int = Time.get_ticks_msec() + T_MOJADA_MS
+	for y in range(c.y - RADIO_APAGAR, c.y + RADIO_APAGAR + 1):
+		for x in range(c.x - RADIO_APAGAR, c.x + RADIO_APAGAR + 1):
+			var q := Vector2i(x, y)
+			if not _en_mapa(q) or not _es_hierba(q):
+				continue
+			_mojada[q] = ahora
+			if _hf.has(q):
+				var f: int = int((_hf[q] as Dictionary)["fase"])
+				if f == Fase.PRENDIENDO or f == Fase.ARDIENDO or f == Fase.CENIZAS:
+					_apagar(q)
+	for n in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_ARDE):
+		var o: Reactivo3D = n as Reactivo3D
+		if o == null or o.estado != Reactivo3D.EstadoObj.ARDIENDO:
+			continue
+		var d: Vector3 = o.global_position - punto
+		d.y = 0.0
+		if d.length() <= (RADIO_APAGAR + 0.5) * S:
+			o._apagar()
+
+
 func _apagar(c: Vector2i) -> void:
 	_quitar_fx(c)
 	_hf.erase(c)
@@ -1901,16 +2064,6 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_N:
 			if _jugador != null:
 				_jugador.set_nivel_grimorio(Equipo3D.nivel_grimorio % 3 + 1)
-		KEY_R:
-			_incl = clampf(_incl + 5.0, 3.0, 80.0)
-		KEY_F:
-			_incl = clampf(_incl - 5.0, 3.0, 80.0)
-		KEY_1:
-			_incl = 20.0
-		KEY_2:
-			_incl = 35.0
-		KEY_3:
-			_incl = 5.0
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
 			_tam_camara = maxf(ZOOM_MINIMO, _tam_camara * 0.9)
 			_camara.size = _tam_camara
@@ -2113,6 +2266,8 @@ func _actualizar_hud() -> void:
 		int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0), _n_lotes]
 	if _hierba != null:
 		dibujo += " · hierba %d bloques / %d matojos" % [_hierba.numero_de_bloques(), _hierba.numero_de_matojos()]
-	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · R/F inclinación · 1/2/3 presets · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nF1–F6 hechizos (fuego agua tierra viento rayo hielo) · T rampa de luz %.1f · B relieve · V grietas del empujable más cercano · estado: %d casillas, %.2f ms" % [
+	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° (fija) | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nF1–F6 hechizos (fuego agua tierra viento rayo hielo) · T rampa de luz %.1f · B relieve · V grietas del empujable más cercano · estado: %d casillas, %.2f ms" % [
 		int(Engine.get_frames_per_second()), int(_incl), "sí" if _sol.shadow_enabled else "no",
 		"sí" if _efectos.visible else "no", tipo_hierba, dibujo, aviso, _contraste, _hf.size() + _pisadas.size(), _ms_estado]
+	if _reglas != null:
+		_hud.text = _hud.text.replace("TEST 2 en 3D", "Test de jugabilidad en 3D")
