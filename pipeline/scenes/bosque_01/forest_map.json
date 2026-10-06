@@ -1,0 +1,357 @@
+{
+  "seed": 7,
+  "legend": {
+    "g": "grass",
+    "f": "forest_grass",
+    "m": "moss",
+    "d": "dirt",
+    "p": "path",
+    "s": "stone",
+    "w": "water",
+    "t": "mud"
+  },
+  "rows": [
+    "fffffpgggggg",
+    "ffffppggggmg",
+    "ffgggpgggggg",
+    "fggggppggggg",
+    "ggggwwpppgss",
+    "gggwwwgpdpss",
+    "ggggwwggddpg",
+    "mggggggggdpp",
+    "mmggggggggpp",
+    "gggggggggggp"
+  ],
+  "fixed": [
+    {
+      "prop": "campfire",
+      "tile": [
+        8,
+        5
+      ],
+      "offset": [
+        0,
+        0
+      ]
+    },
+    {
+      "prop": "barrel",
+      "tile": [
+        9,
+        4
+      ],
+      "offset": [
+        0.1,
+        0
+      ],
+      "rot": 20
+    },
+    {
+      "prop": "crate",
+      "tile": [
+        9,
+        6
+      ],
+      "offset": [
+        -0.05,
+        0.05
+      ],
+      "rot": 35
+    },
+    {
+      "prop": "signpost",
+      "tile": [
+        6,
+        2
+      ],
+      "offset": [
+        0.3,
+        0.2
+      ],
+      "rot": 0
+    }
+  ],
+  "rules": {
+    "grass": [
+      {
+        "prop": "tree_oak",
+        "p": 0.07,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.15
+        ]
+      },
+      {
+        "prop": "tree_autumn_o",
+        "p": 0.06,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "tree_autumn_y",
+        "p": 0.06,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "tree_autumn_r",
+        "p": 0.05,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "tree_birch",
+        "p": 0.03,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "bush",
+        "p": 0.1,
+        "size": [
+          0.8,
+          1.2
+        ]
+      },
+      {
+        "prop": "bush_berry",
+        "p": 0.05,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "lavender",
+        "p": 0.08,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "flowers",
+        "p": 0.15,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "grass_clump",
+        "p": 0.3,
+        "max_small": 2,
+        "size": [
+          0.8,
+          1.2
+        ]
+      },
+      {
+        "prop": "rocks",
+        "p": 0.05,
+        "size": [
+          0.8,
+          1.2
+        ]
+      }
+    ],
+    "forest_grass": [
+      {
+        "prop": "tree_pine",
+        "p": 0.22,
+        "big": true,
+        "min_gap": 0,
+        "size": [
+          0.9,
+          1.25
+        ]
+      },
+      {
+        "prop": "tree_pine_g",
+        "p": 0.2,
+        "big": true,
+        "min_gap": 0,
+        "size": [
+          0.9,
+          1.25
+        ]
+      },
+      {
+        "prop": "tree_pine_y",
+        "p": 0.15,
+        "big": true,
+        "min_gap": 0,
+        "size": [
+          0.9,
+          1.25
+        ]
+      },
+      {
+        "prop": "tree_birch",
+        "p": 0.05,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "tree_autumn_y",
+        "p": 0.03,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "fern",
+        "p": 0.25,
+        "size": [
+          0.8,
+          1.2
+        ]
+      },
+      {
+        "prop": "mushrooms",
+        "p": 0.1,
+        "size": [
+          0.9,
+          1.2
+        ]
+      },
+      {
+        "prop": "stump",
+        "p": 0.04,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "bush",
+        "p": 0.12,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "grass_clump",
+        "p": 0.2,
+        "size": [
+          0.8,
+          1.1
+        ]
+      }
+    ],
+    "moss": [
+      {
+        "prop": "boulder",
+        "p": 0.12,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.8,
+          1.2
+        ]
+      },
+      {
+        "prop": "fern",
+        "p": 0.25,
+        "size": [
+          0.8,
+          1.2
+        ]
+      },
+      {
+        "prop": "mushrooms",
+        "p": 0.15,
+        "size": [
+          0.9,
+          1.2
+        ]
+      },
+      {
+        "prop": "groundcover",
+        "p": 0.35,
+        "size": [
+          0.9,
+          1.1
+        ]
+      }
+    ],
+    "dirt": [
+      {
+        "prop": "rocks",
+        "p": 0.1,
+        "size": [
+          0.8,
+          1.1
+        ]
+      },
+      {
+        "prop": "log",
+        "p": 0.05,
+        "size": [
+          0.9,
+          1.1
+        ]
+      },
+      {
+        "prop": "tree_dead",
+        "p": 0.05,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.9,
+          1.1
+        ]
+      }
+    ],
+    "path": [
+      {
+        "prop": "rocks",
+        "p": 0.05,
+        "size": [
+          0.6,
+          0.9
+        ]
+      }
+    ],
+    "stone": [
+      {
+        "prop": "boulder",
+        "p": 0.18,
+        "big": true,
+        "min_gap": 1,
+        "size": [
+          0.8,
+          1.3
+        ]
+      }
+    ],
+    "mud": [],
+    "water": []
+  }
+}

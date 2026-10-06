@@ -1,0 +1,7 @@
+{
+  "name": "anime_b",
+  "color_management": "Standard",
+  "toon": {"bands": 3, "threshold": 0.50, "shadow_color": [0.50, 0.46, 0.72], "saturation": 1.30, "value": 1.08},
+  "outline": {"px": 2.5, "color": [0.05, 0.03, 0.03]},
+  "lights": {"energy_scale": 1.1, "fill_energy": 400}
+}

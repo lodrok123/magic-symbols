@@ -1,0 +1,20 @@
+{
+  "version": "2.4",
+  "look": {
+    "global_pastel": {"saturation": 0.94, "value": 1.02},
+    "skin": {
+      "mask": {
+        "hue_min": 0.03,
+        "hue_max": 0.12,
+        "saturation_min": 0.18,
+        "saturation_max": 0.48,
+        "value_min": 0.55
+      },
+      "grade": {"saturation": 0.97, "value": 0.99},
+      "brightness_contrast": {"brightness": -0.10, "contrast": 0.15},
+      "roughness_boost": 0.16
+    },
+    "fallback_roughness": 0.60
+  },
+  "bake": {"resolution": 2048}
+}

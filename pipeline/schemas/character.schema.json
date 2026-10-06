@@ -1,0 +1,566 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://magic-symbols.local/schemas/character.schema.json",
+  "title": "Magic Symbols Character Pipeline Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "character",
+    "model",
+    "render",
+    "animations",
+    "atlas",
+    "godot",
+    "validation",
+    "output"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name",
+        "status",
+        "source_model"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "prototype",
+            "approved",
+            "deprecated"
+          ]
+        },
+        "source_model": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_height_units",
+        "up_axis",
+        "forward_axis",
+        "mesh_selection",
+        "rig"
+      ],
+      "properties": {
+        "expected_height_units": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "up_axis": {
+          "type": "string",
+          "enum": [
+            "X",
+            "Y",
+            "Z",
+            "-X",
+            "-Y",
+            "-Z"
+          ]
+        },
+        "forward_axis": {
+          "type": "string",
+          "enum": [
+            "X",
+            "Y",
+            "Z",
+            "-X",
+            "-Y",
+            "-Z"
+          ]
+        },
+        "mesh_selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "armature_modifier",
+                "object_name"
+              ]
+            },
+            "preferred_mesh_name": {
+              "type": "string"
+            }
+          }
+        },
+        "rig": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required_bones",
+            "ground_reference"
+          ],
+          "properties": {
+            "required_bones": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "ground_reference": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "mode",
+                "left_bone",
+                "right_bone"
+              ],
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "const": "feet_midpoint_mean"
+                },
+                "left_bone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "right_bone": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "engine",
+        "transparent_background",
+        "frame_size_px",
+        "ortho_scale",
+        "ground_anchor_px",
+        "stabilization",
+        "directions"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transparent_background": {
+          "type": "boolean"
+        },
+        "frame_size_px": {
+          "$ref": "#/$defs/positiveIntPair"
+        },
+        "ortho_scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ground_anchor_px": {
+          "$ref": "#/$defs/nonNegativeIntPair"
+        },
+        "stabilization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hips_lock",
+            "foot_lock"
+          ],
+          "properties": {
+            "hips_lock": {
+              "type": "boolean"
+            },
+            "foot_lock": {
+              "type": "boolean"
+            }
+          }
+        },
+        "directions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "rotation_deg"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "rotation_deg": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "animations": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "enabled",
+          "source_action",
+          "loop",
+          "output_fps",
+          "frame_count",
+          "sampling",
+          "atlas_basename",
+          "timing",
+          "expect_in_place",
+          "root_motion_tolerance"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "source_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "loop": {
+            "type": "boolean"
+          },
+          "output_fps": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "frame_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sampling": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "uniform_over_action",
+                  "source_frames"
+                ]
+              }
+            }
+          },
+          "atlas_basename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timing": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "custom",
+                  "preserve_source_duration"
+                ]
+              },
+              "playback_fps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "frame_count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "mode": {
+                      "const": "custom"
+                    }
+                  },
+                  "required": [
+                    "mode"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "playback_fps",
+                    "frame_count"
+                  ]
+                }
+              }
+            ]
+          },
+          "expect_in_place": {
+            "type": "boolean"
+          },
+          "root_motion_tolerance": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "atlas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_texture_size_px",
+        "layout",
+        "split_policy",
+        "format",
+        "color_mode"
+      ],
+      "properties": {
+        "max_texture_size_px": {
+          "type": "integer",
+          "minimum": 256
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "columns",
+            "rows",
+            "direction_order"
+          ],
+          "properties": {
+            "columns": {
+              "type": "string",
+              "const": "frames"
+            },
+            "rows": {
+              "type": "string",
+              "const": "directions"
+            },
+            "direction_order": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "split_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "preserve_full_direction_rows"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "max_texture_size"
+            },
+            "preserve_full_direction_rows": {
+              "type": "boolean"
+            }
+          }
+        },
+        "format": {
+          "type": "string",
+          "const": "PNG"
+        },
+        "color_mode": {
+          "type": "string",
+          "const": "RGBA"
+        }
+      }
+    },
+    "godot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_root",
+        "visual_offset_px",
+        "direction_mapping",
+        "runtime_spriteframes"
+      ],
+      "properties": {
+        "asset_root": {
+          "type": "string",
+          "pattern": "^res://"
+        },
+        "visual_offset_px": {
+          "$ref": "#/$defs/intPair"
+        },
+        "direction_mapping": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "runtime_spriteframes": {
+          "type": "boolean"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_alpha",
+        "reject_clipping",
+        "minimum_edge_margin_px",
+        "maximum_center_drift_px",
+        "loop",
+        "required_directions"
+      ],
+      "properties": {
+        "require_alpha": {
+          "type": "boolean"
+        },
+        "reject_clipping": {
+          "type": "boolean"
+        },
+        "minimum_edge_margin_px": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_center_drift_px": {
+          "type": "number",
+          "minimum": 0
+        },
+        "loop": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled_for_looping_animations",
+            "max_last_to_first_over_mean_step_ratio"
+          ],
+          "properties": {
+            "enabled_for_looping_animations": {
+              "type": "boolean"
+            },
+            "max_last_to_first_over_mean_step_ratio": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "required_directions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "render_root",
+        "atlas_root",
+        "report_root",
+        "godot_export_root"
+      ],
+      "properties": {
+        "render_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "atlas_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "report_root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "godot_export_root": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "positiveIntPair": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "nonNegativeIntPair": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "integer",
+          "minimum": 0
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "intPair": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    }
+  }
+}

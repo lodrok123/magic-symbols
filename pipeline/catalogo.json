@@ -1,0 +1,176 @@
+{
+  "goblin_archer": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "569e8857de276c2f",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-02 17:37"
+  },
+  "goblin_warrior": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "f7f7c49f3f36903f",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-02 17:46"
+  },
+  "master_elf": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "1e8d1ccffaa6afb7",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-02 17:01"
+  },
+  "bookseller_woman": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "ad2728e2fc010520",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-02 18:54"
+  },
+  "hero": {
+    "tipo": "character",
+    "estado": "pendiente",
+    "hash": "932c5f00ef50e786",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-04 23:30"
+  },
+  "ranger_human": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "8fdc3438abb8c723",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-02 18:59"
+  },
+  "tree_ghibli_01": {
+    "tipo": "tree",
+    "estado": "en revision",
+    "hash": "d5f2e811aa28615d",
+    "version": 1,
+    "licencia": {
+      "tipo": "CC-BY-4.0",
+      "autor": "Alex Ace",
+      "fuente": "Sketchfab",
+      "atribucion_requerida": true
+    },
+    "actualizado": "2026-10-02 18:59"
+  },
+  "bosque_01": {
+    "tipo": "scene",
+    "estado": "en revision",
+    "actualizado": "2026-10-03 15:44"
+  },
+  "chibi_test": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "8bd43916d397400b",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-04 23:30"
+  },
+  "bookseller_chibi": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "a3b1dee547f298c1",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-05 03:04"
+  },
+  "chibi_elf": {
+    "tipo": "character",
+    "estado": "rechazado",
+    "hash": "0e7ceb8b7af72bdc",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-05 11:16"
+  },
+  "goblin_warrior_chibi": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "c88ff9c09684d82e",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-05 03:55"
+  },
+  "alchemist_elf": {
+    "tipo": "character",
+    "estado": "aprobado",
+    "hash": "2d96215c796907aa",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-05 17:28"
+  },
+  "goblin_archer_chibi": {
+    "tipo": "enemy",
+    "estado": "pendiente",
+    "hash": "7e48676cb7538e7a",
+    "version": 1,
+    "licencia": {
+      "tipo": "",
+      "autor": "",
+      "fuente": "",
+      "atribucion_requerida": false
+    },
+    "actualizado": "2026-10-05 18:03"
+  }
+}

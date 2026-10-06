@@ -1,0 +1,48 @@
+{
+  "name": "r_g2_profundo",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.7,
+    "saturation": 1.35,
+    "value": 1.15,
+    "shadow_value": 0.78,
+    "shadow_sat": 1.2,
+    "shadow_tint": [
+      1.0,
+      0.86,
+      0.78
+    ],
+    "lit_tint": [
+      1.06,
+      1.0,
+      0.88
+    ],
+    "lift": 0.12,
+    "lift_color": [
+      0.55,
+      0.34,
+      0.2
+    ],
+    "green_fix": {
+      "hue_shift": 0.03,
+      "sat": 1.3,
+      "val": 0.65
+    }
+  },
+  "outline": {
+    "px": 1.5,
+    "color_mode": "material",
+    "dark_value": 0.32,
+    "dark_sat": 1.0,
+    "color": [
+      0.12,
+      0.07,
+      0.04
+    ]
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

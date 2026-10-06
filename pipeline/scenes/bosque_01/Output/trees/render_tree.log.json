@@ -1,0 +1,53 @@
+{
+  "scale_norm": 0.0017986025152661384,
+  "excluded": [
+    "Particle Emitter_Stylised Foliage_0",
+    "Custom Normals_Stylised Foliage_0"
+  ],
+  "bbox": [
+    [
+      -2.0255331993103027,
+      -1.503519892692566,
+      -2.7997922897338867
+    ],
+    [
+      1.599031686782837,
+      1.923483967781067,
+      1.2002077102661133
+    ]
+  ],
+  "ortho": 5.597081315517426,
+  "dist": 28.0,
+  "glb": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\inbox\\tree_ghibli_01\\ghibli_stylized_tree.glb",
+  "style": "anime_a",
+  "outline_scale": 3.950617283950617,
+  "style_report": {
+    "name": "anime_a",
+    "applied": [
+      "color_management=Standard",
+      "toon",
+      "lights"
+    ],
+    "errors": [],
+    "toon": {
+      "materials_toon": 2,
+      "skipped": []
+    },
+    "lights": {
+      "lights_scaled": 1,
+      "fill": true
+    }
+  },
+  "outline3d": {
+    "outline_meshes": 22,
+    "thickness_units": 0.11228712252628656,
+    "color_mode": "material"
+  },
+  "angles": [
+    0.0,
+    72.0,
+    144.0,
+    216.0,
+    288.0
+  ]
+}

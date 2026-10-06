@@ -1,0 +1,18 @@
+{
+  "name": "terreno_prop_toon",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.7,
+    "saturation": 1.05,
+    "value": 1.0,
+    "shadow_value": 0.74,
+    "shadow_sat": 1.1,
+    "shadow_tint": [0.92, 0.9, 1.0],
+    "lit_tint": [1.0, 1.0, 1.0],
+    "lift": 0.04,
+    "lift_color": [0.55, 0.34, 0.2]
+  },
+  "outline": {"px": 2.4, "color_mode": "material", "dark_value": 0.16, "dark_sat": 1.1, "color": [0.1, 0.05, 0.03]},
+  "lights": {"energy_scale": 1.0, "fill_energy": 250},
+  "color_management": "Standard"
+}

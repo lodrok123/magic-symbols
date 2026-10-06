@@ -1,0 +1,31 @@
+{
+  "name": "g_linea_color",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.4,
+    "saturation": 1.6,
+    "value": 1.1,
+    "texture_scale": 0.3,
+    "posterize": 12,
+    "shadow_color": [
+      0.84,
+      0.8,
+      0.92
+    ]
+  },
+  "outline": {
+    "px": 2.5,
+    "color": [
+      0.18,
+      0.11,
+      0.07
+    ],
+    "color_mode": "material",
+    "dark_value": 0.33
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

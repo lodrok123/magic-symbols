@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "character": "bookseller_chibi",
+  "status": "pass",
+  "sources": [
+    {
+      "key": "idle",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\source\\idle.glb",
+      "source_action": "Idle_8",
+      "canonical_action": "Idle",
+      "bone_count": 28
+    },
+    {
+      "key": "walk",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\source\\walk.glb",
+      "source_action": "Walking",
+      "canonical_action": "Walking",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "run",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\source\\run.glb",
+      "source_action": "Running",
+      "canonical_action": "Running",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "big_wave_hello",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\source\\big_wave_hello.glb",
+      "source_action": "Big_Wave_Hello",
+      "canonical_action": "BigWaveHello",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "stand_talking_angry",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\source\\stand_talking_angry.glb",
+      "source_action": "Stand_Talking_Angry",
+      "canonical_action": "StandTalkingAngry",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    }
+  ],
+  "warnings": [],
+  "output": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\bookseller_chibi\\bookseller_chibi_master.glb",
+  "master": {
+    "armature": "bookseller_chibi_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Idle",
+      "Walking",
+      "Running",
+      "BigWaveHello",
+      "StandTalkingAngry"
+    ]
+  },
+  "verification": {
+    "armature": "bookseller_chibi_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "BigWaveHello",
+      "Idle",
+      "Running",
+      "StandTalkingAngry",
+      "Walking"
+    ]
+  }
+}

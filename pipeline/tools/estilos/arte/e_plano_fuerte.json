@@ -1,0 +1,29 @@
+{
+  "name": "e_plano_fuerte",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.35,
+    "shadow_color": [
+      0.88,
+      0.85,
+      0.94
+    ],
+    "saturation": 1.6,
+    "value": 1.1,
+    "texture_scale": 0.0625,
+    "posterize": 5
+  },
+  "outline": {
+    "px": 3.5,
+    "color": [
+      0.18,
+      0.11,
+      0.07
+    ]
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

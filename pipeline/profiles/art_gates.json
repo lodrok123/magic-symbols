@@ -1,0 +1,15 @@
+{
+  "_nota": "Calibrado con bookseller_girl (aprobado): alfa parcial <=2.3%, huecos <=6 (mayor 125 px), diferencia entre cardinales >=11 RGBA.",
+  "alpha": {
+    "max_partial_alpha_ratio": 0.05,
+    "max_holes_per_direction": 12,
+    "max_largest_hole_px": 400
+  },
+  "cardinal": {
+    "min_mean_abs_rgba": 3.0,
+    "min_changed_bbox_area_ratio": 0.05
+  },
+  "render": {
+    "max_ground_anchor_error_px": 8.0
+  }
+}

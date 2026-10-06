@@ -1,0 +1,397 @@
+{
+  "_nota": "root vacio = carpeta donde estan estos scripts. Cambialo aqui (o con --root / variable MS_TERRAIN_ROOT) cuando tengas el flujo definitivo.",
+  "root": "",
+  "folders": {
+    "assets": "Assets",
+    "materials": "Materials",
+    "terrain": "Terrain",
+    "output": "Output"
+  },
+  "map": "forest_map.json",
+  "seed": 7,
+  "terrain_sheet": {
+    "file": null,
+    "grid": [
+      4,
+      3
+    ],
+    "names": [
+      [
+        "grass",
+        "forest_grass",
+        "moss",
+        "pathgrass"
+      ],
+      [
+        "dirt",
+        "leaves",
+        "mud",
+        "path"
+      ],
+      [
+        "stone",
+        "moss_stone",
+        "water",
+        "shore"
+      ]
+    ],
+    "block_width_px": 128,
+    "top_center_y": 34
+  },
+  "sheets": [
+    {
+      "type": "props",
+      "file": "Forest001.png",
+      "grid": [
+        3,
+        3
+      ],
+      "names": [
+        [
+          "boulder",
+          "rocks",
+          "log"
+        ],
+        [
+          "stump",
+          "barrel",
+          "crate"
+        ],
+        [
+          "campfire",
+          "signpost",
+          "cairn"
+        ]
+      ],
+      "heights": {
+        "boulder": 46,
+        "rocks": 30,
+        "log": 40,
+        "stump": 38,
+        "barrel": 54,
+        "crate": 52,
+        "campfire": 42,
+        "signpost": 74,
+        "cairn": 42
+      }
+    },
+    {
+      "type": "props",
+      "file": "Forest002.png",
+      "grid": [
+        4,
+        2
+      ],
+      "names": [
+        [
+          "bush",
+          "bush_berry",
+          "fern",
+          "grass_clump"
+        ],
+        [
+          "flowers",
+          "groundcover",
+          "mushrooms",
+          "lavender"
+        ]
+      ],
+      "heights": {
+        "bush": 40,
+        "bush_berry": 40,
+        "fern": 32,
+        "grass_clump": 28,
+        "flowers": 30,
+        "groundcover": 16,
+        "mushrooms": 20,
+        "lavender": 34
+      }
+    },
+    {
+      "type": "grass_states",
+      "file": "Forest003.png",
+      "grid": [
+        4,
+        3
+      ],
+      "states": [
+        "sano",
+        "chamuscado",
+        "quemado"
+      ],
+      "strip_diamond_outline": true
+    },
+    {
+      "type": "clump_states",
+      "file": "Forest004.png",
+      "grid": [
+        3,
+        3
+      ],
+      "states": [
+        "sano",
+        "chamuscado",
+        "quemado"
+      ],
+      "names": [
+        "bush",
+        "bush_berry",
+        "fern_flowers"
+      ],
+      "height": 46
+    }
+  ],
+  "tree": {
+    "glb": null,
+    "style": "anime_a",
+    "height_px": 108,
+    "variants": {
+      "tree_green_d": {
+        "hue": -22,
+        "sat": 1.05,
+        "val": 0.8,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_oak": {
+        "hue": -38,
+        "sat": 1.0,
+        "val": 1.08,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_green_l": {
+        "hue": -34,
+        "sat": 1.05,
+        "val": 1.12,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_lime": {
+        "hue": -48,
+        "sat": 1.1,
+        "val": 1.25,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_yg": {
+        "hue": -72,
+        "sat": 1.2,
+        "val": 1.4,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_yellow_l": {
+        "hue": -98,
+        "sat": 1.3,
+        "val": 1.65,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_yellow": {
+        "hue": -112,
+        "sat": 1.4,
+        "val": 1.85,
+        "h": 108,
+        "w_scale": 1.0
+      },
+      "tree_pine": {
+        "hue": -22,
+        "sat": 1.0,
+        "val": 0.85,
+        "h": 128,
+        "w_scale": 0.7
+      },
+      "tree_pine_g": {
+        "hue": -12,
+        "sat": 1.2,
+        "val": 0.9,
+        "h": 128,
+        "w_scale": 0.7
+      },
+      "tree_pine_y": {
+        "hue": -42,
+        "sat": 1.0,
+        "val": 1.25,
+        "h": 128,
+        "w_scale": 0.7
+      },
+      "tree_birch": {
+        "hue": -52,
+        "sat": 0.9,
+        "val": 1.25,
+        "h": 110,
+        "w_scale": 0.6
+      },
+      "tree_dead": {
+        "hue": -85,
+        "sat": 0.35,
+        "val": 0.62,
+        "h": 96,
+        "w_scale": 0.55
+      }
+    },
+    "exclude_prefixes": [
+      "Particle Emitter",
+      "Custom Normals"
+    ],
+    "render_pattern": "trees/tree_a{angle:03d}.png",
+    "angles": [
+      0,
+      72,
+      144,
+      216,
+      288
+    ]
+  },
+  "fire": {
+    "enabled": true,
+    "origin": "auto",
+    "burnt_radius": 3.6,
+    "scorched_radius": 6.0,
+    "noise": 2.2,
+    "seed": 11
+  },
+  "bg_color": [
+    34,
+    34,
+    40
+  ],
+  "grass": {
+    "coverage_grass": 0.7,
+    "coverage_forest": 0.95,
+    "variants": [
+      [
+        0,
+        1.0,
+        1.0
+      ],
+      [
+        -14,
+        0.95,
+        1.05
+      ],
+      [
+        -24,
+        0.85,
+        1.1
+      ],
+      [
+        8,
+        1.0,
+        0.95
+      ],
+      [
+        -32,
+        0.9,
+        1.15
+      ]
+    ],
+    "forest_variants": [
+      [
+        10,
+        0.9,
+        0.78
+      ],
+      [
+        0,
+        0.95,
+        0.82
+      ],
+      [
+        18,
+        0.85,
+        0.75
+      ]
+    ],
+    "path_edge_factor": 0.4,
+    "dry_variants": [
+      [
+        -36,
+        0.9,
+        1.2
+      ],
+      [
+        -30,
+        1.0,
+        1.1
+      ],
+      [
+        -44,
+        0.8,
+        1.25
+      ]
+    ],
+    "dry_prob": 0.85
+  },
+  "decor": {
+    "flowers": {
+      "p": 0.2,
+      "p_forest": 0.06,
+      "colors": [
+        [
+          255,
+          235,
+          120
+        ],
+        [
+          250,
+          150,
+          190
+        ],
+        [
+          255,
+          255,
+          255
+        ],
+        [
+          190,
+          140,
+          230
+        ],
+        [
+          255,
+          160,
+          80
+        ]
+      ]
+    },
+    "leaves": {
+      "p": 0.22,
+      "colors": [
+        [
+          230,
+          140,
+          40
+        ],
+        [
+          240,
+          190,
+          60
+        ],
+        [
+          200,
+          80,
+          40
+        ],
+        [
+          170,
+          110,
+          50
+        ]
+      ]
+    }
+  },
+  "procedural_blocks": {
+    "enabled": true,
+    "kinds": [
+      "dirt",
+      "path",
+      "water"
+    ],
+    "variants": 3,
+    "_nota": "Pon enabled=false para volver a los bloques de la hoja Terrain. overrides: colores por tipo (ver DEFAULTS en ms_blocks.py).",
+    "water_rim": true,
+    "transitions": true
+  }
+}

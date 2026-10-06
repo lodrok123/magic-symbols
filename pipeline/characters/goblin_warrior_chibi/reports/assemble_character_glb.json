@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "character": "goblin_warrior_chibi",
+  "status": "pass",
+  "sources": [
+    {
+      "key": "idle",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\idle.glb",
+      "source_action": "Idle_03",
+      "canonical_action": "Idle",
+      "bone_count": 28
+    },
+    {
+      "key": "walk",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\walk.glb",
+      "source_action": "Walking",
+      "canonical_action": "Walking",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "run",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\run.glb",
+      "source_action": "Running",
+      "canonical_action": "Running",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "die",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\die.glb",
+      "source_action": "Shot_in_the_Back_and_Fall",
+      "canonical_action": "Die",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "electrocution_reaction",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\electrocution_reaction.glb",
+      "source_action": "Electrocution_Reaction",
+      "canonical_action": "ElectrocutionReaction",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "hit_reaction",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\hit_reaction.glb",
+      "source_action": "Hit_Reaction",
+      "canonical_action": "HitReaction",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "idle_002",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\idle_002.glb",
+      "source_action": "Idle_8",
+      "canonical_action": "Idle002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "left_slash",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\left_slash.glb",
+      "source_action": "Left_Slash",
+      "canonical_action": "LeftSlash",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "slap_reaction",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\slap_reaction.glb",
+      "source_action": "Slap_Reaction",
+      "canonical_action": "SlapReaction",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "sword_parry_backward_001",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\sword_parry_backward_001.glb",
+      "source_action": "Sword_Parry_Backward_1",
+      "canonical_action": "SwordParryBackward001",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "sword_parry_backward_002",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\sword_parry_backward_002.glb",
+      "source_action": "Sword_Parry_Backward",
+      "canonical_action": "SwordParryBackward002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "walk_002",
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\source\\walk_002.glb",
+      "source_action": "Walk_Backward_with_Sword_inplace",
+      "canonical_action": "Walk002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    }
+  ],
+  "warnings": [],
+  "output": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\characters\\goblin_warrior_chibi\\goblin_warrior_chibi_master.glb",
+  "master": {
+    "armature": "goblin_warrior_chibi_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Idle",
+      "Walking",
+      "Running",
+      "Die",
+      "ElectrocutionReaction",
+      "HitReaction",
+      "Idle002",
+      "LeftSlash",
+      "SlapReaction",
+      "SwordParryBackward001",
+      "SwordParryBackward002",
+      "Walk002"
+    ]
+  },
+  "verification": {
+    "armature": "goblin_warrior_chibi_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Die",
+      "ElectrocutionReaction",
+      "HitReaction",
+      "Idle",
+      "Idle002",
+      "LeftSlash",
+      "Running",
+      "SlapReaction",
+      "SwordParryBackward001",
+      "SwordParryBackward002",
+      "Walk002",
+      "Walking"
+    ]
+  }
+}

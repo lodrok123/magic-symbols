@@ -1,0 +1,242 @@
+{
+  "schema_version": "1.0",
+  "character": "chibi_elf",
+  "status": "pass",
+  "sources": [
+    {
+      "key": "idle",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\idle.glb",
+      "source_action": "Idle_11",
+      "canonical_action": "Idle",
+      "bone_count": 28
+    },
+    {
+      "key": "walk",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\walk.glb",
+      "source_action": "Walking",
+      "canonical_action": "Walking",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "run",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\run.glb",
+      "source_action": "Running",
+      "canonical_action": "Running",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "anim_01a0e90d",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\anim_01a0e90d.glb",
+      "source_action": "01a0e90d-b840-7220-9ee6-679f68dcbe4b",
+      "canonical_action": "Anim01a0e90d",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "charged_ground_slam",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\charged_ground_slam.glb",
+      "source_action": "Charged_Ground_Slam",
+      "canonical_action": "ChargedGroundSlam",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "charged_spell_cast_001",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\charged_spell_cast_001.glb",
+      "source_action": "Charged_Spell_Cast_1",
+      "canonical_action": "ChargedSpellCast001",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "charged_spell_cast_002",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\charged_spell_cast_002.glb",
+      "source_action": "Charged_Spell_Cast",
+      "canonical_action": "ChargedSpellCast002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "collect_object",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\collect_object.glb",
+      "source_action": "Collect_Object",
+      "canonical_action": "CollectObject",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "dead",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\dead.glb",
+      "source_action": "Dead",
+      "canonical_action": "Dead",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "face_punch_reaction",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\face_punch_reaction.glb",
+      "source_action": "Face_Punch_Reaction_1",
+      "canonical_action": "FacePunchReaction",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "idle_002",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\idle_002.glb",
+      "source_action": "Swim_Idle",
+      "canonical_action": "Idle002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "mage_soell_cast_001",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\mage_soell_cast_001.glb",
+      "source_action": "mage_soell_cast_3",
+      "canonical_action": "MageSoellCast001",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "mage_soell_cast_002",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\mage_soell_cast_002.glb",
+      "source_action": "mage_soell_cast_4",
+      "canonical_action": "MageSoellCast002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "mage_soell_cast_003",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\mage_soell_cast_003.glb",
+      "source_action": "mage_soell_cast",
+      "canonical_action": "MageSoellCast003",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "open_door",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\open_door.glb",
+      "source_action": "open_door_1",
+      "canonical_action": "OpenDoor",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "readandwrite",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\readandwrite.glb",
+      "source_action": "01a0e90d-b840-7220-9ee6-679f68dcbe4b",
+      "canonical_action": "Readandwrite",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "roll_dodge",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\roll_dodge.glb",
+      "source_action": "Roll_Dodge",
+      "canonical_action": "RollDodge",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "stand_and_drink",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\stand_and_drink.glb",
+      "source_action": "Stand_and_Drink",
+      "canonical_action": "StandAndDrink",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "stand_talking_angry",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\stand_talking_angry.glb",
+      "source_action": "Stand_Talking_Angry",
+      "canonical_action": "StandTalkingAngry",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "swim_forward",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\swim_forward.glb",
+      "source_action": "Swim_Forward",
+      "canonical_action": "SwimForward",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "swimming_to_edge",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\swimming_to_edge.glb",
+      "source_action": "swimming_to_edge",
+      "canonical_action": "SwimmingToEdge",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "walk_002",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\source\\walk_002.glb",
+      "source_action": "Walk_Turn_Right_Idle_Style",
+      "canonical_action": "Walk002",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    }
+  ],
+  "warnings": [],
+  "output": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\chibi_elf\\chibi_elf_master.glb",
+  "master": {
+    "armature": "chibi_elf_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Idle",
+      "Walking",
+      "Running",
+      "Anim01a0e90d",
+      "ChargedGroundSlam",
+      "ChargedSpellCast001",
+      "ChargedSpellCast002",
+      "CollectObject",
+      "Dead",
+      "FacePunchReaction",
+      "Idle002",
+      "MageSoellCast001",
+      "MageSoellCast002",
+      "MageSoellCast003",
+      "OpenDoor",
+      "Readandwrite",
+      "RollDodge",
+      "StandAndDrink",
+      "StandTalkingAngry",
+      "SwimForward",
+      "SwimmingToEdge",
+      "Walk002"
+    ]
+  },
+  "verification": {
+    "armature": "chibi_elf_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Anim01a0e90d",
+      "ChargedGroundSlam",
+      "ChargedSpellCast001",
+      "ChargedSpellCast002",
+      "CollectObject",
+      "Dead",
+      "FacePunchReaction",
+      "Idle",
+      "Idle002",
+      "MageSoellCast001",
+      "MageSoellCast002",
+      "MageSoellCast003",
+      "OpenDoor",
+      "Readandwrite",
+      "RollDodge",
+      "Running",
+      "StandAndDrink",
+      "StandTalkingAngry",
+      "SwimForward",
+      "SwimmingToEdge",
+      "Walk002",
+      "Walking"
+    ]
+  }
+}

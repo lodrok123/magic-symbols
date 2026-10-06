@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "character": "alchemist_elf",
+  "status": "pass",
+  "sources": [
+    {
+      "key": "idle",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\source\\idle.glb",
+      "source_action": "Idle_4",
+      "canonical_action": "Idle",
+      "bone_count": 28
+    },
+    {
+      "key": "walk",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\source\\walk.glb",
+      "source_action": "Walking",
+      "canonical_action": "Walking",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "run",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\source\\run.glb",
+      "source_action": "Running",
+      "canonical_action": "Running",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "hand_on_hip_gesture",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\source\\hand_on_hip_gesture.glb",
+      "source_action": "Hand_on_Hip_Gesture",
+      "canonical_action": "HandOnHipGesture",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    },
+    {
+      "key": "stand_talking_angry",
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\source\\stand_talking_angry.glb",
+      "source_action": "Stand_Talking_Angry",
+      "canonical_action": "StandTalkingAngry",
+      "bone_count": 28,
+      "rest_matrix_warnings": []
+    }
+  ],
+  "warnings": [],
+  "output": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline\\characters\\alchemist_elf\\alchemist_elf_master.glb",
+  "master": {
+    "armature": "alchemist_elf_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "Idle",
+      "Walking",
+      "Running",
+      "HandOnHipGesture",
+      "StandTalkingAngry"
+    ]
+  },
+  "verification": {
+    "armature": "alchemist_elf_Armature",
+    "bone_count": 28,
+    "mesh_count": 1,
+    "actions": [
+      "HandOnHipGesture",
+      "Idle",
+      "Running",
+      "StandTalkingAngry",
+      "Walking"
+    ]
+  }
+}

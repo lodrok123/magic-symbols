@@ -1,0 +1,33 @@
+{
+  "name": "h_sombra_tono",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.4,
+    "saturation": 1.6,
+    "value": 1.1,
+    "texture_scale": 0.3,
+    "posterize": 12,
+    "shadow_value": 0.76,
+    "shadow_sat": 1.25,
+    "shadow_tint": [
+      0.92,
+      0.86,
+      1.0
+    ]
+  },
+  "outline": {
+    "px": 2.5,
+    "color": [
+      0.18,
+      0.11,
+      0.07
+    ],
+    "color_mode": "material",
+    "dark_value": 0.33
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

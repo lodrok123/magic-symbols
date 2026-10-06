@@ -1,0 +1,48 @@
+{
+  "blender": "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe",
+  "auto_export": {
+    "character": true,
+    "enemy": true,
+    "tree": false,
+    "prop": false,
+    "weapon": false,
+    "scene": false
+  },
+  "export_dir": {
+    "character": "characters",
+    "enemy": "enemies",
+    "tree": "trees",
+    "prop": "props",
+    "weapon": "weapons",
+    "scene": "terrain"
+  },
+  "defaults": {
+    "tree": {
+      "height_px": 108,
+      "angles": [
+        0,
+        72,
+        144,
+        216,
+        288
+      ],
+      "style": "anime_a"
+    },
+    "prop": {
+      "height_px": 64,
+      "angles": [
+        0
+      ],
+      "style": "anime_a"
+    },
+    "weapon": {
+      "height_px": 64,
+      "angles": [
+        0
+      ],
+      "style": "anime_a"
+    }
+  },
+  "export_contract": "1.1",
+  "character_style": "personaje_toon"
+}

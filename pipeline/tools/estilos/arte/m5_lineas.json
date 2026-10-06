@@ -1,0 +1,48 @@
+{
+  "name": "m5_lineas",
+  "toon": {
+    "bands": 3,
+    "threshold": 0.45,
+    "saturation": 1.2,
+    "value": 1.0,
+    "shadow_color": [
+      0.62,
+      0.58,
+      0.78
+    ],
+    "texture_scale": 0.35,
+    "shadow_value": 0.5,
+    "shadow_sat": 1.1,
+    "shadow_tint": [
+      0.9,
+      0.85,
+      1.0
+    ]
+  },
+  "outline": {
+    "px": 2.5,
+    "color_mode": "material",
+    "dark_value": 0.12,
+    "dark_sat": 1.0,
+    "color": [
+      0.12,
+      0.07,
+      0.04
+    ]
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard",
+  "lines": {
+    "px": 1.0,
+    "crease_angle": 100,
+    "color": [
+      0.15,
+      0.09,
+      0.05
+    ],
+    "alpha": 0.7
+  }
+}

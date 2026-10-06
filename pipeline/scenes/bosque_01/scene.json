@@ -1,0 +1,12 @@
+{
+  "id": "bosque_01",
+  "nombre": "Bosque",
+  "tipo": "scene",
+  "mapa": "forest_map.json",
+  "fuego": "both",
+  "seed": 7,
+  "arboles": [
+    "tree_ghibli_01"
+  ],
+  "config": "ms_terrain_config.json"
+}

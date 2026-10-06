@@ -1,0 +1,59 @@
+{
+  "name": "personaje_toon_goblin",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.7,
+    "saturation": 1.2,
+    "value": 1.3,
+    "shadow_value": 0.86,
+    "shadow_sat": 1.0,
+    "shadow_tint": [
+      0.9,
+      0.92,
+      0.96
+    ],
+    "lit_tint": [
+      1.03,
+      1.0,
+      0.94
+    ],
+    "lift": 0.08,
+    "lift_color": [
+      0.55,
+      0.34,
+      0.2
+    ],
+    "recolor": [
+      {
+        "v_range": [
+          0.5,
+          1.0
+        ],
+        "s_max": 0.15,
+        "soft": 0.05,
+        "color": [
+          0.38,
+          0.6,
+          0.26
+        ],
+        "vref": 0.68
+      }
+    ]
+  },
+  "outline": {
+    "px": 1.2,
+    "color_mode": "material",
+    "dark_value": 0.5,
+    "dark_sat": 0.9,
+    "color": [
+      0.12,
+      0.07,
+      0.04
+    ]
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

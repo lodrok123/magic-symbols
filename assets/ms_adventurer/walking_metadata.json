@@ -1,0 +1,22 @@
+{
+  "status": "approved",
+  "pipeline": "3B.2 hips lock",
+  "case_safe_root": "res://assets/ms_adventurer/",
+  "frame_size": [
+    256,
+    320
+  ],
+  "frames_per_direction": 8,
+  "fps": 10.0,
+  "directions": [
+    "s",
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se"
+  ],
+  "offset_y": -115.0
+}

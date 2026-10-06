@@ -40,18 +40,24 @@ _to_delete/
 ULTIMA_BAJADA.txt
 ULTIMA_SUBIDA.txt
 
-# --- Pesados: no caben en GitHub ---
-pipeline/
+# --- Pesados: datos del pipeline que no van a GitHub (6/10/2026) ---
+# El CÓDIGO del pipeline (tools/*.py, *.cmd, config, profiles, schemas,
+# catalogo.json, scenes, character.json) SÍ viaja: sin él no hay pipeline
+# en el otro ordenador. Lo que no viaja son renders, masters y originales:
+# viven en la copia de OneDrive (archivo de assets), no en git.
+pipeline/output/
+pipeline/archive/
+pipeline/inbox/
+pipeline/characters/*/work/
+pipeline/characters/*/source/
+pipeline/characters/*/incoming/
+pipeline/characters/*/*.glb
 pipeline_output/
-Render Studio/
-*.blend
-*.blend1
-*.glb
+# Render Studio: solo viaja el .blend del estudio, que build_character.py abre.
+Render Studio/*
+!Render Studio/MS_CHARACTER_RENDER_STUDIO.blend
 videos/
-*.mp4
-*.avi
-*.zip
-*.exe
-*.lnk
-!poc_25d/*.glb
+*.blend1
+# GLB solo donde el juego los carga directamente (la maqueta 3D).
+*.glb
 !poc_25d/**/*.glb

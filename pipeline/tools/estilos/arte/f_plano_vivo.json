@@ -1,0 +1,29 @@
+{
+  "name": "f_plano_vivo",
+  "toon": {
+    "bands": 2,
+    "threshold": 0.4,
+    "shadow_color": [
+      0.78,
+      0.72,
+      0.92
+    ],
+    "saturation": 1.8,
+    "value": 1.12,
+    "texture_scale": 0.125,
+    "posterize": 6
+  },
+  "outline": {
+    "px": 3.0,
+    "color": [
+      0.22,
+      0.12,
+      0.06
+    ]
+  },
+  "lights": {
+    "energy_scale": 1.0,
+    "fill_energy": 250
+  },
+  "color_management": "Standard"
+}

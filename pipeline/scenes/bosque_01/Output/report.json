@@ -1,0 +1,53 @@
+{
+  "root": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\scenes\\bosque_01",
+  "seed": 7,
+  "info": [
+    "terreno: Terreno.png -> 12 bloques",
+    "bloques procedurales: dirt, path, water x 3 variantes",
+    "Forest001.png: props ok",
+    "Forest002.png: props ok",
+    "Forest003.png: grass_states ok",
+    "Forest004.png: clump_states ok",
+    "arbol: 5 angulos x 12 variantes = 60 sprites",
+    "art3d: 12 bloques y 6 props renderizados en 3D"
+  ],
+  "warnings": [],
+  "maps": [
+    {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\scenes\\bosque_01\\Output\\map.png",
+      "tiles": [
+        12,
+        10
+      ],
+      "props": 79,
+      "fire": true,
+      "veg_tiles_by_state": {
+        "sano": 53,
+        "chamuscado": 22,
+        "quemado": 13
+      },
+      "size": [
+        1540,
+        1020
+      ]
+    },
+    {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline\\scenes\\bosque_01\\Output\\map_sano.png",
+      "tiles": [
+        12,
+        10
+      ],
+      "props": 79,
+      "fire": false,
+      "veg_tiles_by_state": {
+        "sano": 88,
+        "chamuscado": 0,
+        "quemado": 0
+      },
+      "size": [
+        1540,
+        1020
+      ]
+    }
+  ]
+}
