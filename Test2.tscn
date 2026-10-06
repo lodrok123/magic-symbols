@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://test_2.gd" id="1_test2"]
+
+[node name="Test2" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("1_test2")

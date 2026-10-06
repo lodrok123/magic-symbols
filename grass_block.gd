@@ -28,8 +28,20 @@ enum State { THIN, GROWN, IGNITING, BURNING, ASHES }
 
 const IGNITE_TIME: float = 1.0        ## de "ha prendido" a "arde del todo"
 const BURN_TIME: float = 5.0          ## cuánto arde antes de consumirse
-const SPREAD_INTERVAL: float = 1.2    ## cada cuánto intenta contagiar
-const SPREAD_RADIUS: float = 110.0    ## alcance del contagio (bloques ~90px)
+const SPREAD_INTERVAL: float = 1.2    ## (ya no se usa: el fuego avanza con un frente, ver abajo)
+const SPREAD_RADIUS: float = 110.0    ## hasta dónde crece el frente (bloques ~64-90px)
+
+## EL FUEGO SE EXTIENDE COMO UN FRENTE, no como una lista de vecinos.
+## Desde el foco crece un círculo. Si toca una hierba que se pueda quemar, esa
+## prende y ES EL NUEVO FOCO: el frente de la anterior se apaga (ignora al
+## resto) y el proceso vuelve a empezar desde el punto de contacto. Así el
+## incendio sigue un camino que se ve avanzar, y solo por lo que arde: nunca
+## ocupa la pantalla entera de golpe. Se acaba cuando el frente llega a su
+## radio máximo sin tocar nada.
+const FRONT_SPEED: float = 32.0       ## píxeles por segundo que crece lo quemado (y con él, el frente)
+const FRONT_MIN: float = 26.0         ## radio mínimo antes de poder contagiar
+const ORIGIN_INSET: float = 14.0      ## cuánto se mete el origen dentro del bloque
+const FX_REST: Vector2 = Vector2(0.0, -12.0)   ## dónde descansa la llama (ver GrassBlock.tscn)
 
 ## El viento no solo empuja el fuego: lo lanza mucho más lejos y solo
 ## hacia donde sopla. El "dot" mide cuánto coincide la dirección hacia
@@ -53,6 +65,23 @@ var damage_per_tick: float = 10.0
 var fire_timer: Timer
 var spread_timer: Timer
 
+var _origen: Vector2 = Vector2.ZERO   ## PUNTO DE MUNDO donde prendió: de ahí sale todo
+var _spreading: bool = false
+var _tw_fx: Tween = null
+var _quema: GrassBurn = null
+var _blades: GrassBlades = null
+
+## Hierba alta de adorno: dibuja briznas encima para ver cómo arde una hierba
+## crecida. No cambia el juego.
+@export var blades: bool = true
+var _burn_t: float = 0.0
+
+## Cuánto lo ha avivado el viento (0..1). Sube de golpe y se aplaca solo.
+const AVIVA_DECAE: float = 2.5
+var _aviva: float = 0.0
+var _soplo: Vector2 = Vector2.ZERO
+
+
 var player_inside: Node = null
 
 ## Las llamas que se dibujan encima de la hierba mientras arde. No hace
@@ -69,6 +98,19 @@ func _ready() -> void:
 
 	FIRE_RUNE.setup_sprite($Fx)
 
+	# Lo quemado y las llamas del borde (ver GrassBurn). Por encima del suelo
+	# (z 1) porque el fuego se ve sobre la hierba.
+	if blades:
+		_blades = GrassBlades.new()
+		_blades.z_index = 1
+		add_child(_blades)
+
+	_quema = GrassBurn.new()
+	_quema.z_index = 1
+	_quema.hide()
+	add_child(_quema)
+	_origen = global_position
+
 	fire_timer = Timer.new()
 	fire_timer.one_shot = true
 	fire_timer.timeout.connect(_on_fire_phase_finished)
@@ -80,6 +122,7 @@ func _ready() -> void:
 	add_child(spread_timer)
 
 	state = initial_state
+	_spreading = state == State.IGNITING or state == State.BURNING
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
 	damage_timer.timeout.connect(_on_damage_tick)
@@ -91,11 +134,139 @@ func _ready() -> void:
 ## distintos no ardan en sincronía perfecta, que es lo que delataría que
 ## son el mismo dibujo repetido.
 func _process(delta: float) -> void:
+	_avanzar_fuego(delta)
+
 	if not $Fx.visible or FIRE_RUNE.vfx_frames <= 0:
 		return
 
 	fx_time += delta
 	$Fx.frame = int(fx_time * FX_FPS) % FIRE_RUNE.vfx_frames
+
+
+## El fuego crece desde el punto donde prendió: lo quemado es un círculo cuyo
+## radio sube con el tiempo. Ese mismo radio es el frente: la PRIMERA hierba
+## comburente que toca prende y toma el relevo (ver FRONT_SPEED).
+func _avanzar_fuego(delta: float) -> void:
+	if state != State.IGNITING and state != State.BURNING:
+		return
+
+	_burn_t += delta
+	_aviva = maxf(0.0, _aviva - delta / AVIVA_DECAE)
+	var radio: float = FRONT_SPEED * _burn_t
+
+	_quema.origen = to_local(_origen)
+	_quema.radio = radio
+	_quema.t = _burn_t
+	_quema.igniting = state == State.IGNITING
+	_quema.aviva = smoothstep(0.0, 1.0, _aviva)
+	_quema.soplo = _soplo
+	# Al final de su vida el fuego se apaga poco a poco, no de golpe.
+	_quema.env = clampf(fire_timer.time_left / 1.2, 0.0, 1.0) if state == State.BURNING else 1.0
+
+	if _blades != null:
+		_blades.origen = _quema.origen
+		_blades.radio = radio
+		_blades.env = _quema.env
+
+	if not _spreading:
+		return
+
+	# Hasta que el círculo no tiene un tamaño que se lea, no toca nada: si no,
+	# una hierba pegada al origen prendería antes de verse crecer el fuego.
+	var objetivo: Node = _primer_comburente(radio) if radio >= FRONT_MIN else null
+	if objetivo != null:
+		objetivo.ignite(_origen)
+		_terminar_frente()
+	elif radio >= SPREAD_RADIUS:
+		_terminar_frente()
+
+
+func _primer_comburente(radio: float) -> Node:
+	var mejor: Node = null
+	var mejor_d: float = radio
+	for other in get_tree().get_nodes_in_group(FLAMMABLE_GROUP):
+		if other == self or not is_instance_valid(other) or not other.has_method("can_burn"):
+			continue
+		if not other.can_burn():
+			continue
+		# La distancia se mide desde el ORIGEN del fuego hasta el borde más
+		# cercano de la otra hierba, no entre centros: el fuego llega antes a lo
+		# que le queda más cerca del punto donde arde.
+		var d: float = _dist_suelo(_origen, _punto_mas_cercano(other.global_position, _origen))
+		if d <= mejor_d:
+			mejor_d = d
+			mejor = other
+	return mejor
+
+
+## --- El punto de contacto ---
+##
+## El fuego no nace en el centro de un bloque: nace donde tocó. Desde ahí crece
+## el círculo y se enciende la llama, y el bloque siguiente prende por el punto
+## de su borde más cercano a ese origen.
+
+## El punto del rombo de una casilla (centrada en `centro`) más cercano a `p`.
+## Si `p` está dentro, es el propio `p`.
+##
+## Se mide sobre el SUELO, no sobre la pantalla: el mundo es un plano visto en
+## perspectiva (la Y está aplastada a la mitad), y un fuego que se extiende por
+## el suelo lo hace en círculos de suelo. En unidades de suelo el rombo es un
+## cuadrado girado de media diagonal STEP.x.
+static func _punto_mas_cercano(centro: Vector2, p: Vector2) -> Vector2:
+	var k: float = IsoGrid.STEP.y / IsoGrid.STEP.x
+	var q: Vector2 = p - centro
+	if absf(q.x) / IsoGrid.STEP.x + absf(q.y) / IsoGrid.STEP.y <= 1.0:
+		return p
+	var g := Vector2(q.x, q.y / k)
+	var h: float = IsoGrid.STEP.x
+	var v: Array = [Vector2(0.0, -h), Vector2(h, 0.0), Vector2(0.0, h), Vector2(-h, 0.0)]
+	var mejor: Vector2 = v[0]
+	var mejor_d: float = INF
+	for i in range(4):
+		var c: Vector2 = Geometry2D.get_closest_point_to_segment(g, v[i], v[(i + 1) % 4])
+		var d: float = g.distance_to(c)
+		if d < mejor_d:
+			mejor_d = d
+			mejor = c
+	return centro + Vector2(mejor.x, mejor.y * k)
+
+
+## Distancia entre dos puntos de pantalla medida sobre el suelo.
+static func _dist_suelo(a: Vector2, b: Vector2) -> float:
+	var k: float = IsoGrid.STEP.y / IsoGrid.STEP.x
+	var d: Vector2 = b - a
+	return Vector2(d.x, d.y / k).length()
+
+
+## Fija dónde prende esta hierba, a partir de un punto de mundo `desde` (donde
+## pegó el hechizo, o el origen del fuego vecino). Sin punto, en el centro. El
+## punto se mete unos píxeles hacia dentro para que la llama nazca dentro del
+## bloque y no sobre su arista.
+func _fijar_origen(desde: Vector2) -> void:
+	if not is_finite(desde.x) or not is_finite(desde.y):
+		_origen = global_position
+		return
+	var p: Vector2 = _punto_mas_cercano(global_position, desde)
+	var hacia: Vector2 = global_position - p
+	if hacia.length() > 0.5:
+		p += hacia.normalized() * minf(ORIGIN_INSET, hacia.length())
+	_origen = p
+
+
+## La llama nace en el punto de contacto y se reparte hacia el centro del
+## bloque mientras prende. `dur` es lo que tarda.
+func _fx_desde_origen(_dur: float) -> void:
+	$Fx.position = to_local(_origen)
+
+
+## Lo quemado sigue creciendo, pero ya no contagia: el fuego pasó el relevo.
+func _terminar_frente() -> void:
+	_spreading = false
+
+
+## ¿Puede prender ahora mismo? Lo pregunta el frente de otra hierba.
+func can_burn() -> bool:
+	return state == State.THIN or state == State.GROWN
 
 
 ## "calor" prende (si hay algo que quemar).
@@ -110,9 +281,9 @@ func on_spell_hit(rune_data: RuneData, direction: Vector2 = Vector2.ZERO) -> voi
 		return
 
 	if rune_data.tags.has("calor"):
-		ignite()
+		ignite(SpellFactory.ultimo_impacto)
 	elif rune_data.tags.has("rayo"):
-		_strike()
+		_strike(SpellFactory.ultimo_impacto)
 	elif rune_data.tags.has("disipar"):
 		_dispel()
 	elif rune_data.tags.has("agua") or rune_data.tags.has("frio"):
@@ -140,15 +311,19 @@ func carried_element() -> RuneData:
 ## Pública a propósito: es la forma en que un bloque en llamas contagia
 ## a sus vecinos, sin tener que fabricar un hechizo de fuego para cada
 ## contagio.
-func ignite() -> void:
+func ignite(desde: Vector2 = Vector2.INF) -> void:
 	if state == State.THIN or state == State.GROWN:
+		_fijar_origen(desde)
 		_set_state(State.IGNITING)
 
 
 ## El rayo salta la fase de "prendiendo": pasa directo a arder. Sobre
 ## ceniza no hace nada — no queda nada que quemar.
-func _strike() -> void:
-	if state == State.THIN or state == State.GROWN or state == State.IGNITING:
+func _strike(desde: Vector2 = Vector2.INF) -> void:
+	if state == State.THIN or state == State.GROWN:
+		_fijar_origen(desde)
+		_set_state(State.BURNING)
+	elif state == State.IGNITING:
 		_set_state(State.BURNING)
 
 
@@ -183,6 +358,8 @@ func _fan_flames(direction: Vector2) -> void:
 	if direction == Vector2.ZERO or state != State.BURNING:
 		return
 
+	_aviva = 1.0
+	_soplo = direction.normalized()
 	SpellFactory.cast(self, global_position, direction, FIRE_RUNE)
 	_spread_fire(WIND_SPREAD_RADIUS, direction)
 	print("¡El viento aviva las llamas y las lanza hacia delante!")
@@ -208,7 +385,7 @@ func _spread_fire(radius: float, wind: Vector2) -> void:
 		if wind != Vector2.ZERO and to_other.normalized().dot(wind.normalized()) < WIND_SPREAD_DOT:
 			continue
 
-		other.ignite()
+		other.ignite(global_position)
 
 
 func _set_state(new_state: State) -> void:
@@ -219,6 +396,14 @@ func _set_state(new_state: State) -> void:
 	state = new_state
 	_apply_state()
 	_apply_particles(anterior)
+
+	# Al prender, la llama sale del punto de contacto (no aparece en el centro)
+	# y el fuego empieza a crecer desde ahí.
+	if anterior == State.THIN or anterior == State.GROWN:
+		if state == State.IGNITING or state == State.BURNING:
+			_burn_t = 0.0
+			_spreading = true
+			_fx_desde_origen(0.0)
 
 
 ## --- Partículas ---
@@ -267,6 +452,17 @@ func _apply_state() -> void:
 	fire_timer.stop()
 	spread_timer.stop()
 	_apply_flames()
+	if _blades != null:
+		_blades.ardiendo = state == State.IGNITING or state == State.BURNING
+		_blades.visible = state != State.THIN and state != State.ASHES or _blades.ardiendo
+		if not _blades.ardiendo:
+			_blades.radio = 0.0
+			_blades.env = 1.0
+	if state == State.IGNITING or state == State.BURNING:
+		_quema.show()
+	else:
+		_spreading = false
+		_quema.hide()
 
 	match state:
 		State.THIN:
@@ -291,10 +487,9 @@ func _apply_state() -> void:
 			print("La hierba ha prendido... (aún puedes apagarla)")
 
 		State.BURNING:
-			_set_visual(TEXTURE_THIN, Color(0.75, 0.5, 0.4))  # hierba chamuscada bajo las llamas
+			_set_visual(TEXTURE_THIN, Color(0.92, 0.85, 0.78))  # el chamuscado real lo dibuja GrassBurn
 			solid_shape.set_deferred("disabled", true)
 			fire_timer.start(BURN_TIME)
-			spread_timer.start()
 			_start_burning_damage()
 			Sfx.play(self, "prender")
 			print("¡La hierba está en llamas!")
@@ -306,7 +501,17 @@ func _apply_state() -> void:
 			print("Solo quedan cenizas. (Riégalas para que rebrote)")
 
 
+## Texturas propias del nivel (opcional). Si un nivel las pone ANTES de añadir el
+## bloque al árbol, se usan en lugar de las del pack antiguo. Vacías, todo igual.
+var tex_thin: Texture2D = null
+var tex_grown: Texture2D = null
+
+
 func _set_visual(texture: Texture2D, tint: Color) -> void:
+	if texture == TEXTURE_THIN and tex_thin != null:
+		texture = tex_thin
+	elif texture == TEXTURE_GROWN and tex_grown != null:
+		texture = tex_grown
 	$Visual.texture = texture
 	$Visual.modulate = tint
 
@@ -322,9 +527,9 @@ func _apply_flames() -> void:
 			$Fx.modulate = Color(1, 1, 1, 0.7)
 			fx_time = 0.0
 		State.BURNING:
-			$Fx.show()
-			$Fx.scale = Vector2(0.55, 0.55)
-			$Fx.modulate = Color(1, 1, 1, 1)
+			# Las llamas de un incendio en marcha las reparte GrassBurn por el
+			# borde de lo quemado; una sola en el centro no es como arde un fuego.
+			$Fx.hide()
 		_:
 			$Fx.hide()
 

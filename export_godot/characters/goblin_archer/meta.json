@@ -1,0 +1,147 @@
+{
+  "id": "goblin_archer",
+  "nombre": "Goblin Archer",
+  "tipo": "character",
+  "direcciones": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mapeo_direcciones_godot": {
+    "E": "W",
+    "SE": "SW",
+    "S": "S",
+    "SW": "SE",
+    "W": "E",
+    "NW": "NE",
+    "N": "N",
+    "NE": "NW"
+  },
+  "frame_px": [
+    192,
+    240
+  ],
+  "ancla_suelo_px": [
+    96,
+    196
+  ],
+  "offset_visual_px": [
+    0,
+    -76
+  ],
+  "asset_root_godot": "res://assets/ms_goblin_archer",
+  "layout_atlas": {
+    "columnas": "frames",
+    "filas": "direcciones"
+  },
+  "animaciones": {
+    "idle": {
+      "frames": 16,
+      "fps": 8,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle/idle_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle/idle_8dir_metadata.json"
+      ]
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk/walk_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk/walk_8dir_metadata.json"
+      ]
+    },
+    "run": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/run/run_8dir.png"
+      ],
+      "metadata": [
+        "atlases/run/run_8dir_metadata.json"
+      ]
+    },
+    "walk_003": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk_003/walk_003_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk_003/walk_003_8dir_metadata.json"
+      ]
+    },
+    "walk_004": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk_004/walk_004_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk_004/walk_004_8dir_metadata.json"
+      ]
+    },
+    "archery_shot_001": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/archery_shot_001/archery_shot_001_8dir.png"
+      ],
+      "metadata": [
+        "atlases/archery_shot_001/archery_shot_001_8dir_metadata.json"
+      ]
+    },
+    "archery_shot_002": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/archery_shot_002/archery_shot_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/archery_shot_002/archery_shot_002_8dir_metadata.json"
+      ]
+    },
+    "electrocution_reaction": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/electrocution_reaction/electrocution_reaction_8dir.png"
+      ],
+      "metadata": [
+        "atlases/electrocution_reaction/electrocution_reaction_8dir_metadata.json"
+      ]
+    },
+    "face_punch_reaction": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/face_punch_reaction/face_punch_reaction_8dir.png"
+      ],
+      "metadata": [
+        "atlases/face_punch_reaction/face_punch_reaction_8dir_metadata.json"
+      ]
+    }
+  },
+  "origen_glb": "pipeline_output/goblin_archer/art/model/npc_processed.glb",
+  "altura_unidades": 1.7,
+  "escala_relativa": 1.0,
+  "aprobado": "2026-10-03"
+}

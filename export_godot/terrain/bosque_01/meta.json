@@ -1,0 +1,14 @@
+{
+  "id": "bosque_01",
+  "tipo": "scene",
+  "nombre": "Bosque",
+  "arboles": [
+    "tree_ghibli_01"
+  ],
+  "tile_px": [
+    128,
+    64
+  ],
+  "contrato": "1.1",
+  "generado": "2026-10-03 15:44"
+}

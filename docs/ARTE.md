@@ -63,6 +63,8 @@ apenas oscurece, así que allí el fuego no da nada que no tuvieras.
 
 ## 3. El contrato de una hoja de personaje
 
+> **HISTÓRICO (4/10/2026): §3–§5 son del animador y la maga de septiembre.** Hoy el personaje sale del pipeline 3D (celdas 192×240, `meta.json`; ver `export_godot/CONTRATO_GODOT.md`).
+
 Lo lee `actor_animator.gd`. Una hoja que cumpla esto entra sin tocar una
 línea de código.
 
@@ -199,21 +201,18 @@ respeta **no hay nada que ajustar después**: la rejilla isométrica se
 apoya en que todas compartan exactamente el mismo rombo. Una losa 4 px
 más alta abre una junta visible en todo el mapa.
 
-La plantilla está en `docs/plantilla_losa.png`. Pásala como referencia de
-forma al generar, igual que la referencia del personaje.
+*(Actualizado el 4/10/2026: el contrato de septiembre era 256×352 con el rombo de 232×110, del
+pack Sketch Town. Hoy es el del pipeline.)*
 
-- Lienzo **256 × 352 px**, fondo transparente.
-- **Cara superior**: rombo de **232 × 110**, centrado horizontalmente,
-  con su **centro en y = 182**. Esa cruz blanca de la plantilla es el
-  punto que el juego coloca en la casilla: todo se alinea respecto a él.
-- **Laterales**: **111 px** de alto por debajo del rombo, hasta y ≈ 348.
-- A escala 0.5 eso da el rombo de 116 × 55 y el `LEVEL = 55.5` que usa
-  `IsoGrid`. Los números no son elegibles: salen del propio pack
-  (`<grid orientation="isometric" width="232" height="110"/>`) y están
-  metidos en la aritmética del mapa.
-
-Comprobado contra las losas actuales: el cubo real tiene el centro de su
-cara superior en (127, 183) y la plantilla lo pone en (128, 182).
+- Rombo de **128×64** (`tile_px`), **cara de arriba centrada hacia la fila y = 33** del sprite
+  (los bloques miden 33–36 según la pieza; lo que importa es que una pieza que se apile sobre otra
+  tenga la **misma fila** que la que sustituye), costados hacia abajo. Un bloque suelto mide 128×102.
+- El juego encoge cada losa con `SX = 116/128` y `SY = 55/64` (`nivel_base.gd`): casilla de
+  116×55, paso (58, 27.5), `LEVEL = 55.5` (`IsoGrid`).
+- Cualquier pieza que se pinte sobre la rejilla (hielo, tierra creada, empujables) trae **este
+  mismo lienzo**. Si trae otro, queda hundida o flotando: el hielo de `art/` (176 de alto, cara en
+  y = 96) se dibujaba ~22 px por debajo de las losas vecinas.
+- Los bloques viven en `export_godot/terrain/bosque_01/sprites/blocks/`.
 
 ### Dos cosas que arruinan una losa aunque cumpla la geometría
 

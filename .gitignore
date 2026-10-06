@@ -12,12 +12,46 @@
 # Rutas y claves de firma de la máquina donde se exporta.
 export_presets.cfg
 
+# --- Lo que NO cabe o NO debe ir en GitHub (5/10/2026) ---
+# GitHub rechaza archivos de más de 100 MB; el .exe de Godot mide 181 MB
+# y fue lo que hacía fallar cada push. Godot se instala, no se versiona.
+*.exe
+# Vídeos y zips: pesan y no son fuente de nada que el juego lea.
+*.mp4
+*.avi
+*.zip
+# Salida intermedia del pipeline (renders, reportes): se regenera.
+pipeline_output/
+# Basura de la maqueta 3D.
+poc_25d/_descartado/
+
 # --- Sistema ---
 .DS_Store
 Thumbs.db
 desktop.ini
+*.lnk
 
 # --- Temporales del proyecto ---
 _to_delete/
 *.tmp
 *.bak
+
+# --- Marcadores del flujo de OneDrive (ya no se usa) ---
+ULTIMA_BAJADA.txt
+ULTIMA_SUBIDA.txt
+
+# --- Pesados: no caben en GitHub ---
+pipeline/
+pipeline_output/
+Render Studio/
+*.blend
+*.blend1
+*.glb
+videos/
+*.mp4
+*.avi
+*.zip
+*.exe
+*.lnk
+!poc_25d/*.glb
+!poc_25d/**/*.glb

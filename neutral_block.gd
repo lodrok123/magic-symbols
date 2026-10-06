@@ -69,6 +69,19 @@ func on_spell_hit(rune_data: RuneData, direction: Vector2 = Vector2.ZERO) -> voi
 		_dispel()
 
 
+## EL SUELO NO DETIENE LOS HECHIZOS.
+##
+## Este bloque es un Area2D con on_spell_hit, y para un hechizo "chocar" era
+## "tocar algo que reacciona". Como el suelo ocupa TODAS las casillas del
+## mapa, una flecha moría contra la losa en la que nació, antes de recorrer
+## un solo píxel: sin recorrido. El suelo sigue reaccionando (el agua lo moja,
+## el rayo prende el charco) pero deja pasar al hechizo, que es lo que hace
+## un suelo. Quien detiene un hechizo es un OBJETIVO: agua, hierba, pira,
+## puerta, enemigo. Ver Spell._passes_through().
+func spell_passes_through() -> bool:
+	return true
+
+
 ## Un charco o una placa de hielo sí tienen algo que el viento pueda
 ## llevarse; el suelo seco no.
 func carried_element() -> RuneData:

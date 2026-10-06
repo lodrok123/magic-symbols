@@ -1,0 +1,181 @@
+{
+ "estilos": [
+  "botanico",
+  "astral",
+  "acuarela"
+ ],
+ "distribuciones": {
+  "s1g3": {
+   "tamano": [
+    1600,
+    1000
+   ],
+   "pagina_izq": [
+    70,
+    60,
+    770,
+    900
+   ],
+   "pagina_der": [
+    760,
+    60,
+    770,
+    900
+   ],
+   "circulo_centro": [
+    455.0,
+    400.0
+   ],
+   "circulo_radio": 255.0,
+   "nucleo_radio": 105.0,
+   "sectores": 8,
+   "sellos": 1,
+   "glifos": 3,
+   "huecos": [
+    [
+     359.0,
+     760
+    ],
+    [
+     455.0,
+     760
+    ],
+    [
+     551.0,
+     760
+    ]
+   ],
+   "hueco_radio": 32.0,
+   "rejilla_origen": [
+    935.0,
+    215.0
+   ],
+   "rejilla_paso": [
+    140.0,
+    150.0
+   ],
+   "rejilla_columnas": 4,
+   "rejilla_filas": 3,
+   "rejilla_radio": 52.0,
+   "elementos": [
+    [
+     895.0,
+     760.0
+    ],
+    [
+     995.0,
+     760.0
+    ],
+    [
+     1095.0,
+     760.0
+    ],
+    [
+     1195.0,
+     760.0
+    ],
+    [
+     1295.0,
+     760.0
+    ],
+    [
+     1395.0,
+     760.0
+    ]
+   ],
+   "elemento_radio": 34.0
+  },
+  "s2g6": {
+   "tamano": [
+    1600,
+    1000
+   ],
+   "pagina_izq": [
+    70,
+    60,
+    770,
+    900
+   ],
+   "pagina_der": [
+    760,
+    60,
+    770,
+    900
+   ],
+   "circulo_centro": [
+    455.0,
+    400.0
+   ],
+   "circulo_radio": 255.0,
+   "nucleo_radio": 105.0,
+   "sectores": 8,
+   "sellos": 2,
+   "glifos": 6,
+   "huecos": [
+    [
+     359.0,
+     735
+    ],
+    [
+     455.0,
+     735
+    ],
+    [
+     551.0,
+     735
+    ],
+    [
+     359.0,
+     817
+    ],
+    [
+     455.0,
+     817
+    ],
+    [
+     551.0,
+     817
+    ]
+   ],
+   "hueco_radio": 32.0,
+   "rejilla_origen": [
+    935.0,
+    215.0
+   ],
+   "rejilla_paso": [
+    140.0,
+    150.0
+   ],
+   "rejilla_columnas": 4,
+   "rejilla_filas": 3,
+   "rejilla_radio": 52.0,
+   "elementos": [
+    [
+     895.0,
+     760.0
+    ],
+    [
+     995.0,
+     760.0
+    ],
+    [
+     1095.0,
+     760.0
+    ],
+    [
+     1195.0,
+     760.0
+    ],
+    [
+     1295.0,
+     760.0
+    ],
+    [
+     1395.0,
+     760.0
+    ]
+   ],
+   "elemento_radio": 34.0
+  }
+ }
+}

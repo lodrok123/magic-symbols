@@ -25,6 +25,8 @@ func _on_body_entered(body: Node) -> void:
 func _win() -> void:
 	already_won = true
 	print("¡Has ganado! Llegaste a la meta.")
+	PlayLog.event("victoria")
+	PlayLog.volcar()
 
 	# Igual que health_bar.gd busca al jugador por grupo, aquí buscamos
 	# la etiqueta de victoria por grupo ("victory_ui"), para no depender

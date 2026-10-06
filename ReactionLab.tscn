@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://4dx8u3mn5wt3"]
+
+[ext_resource type="Script" uid="uid://ck7veftyq7xit" path="res://reaction_lab.gd" id="1_lab"]
+
+[node name="ReactionLab" type="Node2D" unique_id=766491479]
+script = ExtResource("1_lab")

@@ -1,0 +1,255 @@
+{
+  "character_id": "master_elf",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        82,
+        35,
+        176,
+        265
+      ],
+      "bbox_px": [
+        94,
+        230
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3671875,
+        "height_ratio": 0.71875
+      },
+      "margins_px": {
+        "left": 82,
+        "top": 35,
+        "right": 80,
+        "bottom": 55
+      },
+      "center_px": [
+        129.0,
+        150.0
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        84,
+        36,
+        186,
+        273
+      ],
+      "bbox_px": [
+        102,
+        237
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3984375,
+        "height_ratio": 0.740625
+      },
+      "margins_px": {
+        "left": 84,
+        "top": 36,
+        "right": 70,
+        "bottom": 47
+      },
+      "center_px": [
+        135.0,
+        154.5
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        110,
+        36,
+        178,
+        273
+      ],
+      "bbox_px": [
+        68,
+        237
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.265625,
+        "height_ratio": 0.740625
+      },
+      "margins_px": {
+        "left": 110,
+        "top": 36,
+        "right": 78,
+        "bottom": 47
+      },
+      "center_px": [
+        144.0,
+        154.5
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        111,
+        35,
+        170,
+        266
+      ],
+      "bbox_px": [
+        59,
+        231
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.23046875,
+        "height_ratio": 0.721875
+      },
+      "margins_px": {
+        "left": 111,
+        "top": 35,
+        "right": 86,
+        "bottom": 54
+      },
+      "center_px": [
+        140.5,
+        150.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        90,
+        30,
+        184,
+        261
+      ],
+      "bbox_px": [
+        94,
+        231
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3671875,
+        "height_ratio": 0.721875
+      },
+      "margins_px": {
+        "left": 90,
+        "top": 30,
+        "right": 72,
+        "bottom": 59
+      },
+      "center_px": [
+        137.0,
+        145.5
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        80,
+        28,
+        182,
+        258
+      ],
+      "bbox_px": [
+        102,
+        230
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3984375,
+        "height_ratio": 0.71875
+      },
+      "margins_px": {
+        "left": 80,
+        "top": 28,
+        "right": 74,
+        "bottom": 62
+      },
+      "center_px": [
+        131.0,
+        143.0
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        88,
+        32,
+        156,
+        263
+      ],
+      "bbox_px": [
+        68,
+        231
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.265625,
+        "height_ratio": 0.721875
+      },
+      "margins_px": {
+        "left": 88,
+        "top": 32,
+        "right": 100,
+        "bottom": 57
+      },
+      "center_px": [
+        122.0,
+        147.5
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\master_elf_art\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        96,
+        34,
+        155,
+        266
+      ],
+      "bbox_px": [
+        59,
+        232
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.23046875,
+        "height_ratio": 0.725
+      },
+      "margins_px": {
+        "left": 96,
+        "top": 34,
+        "right": 101,
+        "bottom": 54
+      },
+      "center_px": [
+        125.5,
+        150.0
+      ]
+    }
+  }
+}

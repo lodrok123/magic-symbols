@@ -1,16 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://du7o5tnfohjgq"]
 
-[ext_resource type="Script" path="res://arrow.gd" id="1_arrow"]
-[ext_resource type="Texture2D" path="res://art/arrow.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://bf0jj5t8x063r" path="res://arrow.gd" id="1_arrow"]
+[ext_resource type="Texture2D" uid="uid://bkoj7jf78qdw6" path="res://art/arrow.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_arrow"]
 size = Vector2(14, 6)
 
-[node name="Arrow" type="Area2D"]
+[node name="Arrow" type="Area2D" unique_id=1273618196]
 script = ExtResource("1_arrow")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=798263260]
 texture = ExtResource("2_tex")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=366282486]
 shape = SubResource("RectangleShape2D_arrow")

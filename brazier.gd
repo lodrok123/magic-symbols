@@ -20,6 +20,15 @@ const FIRE_RUNE: RuneData = preload("res://fire_rune.tres")
 
 var is_lit: bool = false
 
+## Las dos cosas que hacen falta para usar una pira FUERA del nivel principal
+## (el laboratorio de reacciones, un nivel futuro con varias piras):
+##   start_lit  nace ya encendida (un fuego estático, un mechero)
+##   is_goal    encenderla GANA la partida y pausa el juego. Una pira que solo
+##              es un fuego no debe hacer ninguna de las dos cosas.
+## Los valores por defecto son los de siempre: el nivel no cambia.
+@export var start_lit: bool = false
+@export var is_goal: bool = true
+
 @onready var visual: Sprite2D = $Visual
 
 var flame_fx: GPUParticles2D = null
@@ -33,6 +42,8 @@ var fuego_luz: PointLight2D = null
 func _ready() -> void:
 	add_to_group("ground")
 	_apply()
+	if start_lit:
+		_light()
 
 
 func on_spell_hit(rune_data: RuneData, _direction: Vector2 = Vector2.ZERO) -> void:
@@ -43,6 +54,19 @@ func on_spell_hit(rune_data: RuneData, _direction: Vector2 = Vector2.ZERO) -> vo
 		_light()
 	elif (rune_data.tags.has("agua") or rune_data.tags.has("frio")) and is_lit:
 		_extinguish()
+
+
+## ¿Cambiaría algo este hechizo en la pira? Solo si el calor la enciende estando
+## apagada, o el agua / el frío la apagan estando encendida. Todo lo demás (fuego
+## sobre fuego, viento, un rayo...) no provoca nada y el hechizo la atraviesa.
+func spell_reacts(rune_data: RuneData, _direction: Vector2 = Vector2.ZERO) -> bool:
+	if rune_data == null:
+		return false
+	if rune_data.tags.has("calor"):
+		return not is_lit
+	if rune_data.tags.has("agua") or rune_data.tags.has("frio"):
+		return is_lit
+	return false
 
 
 ## Lo que puede arrastrar el viento de aquí: si arde, fuego. Así una pira
@@ -61,6 +85,9 @@ func _light() -> void:
 	Sfx.play(self, "pira")
 	print("¡La pira arde!")
 	lit.emit()
+
+	if not is_goal:
+		return
 
 	# La victoria se busca por grupo, igual que hace la meta: este script
 	# no necesita conocer la estructura de la interfaz.

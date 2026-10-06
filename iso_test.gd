@@ -515,8 +515,9 @@ func _fit_actor_collision(actor: Node) -> void:
 ## cómo cambia la posición de su padre.
 func _animate(actor: Node2D) -> void:
 	# Cambiar de arte es cambiar esta línea: hero() es el mago generado,
-	# rita() la maga pintada de la guía. Volver atrás cuesta lo mismo.
-	actor.add_child(ActorAnimator.rita())
+	# rita() la maga pintada de la guía, maga() la sacada de vídeo.
+	# Volver atrás cuesta lo mismo.
+	actor.add_child(ActorAnimator.maga())
 
 
 func _anchor_feet(actor: Node) -> void:

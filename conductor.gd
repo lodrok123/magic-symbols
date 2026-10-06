@@ -52,15 +52,23 @@ func on_spell_hit(rune_data: RuneData, _direction: Vector2 = Vector2.ZERO) -> vo
 	_energize()
 
 
+## Una placa va a ras de suelo: reacciona al rayo, pero una flecha que
+## pasa por encima no debe morir contra ella. Mismo criterio que el suelo
+## (ver NeutralBlock.spell_passes_through).
+func spell_passes_through() -> bool:
+	return true
+
+
 func _energize() -> void:
 	is_live = true
 	visual.modulate = COLOR_VIVO
-	BlockFx.burst(self, "chispas")
+	BlockFx.burst(self, "chispas_azules")
 	Sfx.play(self, "chispa")
 	# La corriente se VE recorrer el cable: cada placa suelta su fogonazo
 	# al encenderse, asi que a oscuras el circuito entero se lee de un
 	# vistazo aunque dure medio segundo.
 	Glow.flash(self, Glow.LUZ_RAYO, 150.0, 1.6, Circuit.TIME)
+	ElectricSparks.en(self).activar()
 
 	# La placa también hiere a quien la pise, y no con un bucle sobre los
 	# cuerpos que tiene encima: lanza el mismo hechizo quieto que lanza el

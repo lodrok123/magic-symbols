@@ -5,10 +5,14 @@ extends CharacterBody2D
 ## sin que player.gd necesite saber que existe una barra de vida.
 signal health_changed(new_health: float, max_health: float)
 
-var velocidad = 80.0
+var velocidad = 100.0
 var max_health: float = 100.0
 var health: float = 100.0
 var is_dead: bool = false
+
+## Tamaño al que se dibuja el sprite (la caída lo encoge y luego lo restaura). Un nivel
+## con arte de otra escala lo cambia; por defecto, tamaño natural.
+var visual_scale: Vector2 = Vector2.ONE
 
 ## --- Salto ---
 ## Este es un juego en vista cenital (top-down), no una plataforma con
@@ -25,6 +29,21 @@ var jump_cooldown: float = 0.5
 var jump_timer: float = 0.0
 var cooldown_timer: float = 0.0
 var last_direction: Vector2 = Vector2.RIGHT
+
+## --- VOLTERETA (Espacio) ---
+##
+## Un arranque corto en la dirección en que andas, con un momento de
+## invulnerabilidad y recarga de 1 s. A DIFERENCIA DEL SALTO NO APAGA LA
+## COLISIÓN: sigues chocando con los muros, así que no se puede usar para
+## atravesarlos. Sin tecla de dirección, rueda hacia donde mirabas.
+const ROLL_SPEED: float = 330.0
+const ROLL_DURATION: float = 0.20
+const ROLL_COOLDOWN: float = 1.0
+const ROLL_INVULN: float = 0.30
+var _roll_timer: float = 0.0
+var _roll_cd: float = 0.0
+var _invuln: float = 0.0
+var _roll_dir: Vector2 = Vector2.RIGHT
 
 ## --- Hielo ---
 ## Sobre hielo no se pierde velocidad: se pierde AGARRE. En vez de que
@@ -117,14 +136,126 @@ const PUSH_DECAY: float = 4.0
 
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var feet: Area2D = $Feet
-@onready var sprite: Sprite2D = $Sprite2D
+@onready var sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var old_sprite: Sprite2D = $Sprite2D
 @onready var shadow: Sprite2D = $Shadow
+
+## --- Animación isométrica de 8 direcciones ---
+## Las animaciones generadas por el pipeline de Meshy/Blender se llaman
+## "<clip>_<dirección>", por ejemplo "walk_S" o "idle_NE". Aquí traducimos
+## el vector de movimiento (o la última dirección andada) a una de esas 8
+## etiquetas y elegimos el clip (walk/idle) según si nos movemos o no.
+const DIR_LABELS: Array[String] = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"]
+
+## Nombre de la animación que se está reproduciendo ahora mismo, para no
+## llamar a play() en cada fotograma de física si no ha cambiado nada.
+var _current_anim: String = ""
+
+
+func _direction_label(v: Vector2) -> String:
+	# El set de sprites de Meshy/Blender salió con el eje izquierda-derecha
+	# invertido respecto a su propia etiqueta (el fichero "E" muestra a la
+	# Cartógrafa mirando al oeste, y así con cada pareja este/oeste). En vez
+	# de volver a renderizar, se compensa aquí invirtiendo X antes de sacar
+	# el ángulo: así se sigue pidiendo la etiqueta "E" para moverse a la
+	# derecha, pero internamente apunta al fichero que de verdad se ve
+	# mirando hacia el este.
+	var angle_deg: float = rad_to_deg(Vector2(-v.x, v.y).angle())
+	var index: int = int(round(angle_deg / 45.0)) % 8
+	if index < 0:
+		index += 8
+	return DIR_LABELS[index]
+
+
+## Mientras dura el clip de lanzar, _update_animation() no pisa la animación.
+var _casting: bool = false
+
+
+## iso_test.gd cuelga el ActorAnimator DESPUÉS de que este nodo haga su
+## _ready(), así que no se puede buscar aquí al arrancar: hay que esperar
+## a que llegue. Ese animador ya no pinta (busca un Sprite2D y el
+## personaje es ahora un AnimatedSprite2D), pero sigue avisando de los
+## sucesos, y "lanzar" es uno de ellos.
+func _on_child_added(nodo: Node) -> void:
+	if nodo is ActorAnimator and not nodo.cast_requested.is_connected(_on_cast_requested):
+		nodo.cast_requested.connect(_on_cast_requested)
+
+
+func _on_cast_requested(nombre: String) -> void:
+	if nombre != "cast" or is_dead:
+		return
+
+	# La animación depende del TIPO de hechizo (lo deja el Spellcaster en la meta
+	# "tipo_cast"): lateral (flecha...) -> cast_spell, envolvente (barrera...) ->
+	# cast_spell2, estático (solo elemento, pilar...) -> write (bookwrite).
+	var tipo: String = String(get_meta("tipo_cast", "lateral"))
+	var clip: String = {"lateral": "cast_spell", "envolvente": "cast_spell2",
+		"estatico": "write"}.get(tipo, "cast_spell")
+	var dir: String = _direction_label(last_direction)
+	var anim: String = clip + "_" + dir
+	if not sprite.sprite_frames.has_animation(anim):
+		anim = "cast_spell_" + dir
+		_avisar_nivel("animación por defecto usada")
+		if not sprite.sprite_frames.has_animation(anim):
+			return
+
+	_reproducir_una_vez(anim)
+
+
+## Reproduce una animación y bloquea el cambio a idle/walk hasta que termine.
+func _reproducir_una_vez(anim: String) -> void:
+	_casting = true
+	_current_anim = anim
+	sprite.play(anim)
+	if sprite.animation_finished.is_connected(_on_cast_finished):
+		sprite.animation_finished.disconnect(_on_cast_finished)
+	sprite.animation_finished.connect(_on_cast_finished, CONNECT_ONE_SHOT)
+
+
+func _avisar_nivel(texto: String) -> void:
+	var nivel: Node = get_tree().get_first_node_in_group("checkpoint_nivel")
+	if nivel != null and nivel.has_method("_avisar"):
+		nivel.call("_avisar", texto)
+	else:
+		print(texto)
+
+
+func _on_cast_finished() -> void:
+	_casting = false
+	_current_anim = ""   # fuerza a _update_animation() a volver a idle/walk
+
+
+func _update_animation() -> void:
+	if is_dead or _casting:
+		return
+
+	var moving: bool = velocity.length() > 5.0
+	var dir_label: String = _direction_label(last_direction)
+	var clip: String = "walk" if moving else "idle"
+	var anim: String = clip + "_" + dir_label
+
+	# sprite_frames puede no tener todavía todas las combinaciones (por
+	# ejemplo si algún día se quita una dirección); sin esta comprobación
+	# play() con un nombre inexistente da error y detiene el juego.
+	if anim == _current_anim or not sprite.sprite_frames.has_animation(anim):
+		return
+
+	_current_anim = anim
+	sprite.play(anim)
 
 
 func _ready() -> void:
+	# El sprite plano antiguo (art/hero.png) se queda oculto: el personaje
+	# visible ahora es el AnimatedSprite2D generado desde el modelo 3D.
+	old_sprite.visible = false
+	child_entered_tree.connect(_on_child_added)
+
 	# El grupo permite que otros nodos (como la barra de vida) encuentren
 	# al jugador sin necesitar una referencia directa al nodo.
 	add_to_group("player")
+	_spawn = global_position
+	_aplicar_mejoras(true)
+	Estado.i().cambiado.connect(_aplicar_mejoras.bind(false))
 
 	# Un CharacterBody2D no puede preguntar por sí mismo con qué áreas se
 	# solapa, así que le colgamos un Area2D pequeño a los pies que sí
@@ -184,6 +315,10 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_S):
 		direccion.y += 1
 
+	if _accion > 0.0:
+		_accion -= delta
+		direccion = Vector2.ZERO
+
 	if direccion != Vector2.ZERO:
 		last_direction = direccion.normalized()
 
@@ -193,7 +328,20 @@ func _physics_process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_SHIFT) and not is_jumping and cooldown_timer <= 0.0:
 		_start_jump()
 
-	if is_jumping:
+	if _roll_cd > 0.0:
+		_roll_cd -= delta
+	if _invuln > 0.0:
+		_invuln -= delta
+		if _invuln <= 0.0:
+			modulate.a = 1.0
+	if Input.is_key_pressed(KEY_SPACE) and _roll_timer <= 0.0 and _roll_cd <= 0.0 \
+			and not is_jumping:
+		_start_roll(direccion if direccion != Vector2.ZERO else last_direction)
+
+	if _roll_timer > 0.0:
+		_roll_timer -= delta
+		velocity = _roll_dir * ROLL_SPEED
+	elif is_jumping:
 		# Un salto manda sobre el hielo: en el aire no resbalas.
 		jump_timer -= delta
 		velocity = last_direction * jump_speed
@@ -213,6 +361,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	_update_elevation()
 	_update_ground(delta)
+	_update_animation()
 
 
 ## --- Caída ---
@@ -226,14 +375,14 @@ func _process_fall(delta: float) -> void:
 	# aparecer en otro sitio.
 	var t: float = 1.0 - (fall_timer / FALL_TIME)
 	sprite.position.y = -ELEVATION_OFFSET * elevation + t * 26.0
-	sprite.scale = Vector2.ONE * (1.0 - t * 0.5)
+	sprite.scale = visual_scale * (1.0 - t * 0.5)
 	sprite.modulate.a = 1.0 - t * 0.8
 
 	if fall_timer > 0.0:
 		return
 
 	is_falling = false
-	sprite.scale = Vector2.ONE
+	sprite.scale = visual_scale
 	sprite.modulate.a = 1.0
 	global_position = last_safe_position
 	velocity = Vector2.ZERO
@@ -304,6 +453,21 @@ func add_ice_contact() -> void:
 
 func remove_ice_contact() -> void:
 	ice_contacts = maxi(0, ice_contacts - 1)
+
+
+## Cuánto falta para poder rodar otra vez, de 1 (recién rodado) a 0 (lista).
+func roll_cooldown_fraction() -> float:
+	return clampf(_roll_cd / ROLL_COOLDOWN, 0.0, 1.0)
+
+
+func _start_roll(direccion: Vector2) -> void:
+	_roll_dir = direccion.normalized()
+	_roll_timer = ROLL_DURATION
+	_roll_cd = ROLL_COOLDOWN
+	_invuln = ROLL_INVULN
+	# Se ve: el jugador se vuelve translúcido mientras no le pueden herir.
+	modulate.a = 0.5
+	PlayLog.event("voltereta")
 
 
 func _start_jump() -> void:
@@ -400,11 +564,107 @@ func _apply_elevation() -> void:
 ## Misma idea que Enemy.receive_damage(), pero aquí en el jugador.
 ## Cualquier cosa del mundo que quiera hacerte daño (un enemigo,
 ## un bloque de hierba ardiendo...) solo necesita llamar a esto.
+## --- Mejoras, objetos y reacciones (parte del sistema de progresión) ---
+
+var _spawn: Vector2 = Vector2.ZERO
+var _accion: float = 0.0
+
+
+## Vida máxima y velocidad salen del Estado (las sube el alquimista).
+func _aplicar_mejoras(inicial: bool) -> void:
+	var e: Estado = Estado.i()
+	velocidad = Estado.VEL_BASE + e.vel_extra
+	if e.vida_max != max_health:
+		var delta: float = e.vida_max - max_health
+		max_health = e.vida_max
+		health = max_health if inicial else clampf(health + maxf(delta, 0.0), 0.0, max_health)
+		health_changed.emit(health, max_health)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	var k := event as InputEventKey
+	if k != null and k.pressed and not k.echo and k.keycode == KEY_Q:
+		usar_pocion()
+
+
+## Q: se bebe una poción de la mochila.
+func usar_pocion() -> void:
+	if is_dead:
+		return
+	var e: Estado = Estado.i()
+	if e.cuenta("pocion") <= 0:
+		CombateComun.flotante(self, global_position + Vector2(0, -90), "Sin pociones", Color(1, 0.6, 0.5))
+		return
+	if health >= max_health:
+		CombateComun.flotante(self, global_position + Vector2(0, -90), "Vida completa", Color(0.8, 1, 0.8))
+		return
+	e.quitar("pocion", 1)
+	health = minf(health + e.cura_pocion, max_health)
+	health_changed.emit(health, max_health)
+	Sonidos.play(self, "pocion", -6.0)
+	BlockFx.burst(self, "magia")
+	CombateComun.flotante(self, global_position + Vector2(0, -90), "+%d vida" % int(e.cura_pocion), Color(0.5, 1, 0.55), 20)
+
+
+## Gesto de agacharse a coger algo del suelo.
+func recoger_anim() -> void:
+	if is_dead:
+		return
+	var anim: String = "collect_" + _direction_label(last_direction)
+	if sprite.sprite_frames.has_animation(anim):
+		_accion = 0.5
+		_reproducir_una_vez(anim)
+
+
+## Reacción al golpe: animación corta, destello, sacudida de cámara y un parón mínimo.
+func _reaccion_golpe(cantidad: float) -> void:
+	var anim: String = "hit_" + _direction_label(last_direction)
+	if sprite.sprite_frames.has_animation(anim):
+		_reproducir_una_vez(anim)
+	var tw := create_tween()
+	sprite.modulate = Color(2.2, 0.55, 0.5)
+	tw.tween_property(sprite, "modulate", Color.WHITE, 0.18)
+	var cam: Camera2D = get_viewport().get_camera_2d()
+	if cam != null:
+		var fuerza: float = clampf(cantidad * 0.35, 2.0, 9.0)
+		var tc := create_tween()
+		for i in range(4):
+			tc.tween_property(cam, "offset", Vector2(randf_range(-1, 1), randf_range(-1, 1)) * fuerza * (1.0 - i * 0.25), 0.03)
+		tc.tween_property(cam, "offset", Vector2.ZERO, 0.04)
+	# Hitstop: el mundo casi se congela un instante.
+	Engine.time_scale = 0.08
+	get_tree().create_timer(0.06, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
+
+
+## Vuelve a la vida tras la pantalla de muerte, en el último punto de guardado
+## (o en el inicio si no pisó ninguno).
+func revivir() -> void:
+	is_dead = false
+	_casting = false
+	_current_anim = ""
+	sprite.rotation = 0.0
+	sprite.modulate = Color.WHITE
+	health = max_health
+	_invuln = 2.0
+	velocity = Vector2.ZERO
+	push_velocity = Vector2.ZERO
+	var guardado: Node = get_tree().get_first_node_in_group("checkpoint_nivel")
+	if guardado == null or not guardado.call("reaparecer", self):
+		global_position = _spawn
+	health_changed.emit(health, max_health)
+	get_tree().paused = false
+	Engine.time_scale = 1.0
+
+
 func receive_damage(amount: float, from_elevation: int = 0) -> void:
 	# Sin esta guarda, los temporizadores de daño que ya estaban en
 	# marcha (las llamas, un enemigo encima) seguirían llamando aquí
 	# después de morir y dispararían _die() una y otra vez.
 	if is_dead:
+		return
+
+	# La voltereta es invulnerable un momento.
+	if _invuln > 0.0:
 		return
 
 	# Subido a una estructura, las amenazas DEL SUELO no te alcanzan: ni
@@ -426,21 +686,47 @@ func receive_damage(amount: float, from_elevation: int = 0) -> void:
 
 	if health <= 0:
 		_die()
+	else:
+		_reaccion_golpe(amount)
 
 
 func _die() -> void:
+	var pantalla: Node = get_tree().get_first_node_in_group("pantalla_muerte")
+	if pantalla == null:
+		_morir_clasico()
+		return
+	if is_dead:
+		return
 	is_dead = true
 	velocity = Vector2.ZERO
 	Sfx.play(self, "muerte")
+	PlayLog.event("muerte", {"pos": [snappedf(global_position.x, 1.0), snappedf(global_position.y, 1.0)]})
+	var anim: String = "death_" + _direction_label(last_direction)
+	var espera: float = 1.1
+	if sprite.sprite_frames.has_animation(anim):
+		sprite.play(anim)
+		# "Has muerto" sale cuando acaba la caída (frames / fps), con un respiro.
+		var n: int = sprite.sprite_frames.get_frame_count(anim)
+		var v: float = maxf(1.0, sprite.sprite_frames.get_animation_speed(anim))
+		espera = float(n) / v + 0.35
+	pantalla.call("mostrar", self, espera)
+
+
+## Cómo morías antes (niveles sin pantalla de muerte): al punto de guardado al instante,
+## o cartel de "has muerto" con el juego en pausa.
+func _morir_clasico() -> void:
+	var guardado = get_tree().get_first_node_in_group("checkpoint_nivel")
+	if guardado != null and guardado.call("reaparecer", self):
+		return
+	is_dead = true
+	velocity = Vector2.ZERO
+	Sfx.play(self, "muerte")
+	PlayLog.event("muerte", {"pos": [snappedf(global_position.x, 1.0), snappedf(global_position.y, 1.0)]})
+	PlayLog.volcar()
 	print("¡Has muerto!")
 
-	# Mismo patrón que la victoria: el cartel se busca por grupo, así
-	# este script no necesita conocer la estructura de la interfaz.
 	var game_over_label = get_tree().get_first_node_in_group("gameover_ui")
 	if game_over_label:
 		game_over_label.visible = true
 
-	# Congela el nivel entero (enemigos, temporizadores, hechizos).
-	# Quien sigue escuchando teclas en pausa es LevelController, para
-	# que la R de reiniciar siga funcionando.
 	get_tree().paused = true

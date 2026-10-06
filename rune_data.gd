@@ -56,6 +56,18 @@ const VFX_COLUMNS: int = 6
 @export var vfx_sheet: Texture2D = null
 @export var vfx_frames: int = 0
 
+## ¿Este elemento se lanza como HAZ instantáneo (del lanzador al primer
+## impacto) en vez de como proyectil? Lo lee spell.gd; el dibujo lo hace
+## SpellBeam con la misma hoja de arriba, girada.
+@export var beam: bool = false
+
+## ¿La animación se gira para apuntar en la dirección en que VUELA el
+## hechizo? La hoja está dibujada con el "arriba" de la llama hacia arriba
+## (una fogata); girada, la llama queda ATRÁS y el cuerpo por delante, que es
+## lo que hace de un fuego que sube un proyectil. Solo afecta a lo que vuela:
+## lo quieto (barrera, pilar) no tiene dirección y no se gira.
+@export var orient_to_travel: bool = false
+
 ## --- INTENSIDADES ---
 ##
 ## Un hechizo amplificado ya se veía más grande: spell.gd escala el nodo

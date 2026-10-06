@@ -1,0 +1,224 @@
+{
+  "id": "chibi_elf",
+  "nombre": "Chibi Elf",
+  "tipo": "character",
+  "direcciones": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mapeo_direcciones_godot": {
+    "S": "S",
+    "SW": "SW",
+    "W": "E",
+    "NW": "NW",
+    "N": "N",
+    "NE": "NE",
+    "E": "W",
+    "SE": "SE"
+  },
+  "frame_px": [
+    256,
+    320
+  ],
+  "ancla_suelo_px": [
+    128,
+    261
+  ],
+  "offset_visual_px": [
+    0,
+    -101
+  ],
+  "asset_root_godot": "res://assets/ms_chibi_elf",
+  "layout_atlas": {
+    "columnas": "frames",
+    "filas": "direcciones"
+  },
+  "animaciones": {
+    "idle": {
+      "frames": 16,
+      "fps": 8,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle/idle_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle/idle_8dir_metadata.json"
+      ]
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk/walk_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk/walk_8dir_metadata.json"
+      ]
+    },
+    "run": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/run/run_8dir.png"
+      ],
+      "metadata": [
+        "atlases/run/run_8dir_metadata.json"
+      ]
+    },
+    "idle_002": {
+      "frames": 16,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle_002/idle_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle_002/idle_002_8dir_metadata.json"
+      ]
+    },
+    "charged_ground_slam": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/charged_ground_slam/charged_ground_slam_8dir.png"
+      ],
+      "metadata": [
+        "atlases/charged_ground_slam/charged_ground_slam_8dir_metadata.json"
+      ]
+    },
+    "charged_spell_cast_001": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/charged_spell_cast_001/charged_spell_cast_001_8dir.png"
+      ],
+      "metadata": [
+        "atlases/charged_spell_cast_001/charged_spell_cast_001_8dir_metadata.json"
+      ]
+    },
+    "charged_spell_cast_002": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/charged_spell_cast_002/charged_spell_cast_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/charged_spell_cast_002/charged_spell_cast_002_8dir_metadata.json"
+      ]
+    },
+    "collect_object": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/collect_object/collect_object_8dir.png"
+      ],
+      "metadata": [
+        "atlases/collect_object/collect_object_8dir_metadata.json"
+      ]
+    },
+    "face_punch_reaction": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/face_punch_reaction/face_punch_reaction_8dir.png"
+      ],
+      "metadata": [
+        "atlases/face_punch_reaction/face_punch_reaction_8dir_metadata.json"
+      ]
+    },
+    "mage_soell_cast_001": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/mage_soell_cast_001/mage_soell_cast_001_8dir.png"
+      ],
+      "metadata": [
+        "atlases/mage_soell_cast_001/mage_soell_cast_001_8dir_metadata.json"
+      ]
+    },
+    "mage_soell_cast_002": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/mage_soell_cast_002/mage_soell_cast_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/mage_soell_cast_002/mage_soell_cast_002_8dir_metadata.json"
+      ]
+    },
+    "mage_soell_cast_003": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/mage_soell_cast_003/mage_soell_cast_003_8dir.png"
+      ],
+      "metadata": [
+        "atlases/mage_soell_cast_003/mage_soell_cast_003_8dir_metadata.json"
+      ]
+    },
+    "open_door": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/open_door/open_door_8dir.png"
+      ],
+      "metadata": [
+        "atlases/open_door/open_door_8dir_metadata.json"
+      ]
+    },
+    "readandwrite": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/readandwrite/readandwrite_8dir.png"
+      ],
+      "metadata": [
+        "atlases/readandwrite/readandwrite_8dir_metadata.json"
+      ]
+    },
+    "stand_and_drink": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/stand_and_drink/stand_and_drink_8dir.png"
+      ],
+      "metadata": [
+        "atlases/stand_and_drink/stand_and_drink_8dir_metadata.json"
+      ]
+    },
+    "stand_talking_angry": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir.png"
+      ],
+      "metadata": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir_metadata.json"
+      ]
+    }
+  },
+  "origen_glb": "pipeline_output/chibi_elf/art/model/npc_processed.glb",
+  "altura_unidades": 1.7,
+  "escala_relativa": 1.0,
+  "aprobado": "2026-10-05"
+}

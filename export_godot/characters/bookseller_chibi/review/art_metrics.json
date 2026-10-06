@@ -1,0 +1,255 @@
+{
+  "character_id": "bookseller_chibi",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        77,
+        62,
+        174,
+        289
+      ],
+      "bbox_px": [
+        97,
+        227
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.37890625,
+        "height_ratio": 0.709375
+      },
+      "margins_px": {
+        "left": 77,
+        "top": 62,
+        "right": 82,
+        "bottom": 31
+      },
+      "center_px": [
+        125.5,
+        175.5
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        75,
+        67,
+        203,
+        287
+      ],
+      "bbox_px": [
+        128,
+        220
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.5,
+        "height_ratio": 0.6875
+      },
+      "margins_px": {
+        "left": 75,
+        "top": 67,
+        "right": 53,
+        "bottom": 33
+      },
+      "center_px": [
+        139.0,
+        177.0
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        86,
+        62,
+        222,
+        267
+      ],
+      "bbox_px": [
+        136,
+        205
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.53125,
+        "height_ratio": 0.640625
+      },
+      "margins_px": {
+        "left": 86,
+        "top": 62,
+        "right": 34,
+        "bottom": 53
+      },
+      "center_px": [
+        154.0,
+        164.5
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        97,
+        52,
+        208,
+        271
+      ],
+      "bbox_px": [
+        111,
+        219
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.43359375,
+        "height_ratio": 0.684375
+      },
+      "margins_px": {
+        "left": 97,
+        "top": 52,
+        "right": 48,
+        "bottom": 49
+      },
+      "center_px": [
+        152.5,
+        161.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        103,
+        43,
+        200,
+        268
+      ],
+      "bbox_px": [
+        97,
+        225
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.37890625,
+        "height_ratio": 0.703125
+      },
+      "margins_px": {
+        "left": 103,
+        "top": 43,
+        "right": 56,
+        "bottom": 52
+      },
+      "center_px": [
+        151.5,
+        155.5
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        75,
+        33,
+        202,
+        264
+      ],
+      "bbox_px": [
+        127,
+        231
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.49609375,
+        "height_ratio": 0.721875
+      },
+      "margins_px": {
+        "left": 75,
+        "top": 33,
+        "right": 54,
+        "bottom": 56
+      },
+      "center_px": [
+        138.5,
+        148.5
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        55,
+        40,
+        191,
+        258
+      ],
+      "bbox_px": [
+        136,
+        218
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.53125,
+        "height_ratio": 0.68125
+      },
+      "margins_px": {
+        "left": 55,
+        "top": 40,
+        "right": 65,
+        "bottom": 62
+      },
+      "center_px": [
+        123.0,
+        149.0
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\bookseller_chibi_art\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        69,
+        51,
+        181,
+        277
+      ],
+      "bbox_px": [
+        112,
+        226
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.4375,
+        "height_ratio": 0.70625
+      },
+      "margins_px": {
+        "left": 69,
+        "top": 51,
+        "right": 75,
+        "bottom": 43
+      },
+      "center_px": [
+        125.0,
+        164.0
+      ]
+    }
+  }
+}

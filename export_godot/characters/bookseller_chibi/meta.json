@@ -1,0 +1,103 @@
+{
+  "id": "bookseller_chibi",
+  "nombre": "Bookseller Chibi",
+  "tipo": "character",
+  "direcciones": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mapeo_direcciones_godot": {
+    "S": "S",
+    "SW": "SW",
+    "W": "E",
+    "NW": "NW",
+    "N": "N",
+    "NE": "NE",
+    "E": "W",
+    "SE": "SE"
+  },
+  "frame_px": [
+    256,
+    320
+  ],
+  "ancla_suelo_px": [
+    128,
+    213
+  ],
+  "offset_visual_px": [
+    0,
+    -53
+  ],
+  "asset_root_godot": "res://assets/ms_bookseller_chibi",
+  "layout_atlas": {
+    "columnas": "frames",
+    "filas": "direcciones"
+  },
+  "animaciones": {
+    "idle": {
+      "frames": 16,
+      "fps": 8,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle/idle_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle/idle_8dir_metadata.json"
+      ]
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk/walk_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk/walk_8dir_metadata.json"
+      ]
+    },
+    "run": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/run/run_8dir.png"
+      ],
+      "metadata": [
+        "atlases/run/run_8dir_metadata.json"
+      ]
+    },
+    "big_wave_hello": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/big_wave_hello/big_wave_hello_8dir.png"
+      ],
+      "metadata": [
+        "atlases/big_wave_hello/big_wave_hello_8dir_metadata.json"
+      ]
+    },
+    "stand_talking_angry": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir.png"
+      ],
+      "metadata": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir_metadata.json"
+      ]
+    }
+  },
+  "origen_glb": "pipeline_output/bookseller_chibi/art/model/npc_processed.glb",
+  "altura_unidades": 1.7,
+  "escala_relativa": 1.0,
+  "aprobado": "2026-10-05"
+}

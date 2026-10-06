@@ -22,15 +22,15 @@ texture = ExtResource("2_enemy")
 position = Vector2(-3.5, 3.5)
 shape = SubResource("RectangleShape2D_mwskr")
 
-[node name="SolidBody" type="StaticBody2D" parent="."]
+[node name="SolidBody" type="StaticBody2D" parent="." unique_id=2122392960]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody" unique_id=899758308]
 shape = SubResource("RectangleShape2D_solid")
 
-[node name="StrikeArea" type="Area2D" parent="."]
+[node name="StrikeArea" type="Area2D" parent="." unique_id=2112798073]
 position = Vector2(46, 0)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="StrikeArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StrikeArea" unique_id=2109580556]
 shape = SubResource("RectangleShape2D_strike")
 
 [node name="DamageTimer" type="Timer" parent="." unique_id=332853161]

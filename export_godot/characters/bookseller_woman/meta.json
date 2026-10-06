@@ -1,0 +1,158 @@
+{
+  "id": "bookseller_woman",
+  "nombre": "Bookseller Woman",
+  "tipo": "character",
+  "direcciones": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mapeo_direcciones_godot": {
+    "E": "W",
+    "SE": "SW",
+    "S": "S",
+    "SW": "SE",
+    "W": "E",
+    "NW": "NE",
+    "N": "N",
+    "NE": "NW"
+  },
+  "frame_px": [
+    192,
+    240
+  ],
+  "ancla_suelo_px": [
+    96,
+    158
+  ],
+  "offset_visual_px": [
+    0,
+    -38
+  ],
+  "asset_root_godot": "res://assets/ms_bookseller_woman",
+  "layout_atlas": {
+    "columnas": "frames",
+    "filas": "direcciones"
+  },
+  "animaciones": {
+    "idle": {
+      "frames": 16,
+      "fps": 8,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle/idle_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle/idle_8dir_metadata.json"
+      ]
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk/walk_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk/walk_8dir_metadata.json"
+      ]
+    },
+    "run": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/run/run_8dir.png"
+      ],
+      "metadata": [
+        "atlases/run/run_8dir_metadata.json"
+      ]
+    },
+    "walk_002": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk_002/walk_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk_002/walk_002_8dir_metadata.json"
+      ]
+    },
+    "collect_object": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/collect_object/collect_object_8dir.png"
+      ],
+      "metadata": [
+        "atlases/collect_object/collect_object_8dir_metadata.json"
+      ]
+    },
+    "female_crouch_pick_gun_point_forward": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/female_crouch_pick_gun_point_forward/female_crouch_pick_gun_point_forward_8dir.png"
+      ],
+      "metadata": [
+        "atlases/female_crouch_pick_gun_point_forward/female_crouch_pick_gun_point_forward_8dir_metadata.json"
+      ]
+    },
+    "open_door": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/open_door/open_door_8dir.png"
+      ],
+      "metadata": [
+        "atlases/open_door/open_door_8dir_metadata.json"
+      ]
+    },
+    "sit_cross_legged": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/sit_cross_legged/sit_cross_legged_8dir.png"
+      ],
+      "metadata": [
+        "atlases/sit_cross_legged/sit_cross_legged_8dir_metadata.json"
+      ]
+    },
+    "stand_talking_angry": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir.png"
+      ],
+      "metadata": [
+        "atlases/stand_talking_angry/stand_talking_angry_8dir_metadata.json"
+      ]
+    },
+    "talk_with_left_hand_raised": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/talk_with_left_hand_raised/talk_with_left_hand_raised_8dir.png"
+      ],
+      "metadata": [
+        "atlases/talk_with_left_hand_raised/talk_with_left_hand_raised_8dir_metadata.json"
+      ]
+    }
+  },
+  "origen_glb": "pipeline_output/bookseller_woman/art/model/npc_processed.glb",
+  "altura_unidades": 1.7,
+  "escala_relativa": 1.0,
+  "aprobado": "2026-10-03"
+}

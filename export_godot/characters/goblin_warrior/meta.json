@@ -1,0 +1,169 @@
+{
+  "id": "goblin_warrior",
+  "nombre": "Goblin Warrior",
+  "tipo": "character",
+  "direcciones": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mapeo_direcciones_godot": {
+    "E": "W",
+    "SE": "SW",
+    "S": "S",
+    "SW": "SE",
+    "W": "E",
+    "NW": "NE",
+    "N": "N",
+    "NE": "NW"
+  },
+  "frame_px": [
+    192,
+    240
+  ],
+  "ancla_suelo_px": [
+    96,
+    196
+  ],
+  "offset_visual_px": [
+    0,
+    -76
+  ],
+  "asset_root_godot": "res://assets/ms_goblin_warrior",
+  "layout_atlas": {
+    "columnas": "frames",
+    "filas": "direcciones"
+  },
+  "animaciones": {
+    "idle": {
+      "frames": 16,
+      "fps": 8,
+      "loop": true,
+      "atlas_png": [
+        "atlases/idle/idle_8dir.png"
+      ],
+      "metadata": [
+        "atlases/idle/idle_8dir_metadata.json"
+      ]
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk/walk_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk/walk_8dir_metadata.json"
+      ]
+    },
+    "run": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/run/run_8dir.png"
+      ],
+      "metadata": [
+        "atlases/run/run_8dir_metadata.json"
+      ]
+    },
+    "walk_002": {
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "atlas_png": [
+        "atlases/walk_002/walk_002_8dir.png"
+      ],
+      "metadata": [
+        "atlases/walk_002/walk_002_8dir_metadata.json"
+      ]
+    },
+    "charged_axe_chop": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/charged_axe_chop/charged_axe_chop_8dir.png"
+      ],
+      "metadata": [
+        "atlases/charged_axe_chop/charged_axe_chop_8dir_metadata.json"
+      ]
+    },
+    "double_combo_attack": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/double_combo_attack/double_combo_attack_8dir.png"
+      ],
+      "metadata": [
+        "atlases/double_combo_attack/double_combo_attack_8dir_metadata.json"
+      ]
+    },
+    "electrocution_reaction": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/electrocution_reaction/electrocution_reaction_8dir.png"
+      ],
+      "metadata": [
+        "atlases/electrocution_reaction/electrocution_reaction_8dir_metadata.json"
+      ]
+    },
+    "hit_reaction": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/hit_reaction/hit_reaction_8dir.png"
+      ],
+      "metadata": [
+        "atlases/hit_reaction/hit_reaction_8dir_metadata.json"
+      ]
+    },
+    "left_slash": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/left_slash/left_slash_8dir.png"
+      ],
+      "metadata": [
+        "atlases/left_slash/left_slash_8dir_metadata.json"
+      ]
+    },
+    "shot_and_fall_backward": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/shot_and_fall_backward/shot_and_fall_backward_8dir.png"
+      ],
+      "metadata": [
+        "atlases/shot_and_fall_backward/shot_and_fall_backward_8dir_metadata.json"
+      ]
+    },
+    "thrust_slash": {
+      "frames": 12,
+      "fps": 12,
+      "loop": false,
+      "atlas_png": [
+        "atlases/thrust_slash/thrust_slash_8dir.png"
+      ],
+      "metadata": [
+        "atlases/thrust_slash/thrust_slash_8dir_metadata.json"
+      ]
+    }
+  },
+  "origen_glb": "pipeline_output/goblin_warrior/art/model/npc_processed.glb",
+  "altura_unidades": 0.76,
+  "escala_relativa": 1.0,
+  "aprobado": "2026-10-03"
+}

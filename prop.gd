@@ -303,9 +303,9 @@ func _revertir() -> void:
 	estado = Estado.SANO
 	burn_timer = 0.0
 	_quitar_llamas()
-	visual.texture = load("res://art/" + String(CATALOGO[kind]["art"]))
+	visual.texture = load("res://art/" + String(ficha_de(kind)["art"]))
 	visual.modulate = Color(1, 1, 1)
-	_set_estorbo(float(CATALOGO[kind].get("estorbo", 0.0)))
+	_set_estorbo(float(ficha_de(kind).get("estorbo", 0.0)))
 	BlockFx.burst(self, "magia")
 
 
@@ -340,7 +340,7 @@ const VECINAS: Array[Vector2i] = [
 
 
 func push(direction: Vector2, _force: float) -> void:
-	if not CATALOGO[kind].get("empuja", false):
+	if not ficha_de(kind).get("empuja", false):
 		return
 	if move_cooldown > 0.0 or direction == Vector2.ZERO:
 		return

@@ -5,18 +5,18 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ffaqx"]
 size = Vector2(22, 22)
 
-[node name="Spell" type="Area2D"]
+[node name="Spell" type="Area2D" unique_id=1739843125]
 script = ExtResource("1_35i8j")
 
-[node name="Vfx" type="Sprite2D" parent="."]
+[node name="Vfx" type="Sprite2D" parent="." unique_id=886284331]
 visible = false
 scale = Vector2(0.75, 0.75)
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=583692460]
 offset_left = -10.0
 offset_top = -10.0
 offset_right = 10.0
 offset_bottom = 10.0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1136426824]
 shape = SubResource("RectangleShape2D_ffaqx")

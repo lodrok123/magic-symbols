@@ -1,7 +1,7 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://n0vevunmnry3"]
 
-[ext_resource type="Script" path="res://earth_block.gd" id="1_earth"]
-[ext_resource type="Texture2D" path="res://art/earth.png" id="2_earth"]
+[ext_resource type="Script" uid="uid://13cbkp706q5m" path="res://earth_block.gd" id="1_earth"]
+[ext_resource type="Texture2D" uid="uid://dxf2cit4vw1q5" path="res://art/earth.png" id="2_earth"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_earth_detect"]
 size = Vector2(64, 64)
@@ -9,16 +9,16 @@ size = Vector2(64, 64)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_earth_solid"]
 size = Vector2(60, 60)
 
-[node name="EarthBlock" type="Area2D"]
+[node name="EarthBlock" type="Area2D" unique_id=994521688]
 script = ExtResource("1_earth")
 
-[node name="Visual" type="Sprite2D" parent="."]
+[node name="Visual" type="Sprite2D" parent="." unique_id=112807282]
 texture = ExtResource("2_earth")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1766184051]
 shape = SubResource("RectangleShape2D_earth_detect")
 
-[node name="SolidBody" type="StaticBody2D" parent="."]
+[node name="SolidBody" type="StaticBody2D" parent="." unique_id=572544320]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="SolidBody" unique_id=1305507611]
 shape = SubResource("RectangleShape2D_earth_solid")

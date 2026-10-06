@@ -297,6 +297,12 @@ func _open() -> void:
 	if get_tree().paused:
 		return
 
+	# Antes de parar el tiempo: se apunta el sitio hacia el que miraba el
+	# ratón, que es hacia donde saldrá el hechizo al cerrar (ver Spellcaster).
+	var apuntador := _spellcaster()
+	if apuntador:
+		apuntador.remember_aim()
+
 	is_open = true
 	Sfx.play(_oyente(), "libro_abre")
 	visible = true
@@ -386,7 +392,20 @@ func _end_stroke() -> void:
 ## ratón". La respuesta es una pausa: si pasan GESTURE_PAUSE segundos
 ## sin dibujar, el gesto se da por cerrado. Empezar otro trazo antes de
 ## que venza lo suma al mismo gesto.
+## Si el aviso de fallo del Spellcaster estaba visible la última vez que se
+## dibujó. Sirve para redibujar justo cuando aparece y cuando se apaga: el libro
+## no se redibuja solo, y el aviso dura un segundo.
+var _aviso_visible: bool = false
+
+
 func _process(delta: float) -> void:
+	var lanzador := _spellcaster()
+	if lanzador:
+		var ahora: bool = Time.get_ticks_msec() < lanzador.feedback_until
+		if ahora != _aviso_visible:
+			_aviso_visible = ahora
+			queue_redraw()
+
 	if gesture_countdown <= 0.0:
 		return
 
@@ -597,16 +616,20 @@ func _draw_book() -> void:
 ## del propio libro, para no tener que acordarse de doce formas de
 ## memoria mientras se dibuja en la página de al lado.
 ##
-## QUÉ ENTRA AQUÍ NO SE DECIDE AQUÍ. Entra lo que tiene glifo: los
-## elementos cuyo RuneData trae uno, y los sellos que estén en
-## Sigils.GLYPHS. Por eso tiempo y pilar no aparecen sin que haya que
-## excluirlos — no tienen dibujo, y no tenerlo ES estar retirado. El día
-## que vuelvan, vuelven solos.
+## QUÉ ENTRA AQUÍ NO SE DECIDE AQUÍ. Entra lo que está ACTIVO
+## (Repertoire) Y tiene glifo: los elementos cuyo RuneData trae uno, y los
+## sellos que estén en Sigils.GLYPHS. Tiempo y pilar siguen sin aparecer
+## porque no tienen dibujo; el resto desaparece o aparece según lo que el
+## nivel haya desbloqueado.
 ##
 ## Y CONOCIDO NO ES LO MISMO QUE EXISTENTE: un glifo se anota con tinta
 ## si la biblioteca tiene muestras suyas, y se queda en marca de agua si
 ## no. Así la página se va llenando según se graban gestos, en vez de
 ## nacer completa.
+## Las casillas impresas en la página: lo que no cabe no se pinta (con todo
+## desbloqueado hay más runas que casillas).
+const LEGEND_SLOTS: int = 12
+
 func _draw_legend() -> void:
 	var caster := _spellcaster()
 	if caster == null:
@@ -615,6 +638,13 @@ func _draw_legend() -> void:
 	var slot: int = 0
 
 	for gesture_name in GestureLibrary.ELEMENTS:
+		# Lo que no está activo NO SE ENSEÑA, ni siquiera en marca de agua:
+		# la marca de agua dice "esto existe y aún no lo has grabado", y
+		# aquí lo que hay que decir es que todavía no está a tu alcance.
+		if not Repertoire.element_active(gesture_name):
+			continue
+		if slot >= LEGEND_SLOTS:
+			return
 		var tipo: int = caster.GESTURE_TO_RUNE.get(gesture_name, Runes.Type.NONE)
 		var datos: RuneData = caster.rune_database.get(tipo)
 		if datos == null or datos.glyph == null:
@@ -623,10 +653,14 @@ func _draw_legend() -> void:
 		# chuleta enseña la runa tal como se va a ver al dibujarla.
 		_draw_legend_slot(slot, datos.glyph, datos.display_name,
 			datos.color.darkened(CORE_GLYPH_DARKEN),
-			library.sample_count(gesture_name) > 0)
+			library.sample_count(gesture_name) > 0, _glyph_angle(gesture_name))
 		slot += 1
 
 	for gesture_name in GestureLibrary.SIGILS:
+		if not Repertoire.sigil_active(gesture_name):
+			continue
+		if slot >= LEGEND_SLOTS:
+			return
 		var glyph: Texture2D = Sigils.GLYPHS.get(gesture_name)
 		if glyph == null:
 			continue
@@ -639,9 +673,28 @@ func _draw_legend() -> void:
 ## Un glifo todavía sin muestras se queda en marca de agua.
 const LEGEND_FADED: Color = Color(0.24, 0.19, 0.16, 0.16)
 
+## Iconos que se dibujan GIRADOS, en radianes (PI * 0.5 = 90 grados en el
+## sentido de las agujas del reloj; con signo negativo, al revés). Se gira el
+## dibujo al pintarlo, no el archivo de arte. Clave: nombre del elemento en
+## minúsculas.
+const GLYPH_ROTATION: Dictionary = {"rayo": PI * 0.5}
+
+
+func _glyph_angle(nombre: String) -> float:
+	return GLYPH_ROTATION.get(nombre.to_lower(), 0.0)
+
+
+## Un icono centrado y, si toca, girado sobre su propio centro.
+func _draw_glyph(texture: Texture2D, centre: Vector2, size: float, tint: Color,
+		angle: float) -> void:
+	if angle == 0.0:
+		_draw_texture_centred(texture, centre, size, tint)
+	else:
+		_draw_texture_rotated(texture, centre, size, angle, tint)
+
 
 func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
-		ink: Color, known: bool) -> void:
+		ink: Color, known: bool, angle: float = 0.0) -> void:
 	var cell := Vector2(float(slot % GRID_COLS), float(slot / GRID_COLS))
 	var at: Vector2 = _on_page(GRID_ORIGIN + GRID_STEP * cell)
 
@@ -649,10 +702,10 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 		# Sin muestras grabadas: la casilla se queda en marca de agua.
 		# Se ve que ese hueco existe y que le falta algo, que es más
 		# interesante que no enseñar nada.
-		_draw_texture_centred(glyph, at, _u(GRID_GLYPH), LEGEND_FADED)
+		_draw_glyph(glyph, at, _u(GRID_GLYPH), LEGEND_FADED, angle)
 		return
 
-	_draw_texture_centred(glyph, at, _u(GRID_GLYPH), ink)
+	_draw_glyph(glyph, at, _u(GRID_GLYPH), ink, angle)
 	_draw_centered_text(at + Vector2(0.0, _u(GRID_LABEL_DROP)), label,
 		Color(ink.r, ink.g, ink.b, 0.75))
 
@@ -728,8 +781,8 @@ func _draw_core(c: Vector2) -> void:
 	# nombre. Sigue mandando el RuneData, así que un elemento nuevo se ve
 	# bien sin arte nuevo.
 	if element.glyph != null:
-		_draw_texture_centred(element.glyph, c, _u(CORE_GLYPH_SIZE),
-			element.color.darkened(CORE_GLYPH_DARKEN))
+		_draw_glyph(element.glyph, c, _u(CORE_GLYPH_SIZE),
+			element.color.darkened(CORE_GLYPH_DARKEN), _glyph_angle(element.display_name))
 
 	# El nombre va DENTRO del núcleo ahora que es grande: fuera chocaría
 	# con el anillo del glifo.
@@ -902,8 +955,16 @@ func _draw_hint(c: Vector2) -> void:
 	# en 324 y el aro acabando en 574, una tercera línea caería en 652 y
 	# no se vería. Es exactamente el fallo que ya tuvimos con la fila de
 	# sellos del modo grabación, y por eso el número está escrito aquí.
-	_draw_centered_text(c + Vector2(0, _u(RADIUS + 34.0)),
-		"T cierra y lanza · 1 2 3 pasan página", INK_SOFT)
+	# Si el último gesto falló, la primera línea lo dice (en rojo, durante un
+	# momento): "no reconocido, se parece a X". Una pista de consola no la lee
+	# quien juega.
+	var lanzador := _spellcaster()
+	if lanzador and Time.get_ticks_msec() < lanzador.feedback_until:
+		_draw_centered_text(c + Vector2(0, _u(RADIUS + 34.0)),
+			lanzador.feedback_text, RECORD_INK)
+	else:
+		_draw_centered_text(c + Vector2(0, _u(RADIUS + 34.0)),
+			"T cierra y lanza · 1 2 3 pasan página", INK_SOFT)
 	_draw_centered_text(c + Vector2(0, _u(RADIUS + 56.0)),
 		"fuera del libro 1 2 3 lanzan · clic derecho deshace", INK_SOFT)
 
@@ -1047,5 +1108,23 @@ func _draw_pages(c: Vector2) -> void:
 		draw_arc(centro, radio, 0.0, TAU, 24,
 			INK if activa else INK_SOFT, _u(2.0 if activa else 1.0), true)
 
+		# La recarga de la página: un arco rojo por fuera, que se va vaciando.
+		var resto: float = caster.page_cooldown_fraction(i)
+		if resto > 0.0:
+			draw_arc(centro, radio + _u(4.0), -PI * 0.5, -PI * 0.5 + TAU * resto, 24,
+				RECORD_INK, _u(3.0), true)
+
 		_draw_centered_text(centro + Vector2(0.0, _u(5.0)), str(i + 1),
 			INK if activa else INK_SOFT)
+
+	# El contador de sellos, a la derecha de las pestañas. Solo si el nivel
+	# fija un tope; en rojo cuando ya no cabe ninguno más, porque el rechazo
+	# de un sello solo suena y se imprime por consola, y quien juega no mira
+	# la consola.
+	var limite: int = Repertoire.max_sigils_per_page
+	if limite > 0:
+		var usados: int = caster.sigils_used()
+		draw_string(ThemeDB.fallback_font,
+			arriba + Vector2(_u(PAGE_TAB_GAP) * (float(total) * 0.5 + 0.6), _u(5.0)),
+			"sellos %d/%d" % [usados, limite], HORIZONTAL_ALIGNMENT_LEFT, -1,
+			_u_font(), RECORD_INK if usados >= limite else INK_SOFT)

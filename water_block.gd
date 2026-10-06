@@ -29,11 +29,33 @@ const CONDUCT_TIME: float = 0.6
 var is_frozen: bool = false
 var is_electrified: bool = false
 
+## --- Hielo firme y su "descongelado" visual ---
+## Los tres dibujos del hielo, de MAS a MENOS helado: nevado, escarcha, claro. Los pone
+## quien crea la casilla (el nivel). Al congelarse sale el primero y, pasado un rato, se
+## funde al siguiente y luego al ultimo, que se queda: es solo el aspecto, la casilla ya
+## es transitable desde el primer instante. Sin dibujos, se tine la losa como antes.
+var hielo: Array = []
+## Con true el hielo es firme: ni el calor ni el tiempo lo devuelven a agua. Por defecto es
+## false (las demas escenas siguen como antes) y el nivel de jugabilidad lo pone a true,
+## provisional hasta que se pueda nadar.
+var hielo_permanente: bool = false
+const PAUSA_DESHIELO: float = 4.0
+const FUNDIDO_DESHIELO: float = 1.4
+var _tw_hielo: Tween = null
+
 ## Lo que el jugador haya construido sobre esta agua (un bloque de
 ## tierra). Ver EarthBuilder para por qué se guarda la referencia.
 var occupant: Node = null
 
 @onready var solid_shape: CollisionShape2D = $SolidBody/CollisionShape2D
+
+
+## El viento vuela SOBRE el agua, y también lo que el viento lleva (el fuego que
+## recogió en una antorcha). Es lo que permite cruzar un canal con una llama:
+## antes el hechizo moría contra la primera casilla de agua. Ver
+## Spell._passes_through().
+func spell_flies_over(rune_data: RuneData, carried: bool) -> bool:
+	return carried or (rune_data != null and rune_data.tags.has("viento"))
 
 
 func _ready() -> void:
@@ -88,9 +110,11 @@ func _conduct() -> void:
 
 	is_electrified = true
 	$Visual.modulate = Color(1.5, 1.45, 0.7)
-	BlockFx.burst(self, "chispas")
+	BlockFx.burst(self, "chispas_azules")
 	Sfx.play(self, "chispa")
 	Glow.flash(self, Glow.LUZ_RAYO, 150.0, 1.6, CONDUCT_TIME)
+	# El pulso dura CONDUCT_TIME, pero la charca sigue soltando chispas 5 s.
+	ElectricSparks.en(self).activar()
 	print("¡La charca se electrifica!")
 
 	SpellFactory.cast(self, global_position, Vector2.ZERO, LIGHTNING_RUNE, CONDUCT_TIME)
@@ -119,7 +143,7 @@ func _calm_down() -> void:
 ## has dejado bloqueado que para quitarle a un enemigo el suelo helado
 ## por el que venía cruzando.
 func _dispel() -> void:
-	if is_frozen:
+	if is_frozen and not hielo_permanente:
 		_unfreeze()
 
 	BlockFx.burst(self, "magia")
@@ -138,10 +162,18 @@ func carried_element() -> RuneData:
 
 
 func _freeze() -> void:
+	# El hielo no conduce: si se congela, las chispas se acaban.
+	if has_node("Chispas"):
+		ElectricSparks.en(self).apagar()
 	is_frozen = true
-	# modulate multiplica el color de la textura: por encima de 1 la
-	# aclara, así el hielo es la misma losa de agua pero pálida.
-	$Visual.modulate = Color(0.85, 1.0, 1.1)
+	if hielo.is_empty():
+		# modulate multiplica el color de la textura: por encima de 1 la
+		# aclara, así el hielo es la misma losa de agua pero pálida.
+		$Visual.modulate = Color(0.85, 1.0, 1.1)
+	else:
+		$Visual.modulate = Color(1, 1, 1)
+		$Visual.texture = hielo[0]
+		_programar_deshielo()
 	solid_shape.set_deferred("disabled", true)
 	Sfx.play(self, "congelar")
 	print("¡El agua se ha congelado! Ahora puedes cruzar.")
@@ -151,6 +183,36 @@ func _freeze() -> void:
 ## aunque el nodo siga en la escena. Es la forma estándar de "activar/desactivar"
 ## colisiones sin tener que borrar y recrear nodos.
 
+## Nevado -> escarcha -> claro: cada paso se funde con el anterior y el ultimo se queda.
+func _programar_deshielo() -> void:
+	if _tw_hielo != null and _tw_hielo.is_valid():
+		_tw_hielo.kill()
+	_tw_hielo = create_tween()
+	for i in range(1, hielo.size()):
+		_tw_hielo.tween_interval(PAUSA_DESHIELO)
+		_tw_hielo.tween_callback(_fundir_a.bind(i))
+		_tw_hielo.tween_interval(FUNDIDO_DESHIELO)
+
+
+func _fundir_a(i: int) -> void:
+	if not is_frozen:
+		return
+	var base: Sprite2D = $Visual
+	var capa := Sprite2D.new()
+	capa.texture = hielo[i]
+	capa.centered = base.centered
+	capa.offset = base.offset
+	capa.scale = base.scale
+	capa.position = base.position
+	capa.modulate.a = 0.0
+	add_child(capa)
+	var tw := create_tween()
+	tw.tween_property(capa, "modulate:a", 1.0, FUNDIDO_DESHIELO)
+	tw.tween_callback(func() -> void:
+		base.texture = hielo[i]
+		capa.queue_free())
+
+
 ## Agua + fuego = vapor, esté el agua helada o líquida:
 ##   - Si estaba helada, el fuego la derrite (y vuelve a bloquear).
 ##   - Si ya era líquida, el fuego la hace hervir.
@@ -158,7 +220,8 @@ func _freeze() -> void:
 ## una rueda hidráulica o empañar un mecanismo.
 func _heat() -> void:
 	if is_frozen:
-		_unfreeze()
+		if not hielo_permanente:
+			_unfreeze()
 	else:
 		print("El agua hierve.")
 
@@ -167,6 +230,8 @@ func _heat() -> void:
 
 func _unfreeze() -> void:
 	is_frozen = false
+	if _tw_hielo != null and _tw_hielo.is_valid():
+		_tw_hielo.kill()
 	$Visual.modulate = Color(1, 1, 1)
 	solid_shape.set_deferred("disabled", false)
 	print("El hielo se ha derretido. Ya no puedes cruzar.")

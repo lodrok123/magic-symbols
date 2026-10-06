@@ -12,6 +12,18 @@ extends RefCounted
 
 const SPELL_SCENE: PackedScene = preload("res://spell.tscn")
 
+## DÓNDE golpeó el último hechizo, en coordenadas de mundo. on_spell_hit no
+## lleva posición (y no merece la pena cambiarle la firma a todo lo que
+## reacciona), así que el hechizo la deja aquí justo antes de avisar; quien la
+## necesite (la hierba, para prender DESDE el punto de contacto) la lee, y
+## quien no, la ignora. Vector2.INF = no hay ninguna.
+static var ultimo_impacto: Vector2 = Vector2.INF
+
+## ¿El agua apaga entera una barrera de fuego que se desplaza (barrera + flecha)?
+## En el Blockout sí (impide cruzar el canal con un muro de llamas). Un nivel que
+## quiera dejarlas pasar lo pone a false mientras dure, y lo devuelve a true al salir.
+static var agua_apaga_muros: bool = true
+
 ## IMPORTANTE — el orden de estas líneas no es cosmético:
 ## add_child() ejecuta el _ready() del hechizo INMEDIATAMENTE. Todo lo
 ## que _ready() necesite leer (aquí: direction, para saber si es una
@@ -36,5 +48,16 @@ static func cast(
 	# --- Ya dentro del árbol ---
 	spell.global_position = spawn_position
 	spell.set_rune_data(rune_data)
+
+	# El chispazo de SALIR, del color del propio elemento. Va aquí y no
+	# dentro de spell.gd porque es del INSTANTE DE NACER, no de la vida
+	# del hechizo: pasa una vez, en la fábrica, igual que el resto de lo
+	# que se hace "antes de soltarlo al mundo".
+	#
+	# Solo si SALE volando. Una barrera son seis manifestaciones quietas y
+	# seis chispazos de lanzar a la vez serían ruido: lo que dice "esto se
+	# queda aquí" no es una salida, es el campo de la barrera (ver SpellForm).
+	if direction != Vector2.ZERO and not SpellForm.silhouette:
+		BlockFx.spell_cast(spell, rune_data.color)
 
 	return spell

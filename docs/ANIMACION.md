@@ -1,5 +1,7 @@
 # Contrato de hoja de animación
 
+> **HISTÓRICO (4/10/2026).** Describe el animador antiguo (`ActorAnimator`, la maga de 64×64 sacada de vídeo). El personaje de ahora sale del pipeline: contrato en `export_godot/CONTRATO_GODOT.md`, lectura en `MsAtlas`/`MsActor`.
+
 Esto es lo que `actor_animator.gd` sabe leer. **El animador no sabe nada
 del mago**: sabe leer hojas con esta forma. Cambiar de personaje —a uno
 dibujado a mano, o renderizado desde un modelo 3D— es cambiar los PNG y

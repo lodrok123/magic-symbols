@@ -1,0 +1,255 @@
+{
+  "character_id": "chibi_elf",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        86,
+        57,
+        172,
+        275
+      ],
+      "bbox_px": [
+        86,
+        218
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3359375,
+        "height_ratio": 0.68125
+      },
+      "margins_px": {
+        "left": 86,
+        "top": 57,
+        "right": 84,
+        "bottom": 45
+      },
+      "center_px": [
+        129.0,
+        166.0
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        82,
+        59,
+        186,
+        268
+      ],
+      "bbox_px": [
+        104,
+        209
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.40625,
+        "height_ratio": 0.653125
+      },
+      "margins_px": {
+        "left": 82,
+        "top": 59,
+        "right": 70,
+        "bottom": 52
+      },
+      "center_px": [
+        134.0,
+        163.5
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        95,
+        57,
+        186,
+        270
+      ],
+      "bbox_px": [
+        91,
+        213
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.35546875,
+        "height_ratio": 0.665625
+      },
+      "margins_px": {
+        "left": 95,
+        "top": 57,
+        "right": 70,
+        "bottom": 50
+      },
+      "center_px": [
+        140.5,
+        163.5
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        106,
+        53,
+        182,
+        270
+      ],
+      "bbox_px": [
+        76,
+        217
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.296875,
+        "height_ratio": 0.678125
+      },
+      "margins_px": {
+        "left": 106,
+        "top": 53,
+        "right": 74,
+        "bottom": 50
+      },
+      "center_px": [
+        144.0,
+        161.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        97,
+        48,
+        184,
+        268
+      ],
+      "bbox_px": [
+        87,
+        220
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.33984375,
+        "height_ratio": 0.6875
+      },
+      "margins_px": {
+        "left": 97,
+        "top": 48,
+        "right": 72,
+        "bottom": 52
+      },
+      "center_px": [
+        140.5,
+        158.0
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        83,
+        42,
+        187,
+        264
+      ],
+      "bbox_px": [
+        104,
+        222
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.40625,
+        "height_ratio": 0.69375
+      },
+      "margins_px": {
+        "left": 83,
+        "top": 42,
+        "right": 69,
+        "bottom": 56
+      },
+      "center_px": [
+        135.0,
+        153.0
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        83,
+        46,
+        175,
+        268
+      ],
+      "bbox_px": [
+        92,
+        222
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.359375,
+        "height_ratio": 0.69375
+      },
+      "margins_px": {
+        "left": 83,
+        "top": 46,
+        "right": 81,
+        "bottom": 52
+      },
+      "center_px": [
+        129.0,
+        157.0
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\chibi_elf_art2\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        87,
+        54,
+        163,
+        273
+      ],
+      "bbox_px": [
+        76,
+        219
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.296875,
+        "height_ratio": 0.684375
+      },
+      "margins_px": {
+        "left": 87,
+        "top": 54,
+        "right": 93,
+        "bottom": 47
+      },
+      "center_px": [
+        125.0,
+        163.5
+      ]
+    }
+  }
+}

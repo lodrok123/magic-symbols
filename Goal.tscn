@@ -1,16 +1,16 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cvtapkr5i5518"]
 
-[ext_resource type="Script" path="res://goal.gd" id="1_goal"]
-[ext_resource type="Texture2D" path="res://art/goal.png" id="2_goal"]
+[ext_resource type="Script" uid="uid://laieli2gi6c4" path="res://goal.gd" id="1_goal"]
+[ext_resource type="Texture2D" uid="uid://d0imnjiwklmub" path="res://art/goal.png" id="2_goal"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_goal"]
 size = Vector2(64, 64)
 
-[node name="Goal" type="Area2D"]
+[node name="Goal" type="Area2D" unique_id=1040644556]
 script = ExtResource("1_goal")
 
-[node name="Visual" type="Sprite2D" parent="."]
+[node name="Visual" type="Sprite2D" parent="." unique_id=885126097]
 texture = ExtResource("2_goal")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1598374709]
 shape = SubResource("RectangleShape2D_goal")

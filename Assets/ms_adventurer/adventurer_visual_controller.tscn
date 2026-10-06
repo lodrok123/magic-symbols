@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://bp2bedkdpx8aa" path="res://assets/ms_adventurer/adventurer_visual_controller.gd" id="1_script"]
+[ext_resource type="SpriteFrames" uid="uid://cn228buyqlt6c" path="res://assets/ms_adventurer/idle_8dir_frames.tres" id="2_idle"]
+[ext_resource type="SpriteFrames" uid="uid://cn228buyqlt6c" path="res://assets/ms_adventurer/idle_8dir_frames.tres" id="3_walk"]
+
+[node name="AdventurerVisualController" type="Node2D"]
+script = ExtResource("1_script")
+
+[node name="IdleVisual" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_idle")
+animation = &"idle_s"
+autoplay = "idle_s"
+centered = true
+offset = Vector2(0, -115)
+
+[node name="WalkVisual" type="AnimatedSprite2D" parent="."]
+visible = false
+sprite_frames = ExtResource("3_walk")
+animation = &"walk_s"
+autoplay = "walk_s"
+centered = true
+offset = Vector2(0, -115)

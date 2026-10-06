@@ -1,0 +1,255 @@
+{
+  "character_id": "ranger_human",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        71,
+        58,
+        176,
+        277
+      ],
+      "bbox_px": [
+        105,
+        219
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.41015625,
+        "height_ratio": 0.684375
+      },
+      "margins_px": {
+        "left": 71,
+        "top": 58,
+        "right": 80,
+        "bottom": 43
+      },
+      "center_px": [
+        123.5,
+        167.5
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        77,
+        56,
+        175,
+        266
+      ],
+      "bbox_px": [
+        98,
+        210
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3828125,
+        "height_ratio": 0.65625
+      },
+      "margins_px": {
+        "left": 77,
+        "top": 56,
+        "right": 81,
+        "bottom": 54
+      },
+      "center_px": [
+        126.0,
+        161.0
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        80,
+        58,
+        175,
+        272
+      ],
+      "bbox_px": [
+        95,
+        214
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.37109375,
+        "height_ratio": 0.66875
+      },
+      "margins_px": {
+        "left": 80,
+        "top": 58,
+        "right": 81,
+        "bottom": 48
+      },
+      "center_px": [
+        127.5,
+        165.0
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        86,
+        62,
+        161,
+        281
+      ],
+      "bbox_px": [
+        75,
+        219
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.29296875,
+        "height_ratio": 0.684375
+      },
+      "margins_px": {
+        "left": 86,
+        "top": 62,
+        "right": 95,
+        "bottom": 39
+      },
+      "center_px": [
+        123.5,
+        171.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        77,
+        68,
+        182,
+        284
+      ],
+      "bbox_px": [
+        105,
+        216
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.41015625,
+        "height_ratio": 0.675
+      },
+      "margins_px": {
+        "left": 77,
+        "top": 68,
+        "right": 74,
+        "bottom": 36
+      },
+      "center_px": [
+        129.5,
+        176.0
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        78,
+        68,
+        175,
+        278
+      ],
+      "bbox_px": [
+        97,
+        210
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.37890625,
+        "height_ratio": 0.65625
+      },
+      "margins_px": {
+        "left": 78,
+        "top": 68,
+        "right": 81,
+        "bottom": 42
+      },
+      "center_px": [
+        126.5,
+        173.0
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        78,
+        66,
+        173,
+        274
+      ],
+      "bbox_px": [
+        95,
+        208
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.37109375,
+        "height_ratio": 0.65
+      },
+      "margins_px": {
+        "left": 78,
+        "top": 66,
+        "right": 83,
+        "bottom": 46
+      },
+      "center_px": [
+        125.5,
+        170.0
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\ranger_human_art\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        92,
+        62,
+        167,
+        278
+      ],
+      "bbox_px": [
+        75,
+        216
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.29296875,
+        "height_ratio": 0.675
+      },
+      "margins_px": {
+        "left": 92,
+        "top": 62,
+        "right": 89,
+        "bottom": 42
+      },
+      "center_px": [
+        129.5,
+        170.0
+      ]
+    }
+  }
+}

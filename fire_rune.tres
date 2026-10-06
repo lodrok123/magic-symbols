@@ -1,22 +1,23 @@
-[gd_resource type="Resource" script_class="RuneData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="RuneData" format=3 uid="uid://ncqpup2v31cl"]
 
-[ext_resource type="Script" path="res://rune_data.gd" id="1"]
-[ext_resource type="Texture2D" path="res://art/fx/fire.png" id="2"]
-[ext_resource type="Texture2D" path="res://art/fx/fire_mid.png" id="3"]
-[ext_resource type="Texture2D" path="res://art/fx/fire_high.png" id="4"]
-[ext_resource type="Texture2D" path="res://art/ui/glyphs/fuego.png" id="5"]
+[ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://rune_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://d0rwltxsqguvf" path="res://art/fx/fire.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://dk4rwpcqnd2pm" path="res://art/fx/fire_mid.png" id="3"]
+[ext_resource type="Texture2D" uid="uid://xe6heepxmw7c" path="res://art/fx/fire_high.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://bxtke2717wha8" path="res://art/ui/glyphs/fuego.png" id="5"]
 
 [resource]
 script = ExtResource("1")
 rune_type = 6
 display_name = "Fuego"
 color = Color(0.95, 0.33, 0.12, 1)
+glyph = ExtResource("5")
 damage = 40.0
 tags = Array[String](["fuego", "calor"])
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
+orient_to_travel = true
 vfx_sheet_mid = ExtResource("3")
 vfx_frames_mid = 18
 vfx_sheet_high = ExtResource("4")
 vfx_frames_high = 18
-glyph = ExtResource("5")

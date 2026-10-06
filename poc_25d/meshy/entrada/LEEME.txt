@@ -1,0 +1,3 @@
+Deja aqui los GLB exportados de Meshy, con el nombre que traigan.
+Vale tanto una pieza suelta como la lamina entera (13 piezas juntas): Claude la separa con separar_lamina.py.
+En el chat: "hay nuevos". Claude los revisa, los renombra a su id y los mueve a poc_25d\meshy\<id>.glb.

@@ -44,6 +44,20 @@ const HALF_DIAGONAL: float = 0.70710678
 ## al calibrar. Quien decide es `accepted`.
 const MIN_MARGIN: float = 0.30
 
+## Margen a partir del cual un trazo cuenta como limpio (calidad 1.0).
+const QUALITY_FULL_MARGIN: float = 0.90
+
+## Margen propio de los gestos que lo necesitan. Un gesto que se dibuja de forma
+## muy variable (o que solo se parece a otro por accidente) puede exigir menos
+## que el resto sin abrir la puerta a los demás: el corte de cada gesto es solo
+## suyo. Medido con las muestras grabadas y trazos deformados, el viento pasa
+## del 43% al 78% de aciertos con 0.15, y la flecha del 94% al 97% con 0.20.
+## Los que no aparecen aquí usan MIN_MARGIN.
+const MIN_MARGIN_BY_GESTURE: Dictionary = {
+	"viento": 0.15,
+	"flecha": 0.20,
+}
+
 
 ## --- Interfaz pública ---
 
@@ -77,7 +91,8 @@ static func normalize(strokes: Array) -> PackedVector2Array:
 ## se puede arreglar. Con el rival delante, "barrera rechazado al 4%" deja
 ## de ser mala suerte y pasa a ser "barrera y rombo se parecen demasiado",
 ## que ya es una frase sobre la que se puede actuar.
-static func recognize(strokes: Array, templates: Dictionary) -> Dictionary:
+static func recognize(strokes: Array, templates: Dictionary,
+		active: PackedStringArray = PackedStringArray()) -> Dictionary:
 	var candidate := normalize(strokes)
 	var unknown := {
 		"name": "", "second_name": "", "score": 0.0, "margin": 0.0,
@@ -142,12 +157,42 @@ static func recognize(strokes: Array, templates: Dictionary) -> Dictionary:
 
 	var margin := (second - first) / maxf(first, 0.0001)
 
+	# LOS GESTOS BLOQUEADOS SIGUEN AHÍ COMO SEÑUELOS, pero no como rivales.
+	# Hacen falta en la biblioteca: si lo dibujado se parece más a uno de ellos
+	# que a cualquier gesto activo, gana él y quien llama lo rechaza. Lo que no
+	# debe pasar es que un señuelo parecido le quite el margen a un trazo bueno
+	# de un gesto activo (un trazo de flecha que se parece un poco a levitación
+	# no es un trazo dudoso: levitación no existe para el jugador). Por eso, si
+	# el ganador está activo y hay otro activo, el margen se mide contra ESE.
+	# Con un solo gesto activo no hay contra quién medir y se queda el margen de
+	# siempre, contra todos.
+	if active.size() >= 2 and active.has(first_name):
+		var second_active := INF
+		var second_active_name := ""
+		for name in best_per_gesture:
+			if name == first_name or not active.has(name):
+				continue
+			var d: float = best_per_gesture[name]
+			if d < second_active:
+				second_active = d
+				second_active_name = name
+		if second_active < INF:
+			margin = (second_active - first) / maxf(first, 0.0001)
+			second_name = second_active_name
+
+	# LA CALIDAD DEL TRAZO: de 0 (justo en el límite de ser aceptado) a 1 (el
+	# margen llega a QUALITY_FULL_MARGIN o más). Sale del mismo margen que decide
+	# si se acepta, así que un trazo dudoso es también un trazo flojo.
+	var umbral: float = MIN_MARGIN_BY_GESTURE.get(first_name, MIN_MARGIN)
+	var calidad: float = clampf((margin - umbral) / maxf(QUALITY_FULL_MARGIN - umbral, 0.01), 0.0, 1.0)
+
 	return {
 		"name": first_name,
 		"second_name": second_name,
 		"score": 1.0 - first / HALF_DIAGONAL,
 		"margin": margin,
-		"accepted": margin >= MIN_MARGIN,
+		"quality": calidad,
+		"accepted": margin >= umbral,
 		"needs_more_samples": false,
 	}
 

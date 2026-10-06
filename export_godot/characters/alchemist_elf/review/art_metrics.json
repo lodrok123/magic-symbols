@@ -1,0 +1,255 @@
+{
+  "character_id": "alchemist_elf",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        85,
+        56,
+        173,
+        271
+      ],
+      "bbox_px": [
+        88,
+        215
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.34375,
+        "height_ratio": 0.671875
+      },
+      "margins_px": {
+        "left": 85,
+        "top": 56,
+        "right": 83,
+        "bottom": 49
+      },
+      "center_px": [
+        129.0,
+        163.5
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        84,
+        55,
+        176,
+        280
+      ],
+      "bbox_px": [
+        92,
+        225
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.359375,
+        "height_ratio": 0.703125
+      },
+      "margins_px": {
+        "left": 84,
+        "top": 55,
+        "right": 80,
+        "bottom": 40
+      },
+      "center_px": [
+        130.0,
+        167.5
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        95,
+        57,
+        175,
+        282
+      ],
+      "bbox_px": [
+        80,
+        225
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3125,
+        "height_ratio": 0.703125
+      },
+      "margins_px": {
+        "left": 95,
+        "top": 57,
+        "right": 81,
+        "bottom": 38
+      },
+      "center_px": [
+        135.0,
+        169.5
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        95,
+        56,
+        178,
+        273
+      ],
+      "bbox_px": [
+        83,
+        217
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.32421875,
+        "height_ratio": 0.678125
+      },
+      "margins_px": {
+        "left": 95,
+        "top": 56,
+        "right": 78,
+        "bottom": 47
+      },
+      "center_px": [
+        136.5,
+        164.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        90,
+        48,
+        178,
+        262
+      ],
+      "bbox_px": [
+        88,
+        214
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.34375,
+        "height_ratio": 0.66875
+      },
+      "margins_px": {
+        "left": 90,
+        "top": 48,
+        "right": 78,
+        "bottom": 58
+      },
+      "center_px": [
+        134.0,
+        155.0
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        87,
+        44,
+        180,
+        262
+      ],
+      "bbox_px": [
+        93,
+        218
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.36328125,
+        "height_ratio": 0.68125
+      },
+      "margins_px": {
+        "left": 87,
+        "top": 44,
+        "right": 76,
+        "bottom": 58
+      },
+      "center_px": [
+        133.5,
+        153.0
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        88,
+        47,
+        169,
+        264
+      ],
+      "bbox_px": [
+        81,
+        217
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.31640625,
+        "height_ratio": 0.678125
+      },
+      "margins_px": {
+        "left": 88,
+        "top": 47,
+        "right": 87,
+        "bottom": 56
+      },
+      "center_px": [
+        128.5,
+        155.5
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\paranda\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\alchemist_elf_art\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        85,
+        56,
+        168,
+        268
+      ],
+      "bbox_px": [
+        83,
+        212
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.32421875,
+        "height_ratio": 0.6625
+      },
+      "margins_px": {
+        "left": 85,
+        "top": 56,
+        "right": 88,
+        "bottom": 52
+      },
+      "center_px": [
+        126.5,
+        162.0
+      ]
+    }
+  }
+}

@@ -53,6 +53,11 @@ const SIGILS: PackedStringArray = [
 	"levitacion",  # flecha hacia arriba
 	"repeticion",  # dos triángulos: multiplica lo que haya en su sector
 	"amplificar",  # multiplica el daño y sube la intensidad del efecto
+	"rebote",      # NUEVO: una V que toca el suelo y sube
+	"retardo",     # NUEVO: reloj de arena
+	"pulso",       # NUEVO: aros que se abren
+	"atraccion",   # NUEVO: puntas que convergen
+	"espejo",      # NUEVO: eje con dos puntas hacia fuera
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -61,6 +66,7 @@ const SIGILS: PackedStringArray = [
 const RECORDABLE: PackedStringArray = [
 	"fuego", "agua", "tierra", "rayo", "hielo", "tiempo", "viento",
 	"flecha", "pilar", "barrera", "levitacion", "repeticion", "amplificar",
+	"rebote", "retardo", "pulso", "atraccion", "espejo",
 ]
 
 ## nombre -> Array de nubes ya normalizadas (PackedVector2Array). Se

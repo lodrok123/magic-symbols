@@ -1,0 +1,255 @@
+{
+  "character_id": "goblin_warrior_chibi",
+  "frame_index": 0,
+  "render_dir": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames",
+  "directions": {
+    "S": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\S\\art_S_000.png",
+      "bbox": [
+        66,
+        59,
+        201,
+        283
+      ],
+      "bbox_px": [
+        135,
+        224
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.52734375,
+        "height_ratio": 0.7
+      },
+      "margins_px": {
+        "left": 66,
+        "top": 59,
+        "right": 55,
+        "bottom": 37
+      },
+      "center_px": [
+        133.5,
+        171.0
+      ]
+    },
+    "SW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\SW\\art_SW_000.png",
+      "bbox": [
+        48,
+        57,
+        197,
+        272
+      ],
+      "bbox_px": [
+        149,
+        215
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.58203125,
+        "height_ratio": 0.671875
+      },
+      "margins_px": {
+        "left": 48,
+        "top": 57,
+        "right": 59,
+        "bottom": 48
+      },
+      "center_px": [
+        122.5,
+        164.5
+      ]
+    },
+    "W": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\W\\art_W_000.png",
+      "bbox": [
+        65,
+        56,
+        185,
+        283
+      ],
+      "bbox_px": [
+        120,
+        227
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.46875,
+        "height_ratio": 0.709375
+      },
+      "margins_px": {
+        "left": 65,
+        "top": 56,
+        "right": 71,
+        "bottom": 37
+      },
+      "center_px": [
+        125.0,
+        169.5
+      ]
+    },
+    "NW": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\NW\\art_NW_000.png",
+      "bbox": [
+        71,
+        53,
+        173,
+        286
+      ],
+      "bbox_px": [
+        102,
+        233
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3984375,
+        "height_ratio": 0.728125
+      },
+      "margins_px": {
+        "left": 71,
+        "top": 53,
+        "right": 83,
+        "bottom": 34
+      },
+      "center_px": [
+        122.0,
+        169.5
+      ]
+    },
+    "N": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\N\\art_N_000.png",
+      "bbox": [
+        53,
+        56,
+        188,
+        281
+      ],
+      "bbox_px": [
+        135,
+        225
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.52734375,
+        "height_ratio": 0.703125
+      },
+      "margins_px": {
+        "left": 53,
+        "top": 56,
+        "right": 68,
+        "bottom": 39
+      },
+      "center_px": [
+        120.5,
+        168.5
+      ]
+    },
+    "NE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\NE\\art_NE_000.png",
+      "bbox": [
+        57,
+        53,
+        206,
+        272
+      ],
+      "bbox_px": [
+        149,
+        219
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.58203125,
+        "height_ratio": 0.684375
+      },
+      "margins_px": {
+        "left": 57,
+        "top": 53,
+        "right": 50,
+        "bottom": 48
+      },
+      "center_px": [
+        131.5,
+        162.5
+      ]
+    },
+    "E": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\E\\art_E_000.png",
+      "bbox": [
+        69,
+        56,
+        189,
+        273
+      ],
+      "bbox_px": [
+        120,
+        217
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.46875,
+        "height_ratio": 0.678125
+      },
+      "margins_px": {
+        "left": 69,
+        "top": 56,
+        "right": 67,
+        "bottom": 47
+      },
+      "center_px": [
+        129.0,
+        164.5
+      ]
+    },
+    "SE": {
+      "file": "C:\\Users\\pablo\\Documents\\magic-symbols\\pipeline_output\\npc_e2e\\goblin_warrior_chibi_art\\reports\\art_qa\\frames\\SE\\art_SE_000.png",
+      "bbox": [
+        81,
+        57,
+        183,
+        280
+      ],
+      "bbox_px": [
+        102,
+        223
+      ],
+      "canvas_px": [
+        256,
+        320
+      ],
+      "occupancy": {
+        "width_ratio": 0.3984375,
+        "height_ratio": 0.696875
+      },
+      "margins_px": {
+        "left": 81,
+        "top": 57,
+        "right": 73,
+        "bottom": 40
+      },
+      "center_px": [
+        132.0,
+        168.5
+      ]
+    }
+  }
+}

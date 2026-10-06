@@ -94,6 +94,8 @@ static func burst(origen: Node2D, tipo: String) -> void:
 			"vel": 60.0, "grav": -10.0, "vida": 1.4},
 		"chispas": {"tex": SPARK, "n": 22, "col": Color(1.0, 0.9, 0.4, 1.0),
 			"vel": 130.0, "grav": 220.0, "vida": 0.7},
+		"chispas_azules": {"tex": SPARK, "n": 22, "col": Color(0.55, 0.8, 1.0, 1.0),
+			"vel": 130.0, "grav": 220.0, "vida": 0.7},
 		"tierra": {"tex": DIRT, "n": 16, "col": Color(0.62, 0.42, 0.28, 1.0),
 			"vel": 95.0, "grav": 280.0, "vida": 0.8},
 		"magia": {"tex": MAGIC, "n": 20, "col": Color(0.78, 0.72, 0.95, 1.0),
@@ -125,6 +127,86 @@ static func burst(origen: Node2D, tipo: String) -> void:
 	# Se limpia solo. Sin esto, cada bloque quemado dejaría un emisor
 	# muerto en la escena para siempre.
 	p.finished.connect(p.queue_free)
+
+
+## --- Estallidos de un hechizo, teñidos de SU propio elemento ---
+##
+## A diferencia de burst(), aquí el color no sale de una tabla fija: lo
+## trae quien llama (RuneData.color), así que un elemento nuevo sale bien
+## sin tocar esta función ni la lista de arriba. Dos variantes porque el
+## lanzamiento y el impacto no se leen igual: lanzar es un chispazo
+## contenido que sale del mago; impactar es un estallido más grande que
+## sale disparado desde donde golpea.
+
+## El chispazo de LANZAR. Pequeño y hacia arriba, como si el gesto del
+## mago soltara la magia en vez de que algo explote.
+static func spell_cast(origen: Node2D, color: Color) -> void:
+	_spell_burst(origen, color, 14, 90.0, -30.0, 0.45, 0.18)
+
+
+## El estallido de IMPACTAR. Más partículas, más rápidas, en todas
+## direcciones: es la diferencia entre soltar algo y que choque.
+static func spell_impact(origen: Node2D, color: Color) -> void:
+	_spell_burst(origen, color, 24, 150.0, 40.0, 0.6, 0.32)
+
+
+static func _spell_burst(origen: Node2D, color: Color, n: int, vel: float,
+		grav: float, escala: float, vida: float) -> void:
+	if not origen.is_inside_tree():
+		return
+
+	var escena: Node = origen.get_tree().current_scene
+	var p := _make(escena, MAGIC, n)
+	p.position = Vector2.ZERO   # el llamador ya nos da el sitio exacto
+	p.global_position = origen.global_position
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.lifetime = vida
+
+	var m := p.process_material as ParticleProcessMaterial
+	m.direction = Vector3(0.0, -1.0, 0.0)
+	m.spread = 180.0
+	m.initial_velocity_min = vel * 0.4
+	m.initial_velocity_max = vel
+	m.gravity = Vector3(0.0, grav, 0.0)
+	m.scale_min = 0.15
+	m.scale_max = escala
+	# Nace opaca y se desvanece: el mismo truco de burst(), pero con el
+	# color que traiga el elemento en vez de uno fijo.
+	m.color_ramp = _ramp([
+		Color(color.r, color.g, color.b, 1.0),
+		Color(color.r, color.g, color.b, 0.0),
+	])
+
+	p.finished.connect(p.queue_free)
+
+
+## La ESTELA de lo que viaja. Es la firma visual del sello flecha: un
+## hechizo quieto no deja rastro, uno que se mueve sí, y esa diferencia
+## se lee incluso en escala de grises. Cuelga del propio hechizo (muere
+## con él) pero las partículas se quedan en el mundo (local_coords=false
+## en _make), así que lo que queda atrás dibuja el camino recorrido.
+static func trail(padre: Node2D, color: Color) -> GPUParticles2D:
+	var p := _make(padre, MAGIC, 22)
+	p.position = Vector2.ZERO
+	p.show_behind_parent = true   # detrás del dibujo del hechizo, sin tocar z_index
+	p.lifetime = 0.35
+
+	var m := p.process_material as ParticleProcessMaterial
+	m.emission_shape_scale = Vector3(5.0, 5.0, 0.0)   # sale de un punto, no de un óvalo
+	m.direction = Vector3(0.0, 0.0, 0.0)
+	m.spread = 180.0
+	m.initial_velocity_min = 0.0
+	m.initial_velocity_max = 12.0
+	m.gravity = Vector3.ZERO
+	m.scale_min = 0.25
+	m.scale_max = 0.5
+	m.scale_curve = _curve([1.0, 0.0])   # se encoge al alejarse: forma una cola
+	m.color_ramp = _ramp([
+		Color(color.r, color.g, color.b, 0.9),
+		Color(color.r, color.g, color.b, 0.0),
+	])
+	return p
 
 
 ## --- Fontanería ---

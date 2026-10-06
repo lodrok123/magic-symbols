@@ -1,17 +1,17 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://b107mtcjugrl"]
 
-[ext_resource type="Script" path="res://archer.gd" id="1_archer"]
-[ext_resource type="Texture2D" path="res://art/archer.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://cj8c1qfqf0acn" path="res://archer.gd" id="1_archer"]
+[ext_resource type="Texture2D" uid="uid://byhcm2me21w6b" path="res://art/archer.png" id="2_tex"]
 
 [sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_archer"]
 points = PackedVector2Array(0, -18, 38, 0, 0, 18, -38, 0)
 
-[node name="Archer" type="Area2D"]
+[node name="Archer" type="Area2D" unique_id=1545047455]
 script = ExtResource("1_archer")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=114902443]
 position = Vector2(0, -20)
 texture = ExtResource("2_tex")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=105424028]
 shape = SubResource("ConvexPolygonShape2D_archer")

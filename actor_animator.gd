@@ -99,6 +99,42 @@ static func rita() -> ActorAnimator:
 	return a
 
 
+## LA MAGA NUEVA, sacada de vídeo. Convive con las otras dos por lo de
+## siempre: cambiar de arte es cambiar qué función llama el nivel.
+##
+## ANDAR ES DE VERDAD, y es la diferencia que importa frente a rita().
+## Aquella hoja tenía 12 columnas para un andar de 7 porque el dibujo no
+## alternaba las piernas y había que montarlo de ida y vuelta. Aquí los
+## 12 fotogramas son 12 poses distintas de un ciclo completo, sacadas del
+## tramo del vídeo que mejor cierra el bucle: al repetirse no pega tirón
+## porque el salto de la última a la primera es MENOR que el de un paso
+## normal. Eso se midió, no se estimó — ver tools/video_a_fila.py.
+##
+## LOS OTROS CUATRO CLIPS SON DE UNA COLUMNA, igual que estuvo rita al
+## principio: del personaje nuevo solo hay vídeo de andar. No respira ni
+## se cae, pero está bien puesta —bien escalada, pisando donde toca y
+## girando con la dirección—, que es lo que hace falta para juzgarla
+## dentro del mundo mientras llega el resto del arte. Cada una de esas
+## hojas es el fotograma del ciclo con los pies más juntos, que es el que
+## más se parece a estar de pie.
+##
+## FILAS SE Y SO PROVISIONALES: no hay vídeo de las diagonales de abajo y
+## llevan la fila S. Se nota poco porque S es la vecina, pero está ahí.
+static func maga() -> ActorAnimator:
+	var a := ActorAnimator.new()
+	a.cell = 128
+	# La figura pisa en y=117 dentro de la celda, y 117 - 64 = 53.
+	a.foot_offset = 53.0
+	a.clips = {
+		"walk":  Clip.new(preload("res://art/maga_walk.png"), 12, Driver.DISTANCIA, 0.0, true),
+		"idle":  Clip.new(preload("res://art/maga_idle.png"),   1, Driver.RELOJ, 6.0, true),
+		"cast":  Clip.new(preload("res://art/maga_cast.png"),   1, Driver.RELOJ, 12.0),
+		"hurt":  Clip.new(preload("res://art/maga_hurt.png"),   1, Driver.RELOJ, 12.0),
+		"death": Clip.new(preload("res://art/maga_death.png"),  1, Driver.RELOJ, 8.0, false, true),
+	}
+	return a
+
+
 ## --- LOS GOBLINS ---
 ##
 ## Los enemigos pasan de un monigote generado de 64 px SIN GIRAR a ocho
@@ -147,6 +183,13 @@ static func find_in(actor: Node) -> ActorAnimator:
 			return hijo
 	return null
 
+
+## Avisa de un clip de un disparo (play()) aunque este actor no tenga un
+## Sprite2D compatible con el contrato de hoja —caso de la maga nueva,
+## que se anima con un AnimatedSprite2D propio. Así quien SÍ sabe
+## animarla (player.gd) puede reaccionar sin que ActorAnimator tenga
+## que saber que existe.
+signal cast_requested(nombre: String)
 
 var clips: Dictionary = {}
 
@@ -268,6 +311,17 @@ func play(nombre: String) -> void:
 		return
 	if current == "death":
 		return          # de la muerte no se vuelve
+
+	cast_requested.emit(nombre)
+
+	# Sin Sprite2D compatible (la maga nueva usa AnimatedSprite2D, que no
+	# cumple el contrato de hoja) no hay nada que este nodo pueda pintar:
+	# el aviso de arriba ya deja que otro se encargue. Seguir de largo
+	# hacia _switch() era justo lo que crasheaba, porque _switch() da por
+	# hecho que sprite existe.
+	if sprite == null:
+		return
+
 	_switch(nombre)
 	locked = true
 

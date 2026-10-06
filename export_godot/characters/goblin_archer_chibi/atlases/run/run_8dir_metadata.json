@@ -1,0 +1,817 @@
+{
+  "pipeline": "Magic Symbols Pipeline v1",
+  "builder": "build_atlas.py",
+  "character_id": "goblin_archer_chibi",
+  "animation_id": "run",
+  "source_action": "Running",
+  "loop": true,
+  "fps": 10.0,
+  "frame_size_px": [
+    256,
+    320
+  ],
+  "frames_per_direction": 8,
+  "direction_order": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "ground_anchor_px": [
+    128,
+    216
+  ],
+  "ortho_scale": 2.9413,
+  "layout": {
+    "columns": "frames",
+    "rows": "directions",
+    "rows_count": 8,
+    "max_texture_size_px": 4096,
+    "max_columns_per_part": 16,
+    "part_count": 1
+  },
+  "godot": {
+    "visual_offset_px": [
+      0,
+      -56
+    ],
+    "direction_mapping": {
+      "S": "S",
+      "SW": "SW",
+      "W": "E",
+      "NW": "NW",
+      "N": "N",
+      "NE": "NE",
+      "E": "W",
+      "SE": "SE"
+    },
+    "runtime_spriteframes": true
+  },
+  "render_metadata_file": "run_generic_8dir/run_render_metadata.json",
+  "parts": [
+    {
+      "part": 1,
+      "file": "run_8dir.png",
+      "sha256": "5fad8e1ff81af2dc42b66211caa44fbc5a17042cc860f96ab7dd00c714c53e9d",
+      "global_frame_range": [
+        0,
+        7
+      ],
+      "columns": 8,
+      "atlas_size_px": [
+        2048,
+        2560
+      ],
+      "directions": {
+        "S": {
+          "row_index": 0,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_S_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_S_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_S_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_S_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_S_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_S_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_S_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_S_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 0,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "SW": {
+          "row_index": 1,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_SW_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_SW_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_SW_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_SW_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_SW_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_SW_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_SW_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_SW_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 320,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "W": {
+          "row_index": 2,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_W_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_W_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_W_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_W_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_W_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_W_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_W_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_W_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 640,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "NW": {
+          "row_index": 3,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_NW_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_NW_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_NW_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_NW_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_NW_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_NW_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_NW_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_NW_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 960,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "N": {
+          "row_index": 4,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_N_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_N_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_N_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_N_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_N_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_N_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_N_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_N_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 1280,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "NE": {
+          "row_index": 5,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_NE_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_NE_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_NE_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_NE_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_NE_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_NE_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_NE_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_NE_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 1600,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "E": {
+          "row_index": 6,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_E_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_E_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_E_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_E_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_E_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_E_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_E_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_E_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 1920,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        },
+        "SE": {
+          "row_index": 7,
+          "frames": [
+            {
+              "global_frame_index": 0,
+              "local_column": 0,
+              "source_file": "run_SE_000.png",
+              "region_px": {
+                "x": 0,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 1,
+              "local_column": 1,
+              "source_file": "run_SE_001.png",
+              "region_px": {
+                "x": 256,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 2,
+              "local_column": 2,
+              "source_file": "run_SE_002.png",
+              "region_px": {
+                "x": 512,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 3,
+              "local_column": 3,
+              "source_file": "run_SE_003.png",
+              "region_px": {
+                "x": 768,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 4,
+              "local_column": 4,
+              "source_file": "run_SE_004.png",
+              "region_px": {
+                "x": 1024,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 5,
+              "local_column": 5,
+              "source_file": "run_SE_005.png",
+              "region_px": {
+                "x": 1280,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 6,
+              "local_column": 6,
+              "source_file": "run_SE_006.png",
+              "region_px": {
+                "x": 1536,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            },
+            {
+              "global_frame_index": 7,
+              "local_column": 7,
+              "source_file": "run_SE_007.png",
+              "region_px": {
+                "x": 1792,
+                "y": 2240,
+                "w": 256,
+                "h": 320
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

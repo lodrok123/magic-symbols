@@ -1,0 +1,21 @@
+Armas y escudos de los personajes (Equipo3D, equipo_3d.gd).
+
+Si aquí hay un <id>.glb (garrote.glb, escudo.glb...), se usa ese modelo; si no, la pieza de la biblioteca
+armas_goblin.glb orientada al vuelo; y si tampoco, la versión sencilla hecha por código.
+
+Preparados (5 de octubre), de armas_goblin.glb:
+  - garrote.glb  mango en el origen, cabeza hacia +Y, 0,62 de largo        (5,2 k triángulos)
+  - daga.glb     empuñadura en el origen, hoja hacia +Y, 0,5 de largo      (3,4 k)  [antes espada_goblin]
+  - escudo.glb   centrado en el origen, cara hacia +Y, 0,5 de diámetro     (5,5 k)
+  Textura reducida a 1024 (cada uno pesa ~0,7 MB en vez de 6).
+
+Para preparar otra arma de Meshy:
+  - garrote / espada: mango en el origen y la hoja o cabeza hacia +Y.
+  - escudo: centrado en el origen, con la cara hacia +Y.
+  - medidas en unidades del goblin (mide 1,7): garrote de unos 0,45-0,6 y escudo de unos 0,4-0,5 de diámetro.
+Lo más fácil es dejar el GLB de Meshy en meshy\entrada\ y pedírselo a Claude.
+Grimorios de la elfa (5 de octubre, noche), de los tres GLB de Meshy de grimorio\:
+  - grimorio_1.glb  botanico (marron y verde)     - grimorio_2.glb  runico (azul y gris)
+  - grimorio_3.glb  legendario (rojo y oro)
+  Centrados en el origen, alto 0,34 en +Y, lomo y pluma hacia -X, tapa hacia +Z (el marco del de codigo).
+  Equipo3D.nivel_grimorio elige cual; tecla N en PruebaTest2, LabVfx3D y CatalogoAssets.

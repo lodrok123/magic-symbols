@@ -8,8 +8,9 @@
 [ext_resource type="PackedScene" uid="uid://y7tlse0k5u05" path="res://enemy.tscn" id="6_kdubu"]
 [ext_resource type="PackedScene" uid="uid://b1hixuy10pdai" path="res://WaterBlock.tscn" id="7_water"]
 [ext_resource type="PackedScene" uid="uid://bv1rtgtdf0u33" path="res://GrassBlock.tscn" id="8_grass"]
+[ext_resource type="SpriteFrames" uid="uid://cdawlb2c70xnm" path="res://Sprites/cartografa_arcana/cartografa_arcana.tres" id="8_k73cj"]
 [ext_resource type="Script" uid="uid://cobo4pu24xgn6" path="res://health_bar.gd" id="9_health"]
-[ext_resource type="PackedScene" path="res://Goal.tscn" id="10_goal"]
+[ext_resource type="PackedScene" uid="uid://cvtapkr5i5518" path="res://Goal.tscn" id="10_goal"]
 [ext_resource type="PackedScene" uid="uid://cs4witjvs5yak" path="res://NeutralBlock.tscn" id="11_neutral"]
 [ext_resource type="Script" uid="uid://5ejmjdctr8ge" path="res://level_controller.gd" id="12_level"]
 [ext_resource type="Texture2D" uid="uid://nlgweja7dnuy" path="res://art/ground.png" id="13_ground"]
@@ -76,6 +77,10 @@ script = ExtResource("5_q6r6c")
 [node name="Line2D" type="Line2D" parent="Player/Spellcaster" unique_id=871678799]
 points = PackedVector2Array(164, 81)
 width = 5.0
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Player" unique_id=1328524349]
+sprite_frames = ExtResource("8_k73cj")
+animation = &"cast_spell_S"
 
 [node name="Enemy" parent="." unique_id=314713057 instance=ExtResource("6_kdubu")]
 position = Vector2(591, 188)

@@ -1,0 +1,2 @@
+Deja aqui las texturas de suelo generadas (cualquier nombre).
+En el chat: "hay texturas". Claude las hace sin costuras, las renombra y las deja en poc_25d\suelo_meshy\.

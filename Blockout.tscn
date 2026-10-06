@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://c4ctuvrtkqyni"]
+
+[ext_resource type="Script" uid="uid://ctf1cj56qsbah" path="res://blockout.gd" id="1_blockout"]
+
+[node name="Blockout" type="Node2D" unique_id=918789014]
+y_sort_enabled = true
+script = ExtResource("1_blockout")
