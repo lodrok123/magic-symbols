@@ -17,7 +17,7 @@ const CARPETA: String = "res://poc_25d/equipo/"
 const NIVELES_GRIMORIO: Array = ["", "botánico", "rúnico", "legendario"]
 static var nivel_grimorio: int = 1
 
-## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados] en el espacio del hueso.
+## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados, (opcional) multiplicador de escala por eje] en el espacio del hueso.
 ## Los huesos de mano de Mixamo apuntan con +Y hacia los dedos.
 const EQUIPO: Dictionary = {
 	"goblin_warrior_chibi": [
@@ -38,10 +38,10 @@ const EQUIPO: Dictionary = {
 	"chibi_test": [
 		["grimorio", "Hips", Vector3(0.36, 0.02, -0.06), Vector3(0.0, 90.0, -8.0)],
 	],
-	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano DERECHA (en ArcheryShot es la que lo sostiene estirada; la cuerda mira al arquero).
+	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano IZQUIERDA (la del brazo estirado al apuntar; madera hacia delante, cuerda hacia el arquero).
 	# equipo/flecha.glb (punta hacia +Y, centrada) queda para el Juego (proyectil o carcaj): Equipo3D.pieza("flecha").
 	"goblin_archer_chibi": [
-		["arco", "RightHand", Vector3(0.0, 0.07, 0.0), Vector3(0.0, 0.0, -90.0)],
+		["arco", "LeftHand", Vector3(0.0, 0.07, 0.47), Vector3(90.0, 0.0, 180.0), Vector3(1.2, 1.2, 2.2)],   # mano IZQUIERDA (la que se estira al apuntar): limbos verticales, madera delante y cuerda detrás; el empuñe del GLB está en un extremo, de ahí el 0,47 (Z de la mano) para centrarlo. 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
 	],
 	"goblin_warrior": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
@@ -87,6 +87,8 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 		p.position = (datos[2] as Vector3) / maxf(escala, 0.0001)
 		p.rotation_degrees = datos[3] as Vector3
 		p.scale = Vector3.ONE / maxf(escala, 0.0001)
+		if datos.size() > 4:
+			p.scale *= datos[4] as Vector3    # quinto dato opcional: multiplicador de escala por eje de la pieza
 		at.add_child(p)
 		puestas.append(p)
 	return puestas
@@ -132,9 +134,10 @@ static func pieza(id: String) -> Node3D:
 
 
 ## Bibliotecas de equipo (un GLB con una pieza por nodo, separadas con meshy/agrupar_3d.py).
-const BIBLIOTECAS_EQUIPO: Array = ["res://poc_25d/equipo/armas_goblin.glb"]
+const BIBLIOTECAS_EQUIPO: Array = ["res://poc_25d/equipo/armas_goblin.glb", "res://poc_25d/meshy/magia.glb"]
 ## Medida de cada pieza de biblioteca, en unidades del goblin (mide 1,7): largo de las armas, diámetro del escudo.
-const MEDIDA_PIEZA: Dictionary = {"garrote": 0.62, "espada_goblin": 0.58, "daga": 0.5, "escudo": 0.5}
+## `pocion` (6.12c, de meshy/magia.glb): 0,38 de alto = la mitad de la que se ve en el suelo respecto al goblin; Pj3D.equipar la reescala al personaje.
+const MEDIDA_PIEZA: Dictionary = {"garrote": 0.62, "espada_goblin": 0.58, "daga": 0.5, "escudo": 0.5, "pocion": 0.38}
 ## Dónde se agarra un arma, en fracción de su largo desde abajo.
 const AGARRE: float = 0.14
 
@@ -165,7 +168,12 @@ static func _orientar(modelo: Node3D, id: String) -> Node3D:
 	raiz.add_child(giro)
 	giro.add_child(modelo)
 	var medida: float = float(MEDIDA_PIEZA.get(id, 0.5))
-	if id == "escudo":
+	if id == "pocion":
+		# Un frasco: centrado en su caja y de pie (+Y arriba); la mano lo agarra por el medio.
+		var fp: float = medida / maxf(caja.size.y, 0.0001)
+		modelo.scale = Vector3.ONE * fp
+		modelo.position = -caja.get_center() * fp
+	elif id == "escudo":
 		var f: float = medida / maxf(caja.size.x, caja.size.y)
 		modelo.scale = Vector3.ONE * f
 		modelo.position = -caja.get_center() * f

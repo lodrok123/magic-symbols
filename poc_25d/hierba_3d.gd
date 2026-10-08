@@ -23,7 +23,7 @@ extends Node3D
 ## (~2.100 u2) con 10 matojos/u2 x 9 briznas = ~5,7 M de triángulos y un tirón de CPU (8.460 matojos por bloque nuevo).
 ## Ahora 3,5 matojos/u2 x 5 briznas (más anchas, para que la mata siga tapando) y bloques de 4,6 u: ~5x menos triángulos,
 ## el recorte por bloque es más fino y cada bloque nuevo cuesta ~1/10. El volumen lo ponen las tarjetas pintadas.
-@export var densidad: float = 3.5           ## matojos por unidad cuadrada en hierba plena
+@export var densidad: float = 5.0           ## matojos por unidad cuadrada en hierba plena
 @export var flores_por_unidad: float = 0.18
 @export var alto_matojo: float = 0.30      ## la chibi mide ~1
 @export var color_base: Color = Color(0.50, 0.72, 0.40)
@@ -31,8 +31,8 @@ extends Node3D
 @export var viento: float = 1.0
 @export var semilla: int = 7
 @export var modo: int = 2                    ## 0 briznas · 1 tarjetas pintadas · 2 las dos
-@export var densidad_tarjetas: float = 3.0   ## matojos pintados por unidad cuadrada
-@export var alto_tarjeta: float = 0.46
+@export var densidad_tarjetas: float = 5.5   ## matojos pintados por unidad cuadrada
+@export var alto_tarjeta: float = 0.55
 @export var atlas_tarjetas: String = "res://poc_25d/suelo_meshy/hierba_matojos.png"
 @export var lado_bloque: float = 4.6         ## lado de cada bloque, en unidades (2 casillas de la maqueta)
 @export var radio_sembrar: int = 2           ## con actualizar(): bloques alrededor del jugador que se siembran
@@ -70,7 +70,7 @@ void vertex() {
 	quemado = e.r;
 	// Quemada: se queda en un cuarto de alto. Crecida (el agua la hace brotar): el doble de alta.
 	float cre = texture(crecida, uv_e).r;
-	VERTEX.y *= mix(1.0, 0.25, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.7, cre);
+	VERTEX.y *= mix(1.0, 0.12, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.7, cre);   // 6.14: quemada = rastrojo muy corto
 	vec3 mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float t = TIME * 1.7 + mundo.x * 0.55 + mundo.z * 0.35;
 	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto;
@@ -93,7 +93,7 @@ void fragment() {
 	// La normal se fija aquí (no en vertex) porque con cull_disabled la cara de atrás la invertiría.
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
 	vec3 c = mix(base, punta, smoothstep(0.0, 1.0, alto));
-	c = mix(c, vec3(0.24, 0.22, 0.20), quemado);
+	c = mix(c, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: rastrojo pajizo, no negro
 	ALBEDO = c * tinte * brillo;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
@@ -126,7 +126,7 @@ void vertex() {
 	vec4 e = texture(estado, uv_e);
 	quemado = e.r;
 	float cre = texture(crecida, uv_e).r;
-	float escala_y = mix(1.0, 0.3, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre);
+	float escala_y = mix(1.0, 0.1, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre);   // 6.14
 	vec2 d = origen.xz - posicion_jugador.xz;
 	float cerca = 1.0 - smoothstep(0.0, radio_pisar, length(d));
 	float tumbar = (e.a + cerca) * alto * alto * 0.25;
@@ -144,7 +144,7 @@ void fragment() {
 	if (c.a < 0.5) {
 		discard;
 	}
-	ALBEDO = mix(c.rgb * tinte, vec3(0.24, 0.22, 0.20), quemado) * brillo;
+	ALBEDO = mix(c.rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7) * brillo;   // 6.14: pajizo, no negro
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

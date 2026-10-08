@@ -8,6 +8,7 @@ extends Node3D
 const SINONIMOS: Dictionary = {
 	"idle": ["idle"],
 	"walk": ["walking", "walk"],
+	"walk02": ["walk002"],
 	"walk_back": ["walk_backward", "walkbackward", "walk_back"],
 	"run": ["running", "run"],
 	# El cast genérico es el que se queda en su sitio (4.8: MageSoellCast001 arrastraba la cadera 0,36).
@@ -62,6 +63,8 @@ const MINIMOS: Dictionary = {
 ## Roles cuyo clip debe quedarse en su sitio: la cadera no se aleja de donde empieza (en alturas de cadera).
 ## death, roll y swim sí se desplazan a propósito.
 const EN_SITIO: Array = ["idle", "walk", "walk_back", "run", "cast", "attack", "hit", "leer", "talk", "wave"]
+## Roles que van y vuelven en vez de saltar del final al principio (readandwrite termina 16º torcido respecto a como empieza).
+const PINGPONG: Array = ["leer"]
 const DESPLAZA_MAX: float = 0.35
 ## Altura plausible del modelo tal como viene (los GLB de Meshy miden ~1,7): fuera de esto, cm contra m.
 const ALTO_BRUTO: Vector2 = Vector2(0.5, 4.0)
@@ -129,6 +132,7 @@ func cargar(p_id: String) -> bool:
 		for nombre in _ap.get_animation_list():
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 
+	_anular_raiz("roll")
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
 	_crear_sombra()
@@ -333,6 +337,7 @@ func lanzar(forma: String, elemento: String) -> float:
 	if _ap == null:
 		return 0.0
 	_quitar_chispas()
+	libro_en_manos(false, 0.15)
 	var rol: String = String(ANIM_CAST.get(forma, "leer"))
 	var clip: String = _buscar_clip(rol)
 	if clip == "":
@@ -347,6 +352,7 @@ func lanzar(forma: String, elemento: String) -> float:
 ## Para las partículas de la mano y vuelve a idle.
 func soltar_lanzar() -> void:
 	_quitar_chispas()
+	libro_en_manos(false, 0.15)
 	animacion_actual = ""
 	jugar("idle")
 
@@ -442,6 +448,174 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	get_tree().create_timer(gp.lifetime + 0.4, true, false, true).timeout.connect(gp.queue_free)
 
 
+## --- 6.11 Apuntar: el libro en las manos y `readandwrite` SOSTENIDO mientras se apunta; el `cast` solo al soltar ---
+## Flujo del Juego (cadena de casteo 6.2):  T/página → `apuntar()`  ·  mientras se apunta, no hace falta llamar a nada más  ·
+## al soltar/confirmar → `lanzar(forma, elemento)` (cierra el libro y pone el clip de lanzar)  ·  al terminar → `soltar_lanzar()`.
+## Si se cancela el apuntado: `cancelar_apuntar()`. `readandwrite` va y vuelve (PINGPONG): sin salto al repetirse.
+func apuntar() -> void:
+	_quitar_chispas()
+	animacion_actual = ""
+	jugar("leer")
+	libro_en_manos(true)
+
+
+func cancelar_apuntar() -> void:
+	libro_en_manos(false, 0.15)
+	soltar_lanzar()
+
+
+## --- 6.12 Clips nuevos del héroe ---
+## (a) GIRO AL ANDAR: `giro_al_andar(grados)` con el cambio de rumbo (grados, + = izquierda). Si pasa de 35º mezcla ~0,4 s con
+## el arranque de `Walk002` (el tronco gira hacia el lado) y vuelve a `walk`. Solo actúa si va andando; no cambia `animacion_actual`.
+## Walk002 gira hacia un solo lado: para el otro, el mismo clip se ve igual de suave (es una torsión corta, no una vuelta).
+var _giro_activo: bool = false
+
+
+func giro_al_andar(grados: float) -> void:
+	if _ap == null or _giro_activo or absf(grados) < 35.0:
+		return
+	if animacion_actual != "walk" and animacion_actual != "run":
+		return
+	var clip: String = _buscar_clip("walk02")
+	if clip == "":
+		return
+	_giro_activo = true
+	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
+	_ap.play(clip, 0.12)
+	var rol: String = animacion_actual
+	var tw := create_tween()
+	tw.tween_interval(0.4)
+	tw.tween_callback(func() -> void:
+		_giro_activo = false
+		if animacion_actual == rol:
+			var c2: String = _buscar_clip(rol)
+			if c2 != "":
+				_ap.get_animation(c2).loop_mode = Animation.LOOP_LINEAR
+				_ap.play(c2, 0.2))
+
+
+## (b) VOLTERETA: `rodar()` reproduce `roll_dodge` UNA vez, sin desplazamiento de la cadera (lo mueve el Juego: ≤ 1 casilla, 4 s de
+## espera). Devuelve lo que dura. Termina en `idle` con `soltar_rodar()` (o `jugar("idle")`).
+func rodar() -> float:
+	if _ap == null:
+		return 0.0
+	animacion_actual = ""
+	jugar("roll", true)
+	return duracion("roll")
+
+
+func soltar_rodar() -> void:
+	animacion_actual = ""
+	jugar("idle")
+
+
+## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.
+func _anular_raiz(rol: String) -> void:
+	if _ap == null:
+		return
+	var clip: String = _buscar_clip(rol)
+	if clip == "":
+		return
+	var an: Animation = _ap.get_animation(clip)
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) != Animation.TYPE_POSITION_3D or an.track_get_key_count(t) < 2:
+			continue
+		if not str(an.track_get_path(t)).to_lower().contains("hips"):
+			continue
+		var p0: Vector3 = an.track_get_key_value(t, 0)
+		for k in range(an.track_get_key_count(t)):
+			var v: Vector3 = an.track_get_key_value(t, k)
+			an.track_set_key_value(t, k, Vector3(p0.x, v.y, p0.z))
+
+
+## (c) BEBER: `beber(dur = 1.5)` pone la poción (50 % de su tamaño en el suelo) en la mano derecha, reproduce `stand_drink` recortado
+## a la parte en que bebe (de ~2,0 s a ~6,0 s del clip, acelerado para durar `dur`) y al terminar la quita y vuelve a `idle`. El Juego
+## bloquea el movimiento ese tiempo. Devuelve `dur`. Emite `bebida_terminada` al acabar.
+signal bebida_terminada
+const BEBER_DESDE: float = 2.0
+const BEBER_HASTA: float = 6.0
+var _bebiendo: bool = false
+
+
+func beber(dur: float = 1.5) -> float:
+	if _ap == null or _bebiendo:
+		return 0.0
+	var clip: String = _buscar_clip("drink")
+	if clip == "":
+		return 0.0
+	_bebiendo = true
+	equipar("pocion")
+	animacion_actual = "drink"
+	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
+	_ap.play(clip)
+	_ap.seek(BEBER_DESDE, true)
+	_ap.speed_scale = (BEBER_HASTA - BEBER_DESDE) / maxf(dur, 0.2)
+	var tw := create_tween().set_ignore_time_scale(true)
+	tw.tween_interval(dur)
+	tw.tween_callback(func() -> void:
+		_ap.speed_scale = 1.0
+		_bebiendo = false
+		desequipar("pocion")
+		animacion_actual = ""
+		jugar("idle")
+		bebida_terminada.emit())
+	return dur
+
+
+## Cuelga una pieza de Equipo3D.pieza(id) en una mano (por defecto la derecha) a un tamaño relativo al personaje; devuelve el
+## nodo. Las que ya cuelgan del esqueleto (arma, escudo, grimorio) no se tocan. `Pj3D.equipar("pocion")` = poción en la mano.
+## `PIEZAS_MANO` da por id: [hueso, posición, giro en grados, alto relativo al personaje].
+const PIEZAS_MANO: Dictionary = {
+	"pocion": ["LeftHand", Vector3(0.0, 0.08, 0.04), Vector3(0.0, 0.0, 0.0), 0.225],
+}
+var _piezas_mano: Dictionary = {}
+
+
+func equipar(pieza_id: String) -> Node3D:
+	if _modelo == null or not PIEZAS_MANO.has(pieza_id):
+		return null
+	desequipar(pieza_id)
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return null
+	var sk: Skeleton3D = sks[0] as Skeleton3D
+	var d: Array = PIEZAS_MANO[pieza_id]
+	var h: int = Equipo3D._hueso(sk, String(d[0]))
+	if h < 0:
+		return null
+	var escala: float = 1.0
+	var n: Node = sk
+	while n != null and n != _modelo:
+		if n is Node3D:
+			escala *= (n as Node3D).scale.y
+		n = n.get_parent()
+	var at := BoneAttachment3D.new()
+	at.name = "Mano_" + pieza_id
+	at.bone_name = sk.get_bone_name(h)
+	sk.add_child(at)
+	var p: Node3D = Equipo3D.pieza(pieza_id)
+	var tam_modelo: float = Equipo3D.MEDIDA_PIEZA.get(pieza_id, 0.4)
+	# alto relativo: la pieza mide `tam_modelo` en unidades del goblin (1,7); se lleva a (alto rel × alto del personaje) en el mundo.
+	var f: float = (float(d[3]) * maxf(alto_modelo(), 0.01)) / maxf(tam_modelo, 0.0001)
+	p.position = (d[1] as Vector3) / maxf(escala, 0.0001)
+	p.rotation_degrees = d[2] as Vector3
+	p.scale = Vector3.ONE * f / maxf(escala, 0.0001)
+	at.add_child(p)
+	_piezas_mano[pieza_id] = at
+	return p
+
+
+func desequipar(pieza_id: String = "") -> void:
+	if pieza_id == "":
+		for k in _piezas_mano.keys():
+			desequipar(String(k))
+		return
+	var at: Variant = _piezas_mano.get(pieza_id)
+	if at != null and is_instance_valid(at):
+		(at as Node).queue_free()
+	_piezas_mano.erase(pieza_id)
+
+
 func _quitar_chispas() -> void:
 	if _chispas != null and is_instance_valid(_chispas):
 		_chispas.queue_free()
@@ -457,7 +631,8 @@ func jugar(nombre: String, una_vez: bool = false) -> void:
 	animacion_actual = nombre
 	# `una_vez`: el clip se reproduce entero y se queda en su último fotograma (muerte, golpe, disparo); para repetirlo hay que
 	# pasar antes por otro clip (jugar("idle")). Sin `una_vez` va en bucle, como siempre.
-	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE if una_vez else Animation.LOOP_LINEAR
+	var bucle: int = Animation.LOOP_NONE if una_vez else (Animation.LOOP_PINGPONG if PINGPONG.has(nombre) else Animation.LOOP_LINEAR)
+	_ap.get_animation(clip).loop_mode = bucle as Animation.LoopMode
 	_ap.play(clip)
 
 
@@ -472,7 +647,37 @@ func duracion(nombre: String) -> float:
 
 ## En qué momento del clip `nombre` sale el golpe/la flecha, como fracción de su duración (0..1). Medido a ojo en el clip:
 ## ArcheryShot alza el arco hacia 1,5 s, apunta de 2,3 a 4,1 s y suelta a ~4,2 s (0,84).
+## 6.13 FOTOGRAMA DE APUNTADO del arquero: segundo del clip (a velocidad 1) con los brazos extendidos y el arco en alto; el clip
+## se bloquea ahí mientras apunta y se suelta desde ahí. En ArcheryShot los brazos están extendidos de ~2,8 s a ~3,7 s; se bloquea en 3,0 s.
+## `momento_golpe` sigue siendo la fracción (de la duración con que se reproduce) en la que sale la flecha.
+const FOTOGRAMA_APUNTADO: Dictionary = {"goblin_archer_chibi": {"attack": 3.0}}
 const MOMENTO_GOLPE: Dictionary = {"goblin_archer_chibi": {"attack": 0.84}}
+
+## Segundo del clip `nombre` en que se bloquea al apuntar (0 si el personaje no tiene fotograma de bloqueo).
+func fotograma_apuntado(nombre: String) -> float:
+	return float((FOTOGRAMA_APUNTADO.get(id, {}) as Dictionary).get(nombre, 0.0))
+
+
+## Pone el clip `nombre` en su fotograma de apuntado y lo CONGELA (la animación se aguanta mientras se apunta). Devuelve false si no
+## tiene fotograma de bloqueo (entonces se usa `jugar(nombre, true)` como siempre).
+func apuntar_clip(nombre: String = "attack") -> bool:
+	var t: float = fotograma_apuntado(nombre)
+	var clip: String = _buscar_clip(nombre)
+	if _ap == null or t <= 0.0 or clip == "":
+		return false
+	animacion_actual = nombre
+	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
+	_ap.play(clip)
+	_ap.seek(t, true)
+	_ap.speed_scale = 0.0
+	return true
+
+
+## Suelta el apuntado: el clip sigue desde donde estaba (velocidad `vel`, 1 por defecto) hasta que sale la flecha y termina.
+func soltar_apuntado(vel: float = 1.0) -> void:
+	if _ap != null:
+		_ap.speed_scale = vel
+
 
 func momento_golpe(nombre: String) -> float:
 	return float((MOMENTO_GOLPE.get(id, {}) as Dictionary).get(nombre, 0.5))

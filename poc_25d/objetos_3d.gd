@@ -225,6 +225,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	var d: Array = COMBUSTIBLES[tipo]
 	_llama = fx.llamas(global_position, float(d[1]), float(d[2]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
+	_ver_ardiendo(true)
 	_animar_k(1.0)
 	set_process(true)
 	if hierba_cerca.is_valid():
@@ -247,6 +248,7 @@ func _apagar() -> void:
 	estado = EstadoObj.SANO
 	is_lit = false
 	_quitar_fuego()
+	_ver_ardiendo(false)
 	_animar_k(0.0)
 	fx.vapor(global_position + Vector3(0.0, 0.5, 0.0))
 	set_process(false)
@@ -267,6 +269,19 @@ func _consumir() -> void:
 	for s in _sprites:
 		tw.tween_property(s[0], "modulate:a", 0.0, 0.5)
 	tw.chain().tween_callback(queue_free)
+
+
+## La telaraña de modelos (PruebaTest2._poner_telarana) trae dos hijas en `visual`: "sana" y "ardiendo" (la red con brasas).
+## Sin ellas (la de Formas3D, otro combustible) no hace nada: basta el chamuscado del material.
+func _ver_ardiendo(si: bool) -> void:
+	if visual == null:
+		return
+	var sana: Node3D = visual.get_node_or_null("sana") as Node3D
+	var ardiendo: Node3D = visual.get_node_or_null("ardiendo") as Node3D
+	if sana == null or ardiendo == null:
+		return
+	sana.visible = not si
+	ardiendo.visible = si
 
 
 func _quitar_fuego() -> void:
@@ -342,7 +357,7 @@ func _montar_fuente() -> void:
 func _encender(con_efectos: bool) -> void:
 	is_lit = true
 	var d: Array = FUENTES[tipo]
-	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]))
+	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1, 3.0, Vector3(0.0, float(d[0]) + 0.7, 0.0))
 	_pintar_tinte(0.0)
 	_pintar_emision(Color(1.0, 0.55, 0.25), 0.25)

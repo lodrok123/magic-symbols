@@ -25,11 +25,17 @@ const VEL_SALTO: float = 8.4
 const TOLERANCIA_SUELO: float = 0.55        ## desnivel que se camina sin saltar (de puente a suelo, escalón)
 const TOLERANCIA_AIRE: float = 0.35         ## lo que una casilla puede estar por encima de tus pies en el aire
 const MULT_NADO: float = 0.4
-const HUNDIDO: float = 0.22                 ## cuánto se hunde el modelo al nadar
+const HUNDIDO: float = 0.35                 ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 const INVULNERABLE: float = 0.7
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
+## --- 6.6 Voltereta: ≤ 1 casilla, colisiona paso a paso, sin daño mientras dura, reutilización larga ---
+const TIEMPO_VOLTERETA: float = 4.0          ## segundos hasta poder repetirla
+const DIST_VOLTERETA: float = 1.0            ## casillas
+## --- 6.7 Beber poción: bloqueado mientras bebe; cura al terminar; un golpe la interrumpe ---
+const T_BEBER: float = 1.5
+const CURA_POCION: float = 40.0
 
 signal murio
 signal reaparecio
@@ -64,6 +70,13 @@ var _hud_marco: ColorRect = null
 var _hud_texto: Label = null
 var caidas_al_agua: int = 0
 var saltos: int = 0
+var _t_roll: float = 0.0                     ## lo que queda de voltereta (0 = no ruedas)
+var _roll_dir: Vector3 = Vector3.ZERO
+var _roll_vel: float = 0.0
+var _roll_cd: float = 0.0                    ## reutilización
+var _roll_previa: bool = false
+var _t_beber: float = 0.0
+var _beber_previa: bool = false
 
 
 ## Lo monta todo: Lanzador3D, Jugador3D, los goblins con Combate3D, las mediciones y la vida en pantalla.
@@ -126,7 +139,7 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 ## =====================================================================================================
 
 func puede_lanzar() -> bool:
-	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null
+	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0
 
 
 func bloquear(b: bool) -> void:
@@ -136,8 +149,10 @@ func bloquear(b: bool) -> void:
 
 ## Entra en el modo apuntar: la elfa pone el clip de lanzar de la forma y las motas del elemento en la mano (Pj3D.lanzar,
 ## del Pipeline) y sigue animada a velocidad normal aunque el mundo vaya al 70 %.
-func apuntar_lanzar(elemento: String, forma: String, ralentizado: float) -> void:
-	pj.lanzar(forma, elemento)
+func apuntar_lanzar(elemento: String, _forma: String, ralentizado: float) -> void:
+	# 6.2: mientras se apunta se SOSTIENE readandwrite en bucle (una forma vacía no está en ANIM_CAST: Pj3D usa "leer") y
+	# las motas del elemento en la mano. El clip de la forma (`cast`) sale solo al soltar (lanzar_clip).
+	pj.apuntar()                                   # 6.11: libro en las manos + readandwrite sostenido
 	pj.set_velocidad_animacion(1.0 / maxf(ralentizado, 0.1))
 
 
@@ -163,9 +178,17 @@ func mirada() -> Vector3:
 ## Al soltar: el clip de la forma (Pj3D.ANIM_CAST, o readandwrite) y las motas, lo que dure el clip (entre 0,5 y 1,4 s).
 func lanzar_clip(elemento: String, forma: String) -> void:
 	pj.mirar(_mirada, 1.0)
-	var dur: float = pj.lanzar(forma, elemento)
-	_t_lanzar = clampf(dur if dur > 0.0 else T_LANZAR, 0.5, 1.4)
+	pj.lanzar(forma, elemento)                 # pone las motas del elemento y el clip de la forma (en bucle)
+	# 6.2: el clip de la forma se reproduce UNA vez entera y el jugador espera a que acabe antes de volver a idle.
+	var rol: String = String(Pj3D.ANIM_CAST.get(forma, "leer"))
+	if pj.duracion(rol) <= 0.0:
+		rol = "leer"
+	pj.animacion_actual = ""
+	pj.jugar(rol, true)
+	var dur: float = pj.duracion(rol)
+	_t_lanzar = clampf(dur if dur > 0.0 else T_LANZAR, 0.4, 2.5)
 	_lanzando = true
+	PlayLog.event("cast_clip", {"forma": forma, "clip": rol, "duracion": snappedf(_t_lanzar, 0.01)})
 
 
 func y_pies_actual() -> float:
@@ -189,6 +212,10 @@ func nivel_actual() -> int:
 func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
 		return
+	if lanz != null and lanz.absorber_golpe(cantidad, desde):
+		return                                   # la barrera cúpula lo ha parado (6.3)
+	if _t_beber > 0.0:
+		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
 	vida = maxf(0.0, vida - cantidad)
 	_t_inv = INVULNERABLE
 	_t_golpe = T_GOLPE
@@ -222,6 +249,8 @@ func push(direccion: Vector3, fuerza: float) -> void:
 
 
 func _morir() -> void:
+	_t_roll = 0.0
+	_t_beber = 0.0
 	muerto = true
 	nadando = false
 	_lanzando = false
@@ -295,6 +324,13 @@ func _process(delta: float) -> void:
 		pj.soltar_lanzar()                  # quita las motas y vuelve a idle
 	_t_golpe = maxf(0.0, _t_golpe - delta)
 	_t_inv = maxf(0.0, _t_inv - delta)
+	_roll_cd = maxf(0.0, _roll_cd - delta)
+	if _t_beber > 0.0:
+		_t_beber = maxf(0.0, _t_beber - delta)
+		if _t_beber <= 0.0:
+			_terminar_beber()
+	if _t_roll > 0.0:
+		_t_roll = maxf(0.0, _t_roll - delta)
 
 	if muerto:
 		_t_muerte -= delta
@@ -319,14 +355,20 @@ func _process(delta: float) -> void:
 	var correr: bool = libre and Input.is_key_pressed(KEY_SHIFT)
 	var salto: bool = libre and Input.is_key_pressed(KEY_SPACE)
 	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized()
+	_gestionar_acciones(libre, mov)
 	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
-	if _t_golpe > 0.0:
-		mov = Vector3.ZERO           # el golpe te frena un instante
-
+	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando:
+		mov = Vector3.ZERO           # el golpe te frena; beber y el clip de lanzar (6.2b) te dejan quieto hasta que acaban
 	var paso: Vector3 = mov * vel * delta + _empuje * delta
+	if _t_roll > 0.0:
+		mov = Vector3.ZERO
+		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
 	_empuje = _empuje.lerp(Vector3.ZERO, clampf(7.0 * delta, 0.0, 1.0))
 	if paso.length() > 0.0001:
+		var antes: Vector3 = position
 		_mover_con_choque(paso)
+		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
+			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
 	if mov != Vector3.ZERO:
 		_mirada = mov
 		pj.mirar(mov, delta)
@@ -340,6 +382,60 @@ func _process(delta: float) -> void:
 
 
 ## Intenta el paso entero y, si no cabe, cada eje por separado (para deslizar por las paredes).
+## 6.6 y 6.7: Ctrl = voltereta, Q = beber. Se disparan al PULSAR (no mientras se mantiene).
+func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
+	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
+	var q: bool = libre and Input.is_key_pressed(KEY_Q)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar)
+	if ctrl and not _roll_previa and _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
+			and not ocupado and not nadando and en_suelo:
+		_iniciar_voltereta(mov)
+	if q and not _beber_previa and _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando \
+			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
+		_iniciar_beber()
+	_roll_previa = ctrl
+	_beber_previa = q
+
+
+func _iniciar_voltereta(mov: Vector3) -> void:
+	_roll_dir = mov if mov != Vector3.ZERO else _mirada
+	_roll_dir = Vector3(_roll_dir.x, 0.0, _roll_dir.z).normalized()
+	var dur: float = clampf(pj.duracion("roll"), 0.35, 1.0) if pj.duracion("roll") > 0.0 else 0.6
+	_t_roll = dur
+	_roll_vel = DIST_VOLTERETA * Lanzador3D.casilla / dur
+	_roll_cd = TIEMPO_VOLTERETA
+	_t_inv = maxf(_t_inv, dur)                     # sin daño por contacto mientras dura
+	_mirada = _roll_dir
+	pj.mirar(_roll_dir, 1.0)
+	pj.rodar()                                     # 6.12: roll sin desplazamiento de cadera (lo movemos nosotros)
+	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
+
+
+func _iniciar_beber() -> void:
+	_t_beber = T_BEBER
+	if pj.beber(T_BEBER) <= 0.0:                   # Pipeline: stand_drink recortado + poción en la mano
+		pj.jugar("drink", true)                    # sin clip: al menos que dure lo mismo
+	PlayLog.event("beber_inicio", {"pociones": Estado.i().cuenta("pocion")})
+
+
+func _terminar_beber() -> void:
+	if pj.has_method("desequipar"):
+		pj.call("desequipar")
+	if Estado.i().quitar("pocion"):
+		curar(CURA_POCION)
+		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), "+%d" % int(CURA_POCION), Color(0.5, 1.0, 0.55))
+		PlayLog.event("beber_fin", {"vida": vida})
+	pj.animacion_actual = ""
+
+
+func _cancelar_beber() -> void:
+	_t_beber = 0.0
+	if pj.has_method("desequipar"):
+		pj.call("desequipar")
+	pj.animacion_actual = ""
+	PlayLog.event("beber_interrumpido", {})
+
+
 func _mover_con_choque(paso: Vector3) -> void:
 	for v in [paso, Vector3(paso.x, 0.0, 0.0), Vector3(0.0, 0.0, paso.z)]:
 		var destino: Vector3 = position + (v as Vector3)
@@ -426,6 +522,8 @@ func _cambiar_nado(n: bool) -> void:
 
 
 func _animar(mov: Vector3, correr: bool) -> void:
+	if _t_roll > 0.0 or _t_beber > 0.0:
+		return                                         # el clip de voltereta / beber ya está sonando
 	if _t_lanzar > 0.0 or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar):
 		return
 	if nadando:
@@ -446,7 +544,7 @@ func _animar(mov: Vector3, correr: bool) -> void:
 func _sincronizar() -> void:
 	pj.position = position
 	_ultima = position
-	if _t_inv > 0.0 and not muerto:
+	if _t_inv > 0.0 and not muerto and _t_roll <= 0.0:
 		pj.visible = int(_t_inv * 14.0) % 2 == 0       # parpadea mientras es invulnerable
 	else:
 		pj.visible = true

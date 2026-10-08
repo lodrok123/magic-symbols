@@ -45,6 +45,48 @@ const MAPA: PackedStringArray = [
 	"#######################",
 ]
 
+## GIROS: orientación de las piezas, dibujada igual que el MAPA (mismas filas y columnas, una al lado de otra):
+## un '.' no toca nada; en la casilla donde quieras girar una pieza pon un número:
+##   1 = 90°   2 = 180°   3 = 270°   0 = sin giro (fija el original, quita el giro aleatorio)
+## Gana al giro aleatorio de la casilla y a los giros fijos del código. Debe tener las mismas dimensiones que MAPA.
+const GIROS_MAPA: PackedStringArray = [
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+	".......................",
+]
+
+
+## GIROS_MAPA como diccionario casilla → grados, para la maqueta.
+static func giros() -> Dictionary:
+	var d: Dictionary = {}
+	for y in range(GIROS_MAPA.size()):
+		for x in range(GIROS_MAPA[y].length()):
+			var ch: String = GIROS_MAPA[y][x]
+			if ch >= "0" and ch <= "3":
+				d[Vector2i(x, y)] = 90.0 * float(ch.to_int())
+	return d
+
+
 ## Decorado del bosque repartido por el mapa: [prop, columna, fila]. Generado con una
 ## semilla fija y comprobando que no corta ningún camino. Los props con cuerpo (caja,
 ## barril, peñasco, tocón, tronco, cartel) bloquean el paso; el resto es decorado.
@@ -193,6 +235,9 @@ var _puerta: MeshInstance3D = null
 var _puerta_c: Vector2i = Vector2i(-1, -1)
 var _salida_c: Vector2i = Vector2i(-1, -1)
 var _hecha: Array = [false, false, false, false]
+## 7.14: en un nivel que no tiene con qué hacer una tarea (sin losa de contacto, sin goblins, sin NPC, sin braseros) la
+## tarea cuenta como hecha desde el principio y el HUD lo dice. En el Test de jugabilidad están las cuatro: no cambia nada.
+var _no_aplica: Array = [false, false, false, false]
 var _abierta: bool = false
 var _terminado: bool = false
 var _n_goblins: int = 0
@@ -227,16 +272,20 @@ func registrar_npc(nombre: String, pj: Pj3D) -> void:
 ## Todo lo del decorado y los objetos, ANTES de que la maqueta agrupe los lotes.
 func colocar(mundo: Variant) -> void:
 	m = mundo
+	# 7.3: con el nivel editable (Nivel_Jugabilidad.tscn) el decorado, los puestos, los setos y el botín salen de sus piezas y
+	# marcadores (el cargador ya los ha leído); aquí solo queda lo que son REGLAS: las losas, la puerta y su lámpara.
+	var del_nivel: bool = bool(m._modo_nivel)
 	var ocupadas: Dictionary = {}
 	for dy in [0, 3]:
 		var cp: Vector2i = PUESTO_CELDA + Vector2i(0, dy)
 		ocupadas[cp] = true
 		ocupadas[cp + Vector2i(1, 0)] = true
-	# Los dos puestos con su tendero (la librera y, 3 casillas al sur, la alquimista).
-	registrar_npc("librera", m.poner_puesto(PUESTO_CELDA, m.PJ_LIBRERA))
-	registrar_npc("alquimista", m.poner_puesto(PUESTO_CELDA + Vector2i(0, 3), m.PJ_ALQUIMISTA))
+	# Los dos puestos con su tendero (la librera y, 3 casillas al sur, la alquimista). En el nivel editable son los marcadores n / Q.
+	if not del_nivel:
+		registrar_npc("librera", m.poner_puesto(PUESTO_CELDA, m.PJ_LIBRERA))
+		registrar_npc("alquimista", m.poner_puesto(PUESTO_CELDA + Vector2i(0, 3), m.PJ_ALQUIMISTA))
 	# Decorado.
-	for p in PROPS:
+	for p in ([] if del_nivel else PROPS):
 		var c := Vector2i(int(p[1]), int(p[2]))
 		if ocupadas.has(c) or m._bloqueadas.has(c) or not (m._letra(c) == "." or m._letra(c) == "v"):
 			continue
@@ -247,7 +296,7 @@ func colocar(mundo: Variant) -> void:
 		var giro: float = m.GIRO_CARTEL if id == "cartel" else -1.0
 		m._poner(id, c, m.ALTO, bool((d as Array)[1]), id != "cartel", giro)
 	# Setos secos sueltos (arden).
-	for s in SETOS:
+	for s in ([] if del_nivel else SETOS):
 		var cs: Vector2i = s
 		if ocupadas.has(cs) or m._bloqueadas.has(cs):
 			continue
@@ -256,7 +305,7 @@ func colocar(mundo: Variant) -> void:
 		else:
 			m._poner("seto_seco", cs, m.ALTO, true)
 	# Botín del suelo (nodos sueltos, para poder recogerlos).
-	for r in RECOGIBLES:
+	for r in _recogibles(del_nivel):
 		var cb := Vector2i(int(r[1]), int(r[2]))
 		var tipo: String = String(r[0])
 		var nodo: Node3D = null
@@ -284,14 +333,28 @@ func colocar(mundo: Variant) -> void:
 		rot.position = m._centro_celda(c, m.ALTO + 0.55)
 		m._props.add_child(rot)
 	# Puerta final y sus cuatro llamas.
-	for y in range(MAPA.size()):
-		for x in range(MAPA[y].length()):
-			if MAPA[y][x] == "X":
+	var mapa_activo: PackedStringArray = m._mapa      # el de las letras, o el que el cargador sacó de los marcadores
+	for y in range(mapa_activo.size()):
+		for x in range(mapa_activo[y].length()):
+			if mapa_activo[y][x] == "X":
 				_puerta_c = Vector2i(x, y)
-			elif MAPA[y][x] == "E":
+			elif mapa_activo[y][x] == "E":
 				_salida_c = Vector2i(x, y)
 	if _puerta_c.x >= 0:
 		_montar_puerta()
+
+
+## El botín: las constantes de siempre, o los marcadores `recogible` del nivel editable. Misma forma: [objeto, columna, fila].
+func _recogibles(del_nivel: bool) -> Array:
+	if not del_nivel:
+		return RECOGIBLES
+	var l: Array = []
+	for mc in (m._marcas as Array):
+		var d: Dictionary = mc
+		if String(d["grupo"]) == "recogible":
+			var c: Vector2i = d["c"]
+			l.append([String(d["tipo"]), c.x, c.y])
+	return l
 
 
 func _montar_puerta() -> void:
@@ -353,6 +416,17 @@ func iniciar(mundo: Variant) -> void:
 		pj.add_child(et)
 	for k in DIALOGOS:
 		_lineas_dialogo[k] = 0
+	var braseros: int = 0
+	for r in m._reactivos:
+		if is_instance_valid(r) and r.tipo == "brasero":
+			braseros += 1
+	var falta: Array = [not _losas.values().has("p"), _n_goblins == 0, _npcs.is_empty(), braseros == 0]
+	for i in range(4):
+		if bool(falta[i]):
+			_no_aplica[i] = true
+			_hecha[i] = true
+			if i < _lamparas.size():
+				(_lamparas[i] as MeshInstance3D).set_surface_override_material(0, Formas3D.material_tinte(COLOR_LAMPARA_ON, false, "llama"))
 	_refrescar_hud()
 
 
@@ -385,12 +459,12 @@ func _process(delta: float) -> void:
 	if _losas.has(c) and _losas[c] != "p" and _t_aviso <= 0.0:
 		_decir("Losa de %s pisada (las runas las da el Juego)" % NOMBRE_LOSA[_losas[c]].to_lower(), 2.5)
 	# Guardados.
-	if c != _ultimo_guardado and Jugabilidad3D.GUARDADOS.has(c):
+	if c != _ultimo_guardado and (m._guardados as Array).has(c):
 		_ultimo_guardado = c
 		if _jug != null:
 			_jug.puntos_inicio = m._centro_celda(c, m.ALTO)
 		_decir("Punto de guardado", 2.0)
-	elif not Jugabilidad3D.GUARDADOS.has(c):
+	elif not (m._guardados as Array).has(c):
 		_ultimo_guardado = Vector2i(-1, -1)
 	_recoger(pj)
 	# Puerta.
@@ -486,7 +560,7 @@ func _completar(i: int) -> void:
 
 func _abrir() -> void:
 	_abierta = true
-	m._bloqueadas.erase(_puerta_c)
+	m._liberar(_puerta_c)
 	_decir("¡La puerta se abre!", 4.0)
 	if _puerta != null:
 		var tw := create_tween()
@@ -506,7 +580,9 @@ func _refrescar_hud() -> void:
 		return
 	var t: String = "TEST DE JUGABILIDAD 3D  ·  E hablar  ·  %d s\n" % int(_t)
 	for i in range(4):
-		t += "  [%s] %d. %s" % ["x" if _hecha[i] else " ", i + 1, TAREAS[i]]
+		t += "  [%s] %d. %s" % ["-" if _no_aplica[i] else ("x" if _hecha[i] else " "), i + 1, TAREAS[i]]
+		if _no_aplica[i]:
+			t += "  (no hay en este nivel)"
 		if i == 1 and _n_goblins > 0 and not _hecha[1]:
 			t += "  (%d/%d)" % [_n_goblins - (m._goblins as Array).size(), _n_goblins]
 		t += "\n"

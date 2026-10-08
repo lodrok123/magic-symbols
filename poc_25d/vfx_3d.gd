@@ -63,6 +63,7 @@ const MAX_RESTOS: int = 40               ## piezas que se quedan en el mundo (ma
 @export var con_luces: bool = true
 
 var _llamas_activas: int = 0
+var _paredes: Dictionary = {}          ## 7.11: casilla (Vector2i) -> pared de fuego larga que la cubre
 var _luces_activas: int = 0
 var _restos: Array = []                ## lo que se queda un rato en el mundo, de más viejo a más nuevo (MAX_RESTOS)
 var _mat_tierra: StandardMaterial3D = null
@@ -82,22 +83,18 @@ func precalentar(origen: Vector3, destino: Vector3, con_formas: bool = false) ->
 
 
 ## Lanza un hechizo de `elemento` desde los pies del lanzador hasta los pies del objetivo.
-func lanzar(elemento: String, pie_origen: Vector3, pie_destino: Vector3) -> void:
+## La BOLA de `elemento` (6.18): un proyectil PEQUEÑO y reconocible que vuela de `pie_origen` a `pie_destino` y hace su impacto allí.
+## fuego = bola de fuego con estela · rayo = bola eléctrica · agua = gota · viento = remolino · hielo = carámbano · tierra = piedra.
+## `radio` (m) = tamaño de la bola (0,22 por defecto; el Juego lo pasa por `{"radio"}`, 6.5).
+func lanzar(elemento: String, pie_origen: Vector3, pie_destino: Vector3, radio: float = 0.22) -> void:
 	var alto := Vector3(0.0, 0.6 * escala, 0.0)
 	_carga(elemento, pie_origen)
-	match elemento:
-		"tierra":
-			# La tierra no vuela: brota del suelo bajo el objetivo tras la carga.
-			_despues(0.25, _impacto_tierra.bind(pie_destino))
-		"rayo":
-			_despues(0.2, _impacto_rayo.bind(pie_destino))
-		_:
-			_proyectil(elemento, pie_origen + alto, pie_destino + alto, pie_destino.y)
+	_proyectil(elemento, pie_origen + alto, pie_destino + alto, pie_destino.y, radio / 0.22)
 
 
 ## Llamas que siguen ardiendo hasta que se llama a `apagar(nodo)`: la hierba que arde en la maqueta.
 ## `esc` 0,5 = llamita (prendiendo), 1 = ardiendo; `radio` = media anchura de la zona que arde.
-func llamas(suelo: Vector3, esc: float, radio: float) -> Node3D:
+func llamas(suelo: Vector3, esc: float, radio: float, lenguas: int = 0) -> Node3D:
 	var raiz := Node3D.new()
 	raiz.position = suelo
 	add_child(raiz)
@@ -106,6 +103,8 @@ func llamas(suelo: Vector3, esc: float, radio: float) -> Node3D:
 	raiz.tree_exited.connect(func() -> void: _llamas_activas -= 1)
 	# Lenguas lisas con el shader del fuego (ondulan solas, sin partículas): 1 si el presupuesto está agotado, 2-3 si no.
 	var n: int = 1 if not completa else (3 if esc > 0.7 else 2)
+	if lenguas > 0:
+		n = lenguas      # 6.15: un fuego sencillo (hoguera, antorcha, brasero) lleva UNA lengua (`lenguas` = 1)
 	_lenguas(raiz, n, radio, 0.5 * esc, 0.72 * esc, 0.22, int(suelo.x * 7.0 + suelo.z * 13.0))
 	if esc > 0.7 and completa:
 		var b := _particulas("brasa", 4, 1.4, 0.8, 0.1, true, COLOR["fuego"], Vector3(0.0, -0.3, 0.0))
@@ -194,12 +193,8 @@ func fuego_fijo(p: Vector3, barrera: bool, esc: float = 1.0, eje: Vector3 = Vect
 		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
 		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
 	else:
-		# Una lengua principal que se inclina hacia un lado (la «lengua prominente») y dos pequeñas a su costado.
+		# 6.15: UNA sola lengua (la «prominente», inclinada hacia un lado). Antes llevaba además dos pequeñas a su costado.
 		_lenguas(raiz, 1, 0.0, 0.7 * esc, 0.78 * esc, 0.42, int(p.x * 3.0 + p.z * 5.0))
-		var chica: Node3D = Node3D.new()
-		chica.position = Vector3(0.1 * esc, 0.0, 0.06 * esc)
-		raiz.add_child(chica)
-		_lenguas(chica, 2, 0.2 * esc, 0.34 * esc, 0.46 * esc, 0.3, int(p.x * 5.0 + p.z * 3.0) + 1)
 	var b := _particulas("brasa", 10 if barrera else 5, 1.4, 1.3, 0.12 * esc, true, COLOR["fuego"], Vector3(0.0, -0.3, 0.0))
 	_caja_emision(b, ancho, Vector3(0.0, 0.0, 0.0))
 	(b.process_material as ParticleProcessMaterial).spread = 25.0
@@ -208,6 +203,108 @@ func fuego_fijo(p: Vector3, barrera: bool, esc: float = 1.0, eje: Vector3 = Vect
 	raiz.add_child(b)
 	b.emitting = true
 	return raiz
+
+
+## 7.11 · PARED DE FUEGO LARGA: una barrera de varias casillas como UN solo objeto (en vez de un `fuego_fijo` por casilla).
+## `celdas` = las casillas que cubre, EN ORDEN a lo largo de `eje` (Vector2i); `centros` = el centro de cada una a ras de suelo
+## (misma longitud); `casilla` = lado de la casilla. Devuelve la pared (hija de este nodo). Lleva una losa de pared por casilla
+## (igual que antes, así se ve igual), UN emisor de brasas a lo largo de toda ella y una luz cada 2 casillas.
+##
+## Para apagar una casilla: `apagar_tramo(pared, casilla)`: quita esa casilla y deja una pared a cada lado (o una más corta si
+## era la punta). Compatibilidad con el Lanzador de hoy: por cada casilla de una pared de 2 o más se deja además un nodo
+## «fuego_fijo_tramo» en su centro, que es lo que `BarreraFuego` encuentra como `llama`; apagarlo (`apagar`) apaga ese tramo.
+func fuego_pared(celdas: Array, centros: Array, eje: Vector3, casilla: float = 2.3, con_tramos: bool = true) -> Node3D:
+	var n: int = celdas.size()
+	if n == 0 or centros.size() != n:
+		return null
+	var raiz := Node3D.new()
+	raiz.name = "pared_fuego_larga"
+	var ini: Vector3 = centros[0]
+	var fin: Vector3 = centros[n - 1]
+	raiz.position = (ini + fin) * 0.5 + Vector3(0.0, 0.06, 0.0)   # 6 cm más alta: no se confunde con un tramo
+	raiz.set_meta("celdas", celdas.duplicate())
+	raiz.set_meta("centros", centros.duplicate())
+	raiz.set_meta("eje", eje)
+	raiz.set_meta("casilla", casilla)
+	var ang: float = atan2(-eje.z, eje.x)
+	var lateral: Vector3 = Vector3(-eje.z, 0.0, eje.x).normalized()
+	for i in range(n):
+		var local: Vector3 = (centros[i] as Vector3) - raiz.position + Vector3(0.0, 0.0, 0.0)
+		local.y = 0.0
+		var m: MeshInstance3D = Formas3D.instancia("pared_fuego", Color.WHITE)
+		var lleno := Vector3(casilla * 1.01, 1.45, 0.95)
+		m.scale = lleno
+		m.rotation.y = ang
+		m.position = local
+		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(m)
+		var c: Vector3 = centros[i]
+		var fase: float = float(int(c.x * 3.0 + c.z * 5.0) % 7) * 0.13
+		var tw := m.create_tween().set_loops()
+		tw.tween_interval(fase)
+		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
+		if i % 2 == 0:
+			var luz := OmniLight3D.new()
+			luz.position = local + lateral * 0.3 + Vector3(0.0, 0.8, 0.0)    # al lado del centro: no la confunde la búsqueda por casilla
+			luz.light_color = Color(1.0, 0.6, 0.3)
+			luz.light_energy = 1.6
+			luz.omni_range = 4.0
+			luz.shadow_enabled = false
+			raiz.add_child(luz)
+	var b := _particulas("brasa", 10 * n, 1.4, 1.3, 0.12, true, COLOR["fuego"], Vector3(0.0, -0.3, 0.0))
+	_caja_emision(b, casilla * 0.5, Vector3.ZERO)
+	var pm: ParticleProcessMaterial = b.process_material as ParticleProcessMaterial
+	pm.spread = 25.0
+	pm.emission_box_extents = Vector3(casilla * 0.5 * float(n), 0.04, 0.25)
+	b.rotation.y = ang
+	raiz.add_child(b)
+	b.emitting = true
+	add_child(raiz)
+	if n >= 2 and con_tramos:
+		for i in range(n):
+			var tramo := Node3D.new()           # el «llama» de cada casilla para el Lanzador de hoy
+			tramo.name = "fuego_fijo_tramo"
+			tramo.position = centros[i]
+			tramo.set_meta("tramo_celda", celdas[i])
+			add_child(tramo)
+			move_child(tramo, 0)                # antes que la pared: la búsqueda por posición encuentra primero el tramo
+	for ce in celdas:
+		_paredes[ce] = raiz
+	return raiz
+
+
+## Quita la casilla `casilla` de la pared de fuego `muro` y deja el resto. Si `muro` ya no es válido (se partió antes) se busca la
+## pared que cubre hoy esa casilla. No hace nada si esa casilla no tiene pared.
+func apagar_tramo(muro: Node3D, casilla: Vector2i) -> void:
+	var w: Node3D = null
+	if muro != null and is_instance_valid(muro) and muro.has_meta("celdas") and (muro.get_meta("celdas") as Array).has(casilla):
+		w = muro
+	elif _paredes.has(casilla) and is_instance_valid(_paredes[casilla]):
+		w = _paredes[casilla]
+	if w == null:
+		_paredes.erase(casilla)
+		return
+	var celdas: Array = w.get_meta("celdas")
+	var centros: Array = w.get_meta("centros")
+	var eje: Vector3 = w.get_meta("eje")
+	var lado: float = float(w.get_meta("casilla"))
+	var i: int = celdas.find(casilla)
+	for ce in celdas:
+		_paredes.erase(ce)
+	# El tramo de compatibilidad de ESTA casilla se va; los de las demás se quedan (el Lanzador los guarda como `llama`).
+	for h in get_children():
+		if h.has_meta("tramo_celda") and h.get_meta("tramo_celda") == casilla:
+			h.queue_free()
+	_soltar(w)
+	var izq_c: Array = celdas.slice(0, i)
+	var izq_p: Array = centros.slice(0, i)
+	var der_c: Array = celdas.slice(i + 1)
+	var der_p: Array = centros.slice(i + 1)
+	if not izq_c.is_empty():
+		fuego_pared(izq_c, izq_p, eje, lado, false)
+	if not der_c.is_empty():
+		fuego_pared(der_c, der_p, eje, lado, false)
 
 
 func _caja_emision(gp: GPUParticles3D, radio: float, desplazado: Vector3) -> void:
@@ -220,10 +317,34 @@ func _caja_emision(gp: GPUParticles3D, radio: float, desplazado: Vector3) -> voi
 
 
 ## Deja de emitir y borra las llamas cuando se apagan las partículas.
-func apagar(n: Node3D) -> void:
+func apagar(n: Node3D, opciones: Dictionary = {}) -> void:
 	if n == null or not is_instance_valid(n):
 		return
+	if bool(opciones.get("rompe", false)):
+		_romper(n)
+		return
 	_soltar(n)
+
+
+## 6.17 Los SÓLIDOS SE ROMPEN: cada pieza del nodo cae hacia fuera girando, se encoge al tocar el suelo y se borra con el nodo.
+## (`apagar(nodo, {"rompe": true})`; los fluidos siguen apagándose con `apagar(nodo)`.)
+func _romper(n: Node3D) -> void:
+	var piezas: Array = n.find_children("*", "MeshInstance3D", true, false)
+	for h in n.get_children():
+		if h is GPUParticles3D:
+			(h as GPUParticles3D).emitting = false
+	var centro: Vector3 = n.global_position
+	for q in piezas:
+		var mi: MeshInstance3D = q as MeshInstance3D
+		var fuera: Vector3 = mi.global_position - centro
+		fuera.y = 0.0
+		fuera = fuera.normalized() * randf_range(0.2, 0.5) if fuera.length() > 0.05 else Vector3(randf_range(-0.3, 0.3), 0.0, randf_range(-0.3, 0.3))
+		var tw := mi.create_tween().set_parallel(true)
+		tw.tween_property(mi, "position", mi.position + fuera + Vector3(0.0, -maxf(mi.global_position.y - centro.y, 0.25), 0.0), 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_property(mi, "rotation", mi.rotation + Vector3(randf_range(-2, 2), randf_range(-2, 2), randf_range(-2, 2)), 0.45)
+		tw.chain().tween_property(mi, "scale", Vector3.ZERO, 0.25)
+		_estallido(mi.global_position, "piedrecitas", 3, 0.6, 1.6, 0.15, false, Color.WHITE, Vector3(0, -7, 0))
+	_despues(0.8, n.queue_free)
 
 
 ## Lanza un hechizo de `elemento` con la `forma` dada (FORMAS). `pie_origen` = pies del lanzador; `pie_destino` = el
@@ -240,17 +361,24 @@ func lanzar_forma(forma: String, elemento: String, pie_origen: Vector3, pie_dest
 	var radio: float = float(opciones.get("radio", 1.2))
 	match forma:
 		"corro":
-			_corro(elemento, pie_origen, pie_destino, radio, float(opciones.get("dura", 2.0)))
+			if bool(opciones.get("crece", false)):
+				_pulso_crece(elemento, pie_origen, pie_destino, radio, float(opciones.get("dura", 1.6)), bool(opciones.get("rompe", true)))
+			else:
+				_corro(elemento, pie_origen, pie_destino, radio, float(opciones.get("dura", 2.0)))
 		"columna":
 			_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
 		"muro":
 			_muro(elemento, pie_origen, pie_destino, radio, float(opciones.get("dura", 0.9)))
 		"bola":
-			lanzar(elemento, pie_origen, pie_destino)
+			lanzar(elemento, pie_origen, pie_destino, float(opciones.get("radio", 0.22)))
 		"pilar":
 			_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
 		"onda":
-			_onda_forma(elemento, pie_origen, pie_destino, maxf(radio, 1.8) if not opciones.has("radio") else radio, float(opciones.get("dura", 0.7)))
+			# 6.17: el pulso es un aro que CRECE desde el jugador (opciones "crece": false vuelve al pulso antiguo de ondas).
+			if bool(opciones.get("crece", true)):
+				_pulso_crece(elemento, pie_origen, pie_destino, maxf(radio, 1.8) if not opciones.has("radio") else radio, float(opciones.get("dura", 1.6)), bool(opciones.get("rompe", true)))
+			else:
+				_onda_forma(elemento, pie_origen, pie_destino, maxf(radio, 1.8) if not opciones.has("radio") else radio, float(opciones.get("dura", 0.7)))
 		"chorro":
 			_chorro_forma(elemento, pie_origen, pie_destino, float(opciones.get("largo", 4.0)), float(opciones.get("dura", 1.6)))
 		"acompanante":
@@ -490,6 +618,284 @@ func _acompanante(elemento: String, pie_origen: Vector3, pie_destino: Vector3, d
 	fin.tween_callback(raiz.queue_free)
 
 
+## --- 6.17 PULSO QUE CRECE (los cuatro fotogramas del playtest: puntos → anillo bajo → anillo lleno → ceniza) ---
+## `lanzar_forma("onda" o "corro", elemento, pie_origen, centro, {"crece": true, "radio": r, "dura": 1.6, "rompe": true})`.
+## Un aro nace pequeño y bajo en `centro` (el jugador), crece hasta `radio` y se completa (65 % de `dura`), se queda un momento y se
+## apaga (fluido: se hunde y se hace ceniza) o se ROMPE (`rompe`, solo tierra y hielo: caen los fragmentos). Es solo la imagen.
+const ANILLO_FUEGO: String = "res://poc_25d/vfx/anillo_fuego.glb"
+static var _f_malla: Mesh = null
+static var _f_radio: float = 1.0
+static var _f_alto: float = 0.5
+static var _f_probado: bool = false
+const CENIZA: Color = Color(0.62, 0.55, 0.5)
+
+
+func _cargar_fuego() -> bool:
+	if _f_probado:
+		return _f_malla != null
+	_f_probado = true
+	if not ResourceLoader.exists(ANILLO_FUEGO):
+		return false
+	var ps: PackedScene = load(ANILLO_FUEGO) as PackedScene
+	if ps == null:
+		return false
+	var raiz: Node = ps.instantiate()
+	var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+	var mi: MeshInstance3D = raiz as MeshInstance3D if raiz is MeshInstance3D else (l[0] as MeshInstance3D if not l.is_empty() else null)
+	if mi != null and mi.mesh != null:
+		# El GLB trae un montoncito blanco en el centro del aro: se quitan los triángulos bajos (< 0,3) a menos de 0,36 del centro.
+		_f_malla = _sin_centro(mi.mesh, 0.36)
+		var c: AABB = mi.mesh.get_aabb()
+		_f_radio = maxf(c.size.x, c.size.z) * 0.5
+		_f_alto = c.size.y
+	raiz.free()
+	return _f_malla != null
+
+
+## ETAPAS del aro de fuego (modelos de Pablo, 7/10): cuatro aros del mismo radio (0,5) y alto creciente: chispas sueltas
+## (0,29) → llamas sueltas (0,37) → aro de llamas (0,50) → aro alto (0,62). El pulso que crece pasa de una a otra mientras se
+## abre, así el fuego "prende" en vez de estirarse. Las texturas de Tripo salen pálidas y rosadas, así que el color lo pone
+## un shader por ALTURA (amarillo claro abajo → naranja → rojo en las puntas, la paleta de `pared_fuego`) y la textura solo
+## aporta el sombreado. Si falta alguno de los .glb se usa `anillo_fuego.glb` como antes.
+const FUEGO_ETAPAS: Array = ["res://poc_25d/vfx/fuego_1.glb", "res://poc_25d/vfx/fuego_2.glb",
+	"res://poc_25d/vfx/fuego_3.glb", "res://poc_25d/vfx/fuego_4.glb"]
+const ALTO_ETAPA_MAX: float = 0.62
+const CODIGO_FUEGO_ETAPAS: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
+
+uniform sampler2D textura : source_color, filter_linear_mipmap;
+uniform float alto = 0.62;
+uniform float alfa = 1.0;
+uniform float ceniza = 0.0;
+varying float vy;
+
+void vertex() {
+	vy = VERTEX.y;
+}
+
+void fragment() {
+	float t = clamp(vy / alto, 0.0, 1.0);
+	vec3 base = vec3(1.0, 0.93, 0.62);
+	vec3 medio = vec3(1.0, 0.6, 0.2);
+	vec3 punta = vec3(0.93, 0.3, 0.12);
+	vec3 col = t < 0.5 ? mix(base, medio, t * 2.0) : mix(medio, punta, (t - 0.5) * 2.0);
+	float lum = dot(texture(textura, UV).rgb, vec3(0.3, 0.59, 0.11));
+	col *= 0.7 + 0.4 * lum;
+	col = mix(col, vec3(0.62, 0.55, 0.5), ceniza);
+	ALBEDO = col;
+	ALPHA = alfa;
+}
+"""
+static var _f_etapas: Array = []          ## Array[Mesh], de menos a más fuego
+static var _f_etapa_tex: Texture2D = null
+static var _f_etapas_radio: float = 0.5
+static var _f_etapas_probado: bool = false
+
+
+func _cargar_etapas_fuego() -> bool:
+	if _f_etapas_probado:
+		return not _f_etapas.is_empty()
+	_f_etapas_probado = true
+	var mallas: Array = []
+	for ruta in FUEGO_ETAPAS:
+		if not ResourceLoader.exists(String(ruta)):
+			return false
+		var ps: PackedScene = load(String(ruta)) as PackedScene
+		if ps == null:
+			return false
+		var raiz: Node = ps.instantiate()
+		var mi: MeshInstance3D = raiz as MeshInstance3D
+		if mi == null:
+			var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+			mi = l[0] as MeshInstance3D if not l.is_empty() else null
+		if mi != null and mi.mesh != null:
+			mallas.append(mi.mesh)
+			var m0: Material = mi.mesh.surface_get_material(0)
+			if _f_etapa_tex == null and m0 is BaseMaterial3D:
+				_f_etapa_tex = (m0 as BaseMaterial3D).albedo_texture
+		raiz.free()
+	if mallas.size() != FUEGO_ETAPAS.size():
+		return false
+	var c: AABB = (mallas[mallas.size() - 1] as Mesh).get_aabb()
+	_f_etapas_radio = maxf(c.size.x, c.size.z) * 0.5
+	_f_etapas = mallas
+	return true
+
+
+## Material del aro por etapas (uno por pulso: su `alfa` y su `ceniza` se animan al apagarse).
+func _material_etapas() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = CODIGO_FUEGO_ETAPAS
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("alto", ALTO_ETAPA_MAX)
+	if _f_etapa_tex != null:
+		mat.set_shader_parameter("textura", _f_etapa_tex)
+	return mat
+
+
+## Copia de `malla` sin los triángulos bajos cuyo centro está a menos de `r_min` del eje Y (conserva UV y material).
+func _sin_centro(malla: Mesh, r_min: float) -> Mesh:
+	var res := ArrayMesh.new()
+	for si in range(malla.get_surface_count()):
+		var arr: Array = malla.surface_get_arrays(si)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		var nuevo := PackedInt32Array()
+		var t: int = 0
+		while t + 2 < idx.size():
+			var m: Vector3 = (v[idx[t]] + v[idx[t + 1]] + v[idx[t + 2]]) / 3.0
+			# Fuera lo que está dentro del hueco del aro y bajo (el montón blanco del GLB): radio < r_min y altura < 0,3.
+			if not (Vector2(m.x, m.z).length() < r_min and m.y < 0.3):
+				nuevo.append(idx[t])
+				nuevo.append(idx[t + 1])
+				nuevo.append(idx[t + 2])
+			t += 3
+		arr[Mesh.ARRAY_INDEX] = nuevo
+		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		res.surface_set_material(res.get_surface_count() - 1, malla.surface_get_material(si))
+	return res
+
+
+func _pulso_crece(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float, rompe: bool) -> void:
+	_carga(elemento, pie_origen)
+	var c: Color = COLOR[elemento]
+	var r: float = maxf(radio, 0.8) * escala
+	var t_total: float = maxf(dura, 0.8)
+	var t_crece: float = t_total * 0.5
+	var t_quieto: float = t_total * 0.2
+	var solido: bool = rompe and (elemento == "tierra" or elemento == "hielo")
+	var malla: Mesh = null
+	var r_mod: float = 1.0
+	var h_mod: float = 1.0
+	var etapas: Array = []
+	if elemento == "fuego" and _cargar_etapas_fuego():
+		etapas = _f_etapas
+		malla = etapas[0] as Mesh
+		r_mod = _f_etapas_radio
+		h_mod = ALTO_ETAPA_MAX
+	elif elemento == "fuego" and _cargar_fuego():
+		malla = _f_malla
+		r_mod = _f_radio
+		h_mod = _f_alto
+	elif elemento == "tierra" and _cargar_piedra():
+		malla = _p_anillo
+		r_mod = R_PIEDRA
+		h_mod = ALTO_PIEDRA
+	elif elemento == "rayo" and _cargar_energia():
+		malla = _e_domo
+		r_mod = R_ENERGIA
+		h_mod = ALTO_ENERGIA
+	# --- El aro: una malla del elemento (si hay modelo) o una corona de piezas ---
+	var aro := Node3D.new()
+	aro.position = centro
+	add_child(aro)
+	var piezas: Array = []
+	var angulos: Array = []
+	var hijo: MeshInstance3D = null
+	var mat: Material = null
+	var tam_pieza: float = 0.0
+	if malla != null:
+		hijo = MeshInstance3D.new()
+		hijo.mesh = malla
+		hijo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if not etapas.is_empty():
+			var me: ShaderMaterial = _material_etapas()
+			hijo.material_override = me
+			mat = me
+		elif elemento == "fuego" and malla.get_surface_count() > 0 and malla.surface_get_material(0) is BaseMaterial3D:
+			var md: BaseMaterial3D = (malla.surface_get_material(0) as BaseMaterial3D).duplicate() as BaseMaterial3D
+			md.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			hijo.material_override = md
+			mat = md
+		aro.add_child(hijo)
+	else:
+		var nombre: String = {"fuego": "llama", "agua": "salpicadura", "tierra": "pua", "viento": "remolino_viento", "rayo": "rayo",
+			"hielo": "cristal_hielo"}[elemento]
+		tam_pieza = {"fuego": 0.55, "agua": 0.5, "tierra": 0.45, "viento": 0.55, "rayo": 0.6, "hielo": 0.55}[elemento] * escala
+		var n: int = clampi(int(ceil(TAU * r / 0.42)), 12, 30)
+		for i in range(n):
+			var pz: MeshInstance3D = _pieza(nombre, aro, tam_pieza * randf_range(0.8, 1.25), Color.WHITE)
+			var a: float = float(i) / float(n) * TAU + randf() * 0.15
+			pz.rotation.y = -a
+			piezas.append(pz)
+			angulos.append(a)
+	var k_xz: float = r / r_mod
+	var k_y: float = clampf(r / r_mod, 0.7, 1.7)
+	var _poner := func(p: float) -> void:
+		var e: float = 1.0 - pow(1.0 - p, 2.0)                   # el radio sale rápido y frena
+		var rr: float = lerpf(0.12, 1.0, e)
+		var alto: float = lerpf(0.08, 1.0, smoothstep(0.0, 1.0, p))
+		if hijo != null and not etapas.is_empty():
+			# Con etapas el alto lo da el modelo de cada etapa: chispas → llamas sueltas → aro → aro alto.
+			hijo.mesh = etapas[mini(int(p * float(etapas.size())), etapas.size() - 1)] as Mesh
+			hijo.scale = Vector3(k_xz * rr, k_y * lerpf(0.6, 1.0, alto), k_xz * rr)
+		elif hijo != null:
+			hijo.scale = Vector3(k_xz * rr, k_y * alto, k_xz * rr)
+		for i in range(piezas.size()):
+			var a2: float = float(angulos[i])
+			(piezas[i] as MeshInstance3D).position = Vector3(cos(a2), 0.0, sin(a2)) * r * rr
+			(piezas[i] as MeshInstance3D).scale = Vector3.ONE * lerpf(0.25, 1.0, alto)
+	_poner.call(0.0)
+	var tw := aro.create_tween()
+	tw.tween_method(_poner, 0.0, 1.0, t_crece)
+	tw.tween_interval(t_quieto)
+	# Luz y chispas mientras crece
+	_luz(centro + Vector3(0.0, 0.5, 0.0), c, 1.6, 3.0 + radio, t_total * 0.8)
+	if elemento == "tierra":
+		_despues(t_crece, _temblor.bind(0.06))
+	# --- Fin: fragmentos que caen (sólidos) o ceniza / se hunde (fluidos) ---
+	var fin_t: float = t_total - t_crece - t_quieto
+	if solido:
+		tw.tween_callback(_fragmentos.bind(centro, r, "tierra" if elemento == "tierra" else "hielo", aro))
+		tw.tween_interval(0.9)
+		tw.tween_callback(aro.queue_free)
+	else:
+		tw.tween_callback(_ceniza_aro.bind(centro, r, elemento))
+		tw.tween_method(func(q: float) -> void:
+			if mat is ShaderMaterial:
+				(mat as ShaderMaterial).set_shader_parameter("ceniza", minf(q * 2.0, 1.0))
+				(mat as ShaderMaterial).set_shader_parameter("alfa", 1.0 - maxf(q - 0.4, 0.0) / 0.6)
+			elif mat != null and mat is BaseMaterial3D:
+				(mat as BaseMaterial3D).albedo_color = Color.WHITE.lerp(CENIZA, minf(q * 2.0, 1.0)) * Color(1, 1, 1, 1.0 - maxf(q - 0.4, 0.0) / 0.6)
+			if hijo != null:
+				hijo.scale = Vector3(k_xz * (1.0 + 0.04 * q), k_y * (1.0 - 0.85 * q), k_xz * (1.0 + 0.04 * q))
+			for pz in piezas:
+				(pz as MeshInstance3D).scale = Vector3.ONE * (1.0 - q), 0.0, 1.0, fin_t)
+		tw.tween_callback(aro.queue_free)
+
+
+## Ceniza que cae del aro de fluido: motas beis alrededor de la circunferencia.
+func _ceniza_aro(centro: Vector3, r: float, elemento: String) -> void:
+	for i in range(8):
+		var a: float = float(i) / 8.0 * TAU
+		var pt: Vector3 = centro + Vector3(cos(a), 0.0, sin(a)) * r + Vector3(0.0, 0.3 * escala, 0.0)
+		_estallido(pt, "humo", 3, 0.9, 0.5, 0.28, false, CENIZA, Vector3(0, -1.2, 0))
+
+
+## Fragmentos que caen del aro sólido (tierra: piedras; hielo: cristales) y el aro desaparece.
+func _fragmentos(centro: Vector3, r: float, tipo: String, aro: Node3D) -> void:
+	for h in aro.get_children():
+		(h as Node3D).visible = false
+	var n: int = clampi(int(ceil(TAU * r / 0.5)), 10, 26)
+	var nombre: String = "piedra" if tipo == "tierra" else "cristal_hielo"
+	var color: Color = Color.WHITE
+	for i in range(n):
+		var a: float = float(i) / float(n) * TAU + randf() * 0.2
+		var radial := Vector3(cos(a), 0.0, sin(a))
+		var f: MeshInstance3D = _pieza(nombre, self, randf_range(0.22, 0.4) * escala, color)
+		f.position = centro + radial * r + Vector3(0.0, randf_range(0.25, 0.6) * escala, 0.0)
+		var tw := f.create_tween().set_parallel(true)
+		tw.tween_property(f, "position", centro + radial * (r + randf_range(0.1, 0.45)) + Vector3(0.0, 0.05, 0.0), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_property(f, "rotation", Vector3(randf_range(-3, 3), randf_range(-3, 3), randf_range(-3, 3)), 0.5)
+		tw.chain().tween_property(f, "scale", Vector3.ZERO, 0.3)
+		tw.chain().tween_callback(f.queue_free)
+		if i % 3 == 0:
+			_despues(0.45, _estallido.bind(centro + radial * r + Vector3(0, 0.1, 0), "piedrecitas" if tipo == "tierra" else "copo", 5, 0.6, 1.8, 0.18, false, Color.WHITE, Vector3(0, -6, 0)))
+	_temblor(0.05)
+
+
 ## --- CÚPULA (barrera de referencia: vídeos de tools/) y PERFILES de elemento ---
 ## Idea de diseño (Pablo, 6/10): forma = geometría + movimiento; elemento = DATOS. Un perfil es una fila de esta tabla; una
 ## combinación nueva (vapor, tormenta, lo que decida el Juego) es una fila nueva, no código nuevo en cada forma. Los casos
@@ -555,10 +961,52 @@ void fragment() {
 var _sh_cupula: Shader = null
 
 
+## 6.19 CÚPULA DE TIERRA: una esfera (hemisferio) de rocas alrededor del punto. Las rocas brotan del suelo de abajo arriba, se
+## quedan `dura` s y al acabar CAYERON hacia fuera y se rompen (el aire entre rocas deja ver al jugador). Solo la imagen.
+func _cupula_roca(centro: Vector3, r: float, dura: float) -> void:
+	var raiz := Node3D.new()
+	raiz.position = centro
+	add_child(raiz)
+	var n: int = clampi(int(round(r * r * 9.0)), 14, 30)
+	var dorada: float = PI * (3.0 - sqrt(5.0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(centro.x * 31.0 + centro.z * 17.0) + 3
+	var piezas: Array = []
+	for i in range(n):
+		var yn: float = (float(i) + 0.5) / float(n)               # 0 = base, 1 = coronilla
+		var altura: float = lerpf(0.02, 0.98, yn)
+		var rad_h: float = sqrt(maxf(1.0 - altura * altura, 0.0))
+		var a: float = float(i) * dorada
+		var pos := Vector3(cos(a) * rad_h, altura, sin(a) * rad_h) * r
+		var tam: float = (0.4 + 0.14 * rng.randf()) * escala * clampf(r / 1.4, 0.8, 1.4)
+		var pz: MeshInstance3D = _pieza("piedra", raiz, tam, Color.WHITE)
+		pz.position = pos + Vector3(0.0, -0.3 * escala, 0.0)
+		pz.rotation = Vector3(rng.randf() * TAU, rng.randf() * TAU, rng.randf() * TAU)
+		pz.scale = Vector3.ONE * 0.05
+		pz.visible = false
+		piezas.append([pz, pos, yn])
+		var tw := pz.create_tween()
+		tw.tween_interval(0.05 + 0.5 * yn)
+		tw.tween_callback(pz.set.bind("visible", true))
+		tw.tween_property(pz, "scale", Vector3.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(pz, "position", pos, 0.2).set_ease(Tween.EASE_OUT)
+		if i % 6 == 0:
+			_despues(0.05 + 0.5 * yn, _estallido.bind(centro + pos, "piedrecitas", 5, 0.5, 1.6, 0.14, false, Color.WHITE, Vector3(0, -6, 0)))
+	_despues(0.3, _temblor.bind(0.07))
+	_luz(centro + Vector3(0.0, r * 0.4, 0.0), COLOR["tierra"], 1.0, 3.0 + r, minf(dura, 1.0))
+	var fin := raiz.create_tween()
+	fin.tween_interval(0.7 + maxf(dura - 0.7, 0.3))
+	fin.tween_callback(_romper.bind(raiz))
+	fin.tween_callback(_temblor.bind(0.05))
+
+
 ## Cúpula esférica del elemento sobre el punto (la barrera de los vídeos de referencia): sube del suelo, flota con el ruido del
 ## elemento y se hunde al final. Solo dibuja. `radio` en unidades de mundo.
 func _cupula(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float) -> void:
 	_carga(elemento, pie_origen)
+	if elemento == "tierra":
+		_cupula_roca(centro, maxf(radio, 0.8) * escala, dura)
+		return
 	var perfil: Dictionary = PERFIL.get(elemento, PERFIL["fuego"])
 	if _sh_cupula == null:
 		_sh_cupula = Shader.new()
@@ -1199,6 +1647,63 @@ func vapor(p: Vector3) -> void:
 	_estallido(p + Vector3(0.0, 0.3, 0.0), "humo", 9, 2.5, 0.8, 0.8, false, Color(0.95, 0.95, 1.0), Vector3(0, 0.7, 0))
 
 
+## SALPICADURA en el agua (algo que emerge o cae a la superficie, p. ej. las losas del puente reactivo). Tres capas:
+##   · dos anillos de onda que se abren y se desvanecen (lo que más comunica «toca agua»), el segundo algo después
+##   · un chorro de gotas hacia arriba (partículas, una sola ráfaga)
+##   · una bruma blanca que sube y se va
+## `p` = punto sobre la superficie del agua; `tam` escala todo.
+const CODIGO_ONDA_AGUA: String = """
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never;
+uniform float avance : hint_range(0.0, 1.0) = 0.0;
+uniform vec4 color : source_color = vec4(0.88, 0.96, 1.0, 1.0);
+void fragment() {
+	float d = length(UV * 2.0 - 1.0);
+	float radio = mix(0.12, 0.95, 1.0 - pow(1.0 - avance, 2.0));
+	float grosor = mix(0.12, 0.05, avance);
+	float aro = smoothstep(grosor, 0.0, abs(d - radio));
+	ALBEDO = color.rgb;
+	ALPHA = aro * smoothstep(1.0, 0.8, d) * (1.0 - avance) * color.a;
+}
+"""
+var _sombreado_onda: Shader = null
+
+
+func salpicadura(p: Vector3, tam: float = 1.0) -> void:
+	if _sombreado_onda == null:
+		_sombreado_onda = Shader.new()
+		_sombreado_onda.code = CODIGO_ONDA_AGUA
+	for k in range(2):
+		var mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2.ONE * 3.4 * tam * escala
+		var mat := ShaderMaterial.new()
+		mat.shader = _sombreado_onda
+		pm.material = mat
+		mi.mesh = pm
+		mi.position = p + Vector3(0.0, 0.04 + 0.003 * float(k), 0.0)
+		mi.visible = false
+		add_child(mi)
+		var tw := mi.create_tween()
+		tw.tween_interval(0.16 * float(k))
+		tw.tween_callback(mi.set.bind("visible", true))
+		tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("avance", v), 0.0, 1.0, 0.85)
+		tw.tween_callback(mi.queue_free)
+	var gp := _particulas("gota", 18, 0.9, 3.2 * tam, 0.14, false, Color(0.88, 0.96, 1.0), Vector3(0.0, -9.0, 0.0))
+	gp.one_shot = true
+	gp.explosiveness = 0.95
+	var pr: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+	pr.direction = Vector3.UP
+	pr.spread = 38.0
+	pr.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pr.emission_sphere_radius = 0.35 * tam * escala
+	gp.position = p + Vector3(0.0, 0.05, 0.0)
+	add_child(gp)
+	gp.emitting = true
+	_despues(1.3, gp.queue_free)
+	_estallido(p + Vector3(0.0, 0.15, 0.0), "humo", 4, 0.9, 0.5 * tam, 0.45 * tam, false, Color(1.0, 1.0, 1.0, 0.55), Vector3(0.0, 0.3, 0.0))
+
+
 ## --- Fases ---
 
 ## Círculo rúnico (plano, en 3D) del color del elemento bajo los pies del lanzador.
@@ -1216,7 +1721,7 @@ func _carga(elemento: String, pie: Vector3) -> void:
 	_luz(pie + Vector3(0.0, 0.5, 0.0), c, 1.2, 2.5, 0.6)
 
 
-func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: float) -> void:
+func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: float, f: float = 1.0) -> void:
 	var cabeza := Node3D.new()
 	add_child(cabeza)
 	cabeza.position = origen
@@ -1235,26 +1740,39 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 	cabeza.add_child(pivote)
 	match elemento:
 		"fuego":
-			var llama: MeshInstance3D = _pieza("llama", pivote, 0.55 * escala, Color.WHITE)
-			llama.position.y = -0.3 * 0.55 * escala
-			_girar(llama, 0.35)
-			_estela(cabeza, "brasa", 30, 0.5, 0.14, true, c)
-			_estela(cabeza, "humo", 10, 0.7, 0.3, false, Color.WHITE)
+			# Bola de fuego: núcleo amarillo opaco + envoltura naranja de llamas (shader de cúpula) + estela de brasas y humo.
+			_esfera_perfil(cabeza, "fuego", 0.2 * f * escala)
+			_esfera_plana(cabeza, 0.11 * f * escala, Color(1.0, 0.95, 0.55))
+			_estela(cabeza, "brasa", 24, 0.45, 0.1 * f, true, c)
+			_estela(cabeza, "llama", 10, 0.35, 0.22 * f, false, Color.WHITE)
+			_estela(cabeza, "humo", 8, 0.6, 0.22 * f, false, Color.WHITE)
+		"rayo":
+			# Bola eléctrica: núcleo blanco y envoltura azul con relámpagos que saltan por la superficie + chispas.
+			_esfera_perfil(cabeza, "rayo", 0.2 * f * escala)
+			_esfera_plana(cabeza, 0.1 * f * escala, Color(0.92, 0.97, 1.0))
+			_estela(cabeza, "chispa_electrica", 18, 0.3, 0.14 * f, true, Color.WHITE)
+		"tierra":
+			var pe: MeshInstance3D = _pieza("piedra", pivote, 0.34 * f * escala, Color.WHITE)
+			_girar(pe, 0.5)
+			_estela(cabeza, "piedrecitas", 10, 0.4, 0.1 * f, false, Color.WHITE)
+			_estela(cabeza, "polvo", 6, 0.5, 0.2 * f, false, Color.WHITE)
 		"agua":
-			var gota: MeshInstance3D = _pieza("gota", pivote, 0.42 * escala, Color.WHITE)
+			var gota: MeshInstance3D = _pieza("gota", pivote, 0.34 * f * escala, Color.WHITE)
 			_girar(gota, 0.6)
-			_estela(cabeza, "gota", 26, 0.35, 0.14, false, Color.WHITE)
-			_estela(cabeza, "burbuja", 8, 0.6, 0.12, false, Color.WHITE)
+			_estela(cabeza, "gota", 20, 0.35, 0.11 * f, false, Color.WHITE)
+			_estela(cabeza, "burbuja", 6, 0.6, 0.1 * f, false, Color.WHITE)
 		"viento":
-			var r: MeshInstance3D = _pieza("remolino_viento", pivote, 0.7 * escala, Color.WHITE)
-			r.position.y = -0.35 * escala
+			var r: MeshInstance3D = _pieza("remolino_viento", pivote, 0.65 * f * escala, Color.WHITE)
+			r.position.y = -0.32 * f * escala
 			_girar(r, 0.3)
-			_estela(cabeza, "hoja", 14, 0.6, 0.16, false, Color.WHITE)
+			_estela(cabeza, "hoja", 10, 0.6, 0.13 * f, false, Color.WHITE)
 		"hielo":
-			var cr: MeshInstance3D = _pieza("cristal_hielo", pivote, 0.55 * escala, Color.WHITE)
-			cr.position.y = -0.25 * escala
+			# Carámbano: el cristal, alargado en el eje de avance.
+			var cr: MeshInstance3D = _pieza("cristal_hielo", pivote, 0.36 * f * escala, Color.WHITE)
+			cr.position.y = -0.16 * f * escala
+			cr.scale = Vector3(0.8, 1.5, 0.8)
 			_girar(cr, 0.8)
-			_estela(cabeza, "copo", 24, 0.5, 0.12, true, c)
+			_estela(cabeza, "copo", 18, 0.5, 0.1 * f, true, c)
 	if con_luces:
 		var l := OmniLight3D.new()
 		l.light_color = c
@@ -1265,6 +1783,51 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 	var tw2 := cabeza.create_tween()
 	tw2.tween_method(_mover_proyectil.bind(cabeza, origen, destino), 0.0, 1.0, t)
 	tw2.tween_callback(_llegar.bind(elemento, cabeza, y_suelo))
+
+
+## Esfera de baja poligonización con el shader de cúpula y el PERFIL del elemento (envoltura de llamas, de relámpagos...).
+func _esfera_perfil(padre: Node3D, elemento: String, radio: float) -> MeshInstance3D:
+	if _sh_cupula == null:
+		_sh_cupula = Shader.new()
+		_sh_cupula.code = CODIGO_CUPULA
+	var perfil: Dictionary = PERFIL[elemento]
+	var mat := ShaderMaterial.new()
+	mat.shader = _sh_cupula
+	for k in ["nucleo", "borde", "flujo", "escala", "venas", "facetas", "llamas"]:
+		var v: Variant = perfil[k]
+		mat.set_shader_parameter(k, float(v) if v is int else v)
+	mat.set_shader_parameter("aparece", 1.1)
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 14
+	sm.rings = 7
+	mi.mesh = sm
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3.ONE * (2.0 * radio)
+	padre.add_child(mi)
+	return mi
+
+
+## Esfera plana sin luz (el núcleo de las bolas).
+func _esfera_plana(padre: Node3D, radio: float, color: Color) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.radial_segments = 10
+	sm.rings = 5
+	mi.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = color
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = Vector3.ONE * (2.0 * radio)
+	padre.add_child(mi)
+	return mi
 
 
 ## Arco suave: sube un poco a mitad de camino.
@@ -1283,6 +1846,10 @@ func _llegar(elemento: String, cabeza: Node3D, y_suelo: float) -> void:
 			_impacto_viento(p, y_suelo)
 		"hielo":
 			_impacto_hielo(p, y_suelo)
+		"tierra":
+			_impacto_tierra(Vector3(p.x, y_suelo, p.z))
+		"rayo":
+			_impacto_rayo(Vector3(p.x, y_suelo, p.z))
 	_soltar(cabeza)
 
 
@@ -1620,6 +2187,11 @@ func _temblor(fuerza: float) -> void:
 ## Deja de emitir y borra el nodo cuando sus partículas se han apagado.
 func _soltar(n: Variant) -> void:
 	if n == null or not is_instance_valid(n):
+		return
+	if (n as Node).has_meta("tramo_celda"):      # un tramo de pared de fuego larga: apaga SOLO esa casilla (7.11)
+		var ce: Vector2i = (n as Node).get_meta("tramo_celda")
+		(n as Node).queue_free()
+		apagar_tramo(null, ce)
 		return
 	for h in n.get_children():
 		if h is GPUParticles3D:

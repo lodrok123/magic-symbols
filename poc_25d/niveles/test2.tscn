@@ -1,0 +1,2640 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://poc_25d/pieza_3d.gd" id="1_ao5q7"]
+
+[node name="Nivel_test2" type="Node3D" unique_id=1044500779]
+
+[node name="pino_0_0" type="Node3D" parent="." unique_id=1681878253]
+transform = Transform3D(-0.44713837, 0, -0.91677, 0, 1.02, 0, 0.91677, 0, -0.44713837, 0.88549995, 1.005, 1.426)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_1_0" type="Node3D" parent="." unique_id=2015980099]
+transform = Transform3D(1.1093239, 0, -0.038738556, 0, 1.11, 0, 0.038738556, 0, 1.1093239, 3.6455, 1.005, 1.3685)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_0" type="Node3D" parent="." unique_id=437195243]
+transform = Transform3D(-0.71877193, 0, -0.54163355, 0, 0.9, 0, 0.54163355, 0, -0.71877193, 5.5545, 1.005, 1.3685)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_3_0" type="Node3D" parent="." unique_id=2145649923]
+transform = Transform3D(-0.17017518, 0, -0.9651117, 0, 0.98, 0, 0.9651117, 0, -0.17017518, 7.8545003, 1.005, 1.449)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_4_0" type="Node3D" parent="." unique_id=1111530748]
+transform = Transform3D(0.60952026, 0, 0.90365094, 0, 1.09, 0, -0.90365094, 0, 0.60952026, 10.269501, 1.005, 1.2075)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_5_0" type="Node3D" parent="." unique_id=1654815311]
+transform = Transform3D(-0.86219907, 0, 0.58156055, 0, 1.04, 0, -0.58156055, 0, -0.86219907, 12.65, 1.005, 1.288)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_6_0" type="Node3D" parent="." unique_id=1569759118]
+transform = Transform3D(-0.5446391, 0, -0.83867055, 0, 1, 0, 0.83867055, 0, -0.5446391, 15.1915, 1.005, 1.0925)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_7_0" type="Node3D" parent="." unique_id=1427822279]
+transform = Transform3D(-0.4649999, 0, -0.80540365, 0, 0.93, 0, 0.80540365, 0, -0.4649999, 16.9625, 1.005, 1.058)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_8_0" type="Node3D" parent="." unique_id=1963896971]
+transform = Transform3D(0.92089874, 0, -0.33517995, 0, 0.98, 0, 0.33517995, 0, 0.92089874, 19.6995, 1.005, 1.472)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_9_0" type="Node3D" parent="." unique_id=1053418871]
+transform = Transform3D(0.75717765, 0, 0.7840804, 0, 1.09, 0, -0.7840804, 0, 0.75717765, 21.505001, 1.005, 1.219)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_10_0" type="Node3D" parent="." unique_id=149082212]
+transform = Transform3D(0.84286624, 0, 0.393035, 0, 0.93, 0, -0.393035, 0, 0.84286624, 24.196, 1.005, 1.012)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_11_0" type="Node3D" parent="." unique_id=677100800]
+transform = Transform3D(-0.8635632, 0, 0.21531045, 0, 0.89, 0, -0.21531045, 0, -0.8635632, 26.220001, 1.005, 0.83949995)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_12_0" type="Node3D" parent="." unique_id=793427276]
+transform = Transform3D(1.0614983, 0, -0.32453266, 0, 1.11, 0, 0.32453266, 0, 1.0614983, 28.7615, 1.005, 1.0695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_0" type="Node3D" parent="." unique_id=224517078]
+transform = Transform3D(0.36938173, 0, -1.014868, 0, 1.08, 0, 1.014868, 0, 0.36938173, 31.325998, 1.005, 1.288)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_14_0" type="Node3D" parent="." unique_id=1129283583]
+transform = Transform3D(-0.41416582, 0, -0.8881817, 0, 0.98, 0, 0.8881817, 0, -0.41416582, 33.671997, 1.005, 1.15)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_15_0" type="Node3D" parent="." unique_id=144460029]
+transform = Transform3D(0.55360097, 0, 0.8207472, 0, 0.99, 0, -0.8207472, 0, 0.55360097, 35.535, 1.005, 1.3685)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_16_0" type="Node3D" parent="." unique_id=972578870]
+transform = Transform3D(0.5149999, 0, 0.89200616, 0, 1.03, 0, -0.89200616, 0, 0.5149999, 38.2375, 1.005, 1.4375)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_17_0" type="Node3D" parent="." unique_id=574672991]
+transform = Transform3D(-0.89009655, 0, 0.3596222, 0, 0.96, 0, -0.3596222, 0, -0.89009655, 39.9395, 1.005, 1.1385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_18_0" type="Node3D" parent="." unique_id=1218443965]
+transform = Transform3D(-0.76271456, 0, -0.5144575, 0, 0.92, 0, 0.5144575, 0, -0.76271456, 42.2855, 1.005, 1.449)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_19_0" type="Node3D" parent="." unique_id=357877035]
+transform = Transform3D(-0.9804869, 0, 0.2811501, 0, 1.02, 0, -0.2811501, 0, -0.9804869, 44.711998, 1.005, 1.173)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_20_0" type="Node3D" parent="." unique_id=492105]
+transform = Transform3D(0.9957647, 0, -0.4433428, 0, 1.09, 0, 0.4433428, 0, 0.9957647, 46.828003, 1.005, 0.95449996)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_21_0" type="Node3D" parent="." unique_id=2004703148]
+transform = Transform3D(-0.9411869, 0, -0.23466416, 0, 0.97, 0, 0.23466416, 0, -0.9411869, 49.7605, 1.005, 0.86249995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_22_0" type="Node3D" parent="." unique_id=620202288]
+transform = Transform3D(-0.80823165, 0, 0.6544933, 0, 1.04, 0, -0.6544933, 0, -0.80823165, 52.049, 1.005, 0.81649995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_23_0" type="Node3D" parent="." unique_id=1169547280]
+transform = Transform3D(1.049684, 0, 0.14752348, 0, 1.06, 0, -0.14752348, 0, 1.049684, 53.8315, 1.005, 1.2535)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_24_0" type="Node3D" parent="." unique_id=1519125229]
+transform = Transform3D(-0.9225376, 0, 0.599103, 0, 1.1, 0, -0.599103, 0, -0.9225376, 56.465, 1.005, 1.2305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_25_0" type="Node3D" parent="." unique_id=1494447259]
+transform = Transform3D(-0.03838941, 0, 1.09933, 0, 1.1, 0, -1.09933, 0, -0.03838941, 58.328003, 1.005, 1.4375)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_26_0" type="Node3D" parent="." unique_id=208616864]
+transform = Transform3D(0.34835798, 0, -1.0117049, 0, 1.07, 0, 1.0117049, 0, 0.34835798, 60.766003, 1.005, 0.87399995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_27_0" type="Node3D" parent="." unique_id=1029554501]
+transform = Transform3D(0.91775894, 0, 0.064175956, 0, 0.92, 0, -0.064175956, 0, 0.91775894, 63.1235, 1.005, 0.86249995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_28_0" type="Node3D" parent="." unique_id=1714137636]
+transform = Transform3D(0.5907837, 0, 0.8437266, 0, 1.03, 0, -0.8437266, 0, 0.5907837, 65.5155, 1.005, 1.4605)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_29_0" type="Node3D" parent="." unique_id=599445606]
+transform = Transform3D(-0.19959544, 0, -0.93902165, 0, 0.96, 0, 0.93902165, 0, -0.19959544, 67.942, 1.005, 0.94299996)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_30_0" type="Node3D" parent="." unique_id=589010302]
+transform = Transform3D(-1.0568266, 0, -0.16738479, 0, 1.07, 0, 0.16738479, 0, -1.0568266, 70.265, 1.005, 1.2535)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_31_0" type="Node3D" parent="." unique_id=537624395]
+transform = Transform3D(-0.89011437, 0, 0.18919957, 0, 0.91, 0, -0.18919957, 0, -0.89011437, 72.21999, 1.005, 1.0465)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_32_0" type="Node3D" parent="." unique_id=591396070]
+transform = Transform3D(-0.15174142, 0, 0.95805776, 0, 0.97, 0, -0.95805776, 0, -0.15174142, 74.5315, 1.005, 1.15)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_33_0" type="Node3D" parent="." unique_id=1424420842]
+transform = Transform3D(-1.0576224, 0, 0.26369482, 0, 1.09, 0, -0.26369482, 0, -1.0576224, 76.900505, 1.005, 0.89699996)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_34_0" type="Node3D" parent="." unique_id=232739778]
+transform = Transform3D(-0.91207796, 0, 0.22740655, 0, 0.94, 0, -0.22740655, 0, -0.91207796, 79.235, 1.005, 1.0925)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_35_0" type="Node3D" parent="." unique_id=1639813075]
+transform = Transform3D(-0.9149602, 0, 0.096166216, 0, 0.92, 0, -0.096166216, 0, -0.9149602, 81.466, 1.005, 0.88549995)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_36_0" type="Node3D" parent="." unique_id=685059193]
+transform = Transform3D(-0.68595916, 0, -0.8470892, 0, 1.09, 0, 0.8470892, 0, -0.68595916, 83.766, 1.005, 1.2075)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_37_0" type="Node3D" parent="." unique_id=915884912]
+transform = Transform3D(0.780302, 0, 0.7025871, 0, 1.05, 0, -0.7025871, 0, 0.780302, 86.5605, 1.005, 1.035)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_38_0" type="Node3D" parent="." unique_id=626937813]
+transform = Transform3D(-0.047625706, 0, 0.90875286, 0, 0.91, 0, -0.90875286, 0, -0.047625706, 88.2855, 1.005, 1.0465)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_0" type="Node3D" parent="." unique_id=99187864]
+transform = Transform3D(0.49097568, 0, 1.0066494, 0, 1.12, 0, -1.0066494, 0, 0.49097568, 90.781, 1.005, 1.242)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_1" type="Node3D" parent="." unique_id=762718354]
+transform = Transform3D(-1.0635924, 0, -0.18754008, 0, 1.08, 0, 0.18754008, 0, -1.0635924, 1.311, 1.005, 3.3925002)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_1_1" type="Node3D" parent="." unique_id=162108964]
+transform = Transform3D(-1.0271958, 0, 0.16269182, 0, 1.04, 0, -0.16269182, 0, -1.0271958, 3.749, 1.005, 3.542)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_13_1" type="Node3D" parent="." unique_id=158241514]
+transform = Transform3D(1.0328323, 0, 0.2384481, 0, 1.06, 0, -0.2384481, 0, 1.0328323, 31.314499, 1.005, 3.3695002)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_14_1" type="Node3D" parent="." unique_id=280601094]
+transform = Transform3D(0.45590582, 0, -0.93474585, 0, 1.04, 0, 0.93474585, 0, 0.45590582, 33.465, 1.005, 3.4615)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_15_1" type="Node3D" parent="." unique_id=871869539]
+transform = Transform3D(0.5047473, 0, 0.7208538, 0, 0.88, 0, -0.7208538, 0, 0.5047473, 35.535, 1.005, 3.266)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_18_1" type="Node3D" parent="." unique_id=36487158]
+transform = Transform3D(-0.8487049, 0, 0.49000007, 0, 0.98, 0, -0.49000007, 0, -0.8487049, 42.3775, 1.005, 3.1395001)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbol_redondo_24_1" type="Node3D" parent="." unique_id=1811195109]
+transform = Transform3D(-0.16149282, 0, 0.9158712, 0, 0.93, 0, -0.9158712, 0, -0.16149282, 56.510998, 1.005, 3.105)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_25_1" type="Node3D" parent="." unique_id=652948539]
+transform = Transform3D(0.51740706, 0, 0.7967371, 0, 0.95, 0, -0.7967371, 0, 0.51740706, 58.696003, 1.005, 3.2315001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_1" type="Node3D" parent="." unique_id=221782080]
+transform = Transform3D(-0.22870292, 0, 1.0759623, 0, 1.1, 0, -1.0759623, 0, -0.22870292, 60.881, 1.005, 3.519)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_33_1" type="Node3D" parent="." unique_id=1530633764]
+transform = Transform3D(0.57037675, 0, -0.84561837, 0, 1.02, 0, 0.84561837, 0, 0.57037675, 77.107506, 0.965, 3.5535)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_38_1" type="Node3D" parent="." unique_id=1148418007]
+transform = Transform3D(0.82741135, 0, -0.64644444, 0, 1.05, 0, 0.64644444, 0, 0.82741135, 88.826004, 1.005, 3.68)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_39_1" type="Node3D" parent="." unique_id=104045370]
+transform = Transform3D(0.89124125, 0, -0.12525578, 0, 0.9, 0, 0.12525578, 0, 0.89124125, 90.757996, 1.005, 3.7375)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_0_2" type="Node3D" parent="." unique_id=326765699]
+transform = Transform3D(-0.903217, 0, 0.11090105, 0, 0.91, 0, -0.11090105, 0, -0.903217, 0.88549995, 1.005, 5.4625)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_13_2" type="Node3D" parent="." unique_id=1651712089]
+transform = Transform3D(-0.49763983, 0, 0.93592435, 0, 1.06, 0, -0.93592435, 0, -0.49763983, 31.394999, 1.005, 5.612)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="pino_14_2" type="Node3D" parent="." unique_id=390729939]
+transform = Transform3D(0.51499987, 0, -0.89200616, 0, 1.03, 0, 0.89200616, 0, 0.51499987, 33.004997, 1.005, 5.4395)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_15_2" type="Node3D" parent="." unique_id=1449507509]
+transform = Transform3D(-0.20791174, 0, 0.97814757, 0, 1, 0, -0.97814757, 0, -0.20791174, 35.891502, 1.005, 5.5775)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_17_2" type="Node3D" parent="." unique_id=1141550759]
+transform = Transform3D(-0.76210237, 0, -0.43999997, 0, 0.88, 0, 0.43999997, 0, -0.76210237, 40.181, 1.005, 5.428)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_18_2" type="Node3D" parent="." unique_id=1936043193]
+transform = Transform3D(-0.91716903, 0, 0.5510907, 0, 1.07, 0, -0.5510907, 0, -0.91716903, 42.32, 1.005, 5.474)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="portal_salida_19_2" type="Node3D" parent="." unique_id=1984508859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.005, 5.75)
+script = ExtResource("1_ao5q7")
+id = "portal_salida"
+
+[node name="arbol_redondo_24_2" type="Node3D" parent="." unique_id=944678877]
+transform = Transform3D(-0.16269189, 0, -1.0271958, 0, 1.04, 0, 1.0271958, 0, -0.16269189, 56.6145, 1.005, 6.026)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_25_2" type="Node3D" parent="." unique_id=160970926]
+transform = Transform3D(-0.97124237, 0, 0.51641876, 0, 1.1, 0, -0.51641876, 0, -0.97124237, 58.834, 1.005, 5.6925)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_26_2" type="Node3D" parent="." unique_id=1761268976]
+transform = Transform3D(-0.56025195, 0, 0.71708983, 0, 0.91, 0, -0.71708983, 0, -0.56025195, 61.134, 1.005, 5.52)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="pino_38_2" type="Node3D" parent="." unique_id=2132286305]
+transform = Transform3D(0.66179264, 0, 0.6390857, 0, 0.92, 0, -0.6390857, 0, 0.66179264, 88.872, 1.005, 5.6925)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_39_2" type="Node3D" parent="." unique_id=167731220]
+transform = Transform3D(-0.42721915, 0, 0.8034823, 0, 0.91, 0, -0.8034823, 0, -0.42721915, 91.034, 1.005, 5.934)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_3" type="Node3D" parent="." unique_id=2048100065]
+transform = Transform3D(0.43520826, 0, -0.97749364, 0, 1.07, 0, 0.97749364, 0, 0.43520826, 0.88549995, 1.005, 8.349)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_3" type="Node3D" parent="." unique_id=1008726269]
+transform = Transform3D(0.87023735, 0, -0.2660583, 0, 0.91, 0, 0.2660583, 0, 0.87023735, 30.774, 1.005, 8.0155)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_14_3" type="Node3D" parent="." unique_id=464891900]
+transform = Transform3D(-0.22740662, 0, -0.91207796, 0, 0.94, 0, 0.91207796, 0, -0.22740662, 33.510998, 1.005, 8.1075)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_15_3" type="Node3D" parent="." unique_id=1602314277]
+transform = Transform3D(0.7313538, 0, -0.68199825, 0, 1, 0, 0.68199825, 0, 0.7313538, 35.9375, 1.005, 7.774)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_17_3" type="Node3D" parent="." unique_id=1349426316]
+transform = Transform3D(-0.58389246, 0, 0.67169154, 0, 0.89, 0, -0.67169154, 0, -0.58389246, 40.5835, 1.005, 7.7970004)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbusto_19_3" type="Node3D" parent="." unique_id=2007536912]
+transform = Transform3D(0.87364817, 0, 0.16982001, 0, 0.89, 0, -0.16982001, 0, 0.87364817, 44.85, 1.005, 8.061501)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_24_3" type="Node3D" parent="." unique_id=888520118]
+transform = Transform3D(0.45554507, 0, -1.0231708, 0, 1.12, 0, 1.0231708, 0, 0.45554507, 56.545498, 1.005, 8.1765)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_25_3" type="Node3D" parent="." unique_id=555936285]
+transform = Transform3D(-0.8057373, 0, -0.4841357, 0, 0.94, 0, 0.4841357, 0, -0.8057373, 58.627003, 1.005, 8.2685)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_3" type="Node3D" parent="." unique_id=1491019022]
+transform = Transform3D(0.24676038, 0, -0.9897016, 0, 1.02, 0, 0.9897016, 0, 0.24676038, 61.099503, 1.005, 8.1995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_32_3" type="Node3D" parent="." unique_id=15169772]
+transform = Transform3D(-0.20470542, 0, 0.8866768, 0, 0.91, 0, -0.8866768, 0, -0.20470542, 74.8075, 0.965, 8.096)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbusto_38_3" type="Node3D" parent="." unique_id=1441960599]
+transform = Transform3D(-0.076034635, 0, -1.0873448, 0, 1.09, 0, 1.0873448, 0, -0.076034635, 88.8375, 1.005, 8.3145)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_39_3" type="Node3D" parent="." unique_id=539593508]
+transform = Transform3D(0.88468415, 0, -0.6194627, 0, 1.08, 0, 0.6194627, 0, 0.88468415, 90.597, 1.005, 7.9695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_4" type="Node3D" parent="." unique_id=2120892388]
+transform = Transform3D(-0.77841157, 0, 0.4314805, 0, 0.89, 0, -0.4314805, 0, -0.77841157, 0.82799995, 1.005, 10.269501)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_6_4" type="Node3D" parent="." unique_id=128090778]
+transform = Transform3D(-1.0260805, 0, -0.08977048, 0, 1.03, 0, 0.08977048, 0, -1.0260805, 14.938499, 1.005, 10.58)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbusto_13_4" type="Node3D" parent="." unique_id=188259141]
+transform = Transform3D(-0.8861391, 0, -0.39453465, 0, 0.97, 0, 0.39453465, 0, -0.8861391, 31.130499, 1.005, 10.1315)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_14_4" type="Node3D" parent="." unique_id=58764558]
+transform = Transform3D(1.1017262, 0, -0.13527507, 0, 1.11, 0, 0.13527507, 0, 1.1017262, 33.097, 1.005, 10.143001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_15_4" type="Node3D" parent="." unique_id=363010260]
+transform = Transform3D(-0.98, 0, -8.567432e-08, 0, 0.98, 0, 8.567432e-08, 0, -0.98, 35.65, 1.005, 10.3385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_19_4" type="Node3D" parent="." unique_id=1605159889]
+transform = Transform3D(0.91496015, 0, -0.09616636, 0, 0.92, 0, 0.09616636, 0, 0.91496015, 44.976498, 1.005, 10.0625)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="setas_21_4" type="Node3D" parent="." unique_id=1660654357]
+transform = Transform3D(-0.5352186, 0, -0.8565285, 0, 1.01, 0, 0.8565285, 0, -0.5352186, 49.7375, 1.005, 10.396)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbusto_23_4" type="Node3D" parent="." unique_id=1260536343]
+transform = Transform3D(-0.8274113, 0, 0.6464445, 0, 1.05, 0, -0.6464445, 0, -0.8274113, 53.7625, 1.005, 10.58)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_24_4" type="Node3D" parent="." unique_id=1432634756]
+transform = Transform3D(0.45853043, 0, 0.8999166, 0, 1.01, 0, -0.8999166, 0, 0.45853043, 56.142998, 1.005, 10.695001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_25_4" type="Node3D" parent="." unique_id=957129304]
+transform = Transform3D(1.0001707, 0, 0.14056483, 0, 1.01, 0, -0.14056483, 0, 1.0001707, 58.788002, 1.005, 10.2465)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_26_4" type="Node3D" parent="." unique_id=1413205350]
+transform = Transform3D(0.85536623, 0, -0.4358309, 0, 0.96, 0, 0.4358309, 0, 0.85536623, 61.18, 1.005, 10.177501)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_28_4" type="Node3D" parent="." unique_id=717716037]
+transform = Transform3D(-0.979574, 0, -0.54298687, 0, 1.12, 0, 0.54298687, 0, -0.979574, 65.343, 1.005, 10.453501)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="pino_38_4" type="Node3D" parent="." unique_id=793008237]
+transform = Transform3D(-0.8898062, 0, -0.43398735, 0, 0.99, 0, 0.43398735, 0, -0.8898062, 88.860504, 1.005, 10.281)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_39_4" type="Node3D" parent="." unique_id=814118741]
+transform = Transform3D(-0.97749364, 0, -0.43520832, 0, 1.07, 0, 0.43520832, 0, -0.97749364, 90.942, 1.005, 10.511001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_5" type="Node3D" parent="." unique_id=1454743983]
+transform = Transform3D(-0.39333692, 0, 0.973543, 0, 1.05, 0, -0.973543, 0, -0.39333692, 1.2995, 1.005, 12.4085)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_5_5" type="Node3D" parent="." unique_id=1438608323]
+transform = Transform3D(-0.018150445, 0, 1.0398415, 0, 1.04, 0, -1.0398415, 0, -0.018150445, 12.903, 1.005, 12.695999)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_9_5" type="Node3D" parent="." unique_id=1404225941]
+transform = Transform3D(-1.0758903, 0, 0.094128095, 0, 1.08, 0, -0.094128095, 0, -1.0758903, 21.781, 1.005, 12.512)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_13_5" type="Node3D" parent="." unique_id=1761381255]
+transform = Transform3D(0.69166005, 0, -0.56009495, 0, 0.89, 0, 0.56009495, 0, 0.69166005, 30.889, 1.005, 12.443)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_14_5" type="Node3D" parent="." unique_id=1167974043]
+transform = Transform3D(-0.48222667, 0, -0.77172375, 0, 0.91, 0, 0.77172375, 0, -0.48222667, 33.2925, 1.005, 12.8455)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_15_5" type="Node3D" parent="." unique_id=1141160116]
+transform = Transform3D(0.98792905, 0, -0.20999087, 0, 1.01, 0, 0.20999087, 0, 0.98792905, 35.604, 1.005, 12.672999)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="piedras_18_5" type="Node3D" parent="." unique_id=2116815203]
+transform = Transform3D(0.49097568, 0, 1.0066494, 0, 1.12, 0, -1.0066494, 0, 0.49097568, 42.3775, 1.005, 12.535)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbusto_24_5" type="Node3D" parent="." unique_id=1727179915]
+transform = Transform3D(-0.9594152, 0, 0.033503473, 0, 0.96, 0, -0.033503473, 0, -0.9594152, 56.671997, 1.005, 12.396999)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_25_5" type="Node3D" parent="." unique_id=1936166538]
+transform = Transform3D(-0.99490356, 0, 0.2665837, 0, 1.03, 0, -0.2665837, 0, -0.99490356, 58.857002, 1.005, 12.9375)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_26_5" type="Node3D" parent="." unique_id=1061248765]
+transform = Transform3D(-0.41581354, 0, -1.0291741, 0, 1.11, 0, 1.0291741, 0, -0.41581354, 60.7775, 1.005, 12.443)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_38_5" type="Node3D" parent="." unique_id=1129888764]
+transform = Transform3D(-0.36938176, 0, 1.014868, 0, 1.08, 0, -1.014868, 0, -0.36938176, 88.81451, 1.005, 12.627)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_5" type="Node3D" parent="." unique_id=1826944806]
+transform = Transform3D(-0.89329153, 0, -0.10968251, 0, 0.9, 0, 0.10968251, 0, -0.89329153, 91.0915, 1.005, 12.742)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_6" type="Node3D" parent="." unique_id=1381020923]
+transform = Transform3D(-0.6942105, 0, -0.82732815, 0, 1.08, 0, 0.82732815, 0, -0.6942105, 1.1385, 1.005, 15.271999)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="setas_1_6" type="Node3D" parent="." unique_id=16921175]
+transform = Transform3D(-0.7025872, 0, 0.780302, 0, 1.05, 0, -0.780302, 0, -0.7025872, 3.335, 1.005, 14.95)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="tocon_6_6" type="Node3D" parent="." unique_id=1860264334]
+transform = Transform3D(-0.85889405, 0, 0.3296985, 0, 0.92, 0, -0.3296985, 0, -0.85889405, 14.8005, 1.005, 15.111)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbusto_15_6" type="Node3D" parent="." unique_id=814233773]
+transform = Transform3D(0.1788576, 0, -1.014352, 0, 1.03, 0, 1.014352, 0, 0.1788576, 35.903, 1.005, 15.0075)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_16_6" type="Node3D" parent="." unique_id=2053053721]
+transform = Transform3D(-0.3655351, 0, -0.9522521, 0, 1.02, 0, 0.9522521, 0, -0.3655351, 37.651, 1.005, 14.9615)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_17_6" type="Node3D" parent="." unique_id=617734187]
+transform = Transform3D(0.14056501, 0, -1.0001707, 0, 1.01, 0, 1.0001707, 0, 0.14056501, 40.02, 1.005, 15.2605)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_18_6" type="Node3D" parent="." unique_id=1843814713]
+transform = Transform3D(0.8658736, 0, -0.47996137, 0, 0.99, 0, 0.47996137, 0, 0.8658736, 42.2395, 1.005, 14.858)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arco_ruina_19_6" type="Node3D" parent="." unique_id=1415263913]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.005, 14.95)
+script = ExtResource("1_ao5q7")
+id = "arco_ruina"
+
+[node name="arbol_redondo_20_6" type="Node3D" parent="." unique_id=1470074100]
+transform = Transform3D(-0.6916598, 0, 0.56009525, 0, 0.89, 0, -0.56009525, 0, -0.6916598, 47.1385, 1.005, 15.214499)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_21_6" type="Node3D" parent="." unique_id=1170148677]
+transform = Transform3D(-0.35228065, 0, -0.9678834, 0, 1.03, 0, 0.9678834, 0, -0.35228065, 49.381, 1.005, 15.065)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_22_6" type="Node3D" parent="." unique_id=828387550]
+transform = Transform3D(0.35486928, 0, 1.0306152, 0, 1.09, 0, -1.0306152, 0, 0.35486928, 51.9455, 1.005, 14.9615)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_23_6" type="Node3D" parent="." unique_id=2117551597]
+transform = Transform3D(-0.6772277, 0, -0.8668118, 0, 1.1, 0, 0.8668118, 0, -0.6772277, 53.912, 1.005, 15.019)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="pino_24_6" type="Node3D" parent="." unique_id=584519001]
+transform = Transform3D(1.0635924, 0, -0.18753982, 0, 1.08, 0, 0.18753982, 0, 1.0635924, 56.649, 1.005, 14.938499)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="tocon_27_6" type="Node3D" parent="." unique_id=1499256970]
+transform = Transform3D(1.0199022, 0, 0.41206723, 0, 1.1, 0, -0.41206723, 0, 1.0199022, 63.2155, 1.005, 15.030499)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="juncos_31_6" type="Node3D" parent="." unique_id=856487180]
+transform = Transform3D(-0.89145404, 0, -0.53563946, 0, 1.04, 0, 0.53563946, 0, -0.89145404, 72.6455, 0.965, 14.8235)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_38_6" type="Node3D" parent="." unique_id=1264767130]
+transform = Transform3D(0.18508467, 0, 0.95217836, 0, 0.97, 0, -0.95217836, 0, 0.18508467, 88.6995, 1.005, 14.995999)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_39_6" type="Node3D" parent="." unique_id=1204325533]
+transform = Transform3D(-0.56025195, 0, 0.71708983, 0, 0.91, 0, -0.71708983, 0, -0.56025195, 90.861496, 1.005, 14.662499)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_0_7" type="Node3D" parent="." unique_id=1941087106]
+transform = Transform3D(0.33991867, 0, 1.0461622, 0, 1.1, 0, -1.0461622, 0, 0.33991867, 1.081, 1.005, 16.905)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="piedras_10_7" type="Node3D" parent="." unique_id=1874734976]
+transform = Transform3D(-0.99860924, 0, 0.32446787, 0, 1.05, 0, -0.32446787, 0, -0.99860924, 24.403, 1.005, 17.5835)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="pino_13_7" type="Node3D" parent="." unique_id=874494855]
+transform = Transform3D(-1.0991975, 0, -0.15448216, 0, 1.11, 0, 0.15448216, 0, -1.0991975, 31.348999, 1.005, 17.1235)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_26_7" type="Node3D" parent="." unique_id=921025230]
+transform = Transform3D(-0.88294756, 0, 0.46947157, 0, 1, 0, -0.46947157, 0, -0.88294756, 61.2835, 1.005, 17.0085)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_31_7" type="Node3D" parent="." unique_id=1429952993]
+transform = Transform3D(1.08, 0, 0, 0, 1.08, 0, 0, 0, 1.08, 72.3465, 0.965, 17.158)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="juncos_33_7" type="Node3D" parent="." unique_id=1065680284]
+transform = Transform3D(0.37419775, 0, -0.8404618, 0, 0.92, 0, 0.8404618, 0, 0.37419775, 76.8775, 0.965, 17.02)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbusto_38_7" type="Node3D" parent="." unique_id=592994796]
+transform = Transform3D(-0.6112966, 0, 0.8413777, 0, 1.04, 0, -0.8413777, 0, -0.6112966, 88.3775, 1.005, 17.112)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_39_7" type="Node3D" parent="." unique_id=1927027958]
+transform = Transform3D(0.6547184, 0, -0.7020995, 0, 0.96, 0, 0.7020995, 0, 0.6547184, 90.5625, 1.005, 16.9395)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_8" type="Node3D" parent="." unique_id=780255060]
+transform = Transform3D(-0.79268885, 0, -0.64190686, 0, 1.02, 0, 0.64190686, 0, -0.79268885, 1.357, 1.005, 19.894999)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_3_8" type="Node3D" parent="." unique_id=495424072]
+transform = Transform3D(-1.0144123, 0, 0.10661906, 0, 1.02, 0, -0.10661906, 0, -1.0144123, 7.7165003, 1.005, 19.734)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="piedras_4_8" type="Node3D" parent="." unique_id=26930146]
+transform = Transform3D(0.8866768, 0, 0.20470546, 0, 0.91, 0, -0.20470546, 0, 0.8866768, 10.442, 1.005, 19.7685)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbusto_flores_11_8" type="Node3D" parent="." unique_id=1637665909]
+transform = Transform3D(0.75870377, 0, 0.57172424, 0, 0.95, 0, -0.57172424, 0, 0.75870377, 26.4845, 1.005, 19.779999)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbusto_13_8" type="Node3D" parent="." unique_id=1872704249]
+transform = Transform3D(-0.11393608, 0, 1.084029, 0, 1.09, 0, -1.084029, 0, -0.11393608, 31.05, 1.005, 19.32)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="raiz_reactiva_21_8" type="Node3D" parent="." unique_id=1236383276]
+transform = Transform3D(0.5231287, 0, -0.72002524, 0, 0.89, 0, 0.72002524, 0, 0.5231287, 49.657, 1.005, 19.32)
+script = ExtResource("1_ao5q7")
+id = "raiz_reactiva"
+bloquea = true
+
+[node name="arbol_redondo_26_8" type="Node3D" parent="." unique_id=234091034]
+transform = Transform3D(-0.39463845, 0, 0.9297099, 0, 1.01, 0, -0.9297099, 0, -0.39463845, 60.9845, 1.005, 19.561499)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_38_8" type="Node3D" parent="." unique_id=1701160227]
+transform = Transform3D(-1.0593542, 0, 0.036993414, 0, 1.06, 0, -0.036993414, 0, -1.0593542, 88.2855, 1.005, 19.5385)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_39_8" type="Node3D" parent="." unique_id=400843508]
+transform = Transform3D(-0.56025195, 0, 0.71708983, 0, 0.91, 0, -0.71708983, 0, -0.56025195, 91.0225, 1.005, 19.2855)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_9" type="Node3D" parent="." unique_id=1443394193]
+transform = Transform3D(-0.6022176, 0, 0.66883034, 0, 0.9, 0, -0.66883034, 0, -0.6022176, 1.0005, 1.005, 21.9305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_11_9" type="Node3D" parent="." unique_id=848823890]
+transform = Transform3D(-0.880604, 0, 0.571871, 0, 1.05, 0, -0.571871, 0, -0.880604, 26.7605, 1.005, 21.965)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbol_redondo_13_9" type="Node3D" parent="." unique_id=255216816]
+transform = Transform3D(-0.018673958, 0, -1.0698371, 0, 1.07, 0, 1.0698371, 0, -0.018673958, 31.314499, 1.005, 22.034)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_9" type="Node3D" parent="." unique_id=697432955]
+transform = Transform3D(0.8248908, 0, -0.7427349, 0, 1.11, 0, 0.7427349, 0, 0.8248908, 61.18, 1.005, 21.988)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_38_9" type="Node3D" parent="." unique_id=1526314022]
+transform = Transform3D(0.9328529, 0, 0.5829112, 0, 1.1, 0, -0.5829112, 0, 0.9328529, 88.331505, 1.005, 21.689001)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_39_9" type="Node3D" parent="." unique_id=1225802118]
+transform = Transform3D(-0.9264611, 0, 0.08105475, 0, 0.93, 0, -0.08105475, 0, -0.9264611, 90.781, 1.005, 21.62)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_10" type="Node3D" parent="." unique_id=1480438632]
+transform = Transform3D(0.9646862, 0, -0.10139279, 0, 0.97, 0, 0.10139279, 0, 0.9646862, 1.0465, 1.005, 24.425999)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_13_10" type="Node3D" parent="." unique_id=1678634173]
+transform = Transform3D(-0.7092097, 0, 0.55409527, 0, 0.9, 0, -0.55409527, 0, -0.7092097, 31.314499, 1.005, 23.9545)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_26_10" type="Node3D" parent="." unique_id=289697338]
+transform = Transform3D(-0.7208538, 0, -0.5047472, 0, 0.88, 0, 0.5047472, 0, -0.7208538, 60.8465, 1.005, 23.828)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="tocon_28_10" type="Node3D" parent="." unique_id=98058717]
+transform = Transform3D(-0.98411375, 0, -0.22720055, 0, 1.01, 0, 0.22720055, 0, -0.98411375, 65.2165, 1.005, 24.241999)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbol_redondo_38_10" type="Node3D" parent="." unique_id=977937459]
+transform = Transform3D(-0.8790426, 0, 0.13922666, 0, 0.89, 0, -0.13922666, 0, -0.8790426, 88.527, 1.005, 24.1845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_10" type="Node3D" parent="." unique_id=2116309213]
+transform = Transform3D(0.89267206, 0, 0.22256815, 0, 0.92, 0, -0.22256815, 0, 0.89267206, 90.8845, 1.005, 24.081)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_11" type="Node3D" parent="." unique_id=668514369]
+transform = Transform3D(-0.12525593, 0, -0.89124125, 0, 0.9, 0, 0.89124125, 0, -0.12525593, 1.3225, 1.005, 26.1625)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_1_11" type="Node3D" parent="." unique_id=615933331]
+transform = Transform3D(-1.0477753, 0, -0.30044466, 0, 1.09, 0, 0.30044466, 0, -1.0477753, 3.772, 1.005, 26.4845)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_2_11" type="Node3D" parent="." unique_id=1258284130]
+transform = Transform3D(-0.93, 0, -8.1303185e-08, 0, 0.93, 0, 8.1303185e-08, 0, -0.93, 5.612, 1.005, 26.737501)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_3_11" type="Node3D" parent="." unique_id=1627140568]
+transform = Transform3D(0.7975508, 0, 0.37190408, 0, 0.88, 0, -0.37190408, 0, 0.7975508, 7.8085003, 1.005, 26.105001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_4_11" type="Node3D" parent="." unique_id=418022405]
+transform = Transform3D(0.9500873, 0, -0.42300594, 0, 1.04, 0, 0.42300594, 0, 0.9500873, 10.189, 1.005, 26.2775)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="pino_5_11" type="Node3D" parent="." unique_id=179818462]
+transform = Transform3D(0.3244678, 0, 0.9986093, 0, 1.05, 0, -0.9986093, 0, 0.3244678, 12.971999, 1.005, 26.703001)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_6_11" type="Node3D" parent="." unique_id=2104548575]
+transform = Transform3D(-0.7571776, 0, -0.78408045, 0, 1.09, 0, 0.78408045, 0, -0.7571776, 15.0075, 1.005, 26.4845)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_7_11" type="Node3D" parent="." unique_id=779219125]
+transform = Transform3D(-0.92050487, 0, 0.39073116, 0, 1, 0, -0.39073116, 0, -0.92050487, 17.3535, 1.005, 26.174002)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_8_11" type="Node3D" parent="." unique_id=489934233]
+transform = Transform3D(0.445998, 0, 0.8388002, 0, 0.95, 0, -0.8388002, 0, 0.445998, 19.2165, 1.005, 26.369501)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_9_11" type="Node3D" parent="." unique_id=722050860]
+transform = Transform3D(-0.39015028, 0, 0.7999267, 0, 0.89, 0, -0.7999267, 0, -0.39015028, 21.654501, 1.005, 26.5765)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_10_11" type="Node3D" parent="." unique_id=392501213]
+transform = Transform3D(-0.93, 0, -8.1303185e-08, 0, 0.93, 0, 8.1303185e-08, 0, -0.93, 23.8165, 1.005, 26.3465)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_11_11" type="Node3D" parent="." unique_id=1751246152]
+transform = Transform3D(0.019546669, 0, 1.1198294, 0, 1.12, 0, -1.1198294, 0, 0.019546669, 26.7605, 1.005, 26.197)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_12_11" type="Node3D" parent="." unique_id=1806572713]
+transform = Transform3D(-0.9510565, 0, 0.30901703, 0, 1, 0, -0.30901703, 0, -0.9510565, 28.9685, 1.005, 26.519001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_13_11" type="Node3D" parent="." unique_id=2104965430]
+transform = Transform3D(0.32755813, 0, -1.0081198, 0, 1.06, 0, 1.0081198, 0, 0.32755813, 30.842999, 1.005, 26.6685)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="piedras_17_11" type="Node3D" parent="." unique_id=728535602]
+transform = Transform3D(-0.8866768, 0, -0.20470546, 0, 0.91, 0, 0.20470546, 0, -0.8866768, 40.112, 1.005, 26.657001)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbusto_26_11" type="Node3D" parent="." unique_id=1665328075]
+transform = Transform3D(-1.014352, 0, -0.17885767, 0, 1.03, 0, 0.17885767, 0, -1.014352, 61.1455, 1.005, 26.139502)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_27_11" type="Node3D" parent="." unique_id=60421688]
+transform = Transform3D(0.14704843, 0, 0.92842704, 0, 0.94, 0, -0.92842704, 0, 0.14704843, 63.296, 1.005, 26.404001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_28_11" type="Node3D" parent="." unique_id=1386378335]
+transform = Transform3D(-0.75057626, 0, 0.6758219, 0, 1.01, 0, -0.6758219, 0, -0.75057626, 65.4235, 1.005, 26.220001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_29_11" type="Node3D" parent="." unique_id=1707362126]
+transform = Transform3D(-0.26658353, 0, -0.9949036, 0, 1.03, 0, 0.9949036, 0, -0.26658353, 67.654495, 1.005, 26.3005)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_30_11" type="Node3D" parent="." unique_id=1935769718]
+transform = Transform3D(-0.8487049, 0, -0.48999998, 0, 0.98, 0, 0.48999998, 0, -0.8487049, 69.8625, 1.005, 26.634)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_31_11" type="Node3D" parent="." unique_id=336999735]
+transform = Transform3D(-0.5047473, 0, 0.72085375, 0, 0.88, 0, -0.72085375, 0, -0.5047473, 72.657, 1.005, 26.6455)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_32_11" type="Node3D" parent="." unique_id=112727621]
+transform = Transform3D(0.75649035, 0, 0.591035, 0, 0.96, 0, -0.591035, 0, 0.75649035, 74.428, 1.005, 26.5765)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_33_11" type="Node3D" parent="." unique_id=1356071020]
+transform = Transform3D(-0.75072354, 0, 0.62993187, 0, 0.98, 0, -0.62993187, 0, -0.75072354, 76.8545, 1.005, 26.657001)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_34_11" type="Node3D" parent="." unique_id=1509405039]
+transform = Transform3D(-0.88707024, 0, -0.5983365, 0, 1.07, 0, 0.5983365, 0, -0.88707024, 79.5455, 1.005, 26.2315)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_35_11" type="Node3D" parent="." unique_id=1393851117]
+transform = Transform3D(0.50474715, 0, -0.72085387, 0, 0.88, 0, 0.72085387, 0, 0.50474715, 81.765, 1.005, 26.335001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_36_11" type="Node3D" parent="." unique_id=881147371]
+transform = Transform3D(0.57037675, 0, -0.84561837, 0, 1.02, 0, 0.84561837, 0, 0.57037675, 84.111, 1.005, 26.507502)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_37_11" type="Node3D" parent="." unique_id=1170438229]
+transform = Transform3D(1.0698371, 0, -0.018674292, 0, 1.07, 0, 0.018674292, 0, 1.0698371, 86.5835, 1.005, 26.151001)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_38_11" type="Node3D" parent="." unique_id=729627941]
+transform = Transform3D(0.7427349, 0, 0.8248908, 0, 1.11, 0, -0.8248908, 0, 0.7427349, 88.458, 1.005, 26.128)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_11" type="Node3D" parent="." unique_id=1986887480]
+transform = Transform3D(-0.7347861, 0, -0.84527475, 0, 1.12, 0, 0.84527475, 0, -0.7347861, 90.8845, 1.005, 26.496)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_12" type="Node3D" parent="." unique_id=1812835406]
+transform = Transform3D(1.08, 0, 0, 0, 1.08, 0, 0, 0, 1.08, 1.426, 1.005, 28.6925)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="piedras_1_12" type="Node3D" parent="." unique_id=1426962258]
+transform = Transform3D(0.903586, 0, 0.25909913, 0, 0.94, 0, -0.25909913, 0, 0.903586, 3.3695002, 1.005, 28.8075)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_8_12" type="Node3D" parent="." unique_id=1849233524]
+transform = Transform3D(0.8500147, 0, 0.22776076, 0, 0.88, 0, -0.22776076, 0, 0.8500147, 19.4235, 1.005, 28.6235)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_12_12" type="Node3D" parent="." unique_id=1683604235]
+transform = Transform3D(-0.84286624, 0, 0.39303505, 0, 0.93, 0, -0.39303505, 0, -0.84286624, 28.5545, 1.005, 28.4625)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbol_redondo_13_12" type="Node3D" parent="." unique_id=1221216307]
+transform = Transform3D(0.3945346, 0, -0.8861391, 0, 0.97, 0, 0.8861391, 0, 0.3945346, 30.935, 1.005, 28.6925)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_26_12" type="Node3D" parent="." unique_id=1034797326]
+transform = Transform3D(0.6738186, 0, -0.6977597, 0, 0.97, 0, 0.6977597, 0, 0.6738186, 60.8695, 1.005, 29.095)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_30_12" type="Node3D" parent="." unique_id=394699260]
+transform = Transform3D(-0.89329153, 0, -0.10968251, 0, 0.9, 0, 0.10968251, 0, -0.89329153, 70.414505, 1.005, 29.003)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_39_12" type="Node3D" parent="." unique_id=936543824]
+transform = Transform3D(-0.9149602, 0, 0.096166216, 0, 0.92, 0, -0.096166216, 0, -0.9149602, 90.9075, 1.005, 28.658)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_0_13" type="Node3D" parent="." unique_id=1355860522]
+transform = Transform3D(0.17017527, 0, 0.9651116, 0, 0.98, 0, -0.9651116, 0, 0.17017527, 1.449, 1.005, 31.061499)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="tocon_5_13" type="Node3D" parent="." unique_id=1964751479]
+transform = Transform3D(-0.26658362, 0, 0.99490356, 0, 1.03, 0, -0.99490356, 0, -0.26658362, 12.5925, 1.005, 30.9695)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbol_redondo_8_13" type="Node3D" parent="." unique_id=1913679965]
+transform = Transform3D(-0.6772277, 0, -0.8668118, 0, 1.1, 0, 0.8668118, 0, -0.6772277, 19.366, 1.005, 30.808498)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_9_13" type="Node3D" parent="." unique_id=1703660585]
+transform = Transform3D(0.75480354, 0, -0.49017504, 0, 0.9, 0, 0.49017504, 0, 0.75480354, 22.0685, 1.005, 31.0385)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_13_13" type="Node3D" parent="." unique_id=2019447283]
+transform = Transform3D(0.15487015, 0, 0.9778115, 0, 0.99, 0, -0.9778115, 0, 0.15487015, 30.8315, 1.005, 30.8545)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_26_13" type="Node3D" parent="." unique_id=754814550]
+transform = Transform3D(0.035248492, 0, 1.0093848, 0, 1.01, 0, -1.0093848, 0, 0.035248492, 61.249, 1.005, 30.796999)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_27_13" type="Node3D" parent="." unique_id=89093944]
+transform = Transform3D(0.9709236, 0, 0.37270266, 0, 1.04, 0, -0.37270266, 0, 0.9709236, 63.1235, 1.005, 30.9005)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_36_13" type="Node3D" parent="." unique_id=297201851]
+transform = Transform3D(0.91587126, 0, -0.16149262, 0, 0.93, 0, 0.16149262, 0, 0.91587126, 84.237495, 1.005, 31.360498)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_39_13" type="Node3D" parent="." unique_id=880115383]
+transform = Transform3D(0.0941282, 0, -1.0758903, 0, 1.08, 0, 1.0758903, 0, 0.0941282, 90.988, 1.005, 31.372)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_14" type="Node3D" parent="." unique_id=1061260039]
+transform = Transform3D(0.903217, 0, -0.110901184, 0, 0.91, 0, 0.110901184, 0, 0.903217, 1.1615, 1.005, 33.372997)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_2_14" type="Node3D" parent="." unique_id=2051824605]
+transform = Transform3D(0.9398568, 0, 0.016405262, 0, 0.94, 0, -0.016405262, 0, 0.9398568, 5.5775, 1.005, 33.028)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_8_14" type="Node3D" parent="." unique_id=1541490482]
+transform = Transform3D(0.83145225, 0, -0.499587, 0, 0.97, 0, 0.499587, 0, 0.83145225, 19.814499, 1.005, 33.142998)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_14" type="Node3D" parent="." unique_id=250630779]
+transform = Transform3D(-0.887832, 0, 0.06208326, 0, 0.89, 0, -0.06208326, 0, -0.887832, 31.2225, 1.005, 33.177498)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_15_14" type="Node3D" parent="." unique_id=1440512641]
+transform = Transform3D(-0.9167699, 0, 0.44713855, 0, 1.02, 0, -0.44713855, 0, -0.9167699, 35.799503, 1.005, 33.1315)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_14" type="Node3D" parent="." unique_id=470943903]
+transform = Transform3D(-0.99254614, 0, -0.12186945, 0, 1, 0, 0.12186945, 0, -0.99254614, 61.0765, 1.005, 33.12)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_39_14" type="Node3D" parent="." unique_id=626236439]
+transform = Transform3D(-0.887832, 0, 0.06208326, 0, 0.89, 0, -0.06208326, 0, -0.887832, 91.1145, 1.005, 33.35)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_0_15" type="Node3D" parent="." unique_id=1917643272]
+transform = Transform3D(-0.874692, 0, -0.6833841, 0, 1.11, 0, 0.6833841, 0, -0.874692, 1.265, 1.005, 35.592503)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_8_15" type="Node3D" parent="." unique_id=1707491669]
+transform = Transform3D(0.8870703, 0, 0.5983364, 0, 1.07, 0, -0.5983364, 0, 0.8870703, 19.8375, 1.005, 35.558002)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_10_15" type="Node3D" parent="." unique_id=630603174]
+transform = Transform3D(-0.8251974, 0, 0.5995409, 0, 1.02, 0, -0.5995409, 0, -0.8251974, 24.0005, 1.005, 35.949)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="pino_13_15" type="Node3D" parent="." unique_id=363557859]
+transform = Transform3D(-0.90441006, 0, 0.40266922, 0, 0.99, 0, -0.40266922, 0, -0.90441006, 30.8315, 1.005, 35.6155)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_24_15" type="Node3D" parent="." unique_id=1172240953]
+transform = Transform3D(0.3351797, 0, -0.9208988, 0, 0.98, 0, 0.9208988, 0, 0.3351797, 56.2235, 1.005, 35.949)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_15" type="Node3D" parent="." unique_id=657136540]
+transform = Transform3D(-0.1066189, 0, -1.0144123, 0, 1.02, 0, 1.0144123, 0, -0.1066189, 60.9155, 1.005, 35.489002)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_15" type="Node3D" parent="." unique_id=780609924]
+transform = Transform3D(0.8082319, 0, -0.654493, 0, 1.04, 0, 0.654493, 0, 0.8082319, 90.712, 1.005, 35.420002)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_16" type="Node3D" parent="." unique_id=2129134978]
+transform = Transform3D(-0.9778115, 0, 0.15487011, 0, 0.99, 0, -0.15487011, 0, -0.9778115, 0.94299996, 1.005, 37.8925)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_16" type="Node3D" parent="." unique_id=1592162044]
+transform = Transform3D(-0.71214634, 0, 0.6877119, 0, 0.99, 0, -0.6877119, 0, -0.71214634, 91.172, 1.005, 37.766003)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_17" type="Node3D" parent="." unique_id=1269968697]
+transform = Transform3D(-0.7085516, 0, 0.7337265, 0, 1.02, 0, -0.7337265, 0, -0.7085516, 1.4605, 1.005, 40.5375)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_flores_12_17" type="Node3D" parent="." unique_id=1058990652]
+transform = Transform3D(-0.6078333, 0, -0.8066218, 0, 1.01, 0, 0.8066218, 0, -0.6078333, 28.819, 1.005, 40.4455)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_13_17" type="Node3D" parent="." unique_id=1008889475]
+transform = Transform3D(0.90309703, 0, -0.17554443, 0, 0.92, 0, 0.17554443, 0, 0.90309703, 30.877499, 1.005, 39.9625)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_22_17" type="Node3D" parent="." unique_id=2035950799]
+transform = Transform3D(0.9285221, 0, 0.62629604, 0, 1.12, 0, -0.62629604, 0, 0.9285221, 51.6235, 1.005, 40.457)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_26_17" type="Node3D" parent="." unique_id=233920804]
+transform = Transform3D(-0.89893085, 0, 0.5617145, 0, 1.06, 0, -0.5617145, 0, -0.89893085, 61.226, 1.005, 40.5835)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_30_17" type="Node3D" parent="." unique_id=1874902404]
+transform = Transform3D(-1.0374666, 0, 0.07254673, 0, 1.04, 0, -0.07254673, 0, -1.0374666, 70.0005, 1.005, 40.2845)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="piedras_35_17" type="Node3D" parent="." unique_id=1628195507]
+transform = Transform3D(-0.50988764, 0, 0.8485956, 0, 0.99, 0, -0.8485956, 0, -0.50988764, 81.880005, 1.005, 40.112)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_39_17" type="Node3D" parent="." unique_id=282309834]
+transform = Transform3D(0.41416582, 0, -0.8881817, 0, 0.98, 0, 0.8881817, 0, 0.41416582, 91.0225, 1.005, 40.365)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_18" type="Node3D" parent="." unique_id=1134097536]
+transform = Transform3D(-0.019546572, 0, -1.1198294, 0, 1.12, 0, 1.1198294, 0, -0.019546572, 0.86249995, 1.005, 42.55)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_8_18" type="Node3D" parent="." unique_id=712453098]
+transform = Transform3D(-0.6620712, 0, 0.7890257, 0, 1.03, 0, -0.7890257, 0, -0.6620712, 19.2165, 1.005, 42.343)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_9_18" type="Node3D" parent="." unique_id=1562743867]
+transform = Transform3D(-1.0343027, 0, -0.10870957, 0, 1.04, 0, 0.10870957, 0, -1.0343027, 21.6315, 1.005, 42.32)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_13_18" type="Node3D" parent="." unique_id=1661147159]
+transform = Transform3D(0.8034823, 0, 0.42721915, 0, 0.91, 0, -0.42721915, 0, 0.8034823, 31.245499, 1.005, 42.7455)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_17_18" type="Node3D" parent="." unique_id=730325539]
+transform = Transform3D(-0.66179264, 0, -0.6390857, 0, 0.92, 0, 0.6390857, 0, -0.66179264, 40.3765, 1.005, 42.3315)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_18" type="Node3D" parent="." unique_id=955398238]
+transform = Transform3D(0.14391978, 0, -0.9086732, 0, 0.92, 0, 0.9086732, 0, 0.14391978, 60.6165, 1.005, 42.3545)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_30_18" type="Node3D" parent="." unique_id=1493767080]
+transform = Transform3D(1.0398415, 0, 0.018150501, 0, 1.04, 0, -0.018150501, 0, 1.0398415, 70.138504, 1.005, 42.5155)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_39_18" type="Node3D" parent="." unique_id=1273588092]
+transform = Transform3D(0.8920061, 0, 0.515, 0, 1.03, 0, -0.515, 0, 0.8920061, 90.7695, 1.005, 42.2395)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_19" type="Node3D" parent="." unique_id=1682301211]
+transform = Transform3D(-0.3090171, 0, -0.9510565, 0, 1, 0, 0.9510565, 0, -0.3090171, 1.1155, 1.005, 44.5625)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_6_19" type="Node3D" parent="." unique_id=2081158270]
+transform = Transform3D(0.84561837, 0, 0.57037675, 0, 1.02, 0, -0.57037675, 0, 0.84561837, 14.7775, 1.005, 44.666)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_8_19" type="Node3D" parent="." unique_id=870289340]
+transform = Transform3D(0.14056501, 0, -1.0001707, 0, 1.01, 0, 1.0001707, 0, 0.14056501, 19.7915, 1.005, 44.758)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_10_19" type="Node3D" parent="." unique_id=836307003]
+transform = Transform3D(0.5701517, 0, 0.7847465, 0, 0.97, 0, -0.7847465, 0, 0.5701517, 24.219, 1.005, 44.700497)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_13_19" type="Node3D" parent="." unique_id=504018900]
+transform = Transform3D(0.7698037, 0, -0.6691803, 0, 1.02, 0, 0.6691803, 0, 0.7698037, 31.0385, 1.005, 44.608498)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="flor_reactiva_24_19" type="Node3D" parent="." unique_id=2045243017]
+transform = Transform3D(-0.25358623, 0, -0.88436085, 0, 0.92, 0, 0.88436085, 0, -0.25358623, 56.12, 1.005, 44.539497)
+script = ExtResource("1_ao5q7")
+id = "flor_reactiva"
+bloquea = true
+
+[node name="arbusto_26_19" type="Node3D" parent="." unique_id=777918237]
+transform = Transform3D(0.82689047, 0, -0.40330154, 0, 0.92, 0, 0.40330154, 0, 0.82689047, 60.996002, 1.005, 44.6315)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_27_19" type="Node3D" parent="." unique_id=560554813]
+transform = Transform3D(-1.1198294, 0, 0.019546753, 0, 1.12, 0, -0.019546753, 0, -1.1198294, 63.526, 1.005, 44.700497)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_28_19" type="Node3D" parent="." unique_id=1060346167]
+transform = Transform3D(-0.6977596, 0, -0.67381865, 0, 0.97, 0, 0.67381865, 0, -0.6977596, 65.32, 1.005, 44.6545)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_39_19" type="Node3D" parent="." unique_id=65581358]
+transform = Transform3D(-0.5174071, 0, -0.796737, 0, 0.95, 0, 0.796737, 0, -0.5174071, 91.034, 1.005, 44.976498)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_20" type="Node3D" parent="." unique_id=1920955572]
+transform = Transform3D(0.01640518, 0, -0.9398568, 0, 0.94, 0, 0.9398568, 0, 0.01640518, 0.86249995, 1.005, 46.9085)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_flores_2_20" type="Node3D" parent="." unique_id=875397335]
+transform = Transform3D(0.87391406, 0, -0.31807894, 0, 0.93, 0, 0.31807894, 0, 0.87391406, 5.842, 1.005, 46.874)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_8_20" type="Node3D" parent="." unique_id=1570472446]
+transform = Transform3D(-0.90960455, 0, 0.5042019, 0, 1.04, 0, -0.5042019, 0, -0.90960455, 19.2165, 1.005, 47.219)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_10_20" type="Node3D" parent="." unique_id=1836676586]
+transform = Transform3D(-0.9600274, 0, 0.5768426, 0, 1.12, 0, -0.5768426, 0, -0.9600274, 23.92, 1.005, 46.966003)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbusto_flores_11_20" type="Node3D" parent="." unique_id=162292767]
+transform = Transform3D(-0.622254, 0, -0.6222539, 0, 0.88, 0, 0.6222539, 0, -0.622254, 26.68, 1.005, 46.931503)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_13_20" type="Node3D" parent="." unique_id=141608800]
+transform = Transform3D(1.0066493, 0, -0.4909758, 0, 1.12, 0, 0.4909758, 0, 1.0066493, 30.774, 1.005, 47.4145)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="seta_reactiva_15_20" type="Node3D" parent="." unique_id=521088617]
+transform = Transform3D(0.6977596, 0, 0.67381865, 0, 0.97, 0, -0.67381865, 0, 0.6977596, 35.673, 1.005, 46.851)
+script = ExtResource("1_ao5q7")
+id = "seta_reactiva"
+bloquea = true
+
+[node name="pino_26_20" type="Node3D" parent="." unique_id=1460752020]
+transform = Transform3D(0.22870263, 0, -1.0759624, 0, 1.1, 0, 1.0759624, 0, 0.22870263, 61.0535, 1.005, 47.4145)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_flores_38_20" type="Node3D" parent="." unique_id=1565247372]
+transform = Transform3D(-0.89011437, 0, 0.18919957, 0, 0.91, 0, -0.18919957, 0, -0.89011437, 88.791504, 1.005, 47.3455)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_20" type="Node3D" parent="." unique_id=1869033905]
+transform = Transform3D(-1.0477753, 0, -0.30044466, 0, 1.09, 0, 0.30044466, 0, -1.0477753, 91.1835, 1.005, 47.219)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_21" type="Node3D" parent="." unique_id=2012800267]
+transform = Transform3D(0.07463953, 0, -1.0673935, 0, 1.07, 0, 1.0673935, 0, 0.07463953, 1.4145, 1.005, 49.7375)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_8_21" type="Node3D" parent="." unique_id=172923074]
+transform = Transform3D(0.7890256, 0, -0.66207135, 0, 1.03, 0, 0.66207135, 0, 0.7890256, 19.446499, 1.005, 49.266003)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_21" type="Node3D" parent="." unique_id=1143555027]
+transform = Transform3D(-0.87849903, 0, -0.66199654, 0, 1.1, 0, 0.66199654, 0, -0.87849903, 30.796999, 1.005, 49.151)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_21" type="Node3D" parent="." unique_id=683906871]
+transform = Transform3D(-0.9348506, 0, -0.09825673, 0, 0.94, 0, 0.09825673, 0, -0.9348506, 61.111, 1.005, 49.7835)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_39_21" type="Node3D" parent="." unique_id=352102689]
+transform = Transform3D(-0.75019825, 0, -0.8044891, 0, 1.1, 0, 0.8044891, 0, -0.75019825, 90.8385, 1.005, 49.519)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_22" type="Node3D" parent="." unique_id=176360557]
+transform = Transform3D(0.45642772, 0, 0.97881246, 0, 1.08, 0, -0.97881246, 0, 0.45642772, 1.4605, 1.005, 51.497)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_1_22" type="Node3D" parent="." unique_id=594332034]
+transform = Transform3D(-0.18754005, 0, 1.0635924, 0, 1.08, 0, -1.0635924, 0, -0.18754005, 3.657, 1.005, 52.0605)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_22" type="Node3D" parent="." unique_id=2063423759]
+transform = Transform3D(0.26658365, 0, 0.99490356, 0, 1.03, 0, -0.99490356, 0, 0.26658365, 5.9455, 1.005, 51.7155)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_3_22" type="Node3D" parent="." unique_id=1398072527]
+transform = Transform3D(-0.93530744, 0, 0.5400001, 0, 1.08, 0, -0.5400001, 0, -0.93530744, 7.728, 1.005, 51.4395)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_4_22" type="Node3D" parent="." unique_id=683511460]
+transform = Transform3D(-0.9309244, 0, -0.6045493, 0, 1.11, 0, 0.6045493, 0, -0.9309244, 10.511001, 1.005, 51.727)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_5_22" type="Node3D" parent="." unique_id=516671773]
+transform = Transform3D(-0.9879291, 0, 0.20999072, 0, 1.01, 0, -0.20999072, 0, -0.9879291, 12.454499, 1.005, 51.7385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_6_22" type="Node3D" parent="." unique_id=1341291541]
+transform = Transform3D(0.049719173, 0, 0.94869804, 0, 0.95, 0, -0.94869804, 0, 0.049719173, 15.295, 1.005, 51.5775)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_7_22" type="Node3D" parent="." unique_id=924085736]
+transform = Transform3D(-0.9510565, 0, 0.30901703, 0, 1, 0, -0.30901703, 0, -0.9510565, 17.0775, 1.005, 52.003)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_8_22" type="Node3D" parent="." unique_id=1206613880]
+transform = Transform3D(0.33207956, 0, -0.9644289, 0, 1.02, 0, 0.9644289, 0, 0.33207956, 19.848999, 1.005, 51.819)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_9_22" type="Node3D" parent="." unique_id=1530482421]
+transform = Transform3D(-0.8904505, 0, -0.5564152, 0, 1.05, 0, 0.5564152, 0, -0.8904505, 21.9535, 1.005, 51.4165)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_10_22" type="Node3D" parent="." unique_id=864931059]
+transform = Transform3D(-0.8704034, 0, -0.7048389, 0, 1.12, 0, 0.7048389, 0, -0.8704034, 24.081, 1.005, 51.4855)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_11_22" type="Node3D" parent="." unique_id=1735130512]
+transform = Transform3D(-1.1138645, 0, 0.11707191, 0, 1.12, 0, -0.11707191, 0, -1.1138645, 26.496, 1.005, 51.888)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_12_22" type="Node3D" parent="." unique_id=110484578]
+transform = Transform3D(0.95217836, 0, -0.1850849, 0, 0.97, 0, 0.1850849, 0, 0.95217836, 28.98, 1.005, 51.8305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_22" type="Node3D" parent="." unique_id=1627766426]
+transform = Transform3D(-0.22740662, 0, -0.91207796, 0, 0.94, 0, 0.91207796, 0, -0.22740662, 30.911999, 1.005, 52.0835)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="raiz_reactiva_20_22" type="Node3D" parent="." unique_id=740392781]
+transform = Transform3D(-0.9563047, 0, -0.29237178, 0, 1, 0, 0.29237178, 0, -0.9563047, 47.288002, 1.005, 51.658)
+script = ExtResource("1_ao5q7")
+id = "raiz_reactiva"
+bloquea = true
+
+[node name="arbol_redondo_26_22" type="Node3D" parent="." unique_id=1158710641]
+transform = Transform3D(-0.15956314, 0, 1.0074421, 0, 1.02, 0, -1.0074421, 0, -0.15956314, 60.973, 1.005, 51.9225)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_27_22" type="Node3D" parent="." unique_id=7296687]
+transform = Transform3D(0.06905894, 0, 0.98758847, 0, 0.99, 0, -0.98758847, 0, 0.06905894, 63.388, 1.005, 51.6235)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_28_22" type="Node3D" parent="." unique_id=134384135]
+transform = Transform3D(0.91496015, 0, -0.09616636, 0, 0.92, 0, 0.09616636, 0, 0.91496015, 65.366005, 1.005, 52.0605)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_29_22" type="Node3D" parent="." unique_id=308957331]
+transform = Transform3D(-0.9594152, 0, 0.033503473, 0, 0.96, 0, -0.033503473, 0, -0.9594152, 68.172, 1.005, 51.497)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_30_22" type="Node3D" parent="." unique_id=1460415797]
+transform = Transform3D(0.4956216, 0, -0.76319015, 0, 0.91, 0, 0.76319015, 0, 0.4956216, 70.288, 1.005, 51.773)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_31_22" type="Node3D" parent="." unique_id=788144613]
+transform = Transform3D(-0.6772277, 0, -0.8668118, 0, 1.1, 0, 0.8668118, 0, -0.6772277, 72.519, 1.005, 51.6235)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_32_22" type="Node3D" parent="." unique_id=1051271815]
+transform = Transform3D(-0.8308866, 0, -0.3189474, 0, 0.89, 0, 0.3189474, 0, -0.8308866, 74.681, 1.005, 51.727)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_33_22" type="Node3D" parent="." unique_id=2085107690]
+transform = Transform3D(0.397083, 0, 0.98281485, 0, 1.06, 0, -0.98281485, 0, 0.397083, 77.027, 1.005, 51.405)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_34_22" type="Node3D" parent="." unique_id=425269406]
+transform = Transform3D(0.84645617, 0, 0.43129098, 0, 0.95, 0, -0.43129098, 0, 0.84645617, 79.5225, 1.005, 51.819)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_35_22" type="Node3D" parent="." unique_id=1292249513]
+transform = Transform3D(0.90609896, 0, -0.65831953, 0, 1.12, 0, 0.65831953, 0, 0.90609896, 81.8225, 1.005, 51.704)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_36_22" type="Node3D" parent="." unique_id=1605689669]
+transform = Transform3D(-0.17051363, 0, -1.0765803, 0, 1.09, 0, 1.0765803, 0, -0.17051363, 83.812, 1.005, 51.7385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_37_22" type="Node3D" parent="." unique_id=1247448810]
+transform = Transform3D(-0.64644456, 0, -0.82741123, 0, 1.05, 0, 0.82741123, 0, -0.64644456, 86.158, 1.005, 51.428)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_38_22" type="Node3D" parent="." unique_id=1849117296]
+transform = Transform3D(0.9500873, 0, -0.42300594, 0, 1.04, 0, 0.42300594, 0, 0.9500873, 88.84901, 1.005, 51.405)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_39_22" type="Node3D" parent="." unique_id=1791325425]
+transform = Transform3D(-0.33714595, 0, 0.83446544, 0, 0.9, 0, -0.83446544, 0, -0.33714595, 90.516495, 1.005, 51.8765)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_0_23" type="Node3D" parent="." unique_id=1661621339]
+transform = Transform3D(1.09933, 0, 0.038389444, 0, 1.1, 0, -0.038389444, 0, 1.09933, 0.95449996, 1.005, 53.981)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_23" type="Node3D" parent="." unique_id=1603947383]
+transform = Transform3D(-0.9198599, 0, 0.016056262, 0, 0.92, 0, -0.016056262, 0, -0.9198599, 31.348999, 1.005, 54.395)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_26_23" type="Node3D" parent="." unique_id=891033854]
+transform = Transform3D(0.64068574, 0, -0.88182867, 0, 1.09, 0, 0.88182867, 0, 0.64068574, 60.9845, 1.005, 53.843)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="juncos_32_23" type="Node3D" parent="." unique_id=572241394]
+transform = Transform3D(0.07669705, 0, -0.87665135, 0, 0.88, 0, 0.87665135, 0, 0.07669705, 74.6005, 0.965, 54.337498)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_39_23" type="Node3D" parent="." unique_id=978386924]
+transform = Transform3D(-0.8385672, 0, -0.6319058, 0, 1.05, 0, 0.6319058, 0, -0.8385672, 90.5625, 1.005, 54.268497)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_24" type="Node3D" parent="." unique_id=200371779]
+transform = Transform3D(0.9800718, 0, 0.52111346, 0, 1.11, 0, -0.52111346, 0, 0.9800718, 0.81649995, 1.005, 56.510998)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_2_24" type="Node3D" parent="." unique_id=446658108]
+transform = Transform3D(0.8066219, 0, -0.60783315, 0, 1.01, 0, 0.60783315, 0, 0.8066219, 5.957, 1.005, 56.35)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="piedras_3_24" type="Node3D" parent="." unique_id=2007914707]
+transform = Transform3D(0.565653, 0, -0.6741192, 0, 0.88, 0, 0.6741192, 0, 0.565653, 8.096, 1.005, 56.1315)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_13_24" type="Node3D" parent="." unique_id=2105186582]
+transform = Transform3D(-3.8466023e-08, 0, 0.88, 0, 0.88, 0, -0.88, 0, -3.8466023e-08, 30.842999, 1.005, 56.419)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="flor_reactiva_16_24" type="Node3D" parent="." unique_id=1921030734]
+transform = Transform3D(-0.7320684, 0, 0.6363772, 0, 0.97, 0, -0.6363772, 0, -0.7320684, 38.157, 1.005, 56.695)
+script = ExtResource("1_ao5q7")
+id = "flor_reactiva"
+bloquea = true
+
+[node name="seta_reactiva_23_24" type="Node3D" parent="." unique_id=151899373]
+transform = Transform3D(0.2812056, 0, -0.8654614, 0, 0.91, 0, 0.8654614, 0, 0.2812056, 53.7855, 1.005, 56.051)
+script = ExtResource("1_ao5q7")
+id = "seta_reactiva"
+bloquea = true
+
+[node name="pino_26_24" type="Node3D" parent="." unique_id=1965985908]
+transform = Transform3D(-1.0091075, 0, 0.25159872, 0, 1.04, 0, -0.25159872, 0, -1.0091075, 61.0535, 1.005, 56.1315)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="juncos_31_24" type="Node3D" parent="." unique_id=169160125]
+transform = Transform3D(-0.7986355, 0, -0.60181504, 0, 1, 0, 0.60181504, 0, -0.7986355, 72.266, 0.965, 56.166)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="setas_34_24" type="Node3D" parent="." unique_id=30951826]
+transform = Transform3D(-0.2474463, 0, -1.0718071, 0, 1.1, 0, 1.0718071, 0, -0.2474463, 79.395996, 1.005, 56.476498)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="arbol_redondo_39_24" type="Node3D" parent="." unique_id=1633263690]
+transform = Transform3D(0.8480481, 0, 0.52991927, 0, 1, 0, -0.52991927, 0, 0.8480481, 91.0225, 1.005, 56.6145)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_25" type="Node3D" parent="." unique_id=1261758713]
+transform = Transform3D(0.8269295, 0, 0.3009777, 0, 0.88, 0, -0.3009777, 0, 0.8269295, 1.357, 1.005, 58.443)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="tocon_4_25" type="Node3D" parent="." unique_id=318412905]
+transform = Transform3D(0.033503514, 0, 0.9594152, 0, 0.96, 0, -0.9594152, 0, 0.033503514, 10.327001, 1.005, 58.523502)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="juncos_9_25" type="Node3D" parent="." unique_id=2093505327]
+transform = Transform3D(0.5256413, 0, 0.77929527, 0, 0.94, 0, -0.77929527, 0, 0.5256413, 21.574001, 0.965, 58.765003)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="pino_13_25" type="Node3D" parent="." unique_id=321571683]
+transform = Transform3D(-0.31807867, 0, -0.8739142, 0, 0.93, 0, 0.8739142, 0, -0.31807867, 31.394999, 1.005, 58.6385)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_26_25" type="Node3D" parent="." unique_id=1616213817]
+transform = Transform3D(0.3746068, 0, -0.92718375, 0, 1, 0, 0.92718375, 0, 0.3746068, 61.0535, 1.005, 58.489002)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_39_25" type="Node3D" parent="." unique_id=535657820]
+transform = Transform3D(-0.80662185, 0, 0.60783327, 0, 1.01, 0, -0.60783327, 0, -0.80662185, 91.1605, 1.005, 58.374)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_26" type="Node3D" parent="." unique_id=879491810]
+transform = Transform3D(-0.7792953, 0, 0.52564126, 0, 0.94, 0, -0.52564126, 0, -0.7792953, 0.85099995, 1.005, 61.099503)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="pino_2_26" type="Node3D" parent="." unique_id=95157144]
+transform = Transform3D(0.036993463, 0, 1.0593542, 0, 1.06, 0, -1.0593542, 0, 0.036993463, 5.796, 1.005, 61.203)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_3_26" type="Node3D" parent="." unique_id=857769163]
+transform = Transform3D(0.36938173, 0, -1.014868, 0, 1.08, 0, 1.014868, 0, 0.36938173, 8.188, 1.005, 60.7775)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_4_26" type="Node3D" parent="." unique_id=2051927207]
+transform = Transform3D(-0.32969835, 0, -0.8588941, 0, 0.92, 0, 0.8588941, 0, -0.32969835, 10.488, 1.005, 60.904)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_5_26" type="Node3D" parent="." unique_id=1159815004]
+transform = Transform3D(-1.0477753, 0, -0.30044466, 0, 1.09, 0, 0.30044466, 0, -1.0477753, 12.5925, 1.005, 60.9385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_6_26" type="Node3D" parent="." unique_id=1752865518]
+transform = Transform3D(-0.71877193, 0, -0.54163355, 0, 0.9, 0, 0.54163355, 0, -0.71877193, 14.651, 1.005, 61.0535)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="juncos_9_26" type="Node3D" parent="." unique_id=1548775082]
+transform = Transform3D(0.7019832, 0, 0.8075392, 0, 1.07, 0, -0.8075392, 0, 0.7019832, 21.62, 0.965, 60.72)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_13_26" type="Node3D" parent="." unique_id=1244441483]
+transform = Transform3D(-1.08, 0, -9.44166e-08, 0, 1.08, 0, 9.44166e-08, 0, -1.08, 31.3835, 1.005, 60.7545)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_26_26" type="Node3D" parent="." unique_id=1839135680]
+transform = Transform3D(0.99026805, 0, -0.13917309, 0, 1, 0, 0.13917309, 0, 0.99026805, 60.95, 1.005, 61.157)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_flores_28_26" type="Node3D" parent="." unique_id=212840839]
+transform = Transform3D(-0.59103495, 0, 0.75649035, 0, 0.96, 0, -0.75649035, 0, -0.59103495, 65.400505, 1.005, 60.6395)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_26" type="Node3D" parent="." unique_id=669846865]
+transform = Transform3D(-0.4506927, 0, 0.84762967, 0, 0.96, 0, -0.84762967, 0, -0.4506927, 90.666, 1.005, 60.8695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_27" type="Node3D" parent="." unique_id=241988413]
+transform = Transform3D(0.8808247, 0, 0.35587624, 0, 0.95, 0, -0.35587624, 0, 0.8808247, 1.357, 1.005, 63.503)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_27" type="Node3D" parent="." unique_id=1852331929]
+transform = Transform3D(-0.7890258, 0, -0.66207117, 0, 1.03, 0, 0.66207117, 0, -0.7890258, 5.543, 1.005, 62.9855)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_12_27" type="Node3D" parent="." unique_id=1635277402]
+transform = Transform3D(-1.0368364, 0, 0.2203863, 0, 1.06, 0, -0.2203863, 0, -1.0368364, 28.75, 1.005, 62.928)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="pino_13_27" type="Node3D" parent="." unique_id=590015270]
+transform = Transform3D(-1.0759623, 0, -0.22870298, 0, 1.1, 0, 0.22870298, 0, -1.0759623, 30.9695, 1.005, 63.572)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_26_27" type="Node3D" parent="." unique_id=557848625]
+transform = Transform3D(0.5399999, 0, -0.9353075, 0, 1.08, 0, 0.9353075, 0, 0.5399999, 61.030502, 1.005, 63.2845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="setas_27_27" type="Node3D" parent="." unique_id=1251088598]
+transform = Transform3D(-0.5613915, 0, 0.9343124, 0, 1.09, 0, -0.9343124, 0, -0.5613915, 63.4685, 1.005, 62.997)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="setas_34_27" type="Node3D" parent="." unique_id=1315981528]
+transform = Transform3D(0.9800718, 0, 0.52111346, 0, 1.11, 0, -0.52111346, 0, 0.9800718, 79.3155, 1.005, 62.9625)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="pino_39_27" type="Node3D" parent="." unique_id=1603678332]
+transform = Transform3D(0.294932, 0, 1.02855, 0, 1.07, 0, -1.02855, 0, 0.294932, 90.574, 1.005, 63.204)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_0_28" type="Node3D" parent="." unique_id=1639939312]
+transform = Transform3D(0.898311, 0, 0.2407017, 0, 0.93, 0, -0.2407017, 0, 0.898311, 0.82799995, 1.005, 65.734)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_2_28" type="Node3D" parent="." unique_id=299293883]
+transform = Transform3D(-0.8054036, 0, -0.46499997, 0, 0.93, 0, 0.46499997, 0, -0.8054036, 5.9225, 1.005, 65.8375)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_flores_7_28" type="Node3D" parent="." unique_id=490236937]
+transform = Transform3D(0.8027689, 0, -0.56210506, 0, 0.98, 0, 0.56210506, 0, 0.8027689, 17.3995, 1.005, 65.665)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbusto_flores_11_28" type="Node3D" parent="." unique_id=1070823518]
+transform = Transform3D(-0.8046501, 0, -0.44602492, 0, 0.92, 0, 0.44602492, 0, -0.8046501, 26.519001, 1.005, 65.481)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbusto_13_28" type="Node3D" parent="." unique_id=1794730479]
+transform = Transform3D(0.34089205, 0, 0.84373736, 0, 0.91, 0, -0.84373736, 0, 0.34089205, 31.164999, 1.005, 65.251)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_26_28" type="Node3D" parent="." unique_id=373591109]
+transform = Transform3D(0.8866768, 0, 0.20470546, 0, 0.91, 0, -0.20470546, 0, 0.8866768, 60.9155, 1.005, 65.665)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_31_28" type="Node3D" parent="." unique_id=1206358035]
+transform = Transform3D(-0.19844139, 0, 1.0208923, 0, 1.04, 0, -1.0208923, 0, -0.19844139, 72.139496, 0.965, 65.74551)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbusto_34_28" type="Node3D" parent="." unique_id=695729397]
+transform = Transform3D(-0.49958676, 0, -0.8314524, 0, 0.97, 0, 0.8314524, 0, -0.49958676, 79.050995, 1.005, 65.4465)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_flores_37_28" type="Node3D" parent="." unique_id=1763528024]
+transform = Transform3D(1.0765804, 0, -0.17051345, 0, 1.09, 0, 0.17051345, 0, 1.0765804, 86.5835, 1.005, 65.343)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_28" type="Node3D" parent="." unique_id=268338930]
+transform = Transform3D(-0.6022176, 0, 0.66883034, 0, 0.9, 0, -0.66883034, 0, -0.6022176, 90.9075, 1.005, 65.791504)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_29" type="Node3D" parent="." unique_id=2010065978]
+transform = Transform3D(0.74328446, 0, -0.7696937, 0, 1.07, 0, 0.7696937, 0, 0.74328446, 0.86249995, 1.005, 67.516495)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_2_29" type="Node3D" parent="." unique_id=169955043]
+transform = Transform3D(-0.076034635, 0, -1.0873448, 0, 1.09, 0, 1.0873448, 0, -0.076034635, 5.5545, 1.005, 67.597)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_3_29" type="Node3D" parent="." unique_id=358799014]
+transform = Transform3D(0.08977047, 0, 1.0260805, 0, 1.03, 0, -1.0260805, 0, 0.08977047, 7.8315, 1.005, 67.7005)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="pino_13_29" type="Node3D" parent="." unique_id=806578107]
+transform = Transform3D(-0.76271456, 0, -0.5144575, 0, 0.92, 0, 0.5144575, 0, -0.76271456, 31.372, 1.005, 67.8155)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_26_29" type="Node3D" parent="." unique_id=1979209725]
+transform = Transform3D(0.20791148, 0, -0.9781476, 0, 1, 0, 0.9781476, 0, 0.20791148, 60.72, 1.005, 68.0225)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_31_29" type="Node3D" parent="." unique_id=650251543]
+transform = Transform3D(0.5819072, 0, -0.800927, 0, 0.99, 0, 0.800927, 0, 0.5819072, 72.702995, 0.965, 67.666)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbusto_36_29" type="Node3D" parent="." unique_id=677087731]
+transform = Transform3D(-0.8898062, 0, -0.43398735, 0, 0.99, 0, 0.43398735, 0, -0.8898062, 84.271996, 1.005, 67.643)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_39_29" type="Node3D" parent="." unique_id=679512130]
+transform = Transform3D(-0.64789844, 0, -0.694786, 0, 0.95, 0, 0.694786, 0, -0.64789844, 91.149, 1.005, 67.585495)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_30" type="Node3D" parent="." unique_id=1377329657]
+transform = Transform3D(-0.43148056, 0, -0.77841157, 0, 0.89, 0, 0.77841157, 0, -0.43148056, 0.81649995, 1.005, 69.8855)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_30" type="Node3D" parent="." unique_id=646943175]
+transform = Transform3D(-0.04710251, 0, -0.8987665, 0, 0.9, 0, 0.8987665, 0, -0.04710251, 5.451, 1.005, 70.449005)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_flores_12_30" type="Node3D" parent="." unique_id=1812916476]
+transform = Transform3D(-0.95164907, 0, -0.27288094, 0, 0.99, 0, 0.27288094, 0, -0.95164907, 28.8305, 1.005, 70.1845)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="tocon_14_30" type="Node3D" parent="." unique_id=2134101126]
+transform = Transform3D(0.049719173, 0, 0.94869804, 0, 0.95, 0, -0.94869804, 0, 0.049719173, 33.5915, 1.005, 69.851)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbusto_38_30" type="Node3D" parent="." unique_id=1691062063]
+transform = Transform3D(-0.17051363, 0, -1.0765803, 0, 1.09, 0, 1.0765803, 0, -0.17051363, 88.2395, 1.005, 70.345505)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbol_redondo_39_30" type="Node3D" parent="." unique_id=397732156]
+transform = Transform3D(0.30871388, 0, 1.0766131, 0, 1.12, 0, -1.0766131, 0, 0.30871388, 90.712, 1.005, 70.334)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_31" type="Node3D" parent="." unique_id=705240821]
+transform = Transform3D(-0.9377102, 0, 0.065571085, 0, 0.94, 0, -0.065571085, 0, -0.9377102, 1.3685, 1.005, 72.7605)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_2_31" type="Node3D" parent="." unique_id=1080935286]
+transform = Transform3D(0.15281036, 0, -0.8666308, 0, 0.88, 0, 0.8666308, 0, 0.15281036, 6.049, 1.005, 72.3695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_31" type="Node3D" parent="." unique_id=1789460017]
+transform = Transform3D(-0.4564278, 0, 0.9788124, 0, 1.08, 0, -0.9788124, 0, -0.4564278, 31.026999, 1.005, 72.4845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="puesto_15_31" type="Node3D" parent="." unique_id=21605783]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.65, 1.005, 72.45)
+script = ExtResource("1_ao5q7")
+id = "puesto"
+bloquea = true
+
+[node name="puesto_22_31" type="Node3D" parent="." unique_id=2102568523]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 51.75, 1.005, 72.45)
+script = ExtResource("1_ao5q7")
+id = "puesto"
+bloquea = true
+
+[node name="arbusto_26_31" type="Node3D" parent="." unique_id=1748188018]
+transform = Transform3D(0.8870703, 0, 0.5983364, 0, 1.07, 0, -0.5983364, 0, 0.8870703, 60.662502, 1.005, 72.633995)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_flores_27_31" type="Node3D" parent="." unique_id=336208444]
+transform = Transform3D(-0.55360097, 0, -0.82074726, 0, 0.99, 0, 0.82074726, 0, -0.55360097, 62.9395, 1.005, 72.771996)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_31" type="Node3D" parent="." unique_id=364434299]
+transform = Transform3D(-0.84151155, 0, 0.2897556, 0, 0.89, 0, -0.2897556, 0, -0.84151155, 90.723495, 1.005, 72.519)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_0_32" type="Node3D" parent="." unique_id=1306810587]
+transform = Transform3D(0.5540953, 0, 0.7092096, 0, 0.9, 0, -0.7092096, 0, 0.5540953, 0.83949995, 1.005, 74.888)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_2_32" type="Node3D" parent="." unique_id=292653268]
+transform = Transform3D(-0.8437266, 0, 0.5907837, 0, 1.03, 0, -0.5907837, 0, -0.8437266, 5.7155, 1.005, 74.911)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_32" type="Node3D" parent="." unique_id=282159082]
+transform = Transform3D(-0.8054036, 0, -0.46499997, 0, 0.93, 0, 0.46499997, 0, -0.8054036, 30.7395, 1.005, 75.049)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_32" type="Node3D" parent="." unique_id=1410818957]
+transform = Transform3D(0.98984927, 0, 0.017277882, 0, 0.99, 0, -0.017277882, 0, 0.98984927, 60.743, 1.005, 74.589)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_29_32" type="Node3D" parent="." unique_id=1036411123]
+transform = Transform3D(0.18754008, 0, 1.0635924, 0, 1.08, 0, -1.0635924, 0, 0.18754008, 68.1605, 1.005, 74.704)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbusto_flores_35_32" type="Node3D" parent="." unique_id=1712597329]
+transform = Transform3D(-0.7848979, 0, -0.6823014, 0, 1.04, 0, 0.6823014, 0, -0.7848979, 81.374, 1.005, 75.049)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_32" type="Node3D" parent="." unique_id=1063981409]
+transform = Transform3D(1.0766131, 0, -0.308714, 0, 1.12, 0, 0.308714, 0, 1.0766131, 90.919, 1.005, 74.543)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_33" type="Node3D" parent="." unique_id=574165921]
+transform = Transform3D(-0.8056457, 0, -0.5034233, 0, 0.95, 0, 0.5034233, 0, -0.8056457, 1.4145, 1.005, 77.176506)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_33" type="Node3D" parent="." unique_id=413699024]
+transform = Transform3D(-0.79992676, 0, -0.39015025, 0, 0.89, 0, 0.39015025, 0, -0.79992676, 5.727, 1.005, 76.9925)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_12_33" type="Node3D" parent="." unique_id=791294261]
+transform = Transform3D(-0.9594152, 0, 0.033503473, 0, 0.96, 0, -0.033503473, 0, -0.9594152, 28.5545, 1.005, 77.326004)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_13_33" type="Node3D" parent="." unique_id=1981690782]
+transform = Transform3D(-0.4352967, 0, -0.933497, 0, 1.03, 0, 0.933497, 0, -0.4352967, 31.2915, 1.005, 77.0845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_24_33" type="Node3D" parent="." unique_id=461134438]
+transform = Transform3D(0.42252442, 0, 0.79465276, 0, 0.9, 0, -0.79465276, 0, 0.42252442, 56.488, 1.005, 76.843)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+
+[node name="arbusto_26_33" type="Node3D" parent="." unique_id=1242326491]
+transform = Transform3D(0.3371461, 0, -0.8344653, 0, 0.9, 0, 0.8344653, 0, 0.3371461, 61.1915, 1.005, 76.8545)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_39_33" type="Node3D" parent="." unique_id=908753804]
+transform = Transform3D(0.8704034, 0, 0.7048388, 0, 1.12, 0, -0.7048388, 0, 0.8704034, 90.9075, 1.005, 77.188)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_34" type="Node3D" parent="." unique_id=1363418640]
+transform = Transform3D(0.43371168, 0, -1.0217603, 0, 1.11, 0, 1.0217603, 0, 0.43371168, 1.1615, 1.005, 79.511)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_2_34" type="Node3D" parent="." unique_id=1016010420]
+transform = Transform3D(-0.66553193, 0, -0.6206184, 0, 0.91, 0, 0.6206184, 0, -0.66553193, 5.6695, 1.005, 79.6145)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_3_34" type="Node3D" parent="." unique_id=1792464320]
+transform = Transform3D(0.40266925, 0, 0.90441006, 0, 0.99, 0, -0.90441006, 0, 0.40266925, 8.2685, 1.005, 79.419)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_4_34" type="Node3D" parent="." unique_id=482404460]
+transform = Transform3D(0.050242703, 0, -0.9586843, 0, 0.96, 0, 0.9586843, 0, 0.050242703, 10.373, 1.005, 79.235)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_5_34" type="Node3D" parent="." unique_id=176553413]
+transform = Transform3D(-0.17017524, 0, 0.9651116, 0, 0.98, 0, -0.9651116, 0, -0.17017524, 12.3165, 1.005, 79.695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_8_34" type="Node3D" parent="." unique_id=315108924]
+transform = Transform3D(-0.84655356, 0, 0.63792396, 0, 1.06, 0, -0.63792396, 0, -0.84655356, 19.561499, 1.005, 79.6145)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_13_34" type="Node3D" parent="." unique_id=1251169678]
+transform = Transform3D(-0.15281041, 0, 0.8666308, 0, 0.88, 0, -0.8666308, 0, -0.15281041, 30.7395, 1.005, 79.3155)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_34" type="Node3D" parent="." unique_id=489860437]
+transform = Transform3D(-0.35165808, 0, -0.8284543, 0, 0.9, 0, 0.8284543, 0, -0.35165808, 60.858, 1.005, 79.4075)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_39_34" type="Node3D" parent="." unique_id=1837466518]
+transform = Transform3D(0.591035, 0, -0.7564903, 0, 0.96, 0, 0.7564903, 0, 0.591035, 90.6775, 1.005, 79.097)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_0_35" type="Node3D" parent="." unique_id=316737118]
+transform = Transform3D(0.7946528, 0, -0.42252433, 0, 0.9, 0, 0.42252433, 0, 0.7946528, 1.4145, 1.005, 81.512)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_13_35" type="Node3D" parent="." unique_id=500652355]
+transform = Transform3D(-1.0117049, 0, -0.34835806, 0, 1.07, 0, 0.34835806, 0, -1.0117049, 31.279999, 1.005, 81.673004)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="dummy_24_35" type="Node3D" parent="." unique_id=1690005660]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 56.35, 1.005, 81.65)
+script = ExtResource("1_ao5q7")
+id = "dummy"
+bloquea = true
+
+[node name="arbusto_26_35" type="Node3D" parent="." unique_id=2072686733]
+transform = Transform3D(0.8248908, 0, -0.7427349, 0, 1.11, 0, 0.7427349, 0, 0.8248908, 61.157, 1.005, 81.903)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="tocon_27_35" type="Node3D" parent="." unique_id=2131089478]
+transform = Transform3D(0.7305173, 0, -0.591561, 0, 0.94, 0, 0.591561, 0, 0.7305173, 63.3305, 1.005, 81.788)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbusto_flores_36_35" type="Node3D" parent="." unique_id=2091563689]
+transform = Transform3D(1.0758903, 0, -0.094128, 0, 1.08, 0, 0.094128, 0, 1.0758903, 84.157, 1.005, 81.558)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_39_35" type="Node3D" parent="." unique_id=1190946945]
+transform = Transform3D(0.12796259, 0, -1.0421735, 0, 1.05, 0, 1.0421735, 0, 0.12796259, 90.826996, 1.005, 81.535)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_36" type="Node3D" parent="." unique_id=1399902533]
+transform = Transform3D(-0.85889405, 0, 0.3296985, 0, 0.92, 0, -0.3296985, 0, -0.85889405, 1.219, 1.005, 84.1225)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_9_36" type="Node3D" parent="." unique_id=698190629]
+transform = Transform3D(-0.017277827, 0, 0.98984927, 0, 0.99, 0, -0.98984927, 0, -0.017277827, 22.08, 0.965, 84.1915)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_13_36" type="Node3D" parent="." unique_id=877700308]
+transform = Transform3D(0.14056501, 0, -1.0001707, 0, 1.01, 0, 1.0001707, 0, 0.14056501, 31.1995, 1.005, 84.295)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_26_36" type="Node3D" parent="." unique_id=875955504]
+transform = Transform3D(-0.6762618, 0, 0.6089089, 0, 0.91, 0, -0.6089089, 0, -0.6762618, 61.111, 1.005, 84.2835)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="setas_27_36" type="Node3D" parent="." unique_id=419978722]
+transform = Transform3D(-0.35587627, 0, 0.8808247, 0, 0.95, 0, -0.8808247, 0, -0.35587627, 62.9165, 1.005, 84.0765)
+script = ExtResource("1_ao5q7")
+id = "setas"
+
+[node name="juncos_31_36" type="Node3D" parent="." unique_id=1448619399]
+transform = Transform3D(-0.7305171, 0, 0.59156126, 0, 0.94, 0, -0.59156126, 0, -0.7305171, 72.668495, 0.965, 84.18)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="piedras_37_36" type="Node3D" parent="." unique_id=381942715]
+transform = Transform3D(-0.71242136, 0, 0.5977925, 0, 0.93, 0, -0.5977925, 0, -0.71242136, 86.158, 1.005, 83.75449)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_39_36" type="Node3D" parent="." unique_id=1526965145]
+transform = Transform3D(-0.036644433, 0, 1.0493604, 0, 1.05, 0, -1.0493604, 0, -0.036644433, 90.792496, 1.005, 83.9385)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_0_37" type="Node3D" parent="." unique_id=1621125837]
+transform = Transform3D(-0.9735429, 0, -0.39333695, 0, 1.05, 0, 0.39333695, 0, -0.9735429, 1.0925, 1.005, 86.48)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbusto_flores_11_37" type="Node3D" parent="." unique_id=1989972316]
+transform = Transform3D(0.6529789, 0, 0.6761794, 0, 0.94, 0, -0.6761794, 0, 0.6529789, 26.622501, 1.005, 86.0545)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbusto_flores_12_37" type="Node3D" parent="." unique_id=965026822]
+transform = Transform3D(0.6929647, 0, 0.6929647, 0, 0.98, 0, -0.6929647, 0, 0.6929647, 28.8765, 1.005, 86.388)
+script = ExtResource("1_ao5q7")
+id = "arbusto_flores"
+
+[node name="arbol_redondo_13_37" type="Node3D" parent="." unique_id=684144964]
+transform = Transform3D(0.84286624, 0, 0.393035, 0, 0.93, 0, -0.393035, 0, 0.84286624, 31.119, 1.005, 86.0085)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_37" type="Node3D" parent="." unique_id=1006593961]
+transform = Transform3D(-0.076034635, 0, -1.0873448, 0, 1.09, 0, 1.0873448, 0, -0.076034635, 60.6855, 1.005, 86.158)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="tocon_37_37" type="Node3D" parent="." unique_id=1797960770]
+transform = Transform3D(0.43529677, 0, 0.933497, 0, 1.03, 0, -0.933497, 0, 0.43529677, 86.3535, 1.005, 86.1925)
+script = ExtResource("1_ao5q7")
+id = "tocon"
+
+[node name="arbol_redondo_39_37" type="Node3D" parent="." unique_id=1526041917]
+transform = Transform3D(-0.5907836, 0, -0.84372663, 0, 1.03, 0, 0.84372663, 0, -0.5907836, 90.7465, 1.005, 86.5835)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_38" type="Node3D" parent="." unique_id=1720847357]
+transform = Transform3D(-0.9833393, 0, 0.33859083, 0, 1.04, 0, -0.33859083, 0, -0.9833393, 1.4375, 1.005, 88.5845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="juncos_10_38" type="Node3D" parent="." unique_id=530562044]
+transform = Transform3D(-0.8268905, 0, 0.40330145, 0, 0.92, 0, -0.40330145, 0, -0.8268905, 24.1845, 0.965, 88.607506)
+script = ExtResource("1_ao5q7")
+id = "juncos"
+
+[node name="arbol_redondo_13_38" type="Node3D" parent="." unique_id=347217343]
+transform = Transform3D(-0.33714595, 0, 0.83446544, 0, 0.9, 0, -0.83446544, 0, -0.33714595, 31.348999, 1.005, 88.734)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_38" type="Node3D" parent="." unique_id=1857557963]
+transform = Transform3D(0.6859592, 0, 0.8470892, 0, 1.09, 0, -0.8470892, 0, 0.6859592, 60.881, 1.005, 88.6305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="piedras_34_38" type="Node3D" parent="." unique_id=1182349294]
+transform = Transform3D(-0.5777425, 0, -0.76669, 0, 0.96, 0, 0.76669, 0, -0.5777425, 79.235, 1.005, 88.74551)
+script = ExtResource("1_ao5q7")
+id = "piedras"
+
+[node name="arbol_redondo_39_38" type="Node3D" parent="." unique_id=1391861912]
+transform = Transform3D(0.93645567, 0, -0.3783527, 0, 1.01, 0, 0.3783527, 0, 0.93645567, 91.149, 1.005, 88.665)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_0_39" type="Node3D" parent="." unique_id=198042486]
+transform = Transform3D(0.91301423, 0, 0.2966563, 0, 0.96, 0, -0.2966563, 0, 0.91301423, 1.0925, 1.005, 90.643)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_1_39" type="Node3D" parent="." unique_id=37933990]
+transform = Transform3D(-0.4460248, 0, 0.8046502, 0, 0.92, 0, -0.8046502, 0, -0.4460248, 3.1165001, 1.005, 90.5625)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_2_39" type="Node3D" parent="." unique_id=960195344]
+transform = Transform3D(0.5882104, 0, 0.9413334, 0, 1.11, 0, -0.9413334, 0, 0.5882104, 5.497, 1.005, 90.528)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_3_39" type="Node3D" parent="." unique_id=376786067]
+transform = Transform3D(-0.7019832, 0, -0.8075393, 0, 1.07, 0, 0.8075393, 0, -0.7019832, 7.8775, 1.005, 90.654495)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_4_39" type="Node3D" parent="." unique_id=1092579769]
+transform = Transform3D(-0.28114995, 0, -0.980487, 0, 1.02, 0, 0.980487, 0, -0.28114995, 10.212001, 1.005, 90.550995)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_5_39" type="Node3D" parent="." unique_id=78005305]
+transform = Transform3D(-0.90441006, 0, 0.40266922, 0, 0.99, 0, -0.40266922, 0, -0.90441006, 12.396999, 1.005, 90.804)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_6_39" type="Node3D" parent="." unique_id=468631487]
+transform = Transform3D(-0.27811536, 0, -0.85595083, 0, 0.9, 0, 0.85595083, 0, -0.27811536, 14.9845, 1.005, 90.757996)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_7_39" type="Node3D" parent="." unique_id=1696490880]
+transform = Transform3D(0.17936035, 0, -0.9227296, 0, 0.94, 0, 0.9227296, 0, 0.17936035, 17.2615, 1.005, 90.873)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_8_39" type="Node3D" parent="." unique_id=1359048225]
+transform = Transform3D(0.88980615, 0, 0.43398744, 0, 0.99, 0, -0.43398744, 0, 0.88980615, 19.561499, 1.005, 90.757996)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_9_39" type="Node3D" parent="." unique_id=1754972649]
+transform = Transform3D(0.05756957, 0, 1.0984925, 0, 1.1, 0, -1.0984925, 0, 0.05756957, 21.873001, 1.005, 90.8845)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_10_39" type="Node3D" parent="." unique_id=655236280]
+transform = Transform3D(-0.51499987, 0, -0.89200616, 0, 1.03, 0, 0.89200616, 0, -0.51499987, 24.472, 1.005, 90.666)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_11_39" type="Node3D" parent="." unique_id=460713157]
+transform = Transform3D(1.0081198, 0, 0.327558, 0, 1.06, 0, -0.327558, 0, 1.0081198, 26.5305, 1.005, 90.781)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_12_39" type="Node3D" parent="." unique_id=205398748]
+transform = Transform3D(0.9348506, 0, 0.09825676, 0, 0.94, 0, -0.09825676, 0, 0.9348506, 28.52, 1.005, 91.0685)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_13_39" type="Node3D" parent="." unique_id=571223142]
+transform = Transform3D(-0.052336123, 0, -0.9986295, 0, 1, 0, 0.9986295, 0, -0.052336123, 31.3375, 1.005, 90.9075)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_14_39" type="Node3D" parent="." unique_id=843287073]
+transform = Transform3D(0.4694716, 0, 0.88294756, 0, 1, 0, -0.88294756, 0, 0.4694716, 33.626, 1.005, 90.7695)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_15_39" type="Node3D" parent="." unique_id=2111497098]
+transform = Transform3D(-0.8308866, 0, -0.3189474, 0, 0.89, 0, 0.3189474, 0, -0.8308866, 35.5005, 1.005, 91.034)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbusto_16_39" type="Node3D" parent="." unique_id=1693812957]
+transform = Transform3D(0.8056457, 0, 0.5034233, 0, 0.95, 0, -0.5034233, 0, 0.8056457, 38.2835, 1.005, 91.0455)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="pino_17_39" type="Node3D" parent="." unique_id=863896158]
+transform = Transform3D(-0.41581354, 0, -1.0291741, 0, 1.11, 0, 1.0291741, 0, -0.41581354, 40.158, 1.005, 90.792496)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_18_39" type="Node3D" parent="." unique_id=2083000123]
+transform = Transform3D(-0.10870965, 0, 1.0343027, 0, 1.04, 0, -1.0343027, 0, -0.10870965, 42.251, 1.005, 90.5395)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_19_39" type="Node3D" parent="." unique_id=1836652000]
+transform = Transform3D(0.8784991, 0, 0.6619965, 0, 1.1, 0, -0.6619965, 0, 0.8784991, 44.838497, 1.005, 90.7695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_20_39" type="Node3D" parent="." unique_id=2097899636]
+transform = Transform3D(0.90365106, 0, -0.6095201, 0, 1.09, 0, 0.6095201, 0, 0.90365106, 46.8395, 1.005, 91.011)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_21_39" type="Node3D" parent="." unique_id=645062785]
+transform = Transform3D(-0.45853058, 0, -0.8999165, 0, 1.01, 0, 0.8999165, 0, -0.45853058, 49.105, 1.005, 90.666)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_22_39" type="Node3D" parent="." unique_id=1086715516]
+transform = Transform3D(0.3783527, 0, 0.93645567, 0, 1.01, 0, -0.93645567, 0, 0.3783527, 51.635, 1.005, 90.7695)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_23_39" type="Node3D" parent="." unique_id=467066801]
+transform = Transform3D(-0.7085516, 0, 0.7337265, 0, 1.02, 0, -0.7337265, 0, -0.7085516, 53.843, 1.005, 90.781)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_24_39" type="Node3D" parent="." unique_id=1547579815]
+transform = Transform3D(0.9605671, 0, 0.31210718, 0, 1.01, 0, -0.31210718, 0, 0.9605671, 56.396, 1.005, 90.597)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_25_39" type="Node3D" parent="." unique_id=352616642]
+transform = Transform3D(0.21370602, 0, 1.0994225, 0, 1.12, 0, -1.0994225, 0, 0.21370602, 58.7075, 1.005, 90.723495)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_26_39" type="Node3D" parent="." unique_id=708966048]
+transform = Transform3D(-0.6526011, 0, 0.8352914, 0, 1.06, 0, -0.8352914, 0, -0.6526011, 61.134, 1.005, 91.149)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_27_39" type="Node3D" parent="." unique_id=1961765216]
+transform = Transform3D(-0.01780134, 0, -1.0198447, 0, 1.02, 0, 1.0198447, 0, -0.01780134, 63.48, 1.005, 90.9305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_28_39" type="Node3D" parent="." unique_id=1469163665]
+transform = Transform3D(-0.2673681, 0, -0.93242395, 0, 0.97, 0, 0.93242395, 0, -0.2673681, 65.4925, 1.005, 90.9535)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_29_39" type="Node3D" parent="." unique_id=967945393]
+transform = Transform3D(1.0117049, 0, 0.34835792, 0, 1.07, 0, -0.34835792, 0, 1.0117049, 67.505, 1.005, 90.7465)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_30_39" type="Node3D" parent="." unique_id=2116310548]
+transform = Transform3D(-0.7890257, 0, 0.6620712, 0, 1.03, 0, -0.6620712, 0, -0.7890257, 70.276505, 1.005, 90.585495)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_31_39" type="Node3D" parent="." unique_id=1568234167]
+transform = Transform3D(0.51641876, 0, 0.97124237, 0, 1.1, 0, -0.97124237, 0, 0.51641876, 72.6455, 1.005, 90.5395)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbusto_32_39" type="Node3D" parent="." unique_id=617742716]
+transform = Transform3D(-0.11393608, 0, 1.084029, 0, 1.09, 0, -1.084029, 0, -0.11393608, 74.451, 1.005, 90.895996)
+script = ExtResource("1_ao5q7")
+id = "arbusto"
+bloquea = true
+
+[node name="arbol_redondo_33_39" type="Node3D" parent="." unique_id=76684830]
+transform = Transform3D(-0.37270266, 0, 0.97092366, 0, 1.04, 0, -0.97092366, 0, -0.37270266, 76.8775, 1.005, 90.505)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_34_39" type="Node3D" parent="." unique_id=1391971408]
+transform = Transform3D(-0.5400001, 0, 0.93530744, 0, 1.08, 0, -0.93530744, 0, -0.5400001, 79.2465, 1.005, 90.666)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_35_39" type="Node3D" parent="." unique_id=1654849013]
+transform = Transform3D(-0.62893003, 0, -0.8656484, 0, 1.07, 0, 0.8656484, 0, -0.62893003, 81.8915, 1.005, 90.6315)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="arbol_redondo_36_39" type="Node3D" parent="." unique_id=945848912]
+transform = Transform3D(0.91676986, 0, -0.44713867, 0, 1.02, 0, 0.44713867, 0, 0.91676986, 83.95, 1.005, 90.942)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_37_39" type="Node3D" parent="." unique_id=1277862903]
+transform = Transform3D(-0.93431246, 0, -0.5613914, 0, 1.09, 0, 0.5613914, 0, -0.93431246, 86.549, 1.005, 90.942)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="arbol_redondo_38_39" type="Node3D" parent="." unique_id=625754055]
+transform = Transform3D(-0.39015028, 0, 0.7999267, 0, 0.89, 0, -0.7999267, 0, -0.39015028, 88.7685, 1.005, 90.9305)
+script = ExtResource("1_ao5q7")
+id = "arbol_redondo"
+bloquea = true
+
+[node name="pino_39_39" type="Node3D" parent="." unique_id=1102300416]
+transform = Transform3D(-0.3009777, 0, 0.8269295, 0, 0.88, 0, -0.8269295, 0, -0.3009777, 90.9305, 1.005, 90.826996)
+script = ExtResource("1_ao5q7")
+id = "pino"
+bloquea = true
+
+[node name="baldosa_guardado_19_33" type="Node3D" parent="." unique_id=2094008653]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 77.05)
+script = ExtResource("1_ao5q7")
+id = "baldosa_guardado"
+
+[node name="baldosa_guardado_19_21" type="Node3D" parent="." unique_id=631213218]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 49.45)
+script = ExtResource("1_ao5q7")
+id = "baldosa_guardado"
+
+[node name="baldosa_guardado_36_30" type="Node3D" parent="." unique_id=1789758856]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.95, 1.035, 70.15)
+script = ExtResource("1_ao5q7")
+id = "baldosa_guardado"
+
+[node name="baldosa_guardado_36_16" type="Node3D" parent="." unique_id=1599567402]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.95, 1.035, 37.95)
+script = ExtResource("1_ao5q7")
+id = "baldosa_guardado"
+
+[node name="pocion_2_13" type="Node3D" parent="." unique_id=1204090515]
+transform = Transform3D(0.87665135, 0, -0.07669689, 0, 0.88, 0, 0.07669689, 0, 0.87665135, 5.9225, 1.005, 31.210999)
+script = ExtResource("1_ao5q7")
+id = "pocion"
+
+[node name="pocion_37_36" type="Node3D" parent="." unique_id=569029975]
+transform = Transform3D(1.0198447, 0, -0.017801661, 0, 1.02, 0, 0.017801661, 0, 1.0198447, 86.0085, 1.005, 84.1915)
+script = ExtResource("1_ao5q7")
+id = "pocion"
+
+[node name="pocion_17_34" type="Node3D" parent="." unique_id=1135994423]
+transform = Transform3D(0.7570182, 0, -0.81180257, 0, 1.11, 0, 0.81180257, 0, 0.7570182, 40.549, 1.005, 79.235)
+script = ExtResource("1_ao5q7")
+id = "pocion"
+
+[node name="cartel_11_6" type="Node3D" parent="." unique_id=616180835]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 26.45, 1.005, 14.95)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true
+
+[node name="cartel_11_16" type="Node3D" parent="." unique_id=700347457]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 26.45, 1.005, 37.95)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true
+
+[node name="cartel_11_30" type="Node3D" parent="." unique_id=1488578685]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 26.45, 1.005, 70.15)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true
+
+[node name="cartel_28_6" type="Node3D" parent="." unique_id=1538352936]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 65.55, 1.005, 14.95)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true
+
+[node name="cartel_28_16" type="Node3D" parent="." unique_id=2017393230]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 65.55, 1.005, 37.95)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true
+
+[node name="cartel_28_30" type="Node3D" parent="." unique_id=1468385019]
+transform = Transform3D(0.75470954, 0, -0.6560591, 0, 1, 0, 0.6560591, 0, 0.75470954, 65.55, 1.005, 70.15)
+script = ExtResource("1_ao5q7")
+id = "cartel"
+bloquea = true

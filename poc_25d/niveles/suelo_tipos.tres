@@ -1,0 +1,93 @@
+[gd_resource type="MeshLibrary" format=3 uid="uid://byabxgkhdvwh3"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0phdr"]
+transparency = 1
+albedo_color = Color(0.36, 0.58, 0.3, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4m8tl"]
+material = SubResource("StandardMaterial3D_0phdr")
+size = Vector3(2.254, 1.035, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0phdr"]
+size = Vector3(2.3, 1.035, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lqcqs"]
+transparency = 1
+albedo_color = Color(0.25, 0.5, 0.85, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_b17ma"]
+material = SubResource("StandardMaterial3D_lqcqs")
+size = Vector3(2.254, 0.621, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_4m8tl"]
+size = Vector3(2.3, 0.621, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c10xs"]
+transparency = 1
+albedo_color = Color(0.55, 0.4, 0.25, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xmu5l"]
+material = SubResource("StandardMaterial3D_c10xs")
+size = Vector3(2.254, 0.7245, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lqcqs"]
+size = Vector3(2.3, 0.7245, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ew5ws"]
+transparency = 1
+albedo_color = Color(0.45, 0.33, 0.22, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_uf6b1"]
+material = SubResource("StandardMaterial3D_ew5ws")
+size = Vector3(2.254, 1.035, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_b17ma"]
+size = Vector3(2.3, 1.035, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ehjnf"]
+transparency = 1
+albedo_color = Color(0.55, 0.75, 0.3, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_xwgnc"]
+material = SubResource("StandardMaterial3D_ehjnf")
+size = Vector3(2.254, 1.035, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_c10xs"]
+size = Vector3(2.3, 1.035, 2.3)
+
+[resource]
+item/0/name = "SUELO"
+item/0/mesh = SubResource("BoxMesh_4m8tl")
+item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)
+item/0/mesh_cast_shadow = 1
+item/0/shapes = [SubResource("BoxShape3D_0phdr"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
+item/0/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/0/navigation_layers = 1
+item/1/name = "AGUA"
+item/1/mesh = SubResource("BoxMesh_b17ma")
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3105, 0)
+item/1/mesh_cast_shadow = 1
+item/1/shapes = [SubResource("BoxShape3D_4m8tl"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3105, 0)]
+item/1/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/1/navigation_layers = 1
+item/2/name = "PUENTE"
+item/2/mesh = SubResource("BoxMesh_xmu5l")
+item/2/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.36225, 0)
+item/2/mesh_cast_shadow = 1
+item/2/shapes = [SubResource("BoxShape3D_lqcqs"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.36225, 0)]
+item/2/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/2/navigation_layers = 1
+item/3/name = "TIERRA"
+item/3/mesh = SubResource("BoxMesh_uf6b1")
+item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)
+item/3/mesh_cast_shadow = 1
+item/3/shapes = [SubResource("BoxShape3D_b17ma"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
+item/3/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/3/navigation_layers = 1
+item/4/name = "ZONA_V"
+item/4/mesh = SubResource("BoxMesh_xwgnc")
+item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)
+item/4/mesh_cast_shadow = 1
+item/4/shapes = [SubResource("BoxShape3D_c10xs"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
+item/4/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/4/navigation_layers = 1

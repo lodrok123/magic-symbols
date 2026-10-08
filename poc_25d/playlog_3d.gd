@@ -192,7 +192,6 @@ func _pintar_colisiones() -> void:
 		_caja_col = BoxMesh.new()
 		_caja_col.size = Vector3(Lanzador3D.casilla * 0.94, 0.06, Lanzador3D.casilla * 0.94)
 	var c0: Vector2i = Lanzador3D.celda_de((jug as Node3D).position)
-	var bloq: Dictionary = mundo.get("_bloqueadas")
 	var hf: Dictionary = mundo.get("_hf")
 	var helada: Dictionary = mundo.get("_helada")
 	var usados: int = 0
@@ -205,7 +204,7 @@ func _pintar_colisiones() -> void:
 			var l: String = Lanzador3D.letra_de(c)
 			if l == "~":
 				clave = "hielo" if helada.has(c) else "agua"
-			elif bloq.has(c):
+			elif Lanzador3D.bloqueada(c):
 				clave = "rojo"
 			elif hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
 				clave = "naranja"

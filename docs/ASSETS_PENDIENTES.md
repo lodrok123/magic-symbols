@@ -205,3 +205,10 @@ Para un nivel más ambicioso que el Test 2. Reglas comunes: **textura ≤ 1024²
 | Alquimista | existe (`alchemist_elf`) | idle, talk, walk |
 
 **Prioridad Meshy:** 1) árboles ×3 y roca grande (cubren el 70 % del plano), 2) puente + pasarela + orilla, 3) tótems, 4) guardabosques, 5) resto.
+
+## Añadido el 7/10 (6.20, Pipeline) — hechos y pendientes de arte
+- **Hecho:** `art/ui/glyphs/`: `flecha.png` (`<`), `linea.png` (`|`, nuevo), `hielo.png` (`X`), `pulso.png` (dos semicírculos enfrentados), `levitacion.png` (`^`). 96×96, trazo blanco; son un primer pase generado por código, Pablo puede repintarlos con su pincel.
+- **Hecho:** puesto 2,4 → 1,9 y señal (`cartel`) 1,3 → 0,95 de escala en `prueba_test2.gd`.
+- **Pendiente (Meshy):** arbusto con más polígonos/volumen (hoy se ve plano); puesto sin objetos sobre la mesa (o más simple); señal pequeña con espacio para texto corto (`Label3D`); tocón en dos variantes (tumbado y de pie).
+- **Pendiente (Juego, `_bloqueadas`):** centrar el puesto entre `c` y `c+1`; la colisión fantasma de la derecha es del dict de bloqueadas, no del modelo.
+

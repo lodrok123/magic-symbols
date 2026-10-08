@@ -46,7 +46,6 @@ const FORM: Dictionary = {
 	"levitacion": {"lifetime": 2.0, "height": 1, "cooldown": 2.0},
 
 	# --- LENGUAJE NUEVO: cada uno es UN parámetro más de la receta ---
-	#
 	#   rebote     bounces  el proyectil rebota en barreras y en lo que golpea; con
 	#                       una barrera, la barrera REFLEJA en vez de absorber
 	#   retardo    delay    lo que sale tarda en salir (y se ve una marca en el suelo)
@@ -60,6 +59,7 @@ const FORM: Dictionary = {
 	"pulso": {"spread": true, "pulse": true, "cooldown": 2.5},
 	"atraccion": {"pull": true, "cooldown": 1.5},
 	"espejo": {"mirror": true, "cooldown": 1.5},
+	"linea": {"spread": true, "blocks": true, "cooldown": 2.0}
 }
 
 ## Los sellos OPERADORES no dicen dónde, sino cuánto: transforman lo que

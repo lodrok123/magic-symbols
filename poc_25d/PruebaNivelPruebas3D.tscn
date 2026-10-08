@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://poc_25d/prueba_test2.gd" id="1_poc"]
+
+[node name="PruebaNivelPruebas3D" type="Node3D"]
+script = ExtResource("1_poc")
+nivel = "pruebas"

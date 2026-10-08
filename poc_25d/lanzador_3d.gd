@@ -36,6 +36,7 @@ extends "res://spellcaster.gd"
 const CAPA_HECHIZO: int = 1 << 7     ## capa 8
 const CAPA_REACTIVO: int = 1 << 8    ## capa 9: lo que implementa on_spell_hit
 const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
+const CAPA_SOLIDO: int = 1 << 10     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10, camino A)
 
 ## Alto de un nivel, en unidades. Es el ALTO de prueba_test2.gd (S * 0,45); configurar() lo lee de allí.
 const ALTO_NIVEL: float = 2.3 * 0.45
@@ -49,7 +50,8 @@ const ARRASTRE_MINIMO: float = 0.45         ## casillas: menos que esto es un cl
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
 
 ## --- Lo que sale ---
-const ALCANCE_FLECHA: float = 8.0           ## casillas
+const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
+const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
 const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const VEL_MURO: float = 1.72                ## casillas/s (Sigils.WALL_SPEED 110 px / 64)
 const VEL_ONDA: float = 1.48                ## casillas/s (Sigils.PULSE_SPEED 95 px / 64)
@@ -58,6 +60,11 @@ const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a 
 
 ## --- Tierra e hielo con duración (§0b) ---
 const ESCALA_CUPULA: float = 0.2            ## la cúpula de la barrera se dibuja al 20 % del radio del aro (pedido de Pablo 22:03)
+## --- Barrera que protege (6.3) ---
+const MULT_VIDA_BARRERA: float = 2.0        ## la barrera quieta dura el doble que antes...
+const VIDA_MIN_BARRERA: float = 6.0         ## ...y como poco esto (s)
+const VIDA_ESCUDO: float = 60.0             ## daño que absorbe antes de romperse (golpe goblin 20, flecha 12)
+const T_CRECE: float = 0.9                  ## s que tarda el anillo de barrera + pulso en llegar a su radio (6.4)
 const MAX_TIERRA_APILADA: int = 1           ## bloques de tierra uno encima de otro
 const MAX_NIVELES_TIERRA: int = 8           ## tope de bloques vivos a la vez (FIFO)
 const DURACION_TIERRA: float = 25.0         ## segundos
@@ -84,6 +91,135 @@ static var alto_agua: float = 2.3 * 0.45 * 0.6
 static var alturas: Dictionary = {}
 ## Alturas FIJAS que pone el nivel (una cornisa de un nivel): Vector2i -> int. No caducan.
 static var permanentes: Dictionary = {}
+
+## =====================================================================================================
+##  FUENTE DE SOLIDEZ (6.10, camino A: hornear el mapa a un .tscn)
+##  Hoy la pregunta «¿está bloqueada esta casilla?» se contestaba leyendo `_bloqueadas` de PruebaTest2 en una docena de
+##  sitios. Ahora TODOS preguntan a `bloqueada(c)` y esa función delega en una FUENTE intercambiable:
+##    · FuenteCasillas (por defecto): lo de siempre, `_bloqueadas` + huellas calculadas. Comportamiento IDÉNTICO al anterior.
+##    · FuenteNodos: la solidez sale de la COLISIÓN REAL de las piezas del nivel (StaticBody3D en la capa CAPA_SOLIDO,
+##      o el grupo "bloquea"). Se activa con `Lanzador3D.activar_fuente_nodos(mundo)` cuando exista el Nivel_X.tscn.
+##  Por qué una interfaz y no tocar cada sitio: el día que el .tscn mande, cambia UNA línea (la fuente) y no una docena de
+##  consultas repartidas por el lanzador, el jugador y los goblins.
+## =====================================================================================================
+class FuenteSolidez extends RefCounted:
+	## ¿Hay algo sólido en la casilla `c`? (el agua y las alturas de tierra NO cuentan aquí: eso sigue en alturas/letras)
+	func bloquea(_c: Vector2i) -> bool:
+		return false
+	## Marca / quita un bloqueo en tiempo de juego (tierra que se solidifica, hielo que se derrite, barrera de fuego).
+	func bloquear(_c: Vector2i) -> void:
+		pass
+	func liberar(_c: Vector2i) -> void:
+		pass
+	## ¿Se puede ROZAR la casilla (su forma real es menor que la casilla)? Solo el jugador afina; hechizos y goblins no.
+	func es_parcial(_c: Vector2i) -> bool:
+		return false
+	## Con casilla parcial: ¿toca el punto `p` (suelo) lo que de verdad hay ahí?
+	func choca_punto(_c: Vector2i, _p: Vector3) -> bool:
+		return true
+
+
+## Lo de siempre: el diccionario `_bloqueadas` del mundo y las huellas aproximadas de `calcular_huellas`.
+class FuenteCasillas extends FuenteSolidez:
+	func _dic() -> Dictionary:
+		return Lanzador3D.mundo_s.get("_bloqueadas") as Dictionary
+	func bloquea(c: Vector2i) -> bool:
+		return Lanzador3D.mundo_s != null and _dic().has(c)
+	func bloquear(c: Vector2i) -> void:
+		_dic()[c] = true
+	func liberar(c: Vector2i) -> void:
+		_dic().erase(c)
+	func es_parcial(c: Vector2i) -> bool:
+		return Lanzador3D.huellas.has(c) and bloquea(c)
+	func choca_punto(c: Vector2i, p: Vector3) -> bool:
+		if not Lanzador3D.huellas.has(c):
+			return true
+		for h in (Lanzador3D.huellas[c] as Array):
+			var hv: Vector3 = h
+			if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + Lanzador3D.MARGEN_HUELLA:
+				return true
+		return false
+
+
+## La solidez sale de la FÍSICA: lo que se ve es lo que choca. Una casilla está bloqueada si hay colisión sólida (capa
+## CAPA_SOLIDO) dentro de ella; el punto del jugador choca si una esfera de su cuerpo toca esa colisión.
+## `reconstruir()` rellena la caché de casillas: llamarlo UNA vez tras cargar el nivel y esperar un fotograma de física
+## (el motor no ve los cuerpos nuevos hasta entonces). Lo que cambia en juego (tierra, hielo) va en `extras`.
+class FuenteNodos extends FuenteSolidez:
+	const RADIO_CUERPO: float = 0.3
+	var mundo: Node3D = null
+	var celdas: Dictionary = {}                      ## Vector2i -> true (sacado de la colisión)
+	var extras: Dictionary = {}                      ## bloqueos creados jugando
+	var _caja: BoxShape3D = BoxShape3D.new()
+	var _bola: SphereShape3D = SphereShape3D.new()
+
+	func _init(p_mundo: Node3D) -> void:
+		mundo = p_mundo
+		_bola.radius = RADIO_CUERPO
+
+	func reconstruir() -> int:
+		celdas.clear()
+		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
+		var lado: int = int(mundo.get("_lado"))
+		var cas: float = Lanzador3D.casilla
+		_caja.size = Vector3(cas * 0.9, 4.0, cas * 0.9)   # alto: cualquier cosa por encima del suelo de la casilla
+		var q := PhysicsShapeQueryParameters3D.new()
+		q.shape = _caja
+		q.collision_mask = Lanzador3D.CAPA_SOLIDO
+		for y in range(lado):
+			for x in range(lado):
+				q.transform = Transform3D(Basis(), Lanzador3D.centro_de(Vector2i(x, y), Lanzador3D.alto_suelo + 2.0))
+				if not espacio.intersect_shape(q, 1).is_empty():
+					celdas[Vector2i(x, y)] = true
+		return celdas.size()
+
+	func bloquea(c: Vector2i) -> bool:
+		return celdas.has(c) or extras.has(c)
+	func bloquear(c: Vector2i) -> void:
+		extras[c] = true
+	func liberar(c: Vector2i) -> void:
+		extras.erase(c)
+		celdas.erase(c)
+	func es_parcial(c: Vector2i) -> bool:
+		return celdas.has(c)                         # la forma real manda: se roza lo que no es la pieza
+	func choca_punto(c: Vector2i, p: Vector3) -> bool:
+		if not celdas.has(c):
+			return true
+		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
+		var q := PhysicsShapeQueryParameters3D.new()
+		q.shape = _bola
+		q.collision_mask = Lanzador3D.CAPA_SOLIDO
+		q.transform = Transform3D(Basis(), Vector3(p.x, Lanzador3D.alto_suelo + 0.6, p.z))
+		return not espacio.intersect_shape(q, 1).is_empty()
+
+
+static var fuente: FuenteSolidez = null
+
+
+static func bloqueada(c: Vector2i) -> bool:
+	return fuente != null and fuente.bloquea(c)
+
+
+static func bloquear_celda(c: Vector2i) -> void:
+	if fuente != null:
+		fuente.bloquear(c)
+
+
+static func liberar_celda(c: Vector2i) -> void:
+	if fuente != null:
+		fuente.liberar(c)
+
+
+## Cambia a la solidez por colisión real. Devuelve las casillas bloqueadas que ve (0 = aún no hay cuerpos en la física).
+static func activar_fuente_nodos(p_mundo: Node3D) -> int:
+	var f := FuenteNodos.new(p_mundo)
+	var n: int = f.reconstruir()
+	fuente = f
+	return n
+
+
+static func activar_fuente_casillas() -> void:
+	fuente = FuenteCasillas.new()
 ## Casillas cuyo hielo no caduca (el nivel lo marca): Vector2i -> true.
 static var hielo_permanente: Dictionary = {}
 
@@ -97,6 +233,7 @@ var altura: int = 0                     ## nivel del hechizo que pregunta a una 
 var capa_ui: CanvasLayer = null
 var libro: Control = null
 var _libro_lento: bool = false
+var _barrera_activa: Campo = null
 var _ts_libro: float = 1.0
 var _aviso: Label = null
 var _guia: Label = null
@@ -133,6 +270,7 @@ signal modo_cambiado(activo: bool)
 
 static func configurar(p_mundo: Node3D) -> void:
 	mundo_s = p_mundo
+	fuente = FuenteCasillas.new()        # por defecto, lo de siempre (6.10)
 	var k: Dictionary = p_mundo.get_script().get_script_constant_map()
 	casilla = float(k.get("S", casilla))
 	alto_suelo = float(k.get("ALTO", alto_suelo))
@@ -197,7 +335,7 @@ static func celda_solida(c: Vector2i, nivel: int) -> bool:
 	if not en_mapa(c):
 		return true
 	var l: String = letra_de(c)
-	if l != "~" and (mundo_s.get("_bloqueadas") as Dictionary).has(c):
+	if l != "~" and bloqueada(c):
 		return true
 	return altura_en(c) >= 1 + nivel
 
@@ -216,7 +354,6 @@ static func calcular_huellas(p_mundo: Node3D) -> int:
 	var lotes: Variant = p_mundo.get("_lotes")
 	if not (lotes is Dictionary) or (lotes as Dictionary).is_empty():
 		return 0
-	var bloq: Dictionary = p_mundo.get("_bloqueadas")
 	var n: int = 0
 	for id in (lotes as Dictionary):
 		var partes: Array = p_mundo.call("_plantilla", String(id))
@@ -240,7 +377,7 @@ static func calcular_huellas(p_mundo: Node3D) -> int:
 			for dy in range(-1, 2):
 				for dx in range(-1, 2):
 					var q := c + Vector2i(dx, dy)
-					if bloq.has(q) and letra_de(q) != "#" and letra_de(q) != "~":
+					if bloqueada(q) and letra_de(q) != "#" and letra_de(q) != "~":
 						if not huellas.has(q):
 							huellas[q] = []
 						(huellas[q] as Array).append(Vector3(centro.x, centro.z, r))
@@ -250,18 +387,12 @@ static func calcular_huellas(p_mundo: Node3D) -> int:
 
 ## ¿Es una casilla bloqueada cuya forma real conocemos (y por tanto se puede rozar)?
 static func es_parcial(c: Vector2i) -> bool:
-	return huellas.has(c) and mundo_s != null and (mundo_s.get("_bloqueadas") as Dictionary).has(c)
+	return fuente != null and fuente.es_parcial(c)
 
 
 ## ¿Está el punto dentro de lo que ocupa de verdad un objeto de esa casilla?
 static func choca_huella(c: Vector2i, p: Vector3) -> bool:
-	if not huellas.has(c):
-		return true
-	for h in (huellas[c] as Array):
-		var hv: Vector3 = h
-		if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + MARGEN_HUELLA:
-			return true
-	return false
+	return fuente == null or fuente.choca_punto(c, p)
 
 
 ## ¿Puede ESTAR alguien de pie en `c`? Lo usan el jugador y los goblins. `nivel` es en el que está;
@@ -270,17 +401,14 @@ static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: b
 	if not en_mapa(c):
 		return false
 	var l: String = letra_de(c)
-	var bloqueadas: Dictionary = mundo_s.get("_bloqueadas")
 	if l == "~":
 		if (mundo_s.get("_helada") as Dictionary).has(c):
 			pass                                     # hielo: se pisa
 		else:
 			return nada                              # agua: solo nadando
-	elif bloqueadas.has(c) and not ignora_bloqueo:
+	elif bloqueada(c) and not ignora_bloqueo:
 		return false
-	var hf: Dictionary = mundo_s.get("_hf")
-	if hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
-		return false                                 # hierba crecida: sólida (Fase.CRECIDA = 1)
+	# 6.22a: la hierba crecida YA NO es sólida: se atraviesa (antes bloqueaba el paso).
 	var n: int = altura_en(c)
 	if n > max_nivel:
 		return false
@@ -302,7 +430,7 @@ static func linea_libre(a: Vector3, b: Vector3) -> bool:
 		var c: Vector2i = celda_de(a + u * rec)
 		if c != previa:
 			var l: String = letra_de(c)
-			if not en_mapa(c) or (l != "~" and (mundo_s.get("_bloqueadas") as Dictionary).has(c)) or altura_en(c) >= 1:
+			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) >= 1:
 				return false
 			previa = c
 		rec += paso
@@ -766,7 +894,7 @@ func _lanzar_volador(receta: Receta3D, rune: RuneData, elemento: String, origen:
 			for i in range(receta.copies):
 				dirs.append((b as Vector3).rotated(Vector3.UP, (float(i) - float(receta.copies - 1) * 0.5) * abanico))
 	var factor: float = Sigils.quality_factor(receta.calidad)
-	var alcance: float = (ALCANCE_HAZ if rune.beam else ALCANCE_FLECHA) * casilla * factor
+	var alcance: float = ALCANCE_FLECHA * casilla * factor
 	if receta.reach > 1:
 		alcance *= 1.0 + 0.25 * float(receta.reach - 1)
 	var n: int = 0
@@ -804,13 +932,14 @@ func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector
 
 
 func _tiempo_de_viaje(elemento: String, distancia: float) -> float:
-	match elemento:
-		"tierra":
-			return 0.25
-		"rayo":
-			return 0.2
+	# 6.5: todos son una bola que viaja; el rayo, más rápido; la tierra, más lenta.
 	var v: float = fx.velocidad if fx != null else 7.0
-	return maxf(0.15, distancia / maxf(v, 0.1))
+	match elemento:
+		"rayo":
+			v *= 2.0
+		"tierra":
+			v *= 0.8
+	return maxf(0.1, distancia / maxf(v, 0.1))
 
 
 func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
@@ -824,7 +953,7 @@ func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3
 
 func _visual(elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
 	if fx != null and is_instance_valid(fx):
-		fx.lanzar(elemento, pie_a, pie_b)
+		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": RADIO_BOLA})
 
 
 func _despues(t: float, f: Callable) -> void:
@@ -1004,11 +1133,25 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 ##  Campos: lo que se queda (muros, corros, ondas, tierra, columnas) (4.1, 4.4)
 ## =====================================================================================================
 
+## ¿Es la barrera quieta que te envuelve (cúpula)? Barrera sola o con elemento: ni flecha, ni pulso, ni línea, ni altura.
+func es_barrera_cupula(receta: Receta3D) -> bool:
+	return receta.spread and not receta.travels and not receta.line and not receta.pulse and receta.height <= 0
+
+
+## Cuánto vive el campo de esta receta (la barrera cúpula dura más: 6.3).
+func vida_campo(receta: Receta3D) -> float:
+	var v: float = receta.vida()
+	if es_barrera_cupula(receta):
+		v = maxf(v * MULT_VIDA_BARRERA, VIDA_MIN_BARRERA)
+	return v
+
+
 func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector3, giro: float, manifest: Array,
 		nivel: int) -> int:
 	var factor: float = Sigils.quality_factor(receta.calidad)
 	var muro: bool = receta.es_barrera_movil()
-	var sigue: bool = receta.sigue()
+	var cupula: bool = es_barrera_cupula(receta)
+	var sigue: bool = receta.sigue() or cupula
 	var onda: bool = receta.expande()
 	var campo := Campo.new()
 	campo.lanz = self
@@ -1020,7 +1163,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	campo.atrae = receta.pull
 	campo.atraviesa = receta.lifetime > 0.0
 	campo.viaja = muro
-	campo.vida = receta.vida()
+	campo.vida = vida_campo(receta)
 	campo.altura_barrera = receta.height
 
 	# Centroide de cada dirección (una onda se abre desde el centro de lo suyo).
@@ -1060,6 +1203,8 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	_campos.append(campo)
 	_visual_campo(receta, elemento, origen, campo, muro, receta.blocks and receta.height > 0 and receta.spread and not onda)
 	campo.iniciar()
+	if cupula:
+		_proteger_con(campo)
 	manifestaciones_vivas += cuenta
 	campo.tree_exited.connect(func() -> void:
 		manifestaciones_vivas = maxi(0, manifestaciones_vivas - cuenta)
@@ -1069,12 +1214,17 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	var columna: bool = receta.blocks and receta.height > 0 and receta.spread and not onda
 	if columna:
 		_levantar_columna(campo, receta.vida(), 1, rune.color)
-	elif rune.tags.has("tierra") and receta.es_quieto() and not muro:
+	elif rune.tags.has("tierra") and receta.es_quieto() and not muro and not cupula:
 		var celdas: Dictionary = {}
 		for pt in campo.puntos:
 			celdas[celda_de(pt as Vector3)] = true
-		for c in celdas:
-			construir_tierra(c as Vector2i, false)   # el anillo (Vfx3D "corro") ya dibuja la tierra
+		var levantar := func() -> void:
+			for c in celdas:
+				construir_tierra(c as Vector2i, false)   # el anillo (Vfx3D "corro") ya dibuja la tierra
+		if onda:
+			_despues(T_CRECE, levantar)          # barrera + pulso: el anillo crece y los bloques aparecen al llegar
+		else:
+			levantar.call()
 	return cuenta
 
 
@@ -1121,7 +1271,7 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 		radio = maxf(radio, Vector2((p as Vector3).x - centro.x, (p as Vector3).z - centro.z).length())
 	var pie_o := Vector3(origen.x, y_pies(celda_de(origen)), origen.z)
 	var pie_c := Vector3(centro.x, y_pies(celda_de(centro)), centro.z)
-	var dura: float = receta.vida()
+	var dura: float = vida_campo(receta)
 	if columna:
 		return                                 # lo dibuja _levantar_columna casilla a casilla
 	if muro or receta.line:
@@ -1134,15 +1284,42 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 			d = Vector3(0, 0, 1)
 		fx.lanzar_forma("muro", elemento, pie_c - d.normalized() * 1.0, pie_c, {"radio": clampf(radio, 0.6, 3.0), "dura": dura})
 	else:
-		# Barrera quieta / área: ANILLO (corro) sobre la circunferencia real del campo. La tierra lo deja durar lo que sus
-		# bloques (que son colisión invisible); lo demás, 3 s como mucho.
-		if elemento == "tierra" or receta.expande():
-			# La tierra conserva el anillo de piedra (Pablo) y el pulso/onda es un aro que se abre.
+		if receta.expande():
+			# barrera + pulso (6.4): el ANILLO (de piedra, si es tierra) NACE en ti y CRECE hasta su radio. `crece` y `rompe`
+			# son opciones nuevas pedidas al Pipeline (6.17); mientras no las lea, el anillo sale ya en su radio.
 			var dura_corro: float = DURACION_TIERRA if elemento == "tierra" else minf(dura, 3.0)
-			fx.lanzar_forma("corro", elemento, pie_o, pie_c, {"radio": clampf(radio, 0.6, 3.5), "dura": dura_corro})
+			fx.lanzar_forma("corro", elemento, pie_o, pie_c, {"radio": clampf(radio, 0.6, 3.5), "dura": dura_corro,
+				"crece": true, "t_crece": T_CRECE, "rompe": elemento == "tierra" or elemento == "hielo"})
 		else:
-			# Barrera estática: CÚPULA translúcida que envuelve al personaje (referencias de Pablo; Pipeline 21:40).
-			fx.lanzar_forma("cupula", elemento, pie_o, pie_c, {"radio": clampf(radio * ESCALA_CUPULA, 0.5, 3.5), "dura": dura})
+			# Barrera quieta (6.3, 6.4): CÚPULA que envuelve al personaje y LE SIGUE; la de tierra es de bloques. Vive lo que el campo.
+			var antes: Array = fx.get_children()
+			fx.lanzar_forma("cupula", elemento, pie_o, pie_c, {"radio": clampf(radio * ESCALA_CUPULA, 0.5, 3.5), "dura": dura,
+				"rompe": elemento == "tierra" or elemento == "hielo"})
+			for h in fx.get_children():
+				if antes.has(h) or not (h is Node3D) or h is Light3D:
+					continue
+				# La raíz de la cúpula nace en el centro pedido y lleva mallas (esfera de shader o, en tierra, piedras).
+				var d_xz := Vector2((h as Node3D).position.x - pie_c.x, (h as Node3D).position.z - pie_c.z)
+				if d_xz.length() < 0.05 and not (h as Node).find_children("*", "MeshInstance3D", true, false).is_empty():
+					c3.visual = h as Node3D
+					c3.visual_rel = (h as Node3D).position - (jugador as Node3D).position
+					break
+
+
+## La barrera cúpula protege: una a la vez (la nueva sustituye a la vieja) y el jugador se la apunta para absorber golpes.
+func _proteger_con(campo: Node3D) -> void:
+	if _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa != campo:
+		_barrera_activa.queue_free()
+	(campo as Campo).escudo = VIDA_ESCUDO
+	_barrera_activa = campo as Campo
+
+
+## ¿Hay una barrera viva que pueda parar este golpe? La llama Jugador3D.recibir_dano.
+func absorber_golpe(cantidad: float, desde: Vector3) -> bool:
+	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
+		_barrera_activa = null
+		return false
+	return _barrera_activa.absorber(cantidad, desde)
 
 
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
@@ -1154,7 +1331,7 @@ func construir_tierra(c: Vector2i, dibujar: bool = true) -> bool:
 	var l: String = letra_de(c)
 	if l == "~" or l == "b":
 		return false
-	if (mundo.get("_bloqueadas") as Dictionary).has(c) or permanentes.has(c):
+	if bloqueada(c) or permanentes.has(c):
 		return false
 	if jugador != null and bool(jugador.call("ocupa", c)):
 		return false
@@ -1239,7 +1416,7 @@ func _levantar_columna(campo: Node3D, duracion: float, niveles: int, color: Colo
 	var celdas: Dictionary = {}
 	for pt in (campo as Campo).puntos:
 		var c: Vector2i = celda_de(pt as Vector3)
-		if not en_mapa(c) or es_agua(c) or (mundo.get("_bloqueadas") as Dictionary).has(c) \
+		if not en_mapa(c) or es_agua(c) or bloqueada(c) \
 				or jugador != null and bool(jugador.call("ocupa", c)):
 			continue
 		celdas[c] = true
@@ -1346,7 +1523,7 @@ func _derretir(c: Vector2i, era_agua: bool) -> void:
 	mundo.call("_poner_canal", c, 2, 0.0)
 	if era_agua:
 		(mundo.get("_helada") as Dictionary).erase(c)
-		(mundo.get("_bloqueadas") as Dictionary)[c] = true
+		bloquear_celda(c)
 	else:
 		mundo.call("_poner_canal", c, 1, 1.0)
 	if fx != null:
@@ -1500,6 +1677,9 @@ class Campo extends Node3D:
 	var altura_barrera: int = 0
 	var vida: float = 1.0
 	var sigue: Node3D = null
+	var visual: Node3D = null        ## la cúpula de Vfx3D, que se mueve con el jugador (6.3)
+	var visual_rel: Vector3 = Vector3.ZERO
+	var escudo: float = 0.0          ## daño que aún puede absorber (0 = no protege)
 
 	var puntos: Array = []          ## Vector3
 	var vel: Array = []             ## Vector3
@@ -1539,8 +1719,26 @@ class Campo extends Node3D:
 		_celdas[c] = true
 		lanz.marcar_celda(elemento, c)
 
+	## Un golpe o una flecha contra la cúpula: se queda con el daño. Devuelve true si lo ha parado entero.
+	func absorber(cantidad: float, desde: Vector3) -> bool:
+		if escudo <= 0.0:
+			return false
+		escudo -= cantidad
+		Combate3D.flotante(lanz.mundo, (sigue.position if sigue != null else global_position) + Vector3(0, 1.8, 0),
+			"Bloqueado" if escudo > 0.0 else "Rota", Color(0.6, 0.9, 1.0))
+		PlayLog.event("barrera_absorbe", {"dano": cantidad, "escudo": maxf(escudo, 0.0), "desde": [snappedf(desde.x, 0.1), snappedf(desde.z, 0.1)]})
+		if escudo <= 0.0:
+			queue_free()
+		return true
+
+	func _exit_tree() -> void:
+		if visual != null and is_instance_valid(visual):
+			visual.queue_free()               # la cúpula desaparece cuando se rompe o caduca el campo
+
 	func _physics_process(delta: float) -> void:
 		_t += delta
+		if visual != null and is_instance_valid(visual) and sigue != null and is_instance_valid(sigue):
+			visual.position = sigue.position + visual_rel
 		if _t >= vida:
 			queue_free()
 			return
@@ -1665,7 +1863,7 @@ class BarreraFuego extends Area3D:
 			fx.vapor(Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 0.3))
 		if luz != null and is_instance_valid(luz):
 			luz.queue_free()
-		(mundo.get("_bloqueadas") as Dictionary).erase(celda)
+		Lanzador3D.liberar_celda(celda)
 		collision_layer = 0
 		PlayLog.event("barrera_fuego_apagada", {"celda": [celda.x, celda.y]})
 		Combate3D.flotante(mundo, Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 1.2), "¡Apagada!", Color(0.5, 0.8, 1.0))

@@ -323,17 +323,17 @@ al 30 % (antes 70 %). Se implementan como constantes `TIEMPO_LIBRO` y
 
 ### Juego
 
-- [ ] **5.1 (P0) El origen es siempre el jugador.** Se retira el "origen en el
+- [x] **5.1 (P0) El origen es siempre el jugador.** Se retira el "origen en el
   punto del ratón" de §0b: el ratón da solo la **dirección**; el alcance de 3
   casillas es distancia de viaje. Nada nace lejos salvo que un glifo lo diga
   (levitación: queda estático donde termina la trayectoria). Motivo: lanzar
   en un punto trivializa el puzle. `Lanzador3D`: `origen = jugador` siempre;
   `alcance` solo limita `travels`.
-- [ ] **5.2 (P0) Tiempo del libro.** Abrir el libro ya no pausa: `TIEMPO_LIBRO`
+- [x] **5.2 (P0) Tiempo del libro.** Abrir el libro ya no pausa: `TIEMPO_LIBRO`
   (0,3). Modo lanzar: `TIEMPO_LANZAR` (0,3). Los enemigos siguen moviéndose
   (lento): es el castigo al que abre el libro sin haberse preparado. El HUD
   tiene que enseñar que el tiempo corre (los goblins se mueven, basta).
-- [ ] **5.3 (P0) Altura: un nivel.** `MAX_NIVELES_SUBIBLES = 1`, la tierra se
+- [x] **5.3 (P0) Altura: un nivel.** `MAX_NIVELES_SUBIBLES = 1`, la tierra se
   apila hasta 1, la columna de barrera + levitación es de 1 nivel. Los
   números de §0b (dos niveles) quedan para después.
 - [ ] **5.4 (P0) Semántica de glifos v2** (tabla de §3). Cada glifo aporta un
@@ -371,7 +371,7 @@ al 30 % (antes 70 %). Se implementan como constantes `TIEMPO_LIBRO` y
   **tormenta** (nubes de tormenta estáticas sobre el área: rayo periódico
   en las casillas de debajo); agua + viento = hielo; fuego + agua = vapor.
   `fuego + viento` y `rayo + tierra` sin definir: no se implementan.
-- [ ] **5.8 (P0) Contrato VFX v2 para el Pipeline.** Publicar en el diario la
+- [x] **5.8 (P0) Contrato VFX v2 para el Pipeline.** Publicar en el diario la
   lista de formas de 5.4 con sus parámetros (`radio`, `largo`, `altura`,
   `duracion`, `direccion`) para que 5.10 pueda empezar. Un día.
 
@@ -408,22 +408,14 @@ al 30 % (antes 70 %). Se implementan como constantes `TIEMPO_LIBRO` y
   librera, alquimista, con los clips mínimos de 4.8. Cada asset con qué
   letra del plano lo coloca.
 
-**Estado del Juego a 6/10 21:10** (revisado contra `lanzador_3d.gd` y
-`jugador_3d.gd` en disco y el diario): fase 4 cerrada por su parte (4.1–4.5,
-diario 03:00; marcadas arriba). De la fase 5: **5.1 a medias** (flecha y
-barrera ya nacen en el jugador, 19:15; falta quitar el origen por ratón y el
-aro `ALCANCE_ORIGEN`, y que el alcance solo limite el viaje); **5.2 sin
-hacer** (sigue `RALENTIZADO = 0.7` y el libro con `PROCESS_MODE_ALWAYS`
-sobre la pausa; faltan `TIEMPO_LIBRO`/`TIEMPO_LANZAR` = 0,3); **5.3 sin
-hacer** (`MAX_NIVELES_SUBIBLES = 2`, tierra hasta 8 bloques); **5.4 y 5.8
-sin empezar**. Nada le bloquea para 5.1–5.3 y 5.8. Para **5.4** necesita
-tres cosas que no son suyas: (a) **plantilla del gesto `linea`** en
-`gesture_library.tres` (Pablo la graba en el entrenador; es un archivo de
-Pablo); (b) **icono `assets/ui/glyphs/linea.png`** (Pipeline, mismo estilo
-que `pulso.png`); (c) que `Vfx3D.lanzar_forma` acepte `chorro`, `onda` y
-`acompanante` sin romper aunque el VFX aún no exista (Pipeline, 5.10: con
-un sustituto vale). Hasta (a) puede programar `linea` y probarla con el
-atajo de teclado del libro.
+**Estado del Juego a 7/10 09:30** (diario 21:00–22:00 del 6/10): fase 4
+cerrada; **5.1, 5.2, 5.3 y 5.8 hechas**; **5.4 a medias** (`linea` en
+`Receta3D`, falta el resto de la semántica v2, que espera a 5.14). Lo que
+le falta para `linea` y no es suyo: `Sigils.FORM["linea"]` en `sigils.gd`
+(Pablo, propuesta exacta en el diario 22:00), plantilla del gesto (Pablo,
+al avisar el Juego) e icono `linea.png` (Pipeline). Sus archivos
+retrocedieron otra vez a las 21:11: **cerrar las pestañas de `poc_25d/*.gd`
+en el editor de scripts de Godot.**
 
 ### Pablo
 
@@ -444,6 +436,390 @@ Godot guardando desde el editor de scripts o un `BAJAR` con `stash`
 sin `drop`. Con un chat escribiendo en `poc_25d`, el editor de scripts
 de Godot cerrado, y `git status` antes de `BAJAR`.
 
+## Fase 6 — Lo visto en el playtest largo del 7/10 (`docs/Playtests/Magic_Symbols_Playtest 071026.docx`)
+
+Segundo playtest largo en `PruebaJugabilidad3D`. El documento tiene cinco
+bloques (estructura, animaciones, assets, hechizos, glifos); aquí cada punto
+es una tarea con dueño. Las imágenes del playtest son la referencia: el que
+haga la tarea abre el `.docx` (está en la copia de OneDrive; Pablo lo copia a
+`docs/Playtests/` del repo, 6.0). Prioridad: P0 lo que rompe el juego o el
+lenguaje de los hechizos; P1 lo que se ve mal; P2 lo que es pulido.
+
+### Pablo
+
+- [x] **6.0** Copiado el `.docx` del 7/10 a `docs/Playtests/` (7/10). Queda
+  decidir **6.10** (estructura del mundo) cuando el Pipeline entregue la
+  propuesta: es la decisión grande de esta fase.
+- [ ] **6.21 (P0) Glifos nuevos y símbolos.** **Validado el 7/10.** Símbolos
+  nuevos: **flecha = `<`** (un ángulo; se reconoce a izquierdas y derechas),
+  **línea = `|`** (raya vertical), **hielo = `X`**, **pulso = dos
+  semicírculos**, **levitación = `^`** (el mismo ángulo que flecha, con la
+  punta hacia arriba; fijado el 7/10). Ojo con el $P: flecha vale a
+  izquierdas y derechas (`<` y `>`), así que levitación solo puede ser `^`
+  (no `v`, que se confundiría con una flecha girada): comprobar el margen
+  entre `<`, `>` y `^` con `podar_gestos.py` al grabar. Pablo graba las plantillas en
+  `gesture_library.tres` cuando el Juego avise de que `linea` y `pulso`
+  entran por el libro (6.1) y añade `Sigils.FORM["linea"]` /
+  `GLYPHS["linea"]` en `sigils.gd` (propuesta exacta en el diario del 6/10,
+  22:00). Comprobar que `pulso` (dos semicírculos) no se confunde con
+  `barrera` (círculo) en el $P: `podar_gestos.py` da el margen.
+- [x] **6.22 (P1) Hierba crecida: decidido (a), deja de ser sólida en 3D**
+  (7/10). Lo ejecuta el Juego en 6.22a. Contexto: hoy la hierba crecida por el
+  agua es **sólida** (regla heredada del 2D) y es lo que el playtest ve como
+  "colisión fantasma al crecer la hierba". Opciones: (a) deja de ser sólida en
+  3D (lo más simple: una línea en `Jugador3D._puede_estar`); (b) sigue sólida
+  pero se ve claramente como seto. Recomendación: (a); en 3D no hace falta
+  que la hierba bloquee, ya bloquean setos y tierra.
+- [ ] **6.23 (P1) Jugar la cadena de casteo** cuando 6.2 y 6.11 estén:
+  T/página → `readandwrite` sostenido mientras se apunta → soltar → `cast` →
+  fin, y confirmar que el libro en las manos se ve. **El tiempo al 30 % se
+  siente bien (7/10): no se ajusta.** Cadena confirmada como está escrita.
+- [x] **6.24 (P2) Validado (7/10):** `rayo + flecha` = bola eléctrica
+  pequeña; `rayo + levitación + barrera` = el rayo que cae de hoy, más corto.
+  El Juego lo aplica en 6.5; actualizar la tabla de §3 de `DISENO_FUTURO.md`
+  al hacerlo.
+
+### Juego
+
+- [x] **6.1 (P0) `linea` y `pulso` entran por el libro.** `pulso` existe en
+  `sigils.gd` pero el playtest pide "crear el símbolo y añadirlo al test":
+  comprobar que el 3D lo acepta (`Receta3D.apply("pulso")`), que `linea`
+  llega desde el libro en cuanto Pablo meta `Sigils.FORM["linea"]`, y avisar
+  en el diario para que Pablo grabe plantillas (6.21). Sin esto 5.14 no se
+  puede jugar.
+- [x] **6.2 (P0) Cadena de casteo correcta.** Hoy: elegir página/dibujar →
+  clip de casteo. Debe ser: **T o página → `readandwrite` (y se sostiene
+  mientras se apunta) → al soltar, `cast` de la forma → fin**.
+  `Lanzador3D`: al entrar en modo lanzar `Pj3D.jugar("readandwrite")` en
+  bucle; al lanzar `jugar("cast", true)` y esperar `duracion("cast")` antes
+  de volver a idle. El libro en las manos lo pone el Pipeline (5.9/6.11); el
+  Juego solo pide el clip por nombre.
+- [ ] **6.2b (P0) El clip de atacar no se congela.** Si el jugador se mueve
+  durante la animación de lanzar (`cast`), el clip se queda congelado
+  (añadido al playtest el 7/10). Arreglo: cuando empieza `cast`, el jugador
+  queda **bloqueado hasta que el clip termina** (`duracion("cast")`), igual
+  que los goblins con `attack` (6/10 18:55); el movimiento que llegue
+  mientras tanto se ignora y al acabar vuelve `walk`/`idle`. **Decidido
+  (7/10): el mismo bloqueo lo reutilizan `cast` y `drink`** (un solo "clip
+  que bloquea" en `Jugador3D` con su temporizador). La voltereta (`roll`)
+  no entra: se desplaza y ya tiene su propio control (6.6).
+- [x] **6.3 (P0) Barrera que dura, te sigue y te protege.** Con cualquier
+  elemento, la barrera quieta (`cupula`): (1) dura más (propuesta: `vida`
+  × 2, mínimo 6 s; número en una constante para ajustar); (2) **sigue al
+  jugador** (el `Area3D` y la cúpula son hijos del jugador, no del mundo);
+  (3) **para los golpes de los goblins y las flechas** mientras dura
+  (`Combate3D`: si hay barrera activa del jugador, el golpe/flecha se
+  absorbe; opcional: cada impacto le resta vida). Hoy la barrera es solo
+  área de daño/colisión y no protege: es la queja más repetida del playtest.
+- [x] **6.4 (P0) `tierra + barrera` = esfera de tierra; `barrera + pulso` =
+  anillo de piedra que crece.** Hoy tierra + barrera da el anillo de piedra
+  (`stone_ring`), que al playtest le parece perfecto… **para barrera +
+  pulso**. Cambio en `Receta3D.forma()`/`_visual_campo`: tierra + barrera →
+  `cupula` de tierra (bloques en cúpula, el jugador dentro); barrera + pulso
+  → `corro` que se expande del jugador hasta el radio (hoy el corro nace ya
+  en su radio). Sólidos (tierra, hielo): al apagarse se **destruyen** (VFX
+  de Pipeline 6.17); fluidos se apagan.
+- [x] **6.5 (P0) Proyectiles por elemento (`flecha`).** `fuego + flecha` se ve
+  como una gota enorme que vuela; "mal, y probablemente en el resto de
+  elementos". Juego: la **bola** es una manifestación pequeña (≈ 0,5
+  casilla) que viaja a 3 casillas, no el campo entero estirado; pasar al VFX
+  el tamaño (`{"radio": 0.25}`) y la dirección real. `rayo + flecha` pasa a
+  ser **bola eléctrica** pequeña (deja de ser rayo que cae); el rayo que cae
+  queda para `rayo + levitación + barrera` con duración corta (6.24).
+- [x] **6.6 (P1) Voltereta.** Tecla (propuesta: Ctrl o botón derecho fuera
+  del modo lanzar): `roll_dodge`, desplaza **≤ 1 casilla** en la dirección
+  de movimiento, **colisiona** (usa `_puede_estar` paso a paso, no
+  teletransporta), reutilización **4 s** (constante `TIEMPO_VOLTERETA`),
+  sin daño por contacto mientras dura (i-frames). Evento en `PlayLog`.
+- [x] **6.7 (P1) Beber poción.** Tecla (propuesta: Q): si hay poción en la
+  mochila, clip `stand_drink` **1,5 s con el jugador bloqueado** (ni moverse
+  ni lanzar ni voltereta: es vulnerable), cura al terminar (si le golpean
+  antes, se interrumpe y no cura). La poción en la mano la cose el Pipeline
+  (6.12); el Juego pide `Pj3D.equipar("pocion")` / `desequipar` por nombre.
+- [x] **6.8 (P1) Nadar: flotar, no hundirse.** En agua el jugador queda con
+  los pies a `ALTO_AGUA - 0,35` (la superficie, no el fondo del bloque) y el
+  clip `swim`; hoy se hunde en el bloque. Un offset en `Jugador3D` según
+  `nadando`; comprobar con la cámara del juego, no en headless.
+- [ ] **6.9 (P1) Propagación del fuego solo por contacto + retardo del
+  reconocimiento.** **Medido el 7/10 (diario 10:05):** (a) vive en
+  `prueba_test2.gd` → lo hace el Pipeline en 7.3; (b) el retardo es
+  `GESTURE_PAUSE` (0,75 s) de `spellbook.gd` escalado por `time_scale` al
+  30 % = 2,5 s reales → **lo arregla Pablo** en `spellbook.gd`:
+  `gesture_countdown -= delta / maxf(Engine.time_scale, 0.01)`. Nada
+  pendiente del Juego. Texto original: (a) El fuego en hierba se extiende demasiado rápido y
+  lejos: `ESTADOS_SUELO` / `lanzador_3d`: el fuego solo pasa a casillas
+  **adyacentes** (4 vecinas) y con un retardo por salto (propuesta 0,6 s);
+  nada de radio. (b) **Bug:** hay un retardo notable entre dibujar un sello o
+  glifo y que el libro lo reconozca. Medir primero (tiempo entre soltar el
+  ratón y `_on_gesture`): sospechosos, el remuestreo del $P con todas las
+  plantillas en el mismo fotograma, o un `await` del libro. Reportar la
+  medida en el diario antes de arreglar.
+- [x] **6.22a (P1) Hierba crecida no sólida** (decisión 6.22, opción a):
+  en `Jugador3D._puede_estar` la hierba crecida deja de bloquear; los
+  goblins igual (`Combate3D`). Setos y tierra siguen bloqueando. Es la
+  "colisión fantasma al crecer la hierba" del playtest.
+
+### Pipeline
+
+- [ ] **6.10 (P0) Propuesta de estructura del mundo: de bloques a nivel
+  editable.** El playtest: generar todo por bloques da colisiones fantasma
+  (hierba, puesto), no deja construir el mundo poco a poco ni girar piezas,
+  y hay piezas que no ocupan una casilla entera. Pide ir a **3D puro
+  editable en Godot** para que Pablo monte niveles con las piezas ya
+  validadas. Pipeline escribe la propuesta (una página en `DISENO_FUTURO.md`
+  §0 o en el diario) con dos caminos y su coste: (a) el mapa de letras sigue
+  siendo la **fuente** pero `prueba_test2.gd` lo **hornea** una vez a un
+  `.tscn` normal (nodos hijos, `MeshInstance3D` + colisión por pieza) que
+  Pablo edita en el editor; la lógica del Juego (`_bloqueadas`, huellas,
+  estados del suelo) se alimenta de los nodos, no de las letras; (b) nivel
+  hecho a mano desde cero con una paleta de escenas (`.tscn` por pieza) y
+  un `GridMap` solo para el suelo. En las dos: **colisión por malla real**
+  (`create_trimesh`/convex por pieza) en vez de "casilla bloqueada"; eso
+  quita de raíz las colisiones fantasma del puesto y la hierba. Pablo decide
+  (6.0). **No se empieza a programar hasta la decisión.**
+- [x] **6.11 (P0) Libro en las manos + `readandwrite` sostenido** (= 5.9 con
+  lo que añade el playtest): el grimorio sale de la pelvis y va a las manos
+  al abrir, y el clip `readandwrite` **se aguanta en bucle mientras se
+  apunta**; `cast` solo al soltar (ver 6.2). Comprobar que `readandwrite`
+  hace bucle limpio.
+- [x] **6.12 (P1) Clips nuevos del héroe:** (a) **giro al andar**: integrar
+  `walk02` en el bucle de `walk` (1–2 fotogramas clave bastan) para que el
+  cambio de dirección no sea seco; (b) **`roll_dodge`** validado como
+  "voltereta" (≤ 1 casilla de desplazamiento en el clip, o sin
+  desplazamiento y lo mueve el Juego); (c) **`stand_drink`** 1,5 s con el
+  modelo de la **poción al 50 %** cosido a la mano (`Equipo3D`, como el arco
+  del arquero); exponer `Pj3D.equipar("pocion")`.
+- [x] **6.13 (P1) Arquero: fotograma de apuntado.** Bloquear el clip
+  `ArcheryShot` en el fotograma con los brazos extendidos (Pablo: el 5 o el
+  6) mientras apunta, y soltar desde ahí; dar al Juego `momento_golpe` y el
+  fotograma de bloqueo. Arco: **+20 % de largo y más ancho** para que se
+  vea.
+- [x] **6.14 (P0) Hierba: más masa y quemado sin mancha.** (a) Los matojos
+  salen muy separados: más masa visual, sin huecos, para que la propagación
+  no parezca irreal (imagen del playtest como objetivo); (b) **quitar el
+  suelo ennegrecido** al quemarse: la hierba quemada desaparece o queda un
+  rastrojo corto, el suelo no cambia de color; (c) la hierba **no genera
+  colisión** (ver 6.22; la solidez la decide el Juego, el Pipeline no pone
+  `StaticBody`).
+- [x] **6.15 (P1) Fuego sencillo = una lengua.** Antorchas y fogatas hoy
+  tienen dos lenguas; que `fuego_fijo` en antorcha/hoguera lleve **una**.
+- [x] **6.16 (P1) Agua, orilla y hielo.** (a) El agua no llega al borde del
+  cubo (queda por debajo): subirla a ras y darle sensación de fluido (ondas
+  en el shader, ya hay base); (b) **transición de orilla** entre bloque de
+  agua y hierba (pieza o decal de borde: arena/piedras); (c) hielo sobre
+  agua: por dentro vale la textura blanca, falta una **capa de pulido**
+  encima (placa de hielo con grietas, como `cristal_hielo`).
+- [x] **6.17 (P0) VFX del pulso y de los sólidos que se rompen.** Pulso:
+  anillo que **crece poco a poco desde el jugador hasta el radio fijado**,
+  se completa y se apaga (los cuatro fotogramas del playtest: puntos →
+  anillo bajo → anillo lleno → ceniza). Referencia `anillo_fuego.glb` y
+  `vfx/referencias/`. Para tierra y hielo, al acabar el pulso o la barrera
+  los bloques **se destruyen** (fragmentos que caen, como el vídeo de rocas
+  del playtest); los fluidos se apagan. Mismo `lanzar_forma("corro", …)` con
+  una opción `{"crece": true}` y `apagar()` con `{"rompe": true}`.
+- [x] **6.18 (P0) Bola por elemento.** La `bola` (flecha) de cada elemento es
+  un proyectil pequeño reconocible: fuego = bola de fuego con estela, rayo =
+  **bola eléctrica**, agua = gota, viento = remolino, hielo = carámbano,
+  tierra = piedra. Hoy fuego sale como gota enorme. Tamaño por `{"radio"}`
+  del Juego (6.5).
+- [x] **6.19 (P1) `tierra + barrera` = esfera de tierra** alrededor del
+  jugador (cúpula de bloques/rocas; `cupula` de tierra). El `stone_ring`
+  pasa a `barrera + pulso` (6.4).
+- [ ] **6.20 (P1) Assets: arreglos y plan.** (a) **Tocón**: versión
+  horizontal y vertical (girarlo); (b) **arbusto**: regenerar, es demasiado
+  low-poly; (c) **puesto (stand)**: hoy demasiado low-poly y con colisión
+  fantasma a la derecha; o regenerar uno más sencillo donde se vea a la
+  librera, o quitar lo que hay sobre la mesa y reducirlo en conjunto (y
+  centrarlo entre `c` y `c+1`, pendiente del 6/10); (d) **señal**: más
+  pequeña y con posibilidad de un texto corto (dirección) encima; (e)
+  **iconos** `linea.png` (`|`), nueva `flecha.png` (`<`), `hielo.png` (`X`),
+  `pulso.png` (dos semicírculos) y `levitacion.png` (`^`) en
+  `assets/ui/glyphs/` (6.21). Añadir lo nuevo a `ASSETS_PENDIENTES.md`.
+
+**Orden:** 6.0 → 6.1 + 6.21 (sin glifos no hay 5.14) → 6.2, 6.2b ∥ 6.11 → 6.3,
+6.4, 6.5 ∥ 6.17, 6.18, 6.19 (los hechizos, que son el lenguaje) → 6.23 →
+6.14, 6.9 ∥ 6.22 → 6.6, 6.7, 6.8 ∥ 6.12, 6.13 → 6.15, 6.16, 6.20 → 6.24.
+**6.10 se decide en paralelo y no bloquea nada**: lo demás vale igual con
+bloques o con nivel editable. Esta fase sustituye en la práctica al "Test 3"
+de la fase 4 (4.10/4.11): ya se juega un nivel completo.
+
+## Fase 7 — Nivel editable: camino A de 6.10 (decidido por Pablo el 7/10)
+
+Pablo elige el **camino A** de la propuesta del Pipeline (diario 7/10 10:20):
+el mapa de letras se **hornea** una vez a un `.tscn` normal; cada pieza es
+un nodo que Pablo mueve y gira con los gizmos del editor de Godot; la
+colisión es **la de la propia malla**. Quiere el editor de niveles **ya**.
+
+**Lo que no cambia** (y por eso el Juego no se reescribe): los estados del
+suelo siguen siendo **por casilla de 2,3 u** (agua, hielo, fuego, tierra,
+hierba: `_helada`, `_al_impactar`, `_img_estado`); los hechizos siguen
+calculando en casillas; `Vfx3D`, `Pj3D`, `Reactivo3D`, `Ocluso3D` igual.
+Lo que cambia es **de dónde salen las piezas** (nodos del `.tscn`, no
+letras) y **qué decide que algo bloquea** (la colisión real, no
+`_bloqueadas` escrito a mano desde el mapa).
+
+**Por qué en dos pasos.** Medido en el código del Juego (7/10): todo lo que
+pregunta al mundo pasa por **una docena de funciones** de `Lanzador3D`
+(`en_mapa`, `letra_de`, `es_agua`, `y_pies`, `celda_solida`, `pisable`,
+`linea_libre`, `calcular_huellas`/`choca_huella`, `bloqueada`) y
+`Jugador3D._puede_estar`; `letra_de` solo se usa para cuatro letras (`~`
+agua, `b` puente, `#` pared, `B` barrera de fuego). Así que el paso 1 deja
+jugable el nivel editable **sin tocar la física del jugador**: el cargador
+rellena `_bloqueadas` y las huellas **desde las colisiones** de los nodos, y
+el Juego solo cambia "letra" por "tipo de suelo". El paso 2 (jugador y
+goblins con física de verdad) se hace después, con el nivel ya editable, y
+solo si el paso 1 deja colisiones raras.
+
+### Pablo
+
+- [x] **7.0** Decidido: camino A (7/10). Respuestas pendientes a las
+  preguntas (2)–(4) del Pipeline; si no dice otra cosa, valen estas:
+  **(2)** tras hornear, **el `.tscn` manda** y el mapa de letras se archiva
+  (se conserva `_mapa()` solo para regenerar desde cero, con aviso de que
+  pisa las ediciones); **(3)** la rejilla lógica de 2,3 u se queda para los
+  estados del suelo; las piezas giran a cualquier ángulo y el bloqueo es por
+  colisión real; **(4)** la hierba crecida es `Area3D` sin cuerpo (6.22a).
+- [ ] **7.10 (P2) Limpieza tras la entrega 1.** Borrar
+  `poc_25d/niveles/jugabilidad.tscn`, `test2.tscn` y los dos
+  `*_copia_20261007_11*.tscn` (formato de la entrega 1 de las 11:55, ya
+  sustituido por `Nivel_*.tscn`); el Pipeline retira después `_modo_escena`
+  de `prueba_test2.gd`. Y nombrar la capa 11 en `project.godot`:
+  `layer_names/3d_physics/layer_11="MUNDO"` (cosmético, pero se ve en el
+  inspector).
+- [ ] **7.11 (P1) Barrera de fuego larga.** *(parte Pipeline hecha el 7/10; falta la del Juego)* Decidido el 7/10: una barrera
+  es **un solo marcador** `barrera_fuego` estirado (escala en su eje largo o
+  campo `largo` en casillas), no un `B` por casilla. **Pipeline:**
+  `Marcador3D` admite `largo` + dirección; el cargador escribe `B` en cada
+  casilla cubierta (el Juego sigue viendo casillas); el horneador junta las
+  `B` contiguas en una; el visual pasa de N `fuego_fijo` (dos lenguas cada
+  uno) a **una pared de fuego** continua (`lanzar_forma("muro", "fuego")`
+  de la longitud real, una luz y un emisor por cada 2 casillas); API nueva
+  `fx.apagar_tramo(muro, casilla)` que parte o acorta la pared. **Juego:**
+  `colocar_barreras` sigue con una `BarreraFuego` por casilla (así el agua
+  abre un hueco de 1–3 casillas y se pasa por él) y al apagar llama a
+  `apagar_tramo` en vez de buscar la llama por posición. Las diagonales se
+  escalonan a casillas (la rejilla es de 2,3 u). Media jornada Pipeline,
+  una hora Juego.
+- [x] **7.12 (P1) Nivel de pruebas.** *(hecho el 7/10 por el Pipeline)* `niveles/Nivel_Pruebas.tscn`: un
+  banco de pruebas para assets y mecánicas nuevas, separado de los niveles
+  de verdad: suelo llano 16×16 con una franja de agua, un puente, una
+  **fila con una pieza de cada** (`piezas/*.tscn`, con rótulo), un marcador
+  de cada tipo reactivo, los tres goblins y el jugador. Pipeline lo hornea
+  (un `_mapa()` de pruebas + hornear) y Pablo lo edita desde ahí. Es donde
+  se prueba una pieza nueva (D) o una mecánica antes de meterla en un nivel.
+- [ ] **7.13 (P2) Guía paso a paso en `poc_25d/LEEME.md`** ("Guía paso a
+  paso para editar niveles"): hecha el 7/10 (Juego, a petición de Pablo;
+  el Pipeline la mantiene junto con la sección 7.4). Añadir ahí cada cosa
+  nueva que Pablo pregunte dos veces.
+- [x] **7.14 (P1) Reglas separadas del nombre del nivel.** *(hecho el 7/10, 18:40, Pipeline: `PruebaTest2.reglas`; ver diario)* Hoy
+  `PruebaTest2._ready` activa `Jugabilidad3D` solo si `nivel ==
+  "jugabilidad"`; cualquier nivel nuevo de Pablo (`Nivel_Bosque.tscn` +
+  `PruebaBosque.tscn` con `nivel = "bosque"`) cae en la rama del Test 2 y
+  se juega sin objetivos. Pipeline: `@export var reglas: String =
+  "ninguna"` (`"ninguna" | "jugabilidad"`) independiente de `nivel`, y que
+  `Jugabilidad3D` lea sus marcadores (puerta, salida, losas, NPC,
+  recogibles) de cualquier nivel, no del 23×23. Una hora. Así Pablo monta un
+  nivel nuevo con tareas sin tocar código.
+- [ ] **7.9** Cuando 7.1 y 7.5 estén: abrir `Nivel_Jugabilidad.tscn` en el
+  editor, mover/girar tres piezas (puesto, un árbol, un tocón) y jugarlo
+  (F6). Si lo que se ve es lo que choca, paso 1 cerrado. Luego construir el
+  primer nivel propio con las piezas validadas.
+
+### Juego (paso 1: ~1 día; paso 2: ~1–2 días)
+
+- [x] **7.5 (P0) Contrato "qué pregunta el Juego al mundo".** **Resuelto de
+  otra forma (Juego, diario 12:00):** en vez de un contrato de funciones, el
+  Juego centralizó la solidez en `Lanzador3D.fuente` (`FuenteCasillas` /
+  `FuenteNodos`): una casilla bloquea si hay un cuerpo en la capa 11
+  (`CAPA_SOLIDO`); el Pipeline lo adoptó (12:40, 13:00) y `PruebaTest2`
+  activa `FuenteNodos` tras cargar el `.tscn`. Queda publicado como
+  contrato; `limites()` ya existe en `PruebaTest2`. Texto original: Publicar en el
+  diario (y en `ESTADOS_SUELO.md` §8) la lista exacta de lo que el nivel
+  horneado debe ofrecer, para que el cargador del Pipeline (7.2) lo
+  implemente: `limites() -> Rect2i` (sustituye a `_lado`, los niveles ya no
+  son cuadrados), `tipo_suelo(c) -> int` (`SUELO | AGUA | PUENTE | FUERA`;
+  sustituye a `_letra`), `_bloqueadas` y `huellas` rellenos por el cargador
+  desde las colisiones, `_helada`, `_al_impactar`, `_poner_canal`,
+  `_img_estado`, `marcar_estado`, `_fx`, `_camara`, `_jugador`, `_goblins`,
+  y los **marcadores**: grupo `barrera_fuego` (antes letra `B`), grupo
+  `inicio_jugador`, grupo `goblin` con `tipo`, grupo `puerta`, grupo
+  `baldosa` (antes letras del mapa de `jugabilidad_3d`). Es medio día y
+  desbloquea al Pipeline: **va primero**.
+- [x] **7.6 (P0) `letra_de` → `tipo_suelo`; `en_mapa` → `limites`.** **No
+  hace falta:** el cargador deriva `_mapa` (letras) del GridMap y los
+  marcadores, y pone `#` bajo las piezas de `Borde`, así que `letra_de`
+  sigue siendo correcto con piezas movidas. Se revisa solo si 7.9 enseña
+  una pared que no está. Texto original: En
+  `lanzador_3d.gd` (11 usos), `playlog_3d.gd` (1) y `jugador_3d.gd`:
+  `es_agua`, `y_pies`, `celda_solida`, `pisable`, `linea_libre`, hielo
+  (`"agua": letra_de(c) == "~"`), `construir_tierra` (no sobre agua) y
+  `colocar_barreras` (lee el grupo `barrera_fuego` en vez de buscar `B`).
+  Mientras el cargador no exista, un adaptador de una línea
+  (`tipo_suelo` a partir de `_letra`) mantiene jugable el mapa de letras.
+- [x] **7.7 (P1) Huellas desde colisión.** Hecho por `FuenteNodos`: el
+  jugador choca si una esfera de 0,3 m toca la malla de colisión real.
+  Texto original: `calcular_huellas` hoy saca el
+  círculo de cada pieza de `_lotes`/`_plantilla` (el decorado por lotes).
+  Con nodos, el cargador (7.2) entrega por casilla la lista de formas que la
+  tocan; `choca_huella` pasa a preguntar a la forma real
+  (`PhysicsDirectSpaceState3D.intersect_point` o la caja de la forma) en vez
+  del círculo aproximado. Es lo que quita la "casilla y media" del puesto.
+- [ ] **7.8 (P1, paso 2) Jugador y goblins con física real.** `Jugador3D`
+  pasa de `_puede_estar` a `move_and_slide` contra los `StaticBody3D` del
+  nivel (capa `MUNDO`), conservando la altura (`y_pies`, salto de un nivel),
+  el nado y los i-frames; `Combate3D` igual para guerrero y arquero
+  (`NavigationAgent3D` opcional; con `move_and_slide` y el "rendirse a
+  3,5 s" de hoy basta). Los hechizos **siguen en casillas**: `celda_solida`
+  y `linea_libre` pasan a un `intersect_ray` contra la capa `MUNDO` más la
+  altura de tierra. Los bloques de tierra y la cúpula de tierra ganan un
+  `StaticBody3D` propio (hoy son colisión "lógica"). Solo si tras 7.9 hay
+  choques raros; si el paso 1 va fino, se pospone.
+- [ ] **7.8b (P2) F10 y PlayLog.** El overlay de F10 dibuja también las
+  formas de colisión reales (no solo `_bloqueadas`) para ver de un vistazo
+  qué choca; evento `nivel_cargado` con el nombre del `.tscn` y el número de
+  piezas.
+
+### Pipeline (~2–3 días)
+
+- [x] **7.1 (P0) Piezas como escenas con colisión de malla.** Cada pieza del
+  catálogo validada (árbol, arbusto, roca ×2, tocón ×2 orientaciones, seto,
+  telaraña, puente, pasarela, puesto, señal, tótems, antorcha, fogata,
+  cabaña…) pasa a `poc_25d/piezas/<id>.tscn`: `Node3D` raíz con ancla en la
+  base, `MeshInstance3D`, `StaticBody3D` + `CollisionShape3D` **de la
+  malla** (`convex` para lo compacto: tronco sin copa, roca, tocón, mesa del
+  puesto sin toldo; `trimesh` solo para puente/pasarela), capa `MUNDO`;
+  `Area3D` sin cuerpo para lo que no bloquea (hierba, telaraña); metadatos
+  (`bloquea`, `reactivo`, `inflamable`, `huella`). `Reactivo3D` sigue
+  siendo lo que es, dentro de su pieza.
+- [x] **7.2 (P0) Horneador + cargador.** Script `@tool`
+  (`poc_25d/hornear_nivel.gd`): recorre `_mapa()` de un nivel y escribe
+  `poc_25d/niveles/Nivel_<nombre>.tscn` con una instancia de pieza por
+  letra (posición y giro libres en `Transform3D`), el suelo como `GridMap`
+  (o un plano por zona) con el tipo (`SUELO | AGUA | PUENTE`), y los
+  **marcadores** del contrato 7.5 (jugador, goblins, puerta, baldosas,
+  barrera de fuego, NPC, recogibles). Árboles del borde: agrupados en
+  `MultiMeshInstance3D` por tipo al hornear, con la colisión aparte, para
+  no pagar 600 nodos. El **cargador** (`prueba_test2.gd` o un
+  `nivel_3d.gd` nuevo) abre el `.tscn` y rellena lo que el contrato 7.5
+  pide a partir de los nodos: `limites`, `tipo_suelo` desde el `GridMap`,
+  `_bloqueadas` y `huellas` desde las colisiones (por casilla: qué formas la
+  tocan), `_goblins`, `_jugador`, etc. Modo "regenerar desde letras" con
+  aviso. Primer nivel horneado: **`Nivel_Jugabilidad.tscn`** (el 23×23 de
+  `jugabilidad_3d.gd`); `PruebaTest2` después.
+- [x] **7.3 (P1) Reglas de `jugabilidad_3d.gd` sobre marcadores.** Las
+  cuatro tareas, la puerta, el botín y los NPC pasan de letras a los nodos
+  marcadores del `.tscn` (mismo comportamiento). La propagación del fuego en
+  hierba (6.9a: solo 4 vecinas, 0,6 s por salto) se hace aquí de paso.
+- [x] **7.4 (P1) Guía de edición.** Media página en `poc_25d/LEEME.md`: cómo
+  abrir el nivel, la paleta de piezas (arrastrar `piezas/*.tscn`), girar con
+  los gizmos, qué marcadores poner y qué no tocar; cómo regenerar desde
+  letras y qué se pierde.
+
+**Orden:** 7.5 (Juego, medio día) → 7.1 ∥ 7.6 → 7.2 → 7.7 ∥ 7.3 → 7.4 →
+7.9 (Pablo) → 7.8 solo si hace falta. Mientras, lo de la fase 6 que queda
+(6.9b en `spellbook.gd` es de Pablo; 6.20 del Pipeline; 6.2b del Juego)
+sigue en paralelo: **nada de la fase 6 depende de la 7**.
+
 ---
 
 ## Reparto resumido
@@ -456,6 +832,8 @@ de Godot cerrado, y `git status` antes de `BAJAR`.
 | Fase 3 | 3.9, 3.10 | 3.0–3.5 | 3.6–3.8 |
 | Fase 4 (Test 3) | 4.0, 4.11, 4.12 | 4.1–4.5 | 4.6–4.10 |
 | Fase 5 (glifos v2, VFX, bosque) | 5.13–5.15 | 5.1–5.8 | 5.9–5.12 |
+| Fase 6 (playtest 7/10) | 6.0, 6.21–6.24 | 6.1–6.9, 6.2b, 6.22a | 6.10–6.20 |
+| Fase 7 (nivel editable, camino A) | 7.0, 7.9, 7.10 | 7.5–7.8b, 7.11 (parte) | 7.1–7.4, 7.11–7.14 |
 | Deuda pequeña | iluminación | stride, pilar/tiempo, diálogo | clips, iconos, VFX, tótems |
 
 Dependencias: 1.1 antes de 2.1 · 1.6 antes de `stride` · 3.6 antes de 3.2 · 3.9 antes de las P2 · 0.2 espera a 1.3.

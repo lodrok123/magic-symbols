@@ -225,3 +225,155 @@ En `Prueba3D` el suelo 3D se adapta a cualquier ángulo; en `Prueba2D` el suelo 
 ## .gitignore
 Ahora el `.gitignore` no excluye los `.glb`, así que los modelos de esta carpeta suben con el commit (unos 150 MB
 en total; el mayor, `hero_v2.glb`, pesa 31 MB). Si molesta el peso, usa Git LFS para `*.glb`.
+
+## Editar un nivel en Godot (7.4)
+Los niveles ya no se tocan en el código: se abren y se editan en el editor 3D.
+1. **Abrir:** doble clic en `poc_25d/niveles/Nivel_Jugabilidad.tscn` (o `Nivel_Test2.tscn`). Verás el suelo (el nodo `Suelo`, un GridMap con casillas de colores), las piezas (`Piezas` y `Borde`) y unas cajas con rótulo: los **marcadores**.
+2. **Mover, girar, escalar:** clic en una pieza del árbol de escena (o en la vista 3D) y los gizmos de siempre (W mover, E girar, R escalar). Las piezas giran a **cualquier ángulo** y no van pegadas a la rejilla. Ctrl+D duplica, Supr borra.
+3. **Añadir una pieza:** arrastra `poc_25d/piezas/<id>.tscn` al nodo `Piezas` (el árbol, a la vista 3D con Ctrl). Cada pieza ya lleva su colisión: lo que se ve es lo que choca. Para que una instancia no bloquee (o sí): inspector → Metadatos → `bloquea`. Piezas nuevas desde el `.glb`: añadir su medida en `Pieza3D.MEDIDA`, y regenerar las piezas (abajo).
+4. **Suelo:** selecciona `Suelo`, panel inferior GridMap, elige el tipo (SUELO, AGUA, PUENTE, TIERRA, ZONA_V) y pinta casilla a casilla. Es la rejilla de 2,3 u de los estados del suelo (agua, hielo, fuego, hierba).
+5. **Marcadores** (`Marcadores`): jugador (`S`), goblins (`A` arquero, `W` guerrero), barrera de fuego (`B`), puerta (`X`), salida (`E`), NPC y puestos (`n` `Q` `M` `m`), baldosas (`p` `a` `w`), placa (`K`), objetos reactivos (`z` seto, `l` tronco, `j` `k` `i` tótems, `F` fogata, `T` brasero, `s` `f` `q` plantas, `r` telaraña) y los de datos (`recogible`: pocion/oro; `empujable`: tierra/hielo). Añadir uno: nodo `Marcador3D` y elegir la `letra`. Un marcador vive en **la casilla donde está su centro**; su giro sí cuenta. No hace falta mover nada más: el cargador lee el nivel entero al arrancar.
+6. **Jugar:** F6 sobre `PruebaJugabilidad3D.tscn` (o `PruebaTest2.tscn`): si existe `Nivel_<Nombre>.tscn` se carga ese; las letras del código ya no mandan.
+7. **Regenerar desde las letras** (cuando las letras cambian y quieres empezar de cero): en `PruebaTest2` desmarca `usar_escena`, arranca la escena y pulsa **F9**. **PISA tus ediciones**: el nivel anterior no se pierde, queda como `Nivel_<Nombre>_copia_<hora>.tscn` en la misma carpeta. Si cambias una pieza o añades una nueva, regenera las piezas con `poc_25d/herramientas/generar_piezas_editor.gd` (Archivo → Ejecutar) —también pisa `piezas/*.tscn`—.
+**No tocar:** los nombres `Suelo`, `Piezas`, `Borde`, `Marcadores` (el cargador busca el GridMap y los nodos por clase, pero `Borde` define qué piezas son pared), ni los metadatos `id` de una pieza. `usar_escena = false` en `PruebaTest2` vuelve a las letras sin borrar nada.
+
+
+## Guía paso a paso para editar niveles (Pablo, 7/10)
+Resumen operativo de la sección anterior, pensado para no tener que preguntar dos veces. Si algo de aquí contradice
+a «Editar un nivel en Godot (7.4)», manda esa sección: es la que mantiene el Pipeline con el código.
+
+### A. Moverse por la vista 3D
+- **Orbitar:** botón central del ratón arrastrando (Alt + botón izquierdo si el ratón no tiene rueda).
+- **Desplazar (pan):** Shift + botón central. **Zoom:** rueda (o Ctrl + botón central).
+- **Vuelo tipo juego:** mantén el **botón derecho** y mueve el ratón para mirar; con él pulsado, **W A S D** avanza y
+  se desplaza, **Q / E** baja y sube, y la rueda cambia la velocidad del vuelo. Es lo más cómodo en un mapa de 23×23.
+- **Encuadrar una pieza:** selecciónala en el árbol de escena y pulsa **F**.
+- **Vistas fijas** (teclado numérico): **7** planta, **1** frente, **3** lado, **5** cambia ortogonal/perspectiva.
+  Planta + ortogonal (7 y luego 5) es la «vista de mapa» para colocar piezas sobre la rejilla.
+
+### B. Mover, girar, escalar, duplicar, borrar
+1. Clic en la pieza (en el árbol de escena, nodo `Piezas` o `Borde`, o directamente en la vista 3D).
+2. **W** mover · **E** girar · **R** escalar, arrastrando el gizmo del eje que quieras. Con **Ctrl** pulsado el
+   movimiento se ajusta a la rejilla y el giro va a saltos (ajustables en el menú «Ajuste» de la barra 3D).
+3. **Ctrl+D** duplica (la copia nace encima: muévela). **Supr** borra.
+4. Girar a cualquier ángulo está permitido: la colisión gira con la pieza. La solidez que ve el **jugador** es la de
+   la malla real; los **hechizos y los goblins** siguen pensando en casillas de 2,3 u (la casilla donde cae el centro
+   de la pieza), así que una pieza puesta justo entre dos casillas bloquea la de su centro.
+5. Para que una pieza concreta **no bloquee** (o sí): inspector → Metadatos → `bloquea`.
+6. **Guardar: Ctrl+S.** Antes de jugar, guarda; F6 carga el `.tscn` del disco.
+
+### C. Añadir una pieza que ya existe
+Arrastra `poc_25d/piezas/<id>.tscn` desde el panel «Sistema de archivos» hasta el nodo **`Piezas`** del árbol (o a
+la vista 3D con **Ctrl** pulsado para soltarla donde señalas). Ya lleva modelo, medida y colisión. La lista de
+piezas disponibles es la propia carpeta `piezas/`.
+
+### D. Añadir un objeto NUEVO (que no tiene pieza)
+Hace falta darle modelo, medida y colisión. Cuatro pasos; los dos primeros son del Pipeline:
+1. **Modelo:** el `.glb` de Meshy entra en una de las bibliotecas que lee `Pieza3D` (`poc_25d/meshy/objetos.glb`,
+   `bosque.glb`, `mercado.glb`, `arboles_2.glb`, `magia.glb`) como un nodo con el nombre del `id` (p. ej. `banco`),
+   o se añade un `.glb` nuevo a `Pieza3D.BIBLIOTECAS` (`poc_25d/pieza_3d.gd`).
+2. **Medida y comportamiento** (tres líneas): en `pieza_3d.gd`, `MEDIDA["banco"] = 0.9` (alto en metros al que se
+   escala); en `herramientas/generador_piezas.gd`, `COLISION["banco"] = "convexa"` (o `tronco` / `mesa` /
+   `trimesh` / `ninguna`), y añadirlo a `BLOQUEA` si corta el paso y a `INFLAMABLE` si arde.
+3. **Generar la pieza:** en Godot abre `poc_25d/herramientas/generar_piezas_editor.gd` y **Archivo → Ejecutar
+   (Ctrl+Shift+X)**. Escribe `piezas/banco.tscn` (y regenera todas las demás: si retocaste una pieza a mano,
+   renómbrala antes o se pisa). Desde consola:
+   `godot --headless --path . --script res://poc_25d/herramientas/generar_piezas_cli.gd`.
+4. Arrástrala al nivel (paso C).
+Lo más rápido: pedir al Pipeline «pieza nueva: `<id>`, este `.glb`, bloquea sí/no, arde sí/no» y devuelve el `.tscn`.
+
+### E. Objetos que hacen algo (marcadores)
+Una pieza solo da **modelo y colisión**. Lo que tiene comportamiento (fogata, tótem, seto reactivo, goblin, NPC,
+puerta, baldosa, barrera de fuego…) se pone con un **marcador**: Añadir nodo → `Marcador3D` dentro de `Marcadores`,
+elegir la `letra` en el inspector (la lista de letras está en el punto 5 de la sección anterior) y colocarlo. El
+marcador vive en la **casilla** donde cae su centro; el giro sí cuenta. Los de datos (recogibles, empujables) llevan
+`letra` vacía y `grupo`/`tipo`. Un comportamiento que no exista todavía (un objeto nuevo de verdad) es trabajo del
+Juego: se le asigna letra, `Reactivo3D` y `on_spell_hit`; pídelo en el diario.
+
+### F. Barrera de fuego larga (7.11)
+Cuando esté hecho 7.11: un solo marcador `barrera_fuego` estirado (escala en su eje largo con **R**, o campo
+`largo` en casillas) cubre toda la fila; el cargador la convierte en casillas y se dibuja como una pared de fuego
+continua. Hasta entonces: un marcador `B` por casilla.
+
+### G. Suelo
+Selecciona `Suelo` (GridMap) → panel inferior «GridMap» → tipo (SUELO, AGUA, PUENTE, TIERRA, ZONA_V) → pinta casilla
+a casilla con clic (Shift+clic borra). Es la rejilla de 2,3 u de los estados del suelo.
+- **El nivel es lo que pintas:** su tamaño sale de las casillas pintadas (de la más a la izquierda/arriba a la más a la
+  derecha/abajo), en cualquier sitio de la rejilla, también en negativo y sin ser cuadrado. Las casillas que dejes sin
+  pintar dentro de ese rectángulo quedan **vacías**: sin suelo y no se pisan. Un marcador sobre una casilla sin pintar se
+  ignora (sale un aviso en el HUD al arrancar).
+- **Piezas a la altura del suelo:** la tapa del suelo está a 1,035. Desde el 7/10 las casillas del GridMap tienen
+  colisión en el editor: al arrastrar una pieza al visor (o con **RePág**, «Ajustar al suelo») se apoya encima. Antes
+  caía a y = 0, metida dentro del bloque, y en el juego no se veía. El cargador sube al suelo cualquier pieza que esté
+  por debajo y lo avisa en el HUD.
+- **OJO con Q y E:** con el GridMap seleccionado, **Q y E cambian de planta** (la planta es la altura a la que pintas;
+  se ve en el panel «GridMap», campo *Floor*). Son las mismas teclas que subir/bajar al volar con clic derecho + WASD,
+  así que es fácil pintar una planta entera en la 1 sin querer. Antes de pintar, mira que *Floor* esté a **0**. El
+  cargador toma lo de otras plantas como si fuera la 0 y avisa en el HUD. Para quitar el problema de raíz: **Editor →
+  Configuración del editor → Atajos**, busca «floor» (GridMap: *Previous Floor* / *Next Floor*) y bórrales el atajo.
+
+### H. Probar y volver atrás
+- **Jugar:** F6 sobre `PruebaJugabilidad3D.tscn` (o la escena del nivel que toque). **F10** en el juego dibuja lo que
+  bloquea alrededor del jugador: si ves rojo donde no hay nada, es una pieza mal puesta o una casilla extra.
+- **Deshacer en el editor:** Ctrl+Z como siempre (hasta que cierres la escena).
+- **Empezar de cero desde las letras:** en `PruebaTest2` desmarca `usar_escena`, arranca y pulsa **F9**. Pisa tus
+  ediciones, pero la versión anterior queda como `Nivel_<Nombre>_copia_<hora>.tscn`.
+- **Nivel de pruebas:** `Nivel_Pruebas.tscn` (7.12) es el banco de pruebas para assets y mecánicas nuevas; los
+  niveles «de verdad» no se tocan para probar.
+
+### I. No tocar
+Los nombres de los nodos `Suelo`, `Piezas`, `Borde`, `Marcadores`; el metadato `id` de una pieza; y nada dentro de
+`piezas/*.tscn` a mano (se regeneran). Si una pieza necesita algo distinto, se cambia en el generador.
+
+### J. Barreras de fuego largas y Nivel_Pruebas (7.11 / 7.12)
+- **Barrera larga:** un solo marcador `B` con `largo` = nº de casillas (en el Inspector, 1–40). Se dibuja como una
+  caja larga con «×N». Va en horizontal; si el marcador se gira 90° (o el horneador ve `B` encima/debajo) va en
+  vertical. En el juego es **una pared de fuego continua**; el Juego sigue viendo una casilla `B` por casilla cubierta.
+  Si apagas un tramo con agua, la pared se parte o se acorta. Las diagonales no existen: se ajustan al eje más cercano.
+  Los niveles ya horneados con un `B` por casilla siguen funcionando (cada uno es una pared de 1); para unirlos,
+  deja un marcador y ponle `largo`.
+- **Nivel_Pruebas.tscn:** suelo llano 16×16, franja de agua con puente, dos filas con una pieza de cada (con rótulo),
+  un marcador de cada tipo reactivo, 3 goblins y el jugador. Ábrelo en el editor para editar; para jugarlo, F6 sobre
+  `PruebaNivelPruebas3D.tscn`. Si lo estropeas, borra `niveles/Nivel_Pruebas.tscn` y hornea de nuevo (F9 con
+  `PruebaNivelPruebas3D`).
+
+### K. Guardar y crear un nivel nuevo
+- **Guardar:** Ctrl+S. F6 carga siempre lo que hay en disco.
+- **Nivel nuevo** (p. ej. «bosque»): con un nivel abierto, **Escena → Guardar escena como… (Ctrl+Shift+S)** en
+  `poc_25d/niveles/` con el nombre **`Nivel_Bosque.tscn`** (`Nivel_` + nombre con la primera en mayúscula: es lo que
+  busca el cargador). Luego, en el panel de archivos, clic derecho en `PruebaJugabilidad3D.tscn` → **Duplicar** →
+  `PruebaBosque.tscn`; ábrela, nodo raíz → inspector → `nivel = "bosque"` (y `usar_escena` marcado); guarda. **F6**
+  sobre `PruebaBosque.tscn` carga `Nivel_Bosque.tscn`. El archivo del nivel, con **N** mayúscula (`Nivel_…`).
+- **Reglas (7.14):** en el nodo raíz de `PruebaBosque.tscn`, campo **`reglas`**: vacío = automático (solo el nivel
+  «jugabilidad» lleva tareas), `ninguna`, o **`jugabilidad`** = las cuatro tareas, la puerta final (`X`) y la salida
+  (`E`), los NPC que hablan con E (`n` `Q` `M` `m`), el botín (marcadores `recogible`) y los guardados. Una tarea para la
+  que el nivel no tiene nada (sin baldosa de contacto `p`, sin goblins, sin NPC o sin braseros `T`) sale como hecha y el
+  HUD dice «no hay en este nivel».
+- **Duplicar marcadores:** Ctrl+D y cambiar la `letra` vale; el aviso y el grupo se rehacen solos.
+
+### L. Modelos nuevos del 7/10: aro de fuego por etapas y telaraña
+- **Aro de fuego** (`vfx/fuego_1.glb` … `fuego_4.glb`): el pulso de fuego que crece pasa por cuatro modelos, de chispas
+  sueltas a aro alto. El color no sale de su textura (venía pálida y rosa), sino de un shader por altura:
+  amarillo abajo, naranja y rojo en las puntas. Si falta alguno, se usa `vfx/anillo_fuego.glb` como antes.
+- **Telaraña** (`meshy/telarana/`): `telarana_red.glb` trae la red sana y la red ardiendo; `telarana_base.glb`, el tronco
+  sobre la roca y un tronco fino. Cada GLB lleva dos piezas lado a lado, que se separan solas al cargar (izquierda / derecha).
+  Los troncos se quedan; la red se ve ardiendo al prender y desaparece al quemarse. Se ve en `Nivel_Pruebas` (marcador `r`).
+  **Tamaño y giro de cada telaraña:** escala y gira su marcador `r` en el editor (Inspector → Transform, o las teclas
+  de escalar y girar); el juego aplica esa escala y ese giro a la red y a los troncos. Bloquea solo su casilla, aunque
+  la estires. El tamaño base de todas está en `prueba_test2.gd`: `TELARANA_ESCALA_RED` y `TELARANA_ESCALA_BASE`.
+
+
+### M. Puente reactivo (7/10 noche)
+Un puente de losas de piedra que **aparece sobre el agua** cuando se activa algo (tótem, brasero, placa) y se queda. Se prueba en `Nivel_Pruebas`: el tótem de rayo (`i_5_9`) hace subir seis losas sobre el agua, de la más cercana al tótem hacia fuera.
+- **Cómo se pone:** marcador `P` (Marcador3D). Va en el CENTRO del puente, sobre agua; `largo` = casillas que cubre a lo largo de su eje X (gíralo -90° en Y para ponerlo vertical). En el Inspector, **Activador** = el marcador que lo dispara (el tótem, el brasero…). Todas las casillas que cubre deben ser agua: si no, avisa en el HUD.
+- **Qué hace:** cada losa salpica en el agua (anillos de onda, gotas y bruma), emerge con rebote, y al terminar de subir su casilla pasa a ser puente (andable). Después la runa se enciende del color del elemento del activador (cian si no tiene). 0,12 s entre losas.
+- **Losa:** `meshy/puente/losa_runica.glb` (de la Glyphstone de Meshy, 1.557 triángulos, partida del pilar). Sus runas salen de la propia textura: un shader detecta el cian, lo apaga y lo enciende del color del elemento. Si falta el GLB, una caja con `losa_albedo.png` + `losa_emision.png`.
+- **Pilar:** `meshy/puente/pilar_runico.glb` (5.588 triángulos, apoyado en y = 0). Todavía no está en el catálogo de piezas ni se usa en ningún nivel.
+- **Código:** `puente_reactivo_3d.gd` (`PuenteReactivo3D`; tiempos arriba en constantes) y `Vfx3D.salpicadura(punto, tam)` (reutilizable: cofre, caídas al agua).
+
+### N. Tierra con relieve (7/10 noche)
+`suelo_meshy/tierra_arriba.png` (continua, 1024) y `tierra_arriba_normal.png` (relieve sacado de la propia textura: piedras en meseta, musgo y gravilla). `PruebaTest2` las usa para las casillas de tierra si existen; si se borran, vuelve `dirt_arriba.png`. El relieve se gradúa con la tecla **B** (0 · 0,5 · 1). Las demás texturas del suelo siguen con el relieve genérico. El shader del suelo tiene dos parámetros nuevos: `normal_tierra` y `usa_normal_tierra`.
+
+### O. Hilo de luz y hierba solo en ZONA_V (7/10 noche)
+- **Hilo de luz** (`hilo_luz_3d.gd`, `HiloLuz3D`): al activarse el activador de un puente `P`, una luz recorre una cinta brillante desde el activador hasta la losa más cercana (0,6 s) y SOLO entonces suben las losas; el hilo se queda tenue. La ruta sale sola: por casillas sin agua ni objetos, con pocos giros y esquinas redondeadas. Despeja de hierba las casillas por las que pasa. Cian si el activador no tiene elemento; si lo tiene, el color del elemento. Si no hay camino, no hay hilo y el puente sube igual.
+- **Hierba solo en ZONA_V:** en los niveles editables (menos el Test 2), las briznas 3D y la hierba que prende con el fuego solo existen en las casillas **ZONA_V** (la verde fuerte de la paleta del GridMap). El suelo normal (SUELO) ya no tiene briznas ni arde, así que un fuego no incendia todo el nivel. Para volver a lo de antes: en el nodo de `PruebaTest2` desmarcar `Hierba Solo En Zona V`. **Los niveles que ya pintaste con SUELO se verán sin hierba hasta que pintes ZONA_V donde la quieras.** En `Nivel_Pruebas` la mitad sur (filas 8 a 14) es ZONA_V y el resto SUELO, para ver la diferencia.

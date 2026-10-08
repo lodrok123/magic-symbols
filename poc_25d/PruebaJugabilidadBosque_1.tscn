@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cuk3auif0kbgo"]
+
+[ext_resource type="Script" uid="uid://chcoctbeeesis" path="res://poc_25d/prueba_test2.gd" id="1_poc"]
+
+[node name="PruebaJugabilidad3D" type="Node3D" unique_id=1725304639]
+script = ExtResource("1_poc")
+hierba_completa = true
+nivel = "Bosque"
+reglas = "jugabilidad"

@@ -17,7 +17,9 @@ const TEST2 = preload("res://test_2.gd")
 
 const S: float = 2.3                ## lado de una casilla en unidades (la chibi mide ~1)
 const ALTO: float = S * 0.45        ## alto de un bloque de tierra
-const ALTO_AGUA: float = ALTO * 0.6
+## 6.16: el agua llega CASI a ras del bloque de hierba (4 cm por debajo; antes 0,6 × ALTO y se veía un escalón de 40 cm). El Lanzador y el
+## Jugador leen esta constante, así que el nivel lógico del agua sube con la imagen.
+const ALTO_AGUA: float = ALTO - 0.04
 const VEL_ANDAR: float = 1.6
 const VEL_CORRER: float = 3.0
 const ZOOM_INICIAL: float = 6.0
@@ -34,19 +36,19 @@ const PRECALENTAR: float = 1.6
 const RUNAS: String = VFX + "runas/"
 ## Cartel de Meshy: giro para que el tablero mire a la cámara y dónde queda el centro del tablero (MEDIDA 1.3).
 const GIRO_CARTEL: float = 319.0
+## Orientación a mano de una pieza concreta del mapa Test 2 (el de jugabilidad tiene la suya: Jugabilidad3D.GIROS): casilla (x, y) del mapa → grados sobre el eje vertical. Gana a todo lo demás
+## (el giro aleatorio de cada casilla y los giros fijos del código). Ej.: Vector2i(12, 7): 90.0 gira 90° lo que haya en esa casilla.
+const GIROS_CELDA: Dictionary = {
+}
 const RUNA_EN_TABLERO: Vector3 = Vector3(0.0, 1.0, 0.14)
 ## Si una pieza está en varias bibliotecas, se usa la de la primera. Antes que todas, las REGENERADAS sueltas de
 ## meshy/piezas/<id>.glb (una pieza por GLB; ver meshy/INTEGRAR_PIEZAS.cmd): sustituyen a la de la lámina.
-const CARPETA_PIEZAS: String = "res://poc_25d/meshy/piezas/"
-const BIBLIOTECAS: Array = ["res://poc_25d/meshy/arboles_2.glb", "res://poc_25d/meshy/mercado.glb",
-	"res://poc_25d/meshy/bosque.glb", "res://poc_25d/meshy/objetos.glb", "res://poc_25d/meshy/magia.glb"]
+const CARPETA_PIEZAS: String = Pieza3D.CARPETA_PIEZAS     ## la tabla vive en pieza_3d.gd (la usa también el editor)
+const BIBLIOTECAS: Array = Pieza3D.BIBLIOTECAS     ## la tabla vive en pieza_3d.gd (la usa también el editor)
 ## Las piezas buenas de las bibliotecas nuevas sustituyen a las de la lámina (REGENERAR.md §1): árbol y pino
 ## (arboles_2), seto (arbusto_otono en vez de seto_seco), puesto (puesto_mercado) y arco (arco_ruina).
 ## Si la nueva falta, se usa la vieja.
-const SUSTITUTAS: Dictionary = {
-	"arbol_redondo": "arbol_redondo_2", "pino": "pino_2", "seto_seco": "arbusto_otono",
-	"puesto": "puesto_mercado", "arco_puerta": "arco_ruina",
-}
+const SUSTITUTAS: Dictionary = Pieza3D.SUSTITUTAS     ## la tabla vive en pieza_3d.gd (la usa también el editor)
 ## Empujables (todavía sin mecánica en la maqueta): cubos con la textura de tierra o de hielo.
 const EMPUJABLES: Array = [["tierra", Vector2i(6, 33)], ["hielo", Vector2i(28, 26)]]
 ## Las texturas de suelo_meshy son claras para la paleta (V 0,8-0,99; ARTE.md pide 0,2-0,76): se oscurecen
@@ -72,17 +74,8 @@ const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test"
 	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0}
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
-const MEDIDA: Dictionary = {
-	"arbol_redondo": 4.2, "pino": 4.6, "arbusto": 1.0, "arbusto_flores": 1.0, "matas": 0.45,
-	"arbol_redondo_2": 4.2, "pino_2": 4.6, "arbusto_otono": 1.3, "puesto_mercado": 2.4, "arco_ruina": 3.4,
-	"roca_cristal": 1.4, "roca_grande": 1.4, "piedras": 0.35, "tocon": 0.6, "tronco": 0.7, "setas": 0.35, "valla": 0.8, "cartel": 1.3,
-	"arco_puerta": 3.4, "totem_runico": 1.8, "brasero": 1.4, "fogata": 0.6, "puesto": 2.4, "caja_pequena": 0.6,
-	"placa_peso": 0.15, "juncos": 0.8, "barril": 0.8, "cofre": 0.6, "caja": 0.8,
-	"baldosa_guardado": 0.12, "seto_seco": 1.3, "dummy": 1.4, "seta_reactiva": 0.9, "flor_reactiva": 0.9,
-	"raiz_reactiva": 0.9, "portal_salida": 3.0, "pocion": 0.45, "pilar": 1.8,
-}
-const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "pasadero": S * 0.8, "placa_peso": S * 0.8,
-	"baldosa_guardado": S * 0.85}
+const MEDIDA: Dictionary = Pieza3D.MEDIDA     ## la tabla vive en pieza_3d.gd (la usa también el editor)
+const MEDIDA_ANCHO: Dictionary = Pieza3D.MEDIDA_ANCHO     ## la tabla vive en pieza_3d.gd (la usa también el editor)
 
 ## --- Alturas del suelo (6/10, Pipeline; criterio de Link's Awakening: cada casilla tiene UN nivel y lo plano va a ras) ---
 ## Antes cada pieza plana (placa, baldosa) se escalaba por su ancho y sobresalía lo que diera su malla (grosores distintos),
@@ -93,7 +86,7 @@ const Y_DECAL: float = ALTO + 0.02        ## discos, runas y marcas sobre el sue
 const Y_SOBRE_PLANA: float = ALTO + 0.07  ## decal encima de una pieza plana (baldosa de guardado): grosor de la baldosa + 0,03
 const HUNDIR: float = 0.03                ## cuánto se entierra cada pieza: la base irregular de Meshy no deja hueco ni flota
 ## Piezas planas: lo que sobresale del suelo, en unidades, da igual lo gruesa que venga la malla (el resto queda enterrado).
-const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10}
+const PLANAS: Dictionary = Pieza3D.PLANAS     ## la tabla vive en pieza_3d.gd (la usa también el editor)
 ## Sombra de contacto (elipse plana, borde duro) bajo cada pieza en pie: ancla la pieza al suelo como en Link's Awakening.
 ## Radio en unidades antes de la variación de tamaño de cada copia. Lo que no está aquí no lleva sombra (plano o diminuto).
 const SOMBRA_CONTACTO: Dictionary = {
@@ -112,6 +105,7 @@ const T_PRENDIENDO: float = 1.0      ## s en PRENDIENDO antes de ARDIENDO (IGNIT
 const T_ARDIENDO: float = 5.0        ## s ardiendo antes de CENIZAS (BURN_TIME); R sube lineal en ese tiempo
 const FRENTE_VEL: float = 0.5        ## casillas/s a las que crece el frente de contagio (32 px/s ÷ 64)
 const FRENTE_MIN: float = 0.4        ## a partir de aquí el frente puede prender (26 px)
+const T_SALTO: float = 0.6           ## s que espera una casilla encendida antes de contagiar a una vecina (6.9a)
 const FRENTE_MAX: float = 1.7        ## y se acaba aquí (SPREAD_RADIUS 110 px)
 const CONO_VIENTO: float = 3.6       ## alcance del viento sobre hierba ardiendo (230 px)
 const T_PISADO: float = 2.0          ## s que tarda en levantarse la hierba pisada (solo aspecto)
@@ -155,6 +149,7 @@ uniform sampler2D t_camino : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_tierra : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_piedra : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
+uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
 uniform float celda = 2.3;
 uniform float lado = 40.0;
@@ -170,6 +165,10 @@ uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);      // lo qu
 uniform sampler2D normal_suelo : hint_normal, filter_linear_mipmap, repeat_enable;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
+// Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
+// (usa_normal_tierra = 0) la tierra usa el relieve genérico de arriba, como siempre.
+uniform sampler2D normal_tierra : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform float usa_normal_tierra = 0.0;
 vec3 muestra(sampler2D t, vec2 p, float mezcla) {
 	vec2 q = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * p * 0.73 + vec2(0.37, 0.11);
 	return mix(texture(t, p).rgb, texture(t, q).rgb, mezcla);
@@ -194,7 +193,7 @@ void fragment() {
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
 	vec4 e = texture(estado, uvm);
 	float q = smoothstep(0.5 - dureza, 0.5 + dureza, e.r) * w.r;               // quemado: solo donde hay hierba
-	col = mix(col, color_ceniza * (0.8 + 0.4 * r.a), q);
+	col = mix(col, color_ceniza * (0.8 + 0.4 * r.a), q * fuerza_ceniza);
 	float mo = smoothstep(0.35, 0.65, e.g);                                    // mojado: el tinte del 2D (0,62 0,66 0,78)
 	col = mix(col, col * vec3(0.62, 0.66, 0.78), mo);
 	float he = smoothstep(0.4, 0.6, e.b);                                      // helado: escarcha por encima de todo
@@ -208,6 +207,14 @@ void fragment() {
 	vec3 n1 = texture(normal_suelo, tr).rgb * 2.0 - 1.0;
 	vec3 n2 = texture(normal_suelo, tr * 3.1 + vec2(0.5, 0.25)).rgb * 2.0 - 1.0;
 	vec3 nr = normalize(vec3(n1.xy * 0.65 + n2.xy * 0.35, 1.0));
+	if (usa_normal_tierra > 0.5) {
+		// Mismas dos muestras que el color (la segunda girada y a otra escala): la normal gira con ella.
+		mat2 giro = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8));
+		vec2 g1 = texture(normal_tierra, t).xy * 2.0 - 1.0;
+		vec2 g2 = transpose(giro) * (texture(normal_tierra, giro * t * 0.73 + vec2(0.37, 0.11)).xy * 2.0 - 1.0);
+		vec2 gt = mix(g1, g2, m);
+		nr = normalize(vec3(mix(nr.xy, gt + nr.xy * 0.3, w.b), 1.0));
+	}
 	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a) * (1.0 - he);
 	NORMAL_MAP = nr * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = fuerza * 2.2;
@@ -245,7 +252,7 @@ uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform float tam_tex = 4.6;
 uniform float ruido = 0.45;
-uniform float fuerza_normal = 0.35;
+uniform float fuerza_normal = 0.5;      // 6.16: más ondas (antes 0,35)
 uniform float ancho_espuma = 0.16;
 uniform float brillo = 1.0;
 uniform float contraste = 1.5;
@@ -259,8 +266,8 @@ void fragment() {
 	float dist = max(texture(orilla, uvm).r * 4.0 - 0.5, 0.0);   // casillas desde el borde de la tierra
 	vec2 uv = pm.xz / tam_tex;
 	// Dos muestras de la normal con rumbos y velocidades distintas: rompe la repetición.
-	vec2 na = texture(normal_agua, uv + TIME * vec2(0.020, 0.011)).rg * 2.0 - 1.0;
-	vec2 nb = texture(normal_agua, uv * 1.7 - TIME * vec2(0.013, 0.017)).rg * 2.0 - 1.0;
+	vec2 na = texture(normal_agua, uv + TIME * vec2(0.034, 0.019)).rg * 2.0 - 1.0;
+	vec2 nb = texture(normal_agua, uv * 1.7 - TIME * vec2(0.022, 0.028)).rg * 2.0 - 1.0;
 	vec2 n = (na + nb) * fuerza_normal;
 	float hielo = smoothstep(0.4, 0.6, texture(estado, uvm).b);
 	n *= 1.0 - hielo;                                         // el hielo está quieto
@@ -338,8 +345,40 @@ void fragment() {
 ## Qué nivel monta esta escena: "test2" (el laboratorio de elementos, 40×40) o "jugabilidad" (el Test de jugabilidad
 ## de siempre, 23×23, con sus cuatro tareas: ver jugabilidad_3d.gd). Lo elige PruebaJugabilidad3D.tscn.
 @export var nivel: String = "test2"
+## 7.14: qué REGLAS lleva el nivel, aparte de cuál es. "" = automático (las del Test de jugabilidad solo si
+## `nivel == "jugabilidad"`), "ninguna" o "jugabilidad" (tareas, puerta final, botín, NPC que hablan y guardados, leídos de
+## los marcadores del nivel). Así un nivel nuevo (Nivel_Bosque.tscn) tiene tareas sin tocar código.
+@export var reglas: String = ""
+## 6.10 camino A: si existe `poc_25d/niveles/<nivel>.tscn` (se crea con F9, «hornear»), el decorado y lo que bloquea salen de
+## sus nodos Pieza3D y no de las letras del mapa (las letras siguen dando el suelo, los personajes y los objetos reactivos).
+## Se puede editar ese .tscn en Godot: mover, girar, escalar, borrar y añadir piezas. Poner a false para volver a las letras.
+@export var usar_escena: bool = true
+const NIVELES: String = "res://poc_25d/niveles/"
+var _modo_escena: bool = false
+var _registro: Array = []       ## cada _poner: [id pedido, casilla, Transform3D, bloquea, origen "decor" | "marcador"] (lo que F9 hornea)
+## 7.2: nivel editable `Nivel_<Nombre>.tscn` (suelo en GridMap, piezas instanciadas, marcadores). Si existe, MANDA sobre las letras.
+var _modo_nivel: bool = false
+var _nivel_raiz: Node = null           ## el .tscn instanciado (fuera del árbol: solo se lee)
+var _marcas: Array = []                ## marcadores de datos: {grupo, tipo, c, giro} (botín, empujables…)
+var _en_marcador: bool = false         ## true mientras se coloca algo que sale de un marcador/letra, no del decorado
+var _cel_barrera: Array = []           ## casillas `B` (barrera de fuego) del mapa activo, para agruparlas en paredes (7.11)
+var _muros_def: Array = []             ## paredes de fuego del nivel editable: {celdas, vertical} (de los marcadores `B` con `largo`)
+var _puentes_def: Array = []           ## puentes reactivos del nivel editable (marcadores `P`): {celdas, activador (casilla o (-1,-1))}
+var _celdas_pieza: Dictionary = {}     ## casillas bloqueadas por una pieza del .tscn (Vector2i -> true)
+var _solidos: Node3D = null            ## cuerpos de colisión de esas piezas
 
 var _mapa: PackedStringArray = PackedStringArray()
+var _giros: Dictionary = {}                ## giros a mano del mapa activo (Jugabilidad3D.GIROS o GIROS_CELDA)
+## Escala de cada marcador del nivel (.tscn), por casilla: Vector3. Solo la usan los objetos que la admiten (de momento la
+## telaraña); sin entrada, escala 1. En el modo letras está vacío.
+var _escalas: Dictionary = {}
+## Nivel editable: la casilla del GridMap que pasa a ser la (0, 0) de la maqueta (la esquina mín. de las casillas pintadas) y
+## el tamaño real (ancho × alto) del rectángulo pintado. La maqueta trabaja en un cuadrado de `_lado` = el mayor de los dos,
+## con la parte sobrante vacía (letra " ": sin suelo, bloqueada). Todo el .tscn se desplaza -_origen casillas al cargarlo.
+var _origen: Vector2i = Vector2i.ZERO
+var _ancho: int = 0
+var _alto: int = 0
+var _desplaza: Vector3 = Vector3.ZERO
 var _lado: int = 40
 var _bloqueadas: Dictionary = {}
 var _bibliotecas: Array[Node3D] = []
@@ -400,18 +439,36 @@ var _empuj_def: Array = EMPUJABLES
 
 
 func _ready() -> void:
-	if nivel == "jugabilidad":
+	_modo_nivel = usar_escena and ResourceLoader.exists(HorneadorNivel.ruta(nivel))
+	if reglas == "jugabilidad" or (reglas == "" and nivel == "jugabilidad"):
 		_reglas = Jugabilidad3D.new()
 		_reglas.name = "Reglas"
+	if nivel == "jugabilidad":
 		_mapa = Jugabilidad3D.MAPA
+		_giros = Jugabilidad3D.giros()
 		_guardados = Jugabilidad3D.GUARDADOS
 		_empuj_def = Jugabilidad3D.empujables()
+	elif nivel == "pruebas":
+		_mapa = NivelPruebas.MAPA              # 7.12: el banco de pruebas (16×16); lo demás vacío
+		_giros = {}
+		_guardados = []
+		_empuj_def = []
+	elif _modo_nivel and nivel != "test2":
+		# Un nivel nuevo de Pablo (Nivel_Bosque.tscn…): todo sale del .tscn. Sin esto heredaba el botín, los rótulos y los
+		# colores de prueba del Test 2, puestos en las casillas del Test 2.
+		_mapa = PackedStringArray()
+		_giros = {}
+		_guardados = []
+		_empuj_def = []
 	else:
 		_mapa = TEST2.MAPA_TEST2
+		_giros = GIROS_CELDA
 		_guardados = TEST2.GUARDADOS_T2
 		_suelo_obj = TEST2.SUELO_T2
 		_rotulos = TEST2.ROTULOS
 		_color_prueba = TEST2.COLOR_PRUEBA
+	if _modo_nivel:
+		_leer_nivel()
 	_lado = _mapa.size()
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 
@@ -447,8 +504,13 @@ func _ready() -> void:
 		Ocluso3D.preparar()
 	_cargar_bibliotecas()
 	_construir_suelo()
+	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
 	_colocar_extras()
+	if _modo_nivel:
+		_instanciar_nivel()
+	elif _modo_escena:
+		_instanciar_escena()
 	_colocar_empujables()
 	_construir_lotes()
 	_sembrar_hierba()
@@ -456,6 +518,11 @@ func _ready() -> void:
 	for b in _bibliotecas:
 		b.free()
 	_bibliotecas.clear()
+	# El .tscn del nivel se instancia fuera del árbol solo para leerlo: hay que liberarlo a mano. Si no, todas sus piezas,
+	# mallas y marcadores se quedaban vivos hasta cerrar el juego (Godot lo avisa al parar: «mesh is null», «leaked»).
+	if _nivel_raiz != null and is_instance_valid(_nivel_raiz):
+		_nivel_raiz.free()
+	_nivel_raiz = null
 
 	_camara = Camera3D.new()
 	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -477,6 +544,8 @@ func _ready() -> void:
 	_actualizar_hud()
 	_precalentar(capa)
 	Jugador3D.montar(self)
+	if _modo_escena or _modo_nivel:
+		_activar_solidez_por_nodos()
 	if _reglas != null:
 		add_child(_reglas)
 		_reglas.iniciar(self)
@@ -505,8 +574,8 @@ func _es_agua(l: String) -> bool:
 ## Tipo de suelo de una casilla para la mezcla: 0 hierba, 1 camino, 2 tierra, 3 piedra.
 func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
-	if _reglas != null:
-		# Test de jugabilidad: el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
+	if _reglas != null or (_modo_nivel and nivel != "test2"):
+		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
 		if l == "g" or l == "F" or l == "T" or l == "B":
 			return 2
 		if l == "X" or l == "E" or l == "S" or l == "p" or l == "a" or l == "w" or _es_agua(l):
@@ -552,7 +621,12 @@ func _construir_suelo() -> void:
 	mat_suelo.set_shader_parameter("campo", ImageTexture.create_from_image(_img_campo))
 	mat_suelo.set_shader_parameter("t_hierba", _tex(SUELO + "hierba_arriba.png"))
 	mat_suelo.set_shader_parameter("t_camino", _tex(SUELO + "path_arriba.png"))
-	mat_suelo.set_shader_parameter("t_tierra", _tex(SUELO + "dirt_arriba.png"))
+	# Tierra: la nueva (tierra_arriba.png + su normal) si está; si no, la de siempre.
+	var hay_tierra_nueva: bool = ResourceLoader.exists(SUELO + "tierra_arriba.png") and ResourceLoader.exists(SUELO + "tierra_arriba_normal.png")
+	mat_suelo.set_shader_parameter("t_tierra", _tex(SUELO + ("tierra_arriba.png" if hay_tierra_nueva else "dirt_arriba.png")))
+	if hay_tierra_nueva:
+		mat_suelo.set_shader_parameter("normal_tierra", load(SUELO + "tierra_arriba_normal.png") as Texture2D)
+		mat_suelo.set_shader_parameter("usa_normal_tierra", 1.0)
 	mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "stone_arriba.png"))
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("lado", float(_lado))
@@ -589,12 +663,107 @@ func _construir_suelo() -> void:
 		for x in range(_mapa[y].length()):
 			var c := Vector2i(x, y)
 			var t := Transform3D(Basis.IDENTITY, _centro_celda(c, 0.0))
+			if _letra(c) == " ":
+				continue          # casilla sin pintar del nivel editable: sin suelo
 			if _es_agua(_letra(c)):
 				agua.append(t)
 			else:
 				tierra.append(t)
 	_multimalla(_malla_bloque(ALTO, mat_suelo, mat_lado), tierra)
 	_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
+	_construir_orillas()
+
+
+## --- 6.16 ORILLA: transición agua → hierba ---
+## En cada casilla de tierra pegada a una de agua (por sus 4 lados) se pone una franja de arena de ~0,22 casillas con el borde
+## ondulado y, de vez en cuando, un par de piedrecitas: la hierba ya no pasa de golpe al bloque de agua. Todo en dos MultiMesh.
+const COLOR_ARENA: Color = Color(0.86, 0.76, 0.56)
+const ANCHO_ORILLA: float = 0.24         ## fracción de casilla
+
+
+func _construir_orillas() -> void:
+	var franjas: Array[Transform3D] = []
+	var piedras: Array[Transform3D] = []
+	var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for y in range(_lado):
+		for x in range(_mapa[y].length()):
+			var c := Vector2i(x, y)
+			if _es_agua(_letra(c)) or _letra(c) == "#" or _letra(c) == " ":
+				continue
+			for d in dirs:
+				var v: Vector2i = d
+				if not _es_agua(_letra(c + v)):
+					continue
+				var h: int = _hash(c.x, c.y, v.x * 3 + v.y * 5 + 11)
+				var grosor: float = S * ANCHO_ORILLA * (0.8 + 0.4 * float(h % 100) / 99.0)
+				var largo: float = S * (0.96 + 0.04 * float((h >> 3) % 10) / 9.0)
+				# La franja está pegada al borde de la casilla que da al agua: su eje largo va a lo largo del borde.
+				var centro: Vector3 = _centro_celda(c, ALTO + 0.012) + Vector3(float(v.x), 0.0, float(v.y)) * (S * 0.5 - grosor * 0.5)
+				var giro: float = 0.0 if v.y != 0 else PI * 0.5
+				var b := Basis(Vector3.UP, giro).scaled(Vector3(largo, 1.0, grosor))
+				franjas.append(Transform3D(b, centro))
+				if h % 3 == 0:
+					var q: Vector3 = _centro_celda(c, ALTO) + Vector3(float(v.x), 0.0, float(v.y)) * (S * 0.5 - grosor * 0.6)
+					var a: Vector3 = Vector3(float(v.y), 0.0, float(v.x)) * (float((h >> 5) % 100) / 99.0 - 0.5) * S * 0.7
+					var tam: float = 0.07 + 0.05 * float((h >> 9) % 10) / 9.0
+					piedras.append(Transform3D(Basis(Vector3.UP, float(h % 628) / 100.0).scaled(Vector3.ONE * tam), q + a))
+	if not franjas.is_empty():
+		var caja := BoxMesh.new()
+		caja.size = Vector3(1.0, 0.02, 1.0)
+		var m := StandardMaterial3D.new()
+		m.albedo_color = COLOR_ARENA * OSCURECER_SUELO
+		m.roughness = 1.0
+		caja.material = m
+		_multimalla(caja, franjas)
+	if not piedras.is_empty():
+		var roca: Mesh = (Formas3D.instancia("piedra", Color(0.7, 0.66, 0.6), 1.0) as MeshInstance3D).mesh
+		_multimalla(roca, piedras)
+
+
+## --- 6.16 HIELO: capa de pulido sobre el agua helada ---
+## Placa translúcida y brillante, con grietas claras, y dos cristales en una esquina (como `cristal_hielo`). Se borra con la casilla.
+var _placas_hielo: Dictionary = {}
+
+
+func _poner_placa_hielo(c: Vector2i) -> void:
+	if _placas_hielo.has(c) or not _es_agua(_letra(c)):
+		return
+	var raiz := Node3D.new()
+	raiz.position = _centro_celda(c, ALTO_AGUA + 0.02)
+	add_child(raiz)
+	var placa := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = Vector3(S * 0.97, 0.05, S * 0.97)
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.86, 0.95, 1.0, 0.6)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.roughness = 0.08
+	m.metallic = 0.0
+	m.metallic_specular = 1.0
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	caja.material = m
+	placa.mesh = caja
+	placa.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(placa)
+	var h: int = _hash(c.x, c.y, 77)
+	for i in range(3):
+		var g := MeshInstance3D.new()
+		var gm := BoxMesh.new()
+		gm.size = Vector3(S * (0.35 + 0.25 * float((h >> (i * 3)) % 10) / 9.0), 0.01, 0.025)
+		var mg := StandardMaterial3D.new()
+		mg.albedo_color = Color(1.0, 1.0, 1.0, 0.85)
+		mg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mg.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm.material = mg
+		g.mesh = gm
+		g.position = Vector3((float((h >> (i * 5)) % 100) / 99.0 - 0.5) * S * 0.4, 0.03, (float((h >> (i * 7 + 1)) % 100) / 99.0 - 0.5) * S * 0.4)
+		g.rotation.y = float((h >> (i * 4)) % 314) / 100.0
+		raiz.add_child(g)
+	for i in range(2):
+		var cr: MeshInstance3D = Formas3D.instancia("cristal", Color.WHITE, 0.3 + 0.12 * float(i))
+		cr.position = Vector3(S * (0.28 - 0.1 * float(i)), 0.02, S * (0.3 - 0.06 * float(i)))
+		raiz.add_child(cr)
+	_placas_hielo[c] = raiz
 
 
 ## Distancia de cada casilla de agua a la tierra más cercana (0 = tierra), /4 para caber en un byte.
@@ -926,7 +1095,11 @@ func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: boo
 	if variar:
 		p += Vector3(float(h % 61 - 30) / 100.0, 0.0, float((h >> 6) % 61 - 30) / 100.0) * S * 0.5
 		escala = 0.88 + float(h % 25) / 100.0
-	var giro: float = giro_fijo if giro_fijo >= 0.0 else float(h % 360)
+	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else float(h % 360))
+	_registro.append([id_pedido, c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)).scaled(Vector3.ONE * escala), p), bloquea,
+		"marcador" if _en_marcador else "decor"])
+	if _modo_escena or (_modo_nivel and not _en_marcador):
+		return null         # el nivel viene del .tscn: lo coloca _instanciar_escena (y de ahí sale qué bloquea)
 	if bloquea:
 		_bloqueadas[c] = true
 	if decorado_por_lotes:
@@ -966,7 +1139,8 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 	if variar:
 		p += Vector3(float(h % 61 - 30) / 100.0, 0.0, float((h >> 6) % 61 - 30) / 100.0) * S * 0.5
 		escala = 0.88 + float(h % 25) / 100.0
-	var giro: float = giro_fijo if giro_fijo >= 0.0 else float(h % 360)
+	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else float(h % 360))
+	_registro.append([id_pedido, c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), p), bloquea, "marcador"])    # solo el giro, para hornear
 	if bloquea:
 		_bloqueadas[c] = true
 	# Sombra de contacto solo de los que se quedan (tótem, fogata, brasero); seto, tronco y telaraña se consumen.
@@ -995,9 +1169,126 @@ func _nuevo_reactivo(tipo: String, c: Vector2i, p: Vector3, visual: Node3D, elem
 	return r
 
 
-## La telaraña: un sprite de pie que mira a la cámara (como antes), pero ahora arde.
+## Modelos de la telaraña (Pablo, 7/10, Tripo). Cada GLB trae DOS piezas lado a lado, que se separan al cargar por el signo de x:
+##   telarana_red.glb:  x < 0 la red sana (blanca) · x > 0 la red ardiendo (brasas naranjas). 1 x 0,45 de ancho y alto.
+##   telarana_base.glb: x < 0 el tronco seco sobre la roca con musgo (1 de alto) · x > 0 un tronco fino suelto (0,66).
+## La BASE es decorado que se queda (la red se quema, los troncos no); la RED es el visual del Reactivo3D, con dos hijas
+## "sana" y "ardiendo" que el reactivo alterna al prender y apagar.
+const TELARANA_RED: String = "res://poc_25d/meshy/telarana/telarana_red.glb"
+const TELARANA_BASE: String = "res://poc_25d/meshy/telarana/telarana_base.glb"
+const TELARANA_ESCALA_RED: float = 3.9       ## la red sana mide 0,5 → 1,95 u: cubre la casilla entre los dos troncos
+const TELARANA_ESCALA_BASE: float = 2.1      ## el tronco grande mide 1,0 → 2,1 u (el alto del cuerpo de la telaraña es 2)
+static var _tel_mallas: Dictionary = {}      ## "sana" | "ardiendo" | "tronco" | "palo" -> [Mesh, AABB de la parte]
+static var _tel_probado: bool = false
+
+
+func _cargar_telarana() -> bool:
+	if _tel_probado:
+		return not _tel_mallas.is_empty()
+	_tel_probado = true
+	var partes: Dictionary = {}
+	for par in [[TELARANA_RED, "sana", "ardiendo"], [TELARANA_BASE, "tronco", "palo"]]:
+		var malla: Mesh = _malla_de_glb(String(par[0]))
+		if malla == null:
+			return false
+		partes[par[1]] = _mitad_malla(malla, true)
+		partes[par[2]] = _mitad_malla(malla, false)
+	_tel_mallas = partes
+	return true
+
+
+static func _malla_de_glb(ruta: String) -> Mesh:
+	if not ResourceLoader.exists(ruta):
+		return null
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null:
+		return null
+	var raiz: Node = ps.instantiate()
+	var mi: MeshInstance3D = raiz as MeshInstance3D
+	if mi == null:
+		var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+		mi = l[0] as MeshInstance3D if not l.is_empty() else null
+	var m: Mesh = mi.mesh if mi != null else null
+	raiz.free()
+	return m
+
+
+## [Mesh, AABB de la parte]: los triángulos de `malla` cuyo centro tiene x < 0 (`izquierda`) o x >= 0. Conserva UV y material.
+static func _mitad_malla(malla: Mesh, izquierda: bool) -> Array:
+	var res := ArrayMesh.new()
+	var caja := AABB()
+	var hay: bool = false
+	for si in range(malla.get_surface_count()):
+		var arr: Array = malla.surface_get_arrays(si)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		var nuevo := PackedInt32Array()
+		var t: int = 0
+		while t + 2 < idx.size():
+			var mx: float = (v[idx[t]].x + v[idx[t + 1]].x + v[idx[t + 2]].x) / 3.0
+			if (mx < 0.0) == izquierda:
+				for k in range(3):
+					nuevo.append(idx[t + k])
+					# La AABB de la parte se mide a mano: la del ArrayMesh cuenta TODOS los vértices, también los de la otra mitad.
+					caja = AABB(v[idx[t + k]], Vector3.ZERO) if not hay else caja.expand(v[idx[t + k]])
+					hay = true
+			t += 3
+		arr[Mesh.ARRAY_INDEX] = nuevo
+		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		res.surface_set_material(res.get_surface_count() - 1, malla.surface_get_material(si))
+	return [res, caja]
+
+
+## Una parte de la telaraña centrada en x/z, apoyada en y = 0 (si `al_suelo`) y escalada.
+func _parte_telarana(clave: String, escala_parte: float, al_suelo: bool) -> MeshInstance3D:
+	var d: Array = _tel_mallas[clave]
+	var m := MeshInstance3D.new()
+	m.name = clave
+	m.mesh = d[0] as Mesh
+	var caja: AABB = d[1]
+	var cen: Vector3 = caja.get_center()
+	var y0: float = caja.position.y if al_suelo else 0.0
+	m.scale = Vector3.ONE * escala_parte
+	m.position = Vector3(-cen.x, -y0 if al_suelo else -cen.y, -cen.z) * escala_parte
+	return m
+
+
+## La telaraña: la red (reactivo, arde y se va) entre dos troncos (decorado, se quedan). Sin los modelos, la de antes:
+## hilos 3D (Formas3D "telarana") en un plano de pie, radio 1.
 func _poner_telarana(c: Vector2i) -> void:
-	# Ya no es un sprite: hilos 3D (Formas3D "telarana") en un plano de pie que mira a la cámara, radio 1.
+	if _cargar_telarana():
+		var red := Node3D.new()
+		red.name = "telarana"
+		var sana: MeshInstance3D = _parte_telarana("sana", TELARANA_ESCALA_RED, false)
+		var ardiendo: MeshInstance3D = _parte_telarana("ardiendo", TELARANA_ESCALA_RED, false)
+		ardiendo.visible = false
+		for h in [sana, ardiendo]:
+			var mh: MeshInstance3D = h
+			mh.position.y += 1.15
+			mh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			red.add_child(mh)
+		# Giro y escala del marcador (nivel .tscn): se aplican a la red y a los troncos, no al Reactivo3D, para que su caja
+		# de colisión siga siendo la de una casilla (la telaraña bloquea su casilla, la estires o no).
+		var giro_t: float = deg_to_rad(float(_giros.get(c, 0.0)))
+		var esc_t: Vector3 = _escalas.get(c, Vector3.ONE)
+		red.rotation.y = giro_t
+		red.scale = esc_t
+		var rt: Reactivo3D = _nuevo_reactivo("telarana", c, _centro_celda(c, ALTO), red, "")
+		_props.add_child(rt)
+		# Los troncos, a los lados de la red (en x, el plano de la red es XY) y un poco hacia atrás.
+		var base := Node3D.new()
+		base.name = "telarana_base"
+		base.position = _centro_celda(c, ALTO)
+		base.rotation.y = giro_t
+		base.scale = esc_t
+		var tronco: MeshInstance3D = _parte_telarana("tronco", TELARANA_ESCALA_BASE, true)
+		tronco.position += Vector3(-S * 0.42, 0.0, -0.15)
+		var palo: MeshInstance3D = _parte_telarana("palo", TELARANA_ESCALA_BASE * 1.25, true)
+		palo.position += Vector3(S * 0.43, 0.0, -0.1)
+		base.add_child(tronco)
+		base.add_child(palo)
+		_props.add_child(base)
+		return
 	var s3: MeshInstance3D = Formas3D.instancia("telarana", Color(0.93, 0.93, 0.97))
 	s3.name = "telarana"
 	s3.position = Vector3(0.0, 1.0, 0.0)
@@ -1036,15 +1327,31 @@ func _enlazar_reactivos() -> void:
 			r.activado.connect(func(_t: String, _e: String) -> void: puente.tender())
 
 
-func _al_consumir(c: Vector2i) -> void:
+## Bloqueo / desbloqueo EN JUEGO de una casilla (tierra que se solidifica, hielo, puente, puerta…): siempre por aquí y no
+## tocando `_bloqueadas` a mano. Por qué: con el nivel en .tscn la solidez la contesta la fuente de colisión del Lanzador
+## (6.10) y esta se enteraría de los cambios solo a través de `bloquear_celda` / `liberar_celda`. El diccionario se sigue
+## manteniendo porque la hierba, los NPC y el reparto de objetos lo leen.
+func _bloquear(c: Vector2i) -> void:
+	_bloqueadas[c] = true
+	if Lanzador3D.mundo_s == self:
+		Lanzador3D.bloquear_celda(c)
+
+
+func _liberar(c: Vector2i) -> void:
 	_bloqueadas.erase(c)
+	if Lanzador3D.mundo_s == self:
+		Lanzador3D.liberar_celda(c)
+
+
+func _al_consumir(c: Vector2i) -> void:
+	_liberar(c)
 
 
 func _al_activar(tipo: String, _elemento: String) -> void:
 	if tipo == "puente":
 		for r in _reactivos:
 			if is_instance_valid(r) and r.tipo == "puente":
-				_bloqueadas.erase(r.celda)
+				_liberar(r.celda)
 
 
 ## Lo que el fuego de un objeto hace a la hierba (combustible.gd contagia a TODO lo que arde a ≤ 110 px cada 0,8 s):
@@ -1345,9 +1652,13 @@ func _colocar_letras() -> void:
 			var c := Vector2i(x, y)
 			var l: String = _letra(c)
 			var h: int = _hash(x, y, 3)
+			_en_marcador = not "#~.".contains(l)      # pared, agua y suelo son decorado; el resto sale de un marcador
 			match l:
+				" ":
+					_bloqueadas[c] = true          # fuera de lo pintado: no se pisa
 				"#":
-					_bloqueadas[c] = true
+					if not (_modo_escena or _modo_nivel) or x == 0 or y == 0 or x == _mapa[y].length() - 1 or y == _lado - 1:
+						_bloqueadas[c] = true      # en modo escena el borde sigue cerrado; el resto lo deciden las piezas del .tscn
 					if h % 6 == 0:
 						_poner("arbusto" if h % 2 == 0 else "roca_grande", c, ALTO, true)
 					else:
@@ -1391,10 +1702,10 @@ func _colocar_letras() -> void:
 						_disco(VFX + "circulo_runico.png", _centro_celda(c, Y_DECAL), S * 1.1, col)
 						_luz(_centro_celda(c, ALTO + 1.4), col, 1.0, 3.5)
 				"B":
+					# Barrera de fuego: la casilla bloquea (el Lanzador pone una BarreraFuego por casilla) y su fuego se dibuja luego
+					# como UNA pared por tramo recto (_colocar_barreras_fuego), no una llama por casilla (7.11).
 					_bloqueadas[c] = true
-					# La barrera es una PARED: se extiende a lo largo de la fila de B vecinas (vertical si hay B arriba o abajo).
-					var vertical: bool = _letra(c + Vector2i(0, 1)) == "B" or _letra(c + Vector2i(0, -1)) == "B"
-					_fuego(_centro_celda(c, ALTO), true, 1.0, Vector3.BACK if vertical else Vector3.RIGHT)
+					_cel_barrera.append(c)
 				"F":
 					if objetos_reactivos:
 						_reactivo_pieza("fogata", "fogata", c, ALTO, true, false, -1.0, "", true)
@@ -1408,7 +1719,9 @@ func _colocar_letras() -> void:
 						_poner("brasero", c, ALTO, true, false)
 						_fuego(_centro_celda(c, ALTO + 1.25), false, 0.6)
 				"n", "Q":
-					poner_puesto(c, PJ_LIBRERA if l == "n" else PJ_ALQUIMISTA)
+					var tendero: Pj3D = poner_puesto(c, PJ_LIBRERA if l == "n" else PJ_ALQUIMISTA)
+					if _reglas != null:
+						_reglas.registrar_npc("librera" if l == "n" else "alquimista", tendero)
 				"M":
 					_npc(PJ_LIBRERA, _centro_celda(c, ALTO))
 					_bloqueadas[c] = true
@@ -1455,16 +1768,468 @@ func _colocar_letras() -> void:
 				"S":
 					_jugador = _personaje(PJ_JUGADOR, _centro_celda(c, ALTO))
 				".":
-					if h % 9 == 0 and _tipo_suelo(c) == 0:
+					if h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
 						_poner(String(decor[_hash(x, y, 5) % decor.size()]), c, ALTO, false)
 
+	_en_marcador = false
+	_colocar_barreras_fuego()
 	_enlazar_reactivos()
+	_colocar_puentes_reactivos()
+
+
+## Puentes reactivos (marcador `P`): una fila de losas bajo el agua que sube cuando se activa el marcador enlazado. El color de
+## las runas es el del elemento del activador (cian si no tiene). Por qué la casilla pasa a letra `b`: el resto del juego (altura
+## del jugador y goblins, hielo, agua) decide por la letra; así la casilla ya es puente y no agua.
+func _colocar_puentes_reactivos() -> void:
+	for d in _puentes_def:
+		var celdas: Array = (d as Dictionary)["celdas"]
+		var centros: Array = []
+		for c in celdas:
+			centros.append(_centro_celda(c, ALTO_AGUA))
+		var act: Reactivo3D = null
+		for r in _reactivos:
+			if is_instance_valid(r) and r.celda == ((d as Dictionary)["activador"] as Vector2i):
+				act = r
+		var color: Color = Color(0.2, 0.9, 1.0)
+		if act != null and Vfx3D.COLOR.has(act.elemento):
+			color = Vfx3D.COLOR[act.elemento]
+		var pr := PuenteReactivo3D.new()
+		pr.name = "puente_reactivo"
+		_props.add_child(pr)
+		pr.preparar(celdas, centros, ALTO_AGUA + 0.12, ALTO_AGUA, _fx, color)
+		pr.losa_lista.connect(_al_tender_losa)
+		if act != null:
+			act.activado.connect(func(_t: String, _e: String) -> void: pr.tender(act.global_position))
+		elif (d as Dictionary)["activador"] != Vector2i(-1, -1):
+			_avisos.append("puente reactivo: no hay objeto reactivo en la casilla %s" % str((d as Dictionary)["activador"]))
+
+
+func _al_tender_losa(c: Vector2i) -> void:
+	_mapa[c.y] = _mapa[c.y].substr(0, c.x) + "b" + _mapa[c.y].substr(c.x + 1)
+	_liberar(c)
+
+
+## 7.11: una pared de fuego continua por cada tramo recto de barrera (letras `B` contiguas, o un marcador `B` con `largo`).
+## La luz y las brasas van dentro de la pared (Vfx3D.fuego_pared); `apagar_tramo` la parte cuando el agua apaga una casilla.
+func _colocar_barreras_fuego() -> void:
+	var tramos: Array = _muros_def if _modo_nivel else HorneadorNivel.tramos_barrera(_cel_barrera)
+	for t in tramos:
+		var td: Dictionary = t
+		var celdas: Array = td["celdas"]
+		var centros: Array = []
+		for ce in celdas:
+			centros.append(_centro_celda(ce as Vector2i, ALTO))
+		_fx.fuego_pared(celdas, centros, Vector3.BACK if bool(td["vertical"]) else Vector3.RIGHT, S)
+
+
+## --- 6.10 camino A: nivel editable (.tscn con nodos Pieza3D) ---
+
+func _ruta_escena() -> String:
+	return NIVELES + nivel + ".tscn"
+
+
+## Transform de `n` respecto a `raiz` (el .tscn instanciado no está en el árbol: no hay global_transform).
+func _transform_en(n: Node3D, raiz: Node) -> Transform3D:
+	var t: Transform3D = n.transform
+	var padre: Node = n.get_parent()
+	while padre != null and padre != raiz and padre is Node3D:
+		t = (padre as Node3D).transform * t
+		padre = padre.get_parent()
+	return t
+
+
+## Lee las Pieza3D del .tscn del nivel y hace con ellas lo mismo que _poner: lotes de decorado, sombra de contacto y casilla
+## bloqueada (la que contiene su posición). Lo que el Lanzador llama «huellas» sale de aquí sin cambios (calcular_huellas lee _lotes).
+func _instanciar_escena() -> void:
+	var ps: PackedScene = load(_ruta_escena()) as PackedScene
+	if ps == null:
+		_avisos.append("no se pudo cargar " + _ruta_escena())
+		_modo_escena = false
+		return
+	var raiz: Node = ps.instantiate()
+	var colocadas: int = 0
+	for n in raiz.find_children("*", "Pieza3D", true, false):
+		var pz: Pieza3D = n as Pieza3D
+		var id_pedido: String = pz.id
+		var id: String = _id_real(id_pedido)
+		var t: Transform3D = _transform_en(pz, raiz)
+		var p: Vector3 = t.origin
+		var escala: float = t.basis.get_scale().x
+		if pz.bloquea:
+			var cp: Vector2i = _celda_de(p)
+			_bloqueadas[cp] = true
+			_celdas_pieza[cp] = true
+			_poner_colision(id_pedido, t)
+		if decorado_por_lotes:
+			if _plantilla(id).is_empty():
+				continue
+			if not _lotes.has(id):
+				_lotes[id] = []
+			(_lotes[id] as Array).append(t)
+			if SOMBRA_CONTACTO.has(id):
+				var r: float = float(SOMBRA_CONTACTO[id]) * escala
+				_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r * 2.0, 1.0, r * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
+		else:
+			var nodo: Node3D = _pieza(id)
+			if nodo == null:
+				continue
+			nodo.transform = t
+			_props.add_child(nodo)
+		colocadas += 1
+	raiz.free()
+	print("Nivel desde ", _ruta_escena(), ": ", colocadas, " piezas")
+
+
+## El cuerpo sólido de una pieza que bloquea, en la capa CAPA_SOLIDO del Lanzador. Es lo que lee la fuente de solidez por
+## nodos: «lo que se ve es lo que choca». La escala del nodo se aplica a mano a la forma (un StaticBody con escala no uniforme
+## deforma la colisión), y solo se respeta el giro en Y.
+func _poner_colision(id_pedido: String, t: Transform3D) -> void:
+	if _solidos == null:
+		_solidos = Node3D.new()
+		_solidos.name = "Solidos"
+		add_child(_solidos)
+	var f: Dictionary = Pieza3D.forma_colision(id_pedido)
+	var k: float = t.basis.get_scale().x
+	var cuerpo := StaticBody3D.new()
+	cuerpo.collision_layer = Lanzador3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	cuerpo.add_to_group("bloquea")
+	cuerpo.position = t.origin
+	cuerpo.rotation.y = t.basis.orthonormalized().get_euler().y
+	var forma := CollisionShape3D.new()
+	if bool(f["cilindro"]):
+		var cil := CylinderShape3D.new()
+		cil.radius = float(f["radio"]) * k
+		cil.height = float(f["alto"]) * k
+		forma.shape = cil
+	else:
+		var caja := BoxShape3D.new()
+		caja.size = (f["tam"] as Vector3) * k
+		forma.shape = caja
+	forma.position = (f["centro"] as Vector3) * k
+	cuerpo.add_child(forma)
+	_solidos.add_child(cuerpo)
+
+
+## Con el nivel en .tscn la solidez pasa a ser la de la colisión real (Lanzador3D.activar_fuente_nodos). El motor de física
+## no ve los cuerpos recién creados hasta un par de fotogramas de física, por eso se espera. Hasta entonces manda el diccionario.
+## Lo que NO es una pieza del .tscn (agua, borde, NPC, objetos reactivos, la puerta…) sigue en `_bloqueadas` y se traspasa
+## a la fuente como bloqueo «extra», para que la fuente por nodos lo vea igual que antes.
+func _activar_solidez_por_nodos() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_inside_tree() or Lanzador3D.mundo_s != self:
+		return
+	var n: int = Lanzador3D.activar_fuente_nodos(self)
+	if n == 0 and not _celdas_pieza.is_empty():
+		push_warning("PruebaTest2: la física no ve las piezas del nivel; vuelvo a la solidez por casillas.")
+		Lanzador3D.activar_fuente_casillas()
+		return
+	for c in _bloqueadas.keys():
+		if not _celdas_pieza.has(c):
+			Lanzador3D.bloquear_celda(c)
+	print("Solidez por colisión: ", n, " casillas de piezas, ", _bloqueadas.size() - _celdas_pieza.size(), " extra")
+
+
+## F9: hornea lo que las letras han colocado como `niveles/Nivel_<Nombre>.tscn` (ver HorneadorNivel). Con el nivel ya cargado
+## desde su .tscn no hace nada: ese archivo manda y tiene tus ediciones. Para volver a generarlo desde las letras (PISA las
+## ediciones; la versión anterior se aparta como `..._copia_<hora>.tscn`): poner `usar_escena = false` y pulsar F9.
+func hornear() -> String:
+	if _modo_nivel or _modo_escena:
+		print("Hornear: este nivel ya se ha cargado de su .tscn, que manda sobre las letras. Para regenerarlo desde las letras (pisa las ",
+			"ediciones) desmarca `usar_escena` en PruebaTest2 y vuelve a pulsar F9.")
+		return ""
+	var extras: Array = []
+	if _reglas != null:
+		for r in Jugabilidad3D.RECOGIBLES:
+			extras.append({"grupo": "recogible", "tipo": String(r[0]), "c": Vector2i(int(r[1]), int(r[2]))})
+		extras.append({"letra": "n", "c": Jugabilidad3D.PUESTO_CELDA})
+		extras.append({"letra": "Q", "c": Jugabilidad3D.PUESTO_CELDA + Vector2i(0, 3)})
+		# Los setos sueltos de las reglas (no son letras del mapa): los que de verdad se pusieron, que ya constan en el registro.
+		for r in _registro:
+			var rd: Array = r
+			var c_seto: Vector2i = rd[1]
+			if String(rd[0]) == "seto_seco" and String(rd[4]) == "marcador" and _letra(c_seto) == ".":
+				extras.append({"letra": "z", "c": c_seto})
+	for e in _empuj_def:
+		extras.append({"grupo": "empujable", "tipo": String(e[0]), "c": e[1] as Vector2i})
+	if nivel == "pruebas":
+		for e in NivelPruebas.piezas():
+			extras.append({"rotulo": String(e[0]), "c": e[1] as Vector2i})
+	var datos: Dictionary = {"nivel": nivel, "mapa": _mapa, "registro": _registro, "extras": extras}
+	return HorneadorNivel.hornear(datos)
+
+
+## --- 7.2: el nivel editable (Nivel_<Nombre>.tscn) ---
+
+## Contrato con el Juego (7.5): el rectángulo del nivel en casillas DEL MUNDO de la maqueta. En un nivel editable es el
+## rectángulo pintado del GridMap (puede no ser cuadrado), ya desplazado para que empiece en (0, 0): la maqueta mueve el .tscn
+## entero -`origen_nivel()` casillas al cargarlo, así `_lado`, `_celda_de` y `centro_de` del Lanzador siguen valiendo.
+## Con las letras, el cuadrado de siempre.
+func limites() -> Rect2i:
+	if _modo_nivel and _ancho > 0 and _alto > 0:
+		return Rect2i(0, 0, _ancho, _alto)
+	return Rect2i(0, 0, _lado, _lado)
+
+
+## La casilla del GridMap del .tscn que es la (0, 0) del mundo (para pasar de casillas del editor a casillas del juego:
+## juego = editor - origen_nivel()). Con las letras, (0, 0).
+func origen_nivel() -> Vector2i:
+	return _origen if _modo_nivel else Vector2i.ZERO
+
+
+## Transform de un nodo del .tscn en el mundo de la maqueta: respecto a la raíz del nivel y desplazado -_origen casillas.
+func _t_nivel(n: Node3D) -> Transform3D:
+	var t: Transform3D = _transform_en(n, _nivel_raiz)
+	t.origin += _desplaza
+	return t
+
+
+## ¿Esta pieza (id y cuerpo) está bajo un nodo con ese nombre? (Piezas / Borde)
+func _bajo(n: Node, nombre: String, raiz: Node) -> bool:
+	var p: Node = n.get_parent()
+	while p != null and p != raiz:
+		if String(p.name) == nombre:
+			return true
+		p = p.get_parent()
+	return false
+
+
+## La letra de `c` en unas filas de texto (las del nivel que se está leyendo); fuera, " ".
+static func _letra_en(filas: Array, c: Vector2i) -> String:
+	if c.y < 0 or c.y >= filas.size() or c.x < 0 or c.x >= (filas[c.y] as String).length():
+		return " "
+	return (filas[c.y] as String)[c.x]
+
+
+## Recorre el .tscn y da todas las piezas (nodos con metadato `id`; no se baja dentro de ellas).
+func _piezas_de(n: Node, fuera: Array) -> void:
+	for h in n.get_children():
+		if h.has_meta("id"):
+			fuera.append(h)
+		else:
+			_piezas_de(h, fuera)
+
+
+## Lee el nivel y deja listo lo que `_ready` esperaba de las letras: el mapa (`_mapa`), los giros de los marcadores, los
+## guardados y los empujables. El resto de la maqueta (agua, hierba, personajes, objetos reactivos…) no se entera.
+func _leer_nivel() -> void:
+	var ps: PackedScene = load(HorneadorNivel.ruta(nivel)) as PackedScene
+	if ps == null:
+		_avisos.append("no se pudo cargar " + HorneadorNivel.ruta(nivel))
+		_modo_nivel = false
+		return
+	_nivel_raiz = ps.instantiate()
+	var suelo: GridMap = null
+	for g in _nivel_raiz.find_children("*", "GridMap", true, false):
+		suelo = g as GridMap
+		break
+	if suelo == null or suelo.mesh_library == null:
+		_avisos.append("el nivel no tiene GridMap de suelo")
+		_modo_nivel = false
+		return
+	# El rectángulo del nivel = la caja de las casillas pintadas (cualquier origen, también negativo). Antes salía del
+	# metadato `lado` de la raíz, que se copia al duplicar un nivel (Nivel_Bosque heredó 16 de Nivel_Pruebas).
+	var usadas: Array[Vector3i] = suelo.get_used_cells()
+	if usadas.is_empty():
+		_avisos.append("el GridMap del nivel está vacío")
+		_modo_nivel = false
+		return
+	var mn := Vector2i(usadas[0].x, usadas[0].z)
+	var mx := mn
+	var por_celda: Dictionary = {}      ## Vector2i -> [planta, item]: si hay varias plantas, manda la más alta
+	var otras_plantas: int = 0
+	for u in usadas:
+		var c2 := Vector2i(u.x, u.z)
+		mn = Vector2i(mini(mn.x, c2.x), mini(mn.y, c2.y))
+		mx = Vector2i(maxi(mx.x, c2.x), maxi(mx.y, c2.y))
+		if u.y != 0:
+			otras_plantas += 1
+		if not por_celda.has(c2) or int((por_celda[c2] as Array)[0]) < u.y:
+			por_celda[c2] = [u.y, suelo.get_cell_item(u)]
+	if otras_plantas > 0:
+		_avisos.append("%d casillas del suelo en otra planta (no la 0): cuentan como suelo de la 0 (Q/E del GridMap cambian de planta)" % otras_plantas)
+	if not suelo.position.is_zero_approx():
+		_avisos.append("el nodo Suelo está desplazado %s: el cargador lo ignora (déjalo en 0, 0, 0)" % str(suelo.position))
+	_origen = mn
+	_ancho = mx.x - mn.x + 1
+	_alto = mx.y - mn.y + 1
+	_desplaza = Vector3(-float(mn.x) * S, 0.0, -float(mn.y) * S)
+	var lado: int = maxi(_ancho, _alto)
+	var filas: Array = []
+	for y in range(lado):
+		filas.append(" ".repeat(lado))       # " " = sin pintar: sin suelo y bloqueada
+	for c2 in por_celda:
+		var cc: Vector2i = (c2 as Vector2i) - mn
+		var l: String = HorneadorNivel.letra_de_item(suelo.mesh_library, int((por_celda[c2] as Array)[1]))
+		filas[cc.y] = (filas[cc.y] as String).substr(0, cc.x) + l + (filas[cc.y] as String).substr(cc.x + 1)
+	var giros: Dictionary = {}
+	_escalas = {}
+	_marcas.clear()
+	_muros_def.clear()
+	_puentes_def.clear()
+	for n in _nivel_raiz.find_children("*", "Marcador3D", true, false):
+		var mk: Marcador3D = n as Marcador3D
+		var t: Transform3D = _t_nivel(mk)
+		var c: Vector2i = _celda_de(t.origin)
+		if c.x < 0 or c.y < 0 or c.x >= lado or c.y >= lado or _letra_en(filas, c) == " ":
+			_avisos.append("marcador fuera del suelo pintado: %s en la casilla %s del editor" % [mk.name, str(c + mn)])
+			continue
+		var giro: float = fposmod(rad_to_deg(t.basis.orthonormalized().get_euler().y), 360.0)
+		giros[c] = snappedf(giro, 0.01)
+		var esc: Vector3 = t.basis.get_scale()
+		if not esc.is_equal_approx(Vector3.ONE):
+			_escalas[c] = esc
+		if mk.letra == "B":
+			# Barrera de fuego (7.11): un marcador cubre `largo` casillas a lo largo de su eje X (el más cercano: horizontal o vertical).
+			var vertical: bool = absf(t.basis.x.z) > absf(t.basis.x.x)
+			var dir := Vector2(0.0, 1.0) if vertical else Vector2(1.0, 0.0)
+			var cubiertas: Array = []
+			for k in range(maxi(mk.largo, 1)):
+				var off: float = (float(k) - float(maxi(mk.largo, 1) - 1) * 0.5) * S
+				var pos := Vector2(t.origin.x, t.origin.z) + dir * off
+				var cb := Vector2i(int(floor(pos.x / S)), int(floor(pos.y / S)))
+				if cb.x < 0 or cb.y < 0 or cb.x >= lado or cb.y >= lado or cubiertas.has(cb):
+					continue
+				cubiertas.append(cb)
+				filas[cb.y] = (filas[cb.y] as String).substr(0, cb.x) + "B" + (filas[cb.y] as String).substr(cb.x + 1)
+			if not cubiertas.is_empty():
+				_muros_def.append({"celdas": cubiertas, "vertical": vertical})
+			continue
+		if mk.letra == "P":
+			# Puente reactivo: las casillas que cubre (a lo largo de su eje X) deben ser AGUA; se quedan como agua y bloqueadas
+			# hasta que lo activa el marcador enlazado (PuenteReactivo3D las convierte en puente una a una).
+			var vert: bool = absf(t.basis.x.z) > absf(t.basis.x.x)
+			var d2 := Vector2(0.0, 1.0) if vert else Vector2(1.0, 0.0)
+			var cubre: Array = []
+			for k in range(maxi(mk.largo, 1)):
+				var of2: float = (float(k) - float(maxi(mk.largo, 1) - 1) * 0.5) * S
+				var p2 := Vector2(t.origin.x, t.origin.z) + d2 * of2
+				var cp2 := Vector2i(int(floor(p2.x / S)), int(floor(p2.y / S)))
+				if cp2.x < 0 or cp2.y < 0 or cp2.x >= lado or cp2.y >= lado or cubre.has(cp2):
+					continue
+				if _letra_en(filas, cp2) != "~":
+					_avisos.append("puente reactivo %s: la casilla %s del editor no es agua" % [mk.name, str(cp2 + mn)])
+					continue
+				cubre.append(cp2)
+			var ca: Vector2i = Vector2i(-1, -1)
+			var an: Marcador3D = mk.get_node_or_null(mk.activador) as Marcador3D if not mk.activador.is_empty() else null
+			if an != null:
+				ca = _celda_de(_t_nivel(an).origin)
+			else:
+				_avisos.append("puente reactivo %s sin activador: no se tenderá nunca" % mk.name)
+			if not cubre.is_empty():
+				_puentes_def.append({"celdas": cubre, "activador": ca})
+			continue
+		if mk.letra != "":
+			filas[c.y] = (filas[c.y] as String).substr(0, c.x) + mk.letra + (filas[c.y] as String).substr(c.x + 1)
+		else:
+			_marcas.append({"grupo": mk.grupo, "tipo": mk.tipo, "c": c, "giro": giro})
+	# Paredes (#): las casillas donde hay una pieza del Borde. Las del Borde y nada más: un árbol suelto de Piezas no es pared.
+	var piezas: Array = []
+	_piezas_de(_nivel_raiz, piezas)
+	var guardados: Array = []
+	for pn in piezas:
+		var pz: Node3D = pn as Node3D
+		var cp: Vector2i = _celda_de(_t_nivel(pz).origin)
+		if cp.x < 0 or cp.y < 0 or cp.x >= lado or cp.y >= lado:
+			continue
+		if _bajo(pz, "Borde", _nivel_raiz) and _letra_en(filas, cp) != " ":      # sin suelo debajo sigue vacía
+			filas[cp.y] = (filas[cp.y] as String).substr(0, cp.x) + "#" + (filas[cp.y] as String).substr(cp.x + 1)
+		if String(pz.get_meta("id")) == "baldosa_guardado":
+			guardados.append(cp)
+	var m := PackedStringArray()
+	for f in filas:
+		m.append(String(f))
+	_mapa = m
+	_giros = giros
+	_guardados = guardados
+	var emp: Array = []
+	for mc in _marcas:
+		if String((mc as Dictionary)["grupo"]) == "empujable":
+			emp.append([String((mc as Dictionary)["tipo"]), (mc as Dictionary)["c"]])
+	_empuj_def = emp
+	print("Nivel leído de ", HorneadorNivel.ruta(nivel), ": ", _ancho, "×", _alto, " casillas desde ", _origen, " del editor, ",
+		_marcas.size(), " marcadores de datos, ", guardados.size(), " guardados")
+
+
+## Lo que el .tscn aporta: el decorado (a los lotes de siempre, para que se dibuje igual y barato) y la colisión REAL de cada
+## pieza (su StaticBody3D, capa MUNDO). Una pieza con `bloquea` falso no lleva cuerpo. Las celdas que ocupan esos cuerpos
+## son las que la fuente de solidez por nodos (Lanzador3D) ve como bloqueadas.
+func _instanciar_nivel() -> void:
+	var piezas: Array = []
+	_piezas_de(_nivel_raiz, piezas)
+	var colocadas: int = 0
+	var hundidas: int = 0
+	for pn in piezas:
+		var pz: Node3D = pn as Node3D
+		var id_pedido: String = String(pz.get_meta("id"))
+		var id: String = _id_real(id_pedido)
+		var t: Transform3D = _t_nivel(pz)
+		# Una pieza por debajo del suelo se sube a él: al soltarla arrastrando en el editor, Godot la deja en y = 0 (las casillas
+		# del GridMap no tenían colisión) y en el juego quedaba enterrada bajo la tapa del bloque (a ALTO). Lo que está por
+		# encima del suelo no se toca.
+		var y_suelo: float = ALTO_AGUA if _es_agua(_letra(_celda_de(t.origin))) else ALTO
+		if t.origin.y < y_suelo - 0.15:
+			t.origin.y = y_suelo
+			hundidas += 1
+		var p: Vector3 = t.origin
+		var escala: float = t.basis.get_scale().x
+		if bool(pz.get_meta("bloquea", false)):
+			var cuerpo: StaticBody3D = pz.get_node_or_null("cuerpo") as StaticBody3D
+			if cuerpo != null:
+				_poner_cuerpo(cuerpo, t, p)
+			else:
+				_avisos.append("pieza %s bloquea pero no tiene `cuerpo`" % pz.name)
+		if decorado_por_lotes:
+			if _plantilla(id).is_empty():
+				continue
+			if not _lotes.has(id):
+				_lotes[id] = []
+			(_lotes[id] as Array).append(t)
+			if SOMBRA_CONTACTO.has(id):
+				var r: float = float(SOMBRA_CONTACTO[id]) * escala
+				_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r * 2.0, 1.0, r * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
+		else:
+			var nodo: Node3D = _pieza(id)
+			if nodo == null:
+				continue
+			nodo.transform = t
+			_props.add_child(nodo)
+		colocadas += 1
+	# Los rótulos del nivel (Label3D bajo `Rotulos`, p. ej. los del banco de pruebas) se copian tal cual al decorado.
+	for l in _nivel_raiz.find_children("*", "Label3D", true, false):
+		var et: Label3D = (l as Label3D).duplicate() as Label3D
+		et.position = _t_nivel(l as Node3D).origin
+		_props.add_child(et)
+	if hundidas > 0:
+		_avisos.append("%d piezas estaban bajo el suelo (y < %.2f): subidas a él" % [hundidas, ALTO])
+	print("Nivel desde ", HorneadorNivel.ruta(nivel), ": ", colocadas, " piezas")
+
+
+## Copia el StaticBody3D de la pieza del .tscn a la maqueta, en su sitio. Las casillas que toca se apuntan en `_bloqueadas`
+## (lo siguen leyendo la hierba y el reparto de objetos), y como «de pieza» para no traspasarlas luego a `extras`.
+func _poner_cuerpo(modelo: StaticBody3D, t: Transform3D, p: Vector3) -> void:
+	if _solidos == null:
+		_solidos = Node3D.new()
+		_solidos.name = "Solidos"
+		add_child(_solidos)
+	var cuerpo: StaticBody3D = modelo.duplicate() as StaticBody3D
+	cuerpo.transform = t
+	cuerpo.add_to_group("bloquea")
+	_solidos.add_child(cuerpo)
+	var cp: Vector2i = _celda_de(p)
+	_bloqueadas[cp] = true
+	_celdas_pieza[cp] = true
 
 
 ## Lo que test_2.gd coloca fuera del plano: guardados, objetos del suelo y carteles de cada cámara.
 func _colocar_extras() -> void:
 	if _reglas != null:
 		_reglas.colocar(self)
+	if nivel == "pruebas":
+		for e in NivelPruebas.piezas():     # una pieza de cada (se hornean como decorado; los rótulos van aparte, ver hornear)
+			_poner(String(e[0]), e[1] as Vector2i, ALTO, bool(e[2]), false, 0.0)
 	for g in _guardados:
 		var c: Vector2i = g
 		_poner("baldosa_guardado", c, ALTO, false, false, 0.0)
@@ -1585,8 +2350,11 @@ func _npc(opciones: Array, p: Vector3) -> Pj3D:
 ## El puesto de venta en `c` (ocupa c y c+x) con su tendero dentro, de cara a la cámara. Lo usan las letras n/Q y el
 ## Test de jugabilidad (PUESTO_CELDA).
 func poner_puesto(c: Vector2i, tendero: Array) -> Pj3D:
+	var antes: bool = _en_marcador
+	_en_marcador = true            # el puesto sale de su marcador (n / Q), no del decorado del nivel
 	_poner("puesto", c, ALTO, true, false, 0.0)
 	_bloqueadas[c + Vector2i(1, 0)] = true
+	_en_marcador = antes
 	return _npc(tendero, _centro_celda(c, ALTO) + Vector3(0.0, 0.0, -S * 0.35))
 
 
@@ -1818,7 +2586,8 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 			if p.b < 0.5:
 				_poner_canal(c, 2, 1.0)
 				_helada[c] = true
-				_bloqueadas.erase(c)
+				_liberar(c)
+				_poner_placa_hielo(c)
 		"fuego":
 			_fx.vapor(_centro_celda(c, ALTO_AGUA))      # hierve; el hielo no se derrite
 
@@ -1951,8 +2720,9 @@ func _avanzar_estado(dt: float) -> void:
 			if float(d["t"]) >= T_ARDIENDO:
 				ceniza.append(c)
 		# Contagio por frente: un círculo que crece desde la casilla; prende la primera hierba que toque y se acaba.
-		if bool(d["contagia"]):
-			d["frente"] = float(d["frente"]) + dt * FRENTE_VEL
+		# 6.9a: el fuego salta solo a las 4 vecinas (sin diagonales) y espera T_SALTO s tras prender antes de contagiar.
+		if bool(d["contagia"]) and float(d["t"]) >= T_SALTO:
+			d["frente"] = maxf(float(d["frente"]) + dt * FRENTE_VEL, 1.0)   # las vecinas están a 1: alcanzable ya
 			var fr: float = float(d["frente"])
 			if fr > FRENTE_MAX:
 				d["contagia"] = false
@@ -1965,8 +2735,7 @@ func _avanzar_estado(dt: float) -> void:
 					continue
 				var mejor := Vector2i(-1, -1)
 				var dm: float = 1.0e9
-				for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
-						Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+				for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 					var q: Vector2i = c + v
 					var dist: float = Vector2(v).length()
 					if dist > fr or not _en_mapa(q) or not _es_hierba(q):
@@ -2052,6 +2821,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo:
 		return
 	match k.keycode:
+		KEY_F9:
+			hornear()
 		KEY_H:
 			_sol.shadow_enabled = not _sol.shadow_enabled
 		KEY_P:

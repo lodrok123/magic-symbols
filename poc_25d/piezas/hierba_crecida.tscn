@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://dp1yu6uvo5rxd"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_rp74o"]
+size = Vector3(2.3, 1.2, 2.3)
+
+[node name="hierba_crecida" type="Node3D" unique_id=734383425]
+metadata/id = "hierba_crecida"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="zona" type="Area3D" parent="." unique_id=1166575414]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma" type="CollisionShape3D" parent="zona" unique_id=648967803]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_rp74o")
