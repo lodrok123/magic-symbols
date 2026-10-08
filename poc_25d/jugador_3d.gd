@@ -77,6 +77,7 @@ var _roll_cd: float = 0.0                    ## reutilización
 var _roll_previa: bool = false
 var _t_beber: float = 0.0
 var _beber_previa: bool = false
+var _f8_previa: bool = false
 
 
 ## Lo monta todo: Lanzador3D, Jugador3D, los goblins con Combate3D, las mediciones y la vida en pantalla.
@@ -393,6 +394,18 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	if q and not _beber_previa and _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando \
 			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
+	# F8: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador)
+	var f8: bool = libre and Input.is_key_pressed(KEY_F8)
+	if f8 and not _f8_previa and lanz != null:
+		var m: Vector3 = _mirada.normalized()
+		var destino: Vector3 = position + m * 6.0
+		var cc: Vector2i = Lanzador3D.celda_de(destino)
+		if Lanzador3D.en_mapa(cc) and not Lanzador3D.es_agua(cc) and not Lanzador3D.bloqueada(cc):
+			destino.y = Lanzador3D.y_pies(cc)
+			Combate3D.invocar_elemental(mundo, self, lanz, destino)
+		else:
+			lanz.avisar("No cabe un elemental ahí delante", Color(1, 0.7, 0.5))
+	_f8_previa = f8
 	_roll_previa = ctrl
 	_beber_previa = q
 

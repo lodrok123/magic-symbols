@@ -546,3 +546,103 @@ Pablo quiere un puente que aparezca al activar algo y se quede. Hecho con losas 
 - `Nivel_Pruebas.tscn`: filas 8 a 14 pintadas ZONA_V (98 casillas) para probar el fuego.
 - **Hilo de luz:** `hilo_luz_3d.gd` (nuevo). `PruebaTest2._ruta_hilo` calcula la ruta (Dijkstra con castigo por giro) y `_colocar_puentes_reactivos` crea el hilo; `PuenteReactivo3D.poner_hilo` retrasa las losas lo que tarda la luz en llegar. Verificado en la nube con un activador lejano: la luz recorre el hilo, gira en la esquina y las losas suben al llegar.
 - **Aviso (pasó otra vez):** `prueba_test2.gd` y `puente_reactivo_3d.gd` del dispositivo volvieron a una versión vieja tras mi entrega de las 23:55 (el editor de Godot guardó una copia abierta). Los he repuesto enteros; no había cambios ajenos.
+## 8/10 10:55 — Juego: decisiones de Pablo para el nivel Bosque inicial, y una entrada perdida
+**Copia de trabajo (D1, Pablo):** a partir de hoy, `C:\Users\paranda\Documents\GitHub\magic-symbols` (equipo `botiquinmadrid-pc`). `PROPIETARIOS.md` §5.3 sigue diciendo la de `pablo`; lo cambia Pablo.
+- **D2 · El nivel Bosque es 3D.** Método: se diseña en una hoja de cálculo con casillas (letras de `marcador_3d.gd` y del GridMap, como el 2D), se hornea a `Nivel_Bosque.tscn` editable y Pablo hace el ajuste fino y el playtest. **Pipeline:** hoy un mapa de letras solo sale de constantes en código (`NivelPruebas.MAPA`, `Jugabilidad3D.MAPA`, `TEST2`). Propuesta: que `PruebaTest2` lea las letras de un archivo de texto/CSV por nivel (p. ej. `poc_25d/niveles/mapas/<nivel>.csv`, exportado de la hoja) para que F9 lo hornee sin tocar código. Decidid vosotros el formato y avisad aquí.
+- **D3 · Elemental de bosque (enemigo nuevo):** se acerca y pega; conjura **una** enredadera delante, **vinculada** a él: quemarla le hace daño a él. Agua: lo cura y hace crecer la enredadera; **no** recibe el estado mojado. Se gana con flecha y barrera de fuego. Arte: Pablo hace el 3D desde la hoja de concepto (pendiente de confirmar).
+- **D4 · Emisor de rayo ambiental:** pieza nueva del Juego, aprobada; diseño pendiente. Añadida a `PROPIETARIOS.md` como `poc_25d/emisor_rayo_3d.gd` (Pablo lo pidió). Su letra de marcador irá en `marcador_3d.gd` (Pipeline) cuando esté el diseño. Idea: el rayo llega al nivel como mecanismo antes que como runa del jugador.
+- **Medido en esta copia, para el plan:** `limites()` desde el GridMap, `reglas` (7.14) y el marcador duplicado ya están (Pipeline, 7/10 18:40). En 3D el rayo **no** conduce por suelo mojado (solo salta entre enemigos mojados, `combate_3d.gd`); en 2D sí (`Circuit`). Eso es trabajo del Juego en `lanzador_3d.gd`. El kit del jugador 3D sale de `Lanzador3D` (`ELEMENTOS_TEST3`/`SELLOS_TEST3`, hoy todo abierto): el kit por nivel se hará ahí, no en `progresion.gd`.
+- **Entrada perdida del 7/10 17:35 (Juego), repuesta en resumen:** `poc_25d/meshy/piezas/puesto.glb` sustituido por el puesto nuevo de Pablo reducido de 1.389.406 a 3.500 triángulos (agrupación de vértices sobre la malla cerrada original; 967 KB, nodo `puesto`, textura JPEG original). Está en esta copia. **Pablo:** regenerar `piezas/puesto.tscn` con `herramientas/generar_piezas_editor.gd` si no se ha hecho. — Juego
+
+## 8/10 12:35 — Pipeline: Elemental de bosque (Meshy «Verdant Guardian»): arte listo, comportamiento por hacer
+
+**Arte (Pipeline, hecho).** Las 6 animaciones subidas (~11 MB cada una, misma malla de 30 382 triángulos) se han fundido en UN GLB de 4 MB
+(textura a 1024, JPEG): `poc_25d/elemental_bosque.glb`, raíz → `elemental_bosque`. Bípedo de 28 huesos (Mixamo).
+- Id: `elemental_bosque`. Altura en juego: `ALTO_PJ["elemental_bosque"] = 1.7` (goblin 0,85). Ajustable en `prueba_test2.gd`.
+- `Pj3D.tipo_de()` devuelve `"elemental"`; `MINIMOS["elemental"]` = idle, walk, run, attack, cast, death. NO hay clip `hit`: el Juego no debe pedir `jugar("hit")`.
+- Clips (rol → s): idle 1,875 · walk 5,5 (ciclo lento) · run 0,667 · attack 3,04 · cast 2,71 · death 3,5 (este se desplaza).
+- Verificado en la nube con capturas de cada clip junto a un goblin. La validación avisa de que walk y attack mueven la cadera 0,52 y 0,37 alturas de cadera (límite 0,35): es balanceo de un bicho pesado, no arrastre.
+- Pendiente de medir: instante del golpe dentro de `attack` (cuándo el puño toca el suelo).
+
+**Comportamiento (Juego; el Pipeline NO toca `combate_3d.gd`, `jugabilidad_3d.gd`…).** Pedido de Pablo:
+1. Élite lento: velocidad = 0,7 × la del goblin. Vida 1000. Cada golpe quita 45 al jugador.
+2. `attack`: puñetazo al suelo con colisión AMPLIA (área). Una vez empezado, la animación acaba entera (3,04 s) antes de volver a perseguir.
+3. `cast`: genera enredaderas delante de él, vinculadas a él. Animación mantenida y brillo sutil que lo cura.
+4. Agua: lo agranda (SOLO una vez) y lo cura. La barrera de agua NO lo protege.
+5. Fuego: le hace daño; si está potenciado, le reduce el tamaño. Deja un «ignite» pequeño que le baja la vida poco a poco.
+6. Barra de vida grande, arriba en el centro.
+
+**Puede poner el Pipeline si el Juego lo pide:** brillo curativo, enredaderas, tween de tamaño (`set_alto`), VFX de ignite, barra de vida. Nada hecho aún.
+**Integrado** en esta copia: `poc_25d/elemental_bosque.glb`, `pj_3d.gd` (tipo `elemental`) y `prueba_test2.gd` (`ALTO_PJ`). El comportamiento es del Juego (D3 de la entrada del 8/10 10:55 ya lo anticipa: una enredadera vinculada, quemarla le hace daño; Pablo dijo «unas enredaderas»: decidid el número).
+
+## 8/10 12:40 — Pipeline: Enredadera (Meshy «Living and Burning Roots»): nodo `Enredadera3D` listo
+
+**Hecho (Pipeline).** El GLB de Meshy traía dos versiones en la misma malla (viva arriba, quemada abajo). Está partido en
+`poc_25d/meshy/enredadera/enredadera.glb` (1,4 MB; mallas hijas `viva` 8 197 tris y `quemada` 7 792, apoyadas en y = 0, una sola textura de 1024)
+y el nodo `poc_25d/enredadera_3d.gd` (`class_name Enredadera3D`) hace el ciclo entero. Probado en la nube con un Vfx3D real: brota, 5 focos, cambia a quemada y se deshace.
+
+**API** (el Juego solo tiene que llamar y escuchar):
+```
+var e := Enredadera3D.new(); add_child(e)
+e.position = punto_en_el_suelo; e.rotation.y = giro     # largo en su eje X local: 1,3 u por defecto
+e.preparar(fx, 1.3)        # fx = el Vfx3D del nivel (llamas); segundo parámetro = ancho en el mundo
+e.brotar()                 # sale de la tierra (0,75 s; no se ve nada bajo el suelo)
+e.quemar()                 # al llegarle fuego: SIGUE VERDE y genera focos (1 cada 0,4 s, máx. 5, ~2,2 s) → se vuelve quemada (1,6 s) → se deshace (1,7 s) → se borra sola
+e.deshacer()               # saltar directo a deshacerse (p. ej. si muere el elemental)
+señales: brotada · ardiendo · foco(punto: Vector3) · quemada · deshecha
+propiedad: e.fase (Enredadera3D.Fase.OCULTA/BROTANDO/VIVA/ARDIENDO/QUEMADA/DESHACIENDO/DESHECHA)
+```
+`foco(punto)` es el gancho del fuego: cada llama nueva avisa con su punto del mundo para que el Juego prenda lo que haya cerca (hierba, otra enredadera, el jugador).
+Aviso: el enum no se llama `Estado` porque choca con el autoload `Estado`.
+
+**Pendiente del Juego** (archivos suyos): ver el encargo abajo.
+**Integrado** en esta copia: `poc_25d/enredadera_3d.gd`, `poc_25d/meshy/enredadera/enredadera.glb`.
+
+---
+### ENCARGO PARA EL CONTEXTO JUEGO (pegar tal cual)
+
+Hay un nodo nuevo `Enredadera3D` (`poc_25d/enredadera_3d.gd`, ver la entrada del diario del 8/10 13:00) y un enemigo nuevo `elemental_bosque` (entrada del 8/10 12:30). Integra las enredaderas así:
+
+1. **Las lanza el elemental con su clip `cast`** (2,71 s). Mientras dura el cast, el elemental se queda quieto con la animación mantenida y un brillo sutil que lo cura. Las enredaderas se crean DELANTE de él (1–3, a 1,2–2 u en su dirección de mirada, separadas lateralmente), con `preparar(fx)` + `brotar()`, y quedan **vinculadas a él**: son hijas suyas o se guardan en una lista; si el elemental muere o se aleja más de un radio, llamar a `deshacer()` en todas.
+2. **Hacen lo que el Juego decida con ellas** (frenar al jugador, dañar al contacto, curar al elemental si están vivas). Cuenta la salud de la enredadera como quieras; lo mínimo: bloquean el paso/ralentizan mientras `fase` es VIVA o ARDIENDO.
+3. **Al recibir fuego** (bola de fuego, llama que prende, otro foco): `quemar()`. Hace solo el resto. Conecta `foco(punto)` al sistema de fuego/combustible para que cada llama nueva pueda prender lo que tenga en un radio ~1 u (hierba, otras enredaderas, jugador si pisa). Cuando están QUEMADA o DESHACIENDO ya no bloquean ni curan.
+4. **No cambies** `enredadera_3d.gd`, `vfx_3d.gd` ni el GLB (son del Pipeline): si necesitas otro dato (más focos, otra duración, otra señal) apúntalo en el diario y lo ajusto.
+5. Verifica con una escena de prueba: brotar → quemar → comprobar que `deshecha` llega y el nodo desaparece; que `foco` se emite 5 veces; y que quemarla dos veces no rompe nada.
+
+## 8/10 12:45 — Pipeline: reposición de `prueba_test2.gd` y `puente_reactivo_3d.gd`
+La copia de GitHub traía `prueba_test2.gd` SIN la hierba solo en ZONA_V ni el código del hilo de luz (`_ruta_hilo`, `poner_hilo`), y `puente_reactivo_3d.gd` sin `poner_hilo`: el editor de Godot los había pisado con una copia vieja abierta (ya pasó dos veces). Repuestos desde la versión buena (solo líneas del Pipeline, comprobado por diff). **Pablo: cierra esos dos scripts en el editor de Godot antes de abrir el proyecto y no los guardes desde allí.**
+
+## 8/10 13:45 — Juego: Elemental de bosque y enredaderas implementados (probado en headless)
+**Archivos (Juego):** `poc_25d/combate_3d.gd` (el elemental vive ahí: comparte con el goblin el daño, el ataque bloqueante, la barra y el botín) y `poc_25d/jugador_3d.gd` (tecla **F8**). No he tocado `enredadera_3d.gd`, `pj_3d.gd`, `vfx_3d.gd`, `prueba_test2.gd` ni los GLB. Copia de trabajo: `C:\Users\paranda\Documents\GitHub\magic-symbols` (equipo `botiquinmadrid-pc`).
+**Qué hace (todo medido en una escena real de `PruebaJugabilidad3D` con las piezas del Pipeline de esta copia):**
+- **Balance:** vida 1000, velocidad 0,7 × la del goblin (medido 1,68 u/s, clip `walk`), golpe de 45 al jugador (dos golpes: 100 → 10).
+- **Ataque (`attack`, 3,04 s):** área delante de él (hasta 2,8 u de largo × 1,3 a cada lado, con un anillo de tierra como visual), daño al **60 %** del clip (empieza a los 0,55 s de pasar a rango). La animación **no se corta**: el viento no lo interrumpe (comprobado), no usa `hit` y no hay aturdimiento. Solo el hielo (congelado) lo para.
+- **Hechizo (`cast`, 2,71 s):** quieto, con brillo verde que lo cura (25 vida/s) y a los 45 % brotan **2 enredaderas** delante, separadas 1,6 u, cruzadas a su paso (`preparar(fx, 1.6)` + `brotar()`). Cada enredadera VIVA lo cura 6 vida/s y **bloquea su casilla** (si no es la del jugador y estaba libre) hasta QUEMADA/DESHACIENDO. Si muere o se aleja más de 12 u, `deshacer()` en todas (comprobado: ninguna queda). Enfriamiento 9 s; no conjura mientras tenga enredaderas.
+- **Fuego sobre la enredadera:** cada una lleva una zona de golpe (`EnlaceEnredadera`) que recibe `on_spell_hit` y solo reacciona al fuego → `quemar()`. Quemar una le cuesta **90** al elemental (D3). `foco(punto)` → `Lanzador3D.impacto_filtrado("fuego", punto)` (prende hierba y objetos reactivos como un impacto de fuego), quema las otras enredaderas a ≤ 1,9 u y hace 6 al jugador si está a ≤ 1 u. Comprobado: se emiten **5 focos**, llega `deshecha`, el nodo se borra, la casilla se libera y quemarla dos veces no rompe nada. Una enredadera prende a la otra (ambas dañan: 1000 → 820).
+- **Agua:** lo cura 120 y lo agranda ×1,25 **una sola vez** (`set_alto` con tween de 0,8 s; 1,7 → 2,13); el segundo agua solo cura. Nunca queda «mojado». La barrera de agua no lo protege (no hay ninguna regla que lo proteja).
+- **Fuego sobre el elemental:** es su debilidad (×2); si está potenciado, lo devuelve a 1,7; deja un «ignite» de 5 s (6 de daño cada 0,5 s).
+- **Barra de vida grande:** arriba en el centro de la pantalla (`CanvasLayer`), visible mientras persigue o le han pegado hace poco; se oculta al morir.
+- **Colocarlo:** tecla **F8** = invoca uno 6 u por delante del jugador en cualquier nivel (banco de pruebas). `Combate3D.invocar_elemental(mundo, jugador, lanz, pos)` es la función estática que lo hace.
+**Pedido al Pipeline (en este orden de prioridad):**
+1. **Marcador para el nivel:** letra nueva (p. ej. `L`) en `marcador_3d.gd` con `{"grupo": "goblin", "tipo": "elemental", "rotulo": "ELEMENTAL DE BOSQUE"}` y, en `prueba_test2.gd`, que el caso `tipo == "elemental"` haga `_personaje(["elemental_bosque"], pos)` y lo añada a `_goblins`: `Jugador3D.montar` ya equipa todo lo que haya en `_goblins` y `Combate3D` lo reconoce por `pj.id == "elemental_bosque"`. Sin eso solo sale con F8.
+2. **Instante exacto del puñetazo** dentro de `attack`: el Juego usa 0,60; dímelo si cae distinto (constante `ELEM_MOMENTO_GOLPE`).
+3. **Arte opcional:** brillo curativo (ahora es un tinte verde), VFX de «ignite» en el elemental, enredaderas más grandes (ahora ancho 1,6) y un aviso de zona del puñetazo.
+**Decisiones mías, por si Pablo quiere cambiarlas:** 2 enredaderas; el elemental no lleva `resiste`; aturdimiento y viento no lo afectan; «la barrera de agua no lo protege» lo he leído como «no tiene inmunidad al agua más allá de no mojarse». **Sin probar con la cámara del juego:** el aspecto del brillo, la barra y el anillo del puñetazo. — Juego
+
+## 8/10 14:05 — Pipeline: clip de golpe de fuego del elemental de bosque
+Añadido el clip de Meshy «Hit_Fire_Reaction» a `poc_25d/elemental_bosque.glb` (ahora 4 MB, 7 clips). Dentro del GLB se llama **`hit_fire`** y dura **4,71 s** (Meshy lo trae como `Electrocution_Reaction`: el bicho se sacude entero; es largo). La cadera no se arrastra (0,07, dentro del límite).
+- `Pj3D`: `CLIPS_DE["elemental_bosque"] = {"hit": "hit_fire"}` y `hit` pasa a `MINIMOS["elemental"]`: `jugar("hit")` lo reproduce sin tocar nada más.
+- **Juego:** tu entrada del 13:45 dice que el elemental no usa `hit`. Si quieres usarlo, por ejemplo al recibir fuego (×2), pide `hit` o `hit_fire`. 4,7 s es mucho para un jefe que acosa: puedes cortarlo a ~1,5–2 s (`Pj3D` permite parar el clip) o reproducirlo solo la primera vez que arde. Decisión tuya.
+- Probado en la nube: arranca, el modelo se ve bien y la validación no da avisos nuevos. — Pipeline
+
+
+## 8/10 15:50 — Pipeline: grietas del puñetazo (`Vfx3D.grietas`) y entradas del diario repuestas
+- **Nuevo:** `Vfx3D.grietas(suelo: Vector3, radio: float, dura: float = 2.2) -> Node3D`. Pega en el suelo una imagen plana (`poc_25d/vfx/grietas_impacto.png`, 1024², círculo de tierra agrietada con matojos y piedrecitas; la lámina de Pablo con la perspectiva deshecha). Entra con golpe de escala (0,12 s), se queda y se desvanece en el último 40 % de `dura`; se borra sola. Giro distinto según el punto. Plana a propósito: es una marca en el suelo. Para el puñetazo del elemental: `fx.grietas(punto_del_golpe, 1.4)` (el área de daño es 2,8 × 1,3; ajusta `radio` a lo que veas). Probado en la nube: apoya en el suelo y desaparece sin dejar nodos.
+- **Pendiente de Pablo:** de la misma lámina quedan 3 piezas para 3D (escombros, enredadera espinosa y restos quemados, que forman la pareja viva/quemada de una enredadera grande). Cuando las pase por Meshy las integro.
+- **Aviso:** el `DIARIO.md` de esta copia había vuelto a una versión anterior y faltaban las entradas del 8/10 13:45 (Juego) y 14:05 (Pipeline). Las he repuesto desde mi copia, sin tocar su contenido (comparado por diff: lo que había en el archivo está contenido en lo repuesto). Si falta algo más en vuestra copia, revisad con `git log -p docs/DIARIO.md`. — Pipeline
+
+## 8/10 16:40 — Pipeline: enredadera espinosa (Meshy «Thornvine and Ashes») como variante de `Enredadera3D`
+- **Nuevo GLB:** `poc_25d/meshy/enredadera/enredadera_espinosa.glb` (1,5 MB). El de Meshy traía la enredadera espinosa y los restos quemados lado a lado sobre una placa de suelo que sobraba; los he separado en dos mallas, `viva` (8 814 tris) y `quemada` (5 736 tris), sin la placa, apoyadas en y = 0.
+- **Uso:** `e.preparar(fx, ancho, "espinosa")` (tercer parámetro opcional; sin él, la enredadera de siempre). `ancho` sigue siendo el ancho en el mundo (la viva espinosa mide 0,767 en el GLB y el nodo lo escala). Mismo ciclo, mismas señales y mismos 5 focos. Probado en la nube.
+- **Para el Juego:** si quieres una enredadera más grande y hostil (p. ej. la del elemental potenciado), pasa `"espinosa"`. Es un cambio de una línea en vuestra llamada.
+- **Calidad (dicho sin adornos):** la viva se ve bien, aunque Meshy ha dejado las hojas como bolitas y alguna espina suelta; la quemada es sobre todo un montón de piedrecitas con unos pinchos oscuros: no se parece a la lámina de restos quemados (la ceniza gris estaba horneada en la textura de la placa que he quitado). Sirve, pero si Pablo la quiere mejor hay que regenerar solo los restos. — Pipeline

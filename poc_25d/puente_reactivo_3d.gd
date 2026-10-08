@@ -38,6 +38,8 @@ var _color: Color = Color(0.2, 0.9, 1.0)
 var _y_tope: float = 0.0
 var _y_agua: float = 0.0
 var _mat_cuerpo: StandardMaterial3D = null
+var _hilo: HiloLuz3D = null
+var _dura_hilo: float = 0.0
 
 
 ## `celdas` y `centros` (sobre la superficie del agua) van en el orden del marcador. `y_tope` = altura de la cara superior
@@ -59,12 +61,21 @@ func preparar(celdas: Array, centros: Array, y_tope: float, y_agua: float, fx: V
 		_losas.append({"celda": c, "centro": p, "nodo": nodo, "mat": mat})
 
 
+## Un hilo de luz que va del activador al puente: al tender, la luz recorre el hilo (`dura` s) y SOLO cuando llega empiezan a subir
+## las losas.
+func poner_hilo(hilo: HiloLuz3D, dura: float) -> void:
+	_hilo = hilo
+	_dura_hilo = dura
+
+
 ## Tiende el puente. `desde` es el punto de lo que lo activó: las losas aparecen desde la más cercana a él (si no se da,
 ## en el orden del marcador). Una sola vez: es permanente.
 func tender(desde: Vector3 = Vector3.INF) -> void:
 	if tendido or _losas.is_empty():
 		return
 	tendido = true
+	if _hilo != null:
+		_hilo.viajar(_dura_hilo)
 	var orden: Array = _losas.duplicate()
 	if desde != Vector3.INF:
 		orden.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -78,7 +89,7 @@ func _secuencia(l: Dictionary, i: int, ultima: bool) -> void:
 	var mat: Material = l["mat"]
 	var y_final: float = _y_tope - GROSOR * 0.5
 	var tw := create_tween()
-	tw.tween_interval(RETRASO_INICIAL + float(i) * RETRASO_LOSA)
+	tw.tween_interval(RETRASO_INICIAL + _dura_hilo + float(i) * RETRASO_LOSA)
 	tw.tween_callback(_salpicar.bind(l["centro"] as Vector3))
 	tw.tween_interval(0.08)
 	tw.tween_callback(nodo.set.bind("visible", true))

@@ -22,7 +22,7 @@ necesitaba. `Mundo.tscn` y `Test2.tscn` dejaron de arrancar.
 | Qué | Archivos |
 |---|---|
 | Runas y hechizos | `spell*.gd`, `spellcaster.gd`, `spellbook.gd`, `sigils.gd`, `rune_*.gd`, `runes.gd`, `gesture_*.gd`, `gesture_library.tres`, `*_rune.tres` |
-| Mundo que reacciona | `*_block.gd`, `*Block.tscn`, `earth_builder.gd`, `grass_*.gd`, `block_fx.gd`, `prop.gd`, `door.gd`, `brazier.gd`, `fogata.gd`, `combustible.gd`, `circuit.gd`, `conductor.gd`, `recolectable.gd`, `reagente.gd` |
+| Mundo que reacciona | `*_block.gd`, `*Block.tscn`, `earth_builder.gd`, `grass_*.gd`, `block_fx.gd`, `prop.gd`, `door.gd`, `brazier.gd`, `fogata.gd`, `combustible.gd`, `circuit.gd`, `conductor.gd`, `recolectable.gd`, `reagente.gd`, `poc_25d/emisor_rayo_3d.gd` (emisor de rayo ambiental: pieza aprobada por Pablo el 8/10, diseño pendiente; su letra de marcador la añade el Pipeline en `marcador_3d.gd`) |
 | Jugador y enemigos | `player.gd`, `enemy.gd`, `enemy.tscn`, `archer.gd`, `arrow.gd`, `goblin_*.gd`, `combate_comun.gd`, `health_bar.gd` |
 | Sistemas de partida | `estado.gd`, `objetos.gd`, `botin.gd`, `bolsa_ui.gd`, `alquimia.gd`, `misiones.gd`, `progresion.gd`, `repertoire.gd`, `pantalla_muerte.gd`, `page_hud.gd`, `playlog.gd`, `level_controller.gd`, `goal.gd`, `sonidos.gd`, `sfx.gd` |
 | Niveles | `test_jugabilidad.gd`, `nivel_base.gd`, `test_1.gd`, `test_2.gd`, `mundo.gd`, `vfx_lab*.gd`, `blockout.gd`, `iso_test.gd`, `iso_grid.gd`, `reaction_lab.gd` y sus `.tscn` |

@@ -1315,6 +1315,38 @@ func _proteger_con(campo: Node3D) -> void:
 
 
 ## ¿Hay una barrera viva que pueda parar este golpe? La llama Jugador3D.recibir_dano.
+## 8/10 · LA BARRERA DEVUELVE SU ELEMENTO: cuando para el golpe de un enemigo, le aplica a ESE enemigo el elemento de la barrera
+## de forma estándar (el mismo efecto que un hechizo de ese elemento: fuego quema, agua moja o cura al elemental, tierra
+## ralentiza, hielo congela...) pero SIN daño directo: el daño del golpe ya lo ha absorbido ella. `desde` es la posición del
+## atacante (la que pasa Combate3D a recibir_dano), con la que se localiza al enemigo.
+func atacante_en(desde: Vector3) -> Combate3D:
+	var mejor: Combate3D = null
+	var dmin: float = 1.2
+	for g in get_tree().get_nodes_in_group("combate3d"):
+		if not is_instance_valid(g) or (g as Combate3D).muerto:
+			continue
+		var d: float = Vector2((g as Node3D).position.x - desde.x, (g as Node3D).position.z - desde.z).length()
+		if d < dmin:
+			dmin = d
+			mejor = g as Combate3D
+	return mejor
+
+
+func aplicar_elemento(enemigo: Combate3D, elemento: String) -> void:
+	if enemigo == null or not is_instance_valid(enemigo) or enemigo.muerto or elemento == "":
+		return
+	for k in rune_database.keys():
+		var r: RuneData = rune_database[k]
+		if Objetos.elemento_de(r) == elemento:
+			var sin_dano: RuneData = r.duplicate()
+			sin_dano.damage = 0.0
+			var dir: Vector3 = enemigo.position - jugador.position
+			dir.y = 0.0
+			enemigo.golpe(sin_dano, dir.normalized() if dir.length() > 0.01 else Vector3.ZERO)
+			PlayLog.event("barrera_aplica_elemento", {"elemento": elemento, "a": enemigo.nombre})
+			return
+
+
 func absorber_golpe(cantidad: float, desde: Vector3) -> bool:
 	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
 		_barrera_activa = null
@@ -1680,6 +1712,7 @@ class Campo extends Node3D:
 	var visual: Node3D = null        ## la cúpula de Vfx3D, que se mueve con el jugador (6.3)
 	var visual_rel: Vector3 = Vector3.ZERO
 	var escudo: float = 0.0          ## daño que aún puede absorber (0 = no protege)
+	var ultimo_atacante: Combate3D = null   ## a quien le ha parado un golpe (el elemento le llega también al caducar)
 
 	var puntos: Array = []          ## Vector3
 	var vel: Array = []             ## Vector3
@@ -1724,6 +1757,10 @@ class Campo extends Node3D:
 		if escudo <= 0.0:
 			return false
 		escudo -= cantidad
+		var atacante: Combate3D = lanz.atacante_en(desde)
+		if atacante != null:
+			ultimo_atacante = atacante
+			lanz.aplicar_elemento(atacante, elemento)          # al recibir el golpe
 		Combate3D.flotante(lanz.mundo, (sigue.position if sigue != null else global_position) + Vector3(0, 1.8, 0),
 			"Bloqueado" if escudo > 0.0 else "Rota", Color(0.6, 0.9, 1.0))
 		PlayLog.event("barrera_absorbe", {"dano": cantidad, "escudo": maxf(escudo, 0.0), "desde": [snappedf(desde.x, 0.1), snappedf(desde.z, 0.1)]})
@@ -1740,6 +1777,8 @@ class Campo extends Node3D:
 		if visual != null and is_instance_valid(visual) and sigue != null and is_instance_valid(sigue):
 			visual.position = sigue.position + visual_rel
 		if _t >= vida:
+			if escudo > 0.0 and ultimo_atacante != null and is_instance_valid(ultimo_atacante):
+				lanz.aplicar_elemento(ultimo_atacante, elemento)    # y al caducar (timeout) vuelve a dárselo
 			queue_free()
 			return
 		var espacio: PhysicsDirectSpaceState3D = lanz.mundo.get_world_3d().direct_space_state

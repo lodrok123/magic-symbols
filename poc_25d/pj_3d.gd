@@ -58,6 +58,9 @@ const MINIMOS: Dictionary = {
 	"goblin": ["idle", "walk", "attack", "hit", "death"],
 	"arquero": ["idle", "walk", "walk_back", "attack", "hit", "death"],
 	"npc": ["idle", "walk", "talk"],
+	# Elemental de bosque (Meshy «Verdant Guardian»): sin clip de golpe recibido (no se pidió; es un jefe lento que no se
+	# interrumpe), por eso `hit` no está en la lista. Sí tiene `cast` (el hechizo de las enredaderas) y `run`.
+	"elemental": ["idle", "walk", "run", "attack", "cast", "death"],
 }
 
 ## Roles cuyo clip debe quedarse en su sitio: la cadera no se aleja de donde empieza (en alturas de cadera).
@@ -724,6 +727,8 @@ static func tipo_de(p_id: String) -> String:
 		return "arquero"
 	if p_id.begins_with("goblin"):
 		return "goblin"
+	if p_id.begins_with("elemental"):
+		return "elemental"
 	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero"):
 		return "heroe"
 	return "npc"

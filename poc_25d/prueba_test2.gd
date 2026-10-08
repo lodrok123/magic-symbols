@@ -71,7 +71,8 @@ const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_w
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
-	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0}
+	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0,
+	"elemental_bosque": 1.7}      # elite lento: el doble de alto que un goblin (0,85)
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
 const MEDIDA: Dictionary = Pieza3D.MEDIDA     ## la tabla vive en pieza_3d.gd (la usa también el editor)
@@ -337,6 +338,10 @@ void fragment() {
 @export var recortar_toldo: bool = true
 ## Hierba de todo el mapa a la vez (el prerender 2D la necesita entera). Si no, solo alrededor de la chibi.
 @export var hierba_completa: bool = false
+## Niveles editables: la hierba (las briznas 3D y lo que prende con el fuego) solo crece en las casillas ZONA_V (la verde
+## fuerte de la paleta). Así un fuego no incendia todo el nivel: el suelo normal (SUELO) no arde. Sin marcar, vuelve lo de
+## antes: hierba en todo el suelo que pinta hierba. No afecta al Test 2 (su aldea conserva sus letras).
+@export var hierba_solo_en_zona_v: bool = true
 ## Al empezar, tapa la pantalla un instante y lanza los seis elementos para compilar sus shaders (el prerender 2D lo apaga).
 @export var precalentar_al_inicio: bool = true
 ## Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7: seto, tronco, telaraña, tótems, fogatas, antorchas, puente
@@ -415,6 +420,7 @@ var _rugosidad: float = 0.5     ## relieve del suelo (tecla B): 0 · 0,5 · 1
 var _hierba: Hierba3D = null
 var _sin_hierba: Dictionary = {}          ## casillas con runa en el suelo: la hierba no la tapa
 var _img_mapa: Image = null
+var _img_zona_v: Image = null              ## solo las casillas ZONA_V (R = 1): el mapa de la hierba cuando `hierba_solo_en_zona_v`
 var _img_campo: Image = null
 var _camara: Camera3D = null
 var _sol: DirectionalLight3D = null
@@ -612,6 +618,12 @@ func _construir_suelo() -> void:
 			var t: int = _tipo_suelo(Vector2i(x, y))
 			img.set_pixel(x, y, Color(1.0 if t == 0 else 0.0, 1.0 if t == 1 else 0.0, 1.0 if t == 2 else 0.0, 1.0 if t == 3 else 0.0))
 	_img_mapa = img
+	_img_zona_v = null
+	if _solo_zona_v():
+		_img_zona_v = Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
+		for y in range(_lado):
+			for x in range(_lado):
+				_img_zona_v.set_pixel(x, y, Color(1.0 if _letra(Vector2i(x, y)) == "v" else 0.0, 0.0, 0.0, 0.0))
 	_img_campo = _campo_ruido(_lado * 8)
 	var sh := Shader.new()
 	sh.code = CODIGO_SUELO
@@ -905,8 +917,11 @@ func _peso_hierba(x: float, z: float) -> float:
 	var c := Vector2(x, z) / S
 	var r: Color = _bilineal(_img_campo, c / float(_lado), true)
 	var uvm: Vector2 = (c + Vector2(r.r - 0.5, r.g - 0.5) * 2.0 * 0.45) / float(_lado)
-	var w0: Color = _bilineal(_img_mapa, uvm, false)
 	var e: float = 0.16
+	if _img_zona_v != null:
+		# Solo ZONA_V: el mismo borde ondulado de siempre, pero el mapa solo tiene esas casillas.
+		return smoothstep(0.5 - e, 0.5 + e, _bilineal(_img_zona_v, uvm, false).r)
+	var w0: Color = _bilineal(_img_mapa, uvm, false)
 	var wr: float = smoothstep(0.5 - e, 0.5 + e, w0.r)
 	var tot: float = wr + smoothstep(0.5 - e, 0.5 + e, w0.g) + smoothstep(0.5 - e, 0.5 + e, w0.b) \
 		+ smoothstep(0.5 - e, 0.5 + e, w0.a)
@@ -1799,9 +1814,85 @@ func _colocar_puentes_reactivos() -> void:
 		pr.preparar(celdas, centros, ALTO_AGUA + 0.12, ALTO_AGUA, _fx, color)
 		pr.losa_lista.connect(_al_tender_losa)
 		if act != null:
+			# Hilo de luz del activador a la primera losa (por casillas andables, con pocos giros). La hierba no lo tapa.
+			var ruta: Array = _ruta_hilo(act.celda, celdas)
+			if ruta.size() >= 2:
+				var puntos: Array = []
+				for q in ruta:
+					puntos.append((q as Dictionary)["p"])
+					_sin_hierba[(q as Dictionary)["c"]] = true
+				var hilo := HiloLuz3D.new()
+				hilo.name = "hilo_luz"
+				_props.add_child(hilo)
+				hilo.preparar(puntos, color)
+				pr.poner_hilo(hilo, 0.6)
+		if act != null:
 			act.activado.connect(func(_t: String, _e: String) -> void: pr.tender(act.global_position))
 		elif (d as Dictionary)["activador"] != Vector2i(-1, -1):
 			_avisos.append("puente reactivo: no hay objeto reactivo en la casilla %s" % str((d as Dictionary)["activador"]))
+
+
+## Ruta del hilo de luz: de la casilla del activador a la orilla junto a la losa más cercana, por casillas sin agua ni objetos,
+## con un pequeño castigo por cada giro (rutas rectas y limpias). Devuelve [{c: casilla, p: punto del mundo}]; el último punto
+## entra un poco en la losa. Vacío si no hay camino.
+func _ruta_hilo(origen: Vector2i, celdas_puente: Array) -> Array:
+	var primera: Vector2i = celdas_puente[0]
+	var dmin: int = 1 << 30
+	for c in celdas_puente:
+		var d: int = absi((c as Vector2i).x - origen.x) + absi((c as Vector2i).y - origen.y)
+		if d < dmin:
+			dmin = d
+			primera = c
+	var dirs: Array = [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]
+	var dist: Dictionary = {}
+	var previo: Dictionary = {}
+	var cubos: Dictionary = {0: [Vector3i(origen.x, origen.y, 4)]}
+	dist[Vector3i(origen.x, origen.y, 4)] = 0
+	var final: Vector3i = Vector3i(-1, -1, -1)
+	var coste: int = 0
+	while coste <= 3000 and final.x < 0:
+		if cubos.has(coste):
+			var i: int = 0
+			while i < (cubos[coste] as Array).size() and final.x < 0:
+				var s: Vector3i = (cubos[coste] as Array)[i]
+				i += 1
+				if int(dist.get(s, 1 << 30)) != coste:
+					continue
+				var cs := Vector2i(s.x, s.y)
+				if absi(cs.x - primera.x) + absi(cs.y - primera.y) == 1:
+					final = s
+					break
+				for k in range(4):
+					var n: Vector2i = cs + (dirs[k] as Vector2i)
+					if not _en_mapa(n) or _es_agua(_letra(n)) or _letra(n) == "#" or _bloqueadas.has(n):
+						continue
+					var nuevo: int = coste + 10 + (0 if (s.z == 4 or s.z == k) else 6)
+					var ns := Vector3i(n.x, n.y, k)
+					if nuevo < int(dist.get(ns, 1 << 30)):
+						dist[ns] = nuevo
+						previo[ns] = s
+						if not cubos.has(nuevo):
+							cubos[nuevo] = []
+						(cubos[nuevo] as Array).append(ns)
+		coste += 1
+	if final.x < 0:
+		return []
+	var celdas: Array = []
+	var cur: Vector3i = final
+	while true:
+		celdas.push_front(Vector2i(cur.x, cur.y))
+		if not previo.has(cur):
+			break
+		cur = previo[cur]
+	var res: Array = []
+	for c in celdas:
+		res.append({"c": c, "p": _centro_celda(c, ALTO + 0.14)})
+	# el último tramo entra en la losa hasta un cuarto de casilla de su borde
+	var ult: Vector2i = celdas[celdas.size() - 1]
+	var haz: Vector2 = Vector2(primera - ult)
+	var centro: Vector3 = _centro_celda(primera, ALTO_AGUA + 0.26)
+	res.append({"c": primera, "p": centro - Vector3(haz.x, 0.0, haz.y) * (S * 0.25)})
+	return res
 
 
 func _al_tender_losa(c: Vector2i) -> void:
@@ -2504,7 +2595,14 @@ func _en_mapa(c: Vector2i) -> bool:
 ## Hierba en el sentido del 2D (letras v/G): casilla de tipo hierba, sin objeto encima y que no sea agua.
 func _es_hierba(c: Vector2i) -> bool:
 	var l: String = _letra(c)
+	if _solo_zona_v() and l != "v":
+		return false
 	return l != "#" and not _es_agua(l) and not _bloqueadas.has(c) and _tipo_suelo(c) == 0
+
+
+## ¿La hierba solo en ZONA_V? Solo en niveles editables (menos el Test 2) y si el export está marcado.
+func _solo_zona_v() -> bool:
+	return hierba_solo_en_zona_v and _modo_nivel and nivel != "test2"
 
 
 func _poner_canal(c: Vector2i, canal: int, valor: float) -> void:
