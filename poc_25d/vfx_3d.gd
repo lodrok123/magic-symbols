@@ -61,6 +61,19 @@ const MAX_RESTOS: int = 40               ## piezas que se quedan en el mundo (ma
 @export var escala: float = 1.0
 @export var velocidad: float = 7.0       ## unidades por segundo del proyectil
 @export var con_luces: bool = true
+## 9/10: estilo del FUEGO. false = el facetado de tres tonos con contorno (6/10); true = el fuego luminoso aditivo de `VfxKit3D`
+## (vfx_kit_3d.gd; cada elemento en vfx_elementos/). Solo afecta al elemento fuego y a las formas proyectil (bola), chorro (haz), cupula y muro, y a la pared larga
+## `fuego_pared`. El Lab lo alterna con Y.
+@export var estilo_fuego_nuevo: bool = false
+
+
+## 9/10 11:40: ¿este elemento va con el kit luminoso (VfxKit3D)? Sí si el estilo nuevo está activo y el kit tiene rampa para él (hoy
+## fuego y agua; el nombre `estilo_fuego_nuevo` se queda por compatibilidad). Deja `VfxKit3D.elemento` puesto para la llamada que sigue.
+func _estilo_nuevo(elemento: String) -> bool:
+	if not estilo_fuego_nuevo or not VfxKit3D.tiene(elemento):
+		return false
+	VfxKit3D.elemento = elemento
+	return true
 
 var _llamas_activas: int = 0
 var _paredes: Dictionary = {}          ## 7.11: casilla (Vector2i) -> pared de fuego larga que la cubre
@@ -73,6 +86,8 @@ var _mat_tierra: StandardMaterial3D = null
 ## shaders de materiales y partículas de golpe (sin esto, el primer hechizo de cada uno da un tirón).
 ## `con_formas` lanza además una columna de cada elemento (las piezas altas y los chorros de partículas).
 func precalentar(origen: Vector3, destino: Vector3, con_formas: bool = false) -> void:
+	if estilo_fuego_nuevo:
+		VfxKit3D.precalentar(self)
 	for n in Formas3D.NOMBRES:
 		Formas3D.malla(String(n))
 	_material_tierra()
@@ -89,6 +104,11 @@ func precalentar(origen: Vector3, destino: Vector3, con_formas: bool = false) ->
 func lanzar(elemento: String, pie_origen: Vector3, pie_destino: Vector3, radio: float = 0.22) -> void:
 	var alto := Vector3(0.0, 0.6 * escala, 0.0)
 	_carga(elemento, pie_origen)
+	if _estilo_nuevo(elemento):
+		# Fuego luminoso: primero una llamita en la mano (~0,15 s) y luego sale la bola.
+		VfxKit3D.llamita(self, pie_origen + alto, escala, 0.15)
+		_despues(0.15, _proyectil.bind(elemento, pie_origen + alto, pie_destino + alto, pie_destino.y, radio / 0.22))
+		return
 	_proyectil(elemento, pie_origen + alto, pie_destino + alto, pie_destino.y, radio / 0.22)
 
 
@@ -267,19 +287,25 @@ func fuego_pared(celdas: Array, centros: Array, eje: Vector3, casilla: float = 2
 	for i in range(n):
 		var local: Vector3 = (centros[i] as Vector3) - raiz.position + Vector3(0.0, 0.0, 0.0)
 		local.y = 0.0
-		var m: MeshInstance3D = Formas3D.instancia("pared_fuego", Color.WHITE)
-		var lleno := Vector3(casilla * 1.01, 1.45, 0.95)
-		m.scale = lleno
-		m.rotation.y = ang
-		m.position = local
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		raiz.add_child(m)
 		var c: Vector3 = centros[i]
 		var fase: float = float(int(c.x * 3.0 + c.z * 5.0) % 7) * 0.13
-		var tw := m.create_tween().set_loops()
-		tw.tween_interval(fase)
-		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
+		if estilo_fuego_nuevo:
+			VfxKit3D.elemento = "fuego"         # la pared es siempre de fuego (no heredar el elemento del último hechizo)
+			# Fuego luminoso: una tira de llamas por casilla (mismo reparto de tramos). Se solapan un 12 % y el ruido va desfasado
+			# en cada una, para que no se vean las juntas.
+			VfxKit3D.tira(raiz, local, eje, casilla * 1.12, 1.45, fase * 3.0 + float(i) * 0.37, true)
+		else:
+			var m: MeshInstance3D = Formas3D.instancia("pared_fuego", Color.WHITE)
+			var lleno := Vector3(casilla * 1.01, 1.45, 0.95)
+			m.scale = lleno
+			m.rotation.y = ang
+			m.position = local
+			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			raiz.add_child(m)
+			var tw := m.create_tween().set_loops()
+			tw.tween_interval(fase)
+			tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 1.07, lleno.z), 0.22).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(m, "scale", Vector3(lleno.x, lleno.y * 0.93, lleno.z), 0.28).set_trans(Tween.TRANS_SINE)
 		if i % 2 == 0:
 			var luz := OmniLight3D.new()
 			luz.position = local + lateral * 0.3 + Vector3(0.0, 0.8, 0.0)    # al lado del centro: no la confunde la búsqueda por casilla
@@ -408,7 +434,11 @@ func lanzar_forma(forma: String, elemento: String, pie_origen: Vector3, pie_dest
 		"bola":
 			lanzar(elemento, pie_origen, pie_destino, float(opciones.get("radio", 0.22)))
 		"pilar":
-			_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
+			if _estilo_nuevo(elemento):
+				# 9/10 (prueba de Pablo): el muro con ancho y alto cambiados; mismos valores que `_muro` con su semiancho por defecto.
+				VfxKit3D.pilar(self, pie_origen, pie_destino, 1.7 * escala, (radio * 2.0 + 0.6) * escala, float(opciones.get("dura", 3.0)), escala)
+			else:
+				_columna(elemento, pie_origen, pie_destino, float(opciones.get("dura", 3.0)))
 		"onda":
 			# 6.17: el pulso es un aro que CRECE desde el jugador (opciones "crece": false vuelve al pulso antiguo de ondas).
 			if bool(opciones.get("crece", true)):
@@ -529,6 +559,13 @@ func _chorro_forma(elemento: String, pie_origen: Vector3, pie_destino: Vector3, 
 	if dir.length() < 0.01:
 		dir = Vector3(0.0, 0.0, 1.0)
 	dir = dir.normalized()
+	if _estilo_nuevo(elemento):
+		# Haz continuo de la mano al suelo, a `largo` de distancia; en el extremo arde el impacto mientras dure.
+		_carga(elemento, pie_origen)
+		var mano: Vector3 = pie_origen + Vector3(0.0, 0.9 * escala, 0.0) + dir * 0.4 * escala
+		var punta: Vector3 = pie_origen + dir * maxf(largo, 1.0) * escala + Vector3(0.0, 0.1, 0.0)
+		VfxKit3D.haz(self, mano, punta, dura, escala, pie_destino.y)
+		return
 	var c: Color = COLOR[elemento]
 	var L: float = maxf(largo, 1.0) * escala
 	var vida: float = 0.55
@@ -796,6 +833,10 @@ func _sin_centro(malla: Mesh, r_min: float) -> Mesh:
 
 func _pulso_crece(elemento: String, pie_origen: Vector3, centro: Vector3, radio: float, dura: float, rompe: bool) -> void:
 	_carga(elemento, pie_origen)
+	if _estilo_nuevo(elemento):
+		# Onda de fuego luminoso: aro de llamas con ruido que se abre (VfxKit3D.onda).
+		VfxKit3D.onda(self, centro, maxf(radio, 0.8) * escala, dura, escala)
+		return
 	var c: Color = COLOR[elemento]
 	var r: float = maxf(radio, 0.8) * escala
 	var t_total: float = maxf(dura, 0.8)
@@ -1043,6 +1084,10 @@ func _cupula(elemento: String, pie_origen: Vector3, centro: Vector3, radio: floa
 	if elemento == "tierra":
 		_cupula_roca(centro, maxf(radio, 0.8) * escala, dura)
 		return
+	if _estilo_nuevo(elemento):
+		# Cintas que giran y convergen en un aro + media esfera luminosa. La raíz nace en `centro`, como la de la cúpula de siempre.
+		VfxKit3D.cupula(self, centro, maxf(radio, 0.6) * escala, dura, escala)
+		return
 	var perfil: Dictionary = PERFIL.get(elemento, PERFIL["fuego"])
 	if _sh_cupula == null:
 		_sh_cupula = Shader.new()
@@ -1184,6 +1229,9 @@ func _muro(elemento: String, pie_origen: Vector3, inicio: Vector3, semiancho: fl
 		dir = Vector3(0.0, 0.0, 1.0)
 	dir = dir.normalized()
 	var lado := Vector3(-dir.z, 0.0, dir.x)
+	if _estilo_nuevo(elemento):
+		VfxKit3D.muro(self, pie_origen, inicio + dir * 0.2 * escala, lado, (semiancho * 2.0 + 0.6) * escala, 1.7 * escala, dura, escala)
+		return
 	_pared(elemento, inicio + dir * 0.2 * escala, lado, semiancho * 2.0 + 0.6, 1.7, 0.25, dura)
 
 
@@ -1776,12 +1824,16 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 	cabeza.add_child(pivote)
 	match elemento:
 		"fuego":
-			# Bola de fuego: núcleo amarillo opaco + envoltura naranja de llamas (shader de cúpula) + estela de brasas y humo.
-			_esfera_perfil(cabeza, "fuego", 0.2 * f * escala)
-			_esfera_plana(cabeza, 0.11 * f * escala, Color(1.0, 0.95, 0.55))
-			_estela(cabeza, "brasa", 24, 0.45, 0.1 * f, true, c)
-			_estela(cabeza, "llama", 10, 0.35, 0.22 * f, false, Color.WHITE)
-			_estela(cabeza, "humo", 8, 0.6, 0.22 * f, false, Color.WHITE)
+			if estilo_fuego_nuevo:
+				# Bola luminosa con cola de cometa (VfxKit3D): se estira con la velocidad.
+				VfxKit3D.bola(cabeza, avance, f, escala, velocidad)
+			else:
+				# Bola de fuego: núcleo amarillo opaco + envoltura naranja de llamas (shader de cúpula) + estela de brasas y humo.
+				_esfera_perfil(cabeza, "fuego", 0.2 * f * escala)
+				_esfera_plana(cabeza, 0.11 * f * escala, Color(1.0, 0.95, 0.55))
+				_estela(cabeza, "brasa", 24, 0.45, 0.1 * f, true, c)
+				_estela(cabeza, "llama", 10, 0.35, 0.22 * f, false, Color.WHITE)
+				_estela(cabeza, "humo", 8, 0.6, 0.22 * f, false, Color.WHITE)
 		"rayo":
 			# Bola eléctrica: núcleo blanco y envoltura azul con relámpagos que saltan por la superficie + chispas.
 			_esfera_perfil(cabeza, "rayo", 0.2 * f * escala)
@@ -1793,10 +1845,14 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 			_estela(cabeza, "piedrecitas", 10, 0.4, 0.1 * f, false, Color.WHITE)
 			_estela(cabeza, "polvo", 6, 0.5, 0.2 * f, false, Color.WHITE)
 		"agua":
-			var gota: MeshInstance3D = _pieza("gota", pivote, 0.34 * f * escala, Color.WHITE)
-			_girar(gota, 0.6)
-			_estela(cabeza, "gota", 20, 0.35, 0.11 * f, false, Color.WHITE)
-			_estela(cabeza, "burbuja", 6, 0.6, 0.1 * f, false, Color.WHITE)
+			if _estilo_nuevo("agua"):
+				# Kit luminoso con la rampa del agua: bola con cola, como la de fuego.
+				VfxKit3D.bola(cabeza, avance, f, escala, velocidad)
+			else:
+				var gota: MeshInstance3D = _pieza("gota", pivote, 0.34 * f * escala, Color.WHITE)
+				_girar(gota, 0.6)
+				_estela(cabeza, "gota", 20, 0.35, 0.11 * f, false, Color.WHITE)
+				_estela(cabeza, "burbuja", 6, 0.6, 0.1 * f, false, Color.WHITE)
 		"viento":
 			var r: MeshInstance3D = _pieza("remolino_viento", pivote, 0.65 * f * escala, Color.WHITE)
 			r.position.y = -0.32 * f * escala
@@ -1815,6 +1871,9 @@ func _proyectil(elemento: String, origen: Vector3, destino: Vector3, y_suelo: fl
 		l.light_energy = 1.0
 		l.omni_range = 2.5 * escala
 		cabeza.add_child(l)
+		if elemento == "fuego" and _estilo_nuevo(elemento):
+			l.light_energy = 1.8
+			VfxKit3D.parpadeo(l)
 	var t: float = maxf(0.15, origen.distance_to(destino) / maxf(velocidad, 0.1))
 	var tw2 := cabeza.create_tween()
 	tw2.tween_method(_mover_proyectil.bind(cabeza, origen, destino), 0.0, 1.0, t)
@@ -1892,6 +1951,10 @@ func _llegar(elemento: String, cabeza: Node3D, y_suelo: float) -> void:
 ## --- Impactos ---
 
 func _impacto_fuego(p: Vector3, y_suelo: float) -> void:
+	if estilo_fuego_nuevo:
+		VfxKit3D.impacto(self, p, y_suelo, escala)
+		impacto.emit("fuego", p)
+		return
 	var c: Color = COLOR["fuego"]
 	_estallido(p, "llama", 14, 0.7, 2.2, 0.55, false, Color.WHITE, Vector3(0, 1.2, 0))
 	_estallido(p, "brasa", 24, 1.2, 3.5, 0.13, true, c, Vector3(0, -2.0, 0))
@@ -1902,6 +1965,10 @@ func _impacto_fuego(p: Vector3, y_suelo: float) -> void:
 
 
 func _impacto_agua(p: Vector3, y_suelo: float) -> void:
+	if _estilo_nuevo("agua"):
+		VfxKit3D.impacto(self, p, y_suelo, escala)
+		impacto.emit("agua", p)
+		return
 	_estallido(p, "gota", 22, 0.8, 3.2, 0.17, false, Color.WHITE, Vector3(0, -6.0, 0))
 	_estallido(p, "burbuja", 8, 1.4, 0.9, 0.18, false, Color.WHITE, Vector3(0, 0.6, 0))
 	var s: MeshInstance3D = _pieza_de_pie("salpicadura", Vector3(p.x, y_suelo, p.z), 1.0 * escala, Color.WHITE)

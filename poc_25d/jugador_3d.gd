@@ -425,6 +425,16 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
 
 
+## Beber desde la mochila (clic en la poción): mismas condiciones que la tecla Q. Devuelve si empezó a beber.
+func usar_pocion() -> bool:
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar)
+	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
+			and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
+		_iniciar_beber()
+		return true
+	return false
+
+
 func _iniciar_beber() -> void:
 	_t_beber = T_BEBER
 	if pj.beber(T_BEBER) <= 0.0:                   # Pipeline: stand_drink recortado + poción en la mano

@@ -250,6 +250,7 @@ var camara: Camera3D = null
 var altura: int = 0                     ## nivel del hechizo que pregunta a una barrera (bloquea_proyectiles lo lee)
 
 var capa_ui: CanvasLayer = null
+var mochila: BolsaUI = null            ## la mochila (I): en 3D la monta el lanzador, como el libro
 var libro: Control = null
 var _libro_lento: bool = false
 var _barrera_activa: Campo = null
@@ -513,6 +514,10 @@ func construir_interfaz() -> void:
 		var paleta := PanelContainer.new()
 		paleta.set_script(load("res://rune_palette.gd"))
 		capa_ui.add_child(paleta)
+
+	# La mochila (I) también en 3D: antes solo la montaba nivel_base (2D). Pausa el árbol; el lanzador es ALWAYS.
+	mochila = BolsaUI.new()
+	capa_ui.add_child(mochila)
 
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -830,6 +835,12 @@ func _direccion_actual() -> Vector3:
 	return m if m.length() > 0.01 else Vector3(0, 0, 1)
 
 
+## La mochila llama aquí al pulsar una poción (el nodo "player" es el lanzador; el que bebe es el jugador).
+func usar_pocion() -> void:
+	if jugador != null:
+		jugador.call("usar_pocion")
+
+
 func _process(delta: float) -> void:
 	if libro_abierto():
 		if get_tree().paused:
@@ -944,7 +955,11 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 		return
 	var g: Dictionary = receta.geo()
 	var largo_flecha: float = 1.1 * casilla
-	if float(g["alcance"]) > 0.0:
+	if bool(g.get("chorro", false)):
+		largo_flecha = float(g["largo"]) * casilla
+		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
+		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
+	elif float(g["alcance"]) > 0.0:
 		largo_flecha = float(g["alcance"]) * casilla
 		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
 		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
@@ -1411,7 +1426,17 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 		radio = float(receta.geo()["radio_envuelve"]) * casilla    # la banda de casillas es más ancha que la forma dibujada
 	if columna:
 		return                                 # lo dibuja _levantar_columna casilla a casilla
-	if muro or receta.line:
+	if receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro":
+		# Línea sola: HAZ desde la mano hacia delante, del largo de la geometría y con la vida del campo.
+		var dh: Vector3 = pie_c - pie_o
+		dh.y = 0.0
+		if dh.length() < 0.01:
+			dh = Vector3(0, 0, 1)
+		var largo_m: float = float(receta.geo()["largo"]) * casilla
+		# Vfx3D multiplica `largo` por su `escala`: se divide aquí para que el haz dibujado mida lo que sus casillas.
+		var esc: float = maxf(float(fx.get("escala")), 0.01)
+		fx.lanzar_forma("chorro", elemento, pie_o, pie_o + dh.normalized() * largo_m, {"largo": largo_m / esc, "dura": dura})
+	elif muro or receta.line:
 		# Barrera que avanza (barrera + flecha) o muro de `linea`: MURO, con la duración real del campo.
 		var d: Vector3 = (c3.dirs[0] as Vector3) if not c3.dirs.is_empty() else Vector3.ZERO
 		if d.length() < 0.01:
@@ -1744,6 +1769,8 @@ class GeometriaHechizo extends RefCounted:
 	const LINEA_DELANTE: float = 1.5    ## Línea suelta: el muro nace a 1,5 casillas delante del jugador (como el muro de siempre)
 	const GROSOR_TOL: float = 0.0       ## holgura al rasterizar la línea (0 = exacto: medido, sale una fila de casillas conexa en todos los ángulos)
 	const ANILLO_MITAD: float = 0.5     ## la forma hueca ocupa una banda de 1 casilla de ancho (radio ± 0,5)
+	const HAZ_DESDE: float = 0.5        ## chorro: la primera casilla del haz empieza a media casilla de la mano
+	const VIDA_CHORRO: float = 1.6      ## s: lo que dura el dibujo de Vfx3D «chorro»; el haz hace daño y marca suelo lo mismo
 
 	## `c`: {linea, altura, tamano, flecha, barrera} -> int (los que falten valen 0).
 	## `max_y`: niveles que se pueden pisar por encima del suelo (Jugador3D.MAX_NIVELES_SUBIBLES).
@@ -1776,6 +1803,11 @@ class GeometriaHechizo extends RefCounted:
 		var alcance: float = 0.0
 		if n_flecha > 0 and not envuelve:
 			alcance = minf(FLECHA_0 + float(n_flecha - 1), FLECHA_TOPE)
+		# 5b. Línea SOLA (sin Altura ni Barrera) = CHORRO: un haz desde la mano en la dirección de la mirada, no un muro de lado.
+		# Flecha no lo traslada: lo ALARGA (+1 casilla por Flecha, mismo tope ×3 que Tamaño).
+		var chorro: bool = es_linea and alto == 0 and not envuelve
+		if chorro and n_flecha > 0:
+			largo = minf(largo + float(n_flecha), LARGO_0 * TAMANO_TOPE)
 		# Lo que viaja sin envolver al jugador es un proyectil: no se queda en pie, no cuenta para el tope Y.
 		var proyectil: bool = alcance > 0.0
 		# 6. Tope Y combinado: solo lo que queda en pie y se puede pisar.
@@ -1787,7 +1819,7 @@ class GeometriaHechizo extends RefCounted:
 
 		return {
 			"base": "linea" if es_linea else "esfera",
-			"nombre": _nombre(es_linea, alto, envuelve, alcance > 0.0),
+			"nombre": _nombre(es_linea, alto, envuelve, alcance > 0.0), "chorro": chorro,
 			"radio": radio, "largo": largo, "alto": alto, "alcance": alcance,
 			"radio_envuelve": (radio + ENVUELVE_EXTRA) if (envuelve and not es_linea) else (ENVUELVE_EXTRA + RADIO_0 if envuelve else 0.0),
 			"envuelve": envuelve, "bloquea": envuelve, "resistencia": resistencia,
@@ -1811,8 +1843,23 @@ class GeometriaHechizo extends RefCounted:
 		var largo: float = float(g["largo"])
 		var r_env: float = float(g["radio_envuelve"])
 		# Hasta dónde mirar: caja que contiene la forma, en casillas.
-		var alcance_caja: float = r_env + 1.0 if envuelve else (LINEA_DELANTE + largo * 0.5 + 1.0 if es_linea else radio + 1.0)
+		var chorro: bool = bool(g.get("chorro", false))
+		var alcance_caja: float = r_env + 1.0 if envuelve else (largo + 1.0 if chorro else (LINEA_DELANTE + largo * 0.5 + 1.0 if es_linea else radio + 1.0))
 		var c0 := Vector2i(int(floorf(origen.x / casilla)), int(floorf(origen.y / casilla)))
+		if chorro:
+			# Haz: se recorre el rayo de la mano hacia delante y se anotan las casillas que ATRAVIESA (en una diagonal, la
+			# regla «el centro cae dentro» dejaba el haz en 2 casillas de 3; así salen 3-4 siempre y todas contiguas).
+			var vistas: Dictionary = {}
+			var paso: float = 0.1
+			var t: float = HAZ_DESDE
+			while t <= HAZ_DESDE + largo:
+				var q: Vector2 = origen + d * t * casilla
+				var cq := Vector2i(int(floorf(q.x / casilla)), int(floorf(q.y / casilla)))
+				if cq != c0 and not vistas.has(cq):
+					vistas[cq] = true
+					salida.append(cq)
+				t += paso
+			return salida
 		var n: int = int(ceilf(alcance_caja)) + 1
 		var apertura: float = minf(largo / maxf(r_env, 0.001), TAU) if (es_linea and envuelve) else TAU
 		for dx in range(-n, n + 1):
@@ -1828,6 +1875,9 @@ class GeometriaHechizo extends RefCounted:
 					dentro = absf(dist - r_env) <= ANILLO_MITAD
 					if dentro and es_linea and apertura < TAU - 0.001:
 						dentro = absf(atan2(ly, lx)) <= apertura * 0.5
+				elif chorro:
+					# Haz: una fila de casillas a lo largo de la mirada, de la mano hacia delante.
+					dentro = lx >= HAZ_DESDE and lx < HAZ_DESDE + largo and absf(ly) <= GROSOR_LINEA + GROSOR_TOL
 				elif es_linea:
 					dentro = absf(lx - LINEA_DELANTE) <= GROSOR_LINEA + GROSOR_TOL and absf(ly) <= largo * 0.5
 				else:
@@ -1839,7 +1889,9 @@ class GeometriaHechizo extends RefCounted:
 	## Nombre de la forma con el vocabulario de hoy (el Pipeline anima y pone VFX por este nombre) más `arco`.
 	static func _nombre(es_linea: bool, alto: int, envuelve: bool, viaja: bool) -> String:
 		if es_linea:
-			return "arco" if envuelve else "muro"
+			if envuelve:
+				return "arco"
+			return "muro" if alto > 0 else "chorro"     # Línea sola = haz desde la mano; con altura, muro alto
 		if viaja:
 			return "proyectil"
 		if envuelve:
@@ -1902,7 +1954,7 @@ class Receta3D extends SpellRecipe:
 		if antigua:
 			return
 		var g: Dictionary = geo()
-		travels = float(g["alcance"]) > 0.0
+		travels = float(g["alcance"]) > 0.0 and not bool(g["chorro"])   # el chorro no viaja: la Flecha lo alarga
 		reach = 1 if travels else 0                 # varias flechas = más alcance (8.1a), no «chorro»
 		spread = String(g["base"]) == "linea" or bool(g["envuelve"])
 		line = String(g["base"]) == "linea"
@@ -1962,7 +2014,15 @@ class Receta3D extends SpellRecipe:
 	## Forma que entienden hoy Vfx3D, Formas3D y la animación de lanzar: `arco` aún no existe allí (8.10), se dibuja como muro.
 	func forma_vfx() -> String:
 		var f: String = forma()
-		return "muro" if f == "arco" else f
+		if f == "arco":
+			return "muro"
+		# Clip de lanzar por forma (Pj3D.ANIM_CAST es del Pipeline; aquí se elige entre los que ya existen):
+		# el haz lanza en horizontal como un proyectil; el muro ALTO (línea + altura/levitación) alza los brazos.
+		if f == "chorro":
+			return "proyectil"
+		if f == "muro" and line and height > 0:
+			return "columna"
+		return f
 
 	func expande() -> bool:
 		return _expande()
@@ -1971,6 +2031,8 @@ class Receta3D extends SpellRecipe:
 	func vida() -> float:
 		var factor: float = Sigils.quality_factor(calidad)
 		var v: float = (Sigils.BASE_LIFETIME + lifetime) * factor
+		if usa_geo() and String(geo()["nombre"]) == "chorro":
+			return GeometriaHechizo.VIDA_CHORRO * factor
 		if _es_barrera_movil():
 			v = Sigils.WALL_LIFETIME * factor
 		elif not usa_geo() and _sigue():

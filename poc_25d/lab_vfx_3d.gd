@@ -21,10 +21,12 @@ const OBJETIVOS: Array = [["dummy", 1.4], ["arbusto_otono", 0.8], ["totem_runico
 	["goblin", 0.85]]
 const LANZADOR: Array = ["chibi_elf_v2", "chibi_elf", "chibi_test"]
 const CAMARAS: Array = [["juego", 20.0], ["baja", 45.0], ["lateral", 72.0]]
-const ESCALAS: Array = [1.3, 1.8, 0.9]
-const VELOCIDADES: Array = [7.0, 3.5, 12.0]
+const ESCALAS: Array = [0.6, 1.3, 1.8, 0.9]        ## 9/10: 0,6 por defecto (Pablo); X recorre el resto
+const VELOCIDADES: Array = [4.5, 7.0, 3.5, 12.0]   ## 9/10: 4,5 u/s por defecto (Pablo); V recorre el resto
 
 var _fx: Vfx3D = null
+var _env: Environment = null             ## para alternar el bloom (K)
+var _t_hud: float = 0.0
 var _lanzador: Pj3D = null
 var _objetivos: Array[Node3D] = []
 var _marcador: MeshInstance3D = null
@@ -58,6 +60,8 @@ func _ready() -> void:
 	env.ambient_light_energy = 0.42
 	var we := WorldEnvironment.new()
 	we.environment = env
+	_env = env
+	VfxKit3D.activar_glow(env)          # bloom del fuego luminoso: solo lo que pasa de 1,4 en HDR
 	add_child(we)
 	var sol := DirectionalLight3D.new()
 	sol.rotation_degrees = Vector3(-55.0, 25.0, 0.0)
@@ -83,6 +87,8 @@ func _ready() -> void:
 
 	_fx = Vfx3D.new()
 	_fx.escala = float(ESCALAS[0])
+	_fx.velocidad = float(VELOCIDADES[0])
+	_fx.estilo_fuego_nuevo = true      # el Lab arranca con el fuego nuevo; Y alterna con el viejo en el mismo sitio
 	add_child(_fx)
 	_fx.impacto.connect(_al_impactar)
 
@@ -304,8 +310,18 @@ func _lanzar(elemento: String) -> void:
 		"muro":
 			# Sale 1,5 u por delante de la elfa y avanza hacia el objetivo.
 			_fx.lanzar_forma(forma, elemento, pie_origen, _lanzador.position + d.normalized() * 1.5)
-		_:
+		"chorro":
+			# 9/10: haz continuo hasta el objetivo (el Vfx3D multiplica `largo` por su escala; aquí se compensa).
+			_fx.lanzar_forma(forma, elemento, _lanzador.position, o.position,
+				{"largo": _lanzador.position.distance_to(o.position) / maxf(_fx.escala, 0.1), "dura": 2.2})
+		"cupula":
+			# 9/10: barrera alrededor de la elfa.
+			_fx.lanzar_forma(forma, elemento, _lanzador.position, _lanzador.position, {"radio": 2.0, "dura": 3.5})
+		"proyectil", "bola":
 			_fx.lanzar(elemento, pie_origen, pie_destino)
+		_:
+			# Las demás formas (onda, pilar, acompañante, tormenta, arco...) por su nombre; antes caían todas a la bola.
+			_fx.lanzar_forma(forma, elemento, pie_origen, o.position)
 	_actualizar_hud()
 
 
@@ -387,6 +403,10 @@ func _process(delta: float) -> void:
 			_i_forma = (_i_bucle / Vfx3D.ELEMENTOS.size()) % Vfx3D.FORMAS.size()
 			_lanzar(String(Vfx3D.ELEMENTOS[_i_bucle % Vfx3D.ELEMENTOS.size()]))
 			_i_bucle += 1
+	_t_hud += delta
+	if _t_hud > 0.5:
+		_t_hud = 0.0
+		_actualizar_hud()
 	if not _objetivos.is_empty():
 		_marcador.position = _objetivos[_sel].position + Vector3(0.0, 0.03, 0.0)
 		_marcador.rotate_y(delta * 0.8)
@@ -434,6 +454,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_hierba.visible = not _hierba.visible
 		KEY_L:
 			_fx.con_luces = not _fx.con_luces
+		KEY_Y:
+			_fx.estilo_fuego_nuevo = not _fx.estilo_fuego_nuevo
+		KEY_K:
+			_env.glow_enabled = not _env.glow_enabled
 		KEY_N:
 			set_nivel_grimorio(Equipo3D.nivel_grimorio % 3 + 1)
 	_actualizar_hud()
@@ -459,3 +483,4 @@ func _actualizar_hud() -> void:
 		objetivo, _ultimo, String(Vfx3D.FORMAS[_i_forma]), _fx.escala, _fx.velocidad, String(CAMARAS[_i_cam][0]),
 		" | BUCLE" if _bucle else "", " | LENTA" if _lenta else "", "" if _fx.con_luces else " | sin luces",
 		Equipo3D.NIVELES_GRIMORIO[Equipo3D.nivel_grimorio]]
+	_hud.text += "\nY fuego %s · K bloom %s · %d FPS" % ["NUEVO (luminoso)" if _fx.estilo_fuego_nuevo else "VIEJO (facetado)", "sí" if _env.glow_enabled else "no", Engine.get_frames_per_second()]

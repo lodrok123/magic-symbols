@@ -346,6 +346,8 @@ void fragment() {
 @export var hierba_solo_en_zona_v: bool = true
 ## Al empezar, tapa la pantalla un instante y lanza los seis elementos para compilar sus shaders (el prerender 2D lo apaga).
 @export var precalentar_al_inicio: bool = true
+## 9/10: fuego luminoso aditivo (VfxKit3D) en vez del facetado. Mientras Pablo no lo apruebe sale el viejo.
+@export var fuego_nuevo: bool = false
 ## Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7: seto, tronco, telaraña, tótems, fogatas, antorchas, puente
 ## y placa). El prerender del Test 2D los apaga: allí son decorado.
 @export var objetos_reactivos: bool = true
@@ -488,6 +490,7 @@ func _ready() -> void:
 	env.ambient_light_color = Color(0.95, 0.94, 1.0)
 	env.ambient_light_energy = LUZ_AMBIENTE
 	entorno.environment = env
+	VfxKit3D.activar_glow(env)          # bloom: solo brilla lo que pasa de 1,4 en HDR (el corazón del fuego nuevo); agua y cristales no llegan
 	add_child(entorno)
 
 	_sol = DirectionalLight3D.new()
@@ -505,6 +508,7 @@ func _ready() -> void:
 	_efectos.name = "Efectos"
 	add_child(_efectos)
 	_fx = Vfx3D.new()
+	_fx.estilo_fuego_nuevo = fuego_nuevo
 	_efectos.add_child(_fx)
 	_fx.impacto.connect(_al_impactar)
 
