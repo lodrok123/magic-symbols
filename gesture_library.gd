@@ -58,6 +58,9 @@ const SIGILS: PackedStringArray = [
 	"pulso",       # NUEVO: aros que se abren
 	"atraccion",   # NUEVO: puntas que convergen
 	"espejo",      # NUEVO: eje con dos puntas hacia fuera
+	"linea",       # raya: muro delante (fase 8)
+	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
+	"tamano",      # +: escala la forma que haya, nunca la altura (fase 8)
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero

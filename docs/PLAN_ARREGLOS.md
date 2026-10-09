@@ -336,7 +336,7 @@ al 30 % (antes 70 %). Se implementan como constantes `TIEMPO_LIBRO` y
 - [x] **5.3 (P0) Altura: un nivel.** `MAX_NIVELES_SUBIBLES = 1`, la tierra se
   apila hasta 1, la columna de barrera + levitación es de 1 nivel. Los
   números de §0b (dos niveles) quedan para después.
-- [ ] **5.4 (P0) Semántica de glifos v2** (tabla de §3). Cada glifo aporta un
+- [ ] **5.4 (P0) Semántica de glifos v2** (tabla de §3). *(Sustituida el 8/10 por la Fase 8, glifos como geometría; lo hecho de `linea` en `Receta3D` se aprovecha.)* Cada glifo aporta un
   parámetro a la receta, como hoy; lo que cambia es la lectura:
   - `flecha`: **desplaza** el hechizo `d` casillas desde el jugador; varias
     flechas alargan la **duración** (no la distancia). Sola: bola del
@@ -822,6 +822,130 @@ sigue en paralelo: **nada de la fase 6 depende de la 7**.
 
 ---
 
+## Fase 8 — Glifos como geometría (decidido por Pablo el 8/10)
+
+**De dónde sale.** Pablo trajo el documento *Diseño matemático y funcional de
+glifos 3D* (v0.3, 8/10). Resumen y decisiones en `DISENO_FUTURO.md` §3b. La
+idea: cada glifo hace **una sola operación** sobre una forma (dar volumen,
+estirar, mover, envolver) y las formas salen de componerlas. Sustituye a la
+tabla v2 de §3, que se había convertido en una tabla de parejas («levitación +
+barrera = pilar», «pulso + flecha = curva»…): justo lo que `ARQUITECTURA.md`
+dice que no se escribe. Por eso 5.4 se quedó a medias.
+
+**Decidido el 8/10 (Pablo):**
+- La **esfera es la forma por defecto** y no tiene glifo: un hechizo sin Línea
+  es una esfera de radio r₀. «Flecha sola = bola» sigue igual y el círculo
+  queda para **Barrera**.
+- El tamaño lo da un glifo nuevo, **Tamaño**: escala la forma que haya (radio
+  de la esfera, largo de la línea). No toca la altura.
+- Regla para cualquier glifo futuro: **o da forma, o transforma la que hay;
+  nunca las dos cosas.**
+- **Primera etapa con cinco glifos:** forma = **Línea, Altura**; propiedad =
+  **Tamaño, Flecha, Barrera**. El resto (Elevación, Permanencia, Pulso,
+  Repetición, Rebote) va a una segunda etapa y solo si el playtest 8.12 lo
+  pide.
+
+**Cada glifo (primera etapa), en casillas de 2,3 u:**
+
+| glifo | tipo | operación | repetirlo | tope |
+|---|---|---|---|---|
+| (esfera) | forma por defecto | volumen de radio r₀ = 0,5 casilla (1 casilla) | — | — |
+| Línea | forma | segmento perpendicular a la mirada, largo ℓ₀ = 3 casillas | no se repite: más largo es Tamaño | — |
+| Altura | forma (modifica) | estira la forma hacia arriba 1 nivel; no la mueve | +1 nivel | tope Y (abajo) |
+| Tamaño | propiedad | escala la forma: radio +0,5 casilla o largo +2 casillas | otra vez | ×3 |
+| Flecha | propiedad | traslada la forma `d` = 3 casillas en la dirección del ratón | +1 casilla de alcance | 5 casillas |
+| Barrera | propiedad | coloca la forma **alrededor del jugador**, hueca, y bloquea proyectiles | más resistencia (vida del escudo ×1,5) | ×3 |
+
+Con eso salen sin escribir ninguna combinación:
+
+| forma de hoy (`Receta3D.forma()`) | receta nueva |
+|---|---|
+| `proyectil` (bola) | (esfera) + Flecha |
+| `corro` | (esfera) + Barrera |
+| `columna` | (esfera) + Altura |
+| `muro` quieto | Línea (+ Altura) |
+| `muro` que avanza | Línea + Flecha |
+| **`arco`** (nueva) | Línea + Barrera: la línea curvada delante del jugador |
+| bola grande | (esfera) + Tamaño + Flecha |
+
+**Orden fijo de evaluación** (no depende del orden de dibujo): forma base →
+Altura → Tamaño → Barrera → Flecha → colisiones. **Tope Y combinado:** lo
+que queda en pie y se puede pisar no pasa de `Jugador3D.MAX_NIVELES_SUBIBLES` (hoy 1) por
+encima del suelo donde nace; si una receta lo supera, el libro lo avisa y no
+se lanza (no se recorta en silencio). Los proyectiles no cuentan.
+
+**Lo que se queda fuera del 3D** (siguen en el 2D, no se borran): amplificar,
+retardo, atracción, espejo y pilar. **Lo que cambia respecto a lo decidido:**
+varias flechas dan **alcance**, no duración (v2 decía duración); «pulso +
+flecha = curva» desaparece; levitación pasa a ser Elevación en la etapa 2.
+
+### Pablo
+
+- [x] **8.0** Decidido el 8/10: el documento sustituye a la semántica v2 de
+  §3; esfera por defecto; glifo Tamaño; primera etapa de cinco glifos.
+- [x] **8.1 (P0) Confirmar tres cosas** *(confirmadas por Pablo el 8/10)* antes de 8.4: (a) varias flechas =
+  más alcance (no duración); (b) se retira «pulso + flecha = curva»;
+  (c) amplificar, retardo, atracción y espejo fuera del 3D.
+- [x] **8.2 (P0) `sigils.gd`:** *(hecho el 8/10 22:20 por Claude con permiso de Pablo; además hacía falta `GestureLibrary.SIGILS` en `gesture_library.gd`, que es la lista que leen la paleta F1 y `Repertoire`)* entradas para `linea` (ya pendiente de 5.4),
+  `altura` y `tamano` en `Sigils.FORM`, para que el libro y la paleta (F1)
+  las reconozcan. Basta con el nombre y la recarga: el significado lo pone
+  `Receta3D` en 3D, como ya hace con `linea`. Propuesta:
+  `"linea": {"cooldown": 2.0}`, `"altura": {"cooldown": 2.0}`,
+  `"tamano": {"cooldown": 1.5}`.
+- [ ] **8.3 (P0) Gestos.** Barrera = círculo (ya grabado). Propuesta:
+  **Altura = `⊥`**, el gesto que ya tiene plantilla con `pilar`, que sale del
+  3D. **Tamaño = una cruz `+`** (en el sector no compite con el hielo `X`, que
+  es del núcleo). Línea = la raya ya decidida. Grabar con `G` y pasar
+  `tools/podar_gestos.py` para ver que Línea y Altura no se confunden.
+- [ ] **8.12 Playtest de la etapa 1:** cada glifo solo y cada pareja de los
+  cinco (15 filas), marcando ✔/✘ en `TEST2_CONCLUSIONES.md`. De aquí sale si
+  hace falta la etapa 2 y qué glifos entran.
+
+### Juego
+
+- [x] **8.4 (P0) `GeometriaHechizo`: la receta como datos puros.** Clase
+  nueva dentro de `poc_25d/lanzador_3d.gd` (junto a `Receta3D`): recibe los
+  contadores de glifos y devuelve `{base: esfera|linea, radio, largo, alto,
+  alcance, envuelve, bloquea, resistencia, y_tope}` en casillas, siempre en el
+  mismo orden de evaluación. Sin nodos: se prueba en headless con la tabla de
+  arriba (cada fila da la forma esperada, y los órdenes de dibujo distintos
+  dan lo mismo).
+- [x] **8.5 (P0) `Receta3D` lee de `GeometriaHechizo`.** `forma()` y
+  `manifestaciones()` salen de la geometría y no de los flags de
+  `SpellRecipe`. Los nombres de forma de hoy (`proyectil`, `corro`,
+  `columna`, `muro`…) se conservan para que `Vfx3D`, `Formas3D` y la
+  animación de lanzar no cambien. Levitación, pulso, repetición y rebote
+  siguen funcionando como hoy hasta la etapa 2. El 2D (`SpellRecipe`,
+  `spellcaster.gd`) no se toca.
+- [x] **8.6 (P0) De forma a casillas, y tope Y.** La geometría se rasteriza:
+  ocupan las casillas cuyo centro cae dentro de la forma, y ahí van los
+  estados del suelo (fuego, hielo…) y los bloques de tierra/hielo. Tope Y
+  combinado: si se supera, aviso y no se lanza.
+- [x] **8.7 (P1) Forma nueva `arco`** (Línea + Barrera): la línea curvada
+  delante del jugador, mismo largo, centrada en él; bloquea proyectiles.
+- [x] **8.8 (P1) Previsualización.** En modo lanzar, dibujar en el suelo las
+  casillas que va a ocupar el hechizo (las de 8.6) y su altura. Y, en el
+  libro, avisar de una receta inválida (supera el tope Y) antes de lanzar.
+- [ ] **8.9 (P2) Propuesta para `ARQUITECTURA.md`:** la tabla de glifos y la
+  de «lo que emerge» con la versión geométrica, en
+  `docs/propuesta_arquitectura_juego.md` (Pablo integra).
+
+### Pipeline
+
+- [ ] **8.10 (P0) Contrato VFX con parámetros.** Las formas del contrato 5.8
+  pasan a leer sus medidas de la geometría (`radio`, `largo`, `alto`): una
+  bola con Tamaño es la misma bola más grande, no otra celda de la matriz.
+  Añadir **`arco`** (anillo parcial delante del jugador, del elemento).
+  Muro y corro ya existen.
+- [ ] **8.11 (P1) Iconos** de `altura` y `tamano` (y `linea`, pendiente de
+  6.20), con el estilo de los demás.
+
+**Orden:** 8.1 → 8.2 ∥ 8.3 ∥ 8.4 → 8.5 → 8.6 → 8.7 ∥ 8.10 → 8.8 ∥ 8.11 →
+8.12 → (etapa 2). **La fase 6 y la 7 siguen en paralelo**; 5.4 queda
+sustituida por esta fase (lo hecho de `linea` en `Receta3D` se aprovecha).
+
+---
+
 ## Reparto resumido
 
 | | Pablo | Juego | Pipeline |
@@ -834,6 +958,7 @@ sigue en paralelo: **nada de la fase 6 depende de la 7**.
 | Fase 5 (glifos v2, VFX, bosque) | 5.13–5.15 | 5.1–5.8 | 5.9–5.12 |
 | Fase 6 (playtest 7/10) | 6.0, 6.21–6.24 | 6.1–6.9, 6.2b, 6.22a | 6.10–6.20 |
 | Fase 7 (nivel editable, camino A) | 7.0, 7.9, 7.10 | 7.5–7.8b, 7.11 (parte) | 7.1–7.4, 7.11–7.14 |
+| Fase 8 (glifos como geometría) | 8.0–8.3, 8.12 | 8.4–8.9 | 8.10, 8.11 |
 | Deuda pequeña | iluminación | stride, pilar/tiempo, diálogo | clips, iconos, VFX, tótems |
 
 Dependencias: 1.1 antes de 2.1 · 1.6 antes de `stride` · 3.6 antes de 3.2 · 3.9 antes de las P2 · 0.2 espera a 1.3.

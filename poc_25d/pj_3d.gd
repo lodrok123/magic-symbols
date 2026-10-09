@@ -50,6 +50,9 @@ const CLIPS_DE: Dictionary = {
 	"goblin_espadachin": {"hit": "slapreaction"},
 	# El arquero no tiene clips de espada ni de retroceso con esos nombres: dispara con ArcheryShot y retrocede con Walk002.
 	"goblin_archer_chibi": {"attack": "archeryshot", "walk_back": "walk002"},
+	# Elemental de bosque: su único clip de golpe recibido es el de FUEGO (Meshy «Hit_Fire_Reaction», 4,7 s; el GLB lo trae
+	# como `hit_fire`). El Juego puede usarlo como `hit` o pedirlo por su nombre.
+	"elemental_bosque": {"hit": "hit_fire"},
 }
 
 ## Clips mínimos por tipo de personaje (la misma lista que docs/ASSETS_PENDIENTES.md §1).
@@ -58,9 +61,8 @@ const MINIMOS: Dictionary = {
 	"goblin": ["idle", "walk", "attack", "hit", "death"],
 	"arquero": ["idle", "walk", "walk_back", "attack", "hit", "death"],
 	"npc": ["idle", "walk", "talk"],
-	# Elemental de bosque (Meshy «Verdant Guardian»): sin clip de golpe recibido (no se pidió; es un jefe lento que no se
-	# interrumpe), por eso `hit` no está en la lista. Sí tiene `cast` (el hechizo de las enredaderas) y `run`.
-	"elemental": ["idle", "walk", "run", "attack", "cast", "death"],
+	# Elemental de bosque (Meshy «Verdant Guardian»): es un jefe lento. Su `hit` es el de fuego (ver CLIPS_DE). Tiene `cast` (el hechizo de las enredaderas) y `run`.
+	"elemental": ["idle", "walk", "run", "attack", "cast", "hit", "death"],
 }
 
 ## Roles cuyo clip debe quedarse en su sitio: la cadera no se aleja de donde empieza (en alturas de cadera).
@@ -136,6 +138,12 @@ func cargar(p_id: String) -> bool:
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 
 	_anular_raiz("roll")
+	# Elemental de bosque: sus clips traen la cadera desplazada (attack se adelanta 0,3 y acaba 8 cm fuera de sitio; walk se
+	# balancea ±0,33; hit_fire acaba 7 cm atrás). El Juego es quien lo mueve, así que se queda en su sitio: si no, al
+	# cambiar de clip el modelo salta de golpe (los «tirones»).
+	if id.begins_with("elemental"):
+		for rol in ["attack", "walk", "hit"]:
+			_anular_raiz(rol)
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
 	_crear_sombra()
@@ -625,6 +633,10 @@ func _quitar_chispas() -> void:
 	_chispas = null
 
 
+## Segundos de mezcla al cambiar de clip en `jugar` (0 = salto seco).
+const MEZCLA_CLIPS: float = 0.15
+
+
 func jugar(nombre: String, una_vez: bool = false) -> void:
 	if _ap == null or nombre == animacion_actual:
 		return
@@ -636,7 +648,9 @@ func jugar(nombre: String, una_vez: bool = false) -> void:
 	# pasar antes por otro clip (jugar("idle")). Sin `una_vez` va en bucle, como siempre.
 	var bucle: int = Animation.LOOP_NONE if una_vez else (Animation.LOOP_PINGPONG if PINGPONG.has(nombre) else Animation.LOOP_LINEAR)
 	_ap.get_animation(clip).loop_mode = bucle as Animation.LoopMode
-	_ap.play(clip)
+	# Mezcla corta con el clip anterior. Sin ella el cambio es un salto seco: en el elemental la cadera pasa de 0,81 (idle) a 0,65
+	# (walk) de golpe, y si la IA alterna quieto/andando en el borde del rango se ve como tirones. Medido en los GLB.
+	_ap.play(clip, MEZCLA_CLIPS)
 
 
 ## Lo que dura el clip de `nombre` (s) a velocidad 1, o 0 si no existe. La IA lo usa para no cortar una animación a medias

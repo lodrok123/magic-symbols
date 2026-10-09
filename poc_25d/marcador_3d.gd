@@ -9,7 +9,7 @@ extends Node3D
 ## Se coloca como una pieza más: Añadir nodo → Marcador3D, elegir la `letra` en el inspector y mover/girar con los gizmos.
 ## OJO: un marcador vive en la CASILLA donde está su centro (2,3 u); la posición exacta dentro de la casilla no cuenta, el giro sí.
 ##
-## `letra` es la del mapa de siempre (S jugador, A arquero, W guerrero, B barrera de fuego, X puerta, E salida, n/Q puestos,
+## `letra` es la del mapa de siempre (S jugador, A arquero, W guerrero, G elemental de bosque, B barrera de fuego, X puerta, E salida, n/Q puestos,
 ## M/m personajes, p/a/w baldosas, K placa, z seto, l tronco, j/k/i tótems de fuego/agua/rayo, F fogata, T brasero, D muñeco,
 ## s/f/q plantas reactivas, r telaraña, h setas). Si está vacía, el marcador es de DATOS y manda `grupo`:
 ## «recogible» (tipo: pocion | oro) o «empujable» (tipo: tierra | hielo).
@@ -42,6 +42,7 @@ const LETRAS: Dictionary = {
 	"S": {"grupo": "inicio_jugador", "rotulo": "JUGADOR", "color": Color(0.3, 0.9, 0.4)},
 	"A": {"grupo": "goblin", "tipo": "arquero", "rotulo": "GOBLIN ARQUERO", "color": Color(0.9, 0.3, 0.2)},
 	"W": {"grupo": "goblin", "tipo": "guerrero", "rotulo": "GOBLIN GUERRERO", "color": Color(0.9, 0.3, 0.2)},
+	"G": {"grupo": "goblin", "tipo": "elemental", "rotulo": "ELEMENTAL DE BOSQUE", "color": Color(0.9, 0.3, 0.2)},
 	"B": {"grupo": "barrera_fuego", "rotulo": "BARRERA DE FUEGO", "color": Color(1.0, 0.5, 0.1)},
 	"X": {"grupo": "puerta", "rotulo": "PUERTA", "color": Color(0.7, 0.5, 0.3), "pieza": "arco_puerta"},
 	"P": {"grupo": "puente_reactivo", "rotulo": "PUENTE REACTIVO", "color": Color(0.2, 0.9, 1.0)},

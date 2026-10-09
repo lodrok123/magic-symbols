@@ -145,6 +145,42 @@ func _lenguas(raiz: Node3D, n: int, ancho: float, esc_min: float, esc_max: float
 
 
 ## Esporas flotando (las plantas reactivas): motas 3D verdosas.
+const GRIETAS_TEX: String = "res://poc_25d/vfx/grietas_impacto.png"
+
+
+## Grietas en el suelo donde cae el puñetazo del elemental de bosque: una imagen plana (círculo de tierra agrietada con
+## matojos y piedrecitas, sacada de la lámina de Pablo con la perspectiva deshecha para que no se aplaste dos veces) pegada
+## al suelo. Entra con un golpe de escala (0,12 s), se queda y se desvanece en el último 40 % de `dura`. Se borra sola.
+## `radio` = media anchura en el mundo. Plana y no 3D a propósito: es una marca en el suelo, no un volumen.
+func grietas(suelo: Vector3, radio: float, dura: float = 2.2) -> Node3D:
+	var raiz := Node3D.new()
+	raiz.position = suelo + Vector3(0.0, 0.025, 0.0)
+	raiz.rotation.y = float(int(suelo.x * 37.0 + suelo.z * 11.0) % 628) * 0.01      # giro distinto en cada golpe
+	add_child(raiz)
+	var tex: Texture2D = load(GRIETAS_TEX) as Texture2D
+	if tex == null:
+		get_tree().create_timer(dura).timeout.connect(raiz.queue_free)
+		return raiz
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(radio * 2.0, radio * 2.0)
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = tex
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	m.roughness = 1.0
+	pm.material = m
+	var mi := MeshInstance3D.new()
+	mi.mesh = pm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(mi)
+	raiz.scale = Vector3(0.55, 1.0, 0.55)
+	var tw := raiz.create_tween()
+	tw.tween_property(raiz, "scale", Vector3.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(maxf(dura * 0.6 - 0.12, 0.0))
+	tw.tween_property(m, "albedo_color:a", 0.0, dura * 0.4)
+	tw.tween_callback(raiz.queue_free)
+	return raiz
+
+
 func esporas(p: Vector3) -> Node3D:
 	var raiz := Node3D.new()
 	raiz.position = p

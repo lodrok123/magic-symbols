@@ -285,6 +285,51 @@ resto del apartado sea P2. La matriz de formas es P2.
 
 ---
 
+## 3b. Glifos como geometría (decidido el 8/10/2026; sustituye a la tabla v2 de §3)
+
+**De dónde sale.** Documento de Pablo *Diseño matemático y funcional de glifos
+3D* (v0.3, 8/10). Cada glifo tiene **una operación estable** sobre una forma;
+la receta es un **multiconjunto** (el orden de dibujo no importa) y se evalúa
+siempre en el mismo orden: forma base → extrusión en Y → tamaño → envoltura →
+copias → movimiento → colisiones. Las formas salen de componer, no de una
+tabla. La tabla v2 de §3 (arriba) queda como **historia**: sus filas eran
+reglas por pareja y por eso 5.4 no cerraba.
+
+**Por qué es mejor.** Cumple la regla de `ARQUITECTURA.md` (ninguna
+combinación escrita), se puede **calcular antes de lanzar** (previsualización
+en el libro) y fija un **tope de altura combinado**: una pared alta y además
+elevada no puede saltarse el límite aunque cada glifo respete el suyo.
+
+**Lo que cambia respecto al documento** (decidido con Pablo el 8/10):
+- **La esfera es la forma por defecto** y no lleva glifo: sin Línea, el
+  hechizo es una esfera de radio r₀. Así «flecha sola = bola» cuesta un
+  sector y el **círculo queda para Barrera**.
+- Como la esfera no se dibuja, el radio lo da un glifo nuevo, **Tamaño**:
+  escala la forma que haya (radio de la esfera, largo de la línea), nunca la
+  altura.
+- **Barrera** (lo que el documento dejaba abierto): coloca la forma
+  **alrededor del jugador**, hueca, y hace que **bloquee proyectiles**.
+  Esfera + Barrera = corro; Línea + Barrera = **arco** delante del jugador.
+  Repetirla da resistencia, nunca tamaño.
+- **Unidades en casillas** (2,3 u), no en metros: la geometría se rasteriza a
+  casillas para los estados del suelo y los bloques.
+- **Regla para cualquier glifo nuevo:** o da forma, o transforma la que hay;
+  nunca las dos cosas.
+
+**Etapa 1 (cinco glifos):** forma = **Línea, Altura**; propiedad = **Tamaño,
+Flecha, Barrera**. **Etapa 2**, solo si el playtest de la etapa 1 lo pide:
+Elevación (la antigua levitación), Permanencia, Pulso, Repetición, Rebote,
+con las operaciones del documento.
+
+**Queda fuera del 3D** (sigue en el 2D): amplificar, retardo, atracción,
+espejo y pilar. **Pendiente de confirmar por Pablo:** varias flechas dan
+alcance (no duración, como decía la v2) y desaparece «pulso + flecha =
+curva».
+
+Tareas, números de partida y reparto: `PLAN_ARREGLOS.md`, Fase 8.
+
+---
+
 ## 4. Enemigos: el elemento adecuado te apoya (P1)
 
 **Qué.** El núcleo de un enemigo es que **usar el elemento adecuado ayuda a

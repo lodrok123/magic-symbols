@@ -64,6 +64,8 @@ const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
 ## Espadachín: el mismo modelo del guerrero con espada (Pj3D.MODELO_DE + Equipo3D.EQUIPO). Ocupa las "A" del
 ## mapa hasta que haya arquero en 3D.
 const PJ_ESPADACHIN: Array = ["goblin_espadachin", "goblin_warrior_chibi"]
+## Elemental de bosque (el enemigo élite lento; ver combate_3d.gd, ID_ELEMENTAL). Sin sustituto: si falta el modelo, no sale.
+const PJ_ELEMENTAL: Array = ["elemental_bosque"]
 ## Personajes nuevos (6/10): la alquimista de los mercados, el arquero y el guardabosques. Sus GLB aún no están en el repo
 ## (COPIAR_MODELOS.cmd los copia desde el pipeline): mientras falten, `_personaje` usa el siguiente de la lista.
 const PJ_ALQUIMISTA: Array = ["alchemist_elf", "bookseller_chibi", "chibi_test"]
@@ -72,7 +74,7 @@ const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test
 const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
 	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0,
-	"elemental_bosque": 1.7}      # elite lento: el doble de alto que un goblin (0,85)
+	"elemental_bosque": 2.5}      # elite lento: el doble de alto que un goblin (0,85)
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
 const MEDIDA: Dictionary = Pieza3D.MEDIDA     ## la tabla vive en pieza_3d.gd (la usa también el editor)
@@ -1764,6 +1766,12 @@ func _colocar_letras() -> void:
 					var g: Pj3D = _personaje(quien, _centro_celda(c, ALTO))
 					if g != null:
 						_goblins.append(g)
+				"G":
+					# Elemental de bosque (marcador G, tipo "elemental"): entra en `_goblins` como los demás; el Jugador3D le cuelga
+					# su Combate3D al arrancar (equipar reconoce el id y le da el comportamiento propio). La altura sale de ALTO_PJ.
+					var el: Pj3D = _personaje(PJ_ELEMENTAL, _centro_celda(c, ALTO))
+					if el != null:
+						_goblins.append(el)
 				"X":
 					# El arco nuevo (arco_ruina, mercado.glb) ya tiene la abertura hacia la cámara; el viejo
 					# (arco_puerta, objetos.glb) la tiene a +-X y hay que girarlo. Se cruza de norte a sur.

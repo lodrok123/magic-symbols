@@ -42,6 +42,9 @@ const VEL_PERSEGUIR: float = 2.4                   ## entre andar (1,6) y correr
 const VEL_PATRULLA: float = 1.0
 const DISTANCIA_PATRULLA: float = 2.0
 const RANGO_ATAQUE: float = 1.2
+const HISTERESIS_RANGO: float = 1.2              ## empieza a pegar a `rango`, deja de esperar al pasar de rango*1,2 (evita parpadear entre atacar y perseguir)
+const MARGEN_CANCELAR: float = 1.4               ## si el jugador se va más allá de rango*1,4 ANTES de que salga el golpe, se cancela el ataque
+const ELEM_ZANCADA_WALK: float = 3.5             ## metros que avanza el elemental en un ciclo de `walk` a velocidad 1 (ESTIMADO, afinar a ojo)
 const PREPARAR_GOLPE: float = 0.6
 const DESCANSO_GOLPE: float = 1.6
 const DANO_GOLPE: float = 20.0
@@ -59,6 +62,7 @@ const ID_ELEMENTAL: String = "elemental_bosque"
 const ELEM_VIDA: float = 1000.0
 const ELEM_VEL: float = 0.7                    ## × la velocidad de un goblin
 const ELEM_DANO_GOLPE: float = 45.0
+const ELEM_ALTO_REF: float = 1.7              ## altura para la que se midieron rango, golpe, cápsula y brotes; todo escala con altura/esto
 const ELEM_RANGO: float = 2.0                  ## distancia (centro a centro) a la que empieza a pegar
 const ELEM_MOMENTO_GOLPE: float = 0.6          ## fracción del clip `attack` en que el puño toca el suelo (SIN medir: 0,55–0,65)
 const ELEM_ALCANCE_GOLPE: float = 2.8          ## el área del puñetazo: hasta tanto por delante...
@@ -143,6 +147,8 @@ var _col: CollisionShape3D = null
 var _jefe_capa: CanvasLayer = null
 var _jefe_relleno: ColorRect = null
 var _jefe_perdida: ColorRect = null
+var _golpe_pendiente: bool = false   ## hay un ataque cuerpo a cuerpo cuyo golpe aún no ha salido (se puede cancelar)
+var _en_rango: bool = false          ## histéresis: ya está en rango de golpe
 var _ataque_id: int = 0        ## cambia al cancelar el ataque: los golpes/flechas pendientes se descartan
 var _materiales: Array = []
 var _bases: Array = []
@@ -191,7 +197,7 @@ func _ready() -> void:
 	monitorable = true
 	elemental = pj != null and pj.id == ID_ELEMENTAL
 	var forma := CapsuleShape3D.new()
-	forma.radius = 0.7 if elemental else 0.32
+	forma.radius = 0.7 * altura / ELEM_ALTO_REF if elemental else 0.32
 	forma.height = maxf(altura, 0.7)
 	var cs := CollisionShape3D.new()
 	cs.shape = forma
@@ -449,7 +455,13 @@ func _ia(delta: float) -> void:
 	# Animación de ataque a medias: se queda quieto y mirando donde estaba hasta que acabe.
 	if _ataque > 0.0:
 		moviendo = 0
-		return
+		# Si el jugador se aleja antes de que salga el golpe, no se queda clavado en la pose: lo cancela y persigue.
+		if _golpe_pendiente and not arquero and jugador != null and is_instance_valid(jugador) \
+				and _dist(jugador.position) > _rango_ataque() * MARGEN_CANCELAR:
+			_cancelar_ataque()
+			_en_rango = false
+		else:
+			return
 	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0)
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
@@ -484,8 +496,15 @@ func _ia(delta: float) -> void:
 				moviendo = 0
 				_conjurar()
 				return
-			var rango: float = ELEM_RANGO * _factor_tamano() if elemental else RANGO_ATAQUE
-			if estado == "persigue" and d.length() <= rango:
+			var rango: float = _rango_ataque()
+			# Histéresis: se entra en rango a `rango` y se sale a rango*1,2, para no alternar clips en el borde.
+			if estado != "persigue":
+				_en_rango = false
+			elif d.length() <= rango:
+				_en_rango = true
+			elif d.length() > rango * HISTERESIS_RANGO:
+				_en_rango = false
+			if estado == "persigue" and _en_rango:
 				moviendo = 0
 				_atacar(delta)
 			elif d.length() > 0.3:
@@ -518,6 +537,10 @@ func _patrullar(delta: float, vel: float) -> void:
 	var movido: bool = _mover_paso(paso)
 	if not movido or absf(position.x - casa.x) >= DISTANCIA_PATRULLA:
 		_direccion *= -1.0
+
+
+func _rango_ataque() -> float:
+	return ELEM_RANGO * _k_ref() if elemental else RANGO_ATAQUE
 
 
 func _atacar(delta: float) -> void:
@@ -578,12 +601,14 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	_ataque_vel = vel_anim
 	anim_orden = "attack"
 	_ataque_id += 1
+	_golpe_pendiente = true
 	get_tree().create_timer(total * momento, false).timeout.connect(_efecto_ataque.bind(_ataque_id, efecto))
 	PlayLog.event("goblin_ataca", {"duracion": snappedf(total, 0.01), "efecto_en": snappedf(total * momento, 0.01)})
 
 
 func _efecto_ataque(id: int, efecto: Callable) -> void:
 	if id == _ataque_id:
+		_golpe_pendiente = false
 		efecto.call()
 
 
@@ -593,6 +618,7 @@ func _cancelar_ataque() -> void:
 		_ataque = 0.0
 		_t_anim = 0.0
 		_ataque_id += 1
+		_golpe_pendiente = false
 
 
 ## La flecha sale hacia donde ESTÁ el jugador ahora y tarda en llegar: si se ha movido, falla.
@@ -712,10 +738,21 @@ func _animar() -> void:
 			_t_anim = maxf(_t_anim, 0.35)
 	if _t_anim > 0.0:
 		return
-	if stun_timer > 0.0 or congelado > 0.0:
-		pj.set_velocidad_animacion(0.0 if congelado > 0.0 else 1.0)
+	if congelado > 0.0:
+		pj.set_velocidad_animacion(0.0)          # congelado: se queda en la pose a propósito
+		return
+	if stun_timer > 0.0:
+		# Aturdido: sin esto se quedaba en el último fotograma de attack/cast; pasa a reposo.
+		pj.set_velocidad_animacion(1.0)
+		pj.jugar("idle")
 		return
 	pj.set_velocidad_animacion(1.0)
+	if elemental and moviendo == 1:
+		# Pies resbalando: el clip `walk` (5,5 s) a velocidad 1 va más lento que el suelo. Se acelera lo justo.
+		var dur: float = pj.duracion("walk")
+		if dur > 0.0:
+			var vel_real: float = VEL_PERSEGUIR * ELEM_VEL * vel_mult()
+			pj.set_velocidad_animacion(clampf(vel_real * dur / ELEM_ZANCADA_WALK, 0.5, 2.5))
 	match moviendo:
 		0:
 			pj.jugar("idle")
@@ -850,6 +887,12 @@ func _factor_tamano() -> float:
 	return altura / maxf(_alto_base, 0.01)
 
 
+## Escala de las medidas del elemental respecto a su altura de referencia (1,7 u).
+## Incluye el crecimiento del agua, porque el puño y el alcance crecen con el cuerpo.
+func _k_ref() -> float:
+	return altura / ELEM_ALTO_REF
+
+
 ## --- AGUA: lo cura y lo agranda una sola vez ---
 func _agua_elemental() -> void:
 	health = minf(vida_max, health + ELEM_CURA_AGUA)
@@ -910,7 +953,7 @@ func _golpe_elemental() -> void:
 		return
 	var f: Vector3 = Vector3(mirada.x, 0.0, mirada.z)
 	f = f.normalized() if f.length() > 0.01 else Vector3(0, 0, 1)
-	var k: float = _factor_tamano()
+	var k: float = _k_ref()
 	var centro: Vector3 = position + f * (ELEM_ALCANCE_GOLPE * 0.5 * k)
 	var fx: Node = mundo.get("_fx")
 	if fx != null and Vfx3D.ELEMENTOS.has("tierra"):
@@ -964,7 +1007,7 @@ func _brotar_enredaderas() -> void:
 	var n: int = clampi(ELEM_NUM_ENREDADERAS, 1, 3)
 	for i in range(n):
 		var lateral: float = (float(i) - float(n - 1) * 0.5) * 1.6
-		var p: Vector3 = position + f * (1.7 + 0.35 * float(i % 2)) * _factor_tamano() + der * lateral
+		var p: Vector3 = position + f * (ELEM_ALTO_REF + 0.35 * float(i % 2)) * _k_ref() + der * lateral
 		var c: Vector2i = Lanzador3D.celda_de(p)
 		if not Lanzador3D.en_mapa(c) or Lanzador3D.es_agua(c) or Lanzador3D.bloqueada(c) or Lanzador3D.altura_en(c) > 0:
 			continue

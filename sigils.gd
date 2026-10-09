@@ -59,7 +59,10 @@ const FORM: Dictionary = {
 	"pulso": {"spread": true, "pulse": true, "cooldown": 2.5},
 	"atraccion": {"pull": true, "cooldown": 1.5},
 	"espejo": {"mirror": true, "cooldown": 1.5},
-	"linea": {"spread": true, "blocks": true, "cooldown": 2.0}
+	"linea": {"spread": true, "blocks": true, "cooldown": 2.0},
+	# Fase 8 (glifos como geometría): en 3D el significado lo pone Receta3D/GeometriaHechizo; aquí solo la recarga.
+	"altura": {"cooldown": 2.0},
+	"tamano": {"cooldown": 1.5}
 }
 
 ## Los sellos OPERADORES no dicen dónde, sino cuánto: transforman lo que

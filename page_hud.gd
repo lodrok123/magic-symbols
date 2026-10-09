@@ -29,7 +29,7 @@ func _draw() -> void:
 	if caster == null:
 		return
 
-	var total: int = caster.PAGES
+	var total: int = Repertoire.pages_available(caster.PAGES)
 	var y: float = size.y - 44.0
 	var x0: float = size.x * 0.5 - float(total - 1) * 0.5 * SEPARACION
 

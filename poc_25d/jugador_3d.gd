@@ -394,8 +394,9 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	if q and not _beber_previa and _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando \
 			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
-	# F8: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador)
-	var f8: bool = libre and Input.is_key_pressed(KEY_F8)
+	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
+	# No F8: es el atajo del editor de Godot para DETENER el juego y la ventana se cerraba antes de llegar aquí.
+	var f8: bool = libre and Input.is_key_pressed(KEY_F11)
 	if f8 and not _f8_previa and lanz != null:
 		var m: Vector3 = _mirada.normalized()
 		var destino: Vector3 = position + m * 6.0

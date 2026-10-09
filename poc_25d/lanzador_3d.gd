@@ -39,7 +39,9 @@ const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
 const CAPA_SOLIDO: int = 1 << 10     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10, camino A)
 
 ## Alto de un nivel, en unidades. Es el ALTO de prueba_test2.gd (S * 0,45); configurar() lo lee de allí.
-const ALTO_NIVEL: float = 2.3 * 0.45
+## Es `static var` y no `const` para seguir al mundo: configurar() lo iguala al ALTO de prueba_test2.gd (hoy S*0,45). Para probar
+## niveles de media casilla basta con que el Pipeline ponga ALTO = S * 0.5 allí; aquí no hay que tocar nada.
+static var ALTO_NIVEL: float = 2.3 * 0.45
 
 ## --- Modo lanzar (§0b) ---
 const TIEMPO_LANZAR: float = 0.3           ## Engine.time_scale mientras se apunta (5.2; Pablo lo confirmó el 6/10)
@@ -72,14 +74,31 @@ const DURACION_HIELO: float = 20.0          ## segundos, salvo casillas en `hiel
 const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 
 ## --- El repertorio del Test 3: los seis elementos, nueve sellos (sin `pilar` ni `retardo`) ---
+## --- Progresión en 3D: qué tienes en cada nivel (vocabulario del diseño: SELLO = elemento, GLIFO = forma) ---
+## `Repertoire` ya hace que el libro solo enseñe lo activo; aquí se decide QUÉ está activo, y cuántas páginas (libros) hay y
+## cuántos glifos caben en una. «todo» es el banco de pruebas de siempre (Test 3). La clave se elige con el nombre del nivel
+## (`mundo.nivel`); si no hay una con ese nombre vale «todo». Para probar un nivel concreto sin tocar el mundo: PROGRESION_FORZADA.
+const PROGRESIONES: Dictionary = {
+	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "tamano", "levitacion", "repeticion", "rebote", "pulso"],
+		"paginas": 3, "glifos_por_pagina": 6},
+	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
+	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "nivel1"},
+}
+const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
+const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
 const HUECOS_POR_PAGINA: int = 6
 const ELEMENTOS_TEST3: PackedStringArray = ["fuego", "agua", "viento", "tierra", "rayo", "hielo"]
-const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "levitacion", "repeticion", "amplificar", "rebote",
-	"pulso", "atraccion", "espejo"]
+const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "linea", "altura", "tamano", "levitacion", "repeticion", "rebote", "pulso"]
+## 8/10 (8.1c): amplificar, retardo, atracción y espejo quedan fuera del 3D (siguen en el 2D). `altura` y `tamano` se
+## ya están (8.2 de Pablo, 8/10 22:20).
 
 ## DÓNDE golpeó el último hechizo (mundo) y a qué nivel; on_spell_hit no lleva posición. Vector3.INF = ninguna.
 static var ultimo_impacto: Vector3 = Vector3.INF
 static var ultimo_nivel: int = 0
+
+## Radio (m) de la bola que se dibuja ahora; Tamaño lo agranda (8.5). Vuelve a RADIO_BOLA con cada lanzamiento.
+var _radio_bola_actual: float = RADIO_BOLA
 
 ## --- El mundo (lo fija configurar()) ---
 static var mundo_s: Node3D = null
@@ -249,6 +268,8 @@ var _punto_vivo: Vector3 = Vector3.ZERO
 var _marca_origen: MeshInstance3D = null
 var _marca_flecha: MeshInstance3D = null
 var _marca_alcance: MeshInstance3D = null
+var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
+var _prev_color: Color = Color.WHITE
 var _ts_antes: float = 1.0
 
 ## --- Lo vivo ---
@@ -274,6 +295,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	var k: Dictionary = p_mundo.get_script().get_script_constant_map()
 	casilla = float(k.get("S", casilla))
 	alto_suelo = float(k.get("ALTO", alto_suelo))
+	ALTO_NIVEL = alto_suelo
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
 	alturas.clear()
 	permanentes.clear()
@@ -451,8 +473,26 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS      # para deshacer la pausa del libro (5.2)
 	add_to_group("player")      # el libro busca ahí un nodo 2D desde el que sonar (Sfx)
 	Repertoire.aim_with_mouse = true
-	Repertoire.max_sigils_per_page = HUECOS_POR_PAGINA
-	Repertoire.set_active(ELEMENTOS_TEST3, SELLOS_TEST3)
+	aplicar_progresion(PROGRESION_FORZADA if PROGRESION_FORZADA != "" else String(mundo.get("nivel")) if mundo != null and mundo.get("nivel") != null else "todo")
+
+
+## Fija el repertorio (qué sellos y glifos se enseñan y se pueden usar), cuántas páginas hay y cuántos glifos caben en una.
+## Devuelve el nombre de la progresión que se aplicó. Un nombre desconocido aplica «todo».
+static func aplicar_progresion(nombre: String) -> String:
+	var clave: String = nombre if PROGRESIONES.has(nombre) else "todo"
+	var p: Dictionary = PROGRESIONES[clave]
+	Repertoire.max_sigils_per_page = int(p["glifos_por_pagina"])
+	Repertoire.max_pages = int(p["paginas"])
+	Repertoire.libro = String(p.get("libro", ""))
+	Repertoire.set_active(PackedStringArray(p["sellos"]), PackedStringArray(p["glifos"]))
+	return clave
+
+
+## No se puede elegir una página que aún no tienes.
+func select_page(indice: int) -> void:
+	if indice >= Repertoire.pages_available(PAGES):
+		return
+	super.select_page(indice)
 
 
 ## El libro y las pestañas de página, en una capa propia. Lo llama Jugador3D.montar() tras poner `mundo`.
@@ -466,6 +506,13 @@ func construir_interfaz() -> void:
 	paginas.set_script(load("res://page_hud.gd"))
 	capa_ui.add_child(paginas)
 	paginas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	# La paleta de pruebas (F1 la esconde): glifos y elementos con un clic, sin dibujar. En 3D no estaba montada; la usan
+	# las pruebas de la Fase 8 mientras Pablo no tenga todos los gestos grabados (8.3).
+	if PALETA_RUNAS:
+		var paleta := PanelContainer.new()
+		paleta.set_script(load("res://rune_palette.gd"))
+		capa_ui.add_child(paleta)
 
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -531,6 +578,24 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	super.add_sigil(sector, sigil_name, calidad)
 
 
+## La paleta de pruebas (F1) pone todos los glifos en el sector de la derecha, y la regla «un glifo por sector» rechazaría
+## el segundo. Aquí cada glifo de la paleta va al PRIMER sector libre de los 8 del libro (el mismo reparto que haría
+## alguien dibujando), para poder probar recetas de varios glifos (Línea + Altura…) sin grabar los gestos.
+func place_sigil(sigil_name: String) -> void:
+	var paso: float = TAU / 8.0
+	for i in range(8):
+		var sector := Vector2(cos(paso * float(i)), sin(paso * float(i))) if i > 0 else Vector2.RIGHT
+		var libre: bool = true
+		for c in current_components:
+			if (c["direction"] as Vector2).is_equal_approx(sector) and not (c["sigils"] as Array).is_empty():
+				libre = false
+				break
+		if libre:
+			add_sigil(sector, sigil_name, 1.0)
+			return
+	_feedback("Los 8 huecos de la página están ocupados")
+
+
 ## Cuenta cada gesto como reconocido, rechazado o confundido para la tabla de PlayLog3D (4.5).
 func add_gesture(strokes: Array, sector: Vector2) -> void:
 	var antes_sellos: int = sigils_used()
@@ -577,8 +642,19 @@ func libro_abierto() -> bool:
 	return libro != null and bool(libro.get("is_open"))
 
 
+## 8.8: ¿se puede lanzar una receta con estos glifos? Devuelve "" si sí, o el aviso. Pensado para que el libro avise ANTES de
+## cerrarlo (spellbook.gd es de Pablo: la llamada la pone él; mientras, `cast_page` ya se niega con este mismo aviso).
+static func aviso_receta(glifos: Array) -> String:
+	var receta := Receta3D.new(Vector2.RIGHT)
+	for gl in glifos:
+		receta.apply(String(gl))
+	if receta.usa_geo() and not bool(receta.geo()["valida"]):
+		return String(receta.geo()["aviso"])
+	return ""
+
+
 func cast_page(indice: int) -> void:
-	if indice < 0 or indice >= PAGES:
+	if indice < 0 or indice >= Repertoire.pages_available(PAGES):
 		return
 	if modo_lanzar:
 		_cancelar_modo()
@@ -626,6 +702,12 @@ func cast_page(indice: int) -> void:
 	if receta.travels or receta.spread:
 		receta.origin = 0.0
 	receta.calidad = calidad
+	# 8.6: el tope de altura combinado. Si lo supera, se avisa y NO se lanza (no se recorta en silencio).
+	if receta.usa_geo() and not bool(receta.geo()["valida"]):
+		Sfx.play(self, "sello_no")
+		_feedback(String(receta.geo()["aviso"]))
+		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(receta.geo()["y_tope"]), "glifos": (fusion["sigils"] as Array).duplicate()})
+		return
 
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
 		"glifos": (fusion["sigils"] as Array).duplicate(),
@@ -643,7 +725,7 @@ func _entrar_modo_lanzar() -> void:
 	var forma: String = (_preparado["receta"] as Receta3D).forma()
 	if jugador != null:
 		jugador.call("bloquear", true)
-		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), forma, RALENTIZADO)
+		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), RALENTIZADO)
 	_crear_marcadores(rune.color)
 	if _guia != null:
 		_guia.text = "Apunta con el ratón · arrastra para dirigir · suelta para lanzar · clic derecho o Esc cancela"
@@ -664,6 +746,10 @@ func _salir_modo() -> void:
 	_marca_origen = null
 	_marca_flecha = null
 	_marca_alcance = null
+	for m in _prev_casillas:
+		if is_instance_valid(m):
+			(m as Node).queue_free()
+	_prev_casillas.clear()
 	if jugador != null:
 		jugador.call("bloquear", false)
 		jugador.call("terminar_apuntar")
@@ -784,7 +870,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	var forma: String = receta.forma()
 	if jugador != null:
 		jugador.call("mirar_hacia", dir)
-		jugador.call("lanzar_clip", elemento, forma)
+		jugador.call("lanzar_clip", elemento, receta.forma_vfx())
 
 	var n: int = _materializar(receta, rune, origen, dir)
 
@@ -800,6 +886,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 ## --- Marcadores del modo lanzar ---
 
 func _crear_marcadores(color: Color) -> void:
+	_prev_color = color
 	_marca_origen = _anillo(0.22 * casilla, 0.34 * casilla, color)
 	_marca_alcance = _anillo(ALCANCE_ORIGEN * casilla - 0.09, ALCANCE_ORIGEN * casilla, Color(color, 0.55))
 	var flecha := BoxMesh.new()
@@ -846,6 +933,45 @@ func _pintar_marcadores() -> void:
 	_marca_flecha.position = o + d * largo * 0.5 + Vector3(0, 0.1, 0)
 	_marca_flecha.scale = Vector3(1, 1, largo)
 	_marca_flecha.rotation = Vector3(0, atan2(d.x, d.z), 0)
+	_pintar_previsualizacion(o, d)
+
+
+## 8.8: las casillas que ocupará el hechizo y su altura, calculadas con la MISMA geometría con la que se lanza (así lo
+## que se ve es lo que sale). Un proyectil no ocupa casillas: alarga la flecha hasta su alcance. Solo recetas de la Fase 8.
+func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
+	var receta: Receta3D = _preparado.get("receta") as Receta3D
+	if receta == null or not receta.usa_geo():
+		return
+	var g: Dictionary = receta.geo()
+	var largo_flecha: float = 1.1 * casilla
+	if float(g["alcance"]) > 0.0:
+		largo_flecha = float(g["alcance"]) * casilla
+		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
+		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
+	var cs: Array = GeometriaHechizo.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), casilla)
+	while _prev_casillas.size() < cs.size():
+		var mi := MeshInstance3D.new()
+		var caja := BoxMesh.new()
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		caja.material = m
+		mi.mesh = caja
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mundo.add_child(mi)
+		_prev_casillas.append(mi)
+	var alto: float = ALTO_NIVEL * float(g["alto"])
+	for i in range(_prev_casillas.size()):
+		var mi: MeshInstance3D = _prev_casillas[i]
+		mi.visible = i < cs.size()
+		if not mi.visible:
+			continue
+		var c: Vector2i = cs[i]
+		var h: float = 0.06 + alto
+		(mi.mesh as BoxMesh).size = Vector3(casilla * 0.9, h, casilla * 0.9)
+		((mi.mesh as BoxMesh).material as StandardMaterial3D).albedo_color = Color(_prev_color, 0.30) if bool(g["valida"]) else Color(1, 0.2, 0.2, 0.35)
+		mi.position = Vector3((float(c.x) + 0.5) * casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * casilla)
+
 
 
 ## =====================================================================================================
@@ -876,7 +1002,9 @@ func _una_ola(receta: Receta3D, data: RuneData, elemento: String, origen: Vector
 	var nivel: int = receta.height
 	if receta.es_volador():
 		return _lanzar_volador(receta, data, elemento, origen, dir, nivel)
-	return _crear_campo(receta, data, elemento, origen, giro, receta.manifestaciones(), nivel)
+	var manifest: Array = receta.manifestaciones_en(Vector2(origen.x, origen.z), Vector2(dir.x, dir.z)) if receta.usa_geo() \
+		else receta.manifestaciones()
+	return _crear_campo(receta, data, elemento, origen, giro, manifest, nivel)
 
 
 ## Una flecha (o un haz): se resuelve al lanzar con un barrido, y los efectos llegan cuando llega el dibujo.
@@ -895,7 +1023,13 @@ func _lanzar_volador(receta: Receta3D, rune: RuneData, elemento: String, origen:
 				dirs.append((b as Vector3).rotated(Vector3.UP, (float(i) - float(receta.copies - 1) * 0.5) * abanico))
 	var factor: float = Sigils.quality_factor(receta.calidad)
 	var alcance: float = ALCANCE_FLECHA * casilla * factor
-	if receta.reach > 1:
+	_radio_bola_actual = RADIO_BOLA
+	if receta.usa_geo():
+		# 8.1a: varias flechas = más alcance (3 casillas, +1 por flecha, tope 5). Lo dice la geometría.
+		alcance = float(receta.geo()["alcance"]) * casilla * factor
+		# Tamaño agranda la bola (solo lo que se dibuja: el barrido sigue siendo un rayo; ver diario).
+		_radio_bola_actual = RADIO_BOLA * float(receta.geo()["radio"]) / GeometriaHechizo.RADIO_0
+	elif receta.reach > 1:
 		alcance *= 1.0 + 0.25 * float(receta.reach - 1)
 	var n: int = 0
 	for d in dirs:
@@ -953,7 +1087,7 @@ func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3
 
 func _visual(elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
 	if fx != null and is_instance_valid(fx):
-		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": RADIO_BOLA})
+		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": _radio_bola_actual})
 
 
 func _despues(t: float, f: Callable) -> void:
@@ -1158,7 +1292,8 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	campo.rune = rune
 	campo.elemento = elemento
 	campo.nivel = nivel
-	campo.bloquea = receta.blocks
+	# 8.1 (decisión 3): la Barrera bloquea siempre; una Línea sin Barrera bloquea solo si el MATERIAL es sólido (tierra, hielo).
+	campo.bloquea = receta.blocks or (receta.usa_geo() and receta.line and (elemento == "tierra" or elemento == "hielo"))
 	campo.refleja = receta.blocks and receta.bounces > 0
 	campo.atrae = receta.pull
 	campo.atraviesa = receta.lifetime > 0.0
@@ -1204,7 +1339,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	_visual_campo(receta, elemento, origen, campo, muro, receta.blocks and receta.height > 0 and receta.spread and not onda)
 	campo.iniciar()
 	if cupula:
-		_proteger_con(campo)
+		_proteger_con(campo, receta)
 	manifestaciones_vivas += cuenta
 	campo.tree_exited.connect(func() -> void:
 		manifestaciones_vivas = maxi(0, manifestaciones_vivas - cuenta)
@@ -1272,6 +1407,8 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 	var pie_o := Vector3(origen.x, y_pies(celda_de(origen)), origen.z)
 	var pie_c := Vector3(centro.x, y_pies(celda_de(centro)), centro.z)
 	var dura: float = vida_campo(receta)
+	if receta.usa_geo() and bool(receta.geo()["envuelve"]) and not receta.line:
+		radio = float(receta.geo()["radio_envuelve"]) * casilla    # la banda de casillas es más ancha que la forma dibujada
 	if columna:
 		return                                 # lo dibuja _levantar_columna casilla a casilla
 	if muro or receta.line:
@@ -1307,10 +1444,14 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 
 
 ## La barrera cúpula protege: una a la vez (la nueva sustituye a la vieja) y el jugador se la apunta para absorber golpes.
-func _proteger_con(campo: Node3D) -> void:
+func _proteger_con(campo: Node3D, receta: Receta3D = null) -> void:
 	if _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa != campo:
 		_barrera_activa.queue_free()
-	(campo as Campo).escudo = VIDA_ESCUDO
+	# Barrera repetida = escudo más resistente (×1,5 por vez, tope ×3), no un aro más grande (8.5).
+	var resistencia: float = 1.0
+	if receta != null and receta.usa_geo() and float(receta.geo()["resistencia"]) > 0.0:
+		resistencia = float(receta.geo()["resistencia"])
+	(campo as Campo).escudo = VIDA_ESCUDO * resistencia
 	_barrera_activa = campo as Campo
 
 
@@ -1580,27 +1721,196 @@ func clear_sequence() -> void:
 
 
 ## =====================================================================================================
+##  GeometriaHechizo (Fase 8, 8.4): la receta como datos puros
+## =====================================================================================================
+
+## Recibe CUÁNTAS VECES se ha dibujado cada glifo (un multiconjunto: el orden de dibujo no existe aquí) y devuelve
+## la forma en CASILLAS. No toca nodos ni escenas, así se prueba en headless con una tabla.
+## Orden fijo de evaluación: forma base -> Altura -> Tamaño -> Barrera -> Flecha -> tope Y.
+## Por qué un orden fijo: si cada glifo "reaccionara" al anterior, volverían las reglas por pareja que la Fase 8 quiere
+## evitar; así cada glifo hace UNA operación y el resultado no depende de cómo se dibujó.
+class GeometriaHechizo extends RefCounted:
+	const RADIO_0: float = 0.5          ## esfera por defecto: radio en casillas (1 casilla de diámetro)
+	const LARGO_0: float = 3.0          ## Línea: largo en casillas
+	const GROSOR_LINEA: float = 0.5     ## semi-grosor de la línea (1 casilla de pared); Tamaño no lo toca
+	const TAMANO_RADIO: float = 0.5     ## cada Tamaño: +0,5 casilla de radio...
+	const TAMANO_LARGO: float = 2.0     ## ...o +2 casillas de largo
+	const TAMANO_TOPE: float = 3.0      ## la forma no pasa de ×3 su medida base
+	const FLECHA_0: float = 3.0         ## Flecha: traslada 3 casillas; cada repetición +1
+	const FLECHA_TOPE: float = 5.0
+	const ESCUDO_FACTOR: float = 1.5    ## Barrera repetida: la vida del escudo ×1,5 por vez
+	const ESCUDO_TOPE: float = 3.0
+	const ENVUELVE_EXTRA: float = 1.0   ## Barrera: la forma se coloca a (radio + 1 casilla) del jugador, para que no le pise los pies
+	const LINEA_DELANTE: float = 1.5    ## Línea suelta: el muro nace a 1,5 casillas delante del jugador (como el muro de siempre)
+	const GROSOR_TOL: float = 0.0       ## holgura al rasterizar la línea (0 = exacto: medido, sale una fila de casillas conexa en todos los ángulos)
+	const ANILLO_MITAD: float = 0.5     ## la forma hueca ocupa una banda de 1 casilla de ancho (radio ± 0,5)
+
+	## `c`: {linea, altura, tamano, flecha, barrera} -> int (los que falten valen 0).
+	## `max_y`: niveles que se pueden pisar por encima del suelo (Jugador3D.MAX_NIVELES_SUBIBLES).
+	## Devuelve {base, nombre, radio, largo, alto, alcance, envuelve, bloquea, resistencia, proyectil, y_tope,
+	##           valida, aviso}.
+	static func evaluar(c: Dictionary, max_y: int = 1) -> Dictionary:
+		var n_linea: int = maxi(int(c.get("linea", 0)), 0)
+		var n_altura: int = maxi(int(c.get("altura", 0)), 0)
+		var n_tamano: int = maxi(int(c.get("tamano", 0)), 0)
+		var n_flecha: int = maxi(int(c.get("flecha", 0)), 0)
+		var n_barrera: int = maxi(int(c.get("barrera", 0)), 0)
+
+		# 1. Forma base. La Línea no se repite: más largo es Tamaño.
+		var es_linea: bool = n_linea > 0
+		var radio: float = GROSOR_LINEA if es_linea else RADIO_0
+		var largo: float = LARGO_0 if es_linea else 0.0
+		# 2. Altura: estira hacia arriba, +1 nivel por repetición. No mueve la forma.
+		var alto: int = n_altura
+		# 3. Tamaño: escala radio (esfera) o largo (línea); nunca la altura. Tope ×3 de la medida base.
+		if es_linea:
+			largo = minf(LARGO_0 + TAMANO_LARGO * float(n_tamano), LARGO_0 * TAMANO_TOPE)
+		else:
+			radio = minf(RADIO_0 + TAMANO_RADIO * float(n_tamano), RADIO_0 * TAMANO_TOPE)
+		# 4. Barrera: alrededor del jugador, hueca, bloquea proyectiles. Repetirla = más resistencia, no más tamaño.
+		var envuelve: bool = n_barrera > 0
+		var resistencia: float = 0.0
+		if envuelve:
+			resistencia = minf(pow(ESCUDO_FACTOR, float(n_barrera - 1)), ESCUDO_TOPE)
+		# 5. Flecha: traslada la forma. Alrededor del jugador no tiene sentido trasladar: se ignora si envuelve.
+		var alcance: float = 0.0
+		if n_flecha > 0 and not envuelve:
+			alcance = minf(FLECHA_0 + float(n_flecha - 1), FLECHA_TOPE)
+		# Lo que viaja sin envolver al jugador es un proyectil: no se queda en pie, no cuenta para el tope Y.
+		var proyectil: bool = alcance > 0.0
+		# 6. Tope Y combinado: solo lo que queda en pie y se puede pisar.
+		var y_tope: int = 0 if proyectil else alto
+		var valida: bool = y_tope <= max_y
+		var aviso: String = ""
+		if not valida:
+			aviso = "Demasiada altura: sube %d niveles y solo se pueden pisar %d. No se lanza." % [y_tope, max_y]
+
+		return {
+			"base": "linea" if es_linea else "esfera",
+			"nombre": _nombre(es_linea, alto, envuelve, alcance > 0.0),
+			"radio": radio, "largo": largo, "alto": alto, "alcance": alcance,
+			"radio_envuelve": (radio + ENVUELVE_EXTRA) if (envuelve and not es_linea) else (ENVUELVE_EXTRA + RADIO_0 if envuelve else 0.0),
+			"envuelve": envuelve, "bloquea": envuelve, "resistencia": resistencia,
+			"proyectil": proyectil, "y_tope": y_tope, "valida": valida, "aviso": aviso,
+		}
+
+	## RASTERIZAR (8.6): las casillas del mundo que ocupa la forma. Una casilla cuenta si su CENTRO cae dentro de la
+	## forma. `origen` y las casillas van en coordenadas de mundo (x, z) en metros; `dir` es la mirada (unitaria).
+	## Marco local: +x = delante, +y = al lado. Una bola (proyectil de esfera) no ocupa casillas (viaja por barrido): devuelve [].
+	## Siempre incluye la casilla que contiene al origen si la forma no es hueca, para que una esfera de radio 0,5
+	## nunca desaparezca por caer su centro justo entre dos casillas.
+	static func celdas(g: Dictionary, origen: Vector2, dir: Vector2, casilla: float) -> Array:
+		var salida: Array = []
+		if bool(g["proyectil"]) and String(g["base"]) == "esfera":
+			return salida                                  # la bola viaja por barrido; el muro que avanza sí ocupa casillas al nacer
+		var d: Vector2 = dir.normalized() if dir.length() > 0.001 else Vector2.RIGHT
+		var perp: Vector2 = d.orthogonal()
+		var es_linea: bool = String(g["base"]) == "linea"
+		var envuelve: bool = bool(g["envuelve"])
+		var radio: float = float(g["radio"])
+		var largo: float = float(g["largo"])
+		var r_env: float = float(g["radio_envuelve"])
+		# Hasta dónde mirar: caja que contiene la forma, en casillas.
+		var alcance_caja: float = r_env + 1.0 if envuelve else (LINEA_DELANTE + largo * 0.5 + 1.0 if es_linea else radio + 1.0)
+		var c0 := Vector2i(int(floorf(origen.x / casilla)), int(floorf(origen.y / casilla)))
+		var n: int = int(ceilf(alcance_caja)) + 1
+		var apertura: float = minf(largo / maxf(r_env, 0.001), TAU) if (es_linea and envuelve) else TAU
+		for dx in range(-n, n + 1):
+			for dz in range(-n, n + 1):
+				var c := Vector2i(c0.x + dx, c0.y + dz)
+				var centro := Vector2((float(c.x) + 0.5) * casilla, (float(c.y) + 0.5) * casilla)
+				var rel: Vector2 = (centro - origen) / casilla
+				var lx: float = rel.dot(d)
+				var ly: float = rel.dot(perp)
+				var dentro: bool = false
+				if envuelve:
+					var dist: float = rel.length()
+					dentro = absf(dist - r_env) <= ANILLO_MITAD
+					if dentro and es_linea and apertura < TAU - 0.001:
+						dentro = absf(atan2(ly, lx)) <= apertura * 0.5
+				elif es_linea:
+					dentro = absf(lx - LINEA_DELANTE) <= GROSOR_LINEA + GROSOR_TOL and absf(ly) <= largo * 0.5
+				else:
+					dentro = rel.length() <= radio
+				if dentro or (not envuelve and not es_linea and dx == 0 and dz == 0):
+					salida.append(c)
+		return salida
+
+	## Nombre de la forma con el vocabulario de hoy (el Pipeline anima y pone VFX por este nombre) más `arco`.
+	static func _nombre(es_linea: bool, alto: int, envuelve: bool, viaja: bool) -> String:
+		if es_linea:
+			return "arco" if envuelve else "muro"
+		if viaja:
+			return "proyectil"
+		if envuelve:
+			return "columna" if alto > 0 else "corro"
+		return "columna" if alto > 0 else "punto"
+
+
+## =====================================================================================================
 ##  Receta en 3D: lee SpellRecipe sin tocarla
 ## =====================================================================================================
 
 class Receta3D extends SpellRecipe:
+	## Fase 8: los cinco glifos de la etapa 1. Su recarga viene de `Sigils.FORM`; el significado en 3D lo pone la geometría.
+	const GLIFOS_GEO: PackedStringArray = ["linea", "altura", "tamano", "flecha", "barrera"]
+
+	## Cuántas veces se dibujó cada glifo de la etapa 1 (un multiconjunto: el orden de dibujo no cuenta).
+	var contadores: Dictionary = {}
+	## ¿Lleva algún glifo que NO es de la etapa 1 (levitación, repetición, rebote, pulso, amplificar…)? Entonces la receta
+	## se interpreta como hoy hasta la etapa 2 (decidido 8/10).
+	var antigua: bool = false
+	var _geo: Dictionary = {}
+
 	## 5.4: glifo `linea` (un muro delante). Va aquí porque `Sigils.FORM` es de Pablo: cuando exista la entrada
 	## `"linea"` en `Sigils.FORM` (ver diario) se usa la suya; mientras tanto basta con este parche.
 	var line: bool = false
 
 	func apply(sigil_name: String) -> void:
-		if sigil_name != "linea":
+		if GLIFOS_GEO.has(sigil_name):
+			contadores[sigil_name] = int(contadores.get(sigil_name, 0)) + 1
+		else:
+			antigua = true
+		_geo = {}
+		if sigil_name == "linea":
+			var repetido: bool = _aplicados.has(sigil_name)
+			_aplicados[sigil_name] = int(_aplicados.get(sigil_name, 0)) + 1
+			line = true
+			spread = true
+			blocks = true
+			barriers += 1                              # varias líneas: el muro se ensancha, como varias barreras
+			cooldown = maxf(cooldown, 2.0)
+			if repetido:
+				cooldown += Sigils.STACK_COOLDOWN
+		else:
 			super.apply(sigil_name)
+		_sincronizar()
+
+	## ¿Se interpreta con la geometría (Fase 8) o como hoy?
+	func usa_geo() -> bool:
+		return not antigua
+
+	## La geometría de esta receta (se recalcula al añadir glifos).
+	func geo() -> Dictionary:
+		if _geo.is_empty():
+			_geo = GeometriaHechizo.evaluar(contadores, Jugador3D.MAX_NIVELES_SUBIBLES)
+		return _geo
+
+	## Con la geometría mandando, los indicadores antiguos (los lee el resto del Lanzador: campos, barridos, cúpula) se
+	## derivan de ella para que ambos caminos digan lo mismo. Cada uno sale de UN dato de la geometría.
+	func _sincronizar() -> void:
+		if antigua:
 			return
-		var repetido: bool = _aplicados.has(sigil_name)
-		_aplicados[sigil_name] = int(_aplicados.get(sigil_name, 0)) + 1
-		line = true
-		spread = true
-		blocks = true
-		barriers += 1                              # varias líneas: el muro se ensancha, como varias barreras
-		cooldown = maxf(cooldown, 2.0)
-		if repetido:
-			cooldown += Sigils.STACK_COOLDOWN
+		var g: Dictionary = geo()
+		travels = float(g["alcance"]) > 0.0
+		reach = 1 if travels else 0                 # varias flechas = más alcance (8.1a), no «chorro»
+		spread = String(g["base"]) == "linea" or bool(g["envuelve"])
+		line = String(g["base"]) == "linea"
+		blocks = bool(g["bloquea"])                  # solo la Barrera; la Línea sólida se decide por material al lanzar
+		height = int(g["alto"])
+		barriers = 0
+		copies = 1
+		lifetime = 0.0
 
 	## Muro quieto delante del lanzador: una fila perpendicular a la mirada, a 1,5 casillas. Con flecha, el muro que
 	## avanza de siempre (SpellRecipe); con pulso, el mismo muro (empujarlo y estirarlo llega con la física de 5.4b).
@@ -1621,6 +1931,8 @@ class Receta3D extends SpellRecipe:
 
 	## Nombre de la forma, para la animación de lanzar y la matriz de VFX del Pipeline (4.6, 4.6b).
 	func forma() -> String:
+		if usa_geo():
+			return String(geo()["nombre"])
 		if es_volador():
 			return "proyectil"
 		if es_barrera_movil() or (line and not travels):
@@ -1645,7 +1957,12 @@ class Receta3D extends SpellRecipe:
 		return _es_quieto()
 
 	func sigue() -> bool:
-		return _sigue()
+		return not usa_geo() and _sigue()
+
+	## Forma que entienden hoy Vfx3D, Formas3D y la animación de lanzar: `arco` aún no existe allí (8.10), se dibuja como muro.
+	func forma_vfx() -> String:
+		var f: String = forma()
+		return "muro" if f == "arco" else f
 
 	func expande() -> bool:
 		return _expande()
@@ -1656,7 +1973,7 @@ class Receta3D extends SpellRecipe:
 		var v: float = (Sigils.BASE_LIFETIME + lifetime) * factor
 		if _es_barrera_movil():
 			v = Sigils.WALL_LIFETIME * factor
-		elif _sigue():
+		elif not usa_geo() and _sigue():
 			v = Sigils.FOLLOW_LIFETIME * factor
 		elif _es_chorro():
 			v = (Sigils.BASE_LIFETIME + lifetime + Sigils.jet_hold(reach)) * factor
@@ -1670,6 +1987,9 @@ class Receta3D extends SpellRecipe:
 	## [{p: Vector2, dir: Vector2, nivel: int, elev: float}]. SpellRecipe apila la altura restando a Y en 2D; aquí se
 	## deshace para que `nivel` y `elev` sean niveles de verdad.
 	func manifestaciones() -> Array:
+		if usa_geo():
+			var c := Vector2(0.5, 0.5) * Lanzador3D.casilla      # origen en el centro de una casilla: sin sesgo de rejilla
+			return manifestaciones_en(c, Vector2.RIGHT)
 		var res: Array = []
 		var volador: bool = _es_volador()
 		var apilado: bool = height > 0 and spread and not _expande()
@@ -1687,6 +2007,25 @@ class Receta3D extends SpellRecipe:
 					p.y += LEVEL * sube
 					elev = sube
 				res.append({"p": p / TILE, "dir": d, "nivel": nivel, "elev": elev})
+		if res.size() > Sigils.MAX_MANIFESTATIONS:
+			res.resize(Sigils.MAX_MANIFESTATIONS)
+		return res
+
+	## 8.5/8.6: las manifestaciones de la geometría para un lanzamiento real. `origen` es el mundo (x, z) en metros y `dir`
+	## la mirada. Rasteriza a casillas (las que tienen el centro dentro de la forma) y las apila `alto` niveles. Devuelve
+	## lo mismo que `manifestaciones()`: casillas relativas al origen en el marco donde +X es «delante», para que
+	## `_crear_campo` las gire con la mirada. Un proyectil no ocupa casillas: devuelve [].
+	func manifestaciones_en(origen: Vector2, dir: Vector2) -> Array:
+		var res: Array = []
+		var g: Dictionary = geo()
+		var d: Vector2 = dir.normalized() if dir.length() > 0.001 else Vector2.RIGHT
+		var giro: float = d.angle()
+		var cas: float = Lanzador3D.casilla
+		for c in GeometriaHechizo.celdas(g, origen, d, cas):
+			var centro := Vector2((float((c as Vector2i).x) + 0.5) * cas, (float((c as Vector2i).y) + 0.5) * cas)
+			var local: Vector2 = ((centro - origen) / cas).rotated(-giro)
+			for nivel in range(int(g["alto"]) + 1):
+				res.append({"p": local, "dir": Vector2.RIGHT, "nivel": nivel, "elev": 0.0})
 		if res.size() > Sigils.MAX_MANIFESTATIONS:
 			res.resize(Sigils.MAX_MANIFESTATIONS)
 		return res

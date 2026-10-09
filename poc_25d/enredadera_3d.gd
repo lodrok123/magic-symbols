@@ -33,6 +33,10 @@ signal deshecha
 enum Fase { OCULTA, BROTANDO, VIVA, ARDIENDO, QUEMADA, DESHACIENDO, DESHECHA }
 
 const GLB: String = "res://poc_25d/meshy/enredadera/enredadera.glb"
+const GLB_ESPINOSA: String = "res://poc_25d/meshy/enredadera/enredadera_espinosa.glb"
+## Ancho de la malla `viva` tal como viene en cada GLB (para que `ancho` signifique siempre «ancho en el mundo»).
+const ANCHO_BASE: float = 1.0
+const ANCHO_BASE_ESPINOSA: float = 0.767
 const DURA_BROTE: float = 0.75
 const HUNDIDA: float = 0.32          ## cuánto empieza por debajo del suelo (la malla mide ~0,3 de alto a escala 1)
 const INTERVALO_FOCO: float = 0.4
@@ -77,16 +81,19 @@ var _llamas: Array = []
 var _alto_real: float = 0.3
 
 
-## `fx`: el Vfx3D para las llamas (opcional). Carga las dos mallas y las deja ocultas.
-func preparar(fx: Vfx3D = null, p_ancho: float = 1.3) -> void:
+## `fx`: el Vfx3D para las llamas (opcional). `variante`: "" = la enredadera normal; "espinosa" = la grande con espinas y restos
+## quemados (Meshy «Thornvine and Ashes»). Carga las dos mallas y las deja ocultas.
+func preparar(fx: Vfx3D = null, p_ancho: float = 1.3, variante: String = "") -> void:
 	_fx = fx
 	ancho = p_ancho
-	var ps: PackedScene = load(GLB) as PackedScene
+	var ruta: String = GLB_ESPINOSA if variante == "espinosa" else GLB
+	var ancho_modelo: float = ANCHO_BASE_ESPINOSA if variante == "espinosa" else ANCHO_BASE
+	var ps: PackedScene = load(ruta) as PackedScene
 	if ps == null:
-		push_warning("Enredadera3D: falta " + GLB)
+		push_warning("Enredadera3D: falta " + ruta)
 		return
 	var m: Node3D = ps.instantiate() as Node3D
-	m.scale = Vector3.ONE * ancho
+	m.scale = Vector3.ONE * (ancho / ancho_modelo)
 	add_child(m)
 	_viva = m.find_child("viva", true, false) as MeshInstance3D
 	_quemada = m.find_child("quemada", true, false) as MeshInstance3D

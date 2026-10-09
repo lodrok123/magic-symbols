@@ -88,6 +88,70 @@ const RECORD_INK: Color = Color(0.78, 0.28, 0.10)
 const BOOK_TEXTURE: Texture2D = preload("res://art/ui/grimorio.png")
 const BOOK_SIZE: Vector2 = Vector2(1470.0, 1070.0)
 
+## --- LÁMINAS ALTERNATIVAS (una por progresión) ---
+##
+## Cada una dice dónde está CADA COSA en su dibujo, en píxeles de lámina, igual que las constantes de arriba. Se activa con
+## `Repertoire.libro`. Si el PNG no está en el proyecto se usa la lámina de siempre: añadir el arte es opcional y no puede romper.
+##
+## `huecos` = dónde está el círculo de cada sector que se puede usar (clave = índice de sector, 0 = derecha, sentido horario en
+## pantalla; 5 = arriba-izquierda, 6 = arriba, 7 = arriba-derecha). Un trazo hecho en otro sector se lleva al hueco más cercano
+## en ángulo: así no hay zonas muertas donde dibujar no hace nada.
+## `leyenda` = el centro de cada óvalo de la página derecha, en el orden en que se rellenan.
+## `nucleo` = radio del círculo del sello, en unidades de diseño (como CORE_RADIUS, que se multiplica por _ui()).
+## `guias` = false porque el arte ya trae impresos el aro, el núcleo y los huecos: el código no los repinta.
+const LIBROS: Dictionary = {
+	"nivel1": {
+		"textura": "res://art/ui/grimorio_nivel1.png",
+		"centro": Vector2(450.1, 444.4),
+		"radio": 254.1,
+		"nucleo": 105.0,
+		"huecos": {5: Vector2(260.8, 288.4), 6: Vector2(456.0, 194.3), 7: Vector2(649.0, 288.4)},
+		"hueco_radio": 62.0,
+		"leyenda": [Vector2(879.0, 263.0), Vector2(1039.0, 264.0), Vector2(1204.0, 264.0)],
+		"guias": false,
+	},
+}
+
+var _libro_cache: String = "?"
+var _libro_datos: Dictionary = {}
+var _libro_tex: Texture2D = null
+
+
+## Los datos de la lámina alternativa activa, o {} si toca la de siempre (también si falta el PNG).
+func _libro() -> Dictionary:
+	if _libro_cache != Repertoire.libro:
+		_libro_cache = Repertoire.libro
+		_libro_datos = {}
+		_libro_tex = null
+		if LIBROS.has(_libro_cache):
+			var d: Dictionary = LIBROS[_libro_cache]
+			if ResourceLoader.exists(String(d["textura"])):
+				_libro_tex = load(String(d["textura"])) as Texture2D
+				if _libro_tex != null:
+					_libro_datos = d
+	return _libro_datos
+
+
+func _circ_c() -> Vector2:
+	var d: Dictionary = _libro()
+	return d["centro"] if not d.is_empty() else CIRCLE_CENTRE
+
+
+func _circ_r() -> float:
+	var d: Dictionary = _libro()
+	return float(d["radio"]) if not d.is_empty() else CIRCLE_RADIUS
+
+
+## Radio del núcleo en unidades de diseño.
+func _core_u() -> float:
+	var d: Dictionary = _libro()
+	return float(d["nucleo"]) if not d.is_empty() else CORE_RADIUS
+
+
+## Índice de sector (0..7) de una dirección unitaria.
+func _sector_idx(dir: Vector2) -> int:
+	return posmod(int(round(dir.angle() / (TAU / float(SECTORS)))), SECTORS)
+
 ## El bloque de las dos páginas dentro de la lámina. Es LO QUE SE
 ## ENCUADRA: la tapa de cuero y las cintas de abajo son adorno y se salen
 ## de la pantalla sin que importe. Encuadrar por el libro entero dejaría
@@ -234,7 +298,7 @@ func _input(event: InputEvent) -> void:
 		# hay dos mapas de teclas que aprender, hay uno con dos modos.
 		if not is_recording and event.keycode >= KEY_1 and event.keycode <= KEY_3:
 			var caster := _spellcaster()
-			if caster:
+			if caster and event.keycode - KEY_1 < Repertoire.pages_available(caster.PAGES):
 				caster.select_page(event.keycode - KEY_1)
 				Sfx.play(_oyente(), "pagina")
 			queue_redraw()
@@ -511,7 +575,7 @@ func _on_page(point: Vector2) -> Vector2:
 ## RADIUS pasa a medir lo que mide el círculo impreso.
 func _ui() -> float:
 	var book: Rect2 = _book_rect()
-	return (book.size.x / BOOK_SIZE.x) * CIRCLE_RADIUS / RADIUS
+	return (book.size.x / BOOK_SIZE.x) * _circ_r() / RADIUS
 
 
 ## Lo mismo para una medida suelta. Se llama así de corto porque aparece
@@ -532,7 +596,7 @@ func _u_font() -> int:
 ## izquierda. Todo el grimorio cuelga de aquí, así que moverlo mueve el
 ## conjunto — que es justo lo que hacía falta para pasarlo a la izquierda.
 func _center() -> Vector2:
-	return _on_page(CIRCLE_CENTRE)
+	return _on_page(_circ_c())
 
 
 ## A qué sector pertenece un trazo, devuelto ya como vector unitario.
@@ -564,11 +628,22 @@ func _sector_of_gesture() -> Vector2:
 
 func _sector_of_point(middle: Vector2) -> Vector2:
 	var offset := middle - _center()
-	if offset.length() < _u(CORE_RADIUS):
+	if offset.length() < _u(_core_u()):
 		return Vector2.ZERO
 
 	var step := TAU / float(SECTORS)
 	var angle := snappedf(offset.angle(), step)
+
+	# Con lámina alternativa solo existen ciertos huecos: se elige el más cercano en ángulo.
+	var huecos: Dictionary = _libro().get("huecos", {})
+	if not huecos.is_empty() and not huecos.has(_sector_idx(Vector2(cos(angle), sin(angle)))):
+		var mejor: float = INF
+		for k in huecos:
+			var a: float = float(k) * step
+			var dif: float = absf(angle_difference(offset.angle(), a))
+			if dif < mejor:
+				mejor = dif
+				angle = a
 	return Vector2(cos(angle), sin(angle))
 
 
@@ -606,7 +681,10 @@ func _draw() -> void:
 
 
 func _draw_book() -> void:
-	draw_texture_rect(BOOK_TEXTURE, _book_rect(), false)
+	var tex: Texture2D = BOOK_TEXTURE
+	if not _libro().is_empty():
+		tex = _libro_tex
+	draw_texture_rect(tex, _book_rect(), false)
 
 
 ## --- LA PÁGINA DE LA DERECHA: LO QUE SABE EL JUGADOR ---
@@ -697,6 +775,11 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 		ink: Color, known: bool, angle: float = 0.0) -> void:
 	var cell := Vector2(float(slot % GRID_COLS), float(slot / GRID_COLS))
 	var at: Vector2 = _on_page(GRID_ORIGIN + GRID_STEP * cell)
+	var ley: Array = _libro().get("leyenda", [])
+	if not ley.is_empty():
+		if slot >= ley.size():
+			return
+		at = _on_page(ley[slot])
 
 	if not known:
 		# Sin muestras grabadas: la casilla se queda en marca de agua.
@@ -717,6 +800,8 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 ## la que se puede trazar — que es la única información que el aro tenía
 ## que dar y que el círculo impreso, al ser tan tenue, no da del todo.
 func _draw_ring(c: Vector2) -> void:
+	if not _libro().is_empty() and not bool(_libro().get("guias", true)):
+		return
 	draw_arc(c, _u(RADIUS), 0.0, TAU, 96, INK_SOFT, _u(2.0), true)
 
 
@@ -771,7 +856,8 @@ func _draw_core(c: Vector2) -> void:
 	var element: RuneData = caster.current_element_data()
 	if element == null:
 		# Sin elemento, la ranura vacía y apagada esperando.
-		draw_arc(c, _u(CORE_RADIUS), 0.0, TAU, 64, INK_FAINT, _u(2.0), true)
+		if _libro().is_empty():
+			draw_arc(c, _u(CORE_RADIUS), 0.0, TAU, 64, INK_FAINT, _u(2.0), true)
 		return
 
 	# El glifo, cargado de color y sin nada debajo. El elemento es lo
@@ -786,7 +872,7 @@ func _draw_core(c: Vector2) -> void:
 
 	# El nombre va DENTRO del núcleo ahora que es grande: fuera chocaría
 	# con el anillo del glifo.
-	_draw_centered_text(c + Vector2(0, _u(CORE_RADIUS - 28.0)), element.display_name,
+	_draw_centered_text(c + Vector2(0, _u(_core_u() - 28.0)), element.display_name,
 		element.color.darkened(CORE_NAME_DARKEN))
 
 
@@ -795,6 +881,8 @@ func _draw_core(c: Vector2) -> void:
 ## sector girado) para que cada porción quede centrada en su dirección,
 ## no partida por una línea justo en medio.
 func _draw_sectors(c: Vector2) -> void:
+	if not _libro().is_empty() and not bool(_libro().get("guias", true)):
+		return
 	var step := TAU / float(SECTORS)
 
 	# Las divisiones van en las FRONTERAS (medio sector giradas) para que
@@ -850,6 +938,15 @@ const DIRECTIONAL: Array = ["flecha"]
 ## Los glifos de la corona van SIN TEÑIR, todos con la tinta del libro.
 ## El color es cosa del núcleo: allí dice qué elemento es, y si aquí
 ## también hubiera colores dejaría de significar eso.
+## Dónde cae el glifo de un sector: en el círculo impreso si la lámina lo trae, y si no en la corona de siempre.
+func _slot_pos(c: Vector2, dir: Vector2) -> Vector2:
+	var huecos: Dictionary = _libro().get("huecos", {})
+	var i: int = _sector_idx(dir)
+	if huecos.has(i):
+		return _on_page(huecos[i])
+	return c + dir * _u(GLYPH_RADIUS)
+
+
 func _draw_components(c: Vector2) -> void:
 	var caster := _spellcaster()
 	if caster == null:
@@ -857,13 +954,13 @@ func _draw_components(c: Vector2) -> void:
 
 	for component in caster.components():
 		var dir: Vector2 = component["direction"]
-		var pos: Vector2 = c + dir * _u(GLYPH_RADIUS)
+		var pos: Vector2 = _slot_pos(c, dir)
 		var sigils: Array = component["sigils"]
 
 		# La ranura ocupada se marca solo con su aro, un poco más firme que
 		# el de las vacías. El lavado de tinta que llevaba dentro era una
 		# mancha gris más en una página que ya tiene bastante dibujo.
-		draw_arc(pos, _u(27.0), 0.0, TAU, 32, INK_SOFT, _u(1.5), true)
+		draw_arc(pos, _u(27.0 if _libro().is_empty() else 56.0), 0.0, TAU, 32, INK_SOFT, _u(1.5), true)
 
 		_draw_sector_sigil(pos, dir, sigils)
 
@@ -887,7 +984,7 @@ func _draw_sector_sigil(pos: Vector2, dir: Vector2, sigils: Array) -> void:
 			chosen = sigil_name
 			break
 
-	var glyph_size: float = _u(SIGIL_GLYPH_SIZE)
+	var glyph_size: float = _u(SIGIL_GLYPH_SIZE if _libro().is_empty() else 76.0)
 	var glyph: Texture2D = Sigils.GLYPHS.get(chosen)
 
 	if glyph == null:
@@ -1082,7 +1179,7 @@ func _draw_pages(c: Vector2) -> void:
 	if caster == null:
 		return
 
-	var total: int = caster.PAGES
+	var total: int = Repertoire.pages_available(caster.PAGES)     # solo las páginas que ya tienes
 	var arriba: Vector2 = c - Vector2(0.0, _u(RADIUS + 34.0))
 
 	for i in range(total):

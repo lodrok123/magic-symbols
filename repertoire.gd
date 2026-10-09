@@ -45,6 +45,22 @@ static var _sigils: PackedStringArray = PackedStringArray(["flecha", "barrera"])
 static var max_sigils_per_page: int = 0
 
 
+## CUÁNTAS PÁGINAS (libros) TIENES. 0 = todas las del Spellcaster. Lo fija cada nivel como `max_sigils_per_page`: el primero
+## da una sola página, y las demás aparecen cuando la progresión las abre. Lo que no se tiene no se pinta en el libro ni se
+## puede elegir o lanzar (Spellcaster.PAGES es el máximo posible, no lo que tienes).
+static var max_pages: int = 0
+
+
+## QUÉ LÁMINA DE LIBRO SE USA. "" = la de siempre (grimorio.png, doce casillas). «nivel1» = la del primer nivel, con el sello en el
+## centro y tres huecos de glifo arriba (ver Spellbook.LIBROS). Lo fija la progresión; si la lámina no existe en disco, el libro
+## cae a la de siempre sin romper nada.
+static var libro: String = ""
+
+
+static func pages_available(total: int) -> int:
+	return total if max_pages <= 0 else clampi(max_pages, 1, total)
+
+
 ## HACIA DÓNDE SALE UN HECHIZO: ¿hacia el sector donde se dibujó, o hacia el
 ## ratón? Con true, todo hechizo que vaya en alguna dirección la toma del
 ## ratón en el momento de lanzarlo (desde el jugador hacia el cursor). El
