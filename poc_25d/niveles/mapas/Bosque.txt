@@ -1,0 +1,67 @@
+; Bosque 1 (Fase 9). Mapa del plan (docs/PLAN_ARREGLOS.md, Fase 9) tal cual: 19 de ancho × 49 de alto.
+; Una fila por línea; las líneas con «;» son comentarios o instrucciones. Letras: marcador_3d.gd y hornear_nivel.gd.
+; Lo lee PruebaTest2 (nivel = "Bosque") mientras no exista Nivel_Bosque.tscn; F9 lo hornea en ese .tscn.
+;
+; El «.» de las filas 1–28 (la mitad de arriba) se reparte al azar entre suelo, hierba corta y tierra; nunca hierba alta.
+; Campamento goblin (10/10): t tienda · x empalizada · V estandarte (decorado) · y puerta y o torre (ARDEN: se queman).
+; La puerta cierra el paso de la fila 17 (el cuello de 6 casillas): hay que quemarla para subir. Si no se quiere, cambiar la y por «.».
+; Casillas: puerta (3,17), torre (6,11), tienda (8,15). Las empalizadas rellenan el resto del cuello y un tramo a la derecha.
+; azar_suelo 1 28 10
+; Arcos que se cruzan de oeste a este (puerta final X y el arco U del camino del puente).
+; giro 13 39 90
+; giro 9 39 90
+; Caudal de las ruinas (10/10): la tinaja (3,26), con giro 180, se inclina hacia SU IZQUIERDA (Reactivo3D.INCLINA_HACIA), que con ese giro es el OESTE, y vierte sobre el cauce seco (columna 2): codo `L` (2,26) que gira al sur,
+; recto `-` (2,27) y (2,28), y el agua desemboca en el río (2,29). La fuente eléctrica `e` (1,26) queda junto al codo. `-` recto: a lo largo de X sin giro; `L` codo: con giro 90 abre al este y al sur.
+; giro 3 26 180
+; giro 2 26 90
+; giro 2 27 90
+; giro 2 28 90
+###################
+#kB......v.j.######
+#.B......v...######
+#.B......v...######
+#.B......vT.T######
+#.B......v...######
+#BB......v...######
+#........v...######
+#........vT.T######
+#........vvvv######
+#.A..........######
+#.....o......######
+#.........W..######
+#............######
+#.WW.........######
+#.......t..xx######
+#....V.......######
+#xxyxxx############
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#eLu.........######
+#.-..........######
+#.-..........######
+#~~~~~~~ggggg######
+#~~~~~~~vvggg######
+#####,v~vvggg######
+#,v,#,v~ggggg######
+#,ggra,~ggggg######
+#vWgra,~ggggg######
+#vggra,~ggggg#,,,,#
+#,gv#,,~igggg#,,,,#
+#,gv#,,~ggggg#,,,,#
+#vgv#,,~ggggg#,,,,#
+#,g,#,,bgUgggX,,,GE
+#vgv#,,~ggggg#,,,,#
+#Ugg#,,~gmggg#,,,,#
+#T,T#,,~ggggg#,,,,#
+#T,T#,,~ggggg#,,,,#
+#M,,#,,~ggggg#,,,,#
+#.,,#,,~ggggg#,,,,#
+#S,,#,,~ggggg#,,,,#
+#.,,#,,~ggggg#,,,,#
+###################

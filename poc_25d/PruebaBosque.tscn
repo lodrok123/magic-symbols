@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://fejtpmdyl08r"]
+
+[ext_resource type="Script" uid="uid://chcoctbeeesis" path="res://poc_25d/prueba_test2.gd" id="1_poc"]
+
+[node name="PruebaBosque" type="Node3D" unique_id=1711641602]
+script = ExtResource("1_poc")
+fuego_nuevo = true
+nivel = "Bosque"
+reglas = "bosque"
+vitrina_vfx = true

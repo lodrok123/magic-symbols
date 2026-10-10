@@ -73,7 +73,7 @@ const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_w
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
-	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.0,
+	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5}      # elite lento: el doble de alto que un goblin (0,85)
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
@@ -260,6 +260,39 @@ uniform float ancho_espuma = 0.16;
 uniform float brillo = 1.0;
 uniform float contraste = 1.5;
 uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+// 13/10 · AGUA ESTILIZADA (el aspecto de paddy-exe/Godot-3D-Stylized-Water, MIT, rehecho sin profundidad de escena):
+// facetas planas que se inclinan con las olas (low-poly), dos tonos en bandas por la distancia a la orilla, línea de espuma
+// nítida junto a tierra y manchas de espuma de dos ruidos que corren en sentidos opuestos. 0 = el agua pintada de antes.
+uniform float estilizada : hint_range(0.0, 1.0) = 1.0;
+uniform float faceta = 0.75;                // lado de los triángulos de agua (u)
+uniform float altura_ola = 0.32;            // cuánto se inclinan
+uniform vec3 color_somero_est : source_color = vec3(0.44, 0.80, 0.91);
+uniform vec3 color_hondo_est : source_color = vec3(0.20, 0.52, 0.80);
+uniform float bandas = 3.0;                 // escalones entre somero y hondo
+uniform float espuma_manchas = 0.5;         // umbral de las manchas (más alto = menos manchas)
+uniform float contraste_faceta = 0.2;       // cuánto se oscurecen las facetas que no miran a la luz (low-poly)
+uniform float transicion_orilla = 0.4;      // 10/10: casillas que tarda la espuma de la orilla en fundirse con el agua (antes un corte seco)
+
+float ola_est(vec2 p, float t) {
+	return sin(p.x * 1.9 + t * 1.1) * 0.5 + sin(p.y * 2.3 - t * 0.9) * 0.35 + sin((p.x + p.y) * 1.3 + t * 0.7) * 0.25;
+}
+
+// Normal plana del triángulo de la rejilla en el que cae `p`: la altura de la ola en sus tres esquinas. La rejilla va girada
+// y sesgada (triángulos casi equiláteros) para que no se lean cuadros alineados con las casillas.
+const mat2 GIRO_FACETA = mat2(vec2(0.90, 0.43), vec2(-0.43, 0.90));
+const mat2 SESGO_FACETA = mat2(vec2(1.0, 0.0), vec2(-0.577, 1.155));
+vec3 normal_faceta(vec2 p, float t) {
+	vec2 g = SESGO_FACETA * (GIRO_FACETA * p) / faceta;
+	vec2 b = floor(g);
+	vec2 f = fract(g);
+	vec2 a1 = f.x > f.y ? b + vec2(1.0, 0.0) : b + vec2(1.0, 1.0);
+	vec2 a2 = f.x > f.y ? b + vec2(1.0, 1.0) : b + vec2(0.0, 1.0);
+	vec3 v0 = vec3(b.x, ola_est(b * faceta, t) * altura_ola / faceta, b.y);
+	vec3 v1 = vec3(a1.x, ola_est(a1 * faceta, t) * altura_ola / faceta, a1.y);
+	vec3 v2 = vec3(a2.x, ola_est(a2 * faceta, t) * altura_ola / faceta, a2.y);
+	vec3 n = normalize(cross(v2 - v0, v1 - v0));
+	return n.y < 0.0 ? -n : n;
+}
 
 void fragment() {
 	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -285,7 +318,26 @@ void fragment() {
 	col = mix(col, color_espuma, espuma * 0.9 * (1.0 - hielo));
 	// Hielo: pálido, con la textura del agua casi apagada.
 	col = mix(col, color_hielo * (0.9 + 0.2 * r.a), hielo);
-	NORMAL = normalize((VIEW_MATRIX * vec4(n.x, 1.0, n.y, 0.0)).xyz);
+	vec3 nm = vec3(n.x, 1.0, n.y);
+	if (estilizada > 0.5) {
+		nm = normalize(mix(normal_faceta(pm.xz, TIME), vec3(0.0, 1.0, 0.0), hielo));
+		float hondo = 1.0 - exp(-dist * 0.9);
+		hondo = floor(hondo * bandas + 0.5) / bandas;                     // dos tonos (y un intermedio) en bandas
+		vec3 ce = mix(color_somero_est, color_hondo_est, hondo);
+		// Sombreado propio de cada faceta (como el low-poly del GIF): la que mira a la luz, clara; la que no, oscura.
+		float lf = clamp(dot(nm, normalize(vec3(0.45, 1.0, 0.3))), 0.0, 1.0);
+		ce *= 1.0 - contraste_faceta + contraste_faceta * 1.3 * smoothstep(0.7, 1.0, lf);
+		float s1 = texture(campo, uv * 0.35 + TIME * vec2(0.012, 0.007)).r;
+		float s2 = texture(campo, uv * 0.5 - TIME * vec2(0.008, 0.011) + 0.37).g;
+		float suma = s1 + s2 - 1.0;
+		float manchas = step(espuma_manchas, suma) + step(0.22, suma) * (1.0 - step(0.3, suma)) * 0.12;
+		float borde_e = dist + (r.b - 0.5) * 0.15 + sin(TIME * 0.8 + r.g * 6.28) * 0.03;
+		float linea = 1.0 - smoothstep(0.0, transicion_orilla, borde_e);    // espuma que se funde con el agua (antes step: corte seco)
+		linea *= linea;                                                     // cae rápido al principio y se alarga al final
+		ce = mix(ce, color_espuma, clamp(max(linea, manchas * 0.85), 0.0, 1.0) * (1.0 - hielo));
+		col = mix(ce, color_hielo * (0.9 + 0.2 * r.a), hielo);
+	}
+	NORMAL = normalize((VIEW_MATRIX * vec4(nm, 0.0)).xyz);
 	float fres = pow(1.0 - clamp(dot(VIEW, NORMAL), 0.0, 1.0), 4.0);
 	col = mix(col, vec3(0.88, 0.94, 1.0), fres * 0.25 * (1.0 - hielo));
 	ALBEDO = col * brillo;
@@ -348,6 +400,8 @@ void fragment() {
 @export var precalentar_al_inicio: bool = true
 ## 9/10: fuego luminoso aditivo (VfxKit3D) en vez del facetado. Mientras Pablo no lo apruebe sale el viejo.
 @export var fuego_nuevo: bool = false
+## Tamaño de los efectos con el kit nuevo (`Vfx3D.escala`; en el Lab es la tecla X). Pablo lo fijó en 0,6 el 10/10.
+const ESCALA_VFX_NUEVO: float = 0.6
 ## Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7: seto, tronco, telaraña, tótems, fogatas, antorchas, puente
 ## y placa). El prerender del Test 2D los apaga: allí son decorado.
 @export var objetos_reactivos: bool = true
@@ -362,6 +416,15 @@ void fragment() {
 ## sus nodos Pieza3D y no de las letras del mapa (las letras siguen dando el suelo, los personajes y los objetos reactivos).
 ## Se puede editar ese .tscn en Godot: mover, girar, escalar, borrar y añadir piezas. Poner a false para volver a las letras.
 @export var usar_escena: bool = true
+## 9.7 · VITRINA de los VFX del Bosque: sin reglas (Bosque3D) que los gobiernen, deja puestos a la vista las runas de la puerta
+## encendidas, el cauce lleno, el agua conectada electrificada y el surtidor echando chorro cada pocos segundos. Con reglas
+## no hace nada: mandan ellas (encender_runa, llenar_cauce…). Solo vale en un nivel con esas piezas.
+@export var vitrina_vfx: bool = false
+## 13/10: agua del río con el aspecto low-poly estilizado (facetas, dos tonos, espuma nítida). Desmarcar = el agua pintada de antes.
+@export var agua_estilizada: bool = true
+## La correa fija de la mochila (los 8 huecos y el oro, abajo) la monta `bolsa_ui.gd` (Juego) y siempre está a la vista. Pablo (10/10)
+## la quiere fuera: la mochila solo sale con I. Con `false` se esconde desde aquí, sin tocar el archivo del Juego.
+@export var mostrar_correa_mochila: bool = false
 const NIVELES: String = "res://poc_25d/niveles/"
 var _modo_escena: bool = false
 var _registro: Array = []       ## cada _poner: [id pedido, casilla, Transform3D, bloquea, origen "decor" | "marcador"] (lo que F9 hornea)
@@ -372,6 +435,11 @@ var _marcas: Array = []                ## marcadores de datos: {grupo, tipo, c, 
 var _en_marcador: bool = false         ## true mientras se coloca algo que sale de un marcador/letra, no del decorado
 var _cel_barrera: Array = []           ## casillas `B` (barrera de fuego) del mapa activo, para agruparlas en paredes (7.11)
 var _muros_def: Array = []             ## paredes de fuego del nivel editable: {celdas, vertical} (de los marcadores `B` con `largo`)
+var _celdas_canal: Dictionary = {}      ## casillas con una pieza canal_recto/canal_codo de un nivel horneado ANTIGUO (los nuevos usan marcadores `-` `L`)
+var _canal_llenos: Dictionary = {}      ## casillas de canal cuyo marcador pide `lleno` (empiezan con agua)
+var _canal_tf: Dictionary = {}          ## casilla de canal (`-` `L`) -> Transform3D REAL de su marcador (posición, giro y escala, como en el editor)
+var _marca_tf: Dictionary = {}          ## 13/10: casilla -> Transform3D REAL de cualquier marcador (posición, giro y escala), como lo dibuja el editor
+var _desvios: Dictionary = {}           ## casilla -> Vector2 (x, z): lo que el marcador de la tinaja está desplazado del centro de su casilla
 var _puentes_def: Array = []           ## puentes reactivos del nivel editable (marcadores `P`): {celdas, activador (casilla o (-1,-1))}
 var _celdas_pieza: Dictionary = {}     ## casillas bloqueadas por una pieza del .tscn (Vector2i -> true)
 var _solidos: Node3D = null            ## cuerpos de colisión de esas piezas
@@ -431,6 +499,7 @@ var _sol: DirectionalLight3D = null
 var _foco: Vector3 = Vector3.ZERO
 var _tam_camara: float = ZOOM_INICIAL
 var _incl: float = INCLINACION
+var _giro_cam: float = 0.0              ## giro de la cámara en pasos de 90° (Z/C): para ver qué tapa algo desde el otro lado
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: PackedStringArray = PackedStringArray()
@@ -438,9 +507,25 @@ var _lotes: Dictionary = {}          ## id -> Array[Transform3D] de las copias p
 var _plantillas: Dictionary = {}     ## id -> [[Mesh, Transform3D local, Material], ...] (vacío si no hay pieza)
 var _n_lotes: int = 0
 var _sombras: Array[Transform3D] = []   ## elipses de contacto de las piezas puestas en lotes (se dibujan en un solo MultiMesh)
+var _canal: Canal3D = null               ## el canal por el que corre el agua de la tinaja (10/10)
 var _reactivos: Array[Reactivo3D] = []   ## los objetos de 4.7 (para enlazar el tótem de rayo con el puente)
 ## Los datos del nivel (de test_2.gd o de jugabilidad_3d.gd, según `nivel`).
-var _reglas: Jugabilidad3D = null        ## solo en el nivel "jugabilidad": las reglas y las tareas
+## Las reglas del nivel: Jugabilidad3D (reglas "jugabilidad") o Bosque3D (reglas "bosque", 9.8, del Juego). Sin tipo a propósito:
+## Bosque3D lo hace el Juego y se carga solo si existe `bosque_3d.gd`; las dos tienen iniciar, colocar, registrar_npc y registrar_losa.
+var _reglas = null
+## 9.5: el mapa salió de `niveles/mapas/<nivel>.txt` (no del .tscn ni de las constantes de siempre).
+var _de_archivo: bool = false
+## 9.7 · Bosque 1: cauce seco (`c`), runas de la puerta (`X`) y agua electrificada. Lo maneja el Juego con llenar_cauce,
+## encender_runa y electrificar_agua (abajo, «API del Bosque»).
+const ALTO_CAUCE: float = ALTO - 0.1          ## el lecho va 0,1 por debajo del suelo: se lee como zanja, y el agua lo tapa
+const ALTO_RUNAS: float = 3.1                 ## sobre el suelo: encima del dintel del arco
+var _guijarros: MultiMeshInstance3D = null
+var _agua_cauce: Dictionary = {}             ## casilla `c` -> MeshInstance3D de su agua (oculta hasta llenar_cauce)
+var _runas_puerta: Dictionary = {}           ## elemento -> [StandardMaterial3D del símbolo, posición]
+var _canal_orden: Array = []                 ## 13/10: casillas del canal en orden de llenado (índice = el de Canal3D)
+var _chispas_agua: Dictionary = {}           ## casilla -> Node3D con las chispas del agua electrificada
+var _t_rayo_agua: Timer = null             ## chispazos sueltos por el agua electrificada
+const REGLAS_BOSQUE: String = "res://poc_25d/bosque_3d.gd"
 var _guardados: Array = []
 var _suelo_obj: Array = []
 var _rotulos: Dictionary = {}
@@ -449,10 +534,17 @@ var _empuj_def: Array = EMPUJABLES
 
 
 func _ready() -> void:
-	_modo_nivel = usar_escena and ResourceLoader.exists(HorneadorNivel.ruta(nivel))
+	_modo_nivel = usar_escena and HorneadorNivel.existe_nivel(nivel)      # nombre exacto: ver existe_nivel (Windows no distingue mayúsculas)
 	if reglas == "jugabilidad" or (reglas == "" and nivel == "jugabilidad"):
 		_reglas = Jugabilidad3D.new()
 		_reglas.name = "Reglas"
+	elif reglas == "bosque":
+		# 9.6: las reglas del Bosque 1 (Bosque3D, 9.8) son del Juego; mientras no exista su archivo, el nivel va sin reglas.
+		if ResourceLoader.exists(REGLAS_BOSQUE):
+			_reglas = (load(REGLAS_BOSQUE) as GDScript).new()
+			_reglas.name = "Reglas"
+		else:
+			_avisos.append("reglas «bosque»: aún no existe bosque_3d.gd (Juego, 9.8); el nivel va sin reglas")
 	if nivel == "jugabilidad":
 		_mapa = Jugabilidad3D.MAPA
 		_giros = Jugabilidad3D.giros()
@@ -461,6 +553,17 @@ func _ready() -> void:
 	elif nivel == "pruebas":
 		_mapa = NivelPruebas.MAPA              # 7.12: el banco de pruebas (16×16); lo demás vacío
 		_giros = {}
+		_guardados = []
+		_empuj_def = []
+	elif not _modo_nivel and HorneadorNivel.ruta_mapa(nivel) != "":
+		# 9.5: las letras salen de `niveles/mapas/<nivel>.txt` (el mapa del plan tal cual). F9 lo hornea en Nivel_<Nivel>.tscn.
+		var tam: Array = []
+		var giros: Dictionary = {}
+		_mapa = HorneadorNivel.leer_mapa(nivel, tam, giros)
+		_ancho = int(tam[0])
+		_alto = int(tam[1])
+		_de_archivo = true
+		_giros = giros           # `; giro x y grados` del archivo (arcos que se cruzan de oeste a este…)
 		_guardados = []
 		_empuj_def = []
 	elif _modo_nivel and nivel != "test2":
@@ -509,6 +612,8 @@ func _ready() -> void:
 	add_child(_efectos)
 	_fx = Vfx3D.new()
 	_fx.estilo_fuego_nuevo = fuego_nuevo
+	if fuego_nuevo:
+		_fx.escala = ESCALA_VFX_NUEVO      # 10/10 (Pablo): la flecha de fuego y el resto del kit nuevo, al 0,6 que fijó en el Lab
 	_efectos.add_child(_fx)
 	_fx.impacto.connect(_al_impactar)
 
@@ -518,6 +623,7 @@ func _ready() -> void:
 	_construir_suelo()
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
+	_montar_canal()
 	_colocar_extras()
 	if _modo_nivel:
 		_instanciar_nivel()
@@ -556,11 +662,14 @@ func _ready() -> void:
 	_actualizar_hud()
 	_precalentar(capa)
 	Jugador3D.montar(self)
+	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
 	if _reglas != null:
 		add_child(_reglas)
 		_reglas.iniciar(self)
+	elif vitrina_vfx:
+		_vitrina_vfx()
 
 
 ## --- Utilidades de rejilla ---
@@ -586,10 +695,12 @@ func _es_agua(l: String) -> bool:
 ## Tipo de suelo de una casilla para la mezcla: 0 hierba, 1 camino, 2 tierra, 3 piedra.
 func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
-	if _reglas != null or (_modo_nivel and nivel != "test2"):
+	if _reglas != null or _de_archivo or (_modo_nivel and nivel != "test2"):
 		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
-		if l == "g" or l == "F" or l == "T" or l == "B":
-			return 2
+		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L":
+			return 3        # 9.6: lecho de piedras del cauce seco; piedra bajo la fuente eléctrica, la tinaja y los canales
+		if l == "g" or l == "F" or l == "T" or l == "B" or l == "t" or l == "y" or l == "o" or l == "x" or l == "V":
+			return 2        # tierra pisada bajo el campamento goblin
 		if l == "X" or l == "E" or l == "S" or l == "p" or l == "a" or l == "w" or _es_agua(l):
 			return 1
 		return 0
@@ -629,7 +740,8 @@ func _construir_suelo() -> void:
 		_img_zona_v = Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
 		for y in range(_lado):
 			for x in range(_lado):
-				_img_zona_v.set_pixel(x, y, Color(1.0 if _letra(Vector2i(x, y)) == "v" else 0.0, 0.0, 0.0, 0.0))
+				var lz: String = _letra(Vector2i(x, y))
+				_img_zona_v.set_pixel(x, y, Color(1.0 if lz == "v" or lz == "," else 0.0, 0.0, 0.0, 0.0))     # `,` = hierba corta (9.6)
 	_img_campo = _campo_ruido(_lado * 8)
 	var sh := Shader.new()
 	sh.code = CODIGO_SUELO
@@ -674,22 +786,77 @@ func _construir_suelo() -> void:
 	_mat_agua.set_shader_parameter("tam_tex", S * 2.0)
 	_mat_agua.set_shader_parameter("brillo", OSCURECER_SUELO)
 	_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
+	_mat_agua.set_shader_parameter("estilizada", 1.0 if agua_estilizada else 0.0)
 
 	var tierra: Array[Transform3D] = []
 	var agua: Array[Transform3D] = []
+	var cauce: Array[Vector2i] = []
 	for y in range(_lado):
 		for x in range(_mapa[y].length()):
 			var c := Vector2i(x, y)
 			var t := Transform3D(Basis.IDENTITY, _centro_celda(c, 0.0))
 			if _letra(c) == " ":
 				continue          # casilla sin pintar del nivel editable: sin suelo
+			if _letra(c) == "c":
+				cauce.append(c)   # 9.7: el cauce seco va aparte (hundido y con su agua lista para llenarse)
+				continue
 			if _es_agua(_letra(c)):
 				agua.append(t)
 			else:
 				tierra.append(t)
 	_multimalla(_malla_bloque(ALTO, mat_suelo, mat_lado), tierra)
 	_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
+	_construir_cauce(cauce, mat_lado)
 	_construir_orillas()
+
+
+## 9.7 · LECHO DEL CAUCE SECO: bloque hundido ALTO_CAUCE con la piedra del suelo oscurecida y parda (material propio) y
+## guijarros aplastados de tonos tierra-gris encima. Cada casilla trae ya su bloque de agua, oculto: llenar_cauce lo sube.
+## Por qué un bloque de agua por casilla y no un MultiMesh: el Juego puede llenar solo una parte (el agua avanza).
+func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
+	if celdas.is_empty():
+		return
+	var lecho: Array[Transform3D] = []
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	var bola := SphereMesh.new()
+	bola.radius = 1.0
+	bola.height = 2.0
+	bola.radial_segments = 8
+	bola.rings = 4
+	var mg := StandardMaterial3D.new()
+	mg.vertex_color_use_as_albedo = true
+	mg.roughness = 0.9
+	bola.material = mg
+	mm.mesh = bola
+	mm.instance_count = celdas.size() * 9
+	var malla_agua: ArrayMesh = _malla_bloque(ALTO_AGUA, _mat_agua, mat_lado)
+	var i: int = 0
+	for c in celdas:
+		lecho.append(Transform3D(Basis.IDENTITY, _centro_celda(c, 0.0)))
+		for k in range(9):
+			var h: int = _hash(c.x, c.y, 40 + k)
+			var off := Vector3(float(h % 97) / 96.0 - 0.5, 0.0, float((h >> 7) % 97) / 96.0 - 0.5) * S * 0.85
+			var r: float = 0.1 + float((h >> 3) % 10) / 70.0
+			mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, float(h % 360)).scaled(Vector3(r * 1.4, r * 0.45, r)),
+				_centro_celda(c, ALTO_CAUCE) + off))
+			var gris: float = 0.32 + 0.16 * float((h >> 11) % 10) / 9.0
+			mm.set_instance_color(i, Color(gris * 1.05, gris, gris * 0.9))
+			i += 1
+		var agua := MeshInstance3D.new()
+		agua.mesh = malla_agua
+		agua.position = _centro_celda(c, 0.0)
+		agua.visible = false
+		add_child(agua)
+		_agua_cauce[c] = agua
+	# Tapa propia (no el shader del suelo): piedra apagada y algo parda, que se lea «seco» al lado de la hierba y del río.
+	var mat_lecho: StandardMaterial3D = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
+	mat_lecho.albedo_color = mat_lecho.albedo_color * Color(0.72, 0.66, 0.58)
+	_multimalla(_malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado), lecho)
+	_guijarros = MultiMeshInstance3D.new()
+	_guijarros.multimesh = mm
+	add_child(_guijarros)
 
 
 ## --- 6.16 ORILLA: transición agua → hierba ---
@@ -706,8 +873,8 @@ func _construir_orillas() -> void:
 	for y in range(_lado):
 		for x in range(_mapa[y].length()):
 			var c := Vector2i(x, y)
-			if _es_agua(_letra(c)) or _letra(c) == "#" or _letra(c) == " ":
-				continue
+			if _es_agua(_letra(c)) or _letra(c) == "#" or _letra(c) == " " or _letra(c) == "c":
+				continue          # el cauce va hundido: una franja de arena a la altura del suelo quedaría flotando
 			for d in dirs:
 				var v: Vector2i = d
 				if not _es_agua(_letra(c + v)):
@@ -807,6 +974,9 @@ func _mapa_orilla() -> Image:
 	for y in range(_lado):
 		for x in range(_lado):
 			orilla.set_pixel(x, y, Color(clampf(float(dist.get(Vector2i(x, y), 0)) / 4.0, 0.0, 1.0), 0.0, 0.0))
+	# 10/10: la distancia sale por casillas (de 4 en 4 vecinos) y su contorno es un rombo: la orilla salía en picos. Se
+	# amplía con interpolación cúbica para que el contorno sea curvo; el shader lee igual (solo cambia la resolución).
+	orilla.resize(_lado * 4, _lado * 4, Image.INTERPOLATE_CUBIC)
 	return orilla
 
 
@@ -855,7 +1025,7 @@ func _sembrar_hierba() -> void:
 	_hierba.name = "Hierba"
 	_hierba.brillo = OSCURECER_SUELO
 	add_child(_hierba)
-	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa)
+	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba)
 	_hierba.set_estado(_tex_estado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
 	if not hierba_completa and _jugador != null:
 		_hierba.actualizar(_jugador.position, true)     # lo que se ve al empezar, de golpe; el resto al andar
@@ -1055,6 +1225,12 @@ func _en_piezas_sueltas(id: String) -> bool:
 
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
 func _pieza(id: String) -> Node3D:
+	# 12/10: modelo suelto `meshy/piezas/<id>.glb` (p. ej. el cristal de la fuente eléctrica): se usa tal cual, sin depender del nombre del nodo.
+	var suelto: String = "res://poc_25d/meshy/piezas/" + id + ".glb"
+	if ResourceLoader.exists(suelto):
+		var escena_suelta: PackedScene = load(suelto) as PackedScene
+		if escena_suelta != null:
+			return _normalizar(escena_suelta.instantiate() as Node3D, id)
 	for b in _bibliotecas:
 		var n: Node = b.find_child(id, true, false)
 		if n != null and n is Node3D:
@@ -1123,24 +1299,54 @@ func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: boo
 		return null         # el nivel viene del .tscn: lo coloca _instanciar_escena (y de ahí sale qué bloquea)
 	if bloquea:
 		_bloqueadas[c] = true
+	var t_pieza := Transform3D(Basis(Vector3.UP, deg_to_rad(giro)).scaled(Vector3.ONE * escala), p)
+	if _en_marcador and _marca_tf.has(c):
+		# 13/10: el marcador tal cual (posición, giro y escala), como lo dibuja el editor. También en los lotes: el decorado
+		# va por lotes (decorado_por_lotes) y antes el lote se llenaba con el centro de la casilla, sin la escala del marcador.
+		t_pieza = _marca_tf[c]
 	if decorado_por_lotes:
 		if _plantilla(id).is_empty():
 			return null
 		if not _lotes.has(id):
 			_lotes[id] = []
-		(_lotes[id] as Array).append(Transform3D(Basis(Vector3.UP, deg_to_rad(giro)).scaled(Vector3.ONE * escala), p))
+		(_lotes[id] as Array).append(t_pieza)
 		if SOMBRA_CONTACTO.has(id):
 			var r: float = float(SOMBRA_CONTACTO[id]) * escala
-			_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r * 2.0, 1.0, r * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
+			_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(r * 2.0, 1.0, r * 1.7)), Vector3(t_pieza.origin.x, Y_DECAL - 0.005, t_pieza.origin.z)))
 		return null
 	var n: Node3D = _pieza(id)
 	if n == null:
 		return null
-	n.scale = Vector3.ONE * escala
-	n.position = p
-	n.rotation_degrees = Vector3(0.0, giro, 0.0)
+	n.transform = t_pieza
 	_props.add_child(n)
 	return n
+
+
+## 13/10: la piedra del canal va donde el marcador está en el editor (posición, giro y escala). Material original (gris).
+## Antes se ponía en el centro de la casilla y sin escala, así que no coincidía con lo que se veía en Nivel_Bosque.
+func _piedra_canal(n: Node3D, c: Vector2i) -> void:
+	if _canal_tf.has(c):
+		var t: Transform3D = _canal_tf[c]
+		n.transform = Transform3D(t.basis, Vector3(t.origin.x, n.position.y, t.origin.z))
+
+
+## 13/10: dónde está el marcador de la casilla `c` en el editor (su posición real), o el centro de la casilla a la altura `y`
+## si no hay marcador (mapa de letras). Para que personajes y telarañas salgan donde se ven en Nivel_Bosque.
+func _pos_marca(c: Vector2i, y: float) -> Vector3:
+	if _marca_tf.has(c):
+		var o: Vector3 = (_marca_tf[c] as Transform3D).origin
+		return Vector3(o.x, y, o.z)
+	return _centro_celda(c, y)
+
+
+## 13/10: centro de una casilla de canal para el agua: el del marcador (dentro de su casilla) o el centro de la casilla.
+func _canal_centro(c: Vector2i) -> Vector3:
+	var centro: Vector3 = _centro_celda(c, ALTO)
+	if _canal_tf.has(c):
+		var t: Transform3D = _canal_tf[c]
+		centro.x = t.origin.x
+		centro.z = t.origin.z
+	return centro
 
 
 ## --- Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7) ---
@@ -1160,6 +1366,9 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 	if variar:
 		p += Vector3(float(h % 61 - 30) / 100.0, 0.0, float((h >> 6) % 61 - 30) / 100.0) * S * 0.5
 		escala = 0.88 + float(h % 25) / 100.0
+	if tipo == "surtidor" and _desvios.has(c):
+		var dv: Vector2 = _desvios[c]          # la tinaja se queda donde la pusiste dentro de la casilla (marcador del nivel)
+		p += Vector3(dv.x, 0.0, dv.y)
 	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else float(h % 360))
 	_registro.append([id_pedido, c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), p), bloquea, "marcador"])    # solo el giro, para hornear
 	if bloquea:
@@ -1169,8 +1378,11 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 		var rs: float = float(SOMBRA_CONTACTO[_id_real(id_pedido)]) * escala
 		_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(rs * 2.0, 1.0, rs * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
 	var r: Reactivo3D = _nuevo_reactivo(tipo, c, p, modelo, elemento)
-	r.scale = Vector3.ONE * escala
-	r.rotation_degrees = Vector3(0.0, giro, 0.0)
+	if _marca_tf.has(c):
+		r.transform = _marca_tf[c]     # 13/10: el marcador tal cual, como en el editor (sin variación aleatoria ni desvíos extra)
+	else:
+		r.scale = Vector3.ONE * escala
+		r.rotation_degrees = Vector3(0.0, giro, 0.0)
 	r.start_lit = encendida
 	_props.add_child(r)
 	return r
@@ -1204,18 +1416,7 @@ static var _tel_probado: bool = false
 
 
 func _cargar_telarana() -> bool:
-	if _tel_probado:
-		return not _tel_mallas.is_empty()
-	_tel_probado = true
-	var partes: Dictionary = {}
-	for par in [[TELARANA_RED, "sana", "ardiendo"], [TELARANA_BASE, "tronco", "palo"]]:
-		var malla: Mesh = _malla_de_glb(String(par[0]))
-		if malla == null:
-			return false
-		partes[par[1]] = _mitad_malla(malla, true)
-		partes[par[2]] = _mitad_malla(malla, false)
-	_tel_mallas = partes
-	return true
+	return Pieza3D.telarana_cargar()      # 13/10: el código vive en Pieza3D (lo usa también el marcador `r` del editor)
 
 
 static func _malla_de_glb(ruta: String) -> Mesh:
@@ -1262,16 +1463,7 @@ static func _mitad_malla(malla: Mesh, izquierda: bool) -> Array:
 
 ## Una parte de la telaraña centrada en x/z, apoyada en y = 0 (si `al_suelo`) y escalada.
 func _parte_telarana(clave: String, escala_parte: float, al_suelo: bool) -> MeshInstance3D:
-	var d: Array = _tel_mallas[clave]
-	var m := MeshInstance3D.new()
-	m.name = clave
-	m.mesh = d[0] as Mesh
-	var caja: AABB = d[1]
-	var cen: Vector3 = caja.get_center()
-	var y0: float = caja.position.y if al_suelo else 0.0
-	m.scale = Vector3.ONE * escala_parte
-	m.position = Vector3(-cen.x, -y0 if al_suelo else -cen.y, -cen.z) * escala_parte
-	return m
+	return Pieza3D.telarana_parte(clave, escala_parte, al_suelo)
 
 
 ## La telaraña: la red (reactivo, arde y se va) entre dos troncos (decorado, se quedan). Sin los modelos, la de antes:
@@ -1294,20 +1486,16 @@ func _poner_telarana(c: Vector2i) -> void:
 		var esc_t: Vector3 = _escalas.get(c, Vector3.ONE)
 		red.rotation.y = giro_t
 		red.scale = esc_t
-		var rt: Reactivo3D = _nuevo_reactivo("telarana", c, _centro_celda(c, ALTO), red, "")
+		var rt: Reactivo3D = _nuevo_reactivo("telarana", c, _pos_marca(c, ALTO), red, "")
 		_props.add_child(rt)
 		# Los troncos, a los lados de la red (en x, el plano de la red es XY) y un poco hacia atrás.
 		var base := Node3D.new()
 		base.name = "telarana_base"
-		base.position = _centro_celda(c, ALTO)
+		base.position = _pos_marca(c, ALTO)
 		base.rotation.y = giro_t
 		base.scale = esc_t
-		var tronco: MeshInstance3D = _parte_telarana("tronco", TELARANA_ESCALA_BASE, true)
-		tronco.position += Vector3(-S * 0.42, 0.0, -0.15)
-		var palo: MeshInstance3D = _parte_telarana("palo", TELARANA_ESCALA_BASE * 1.25, true)
-		palo.position += Vector3(S * 0.43, 0.0, -0.1)
-		base.add_child(tronco)
-		base.add_child(palo)
+		for tr in Pieza3D.telarana_troncos():       # los mismos troncos que dibuja el marcador `r` en el editor
+			base.add_child(tr as Node3D)
 		_props.add_child(base)
 		return
 	var s3: MeshInstance3D = Formas3D.instancia("telarana", Color(0.93, 0.93, 0.97))
@@ -1673,7 +1861,7 @@ func _colocar_letras() -> void:
 			var c := Vector2i(x, y)
 			var l: String = _letra(c)
 			var h: int = _hash(x, y, 3)
-			_en_marcador = not "#~.".contains(l)      # pared, agua y suelo son decorado; el resto sale de un marcador
+			_en_marcador = not "#~.,cUtxV".contains(l)      # pared, agua, suelos, arcos `U`, tienda, empalizada y estandarte son decorado; el resto (también los canales `-` `L`) sale de un marcador
 			match l:
 				" ":
 					_bloqueadas[c] = true          # fuera de lo pintado: no se pisa
@@ -1744,11 +1932,13 @@ func _colocar_letras() -> void:
 					if _reglas != null:
 						_reglas.registrar_npc("librera" if l == "n" else "alquimista", tendero)
 				"M":
-					_npc(PJ_LIBRERA, _centro_celda(c, ALTO))
+					var librera: Pj3D = _npc(PJ_LIBRERA, _pos_marca(c, ALTO))
 					_bloqueadas[c] = true
+					if _reglas != null and _reglas.has_method("registrar_npc"):
+						_reglas.registrar_npc("librera", librera)      # 9.8: sin esto la librera del Bosque no habla
 				"m":
 					# Guardabosques (el que habla en el Test de jugabilidad): la regla le pone nombre y diálogo.
-					var gb: Pj3D = _npc(PJ_GUARDABOSQUES, _centro_celda(c, ALTO))
+					var gb: Pj3D = _npc(PJ_GUARDABOSQUES, _pos_marca(c, ALTO))
 					_bloqueadas[c] = true
 					if _reglas != null:
 						_reglas.registrar_npc("guardabosques", gb)
@@ -1767,13 +1957,13 @@ func _colocar_letras() -> void:
 					var quien: Array = PJ_GOBLIN
 					if l == "A":
 						quien = PJ_ARQUERO if _reglas != null else PJ_ESPADACHIN
-					var g: Pj3D = _personaje(quien, _centro_celda(c, ALTO))
+					var g: Pj3D = _personaje(quien, _pos_marca(c, ALTO))
 					if g != null:
 						_goblins.append(g)
 				"G":
 					# Elemental de bosque (marcador G, tipo "elemental"): entra en `_goblins` como los demás; el Jugador3D le cuelga
 					# su Combate3D al arrancar (equipar reconoce el id y le da el comportamiento propio). La altura sale de ALTO_PJ.
-					var el: Pj3D = _personaje(PJ_ELEMENTAL, _centro_celda(c, ALTO))
+					var el: Pj3D = _personaje(PJ_ELEMENTAL, _pos_marca(c, ALTO))
 					if el != null:
 						_goblins.append(el)
 				"X":
@@ -1781,9 +1971,13 @@ func _colocar_letras() -> void:
 					# (arco_puerta, objetos.glb) la tiene a +-X y hay que girarlo. Se cruza de norte a sur.
 					var arco: String = _id_real("arco_puerta")
 					var giro_arco: float = 0.0 if arco == "arco_ruina" else 90.0
-					if _reglas != null:
+					if _reglas is Jugabilidad3D:
 						giro_arco += 90.0       # la puerta del test de jugabilidad se cruza de oeste a este
+					if _giros.has(c):
+						giro_arco = float(_giros[c])     # el mapa en archivo lo dice (`; giro x y grados`)
 					_poner(arco, c, ALTO, false, false, giro_arco)
+					if _de_archivo or nivel == "Bosque":
+						_poner_runas_puerta(c, giro_arco)    # 9.7: la puerta de las tres runas
 				"E":
 					_poner("portal_salida", c, ALTO, false, false, 0.0)
 					_destellos(_centro_celda(c, ALTO + 1.5), Color(0.75, 0.9, 1.0))
@@ -1793,7 +1987,57 @@ func _colocar_letras() -> void:
 					else:
 						_poner("placa_peso", c, ALTO, false, false)
 				"S":
-					_jugador = _personaje(PJ_JUGADOR, _centro_celda(c, ALTO))
+					_jugador = _personaje(PJ_JUGADOR, _pos_marca(c, ALTO))
+				",", "c":
+					pass        # 9.6: hierba corta (la siembra Hierba3D, baja) y cauce seco (_construir_cauce): sin decorado
+				"U":
+					# 9.6: arco de piedra por el que se pasa (decorado, no marcador): no bloquea. Giro: `; giro` del mapa o 0.
+					_poner("arco_ruina", c, ALTO, false, false, 0.0)
+				"t":
+					# 10/10: tienda goblin (decorado, bloquea). Letra libre: el nivel solo la pinta donde quiere campamento.
+					_sin_hierba[c] = true
+					_poner("tienda_goblin", c, ALTO, true, false)
+				"x":
+					_sin_hierba[c] = true
+					_poner("empalizada_goblin", c, ALTO, true, false, 0.0)       # corre a lo largo de X; `; giro` para ponerla de lado
+				"V":
+					_sin_hierba[c] = true
+					_poner("estandarte_goblin", c, ALTO, true, false)
+				"y":
+					# 10/10: puerta del campamento. ARDE (Reactivo3D `puerta_goblin`): al consumirse libera la casilla.
+					_sin_hierba[c] = true
+					if objetos_reactivos:
+						_reactivo_pieza("puerta_goblin", "puerta_goblin", c, ALTO, true, false, 0.0)
+					else:
+						_poner("puerta_goblin", c, ALTO, true, false, 0.0)
+				"o":
+					# 10/10: torre del campamento. ARDE (Reactivo3D `torre_goblin`).
+					_sin_hierba[c] = true
+					if objetos_reactivos:
+						_reactivo_pieza("torre_goblin", "torre_goblin", c, ALTO, true, false)
+					else:
+						_poner("torre_goblin", c, ALTO, true, false)
+				"-", "L":
+					# 10/10: canal de ruinas, recto (`-`) o codo (`L`): decorado que no bloquea (se camina por encima). El giro de
+					# la pieza (`; giro x y grados`) es solo visual: por dónde corre el agua lo decide la vecindad de casillas.
+					_sin_hierba[c] = true
+					var pieza_canal: Node3D = _poner("canal_recto" if l == "-" else "canal_codo", c, ALTO, false, false, 0.0)
+					if pieza_canal != null:
+						_piedra_canal(pieza_canal, c)
+				"e":
+					# 9.7: fuente eléctrica: el cristal con chispas permanentes (Reactivo3D tipo emisor_rayo, objetos_3d.gd).
+					_sin_hierba[c] = true
+					if objetos_reactivos:
+						_reactivo_pieza("emisor_rayo", "cristal_sanctuario", c, ALTO, true, false, 0.0, "rayo")
+					else:
+						_poner("cristal_sanctuario", c, ALTO, true, false, 0.0)
+				"u":
+					# 9.7: surtidor: tinaja de ruinas (antes: pilar en su pila); con agua echa el chorro y avisa (activado "surtidor").
+					_sin_hierba[c] = true
+					if objetos_reactivos:
+						_reactivo_pieza("surtidor", "tinaja_ruina", c, ALTO, true, false, 0.0, "agua")
+					else:
+						_poner("tinaja_ruina", c, ALTO, true, false, 0.0)
 				".":
 					if h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
 						_poner(String(decor[_hash(x, y, 5) % decor.size()]), c, ALTO, false)
@@ -2043,7 +2287,7 @@ func hornear() -> String:
 			"ediciones) desmarca `usar_escena` en PruebaTest2 y vuelve a pulsar F9.")
 		return ""
 	var extras: Array = []
-	if _reglas != null:
+	if _reglas is Jugabilidad3D:
 		for r in Jugabilidad3D.RECOGIBLES:
 			extras.append({"grupo": "recogible", "tipo": String(r[0]), "c": Vector2i(int(r[1]), int(r[2]))})
 		extras.append({"letra": "n", "c": Jugabilidad3D.PUESTO_CELDA})
@@ -2070,7 +2314,7 @@ func hornear() -> String:
 ## entero -`origen_nivel()` casillas al cargarlo, así `_lado`, `_celda_de` y `centro_de` del Lanzador siguen valiendo.
 ## Con las letras, el cuadrado de siempre.
 func limites() -> Rect2i:
-	if _modo_nivel and _ancho > 0 and _alto > 0:
+	if (_modo_nivel or _de_archivo) and _ancho > 0 and _alto > 0:
 		return Rect2i(0, 0, _ancho, _alto)
 	return Rect2i(0, 0, _lado, _lado)
 
@@ -2122,7 +2366,13 @@ func _leer_nivel() -> void:
 		_avisos.append("no se pudo cargar " + HorneadorNivel.ruta(nivel))
 		_modo_nivel = false
 		return
-	_nivel_raiz = ps.instantiate()
+	_leer_nivel_de(ps.instantiate())
+
+
+## 13/10: lee un nivel ya instanciado. El juego le pasa el .tscn recién cargado (fuera del árbol); la vista del suelo del
+## editor (vista_suelo_editor.gd) le pasa la escena ABIERTA, para construir el suelo con este mismo código. Solo lee.
+func _leer_nivel_de(raiz: Node) -> void:
+	_nivel_raiz = raiz
 	var suelo: GridMap = null
 	for g in _nivel_raiz.find_children("*", "GridMap", true, false):
 		suelo = g as GridMap
@@ -2171,6 +2421,10 @@ func _leer_nivel() -> void:
 	_marcas.clear()
 	_muros_def.clear()
 	_puentes_def.clear()
+	_desvios.clear()
+	_canal_llenos.clear()
+	_canal_tf.clear()
+	_marca_tf.clear()
 	for n in _nivel_raiz.find_children("*", "Marcador3D", true, false):
 		var mk: Marcador3D = n as Marcador3D
 		var t: Transform3D = _t_nivel(mk)
@@ -2180,6 +2434,15 @@ func _leer_nivel() -> void:
 			continue
 		var giro: float = fposmod(rad_to_deg(t.basis.orthonormalized().get_euler().y), 360.0)
 		giros[c] = snappedf(giro, 0.01)
+		if mk.letra == "u":
+			# La tinaja respeta dónde la pusiste DENTRO de su casilla (el resto de marcadores se centran).
+			var centro: Vector3 = _centro_celda(c, 0.0)
+			_desvios[c] = Vector2(t.origin.x - centro.x, t.origin.z - centro.z)
+		_marca_tf[c] = t
+		if mk.letra == "-" or mk.letra == "L":
+			_canal_tf[c] = t          # 13/10: la piedra y el agua van donde el marcador está en el editor, no al centro de la casilla
+		if (mk.letra == "-" or mk.letra == "L") and mk.lleno:
+			_canal_llenos[c] = true
 		var esc: Vector3 = t.basis.get_scale()
 		if not esc.is_equal_approx(Vector3.ONE):
 			_escalas[c] = esc
@@ -2232,11 +2495,16 @@ func _leer_nivel() -> void:
 	var piezas: Array = []
 	_piezas_de(_nivel_raiz, piezas)
 	var guardados: Array = []
+	_celdas_canal.clear()
 	for pn in piezas:
 		var pz: Node3D = pn as Node3D
 		var cp: Vector2i = _celda_de(_t_nivel(pz).origin)
 		if cp.x < 0 or cp.y < 0 or cp.x >= lado or cp.y >= lado:
 			continue
+		# Los canales del nivel horneado son piezas (no letras): sus casillas son las que llena el agua (_montar_canal).
+		var id_canal: String = String(pz.get_meta("id"))
+		if id_canal == "canal_recto" or id_canal == "canal_codo":
+			_celdas_canal[cp] = true
 		if _bajo(pz, "Borde", _nivel_raiz) and _letra_en(filas, cp) != " ":      # sin suelo debajo sigue vacía
 			filas[cp.y] = (filas[cp.y] as String).substr(0, cp.x) + "#" + (filas[cp.y] as String).substr(cp.x + 1)
 		if String(pz.get_meta("id")) == "baldosa_guardado":
@@ -2612,9 +2880,18 @@ func _es_hierba(c: Vector2i) -> bool:
 	return l != "#" and not _es_agua(l) and not _bloqueadas.has(c) and _tipo_suelo(c) == 0
 
 
-## ¿La hierba solo en ZONA_V? Solo en niveles editables (menos el Test 2) y si el export está marcado.
+## ¿La hierba solo en ZONA_V? Solo en niveles editables (menos el Test 2) y en los mapas de archivo (9.5), si el export está marcado.
 func _solo_zona_v() -> bool:
-	return hierba_solo_en_zona_v and _modo_nivel and nivel != "test2"
+	return hierba_solo_en_zona_v and (_de_archivo or (_modo_nivel and nivel != "test2"))
+
+
+## 9.6: la hierba corta decorativa (`,`) sale a algo más de la mitad de alto que la de las zonas V. No arde: `_es_hierba` solo
+## cuenta las `v`, así que el fuego no prende ni se propaga en ella.
+const ALTO_HIERBA_CORTA: float = 0.55
+
+
+func _alto_hierba(x: float, z: float) -> float:
+	return ALTO_HIERBA_CORTA if _letra(Vector2i(floori(x / S), floori(z / S))) == "," else 1.0
 
 
 func _poner_canal(c: Vector2i, canal: int, valor: float) -> void:
@@ -2933,6 +3210,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 	match k.keycode:
 		KEY_F9:
 			hornear()
+		KEY_Z, KEY_C:
+			# Giro de 90° de la cámara (Z/C: Q y E son beber y hablar en Jugador3D). El movimiento sigue a la cámara.
+			_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
+			_colocar_camara()
 		KEY_H:
 			_sol.shadow_enabled = not _sol.shadow_enabled
 		KEY_P:
@@ -3052,7 +3333,7 @@ func _centro(p: Pj3D) -> Vector3:
 
 func _colocar_camara() -> void:
 	var e: float = deg_to_rad(90.0 - _incl)
-	var dir: Vector3 = -Vector3(0.0, sin(e), cos(e))
+	var dir: Vector3 = (-Vector3(0.0, sin(e), cos(e))).rotated(Vector3.UP, deg_to_rad(_giro_cam))
 	_camara.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), _foco - dir * 40.0)
 
 
@@ -3132,7 +3413,7 @@ func _mover(delta: float) -> void:
 		if _t_cast <= 0.0:
 			_jugador.jugar("idle")
 		return
-	var mov: Vector3 = Vector3(entrada.x, 0.0, entrada.y).normalized()
+	var mov: Vector3 = Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_cam))
 	var correr: bool = Input.is_key_pressed(KEY_SHIFT)
 	var paso: Vector3 = mov * (VEL_CORRER if correr else VEL_ANDAR) * delta
 	var destino: Vector3 = _jugador.position + paso
@@ -3175,3 +3456,315 @@ func _actualizar_hud() -> void:
 		"sí" if _efectos.visible else "no", tipo_hierba, dibujo, aviso, _contraste, _hf.size() + _pisadas.size(), _ms_estado]
 	if _reglas != null:
 		_hud.text = _hud.text.replace("TEST 2 en 3D", "Test de jugabilidad en 3D")
+
+
+## --- 9.7 · API del Bosque (la usa el Juego: Bosque3D, 9.8–9.11) ---
+
+## Las tres runas de la puerta final, encima del arco de `c` y repartidas a lo ancho de su abertura (`giro` = el del arco).
+## Son sprites que miran a la cámara (los iconos de vfx/runas): apagadas = piedra oscura; encender_runa las prende.
+func _poner_runas_puerta(c: Vector2i, giro: float) -> void:
+	var eje: Vector3 = Vector3.RIGHT.rotated(Vector3.UP, deg_to_rad(giro))     # a lo ancho del arco
+	var elems: Array = ["fuego", "agua", "rayo"]
+	for i in range(elems.size()):
+		var el: String = elems[i]
+		var t: Texture2D = _tex(RUNAS + "runa_%s.png" % el)
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.albedo_texture = t
+		m.albedo_color = Color(0.22, 0.21, 0.24, 0.9)      # apagada: grabada en piedra
+		var q := QuadMesh.new()
+		q.size = Vector2(0.62, 0.62)
+		q.material = m
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = _centro_celda(c, ALTO + ALTO_RUNAS) + eje * (float(i) - 1.0) * 0.72
+		_efectos.add_child(mi)
+		_runas_puerta[el] = [m, mi.position]
+
+
+## Enciende (o apaga) la runa `elemento` ("fuego" | "agua" | "rayo") de la puerta: color pleno por encima de 1 (en Forward+
+## el bloom la hace brillar), destello del elemento y una luz pequeña que se queda. Con las tres, la puerta es del Juego.
+func encender_runa(elemento: String, si: bool = true) -> void:
+	if not _runas_puerta.has(elemento):
+		return
+	var m: StandardMaterial3D = (_runas_puerta[elemento] as Array)[0]
+	var p: Vector3 = (_runas_puerta[elemento] as Array)[1]
+	var destino: Color = Color(1.6, 1.6, 1.6, 1.0) if si else Color(0.22, 0.21, 0.24, 0.9)
+	create_tween().tween_property(m, "albedo_color", destino, 0.6).set_trans(Tween.TRANS_SINE)
+	if si:
+		_fx.chispazo(p, elemento)
+		_luz(p + Vector3(0.0, 0.0, 0.3), COLOR_ELEMENTO.get(elemento, Color.WHITE), 0.8, 2.5)
+
+
+## El surtidor ha echado agua: las casillas del cauce (todas si `celdas` va vacío, en orden de arriba abajo) se llenan una
+## tras otra: el agua sube desde el lecho, salpica y la casilla pasa a ser agua (`~`: bloquea y conduce como el río).
+## Los guijarros se hunden bajo el agua.
+func llenar_cauce(celdas: Array = []) -> void:
+	var lista: Array = celdas if not celdas.is_empty() else _agua_cauce.keys()
+	var k: int = 0
+	for v in lista:
+		var c: Vector2i = v
+		if not _agua_cauce.has(c) or (_agua_cauce[c] as MeshInstance3D).visible:
+			continue
+		var mi: MeshInstance3D = _agua_cauce[c]
+		mi.visible = true
+		mi.position.y = ALTO_CAUCE - ALTO_AGUA - 0.02          # empieza justo bajo el lecho
+		var tw := mi.create_tween()
+		tw.tween_interval(0.35 * float(k))                       # el agua baja hacia el río, no aparece de golpe
+		tw.tween_property(mi, "position:y", 0.0, 0.9).set_trans(Tween.TRANS_SINE)
+		tw.tween_callback(_fx.salpicadura.bind(_centro_celda(c, ALTO_AGUA), 0.7))
+		_mapa[c.y] = _mapa[c.y].substr(0, c.x) + "~" + _mapa[c.y].substr(c.x + 1)
+		_bloqueadas[c] = true
+		k += 1
+	if k > 0 and _guijarros != null:
+		_guijarros.create_tween().tween_property(_guijarros, "position:y", -0.16, 0.9 + 0.35 * float(k))
+
+
+## Nombre que pidió el Juego (diario 10/10 03:00, punto 4): dibuja el agua de las casillas `c` que acaban de pasar a `~`.
+## Si el Juego ya cambió la letra y el bloqueo (Surtidor3D), esto solo pone el agua y las salpicaduras.
+func poner_agua(celdas: Array) -> void:
+	llenar_cauce(celdas)
+
+
+## Agua electrificada (9.10): en cada casilla, chispas eléctricas que corren a ras del agua, una luz amarilla que parpadea
+## cada tres casillas y, cada 0,3 s, un chispazo en una casilla al azar. `activo = false` lo quita de esas casillas.
+func electrificar_agua(celdas: Array, activo: bool = true) -> void:
+	var n: int = 0
+	for v in celdas:
+		var c: Vector2i = v
+		if not activo:
+			if _chispas_agua.has(c):
+				(_chispas_agua[c] as Node3D).queue_free()
+				_chispas_agua.erase(c)
+			continue
+		if _chispas_agua.has(c):
+			continue
+		# 13/10 (Pablo): chispas SUTILES y azules (las del hechizo de rayo, Vfx3D.chispas_agua), sobre el agua de verdad:
+		# en el canal, sobre la tira de agua de cada mitad (su altura y el sitio del marcador); en el río, sobre la casilla.
+		var raiz := Node3D.new()
+		_efectos.add_child(raiz)
+		var punto: Vector3 = _centro_celda(c, ALTO_AGUA + 0.06)
+		var k: int = _canal_orden.find(c) if _canal != null else -1
+		if k >= 0:
+			for m in _canal.mitades(k):
+				var pv: Node3D = m[0]
+				var largo: float = float(m[1])
+				var gp: GPUParticles3D = _fx.chispas_agua(3)
+				var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+				pm.emission_box_extents = Vector3(_canal.ancho_agua * 0.4, 0.01, largo * 0.5)
+				raiz.add_child(gp)
+				var t: Transform3D = pv.global_transform.orthonormalized()
+				gp.global_transform = Transform3D(t.basis, t * Vector3(0.0, 0.02, largo * 0.5))
+			punto = _canal_centro(c) + Vector3(0.0, _canal.alto_agua + 0.03, 0.0)
+		else:
+			raiz.position = punto
+			var gp2: GPUParticles3D = _fx.chispas_agua(5)
+			var pm2: ParticleProcessMaterial = gp2.process_material as ParticleProcessMaterial
+			pm2.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+			pm2.emission_box_extents = Vector3(S * 0.45, 0.02, S * 0.45)
+			raiz.add_child(gp2)
+			gp2.global_position = punto
+		raiz.set_meta("punto", punto)
+		if n % 3 == 0:
+			var l := OmniLight3D.new()
+			l.light_color = Vfx3D.COLOR_CHISPA_AGUA
+			l.omni_range = 2.5
+			l.shadow_enabled = false
+			raiz.add_child(l)
+			l.global_position = punto + Vector3(0.0, 0.4, 0.0)
+			var tw := l.create_tween().set_loops()
+			for e in [1.2, 0.3, 0.9, 0.15, 1.4, 0.5]:
+				tw.tween_property(l, "light_energy", float(e) * LUZ_AGUA_ELECTRICA, 0.06)
+				tw.tween_interval(0.04 + 0.08 * float(e))
+		_chispas_agua[c] = raiz
+		n += 1
+	if _t_rayo_agua == null:
+		_t_rayo_agua = Timer.new()
+		_t_rayo_agua.wait_time = 0.9          # 13/10: chispazos menos seguidos (antes 0,3 s)
+		add_child(_t_rayo_agua)
+		_t_rayo_agua.timeout.connect(_chispazo_agua)
+	if _chispas_agua.is_empty():
+		_t_rayo_agua.stop()
+	elif _t_rayo_agua.is_stopped():
+		_t_rayo_agua.start()
+
+
+func _chispazo_agua() -> void:
+	if _chispas_agua.is_empty():
+		return
+	var cs: Array = _chispas_agua.keys()
+	var c: Vector2i = cs[randi() % cs.size()]
+	var p: Vector3 = (_chispas_agua[c] as Node3D).get_meta("punto", _centro_celda(c, ALTO_AGUA + 0.1))
+	var r: float = 0.25 if _canal_orden.has(c) else 0.8          # en el canal, sobre la tira de agua
+	_fx.chispazo_suave(p + Vector3(randf_range(-r, r), 0.0, randf_range(-r, r)))
+
+
+## 13/10: energía de la luz azul del agua electrificada (1 = la de antes, amarilla y fuerte).
+const LUZ_AGUA_ELECTRICA: float = 0.35
+
+
+## 10/10 · Canal de ruinas: las casillas `-` (recto) y `L` (codo) conectadas a la casilla de DELANTE de la tinaja (hacia donde
+## vierte: Reactivo3D.INCLINA_HACIA con su giro) forman el canal (letras del mapa o marcadores `-`/`L` del nivel); se ordenan por distancia (anchura) y se llenan una a una con
+## `Canal3D.retraso` / `t_casilla` (ajustables: `_canal.retraso = 0.5`). Si no hay tinaja o no hay canal pegado, no hace nada.
+func _montar_canal() -> void:
+	var tinaja: Reactivo3D = null
+	for r in _reactivos:
+		if r.tipo == "surtidor" and bool(r.get("_es_tinaja")):
+			tinaja = r
+	if tinaja == null:
+		return
+	# Hacia donde vierte (Reactivo3D.INCLINA_HACIA, local de la tinaja) con el giro de la pieza.
+	var avance: Vector3 = tinaja.transform.basis * Reactivo3D.dir_vertido()
+	var dir := Vector2i(roundi(avance.x), roundi(avance.z))
+	var inicio: Vector2i = tinaja.celda + dir
+	if not _es_canal(inicio):
+		_avisos.append("tinaja en %s: no hay canal (`-` o `L`) en la casilla de delante %s" % [tinaja.celda, inicio])
+		return
+	var orden: Array = [inicio]
+	var visto: Dictionary = {inicio: true}
+	var i: int = 0
+	while i < orden.size():
+		var c: Vector2i = orden[i]
+		i += 1
+		for v in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]:
+			var n: Vector2i = c + v
+			# 12/10: el agua solo pasa de una casilla a otra si las dos tienen abierto el lado que las une (según el GIRO del marcador).
+			if not visto.has(n) and _es_canal(n) and _abre_hacia(c, v) and _abre_hacia(n, -v):
+				visto[n] = true
+				orden.append(n)
+	var centros: Array = []
+	for c in orden:
+		centros.append(_canal_centro(c))
+	_canal = Canal3D.new()
+	_canal.name = "Canal"
+	add_child(_canal)
+	_canal_orden = orden
+	# 13/10 (Pablo): el río empieza JUSTO donde cae el chorro de la tinaja (antes: un arroyo hasta el borde de la casilla y una
+	# salpicadura en la caída).
+	var caida: Vector3 = tinaja.punto_caida_global()
+	caida.y = (centros[0] as Vector3).y
+	_canal.configurar(centros, Vector3(dir.x, 0.0, dir.y), caida)
+	# Casillas cuyo marcador pide `lleno`: empiezan con agua.
+	var llenas: Array = []
+	for k in range(orden.size()):
+		if _canal_llenos.has(orden[k]):
+			llenas.append(k)
+	if not llenas.is_empty():
+		_canal.marcar_llenas(llenas)
+	tinaja.sin_arroyo()        # el canal ya empieza en la caída: el agua llega en cuanto cae el chorro
+	# El canal se llena cuando el agua LLEGA a él (el arroyo termina de avanzar), no al golpear la tinaja ni al empezar a verter.
+	# Electricidad (11/10): el agua se electrifica casilla a casilla al pasar por la fuente `e`, con el mismo ritmo que el fluido.
+	# El cristal (fuente `e`) solo electrifica por su canal azul (12/10): la casilla a la que apunta es la que puede electrificarse.
+	# Si el canal no pasa por esa casilla, el canal no se electrifica nunca. El agua de la casilla a la que apunta el cristal se electrifica al llegar el
+	# agua de la tinaja (ver `_al_llenarse_canal`), nunca antes.
+	var celda_rayo: Vector2i = _celda_frente_fuente()
+	var primera: int = orden.size()
+	for k in range(orden.size()):
+		if orden[k] == celda_rayo:
+			primera = k
+			break
+	_canal.casilla_llena.connect(_electrificar_canal.bind(orden, primera))
+	_canal.lleno.connect(_al_llenarse_canal.bind(celda_rayo))
+	tinaja.agua_llega.connect(_canal.llenar.bind(false))
+
+
+## 11/10: la casilla `i` del canal acaba de llenarse. Desde la primera casilla que toca la fuente eléctrica en adelante, el agua
+## que pasa se electrifica (chispas amarillas). Va con el llenado, así que el frente eléctrico sigue al agua y no aparece de golpe.
+func _electrificar_canal(i: int, orden: Array, primera: int) -> void:
+	if i >= primera and i < orden.size():
+		electrificar_agua([orden[i]])
+
+
+## 12/10: la casilla a la que apunta el cristal (fuente `e`). El cristal tiene un canal azul por su lado +Z local (hacia donde mira
+## con giro 0, basis.z): ESA es la dirección por la que toca el agua. Con el giro del marcador se gira el canal azul hacia el agua.
+## Devuelve Vector2i(-99, -99) si no hay cristal en el nivel.
+func _celda_frente_fuente() -> Vector2i:
+	for r in _reactivos:
+		if is_instance_valid(r) and r.tipo == "emisor_rayo":
+			var f: Vector3 = r.transform.basis.z
+			return r.celda + Vector2i(roundi(f.x), roundi(f.z))
+	return Vector2i(-99, -99)
+
+
+## 12/10: el canal acaba de llenarse (llega el agua de la tinaja). Solo entonces se electrifica la casilla a la que apunta el
+## cristal si tiene agua o canal: el agua que se conecta con la tinaja es la que se electrifica.
+func _al_llenarse_canal(celda_rayo: Vector2i) -> void:
+	if _en_mapa(celda_rayo) and (_letra(celda_rayo) == "~" or _es_canal(celda_rayo)):
+		electrificar_agua([celda_rayo])
+
+
+## ¿Alguna casilla vecina de `c` (en las 4 direcciones) tiene la letra `l`?
+func _adyacente_letra(c: Vector2i, l: String) -> bool:
+	for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var n: Vector2i = c + v
+		if _en_mapa(n) and _letra(n) == l:
+			return true
+	return false
+
+
+## 12/10: ¿la casilla de canal `c` tiene abierto su lado hacia `v` (Vector2i en 4 direcciones)? Los lados salen del marcador:
+## recto (`-`): corre a lo largo de su eje X local (giro 0 = este-oeste, 90 = norte-sur); codo (`L`): abre al oeste y al sur con
+## giro 0, y gira con el marcador. Así el agua sigue el giro que le pongas al marcador, también en un codo.
+func _abre_hacia(c: Vector2i, v: Vector2i) -> bool:
+	var giro: float = deg_to_rad(float(_giros.get(c, 0.0)))
+	var base: Array = [Vector2(-1, 0), Vector2(1, 0)] if _letra(c) != "L" else [Vector2(-1, 0), Vector2(0, 1)]
+	for b in base:
+		var lx: float = b.x
+		var lz: float = b.y
+		# Mismo giro que Basis(UP, giro): eje X local = (cos, 0, -sin); eje Z local = (sin, 0, cos).
+		var mx: int = roundi(lx * cos(giro) + lz * sin(giro))
+		var mz: int = roundi(-lx * sin(giro) + lz * cos(giro))
+		if Vector2i(mx, mz) == v:
+			return true
+	return false
+
+
+func _es_canal(c: Vector2i) -> bool:
+	# Con las letras: `-` y `L` del mapa. Con el nivel horneado (Nivel_Bosque.tscn) esas letras ya no existen: son las piezas
+	# canal_recto / canal_codo que `_leer_nivel` apuntó en `_celdas_canal`.
+	return _celdas_canal.has(c) or (_en_mapa(c) and (_letra(c) == "-" or _letra(c) == "L"))
+
+
+## Vitrina (`vitrina_vfx`): todo lo de 9.7 a la vista a la vez, sin jugar. Runas, cauce y agua electrificada se quedan; el
+## surtidor echa un chorro cada 5 s. El agua electrificada es la conectada por 4 vecinas a las casillas del cauce.
+func _vitrina_vfx() -> void:
+	for el in ["fuego", "agua", "rayo"]:
+		encender_runa(el)
+	llenar_cauce()
+	var hecho: Dictionary = {}
+	var cola: Array = _agua_cauce.keys()
+	for c in cola:
+		hecho[c] = true
+	var i: int = 0
+	while i < cola.size():
+		var c: Vector2i = cola[i]
+		i += 1
+		for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = c + v
+			if not hecho.has(n) and _en_mapa(n) and _letra(n) == "~":
+				hecho[n] = true
+				cola.append(n)
+	# 12/10: sin electrificar al empezar. El agua se electrifica solo cuando la tinaja la conecta (`_al_llenarse_canal`).
+	var t := Timer.new()
+	t.wait_time = 5.0
+	t.autostart = true
+	add_child(t)
+	t.timeout.connect(func() -> void:
+		for r in _reactivos:
+			if is_instance_valid(r) and r.tipo == "surtidor":
+				r.brotar())
+
+
+## Esconde la correa de la mochila (`BolsaUI._pie`) mientras `mostrar_correa_mochila` sea false. La mochila grande (I) no cambia.
+## Si el Juego cambia el nombre del nodo, no pasa nada: simplemente no se esconde nada. El arreglo de fondo es suyo (diario 10/10).
+func _ocultar_correa_mochila() -> void:
+	if mostrar_correa_mochila:
+		return
+	for n in get_tree().root.find_children("*", "BolsaUI", true, false):
+		var pie = n.get("_pie")
+		if pie is Control:
+			(pie as Control).visible = false

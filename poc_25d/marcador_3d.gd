@@ -8,10 +8,15 @@ extends Node3D
 ##
 ## Se coloca como una pieza más: Añadir nodo → Marcador3D, elegir la `letra` en el inspector y mover/girar con los gizmos.
 ## OJO: un marcador vive en la CASILLA donde está su centro (2,3 u); la posición exacta dentro de la casilla no cuenta, el giro sí.
+## Excepción (10/10): la tinaja `u` SÍ respeta dónde la pongas dentro de su casilla (los demás se centran).
 ##
 ## `letra` es la del mapa de siempre (S jugador, A arquero, W guerrero, G elemental de bosque, B barrera de fuego, X puerta, E salida, n/Q puestos,
 ## M/m personajes, p/a/w baldosas, K placa, z seto, l tronco, j/k/i tótems de fuego/agua/rayo, F fogata, T brasero, D muñeco,
-## s/f/q plantas reactivas, r telaraña, h setas). Si está vacía, el marcador es de DATOS y manda `grupo`:
+## s/f/q plantas reactivas, r telaraña, h setas, e fuente eléctrica, u tinaja, y puerta goblin, o torre goblin, - canal recto, L canal codo).
+## Canal (`-` y `L`, 10/10): una casilla del canal de ruinas por el que corre el agua de la tinaja. Su GIRO es el de la pieza (recto: corre
+## a lo largo de X; codo: con giro 0 abre al oeste y al sur, 90 → sur y este…) y `lleno` dice si la casilla empieza con agua (vacía por
+## defecto: se llena sola cuando la tinaja vierte). Los canales conectados a la casilla de delante de la tinaja forman UN canal.
+## Si está vacía, el marcador es de DATOS y manda `grupo`:
 ## «recogible» (tipo: pocion | oro) o «empujable» (tipo: tierra | hielo).
 
 @export var letra: String = "":
@@ -26,6 +31,11 @@ extends Node3D
 		if is_inside_tree():
 			_agrupar()
 @export var tipo: String = ""
+## Solo canal (`-`, `L`): la casilla EMPIEZA con agua (true) o vacía (false, lo normal: la llena la tinaja). En el editor se ve el agua.
+@export var lleno: bool = false:
+	set(v):
+		lleno = v
+		_actualizar()
 ## Solo barrera de fuego (`B`): cuántas casillas cubre, a lo largo del eje X LOCAL del marcador (gíralo para ponerla vertical:
 ## -90° en Y). El marcador va en el CENTRO de la pared. Las diagonales se ajustan al eje más cercano (la rejilla es de 2,3 u).
 @export_range(1, 40) var largo: int = 1:
@@ -68,6 +78,15 @@ const LETRAS: Dictionary = {
 	"q": {"grupo": "reactivo", "tipo": "raiz", "rotulo": "RAÍZ REACTIVA", "color": Color(0.5, 0.4, 0.3), "pieza": "raiz_reactiva"},
 	"r": {"grupo": "reactivo", "tipo": "telarana", "rotulo": "TELARAÑA", "color": Color(0.9, 0.9, 0.9)},
 	"h": {"grupo": "reactivo", "tipo": "setas", "rotulo": "SETAS", "color": Color(0.8, 0.4, 0.8), "pieza": "setas"},
+	# 9.6 (10/10, nivel Bosque 1): la lógica es del Juego (9.10 rayo por el agua, 9.11 surtidor y cauce); la maqueta los dibuja.
+	"e": {"grupo": "reactivo", "tipo": "emisor_rayo", "rotulo": "FUENTE ELÉCTRICA", "color": Color(0.95, 0.9, 0.3), "pieza": "cristal_sanctuario"},
+	"u": {"grupo": "reactivo", "tipo": "surtidor", "rotulo": "TINAJA", "color": Color(0.4, 0.7, 1.0), "pieza": "tinaja_ruina"},
+	# 10/10: campamento goblin. Estos dos ARDEN (tienda, empalizada y estandarte son decorado puro: letras t, x y V, sin marcador).
+	"y": {"grupo": "reactivo", "tipo": "puerta_goblin", "rotulo": "PUERTA GOBLIN", "color": Color(0.8, 0.3, 0.2), "pieza": "puerta_goblin"},
+	"o": {"grupo": "reactivo", "tipo": "torre_goblin", "rotulo": "TORRE GOBLIN", "color": Color(0.8, 0.3, 0.2), "pieza": "torre_goblin"},
+	# 10/10: canal de ruinas (antes letras de decorado). No bloquea; el agua la monta el cargador a partir de estos marcadores.
+	"-": {"grupo": "canal", "tipo": "recto", "rotulo": "CANAL RECTO", "color": Color(0.4, 0.7, 1.0), "pieza": "canal_recto"},
+	"L": {"grupo": "canal", "tipo": "codo", "rotulo": "CANAL CODO", "color": Color(0.4, 0.7, 1.0), "pieza": "canal_codo"},
 }
 const DATOS: Dictionary = {
 	"recogible": {"rotulo": "RECOGIBLE", "color": Color(1.0, 0.85, 0.2)},
@@ -149,8 +168,21 @@ func dibujar() -> void:
 		rotulo += " ×%d" % largo
 	var pieza: String = String(info.get("pieza", ""))
 	var modelo: Node3D = Pieza3D.crear_visual(pieza) if pieza != "" else null
+	# 13/10: la vista previa es lo que pone el juego (PruebaBosque), no una caja: la telaraña entera, los personajes con su
+	# modelo y su alto, y el cristal teñido de amarillo como en el juego.
+	if modelo == null and letra == "r":
+		modelo = Pieza3D.visual_telarana()
+	if modelo == null and PJ_DE_LETRA.has(letra):
+		modelo = _visual_personaje()
+	if modelo == null and letra == "a":
+		modelo = _visual_losa_agua()
+	if modelo != null and letra == "e":
+		Pieza3D.tinte_amarillo(modelo)
+		_visual.add_child(_luz_cristal())
 	if modelo != null:
 		_visual.add_child(modelo)
+		if lleno and (letra == "-" or letra == "L"):
+			_visual.add_child(_agua_vista_previa())
 	elif letra != "B" and letra != "P":
 		var caja := MeshInstance3D.new()
 		var bm := BoxMesh.new()
@@ -170,15 +202,94 @@ func dibujar() -> void:
 		punta.mesh = pm
 		punta.position = Vector3(0.0, 1.0, 0.55)
 		_visual.add_child(punta)
-	var et := Label3D.new()
-	et.text = rotulo
-	et.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	et.no_depth_test = true
-	et.pixel_size = 0.006
-	et.modulate = col
-	et.outline_size = 8
-	et.position.y = 2.0 if modelo == null else 2.6
-	_visual.add_child(et)
+	# 12/10: el cristal (`e`) se ve solo como cristal en el editor: sin la etiqueta «FUENTE ELÉCTRICA».
+	if letra != "e" or modelo == null:
+		var et := Label3D.new()
+		et.text = rotulo
+		et.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		et.no_depth_test = true
+		et.pixel_size = 0.006
+		et.modulate = col
+		et.outline_size = 8
+		et.position.y = 2.0 if modelo == null else 2.6
+		_visual.add_child(et)
 	_visual.name = "visual"
 	_visual.set_meta("aviso_marcador", true)
 	add_child(_visual)      # sin owner: no se guarda en el .tscn
+
+
+## Letra -> lista de personajes del juego (constantes PJ_* de prueba_test2.gd; la `A` es el arquero, como con reglas).
+const PJ_DE_LETRA: Dictionary = {"A": "PJ_ARQUERO", "W": "PJ_GOBLIN", "G": "PJ_ELEMENTAL", "M": "PJ_LIBRERA",
+	"m": "PJ_GUARDABOSQUES", "S": "PJ_JUGADOR"}
+
+
+## 13/10: el modelo del personaje de este marcador, con el GLB y el alto que usa el juego (se leen de los scripts, sin copiarlos).
+func _visual_personaje() -> Node3D:
+	var juego: Script = load("res://poc_25d/prueba_test2.gd") as Script
+	var pj: Script = load("res://poc_25d/pj_3d.gd") as Script
+	if juego == null or pj == null:
+		return null
+	var k: Dictionary = juego.get_script_constant_map()
+	var modelos: Dictionary = pj.get_script_constant_map().get("MODELO_DE", {})
+	return Pieza3D.visual_personaje(k.get(String(PJ_DE_LETRA[letra]), []), k.get("ALTO_PJ", {}), modelos)
+
+
+## 13/10: la luz amarilla del cristal, como la pone el juego (Reactivo3D._montar_emisor: COLOR_RAYO, energía 1, alcance 4,
+## a 1,3 de alto, sin sombras). En el juego además parpadea y echa chispas; aquí se queda fija.
+func _luz_cristal() -> OmniLight3D:
+	var obj: Script = load("res://poc_25d/objetos_3d.gd") as Script
+	var col: Color = Color(1.0, 0.92, 0.4)
+	var energia: float = 1.0
+	if obj != null:
+		col = obj.get_script_constant_map().get("COLOR_RAYO", col)
+		energia = float(obj.get_script_constant_map().get("LUZ_CRISTAL", energia))
+	var l := OmniLight3D.new()
+	l.light_color = col
+	l.light_energy = energia
+	l.omni_range = 4.0
+	l.position = Vector3(0.0, 1.3, 0.0)
+	l.shadow_enabled = false
+	return l
+
+
+## 13/10: la losa de agua (`a`) como la pinta el juego (bosque_3d.gd): un círculo rúnico de 0,85 casillas a ras de suelo.
+func _visual_losa_agua() -> Node3D:
+	var reglas: Script = load("res://poc_25d/bosque_3d.gd") as Script
+	var col: Color = Color(0.45, 0.72, 1.0)
+	if reglas != null:
+		col = reglas.get_script_constant_map().get("COLOR_LOSA_AGUA", col)
+	var disco: MeshInstance3D = Formas3D.instancia("runa", col)
+	if disco == null:
+		return null
+	disco.scale = Vector3(2.3 * 0.85, 1.0, 2.3 * 0.85)
+	var raiz := Node3D.new()
+	raiz.position.y = 0.02
+	raiz.add_child(disco)
+	return raiz
+
+
+## Vista previa del agua de un canal LLENO (solo para el editor): tiras azules translúcidas. Recto: de borde a borde a lo largo de X.
+## Codo (con giro 0 abre al oeste y al sur): del borde oeste al centro y del centro al borde sur. Las mide igual que Canal3D (ancho 0,6).
+func _agua_vista_previa() -> Node3D:
+	var raiz := Node3D.new()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.35, 0.66, 0.95, 0.75)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var s: float = 2.3
+	var tiras: Array = []     # [centro Vector3, tamaño Vector2 (x, z)]
+	if letra == "-":
+		tiras.append([Vector3(0.0, 0.15, 0.0), Vector2(s, 0.6)])
+	else:
+		tiras.append([Vector3(-s * 0.25, 0.15, 0.0), Vector2(s * 0.5, 0.6)])
+		tiras.append([Vector3(0.0, 0.15, s * 0.25), Vector2(0.6, s * 0.5)])
+	for t in tiras:
+		var pm := PlaneMesh.new()
+		pm.size = t[1]
+		pm.material = mat
+		var mi := MeshInstance3D.new()
+		mi.mesh = pm
+		mi.position = t[0]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(mi)
+	return raiz

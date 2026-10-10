@@ -45,24 +45,24 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_nhvte")
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_gw4w6"]
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_jltxa"]
 points = PackedVector3Array(0.109, 0.29, 0.436, -0.02, 0.595, 0.39, -0.252, 0.584, 0.333, -0.374, 0.153, 0.249, 0.165, 0.163, 0.381, 0.322, 0.52, 0.238, 0.138, 1.812, 0.21, -0.01, 1.822, 0.262, -0.382, 0.629, 0.201, -0.188, 1.83, 0.21, -0.262, 0.945, 0.284, -0.328, 0.074, -0.288, 0.054, 0.033, -0.006, 0.233, 0.074, 0.302, -0.404, 0.945, 0.101, -0.403, 0.943, -0.115, -0.377, 0.544, -0.224, 0.424, 0.544, 0.003, 0.252, 1.809, 0.075, 0.018, 1.828, -0.021, -0.3, 1.834, 0.086, -0.031, 0.125, -0.435, -0.07, 0.059, -0.41, -0.314, 0.934, -0.267, -0.226, 0.552, -0.355, 0.321, 0.066, -0.299, -0.298, 1.831, -0.1, 0.382, 0.538, -0.221, 0.24, 1.808, -0.092, -0.038, 1.832, -0.274, -0.176, 1.832, -0.229, -0.024, 0.557, -0.447, -0.155, 0.928, -0.364, 0.187, 0.924, -0.318, 0.119, 1.816, -0.23)
 
-[node name="pino" type="Node3D" unique_id=549737076]
+[node name="pino" type="Node3D" unique_id=1056578565]
 metadata/id = "pino"
 metadata/bloquea = true
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=666291221]
+[node name="modelo" type="Node3D" parent="." unique_id=487948328]
 
-[node name="pino_2" type="MeshInstance3D" parent="modelo" unique_id=416930658]
+[node name="pino_2" type="MeshInstance3D" parent="modelo" unique_id=1796170259]
 transform = Transform3D(12.778559, 0, 0, 0, 12.778559, 0, 0, 0, 12.778559, 0, 0, 0)
 mesh = SubResource("ArrayMesh_j1evu")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1834973659]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1583385484]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1304396124]
-shape = SubResource("ConvexPolygonShape3D_gw4w6")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1609663770]
+shape = SubResource("ConvexPolygonShape3D_jltxa")

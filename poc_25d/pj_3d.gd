@@ -341,6 +341,11 @@ func mirar(d: Vector3, delta: float) -> void:
 	rotation.y = _yaw
 
 
+## Velocidad del clip de lanzar (1 = original). Se acelera el clip ENTERO (mismos fotogramas, en menos tiempo), no se recortan fotogramas.
+## Va como velocidad propia de la reproducción (play(..., custom_speed)), así que no choca con set_velocidad_animacion.
+const VEL_CAST: float = 1.6
+
+
 ## Empieza a lanzar un hechizo de `forma` y `elemento` (el "modo lanzar" de DISENO_FUTURO §0b): el clip de
 ## ANIM_CAST (o readandwrite) en bucle y partículas sutiles del elemento en la mano derecha. Devuelve lo que dura
 ## el clip. Se termina con soltar_lanzar(). Solo el nombre del elemento: cómo se ve lo decide Vfx3D.
@@ -355,9 +360,10 @@ func lanzar(forma: String, elemento: String) -> float:
 		rol = "leer"
 		clip = _buscar_clip(rol)
 	animacion_actual = ""
-	jugar(rol)
+	jugar(rol, false, VEL_CAST)
 	_poner_chispas(elemento)
-	return _ap.get_animation(clip).length if clip != "" else 0.0
+	# Dura menos por ir más rápido: el Juego espera este tiempo para llamar a soltar_lanzar().
+	return _ap.get_animation(clip).length / VEL_CAST if clip != "" else 0.0
 
 
 ## Para las partículas de la mano y vuelve a idle.
@@ -398,6 +404,45 @@ var _libro: Node3D = null
 var _libro_tween: Tween = null
 
 
+## El libro del cinto (la pieza "grimorio" de Equipo3D.EQUIPO): se esconde mientras el personaje lo sostiene y vuelve a verse
+## cuando el de la mano llega a él. Null si el personaje no lleva grimorio.
+func _libro_cinto() -> Node3D:
+	for p in _equipo:
+		if is_instance_valid(p) and p.name == "grimorio":
+			return p
+	return null
+
+
+## Tween del libro de la mano que VUELVE al cinto. Va aparte de `_libro_tween` (el de aparecer): antes las llamadas seguidas
+## a `libro_en_manos(false)` (lanzar() y luego soltar_lanzar()/cancelar_apuntar()) mataban el tween de encoger a medias y el
+## libro se quedaba "cosido" a la mano, a medio tamaño, para siempre.
+var _libro_vuelve: Tween = null
+var _libro_viejo: Node3D = null
+
+
+## Remata una vuelta al cinto que siga en marcha: borra el libro de la mano y muestra el del cinto.
+func _acabar_vuelta_libro() -> void:
+	if _libro_vuelve != null and _libro_vuelve.is_valid():
+		_libro_vuelve.kill()
+	_libro_vuelve = null
+	if _libro_viejo != null and is_instance_valid(_libro_viejo) and _libro_viejo.get_parent() != null:
+		_libro_viejo.get_parent().queue_free()
+	_libro_viejo = null
+	var c: Node3D = _libro_cinto()
+	if c != null:
+		c.visible = true
+
+
+## Un paso (k de 0 a 1) del vuelo del libro de la mano al cinto. El destino se vuelve a leer en cada paso: el cinto se mueve con la cadera.
+func _volar_libro(k: float, viejo: Node3D, cinto: Node3D, t0: Transform3D, q0: Quaternion, s0: Vector3) -> void:
+	if not is_instance_valid(viejo) or not is_instance_valid(cinto):
+		return
+	var d: Transform3D = cinto.global_transform
+	var q: Quaternion = q0.slerp(d.basis.get_rotation_quaternion(), k)
+	var s: Vector3 = s0.lerp(d.basis.get_scale(), k)
+	viejo.global_transform = Transform3D(Basis(q).scaled(s), t0.origin.lerp(d.origin, k))
+
+
 func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	if _modelo == null:
 		return
@@ -406,17 +451,34 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	if not abrir:
 		if _libro == null or not is_instance_valid(_libro):
 			_libro = null
+			# Si no hay libro en la mano, el del cinto tiene que estar a la vista (salvo que ya venga volando de vuelta).
+			if _libro_vuelve == null or not _libro_vuelve.is_valid():
+				var c0: Node3D = _libro_cinto()
+				if c0 != null:
+					c0.visible = true
 			return
 		var viejo: Node3D = _libro
 		_libro = null
-		_libro_tween = viejo.create_tween().set_ignore_time_scale(true)
-		_libro_tween.tween_property(viejo, "scale", viejo.scale * 0.02, dur).set_ease(Tween.EASE_IN)
-		_libro_tween.tween_callback(func() -> void:
-			if is_instance_valid(viejo) and viejo.get_parent() != null:
-				viejo.get_parent().queue_free())
+		var cinto: Node3D = _libro_cinto()
+		_libro_viejo = viejo
+		_libro_vuelve = viejo.create_tween().set_ignore_time_scale(true)
+		if cinto == null:
+			# Sin libro de cinto (otro personaje): se encoge y se borra, como antes.
+			_libro_vuelve.tween_property(viejo, "scale", viejo.scale * 0.02, dur).set_ease(Tween.EASE_IN)
+		else:
+			# El libro de la mano VUELA al cinto (posición, giro y tamaño) y al llegar se esconde y se muestra el del cinto.
+			var t0: Transform3D = viejo.global_transform
+			var q0: Quaternion = t0.basis.get_rotation_quaternion()
+			var s0: Vector3 = t0.basis.get_scale()
+			_libro_vuelve.tween_method(_volar_libro.bind(viejo, cinto, t0, q0, s0), 0.0, 1.0, maxf(dur, 0.3)) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_libro_vuelve.tween_callback(_acabar_vuelta_libro)
 		return
 	if _libro != null and is_instance_valid(_libro):
 		return
+	# Si aún estaba volviendo al cinto, se remata antes de sacar otro.
+	if _libro_vuelve != null and _libro_vuelve.is_valid():
+		_acabar_vuelta_libro()
 	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
 	if sks.is_empty():
 		return
@@ -443,6 +505,10 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	g.scale = lleno * 0.02
 	at.add_child(g)
 	_libro = g
+	# El libro del cinto desaparece mientras el personaje lo sostiene (vuelve en _acabar_vuelta_libro).
+	var cinto_oculto: Node3D = _libro_cinto()
+	if cinto_oculto != null:
+		cinto_oculto.visible = false
 	_libro_tween = g.create_tween().set_ignore_time_scale(true)
 	_libro_tween.tween_property(g, "scale", lleno, dur).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Unas motas que suben al aparecer (las de la mano que lanza, en blanco).
@@ -635,9 +701,13 @@ func _quitar_chispas() -> void:
 
 ## Segundos de mezcla al cambiar de clip en `jugar` (0 = salto seco).
 const MEZCLA_CLIPS: float = 0.15
+## Velocidad propia de algunos roles (1 = original), además de la que pida quien llama. 10/10 (Pablo): la voltereta al DOBLE de velocidad.
+## El clip se reproduce entero, solo que en la mitad de tiempo; `duracion(rol)` ya devuelve lo que dura de verdad (el Juego la usa para
+## el tiempo y la distancia de la voltereta).
+const VEL_CLIP: Dictionary = {"roll": 2.0}
 
 
-func jugar(nombre: String, una_vez: bool = false) -> void:
+func jugar(nombre: String, una_vez: bool = false, vel: float = 1.0) -> void:
 	if _ap == null or nombre == animacion_actual:
 		return
 	var clip: String = _buscar_clip(nombre)
@@ -650,16 +720,16 @@ func jugar(nombre: String, una_vez: bool = false) -> void:
 	_ap.get_animation(clip).loop_mode = bucle as Animation.LoopMode
 	# Mezcla corta con el clip anterior. Sin ella el cambio es un salto seco: en el elemental la cadera pasa de 0,81 (idle) a 0,65
 	# (walk) de golpe, y si la IA alterna quieto/andando en el borde del rango se ve como tirones. Medido en los GLB.
-	_ap.play(clip, MEZCLA_CLIPS)
+	_ap.play(clip, MEZCLA_CLIPS, vel * float(VEL_CLIP.get(nombre, 1.0)))
 
 
-## Lo que dura el clip de `nombre` (s) a velocidad 1, o 0 si no existe. La IA lo usa para no cortar una animación a medias
-## (p. ej. el disparo del arquero dura 5 s, no 0,8).
+## Lo que dura el clip de `nombre` (s) a su velocidad normal (la de VEL_CLIP si la tiene: la voltereta va al doble), o 0 si no existe.
+## La IA lo usa para no cortar una animación a medias (p. ej. el disparo del arquero dura 5 s, no 0,8).
 func duracion(nombre: String) -> float:
 	if _ap == null:
 		return 0.0
 	var clip: String = _buscar_clip(nombre)
-	return _ap.get_animation(clip).length if clip != "" else 0.0
+	return _ap.get_animation(clip).length / float(VEL_CLIP.get(nombre, 1.0)) if clip != "" else 0.0
 
 
 ## En qué momento del clip `nombre` sale el golpe/la flecha, como fracción de su duración (0..1). Medido a ojo en el clip:

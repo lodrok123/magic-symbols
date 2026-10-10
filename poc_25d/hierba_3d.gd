@@ -191,10 +191,15 @@ var _centro: Vector2i = Vector2i(999999, 999999)
 ## Prepara materiales y mallas (una vez) y siembra. Con `alrededor = true` NO siembra nada todavía: los bloques
 ## salen con `actualizar(posición del jugador)` y se liberan al alejarse (docs/HIERBA_OPTIMIZACION.md §2.2).
 ## Con false siembra el mapa entero, igualmente en bloques (laboratorio de VFX, prerender del Test 2D).
-func sembrar(zona: Rect2, y: float, peso: Callable, alrededor: bool = false) -> void:
+## 9.6: multiplicador de altura por punto del mundo (x, z) → 0..1, opcional. La hierba corta decorativa (`,`) sale más baja.
+var _alto: Callable = Callable()
+
+
+func sembrar(zona: Rect2, y: float, peso: Callable, alrededor: bool = false, alto: Callable = Callable()) -> void:
 	_zona = zona
 	_y = y
 	_peso = peso
+	_alto = alto
 	_preparar()
 	if not alrededor:
 		for bz in range(ceili(zona.size.y / lado_bloque)):
@@ -302,6 +307,8 @@ func _crear_bloque(b: Vector2i) -> void:
 				continue
 			var borde: float = 1.0 - absf(w - 0.5) * 2.0
 			var s: float = alto_matojo * (0.75 + rng.randf() * 0.5) * (1.0 + borde * 0.6)
+			if _alto.is_valid():
+				s *= float(_alto.call(x, z))
 			matojos.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, _y, z)))
 			var v: float = 0.9 + rng.randf() * 0.2
 			tintes_m.append(Color(v, v * (0.97 + rng.randf() * 0.06), v * (0.95 + rng.randf() * 0.08)))
@@ -320,6 +327,8 @@ func _crear_bloque(b: Vector2i) -> void:
 					continue
 				var borde2: float = 1.0 - absf(w2 - 0.5) * 2.0
 				var s2: float = alto_tarjeta * (0.8 + rng.randf() * 0.45) * (1.0 + borde2 * 0.35)
+				if _alto.is_valid():
+					s2 *= float(_alto.call(x2, z2))
 				trs.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s2, s2, s2)), Vector3(x2, _y, z2)))
 				var v2: float = 0.92 + rng.randf() * 0.14
 				# Los dibujos con flor (0 y 1) salen menos que los de solo hierba (2 y 3).

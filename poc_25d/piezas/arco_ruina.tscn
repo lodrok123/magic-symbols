@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_t0lbk")
 
-[node name="arco_ruina" type="Node3D" unique_id=435194817]
+[node name="arco_ruina" type="Node3D" unique_id=6596168]
 metadata/id = "arco_ruina"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1044864084]
+[node name="modelo" type="Node3D" parent="." unique_id=1905584072]
 
-[node name="arco_ruina" type="MeshInstance3D" parent="modelo" unique_id=756544827]
+[node name="arco_ruina" type="MeshInstance3D" parent="modelo" unique_id=1883271840]
 transform = Transform3D(17.182913, 0, 0, 0, 17.182913, 0, 0, 0, 17.182913, 0, 0, 0)
 mesh = SubResource("ArrayMesh_tw771")

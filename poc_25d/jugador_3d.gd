@@ -355,7 +355,11 @@ func _process(delta: float) -> void:
 			entrada.y += 1.0
 	var correr: bool = libre and Input.is_key_pressed(KEY_SHIFT)
 	var salto: bool = libre and Input.is_key_pressed(KEY_SPACE)
-	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized()
+	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
+	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
+	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
+	# la mirada y la animación parten de este `mov` ya girado, así que ahí no hay que tocar nada.
+	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_camara()))
 	_gestionar_acciones(libre, mov)
 	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
 	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando:
@@ -409,6 +413,12 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	_f8_previa = f8
 	_roll_previa = ctrl
 	_beber_previa = q
+
+
+## Giro actual de la cámara de la maqueta en grados (0 si el mundo no gira la cámara).
+func _giro_camara() -> float:
+	var g: Variant = mundo.get("_giro_cam") if mundo != null else null
+	return float(g) if g != null else 0.0
 
 
 func _iniciar_voltereta(mov: Vector3) -> void:

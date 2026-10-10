@@ -45,24 +45,24 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_2q10w")
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_2h66r"]
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_qrexx"]
 points = PackedVector3Array(-0.45, 0.413, 0.16, -0.418, 0.277, 0.012, -0.429, 0.273, 0.082, -0.442, 0.375, 0.194, -0.407, 0.496, 0.318, -0.399, 0.547, 0.283, -0.328, 0.721, -0.143, -0.344, 0.65, -0.123, -0.315, 0.682, -0.213, -0.295, 0.004, -0.239, -0.346, 0.004, -0.06, -0.3, 0.004, 0.096, -0.386, 0.447, 0.324, -0.286, 0.548, 0.398, -0.289, 0.6, 0.401, -0.263, 0.658, 0.373, -0.236, 0.88, -0.122, -0.267, 0.844, -0.144, -0.277, 0.78, -0.231, -0.301, 0.626, -0.239, -0.174, 0.004, -0.374, -0.023, 0, -0.12, -0.181, 0.004, 0.206, -0.165, 0.639, 0.429, -0.041, 0.004, 0.244, -0.066, 0.747, 0.393, -0.074, 0.777, 0.353, -0.154, 0.9, -0.113, -0.134, 0.865, -0.25, -0.213, 0.811, -0.271, -0.233, 0.725, -0.282, -0.245, 0.621, -0.293, -0.01, 0.007, -0.426, 0.133, 0.003, -0.387, -0.164, 0.045, -0.38, 0.118, 0.001, 0.2, 0.264, 0.002, -0.285, -0.028, 0.712, 0.396, 0.103, 0.811, 0.346, 0.082, 0.835, 0.303, 0.235, 0.842, 0.215, -0.037, 0.878, -0.124, 0, 0.85, -0.184, 0.038, 0.793, -0.245, -0.137, 0.813, -0.291, -0.139, 0.744, -0.313, -0.166, 0.654, -0.333, -0.23, 0.726, -0.284, 0.093, 0.016, -0.429, -0.006, 0.049, -0.427, 0.316, 0.013, -0.279, 0.328, 0.003, -0.134, 0.294, 0.004, 0.031, 0.189, 0.017, 0.142, 0.281, 0.765, 0.271, 0.128, 0.753, 0.347, 0.267, 0.822, 0.261, 0.354, 0.772, 0.076, 0.412, 0.676, -0.05, 0.384, 0.541, -0.209, 0.059, 0.708, -0.291, -0.06, 0.723, -0.326, 0.184, 0.299, -0.382, 0.32, 0.334, -0.325, 0.388, 0.439, -0.241, 0.45, 0.509, -0.095, 0.336, 0.02, -0.007, 0.385, 0.702, 0.148, 0.382, 0.747, 0.12, 0.449, 0.627, -0.046, 0.298, 0.409, -0.331, 0.449, 0.613, 0.022)
 
-[node name="seta_reactiva" type="Node3D" unique_id=1308288820]
+[node name="seta_reactiva" type="Node3D" unique_id=1272671663]
 metadata/id = "seta_reactiva"
 metadata/bloquea = true
 metadata/reactivo = true
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=731681364]
+[node name="modelo" type="Node3D" parent="." unique_id=508297947]
 
-[node name="seta_reactiva" type="MeshInstance3D" parent="modelo" unique_id=971931372]
+[node name="seta_reactiva" type="MeshInstance3D" parent="modelo" unique_id=1658757365]
 transform = Transform3D(3.9908652, 0, 0, 0, 3.9908652, 0, 0, 0, 3.9908652, 0, 0, 0)
 mesh = SubResource("ArrayMesh_ho64j")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1481857863]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=682000643]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1245685118]
-shape = SubResource("ConvexPolygonShape3D_2h66r")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1364617277]
+shape = SubResource("ConvexPolygonShape3D_qrexx")

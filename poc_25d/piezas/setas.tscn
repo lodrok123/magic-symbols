@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_px0mg")
 
-[node name="setas" type="Node3D" unique_id=1855466632]
+[node name="setas" type="Node3D" unique_id=1729504339]
 metadata/id = "setas"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=2095684851]
+[node name="modelo" type="Node3D" parent="." unique_id=1867124750]
 
-[node name="setas" type="MeshInstance3D" parent="modelo" unique_id=707677480]
+[node name="setas" type="MeshInstance3D" parent="modelo" unique_id=531831779]
 transform = Transform3D(3.4936068, 0, 0, 0, 3.4936068, 0, 0, 0, 3.4936068, 0, 0, 0)
 mesh = SubResource("ArrayMesh_sja54")

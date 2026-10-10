@@ -55,6 +55,28 @@ size = Vector3(2.254, 1.035, 2.254)
 [sub_resource type="BoxShape3D" id="BoxShape3D_c10xs"]
 size = Vector3(2.3, 1.035, 2.3)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4m8tl"]
+transparency = 1
+albedo_color = Color(0.47, 0.68, 0.36, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lqcqs"]
+material = SubResource("StandardMaterial3D_4m8tl")
+size = Vector3(2.254, 1.035, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_xmu5l"]
+size = Vector3(2.3, 1.035, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uf6b1"]
+transparency = 1
+albedo_color = Color(0.6, 0.58, 0.52, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ehjnf"]
+material = SubResource("StandardMaterial3D_uf6b1")
+size = Vector3(2.254, 0.828, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_xwgnc"]
+size = Vector3(2.3, 0.828, 2.3)
+
 [resource]
 item/0/name = "SUELO"
 item/0/mesh = SubResource("BoxMesh_4m8tl")
@@ -91,3 +113,17 @@ item/4/mesh_cast_shadow = 1
 item/4/shapes = [SubResource("BoxShape3D_c10xs"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
 item/4/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 item/4/navigation_layers = 1
+item/5/name = "CORTA"
+item/5/mesh = SubResource("BoxMesh_lqcqs")
+item/5/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)
+item/5/mesh_cast_shadow = 1
+item/5/shapes = [SubResource("BoxShape3D_xmu5l"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
+item/5/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/5/navigation_layers = 1
+item/6/name = "CAUCE"
+item/6/mesh = SubResource("BoxMesh_ehjnf")
+item/6/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.414, 0)
+item/6/mesh_cast_shadow = 1
+item/6/shapes = [SubResource("BoxShape3D_xwgnc"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.414, 0)]
+item/6/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/6/navigation_layers = 1

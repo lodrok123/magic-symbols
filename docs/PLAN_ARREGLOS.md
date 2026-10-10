@@ -946,6 +946,293 @@ sustituida por esta fase (lo hecho de `linea` en `Receta3D` se aprovecha).
 
 ---
 
+## Fase 9 — Nivel Bosque 1 (concepto de Pablo del 10/10: `Nivel_Bosque_1_Concept.xlsx`)
+
+**Qué es.** Primer nivel «de verdad» en 3D. Pasillo de bosque de 12 casillas de
+ancho y ~47 de largo, más una sala a la derecha (4 × 13) con el elemental.
+Se empieza **abajo a la izquierda, junto a la librera**, y se sube. Para
+pasar la **puerta final** (V44 en la hoja) hay que activar los **tres tótems**
+(fuego, agua y rayo); cada tótem activado **ilumina su runa en la puerta**, y
+con las tres se abre. Detrás está el **elemental**; la **salida** se abre al
+matarlo.
+
+**Decidido por Pablo (10/10):**
+- **Casillas moradas (detrás de la telaraña) = se recoge el sello de agua.**
+- **Tótem de rayo = conducir la electricidad por el agua.** La fuente de
+  electricidad es permanente; el surtidor echa agua cuando le das con agua y
+  llena el cauce seco, que baja al río; la corriente viaja por el agua hasta
+  el tótem de rayo, que está en la orilla. El jugador **no** tiene rayo.
+- **Las 4 antorchas de arriba activan el tótem de fuego** (las cuatro
+  encendidas = tótem activo). Las 4 de abajo, junto a la librera, son de
+  práctica: enseñan a encender.
+- **Inicio abajo, junto a la librera.** La puerta V44 es la de las tres
+  runas; la salida (AA44) se abre al matar al elemental.
+
+**Recorrido que sale del mapa** (para comprobar en el playtest):
+1. Inicio en la zona de la librera (cerrada). La librera da consejos; las 4
+   antorchas de práctica enseñan a encender con **fuego + flecha**.
+2. **Quemar la telaraña** → zona morada → **sello de agua**.
+3. Cruzar el **puente** del río → camino de tierra → **guardabosques**: vende
+   el glifo **barrera**, dice que la puerta necesita las tres runas y avisa
+   de no echarle agua al elemental (lo cura y lo agranda).
+4. Subir por el camino. Arriba: goblins (1 arquero, 4 guerreros), **tótem de
+   agua** encerrado por una **barrera de fuego** (apagarla con agua), **tótem
+   de fuego** rodeado de **hierba alta** (quemarla) y con 4 **antorchas**.
+5. **Surtidor + cauce + fuente eléctrica** → tótem de rayo.
+6. Tres runas → puerta → **elemental** (débil al fuego) → salida.
+
+**Kit del nivel** (sustituye a `nivel1` para este nivel): empieza con
+**fuego + flecha**, **una página con 1 hueco de sello y 2 de glifo** (Pablo,
+10/10); **barrera** se compra por **20 oro**; **agua** se recoge. El goblin
+guerrero de la zona de inicio suelta 20 oro fijos para poder comprarla (es
+para probar la tienda).
+
+**Supuestos sobre la hoja** (confirmados por Pablo el 10/10):
+- Rojo sin nombre alrededor del tótem de agua (K6–K11, J11) = **barrera de
+  fuego** (`B`). Rojo con nombre = enemigo.
+- Gris claro sin leyenda (toda la mitad de arriba) = **suelo variado al
+  azar** (Pablo: «randomízalo y ponlo como sea»). El mapa de abajo lo deja en
+  `.`; el horneado (9.6) lo reparte entre suelo, hierba corta y manchas de
+  tierra, **sin hierba alta** (arde y cambiaría el puzle del fuego).
+- Negro = **borde de árboles** (`#`), también las paredes interiores (fila
+  22, fila 36, columna M).
+- «Elemental de tierra» = el **elemental de bosque** que ya existe (`G`). La
+  pista del guardabosques dice «elemental de agua»: se entiende «no le eches
+  agua al elemental» (el agua lo cura).
+- Fuente eléctrica en J31, surtidor en L31 e inicio en J51: puestos así en
+  el mapa; Pablo los mueve en el editor si hace falta.
+- Arcos de piedra (R44, J46) = pieza `arco_ruina`, decorado por el que se
+  pasa. Puente (O44–Q44) = una casilla de puente sobre el río (P44).
+- «Suelo de piedra» está en la leyenda pero no aparece en el mapa.
+
+**Mapa en letras** (sacado de la hoja; columna I = x 0, fila 5 = y 0).
+Letras de `marcador_3d.gd` y del GridMap salvo las nuevas, marcadas con ★:
+
+```
+###################
+#kB......v.j.######
+#.B......v...######
+#.B......v...######
+#.B......vT.T######
+#.B......v...######
+#BB......v...######
+#........v...######
+#........vT.T######
+#........vvvv######
+#.A..........######
+#............######
+#.........W..######
+#............######
+#.WW.........######
+#............######
+#............######
+#......############
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#............######
+#ecu.........######
+#.c..........######
+#.c..........######
+#~~~~~~~ggggg######
+#~~~~~~~vvggg######
+#####,v~vvggg######
+#,v,#,v~ggggg######
+#,ggra,~ggggg######
+#vWgra,~ggggg######
+#vggra,~ggggg#,,,,#
+#,gv#,,~igggg#,,,,#
+#,gv#,,~ggggg#,,,,#
+#vgv#,,~ggggg#,,,,#
+#,g,#,,bgUgggX,,,GE
+#vgv#,,~ggggg#,,,,#
+#Ugg#,,~gmggg#,,,,#
+#T,T#,,~ggggg#,,,,#
+#T,T#,,~ggggg#,,,,#
+#M,,#,,~ggggg#,,,,#
+#.,,#,,~ggggg#,,,,#
+#S,,#,,~ggggg#,,,,#
+#.,,#,,~ggggg#,,,,#
+###################
+```
+
+| letra | qué | | letra | qué |
+|---|---|---|---|---|
+| `#` | borde de árboles | | `k` `j` `i` | tótem de agua / fuego / rayo |
+| `.` | suelo | | `B` | barrera de fuego |
+| `,` ★ | hierba corta, no arde (decorado) | | `T` | antorcha (brasero) |
+| `v` | hierba alta (arde) | | `r` | telaraña |
+| `g` | camino de tierra | | `a` | zona del sello de agua (losa de agua) |
+| `~` | agua (río) | | `A` `W` `G` | goblin arquero / guerrero / elemental |
+| `b` | puente | | `M` `m` | librera / guardabosques (NPC) |
+| `c` ★ | cauce seco (se llena de agua) | | `X` | puerta final (3 runas) |
+| `e` ★ | fuente de electricidad permanente | | `E` | salida (bloqueada) |
+| `u` ★ | surtidor: echa agua si le das con agua | | `S` | inicio del jugador |
+| `U` ★ | arco de piedra (pieza `arco_ruina`, no marcador) | | | |
+
+### Pablo
+
+- [x] **9.0** Decidido el 10/10: sello de agua tras la telaraña; rayo por
+  conducción; antorchas de arriba = tótem de fuego; inicio junto a la
+  librera; salida tras el elemental.
+- [x] **9.1 (P0) Revisar los supuestos y el mapa en letras** de arriba
+  *(10/10: supuestos confirmados; gris de arriba al azar; página con 1 sello
+  y 2 glifos; barrera a 20 oro; el goblin de la zona de inicio suelta 20 oro)*.
+- [ ] **9.2 (P1) Textos de los NPC.** El Juego los redacta con la voz de
+  `CONTEXTO.md` a partir de la hoja; Pablo los aprueba.
+- [ ] **9.3** Tras el horneado (9.6): ajuste fino en el editor (giros,
+  decorado, arcos) y **playtest** del nivel entero.
+- [ ] **9.4 Limpieza:** `poc_25d/niveles/nivel_Bosque.tscn` (con «n»
+  minúscula) es una copia del 23 × 23 de jugabilidad, no el bosque. El
+  horneado escribirá `Nivel_Bosque.tscn`; borra o renombra la vieja para que
+  no haya dos que solo se distinguen por la mayúscula (Windows no las
+  distingue, Godot sí).
+
+### Pipeline
+
+- [x] **9.5 (P0) Mapa desde archivo (D2 del 8/10).** `PruebaTest2` lee las
+  letras de `poc_25d/niveles/mapas/<nivel>.txt` (el mapa de arriba, tal
+  cual) y F9 hornea `Nivel_Bosque.tscn`. El mapa no es cuadrado (19 × 49):
+  `limites()` ya sale del GridMap.
+  *(10/10: hecho, ver diario.)*
+- [x] **9.6 (P0) Letras y suelos nuevos** (`marcador_3d.gd`, GridMap
+  `suelo_tipos.tres`, horneador): `,` hierba corta decorativa (no arde),
+  `c` cauce seco (tipo de suelo propio: lecho de piedras; se vuelve agua),
+  `e` fuente eléctrica (marcador, grupo `reactivo`, tipo `emisor_rayo`),
+  `u` surtidor (marcador, grupo `reactivo`, tipo `surtidor`), `U` pieza
+  `arco_ruina`. **El suelo `.` de la mitad de arriba (filas 1–28 del mapa) se
+  reparte al azar** entre suelo, hierba corta y manchas de tierra, sin hierba
+  alta. Hornear `Nivel_Bosque.tscn` y la escena `PruebaBosque.tscn`
+  (`nivel = "Bosque"`, `reglas = "bosque"`), y la línea en `prueba_test2.gd`
+  que crea las reglas `Bosque3D` cuando `reglas == "bosque"`.
+  *(10/10: hecho; falta que Pablo borre `nivel_Bosque.tscn` (9.4) y pulse F9 en `PruebaBosque`.)*
+- [x] **9.7 (P1) Arte nuevo:** puerta final con **tres runas** (fuego, agua,
+  rayo) que se iluminan por separado (`arco_puerta` + 3 símbolos con
+  emisión); **fuente eléctrica** (cristal/piedra con chispas permanentes);
+  **surtidor** (fuente de piedra; chorro al activarse); **lecho del cauce**
+  seco y su paso a agua; **agua electrificada** (chispas que recorren el
+  agua). Vfx: lo que pida el Juego en 9.10–9.11.
+  *(10/10: hecho como primera versión; falta verla con Forward+ y el glow.)*
+
+### Juego
+
+- [x] **9.8 (P0) Reglas del bosque** (`poc_25d/bosque_3d.gd`, nuevo,
+  `class_name Bosque3D`, como `Jugabilidad3D`): puerta `X` con tres runas
+  (cada tótem activado ilumina la suya; con las tres se abre); tótem de fuego
+  activo cuando las **4 antorchas de arriba** están encendidas (las de abajo
+  no cuentan); salida `E` bloqueada hasta que muere el elemental; HUD de
+  objetivos (las tres runas).
+  *(10/10, Juego: hecho y probado en headless con una maqueta falsa y el mapa
+  de arriba; falta probarlo en el nivel real cuando el Pipeline entregue 9.5/9.6
+  y enganche `Bosque3D`: ver el diario del 10/10 03:00.)*
+- [x] **9.9 (P0) Kit del nivel:** progresión `bosque` en `PROGRESIONES`
+  (fuego + flecha; una página con 1 hueco de sello y 2 de glifo); la zona `a` desbloquea el **agua**
+  (`Repertoire.unlock_element`, con aviso); el **guardabosques vende la
+  barrera** por 20 oro (tienda mínima en 3D: oro → `unlock_sigil`). **El
+  goblin guerrero de la zona de inicio (K39 en la hoja; fila 34 del mapa)
+  suelta 20 oro fijos** (Pablo, 10/10: es para probar la tienda), así la
+  barrera se puede comprar en cuanto se llega al guardabosques.
+  *(10/10, Juego: hecho. Tienda = E para hablar y E otra vez para comprar. La
+  progresión se elige por el nombre del nivel: `nivel = "Bosque"`.)*
+- [x] **9.10 (P0) Rayo que conduce por el agua en 3D** (hoy solo salta entre
+  enemigos mojados): `emisor_rayo_3d.gd` (D4, ya asignado al Juego) mete
+  corriente en las casillas de agua **conectadas** a la suya, cada X s; un
+  tótem de rayo en la orilla de esa agua se activa; quien esté en el agua
+  electrificada recibe daño. Medir que la cadena J31 → cauce → río → Q41
+  llega.
+  *(10/10, Juego: `emisor_rayo_3d.gd`. Medido sobre el mapa en letras: la
+  corriente llega a la casilla pegada al tótem de rayo (25 casillas de agua
+  conectadas una vez lleno el cauce; 0 antes).)*
+- [x] **9.11 (P0) Surtidor y cauce:** el surtidor `u` recibe agua → las
+  casillas `c` pasan a agua de verdad (`tipo_suelo` AGUA) y se unen al río.
+  Es la regla «agua que rellena» de 5.5, en pequeño.
+  *(10/10, Juego: `surtidor_3d.gd`. Cambia la letra de la casilla a `~`; el dibujo
+  del agua nueva lo hará el Pipeline con `poner_agua(celdas)`, mientras tanto
+  sale una losa azul.)*
+- [x] **9.12 (P1) NPC:** diálogos de librera y guardabosques a partir de la
+  hoja (borrador para 9.2), con la pista del elemental.
+  *(10/10, Juego: borrador en `Bosque3D.DIALOGOS`; Pablo lo aprueba en 9.2.)*
+- [x] **9.13 (P1) Elemental en sala estrecha:** la sala mide 4 casillas de
+  ancho; comprobar que el elemental de 2,5 u, sus enredaderas y su puñetazo
+  caben y no atraviesan la pared.
+  *(10/10, Juego: medido, cabía pero atravesaba la pared (el centro llegaba a
+  0,05 u del borde, con un cuerpo de ~1 u de radio). Arreglado en
+  `Combate3D._cabe_con_cuerpo`: ahora se para a 1,05 u.)*
+
+**Orden:** 9.1 → 9.5 ∥ 9.8 ∥ 9.9 → 9.6 → 9.10 ∥ 9.11 → 9.7 ∥ 9.12 ∥ 9.13 →
+9.3. Mientras no exista 9.5, el Pipeline puede hornear pegando el mapa en una
+constante, como `Jugabilidad3D.MAPA`.
+
+---
+
+## Fase 10 — Lo visto en el playtest del Bosque (Pablo, 10/10 04:00)
+
+Pablo jugó `PruebaBosque`. Cuatro puntos:
+
+1. **Falta esquivar y tomar distancia.** La voltereta **ya existe** (tecla
+   **Ctrl**, `Jugador3D._iniciar_voltereta`), pero no se descubre: no sale en
+   ningún sitio. Además, si no te mueves no tiene a dónde ir.
+2. **La barrera (cúpula) se queda pequeña:** debe **englobar al personaje**,
+   al menos el doble. Hoy se dibuja al 20 % del radio del aro
+   (`ESCALA_CUPULA = 0.2` en `lanzador_3d.gd`, pedido del 6/10): ≈ 0,7 u de
+   radio para un personaje de 1,0 u de alto.
+3. **Pablo edita él mismo el mapa** del bosque: `poc_25d/niveles/mapas/Bosque.txt`.
+4. **Cámara que gira 90°.** Con la cámara fija hay cosas que se ven peor (p.
+   ej. la puerta `X` queda detrás de la columna de árboles, lo avisó el
+   Pipeline). Propuesta: mantener la vista inclinada y ortográfica de hoy y
+   **girarla en pasos de 90°** con dos teclas, con un giro suave. Cambia poco
+   código porque el mundo ya es 3D: lo que hay que adaptar es el movimiento
+   (WASD es fijo al mundo: W = −Z) y lo que depende de la dirección de la
+   cámara (oclusión, rótulos).
+
+### Pablo
+
+- [ ] **10.0** Decidir las teclas de girar la cámara (propuesta: **Z / C**;
+  Q es poción, E es hablar) y si «2,5D» significa algo más que el giro
+  (p. ej. perspectiva en vez de ortográfica).
+- [ ] **10.1** Editar `mapas/Bosque.txt` (formato en su cabecera: una fila
+  por línea, `;` = comentario, `; azar_suelo` y `; giro`). Mientras no exista
+  `Nivel_Bosque.tscn`, F6 en `PruebaBosque.tscn` lee el `.txt` directamente;
+  cuando hornees (F9), manda el `.tscn` y el `.txt` deja de leerse (desmarca
+  `usar_escena` para volver a él). Recuerda borrar `niveles/nivel_Bosque.tscn`
+  (9.4).
+- [ ] **10.7** Playtest del giro de cámara y de la voltereta.
+
+### Juego
+
+- [ ] **10.2 (P0) Voltereta descubrible y para tomar distancia.** Comprobar
+  que **Ctrl** rueda en `PruebaBosque`; enseñar la tecla en el HUD (junto a
+  Q/E); **sin dirección de movimiento, rodar hacia atrás**, alejándose de
+  donde apunta el ratón (es lo que pide «tomar distancia»). Si Pablo prefiere
+  otra tecla, es una línea.
+- [ ] **10.3 (P0) Cúpula de la barrera al menos el doble:** `ESCALA_CUPULA`
+  de 0,2 a **0,4** como mínimo (≈ 1,4 u de radio) y comprobar que tapa al
+  personaje entero (1,0 u de alto). Solo cambia
+  el dibujo; el escudo que absorbe (`VIDA_ESCUDO`) sigue igual.
+- [ ] **10.4 (P0, tras 10.0) Movimiento relativo a la cámara:** WASD se
+  calcula con los ejes de la cámara girada, no con los del mundo. El apuntado
+  con ratón ya usa el rayo de la cámara y no cambia.
+
+### Pipeline
+
+- [ ] **10.5 (P0, tras 10.0) Giro de cámara en pasos de 90°** en
+  `prueba_test2.gd` (`_colocar_camara` con un ángulo de giro; tween de
+  ~0,3 s; el foco sigue al jugador). Exponer el ángulo para que el Juego
+  oriente el movimiento (10.4). Adaptar lo que depende de la dirección de la
+  cámara: `Ocluso3D` (qué se transparenta), rótulos, runas de la puerta y
+  cualquier imagen plana que solo se vea bien de frente.
+- [ ] **10.6 (P1)** Revisar el nivel girado: piezas o VFX que solo se
+  vieron de un lado (caras sin textura, sombras, la hierba).
+
+**Orden:** 10.2 ∥ 10.3 (ya) · 10.0 → 10.5 → 10.4 → 10.6 → 10.7. 10.1 cuando
+Pablo quiera; no bloquea nada.
+
+---
+
 ## Reparto resumido
 
 | | Pablo | Juego | Pipeline |
@@ -959,6 +1246,8 @@ sustituida por esta fase (lo hecho de `linea` en `Receta3D` se aprovecha).
 | Fase 6 (playtest 7/10) | 6.0, 6.21–6.24 | 6.1–6.9, 6.2b, 6.22a | 6.10–6.20 |
 | Fase 7 (nivel editable, camino A) | 7.0, 7.9, 7.10 | 7.5–7.8b, 7.11 (parte) | 7.1–7.4, 7.11–7.14 |
 | Fase 8 (glifos como geometría) | 8.0–8.3, 8.12 | 8.4–8.9 | 8.10, 8.11 |
+| Fase 9 (nivel Bosque 1) | 9.0–9.4 | 9.8–9.13 | 9.5–9.7 |
+| Fase 10 (playtest Bosque: voltereta, cúpula, cámara) | 10.0, 10.1, 10.7 | 10.2–10.4 | 10.5, 10.6 |
 | Deuda pequeña | iluminación | stride, pilar/tiempo, diálogo | clips, iconos, VFX, tótems |
 
 Dependencias: 1.1 antes de 2.1 · 1.6 antes de `stride` · 3.6 antes de 3.2 · 3.9 antes de las P2 · 0.2 espera a 1.3.

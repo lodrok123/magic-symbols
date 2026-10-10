@@ -565,7 +565,7 @@ script = ExtResource("30_t6d0q")
 letra = "W"
 tipo = "guerrero"
 
-[node name="N_5_5" type="Node3D" parent="Marcadores" unique_id=431006243]
+[node name="N_5_5" type="Node3D" parent="Marcadores" unique_id=431006243 groups=["marcador", "npc"]]
 transform = Transform3D(-0.030120032, 0, 0.9995463, 0, 1, 0, -0.9995463, 0, -0.030120032, 52.14638, -0.06630731, 28.785706)
 script = ExtResource("30_t6d0q")
 letra = "n"

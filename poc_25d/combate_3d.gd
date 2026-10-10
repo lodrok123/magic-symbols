@@ -696,6 +696,8 @@ func _mover_paso(paso: Vector3) -> bool:
 
 
 func _puede_estar(p: Vector3) -> bool:
+	if elemental and not _cabe_con_cuerpo(p):
+		return false
 	var c: Vector2i = Lanzador3D.celda_de(p)
 	if c == Lanzador3D.celda_de(position):
 		return Lanzador3D.en_mapa(c)
@@ -703,6 +705,24 @@ func _puede_estar(p: Vector3) -> bool:
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
 	return absf(Lanzador3D.y_pies(c) - position.y) <= 0.6
+
+
+## 9.13: el elemental mide 2,5 u de alto y su cuerpo (cápsula) tiene un radio de ~1 u, casi media casilla (la casilla mide 2,3).
+## `_puede_estar` solo miraba la casilla del CENTRO, así que el centro podía llegar al borde de una pared y el cuerpo se le metía
+## un radio entero en los árboles del borde (medido: el modelo con los brazos abiertos mide ±1,2 u). Aquí se comprueban cuatro
+## puntos a un radio del centro (±X, ±Z): si alguno entra en una casilla NUEVA que no se pisa, no se avanza. Si ya estaba
+## metido (un nivel que lo coloca pegado a una pared), se le deja salir: solo se rechaza ENTRAR en una casilla bloqueada.
+## Solo el elemental: los goblins miden 0,32 de radio y no tenían el problema. Efecto de diseño: con 2,06 u de cuerpo, un hueco
+## de una casilla (2,3) como la puerta de la sala solo lo cruza si va centrado; en la práctica se queda en su sala.
+func _cabe_con_cuerpo(p: Vector3) -> bool:
+	var r: float = 0.7 * altura / ELEM_ALTO_REF
+	for o in [Vector3(r, 0.0, 0.0), Vector3(-r, 0.0, 0.0), Vector3(0.0, 0.0, r), Vector3(0.0, 0.0, -r)]:
+		var nueva: Vector2i = Lanzador3D.celda_de(p + o)
+		if nueva == Lanzador3D.celda_de(position + o):
+			continue                                   # no cambia de casilla por ese lado: nada que comprobar
+		if not Lanzador3D.pisable(nueva, 0, false, 0, false):
+			return false
+	return true
 
 
 func _ajustar_al_suelo(delta: float) -> void:

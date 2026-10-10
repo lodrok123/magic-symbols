@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_6ogwh")
 
-[node name="portal_salida" type="Node3D" unique_id=1761557846]
+[node name="portal_salida" type="Node3D" unique_id=2065395726]
 metadata/id = "portal_salida"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1779666341]
+[node name="modelo" type="Node3D" parent="." unique_id=1032272724]
 
-[node name="portal_salida" type="MeshInstance3D" parent="modelo" unique_id=1034598067]
+[node name="portal_salida" type="MeshInstance3D" parent="modelo" unique_id=1122596187]
 transform = Transform3D(10.297175, 0, 0, 0, 10.297175, 0, 0, 0, 10.297175, 0, 0, 0)
 mesh = SubResource("ArrayMesh_d8ps7")

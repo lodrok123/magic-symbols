@@ -4,13 +4,13 @@ extends CanvasLayer
 ## LA MOCHILA: una cuadrícula de 4 columnas. Empieza con 8 huecos (2 filas) y el
 ## alquimista la amplía hasta 20 (5 filas); los huecos que aún no tienes salen como bloqueados.
 ## Se abre con I (o la X, o Esc), y al abrirla suena el ruido de la bolsa. Clic en una poción la bebe.
-## Fuera de la mochila hay una correa fija abajo con los 8 primeros huecos (con su número) y, a la derecha,
-## una ficha de pergamino con el oro, las pociones (Q) y los huecos.
+## El oro va DENTRO de la mochila, abajo a la derecha: la moneda y la cifra (sin la palabra «oro»). Ya no hay correa fija
+## con los 8 huecos: Pablo (10/10) la quitó porque no servía para nada (los huecos 1–8 eran solo un reflejo de la cuadrícula).
 ##
 ## ASPECTO (9/10, encargo del Pipeline): cuero marrón con costura, interior de pergamino como el grimorio.
 ## Todo se dibuja en código con la paleta de abajo; si existe el arte de `res://poc_25d/ui/` (mochila_panel,
 ## mochila_solapa, mochila_hueco, mochila_hueco_vacio, mochila_hueco_encima, mochila_hueco_bloqueado, mochila_cerrar,
-## mochila_ficha_numero, mochila_correa) se usa en su lugar, pieza a pieza: esperar el arte no bloquea nada.
+## mochila_moneda) se usa en su lugar, pieza a pieza: esperar el arte no bloquea nada.
 ## La lógica (Estado, Objetos, huecos, beber) no cambia.
 ##
 ## APERTURA como el grimorio: tween de 0,35 s que ignora el time_scale, sube desde abajo y escala de 0,9 a 1
@@ -19,8 +19,6 @@ extends CanvasLayer
 
 const COLUMNAS: int = 4
 const TAM: float = 66.0
-const HUECOS_BARRA: int = 8
-const TAM_BARRA: float = 46.0
 const SEP: float = 6.0
 
 const RUTA_ARTE: String = "res://poc_25d/ui/"
@@ -51,11 +49,7 @@ var _solapa: Control
 var _cerrar: Control
 var _rejilla: GridContainer
 var _info: Label
-var _barra: HBoxContainer
-var _pie: HBoxContainer
 var _oro: Label
-var _pociones: Label
-var _huecos_txt: Label
 var _tween: Tween = null
 
 static var _cache_tex: Dictionary = {}
@@ -196,25 +190,6 @@ class Cuero extends PanelContainer:
 		BolsaUI.discontinuo(self, BolsaUI.camino(r.grow(-8.0), 16.0), BolsaUI.COSTURA, 2.0, 7.0, 5.0)
 
 
-## La correa de abajo: cuero con costura que lleva los 8 huecos.
-class Correa extends PanelContainer:
-	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
-		var arte: Texture2D = BolsaUI.tex("mochila_correa")
-		if arte != null:
-			draw_style_box(BolsaUI._nueve(arte, 24.0, 12.0), r)
-			return
-		BolsaUI._caja(BolsaUI.CUERO, BolsaUI.CUERO_SOMBRA, 3, 14).draw(get_canvas_item(), r)
-		BolsaUI.discontinuo(self, BolsaUI.camino(r.grow(-5.0), 10.0), BolsaUI.COSTURA, 1.5, 6.0, 4.0)
-
-
-## Ficha de pergamino con borde de tinta: el oro y las pociones.
-class Ficha extends PanelContainer:
-	func _draw() -> void:
-		BolsaUI._caja(BolsaUI.PERGAMINO, BolsaUI.LINEA, 2, 10).draw(get_canvas_item(), Rect2(Vector2.ZERO, size))
-
-
-## La solapa con hebilla que hace de cartela del título. Cuelga del borde de arriba, centrada; no tapa huecos.
 class Solapa extends Control:
 	var texto: String = "Mochila"
 
@@ -276,23 +251,22 @@ class Cerrar extends Control:
 			pulsado.emit()
 
 
-## La ficha con el número (1–8) encima de cada hueco de la barra.
-class FichaNumero extends Control:
-	var numero: int = 1
+## La moneda del oro, abajo a la derecha del panel. El arte de Pablo (poc_25d/ui/mochila_moneda.png, 68×54) se pinta a la
+## mitad de su tamaño para que quede nítido en pantallas de densidad normal; sin el PNG se dibuja la moneda de Objetos.
+class Moneda extends Control:
+	const ESCALA: float = 0.5
 
 	func _init() -> void:
-		custom_minimum_size = Vector2(24.0, 18.0)
+		custom_minimum_size = Vector2(34.0, 27.0)
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _draw() -> void:
-		var r := Rect2(Vector2.ZERO, size)
-		var arte: Texture2D = BolsaUI.tex("mochila_ficha_numero")
+		var arte: Texture2D = BolsaUI.tex("mochila_moneda")
 		if arte != null:
-			draw_texture_rect(arte, r, false)
+			draw_texture_rect(arte, Rect2((size - arte.get_size() * ESCALA) * 0.5, arte.get_size() * ESCALA), false)
 		else:
-			BolsaUI._caja(BolsaUI.CUERO_SOMBRA, BolsaUI.COSTURA, 1, 6).draw(get_canvas_item(), r)
-		var f: Font = ThemeDB.fallback_font
-		draw_string(f, Vector2(0.0, size.y - 4.0), str(numero), HORIZONTAL_ALIGNMENT_CENTER, size.x, 14, BolsaUI.PERGAMINO)
+			Objetos.dibujar(self, "oro", size * 0.5, size.y * 0.4)
 
 
 static func _etiqueta(tam_fuente: int) -> Label:
@@ -320,45 +294,6 @@ func _ready() -> void:
 	_velo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_velo.visible = false
 	add_child(_velo)
-
-	# La barra de la mochila, siempre a la vista abajo: correa con los 8 primeros huecos y, a la derecha, la ficha del oro.
-	_pie = HBoxContainer.new()
-	_pie.add_theme_constant_override("separation", 12)
-	_pie.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_pie)
-	_pie.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_pie.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_pie.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_pie.offset_right = -16.0
-	_pie.offset_bottom = -16.0
-
-	var correa := Correa.new()
-	var sb_vacio := StyleBoxEmpty.new()
-	_margenes(sb_vacio, 14.0, 10.0, 14.0, 12.0)
-	correa.add_theme_stylebox_override("panel", sb_vacio)
-	correa.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pie.add_child(correa)
-	_barra = HBoxContainer.new()
-	_barra.add_theme_constant_override("separation", 5)
-	_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	correa.add_child(_barra)
-
-	var ficha := Ficha.new()
-	var sb_ficha := StyleBoxEmpty.new()
-	_margenes(sb_ficha, 14.0, 10.0, 14.0, 10.0)
-	ficha.add_theme_stylebox_override("panel", sb_ficha)
-	ficha.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ficha.size_flags_vertical = Control.SIZE_SHRINK_END
-	_pie.add_child(ficha)
-	var lineas := VBoxContainer.new()
-	lineas.add_theme_constant_override("separation", 2)
-	lineas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ficha.add_child(lineas)
-	_oro = _etiqueta(16)
-	_pociones = _etiqueta(15)
-	_huecos_txt = _etiqueta(15)
-	for l in [_oro, _pociones, _huecos_txt]:
-		lineas.add_child(l)
 
 	# La mochila abierta: _marco (se anima) -> _panel (cuero) + botón de cerrar.
 	_marco = Control.new()
@@ -395,10 +330,23 @@ func _ready() -> void:
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	caja.add_child(_info)
 
+	# Última fila: la ayuda a la izquierda y, a la derecha, el oro (moneda + cifra).
+	var fila := HBoxContainer.new()
+	fila.add_theme_constant_override("separation", 6)
+	fila.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caja.add_child(fila)
 	var pista := _etiqueta(13)
 	pista.add_theme_color_override("font_color", Color(TINTA, 0.8))
 	pista.text = "[I / Esc] cerrar     clic en una poción: beber"
-	caja.add_child(pista)
+	pista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pista.size_flags_vertical = Control.SIZE_SHRINK_END
+	fila.add_child(pista)
+	fila.add_child(Moneda.new())
+	_oro = _etiqueta(20)
+	_oro.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_oro.tooltip_text = "Oro"
+	_oro.mouse_filter = Control.MOUSE_FILTER_PASS
+	fila.add_child(_oro)
 
 	_cerrar = Cerrar.new()
 	_cerrar.pulsado.connect(func(): if abierta: alternar())
@@ -427,8 +375,7 @@ func _colocar() -> Vector2:
 	_cerrar.position = Vector2(_marco.size.x - 40.0, 3.0)
 	var vista: Vector2 = get_viewport().get_visible_rect().size
 	var reposo: Vector2 = ((vista - _marco.size) * 0.5).round()
-	# Que la mochila no tape la correa de abajo (~110 px con su margen) si la ventana es baja.
-	reposo.y = maxf(8.0, minf(reposo.y, vista.y - 110.0 - _marco.size.y))
+	reposo.y = maxf(8.0, reposo.y)       # si la ventana es baja, que al menos no se salga por arriba
 	if abierta and (_tween == null or not _tween.is_running()):
 		_marco.position = reposo
 	return reposo
@@ -493,10 +440,7 @@ func _input(event: InputEvent) -> void:
 
 func _refrescar() -> void:
 	var e: Estado = Estado.i()
-	_oro.text = "Oro  %d" % e.oro
-	_pociones.text = "[Q] Poción x%d" % e.cuenta("pocion")
-	_huecos_txt.text = "[I] Mochila %d/%d" % [e.huecos_usados(), e.capacidad]
-	_refrescar_barra(e)
+	_oro.text = str(e.oro)
 	if not abierta:
 		return
 	for h in _rejilla.get_children():
@@ -535,29 +479,3 @@ func _pilas(e: Estado) -> Array:
 			pilas.append([id, mini(n, Estado.PILA_MAX)])
 			n -= Estado.PILA_MAX
 	return pilas
-
-
-func _refrescar_barra(e: Estado) -> void:
-	if _barra == null:
-		return
-	for h in _barra.get_children():
-		h.queue_free()
-	var pilas: Array = _pilas(e)
-	for i in range(HUECOS_BARRA):
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", 2)
-		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var num := FichaNumero.new()
-		num.numero = i + 1
-		num.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		col.add_child(num)
-		var h := Hueco.new()
-		h.tam = TAM_BARRA
-		h.bloqueado = i >= e.capacidad
-		if i < pilas.size() and not h.bloqueado:
-			h.id = String(pilas[i][0])
-			h.cantidad = int(pilas[i][1])
-			h.tooltip_text = Objetos.nombre(h.id)
-			h.pulsado = _usar
-		col.add_child(h)
-		_barra.add_child(col)

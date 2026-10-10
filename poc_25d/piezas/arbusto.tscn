@@ -1,19 +1,20 @@
 [gd_scene format=4 uid="uid://c3ma7drn2eitt"]
 
-[ext_resource type="Texture2D" uid="uid://ifvmv8i5pe1m" path="res://poc_25d/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg" id="1_c1u1t"]
-[ext_resource type="Texture2D" uid="uid://di66kx7ybkey6" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg" id="2_n8sco"]
-[ext_resource type="Texture2D" uid="uid://bi7hoiaaitdpg" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_normal.jpg" id="3_o00v6"]
+[ext_resource type="PackedScene" uid="uid://bxyenw27rp0tr" path="res://poc_25d/meshy/piezas/arbusto.glb" id="1_n8sco"]
+[ext_resource type="Texture2D" uid="uid://ifvmv8i5pe1m" path="res://poc_25d/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg" id="2_o00v6"]
+[ext_resource type="Texture2D" uid="uid://di66kx7ybkey6" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg" id="3_sbqc4"]
+[ext_resource type="Texture2D" uid="uid://bi7hoiaaitdpg" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_normal.jpg" id="4_d662v"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n26qs"]
 resource_name = "tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca"
-albedo_texture = ExtResource("1_c1u1t")
+albedo_texture = ExtResource("2_o00v6")
 metallic = 1.0
-metallic_texture = ExtResource("2_n8sco")
+metallic_texture = ExtResource("3_sbqc4")
 metallic_texture_channel = 2
-roughness_texture = ExtResource("2_n8sco")
+roughness_texture = ExtResource("3_sbqc4")
 roughness_texture_channel = 1
 normal_enabled = true
-normal_texture = ExtResource("3_o00v6")
+normal_texture = ExtResource("4_d662v")
 metadata/_gltf_primary_texture_coord = 0
 
 [sub_resource type="ArrayMesh" id="ArrayMesh_ii5u8"]
@@ -50,26 +51,28 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_ii5u8")
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_c1u1t"]
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_feeuo"]
 points = PackedVector3Array(-0.117, 0.339, -0.562, -0.121, 0.331, -0.561, -0.206, 0.466, -0.534, 0.03, 0.458, -0.534, 0.143, 0.313, -0.557, -0.109, 0.151, -0.518, -0.295, 0.317, -0.501, 0.01, 0.625, -0.494, -0.294, 0.583, -0.484, 0.056, 0.617, -0.495, 0.059, 0.452, -0.533, 0.297, 0.451, -0.508, 0.304, 0.254, -0.499, 0.142, 0.104, -0.458, -0.302, 0.153, -0.45, -0.466, 0.315, -0.366, -0.436, 0.464, -0.397, -0.106, 0.976, -0.254, 0.303, 0.669, -0.44, -0.451, 0.502, -0.345, -0.32, 0.693, -0.344, 0.333, 0.638, -0.44, 0.327, 0.446, -0.488, 0.471, 0.305, -0.343, 0.455, 0.131, -0.282, 0.317, 0.115, -0.404, 0.015, 0.004, -0.053, -0.136, 0.024, -0.062, -0.433, 0.163, -0.325, -0.326, 0.157, -0.431, -0.488, 0.322, -0.349, -0.551, 0.468, -0.212, -0.112, 0.982, -0.22, 0.028, 0.998, -0.21, -0.472, 0.757, -0.072, 0.075, 0.999, -0.193, 0.485, 0.86, -0.101, -0.559, 0.477, -0.191, 0.402, 0.583, -0.372, 0.533, 0.419, -0.227, 0.49, 0.287, -0.315, 0.566, 0.386, -0.176, 0.505, 0.164, -0.152, 0.525, 0.14, 0.247, 0.121, 0.014, -0.013, 0.002, 0.001, -0.024, 0.007, 0.003, -0.045, -0.005, 0, 0.001, -0.081, 0.008, 0.047, -0.363, 0.105, 0.439, -0.245, 0.07, -0.08, -0.541, 0.21, -0.213, -0.604, 0.319, -0.096, -0.158, 0.956, -0.069, -0.052, 0.981, 0.011, 0.059, 1, -0.054, -0.59, 0.414, 0.024, -0.493, 0.678, 0.267, -0.425, 0.762, 0.137, -0.392, 0.804, 0.045, 0.376, 0.911, -0.081, 0.55, 0.799, 0.011, 0.337, 0.901, 0.082, 0.604, 0.43, -0.008, 0.603, 0.304, 0.108, 0.559, 0.236, 0.245, 0.446, 0.114, 0.378, 0.449, 0.112, 0.369, 0.4, 0.104, 0.397, 0.171, 0.065, 0.465, -0.026, 0.003, 0.059, -0.144, 0.072, 0.445, -0.289, 0.142, 0.475, -0.175, 0.31, 0.563, -0.481, 0.217, 0.404, -0.553, 0.217, 0.223, -0.566, 0.224, 0.193, -0.035, 0.079, 0.492, -0.555, 0.222, -0.181, -0.184, 0.856, 0.239, -0.358, 0.801, 0.125, -0.072, 0.868, 0.269, -0.007, 0.917, 0.156, 0.111, 0.922, 0.129, -0.472, 0.666, 0.296, -0.403, 0.675, 0.346, -0.333, 0.714, 0.35, 0.545, 0.782, 0.072, 0.443, 0.826, 0.151, 0.191, 0.842, 0.289, 0.484, 0.424, 0.372, 0.329, 0.327, 0.496, 0.323, 0.157, 0.471, 0.291, 0.162, 0.494, 0.147, 0.064, 0.48, 0.013, 0.09, 0.498, 0.155, 0.278, 0.54, 0.182, 0.604, 0.558, 0.029, 0.657, 0.546, -0.276, 0.527, 0.482, 0.255, 0.653, 0.476, 0.268, 0.772, 0.329)
 
-[node name="arbusto" type="Node3D" unique_id=916164690]
+[node name="arbusto" type="Node3D" unique_id=493393277]
 metadata/id = "arbusto"
 metadata/bloquea = true
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=1701031488]
+[node name="modelo" type="Node3D" parent="." unique_id=445443236]
 
-[node name="arbusto" type="Node3D" parent="modelo" unique_id=870975736]
+[node name="raiz" type="Node3D" parent="modelo" unique_id=125960962 instance=ExtResource("1_n8sco")]
 transform = Transform3D(1.2116103, 0, 0, 0, 1.2116103, 0, 0, 0, 1.2116103, -0.0013311149, -0.00011092624, 0.00201516)
 
-[node name="arbusto_malla" type="MeshInstance3D" parent="modelo/arbusto" unique_id=1233879051]
+[node name="arbusto" type="Node3D" parent="modelo/raiz" unique_id=1849425761]
+
+[node name="arbusto_malla" type="MeshInstance3D" parent="modelo/raiz/arbusto" unique_id=846034920]
 mesh = SubResource("ArrayMesh_b013g")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=267994870]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=198723615]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=153814244]
-shape = SubResource("ConvexPolygonShape3D_c1u1t")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=264577794]
+shape = SubResource("ConvexPolygonShape3D_feeuo")

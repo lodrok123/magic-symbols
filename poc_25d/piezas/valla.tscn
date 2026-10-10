@@ -45,24 +45,24 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_vf6k0")
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_ul3br"]
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_6alsw"]
 points = PackedVector3Array(0.35, 0.8, 0.19, 0.394, 0.794, 0.227, 0.453, 0.794, 0.236, 0.509, 0.796, 0.208, 0.532, 0.798, 0.151, 0.512, 0.798, 0.088, 0.396, 0.797, 0.055, -0.445, 0.786, -0.141, -0.416, 0.786, -0.045, -0.469, 0.778, -0.041, 0.386, 0.756, 0.252, 0.462, 0.759, 0.262, 0.529, 0.759, 0.223, 0.558, 0.756, 0.156, 0.542, 0.755, 0.08, 0.481, 0.752, 0.019, 0.468, 0.792, 0.05, -0.415, 0.778, -0.24, -0.342, 0.787, -0.142, -0.476, 0.778, -0.237, -0.52, 0.777, -0.196, -0.541, 0.779, -0.137, -0.52, 0.777, -0.075, -0.532, 0.728, -0.054, -0.435, 0.745, -0.013, 0.401, 0.576, 0.257, -0.472, 0.58, -0.002, 0.463, 0.054, 0.263, 0.519, 0.581, 0.241, 0.532, 0.052, 0.231, 0.562, 0.579, 0.158, 0.547, 0.573, 0.08, 0.489, 0.569, 0.022, -0.396, 0.056, -0.26, -0.41, 0.733, -0.263, -0.477, 0.737, -0.259, -0.54, 0.731, -0.21, -0.561, 0.728, -0.135, -0.564, 0.574, -0.13, -0.529, 0.577, -0.045, -0.466, 0.053, -0.005, 0.389, 0.05, 0.246, 0.459, 0.011, 0.229, 0.508, 0.004, 0.205, 0.401, 0.008, 0.218, 0.563, 0.053, 0.164, 0.546, 0.054, 0.082, 0.491, 0.049, 0.027, -0.405, 0.01, -0.225, -0.469, 0.055, -0.263, 0.475, 0.012, 0.052, -0.482, 0.571, -0.259, -0.557, 0.057, -0.137, -0.53, 0.053, -0.214, -0.531, 0.055, -0.057, -0.472, 0.01, -0.05, 0.517, 0.004, 0.095, 0.527, 0.006, 0.153, -0.406, 0.007, -0.049, -0.506, 0, -0.193, -0.355, 0.003, -0.186, -0.46, 0.008, -0.227, -0.523, 0.006, -0.134)
 
-[node name="valla" type="Node3D" unique_id=833107131]
+[node name="valla" type="Node3D" unique_id=537755090]
 metadata/id = "valla"
 metadata/bloquea = true
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=728164441]
+[node name="modelo" type="Node3D" parent="." unique_id=1632956374]
 
-[node name="valla" type="MeshInstance3D" parent="modelo" unique_id=2008926789]
+[node name="valla" type="MeshInstance3D" parent="modelo" unique_id=746342052]
 transform = Transform3D(7.0800853, 0, 0, 0, 7.0800853, 0, 0, 0, 7.0800853, 0, 0, 0)
 mesh = SubResource("ArrayMesh_1a1dt")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1412726390]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=197724479]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1930473307]
-shape = SubResource("ConvexPolygonShape3D_ul3br")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1631771064]
+shape = SubResource("ConvexPolygonShape3D_6alsw")

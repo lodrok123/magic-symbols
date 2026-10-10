@@ -33,18 +33,21 @@ const COLISION: Dictionary = {
 	"barril": "convexa", "cofre": "convexa", "pilar": "convexa",
 	"seta_reactiva": "convexa", "flor_reactiva": "convexa", "raiz_reactiva": "convexa",
 	"puente": "trimesh", "pasadero": "trimesh",
+	# 10/10: tinaja y campamento goblin (los canales son suelo: se camina por encima, sin cuerpo).
+	"tinaja_ruina": "convexa", "tienda_goblin": "convexa", "torre_goblin": "convexa", "puerta_goblin": "convexa",
+	"empalizada_goblin": "convexa", "estandarte_goblin": "convexa", "canal_recto": "ninguna", "canal_codo": "ninguna",
 }
 ## Bloquea por defecto (cada instancia del nivel puede cambiarlo con el metadato `bloquea`). Lo que no sale aquí no bloquea.
 const BLOQUEA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "arbusto", "arbusto_flores", "arbusto_otono",
 	"seto_seco", "roca_cristal", "roca_grande", "tocon", "tronco", "valla", "cartel", "totem_runico", "brasero", "fogata",
 	"puesto", "puesto_mercado", "dummy", "caja_pequena", "caja", "barril", "cofre", "pilar", "seta_reactiva", "flor_reactiva",
-	"raiz_reactiva"]
+	"raiz_reactiva", "tinaja_ruina", "tienda_goblin", "torre_goblin", "puerta_goblin", "empalizada_goblin", "estandarte_goblin"]
 ## Las que tienen comportamiento propio (las crea `Reactivo3D` / el Juego; la pieza solo da modelo y colisión).
 const REACTIVO: Array = ["seto_seco", "tronco", "totem_runico", "fogata", "brasero", "placa_peso", "seta_reactiva",
-	"flor_reactiva", "raiz_reactiva", "puente", "dummy"]
+	"flor_reactiva", "raiz_reactiva", "puente", "dummy", "tinaja_ruina", "torre_goblin", "puerta_goblin"]
 ## Las que arden.
 const INFLAMABLE: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "arbusto", "arbusto_flores", "arbusto_otono",
-	"seto_seco", "tronco", "tocon", "valla", "matas", "juncos", "cartel", "puesto", "puesto_mercado", "caja", "caja_pequena", "barril"]
+	"seto_seco", "tronco", "tocon", "valla", "matas", "juncos", "cartel", "puesto", "puesto_mercado", "caja", "caja_pequena", "barril", "torre_goblin", "puerta_goblin"]
 ## Parte baja que cuenta como «tronco» y como «mesa»: fracción de la altura del modelo, y radio máximo del tronco.
 const TRONCO_ALTO_MAX: float = 1.9
 const TRONCO_RADIO_MAX: float = 0.45
@@ -59,6 +62,11 @@ static func generar_todas() -> int:
 	DirAccess.make_dir_recursive_absolute(CARPETA)
 	var n: int = 0
 	var ids: Array = Pieza3D.MEDIDA.keys()
+	# Las piezas medidas por ANCHO (canales, puerta y empalizada del campamento) no están en MEDIDA: sin esto nunca se generaban
+	# y el horneado avisaba «no hay piezas/canal_recto.tscn» (10/10).
+	for k in Pieza3D.MEDIDA_ANCHO.keys():
+		if not ids.has(k):
+			ids.append(k)
 	ids.sort()
 	for id in ids:
 		if generar(String(id)):

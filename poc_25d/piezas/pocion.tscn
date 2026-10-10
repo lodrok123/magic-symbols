@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_qogtj")
 
-[node name="pocion" type="Node3D" unique_id=796936153]
+[node name="pocion" type="Node3D" unique_id=1252785246]
 metadata/id = "pocion"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1777838087]
+[node name="modelo" type="Node3D" parent="." unique_id=534292334]
 
-[node name="pocion" type="MeshInstance3D" parent="modelo" unique_id=829199737]
+[node name="pocion" type="MeshInstance3D" parent="modelo" unique_id=216440813]
 transform = Transform3D(2.0206285, 0, 0, 0, 2.0206285, 0, 0, 0, 2.0206285, 0, 0, 0)
 mesh = SubResource("ArrayMesh_wdtey")

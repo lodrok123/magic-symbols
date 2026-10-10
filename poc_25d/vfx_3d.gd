@@ -1726,6 +1726,44 @@ func chispazo(p: Vector3, elemento: String) -> void:
 	_luz(p, c, 1.6, 3.0, 0.4)
 
 
+## 13/10 · Agua electrificada: chispas azules del rayo (los colores del hechizo de rayo, ESTILO["rayo"].borde), pocas,
+## pequeñas y apagadas: se ve que hay corriente sin tapar el agua. Devuelve el emisor ya emitiendo; lo cuelga quien llama.
+const COLOR_CHISPA_AGUA: Color = Color(0.5, 0.82, 1.0)
+const BRILLO_CHISPA_AGUA: float = 0.55          ## 1 = como las chispas de la mano; menos = más apagadas
+
+
+func chispas_agua(n: int = 4) -> GPUParticles3D:
+	var gp: GPUParticles3D = _particulas("chispa_electrica", n, 0.35, 0.25, 0.07, true, COLOR_CHISPA_AGUA, Vector3.ZERO)
+	var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+	pm.spread = 180.0
+	gp.local_coords = false
+	atenuar(gp, BRILLO_CHISPA_AGUA)
+	gp.emitting = true
+	return gp
+
+
+## Un chispazo pequeño y azul (el agua electrificada, de vez en cuando): menos piezas, más lento y con una luz corta y floja.
+func chispazo_suave(p: Vector3, color: Color = COLOR_CHISPA_AGUA) -> void:
+	_estallido(p, "destello", 3, 0.35, 0.9, 0.14, true, color * BRILLO_CHISPA_AGUA, Vector3.ZERO)
+	_luz(p, color, 0.45, 1.6, 0.25)
+
+
+## Baja el brillo de unas partículas (0..1): multiplica el color de su rampa. Para que un efecto sea más sutil sin cambiarlo.
+static func atenuar(gp: GPUParticles3D, k: float) -> void:
+	var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+	if pm == null or pm.color_ramp == null:
+		return
+	var gt: GradientTexture1D = (pm.color_ramp as GradientTexture1D).duplicate() as GradientTexture1D
+	var g: Gradient = gt.gradient.duplicate() as Gradient
+	var cols: PackedColorArray = g.colors
+	for i in range(cols.size()):
+		var c: Color = cols[i]
+		cols[i] = Color(c.r * k, c.g * k, c.b * k, c.a)
+	g.colors = cols
+	gt.gradient = g
+	pm.color_ramp = gt
+
+
 ## Bocanada de vapor (el fuego sobre un charco, el agua sobre brasas): 2,5 s.
 func vapor(p: Vector3) -> void:
 	_estallido(p + Vector3(0.0, 0.3, 0.0), "humo", 9, 2.5, 0.8, 0.8, false, Color(0.95, 0.95, 1.0), Vector3(0, 0.7, 0))

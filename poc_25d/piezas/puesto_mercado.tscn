@@ -45,24 +45,24 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_dox4c")
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_d3e4c"]
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_ciqtu"]
 points = PackedVector3Array(-1.035, 0.527, -0.946, -1.082, 0.007, -0.886, -1.21, 0.544, -0.923, -1.124, 0.828, -0.894, 1.212, 0.503, -0.941, -0.312, 0.004, 0.483, -1.068, 0.007, 0.329, -1.206, 0.008, -0.847, 1.173, 0.002, -0.878, 1.021, 0, 0.531, -1.21, 0.41, -0.903, -1.242, 0.496, -0.883, -1.22, 0.815, -0.87, -1.018, 0.851, -0.242, -0.963, 0.853, -0.344, -0.809, 0.853, -0.334, 1.076, 0.827, -0.749, 1.19, 0.676, -0.859, 1.203, 0.608, -0.882, 1.23, 0.505, -0.838, 1.323, 0.131, -0.515, -0.703, 0.014, 0.604, -0.763, 0.006, 0.472, -1.089, 0.011, 0.523, -1.191, 0.011, 0.343, -1.263, 0.047, -0.528, -1.345, 0.106, -0.529, -1.343, 0.14, -0.566, 1.319, 0.11, -0.489, 1.188, 0.005, -0.71, 1.165, 0.002, 0.523, 1.222, 0.526, 0.556, 1.082, 0.452, 0.558, 0.838, 0.441, 0.57, -0.732, 0.051, 0.609, -1.351, 0.141, -0.537, -1.349, 0.141, -0.152, -1.195, 0.773, 0.457, -0.857, 0.848, 0.083, -0.826, 0.851, 0.004, -0.655, 0.852, 0.104, 0.897, 0.854, 0.032, 0.944, 0.851, 0.156, 1.205, 0.781, 0.459, 1.255, 0.521, 0.413, 1.316, 0.132, -0.201, 1.315, 0.103, -0.238, -0.752, 0.015, 0.598, -1.183, 0.016, 0.513, -1.343, 0.112, -0.173, 1.177, 0.006, 0.374, 1.218, 0.618, 0.519, 1.076, 0.578, 0.554, 0.854, 0.582, 0.563, -0.536, 0.582, 0.561, -1.073, 0.552, 0.552, -1.219, 0.521, 0.545, 0.613, 0.588, 0.563, -1.244, 0.519, 0.414, -1.213, 0.618, 0.52, -0.126, 0.623, 0.552, 0.89, 0.847, 0.263, 0.754, 0.844, 0.266, 0.656, 0.852, 0.196, 0.686, 0.853, 0.177, 0.726, 0.853, 0.173, 0.293, 0.614, 0.558)
 
-[node name="puesto_mercado" type="Node3D" unique_id=2027633795]
+[node name="puesto_mercado" type="Node3D" unique_id=1565118782]
 metadata/id = "puesto_mercado"
 metadata/bloquea = true
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=377201108]
+[node name="modelo" type="Node3D" parent="." unique_id=764355175]
 
-[node name="puesto_mercado" type="MeshInstance3D" parent="modelo" unique_id=1571588528]
+[node name="puesto_mercado" type="MeshInstance3D" parent="modelo" unique_id=689348494]
 transform = Transform3D(9.371331, 0, 0, 0, 9.371331, 0, 0, 0, 9.371331, 0, 0, 0)
 mesh = SubResource("ArrayMesh_vjheg")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1343010667]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1839354755]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=584939400]
-shape = SubResource("ConvexPolygonShape3D_d3e4c")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1994565975]
+shape = SubResource("ConvexPolygonShape3D_ciqtu")

@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_dnqn7")
 
-[node name="matas" type="Node3D" unique_id=103391039]
+[node name="matas" type="Node3D" unique_id=609603554]
 metadata/id = "matas"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=1667718576]
+[node name="modelo" type="Node3D" parent="." unique_id=1987265847]
 
-[node name="matas" type="MeshInstance3D" parent="modelo" unique_id=1698299562]
+[node name="matas" type="MeshInstance3D" parent="modelo" unique_id=179119424]
 transform = Transform3D(6.048875, 0, 0, 0, 6.048875, 0, 0, 0, 6.048875, 0, 0, 0)
 mesh = SubResource("ArrayMesh_7tpr2")

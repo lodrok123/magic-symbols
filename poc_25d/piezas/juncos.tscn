@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_5blqy")
 
-[node name="juncos" type="Node3D" unique_id=2015809945]
+[node name="juncos" type="Node3D" unique_id=192617315]
 metadata/id = "juncos"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = true
 
-[node name="modelo" type="Node3D" parent="." unique_id=596144330]
+[node name="modelo" type="Node3D" parent="." unique_id=1058503864]
 
-[node name="juncos" type="MeshInstance3D" parent="modelo" unique_id=1664858737]
+[node name="juncos" type="MeshInstance3D" parent="modelo" unique_id=1745462192]
 transform = Transform3D(6.107197, 0, 0, 0, 6.107197, 0, 0, 0, 6.107197, 0, 0, 0)
 mesh = SubResource("ArrayMesh_luska")

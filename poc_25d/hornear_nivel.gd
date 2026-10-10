@@ -23,9 +23,107 @@ const S: float = 2.3
 const ALTO: float = 2.3 * 0.45
 ## Casillas del GridMap: nombre del ítem → letra del mapa que reconstruye el cargador.
 const TIPOS: Array = [["SUELO", ".", Color(0.36, 0.58, 0.30), 1.0], ["AGUA", "~", Color(0.25, 0.5, 0.85), 0.6],
-	["PUENTE", "b", Color(0.55, 0.4, 0.25), 0.7], ["TIERRA", "g", Color(0.45, 0.33, 0.22), 1.0], ["ZONA_V", "v", Color(0.55, 0.75, 0.3), 1.0]]
+	["PUENTE", "b", Color(0.55, 0.4, 0.25), 0.7], ["TIERRA", "g", Color(0.45, 0.33, 0.22), 1.0], ["ZONA_V", "v", Color(0.55, 0.75, 0.3), 1.0],
+	# 9.6 (10/10): hierba corta decorativa (no arde) y cauce seco (lecho de piedras que el Juego convierte en agua).
+	["CORTA", ",", Color(0.47, 0.68, 0.36), 1.0], ["CAUCE", "c", Color(0.6, 0.58, 0.52), 0.8]]
 ## Letras que son suelo (no marcadores).
-const LETRAS_SUELO: String = ".~bgv#"
+const LETRAS_SUELO: String = ".~bgv#,c"
+## Letras que son decorado puesto por la maqueta (van al .tscn como pieza, no como marcador): U = arco de piedra (arco_ruina), t = tienda goblin, x = empalizada goblin, V = estandarte goblin.
+## Los canales de ruinas (`-` recto, `L` codo) ya NO son decorado: son marcadores (Marcador3D, con `lleno` = agua o vacío), que es lo
+## que el cargador necesita para montar el agua. El suelo bajo ellos es suelo normal; el cargador los pinta como piedra.
+const LETRAS_DECOR: String = "UtxV"
+## 9.5: mapas de letras en archivo (propuesta D2 del 8/10): `mapas/<nivel>.txt`.
+const MAPAS: String = NIVELES + "mapas/"
+
+
+## 9.5 · ¿Hay mapa en archivo para este nivel? Se busca `mapas/<nivel>.txt` y, si no, en minúsculas.
+static func ruta_mapa(nivel: String) -> String:
+	for n in [nivel, nivel.to_lower()]:
+		var r: String = MAPAS + String(n) + ".txt"
+		if FileAccess.file_exists(r):
+			return r
+	return ""
+
+
+## 9.5 · Lee las letras de `mapas/<nivel>.txt`: una fila del mapa por línea, tal cual. Las líneas vacías y las que empiezan
+## por `;` son comentarios, salvo las instrucciones:
+##   ; azar_suelo <fila_desde> <fila_hasta> [semilla]   el `.` de esas filas (contadas desde 0, la primera del mapa) se reparte
+##                                                     al azar entre suelo `.`, hierba corta `,` y manchas de tierra `g`
+##   ; giro <x> <y> <grados>                            giro de la pieza de esa casilla (p. ej. un arco que se cruza de
+##                                                     oeste a este); va a `giros` (casilla -> grados), como GIROS_CELDA
+## Devuelve las filas rellenas con " " (sin suelo, bloqueado) hasta un cuadrado: el mapa no tiene por qué serlo (el bosque es
+## 19 × 49) y la maqueta trabaja en un cuadrado de `lado`. `tam` (si se pasa) recibe el ancho y el alto reales.
+static func leer_mapa(nivel: String, tam: Array = [], giros: Dictionary = {}) -> PackedStringArray:
+	var r: String = ruta_mapa(nivel)
+	var filas: PackedStringArray = PackedStringArray()
+	if r == "":
+		return filas
+	var f := FileAccess.open(r, FileAccess.READ)
+	if f == null:
+		return filas
+	var azar: Array = []
+	for linea in f.get_as_text().split("\n"):
+		var l: String = String(linea).replace("\r", "")
+		if l.strip_edges() == "":
+			continue
+		if l.begins_with(";"):
+			var p: PackedStringArray = l.substr(1).strip_edges().split(" ", false)
+			if p.size() >= 3 and p[0] == "azar_suelo":
+				azar.append([int(p[1]), int(p[2]), int(p[3]) if p.size() >= 4 else 10])
+			elif p.size() >= 4 and p[0] == "giro":
+				giros[Vector2i(int(p[1]), int(p[2]))] = float(p[3])
+			continue
+		filas.append(l)
+	for a in azar:
+		filas = _azar_suelo(filas, int(a[0]), int(a[1]), int(a[2]))
+	var ancho: int = 0
+	for fila in filas:
+		ancho = maxi(ancho, fila.length())
+	tam.clear()
+	tam.append_array([ancho, filas.size()])
+	var lado: int = maxi(ancho, filas.size())
+	for y in range(filas.size()):
+		filas[y] = filas[y] + " ".repeat(lado - filas[y].length())
+	while filas.size() < lado:
+		filas.append(" ".repeat(lado))
+	return filas
+
+
+## 9.6 · Reparte al azar el suelo `.` de las filas `desde`..`hasta`: manchas de tierra (`g`) y de hierba corta (`,`) con forma
+## de mancha (ruido de valor, no casillas sueltas), y el resto suelo. NUNCA hierba alta (`v`): arde y cambiaría los puzles del
+## fuego. Siempre sale igual para la misma semilla (hornear dos veces da el mismo nivel).
+static func _azar_suelo(filas: PackedStringArray, desde: int, hasta: int, semilla: int) -> PackedStringArray:
+	for y in range(maxi(desde, 0), mini(hasta + 1, filas.size())):
+		var fila: String = filas[y]
+		for x in range(fila.length()):
+			if fila[x] != ".":
+				continue
+			var p := Vector2(float(x), float(y))
+			var tierra: float = _vruido(p * 0.45, semilla) * 0.7 + _vruido(p * 1.1, semilla + 1) * 0.3
+			var hierba: float = _vruido(p * 0.35, semilla + 2) * 0.7 + _vruido(p * 0.9, semilla + 3) * 0.3
+			var l: String = "."
+			if tierra > 0.66:
+				l = "g"
+			elif hierba > 0.5:
+				l = ","
+			fila = fila.substr(0, x) + l + fila.substr(x + 1)
+		filas[y] = fila
+	return filas
+
+
+static func _vruido(p: Vector2, sal: int) -> float:
+	var i := Vector2i(floori(p.x), floori(p.y))
+	var f: Vector2 = p - Vector2(i)
+	f = f * f * (Vector2(3.0, 3.0) - 2.0 * f)
+	var a: float = _azar(i, sal)
+	var b: float = _azar(i + Vector2i(1, 0), sal)
+	var c: float = _azar(i + Vector2i(0, 1), sal)
+	var d: float = _azar(i + Vector2i(1, 1), sal)
+	return lerpf(lerpf(a, b, f.x), lerpf(c, d, f.x), f.y)
+
+
+static func _azar(i: Vector2i, sal: int) -> float:
+	return float(absi((i.x * 73856093) ^ (i.y * 19349663) ^ (sal * 83492791)) % 10007) / 10006.0
 
 
 ## 7.11: agrupa casillas `B` (barrera de fuego) en tramos rectos. Un tramo es vertical si sus casillas tienen otra `B` arriba o
@@ -66,34 +164,67 @@ static func ruta(nivel: String) -> String:
 	return NIVELES + nombre_archivo(nivel) + ".tscn"
 
 
+## ¿Existe el .tscn de este nivel CON ESE NOMBRE EXACTO? En Windows `ResourceLoader.exists` (y `FileAccess.file_exists`) no distinguen
+## mayúsculas: con un `nivel_Bosque.tscn` viejo en la carpeta, `Nivel_Bosque.tscn` «existía» y la maqueta cargaba aquel (un 23 × 23
+## de jugabilidad) en vez de leer `mapas/Bosque.txt`. Aquí se compara con la lista de nombres tal como están escritos en disco.
+static func existe_nivel(nivel: String) -> bool:
+	var dir: DirAccess = DirAccess.open(NIVELES)
+	if dir == null:
+		return false
+	var buscado: String = nombre_archivo(nivel) + ".tscn"
+	for f in dir.get_files():
+		if f == buscado or f == buscado + ".remap":
+			return true
+	return false
+
+
 ## La paleta del GridMap (se crea una vez y se reutiliza; Pablo puede añadirle ítems).
 static func biblioteca() -> MeshLibrary:
 	if ResourceLoader.exists(BIBLIOTECA):
 		var b: MeshLibrary = load(BIBLIOTECA) as MeshLibrary
 		if b != null:
+			# 9.6: si la paleta guardada es anterior a algún tipo (CORTA, CAUCE…), se le añade al final y se guarda: los ítems
+			# que ya tenía (y lo que Pablo le haya añadido) no se tocan.
+			var hay: Dictionary = {}
+			for it in b.get_item_list():
+				hay[b.get_item_name(it)] = true
+			var nuevos: int = 0
+			for t in TIPOS:
+				if not hay.has(String((t as Array)[0])):
+					var lista: PackedInt32Array = b.get_item_list()
+					var id: int = (lista[lista.size() - 1] + 1) if lista.size() > 0 else 0
+					_crear_item(b, id, t)
+					nuevos += 1
+			if nuevos > 0:
+				ResourceSaver.save(b, BIBLIOTECA)
 			return b
 	var lib := MeshLibrary.new()
 	for i in range(TIPOS.size()):
-		var t: Array = TIPOS[i]
-		var h: float = ALTO * float(t[3])
-		var bm := BoxMesh.new()
-		bm.size = Vector3(S * 0.98, h, S * 0.98)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(t[2] as Color, 0.85)
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		bm.material = mat
-		lib.create_item(i)
-		lib.set_item_name(i, String(t[0]))
-		lib.set_item_mesh(i, bm)
-		lib.set_item_mesh_transform(i, Transform3D(Basis(), Vector3(0.0, h * 0.5, 0.0)))
-		# Colisión solo para el EDITOR: al soltar una pieza arrastrando (o con «Ajustar al suelo», RePág) Godot la apoya en lo
-		# que tenga colisión; sin ella caía a y = 0, dentro del bloque. En el juego el GridMap no entra en el árbol.
-		var forma := BoxShape3D.new()
-		forma.size = Vector3(S, h, S)
-		lib.set_item_shapes(i, [forma, Transform3D(Basis(), Vector3(0.0, h * 0.5, 0.0))])
+		_crear_item(lib, i, TIPOS[i])
 	DirAccess.make_dir_recursive_absolute(NIVELES)
 	ResourceSaver.save(lib, BIBLIOTECA)
 	return lib
+
+
+## Un ítem de la paleta del GridMap: caja del color y alto del tipo, con colisión solo para el editor.
+static func _crear_item(lib: MeshLibrary, i: int, tipo: Array) -> void:
+	var t: Array = tipo
+	var h: float = ALTO * float(t[3])
+	var bm := BoxMesh.new()
+	bm.size = Vector3(S * 0.98, h, S * 0.98)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(t[2] as Color, 0.85)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bm.material = mat
+	lib.create_item(i)
+	lib.set_item_name(i, String(t[0]))
+	lib.set_item_mesh(i, bm)
+	lib.set_item_mesh_transform(i, Transform3D(Basis(), Vector3(0.0, h * 0.5, 0.0)))
+	# Colisión solo para el EDITOR: al soltar una pieza arrastrando (o con «Ajustar al suelo», RePág) Godot la apoya en lo
+	# que tenga colisión; sin ella caía a y = 0, dentro del bloque. En el juego el GridMap no entra en el árbol.
+	var forma := BoxShape3D.new()
+	forma.size = Vector3(S, h, S)
+	lib.set_item_shapes(i, [forma, Transform3D(Basis(), Vector3(0.0, h * 0.5, 0.0))])
 
 
 ## Letra de suelo de un ítem del GridMap (por su nombre).
@@ -144,6 +275,8 @@ static func hornear(datos: Dictionary) -> String:
 	for y in range(lado):
 		for x in range(mapa[y].length()):
 			var l: String = mapa[y][x]
+			if l == " ":
+				continue                    # 9.5: fuera del mapa (relleno hasta el cuadrado): sin suelo
 			if l == "#" or not item_de.has(l):
 				l = "."                     # bajo una pared, un marcador o un decorado el suelo es suelo
 			if l == "." or item_de.has(l):
@@ -207,7 +340,7 @@ static func hornear(datos: Dictionary) -> String:
 	for y in range(lado):
 		for x in range(mapa[y].length()):
 			var l: String = mapa[y][x]
-			if LETRAS_SUELO.contains(l):
+			if LETRAS_SUELO.contains(l) or LETRAS_DECOR.contains(l) or l == " ":
 				continue
 			if l == "B":
 				cel_b.append(Vector2i(x, y))       # las barreras se fusionan en UN marcador por tramo (abajo)
@@ -292,5 +425,5 @@ static func hornear(datos: Dictionary) -> String:
 	if e != OK:
 		push_error("Hornear: no se pudo guardar %s (error %d)" % [destino, e])
 		return ""
-	print("Horneado: ", destino, " (", n_piezas, " piezas, ", n_marc, " marcadores, suelo ", lado, "×", lado, ")")
+	print("Horneado: ", destino, " (", n_piezas, " piezas, ", n_marc, " marcadores, suelo ", lado, "×", lado, " como mucho)")
 	return destino

@@ -51,14 +51,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_6xn5u")
 
-[node name="baldosa_guardado" type="Node3D" unique_id=1701104106]
+[node name="baldosa_guardado" type="Node3D" unique_id=164794433]
 metadata/id = "baldosa_guardado"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=850441245]
+[node name="modelo" type="Node3D" parent="." unique_id=147333002]
 
-[node name="baldosa_guardado" type="MeshInstance3D" parent="modelo" unique_id=1128714953]
+[node name="baldosa_guardado" type="MeshInstance3D" parent="modelo" unique_id=1239860530]
 transform = Transform3D(4.2401185, 0, 0, 0, 4.2401185, 0, 0, 0, 4.2401185, 0.6281396, 0.56907773, 0.18561754)
 mesh = SubResource("ArrayMesh_12rtj")

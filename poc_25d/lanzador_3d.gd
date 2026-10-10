@@ -84,6 +84,9 @@ const PROGRESIONES: Dictionary = {
 		"paginas": 3, "glifos_por_pagina": 6},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
 	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "nivel1"},
+	# Bosque 1 (Fase 9, 9.9, Pablo 10/10): se empieza con FUEGO + FLECHA y una página (un hueco de sello, dos de glifo). El
+	# sello de AGUA se recoge detrás de la telaraña (Bosque3D, zona `a`) y la BARRERA se compra al guardabosques por 20 de oro.
+	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "nivel1"},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
@@ -480,7 +483,8 @@ func _ready() -> void:
 ## Fija el repertorio (qué sellos y glifos se enseñan y se pueden usar), cuántas páginas hay y cuántos glifos caben en una.
 ## Devuelve el nombre de la progresión que se aplicó. Un nombre desconocido aplica «todo».
 static func aplicar_progresion(nombre: String) -> String:
-	var clave: String = nombre if PROGRESIONES.has(nombre) else "todo"
+	# El nombre del nivel llega como lo escribe la escena («Bosque»); las progresiones van en minúsculas.
+	var clave: String = nombre if PROGRESIONES.has(nombre) else (nombre.to_lower() if PROGRESIONES.has(nombre.to_lower()) else "todo")
 	var p: Dictionary = PROGRESIONES[clave]
 	Repertoire.max_sigils_per_page = int(p["glifos_por_pagina"])
 	Repertoire.max_pages = int(p["paginas"])

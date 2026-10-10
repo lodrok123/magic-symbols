@@ -45,14 +45,14 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_lqhvl")
 
-[node name="placa_peso" type="Node3D" unique_id=31720323]
+[node name="placa_peso" type="Node3D" unique_id=1083477747]
 metadata/id = "placa_peso"
 metadata/bloquea = false
 metadata/reactivo = true
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1732981203]
+[node name="modelo" type="Node3D" parent="." unique_id=635794548]
 
-[node name="placa_peso" type="MeshInstance3D" parent="modelo" unique_id=742563911]
+[node name="placa_peso" type="MeshInstance3D" parent="modelo" unique_id=1008628579]
 transform = Transform3D(8.873029, 0, 0, 0, 8.873029, 0, 0, 0, 8.873029, 0, -0.19505537, 0)
 mesh = SubResource("ArrayMesh_6h6hv")

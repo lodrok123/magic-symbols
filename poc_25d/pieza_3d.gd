@@ -46,10 +46,21 @@ const MEDIDA: Dictionary = {
 	"placa_peso": 0.15, "juncos": 0.8, "barril": 0.8, "cofre": 0.6, "caja": 0.8,
 	"baldosa_guardado": 0.12, "seto_seco": 1.3, "dummy": 1.4, "seta_reactiva": 0.9, "flor_reactiva": 0.9,
 	"raiz_reactiva": 0.9, "portal_salida": 3.0, "pocion": 0.45, "pilar": 1.8,
+	"cristal_sanctuario": 1.4,   # 12/10: la fuente eléctrica (cristal azul de Meshy, pintado amarillo por objetos_3d.gd); su alto
+	"tinaja_ruina": 1.5,      # ruinas_agua.glb (Meshy «Mossbound Relics»): la tinaja que vierte el agua
+	# campamento_goblin.glb (Meshy «Tusks of the Red Fang»). Alturas en unidades; la puerta y la empalizada van por ancho (abajo).
+	"tienda_goblin": 2.0, "torre_goblin": 3.2, "estandarte_goblin": 2.2,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "pasadero": S * 0.8, "placa_peso": S * 0.8,
-	"baldosa_guardado": S * 0.85}
+	"baldosa_guardado": S * 0.85,
+	# Canales de ruinas (enderezados en el GLB). Mismo factor de escala los dos (el codo mide 0,439 de ancho frente a 0,493 del recto).
+	# `canal_recto`: corre a lo largo de X, abierto por -X y +X (giro 90 = a lo largo de Z). `canal_codo`: abierto por -X y +Z,
+	# cerrado por +X y -Z (giro 180 = abierto por +X y -Z; 90 = +Z y +X; 270 = -Z y -X).
+	"canal_recto": S, "canal_codo": S * 0.89,
+	# Campamento goblin: la puerta mide 1,6 casillas de ancho (cabe en una y se apoya en las empalizadas de los lados, ~1,8 de alto);
+	# la empalizada, 1 casilla (~1,0 de alto). La tienda es más ancha que una casilla (~3 de ancho con 2,0 de alto).
+	"puerta_goblin": S * 1.6, "empalizada_goblin": S}
 
 const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10}
 
@@ -153,6 +164,13 @@ static func id_real(id: String) -> String:
 ## Copia del modelo de la pieza, a su medida y con la base en y = 0 centrada. null si ninguna biblioteca la tiene.
 static func crear_visual(id_pedido: String) -> Node3D:
 	var id: String = id_real(id_pedido)
+	# 12/10: un modelo suelto con el mismo nombre que el id (`meshy/piezas/<id>.glb`) se usa directamente, sin depender del nombre
+	# del nodo raíz que deje el importador.
+	var suelto: String = CARPETA_PIEZAS + id + ".glb"
+	if ResourceLoader.exists(suelto):
+		var escena_suelta: PackedScene = load(suelto) as PackedScene
+		if escena_suelta != null:
+			return _normalizar(escena_suelta.instantiate() as Node3D, id)
 	for b in _bibliotecas:
 		var n: Node = (b as Node).find_child(id, true, false)
 		if n != null and n is Node3D:
@@ -241,3 +259,200 @@ static func _caja(n: Node, acum: Transform3D) -> AABB:
 			res = sub if vacia else res.merge(sub)
 			vacia = false
 	return res
+
+
+## --- 13/10: visuales compartidos por el juego y la vista previa del editor (para que se vean IGUAL en los dos) ---
+
+## Tinte amarillo del cristal (fuente eléctrica `e`): material propio por malla, con un brillo suave. Lo aplican el
+## Reactivo3D del juego (objetos_3d.gd) y el marcador `e` en el editor. Antes solo el juego: en el editor salía azul.
+## 10/10: ya no pinta la malla entera de amarillo plano (tapaba el musgo y la piedra del modelo): conserva la textura
+## original y solo pasa a amarillo los píxeles de tono azul/cian; el resto del albedo queda como venía.
+const CODIGO_TINTE_AMARILLO: String = """
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform float tono_desde = 0.45;     // el azul del cristal cae en 0.50-0.60 (cian a azul); el musgo (0.15-0.25) y la piedra no
+uniform float tono_hasta = 0.72;
+uniform float tono_destino = 0.125;  // amarillo cálido
+uniform float emision = 0.55;
+vec3 a_hsv(vec3 c) {
+	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+	float d = q.x - min(q.w, q.y);
+	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + 1e-10)), d / (q.x + 1e-10), q.x);
+}
+vec3 a_rgb(vec3 c) {
+	vec3 p = abs(fract(c.xxx + vec3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+	return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
+void fragment() {
+	vec3 t = texture(albedo_tex, UV).rgb;
+	vec3 hsv = a_hsv(pow(t, vec3(1.0 / 2.2)));          // el tono se mide en sRGB, como se ve
+	float k = smoothstep(tono_desde - 0.04, tono_desde, hsv.x) * (1.0 - smoothstep(tono_hasta, tono_hasta + 0.04, hsv.x));
+	k *= smoothstep(0.05, 0.16, hsv.y);                 // solo los grises casi sin color (piedra clara, reflejos blancos) no cambian
+	vec3 amarillo = pow(a_rgb(vec3(tono_destino, clamp(hsv.y * 1.8, 0.0, 0.85), hsv.z)), vec3(2.2));
+	ALBEDO = mix(t, amarillo, k);
+	EMISSION = amarillo * k * emision;
+	ROUGHNESS = 0.6;
+}
+"""
+static var _sombreador_amarillo: Shader = null
+
+
+static func tinte_amarillo(nodo: Node) -> void:
+	if nodo is MeshInstance3D:
+		var mi := nodo as MeshInstance3D
+		var tex: Texture2D = null
+		var activo: Material = mi.get_active_material(0)
+		if activo is BaseMaterial3D:
+			tex = (activo as BaseMaterial3D).albedo_texture
+		elif activo is ShaderMaterial:
+			# En el juego el Reactivo3D ya cambió el material por el de Ocluso3D (círculo de transparencia): ahí la
+			# textura va en el parámetro `tex_albedo`. Sin esto, el juego caía al tinte plano y salía todo amarillo.
+			tex = (activo as ShaderMaterial).get_shader_parameter("tex_albedo") as Texture2D
+		if tex != null:
+			if _sombreador_amarillo == null:
+				_sombreador_amarillo = Shader.new()
+				_sombreador_amarillo.code = CODIGO_TINTE_AMARILLO
+			var sm := ShaderMaterial.new()
+			sm.shader = _sombreador_amarillo
+			sm.set_shader_parameter("albedo_tex", tex)
+			mi.material_override = sm
+		else:
+			# sin textura que conservar: el tinte plano de antes
+			var m := StandardMaterial3D.new()
+			m.albedo_color = Color(1.0, 0.86, 0.3)
+			m.emission_enabled = true
+			m.emission = Color(1.0, 0.88, 0.35)
+			m.emission_energy_multiplier = 0.45
+			mi.material_override = m
+	for h in nodo.get_children():
+		tinte_amarillo(h)
+
+
+## Telaraña (Pablo, 7/10, Tripo). Cada GLB trae DOS piezas lado a lado, que se separan por el signo de x:
+##   telarana_red.glb:  x < 0 la red sana (blanca) · x > 0 la red ardiendo (brasas naranjas).
+##   telarana_base.glb: x < 0 el tronco seco sobre la roca con musgo · x > 0 un tronco fino suelto.
+## Antes vivía solo en prueba_test2.gd y el marcador `r` del editor era una caja.
+const TELARANA_RED: String = "res://poc_25d/meshy/telarana/telarana_red.glb"
+const TELARANA_BASE: String = "res://poc_25d/meshy/telarana/telarana_base.glb"
+const TELARANA_ESCALA_RED: float = 3.9       ## la red sana mide 0,5 → 1,95 u: cubre la casilla entre los dos troncos
+const TELARANA_ESCALA_BASE: float = 2.1      ## el tronco grande mide 1,0 → 2,1 u
+const TELARANA_ALTO_RED: float = 1.15        ## la red sube 1,15 sobre el suelo
+static var _tel_mallas: Dictionary = {}      ## "sana" | "ardiendo" | "tronco" | "palo" -> [Mesh, AABB de la parte]
+static var _tel_probado: bool = false
+
+
+static func telarana_cargar() -> bool:
+	if _tel_probado:
+		return not _tel_mallas.is_empty()
+	_tel_probado = true
+	var partes: Dictionary = {}
+	for par in [[TELARANA_RED, "sana", "ardiendo"], [TELARANA_BASE, "tronco", "palo"]]:
+		var malla: Mesh = _malla_de_glb(String(par[0]))
+		if malla == null:
+			return false
+		partes[par[1]] = _mitad_malla(malla, true)
+		partes[par[2]] = _mitad_malla(malla, false)
+	_tel_mallas = partes
+	return true
+
+
+## Una parte de la telaraña centrada en x/z, apoyada en y = 0 (si `al_suelo`) y escalada.
+static func telarana_parte(clave: String, escala_parte: float, al_suelo: bool) -> MeshInstance3D:
+	var d: Array = _tel_mallas[clave]
+	var m := MeshInstance3D.new()
+	m.name = clave
+	m.mesh = d[0] as Mesh
+	var caja: AABB = d[1]
+	var cen: Vector3 = caja.get_center()
+	var y0: float = caja.position.y if al_suelo else 0.0
+	m.scale = Vector3.ONE * escala_parte
+	m.position = Vector3(-cen.x, -y0 if al_suelo else -cen.y, -cen.z) * escala_parte
+	return m
+
+
+## Los dos troncos de la telaraña, a los lados de la red, en coordenadas de la casilla (los usa el juego y el editor).
+static func telarana_troncos() -> Array:
+	var tronco: MeshInstance3D = telarana_parte("tronco", TELARANA_ESCALA_BASE, true)
+	tronco.position += Vector3(-S * 0.42, 0.0, -0.15)
+	var palo: MeshInstance3D = telarana_parte("palo", TELARANA_ESCALA_BASE * 1.25, true)
+	palo.position += Vector3(S * 0.43, 0.0, -0.1)
+	return [tronco, palo]
+
+
+## La telaraña entera (red sana + troncos) tal como la pone el juego: para la vista previa del marcador `r`.
+static func visual_telarana() -> Node3D:
+	if not telarana_cargar():
+		return null
+	var raiz := Node3D.new()
+	var sana: MeshInstance3D = telarana_parte("sana", TELARANA_ESCALA_RED, false)
+	sana.position.y += TELARANA_ALTO_RED
+	raiz.add_child(sana)
+	for t in telarana_troncos():
+		raiz.add_child(t as Node3D)
+	return raiz
+
+
+static func _malla_de_glb(ruta: String) -> Mesh:
+	if not ResourceLoader.exists(ruta):
+		return null
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null:
+		return null
+	var raiz: Node = ps.instantiate()
+	var mi: MeshInstance3D = raiz as MeshInstance3D
+	if mi == null:
+		var l: Array = raiz.find_children("*", "MeshInstance3D", true, false)
+		mi = l[0] as MeshInstance3D if not l.is_empty() else null
+	var m: Mesh = mi.mesh if mi != null else null
+	raiz.free()
+	return m
+
+
+## [Mesh, AABB de la parte]: los triángulos de `malla` cuyo centro tiene x < 0 (`izquierda`) o x >= 0. Conserva UV y material.
+static func _mitad_malla(malla: Mesh, izquierda: bool) -> Array:
+	var res := ArrayMesh.new()
+	var caja := AABB()
+	var hay: bool = false
+	for si in range(malla.get_surface_count()):
+		var arr: Array = malla.surface_get_arrays(si)
+		var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+		var nuevo := PackedInt32Array()
+		var t: int = 0
+		while t + 2 < idx.size():
+			var mx: float = (v[idx[t]].x + v[idx[t + 1]].x + v[idx[t + 2]].x) / 3.0
+			if (mx < 0.0) == izquierda:
+				for k in range(3):
+					nuevo.append(idx[t + k])
+					caja = AABB(v[idx[t + k]], Vector3.ZERO) if not hay else caja.expand(v[idx[t + k]])
+					hay = true
+			t += 3
+		arr[Mesh.ARRAY_INDEX] = nuevo
+		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+		res.surface_set_material(res.get_surface_count() - 1, malla.surface_get_material(si))
+	return [res, caja]
+
+
+## Modelo de un personaje (goblin, elemental, NPC, jugador) para la vista previa de su marcador: el mismo GLB y el mismo alto
+## que le da el juego (PruebaTest2._personaje: PJ_* y ALTO_PJ; Pj3D.MODELO_DE), con los pies en y = 0. Sin animar.
+static func visual_personaje(opciones: Array, altos: Dictionary, modelos: Dictionary) -> Node3D:
+	for o in opciones:
+		var id: String = String(o)
+		var ruta: String = "res://poc_25d/%s.glb" % String(modelos.get(id, id))
+		if not ResourceLoader.exists(ruta):
+			continue
+		var ps: PackedScene = load(ruta) as PackedScene
+		if ps == null:
+			continue
+		var m: Node3D = ps.instantiate() as Node3D
+		var caja: AABB = _caja(m, Transform3D.IDENTITY)
+		var raiz := Node3D.new()
+		raiz.add_child(m)
+		if caja.size.y > 0.0001:
+			var f: float = float(altos.get(id, 1.0)) / caja.size.y
+			m.scale *= f
+			m.position.y = -caja.position.y * f
+		return raiz
+	return null
