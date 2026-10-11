@@ -52,7 +52,8 @@ const MEDIDA: Dictionary = {
 	"tienda_goblin": 2.0, "torre_goblin": 3.2, "estandarte_goblin": 2.2,
 }
 
-const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "pasadero": S * 0.8, "placa_peso": S * 0.8,
+const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
+	 "pasadero": S * 0.8, "placa_peso": S * 0.8,
 	"baldosa_guardado": S * 0.85,
 	# Canales de ruinas (enderezados en el GLB). Mismo factor de escala los dos (el codo mide 0,439 de ancho frente a 0,493 del recto).
 	# `canal_recto`: corre a lo largo de X, abierto por -X y +X (giro 90 = a lo largo de Z). `canal_codo`: abierto por -X y +Z,
@@ -61,6 +62,12 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "pasade
 	# Campamento goblin: la puerta mide 1,6 casillas de ancho (cabe en una y se apoya en las empalizadas de los lados, ~1,8 de alto);
 	# la empalizada, 1 casilla (~1,0 de alto). La tienda es más ancha que una casilla (~3 de ancho con 2,0 de alto).
 	"puerta_goblin": S * 1.6, "empalizada_goblin": S}
+
+## Giro (grados, sobre Y) que se le da al modelo suelto para que mire como espera el juego (+Z local = hacia donde apunta el marcador).
+## 11/10 puse 180 al cristal de la fuente eléctrica creyendo que su canal azul salía por -Z: era al revés (visto desde arriba, el canal
+## de venas sale por +Z, que es hacia donde el juego electrifica el agua: `_celda_frente_fuente`). Con 180 las venas se alejaban del canal.
+## Se deja a 0 (sin giro); la entrada sigue aquí por si otro modelo suelto necesita girarse.
+const GIRO_MODELO: Dictionary = {"cristal_sanctuario": 0.0}
 
 const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10}
 
@@ -170,7 +177,9 @@ static func crear_visual(id_pedido: String) -> Node3D:
 	if ResourceLoader.exists(suelto):
 		var escena_suelta: PackedScene = load(suelto) as PackedScene
 		if escena_suelta != null:
-			return _normalizar(escena_suelta.instantiate() as Node3D, id)
+			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
+			suelto_n.rotation.y = deg_to_rad(float(GIRO_MODELO.get(id, 0.0)))
+			return _normalizar(suelto_n, id)
 	for b in _bibliotecas:
 		var n: Node = (b as Node).find_child(id, true, false)
 		if n != null and n is Node3D:
@@ -432,6 +441,10 @@ static func _mitad_malla(malla: Mesh, izquierda: bool) -> Array:
 		arr[Mesh.ARRAY_INDEX] = nuevo
 		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 		res.surface_set_material(res.get_surface_count() - 1, malla.surface_get_material(si))
+	# 11/10: la malla conserva TODOS los vértices (solo cambian los índices), así que su AABB salía con las dos mitades juntas (el
+	# doble de ancho y descentrado). Con el de la parte, lo que se mide sobre ella (cuerpo de colisión) es lo que se ve.
+	res.custom_aabb = caja
+	res.set_meta("aabb_parte", caja)       # get_aabb() devuelve el de todos los vértices; quien mida la parte lee esto
 	return [res, caja]
 
 

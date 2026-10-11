@@ -74,7 +74,8 @@ const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test
 const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
 	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
-	"elemental_bosque": 2.5}      # elite lento: el doble de alto que un goblin (0,85)
+	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
+	"gato_guardabosques": 0.55}   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
 const MEDIDA: Dictionary = Pieza3D.MEDIDA     ## la tabla vive en pieza_3d.gd (la usa también el editor)
@@ -757,7 +758,10 @@ func _construir_suelo() -> void:
 	if hay_tierra_nueva:
 		mat_suelo.set_shader_parameter("normal_tierra", load(SUELO + "tierra_arriba_normal.png") as Texture2D)
 		mat_suelo.set_shader_parameter("usa_normal_tierra", 1.0)
-	mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "stone_arriba.png"))
+	# 11/10 (Pablo): piedra = las losas que pasó Pablo (losas_piedra.png, 3×3 losas, se repite sin costura) si están; si no, la de siempre.
+	# Es el suelo de tipo 3: bajo el cristal, la tinaja, los canales y el cauce seco.
+	var piedra: String = "losas_piedra.png" if ResourceLoader.exists(SUELO + "losas_piedra.png") else "stone_arriba.png"
+	mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + piedra))
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
@@ -864,6 +868,44 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 ## ondulado y, de vez en cuando, un par de piedrecitas: la hierba ya no pasa de golpe al bloque de agua. Todo en dos MultiMesh.
 const COLOR_ARENA: Color = Color(0.86, 0.76, 0.56)
 const ANCHO_ORILLA: float = 0.24         ## fracción de casilla
+## 11/10 (Pablo): las franjas planas sueltas se leían como «trampolines» que sobresalen del borde del agua, por muy redondeadas que fueran.
+## Apagadas: la transición la dan el suelo de arena del shader y la espuma del agua, que sí siguen la orilla. Con `true` vuelven.
+const FRANJAS_ARENA: bool = false
+
+
+## Franja de arena de la orilla: una «píldora» plana de 1 x 1 (el largo va en X, el grosor en Z; la escala la ensancha) con los dos
+## extremos en semicírculo. El radio de los extremos (en unidades de la malla) es medio grosor medio: ANCHO_ORILLA / 2 del largo,
+## así que al escalar el semicírculo sale circular. Arriba en y = 0,01 (la parte de arriba de la caja de 0,02 de antes).
+func _malla_franja_redonda(segmentos: int = 12) -> ArrayMesh:
+	var rx: float = clampf(ANCHO_ORILLA * 0.5, 0.05, 0.5)
+	var contorno: PackedVector2Array = PackedVector2Array()
+	for i in range(segmentos + 1):          # extremo +X: de -90° a +90°
+		var a: float = -PI * 0.5 + PI * float(i) / float(segmentos)
+		contorno.append(Vector2(0.5 - rx + rx * cos(a), 0.5 * sin(a)))
+	for i in range(segmentos + 1):          # extremo -X: de 90° a 270°
+		var a2: float = PI * 0.5 + PI * float(i) / float(segmentos)
+		contorno.append(Vector2(-0.5 + rx + rx * cos(a2), 0.5 * sin(a2)))
+	var vs := PackedVector3Array()
+	var ns := PackedVector3Array()
+	var idx := PackedInt32Array()
+	vs.append(Vector3(0.0, 0.01, 0.0))
+	ns.append(Vector3.UP)
+	for p in contorno:
+		vs.append(Vector3(p.x, 0.01, p.y))
+		ns.append(Vector3.UP)
+	var n: int = contorno.size()
+	for i in range(n):
+		idx.append(0)
+		idx.append(1 + i)
+		idx.append(1 + (i + 1) % n)
+	var arr: Array = []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = vs
+	arr[Mesh.ARRAY_NORMAL] = ns
+	arr[Mesh.ARRAY_INDEX] = idx
+	var malla := ArrayMesh.new()
+	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return malla
 
 
 func _construir_orillas() -> void:
@@ -886,19 +928,22 @@ func _construir_orillas() -> void:
 				var centro: Vector3 = _centro_celda(c, ALTO + 0.012) + Vector3(float(v.x), 0.0, float(v.y)) * (S * 0.5 - grosor * 0.5)
 				var giro: float = 0.0 if v.y != 0 else PI * 0.5
 				var b := Basis(Vector3.UP, giro).scaled(Vector3(largo, 1.0, grosor))
-				franjas.append(Transform3D(b, centro))
+				if FRANJAS_ARENA:
+					franjas.append(Transform3D(b, centro))
 				if h % 3 == 0:
 					var q: Vector3 = _centro_celda(c, ALTO) + Vector3(float(v.x), 0.0, float(v.y)) * (S * 0.5 - grosor * 0.6)
 					var a: Vector3 = Vector3(float(v.y), 0.0, float(v.x)) * (float((h >> 5) % 100) / 99.0 - 0.5) * S * 0.7
 					var tam: float = 0.07 + 0.05 * float((h >> 9) % 10) / 9.0
 					piedras.append(Transform3D(Basis(Vector3.UP, float(h % 628) / 100.0).scaled(Vector3.ONE * tam), q + a))
 	if not franjas.is_empty():
-		var caja := BoxMesh.new()
-		caja.size = Vector3(1.0, 0.02, 1.0)
+		# 11/10 (Pablo): las franjas de arena eran cajas planas con las cuatro esquinas afiladas. Ahora son una «píldora» plana: lados
+		# rectos y los dos extremos semicirculares (sin esquinas).
+		var caja: ArrayMesh = _malla_franja_redonda()
 		var m := StandardMaterial3D.new()
 		m.albedo_color = COLOR_ARENA * OSCURECER_SUELO
 		m.roughness = 1.0
-		caja.material = m
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		caja.surface_set_material(0, m)
 		_multimalla(caja, franjas)
 	if not piedras.is_empty():
 		var roca: Mesh = (Formas3D.instancia("piedra", Color(0.7, 0.66, 0.6), 1.0) as MeshInstance3D).mesh
@@ -1230,7 +1275,9 @@ func _pieza(id: String) -> Node3D:
 	if ResourceLoader.exists(suelto):
 		var escena_suelta: PackedScene = load(suelto) as PackedScene
 		if escena_suelta != null:
-			return _normalizar(escena_suelta.instantiate() as Node3D, id)
+			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
+			suelto_n.rotation.y = deg_to_rad(float(Pieza3D.GIRO_MODELO.get(id, 0.0)))      # giro por modelo (ver Pieza3D.GIRO_MODELO; el cristal, a 0)
+			return _normalizar(suelto_n, id)
 	for b in _bibliotecas:
 		var n: Node = b.find_child(id, true, false)
 		if n != null and n is Node3D:
@@ -1503,6 +1550,28 @@ func _poner_telarana(c: Vector2i) -> void:
 	s3.position = Vector3(0.0, 1.0, 0.0)
 	var r: Reactivo3D = _nuevo_reactivo("telarana", c, _centro_celda(c, ALTO), s3, "")
 	_props.add_child(r)
+
+
+## 11/10 (Pablo: «siempre debe ser cruzable»): el puente de una casilla `b` es la pieza `puente_runico` (Meshy «Ancient Runestone
+## Bridge», el tramo largo con arco de la lámina de 4 piezas). No bloquea: la casilla `b` se pisa siempre (Lanzador3D.y_pies la pone a
+## ALTO_AGUA + 0,12, y ahí se deja la cubierta del puente). El paso del puente va por el eje Z del modelo: se gira 90° cuando el
+## agua sigue hacia el norte o el sur (el río corre de norte a sur y el puente lo cruza de este a oeste).
+## CUBIERTA_PUENTE: alto de la cubierta, en fracción del largo del modelo (medido sobre la malla: 0,060 de 0,295).
+const PUENTE_FIJO: String = "puente_runico"
+const CUBIERTA_PUENTE: float = 0.203
+
+
+func _poner_puente_fijo(c: Vector2i) -> void:
+	var n: Node3D = _pieza(PUENTE_FIJO)
+	if n == null:
+		_poner("puente", c, ALTO_AGUA + 0.05, false, false, 90.0)      # sin el modelo nuevo: el puente de antes, también fijo
+		return
+	var largo: float = float(MEDIDA_ANCHO.get(PUENTE_FIJO, S))
+	var rio_ns: bool = _es_agua(_letra(c + Vector2i(0, 1))) or _es_agua(_letra(c + Vector2i(0, -1)))
+	n.name = "puente_%d_%d" % [c.x, c.y]
+	n.position = _centro_celda(c, ALTO_AGUA + 0.12 - largo * CUBIERTA_PUENTE)
+	n.rotation.y = deg_to_rad(90.0 if rio_ns else 0.0)
+	_props.add_child(n)
 
 
 ## El puente plegable de la cámara de rayo: levantado contra la orilla oeste (bloquea la casilla) hasta que lo tiende el
@@ -1879,10 +1948,9 @@ func _colocar_letras() -> void:
 					if h % 9 == 0:
 						_poner("juncos", c, ALTO_AGUA, false)
 				"b":
-					if objetos_reactivos:
-						_poner_puente(c)
-					else:
-						_poner("puente", c, ALTO_AGUA + 0.05, false, false, 90.0)
+					# 11/10 (Pablo): el puente de piedra rúnica, FIJO: siempre se cruza (antes, con objetos_reactivos, era el plegable
+					# que levantado bloqueaba la casilla hasta que lo tendía el tótem de rayo; `_poner_puente` se queda por si se vuelve a él).
+					_poner_puente_fijo(c)
 				"z":
 					if objetos_reactivos:
 						_reactivo_pieza("seto", "seto_seco", c, ALTO, true)
@@ -1942,6 +2010,7 @@ func _colocar_letras() -> void:
 					_bloqueadas[c] = true
 					if _reglas != null:
 						_reglas.registrar_npc("guardabosques", gb)
+					_mascota_guardabosques.call_deferred(gb)      # cuando el nivel ya está montado (para saber qué casillas se pisan)
 				"p", "a", "w":
 					# Losas del suelo (contacto, desbloqueo de agua y de viento): las pinta y vigila la regla.
 					_sin_hierba[c] = true
@@ -2716,6 +2785,71 @@ func _npc(opciones: Array, p: Vector3) -> Pj3D:
 	if n != null:
 		n.rotation.y = 0.0
 	return n
+
+
+## 11/10 (Pablo: «ponlo de mascota del guardabosques patrullando»): el gato (Meshy «gatipedro», clips idle y walk) da vueltas
+## alrededor de su dueño. Sin navegación: 8 puntos en corro a RADIO_GATO del guardabosques; se quitan los que caen en una casilla que
+## no se pisa (agua, árbol, pared…) y, si el corro queda cortado, patrulla de ida y vuelta por el tramo seguido más largo (así nunca
+## cruza lo que no se pisa ni atraviesa al guardabosques). En cada punto impar se para un rato. Si falta el GLB, no sale y punto.
+const PJ_GATO: Array = ["gato_guardabosques"]
+const RADIO_GATO: float = 1.4          ## distancia (u) del corro al guardabosques
+const VEL_GATO: float = 0.55           ## u/s andando (11/10: más despacio al acortarle el paso en Pj3D.PASO_CORTO, para que no patine)
+const PAUSA_GATO: Vector2 = Vector2(0.8, 2.5)   ## s parado en un punto (al azar entre los dos)
+
+
+func _mascota_guardabosques(dueno: Pj3D) -> void:
+	if dueno == null or not is_instance_valid(dueno):
+		return
+	var centro: Vector3 = dueno.position
+	var c0: Vector2i = Lanzador3D.celda_de(centro)
+	var libres: Array = []            # por cada una de las 8 direcciones: el punto, o null si no se pisa
+	for k in range(8):
+		var ang: float = TAU * float(k) / 8.0
+		var p: Vector3 = centro + Vector3(cos(ang), 0.0, sin(ang)) * RADIO_GATO
+		var c: Vector2i = Lanzador3D.celda_de(p)
+		var vale: bool = c == c0 or (_en_mapa(c) and not _es_agua(_letra(c)) and not _bloqueadas.has(c) and not Lanzador3D.bloqueada(c))
+		libres.append(p if vale else null)
+	# Tramo seguido más largo del corro (dando la vuelta).
+	var mejor: Array = []
+	if not libres.has(null):
+		mejor = libres.duplicate()
+		mejor.append(libres[0])          # corro completo: vuelve al primero
+	else:
+		for ini in range(8):
+			if libres[ini] == null or libres[(ini + 7) % 8] != null:
+				continue                 # solo empiezan tramos justo después de un hueco
+			var tramo: Array = []
+			var k2: int = ini
+			while libres[k2 % 8] != null and tramo.size() < 8:
+				tramo.append(libres[k2 % 8])
+				k2 += 1
+			if tramo.size() > mejor.size():
+				mejor = tramo
+		if mejor.size() >= 2:
+			var vuelta: Array = mejor.duplicate()
+			vuelta.reverse()
+			mejor.append_array(vuelta.slice(1))      # ida y vuelta
+	if mejor.size() < 2:
+		_avisos.append("gato del guardabosques: no hay sitio libre a su alrededor")
+		return
+	var gato: Pj3D = _personaje(PJ_GATO, mejor[0])
+	if gato == null:
+		return
+	var tw: Tween = gato.create_tween().set_loops()
+	for i in range(mejor.size() - 1):
+		var a: Vector3 = mejor[i]
+		var b: Vector3 = mejor[i + 1]
+		tw.tween_callback(_gato_anda.bind(gato, b - a))
+		tw.tween_property(gato, "position", b, maxf(a.distance_to(b) / VEL_GATO, 0.1))
+		if i % 2 == 1:
+			tw.tween_callback(gato.jugar.bind("idle"))
+			tw.tween_interval(randf_range(PAUSA_GATO.x, PAUSA_GATO.y))
+
+
+func _gato_anda(gato: Pj3D, d: Vector3) -> void:
+	if d.length() > 0.001:
+		gato.rotation.y = atan2(d.x, d.z)      # el modelo mira a +Z, como los demás personajes
+	gato.jugar("walk")
 
 
 ## El puesto de venta en `c` (ocupa c y c+x) con su tendero dentro, de cara a la cámara. Lo usan las letras n/Q y el
@@ -3549,13 +3683,23 @@ func electrificar_agua(celdas: Array, activo: bool = true) -> void:
 		var punto: Vector3 = _centro_celda(c, ALTO_AGUA + 0.06)
 		var k: int = _canal_orden.find(c) if _canal != null else -1
 		if k >= 0:
+			# 11/10 (Pablo): centellas por TODA el agua, no 3 sueltas en el centro de la tira. Cada tira (y el relleno de la cámara)
+			# lleva chispas según su superficie (CHISPAS_AGUA_M2) y salen por todo su ancho.
+			var tiras: Array = []
 			for m in _canal.mitades(k):
+				tiras.append([m[0], m[1], _canal.ancho_agua])
+			tiras.append_array(_canal.rellenos(k))
+			for m in tiras:
 				var pv: Node3D = m[0]
 				var largo: float = float(m[1])
-				var gp: GPUParticles3D = _fx.chispas_agua(3)
+				var ancho: float = float(m[2])
+				var gp: GPUParticles3D = _fx.chispas_agua(maxi(3, ceili(largo * ancho * CHISPAS_AGUA_M2)))
 				var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
 				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-				pm.emission_box_extents = Vector3(_canal.ancho_agua * 0.4, 0.01, largo * 0.5)
+				pm.emission_box_extents = Vector3(ancho * 0.48, 0.01, largo * 0.5)
+				Vfx3D.atenuar(gp, BRILLO_CHISPAS_CANAL)          # más vivas que las de un hechizo sobre el agua (se tienen que ver)
+				pm.scale_min *= TAM_CHISPAS_CANAL
+				pm.scale_max *= TAM_CHISPAS_CANAL
 				raiz.add_child(gp)
 				var t: Transform3D = pv.global_transform.orthonormalized()
 				gp.global_transform = Transform3D(t.basis, t * Vector3(0.0, 0.02, largo * 0.5))
@@ -3584,7 +3728,7 @@ func electrificar_agua(celdas: Array, activo: bool = true) -> void:
 		n += 1
 	if _t_rayo_agua == null:
 		_t_rayo_agua = Timer.new()
-		_t_rayo_agua.wait_time = 0.9          # 13/10: chispazos menos seguidos (antes 0,3 s)
+		_t_rayo_agua.wait_time = 0.45         # 11/10: más seguidos para que se vea la corriente (13/10 era 0,9; antes 0,3)
 		add_child(_t_rayo_agua)
 		_t_rayo_agua.timeout.connect(_chispazo_agua)
 	if _chispas_agua.is_empty():
@@ -3605,6 +3749,11 @@ func _chispazo_agua() -> void:
 
 ## 13/10: energía de la luz azul del agua electrificada (1 = la de antes, amarilla y fuerte).
 const LUZ_AGUA_ELECTRICA: float = 0.35
+## 11/10: chispas por metro cuadrado de agua electrificada en el canal (una tira de 1 × 0,6 lleva ~10). Más = más centellas.
+const CHISPAS_AGUA_M2: float = 16.0
+## 11/10: brillo (multiplica el de Vfx3D.chispas_agua, que ya viene a 0,55) y tamaño de las chispas del canal electrificado.
+const BRILLO_CHISPAS_CANAL: float = 3.0
+const TAM_CHISPAS_CANAL: float = 3.0
 
 
 ## 10/10 · Canal de ruinas: las casillas `-` (recto) y `L` (codo) conectadas a la casilla de DELANTE de la tinaja (hacia donde
@@ -3675,7 +3824,11 @@ func _montar_canal() -> void:
 ## 11/10: la casilla `i` del canal acaba de llenarse. Desde la primera casilla que toca la fuente eléctrica en adelante, el agua
 ## que pasa se electrifica (chispas amarillas). Va con el llenado, así que el frente eléctrico sigue al agua y no aparece de golpe.
 func _electrificar_canal(i: int, orden: Array, primera: int) -> void:
-	if i >= primera and i < orden.size():
+	if i == primera:
+		# 11/10 (Pablo: «centellas en todo el agua»): al llegar el agua a la casilla del cristal se electrifica TODA la que ya
+		# hay en el canal, también la de antes del cristal (la cámara junto a la tinaja); la de después, según va llegando.
+		electrificar_agua(orden.slice(0, i + 1))
+	elif i > primera and i < orden.size():
 		electrificar_agua([orden[i]])
 
 

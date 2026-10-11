@@ -858,3 +858,65 @@ Archivos: `prueba_test2.gd`. — Pipeline
 - **Orilla del agua (`prueba_test2.gd`):** el mapa de distancia a la orilla se amplía x4 con interpolación cúbica (se acaban los picos de rombo) y la espuma de la orilla pasa de corte seco a degradado (`transicion_orilla`, 0,4 casillas). Quedan los ajustes `ancho_espuma` (ya sin uso en la línea de orilla) y `espuma_manchas`.
 - Para Pablo: comprobado con capturas en Godot 4.7.2 (cristal suelto y PruebaBosque); no probado en el editor con VistaSuelo.
 Archivos: `pieza_3d.gd`, `prueba_test2.gd`. — Pipeline
+
+## 10/10 (2) · Pipeline · Río del canal: juntas, final y principio sin cortes
+- **Juntas (`canal_3d.gd`):** las tiras de agua de cada casilla se solapaban (o dejaban hueco) porque los marcadores del canal no están en la rejilla (centros a ~2,0 y no a 2,3): salía una raya clara por la doble transparencia. Ahora las tiras se unen en el punto medio entre dos centros consecutivos y cada una queda 0,5 mm más alta que la anterior.
+- **Franjas continuas (`objetos_3d.gd`, `CODIGO_CAUDAL`):** el sombreado admite `largo`, `fase`, `desv_ini` y `desv_fin` (por defecto 1, 0, 0, 0: la tinaja y el resto no cambian). El canal los usa para que las franjas sigan sin salto de una tira a otra.
+- **Principio y final:** el agua aparece desde cero en el primer tramo (donde cae el chorro, `desv_inicio` 0,5) y se desvanece al final del último (`desv_final` 0,6): ya no corta en seco ni sobresale de las piedras. Ajustables en `Canal3D`.
+- Comprobado con capturas de PruebaBosque en Godot 4.7.2. No probado en una partida real con el cristal electrificando el agua.
+Archivos: `canal_3d.gd`, `objetos_3d.gd`. — Pipeline
+
+## 11/10 · Pipeline · Chorro de la tinaja unido a la boca y más cuerpo al pie del chorro
+- **Boca (`objetos_3d.gd`):** el chorro arrancaba en el borde del pico y quedaba un hilo suelto respecto al agua de dentro de la boca. Hay un primer tramo recto (`ENTRADA_CHORRO` 0,2 hacia dentro de la boca, `ALTO_ENTRADA_CHORRO` 0,04) que lo une con el pico; sale el primero. Los cilindros del chorro salen ahora de `_cilindro_chorro` (mismo aspecto que antes).
+- **Pie del chorro (`canal_3d.gd`):** el agua de la primera tira se alarga `prolongar_inicio` (0,3) hacia atrás, más allá de donde cae el chorro, y esa cola aparece desde cero. Sustituye a `desv_inicio` (10/10 (2)), que quitaba cuerpo justo donde cae el chorro.
+- Comprobado con capturas de PruebaBosque (boca y pie del chorro) en Godot 4.7.2. Si el tramo de entrada se ve de más, bajar `ENTRADA_CHORRO`.
+Archivos: `objetos_3d.gd`, `canal_3d.gd`. — Pipeline
+
+## 11/10 (2) · Pipeline · Cristal al revés, cajas de acierto ajustadas y orillas redondeadas
+- **Cristal al revés:** medido sobre el modelo ya importado, el canal azul del cristal (`cristal_sanctuario.glb`) está en su lado -Z, y el juego electrifica la casilla de +Z (`_celda_frente_fuente`): el canal apuntaba al lado contrario del agua. `Pieza3D.GIRO_MODELO` (180° para `cristal_sanctuario`) lo gira al cargar la pieza; lo aplican el juego (`_pieza`, `prueba_test2.gd`) y el editor (`Pieza3D.crear_visual`). Los marcadores `e` ya puestos no necesitan cambio: ahora el canal mira hacia donde apunta el marcador (+Z local).
+- **Cajas de acierto (`objetos_3d.gd`):** eran 0,9 casillas para todo. `_ajustar_cuerpo` las ajusta al tamaño del visual (+ `MARGEN_CUERPO` 0,1, mínimo `MIN_CUERPO` 0,8, sin pasar de lo que había) para tótem, fogata, brasero, seto, tronco y cristal; la tinaja baja de 1,5 a 1,0 casillas. La telaraña usa el alto y el sitio exactos de la red (antes la caja estaba 0,15 más baja y no seguía la red).
+- **Telaraña (`pieza_3d.gd`):** las mitades de la red salían con el AABB de las dos juntas; ahora llevan el de su parte (`aabb_parte`).
+- **Orillas (`prueba_test2.gd`):** las franjas de arena eran cajas con esquinas afiladas; ahora son una «píldora» plana con los extremos en semicírculo (`_malla_franja_redonda`).
+- Comprobado con capturas y volcado de cajas en Godot 4.7.2 (PruebaBosque). No probado jugando: las cajas más pequeñas piden algo más de puntería con los hechizos; si algún objeto se vuelve difícil de acertar, subir `MARGEN_CUERPO`.
+Archivos: `objetos_3d.gd`, `pieza_3d.gd`, `prueba_test2.gd`. — Pipeline
+
+### 11/10 (3) — Pipeline: orilla sin «trampolines»
+- **Orillas (`prueba_test2.gd`):** las franjas de arena, aun redondeadas, se leían como tablas de trampolín que sobresalen del agua (cada casilla ponía la suya, alineadas en fila). Se apagan con la constante `FRANJAS_ARENA = false` (poner `true` las devuelve). La transición agua → hierba queda con el suelo de arena del shader, la espuma y las piedrecitas, que sí siguen la orilla.
+- Comprobado con captura en Godot 4.7.2 (orilla norte del lago). No toca ningún contrato.
+Archivos: `prueba_test2.gd`. — Pipeline
+
+### 11/10 (4) — Pipeline: agua en la cámara del codo, cristal con las venas hacia el canal, y cajas repuestas
+- **Agua de la cámara (`canal_3d.gd`):** la primera pieza del canal es un codo con una cámara de suelo de piedra más ancha que la tira de agua; se veía seca (el «área violeta» de Pablo). `Canal3D` rellena ahora esa cámara con dos rectángulos de agua en el lado exterior del giro (`_bahia`, medidas `bahia_atras`, `bahia_delante`, `bahia_fondo`, medidas sobre la pieza). Crecen a la vez que la mitad de salida y no cuentan como «mitad» (las chispas del agua eléctrica no cambian).
+- **Cristal (`pieza_3d.gd`):** el giro de 180° que le puse el 11/10 estaba MAL: visto desde arriba, las venas del cristal salen por +Z, que es hacia donde el juego electrifica (`_celda_frente_fuente`). Con el giro se alejaban del canal. `GIRO_MODELO` queda a 0 y las venas llegan ahora a la pared del canal (comprobado con captura cenital en Godot 4.7.2).
+- **Cajas (`objetos_3d.gd`):** en el disco faltaban los cambios de cajas del 11/10 (`_ajustar_cuerpo`, `TIPOS_CUERPO_AJUSTADO`, tinaja a `S * 1.0`): se habían perdido en el revés de los archivos. Repuestos.
+- Ojo: el 11/10 a las 00:46 volvieron a la versión vieja `prueba_test2.gd` y `DIARIO.md` (repuestos). Se perdió la entrada «7/10 19:05 — errores mesh is null al parar el juego»; si alguien la tiene, que la pegue otra vez.
+Archivos: `canal_3d.gd`, `pieza_3d.gd`, `objetos_3d.gd`, `prueba_test2.gd` (solo un comentario). — Pipeline
+
+### 11/10 (5) — Pipeline: agua electrificada visible en todo el canal
+- **`prueba_test2.gd`:** al llegar el agua a la casilla del cristal se electrifica TODA el agua del canal que ya hay (también la cámara junto a la tinaja), y la de después según llega. Las chispas salen por todo el ancho de cada tira y del relleno de la cámara, en cantidad según la superficie (`CHISPAS_AGUA_M2 = 16`), más vivas y grandes (`BRILLO_CHISPAS_CANAL = 2.6`, `TAM_CHISPAS_CANAL = 1.8`) y con chispazos cada 0,45 s. Para ajustar: esas tres constantes, junto a `LUZ_AGUA_ELECTRICA`.
+- **`canal_3d.gd`:** `rellenos(i)` devuelve los rectángulos de agua de la cámara (para poner chispas encima).
+- Aclaración: el rojo de F10 (`playlog_3d.gd`) es la casilla que BLOQUEA EL PASO, no la caja de los hechizos. La electricidad no depende de él: el agua se electrifica en la casilla a la que miran las venas del cristal, (2, 27), comprobado en Godot 4.7.2 (chispas en (2, 26), (2, 27) y (2, 28)).
+Archivos: `prueba_test2.gd`, `canal_3d.gd`. — Pipeline
+
+### 11/10 (6) — Pipeline: gato del guardabosques (mascota que patrulla)
+- **Modelo nuevo:** `poc_25d/gato_guardabosques.glb` (copia de `meshy/entrada/Meshy_gatipedro_anim.glb`: 48 huesos, clips `idle` y `walk`, mira a +Z, ~31 500 triángulos). `Meshy_gatipedro_output.glb` es la misma malla sin animaciones: no hace falta. Godot lo importa al abrir el proyecto.
+- **`prueba_test2.gd`:** tras poner al guardabosques (`m`) sale su gato (`_mascota_guardabosques`, diferido para saber qué casillas se pisan): da vueltas a `RADIO_GATO = 1.4` u de él a `VEL_GATO = 0.8` u/s y se para de 0,8 a 2,5 s cada dos puntos. Si alguna dirección cae en agua o en una casilla bloqueada, patrulla de ida y vuelta por el tramo libre más largo. Alto: `ALTO_PJ["gato_guardabosques"] = 0.55` (con la cola levantada). Comprobado en Godot 4.7.2 en el Bosque (casilla del guardabosques (9, 41)).
+- Aviso inofensivo al cargar: «falta el clip 'talk' de un npc» (Pj3D lo trata como NPC; el gato no habla). Para el Juego: el gato no tiene colisión ni lo registra ninguna regla; si queréis que se pueda acariciar o que reaccione, es cosa vuestra.
+Archivos: `prueba_test2.gd`, `gato_guardabosques.glb` (nuevo, Pipeline). — Pipeline
+
+### 11/10 (7) — Pipeline: paso más corto del gato
+- **`pj_3d.gd`:** `PASO_CORTO` (id -> [clip, factor, huesos]) y `_acortar_paso()` al cargar: los huesos de las patas giran solo `factor` de lo que giraban respecto a su postura media del ciclo. Al gato (`walk`, 0,55, sus 16 huesos de patas) le quedan las patas más debajo del cuerpo, como en el vídeo de referencia de Pablo. Sirve para cualquier personaje.
+- **`prueba_test2.gd`:** `VEL_GATO` 0,8 → 0,55 (con pasos más cortos, a 0,8 patinaba).
+Archivos: `pj_3d.gd`, `prueba_test2.gd`. — Pipeline
+
+### 11/10 (8) — Pipeline: puente de piedra rúnica fijo
+- **Modelo:** `poc_25d/meshy/piezas/puente_runico.glb`, el tramo largo con arco de `meshy/entrada/Meshy_AI_Ancient_Runestone_Bri…glb` (la lámina trae 4 piezas: dos plataformas cuadradas y dos tramos; el otro tramo trae una astilla suelta). Separado por huecos en X con las funciones de `separar_lamina.py`, metal 0. 2145 triángulos.
+- **`prueba_test2.gd`:** la casilla `b` (GridMap `PUENTE`) pone `_poner_puente_fijo`: la pieza `puente_runico`, con la cubierta a la altura que pisa el jugador en un puente (ALTO_AGUA + 0,12) y girada según corra el río. **Ya no hay puente plegable**: la casilla `b` se cruza siempre (Pablo). `_poner_puente` (el plegable) se queda en el código sin usar.
+- **`pieza_3d.gd`:** `MEDIDA_ANCHO["puente_runico"] = S * 1.3` (largo del puente: la casilla de agua y un poco de cada orilla).
+- **Para el Juego:** el tótem de rayo del Bosque ya no tiende ningún puente (el enlace de `_enlazar_reactivos` no encuentra puente y no hace nada). Si el tótem tenía que abrir otra cosa, hay que decidir qué.
+Archivos: `prueba_test2.gd`, `pieza_3d.gd`, `meshy/piezas/puente_runico.glb` (nuevo). — Pipeline
+
+### 11/10 (9) — Pipeline: losas de piedra en el suelo
+- **Textura nueva:** `poc_25d/suelo_meshy/losas_piedra.png` (la que pasó Pablo: 3×3 losas grises, 1024², se repite sin costura).
+- **`prueba_test2.gd`:** el suelo de piedra (tipo 3: bajo el cristal, la tinaja, los canales y el cauce seco) usa `losas_piedra.png` si existe; si no, `stone_arriba.png` como antes. Comprobado en Godot 4.7.2 en el Bosque.
+Archivos: `prueba_test2.gd`, `suelo_meshy/losas_piedra.png` (nuevo). — Pipeline

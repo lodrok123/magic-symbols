@@ -61,10 +61,10 @@ const COMBUSTIBLES: Dictionary = {
 	"puerta_goblin": [5.0, 1.3, 1.4, 1.8], "torre_goblin": [7.0, 1.5, 1.0, 3.2],
 }
 ## Cuerpo ancho (u) de lo que no cabe en una casilla: la zona donde le acierta un hechizo. Lo demás: 0,9 casillas.
-const ANCHO_CUERPO: Dictionary = {"puerta_goblin": S * 1.6, "surtidor": S * 1.5}
+const ANCHO_CUERPO: Dictionary = {"puerta_goblin": S * 1.6, "surtidor": S * 1.0}      # 11/10: la tinaja era 1,5 S (demasiado grande)
 ## Fondo (u) del cuerpo cuando no es 0,9 casillas. La tinaja es un cuerpo grande: su zona envuelve la panza, la boca y el pedestal
 ## aunque se incline, para que el hechizo le acierte donde se ve.
-const FONDO_CUERPO: Dictionary = {"surtidor": S * 1.5}
+const FONDO_CUERPO: Dictionary = {"surtidor": S * 1.0}
 ## tipo -> [alto de las llamas sobre el suelo (u), escala de las llamas, radio de la zona que arde, alto del cuerpo]
 const FUENTES: Dictionary = {
 	"fogata": [0.1, 0.8, 0.25, 0.6], "brasero": [1.25, 0.65, 0.12, 1.4],
@@ -122,6 +122,9 @@ func _ready() -> void:
 	caja.size = Vector3(float(ANCHO_CUERPO.get(tipo, S * (0.7 if tipo == "placa" else 0.9))), alto, float(FONDO_CUERPO.get(tipo, S * (0.7 if tipo == "placa" else 0.9))))
 	forma.shape = caja
 	forma.position = Vector3(S * 0.5 if tipo == "puente" else 0.0, alto * 0.5, 0.0)
+	_ajustar_cuerpo(caja, forma)
+	if tipo == "emisor_rayo":          # el cristal: `tipo` del Reactivo es «emisor_rayo»; «roca_cristal» es el tipo del marcador, no este
+		forma.position += Vector3(0.0, 0.0, 0.0)      # después de _ajustar_cuerpo, que recoloca la caja y se comería el desvío
 	add_child(forma)
 	_recoger_materiales()
 	if COMBUSTIBLES.has(tipo):
@@ -160,6 +163,54 @@ func _alto_cuerpo() -> float:
 		"surtidor":
 			return 2.0       # la tinaja mide 1,5 y su boca sube al inclinarse
 	return 1.0
+
+
+## 11/10 (Pablo): las cajas de acierto eran demasiado grandes (0,9 casillas para todo) y la de la telaraña no coincidía con la red.
+## Ahora el cuerpo se ajusta a lo que se VE: el tamaño de la caja de los tipos de TIPOS_CUERPO_AJUSTADO es el de su visual (más
+## MARGEN_CUERPO), sin pasar de lo que tenía ni bajar de MIN_CUERPO. La telaraña, además, usa el alto y el sitio exactos de la red.
+const TIPOS_CUERPO_AJUSTADO: Array = ["totem", "fogata", "brasero", "seto", "tronco", "emisor_rayo", "telarana"]
+const MARGEN_CUERPO: float = 0.1         ## cuánto sobresale el cuerpo de lo que se ve (u): que acertar no pida puntería de píxel
+const MIN_CUERPO: float = 0.8            ## lado mínimo de la caja (u)
+
+
+func _ajustar_cuerpo(caja: BoxShape3D, forma: CollisionShape3D) -> void:
+	if not TIPOS_CUERPO_AJUSTADO.has(tipo):
+		return
+	var ab: AABB = _aabb_visual()
+	if ab.size.x < 0.05 or ab.size.z < 0.05:
+		return          # sin malla que medir (sprites…): se queda la caja de siempre
+	var c: Vector3 = ab.get_center()
+	if tipo == "telarana":
+		# la red es una lámina: la caja la envuelve entera (alto y sitio exactos, sin el tope de una casilla)
+		caja.size = Vector3(maxf(ab.size.x + MARGEN_CUERPO, MIN_CUERPO), ab.size.y + MARGEN_CUERPO, maxf(ab.size.z + MARGEN_CUERPO, MIN_CUERPO))
+		forma.position = c
+		return
+	caja.size.x = clampf(ab.size.x + MARGEN_CUERPO, MIN_CUERPO, caja.size.x)
+	caja.size.z = clampf(ab.size.z + MARGEN_CUERPO, MIN_CUERPO, caja.size.z)
+	forma.position.x = c.x
+	forma.position.z = c.z
+
+
+## Caja (en el espacio local del reactivo) de las mallas visibles del visual.
+func _aabb_visual() -> AABB:
+	var res := AABB()
+	if visual == null:
+		return res
+	var hay: bool = false
+	var pila: Array = [[visual, visual.transform]]
+	while not pila.is_empty():
+		var par: Array = pila.pop_back()
+		var n: Node3D = par[0]
+		var t: Transform3D = par[1]
+		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+			var m: Mesh = (n as MeshInstance3D).mesh
+			var ab: AABB = t * (m.get_meta("aabb_parte") as AABB if m.has_meta("aabb_parte") else m.get_aabb())
+			res = ab if not hay else res.merge(ab)
+			hay = true
+		for h in n.get_children():
+			if h is Node3D and (h as Node3D).visible:
+				pila.append([h, t * (h as Node3D).transform])
+	return res
 
 
 ## --- Contrato con los hechizos (Lanzador3D) ---
@@ -566,14 +617,23 @@ uniform float velocidad = 2.5;
 uniform float frecuencia = 6.0;
 uniform bool por_x = false;
 uniform bool opaco = false;
+// 10/10 (canal): para que las franjas sigan sin salto de una tira a la siguiente, `u` se mide en unidades de mundo: UV * `largo` +
+// `fase` (lo que lleva recorrido el agua antes de esta tira). Por defecto (largo 1, fase 0) es el de siempre.
+uniform float largo = 1.0;
+uniform float fase = 0.0;
+uniform float desv_ini = 0.0;       // fracción de la tira (al principio) donde el agua se desvanece desde cero
+uniform float desv_fin = 0.0;       // fracción al final donde se desvanece hasta cero (el río que entra en el lago)
 void fragment() {
 	float u = por_x ? UV.x : UV.y;
 	float v = por_x ? UV.y : UV.x;
-	float franja = sin((u * frecuencia - TIME * velocidad) * 6.2832) * 0.5 + 0.5;
-	float onda = sin((v * 5.0 + u * 3.0 - TIME * 0.6) * 6.2832) * 0.5 + 0.5;
+	float uw = u * largo + fase;
+	float franja = sin((uw * frecuencia - TIME * velocidad) * 6.2832) * 0.5 + 0.5;
+	float onda = sin((v * 5.0 + uw * 3.0 - TIME * 0.6) * 6.2832) * 0.5 + 0.5;
 	float k = clamp(franja * 0.6 + onda * 0.4, 0.0, 1.0);
 	ALBEDO = mix(color.rgb, vec3(0.9, 0.97, 1.0), k * 0.55);
 	ALPHA = opaco ? 1.0 : color.a * (0.7 + 0.3 * k);
+	if (desv_ini > 0.0) { ALPHA *= smoothstep(0.0, desv_ini, u); }
+	if (desv_fin > 0.0) { ALPHA *= 1.0 - smoothstep(1.0 - desv_fin, 1.0, u); }
 }
 """
 
@@ -589,6 +649,8 @@ var _tira_mi: MeshInstance3D = null
 var _dist_arroyo: float = 1.0           ## trecho real (u) del chorro al borde del canal; ≤ 0,15 = el chorro cae ya dentro del canal
 var _t_salp: Timer = null
 static var _sombreado_caudal: Shader = null
+const ENTRADA_CHORRO: float = 0.2         ## 11/10: cuánto se mete el primer tramo del chorro hacia dentro de la boca, para unirlo con el agua
+const ALTO_ENTRADA_CHORRO: float = 0.04    ## y cuánto sube sobre el pico (el agua de dentro está un poco más alta que el borde por el que sale)
 
 
 static func material_caudal(por_x: bool = false, velocidad: float = 2.5, frecuencia: float = 6.0, opaco: bool = false) -> ShaderMaterial:
@@ -603,6 +665,25 @@ static func material_caudal(por_x: bool = false, velocidad: float = 2.5, frecuen
 	m.set_shader_parameter("velocidad", velocidad)
 	m.set_shader_parameter("frecuencia", frecuencia)
 	return m
+
+
+## Un tramo del chorro: cilindro fino de `a` a `b` (local), oculto hasta que le toca verse. Lo usan el tramo de entrada y los de la parábola.
+func _cilindro_chorro(a: Vector3, b: Vector3) -> MeshInstance3D:
+	var cil := CylinderMesh.new()
+	cil.top_radius = 0.06
+	cil.bottom_radius = 0.05
+	cil.height = a.distance_to(b)
+	cil.radial_segments = 8
+	cil.rings = 1
+	cil.material = material_caudal(false, 3.5, 3.0)
+	var mi := MeshInstance3D.new()
+	mi.mesh = cil
+	mi.position = (a + b) * 0.5
+	mi.basis = Basis(Quaternion(Vector3.UP, (b - a).normalized()))
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.visible = false
+	add_child(mi)
+	return mi
 
 
 ## Punto del chorro `t` segundos después de salir por el pico (tiro parabólico).
@@ -663,24 +744,15 @@ func _montar_tinaja() -> void:
 	_pivote.add_child(_agua_pila)
 	# Chorro: ocho cilindros finos siguiendo la parábola.
 	var t_fin: float = sqrt(2.0 * (pico_inclinado().y - SUELO_CHORRO) / GRAVEDAD_CHORRO)
+	# 11/10 (Pablo): el chorro arrancaba en el borde del pico y no se unía con el agua de dentro de la boca (un hilo suelto). Un primer
+	# tramo recto lo une: del agua, metido `ENTRADA_CHORRO` hacia dentro de la boca y a la altura del agua, hasta el pico. Sale el
+	# primero (el chorro se enseña de arriba abajo).
+	var desde: Vector3 = pico_inclinado() - dir_vertido() * ENTRADA_CHORRO + Vector3(0.0, ALTO_ENTRADA_CHORRO, 0.0)
+	_chorro.append(_cilindro_chorro(desde, punto_chorro(0.0)))
 	for i in range(8):
 		var a: Vector3 = punto_chorro(t_fin * float(i) / 8.0)
 		var b: Vector3 = punto_chorro(t_fin * float(i + 1) / 8.0)
-		var cil := CylinderMesh.new()
-		cil.top_radius = 0.06
-		cil.bottom_radius = 0.05
-		cil.height = a.distance_to(b)
-		cil.radial_segments = 8
-		cil.rings = 1
-		cil.material = material_caudal(false, 3.5, 3.0)
-		var mi := MeshInstance3D.new()
-		mi.mesh = cil
-		mi.position = (a + b) * 0.5
-		mi.basis = Basis(Quaternion(Vector3.UP, (b - a).normalized()))
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.visible = false
-		add_child(mi)
-		_chorro.append(mi)
+		_chorro.append(_cilindro_chorro(a, b))
 	var caida: Vector3 = punto_chorro(t_fin)
 	caida.y = 0.0
 	_punto_caida = caida + Vector3(0.0, 0.045, 0.0)      # donde toca el suelo el chorro (salpicadura); ya no hay charco dibujado

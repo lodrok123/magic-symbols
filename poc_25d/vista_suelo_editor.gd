@@ -122,7 +122,6 @@ func _firma_nivel() -> int:
 		partes.append(bool(m.get("lleno")))
 	return hash(partes)
 
-
 ## Borra el suelo anterior y lo vuelve a construir con el código del juego.
 func _reconstruir() -> void:
 	for h in get_children():

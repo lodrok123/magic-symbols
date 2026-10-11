@@ -138,6 +138,7 @@ func cargar(p_id: String) -> bool:
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 
 	_anular_raiz("roll")
+	_acortar_paso()
 	# Elemental de bosque: sus clips traen la cadera desplazada (attack se adelanta 0,3 y acaba 8 cm fuera de sitio; walk se
 	# balancea ±0,33; hit_fire acaba 7 cm atrás). El Juego es quien lo mueve, así que se queda en su sitio: si no, al
 	# cambiar de clip el modelo salta de golpe (los «tirones»).
@@ -584,6 +585,49 @@ func rodar() -> float:
 func soltar_rodar() -> void:
 	animacion_actual = ""
 	jugar("idle")
+
+
+## 11/10 (Pablo, con un vídeo de un gato real de referencia: «no adelantaría tanto las patas»): personajes cuyas patas se estiran
+## demasiado al andar. id -> [rol del clip, factor, huesos de las patas]. Cada hueso de la lista gira solo `factor` de lo que giraba
+## respecto a su postura MEDIA del ciclo: mismo ritmo y misma postura de fondo, pero pasos más cortos y patas más debajo del cuerpo.
+## Los huesos del gato (Meshy los llama Bone_0xx) se sacaron midiendo el esqueleto: delanteras 030-027 y 035-032, traseras 009-006 y
+## 014-011 (las que más giran en `walk`: 26°, 34°, 46° y 22° de la cadera a la pata).
+const PASO_CORTO: Dictionary = {
+	"gato_guardabosques": ["walk", 0.55, ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033",
+		"Bone_032", "Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]],
+}
+
+
+func _acortar_paso() -> void:
+	if _ap == null or not PASO_CORTO.has(id):
+		return
+	var d: Array = PASO_CORTO[id]
+	var clip: String = _buscar_clip(String(d[0]))
+	if clip == "":
+		return
+	var an: Animation = _ap.get_animation(clip)
+	if an.has_meta("paso_acortado"):
+		return          # el clip es del recurso importado (compartido): una sola vez aunque haya dos gatos
+	an.set_meta("paso_acortado", true)
+	var k: float = float(d[1])
+	var huesos: Array = d[2]
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) != Animation.TYPE_ROTATION_3D or an.track_get_key_count(t) < 2:
+			continue
+		if not huesos.has(str(an.track_get_path(t)).get_slice(":", 1)):
+			continue
+		var n: int = an.track_get_key_count(t)
+		var q0: Quaternion = an.track_get_key_value(t, 0)
+		var suma := Vector4.ZERO
+		for i in range(n):
+			var q: Quaternion = an.track_get_key_value(t, i)
+			if q.dot(q0) < 0.0:
+				q = Quaternion(-q.x, -q.y, -q.z, -q.w)      # el mismo giro en el otro hemisferio: para promediar bien
+			suma += Vector4(q.x, q.y, q.z, q.w)
+		var media: Quaternion = Quaternion(suma.x, suma.y, suma.z, suma.w).normalized()
+		for i in range(n):
+			var q2: Quaternion = an.track_get_key_value(t, i)
+			an.track_set_key_value(t, i, media.slerp(q2, k))
 
 
 ## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.
