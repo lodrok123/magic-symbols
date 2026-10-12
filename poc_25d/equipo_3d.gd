@@ -35,6 +35,10 @@ const EQUIPO: Dictionary = {
 	"chibi_elf": [
 		["grimorio", "Hips", Vector3(0.0, 0.06, -0.20), Vector3(6.0, 180.0, 0.0)],
 	],
+	# La elfa jugadora (woodland_wanderer): mismo punto que la chibi_elf; su esqueleto Mixamo tiene el mismo espacio de Hips.
+	"woodland_wanderer": [
+		["grimorio", "Hips", Vector3(0.0, 0.06, -0.20), Vector3(6.0, 180.0, 0.0)],
+	],
 	"chibi_test": [
 		["grimorio", "Hips", Vector3(0.36, 0.02, -0.06), Vector3(0.0, 90.0, -8.0)],
 	],

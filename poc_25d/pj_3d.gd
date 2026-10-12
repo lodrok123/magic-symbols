@@ -99,6 +99,10 @@ const POSTURAS: Dictionary = {
 ## la altura y la postura se buscan por el id del personaje, así que una variante solo cambia lo que lleva.
 const MODELO_DE: Dictionary = {
 	"goblin_espadachin": "goblin_warrior_chibi",
+	# La elfa jugadora: el id conserva los ajustes (FACTOR_ZANCADA, CORRECCION_POSTURA) y el GLB es la versión con los
+	# pesos de piel suavizados en mangas y abrigo (woodland_wanderer.glb queda como original, sin suavizar).
+	"woodland_wanderer": "woodland_wanderer_suave",
+	"woodland_wanderer_orig": "woodland_wanderer",   # solo para el laboratorio: la elfa sin suavizar, para comparar
 }
 
 var id: String = ""
@@ -139,6 +143,8 @@ func cargar(p_id: String) -> bool:
 
 	_anular_raiz("roll")
 	_acortar_paso()
+	_aplicar_factor_zancada()
+	_corregir_postura()
 	# Elemental de bosque: sus clips traen la cadera desplazada (attack se adelanta 0,3 y acaba 8 cm fuera de sitio; walk se
 	# balancea ±0,33; hit_fire acaba 7 cm atrás). El Juego es quien lo mueve, así que se queda en su sitio: si no, al
 	# cambiar de clip el modelo salta de golpe (los «tirones»).
@@ -593,9 +599,133 @@ func soltar_rodar() -> void:
 ## Los huesos del gato (Meshy los llama Bone_0xx) se sacaron midiendo el esqueleto: delanteras 030-027 y 035-032, traseras 009-006 y
 ## 014-011 (las que más giran en `walk`: 26°, 34°, 46° y 22° de la cadera a la pata).
 const PASO_CORTO: Dictionary = {
-	"gato_guardabosques": ["walk", 0.55, ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033",
-		"Bone_032", "Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]],
+	# 11/10 (ajustado con Pablo en el laboratorio LabGato3D): [rol, factor delanteras, factor traseras, factor resto, huesos delanteros,
+	# huesos traseros, factor propio por hueso (opcional), extras (opcional)]. «Resto» = columna, cola, cabeza... (todo hueso con rotación que no sea de pata).
+	"gato_guardabosques": ["walk", 0.23, 0.53, 0.50,
+		["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033", "Bone_032"],
+		["Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"],
+		# Factor propio por hueso: pisa al del grupo. Articulaciones de las patas a 0,35 (con factores bajos quedaban rígidas como palos);
+		# cuello (025) y cabeza (024) a 0,25 para que la cabeza vaya estable (tutorial de Rusty Animator, «cat walk cycle»).
+		{"Bone_029": 0.35, "Bone_034": 0.35, "Bone_028": 0.35, "Bone_033": 0.35,
+		"Bone_008": 0.35, "Bone_013": 0.35, "Bone_007": 0.35, "Bone_012": 0.35, "Bone_025": 0.25, "Bone_024": 0.25},
+		# Extras (11/10, «lockeado» por Pablo en LabGato3D; los números salen de allí, ver lab_gato_3d.gd):
+		# · vaiven: grados que la articulación se DOBLA de más y vuelve, una vez por ciclo, con el máximo cuando su pie va por el aire
+		#   (como en el vídeo de referencia: la muñeca se pliega al levantar la mano). Codo 028/033, muñeca 027/032, corvejón 007/012.
+		# · eje: eje (espacio del padre) en que ese hueso dobla, medido; las dos patas de cada par van en espejo. Sin entrada = X.
+		# · fase: momento del ciclo en que el pie de esa pata está más alto (medido en el clip walk).
+		# · cola / retraso_cola: cada hueso de la cola, de la base a la punta, va retraso_cola (fracción del ciclo) más tarde que el anterior.
+		{"vaiven": {"Bone_027": 35.0, "Bone_032": 35.0, "Bone_028": 15.0, "Bone_033": 15.0, "Bone_007": 25.0, "Bone_012": 25.0},
+		"eje": {"Bone_028": Vector3(-29.1, 0.0, 9.1), "Bone_033": Vector3(-17.5, 0.0, 21.1), "Bone_032": Vector3(-2.4, 0.0, 28.4),
+			"Bone_027": Vector3(-24.2, 0.0, 17.1), "Bone_007": Vector3(-28.9, 0.0, 9.0), "Bone_012": Vector3(-29.6, 0.0, 3.1)},
+		"fase": {"Bone_028": 0.25, "Bone_027": 0.25, "Bone_012": 0.25, "Bone_033": 0.72, "Bone_032": 0.72, "Bone_007": 0.72},
+		"cola": ["Bone_023", "Bone_022", "Bone_021", "Bone_020", "Bone_019", "Bone_018", "Bone_017", "Bone_016", "Bone_015"],
+		"retraso_cola": 0.03}],
 }
+
+## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
+## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+
+
+## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
+## `factor` de lo que se aleja de su postura media del ciclo (media.slerp(original, factor)): 1 = el clip tal cual, 0 = quieto. Los grupos se
+## deducen del esqueleto: lo que cuelga de un UpLeg es «piernas», de un Shoulder «brazos», lo demás «resto». Es la misma cuenta del
+## laboratorio, y se aplica ANTES de CORRECCION_POSTURA (el giro fijo va encima, como allí). El nombre del clip es el del GLB (exacto).
+const FACTOR_ZANCADA: Dictionary = {
+	"woodland_wanderer": {"Walking": {"brazos": 0.44}},
+}
+
+
+func _aplicar_factor_zancada() -> void:
+	if _ap == null or not FACTOR_ZANCADA.has(id):
+		return
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return
+	var sk: Skeleton3D = sks[0] as Skeleton3D
+	var por_clip: Dictionary = FACTOR_ZANCADA[id]
+	for nombre in por_clip.keys():
+		if not _ap.has_animation(nombre):
+			continue
+		var an: Animation = _ap.get_animation(nombre)
+		if an.has_meta("factor_zancada"):
+			continue          # el clip es del recurso importado (compartido): una sola vez aunque haya dos instancias
+		an.set_meta("factor_zancada", true)
+		var factores: Dictionary = por_clip[nombre]
+		for t in range(an.get_track_count()):
+			if an.track_get_type(t) != Animation.TYPE_ROTATION_3D or an.track_get_key_count(t) < 2:
+				continue
+			var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
+			var grupo: String = "resto"
+			var b: int = sk.find_bone(hueso)
+			while b >= 0:
+				var n: String = sk.get_bone_name(b)
+				if n.ends_with("UpLeg"):
+					grupo = "piernas"
+					break
+				if n.ends_with("Shoulder"):
+					grupo = "brazos"
+					break
+				b = sk.get_bone_parent(b)
+			if not factores.has(grupo):
+				continue
+			var k: float = float(factores[grupo])
+			var qs: Array = []
+			for i in range(an.track_get_key_count(t)):
+				qs.append(an.track_get_key_value(t, i))
+			var q0: Quaternion = qs[0]
+			var suma := Vector4.ZERO
+			for q in qs:
+				var qq: Quaternion = q
+				if qq.dot(q0) < 0.0:
+					qq = Quaternion(-qq.x, -qq.y, -qq.z, -qq.w)      # mismo giro en el otro hemisferio: para promediar bien
+				suma += Vector4(qq.x, qq.y, qq.z, qq.w)
+			var media: Quaternion = Quaternion(suma.x, suma.y, suma.z, suma.w).normalized()
+			for i in range(qs.size()):
+				an.track_set_key_value(t, i, media.slerp(qs[i] as Quaternion, k))
+
+
+## Corrección de postura por personaje (11/10, Pablo con LabGrandmaster3D): id -> {hueso: giro fijo en grados X, Y, Z}. Se aplica a
+## TODOS los clips del personaje: q_nueva = giro · q_clip (giro en el espacio del hueso padre, mismo orden de ejes que Quaternion.from_euler,
+## igual que el laboratorio). Arregla la postura del modelo de Meshy sin tocar el GLB, así que sobrevive a re-exportarlo.
+const CORRECCION_POSTURA: Dictionary = {
+	"woodland_wanderer": {
+		"mixamorig_LeftShoulder": Vector3(0.0, 19.0, 0.0),
+		"mixamorig_LeftHand": Vector3(0.0, 0.0, 31.5),
+		"mixamorig_RightArm": Vector3(4.5, 12.0, -3.5),
+		"mixamorig_RightHand": Vector3(0.0, -25.0, -35.0),
+		"mixamorig_RightShoulder": Vector3(0.0, -12.5, -0.5),
+	},
+	"grandmaster": {
+		"mixamorig_LeftUpLeg": Vector3(7.0, 0.0, 0.0),
+		"mixamorig_LeftLeg": Vector3(4.0, 8.5, 0.0),
+		"mixamorig_LeftToeBase": Vector3(22.5, 0.0, -18.5),
+		"mixamorig_RightFoot": Vector3(28.0, 0.0, 35.0),
+		"mixamorig_RightToeBase": Vector3(13.5, 1.0, 32.0),
+		"mixamorig_RightToe_End": Vector3(0.0, 0.0, 14.5),
+	},
+}
+
+
+func _corregir_postura() -> void:
+	if _ap == null or not CORRECCION_POSTURA.has(id):
+		return
+	var giros: Dictionary = CORRECCION_POSTURA[id]
+	for nombre in _ap.get_animation_list():
+		var an: Animation = _ap.get_animation(nombre)
+		if an.has_meta("postura_corregida"):
+			continue          # el clip es del recurso importado (compartido): una sola vez aunque haya dos instancias
+		an.set_meta("postura_corregida", true)
+		for t in range(an.get_track_count()):
+			if an.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+				continue
+			var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
+			if not giros.has(hueso):
+				continue
+			var g: Vector3 = giros[hueso]
+			var extra: Quaternion = Quaternion.from_euler(Vector3(deg_to_rad(g.x), deg_to_rad(g.y), deg_to_rad(g.z)))
+			for i in range(an.track_get_key_count(t)):
+				an.track_set_key_value(t, i, extra * (an.track_get_key_value(t, i) as Quaternion))
 
 
 func _acortar_paso() -> void:
@@ -609,13 +739,26 @@ func _acortar_paso() -> void:
 	if an.has_meta("paso_acortado"):
 		return          # el clip es del recurso importado (compartido): una sola vez aunque haya dos gatos
 	an.set_meta("paso_acortado", true)
-	var k: float = float(d[1])
-	var huesos: Array = d[2]
+	var k_del: float = float(d[1])
+	var k_tras: float = float(d[2])
+	var k_resto: float = float(d[3])
+	var huesos_del: Array = d[4]
+	var huesos_tras: Array = d[5]
+	var k_hueso: Dictionary = d[6] if d.size() > 6 else {}
+	var extra: Dictionary = d[7] if d.size() > 7 else {}
+	var vaiven: Dictionary = extra.get("vaiven", {})
+	var cola: Array = extra.get("cola", [])
+	var L: float = an.length
 	for t in range(an.get_track_count()):
 		if an.track_get_type(t) != Animation.TYPE_ROTATION_3D or an.track_get_key_count(t) < 2:
 			continue
-		if not huesos.has(str(an.track_get_path(t)).get_slice(":", 1)):
-			continue
+		var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
+		var k: float = k_resto
+		if huesos_del.has(hueso):
+			k = k_del
+		elif huesos_tras.has(hueso):
+			k = k_tras
+		k = float(k_hueso.get(hueso, k))
 		var n: int = an.track_get_key_count(t)
 		var q0: Quaternion = an.track_get_key_value(t, 0)
 		var suma := Vector4.ZERO
@@ -625,9 +768,39 @@ func _acortar_paso() -> void:
 				q = Quaternion(-q.x, -q.y, -q.z, -q.w)      # el mismo giro en el otro hemisferio: para promediar bien
 			suma += Vector4(q.x, q.y, q.z, q.w)
 		var media: Quaternion = Quaternion(suma.x, suma.y, suma.z, suma.w).normalized()
+		var vals: Array = []
 		for i in range(n):
 			var q2: Quaternion = an.track_get_key_value(t, i)
-			an.track_set_key_value(t, i, media.slerp(q2, k))
+			vals.append(media.slerp(q2, k))
+		if vaiven.has(hueso):
+			var amp: float = deg_to_rad(float(vaiven[hueso]))
+			var eje: Vector3 = (extra.get("eje", {}) as Dictionary).get(hueso, Vector3.RIGHT)
+			var fase: float = float((extra.get("fase", {}) as Dictionary).get(hueso, 0.0))
+			for i in range(n):
+				var ph: float = TAU * (an.track_get_key_time(t, i) / L - fase)
+				vals[i] = Quaternion(eje.normalized(), amp * cos(ph)) * (vals[i] as Quaternion)
+		var ic: int = cola.find(hueso)
+		var retraso: float = float(extra.get("retraso_cola", 0.0)) * float(ic + 1) * L if ic >= 0 else 0.0
+		for i in range(n):
+			var nuevo: Quaternion = vals[i]
+			if retraso > 0.0:
+				nuevo = _muestrear_bucle(an, t, vals, an.track_get_key_time(t, i) - retraso)
+			an.track_set_key_value(t, i, nuevo)
+
+
+## Valor de la pista `t` (con valores `vals` en sus claves) en `tiempo`, dando la vuelta al ciclo (para retrasar la cola sin cortes).
+func _muestrear_bucle(an: Animation, t: int, vals: Array, tiempo: float) -> Quaternion:
+	var L: float = an.length
+	tiempo = fposmod(tiempo, L)
+	var n: int = vals.size()
+	for i in range(n):
+		var t0: float = an.track_get_key_time(t, i)
+		var j: int = (i + 1) % n
+		var t1: float = an.track_get_key_time(t, j) if j > 0 else an.track_get_key_time(t, 0) + L
+		var tt: float = tiempo if tiempo >= t0 else tiempo + L
+		if tt >= t0 and tt <= t1:
+			return (vals[i] as Quaternion).slerp(vals[j], (tt - t0) / maxf(t1 - t0, 0.00001))
+	return vals[0]
 
 
 ## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.
@@ -764,7 +937,7 @@ func jugar(nombre: String, una_vez: bool = false, vel: float = 1.0) -> void:
 	_ap.get_animation(clip).loop_mode = bucle as Animation.LoopMode
 	# Mezcla corta con el clip anterior. Sin ella el cambio es un salto seco: en el elemental la cadera pasa de 0,81 (idle) a 0,65
 	# (walk) de golpe, y si la IA alterna quieto/andando en el borde del rango se ve como tirones. Medido en los GLB.
-	_ap.play(clip, MEZCLA_CLIPS, vel * float(VEL_CLIP.get(nombre, 1.0)))
+	_ap.play(clip, MEZCLA_CLIPS, vel * float(VEL_CLIP.get(nombre, 1.0)) * float(VEL_CLIP_PJ.get(id, {}).get(nombre, 1.0)))
 
 
 ## Lo que dura el clip de `nombre` (s) a su velocidad normal (la de VEL_CLIP si la tiene: la voltereta va al doble), o 0 si no existe.
@@ -857,7 +1030,7 @@ static func tipo_de(p_id: String) -> String:
 		return "goblin"
 	if p_id.begins_with("elemental"):
 		return "elemental"
-	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero"):
+	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero") or p_id.begins_with("woodland_wanderer"):
 		return "heroe"
 	return "npc"
 

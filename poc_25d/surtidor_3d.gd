@@ -25,12 +25,25 @@ var celda: Vector2i = Vector2i.ZERO
 var cauce: Array = []                    ## Vector2i del cauce seco, de la más cercana al surtidor a la más lejana
 var esta_lleno: bool = false
 
+## --- Con la simulación del agua (11.5) ---
+## El surtidor ABRE el cauce y echa un manantial en su primera casilla: el agua corre por él y cada casilla pasa a ser «~»
+## cuando la simulación dice que ya tiene agua, no por un temporizador.
+const CAUDAL_SURTIDOR: float = 6.0       ## u³/s. Una casilla de cauce con agua son ~4,8 u³ (5,3 u² × 0,9 de hondo)
+const NIVEL_LLENO: float = 0.8           ## fracción de la hondura del cauce (LECHO_AGUA) a la que se cierra el manantial
+const CAUDAL_TINAJA: float = 1.5         ## u³/s del canal de RUINAS: un manantial permanente. Medido en el Bosque 60 s (12/10): con 1,0 el canal desagua al río más rápido de lo que entra y no llega a 0,25; con 3,0 inunda la zona (+230 trocitos de agua); con 1,5 el canal queda en 0,48/0,35/0,18 y solo salen ~55 trocitos del canal. Saldrá de calcular_chorro (11.17)
+const SOBRE_FONDO_FORZADO: float = 0.3   ## u: hasta dónde llena a la fuerza un canal de ruinas (fondo + esto), no hasta alto_agua
+const T_MAX: float = 40.0                ## s: si el agua no llega (cauce mal puesto), se llena a la fuerza para no atascar el nivel
+var _sim: AguaSim3D = null
+var _convertidas: Dictionary = {}
+var _t_total: float = 0.0
+var _permanente: bool = false            ## canal de ruinas: el grifo no se cierra nunca
+
 
 func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
 	m = p_mundo
 	celda = p_celda
 	position = Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo)
-	cauce = Surtidor3D.buscar_cauce(celda, func(c: Vector2i) -> bool: return String(m.call("_letra", c)) == LETRA_CAUCE)
+	cauce = _calcular_cauce()
 
 
 func _ready() -> void:
@@ -44,6 +57,18 @@ func _ready() -> void:
 	forma.shape = caja
 	forma.position = Vector3(0.0, 0.7, 0.0)
 	add_child(forma)
+
+
+## ¿Es cauce seco la casilla `c` de la maqueta? La letra «c» o un tramo de canal de ruinas (`_es_canal`: `-`, `L` o las piezas canal_*
+## de un nivel horneado). Se pregunta a la maqueta y no a Lanzador3D porque preparar() va antes de configurarlo.
+static func es_cauce_de(p_mundo: Variant, c: Vector2i) -> bool:
+	if p_mundo == null:
+		return false
+	return String(p_mundo.call("_letra", c)) == LETRA_CAUCE or (p_mundo.has_method("_es_canal") and bool(p_mundo.call("_es_canal", c)))
+
+
+func _calcular_cauce() -> Array:
+	return Surtidor3D.buscar_cauce(celda, func(c: Vector2i) -> bool: return Surtidor3D.es_cauce_de(m, c))
 
 
 ## Casillas de cauce unidas (por las 4 vecinas) a las vecinas del surtidor, ordenadas por distancia de relleno: así el agua
@@ -92,7 +117,11 @@ func llenar() -> void:
 	if esta_lleno:
 		return
 	esta_lleno = true
-	var celdas: Array = cauce.duplicate()
+	cauce = _calcular_cauce()               # otra vez: al preparar, la maqueta puede no haber leído aún el canal
+	if Lanzador3D.agua_sim != null and is_inside_tree() and not cauce.is_empty():
+		_llenar_con_fisica(Lanzador3D.agua_sim)
+		return
+	var celdas: Array = cauce.filter(func(c: Variant) -> bool: return String(m.call("_letra", c)) == LETRA_CAUCE)   # el canal de ruinas no cambia de letra
 	if m != null and m.get("_fx") != null:
 		(m.get("_fx") as Vfx3D).chispazo(global_position + Vector3(0.0, 1.2, 0.0), "agua")
 	for i in range(celdas.size()):
@@ -106,6 +135,79 @@ func llenar() -> void:
 		get_tree().create_timer(total).timeout.connect(func() -> void: lleno.emit(celdas))
 	else:
 		lleno.emit(celdas)
+
+
+func _llenar_con_fisica(sim: AguaSim3D) -> void:
+	_sim = sim
+	if m != null and m.get("_fx") != null:
+		(m.get("_fx") as Vfx3D).chispazo(global_position + Vector3(0.0, 1.2, 0.0), "agua")
+	for c in cauce:
+		Lanzador3D.cauces_abiertos[c] = true
+		sim.solidificar_casilla(c as Vector2i, false)      # el foso se abre: el agua puede entrar
+	_permanente = _tiene_canal_ruinas()
+	sim.sumar_fuente(cauce[0] as Vector2i, CAUDAL_TINAJA if _permanente else CAUDAL_SURTIDOR)
+	set_process(true)
+
+
+## ¿Alguna casilla del cauce es canal de ruinas? Entonces el surtidor es la TINAJA: un manantial que no se cierra.
+func _tiene_canal_ruinas() -> bool:
+	for c in cauce:
+		if Lanzador3D.es_canal_ruinas(c as Vector2i):
+			return true
+	return false
+
+
+## Hasta dónde se llena a la fuerza una casilla del cauce: el canal de ruinas, a su fondo + 0,3; el cauce «c», hasta alto_agua.
+func _nivel_forzado(c: Vector2i) -> float:
+	if Lanzador3D.es_canal_ruinas(c):
+		return Lanzador3D.alto_suelo + Lanzador3D.FONDO_CANAL + SOBRE_FONDO_FORZADO
+	return Lanzador3D.alto_agua
+
+
+## Al llegar el agua: el cauce «c» cambia de letra a «~» (como siempre); el canal de ruinas NO (sigue siendo canal para la maqueta y
+## `es_agua` ya lo ve por la simulación).
+func _pasar_a_agua(c: Vector2i) -> void:
+	if String(m.call("_letra", c)) == LETRA_CAUCE:
+		Surtidor3D.convertir_a_agua(m, c)
+
+
+func _process(delta: float) -> void:
+	if _sim == null:
+		set_process(false)
+		return
+	_t_total += delta
+	for c in cauce:
+		if not _convertidas.has(c) and _sim.es_agua_casilla(c as Vector2i):
+			_convertidas[c] = true
+			_pasar_a_agua(c as Vector2i)
+	var todas: bool = _convertidas.size() >= cauce.size()
+	if not todas and _t_total >= T_MAX:
+		for c in cauce:                                     # a la fuerza: mejor un nivel jugable que un surtidor roto
+			if not _convertidas.has(c):
+				_sim.llenar_casilla(c as Vector2i, _nivel_forzado(c as Vector2i))
+				_convertidas[c] = true
+				_pasar_a_agua(c as Vector2i)
+		todas = true
+	if todas and _permanente:
+		# La tinaja deja el grifo abierto: el canal desagua por donde la pieza abre y se mantiene a su nivel.
+		var celdas_p: Array = cauce.duplicate()
+		_sim = null
+		set_process(false)
+		lleno.emit(celdas_p)
+		return
+	if todas:
+		# Cierra el grifo cuando el cauce está casi a su nivel (no al llegar el agua): con el grifo abierto de más, un
+		# cauce sin río que lo desagüe subiría por encima de la orilla. Lo que falte lo reparte el agua que ya hay.
+		var media: float = 0.0
+		for c in cauce:
+			media += _sim.profundidad_casilla(c as Vector2i)
+		media /= float(cauce.size())
+		if media >= NIVEL_LLENO * Lanzador3D.LECHO_AGUA or _t_total >= T_MAX:
+			_sim.sumar_fuente(cauce[0] as Vector2i, -CAUDAL_SURTIDOR)
+			var celdas: Array = cauce.duplicate()
+			_sim = null
+			set_process(false)
+			lleno.emit(celdas)
 
 
 ## Pasa UNA casilla de la maqueta a agua: la letra (`~`), el bloqueo a pie, y su dibujo.

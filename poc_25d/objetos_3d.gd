@@ -171,6 +171,8 @@ func _alto_cuerpo() -> float:
 const TIPOS_CUERPO_AJUSTADO: Array = ["totem", "fogata", "brasero", "seto", "tronco", "emisor_rayo", "telarana"]
 const MARGEN_CUERPO: float = 0.1         ## cuánto sobresale el cuerpo de lo que se ve (u): que acertar no pida puntería de píxel
 const MIN_CUERPO: float = 0.8            ## lado mínimo de la caja (u)
+const PUNTO_BAJO_TECHO: float = 0.05     ## cuánto por debajo de lo más alto del visual queda el punto de activación (u)
+const TIPOS_PUNTO_ALTO: Array = ["totem", "fogata", "brasero", "emisor_rayo"]
 
 
 func _ajustar_cuerpo(caja: BoxShape3D, forma: CollisionShape3D) -> void:
@@ -189,6 +191,10 @@ func _ajustar_cuerpo(caja: BoxShape3D, forma: CollisionShape3D) -> void:
 	caja.size.z = clampf(ab.size.z + MARGEN_CUERPO, MIN_CUERPO, caja.size.z)
 	forma.position.x = c.x
 	forma.position.z = c.z
+	if TIPOS_PUNTO_ALTO.has(tipo):
+		# La columna llega hasta el punto de activación (12/10): un disparo a cualquier altura por debajo lo acierta.
+		caja.size.y = maxf(caja.size.y, ab.end.y + MARGEN_CUERPO * 0.5)
+		forma.position.y = caja.size.y * 0.5
 
 
 ## Caja (en el espacio local del reactivo) de las mallas visibles del visual.
@@ -214,6 +220,20 @@ func _aabb_visual() -> AABB:
 
 
 ## --- Contrato con los hechizos (Lanzador3D) ---
+
+## 12/10 (Pablo): PUNTO DE ACTIVACIÓN, en coordenadas del mundo: donde el hechizo «toca» este objeto y la acción se dispara. Antorcha/brasero,
+## fogata, tótem y cristal: la parte de arriba (el cuenco, la piedra); la tinaja: la boca; el resto: el centro del cuerpo. El Lanzador lo usa
+## para colocar el impacto y la chispa. (La caja de acierto es una columna que llega hasta él: acierta cualquier disparo por debajo.)
+func punto_activacion() -> Vector3:
+	match tipo:
+		"surtidor":
+			if _pivote != null and is_instance_valid(_pivote):
+				return _pivote.to_global(BOCA_CENTRO - PIVOTE_TINAJA)
+		"totem", "fogata", "brasero", "emisor_rayo":
+			var ab: AABB = _aabb_visual()
+			if ab.size.y > 0.05:
+				return to_global(Vector3(ab.get_center().x, ab.end.y - PUNTO_BAJO_TECHO, ab.get_center().z))
+	return to_global(Vector3(0.0, _alto_cuerpo() * 0.5, 0.0))
 
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
 	if rune_data == null:
@@ -642,6 +662,9 @@ var _llenando: bool = false
 var _pivote: Node3D = null               ## tinaja: gira la tinaja entera (modelo, agua de la boca) al inclinarse
 var _gotas: GPUParticles3D = null        ## tinaja: gotas finas que salen hacia abajo (casi solo Y, muy poco X y Z)
 var _chorro: Array = []                  ## tramos del chorro (MeshInstance3D), se enseñan de arriba abajo
+var _chorro_gotas: Variant = null        ## 11.18: el chorro de gotas (GPUParticles3D) que sustituye a los cilindros, o null
+var _chorro_sustituido: bool = false
+const R_GOTAS_TINAJA: float = 0.12       ## radio visual del hilo de agua de la tinaja (u)
 var _punto_caida: Vector3 = Vector3.ZERO     ## local: donde cae el chorro
 var _arroyo: Node3D = null               ## pivote en el punto de caída; su escala Z es lo que avanza el arroyo
 var _tira: PlaneMesh = null              ## la tira del arroyo (su largo se ajusta con ajustar_arroyo)
@@ -883,13 +906,43 @@ func _empezar_a_verter(instantaneo: bool) -> void:
 	else:
 		var tw: Tween = create_tween()
 		for i in range(_chorro.size()):         # el chorro baja de tramo en tramo (0,05 s cada uno)
-			tw.tween_callback((_chorro[i] as MeshInstance3D).set_visible.bind(true))
+			tw.tween_callback(_ver_tramo.bind(i))
 			tw.tween_interval(0.05)
 		tw.tween_callback(_abrir_caudal)
 		create_tween().tween_method(_poner_brillo, BRILLO_REPOSO, 0.0, T_BRILLO_FIN).set_trans(Tween.TRANS_SINE)     # el brillo se apaga
 	# 13/10 (Pablo): sin salpicadura donde cae el chorro: ahí empieza el río (el agua del canal), ver punto_caida_global.
 	_gotas.emitting = true
+	_chorro_de_gotas()
 	activado.emit("surtidor", "agua")
+
+
+## Enseña el tramo `i` del chorro de cilindros, salvo que lo haya sustituido el chorro de gotas (11.18).
+func _ver_tramo(i: int) -> void:
+	if not _chorro_sustituido and i < _chorro.size():
+		(_chorro[i] as MeshInstance3D).visible = true
+
+
+## 11.18 (Pipeline): si la maqueta tiene agua con física, el chorro de la tinaja es de GOTAS fundidas (AguaMetaballs3D.chorro_fisico) con tantas
+## gotas como caudal echa el surtidor (`Surtidor3D.CAUDAL_TINAJA`), en vez de los cilindros finos de arriba, que se ocultan. Sale del pico,
+## con la X y la Y de la boca al punto de caída. Sin agua física (u otro nivel) no cambia nada.
+func _chorro_de_gotas() -> void:
+	var maqueta: Node = get_parent()
+	while maqueta != null and not maqueta.has_method("chorro_agua"):
+		maqueta = maqueta.get_parent()
+	if maqueta == null or not is_inside_tree():
+		return
+	var pico: Vector3 = to_global(punto_chorro(0.0))
+	var dir_g: Vector3 = (global_transform.basis * dir_vertido()).normalized()
+	var t_fin: float = sqrt(2.0 * (pico_inclinado().y - SUELO_CHORRO) / GRAVEDAD_CHORRO)
+	var x: float = VUELO_Z * t_fin
+	var y: float = to_global(punto_chorro(0.0)).y - to_global(_punto_caida).y
+	_chorro_gotas = maqueta.call("chorro_agua", pico, dir_g, x, y, R_GOTAS_TINAJA, -1.0, Surtidor3D.CAUDAL_TINAJA, false)
+	if _chorro_gotas == null:
+		return
+	for mi in _chorro:
+		(mi as MeshInstance3D).visible = false
+	_gotas.emitting = false
+	_chorro_sustituido = true
 
 
 ## El agua llega al suelo y el arroyo avanza hacia el canal (sin charco: el canal ya es el agua que se ve). Sin simulación: solo el

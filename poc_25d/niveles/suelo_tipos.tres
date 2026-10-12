@@ -77,6 +77,17 @@ size = Vector3(2.254, 0.828, 2.254)
 [sub_resource type="BoxShape3D" id="BoxShape3D_xwgnc"]
 size = Vector3(2.3, 0.828, 2.3)
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_piedra"]
+transparency = 1
+albedo_color = Color(0.66, 0.64, 0.7, 0.85)
+
+[sub_resource type="BoxMesh" id="BoxMesh_piedra"]
+material = SubResource("StandardMaterial3D_piedra")
+size = Vector3(2.254, 1.035, 2.254)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_piedra"]
+size = Vector3(2.3, 1.035, 2.3)
+
 [resource]
 item/0/name = "SUELO"
 item/0/mesh = SubResource("BoxMesh_4m8tl")
@@ -127,3 +138,10 @@ item/6/mesh_cast_shadow = 1
 item/6/shapes = [SubResource("BoxShape3D_xwgnc"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.414, 0)]
 item/6/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 item/6/navigation_layers = 1
+item/7/name = "PIEDRA"
+item/7/mesh = SubResource("BoxMesh_piedra")
+item/7/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)
+item/7/mesh_cast_shadow = 1
+item/7/shapes = [SubResource("BoxShape3D_piedra"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5175, 0)]
+item/7/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/7/navigation_layers = 1

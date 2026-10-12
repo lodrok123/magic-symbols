@@ -1233,6 +1233,239 @@ Pablo quiera; no bloquea nada.
 
 ---
 
+## Fase 11 — Agua con física (Pablo, 12/10)
+
+**Qué pide Pablo.** El agua de hoy no le gusta: **llenarse es falso** (el canal
+se llena con una tira animada), **no reacciona** (pisarla o darle con un
+hechizo no hace nada) y **no se siente como un fluido ni ocupa su sitio**. La
+física tiene que cambiar **cómo se juega**, no solo cómo se ve, y los objetos
+tienen que **flotar para los puzles**. Repositorios que trajo, leídos el
+12/10:
+
+| repositorio | qué es | qué tomamos |
+|---|---|---|
+| AstroStucky/EasyFluidSim (Godot 4.2, dominio público) | 2D: gotas como cuerpos rígidos dibujadas con *metaballs* (se pintan borrosas en una capa y se corta por umbral) | la técnica de **metaballs** para el dibujo de chorros, caídas y el hechizo de agua; nada de su física (no da un nivel de agua que el juego pueda preguntar) |
+| sjb8100/godot-WaterPack (Godot 3.0, MIT, 2018) | sombreadores de agua (olas Gerstner, espuma por profundidad, refracción), suelo mojado por mapa, flotación por puntos, ondas 2D con muelles | ideas de **suelo mojado por mapa**, **espuma**, **flotación por puntos**; el código es de Godot 3 y no carga en 4.7: se rehace |
+| itzMeerkat/Godot-RealisticEnvironments (Godot 4.8, MIT) | océano realista por FFT y cómputo en GPU, ondas interactivas iWave alrededor de los barcos | solo la **idea** de ondas que se propagan desde lo que toca el agua (decidido por Pablo: nada de su código, el proyecto sigue en 4.7 y es cartoon) |
+| CaptainProton42/DynamicWaterDemo (Godot 3.2, MIT, 2020; leído el 12/10) | ondas por la **ecuación de ondas en la GPU**: un `ColorRect` con un sombreado en un `Viewport` que se recalcula cada paso (5 puntos, estable si `a = (c·dt·N)² < 0,5`); una **cámara ortográfica bajo el agua** que mira hacia arriba y pinta solo los objetos de una capa con `cull_front`: así sabe **qué atraviesa la superficie** y a qué velocidad, y crea la onda sola; una **máscara de tierra** donde las ondas valen 0; **flotación por sondas** (fuerza lineal con la profundidad y amortiguación, en cada esquina) | es casi exactamente 11.8 y 11.6: tomamos el **método** de las ondas (ping-pong de dos `SubViewport` en Godot 4, sin su copia por CPU `get_data/set_data` en cada paso, que es lenta), la **cámara de colisiones** (las ondas salen solas de todo lo que toca el agua, sin llamar a nada) y las **sondas** para flotar. No sirve su agua (un plano de nivel fijo, sin volumen ni corriente) |
+
+**Decisión técnica (Juego, 12/10): el agua es una cantidad por trocito de
+suelo** (`poc_25d/agua_sim_3d.gd`, `AguaSim3D`). Modelo de «tuberías
+virtuales» (O'Brien y Hodgins 1995; Mei et al. 2007): cada trocito empuja agua
+a sus 4 vecinos según la diferencia de altura de la superficie, con inercia.
+Rejilla de 3 × 3 trocitos por casilla (0,77 u). Baja por las pendientes,
+llena los huecos hasta el borde, se nivela, la tierra hace de presa, el hielo
+la para, el suelo retiene una lámina de 0,03 u que no corre (sin eso un
+manantial se volvía una película que el suelo se bebía entera y el agua no
+llegaba a ningún sitio) y se bebe los restos, y la casilla queda **mojada**
+(se seca en 20 s). El juego sigue preguntando por **casillas**
+(`es_agua_casilla`, `se_nada_en`, `profundidad_casilla`); el dibujo lee una
+**textura** con la superficie, la profundidad y la corriente de cada trocito.
+Probado con un gemelo en Python (conserva el volumen exacto, estable, se
+calma); **sin probar todavía en Godot**: lo hace la prueba 11.1.
+
+### Pablo
+
+- [ ] **11.0** Aprobar el enfoque (agua por trocitos que el juego pregunta
+  por casilla; el dibujo, del Pipeline) y los números de partida:
+  `UMBRAL_AGUA` 0,25 u (desde ahí una casilla es agua), `UMBRAL_NADO`
+  0,55 u, se seca en 20 s, 30 pasos por segundo.
+- [ ] **11.1 (P0)** Ejecutar la prueba sin ventana, desde la carpeta del
+  proyecto: `godot --headless --path . --script
+  res://poc_25d/herramientas/prueba_agua_sim.gd`. Debe acabar en
+  «FALLOS: 0» y da los milisegundos por paso en el río del Bosque (si pasa de
+  4 ms, se baja a 2 × 2 trocitos por casilla).
+- [ ] **11.11** Playtest en el laboratorio (11.2) y luego en el Bosque.
+
+### Juego
+
+- [x] **11.1b** `poc_25d/agua_sim_3d.gd` (`AguaSim3D`) y su prueba
+  `poc_25d/herramientas/prueba_agua_sim.gd` (12/10).
+- [x] **11.2 (P0) Laboratorio `LabAgua3D.tscn`** *(hecho el 12/10, `poc_25d/lab_agua_3d.gd`; sin abrir en Godot: F6 y mirar la consola)* con dibujo de depuración
+  (una caja por trocito, más alta y más azul cuanta más agua): un hoyo que se
+  llena, una presa de tierra que se levanta y se quita, un manantial que baja
+  por una escalera de dos niveles y un río con salida. Para que Pablo juzgue
+  la física antes de que exista el dibujo bueno. Controles: clic izquierdo
+  echa agua, clic derecho levanta o quita tierra, H hiela, F abre o cierra el
+  manantial, R empieza de nuevo. Medido con el gemelo en Python: en 60 s el
+  manantial baja la escalera, el hoyo se llena hasta el borde (1,1 u) y el
+  río lleva el agua a la salida a ~0,5 u/s.
+- [ ] **11.3 (P0) Enchufarlo al Lanzador.** `Lanzador3D` crea un `AguaSim3D`
+  al cargar el nivel (suelo de `y_pies`, paredes de lo que bloquea), llena
+  las casillas `~` hasta su superficie y fija el nivel donde el río entra o
+  sale del mapa. `es_agua(c)` pasa a preguntar a la simulación (con la letra
+  como respaldo si no hay simulación); `cambios()` mantiene al día el bloqueo
+  a pie, el nado y lo que hoy depende de «~». Nado con `se_nada_en`; en agua
+  baja se anda más despacio.
+- [x] **11.4 (P0) Hechizos y estados sobre el agua:** *(hecho el 12/10 en `lanzador_3d.gd`, `hechizo_sobre_agua`; medido en `herramientas/prueba_agua_hechizos.gd`; el chorro de agua es un manantial mientras dura)* el hechizo de agua
+  **echa volumen** donde cae (bola: un charco; chorro: un caudal mientras
+  dura) y moja lo que toca; el fuego **evapora** (`quitar`, con vapor); el
+  hielo **hiela las casillas** (`helar_casilla`: el agua se queda quieta y se
+  pisa); la tierra **hace de presa** (`solidificar_casilla`); el rayo conduce
+  por las casillas que son agua según la simulación (`EmisorRayo3D` ya usa
+  `es_agua`).
+- [x] **11.5 (P0) Surtidor y canal de verdad:** *(hecho el 12/10 en `surtidor_3d.gd`: abre el cauce y echa un manantial; el canal de ruinas `-`/`L` cuenta como cauce desde el 12/10 tarde; sin abrir el Bosque con ventana)* el surtidor es una
+  `fuente_en` y el canal se llena porque el agua corre por él (sustituye al
+  llenado por tiempo de `Surtidor3D`; el dibujo de `Canal3D` lo sustituye
+  11.7).
+- [ ] **11.6 (P1) Flotación para puzles** (`poc_25d/flotador_3d.gd`, nuevo; método de las sondas de DynamicWaterDemo: fuerza lineal con lo sumergido y amortiguación, en 4 puntos, leyendo `superficie_en` de `AguaSim3D`, no de la textura de ondas):
+  troncos, cajas y empujables que caen al agua flotan en la superficie
+  (`superficie_en`), la corriente los arrastra (`corriente_en`) y se paran
+  contra la orilla; un tronco atascado entre dos orillas **se puede pisar**
+  (puente). Flotación por varios puntos, como el *buoyancy* de WaterPack.
+
+### Pipeline
+
+- [x] **11.7 (P0) Dibujo del agua desde la simulación.** *(Pipeline, 12/10: `poc_25d/agua_render_3d.gd`, `AguaRender3D`; dibujo por defecto en `LabAgua3D` (Y = cajas); en `PruebaTest2` tras `agua_fisica`, apagado hasta que Pablo lo apruebe. Capturado en Godot 4.7; falta verlo en el PC de Pablo. Falta el hielo: ver diario (32).)* Una malla de
+  rejilla (un vértice por trocito) que lee `AguaSim3D.textura()` (R =
+  altura de la superficie, G = profundidad, B/A = corriente): los vértices
+  suben con el agua (se ve llenarse, rebosar y nivelarse), transparencia y
+  orilla por la profundidad, **espuma donde corre o rompe**, franjas
+  orientadas con la corriente. Mantener el aspecto estilizado de facetas que
+  aprobó Pablo (13/10 (8)). Sustituye al plano de `CODIGO_AGUA` y a las tiras
+  de `Canal3D`.
+- [x] **11.8 (P1) Ondas que reaccionan** (método de DynamicWaterDemo) *(Pipeline, 12/10: `poc_25d/agua_ondas_3d.gd`, `AguaOndas3D.impulso(pos, fuerza, radio)` + máscara de agua; **sin** la cámara bajo el agua: las ondas no nacen solas, el Juego llama a `impulso()`; ver diario (32))*:
+  ecuación de ondas en dos `SubViewport` en ping-pong (sin pasar por la CPU)
+  sobre la zona de la cámara; una **cámara ortográfica bajo el agua** pinta
+  la capa `agua_contacto` (cápsulas simples colgadas del jugador, goblins,
+  troncos y proyectiles, con `cull_front` y su velocidad como color): las
+  ondas nacen solas donde algo atraviesa la superficie; donde la simulación
+  dice que no hay agua (G = 0) las ondas valen 0. Se suma al dibujo de 11.7
+  (normal y algo de altura).
+- [x] **11.9 (P1) Chorros, caídas y salpicaduras con *metaballs*** *(Pipeline, 12/10: `poc_25d/agua_metaballs_3d.gd`, `chorro()`/`salpicadura()`/`detener()`; se pinta encima de la escena, sin profundidad)* (la
+  técnica de EasyFluidSim en 3D): gotas que se dibujan borrosas y se cortan
+  por umbral, para que el chorro del surtidor, la caída al canal y el hechizo
+  de agua parezcan un líquido continuo y no partículas sueltas.
+- [x] **11.10 (P1) Suelo mojado** *(Pipeline, 12/10: el shader del suelo ya lee `mojado_fisico`; se enciende solo cuando `AguaSim3D.textura_mojado()` exista, 11.4 del Juego)*: el suelo se oscurece y brilla donde
+  `casilla_mojada` (o el canal G de la textura) lo dice, y se seca poco a
+  poco (idea del `wet_dirt` de WaterPack).
+
+### Hielo de verdad (Pablo, 12/10 14:50)
+
+El agua helada tiene que **ser hielo**: decidido por Pablo:
+- **Se hiela la zona del impacto** (el radio del hechizo), siguiendo la forma
+  real del agua, no casillas enteras.
+- **Se pisa a la altura del agua**, sea cual sea su nivel.
+- **Resbala**: cuesta frenar y girar.
+- **Bloquea proyectiles** si es grueso (agua honda).
+- **Atrapa lo que hay dentro** (troncos, enemigos) hasta que se derrite.
+- **Se deshace con el tiempo (20 s) o con fuego**, y vuelve a ser **la misma
+  agua** (ni se pierde ni se gana).
+
+- [x] **11.12 (P0, Juego) Hielo en la simulación** *(hecho el 12/10; `prueba_agua_sim.gd` pruebas 8–11)* (`agua_sim_3d.gd`):
+  `helado` pasa a ser por **trocito** y con tiempo: `helar(pos, radio,
+  segundos)` hiela los trocitos con agua (prof > RETIENE) del círculo y
+  guarda el tiempo que les queda; `derretir(pos, radio)` los suelta (fuego);
+  al acabar el tiempo se sueltan solos. Un trocito helado conserva su agua y
+  no deja pasar caudal. Consultas: `hielo_en(pos) -> float` (Y de la cara
+  de arriba del hielo, o −INF), `casilla_helada(c)` (≥ 5 de 9 trocitos),
+  `espesor_hielo(c)`. Textura para el dibujo: `textura_hielo()` (RG8: R = 1
+  helado, G = lo que le queda, 0-1). Pruebas: helar la mitad de un estanque
+  → la otra mitad sigue corriendo; derretir → el volumen total es el mismo.
+- [x] **11.13 (P0, Juego) Propiedades del hielo en el juego** *(hecho el 12/10; medido en `herramientas/prueba_hielo.gd`; sin abrir en Godot con ventana)*
+  (`lanzador_3d.gd`, `jugador_3d.gd`, `combate_3d.gd`, `flotador_3d.gd`):
+  el hechizo de hielo sobre agua llama a `helar` (radio del impacto,
+  `DURA_HIELO` = 20 s); el fuego a `derretir`. `_helada` de la maqueta se
+  rellena desde `casilla_helada` para que todo lo que ya pregunta por
+  `_helada` siga valiendo. **Pisar:** `y_pies` de una casilla helada = cara
+  de arriba del hielo. **Resbalar:** sobre hielo el jugador conserva su
+  velocidad (aceleración `HIELO_ACEL` ≈ 3 u/s² en vez de inmediata,
+  rozamiento `HIELO_FRENO` bajo, giro más lento). **Cobertura:** una casilla
+  helada con `espesor_hielo` ≥ `HIELO_COBERTURA` (0,5 u) cuenta como sólida
+  para los proyectiles (no para andar). **Atrapar:** al helarse, lo que esté
+  dentro del agua helada queda preso: `Flotador3D` se congela (`freeze`),
+  los goblins entran en su estado «congelado» mientras dure; al derretirse,
+  se sueltan. El jugador **no** queda preso: se le sube a la cara del hielo.
+- [x] **11.14 (P1, Pipeline) Dibujo del hielo** *(hecho el 12/10; probado en LabAgua3D con `AguaSim3D.helar`; Bosque sin probar en la nube; costra en `costra_hielo_3d.gd`)* (`agua_render_3d.gd`): lee
+  `textura_hielo()`; los trocitos helados se pintan como hielo (blanco
+  azulado, opaco, facetas con grietas, sin franjas ni espuma ni ondas, un
+  poco más alto que el agua); al helarse, el hielo crece desde el punto del
+  impacto en ~0,3 s; con G < 0,15 (le queda poco) aparecen grietas y se
+  oscurece, avisando de que se va a romper. Los goblins atrapados llevan una
+  costra de hielo (la del estado congelado, si ya existe).
+
+### El Bosque como laboratorio (Pablo, 12/10 15:45)
+
+`PruebaBosque` es **nuestro laboratorio para iterar**: lleva el **kit de
+pruebas** (todos los sellos, hielo incluido, y todos los glifos) y el agua
+física encendida. El kit del nivel de verdad (`bosque`: fuego + flecha, la
+barrera se compra, el agua se recoge) se queda para cuando el nivel se juegue
+como nivel.
+
+- [x] **11.15 (P0, Juego) Kit de pruebas elegible por escena**
+  (`lanzador_3d.gd`): `PROGRESIONES["pruebas"]` = lo mismo que `todo`
+  (fuego, agua, viento, tierra, rayo, **hielo**; todos los glifos; 3
+  páginas). `_ready` elige la progresión así: `PROGRESION_FORZADA` si no está
+  vacía; si no, la propiedad `kit` del mundo (`mundo.get("kit")`) si existe y
+  no está vacía; si no, el nombre del nivel. En el kit de pruebas, `Bosque3D`
+  no quita ni bloquea nada del repertorio (el desbloqueo del agua y la
+  tienda siguen funcionando, pero ya está todo abierto). Enchufar también la
+  costra (`CostraHielo3D` en los goblins presos y en `Flotador3D.congelar()`)
+  y `render.hielo_desde(punto)` antes de `helar`.
+  *Hecho 12/10 (Juego): `progresion_de(mundo)`, `PROGRESIONES["pruebas"]`, costra en goblins y troncos, `hielo_desde`. Prueba sin ventana: `herramientas/prueba_kit.gd` (36 OK). Nada abierto con ventana.*
+- [x] **11.16 (P0, Pipeline) PruebaBosque como laboratorio** *(hecho el 12/10; probado en Godot con ventana virtual en la nube, no en el PC de Pablo; falta la costra en otros casos y el resbalar a mano)*
+  (`prueba_test2.gd`, `PruebaBosque.tscn`): `@export var kit: String = ""`
+  en la maqueta (lo lee el Lanzador, 11.15); en `PruebaBosque.tscn`,
+  `kit = "pruebas"` y `agua_fisica = true`. **Placa de hielo:** con
+  `agua_fisica`, `_impacto_en_agua` no pone placa (dibuja `AguaRender3D`);
+  sin `agua_fisica`, la placa se quita cuando la casilla deja de estar helada
+  (el Juego llama a `_poner_canal(c, 2, 0.0)` al soltarse). Probar en Godot
+  con ventana: río, tinaja → canal → tótem de rayo, hielo con el libro que
+  crece, avisa y se deshace, y el jugador resbalando.
+### Un solo chorro, con caudal calculado (Pablo, 12/10 16:25)
+
+Hoy hay tres chorros que no se hablan: la V del laboratorio (gotas del
+Pipeline, **no echa agua**), el hechizo de chorro (echa agua en las casillas
+del haz, pero se dibuja con el efecto viejo) y el surtidor (echa 6 u³/s, su
+chorro tampoco usa las gotas). Pablo: un solo chorro cuyo **caudal se
+calcula**, y en el hechizo **las variables son su X y su Y**.
+
+**El cálculo** (chorro que sale horizontal de la mano o de la boca y cae):
+- **X** = distancia horizontal hasta donde cae (en el hechizo: el `largo`
+  de su geometría, en u; Tamaño y Flecha lo alargan, como ya hacen).
+- **Y** = altura de la salida sobre el suelo donde cae (en el hechizo: la
+  mano, ~1 u, más o menos el desnivel del suelo).
+- Tiempo de caída `t = √(2·Y / G)`; velocidad de salida `v = X / t`;
+  **caudal `Q = π·r²·v`** (u³/s), con `r` = radio del chorro
+  (`R_CHORRO`, de partida 0,25 u). Con X = 3 casillas (6,9 u) e Y = 1 u:
+  v ≈ 15 u/s y Q ≈ 3 u³/s, lo mismo que echa hoy el haz entre todas sus
+  casillas. Un chorro más largo sale más rápido y echa más agua.
+- El agua entra en la simulación **donde cae** (`sumar_fuente` en la casilla
+  de caída durante lo que dura) y el dibujo usa la misma `v` y la misma
+  gravedad, así que **las gotas caen justo donde aparece el agua**.
+
+- [ ] **11.17 (P0, Juego)** `AguaSim3D.calcular_chorro(x, y, r) ->
+  {velocidad, tiempo, caudal}` (estática) y la inversa
+  `velocidad_para_caudal(q, r)` (para el surtidor, que tiene caudal fijo).
+  **Hechizo de chorro de agua:** el agua deja de entrar por las casillas del
+  haz y entra en la de caída con el caudal calculado durante `vida`; el daño
+  y el mojado del haz no cambian. El dibujo pasa a las gotas del Pipeline
+  (`mundo.chorro_agua(...)`, 11.18) cuando existe. **Surtidor:** su agua
+  entra por el punto de caída del chorro de la tinaja
+  (`Reactivo3D.punto_caida_global`) si cae en el cauce. **Laboratorio:** V
+  abre o cierra un chorro de verdad en el ratón (sale a Y sobre el suelo y
+  cae a X), con X y Y ajustables (`[` `]` para X de 2 a 10 u, `,` `.` para Y
+  de 0,5 a 3 u) y el caudal en pantalla; G sigue siendo solo salpicadura.
+  Pruebas headless: Q con X = 6,9 e Y = 1 ≈ 3 u³/s; el volumen que entra en
+  la simulación = Q × duración; el agua aparece en la casilla de caída.
+- [x] **11.18 (P0, Pipeline)** `AguaMetaballs3D.chorro_fisico(origen,
+  dir_horizontal, x, y, r, duracion)`: velocidad de salida de
+  `AguaSim3D.calcular_chorro`, gravedad de las gotas = `AguaSim3D.G`, gotas
+  por segundo ∝ caudal (`GOTAS_POR_U3`), tamaño de gota ∝ `r`; salpicadura
+  al caer. En la maqueta (con `agua_fisica`): crear el `AguaMetaballs3D` del
+  nivel y exponer `chorro_agua(origen, dir, x, y, r, dura)` y
+  `salpicadura_agua(pos)` para el Juego. **Tinaja:** su chorro con
+  `chorro_fisico` (X, Y de la boca al punto de caída) en vez del dibujo de
+  ahora.
+
+
+**Orden:** 11.0 → 11.1 → 11.2 ∥ 11.7 → 11.3 → 11.4 ∥ 11.5 → 11.6 ∥ 11.8 ∥
+11.9 ∥ 11.10 → 11.12 → 11.13 ∥ 11.14 → 11.15 ∥ 11.16 → 11.17 ∥ 11.18 →
+11.11. Si 11.1 da más de 4 ms por paso, antes de seguir se
+mide con 2 × 2 trocitos por casilla.
+
+---
+
 ## Reparto resumido
 
 | | Pablo | Juego | Pipeline |
@@ -1248,6 +1481,7 @@ Pablo quiera; no bloquea nada.
 | Fase 8 (glifos como geometría) | 8.0–8.3, 8.12 | 8.4–8.9 | 8.10, 8.11 |
 | Fase 9 (nivel Bosque 1) | 9.0–9.4 | 9.8–9.13 | 9.5–9.7 |
 | Fase 10 (playtest Bosque: voltereta, cúpula, cámara) | 10.0, 10.1, 10.7 | 10.2–10.4 | 10.5, 10.6 |
+| Fase 11 (agua con física) | 11.0, 11.1, 11.11 | 11.1b, 11.2–11.6 | 11.7–11.10 |
 | Deuda pequeña | iluminación | stride, pilar/tiempo, diálogo | clips, iconos, VFX, tótems |
 
 Dependencias: 1.1 antes de 2.1 · 1.6 antes de `stride` · 3.6 antes de 3.2 · 3.9 antes de las P2 · 0.2 espera a 1.3.

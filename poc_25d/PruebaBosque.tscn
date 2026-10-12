@@ -8,3 +8,5 @@ fuego_nuevo = true
 nivel = "Bosque"
 reglas = "bosque"
 vitrina_vfx = true
+agua_fisica = true
+kit = "pruebas"

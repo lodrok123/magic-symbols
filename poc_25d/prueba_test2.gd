@@ -58,7 +58,7 @@ const LUZ_AMBIENTE: float = 0.6
 const LUZ_SOL: float = 1.0
 
 ## Personajes: id del pipeline (res://poc_25d/<id>.glb) y su alto en pantalla. Si falta, el sustituto.
-const PJ_JUGADOR: Array = ["chibi_elf_v2", "chibi_elf", "chibi_test"]
+const PJ_JUGADOR: Array = ["woodland_wanderer", "chibi_elf_v2", "chibi_elf", "chibi_test"]   # 12/10: la elfa de 100k (Meshy «Little Woodland Wanderer») es la jugadora; si falta, la chibi_elf de siempre
 const PJ_LIBRERA: Array = ["bookseller_chibi", "chibi_test"]
 const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
 ## Espadachín: el mismo modelo del guerrero con espada (Pj3D.MODELO_DE + Equipo3D.EQUIPO). Ocupa las "A" del
@@ -71,7 +71,7 @@ const PJ_ELEMENTAL: Array = ["elemental_bosque"]
 const PJ_ALQUIMISTA: Array = ["alchemist_elf", "bookseller_chibi", "chibi_test"]
 const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_warrior_chibi"]
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
-const ALTO_PJ: Dictionary = {"chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
+const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
 	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
@@ -167,6 +167,11 @@ uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);      // lo qu
 // Rugosidad: relieve fino por mapa de normales (ruido generado si no hay textura). Con la rampa de luz, los bultos
 // salen como moteado claro/oscuro, que es lo que hace que la arena y la tierra no parezcan una lámina lisa.
 uniform sampler2D normal_suelo : hint_normal, filter_linear_mipmap, repeat_enable;
+// 12/10 (11.10): suelo mojado por la simulación del agua (AguaSim3D.textura_mojado(): R8, 0-1, un texel por trocito). Filtrada, el borde del
+// mojado se difumina. Oscurece y baja la rugosidad igual que el mojado de la casilla; sin simulación no hay textura y no hace nada.
+uniform sampler2D mojado_fisico : hint_default_black, filter_linear, repeat_disable;
+uniform vec4 mojado_rect = vec4(0.0, 0.0, 1.0, 1.0);   // x0, z0, ancho y alto (u) de la zona que cubre la textura
+uniform float mojado_activo = 0.0;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
@@ -199,6 +204,12 @@ void fragment() {
 	float q = smoothstep(0.5 - dureza, 0.5 + dureza, e.r) * w.r;               // quemado: solo donde hay hierba
 	col = mix(col, color_ceniza * (0.8 + 0.4 * r.a), q * fuerza_ceniza);
 	float mo = smoothstep(0.35, 0.65, e.g);                                    // mojado: el tinte del 2D (0,62 0,66 0,78)
+	if (mojado_activo > 0.5) {
+		vec2 uvf = (pm.xz - mojado_rect.xy) / mojado_rect.zw;
+		if (uvf.x > 0.0 && uvf.y > 0.0 && uvf.x < 1.0 && uvf.y < 1.0) {
+			mo = max(mo, smoothstep(0.05, 0.6, texture(mojado_fisico, uvf).r));   // 11.10: el suelo que moja el agua física
+		}
+	}
 	col = mix(col, col * vec3(0.62, 0.66, 0.78), mo);
 	float he = smoothstep(0.4, 0.6, e.b);                                      // helado: escarcha por encima de todo
 	col = mix(col, mix(col * vec3(0.8, 0.95, 1.05), color_escarcha * (0.9 + 0.2 * r.a), 0.7), he);
@@ -423,6 +434,14 @@ const ESCALA_VFX_NUEVO: float = 0.6
 @export var vitrina_vfx: bool = false
 ## 13/10: agua del río con el aspecto low-poly estilizado (facetas, dos tonos, espuma nítida). Desmarcar = el agua pintada de antes.
 @export var agua_estilizada: bool = true
+## 12/10 (Fase 11.7): el agua se dibuja desde la SIMULACIÓN (AguaRender3D lee Lanzador3D.agua) en vez de plano + tiras del canal. Por
+## defecto apagado hasta que Pablo lo apruebe. Encendido: las casillas de agua llevan solo su lecho (Lanzador3D.LECHO_AGUA bajo la superficie
+## de antes, como en la simulación) y el canal de Canal3D no se monta. Sin simulación (Lanzador3D.agua_sim) no se dibuja agua.
+@export var agua_fisica: bool = false
+## 12/10 (11.16): el kit de hechizos de esta escena. El Lanzador lo lee (`mundo.get("kit")`, 11.15) y, si no está vacío, lo usa en lugar del
+## nombre del nivel: «pruebas» = todos los hechizos y glifos (con hielo) para iterar sin tocar el kit del nivel de verdad.
+@export var kit: String = ""
+var _agua_render: AguaRender3D = null
 ## La correa fija de la mochila (los 8 huecos y el oro, abajo) la monta `bolsa_ui.gd` (Juego) y siempre está a la vista. Pablo (10/10)
 ## la quiere fuera: la mochila solo sale con I. Con `false` se esconde desde aquí, sin tocar el archivo del Juego.
 @export var mostrar_correa_mochila: bool = false
@@ -443,6 +462,13 @@ var _marca_tf: Dictionary = {}          ## 13/10: casilla -> Transform3D REAL de
 var _desvios: Dictionary = {}           ## casilla -> Vector2 (x, z): lo que el marcador de la tinaja está desplazado del centro de su casilla
 var _puentes_def: Array = []           ## puentes reactivos del nivel editable (marcadores `P`): {celdas, activador (casilla o (-1,-1))}
 var _celdas_pieza: Dictionary = {}     ## casillas bloqueadas por una pieza del .tscn (Vector2i -> true)
+## 12/10 (Pablo): lo que cuenta como MURO. Su casilla bloquea ENTERA, siempre: no se roza ni se cuela por un hueco de su forma.
+const MUROS_COLISION: Array = ["empalizada_goblin", "puerta_goblin", "arco_ruina", "arco_puerta"]
+var _celdas_muro: Dictionary = {}      ## casillas de muro (Vector2i -> true)
+## 12/10 (Pablo): NPCs y objetos (reactivos) colisionan por su CONTORNO: un círculo en los pies, no la casilla entera.
+const RADIO_CONTORNO_NPC: float = 0.3
+const RADIO_CONTORNO_OBJETO: float = 0.4
+var _npcs_contorno: Array = []         ## Pj3D de NPC quietos (los registra `_npc`)
 var _solidos: Node3D = null            ## cuerpos de colisión de esas piezas
 
 var _mapa: PackedStringArray = PackedStringArray()
@@ -625,6 +651,7 @@ func _ready() -> void:
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
 	_montar_canal()
+	_montar_agua_fisica()
 	_colocar_extras()
 	if _modo_nivel:
 		_instanciar_nivel()
@@ -698,7 +725,7 @@ func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
 	if _reglas != null or _de_archivo or (_modo_nivel and nivel != "test2"):
 		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
-		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L":
+		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L" or l == "R":
 			return 3        # 9.6: lecho de piedras del cauce seco; piedra bajo la fuente eléctrica, la tinaja y los canales
 		if l == "g" or l == "F" or l == "T" or l == "B" or l == "t" or l == "y" or l == "o" or l == "x" or l == "V":
 			return 2        # tierra pisada bajo el campamento goblin
@@ -709,7 +736,7 @@ func _tipo_suelo(c: Vector2i) -> int:
 		return 2
 	if l == "X" or l == "E" or l == "S" or l == "n" or l == "Q" or l == "M":
 		return 1
-	if l == "K":
+	if l == "K" or l == "R":
 		return 3
 	if _es_agua(l):
 		return 1    # orilla de arena alrededor del agua
@@ -809,7 +836,10 @@ func _construir_suelo() -> void:
 			else:
 				tierra.append(t)
 	_multimalla(_malla_bloque(ALTO, mat_suelo, mat_lado), tierra)
-	_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
+	if agua_fisica:
+		_multimalla(_malla_bloque(ALTO_AGUA - Lanzador3D.LECHO_AGUA, mat_suelo, mat_lado), agua)   # solo el lecho (el mismo de la simulación): el agua la dibuja AguaRender3D
+	else:
+		_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
 	_construir_cauce(cauce, mat_lado)
 	_construir_orillas()
 
@@ -953,6 +983,17 @@ func _construir_orillas() -> void:
 ## --- 6.16 HIELO: capa de pulido sobre el agua helada ---
 ## Placa translúcida y brillante, con grietas claras, y dos cristales en una esquina (como `cristal_hielo`). Se borra con la casilla.
 var _placas_hielo: Dictionary = {}
+
+
+## Quita la placa de una casilla (el hielo se soltó: ya es agua otra vez). La llama `_poner_canal` cuando el canal «helado» baja a 0, que es
+## lo que hace el Lanzador al soltarse el hielo de la simulación (20 s o fuego); también se puede llamar a mano.
+func quitar_placa_hielo(c: Vector2i) -> void:
+	if not _placas_hielo.has(c):
+		return
+	var raiz: Node = _placas_hielo[c]
+	_placas_hielo.erase(c)
+	if is_instance_valid(raiz):
+		raiz.queue_free()
 
 
 func _poner_placa_hielo(c: Vector2i) -> void:
@@ -2276,6 +2317,8 @@ func _instanciar_escena() -> void:
 			_bloqueadas[cp] = true
 			_celdas_pieza[cp] = true
 			_poner_colision(id_pedido, t)
+			if MUROS_COLISION.has(id):
+				_celdas_muro[cp] = true
 		if decorado_por_lotes:
 			if _plantilla(id).is_empty():
 				continue
@@ -2327,11 +2370,49 @@ func _poner_colision(id_pedido: String, t: Transform3D) -> void:
 	_solidos.add_child(cuerpo)
 
 
+## Cuerpo de contorno: un cilindro de `radio` en los pies de algo (NPC, objeto), en la capa de lo sólido.
+func _poner_contorno(pies: Vector3, radio: float) -> void:
+	if _solidos == null:
+		_solidos = Node3D.new()
+		_solidos.name = "Solidos"
+		add_child(_solidos)
+	var cuerpo := StaticBody3D.new()
+	cuerpo.collision_layer = Lanzador3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	cuerpo.add_to_group("bloquea")
+	cuerpo.position = Vector3(pies.x, ALTO, pies.z)
+	var forma := CollisionShape3D.new()
+	var cil := CylinderShape3D.new()
+	cil.radius = radio
+	cil.height = 1.6
+	forma.shape = cil
+	forma.position = Vector3(0.0, 0.8, 0.0)
+	cuerpo.add_child(forma)
+	_solidos.add_child(cuerpo)
+
+
 ## Con el nivel en .tscn la solidez pasa a ser la de la colisión real (Lanzador3D.activar_fuente_nodos). El motor de física
 ## no ve los cuerpos recién creados hasta un par de fotogramas de física, por eso se espera. Hasta entonces manda el diccionario.
 ## Lo que NO es una pieza del .tscn (agua, borde, NPC, objetos reactivos, la puerta…) sigue en `_bloqueadas` y se traspasa
 ## a la fuente como bloqueo «extra», para que la fuente por nodos lo vea igual que antes.
 func _activar_solidez_por_nodos() -> void:
+	# 12/10 (Pablo): contorno (círculo en los pies) de los NPC quietos y de los objetos reactivos: cuerpos en CAPA_SOLIDO ANTES de
+	# esperar a la física, para que la fuente por nodos los vea como el resto de piezas (casilla «parcial»: se rodean, no se atraviesan).
+	var contorno: Dictionary = {}
+	for n in _npcs_contorno:
+		if is_instance_valid(n):
+			var cn: Vector2i = _celda_de((n as Node3D).global_position)
+			_poner_contorno((n as Node3D).global_position, RADIO_CONTORNO_NPC)
+			contorno[cn] = true
+	for r in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+		var ro: Reactivo3D = r as Reactivo3D
+		if ro == null or ro.tipo == "puente" or ro.tipo == "placa" or ro.tipo == "telarana":
+			continue
+		var cr: Vector2i = _celda_de(ro.global_position)
+		if not _bloqueadas.has(cr) or _celdas_pieza.has(cr):
+			continue
+		_poner_contorno(ro.global_position, RADIO_CONTORNO_OBJETO)
+		contorno[cr] = true
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree() or Lanzador3D.mundo_s != self:
@@ -2342,8 +2423,10 @@ func _activar_solidez_por_nodos() -> void:
 		Lanzador3D.activar_fuente_casillas()
 		return
 	for c in _bloqueadas.keys():
-		if not _celdas_pieza.has(c):
+		if not _celdas_pieza.has(c) and not contorno.has(c):
 			Lanzador3D.bloquear_celda(c)
+	for c in _celdas_muro.keys():
+		Lanzador3D.bloquear_celda_completa(c)      # un muro nunca es «parcial»
 	print("Solidez por colisión: ", n, " casillas de piezas, ", _bloqueadas.size() - _celdas_pieza.size(), " extra")
 
 
@@ -2615,10 +2698,23 @@ func _instanciar_nivel() -> void:
 			hundidas += 1
 		var p: Vector3 = t.origin
 		var escala: float = t.basis.get_scale().x
-		if bool(pz.get_meta("bloquea", false)):
+		var es_muro: bool = MUROS_COLISION.has(id)      # 12/10 (Pablo): un muro bloquea siempre, aunque la pieza no lo marque
+		if bool(pz.get_meta("bloquea", false)) or es_muro:
 			var cuerpo: StaticBody3D = pz.get_node_or_null("cuerpo") as StaticBody3D
 			if cuerpo != null:
 				_poner_cuerpo(cuerpo, t, p)
+				if es_muro:
+					_marcar_muro(cuerpo, t, p)
+			elif es_muro:
+				# Sin cuerpo propio: el de la biblioteca de piezas (su caja), para que el muro exista de verdad.
+				var cp_m: Vector2i = _celda_de(p)
+				_bloqueadas[cp_m] = true
+				_celdas_pieza[cp_m] = true
+				_poner_colision(id_pedido, t)
+				var f_m: Dictionary = Pieza3D.forma_colision(id_pedido)
+				var k_m: float = t.basis.get_scale().x
+				var mitad_m: Vector3 = (t.basis.orthonormalized() * (((f_m["tam"] as Vector3) if not bool(f_m["cilindro"]) else Vector3(float(f_m["radio"]) * 2.0, 1.0, float(f_m["radio"]) * 2.0)) * 0.5 * k_m)).abs()
+				_marcar_muro_caja(t * ((f_m["centro"] as Vector3) * k_m), mitad_m)
 			else:
 				_avisos.append("pieza %s bloquea pero no tiene `cuerpo`" % pz.name)
 		if decorado_por_lotes:
@@ -2661,6 +2757,28 @@ func _poner_cuerpo(modelo: StaticBody3D, t: Transform3D, p: Vector3) -> void:
 	var cp: Vector2i = _celda_de(p)
 	_bloqueadas[cp] = true
 	_celdas_pieza[cp] = true
+
+
+## Un muro del .tscn: bloquea las casillas que cubre su cuerpo (la de su posición y las que caen dentro de la caja), enteras.
+func _marcar_muro(cuerpo: StaticBody3D, t: Transform3D, p: Vector3) -> void:
+	_celdas_muro[_celda_de(p)] = true
+	for forma in cuerpo.find_children("*", "CollisionShape3D", true, false):
+		var caja := (forma as CollisionShape3D).shape as BoxShape3D
+		if caja == null:
+			continue
+		_marcar_muro_caja(t * (forma as CollisionShape3D).position, (t.basis * (caja.size * 0.5)).abs())
+
+
+## Marca como muro las casillas cuyo centro cae dentro de la caja (centro, semiancho) del mundo.
+func _marcar_muro_caja(centro: Vector3, mitad: Vector3) -> void:
+	var c0: Vector2i = _celda_de(centro - mitad)
+	var c1: Vector2i = _celda_de(centro + mitad)
+	for y in range(c0.y, c1.y + 1):
+		for x in range(c0.x, c1.x + 1):
+			var q := Vector2i(x, y)
+			var cc: Vector3 = _centro_celda(q, ALTO)
+			if absf(cc.x - centro.x) <= mitad.x + 0.01 and absf(cc.z - centro.z) <= mitad.z + 0.01:
+				_celdas_muro[q] = true
 
 
 ## Lo que test_2.gd coloca fuera del plano: guardados, objetos del suelo y carteles de cada cámara.
@@ -2784,6 +2902,7 @@ func _npc(opciones: Array, p: Vector3) -> Pj3D:
 	var n: Pj3D = _personaje(opciones, p)
 	if n != null:
 		n.rotation.y = 0.0
+		_npcs_contorno.append(n)
 	return n
 
 
@@ -2793,7 +2912,7 @@ func _npc(opciones: Array, p: Vector3) -> Pj3D:
 ## cruza lo que no se pisa ni atraviesa al guardabosques). En cada punto impar se para un rato. Si falta el GLB, no sale y punto.
 const PJ_GATO: Array = ["gato_guardabosques"]
 const RADIO_GATO: float = 1.4          ## distancia (u) del corro al guardabosques
-const VEL_GATO: float = 0.55           ## u/s andando (11/10: más despacio al acortarle el paso en Pj3D.PASO_CORTO, para que no patine)
+const VEL_GATO: float = 0.075         ## 11/10: +50 % (antes 0,05) junto con VEL_CLIP_PJ 0,27 -> 0,405. u/s andando. 11/10: medido en LabGato3D con lo que Pablo dejó «lockeado» (PASO_CORTO 0,23 / 0,53 / 0,50, vaivenes, animación a 0,27): las patas apoyadas retroceden a ~0,04-0,06 u/s a escala del juego; más rápido, patina. Para un paseo más ágil: sube a la vez VEL_CLIP_PJ (pj_3d.gd) y esto en la misma proporción
 const PAUSA_GATO: Vector2 = Vector2(0.8, 2.5)   ## s parado en un punto (al azar entre los dos)
 
 
@@ -3035,6 +3154,8 @@ func _poner_canal(c: Vector2i, canal: int, valor: float) -> void:
 	p[canal] = clampf(valor, 0.0, 1.0)
 	_img_estado.set_pixel(c.x, c.y, p)
 	_estado_sucio = true
+	if canal == 2 and valor < 0.5:
+		quitar_placa_hielo(c)            # 11.16: sin hielo no hay placa (antes se quedaba para siempre aunque el agua volviera)
 
 
 ## Suma `cantidad` al canal de la casilla y las de alrededor (radio en casillas), saturando a 1.
@@ -3099,7 +3220,7 @@ func _impacto_en_suelo(elemento: String, c: Vector2i) -> void:
 		# rayo (descarga: lo hace el VFX), tierra y viento: no cambian canales del suelo.
 
 
-## Agua (§1.5): el hielo es permanente. El agua helada se puede pisar.
+## Agua (§1.5): el agua helada se puede pisar. El hielo dura (20 s con la simulación) y el fuego lo funde; la placa se quita al soltarse.
 func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 	var p: Color = _img_estado.get_pixel(c.x, c.y)
 	match elemento:
@@ -3108,7 +3229,8 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 				_poner_canal(c, 2, 1.0)
 				_helada[c] = true
 				_liberar(c)
-				_poner_placa_hielo(c)
+				if not agua_fisica:
+					_poner_placa_hielo(c)      # con agua física el hielo lo dibuja AguaRender3D desde la simulación (11.14)
 		"fuego":
 			_fx.vapor(_centro_celda(c, ALTO_AGUA))      # hierve; el hielo no se derrite
 
@@ -3756,10 +3878,80 @@ const BRILLO_CHISPAS_CANAL: float = 3.0
 const TAM_CHISPAS_CANAL: float = 3.0
 
 
+## 12/10 (Fase 11.7) · Agua física: AguaRender3D dibuja la simulación del Lanzador. Si la simulación aún no existe (el Lanzador la crea
+## al cargar el nivel, 11.3), el dibujo se enlaza solo en cuanto aparece. En el editor (VistaSuelo) no se monta: sigue el agua pintada.
+func _montar_agua_fisica() -> void:
+	if not agua_fisica or Engine.is_editor_hint():
+		return
+	_agua_render = AguaRender3D.new()
+	_agua_render.name = "AguaFisica"
+	# Por reflexión (get) y no `Lanzador3D.agua_sim`: así este archivo carga aunque el Lanzador cambie. (El contrato decía `Lanzador3D.agua`; el Juego lo llamó `agua_sim`.)
+	_agua_render.proveedor = func() -> Variant: return (load("res://poc_25d/lanzador_3d.gd") as Script).get("agua_sim")
+	add_child(_agua_render)
+	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
+	var reloj := Timer.new()
+	reloj.wait_time = 0.125
+	reloj.autostart = true
+	reloj.timeout.connect(_actualizar_suelo_mojado)
+	add_child(reloj)
+
+
+## 12/10 (Fase 11.18, Pipeline) · Chorros y salpicaduras de gotas (AguaMetaballs3D) para el Juego y la tinaja. Solo con agua física; sin ella
+## devuelven null y quien llama sigue con su dibujo de siempre. El nodo se crea la primera vez que se pide (necesita la cámara, que se monta
+## después que el agua) y se queda como `_gotas_agua`.
+var _gotas_agua: AguaMetaballs3D = null
+
+
+func _asegurar_gotas_agua() -> AguaMetaballs3D:
+	if not agua_fisica or Engine.is_editor_hint() or _camara == null:
+		return null
+	if _gotas_agua == null:
+		_gotas_agua = AguaMetaballs3D.new()
+		_gotas_agua.name = "GotasAgua"
+		_gotas_agua.camara = _camara
+		add_child(_gotas_agua)
+	return _gotas_agua
+
+
+## Un chorro de agua que sale HORIZONTAL de `origen` hacia `dir`, cae `y` u y llega `x` u más allá (ver AguaMetaballs3D.chorro_fisico). `dura` ≤ 0:
+## hasta pararlo con `parar_chorro_agua`. `caudal` > 0 fija las gotas por segundo (la tinaja). Devuelve el emisor, o null sin agua física.
+func chorro_agua(origen: Vector3, dir: Vector3, x: float, y: float, r: float = 0.25, dura: float = -1.0, caudal: float = -1.0,
+		salpica: bool = true) -> Variant:
+	var g: AguaMetaballs3D = _asegurar_gotas_agua()
+	if g == null:
+		return null
+	return g.chorro_fisico(origen, dir, x, y, r, dura, caudal, salpica)
+
+
+func parar_chorro_agua(chorro: Variant) -> void:
+	if _gotas_agua != null and chorro != null:
+		_gotas_agua.detener(chorro as GPUParticles3D)
+
+
+## Una salpicadura de gotas donde cae agua (un impacto, una caída al canal).
+func salpicadura_agua(pos: Vector3) -> void:
+	var g: AguaMetaballs3D = _asegurar_gotas_agua()
+	if g != null:
+		g.salpicadura(pos)
+
+
+func _actualizar_suelo_mojado() -> void:
+	if _mat_suelo == null or _agua_render == null or _agua_render.sim == null:
+		return
+	var sim: AguaSim3D = _agua_render.sim
+	if not sim.has_method("textura_mojado"):
+		return
+	_mat_suelo.set_shader_parameter("mojado_fisico", sim.call("textura_mojado"))
+	_mat_suelo.set_shader_parameter("mojado_rect", Vector4(0.0, 0.0, float(sim.w) * sim.l, float(sim.h) * sim.l))
+	_mat_suelo.set_shader_parameter("mojado_activo", 1.0)
+
+
 ## 10/10 · Canal de ruinas: las casillas `-` (recto) y `L` (codo) conectadas a la casilla de DELANTE de la tinaja (hacia donde
 ## vierte: Reactivo3D.INCLINA_HACIA con su giro) forman el canal (letras del mapa o marcadores `-`/`L` del nivel); se ordenan por distancia (anchura) y se llenan una a una con
 ## `Canal3D.retraso` / `t_casilla` (ajustables: `_canal.retraso = 0.5`). Si no hay tinaja o no hay canal pegado, no hace nada.
 func _montar_canal() -> void:
+	if agua_fisica:
+		return          # 11.7: el agua corre por la simulación, no por la tira de Canal3D
 	var tinaja: Reactivo3D = null
 	for r in _reactivos:
 		if r.tipo == "surtidor" and bool(r.get("_es_tinaja")):

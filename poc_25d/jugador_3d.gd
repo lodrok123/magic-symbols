@@ -36,6 +36,10 @@ const DIST_VOLTERETA: float = 1.0            ## casillas
 ## --- 6.7 Beber poción: bloqueado mientras bebe; cura al terminar; un golpe la interrumpe ---
 const T_BEBER: float = 1.5
 const CURA_POCION: float = 40.0
+## --- 11.13 Hielo: resbala. Sobre agua helada la velocidad no sigue al teclado al instante: se acerca a ella poco a poco ---
+const HIELO_ACEL: float = 3.0                ## u/s² con las teclas puestas (andar = 1,6 u/s: ~0,5 s en alcanzarlo)
+const HIELO_FRENO: float = 0.9               ## u/s² sin teclas: cuesta frenar (de 1,6 u/s patinas ~1,4 u)
+const HIELO_GIRO: float = 0.35               ## el giro de la mirada va a esta fracción de lo normal
 
 signal murio
 signal reaparecio
@@ -78,6 +82,7 @@ var _roll_previa: bool = false
 var _t_beber: float = 0.0
 var _beber_previa: bool = false
 var _f8_previa: bool = false
+var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
 
 ## Lo monta todo: Lanzador3D, Jugador3D, los goblins con Combate3D, las mediciones y la vida en pantalla.
@@ -364,7 +369,13 @@ func _process(delta: float) -> void:
 	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
 	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando:
 		mov = Vector3.ZERO           # el golpe te frena; beber y el clip de lanzar (6.2b) te dejan quieto hasta que acaban
-	var paso: Vector3 = mov * vel * delta + _empuje * delta
+	var objetivo: Vector3 = mov * vel
+	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Lanzador3D.sobre_hielo(position)
+	if en_hielo:
+		_vel_hielo = Jugador3D.velocidad_hielo(_vel_hielo, objetivo, delta)
+	else:
+		_vel_hielo = objetivo                    # al salir del hielo vuelve lo normal (y al entrar conserva lo que llevabas)
+	var paso: Vector3 = (_vel_hielo if en_hielo else objetivo) * delta + _empuje * delta
 	if _t_roll > 0.0:
 		mov = Vector3.ZERO
 		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
@@ -374,9 +385,11 @@ func _process(delta: float) -> void:
 		_mover_con_choque(paso)
 		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
 			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
+		if en_hielo and position.distance_to(antes) < paso.length() * 0.25:
+			_vel_hielo = Vector3.ZERO               # choca contra algo: se para (si no, seguiría empujando la pared)
 	if mov != Vector3.ZERO:
 		_mirada = mov
-		pj.mirar(mov, delta)
+		pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
 		if mundo.has_method("marcar_estado") and not nadando:
 			mundo.call("marcar_estado", Lanzador3D.celda_de(position), 3, 0.35)
 
@@ -384,6 +397,13 @@ func _process(delta: float) -> void:
 	_animar(mov, correr)
 	_sincronizar()
 	_actualizar_hud()
+
+
+## La velocidad sobre hielo tras `delta`: se acerca al objetivo (lo que piden las teclas) con HIELO_ACEL si hay teclas, o con
+## HIELO_FRENO si no. Estática para medirla sin escena.
+static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vector3:
+	var tasa: float = HIELO_ACEL if objetivo != Vector3.ZERO else HIELO_FRENO
+	return v.move_toward(objetivo, tasa * delta)
 
 
 ## Intenta el paso entero y, si no cabe, cada eje por separado (para deslizar por las paredes).

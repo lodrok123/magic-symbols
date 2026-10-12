@@ -87,6 +87,11 @@ const PROGRESIONES: Dictionary = {
 	# Bosque 1 (Fase 9, 9.9, Pablo 10/10): se empieza con FUEGO + FLECHA y una página (un hueco de sello, dos de glifo). El
 	# sello de AGUA se recoge detrás de la telaraña (Bosque3D, zona `a`) y la BARRERA se compra al guardabosques por 20 de oro.
 	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "nivel1"},
+	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
+	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
+	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "tamano", "levitacion", "repeticion", "rebote", "pulso"],
+		"paginas": 3, "glifos_por_pagina": 6},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
@@ -133,6 +138,9 @@ class FuenteSolidez extends RefCounted:
 		pass
 	func liberar(_c: Vector2i) -> void:
 		pass
+	## 12/10 (Pablo): un MURO bloquea la casilla ENTERA, siempre (no se roza ni se cuela por un hueco de su forma).
+	func bloquear_completa(c: Vector2i) -> void:
+		bloquear(c)
 	## ¿Se puede ROZAR la casilla (su forma real es menor que la casilla)? Solo el jugador afina; hechizos y goblins no.
 	func es_parcial(_c: Vector2i) -> bool:
 		return false
@@ -202,6 +210,9 @@ class FuenteNodos extends FuenteSolidez:
 	func liberar(c: Vector2i) -> void:
 		extras.erase(c)
 		celdas.erase(c)
+	func bloquear_completa(c: Vector2i) -> void:
+		celdas.erase(c)                              # ya no es «parcial»: sin forma que rozar, la casilla entera es pared
+		extras[c] = true
 	func es_parcial(c: Vector2i) -> bool:
 		return celdas.has(c)                         # la forma real manda: se roza lo que no es la pieza
 	func choca_punto(c: Vector2i, p: Vector3) -> bool:
@@ -225,6 +236,11 @@ static func bloqueada(c: Vector2i) -> bool:
 static func bloquear_celda(c: Vector2i) -> void:
 	if fuente != null:
 		fuente.bloquear(c)
+
+
+static func bloquear_celda_completa(c: Vector2i) -> void:
+	if fuente != null:
+		fuente.bloquear_completa(c)
 
 
 static func liberar_celda(c: Vector2i) -> void:
@@ -287,6 +303,8 @@ var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)
 signal modo_cambiado(activo: bool)
+## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
+signal agua_cambio(c: Vector2i, es_agua: bool)
 
 
 ## =====================================================================================================
@@ -303,6 +321,179 @@ static func configurar(p_mundo: Node3D) -> void:
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
 	alturas.clear()
 	permanentes.clear()
+	agua_sim = null
+
+
+## --- Hechizos sobre el agua (Fase 11.4, 12/10) ---
+## Qué hace cada elemento al agua de la simulación en el punto del impacto. El suelo (hielo, mojado…) lo sigue haciendo la maqueta:
+## esto es solo el AGUA. Estática para poder medirla sin escena. No hace nada sin simulación o en una casilla con tierra encima (H4).
+##   agua  → echa VOL_AGUA_IMPACTO u³ (un charco que corre, se suma al río y puede cruzar una presa abierta);
+##   fuego → evapora VOL_EVAPORA u³ y suelta vapor si de verdad quitó agua (no repite el vapor de la maqueta en las «~»);
+##   hielo → si la maqueta heló la casilla (_helada), el agua se queda quieta y no deja pasar más.
+## La tierra (presa) no va aquí: construir_tierra → _recalcular → refrescar_casilla.
+static func hechizo_sobre_agua(elemento: String, punto: Vector3) -> void:
+	if agua_sim == null or mundo_s == null:
+		return
+	var c: Vector2i = celda_de(punto)
+	if not en_mapa(c) or altura_en(c) >= 1:
+		return
+	var radio_h: float = casilla * RADIO_HIELO
+	match elemento:
+		"agua":
+			agua_sim.anadir(punto, VOL_AGUA_IMPACTO, casilla * 0.2)     # radio 0,35 → 0,2 casillas (el mínimo de la simulación es medio trocito)
+		"fuego":
+			# Primero funde el hielo del círculo; si no había, evapora (no las dos cosas con un mismo golpe).
+			var fundidos: int = agua_sim.derretir(punto, radio_h)
+			var fx_m: Variant = mundo_s.get("_fx")
+			if fundidos > 0:
+				if fx_m != null:
+					(fx_m as Vfx3D).vapor(punto)
+			else:
+				var quitado: float = agua_sim.quitar(punto, VOL_EVAPORA, casilla * 0.5)
+				if quitado > 0.1 and fx_m != null and letra_de(c) != "~":
+					(fx_m as Vfx3D).vapor(punto)
+		"hielo":
+			# Hiela los trocitos CON AGUA del círculo, 20 s, y atrapa lo que está dentro (troncos, goblins).
+			# El dibujo del hielo crece desde el punto del impacto (Pipeline, 11.16): se avisa ANTES de helar.
+			var render_m: Variant = mundo_s.get("_agua_render")
+			if render_m != null and (render_m as Object).has_method("hielo_desde"):
+				render_m.call("hielo_desde", punto)
+			if agua_sim.helar(punto, radio_h, AguaSim3D.DURA_HIELO) > 0:
+				atrapar(punto, radio_h, AguaSim3D.DURA_HIELO)
+	procesar_cambios_hielo()
+	if elemento == "hielo":
+		# La maqueta heló la casilla ENTERA al impactar; la verdad es la simulación (≥ 5 de 9 trocitos): si no llega, se deshace.
+		var h: Dictionary = mundo_s.get("_helada")
+		if h.has(c) and not agua_sim.casilla_helada(c) and agua_sim.profundidad_casilla(c) > 0.05:
+			h.erase(c)
+			if letra_de(c) == "~":
+				bloquear_celda(c)
+
+
+## Pone al día lo que depende del hielo de la simulación: `_helada` de la maqueta (la usan es_agua, y_pies, pisable, el rayo, el
+## dibujo antiguo…) y lo que estaba preso. Se llama tras cada hechizo y cada fotograma (el hielo también se suelta solo al acabar
+## su tiempo).
+static func procesar_cambios_hielo() -> void:
+	if agua_sim == null or mundo_s == null:
+		return
+	for cb in agua_sim.cambios_hielo():
+		_hielo_cambio(cb["c"] as Vector2i, bool(cb["helada"]))
+
+
+static func _hielo_cambio(c: Vector2i, helada: bool) -> void:
+	var h: Dictionary = mundo_s.get("_helada")
+	if helada:
+		h[c] = true
+		if mundo_s.has_method("_liberar"):
+			mundo_s.call("_liberar", c)              # como hace la maqueta al helar: a pie se puede pisar
+	else:
+		h.erase(c)
+		if letra_de(c) == "~":
+			bloquear_celda(c)                        # vuelve a ser agua: a pie no se pisa (se nada desde la orilla)
+		if mundo_s.has_method("_poner_canal"):
+			mundo_s.call("_poner_canal", c, 2, 0.0)  # el estado «helado» del suelo
+		soltar_presos(c)
+
+
+## ¿Está el punto sobre agua helada? Quien camina por ahí resbala (Jugador3D).
+static func sobre_hielo(p: Vector3) -> bool:
+	var c: Vector2i = celda_de(p)
+	return en_mapa(c) and (mundo_s.get("_helada") as Dictionary).has(c)
+
+
+## ¿El hielo de esta casilla es tan gordo que para proyectiles y miradas? (No para andar.)
+static func cubre_hielo(c: Vector2i) -> bool:
+	return agua_sim != null and en_mapa(c) and (mundo_s.get("_helada") as Dictionary).has(c) \
+			and agua_sim.espesor_hielo(c) >= HIELO_COBERTURA
+
+
+## Atrapa lo que esté dentro del hielo recién hecho: los troncos (Flotador3D se congela hasta que el hielo se suelta) y los goblins
+## (su estado «congelado» durante `segundos`). «Dentro» = su posición cae sobre un trocito helado. El jugador NO queda preso:
+## Jugador3D sale del nado solo y se sube a la cara del hielo.
+const AVISO_HIELO: float = 0.15        ## fracción de tiempo que le queda al hielo para que la costra abra grietas
+static var _presos: Array = []         ## goblins presos en hielo ahora mismo (para avisarles y soltarles la costra)
+
+
+static func atrapar(punto: Vector3, radio: float, segundos: float) -> void:
+	if agua_sim == null:
+		return
+	var arbol: SceneTree = Engine.get_main_loop() as SceneTree
+	if arbol == null:
+		return
+	for f in arbol.get_nodes_in_group("flotador"):
+		if is_instance_valid(f) and _dentro_del_hielo((f as Node3D).global_position, punto, radio):
+			f.call("congelar")
+	for g in arbol.get_nodes_in_group("combate3d"):
+		if is_instance_valid(g) and _dentro_del_hielo((g as Node3D).global_position, punto, radio):
+			g.set("congelado", maxf(float(g.get("congelado")), segundos))
+			g.set_meta("preso_hielo", true)
+			if not _presos.has(g):
+				_presos.append(g)
+			if not g.has_meta("costra_hielo"):
+				# La costra (Pipeline) se pone sobre el modelo del goblin; si no tiene `pj`, sobre el propio nodo.
+				var modelo: Variant = g.get("pj")
+				var raiz_m: Node = modelo as Node if modelo != null else g
+				var costra := CostraHielo3D.new()
+				raiz_m.add_child(costra)
+				g.set_meta("costra_hielo", costra)
+
+
+static func _dentro_del_hielo(p: Vector3, centro: Vector3, radio: float) -> bool:
+	var d := Vector2(p.x - centro.x, p.z - centro.z)
+	return d.length() <= radio + 0.5 * casilla and agua_sim.hielo_en(p) > -INF
+
+
+## El hielo de la casilla se ha soltado: los goblins que estaban presos en ella quedan libres.
+static func soltar_presos(c: Vector2i) -> void:
+	var arbol: SceneTree = Engine.get_main_loop() as SceneTree
+	if arbol == null:
+		return
+	for g in arbol.get_nodes_in_group("combate3d"):
+		if is_instance_valid(g) and g.has_meta("preso_hielo") and celda_de((g as Node3D).global_position) == c:
+			_soltar_preso(g)
+
+
+## Libera a un goblin preso: acaba su «congelado», quita la marca y la costra se deshace (derretir) en vez de desaparecer de golpe.
+static func _soltar_preso(g: Node) -> void:
+	g.set("congelado", 0.0)
+	if g.has_meta("preso_hielo"):
+		g.remove_meta("preso_hielo")
+	if g.has_meta("costra_hielo"):
+		var costra: Variant = g.get_meta("costra_hielo")
+		if is_instance_valid(costra):
+			(costra as CostraHielo3D).derretir()
+		g.remove_meta("costra_hielo")
+	_presos.erase(g)
+
+
+## Cada fotograma: a los presos a los que les queda menos del 15 % de hielo se les abren las grietas (aviso); a los que ya no
+## están sobre hielo, o cuyo «congelado» ha acabado por su cuenta, se les quita la costra.
+static func vigilar_presos() -> void:
+	if _presos.is_empty():
+		return
+	for g in _presos.duplicate():
+		if not is_instance_valid(g):
+			_presos.erase(g)
+			continue
+		var f: float = -1.0
+		if agua_sim != null:
+			f = agua_sim.fraccion_hielo_en((g as Node3D).global_position)
+		if f < 0.0 or float(g.get("congelado")) <= 0.0:
+			_soltar_preso(g)
+			continue
+		var costra: Variant = g.get_meta("costra_hielo") if g.has_meta("costra_hielo") else null
+		if costra != null and is_instance_valid(costra):
+			(costra as CostraHielo3D).aviso(f < AVISO_HIELO)
+
+
+## Un chorro de agua es un MANANTIAL mientras dura: suma `caudal` u³/s en la casilla y lo retira al acabar `dura` s. Si ahí ya
+## corría un río o había un surtidor, el chorro SUMA a su caudal (por eso es `sumar_fuente` y no `fuente_en`).
+static func abrir_caudal(c: Vector2i, caudal: float, dura: float) -> void:
+	if agua_sim == null or not en_mapa(c) or altura_en(c) >= 1:
+		return
+	var sim: AguaSim3D = agua_sim          # la de ahora: si el nivel se recarga, el temporizador no toca la nueva
+	sim.sumar_fuente(c, caudal)
+	(Engine.get_main_loop() as SceneTree).create_timer(dura, false).timeout.connect(func() -> void: sim.sumar_fuente(c, -caudal))
 
 
 static func celda_de(p: Vector3) -> Vector2i:
@@ -321,12 +512,114 @@ static func letra_de(c: Vector2i) -> String:
 	return String(mundo_s.call("_letra", c))
 
 
-## Agua de verdad: ni puente ni hielo encima.
+## Agua de verdad: ni puente ni hielo encima. Con la simulación (Fase 11.3) pregunta a AguaSim3D por la profundidad de la
+## casilla; sin ella, a la letra «~» del mapa (el respaldo de siempre).
 static func es_agua(c: Vector2i) -> bool:
 	if mundo_s == null:
 		return false
-	var l: String = letra_de(c)
-	return l == "~" and not (mundo_s.get("_helada") as Dictionary).has(c)
+	if (mundo_s.get("_helada") as Dictionary).has(c):
+		return false
+	if agua_sim != null:
+		return agua_sim.es_agua_casilla(c)
+	return letra_de(c) == "~"
+
+
+## --- Agua con física (Fase 11.3, 12/10) ---
+## Si es false, todo sigue como antes (el agua es la letra «~»). Se puede apagar sin tocar nada más.
+static var agua_con_fisica: bool = true
+## La simulación del nivel (null si no hay). La crea montar_agua_sim() al arrancar el Lanzador.
+static var agua_sim: AguaSim3D = null
+## Casillas del cauce seco («c») que el surtidor ya ha abierto (11.5). Hasta entonces el cauce es un foso SELLADO para la
+## simulación: si no, el río se metería solo y el surtidor no haría falta.
+static var cauces_abiertos: Dictionary = {}
+## Agua echada por un hechizo (11.4), en u³. Un impacto de agua es un charco; cada casilla marcada por un muro o un corro, otro.
+## 12/10 (Pablo): un 80 % menos (1,2 → 0,24): el agua convocada debe ser sutil; ya se escalará en hechizos grandes.
+const VOL_AGUA_IMPACTO: float = 0.24
+## Lo que se evapora por un impacto de fuego (u³): un charco desaparece, un río apenas nota un bocado.
+## (Un 80 % menos, como el agua que se echa: 1,5 → 0,3.)
+const VOL_EVAPORA: float = 0.3
+## Caudal (u³/s) que aporta CADA casilla de un chorro de agua mientras el chorro dura.
+## (12/10, Pablo: un 80 % menos, 0,8 → 0,16.)
+const CAUDAL_CHORRO_CELDA: float = 0.16
+## --- Hielo de verdad (11.13) ---
+## Radio (en casillas) del círculo que hiela o funde un impacto. 0,6 casillas = una casilla casi entera, pero sigue la forma del agua.
+const RADIO_HIELO: float = 0.6
+## Un hielo de al menos esta hondura (u) cuenta como sólido para proyectiles y miradas (no para andar).
+const HIELO_COBERTURA: float = 0.5
+## Hondura del lecho bajo una casilla «~» (u). Superficie = alto_agua, así que el agua tiene esta profundidad: más que
+## UMBRAL_NADO (0,55) para que se nade, como hasta ahora.
+const LECHO_AGUA: float = 0.9
+const FONDO_CANAL: float = 0.11        ## el fondo del cajón de Canal3D sobre el suelo: el agua de un canal de ruinas empieza ahí, no en el lecho del río
+
+
+## ¿Es un cauce seco que el surtidor llenará? La letra «c» o un tramo de CANAL de la maqueta (`-`, `L` o las piezas canal_* de un
+## nivel horneado: `_es_canal`). Sin esto la simulación no conocía el canal de la tinaja y el agua no entraba en él (diario 12/10 15:30).
+static func es_cauce_seco(c: Vector2i) -> bool:
+	if mundo_s == null:
+		return false
+	return letra_de(c) == "c" or (mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c)))
+
+
+## ¿Es un tramo de canal de RUINAS (`-`, `L` o pieza canal_*) y no un cauce «c»? Su fondo está sobre el suelo, no en el lecho del río.
+static func es_canal_ruinas(c: Vector2i) -> bool:
+	return mundo_s != null and letra_de(c) != "c" and mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c))
+
+
+## Lados (Vector2i en 4 direcciones) por los que el canal de la casilla `c` deja pasar el agua: los que abre la pieza
+## (`_abre_hacia` de la maqueta); sin ese método, los vecinos que también son canal.
+static func lados_de_canal(c: Vector2i) -> Array:
+	var r: Array = []
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		if mundo_s.has_method("_abre_hacia"):
+			if bool(mundo_s.call("_abre_hacia", c, d)):
+				r.append(d)
+		elif es_canal_ruinas(c + d):
+			r.append(d)
+	return r
+
+
+## Crea la simulación del nivel: suelo de cada casilla (el lecho bajo «~», `alto_suelo` más sus niveles en el resto), paredes
+## en lo que bloquea (menos el agua), las casillas «~» llenas hasta `alto_agua`, y nivel FIJO en las «~» del borde del mapa
+## (por donde el río entra o sale: se mantiene lleno y se lleva lo que sobra). Devuelve la simulación; también la guarda.
+static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
+	agua_sim = null
+	cauces_abiertos.clear()
+	if mundo_s == null or mundo_s.get("_lado") == null:
+		return null
+	var lado: int = int(mundo_s.get("_lado"))
+	var sim := AguaSim3D.new()
+	var suelo := func(c: Vector2i) -> float:
+		var l: String = letra_de(c)
+		if es_canal_ruinas(c):
+			return alto_suelo + FONDO_CANAL       # el cajón de piedra: el agua llega a la altura de la pieza y se ve
+		if l == "~" or es_cauce_seco(c):
+			return alto_agua - LECHO_AGUA
+		return alto_suelo + float(altura_en(c)) * ALTO_NIVEL
+	# Es pared: lo que bloquea (menos el agua), la tierra levantada (hace de presa, 11.4) y el cauce seco sin abrir (11.5).
+	var pared := func(c: Vector2i) -> bool:
+		if altura_en(c) >= 1:
+			return true
+		if es_cauce_seco(c):
+			return not cauces_abiertos.has(c)
+		return letra_de(c) != "~" and bloqueada(c)
+	sim.configurar(lado, lado, sub, casilla, suelo, pared)
+	for y in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, y)
+			if letra_de(c) != "~":
+				continue
+			sim.llenar_casilla(c, alto_agua)
+			if x == 0 or y == 0 or x == lado - 1 or y == lado - 1:
+				sim.fijar_nivel(c, alto_agua)
+	# Canal de ruinas: el agua solo ocupa su cajón (centro + lados que abre la pieza). Sin aplicar: sigue sellado hasta que el
+	# surtidor lo abra, y entonces se abre con esta forma (solidificar_casilla).
+	for y in range(lado):
+		for x in range(lado):
+			var cc := Vector2i(x, y)
+			if es_canal_ruinas(cc):
+				sim.abrir_solo(cc, lados_de_canal(cc), false)
+	agua_sim = sim
+	return sim
 
 
 static func altura_en(c: Vector2i) -> int:
@@ -349,7 +642,12 @@ static func y_pies(c: Vector2i) -> float:
 	if n > 0:
 		return alto_suelo + float(n) * ALTO_NIVEL
 	var l: String = letra_de(c)
-	if l == "b" or (mundo_s.get("_helada") as Dictionary).has(c):
+	var helada: bool = (mundo_s.get("_helada") as Dictionary).has(c)
+	if helada and agua_sim != null:
+		var y_hielo: float = agua_sim.hielo_en_casilla(c)      # 11.13: se pisa a la altura del hielo, sea cual sea el nivel del agua
+		if y_hielo > -INF:
+			return y_hielo
+	if l == "b" or helada:
 		return alto_agua + 0.12
 	if l == "~":
 		return alto_agua
@@ -363,6 +661,8 @@ static func celda_solida(c: Vector2i, nivel: int) -> bool:
 	var l: String = letra_de(c)
 	if l != "~" and bloqueada(c):
 		return true
+	if cubre_hielo(c):
+		return true                          # 11.13: un hielo gordo para proyectiles
 	return altura_en(c) >= 1 + nivel
 
 
@@ -456,7 +756,7 @@ static func linea_libre(a: Vector3, b: Vector3) -> bool:
 		var c: Vector2i = celda_de(a + u * rec)
 		if c != previa:
 			var l: String = letra_de(c)
-			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) >= 1:
+			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) >= 1 or cubre_hielo(c):
 				return false
 			previa = c
 		rec += paso
@@ -477,7 +777,25 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS      # para deshacer la pausa del libro (5.2)
 	add_to_group("player")      # el libro busca ahí un nodo 2D desde el que sonar (Sfx)
 	Repertoire.aim_with_mouse = true
-	aplicar_progresion(PROGRESION_FORZADA if PROGRESION_FORZADA != "" else String(mundo.get("nivel")) if mundo != null and mundo.get("nivel") != null else "todo")
+	aplicar_progresion(progresion_de(mundo))
+	if agua_con_fisica and mundo != null:
+		montar_agua_sim()
+
+
+## Qué progresión toca (11.15): PROGRESION_FORZADA si no está vacía; si no, el `kit` del mundo (si lo tiene y no está vacío); si no,
+## el nombre del nivel como hasta ahora; y «todo» si no hay mundo. El kit existe para que un mismo nivel (el Bosque) pueda
+## montarse con otro repertorio sin cambiar su nombre ni su progresión de juego.
+static func progresion_de(p_mundo: Node) -> String:
+	if PROGRESION_FORZADA != "":
+		return PROGRESION_FORZADA
+	if p_mundo != null:
+		var kit: Variant = p_mundo.get("kit")
+		if kit != null and String(kit) != "":
+			return String(kit)
+		var nivel: Variant = p_mundo.get("nivel")
+		if nivel != null:
+			return String(nivel)
+	return "todo"
 
 
 ## Fija el repertorio (qué sellos y glifos se enseñan y se pueden usar), cuántas páginas hay y cuántos glifos caben en una.
@@ -853,6 +1171,12 @@ func _process(delta: float) -> void:
 		_fin_libro_lento()                   # cerrado por otro camino (sin lanzar)
 	if get_tree().paused:
 		return                               # pausa real (muerte, victoria): nada se mueve
+	if agua_sim != null:
+		agua_sim.paso(delta)                 # avanza en pasos fijos por dentro; con el libro abierto va más lento, como todo
+		for cb in agua_sim.cambios():
+			agua_cambio.emit(cb["c"], cb["agua"])
+		procesar_cambios_hielo()             # 11.13: el hielo que se suelta solo al acabar su tiempo
+		vigilar_presos()                     # 11.15: grietas en la costra cuando al hielo le queda poco
 	super._process(delta)
 	_avanzar_caducidades(delta)
 	if modo_lanzar:
@@ -1255,6 +1579,10 @@ func _rayo_areas(espacio: PhysicsDirectSpaceState3D, pos: Vector3, d: Vector3, l
 func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: int, atrae: bool, desde: Vector3) -> bool:
 	if obj == null or not is_instance_valid(obj) or rune == null:
 		return false
+	# 12/10 (Pablo): lo activable se activa en SU punto (el cuenco de la antorcha, la boca de la tinaja…), no donde roza la caja.
+	var activable: bool = obj.has_method("punto_activacion")
+	if activable:
+		punto = obj.call("punto_activacion")
 	var es_viento: bool = rune.tags.has("viento")
 	if (es_viento or atrae) and obj.has_method("push"):
 		if atrae:
@@ -1274,6 +1602,8 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	var reacciona: bool = true
 	if obj.has_method("spell_reacts"):
 		reacciona = bool(obj.call("spell_reacts", rune, dir))
+	if activable and reacciona and fx != null and is_instance_valid(fx):
+		fx.chispazo(punto, Objetos.elemento_de(rune))        # la chispa nace en el punto de activación
 	ultimo_impacto = punto
 	ultimo_nivel = nivel
 	obj.call("on_spell_hit", rune, dir)
@@ -1318,6 +1648,8 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	campo.atraviesa = receta.lifetime > 0.0
 	campo.viaja = muro
 	campo.vida = vida_campo(receta)
+	# 11.4: un chorro de AGUA es un manantial en cada casilla que toca, mientras dura el campo.
+	campo.caudal = CAUDAL_CHORRO_CELDA if elemento == "agua" and receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro" else 0.0
 	campo.altura_barrera = receta.height
 
 	# Centroide de cada dirección (una onda se abre desde el centro de lo suyo).
@@ -1659,6 +1991,8 @@ func _recalcular(c: Vector2i) -> void:
 		alturas.erase(c)
 	else:
 		alturas[c] = n
+	if agua_sim != null:
+		agua_sim.refrescar_casilla(c)        # 11.4: la tierra levantada hace de presa; al caducar, el agua pasa
 
 
 ## =====================================================================================================
@@ -1706,15 +2040,14 @@ func _casilla_helada(c: Vector2i) -> bool:
 ## Cada impacto de hielo o de agua puede haber helado una casilla: si es así, se apunta cuándo se deshace.
 ## Va DESPUÉS del manejador de PruebaTest2 (se conecta más tarde), así que el estado ya está escrito.
 func al_impactar(elemento: String, punto: Vector3) -> void:
+	hechizo_sobre_agua(elemento, punto)      # 11.4: el agua de la simulación (la maqueta ya hizo lo del suelo)
 	if elemento != "hielo" and elemento != "agua":
 		return
 	var c: Vector2i = celda_de(punto)
 	if not en_mapa(c) or not _casilla_helada(c):
 		return
 	if _hielo.has(c):
-		if elemento == "hielo":
-			(_hielo[c] as Dictionary)["resta"] = DURACION_HIELO     # otro hielo encima renueva los 20 s
-		return
+		return                              # el hielo se aplica una vez: otro hielo encima NO renueva los 20 s (Pablo, 12/10)
 	_hielo[c] = {"resta": DURACION_HIELO, "agua": letra_de(c) == "~"}
 	PlayLog.event("hielo", {"celda": [c.x, c.y], "agua": letra_de(c) == "~"})
 
@@ -1723,6 +2056,8 @@ func al_impactar(elemento: String, punto: Vector3) -> void:
 ## neutro se queda mojado. Quien estuviera encima cae al agua (Jugador3D lo ve solo).
 func _derretir(c: Vector2i, era_agua: bool) -> void:
 	mundo.call("_poner_canal", c, 2, 0.0)
+	if agua_sim != null:
+		agua_sim.helar_casilla(c, false)     # 11.4: el agua vuelve a correr
 	if era_agua:
 		(mundo.get("_helada") as Dictionary).erase(c)
 		bloquear_celda(c)
@@ -2113,6 +2448,7 @@ class Campo extends Node3D:
 	var viaja: bool = false
 	var altura_barrera: int = 0
 	var vida: float = 1.0
+	var caudal: float = 0.0          ## u³/s que aporta cada casilla tocada al agua de la simulación (chorro de agua, 11.4)
 	var sigue: Node3D = null
 	var visual: Node3D = null        ## la cúpula de Vfx3D, que se mueve con el jugador (6.3)
 	var visual_rel: Vector3 = Vector3.ZERO
@@ -2156,6 +2492,8 @@ class Campo extends Node3D:
 			return
 		_celdas[c] = true
 		lanz.marcar_celda(elemento, c)
+		if caudal > 0.0:
+			Lanzador3D.abrir_caudal(c, caudal, maxf(vida - _t, 0.1))
 
 	## Un golpe o una flecha contra la cúpula: se queda con el daño. Devuelve true si lo ha parado entero.
 	func absorber(cantidad: float, desde: Vector3) -> bool:
