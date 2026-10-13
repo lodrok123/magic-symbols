@@ -59,6 +59,12 @@ func _tinaja() -> void:
 	_ok("1 el fondo del canal está en alto_suelo + FONDO_CANAL (no en el lecho)", absf(sim.suelo[i_c] - fondo) < 1.0e-4, "%.3f (esperado %.3f)" % [sim.suelo[i_c], fondo])
 	_ok("1 el río sigue en su lecho", absf(sim.suelo[sim._trozos(Vector2i(3, 3))[4]] - (Terreno3D.alto_agua - Terreno3D.LECHO_AGUA)) < 1.0e-4)
 	_ok("1 sellado hasta que se abre", sim.profundidad_casilla(Vector2i(2, 1)) == 0.0 and sim.cerrado[i_c] == 1)
+	# P3 (13/10): los pies sobre una casilla de canal van al suelo de la pieza, con o sin agua; ni al lecho ni a la superficie.
+	var lecho: float = Terreno3D.alto_agua - Terreno3D.LECHO_AGUA
+	for c in canal:
+		_ok("1b seco %s: y_pies = suelo de la pieza (alto_suelo + FONDO_CANAL)" % str(c), absf(Terreno3D.y_pies(c as Vector2i) - fondo) < 1.0e-4, "%.3f (esperado %.3f)" % [Terreno3D.y_pies(c as Vector2i), fondo])
+		_ok("1b seco %s: no se nada" % str(c), not Terreno3D.se_nada(c as Vector2i))
+	_ok("1b el río (casilla ~) sigue a alto_agua y se nada con la simulación", absf(Terreno3D.y_pies(Vector2i(3, 3)) - Terreno3D.alto_agua) < 1.0e-4 and Terreno3D.se_nada(Vector2i(3, 3)))
 	var s := Surtidor3D.new()
 	s.preparar(m, Vector2i(1, 1))
 	root.add_child(s)
@@ -114,6 +120,13 @@ func _tinaja() -> void:
 	# 0,004 del umbral; con 1,5 queda holgado. Si un cambio de caudal lo vuelve a acercar al umbral, esta prueba debe fallar, no aflojarse.
 	_ok("4 el codo es agua (conduce) con margen ≥ 0,05 sobre UMBRAL_AGUA", sim.es_agua_casilla(Vector2i(3, 1)) and Terreno3D.es_agua(Vector2i(3, 1)) and float(p[1]) >= AguaSim3D.UMBRAL_AGUA + 0.05, "codo %.3f, umbral %.2f" % [p[1], AguaSim3D.UMBRAL_AGUA])
 	_ok("4 la tercera casilla (la que desagua al río) no desborda", float(p[2]) < Surtidor3D.SOBRE_FONDO_FORZADO, "%.3f" % p[2])
+	# P3: con la lámina llenando el canal, los pies siguen en el suelo de la pieza y el jugador no entra en modo nado.
+	for c in canal:
+		var yp: float = Terreno3D.y_pies(c as Vector2i)
+		var sup: float = sim.superficie_en(Terreno3D.centro_de(c as Vector2i))
+		_ok("4b con agua %s: y_pies = suelo de la pieza, no el lecho ni la superficie" % str(c), absf(yp - fondo) < 1.0e-4 and absf(yp - lecho) > 0.5 and absf(yp - sup) > 0.05, "y_pies %.3f, fondo %.3f, lecho %.3f, superficie %.3f" % [yp, fondo, lecho, sup])
+		_ok("4b con agua %s: no se nada (se vadea)" % str(c), not Terreno3D.se_nada(c as Vector2i))
+	_ok("4b el codo sigue siendo agua para el rayo (es_agua) aunque no se nade", Terreno3D.es_agua(Vector2i(3, 1)) and not Terreno3D.se_nada(Vector2i(3, 1)))
 	# Sin agua fuera del canal: ni en la tinaja ni en las paredes.
 	var fuera: float = 0.0
 	for y in range(6):

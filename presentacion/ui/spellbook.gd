@@ -1155,8 +1155,10 @@ func _draw_centered_text(pos: Vector2, text: String, color: Color) -> void:
 ## abrir el grimorio es el grimorio del mago, que está donde está él. Si
 ## algún día la cámara deja de seguirle, seguirá siendo el sitio
 ## correcto.
-func _oyente() -> Node2D:
-	return get_tree().get_first_node_in_group("player") as Node2D
+## 13/10 (M4): el jugador ya es 3D, así que `as Node2D` daba null y los sonidos del libro no tenían dónde sonar. `Sfx.play` acepta
+## cualquier Node desde M4 (si es Node3D suena posicional), así que se devuelve el nodo tal cual.
+func _oyente() -> Node:
+	return get_tree().get_first_node_in_group("player")
 
 
 ## --- Las pestañas de las páginas ---

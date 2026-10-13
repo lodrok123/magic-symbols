@@ -233,6 +233,12 @@ func punto_activacion() -> Vector3:
 			var ab: AABB = _aabb_visual()
 			if ab.size.y > 0.05:
 				return to_global(Vector3(ab.get_center().x, ab.end.y - PUNTO_BAJO_TECHO, ab.get_center().z))
+		"seto", "tronco", "telarana":
+			# 13/10 (P2): la caja de acierto de estos se ajusta a lo que SE VE (centro del visual), así que la mano los toca ahí; antes el
+			# punto era la mitad del alto «de diseño» (p. ej. 1,0 en la telaraña) y no coincidía con la red.
+			var av: AABB = _aabb_visual()
+			if av.size.y > 0.05:
+				return to_global(av.get_center())
 	return to_global(Vector3(0.0, _alto_cuerpo() * 0.5, 0.0))
 
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
@@ -664,6 +670,7 @@ var _gotas: GPUParticles3D = null        ## tinaja: gotas finas que salen hacia 
 var _chorro: Array = []                  ## tramos del chorro (MeshInstance3D), se enseñan de arriba abajo
 var _chorro_gotas: Variant = null        ## 11.18: el chorro de gotas (GPUParticles3D) que sustituye a los cilindros, o null
 var _chorro_sustituido: bool = false
+var _vertido_parado: bool = false      ## 13/10: `dejar_de_verter` ya se ha llamado (puzzle resuelto)
 const R_GOTAS_TINAJA: float = 0.12       ## radio visual del hilo de agua de la tinaja (u)
 var _punto_caida: Vector3 = Vector3.ZERO     ## local: donde cae el chorro
 var _arroyo: Node3D = null               ## pivote en el punto de caída; su escala Z es lo que avanza el arroyo
@@ -914,6 +921,28 @@ func _empezar_a_verter(instantaneo: bool) -> void:
 	_gotas.emitting = true
 	_chorro_de_gotas()
 	activado.emit("surtidor", "agua")
+
+
+## 13/10 (Pablo): puzzle resuelto → la tinaja deja de echar agua (antes vertía para siempre). Para el chorro de gotas (o los cilindros
+## si no hay agua física), el arroyo y las gotas finas. Deja la tinaja inclinada y vacía; el agua que ya está en el canal NO se toca (la
+## decide la maqueta). Idempotente; solo hace algo en una tinaja que está vertiendo. Lo llama la maqueta, pero es público para el Juego.
+func dejar_de_verter() -> void:
+	if not _es_tinaja or not usado or _vertido_parado:
+		return
+	_vertido_parado = true
+	if _chorro_gotas != null:
+		var maqueta: Node = get_parent()
+		while maqueta != null and not maqueta.has_method("parar_chorro_agua"):
+			maqueta = maqueta.get_parent()
+		if maqueta != null:
+			maqueta.call("parar_chorro_agua", _chorro_gotas)
+		_chorro_gotas = null
+	for mi in _chorro:
+		(mi as MeshInstance3D).visible = false
+	_arroyo.visible = false
+	_gotas.emitting = false
+	if _agua_pila != null:
+		_agua_pila.visible = false
 
 
 ## Enseña el tramo `i` del chorro de cilindros, salvo que lo haya sustituido el chorro de gotas (11.18).

@@ -522,7 +522,7 @@ func _puede_estar(p: Vector3) -> bool:
 
 func _vertical(delta: float, salto: bool) -> void:
 	var c: Vector2i = Terreno3D.celda_de(position)
-	var agua: bool = Terreno3D.es_agua(c)
+	var agua: bool = Terreno3D.se_nada(c)          # el canal de ruinas con agua se vadea (P3): es_agua, pero no se nada
 
 	if nadando:
 		if not agua:

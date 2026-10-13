@@ -45,6 +45,7 @@ func _initialize() -> void:
 	_pisar(m)
 	_vista(m)
 	_estado(m)
+	_datos_propios(m)
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -87,12 +88,12 @@ func _pies(m: MundoFalso) -> void:
 	_ok("6 sin hielo, y_pies del agua = alto_agua", Terreno3D.y_pies(agua) == Terreno3D.alto_agua)
 	_ok("6 con simulación, la casilla «~» es agua", Terreno3D.es_agua(agua))
 	sim.helar_casilla(agua, true)
-	m._helada[agua] = true
+	Terreno3D.poner_helada(agua, true)
 	var y_hielo: float = sim.hielo_en_casilla(agua)
 	_ok("7 con hielo, y_pies = cara de arriba del hielo", y_hielo > -INF and Terreno3D.y_pies(agua) == y_hielo, "hielo %.3f, agua %.3f" % [y_hielo, Terreno3D.alto_agua])
 	_ok("7 con hielo ya no es agua y se resbala (sobre_hielo)", not Terreno3D.es_agua(agua) and Terreno3D.sobre_hielo(Terreno3D.centro_de(agua)))
 	_ok("7 y el hielo se pisa aunque debajo haya agua", Terreno3D.pisable(agua, 0, false, 0, false))
-	m._helada.erase(agua)
+	Terreno3D.poner_helada(agua, false)
 	sim.helar_casilla(agua, false)
 	_ok("7 al deshelar vuelve a alto_agua y a ser agua", Terreno3D.y_pies(agua) == Terreno3D.alto_agua and Terreno3D.es_agua(agua))
 
@@ -146,4 +147,43 @@ func _estado(m: MundoFalso) -> void:
 	_ok("13 configurar reinicia alturas y la simulación (también el espejo)", Terreno3D.altura_en(Vector2i(3, 3)) == 0 and Terreno3D.agua_sim == null and Lanzador3D.agua_sim == null)
 	Terreno3D.fijar_altura(Vector2i(3, 3), 1)
 	_ok("13 una cornisa fijada queda hasta el próximo configurar", Terreno3D.altura_en(Vector2i(3, 3)) == 1 and Terreno3D.permanentes.has(Vector2i(3, 3)))
+
+
+## M5 (Juego): con datos propios el terreno contesta SIN la maqueta (sin `_letra`, `_lado`, `_bloqueadas`, `_es_canal`, `_abre_hacia`).
+func _datos_propios(m: MundoFalso) -> void:
+	var mapa := PackedStringArray(["######", "#..c.#", "#-L~~#", "#.b..#", "#....#", "######"])
+	var bloq: Dictionary = {Vector2i(0, 0): true}
+	var canal: Dictionary = {Vector2i(4, 4): true}
+	var giros: Dictionary = {Vector2i(1, 2): 90.0}
+	Terreno3D.cargar_datos(mapa, bloq, canal, giros)
+	# La maqueta falsa NO responde a nada de esto: si el terreno le preguntara, daría otra cosa.
+	m._mapa = ["......", "......", "......", "......", "......", "......"]
+	_ok("14 con datos propios, letra_de sale del mapa cargado y no de la maqueta", Terreno3D.letra_de(Vector2i(3, 1)) == "c" and Terreno3D.letra_de(Vector2i(3, 2)) == "~")
+	_ok("14 fuera del mapa es «#» (pared), como la maqueta", Terreno3D.letra_de(Vector2i(-1, 0)) == "#" and Terreno3D.letra_de(Vector2i(0, 9)) == "#")
+	_ok("14 en_mapa con el lado del mapa cargado", Terreno3D.en_mapa(Vector2i(5, 5)) and not Terreno3D.en_mapa(Vector2i(6, 0)) and Terreno3D.lado_del_mapa() == 6)
+	_ok("14 el mapa se COPIA: cambiarlo fuera no cambia el del terreno", mapa[1][3] == "c" and Terreno3D.letra_de(Vector2i(3, 1)) == "c")
+	_ok("15 bloqueadas es el diccionario compartido (por referencia)", Terreno3D.bloqueada(Vector2i(0, 0)) and not Terreno3D.bloqueada(Vector2i(2, 2)))
+	Terreno3D.bloquear_celda(Vector2i(2, 2))
+	_ok("15 bloquear_celda escribe en ese mismo diccionario", bloq.has(Vector2i(2, 2)) and Terreno3D.bloqueada(Vector2i(2, 2)))
+	Terreno3D.liberar_celda(Vector2i(2, 2))
+	_ok("15 y liberar lo quita", not bloq.has(Vector2i(2, 2)))
+	_ok("16 es_canal: letras «-» y «L» y las celdas de piezas", Terreno3D.es_canal(Vector2i(1, 2)) and Terreno3D.es_canal(Vector2i(2, 2)) and Terreno3D.es_canal(Vector2i(4, 4)) and not Terreno3D.es_canal(Vector2i(1, 1)))
+	_ok("16 el cauce «c» cuenta como cauce seco; el canal de ruinas no es «c»", Terreno3D.es_cauce_seco(Vector2i(3, 1)) and Terreno3D.es_canal_ruinas(Vector2i(1, 2)) and not Terreno3D.es_canal_ruinas(Vector2i(3, 1)))
+	# Lados abiertos: recto `-` sin giro corre este-oeste; con giro 90 corre norte-sur; codo `L` sin giro abre al oeste y al sur.
+	_ok("17 recto sin giro: abre al oeste y al este", Terreno3D.abre_hacia(Vector2i(4, 4), Vector2i(-1, 0)) and Terreno3D.abre_hacia(Vector2i(4, 4), Vector2i(1, 0)) and not Terreno3D.abre_hacia(Vector2i(4, 4), Vector2i(0, 1)))
+	var lados90: Array = Terreno3D.lados_de_canal(Vector2i(1, 2))
+	_ok("17 recto con giro 90: abre al norte y al sur", lados90.size() == 2 and lados90.has(Vector2i(0, 1)) and lados90.has(Vector2i(0, -1)), "%s" % [lados90])
+	var codo: Array = Terreno3D.lados_de_canal(Vector2i(2, 2))
+	_ok("17 codo sin giro: abre al oeste y al sur", codo.size() == 2 and codo.has(Vector2i(-1, 0)) and codo.has(Vector2i(0, 1)), "%s" % [codo])
+	# Cambiar una letra.
+	Terreno3D.poner_letra(Vector2i(3, 1), "~")
+	_ok("18 poner_letra cambia el mapa del terreno", Terreno3D.letra_de(Vector2i(3, 1)) == "~")
+	Terreno3D.poner_letra(Vector2i(9, 9), "x")
+	_ok("18 fuera del mapa no hace nada", Terreno3D.letra_de(Vector2i(9, 9)) == "#")
+	# La simulación del agua se monta sin maqueta.
+	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
+	_ok("19 montar_agua_sim funciona con datos propios", sim != null and Terreno3D.es_agua(Vector2i(3, 2)) and not Terreno3D.es_agua(Vector2i(1, 4)))
+	# Sin nada de mundo ni datos: nada pregunta a nadie.
+	Terreno3D.olvidar_datos()
+	_ok("20 olvidar_datos vuelve a preguntar a la maqueta (que ahora dice «.»)", not Terreno3D.datos_propios and Terreno3D.letra_de(Vector2i(3, 1)) == ".")
 	m.queue_free()

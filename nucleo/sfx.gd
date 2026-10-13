@@ -123,7 +123,7 @@ static var _ultima: Dictionary = {}
 ## partículas y las luces: muchos de los sonidos que más importan ocurren
 ## justo cuando el objeto DESAPARECE —una roca que se desmorona, una
 ## flecha que se clava— y un hijo se va con su padre.
-static func play(origen: Node2D, nombre: String) -> void:
+static func play(origen: Node, nombre: String) -> void:
 	if not CATALOGO.has(nombre) or origen == null or not origen.is_inside_tree():
 		return
 
@@ -138,11 +138,12 @@ static func play(origen: Node2D, nombre: String) -> void:
 	if flujo == null:
 		return
 
-	var p := AudioStreamPlayer2D.new()
-	p.stream = flujo
-	p.volume_db = float(cfg["db"])
+	# M4: el origen puede ser un nodo 3D (Lanzador3D, Grimorio) o uno 2D (el libro, el 2D que aún queda). 3D → reproductor 3D.
+	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
+	p.set("stream", flujo)
+	p.set("volume_db", float(cfg["db"]))
 	var v: float = float(cfg["tono"])
-	p.pitch_scale = 1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v)
+	p.set("pitch_scale", 1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
 
 	# El grimorio detiene el árbol entero (get_tree().paused). Si el
 	# reproductor se pausara con él, abrir el libro cortaría el sonido a
@@ -150,9 +151,9 @@ static func play(origen: Node2D, nombre: String) -> void:
 	p.process_mode = Node.PROCESS_MODE_ALWAYS
 
 	origen.get_tree().current_scene.add_child(p)
-	p.global_position = origen.global_position
-	p.finished.connect(p.queue_free)
-	p.play()
+	p.set("global_position", origen.get("global_position"))
+	p.connect("finished", p.queue_free)
+	p.call("play")
 
 
 ## El sonido que le toca a un elemento. Lo decide la ETIQUETA y no el

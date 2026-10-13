@@ -116,7 +116,12 @@ func _bosque() -> void:
 func _costras() -> void:
 	var m := _mundo(["######", "#....#", "~~~~~~", "~~~~~~", "#....#", "######"])
 	var rf := RenderFalso.new()
-	m._agua_render = rf
+	# M3/M5: el Juego ya no llama al render por reflexión; avisa por Mundo3D.impacto y la maqueta (aquí, rf) escucha.
+	var w := Mundo3D.new()
+	root.add_child(w)
+	w.impacto.connect(func(punto: Vector3, que: String, _r: float) -> void:
+		if que == "hielo_desde":
+			rf.hielo_desde(punto))
 	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
 	var c := Vector2i(2, 2)
 	var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.alto_agua)
@@ -135,7 +140,7 @@ func _costras() -> void:
 	orilla.global_position = Terreno3D.centro_de(Vector2i(2, 1), 1.0)
 	await physics_frame
 	Lanzador3D.hechizo_sobre_agua("hielo", p)
-	_ok("6 el render recibió hielo_desde una vez, en el punto", rf.llamadas.size() == 1 and rf.llamadas[0].is_equal_approx(p))
+	_ok("6 la presentación recibió hielo_desde (por Mundo3D.impacto) una vez, en el punto", rf.llamadas.size() == 1 and rf.llamadas[0].is_equal_approx(p))
 	_ok("6 y se llamó ANTES de helar (ahí aún no había hielo)", rf.hielo_al_llamar == -INF, str(rf.hielo_al_llamar))
 	_ok("6 la casilla quedó helada", sim.casilla_helada(c))
 	# Costra en el goblin preso, no en el de la orilla.

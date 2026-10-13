@@ -8,7 +8,7 @@ extends Resource
 ##
 ## Para crear un elemento nuevo en el futuro: duplica un .tres
 ## existente (por ejemplo fire_rune.tres), cambia sus valores, y
-## regístralo en el diccionario rune_database de spellcaster.gd.
+## regístralo en el diccionario rune_database de grimorio.gd.
 ## No hace falta tocar ningún match{} ni ninguna otra función.
 
 @export var rune_type: Runes.Type = Runes.Type.NONE

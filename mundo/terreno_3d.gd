@@ -26,32 +26,19 @@ const CAPA_SOLIDO: int = 1 << 10
 ## el hielo y los goblins presos son magia, y el terreno no puede depender hacia arriba de ella.
 static var al_solidificar: Callable = Callable()
 
-## Los estados del suelo (helada, electrificada…). Lo pone Mundo3D al entrar en el árbol; null si no hay Mundo3D.
-static var estados: EstadosSuelo3D = null
+## Los estados del suelo (helada, electrificada…). Dueño del dato (M2). Existe siempre, haya o no un Mundo3D; Mundo3D se limita a
+## escuchar su señal `cambio` y reenviarla como `casilla_cambio`.
+static var estados: EstadosSuelo3D = EstadosSuelo3D.new()
 
 
-## ¿Está helada la casilla? (agua helada: se pisa). Mientras la maqueta del Pipeline siga guardando su `_helada`, cuenta
-## cualquiera de las dos fuentes; cuando la maqueta lo pida a `estados`, se borra la segunda mitad.
+## ¿Está helada la casilla? (agua helada: se pisa).
 static func helada(c: Vector2i) -> bool:
-	if estados != null and estados.tiene(c, EstadosSuelo3D.HELADA):
-		return true
-	return mundo_s != null and mundo_s.get("_helada") is Dictionary and (mundo_s.get("_helada") as Dictionary).has(c)
+	return estados.tiene(c, EstadosSuelo3D.HELADA)
 
 
-## Hiela o deshiela una casilla. Es el ÚNICO sitio del Juego que escribe `_helada`: además de `estados` (el dueño) lo refleja
-## en el de la maqueta mientras ella lo siga leyendo. Avisa por Mundo3D.casilla_cambio («hielo») si cambió de verdad.
+## Hiela o deshiela una casilla. Avisa por Mundo3D.casilla_cambio («hielo») solo si cambió de verdad.
 static func poner_helada(c: Vector2i, si: bool) -> void:
-	var antes: bool = helada(c)
-	if estados != null:
-		estados.poner(c, EstadosSuelo3D.HELADA, si)
-	if mundo_s != null and mundo_s.get("_helada") is Dictionary:
-		var h: Dictionary = mundo_s.get("_helada")
-		if si:
-			h[c] = true
-		else:
-			h.erase(c)
-	if estados == null and antes != si:
-		_avisar(c, "hielo")                    # con `estados` ya avisó Mundo3D (su señal viene de estados.cambio)
+	estados.poner(c, EstadosSuelo3D.HELADA, si)
 
 
 ## Avisa a Mundo3D (si existe) de que algo de la casilla cambió.
@@ -116,9 +103,11 @@ class FuenteSolidez extends RefCounted:
 ## Lo de siempre: el diccionario `_bloqueadas` del mundo y las huellas aproximadas de `calcular_huellas`.
 class FuenteCasillas extends FuenteSolidez:
 	func _dic() -> Dictionary:
+		if Terreno3D.datos_propios:
+			return Terreno3D.bloqueadas
 		return Terreno3D.mundo_s.get("_bloqueadas") as Dictionary
 	func bloquea(c: Vector2i) -> bool:
-		return Terreno3D.mundo_s != null and _dic().has(c)
+		return Terreno3D.hay_mundo() and _dic().has(c)
 	func bloquear(c: Vector2i) -> void:
 		_dic()[c] = true
 	func liberar(c: Vector2i) -> void:
@@ -245,18 +234,100 @@ static func centro_de(c: Vector2i, y: float = 0.0) -> Vector3:
 	return Vector3((float(c.x) + 0.5) * casilla, y, (float(c.y) + 0.5) * casilla)
 
 
+## DATOS PROPIOS DEL MAPA (M5, parte del Juego, 13/10). Hasta ahora el terreno le preguntaba a la maqueta por reflexión (`_letra`,
+## `_lado`, `_bloqueadas`, `_es_canal`, `_abre_hacia`: 5 nombres privados del Pipeline). Con `cargar_datos` el cargador del nivel le
+## entrega el mapa UNA vez y el terreno contesta solo, sin maqueta (se puede probar en headless sin nodos). Mientras nadie la llame,
+## todo sigue por reflexión como antes.
+static var datos_propios: bool = false
+static var mapa: PackedStringArray = []          ## filas de letras. Dueño: Terreno3D (cambiar una letra: `poner_letra`)
+static var bloqueadas: Dictionary = {}           ## Vector2i -> true (COMPARTIDO por referencia con quien lo pase)
+static var celdas_canal: Dictionary = {}         ## casillas de canal de nivel horneado (piezas canal_*), Vector2i -> true
+static var giros: Dictionary = {}                ## Vector2i -> grados del marcador de canal (para saber qué lados abre)
+
+
+## El cargador entrega el nivel. `p_mapa` se COPIA (después, `poner_letra`); los tres diccionarios se comparten por referencia, así
+## quien ya los tenga (la maqueta) y el terreno ven lo mismo sin sincronizar nada a mano.
+static func cargar_datos(p_mapa: PackedStringArray, p_bloqueadas: Dictionary, p_celdas_canal: Dictionary = {}, p_giros: Dictionary = {}) -> void:
+	mapa = p_mapa.duplicate()
+	bloqueadas = p_bloqueadas
+	celdas_canal = p_celdas_canal
+	giros = p_giros
+	datos_propios = true
+
+
+## Vuelve a preguntar a la maqueta (como antes de M5).
+static func olvidar_datos() -> void:
+	datos_propios = false
+	mapa = []
+	bloqueadas = {}
+	celdas_canal = {}
+	giros = {}
+
+
+## ¿Hay un mundo al que preguntar? (la maqueta de siempre o datos propios).
+static func hay_mundo() -> bool:
+	return mundo_s != null or datos_propios
+
+
+## Lado del mapa (cuadrado). 0 si no hay mundo.
+static func lado_del_mapa() -> int:
+	if datos_propios:
+		return mapa.size()
+	return int(mundo_s.get("_lado")) if mundo_s != null and mundo_s.get("_lado") != null else 0
+
+
+## Cambia una letra del mapa (agua que llega a un cauce…). Con datos propios es la única forma; avisa por Mundo3D («letra»).
+static func poner_letra(c: Vector2i, l: String) -> void:
+	if not datos_propios or c.y < 0 or c.y >= mapa.size() or c.x < 0 or c.x >= mapa[c.y].length():
+		return
+	var fila: String = mapa[c.y]
+	mapa[c.y] = fila.substr(0, c.x) + l.substr(0, 1) + fila.substr(c.x + 1)
+	_avisar(c, "letra")
+
+
 static func en_mapa(c: Vector2i) -> bool:
+	if datos_propios:
+		return c.x >= 0 and c.y >= 0 and c.x < mapa.size() and c.y < mapa.size()
 	return mundo_s != null and c.x >= 0 and c.y >= 0 and c.x < int(mundo_s.get("_lado")) and c.y < int(mundo_s.get("_lado"))
 
 
 static func letra_de(c: Vector2i) -> String:
+	if datos_propios:
+		if c.y < 0 or c.y >= mapa.size() or c.x < 0 or c.x >= mapa[c.y].length():
+			return "#"                        # fuera del mapa: pared, como la maqueta
+		return mapa[c.y][c.x]
 	return String(mundo_s.call("_letra", c))
+
+
+## ¿Es un tramo de canal? Con las letras: `-` y `L`. Con un nivel horneado esas letras ya no existen: son las piezas canal_recto /
+## canal_codo que el cargador apuntó en `celdas_canal`. (Copia de `_es_canal` de la maqueta.)
+static func es_canal(c: Vector2i) -> bool:
+	if datos_propios:
+		return celdas_canal.has(c) or (en_mapa(c) and (letra_de(c) == "-" or letra_de(c) == "L"))
+	return mundo_s != null and mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c))
+
+
+## ¿Tiene el canal de `c` abierto su lado hacia `v`? Recto (`-`): corre a lo largo de su eje X local (giro 0 = este-oeste);
+## codo (`L`): abre al oeste y al sur con giro 0, y gira con el marcador. (Copia de `_abre_hacia` de la maqueta.)
+static func abre_hacia(c: Vector2i, v: Vector2i) -> bool:
+	if not datos_propios:
+		return mundo_s != null and mundo_s.has_method("_abre_hacia") and bool(mundo_s.call("_abre_hacia", c, v))
+	var giro: float = deg_to_rad(float(giros.get(c, 0.0)))
+	var base: Array = [Vector2(-1, 0), Vector2(1, 0)] if letra_de(c) != "L" else [Vector2(-1, 0), Vector2(0, 1)]
+	for b in base:
+		var lx: float = b.x
+		var lz: float = b.y
+		var mx: int = roundi(lx * cos(giro) + lz * sin(giro))
+		var mz: int = roundi(-lx * sin(giro) + lz * cos(giro))
+		if Vector2i(mx, mz) == v:
+			return true
+	return false
 
 
 ## Agua de verdad: ni puente ni hielo encima. Con la simulación (Fase 11.3) pregunta a AguaSim3D por la profundidad de la
 ## casilla; sin ella, a la letra «~» del mapa (el respaldo de siempre).
 static func es_agua(c: Vector2i) -> bool:
-	if mundo_s == null:
+	if not hay_mundo():
 		return false
 	if helada(c):
 		return false
@@ -265,17 +336,24 @@ static func es_agua(c: Vector2i) -> bool:
 	return letra_de(c) == "~"
 
 
+## ¿Se NADA en esta casilla? Agua de verdad, salvo el canal de ruinas: ahí el agua es una lámina de menos de media casilla sobre
+## el fondo de la pieza (0,48 como mucho con la tinaja) y se vadea. Seguirá siendo `es_agua` (conduce el rayo), pero nadar la
+## hundía los pies hasta `alto_agua - HUNDIDO` (≈0,27), 0,9 u por debajo del suelo de la pieza, y la casilla siguiente los subía (P3).
+static func se_nada(c: Vector2i) -> bool:
+	return es_agua(c) and not es_canal_ruinas(c)
+
+
 ## ¿Es un cauce seco que el surtidor llenará? La letra «c» o un tramo de CANAL de la maqueta (`-`, `L` o las piezas canal_* de un
 ## nivel horneado: `_es_canal`). Sin esto la simulación no conocía el canal de la tinaja y el agua no entraba en él (diario 12/10 15:30).
 static func es_cauce_seco(c: Vector2i) -> bool:
-	if mundo_s == null:
+	if not hay_mundo():
 		return false
-	return letra_de(c) == "c" or (mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c)))
+	return letra_de(c) == "c" or es_canal(c)
 
 
 ## ¿Es un tramo de canal de RUINAS (`-`, `L` o pieza canal_*) y no un cauce «c»? Su fondo está sobre el suelo, no en el lecho del río.
 static func es_canal_ruinas(c: Vector2i) -> bool:
-	return mundo_s != null and letra_de(c) != "c" and mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c))
+	return hay_mundo() and letra_de(c) != "c" and es_canal(c)
 
 
 ## Lados (Vector2i en 4 direcciones) por los que el canal de la casilla `c` deja pasar el agua: los que abre la pieza
@@ -283,8 +361,8 @@ static func es_canal_ruinas(c: Vector2i) -> bool:
 static func lados_de_canal(c: Vector2i) -> Array:
 	var r: Array = []
 	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		if mundo_s.has_method("_abre_hacia"):
-			if bool(mundo_s.call("_abre_hacia", c, d)):
+		if datos_propios or mundo_s.has_method("_abre_hacia"):
+			if abre_hacia(c, d):
 				r.append(d)
 		elif es_canal_ruinas(c + d):
 			r.append(d)
@@ -297,9 +375,9 @@ static func lados_de_canal(c: Vector2i) -> Array:
 static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 	agua_sim = null
 	cauces_abiertos.clear()
-	if mundo_s == null or mundo_s.get("_lado") == null:
+	if not hay_mundo() or lado_del_mapa() == 0:
 		return null
-	var lado: int = int(mundo_s.get("_lado"))
+	var lado: int = lado_del_mapa()
 	var sim := AguaSim3D.new()
 	var suelo := func(c: Vector2i) -> float:
 		var l: String = letra_de(c)
@@ -361,6 +439,8 @@ static func y_pies(c: Vector2i) -> float:
 		var y_hielo: float = agua_sim.hielo_en_casilla(c)      # 11.13: se pisa a la altura del hielo, sea cual sea el nivel del agua
 		if y_hielo > -INF:
 			return y_hielo
+	if es_canal_ruinas(c):
+		return alto_suelo + FONDO_CANAL       # P3: el suelo de la pieza, con o sin agua. La lámina del canal no se nada: se vadea
 	if l == "b" or helada:
 		return alto_agua + 0.12
 	if l == "~":
@@ -489,4 +569,5 @@ static func configurar(p_mundo: Node3D) -> void:
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
 	alturas.clear()
 	permanentes.clear()
+	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	agua_sim = null

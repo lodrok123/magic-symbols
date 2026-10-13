@@ -157,7 +157,7 @@ func _lanzador() -> void:
 				mal.append(c)
 	_ok("5 tras 10 s el río sigue donde estaba (nivel fijo en el borde, paredes en la orilla)", mal.is_empty(), "distintas: %s" % [mal])
 	_ok("5 se nada en el río", sim.se_nada_en(Vector2i(2, 2)), "prof %.2f" % sim.profundidad_casilla(Vector2i(2, 2)))
-	m._helada[Vector2i(2, 2)] = true
+	Terreno3D.poner_helada(Vector2i(2, 2), true)
 	_ok("5 una casilla helada del mundo no es agua", not Terreno3D.es_agua(Vector2i(2, 2)))
 	Terreno3D.agua_sim = null
 	_ok("5 sin simulación vuelve a la letra", Terreno3D.es_agua(Vector2i(0, 2)))

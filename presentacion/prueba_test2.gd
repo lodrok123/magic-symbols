@@ -501,7 +501,7 @@ const T_MOJADA_MS: int = 8000
 const RADIO_APAGAR: int = 2               ## el agua apaga en un cuadrado de (2r+1) casillas, no solo en la del impacto
 var _hf: Dictionary = {}                  ## Vector2i -> {fase, t, v, frente, contagia, fx}: hierba que no es FINA
 var _pisadas: Dictionary = {}             ## casillas con A > 0 (se levantan solas)
-var _helada: Dictionary = {}              ## casillas de agua helada (se pueden pisar)
+var _mundo: Mundo3D = null                ## 13/10 (M2): el mundo vivo. «¿Está helada?» ya no se guarda aquí: `Terreno3D.helada(c)`
 var _fx: Vfx3D = null
 var _dir_hechizo: Vector3 = Vector3(0.0, 0.0, 1.0)
 var _t_cast: float = 0.0
@@ -561,6 +561,13 @@ var _empuj_def: Array = EMPUJABLES
 
 
 func _ready() -> void:
+	# 13/10 (M2): el Mundo3D se crea AQUÍ, el primero, para que exista antes de que el Jugador llame a Lanzador3D.configurar.
+	# Es el dueño del estado del suelo (helada, electrificada…); esta maqueta solo lo dibuja y le escucha `casilla_cambio`.
+	_mundo = Mundo3D.new()
+	_mundo.name = "Mundo"
+	add_child(_mundo)
+	_mundo.casilla_cambio.connect(_al_cambiar_casilla)
+	_mundo.impacto.connect(_al_impacto_mundo)
 	_modo_nivel = usar_escena and HorneadorNivel.existe_nivel(nivel)      # nombre exacto: ver existe_nivel (Windows no distingue mayúsculas)
 	if reglas == "jugabilidad" or (reglas == "" and nivel == "jugabilidad"):
 		_reglas = Jugabilidad3D.new()
@@ -610,6 +617,9 @@ func _ready() -> void:
 	if _modo_nivel:
 		_leer_nivel()
 	_lado = _mapa.size()
+	# 13/10 (M5, paso 1): el terreno recibe el mapa UNA vez y contesta solo (letra, canal, lados abiertos…). `_bloqueadas`, `_celdas_canal`
+	# y `_giros` se comparten por referencia (aquí no se reasignan después); el mapa se COPIA: cambiar una letra ya es `Terreno3D.poner_letra`.
+	Terreno3D.cargar_datos(_mapa, _bloqueadas, _celdas_canal, _giros)
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 
 	var entorno := WorldEnvironment.new()
@@ -700,9 +710,20 @@ func _ready() -> void:
 		_vitrina_vfx()
 
 
+## 13/10 (M5): los datos del mapa en Terreno3D son estáticos y sobreviven a esta escena: al salir se sueltan, o el nivel siguiente
+## empezaría viendo el mapa y los bloqueos de este.
+func _exit_tree() -> void:
+	Terreno3D.olvidar_datos()
+
+
 ## --- Utilidades de rejilla ---
 
 func _letra(c: Vector2i) -> String:
+	# 13/10 (M5, paso 3): con datos propios la letra la contesta el terreno (que es quien la cambia). Antes de `cargar_datos` (durante
+	# `_leer_nivel` y hasta fijar `_lado`) aún no hay, y se lee la copia de carga. OJO: no quitar el respaldo, o Terreno3D volvería
+	# a preguntarle a esta función y se quedaría en bucle.
+	if Terreno3D.datos_propios:
+		return Terreno3D.letra_de(c)
 	if c.y < 0 or c.y >= _lado or c.x < 0 or c.x >= _mapa[c.y].length():
 		return "#"
 	return _mapa[c.y][c.x]
@@ -1644,6 +1665,17 @@ func _enlazar_reactivos() -> void:
 	for r in _reactivos:
 		if r.tipo == "totem" and r.elemento == "rayo" and puente != null:
 			r.activado.connect(func(_t: String, _e: String) -> void: puente.tender())
+	# 13/10 (Pablo): el tótem de rayo es el final del puzzle: al activarse la tinaja deja de echar agua (el totem ya queda activo
+	# para siempre: `activo` es true y `spell_reacts` devuelve false, así que no vuelve a reaccionar).
+	for r in _reactivos:
+		if r.tipo == "totem" and r.elemento == "rayo":
+			r.activado.connect(func(_t: String, _e: String) -> void: _parar_tinajas())
+
+
+func _parar_tinajas() -> void:
+	for r in _reactivos:
+		if r.tipo == "surtidor":
+			r.dejar_de_verter()
 
 
 ## Bloqueo / desbloqueo EN JUEGO de una casilla (tierra que se solidifica, hielo, puente, puerta…): siempre por aquí y no
@@ -2262,7 +2294,7 @@ func _ruta_hilo(origen: Vector2i, celdas_puente: Array) -> Array:
 
 
 func _al_tender_losa(c: Vector2i) -> void:
-	_mapa[c.y] = _mapa[c.y].substr(0, c.x) + "b" + _mapa[c.y].substr(c.x + 1)
+	Terreno3D.poner_letra(c, "b")      # 13/10 (M5): la letra es del terreno; `_mapa` es solo la copia de carga (dibujo)
 	_liberar(c)
 
 
@@ -2430,6 +2462,34 @@ func _activar_solidez_por_nodos() -> void:
 	print("Solidez por colisión: ", n, " casillas de piezas, ", _bloqueadas.size() - _celdas_pieza.size(), " extra")
 
 
+## 13/10 (P4): F9 SÍ hornea (medido: tres F9 seguidos dejaron tres horneados idénticos y sus copias), pero es síncrono: empaquetar ~370
+## piezas deja el juego quieto varios segundos y la única señal era un `print` en la consola, así que parecía una pausa y se volvía
+## a pulsar (cada pulsación aparta el anterior como `_copia_<hora>`). Ahora: aviso visible en el HUD ANTES de bloquear (se esperan dos
+## fotogramas para que se dibuje), resultado visible después, y las F9 que llegaron durante el bloqueo se ignoran (3 s de margen).
+var _horneando: bool = false
+var _ms_hornear: int = -100000
+
+
+func _hornear_con_aviso() -> void:
+	if _horneando or Time.get_ticks_msec() - _ms_hornear < 3000:
+		return
+	_horneando = true
+	var espera: String = "HORNEANDO… el juego se queda quieto unos segundos"
+	_avisos.append(espera)
+	_actualizar_hud()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var ruta: String = hornear()
+	_avisos.erase(espera)
+	var res: String = ("Horneado: " + ruta.get_file()) if ruta != "" else "F9: no se ha horneado nada (mira la consola)"
+	_avisos.append(res)
+	_actualizar_hud()
+	_ms_hornear = Time.get_ticks_msec()
+	_horneando = false
+	await get_tree().create_timer(8.0).timeout
+	_avisos.erase(res)
+
+
 ## F9: hornea lo que las letras han colocado como `niveles/Nivel_<Nombre>.tscn` (ver HorneadorNivel). Con el nivel ya cargado
 ## desde su .tscn no hace nada: ese archivo manda y tiene tus ediciones. Para volver a generarlo desde las letras (PISA las
 ## ediciones; la versión anterior se aparta como `..._copia_<hora>.tscn`): poner `usar_escena = false` y pulsar F9.
@@ -2455,7 +2515,7 @@ func hornear() -> String:
 	if nivel == "pruebas":
 		for e in NivelPruebas.piezas():
 			extras.append({"rotulo": String(e[0]), "c": e[1] as Vector2i})
-	var datos: Dictionary = {"nivel": nivel, "mapa": _mapa, "registro": _registro, "extras": extras}
+	var datos: Dictionary = {"nivel": nivel, "mapa": Terreno3D.mapa if Terreno3D.datos_propios else _mapa, "registro": _registro, "extras": extras}
 	return HorneadorNivel.hornear(datos)
 
 
@@ -3122,6 +3182,8 @@ func _celda_de(p: Vector3) -> Vector2i:
 
 
 func _en_mapa(c: Vector2i) -> bool:
+	if Terreno3D.datos_propios:
+		return Terreno3D.en_mapa(c)
 	return c.x >= 0 and c.y >= 0 and c.x < _lado and c.y < _lado
 
 
@@ -3227,12 +3289,34 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 		"hielo":
 			if p.b < 0.5:
 				_poner_canal(c, 2, 1.0)
-				_helada[c] = true
+				Terreno3D.poner_helada(c, true)      # el hecho vive en Mundo3D.estados; el canal B de _img_estado sigue por casilla_cambio
 				_liberar(c)
 				if not agua_fisica:
 					_poner_placa_hielo(c)      # con agua física el hielo lo dibuja AguaRender3D desde la simulación (11.14)
 		"fuego":
 			_fx.vapor(_centro_celda(c, ALTO_AGUA))      # hierve; el hielo no se derrite
+
+
+## El Mundo3D avisa de que algo cambió en una casilla. Aquí solo se redibuja: el dato ya lo tiene el mundo.
+## «hielo»: el canal B (helado) de `_img_estado` sigue al estado, lo hiele o derrita quien sea (esta maqueta o el Juego).
+## Es idempotente: poner el canal al valor que ya tiene no cambia nada (y al soltar el hielo quita la placa, como antes).
+func _al_cambiar_casilla(c: Vector2i, que: String) -> void:
+	if que == "hielo" and _img_estado != null and _en_mapa(c):
+		_poner_canal(c, 2, 1.0 if Terreno3D.helada(c) else 0.0)
+
+
+## M3 (13/10): el mundo avisa de DÓNDE y de QUÉ pasó con `impacto`; aquí se decide cómo se pinta. Hoy el Lanzador pinta el vapor y
+## el hielo que crece llamando a `get("_fx")` / `get("_agua_render")` sobre esta maqueta (campos privados, ARQUITECTURA_MODULAR §5).
+## Para que pueda dejar de hacerlo, escucho dos avisos: «vapor» (se evaporó agua o se fundió hielo) y «hielo_desde» (va a helarse
+## desde ese punto: el render hace crecer el hielo). Los demás elementos los sigue pintando el hechizo; no se duplica nada.
+func _al_impacto_mundo(punto: Vector3, elemento: String, _radio: float) -> void:
+	match elemento:
+		"vapor":
+			if _fx != null:
+				_fx.vapor(punto)
+		"hielo_desde":
+			if _agua_render != null and _agua_render.has_method("hielo_desde"):
+				_agua_render.hielo_desde(punto)
 
 
 ## Hierba (§1.2, §4.2). Sin entrada en _hf = FINA.
@@ -3465,7 +3549,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	match k.keycode:
 		KEY_F9:
-			hornear()
+			_hornear_con_aviso()
 		KEY_Z, KEY_C:
 			# Giro de 90° de la cámara (Z/C: Q y E son beber y hablar en Jugador3D). El movimiento sigue a la cámara.
 			_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
@@ -3681,7 +3765,7 @@ func _mover(delta: float) -> void:
 				destino = _jugador.position
 	# Sobre el puente se va a la altura del agua + tablas; en tierra, a la del bloque.
 	var c := Vector2i(int(floorf(destino.x / S)), int(floorf(destino.z / S)))
-	destino.y = ALTO_AGUA + 0.12 if (_letra(c) == "b" or _helada.has(c)) else ALTO
+	destino.y = ALTO_AGUA + 0.12 if (_letra(c) == "b" or Terreno3D.helada(c)) else ALTO
 	_jugador.position = destino
 	marcar_estado(c, 3, 0.35)      # pisa la hierba de su casilla (solo aspecto)
 	_jugador.mirar(mov, delta)
@@ -3772,7 +3856,7 @@ func llenar_cauce(celdas: Array = []) -> void:
 		tw.tween_interval(0.35 * float(k))                       # el agua baja hacia el río, no aparece de golpe
 		tw.tween_property(mi, "position:y", 0.0, 0.9).set_trans(Tween.TRANS_SINE)
 		tw.tween_callback(_fx.salpicadura.bind(_centro_celda(c, ALTO_AGUA), 0.7))
-		_mapa[c.y] = _mapa[c.y].substr(0, c.x) + "~" + _mapa[c.y].substr(c.x + 1)
+		Terreno3D.poner_letra(c, "~")      # 13/10 (M5): ídem
 		_bloqueadas[c] = true
 		k += 1
 	if k > 0 and _guijarros != null:
@@ -3791,6 +3875,9 @@ func electrificar_agua(celdas: Array, activo: bool = true) -> void:
 	var n: int = 0
 	for v in celdas:
 		var c: Vector2i = v
+		# 13/10 (M2): el HECHO «electrificada» es del mundo; las chispas (abajo) son solo dibujo y se quedan aquí.
+		if Terreno3D.estados != null:
+			Terreno3D.estados.poner(c, EstadosSuelo3D.ELECTRIFICADA, activo)
 		if not activo:
 			if _chispas_agua.has(c):
 				(_chispas_agua[c] as Node3D).queue_free()
@@ -4055,6 +4142,8 @@ func _adyacente_letra(c: Vector2i, l: String) -> bool:
 ## recto (`-`): corre a lo largo de su eje X local (giro 0 = este-oeste, 90 = norte-sur); codo (`L`): abre al oeste y al sur con
 ## giro 0, y gira con el marcador. Así el agua sigue el giro que le pongas al marcador, también en un codo.
 func _abre_hacia(c: Vector2i, v: Vector2i) -> bool:
+	if Terreno3D.datos_propios:
+		return Terreno3D.abre_hacia(c, v)
 	var giro: float = deg_to_rad(float(_giros.get(c, 0.0)))
 	var base: Array = [Vector2(-1, 0), Vector2(1, 0)] if _letra(c) != "L" else [Vector2(-1, 0), Vector2(0, 1)]
 	for b in base:
@@ -4069,6 +4158,8 @@ func _abre_hacia(c: Vector2i, v: Vector2i) -> bool:
 
 
 func _es_canal(c: Vector2i) -> bool:
+	if Terreno3D.datos_propios:
+		return Terreno3D.es_canal(c)
 	# Con las letras: `-` y `L` del mapa. Con el nivel horneado (Nivel_Bosque.tscn) esas letras ya no existen: son las piezas
 	# canal_recto / canal_codo que `_leer_nivel` apuntó en `_celdas_canal`.
 	return _celdas_canal.has(c) or (_en_mapa(c) and (_letra(c) == "-" or _letra(c) == "L"))

@@ -70,7 +70,7 @@ func _hechizos() -> void:
 	# Hielo (11.12/11.13): hiela los trocitos con agua del círculo; el detalle está en prueba_hielo.gd.
 	sim.anadir(p, 6.0, 1.4)
 	Lanzador3D.hechizo_sobre_agua("hielo", p)
-	_ok("2 el hielo para el agua de la casilla", sim.casilla_helada(Vector2i(2, 2)) and m._helada.has(Vector2i(2, 2)))
+	_ok("2 el hielo para el agua de la casilla", sim.casilla_helada(Vector2i(2, 2)) and Terreno3D.helada(Vector2i(2, 2)))
 	# Una casilla con tierra encima no recibe nada (H4).
 	Lanzador3D.fijar_altura(Vector2i(3, 3), 1)
 	var v2: float = sim.volumen_total()

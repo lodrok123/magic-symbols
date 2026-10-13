@@ -64,12 +64,16 @@ func _initialize() -> void:
 
 func _hielo() -> void:
 	var m := _mundo(["######", "#....#", "~~~~~~", "~~~~~~", "#....#", "######"])
+	var w := Mundo3D.new()
+	root.add_child(w)
+	var avisos: Array = []
+	w.casilla_cambio.connect(func(cc: Vector2i, que: String) -> void: avisos.append([cc, que]))
 	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
 	var c := Vector2i(2, 2)
 	var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.alto_agua)
 	_correr(sim, 1.0)
 	var v0: float = sim.volumen_total()
-	_ok("1 el río empieza sin hielo", not Terreno3D.sobre_hielo(p) and Terreno3D.es_agua(c) and not m._helada.has(c))
+	_ok("1 el río empieza sin hielo", not Terreno3D.sobre_hielo(p) and Terreno3D.es_agua(c) and not Terreno3D.helada(c))
 	var y_agua: float = sim.superficie_en(p)
 	# Colocamos un tronco y un goblin dentro del agua que se va a helar, y otro goblin en la orilla.
 	var tronco := Flotador3D.new()
@@ -86,7 +90,7 @@ func _hielo() -> void:
 	orilla.global_position = Terreno3D.centro_de(Vector2i(2, 1), 1.0)
 	Lanzador3D.hechizo_sobre_agua("hielo", p)
 	_ok("2 el hielo hiela la casilla (≥ 5 de 9 trocitos)", sim.casilla_helada(c))
-	_ok("2 la maqueta lo sabe (_helada) y la libera", m._helada.has(c) and m.liberadas.has(c))
+	_ok("2 la maqueta lo sabe (helada) y la libera", Terreno3D.helada(c) and m.liberadas.has(c))
 	_ok("2 ya no es agua para el juego", not Terreno3D.es_agua(c))
 	_ok("2 se pisa aunque debajo haya agua: pisable", Terreno3D.pisable(c, 0, false, 0, false))
 	_ok("2 y_pies = cara de arriba del hielo", absf(Terreno3D.y_pies(c) - y_agua) < 0.02, "%.3f (agua %.3f)" % [Terreno3D.y_pies(c), y_agua])
@@ -104,21 +108,21 @@ func _hielo() -> void:
 	_ok("4 pero se anda por encima: pisable", Terreno3D.pisable(c, 0, false, 0, false))
 	# Fuego: funde, suelta, y el agua es la misma.
 	Lanzador3D.hechizo_sobre_agua("fuego", p)
-	_ok("5 el fuego funde el hielo", not sim.casilla_helada(c) and not m._helada.has(c))
+	_ok("5 el fuego funde el hielo", not sim.casilla_helada(c) and not Terreno3D.helada(c))
 	_ok("5 vuelve a ser agua y se bloquea a pie", Terreno3D.es_agua(c) and m._bloqueadas.has(c))
 	_ok("5 el volumen es el mismo", absf(sim.volumen_total() - v0) < 1.0e-4, "%.4f" % sim.volumen_total())
 	_ok("5 el goblin queda libre", dentro.congelado == 0.0 and not dentro.has_meta("preso_hielo"))
-	_ok("5 el suelo deja de estar «helado»", m.canales.any(func(e: Array) -> bool: return e[0] == c and e[1] == 2 and e[2] == 0.0))
+	_ok("5 el suelo deja de estar «helado»: el mundo avisa «hielo» y la maqueta apaga su canal al oírlo", avisos.has([c, "hielo"]) and not Terreno3D.helada(c))
 	await physics_frame
 	_ok("5 el tronco se suelta", not tronco.freeze)
 	_ok("5 la cobertura se va", not Terreno3D.cubre_hielo(c))
 	# Tiempo: a los 20 s se suelta solo y _helada se pone al día sin que nadie llame.
 	Lanzador3D.hechizo_sobre_agua("hielo", p)
-	_ok("6 se vuelve a helar", m._helada.has(c))
+	_ok("6 se vuelve a helar", Terreno3D.helada(c))
 	_correr(sim, 19.0)
-	_ok("6 a los 19 s sigue helada", m._helada.has(c))
+	_ok("6 a los 19 s sigue helada", Terreno3D.helada(c))
 	_correr(sim, 2.0)
-	_ok("6 a los 21 s se ha soltado sola y _helada lo sabe", not m._helada.has(c) and Terreno3D.es_agua(c))
+	_ok("6 a los 21 s se ha soltado sola y _helada lo sabe", not Terreno3D.helada(c) and Terreno3D.es_agua(c))
 	# Agua poco honda: no cubre.
 	var poco := Vector2i(1, 1)
 	sim.llenar_casilla(poco, sim.suelo[sim._trozos(poco)[0]] + 0.3)

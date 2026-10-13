@@ -1,10 +1,10 @@
 class_name Lanzador3D
-extends "res://magia/spellcaster.gd"
+extends Grimorio
 
 ## LANZADOR DE HECHIZOS EN 3D (Test 3). Dueño: Juego.
 ##
-## Sustituye a spellcaster.gd en la maqueta 3D. HEREDA de él (el grimorio, el reconocedor $P, las tres páginas,
-## la recarga y el aviso de fallos son los mismos) y cambia solo dos cosas:
+## Sustituyó a spellcaster.gd en la maqueta 3D. Desde M4 (13/10) HEREDA de Grimorio (magia/grimorio.gd, un Node3D; spellcaster.gd era Node2D). El grimorio, el reconocedor $P, las tres páginas,
+## la recarga y el aviso de fallos son los mismos, y cambia solo dos cosas:
 ##   1. Las REGLAS DEL LIBRO: un glifo por sector (el segundo se rechaza con aviso) y una receta por página
 ##      (con ratón, todos los glifos de la página se funden en un hechizo). `pilar` y `retardo` no están activos.
 ##   2. QUÉ SALE al lanzar: ya no hay Area2D ni Spell; la receta (SpellRecipe, sin tocarla) se lee en CASILLAS y se
@@ -50,6 +50,7 @@ const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
+const ALTO_BOLA: float = 0.6                 ## Vfx3D.lanzar eleva la bola 0,6·escala sobre los pies que recibe (valor suyo; ver diario P2)
 const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const VEL_MURO: float = 1.72                ## casillas/s (Sigils.WALL_SPEED 110 px / 64)
 const VEL_ONDA: float = 1.48                ## casillas/s (Sigils.PULSE_SPEED 95 px / 64)
@@ -161,53 +162,29 @@ signal agua_cambio(c: Vector2i, es_agua: bool)
 static func configurar(p_mundo: Node3D) -> void:
 	Terreno3D.configurar(p_mundo)
 	Terreno3D.al_solidificar = soltar_presos
+	ReaccionesAgua3D.efecto = _efecto_mundo
 	mundo_s = p_mundo                    # espejo M1
 	agua_sim = null                      # espejo M1
 
 
 ## --- Hechizos sobre el agua (Fase 11.4, 12/10) ---
-## Qué hace cada elemento al agua de la simulación en el punto del impacto. El suelo (hielo, mojado…) lo sigue haciendo la maqueta:
-## esto es solo el AGUA. Estática para poder medirla sin escena. No hace nada sin simulación o en una casilla con tierra encima (H4).
-##   agua  → echa VOL_AGUA_IMPACTO u³ (un charco que corre, se suma al río y puede cruzar una presa abierta);
-##   fuego → evapora VOL_EVAPORA u³ y suelta vapor si de verdad quitó agua (no repite el vapor de la maqueta en las «~»);
-##   hielo → si la maqueta heló la casilla (_helada), el agua se queda quieta y no deja pasar más.
-## La tierra (presa) no va aquí: construir_tierra → _recalcular → refrescar_casilla.
+## M3 (13/10): la lógica vive en ReaccionesAgua3D (mundo/), que recibe una AccionElemental. Aquí queda el reenvío y UN solo sitio
+## con lo que no es del mundo (`_efecto_mundo`: vapor, avisar al render del hielo, atrapar, poner al día lo helado).
 static func hechizo_sobre_agua(elemento: String, punto: Vector3) -> void:
-	if Terreno3D.agua_sim == null or Terreno3D.mundo_s == null:
-		return
-	var c: Vector2i = celda_de(punto)
-	if not en_mapa(c) or altura_en(c) >= 1:
-		return
-	var radio_h: float = Terreno3D.casilla * RADIO_HIELO
-	match elemento:
-		"agua":
-			Terreno3D.agua_sim.anadir(punto, VOL_AGUA_IMPACTO, Terreno3D.casilla * 0.2)     # radio 0,35 → 0,2 casillas (el mínimo de la simulación es medio trocito)
-		"fuego":
-			# Primero funde el hielo del círculo; si no había, evapora (no las dos cosas con un mismo golpe).
-			var fundidos: int = Terreno3D.agua_sim.derretir(punto, radio_h)
-			var fx_m: Variant = Terreno3D.mundo_s.get("_fx")
-			if fundidos > 0:
-				if fx_m != null:
-					(fx_m as Vfx3D).vapor(punto)
-			else:
-				var quitado: float = Terreno3D.agua_sim.quitar(punto, VOL_EVAPORA, Terreno3D.casilla * 0.5)
-				if quitado > 0.1 and fx_m != null and letra_de(c) != "~":
-					(fx_m as Vfx3D).vapor(punto)
-		"hielo":
-			# Hiela los trocitos CON AGUA del círculo, 20 s, y atrapa lo que está dentro (troncos, goblins).
-			# El dibujo del hielo crece desde el punto del impacto (Pipeline, 11.16): se avisa ANTES de helar.
-			var render_m: Variant = Terreno3D.mundo_s.get("_agua_render")
-			if render_m != null and (render_m as Object).has_method("hielo_desde"):
-				render_m.call("hielo_desde", punto)
-			if Terreno3D.agua_sim.helar(punto, radio_h, AguaSim3D.DURA_HIELO) > 0:
-				atrapar(punto, radio_h, AguaSim3D.DURA_HIELO)
-	procesar_cambios_hielo()
-	if elemento == "hielo":
-		# La maqueta heló la casilla ENTERA al impactar; la verdad es la simulación (≥ 5 de 9 trocitos): si no llega, se deshace.
-		if Terreno3D.helada(c) and not Terreno3D.agua_sim.casilla_helada(c) and Terreno3D.agua_sim.profundidad_casilla(c) > 0.05:
-			Terreno3D.poner_helada(c, false)
-			if letra_de(c) == "~":
-				bloquear_celda(c)
+	ReaccionesAgua3D.aplicar(AccionElemental.nueva(elemento, punto))    ## REENVÍO M3
+
+
+## Lo que el mundo pide a la magia y a la presentación cuando el agua cambia. Lo recibe ReaccionesAgua3D.efecto (ver su cabecera).
+static func _efecto_mundo(nombre: String, punto: Vector3, radio: float, segundos: float) -> void:
+	match nombre:
+		"vapor", "hielo_desde":
+			# El dibujo no es del Juego: se avisa por la fachada y la maqueta (Pipeline) decide qué pintar (entrada 43 del diario).
+			if Mundo3D.actual != null:
+				Mundo3D.actual.avisar_impacto(punto, nombre, radio)
+		"hielo_formado":
+			atrapar(punto, radio, segundos)
+		"hielo_cambios":
+			procesar_cambios_hielo()
 
 
 ## Pone al día lo que depende del hielo de la simulación: `_helada` de la maqueta (la usan es_agua, y_pies, pisable, el rayo, el
@@ -228,8 +205,7 @@ static func _hielo_cambio(c: Vector2i, helada: bool) -> void:
 	else:
 		if letra_de(c) == "~":
 			bloquear_celda(c)                        # vuelve a ser agua: a pie no se pisa (se nada desde la orilla)
-		if Terreno3D.mundo_s.has_method("_poner_canal"):
-			Terreno3D.mundo_s.call("_poner_canal", c, 2, 0.0)  # el estado «helado» del suelo
+		# (El canal «helado» del suelo lo apaga la maqueta al oír casilla_cambio «hielo»: ya no se le llama por reflexión.)
 		soltar_presos(c)
 
 
@@ -312,14 +288,9 @@ static func vigilar_presos() -> void:
 			(costra as CostraHielo3D).aviso(f < AVISO_HIELO)
 
 
-## Un chorro de agua es un MANANTIAL mientras dura: suma `caudal` u³/s en la casilla y lo retira al acabar `dura` s. Si ahí ya
-## corría un río o había un surtidor, el chorro SUMA a su caudal (por eso es `sumar_fuente` y no `fuente_en`).
+## Un chorro de agua es un MANANTIAL mientras dura (ver ReaccionesAgua3D.abrir_caudal).
 static func abrir_caudal(c: Vector2i, caudal: float, dura: float) -> void:
-	if Terreno3D.agua_sim == null or not en_mapa(c) or altura_en(c) >= 1:
-		return
-	var sim: AguaSim3D = Terreno3D.agua_sim          # la de ahora: si el nivel se recarga, el temporizador no toca la nueva
-	sim.sumar_fuente(c, caudal)
-	(Engine.get_main_loop() as SceneTree).create_timer(dura, false).timeout.connect(func() -> void: sim.sumar_fuente(c, -caudal))
+	ReaccionesAgua3D.abrir_caudal(c, caudal, dura)    ## REENVÍO M3
 
 
 ## =====================================================================================================
@@ -418,16 +389,16 @@ static func montar_agua_sim(sub: int = 3) -> AguaSim3D:    ## REENVÍO M1 (y ref
 static var agua_con_fisica: bool = true
 ## Agua echada por un hechizo (11.4), en u³. Un impacto de agua es un charco; cada casilla marcada por un muro o un corro, otro.
 ## 12/10 (Pablo): un 80 % menos (1,2 → 0,24): el agua convocada debe ser sutil; ya se escalará en hechizos grandes.
-const VOL_AGUA_IMPACTO: float = 0.24
+const VOL_AGUA_IMPACTO: float = ReaccionesAgua3D.VOL_AGUA_IMPACTO    ## REENVÍO M3
 ## Lo que se evapora por un impacto de fuego (u³): un charco desaparece, un río apenas nota un bocado.
 ## (Un 80 % menos, como el agua que se echa: 1,5 → 0,3.)
-const VOL_EVAPORA: float = 0.3
+const VOL_EVAPORA: float = ReaccionesAgua3D.VOL_EVAPORA    ## REENVÍO M3
 ## Caudal (u³/s) que aporta CADA casilla de un chorro de agua mientras el chorro dura.
 ## (12/10, Pablo: un 80 % menos, 0,8 → 0,16.)
 const CAUDAL_CHORRO_CELDA: float = 0.16
 ## --- Hielo de verdad (11.13) ---
 ## Radio (en casillas) del círculo que hiela o funde un impacto. 0,6 casillas = una casilla casi entera, pero sigue la forma del agua.
-const RADIO_HIELO: float = 0.6
+const RADIO_HIELO: float = ReaccionesAgua3D.RADIO_HIELO    ## REENVÍO M3
 
 
 ## Nombre de elemento (el de Vfx3D) de una runa.
@@ -1062,6 +1033,12 @@ func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector
 		var b: Vector3 = tramo["hasta"]
 		var pie_a: Vector3 = Vector3(a.x, y_pies(celda_de(a)), a.z)
 		var pie_b: Vector3 = Vector3(b.x, y_pies(celda_de(b)), b.z)
+		# P2 (13/10): si lo que frena la bola es un objeto con punto de activación (el cuenco de la antorcha, la boca de la tinaja),
+		# la bola acaba ahí y no donde roza la caja de acierto. Vfx3D.lanzar eleva los dos extremos ALTO_BOLA·escala sobre los
+		# «pies» que se le pasan, por eso se resta.
+		var p_act: Vector3 = _activacion_al_final(tramo)
+		if p_act != Vector3.INF and fx != null:
+			pie_b = Vector3(p_act.x, p_act.y - ALTO_BOLA * fx.escala, p_act.z)
 		var el: String = String(tramo.get("elemento", elemento))
 		if Vfx3D.ELEMENTOS.has(el):
 			_visual_en(t, el, pie_a, pie_b)
@@ -1074,6 +1051,37 @@ func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector
 			_despues(t + _tiempo_de_viaje(el, dist_g), _golpear.bind(obj, rune_g, dir_g, g["punto"], nivel, receta.pull,
 				(tramo["desde"] as Vector3)))
 		t += viaje
+
+
+## P2: el punto de activación del objeto que PARA este tramo (el último golpe, a la distancia a la que acaba el tramo, que
+## reacciona al hechizo). Vector3.INF si el tramo acaba en una pared, en el alcance, o en un objeto sin punto propio.
+func _activacion_al_final(tramo: Dictionary) -> Vector3:
+	var largo: float = (tramo["desde"] as Vector3).distance_to(tramo["hasta"] as Vector3)
+	var golpes: Array = tramo["golpes"]
+	for i in range(golpes.size() - 1, -1, -1):
+		var g: Dictionary = golpes[i]
+		if absf(float(g["dist"]) - largo) > 0.01:
+			continue
+		var obj: Node = g["obj"]
+		if not is_instance_valid(obj) or not obj.has_method("punto_activacion"):
+			return Vector3.INF
+		if obj.has_method("spell_reacts") and not bool(obj.call("spell_reacts", tramo["rune"], tramo["dir"])):
+			return Vector3.INF
+		return obj.call("punto_activacion")
+	return Vector3.INF
+
+
+## P2: lo primero activable que cruza el haz de un chorro, de la mano hacia delante. Devuelve su punto de activación (o INF).
+func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneData) -> Vector3:
+	var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
+	for h in _rayo_areas(espacio, mano, dir, largo):
+		var obj: Node = h["obj"]
+		if not obj.has_method("punto_activacion") or not obj.has_method("on_spell_hit"):
+			continue
+		if obj.has_method("spell_reacts") and not bool(obj.call("spell_reacts", rune, dir)):
+			continue
+		return obj.call("punto_activacion")
+	return Vector3.INF
 
 
 func _tiempo_de_viaje(elemento: String, distancia: float) -> float:
@@ -1439,7 +1447,15 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 		var largo_m: float = float(receta.geo()["largo"]) * Terreno3D.casilla
 		# Vfx3D multiplica `largo` por su `escala`: se divide aquí para que el haz dibujado mida lo que sus casillas.
 		var esc: float = maxf(float(fx.get("escala")), 0.01)
-		fx.lanzar_forma("chorro", elemento, pie_o, pie_o + dh.normalized() * largo_m, {"largo": largo_m / esc, "dura": dura})
+		var dir_h: Vector3 = dh.normalized()
+		var fin_h: Vector3 = pie_o + dir_h * largo_m
+		# P2: si el haz da en algo activable, acaba en su punto de activación (largo recortado y altura de la punta en `y` del destino).
+		var y_vuelo: float = y_pies(celda_de(origen)) + Terreno3D.ALTO_NIVEL * 0.5 * float(1 + c3.nivel)
+		var p_act: Vector3 = _activacion_en_haz(Vector3(origen.x, y_vuelo, origen.z), dir_h, largo_m, c3.rune)
+		if p_act != Vector3.INF:
+			largo_m = clampf((p_act - pie_o).dot(dir_h), Terreno3D.casilla * 0.5, largo_m)
+			fin_h = Vector3(pie_o.x + dir_h.x * largo_m, p_act.y, pie_o.z + dir_h.z * largo_m)
+		fx.lanzar_forma("chorro", elemento, pie_o, fin_h, {"largo": largo_m / esc, "dura": dura})
 	elif muro or receta.line:
 		# Barrera que avanza (barrera + flecha) o muro de `linea`: MURO, con la duración real del campo.
 		var d: Vector3 = (c3.dirs[0] as Vector3) if not c3.dirs.is_empty() else Vector3.ZERO
@@ -1765,6 +1781,7 @@ class GeometriaHechizo extends RefCounted:
 	const RADIO_0: float = 0.5          ## esfera por defecto: radio en casillas (1 casilla de diámetro)
 	const LARGO_0: float = 3.0          ## Línea: largo en casillas
 	const GROSOR_LINEA: float = 0.5     ## semi-grosor de la línea (1 casilla de pared); Tamaño no lo toca
+	const LINEA_EXTRA: float = 0.2      ## cada Línea repetida alarga la forma un 20 % de su largo base (2 → ×1,2; 3 → ×1,4)
 	const TAMANO_RADIO: float = 0.5     ## cada Tamaño: +0,5 casilla de radio...
 	const TAMANO_LARGO: float = 2.0     ## ...o +2 casillas de largo
 	const TAMANO_TOPE: float = 3.0      ## la forma no pasa de ×3 su medida base
@@ -1790,7 +1807,7 @@ class GeometriaHechizo extends RefCounted:
 		var n_flecha: int = maxi(int(c.get("flecha", 0)), 0)
 		var n_barrera: int = maxi(int(c.get("barrera", 0)), 0)
 
-		# 1. Forma base. La Línea no se repite: más largo es Tamaño.
+		# 1. Forma base. LARGO_0 (3 casillas) es el alcance de una Flecha; cada Línea repetida suma LINEA_EXTRA (20 %).
 		var es_linea: bool = n_linea > 0
 		var radio: float = GROSOR_LINEA if es_linea else RADIO_0
 		var largo: float = LARGO_0 if es_linea else 0.0
@@ -1798,7 +1815,7 @@ class GeometriaHechizo extends RefCounted:
 		var alto: int = n_altura
 		# 3. Tamaño: escala radio (esfera) o largo (línea); nunca la altura. Tope ×3 de la medida base.
 		if es_linea:
-			largo = minf(LARGO_0 + TAMANO_LARGO * float(n_tamano), LARGO_0 * TAMANO_TOPE)
+			largo = minf(LARGO_0 * (1.0 + LINEA_EXTRA * float(n_linea - 1)) + TAMANO_LARGO * float(n_tamano), LARGO_0 * TAMANO_TOPE)
 		else:
 			radio = minf(RADIO_0 + TAMANO_RADIO * float(n_tamano), RADIO_0 * TAMANO_TOPE)
 		# 4. Barrera: alrededor del jugador, hueca, bloquea proyectiles. Repetirla = más resistencia, no más tamaño.
@@ -1859,7 +1876,7 @@ class GeometriaHechizo extends RefCounted:
 			var vistas: Dictionary = {}
 			var paso: float = 0.1
 			var t: float = HAZ_DESDE
-			while t <= HAZ_DESDE + largo:
+			while t <= largo:                  # el haz acaba donde acaba el dibujo (antes HAZ_DESDE + largo: +0,5 casilla de más)
 				var q: Vector2 = origen + d * t * casilla
 				var cq := Vector2i(int(floorf(q.x / casilla)), int(floorf(q.y / casilla)))
 				if cq != c0 and not vistas.has(cq):
@@ -1884,7 +1901,7 @@ class GeometriaHechizo extends RefCounted:
 						dentro = absf(atan2(ly, lx)) <= apertura * 0.5
 				elif chorro:
 					# Haz: una fila de casillas a lo largo de la mirada, de la mano hacia delante.
-					dentro = lx >= HAZ_DESDE and lx < HAZ_DESDE + largo and absf(ly) <= GROSOR_LINEA + GROSOR_TOL
+					dentro = lx >= HAZ_DESDE and lx < largo and absf(ly) <= GROSOR_LINEA + GROSOR_TOL
 				elif es_linea:
 					dentro = absf(lx - LINEA_DELANTE) <= GROSOR_LINEA + GROSOR_TOL and absf(ly) <= largo * 0.5
 				else:
@@ -2161,7 +2178,7 @@ class Campo extends Node3D:
 		_celdas[c] = true
 		lanz.marcar_celda(elemento, c)
 		if caudal > 0.0:
-			Lanzador3D.abrir_caudal(c, caudal, maxf(vida - _t, 0.1))
+			Mundo3D.aplicar_accion(AccionElemental.nueva("agua", Terreno3D.centro_de(c), 0.0, caudal, maxf(vida - _t, 0.1)))   # M3: un manantial mientras dura
 
 	## Un golpe o una flecha contra la cúpula: se queda con el daño. Devuelve true si lo ha parado entero.
 	func absorber(cantidad: float, desde: Vector3) -> bool:
