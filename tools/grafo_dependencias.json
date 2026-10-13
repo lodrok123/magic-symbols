@@ -1,0 +1,1223 @@
+{
+ "cls": {
+  "Circuit": "circuit.gd",
+  "Alquimia": "alquimia.gd",
+  "ElectricSparks": "electric_sparks.gd",
+  "SpellBeam": "spell_beam.gd",
+  "Misiones": "misiones.gd",
+  "Conductor": "conductor.gd",
+  "Repertoire": "repertoire.gd",
+  "PlayLog": "playlog.gd",
+  "GrassBurn": "grass_burn.gd",
+  "SpellForm": "spell_form.gd",
+  "GestureRecognizer": "gesture_recognizer.gd",
+  "ActorAnimator": "actor_animator.gd",
+  "Sigils": "sigils.gd",
+  "MsActor": "ms_actor.gd",
+  "MsAtlas": "ms_atlas.gd",
+  "RuneData": "rune_data.gd",
+  "Estado": "estado.gd",
+  "CombateComun": "combate_comun.gd",
+  "Runes": "runes.gd",
+  "SpellMaterial": "spell_material.gd",
+  "Door": "door.gd",
+  "EarthBuilder": "earth_builder.gd",
+  "Progresion": "progresion.gd",
+  "Botin": "botin.gd",
+  "SpellFactory": "spell_factory.gd",
+  "IsoGrid": "iso_grid.gd",
+  "Objetos": "objetos.gd",
+  "SpellRecipe": "spell_recipe.gd",
+  "Reagente": "reagente.gd",
+  "Glow": "glow.gd",
+  "Sfx": "sfx.gd",
+  "BlockFx": "block_fx.gd",
+  "BolsaUI": "bolsa_ui.gd",
+  "Recolectable": "recolectable.gd",
+  "GrassBlades": "grass_blades.gd",
+  "Sonidos": "sonidos.gd",
+  "GestureLibrary": "gesture_library.gd",
+  "PantallaMuerte": "pantalla_muerte.gd",
+  "Prop": "prop.gd",
+  "Ocluso3D": "poc_25d/ocluso_3d.gd",
+  "AguaOndas3D": "poc_25d/agua_ondas_3d.gd",
+  "Hierba3D": "poc_25d/hierba_3d.gd",
+  "AguaSim3D": "poc_25d/agua_sim_3d.gd",
+  "AguaRender3D": "poc_25d/agua_render_3d.gd",
+  "Equipo3D": "poc_25d/equipo_3d.gd",
+  "Vfx3D": "poc_25d/vfx_3d.gd",
+  "EmisorRayo3D": "poc_25d/emisor_rayo_3d.gd",
+  "Jugabilidad3D": "poc_25d/jugabilidad_3d.gd",
+  "Pieza3D": "poc_25d/pieza_3d.gd",
+  "Marcador3D": "poc_25d/marcador_3d.gd",
+  "Jugador3D": "poc_25d/jugador_3d.gd",
+  "NivelPruebas": "poc_25d/nivel_pruebas.gd",
+  "Combate3D": "poc_25d/combate_3d.gd",
+  "Formas3D": "poc_25d/formas_3d.gd",
+  "Flotador3D": "poc_25d/flotador_3d.gd",
+  "AguaMetaballs3D": "poc_25d/agua_metaballs_3d.gd",
+  "PlayLog3D": "poc_25d/playlog_3d.gd",
+  "Surtidor3D": "poc_25d/surtidor_3d.gd",
+  "Pj3D": "poc_25d/pj_3d.gd",
+  "Enredadera3D": "poc_25d/enredadera_3d.gd",
+  "HorneadorNivel": "poc_25d/hornear_nivel.gd",
+  "Bosque3D": "poc_25d/bosque_3d.gd",
+  "Lanzador3D": "poc_25d/lanzador_3d.gd",
+  "ProporcionChibi": "poc_25d/proporcion_chibi.gd",
+  "PuenteReactivo3D": "poc_25d/puente_reactivo_3d.gd",
+  "HiloLuz3D": "poc_25d/hilo_luz_3d.gd",
+  "Canal3D": "poc_25d/canal_3d.gd",
+  "Reactivo3D": "poc_25d/objetos_3d.gd",
+  "GrimorioUI": "poc_25d/grimorio/grimorio_ui.gd",
+  "GeneradorPiezas": "poc_25d/herramientas/generador_piezas.gd",
+  "Pj2D": "poc_25d/test2d/pj_2d.gd"
+ },
+ "deps": {
+  "spellcaster.gd": [
+   "actor_animator.gd",
+   "earth_rune.tres",
+   "fire_rune.tres",
+   "gesture_library.gd",
+   "gesture_recognizer.gd",
+   "ice_rune.tres",
+   "lightning_rune.tres",
+   "playlog.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "runes.gd",
+   "sfx.gd",
+   "sigils.gd",
+   "spell_recipe.gd",
+   "time_rune.tres",
+   "water_rune.tres",
+   "wind_rune.tres"
+  ],
+  "node_2d.tscn": [
+   "Goal.tscn",
+   "GrassBlock.tscn",
+   "NeutralBlock.tscn",
+   "WaterBlock.tscn",
+   "enemy.tscn",
+   "health_bar.gd",
+   "level_controller.gd",
+   "node_2d.gd",
+   "player.gd",
+   "spellbook.gd",
+   "spellcaster.gd",
+   "sprite_2d.gd"
+  ],
+  "circuit.gd": [
+   "rune_data.gd"
+  ],
+  "WaterBlock.tscn": [
+   "water_block.gd"
+  ],
+  "wind_rune.tres": [
+   "rune_data.gd"
+  ],
+  "alquimia.gd": [
+   "estado.gd",
+   "objetos.gd"
+  ],
+  "electric_sparks.gd": [
+   "circuit.gd",
+   "iso_grid.gd"
+  ],
+  "spell_beam.gd": [
+   "rune_data.gd",
+   "spell_form.gd"
+  ],
+  "player.gd": [
+   "actor_animator.gd",
+   "block_fx.gd",
+   "combate_comun.gd",
+   "estado.gd",
+   "playlog.gd",
+   "sfx.gd",
+   "sonidos.gd"
+  ],
+  "mundo.gd": [
+   "nivel_base.gd"
+  ],
+  "enemy.gd": [
+   "actor_animator.gd",
+   "block_fx.gd",
+   "rune_data.gd"
+  ],
+  "misiones.gd": [
+   "estado.gd",
+   "sonidos.gd"
+  ],
+  "conductor.gd": [
+   "block_fx.gd",
+   "circuit.gd",
+   "electric_sparks.gd",
+   "glow.gd",
+   "iso_grid.gd",
+   "lightning_rune.tres",
+   "rune_data.gd",
+   "sfx.gd",
+   "spell_factory.gd"
+  ],
+  "GrassBlock.tscn": [
+   "grass_block.gd"
+  ],
+  "fire_rune.tres": [
+   "rune_data.gd"
+  ],
+  "grass_block.gd": [
+   "block_fx.gd",
+   "fire_rune.tres",
+   "grass_blades.gd",
+   "grass_burn.gd",
+   "iso_grid.gd",
+   "rune_data.gd",
+   "sfx.gd",
+   "spell_factory.gd"
+  ],
+  "IsoTest.tscn": [
+   "Goal.tscn",
+   "GrassBlock.tscn",
+   "NeutralBlock.tscn",
+   "WaterBlock.tscn",
+   "enemy.tscn",
+   "health_bar.gd",
+   "iso_test.gd",
+   "level_controller.gd",
+   "player.gd",
+   "spellbook.gd",
+   "spellcaster.gd",
+   "sprite_2d.gd"
+  ],
+  "repertoire.gd": [
+   "gesture_library.gd",
+   "sigils.gd"
+  ],
+  "blockout.gd": [
+   "Archer.tscn",
+   "Brazier.tscn",
+   "Goal.tscn",
+   "GrassBlock.tscn",
+   "NeutralBlock.tscn",
+   "WaterBlock.tscn",
+   "block_fx.gd",
+   "conductor.gd",
+   "door.gd",
+   "estado.gd",
+   "health_bar.gd",
+   "iso_grid.gd",
+   "level_controller.gd",
+   "page_hud.gd",
+   "player.gd",
+   "playlog.gd",
+   "progresion.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "rune_palette.gd",
+   "sfx.gd",
+   "spellbook.gd",
+   "spellcaster.gd"
+  ],
+  "EarthBlock.tscn": [
+   "earth_block.gd"
+  ],
+  "neutral_block.gd": [
+   "earth_builder.gd",
+   "ice_rune.tres",
+   "lightning_rune.tres",
+   "rune_data.gd",
+   "spell_factory.gd",
+   "steam_rune.tres",
+   "water_rune.tres"
+  ],
+  "Goal.tscn": [
+   "goal.gd"
+  ],
+  "earth_rune.tres": [
+   "rune_data.gd"
+  ],
+  "NeutralBlock.tscn": [
+   "neutral_block.gd"
+  ],
+  "ice_rune.tres": [
+   "rune_data.gd"
+  ],
+  "goblin_escarcha.gd": [
+   "combate_comun.gd",
+   "goblin_arquero.gd"
+  ],
+  "Test2.tscn": [
+   "test_2.gd"
+  ],
+  "grass_burn.gd": [
+   "iso_grid.gd",
+   "spell_material.gd"
+  ],
+  "enemy.tscn": [
+   "enemy.gd"
+  ],
+  "water_rune.tres": [
+   "rune_data.gd"
+  ],
+  "spell_form.gd": [
+   "rune_data.gd",
+   "sigils.gd",
+   "spell_material.gd"
+  ],
+  "test_jugabilidad.gd": [
+   "nivel_base.gd"
+  ],
+  "nivel_base.gd": [
+   "Archer.tscn",
+   "Goal.tscn",
+   "GrassBlock.tscn",
+   "NeutralBlock.tscn",
+   "WaterBlock.tscn",
+   "actor_animator.gd",
+   "alquimia.gd",
+   "block_fx.gd",
+   "bolsa_ui.gd",
+   "botin.gd",
+   "circuit.gd",
+   "combustible.gd",
+   "door.gd",
+   "electric_sparks.gd",
+   "enemy.tscn",
+   "estado.gd",
+   "fogata.gd",
+   "glow.gd",
+   "goblin_arquero.gd",
+   "goblin_escarcha.gd",
+   "goblin_guerrero.gd",
+   "health_bar.gd",
+   "iso_grid.gd",
+   "level_controller.gd",
+   "misiones.gd",
+   "ms_actor.gd",
+   "ms_atlas.gd",
+   "objetos.gd",
+   "page_hud.gd",
+   "pantalla_muerte.gd",
+   "player.gd",
+   "playlog.gd",
+   "reagente.gd",
+   "recolectable.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "rune_palette.gd",
+   "sfx.gd",
+   "sonidos.gd",
+   "spell_factory.gd",
+   "spellbook.gd",
+   "spellcaster.gd",
+   "steam_rune.tres"
+  ],
+  "actor_animator.gd": [
+   "iso_grid.gd"
+  ],
+  "lightning_rune.tres": [
+   "rune_data.gd"
+  ],
+  "ReactionLab.tscn": [
+   "reaction_lab.gd"
+  ],
+  "sigils.gd": [
+   "rune_data.gd",
+   "runes.gd",
+   "spell_recipe.gd"
+  ],
+  "earth_block.gd": [
+   "GrassBlock.tscn",
+   "block_fx.gd",
+   "rune_data.gd"
+  ],
+  "ms_actor.gd": [
+   "iso_grid.gd",
+   "ms_atlas.gd"
+  ],
+  "vfx_lab.gd": [
+   "Arrow.tscn",
+   "VfxLabMundo.tscn",
+   "earth_rune.tres",
+   "fire_rune.tres",
+   "ice_rune.tres",
+   "lightning_rune.tres",
+   "rune_data.gd",
+   "spell_factory.gd",
+   "spell_form.gd",
+   "spell_recipe.gd",
+   "water_rune.tres",
+   "wind_rune.tres"
+  ],
+  "ms_atlas.gd": [
+   "actor_animator.gd",
+   "iso_grid.gd",
+   "ms_actor.gd"
+  ],
+  "adventurer_visual_smoketest.tscn": [
+   "adventurer_visual_smoketest.gd",
+   "estado.gd"
+  ],
+  "rune_data.gd": [
+   "runes.gd",
+   "spell_beam.gd"
+  ],
+  "Brazier.tscn": [
+   "brazier.gd"
+  ],
+  "combate_comun.gd": [
+   "block_fx.gd",
+   "botin.gd",
+   "estado.gd",
+   "objetos.gd",
+   "rune_data.gd",
+   "sfx.gd",
+   "sonidos.gd"
+  ],
+  "Mundo.tscn": [
+   "mundo.gd"
+  ],
+  "steam_rune.tres": [
+   "rune_data.gd"
+  ],
+  "Archer.tscn": [
+   "archer.gd"
+  ],
+  "project.godot": [
+   "Mundo.tscn"
+  ],
+  "runes.gd": [
+   "rune_data.gd"
+  ],
+  "spell_material.gd": [
+   "rune_data.gd",
+   "spell_form.gd"
+  ],
+  "fogata.gd": [
+   "block_fx.gd",
+   "fire_rune.tres",
+   "glow.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "TestJugabilidad.tscn": [
+   "test_jugabilidad.gd"
+  ],
+  "Arrow.tscn": [
+   "arrow.gd"
+  ],
+  "door.gd": [
+   "block_fx.gd",
+   "circuit.gd",
+   "glow.gd",
+   "iso_grid.gd",
+   "lightning_rune.tres",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "goblin_arquero.gd": [
+   "archer.gd",
+   "block_fx.gd",
+   "combate_comun.gd",
+   "ms_actor.gd",
+   "rune_data.gd"
+  ],
+  "earth_builder.gd": [
+   "EarthBlock.tscn"
+  ],
+  "page_hud.gd": [
+   "rune_data.gd"
+  ],
+  "test_2.gd": [
+   "nivel_base.gd",
+   "playlog.gd",
+   "repertoire.gd",
+   "sonidos.gd"
+  ],
+  "progresion.gd": [
+   "playlog.gd",
+   "repertoire.gd"
+  ],
+  "VfxLabMundo.tscn": [
+   "vfx_lab_mundo.gd"
+  ],
+  "botin.gd": [
+   "combate_comun.gd",
+   "estado.gd",
+   "glow.gd",
+   "objetos.gd",
+   "sonidos.gd"
+  ],
+  "vfx_lab_mundo.gd": [
+   "VfxLab.tscn",
+   "earth_rune.tres",
+   "fire_rune.tres",
+   "ice_rune.tres",
+   "lightning_rune.tres",
+   "nivel_base.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "spell_factory.gd",
+   "water_rune.tres",
+   "wind_rune.tres"
+  ],
+  "spell_factory.gd": [
+   "block_fx.gd",
+   "rune_data.gd",
+   "spell.tscn",
+   "spell_form.gd"
+  ],
+  "objetos.gd": [
+   "rune_data.gd"
+  ],
+  "spell_recipe.gd": [
+   "iso_grid.gd",
+   "rune_data.gd",
+   "sigils.gd",
+   "spell_factory.gd",
+   "spell_form.gd"
+  ],
+  "reagente.gd": [
+   "block_fx.gd",
+   "botin.gd",
+   "combate_comun.gd",
+   "objetos.gd",
+   "rune_data.gd"
+  ],
+  "glow.gd": [
+   "block_fx.gd",
+   "iso_grid.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "spell.tscn": [
+   "spell.gd"
+  ],
+  "combustible.gd": [
+   "block_fx.gd",
+   "fire_rune.tres",
+   "glow.gd",
+   "iso_grid.gd",
+   "rune_data.gd",
+   "sfx.gd",
+   "spell_factory.gd"
+  ],
+  "sfx.gd": [
+   "block_fx.gd",
+   "glow.gd",
+   "rune_data.gd"
+  ],
+  "time_rune.tres": [
+   "rune_data.gd"
+  ],
+  "arrow.gd": [
+   "block_fx.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "adventurer_visual_smoketest.gd": [
+   "estado.gd"
+  ],
+  "archer.gd": [
+   "Arrow.tscn",
+   "actor_animator.gd",
+   "block_fx.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "goblin_guerrero.gd": [
+   "combate_comun.gd",
+   "enemy.gd",
+   "ms_actor.gd",
+   "rune_data.gd"
+  ],
+  "block_fx.gd": [
+   "iso_grid.gd",
+   "rune_data.gd"
+  ],
+  "rune_palette.gd": [
+   "gesture_library.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "runes.gd",
+   "sigils.gd"
+  ],
+  "bolsa_ui.gd": [
+   "estado.gd",
+   "objetos.gd",
+   "sonidos.gd"
+  ],
+  "gesture_library.tres": [
+   "gesture_library.gd"
+  ],
+  "spell_impact.gd": [
+   "rune_data.gd",
+   "spell_material.gd"
+  ],
+  "spell.gd": [
+   "block_fx.gd",
+   "glow.gd",
+   "rune_data.gd",
+   "sfx.gd",
+   "sigils.gd",
+   "spell_beam.gd",
+   "spell_factory.gd",
+   "spell_form.gd",
+   "spell_impact.gd",
+   "spell_material.gd",
+   "spell_recipe.gd"
+  ],
+  "recolectable.gd": [
+   "combate_comun.gd",
+   "estado.gd",
+   "glow.gd",
+   "objetos.gd",
+   "sonidos.gd"
+  ],
+  "VfxLab.tscn": [
+   "vfx_lab.gd"
+  ],
+  "reaction_lab.gd": [
+   "Brazier.tscn",
+   "GrassBlock.tscn",
+   "WaterBlock.tscn",
+   "conductor.gd",
+   "door.gd",
+   "fire_rune.tres",
+   "iso_grid.gd",
+   "lightning_rune.tres",
+   "spell_factory.gd",
+   "spell_recipe.gd",
+   "water_rune.tres",
+   "wind_rune.tres"
+  ],
+  "goal.gd": [
+   "playlog.gd"
+  ],
+  "grass_blades.gd": [
+   "grass_burn.gd",
+   "iso_grid.gd"
+  ],
+  "gesture_library.gd": [
+   "gesture_library.tres",
+   "gesture_recognizer.gd",
+   "rune_data.gd"
+  ],
+  "brazier.gd": [
+   "block_fx.gd",
+   "fire_rune.tres",
+   "glow.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "prop.gd": [
+   "block_fx.gd",
+   "earth_rune.tres",
+   "estado.gd",
+   "fire_rune.tres",
+   "glow.gd",
+   "iso_grid.gd",
+   "rune_data.gd",
+   "sfx.gd"
+  ],
+  "iso_test.gd": [
+   "Archer.tscn",
+   "Brazier.tscn",
+   "EarthBlock.tscn",
+   "GrassBlock.tscn",
+   "NeutralBlock.tscn",
+   "WaterBlock.tscn",
+   "actor_animator.gd",
+   "conductor.gd",
+   "door.gd",
+   "enemy.tscn",
+   "glow.gd",
+   "iso_grid.gd",
+   "prop.gd"
+  ],
+  "Blockout.tscn": [
+   "blockout.gd"
+  ],
+  "water_block.gd": [
+   "block_fx.gd",
+   "circuit.gd",
+   "earth_builder.gd",
+   "electric_sparks.gd",
+   "glow.gd",
+   "ice_rune.tres",
+   "lightning_rune.tres",
+   "rune_data.gd",
+   "sfx.gd",
+   "spell_factory.gd",
+   "steam_rune.tres",
+   "water_rune.tres"
+  ],
+  "spellbook.gd": [
+   "gesture_library.gd",
+   "gesture_recognizer.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "runes.gd",
+   "sfx.gd",
+   "sigils.gd"
+  ],
+  "poc_25d/ocluso_3d.gd": [
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/pj_3d.gd"
+  ],
+  "poc_25d/agua_ondas_3d.gd": [
+   "poc_25d/agua_render_3d.gd",
+   "poc_25d/agua_sim_3d.gd"
+  ],
+  "poc_25d/PruebaJugabilidadBosque.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/LabAgua3D.tscn": [
+   "poc_25d/lab_agua_3d.gd"
+  ],
+  "poc_25d/agua_render_3d.gd": [
+   "poc_25d/agua_ondas_3d.gd",
+   "poc_25d/agua_sim_3d.gd"
+  ],
+  "poc_25d/equipo_3d.gd": [
+   "poc_25d/pj_3d.gd"
+  ],
+  "poc_25d/vfx_3d.gd": [
+   "poc_25d/formas_3d.gd",
+   "poc_25d/pj_3d.gd"
+  ],
+  "poc_25d/emisor_rayo_3d.gd": [
+   "poc_25d/bosque_3d.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "rune_data.gd"
+  ],
+  "poc_25d/jugabilidad_3d.gd": [
+   "estado.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/formas_3d.gd",
+   "poc_25d/hierba_3d.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/pj_3d.gd"
+  ],
+  "poc_25d/PruebaNivelPruebas3D.tscn": [
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/marcador_3d.gd": [
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/PruebaBosque.tscn": [
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/jugador_3d.gd": [
+   "estado.gd",
+   "playlog.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/playlog_3d.gd"
+  ],
+  "poc_25d/PruebaTest2.tscn": [
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/nivel_pruebas.gd": [
+   "poc_25d/herramientas/generador_piezas.gd",
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/PruebaJugabilidadBosque_1.tscn": [
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/combate_3d.gd": [
+   "combate_comun.gd",
+   "estado.gd",
+   "ms_actor.gd",
+   "objetos.gd",
+   "playlog.gd",
+   "poc_25d/enredadera_3d.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "rune_data.gd"
+  ],
+  "poc_25d/formas_3d.gd": [
+   "poc_25d/vfx_3d.gd"
+  ],
+  "poc_25d/CatalogoAssets.tscn": [
+   "poc_25d/catalogo_assets.gd"
+  ],
+  "poc_25d/flotador_3d.gd": [
+   "poc_25d/agua_sim_3d.gd",
+   "poc_25d/lanzador_3d.gd"
+  ],
+  "poc_25d/playlog_3d.gd": [
+   "playlog.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/lanzador_3d.gd"
+  ],
+  "poc_25d/surtidor_3d.gd": [
+   "poc_25d/agua_sim_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "rune_data.gd"
+  ],
+  "poc_25d/pj_3d.gd": [
+   "actor_animator.gd",
+   "poc_25d/",
+   "poc_25d/equipo_3d.gd",
+   "poc_25d/proporcion_chibi.gd",
+   "poc_25d/vfx_3d.gd"
+  ],
+  "poc_25d/enredadera_3d.gd": [
+   "estado.gd",
+   "poc_25d/vfx_3d.gd"
+  ],
+  "poc_25d/PruebaJugabilidad3D.tscn": [
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/hornear_nivel.gd": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/prueba_test2.gd": [
+   "bolsa_ui.gd",
+   "estado.gd",
+   "objetos.gd",
+   "poc_25d/",
+   "poc_25d/agua_render_3d.gd",
+   "poc_25d/agua_sim_3d.gd",
+   "poc_25d/bosque_3d.gd",
+   "poc_25d/canal_3d.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/equipo_3d.gd",
+   "poc_25d/formas_3d.gd",
+   "poc_25d/hierba_3d.gd",
+   "poc_25d/hilo_luz_3d.gd",
+   "poc_25d/hornear_nivel.gd",
+   "poc_25d/jugabilidad_3d.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/nivel_pruebas.gd",
+   "poc_25d/niveles/",
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/ocluso_3d.gd",
+   "poc_25d/pieza_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/puente_reactivo_3d.gd",
+   "poc_25d/surtidor_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "rune_data.gd",
+   "test_2.gd"
+  ],
+  "poc_25d/LabVfx3D.tscn": [
+   "poc_25d/lab_vfx_3d.gd"
+  ],
+  "poc_25d/bosque_3d.gd": [
+   "estado.gd",
+   "playlog.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/emisor_rayo_3d.gd",
+   "poc_25d/formas_3d.gd",
+   "poc_25d/jugabilidad_3d.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/surtidor_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "repertoire.gd",
+   "rune_data.gd"
+  ],
+  "poc_25d/lab_vfx_3d.gd": [
+   "poc_25d/",
+   "poc_25d/equipo_3d.gd",
+   "poc_25d/grimorio/grimorio_ui.gd",
+   "poc_25d/hierba_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/vfx_3d.gd"
+  ],
+  "poc_25d/PruebaNivelBosque.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/lanzador_3d.gd": [
+   "bolsa_ui.gd",
+   "objetos.gd",
+   "page_hud.gd",
+   "playlog.gd",
+   "poc_25d/agua_sim_3d.gd",
+   "poc_25d/bosque_3d.gd",
+   "poc_25d/combate_3d.gd",
+   "poc_25d/flotador_3d.gd",
+   "poc_25d/formas_3d.gd",
+   "poc_25d/jugador_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/playlog_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "repertoire.gd",
+   "rune_data.gd",
+   "rune_palette.gd",
+   "runes.gd",
+   "sfx.gd",
+   "sigils.gd",
+   "spell_recipe.gd",
+   "spellbook.gd",
+   "spellcaster.gd"
+  ],
+  "poc_25d/proporcion_chibi.gd": [
+   "poc_25d/pj_3d.gd"
+  ],
+  "poc_25d/lab_agua_3d.gd": [
+   "poc_25d/agua_metaballs_3d.gd",
+   "poc_25d/agua_ondas_3d.gd",
+   "poc_25d/agua_render_3d.gd",
+   "poc_25d/agua_sim_3d.gd",
+   "poc_25d/flotador_3d.gd"
+  ],
+  "poc_25d/puente_reactivo_3d.gd": [
+   "poc_25d/hilo_luz_3d.gd",
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/vfx_3d.gd"
+  ],
+  "poc_25d/canal_3d.gd": [
+   "poc_25d/objetos_3d.gd"
+  ],
+  "poc_25d/catalogo_assets.gd": [
+   "poc_25d/",
+   "poc_25d/pj_3d.gd",
+   "poc_25d/proporcion_chibi.gd",
+   "poc_25d/prueba_test2.gd"
+  ],
+  "poc_25d/objetos_3d.gd": [
+   "objetos.gd",
+   "poc_25d/formas_3d.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/ocluso_3d.gd",
+   "poc_25d/pieza_3d.gd",
+   "poc_25d/vfx_3d.gd",
+   "rune_data.gd"
+  ],
+  "poc_25d/niveles/Nivel_Test2.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/niveles/Nivel_Pruebas.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/niveles/nivel_Bosque.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/niveles/test2.tscn": [
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/niveles/test2_copia_20261007_115221.tscn": [
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/niveles/jugabilidad_copia_20261007_115151.tscn": [
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/niveles/Nivel_Jugabilidad.tscn": [
+   "poc_25d/marcador_3d.gd",
+   "poc_25d/niveles/suelo_tipos.tres"
+  ],
+  "poc_25d/niveles/jugabilidad.tscn": [
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/grimorio/grimorio_ui.gd": [
+   "poc_25d/grimorio/"
+  ],
+  "poc_25d/herramientas/generador_piezas.gd": [
+   "poc_25d/herramientas/generar_piezas_cli.gd",
+   "poc_25d/lanzador_3d.gd",
+   "poc_25d/objetos_3d.gd",
+   "poc_25d/pieza_3d.gd"
+  ],
+  "poc_25d/herramientas/generar_piezas_cli.gd": [
+   "poc_25d/herramientas/generador_piezas.gd",
+   "poc_25d/herramientas/generar_piezas_cli.gd"
+  ],
+  "poc_25d/herramientas/generar_piezas_editor.gd": [
+   "poc_25d/herramientas/generador_piezas.gd"
+  ],
+  "poc_25d/test2d/Test2D.tscn": [
+   "poc_25d/test2d/test_2d.gd"
+  ],
+  "poc_25d/test2d/PrerenderTest2D.tscn": [
+   "poc_25d/test2d/prerender_test2d.gd"
+  ],
+  "poc_25d/test2d/prerender_test2d.gd": [
+   "poc_25d/PruebaTest2.tscn",
+   "poc_25d/hierba_3d.gd",
+   "poc_25d/pj_3d.gd",
+   "test_2.gd"
+  ],
+  "poc_25d/test2d/test_2d.gd": [
+   "poc_25d/grimorio/grimorio_ui.gd",
+   "poc_25d/test2d/pj_2d.gd"
+  ],
+  "tests/adventurer_idle_visual_clean_test.tscn": [
+   "tests/adventurer_idle_visual_clean_test.gd"
+  ],
+  "tests/adventurer_visual_controller_clean_test.gd": [
+   "estado.gd"
+  ],
+  "tests/walking_standalone_smoketest_ew_fix.tscn": [
+   "tests/walking_standalone_smoketest_ew_fix.gd"
+  ],
+  "tests/walking_standalone_smoketest_ew_fix.gd": [
+   "estado.gd"
+  ],
+  "tests/adventurer_player_clean_test.tscn": [
+   "tests/adventurer_player_clean_test.gd"
+  ],
+  "tests/adventurer_player_clean_test.gd": [
+   "estado.gd"
+  ],
+  "tests/idle_standalone_smoketest.tscn": [
+   "tests/idle_standalone_smoketest.gd"
+  ],
+  "tests/adventurer_walk_visual_clean_test.tscn": [
+   "tests/adventurer_walk_visual_clean_test.gd"
+  ],
+  "tests/adventurer_visual_controller_clean_test.tscn": [
+   "tests/adventurer_visual_controller_clean_test.gd"
+  ]
+ },
+ "r3": [
+  "Archer.tscn",
+  "Arrow.tscn",
+  "EarthBlock.tscn",
+  "Goal.tscn",
+  "GrassBlock.tscn",
+  "NeutralBlock.tscn",
+  "WaterBlock.tscn",
+  "actor_animator.gd",
+  "alquimia.gd",
+  "archer.gd",
+  "arrow.gd",
+  "block_fx.gd",
+  "bolsa_ui.gd",
+  "botin.gd",
+  "circuit.gd",
+  "combate_comun.gd",
+  "combustible.gd",
+  "door.gd",
+  "earth_block.gd",
+  "earth_builder.gd",
+  "earth_rune.tres",
+  "electric_sparks.gd",
+  "enemy.gd",
+  "enemy.tscn",
+  "estado.gd",
+  "fire_rune.tres",
+  "fogata.gd",
+  "gesture_library.gd",
+  "gesture_library.tres",
+  "gesture_recognizer.gd",
+  "glow.gd",
+  "goal.gd",
+  "goblin_arquero.gd",
+  "goblin_escarcha.gd",
+  "goblin_guerrero.gd",
+  "grass_blades.gd",
+  "grass_block.gd",
+  "grass_burn.gd",
+  "health_bar.gd",
+  "ice_rune.tres",
+  "iso_grid.gd",
+  "level_controller.gd",
+  "lightning_rune.tres",
+  "misiones.gd",
+  "ms_actor.gd",
+  "ms_atlas.gd",
+  "neutral_block.gd",
+  "nivel_base.gd",
+  "objetos.gd",
+  "page_hud.gd",
+  "pantalla_muerte.gd",
+  "player.gd",
+  "playlog.gd",
+  "poc_25d/",
+  "poc_25d/CatalogoAssets.tscn",
+  "poc_25d/LabAgua3D.tscn",
+  "poc_25d/LabVfx3D.tscn",
+  "poc_25d/PruebaBosque.tscn",
+  "poc_25d/PruebaJugabilidad3D.tscn",
+  "poc_25d/PruebaJugabilidadBosque.tscn",
+  "poc_25d/PruebaJugabilidadBosque_1.tscn",
+  "poc_25d/PruebaNivelBosque.tscn",
+  "poc_25d/PruebaNivelPruebas3D.tscn",
+  "poc_25d/PruebaTest2.tscn",
+  "poc_25d/agua_metaballs_3d.gd",
+  "poc_25d/agua_ondas_3d.gd",
+  "poc_25d/agua_render_3d.gd",
+  "poc_25d/agua_sim_3d.gd",
+  "poc_25d/bosque_3d.gd",
+  "poc_25d/canal_3d.gd",
+  "poc_25d/catalogo_assets.gd",
+  "poc_25d/combate_3d.gd",
+  "poc_25d/emisor_rayo_3d.gd",
+  "poc_25d/enredadera_3d.gd",
+  "poc_25d/equipo_3d.gd",
+  "poc_25d/flotador_3d.gd",
+  "poc_25d/formas_3d.gd",
+  "poc_25d/grimorio/",
+  "poc_25d/grimorio/grimorio_ui.gd",
+  "poc_25d/herramientas/generador_piezas.gd",
+  "poc_25d/herramientas/generar_piezas_cli.gd",
+  "poc_25d/hierba_3d.gd",
+  "poc_25d/hilo_luz_3d.gd",
+  "poc_25d/hornear_nivel.gd",
+  "poc_25d/jugabilidad_3d.gd",
+  "poc_25d/jugador_3d.gd",
+  "poc_25d/lab_agua_3d.gd",
+  "poc_25d/lab_vfx_3d.gd",
+  "poc_25d/lanzador_3d.gd",
+  "poc_25d/marcador_3d.gd",
+  "poc_25d/nivel_pruebas.gd",
+  "poc_25d/niveles/",
+  "poc_25d/niveles/suelo_tipos.tres",
+  "poc_25d/objetos_3d.gd",
+  "poc_25d/ocluso_3d.gd",
+  "poc_25d/pieza_3d.gd",
+  "poc_25d/pj_3d.gd",
+  "poc_25d/playlog_3d.gd",
+  "poc_25d/proporcion_chibi.gd",
+  "poc_25d/prueba_test2.gd",
+  "poc_25d/puente_reactivo_3d.gd",
+  "poc_25d/surtidor_3d.gd",
+  "poc_25d/test2d/PrerenderTest2D.tscn",
+  "poc_25d/test2d/Test2D.tscn",
+  "poc_25d/test2d/pj_2d.gd",
+  "poc_25d/test2d/prerender_test2d.gd",
+  "poc_25d/test2d/test_2d.gd",
+  "poc_25d/vfx_3d.gd",
+  "reagente.gd",
+  "recolectable.gd",
+  "repertoire.gd",
+  "rune_data.gd",
+  "rune_palette.gd",
+  "runes.gd",
+  "sfx.gd",
+  "sigils.gd",
+  "sonidos.gd",
+  "spell.gd",
+  "spell.tscn",
+  "spell_beam.gd",
+  "spell_factory.gd",
+  "spell_form.gd",
+  "spell_impact.gd",
+  "spell_material.gd",
+  "spell_recipe.gd",
+  "spellbook.gd",
+  "spellcaster.gd",
+  "steam_rune.tres",
+  "test_2.gd",
+  "time_rune.tres",
+  "water_block.gd",
+  "water_rune.tres",
+  "wind_rune.tres"
+ ],
+ "r2": [
+  "Archer.tscn",
+  "Arrow.tscn",
+  "EarthBlock.tscn",
+  "Goal.tscn",
+  "GrassBlock.tscn",
+  "Mundo.tscn",
+  "NeutralBlock.tscn",
+  "WaterBlock.tscn",
+  "actor_animator.gd",
+  "alquimia.gd",
+  "archer.gd",
+  "arrow.gd",
+  "block_fx.gd",
+  "bolsa_ui.gd",
+  "botin.gd",
+  "circuit.gd",
+  "combate_comun.gd",
+  "combustible.gd",
+  "door.gd",
+  "earth_block.gd",
+  "earth_builder.gd",
+  "earth_rune.tres",
+  "electric_sparks.gd",
+  "enemy.gd",
+  "enemy.tscn",
+  "estado.gd",
+  "fire_rune.tres",
+  "fogata.gd",
+  "gesture_library.gd",
+  "gesture_library.tres",
+  "gesture_recognizer.gd",
+  "glow.gd",
+  "goal.gd",
+  "goblin_arquero.gd",
+  "goblin_escarcha.gd",
+  "goblin_guerrero.gd",
+  "grass_blades.gd",
+  "grass_block.gd",
+  "grass_burn.gd",
+  "health_bar.gd",
+  "ice_rune.tres",
+  "iso_grid.gd",
+  "level_controller.gd",
+  "lightning_rune.tres",
+  "misiones.gd",
+  "ms_actor.gd",
+  "ms_atlas.gd",
+  "mundo.gd",
+  "neutral_block.gd",
+  "nivel_base.gd",
+  "objetos.gd",
+  "page_hud.gd",
+  "pantalla_muerte.gd",
+  "player.gd",
+  "playlog.gd",
+  "reagente.gd",
+  "recolectable.gd",
+  "repertoire.gd",
+  "rune_data.gd",
+  "rune_palette.gd",
+  "runes.gd",
+  "sfx.gd",
+  "sigils.gd",
+  "sonidos.gd",
+  "spell.gd",
+  "spell.tscn",
+  "spell_beam.gd",
+  "spell_factory.gd",
+  "spell_form.gd",
+  "spell_impact.gd",
+  "spell_material.gd",
+  "spell_recipe.gd",
+  "spellbook.gd",
+  "spellcaster.gd",
+  "steam_rune.tres",
+  "time_rune.tres",
+  "water_block.gd",
+  "water_rune.tres",
+  "wind_rune.tres"
+ ],
+ "raices3d": [
+  "poc_25d/PruebaJugabilidadBosque.tscn",
+  "poc_25d/LabAgua3D.tscn",
+  "poc_25d/PruebaNivelPruebas3D.tscn",
+  "poc_25d/PruebaBosque.tscn",
+  "poc_25d/PruebaTest2.tscn",
+  "poc_25d/PruebaJugabilidadBosque_1.tscn",
+  "poc_25d/CatalogoAssets.tscn",
+  "poc_25d/PruebaJugabilidad3D.tscn",
+  "poc_25d/LabVfx3D.tscn",
+  "poc_25d/PruebaNivelBosque.tscn",
+  "poc_25d/test2d/Test2D.tscn",
+  "poc_25d/test2d/PrerenderTest2D.tscn"
+ ]
+}
