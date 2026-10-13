@@ -19,13 +19,13 @@ export_presets.cfg
 # Vídeos y zips: pesan y no son fuente de nada que el juego lea.
 *.mp4
 # ...salvo las referencias de animación de los VFX (pequeñas, 6 MB).
-!poc_25d/vfx/referencias/*.mp4
+!presentacion/vfx/referencias/*.mp4
 *.avi
 *.zip
 # Salida intermedia del pipeline (renders, reportes): se regenera.
 pipeline_output/
-# Basura de la maqueta 3D.
-poc_25d/_descartado/
+# Basura que no viaja.
+_a_eliminar/
 
 # --- Sistema ---
 .DS_Store
@@ -60,6 +60,8 @@ Render Studio/*
 !Render Studio/MS_CHARACTER_RENDER_STUDIO.blend
 videos/
 *.blend1
-# GLB solo donde el juego los carga directamente (la maqueta 3D).
+# GLB solo donde el juego los carga directamente: arte/ (modelos, piezas, meshy, equipo) y presentacion/ (vfx).
+# 13/10: antes la excepción era poc_25d/; al reorganizar por capas, los .glb se quedaron fuera de Git y el pull los perdió.
 *.glb
-!poc_25d/**/*.glb
+!arte/**/*.glb
+!presentacion/**/*.glb
