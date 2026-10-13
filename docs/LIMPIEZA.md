@@ -1,5 +1,12 @@
 # Limpieza de primavera — catálogo y plan (13/10/2026)
 
+> **Estado a 13/10 12:40 (Pablo ejecutó):** Fase 1 hecha y revisada (los 26 muertos y las copias, borrados). **Reorganización hecha:
+> `poc_25d/` ya no existe**; las rutas nuevas son las de §3 (`tools/reorganizar.ps1`, 365 archivos con rutas reescritas, 0 `res://poc_25d/`
+> restantes). Fase 3 hecha (arte 2D, sprites, `tests/`, `actor_animator`/`ms_*`); quedan en la raíz `pipeline/`, `export_godot/`, `Spellbook/`,
+> `assets/` (sin referencias; Pablo las borra a mano) y la **cadena de `nivel_base`** + los hechizos 2D, que caen con la Fase 2 cuando el
+> Juego cierre L2.1/L2.2. Pruebas: 5/7 en FALLOS 0; `prueba_agua_hechizos` y `prueba_canal_tinaja` fallan por las constantes que el Pipeline
+> cambió el 12/10 (entradas 36, 37, 39), no por la reorganización. Lo que sigue de este documento se escribió antes de ejecutar y usa las rutas viejas donde habla del pasado.
+
 Lo escribe el Juego a petición de Pablo. **Los movimientos no se han ejecutado todavía**: el Juego no tiene terminal en el PC de Pablo (solo
 puede escribir archivos), así que los hace `tools/limpieza_mover.ps1` a mano de Pablo (§5). El análisis se hizo el 13/10
 sobre el repo al día (`Documents\magic-symbols`, tras el pull): `main_scene` sigue siendo `Mundo.tscn` y
@@ -49,7 +56,7 @@ Ninguna escena los carga. `Mundo.tscn` es la excepción: es la `main_scene` 2D; 
 `prueba_test2.gd` hace `preload("res://test_2.gd")` solo para leer cinco constantes (`MAPA_TEST2`, `GUARDADOS_T2`,
 `SUELO_T2`, `ROTULOS`, `COLOR_PRUEBA`). Pero `test_2.gd` `extends "res://nivel_base.gd"` (83 KB, el nivel 2D
 entero), y ese archivo arrastra a todo el mundo 2D: jugador, enemigos, bloques, puertas, fogatas, misiones…
-Cortado ese hilo (encargo Juego L2.1: sacar las cinco constantes a `poc_25d/niveles/datos_test2.gd`), los 41 caen
+Cortado ese hilo (encargo Juego L2.1: sacar las cinco constantes a `mundo/datos_nivel/datos_test2.gd`), los 41 caen
 de golpe:
 
 `nivel_base.gd`, `test_2.gd`, `player.gd`, `enemy.gd`, `enemy.tscn`, `archer.gd`, `Archer.tscn`, `arrow.gd`, `Arrow.tscn`,
@@ -100,8 +107,7 @@ Están vivos solo por cinco referencias de nombre en archivos del núcleo:
 |---|---|---|---|
 | `art/` (menos `art/ui/`) | 69 PNG de sprites 2D (héroe, goblins, bloques, puente…) | Arte del 2D | `_a_eliminar/2d_arte/` |
 | `Sprites/` | 11 MB | Hojas de sprites y atlas 2D | `_a_eliminar/2d_arte/` |
-| `pipeline/`, `export_godot/` | Pipeline de sprites isométricos (Blender → atlas → `meta.json`) | **Se quedan** (Pablo, 13/10: necesarios) | — |
-| `Render Studio/` (21,6 MB `.blend`) | Escena de Blender para renderizar personajes | Pipeline decide | `_a_eliminar/2d_pipeline_sprites/` si ya no se usa |
+| `pipeline/`, `export_godot/`, `Render Studio/` (21,6 MB `.blend`) | Pipeline de sprites isométricos (Blender → atlas → `meta.json`) | Era el trabajo del Pipeline **antes** de Meshy | `_a_eliminar/2d_pipeline_sprites/`, o un repo aparte si se quiere conservar |
 | `tools/gen_*.py`, `tools/video_a_fila.py`, `tools/empezar_prueba_iso.bat` | 15 scripts | Generadores de sprites y tiles 2D | `_a_eliminar/2d_pipeline_sprites/`; **`tools/podar_gestos.py` se queda** (Juego) |
 | `tests/` | 18 archivos | Pruebas del `ActorAnimator` 2D | `_a_eliminar/2d_pipeline_sprites/` |
 | `audio/` | 79 archivos | Lo usa `sfx.gd` → se queda | — |
@@ -115,7 +121,7 @@ Dos pasos: **ahora** solo aparece `_a_eliminar/`; la reorganización en capas se
 
 ```
 magic-symbols/
-├── project.godot                  main_scene → poc_25d/PruebaBosque.tscn
+├── project.godot                  main_scene → escenas/PruebaBosque.tscn
 ├── nucleo/        datos puros sin nodo: Runes, RuneData, Sigils, SpellRecipe, Estado, Objetos, Repertoire, PlayLog, Sfx, gestos
 ├── mundo/         Terreno3D (casillas, alturas, bloqueos), AguaSim3D, estados del suelo, marcador_3d, pieza_3d, hornear_nivel, niveles/ y mapas/
 ├── magia/         Lanzador3D (grimorio + receta → Hechizo), GeometriaHechizo, formas_3d, efectos sobre el mundo
@@ -144,7 +150,7 @@ perder nada; (3) `git mv` conserva el historial. Cuando Pablo dé el visto bueno
 ## 4. Riesgos conocidos al mover
 
 - **`main_scene`**: hoy es `res://Mundo.tscn`. Al moverla, Godot abre el proyecto con aviso y F5 no arranca nada.
-  Cambiarla a `res://poc_25d/PruebaBosque.tscn` (archivo de Pablo).
+  Cambiarla a `res://escenas/PruebaBosque.tscn` (archivo de Pablo).
 - **`class_name` fuera de `.gdignore`**: si alguna de las carpetas se moviera sin el `.gdignore`, Godot seguiría
   registrando `Player`, `Enemy`, etc. y los `extends "res://nivel_base.gd"` fallarían con error de ruta. El script
   crea el `.gdignore` antes de mover.

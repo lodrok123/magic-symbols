@@ -30,7 +30,7 @@ class RenderFalso extends Object:
 	var hielo_al_llamar: float = 0.0
 	func hielo_desde(punto: Vector3) -> void:
 		llamadas.append(punto)
-		hielo_al_llamar = Lanzador3D.agua_sim.hielo_en(punto) if Lanzador3D.agua_sim != null else 0.0
+		hielo_al_llamar = Terreno3D.agua_sim.hielo_en(punto) if Terreno3D.agua_sim != null else 0.0
 
 class GoblinFalso extends Node3D:
 	var congelado: float = 0.0
@@ -117,9 +117,9 @@ func _costras() -> void:
 	var m := _mundo(["######", "#....#", "~~~~~~", "~~~~~~", "#....#", "######"])
 	var rf := RenderFalso.new()
 	m._agua_render = rf
-	var sim: AguaSim3D = Lanzador3D.montar_agua_sim()
+	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
 	var c := Vector2i(2, 2)
-	var p: Vector3 = Lanzador3D.centro_de(c, Lanzador3D.alto_agua)
+	var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.alto_agua)
 	_correr(sim, 1.0)
 	var tronco := Flotador3D.new()
 	tronco.agua = sim
@@ -132,7 +132,7 @@ func _costras() -> void:
 	var orilla := GoblinFalso.new()
 	orilla.add_to_group("combate3d")
 	root.add_child(orilla)
-	orilla.global_position = Lanzador3D.centro_de(Vector2i(2, 1), 1.0)
+	orilla.global_position = Terreno3D.centro_de(Vector2i(2, 1), 1.0)
 	await physics_frame
 	Lanzador3D.hechizo_sobre_agua("hielo", p)
 	_ok("6 el render recibió hielo_desde una vez, en el punto", rf.llamadas.size() == 1 and rf.llamadas[0].is_equal_approx(p))
@@ -151,7 +151,7 @@ func _costras() -> void:
 	# Fracción del hielo.
 	var f0: float = sim.fraccion_hielo_en(p)
 	_ok("9 fraccion_hielo_en ≈ 1 al empezar", f0 > 0.95, "%.3f" % f0)
-	_ok("9 −1 donde no hay hielo", sim.fraccion_hielo_en(Lanzador3D.centro_de(Vector2i(2, 1), 1.0)) == -1.0)
+	_ok("9 −1 donde no hay hielo", sim.fraccion_hielo_en(Terreno3D.centro_de(Vector2i(2, 1), 1.0)) == -1.0)
 	# Al 50 %: sin aviso. Al 90 % del tiempo: aviso (queda < 15 %).
 	_correr(sim, AguaSim3D.DURA_HIELO * 0.5)
 	_ok("10 a mitad de tiempo, sin aviso", costra_g._aviso_objetivo == 0.0, "fracción %.2f" % sim.fraccion_hielo_en(p))

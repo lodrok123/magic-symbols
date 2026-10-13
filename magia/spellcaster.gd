@@ -775,7 +775,8 @@ func cast_page(indice: int) -> void:
 		for sigil_name in component["sigils"]:
 			recipe.apply(sigil_name)
 		recipe.calidad = calidad
-		recipe.build(self, element_data)
+		# El lanzamiento 2D (recipe.build, que creaba los nodos del 2D) se retiró en L2.2: Lanzador3D sobreescribe cast_page y lee la receta en
+		# casillas. Este cuerpo base solo conserva la cuenta de recarga hasta que M4 lo sustituya por el Grimorio.
 
 		lanzados += 1
 		recarga = maxf(recarga, recipe.cooldown)
@@ -828,9 +829,9 @@ func _set_tipo_cast(glifos_log: Array) -> void:
 
 
 func _play_cast_animation() -> void:
-	var animador := ActorAnimator.find_in(get_parent())
-	if animador:
-		animador.play("cast")
+	# El 2D animaba al héroe con ActorAnimator (retirado en la Fase 3 de la limpieza, 13/10). En 3D el clip de lanzar lo
+	# pide Pj3D, no el lanzador: aquí no queda nada que hacer. Se deja el gancho por si un nivel lo quiere.
+	pass
 
 
 ## --- Reconocimiento (interno) ---

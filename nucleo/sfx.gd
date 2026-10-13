@@ -3,7 +3,7 @@ extends RefCounted
 
 ## EL SONIDO DEL MUNDO.
 ##
-## Mismo patrón que BlockFx y Glow: funciones estáticas, sin nodo que
+## Funciones estáticas (como `Sonidos`): sin nodo que
 ## colocar en ninguna escena y sin autoload que configurar. Quien quiera
 ## sonar llama `Sfx.play(self, "chispa")` y ya.
 ##

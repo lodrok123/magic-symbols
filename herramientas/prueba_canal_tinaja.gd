@@ -51,13 +51,13 @@ func _tinaja() -> void:
 		for x in range(6):
 			if m._letra(Vector2i(x, y)) in ["#", "u", "~", "-", "L"]:
 				m._bloqueadas[Vector2i(x, y)] = true
-	var sim: AguaSim3D = Lanzador3D.montar_agua_sim()
+	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
 	var canal: Array = [Vector2i(2, 1), Vector2i(3, 1), Vector2i(3, 2)]
-	var fondo: float = Lanzador3D.alto_suelo + Lanzador3D.FONDO_CANAL
+	var fondo: float = Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL
 	# 1: el fondo y la forma estrecha.
 	var i_c: int = sim._trozos(Vector2i(2, 1))[4]
 	_ok("1 el fondo del canal está en alto_suelo + FONDO_CANAL (no en el lecho)", absf(sim.suelo[i_c] - fondo) < 1.0e-4, "%.3f (esperado %.3f)" % [sim.suelo[i_c], fondo])
-	_ok("1 el río sigue en su lecho", absf(sim.suelo[sim._trozos(Vector2i(3, 3))[4]] - (Lanzador3D.alto_agua - Lanzador3D.LECHO_AGUA)) < 1.0e-4)
+	_ok("1 el río sigue en su lecho", absf(sim.suelo[sim._trozos(Vector2i(3, 3))[4]] - (Terreno3D.alto_agua - Terreno3D.LECHO_AGUA)) < 1.0e-4)
 	_ok("1 sellado hasta que se abre", sim.profundidad_casilla(Vector2i(2, 1)) == 0.0 and sim.cerrado[i_c] == 1)
 	var s := Surtidor3D.new()
 	s.preparar(m, Vector2i(1, 1))
@@ -90,22 +90,30 @@ func _tinaja() -> void:
 	for c in canal:
 		p.append(sim.profundidad_casilla(c as Vector2i))
 	print("      profundidades en régimen (%.0f s): %.3f / %.3f / %.3f   (gemelo: 0,33 / 0,25 / 0,13)" % [t, p[0], p[1], p[2]])
-	_ok("4 las profundidades coinciden con el gemelo (±0,02)", absf(p[0] - 0.33) < 0.02 and absf(p[1] - 0.25) < 0.02 and absf(p[2] - 0.13) < 0.02)
+	# Lo esperado sale de CAUDAL_TINAJA (L2.0, 13/10): el gemelo midió 0,33 / 0,25 / 0,13 con 1,0 u³/s, y en régimen la lámina crece
+	# casi lineal con el caudal (1,05 → 0,344 / 0,256; 1,1 → 0,359 / 0,267). Se escala por Q/1,0 con ±12 % (mínimo 0,03).
+	var q: float = Surtidor3D.CAUDAL_TINAJA
+	var esperado: Array = [0.329 * q, 0.246 * q, 0.127 * q]
+	var cerca: bool = true
+	for k in range(3):
+		cerca = cerca and absf(float(p[k]) - float(esperado[k])) < maxf(0.03, 0.12 * float(esperado[k]))
+	_ok("4 las profundidades siguen al caudal (Q %.2f: esperado %.2f / %.2f / %.2f)" % [q, esperado[0], esperado[1], esperado[2]], cerca)
 	var f: float = 0.0
 	for i in sim._trozos(Vector2i(2, 1)):
 		f += sim.fuente[i]
-	_ok("4 la tinaja es un manantial permanente de CAUDAL_TINAJA", absf(f - Surtidor3D.CAUDAL_TINAJA) < 1.0e-4 or s._sim == null and absf(sim.fuente[t_rec[4]] * 3.0 - 1.0) < 0.01, "fuente %.3f" % f)
+	_ok("4 la tinaja es un manantial permanente de CAUDAL_TINAJA (%.2f)" % Surtidor3D.CAUDAL_TINAJA, absf(f - Surtidor3D.CAUDAL_TINAJA) < 1.0e-4, "fuente %.3f" % f)
 	var arriba: bool = true
 	for c in canal:
 		var pc: float = sim.profundidad_casilla(c as Vector2i)
 		arriba = arriba and pc > 0.05
 	_ok("4 hay agua en las tres casillas", arriba)
 	var y_sup: float = fondo + float(p[0])
-	_ok("4 la superficie está por encima del fondo de la piedra y de la hierba (1,035)", y_sup > Lanzador3D.alto_suelo + 0.11, "superficie %.3f" % y_sup)
+	_ok("4 la superficie está por encima del fondo de la piedra y de la hierba (1,035)", y_sup > Terreno3D.alto_suelo + 0.11, "superficie %.3f" % y_sup)
 	_ok("4 no se desborda (< fondo + 0,6)", float(p[0]) < 0.6 and float(p[1]) < 0.6 and float(p[2]) < 0.6)
-	# El codo queda en 0,246-0,248, a 0,003 del UMBRAL_AGUA (0,25): con CAUDAL_TINAJA 1,0 es un empate técnico. Se comprueba el margen y
-	# se apunta en el diario (con 1,05 sale 0,256 y es agua sin dudas).
-	_ok("4 el codo está en el umbral del agua (±0,01 de UMBRAL_AGUA)", absf(float(p[1]) - AguaSim3D.UMBRAL_AGUA) < 0.01, "codo %.3f, umbral %.2f, es_agua %s" % [p[1], AguaSim3D.UMBRAL_AGUA, str(sim.es_agua_casilla(Vector2i(3, 1)))])
+	# El diseño del canal: el codo es agua (conduce el rayo) y ninguna casilla desborda. Con CAUDAL_TINAJA 1,0 el codo quedaba en 0,246, a
+	# 0,004 del umbral; con 1,5 queda holgado. Si un cambio de caudal lo vuelve a acercar al umbral, esta prueba debe fallar, no aflojarse.
+	_ok("4 el codo es agua (conduce) con margen ≥ 0,05 sobre UMBRAL_AGUA", sim.es_agua_casilla(Vector2i(3, 1)) and Terreno3D.es_agua(Vector2i(3, 1)) and float(p[1]) >= AguaSim3D.UMBRAL_AGUA + 0.05, "codo %.3f, umbral %.2f" % [p[1], AguaSim3D.UMBRAL_AGUA])
+	_ok("4 la tercera casilla (la que desagua al río) no desborda", float(p[2]) < Surtidor3D.SOBRE_FONDO_FORZADO, "%.3f" % p[2])
 	# Sin agua fuera del canal: ni en la tinaja ni en las paredes.
 	var fuera: float = 0.0
 	for y in range(6):

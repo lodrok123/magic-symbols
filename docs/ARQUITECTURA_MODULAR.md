@@ -67,6 +67,8 @@ y `Canal3D` (animación de tiras). `Surtidor3D.convertir_a_agua` existe solo par
 
 ## 2. Las capas (correspondencia con el diagrama de Pablo)
 
+> **Hecho el 13/10 (`tools/reorganizar.ps1`):** las carpetas de esta tabla ya existen y `poc_25d/` desapareció. Los archivos conservan su nombre (`prueba_test2.gd` sigue llamándose así dentro de `presentacion/`; `lanzador_3d.gd` dentro de `magia/`): mover fue una operación, renombrar y partir son M1–M5.
+
 | Capa del diagrama | Carpeta | Qué contiene | Puede depender de |
 |---|---|---|---|
 | Datos y contenido | `nucleo/` | `Runes`, `RuneData`, `Sigils`, `SpellRecipe`, `GeometriaHechizo`, `Estado`, `Objetos`, `Repertoire`, `PlayLog`, gestos | nada (solo Godot) |

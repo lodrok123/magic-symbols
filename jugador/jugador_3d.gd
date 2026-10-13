@@ -13,7 +13,7 @@ extends Node3D
 ##
 ## ALTURA (4.4). Un nivel = ALTO_NIVEL (un bloque). Se sube a una casilla un nivel más alta SALTANDO; no se puede
 ## estar a más de MAX_NIVELES_SUBIBLES niveles. Caer no hace daño. Lo que dice cuántos niveles tiene cada casilla es
-## Lanzador3D.alturas (tierra apilada, columnas de barrera + levitación, cornisas del nivel).
+## Terreno3D.alturas (tierra apilada, columnas de barrera + levitación, cornisas del nivel).
 ##
 ## AGUA (4.4b). Si el suelo bajo los pies pasa a ser agua (se derrite el hielo, o se pisa agua) el jugador cae y pasa a
 ## `nadando`: velocidad x0,4, sin lanzar ni saltar, clip swim_forward (si el modelo no lo tiene, walk), sin daño. Sale
@@ -131,7 +131,7 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 		if n is CollisionObject3D:
 			(n as CollisionObject3D).collision_layer |= Lanzador3D.CAPA_REACTIVO
 	Lanzador3D.colocar_barreras(p_mundo)
-	Lanzador3D.calcular_huellas(p_mundo)
+	Terreno3D.calcular_huellas(p_mundo)
 	PlayLog.nueva_partida()
 	PlayLog3D.montar(p_mundo, l)
 	for g in (p_mundo.get("_goblins") as Array):
@@ -198,17 +198,17 @@ func lanzar_clip(elemento: String, forma: String) -> void:
 
 
 func y_pies_actual() -> float:
-	var c: Vector2i = Lanzador3D.celda_de(position)
-	return Lanzador3D.alto_agua if nadando else Lanzador3D.y_pies(c)
+	var c: Vector2i = Terreno3D.celda_de(position)
+	return Terreno3D.alto_agua if nadando else Terreno3D.y_pies(c)
 
 
 ## ¿Está el jugador en esa casilla? Impide construir tierra debajo de él.
 func ocupa(c: Vector2i) -> bool:
-	return Lanzador3D.celda_de(position) == c
+	return Terreno3D.celda_de(position) == c
 
 
 func nivel_actual() -> int:
-	return Lanzador3D.altura_en(Lanzador3D.celda_de(position))
+	return Terreno3D.altura_en(Terreno3D.celda_de(position))
 
 
 ## =====================================================================================================
@@ -265,7 +265,7 @@ func _morir() -> void:
 	if lanz != null and lanz.modo_lanzar:
 		lanz.call("_cancelar_modo")
 	Jugador3D.una_vez(pj, "death")
-	PlayLog.event("muerte", {"celda": [Lanzador3D.celda_de(position).x, Lanzador3D.celda_de(position).y]})
+	PlayLog.event("muerte", {"celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
 	murio.emit()
 	if lanz != null:
 		lanz.avisar("Has caído", Color(1, 0.5, 0.45))
@@ -370,7 +370,7 @@ func _process(delta: float) -> void:
 	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando:
 		mov = Vector3.ZERO           # el golpe te frena; beber y el clip de lanzar (6.2b) te dejan quieto hasta que acaban
 	var objetivo: Vector3 = mov * vel
-	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Lanzador3D.sobre_hielo(position)
+	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
 	if en_hielo:
 		_vel_hielo = Jugador3D.velocidad_hielo(_vel_hielo, objetivo, delta)
 	else:
@@ -391,7 +391,7 @@ func _process(delta: float) -> void:
 		_mirada = mov
 		pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
 		if mundo.has_method("marcar_estado") and not nadando:
-			mundo.call("marcar_estado", Lanzador3D.celda_de(position), 3, 0.35)
+			mundo.call("marcar_estado", Terreno3D.celda_de(position), 3, 0.35)
 
 	_vertical(delta, salto)
 	_animar(mov, correr)
@@ -424,9 +424,9 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	if f8 and not _f8_previa and lanz != null:
 		var m: Vector3 = _mirada.normalized()
 		var destino: Vector3 = position + m * 6.0
-		var cc: Vector2i = Lanzador3D.celda_de(destino)
-		if Lanzador3D.en_mapa(cc) and not Lanzador3D.es_agua(cc) and not Lanzador3D.bloqueada(cc):
-			destino.y = Lanzador3D.y_pies(cc)
+		var cc: Vector2i = Terreno3D.celda_de(destino)
+		if Terreno3D.en_mapa(cc) and not Terreno3D.es_agua(cc) and not Terreno3D.bloqueada(cc):
+			destino.y = Terreno3D.y_pies(cc)
 			Combate3D.invocar_elemental(mundo, self, lanz, destino)
 		else:
 			lanz.avisar("No cabe un elemental ahí delante", Color(1, 0.7, 0.5))
@@ -446,7 +446,7 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	_roll_dir = Vector3(_roll_dir.x, 0.0, _roll_dir.z).normalized()
 	var dur: float = clampf(pj.duracion("roll"), 0.35, 1.0) if pj.duracion("roll") > 0.0 else 0.6
 	_t_roll = dur
-	_roll_vel = DIST_VOLTERETA * Lanzador3D.casilla / dur
+	_roll_vel = DIST_VOLTERETA * Terreno3D.casilla / dur
 	_roll_cd = TIEMPO_VOLTERETA
 	_t_inv = maxf(_t_inv, dur)                     # sin daño por contacto mientras dura
 	_mirada = _roll_dir
@@ -501,41 +501,41 @@ func _mover_con_choque(paso: Vector3) -> void:
 
 ## ¿Cabe el jugador (de pie, a su altura actual) en esa posición?
 func _puede_estar(p: Vector3) -> bool:
-	var c: Vector2i = Lanzador3D.celda_de(p)
-	var actual: Vector2i = Lanzador3D.celda_de(position)
-	var parcial: bool = Lanzador3D.es_parcial(c)
+	var c: Vector2i = Terreno3D.celda_de(p)
+	var actual: Vector2i = Terreno3D.celda_de(position)
+	var parcial: bool = Terreno3D.es_parcial(c)
 	if c == actual:
-		if parcial and Lanzador3D.choca_huella(c, p) and not Lanzador3D.choca_huella(c, position):
+		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, position):
 			return false                   # dentro de una casilla bloqueada solo se roza lo que no es el objeto
-		return Lanzador3D.en_mapa(c)
-	if parcial and Lanzador3D.choca_huella(c, p):
+		return Terreno3D.en_mapa(c)
+	if parcial and Terreno3D.choca_huella(c, p):
 		return false
-	var nivel: int = Lanzador3D.altura_en(actual)
-	if not Lanzador3D.pisable(c, nivel, true, MAX_NIVELES_SUBIBLES, true, parcial):
+	var nivel: int = Terreno3D.altura_en(actual)
+	if not Terreno3D.pisable(c, nivel, true, MAX_NIVELES_SUBIBLES, true, parcial):
 		return false
 	if nadando:
-		return Lanzador3D.altura_en(c) == 0          # del agua solo se sale a suelo llano
-	var y_dest: float = Lanzador3D.y_pies(c)
+		return Terreno3D.altura_en(c) == 0          # del agua solo se sale a suelo llano
+	var y_dest: float = Terreno3D.y_pies(c)
 	var tolerancia: float = TOLERANCIA_SUELO if en_suelo else TOLERANCIA_AIRE
 	return y_dest <= position.y + tolerancia
 
 
 func _vertical(delta: float, salto: bool) -> void:
-	var c: Vector2i = Lanzador3D.celda_de(position)
-	var agua: bool = Lanzador3D.es_agua(c)
+	var c: Vector2i = Terreno3D.celda_de(position)
+	var agua: bool = Terreno3D.es_agua(c)
 
 	if nadando:
 		if not agua:
 			_cambiar_nado(false)                       # tocó suelo, puente o hielo: sale
-			position.y = Lanzador3D.y_pies(c)
+			position.y = Terreno3D.y_pies(c)
 		else:
-			position.y = move_toward(position.y, Lanzador3D.alto_agua - HUNDIDO, 3.0 * delta)
+			position.y = move_toward(position.y, Terreno3D.alto_agua - HUNDIDO, 3.0 * delta)
 			vy = 0.0
 			en_suelo = true
 			_salto_antes = salto
 			return
 
-	var suelo: float = Lanzador3D.y_pies(c)
+	var suelo: float = Terreno3D.y_pies(c)
 	if en_suelo:
 		if position.y > suelo + TOLERANCIA_SUELO:
 			en_suelo = false                           # se acabó el suelo (bloque caducado): cae
@@ -557,7 +557,7 @@ func _vertical(delta: float, salto: bool) -> void:
 				_cambiar_nado(true)
 	_salto_antes = salto
 	# Por si algo ha cambiado el suelo justo debajo (el hielo se derrite bajo los pies ya apoyados)
-	if en_suelo and agua and not nadando and position.y <= Lanzador3D.alto_agua + 0.3:
+	if en_suelo and agua and not nadando and position.y <= Terreno3D.alto_agua + 0.3:
 		_cambiar_nado(true)
 
 
@@ -567,7 +567,7 @@ func _cambiar_nado(n: bool) -> void:
 	nadando = n
 	if n:
 		caidas_al_agua += 1
-		PlayLog.event("nada", {"celda": [Lanzador3D.celda_de(position).x, Lanzador3D.celda_de(position).y]})
+		PlayLog.event("nada", {"celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
 		if lanz != null:
 			lanz.avisar("Nadas: lento y sin lanzar", Color(0.6, 0.85, 1.0))
 	else:

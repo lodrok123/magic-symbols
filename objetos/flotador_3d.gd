@@ -31,7 +31,7 @@ const PROF_MIN_SONDA: float = 0.05 ## una lámina más fina que esto es suelo mo
 @export var con_malla: bool = true
 @export var color: Color = Color(0.55, 0.38, 0.22)
 
-## La simulación del agua. Si no se pone, se usa la del Lanzador (Lanzador3D.agua_sim).
+## La simulación del agua. Si no se pone, se usa la del Lanzador (Terreno3D.agua_sim).
 var agua: AguaSim3D = null
 var sondas: PackedVector3Array = PackedVector3Array()    ## en el espacio local
 var hundidas: int = 0                                     ## cuántas sondas están en el agua ahora mismo
@@ -63,7 +63,7 @@ func _ready() -> void:
 
 
 func _agua_actual() -> AguaSim3D:
-	return agua if agua != null else Lanzador3D.agua_sim
+	return agua if agua != null else Terreno3D.agua_sim
 
 
 ## El agua se ha helado con el objeto dentro (11.13): queda PRESO, quieto, hasta que el hielo se suelta (tiempo o fuego).

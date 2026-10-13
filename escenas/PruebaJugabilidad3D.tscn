@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dimsk6qxrsj6k"]
 
-[ext_resource type="Script" path="res://poc_25d/lab_vfx_3d.gd" id="1_gxhnt"]
+[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_poc"]
 
-[node name="LabVfx3D" type="Node3D" unique_id=544535606]
-script = ExtResource("1_gxhnt")
+[node name="PruebaJugabilidad3D" type="Node3D"]
+script = ExtResource("1_poc")
+nivel = "jugabilidad"

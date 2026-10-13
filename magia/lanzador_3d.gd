@@ -36,12 +36,8 @@ extends "res://magia/spellcaster.gd"
 const CAPA_HECHIZO: int = 1 << 7     ## capa 8
 const CAPA_REACTIVO: int = 1 << 8    ## capa 9: lo que implementa on_spell_hit
 const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
-const CAPA_SOLIDO: int = 1 << 10     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10, camino A)
+const CAPA_SOLIDO: int = Terreno3D.CAPA_SOLIDO     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10); el valor vive en Terreno3D (M1)
 
-## Alto de un nivel, en unidades. Es el ALTO de prueba_test2.gd (S * 0,45); configurar() lo lee de allí.
-## Es `static var` y no `const` para seguir al mundo: configurar() lo iguala al ALTO de prueba_test2.gd (hoy S*0,45). Para probar
-## niveles de media casilla basta con que el Pipeline ponga ALTO = S * 0.5 allí; aquí no hay que tocar nada.
-static var ALTO_NIVEL: float = 2.3 * 0.45
 
 ## --- Modo lanzar (§0b) ---
 const TIEMPO_LANZAR: float = 0.3           ## Engine.time_scale mientras se apunta (5.2; Pablo lo confirmó el 6/10)
@@ -108,156 +104,7 @@ static var ultimo_nivel: int = 0
 ## Radio (m) de la bola que se dibuja ahora; Tamaño lo agranda (8.5). Vuelve a RADIO_BOLA con cada lanzamiento.
 var _radio_bola_actual: float = RADIO_BOLA
 
-## --- El mundo (lo fija configurar()) ---
-static var mundo_s: Node3D = null
-static var casilla: float = 2.3             ## S de prueba_test2.gd
-static var alto_suelo: float = 2.3 * 0.45   ## ALTO: y de la cara de arriba de una casilla de tierra
-static var alto_agua: float = 2.3 * 0.45 * 0.6
 
-## Niveles de cada casilla por encima del suelo (tierra apilada, columnas, cornisas). Vector2i -> int.
-static var alturas: Dictionary = {}
-## Alturas FIJAS que pone el nivel (una cornisa de un nivel): Vector2i -> int. No caducan.
-static var permanentes: Dictionary = {}
-
-## =====================================================================================================
-##  FUENTE DE SOLIDEZ (6.10, camino A: hornear el mapa a un .tscn)
-##  Hoy la pregunta «¿está bloqueada esta casilla?» se contestaba leyendo `_bloqueadas` de PruebaTest2 en una docena de
-##  sitios. Ahora TODOS preguntan a `bloqueada(c)` y esa función delega en una FUENTE intercambiable:
-##    · FuenteCasillas (por defecto): lo de siempre, `_bloqueadas` + huellas calculadas. Comportamiento IDÉNTICO al anterior.
-##    · FuenteNodos: la solidez sale de la COLISIÓN REAL de las piezas del nivel (StaticBody3D en la capa CAPA_SOLIDO,
-##      o el grupo "bloquea"). Se activa con `Lanzador3D.activar_fuente_nodos(mundo)` cuando exista el Nivel_X.tscn.
-##  Por qué una interfaz y no tocar cada sitio: el día que el .tscn mande, cambia UNA línea (la fuente) y no una docena de
-##  consultas repartidas por el lanzador, el jugador y los goblins.
-## =====================================================================================================
-class FuenteSolidez extends RefCounted:
-	## ¿Hay algo sólido en la casilla `c`? (el agua y las alturas de tierra NO cuentan aquí: eso sigue en alturas/letras)
-	func bloquea(_c: Vector2i) -> bool:
-		return false
-	## Marca / quita un bloqueo en tiempo de juego (tierra que se solidifica, hielo que se derrite, barrera de fuego).
-	func bloquear(_c: Vector2i) -> void:
-		pass
-	func liberar(_c: Vector2i) -> void:
-		pass
-	## 12/10 (Pablo): un MURO bloquea la casilla ENTERA, siempre (no se roza ni se cuela por un hueco de su forma).
-	func bloquear_completa(c: Vector2i) -> void:
-		bloquear(c)
-	## ¿Se puede ROZAR la casilla (su forma real es menor que la casilla)? Solo el jugador afina; hechizos y goblins no.
-	func es_parcial(_c: Vector2i) -> bool:
-		return false
-	## Con casilla parcial: ¿toca el punto `p` (suelo) lo que de verdad hay ahí?
-	func choca_punto(_c: Vector2i, _p: Vector3) -> bool:
-		return true
-
-
-## Lo de siempre: el diccionario `_bloqueadas` del mundo y las huellas aproximadas de `calcular_huellas`.
-class FuenteCasillas extends FuenteSolidez:
-	func _dic() -> Dictionary:
-		return Lanzador3D.mundo_s.get("_bloqueadas") as Dictionary
-	func bloquea(c: Vector2i) -> bool:
-		return Lanzador3D.mundo_s != null and _dic().has(c)
-	func bloquear(c: Vector2i) -> void:
-		_dic()[c] = true
-	func liberar(c: Vector2i) -> void:
-		_dic().erase(c)
-	func es_parcial(c: Vector2i) -> bool:
-		return Lanzador3D.huellas.has(c) and bloquea(c)
-	func choca_punto(c: Vector2i, p: Vector3) -> bool:
-		if not Lanzador3D.huellas.has(c):
-			return true
-		for h in (Lanzador3D.huellas[c] as Array):
-			var hv: Vector3 = h
-			if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + Lanzador3D.MARGEN_HUELLA:
-				return true
-		return false
-
-
-## La solidez sale de la FÍSICA: lo que se ve es lo que choca. Una casilla está bloqueada si hay colisión sólida (capa
-## CAPA_SOLIDO) dentro de ella; el punto del jugador choca si una esfera de su cuerpo toca esa colisión.
-## `reconstruir()` rellena la caché de casillas: llamarlo UNA vez tras cargar el nivel y esperar un fotograma de física
-## (el motor no ve los cuerpos nuevos hasta entonces). Lo que cambia en juego (tierra, hielo) va en `extras`.
-class FuenteNodos extends FuenteSolidez:
-	const RADIO_CUERPO: float = 0.3
-	var mundo: Node3D = null
-	var celdas: Dictionary = {}                      ## Vector2i -> true (sacado de la colisión)
-	var extras: Dictionary = {}                      ## bloqueos creados jugando
-	var _caja: BoxShape3D = BoxShape3D.new()
-	var _bola: SphereShape3D = SphereShape3D.new()
-
-	func _init(p_mundo: Node3D) -> void:
-		mundo = p_mundo
-		_bola.radius = RADIO_CUERPO
-
-	func reconstruir() -> int:
-		celdas.clear()
-		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
-		var lado: int = int(mundo.get("_lado"))
-		var cas: float = Lanzador3D.casilla
-		_caja.size = Vector3(cas * 0.9, 4.0, cas * 0.9)   # alto: cualquier cosa por encima del suelo de la casilla
-		var q := PhysicsShapeQueryParameters3D.new()
-		q.shape = _caja
-		q.collision_mask = Lanzador3D.CAPA_SOLIDO
-		for y in range(lado):
-			for x in range(lado):
-				q.transform = Transform3D(Basis(), Lanzador3D.centro_de(Vector2i(x, y), Lanzador3D.alto_suelo + 2.0))
-				if not espacio.intersect_shape(q, 1).is_empty():
-					celdas[Vector2i(x, y)] = true
-		return celdas.size()
-
-	func bloquea(c: Vector2i) -> bool:
-		return celdas.has(c) or extras.has(c)
-	func bloquear(c: Vector2i) -> void:
-		extras[c] = true
-	func liberar(c: Vector2i) -> void:
-		extras.erase(c)
-		celdas.erase(c)
-	func bloquear_completa(c: Vector2i) -> void:
-		celdas.erase(c)                              # ya no es «parcial»: sin forma que rozar, la casilla entera es pared
-		extras[c] = true
-	func es_parcial(c: Vector2i) -> bool:
-		return celdas.has(c)                         # la forma real manda: se roza lo que no es la pieza
-	func choca_punto(c: Vector2i, p: Vector3) -> bool:
-		if not celdas.has(c):
-			return true
-		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
-		var q := PhysicsShapeQueryParameters3D.new()
-		q.shape = _bola
-		q.collision_mask = Lanzador3D.CAPA_SOLIDO
-		q.transform = Transform3D(Basis(), Vector3(p.x, Lanzador3D.alto_suelo + 0.6, p.z))
-		return not espacio.intersect_shape(q, 1).is_empty()
-
-
-static var fuente: FuenteSolidez = null
-
-
-static func bloqueada(c: Vector2i) -> bool:
-	return fuente != null and fuente.bloquea(c)
-
-
-static func bloquear_celda(c: Vector2i) -> void:
-	if fuente != null:
-		fuente.bloquear(c)
-
-
-static func bloquear_celda_completa(c: Vector2i) -> void:
-	if fuente != null:
-		fuente.bloquear_completa(c)
-
-
-static func liberar_celda(c: Vector2i) -> void:
-	if fuente != null:
-		fuente.liberar(c)
-
-
-## Cambia a la solidez por colisión real. Devuelve las casillas bloqueadas que ve (0 = aún no hay cuerpos en la física).
-static func activar_fuente_nodos(p_mundo: Node3D) -> int:
-	var f := FuenteNodos.new(p_mundo)
-	var n: int = f.reconstruir()
-	fuente = f
-	return n
-
-
-static func activar_fuente_casillas() -> void:
-	fuente = FuenteCasillas.new()
 ## Casillas cuyo hielo no caduca (el nivel lo marca): Vector2i -> true.
 static var hielo_permanente: Dictionary = {}
 
@@ -312,16 +159,10 @@ signal agua_cambio(c: Vector2i, es_agua: bool)
 ## =====================================================================================================
 
 static func configurar(p_mundo: Node3D) -> void:
-	mundo_s = p_mundo
-	fuente = FuenteCasillas.new()        # por defecto, lo de siempre (6.10)
-	var k: Dictionary = p_mundo.get_script().get_script_constant_map()
-	casilla = float(k.get("S", casilla))
-	alto_suelo = float(k.get("ALTO", alto_suelo))
-	ALTO_NIVEL = alto_suelo
-	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
-	alturas.clear()
-	permanentes.clear()
-	agua_sim = null
+	Terreno3D.configurar(p_mundo)
+	Terreno3D.al_solidificar = soltar_presos
+	mundo_s = p_mundo                    # espejo M1
+	agua_sim = null                      # espejo M1
 
 
 ## --- Hechizos sobre el agua (Fase 11.4, 12/10) ---
@@ -332,40 +173,39 @@ static func configurar(p_mundo: Node3D) -> void:
 ##   hielo → si la maqueta heló la casilla (_helada), el agua se queda quieta y no deja pasar más.
 ## La tierra (presa) no va aquí: construir_tierra → _recalcular → refrescar_casilla.
 static func hechizo_sobre_agua(elemento: String, punto: Vector3) -> void:
-	if agua_sim == null or mundo_s == null:
+	if Terreno3D.agua_sim == null or Terreno3D.mundo_s == null:
 		return
 	var c: Vector2i = celda_de(punto)
 	if not en_mapa(c) or altura_en(c) >= 1:
 		return
-	var radio_h: float = casilla * RADIO_HIELO
+	var radio_h: float = Terreno3D.casilla * RADIO_HIELO
 	match elemento:
 		"agua":
-			agua_sim.anadir(punto, VOL_AGUA_IMPACTO, casilla * 0.2)     # radio 0,35 → 0,2 casillas (el mínimo de la simulación es medio trocito)
+			Terreno3D.agua_sim.anadir(punto, VOL_AGUA_IMPACTO, Terreno3D.casilla * 0.2)     # radio 0,35 → 0,2 casillas (el mínimo de la simulación es medio trocito)
 		"fuego":
 			# Primero funde el hielo del círculo; si no había, evapora (no las dos cosas con un mismo golpe).
-			var fundidos: int = agua_sim.derretir(punto, radio_h)
-			var fx_m: Variant = mundo_s.get("_fx")
+			var fundidos: int = Terreno3D.agua_sim.derretir(punto, radio_h)
+			var fx_m: Variant = Terreno3D.mundo_s.get("_fx")
 			if fundidos > 0:
 				if fx_m != null:
 					(fx_m as Vfx3D).vapor(punto)
 			else:
-				var quitado: float = agua_sim.quitar(punto, VOL_EVAPORA, casilla * 0.5)
+				var quitado: float = Terreno3D.agua_sim.quitar(punto, VOL_EVAPORA, Terreno3D.casilla * 0.5)
 				if quitado > 0.1 and fx_m != null and letra_de(c) != "~":
 					(fx_m as Vfx3D).vapor(punto)
 		"hielo":
 			# Hiela los trocitos CON AGUA del círculo, 20 s, y atrapa lo que está dentro (troncos, goblins).
 			# El dibujo del hielo crece desde el punto del impacto (Pipeline, 11.16): se avisa ANTES de helar.
-			var render_m: Variant = mundo_s.get("_agua_render")
+			var render_m: Variant = Terreno3D.mundo_s.get("_agua_render")
 			if render_m != null and (render_m as Object).has_method("hielo_desde"):
 				render_m.call("hielo_desde", punto)
-			if agua_sim.helar(punto, radio_h, AguaSim3D.DURA_HIELO) > 0:
+			if Terreno3D.agua_sim.helar(punto, radio_h, AguaSim3D.DURA_HIELO) > 0:
 				atrapar(punto, radio_h, AguaSim3D.DURA_HIELO)
 	procesar_cambios_hielo()
 	if elemento == "hielo":
 		# La maqueta heló la casilla ENTERA al impactar; la verdad es la simulación (≥ 5 de 9 trocitos): si no llega, se deshace.
-		var h: Dictionary = mundo_s.get("_helada")
-		if h.has(c) and not agua_sim.casilla_helada(c) and agua_sim.profundidad_casilla(c) > 0.05:
-			h.erase(c)
+		if Terreno3D.helada(c) and not Terreno3D.agua_sim.casilla_helada(c) and Terreno3D.agua_sim.profundidad_casilla(c) > 0.05:
+			Terreno3D.poner_helada(c, false)
 			if letra_de(c) == "~":
 				bloquear_celda(c)
 
@@ -374,37 +214,23 @@ static func hechizo_sobre_agua(elemento: String, punto: Vector3) -> void:
 ## dibujo antiguo…) y lo que estaba preso. Se llama tras cada hechizo y cada fotograma (el hielo también se suelta solo al acabar
 ## su tiempo).
 static func procesar_cambios_hielo() -> void:
-	if agua_sim == null or mundo_s == null:
+	if Terreno3D.agua_sim == null or Terreno3D.mundo_s == null:
 		return
-	for cb in agua_sim.cambios_hielo():
+	for cb in Terreno3D.agua_sim.cambios_hielo():
 		_hielo_cambio(cb["c"] as Vector2i, bool(cb["helada"]))
 
 
 static func _hielo_cambio(c: Vector2i, helada: bool) -> void:
-	var h: Dictionary = mundo_s.get("_helada")
+	Terreno3D.poner_helada(c, helada)
 	if helada:
-		h[c] = true
-		if mundo_s.has_method("_liberar"):
-			mundo_s.call("_liberar", c)              # como hace la maqueta al helar: a pie se puede pisar
+		if Terreno3D.mundo_s.has_method("_liberar"):
+			Terreno3D.mundo_s.call("_liberar", c)              # como hace la maqueta al helar: a pie se puede pisar
 	else:
-		h.erase(c)
 		if letra_de(c) == "~":
 			bloquear_celda(c)                        # vuelve a ser agua: a pie no se pisa (se nada desde la orilla)
-		if mundo_s.has_method("_poner_canal"):
-			mundo_s.call("_poner_canal", c, 2, 0.0)  # el estado «helado» del suelo
+		if Terreno3D.mundo_s.has_method("_poner_canal"):
+			Terreno3D.mundo_s.call("_poner_canal", c, 2, 0.0)  # el estado «helado» del suelo
 		soltar_presos(c)
-
-
-## ¿Está el punto sobre agua helada? Quien camina por ahí resbala (Jugador3D).
-static func sobre_hielo(p: Vector3) -> bool:
-	var c: Vector2i = celda_de(p)
-	return en_mapa(c) and (mundo_s.get("_helada") as Dictionary).has(c)
-
-
-## ¿El hielo de esta casilla es tan gordo que para proyectiles y miradas? (No para andar.)
-static func cubre_hielo(c: Vector2i) -> bool:
-	return agua_sim != null and en_mapa(c) and (mundo_s.get("_helada") as Dictionary).has(c) \
-			and agua_sim.espesor_hielo(c) >= HIELO_COBERTURA
 
 
 ## Atrapa lo que esté dentro del hielo recién hecho: los troncos (Flotador3D se congela hasta que el hielo se suelta) y los goblins
@@ -415,7 +241,7 @@ static var _presos: Array = []         ## goblins presos en hielo ahora mismo (p
 
 
 static func atrapar(punto: Vector3, radio: float, segundos: float) -> void:
-	if agua_sim == null:
+	if Terreno3D.agua_sim == null:
 		return
 	var arbol: SceneTree = Engine.get_main_loop() as SceneTree
 	if arbol == null:
@@ -440,7 +266,7 @@ static func atrapar(punto: Vector3, radio: float, segundos: float) -> void:
 
 static func _dentro_del_hielo(p: Vector3, centro: Vector3, radio: float) -> bool:
 	var d := Vector2(p.x - centro.x, p.z - centro.z)
-	return d.length() <= radio + 0.5 * casilla and agua_sim.hielo_en(p) > -INF
+	return d.length() <= radio + 0.5 * Terreno3D.casilla and Terreno3D.agua_sim.hielo_en(p) > -INF
 
 
 ## El hielo de la casilla se ha soltado: los goblins que estaban presos en ella quedan libres.
@@ -476,8 +302,8 @@ static func vigilar_presos() -> void:
 			_presos.erase(g)
 			continue
 		var f: float = -1.0
-		if agua_sim != null:
-			f = agua_sim.fraccion_hielo_en((g as Node3D).global_position)
+		if Terreno3D.agua_sim != null:
+			f = Terreno3D.agua_sim.fraccion_hielo_en((g as Node3D).global_position)
 		if f < 0.0 or float(g.get("congelado")) <= 0.0:
 			_soltar_preso(g)
 			continue
@@ -489,49 +315,107 @@ static func vigilar_presos() -> void:
 ## Un chorro de agua es un MANANTIAL mientras dura: suma `caudal` u³/s en la casilla y lo retira al acabar `dura` s. Si ahí ya
 ## corría un río o había un surtidor, el chorro SUMA a su caudal (por eso es `sumar_fuente` y no `fuente_en`).
 static func abrir_caudal(c: Vector2i, caudal: float, dura: float) -> void:
-	if agua_sim == null or not en_mapa(c) or altura_en(c) >= 1:
+	if Terreno3D.agua_sim == null or not en_mapa(c) or altura_en(c) >= 1:
 		return
-	var sim: AguaSim3D = agua_sim          # la de ahora: si el nivel se recarga, el temporizador no toca la nueva
+	var sim: AguaSim3D = Terreno3D.agua_sim          # la de ahora: si el nivel se recarga, el temporizador no toca la nueva
 	sim.sumar_fuente(c, caudal)
 	(Engine.get_main_loop() as SceneTree).create_timer(dura, false).timeout.connect(func() -> void: sim.sumar_fuente(c, -caudal))
 
 
-static func celda_de(p: Vector3) -> Vector2i:
-	return Vector2i(int(floorf(p.x / casilla)), int(floorf(p.z / casilla)))
+## =====================================================================================================
+##  REENVÍOS M1 (13/10): el terreno ya vive en Terreno3D (mundo/terreno_3d.gd). Estas funciones solo reenvían, para que
+##  nada se rompa mientras los demás archivos pasan a llamar a Terreno3D directamente. Cuando nadie las use, se borran.
+## =====================================================================================================
+## Espejos: SOLO los leen (por Script.get o directamente) archivos que no son del Juego (prueba_test2.gd). El dueño real es
+## Terreno3D; configurar() y montar_agua_sim() los mantienen al día. No escribir aquí desde fuera.
+static var mundo_s: Node3D = null                 ## ESPEJO M1 de Terreno3D.mundo_s
+static var agua_sim: AguaSim3D = null             ## ESPEJO M1 de Terreno3D.agua_sim
+const LECHO_AGUA: float = Terreno3D.LECHO_AGUA    ## REENVÍO M1
+const FONDO_CANAL: float = Terreno3D.FONDO_CANAL  ## REENVÍO M1
 
+static func bloqueada(c: Vector2i) -> bool:
+	return Terreno3D.bloqueada(c)    ## REENVÍO M1
+
+static func bloquear_celda(c: Vector2i) -> void:
+	Terreno3D.bloquear_celda(c)    ## REENVÍO M1
+
+static func bloquear_celda_completa(c: Vector2i) -> void:
+	Terreno3D.bloquear_celda_completa(c)    ## REENVÍO M1
+
+static func liberar_celda(c: Vector2i) -> void:
+	Terreno3D.liberar_celda(c)    ## REENVÍO M1
+
+static func activar_fuente_nodos(p_mundo: Node3D) -> int:
+	return Terreno3D.activar_fuente_nodos(p_mundo)    ## REENVÍO M1
+
+static func activar_fuente_casillas() -> void:
+	Terreno3D.activar_fuente_casillas()    ## REENVÍO M1
+
+static func sobre_hielo(p: Vector3) -> bool:
+	return Terreno3D.sobre_hielo(p)    ## REENVÍO M1
+
+static func cubre_hielo(c: Vector2i) -> bool:
+	return Terreno3D.cubre_hielo(c)    ## REENVÍO M1
+
+static func celda_de(p: Vector3) -> Vector2i:
+	return Terreno3D.celda_de(p)    ## REENVÍO M1
 
 static func centro_de(c: Vector2i, y: float = 0.0) -> Vector3:
-	return Vector3((float(c.x) + 0.5) * casilla, y, (float(c.y) + 0.5) * casilla)
-
+	return Terreno3D.centro_de(c, y)    ## REENVÍO M1
 
 static func en_mapa(c: Vector2i) -> bool:
-	return mundo_s != null and c.x >= 0 and c.y >= 0 and c.x < int(mundo_s.get("_lado")) and c.y < int(mundo_s.get("_lado"))
-
+	return Terreno3D.en_mapa(c)    ## REENVÍO M1
 
 static func letra_de(c: Vector2i) -> String:
-	return String(mundo_s.call("_letra", c))
+	return Terreno3D.letra_de(c)    ## REENVÍO M1
 
-
-## Agua de verdad: ni puente ni hielo encima. Con la simulación (Fase 11.3) pregunta a AguaSim3D por la profundidad de la
-## casilla; sin ella, a la letra «~» del mapa (el respaldo de siempre).
 static func es_agua(c: Vector2i) -> bool:
-	if mundo_s == null:
-		return false
-	if (mundo_s.get("_helada") as Dictionary).has(c):
-		return false
-	if agua_sim != null:
-		return agua_sim.es_agua_casilla(c)
-	return letra_de(c) == "~"
+	return Terreno3D.es_agua(c)    ## REENVÍO M1
 
+static func es_cauce_seco(c: Vector2i) -> bool:
+	return Terreno3D.es_cauce_seco(c)    ## REENVÍO M1
+
+static func es_canal_ruinas(c: Vector2i) -> bool:
+	return Terreno3D.es_canal_ruinas(c)    ## REENVÍO M1
+
+static func lados_de_canal(c: Vector2i) -> Array:
+	return Terreno3D.lados_de_canal(c)    ## REENVÍO M1
+
+static func altura_en(c: Vector2i) -> int:
+	return Terreno3D.altura_en(c)    ## REENVÍO M1
+
+static func fijar_altura(c: Vector2i, niveles: int) -> void:
+	Terreno3D.fijar_altura(c, niveles)    ## REENVÍO M1
+
+static func y_pies(c: Vector2i) -> float:
+	return Terreno3D.y_pies(c)    ## REENVÍO M1
+
+static func celda_solida(c: Vector2i, nivel: int) -> bool:
+	return Terreno3D.celda_solida(c, nivel)    ## REENVÍO M1
+
+static func calcular_huellas(p_mundo: Node3D) -> int:
+	return Terreno3D.calcular_huellas(p_mundo)    ## REENVÍO M1
+
+static func es_parcial(c: Vector2i) -> bool:
+	return Terreno3D.es_parcial(c)    ## REENVÍO M1
+
+static func choca_huella(c: Vector2i, p: Vector3) -> bool:
+	return Terreno3D.choca_huella(c, p)    ## REENVÍO M1
+
+static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: bool, ignora_bloqueo: bool = false) -> bool:
+	return Terreno3D.pisable(c, nivel, sube, max_nivel, nada, ignora_bloqueo)    ## REENVÍO M1
+
+static func linea_libre(a: Vector3, b: Vector3) -> bool:
+	return Terreno3D.linea_libre(a, b)    ## REENVÍO M1
+
+
+static func montar_agua_sim(sub: int = 3) -> AguaSim3D:    ## REENVÍO M1 (y refresca el espejo agua_sim)
+	agua_sim = Terreno3D.montar_agua_sim(sub)
+	return agua_sim
 
 ## --- Agua con física (Fase 11.3, 12/10) ---
 ## Si es false, todo sigue como antes (el agua es la letra «~»). Se puede apagar sin tocar nada más.
 static var agua_con_fisica: bool = true
-## La simulación del nivel (null si no hay). La crea montar_agua_sim() al arrancar el Lanzador.
-static var agua_sim: AguaSim3D = null
-## Casillas del cauce seco («c») que el surtidor ya ha abierto (11.5). Hasta entonces el cauce es un foso SELLADO para la
-## simulación: si no, el río se metería solo y el surtidor no haría falta.
-static var cauces_abiertos: Dictionary = {}
 ## Agua echada por un hechizo (11.4), en u³. Un impacto de agua es un charco; cada casilla marcada por un muro o un corro, otro.
 ## 12/10 (Pablo): un 80 % menos (1,2 → 0,24): el agua convocada debe ser sutil; ya se escalará en hechizos grandes.
 const VOL_AGUA_IMPACTO: float = 0.24
@@ -544,223 +428,6 @@ const CAUDAL_CHORRO_CELDA: float = 0.16
 ## --- Hielo de verdad (11.13) ---
 ## Radio (en casillas) del círculo que hiela o funde un impacto. 0,6 casillas = una casilla casi entera, pero sigue la forma del agua.
 const RADIO_HIELO: float = 0.6
-## Un hielo de al menos esta hondura (u) cuenta como sólido para proyectiles y miradas (no para andar).
-const HIELO_COBERTURA: float = 0.5
-## Hondura del lecho bajo una casilla «~» (u). Superficie = alto_agua, así que el agua tiene esta profundidad: más que
-## UMBRAL_NADO (0,55) para que se nade, como hasta ahora.
-const LECHO_AGUA: float = 0.9
-const FONDO_CANAL: float = 0.11        ## el fondo del cajón de Canal3D sobre el suelo: el agua de un canal de ruinas empieza ahí, no en el lecho del río
-
-
-## ¿Es un cauce seco que el surtidor llenará? La letra «c» o un tramo de CANAL de la maqueta (`-`, `L` o las piezas canal_* de un
-## nivel horneado: `_es_canal`). Sin esto la simulación no conocía el canal de la tinaja y el agua no entraba en él (diario 12/10 15:30).
-static func es_cauce_seco(c: Vector2i) -> bool:
-	if mundo_s == null:
-		return false
-	return letra_de(c) == "c" or (mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c)))
-
-
-## ¿Es un tramo de canal de RUINAS (`-`, `L` o pieza canal_*) y no un cauce «c»? Su fondo está sobre el suelo, no en el lecho del río.
-static func es_canal_ruinas(c: Vector2i) -> bool:
-	return mundo_s != null and letra_de(c) != "c" and mundo_s.has_method("_es_canal") and bool(mundo_s.call("_es_canal", c))
-
-
-## Lados (Vector2i en 4 direcciones) por los que el canal de la casilla `c` deja pasar el agua: los que abre la pieza
-## (`_abre_hacia` de la maqueta); sin ese método, los vecinos que también son canal.
-static func lados_de_canal(c: Vector2i) -> Array:
-	var r: Array = []
-	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		if mundo_s.has_method("_abre_hacia"):
-			if bool(mundo_s.call("_abre_hacia", c, d)):
-				r.append(d)
-		elif es_canal_ruinas(c + d):
-			r.append(d)
-	return r
-
-
-## Crea la simulación del nivel: suelo de cada casilla (el lecho bajo «~», `alto_suelo` más sus niveles en el resto), paredes
-## en lo que bloquea (menos el agua), las casillas «~» llenas hasta `alto_agua`, y nivel FIJO en las «~» del borde del mapa
-## (por donde el río entra o sale: se mantiene lleno y se lleva lo que sobra). Devuelve la simulación; también la guarda.
-static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
-	agua_sim = null
-	cauces_abiertos.clear()
-	if mundo_s == null or mundo_s.get("_lado") == null:
-		return null
-	var lado: int = int(mundo_s.get("_lado"))
-	var sim := AguaSim3D.new()
-	var suelo := func(c: Vector2i) -> float:
-		var l: String = letra_de(c)
-		if es_canal_ruinas(c):
-			return alto_suelo + FONDO_CANAL       # el cajón de piedra: el agua llega a la altura de la pieza y se ve
-		if l == "~" or es_cauce_seco(c):
-			return alto_agua - LECHO_AGUA
-		return alto_suelo + float(altura_en(c)) * ALTO_NIVEL
-	# Es pared: lo que bloquea (menos el agua), la tierra levantada (hace de presa, 11.4) y el cauce seco sin abrir (11.5).
-	var pared := func(c: Vector2i) -> bool:
-		if altura_en(c) >= 1:
-			return true
-		if es_cauce_seco(c):
-			return not cauces_abiertos.has(c)
-		return letra_de(c) != "~" and bloqueada(c)
-	sim.configurar(lado, lado, sub, casilla, suelo, pared)
-	for y in range(lado):
-		for x in range(lado):
-			var c := Vector2i(x, y)
-			if letra_de(c) != "~":
-				continue
-			sim.llenar_casilla(c, alto_agua)
-			if x == 0 or y == 0 or x == lado - 1 or y == lado - 1:
-				sim.fijar_nivel(c, alto_agua)
-	# Canal de ruinas: el agua solo ocupa su cajón (centro + lados que abre la pieza). Sin aplicar: sigue sellado hasta que el
-	# surtidor lo abra, y entonces se abre con esta forma (solidificar_casilla).
-	for y in range(lado):
-		for x in range(lado):
-			var cc := Vector2i(x, y)
-			if es_canal_ruinas(cc):
-				sim.abrir_solo(cc, lados_de_canal(cc), false)
-	agua_sim = sim
-	return sim
-
-
-static func altura_en(c: Vector2i) -> int:
-	return int(alturas.get(c, 0))
-
-
-static func fijar_altura(c: Vector2i, niveles: int) -> void:
-	## Para el nivel: una cornisa. No caduca. Pasar 0 la quita.
-	if niveles <= 0:
-		permanentes.erase(c)
-		alturas.erase(c)
-	else:
-		permanentes[c] = niveles
-		alturas[c] = maxi(int(alturas.get(c, 0)), niveles)
-
-
-## y de los pies de quien está en la casilla `c`: el suelo, más sus niveles; el agua y el puente, más bajo.
-static func y_pies(c: Vector2i) -> float:
-	var n: int = altura_en(c)
-	if n > 0:
-		return alto_suelo + float(n) * ALTO_NIVEL
-	var l: String = letra_de(c)
-	var helada: bool = (mundo_s.get("_helada") as Dictionary).has(c)
-	if helada and agua_sim != null:
-		var y_hielo: float = agua_sim.hielo_en_casilla(c)      # 11.13: se pisa a la altura del hielo, sea cual sea el nivel del agua
-		if y_hielo > -INF:
-			return y_hielo
-	if l == "b" or helada:
-		return alto_agua + 0.12
-	if l == "~":
-		return alto_agua
-	return alto_suelo
-
-
-## Lo sólido para un hechizo que vuela a nivel `nivel`: el mapa (árboles, muros, objetos) o una torre de tierra.
-static func celda_solida(c: Vector2i, nivel: int) -> bool:
-	if not en_mapa(c):
-		return true
-	var l: String = letra_de(c)
-	if l != "~" and bloqueada(c):
-		return true
-	if cubre_hielo(c):
-		return true                          # 11.13: un hielo gordo para proyectiles
-	return altura_en(c) >= 1 + nivel
-
-
-## ---- Huellas: lo que ocupa DE VERDAD cada objeto que bloquea una casilla ----
-## La rejilla bloquea casillas enteras (2,3 u) aunque el modelo sea un barril de 1 u o un puesto que ocupa casilla y media.
-## Para el JUGADOR se afina: en una casilla bloqueada solo choca dentro del círculo de los objetos que la tocan (más el
-## cuerpo). Sin huella conocida (telaraña, barrera, puente, paredes de árboles...) la casilla sigue entera.
-## Los hechizos y los goblins siguen usando la casilla entera.
-static var huellas: Dictionary = {}        ## Vector2i -> Array de Vector3(x, z, radio)
-const MARGEN_HUELLA: float = 0.3
-
-
-static func calcular_huellas(p_mundo: Node3D) -> int:
-	huellas.clear()
-	var lotes: Variant = p_mundo.get("_lotes")
-	if not (lotes is Dictionary) or (lotes as Dictionary).is_empty():
-		return 0
-	var n: int = 0
-	for id in (lotes as Dictionary):
-		var partes: Array = p_mundo.call("_plantilla", String(id))
-		var caja := AABB()
-		var primero: bool = true
-		for parte in partes:
-			var m: Mesh = (parte as Array)[0] as Mesh
-			if m == null:
-				continue
-			var a: AABB = ((parte as Array)[1] as Transform3D) * m.get_aabb()
-			caja = a if primero else caja.merge(a)
-			primero = false
-		if primero:
-			continue
-		for t in ((lotes as Dictionary)[id] as Array):
-			var tr: Transform3D = t
-			var c: Vector2i = celda_de(tr.origin)
-			var esc: float = tr.basis.get_scale().x
-			var centro: Vector3 = tr * caja.get_center()
-			var r: float = 0.5 * maxf(caja.size.x, caja.size.z) * esc
-			for dy in range(-1, 2):
-				for dx in range(-1, 2):
-					var q := c + Vector2i(dx, dy)
-					if bloqueada(q) and letra_de(q) != "#" and letra_de(q) != "~":
-						if not huellas.has(q):
-							huellas[q] = []
-						(huellas[q] as Array).append(Vector3(centro.x, centro.z, r))
-						n += 1
-	return n
-
-
-## ¿Es una casilla bloqueada cuya forma real conocemos (y por tanto se puede rozar)?
-static func es_parcial(c: Vector2i) -> bool:
-	return fuente != null and fuente.es_parcial(c)
-
-
-## ¿Está el punto dentro de lo que ocupa de verdad un objeto de esa casilla?
-static func choca_huella(c: Vector2i, p: Vector3) -> bool:
-	return fuente == null or fuente.choca_punto(c, p)
-
-
-## ¿Puede ESTAR alguien de pie en `c`? Lo usan el jugador y los goblins. `nivel` es en el que está;
-## `sube` si puede subir uno (saltando); `max_nivel` lo más alto donde se puede estar; `nada` si puede entrar en agua.
-static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: bool, ignora_bloqueo: bool = false) -> bool:
-	if not en_mapa(c):
-		return false
-	var l: String = letra_de(c)
-	if l == "~":
-		if (mundo_s.get("_helada") as Dictionary).has(c):
-			pass                                     # hielo: se pisa
-		else:
-			return nada                              # agua: solo nadando
-	elif bloqueada(c) and not ignora_bloqueo:
-		return false
-	# 6.22a: la hierba crecida YA NO es sólida: se atraviesa (antes bloqueaba el paso).
-	var n: int = altura_en(c)
-	if n > max_nivel:
-		return false
-	return n <= nivel + (1 if sube else 0)
-
-
-## ¿Se ven dos puntos? Las casillas sólidas del mapa y las torres de tierra cortan la vista.
-static func linea_libre(a: Vector3, b: Vector3) -> bool:
-	var d: Vector3 = b - a
-	d.y = 0.0
-	var largo: float = d.length()
-	if largo < 0.01:
-		return true
-	var paso: float = casilla * 0.25
-	var u: Vector3 = d / largo
-	var previa: Vector2i = celda_de(a)
-	var rec: float = paso
-	while rec < largo:
-		var c: Vector2i = celda_de(a + u * rec)
-		if c != previa:
-			var l: String = letra_de(c)
-			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) >= 1 or cubre_hielo(c):
-				return false
-			previa = c
-		rec += paso
-	return true
 
 
 ## Nombre de elemento (el de Vfx3D) de una runa.
@@ -1143,7 +810,7 @@ func _direccion_actual() -> Vector3:
 	if _fijado:
 		var arr: Vector3 = _punto_vivo - _origen_fijo
 		arr.y = 0.0
-		if arr.length() >= ARRASTRE_MINIMO * casilla:
+		if arr.length() >= ARRASTRE_MINIMO * Terreno3D.casilla:
 			return arr.normalized()
 	var de_ti: Vector3 = (_origen_fijo if _fijado else _origen_vivo) - yo
 	de_ti.y = 0.0
@@ -1171,10 +838,11 @@ func _process(delta: float) -> void:
 		_fin_libro_lento()                   # cerrado por otro camino (sin lanzar)
 	if get_tree().paused:
 		return                               # pausa real (muerte, victoria): nada se mueve
-	if agua_sim != null:
-		agua_sim.paso(delta)                 # avanza en pasos fijos por dentro; con el libro abierto va más lento, como todo
-		for cb in agua_sim.cambios():
+	if Terreno3D.agua_sim != null:
+		Terreno3D.agua_sim.paso(delta)                 # avanza en pasos fijos por dentro; con el libro abierto va más lento, como todo
+		for cb in Terreno3D.agua_sim.cambios():
 			agua_cambio.emit(cb["c"], cb["agua"])
+			Terreno3D._avisar(cb["c"], "agua")       # M2: lo mismo, para quien escuche a Mundo3D
 		procesar_cambios_hielo()             # 11.13: el hielo que se suelta solo al acabar su tiempo
 		vigilar_presos()                     # 11.15: grietas en la costra cuando al hielo le queda poco
 	super._process(delta)
@@ -1226,8 +894,8 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 
 func _crear_marcadores(color: Color) -> void:
 	_prev_color = color
-	_marca_origen = _anillo(0.22 * casilla, 0.34 * casilla, color)
-	_marca_alcance = _anillo(ALCANCE_ORIGEN * casilla - 0.09, ALCANCE_ORIGEN * casilla, Color(color, 0.55))
+	_marca_origen = _anillo(0.22 * Terreno3D.casilla, 0.34 * Terreno3D.casilla, color)
+	_marca_alcance = _anillo(ALCANCE_ORIGEN * Terreno3D.casilla - 0.09, ALCANCE_ORIGEN * Terreno3D.casilla, Color(color, 0.55))
 	var flecha := BoxMesh.new()
 	flecha.size = Vector3(0.12, 0.05, 1.0)
 	var m := StandardMaterial3D.new()
@@ -1268,7 +936,7 @@ func _pintar_marcadores() -> void:
 	_marca_origen.position = o + Vector3(0, 0.08, 0)
 	_marca_alcance.position = yo + Vector3(0, 0.06, 0)
 	var d: Vector3 = _direccion_actual()
-	var largo: float = 1.1 * casilla
+	var largo: float = 1.1 * Terreno3D.casilla
 	_marca_flecha.position = o + d * largo * 0.5 + Vector3(0, 0.1, 0)
 	_marca_flecha.scale = Vector3(1, 1, largo)
 	_marca_flecha.rotation = Vector3(0, atan2(d.x, d.z), 0)
@@ -1282,16 +950,16 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	if receta == null or not receta.usa_geo():
 		return
 	var g: Dictionary = receta.geo()
-	var largo_flecha: float = 1.1 * casilla
+	var largo_flecha: float = 1.1 * Terreno3D.casilla
 	if bool(g.get("chorro", false)):
-		largo_flecha = float(g["largo"]) * casilla
+		largo_flecha = float(g["largo"]) * Terreno3D.casilla
 		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
 		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
 	elif float(g["alcance"]) > 0.0:
-		largo_flecha = float(g["alcance"]) * casilla
+		largo_flecha = float(g["alcance"]) * Terreno3D.casilla
 		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
 		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
-	var cs: Array = GeometriaHechizo.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), casilla)
+	var cs: Array = GeometriaHechizo.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla)
 	while _prev_casillas.size() < cs.size():
 		var mi := MeshInstance3D.new()
 		var caja := BoxMesh.new()
@@ -1303,7 +971,7 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mundo.add_child(mi)
 		_prev_casillas.append(mi)
-	var alto: float = ALTO_NIVEL * float(g["alto"])
+	var alto: float = Terreno3D.ALTO_NIVEL * float(g["alto"])
 	for i in range(_prev_casillas.size()):
 		var mi: MeshInstance3D = _prev_casillas[i]
 		mi.visible = i < cs.size()
@@ -1311,9 +979,9 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 			continue
 		var c: Vector2i = cs[i]
 		var h: float = 0.06 + alto
-		(mi.mesh as BoxMesh).size = Vector3(casilla * 0.9, h, casilla * 0.9)
+		(mi.mesh as BoxMesh).size = Vector3(Terreno3D.casilla * 0.9, h, Terreno3D.casilla * 0.9)
 		((mi.mesh as BoxMesh).material as StandardMaterial3D).albedo_color = Color(_prev_color, 0.30) if bool(g["valida"]) else Color(1, 0.2, 0.2, 0.35)
-		mi.position = Vector3((float(c.x) + 0.5) * casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * casilla)
+		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
 
 
 
@@ -1365,11 +1033,11 @@ func _lanzar_volador(receta: Receta3D, rune: RuneData, elemento: String, origen:
 			for i in range(receta.copies):
 				dirs.append((b as Vector3).rotated(Vector3.UP, (float(i) - float(receta.copies - 1) * 0.5) * abanico))
 	var factor: float = Sigils.quality_factor(receta.calidad)
-	var alcance: float = ALCANCE_FLECHA * casilla * factor
+	var alcance: float = ALCANCE_FLECHA * Terreno3D.casilla * factor
 	_radio_bola_actual = RADIO_BOLA
 	if receta.usa_geo():
 		# 8.1a: varias flechas = más alcance (3 casillas, +1 por flecha, tope 5). Lo dice la geometría.
-		alcance = float(receta.geo()["alcance"]) * casilla * factor
+		alcance = float(receta.geo()["alcance"]) * Terreno3D.casilla * factor
 		# Tamaño agranda la bola (solo lo que se dibuja: el barrido sigue siendo un rayo; ver diario).
 		_radio_bola_actual = RADIO_BOLA * float(receta.geo()["radio"]) / GeometriaHechizo.RADIO_0
 	elif receta.reach > 1:
@@ -1385,7 +1053,7 @@ func _lanzar_volador(receta: Receta3D, rune: RuneData, elemento: String, origen:
 
 func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector3, dir: Vector3, alcance: float,
 		nivel: int) -> void:
-	var y_vuelo: float = y_pies(celda_de(origen)) + ALTO_NIVEL * 0.5 * float(1 + nivel)
+	var y_vuelo: float = y_pies(celda_de(origen)) + Terreno3D.ALTO_NIVEL * 0.5 * float(1 + nivel)
 	var inicio := Vector3(origen.x, y_vuelo, origen.z)
 	var res: Dictionary = trazar(inicio, dir, alcance, nivel, rune, receta.lifetime > 0.0, receta.bounces, receta.pull)
 	var t: float = 0.0
@@ -1459,7 +1127,7 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 		# 1) La primera casilla sólida del camino.
 		var dist_celda: float = restante
 		var normal := Vector3.ZERO
-		var paso: float = casilla * 0.1
+		var paso: float = Terreno3D.casilla * 0.1
 		var previa: Vector2i = celda_de(pos)
 		var rec: float = paso
 		var choca_celda: bool = false
@@ -1485,10 +1153,10 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 			rec += paso
 
 		# 2) Las zonas y objetos que el rayo atraviesa hasta ahí (y la casilla sólida que los contiene).
-		var limite: float = minf(restante, dist_celda + casilla * 1.42) if choca_celda else restante
+		var limite: float = minf(restante, dist_celda + Terreno3D.casilla * 1.42) if choca_celda else restante
 		var golpes: Array = []
 		var parada: float = dist_celda
-		var alcance_golpes: float = dist_celda + (casilla * 1.05 if celda_sola else 0.0)   # un objeto DENTRO de la casilla sólida
+		var alcance_golpes: float = dist_celda + (Terreno3D.casilla * 1.05 if celda_sola else 0.0)   # un objeto DENTRO de la casilla sólida
 		var rebota_zona: bool = false
 		var hits: Array = _rayo_areas(espacio, pos, d, limite)
 		var cortado: bool = choca_celda
@@ -1662,20 +1330,20 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	var y_base: float = y_pies(celda_de(origen))
 	var cuenta: int = 0
 	for m in manifest:
-		var rel: Vector2 = (m["p"] as Vector2).rotated(giro) * casilla
+		var rel: Vector2 = (m["p"] as Vector2).rotated(giro) * Terreno3D.casilla
 		var p2: Vector2 = origen2 + rel
 		var dir2: Vector2 = (m["dir"] as Vector2).rotated(giro)
 		var nivel_m: int = int(m.get("nivel", 0))
 		var elev: float = float(m.get("elev", 0.0))
-		var punto := Vector3(p2.x, y_base + ALTO_NIVEL * (0.5 + float(nivel_m) + elev), p2.y)
+		var punto := Vector3(p2.x, y_base + Terreno3D.ALTO_NIVEL * (0.5 + float(nivel_m) + elev), p2.y)
 		var v := Vector3.ZERO
 		if muro:
-			v = Vector3(dir2.x, 0.0, dir2.y).normalized() * VEL_MURO * casilla
+			v = Vector3(dir2.x, 0.0, dir2.y).normalized() * VEL_MURO * Terreno3D.casilla
 		elif onda:
 			var rad: Vector2 = ((m["p"] as Vector2) - centro2).rotated(giro)
 			if rad.length() < 0.001:
 				rad = dir2
-			v = Vector3(rad.x, 0.0, rad.y).normalized() * VEL_ONDA * casilla
+			v = Vector3(rad.x, 0.0, rad.y).normalized() * VEL_ONDA * Terreno3D.casilla
 		campo.puntos.append(punto)
 		campo.vel.append(v)
 		campo.dirs.append(Vector3(dir2.x, 0.0, dir2.y).normalized() if (muro or not receta.es_quieto()) else Vector3.ZERO)
@@ -1759,7 +1427,7 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 	var pie_c := Vector3(centro.x, y_pies(celda_de(centro)), centro.z)
 	var dura: float = vida_campo(receta)
 	if receta.usa_geo() and bool(receta.geo()["envuelve"]) and not receta.line:
-		radio = float(receta.geo()["radio_envuelve"]) * casilla    # la banda de casillas es más ancha que la forma dibujada
+		radio = float(receta.geo()["radio_envuelve"]) * Terreno3D.casilla    # la banda de casillas es más ancha que la forma dibujada
 	if columna:
 		return                                 # lo dibuja _levantar_columna casilla a casilla
 	if receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro":
@@ -1768,7 +1436,7 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 		dh.y = 0.0
 		if dh.length() < 0.01:
 			dh = Vector3(0, 0, 1)
-		var largo_m: float = float(receta.geo()["largo"]) * casilla
+		var largo_m: float = float(receta.geo()["largo"]) * Terreno3D.casilla
 		# Vfx3D multiplica `largo` por su `escala`: se divide aquí para que el haz dibujado mida lo que sus casillas.
 		var esc: float = maxf(float(fx.get("escala")), 0.01)
 		fx.lanzar_forma("chorro", elemento, pie_o, pie_o + dh.normalized() * largo_m, {"largo": largo_m / esc, "dura": dura})
@@ -1865,7 +1533,7 @@ func construir_tierra(c: Vector2i, dibujar: bool = true) -> bool:
 	var l: String = letra_de(c)
 	if l == "~" or l == "b":
 		return false
-	if bloqueada(c) or permanentes.has(c):
+	if bloqueada(c) or Terreno3D.permanentes.has(c):
 		return false
 	if jugador != null and bool(jugador.call("ocupa", c)):
 		return false
@@ -1893,11 +1561,11 @@ func construir_tierra(c: Vector2i, dibujar: bool = true) -> bool:
 	bloque.add_to_group("peso")
 	var cs := CollisionShape3D.new()
 	var forma := BoxShape3D.new()
-	forma.size = Vector3(casilla * 0.8, ALTO_NIVEL * 0.9, casilla * 0.8)
+	forma.size = Vector3(Terreno3D.casilla * 0.8, Terreno3D.ALTO_NIVEL * 0.9, Terreno3D.casilla * 0.8)
 	cs.shape = forma
 	bloque.add_child(cs)
 	var caja := BoxMesh.new()
-	caja.size = Vector3(casilla * 0.94, ALTO_NIVEL, casilla * 0.94)
+	caja.size = Vector3(Terreno3D.casilla * 0.94, Terreno3D.ALTO_NIVEL, Terreno3D.casilla * 0.94)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.5, 0.37, 0.24)
 	mat.roughness = 1.0
@@ -1906,8 +1574,8 @@ func construir_tierra(c: Vector2i, dibujar: bool = true) -> bool:
 	mi.mesh = caja
 	mi.visible = dibujar                    # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
-	var centro: Vector3 = centro_de(c, alto_suelo + ALTO_NIVEL * (float(n) - 0.5))
-	bloque.position = centro - Vector3(0, ALTO_NIVEL * 0.6, 0)
+	var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * (float(n) - 0.5))
+	bloque.position = centro - Vector3(0, Terreno3D.ALTO_NIVEL * 0.6, 0)
 	mundo.add_child(bloque)
 	(entrada["nodos"] as Array).append(bloque)
 	var tw: Tween = bloque.create_tween()
@@ -1956,7 +1624,7 @@ func _levantar_columna(campo: Node3D, duracion: float, niveles: int, color: Colo
 		celdas[c] = true
 	for c in celdas:
 		var caja := BoxMesh.new()
-		caja.size = Vector3(casilla * 0.9, ALTO_NIVEL * float(niveles), casilla * 0.9)
+		caja.size = Vector3(Terreno3D.casilla * 0.9, Terreno3D.ALTO_NIVEL * float(niveles), Terreno3D.casilla * 0.9)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(color.lightened(0.3), 0.55)
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1965,7 +1633,7 @@ func _levantar_columna(campo: Node3D, duracion: float, niveles: int, color: Colo
 		var mi := MeshInstance3D.new()
 		mi.mesh = caja
 		mi.name = "ColumnaBarrera"
-		mi.position = centro_de(c as Vector2i, alto_suelo + ALTO_NIVEL * float(niveles) * 0.5)
+		mi.position = centro_de(c as Vector2i, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * float(niveles) * 0.5)
 		mundo.add_child(mi)
 		_columnas.append({"celda": c, "niveles": niveles, "resta": duracion, "nodo": mi})
 		if fx != null and Vfx3D.ELEMENTOS.has(Objetos.elemento_de(campo_rune(campo))):
@@ -1980,7 +1648,7 @@ func campo_rune(campo: Node3D) -> RuneData:
 
 ## alturas[c] = lo más alto entre lo permanente, la tierra y las columnas de esa casilla.
 func _recalcular(c: Vector2i) -> void:
-	var n: int = int(permanentes.get(c, 0))
+	var n: int = int(Terreno3D.permanentes.get(c, 0))
 	for b in _bloques:
 		if (b["celda"] as Vector2i) == c:
 			n = maxi(n, int(b["niveles"]))
@@ -1988,11 +1656,11 @@ func _recalcular(c: Vector2i) -> void:
 		if (k["celda"] as Vector2i) == c:
 			n = maxi(n, int(k["niveles"]))
 	if n <= 0:
-		alturas.erase(c)
+		Terreno3D.alturas.erase(c)
 	else:
-		alturas[c] = n
-	if agua_sim != null:
-		agua_sim.refrescar_casilla(c)        # 11.4: la tierra levantada hace de presa; al caducar, el agua pasa
+		Terreno3D.alturas[c] = n
+	if Terreno3D.agua_sim != null:
+		Terreno3D.agua_sim.refrescar_casilla(c)        # 11.4: la tierra levantada hace de presa; al caducar, el agua pasa
 
 
 ## =====================================================================================================
@@ -2056,15 +1724,15 @@ func al_impactar(elemento: String, punto: Vector3) -> void:
 ## neutro se queda mojado. Quien estuviera encima cae al agua (Jugador3D lo ve solo).
 func _derretir(c: Vector2i, era_agua: bool) -> void:
 	mundo.call("_poner_canal", c, 2, 0.0)
-	if agua_sim != null:
-		agua_sim.helar_casilla(c, false)     # 11.4: el agua vuelve a correr
+	if Terreno3D.agua_sim != null:
+		Terreno3D.agua_sim.helar_casilla(c, false)     # 11.4: el agua vuelve a correr
 	if era_agua:
-		(mundo.get("_helada") as Dictionary).erase(c)
+		Terreno3D.poner_helada(c, false)
 		bloquear_celda(c)
 	else:
 		mundo.call("_poner_canal", c, 1, 1.0)
 	if fx != null:
-		fx.vapor(centro_de(c, alto_agua if era_agua else alto_suelo))
+		fx.vapor(centro_de(c, Terreno3D.alto_agua if era_agua else Terreno3D.alto_suelo))
 	PlayLog.event("hielo_deshecho", {"celda": [c.x, c.y]})
 
 
@@ -2389,7 +2057,7 @@ class Receta3D extends SpellRecipe:
 	## deshace para que `nivel` y `elev` sean niveles de verdad.
 	func manifestaciones() -> Array:
 		if usa_geo():
-			var c := Vector2(0.5, 0.5) * Lanzador3D.casilla      # origen en el centro de una casilla: sin sesgo de rejilla
+			var c := Vector2(0.5, 0.5) * Terreno3D.casilla      # origen en el centro de una casilla: sin sesgo de rejilla
 			return manifestaciones_en(c, Vector2.RIGHT)
 		var res: Array = []
 		var volador: bool = _es_volador()
@@ -2421,7 +2089,7 @@ class Receta3D extends SpellRecipe:
 		var g: Dictionary = geo()
 		var d: Vector2 = dir.normalized() if dir.length() > 0.001 else Vector2.RIGHT
 		var giro: float = d.angle()
-		var cas: float = Lanzador3D.casilla
+		var cas: float = Terreno3D.casilla
 		for c in GeometriaHechizo.celdas(g, origen, d, cas):
 			var centro := Vector2((float((c as Vector2i).x) + 0.5) * cas, (float((c as Vector2i).y) + 0.5) * cas)
 			var local: Vector2 = ((centro - origen) / cas).rotated(-giro)
@@ -2469,7 +2137,7 @@ class Campo extends Node3D:
 
 	func iniciar() -> void:
 		_forma = SphereShape3D.new()
-		_forma.radius = Lanzador3D.RADIO_GOLPE * Lanzador3D.casilla
+		_forma.radius = Lanzador3D.RADIO_GOLPE * Terreno3D.casilla
 		name = "Campo_" + elemento
 		for i in range(puntos.size()):
 			_marcar_suelo(puntos[i] as Vector3)
@@ -2478,7 +2146,7 @@ class Campo extends Node3D:
 	func bloquea_a(p: Vector3, n: int) -> bool:
 		if not bloquea or n > altura_barrera:
 			return false
-		var r2: float = pow(Lanzador3D.RADIO_GOLPE * Lanzador3D.casilla * 1.15, 2.0)
+		var r2: float = pow(Lanzador3D.RADIO_GOLPE * Terreno3D.casilla * 1.15, 2.0)
 		for i in range(puntos.size()):
 			if bool(vivos[i]):
 				var q: Vector3 = puntos[i]
@@ -2582,14 +2250,14 @@ static func colocar_barreras(p_mundo: Node3D) -> int:
 			var c := Vector2i(x, y)
 			if String(p_mundo.call("_letra", c)) != "B":
 				continue
-			var centro: Vector3 = centro_de(c, alto_suelo)
+			var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo)
 			var b := BarreraFuego.new()
 			b.mundo = p_mundo
 			b.celda = c
-			b.position = centro + Vector3(0.0, ALTO_NIVEL, 0.0)
+			b.position = centro + Vector3(0.0, Terreno3D.ALTO_NIVEL, 0.0)
 			var cs := CollisionShape3D.new()
 			var caja := BoxShape3D.new()
-			caja.size = Vector3(casilla * 0.95, ALTO_NIVEL * 2.0, casilla * 0.95)
+			caja.size = Vector3(Terreno3D.casilla * 0.95, Terreno3D.ALTO_NIVEL * 2.0, Terreno3D.casilla * 0.95)
 			cs.shape = caja
 			b.add_child(cs)
 			b.collision_layer = CAPA_REACTIVO
@@ -2642,10 +2310,10 @@ class BarreraFuego extends Area3D:
 		if fx != null:
 			if llama != null:
 				fx.apagar(llama)
-			fx.vapor(Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 0.3))
+			fx.vapor(Lanzador3D.centro_de(celda, Terreno3D.alto_suelo + 0.3))
 		if luz != null and is_instance_valid(luz):
 			luz.queue_free()
 		Lanzador3D.liberar_celda(celda)
 		collision_layer = 0
 		PlayLog.event("barrera_fuego_apagada", {"celda": [celda.x, celda.y]})
-		Combate3D.flotante(mundo, Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo + 1.2), "¡Apagada!", Color(0.5, 0.8, 1.0))
+		Combate3D.flotante(mundo, Lanzador3D.centro_de(celda, Terreno3D.alto_suelo + 1.2), "¡Apagada!", Color(0.5, 0.8, 1.0))

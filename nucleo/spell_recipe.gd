@@ -4,8 +4,8 @@ extends RefCounted
 ## LA RECETA DE UN COMPONENTE DEL HECHIZO.
 ##
 ## Los sellos dibujados en un sector escriben aquí su aportación, y
-## luego `build()` lee la receta terminada y crea los hechizos. Ningún
-## sello sabe de la existencia de los demás.
+## luego quien lanza (Lanzador3D) lee la receta terminada y decide qué
+## sale. Ningún sello sabe de la existencia de los demás.
 ##
 ## Ahí está la diferencia entre un sistema que escala y uno que no: las
 ## combinaciones no están escritas en ninguna parte, EMERGEN de leer
@@ -15,8 +15,8 @@ const TILE: float = 64.0
 const ESCALA_ARO: float = 1.4   ## cuanto mayor que una casilla es el aro de la barrera quieta
 
 ## Cuánto sube un nivel. Es el lateral del cubo isométrico, el mismo
-## número que usa IsoGrid al apilar bloques: si un hechizo flota, que
-## flote a la altura a la que flotaría un bloque puesto encima.
+## número con el que se apilaban los bloques en el 2D: si un hechizo flota,
+## que flote a la altura a la que flotaría un bloque puesto encima.
 const LEVEL: float = 55.5
 
 var direction: Vector2 = Vector2.RIGHT
@@ -102,136 +102,10 @@ func apply(sigil_name: String) -> void:
 		cooldown += Sigils.STACK_COOLDOWN
 
 
-## --- La interpretación ---
-func build(caster: Node2D, element: RuneData) -> void:
-	# Dónde se lanzó: lo que nace tarde nace AHÍ.
-	_base = caster.global_position
-
-	# RETARDO: una marca en el suelo avisa de dónde va a salir, y se espera.
-	if delay > 0.0:
-		_marcar_retardo(caster, element.color)
-		await caster.get_tree().create_timer(delay).timeout
-		if not is_instance_valid(caster) or not caster.is_inside_tree():
-			return
-
-	var data := _powered(element)
-
-	# Una onda con repetición son varias ondas, una tras otra. Todo lo demás,
-	# una sola vez.
-	var olas: int = mini(copies, 3) if _expande() else 1
-	for o in range(olas):
-		if o > 0:
-			await caster.get_tree().create_timer(Sigils.WAVE_GAP).timeout
-			if not is_instance_valid(caster) or not caster.is_inside_tree():
-				return
-		_construir(caster, data)
-
-
-## La marca que se ve mientras algo espera a salir: un aro que se cierra sobre el
-## sitio donde nacerá.
-func _marcar_retardo(caster: Node2D, color: Color) -> void:
-	var marca := Marca.new()
-	marca.color = color
-	marca.dura = delay
-	caster.get_tree().current_scene.add_child(marca)
-	marca.global_position = _base
-
-
-class Marca extends Node2D:
-	var color: Color = Color.WHITE
-	var dura: float = 1.0
-	var _t: float = 0.0
-
-	func _init() -> void:
-		scale = Vector2(1.0, 0.6)   # un círculo en el suelo, en isométrico
-
-	func _process(delta: float) -> void:
-		_t += delta
-		if _t >= dura:
-			queue_free()
-			return
-		queue_redraw()
-
-	func _draw() -> void:
-		var f: float = clampf(_t / maxf(dura, 0.01), 0.0, 1.0)
-		var r: float = lerpf(34.0, 12.0, f)
-		draw_arc(Vector2.ZERO, r, 0.0, TAU, 32, Color(color, 0.35 + 0.5 * f), 3.0, true)
-		draw_arc(Vector2.ZERO, r * 0.5, 0.0, TAU, 24, Color(1.0, 1.0, 1.0, 0.5 * f), 2.0, true)
-		draw_circle(Vector2.ZERO, 3.0 + 3.0 * f, Color(color.lightened(0.4), 0.85))
-
-
-## Lo que se crea de verdad (una vez, o una vez por onda).
-func _construir(caster: Node2D, data: RuneData) -> void:
-	var factor: float = Sigils.quality_factor(calidad)
-	var muro: bool = _es_barrera_movil()
-	var sigue: bool = _sigue()
-
-	# Cuánto vive lo que se crea. Una barrera que avanza dura lo suyo; lo quieto,
-	# lo base más lo que sume la levitación. La calidad del trazo lo encoge.
-	var vida: float = (Sigils.BASE_LIFETIME + lifetime) * factor
-	if muro:
-		vida = Sigils.WALL_LIFETIME * factor
-	elif sigue:
-		# Lo que flota y te acompaña dura bastante más que lo que se queda quieto.
-		vida = Sigils.FOLLOW_LIFETIME * factor
-	elif _es_chorro():
-		# Varias flechas: el chorro se queda más rato.
-		vida = (Sigils.BASE_LIFETIME + lifetime + Sigils.jet_hold(reach)) * factor
-
-	var manifestaciones: Array = []
-	for direction_variant in _fan():
-		for point in _points(direction_variant):
-			manifestaciones.append([point, direction_variant])
-
-	# El tope se aplica AQUÍ, no dentro de cada paso: así ninguna regla
-	# necesita saber cuántas manifestaciones llevan las demás.
-	if manifestaciones.size() > Sigils.MAX_MANIFESTATIONS:
-		manifestaciones.resize(Sigils.MAX_MANIFESTATIONS)
-
-	# Una onda se abre desde el CENTRO de lo suyo: cada punto sale hacia fuera.
-	var centroides: Dictionary = {}
-	if _expande():
-		var sumas: Dictionary = {}
-		var cuentas: Dictionary = {}
-		for m in manifestaciones:
-			sumas[m[1]] = sumas.get(m[1], Vector2.ZERO) + m[0]
-			cuentas[m[1]] = int(cuentas.get(m[1], 0)) + 1
-		for d in sumas:
-			centroides[d] = sumas[d] / float(cuentas[d])
-
-	# Lo que se queda es UNA superficie, aunque lo formen seis hechizos: el
-	# campo se dibuja una vez para todos los puntos, y cada hechizo conserva
-	# solo su hitbox. Sin esto una barrera se lee como "seis fuegos".
-	var campo: SpellForm = null
-	# Una barrera que avanza es lo mismo, pero el campo SE MUEVE con sus hitboxes:
-	# uno por cada dirección del abanico.
-	var campos: Dictionary = {}
-	if muro:
-		var grupos: Dictionary = {}
-		for m in manifestaciones:
-			if not grupos.has(m[1]):
-				grupos[m[1]] = []
-			grupos[m[1]].append(_base + m[0])
-		for d in grupos:
-			var f := SpellForm.field(caster, grupos[d], vida, data.color, data)
-			if f != null:
-				f.avanzar((d as Vector2).normalized() * Sigils.WALL_SPEED)
-			campos[d] = f
-	elif _es_quieto():
-		var centros: Array = []
-		for m in manifestaciones:
-			centros.append(_base + m[0])
-		campo = SpellForm.field(caster, centros, vida, data.color, data)
-		if sigue and campo != null:
-			campo.seguir(caster, campo.global_position - caster.global_position)
-		if _expande() and campo != null:
-			campo.expandir(Sigils.PULSE_SPEED / maxf(TILE * Sigils.size_factor(barriers), 1.0))
-
-	for m in manifestaciones:
-		var radial: Vector2 = Vector2.ZERO
-		if _expande():
-			radial = (m[0] - centroides[m[1]]).normalized()
-		_manifest(caster, data, m[0], m[1], campos.get(m[1]) if muro else campo, vida, factor, radial)
+## --- El lanzamiento 2D se retiró (L2.2, 13/10) ---
+## `build()`, `_construir()`, `_manifest()` y la marca de retardo creaban los nodos del hechizo 2D (proyectil y campo). El 3D no
+## pasa por ahí: `Receta3D` (dentro de lanzador_3d.gd) hereda de esta clase y lee la receta en CASILLAS. Aquí quedan los datos de la receta
+## (`apply`) y las preguntas que se le hacen (`_points`, `_fan`, `_es_*`, `_powered`…), sin ningún nodo.
 
 
 ## Varias flechas sin pilar: un chorro que se queda delante.
@@ -402,68 +276,6 @@ func _fan() -> Array:
 			var offset := (float(i) - float(copies - 1) * 0.5) * SPREAD
 			directions.append((base as Vector2).rotated(offset))
 	return directions
-
-
-## Crear el hechizo en un punto.
-##
-## Un hechizo sale volando solo si la flecha es lo ÚNICO que dice dónde.
-## En cuanto algo más ocupa el espacio —un pilar que lo pone lejos, o
-## varias flechas que lo reparten por delante— deja de ser una bala y
-## pasa a ser algo que está ahí puesto.
-func _manifest(caster: Node2D, data: RuneData, offset: Vector2, dir: Vector2,
-		campo: SpellForm = null, vida: float = 0.0, factor: float = 1.0,
-		radial: Vector2 = Vector2.ZERO) -> void:
-	# La barrera que avanza es una barrera: no vuela como una flecha, se desplaza.
-	var movil: bool = _es_barrera_movil()
-	var quieto: bool = _es_quieto() or movil
-	var travel_direction: Vector2 = Vector2.ZERO if quieto else dir
-
-	var spell := SpellFactory.cast(
-		caster, _base + offset, travel_direction, data,
-		vida if vida > 0.0 else Sigils.BASE_LIFETIME + lifetime)
-
-	if spell:
-		spell.lanzador = caster
-		spell.power = power
-		# Lo que permanece ATRAVIESA. Un tornado no se deshace contra el
-		# primer arbusto: lo arrastra y sigue. Sale de un parámetro que
-		# ya teníamos, sin inventar una regla nueva.
-		spell.piercing = lifetime > 0.0
-		# La levitación lo pone a una altura: pasa por encima de barreras bajas.
-		spell.altura = height
-		if _sigue():
-			spell.sigue = caster
-			spell.sigue_offset = offset
-
-		if movil:
-			# Lo único que aporta la flecha: velocidad, hacia donde apunta.
-			spell.velocidad = dir.normalized() * Sigils.WALL_SPEED
-		elif not quieto and factor < 0.999:
-			# Un trazo flojo no llega tan lejos. Con trazo limpio la flecha
-			# vuela como siempre.
-			spell.vida_maxima = 3.0 * factor
-
-		# Lenguaje nuevo.
-		spell.atrae = pull
-		if radial != Vector2.ZERO:
-			spell.velocidad = radial * Sigils.PULSE_SPEED   # la onda se abre
-		if bounces > 0:
-			spell.refleja = blocks
-			if not quieto:
-				spell.rebotes = bounces
-				# Con rebotes la flecha vive más: tiene que dar tiempo a volver.
-				spell.vida_maxima = (2.5 + float(bounces)) * factor
-
-		# Toda barrera bloquea proyectiles.
-		if blocks:
-			spell.hacer_barrera()
-
-		# Si el campo ya dibuja el elemento, este hechizo solo es un hitbox.
-		if campo != null:
-			campo.registrar(spell)
-			spell.campo = campo
-			if campo.cubre():
-				spell.cubierto = true
 
 
 ## El aumento NO puede tocar el RuneData original: los .tres están

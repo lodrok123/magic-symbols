@@ -54,11 +54,15 @@ func _hechizos() -> void:
 	var sim: AguaSim3D = Lanzador3D.montar_agua_sim()
 	var p: Vector3 = Lanzador3D.centro_de(Vector2i(2, 2))
 	Lanzador3D.hechizo_sobre_agua("agua", p)
-	_ok("1 el agua echa 1,2 u³", absf(sim.volumen_total() - Lanzador3D.VOL_AGUA_IMPACTO) < 0.01, "%.3f" % sim.volumen_total())
+	_ok("1 el agua echa VOL_AGUA_IMPACTO u³ (%.2f)" % Lanzador3D.VOL_AGUA_IMPACTO, absf(sim.volumen_total() - Lanzador3D.VOL_AGUA_IMPACTO) < 0.01, "%.3f" % sim.volumen_total())
 	_correr(sim, 0.5)
 	var v0: float = sim.volumen_total()
 	Lanzador3D.hechizo_sobre_agua("fuego", p)
-	_ok("1 el fuego evapora", sim.volumen_total() < v0 - 0.2, "%.3f -> %.3f" % [v0, sim.volumen_total()])
+	# Lo esperado sale de las constantes (L2.0, 13/10): el fuego quita como mucho VOL_EVAPORA y nunca más de lo que hay, y el charco
+	# ya se ha esparcido medio segundo, así que parte puede quedar fuera del círculo del fuego. Se exige al menos la mitad de lo posible.
+	var posible: float = minf(Lanzador3D.VOL_EVAPORA, v0)
+	var quitado: float = v0 - sim.volumen_total()
+	_ok("1 el fuego evapora (≥ la mitad de min(VOL_EVAPORA %.2f, lo que hay %.3f))" % [Lanzador3D.VOL_EVAPORA, v0], quitado >= 0.5 * posible and quitado <= posible + 1.0e-4, "quitó %.3f de %.3f posibles (%.3f -> %.3f)" % [quitado, posible, v0, sim.volumen_total()])
 	var v1: float = sim.volumen_total()
 	Lanzador3D.hechizo_sobre_agua("viento", p)
 	Lanzador3D.hechizo_sobre_agua("tierra", p)

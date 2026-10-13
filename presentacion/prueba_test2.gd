@@ -13,7 +13,7 @@ extends Node3D
 ## nodo por casilla), la hierba en bloques que Godot descarta fuera de cámara y sin sombra, y la sombra del sol
 ## llega a 30 m. El HUD enseña llamadas de dibujo, primitivas y memoria de vídeo para la tabla de §1.2.
 
-const TEST2 = preload("res://test_2.gd")
+const TEST2 = preload("res://mundo/datos_nivel/datos_test2.gd")
 
 const S: float = 2.3                ## lado de una casilla en unidades (la chibi mide ~1)
 const ALTO: float = S * 0.45        ## alto de un bloque de tierra
@@ -1652,13 +1652,13 @@ func _enlazar_reactivos() -> void:
 ## manteniendo porque la hierba, los NPC y el reparto de objetos lo leen.
 func _bloquear(c: Vector2i) -> void:
 	_bloqueadas[c] = true
-	if Lanzador3D.mundo_s == self:
+	if Terreno3D.mundo_s == self:
 		Lanzador3D.bloquear_celda(c)
 
 
 func _liberar(c: Vector2i) -> void:
 	_bloqueadas.erase(c)
-	if Lanzador3D.mundo_s == self:
+	if Terreno3D.mundo_s == self:
 		Lanzador3D.liberar_celda(c)
 
 
@@ -2415,7 +2415,7 @@ func _activar_solidez_por_nodos() -> void:
 		contorno[cr] = true
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	if not is_inside_tree() or Lanzador3D.mundo_s != self:
+	if not is_inside_tree() or Terreno3D.mundo_s != self:
 		return
 	var n: int = Lanzador3D.activar_fuente_nodos(self)
 	if n == 0 and not _celdas_pieza.is_empty():
@@ -3885,8 +3885,8 @@ func _montar_agua_fisica() -> void:
 		return
 	_agua_render = AguaRender3D.new()
 	_agua_render.name = "AguaFisica"
-	# Por reflexión (get) y no `Lanzador3D.agua_sim`: así este archivo carga aunque el Lanzador cambie. (El contrato decía `Lanzador3D.agua`; el Juego lo llamó `agua_sim`.)
-	_agua_render.proveedor = func() -> Variant: return (load("res://magia/lanzador_3d.gd") as Script).get("agua_sim")
+	# 13/10: la simulación de agua se lee de Terreno3D (capa mundo/), ya no por reflexión sobre el Lanzador (ARQUITECTURA_MODULAR §5.2).
+	_agua_render.proveedor = func() -> Variant: return Terreno3D.agua_sim
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()

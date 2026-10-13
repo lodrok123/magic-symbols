@@ -3,7 +3,7 @@ extends Area3D
 
 ## COMBATE EN 3D Y LA IA DEL GOBLIN GUERRERO (4.3). Dueño: Juego.
 ##
-## Es el `CombateComun` del 2D (la MISMA tabla de debilidades, efectos y botín) más la IA de `goblin_guerrero.gd`, en un
+## Es la tabla de debilidades, efectos y botín que nació en el 2D (ya propia de este archivo, no hereda de nada) más la IA de `goblin_guerrero.gd`, en un
 ## solo nodo. Se cuelga de un `Pj3D` (el modelo del Pipeline, que no sabe nada de IA) con `Combate3D.equipar(...)`.
 ## Cambios por ser 3D, y solo esos:
 ##   - un Area3D en la capa CAPA_REACTIVO que implementa el contrato on_spell_hit(rune_data, direccion: Vector3)
@@ -249,7 +249,7 @@ func push(direccion: Vector3, fuerza: float) -> void:
 
 
 ## =====================================================================================================
-##  Daño y efectos (la tabla de CombateComun)
+##  Daño y efectos (la tabla de debilidades, heredada del 2D pero propia de este archivo)
 ## =====================================================================================================
 
 func multiplicador(elemento: String) -> float:
@@ -628,7 +628,7 @@ func _soltar_flecha() -> void:
 		return
 	var origen: Vector3 = position + Vector3(0.0, altura * 0.65, 0.0)
 	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
-	var bloqueada: bool = not Lanzador3D.linea_libre(position, jugador.position)
+	var bloqueada: bool = not Terreno3D.linea_libre(position, jugador.position)
 	var flecha := MeshInstance3D.new()
 	var caja := BoxMesh.new()
 	caja.size = Vector3(0.05, 0.05, 0.6)
@@ -654,7 +654,7 @@ func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 		return
 	var dx: float = jugador.position.x - destino.x
 	var dz: float = jugador.position.z - destino.z
-	if Vector2(dx, dz).length() <= RADIO_IMPACTO_FLECHA and absf(jugador.position.y + 0.8 - destino.y) < Lanzador3D.ALTO_NIVEL:
+	if Vector2(dx, dz).length() <= RADIO_IMPACTO_FLECHA and absf(jugador.position.y + 0.8 - destino.y) < Terreno3D.ALTO_NIVEL:
 		jugador.recibir_dano(DANO_FLECHA, position)
 
 
@@ -662,7 +662,7 @@ func _conectar() -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador) or stun_timer > 0.0 or interrupcion > 0.0 \
 			or congelado > 0.0:
 		return
-	if _dist(jugador.position) <= RANGO_ATAQUE + 0.5 and absf(jugador.position.y - position.y) < Lanzador3D.ALTO_NIVEL * 0.9:
+	if _dist(jugador.position) <= RANGO_ATAQUE + 0.5 and absf(jugador.position.y - position.y) < Terreno3D.ALTO_NIVEL * 0.9:
 		jugador.recibir_dano(DANO_GOLPE, position)
 
 
@@ -676,7 +676,7 @@ func _ve(radio: float) -> bool:
 		return false
 	if _dist(jugador.position) > radio:
 		return false
-	return Lanzador3D.linea_libre(position, jugador.position)
+	return Terreno3D.linea_libre(position, jugador.position)
 
 
 ## Un goblin no sube ni nada: casillas a nivel 0 y que no sean agua. Desliza por los ejes.
@@ -698,13 +698,13 @@ func _mover_paso(paso: Vector3) -> bool:
 func _puede_estar(p: Vector3) -> bool:
 	if elemental and not _cabe_con_cuerpo(p):
 		return false
-	var c: Vector2i = Lanzador3D.celda_de(p)
-	if c == Lanzador3D.celda_de(position):
-		return Lanzador3D.en_mapa(c)
-	if not Lanzador3D.pisable(c, 0, false, 0, false):
+	var c: Vector2i = Terreno3D.celda_de(p)
+	if c == Terreno3D.celda_de(position):
+		return Terreno3D.en_mapa(c)
+	if not Terreno3D.pisable(c, 0, false, 0, false):
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
-	return absf(Lanzador3D.y_pies(c) - position.y) <= 0.6
+	return absf(Terreno3D.y_pies(c) - position.y) <= 0.6
 
 
 ## 9.13: el elemental mide 2,5 u de alto y su cuerpo (cápsula) tiene un radio de ~1 u, casi media casilla (la casilla mide 2,3).
@@ -717,27 +717,27 @@ func _puede_estar(p: Vector3) -> bool:
 func _cabe_con_cuerpo(p: Vector3) -> bool:
 	var r: float = 0.7 * altura / ELEM_ALTO_REF
 	for o in [Vector3(r, 0.0, 0.0), Vector3(-r, 0.0, 0.0), Vector3(0.0, 0.0, r), Vector3(0.0, 0.0, -r)]:
-		var nueva: Vector2i = Lanzador3D.celda_de(p + o)
-		if nueva == Lanzador3D.celda_de(position + o):
+		var nueva: Vector2i = Terreno3D.celda_de(p + o)
+		if nueva == Terreno3D.celda_de(position + o):
 			continue                                   # no cambia de casilla por ese lado: nada que comprobar
-		if not Lanzador3D.pisable(nueva, 0, false, 0, false):
+		if not Terreno3D.pisable(nueva, 0, false, 0, false):
 			return false
 	return true
 
 
 func _ajustar_al_suelo(delta: float) -> void:
-	var c: Vector2i = Lanzador3D.celda_de(position)
-	if Lanzador3D.es_agua(c):
+	var c: Vector2i = Terreno3D.celda_de(position)
+	if Terreno3D.es_agua(c):
 		# Se le fue el suelo (hielo derretido): vuelve a su puesto, sin daño
-		position = Vector3(casa.x, Lanzador3D.y_pies(Lanzador3D.celda_de(casa)), casa.z)
+		position = Vector3(casa.x, Terreno3D.y_pies(Terreno3D.celda_de(casa)), casa.z)
 		estado = "patrulla"
 		objetivo = null
 		return
-	if Lanzador3D.altura_en(c) > 0:
+	if Terreno3D.altura_en(c) > 0:
 		# Le han levantado un bloque debajo: sube con él
-		position.y = Lanzador3D.y_pies(c)
+		position.y = Terreno3D.y_pies(c)
 		return
-	position.y = move_toward(position.y, Lanzador3D.y_pies(c), 6.0 * delta)
+	position.y = move_toward(position.y, Terreno3D.y_pies(c), 6.0 * delta)
 
 
 func _animar() -> void:
@@ -985,7 +985,7 @@ func _golpe_elemental() -> void:
 	var delante: float = rel.dot(f)
 	var lado: float = absf(rel.dot(Vector3(-f.z, 0.0, f.x)))
 	var dentro: bool = delante >= -0.3 and delante <= ELEM_ALCANCE_GOLPE * k and lado <= ELEM_ANCHO_GOLPE * k
-	if dentro and absf(jugador.position.y - position.y) < Lanzador3D.ALTO_NIVEL * 0.9:
+	if dentro and absf(jugador.position.y - position.y) < Terreno3D.ALTO_NIVEL * 0.9:
 		jugador.recibir_dano(ELEM_DANO_GOLPE, position)
 	PlayLog.event("elemental_golpe", {"acierta": dentro})
 
@@ -1028,12 +1028,12 @@ func _brotar_enredaderas() -> void:
 	for i in range(n):
 		var lateral: float = (float(i) - float(n - 1) * 0.5) * 1.6
 		var p: Vector3 = position + f * (ELEM_ALTO_REF + 0.35 * float(i % 2)) * _k_ref() + der * lateral
-		var c: Vector2i = Lanzador3D.celda_de(p)
-		if not Lanzador3D.en_mapa(c) or Lanzador3D.es_agua(c) or Lanzador3D.bloqueada(c) or Lanzador3D.altura_en(c) > 0:
+		var c: Vector2i = Terreno3D.celda_de(p)
+		if not Terreno3D.en_mapa(c) or Terreno3D.es_agua(c) or Terreno3D.bloqueada(c) or Terreno3D.altura_en(c) > 0:
 			continue
 		var e := Enredadera3D.new()
 		mundo.add_child(e)
-		e.position = Vector3(p.x, Lanzador3D.y_pies(c), p.z)
+		e.position = Vector3(p.x, Terreno3D.y_pies(c), p.z)
 		e.rotation.y = atan2(-f.x, -f.z)         # su largo (eje X local) queda de lado, cortando el paso
 		e.preparar(fx as Vfx3D, 1.6)
 		var enlace := EnlaceEnredadera.new()
@@ -1069,7 +1069,7 @@ func _foco_enredadera(punto: Vector3, origen: Enredadera3D) -> void:
 			(v as Enredadera3D).quemar()
 	if jugador != null and is_instance_valid(jugador) and not jugador.muerto:
 		var d: float = Vector2(jugador.position.x - punto.x, jugador.position.z - punto.z).length()
-		if d <= ELEM_RADIO_FOCO and absf(jugador.position.y - punto.y) < Lanzador3D.ALTO_NIVEL:
+		if d <= ELEM_RADIO_FOCO and absf(jugador.position.y - punto.y) < Terreno3D.ALTO_NIVEL:
 			jugador.recibir_dano(ELEM_DANO_FOCO, punto)
 
 
@@ -1114,24 +1114,24 @@ class EnlaceEnredadera extends Area3D:
 
 	## Al terminar de brotar bloquea su casilla (si estaba libre y no es la del jugador).
 	func al_brotar() -> void:
-		if Lanzador3D.bloqueada(celda):
+		if Terreno3D.bloqueada(celda):
 			return
 		var j: Variant = dueno.jugador if dueno != null else null
-		if j != null and is_instance_valid(j) and Lanzador3D.celda_de((j as Node3D).position) == celda:
+		if j != null and is_instance_valid(j) and Terreno3D.celda_de((j as Node3D).position) == celda:
 			return
-		Lanzador3D.bloquear_celda(celda)
+		Terreno3D.bloquear_celda(celda)
 		_bloqueando = true
 
 	func liberar() -> void:
 		if _bloqueando:
-			Lanzador3D.liberar_celda(celda)
+			Terreno3D.liberar_celda(celda)
 			_bloqueando = false
 		monitorable = false
 		collision_layer = 0
 
 	func _exit_tree() -> void:
 		if _bloqueando:
-			Lanzador3D.liberar_celda(celda)
+			Terreno3D.liberar_celda(celda)
 			_bloqueando = false
 
 
@@ -1202,7 +1202,7 @@ func _morir() -> void:
 	var lista: Variant = mundo.get("_goblins")
 	if lista is Array:
 		(lista as Array).erase(pj)
-	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Lanzador3D.celda_de(position).x, Lanzador3D.celda_de(position).y]})
+	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
 	if oro > 0:
 		Botin3D.soltar(mundo, jugador, oro, position)

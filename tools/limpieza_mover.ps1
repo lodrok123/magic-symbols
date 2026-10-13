@@ -110,6 +110,7 @@ if ($Fase -eq 1) {
 }
 if ($Fase -eq 2) {
   Write-Host "== Fase 2: nivel_base y su cadena (requiere L2.1 hecho: prueba_test2 ya no preload test_2.gd)"
+  if (Select-String -Path "presentacion\prueba_test2.gd" -Pattern 'res://poc_25d/' -Quiet) { throw "presentacion\prueba_test2.gd es una copia vieja (rutas poc_25d): restaurar antes" }
   $maqueta = (Get-ChildItem -Path . -Recurse -Filter prueba_test2.gd | Where-Object { $_.FullName -notmatch "_a_eliminar" } | Select-Object -First 1).FullName   # en poc_25d/ o en presentacion/
   if (Select-String -Path $maqueta -Pattern 'res://test_2.gd' -Quiet) { throw "prueba_test2.gd aún carga test_2.gd: L2.1 no está hecho" }
   foreach ($f in @(
@@ -153,7 +154,7 @@ if ($Fase -eq 2) {
     "water_block.gd"
   )) { Mover $f "2d_nivel_base" }
   Write-Host "== Fase 2: lanzamiento 2D arrastrado (requiere L2.2: SpellRecipe sin SpellFactory, Combate3D sin CombateComun)"
-  if (Select-String -Path "spell_recipe.gd" -Pattern 'SpellFactory' -Quiet) { throw "spell_recipe.gd aún usa SpellFactory: L2.2 no está hecho" }
+  if (Select-String -Path "nucleo\spell_recipe.gd" -Pattern 'SpellFactory' -Quiet) { throw "spell_recipe.gd aún usa SpellFactory: L2.2 no está hecho" }
   foreach ($f in @(
     "spell.gd",
     "spell.tscn",
@@ -171,14 +172,15 @@ if ($Fase -eq 2) {
   if (-not (Select-String -Path $combate -Pattern 'CombateComun' -Quiet)) { Mover "combate_comun.gd" "2d_hechizos" }
 }
 if ($Fase -eq 3) {
-  Write-Host "== Fase 3 (Pipeline): sprites 2D y su pipeline"
+  Write-Host "== Fase 3: todo lo que queda del 2D y del pipeline de sprites (medido 13/10: cero referencias desde el 3D)"
   foreach ($f in @("actor_animator.gd","ms_actor.gd","ms_atlas.gd")) { Mover $f "2d_pipeline_sprites" }
-  # pipeline/ y export_godot/ SE QUEDAN (Pablo, 13/10: son necesarios). Solo van las pruebas de sprites y las hojas 2D.
-  foreach ($d in @("Render Studio","tests","Sprites")) { MoverCarpeta $d "2d_pipeline_sprites" }
+  foreach ($d in @("pipeline","export_godot","Render Studio","tests","Sprites","Spellbook","assets")) { MoverCarpeta $d "2d_pipeline_sprites" }
   Get-ChildItem tools -Filter "gen_*.py" | ForEach-Object { Mover ("tools/" + $_.Name) "2d_pipeline_sprites/tools" }
-  foreach ($f in @("tools/video_a_fila.py","tools/empezar_prueba_iso.bat")) { Mover $f "2d_pipeline_sprites/tools" }
-  # art/: todo menos art/ui (glifos y grimorio, que usan sigils.gd y spellbook.gd)
+  foreach ($f in @("tools/video_a_fila.py","tools/empezar_prueba_iso.bat","tools/grabar_laboratorio.bat")) { Mover $f "2d_pipeline_sprites/tools" }
+  # art/: el 3D usa SOLO art/ui (grimorio y los 17 glifos: sigils.gd, spellbook.gd) y art/fx (9 iconos de elemento: *_rune.tres).
+  # Esas dos carpetas se quedan en art/; el resto (sprites 2D, particles, bosque) se va.
   Get-ChildItem art -File | Where-Object { $_.Extension -ne ".import" } | ForEach-Object { Mover ("art/" + $_.Name) "2d_arte" }
+  Get-ChildItem art -Directory | Where-Object { $_.Name -notin "ui","fx" } | ForEach-Object { MoverCarpeta ("art/" + $_.Name) "2d_arte" }
 }
 if ($Simular) { Write-Host "SIMULACIÓN: no se ha movido nada. Si la lista es la esperada, vuelve a ejecutar sin -Simular." }
 else { Write-Host "Hecho. Revisa con: git status; abre Godot; ejecuta las pruebas headless (herramientas/prueba_*.gd)." }

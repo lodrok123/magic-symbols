@@ -130,7 +130,7 @@ func _en_seco() -> void:
 	raiz.queue_free()
 
 
-## Lanzador3D.montar_agua_sim con una maqueta falsa: las casillas «~» son agua, el resto no; el borde del río mantiene el nivel.
+## Terreno3D.montar_agua_sim con una maqueta falsa: las casillas «~» son agua, el resto no; el borde del río mantiene el nivel.
 func _lanzador() -> void:
 	var m := MundoFalso.new()
 	root.add_child(m)
@@ -139,13 +139,13 @@ func _lanzador() -> void:
 		for x in range(6):
 			if m.mapa[y][x] == "#":
 				m._bloqueadas[Vector2i(x, y)] = true
-	var sim: AguaSim3D = Lanzador3D.montar_agua_sim()
-	_ok("5 se crea la simulación", sim != null and Lanzador3D.agua_sim == sim)
+	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
+	_ok("5 se crea la simulación", sim != null and Terreno3D.agua_sim == sim)
 	var bien: bool = true
 	for y in range(6):
 		for x in range(6):
 			var c := Vector2i(x, y)
-			bien = bien and (Lanzador3D.es_agua(c) == (m.mapa[y][x] == "~"))
+			bien = bien and (Terreno3D.es_agua(c) == (m.mapa[y][x] == "~"))
 	_ok("5 es_agua coincide con las letras «~» al empezar", bien)
 	var mal: Array = []
 	for _i in range(60 * 10):
@@ -153,12 +153,12 @@ func _lanzador() -> void:
 	for y in range(6):
 		for x in range(6):
 			var c := Vector2i(x, y)
-			if Lanzador3D.es_agua(c) != (m.mapa[y][x] == "~"):
+			if Terreno3D.es_agua(c) != (m.mapa[y][x] == "~"):
 				mal.append(c)
 	_ok("5 tras 10 s el río sigue donde estaba (nivel fijo en el borde, paredes en la orilla)", mal.is_empty(), "distintas: %s" % [mal])
 	_ok("5 se nada en el río", sim.se_nada_en(Vector2i(2, 2)), "prof %.2f" % sim.profundidad_casilla(Vector2i(2, 2)))
 	m._helada[Vector2i(2, 2)] = true
-	_ok("5 una casilla helada del mundo no es agua", not Lanzador3D.es_agua(Vector2i(2, 2)))
-	Lanzador3D.agua_sim = null
-	_ok("5 sin simulación vuelve a la letra", Lanzador3D.es_agua(Vector2i(0, 2)))
+	_ok("5 una casilla helada del mundo no es agua", not Terreno3D.es_agua(Vector2i(2, 2)))
+	Terreno3D.agua_sim = null
+	_ok("5 sin simulación vuelve a la letra", Terreno3D.es_agua(Vector2i(0, 2)))
 	m.queue_free()

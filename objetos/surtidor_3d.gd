@@ -42,7 +42,7 @@ var _permanente: bool = false            ## canal de ruinas: el grifo no se cier
 func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
 	m = p_mundo
 	celda = p_celda
-	position = Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo)
+	position = Terreno3D.centro_de(celda, Terreno3D.alto_suelo)
 	cauce = _calcular_cauce()
 
 
@@ -53,7 +53,7 @@ func _ready() -> void:
 	monitorable = true
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
-	caja.size = Vector3(Lanzador3D.casilla * 0.9, 1.4, Lanzador3D.casilla * 0.9)
+	caja.size = Vector3(Terreno3D.casilla * 0.9, 1.4, Terreno3D.casilla * 0.9)
 	forma.shape = caja
 	forma.position = Vector3(0.0, 0.7, 0.0)
 	add_child(forma)
@@ -118,8 +118,8 @@ func llenar() -> void:
 		return
 	esta_lleno = true
 	cauce = _calcular_cauce()               # otra vez: al preparar, la maqueta puede no haber leído aún el canal
-	if Lanzador3D.agua_sim != null and is_inside_tree() and not cauce.is_empty():
-		_llenar_con_fisica(Lanzador3D.agua_sim)
+	if Terreno3D.agua_sim != null and is_inside_tree() and not cauce.is_empty():
+		_llenar_con_fisica(Terreno3D.agua_sim)
 		return
 	var celdas: Array = cauce.filter(func(c: Variant) -> bool: return String(m.call("_letra", c)) == LETRA_CAUCE)   # el canal de ruinas no cambia de letra
 	if m != null and m.get("_fx") != null:
@@ -142,7 +142,7 @@ func _llenar_con_fisica(sim: AguaSim3D) -> void:
 	if m != null and m.get("_fx") != null:
 		(m.get("_fx") as Vfx3D).chispazo(global_position + Vector3(0.0, 1.2, 0.0), "agua")
 	for c in cauce:
-		Lanzador3D.cauces_abiertos[c] = true
+		Terreno3D.cauces_abiertos[c] = true
 		sim.solidificar_casilla(c as Vector2i, false)      # el foso se abre: el agua puede entrar
 	_permanente = _tiene_canal_ruinas()
 	sim.sumar_fuente(cauce[0] as Vector2i, CAUDAL_TINAJA if _permanente else CAUDAL_SURTIDOR)
@@ -152,16 +152,16 @@ func _llenar_con_fisica(sim: AguaSim3D) -> void:
 ## ¿Alguna casilla del cauce es canal de ruinas? Entonces el surtidor es la TINAJA: un manantial que no se cierra.
 func _tiene_canal_ruinas() -> bool:
 	for c in cauce:
-		if Lanzador3D.es_canal_ruinas(c as Vector2i):
+		if Terreno3D.es_canal_ruinas(c as Vector2i):
 			return true
 	return false
 
 
 ## Hasta dónde se llena a la fuerza una casilla del cauce: el canal de ruinas, a su fondo + 0,3; el cauce «c», hasta alto_agua.
 func _nivel_forzado(c: Vector2i) -> float:
-	if Lanzador3D.es_canal_ruinas(c):
-		return Lanzador3D.alto_suelo + Lanzador3D.FONDO_CANAL + SOBRE_FONDO_FORZADO
-	return Lanzador3D.alto_agua
+	if Terreno3D.es_canal_ruinas(c):
+		return Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + SOBRE_FONDO_FORZADO
+	return Terreno3D.alto_agua
 
 
 ## Al llegar el agua: el cauce «c» cambia de letra a «~» (como siempre); el canal de ruinas NO (sigue siendo canal para la maqueta y
@@ -202,7 +202,7 @@ func _process(delta: float) -> void:
 		for c in cauce:
 			media += _sim.profundidad_casilla(c as Vector2i)
 		media /= float(cauce.size())
-		if media >= NIVEL_LLENO * Lanzador3D.LECHO_AGUA or _t_total >= T_MAX:
+		if media >= NIVEL_LLENO * Terreno3D.LECHO_AGUA or _t_total >= T_MAX:
 			_sim.sumar_fuente(cauce[0] as Vector2i, -CAUDAL_SURTIDOR)
 			var celdas: Array = cauce.duplicate()
 			_sim = null
@@ -229,15 +229,15 @@ static func convertir_a_agua(p_mundo: Variant, c: Vector2i) -> void:
 		var q := MeshInstance3D.new()
 		var plano := QuadMesh.new()
 		plano.orientation = PlaneMesh.FACE_Y
-		plano.size = Vector2(Lanzador3D.casilla, Lanzador3D.casilla)
+		plano.size = Vector2(Terreno3D.casilla, Terreno3D.casilla)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.25, 0.5, 0.9, 0.7)
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		plano.material = mat
 		q.mesh = plano
 		q.name = "agua_nueva"
-		q.position = Lanzador3D.centro_de(c, Lanzador3D.alto_agua + 0.02)
+		q.position = Terreno3D.centro_de(c, Terreno3D.alto_agua + 0.02)
 		(p_mundo as Node3D).add_child(q)
 	var fx: Variant = p_mundo.get("_fx")
 	if fx != null:
-		(fx as Vfx3D).vapor(Lanzador3D.centro_de(c, Lanzador3D.alto_agua))
+		(fx as Vfx3D).vapor(Terreno3D.centro_de(c, Terreno3D.alto_agua))

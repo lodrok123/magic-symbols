@@ -12,7 +12,7 @@ extends Node3D
 ## que solo se tocan por una esquina NO conducen. Con 8 vecinas un río y un cauce que se rozan en diagonal se unirían sin que
 ## el jugador lo vea unido.
 ##
-## Qué cuenta como agua: `Lanzador3D.es_agua(c)` (la letra `~` sin hielo encima). Por eso un tramo helado CORTA la corriente
+## Qué cuenta como agua: `Terreno3D.es_agua(c)` (la letra `~` sin hielo encima). Por eso un tramo helado CORTA la corriente
 ## y un puente no la lleva. Es la misma pregunta que se hacen el jugador al nadar y los goblins, y no se duplica la regla.
 ##
 ## Qué hace una descarga: (1) calcula el agua conectada AHORA (el cauce puede haberse llenado desde la última); (2) la ilumina
@@ -46,7 +46,7 @@ var _jug: Node = null
 func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
 	m = p_mundo
 	celda = p_celda
-	position = Lanzador3D.centro_de(celda, Lanzador3D.alto_suelo)
+	position = Terreno3D.centro_de(celda, Terreno3D.alto_suelo)
 	_t = 1.0                          # la primera descarga a poco de empezar, para que se vea que está viva
 
 
@@ -107,7 +107,7 @@ func _process(delta: float) -> void:
 
 ## Empieza una descarga con el agua que esté conectada ahora mismo.
 func _soltar() -> void:
-	var f := func(c: Vector2i) -> bool: return Lanzador3D.en_mapa(c) and Lanzador3D.es_agua(c)
+	var f := func(c: Vector2i) -> bool: return Terreno3D.en_mapa(c) and Terreno3D.es_agua(c)
 	electrificada = EmisorRayo3D.agua_conectada(celda, f)
 	_t = DURACION
 	if electrificada.is_empty():
@@ -150,17 +150,17 @@ func _golpear() -> void:
 	if _jug == null or not is_instance_valid(_jug):
 		_jug = get_tree().get_first_node_in_group("player")
 		_jug = (_jug.get("jugador") as Node) if _jug != null and _jug.get("jugador") != null else null
-	if _jug != null and agua.has(Lanzador3D.celda_de((_jug as Node3D).position)):
+	if _jug != null and agua.has(Terreno3D.celda_de((_jug as Node3D).position)):
 		_jug.call("recibir_dano", DANO, position)
 	for g in get_tree().get_nodes_in_group("combate3d"):
-		if is_instance_valid(g) and agua.has(Lanzador3D.celda_de((g as Node3D).position)):
+		if is_instance_valid(g) and agua.has(Terreno3D.celda_de((g as Node3D).position)):
 			g.call("receive_damage", DANO)
 	_chispas = 0
 	for c in electrificada:
 		if _chispas >= MAX_CHISPAS:
 			break
 		if randf() < 0.25 and m != null and m.get("_fx") != null:
-			(m.get("_fx") as Vfx3D).chispazo(Lanzador3D.centro_de(c, Lanzador3D.alto_agua + 0.1), "rayo")
+			(m.get("_fx") as Vfx3D).chispazo(Terreno3D.centro_de(c, Terreno3D.alto_agua + 0.1), "rayo")
 			_chispas += 1
 
 
@@ -176,7 +176,7 @@ func _pintar() -> void:
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		var q := QuadMesh.new()
 		q.orientation = PlaneMesh.FACE_Y
-		q.size = Vector2(Lanzador3D.casilla * 0.92, Lanzador3D.casilla * 0.92)
+		q.size = Vector2(Terreno3D.casilla * 0.92, Terreno3D.casilla * 0.92)
 		q.material = mat
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -189,5 +189,5 @@ func _pintar() -> void:
 	var mm2: MultiMesh = _malla.multimesh
 	mm2.instance_count = electrificada.size()
 	for i in range(electrificada.size()):
-		mm2.set_instance_transform(i, Transform3D(Basis(), Lanzador3D.centro_de(electrificada[i], Lanzador3D.alto_agua + 0.06)))
+		mm2.set_instance_transform(i, Transform3D(Basis(), Terreno3D.centro_de(electrificada[i], Terreno3D.alto_agua + 0.06)))
 	_malla.visible = true

@@ -190,25 +190,24 @@ func _pintar_colisiones() -> void:
 		return
 	if _caja_col == null:
 		_caja_col = BoxMesh.new()
-		_caja_col.size = Vector3(Lanzador3D.casilla * 0.94, 0.06, Lanzador3D.casilla * 0.94)
-	var c0: Vector2i = Lanzador3D.celda_de((jug as Node3D).position)
+		_caja_col.size = Vector3(Terreno3D.casilla * 0.94, 0.06, Terreno3D.casilla * 0.94)
+	var c0: Vector2i = Terreno3D.celda_de((jug as Node3D).position)
 	var hf: Dictionary = mundo.get("_hf")
-	var helada: Dictionary = mundo.get("_helada")
 	var usados: int = 0
 	for y in range(c0.y - RADIO_COLISIONES, c0.y + RADIO_COLISIONES + 1):
 		for x in range(c0.x - RADIO_COLISIONES, c0.x + RADIO_COLISIONES + 1):
 			var c := Vector2i(x, y)
-			if not Lanzador3D.en_mapa(c):
+			if not Terreno3D.en_mapa(c):
 				continue
 			var clave: String = ""
-			var l: String = Lanzador3D.letra_de(c)
+			var l: String = Terreno3D.letra_de(c)
 			if l == "~":
-				clave = "hielo" if helada.has(c) else "agua"
-			elif Lanzador3D.bloqueada(c):
+				clave = "hielo" if Terreno3D.helada(c) else "agua"
+			elif Terreno3D.bloqueada(c):
 				clave = "rojo"
 			elif hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
 				clave = "naranja"
-			elif Lanzador3D.altura_en(c) >= 1:
+			elif Terreno3D.altura_en(c) >= 1:
 				clave = "violeta"
 			if clave == "":
 				continue
@@ -223,7 +222,7 @@ func _pintar_colisiones() -> void:
 				mundo.add_child(mi)
 				_pool_col.append(mi)
 			mi.material_override = _material_col(clave, colores[clave])
-			mi.position = Lanzador3D.centro_de(c, Lanzador3D.y_pies(c) + 0.12)
+			mi.position = Terreno3D.centro_de(c, Terreno3D.y_pies(c) + 0.12)
 			mi.visible = true
 			usados += 1
 	for i in range(usados, _pool_col.size()):

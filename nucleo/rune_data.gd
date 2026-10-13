@@ -57,8 +57,8 @@ const VFX_COLUMNS: int = 6
 @export var vfx_frames: int = 0
 
 ## ¿Este elemento se lanza como HAZ instantáneo (del lanzador al primer
-## impacto) en vez de como proyectil? Lo lee spell.gd; el dibujo lo hace
-## SpellBeam con la misma hoja de arriba, girada.
+## impacto) en vez de como proyectil? Lo lee el lanzador; el dibujo usa
+## la misma hoja de arriba, girada.
 @export var beam: bool = false
 
 ## ¿La animación se gira para apuntar en la dirección en que VUELA el
