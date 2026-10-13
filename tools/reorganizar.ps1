@@ -14,10 +14,10 @@ param([switch]$Simular)
 $ErrorActionPreference = "Stop"
 if (-not (Test-Path "project.godot")) { throw "Ejecutar desde la raíz del repo" }
 if (-not (Test-Path "poc_25d")) { throw "No hay poc_25d/: ¿ya se reorganizó?" }
-if (-not (Test-Path "_a_eliminar/2d_muertos/Mundo.tscn") -and -not $Simular) {
-    throw "Primero limpieza_mover.ps1 -Fase 1 (Mundo.tscn aún no está en _a_eliminar)" }
+# La fase 1 ya pasó si Mundo.tscn (2D muerto) no está en la raíz: da igual que _a_eliminar se haya vaciado después.
+if ((Test-Path "Mundo.tscn") -and -not $Simular) { throw "Primero limpieza_mover.ps1 -Fase 1 (Mundo.tscn sigue en la raíz)" }
 $sucio = git status --porcelain
-if ($sucio -and -not $Simular) { throw "git status no está limpio: haz commit de la Fase 1 antes de reorganizar (así el diff de esto va solo)" }
+if ($sucio -and -not $Simular) { Write-Host "AVISO: hay cambios sin commit (mejor que el commit de la fase 1 vaya aparte):"; $sucio | ForEach-Object { Write-Host "   $_" } }
 
 # ---------- 1. Correspondencia archivo -> carpeta nueva ----------
 $mapa = [ordered]@{}
