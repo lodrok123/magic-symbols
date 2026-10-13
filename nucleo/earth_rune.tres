@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="RuneData" format=3 uid="uid://b5t0t5iyunv82"]
 
-[ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://rune_data.gd" id="1"]
+[ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://nucleo/rune_data.gd" id="1"]
 [ext_resource type="Texture2D" uid="uid://bis3wsdudgmf3" path="res://art/fx/earth.png" id="2"]
 [ext_resource type="Texture2D" uid="uid://bhox7x1aqte1q" path="res://art/ui/glyphs/tierra.png" id="3"]
 

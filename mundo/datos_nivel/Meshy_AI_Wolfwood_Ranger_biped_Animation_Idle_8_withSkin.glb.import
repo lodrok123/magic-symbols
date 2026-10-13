@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bxtx4owpr7wew"
-path="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb-47e93b270ab38fe8d889f21e54d79b96.scn"
+path="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb-6e0f9ba2273cf8c964c5e62bee3f9adc.scn"
 
 [deps]
 
-source_file="res://poc_25d/niveles/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb"
-dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb-47e93b270ab38fe8d889f21e54d79b96.scn"]
+source_file="res://mundo/datos_nivel/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb"
+dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin.glb-6e0f9ba2273cf8c964c5e62bee3f9adc.scn"]
 
 [params]
 

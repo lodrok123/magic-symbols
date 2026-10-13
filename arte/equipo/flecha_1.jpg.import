@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://gakvfaq67usn"
-path.s3tc="res://.godot/imported/flecha_1.jpg-882be26dffebb8c6902190d1b1bf6027.s3tc.ctex"
+path.s3tc="res://.godot/imported/flecha_1.jpg-3e218f49c6dacb2b62035de847ff3fd7.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/equipo/flecha_1.jpg"
-dest_files=["res://.godot/imported/flecha_1.jpg-882be26dffebb8c6902190d1b1bf6027.s3tc.ctex"]
+source_file="res://arte/equipo/flecha_1.jpg"
+dest_files=["res://.godot/imported/flecha_1.jpg-3e218f49c6dacb2b62035de847ff3fd7.s3tc.ctex"]
 
 [params]
 

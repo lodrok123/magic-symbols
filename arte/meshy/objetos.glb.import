@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://diigafb12dq28"
-path="res://.godot/imported/objetos.glb-9c7d106d208c1e60f07707f4f1d8a504.scn"
+path="res://.godot/imported/objetos.glb-c3ceb23fd6d687e905907b3ad18849b2.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/objetos.glb"
-dest_files=["res://.godot/imported/objetos.glb-9c7d106d208c1e60f07707f4f1d8a504.scn"]
+source_file="res://arte/meshy/objetos.glb"
+dest_files=["res://.godot/imported/objetos.glb-c3ceb23fd6d687e905907b3ad18849b2.scn"]
 
 [params]
 

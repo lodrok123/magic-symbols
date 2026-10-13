@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cydpcv66e1ir5"
-path.s3tc="res://.godot/imported/goblin_archer_chibi_Image_1.jpg-84e67830b0fa8b1f363fed1bbb4471f1.s3tc.ctex"
+path.s3tc="res://.godot/imported/goblin_archer_chibi_Image_1.jpg-abc522718e6db1b0a49dcffd94bc299a.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/goblin_archer_chibi_Image_1.jpg"
-dest_files=["res://.godot/imported/goblin_archer_chibi_Image_1.jpg-84e67830b0fa8b1f363fed1bbb4471f1.s3tc.ctex"]
+source_file="res://arte/modelos/goblin_archer_chibi_Image_1.jpg"
+dest_files=["res://.godot/imported/goblin_archer_chibi_Image_1.jpg-abc522718e6db1b0a49dcffd94bc299a.s3tc.ctex"]
 
 [params]
 

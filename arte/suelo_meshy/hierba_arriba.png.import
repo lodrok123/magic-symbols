@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cymiy4nixmtx4"
-path.s3tc="res://.godot/imported/hierba_arriba.png-b7b3b9bdb3455d9491e02358d21385ae.s3tc.ctex"
+path.s3tc="res://.godot/imported/hierba_arriba.png-3633600a0f67b33a8b749add1aa15516.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/hierba_arriba.png"
-dest_files=["res://.godot/imported/hierba_arriba.png-b7b3b9bdb3455d9491e02358d21385ae.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/hierba_arriba.png"
+dest_files=["res://.godot/imported/hierba_arriba.png-3633600a0f67b33a8b749add1aa15516.s3tc.ctex"]
 
 [params]
 

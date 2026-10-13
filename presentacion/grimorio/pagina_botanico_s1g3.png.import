@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dffdewoergu4x"
-path="res://.godot/imported/pagina_botanico_s1g3.png-f8fa557061ce1cb115cb3d035f5a7038.ctex"
+path="res://.godot/imported/pagina_botanico_s1g3.png-f1587951ed913a7595662f9d9aaf5712.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/grimorio/pagina_botanico_s1g3.png"
-dest_files=["res://.godot/imported/pagina_botanico_s1g3.png-f8fa557061ce1cb115cb3d035f5a7038.ctex"]
+source_file="res://presentacion/grimorio/pagina_botanico_s1g3.png"
+dest_files=["res://.godot/imported/pagina_botanico_s1g3.png-f1587951ed913a7595662f9d9aaf5712.ctex"]
 
 [params]
 

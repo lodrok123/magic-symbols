@@ -8,7 +8,7 @@ extends CanvasLayer
 ## con los 8 huecos: Pablo (10/10) la quitó porque no servía para nada (los huecos 1–8 eran solo un reflejo de la cuadrícula).
 ##
 ## ASPECTO (9/10, encargo del Pipeline): cuero marrón con costura, interior de pergamino como el grimorio.
-## Todo se dibuja en código con la paleta de abajo; si existe el arte de `res://poc_25d/ui/` (mochila_panel,
+## Todo se dibuja en código con la paleta de abajo; si existe el arte de `res://presentacion/ui/laminas/` (mochila_panel,
 ## mochila_solapa, mochila_hueco, mochila_hueco_vacio, mochila_hueco_encima, mochila_hueco_bloqueado, mochila_cerrar,
 ## mochila_moneda) se usa en su lugar, pieza a pieza: esperar el arte no bloquea nada.
 ## La lógica (Estado, Objetos, huecos, beber) no cambia.
@@ -21,7 +21,7 @@ const COLUMNAS: int = 4
 const TAM: float = 66.0
 const SEP: float = 6.0
 
-const RUTA_ARTE: String = "res://poc_25d/ui/"
+const RUTA_ARTE: String = "res://presentacion/ui/laminas/"
 const CUERO: Color = Color("7a4f2e")
 const CUERO_SOMBRA: Color = Color("5a3820")
 const COSTURA: Color = Color("d2b07a")

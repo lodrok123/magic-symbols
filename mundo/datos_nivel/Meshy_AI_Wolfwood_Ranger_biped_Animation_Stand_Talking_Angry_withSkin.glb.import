@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://0dr5845g0ne3"
-path="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb-34dacf6cbd9e5b08da75fdacb82198a1.scn"
+path="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb-2fa1d3b611d15d2390ec71123da5dd9b.scn"
 
 [deps]
 
-source_file="res://poc_25d/niveles/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb"
-dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb-34dacf6cbd9e5b08da75fdacb82198a1.scn"]
+source_file="res://mundo/datos_nivel/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb"
+dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Stand_Talking_Angry_withSkin.glb-2fa1d3b611d15d2390ec71123da5dd9b.scn"]
 
 [params]
 

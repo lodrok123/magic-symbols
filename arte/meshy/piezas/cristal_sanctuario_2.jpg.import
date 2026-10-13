@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c754qj316b1b5"
-path.s3tc="res://.godot/imported/cristal_sanctuario_2.jpg-a38c597fb2131304d05189e505dac303.s3tc.ctex"
+path.s3tc="res://.godot/imported/cristal_sanctuario_2.jpg-ce0749bee2e6207f6f9f2a21669372c2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/cristal_sanctuario_2.jpg"
-dest_files=["res://.godot/imported/cristal_sanctuario_2.jpg-a38c597fb2131304d05189e505dac303.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/cristal_sanctuario_2.jpg"
+dest_files=["res://.godot/imported/cristal_sanctuario_2.jpg-ce0749bee2e6207f6f9f2a21669372c2.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/piezas/cristal_sanctuario_2.jpg"
+roughness/src_normal="res://arte/meshy/piezas/cristal_sanctuario_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2udrjty5h4ao"
-path.s3tc="res://.godot/imported/woodland_wanderer_normal.jpg-80486013b4e069f98e170587da0066cd.s3tc.ctex"
+path.s3tc="res://.godot/imported/woodland_wanderer_normal.jpg-0aadecb9e686cdcb879d72a778728b96.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/woodland_wanderer_normal.jpg"
-dest_files=["res://.godot/imported/woodland_wanderer_normal.jpg-80486013b4e069f98e170587da0066cd.s3tc.ctex"]
+source_file="res://arte/modelos/woodland_wanderer_normal.jpg"
+dest_files=["res://.godot/imported/woodland_wanderer_normal.jpg-0aadecb9e686cdcb879d72a778728b96.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/woodland_wanderer_normal.jpg"
+roughness/src_normal="res://arte/modelos/woodland_wanderer_normal.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://db0xe8kw5qcwa"
-path.s3tc="res://.godot/imported/grieta.png-a690e5472bf3765580fc83a9aa78f68b.s3tc.ctex"
+path.s3tc="res://.godot/imported/grieta.png-c0acfa767deb18caa5e3c267c6c9e583.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/grieta.png"
-dest_files=["res://.godot/imported/grieta.png-a690e5472bf3765580fc83a9aa78f68b.s3tc.ctex"]
+source_file="res://presentacion/vfx/grieta.png"
+dest_files=["res://.godot/imported/grieta.png-c0acfa767deb18caa5e3c267c6c9e583.s3tc.ctex"]
 
 [params]
 

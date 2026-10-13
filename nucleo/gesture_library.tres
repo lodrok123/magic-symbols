@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="GestureLibrary" format=3]
 
-[ext_resource type="Script" path="res://gesture_library.gd" id="1"]
+[ext_resource type="Script" path="res://nucleo/gesture_library.gd" id="1"]
 
 [resource]
 script = ExtResource("1")

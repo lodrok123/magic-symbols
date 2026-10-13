@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfuhu7mtdlkvc"
-path.s3tc="res://.godot/imported/cristal_hielo.png-437e19f521c50a8ca1ccf5e31f025368.s3tc.ctex"
+path.s3tc="res://.godot/imported/cristal_hielo.png-71e1781a17461c594ae0bce81b7a6f7e.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/cristal_hielo.png"
-dest_files=["res://.godot/imported/cristal_hielo.png-437e19f521c50a8ca1ccf5e31f025368.s3tc.ctex"]
+source_file="res://presentacion/vfx/cristal_hielo.png"
+dest_files=["res://.godot/imported/cristal_hielo.png-71e1781a17461c594ae0bce81b7a6f7e.s3tc.ctex"]
 
 [params]
 

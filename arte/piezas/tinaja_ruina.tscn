@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://cstfsyle3wcda"]
 
-[ext_resource type="Texture2D" uid="uid://t4l3ov0e3a2y" path="res://poc_25d/meshy/piezas/ruinas_agua_0.jpg" id="1_ubtwo"]
-[ext_resource type="Texture2D" uid="uid://cveh3gi42l1kn" path="res://poc_25d/meshy/piezas/ruinas_agua_1.jpg" id="2_h7215"]
+[ext_resource type="Texture2D" uid="uid://t4l3ov0e3a2y" path="res://arte/meshy/piezas/ruinas_agua_0.jpg" id="1_ubtwo"]
+[ext_resource type="Texture2D" uid="uid://cveh3gi42l1kn" path="res://arte/meshy/piezas/ruinas_agua_1.jpg" id="2_h7215"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xcbuo"]
 resource_name = "ruinas_agua"

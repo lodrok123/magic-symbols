@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://kolax2u5gq3u"
-path="res://.godot/imported/cristal_sanctuario.glb-c2d52c1f4b2bc69f340bf7a8e939e540.scn"
+path="res://.godot/imported/cristal_sanctuario.glb-84d1286764970345c511b7b22cfcd550.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/cristal_sanctuario.glb"
-dest_files=["res://.godot/imported/cristal_sanctuario.glb-c2d52c1f4b2bc69f340bf7a8e939e540.scn"]
+source_file="res://arte/meshy/piezas/cristal_sanctuario.glb"
+dest_files=["res://.godot/imported/cristal_sanctuario.glb-84d1286764970345c511b7b22cfcd550.scn"]
 
 [params]
 

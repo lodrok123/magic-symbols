@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://0fi0ffbrlpn"
-path.s3tc="res://.godot/imported/mercado_1.jpg-be81693114706802f7c6b10ac6f82866.s3tc.ctex"
+path.s3tc="res://.godot/imported/mercado_1.jpg-f8ef5d3fe77866c9a6e5d49c1db7f501.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/mercado_1.jpg"
-dest_files=["res://.godot/imported/mercado_1.jpg-be81693114706802f7c6b10ac6f82866.s3tc.ctex"]
+source_file="res://arte/meshy/mercado_1.jpg"
+dest_files=["res://.godot/imported/mercado_1.jpg-f8ef5d3fe77866c9a6e5d49c1db7f501.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/mercado_1.jpg"
+roughness/src_normal="res://arte/meshy/mercado_1.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bnpcvs6oy57dh"
-path.s3tc="res://.godot/imported/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg-88b6e777d0daa19a70640abee47253bc.s3tc.ctex"
+path.s3tc="res://.godot/imported/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg-9d4a521b0af88e46de9c260a9476b5aa.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg"
-dest_files=["res://.godot/imported/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg-88b6e777d0daa19a70640abee47253bc.s3tc.ctex"]
+source_file="res://presentacion/grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg"
+dest_files=["res://.godot/imported/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg-9d4a521b0af88e46de9c260a9476b5aa.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg"
+roughness/src_normal="res://presentacion/grimorio/Meshy_AI_Whispering_Leaf_Journ_1005095038_texture_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

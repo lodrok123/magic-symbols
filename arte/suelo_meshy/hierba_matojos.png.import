@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3sn8a5m0kemr"
-path.s3tc="res://.godot/imported/hierba_matojos.png-7b6658d79a2e933290371f632fe0ccdf.s3tc.ctex"
+path.s3tc="res://.godot/imported/hierba_matojos.png-58ec2f88da2c79f3e910e7fcdd302d07.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/hierba_matojos.png"
-dest_files=["res://.godot/imported/hierba_matojos.png-7b6658d79a2e933290371f632fe0ccdf.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/hierba_matojos.png"
+dest_files=["res://.godot/imported/hierba_matojos.png-58ec2f88da2c79f3e910e7fcdd302d07.s3tc.ctex"]
 
 [params]
 

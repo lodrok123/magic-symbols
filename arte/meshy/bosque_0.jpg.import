@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bddc6mipos5mk"
-path.s3tc="res://.godot/imported/bosque_0.jpg-8364eac678e3aa2c3bcd31670281156a.s3tc.ctex"
+path.s3tc="res://.godot/imported/bosque_0.jpg-c01e1942048eb16dffda7552641b6677.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/bosque_0.jpg"
-dest_files=["res://.godot/imported/bosque_0.jpg-8364eac678e3aa2c3bcd31670281156a.s3tc.ctex"]
+source_file="res://arte/meshy/bosque_0.jpg"
+dest_files=["res://.godot/imported/bosque_0.jpg-c01e1942048eb16dffda7552641b6677.s3tc.ctex"]
 
 [params]
 

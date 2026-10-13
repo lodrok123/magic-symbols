@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dexf1d7rxomon"
-path="res://.godot/imported/escudo.glb-94607fa60cac4094d2024ba7a0d81954.scn"
+path="res://.godot/imported/escudo.glb-9d22857e53b87fd913a4b6e9554b0ad6.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/escudo.glb"
-dest_files=["res://.godot/imported/escudo.glb-94607fa60cac4094d2024ba7a0d81954.scn"]
+source_file="res://arte/equipo/escudo.glb"
+dest_files=["res://.godot/imported/escudo.glb-9d22857e53b87fd913a4b6e9554b0ad6.scn"]
 
 [params]
 

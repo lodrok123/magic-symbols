@@ -1,7 +1,7 @@
 extends SceneTree
 ## Canal de la tinaja con agua a la altura de la piedra (12/10) sin ventana: montar_agua_sim con canal de ruinas estrecho, la tinaja
 ## (Surtidor3D) con manantial permanente, y que el agua se vea por encima de la hierba y del fondo de la pieza. Lo escribe el Juego.
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_canal_tinaja.gd
+##   godot --headless --path . --script res://herramientas/prueba_canal_tinaja.gd
 
 class MundoFalso extends Node3D:
 	const S: float = 2.3

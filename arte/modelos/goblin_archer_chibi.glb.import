@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://rn87qxir7afa"
-path="res://.godot/imported/goblin_archer_chibi.glb-74f206240dc33907e5c07e91d77d8e83.scn"
+path="res://.godot/imported/goblin_archer_chibi.glb-1c9dd18f2a081dfc370a4b135b2686ff.scn"
 
 [deps]
 
-source_file="res://poc_25d/goblin_archer_chibi.glb"
-dest_files=["res://.godot/imported/goblin_archer_chibi.glb-74f206240dc33907e5c07e91d77d8e83.scn"]
+source_file="res://arte/modelos/goblin_archer_chibi.glb"
+dest_files=["res://.godot/imported/goblin_archer_chibi.glb-1c9dd18f2a081dfc370a4b135b2686ff.scn"]
 
 [params]
 

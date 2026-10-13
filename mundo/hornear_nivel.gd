@@ -16,9 +16,9 @@ extends RefCounted
 ##
 ## Qué pasa con una edición previa: si ya hay un Nivel_<Nombre>.tscn, NO se pisa: se aparta como `..._copia_<hora>.tscn`.
 
-const NIVELES: String = "res://poc_25d/niveles/"
-const PIEZAS: String = "res://poc_25d/piezas/"
-const BIBLIOTECA: String = "res://poc_25d/niveles/suelo_tipos.tres"
+const NIVELES: String = "res://mundo/datos_nivel/"
+const PIEZAS: String = "res://arte/piezas/"
+const BIBLIOTECA: String = "res://mundo/datos_nivel/suelo_tipos.tres"
 const S: float = 2.3
 const ALTO: float = 2.3 * 0.45
 ## Casillas del GridMap: nombre del ítem → letra del mapa que reconstruye el cargador.

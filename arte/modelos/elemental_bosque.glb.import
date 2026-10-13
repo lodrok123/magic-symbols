@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c0ui8sk4yh4yj"
-path="res://.godot/imported/elemental_bosque.glb-397149df8cd7df5350e69ed9449c92a5.scn"
+path="res://.godot/imported/elemental_bosque.glb-e9e0fa5d124683b2e95b6e411868ed43.scn"
 
 [deps]
 
-source_file="res://poc_25d/elemental_bosque.glb"
-dest_files=["res://.godot/imported/elemental_bosque.glb-397149df8cd7df5350e69ed9449c92a5.scn"]
+source_file="res://arte/modelos/elemental_bosque.glb"
+dest_files=["res://.godot/imported/elemental_bosque.glb-e9e0fa5d124683b2e95b6e411868ed43.scn"]
 
 [params]
 

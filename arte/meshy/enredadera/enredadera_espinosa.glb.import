@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://yfjp8a7tvsig"
-path="res://.godot/imported/enredadera_espinosa.glb-186e2f5cfa83445abb340021fedcab48.scn"
+path="res://.godot/imported/enredadera_espinosa.glb-97c2e2b47c34d660763cfa1dd6098980.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/enredadera/enredadera_espinosa.glb"
-dest_files=["res://.godot/imported/enredadera_espinosa.glb-186e2f5cfa83445abb340021fedcab48.scn"]
+source_file="res://arte/meshy/enredadera/enredadera_espinosa.glb"
+dest_files=["res://.godot/imported/enredadera_espinosa.glb-97c2e2b47c34d660763cfa1dd6098980.scn"]
 
 [params]
 

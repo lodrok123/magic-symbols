@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://derpmjaq8loqw"
-path="res://.godot/imported/garrote.glb-4d3d5c7f3a201d16a1d2b574bde47776.scn"
+path="res://.godot/imported/garrote.glb-17307ad94fa32236797d0188d740ff96.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/garrote.glb"
-dest_files=["res://.godot/imported/garrote.glb-4d3d5c7f3a201d16a1d2b574bde47776.scn"]
+source_file="res://arte/equipo/garrote.glb"
+dest_files=["res://.godot/imported/garrote.glb-17307ad94fa32236797d0188d740ff96.scn"]
 
 [params]
 

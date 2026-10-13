@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dpu7mkpryoxr5"
-path.s3tc="res://.godot/imported/puesto_0.jpg-7f0b892810b7fafbfc6f0e90784f5b65.s3tc.ctex"
+path.s3tc="res://.godot/imported/puesto_0.jpg-85a5fb269e943733fb9883cc697e941b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/puesto_0.jpg"
-dest_files=["res://.godot/imported/puesto_0.jpg-7f0b892810b7fafbfc6f0e90784f5b65.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/puesto_0.jpg"
+dest_files=["res://.godot/imported/puesto_0.jpg-85a5fb269e943733fb9883cc697e941b.s3tc.ctex"]
 
 [params]
 

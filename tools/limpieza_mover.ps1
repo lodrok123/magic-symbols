@@ -173,7 +173,8 @@ if ($Fase -eq 2) {
 if ($Fase -eq 3) {
   Write-Host "== Fase 3 (Pipeline): sprites 2D y su pipeline"
   foreach ($f in @("actor_animator.gd","ms_actor.gd","ms_atlas.gd")) { Mover $f "2d_pipeline_sprites" }
-  foreach ($d in @("pipeline","export_godot","Render Studio","tests","Sprites")) { MoverCarpeta $d "2d_pipeline_sprites" }
+  # pipeline/ y export_godot/ SE QUEDAN (Pablo, 13/10: son necesarios). Solo van las pruebas de sprites y las hojas 2D.
+  foreach ($d in @("Render Studio","tests","Sprites")) { MoverCarpeta $d "2d_pipeline_sprites" }
   Get-ChildItem tools -Filter "gen_*.py" | ForEach-Object { Mover ("tools/" + $_.Name) "2d_pipeline_sprites/tools" }
   foreach ($f in @("tools/video_a_fila.py","tools/empezar_prueba_iso.bat")) { Mover $f "2d_pipeline_sprites/tools" }
   # art/: todo menos art/ui (glifos y grimorio, que usan sigils.gd y spellbook.gd)

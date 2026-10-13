@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ce2dotmtwtr2m"
-path.s3tc="res://.godot/imported/anillo_piedra_stone+ring+3d+model_basecolor.jpg-462046f9de2ddc852f500badec7128ae.s3tc.ctex"
+path.s3tc="res://.godot/imported/anillo_piedra_stone+ring+3d+model_basecolor.jpg-7a48d36a4124857ae8cd5317a6edbaad.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/anillo_piedra_stone+ring+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/anillo_piedra_stone+ring+3d+model_basecolor.jpg-462046f9de2ddc852f500badec7128ae.s3tc.ctex"]
+source_file="res://presentacion/vfx/anillo_piedra_stone+ring+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/anillo_piedra_stone+ring+3d+model_basecolor.jpg-7a48d36a4124857ae8cd5317a6edbaad.s3tc.ctex"]
 
 [params]
 

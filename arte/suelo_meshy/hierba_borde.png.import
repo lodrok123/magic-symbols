@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://si3unylrsm45"
-path.s3tc="res://.godot/imported/hierba_borde.png-2ed4af856f5eb3edad4da835c6b4dc4a.s3tc.ctex"
+path.s3tc="res://.godot/imported/hierba_borde.png-e87990ab44dccc45b2cb321c3becdf95.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/hierba_borde.png"
-dest_files=["res://.godot/imported/hierba_borde.png-2ed4af856f5eb3edad4da835c6b4dc4a.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/hierba_borde.png"
+dest_files=["res://.godot/imported/hierba_borde.png-e87990ab44dccc45b2cb321c3becdf95.s3tc.ctex"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cjv3o85b4rs20"
-path="res://.godot/imported/ranger_human.glb-9406a7b47b4b9c111c315d3fdff5fd04.scn"
+path="res://.godot/imported/ranger_human.glb-f778c9ea239fae5923b1a48d8765e9c3.scn"
 
 [deps]
 
-source_file="res://poc_25d/ranger_human.glb"
-dest_files=["res://.godot/imported/ranger_human.glb-9406a7b47b4b9c111c315d3fdff5fd04.scn"]
+source_file="res://arte/modelos/ranger_human.glb"
+dest_files=["res://.godot/imported/ranger_human.glb-f778c9ea239fae5923b1a48d8765e9c3.scn"]
 
 [params]
 

@@ -18,7 +18,7 @@ extends Area2D
 signal ardiendo
 signal quemado
 
-const FIRE_RUNE: RuneData = preload("res://fire_rune.tres")
+const FIRE_RUNE: RuneData = preload("res://nucleo/fire_rune.tres")
 const GRUPO: String = "flammable"
 const RADIO_CONTAGIO: float = 110.0
 const RADIO_VIENTO: float = 230.0

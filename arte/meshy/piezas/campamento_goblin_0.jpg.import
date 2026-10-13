@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hv3es5qmr8qq"
-path.s3tc="res://.godot/imported/campamento_goblin_0.jpg-e86f4471d09fe305639d0d1ab7798462.s3tc.ctex"
+path.s3tc="res://.godot/imported/campamento_goblin_0.jpg-29430b12a437cbe2a675b58a12cd533b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/campamento_goblin_0.jpg"
-dest_files=["res://.godot/imported/campamento_goblin_0.jpg-e86f4471d09fe305639d0d1ab7798462.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/campamento_goblin_0.jpg"
+dest_files=["res://.godot/imported/campamento_goblin_0.jpg-29430b12a437cbe2a675b58a12cd533b.s3tc.ctex"]
 
 [params]
 

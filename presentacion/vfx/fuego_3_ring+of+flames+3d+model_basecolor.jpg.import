@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4gn3262ri17l"
-path.s3tc="res://.godot/imported/fuego_3_ring+of+flames+3d+model_basecolor.jpg-54c3ef9100b0bd0eca964bd25fbf9aa9.s3tc.ctex"
+path.s3tc="res://.godot/imported/fuego_3_ring+of+flames+3d+model_basecolor.jpg-36e075639468bfc6d996fbfcb69694a2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/fuego_3_ring+of+flames+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/fuego_3_ring+of+flames+3d+model_basecolor.jpg-54c3ef9100b0bd0eca964bd25fbf9aa9.s3tc.ctex"]
+source_file="res://presentacion/vfx/fuego_3_ring+of+flames+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/fuego_3_ring+of+flames+3d+model_basecolor.jpg-36e075639468bfc6d996fbfcb69694a2.s3tc.ctex"]
 
 [params]
 

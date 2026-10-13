@@ -8,7 +8,7 @@ extends Area2D
 signal lit
 signal extinguished
 
-const FIRE_RUNE: RuneData = preload("res://fire_rune.tres")
+const FIRE_RUNE: RuneData = preload("res://nucleo/fire_rune.tres")
 
 @export var start_lit: bool = true
 @export var escala: float = 1.0

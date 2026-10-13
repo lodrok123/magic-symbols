@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cm6kjqc1acyh3"
-path="res://.godot/imported/grimorio_2.glb-d1623de0ff8bbba4cf42ed0959fe38c1.scn"
+path="res://.godot/imported/grimorio_2.glb-ca6cd0ef7293a1ff0aa74c4f034093d2.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/grimorio_2.glb"
-dest_files=["res://.godot/imported/grimorio_2.glb-d1623de0ff8bbba4cf42ed0959fe38c1.scn"]
+source_file="res://arte/equipo/grimorio_2.glb"
+dest_files=["res://.godot/imported/grimorio_2.glb-ca6cd0ef7293a1ff0aa74c4f034093d2.scn"]
 
 [params]
 

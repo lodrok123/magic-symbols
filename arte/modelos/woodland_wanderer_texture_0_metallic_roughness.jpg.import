@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dntftgr5ixa8n"
-path.s3tc="res://.godot/imported/woodland_wanderer_texture_0_metallic_roughness.jpg-3d0c325a2bc68d69fdc5c3ebaedf6cd3.s3tc.ctex"
+path.s3tc="res://.godot/imported/woodland_wanderer_texture_0_metallic_roughness.jpg-cb1e69f4c4347a2f1d0d2cda4d4717ab.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/woodland_wanderer_texture_0_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/woodland_wanderer_texture_0_metallic_roughness.jpg-3d0c325a2bc68d69fdc5c3ebaedf6cd3.s3tc.ctex"]
+source_file="res://arte/modelos/woodland_wanderer_texture_0_metallic_roughness.jpg"
+dest_files=["res://.godot/imported/woodland_wanderer_texture_0_metallic_roughness.jpg-cb1e69f4c4347a2f1d0d2cda4d4717ab.s3tc.ctex"]
 
 [params]
 

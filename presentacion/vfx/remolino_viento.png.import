@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dw48hap78wu25"
-path.s3tc="res://.godot/imported/remolino_viento.png-ddaae55e94720005da039d6db885b52a.s3tc.ctex"
+path.s3tc="res://.godot/imported/remolino_viento.png-b3156e42521c7041637c99963053044d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/remolino_viento.png"
-dest_files=["res://.godot/imported/remolino_viento.png-ddaae55e94720005da039d6db885b52a.s3tc.ctex"]
+source_file="res://presentacion/vfx/remolino_viento.png"
+dest_files=["res://.godot/imported/remolino_viento.png-b3156e42521c7041637c99963053044d.s3tc.ctex"]
 
 [params]
 

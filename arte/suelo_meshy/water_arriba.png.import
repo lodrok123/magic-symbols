@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://divvbinpjv05u"
-path.s3tc="res://.godot/imported/water_arriba.png-da0caf9321de3da674d55d9f32c1b01b.s3tc.ctex"
+path.s3tc="res://.godot/imported/water_arriba.png-0be5915d62a39965b03b081efd7fa3de.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/water_arriba.png"
-dest_files=["res://.godot/imported/water_arriba.png-da0caf9321de3da674d55d9f32c1b01b.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/water_arriba.png"
+dest_files=["res://.godot/imported/water_arriba.png-0be5915d62a39965b03b081efd7fa3de.s3tc.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hncuyx8kpkeg"
-path.s3tc="res://.godot/imported/chibi_elf_Image_0.jpg-c3c35a036e1c4fadd56af2f682db7fcf.s3tc.ctex"
+path.s3tc="res://.godot/imported/chibi_elf_Image_0.jpg-3214671b35d08139b94629a0c55b0d7e.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/chibi_elf_Image_0.jpg"
-dest_files=["res://.godot/imported/chibi_elf_Image_0.jpg-c3c35a036e1c4fadd56af2f682db7fcf.s3tc.ctex"]
+source_file="res://arte/modelos/chibi_elf_Image_0.jpg"
+dest_files=["res://.godot/imported/chibi_elf_Image_0.jpg-3214671b35d08139b94629a0c55b0d7e.s3tc.ctex"]
 
 [params]
 

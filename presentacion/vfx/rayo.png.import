@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxg38if4x7r3t"
-path.s3tc="res://.godot/imported/rayo.png-78f04737d8f69979f06a0f4d12f933ad.s3tc.ctex"
+path.s3tc="res://.godot/imported/rayo.png-c78dbc30421315b7f582873da2236ac1.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/rayo.png"
-dest_files=["res://.godot/imported/rayo.png-78f04737d8f69979f06a0f4d12f933ad.s3tc.ctex"]
+source_file="res://presentacion/vfx/rayo.png"
+dest_files=["res://.godot/imported/rayo.png-c78dbc30421315b7f582873da2236ac1.s3tc.ctex"]
 
 [params]
 

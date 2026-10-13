@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c15k3gy47mval"
-path.s3tc="res://.godot/imported/magia_0.jpg-30a7335ef556749c957179517e7bd8fe.s3tc.ctex"
+path.s3tc="res://.godot/imported/magia_0.jpg-779c8eba8eea8f4fcd370886e3bb6024.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/magia_0.jpg"
-dest_files=["res://.godot/imported/magia_0.jpg-30a7335ef556749c957179517e7bd8fe.s3tc.ctex"]
+source_file="res://arte/meshy/magia_0.jpg"
+dest_files=["res://.godot/imported/magia_0.jpg-779c8eba8eea8f4fcd370886e3bb6024.s3tc.ctex"]
 
 [params]
 

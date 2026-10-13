@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dtt3g58w13ytw"
-path="res://.godot/imported/anillo_piedra.glb-01d5dc12edf3d74be0d646652842ed08.scn"
+path="res://.godot/imported/anillo_piedra.glb-ed96882286205271f3aa9917e246b6cc.scn"
 
 [deps]
 
-source_file="res://poc_25d/vfx/anillo_piedra.glb"
-dest_files=["res://.godot/imported/anillo_piedra.glb-01d5dc12edf3d74be0d646652842ed08.scn"]
+source_file="res://presentacion/vfx/anillo_piedra.glb"
+dest_files=["res://.godot/imported/anillo_piedra.glb-ed96882286205271f3aa9917e246b6cc.scn"]
 
 [params]
 

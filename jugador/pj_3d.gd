@@ -2,7 +2,7 @@ class_name Pj3D
 extends Node3D
 
 ## Un personaje del pipeline como modelo 3D vivo (la chibi, hero_v2...). Sin sprites ni atlas:
-## se carga el GLB maestro de res://poc_25d/<id>.glb, se apoya en el suelo y se anima con el
+## se carga el GLB maestro de res://arte/modelos/<id>.glb, se apoya en el suelo y se anima con el
 ## AnimationPlayer del propio modelo. Se gira libremente hacia donde se mueve (no hay 8 filas).
 
 const SINONIMOS: Dictionary = {
@@ -122,7 +122,7 @@ var _chispas: Node3D = null      ## BoneAttachment3D con las partículas de la m
 
 func cargar(p_id: String) -> bool:
 	id = p_id
-	var ruta: String = "res://poc_25d/%s.glb" % glb_de(id)
+	var ruta: String = "res://arte/modelos/%s.glb" % glb_de(id)
 	if not ResourceLoader.exists(ruta):
 		push_warning("Pj3D: falta %s. Ejecuta poc_25d\\COPIAR_MODELOS.cmd y abre Godot para que lo importe." % ruta)
 		return false

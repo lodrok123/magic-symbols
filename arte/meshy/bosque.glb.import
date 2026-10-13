@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b7ngl7ryxp051"
-path="res://.godot/imported/bosque.glb-ea6e5937b691787e4c85ee0c1e699555.scn"
+path="res://.godot/imported/bosque.glb-e69ee6f1337e7f7e91f0ba62b2865944.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/bosque.glb"
-dest_files=["res://.godot/imported/bosque.glb-ea6e5937b691787e4c85ee0c1e699555.scn"]
+source_file="res://arte/meshy/bosque.glb"
+dest_files=["res://.godot/imported/bosque.glb-e69ee6f1337e7f7e91f0ba62b2865944.scn"]
 
 [params]
 

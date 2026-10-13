@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bj4up0bt1bvch"
-path.s3tc="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg-284aca38d66cce3fd662df8745b6814a.s3tc.ctex"
+path.s3tc="res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg-ecddbbcf0e6234262fbb66ff5b6b99a6.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/niveles/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg"
-dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg-284aca38d66cce3fd662df8745b6814a.s3tc.ctex"]
+source_file="res://mundo/datos_nivel/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg"
+dest_files=["res://.godot/imported/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg-ecddbbcf0e6234262fbb66ff5b6b99a6.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/niveles/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg"
+roughness/src_normal="res://mundo/datos_nivel/Meshy_AI_Wolfwood_Ranger_biped_Animation_Idle_8_withSkin_Image_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

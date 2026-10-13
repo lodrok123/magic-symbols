@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c7rsvkhq35qs1"
-path.s3tc="res://.godot/imported/grimorio_2_2.jpg-e6a72d1075026f2e1e6920a389ba77f0.s3tc.ctex"
+path.s3tc="res://.godot/imported/grimorio_2_2.jpg-7296f88471fcf2cb047170be707eebf4.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/equipo/grimorio_2_2.jpg"
-dest_files=["res://.godot/imported/grimorio_2_2.jpg-e6a72d1075026f2e1e6920a389ba77f0.s3tc.ctex"]
+source_file="res://arte/equipo/grimorio_2_2.jpg"
+dest_files=["res://.godot/imported/grimorio_2_2.jpg-7296f88471fcf2cb047170be707eebf4.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/equipo/grimorio_2_2.jpg"
+roughness/src_normal="res://arte/equipo/grimorio_2_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

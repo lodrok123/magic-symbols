@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://bvs6v52uuhiyd"]
 
-[ext_resource type="PackedScene" uid="uid://c2hxvjqdq8hyu" path="res://poc_25d/meshy/piezas/puesto.glb" id="1_x34dl"]
-[ext_resource type="Texture2D" uid="uid://dpu7mkpryoxr5" path="res://poc_25d/meshy/piezas/puesto_0.jpg" id="2_wqyoc"]
+[ext_resource type="PackedScene" uid="uid://c2hxvjqdq8hyu" path="res://arte/meshy/piezas/puesto.glb" id="1_x34dl"]
+[ext_resource type="Texture2D" uid="uid://dpu7mkpryoxr5" path="res://arte/meshy/piezas/puesto_0.jpg" id="2_wqyoc"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k8tdo"]
 resource_name = "tripo_mat_b1d18b89-82c0-4869-a5d5-683d6e5ddf25"

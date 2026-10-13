@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://72qeld4xme84"
-path="res://.godot/imported/anillo_fuego.glb-0da93b00ba5625559ed97684f5aefa98.scn"
+path="res://.godot/imported/anillo_fuego.glb-7490429bddb5a5bb3bab7225e01a6d03.scn"
 
 [deps]
 
-source_file="res://poc_25d/vfx/anillo_fuego.glb"
-dest_files=["res://.godot/imported/anillo_fuego.glb-0da93b00ba5625559ed97684f5aefa98.scn"]
+source_file="res://presentacion/vfx/anillo_fuego.glb"
+dest_files=["res://.godot/imported/anillo_fuego.glb-7490429bddb5a5bb3bab7225e01a6d03.scn"]
 
 [params]
 

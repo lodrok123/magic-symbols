@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://xn28lwpo3vfm"
-path.s3tc="res://.godot/imported/roca_mediana.png-ba188461e31350c8e287f4faf5e91341.s3tc.ctex"
+path.s3tc="res://.godot/imported/roca_mediana.png-daa5c594fdddc307102a230d851c7255.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/roca_mediana.png"
-dest_files=["res://.godot/imported/roca_mediana.png-ba188461e31350c8e287f4faf5e91341.s3tc.ctex"]
+source_file="res://presentacion/vfx/roca_mediana.png"
+dest_files=["res://.godot/imported/roca_mediana.png-daa5c594fdddc307102a230d851c7255.s3tc.ctex"]
 
 [params]
 

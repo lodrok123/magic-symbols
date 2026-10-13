@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d1n5ugy4rqcy5"
-path="res://.godot/imported/runa_suelo_fuego.png-70e6961953573f474c3827d06b8bcabf.ctex"
+path="res://.godot/imported/runa_suelo_fuego.png-30379294e474f8baee6a28c91fc82915.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/vfx/runas/runa_suelo_fuego.png"
-dest_files=["res://.godot/imported/runa_suelo_fuego.png-70e6961953573f474c3827d06b8bcabf.ctex"]
+source_file="res://presentacion/vfx/runas/runa_suelo_fuego.png"
+dest_files=["res://.godot/imported/runa_suelo_fuego.png-30379294e474f8baee6a28c91fc82915.ctex"]
 
 [params]
 

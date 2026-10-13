@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cfh6nhty5nnpa"
-path="res://.godot/imported/ruinas_agua.glb-11207a1026fdb96e0350bda466c4365b.scn"
+path="res://.godot/imported/ruinas_agua.glb-32d47d46d2940c8c83c92382b1f84164.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/ruinas_agua.glb"
-dest_files=["res://.godot/imported/ruinas_agua.glb-11207a1026fdb96e0350bda466c4365b.scn"]
+source_file="res://arte/meshy/piezas/ruinas_agua.glb"
+dest_files=["res://.godot/imported/ruinas_agua.glb-32d47d46d2940c8c83c92382b1f84164.scn"]
 
 [params]
 

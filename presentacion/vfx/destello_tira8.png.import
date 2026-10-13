@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bijupccus8tkp"
-path="res://.godot/imported/destello_tira8.png-fff17620260ede37d0a9cd73fb92cd78.ctex"
+path="res://.godot/imported/destello_tira8.png-619d257eb83d99135431f8b8d72e52ec.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/vfx/destello_tira8.png"
-dest_files=["res://.godot/imported/destello_tira8.png-fff17620260ede37d0a9cd73fb92cd78.ctex"]
+source_file="res://presentacion/vfx/destello_tira8.png"
+dest_files=["res://.godot/imported/destello_tira8.png-619d257eb83d99135431f8b8d72e52ec.ctex"]
 
 [params]
 

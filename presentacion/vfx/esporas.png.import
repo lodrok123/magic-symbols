@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://qnpw3wxtyr4x"
-path.s3tc="res://.godot/imported/esporas.png-eee44257fc3a9599ac4fd8ce9dcb71cd.s3tc.ctex"
+path.s3tc="res://.godot/imported/esporas.png-de3f6953d189e94ae367fe86b198aeee.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/esporas.png"
-dest_files=["res://.godot/imported/esporas.png-eee44257fc3a9599ac4fd8ce9dcb71cd.s3tc.ctex"]
+source_file="res://presentacion/vfx/esporas.png"
+dest_files=["res://.godot/imported/esporas.png-de3f6953d189e94ae367fe86b198aeee.s3tc.ctex"]
 
 [params]
 

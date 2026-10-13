@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bo8r4py8rb2y6"
-path.s3tc="res://.godot/imported/telarana_base_tree+stump+3d+model_basecolor.jpg-e25e9127c3554ed28a64d7334c2e1999.s3tc.ctex"
+path.s3tc="res://.godot/imported/telarana_base_tree+stump+3d+model_basecolor.jpg-36c1b2f2317b74fb0ca7771d62dd4b1b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/telarana/telarana_base_tree+stump+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/telarana_base_tree+stump+3d+model_basecolor.jpg-e25e9127c3554ed28a64d7334c2e1999.s3tc.ctex"]
+source_file="res://arte/meshy/telarana/telarana_base_tree+stump+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/telarana_base_tree+stump+3d+model_basecolor.jpg-36c1b2f2317b74fb0ca7771d62dd4b1b.s3tc.ctex"]
 
 [params]
 

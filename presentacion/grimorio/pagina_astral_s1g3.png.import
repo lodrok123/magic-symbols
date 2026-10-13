@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cfxlv7l40ggqy"
-path="res://.godot/imported/pagina_astral_s1g3.png-80014690b86ce385d829040058c3b51d.ctex"
+path="res://.godot/imported/pagina_astral_s1g3.png-92ce14c98a704737f84ab61f1126855d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/grimorio/pagina_astral_s1g3.png"
-dest_files=["res://.godot/imported/pagina_astral_s1g3.png-80014690b86ce385d829040058c3b51d.ctex"]
+source_file="res://presentacion/grimorio/pagina_astral_s1g3.png"
+dest_files=["res://.godot/imported/pagina_astral_s1g3.png-92ce14c98a704737f84ab61f1126855d.ctex"]
 
 [params]
 

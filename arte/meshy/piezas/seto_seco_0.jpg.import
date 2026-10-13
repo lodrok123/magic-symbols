@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1t7k1uxowtp6"
-path.s3tc="res://.godot/imported/seto_seco_0.jpg-17f53d57f8ed1035d53ae6ca7bf9b03f.s3tc.ctex"
+path.s3tc="res://.godot/imported/seto_seco_0.jpg-82a9885a34bd51d8008395f61b1138ca.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/seto_seco_0.jpg"
-dest_files=["res://.godot/imported/seto_seco_0.jpg-17f53d57f8ed1035d53ae6ca7bf9b03f.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/seto_seco_0.jpg"
+dest_files=["res://.godot/imported/seto_seco_0.jpg-82a9885a34bd51d8008395f61b1138ca.s3tc.ctex"]
 
 [params]
 

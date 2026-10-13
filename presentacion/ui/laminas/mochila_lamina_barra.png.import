@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://boarhdl0x7cmu"
-path="res://.godot/imported/mochila_lamina_barra.png-ab54a2ae9637e881f170ab27c013d6fb.ctex"
+path="res://.godot/imported/mochila_lamina_barra.png-ecbc79e966cd4c047b00d9ba751c6446.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/ui/mochila_lamina_barra.png"
-dest_files=["res://.godot/imported/mochila_lamina_barra.png-ab54a2ae9637e881f170ab27c013d6fb.ctex"]
+source_file="res://presentacion/ui/laminas/mochila_lamina_barra.png"
+dest_files=["res://.godot/imported/mochila_lamina_barra.png-ecbc79e966cd4c047b00d9ba751c6446.ctex"]
 
 [params]
 

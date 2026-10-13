@@ -1,6 +1,6 @@
 extends Area2D
 
-const FIRE_RUNE: RuneData = preload("res://fire_rune.tres")
+const FIRE_RUNE: RuneData = preload("res://nucleo/fire_rune.tres")
 
 ## La hierba es el único bloque que cambia de TEXTURA y no solo de
 ## tinte: crecida es una mata alta, no la misma hierba más oscura.

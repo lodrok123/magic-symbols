@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cnpxiptognmgx"
-path.s3tc="res://.godot/imported/llama_pequena.png-e0c3cd3ff1bedd8c955bd4e262b6f9b0.s3tc.ctex"
+path.s3tc="res://.godot/imported/llama_pequena.png-314c55fd856abda3f79f92e192f5a9f6.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/llama_pequena.png"
-dest_files=["res://.godot/imported/llama_pequena.png-e0c3cd3ff1bedd8c955bd4e262b6f9b0.s3tc.ctex"]
+source_file="res://presentacion/vfx/llama_pequena.png"
+dest_files=["res://.godot/imported/llama_pequena.png-314c55fd856abda3f79f92e192f5a9f6.s3tc.ctex"]
 
 [params]
 

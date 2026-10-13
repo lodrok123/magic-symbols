@@ -19,7 +19,7 @@ extends Node3D
 
 signal impacto(elemento: String, punto: Vector3)
 
-const SUELO_TIERRA: String = "res://poc_25d/suelo_meshy/dirt_arriba.png"
+const SUELO_TIERRA: String = "res://arte/suelo_meshy/dirt_arriba.png"
 const ELEMENTOS: Array = ["fuego", "agua", "tierra", "viento", "rayo", "hielo"]
 ## Formas de un hechizo (la matriz receta -> forma de DISENO_FUTURO §3 reducida a lo que necesita el Test 3).
 ## proyectil = vuela hasta el punto · corro = anillo de manifestaciones alrededor del punto ·
@@ -165,7 +165,7 @@ func _lenguas(raiz: Node3D, n: int, ancho: float, esc_min: float, esc_max: float
 
 
 ## Esporas flotando (las plantas reactivas): motas 3D verdosas.
-const GRIETAS_TEX: String = "res://poc_25d/vfx/grietas_impacto.png"
+const GRIETAS_TEX: String = "res://presentacion/vfx/grietas_impacto.png"
 
 
 ## Grietas en el suelo donde cae el puñetazo del elemental de bosque: una imagen plana (círculo de tierra agrietada con
@@ -695,7 +695,7 @@ func _acompanante(elemento: String, pie_origen: Vector3, pie_destino: Vector3, d
 ## `lanzar_forma("onda" o "corro", elemento, pie_origen, centro, {"crece": true, "radio": r, "dura": 1.6, "rompe": true})`.
 ## Un aro nace pequeño y bajo en `centro` (el jugador), crece hasta `radio` y se completa (65 % de `dura`), se queda un momento y se
 ## apaga (fluido: se hunde y se hace ceniza) o se ROMPE (`rompe`, solo tierra y hielo: caen los fragmentos). Es solo la imagen.
-const ANILLO_FUEGO: String = "res://poc_25d/vfx/anillo_fuego.glb"
+const ANILLO_FUEGO: String = "res://presentacion/vfx/anillo_fuego.glb"
 static var _f_malla: Mesh = null
 static var _f_radio: float = 1.0
 static var _f_alto: float = 0.5
@@ -730,8 +730,8 @@ func _cargar_fuego() -> bool:
 ## abre, así el fuego "prende" en vez de estirarse. Las texturas de Tripo salen pálidas y rosadas, así que el color lo pone
 ## un shader por ALTURA (amarillo claro abajo → naranja → rojo en las puntas, la paleta de `pared_fuego`) y la textura solo
 ## aporta el sombreado. Si falta alguno de los .glb se usa `anillo_fuego.glb` como antes.
-const FUEGO_ETAPAS: Array = ["res://poc_25d/vfx/fuego_1.glb", "res://poc_25d/vfx/fuego_2.glb",
-	"res://poc_25d/vfx/fuego_3.glb", "res://poc_25d/vfx/fuego_4.glb"]
+const FUEGO_ETAPAS: Array = ["res://presentacion/vfx/fuego_1.glb", "res://presentacion/vfx/fuego_2.glb",
+	"res://presentacion/vfx/fuego_3.glb", "res://presentacion/vfx/fuego_4.glb"]
 const ALTO_ETAPA_MAX: float = 0.62
 const CODIGO_FUEGO_ETAPAS: String = """
 shader_type spatial;
@@ -1421,7 +1421,7 @@ func _tallo(nombre: String, suelo: Vector3, ancho: float, alto: float, color: Co
 ## Un anillo de rocas de 1 x 0,41 x 1 (radio medio 0,38, base en y = 0). El CORRO de tierra es el anillo entero; el MURO de
 ## tierra son tramos de ese mismo anillo DESENROLLADOS (un sector del círculo estirado en recta), así las dos formas llevan las
 ## mismas rocas. Si falta el .glb se usan los bloques de tierra de siempre.
-const ANILLO_PIEDRA: String = "res://poc_25d/vfx/anillo_piedra.glb"
+const ANILLO_PIEDRA: String = "res://presentacion/vfx/anillo_piedra.glb"
 const R_PIEDRA: float = 0.38
 const ALTO_PIEDRA: float = 0.41
 static var _p_anillo: Mesh = null
@@ -1528,7 +1528,7 @@ func _roca(malla: Mesh, suelo: Vector3, giro: float, lleno: Vector3, retraso: fl
 ## Una cúpula de 1 x 0,78 x 1 (radio 0,49, base en y = 0) con ramas de rayo en relieve. El CORRO de rayo es la cúpula entera sobre
 ## el área; el MURO son dos tramos de esa cúpula aplanados en un panel. El material es un shader propio (sin luz, translúcido):
 ## borde azul brillante por fresnel, bruma azul que se mueve por dentro y tramos que se encienden de golpe en blanco.
-const ENERGIA: String = "res://poc_25d/vfx/anillo_energia.glb"
+const ENERGIA: String = "res://presentacion/vfx/anillo_energia.glb"
 const R_ENERGIA: float = 0.49
 const ALTO_ENERGIA: float = 0.78
 const CODIGO_ENERGIA: String = """

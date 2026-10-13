@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://b73hwnyih2g2o"
-path="res://.godot/imported/mercado.glb-d784a5d1521283cf4aba235d816a881e.scn"
+path="res://.godot/imported/mercado.glb-d3043e220d062def95b0b083537434bc.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/mercado.glb"
-dest_files=["res://.godot/imported/mercado.glb-d784a5d1521283cf4aba235d816a881e.scn"]
+source_file="res://arte/meshy/mercado.glb"
+dest_files=["res://.godot/imported/mercado.glb-d3043e220d062def95b0b083537434bc.scn"]
 
 [params]
 

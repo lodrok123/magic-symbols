@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dyfdu8e5or3ai"
-path.s3tc="res://.godot/imported/losas_piedra.png-09512d2ad47f5907dd13f1c77089dcc4.s3tc.ctex"
+path.s3tc="res://.godot/imported/losas_piedra.png-5dbc06e2a4a9526621c9f18bee5940d9.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/losas_piedra.png"
-dest_files=["res://.godot/imported/losas_piedra.png-09512d2ad47f5907dd13f1c77089dcc4.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/losas_piedra.png"
+dest_files=["res://.godot/imported/losas_piedra.png-5dbc06e2a4a9526621c9f18bee5940d9.s3tc.ctex"]
 
 [params]
 

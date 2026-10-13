@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://o18g4g3acyq7"
-path.s3tc="res://.godot/imported/ondas.png-ad4eef2072884110815aafa82e03d82b.s3tc.ctex"
+path.s3tc="res://.godot/imported/ondas.png-083e0743367083608145f9511a410c19.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/ondas.png"
-dest_files=["res://.godot/imported/ondas.png-ad4eef2072884110815aafa82e03d82b.s3tc.ctex"]
+source_file="res://presentacion/vfx/ondas.png"
+dest_files=["res://.godot/imported/ondas.png-083e0743367083608145f9511a410c19.s3tc.ctex"]
 
 [params]
 

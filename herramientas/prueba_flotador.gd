@@ -1,6 +1,6 @@
 extends SceneTree
 ## Pruebas de Flotador3D (11.6) y del enchufe de AguaSim3D al Lanzador (11.3), sin ventana. Lo escribe el Juego.
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_flotador.gd
+##   godot --headless --path . --script res://herramientas/prueba_flotador.gd
 ## Termina con «FALLOS: n».
 
 class MundoFalso extends Node3D:

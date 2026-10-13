@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d2ewqr4mwl6q3"
-path.s3tc="res://.godot/imported/enredadera_espinosa_material_0_orm.jpg-9aa51153060dbe7f37c3ca584be46f8c.s3tc.ctex"
+path.s3tc="res://.godot/imported/enredadera_espinosa_material_0_orm.jpg-be0e52738fe36a8b2a5f25c5cdad36df.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/enredadera/enredadera_espinosa_material_0_orm.jpg"
-dest_files=["res://.godot/imported/enredadera_espinosa_material_0_orm.jpg-9aa51153060dbe7f37c3ca584be46f8c.s3tc.ctex"]
+source_file="res://arte/meshy/enredadera/enredadera_espinosa_material_0_orm.jpg"
+dest_files=["res://.godot/imported/enredadera_espinosa_material_0_orm.jpg-be0e52738fe36a8b2a5f25c5cdad36df.s3tc.ctex"]
 
 [params]
 

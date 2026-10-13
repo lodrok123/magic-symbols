@@ -17,7 +17,7 @@ extends Area2D
 ## cerradura de una sola llave sería justo lo contrario de lo que hace el
 ## resto del juego.
 
-const LIGHTNING_RUNE: RuneData = preload("res://lightning_rune.tres")
+const LIGHTNING_RUNE: RuneData = preload("res://nucleo/lightning_rune.tres")
 
 ## Lo que aguanta abierta. Es el mando de dificultad de cualquier puzle
 ## que la use: con 4 s se cruza desde la orilla de enfrente si no te

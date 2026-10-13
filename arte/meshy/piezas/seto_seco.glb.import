@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dihw6n4xff842"
-path="res://.godot/imported/seto_seco.glb-f7e90c8c9f77b1b691b3b482e405e424.scn"
+path="res://.godot/imported/seto_seco.glb-340ad409b10806cfb09b4aaf973bcd29.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/seto_seco.glb"
-dest_files=["res://.godot/imported/seto_seco.glb-f7e90c8c9f77b1b691b3b482e405e424.scn"]
+source_file="res://arte/meshy/piezas/seto_seco.glb"
+dest_files=["res://.godot/imported/seto_seco.glb-340ad409b10806cfb09b4aaf973bcd29.scn"]
 
 [params]
 

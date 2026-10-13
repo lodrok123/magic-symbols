@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bb81giv6dg8q8"
-path.s3tc="res://.godot/imported/fuego_1_fire-1_basecolor.jpg-6619860baba3192caf307775e73be3d7.s3tc.ctex"
+path.s3tc="res://.godot/imported/fuego_1_fire-1_basecolor.jpg-7681ddf118dc9685ac0776d9a3c94cad.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/fuego_1_fire-1_basecolor.jpg"
-dest_files=["res://.godot/imported/fuego_1_fire-1_basecolor.jpg-6619860baba3192caf307775e73be3d7.s3tc.ctex"]
+source_file="res://presentacion/vfx/fuego_1_fire-1_basecolor.jpg"
+dest_files=["res://.godot/imported/fuego_1_fire-1_basecolor.jpg-7681ddf118dc9685ac0776d9a3c94cad.s3tc.ctex"]
 
 [params]
 

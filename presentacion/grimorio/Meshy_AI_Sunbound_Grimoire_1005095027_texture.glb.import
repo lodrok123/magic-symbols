@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dnvmfjkq6fa21"
-path="res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb-f10a321f998fd6cfbabe36a3412b88bc.scn"
+path="res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb-7b21a09a998cbc33fb958ce11394f99e.scn"
 
 [deps]
 
-source_file="res://poc_25d/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb"
-dest_files=["res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb-f10a321f998fd6cfbabe36a3412b88bc.scn"]
+source_file="res://presentacion/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb"
+dest_files=["res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture.glb-7b21a09a998cbc33fb958ce11394f99e.scn"]
 
 [params]
 

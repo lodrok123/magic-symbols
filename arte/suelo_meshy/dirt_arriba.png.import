@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://p3kln61m13va"
-path.s3tc="res://.godot/imported/dirt_arriba.png-27c329c7ebb4aca26959dc81429162fa.s3tc.ctex"
+path.s3tc="res://.godot/imported/dirt_arriba.png-4c3dfc02a412e00942553dfbb294d5a5.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/suelo_meshy/dirt_arriba.png"
-dest_files=["res://.godot/imported/dirt_arriba.png-27c329c7ebb4aca26959dc81429162fa.s3tc.ctex"]
+source_file="res://arte/suelo_meshy/dirt_arriba.png"
+dest_files=["res://.godot/imported/dirt_arriba.png-4c3dfc02a412e00942553dfbb294d5a5.s3tc.ctex"]
 
 [params]
 

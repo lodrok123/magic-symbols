@@ -32,8 +32,8 @@ signal deshecha
 
 enum Fase { OCULTA, BROTANDO, VIVA, ARDIENDO, QUEMADA, DESHACIENDO, DESHECHA }
 
-const GLB: String = "res://poc_25d/meshy/enredadera/enredadera.glb"
-const GLB_ESPINOSA: String = "res://poc_25d/meshy/enredadera/enredadera_espinosa.glb"
+const GLB: String = "res://arte/meshy/enredadera/enredadera.glb"
+const GLB_ESPINOSA: String = "res://arte/meshy/enredadera/enredadera_espinosa.glb"
 ## Ancho de la malla `viva` tal como viene en cada GLB (para que `ancho` signifique siempre «ancho en el mundo»).
 const ANCHO_BASE: float = 1.0
 const ANCHO_BASE_ESPINOSA: float = 0.767

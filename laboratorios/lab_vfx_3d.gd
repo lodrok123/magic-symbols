@@ -10,13 +10,13 @@ extends Node3D
 ##         + / - zoom · G hierba · L luces de los efectos
 
 ## Las mismas bibliotecas que la maqueta (PruebaTest2): primero las regeneradas sueltas de meshy/piezas/.
-const BIBLIOTECAS: Array = ["res://poc_25d/meshy/arboles_2.glb", "res://poc_25d/meshy/mercado.glb",
-	"res://poc_25d/meshy/bosque.glb", "res://poc_25d/meshy/objetos.glb", "res://poc_25d/meshy/magia.glb"]
-const CARPETA_PIEZAS: String = "res://poc_25d/meshy/piezas/"
+const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/mercado.glb",
+	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb"]
+const CARPETA_PIEZAS: String = "res://arte/meshy/piezas/"
 ## Segundos del aviso "Preparando efectos" al abrir: mientras, se lanza cada elemento una vez para que Godot
 ## compile sus shaders (sin esto, el primer hechizo de cada elemento da un tirón).
 const PRECALENTAR: float = 1.6
-const SUELO: String = "res://poc_25d/suelo_meshy/"
+const SUELO: String = "res://arte/suelo_meshy/"
 const OBJETIVOS: Array = [["dummy", 1.4], ["arbusto_otono", 0.8], ["totem_runico", 1.8], ["tronco", 0.7],
 	["goblin", 0.85]]
 const LANZADOR: Array = ["chibi_elf_v2", "chibi_elf", "chibi_test"]
@@ -80,7 +80,7 @@ func _ready() -> void:
 	_lanzador = Pj3D.new()
 	add_child(_lanzador)
 	for id in LANZADOR:
-		if ResourceLoader.exists("res://poc_25d/%s.glb" % id) and _lanzador.cargar(String(id)):
+		if ResourceLoader.exists("res://arte/modelos/%s.glb" % id) and _lanzador.cargar(String(id)):
 			break
 	_lanzador.set_alto(1.0)
 	_lanzador.rotation.y = PI * 0.5
@@ -100,7 +100,7 @@ func _ready() -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.albedo_texture = load("res://poc_25d/vfx/circulo_runico.png") as Texture2D
+	m.albedo_texture = load("res://presentacion/vfx/circulo_runico.png") as Texture2D
 	m.albedo_color = Color(1, 1, 1, 0.55)
 	q.material = m
 	_marcador.mesh = q
@@ -270,7 +270,7 @@ func _poner_objetivos() -> void:
 		var n: Node3D = null
 		if id == "goblin":
 			for g in ["goblin_warrior_chibi", "goblin_warrior"]:
-				if ResourceLoader.exists("res://poc_25d/%s.glb" % g):
+				if ResourceLoader.exists("res://arte/modelos/%s.glb" % g):
 					var pj := Pj3D.new()
 					add_child(pj)
 					pj.cargar(String(g))

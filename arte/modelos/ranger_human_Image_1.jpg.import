@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxrxq37tw3mdx"
-path.s3tc="res://.godot/imported/ranger_human_Image_1.jpg-cac5435c7c4e1475301884d8853314ae.s3tc.ctex"
+path.s3tc="res://.godot/imported/ranger_human_Image_1.jpg-ed83511e74f827aaec062a04421b4234.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/ranger_human_Image_1.jpg"
-dest_files=["res://.godot/imported/ranger_human_Image_1.jpg-cac5435c7c4e1475301884d8853314ae.s3tc.ctex"]
+source_file="res://arte/modelos/ranger_human_Image_1.jpg"
+dest_files=["res://.godot/imported/ranger_human_Image_1.jpg-ed83511e74f827aaec062a04421b4234.s3tc.ctex"]
 
 [params]
 

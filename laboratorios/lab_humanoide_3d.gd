@@ -132,7 +132,7 @@ func _elegir_personaje(id: String) -> void:
 		_modelo = null
 	_id = id
 	_alto = float(PERSONAJES[id])
-	var ruta: String = "res://poc_25d/%s.glb" % Pj3D.glb_de(id)   # glb_de: igual que el juego (woodland_wanderer = la versión suavizada)
+	var ruta: String = "res://arte/modelos/%s.glb" % Pj3D.glb_de(id)   # glb_de: igual que el juego (woodland_wanderer = la versión suavizada)
 	if not ResourceLoader.exists(ruta):
 		push_warning("LabHumanoide3D: falta " + ruta)
 		return
@@ -471,7 +471,7 @@ func _elegir_comparacion(id2: String) -> void:
 	if id2 == "":
 		_foco.x = 0.0
 		return
-	var ruta: String = "res://poc_25d/%s.glb" % Pj3D.glb_de(id2)
+	var ruta: String = "res://arte/modelos/%s.glb" % Pj3D.glb_de(id2)
 	if not ResourceLoader.exists(ruta):
 		push_warning("LabHumanoide3D: falta " + ruta)
 		return

@@ -12,7 +12,7 @@ extends CanvasLayer
 
 signal abierto_cambiado(abierto: bool)
 
-const CARPETA: String = "res://poc_25d/grimorio/"
+const CARPETA: String = "res://presentacion/grimorio/"
 const ESTILOS: Array = ["botanico", "astral", "acuarela"]
 const DISTRIBUCIONES: Array = ["s1g3", "s2g6"]
 const NOMBRES: Dictionary = {"botanico": "botánico", "astral": "astral", "acuarela": "acuarela",

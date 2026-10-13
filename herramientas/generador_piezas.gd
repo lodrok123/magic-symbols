@@ -12,10 +12,10 @@ extends RefCounted
 ##   o, para hierba y telaraña, un Area3D «zona» sin cuerpo.
 ##
 ## Cómo se usa: en el editor, abrir `poc_25d/herramientas/generar_piezas_editor.gd` y pulsar Archivo → Ejecutar (Ctrl+Shift+X);
-## o desde consola: godot --headless --path . --script res://poc_25d/herramientas/generar_piezas_cli.gd
+## o desde consola: godot --headless --path . --script res://herramientas/generar_piezas_cli.gd
 ## Regenera TODAS las piezas: si Pablo ha retocado una pieza a mano, que la renombre antes (esto sobrescribe).
 
-const CARPETA: String = "res://poc_25d/piezas/"
+const CARPETA: String = "res://arte/piezas/"
 const CAPA_MUNDO: int = 1 << 10          ## capa 11 «MUNDO» (= Lanzador3D.CAPA_SOLIDO)
 
 ## Cómo se hace la colisión de cada pieza:

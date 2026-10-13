@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://cy2hn37ugry6h"]
 
-[ext_resource type="Texture2D" uid="uid://bu8fesfwsflm0" path="res://poc_25d/meshy/mercado_0.jpg" id="1_oden7"]
-[ext_resource type="Texture2D" uid="uid://0fi0ffbrlpn" path="res://poc_25d/meshy/mercado_1.jpg" id="2_x7mbn"]
+[ext_resource type="Texture2D" uid="uid://bu8fesfwsflm0" path="res://arte/meshy/mercado_0.jpg" id="1_oden7"]
+[ext_resource type="Texture2D" uid="uid://0fi0ffbrlpn" path="res://arte/meshy/mercado_1.jpg" id="2_x7mbn"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q3v2r"]
 resource_name = "material_0"

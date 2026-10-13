@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cd0tp2vw00bj7"
-path="res://.godot/imported/campamento_goblin.glb-7dd71b2be95adedc7ac673cee7eb2277.scn"
+path="res://.godot/imported/campamento_goblin.glb-3bd2be90c840b010bfe7b2a78a20c155.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/campamento_goblin.glb"
-dest_files=["res://.godot/imported/campamento_goblin.glb-7dd71b2be95adedc7ac673cee7eb2277.scn"]
+source_file="res://arte/meshy/piezas/campamento_goblin.glb"
+dest_files=["res://.godot/imported/campamento_goblin.glb-3bd2be90c840b010bfe7b2a78a20c155.scn"]
 
 [params]
 

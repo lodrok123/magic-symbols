@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ifvmv8i5pe1m"
-path.s3tc="res://.godot/imported/arbusto_leafy_sphere_3d_model_basecolor.jpg-12a47d5a34da53e50ec034785c583782.s3tc.ctex"
+path.s3tc="res://.godot/imported/arbusto_leafy_sphere_3d_model_basecolor.jpg-1dfd1043b66976221b66f50a7db99197.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg"
-dest_files=["res://.godot/imported/arbusto_leafy_sphere_3d_model_basecolor.jpg-12a47d5a34da53e50ec034785c583782.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/arbusto_leafy_sphere_3d_model_basecolor.jpg-1dfd1043b66976221b66f50a7db99197.s3tc.ctex"]
 
 [params]
 

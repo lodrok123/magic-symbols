@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://g7nxu2eg83p6"]
 
-[ext_resource type="Texture2D" uid="uid://hv3es5qmr8qq" path="res://poc_25d/meshy/piezas/campamento_goblin_0.jpg" id="1_bisla"]
-[ext_resource type="Texture2D" uid="uid://ddb3dmn318gim" path="res://poc_25d/meshy/piezas/campamento_goblin_1.jpg" id="2_eqnwh"]
+[ext_resource type="Texture2D" uid="uid://hv3es5qmr8qq" path="res://arte/meshy/piezas/campamento_goblin_0.jpg" id="1_bisla"]
+[ext_resource type="Texture2D" uid="uid://ddb3dmn318gim" path="res://arte/meshy/piezas/campamento_goblin_1.jpg" id="2_eqnwh"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mkb75"]
 resource_name = "campamento_goblin"

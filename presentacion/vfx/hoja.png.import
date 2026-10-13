@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://0b3oqc7dwfpa"
-path.s3tc="res://.godot/imported/hoja.png-5c6f67dccf859bee4e11116467ff9ce7.s3tc.ctex"
+path.s3tc="res://.godot/imported/hoja.png-05d01a42d5412af94397c04e6dfb5b31.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/hoja.png"
-dest_files=["res://.godot/imported/hoja.png-5c6f67dccf859bee4e11116467ff9ce7.s3tc.ctex"]
+source_file="res://presentacion/vfx/hoja.png"
+dest_files=["res://.godot/imported/hoja.png-05d01a42d5412af94397c04e6dfb5b31.s3tc.ctex"]
 
 [params]
 

@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://b35k8ntbaaiut"]
 
-[ext_resource type="Texture2D" uid="uid://c15k3gy47mval" path="res://poc_25d/meshy/magia_0.jpg" id="1_6hd1g"]
-[ext_resource type="Texture2D" uid="uid://dxonatwga73sx" path="res://poc_25d/meshy/magia_1.jpg" id="2_es4vn"]
+[ext_resource type="Texture2D" uid="uid://c15k3gy47mval" path="res://arte/meshy/magia_0.jpg" id="1_6hd1g"]
+[ext_resource type="Texture2D" uid="uid://dxonatwga73sx" path="res://arte/meshy/magia_1.jpg" id="2_es4vn"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hgp11"]
 resource_name = "material_0"

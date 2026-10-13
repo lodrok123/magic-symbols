@@ -1,5 +1,5 @@
 @tool
-extends "res://poc_25d/prueba_test2.gd"
+extends "res://presentacion/prueba_test2.gd"
 ## VISTA DEL SUELO DEL JUEGO EN EL EDITOR (13/10, Pipeline).
 ##
 ## Va dentro del nivel (p. ej. Nivel_Bosque.tscn, nodo `VistaSuelo`) y SOLO hace algo en el editor: lee el nivel abierto

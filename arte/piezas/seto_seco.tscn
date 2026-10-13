@@ -1,9 +1,9 @@
 [gd_scene format=4 uid="uid://fa0sjvhhmvua"]
 
-[ext_resource type="PackedScene" uid="uid://dihw6n4xff842" path="res://poc_25d/meshy/piezas/seto_seco.glb" id="1_0kutd"]
-[ext_resource type="Texture2D" uid="uid://b1t7k1uxowtp6" path="res://poc_25d/meshy/piezas/seto_seco_0.jpg" id="2_3peyn"]
-[ext_resource type="Texture2D" uid="uid://ug8tjfrc2mgk" path="res://poc_25d/meshy/piezas/seto_seco_1.jpg" id="3_uqal0"]
-[ext_resource type="Texture2D" uid="uid://bp8pi8m31lcig" path="res://poc_25d/meshy/piezas/seto_seco_2.jpg" id="4_snbeb"]
+[ext_resource type="PackedScene" uid="uid://dihw6n4xff842" path="res://arte/meshy/piezas/seto_seco.glb" id="1_0kutd"]
+[ext_resource type="Texture2D" uid="uid://b1t7k1uxowtp6" path="res://arte/meshy/piezas/seto_seco_0.jpg" id="2_3peyn"]
+[ext_resource type="Texture2D" uid="uid://ug8tjfrc2mgk" path="res://arte/meshy/piezas/seto_seco_1.jpg" id="3_uqal0"]
+[ext_resource type="Texture2D" uid="uid://bp8pi8m31lcig" path="res://arte/meshy/piezas/seto_seco_2.jpg" id="4_snbeb"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sven4"]
 resource_name = "material_0"

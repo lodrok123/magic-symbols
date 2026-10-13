@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cyohi5scexj55"
-path="res://.godot/imported/goblin_warrior_chibi.glb-67b8dbaca44db70891f958ef7c9a41d1.scn"
+path="res://.godot/imported/goblin_warrior_chibi.glb-9f732fb3204d88b5ad1171b94dbe7d70.scn"
 
 [deps]
 
-source_file="res://poc_25d/goblin_warrior_chibi.glb"
-dest_files=["res://.godot/imported/goblin_warrior_chibi.glb-67b8dbaca44db70891f958ef7c9a41d1.scn"]
+source_file="res://arte/modelos/goblin_warrior_chibi.glb"
+dest_files=["res://.godot/imported/goblin_warrior_chibi.glb-9f732fb3204d88b5ad1171b94dbe7d70.scn"]
 
 [params]
 

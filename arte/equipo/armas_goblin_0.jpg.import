@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brlt32msi1px1"
-path.s3tc="res://.godot/imported/armas_goblin_0.jpg-92678015df88078692ac9034a5ae8cdb.s3tc.ctex"
+path.s3tc="res://.godot/imported/armas_goblin_0.jpg-5b0ddadda4a15a538a9122f854449754.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/equipo/armas_goblin_0.jpg"
-dest_files=["res://.godot/imported/armas_goblin_0.jpg-92678015df88078692ac9034a5ae8cdb.s3tc.ctex"]
+source_file="res://arte/equipo/armas_goblin_0.jpg"
+dest_files=["res://.godot/imported/armas_goblin_0.jpg-5b0ddadda4a15a538a9122f854449754.s3tc.ctex"]
 
 [params]
 

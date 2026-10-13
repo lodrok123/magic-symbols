@@ -1,7 +1,7 @@
 extends SceneTree
 ## Pruebas de AguaSim3D (Fase 11) sin ventana. Lo escribe el Juego.
 ## Ejecutar desde la carpeta del proyecto:
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_agua_sim.gd
+##   godot --headless --path . --script res://herramientas/prueba_agua_sim.gd
 ## Escribe una línea por comprobación (OK / FALLO) y termina con «FALLOS: n». Son las mismas siete pruebas que pasó el
 ## gemelo en Python antes de escribir el GDScript (12/10): si algo sale distinto aquí, el fallo está en la traducción.
 

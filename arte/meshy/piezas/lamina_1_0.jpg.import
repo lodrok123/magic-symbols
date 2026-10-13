@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://d3pc1mejd0num"
-path.s3tc="res://.godot/imported/lamina_1_0.jpg-e6dac5ea7ced785b594e22415b5e6fc1.s3tc.ctex"
+path.s3tc="res://.godot/imported/lamina_1_0.jpg-9ea450e1cd443c03f4a1f4d4f2f79f29.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/lamina_1_0.jpg"
-dest_files=["res://.godot/imported/lamina_1_0.jpg-e6dac5ea7ced785b594e22415b5e6fc1.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/lamina_1_0.jpg"
+dest_files=["res://.godot/imported/lamina_1_0.jpg-9ea450e1cd443c03f4a1f4d4f2f79f29.s3tc.ctex"]
 
 [params]
 

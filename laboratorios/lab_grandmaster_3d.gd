@@ -14,7 +14,7 @@ extends Node3D
 ## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
 ## Abrir: poc_25d/LabGrandmaster3D.tscn y F6 (no necesita ningún nivel).
 
-const GLB: String = "res://poc_25d/grandmaster.glb"
+const GLB: String = "res://arte/modelos/grandmaster.glb"
 const ALTO: float = 1.7           ## altura natural medida del modelo; aquí se deja a tamaño real para ver bien las proporciones
 const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
 const COLOR_SEL: Color = Color(1.0, 0.85, 0.1)

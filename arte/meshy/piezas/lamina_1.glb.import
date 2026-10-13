@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dkyql37hbaov7"
-path="res://.godot/imported/lamina_1.glb-74a6975a6aef7b67ce79011c401f2ece.scn"
+path="res://.godot/imported/lamina_1.glb-15e50add88319bf4fa51f287b4097703.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/lamina_1.glb"
-dest_files=["res://.godot/imported/lamina_1.glb-74a6975a6aef7b67ce79011c401f2ece.scn"]
+source_file="res://arte/meshy/piezas/lamina_1.glb"
+dest_files=["res://.godot/imported/lamina_1.glb-15e50add88319bf4fa51f287b4097703.scn"]
 
 [params]
 

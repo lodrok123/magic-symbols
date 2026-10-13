@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cckf7whcx1n7"
-path.s3tc="res://.godot/imported/pilar_runico_material_0_albedo.jpg-c4b57c7bc054b4d81bee6ccfdc16657a.s3tc.ctex"
+path.s3tc="res://.godot/imported/pilar_runico_material_0_albedo.jpg-beb146d1e6bc244119b0f92be2fd7aa9.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/puente/pilar_runico_material_0_albedo.jpg"
-dest_files=["res://.godot/imported/pilar_runico_material_0_albedo.jpg-c4b57c7bc054b4d81bee6ccfdc16657a.s3tc.ctex"]
+source_file="res://arte/meshy/puente/pilar_runico_material_0_albedo.jpg"
+dest_files=["res://.godot/imported/pilar_runico_material_0_albedo.jpg-beb146d1e6bc244119b0f92be2fd7aa9.s3tc.ctex"]
 
 [params]
 

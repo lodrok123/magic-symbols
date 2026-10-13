@@ -2,20 +2,17 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7d0h56nccwlt"
-path.s3tc="res://.godot/imported/grimorio_2_1.jpg-c6a49c55d2d3fe0a0ac69429590c8a33.s3tc.ctex"
+uid="uid://cwu2ydsshqlh1"
+path.s3tc="res://.godot/imported/grimorio_2_1.jpg-f64f8ceb679947d3c21cc0c529f18308.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
 }
-generator_parameters={
-"md5": "95beb890839d6a14cceef53a590baafe"
-}
 
 [deps]
 
-source_file="res://poc_25d/equipo/grimorio_2_1.jpg"
-dest_files=["res://.godot/imported/grimorio_2_1.jpg-c6a49c55d2d3fe0a0ac69429590c8a33.s3tc.ctex"]
+source_file="res://arte/equipo/grimorio_2_1.jpg"
+dest_files=["res://.godot/imported/grimorio_2_1.jpg-f64f8ceb679947d3c21cc0c529f18308.s3tc.ctex"]
 
 [params]
 

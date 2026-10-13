@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://o2e1588o7nnn"
-path="res://.godot/imported/bookseller_chibi.glb-642945da7e3d2e3a6b28fffc315ee8e0.scn"
+path="res://.godot/imported/bookseller_chibi.glb-7ac60a409975f101f233bae2c828523c.scn"
 
 [deps]
 
-source_file="res://poc_25d/bookseller_chibi.glb"
-dest_files=["res://.godot/imported/bookseller_chibi.glb-642945da7e3d2e3a6b28fffc315ee8e0.scn"]
+source_file="res://arte/modelos/bookseller_chibi.glb"
+dest_files=["res://.godot/imported/bookseller_chibi.glb-7ac60a409975f101f233bae2c828523c.scn"]
 
 [params]
 

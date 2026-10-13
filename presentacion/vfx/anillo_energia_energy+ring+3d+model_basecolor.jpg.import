@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dtlxywahx5b6j"
-path.s3tc="res://.godot/imported/anillo_energia_energy+ring+3d+model_basecolor.jpg-b0dc9c234c10e36f4f3889c48c4b96be.s3tc.ctex"
+path.s3tc="res://.godot/imported/anillo_energia_energy+ring+3d+model_basecolor.jpg-9759f7265fbe29888157b4551302c246.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/anillo_energia_energy+ring+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/anillo_energia_energy+ring+3d+model_basecolor.jpg-b0dc9c234c10e36f4f3889c48c4b96be.s3tc.ctex"]
+source_file="res://presentacion/vfx/anillo_energia_energy+ring+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/anillo_energia_energy+ring+3d+model_basecolor.jpg-9759f7265fbe29888157b4551302c246.s3tc.ctex"]
 
 [params]
 

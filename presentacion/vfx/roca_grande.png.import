@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dablutuwpj2rp"
-path.s3tc="res://.godot/imported/roca_grande.png-367c45381a91d9e2051a0e4478f60a6d.s3tc.ctex"
+path.s3tc="res://.godot/imported/roca_grande.png-9e61a405793a837532674359dc23f6c8.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/roca_grande.png"
-dest_files=["res://.godot/imported/roca_grande.png-367c45381a91d9e2051a0e4478f60a6d.s3tc.ctex"]
+source_file="res://presentacion/vfx/roca_grande.png"
+dest_files=["res://.godot/imported/roca_grande.png-9e61a405793a837532674359dc23f6c8.s3tc.ctex"]
 
 [params]
 

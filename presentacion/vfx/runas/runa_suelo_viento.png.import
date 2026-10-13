@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cmwrd4tjxjceg"
-path="res://.godot/imported/runa_suelo_viento.png-20c283f20d66df11dd3bf8412e5f3a27.ctex"
+path="res://.godot/imported/runa_suelo_viento.png-ed47aceef2d086baf23dc5b4304c8e4c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/vfx/runas/runa_suelo_viento.png"
-dest_files=["res://.godot/imported/runa_suelo_viento.png-20c283f20d66df11dd3bf8412e5f3a27.ctex"]
+source_file="res://presentacion/vfx/runas/runa_suelo_viento.png"
+dest_files=["res://.godot/imported/runa_suelo_viento.png-ed47aceef2d086baf23dc5b4304c8e4c.ctex"]
 
 [params]
 

@@ -28,10 +28,10 @@ var _visual: Node3D = null
 
 ## --- Tablas de piezas (una sola copia: las usa la maqueta, que las alias en prueba_test2.gd, y el editor) ---
 const S: float = 2.3                       ## lado de una casilla (el de PruebaTest2.S)
-const CARPETA_PIEZAS: String = "res://poc_25d/meshy/piezas/"
+const CARPETA_PIEZAS: String = "res://arte/meshy/piezas/"
 
-const BIBLIOTECAS: Array = ["res://poc_25d/meshy/arboles_2.glb", "res://poc_25d/meshy/mercado.glb",
-	"res://poc_25d/meshy/bosque.glb", "res://poc_25d/meshy/objetos.glb", "res://poc_25d/meshy/magia.glb"]
+const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/mercado.glb",
+	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb"]
 
 const SUSTITUTAS: Dictionary = {
 	"arbol_redondo": "arbol_redondo_2", "pino": "pino_2", "seto_seco": "arbusto_otono",
@@ -343,8 +343,8 @@ static func tinte_amarillo(nodo: Node) -> void:
 ##   telarana_red.glb:  x < 0 la red sana (blanca) · x > 0 la red ardiendo (brasas naranjas).
 ##   telarana_base.glb: x < 0 el tronco seco sobre la roca con musgo · x > 0 un tronco fino suelto.
 ## Antes vivía solo en prueba_test2.gd y el marcador `r` del editor era una caja.
-const TELARANA_RED: String = "res://poc_25d/meshy/telarana/telarana_red.glb"
-const TELARANA_BASE: String = "res://poc_25d/meshy/telarana/telarana_base.glb"
+const TELARANA_RED: String = "res://arte/meshy/telarana/telarana_red.glb"
+const TELARANA_BASE: String = "res://arte/meshy/telarana/telarana_base.glb"
 const TELARANA_ESCALA_RED: float = 3.9       ## la red sana mide 0,5 → 1,95 u: cubre la casilla entre los dos troncos
 const TELARANA_ESCALA_BASE: float = 2.1      ## el tronco grande mide 1,0 → 2,1 u
 const TELARANA_ALTO_RED: float = 1.15        ## la red sube 1,15 sobre el suelo
@@ -453,7 +453,7 @@ static func _mitad_malla(malla: Mesh, izquierda: bool) -> Array:
 static func visual_personaje(opciones: Array, altos: Dictionary, modelos: Dictionary) -> Node3D:
 	for o in opciones:
 		var id: String = String(o)
-		var ruta: String = "res://poc_25d/%s.glb" % String(modelos.get(id, id))
+		var ruta: String = "res://arte/modelos/%s.glb" % String(modelos.get(id, id))
 		if not ResourceLoader.exists(ruta):
 			continue
 		var ps: PackedScene = load(ruta) as PackedScene

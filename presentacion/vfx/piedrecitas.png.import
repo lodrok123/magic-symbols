@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://crk4huyyk3olw"
-path.s3tc="res://.godot/imported/piedrecitas.png-7662ab30bb579fef7cf160beab117a86.s3tc.ctex"
+path.s3tc="res://.godot/imported/piedrecitas.png-bf2ce34b5f377215a2b394cf99a52321.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/piedrecitas.png"
-dest_files=["res://.godot/imported/piedrecitas.png-7662ab30bb579fef7cf160beab117a86.s3tc.ctex"]
+source_file="res://presentacion/vfx/piedrecitas.png"
+dest_files=["res://.godot/imported/piedrecitas.png-bf2ce34b5f377215a2b394cf99a52321.s3tc.ctex"]
 
 [params]
 

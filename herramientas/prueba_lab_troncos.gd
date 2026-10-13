@@ -3,7 +3,7 @@ extends SceneTree
 ## escalera del manantial no atraviesa el suelo. Lo escribe el Juego.
 func _initialize() -> void:
 	await process_frame
-	var lab: Node3D = load("res://poc_25d/LabAgua3D.tscn").instantiate()
+	var lab: Node3D = load("res://laboratorios/LabAgua3D.tscn").instantiate()
 	root.add_child(lab)
 	await process_frame
 	var fallos: int = 0

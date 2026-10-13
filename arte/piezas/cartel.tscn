@@ -1,8 +1,8 @@
 [gd_scene format=4 uid="uid://dl5fi28hm08ts"]
 
-[ext_resource type="Texture2D" uid="uid://d3pc1mejd0num" path="res://poc_25d/meshy/piezas/lamina_1_0.jpg" id="1_tyhpc"]
-[ext_resource type="Texture2D" uid="uid://d1lhg05ytw4ay" path="res://poc_25d/meshy/piezas/lamina_1_1.jpg" id="2_c17mm"]
-[ext_resource type="Texture2D" uid="uid://8jdf5b7q4vc7" path="res://poc_25d/meshy/piezas/lamina_1_2.jpg" id="3_e0djj"]
+[ext_resource type="Texture2D" uid="uid://d3pc1mejd0num" path="res://arte/meshy/piezas/lamina_1_0.jpg" id="1_tyhpc"]
+[ext_resource type="Texture2D" uid="uid://d1lhg05ytw4ay" path="res://arte/meshy/piezas/lamina_1_1.jpg" id="2_c17mm"]
+[ext_resource type="Texture2D" uid="uid://8jdf5b7q4vc7" path="res://arte/meshy/piezas/lamina_1_2.jpg" id="3_e0djj"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kt7sa"]
 resource_name = "material_0"

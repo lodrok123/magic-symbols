@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://poc_25d/pieza_3d.gd" id="1_ao5q7"]
+[ext_resource type="Script" path="res://mundo/pieza_3d.gd" id="1_ao5q7"]
 
 [node name="Nivel_test2" type="Node3D" unique_id=1044500779]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dux080hntkt3n"
-path.s3tc="res://.godot/imported/puente_runico_1.jpg-41aee22a570df3eef7f32eacf5ba52cb.s3tc.ctex"
+path.s3tc="res://.godot/imported/puente_runico_1.jpg-567617c4abdcf829b3bff52ee955af0d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/puente_runico_1.jpg"
-dest_files=["res://.godot/imported/puente_runico_1.jpg-41aee22a570df3eef7f32eacf5ba52cb.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/puente_runico_1.jpg"
+dest_files=["res://.godot/imported/puente_runico_1.jpg-567617c4abdcf829b3bff52ee955af0d.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/piezas/puente_runico_1.jpg"
+roughness/src_normal="res://arte/meshy/piezas/puente_runico_1.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

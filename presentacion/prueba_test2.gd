@@ -29,9 +29,9 @@ const SEGUIMIENTO: float = 14.0
 ## Para volver a probar otros ángulos, cambiar esta constante (las teclas R/F y 1/2/3 se quitaron).
 const INCLINACION: float = 60.0
 
-const RAIZ: String = "res://poc_25d/"
-const SUELO: String = "res://poc_25d/suelo_meshy/"
-const VFX: String = "res://poc_25d/vfx/"
+const RAIZ: String = "res://arte/modelos/"
+const SUELO: String = "res://arte/suelo_meshy/"
+const VFX: String = "res://presentacion/vfx/"
 const PRECALENTAR: float = 1.6
 const RUNAS: String = VFX + "runas/"
 ## Cartel de Meshy: giro para que el tablero mire a la cámara y dónde queda el centro del tablero (MEDIDA 1.3).
@@ -57,7 +57,7 @@ const OSCURECER_SUELO: float = 0.78
 const LUZ_AMBIENTE: float = 0.6
 const LUZ_SOL: float = 1.0
 
-## Personajes: id del pipeline (res://poc_25d/<id>.glb) y su alto en pantalla. Si falta, el sustituto.
+## Personajes: id del pipeline (res://arte/modelos/<id>.glb) y su alto en pantalla. Si falta, el sustituto.
 const PJ_JUGADOR: Array = ["woodland_wanderer", "chibi_elf_v2", "chibi_elf", "chibi_test"]   # 12/10: la elfa de 100k (Meshy «Little Woodland Wanderer») es la jugadora; si falta, la chibi_elf de siempre
 const PJ_LIBRERA: Array = ["bookseller_chibi", "chibi_test"]
 const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
@@ -445,7 +445,7 @@ var _agua_render: AguaRender3D = null
 ## La correa fija de la mochila (los 8 huecos y el oro, abajo) la monta `bolsa_ui.gd` (Juego) y siempre está a la vista. Pablo (10/10)
 ## la quiere fuera: la mochila solo sale con I. Con `false` se esconde desde aquí, sin tocar el archivo del Juego.
 @export var mostrar_correa_mochila: bool = false
-const NIVELES: String = "res://poc_25d/niveles/"
+const NIVELES: String = "res://mundo/datos_nivel/"
 var _modo_escena: bool = false
 var _registro: Array = []       ## cada _poner: [id pedido, casilla, Transform3D, bloquea, origen "decor" | "marcador"] (lo que F9 hornea)
 ## 7.2: nivel editable `Nivel_<Nombre>.tscn` (suelo en GridMap, piezas instanciadas, marcadores). Si existe, MANDA sobre las letras.
@@ -552,7 +552,7 @@ var _runas_puerta: Dictionary = {}           ## elemento -> [StandardMaterial3D 
 var _canal_orden: Array = []                 ## 13/10: casillas del canal en orden de llenado (índice = el de Canal3D)
 var _chispas_agua: Dictionary = {}           ## casilla -> Node3D con las chispas del agua electrificada
 var _t_rayo_agua: Timer = null             ## chispazos sueltos por el agua electrificada
-const REGLAS_BOSQUE: String = "res://poc_25d/bosque_3d.gd"
+const REGLAS_BOSQUE: String = "res://escenas/bosque_3d.gd"
 var _guardados: Array = []
 var _suelo_obj: Array = []
 var _rotulos: Dictionary = {}
@@ -1312,7 +1312,7 @@ func _en_piezas_sueltas(id: String) -> bool:
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
 func _pieza(id: String) -> Node3D:
 	# 12/10: modelo suelto `meshy/piezas/<id>.glb` (p. ej. el cristal de la fuente eléctrica): se usa tal cual, sin depender del nombre del nodo.
-	var suelto: String = "res://poc_25d/meshy/piezas/" + id + ".glb"
+	var suelto: String = "res://arte/meshy/piezas/" + id + ".glb"
 	if ResourceLoader.exists(suelto):
 		var escena_suelta: PackedScene = load(suelto) as PackedScene
 		if escena_suelta != null:
@@ -1495,8 +1495,8 @@ func _nuevo_reactivo(tipo: String, c: Vector2i, p: Vector3, visual: Node3D, elem
 ##   telarana_base.glb: x < 0 el tronco seco sobre la roca con musgo (1 de alto) · x > 0 un tronco fino suelto (0,66).
 ## La BASE es decorado que se queda (la red se quema, los troncos no); la RED es el visual del Reactivo3D, con dos hijas
 ## "sana" y "ardiendo" que el reactivo alterna al prender y apagar.
-const TELARANA_RED: String = "res://poc_25d/meshy/telarana/telarana_red.glb"
-const TELARANA_BASE: String = "res://poc_25d/meshy/telarana/telarana_base.glb"
+const TELARANA_RED: String = "res://arte/meshy/telarana/telarana_red.glb"
+const TELARANA_BASE: String = "res://arte/meshy/telarana/telarana_base.glb"
 const TELARANA_ESCALA_RED: float = 3.9       ## la red sana mide 0,5 → 1,95 u: cubre la casilla entre los dos troncos
 const TELARANA_ESCALA_BASE: float = 2.1      ## el tronco grande mide 1,0 → 2,1 u (el alto del cuerpo de la telaraña es 2)
 static var _tel_mallas: Dictionary = {}      ## "sana" | "ardiendo" | "tronco" | "palo" -> [Mesh, AABB de la parte]
@@ -3886,7 +3886,7 @@ func _montar_agua_fisica() -> void:
 	_agua_render = AguaRender3D.new()
 	_agua_render.name = "AguaFisica"
 	# Por reflexión (get) y no `Lanzador3D.agua_sim`: así este archivo carga aunque el Lanzador cambie. (El contrato decía `Lanzador3D.agua`; el Juego lo llamó `agua_sim`.)
-	_agua_render.proveedor = func() -> Variant: return (load("res://poc_25d/lanzador_3d.gd") as Script).get("agua_sim")
+	_agua_render.proveedor = func() -> Variant: return (load("res://magia/lanzador_3d.gd") as Script).get("agua_sim")
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()

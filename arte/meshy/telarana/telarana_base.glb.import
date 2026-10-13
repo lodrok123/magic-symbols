@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://mpaptxt7iptt"
-path="res://.godot/imported/telarana_base.glb-a9ef01aa91627075b51204f0ad2faf93.scn"
+path="res://.godot/imported/telarana_base.glb-b28b905893d14484b6b94784c766c887.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/telarana/telarana_base.glb"
-dest_files=["res://.godot/imported/telarana_base.glb-a9ef01aa91627075b51204f0ad2faf93.scn"]
+source_file="res://arte/meshy/telarana/telarana_base.glb"
+dest_files=["res://.godot/imported/telarana_base.glb-b28b905893d14484b6b94784c766c887.scn"]
 
 [params]
 

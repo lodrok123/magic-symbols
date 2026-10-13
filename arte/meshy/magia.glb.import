@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dasqxihjlai1j"
-path="res://.godot/imported/magia.glb-89870c7bc3fda9fae4ead2a2e40899e9.scn"
+path="res://.godot/imported/magia.glb-e6c174247daf1bf18b4971eb58104301.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/magia.glb"
-dest_files=["res://.godot/imported/magia.glb-89870c7bc3fda9fae4ead2a2e40899e9.scn"]
+source_file="res://arte/meshy/magia.glb"
+dest_files=["res://.godot/imported/magia.glb-e6c174247daf1bf18b4971eb58104301.scn"]
 
 [params]
 

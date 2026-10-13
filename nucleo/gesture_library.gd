@@ -90,7 +90,7 @@ const RECORDABLE: PackedStringArray = [
 ## Es una única instancia compartida a propósito: el grimorio graba y el
 ## Spellcaster reconoce sobre la MISMA, así que una muestra recién
 ## grabada se puede usar al instante sin reiniciar.
-const PATH: String = "res://gesture_library.tres"
+const PATH: String = "res://nucleo/gesture_library.tres"
 
 static var _shared: GestureLibrary = null
 

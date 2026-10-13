@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bxyenw27rp0tr"
-path="res://.godot/imported/arbusto.glb-01c50c203d71fd8c0758ac8012c978e4.scn"
+path="res://.godot/imported/arbusto.glb-7b52fa40b6bd8985c3cc19a0ac53e3c7.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/arbusto.glb"
-dest_files=["res://.godot/imported/arbusto.glb-01c50c203d71fd8c0758ac8012c978e4.scn"]
+source_file="res://arte/meshy/piezas/arbusto.glb"
+dest_files=["res://.godot/imported/arbusto.glb-7b52fa40b6bd8985c3cc19a0ac53e3c7.scn"]
 
 [params]
 

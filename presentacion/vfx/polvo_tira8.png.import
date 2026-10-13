@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dro80i0ftimry"
-path="res://.godot/imported/polvo_tira8.png-494ae9f0a585fae596da8095d53f6b76.ctex"
+path="res://.godot/imported/polvo_tira8.png-52c8b2d68d8d2bb276d4126737c6e406.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/vfx/polvo_tira8.png"
-dest_files=["res://.godot/imported/polvo_tira8.png-494ae9f0a585fae596da8095d53f6b76.ctex"]
+source_file="res://presentacion/vfx/polvo_tira8.png"
+dest_files=["res://.godot/imported/polvo_tira8.png-52c8b2d68d8d2bb276d4126737c6e406.ctex"]
 
 [params]
 

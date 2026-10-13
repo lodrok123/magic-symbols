@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://gmnjigwpk30p"]
 
-[ext_resource type="Texture2D" uid="uid://dq6v66k3e1yk7" path="res://poc_25d/meshy/objetos_0.jpg" id="1_lyn3f"]
-[ext_resource type="Texture2D" uid="uid://yswhgos81rxh" path="res://poc_25d/meshy/objetos_1.jpg" id="2_68wcc"]
+[ext_resource type="Texture2D" uid="uid://dq6v66k3e1yk7" path="res://arte/meshy/objetos_0.jpg" id="1_lyn3f"]
+[ext_resource type="Texture2D" uid="uid://yswhgos81rxh" path="res://arte/meshy/objetos_1.jpg" id="2_68wcc"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mqhhg"]
 resource_name = "material_0"

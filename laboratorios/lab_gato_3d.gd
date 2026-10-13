@@ -14,7 +14,7 @@ extends Node3D
 ## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
 ## Abrir: poc_25d/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
 
-const GLB: String = "res://poc_25d/gato_guardabosques.glb"
+const GLB: String = "res://arte/modelos/gato_guardabosques.glb"
 const ALTO: float = 1.0            ## el gato se escala a esta altura (en el nivel mide 0,55; aquí más grande para verlo bien)
 const DELANTERAS: Array = ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033", "Bone_032"]
 const TRASERAS: Array = ["Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]

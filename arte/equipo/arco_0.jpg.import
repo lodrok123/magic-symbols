@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://brn23gbtlqfsv"
-path.s3tc="res://.godot/imported/arco_0.jpg-b5d6fd00487f15bf5d5a38283549de96.s3tc.ctex"
+path.s3tc="res://.godot/imported/arco_0.jpg-f1275cd3f0422df6ed1b3c71a32239df.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/equipo/arco_0.jpg"
-dest_files=["res://.godot/imported/arco_0.jpg-b5d6fd00487f15bf5d5a38283549de96.s3tc.ctex"]
+source_file="res://arte/equipo/arco_0.jpg"
+dest_files=["res://.godot/imported/arco_0.jpg-f1275cd3f0422df6ed1b3c71a32239df.s3tc.ctex"]
 
 [params]
 

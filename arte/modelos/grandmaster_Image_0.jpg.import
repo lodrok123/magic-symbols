@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://co8e5lds8y5pp"
-path.s3tc="res://.godot/imported/grandmaster_Image_0.jpg-765e566095c39b0b04c8acd72092d0b3.s3tc.ctex"
+path.s3tc="res://.godot/imported/grandmaster_Image_0.jpg-e26d82e432cc2859d0e4146ccec09885.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/grandmaster_Image_0.jpg"
-dest_files=["res://.godot/imported/grandmaster_Image_0.jpg-765e566095c39b0b04c8acd72092d0b3.s3tc.ctex"]
+source_file="res://arte/modelos/grandmaster_Image_0.jpg"
+dest_files=["res://.godot/imported/grandmaster_Image_0.jpg-e26d82e432cc2859d0e4146ccec09885.s3tc.ctex"]
 
 [params]
 

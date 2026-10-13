@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ddb3dmn318gim"
-path.s3tc="res://.godot/imported/campamento_goblin_1.jpg-1e6f3f7a913f5de49c410b56507cc248.s3tc.ctex"
+path.s3tc="res://.godot/imported/campamento_goblin_1.jpg-39901503b1dc1c2b68e8450efda09e37.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/campamento_goblin_1.jpg"
-dest_files=["res://.godot/imported/campamento_goblin_1.jpg-1e6f3f7a913f5de49c410b56507cc248.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/campamento_goblin_1.jpg"
+dest_files=["res://.godot/imported/campamento_goblin_1.jpg-39901503b1dc1c2b68e8450efda09e37.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/piezas/campamento_goblin_1.jpg"
+roughness/src_normal="res://arte/meshy/piezas/campamento_goblin_1.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

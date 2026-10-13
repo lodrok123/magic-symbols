@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dk4lk601fa1pb"
-path.s3tc="res://.godot/imported/burbuja.png-cb01ce474a858fb7d829fe3fdfef0450.s3tc.ctex"
+path.s3tc="res://.godot/imported/burbuja.png-c9d68ee29bfd9fdb6080a83f9ae30768.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/burbuja.png"
-dest_files=["res://.godot/imported/burbuja.png-cb01ce474a858fb7d829fe3fdfef0450.s3tc.ctex"]
+source_file="res://presentacion/vfx/burbuja.png"
+dest_files=["res://.godot/imported/burbuja.png-c9d68ee29bfd9fdb6080a83f9ae30768.s3tc.ctex"]
 
 [params]
 

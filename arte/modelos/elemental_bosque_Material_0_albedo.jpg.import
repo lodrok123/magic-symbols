@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cq6wriehvrfb2"
-path.s3tc="res://.godot/imported/elemental_bosque_Material_0_albedo.jpg-6e6af5acbcca60fb4b80e7408bf31724.s3tc.ctex"
+path.s3tc="res://.godot/imported/elemental_bosque_Material_0_albedo.jpg-e1427746ba1775f8bf4b7e5fd210b380.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/elemental_bosque_Material_0_albedo.jpg"
-dest_files=["res://.godot/imported/elemental_bosque_Material_0_albedo.jpg-6e6af5acbcca60fb4b80e7408bf31724.s3tc.ctex"]
+source_file="res://arte/modelos/elemental_bosque_Material_0_albedo.jpg"
+dest_files=["res://.godot/imported/elemental_bosque_Material_0_albedo.jpg-e1427746ba1775f8bf4b7e5fd210b380.s3tc.ctex"]
 
 [params]
 

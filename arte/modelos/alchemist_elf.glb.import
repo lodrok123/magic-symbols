@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dv01rcpx5coka"
-path="res://.godot/imported/alchemist_elf.glb-103782140281383a89f5c7e7a67433f1.scn"
+path="res://.godot/imported/alchemist_elf.glb-4b44d05c41912d001e49069d2feb7141.scn"
 
 [deps]
 
-source_file="res://poc_25d/alchemist_elf.glb"
-dest_files=["res://.godot/imported/alchemist_elf.glb-103782140281383a89f5c7e7a67433f1.scn"]
+source_file="res://arte/modelos/alchemist_elf.glb"
+dest_files=["res://.godot/imported/alchemist_elf.glb-4b44d05c41912d001e49069d2feb7141.scn"]
 
 [params]
 

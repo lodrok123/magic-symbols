@@ -225,8 +225,8 @@ const PJ_DE_LETRA: Dictionary = {"A": "PJ_ARQUERO", "W": "PJ_GOBLIN", "G": "PJ_E
 
 ## 13/10: el modelo del personaje de este marcador, con el GLB y el alto que usa el juego (se leen de los scripts, sin copiarlos).
 func _visual_personaje() -> Node3D:
-	var juego: Script = load("res://poc_25d/prueba_test2.gd") as Script
-	var pj: Script = load("res://poc_25d/pj_3d.gd") as Script
+	var juego: Script = load("res://presentacion/prueba_test2.gd") as Script
+	var pj: Script = load("res://jugador/pj_3d.gd") as Script
 	if juego == null or pj == null:
 		return null
 	var k: Dictionary = juego.get_script_constant_map()
@@ -237,7 +237,7 @@ func _visual_personaje() -> Node3D:
 ## 13/10: la luz amarilla del cristal, como la pone el juego (Reactivo3D._montar_emisor: COLOR_RAYO, energía 1, alcance 4,
 ## a 1,3 de alto, sin sombras). En el juego además parpadea y echa chispas; aquí se queda fija.
 func _luz_cristal() -> OmniLight3D:
-	var obj: Script = load("res://poc_25d/objetos_3d.gd") as Script
+	var obj: Script = load("res://objetos/objetos_3d.gd") as Script
 	var col: Color = Color(1.0, 0.92, 0.4)
 	var energia: float = 1.0
 	if obj != null:
@@ -254,7 +254,7 @@ func _luz_cristal() -> OmniLight3D:
 
 ## 13/10: la losa de agua (`a`) como la pinta el juego (bosque_3d.gd): un círculo rúnico de 0,85 casillas a ras de suelo.
 func _visual_losa_agua() -> Node3D:
-	var reglas: Script = load("res://poc_25d/bosque_3d.gd") as Script
+	var reglas: Script = load("res://escenas/bosque_3d.gd") as Script
 	var col: Color = Color(0.45, 0.72, 1.0)
 	if reglas != null:
 		col = reglas.get_script_constant_map().get("COLOR_LOSA_AGUA", col)

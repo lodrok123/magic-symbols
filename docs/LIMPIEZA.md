@@ -100,7 +100,8 @@ Están vivos solo por cinco referencias de nombre en archivos del núcleo:
 |---|---|---|---|
 | `art/` (menos `art/ui/`) | 69 PNG de sprites 2D (héroe, goblins, bloques, puente…) | Arte del 2D | `_a_eliminar/2d_arte/` |
 | `Sprites/` | 11 MB | Hojas de sprites y atlas 2D | `_a_eliminar/2d_arte/` |
-| `pipeline/`, `export_godot/`, `Render Studio/` (21,6 MB `.blend`) | Pipeline de sprites isométricos (Blender → atlas → `meta.json`) | Era el trabajo del Pipeline **antes** de Meshy | `_a_eliminar/2d_pipeline_sprites/`, o un repo aparte si se quiere conservar |
+| `pipeline/`, `export_godot/` | Pipeline de sprites isométricos (Blender → atlas → `meta.json`) | **Se quedan** (Pablo, 13/10: necesarios) | — |
+| `Render Studio/` (21,6 MB `.blend`) | Escena de Blender para renderizar personajes | Pipeline decide | `_a_eliminar/2d_pipeline_sprites/` si ya no se usa |
 | `tools/gen_*.py`, `tools/video_a_fila.py`, `tools/empezar_prueba_iso.bat` | 15 scripts | Generadores de sprites y tiles 2D | `_a_eliminar/2d_pipeline_sprites/`; **`tools/podar_gestos.py` se queda** (Juego) |
 | `tests/` | 18 archivos | Pruebas del `ActorAnimator` 2D | `_a_eliminar/2d_pipeline_sprites/` |
 | `audio/` | 79 archivos | Lo usa `sfx.gd` → se queda | — |

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://koijvqajui7u"
-path="res://.godot/imported/pilar_runico.glb-b580a20cf303d31eb2174c3b78fba694.scn"
+path="res://.godot/imported/pilar_runico.glb-9c55ca1efcfe108ac8242b89d58b5231.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/puente/pilar_runico.glb"
-dest_files=["res://.godot/imported/pilar_runico.glb-b580a20cf303d31eb2174c3b78fba694.scn"]
+source_file="res://arte/meshy/puente/pilar_runico.glb"
+dest_files=["res://.godot/imported/pilar_runico.glb-9c55ca1efcfe108ac8242b89d58b5231.scn"]
 
 [params]
 

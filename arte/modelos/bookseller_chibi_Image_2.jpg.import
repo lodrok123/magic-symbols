@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cu8lwqgfu1uam"
-path.s3tc="res://.godot/imported/bookseller_chibi_Image_2.jpg-7e1b47304a2906ea861ddae626817985.s3tc.ctex"
+path.s3tc="res://.godot/imported/bookseller_chibi_Image_2.jpg-abb033941dffd363d6a17c4883c11f4a.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/bookseller_chibi_Image_2.jpg"
-dest_files=["res://.godot/imported/bookseller_chibi_Image_2.jpg-7e1b47304a2906ea861ddae626817985.s3tc.ctex"]
+source_file="res://arte/modelos/bookseller_chibi_Image_2.jpg"
+dest_files=["res://.godot/imported/bookseller_chibi_Image_2.jpg-abb033941dffd363d6a17c4883c11f4a.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/bookseller_chibi_Image_2.jpg"
+roughness/src_normal="res://arte/modelos/bookseller_chibi_Image_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

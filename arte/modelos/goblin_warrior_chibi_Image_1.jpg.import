@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cwokgyor6i0vy"
-path.s3tc="res://.godot/imported/goblin_warrior_chibi_Image_1.jpg-8e2fee4a1f853a1307c7a80d4cd65858.s3tc.ctex"
+path.s3tc="res://.godot/imported/goblin_warrior_chibi_Image_1.jpg-2c43b72755c76fd7e3365f2d411c6ca0.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/goblin_warrior_chibi_Image_1.jpg"
-dest_files=["res://.godot/imported/goblin_warrior_chibi_Image_1.jpg-8e2fee4a1f853a1307c7a80d4cd65858.s3tc.ctex"]
+source_file="res://arte/modelos/goblin_warrior_chibi_Image_1.jpg"
+dest_files=["res://.godot/imported/goblin_warrior_chibi_Image_1.jpg-2c43b72755c76fd7e3365f2d411c6ca0.s3tc.ctex"]
 
 [params]
 

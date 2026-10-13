@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cqu6iqm4ljkg0"
-path="res://.godot/imported/chispa_electrica_tira8.png-8e8ce9e1a8800bb826169f161364a9f5.ctex"
+path="res://.godot/imported/chispa_electrica_tira8.png-7273d501e70438423a14e929f805f563.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/vfx/chispa_electrica_tira8.png"
-dest_files=["res://.godot/imported/chispa_electrica_tira8.png-8e8ce9e1a8800bb826169f161364a9f5.ctex"]
+source_file="res://presentacion/vfx/chispa_electrica_tira8.png"
+dest_files=["res://.godot/imported/chispa_electrica_tira8.png-7273d501e70438423a14e929f805f563.ctex"]
 
 [params]
 

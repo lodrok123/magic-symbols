@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://gnhg2eu8ummn"
-path.s3tc="res://.godot/imported/enredadera_espinosa_material_0_normal.jpg-290d19d130beb1d177209dac2e543b00.s3tc.ctex"
+path.s3tc="res://.godot/imported/enredadera_espinosa_material_0_normal.jpg-2a73bc6143221425c3f4db1666d0c45d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/enredadera/enredadera_espinosa_material_0_normal.jpg"
-dest_files=["res://.godot/imported/enredadera_espinosa_material_0_normal.jpg-290d19d130beb1d177209dac2e543b00.s3tc.ctex"]
+source_file="res://arte/meshy/enredadera/enredadera_espinosa_material_0_normal.jpg"
+dest_files=["res://.godot/imported/enredadera_espinosa_material_0_normal.jpg-2a73bc6143221425c3f4db1666d0c45d.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/enredadera/enredadera_espinosa_material_0_normal.jpg"
+roughness/src_normal="res://arte/meshy/enredadera/enredadera_espinosa_material_0_normal.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

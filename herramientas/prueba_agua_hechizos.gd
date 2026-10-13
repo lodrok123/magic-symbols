@@ -1,6 +1,6 @@
 extends SceneTree
 ## Hechizos sobre el agua (11.4) y surtidor con física (11.5), sin ventana. Lo escribe el Juego.
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_agua_hechizos.gd
+##   godot --headless --path . --script res://herramientas/prueba_agua_hechizos.gd
 ## Termina con «FALLOS: n». Usa una maqueta falsa con lo mínimo que lee Lanzador3D.
 
 class MundoFalso extends Node3D:

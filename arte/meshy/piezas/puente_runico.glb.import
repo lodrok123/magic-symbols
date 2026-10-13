@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://k5i4aerbkf1k"
-path="res://.godot/imported/puente_runico.glb-d922e1cbd9f3ba1a9eae37650a16c790.scn"
+path="res://.godot/imported/puente_runico.glb-e67a8294a6f1b0208c9f230caebe5a0a.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/puente_runico.glb"
-dest_files=["res://.godot/imported/puente_runico.glb-d922e1cbd9f3ba1a9eae37650a16c790.scn"]
+source_file="res://arte/meshy/piezas/puente_runico.glb"
+dest_files=["res://.godot/imported/puente_runico.glb-e67a8294a6f1b0208c9f230caebe5a0a.scn"]
 
 [params]
 

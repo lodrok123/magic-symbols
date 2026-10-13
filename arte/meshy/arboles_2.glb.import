@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dinwvy3n4wdpu"
-path="res://.godot/imported/arboles_2.glb-c3c481f8a0af7345d4d47f10a3e60d88.scn"
+path="res://.godot/imported/arboles_2.glb-d0992c5810647ee9e8c2a2db0a3f2b8f.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/arboles_2.glb"
-dest_files=["res://.godot/imported/arboles_2.glb-c3c481f8a0af7345d4d47f10a3e60d88.scn"]
+source_file="res://arte/meshy/arboles_2.glb"
+dest_files=["res://.godot/imported/arboles_2.glb-d0992c5810647ee9e8c2a2db0a3f2b8f.scn"]
 
 [params]
 

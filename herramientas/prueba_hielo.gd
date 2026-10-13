@@ -1,7 +1,7 @@
 extends SceneTree
 ## Hielo de verdad (11.13) con la maqueta falsa, sin ventana: hechizos, pisar, cobertura, atrapar, soltar, resbalar, y el canal de la
 ## tinaja (diario 12/10 15:30). Lo escribe el Juego.
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_hielo.gd
+##   godot --headless --path . --script res://herramientas/prueba_hielo.gd
 
 class MundoFalso extends Node3D:
 	const S: float = 2.3

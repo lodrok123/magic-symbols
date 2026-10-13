@@ -1,6 +1,6 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://poc_25d/lab_gato_3d.gd" id="1"]
+[ext_resource type="Script" path="res://laboratorios/lab_gato_3d.gd" id="1"]
 
 [node name="LabGato3D" type="Node3D"]
 script = ExtResource("1")

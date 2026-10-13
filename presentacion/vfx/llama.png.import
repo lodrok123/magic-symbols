@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c10fdwjolxc7l"
-path.s3tc="res://.godot/imported/llama.png-aa363d3c504923bf5602ce5cb1f19600.s3tc.ctex"
+path.s3tc="res://.godot/imported/llama.png-1fdd970f799ef4ab65c7526f23e5ee93.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/llama.png"
-dest_files=["res://.godot/imported/llama.png-aa363d3c504923bf5602ce5cb1f19600.s3tc.ctex"]
+source_file="res://presentacion/vfx/llama.png"
+dest_files=["res://.godot/imported/llama.png-1fdd970f799ef4ab65c7526f23e5ee93.s3tc.ctex"]
 
 [params]
 

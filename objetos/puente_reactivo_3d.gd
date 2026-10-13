@@ -20,9 +20,9 @@ extends Node3D
 signal losa_lista(celda: Vector2i)
 signal completo
 
-const LOSA_GLB: String = "res://poc_25d/meshy/puente/losa_runica.glb"
-const TEX_ALBEDO: String = "res://poc_25d/meshy/puente/losa_albedo.png"
-const TEX_EMISION: String = "res://poc_25d/meshy/puente/losa_emision.png"
+const LOSA_GLB: String = "res://arte/meshy/puente/losa_runica.glb"
+const TEX_ALBEDO: String = "res://arte/meshy/puente/losa_albedo.png"
+const TEX_EMISION: String = "res://arte/meshy/puente/losa_emision.png"
 const CASILLA: float = 2.3
 const GROSOR: float = 0.28
 const HUNDIDA: float = 0.75              ## cuánto más abajo que su sitio final empieza la losa (bajo la superficie)

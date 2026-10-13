@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://bmqk1csv663nq"
-path="res://.godot/imported/enredadera.glb-dfca41ba8570d05a55743cc858beaa66.scn"
+path="res://.godot/imported/enredadera.glb-99273db7c5077bd107ec841e3b32e9ae.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/enredadera/enredadera.glb"
-dest_files=["res://.godot/imported/enredadera.glb-dfca41ba8570d05a55743cc858beaa66.scn"]
+source_file="res://arte/meshy/enredadera/enredadera.glb"
+dest_files=["res://.godot/imported/enredadera.glb-99273db7c5077bd107ec841e3b32e9ae.scn"]
 
 [params]
 

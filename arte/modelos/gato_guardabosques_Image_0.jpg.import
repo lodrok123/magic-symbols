@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://7f53q3st06s3"
-path.s3tc="res://.godot/imported/gato_guardabosques_Image_0.jpg-bb46a2d05d1cf02979b0b6d9d9bfc5ca.s3tc.ctex"
+path.s3tc="res://.godot/imported/gato_guardabosques_Image_0.jpg-23272d36858f02facbb22df77e02d774.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/gato_guardabosques_Image_0.jpg"
-dest_files=["res://.godot/imported/gato_guardabosques_Image_0.jpg-bb46a2d05d1cf02979b0b6d9d9bfc5ca.s3tc.ctex"]
+source_file="res://arte/modelos/gato_guardabosques_Image_0.jpg"
+dest_files=["res://.godot/imported/gato_guardabosques_Image_0.jpg-23272d36858f02facbb22df77e02d774.s3tc.ctex"]
 
 [params]
 

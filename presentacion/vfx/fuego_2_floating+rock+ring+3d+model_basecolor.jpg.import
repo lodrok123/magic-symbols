@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cxxkft2l73tnp"
-path.s3tc="res://.godot/imported/fuego_2_floating+rock+ring+3d+model_basecolor.jpg-2de90da9312dc35a7c2fac3f4461b745.s3tc.ctex"
+path.s3tc="res://.godot/imported/fuego_2_floating+rock+ring+3d+model_basecolor.jpg-c333efd8f5b056eaa8a45983985ab74f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/fuego_2_floating+rock+ring+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/fuego_2_floating+rock+ring+3d+model_basecolor.jpg-2de90da9312dc35a7c2fac3f4461b745.s3tc.ctex"]
+source_file="res://presentacion/vfx/fuego_2_floating+rock+ring+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/fuego_2_floating+rock+ring+3d+model_basecolor.jpg-c333efd8f5b056eaa8a45983985ab74f.s3tc.ctex"]
 
 [params]
 

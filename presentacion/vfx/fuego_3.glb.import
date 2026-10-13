@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dfappv04213om"
-path="res://.godot/imported/fuego_3.glb-989e01e523ccfa1ea6319606bb2d1a21.scn"
+path="res://.godot/imported/fuego_3.glb-a6f11fd910bd05f086d9eac5e83ff19b.scn"
 
 [deps]
 
-source_file="res://poc_25d/vfx/fuego_3.glb"
-dest_files=["res://.godot/imported/fuego_3.glb-989e01e523ccfa1ea6319606bb2d1a21.scn"]
+source_file="res://presentacion/vfx/fuego_3.glb"
+dest_files=["res://.godot/imported/fuego_3.glb-a6f11fd910bd05f086d9eac5e83ff19b.scn"]
 
 [params]
 

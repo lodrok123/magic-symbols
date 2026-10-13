@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://csc0gr0kqi2hv"
-path.s3tc="res://.godot/imported/anillo_fuego_fire+ring+3d+model_basecolor.jpg-e5dbb696ff83b05558cef4ac1a52c3a2.s3tc.ctex"
+path.s3tc="res://.godot/imported/anillo_fuego_fire+ring+3d+model_basecolor.jpg-2c5b1ccac362e44fd693608c59dd91fe.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/vfx/anillo_fuego_fire+ring+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/anillo_fuego_fire+ring+3d+model_basecolor.jpg-e5dbb696ff83b05558cef4ac1a52c3a2.s3tc.ctex"]
+source_file="res://presentacion/vfx/anillo_fuego_fire+ring+3d+model_basecolor.jpg"
+dest_files=["res://.godot/imported/anillo_fuego_fire+ring+3d+model_basecolor.jpg-2c5b1ccac362e44fd693608c59dd91fe.s3tc.ctex"]
 
 [params]
 

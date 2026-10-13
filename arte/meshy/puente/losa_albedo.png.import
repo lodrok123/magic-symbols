@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://btnoaj3r32kxv"
-path="res://.godot/imported/losa_albedo.png-9946b7183d1e3c56326c43b8cc347e5c.ctex"
+path="res://.godot/imported/losa_albedo.png-c6c112016074756468b486f7059ba293.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://poc_25d/meshy/puente/losa_albedo.png"
-dest_files=["res://.godot/imported/losa_albedo.png-9946b7183d1e3c56326c43b8cc347e5c.ctex"]
+source_file="res://arte/meshy/puente/losa_albedo.png"
+dest_files=["res://.godot/imported/losa_albedo.png-c6c112016074756468b486f7059ba293.ctex"]
 
 [params]
 

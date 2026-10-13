@@ -1,5 +1,5 @@
 class_name Lanzador3D
-extends "res://spellcaster.gd"
+extends "res://magia/spellcaster.gd"
 
 ## LANZADOR DE HECHIZOS EN 3D (Test 3). Dueño: Juego.
 ##
@@ -826,7 +826,7 @@ func construir_interfaz() -> void:
 	add_child(capa_ui)
 
 	var paginas := Control.new()
-	paginas.set_script(load("res://page_hud.gd"))
+	paginas.set_script(load("res://presentacion/ui/page_hud.gd"))
 	capa_ui.add_child(paginas)
 	paginas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
@@ -834,7 +834,7 @@ func construir_interfaz() -> void:
 	# las pruebas de la Fase 8 mientras Pablo no tenga todos los gestos grabados (8.3).
 	if PALETA_RUNAS:
 		var paleta := PanelContainer.new()
-		paleta.set_script(load("res://rune_palette.gd"))
+		paleta.set_script(load("res://presentacion/ui/rune_palette.gd"))
 		capa_ui.add_child(paleta)
 
 	# La mochila (I) también en 3D: antes solo la montaba nivel_base (2D). Pausa el árbol; el lanzador es ALWAYS.
@@ -844,7 +844,7 @@ func construir_interfaz() -> void:
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
 	libro.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	libro.set_script(load("res://spellbook.gd"))
+	libro.set_script(load("res://presentacion/ui/spellbook.gd"))
 	capa_ui.add_child(libro)
 	libro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 

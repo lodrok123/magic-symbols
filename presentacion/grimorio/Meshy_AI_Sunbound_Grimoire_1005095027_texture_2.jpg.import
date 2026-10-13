@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://hxh78igqo3gm"
-path.s3tc="res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg-9bb4a80397708e23ce6b9356c155d25a.s3tc.ctex"
+path.s3tc="res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg-57a93e0629959303a846d4052ab2619b.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg"
-dest_files=["res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg-9bb4a80397708e23ce6b9356c155d25a.s3tc.ctex"]
+source_file="res://presentacion/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg"
+dest_files=["res://.godot/imported/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg-57a93e0629959303a846d4052ab2619b.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg"
+roughness/src_normal="res://presentacion/grimorio/Meshy_AI_Sunbound_Grimoire_1005095027_texture_2.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://buuo4w43cy450"
-path="res://.godot/imported/gato_guardabosques.glb-cc136b526753d8b82ae8adf03706b23b.scn"
+path="res://.godot/imported/gato_guardabosques.glb-9b63d9deab352d59650cf0d8c74b6940.scn"
 
 [deps]
 
-source_file="res://poc_25d/gato_guardabosques.glb"
-dest_files=["res://.godot/imported/gato_guardabosques.glb-cc136b526753d8b82ae8adf03706b23b.scn"]
+source_file="res://arte/modelos/gato_guardabosques.glb"
+dest_files=["res://.godot/imported/gato_guardabosques.glb-9b63d9deab352d59650cf0d8c74b6940.scn"]
 
 [params]
 

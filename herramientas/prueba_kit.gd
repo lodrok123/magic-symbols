@@ -1,6 +1,6 @@
 extends SceneTree
 ## Kit de pruebas y costra de hielo (11.15) sin ventana. Lo escribe el Juego.
-##   godot --headless --path . --script res://poc_25d/herramientas/prueba_kit.gd
+##   godot --headless --path . --script res://herramientas/prueba_kit.gd
 ## Comprueba: qué progresión se elige (forzada > kit > nivel > «todo»), que con el kit «pruebas» el Bosque no cierra nada del
 ## repertorio, que sin kit el Bosque sigue con «bosque», que el render recibe `hielo_desde` ANTES de helar, y que la costra
 ## se pone, avisa y se deshace en goblins y troncos.

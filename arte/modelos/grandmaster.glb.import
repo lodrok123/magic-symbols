@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://idlx7ieiptcl"
-path="res://.godot/imported/grandmaster.glb-eb47cfa88deeb70aa3124a20f0f4abb1.scn"
+path="res://.godot/imported/grandmaster.glb-d7f46247e2cdf584fb31101065a94b90.scn"
 
 [deps]
 
-source_file="res://poc_25d/grandmaster.glb"
-dest_files=["res://.godot/imported/grandmaster.glb-eb47cfa88deeb70aa3124a20f0f4abb1.scn"]
+source_file="res://arte/modelos/grandmaster.glb"
+dest_files=["res://.godot/imported/grandmaster.glb-d7f46247e2cdf584fb31101065a94b90.scn"]
 
 [params]
 

@@ -1,9 +1,9 @@
 [gd_scene format=4 uid="uid://c3ma7drn2eitt"]
 
-[ext_resource type="PackedScene" uid="uid://bxyenw27rp0tr" path="res://poc_25d/meshy/piezas/arbusto.glb" id="1_n8sco"]
-[ext_resource type="Texture2D" uid="uid://ifvmv8i5pe1m" path="res://poc_25d/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg" id="2_o00v6"]
-[ext_resource type="Texture2D" uid="uid://di66kx7ybkey6" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg" id="3_sbqc4"]
-[ext_resource type="Texture2D" uid="uid://bi7hoiaaitdpg" path="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_normal.jpg" id="4_d662v"]
+[ext_resource type="PackedScene" uid="uid://bxyenw27rp0tr" path="res://arte/meshy/piezas/arbusto.glb" id="1_n8sco"]
+[ext_resource type="Texture2D" uid="uid://ifvmv8i5pe1m" path="res://arte/meshy/piezas/arbusto_leafy_sphere_3d_model_basecolor.jpg" id="2_o00v6"]
+[ext_resource type="Texture2D" uid="uid://di66kx7ybkey6" path="res://arte/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg" id="3_sbqc4"]
+[ext_resource type="Texture2D" uid="uid://bi7hoiaaitdpg" path="res://arte/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_normal.jpg" id="4_d662v"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_n26qs"]
 resource_name = "tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca"

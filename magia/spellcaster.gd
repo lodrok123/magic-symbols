@@ -25,13 +25,13 @@ const TRIANGLE_MAX_CORNERS: int = 3
 # La "base de datos" de elementos: qué RuneData corresponde a cada
 # forma reconocida. Añadir un elemento nuevo el día de mañana es
 # crear su .tres y añadir una línea aquí, nada más.
-const FIRE_RUNE: RuneData = preload("res://fire_rune.tres")
-const WATER_RUNE: RuneData = preload("res://water_rune.tres")
-const WIND_RUNE: RuneData = preload("res://wind_rune.tres")
-const EARTH_RUNE: RuneData = preload("res://earth_rune.tres")
-const LIGHTNING_RUNE: RuneData = preload("res://lightning_rune.tres")
-const ICE_RUNE: RuneData = preload("res://ice_rune.tres")
-const TIME_RUNE: RuneData = preload("res://time_rune.tres")
+const FIRE_RUNE: RuneData = preload("res://nucleo/fire_rune.tres")
+const WATER_RUNE: RuneData = preload("res://nucleo/water_rune.tres")
+const WIND_RUNE: RuneData = preload("res://nucleo/wind_rune.tres")
+const EARTH_RUNE: RuneData = preload("res://nucleo/earth_rune.tres")
+const LIGHTNING_RUNE: RuneData = preload("res://nucleo/lightning_rune.tres")
+const ICE_RUNE: RuneData = preload("res://nucleo/ice_rune.tres")
+const TIME_RUNE: RuneData = preload("res://nucleo/time_rune.tres")
 
 var rune_database: Dictionary = {
 	Runes.Type.SHAPE_TRIANGLE: FIRE_RUNE,

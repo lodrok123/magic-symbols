@@ -10,7 +10,7 @@ extends RefCounted
 ##
 ## Medidas en unidades del modelo (el goblin chibi mide 1,7).
 
-const CARPETA: String = "res://poc_25d/equipo/"
+const CARPETA: String = "res://arte/equipo/"
 
 ## Grimorio de la elfa: equipo/grimorio_<nivel>.glb (Meshy, horneados con meshy en el marco del de código).
 ## 1 botánico (marrón y verde) · 2 rúnico (azul y gris) · 3 legendario (rojo y oro). Cada uno trae su pluma.
@@ -138,7 +138,7 @@ static func pieza(id: String) -> Node3D:
 
 
 ## Bibliotecas de equipo (un GLB con una pieza por nodo, separadas con meshy/agrupar_3d.py).
-const BIBLIOTECAS_EQUIPO: Array = ["res://poc_25d/equipo/armas_goblin.glb", "res://poc_25d/meshy/magia.glb"]
+const BIBLIOTECAS_EQUIPO: Array = ["res://arte/equipo/armas_goblin.glb", "res://arte/meshy/magia.glb"]
 ## Medida de cada pieza de biblioteca, en unidades del goblin (mide 1,7): largo de las armas, diámetro del escudo.
 ## `pocion` (6.12c, de meshy/magia.glb): 0,38 de alto = la mitad de la que se ve en el suelo respecto al goblin; Pj3D.equipar la reescala al personaje.
 const MEDIDA_PIEZA: Dictionary = {"garrote": 0.62, "espada_goblin": 0.58, "daga": 0.5, "escudo": 0.5, "pocion": 0.38}

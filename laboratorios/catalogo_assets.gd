@@ -9,8 +9,8 @@ extends Node3D
 ##         (personajes) 3/4 cabeza · 5/6 piernas · 7/8 torso de los que tienen proporciones (chibi_elf)
 ##                      0 proporciones originales / ajustadas · A siguiente animación
 
-const BIBLIOTECAS: Array = ["res://poc_25d/meshy/bosque.glb", "res://poc_25d/meshy/objetos.glb",
-	"res://poc_25d/meshy/magia.glb"]
+const BIBLIOTECAS: Array = ["res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb",
+	"res://arte/meshy/magia.glb"]
 const PERSONAJES: Array = ["chibi_elf_v2", "chibi_elf", "bookseller_chibi", "goblin_warrior_chibi", "goblin_espadachin", "chibi_test"]
 const POR_FILA: int = 6
 const HUECO: float = 3.4
@@ -180,7 +180,7 @@ func _piezas_de(lib: Node3D) -> Array[Node3D]:
 func _montar_personajes() -> void:
 	var x: float = 0.0
 	for id in PERSONAJES:
-		if not ResourceLoader.exists("res://poc_25d/%s.glb" % Pj3D.glb_de(String(id))):
+		if not ResourceLoader.exists("res://arte/modelos/%s.glb" % Pj3D.glb_de(String(id))):
 			continue
 		var pj := Pj3D.new()
 		pj.position = Vector3(x, 0.0, 0.0)
@@ -246,14 +246,14 @@ func _caja(n: Node, acum: Transform3D) -> AABB:
 
 ## Las mismas medidas que la maqueta, para ver las piezas tal como salen allí.
 func _medidas_maqueta() -> Dictionary:
-	var s: Script = load("res://poc_25d/prueba_test2.gd") as Script
+	var s: Script = load("res://presentacion/prueba_test2.gd") as Script
 	if s != null and s.get_script_constant_map().has("MEDIDA"):
 		return s.get_script_constant_map()["MEDIDA"]
 	return {}
 
 
 func _medidas_ancho() -> Dictionary:
-	var s: Script = load("res://poc_25d/prueba_test2.gd") as Script
+	var s: Script = load("res://presentacion/prueba_test2.gd") as Script
 	if s != null and s.get_script_constant_map().has("MEDIDA_ANCHO"):
 		return s.get_script_constant_map()["MEDIDA_ANCHO"]
 	return {}

@@ -1,7 +1,7 @@
 [gd_scene format=4 uid="uid://bi20hna1xj8yd"]
 
-[ext_resource type="Texture2D" uid="uid://m0eqmklt7u3j" path="res://poc_25d/meshy/arboles_2_0.jpg" id="1_5r83o"]
-[ext_resource type="Texture2D" uid="uid://rqbwdqage6jg" path="res://poc_25d/meshy/arboles_2_1.jpg" id="2_ibcc6"]
+[ext_resource type="Texture2D" uid="uid://m0eqmklt7u3j" path="res://arte/meshy/arboles_2_0.jpg" id="1_5r83o"]
+[ext_resource type="Texture2D" uid="uid://rqbwdqage6jg" path="res://arte/meshy/arboles_2_1.jpg" id="2_ibcc6"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_f2ai4"]
 resource_name = "material_0"

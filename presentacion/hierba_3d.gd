@@ -33,7 +33,7 @@ extends Node3D
 @export var modo: int = 2                    ## 0 briznas · 1 tarjetas pintadas · 2 las dos
 @export var densidad_tarjetas: float = 5.5   ## matojos pintados por unidad cuadrada
 @export var alto_tarjeta: float = 0.55
-@export var atlas_tarjetas: String = "res://poc_25d/suelo_meshy/hierba_matojos.png"
+@export var atlas_tarjetas: String = "res://arte/suelo_meshy/hierba_matojos.png"
 @export var lado_bloque: float = 4.6         ## lado de cada bloque, en unidades (2 casillas de la maqueta)
 @export var radio_sembrar: int = 2           ## con actualizar(): bloques alrededor del jugador que se siembran
 @export var radio_liberar: int = 4           ## ... y a partir de cuántos se liberan

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://c2hxvjqdq8hyu"
-path="res://.godot/imported/puesto.glb-0553f9c05d14be11b0b76e09c0c3ae7e.scn"
+path="res://.godot/imported/puesto.glb-ac08ef8eb8529cc4da069e67230128af.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/puesto.glb"
-dest_files=["res://.godot/imported/puesto.glb-0553f9c05d14be11b0b76e09c0c3ae7e.scn"]
+source_file="res://arte/meshy/piezas/puesto.glb"
+dest_files=["res://.godot/imported/puesto.glb-ac08ef8eb8529cc4da069e67230128af.scn"]
 
 [params]
 

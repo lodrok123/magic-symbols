@@ -1899,7 +1899,7 @@ func _crear_jugador() -> void:
 
 	var caster := Node2D.new()
 	caster.name = "Spellcaster"
-	caster.set_script(load("res://spellcaster.gd"))
+	caster.set_script(load("res://magia/spellcaster.gd"))
 	p.add_child(caster)
 
 	var puntero := Puntero.new()
@@ -1976,19 +1976,19 @@ func _crear_interfaz() -> void:
 		cartel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var paginas := Control.new()
-	paginas.set_script(load("res://page_hud.gd"))
+	paginas.set_script(load("res://presentacion/ui/page_hud.gd"))
 	ui.add_child(paginas)
 	paginas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	if PALETA_RUNAS:
 		var paleta := PanelContainer.new()
-		paleta.set_script(load("res://rune_palette.gd"))
+		paleta.set_script(load("res://presentacion/ui/rune_palette.gd"))
 		ui.add_child(paleta)
 
 	var libro := Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
 	libro.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	libro.set_script(load("res://spellbook.gd"))
+	libro.set_script(load("res://presentacion/ui/spellbook.gd"))
 	ui.add_child(libro)
 	libro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 

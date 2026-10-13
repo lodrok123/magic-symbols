@@ -1,9 +1,9 @@
 [gd_scene format=4 uid="uid://u5jvjqmheitr"]
 
-[ext_resource type="PackedScene" uid="uid://kolax2u5gq3u" path="res://poc_25d/meshy/piezas/cristal_sanctuario.glb" id="1_ov8ho"]
-[ext_resource type="Texture2D" uid="uid://vcj7guhaaduh" path="res://poc_25d/meshy/piezas/cristal_sanctuario_0.jpg" id="2_papvg"]
-[ext_resource type="Texture2D" uid="uid://buurcywiubu84" path="res://poc_25d/meshy/piezas/cristal_sanctuario_1.jpg" id="3_8877y"]
-[ext_resource type="Texture2D" uid="uid://c754qj316b1b5" path="res://poc_25d/meshy/piezas/cristal_sanctuario_2.jpg" id="4_xsh0j"]
+[ext_resource type="PackedScene" uid="uid://kolax2u5gq3u" path="res://arte/meshy/piezas/cristal_sanctuario.glb" id="1_ov8ho"]
+[ext_resource type="Texture2D" uid="uid://vcj7guhaaduh" path="res://arte/meshy/piezas/cristal_sanctuario_0.jpg" id="2_papvg"]
+[ext_resource type="Texture2D" uid="uid://buurcywiubu84" path="res://arte/meshy/piezas/cristal_sanctuario_1.jpg" id="3_8877y"]
+[ext_resource type="Texture2D" uid="uid://c754qj316b1b5" path="res://arte/meshy/piezas/cristal_sanctuario_2.jpg" id="4_xsh0j"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hy0ba"]
 resource_name = "material_0"

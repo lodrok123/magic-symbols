@@ -1,9 +1,9 @@
 extends Area2D
 
-const WATER_RUNE: RuneData = preload("res://water_rune.tres")
+const WATER_RUNE: RuneData = preload("res://nucleo/water_rune.tres")
 const STEAM_RUNE: RuneData = preload("res://steam_rune.tres")
-const LIGHTNING_RUNE: RuneData = preload("res://lightning_rune.tres")
-const ICE_RUNE: RuneData = preload("res://ice_rune.tres")
+const LIGHTNING_RUNE: RuneData = preload("res://nucleo/lightning_rune.tres")
+const ICE_RUNE: RuneData = preload("res://nucleo/ice_rune.tres")
 
 const STEAM_LIFETIME: float = 2.5
 

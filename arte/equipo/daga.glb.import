@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dgys4a1dfwgx7"
-path="res://.godot/imported/daga.glb-43f906819f0d73933da757d820848a11.scn"
+path="res://.godot/imported/daga.glb-7eb32df83d34223b4e8168f319fe7539.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/daga.glb"
-dest_files=["res://.godot/imported/daga.glb-43f906819f0d73933da757d820848a11.scn"]
+source_file="res://arte/equipo/daga.glb"
+dest_files=["res://.godot/imported/daga.glb-7eb32df83d34223b4e8168f319fe7539.scn"]
 
 [params]
 

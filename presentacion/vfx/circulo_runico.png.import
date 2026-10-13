@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c3j6is8njri6l"
-path.s3tc="res://.godot/imported/circulo_runico.png-0b3fed8d7b25265579efd99698f5f672.s3tc.ctex"
+path.s3tc="res://.godot/imported/circulo_runico.png-7d408f781a22d666d6eff39192a14fcd.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/circulo_runico.png"
-dest_files=["res://.godot/imported/circulo_runico.png-0b3fed8d7b25265579efd99698f5f672.s3tc.ctex"]
+source_file="res://presentacion/vfx/circulo_runico.png"
+dest_files=["res://.godot/imported/circulo_runico.png-7d408f781a22d666d6eff39192a14fcd.s3tc.ctex"]
 
 [params]
 

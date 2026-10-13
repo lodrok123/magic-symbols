@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://rqbwdqage6jg"
-path.s3tc="res://.godot/imported/arboles_2_1.jpg-f47ab7164cb913fcc7d7f0857de21d67.s3tc.ctex"
+path.s3tc="res://.godot/imported/arboles_2_1.jpg-2426cd98f2af0edf2c466477b6817a44.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/meshy/arboles_2_1.jpg"
-dest_files=["res://.godot/imported/arboles_2_1.jpg-f47ab7164cb913fcc7d7f0857de21d67.s3tc.ctex"]
+source_file="res://arte/meshy/arboles_2_1.jpg"
+dest_files=["res://.godot/imported/arboles_2_1.jpg-2426cd98f2af0edf2c466477b6817a44.s3tc.ctex"]
 
 [params]
 
@@ -30,7 +30,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://poc_25d/meshy/arboles_2_1.jpg"
+roughness/src_normal="res://arte/meshy/arboles_2_1.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

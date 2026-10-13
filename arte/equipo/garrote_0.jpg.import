@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c1kh743fvqvid"
-path.s3tc="res://.godot/imported/garrote_0.jpg-f10cb4133c09bd2d53fd61ca7bce9247.s3tc.ctex"
+path.s3tc="res://.godot/imported/garrote_0.jpg-2fe39233ec09fd940d441ddaeaef83cc.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/equipo/garrote_0.jpg"
-dest_files=["res://.godot/imported/garrote_0.jpg-f10cb4133c09bd2d53fd61ca7bce9247.s3tc.ctex"]
+source_file="res://arte/equipo/garrote_0.jpg"
+dest_files=["res://.godot/imported/garrote_0.jpg-2fe39233ec09fd940d441ddaeaef83cc.s3tc.ctex"]
 
 [params]
 

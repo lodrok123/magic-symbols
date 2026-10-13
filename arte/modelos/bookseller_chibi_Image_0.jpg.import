@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://tsntin0ah8mh"
-path.s3tc="res://.godot/imported/bookseller_chibi_Image_0.jpg-de34ad51685a26a0c4ee569895d01040.s3tc.ctex"
+path.s3tc="res://.godot/imported/bookseller_chibi_Image_0.jpg-69685188ca7aa93313690d8a389952df.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://poc_25d/bookseller_chibi_Image_0.jpg"
-dest_files=["res://.godot/imported/bookseller_chibi_Image_0.jpg-de34ad51685a26a0c4ee569895d01040.s3tc.ctex"]
+source_file="res://arte/modelos/bookseller_chibi_Image_0.jpg"
+dest_files=["res://.godot/imported/bookseller_chibi_Image_0.jpg-69685188ca7aa93313690d8a389952df.s3tc.ctex"]
 
 [params]
 

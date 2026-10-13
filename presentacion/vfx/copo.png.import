@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cq3opwmkdwpbn"
-path.s3tc="res://.godot/imported/copo.png-bd99522843bd833c6f8ad2e6469e040f.s3tc.ctex"
+path.s3tc="res://.godot/imported/copo.png-81e7f83ace18f4f8589cd3fc282f3087.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/vfx/copo.png"
-dest_files=["res://.godot/imported/copo.png-bd99522843bd833c6f8ad2e6469e040f.s3tc.ctex"]
+source_file="res://presentacion/vfx/copo.png"
+dest_files=["res://.godot/imported/copo.png-81e7f83ace18f4f8589cd3fc282f3087.s3tc.ctex"]
 
 [params]
 

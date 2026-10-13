@@ -152,8 +152,8 @@ void fragment() {
 ## Elementos del kit: cada uno vive en su archivo de `vfx_elementos/` (rampa de color, perfil y, si hace falta, sus piezas propias).
 ## Para añadir uno: crear `vfx_elementos/<nombre>.gd` que extienda `ElementoVfx` y añadirlo aquí.
 const ELEMENTOS: Dictionary = {
-	"fuego": "res://poc_25d/vfx_elementos/fuego.gd",
-	"agua": "res://poc_25d/vfx_elementos/agua.gd",
+	"fuego": "res://presentacion/vfx_elementos/fuego.gd",
+	"agua": "res://presentacion/vfx_elementos/agua.gd",
 }
 static var _elementos: Dictionary = {}       ## nombre -> ElementoVfx (instancia, se crea la primera vez)
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://8y8eiblxjind"
-path="res://.godot/imported/flecha.glb-038fc5d39bd7306a2d500dadc1a5fd7b.scn"
+path="res://.godot/imported/flecha.glb-fb8ac861979c3f06ed7824acd113ca74.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/flecha.glb"
-dest_files=["res://.godot/imported/flecha.glb-038fc5d39bd7306a2d500dadc1a5fd7b.scn"]
+source_file="res://arte/equipo/flecha.glb"
+dest_files=["res://.godot/imported/flecha.glb-fb8ac861979c3f06ed7824acd113ca74.scn"]
 
 [params]
 

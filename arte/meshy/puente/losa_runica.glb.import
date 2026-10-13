@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://dae2md0a70jo4"
-path="res://.godot/imported/losa_runica.glb-ba1d2c0932ccfa8af4f9439f2f7b6242.scn"
+path="res://.godot/imported/losa_runica.glb-b8240b266e54448f619fbb52125398df.scn"
 
 [deps]
 
-source_file="res://poc_25d/meshy/puente/losa_runica.glb"
-dest_files=["res://.godot/imported/losa_runica.glb-ba1d2c0932ccfa8af4f9439f2f7b6242.scn"]
+source_file="res://arte/meshy/puente/losa_runica.glb"
+dest_files=["res://.godot/imported/losa_runica.glb-b8240b266e54448f619fbb52125398df.scn"]
 
 [params]
 

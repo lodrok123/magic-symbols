@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://6ev8esjm0dnb"
-path="res://.godot/imported/armas_goblin.glb-4f34917d89a2e5fd95ec37155a3c611a.scn"
+path="res://.godot/imported/armas_goblin.glb-a379175ba7bcca9a4d1e1b9016b2082f.scn"
 
 [deps]
 
-source_file="res://poc_25d/equipo/armas_goblin.glb"
-dest_files=["res://.godot/imported/armas_goblin.glb-4f34917d89a2e5fd95ec37155a3c611a.scn"]
+source_file="res://arte/equipo/armas_goblin.glb"
+dest_files=["res://.godot/imported/armas_goblin.glb-a379175ba7bcca9a4d1e1b9016b2082f.scn"]
 
 [params]
 

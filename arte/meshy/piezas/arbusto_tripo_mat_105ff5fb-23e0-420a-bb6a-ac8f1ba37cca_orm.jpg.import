@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://di66kx7ybkey6"
-path.s3tc="res://.godot/imported/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg-e4a92a6e3d141df7649ae9cdf9f2fdf2.s3tc.ctex"
+path.s3tc="res://.godot/imported/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg-20a3da7500710d87ccd168cc45b2b553.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://poc_25d/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg"
-dest_files=["res://.godot/imported/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg-e4a92a6e3d141df7649ae9cdf9f2fdf2.s3tc.ctex"]
+source_file="res://arte/meshy/piezas/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg"
+dest_files=["res://.godot/imported/arbusto_tripo_mat_105ff5fb-23e0-420a-bb6a-ac8f1ba37cca_orm.jpg-20a3da7500710d87ccd168cc45b2b553.s3tc.ctex"]
 
 [params]
 

@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cylxw3248dck"
-path="res://.godot/imported/woodland_wanderer_v1.glb-dbafe079b2e1dcf211f60ee613a88680.scn"
+path="res://.godot/imported/woodland_wanderer_v1.glb-cd73c4eb64302d020776a81d3ded274a.scn"
 
 [deps]
 
-source_file="res://poc_25d/woodland_wanderer_v1.glb"
-dest_files=["res://.godot/imported/woodland_wanderer_v1.glb-dbafe079b2e1dcf211f60ee613a88680.scn"]
+source_file="res://arte/modelos/woodland_wanderer_v1.glb"
+dest_files=["res://.godot/imported/woodland_wanderer_v1.glb-cd73c4eb64302d020776a81d3ded274a.scn"]
 
 [params]
 
