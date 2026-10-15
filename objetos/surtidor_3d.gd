@@ -30,7 +30,8 @@ var esta_lleno: bool = false
 ## cuando la simulación dice que ya tiene agua, no por un temporizador.
 const CAUDAL_SURTIDOR: float = 6.0       ## u³/s. Una casilla de cauce con agua son ~4,8 u³ (5,3 u² × 0,9 de hondo)
 const NIVEL_LLENO: float = 0.8           ## fracción de la hondura del cauce (LECHO_AGUA) a la que se cierra el manantial
-const CAUDAL_TINAJA: float = 1.5         ## u³/s del canal de RUINAS: un manantial permanente. Medido en el Bosque 60 s (12/10): con 1,0 el canal desagua al río más rápido de lo que entra y no llega a 0,25; con 3,0 inunda la zona (+230 trocitos de agua); con 1,5 el canal queda en 0,48/0,35/0,18 y solo salen ~55 trocitos del canal. Saldrá de calcular_chorro (11.17)
+const VOL_TINAJA: float = 30.0           ## u³ de referencia de una tinaja CON FONDO (15/10, Pablo): `Mundo3D.abrir_cauce(celdas, caudal, VOL_TINAJA)` la apaga sola al echarlos. El canal del Bosque NO lo usa: sigue permanente hasta que el tótem para la tinaja (13/10). Con 1,5 u³/s y el arranque de 18 s (que gasta ~13,5), serían ~11 s más a pleno caudal
+const CAUDAL_TINAJA: float = 1.5         ## u³/s del canal de RUINAS (manantial finito desde el 15/10: ver VOL_TINAJA). Medido en el Bosque 60 s (12/10): con 1,0 el canal desagua al río más rápido de lo que entra y no llega a 0,25; con 3,0 inunda la zona (+230 trocitos de agua); con 1,5 el canal queda en 0,48/0,35/0,18 y solo salen ~55 trocitos del canal. Saldrá de calcular_chorro (11.17)
 const SOBRE_FONDO_FORZADO: float = 0.3   ## u: hasta dónde llena a la fuerza un canal de ruinas (fondo + esto), no hasta alto_agua
 const T_MAX: float = 40.0                ## s: si el agua no llega (cauce mal puesto), se llena a la fuerza para no atascar el nivel
 var _sim: AguaSim3D = null
@@ -145,7 +146,12 @@ func _llenar_con_fisica(sim: AguaSim3D) -> void:
 		Terreno3D.cauces_abiertos[c] = true
 		sim.solidificar_casilla(c as Vector2i, false)      # el foso se abre: el agua puede entrar
 	_permanente = _tiene_canal_ruinas()
-	sim.sumar_fuente(cauce[0] as Vector2i, CAUDAL_TINAJA if _permanente else CAUDAL_SURTIDOR)
+	if _permanente:
+		# La tinaja es un manantial por CANAL, no por quien lo abre: la maqueta también lo abre cuando el agua de su chorro llega
+		# (PruebaTest2._montar_canal → Mundo3D.abrir_cauce). Por la misma vía, la segunda llamada no suma otra vez (si no, 3,0 u³/s inunda).
+		Mundo3D.abrir_cauce(cauce, CAUDAL_TINAJA)
+	else:
+		sim.sumar_fuente(cauce[0] as Vector2i, CAUDAL_SURTIDOR)
 	set_process(true)
 
 

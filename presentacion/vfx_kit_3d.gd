@@ -979,3 +979,125 @@ static func activar_glow(env: Environment, intensidad: float = 0.55) -> void:
 	env.set_glow_level(3, 1.0)
 	env.set_glow_level(4, 0.8)
 	env.set_glow_level(5, 0.4)
+
+
+## --- Cofre (15/10, Pipeline): partículas doradas de la apertura ---
+## Tres piezas que usa `Cofre3D` (presentacion/cofre_3d.gd): las motas que se reúnen antes de abrir (`oro_motas` con `hacia_dentro`), la ráfaga
+## que sale del interior (`oro_motas` hacia arriba) y la «cubierta» dorada que tapa el hueco de la malla mientras la tapa gira (`oro_cubierta`).
+## Son doradas fijas, no del elemento activo (`elemento`): el botín es oro, no magia.
+
+const ORO_CLARO: Color = Color(1.0, 0.93, 0.62)
+const ORO: Color = Color(1.0, 0.74, 0.22)
+const ORO_OSCURO: Color = Color(0.85, 0.45, 0.08)
+static var _m_oro: StandardMaterial3D = null
+
+
+static func _material_oro() -> StandardMaterial3D:
+	if _m_oro == null:
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		sm.billboard_keep_scale = true
+		sm.vertex_color_use_as_albedo = true
+		sm.albedo_texture = mancha()
+		sm.albedo_color = Color(2.2, 1.7, 0.8)           # HDR: el bloom (Forward+) lo recoge
+		_m_oro = sm
+	return _m_oro
+
+
+## Motas doradas. `hacia_dentro` = false: salen de `pos` hacia `direccion` (ráfaga). `hacia_dentro` = true: nacen en una esfera de radio
+## `radio_emision` alrededor de `pos` y la aceleración radial negativa las lleva al centro (antes de abrir: la energía se reúne).
+## `continuo`: no se apaga solo (lo para quien lo creó con `emitting = false` y `queue_free`). Devuelve el emisor.
+static func oro_motas(padre: Node3D, pos: Vector3, n: int, vida: float, tam: float, vel: float, hacia_dentro: bool = false,
+		continuo: bool = false, radio_emision: float = 0.1, direccion: Vector3 = Vector3.UP, abanico: float = 40.0) -> GPUParticles3D:
+	var gp := GPUParticles3D.new()
+	gp.amount = n
+	gp.lifetime = vida
+	gp.one_shot = not continuo
+	gp.explosiveness = 0.0 if (continuo or hacia_dentro) else 0.8
+	gp.local_coords = false
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gp.visibility_aabb = AABB(Vector3(-4, -2, -4), Vector3(8, 6, 8))
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = radio_emision
+	if hacia_dentro:
+		pm.direction = Vector3.UP
+		pm.spread = 180.0
+		pm.initial_velocity_min = 0.0
+		pm.initial_velocity_max = 0.05
+		pm.radial_accel_min = -vel * 2.5
+		pm.radial_accel_max = -vel * 4.0
+		pm.gravity = Vector3.ZERO
+	else:
+		pm.direction = direccion
+		pm.spread = abanico
+		pm.initial_velocity_min = vel * 0.45
+		pm.initial_velocity_max = vel
+		pm.gravity = Vector3(0.0, -1.2, 0.0)
+		pm.damping_min = 0.4
+		pm.damping_max = 1.0
+	pm.scale_min = tam * 0.6
+	pm.scale_max = tam * 1.3
+	var curva := Curve.new()
+	curva.add_point(Vector2(0.0, 0.0))
+	curva.add_point(Vector2(0.15, 1.0))
+	curva.add_point(Vector2(1.0, 0.0))
+	var ct := CurveTexture.new()
+	ct.curve = curva
+	pm.scale_curve = ct
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	g.colors = PackedColorArray([ORO_CLARO, ORO, Color(ORO_OSCURO.r, ORO_OSCURO.g, ORO_OSCURO.b, 0.0)])
+	var gt := GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	gp.process_material = pm
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	q.orientation = PlaneMesh.FACE_Z
+	q.material = _material_oro()
+	gp.draw_pass_1 = q
+	gp.position = pos
+	padre.add_child(gp)
+	gp.emitting = true
+	if not continuo:
+		padre.get_tree().create_timer(vida + 0.3, false).timeout.connect(gp.queue_free)
+	return gp
+
+
+## La cubierta dorada que tapa el hueco de un cofre abierto (la malla es una cáscara abierta: sin esto se ve hueca mientras gira la tapa).
+## Dos discos horizontales aditivos en `centro` (a la altura del borde), de lado `ancho` x `fondo`: uno suave y grande, otro pequeño y
+## brillante que respira. Sube en `entra` s, se mantiene hasta `dura` y se deshace en `sale` s. Devuelve el nodo (se borra solo).
+static func oro_cubierta(padre: Node3D, centro: Vector3, ancho: float, fondo: float, dura: float, entra: float = 0.1, sale: float = 0.3) -> Node3D:
+	var raiz := Node3D.new()
+	raiz.position = centro
+	padre.add_child(raiz)
+	var mats: Array = []
+	for i in range(2):
+		var q := QuadMesh.new()
+		q.orientation = PlaneMesh.FACE_Y
+		q.size = Vector2(ancho, fondo) * (1.0 if i == 0 else 0.55)
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.albedo_texture = mancha()
+		m.albedo_color = Color(ORO.r * 1.4, ORO.g * 1.4, ORO.b * 1.4, 0.0) if i == 0 else Color(ORO_CLARO.r * 2.0, ORO_CLARO.g * 2.0, ORO_CLARO.b * 2.0, 0.0)
+		m.no_depth_test = false
+		mats.append(m)
+		_malla(raiz, q, m).position = Vector3(0.0, 0.002 * float(i), 0.0)
+	var tw := raiz.create_tween().set_parallel(true)
+	for m in mats:
+		var mm := m as StandardMaterial3D
+		var objetivo: float = 1.0
+		tw.tween_method(func(a: float) -> void: mm.albedo_color.a = a, 0.0, objetivo, entra)
+		tw.tween_method(func(a: float) -> void: mm.albedo_color.a = a, objetivo, 0.0, sale).set_delay(maxf(dura - sale, entra))
+	# El disco pequeño respira mientras dura
+	tw.tween_property(raiz.get_child(1), "scale", Vector3(1.18, 1.0, 1.18), dura * 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(raiz.queue_free).set_delay(dura + 0.05)
+	return raiz

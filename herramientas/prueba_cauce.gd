@@ -53,12 +53,17 @@ func _initialize() -> void:
 	var f: float = 0.0
 	for i in sim._trozos(canal[0] as Vector2i):
 		f += sim.fuente[i]
-	_ok("4 la primera casilla tiene UN manantial de CAUDAL_TINAJA (%.2f)" % Surtidor3D.CAUDAL_TINAJA, absf(f - Surtidor3D.CAUDAL_TINAJA) < 1.0e-4, "fuente %.3f" % f)
+	# 15/10: el manantial de un cauce ARRANCA despacio (ReaccionesAgua3D.ARRANQUE_CAUCE, curva suave): al abrir casi no echa agua y al acabar el arranque llega a CAUDAL_TINAJA.
+	_ok("4a el manantial arranca despacio (al abrir, %.3f u³/s)" % f, f < 0.1)
 	var t: float = 0.0
 	while t < 35.0:
-		await physics_frame
-		sim.paso(1.0 / 60.0)
+		sim.paso(1.0 / 60.0)                     # sin esperar fotogramas de física: la simulación avanza sola, y así la prueba dura segundos
 		t += 1.0 / 60.0
+		if absf(t - ReaccionesAgua3D.ARRANQUE_CAUCE - 0.5) < 0.5 / 60.0:
+			f = 0.0
+			for i in sim._trozos(canal[0] as Vector2i):
+				f += sim.fuente[i]
+			_ok("4b pasado el arranque la primera casilla tiene UN manantial de CAUDAL_TINAJA (%.2f)" % Surtidor3D.CAUDAL_TINAJA, absf(f - Surtidor3D.CAUDAL_TINAJA) < 1.0e-3, "fuente %.3f" % f)
 	var p: Array = []
 	for c in canal:
 		p.append(sim.profundidad_casilla(c as Vector2i))

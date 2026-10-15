@@ -49,7 +49,7 @@ Ambiente y criaturas, también por código (sin muestras: no hay licencias
 que atribuir). Semilla fija: relanzar da los mismos archivos.
 
 ```
-fuego_loop  agua_loop  conversacion_murmullo_loop      (bucles)
+fuego_loop  agua_loop  agua_cae_loop  conversacion_murmullo_loop      (bucles; agua_cae_loop = el chorro de la tinaja, 15/10)
 goblin_grito_0..2  gato_maullido_0..1  conversacion_voz_0..2
 paso_hierba_0..3  paso_roca_0..3
 ```

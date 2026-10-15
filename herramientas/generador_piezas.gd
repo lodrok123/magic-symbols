@@ -22,6 +22,7 @@ const CAPA_MUNDO: int = 1 << 10          ## capa 11 «MUNDO» (= Lanzador3D.CAPA
 ##   "tronco"  → convexa solo con la parte baja y estrecha del modelo (el tronco, no la copa: se pasa por debajo)
 ##   "mesa"    → convexa solo con la parte baja (la mesa del puesto, sin el toldo)
 ##   "convexa" → casco convexo de todo el modelo (roca, tocón, caja…)
+##   "cuerpo"  → casco convexo SOLO de lo que cuelga del nodo `cofre_cuerpo` (el cofre animado: la tapa que gira no cuenta)
 ##   "trimesh" → la malla tal cual (puente, pasarela: se camina sobre ellos)
 ##   "ninguna" → sin cuerpo
 const COLISION: Dictionary = {
@@ -30,18 +31,29 @@ const COLISION: Dictionary = {
 	"roca_cristal": "convexa", "roca_grande": "convexa", "piedras": "convexa", "tocon": "convexa", "tronco": "convexa",
 	"valla": "convexa", "cartel": "convexa", "totem_runico": "convexa", "brasero": "convexa", "fogata": "convexa",
 	"puesto": "mesa", "puesto_mercado": "mesa", "dummy": "convexa", "caja_pequena": "convexa", "caja": "convexa",
-	"barril": "convexa", "cofre": "convexa", "pilar": "convexa",
+	"barril": "convexa", "cofre": "cuerpo", "pilar": "convexa",
 	"seta_reactiva": "convexa", "flor_reactiva": "convexa", "raiz_reactiva": "convexa",
 	"puente": "trimesh", "pasadero": "trimesh",
 	# 10/10: tinaja y campamento goblin (los canales son suelo: se camina por encima, sin cuerpo).
 	"tinaja_ruina": "convexa", "tienda_goblin": "convexa", "torre_goblin": "convexa", "puerta_goblin": "convexa",
 	"empalizada_goblin": "convexa", "estandarte_goblin": "convexa", "canal_recto": "ninguna", "canal_codo": "ninguna",
+	# 15/10: campamento del guardabosques (decorado que bloquea; la tienda es una caja convexa: no se entra en ella).
+	"campamento_tienda": "convexa", "campamento_cazo": "convexa", "campamento_rocas": "convexa", "campamento_cofre": "convexa",
+	# 15/10: elementos de prado: la roca musgosa bloquea; las pequeñas, la hierba y las hojas son decorado que se pisa.
+	"roca_musgosa": "convexa", "rocas_pequenas": "ninguna",
+	# 15/10: bosque_crafting / bosque_tile. Seta y troncos bloquean (como las demás plantas reactivas); raíz, cristal, paja y losas se pisan.
+	"seta_quemada": "convexa", "tronco_resina": "convexa", "tronco_sin_resina": "convexa", "raiz_mundo": "ninguna", "cristal_elemental": "ninguna",
+	"paja": "ninguna", "losa_runas_llana": "ninguna", "losa_runas_remaches": "ninguna", "losa_runas_ovalo": "ninguna", "hierba_alta": "ninguna", "hojas_caidas": "ninguna",
+	# 15/10: flora del bosque: los troncos bloquean; helecho, cañas y flores son decorado que se pisa.
+	"tronco_musgoso": "convexa", "troncos_apilados": "convexa", "helecho": "ninguna", "canas": "ninguna", "flores_blancas": "ninguna",
 }
 ## Bloquea por defecto (cada instancia del nivel puede cambiarlo con el metadato `bloquea`). Lo que no sale aquí no bloquea.
 const BLOQUEA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "arbusto", "arbusto_flores", "arbusto_otono",
 	"seto_seco", "roca_cristal", "roca_grande", "tocon", "tronco", "valla", "cartel", "totem_runico", "brasero", "fogata",
 	"puesto", "puesto_mercado", "dummy", "caja_pequena", "caja", "barril", "cofre", "pilar", "seta_reactiva", "flor_reactiva",
-	"raiz_reactiva", "tinaja_ruina", "tienda_goblin", "torre_goblin", "puerta_goblin", "empalizada_goblin", "estandarte_goblin"]
+	"raiz_reactiva", "tinaja_ruina", "tienda_goblin", "torre_goblin", "puerta_goblin", "empalizada_goblin", "estandarte_goblin",
+	"campamento_tienda", "campamento_cazo", "campamento_rocas", "campamento_cofre", "roca_musgosa",
+	"tronco_musgoso", "troncos_apilados", "seta_quemada", "tronco_resina", "tronco_sin_resina"]
 ## Las que tienen comportamiento propio (las crea `Reactivo3D` / el Juego; la pieza solo da modelo y colisión).
 const REACTIVO: Array = ["seto_seco", "tronco", "totem_runico", "fogata", "brasero", "placa_peso", "seta_reactiva",
 	"flor_reactiva", "raiz_reactiva", "puente", "dummy", "tinaja_ruina", "torre_goblin", "puerta_goblin"]
@@ -157,6 +169,10 @@ static func _guardar(raiz: Node3D, id: String) -> bool:
 static func _dueno(n: Node, raiz: Node) -> void:
 	for h in n.get_children():
 		h.owner = raiz
+		# 15/10: un modelo con animaciones (el cofre) se queda como INSTANCIA del .glb: si se vuelcan también sus hijos a la pieza, el AnimationPlayer
+		# se duplica y el guardado no anima (comprobado: current_animation_position se queda en 0). Los estáticos siguen como antes.
+		if h.scene_file_path != "" and h.find_child("AnimationPlayer", true, false) != null:
+			continue
 		_dueno(h, raiz)
 
 
@@ -177,6 +193,12 @@ static func _formas(vis: Node3D, tipo: String, id: String) -> Array:
 	var mallas: Array = []
 	_mallas(vis, Transform3D.IDENTITY, mallas)     # vis es hijo de la raíz con transform identidad
 	var res: Array = []
+	if tipo == "cuerpo":
+		# 15/10: el cofre animado tiene dos mallas (cuerpo y tapa): la caja de colisión es solo la del cuerpo (la tapa abierta no debe bloquear).
+		var base: Node = vis.find_child("cofre_cuerpo", true, false)
+		if base != null:
+			mallas = mallas.filter(func(par: Array) -> bool: return par[0] == base or base.is_ancestor_of(par[0] as Node))
+		tipo = "convexa"
 	if tipo == "trimesh":
 		for par in mallas:
 			var m: Mesh = (par[0] as MeshInstance3D).mesh

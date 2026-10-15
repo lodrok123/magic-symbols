@@ -19,6 +19,19 @@ class_name AguaRender3D
 ## sombreado interpola entre dos actualizaciones para que no se vea a saltos).
 ## `fuente_ondas(textura, origen_xz, lado)` enchufa las ondas de AguaOndas3D (11.8; mejor `ondas.conectar(render)`); sin ellas, el agua queda lisa.
 ##
+## 13.9 (15/10, a petición de Pablo; lo escribe el Juego en `presentacion/`): EL AGUA OCUPA ESPACIO.
+##   (a) PAREDES LATERALES: donde el agua toca tierra, pared o un trocito seco se dibuja la cara vertical del agua (`_paredes`, una malla
+##       aparte que se rehace al leer la simulación, solo en la caja de trabajo): se ve el grosor, no solo la superficie. Solo lo que
+##       sobresale del suelo de al lado (si la orilla es más alta que el agua, la tierra la tapa y no hay nada que dibujar).
+##       Para que la pared y la superficie se junten, el vértice seco de la orilla toma la altura del agua vecina (antes `min(suelo, agua)`).
+##   (b) OPACIDAD Y COLOR POR PROFUNDIDAD: `prof_clara` (0,1 u: casi transparente, color somero) → `prof_rio` (0,9 u: azul del río, opaco).
+##   (c) TOPES DE SUPERFICIE: `poner_topes({casilla: y})` / `proveedor_topes` limitan la Y a la que se DIBUJA el agua de una casilla.
+##       Es para el canal de piedra: el cauce admite unos 0,37 u de agua (borde a 0,475 u del suelo, fondo a 0,107 u, medido en la pieza)
+##       y la simulación llega a 0,48 u en la primera casilla; sin tope el agua sobresalía 0,11 u por encima de la piedra y se veía un tubo.
+##   (d) MENISCO: franja clara y tenue por dentro de la orilla (el agua sube un poco contra el borde) y espuma de orilla arrastrada por
+##       el flow map (la corriente mueve el ruido del borde). En las paredes, un filo claro arriba.
+##   (e) ONDAS: ver `AguaOndas3D` (la maqueta la monta y la conecta; las gotas que caen llaman a `impulso`).
+##
 ## HIELO (11.14, 12/10): si la simulación tiene `textura_hielo()` (RG8: R = 1 helado, G = lo que le queda, 0-1; mismo origen y texel
 ## que `imagen()`), los trocitos helados se pintan como hielo: blanco azulado y opaco, en facetas con grietas, un poco más alto que el
 ## agua y sin franjas, espuma ni ondas. Al helarse CRECE desde el punto del impacto en ~0,3 s; al derretirse se deshace en ~0,3 s;
@@ -43,7 +56,14 @@ uniform float minima = 0.05;
 uniform vec3 color_somero_est : source_color = vec3(0.44, 0.80, 0.91);
 uniform vec3 color_hondo_est : source_color = vec3(0.20, 0.52, 0.80);
 uniform vec3 color_espuma : source_color = vec3(0.96, 0.99, 1.0);
-uniform float hondura = 1.5;                  // cuánto tarda el color en pasar de somero a hondo (más = antes)
+uniform float hondura = 1.5;                  // (sin uso desde 13.9: el color y la opacidad salen de prof_clara / prof_rio)
+uniform float prof_clara = 0.1;               // 13.9: a esta profundidad (u) el agua es somera: color claro y casi transparente
+uniform float prof_rio = 0.9;                 // y a esta, el azul del río, opaco
+uniform float alfa_clara = 0.2;
+uniform float alfa_rio = 0.95;
+uniform float menisco = 0.55;                 // fuerza de la franja clara de la orilla
+uniform sampler2D topes : filter_nearest, hint_default_black, repeat_disable;   // 13.9 (c): Y máxima a la que se dibuja cada trocito (0 = sin tope)
+uniform float topes_activos = 0.0;
 uniform float bandas = 3.0;                   // escalones entre somero y hondo
 uniform float faceta = 0.75;                  // lado de los triángulos de las olas (u)
 uniform float altura_ola = 0.32;
@@ -153,7 +173,7 @@ void vertex() {
 			}
 		}
 		if (mejor > 0.0) {
-			y = min(d.r, hs);
+			y = hs;                    // 13.9: a ras del agua vecina (la pared vertical baja desde aquí; ver `_reconstruir_paredes`)
 			prof = -mejor;
 			corr = cs;
 		} else {
@@ -162,6 +182,12 @@ void vertex() {
 	}
 	if (hielo_activo > 0.5) {
 		y += alto_hielo * hielo_f(p);                  // el hielo sobresale un poco: se ve una losa, no una mancha
+	}
+	if (topes_activos > 0.5) {
+		float tp = texelFetch(topes, clamp(p, ivec2(0), s - 1), 0).r;
+		if (tp > 0.0) {
+			y = min(y, tp);
+		}
 	}
 	VERTEX.y = y;
 	v_prof = prof;
@@ -270,7 +296,7 @@ void fragment() {
 	}
 
 	// Color: somero -> hondo por la profundidad, en bandas.
-	float hondo = 1.0 - exp(-v_prof * hondura);
+	float hondo = smoothstep(prof_clara, prof_rio, v_prof);        // 13.9 (b)
 	float hondo_b = floor(hondo * bandas + 0.5) / bandas;
 	vec3 ce = mix(color_somero_est, color_hondo_est, hondo_b);
 	float lf = clamp(dot(nm, normalize(vec3(0.45, 1.0, 0.3))), 0.0, 1.0);
@@ -297,12 +323,16 @@ void fragment() {
 	float manchas = step(espuma_manchas - rompe * 0.3, suma) + step(0.22, suma) * (1.0 - step(0.3, suma)) * 0.12;
 	manchas *= step(0.12, v_prof);
 	// Orilla: espuma nítida donde la profundidad (interpolada hasta el borde) es casi cero; se funde con el agua hacia dentro.
-	float linea = 1.0 - smoothstep(0.0, transicion_orilla, v_prof + (ruido(pm.xz * 2.2 + TIME * 0.2) - 0.5) * 0.04);
+	// 13.9 (d): el ruido del borde lo arrastra la corriente (el mismo flow map), y por dentro de la orilla va el menisco: una franja ancha y tenue.
+	float borde = ruido(pm.xz * 2.2 - dir * TIME * clamp(vel, 0.0, 2.0) * 0.5 + TIME * 0.2);
+	float linea = 1.0 - smoothstep(0.0, transicion_orilla, v_prof + (borde - 0.5) * 0.04);
 	linea *= linea;
+	float men = (1.0 - smoothstep(transicion_orilla, transicion_orilla * 3.5, v_prof)) * menisco * (0.55 + 0.45 * borde);
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8)), 0.0, 1.0);
 	ce = mix(ce, color_espuma, espuma);
+	ce = mix(ce, color_espuma, men * 0.45);
 
-	float alfa_agua = mix(0.62, 0.96, hondo) + espuma;
+	float alfa_agua = mix(alfa_clara, alfa_rio, sqrt(hondo)) + espuma + men * 0.25;   // raíz: una lámina de 0,3 u ya se lee como agua
 	float rugosidad = 0.18;
 	if (hielo > 0.0) {
 		// Facetas: celdas grandes, cada una con su tono y su inclinación (se ve tallado, no liso).
@@ -350,6 +380,55 @@ void light() {
 }
 """
 
+## 13.9 (a): sombreado de las PAREDES laterales. COLOR.r = altura relativa en la cara (0 abajo, 1 arriba), COLOR.g = profundidad del trocito.
+## Mismos colores y mismo criterio de profundidad que la superficie; más oscura hacia el fondo y con un filo claro arriba (el menisco).
+const CODIGO_PARED: String = """
+shader_type spatial;
+render_mode cull_disabled, depth_draw_opaque;
+
+uniform vec3 color_somero_est : source_color = vec3(0.44, 0.80, 0.91);
+uniform vec3 color_hondo_est : source_color = vec3(0.20, 0.52, 0.80);
+uniform vec3 color_espuma : source_color = vec3(0.96, 0.99, 1.0);
+uniform float prof_clara = 0.1;
+uniform float prof_rio = 0.9;
+uniform float alfa_clara = 0.2;
+uniform float alfa_rio = 0.95;
+uniform float bandas = 3.0;
+uniform float menisco = 0.55;
+uniform float brillo = 1.0;
+uniform float contraste = 1.2;
+uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+
+varying float v_t;
+varying float v_p;
+
+void vertex() {
+	v_t = COLOR.r;
+	v_p = COLOR.g;
+}
+
+void fragment() {
+	float hondo = smoothstep(prof_clara, prof_rio, v_p);
+	float hondo_b = floor(hondo * bandas + 0.5) / bandas;
+	vec3 ce = mix(color_somero_est, color_hondo_est, hondo_b) * (0.74 + 0.26 * v_t);
+	float filo = smoothstep(0.78, 1.0, v_t);
+	ce = mix(ce, color_espuma, filo * menisco);
+	ALBEDO = ce * brillo;
+	ALPHA = clamp(mix(alfa_clara, alfa_rio, sqrt(hondo)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
+	ROUGHNESS = 0.2;
+	SPECULAR = 0.4;
+}
+
+void light() {
+	if (LIGHT_IS_DIRECTIONAL) {
+		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
+		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+	} else {
+		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
+	}
+}
+"""
+
 ## Si no se llama a `enlazar` a mano, se pregunta a este Callable cada fotograma hasta que devuelva la simulación (el Lanzador la
 ## crea al cargar el nivel, después de que existan los nodos).
 var proveedor: Callable = Callable()
@@ -361,6 +440,21 @@ var _img_b: Image = null
 var _desde: float = 0.0               ## segundos desde la última lectura
 var _intervalo: float = 1.0 / 12.0
 var _ms_lectura: float = 0.0          ## media de lo que cuesta leer la simulación (ms), para medirlo
+
+# 13.9
+## Dibuja las paredes laterales del agua (a). Con `false` solo hay superficie, como antes.
+@export var paredes: bool = true
+## Cada cuántas lecturas se rehacen las paredes (1 = todas; 2 = a la mitad de frecuencia: ~6 veces por segundo con 12 Hz).
+@export var paredes_cada: int = 1
+## (c) Si no se llama a `poner_topes`, se pregunta a este Callable al enlazar: devuelve {Vector2i casilla: Y máxima del agua}.
+var proveedor_topes: Callable = Callable()
+var _topes_casillas: Dictionary = {}
+var _topes_cpu := PackedFloat32Array()   ## por trocito, la Y máxima a la que se dibuja (0 = sin tope); la misma que lleva la textura `topes`
+var _paredes: MeshInstance3D = null
+var _mat_pared: ShaderMaterial = null
+var _lecturas: int = 0
+var _ms_paredes: float = 0.0
+var _quads_paredes: int = 0
 
 # Hielo (11.14)
 const SEG_CRECE: float = 0.3          ## lo que tarda el hielo en cubrir la zona del impacto
@@ -397,7 +491,44 @@ func enlazar(p_sim: AguaSim3D) -> void:
 	material_override = _mat
 	_mat.set_shader_parameter("minima", profundidad_minima)
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if proveedor_topes.is_valid() and _topes_casillas.is_empty():
+		var t: Variant = proveedor_topes.call()
+		if t is Dictionary:
+			_topes_casillas = t
+	_aplicar_topes()
+	_montar_paredes()
 	_leer(true)
+
+
+## 13.9 (c): limita la Y a la que se DIBUJA el agua de cada casilla: `topes` = {Vector2i casilla: Y}. Se puede llamar antes o después de
+## `enlazar`. Vacío lo quita. No cambia la simulación: solo lo que se ve (el canal de piedra no deja ver el agua por encima de su borde).
+func poner_topes(topes: Dictionary) -> void:
+	_topes_casillas = topes
+	if sim != null:
+		_aplicar_topes()
+
+
+func _aplicar_topes() -> void:
+	if _mat == null or sim == null or sim.w <= 0:
+		return
+	_topes_cpu = PackedFloat32Array()
+	if _topes_casillas.is_empty():
+		_mat.set_shader_parameter("topes_activos", 0.0)
+		return
+	var n: int = sim.w * sim.h
+	_topes_cpu.resize(n)
+	_topes_cpu.fill(0.0)
+	for c in _topes_casillas.keys():
+		var cc: Vector2i = c
+		if cc.x < 0 or cc.y < 0 or cc.x >= sim.ancho or cc.y >= sim.alto:
+			continue
+		var y: float = float(_topes_casillas[c])
+		for sy in range(sim.sub):
+			for sx in range(sim.sub):
+				_topes_cpu[(cc.y * sim.sub + sy) * sim.w + cc.x * sim.sub + sx] = y
+	var im := Image.create_from_data(sim.w, sim.h, false, Image.FORMAT_RF, _topes_cpu.to_byte_array())
+	_mat.set_shader_parameter("topes", ImageTexture.create_from_image(im))
+	_mat.set_shader_parameter("topes_activos", 1.0)
 
 
 ## Enchufa las ondas de AguaOndas3D (11.8): `textura` R = altura (u); cubre el cuadrado de lado `lado` desde `origen_xz`.
@@ -413,6 +544,8 @@ func fuente_ondas(textura: Texture2D, origen_xz: Vector2, lado: float, fuerza: f
 func ajustar(nombre: String, valor: Variant) -> void:
 	if _mat != null:
 		_mat.set_shader_parameter(nombre, valor)
+	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste", "sombra_tinte"]:
+		_mat_pared.set_shader_parameter(nombre, valor)
 
 
 ## La última lectura de la simulación como textura (R altura, G profundidad, BA corriente): AguaOndas3D la usa de máscara de agua.
@@ -422,6 +555,15 @@ func textura_datos() -> Texture2D:
 
 func milisegundos_lectura() -> float:
 	return _ms_lectura
+
+
+## Lo que cuesta rehacer las paredes (ms), aparte de la lectura del agua, y cuántas caras llevan ahora.
+func milisegundos_paredes() -> float:
+	return _ms_paredes
+
+
+func caras_paredes() -> int:
+	return _quads_paredes
 
 
 ## Lo que cuesta leer el hielo en cada lectura (ms), aparte de la lectura del agua.
@@ -471,6 +613,11 @@ func _leer(primera: bool) -> void:
 	var t1: int = Time.get_ticks_usec()
 	_leer_hielo(primera)
 	_ms_hielo = lerpf(_ms_hielo, float(Time.get_ticks_usec() - t1) / 1000.0, 0.2)
+	_lecturas += 1
+	if paredes and (primera or _lecturas % maxi(paredes_cada, 1) == 0):
+		var t2: int = Time.get_ticks_usec()
+		_reconstruir_paredes()
+		_ms_paredes = lerpf(_ms_paredes, float(Time.get_ticks_usec() - t2) / 1000.0, 0.2)
 	_ms_lectura = lerpf(_ms_lectura, float(Time.get_ticks_usec() - t0) / 1000.0, 0.2)
 
 
@@ -572,6 +719,116 @@ func _leer_hielo(primera: bool) -> void:
 	else:
 		_hielo_tex.update(im)
 	_mat.set_shader_parameter("hielo_t", _hielo_tex)
+
+
+## 13.9 (a): el material y el nodo de las paredes (se crean una vez).
+func _montar_paredes() -> void:
+	if _paredes == null:
+		_paredes = MeshInstance3D.new()
+		_paredes.name = "ParedesAgua"
+		_paredes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_paredes.extra_cull_margin = 4096.0           # la malla se rehace y sus cajas no se miden: que nunca se recorte
+		add_child(_paredes)
+	if _mat_pared == null:
+		var sh := Shader.new()
+		sh.code = CODIGO_PARED
+		_mat_pared = ShaderMaterial.new()
+		_mat_pared.shader = sh
+	_paredes.material_override = _mat_pared
+	_paredes.mesh = null
+
+
+## 13.9 (a): rehace las caras verticales del agua. Por cada trocito CON agua y cada uno de sus 4 lados que da a un trocito seco, cerrado
+## (tierra, pared, borde del mapa), una cara en la arista compartida, desde la superficie hasta el suelo del lado más alto de los dos
+## (lo que queda por debajo del suelo de al lado lo tapa la tierra). Solo recorre la caja de trabajo de la simulación. Las casillas con tope (canal) no llevan paredes: las pone la piedra.
+func _reconstruir_paredes() -> void:
+	if sim == null or _paredes == null:
+		return
+	var w: int = sim.w
+	var h: int = sim.h
+	var l: float = sim.l
+	var caja: Rect2i = sim.caja_trabajo() if sim.has_method("caja_trabajo") else Rect2i(0, 0, w, h)
+	if caja.size.x <= 0 or caja.size.y <= 0:
+		_paredes.mesh = null
+		_quads_paredes = 0
+		return
+	var x0: int = maxi(0, caja.position.x - 1)
+	var y0: int = maxi(0, caja.position.y - 1)
+	var x1: int = mini(w - 1, caja.position.x + caja.size.x)
+	var y1: int = mini(h - 1, caja.position.y + caja.size.y)
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	var cols := PackedColorArray()
+	var idx := PackedInt32Array()
+	var prof: PackedFloat32Array = sim.prof
+	var suelo: PackedFloat32Array = sim.suelo
+	var cerrado: PackedByteArray = sim.cerrado
+	var helado: PackedByteArray = sim.helado
+	var vec: PackedInt32Array = sim.vecinos
+	var hay_topes: bool = _topes_cpu.size() == w * h
+	var mitad: float = l * 0.5
+	var minima: float = profundidad_minima
+	var q: int = 0
+	for y in range(y0, y1 + 1):
+		for x in range(x0, x1 + 1):
+			var i: int = y * w + x
+			var p: float = prof[i]
+			if p < minima or cerrado[i] == 1 or helado[i] == 1:
+				continue
+			var sup: float = suelo[i] + p
+			if hay_topes and _topes_cpu[i] > 0.0:
+				continue                                          # casilla con tope = canal de piedra: la piedra ya es su pared (y el agua no sobresale)
+			for k in range(4):
+				var j: int = vec[i * 4 + k]
+				var suelo_j: float = suelo[i]
+				if j >= 0:
+					if cerrado[j] == 0 and prof[j] >= minima:
+						continue                                  # agua con agua: no hay pared
+					suelo_j = suelo[j]
+				var base: float = maxf(suelo[i], suelo_j)
+				if sup - base < 0.012:
+					continue
+				var cx: float = (float(x) + 0.5) * l
+				var cz: float = (float(y) + 0.5) * l
+				var a: Vector3
+				var b: Vector3
+				var n: Vector3
+				match k:
+					0:
+						a = Vector3(cx - mitad, 0.0, cz + mitad); b = Vector3(cx - mitad, 0.0, cz - mitad); n = Vector3(-1.0, 0.0, 0.0)
+					1:
+						a = Vector3(cx + mitad, 0.0, cz - mitad); b = Vector3(cx + mitad, 0.0, cz + mitad); n = Vector3(1.0, 0.0, 0.0)
+					2:
+						a = Vector3(cx - mitad, 0.0, cz - mitad); b = Vector3(cx + mitad, 0.0, cz - mitad); n = Vector3(0.0, 0.0, -1.0)
+					_:
+						a = Vector3(cx + mitad, 0.0, cz + mitad); b = Vector3(cx - mitad, 0.0, cz + mitad); n = Vector3(0.0, 0.0, 1.0)
+				var v0: int = verts.size()
+				verts.append(Vector3(a.x, base, a.z))
+				verts.append(Vector3(b.x, base, b.z))
+				verts.append(Vector3(b.x, sup, b.z))
+				verts.append(Vector3(a.x, sup, a.z))
+				for m in range(4):
+					norms.append(n)
+				cols.append(Color(0.0, p, 0.0))
+				cols.append(Color(0.0, p, 0.0))
+				cols.append(Color(1.0, p, 0.0))
+				cols.append(Color(1.0, p, 0.0))
+				idx.append(v0); idx.append(v0 + 1); idx.append(v0 + 2)
+				idx.append(v0); idx.append(v0 + 2); idx.append(v0 + 3)
+				q += 1
+	_quads_paredes = q
+	if q == 0:
+		_paredes.mesh = null
+		return
+	var arr: Array = []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_NORMAL] = norms
+	arr[Mesh.ARRAY_COLOR] = cols
+	arr[Mesh.ARRAY_INDEX] = idx
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	_paredes.mesh = m
 
 
 func _construir_malla() -> void:

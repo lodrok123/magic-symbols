@@ -1,0 +1,47 @@
+; Laboratorio de PUZLES DE AGUA (Fase 13.8, 15/10, Juego). 25 x 25: nueve salas de 7 x 7 separadas por muros, con un hueco entre
+; salas vecinas. El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesAgua"); las piezas y la logica de cada
+; sala las pone laboratorios/lab_puzles_agua_3d.gd (colgado de laboratorios/LabPuzlesAgua3D.tscn). NO se hornea: es un laboratorio.
+; Letras de la maqueta: # muro . suelo S jugador u tinaja L codo de canal - canal recto c cauce seco (cuenca: la abre el lab).
+; Letras del lab (PruebaTest2 las ignora, son suelo): ! boton de piedra (cualquier magia) @ placa de presencia (pisarla)
+;   % pulsador de agua (solo el agua) Z puerta de premio (se abre al resolver). Compuertas y detectores van sobre casillas c y los
+;   coloca el lab (ver su cabecera): si se mueve una c de sitio hay que cambiar la casilla alli tambien (lo avisa al arrancar).
+; Salas (columna, fila): Q2 trasvase (0,0) · Q1 cuenca con tinaja (1,0) · Q3 presa de hielo (2,0) · Q4 desvio del rio (0,1) ·
+;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 reservada, rayo por el agua (2,2).
+; Giros: las tinajas con 180 vierten hacia el OESTE (Reactivo3D.INCLINA_HACIA con ese giro); el codo L con 90 abre al este y al sur;
+;   el recto - con 90 corre de norte a sur, sin giro de este a oeste.
+; giro 13 2 180
+; giro 12 2 90
+; giro 12 3 90
+; giro 5 19 180
+; giro 18 1 90
+; giro 18 2 90
+; giro 18 3 90
+; giro 18 4 90
+; giro 18 5 90
+; giro 18 6 90
+; giro 18 7 90
+#########################
+#.......#......Z#.-.....#
+#.cc.cc.#.!.Lu..#.-.....#
+#.ccccc.#...-...#.-.....#
+#.......#..ccc..#.-...Z.#
+#.......#..ccc..#.-.....#
+#Z!...@.#.@.....#!-..@..#
+#.......#.......#.-.....#
+####.#######.#######.####
+#.......#.......#.......#
+#.!.c.Z.#.......#.!.c.Z.#
+#...c...#.......#...c...#
+#ccccccc....S.......c...#
+#.......#.......#...c...#
+#.....@.#.......#.@.c...#
+#.......#.......#.......#
+####.#######.#######.####
+#.......#.......#.......#
+#.cc....#.......#.......#
+#.cc-u..#.!.%.@.#.......#
+#.......#.......#.......#
+#.!.....#.......#.......#
+#Z....@.#...Z...#.......#
+#.......#.......#.......#
+#########################

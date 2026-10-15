@@ -150,7 +150,11 @@ static func play(origen: Node, nombre: String) -> void:
 	# media nota y al cerrarlo seguiría donde lo dejó, que suena a error.
 	p.process_mode = Node.PROCESS_MODE_ALWAYS
 
-	origen.get_tree().current_scene.add_child(p)
+	# Sin ventana (escenarios de prueba) `current_scene` es null: se cuelga de la raíz.
+	var padre: Node = origen.get_tree().current_scene
+	if padre == null:
+		padre = origen.get_tree().root
+	padre.add_child(p)
 	p.set("global_position", origen.get("global_position"))
 	p.connect("finished", p.queue_free)
 	p.call("play")

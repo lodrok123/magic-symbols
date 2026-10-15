@@ -44,16 +44,30 @@ const MEDIDA: Dictionary = {
 	"roca_cristal": 1.4, "roca_grande": 1.4, "piedras": 0.35, "tocon": 0.6, "tronco": 0.7, "setas": 0.35, "valla": 0.8, "cartel": 0.95,
 	"arco_puerta": 3.4, "totem_runico": 1.8, "brasero": 1.4, "fogata": 0.6, "puesto": 1.9, "caja_pequena": 0.6,
 	"placa_peso": 0.15, "juncos": 0.8, "barril": 0.8, "cofre": 0.6, "caja": 0.8,
-	"baldosa_guardado": 0.12, "seto_seco": 1.3, "dummy": 1.4, "seta_reactiva": 0.9, "flor_reactiva": 0.9,
+	"baldosa_guardado": 0.12, "seto_seco": 1.3, "dummy": 1.4, "seta_reactiva": 0.8, "flor_reactiva": 0.9,
 	"raiz_reactiva": 0.9, "portal_salida": 3.0, "pocion": 0.45, "pilar": 1.8,
 	"cristal_sanctuario": 1.4,   # 12/10: la fuente eléctrica (cristal azul de Meshy, pintado amarillo por objetos_3d.gd); su alto
 	"tinaja_ruina": 1.5,      # ruinas_agua.glb (Meshy «Mossbound Relics»): la tinaja que vierte el agua
 	# campamento_goblin.glb (Meshy «Tusks of the Red Fang»). Alturas en unidades; la puerta y la empalizada van por ancho (abajo).
 	"tienda_goblin": 2.0, "torre_goblin": 3.2, "estandarte_goblin": 2.2,
+	# 15/10: campamento.glb (campamento del guardabosques, 4 piezas). Mismo factor de escala para las cuatro (x4 sobre el GLB: la tienda, la mayor,
+	# queda en 1,7 de alto y 2,65 de ancho) para que mantengan sus proporciones. Cada una lleva debajo su trozo plano de suelo del Meshy.
+	"campamento_tienda": 1.7, "campamento_cazo": 1.35, "campamento_rocas": 0.8, "campamento_cofre": 0.57,
+	# 15/10: praderas.glb (Meshy «Mossy Meadow Elements», una sola malla que separé en 4 nodos sin suelo). Mismo factor (×1,6 sobre el GLB).
+	"rocas_pequenas": 0.33, "roca_musgosa": 0.5, "hierba_alta": 0.53, "hojas_caidas": 0.23,
+	# 15/10: bosque_flora.glb (Meshy «Woodland Flora Collection», una malla separada en 5 nodos sin suelo). Mismo factor ×1,6 (los troncos apilados ×1,9).
+	"helecho": 0.5, "tronco_musgoso": 0.38, "canas": 0.54, "flores_blancas": 0.34, "troncos_apilados": 0.45,
+	# 15/10: bosque_crafting.glb y bosque_tile.glb (Meshy «Enchanted Crafting» / «Enchanted Forest Tile»; cada hoja era una sola malla).
+	# Las parejas que se cambian una por otra en el juego (seta azul ↔ quemada, tronco con ↔ sin resina) miden parecido para que el cambio no «salte»
+	# (la seta azul es `seta_reactiva`, arriba: 0,8).
+	"seta_quemada": 0.57, "tronco_resina": 0.8, "tronco_sin_resina": 0.8, "raiz_mundo": 0.7, "cristal_elemental": 0.6, "paja": 0.45,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
 	 "pasadero": S * 0.8, "placa_peso": S * 0.8,
+	# 15/10: las tres losas de runas (se pisan; la runa va encima por código: RunaLosa3D). Mismo ancho que la baldosa de guardado.
+	"losa_runas_llana": S * 0.85, "losa_runas_remaches": S * 0.85, "losa_runas_ovalo": S * 0.85,
+	"cofre": 0.65,   # 15/10: cofre_anim.glb mide 0,79 de ancho; a 0,65 queda de alto ~0,8 (como barril y caja)
 	"baldosa_guardado": S * 0.85,
 	# Canales de ruinas (enderezados en el GLB). Mismo factor de escala los dos (el codo mide 0,439 de ancho frente a 0,493 del recto).
 	# `canal_recto`: corre a lo largo de X, abierto por -X y +X (giro 90 = a lo largo de Z). `canal_codo`: abierto por -X y +Z,
@@ -69,7 +83,8 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 ## Se deja a 0 (sin giro); la entrada sigue aquí por si otro modelo suelto necesita girarse.
 const GIRO_MODELO: Dictionary = {"cristal_sanctuario": 0.0}
 
-const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10}
+const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10,
+	"losa_runas_llana": 0.08, "losa_runas_remaches": 0.08, "losa_runas_ovalo": 0.08}
 
 
 func _ready() -> void:
@@ -189,6 +204,29 @@ static func crear_visual(id_pedido: String) -> Node3D:
 	return null
 
 
+## 15/10: cambia el aspecto de una pieza YA colocada por el de otra (seta azul → quemada, tronco con resina → sin resina) sin tocar su
+## colocación ni su colisión. `pieza` es la raíz de la pieza (la escena de `arte/piezas/` o el nodo que devuelve la maqueta): se sustituye su
+## hijo `modelo` (o, si no lo tiene, la propia pieza se queda y se le añade). Devuelve false si no existe el modelo nuevo.
+## Guarda el id en el metadato `id_visual` para saber qué aspecto lleva. El tamaño del nuevo sale de su propio MEDIDA.
+static func cambiar_visual(pieza: Node3D, id_nuevo: String) -> bool:
+	if pieza == null:
+		return false
+	var nuevo: Node3D = crear_visual(id_nuevo)
+	if nuevo == null:
+		return false
+	var viejo: Node = pieza.get_node_or_null("modelo")
+	var tf: Transform3D = Transform3D.IDENTITY
+	if viejo is Node3D:
+		tf = (viejo as Node3D).transform
+		pieza.remove_child(viejo)
+		viejo.queue_free()
+	nuevo.name = "modelo"
+	nuevo.transform = tf * nuevo.transform
+	pieza.add_child(nuevo)
+	pieza.set_meta("id_visual", id_nuevo)
+	return true
+
+
 ## --- Colisión de la pieza (6.10, para la fuente de solidez por nodos del Lanzador) ---
 
 ## Piezas cuyo cuerpo sólido es solo el tronco (la copa no impide el paso: se pasa por debajo).
@@ -229,6 +267,12 @@ static func forma_colision(id_pedido: String) -> Dictionary:
 
 static func _normalizar(modelo: Node3D, id: String) -> Node3D:
 	var t: Dictionary = _constantes()
+	# 15/10: un modelo animado (el cofre) llega en la pose de reposo del GLB, que no es la del clip «cerrado» (la tapa asoma por detrás).
+	# Se mide con «cerrado» aplicado: así el tamaño y el centro salen de la pieza tal como se ve en el nivel, no de la tapa suelta.
+	var anim: Node = modelo.find_child("AnimationPlayer", true, false)
+	if anim is AnimationPlayer and (anim as AnimationPlayer).has_animation("cerrado"):
+		(anim as AnimationPlayer).play("cerrado")
+		(anim as AnimationPlayer).advance(0.0)
 	var caja: AABB = _caja(modelo, Transform3D.IDENTITY)
 	var raiz := Node3D.new()
 	raiz.add_child(modelo)

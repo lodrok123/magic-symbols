@@ -12,7 +12,7 @@ extends Node3D
 ##
 ## `letra` es la del mapa de siempre (S jugador, A arquero, W guerrero, G elemental de bosque, B barrera de fuego, X puerta, E salida, n/Q puestos,
 ## M/m personajes, p/a/w baldosas, K placa, z seto, l tronco, j/k/i tótems de fuego/agua/rayo, F fogata, T brasero, D muñeco,
-## s/f/q plantas reactivas, r telaraña, h setas, e fuente eléctrica, u tinaja, y puerta goblin, o torre goblin, - canal recto, L canal codo).
+## s/f/q plantas reactivas, r telaraña, h setas, e fuente eléctrica, u tinaja, Z cofre, y puerta goblin, o torre goblin, - canal recto, L canal codo).
 ## Canal (`-` y `L`, 10/10): una casilla del canal de ruinas por el que corre el agua de la tinaja. Su GIRO es el de la pieza (recto: corre
 ## a lo largo de X; codo: con giro 0 abre al oeste y al sur, 90 → sur y este…) y `lleno` dice si la casilla empieza con agua (vacía por
 ## defecto: se llena sola cuando la tinaja vierte). Los canales conectados a la casilla de delante de la tinaja forman UN canal.
@@ -80,6 +80,9 @@ const LETRAS: Dictionary = {
 	"h": {"grupo": "reactivo", "tipo": "setas", "rotulo": "SETAS", "color": Color(0.8, 0.4, 0.8), "pieza": "setas"},
 	# 9.6 (10/10, nivel Bosque 1): la lógica es del Juego (9.10 rayo por el agua, 9.11 surtidor y cauce); la maqueta los dibuja.
 	"e": {"grupo": "reactivo", "tipo": "emisor_rayo", "rotulo": "FUENTE ELÉCTRICA", "color": Color(0.95, 0.9, 0.3), "pieza": "cristal_sanctuario"},
+	# 15/10: el cofre animado (cofre_anim.glb: cuerpo + tapa con clips «cerrado» y «abrir»). Su apertura es `Cofre3D.en(pieza).abrir()` (presentacion/cofre_3d.gd);
+	# qué hace al abrirse (botín) lo decide el Juego con la señal `abierto`. Grupo propio: no es un Reactivo3D.
+	"Z": {"grupo": "cofre", "tipo": "cofre", "rotulo": "COFRE", "color": Color(1.0, 0.8, 0.25), "pieza": "cofre"},
 	"u": {"grupo": "reactivo", "tipo": "surtidor", "rotulo": "TINAJA", "color": Color(0.4, 0.7, 1.0), "pieza": "tinaja_ruina"},
 	# 10/10: campamento goblin. Estos dos ARDEN (tienda, empalizada y estandarte son decorado puro: letras t, x y V, sin marcador).
 	"y": {"grupo": "reactivo", "tipo": "puerta_goblin", "rotulo": "PUERTA GOBLIN", "color": Color(0.8, 0.3, 0.2), "pieza": "puerta_goblin"},

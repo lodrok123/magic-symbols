@@ -70,6 +70,9 @@ var mojado := PackedFloat32Array()      ## segundos que le quedan al trocito par
 var vecinos := PackedInt32Array()       ## 4 por trocito, el índice del vecino o -1 (borde); se calcula una vez
 
 var _acumulado: float = 0.0
+var _rampas: Array = []                 ## manantiales que suben poco a poco: [{c: Vector2i, v: u³/s ganados por segundo, t: s que faltan}]
+var _topes: Dictionary = {}             ## Vector2i -> u³ que le quedan por echar a un manantial FINITO (una tinaja): al llegar a 0 se apaga
+var _agotadas: Array = []               ## casillas cuyo manantial finito se ha agotado desde la última vez que alguien preguntó
 var _x0: int = 0                        ## caja (en trocitos) donde hay agua, fuentes o suelo mojado; vacía si _x1 < _x0
 var _x1: int = -1
 var _y0: int = 0
@@ -118,6 +121,7 @@ func configurar(p_ancho: int, p_alto: int, p_sub: int, p_lado: float, suelo_y: C
 	_hielo_sucias.clear()
 	_hielo_vivo = false
 	_estrechos.clear()
+	_rampas.clear()
 	fijo.resize(n)
 	fijo.fill(-INF)
 	fuente.resize(n)
@@ -239,6 +243,96 @@ func sumar_fuente(c: Vector2i, delta_u3s: float) -> void:
 		var q: float = fuente[i] + delta_u3s / float(t.size())
 		fuente[i] = 0.0 if absf(q) < 1.0e-6 else maxf(q, 0.0)    # sin restos que mantengan viva la caja de trabajo
 		_incluir(i)
+
+
+## Como `sumar_fuente`, pero el caudal SUBE de 0 a `delta_u3s` en `segundos` s (15/10, Pablo: la tinaja llenaba el canal «muy rápido»).
+## La subida es una curva suave (smootherstep): empieza goteando, acelera en el medio y llega al caudal final SIN esquina (pendiente 0 en los dos
+## extremos). Con una rampa lineal el frente del agua avanzaba a tirones al cambiar de régimen; así el canal se llena como una tubería que se abre
+## poco a poco (15/10, Pablo: «el detalle no es que sea más lento sino cómo se rellena»).
+## POR QUÉ aquí y no con un temporizador del árbol: la simulación avanza por sus pasos fijos; así el arranque va con ella (y con las
+## pruebas sin ventana, que la mueven a mano). Pasados `segundos`, el manantial queda echando `delta_u3s` fijo hasta que se cierre.
+func sumar_fuente_gradual(c: Vector2i, delta_u3s: float, segundos: float) -> void:
+	if segundos <= 0.0:
+		sumar_fuente(c, delta_u3s)
+		return
+	_rampas.append({"c": c, "q": delta_u3s, "T": segundos, "t": 0.0})
+
+
+## CIERRA el manantial de una casilla del todo (15/10, lab de puzles de agua: «cerrar el grifo» de la tinaja): pone a 0 lo que echa y
+## retira las rampas que aún estuvieran subiéndolo. `fuente_en(c, 0)` solo no basta: una rampa en marcha seguiría sumando.
+func apagar_fuente(c: Vector2i) -> void:
+	var i: int = _rampas.size() - 1
+	while i >= 0:
+		if (_rampas[i] as Dictionary)["c"] == c:
+			_rampas.remove_at(i)
+		i -= 1
+	fuente_en(c, 0.0)
+
+
+## Hace FINITO el manantial de una casilla (15/10, tinaja con volumen): echará como mucho `volumen_u3` más y entonces se apaga solo
+## (`apagar_fuente`), rampa incluida. Se cuenta con el caudal REAL de cada paso, así que vale igual con `fuente_en` que con
+## `sumar_fuente_gradual`. Volumen ≤ 0 quita el tope (manantial infinito, como antes). Lo que se agota se lee con `fuentes_agotadas()`.
+func limitar_fuente(c: Vector2i, volumen_u3: float) -> void:
+	if volumen_u3 <= 0.0:
+		_topes.erase(c)
+	else:
+		_topes[c] = volumen_u3
+
+
+## u³ que le quedan al manantial finito de la casilla (INF si no tiene tope, 0 si ya se agotó o no hay).
+func volumen_restante(c: Vector2i) -> float:
+	return float(_topes[c]) if _topes.has(c) else INF
+
+
+## Lo que echa ahora mismo el manantial de la casilla (u³/s, sumando sus trocitos).
+func caudal_en(c: Vector2i) -> float:
+	var q: float = 0.0
+	for i in _trozos(c):
+		q += fuente[i]
+	return q
+
+
+## Casillas cuyo manantial finito se agotó desde la última llamada (y se vacía la lista), como `cambios()`.
+func fuentes_agotadas() -> Array:
+	var r: Array = _agotadas.duplicate()
+	_agotadas.clear()
+	return r
+
+
+func _gastar_topes(dt: float) -> void:
+	for c in _topes.keys():
+		var gasto: float = caudal_en(c) * dt
+		if gasto <= 0.0:
+			continue
+		var queda: float = float(_topes[c]) - gasto
+		if queda <= 0.0:
+			_topes.erase(c)
+			apagar_fuente(c)
+			_agotadas.append(c)
+		else:
+			_topes[c] = queda
+
+
+func _avanzar_rampas(dt: float) -> void:
+	var i: int = _rampas.size() - 1
+	while i >= 0:
+		var r: Dictionary = _rampas[i]
+		var T: float = float(r["T"])
+		var t0: float = float(r["t"])
+		var t1: float = minf(t0 + dt, T)
+		# `sumar_fuente` SUMA al caudal que ya hay, así que cada paso suma lo que la curva ha subido en él: la suma de todos los pasos es
+		# exactamente `q` (telescópica) y el caudal en cada instante es q·suavizado(t/T).
+		sumar_fuente(r["c"] as Vector2i, float(r["q"]) * (_suavizado(t1 / T) - _suavizado(t0 / T)))
+		r["t"] = t1
+		if t1 >= T - 1.0e-6:
+			_rampas.remove_at(i)
+		i -= 1
+
+
+## smootherstep: 0→1 con pendiente y curvatura 0 en los dos extremos.
+static func _suavizado(x: float) -> float:
+	x = clampf(x, 0.0, 1.0)
+	return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
 
 
 ## Echa `volumen` u³ alrededor de un punto del mundo, en un círculo de `radio` u (hechizo de agua, cubo que se vuelca…).
@@ -458,6 +552,14 @@ func casilla_mojada(c: Vector2i) -> bool:
 	return false
 
 
+## La caja (en trocitos) donde hay agua, fuentes, hielo o suelo mojado: lo que recorre el paso. Vacía (sin área) si no hay nada. Para quien
+## dibuja (13.9: las paredes del agua solo se rehacen aquí) o mide sin recorrer toda la rejilla.
+func caja_trabajo() -> Rect2i:
+	if _x1 < _x0 or _y1 < _y0:
+		return Rect2i()
+	return Rect2i(_x0, _y0, _x1 - _x0 + 1, _y1 - _y0 + 1)
+
+
 ## Volumen total de agua (u³). Sirve para las pruebas: con fuentes y absorción apagadas no cambia nunca.
 func volumen_total() -> float:
 	var s: float = 0.0
@@ -481,6 +583,10 @@ func paso(delta: float) -> void:
 	var n_pasos: int = 0
 	while _acumulado >= PASO_FIJO and n_pasos < MAX_PASOS:
 		_acumulado -= PASO_FIJO
+		if not _rampas.is_empty():
+			_avanzar_rampas(PASO_FIJO)
+		if not _topes.is_empty():
+			_gastar_topes(PASO_FIJO)
 		_paso(PASO_FIJO)
 		n_pasos += 1
 	if n_pasos > 0:

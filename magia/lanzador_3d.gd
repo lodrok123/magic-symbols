@@ -113,6 +113,7 @@ static var hielo_permanente: Dictionary = {}
 var mundo: Node3D = null
 var fx: Vfx3D = null
 var jugador: Node3D = null              ## Jugador3D
+var tinta: Tinta = null                  ## la tinta del jugador (15/10). null = los hechizos no cuestan nada (pruebas y laboratorios)
 var camara: Camera3D = null
 var altura: int = 0                     ## nivel del hechizo que pregunta a una barrera (bloquea_proyectiles lo lee)
 
@@ -674,10 +675,33 @@ func cast_page(indice: int) -> void:
 		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(receta.geo()["y_tope"]), "glifos": (fusion["sigils"] as Array).duplicate()})
 		return
 
+	# TINTA (15/10): se comprueba aquí, antes de apuntar, para no ralentizar el tiempo y luego negarte el lanzamiento. Se COBRA al soltar
+	# (`lanzar_ahora`): si cancelas el apuntado no pierdes nada.
+	if tinta != null and not tinta.puede_pagar(receta.forma()):
+		Sfx.play(self, "sello_no")
+		_feedback("Tinta insuficiente (%d / %d)" % [int(ceil(tinta.actual)), int(Tinta.coste_de(receta.forma()))])
+		PlayLog.event("cast_sin_tinta", {"pagina": indice + 1, "forma": receta.forma(), "coste": Tinta.coste_de(receta.forma()), "hay": snappedf(tinta.actual, 0.1)})
+		return
+
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
 		"glifos": (fusion["sigils"] as Array).duplicate(),
 		"elemento_nombre": _gesture_name_of(ficha["element"])}
 	_entrar_modo_lanzar()
+
+
+## 15/10 (Fase 13.10, escenarios) · Lanza la página SIN el modo de apuntar: lo que hacen `cast_page` y luego soltar el botón, pero con
+## el origen y la dirección dados. Existe para los escenarios de `herramientas/` (que no tienen ratón ni cámara que apunte) y para
+## cualquier mando futuro que no apunte con el puntero. Devuelve false si `cast_page` se negó (recarga, sin glifos, altura de más…).
+## Por qué aquí y no en la prueba: salir del modo toca estado privado (`_preparado`, el tiempo ralentizado) que no debe manejar de fuera.
+func lanzar_pagina_ya(indice: int, origen: Vector3, dir: Vector3) -> bool:
+	cast_page(indice)
+	if not modo_lanzar:
+		return false
+	var datos: Dictionary = _preparado
+	_salir_modo()
+	_preparado = {}
+	lanzar_ahora(datos, origen, dir)
+	return true
 
 
 func _entrar_modo_lanzar() -> void:
@@ -850,12 +874,15 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 		jugador.call("mirar_hacia", dir)
 		jugador.call("lanzar_clip", elemento, receta.forma_vfx())
 
+	if tinta != null:
+		tinta.gastar(forma)
+
 	var n: int = _materializar(receta, rune, origen, dir)
 
 	cooldown_total[indice] = receta.cooldown
 	cooldown_left[indice] = receta.cooldown
 	PlayLog.event("cast", {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
-		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma,
+		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	lanzado.emit(elemento, forma, n)

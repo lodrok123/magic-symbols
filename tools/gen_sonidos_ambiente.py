@@ -2,7 +2,7 @@
 """Sonidos genéricos de ambiente y criaturas, sintetizados (sin muestras, sin licencias).
 
 Genera en ./out/ (se puede cambiar con el primer argumento) los .wav y los .ogg de:
-  fuego_loop, agua_loop, goblin_grito_0..2, gato_maullido_0..1,
+  fuego_loop, agua_loop, agua_cae_loop, goblin_grito_0..2, gato_maullido_0..1,
   conversacion_murmullo_loop, conversacion_voz_0..2, paso_hierba_0..3, paso_roca_0..3
 Requiere numpy, scipy y ffmpeg (con libvorbis). La semilla es fija: relanzar da lo mismo.
 Los "_loop" tienen la costura ya cruzada (crossfade) para sonar en bucle sin clic.
@@ -81,6 +81,28 @@ def agua():
         ph=2*np.pi*np.cumsum(f)/SR
         burb[p:p+L]+=np.sin(ph)*np.exp(-t/(L/SR*0.35))*rng.uniform(.1,.5)
     x=norm(corr)*0.8+norm(brillo)*0.25+norm(burb)*0.28
+    return norm(loop(x,int(.5*SR)),0.65)
+
+# ---------- AGUA CAYENDO EN LA TINAJA (bucle 5 s) ----------
+# 15/10 (Pablo): sonido del chorro de la tinaja al caer. Un chorro que golpea una superficie suena como un siseo ancho y constante (la
+# espuma del impacto) con un cuerpo grave que "traga" y muchas gotas pequeñas que saltan. Se distingue del bucle `agua` (corriente
+# tranquila) en que es más brillante, más denso y casi sin burbujas lentas.
+def agua_cae():
+    n=int(5.5*SR)
+    siseo=bp(noise(n),700,7500,2)*(0.8+0.2*lp(noise(n),9,1)*4)       # el chorro al golpear: ruido ancho que tiembla un poco
+    aire=hp(noise(n),5000,2)*(0.6+0.4*lp(noise(n),14,1)*4)           # las salpicaduras finas
+    cuerpo=lp(noise(n),420,2)*(0.7+0.3*lp(noise(n),3,1)*5)           # el golpe grave del agua contra el agua de abajo
+    gotas=np.zeros(n)                                                 # gotas sueltas: plinks cortos, casi todos agudos y descendentes
+    for _ in range(int(70*5.5)):
+        p=rng.integers(0,n-3000); L=int(rng.uniform(.006,.022)*SR); t=np.arange(L)/SR
+        f=rng.uniform(1500,5200)*(1-0.35*t/(L/SR))
+        gotas[p:p+L]+=np.sin(2*np.pi*np.cumsum(f)/SR)*np.exp(-t/(L/SR*0.3))*rng.uniform(.1,.5)
+    glup=np.zeros(n)                                                  # "glups" graves de la tinaja que se llena (pocos y bajos)
+    for _ in range(int(6*5.5)):
+        p=rng.integers(0,n-6000); L=int(rng.uniform(.04,.09)*SR); t=np.arange(L)/SR
+        f=rng.uniform(180,420)*(1+1.2*t/(L/SR))
+        glup[p:p+L]+=np.sin(2*np.pi*np.cumsum(f)/SR)*np.exp(-t/(L/SR*0.4))*rng.uniform(.2,.5)
+    x=norm(siseo)*0.75+norm(aire)*0.22+norm(cuerpo)*0.45+norm(gotas)*0.22+norm(glup)*0.18
     return norm(loop(x,int(.5*SR)),0.65)
 
 # ---------- GRITO DE GOBLIN ----------
@@ -172,6 +194,7 @@ OUT['conversacion_murmullo_loop']=murmullo()
 for i in range(3): OUT[f'conversacion_voz_{i}']=blip(i)
 for i in range(4): OUT[f'paso_hierba_{i}']=paso_hierba(i)
 for i in range(4): OUT[f'paso_roca_{i}']=paso_roca(i)
+OUT['agua_cae_loop']=agua_cae()      # al final: así los demás sonidos salen idénticos (la semilla se consume en orden)
 os.makedirs(sys.argv[1] if len(sys.argv)>1 else 'out',exist_ok=True); os.chdir(sys.argv[1] if len(sys.argv)>1 else 'out')
 for k,v in OUT.items():
     wav(k,v)

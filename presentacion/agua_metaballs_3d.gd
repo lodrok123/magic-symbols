@@ -11,7 +11,7 @@ class_name AguaMetaballs3D
 ## Por qué así y no mallas ni partículas lisas: es barato (un pase con la mitad de resolución), no hace falta cómputo y mantiene el
 ## aspecto estilizado del resto del agua (dos tonos y borde claro, sin degradados).
 ##
-## Límite conocido: el resultado se pinta ENCIMA de la escena (no sabe de la profundidad de lo que hay delante). Vale para chorros
+## Límite conocido: el resultado se pinta ENCIMA del 3D (no sabe de la profundidad de lo que hay delante), pero DEBAJO de la interfaz (15/10). Vale para chorros
 ## que se ven enteros desde la cámara del juego; si algo (un árbol, un muro) debería taparlos, quedan delante. El Juego decide dónde usarlo.
 ##
 ## Uso:
@@ -31,6 +31,14 @@ class_name AguaMetaballs3D
 @export var color_borde: Color = Color(0.92, 0.98, 1.0)
 ## Número de la capa de render que usan las gotas (1-20). La cámara del juego no la dibuja.
 @export_range(1, 20) var capa_gotas: int = 20
+## 15/10 (Pablo: «el agua solo será visible cuando no hay nada en medio»): las gotas pasan a tener OCLUSIÓN. La SubViewport de las gotas dibuja
+## también la geometría OPACA del mundo, pero con COPIAS NEGRAS (una malla gemela por cada oclusor, solo en esta capa, 1-20): no aportan
+## densidad, solo profundidad, y las gotas, que ahora hacen test de profundidad, quedan tapadas por lo que tengan delante. Falso = como antes (todo encima).
+@export var oclusion: bool = true
+@export_range(1, 20) var capa_oclusores: int = 19
+## Sesgo (u) con el que se adelanta cada gota hacia la cámara en el test de profundidad: sin él, las gotas pegadas a una superficie (el
+## suelo del charco, el borde del canal) quedarían medio recortadas por ella.
+@export var sesgo_profundidad: float = 0.12
 
 ## 11.18: radio por defecto del chorro (u), gotas por u³ de agua, tamaño de la gota respecto al radio y cada cuánto salpica al caer.
 const R_CHORRO: float = 0.25
@@ -59,12 +67,32 @@ void fragment() {
 }
 """
 
+## La mancha de una gota: un cuadrado que mira a la cámara, aditivo, con test de profundidad contra los oclusores (ver `oclusion`).
+## Se escribe a mano (y no con StandardMaterial3D billboard) para poder adelantarlo `sesgo` hacia la cámara y para que la niebla no lo toque.
+const CODIGO_GOTA: String = """
+shader_type spatial;
+render_mode unshaded, blend_add, cull_disabled, shadows_disabled, fog_disabled, depth_draw_never;
+uniform sampler2D mancha : source_color, filter_linear, repeat_disable;
+uniform float sesgo = 0.12;
+void vertex() {
+	mat4 mv = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	mv = mv * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0), vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0),
+			vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0), vec4(0.0, 0.0, 0.0, 1.0));
+	mv[3].z += sesgo;
+	MODELVIEW_MATRIX = mv;
+}
+void fragment() {
+	ALBEDO = texture(mancha, UV).rgb;
+}
+"""
+
 var _vp: SubViewport = null
+var _activa: bool = true                 ## la SubViewport se actualiza solo mientras hay emisores (ver `_process`)
 var _cam_vp: Camera3D = null
 var _capa: CanvasLayer = null
 var _rect: TextureRect = null
 var _mat_pantalla: ShaderMaterial = null
-var _mat_gota: StandardMaterial3D = null
+var _mat_gota: ShaderMaterial = null
 var _malla_gota: QuadMesh = null
 
 
@@ -80,6 +108,8 @@ func _montar() -> void:
 	add_child(_vp)
 	_cam_vp = Camera3D.new()
 	_cam_vp.cull_mask = 1 << (capa_gotas - 1)
+	if oclusion:
+		_cam_vp.cull_mask |= 1 << (capa_oclusores - 1)
 	# Fondo negro (densidad 0) y sin nada más: el entorno del juego no debe verse en esta capa.
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -89,7 +119,10 @@ func _montar() -> void:
 	_cam_vp.environment = env
 	_vp.add_child(_cam_vp)
 	_capa = CanvasLayer.new()
-	_capa.layer = 2
+	# 15/10 (Pablo): «el agua solo será visible cuando no hay nada en medio». Antes estaba en la capa 2, POR ENCIMA de la capa 1 (HUD de
+	# depuración) y de todo lo de la interfaz: el chorro se veía a través de los textos. En la capa -1 va sobre el 3D (que siempre se pinta
+	# debajo de cualquier capa) y por DEBAJO de toda la interfaz (capas 0 en adelante).
+	_capa.layer = -1
 	add_child(_capa)
 	_rect = TextureRect.new()
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -114,19 +147,123 @@ func _montar() -> void:
 	gt.fill_to = Vector2(1.0, 0.5)
 	gt.width = 64
 	gt.height = 64
-	_mat_gota = StandardMaterial3D.new()
-	_mat_gota.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_mat_gota.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_mat_gota.albedo_texture = gt
-	_mat_gota.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	_mat_gota.billboard_keep_scale = true
-	_mat_gota.disable_receive_shadows = true
-	_mat_gota.no_depth_test = true
-	_mat_gota.vertex_color_use_as_albedo = false
+	var sh_gota := Shader.new()
+	sh_gota.code = CODIGO_GOTA
+	_mat_gota = ShaderMaterial.new()
+	_mat_gota.shader = sh_gota
+	_mat_gota.set_shader_parameter("mancha", gt)
+	_mat_gota.set_shader_parameter("sesgo", sesgo_profundidad if oclusion else 0.0)
 	_malla_gota = QuadMesh.new()
 	_malla_gota.size = Vector2(1.0, 1.0)
 	_malla_gota.material = _mat_gota
 	_ajustar_camara()
+	if oclusion:
+		_marcar_existentes(get_tree().root)
+		get_tree().node_added.connect(_nodo_nuevo)
+
+
+## --- Oclusores ---
+## Marca con la capa de oclusores toda la geometría OPACA que cuelga de `raiz` (salvo lo que lleve el meta `no_ocluye_agua`) (y de lo que se añada después, ver `_nodo_nuevo`). Es público
+## por si el Juego añade geometría con la que quiera tapar el agua y no entra sola.
+func marcar_oclusores(raiz: Node) -> void:
+	_marcar_existentes(raiz)
+
+
+func _marcar_existentes(n: Node) -> void:
+	_marcar(n)
+	for h in n.get_children():
+		_marcar_existentes(h)
+
+
+func _nodo_nuevo(n: Node) -> void:
+	# En el momento de `node_added` el nodo aún no tiene su malla ni su material puestos: se mira un fotograma después.
+	if n is MeshInstance3D or n is MultiMeshInstance3D:
+		_marcar.call_deferred(n)
+
+
+func _marcar(n: Node) -> void:
+	if n == null or not is_instance_valid(n):
+		return
+	var v := n as GeometryInstance3D
+	if v == null or not (n is MeshInstance3D or n is MultiMeshInstance3D):
+		return
+	if v.layers & (1 << (capa_gotas - 1)) != 0 or v.layers & (1 << (capa_oclusores - 1)) != 0 or n.has_meta("gemelo_oclusor"):
+		return
+	# Lo que lleva la marca «no_ocluye_agua» (o cuelga de algo que la lleva) no tapa las gotas: la tinaja, de cuyo interior sale el chorro. Con ella,
+	# el borde de la boca se comía el arranque del chorro y quedaba un salto entre el agua de dentro y el hilo de fuera (Pablo, 15/10).
+	var p: Node = n
+	while p != null:
+		if p.has_meta("no_ocluye_agua"):
+			return
+		p = p.get_parent()
+	if v.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
+		return
+	var m: Mesh = null
+	if n is MeshInstance3D:
+		m = (n as MeshInstance3D).mesh
+	else:
+		var mm: MultiMesh = (n as MultiMeshInstance3D).multimesh
+		m = mm.mesh if mm != null else null
+	if m == null:
+		return
+	if v.material_override != null:
+		if not _es_opaco(v.material_override):
+			return
+	else:
+		for i in range(m.get_surface_count()):
+			var mat: Material = null
+			if n is MeshInstance3D:
+				mat = (n as MeshInstance3D).get_surface_override_material(i)
+			if mat == null:
+				mat = m.surface_get_material(i)
+			if mat != null and not _es_opaco(mat):
+				return
+	# La gemela NEGRA: misma malla, colgada de la original (se mueve, se oculta y se borra con ella), solo en la capa de oclusores. Se hace así y no
+	# marcando la original porque la SubViewport la dibujaría con su color (y lo sumaría a la densidad: se veía amarillo alrededor de la boca).
+	var g: GeometryInstance3D = null
+	if n is MeshInstance3D:
+		var mi := MeshInstance3D.new()
+		mi.mesh = m
+		mi.skin = (n as MeshInstance3D).skin
+		mi.skeleton = (n as MeshInstance3D).skeleton
+		g = mi
+	else:
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = (n as MultiMeshInstance3D).multimesh
+		g = mmi
+	g.material_override = _mat_oclusor()
+	g.layers = 1 << (capa_oclusores - 1)
+	g.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	g.set_meta("gemelo_oclusor", true)
+	n.set_meta("gemelo_oclusor", true)
+	n.add_child(g)
+
+
+var _negro: StandardMaterial3D = null
+
+
+func _mat_oclusor() -> StandardMaterial3D:
+	if _negro == null:
+		_negro = StandardMaterial3D.new()
+		_negro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_negro.albedo_color = Color(0, 0, 0)
+		_negro.disable_fog = true
+	return _negro
+
+
+## ¿Escribe profundidad como un sólido? Un material estándar sin transparencia (el recortado NO: su gemela negra sería un cuadrado entero); un shader propio, si no mezcla (blend_*) ni
+## escribe ALPHA. Dudoso = transparente: el agua dibujada, los efectos y los cristales NO deben tapar las gotas.
+func _es_opaco(mat: Material) -> bool:
+	if mat is BaseMaterial3D:
+		var t: int = (mat as BaseMaterial3D).transparency
+		return t == BaseMaterial3D.TRANSPARENCY_DISABLED
+	if mat is ShaderMaterial:
+		var sh: Shader = (mat as ShaderMaterial).shader
+		if sh == null:
+			return false
+		var c: String = sh.code
+		return not (c.contains("blend_") or c.contains("ALPHA =") or c.contains("ALPHA=") or c.contains("ALPHA *=") or c.contains("ALPHA*="))
+	return false
 
 
 ## Un chorro que sale de `origen` hacia `direccion` con `velocidad` (u/s) y `caudal` (gotas por segundo) hasta `detener()` o `duracion` s.
@@ -144,8 +281,13 @@ func chorro(origen: Vector3, direccion: Vector3, velocidad: float = 6.0, caudal:
 	return e
 
 
+## 13.9 (e): se emite en cada salpicadura (en `pos`, mundo). La maqueta la conecta a `AguaOndas3D.impulso`: una gota que cae levanta una onda.
+signal salpico(pos: Vector3)
+
+
 ## Una salpicadura de una vez: `cantidad` gotas que salen en abanico ancho desde `pos` hacia arriba. Se borra sola.
 func salpicadura(pos: Vector3, cantidad: int = 24, velocidad: float = 4.0, radio_gota: float = 0.14) -> void:
+	salpico.emit(pos)
 	var e: GPUParticles3D = _emisor(pos, Vector3.UP, velocidad, 70.0, radio_gota)
 	e.lifetime = 0.8
 	e.amount = maxi(4, cantidad)
@@ -240,6 +382,16 @@ func _malla_de_tamano(lado: float) -> QuadMesh:
 
 func _process(_delta: float) -> void:
 	_ajustar_camara()
+	# Con oclusores la SubViewport dibuja la escena otra vez: solo cuando hay gotas (un emisor vivo). Sin ellas no cuesta nada.
+	var hay: bool = false
+	for h in get_children():
+		if h is GPUParticles3D:
+			hay = true
+			break
+	if hay != _activa:
+		_activa = hay
+		_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS if hay else SubViewport.UPDATE_DISABLED
+		_capa.visible = hay
 
 
 ## La cámara de la capa copia a la del juego (transformación, proyección, tamaño) y la del juego deja de dibujar la capa de gotas.
@@ -253,6 +405,7 @@ func _ajustar_camara() -> void:
 	if camara == null or not is_instance_valid(camara):
 		return
 	camara.cull_mask &= ~(1 << (capa_gotas - 1))
+	camara.cull_mask &= ~(1 << (capa_oclusores - 1))      # las gemelas negras solo existen para la SubViewport
 	var tam: Vector2 = camara.get_viewport().get_visible_rect().size
 	var t := Vector2i(maxi(2, int(tam.x * escala)), maxi(2, int(tam.y * escala)))
 	if _vp.size != t:

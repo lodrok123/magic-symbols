@@ -59,9 +59,10 @@ func aplicar(a: AccionElemental) -> void:
 	aplicar_accion(a)
 
 
-## Abre un cauce (canal de la tinaja) a la simulación con un manantial permanente: ver ReaccionesAgua3D.abrir_cauce.
-static func abrir_cauce(celdas: Array, caudal: float) -> bool:
-	return ReaccionesAgua3D.abrir_cauce(celdas, caudal)
+## Abre un cauce (canal de la tinaja) a la simulación con un manantial: ver ReaccionesAgua3D.abrir_cauce. `volumen` u³ antes de agotarse
+## (0 = infinito, como el canal del Bosque; > 0 = una tinaja con fondo, Surtidor3D.VOL_TINAJA de referencia).
+static func abrir_cauce(celdas: Array, caudal: float, volumen: float = 0.0) -> bool:
+	return ReaccionesAgua3D.abrir_cauce(celdas, caudal, volumen)
 
 
 ## --- Fachada para la presentación (M5): lo que la maqueta pedía por campos privados o por Lanzador3D.<static> ---

@@ -1586,3 +1586,75 @@ queda a cero y qué hace entonces.
 
 **Orden:** 12.0 → 12.1 ∥ 12.9 ∥ 12.10 → 12.2 → 12.3 → 12.4 ∥ 12.11 → 12.6 ∥ 12.13 → 12.7 ∥ 12.14 → 12.5 ∥ 12.12 → 12.8 ∥ 12.15 → 12.16.
 Antes de todo: P1–P4 del playtest del 13/10 cerrados.
+
+
+---
+
+## Fase 13 — Flujo de trabajo: animación, VFX, agua con volumen y pruebas automáticas (Pablo, 15/10)
+
+**Qué pide Pablo:** (1) animar sin depender de que el autorig salga bien; (2) VFX más fáciles de iterar; (3) **agua con
+volumen, y resolver la sensación de que «funciona a medias»**: hoy flecha + agua sobre la tinaja activa la animación y el
+chorro de gotas, pero en el canal **no se ve un volumen de agua fluyendo** (captura 15/10 08:44: gotas sí, canal seco a la
+vista); (4) automatizar pruebas porque el playtest es lento. Los escenarios de juego (13.10) van **antes** del nivel 1 (Fase 12):
+son los que ahorran playtests durante todo el nivel.
+
+### Animación (Pipeline)
+
+- [ ] **13.1 (P0) Dos esqueletos estándar y dos bibliotecas de clips.** Bípedo = el rig de Mixamo (el que ya llevan elfa,
+  goblins y NPC); cuadrúpedo = el del lobo de Quaternius. `arte/animaciones/bipedo.glb` y `cuadrupedo.glb` con `idle, walk,
+  run, attack, hit, death, talk` (lo que haya). Un modelo nuevo sale de Meshy **sin rig** y se pesa en Blender sobre el
+  esqueleto de su familia (`Parent → Automatic Weights` + retoque): una hora, determinista. Las animaciones no se repiten
+  por personaje: se heredan. Fuentes de clips: Mixamo (bípedos, gratis), Quaternius (lobo), Cascadeur para los que falten.
+- [ ] **13.2 (P0) `Pj3D` carga los clips de la biblioteca de su familia** (`AnimationLibrary` compartida) cuando el modelo
+  no los trae; el modelo propio manda si los trae. Contrato con el Juego: los mismos nombres de clip de hoy.
+- [ ] **13.3 (P1) `herramientas/prueba_animaciones.gd`** (Juego escribe, Pipeline mantiene la lista): recorre `arte/modelos/*.glb`
+  y comprueba esqueleto estándar, los seis clips (propios o de biblioteca), sin deriva de cadera, escala ≈ 1,7. Falla antes de verlo en pantalla.
+- [ ] **13.4 (P1) Migrar los personajes actuales** a 13.1 (elfa, goblins, librera, alquimista, guardabosques, gato, grandmaster, elemental).
+
+### VFX (Pipeline)
+
+- [ ] **13.5 (P1) Hojas de sprites horneadas** para fuego, humo y vapor (Blender → 8×8 fotogramas, como `llama_tira8`), dibujadas como
+  billboard animado en vez de partículas sueltas: más baratas (el Bosque va a 8 fps en un equipo) y más fieles al estilo pintado.
+- [ ] **13.6 (P1) Un VFX = un recurso `.tres`** (textura, color, tamaño, duración, sonido) en `presentacion/vfx_elementos/`, que
+  `Vfx3D` instancia; el Pipeline lo ajusta en el inspector sin código. Es la partición de `vfx_3d.gd` (111 KB) por elemento, ya apuntada.
+- [ ] **13.7 (P1) `LabVfx3D` con escenarios fijos y captura**: lista de escenarios (bola, barrera, chorro, hielo, vapor…) con cámara
+  fija que se reproducen en orden y guardan una captura cada uno (`capturas/vfx_<n>.png`). Antes/después en dos imágenes.
+
+### Agua con volumen (Juego la simulación y la medida; Pipeline el dibujo) — **importante para Pablo**
+
+Diagnóstico de la captura del 15/10: la simulación **sí** mete agua en el canal (1,5 u³/s de la tinaja; medido 0,48 / 0,35 /
+0,18 u de hondo a los 35 s), pero el dibujo no lo muestra como volumen: `AguaRender3D` pinta solo la **superficie**, las
+paredes de piedra de la pieza del canal quedan por encima, y una lámina de 0,2–0,5 u vista a 60° es una línea. El chorro de
+gotas (11.18) llega, pero no hay continuidad visual entre las gotas y el agua del canal. Y lo que Pablo llama «bugs»: hay que
+**medirlos uno a uno con escenarios (13.10)** antes de tocar nada, porque hoy no se distingue si el agua no está o no se ve.
+
+- [ ] **13.8 (P0, Juego) Escenario `escenario_agua_tinaja.gd`** (headless, Bosque real): flecha de agua sobre la tinaja → a los 5 s el
+  canal tiene ≥ 0,25 u en las tres casillas, el río sube, y **se vuelca al diario la profundidad por casilla cada segundo**: es la
+  verdad contra la que se compara el dibujo. Idem `escenario_agua_estanque.gd` (hechizo de agua en hierba: charco, mojado, se seca).
+- [ ] **13.9 (P0, Pipeline) El agua ocupa espacio.** `AguaRender3D`: (a) **paredes laterales** de la malla donde el agua toca
+  tierra o pared (hoy solo superficie): se ve el grosor; (b) **opacidad y color por profundidad** (0,1 u casi transparente, 0,9 u
+  azul del río) para que la lámina del canal se lea como agua y el río como masa; (c) en el canal, la malla **dentro** del hueco
+  de la pieza (la superficie a `fondo + lámina`, nunca tapada por la piedra: ajustar la pieza o un `render_priority`); (d) **menisco /
+  espuma** en el borde (el flow map ya está); (e) las gotas del chorro al caer hacen **ondas** (`AguaOndas3D.impulso`) y una
+  salpicadura en el punto de caída. Medida: capturas de 13.7 en el canal y el estanque con los valores de 13.8 al lado.
+- [ ] **13.11 (P1, Juego) Rendimiento**: `sub` 3 → 2 en niveles grandes (4× menos trabajo por paso; invisible a 60°), y que
+  `textura()` solo recorra la caja de trabajo. Medido con `prueba_agua_sim` (< 4 ms por paso en 19×49).
+- [ ] **13.12 (P1, Juego+Pipeline)** Tras 13.8/13.9: lista de «bugs» del agua de Pablo, uno por escenario, cerrados con su prueba.
+
+### Pruebas automáticas (Juego)
+
+- [ ] **13.10 (P0) Escenarios de juego sin ventana.** `herramientas/escenario_*.gd`: cargan `escenas/PruebaBosque.tscn` en
+  headless, avanzan N fotogramas, lanzan hechizos por código (`Lanzador3D.lanzar_ahora`) y mueven al jugador con entradas
+  sintéticas (`Input.parse_input_event`), y afirman estado del mundo. Primeros cinco = la lista de playtest del 13/10: libro
+  (dibujar y lanzar), hielo que atrapa y suelta, fuego en la telaraña abre paso, tinaja llena el canal, hornear y recargar.
+  Entran en `tools\pruebas.cmd`.
+- [ ] **13.13 (P1) Grabar y repetir playtests.** `playlog_3d.gd` registra también las **entradas** (tecla, fotograma); un playtest
+  de Pablo se vuelve a ejecutar solo y se comprueba que los eventos salen iguales. Lo que ya juega bien queda protegido.
+- [ ] **13.14 (P1) Capturas de referencia** con ventana en el PC de Pablo (`tools\pruebas.cmd` sin `--headless`): una captura por
+  escenario comparada con la anterior con tolerancia (`tools/comparar_capturas.py`). Avisa cuando el agua, el hielo o un VFX cambian de aspecto.
+- [ ] **13.15 (P1, Pablo + Juego) CI**: GitHub Actions con Godot headless ejecutando las pruebas y los escenarios en cada push.
+
+**Orden:** 13.8 ∥ 13.10 (primero: son la medida de todo lo demás) → 13.9 → 13.1 ∥ 13.6 → 13.2 → 13.3 ∥ 13.7 → 13.4 ∥ 13.5 →
+13.11 ∥ 13.13 → 13.12 → 13.14 → 13.15. **Respecto a la Fase 12:** 13.8 y 13.10 van antes de 12.1; 13.1–13.2 antes de 12.14 (el lobo
+nace ya sobre el esqueleto estándar); el resto en paralelo con el nivel 1. El agua sigue sin entrar en el nivel 1 como mecánica;
+13.8–13.9 son para que lo que ya existe se vea bien y deje de dar sensación de «a medias».

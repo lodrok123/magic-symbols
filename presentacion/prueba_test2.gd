@@ -154,6 +154,13 @@ uniform sampler2D t_hierba : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_camino : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_tierra : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_piedra : source_color, filter_linear_mipmap, repeat_enable;
+// 15/10 (Juego, DIARIO 84): BORDE DE HIERBA. Una franja de hojas (hierba_borde.png, 885x172, alfa) tendida sobre la frontera entre la hierba y
+// cualquier otro suelo, con su lado deshilachado hacia el otro suelo, y la hierba junto a la frontera algo más oscura. Sin textura: borde_fuerza = 0.
+uniform sampler2D t_borde : source_color, filter_linear, repeat_enable;
+uniform float borde_fuerza = 0.0;                                       // 0 = sin borde (no hay textura) · 1 = el borde completo
+uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
+uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
+uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
@@ -201,6 +208,30 @@ void fragment() {
 	float m = smoothstep(0.3, 0.7, r.b);
 	vec3 col = muestra(t_hierba, t, m) * w.r + muestra(t_camino, t, m) * w.g
 		+ muestra(t_tierra, t, m) * w.b + muestra(t_piedra, t, m) * w.a;
+	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
+	// De él salen la dirección (el gradiente) y la distancia con signo `sb` (u de mundo; + = hacia el otro suelo) a la línea R = 0,5. uvm ya
+	// lleva el ruido de borde, así la franja sigue la frontera orgánica del suelo y no la recta de la rejilla.
+	if (borde_fuerza > 0.0) {
+		float eb = 0.5 / lado;
+		vec2 gb = vec2(texture(mapa, uvm + vec2(eb, 0.0)).r - texture(mapa, uvm - vec2(eb, 0.0)).r,
+			texture(mapa, uvm + vec2(0.0, eb)).r - texture(mapa, uvm - vec2(0.0, eb)).r);
+		float gl = length(gb);                                                // ~1 por casilla en una frontera recta; 0 lejos de ella
+		if (gl > 0.2) {
+			float sb = (0.5 - texture(mapa, uvm).r) / gl * celda;
+			vec2 nb = -gb / gl;                                               // hacia el otro suelo
+			float fb = smoothstep(0.2, 0.5, gl);                              // en esquinas y huecos sueltos el gradiente es poco fiable: se apaga
+			// La hierba pegada a la frontera, más oscura (solo en su lado).
+			float oscuro = (1.0 - smoothstep(0.0, 1.2 * borde_ancho, -sb)) * step(sb, 0.0);
+			col *= mix(1.0, borde_oscuro, oscuro * w.r * fb * borde_fuerza);
+			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
+			float vb = (sb + 0.65 * borde_ancho) / borde_ancho;
+			if (vb > 0.0 && vb < 1.0) {
+				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
+				vec4 hb = texture(t_borde, vec2(ub, vb));
+				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza);
+			}
+		}
+	}
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
 	vec4 e = texture(estado, uvm);
 	float q = smoothstep(0.5 - dureza, 0.5 + dureza, e.r) * w.r;               // quemado: solo donde hay hierba
@@ -812,6 +843,10 @@ func _construir_suelo() -> void:
 	# Es el suelo de tipo 3: bajo el cristal, la tinaja, los canales y el cauce seco.
 	var piedra: String = "losas_piedra.png" if ResourceLoader.exists(SUELO + "losas_piedra.png") else "stone_arriba.png"
 	mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + piedra))
+	# Borde de hierba (15/10, DIARIO 84): si no está la textura el shader no pinta nada (borde_fuerza = 0).
+	if ResourceLoader.exists(SUELO + "hierba_borde.png"):
+		mat_suelo.set_shader_parameter("t_borde", load(SUELO + "hierba_borde.png") as Texture2D)
+		mat_suelo.set_shader_parameter("borde_fuerza", 1.0)
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
@@ -3983,6 +4018,7 @@ func _montar_agua_fisica() -> void:
 	_agua_render.name = "AguaFisica"
 	# 13/10: la simulación de agua se lee de Terreno3D (capa mundo/), ya no por reflexión sobre el Lanzador (ARQUITECTURA_MODULAR §5.2).
 	_agua_render.proveedor = func() -> Variant: return Terreno3D.agua_sim
+	_agua_render.proveedor_topes = _topes_agua_canal        # 13.9 (c): el agua del canal no sobresale de la piedra
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()
@@ -4006,7 +4042,66 @@ func _asegurar_gotas_agua() -> AguaMetaballs3D:
 		_gotas_agua.name = "GotasAgua"
 		_gotas_agua.camara = _camara
 		add_child(_gotas_agua)
+		# 13.9 (e): cada salpicadura (la del chorro al caer, la de un impacto) levanta una onda en el agua de ese punto.
+		_gotas_agua.salpico.connect(func(pos: Vector3) -> void:
+			var o: AguaOndas3D = _asegurar_ondas()
+			if o != null:
+				o.impulso(pos, FUERZA_ONDA_SALPICA, RADIO_ONDA)
+		)
 	return _gotas_agua
+
+
+## 13.9 (e) · Ondas del agua (AguaOndas3D): hasta ahora NO estaban montadas en el juego (solo existían como clase). Una zona de 40 u que sigue a la
+## cámara; el agua dibujada (AguaRender3D) suma su pendiente a la normal y espuma en las crestas. Se crea la primera vez que algo las pide.
+## Medido en el canal (15/10, ventana virtual): con 0,12 u cada 0,35 s las ondas, encerradas en un cauce de 0,8 u, se acumulaban y la espuma de crestas
+## lo cubría todo de blanco; con ≈ 0,04 u se ven los anillos sin tapar el agua.
+const ONDAS_AGUA: bool = true                    ## false = sin ondas (por si el Bosque baja de fps: son 2 SubViewport de 256² a 60 pasos/s)
+const FUERZA_ONDA_SALPICA: float = 0.05          ## altura (u) de la onda de una salpicadura
+const FUERZA_ONDA_CHORRO: float = 0.035          ## y la del chorro continuo al caer (cada SEG_ONDA_CHORRO s)
+const RADIO_ONDA: float = 0.6
+const SEG_ONDA_CHORRO: float = 0.3
+## 13.9 (c) · Y (sobre el suelo) hasta la que se DIBUJA el agua en una casilla de canal de ruinas. Medido en la pieza `canal_recto` escalada
+## al mundo: borde a 0,475 u, fondo del cauce a 0,107 u (cabe ≈ 0,37 u de agua); el codo llega a 0,507. 0,44 deja siempre el borde por encima.
+const BORDE_CANAL: float = 0.44
+var _ondas_agua: AguaOndas3D = null
+
+
+func _asegurar_ondas() -> AguaOndas3D:
+	if not ONDAS_AGUA or not agua_fisica or Engine.is_editor_hint() or _camara == null or _agua_render == null:
+		return null
+	if _ondas_agua == null:
+		_ondas_agua = AguaOndas3D.new()
+		_ondas_agua.name = "OndasAgua"
+		_ondas_agua.objetivo = _camara
+		_ondas_agua.nivel_y = Terreno3D.alto_suelo
+		add_child(_ondas_agua)
+		_ondas_agua.conectar(_agua_render)
+	return _ondas_agua
+
+
+## 13.9 (c) · {casilla: Y máxima del agua dibujada} de todas las casillas de canal de ruinas del mapa (`AguaRender3D.proveedor_topes`).
+func _topes_agua_canal() -> Dictionary:
+	var d: Dictionary = {}
+	var lado: int = Terreno3D.lado_del_mapa()
+	for y in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, y)
+			if Terreno3D.es_canal_ruinas(c):
+				d[c] = Terreno3D.alto_suelo + BORDE_CANAL
+	return d
+
+
+## 13.9 (e) · mientras el chorro cae (emitiendo), una onda en su punto de caída cada SEG_ONDA_CHORRO s.
+func _ondear_chorro(chorro: Variant) -> void:
+	if chorro == null or not is_instance_valid(chorro) or not is_inside_tree():
+		return
+	var e: GPUParticles3D = chorro as GPUParticles3D
+	if e == null or not e.emitting:
+		return
+	var o: AguaOndas3D = _asegurar_ondas()
+	if o != null and e.has_meta("caida"):
+		o.impulso(e.get_meta("caida") as Vector3, FUERZA_ONDA_CHORRO, RADIO_ONDA)
+	get_tree().create_timer(SEG_ONDA_CHORRO).timeout.connect(_ondear_chorro.bind(e))
 
 
 ## Un chorro de agua que sale HORIZONTAL de `origen` hacia `dir`, cae `y` u y llega `x` u más allá (ver AguaMetaballs3D.chorro_fisico). `dura` ≤ 0:
@@ -4016,7 +4111,10 @@ func chorro_agua(origen: Vector3, dir: Vector3, x: float, y: float, r: float = 0
 	var g: AguaMetaballs3D = _asegurar_gotas_agua()
 	if g == null:
 		return null
-	return g.chorro_fisico(origen, dir, x, y, r, dura, caudal, salpica)
+	var e: GPUParticles3D = g.chorro_fisico(origen, dir, x, y, r, dura, caudal, salpica)
+	if e != null and not salpica:
+		_ondear_chorro(e)               # 13.9 (e): con salpicadura ya llega una onda por cada una (señal `salpico`); sin ella, las ondas van por su cuenta
+	return e
 
 
 func parar_chorro_agua(chorro: Variant) -> void:
@@ -4046,8 +4144,6 @@ func _actualizar_suelo_mojado() -> void:
 ## vierte: Reactivo3D.INCLINA_HACIA con su giro) forman el canal (letras del mapa o marcadores `-`/`L` del nivel); se ordenan por distancia (anchura) y se llenan una a una con
 ## `Canal3D.retraso` / `t_casilla` (ajustables: `_canal.retraso = 0.5`). Si no hay tinaja o no hay canal pegado, no hace nada.
 func _montar_canal() -> void:
-	if agua_fisica:
-		return          # 11.7: el agua corre por la simulación, no por la tira de Canal3D
 	var tinaja: Reactivo3D = null
 	for r in _reactivos:
 		if r.tipo == "surtidor" and bool(r.get("_es_tinaja")):
@@ -4073,6 +4169,14 @@ func _montar_canal() -> void:
 			if not visto.has(n) and _es_canal(n) and _abre_hacia(c, v) and _abre_hacia(n, -v):
 				visto[n] = true
 				orden.append(n)
+	if agua_fisica:
+		# 15/10 (Juego, Fase 13.8 · pedido de Pablo). Con agua física el agua del canal la DIBUJA AguaRender3D desde la simulación; no hay
+		# Canal3D (la tira de agua pintada) ni el arroyo de la tinaja: serían la misma agua dos veces, la una pintada y la otra física.
+		# La simulación empieza a recibir agua cuando el chorro de la tinaja LLEGA al canal (agua_llega), por el mismo orden de casillas
+		# (de la caída hacia abajo). `abrir_cauce` es idempotente: si además el hechizo golpea el Surtidor3D de Bosque3D, no suma dos veces.
+		tinaja.sin_arroyo()        # el chorro cae ya en el canal: agua_llega sale en cuanto cae, sin la tira del arroyo
+		tinaja.agua_llega.connect(func() -> void: Mundo3D.abrir_cauce(orden, Surtidor3D.CAUDAL_TINAJA))
+		return
 	var centros: Array = []
 	for c in orden:
 		centros.append(_canal_centro(c))

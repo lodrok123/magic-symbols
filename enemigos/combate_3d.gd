@@ -135,6 +135,12 @@ var _tick_fuego: float = 0.0
 var _barra_t: float = 0.0
 var _vida_mostrada: float = 1.0
 var _destello: float = 0.0
+## 15/10 (gamefeel de la barra): la barra solo se ve tras recibir daño; al golpe, el relleno se pone BLANCO un instante y el trozo perdido
+## se queda en blanco `RETARDO_PERDIDA` s antes de vaciarse, para que se vea cuánto ha quitado el golpe.
+const RETARDO_PERDIDA: float = 0.35     ## s que el trozo perdido espera antes de encogerse
+const DESTELLO_BARRA: float = 0.14      ## s que el relleno de la barra se queda blanco tras un golpe
+var _barra_destello: float = 0.0
+var _perdida_espera: float = 0.0
 var _t_anim: float = 0.0
 var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
 var _ataque_vel: float = 1.0
@@ -358,6 +364,8 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
 	_destello = 0.10
+	_barra_destello = DESTELLO_BARRA
+	_perdida_espera = RETARDO_PERDIDA
 	texto(str(int(round(cantidad))), Color(1, 0.95, 0.85))
 	if stun_timer <= 0.0 and health > 0.0 and not elemental:      # el elemental no tiene clip `hit`
 		anim_orden = "hit"
@@ -818,11 +826,21 @@ func _dibujar_estado(delta: float) -> void:
 	_aplicar_tinte(c)
 
 	var fr: float = clampf(health / vida_max, 0.0, 1.0)
-	_vida_mostrada = lerpf(_vida_mostrada, fr, clampf(8.0 * delta, 0.0, 1.0))
+	_barra_destello = maxf(0.0, _barra_destello - delta)
+	_perdida_espera = maxf(0.0, _perdida_espera - delta)
+	if fr >= _vida_mostrada:
+		_vida_mostrada = fr                                   # curarse: sin trozo blanco
+	elif _perdida_espera <= 0.0:
+		_vida_mostrada = lerpf(_vida_mostrada, fr, clampf(8.0 * delta, 0.0, 1.0))
 	_poner_barra(_barra_vida, fr)
 	_poner_barra(_barra_perdida, _vida_mostrada)
-	(_barra_vida.material_override as StandardMaterial3D).albedo_color = \
-		Color(0.35, 0.9, 0.4) if fr > 0.5 else (Color(1.0, 0.8, 0.25) if fr > 0.25 else Color(1.0, 0.3, 0.25))
+	(_barra_vida.material_override as StandardMaterial3D).albedo_color = Color.WHITE if _barra_destello > 0.0 else \
+		(Color(0.35, 0.9, 0.4) if fr > 0.5 else (Color(1.0, 0.8, 0.25) if fr > 0.25 else Color(1.0, 0.3, 0.25)))
+	# Con la vida llena la barra no se ve (solo el rombo de su debilidad); aparece con el primer daño. El elemental ya las tiene ocultas.
+	if not elemental and not muerto:
+		var ver: bool = fr < 0.999 or _barra_destello > 0.0
+		for n in [_barra_fondo, _barra_perdida, _barra_vida]:
+			(n as Node3D).visible = ver
 	_nombre_etiqueta.visible = _barra_t > 0.0 and not elemental
 	if elemental:
 		_actualizar_barra_jefe(fr)

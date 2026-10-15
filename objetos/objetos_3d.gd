@@ -605,8 +605,9 @@ const BOCA_PICO: Vector3 = Vector3(0.16, 1.1, 0.52)      ## por dónde se derram
 const BOCA_CENTRO: Vector3 = Vector3(0.254, 1.307, 0.158)   ## centro del borde de la boca, sobre el plano del anillo
 const BOCA_RADIO: float = 0.26                              ## radio del borde exterior (por donde se derrama al inclinar)
 const BOCA_NORMAL: Vector3 = Vector3(0.288, 1.0, 0.095)     ## normal del plano del borde (sin normalizar): el cuello apunta así
-const AGUA_RADIO: float = 0.15                              ## el agua de dentro: un disco más estrecho que el hueco (~0,17)…
-const AGUA_PROFUNDIDAD: float = 0.14                        ## …y metido por el cuello, por debajo del borde: así los lados del cuello lo tapan
+const AGUA_RADIO: float = 0.19                              ## el agua de dentro: un disco algo más ancho que el hueco (~0,17): lo recortan las paredes del cuello (15/10: antes 0,15)…
+const AGUA_PROFUNDIDAD: float = 0.14                        ## …como mucho a esta profundidad bajo el borde (con la tinaja sin llenar del todo)…
+const AGUA_PROFUNDIDAD_MIN: float = 0.02                    ## …y como poco a esta: el agua llega casi al borde.
 const VUELO_Z: float = 0.4                               ## velocidad horizontal del chorro al salir (u/s)
 const GRAVEDAD_CHORRO: float = 9.8
 const SUELO_CHORRO: float = 0.05                         ## altura a la que termina el chorro
@@ -674,9 +675,13 @@ var _pivote: Node3D = null               ## tinaja: gira la tinaja entera (model
 var _gotas: GPUParticles3D = null        ## tinaja: gotas finas que salen hacia abajo (casi solo Y, muy poco X y Z)
 var _chorro: Array = []                  ## tramos del chorro (MeshInstance3D), se enseñan de arriba abajo
 var _chorro_gotas: Variant = null        ## 11.18: el chorro de gotas (GPUParticles3D) que sustituye a los cilindros, o null
+var _snd_agua_cae: AudioStreamPlayer3D = null   ## 15/10 (Pablo): el agua cayendo en bucle mientras la tinaja vierte (Sfx3D); se corta en `dejar_de_verter`
+var _charco: MeshInstance3D = null            ## 15/10: el charco de agua donde cae el chorro (crece al empezar a verter, se quita al dejar de verter)
 var _chorro_sustituido: bool = false
 var _vertido_parado: bool = false      ## 13/10: `dejar_de_verter` ya se ha llamado (puzzle resuelto)
 const R_GOTAS_TINAJA: float = 0.12       ## radio visual del hilo de agua de la tinaja (u)
+const CHARCO_RADIO: float = 0.3          ## 15/10 (Pablo): charco redondo donde cae el chorro, para que el agua no salga de la nada; cabe en el hueco del canal (~0,8 de ancho)
+const CHARCO_ALTO: float = 0.16          ## altura sobre el suelo: justo encima del fondo del hueco del canal (FONDO_CANAL 0,11), para que no lo tape la piedra
 var _punto_caida: Vector3 = Vector3.ZERO     ## local: donde cae el chorro
 var _arroyo: Node3D = null               ## pivote en el punto de caída; su escala Z es lo que avanza el arroyo
 var _tira: PlaneMesh = null              ## la tira del arroyo (su largo se ajusta con ajustar_arroyo)
@@ -686,6 +691,7 @@ var _t_salp: Timer = null
 static var _sombreado_caudal: Shader = null
 const ENTRADA_CHORRO: float = 0.2         ## 11/10: cuánto se mete el primer tramo del chorro hacia dentro de la boca, para unirlo con el agua
 const ALTO_ENTRADA_CHORRO: float = 0.04    ## y cuánto sube sobre el pico (el agua de dentro está un poco más alta que el borde por el que sale)
+const ENTRADA_GOTAS: float = 0.12         ## 15/10: lo mismo para el chorro de GOTAS (menos que el de cilindros: las gotas ya tienen grosor)
 
 
 static func material_caudal(por_x: bool = false, velocidad: float = 2.5, frecuencia: float = 6.0, opaco: bool = false) -> ShaderMaterial:
@@ -755,6 +761,7 @@ static func pico_inclinado() -> Vector3:
 
 func _montar_tinaja() -> void:
 	_es_tinaja = true
+	set_meta("no_ocluye_agua", true)      # 15/10: la tinaja no tapa las gotas de su propio chorro (AguaMetaballs3D.oclusion), sale de dentro de su boca
 	# El modelo cuelga de un pivote en la panza para poder inclinarlo sin mover la base de piedra del suelo.
 	_pivote = Node3D.new()
 	_pivote.position = PIVOTE_TINAJA
@@ -773,10 +780,10 @@ func _montar_tinaja() -> void:
 	disco.material = material_caudal(false, 1.0, 3.0, true)
 	_agua_pila = MeshInstance3D.new()
 	_agua_pila.mesh = disco
-	_agua_pila.position = BOCA_CENTRO - BOCA_NORMAL.normalized() * AGUA_PROFUNDIDAD - PIVOTE_TINAJA
 	_agua_pila.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_agua_pila.visible = false
 	_pivote.add_child(_agua_pila)
+	_poner_pila(0.0)
 	# Chorro: ocho cilindros finos siguiendo la parábola.
 	var t_fin: float = sqrt(2.0 * (pico_inclinado().y - SUELO_CHORRO) / GRAVEDAD_CHORRO)
 	# 11/10 (Pablo): el chorro arrancaba en el borde del pico y no se unía con el agua de dentro de la boca (un hilo suelto). Un primer
@@ -791,6 +798,19 @@ func _montar_tinaja() -> void:
 	var caida: Vector3 = punto_chorro(t_fin)
 	caida.y = 0.0
 	_punto_caida = caida + Vector3(0.0, 0.045, 0.0)      # donde toca el suelo el chorro (salpicadura); ya no hay charco dibujado
+	# 15/10 (Pablo): un fondo circular de agua en el punto de caída. Sin él el chorro caía sobre la piedra seca y el agua salía «de la nada»
+	# hasta que el canal (que ahora tarda ~18 s en llenarse) tenía agua. Opaco y plano, como el agua de la boca; invisible hasta que vierte.
+	var disco_c := CylinderMesh.new()
+	disco_c.top_radius = CHARCO_RADIO
+	disco_c.bottom_radius = CHARCO_RADIO
+	disco_c.height = 0.01
+	disco_c.material = material_caudal(false, 1.0, 3.0, true)
+	_charco = MeshInstance3D.new()
+	_charco.mesh = disco_c
+	_charco.position = Vector3(caida.x, CHARCO_ALTO, caida.z)
+	_charco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_charco.visible = false
+	add_child(_charco)
 	_arroyo = Node3D.new()
 	_arroyo.position = caida + Vector3(0.0, 0.05, 0.0)
 	_arroyo.rotation.y = atan2(dir_vertido().x, dir_vertido().z)      # su +Z mira hacia donde vierte
@@ -879,7 +899,7 @@ func _brotar_tinaja(instantaneo: bool) -> void:
 	if instantaneo:
 		_agua_pila.scale = Vector3.ONE
 		_pivote.basis = Basis(eje, angulo)
-		_agua_pila.quaternion = Quaternion(eje, -angulo)       # el agua se queda nivelada
+		_poner_pila(1.0)       # el agua se queda nivelada y a la altura del pico
 		_empezar_a_verter(true)
 		return
 	_agua_pila.scale = Vector3(0.15, 1.0, 0.15)
@@ -893,7 +913,26 @@ func _brotar_tinaja(instantaneo: bool) -> void:
 ## Un paso (k de 0 a 1) de la inclinación: gira la tinaja entera y contragira el agua para que se quede nivelada.
 func _inclinar(k: float, eje: Vector3, angulo: float) -> void:
 	_pivote.basis = Basis(eje, angulo * k)
-	_agua_pila.quaternion = Quaternion(eje, -angulo * k)
+	_poner_pila(k)
+
+
+## 15/10 (Pablo: «el agua debería llenar la boca» y «hay una discontinuidad» entre el agua de dentro y el chorro): el agua de dentro se
+## queda a la ALTURA DEL PICO (donde nace el chorro), con la tinaja inclinada `k` de 0 a 1. Así el chorro sale del agua, sin salto, y el agua
+## llena la boca hasta el borde. Se desplaza a lo largo del cuello (nunca más hondo que AGUA_PROFUNDIDAD ni más arriba que AGUA_PROFUNDIDAD_MIN)
+## y se contragira para quedar nivelada.
+func _poner_pila(k: float) -> void:
+	var eje: Vector3 = eje_inclina()
+	var angulo: float = deg_to_rad((INCLINA_HASTA - INCLINA_DESDE) * INCLINA_SENTIDO) * k
+	var giro := Basis(eje, angulo)
+	var n: Vector3 = BOCA_NORMAL.normalized()
+	var c: Vector3 = BOCA_CENTRO - PIVOTE_TINAJA
+	var objetivo_y: float = (giro * (boca_vertido() - PIVOTE_TINAJA)).y      # altura del pico con esta inclinación (relativa al pivote)
+	var rn: float = (giro * n).y
+	var d: float = AGUA_PROFUNDIDAD
+	if absf(rn) > 0.05:
+		d = clampf(((giro * c).y - objetivo_y) / rn, AGUA_PROFUNDIDAD_MIN, AGUA_PROFUNDIDAD)
+	_agua_pila.position = c - n * d
+	_agua_pila.quaternion = Quaternion(eje, -angulo)
 
 
 ## Brillo sutil de la tinaja al recibir el agua (feedback visual): sube rápido, se queda suave mientras se llena y se apaga al verter.
@@ -923,8 +962,17 @@ func _empezar_a_verter(instantaneo: bool) -> void:
 		tw.tween_callback(_abrir_caudal)
 		create_tween().tween_method(_poner_brillo, BRILLO_REPOSO, 0.0, T_BRILLO_FIN).set_trans(Tween.TRANS_SINE)     # el brillo se apaga
 	# 13/10 (Pablo): sin salpicadura donde cae el chorro: ahí empieza el río (el agua del canal), ver punto_caida_global.
+	if _charco != null and not _charco.visible:
+		_charco.visible = true
+		_charco.scale = Vector3(0.2, 1.0, 0.2)
+		_charco.create_tween().tween_property(_charco, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_SINE)
 	_gotas.emitting = true
 	_chorro_de_gotas()
+	# El sonido sale de donde CAE el agua, no de la boca de la tinaja: es donde se oye el golpe. Sin audio importado `ambiente` devuelve null y no pasa nada.
+	if _snd_agua_cae == null:
+		_snd_agua_cae = Sfx3D.ambiente(self, "agua_cae")
+		if _snd_agua_cae != null:
+			_snd_agua_cae.position = _punto_caida + Vector3(0.0, 0.4, 0.0)
 	activado.emit("surtidor", "agua")
 
 
@@ -935,6 +983,10 @@ func dejar_de_verter() -> void:
 	if not _es_tinaja or _vertido_parado:
 		return
 	_vertido_parado = true
+	Sfx3D.parar(_snd_agua_cae)
+	_snd_agua_cae = null
+	if _charco != null:
+		_charco.visible = false
 	if not usado:          # puzzle resuelto antes de regarla: queda bloqueada, ya no vierte nunca (`brotar` sale si `usado`)
 		usado = true
 		return
@@ -968,11 +1020,14 @@ func _chorro_de_gotas() -> void:
 		maqueta = maqueta.get_parent()
 	if maqueta == null or not is_inside_tree():
 		return
-	var pico: Vector3 = to_global(punto_chorro(0.0))
+	# 15/10 (Pablo: «mira la discontinuidad»): las gotas nacen METIDAS `ENTRADA_GOTAS` hacia dentro de la boca y a la altura del agua de dentro,
+	# no en el borde: así el chorro cruza el borde y se une con el agua de la boca (como hacía el primer tramo de cilindros). Se alarga `x` y `y`
+	# lo mismo que se retrasa el origen, así el punto de caída es el de siempre.
+	var pico: Vector3 = to_global(punto_chorro(0.0) - dir_vertido() * ENTRADA_GOTAS + Vector3(0.0, ALTO_ENTRADA_CHORRO, 0.0))
 	var dir_g: Vector3 = (global_transform.basis * dir_vertido()).normalized()
 	var t_fin: float = sqrt(2.0 * (pico_inclinado().y - SUELO_CHORRO) / GRAVEDAD_CHORRO)
-	var x: float = VUELO_Z * t_fin
-	var y: float = to_global(punto_chorro(0.0)).y - to_global(_punto_caida).y
+	var x: float = VUELO_Z * t_fin + ENTRADA_GOTAS
+	var y: float = to_global(punto_chorro(0.0)).y + ALTO_ENTRADA_CHORRO - to_global(_punto_caida).y
 	_chorro_gotas = maqueta.call("chorro_agua", pico, dir_g, x, y, R_GOTAS_TINAJA, -1.0, Surtidor3D.CAUDAL_TINAJA, false)
 	if _chorro_gotas == null:
 		return

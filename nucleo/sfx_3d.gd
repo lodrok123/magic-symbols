@@ -45,6 +45,7 @@ const CATALOGO: Dictionary = {
 const AMBIENTES: Dictionary = {
 	"fuego": {"f": "fuego_loop.ogg", "db": -8.0, "unidad": 2.0, "alcance": 13.0, "alto": 0.5},
 	"agua": {"f": "agua_loop.ogg", "db": -8.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
+	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
 }
 

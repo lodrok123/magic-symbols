@@ -37,12 +37,13 @@ excepciones que se indican.
 | `herramientas/` | las pruebas sin ventana `prueba_*.gd` (**`generador_piezas*.gd` es del Pipeline**) |
 | `presentacion/ui/` (solo estos cuatro) | `spellbook.gd`, `page_hud.gd`, `rune_palette.gd`, `bolsa_ui.gd`: son lógica del grimorio y la mochila, viven con la UI pero las escribe el Juego |
 | `laboratorios/` (parte) | `lab_agua_3d.gd`, `LabAgua3D.tscn` |
+| Shaders del suelo | -- actualización Pablo
 | `tools/` (parte) | `podar_gestos.py`, `grafo.py`, `pruebas.cmd`, `limpieza_mover.ps1`, `reorganizar.ps1` |
 | `docs/` (parte) | `NUEVOS_SISTEMAS.md`, `TEST2_CONCLUSIONES.md`, `QA_ARTE.md`, `ESTADOS_SUELO.md`, `LIMPIEZA.md`, `ARQUITECTURA_MODULAR.md`, `ENCARGOS_LIMPIEZA.md` |
-
 **No toca**: nada de la sección 2. Si necesita un dato de la maqueta, lo pide
 como método de la fachada (`Mundo3D` / `Terreno3D`) en el diario; **nunca**
 `get("_algo")` ni `call("_algo")` sobre nodos del Pipeline.
+
 
 ---
 

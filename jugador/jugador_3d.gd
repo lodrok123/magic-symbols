@@ -52,6 +52,7 @@ signal vida_cambiada(vida: float, maxima: float)
 var pj: Pj3D = null
 var mundo: Node3D = null
 var lanz: Lanzador3D = null
+var tinta: Tinta = Tinta.new()               ## el maná (15/10): lo gasta el Lanzador3D al soltar, lo pinta `_actualizar_hud`
 
 var vida: float = 100.0
 var muerto: bool = false
@@ -75,6 +76,14 @@ var _vel_correr: float = 3.0
 var _hud_barra: ColorRect = null
 var _hud_marco: ColorRect = null
 var _hud_texto: Label = null
+var _hud_tinta_marco: ColorRect = null
+var _hud_tinta_barra: ColorRect = null
+var _hud_tinta_texto: Label = null
+var _t_sin_combate: float = 99.0             ## s desde el último golpe recibido: con menos de TINTA_COMBATE s la tinta se recupera más despacio
+var _t_aviso_tinta: float = 0.0              ## destello rojo de la barra cuando falta tinta
+var _f7_previa: bool = false
+const TINTA_COMBATE: float = 6.0
+const Y_BARRAS: float = 80.0                 ## px desde arriba donde empiezan la barra de vida y la de tinta
 var caidas_al_agua: int = 0
 var saltos: int = 0
 var _t_roll: float = 0.0                     ## lo que queda de voltereta (0 = no ruedas)
@@ -127,6 +136,7 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	l.mundo = p_mundo
 	l.fx = p_mundo.get("_fx")
 	l.jugador = j
+	l.tinta = j.tinta
 	l.camara = p_mundo.get("_camara")
 	j.lanz = l
 	p_mundo.add_child(l)
@@ -242,6 +252,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
 	vida = maxf(0.0, vida - cantidad)
 	_t_inv = INVULNERABLE
+	_t_sin_combate = 0.0
 	_t_golpe = T_GOLPE
 	Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(round(cantidad))), Color(1, 0.4, 0.35))
 	var d: Vector3 = position - desde
@@ -293,6 +304,7 @@ func reaparecer() -> void:
 	muerto = false
 	nadando = false
 	vida = Estado.i().vida_max
+	tinta.rellenar()                         # al reaparecer, tinta llena
 	position = puntos_inicio
 	vy = 0.0
 	en_suelo = true
@@ -348,6 +360,16 @@ func _process(delta: float) -> void:
 		pj.soltar_lanzar()                  # quita las motas y vuelve a idle
 	_t_golpe = maxf(0.0, _t_golpe - delta)
 	_t_inv = maxf(0.0, _t_inv - delta)
+	_t_sin_combate += delta
+	_t_aviso_tinta = maxf(0.0, _t_aviso_tinta - delta)
+	tinta.actualizar(delta, _t_sin_combate < TINTA_COMBATE)
+	# F7: cambia de pigmento (comando de prueba hasta que haya recetas y mochila de pigmentos). F8 no: es "detener" en el editor de Godot.
+	var f7: bool = Input.is_key_pressed(KEY_F7)
+	if f7 and not _f7_previa:
+		tinta.siguiente_pigmento()
+		if lanz != null:
+			lanz.avisar("Pigmento: %s" % tinta.nombre_pigmento(), tinta.color())
+	_f7_previa = f7
 	_roll_cd = maxf(0.0, _roll_cd - delta)
 	if _t_beber > 0.0:
 		_t_beber = maxf(0.0, _t_beber - delta)
@@ -699,11 +721,13 @@ func _construir_hud() -> void:
 	_hud_marco.position = Vector2(14, 0)
 	_hud_marco.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	capa.add_child(_hud_marco)
-	_hud_marco.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	# Arriba a la izquierda (15/10, Pablo). Empieza en y = 80 y no en 8 porque la maqueta (Pipeline) pinta ahí su texto de depuración
+	# (FPS, atajos, avisos: ~3 líneas) y taparía las barras; si algún día ese texto se mueve, basta bajar `Y_BARRAS`.
+	_hud_marco.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	_hud_marco.offset_left = 14.0
-	_hud_marco.offset_top = -36.0
+	_hud_marco.offset_top = Y_BARRAS
 	_hud_marco.offset_right = 258.0
-	_hud_marco.offset_bottom = -16.0
+	_hud_marco.offset_bottom = Y_BARRAS + 20.0
 	_hud_barra = ColorRect.new()
 	_hud_barra.color = Color(0.35, 0.85, 0.4)
 	_hud_barra.position = Vector2(2, 2)
@@ -716,11 +740,34 @@ func _construir_hud() -> void:
 	_hud_texto.add_theme_constant_override("outline_size", 5)
 	_hud_texto.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	capa.add_child(_hud_texto)
-	_hud_texto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	_hud_texto.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)    # el texto de ayuda se queda abajo
 	_hud_texto.offset_left = 14.0
-	_hud_texto.offset_top = -82.0
+	_hud_texto.offset_top = -50.0
 	_hud_texto.offset_right = 560.0
-	_hud_texto.offset_bottom = -40.0
+	_hud_texto.offset_bottom = -8.0
+	# LA TINTA, justo debajo de la vida: más fina (12 px contra 20) para que se lea "primero la vida, luego la tinta".
+	_hud_tinta_marco = ColorRect.new()
+	_hud_tinta_marco.color = Color(0, 0, 0, 0.7)
+	_hud_tinta_marco.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capa.add_child(_hud_tinta_marco)
+	_hud_tinta_marco.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_hud_tinta_marco.offset_left = 14.0
+	_hud_tinta_marco.offset_top = Y_BARRAS + 24.0
+	_hud_tinta_marco.offset_right = 258.0
+	_hud_tinta_marco.offset_bottom = Y_BARRAS + 38.0
+	_hud_tinta_barra = ColorRect.new()
+	_hud_tinta_barra.position = Vector2(2, 2)
+	_hud_tinta_barra.size = Vector2(240, 10)
+	_hud_tinta_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_tinta_marco.add_child(_hud_tinta_barra)
+	_hud_tinta_texto = Label.new()
+	_hud_tinta_texto.add_theme_font_size_override("font_size", 10)
+	_hud_tinta_texto.add_theme_color_override("font_outline_color", Color.BLACK)
+	_hud_tinta_texto.add_theme_constant_override("outline_size", 4)
+	_hud_tinta_texto.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_tinta_texto.position = Vector2(6, -3)
+	_hud_tinta_marco.add_child(_hud_tinta_texto)
+	tinta.insuficiente.connect(func(_f: String, _c: float, _h: float) -> void: _t_aviso_tinta = 0.35)
 
 
 func _actualizar_hud() -> void:
@@ -736,5 +783,24 @@ func _actualizar_hud() -> void:
 		extra = " · en el aire"
 	elif nivel_actual() > 0:
 		extra = " · nivel %d" % nivel_actual()
+	_pintar_tinta()
 	_hud_texto.text = "Vida %d/%d · oro %d%s\nT libro · 1/2/3 lanzar página · Espacio saltar · F12 medición" % [
 		int(vida), int(Estado.i().vida_max), Estado.i().oro, extra]
+
+
+## La barra de tinta: el color es el del pigmento; "baja" la pone roja, "sin tinta" la vacía en gris y un intento sin tinta la destella.
+func _pintar_tinta() -> void:
+	if _hud_tinta_barra == null:
+		return
+	_hud_tinta_barra.size.x = 240.0 * tinta.fraccion()
+	var est: String = tinta.estado()
+	var col: Color = tinta.color()
+	if est == "baja":
+		col = Color(1.0, 0.3, 0.25)
+	elif est == "sin_tinta":
+		col = Color(0.5, 0.5, 0.55)
+	if _t_aviso_tinta > 0.0:
+		col = col.lerp(Color(1.0, 0.15, 0.1), 0.7)
+	_hud_tinta_barra.color = col
+	var nota: String = {"normal": "", "recuperando": " · recuperando", "baja": " · baja", "sin_tinta": " · sin tinta"}[est]
+	_hud_tinta_texto.text = "Tinta %d/%d · %s%s" % [int(round(tinta.actual)), int(tinta.maxima), tinta.nombre_pigmento(), nota]

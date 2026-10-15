@@ -88,18 +88,42 @@ static func aplicar(a: AccionElemental) -> void:
 static var _manantiales: Dictionary = {}          ## Vector2i (primera casilla) -> instance_id de la simulación que ya tiene su manantial
 
 
-static func abrir_cauce(celdas: Array, caudal: float) -> bool:
+const ARRANQUE_CAUCE: float = 18.0                ## s que tarda el manantial de un cauce en llegar a su caudal, con curva suave (15/10, Pablo: «muy rápido el llenado» y luego «que se rellene de forma natural»; a 18 s el pico de la primera casilla pasa del régimen un 10 %, a 5 s un 60 %)
+
+
+## `volumen`: u³ que echa el manantial antes de apagarse solo (15/10, Pablo: la tinaja tiene FONDO; con un manantial infinito a 1,5 u³/s la
+## cuenca del laboratorio llenaba a 0,9 y vertía 25 u³ a la sala en 60 s). 0 = infinito (el canal del Bosque, que conduce el rayo
+## hasta que el tótem para la tinaja: diseño del 13/10); > 0 = finito (el laboratorio, Surtidor3D.VOL_TINAJA como referencia).
+## Si el manantial ya existía con OTRO caudal o volumen, se reajusta (apaga y vuelve a arrancar con los nuevos): así el laboratorio puede
+## pedir un caudal distinto del de la maqueta para la misma tinaja. Con los mismos valores sigue siendo idempotente.
+static var _ajustes: Dictionary = {}              ## Vector2i -> [caudal, volumen] con los que se abrió
+
+static func abrir_cauce(celdas: Array, caudal: float, volumen: float = 0.0) -> bool:
 	var sim: AguaSim3D = Terreno3D.agua_sim
 	if sim == null or celdas.is_empty():
 		return false
+	volumen = maxf(volumen, 0.0)
 	for c in celdas:
 		Terreno3D.cauces_abiertos[c] = true
 		sim.solidificar_casilla(c as Vector2i, false)      # el foso se abre: el agua puede entrar
 	var primera: Vector2i = celdas[0]
 	if int(_manantiales.get(primera, 0)) == sim.get_instance_id():
-		return true
+		var a: Array = _ajustes.get(primera, [caudal, volumen])
+		if absf(float(a[0]) - caudal) < 1.0e-6 and absf(float(a[1]) - volumen) < 1.0e-6:
+			return true
+		sim.apagar_fuente(primera)                          # otros valores: se reajusta (rampa incluida)
 	_manantiales[primera] = sim.get_instance_id()
-	sim.sumar_fuente(primera, caudal)
+	_ajustes[primera] = [caudal, volumen]
+	# Desagüe (15/10, Pablo: «el caudal se va fuera del mapa»). Un río que no toca el borde del mapa es una balsa CERRADA: con un
+	# manantial permanente subía de 0,9 a 1,4 u, desbordaba y extendía una lámina por todo el bosque (medido: +144 u³ a los 160 s).
+	# Donde el cauce desemboca en un río, ese río mantiene su nivel y se lleva lo que sobra, igual que los «~» del borde del mapa.
+	for c in celdas:
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var r: Vector2i = (c as Vector2i) + (d as Vector2i)
+			if Terreno3D.en_mapa(r) and Terreno3D.letra_de(r) == "~":
+				sim.fijar_nivel(r, Terreno3D.alto_agua)
+	sim.sumar_fuente_gradual(primera, caudal, ARRANQUE_CAUCE)
+	sim.limitar_fuente(primera, volumen)
 	return true
 
 
