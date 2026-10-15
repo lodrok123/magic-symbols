@@ -1485,3 +1485,104 @@ mide con 2 × 2 trocitos por casilla.
 | Deuda pequeña | iluminación | stride, pilar/tiempo, diálogo | clips, iconos, VFX, tótems |
 
 Dependencias: 1.1 antes de 2.1 · 1.6 antes de `stride` · 3.6 antes de 3.2 · 3.9 antes de las P2 · 0.2 espera a 1.3.
+
+
+---
+
+## Fase 12 — Nivel oficial 1: lo que tiene que funcionar antes (Pablo, 13/10 20:50)
+
+**Decisiones de Pablo:** el primer nivel va solo con **Fuego**; glifos **Flecha** desde el principio y **Barrera** poco
+después; **Línea** quizá por exploración. **El agua se pospone** hasta después de la primera misión principal (toda la Fase
+11 queda como está, sin más tareas hasta entonces). Hace falta: inventario, recolección de componentes con icono 2D,
+piezas auxiliares para puzles de fuego, la animación del escudo del goblin ardiendo, un enemigo nuevo (cuadrúpedo, lobo)
+y pensar una limitación tipo «tinta».
+
+**Lo que ya hay (medido en el código, 13/10):**
+- Inventario: `nucleo/estado.gd` (`Estado.i()`: oro, mochila de 8 huecos ampliable a 20, pilas de 9, `agregar/quitar/cuenta`)
+  y `presentacion/ui/bolsa_ui.gd` (tecla I, barra fija abajo, láminas en `presentacion/ui/laminas/`). Se usa en 3D (pociones Q, oro).
+- Catálogo de ingredientes: `nucleo/objetos.gd` `DATOS` (lavanda, baya, helecho, piedra, setas, flores, raíces) y `PLANTAS`
+  (seta/flor/raíz × elemento → ingrediente: seta + fuego = seta asada, raíz + fuego = raíz carbonizada…). Los iconos hoy se
+  **dibujan con primitivas** (`Objetos.dibujar`), no son imágenes 2D.
+- Plantas reactivas en el Bosque: piezas `seta_reactiva`, `flor_reactiva`, `raiz_reactiva` (letras `s f q` de la maqueta), como `Reactivo3D`.
+- Lo que falta para «recoger»: en el 2D lo hacía `recolectable.gd` (tecla E), que no se portó al 3D. Hoy en 3D una planta
+  reacciona al hechizo pero **no entra en la mochila**.
+
+### Juego
+
+- [ ] **12.1 (P0) Recolección en 3D.** `objetos/recolectable_3d.gd`: un `Reactivo3D` que con **E** cerca entra en la mochila
+  (`Estado.agregar(id)`), y que si antes recibió un elemento da el ingrediente transformado de `Objetos.PLANTAS` (seta + fuego → seta
+  asada). Mensaje flotante «+1 Seta asada» y la pieza desaparece (o se queda «cosechada» si Pablo quiere que rebrote). Letras:
+  las `s f q` existentes pasan a ser recolectables; lavanda/baya/helecho/piedra/flor_silvestre necesitan letra y pieza (Pipeline 12.9).
+  Prueba headless: recoger sin elemento da la base; con fuego da la asada; mochila llena → aviso y la planta se queda.
+- [ ] **12.2 (P0) Iconos 2D en la mochila.** `Objetos.DATOS[id]["icono"]` = ruta a `presentacion/ui/iconos/<id>.png`; `bolsa_ui.gd`
+  dibuja la imagen si existe y si no cae a `Objetos.dibujar` (así no se rompe nada mientras el Pipeline entrega iconos).
+- [ ] **12.3 (P0) Puzles de fuego como datos: `escenas/puzle.gd`.** Trigger → Condición → Acción (documento de estructura §8):
+  un `Puzle` escucha señales de reactivos (`activado`, `quemado`) y aplica acciones (`tender_puente`, `abrir_puerta`,
+  `soltar_trampa`, `encender_runa`). Lo que hoy hace `Bosque3D` a mano pasa a ser datos del nivel. Prueba headless con dos
+  reactivos falsos.
+- [ ] **12.4 (P0) Tronco enraizado → puente.** `objetos/tronco_puente_3d.gd`: `Reactivo3D` con raíces; `on_spell_hit(fuego)` →
+  las raíces arden (`enredadera_3d` / `raiz_reactiva`, Pipeline) → a los N s el tronco cae (giro sobre su base) y un
+  `PuenteReactivo3D` tiende la losa sobre las casillas que cubre (`largo` del marcador: 2 o 3 casillas, giro = dirección de caída).
+- [ ] **12.5 (P1) Cuerdas que arden.** `objetos/cuerda_3d.gd`: `Reactivo3D` que con fuego se quema en `t` s y emite `cortada`.
+  Lo que cuelga de ella lo decide el puzle (12.3): una **trampa** (`trampa_3d.gd`: un tronco o roca que cae sobre N casillas y
+  daña a quien esté; sirve contra enemigos) o una **compuerta** que se abre. Otras piezas de fuego que propongo, para
+  elegir: (a) **antorcha apagada** que hay que encender para abrir una puerta (ya existe como brasero/tótem: solo falta el puzle);
+  (b) **seto seco** que arde y deja paso (hoy la telaraña ya lo hace; el seto es lo mismo con otra pieza y propagación
+  casilla a casilla, que `Lanzador3D` ya tiene para la hierba); (c) **colmena/avispero** que al quemarse ahuyenta a los goblins
+  de una zona (huyen 10 s): es un puzle de combate sin tocar la IA, solo un estado «asustado» en `Combate3D`;
+  (d) **barril de resina** que explota y empuja empujables.
+- [ ] **12.6 (P0) Escudo del goblin que arde.** `enemigos/combate_3d.gd`: el goblin guerrero lleva `escudo` (pieza de
+  `arte/equipo/armas_goblin.glb`); con fuego el escudo pasa a `ardiendo` (bloquea igual 2 s, luego cae) y el goblin pierde la
+  reducción de daño frontal. Es la regla «el escudo de madera arde» del documento de estructura §7. Pipeline hace el VFX/animación (12.10).
+- [ ] **12.7 (P0) Lobo: lógica.** `enemigos/lobo_3d.gd` reutiliza `Combate3D` (vida, daño, botín, estados) con otra IA:
+  rodea al jugador a 3 casillas, embiste en línea recta (1 casilla/0,2 s), retrocede y repite; en manada (2–3) se reparten
+  los ángulos. Débil al fuego (huye 3 s si arde). Animaciones que pide: `idle`, `walk`, `run`, `attack`, `hit`, `death`
+  (las mismas seis que el goblin). Prueba headless de la IA con un jugador falso.
+- [ ] **12.8 (P1) Tinta (limitación de lanzar).** Propuesta para que Pablo decida (ver «Tinta» abajo): `Estado.tinta` (0–100),
+  cada **glifo** dibujado cuesta tinta (el sello no), regeneración pasiva lenta, **poción de tinta** crafteable con 2
+  ingredientes (seta asada + flor de luna, p. ej.) que da +50. HUD: una barra junto al libro. Sin tinta el libro deja dibujar
+  pero no lanzar (aviso). Todo en datos (`nucleo/`) para poder quitarlo si en playtest estorba.
+
+### Pipeline
+
+- [ ] **12.9 (P0) Piezas recolectables** con el estilo del Bosque: lavanda, baya, helecho, piedra, flor silvestre (hay setas, flores y
+  raíces). Marcadores/letras en `marcador_3d.gd`.
+- [ ] **12.10 (P0) Iconos 2D de inventario** (`presentacion/ui/iconos/<id>.png`, 64×64, fondo transparente) para los ~25 ids
+  de `Objetos.DATOS`; primero los 8 que use el nivel 1.
+- [ ] **12.11 (P0) Tronco enraizado**: pieza (tronco + raíces, `arte/piezas/tronco_enraizado.tscn`), raíces que arden (VFX) y
+  animación de caída (90° sobre la base, 0,8 s, con polvo al caer).
+- [ ] **12.12 (P1) Cuerda y trampa**: pieza de cuerda tensa (1 casilla, en vertical u horizontal), que arde de un extremo al
+  otro, y la trampa (tronco colgado / roca) que cae.
+- [ ] **12.13 (P0) Escudo del goblin ardiendo**: el escudo es un nodo aparte en el modelo (si no, separarlo en `armas_goblin.glb`);
+  animación: llamas sobre el escudo 2 s → el goblin lo suelta (clip `drop` o simplemente desprender el nodo con un tween) → el
+  escudo cae y se consume (`CostraHielo3D` al revés: una costra de ceniza).
+- [ ] **12.14 (P0) Lobo: modelo y animaciones.** Plan de acción, de menos a más riesgo:
+  1. **Comprar o descargar un lobo ya animado** y adaptarlo al estilo: el pack *Animated Animals* de **Quaternius** (CC0, low-poly,
+     incluye lobo con idle/walk/run/attack/hit/death; `.glb` listo para Godot) es la vía más corta: un día de trabajo (escala,
+     paleta pastel, `Pj3D.cargar` y los seis clips). Alternativas de pago en Sketchfab/Synty («Polygon Fantasy Kingdom» trae lobo).
+  2. **Meshy con rig animal**: Meshy genera el modelo con el estilo del proyecto, pero su autorrigging está pensado para bípedos;
+     para cuadrúpedos sale irregular. Solo si (1) no encaja con el arte: generar en Meshy y **retargetear** las animaciones del
+     lobo de Quaternius en Blender (mismo esqueleto de cuadrúpedo: 4 patas, columna, cola, cabeza), que es el trabajo caro.
+  3. **Animación procedimental** en Godot (patas por IK, cuerpo que sigue la velocidad): solo como último recurso; tres días y resultado peor.
+  Recomendación: (1) ahora para que el Juego tenga algo que mover en 12.7, y decidir después del playtest si merece (2).
+  Contrato con el Juego: los mismos nombres de clip que el goblin (`idle, walk, run, attack, hit, death`) y `Pj3D.jugar`.
+- [ ] **12.15 (P1) HUD de tinta** (si 12.8 se aprueba): barra junto al libro con la lámina del grimorio.
+
+### Pablo
+
+- [ ] **12.0** Decidir: tronco de 2 o 3 casillas; qué piezas de fuego de 12.5 entran (propongo cuerda+trampa y seto seco); si la
+  tinta entra en el nivel 1 o se deja para el 2; y aprobar la vía (1) para el lobo.
+- [ ] **12.16** Diseño del nivel 1 en letras (`mundo/datos_nivel/mapas/Nivel1.txt`) con `Bosque.txt` como plantilla, cuando 12.1–12.4 estén.
+
+### Tinta: lo que hay que pensar antes de hacerla
+
+Qué aporta: da valor a los ingredientes (12.1) y a la exploración, y evita que el jugador resuelva todo lanzando sin parar.
+Qué arriesga: en un juego de **puzles** una limitación de recursos convierte un fallo de puntería en «no puedo seguir»; si
+la regeneración es lenta, el jugador espera; si es rápida, la tinta no significa nada. Propuesta para probar en el laboratorio
+antes de decidir: coste solo por **glifo** (el sello gratis: siempre puedes lanzar fuego a secas), regeneración que
+rellena de 0 a 100 en 40 s, poción +50, y que **los puzles del nivel 1 se puedan resolver con tinta a cero** (solo con fuego
+sin glifos). Así la tinta limita el combate y la comodidad, nunca el avance. Se mide en playtest: cuántas veces el jugador se
+queda a cero y qué hace entonces.
+
+**Orden:** 12.0 → 12.1 ∥ 12.9 ∥ 12.10 → 12.2 → 12.3 → 12.4 ∥ 12.11 → 12.6 ∥ 12.13 → 12.7 ∥ 12.14 → 12.5 ∥ 12.12 → 12.8 ∥ 12.15 → 12.16.
+Antes de todo: P1–P4 del playtest del 13/10 cerrados.

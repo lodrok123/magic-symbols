@@ -545,12 +545,15 @@ static func linea_libre(a: Vector3, b: Vector3) -> bool:
 	var paso: float = casilla * 0.25
 	var u: Vector3 = d / largo
 	var previa: Vector2i = celda_de(a)
+	# Una casilla elevada solo corta la vista si es MÁS ALTA que quien mira (o que quien es mirado): en una terraza no se
+	# ve a través de nada de su propio nivel. A nivel 0 es lo de siempre (altura ≥ 1 corta).
+	var nivel_vista: int = maxi(altura_en(previa), altura_en(celda_de(b)))
 	var rec: float = paso
 	while rec < largo:
 		var c: Vector2i = celda_de(a + u * rec)
 		if c != previa:
 			var l: String = letra_de(c)
-			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) >= 1 or cubre_hielo(c):
+			if not en_mapa(c) or (l != "~" and bloqueada(c)) or altura_en(c) > nivel_vista or cubre_hielo(c):
 				return false
 			previa = c
 		rec += paso

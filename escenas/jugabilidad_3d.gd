@@ -542,6 +542,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	hacia.y = 0.0
 	npc.mirar(hacia, 1.0)
 	npc.jugar("talk")
+	Sfx3D.play(npc, "conversacion_voz")
 	_hablando = npc
 	_t_habla = 2.5
 	if not _hecha[2]:

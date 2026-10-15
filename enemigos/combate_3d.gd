@@ -103,6 +103,8 @@ var vida_max: float = VIDA_MAXIMA
 var debil: String = "agua"
 var resiste: String = "fuego"
 var nombre: String = "Goblin guerrero"
+var snd_alerta: String = "goblin_grito"      ## sonido al descubrir al jugador (Gatopedro usa otro)
+var snd_muere: String = "goblin_muere"       ## sonido al morir
 var tinte: Color = Color(1.12, 0.9, 0.85)
 var oro: int = ORO_BOTIN
 var altura: float = 0.85                ## alto del modelo, para la barra
@@ -467,6 +469,8 @@ func _ia(delta: float) -> void:
 	if ve:
 		if objetivo == null:
 			flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0), "!", Color(1, 0.85, 0.2))
+			if not elemental:
+				Sfx3D.play(self, snd_alerta)        # el «!» sobre la cabeza, también al oído
 			PlayLog.event("goblin_ve_al_jugador", {"distancia": snappedf(position.distance_to(jugador.position), 0.1)})
 		objetivo = jugador
 		vista_perdida = 0.0
@@ -701,7 +705,10 @@ func _puede_estar(p: Vector3) -> bool:
 	var c: Vector2i = Terreno3D.celda_de(p)
 	if c == Terreno3D.celda_de(position):
 		return Terreno3D.en_mapa(c)
-	if not Terreno3D.pisable(c, 0, false, 0, false):
+	# Se mueve por SU nivel (el de la casilla donde está): a nivel 0 es lo de siempre; en una terraza (Terra Fina) recorre la
+	# terraza y puede bajar, pero no sube: pisable con `sube = false` y tope = su nivel.
+	var nivel: int = Terreno3D.altura_en(Terreno3D.celda_de(position))
+	if not Terreno3D.pisable(c, nivel, false, nivel, false):
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
 	return absf(Terreno3D.y_pies(c) - position.y) <= 0.6
@@ -1199,6 +1206,8 @@ func _morir() -> void:
 			(n as Node3D).visible = false
 	_aplicar_tinte(tinte)
 	Jugador3D.una_vez(pj, "death")
+	if not elemental:
+		Sfx3D.play(self, snd_muere)
 	var lista: Variant = mundo.get("_goblins")
 	if lista is Array:
 		(lista as Array).erase(pj)

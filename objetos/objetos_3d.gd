@@ -90,6 +90,7 @@ var usado: bool = false              ## placa pisada / puente tendido
 var _mats: Array = []                ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
 var _llama: Node3D = null
+var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
 var _luz: OmniLight3D = null
 var _t: float = 0.0
 var _t_contagio: float = 0.0
@@ -335,6 +336,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	var d: Array = COMBUSTIBLES[tipo]
 	_llama = fx.llamas(global_position, float(d[1]), float(d[2]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
+	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_ver_ardiendo(true)
 	_animar_k(1.0)
 	set_process(true)
@@ -395,6 +397,8 @@ func _ver_ardiendo(si: bool) -> void:
 
 
 func _quitar_fuego() -> void:
+	Sfx3D.parar(_snd_fuego)
+	_snd_fuego = null
 	if _llama != null and is_instance_valid(_llama):
 		fx.apagar(_llama)
 	_llama = null
@@ -469,6 +473,7 @@ func _encender(con_efectos: bool) -> void:
 	var d: Array = FUENTES[tipo]
 	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1, 3.0, Vector3(0.0, float(d[0]) + 0.7, 0.0))
+	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_pintar_tinte(0.0)
 	_pintar_emision(Color(1.0, 0.55, 0.25), 0.25)
 	if con_efectos:
@@ -927,9 +932,12 @@ func _empezar_a_verter(instantaneo: bool) -> void:
 ## si no hay agua física), el arroyo y las gotas finas. Deja la tinaja inclinada y vacía; el agua que ya está en el canal NO se toca (la
 ## decide la maqueta). Idempotente; solo hace algo en una tinaja que está vertiendo. Lo llama la maqueta, pero es público para el Juego.
 func dejar_de_verter() -> void:
-	if not _es_tinaja or not usado or _vertido_parado:
+	if not _es_tinaja or _vertido_parado:
 		return
 	_vertido_parado = true
+	if not usado:          # puzzle resuelto antes de regarla: queda bloqueada, ya no vierte nunca (`brotar` sale si `usado`)
+		usado = true
+		return
 	if _chorro_gotas != null:
 		var maqueta: Node = get_parent()
 		while maqueta != null and not maqueta.has_method("parar_chorro_agua"):

@@ -372,6 +372,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	_decir("%s: «%s»" % [mejor.capitalize(), texto], 5.0)
 	npc.mirar(yo - npc.position, 1.0)
 	npc.jugar("talk")
+	Sfx3D.play(npc, "conversacion_voz")
 	_hablando = npc
 	_t_habla = 2.5
 

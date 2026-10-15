@@ -75,7 +75,9 @@ const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chi
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
 	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
-	"gato_guardabosques": 0.55}   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)
+	"loberno": 0.75,      # 13/10: lobo (Meshy). Mide 0,60 u de alto y 1,02 de largo; a 0,75 sus zancadas casan con VEL_PATRULLA (walk) y VEL_PERSEGUIR (Gallop)
+	"gato_guardabosques": 0.55,   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)
+	"lince": 0.65}      # 14/10: la mascota que sustituye al gato; su alto incluye cola y cuerno (el lomo queda a ~0,33)
 
 ## Tamaño de cada pieza de decorado (alto en unidades; las marcadas "ancho" se miden por su ancho).
 const MEDIDA: Dictionary = Pieza3D.MEDIDA     ## la tabla vive en pieza_3d.gd (la usa también el editor)
@@ -2970,9 +2972,9 @@ func _npc(opciones: Array, p: Vector3) -> Pj3D:
 ## alrededor de su dueño. Sin navegación: 8 puntos en corro a RADIO_GATO del guardabosques; se quitan los que caen en una casilla que
 ## no se pisa (agua, árbol, pared…) y, si el corro queda cortado, patrulla de ida y vuelta por el tramo seguido más largo (así nunca
 ## cruza lo que no se pisa ni atraviesa al guardabosques). En cada punto impar se para un rato. Si falta el GLB, no sale y punto.
-const PJ_GATO: Array = ["gato_guardabosques"]
+const PJ_GATO: Array = ["lince"]   # 14/10: el lince cornudo sustituye al gato (gato_guardabosques.glb y sus ajustes quedan sin uso)
 const RADIO_GATO: float = 1.4          ## distancia (u) del corro al guardabosques
-const VEL_GATO: float = 0.075         ## 11/10: +50 % (antes 0,05) junto con VEL_CLIP_PJ 0,27 -> 0,405. u/s andando. 11/10: medido en LabGato3D con lo que Pablo dejó «lockeado» (PASO_CORTO 0,23 / 0,53 / 0,50, vaivenes, animación a 0,27): las patas apoyadas retroceden a ~0,04-0,06 u/s a escala del juego; más rápido, patina. Para un paseo más ágil: sube a la vez VEL_CLIP_PJ (pj_3d.gd) y esto en la misma proporción
+const VEL_GATO: float = 0.23         ## 14/10: ESTIMADO para el lince (clip walk a 0,5; pie apoyado ~0,46 u/s a velocidad normal): ajustar mirando que no patine. Lo de abajo es del gato anterior: 11/10: +50 % (antes 0,05) junto con VEL_CLIP_PJ 0,27 -> 0,405. u/s andando. 11/10: medido en LabGato3D con lo que Pablo dejó «lockeado» (PASO_CORTO 0,23 / 0,53 / 0,50, vaivenes, animación a 0,27): las patas apoyadas retroceden a ~0,04-0,06 u/s a escala del juego; más rápido, patina. Para un paseo más ágil: sube a la vez VEL_CLIP_PJ (pj_3d.gd) y esto en la misma proporción
 const PAUSA_GATO: Vector2 = Vector2(0.8, 2.5)   ## s parado en un punto (al azar entre los dos)
 
 
@@ -3022,7 +3024,14 @@ func _mascota_guardabosques(dueno: Pj3D) -> void:
 		tw.tween_property(gato, "position", b, maxf(a.distance_to(b) / VEL_GATO, 0.1))
 		if i % 2 == 1:
 			tw.tween_callback(gato.jugar.bind("idle"))
+			tw.tween_callback(_gato_maulla.bind(gato))
 			tw.tween_interval(randf_range(PAUSA_GATO.x, PAUSA_GATO.y))
+
+
+## 14/10: el lince maúlla a veces al pararse (una de cada tres pausas, aprox.). Suena en su sitio: solo se oye si estás cerca.
+func _gato_maulla(gato: Pj3D) -> void:
+	if is_instance_valid(gato) and randf() < 0.35:
+		Sfx3D.play(gato, "gato_maullido")
 
 
 func _gato_anda(gato: Pj3D, d: Vector3) -> void:

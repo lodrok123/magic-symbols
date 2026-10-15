@@ -1,0 +1,46 @@
+; Terra Fina · tutorial (Juego). 19 de ancho × 30 de alto. Va ANTES de Bosque 1: aquí se aprende a mover, apuntar, quemar y saltar.
+; Lo lee PruebaTest2 (nivel = "TerraFina"); las reglas son escenas/terra_fina_3d.gd y se cuelgan de PruebaTerraFina.tscn.
+; TRES ALTURAS (de sur a norte, como el titán sentado de cara al valle): PIES (nivel 0: práctica, brasero T, muñeco D, río con puente b,
+; seto seco z que hay que QUEMAR) · PELVIS (nivel 1, filas 9-17: aldea de casas-cueva H y el CRUCE de caminos, fila 13 y columna 9) ·
+; PECHO (nivel 2, filas 1-7: dos gatopedros C y la salida E, sellada hasta que caigan los dos). Se sube SALTANDO un nivel cada vez:
+; del seto quemado (fila 18) a la pelvis, y por el hueco de la fila 8 (columnas 8-10) al pecho. La fila 8 y la 18 son muros `#`.
+; Letras nuevas, solo de este nivel (PruebaTest2 las ignora; las coloca terra_fina_3d.gd): H = casa-cueva (bloquea) · C = gatopedro.
+; Instrucción nueva, que lee terra_fina_3d.gd (leer_mapa la ignora como cualquier «;»):
+;   ; altura <x0> <y0> <x1> <y1> <niveles>   rectángulo de casillas elevadas (Terreno3D.fijar_altura); 1 nivel = una casilla de alto.
+; El titán (Titan3D) está al NORTE, fuera del mapa, sobre la terraza alta. Con el zoom inicial no se ve; se ve alejando la cámara.
+; azar_suelo 1 17 7
+; azar_suelo 19 27 3
+; altura 1 9 17 17 1
+; altura 1 1 17 7 2
+; altura 8 8 10 8 2
+; altura 18 4 18 4 2
+###################
+#..H.....g...H....#
+#.H..H...g.....H..#
+#.......Cg........#
+#........g......H.E
+#........g.C......#
+#H.......g........#
+#........g........#
+########.g.########
+#........g........#
+#H.......g.......H#
+#........g........#
+#.H......g......H.#
+#ggggggggggggggggg#
+#........g........#
+#H.......g....H...#
+#..H.....g.......H#
+#........g........#
+########zzz########
+#.................#
+#~~~~~~~~b~~~~~~~~#
+#~~~~~~~~b~~~~~~~~#
+#.................#
+#..vv.........vv..#
+#..v...........v..#
+#....T.......T....#
+#.................#
+#........D........#
+#..S..............#
+###################

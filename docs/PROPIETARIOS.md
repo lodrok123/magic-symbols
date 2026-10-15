@@ -2,37 +2,47 @@
 
 El proyecto lo desarrollan **dos contextos en paralelo** (dos proyectos de
 Claude, a veces en máquinas distintas): el de **Juego** (jugabilidad, runas,
-niveles) y el de **Pipeline** (arte, sprites isométricos, exportación a
-Godot). Este archivo dice qué archivos posee cada uno y dónde se encuentran.
+niveles, mundo) y el de **Pipeline** (arte, modelos, dibujo del mundo, VFX,
+HUD). Este archivo dice qué carpetas posee cada uno y dónde se encuentran.
 
 > **Regla de oro: un archivo tiene UN propietario.** Si una tarea pide tocar
 > un archivo que no es tuyo, **no lo edites**: para, di qué cambio hace falta
 > y en qué archivo, y Pablo se lo pasa al otro contexto o lo hace él.
 
-Esto existe porque ya pasó: un contexto reescribió `test_jugabilidad.gd`
-entero desde una copia vieja y se perdieron los ganchos que `nivel_base.gd`
-necesitaba. `Mundo.tscn` y `Test2.tscn` dejaron de arrancar.
+Esto existe porque ya pasó, dos veces: un contexto reescribió
+`test_jugabilidad.gd` entero desde una copia vieja (5/10), y el 13/10 una
+herramienta de escritura puso en disco una copia de `prueba_test2.gd` de dos
+días antes (17 KB menos) sin que nadie lo pidiera. Por eso la sección 5 pide
+**verificar en disco** después de escribir.
+
+**Desde el 13/10 el repo está ordenado por capas** (`docs/ARQUITECTURA_MODULAR.md`
+§2) y `poc_25d/` ya no existe. La propiedad va **por carpeta**, con las
+excepciones que se indican.
 
 ---
 
-## 1. Juego (proyecto "Juego 2D con sistema de runas")
+## 1. Juego (proyecto "Magic_Runes")
 
 **Posee**
 
-| Qué | Archivos |
+| Carpeta | Qué hay |
 |---|---|
-| Runas y hechizos | `spell*.gd`, `spellcaster.gd`, `spellbook.gd`, `sigils.gd`, `rune_*.gd`, `runes.gd`, `gesture_*.gd`, `gesture_library.tres`, `*_rune.tres` |
-| Mundo que reacciona | `*_block.gd`, `*Block.tscn`, `earth_builder.gd`, `grass_*.gd`, `block_fx.gd`, `prop.gd`, `door.gd`, `brazier.gd`, `fogata.gd`, `combustible.gd`, `circuit.gd`, `conductor.gd`, `recolectable.gd`, `reagente.gd`, `poc_25d/emisor_rayo_3d.gd` (emisor de rayo ambiental: pieza aprobada por Pablo el 8/10, diseño pendiente; su letra de marcador la añade el Pipeline en `marcador_3d.gd`) |
-| Jugador y enemigos | `player.gd`, `enemy.gd`, `enemy.tscn`, `archer.gd`, `arrow.gd`, `goblin_*.gd`, `combate_comun.gd`, `health_bar.gd` |
-| Sistemas de partida | `estado.gd`, `objetos.gd`, `botin.gd`, `bolsa_ui.gd`, `alquimia.gd`, `misiones.gd`, `progresion.gd`, `repertoire.gd`, `pantalla_muerte.gd`, `page_hud.gd`, `playlog.gd`, `level_controller.gd`, `goal.gd`, `sonidos.gd`, `sfx.gd` |
-| Niveles | `test_jugabilidad.gd`, `nivel_base.gd`, `test_1.gd`, `test_2.gd`, `mundo.gd`, `vfx_lab*.gd`, `blockout.gd`, `iso_test.gd`, `iso_grid.gd`, `reaction_lab.gd` y sus `.tscn` |
-| Documentación | `docs/NUEVOS_SISTEMAS.md`, `docs/TEST2_CONCLUSIONES.md`, `docs/QA_ARTE.md` (lo escribió el Juego; lo que pide al Pipeline va por el diario) |
-| Herramientas | `tools/podar_gestos.py` |
+| `nucleo/` | datos puros sin nodo: `runes.gd`, `rune_data.gd`, `sigils.gd`, `spell_recipe.gd`, `estado.gd`, `objetos.gd`, `repertoire.gd`, `playlog.gd`, `playlog_3d.gd`, gestos (`gesture_*`), `*_rune.tres` (**`sfx.gd` y `sonidos.gd` son del Pipeline**, ver sección 2) |
+| `magia/` | `lanzador_3d.gd` (Lanzador3D, GeometriaHechizo, Receta3D), `spellcaster.gd` (base 2D hasta M4), `formas_3d.gd` |
+| `mundo/` | `terreno_3d.gd`, `mundo_3d.gd`, `estados_suelo_3d.gd`, `agua_sim_3d.gd`, `hornear_nivel.gd`, `marcador_3d.gd`, `pieza_3d.gd`, `vista_suelo_editor.gd`, `datos_nivel/datos_test2.gd` |
+| `objetos/` | `objetos_3d.gd` (Reactivo3D), `surtidor_3d.gd`, `emisor_rayo_3d.gd`, `puente_reactivo_3d.gd`, `enredadera_3d.gd`, `flotador_3d.gd` |
+| `enemigos/` | `combate_3d.gd` e IA |
+| `jugador/` | `jugador_3d.gd`, `pj_3d.gd`, `equipo_3d.gd`, `proporcion_chibi.gd` |
+| `escenas/` | reglas por nivel (`bosque_3d.gd`, `jugabilidad_3d.gd`, `nivel_pruebas.gd`) y las escenas `Prueba*.tscn` que se juegan |
+| `herramientas/` | las pruebas sin ventana `prueba_*.gd` (**`generador_piezas*.gd` es del Pipeline**) |
+| `presentacion/ui/` (solo estos cuatro) | `spellbook.gd`, `page_hud.gd`, `rune_palette.gd`, `bolsa_ui.gd`: son lógica del grimorio y la mochila, viven con la UI pero las escribe el Juego |
+| `laboratorios/` (parte) | `lab_agua_3d.gd`, `LabAgua3D.tscn` |
+| `tools/` (parte) | `podar_gestos.py`, `grafo.py`, `pruebas.cmd`, `limpieza_mover.ps1`, `reorganizar.ps1` |
+| `docs/` (parte) | `NUEVOS_SISTEMAS.md`, `TEST2_CONCLUSIONES.md`, `QA_ARTE.md`, `ESTADOS_SUELO.md`, `LIMPIEZA.md`, `ARQUITECTURA_MODULAR.md`, `ENCARGOS_LIMPIEZA.md` |
 
-**No toca**: nada de la sección 2. En particular **no edita `ms_atlas.gd`
-ni `ms_actor.gd`**: si necesita otra animación, otro clip o otro dato del
-`meta.json`, lo apunta en `docs/ASSETS_PENDIENTES.md` (sección 0, "Urgente")
-y mientras tanto usa un clip que exista.
+**No toca**: nada de la sección 2. Si necesita un dato de la maqueta, lo pide
+como método de la fachada (`Mundo3D` / `Terreno3D`) en el diario; **nunca**
+`get("_algo")` ni `call("_algo")` sobre nodos del Pipeline.
 
 ---
 
@@ -40,19 +50,20 @@ y mientras tanto usa un clip que exista.
 
 **Posee**
 
-| Qué | Archivos |
+| Carpeta | Qué hay |
 |---|---|
-| Pipeline 3D → sprites | `pipeline/` entero (inbox, config, profiles, tools, `.cmd`, `catalogo.json`) |
-| Lo exportado a Godot | `export_godot/` entero (`characters/`, `terrain/`, `demo/`, `meta.json`, atlas) |
-| Lectura en Godot | `ms_atlas.gd`, `ms_actor.gd`, `actor_animator.gd`, `addons/` |
-| Arte 2D y herramientas | `art/`, `assets/`, `Sprites/`, `Render Studio/`, `videos/`, `tools/` (`gen_*.py`, `video_a_fila.py`), **salvo `tools/podar_gestos.py`, que es del Juego** |
-| Pruebas visuales | `tests/`, `adventurer_visual_smoketest.*`, `node_2d.*`, `sprite_2d.gd` |
-| Documentación | `docs/ARTE.md`, `docs/ANIMACION.md`, `docs/PERSONAJE.md`, `docs/ASSETS_PENDIENTES.md`, `docs/*.png` (referencias) |
+| `presentacion/` | la maqueta (`prueba_test2.gd`), `vfx_3d.gd`, `vfx_kit_3d.gd`, `vfx_elementos/`, `vfx/`, el dibujo del agua (`agua_render_3d.gd`, `agua_ondas_3d.gd`, `agua_metaballs_3d.gd`, `costra_hielo_3d.gd`, `canal_3d.gd`), `hierba_3d.gd`, `ocluso_3d.gd`, `hilo_luz_3d.gd`, `grimorio/`, `ui/laminas/` (**salvo los cuatro `.gd` de `ui/` listados en la sección 1**) |
+| `arte/` | `modelos/` (los `.glb` y texturas), `piezas/`, `meshy/`, `suelo_meshy/`, `equipo/`, `COPIAR_MODELOS.cmd` |
+| **Audio, entero** (14/10, Pablo): `audio/` (los sonidos y su `LICENCIAS.md`), `nucleo/sfx.gd` y `nucleo/sonidos.gd` (qué suena, cuándo y cómo: posicional en 3D) | sonidos y música. El Juego solo **llama** a `Sfx.play` / `Sonidos.play` con un nombre; si falta un sonido, lo pide por el diario |
+| `art/ui/`, `art/fx/` | iconos del grimorio y de elemento |
+| `laboratorios/` (parte) | `lab_vfx_3d.gd`, `lab_gato_3d.gd`, `lab_grandmaster_3d.gd`, `lab_humanoide_3d.gd`, sus `.tscn`, `catalogo_assets.gd`, `CatalogoAssets.tscn` |
+| `herramientas/` (parte) | `generador_piezas.gd`, `generar_piezas_cli.gd`, `generar_piezas_editor.gd` |
+| `mundo/datos_nivel/suelo_tipos.tres` | la paleta del GridMap |
+| `docs/` (parte) | `ARTE.md`, `ANIMACION.md`, `PERSONAJE.md`, `ASSETS_PENDIENTES.md`, `maqueta_3d/LEEME.md`, `docs/*.png` (referencias) |
 
-**No toca**: ningún `.gd` de la sección 1 ni las escenas de nivel. Si un
-sprite nuevo necesita que el juego lo use (otro `id`, otro clip, otro
-`ancla_suelo_px`), lo publica en `export_godot/<tipo>/<id>/meta.json` y lo
-anota en el diario (sección 5); el Juego lo adopta desde su lado.
+**No toca**: ningún archivo de la sección 1. En particular, la maqueta **no
+llama a estáticos nuevos de `Lanzador3D`** ni expone campos privados para el
+Juego: lo que el Juego necesite se pide por el diario y se pone en la fachada.
 
 ---
 
@@ -60,9 +71,11 @@ anota en el diario (sección 5); el Juego lo adopta desde su lado.
 
 | Archivo | Por qué |
 |---|---|
-| `project.godot`, `.gitignore`, `.gitattributes` | Configuración de todo el proyecto |
-| `README.md`, `ARQUITECTURA.md`, `docs/CONTEXTO.md`, `docs/DISENO_FUTURO.md`, `docs/PLAN_ARREGLOS.md`, este archivo | Son la fuente de verdad para los dos contextos; si cada uno los reescribe, dejan de serlo |
+| `project.godot`, `.gitignore`, `.gitattributes`, los `.cmd` de la raíz | Configuración de todo el proyecto |
+| `README.md`, `ARQUITECTURA.md`, `docs/CONTEXTO.md`, `docs/DISENO_FUTURO.md`, `docs/PLAN_ARREGLOS.md`, `docs/Estructura del codigo/`, este archivo | Son la fuente de verdad para los dos contextos |
+| `mundo/datos_nivel/` (los `Nivel_*.tscn` horneados, `mapas/*.txt`, `luz_juego.tscn`) | Los niveles los edita Pablo en Godot; el Juego solo `datos_test2.gd`, el Pipeline solo `suelo_tipos.tres` |
 | `.godot/`, `*.import`, `*.uid` | Los genera Godot; se tocan abriendo el editor, no a mano |
+| `_a_eliminar/` | Lo que está pendiente de borrar; nadie lee ni escribe ahí |
 
 Si un contexto cree que uno de estos debe cambiar (p. ej. `main_scene`),
 **lo propone** con el cambio exacto y Pablo lo aplica.
@@ -71,20 +84,22 @@ Si un contexto cree que uno de estos debe cambiar (p. ej. `main_scene`),
 
 ## 4. La frontera: contratos, no ganchos
 
-Los dos contextos solo se encuentran a través de **datos**, nunca editando
-el mismo archivo:
+Los dos contextos solo se encuentran a través de **contratos escritos**, nunca
+editando el mismo archivo. Los vigentes:
 
-| Contrato | Lo escribe | Lo lee | Dónde está definido |
+| Contrato | Lo escribe | Lo lee | Dónde |
 |---|---|---|---|
-| `meta.json` + atlas por animación (8 filas, `frame_px`, `ancla_suelo_px`, `offset_visual_px`, `mapeo_direcciones_godot`) | Pipeline | Juego, vía `MsAtlas`/`MsActor` | `export_godot/CONTRATO_GODOT.md` |
-| API de `MsAtlas` / `MsActor` (`meta()`, `tiene()`, `fps()`, `en_bucle()`, `frames()`…) | Pipeline | Juego | Las firmas de esas funciones **no cambian sin aviso en el diario** |
-| Losas de terreno 128×64, cara superior en `y = 33` | Pipeline | Juego (`IsoGrid`, bloques) | `docs/ASSETS_PENDIENTES.md`, cabecera |
-| Props 2D a 2x, ancla en el centro de la base | Pipeline | Juego (`prop.gd`, `Prop.CATALOGO`) | `docs/ASSETS_PENDIENTES.md`, cabecera |
+| Objetos reactivos: `on_spell_hit(rune, dir)`, `spell_reacts(rune)`, `carried_element()`, `nivel_altura()`, `punto_activacion()` | Juego (`Reactivo3D`) | Pipeline (maqueta, al colocar piezas) | `objetos/objetos_3d.gd` cabecera; diario 6/10 y 12/10 |
+| Consultas de mundo: `Terreno3D.*` (`celda_de`, `y_pies`, `es_agua`, `bloquear_celda`…), `Mundo3D` (`terreno`, `agua`, `estados`, señales `casilla_cambio`, `impacto`) | Juego | Pipeline | `docs/ARQUITECTURA_MODULAR.md` §3; diario 13/10 |
+| Agua: `AguaSim3D.textura()` (RGBAF: R superficie, G profundidad, B/A corriente), `textura_hielo()`, `textura_mojado()`, `imagen_hielo()` | Juego | Pipeline (`AguaRender3D`) | `mundo/agua_sim_3d.gd` cabecera |
+| Maqueta → Juego: `poner_agua`, `marcar_estado`, `chorro_agua`, `salpicadura_agua`, `hielo_desde`, `kit`, `agua_fisica`, `_es_canal`/`_abre_hacia` (hasta M2) | Pipeline | Juego | `docs/maqueta_3d/LEEME.md`; diario 10–13/10 |
+| Marcadores de nivel (letras y `Marcador3D`) | Pipeline define, Pablo coloca | Juego | `mundo/marcador_3d.gd` |
 | Colores de elemento | Pipeline | Juego | `docs/ARTE.md` §1 |
-| Lista de assets que faltan | **Juego** pide, Pipeline entrega | Pipeline | `docs/ASSETS_PENDIENTES.md` |
+| Nombres de sonido (`Sfx.play(nodo, "golpe")`, `Sonidos.play(nodo, "bolsa", …)`): la lista de nombres vigentes y su archivo | Pipeline | Juego | cabecera de `nucleo/sfx.gd` y `nucleo/sonidos.gd` |
 
 **Cambiar un contrato es un cambio de los dos lados**: quien lo necesite lo
 propone en el diario, Pablo lo aprueba, y cada contexto adapta lo suyo.
+Las firmas **no cambian sin entrada en el diario**.
 
 ---
 
@@ -93,67 +108,63 @@ propone en el diario, Pablo lo aprueba, y cada contexto adapta lo suyo.
 1. **Leer del disco antes de editar.** El archivo puede haber cambiado desde
    la última vez que lo viste (otro contexto, otra máquina, Godot).
 2. **Cambios parciales, nunca reescribir el archivo entero** desde una copia
-   que tengas en memoria o en la conversación. Si hace falta reescribir
-   mucho, primero releer y después editar por trozos.
-3. **Comprobar la ruta antes de escribir.** La carpeta de trabajo es
-   `C:\Users\pablo\Documents\magic-symbols` (en cualquiera de sus
-   ordenadores). Si la carpeta conectada es otra (p. ej. la copia vieja de
-   `OneDrive\Documentos\magic-symbols`), decirlo y no escribir.
-4. **No commitear ni hacer push.** Lo hace Pablo con `SUBIR_A_GITHUB.cmd` / `BAJAR_DE_GITHUB.cmd`. Ningún archivo de más de 95 MB entra en el repo (`.gitignore`).
-5. **Diario.** Al terminar una sesión que haya tocado un contrato o algo que
-   el otro contexto necesite saber, añadir 2-4 líneas al final de
-   `docs/DIARIO.md`: fecha, contexto, qué cambió, qué le hace falta al otro.
-   Al empezar una sesión, leer las últimas entradas.
+   que tengas en memoria o en la conversación.
+3. **Verificar después de escribir.** Cada escritura usa un **nombre de
+   archivo preparado nuevo** (reutilizar uno anterior ha subido copias viejas
+   dos veces) y, tras escribir, se **vuelve a leer del disco** y se comprueba
+   tamaño y contenido antes de darlo por hecho.
+4. **Comprobar la ruta antes de escribir.** El repo vive en
+   `C:\Users\pablo\Documents\magic-symbols` (desktop) y en
+   `C:\Users\paranda\Documents\magic-symbols` (botiquinmadrid-pc). Si la
+   carpeta conectada es otra, decirlo y no escribir. Si el repo no está al
+   día (`git pull`), avisar.
+5. **No commitear ni hacer push.** Lo hace Pablo.
+6. **Godot cerrado cuando un script mueva o renombre archivos.** El editor
+   guarda lo que recuerda de sus pestañas y pisa lo movido (13/10:
+   `PruebaJugabilidad3D.tscn` acabó con el contenido de `LabVfx3D`).
+7. **Diario.** Al terminar una sesión que haya tocado un contrato o algo que
+   el otro contexto necesite saber, añadir una entrada **al final** de
+   `docs/DIARIO.md`, leído del disco en ese momento, sin reescribir lo que
+   hay. Al empezar una sesión, leer las últimas entradas.
+8. **Cada módulo nuevo nace con su prueba** en `herramientas/prueba_<modulo>.gd`
+   y se comprueba con `tools\pruebas.cmd` en `TOTAL DE FALLOS: 0`.
 
 ---
 
 ## 6. Qué hacer cuando no está claro
 
-- Un archivo que no aparece en ninguna lista → **preguntar**, no asumir.
-- Un archivo de **código o escena** nuevo → lo posee quien lo crea;
-  añadirlo a este documento.
+- Un archivo que no aparece en ninguna carpeta de arriba → **preguntar**.
+- Un archivo de **código o escena** nuevo → va en la carpeta de su capa y lo
+  posee el dueño de esa carpeta; si es de la otra capa, se pide.
 - Un **documento** nuevo en `docs/` → **no se crea sin proponerlo** (ver 7).
-- Una tarea que de verdad necesita tocar los dos lados (p. ej. un clip nuevo
-  del héroe + que `player.gd` lo use) → se parte en dos: primero el Pipeline
-  publica el `meta.json`, luego el Juego lo consume. Nunca una sola sesión
-  haciendo las dos cosas.
+- Una tarea que de verdad necesita tocar los dos lados → se parte en dos
+  (primero quien define el contrato, luego quien lo consume). Nunca una sola
+  sesión haciendo las dos cosas.
 
 ---
 
 ## 7. Documentos: uno de cada, no uno por sesión
-
-El 5/10/2026 aparecieron doce documentos nuevos en `docs/` en un día, cuatro
-de ellos planes paralelos a `PLAN_ARREGLOS.md` y uno duplicando
-`ASSETS_PENDIENTES.md`. Un documento que nadie integra es deuda: el siguiente
-chat no sabe cuál manda.
 
 **Los documentos vivos son estos, y solo estos:**
 
 | documento | para qué | dueño |
 |---|---|---|
 | `ARQUITECTURA.md` | lo que el código hace hoy | Pablo |
+| `docs/ARQUITECTURA_MODULAR.md` | capas, contratos y plan M1–M5 | Juego escribe, Pipeline lee |
 | `docs/DISENO_FUTURO.md` | lo que se quiere, con prioridad P0–P3 | Pablo |
 | `docs/PLAN_ARREGLOS.md` | **el único plan**: tareas, responsable, casilla | Pablo |
+| `docs/LIMPIEZA.md`, `docs/ENCARGOS_LIMPIEZA.md` | catálogo y encargos de la limpieza del 13/10 (se integran en el plan y se retiran cuando acabe) | Juego |
 | `docs/DIARIO.md` | lo que un contexto le dice al otro | los dos escriben |
-| `docs/CONTEXTO.md`, este archivo | reglas | Pablo |
+| `docs/CONTEXTO.md`, `docs/Estructura del codigo/`, este archivo | reglas y diseño | Pablo |
 | `docs/NUEVOS_SISTEMAS.md`, `docs/TEST2_CONCLUSIONES.md`, `docs/QA_ARTE.md` | referencia del Juego | Juego |
-| `docs/ASSETS_PENDIENTES.md`, `docs/ARTE.md`, `export_godot/CONTRATO_GODOT.md` | referencia del Pipeline | Pipeline |
-| `docs/ESTADOS_SUELO.md` | contrato de reglas del suelo entre 2D y la maqueta 3D | Juego escribe, Pipeline lee |
-| `poc_25d/LEEME.md` | estado de la maqueta 3D | Pipeline |
+| `docs/ASSETS_PENDIENTES.md`, `docs/ARTE.md` | referencia del Pipeline | Pipeline |
+| `docs/ESTADOS_SUELO.md` | contrato de reglas del suelo | Juego escribe, Pipeline lee |
+| `docs/maqueta_3d/LEEME.md` | estado de la maqueta 3D y reparto para M5 | Pipeline |
 | `docs/Playtests/` | un archivo por sesión de juego, solo conclusiones | Pablo |
 
 **Regla.** Un contexto **no crea** un documento nuevo en `docs/`. Si cree que
-hace falta, lo propone en el diario (nombre, dueño, qué no cabía en los
-existentes) y lo crea Pablo o quien él diga. Una tarea va al plan; una idea,
-a diseño futuro; un hallazgo medido, a `QA_ARTE` o `TEST2_CONCLUSIONES`; una
-guía de implementación, dentro de la tarea del plan que la necesita (o como
-sección de `DISENO_FUTURO`). Los documentos de hoy que no están en la tabla
-(`ASSETS_FALTANTES`, `CAMBIOS_JUEGO_PENDIENTES`, `ENCARGO_JUEGO_ESTADOS`,
-`EXPERIMENTOS_ESTILO`, `HIERBA_OPTIMIZACION`, `IMPLEMENTAR_TECNICAS`,
-`PLAN_ACCION_TEST2`, `PLAN_HOMOGENEIZAR_ARTE`, `PLAN_PASTEL`,
-`RETIRADA_ARTE_ANTERIOR`, `TECNICAS_APLICABLES`) se integran en los de la
-tabla por su dueño y se borran; hasta entonces son **borradores**, no fuente
-de verdad.
+hace falta, lo propone en el diario y lo crea Pablo o quien él diga. Los
+documentos que no están en la tabla son **borradores** pendientes de
+integrar y borrar.
 
-**Firmas del diario.** Solo hay dos contextos: `Juego` y `Pipeline`. Una
-sesión del Juego que hace control de calidad firma `Juego`, no `QA/Juego`.
+**Firmas del diario.** Solo hay dos contextos: `Juego` y `Pipeline`.

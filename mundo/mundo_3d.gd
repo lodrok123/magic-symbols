@@ -59,6 +59,11 @@ func aplicar(a: AccionElemental) -> void:
 	aplicar_accion(a)
 
 
+## Abre un cauce (canal de la tinaja) a la simulación con un manantial permanente: ver ReaccionesAgua3D.abrir_cauce.
+static func abrir_cauce(celdas: Array, caudal: float) -> bool:
+	return ReaccionesAgua3D.abrir_cauce(celdas, caudal)
+
+
 ## --- Fachada para la presentación (M5): lo que la maqueta pedía por campos privados o por Lanzador3D.<static> ---
 ## «Bloquear casilla»: marca o libera una casilla como sólida para quien camina y para los hechizos.
 func bloquear_casilla(c: Vector2i, si: bool) -> void:

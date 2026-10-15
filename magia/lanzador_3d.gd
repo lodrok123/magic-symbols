@@ -1282,10 +1282,24 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 		fx.chispazo(punto, Objetos.elemento_de(rune))        # la chispa nace en el punto de activación
 	ultimo_impacto = punto
 	ultimo_nivel = nivel
+	# 14/10: qué objeto recibe el golpe (el registro de partida solo decía los lanzamientos, no a quién llegaban).
+	PlayLog.event("golpe_objeto", {"objeto": _nombre_de_objeto(obj), "elemento": Objetos.elemento_de(rune), "reacciona": reacciona,
+		"punto": [snappedf(punto.x, 0.1), snappedf(punto.y, 0.1), snappedf(punto.z, 0.1)]})
 	obj.call("on_spell_hit", rune, dir)
 	ultimo_impacto = Vector3.INF
 	ultimo_nivel = 0
 	return reacciona
+
+
+## Nombre legible de un objeto golpeado para el registro: su `tipo` si lo tiene (Reactivo3D), si no su clase o su nombre.
+func _nombre_de_objeto(obj: Node) -> String:
+	var t: Variant = obj.get("tipo")
+	if t != null and String(t) != "":
+		return String(t)
+	var sc: Variant = obj.get_script()
+	if sc is Script and String((sc as Script).get_global_name()) != "":
+		return String((sc as Script).get_global_name())
+	return String(obj.name) if String(obj.name) != "" else obj.get_class()
 
 
 ## =====================================================================================================

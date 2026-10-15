@@ -20,6 +20,9 @@ extends Node3D
 ## al tocar una casilla de suelo llano.
 
 const MAX_NIVELES_SUBIBLES: int = 1
+## Tope propio de un nivel (0 = sin tope propio: vale MAX_NIVELES_SUBIBLES). Terra Fina lo pone a 2 (tres alturas: pies, pelvis y
+## pecho del titán) y lo suelta al salir; así Bosque y los hechizos siguen con 1.
+static var tope_niveles_nivel: int = 0
 const GRAVEDAD: float = 22.0
 const VEL_SALTO: float = 8.4
 const TOLERANCIA_SUELO: float = 0.55        ## desnivel que se camina sin saltar (de puente a suelo, escalón)
@@ -84,6 +87,18 @@ var _beber_previa: bool = false
 var _f8_previa: bool = false
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
+## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
+const DIST_PASO_ANDAR: float = 0.85          ## u recorridas entre dos pasos andando (a 1,6 u/s: ~1,9 pasos por segundo)
+const DIST_PASO_CORRER: float = 1.1          ## corriendo (a 3 u/s: ~2,7 pasos por segundo)
+const RADIO_AGUA_CASILLAS: int = 4           ## a cuántas casillas de agua empieza a oírse el río
+const DB_AGUA: float = -8.0                  ## volumen del río con el agua pegada (estimado, no medido en el juego)
+var _dist_paso: float = 0.0
+var _oyente: AudioListener3D = null
+var _rio: AudioStreamPlayer = null
+var _t_rio: float = 0.0
+var _vol_rio: float = 0.0
+var _vol_rio_obj: float = 0.0
+
 
 ## Lo monta todo: Lanzador3D, Jugador3D, los goblins con Combate3D, las mediciones y la vida en pantalla.
 ## Devuelve null si el mundo no tiene jugador.
@@ -135,7 +150,10 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	PlayLog.nueva_partida()
 	PlayLog3D.montar(p_mundo, l)
 	for g in (p_mundo.get("_goblins") as Array):
-		Combate3D.equipar(g as Pj3D, p_mundo, j, l)
+		if (g as Pj3D).id == Gatopedro3D.ID_MODELO:
+			Gatopedro3D.equipar_gatopedro(g as Pj3D, p_mundo, j, l)      # el lince enemigo huye en vez de atacar
+		else:
+			Combate3D.equipar(g as Pj3D, p_mundo, j, l)
 	j._construir_hud()
 	return j
 
@@ -383,6 +401,8 @@ func _process(delta: float) -> void:
 	if paso.length() > 0.0001:
 		var antes: Vector3 = position
 		_mover_con_choque(paso)
+		if mov != Vector3.ZERO:
+			_sonar_pasos(position.distance_to(antes), correr)
 		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
 			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
 		if en_hielo and position.distance_to(antes) < paso.length() * 0.25:
@@ -395,8 +415,65 @@ func _process(delta: float) -> void:
 
 	_vertical(delta, salto)
 	_animar(mov, correr)
+	_actualizar_sonido(delta)
 	_sincronizar()
 	_actualizar_hud()
+
+
+## Un paso cada `DIST_PASO_*` unidades recorridas (no cada X segundos: así el ritmo sigue a la velocidad real, también si choca contra
+## una pared y apenas avanza). El sonido depende del suelo de la casilla (`_tipo_suelo` de la maqueta): hierba, piedra, o el paso
+## de siempre (tierra y camino).
+func _sonar_pasos(recorrido: float, correr: bool) -> void:
+	if nadando or not en_suelo or _t_roll > 0.0:
+		_dist_paso = 0.0
+		return
+	_dist_paso += recorrido
+	if _dist_paso < (DIST_PASO_CORRER if correr else DIST_PASO_ANDAR):
+		return
+	_dist_paso = 0.0
+	var tipo: int = 0
+	if mundo.has_method("_tipo_suelo"):
+		tipo = int(mundo.call("_tipo_suelo", Terreno3D.celda_de(position)))
+	Sfx3D.play(self, "paso_roca" if tipo == 3 else ("paso_hierba" if tipo == 0 else "paso_tierra"))
+
+
+## El oyente va en los pies del jugador y gira como la cámara (izquierda/derecha del sonido = izquierda/derecha de la pantalla);
+## y el río, que no es un punto sino un tramo largo, se oye más cuanto más cerca esté el agua más próxima.
+func _actualizar_sonido(delta: float) -> void:
+	if _oyente == null:
+		_oyente = AudioListener3D.new()
+		add_child(_oyente)
+		_oyente.make_current()
+		var flujo: AudioStream = Sfx3D.bucle("agua")
+		if flujo != null:
+			_rio = AudioStreamPlayer.new()
+			_rio.stream = flujo
+			_rio.volume_db = -60.0
+			add_child(_rio)
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	if cam != null:
+		_oyente.global_rotation = Vector3(0.0, cam.global_rotation.y, 0.0)
+	if _rio == null:
+		return
+	_t_rio -= delta
+	if _t_rio <= 0.0:
+		_t_rio = 0.2                         # 81 casillas cada 0,2 s: casi nada, y el agua no cambia más deprisa
+		var c0: Vector2i = Terreno3D.celda_de(position)
+		var cerca: float = float(RADIO_AGUA_CASILLAS) + 1.0
+		for dy in range(-RADIO_AGUA_CASILLAS, RADIO_AGUA_CASILLAS + 1):
+			for dx in range(-RADIO_AGUA_CASILLAS, RADIO_AGUA_CASILLAS + 1):
+				var c: Vector2i = c0 + Vector2i(dx, dy)
+				if Terreno3D.en_mapa(c) and Terreno3D.es_agua(c):
+					cerca = minf(cerca, Vector2(dx, dy).length())
+		_vol_rio_obj = 1.0 if nadando else clampf(1.0 - cerca / float(RADIO_AGUA_CASILLAS + 1), 0.0, 1.0)
+	_vol_rio = move_toward(_vol_rio, _vol_rio_obj, delta * 1.2)      # sube y baja en ~1 s: no entra de golpe al pisar la orilla
+	if _vol_rio <= 0.01:
+		if _rio.playing:
+			_rio.stop()
+		return
+	if not _rio.playing:
+		_rio.play(randf() * _rio.stream.get_length())
+	_rio.volume_db = DB_AGUA + linear_to_db(_vol_rio)
 
 
 ## La velocidad sobre hielo tras `delta`: se acerca al objetivo (lo que piden las teclas) con HIELO_ACEL si hay teclas, o con
@@ -419,6 +496,7 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
 	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
+	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio.
 	# No F8: es el atajo del editor de Godot para DETENER el juego y la ventana se cerraba antes de llegar aquí.
 	var f8: bool = libre and Input.is_key_pressed(KEY_F11)
 	if f8 and not _f8_previa and lanz != null:
@@ -427,7 +505,10 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 		var cc: Vector2i = Terreno3D.celda_de(destino)
 		if Terreno3D.en_mapa(cc) and not Terreno3D.es_agua(cc) and not Terreno3D.bloqueada(cc):
 			destino.y = Terreno3D.y_pies(cc)
-			Combate3D.invocar_elemental(mundo, self, lanz, destino)
+			if Input.is_key_pressed(KEY_SHIFT):
+				Gatopedro3D.invocar(mundo, self, lanz, destino)
+			else:
+				Combate3D.invocar_elemental(mundo, self, lanz, destino)
 		else:
 			lanz.avisar("No cabe un elemental ahí delante", Color(1, 0.7, 0.5))
 	_f8_previa = f8
@@ -511,7 +592,7 @@ func _puede_estar(p: Vector3) -> bool:
 	if parcial and Terreno3D.choca_huella(c, p):
 		return false
 	var nivel: int = Terreno3D.altura_en(actual)
-	if not Terreno3D.pisable(c, nivel, true, MAX_NIVELES_SUBIBLES, true, parcial):
+	if not Terreno3D.pisable(c, nivel, true, maxi(MAX_NIVELES_SUBIBLES, tope_niveles_nivel), true, parcial):
 		return false
 	if nadando:
 		return Terreno3D.altura_en(c) == 0          # del agua solo se sale a suelo llano

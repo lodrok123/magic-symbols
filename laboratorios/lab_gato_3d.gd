@@ -11,10 +11,15 @@ extends Node3D
 ##  · Ver el esqueleto dibujado encima (azul = delanteras, verde = traseras, blanco = resto, amarillo = hueso elegido).
 ## El panel escribe abajo los números resultantes. No modifica ningún archivo: pégaselos a Claude (o a `PASO_CORTO` de pj_3d.gd).
 ##
-## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
+## 13/10: también sirve para el LOBERNO (selector «Modelo» arriba, o tecla M). Con el lobo todo empieza neutro (factores 1, sin vaivén ni
+## retraso de cola): se ven sus clips tal cual los exportó Meshy, y los mismos controles sirven para afinarlo si hace falta.
+##
+## Teclas: M gato/loberno · 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
 ## Abrir: poc_25d/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
 
-const GLB: String = "res://arte/modelos/gato_guardabosques.glb"
+const MODELOS: Dictionary = {"gato": "res://arte/modelos/gato_guardabosques.glb", "loberno": "res://arte/modelos/emberheart.glb", "loberno_v1": "res://arte/modelos/emberstride.glb",
+	"loberno_meshy": "res://arte/modelos/loberno.glb", "lince": "res://arte/modelos/lince.glb",
+	"lince_gato": "res://arte/modelos/lince_gato.glb"}
 const ALTO: float = 1.0            ## el gato se escala a esta altura (en el nivel mide 0,55; aquí más grande para verlo bien)
 const DELANTERAS: Array = ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033", "Bone_032"]
 const TRASERAS: Array = ["Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]
@@ -36,7 +41,7 @@ var _dist: float = 2.6
 var _foco: Vector3 = Vector3(0.0, 0.45, 0.0)
 
 var _clip: String = ""
-var _orig: Dictionary = {}          ## clip -> {pista(int): Array[Quaternion]} con las claves ORIGINALES del GLB (nunca se pierden)
+var _orig: Dictionary = {}          ## «modelo/clip» -> {pista(int): Array[Quaternion]} con las claves ORIGINALES del GLB (nunca se pierden)
 ## 11/10: arranca con los valores que Pablo dejó en el juego (Pj3D.PASO_CORTO y VEL_CLIP_PJ).
 const FACTOR_INICIAL: Dictionary = {"del": 0.30, "tras": 0.14, "resto": 0.50}
 const VEL_INICIAL: float = 0.27
@@ -52,6 +57,28 @@ var _fh: Dictionary = RODILLAS.duplicate()
 const COLA: Array = ["Bone_023", "Bone_022", "Bone_021", "Bone_020", "Bone_019", "Bone_018", "Bone_017", "Bone_016", "Bone_015"]
 const RETRASO_INICIAL: float = 0.03
 var _retraso_cola: float = RETRASO_INICIAL
+## Perfil de cada modelo: qué huesos son delanteros/traseros/cola y con qué valores arranca. El gato usa las constantes de arriba; el
+## loberno (huesos con nombre: FrontUpperLeg.L...) arranca sin tocar nada.
+const PERFIL_LOBERNO: Dictionary = {
+	"del": ["FrontShoulder.L", "FrontUpperLeg.L", "FrontLowerLeg.L", "FrontShoulder.R", "FrontUpperLeg.R", "FrontLowerLeg.R",
+		"IKFrontLeg.L", "FF.L", "IKFrontLeg.R", "FF.R"],
+	"tras": ["BackShoulder.L", "BackLeg.L", "BackUpperLeg.L", "BackLowerLeg.L", "BackShoulder.R", "BackLeg.R", "BackUpperLeg.R",
+		"BackLowerLeg.R", "IKBackLeg.L", "FFB.L", "IKBackLeg.R", "FFB.R"],
+	"cola": ["Tail1", "Tail2", "Tail3", "Tail4", "Tail5", "Tail6", "Tail7", "Tail8"],
+	"factor": {"del": 1.0, "tras": 1.0, "resto": 1.0}, "vel": 1.0, "dist": 3.4, "clip": "Walk",
+}
+var _id: String = "gato"
+var _del: Array = DELANTERAS
+var _tras: Array = TRASERAS
+var _cola: Array = COLA
+var _extra_del: Array = ["Bone_026", "Bone_031"]
+var _extra_tras: Array = ["Bone_005", "Bone_010"]
+var _factor0: Dictionary = FACTOR_INICIAL
+var _fh0: Dictionary = RODILLAS
+var _vaiven0: Dictionary = VAIVEN_INICIAL
+var _retraso0: float = RETRASO_INICIAL
+var _vel0: float = VEL_INICIAL
+var _capa: CanvasLayer = null
 var _sl_retraso: HSlider = null
 var _sl_fh: HSlider = null
 ## Vaivén: giro X extra (grados) que va y viene una vez por ciclo, sumado al clip. Pablo (11/10): «más exagerado el movimiento de la
@@ -110,7 +137,67 @@ func _ready() -> void:
 	if not _cargar_gato():
 		return
 	_montar_interfaz()
-	_elegir_clip("walk" if _ap.has_animation("walk") else String(_ap.get_animation_list()[0]))
+	_elegir_clip(_clip_inicial())
+	_camara_preset(0)
+	_refrescar_texto()
+
+
+## El clip con el que arranca cada modelo (el gato anda en «walk», el lobo en «Walk»; si no existe, el primero).
+func _clip_inicial() -> String:
+	for n in _ap.get_animation_list():
+		if String(n).to_lower() == "walk":
+			return String(n)
+	return String(_ap.get_animation_list()[0])
+
+
+## Cambia de modelo sin recargar la escena: quita el actual y el panel, carga el otro con su perfil y vuelve a montar la interfaz.
+## Los clips del recurso importado se tocan en memoria, así que `_orig` (clave modelo/clip) guarda las claves originales de cada uno.
+func _cambiar_modelo(id: String) -> void:
+	if id == _id or not MODELOS.has(id):
+		return
+	_id = id
+	if _modelo != null:
+		_modelo.queue_free()
+		_modelo = null
+	if _capa != null:
+		_capa.queue_free()
+		_capa = null
+	_giro.clear()
+	_sel = ""
+	_clip = ""
+	if id != "gato":          # loberno y loberno_meshy comparten esqueleto (51 huesos «Wolf»)
+		var p: Dictionary = PERFIL_LOBERNO
+		_del = p["del"]
+		_tras = p["tras"]
+		_cola = p["cola"]
+		_extra_del = []
+		_extra_tras = []
+		_factor0 = p["factor"]
+		_fh0 = {}
+		_vaiven0 = {}
+		_retraso0 = 0.0
+		_vel0 = float(p["vel"])
+		_dist = float(p["dist"])
+	else:
+		_del = DELANTERAS
+		_tras = TRASERAS
+		_cola = COLA
+		_extra_del = ["Bone_026", "Bone_031"]
+		_extra_tras = ["Bone_005", "Bone_010"]
+		_factor0 = FACTOR_INICIAL
+		_fh0 = RODILLAS
+		_vaiven0 = VAIVEN_INICIAL
+		_retraso0 = RETRASO_INICIAL
+		_vel0 = VEL_INICIAL
+		_dist = 2.6
+	_factor = _factor0.duplicate()
+	_fh = _fh0.duplicate()
+	_vaiven = _vaiven0.duplicate()
+	_retraso_cola = _retraso0
+	if not _cargar_gato():
+		return
+	_montar_interfaz()
+	_elegir_clip(_clip_inicial())
 	_camara_preset(0)
 	_refrescar_texto()
 
@@ -158,10 +245,11 @@ func _montar_escena() -> void:
 
 
 func _cargar_gato() -> bool:
-	if not ResourceLoader.exists(GLB):
-		push_warning("LabGato3D: falta " + GLB)
+	var glb: String = String(MODELOS[_id])
+	if not ResourceLoader.exists(glb):
+		push_warning("LabGato3D: falta " + glb)
 		return false
-	_modelo = (load(GLB) as PackedScene).instantiate() as Node3D
+	_modelo = (load(glb) as PackedScene).instantiate() as Node3D
 	add_child(_modelo)
 	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
 	var aps: Array[Node] = _modelo.find_children("*", "AnimationPlayer", true, false)
@@ -188,7 +276,12 @@ func _cargar_gato() -> bool:
 
 
 func _montar_interfaz() -> void:
+	_sl_giro.clear()
+	_lbl_giro.clear()
+	_sl_fact.clear()
+	_lbl_fact.clear()
 	var capa := CanvasLayer.new()
+	_capa = capa
 	add_child(capa)
 	var panel := PanelContainer.new()
 	panel.position = Vector2(8.0, 8.0)
@@ -198,8 +291,17 @@ func _montar_interfaz() -> void:
 	panel.add_child(caja)
 
 	var t := Label.new()
-	t.text = "RIG DEL GATO (no modifica archivos)"
+	t.text = "RIG DEL %s (no modifica archivos)" % _id.to_upper()
 	caja.add_child(t)
+	var opt_modelo := OptionButton.new()
+	var i_modelo: int = 0
+	for k in MODELOS.keys():
+		opt_modelo.add_item(String(k))
+		if String(k) == _id:
+			opt_modelo.select(i_modelo)
+		i_modelo += 1
+	opt_modelo.item_selected.connect(func(i: int) -> void: _cambiar_modelo(opt_modelo.get_item_text(i)))
+	caja.add_child(opt_modelo)
 
 	_opt_clip = OptionButton.new()
 	for n in _ap.get_animation_list():
@@ -207,7 +309,7 @@ func _montar_interfaz() -> void:
 	_opt_clip.item_selected.connect(func(i: int) -> void: _elegir_clip(_opt_clip.get_item_text(i)))
 	caja.add_child(_opt_clip)
 
-	_sl_vel = _slider(caja, "velocidad", 0.0, 2.0, VEL_INICIAL, "")
+	_sl_vel = _slider(caja, "velocidad", 0.0, 2.0, _vel0, "")
 	_sl_vel.value_changed.connect(func(v: float) -> void:
 		if not _ocupado:
 			_ap.speed_scale = v
@@ -255,9 +357,9 @@ func _montar_interfaz() -> void:
 	for b in range(_sk.get_bone_count()):
 		var nombre: String = _sk.get_bone_name(b)
 		var etiqueta: String = nombre
-		if DELANTERAS.has(nombre) or ["Bone_026", "Bone_031"].has(nombre):
+		if _del.has(nombre) or _extra_del.has(nombre):
 			etiqueta += "  delantera · " + String(ANATOMIA.get(nombre, ""))
-		elif TRASERAS.has(nombre) or ["Bone_005", "Bone_010"].has(nombre):
+		elif _tras.has(nombre) or _extra_tras.has(nombre):
 			etiqueta += "  trasera · " + String(ANATOMIA.get(nombre, ""))
 		elif ANATOMIA.has(nombre):
 			etiqueta += "  " + String(ANATOMIA[nombre])
@@ -394,7 +496,7 @@ func _elegir_clip(nombre: String) -> void:
 ## Guarda las claves originales de las pistas de rotación del clip, una sola vez. Las claves del recurso importado se
 ## reescriben en cada cambio de slider, así que sin esta copia no se podría volver atrás.
 func _guardar_originales(clip: String) -> void:
-	if _orig.has(clip):
+	if _orig.has(_id + "/" + clip):
 		return
 	var an: Animation = _ap.get_animation(clip)
 	var d: Dictionary = {}
@@ -405,23 +507,23 @@ func _guardar_originales(clip: String) -> void:
 		for i in range(an.track_get_key_count(t)):
 			qs.append(an.track_get_key_value(t, i))
 		d[t] = qs
-	_orig[clip] = d
+	_orig[_id + "/" + clip] = d
 
 
 func _grupo_de(hueso: String) -> String:
-	if DELANTERAS.has(hueso):
+	if _del.has(hueso):
 		return "del"
-	if TRASERAS.has(hueso):
+	if _tras.has(hueso):
 		return "tras"
 	return "resto"
 
 
 ## Recalcula todas las claves del clip actual desde las originales: media.slerp(original, factor) y luego el giro fijo del hueso.
 func _aplicar() -> void:
-	if _clip == "" or not _orig.has(_clip):
+	if _clip == "" or not _orig.has(_id + "/" + _clip):
 		return
 	var an: Animation = _ap.get_animation(_clip)
-	var d: Dictionary = _orig[_clip]
+	var d: Dictionary = _orig[_id + "/" + _clip]
 	for t in d.keys():
 		var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
 		var k: float = float(_fh.get(hueso, _factor[_grupo_de(hueso)]))
@@ -448,7 +550,7 @@ func _aplicar() -> void:
 			for i in range(qs.size()):
 				var ph: float = TAU * (an.track_get_key_time(t, i) / an.length - fase)
 				vals[i] = Quaternion((EJE_FLEX.get(hueso, Vector3.RIGHT) as Vector3).normalized(), amp * cos(ph)) * (vals[i] as Quaternion)
-		var ic: int = COLA.find(hueso)
+		var ic: int = _cola.find(hueso)
 		var retraso: float = _retraso_cola * float(ic + 1) * an.length if ic >= 0 else 0.0
 		for i in range(qs.size()):
 			var nuevo: Quaternion = vals[i]
@@ -492,14 +594,14 @@ func _elegir_hueso(nombre: String) -> void:
 
 func _reiniciar_todo() -> void:
 	_giro.clear()
-	_fh = RODILLAS.duplicate()
+	_fh = _fh0.duplicate()
 	_ocupado = true
-	_factor = FACTOR_INICIAL.duplicate()
+	_factor = _factor0.duplicate()
 	for c in _factor.keys():
 		(_sl_fact[c] as HSlider).value = float(_factor[c])
 		_poner_etiqueta(c, float(_factor[c]))
-	_retraso_cola = RETRASO_INICIAL
-	_vaiven = VAIVEN_INICIAL.duplicate()
+	_retraso_cola = _retraso0
+	_vaiven = _vaiven0.duplicate()
 	_sl_retraso.value = _retraso_cola
 	_poner_etiqueta("rc", _retraso_cola)
 	_ocupado = false
@@ -579,6 +681,9 @@ func _dibujar_esqueleto() -> void:
 		if p < 0:
 			continue
 		var nombre: String = _sk.get_bone_name(b)
+		# El loberno trae huesos de control (IK, polos, FF) colgados de la raíz: no son del cuerpo y solo dibujan rayas largas.
+		if nombre.begins_with("IK") or nombre.begins_with("Pole") or nombre.begins_with("FF"):
+			continue
 		var col: Color = COLOR_RESTO
 		match _grupo_de(nombre):
 			"del":
@@ -619,3 +724,5 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_chk_pausa.button_pressed = not _chk_pausa.button_pressed
 			KEY_S:
 				_chk_esq.button_pressed = not _chk_esq.button_pressed
+			KEY_M:
+				_cambiar_modelo(String(MODELOS.keys()[(MODELOS.keys().find(_id) + 1) % MODELOS.size()]))

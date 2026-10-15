@@ -53,6 +53,10 @@ const CLIPS_DE: Dictionary = {
 	# Elemental de bosque: su único clip de golpe recibido es el de FUEGO (Meshy «Hit_Fire_Reaction», 4,7 s; el GLB lo trae
 	# como `hit_fire`). El Juego puede usarlo como `hit` o pedirlo por su nombre.
 	"elemental_bosque": {"hit": "hit_fire"},
+	# Loberno (13/10, Meshy «lobo_anim»): su correr se llama Gallop y sus golpes recibidos Idle_HitReact1/2 (el 2 se pide por su nombre).
+	"loberno": {"run": "gallop", "hit": "idle_hitreact1"},
+	# Lince cornudo (14/10, Meshy «Horned Lynx Pup» sobre el esqueleto Fox/Wolf): sustituye al gato de la mascota. Mismos nombres de clip que el loberno.
+	"lince": {"run": "gallop", "hit": "idle_hitreact1"},
 }
 
 ## Clips mínimos por tipo de personaje (la misma lista que docs/ASSETS_PENDIENTES.md §1).
@@ -63,6 +67,8 @@ const MINIMOS: Dictionary = {
 	"npc": ["idle", "walk", "talk"],
 	# Elemental de bosque (Meshy «Verdant Guardian»): es un jefe lento. Su `hit` es el de fuego (ver CLIPS_DE). Tiene `cast` (el hechizo de las enredaderas) y `run`.
 	"elemental": ["idle", "walk", "run", "attack", "cast", "hit", "death"],
+	# Bestia de cuatro patas (loberno): sin cast ni talk.
+	"bestia": ["idle", "walk", "run", "attack", "hit", "death"],
 }
 
 ## Roles cuyo clip debe quedarse en su sitio: la cadera no se aleja de donde empieza (en alturas de cadera).
@@ -103,6 +109,9 @@ const MODELO_DE: Dictionary = {
 	# pesos de piel suavizados en mangas y abrigo (woodland_wanderer.glb queda como original, sin suavizar).
 	"woodland_wanderer": "woodland_wanderer_suave",
 	"woodland_wanderer_orig": "woodland_wanderer",   # solo para el laboratorio: la elfa sin suavizar, para comparar
+	# 13/10: el loberno usa el modelo Emberstride (Meshy) pasado al esqueleto «Wolf» de 51 huesos (ver DIARIO 54). El GLB anterior (rig de Meshy,
+	# con las tiras del cuello deformadas) queda como `loberno.glb` solo para compararlo en el laboratorio.
+	"loberno": "emberheart",
 }
 
 var id: String = ""
@@ -624,7 +633,7 @@ const PASO_CORTO: Dictionary = {
 
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
@@ -1030,6 +1039,8 @@ static func tipo_de(p_id: String) -> String:
 		return "goblin"
 	if p_id.begins_with("elemental"):
 		return "elemental"
+	if p_id.begins_with("lober") or p_id == "lince":
+		return "bestia"
 	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero") or p_id.begins_with("woodland_wanderer"):
 		return "heroe"
 	return "npc"

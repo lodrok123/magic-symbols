@@ -43,6 +43,22 @@ Paquetes: **Kenney RPG Audio** y **Kenney UI Audio**, ambos CC0 — uso
 libre, también comercial, sin atribución obligatoria. Los .zip originales
 están en `Assets/`.
 
+## Sintetizados — `tools/gen_sonidos_ambiente.py`
+
+Ambiente y criaturas, también por código (sin muestras: no hay licencias
+que atribuir). Semilla fija: relanzar da los mismos archivos.
+
+```
+fuego_loop  agua_loop  conversacion_murmullo_loop      (bucles)
+goblin_grito_0..2  gato_maullido_0..1  conversacion_voz_0..2
+paso_hierba_0..3  paso_roca_0..3
+```
+
+Los `_loop` llevan la costura ya cruzada, pero Godot necesita que el
+`.ogg` esté marcado como bucle al importarlo (`Loop` en la pestaña Import).
+`paso_hierba` y `paso_roca` son por superficie; `paso_0..5` (Kenney) quedan
+como paso genérico.
+
 ## Cómo cambiar uno
 
 Copiar el archivo nuevo en `audio/` y tocar su línea en `CATALOGO`

@@ -81,6 +81,28 @@ static func aplicar(a: AccionElemental) -> void:
 				Terreno3D.bloquear_celda(c)
 
 
+## Un manantial PERMANENTE en un cauce (la tinaja): abre las casillas `celdas` (la primera es donde cae el agua; en orden aguas
+## abajo) a la simulación y echa `caudal` u³/s en la primera. Es lo que hacía `Surtidor3D._llenar_con_fisica`, para quien no
+## usa un `Surtidor3D` (la maqueta del Pipeline, con su tinaja `Reactivo3D`). Idempotente: llamarla otra vez con la misma
+## primera casilla y la misma simulación no suma el caudal dos veces. Devuelve false si no hay simulación.
+static var _manantiales: Dictionary = {}          ## Vector2i (primera casilla) -> instance_id de la simulación que ya tiene su manantial
+
+
+static func abrir_cauce(celdas: Array, caudal: float) -> bool:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	if sim == null or celdas.is_empty():
+		return false
+	for c in celdas:
+		Terreno3D.cauces_abiertos[c] = true
+		sim.solidificar_casilla(c as Vector2i, false)      # el foso se abre: el agua puede entrar
+	var primera: Vector2i = celdas[0]
+	if int(_manantiales.get(primera, 0)) == sim.get_instance_id():
+		return true
+	_manantiales[primera] = sim.get_instance_id()
+	sim.sumar_fuente(primera, caudal)
+	return true
+
+
 ## Un chorro de agua es un MANANTIAL mientras dura: suma `caudal` u³/s en la casilla y lo retira al acabar `dura` s. Si ahí ya
 ## corría un río o había un surtidor, el chorro SUMA a su caudal (por eso es `sumar_fuente` y no `fuente_en`).
 static func abrir_caudal(c: Vector2i, caudal: float, dura: float) -> void:
