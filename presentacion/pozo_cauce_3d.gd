@@ -26,6 +26,8 @@ var lado: float = 2.3
 var y_fondo: float = 0.0
 var y_borde: float = 1.0
 var _paredes: Array[MeshInstance3D] = []
+var _humedad: Array[MeshInstance3D] = []     ## una marca oscura por pared (hijas de cada Lado: giran y se ocultan con él)
+var _y_max: float = -1000.0                  ## la cota más alta que ha alcanzado el agua: la marca no baja aunque el agua baje
 
 
 ## `piedra`: el material triplanar de piedra (se duplica para la pared y el bordillo); `mat_fondo`: el del lecho.
@@ -58,6 +60,64 @@ func construir(p_lado: float, p_y_fondo: float, p_y_borde: float, piedra: Standa
 		mi.rotation.y = float(i) * PI * 0.5
 		add_child(mi)
 		_paredes.append(mi)
+		_humedad.append(_marca_humedad(mi, r))
+
+
+## 16/10 (diario 97, Pipeline): LÍNEA DE HUMEDAD. Una lámina oscura y translúcida pegada a la cara interior de cada pared, de `y_fondo` a la
+## cota más alta que alcanzó el agua; sube con el nivel y se queda oscura al bajar (la piedra mojada tarda en secarse). Encima, un filo algo
+## más claro justo en la cota máxima: la «raya» que deja el agua. Se actualiza con `poner_nivel(y_agua)`.
+func _marca_humedad(lado_mi: MeshInstance3D, r: float) -> MeshInstance3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.albedo_color = Color(0.1, 0.17, 0.26, 0.42)
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var q := QuadMesh.new()
+	q.size = Vector2(r * 2.0, 1.0)
+	var mi := MeshInstance3D.new()
+	mi.name = "Humedad"
+	mi.mesh = q
+	mi.material_override = m
+	mi.rotation.y = PI                                      # el QuadMesh mira a +Z; la cara interior de la pared mira a −Z
+	mi.position = Vector3(0.0, y_fondo, r - HUECO - 0.003)
+	mi.visible = false
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	lado_mi.add_child(mi)
+	var filo := MeshInstance3D.new()
+	filo.name = "Filo"
+	var qf := QuadMesh.new()
+	qf.size = Vector2(r * 2.0, 0.035)
+	filo.mesh = qf
+	var mf := m.duplicate() as StandardMaterial3D
+	mf.albedo_color = Color(0.62, 0.78, 0.9, 0.5)
+	filo.material_override = mf
+	filo.position = Vector3(0.0, 0.0, -0.001)               # delante de la lámina (en el espacio de la lámina, que está girada)
+	mi.add_child(filo)
+	return mi
+
+
+## `y_agua`: la cota de la superficie ahora. Cada vez que sube de lo anterior se alarga la marca; al bajar no se toca.
+func poner_nivel(y_agua: float) -> void:
+	if y_agua <= _y_max + 0.005:
+		return
+	_y_max = minf(y_agua, y_borde)
+	var h: float = _y_max - y_fondo
+	if h < 0.03:
+		return
+	for mi in _humedad:
+		mi.visible = true
+		mi.scale = Vector3(1.0, h, 1.0)
+		mi.position.y = y_fondo + h * 0.5
+		var filo: MeshInstance3D = mi.get_node("Filo")
+		filo.scale = Vector3(1.0, 1.0 / h, 1.0)               # el filo no debe estirarse con la lámina
+		filo.position.y = 0.5 - 0.0175 / h
+
+
+## Vacía la marca (un nivel que se reinicia).
+func borrar_humedad() -> void:
+	_y_max = -1000.0
+	for mi in _humedad:
+		mi.visible = false
 
 
 func mostrar_lado(i: int, visible_: bool) -> void:

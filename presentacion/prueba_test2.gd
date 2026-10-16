@@ -101,6 +101,12 @@ const SOMBRA_CONTACTO: Dictionary = {
 	"totem_runico": 0.5, "brasero": 0.45, "fogata": 0.5, "puesto": 1.0, "puesto_mercado": 1.0, "dummy": 0.45,
 	"cartel": 0.4, "barril": 0.4, "cofre": 0.45, "caja": 0.45, "caja_pequena": 0.35, "valla": 0.4, "arco_ruina": 0.9,
 	"arco_puerta": 0.9, "portal_salida": 0.9, "seta_reactiva": 0.4, "flor_reactiva": 0.4, "raiz_reactiva": 0.4,
+	# 16/10 (14.2, e): las piezas de las bibliotecas nuevas de Meshy no llevaban sombra. Radio ≈ 0,55 × la huella media medida de cada una
+	# (herramientas/medir_pies.gd); las de suelo (helechos, hierba alta, hojas, cañas, paja, flores) no llevan, como las matas.
+	"campamento_cazo": 0.8, "campamento_cofre": 0.75, "campamento_rocas": 0.9, "campamento_tienda": 1.5, "cristal_elemental": 0.3,
+	"cristal_sanctuario": 0.6, "estandarte_goblin": 0.3, "pilar": 0.5, "raiz_mundo": 0.4, "roca_musgosa": 0.45, "rocas_pequenas": 0.36,
+	"tienda_goblin": 0.9, "torre_goblin": 0.9, "tinaja_ruina": 0.65, "tronco_musgoso": 0.46, "tronco_resina": 0.35,
+	"tronco_sin_resina": 0.32, "troncos_apilados": 0.38,
 }
 
 ## Estado de la hierba por casilla (ESTADOS_SUELO.md §1.2). Una casilla sin entrada es hierba FINA.
@@ -131,18 +137,9 @@ const COLOR_ELEMENTO: Dictionary = {
 ## textura hecha en CPU (`_campo_ruido`), así la hierba 3D (Hierba3D) sabe exactamente dónde está el borde.
 ## Además: dos muestras de cada textura a escalas y giros distintos mezcladas por ruido (no se ve la
 ## repetición en cuadros) y una variación suave de tono a gran escala.
-const CODIGO_SOMBRA: String = """
-shader_type spatial;
-render_mode unshaded, depth_draw_never, cull_disabled, shadows_disabled;
-void fragment() {
-	vec2 p = UV * 2.0 - 1.0;
-	if (dot(p, p) > 1.0) {
-		discard;
-	}
-	ALBEDO = vec3(0.04, 0.07, 0.05);
-	ALPHA = 0.30;      // opacidad de la sombra de contacto (borde duro, sin degradado)
-}
-"""
+## 14.2 (e): la sombra de contacto es ahora SombraContacto3D (degradado suave; antes un disco de borde duro con alfa 0,30). `SOMBRA_DUREZA` 1 vuelve al disco.
+const SOMBRA_ALFA: float = 0.34
+const SOMBRA_DUREZA: float = 0.0
 
 const CODIGO_SUELO: String = """
 shader_type spatial;
@@ -161,6 +158,17 @@ uniform float borde_fuerza = 0.0;                                       // 0 = s
 uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
 uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
 uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
+// 16/10 (Juego, 14.2 · P4): BORDES ENTRE TODOS LOS MATERIALES. El borde de hierba de arriba cubre «hierba contra lo que sea»; esto cubre las parejas
+// que quedaban en una mezcla blanda y difusa: camino↔tierra, camino↔piedra y tierra↔piedra. En cada pareja un material «lame» al otro: su color
+// se funde sobre el vecino en un degradado de `par_lame` u, con el filo deshilachado por un ruido fino de `par_ruido` u y un poco de sombra en el
+// propio filo. Los tres valores van en el orden (camino↔tierra, camino↔piedra, tierra↔piedra); el que lame es siempre el primero de la pareja
+// (la arena del camino lame la tierra y la piedra; la tierra lame la piedra). Además la hierba «invade» la tierra con matas sueltas.
+// `par_fuerza` = 0 vuelve a la mezcla de antes; `invade_hierba` = 0 quita las matas.
+uniform float par_fuerza = 1.0;
+uniform vec3 par_lame = vec3(0.5, 0.4, 0.25);                           // u de degradado de cada pareja (camino↔tierra, camino↔piedra, tierra↔piedra)
+uniform vec3 par_ruido = vec3(0.30, 0.25, 0.40);                        // u de desflecado del filo de cada pareja
+uniform float par_sombra = 0.18;                                        // lo que se oscurece el filo del que lame (0 = nada)
+uniform float invade_hierba = 1.0;                                      // matas de hierba sueltas sobre la tierra junto a la hierba (0 = ninguna)
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
@@ -191,6 +199,23 @@ vec3 muestra(sampler2D t, vec2 p, float mezcla) {
 	vec2 q = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * p * 0.73 + vec2(0.37, 0.11);
 	return mix(texture(t, p).rgb, texture(t, q).rgb, mezcla);
 }
+// Una pareja de materiales. `k` selecciona los canales de `mapa` (+ el que lame, - el lamido): `d` = +1 dentro del que lame, -1 dentro del otro,
+// 0 en la frontera. De d y de su gradiente sale la distancia con signo `sd` (u; + = dentro del que lame) a la frontera, igual que el borde de hierba.
+// Devuelve el color de la pareja y, en `peso`, cuánto manda esa pareja en este punto (0 lejos de ella).
+vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, vec2 fino, out float peso) {
+	float eb = 0.5 / lado;
+	vec4 m0 = texture(mapa, uvm);
+	float d = dot(m0, k);
+	vec2 g = vec2(dot(texture(mapa, uvm + vec2(eb, 0.0)), k) - dot(texture(mapa, uvm - vec2(eb, 0.0)), k),
+		dot(texture(mapa, uvm + vec2(0.0, eb)), k) - dot(texture(mapa, uvm - vec2(0.0, eb)), k));
+	float gl = max(length(g), 0.3);
+	float sd = d / gl * celda + (fino.x - 0.5) * 2.0 * rug;
+	float wl = smoothstep(-max(lame, 0.08), 0.0, sd);                      // 1 en el que lame; decae hacia el otro en `lame` u
+	vec3 col = mix(c_otro, c_lame, wl);
+	col *= 1.0 - par_sombra * (1.0 - smoothstep(0.0, 0.5, sd)) * step(0.0, sd);   // el filo del que lame, algo más oscuro
+	peso = smoothstep(0.5, 0.85, dot(m0, abs(k)));
+	return col;
+}
 void fragment() {
 	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 c = pm.xz / celda;
@@ -208,6 +233,16 @@ void fragment() {
 	float m = smoothstep(0.3, 0.7, r.b);
 	vec3 col = muestra(t_hierba, t, m) * w.r + muestra(t_camino, t, m) * w.g
 		+ muestra(t_tierra, t, m) * w.b + muestra(t_piedra, t, m) * w.a;
+	if (par_fuerza > 0.0) {
+		vec3 cg = muestra(t_camino, t, m);
+		vec3 cb = muestra(t_tierra, t, m);
+		vec3 ca = muestra(t_piedra, t, m);
+		vec2 fino = texture(campo, c / lado * 3.7).rg;                           // ruido fino del filo (campo se repite)
+		float pw;
+		col = mix(col, pareja(cg, cb, vec4(0.0, 1.0, -1.0, 0.0), par_lame.x, par_ruido.x, uvm, fino, pw), pw * par_fuerza);
+		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw), pw * par_fuerza);
+		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw), pw * par_fuerza);
+	}
 	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
 	// De él salen la dirección (el gradiente) y la distancia con signo `sb` (u de mundo; + = hacia el otro suelo) a la línea R = 0,5. uvm ya
 	// lleva el ruido de borde, así la franja sigue la frontera orgánica del suelo y no la recta de la rejilla.
@@ -223,6 +258,12 @@ void fragment() {
 			// La hierba pegada a la frontera, más oscura (solo en su lado).
 			float oscuro = (1.0 - smoothstep(0.0, 1.2 * borde_ancho, -sb)) * step(sb, 0.0);
 			col *= mix(1.0, borde_oscuro, oscuro * w.r * fb * borde_fuerza);
+			// La hierba invade la tierra: matas sueltas (manchas de ruido) en la tierra junto a la frontera, cada vez más raras.
+			if (invade_hierba > 0.0) {
+				float mata = smoothstep(0.58, 0.66, texture(campo, c / lado * 5.3).b + (texture(campo, c / lado * 9.1).g - 0.5) * 0.35);
+				float cerca = (1.0 - smoothstep(0.1, 1.5 * borde_ancho + 0.6, sb)) * step(0.0, sb);
+				col = mix(col, muestra(t_hierba, t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza);
+			}
 			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
 			float vb = (sb + 0.65 * borde_ancho) / borde_ancho;
 			if (vb > 0.0 && vb < 1.0) {
@@ -474,6 +515,23 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## 12/10 (11.16): el kit de hechizos de esta escena. El Lanzador lo lee (`mundo.get("kit")`, 11.15) y, si no está vacío, lo usa en lugar del
 ## nombre del nivel: «pruebas» = todos los hechizos y glifos (con hielo) para iterar sin tocar el kit del nivel de verdad.
 @export var kit: String = ""
+## 16/10 (Fase 14.2, a): DIORAMA. Profundidad de campo «tilt-shift» como en Echoes of Wisdom: nítido donde está la protagonista y cada vez más borroso
+## hacia el fondo, lo que da escala de maqueta y esconde el horizonte y el borde del mapa. Es `CameraAttributesPractical` (desenfoque lejano), así
+## que SOLO existe en Forward+ y Mobile: en Compatibilidad no hace nada (se apaga solo). Se apaga a mano con F7 o desmarcando `diorama`.
+@export var diorama: bool = true
+## Cuánto desenfoca: 0 = nada, 1 = el máximo razonable (`dof_blur_amount` 0,12); 0,5 es sutil.
+@export_range(0.0, 1.0) var diorama_fuerza: float = 0.5
+## Qué parte de media pantalla (hacia el fondo) queda nítida antes de empezar a desenfocar. 0,6 = el 60 %.
+@export_range(0.2, 1.0) var diorama_nitidez: float = 0.6
+## 16/10 (Fase 14.2, b): falda biselada al pie de cada escalón y borde de agua + anillo de cantos rodados en el labio (BordePiedras3D).
+@export var bordes_blandos: bool = true
+var _camara_dof: CameraAttributesPractical = null
+var _bordes: BordePiedras3D = null              ## orilla del agua
+var _rastrojo: Rastrojo3D = null                ## lo que queda de la hierba segada o quemada (14.2 · P3)
+var _bordes_terraza: BordePiedras3D = null      ## escalones de altura (Terreno3D.alturas, las pone el nivel después de montarse la maqueta)
+var _mat_lado_suelo: Material = null
+var _hash_alturas: int = 0
+var _t_alturas: float = 0.0
 var _agua_render: AguaRender3D = null
 ## La correa fija de la mochila (los 8 huecos y el oro, abajo) la monta `bolsa_ui.gd` (Juego) y siempre está a la vista. Pablo (10/10)
 ## la quiere fuera: la mochila solo sale con I. Con `false` se esconde desde aquí, sin tocar el archivo del Juego.
@@ -590,6 +648,9 @@ var _guijarros_cauce: Dictionary = {}        ## casilla `c` -> [índice del prim
 var _mat_lecho_cauce: StandardMaterial3D = null
 var _mat_piedra_pozo: StandardMaterial3D = null
 var _t_pozos: float = 0.0
+var _nivel_pozo: Dictionary = {}              ## casilla `c` -> último nivel visto (0..1 de la altura del pozo): para saber si SUBE
+var _t_sonido_pozo: Dictionary = {}           ## casilla `c` -> s hasta el siguiente «glu glu» del llenado
+var _t_caida_fx: Dictionary = {}              ## posición redondeada de una caída -> segundos (reloj) de su último efecto (para no apilarlos)
 var _runas_puerta: Dictionary = {}           ## elemento -> [StandardMaterial3D del símbolo, posición]
 var _canal_orden: Array = []                 ## 13/10: casillas del canal en orden de llenado (índice = el de Canal3D)
 var _chispas_agua: Dictionary = {}           ## casilla -> Node3D con las chispas del agua electrificada
@@ -610,6 +671,12 @@ func _ready() -> void:
 	add_child(_mundo)
 	_mundo.casilla_cambio.connect(_al_cambiar_casilla)
 	_mundo.impacto.connect(_al_impacto_mundo)
+	# 14.2 · P3: el estado «segada» de una casilla lo marca el Juego en EstadosSuelo3D; aquí solo se DIBUJA su rastrojo.
+	_rastrojo = Rastrojo3D.new()
+	_rastrojo.name = "Rastrojo"
+	_rastrojo.lado = S
+	add_child(_rastrojo)
+	Terreno3D.estados.cambio.connect(_al_cambiar_estado_suelo)
 	_modo_nivel = usar_escena and HorneadorNivel.existe_nivel(nivel)      # nombre exacto: ver existe_nivel (Windows no distingue mayúsculas)
 	if reglas == "jugabilidad" or (reglas == "" and nivel == "jugabilidad"):
 		_reglas = Jugabilidad3D.new()
@@ -672,6 +739,7 @@ func _ready() -> void:
 	env.ambient_light_color = Color(0.95, 0.94, 1.0)
 	env.ambient_light_energy = LUZ_AMBIENTE
 	entorno.environment = env
+	Paleta3D.aplicar_ajuste(env)        # 14.2 (c): ajuste de color ÚNICO (brillo/contraste/saturación): ver Paleta3D y ARTE.md §10
 	VfxKit3D.activar_glow(env)          # bloom: solo brilla lo que pasa de 1,4 en HDR (el corazón del fuego nuevo); agua y cristales no llegan
 	add_child(entorno)
 
@@ -731,6 +799,7 @@ func _ready() -> void:
 	if _jugador != null:
 		_foco = _centro(_jugador)
 	_colocar_camara()
+	_montar_diorama()
 
 	var capa := CanvasLayer.new()
 	add_child(capa)
@@ -742,6 +811,8 @@ func _ready() -> void:
 	_actualizar_hud()
 	_precalentar(capa)
 	Jugador3D.montar(self)
+	# 16/10 (T6b): el VFX del conjuro (voluta del libro a la mano y forma en la mano, por elemento). Escucha `conjuro_fase` del Lanzador3D del Juego.
+	ConjuroVfx3D.conectar(get_node_or_null("Lanzador3D"), self)
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
@@ -909,6 +980,9 @@ func _construir_suelo() -> void:
 		_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
 	_construir_cauce(cauce, mat_lado)
 	_construir_orillas()
+	_mat_lado_suelo = mat_lado
+	_construir_lecho_rio(agua)
+	_construir_bordes_agua(mat_lado)
 
 
 ## 9.7 · LECHO DEL CAUCE SECO: bloque hundido ALTO_CAUCE con la piedra del suelo oscurecida y parda (material propio) y
@@ -1003,6 +1077,22 @@ func _actualizar_pozos(delta: float) -> void:
 		if _pozos_cauce.has(c):
 			(_pozos_cauce[c] as Node3D).visible = abierta
 		_mover_guijarros_cauce(c, abierta)
+	# 16/10 (diario 97): lo que se ve y se oye mientras el pozo se llena. La marca de humedad sube con el nivel y se queda al bajar; el
+	# sonido de llenado sube de tono con el nivel (de 0,7 a 1,6) y suena cada ~0,8 s mientras el agua sube.
+	for c in _pozos_cauce.keys():
+		if not bool(_estado_pozo.get(c, false)):
+			continue
+		var pz: PozoCauce3D = _pozos_cauce[c]
+		var sup: float = Terreno3D.superficie_agua(c)
+		var nivel: float = clampf((sup - pz.y_fondo) / maxf(pz.y_borde - pz.y_fondo, 0.01), 0.0, 1.0)
+		pz.poner_nivel(sup)
+		var subiendo: bool = nivel > float(_nivel_pozo.get(c, 0.0)) + 0.004 and nivel < 0.97
+		_nivel_pozo[c] = nivel
+		var t_s: float = float(_t_sonido_pozo.get(c, 0.0)) - 0.1
+		if subiendo and t_s <= 0.0:
+			Sfx.llenado(pz, nivel)
+			t_s = 0.8
+		_t_sonido_pozo[c] = maxf(t_s, 0.0)
 	if cambio:
 		for c in _pozos_cauce.keys():
 			var p: PozoCauce3D = _pozos_cauce[c]
@@ -1110,6 +1200,137 @@ func _construir_orillas() -> void:
 	if not piedras.is_empty():
 		var roca: Mesh = (Formas3D.instancia("piedra", Color(0.7, 0.66, 0.6), 1.0) as MeshInstance3D).mesh
 		_multimalla(roca, piedras)
+
+
+## --- 14.2 · Presentación del escenario (diorama, bordes blandos, lecho del río) ---
+
+## (a) DIORAMA. Cámara ortogonal a 60°: la profundidad de un punto del suelo crece 1,73 u por cada unidad que sube en pantalla (el suelo
+## se ve de lado: sen 30° arriba por cada cos 30° de profundidad), así que media pantalla cubre ≈ 0,87 × `_tam_camara` de profundidad. La
+## zona nítida y la transición se miden en esa unidad, y la distancia de referencia es la del JUGADOR a la cámara (no un valor fijo):
+## si la cámara se acerca o se aleja con el zoom o el seguimiento, la nitidez sigue pegada a él.
+func _montar_diorama() -> void:
+	_camara_dof = CameraAttributesPractical.new()
+	_camara_dof.dof_blur_far_enabled = false
+	_camara_dof.dof_blur_near_enabled = false      # solo el fondo: lo de delante (el borde de abajo de la pantalla) se queda nítido
+	_camara.attributes = _camara_dof
+	_actualizar_diorama()
+
+
+func _actualizar_diorama() -> void:
+	if _camara_dof == null or _camara == null:
+		return
+	# En Compatibilidad la profundidad de campo no existe (la documentación de CameraAttributesPractical la limita a Forward+ y Mobile).
+	var activo: bool = diorama and diorama_fuerza > 0.0 and RenderingServer.get_current_rendering_method() != "gl_compatibility"
+	_camara_dof.dof_blur_far_enabled = activo
+	if not activo:
+		return
+	var ref: Vector3 = _centro(_jugador) if _jugador != null else _foco
+	var adelante: Vector3 = -_camara.global_transform.basis.z
+	var d: float = maxf((ref - _camara.global_position).dot(adelante), 1.0)
+	var media: float = 0.87 * _tam_camara
+	_camara_dof.dof_blur_far_distance = d + diorama_nitidez * media
+	_camara_dof.dof_blur_far_transition = 0.6 * media
+	_camara_dof.dof_blur_amount = 0.12 * diorama_fuerza
+
+
+## (b) BORDES BLANDOS DEL AGUA. Falda al pie del talud (hasta el lecho, que se ve a través del agua) y anillo de cantos en el labio. Solo
+## junto a `~`: el puente (`b`) no lleva ni falda ni piedras (taparían el paso), el cauce seco (`c`) ya lleva sus guijarros.
+func _construir_bordes_agua(mat_lado: Material) -> void:
+	if not bordes_blandos:
+		return
+	var y_bajo: float = (ALTO_AGUA - Lanzador3D.LECHO_AGUA) if agua_fisica else ALTO_AGUA
+	var bordes: Array = []
+	var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for y in range(_lado):
+		for x in range(_mapa[y].length()):
+			var c := Vector2i(x, y)
+			var l: String = _letra(c)
+			if _es_agua(l) or l == "#" or l == " " or l == "c":
+				continue
+			for v in dirs:
+				if _letra(c + (v as Vector2i)) == "~":
+					bordes.append({"c": c, "v": v, "y_alto": ALTO, "y_bajo": y_bajo})
+	_bordes = BordePiedras3D.new()
+	_bordes.name = "BordesAgua"
+	add_child(_bordes)
+	_bordes.construir(bordes, S, mat_lado)
+
+
+## Cada 0,5 s mira si cambió `Terreno3D.alturas` (lo escribe el nivel —TerraFina3D— DESPUÉS de que la maqueta se monte, y la maqueta no pinta
+## las terrazas: las pinta él) y, si cambió, rehace el borde blando de los escalones. Sondeo y no señal: es dato estático sin aviso.
+func _vigilar_alturas(delta: float) -> void:
+	if not bordes_blandos or _mat_lado_suelo == null:
+		return
+	_t_alturas += delta
+	if _t_alturas < 0.5:
+		return
+	_t_alturas = 0.0
+	var h: int = Terreno3D.alturas.hash()
+	if h == _hash_alturas:
+		return
+	_hash_alturas = h
+	var bordes: Array = []
+	var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for c in Terreno3D.alturas.keys():
+		var n: int = Terreno3D.altura_en(c)
+		if n <= 0:
+			continue
+		for v in dirs:
+			var vec: Vector2i = (c as Vector2i) + (v as Vector2i)
+			if not _en_mapa(vec) or _letra(vec) == "#":
+				continue          # el borde del mapa y los muros ya se ven por sí solos (igual que las terrazas de TerraFina3D)
+			var nv: int = Terreno3D.altura_en(vec)
+			if nv >= n:
+				continue
+			bordes.append({"c": c, "v": v, "y_alto": Terreno3D.alto_suelo + float(n) * Terreno3D.ALTO_NIVEL,
+				"y_bajo": Terreno3D.alto_suelo + float(nv) * Terreno3D.ALTO_NIVEL})
+	if _bordes_terraza == null:
+		_bordes_terraza = BordePiedras3D.new()
+		_bordes_terraza.name = "BordesTerraza"
+		add_child(_bordes_terraza)
+	_bordes_terraza.construir(bordes, S, _mat_lado_suelo)
+
+
+## (d) LECHO DEL RÍO. Con la simulación de agua el fondo era un bloque liso a ALTO_AGUA − LECHO_AGUA; con el agua más transparente
+## (prof_rio 1,4) se ve entero, así que lleva guijarros de la paleta (piedras claras y oscuras con un toque de tierra mojada) y, cada
+## tres casillas, un canto grande. Mismo mecanismo que los guijarros del cauce seco (9.7): un MultiMesh.
+func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
+	if not agua_fisica or celdas.is_empty():
+		return
+	var y_lecho: float = ALTO_AGUA - Lanzador3D.LECHO_AGUA
+	var tfs: Array[Transform3D] = []
+	var cols: Array[Color] = []
+	for t in celdas:
+		var c := Vector2i(int(floorf(t.origin.x / S)), int(floorf(t.origin.z / S)))
+		if _letra(c) != "~":
+			continue          # bajo el puente (`b`) no se ve el agua ni el lecho: ahí no se esparcen guijarros
+		var n: int = 7 + (1 if _hash(c.x, c.y, 71) % 3 == 0 else 0)
+		for k in range(n):
+			var h: int = _hash(c.x, c.y, 80 + k)
+			var f1: float = float(h % 1000) / 999.0
+			var f2: float = float((h >> 10) % 1000) / 999.0
+			var f3: float = float((h >> 20) % 1000) / 999.0
+			var grande: bool = k == 7                # el canto grande de cada tercera casilla
+			var diam: float = lerpf(0.5, 0.75, f1) if grande else lerpf(0.14, 0.34, f1)
+			var alto: float = diam * (0.55 if grande else 0.4)
+			var pos := Vector3(t.origin.x + (f2 - 0.5) * S * 0.78, y_lecho + alto * 0.3, t.origin.z + (f3 - 0.5) * S * 0.78)
+			tfs.append(Transform3D(Basis(Vector3.UP, float(h % 628) / 100.0).scaled(Vector3(diam, alto, diam * lerpf(0.75, 1.0, f2))), pos))
+			var col: Color = Paleta3D.PIEDRA_OSCURA.lerp(Paleta3D.PIEDRA, f3)
+			col = col.lerp(Paleta3D.TIERRA, 0.3 if f1 > 0.5 else 0.12)
+			cols.append(col)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = BordePiedras3D._malla_canto()
+	mm.instance_count = tfs.size()
+	for i in range(tfs.size()):
+		mm.set_instance_transform(i, tfs[i])
+		mm.set_instance_color(i, cols[i])
+	var mi := MultiMeshInstance3D.new()
+	mi.name = "lecho_rio"
+	mi.multimesh = mm
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
 
 
 ## --- 6.16 HIELO: capa de pulido sobre el agua helada ---
@@ -1450,16 +1671,25 @@ func _pieza(id: String) -> Node3D:
 		if escena_suelta != null:
 			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
 			suelto_n.rotation.y = deg_to_rad(float(Pieza3D.GIRO_MODELO.get(id, 0.0)))      # giro por modelo (ver Pieza3D.GIRO_MODELO; el cristal, a 0)
-			return _normalizar(suelto_n, id)
+			return _a_paleta(_normalizar(suelto_n, id), id)
 	for b in _bibliotecas:
 		var n: Node = b.find_child(id, true, false)
 		if n != null and n is Node3D:
 			var copia: Node3D = (n as Node3D).duplicate() as Node3D
 			copia.transform = Transform3D.IDENTITY
-			return _normalizar(copia, id)
+			return _a_paleta(_normalizar(copia, id), id)
 	if not _avisos.has("sin pieza " + id):
 		_avisos.append("sin pieza " + id)
 	return null
+
+
+## 14.2 (c): las piezas de Meshy que se salen de la paleta se tiñen hacia ella (Paleta3D.PIEZAS: lo medido y a qué color se acercan).
+func _a_paleta(n: Node3D, id: String) -> Node3D:
+	if n != null:
+		var t: Color = Paleta3D.tinte_de_pieza(id)
+		if t != Color.WHITE:
+			Paleta3D.tintar(n, t)
+	return n
 
 
 func _normalizar(modelo: Node3D, id: String) -> Node3D:
@@ -1971,15 +2201,8 @@ func _construir_lotes() -> void:
 func _construir_sombras() -> void:
 	if _sombras.is_empty():
 		return
-	var sh := Shader.new()
-	sh.code = CODIGO_SOMBRA
-	var mat := ShaderMaterial.new()
-	mat.shader = sh
-	mat.render_priority = -1       # primero: el resto de decals y la hierba se dibujan encima
-	var q := QuadMesh.new()
-	q.size = Vector2(1.0, 1.0)
-	q.orientation = PlaneMesh.FACE_Y
-	q.material = mat
+	var mat: ShaderMaterial = SombraContacto3D.material(SOMBRA_ALFA, SOMBRA_DUREZA)     # 14.2 (e): el mismo material que usan las piezas de puzle
+	var q: QuadMesh = SombraContacto3D.malla(mat)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = q
@@ -3418,6 +3641,33 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 ## El Mundo3D avisa de que algo cambió en una casilla. Aquí solo se redibuja: el dato ya lo tiene el mundo.
 ## «hielo»: el canal B (helado) de `_img_estado` sigue al estado, lo hiele o derrita quien sea (esta maqueta o el Juego).
 ## Es idempotente: poner el canal al valor que ya tiene no cambia nada (y al soltar el hielo quita la placa, como antes).
+## 14.2 · P3 (rastrojo). El Juego emite `EstadosSuelo3D.cambio(c, "segada", si)`; la maqueta dibuja el rastrojo y deja la hierba de la casilla
+## encogida (canal R, el mismo de «quemado»). `quemada` = que antes de segarse ardió (mata carbonizada en vez de cortada); si no se dice, se
+## mira el canal R de la casilla. Pública para que el Juego la pueda llamar directamente si prefiere no pasar por el estado.
+func marcar_segada(c: Vector2i, si: bool, quemada: bool = false) -> void:
+	if _rastrojo == null or not _en_mapa(c):
+		return
+	if si:
+		var ardio: bool = quemada or (_img_estado != null and _img_estado.get_pixel(c.x, c.y).r >= 0.5)
+		var y: float = ALTO
+		if Terreno3D.datos_propios:
+			y = Terreno3D.alto_suelo + float(Terreno3D.altura_en(c)) * Terreno3D.ALTO_NIVEL
+		_rastrojo.poner(c, y, Rastrojo3D.TIPO_QUEMADO if ardio else Rastrojo3D.TIPO_CORTADO)
+		if _img_estado != null:
+			_poner_canal(c, 0, 1.0)
+		if _hierba != null:
+			_hierba.set_crecida(c, 0.0)
+	else:
+		_rastrojo.quitar(c)
+		if _img_estado != null and not _hf.has(c):
+			_poner_canal(c, 0, 0.0)
+
+
+func _al_cambiar_estado_suelo(c: Vector2i, estado: String, si: bool) -> void:
+	if estado == "segada":
+		marcar_segada(c, si)
+
+
 func _al_cambiar_casilla(c: Vector2i, que: String) -> void:
 	if que == "hielo" and _img_estado != null and _en_mapa(c):
 		_poner_canal(c, 2, 1.0 if Terreno3D.helada(c) else 0.0)
@@ -3519,7 +3769,7 @@ func _apagar_area(c: Vector2i, punto: Vector3) -> void:
 func _apagar(c: Vector2i) -> void:
 	_quitar_fx(c)
 	_hf.erase(c)
-	_poner_canal(c, 0, 0.0)
+	_poner_canal(c, 0, 1.0 if _rastrojo != null and _rastrojo.hay(c) else 0.0)       # una casilla segada no vuelve a crecer
 	if _hierba != null:
 		_hierba.set_crecida(c, 0.0)
 
@@ -3687,6 +3937,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_L:
 			if _jugador != null:
 				_jugador.set_modo_luz(1 - _jugador.modo_luz)
+		KEY_F7:
+			# 14.2 (a): enciende/apaga el diorama (el desenfoque del fondo) para comparar capturas.
+			diorama = not diorama
+			print("Diorama (desenfoque del fondo): %s" % ("sí" if diorama else "no"))
 		KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6:
 			if _jugador != null and _velo == null:
 				_lanzar(String(Vfx3D.ELEMENTOS[k.keycode - KEY_F1]))
@@ -3797,6 +4051,7 @@ func _colocar_camara() -> void:
 
 func _process(delta: float) -> void:
 	_actualizar_pozos(delta)
+	_vigilar_alturas(delta)
 	if _jugador != null:
 		if not externo:
 			_mover(delta)
@@ -3820,6 +4075,7 @@ func _process(delta: float) -> void:
 			if not externo and d.length() < 7.0:
 				g.mirar(d, delta)
 	_colocar_camara()
+	_actualizar_diorama()
 	for p in _girar:
 		p.rotate_y(delta * 0.4)
 	# Estado del suelo: avanza las fases de la hierba, levanta lo pisado y sube la textura una vez por frame.
@@ -4179,6 +4435,18 @@ func _onda_de_caida(pos: Vector3, salto: float) -> void:
 	var o: AguaOndas3D = _asegurar_ondas()
 	if o != null:
 		o.impulso(pos, FUERZA_ONDA_CAIDA * clampf(salto / 0.5, 0.5, 2.0), RADIO_ONDA)
+	# 16/10 (diario 97): donde el chorro cae al agua, un anillo que se abre, niebla que rebota y burbujas que suben (VfxPuzle3D). Cada
+	# sitio se repite como mucho cada 0,45 s: la simulación avisa cada 0,33 s por cada trocito de la base y se apilarían.
+	if salto < 0.3 or not is_inside_tree():
+		return
+	var clave := Vector2i(roundi(pos.x * 2.0), roundi(pos.z * 2.0))
+	var ahora: float = float(Time.get_ticks_msec()) / 1000.0
+	if ahora - float(_t_caida_fx.get(clave, -9.0)) < 0.45:
+		return
+	_t_caida_fx[clave] = ahora
+	VfxPuzle3D.anillo_caida(self, pos, 0.9)
+	VfxPuzle3D.caida_chorro(self, pos, 1.0, false)
+	VfxPuzle3D.burbujas(self, pos - Vector3(0.0, 0.1, 0.0), 0.3, false)
 
 
 ## 13.9 (c) · {casilla: Y máxima del agua dibujada} de todas las casillas de canal de ruinas del mapa (`AguaRender3D.proveedor_topes`).

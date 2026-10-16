@@ -212,6 +212,9 @@ const PIEZA_DE: Dictionary = {
 }
 
 const TAREAS: Array = ["Pisar la baldosa de contacto", "Matar a los goblins", "Hablar con un NPC", "Encender las antorchas"]
+## Las cuatro tareas son los cuatro OBJETIVOS de una misión del diario (Fase 14.3: una API, no dos). `_hecha` queda como copia local
+## para no tocar el resto del nivel; cada cambio se escribe también en `Misiones`.
+const MISION: String = "jugabilidad_3d"
 const COLOR_LOSA: Dictionary = {"p": Color(1.0, 0.85, 0.35), "a": Color(0.45, 0.72, 1.0), "w": Color(0.65, 1.0, 0.8)}
 const NOMBRE_LOSA: Dictionary = {"p": "CONTACTO", "a": "AGUA", "w": "VIENTO"}
 const DIALOGOS: Dictionary = {
@@ -421,10 +424,15 @@ func iniciar(mundo: Variant) -> void:
 		if is_instance_valid(r) and r.tipo == "brasero":
 			braseros += 1
 	var falta: Array = [not _losas.values().has("p"), _n_goblins == 0, _npcs.is_empty(), braseros == 0]
+	Misiones.i().definir({"id": MISION, "titulo": "Las cuatro tareas", "tipo": "principal",
+		"texto": "El guardabosques quiere ver de qué eres capaz: pisa la baldosa, acaba con los goblins, habla con alguien y enciende las antorchas. Con las cuatro hechas se abre la puerta.",
+		"origen": "Guardabosques", "objetivos": TAREAS.duplicate()})
+	Misiones.i().activar(MISION)
 	for i in range(4):
 		if bool(falta[i]):
 			_no_aplica[i] = true
 			_hecha[i] = true
+			Misiones.i().objetivo_hecho(MISION, i)
 			if i < _lamparas.size():
 				(_lamparas[i] as MeshInstance3D).set_surface_override_material(0, Formas3D.material_tinte(COLOR_LAMPARA_ON, false, "llama"))
 	_refrescar_hud()
@@ -464,6 +472,7 @@ func _process(delta: float) -> void:
 		if _jug != null:
 			_jug.puntos_inicio = m._centro_celda(c, m.ALTO)
 		_decir("Punto de guardado", 2.0)
+		Misiones.i().guardar()                 # el diario de misiones se guarda en los puntos de guardado
 	elif not (m._guardados as Array).has(c):
 		_ultimo_guardado = Vector2i(-1, -1)
 	_recoger(pj)
@@ -551,6 +560,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 func _completar(i: int) -> void:
 	_hecha[i] = true
+	Misiones.i().objetivo_hecho(MISION, i)
 	_decir("Tarea %d hecha: %s" % [i + 1, TAREAS[i]], 3.0)
 	var lamp: MeshInstance3D = _lamparas[i] if i < _lamparas.size() else null
 	if lamp != null:

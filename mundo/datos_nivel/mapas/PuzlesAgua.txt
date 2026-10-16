@@ -1,13 +1,14 @@
 ; Laboratorio de PUZLES DE AGUA (Fase 13.8, 15/10, Juego). 33 x 25: doce salas de 7 x 7 (4 x 3) separadas por muros, con un hueco entre
-; salas vecinas. El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesAgua"); las piezas y la logica de cada
-; sala las pone laboratorios/lab_puzles_agua_3d.gd (colgado de laboratorios/LabPuzlesAgua3D.tscn). NO se hornea: es un laboratorio.
+; salas vecinas. El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesAgua"); las piezas y los puzles de cada
+; sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd; el lab solo pone HUD, teclas y carteles). NO se hornea: es un laboratorio.
 ; Letras de la maqueta: # muro . suelo S jugador u tinaja L codo de canal - canal recto c cauce seco (cuenca: la abre el lab).
 ; Letras del lab (PruebaTest2 las ignora, son suelo): ! boton de piedra (cualquier magia) @ placa de presencia (pisarla)
-;   % pulsador de agua (solo el agua) Z puerta de premio (se abre al resolver). Compuertas y detectores van sobre casillas c y los
-;   coloca el lab (ver su cabecera): si se mueve una c de sitio hay que cambiar la casilla alli tambien (lo avisa al arrancar).
+;   % pulsador de agua (solo el agua) Z puerta de premio (se abre al resolver). Las piezas de agua van sobre casillas c o canal y se
+;   colocan por coordenadas: si se mueve una c de sitio hay que cambiar la linea `; pieza` tambien (Puzle3D avisa al arrancar si una pieza cae mal).
 ; Salas (columna, fila): Q2 trasvase (0,0) · Q1 cuenca con tinaja (1,0) · Q3 presa de hielo (2,0) · Q9 molino (3,0) · Q4 desvio del rio (0,1) ·
 ;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q10 roca y barril (3,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 rayo por el agua (2,2) · (3,2) libre.
-; Letras de la maqueta que tambien usan: e fuente electrica (EmisorRayo3D lo monta el lab) · i totem de rayo.
+; Letras de la maqueta que tambien usan: e fuente electrica (EmisorRayo3D lo monta el lab) · i totem de rayo. Q7: dos pozos c con agua fija
+;   a los lados y, en medio, una casilla de suelo con el NEXO (NexoRayo3D): mojarlo restaura la conexion electrica.
 ; Giros: las tinajas con 180 vierten hacia el OESTE (Reactivo3D.INCLINA_HACIA con ese giro); el codo L con 90 abre al este y al sur;
 ;   el recto - con 90 corre de norte a sur, sin giro de este a oeste.
 ; giro 13 2 180
@@ -28,6 +29,130 @@
 ; giro 28 5 90
 ; giro 28 6 90
 ; giro 28 7 90
+; ---------------------------------------------------------------------------------------------------------------------------------
+; Piezas y puzles de cada sala (Fase 12.3: los lee escenas/puzle.gd; la gramatica esta en su cabecera). El laboratorio solo pone HUD,
+; teclas y carteles. Las tinajas del lab vierten 0.5 u3/s durante 20 u3 (Pablo, 15/10); el arroyo de Q3 echa 1.5 u3/s.
+; ---------------------------------------------------------------------------------------------------------------------------------
+; --- Q1 LLENA LA CUENCA: tinaja u -> codo L -> recto - -> cuenca c 3x2; nivel >= 0.45 en (12,5) abre la puerta.
+; pieza q1_cuenca cuenca 11 4 celdas=11,4..13,5
+; pieza q1_nivel nivel 12 5 objetivo=0.45
+; pieza q1_puerta puerta 15 1
+; pieza q1_tinaja tinaja 13 2 canal=12,2+12,3
+; pieza q1_boton pulsador 10 2 modo=magia
+; pieza q1_placa pulsador 10 6 modo=presencia
+; puzle q1_vierte cuando=q1_tinaja.agua_llega hace=q1_tinaja.abrir_cauce(0.5,20)
+; puzle q1_abre cuando=q1_nivel.alcanzado hace=q1_puerta.abrir
+; puzle q1_cierra cuando=q1_nivel.perdido hace=q1_puerta.cerrar
+; puzle q1_moja_boton cuando=q1_boton.pulsado hace=q1_tinaja.mojar
+; puzle q1_moja_placa cuando=q1_placa.pulsado hace=q1_tinaja.mojar
+; --- Q2 TRASVASE: cuenca A llena (0.9) y cuenca B vacia unidas por una compuerta de hielo en (4,3); B >= 0.35 abre la puerta.
+; pieza q2_a cuenca 2 2 celdas=2,2..3,3 nivel=0.9
+; pieza q2_b cuenca 5 2 celdas=5,2..6,3
+; pieza q2_compuerta compuerta 4 3 abre_con=fuego
+; pieza q2_nivel nivel 6 3 objetivo=0.35
+; pieza q2_puerta puerta 1 6
+; pieza q2_boton pulsador 2 6 modo=magia
+; pieza q2_placa pulsador 6 6 modo=presencia
+; puzle q2_abre cuando=q2_nivel.alcanzado hace=q2_puerta.abrir
+; puzle q2_cierra cuando=q2_nivel.perdido hace=q2_puerta.cerrar
+; puzle q2_boton_abre cuando=q2_boton.pulsado hace=q2_compuerta.abrir
+; puzle q2_placa_abre cuando=q2_placa.pulsado hace=q2_compuerta.abrir
+; --- Q3 PRESA DE HIELO: arroyo de canal (18,1..7) con manantial arriba y desague abajo; hielo en (18,2) seca el vado (18,4).
+; pieza q3_arroyo manantial 18 1 celdas=18,1..18,7 caudal=1.5 volumen=0
+; pieza q3_desague cuenca 18 7 fijo=0.02
+; pieza q3_presa cuenca 18 2
+; pieza q3_nivel nivel 18 4 objetivo=0.25 invertido=si
+; pieza q3_puerta puerta 22 4
+; pieza q3_boton pulsador 17 6 modo=magia rearme=3
+; pieza q3_placa pulsador 21 6 modo=presencia
+; puzle q3_abre cuando=q3_nivel.alcanzado hace=q3_puerta.abrir
+; puzle q3_cierra cuando=q3_nivel.perdido hace=q3_puerta.cerrar
+; puzle q3_hiela_boton cuando=q3_boton.pulsado hace=q3_presa.helar
+; puzle q3_hiela_placa cuando=q3_placa.pulsado hace=q3_presa.helar
+; --- Q4 DESVIA EL RIO: manantial (4,10) -> bifurcacion (4,12); brazo oeste con compuerta abierta (3,12); brazo este = fondo de saco con la rueda.
+; pieza q4_red cuenca 4 10 celdas=4,10..4,12+1,12..2,12+5,12..7,12
+; pieza q4_manantial manantial 4 10 caudal=0.6 rampa=no
+; pieza q4_desague cuenca 1 12 fijo=0.1
+; pieza q4_compuerta compuerta 3 12 abierta=si abre_con=fuego cierra_con=hielo estrecha=no
+; pieza q4_nivel nivel 6 12 objetivo=0.4
+; pieza q4_puerta puerta 6 10
+; pieza q4_boton pulsador 2 10 modo=magia rearme=2
+; pieza q4_placa pulsador 6 14 modo=presencia
+; puzle q4_abre cuando=q4_nivel.alcanzado hace=q4_puerta.abrir
+; puzle q4_cierra cuando=q4_nivel.perdido hace=q4_puerta.cerrar
+; puzle q4_boton_alterna cuando=q4_boton.pulsado hace=q4_compuerta.alternar
+; puzle q4_placa_alterna cuando=q4_placa.pulsado hace=q4_compuerta.alternar
+; --- Q5 VACIA PARA PASAR: pasillo c (20,10..12) inundado a 0.7; compuerta de hielo en (20,13) hacia el sumidero (20,14).
+; pieza q5_pasillo cuenca 20 10 celdas=20,10..20,12 nivel=0.7
+; pieza q5_sumidero cuenca 20 14 fijo=0.02
+; pieza q5_compuerta compuerta 20 13 abre_con=fuego vertical=no
+; pieza q5_nivel nivel 20 11 objetivo=0.25 invertido=si
+; pieza q5_puerta puerta 22 10
+; pieza q5_boton pulsador 18 10 modo=magia
+; pieza q5_placa pulsador 18 14 modo=presencia
+; puzle q5_abre cuando=q5_nivel.alcanzado hace=q5_puerta.abrir
+; puzle q5_cierra cuando=q5_nivel.perdido hace=q5_puerta.cerrar
+; puzle q5_boton_abre cuando=q5_boton.pulsado hace=q5_compuerta.abrir
+; puzle q5_placa_abre cuando=q5_placa.pulsado hace=q5_compuerta.abrir
+; --- Q6 RIEGA: el pulsador de AGUA (12,19) abre la puerta; el boton de magia (10,19) es el CONTROL y no abre nada; la placa tambien abre.
+; pieza q6_puerta puerta 12 22
+; pieza q6_agua pulsador 12 19 modo=agua
+; pieza q6_placa pulsador 14 19 modo=presencia
+; pieza q6_control pulsador 10 19 modo=magia rearme=2
+; puzle q6_riega cuando=q6_agua.pulsado hace=q6_puerta.abrir
+; puzle q6_pisa cuando=q6_placa.pulsado hace=q6_puerta.abrir
+; --- Q7 RAYO POR EL AGUA: fuente e -> pozo -> NEXO seco -> pozo -> totem i; mojar el nexo une las dos aguas y abre la puerta.
+; pieza q7_pozos cuenca 19 20 celdas=19,20+21,20 nivel=0.5 fijo=si
+; pieza q7_fuente emisor 18 20
+; pieza q7_nexo nexo 20 20
+; pieza q7_puerta puerta 19 22
+; pieza q7_totem totem 22 20
+; pieza q7_boton pulsador 18 22 modo=magia rearme=1
+; pieza q7_placa pulsador 22 22 modo=presencia
+; puzle q7_abre cuando=q7_totem.activado hace=q7_puerta.abrir
+; puzle q7_moja_boton cuando=q7_boton.pulsado hace=q7_nexo.mojar
+; puzle q7_moja_placa cuando=q7_placa.pulsado hace=q7_nexo.mojar
+; --- Q8 NIVEL JUSTO: tinaja (5,19) -> recto (4,19) -> cuenca (2..3,18..19); la puerta abre solo con (2,18) en 0.5 +- 0.08; el boton cierra el grifo.
+; pieza q8_cuenca cuenca 2 18 celdas=2,18..3,19
+; pieza q8_nivel nivel 2 18 objetivo=0.5 banda=0.08
+; pieza q8_puerta puerta 1 22
+; pieza q8_tinaja tinaja 5 19 canal=4,19
+; pieza q8_boton pulsador 2 21 modo=magia rearme=1
+; pieza q8_placa pulsador 6 22 modo=presencia
+; puzle q8_vierte cuando=q8_tinaja.agua_llega hace=q8_tinaja.abrir_cauce(0.5,20)
+; puzle q8_abre cuando=q8_nivel.alcanzado hace=q8_puerta.abrir
+; puzle q8_cierra cuando=q8_nivel.perdido hace=q8_puerta.cerrar
+; puzle q8_grifo_boton cuando=q8_boton.pulsado hace=q8_tinaja.apagar_fuente
+; puzle q8_grifo_placa cuando=q8_placa.pulsado hace=q8_tinaja.apagar_fuente
+; --- Q9 MOLINO: arroyo de canal (28,1..7) cerrado por una compuerta-grifo en (28,2); el molino (28,5) gira con la corriente y abre la puerta.
+; pieza q9_arroyo cuenca 28 1 celdas=28,1..28,7
+; pieza q9_desague cuenca 28 7 fijo=0.02
+; pieza q9_manantial manantial 28 1 caudal=1.5 inicia=no
+; pieza q9_compuerta compuerta 28 2 vertical=no
+; pieza q9_molino molino 28 5 umbral=0.3
+; pieza q9_puerta puerta 31 4
+; pieza q9_boton pulsador 26 6 modo=magia
+; pieza q9_placa pulsador 30 6 modo=presencia
+; puzle q9_grifo_abre cuando=q9_compuerta.abierta hace=q9_manantial.abrir_cauce
+; puzle q9_grifo_cierra cuando=q9_compuerta.cerrada hace=q9_manantial.apagar_fuente
+; puzle q9_abre cuando=q9_molino.girando hace=q9_puerta.abrir
+; puzle q9_cierra cuando=q9_molino.parado hace=q9_puerta.cerrar
+; puzle q9_boton_abre cuando=q9_boton.pulsado hace=q9_compuerta.abrir
+; puzle q9_placa_abre cuando=q9_placa.pulsado hace=q9_compuerta.abrir
+; --- Q10 ROCA Y BARRIL: cauce (25..30,12) con manantial en (26,12) y aliviadero en (25,12); la roca (28,12) solo la rompe el barril (28,11).
+; pieza q10_cauce cuenca 25 12 celdas=25,12..27,12+29,12..30,12
+; pieza q10_manantial manantial 26 12 caudal=0.6 rampa=no
+; pieza q10_aliviadero cuenca 25 12 fijo=0.85
+; pieza q10_roca compuerta 28 12 abre_con=explosion estrecha=no
+; pieza q10_barril barril 28 11
+; pieza q10_nivel nivel 30 12 objetivo=0.4
+; pieza q10_puerta puerta 30 10
+; pieza q10_boton pulsador 26 10 modo=magia
+; pieza q10_placa pulsador 30 14 modo=presencia
+; puzle q10_abre cuando=q10_nivel.alcanzado hace=q10_puerta.abrir
+; puzle q10_cierra cuando=q10_nivel.perdido hace=q10_puerta.cerrar
+; puzle q10_enciende_boton cuando=q10_boton.pulsado hace=q10_barril.encender
+; puzle q10_enciende_placa cuando=q10_placa.pulsado hace=q10_barril.encender
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -48,8 +173,8 @@
 #.......#.......#.......#.......#
 #.cc....#.......#.......#.......#
 #.cc-u..#.!.%.@.#.......#.......#
-#.......#.......#.e---i.#.......#
+#.......#.......#.ec.ci.#.......#
 #.!.....#.......#.......#.......#
-#Z....@.#...Z...#.!.Z.@.#.......#
+#Z....@.#...Z...#.!Z..@.#.......#
 #.......#.......#.......#.......#
 #################################

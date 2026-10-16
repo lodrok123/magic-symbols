@@ -24,7 +24,7 @@ class_name AguaRender3D
 ##       aparte que se rehace al leer la simulación, solo en la caja de trabajo): se ve el grosor, no solo la superficie. Solo lo que
 ##       sobresale del suelo de al lado (si la orilla es más alta que el agua, la tierra la tapa y no hay nada que dibujar).
 ##       Para que la pared y la superficie se junten, el vértice seco de la orilla toma la altura del agua vecina (antes `min(suelo, agua)`).
-##   (b) OPACIDAD Y COLOR POR PROFUNDIDAD: `prof_clara` (0,1 u: casi transparente, color somero) → `prof_rio` (0,9 u: azul del río, opaco).
+##   (b) OPACIDAD Y COLOR POR PROFUNDIDAD: `prof_clara` (0,1 u: casi transparente, color somero) → `prof_rio` (1,4 u: azul del río, casi opaco; era 0,9 hasta el 16/10).
 ##   (c) TOPES DE SUPERFICIE: `poner_topes({casilla: y})` / `proveedor_topes` limitan la Y a la que se DIBUJA el agua de una casilla.
 ##       Es para el canal de piedra: el cauce admite unos 0,37 u de agua (borde a 0,475 u del suelo, fondo a 0,107 u, medido en la pieza)
 ##       y la simulación llega a 0,48 u en la primera casilla; sin tope el agua sobresalía 0,11 u por encima de la piedra y se veía un tubo.
@@ -58,7 +58,8 @@ uniform vec3 color_hondo_est : source_color = vec3(0.20, 0.52, 0.80);
 uniform vec3 color_espuma : source_color = vec3(0.96, 0.99, 1.0);
 uniform float hondura = 1.5;                  // (sin uso desde 13.9: el color y la opacidad salen de prof_clara / prof_rio)
 uniform float prof_clara = 0.1;               // 13.9: a esta profundidad (u) el agua es somera: color claro y casi transparente
-uniform float prof_rio = 0.9;                 // y a esta, el azul del río, opaco
+uniform float prof_rio = 1.4;                 // y a esta, la OPACIDAD llega al río. 16/10 (14.2 d): 0,9 → 1,4 para que el lecho (0,9 u en el río) se vea: con 0,9 la parte honda era opaca (alfa 0,95) y tapaba el fondo
+uniform float prof_color = 0.9;               // el COLOR somero→hondo sigue su rampa de siempre (0,9): separado de la opacidad para que ver el fondo no lave el azul
 uniform float alfa_clara = 0.2;
 uniform float alfa_rio = 0.95;
 uniform float menisco = 0.55;                 // fuerza de la franja clara de la orilla
@@ -330,8 +331,8 @@ void fragment() {
 	}
 
 	// Color: somero -> hondo por la profundidad, en bandas.
-	float hondo = smoothstep(prof_clara, prof_rio, v_prof);        // 13.9 (b)
-	float hondo_b = floor(hondo * bandas + 0.5) / bandas;
+	float hondo = smoothstep(prof_clara, prof_rio, v_prof);        // 13.9 (b): la opacidad
+	float hondo_b = floor(smoothstep(prof_clara, prof_color, v_prof) * bandas + 0.5) / bandas;   // y el color, con su propia rampa
 	vec3 ce = mix(color_somero_est, color_hondo_est, hondo_b);
 	float lf = clamp(dot(nm, normalize(vec3(0.45, 1.0, 0.3))), 0.0, 1.0);
 	ce *= 1.0 - contraste_faceta + contraste_faceta * 1.3 * smoothstep(0.7, 1.0, lf);
@@ -432,7 +433,8 @@ uniform vec3 color_somero_est : source_color = vec3(0.44, 0.80, 0.91);
 uniform vec3 color_hondo_est : source_color = vec3(0.20, 0.52, 0.80);
 uniform vec3 color_espuma : source_color = vec3(0.96, 0.99, 1.0);
 uniform float prof_clara = 0.1;
-uniform float prof_rio = 0.9;
+uniform float prof_rio = 1.4;
+uniform float prof_color = 0.9;
 uniform float alfa_clara = 0.2;
 uniform float alfa_rio = 0.95;
 uniform float bandas = 3.0;
@@ -451,7 +453,7 @@ void vertex() {
 
 void fragment() {
 	float hondo = smoothstep(prof_clara, prof_rio, v_p);
-	float hondo_b = floor(hondo * bandas + 0.5) / bandas;
+	float hondo_b = floor(smoothstep(prof_clara, prof_color, v_p) * bandas + 0.5) / bandas;
 	vec3 ce = mix(color_somero_est, color_hondo_est, hondo_b) * (0.74 + 0.26 * v_t);
 	float filo = smoothstep(0.78, 1.0, v_t);
 	ce = mix(ce, color_espuma, filo * menisco);
@@ -595,7 +597,7 @@ func fuente_ondas(textura: Texture2D, origen_xz: Vector2, lado: float, fuerza: f
 func ajustar(nombre: String, valor: Variant) -> void:
 	if _mat != null:
 		_mat.set_shader_parameter(nombre, valor)
-	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste", "sombra_tinte"]:
+	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "prof_color", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste", "sombra_tinte"]:
 		_mat_pared.set_shader_parameter(nombre, valor)
 
 

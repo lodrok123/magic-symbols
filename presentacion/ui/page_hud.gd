@@ -16,6 +16,18 @@ const TINTA_SUAVE: Color = Color(0.96, 0.94, 0.88, 0.55)
 const VELO: Color = Color(0.0, 0.0, 0.0, 0.6)
 
 
+## El destello de la runa al conjurar (Fase 14.5): la página que se lanza brilla un instante. Lo pide el Lanzador3D.
+var _destello_i: int = -1
+var _destello_hasta: int = 0
+var _destello_dur: float = 0.25
+
+
+func destello(indice: int, dur: float = 0.25) -> void:
+	_destello_i = indice
+	_destello_dur = maxf(dur, 0.05)
+	_destello_hasta = Time.get_ticks_msec() + int(_destello_dur * 1000.0)
+
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -55,6 +67,12 @@ func _draw() -> void:
 
 		draw_arc(centro, radio, 0.0, TAU, 24, TINTA if activa else TINTA_SUAVE,
 			2.5 if activa else 1.5, true)
+		if i == _destello_i:
+			var queda: float = float(_destello_hasta - Time.get_ticks_msec()) / 1000.0
+			if queda > 0.0:
+				var k: float = clampf(queda / _destello_dur, 0.0, 1.0)
+				draw_circle(centro, radio * (1.0 + 0.6 * (1.0 - k)), Color(1.0, 0.97, 0.85, 0.55 * k))
+				draw_arc(centro, radio * (1.2 + 0.8 * (1.0 - k)), 0.0, TAU, 32, Color(1.0, 0.97, 0.85, k), 3.0, true)
 		_texto(centro + Vector2(0.0, 5.0), str(i + 1), TINTA)
 
 	# La voltereta.

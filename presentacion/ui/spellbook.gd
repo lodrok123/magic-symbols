@@ -226,6 +226,26 @@ var gesture_countdown: float = 0.0
 ## guardar cientos de puntos casi pegados cuando mueves el ratón despacio.
 const MIN_POINT_DISTANCE: float = 8.0
 
+## --- ASISTENCIA AL TRAZO (Fase 14.4, 16/10) ---
+## Mientras dibujas, `asistente` (GestureAssist) adivina qué runa quiere ser el trazo cada ASIST_PERIODO s: pinta su guía fantasma,
+## tira del trazo hacia ella (solo lo que se VE) y, al soltar, puede dar por buena la runa aunque falte el final. Lo que se reconoce
+## sigue siendo el trazo REAL (`stroke` / `pending_strokes`); el imantado vive aparte en `stroke_visible` / `pending_visible`.
+## La opción es `Estado.i().asistencia` (0–1; 0 = exactamente como antes: no se calcula nada).
+const ASIST_PERIODO: float = 0.08
+const T_REDIBUJADO: float = 0.2          ## al aceptar, el trazo se redibuja limpio con la plantilla en este tiempo
+const GUIA_COLOR: Color = Color(0.15, 0.25, 0.60, 0.38)
+
+var asistente: GestureAssist = GestureAssist.new()
+var stroke_visible: PackedVector2Array = PackedVector2Array()   ## el trazo en curso, ya imantado (lo que se pinta)
+var pending_visible: Array = []                                  ## los trazos cerrados del gesto, imantados
+var _asist_reloj: float = 0.0
+var _asist_sucio: bool = false
+var _t_gesto_ini: int = 0                ## ms del primer trazo del gesto (para PlayLog)
+var _t_gesto_fin: int = 0
+var _limpio_t: float = -1.0              ## < 0 = sin animación de redibujado
+var _limpio_desde: Array = []
+var _limpio_hasta: Array = []
+
 
 func _ready() -> void:
 	visible = false
@@ -372,6 +392,7 @@ func _open() -> void:
 	visible = true
 	stroke = PackedVector2Array()
 	pending_strokes = []
+	_asist_reiniciar()
 	gesture_countdown = 0.0
 	is_drawing = false
 
@@ -393,6 +414,7 @@ func _close() -> void:
 	visible = false
 	is_drawing = false
 	pending_strokes = []
+	_asist_reiniciar()
 	gesture_countdown = 0.0
 
 	# Se descongela ANTES de lanzar, para que el hechizo nazca en un
@@ -418,6 +440,11 @@ func _begin_stroke(pos: Vector2) -> void:
 	# del mismo gesto que los anteriores.
 	gesture_countdown = 0.0
 	stroke = PackedVector2Array([pos])
+	stroke_visible = PackedVector2Array([pos])
+	if pending_strokes.is_empty():
+		_t_gesto_ini = Time.get_ticks_msec()
+	_asist_reloj = 0.0
+	_asist_sucio = true
 	queue_redraw()
 
 
@@ -431,6 +458,9 @@ func _add_point(pos: Vector2) -> void:
 
 	if stroke.is_empty() or stroke[-1].distance_to(pos) >= MIN_POINT_DISTANCE:
 		stroke.append(pos)
+		# El punto que se ve va imantado con la guía vigente (si la asistencia está activa); el real se guarda tal cual.
+		stroke_visible.append(asistente.punto_imantado(pos, _u(RADIUS)) if _asistencia_activa() else pos)
+		_asist_sucio = true
 		queue_redraw()
 
 
@@ -444,10 +474,16 @@ func _end_stroke() -> void:
 
 	if stroke.size() >= 2:
 		pending_strokes.append(stroke)
+		pending_visible.append(stroke_visible if stroke_visible.size() == stroke.size() else stroke)
+		_t_gesto_fin = Time.get_ticks_msec()
 		Sfx.play(_oyente(), "trazo")
 		gesture_countdown = GESTURE_PAUSE
 
 	stroke = PackedVector2Array()
+	stroke_visible = PackedVector2Array()
+	# Lectura final con el gesto entero (es la que decide la aceptación anticipada al cerrar).
+	if _asistencia_activa() and not pending_strokes.is_empty():
+		_actualizar_asistencia()
 	queue_redraw()
 
 
@@ -470,6 +506,19 @@ func _process(delta: float) -> void:
 			_aviso_visible = ahora
 			queue_redraw()
 
+	if is_drawing and _asist_sucio and _asistencia_activa():
+		_asist_reloj += delta
+		if _asist_reloj >= ASIST_PERIODO:
+			_asist_reloj = 0.0
+			_asist_sucio = false
+			_actualizar_asistencia()
+
+	if _limpio_t >= 0.0:
+		_limpio_t += delta
+		if _limpio_t >= T_REDIBUJADO:
+			_limpio_t = -1.0
+		queue_redraw()
+
 	if gesture_countdown <= 0.0:
 		return
 
@@ -490,10 +539,115 @@ func _commit_gesture() -> void:
 	else:
 		var caster := _spellcaster()
 		if caster:
-			caster.add_gesture(pending_strokes, _sector_of_gesture())
+			var sector: Vector2 = _sector_of_gesture()
+			var a_enviar: Array = pending_strokes
+			if _asistencia_activa():
+				a_enviar = _decidir_con_asistencia(caster, sector)
+			caster.add_gesture(a_enviar, sector)
 
 	pending_strokes = []
+	_asist_reiniciar()
 	queue_redraw()
+
+
+## --- Asistencia al trazo: puente entre el libro y GestureAssist ---
+
+func _asistencia() -> float:
+	return clampf(Estado.i().asistencia, 0.0, 1.0)
+
+
+## Activa solo con la opción > 0 y fuera del modo de grabación (grabar plantillas con ayuda las estropearía).
+func _asistencia_activa() -> bool:
+	return _asistencia() > 0.0 and not is_recording
+
+
+func _asist_reiniciar() -> void:
+	asistente.reiniciar()
+	pending_visible = []
+	stroke_visible = PackedVector2Array()
+	_asist_reloj = 0.0
+	_asist_sucio = false
+
+
+## Con qué se compara lo dibujado: el mismo reparto que hace el Spellcaster. Un gesto centrado en el núcleo es un ELEMENTO (sin giro);
+## fuera, un SELLO, que se compara girado por su sector. Las plantillas van TODAS (también las runas aún no conocidas, que hacen de
+## señuelo) y `activos` dice cuáles pueden salir de candidata: solo se ayuda con lo que el jugador conoce.
+func _familia_asistencia(strokes: Array) -> Dictionary:
+	var medio := Vector2.ZERO
+	var n: int = 0
+	for t in strokes:
+		for p in t:
+			medio += p
+			n += 1
+	var sector: Vector2 = _sector_of_point(medio / float(maxi(n, 1)))
+	if sector == Vector2.ZERO:
+		return {"plantillas": library.templates_for(GestureLibrary.ELEMENTS), "activos": Repertoire.active_elements(), "giro": 0.0}
+	var giro: float = -sector.angle() if absf(sector.angle()) >= 0.01 else 0.0
+	return {"plantillas": library.templates_for(GestureLibrary.SIGILS), "activos": Repertoire.active_sigils(), "giro": giro}
+
+
+## Una lectura de lo que llevas dibujado (los trazos cerrados y el que está en curso).
+func _actualizar_asistencia() -> void:
+	var trazos: Array = pending_strokes.duplicate()
+	if stroke.size() >= 2:
+		trazos.append(stroke)
+	if trazos.is_empty():
+		asistente.reiniciar()
+		return
+	var fam: Dictionary = _familia_asistencia(trazos)
+	asistente.actualizar(trazos, fam["plantillas"], fam["activos"], _asistencia(), fam["giro"])
+	# El trazo en curso se vuelve a imantar entero: la guía se recoloca al crecer lo dibujado.
+	if is_drawing and stroke.size() >= 1:
+		stroke_visible = asistente.trazo_imantado(stroke, _u(RADIUS))
+	queue_redraw()
+
+
+## Qué trazos se le dan al Spellcaster y qué se anota en PlayLog. El reconocimiento de verdad se hace sobre el trazo REAL: la guía solo
+## entra como ACEPTACIÓN ANTICIPADA, y solo cuando el real no ha sido aceptado y la candidata es firme (margen ≥ umbral de su gesto y
+## ≥ 85 % del recorrido). En ese caso se le pasa la plantilla colocada sobre el trazo, que es lo que se redibuja limpio.
+func _decidir_con_asistencia(caster: Node, sector: Vector2) -> Array:
+	var tiempo: float = float(maxi(_t_gesto_fin - _t_gesto_ini, 0)) / 1000.0
+	var candidata: String = asistente.candidata
+	var real: Dictionary = _reconocer_real(caster, pending_strokes, sector)
+	var correccion: String = "ninguna"
+	var a_enviar: Array = pending_strokes
+	if real["accepted"]:
+		if candidata != "" and asistente.fuerza_iman() > 0.0:
+			correccion = "iman"
+		# Redibujado limpio solo si lo reconocido coincide con la guía que se enseñaba.
+		if candidata != "" and real["name"] == candidata:
+			_iniciar_redibujado()
+	elif candidata != "" and asistente.aceptable:
+		correccion = "aceptacion_anticipada"
+		a_enviar = asistente.trazos_limpios()
+		_iniciar_redibujado()
+	PlayLog.event("asistencia", {
+		"candidata": candidata, "confianza": snappedf(asistente.confianza, 0.01),
+		"cobertura": snappedf(asistente.cobertura, 0.01), "tiempo": snappedf(tiempo, 0.01),
+		"correccion": correccion, "iman": snappedf(asistente.fuerza_iman(), 0.01),
+		"real": real["name"] if real["accepted"] else "", "asistencia": snappedf(_asistencia(), 0.01),
+		"ms": snappedf(asistente.ms_ultimo, 0.1)})
+	return a_enviar
+
+
+## Lo que el Spellcaster haría con el trazo real: {name, accepted}. Misma ruta que `add_gesture` (elemento en el núcleo, sello en sector).
+func _reconocer_real(caster: Node, strokes: Array, sector: Vector2) -> Dictionary:
+	var r: Dictionary
+	if sector == Vector2.ZERO:
+		r = GestureRecognizer.recognize(strokes, library.templates_for(GestureLibrary.ELEMENTS), Repertoire.active_elements())
+	elif caster.has_method("_reconocer_glifo"):
+		r = caster.call("_reconocer_glifo", strokes, sector)
+	else:
+		r = GestureRecognizer.recognize(strokes, library.templates_for(GestureLibrary.SIGILS), Repertoire.active_sigils())
+	return {"name": str(r.get("name", "")), "accepted": bool(r.get("accepted", false))}
+
+
+func _iniciar_redibujado() -> void:
+	if asistente.guia.is_empty():
+		return
+	_limpio_desde = pending_visible.duplicate()
+	_limpio_hasta = asistente.trazos_limpios()
+	_limpio_t = 0.0
 
 
 ## Guarda el gesto actual como una muestra más del gesto seleccionado.
@@ -671,13 +825,55 @@ func _draw() -> void:
 
 	var ink: Color = RECORD_INK if is_recording else STROKE_INK
 	var grosor: float = _u(4.0)
-	for s in pending_strokes:
+	var asistido: bool = _asistencia_activa()
+	if asistido:
+		_draw_guia()
+	# Con asistencia se pinta el trazo imantado; el real solo se usa para reconocer.
+	var cerrados: Array = pending_visible if (asistido and pending_visible.size() == pending_strokes.size()) else pending_strokes
+	for s in cerrados:
 		if s.size() >= 2:
 			draw_polyline(s, ink, grosor, true)
-	if stroke.size() >= 2:
-		draw_polyline(stroke, ink, grosor, true)
+	var en_curso: PackedVector2Array = stroke_visible if (asistido and stroke_visible.size() == stroke.size()) else stroke
+	if en_curso.size() >= 2:
+		draw_polyline(en_curso, ink, grosor, true)
+	if _limpio_t >= 0.0:
+		_draw_redibujado(grosor)
 
 	_draw_hint(c)
+
+
+## La guía fantasma: puntos tenues a lo largo de la plantilla de la candidata líder. Sin candidata (empate o nada reconocible), nada.
+func _draw_guia() -> void:
+	if asistente.candidata == "" or asistente.guia.is_empty() or (not is_drawing and pending_strokes.is_empty()):
+		return
+	var paso: float = _u(11.0)
+	var radio: float = _u(2.2)
+	for pieza in asistente.guia:
+		var resto: float = 0.0
+		for i in range(pieza.size() - 1):
+			var a: Vector2 = pieza[i]
+			var b: Vector2 = pieza[i + 1]
+			var largo: float = a.distance_to(b)
+			var d: float = resto
+			while d <= largo:
+				draw_circle(a.lerp(b, d / maxf(largo, 0.0001)), radio, GUIA_COLOR)
+				d += paso
+			resto = d - largo
+
+
+## Redibujado limpio (0,2 s) al aceptar: el trazo imantado se desvanece y la plantilla se funde en su lugar.
+func _draw_redibujado(grosor: float) -> void:
+	var k: float = clampf(_limpio_t / T_REDIBUJADO, 0.0, 1.0)
+	var viejo := STROKE_INK
+	viejo.a = 1.0 - k
+	var nuevo := STROKE_INK
+	nuevo.a = k
+	for s in _limpio_desde:
+		if s.size() >= 2:
+			draw_polyline(s, viejo, grosor, true)
+	for s in _limpio_hasta:
+		if s.size() >= 2:
+			draw_polyline(s, nuevo, grosor, true)
 
 
 func _draw_book() -> void:

@@ -1,0 +1,40 @@
+; Bosque_01 (Fase 16, 16/10). 28 × 28 con el borde de árboles; salido de la hoja `Nivel_Bosque_01.xlsx` con tools/hoja_a_nivel.py.
+; Letras: marcador_3d.gd y hornear_nivel.gd. `t` tienda goblin (decorado). El TRONCO-PUENTE (cae sobre J10 del dibujo) es un marcador de datos
+;   del Nivel_Bosque_01.tscn horneado; aquí la casilla (6, 5) se ve como agua `~`. Lo lee PruebaTest2 (nivel = "Bosque_01") mientras no exista el .tscn.
+; Reglas: escenas/bosque_01_3d.gd (nodo «Reglas» de escenas/PruebaBosque01.tscn). Puzles declarados: las líneas `pieza` y `puzle` de abajo.
+; Cofres `Z`: el primero (arriba, campamento) es C_1 (glifo de barrera) y el segundo (este) es C_2 (fin de la demo).
+; azar_suelo 1 26 10
+; giro 21 15 90
+; --- ESTANQUE (sheet: «Estanque vacío con un tronco. Con la losa se sube el agua»): la losa T_C (presencia) abre el manantial.
+; --- El manantial es FINITO (volumen 50 u³ ≈ 15 casillas a 0,6 de hondo) y la cuenca es cerrada: una vez llena se queda llena.
+; pieza losa_estanque pulsador 16 9 modo=presencia
+; pieza estanque manantial 20 10 celdas=16,10..20,10+16,11..16,20 caudal=1.5 volumen=50 inicia=no
+; puzle losa_sube_agua cuando=losa_estanque.pulsado hace=estanque.abrir_cauce
+############                
+#...##~#g.t#                
+#...##~#g.t#                
+##..##~#gr.#                
+##g.##~gg.Z#                
+#.WW..~.gg##                
+#.g.##~gg##                 
+##g.##~#g#        ###       
+#.g###~#g#     ####j#       
+#.g###~#g###   #.#TT##      
+##g.##~#ggg#####ccccc#######
+#.g.##~##.......cT...#.....#
+##T###~##.......c....#.....#
+#...#~~##.......c..T.#.....#
+#...##.##.s.....c....#.....#
+##g.##..........c....X...GZ#
+#.g.##.##.......cT...#.....#
+#.g.##.##....#..c..T.#.....#
+#.g.##.##.s..#..c....#.....#
+#.g.##.##....Q..cj...#.....#
+#.#.##.##.....##c....#.....#
+#gSg##q###########.#########
+########         #vv#       
+                 #vv#       
+                 #vv#       
+                 #j##       
+                 #v#        
+                 ###        

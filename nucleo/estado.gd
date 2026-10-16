@@ -29,6 +29,10 @@ var mejoras: Dictionary = {}      ## id de mejora -> nivel
 var vida_max: float = VIDA_BASE
 var cura_pocion: float = CURA_BASE
 var vel_extra: float = 0.0
+## ASISTENCIA AL TRAZO (Fase 14.4): 0 = dibujar como siempre (no se calcula nada); 1 = ayuda máxima. La guía fantasma y el imán del
+## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
+## no una mejora: no se pierde ni se compra.
+var asistencia: float = 0.5
 
 
 static func i() -> Estado:

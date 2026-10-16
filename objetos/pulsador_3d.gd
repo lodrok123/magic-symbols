@@ -29,6 +29,7 @@ var modo: String = "magia"
 var celda: Vector2i = Vector2i.ZERO
 var rearme: float = 0.0
 var cuerpos: Array = []                    ## Node3D extra que también pisan la placa (un tronco, un goblin…)
+var etiqueta: String = ""                  ## rótulo fijo sobre el pulsador (16/10, Pablo: «no entiendo el puzle»); "" = el del modo; "-" = ninguno
 var activo: bool = false                   ## pulsado y aún sin rearmar (o pisado)
 var veces: int = 0                         ## cuántas veces se ha disparado (para las pruebas)
 var _t_rearme: float = 0.0
@@ -60,6 +61,18 @@ func _ready() -> void:
 	forma.shape = caja
 	add_child(forma)
 	_dibujar()
+	if etiqueta == "":
+		etiqueta = {"magia": "CUALQUIER MAGIA", "agua": "SOLO AGUA", "presencia": "PÍSAME"}[modo]
+	if etiqueta != "-":
+		var rot := Label3D.new()
+		rot.text = etiqueta
+		rot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		rot.font_size = 30
+		rot.outline_size = 8
+		rot.pixel_size = 0.005
+		rot.modulate = COLOR[modo].lightened(0.35)
+		rot.position = Vector3(0.0, (ALTO_BOTON if modo != "presencia" else 0.0) + 0.75, 0.0)
+		add_child(rot)
 	set_process(true)
 
 

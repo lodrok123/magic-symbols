@@ -111,7 +111,8 @@ const MODELO_DE: Dictionary = {
 	"woodland_wanderer_orig": "woodland_wanderer",   # solo para el laboratorio: la elfa sin suavizar, para comparar
 	# 13/10: el loberno usa el modelo Emberstride (Meshy) pasado al esqueleto «Wolf» de 51 huesos (ver DIARIO 54). El GLB anterior (rig de Meshy,
 	# con las tiras del cuello deformadas) queda como `loberno.glb` solo para compararlo en el laboratorio.
-	"loberno": "emberheart",
+	# 16/10 (Pablo, Bosque 01): el loberno aprobado es `loberno.glb` (viene del lince, esqueleto y 12 clips iguales); `emberheart` queda para comparar.
+	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 
 var id: String = ""

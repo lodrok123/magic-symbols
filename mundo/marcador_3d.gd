@@ -94,6 +94,9 @@ const LETRAS: Dictionary = {
 const DATOS: Dictionary = {
 	"recogible": {"rotulo": "RECOGIBLE", "color": Color(1.0, 0.85, 0.2)},
 	"empujable": {"rotulo": "BLOQUE EMPUJABLE", "color": Color(0.6, 0.45, 0.3)},
+	"tronco_puente": {"rotulo": "TRONCO-PUENTE (cae hacia +X local)", "color": Color(0.5, 0.35, 0.2)},
+	"tronco_estanque": {"rotulo": "TRONCO DEL ESTANQUE (sube con el agua)", "color": Color(0.4, 0.3, 0.2)},
+	"loberno": {"rotulo": "LOBERNO", "color": Color(0.8, 0.4, 0.2)},
 }
 
 var _visual: Node3D = null

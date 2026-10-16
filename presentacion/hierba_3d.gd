@@ -26,8 +26,20 @@ extends Node3D
 @export var densidad: float = 5.0           ## matojos por unidad cuadrada en hierba plena
 @export var flores_por_unidad: float = 0.18
 @export var alto_matojo: float = 0.30      ## la chibi mide ~1
-@export var color_base: Color = Color(0.50, 0.72, 0.40)
-@export var color_punta: Color = Color(0.86, 0.96, 0.62)
+## 16/10 (Pipeline, diario 96): el verde de la hierba y el de la textura del suelo chocaban (foto de Pablo). MEDIDO sobre las texturas de
+## suelo_meshy (media sobre píxeles opacos): el suelo (`hierba_arriba.png`) es (0,63 · 0,82 · 0,51), tono 97°; las tarjetas pintadas
+## (`hierba_matojos.png`) son (0,58 · 0,71 · 0,37), tono 82°, más amarillas y oscuras; las briznas de antes (base 0,50/0,72/0,40 → punta
+## 0,86/0,96/0,62) salían entre 78° y 101°. Ahora las briznas van del 97° del suelo, un poco más oscuras en la raíz y más claras en la punta, y las
+## tarjetas llevan un tinte (`tinte_tarjetas`) que las acerca al tono del suelo sin aplanarlas.
+## 16/10 (Pipeline, diario 100, Fase 14.2 c): MEDIDO EN PANTALLA (Bosque, capturas del sandbox, tono medio de los píxeles de mata frente al de los
+## de suelo sin mata) el tinte de arriba (1,06 · 1,12 · 1,28, calculado sobre las TEXTURAS) dejaba las matas en 120° contra un suelo que
+## se ve a 86°: la luz recorta el canal verde del suelo (llega a 1,0) y lo amarillea 11° respecto a su textura (97°), cosa que el cálculo
+## sobre texturas no ve. Con (1,14 · 1,12 · 1,12) salen 110° y con (1,20 · 1,12 · 1,00) 102°: se queda este último, a medio camino entre el
+## suelo que se ve hoy (86°) y el que se vería sin recorte (93–97°; con OSCURECER_SUELO 0,64 medí 93°). Si algún día baja la exposición del
+## suelo, estas matas quedan más cerca de él, no más lejos.
+@export var color_base: Color = Color(0.58, 0.77, 0.45)
+@export var color_punta: Color = Color(0.76, 0.93, 0.63)
+@export var tinte_tarjetas: Color = Color(1.20, 1.12, 1.00)
 @export var viento: float = 1.0
 @export var semilla: int = 7
 @export var modo: int = 2                    ## 0 briznas · 1 tarjetas pintadas · 2 las dos
@@ -48,8 +60,8 @@ const COLORES_FLOR: Array = [Color(1.0, 0.78, 0.86), Color(1.0, 1.0, 0.96), Colo
 const CODIGO_MATOJO: String = """
 shader_type spatial;
 render_mode cull_disabled, shadows_disabled;
-uniform vec3 base : source_color = vec3(0.50, 0.72, 0.40);
-uniform vec3 punta : source_color = vec3(0.86, 0.96, 0.62);
+uniform vec3 base : source_color = vec3(0.58, 0.77, 0.45);
+uniform vec3 punta : source_color = vec3(0.76, 0.93, 0.63);
 uniform float viento = 1.0;
 uniform float brillo = 1.0;
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;     // R quemado · G mojado · B helado · A pisado
@@ -333,7 +345,7 @@ func _crear_bloque(b: Vector2i) -> void:
 				var v2: float = 0.92 + rng.randf() * 0.14
 				# Los dibujos con flor (0 y 1) salen menos que los de solo hierba (2 y 3).
 				var celda: float = [0.0, 1.0, 2.0, 2.0, 3.0, 3.0, 3.0][rng.randi() % 7]
-				tintes.append(Color(v2, v2, v2 * (0.96 + rng.randf() * 0.06), (celda + 0.5) / 4.0))
+				tintes.append(Color(v2 * tinte_tarjetas.r, v2 * tinte_tarjetas.g, v2 * (0.96 + rng.randf() * 0.06) * tinte_tarjetas.b, (celda + 0.5) / 4.0))
 		_multimalla(_quad_tarjeta, trs, tintes, padre, "tarjetas")
 	# Flores: pocas, solo en hierba plena, a veces en grupitos de 2-3.
 	var flores: Array[Transform3D] = []

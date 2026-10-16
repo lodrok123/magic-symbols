@@ -30,6 +30,11 @@ const ALCANCE_HABLAR: float = 2.7           ## unidades (la casilla mide 2,3)
 const T_OFERTA: float = 6.0                 ## s que dura el «¿la compras?» tras oír al guardabosques
 const ELEMENTOS_RUNA: Array = ["fuego", "agua", "rayo"]   ## orden de las lámparas de la puerta, de izquierda a derecha
 const NOMBRE_ELEMENTO: Dictionary = {"fuego": "Fuego", "agua": "Agua", "rayo": "Rayo"}
+## Las tareas del nivel son los objetivos de una misión del diario (Fase 14.3): 0–2 las tres runas, 3 la puerta, 4 el elemental, 5 la salida.
+const MISION: String = "bosque_1"
+const OBJ_PUERTA: int = 3
+const OBJ_ELEMENTAL: int = 4
+const OBJ_SALIDA: int = 5
 const COLOR_APAGADO: Color = Color(0.42, 0.42, 0.48)
 const COLOR_LOSA_AGUA: Color = Color(0.45, 0.72, 1.0)
 
@@ -214,6 +219,18 @@ func iniciar(mundo: Variant) -> void:
 	_salida_abierta = _salida_c.x < 0 or _elementales.is_empty()
 	if _salida_abierta and _sello_salida != null:
 		_abrir_salida(false)
+	var objetivos: Array = []
+	for el in ELEMENTOS_RUNA:
+		objetivos.append("Iluminar la runa de %s" % String(NOMBRE_ELEMENTO[el]).to_lower())
+	objetivos.append_array(["Abrir la puerta de las runas", "Derrotar al elemental que guarda la salida", "Cruzar la salida"])
+	Misiones.i().definir({"id": MISION, "titulo": "El Bosque", "tipo": "principal",
+		"texto": "La puerta del claro se abre con tres runas: fuego, agua y rayo. Un elemental guarda la salida del bosque; mientras viva, el camino sigue sellado.",
+		"origen": "Guardabosques", "objetivos": objetivos})
+	Misiones.i().activar(MISION)
+	if _puerta_c.x < 0:
+		Misiones.i().objetivo_hecho(MISION, OBJ_PUERTA)
+	if _salida_abierta:
+		Misiones.i().objetivo_hecho(MISION, OBJ_ELEMENTAL)
 	_refrescar_hud()
 
 
@@ -267,6 +284,7 @@ func _process(delta: float) -> void:
 		_abrir_salida(true)
 	if _salida_abierta and not _terminado and c == _salida_c:
 		_terminado = true
+		Misiones.i().objetivo_hecho(MISION, OBJ_SALIDA)
 		_decir("¡Bosque completado en %d s!" % int(_t), 8.0)
 	if _hablando != null:
 		_t_habla -= delta
@@ -315,10 +333,12 @@ func _encender_runa(i: int) -> void:
 		if m.get("_fx") != null:
 			(m.get("_fx") as Vfx3D).chispazo(lamp.position, el)
 	_decir("Runa de %s iluminada (%d/3)" % [String(NOMBRE_ELEMENTO[el]).to_lower(), _runa_lista.count(true)], 3.5)
+	Misiones.i().objetivo_hecho(MISION, i)
 
 
 func _abrir_puerta() -> void:
 	_puerta_abierta = true
+	Misiones.i().objetivo_hecho(MISION, OBJ_PUERTA)
 	m.call("_liberar", _puerta_c)
 	_decir("¡La puerta se abre!", 4.0)
 	if _puerta != null:
@@ -329,6 +349,7 @@ func _abrir_puerta() -> void:
 
 func _abrir_salida(con_aviso: bool) -> void:
 	_salida_abierta = true
+	Misiones.i().objetivo_hecho(MISION, OBJ_ELEMENTAL)
 	m.call("_liberar", _salida_c)
 	if con_aviso:
 		_decir("El elemental ha caído: la salida está libre.", 5.0)

@@ -220,33 +220,24 @@ func _q7_rayo() -> void:
 	var q: Dictionary = lab.call("puzle", "Q7")
 	var puerta: Node = q["puerta"]
 	var em: Node = q["emisor"]
-	var sim: AguaSim3D = Terreno3D.agua_sim
-	_ok("Q7.1 hay fuente eléctrica y tótem de rayo", em != null and q.get("totem") != null)
-	_ok("Q7.2 el canal seco no conduce: nada electrificado y puerta cerrada", (em.get("electrificada") as Array).is_empty() and not bool(puerta.get("abierta")))
-	# Seis hechizos de agua al tramo central del canal, desde TRES casillas al sur (ALCANCE_FLECHA = 3: la flecha cae a 3 casillas; desde dos
-	# pasaba de largo y el charco caía en la hierba de detrás). Por qué seis: cada impacto echa VOL_AGUA_IMPACTO (0,24 u³) y las tres
-	# casillas del canal tienen 9 trocitos abiertos (5,3 u²): para 0,25 u hacen falta 1,33 u³.
-	var n: int = 0
-	for i in range(6):
-		# A la casilla ESTE del canal (21,20), no a la central: en la columna 20 está la puerta Z en (20,22) y la flecha chocaba con ella.
-		if lanzar_a_celda("agua", ["flecha"], Vector2i(21, 20), Vector2i(21, 23)):
-			n += 1
-		await avanzar_s(1.2)
-	_ok("Q7.3 salen seis hechizos de agua", n == 6, "%d" % n)
-	await avanzar_s(2.0)
-	# Se mira la casilla más honda del canal: el agua se reparte por el cajón y la del impacto no es siempre la que más tiene
-	# (medido 15/10: 0,31 / 0,26 / 0,24 con el impacto en la del este).
-	var prof: float = 0.0
-	for c in q["canal"]:
-		prof = maxf(prof, sim.profundidad_casilla(c as Vector2i))
-	_ok("Q7.4 el canal lleva agua de juego (≥ UMBRAL_AGUA en alguna casilla) tras los hechizos", prof >= AguaSim3D.UMBRAL_AGUA, "%.2f u (las tres casillas: %s; alrededor: %s)" % [prof, str(profundidades(q["canal"])), str(profundidades([Vector2i(21, 19), Vector2i(21, 21), Vector2i(21, 22), Vector2i(20, 21)]))])
+	var nexo: Node = q["nexo"]
+	_ok("Q7.1 hay fuente eléctrica, nexo y tótem de rayo", em != null and nexo != null and q.get("totem") != null)
+	await avanzar_s(6.0)                                     # una descarga completa de la fuente (PERIODO 4 s) con el nexo seco
+	_ok("Q7.2 con el nexo seco la corriente no llega al tótem: puerta cerrada", not bool(nexo.get("conduce")) and not bool(puerta.get("abierta")),
+		"electrificadas %d" % (em.get("electrificada") as Array).size())
+	_ok("Q7.3 agua + flecha a la pila (desde tres casillas al sur)", lanzar_a_celda("agua", ["flecha"], Vector2i(20, 20), Vector2i(20, 23)))
+	await avanzar_s(1.0)
+	_ok("Q7.4 el nexo se moja y conduce", bool(nexo.get("conduce")) and Terreno3D.conduce(Vector2i(20, 20)), "mojado %.0f s" % float(nexo.get("mojado")))
 	var r: Dictionary = {"t": -1.0}
 	await avanzar_vigilando(12.0, 0.5, func(t: float) -> void:
 		if float(r["t"]) < 0.0 and bool(puerta.get("abierta")):
 			r["t"] = t
 	)
-	_ok("Q7.5 la fuente descarga por el agua, el tótem se activa y la puerta se abre", float(r["t"]) > 0.0, "a los %.1f s (electrificadas %d)" % [float(r["t"]), (em.get("electrificada") as Array).size()])
-	volcar("q7", {"prof": snappedf(prof, 0.01), "t_puerta": r["t"]})
+	_ok("Q7.5 la fuente descarga por pozo → nexo → pozo, el tótem se activa y la puerta se abre", float(r["t"]) > 0.0, "a los %.1f s" % float(r["t"]))
+	_ok("Q7.6 fuego + flecha a la pila", lanzar_a_celda("fuego", ["flecha"], Vector2i(20, 20), Vector2i(20, 23)))
+	await avanzar_s(1.0)
+	_ok("Q7.7 el fuego seca el nexo: deja de conducir", not bool(nexo.get("conduce")))
+	volcar("q7", {"t_puerta": r["t"]})
 
 
 func _q9_molino() -> void:

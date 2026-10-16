@@ -62,6 +62,8 @@ static var agua_sim: AguaSim3D = null
 ## Casillas del cauce seco («c») que el surtidor ya ha abierto (11.5). Hasta entonces el cauce es un foso SELLADO para la
 ## simulación: si no, el río se metería solo y el surtidor no haría falta.
 static var cauces_abiertos: Dictionary = {}
+## 16/10: casillas que CONDUCEN la electricidad sin ser agua (un NexoRayo3D mojado). Las escribe el objeto; las lee EmisorRayo3D por `conduce`.
+static var conductores: Dictionary = {}
 
 ## Un hielo de al menos esta hondura (u) cuenta como sólido para proyectiles y miradas (no para andar).
 const HIELO_COBERTURA: float = 0.5
@@ -375,6 +377,7 @@ static func lados_de_canal(c: Vector2i) -> Array:
 static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 	agua_sim = null
 	cauces_abiertos.clear()
+	conductores.clear()
 	if not hay_mundo() or lado_del_mapa() == 0:
 		return null
 	var lado: int = lado_del_mapa()
@@ -448,6 +451,11 @@ static func y_pies(c: Vector2i) -> float:
 	if l == "~":
 		return alto_agua
 	return alto_suelo
+
+
+## ¿Pasa la electricidad por esta casilla? Agua de juego (es_agua) o un conductor declarado (NexoRayo3D mojado).
+static func conduce(c: Vector2i) -> bool:
+	return es_agua(c) or conductores.has(c)
 
 
 ## ¿Es una CUENCA: un cauce seco `c` ya abierto a la simulación (un pozo de LECHO_AGUA de hondo que se llena y se vacía)? 15/10, lab de

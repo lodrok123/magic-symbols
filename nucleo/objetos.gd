@@ -57,6 +57,14 @@ const PLANTAS: Dictionary = {
 
 const ETIQUETAS: Array = ["rayo", "fuego", "hielo", "agua", "viento", "tierra"]
 
+## --- Categorías de la bolsa (Fase 14.3) ---
+## La bolsa ordena SIEMPRE por categoría: primero los componentes (ingredientes), luego las pociones, al final los objetos clave (llaves
+## y cosas de misión). Dentro de cada una, por nombre. Lo que no está en CLAVE ni en CURAN es un componente.
+const CATEGORIAS: Array = ["componentes", "pociones", "clave"]
+const CLAVE: PackedStringArray = ["llave", "llave_goblin", "perla", "aletas"]
+## Objetos que curan: la bolsa les pone un corazón rojo (como Echoes of Wisdom).
+const CURAN: PackedStringArray = ["pocion"]
+
 
 static func existe(id: String) -> bool:
 	return DATOS.has(id)
@@ -68,6 +76,18 @@ static func nombre(id: String) -> String:
 
 static func color(id: String) -> Color:
 	return DATOS.get(id, {}).get("color", Color.WHITE)
+
+
+static func categoria(id: String) -> String:
+	if CURAN.has(id):
+		return "pociones"
+	if CLAVE.has(id):
+		return "clave"
+	return "componentes"
+
+
+static func cura(id: String) -> bool:
+	return CURAN.has(id)
 
 
 static func es_ingrediente(id: String) -> bool:

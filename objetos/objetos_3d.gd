@@ -37,6 +37,9 @@ signal activado(tipo: String, elemento: String)
 ## Solo la tinaja: el arroyo ha llegado al canal (T_CAUDAL s después de empezar a caer el agua). Es la señal para llenar el canal:
 ## llenarlo con `activado` (que sale al empezar a verter) lo haría arrancar antes de que el agua lo alcance.
 signal agua_llega
+## 16/10 (Fase 14.6, laboratorio de fuego): la llama de una fogata o un brasero se enciende (true) o se apaga (false). `activado` ya dice
+## lo mismo pero con dos textos; esta es la que escucha Puzle3D (`brasero.encendido` / `brasero.apagado`).
+signal llama(encendida: bool)
 
 const GRUPO_ARDE: String = "flammable3d"
 const GRUPO_REACTIVO: String = "reactivo3d"
@@ -87,7 +90,30 @@ var is_lit: bool = false             ## arde (igual que en el 2D: el hielo y el 
 var activo: bool = false             ## tótem activado
 var usado: bool = false              ## placa pisada / puente tendido
 
-var _mats: Array = []                ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
+## --- 16/10 (Fase 14.6) · BRASERO CON RELÉ ---
+## Un brasero con relé, al encenderse, cuenta: a los `T_RELE_ESPERA` s enciende al siguiente de la fila (`rele_siguiente`) y a los
+## `T_RELE_DURA` s se apaga solo. El siguiente hace lo mismo con el suyo, así que la llama «corre» por la fila y va dejando atrás
+## braseros apagados. Sin `configurar_rele` el brasero es el de siempre (no se apaga solo y no contagia).
+const T_RELE_ESPERA: float = 1.5
+const T_RELE_DURA: float = 6.0
+var rele_activo: bool = false
+var rele_siguiente: Reactivo3D = null
+var rele_espera: float = T_RELE_ESPERA
+var rele_dura: float = T_RELE_DURA
+var _t_rele: float = 0.0
+var _rele_contagiado: bool = false
+
+## --- 16/10 (Fase 14.6) · LEÑA MOJABLE (el cortafuegos) ---
+## El contagio (1,7 casillas cada 0,8 s) corre más que la combustión (3,5 s), así que un hueco quemado no frena un incendio: el único
+## cortafuegos posible es no dar combustible. Con `mojable = true` el agua MOJA un seto/tronco sano y no prende durante T_MOJADO s
+## (como la hierba mojada de la maqueta, que dura 8). Por defecto es false: sin pedirlo, el agua sigue sin hacerle nada a la leña sana.
+## Por qué 12 s y no los 8 de la hierba: medido en F4, un seto vecino sigue ardiendo y contagiando cada 0,8 s durante 3,5 s (más lo que tarde en
+## prender él); con 8 s el seto mojado se secaba a mitad del incendio y prendía igual.
+const T_MOJADO: float = 12.0
+var mojable: bool = false
+var _mojado_s: float = 0.0           ## s que le quedan empapado (se cuenta con el delta del juego, no con el reloj de pared)
+
+var _mats: Array = []              ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
 var _llama: Node3D = null
 var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
@@ -253,6 +279,9 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> voi
 			ignite(Lanzador3D.ultimo_impacto)
 		elif humedo and estado == EstadoObj.ARDIENDO:
 			_apagar()
+		elif mojable and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+			_mojado_s = T_MOJADO
+			set_process(true)
 		elif rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO:
 			_contagiar(CONTAGIO_VIENTO, direccion)
 		return
@@ -280,6 +309,8 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bo
 	if COMBUSTIBLES.has(tipo):
 		if calor or rayo:
 			return estado == EstadoObj.SANO
+		if mojable and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+			return not esta_mojado()
 		return (humedo or rune_data.tags.has("viento")) and estado == EstadoObj.ARDIENDO
 	match tipo:
 		"totem":
@@ -323,7 +354,12 @@ func _le_toca(rune_data: RuneData) -> bool:
 ## --- Objetos que arden ---
 
 func can_burn() -> bool:
-	return COMBUSTIBLES.has(tipo) and estado == EstadoObj.SANO
+	return COMBUSTIBLES.has(tipo) and estado == EstadoObj.SANO and not esta_mojado()
+
+
+## ¿Está empapado (leña mojable regada hace menos de T_MOJADO s)? Mojado no prende, ni por hechizo ni por contagio.
+func esta_mojado() -> bool:
+	return _mojado_s > 0.0
 
 
 func ignite(_desde: Vector3 = Vector3.INF) -> void:
@@ -345,7 +381,13 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 
 
 func _process(delta: float) -> void:
+	if _mojado_s > 0.0:
+		_mojado_s = maxf(0.0, _mojado_s - delta)
+	if rele_activo and is_lit:
+		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:
+		if _mojado_s <= 0.0 and not (rele_activo and is_lit):
+			set_process(false)
 		return
 	_t += delta
 	_t_contagio += delta
@@ -479,15 +521,59 @@ func _encender(con_efectos: bool) -> void:
 	if con_efectos:
 		fx.chispazo(global_position + Vector3(0.0, float(d[0]) + 0.3, 0.0), "fuego")
 		activado.emit(tipo, "fuego")
+	llama.emit(true)
+	if rele_activo:
+		_t_rele = 0.0
+		_rele_contagiado = false
+		set_process(true)
 
 
 func _apagar_fuente() -> void:
 	is_lit = false
+	_t_rele = 0.0
 	_quitar_fuego()
 	_pintar_tinte(1.0)
 	_pintar_emision(Color.BLACK, 0.0)
 	fx.ceniza(global_position + Vector3(0.0, float((FUENTES[tipo] as Array)[0]), 0.0))
 	activado.emit(tipo, "")
+	llama.emit(false)
+
+
+## --- Brasero con relé (Fase 14.6) ---
+
+## Convierte este brasero en uno con relé: `siguiente` (puede ser null: un brasero que solo se apaga solo) se enciende `espera` s después
+## de este y este se apaga a los `dura` s. Se llama una vez, al montar la fila (Puzle3D, `pieza … brasero rele=<id>`).
+func configurar_rele(siguiente: Reactivo3D, espera: float = T_RELE_ESPERA, dura: float = T_RELE_DURA) -> void:
+	rele_activo = true
+	rele_siguiente = siguiente
+	rele_espera = espera
+	rele_dura = dura
+	if is_lit:                       # ya estaba encendido al configurarlo: la cuenta empieza ahora
+		_t_rele = 0.0
+		_rele_contagiado = false
+		set_process(true)
+
+
+func _avanzar_rele(delta: float) -> void:
+	_t_rele += delta
+	if not _rele_contagiado and rele_siguiente != null and _t_rele >= rele_espera:
+		_rele_contagiado = true
+		if is_instance_valid(rele_siguiente) and not rele_siguiente.is_lit:
+			rele_siguiente.encender_llama()
+	if _t_rele >= rele_dura:
+		_apagar_fuente()
+
+
+## Enciende la llama de una fogata o un brasero sin hechizo (lo usan el relé y las reglas de Puzle3D). No hace nada si ya arde.
+func encender_llama() -> void:
+	if (tipo == "fogata" or tipo == "brasero") and not is_lit:
+		_encender(true)
+
+
+## Apaga la llama de una fogata o un brasero sin hechizo. No hace nada si ya está apagada.
+func apagar_llama() -> void:
+	if (tipo == "fogata" or tipo == "brasero") and is_lit:
+		_apagar_fuente()
 
 
 ## --- 9.7 · Fuente eléctrica y surtidor (Bosque 1) ---

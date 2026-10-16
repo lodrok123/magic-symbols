@@ -654,14 +654,33 @@ func _soltar_flecha() -> void:
 	flecha.look_at(destino, Vector3.UP)
 	var t: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
 	var tw: Tween = flecha.create_tween()
-	tw.tween_property(flecha, "position", destino, t)
+	if lanz != null and not bloqueada:
+		tw.tween_method(_vuelo_flecha.bind(flecha, origen, destino), 0.0, 1.0, t)     # por tramos: así nota la burbuja del jugador
+	else:
+		tw.tween_property(flecha, "position", destino, t)
 	tw.tween_callback(_flecha_llega.bind(flecha, destino, bloqueada))
 	PlayLog.event("flecha_goblin", {"bloqueada": bloqueada})
 
 
+## Un paso del vuelo de la flecha. Si entra en la burbuja del jugador (16/10, barrera-burbuja) la revienta ahí mismo, en el punto donde la
+## toca, y la flecha desaparece sin hacer daño. Va por tramos y no con un solo `tween_property` porque la burbuja SE MUEVE con el jugador.
+func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) -> void:
+	if not is_instance_valid(flecha) or flecha.has_meta("parada"):
+		return
+	var p: Vector3 = origen.lerp(destino, k)
+	flecha.position = p
+	if lanz != null and lanz.burbuja_contiene(p):
+		flecha.set_meta("parada", true)            # `_flecha_llega` (si el tween llega a llamarla en este mismo paso) no hace daño
+		lanz.burbuja_recibe("", p, self)
+		flecha.queue_free()
+
+
 func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 	if is_instance_valid(flecha):
+		var parada: bool = flecha.has_meta("parada")
 		flecha.queue_free()
+		if parada:
+			return
 	if bloqueada or jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		return
 	var dx: float = jugador.position.x - destino.x

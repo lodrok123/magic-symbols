@@ -46,6 +46,7 @@ var _jug: Node = null
 func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
 	m = p_mundo
 	celda = p_celda
+	add_to_group("emisor_rayo")              # 16/10: los nexos (NexoRayo3D) miran si están en la descarga de alguna fuente
 	position = Terreno3D.centro_de(celda, Terreno3D.alto_suelo)
 	_t = 1.0                          # la primera descarga a poco de empezar, para que se vea que está viva
 
@@ -107,7 +108,8 @@ func _process(delta: float) -> void:
 
 ## Empieza una descarga con el agua que esté conectada ahora mismo.
 func _soltar() -> void:
-	var f := func(c: Vector2i) -> bool: return Terreno3D.en_mapa(c) and Terreno3D.es_agua(c)
+	# 16/10: conduce el agua Y lo que el mundo declare conductor (un NexoRayo3D mojado): Terreno3D.conduce.
+	var f := func(c: Vector2i) -> bool: return Terreno3D.en_mapa(c) and Terreno3D.conduce(c)
 	electrificada = EmisorRayo3D.agua_conectada(celda, f)
 	_t = DURACION
 	if electrificada.is_empty():

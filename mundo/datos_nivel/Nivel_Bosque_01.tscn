@@ -1,0 +1,865 @@
+[gd_scene format=3 uid="uid://4lsxfpdeg1me"]
+
+[ext_resource type="MeshLibrary" uid="uid://byabxgkhdvwh3" path="res://mundo/datos_nivel/suelo_tipos.tres" id="1_lib"]
+[ext_resource type="PackedScene" uid="uid://c5pk1oycqfei5" path="res://arte/piezas/setas.tscn" id="2_setas"]
+[ext_resource type="PackedScene" uid="uid://c3ma7drn2eitt" path="res://arte/piezas/arbusto.tscn" id="3_arbusto"]
+[ext_resource type="PackedScene" uid="uid://ym2k86atqoq0" path="res://arte/piezas/tocon.tscn" id="4_tocon"]
+[ext_resource type="PackedScene" uid="uid://7slhuw6u432k" path="res://arte/piezas/piedras.tscn" id="5_piedras"]
+[ext_resource type="PackedScene" uid="uid://jk7twy1ot7io" path="res://arte/piezas/arbusto_flores.tscn" id="6_arbusto_flores"]
+[ext_resource type="PackedScene" uid="uid://s32x5xr5cthi" path="res://arte/piezas/tienda_goblin.tscn" id="7_tienda_goblin"]
+[ext_resource type="PackedScene" uid="uid://b8j2o3bu1hie8" path="res://arte/piezas/pino.tscn" id="8_pino"]
+[ext_resource type="PackedScene" uid="uid://t3012avdx71h" path="res://arte/piezas/arbol_redondo.tscn" id="9_arbol_redondo"]
+[ext_resource type="Script" uid="uid://cy3502rx2dcsj" path="res://mundo/marcador_3d.gd" id="99_mk"]
+
+[node name="Nivel_Bosque_01" type="Node3D" unique_id=2097329063]
+metadata/lado = 28
+metadata/nombre = "Bosque_01"
+metadata/origen = "hoja"
+metadata/horneado = "2026-10-16T13:40:28"
+
+[node name="Suelo" type="GridMap" parent="." unique_id=1464722952]
+mesh_library = ExtResource("1_lib")
+cell_size = Vector3(2.3, 1.035, 2.3)
+cell_center_y = false
+data = {
+"cells": PackedInt32Array(0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0, 5, 0, 0, 6, 0, 0, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 0, 1, 0, 1, 1, 5, 2, 1, 0, 3, 1, 0, 4, 1, 0, 5, 1, 0, 6, 1, 1, 7, 1, 0, 8, 1, 3, 9, 1, 5, 10, 1, 5, 11, 1, 0, 0, 2, 0, 1, 2, 5, 2, 2, 0, 3, 2, 0, 4, 2, 0, 5, 2, 0, 6, 2, 1, 7, 2, 0, 8, 2, 3, 9, 2, 5, 10, 2, 5, 11, 2, 0, 0, 3, 0, 1, 3, 0, 2, 3, 0, 3, 3, 0, 4, 3, 0, 5, 3, 0, 6, 3, 1, 7, 3, 0, 8, 3, 3, 9, 3, 0, 10, 3, 5, 11, 3, 0, 0, 4, 0, 1, 4, 0, 2, 4, 3, 3, 4, 0, 4, 4, 0, 5, 4, 0, 6, 4, 1, 7, 4, 3, 8, 4, 3, 9, 4, 0, 10, 4, 0, 11, 4, 0, 0, 5, 0, 1, 5, 5, 2, 5, 3, 3, 5, 3, 4, 5, 0, 5, 5, 0, 6, 5, 1, 7, 5, 0, 8, 5, 3, 9, 5, 3, 10, 5, 0, 11, 5, 0, 0, 6, 0, 1, 6, 5, 2, 6, 3, 3, 6, 5, 4, 6, 0, 5, 6, 0, 6, 6, 1, 7, 6, 3, 8, 6, 3, 9, 6, 0, 10, 6, 0, 0, 7, 0, 1, 7, 0, 2, 7, 3, 3, 7, 5, 4, 7, 0, 5, 7, 0, 6, 7, 1, 7, 7, 0, 8, 7, 3, 9, 7, 0, 18, 7, 0, 19, 7, 0, 20, 7, 0, 0, 8, 0, 1, 8, 3, 2, 8, 3, 3, 8, 0, 4, 8, 0, 5, 8, 0, 6, 8, 1, 7, 8, 0, 8, 8, 3, 9, 8, 0, 15, 8, 0, 16, 8, 0, 17, 8, 0, 18, 8, 0, 19, 8, 3, 20, 8, 0, 0, 9, 0, 1, 9, 3, 2, 9, 3, 3, 9, 0, 4, 9, 0, 5, 9, 0, 6, 9, 1, 7, 9, 0, 8, 9, 3, 9, 9, 0, 10, 9, 0, 11, 9, 0, 15, 9, 0, 16, 9, 0, 17, 9, 0, 18, 9, 5, 19, 9, 3, 20, 9, 0, 21, 9, 0, 0, 10, 0, 1, 10, 0, 2, 10, 3, 3, 10, 5, 4, 10, 0, 5, 10, 0, 6, 10, 1, 7, 10, 0, 8, 10, 3, 9, 10, 3, 10, 10, 3, 11, 10, 0, 12, 10, 0, 13, 10, 0, 14, 10, 0, 15, 10, 0, 16, 10, 6, 17, 10, 6, 18, 10, 6, 19, 10, 6, 20, 10, 6, 21, 10, 0, 22, 10, 0, 23, 10, 0, 24, 10, 0, 25, 10, 0, 26, 10, 0, 27, 10, 0, 0, 11, 0, 1, 11, 5, 2, 11, 3, 3, 11, 0, 4, 11, 0, 5, 11, 0, 6, 11, 1, 7, 11, 0, 8, 11, 0, 9, 11, 5, 10, 11, 0, 11, 11, 0, 12, 11, 0, 13, 11, 0, 14, 11, 5, 15, 11, 3, 16, 11, 6, 17, 11, 3, 18, 11, 5, 19, 11, 0, 20, 11, 0, 21, 11, 0, 22, 11, 0, 23, 11, 5, 24, 11, 5, 25, 11, 5, 26, 11, 0, 27, 11, 0, 0, 12, 0, 1, 12, 0, 2, 12, 0, 3, 12, 0, 4, 12, 0, 5, 12, 0, 6, 12, 1, 7, 12, 0, 8, 12, 0, 9, 12, 5, 10, 12, 5, 11, 12, 0, 12, 12, 0, 13, 12, 0, 14, 12, 5, 15, 12, 3, 16, 12, 6, 17, 12, 3, 18, 12, 0, 19, 12, 0, 20, 12, 0, 21, 12, 0, 22, 12, 0, 23, 12, 5, 24, 12, 5, 25, 12, 5, 26, 12, 0, 27, 12, 0, 0, 13, 0, 1, 13, 5, 2, 13, 0, 3, 13, 0, 4, 13, 0, 5, 13, 1, 6, 13, 1, 7, 13, 0, 8, 13, 0, 9, 13, 5, 10, 13, 5, 11, 13, 0, 12, 13, 0, 13, 13, 0, 14, 13, 5, 15, 13, 3, 16, 13, 6, 17, 13, 3, 18, 13, 5, 19, 13, 0, 20, 13, 0, 21, 13, 0, 22, 13, 0, 23, 13, 5, 24, 13, 5, 25, 13, 5, 26, 13, 0, 27, 13, 0, 0, 14, 0, 1, 14, 5, 2, 14, 5, 3, 14, 5, 4, 14, 0, 5, 14, 0, 6, 14, 5, 7, 14, 0, 8, 14, 0, 9, 14, 3, 10, 14, 5, 11, 14, 5, 12, 14, 0, 13, 14, 5, 14, 14, 5, 15, 14, 5, 16, 14, 6, 17, 14, 5, 18, 14, 5, 19, 14, 0, 20, 14, 0, 21, 14, 0, 22, 14, 0, 23, 14, 5, 24, 14, 5, 25, 14, 5, 26, 14, 0, 27, 14, 0, 0, 15, 0, 1, 15, 0, 2, 15, 3, 3, 15, 3, 4, 15, 0, 5, 15, 0, 6, 15, 3, 7, 15, 3, 8, 15, 3, 9, 15, 3, 10, 15, 3, 11, 15, 5, 12, 15, 5, 13, 15, 5, 14, 15, 5, 15, 15, 5, 16, 15, 6, 17, 15, 5, 18, 15, 5, 19, 15, 5, 20, 15, 5, 21, 15, 5, 22, 15, 5, 23, 15, 5, 24, 15, 5, 25, 15, 5, 26, 15, 0, 27, 15, 0, 0, 16, 0, 1, 16, 5, 2, 16, 3, 3, 16, 3, 4, 16, 0, 5, 16, 0, 6, 16, 3, 7, 16, 0, 8, 16, 0, 9, 16, 3, 10, 16, 3, 11, 16, 5, 12, 16, 5, 13, 16, 5, 14, 16, 5, 15, 16, 0, 16, 16, 6, 17, 16, 0, 18, 16, 5, 19, 16, 5, 20, 16, 5, 21, 16, 0, 22, 16, 5, 23, 16, 5, 24, 16, 5, 25, 16, 5, 26, 16, 0, 27, 16, 0, 0, 17, 0, 1, 17, 5, 2, 17, 3, 3, 17, 3, 4, 17, 0, 5, 17, 0, 6, 17, 3, 7, 17, 0, 8, 17, 0, 9, 17, 3, 10, 17, 3, 11, 17, 5, 12, 17, 5, 13, 17, 0, 14, 17, 5, 15, 17, 0, 16, 17, 6, 17, 17, 0, 18, 17, 5, 19, 17, 5, 20, 17, 5, 21, 17, 0, 22, 17, 5, 23, 17, 5, 24, 17, 5, 25, 17, 5, 26, 17, 0, 27, 17, 0, 0, 18, 0, 1, 18, 0, 2, 18, 3, 3, 18, 0, 4, 18, 0, 5, 18, 0, 6, 18, 5, 7, 18, 0, 8, 18, 0, 9, 18, 5, 10, 18, 5, 11, 18, 3, 12, 18, 3, 13, 18, 0, 14, 18, 5, 15, 18, 0, 16, 18, 6, 17, 18, 0, 18, 18, 0, 19, 18, 5, 20, 18, 5, 21, 18, 0, 22, 18, 5, 23, 18, 3, 24, 18, 3, 25, 18, 5, 26, 18, 5, 27, 18, 0, 0, 19, 0, 1, 19, 0, 2, 19, 3, 3, 19, 0, 4, 19, 0, 5, 19, 0, 6, 19, 0, 7, 19, 0, 8, 19, 0, 9, 19, 0, 10, 19, 5, 11, 19, 3, 12, 19, 3, 13, 19, 3, 14, 19, 5, 15, 19, 0, 16, 19, 6, 17, 19, 0, 18, 19, 0, 19, 19, 0, 20, 19, 0, 21, 19, 0, 22, 19, 5, 23, 19, 3, 24, 19, 3, 25, 19, 3, 26, 19, 5, 27, 19, 0, 0, 20, 0, 1, 20, 0, 2, 20, 0, 3, 20, 0, 4, 20, 0, 5, 20, 0, 6, 20, 0, 7, 20, 0, 8, 20, 0, 9, 20, 0, 10, 20, 5, 11, 20, 3, 12, 20, 3, 13, 20, 3, 14, 20, 0, 15, 20, 0, 16, 20, 6, 17, 20, 0, 18, 20, 0, 19, 20, 0, 20, 20, 0, 21, 20, 0, 22, 20, 5, 23, 20, 3, 24, 20, 3, 25, 20, 3, 26, 20, 5, 27, 20, 0, 0, 21, 0, 1, 21, 3, 2, 21, 3, 3, 21, 3, 4, 21, 0, 5, 21, 0, 6, 21, 0, 7, 21, 0, 8, 21, 0, 9, 21, 0, 10, 21, 0, 11, 21, 0, 12, 21, 0, 13, 21, 0, 14, 21, 0, 15, 21, 0, 16, 21, 0, 17, 21, 0, 18, 21, 0, 19, 21, 0, 20, 21, 0, 21, 21, 0, 22, 21, 0, 23, 21, 0, 24, 21, 0, 25, 21, 0, 26, 21, 0, 27, 21, 0, 0, 22, 0, 1, 22, 0, 2, 22, 0, 3, 22, 0, 4, 22, 0, 5, 22, 0, 6, 22, 0, 7, 22, 0, 17, 22, 0, 18, 22, 4, 19, 22, 4, 20, 22, 0, 17, 23, 0, 18, 23, 4, 19, 23, 4, 20, 23, 0, 17, 24, 0, 18, 24, 4, 19, 24, 4, 20, 24, 0, 17, 25, 0, 18, 25, 4, 19, 25, 0, 20, 25, 0, 17, 26, 0, 18, 26, 4, 19, 26, 0, 17, 27, 0, 18, 27, 0, 19, 27, 0)
+}
+
+[node name="Piezas" type="Node3D" parent="." unique_id=1502928116]
+
+[node name="tienda_goblin_10_1" parent="Piezas" unique_id=1737206153 instance=ExtResource("7_tienda_goblin")]
+transform = Transform3D(-1.003349, 0, 0.3095018, 0, 1.05, 0, -0.3095018, 0, -1.003349, 24.19184, 1.005, 3.746947)
+
+[node name="tienda_goblin_10_2" parent="Piezas" unique_id=1493366798 instance=ExtResource("7_tienda_goblin")]
+transform = Transform3D(-1.02564, 0, 0.2248631, 0, 1.05, 0, -0.2248631, 0, -1.02564, 24.15549, 1.005, 5.811169)
+
+[node name="setas_2_1" parent="Piezas" unique_id=1094510075 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.7514956, 0, -0.6538452, 0, 0.9961221, 0, 0.6538452, 0, -0.7514956, 5.530322, 1.005, 3.412615)
+
+[node name="setas_2_2" parent="Piezas" unique_id=54013117 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.3651914, 0, -0.9839594, 0, 1.049543, 0, 0.9839594, 0, -0.3651914, 5.429316, 1.005, 6.087535)
+
+[node name="setas_2_3" parent="Piezas" unique_id=1729504339 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.3651914, 0, -0.9839594, 0, 1.049543, 0, 0.9839594, 0, -0.3651914, 4.0626197, 1.005, 31.097084)
+
+[node name="arbusto_7_5" parent="Piezas" unique_id=1102927238 instance=ExtResource("3_arbusto")]
+transform = Transform3D(0.9712198, 0, 0.4070544, 0, 1.053072, 0, -0.4070544, 0, 0.9712198, 16.92496, 1.005, 12.9157)
+metadata/bloquea = false
+
+[node name="arbusto_flores_13_11" parent="Piezas" unique_id=1432743984 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(-1.022446, 0, 0.00145732, 0, 1.022447, 0, -0.00145732, 0, -1.022446, 31.16371, 1.005, 26.42013)
+metadata/bloquea = false
+
+[node name="arbusto_12_12" parent="Piezas" unique_id=1701731068 instance=ExtResource("3_arbusto")]
+transform = Transform3D(0.5611969, 0, -0.8083563, 0, 0.984064, 0, 0.8083563, 0, 0.5611969, 28.67056, 1.005, 29.07063)
+metadata/bloquea = false
+
+[node name="arbusto_flores_14_12" parent="Piezas" unique_id=1568300209 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(1.011113, 0, 0.3449228, 0, 1.068327, 0, -0.3449228, 0, 1.011113, 33.26282, 1.005, 28.89623)
+metadata/bloquea = false
+
+[node name="tocon_24_12" parent="Piezas" unique_id=740001686 instance=ExtResource("4_tocon")]
+transform = Transform3D(-0.3653893, 0, 0.902761, 0, 0.9739029, 0, -0.902761, 0, -0.3653893, 56.0106, 1.005, 28.68704)
+metadata/bloquea = false
+
+[node name="arbusto_26_12" parent="Piezas" unique_id=1995415113 instance=ExtResource("3_arbusto")]
+transform = Transform3D(-0.8994779, 0, 0.2014141, 0, 0.9217528, 0, -0.2014141, 0, -0.8994779, 60.94078, 1.005, 28.87745)
+metadata/bloquea = false
+
+[node name="setas_12_13" parent="Piezas" unique_id=1115010285 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.1078988, 0, -0.9443655, 0, 0.9505095, 0, 0.9443655, 0, -0.1078988, 28.49168, 1.005, 31.1506)
+
+[node name="piedras_13_13" parent="Piezas" unique_id=1519404945 instance=ExtResource("5_piedras")]
+transform = Transform3D(1.078404, 0, 0.003190796, 0, 1.078408, 0, -0.003190796, 0, 1.078404, 31.30503, 1.005, 31.3824)
+
+[node name="arbusto_flores_23_13" parent="Piezas" unique_id=928405155 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(0.5994933, 0, -0.7791417, 0, 0.9830839, 0, 0.7791417, 0, 0.5994933, 54.14928, 1.005, 30.77023)
+metadata/bloquea = false
+
+[node name="arbusto_13_14" parent="Piezas" unique_id=96070528 instance=ExtResource("3_arbusto")]
+transform = Transform3D(-0.6233288, 0, -0.7214067, 0, 0.9533973, 0, 0.7214067, 0, -0.6233288, 30.71086, 1.005, 33.25807)
+metadata/bloquea = false
+
+[node name="setas_15_14" parent="Piezas" unique_id=546480145 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.8899029, 0, -0.4504126, 0, 0.9973959, 0, 0.4504126, 0, -0.8899029, 35.90657, 1.005, 33.12798)
+
+[node name="arbusto_flores_17_14" parent="Piezas" unique_id=381248116 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(0.003310797, 0, 1.050843, 0, 1.050848, 0, -1.050843, 0, 0.003310797, 40.03286, 1.005, 33.5176)
+metadata/bloquea = false
+
+[node name="piedras_12_15" parent="Piezas" unique_id=2123463257 instance=ExtResource("5_piedras")]
+transform = Transform3D(-0.8444276, 0, -0.6426369, 0, 1.06115, 0, 0.6426369, 0, -0.8444276, 28.69502, 1.005, 35.37269)
+
+[node name="tocon_13_15" parent="Piezas" unique_id=832013424 instance=ExtResource("4_tocon")]
+transform = Transform3D(-0.2697442, 0, -0.9193912, 0, 0.9581452, 0, 0.9193912, 0, -0.2697442, 30.87989, 1.005, 35.8766)
+metadata/bloquea = false
+
+[node name="arbusto_19_15" parent="Piezas" unique_id=1022061042 instance=ExtResource("3_arbusto")]
+transform = Transform3D(-0.9322827, 0, 0.1219434, 0, 0.940224, 0, -0.1219434, 0, -0.9322827, 44.95746, 1.005, 35.73111)
+metadata/bloquea = false
+
+[node name="arbusto_flores_23_15" parent="Piezas" unique_id=1273913102 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(0.3041879, 0, 1.022489, 0, 1.066778, 0, -1.022489, 0, 0.3041879, 53.7116, 1.005, 35.48844)
+metadata/bloquea = false
+
+[node name="arbusto_flores_12_16" parent="Piezas" unique_id=1282522977 instance=ExtResource("6_arbusto_flores")]
+transform = Transform3D(-0.9468598, 0, -0.1868188, 0, 0.9651139, 0, 0.1868188, 0, -0.9468598, 29.08115, 1.005, 37.66453)
+metadata/bloquea = false
+
+[node name="piedras_13_16" parent="Piezas" unique_id=1009782080 instance=ExtResource("5_piedras")]
+transform = Transform3D(-0.5944393, 0, -0.8979478, 0, 1.076879, 0, 0.8979478, 0, -0.5944393, 31.18386, 1.005, 38.00911)
+
+[node name="arbusto_14_16" parent="Piezas" unique_id=1900775224 instance=ExtResource("3_arbusto")]
+transform = Transform3D(-1.05441, 0, 0.1684089, 0, 1.067774, 0, -0.1684089, 0, -1.05441, 33.25023, 1.005, 37.81826)
+metadata/bloquea = false
+
+[node name="setas_15_16" parent="Piezas" unique_id=524286789 instance=ExtResource("2_setas")]
+transform = Transform3D(-1.015431, 0, 0.1138117, 0, 1.02179, 0, -0.1138117, 0, -1.015431, 35.81135, 1.005, 37.82323)
+
+[node name="setas_1_17" parent="Piezas" unique_id=1711842205 instance=ExtResource("2_setas")]
+transform = Transform3D(0.9408906, 0, 0.2699272, 0, 0.9788441, 0, -0.2699272, 0, 0.9408906, 3.755375, 1.005, 40.416)
+
+[node name="tocon_12_17" parent="Piezas" unique_id=274167868 instance=ExtResource("4_tocon")]
+transform = Transform3D(-0.386911, 0, -0.896353, 0, 0.9762935, 0, 0.896353, 0, -0.386911, 29.03059, 1.005, 40.50977)
+metadata/bloquea = false
+
+[node name="arbusto_3_18" parent="Piezas" unique_id=99993543 instance=ExtResource("3_arbusto")]
+transform = Transform3D(0.7855405, 0, -0.7396076, 0, 1.078932, 0, 0.7396076, 0, 0.7855405, 3.572198, 1.005, 42.603153)
+metadata/bloquea = false
+
+[node name="setas_19_19" parent="Piezas" unique_id=785879270 instance=ExtResource("2_setas")]
+transform = Transform3D(-0.7437378, 0, -0.549588, 0, 0.9247664, 0, 0.549588, 0, -0.7437378, 44.83667, 1.005, 44.66116)
+
+[node name="tocon_18_21" parent="Piezas" unique_id=2058884589 instance=ExtResource("4_tocon")]
+transform = Transform3D(-0.7198452, 0, -0.6090255, 0, 0.9429153, 0, 0.6090255, 0, -0.7198452, 42.56288, 1.005, 49.62764)
+metadata/bloquea = false
+
+[node name="Borde" type="Node3D" parent="." unique_id=1068007562]
+
+[node name="arbol_redondo_0_0" parent="Borde" unique_id=1186829553 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.111574, 0, 0.0117965, 0, 1.111636, 0, -0.0117965, 0, -1.111574, 0.9690386, 1.005, 1.08333)
+
+[node name="pino_1_0" parent="Borde" unique_id=1549411211 instance=ExtResource("8_pino")]
+transform = Transform3D(0.3563216, 0, -1.015395, 0, 1.076101, 0, 1.015395, 0, 0.3563216, 3.628241, 1.005, 0.9402043)
+
+[node name="pino_2_0" parent="Borde" unique_id=403418605 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9018812, 0, -0.4899012, 0, 1.026349, 0, 0.4899012, 0, 0.9018812, 5.546925, 1.005, 0.8941869)
+
+[node name="arbol_redondo_3_0" parent="Borde" unique_id=548594569 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.071687, 0, 0.2792751, 0, 1.107478, 0, -0.2792751, 0, 1.071687, 7.744897, 1.005, 1.486252)
+
+[node name="arbol_redondo_4_0" parent="Borde" unique_id=239520244 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.997164, 0, 0.1814562, 0, 1.01354, 0, -0.1814562, 0, -0.997164, 10.64801, 1.005, 1.381627)
+
+[node name="arbol_redondo_5_0" parent="Borde" unique_id=1600566269 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.4992067, 0, -0.937806, 0, 1.062397, 0, 0.937806, 0, -0.4992067, 12.80139, 1.005, 1.389331)
+
+[node name="arbol_redondo_6_0" parent="Borde" unique_id=1966736956 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4929806, 0, -0.9139644, 0, 1.038442, 0, 0.9139644, 0, 0.4929806, 14.79469, 1.005, 1.225288)
+
+[node name="arbol_redondo_7_0" parent="Borde" unique_id=1840843926 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6295416, 0, 0.8199219, 0, 1.033728, 0, -0.8199219, 0, -0.6295416, 17.3545, 1.005, 1.194827)
+
+[node name="arbol_redondo_8_0" parent="Borde" unique_id=842377972 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.386523, 0, 0.9747869, 0, 1.048623, 0, -0.9747869, 0, 0.386523, 19.73845, 1.005, 0.9864887)
+
+[node name="arbol_redondo_9_0" parent="Borde" unique_id=1258702257 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.090099, 0, -0.1098721, 0, 1.095622, 0, 0.1098721, 0, 1.090099, 21.58071, 1.005, 0.8763141)
+
+[node name="arbol_redondo_10_0" parent="Borde" unique_id=1904163843 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.7305933, 0, 0.7910182, 0, 1.07679, 0, -0.7910182, 0, -0.7305933, 23.85458, 1.005, 0.9386352)
+
+[node name="arbol_redondo_11_0" parent="Borde" unique_id=1994681240 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2297544, 0, -1.004792, 0, 1.030725, 0, 1.004792, 0, -0.2297544, 26.62854, 1.005, 1.174394)
+
+[node name="pino_0_1" parent="Borde" unique_id=632159904 instance=ExtResource("8_pino")]
+transform = Transform3D(0.1834881, 0, -1.010653, 0, 1.027175, 0, 1.010653, 0, 0.1834881, 1.177782, 1.005, 3.762773)
+
+[node name="arbol_redondo_4_1" parent="Borde" unique_id=2000538715 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.6047101, 0, 0.9422675, 0, 1.119617, 0, -0.9422675, 0, 0.6047101, 10.59413, 1.005, 3.589854)
+
+[node name="pino_5_1" parent="Borde" unique_id=376202455 instance=ExtResource("8_pino")]
+transform = Transform3D(0.8194866, 0, -0.6552738, 0, 1.049258, 0, 0.6552738, 0, 0.8194866, 12.57158, 1.005, 3.415352)
+
+[node name="arbol_redondo_11_1" parent="Borde" unique_id=404033622 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.606453, 0, 0.915725, 0, 1.098334, 0, -0.915725, 0, -0.606453, 26.32853, 1.005, 3.787634)
+
+[node name="pino_0_2" parent="Borde" unique_id=1742167834 instance=ExtResource("8_pino")]
+transform = Transform3D(0.3299439, 0, -1.053479, 0, 1.103939, 0, 1.053479, 0, 0.3299439, 1.446961, 1.005, 5.486439)
+
+[node name="pino_4_2" parent="Borde" unique_id=2133208179 instance=ExtResource("8_pino")]
+transform = Transform3D(0.8913878, 0, 0.5488842, 0, 1.046827, 0, -0.5488842, 0, 0.8913878, 10.2169, 1.005, 6.083724)
+
+[node name="arbol_redondo_5_2" parent="Borde" unique_id=1601916668 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2042825, 0, -1.010994, 0, 1.031426, 0, 1.010994, 0, -0.2042825, 12.31095, 1.005, 5.753303)
+
+[node name="pino_11_2" parent="Borde" unique_id=1878671529 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.9958547, 0, 0.4767843, 0, 1.104106, 0, -0.4767843, 0, -0.9958547, 26.12457, 1.005, 5.773185)
+
+[node name="arbol_redondo_0_3" parent="Borde" unique_id=746299510 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.090989, 0, 0.2041273, 0, 1.109921, 0, -0.2041273, 0, -1.090989, 1.499877, 1.005, 8.330397)
+
+[node name="arbol_redondo_4_3" parent="Borde" unique_id=134292013 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.012866, 0, 0.4052825, 0, 1.090941, 0, -0.4052825, 0, -1.012866, 10.39114, 1.005, 8.281812)
+
+[node name="arbol_redondo_5_3" parent="Borde" unique_id=1263759881 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.015657, 0, -0.09095591, 0, 1.019722, 0, 0.09095591, 0, -1.015657, 12.93505, 1.005, 7.879559)
+
+[node name="pino_11_3" parent="Borde" unique_id=1934469865 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.1531751, 0, 1.054296, 0, 1.065365, 0, -1.054296, 0, -0.1531751, 26.44835, 1.005, 7.987758)
+
+[node name="pino_0_4" parent="Borde" unique_id=1269931966 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.7164931, 0, 0.6984429, 0, 1.000592, 0, -0.6984429, 0, -0.7164931, 1.176825, 1.005, 10.03077)
+
+[node name="arbol_redondo_11_4" parent="Borde" unique_id=1152519893 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.096751, 0, -0.1735796, 0, 1.110402, 0, 0.1735796, 0, -1.096751, 26.17603, 1.005, 10.29368)
+
+[node name="pino_0_5" parent="Borde" unique_id=490777905 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.3056571, 0, -0.984887, 0, 1.031227, 0, 0.984887, 0, -0.3056571, 1.484096, 1.005, 12.32494)
+
+[node name="pino_10_5" parent="Borde" unique_id=1120591580 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.2128063, 0, 0.9785476, 0, 1.00142, 0, -0.9785476, 0, -0.2128063, 24.30652, 1.005, 12.47113)
+
+[node name="arbol_redondo_11_5" parent="Borde" unique_id=1792878845 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9215833, 0, -0.523643, 0, 1.059961, 0, 0.523643, 0, -0.9215833, 26.69634, 1.005, 12.73647)
+
+[node name="arbol_redondo_0_6" parent="Borde" unique_id=1696122290 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7843817, 0, -0.7484365, 0, 1.084164, 0, 0.7484365, 0, 0.7843817, 0.816275, 1.005, 15.0431)
+
+[node name="arbol_redondo_9_6" parent="Borde" unique_id=165904250 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6188592, 0, 0.8794217, 0, 1.075346, 0, -0.8794217, 0, -0.6188592, 21.62679, 1.005, 15.02219)
+
+[node name="arbol_redondo_10_6" parent="Borde" unique_id=1045799410 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.181103, 0, -1.00721, 0, 1.023362, 0, 1.00721, 0, 0.181103, 23.93618, 1.005, 14.6678)
+
+[node name="arbol_redondo_0_7" parent="Borde" unique_id=1831958227 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8640451, 0, 0.5343118, 0, 1.015905, 0, -0.5343118, 0, 0.8640451, 1.071529, 1.005, 17.20436)
+
+[node name="arbol_redondo_4_7" parent="Borde" unique_id=178726612 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9155271, 0, -0.4301123, 0, 1.011527, 0, 0.4301123, 0, -0.9155271, 10.25031, 1.005, 17.47468)
+
+[node name="arbol_redondo_5_7" parent="Borde" unique_id=632682902 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.7189642, 0, -0.8120176, 0, 1.084565, 0, 0.8120176, 0, -0.7189642, 12.54045, 1.005, 17.59901)
+
+[node name="arbol_redondo_7_7" parent="Borde" unique_id=1559232080 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.089394, 0, 0.1232254, 0, 1.096341, 0, -0.1232254, 0, -1.089394, 16.91701, 1.005, 17.4334)
+
+[node name="arbol_redondo_9_7" parent="Borde" unique_id=779021332 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.10095, 0, 0.1301172, 0, 1.108612, 0, -0.1301172, 0, -1.10095, 21.6327, 1.005, 16.98046)
+
+[node name="pino_18_7" parent="Borde" unique_id=509718729 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.2103582, 0, 0.9970133, 0, 1.018963, 0, -0.9970133, 0, -0.2103582, 42.67106, 1.005, 17.30585)
+
+[node name="pino_19_7" parent="Borde" unique_id=1170348371 instance=ExtResource("8_pino")]
+transform = Transform3D(0.955647, 0, 0.5068017, 0, 1.081716, 0, -0.5068017, 0, 0.955647, 44.5677, 1.005, 17.17362)
+
+[node name="arbol_redondo_20_7" parent="Borde" unique_id=1298571540 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.258731, 0, 1.009933, 0, 1.042548, 0, -1.009933, 0, 0.258731, 47.06121, 1.005, 17.3438)
+
+[node name="pino_0_8" parent="Borde" unique_id=666671471 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.8575007, 0, 0.5597635, 0, 1.024033, 0, -0.5597635, 0, -0.8575007, 1.051698, 1.005, 19.45914)
+
+[node name="pino_4_8" parent="Borde" unique_id=894581350 instance=ExtResource("8_pino")]
+transform = Transform3D(0.7816073, 0, -0.7754704, 0, 1.101029, 0, 0.7754704, 0, 0.7816073, 10.63612, 1.005, 19.85771)
+
+[node name="arbol_redondo_5_8" parent="Borde" unique_id=42620819 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.8817223, 0, -0.5185733, 0, 1.022914, 0, 0.5185733, 0, -0.8817223, 12.53868, 1.005, 19.73368)
+
+[node name="pino_7_8" parent="Borde" unique_id=1485541665 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.04472614, 0, -1.012966, 0, 1.013953, 0, 1.012966, 0, -0.04472614, 17.01203, 1.005, 19.85366)
+
+[node name="pino_9_8" parent="Borde" unique_id=2051076446 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.008733, 0, -0.2514043, 0, 1.039589, 0, 0.2514043, 0, -1.008733, 21.75891, 1.005, 19.50215)
+
+[node name="pino_15_8" parent="Borde" unique_id=456758390 instance=ExtResource("8_pino")]
+transform = Transform3D(0.4080835, 0, 0.9400653, 0, 1.024819, 0, -0.9400653, 0, 0.4080835, 35.85813, 1.005, 19.41118)
+
+[node name="pino_16_8" parent="Borde" unique_id=1976155705 instance=ExtResource("8_pino")]
+transform = Transform3D(1.104628, 0, -0.06546307, 0, 1.106566, 0, 0.06546307, 0, 1.104628, 38.23189, 1.005, 19.2347)
+
+[node name="pino_17_8" parent="Borde" unique_id=1003187305 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.3371042, 0, 1.063209, 0, 1.115371, 0, -1.063209, 0, -0.3371042, 40.05123, 1.005, 19.48429)
+
+[node name="pino_18_8" parent="Borde" unique_id=166838038 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.004919, 0, -0.09307006, 0, 1.00922, 0, 0.09307006, 0, -1.004919, 42.54832, 1.005, 19.34925)
+
+[node name="pino_20_8" parent="Borde" unique_id=1356358399 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.9335396, 0, -0.4750207, 0, 1.047445, 0, 0.4750207, 0, -0.9335396, 46.88034, 1.005, 19.27564)
+
+[node name="pino_0_9" parent="Borde" unique_id=1277522164 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.052766, 0, -0.031504, 0, 1.053238, 0, 0.031504, 0, -1.052766, 1.332914, 1.005, 21.95361)
+
+[node name="arbol_redondo_4_9" parent="Borde" unique_id=764880649 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.6048263, 0, -0.8735278, 0, 1.062481, 0, 0.8735278, 0, 0.6048263, 10.06975, 1.005, 21.81104)
+
+[node name="arbol_redondo_5_9" parent="Borde" unique_id=248820596 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.5227093, 0, -0.928968, 0, 1.06593, 0, 0.928968, 0, -0.5227093, 12.96874, 1.005, 21.7705)
+
+[node name="arbol_redondo_7_9" parent="Borde" unique_id=1733529325 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.027861, 0, -0.195607, 0, 1.046308, 0, 0.195607, 0, 1.027861, 17.49897, 1.005, 21.87937)
+
+[node name="arbol_redondo_9_9" parent="Borde" unique_id=533727980 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.050929, 0, 0.03611298, 0, 1.051549, 0, -0.03611298, 0, -1.050929, 21.69911, 1.005, 21.779)
+
+[node name="arbol_redondo_10_9" parent="Borde" unique_id=73809841 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.057759, 0, 0.1117844, 0, 1.063649, 0, -0.1117844, 0, -1.057759, 23.98883, 1.005, 22.15063)
+
+[node name="arbol_redondo_11_9" parent="Borde" unique_id=1758572285 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.074246, 0, 0.1830468, 0, 1.08973, 0, -0.1830468, 0, 1.074246, 26.64074, 1.005, 21.91007)
+
+[node name="arbol_redondo_15_9" parent="Borde" unique_id=2002517975 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.4206851, 0, -0.9610119, 0, 1.049057, 0, 0.9610119, 0, -0.4206851, 35.33695, 1.005, 21.7206)
+
+[node name="arbol_redondo_17_9" parent="Borde" unique_id=1089527330 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.1801816, 0, -1.054527, 0, 1.06981, 0, 1.054527, 0, -0.1801816, 40.12347, 1.005, 22.05831)
+
+[node name="pino_20_9" parent="Borde" unique_id=644415091 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.006298836, 0, 1.086277, 0, 1.086295, 0, -1.086277, 0, -0.006298836, 47.32885, 1.005, 21.5318)
+
+[node name="pino_21_9" parent="Borde" unique_id=1142507367 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9244615, 0, -0.5909848, 0, 1.09722, 0, 0.5909848, 0, 0.9244615, 49.20106, 1.005, 22.17197)
+
+[node name="pino_0_10" parent="Borde" unique_id=574037621 instance=ExtResource("8_pino")]
+transform = Transform3D(1.030831, 0, 0.3378022, 0, 1.084769, 0, -0.3378022, 0, 1.030831, 1.092011, 1.005, 23.88258)
+
+[node name="arbol_redondo_4_10" parent="Borde" unique_id=1011695372 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6855084, 0, -0.8243377, 0, 1.072126, 0, 0.8243377, 0, -0.6855084, 10.4774, 1.005, 24.05481)
+
+[node name="arbol_redondo_5_10" parent="Borde" unique_id=1351515333 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7157323, 0, 0.8324223, 0, 1.097816, 0, -0.8324223, 0, 0.7157323, 12.50309, 1.005, 23.89021)
+
+[node name="arbol_redondo_7_10" parent="Borde" unique_id=1395535098 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.3816683, 0, 0.9892823, 0, 1.060354, 0, -0.9892823, 0, -0.3816683, 17.25515, 1.005, 24.39259)
+
+[node name="pino_11_10" parent="Borde" unique_id=557913605 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.1673791, 0, -1.060044, 0, 1.073177, 0, 1.060044, 0, -0.1673791, 26.58933, 1.005, 23.93302)
+
+[node name="pino_12_10" parent="Borde" unique_id=342281978 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9820996, 0, -0.3062199, 0, 1.028732, 0, 0.3062199, 0, 0.9820996, 28.7515, 1.005, 24.25706)
+
+[node name="pino_13_10" parent="Borde" unique_id=1168069385 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.7485115, 0, -0.7812889, 0, 1.08198, 0, 0.7812889, 0, -0.7485115, 30.70663, 1.005, 23.98166)
+
+[node name="pino_14_10" parent="Borde" unique_id=690681861 instance=ExtResource("8_pino")]
+transform = Transform3D(0.1723332, 0, 0.9896732, 0, 1.004565, 0, -0.9896732, 0, 0.1723332, 33.1948, 1.005, 24.32905)
+
+[node name="arbol_redondo_15_10" parent="Borde" unique_id=2066333909 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.09749269, 0, 1.01463, 0, 1.019303, 0, -1.01463, 0, 0.09749269, 35.98704, 1.005, 24.13881)
+
+[node name="arbol_redondo_21_10" parent="Borde" unique_id=755572233 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.039948, 0, 0.03656891, 0, 1.040591, 0, -0.03656891, 0, -1.039948, 49.19335, 1.005, 24.40873)
+
+[node name="arbol_redondo_22_10" parent="Borde" unique_id=1226058944 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4608292, 0, -0.9475611, 0, 1.053677, 0, 0.9475611, 0, 0.4608292, 51.98659, 1.005, 24.33826)
+
+[node name="arbol_redondo_23_10" parent="Borde" unique_id=759081765 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.8401597, 0, 0.6939243, 0, 1.089678, 0, -0.6939243, 0, -0.8401597, 53.80548, 1.005, 23.90743)
+
+[node name="arbol_redondo_24_10" parent="Borde" unique_id=404492111 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2722676, 0, 1.036433, 0, 1.071599, 0, -1.036433, 0, -0.2722676, 56.53129, 1.005, 24.37831)
+
+[node name="pino_25_10" parent="Borde" unique_id=1978911176 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.9431277, 0, -0.5230479, 0, 1.078457, 0, 0.5230479, 0, -0.9431277, 58.62341, 1.005, 24.02691)
+
+[node name="arbol_redondo_26_10" parent="Borde" unique_id=1028671261 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9573724, 0, -0.4356634, 0, 1.051839, 0, 0.4356634, 0, -0.9573724, 61.17071, 1.005, 24.12446)
+
+[node name="arbol_redondo_27_10" parent="Borde" unique_id=1835482560 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.3693876, 0, 0.9304753, 0, 1.001115, 0, -0.9304753, 0, -0.3693876, 63.53748, 1.005, 24.2226)
+
+[node name="arbol_redondo_0_11" parent="Borde" unique_id=548479212 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.09405356, 0, -1.055188, 0, 1.059371, 0, 1.055188, 0, 0.09405356, 1.029565, 1.005, 26.7172)
+
+[node name="pino_4_11" parent="Borde" unique_id=1405122761 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.5022337, 0, 0.954843, 0, 1.078872, 0, -0.954843, 0, -0.5022337, 10.63439, 1.005, 26.32571)
+
+[node name="arbol_redondo_5_11" parent="Borde" unique_id=841576553 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8761153, 0, -0.6166525, 0, 1.071372, 0, 0.6166525, 0, 0.8761153, 12.78094, 1.005, 26.29544)
+
+[node name="arbol_redondo_7_11" parent="Borde" unique_id=666669571 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.080847, 0, 0.2900305, 0, 1.119084, 0, -0.2900305, 0, -1.080847, 17.05485, 1.005, 26.77744)
+
+[node name="arbol_redondo_8_11" parent="Borde" unique_id=607543819 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.9164685, 0, 0.5364718, 0, 1.06194, 0, -0.5364718, 0, 0.9164685, 19.77997, 1.005, 26.11688)
+
+[node name="arbol_redondo_21_11" parent="Borde" unique_id=1216367982 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.3058609, 0, -1.025538, 0, 1.070177, 0, 1.025538, 0, 0.3058609, 49.61718, 1.005, 26.35777)
+
+[node name="arbol_redondo_27_11" parent="Borde" unique_id=154079295 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.856075, 0, -0.5519324, 0, 1.018574, 0, 0.5519324, 0, -0.856075, 63.0241, 1.005, 26.16282)
+
+[node name="arbol_redondo_0_12" parent="Borde" unique_id=1763457785 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4177832, 0, -1.020347, 0, 1.102566, 0, 1.020347, 0, 0.4177832, 0.9548681, 1.005, 28.44041)
+
+[node name="pino_1_12" parent="Borde" unique_id=1989495464 instance=ExtResource("8_pino")]
+transform = Transform3D(1.025321, 0, 0.1448748, 0, 1.035506, 0, -0.1448748, 0, 1.025321, 3.689181, 1.005, 28.69592)
+
+[node name="pino_4_12" parent="Borde" unique_id=1208050298 instance=ExtResource("8_pino")]
+transform = Transform3D(1.023884, 0, 0.1685032, 0, 1.037657, 0, -0.1685032, 0, 1.023884, 10.45748, 1.005, 28.46821)
+
+[node name="arbol_redondo_5_12" parent="Borde" unique_id=1032594523 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2471741, 0, -1.021157, 0, 1.050646, 0, 1.021157, 0, -0.2471741, 12.64231, 1.005, 29.03542)
+
+[node name="arbol_redondo_7_12" parent="Borde" unique_id=824484630 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6225252, 0, 0.851865, 0, 1.055088, 0, -0.851865, 0, -0.6225252, 17.46509, 1.005, 28.63308)
+
+[node name="pino_8_12" parent="Borde" unique_id=1940920100 instance=ExtResource("8_pino")]
+transform = Transform3D(0.3572097, 0, -0.9964743, 0, 1.058565, 0, 0.9964743, 0, 0.3572097, 19.25073, 1.005, 28.83271)
+
+[node name="pino_21_12" parent="Borde" unique_id=503015169 instance=ExtResource("8_pino")]
+transform = Transform3D(1.086444, 0, -0.09789973, 0, 1.090846, 0, 0.09789973, 0, 1.086444, 49.34442, 1.005, 28.40271)
+
+[node name="arbol_redondo_27_12" parent="Borde" unique_id=338800271 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9858944, 0, 0.2225935, 0, 1.01071, 0, -0.2225935, 0, -0.9858944, 63.27894, 1.005, 28.41704)
+
+[node name="arbol_redondo_0_13" parent="Borde" unique_id=1576843335 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7717442, 0, 0.6378464, 0, 1.001218, 0, -0.6378464, 0, 0.7717442, 1.446493, 1.005, 31.34089)
+
+[node name="pino_4_13" parent="Borde" unique_id=2013150219 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.6733012, 0, -0.7654968, 0, 1.01947, 0, 0.7654968, 0, -0.6733012, 10.47885, 1.005, 30.92462)
+
+[node name="arbol_redondo_7_13" parent="Borde" unique_id=39002994 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.160028, 0, 1.05138, 0, 1.063489, 0, -1.05138, 0, -0.160028, 17.52026, 1.005, 31.03001)
+
+[node name="arbol_redondo_8_13" parent="Borde" unique_id=2066646928 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.5797759, 0, 0.8590845, 0, 1.03642, 0, -0.8590845, 0, 0.5797759, 19.84381, 1.005, 31.33854)
+
+[node name="arbol_redondo_21_13" parent="Borde" unique_id=1541228052 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9949868, 0, 0.118854, 0, 1.00206, 0, -0.118854, 0, -0.9949868, 49.66028, 1.005, 30.91879)
+
+[node name="pino_27_13" parent="Borde" unique_id=134961784 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.8864787, 0, -0.5497742, 0, 1.043118, 0, 0.5497742, 0, -0.8864787, 63.32002, 1.005, 31.03034)
+
+[node name="arbol_redondo_0_14" parent="Borde" unique_id=1494947842 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8301141, 0, -0.6479135, 0, 1.053034, 0, 0.6479135, 0, 0.8301141, 1.081741, 1.005, 33.63747)
+
+[node name="arbol_redondo_4_14" parent="Borde" unique_id=1492844227 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.004592, 0, -0.3832411, 0, 1.075211, 0, 0.3832411, 0, 1.004592, 10.38529, 1.005, 33.59737)
+
+[node name="arbol_redondo_5_14" parent="Borde" unique_id=1381005656 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.00796, 0, -0.2880616, 0, 1.048314, 0, 0.2880616, 0, 1.00796, 12.76218, 1.005, 33.54018)
+
+[node name="pino_7_14" parent="Borde" unique_id=839306144 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.8904106, 0, 0.6518448, 0, 1.103509, 0, -0.6518448, 0, -0.8904106, 17.05219, 1.005, 33.094)
+
+[node name="arbol_redondo_8_14" parent="Borde" unique_id=1011686215 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.3096994, 0, -1.073336, 0, 1.117123, 0, 1.073336, 0, 0.3096994, 19.74192, 1.005, 33.55137)
+
+[node name="pino_21_14" parent="Borde" unique_id=1499309150 instance=ExtResource("8_pino")]
+transform = Transform3D(0.8656574, 0, -0.6962472, 0, 1.110911, 0, 0.6962472, 0, 0.8656574, 49.71184, 1.005, 33.63366)
+
+[node name="arbol_redondo_27_14" parent="Borde" unique_id=147672879 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9066793, 0, 0.4878328, 0, 1.029586, 0, -0.4878328, 0, -0.9066793, 63.51238, 1.005, 33.29104)
+
+[node name="arbol_redondo_0_15" parent="Borde" unique_id=21503351 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8524428, 0, -0.55532, 0, 1.017369, 0, 0.55532, 0, 0.8524428, 1.367006, 1.005, 35.39178)
+
+[node name="arbol_redondo_1_15" parent="Borde" unique_id=1145502537 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.068958, 0, -0.1073962, 0, 1.07434, 0, 0.1073962, 0, -1.068958, 3.137059, 1.005, 35.70031)
+
+[node name="pino_4_15" parent="Borde" unique_id=862643256 instance=ExtResource("8_pino")]
+transform = Transform3D(0.885839, 0, -0.5147066, 0, 1.024516, 0, 0.5147066, 0, 0.885839, 10.10432, 1.005, 35.38989)
+
+[node name="arbol_redondo_5_15" parent="Borde" unique_id=308232058 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.05727, 0, -0.187591, 0, 1.073784, 0, 0.187591, 0, -1.05727, 12.92276, 1.005, 35.78558)
+
+[node name="pino_27_15" parent="Borde" unique_id=298272780 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.049546, 0, -0.293576, 0, 1.089831, 0, 0.293576, 0, -1.049546, 63.25418, 1.005, 35.31332)
+
+[node name="pino_0_16" parent="Borde" unique_id=202472774 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.4226333, 0, -0.9318019, 0, 1.023168, 0, 0.9318019, 0, -0.4226333, 1.346992, 1.005, 37.90813)
+
+[node name="pino_4_16" parent="Borde" unique_id=37584714 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.048877, 0, 0.03835197, 0, 1.049578, 0, -0.03835197, 0, -1.048877, 10.66262, 1.005, 38.27475)
+
+[node name="arbol_redondo_5_16" parent="Borde" unique_id=322928419 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9835181, 0, -0.3638272, 0, 1.048655, 0, 0.3638272, 0, -0.9835181, 12.99809, 1.005, 38.067)
+
+[node name="pino_7_16" parent="Borde" unique_id=365055268 instance=ExtResource("8_pino")]
+transform = Transform3D(0.6404007, 0, 0.7796213, 0, 1.008921, 0, -0.7796213, 0, 0.6404007, 17.36736, 1.005, 38.0731)
+
+[node name="arbol_redondo_8_16" parent="Borde" unique_id=203114216 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7886192, 0, 0.75842, 0, 1.09413, 0, -0.75842, 0, 0.7886192, 19.51172, 1.005, 38.20458)
+
+[node name="arbol_redondo_21_16" parent="Borde" unique_id=1017833449 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2851197, 0, 1.017851, 0, 1.057031, 0, -1.017851, 0, -0.2851197, 49.17933, 1.005, 38.14027)
+
+[node name="arbol_redondo_27_16" parent="Borde" unique_id=1411476892 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2116063, 0, -1.080821, 0, 1.101341, 0, 1.080821, 0, -0.2116063, 63.53107, 1.005, 37.70649)
+
+[node name="arbol_redondo_0_17" parent="Borde" unique_id=1138573439 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.001885369, 0, -1.112492, 0, 1.112494, 0, 1.112492, 0, -0.001885369, 1.467862, 1.005, 40.42845)
+
+[node name="arbol_redondo_4_17" parent="Borde" unique_id=1148397002 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.3798767, 0, 0.9363037, 0, 1.010431, 0, -0.9363037, 0, 0.3798767, 10.26358, 1.005, 39.97671)
+
+[node name="arbol_redondo_5_17" parent="Borde" unique_id=1672246804 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.014341, 0, 0.194692, 0, 1.032857, 0, -0.194692, 0, -1.014341, 12.74823, 1.005, 40.2128)
+
+[node name="arbol_redondo_7_17" parent="Borde" unique_id=1820507441 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.7303454, 0, -0.7008513, 0, 1.012224, 0, 0.7008513, 0, -0.7303454, 16.99201, 1.005, 40.34127)
+
+[node name="pino_8_17" parent="Borde" unique_id=232741048 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9964249, 0, 0.2324531, 0, 1.02318, 0, -0.2324531, 0, 0.9964249, 19.52422, 1.005, 40.39276)
+
+[node name="pino_13_17" parent="Borde" unique_id=190417703 instance=ExtResource("8_pino")]
+transform = Transform3D(1.000746, 0, -0.07930323, 0, 1.003883, 0, 0.07930323, 0, 1.000746, 31.00367, 1.005, 40.43984)
+
+[node name="arbol_redondo_21_17" parent="Borde" unique_id=1477499367 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.9849053, 0, -0.4871375, 0, 1.098791, 0, 0.4871375, 0, 0.9849053, 49.19734, 1.005, 40.04382)
+
+[node name="pino_27_17" parent="Borde" unique_id=110359048 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.0766, 0, 0.1171859, 0, 1.082958, 0, -0.1171859, 0, -1.0766, 63.54493, 1.005, 40.33612)
+
+[node name="arbol_redondo_0_18" parent="Borde" unique_id=888745237 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.4430362, 0, 0.9778929, 0, 1.073571, 0, -0.9778929, 0, -0.4430362, 1.352129, 1.005, 42.37154)
+
+[node name="arbol_redondo_4_18" parent="Borde" unique_id=857299825 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.071547, 0, 1.061178, 0, 1.063587, 0, -1.061178, 0, -0.071547, 10.13213, 1.005, 42.41474)
+
+[node name="arbol_redondo_5_18" parent="Borde" unique_id=1895433541 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.2984, 0, 1.024284, 0, 1.066864, 0, -1.024284, 0, 0.2984, 12.53293, 1.005, 42.40543)
+
+[node name="pino_7_18" parent="Borde" unique_id=860735135 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.02645568, 0, 1.08529, 0, 1.085612, 0, -1.08529, 0, -0.02645568, 17.27719, 1.005, 42.40894)
+
+[node name="pino_8_18" parent="Borde" unique_id=214837594 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.069613, 0, -0.09057791, 0, 1.073442, 0, 0.09057791, 0, -1.069613, 19.60191, 1.005, 42.33872)
+
+[node name="arbol_redondo_13_18" parent="Borde" unique_id=9345862 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.3000807, 0, -1.078847, 0, 1.119803, 0, 1.078847, 0, -0.3000807, 31.35514, 1.005, 42.59716)
+
+[node name="pino_21_18" parent="Borde" unique_id=1457599584 instance=ExtResource("8_pino")]
+transform = Transform3D(0.1796158, 0, -1.06408, 0, 1.079133, 0, 1.06408, 0, 0.1796158, 49.19539, 1.005, 42.53452)
+
+[node name="arbol_redondo_27_18" parent="Borde" unique_id=542750124 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8719194, 0, 0.5669371, 0, 1.040029, 0, -0.5669371, 0, 0.8719194, 63.51076, 1.005, 42.38632)
+
+[node name="arbol_redondo_0_19" parent="Borde" unique_id=1142925315 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.1335696, 0, -1.045779, 0, 1.054274, 0, 1.045779, 0, -0.1335696, 0.9670413, 1.005, 44.89853)
+
+[node name="arbol_redondo_4_19" parent="Borde" unique_id=1336014559 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8676041, 0, -0.5124278, 0, 1.00763, 0, 0.5124278, 0, 0.8676041, 10.11797, 1.005, 45.022)
+
+[node name="arbol_redondo_5_19" parent="Borde" unique_id=1163254 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.6342176, 0, 0.8244453, 0, 1.040164, 0, -0.8244453, 0, 0.6342176, 12.95379, 1.005, 44.50266)
+
+[node name="arbol_redondo_7_19" parent="Borde" unique_id=1506129554 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.05456858, 0, -1.042208, 0, 1.043636, 0, 1.042208, 0, 0.05456858, 17.15417, 1.005, 44.61611)
+
+[node name="arbol_redondo_8_19" parent="Borde" unique_id=1164877270 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.052522, 0, 0.3104437, 0, 1.09735, 0, -0.3104437, 0, -1.052522, 19.48237, 1.005, 45.0479)
+
+[node name="arbol_redondo_21_19" parent="Borde" unique_id=38014688 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7232654, 0, 0.8549734, 0, 1.119863, 0, -0.8549734, 0, 0.7232654, 49.62927, 1.005, 45.09315)
+
+[node name="arbol_redondo_27_19" parent="Borde" unique_id=585696279 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.682795, 0, -0.8287908, 0, 1.073826, 0, 0.8287908, 0, -0.682795, 63.43433, 1.005, 44.61098)
+
+[node name="arbol_redondo_0_20" parent="Borde" unique_id=1894079945 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.988626, 0, -0.1748403, 0, 1.003967, 0, 0.1748403, 0, -0.988626, 0.8827934, 1.005, 47.08401)
+
+[node name="arbol_redondo_4_20" parent="Borde" unique_id=1441987273 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.2537163, 0, -1.056559, 0, 1.086595, 0, 1.056559, 0, 0.2537163, 10.28222, 1.005, 47.14829)
+
+[node name="pino_5_20" parent="Borde" unique_id=1177207522 instance=ExtResource("8_pino")]
+transform = Transform3D(0.8296717, 0, -0.6294999, 0, 1.041453, 0, 0.6294999, 0, 0.8296717, 12.93914, 1.005, 47.19534)
+
+[node name="arbol_redondo_7_20" parent="Borde" unique_id=685358123 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7931346, 0, -0.663065, 0, 1.033788, 0, 0.663065, 0, 0.7931346, 17.22445, 1.005, 47.4338)
+
+[node name="arbol_redondo_8_20" parent="Borde" unique_id=244733811 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.813473, 0, 0.7389812, 0, 1.099014, 0, -0.7389812, 0, 0.813473, 19.28024, 1.005, 47.45726)
+
+[node name="arbol_redondo_14_20" parent="Borde" unique_id=383575160 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9321836, 0, 0.509804, 0, 1.062481, 0, -0.509804, 0, -0.9321836, 33.01695, 1.005, 47.43508)
+
+[node name="arbol_redondo_15_20" parent="Borde" unique_id=342512953 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9807878, 0, 0.4375082, 0, 1.073945, 0, -0.4375082, 0, -0.9807878, 35.56354, 1.005, 47.02534)
+
+[node name="arbol_redondo_21_20" parent="Borde" unique_id=1810779997 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7920334, 0, -0.7718314, 0, 1.105912, 0, 0.7718314, 0, 0.7920334, 49.27104, 1.005, 47.39107)
+
+[node name="pino_27_20" parent="Borde" unique_id=2053799967 instance=ExtResource("8_pino")]
+transform = Transform3D(1.088375, 0, -0.189602, 0, 1.104766, 0, 0.189602, 0, 1.088375, 63.233, 1.005, 46.87376)
+
+[node name="arbol_redondo_0_21" parent="Borde" unique_id=1748493986 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.5885927, 0, -0.8880489, 0, 1.065398, 0, 0.8880489, 0, -0.5885927, 1.458169, 1.005, 49.71583)
+
+[node name="arbol_redondo_4_21" parent="Borde" unique_id=1921227308 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7518618, 0, -0.7859935, 0, 1.087696, 0, 0.7859935, 0, 0.7518618, 10.25814, 1.005, 49.48231)
+
+[node name="arbol_redondo_5_21" parent="Borde" unique_id=903212693 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6019176, 0, -0.8230875, 0, 1.019695, 0, 0.8230875, 0, -0.6019176, 12.5951, 1.005, 49.18588)
+
+[node name="pino_7_21" parent="Borde" unique_id=1845832981 instance=ExtResource("8_pino")]
+transform = Transform3D(0.7274436, 0, 0.7742276, 0, 1.062357, 0, -0.7742276, 0, 0.7274436, 17.51752, 1.005, 49.50312)
+
+[node name="arbol_redondo_8_21" parent="Borde" unique_id=736442869 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.1415256, 0, -1.025816, 0, 1.035533, 0, 1.025816, 0, -0.1415256, 19.21675, 1.005, 49.22041)
+
+[node name="arbol_redondo_9_21" parent="Borde" unique_id=107887294 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.034763, 0, -0.2004783, 0, 1.054005, 0, 0.2004783, 0, -1.034763, 21.5989, 1.005, 49.58459)
+
+[node name="pino_10_21" parent="Borde" unique_id=119268372 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.9953534, 0, 0.2900269, 0, 1.036747, 0, -0.2900269, 0, -0.9953534, 24.01965, 1.005, 49.32705)
+
+[node name="pino_11_21" parent="Borde" unique_id=424093345 instance=ExtResource("8_pino")]
+transform = Transform3D(0.1814348, 0, -1.078038, 0, 1.0932, 0, 1.078038, 0, 0.1814348, 26.71511, 1.005, 49.24189)
+
+[node name="arbol_redondo_12_21" parent="Borde" unique_id=567905726 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.009624, 0, 0.3921363, 0, 1.083103, 0, -0.3921363, 0, 1.009624, 28.62111, 1.005, 49.70142)
+
+[node name="arbol_redondo_13_21" parent="Borde" unique_id=369130626 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.660797, 0, -0.7531267, 0, 1.001924, 0, 0.7531267, 0, -0.660797, 31.18854, 1.005, 49.49188)
+
+[node name="arbol_redondo_14_21" parent="Borde" unique_id=638281471 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.9769319, 0, -0.3210914, 0, 1.028346, 0, 0.3210914, 0, 0.9769319, 33.68339, 1.005, 49.55508)
+
+[node name="arbol_redondo_15_21" parent="Borde" unique_id=1012562076 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.065914, 0, -0.2640106, 0, 1.098123, 0, 0.2640106, 0, 1.065914, 35.49172, 1.005, 49.39425)
+
+[node name="arbol_redondo_16_21" parent="Borde" unique_id=312398893 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.002367, 0, -0.2779586, 0, 1.040192, 0, 0.2779586, 0, 1.002367, 38.14525, 1.005, 49.39062)
+
+[node name="pino_17_21" parent="Borde" unique_id=601508303 instance=ExtResource("8_pino")]
+transform = Transform3D(0.8012045, 0, 0.7586355, 0, 1.103384, 0, -0.7586355, 0, 0.8012045, 40.3838, 1.005, 49.28826)
+
+[node name="arbol_redondo_19_21" parent="Borde" unique_id=475682225 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.2987336, 0, 1.017213, 0, 1.060171, 0, -1.017213, 0, -0.2987336, 44.69131, 1.005, 49.6626)
+
+[node name="arbol_redondo_20_21" parent="Borde" unique_id=1879748619 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.008828, 0, -0.1012028, 0, 1.013891, 0, 0.1012028, 0, -1.008828, 47.48399, 1.005, 49.72684)
+
+[node name="pino_21_21" parent="Borde" unique_id=1684276126 instance=ExtResource("8_pino")]
+transform = Transform3D(0.6910504, 0, 0.7598769, 0, 1.027114, 0, -0.7598769, 0, 0.6910504, 49.56746, 1.005, 49.42391)
+
+[node name="pino_22_21" parent="Borde" unique_id=880712121 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9928044, 0, 0.49656, 0, 1.11006, 0, -0.49656, 0, 0.9928044, 52.03518, 1.005, 49.10488)
+
+[node name="arbol_redondo_23_21" parent="Borde" unique_id=1957027265 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.9436917, 0, 0.4924872, 0, 1.064471, 0, -0.4924872, 0, -0.9436917, 54.09799, 1.005, 49.21516)
+
+[node name="arbol_redondo_24_21" parent="Borde" unique_id=1789113674 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4393588, 0, 0.9235617, 0, 1.022743, 0, -0.9235617, 0, 0.4393588, 56.51393, 1.005, 49.12018)
+
+[node name="arbol_redondo_25_21" parent="Borde" unique_id=628820174 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.8156591, 0, -0.6092725, 0, 1.018093, 0, 0.6092725, 0, 0.8156591, 58.73534, 1.005, 49.74149)
+
+[node name="arbol_redondo_26_21" parent="Borde" unique_id=1562201177 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.7769655, 0, -0.6300499, 0, 1.000319, 0, 0.6300499, 0, 0.7769655, 60.64215, 1.005, 49.14482)
+
+[node name="arbol_redondo_27_21" parent="Borde" unique_id=969083929 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.4773121, 0, 1.001207, 0, 1.109163, 0, -1.001207, 0, -0.4773121, 63.23845, 1.005, 49.12237)
+
+[node name="arbol_redondo_0_22" parent="Borde" unique_id=31503170 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.728316, 0, -0.8233483, 0, 1.099248, 0, 0.8233483, 0, -0.728316, 1.488384, 1.005, 51.92106)
+
+[node name="arbol_redondo_1_22" parent="Borde" unique_id=1763749612 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.142499, 0, -1.061745, 0, 1.071265, 0, 1.061745, 0, 0.142499, 3.178478, 1.005, 51.7049)
+
+[node name="arbol_redondo_2_22" parent="Borde" unique_id=532947853 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.04126914, 0, 1.064939, 0, 1.065739, 0, -1.064939, 0, -0.04126914, 5.901278, 1.005, 51.9051)
+
+[node name="pino_3_22" parent="Borde" unique_id=836858230 instance=ExtResource("8_pino")]
+transform = Transform3D(0.6403451, 0, -0.8513638, 0, 1.065299, 0, 0.8513638, 0, 0.6403451, 8.12231, 1.005, 51.58294)
+
+[node name="pino_4_22" parent="Borde" unique_id=466254867 instance=ExtResource("8_pino")]
+transform = Transform3D(1.056245, 0, 0.3617534, 0, 1.116476, 0, -0.3617534, 0, 1.056245, 10.31387, 1.005, 52.01645)
+
+[node name="arbol_redondo_5_22" parent="Borde" unique_id=183394974 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.8329404, 0, -0.6764104, 0, 1.072996, 0, 0.6764104, 0, -0.8329404, 12.86432, 1.005, 51.7526)
+
+[node name="arbol_redondo_6_22" parent="Borde" unique_id=944448383 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.082038, 0, 0.2129841, 0, 1.102801, 0, -0.2129841, 0, 1.082038, 14.68, 1.005, 51.52475)
+
+[node name="arbol_redondo_7_22" parent="Borde" unique_id=1187177951 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.185824, 0, -1.053272, 0, 1.069539, 0, 1.053272, 0, -0.185824, 17.33626, 1.005, 51.43779)
+
+[node name="arbol_redondo_17_22" parent="Borde" unique_id=1472379615 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4591625, 0, -0.9813733, 0, 1.083478, 0, 0.9813733, 0, 0.4591625, 40.41693, 1.005, 51.9465)
+
+[node name="arbol_redondo_20_22" parent="Borde" unique_id=1223660734 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.6225715, 0, -0.8576618, 0, 1.059801, 0, 0.8576618, 0, -0.6225715, 47.15739, 1.005, 51.6652)
+
+[node name="pino_17_23" parent="Borde" unique_id=1990616522 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.5733452, 0, -0.8911113, 0, 1.059624, 0, 0.8911113, 0, -0.5733452, 40.31712, 1.005, 54.01817)
+
+[node name="arbol_redondo_20_23" parent="Borde" unique_id=854821162 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.3348195, 0, -1.001537, 0, 1.056021, 0, 1.001537, 0, -0.3348195, 47.29264, 1.005, 54.37005)
+
+[node name="pino_17_24" parent="Borde" unique_id=36011069 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.8793261, 0, -0.6452133, 0, 1.090649, 0, 0.6452133, 0, -0.8793261, 39.99418, 1.005, 56.52122)
+
+[node name="arbol_redondo_20_24" parent="Borde" unique_id=937143190 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.11803, 0, 0.02350342, 0, 1.118277, 0, -0.02350342, 0, 1.11803, 47.0869, 1.005, 56.36791)
+
+[node name="pino_17_25" parent="Borde" unique_id=1945802909 instance=ExtResource("8_pino")]
+transform = Transform3D(-1.050139, 0, 0.1874096, 0, 1.066731, 0, -0.1874096, 0, -1.050139, 40.5549, 1.005, 58.98015)
+
+[node name="arbol_redondo_19_25" parent="Borde" unique_id=1463091654 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(1.073791, 0, -0.1626698, 0, 1.086042, 0, 0.1626698, 0, 1.073791, 44.92872, 1.005, 58.50699)
+
+[node name="pino_20_25" parent="Borde" unique_id=1021525649 instance=ExtResource("8_pino")]
+transform = Transform3D(-0.9606614, 0, 0.5412504, 0, 1.102643, 0, -0.5412504, 0, -0.9606614, 46.86021, 1.005, 58.45907)
+
+[node name="arbol_redondo_17_26" parent="Borde" unique_id=447068193 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.9862961, 0, -0.5169691, 0, 1.11357, 0, 0.5169691, 0, 0.9862961, 40.05283, 1.005, 60.71229)
+
+[node name="arbol_redondo_19_26" parent="Borde" unique_id=1478746088 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-0.08830415, 0, -1.11588, 0, 1.119369, 0, 1.11588, 0, -0.08830415, 44.89718, 1.005, 61.2384)
+
+[node name="arbol_redondo_17_27" parent="Borde" unique_id=326097576 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(0.4900967, 0, 0.9969131, 0, 1.110869, 0, -0.9969131, 0, 0.4900967, 40.50197, 1.005, 63.55481)
+
+[node name="pino_18_27" parent="Borde" unique_id=114003880 instance=ExtResource("8_pino")]
+transform = Transform3D(0.9957912, 0, 0.3183709, 0, 1.045447, 0, -0.3183709, 0, 0.9957912, 42.49292, 1.005, 63.07254)
+
+[node name="arbol_redondo_19_27" parent="Borde" unique_id=723127273 instance=ExtResource("9_arbol_redondo")]
+transform = Transform3D(-1.088014, 0, 0.1361417, 0, 1.096498, 0, -0.1361417, 0, -1.088014, 44.78016, 1.005, 63.31572)
+
+[node name="Marcadores" type="Node3D" parent="." unique_id=2068850380]
+
+[node name="r_9_3" type="Node3D" parent="Marcadores" unique_id=408312095 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.85, 1.035, 8.05)
+script = ExtResource("99_mk")
+letra = "r"
+tipo = "telarana"
+
+[node name="Z_10_4" type="Node3D" parent="Marcadores" unique_id=1742094135 groups=["cofre", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.035, 10.35)
+script = ExtResource("99_mk")
+letra = "Z"
+
+[node name="W_2_5" type="Node3D" parent="Marcadores" unique_id=1511843212 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.035, 12.65)
+script = ExtResource("99_mk")
+letra = "W"
+
+[node name="W_3_5" type="Node3D" parent="Marcadores" unique_id=766104121 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.05, 1.035, 12.65)
+script = ExtResource("99_mk")
+letra = "W"
+
+[node name="j_19_8" type="Node3D" parent="Marcadores" unique_id=977787878 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 19.55)
+script = ExtResource("99_mk")
+letra = "j"
+tipo = "totem_fuego"
+
+[node name="T_18_9" type="Node3D" parent="Marcadores" unique_id=739985328 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.55, 1.035, 21.85)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="T_19_9" type="Node3D" parent="Marcadores" unique_id=1907968623 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 21.85)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="T_17_11" type="Node3D" parent="Marcadores" unique_id=444153692 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.035, 26.45)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="T_2_12" type="Node3D" parent="Marcadores" unique_id=1886914037 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.047751, 1.035, 28.75)
+script = ExtResource("99_mk")
+letra = "r"
+tipo = "brasero"
+
+[node name="T_19_13" type="Node3D" parent="Marcadores" unique_id=1446015993 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 31.05)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="s_10_14" type="Node3D" parent="Marcadores" unique_id=1915189732 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.035, 33.35)
+script = ExtResource("99_mk")
+letra = "s"
+tipo = "seta"
+
+[node name="X_21_15" type="Node3D" parent="Marcadores" unique_id=716505563 groups=["marcador", "puerta"]]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 49.45, 1.035, 35.65)
+script = ExtResource("99_mk")
+letra = "X"
+
+[node name="G_25_15" type="Node3D" parent="Marcadores" unique_id=1011079293 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.65, 1.035, 35.65)
+script = ExtResource("99_mk")
+letra = "G"
+
+[node name="Z_26_15" type="Node3D" parent="Marcadores" unique_id=334566677 groups=["cofre", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.035, 35.65)
+script = ExtResource("99_mk")
+letra = "Z"
+
+[node name="T_17_16" type="Node3D" parent="Marcadores" unique_id=1988837225 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.035, 37.95)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="T_19_17" type="Node3D" parent="Marcadores" unique_id=938577563 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.85, 1.035, 40.25)
+script = ExtResource("99_mk")
+letra = "T"
+tipo = "brasero"
+
+[node name="s_10_18" type="Node3D" parent="Marcadores" unique_id=1396455780 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.035, 42.55)
+script = ExtResource("99_mk")
+letra = "s"
+tipo = "seta"
+
+[node name="Q_13_19" type="Node3D" parent="Marcadores" unique_id=1254187248 groups=["marcador", "npc"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.05, 1.035, 44.85)
+script = ExtResource("99_mk")
+letra = "Q"
+
+[node name="j_17_19" type="Node3D" parent="Marcadores" unique_id=1450242037 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.035, 44.85)
+script = ExtResource("99_mk")
+letra = "j"
+tipo = "totem_fuego"
+
+[node name="S_2_21" type="Node3D" parent="Marcadores" unique_id=1393766805 groups=["inicio_jugador", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.035, 49.45)
+script = ExtResource("99_mk")
+letra = "S"
+
+[node name="q_6_21" type="Node3D" parent="Marcadores" unique_id=1878422127 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.95, 1.035, 49.45)
+script = ExtResource("99_mk")
+letra = "q"
+tipo = "raiz"
+
+[node name="j_18_25" type="Node3D" parent="Marcadores" unique_id=1056773612 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42.55, 1.035, 58.65)
+script = ExtResource("99_mk")
+letra = "j"
+tipo = "totem_fuego"
+
+[node name="tronco_puente_7_5" type="Node3D" parent="Marcadores" unique_id=242699889 groups=["marcador", "tronco_puente"]]
+transform = Transform3D(-1, 0, 1.224647e-16, 0, 1, 0, -1.224647e-16, 0, -1, 17.25, 1.035, 12.65)
+script = ExtResource("99_mk")
+grupo = "tronco_puente"
+
+[node name="tronco_estanque_16_14" type="Node3D" parent="Marcadores" unique_id=157238811 groups=["marcador", "tronco_estanque"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 37.95, 1.035, 33.35)
+script = ExtResource("99_mk")
+grupo = "tronco_estanque"
+
+[node name="loberno_9_14" type="Node3D" parent="Marcadores" unique_id=1518892075 groups=["loberno", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.85, 1.035, 33.35)
+script = ExtResource("99_mk")
+grupo = "loberno"
+
+[node name="loberno_9_18" type="Node3D" parent="Marcadores" unique_id=1230329574 groups=["loberno", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 21.85, 1.035, 42.55)
+script = ExtResource("99_mk")
+grupo = "loberno"

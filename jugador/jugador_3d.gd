@@ -61,6 +61,8 @@ var en_suelo: bool = true
 var bloqueado: bool = false
 var vy: float = 0.0
 var puntos_inicio: Vector3 = Vector3.ZERO
+## La pantalla de «Has muerto» (Fase 14.3). Si existe, ella decide cuándo reaparece el jugador; si no, reaparece solo a los TIEMPO_REAPARECER.
+var pantalla_muerte: PantallaMuerte = null
 
 var _mirada: Vector3 = Vector3(0, 0, 1)
 var _empuje: Vector3 = Vector3.ZERO
@@ -165,6 +167,9 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 		else:
 			Combate3D.equipar(g as Pj3D, p_mundo, j, l)
 	j._construir_hud()
+	j.pantalla_muerte = PantallaMuerte.new()
+	j.pantalla_muerte.name = "PantallaMuerte"
+	p_mundo.add_child(j.pantalla_muerte)
 	return j
 
 
@@ -296,7 +301,10 @@ func _morir() -> void:
 	Jugador3D.una_vez(pj, "death")
 	PlayLog.event("muerte", {"celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
 	murio.emit()
-	if lanz != null:
+	if pantalla_muerte != null and is_instance_valid(pantalla_muerte):
+		_t_muerte = 1.0e9                         # reaparece cuando la pantalla de muerte termina su secuencia
+		pantalla_muerte.mostrar(self)
+	elif lanz != null:
 		lanz.avisar("Has caído", Color(1, 0.5, 0.45))
 
 

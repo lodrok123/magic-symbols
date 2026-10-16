@@ -62,6 +62,31 @@ func _ready() -> void:
 	set_process(true)
 
 
+## 16/10 (Fase 14.6, laboratorio de fuego · F4 contrafuego): el fuego DE MAPA también lo enciende. Cada CADA_FUEGO s mira si algo que
+## arde (grupo `flammable3d`: seto, tronco, cuerda…) está a ≤ RADIO_FUEGO u, el mismo alcance con el que un seto contagia a otro
+## (Reactivo3D.CONTAGIO). Antes solo lo encendían un hechizo o `encender()`, y una línea de setos ardiendo pasaba de largo.
+const RADIO_FUEGO: float = Reactivo3D.CONTAGIO
+const CADA_FUEGO: float = 0.25
+var _t_fuego: float = 0.0
+
+
+func _vigilar_fuego(delta: float) -> void:
+	if encendido or explotado or not is_inside_tree():
+		return
+	_t_fuego += delta
+	if _t_fuego < CADA_FUEGO:
+		return
+	_t_fuego = 0.0
+	for n in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_ARDE):
+		if not is_instance_valid(n) or not (n is Node3D) or not bool(n.get("is_lit")):
+			continue
+		var d: Vector3 = (n as Node3D).global_position - global_position
+		d.y = 0.0
+		if d.length() <= RADIO_FUEGO:
+			encender()
+			return
+
+
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
@@ -109,6 +134,7 @@ func apagar() -> void:
 
 
 func _process(delta: float) -> void:
+	_vigilar_fuego(delta)
 	if not encendido or explotado:
 		return
 	_t -= delta

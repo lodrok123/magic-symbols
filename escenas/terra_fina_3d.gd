@@ -33,6 +33,8 @@ const COLOR_SUELO: Color = Color(0.36, 0.52, 0.26)
 const COLOR_CASA: Color = Color(0.46, 0.40, 0.30)
 const COLOR_MUSGO: Color = Color(0.34, 0.46, 0.22)
 const COLOR_PUERTA: Color = Color(0.12, 0.09, 0.07)
+## Las tareas del nivel son los objetivos de una misión del diario (Fase 14.3): 0 los gatopedros (con cuenta), 1 la salida.
+const MISION: String = "terra_fina"
 const TEXTO_INICIO: String = "TERRA FINA  ·  WASD mover · rueda del ratón: alejar la cámara · F1: dibuja el fuego"
 ## Avisos de la enseñanza: (fila máxima del mapa donde se dicen, texto). Se dicen una vez, de sur a norte.
 const AVISOS: Array = [
@@ -106,6 +108,13 @@ func iniciar(mundo: Variant) -> void:
 	for c in _celdas_c:
 		_poner_gatopedro(c, alto)
 	Estado.i().enemigo_muerto.connect(_on_muerte)
+	Misiones.i().definir({"id": MISION, "titulo": "Terra Fina", "tipo": "principal",
+		"texto": "Los gatopedros sueñan en las terrazas de Terra Fina y el túnel de la salida no se abre mientras sueñen. Despiértalos a todos.",
+		"origen": "Terra Fina",
+		"objetivos": [_texto_gatopedros(), "Cruzar el túnel de la salida"]})
+	Misiones.i().activar(MISION)
+	if _esperados == 0:
+		Misiones.i().objetivo_hecho(MISION, 0)
 	_montar_hud()
 	_decir(TEXTO_INICIO, 7.0)
 	set_process(true)
@@ -326,10 +335,17 @@ func _on_muerte(_pos: Vector2, id: String) -> void:
 	if id != Gatopedro3D.NOMBRE_OFICIAL:
 		return
 	_caidos += 1
+	Misiones.i().objetivo_texto(MISION, 0, _texto_gatopedros())
+	if _caidos >= _esperados:
+		Misiones.i().objetivo_hecho(MISION, 0)
 	if _caidos >= _esperados and not _salida_abierta:
 		_abrir_salida()
 	else:
 		_decir("Gatopedro caído (%d/%d)." % [_caidos, _esperados], 4.0)
+
+
+func _texto_gatopedros() -> String:
+	return "Derrotar a los gatopedros (%d/%d)" % [_caidos, _esperados]
 
 
 func _abrir_salida() -> void:
@@ -357,6 +373,7 @@ func _process(delta: float) -> void:
 			_decir(String(AVISOS[i][1]), 6.0)
 	if _salida_abierta and not _terminado and c == _salida_c:
 		_terminado = true
+		Misiones.i().objetivo_hecho(MISION, 1)
 		_decir("¡Terra Fina completada en %d s! Por el túnel se llega al bosque." % int(_t), 8.0)
 	if _t_aviso <= 0.0 and _aviso != null:
 		_aviso.text = ""

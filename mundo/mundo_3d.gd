@@ -6,7 +6,7 @@
 ##                  escribir `mundo.terreno.celda_de(p)` como pide el contrato.
 ##   · `agua`     → la AguaSim3D del nivel (null si no hay). No es una copia: es `Terreno3D.agua_sim`.
 ##   · `estados`  → EstadosSuelo3D: helada, electrificada, quemada, mojada. Dueño del dato.
-##   · `casilla_cambio(c, que)`  que ∈ «agua», «hielo», «rayo», «fuego», «mojado», «bloqueo», «altura».
+##   · `casilla_cambio(c, que)`  que ∈ «agua», «hielo», «rayo», «fuego», «mojado», «siega», «bloqueo», «altura».
 ##   · `impacto(punto, elemento, radio)`  para VFX y sonido: DÓNDE y de QUÉ, nunca quién.
 ## Qué NO hace: no dibuja nada, no conoce hechizos (M3 le añadirá `aplicar(AccionElemental)`) ni crea la maqueta (M5).
 ##

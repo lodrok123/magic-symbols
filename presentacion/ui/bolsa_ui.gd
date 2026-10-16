@@ -39,6 +39,22 @@ const T_ABRIR: float = 0.35
 const T_CERRAR: float = 0.25
 const SUBIDA: float = 90.0
 
+## --- La bolsa por dentro (Fase 14.3, 16/10): en vez de una rejilla fría, los huecos se reparten por ANCLAS dentro de la silueta de una
+## bolsa que se estrecha hacia el cuello: 2, 3, 4, 5 y 6 huecos por fila (20 en total = Estado.CAPACIDAD_MAX), de arriba abajo.
+## Los objetos se colocan en orden de categoría (componentes, pociones, clave) rellenando anclas de arriba abajo y de izquierda a derecha.
+## Las medidas son de DISEÑO (px); `silueta()` y `anclas()` son estáticas para que la prueba compruebe que cada hueco cabe dentro.
+const FILAS_BOLSA: Array = [2, 3, 4, 5, 6]
+const BOLSA_ANCHO: float = 410.0
+const BOLSA_ALTO: float = 410.0
+const SEP_X: float = 66.0                ## entre centros de huecos de la misma fila
+const SEP_Y: float = 68.0                ## entre filas
+const Y_PRIMERA_FILA: float = 62.0
+const TAM_BOLSA: float = 58.0            ## lado de cada hueco en la bolsa (algo menor que TAM: se necesita aire entre ellos)
+const COLOR_CORAZON: Color = Color("c0392b")
+const COLOR_SILUETA: Color = Color("c9c2b0")            ## placeholder gris cálido hasta que llegue el PNG `mochila_silueta`
+const COLOR_SILUETA_BORDE: Color = Color("8b8273")
+const COLOR_ELEGIDO: Color = Color("e0a526")
+
 var abierta: bool = false
 ## Heredado: la textura azul del panel antiguo. Ya no se usa (el panel es de cuero); se deja para no romper a quien la asigne.
 var panel_textura: Texture2D = null
@@ -47,7 +63,9 @@ var _marco: Control
 var _panel: PanelContainer
 var _solapa: Control
 var _cerrar: Control
-var _rejilla: GridContainer
+var _rejilla: Control                   ## la bolsa por dentro (clase Bolsa): los huecos cuelgan de aquí, colocados por anclas
+var _huecos: Array = []                 ## Hueco, uno por ancla (20), en el orden de `anclas()`
+var _sel: int = -1                      ## índice del hueco elegido (teclado o ratón); -1 = ninguno
 var _info: Label
 var _oro: Label
 var _tween: Tween = null
@@ -122,17 +140,101 @@ static func _nueve(t: Texture2D, margen_x: float, margen_y: float) -> StyleBoxTe
 	return s
 
 
+## Los centros de los 20 huecos, de arriba abajo y de izquierda a derecha, en coordenadas de la bolsa (0..BOLSA_ANCHO, 0..BOLSA_ALTO).
+static func anclas() -> PackedVector2Array:
+	var r := PackedVector2Array()
+	for f in range(FILAS_BOLSA.size()):
+		var n: int = int(FILAS_BOLSA[f])
+		for i in range(n):
+			r.append(Vector2(BOLSA_ANCHO * 0.5 + (float(i) - float(n - 1) * 0.5) * SEP_X, Y_PRIMERA_FILA + float(f) * SEP_Y))
+	return r
+
+
+## El contorno de la bolsa: cuello estrecho arriba que se ensancha hacia una panza redondeada. Medio ancho por altura (puntos de control,
+## interpolados y suavizados). Tiene que contener TODAS las anclas con su hueco: lo comprueba la prueba.
+static func silueta() -> PackedVector2Array:
+	var control: Array = [Vector2(0.0, 46.0), Vector2(30.0, 56.0), Vector2(62.0, 76.0), Vector2(130.0, 114.0), Vector2(200.0, 148.0),
+		Vector2(270.0, 178.0), Vector2(334.0, 206.0), Vector2(384.0, 204.0), Vector2(406.0, 160.0)]
+	var cx: float = BOLSA_ANCHO * 0.5
+	var pts := PackedVector2Array()
+	for k in range(control.size()):
+		pts.append(Vector2(cx + (control[k] as Vector2).y, (control[k] as Vector2).x))
+	for k in range(control.size() - 1, -1, -1):
+		pts.append(Vector2(cx - (control[k] as Vector2).y, (control[k] as Vector2).x))
+	# Una pasada de Chaikin redondea las esquinas sin comerse los costados (las anclas siguen dentro: prueba).
+	var suave := PackedVector2Array()
+	for i in range(pts.size()):
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[(i + 1) % pts.size()]
+		suave.append(a.lerp(b, 0.2))
+		suave.append(a.lerp(b, 0.8))
+	return suave
+
+
+## Las pilas de la mochila en el orden de la bolsa: por categoría (componentes, pociones, clave) y dentro de cada una por nombre.
+## Una pila nunca pasa de PILA_MAX: 12 pociones son [9, 3]. Devuelve [[id, cantidad], ...].
+static func ordenar(items: Dictionary) -> Array:
+	var ids: Array = items.keys()
+	ids.sort_custom(func(a: Variant, b: Variant) -> bool:
+		var ca: int = Objetos.CATEGORIAS.find(Objetos.categoria(String(a)))
+		var cb: int = Objetos.CATEGORIAS.find(Objetos.categoria(String(b)))
+		if ca != cb:
+			return ca < cb
+		var na: String = Objetos.nombre(String(a))
+		var nb: String = Objetos.nombre(String(b))
+		return na < nb if na != nb else String(a) < String(b))
+	var pilas: Array = []
+	for id in ids:
+		var n: int = int(items[id])
+		while n > 0:
+			pilas.append([String(id), mini(n, Estado.PILA_MAX)])
+			n -= Estado.PILA_MAX
+	return pilas
+
+
+## Navegación con el teclado: de entre los huecos `validos` (bool por ancla), el más cercano a `desde` en la dirección `dir`
+## (un cono de ±60°; la distancia cuenta más que el desvío). -1 si no hay ninguno en esa dirección.
+static func vecino(desde: int, dir: Vector2, validos: Array) -> int:
+	var a: PackedVector2Array = anclas()
+	if desde < 0 or desde >= a.size() or dir == Vector2.ZERO:
+		return -1
+	var d: Vector2 = dir.normalized()
+	var mejor: int = -1
+	var mejor_coste: float = INF
+	for j in range(a.size()):
+		if j == desde or j >= validos.size() or not bool(validos[j]):
+			continue
+		var v: Vector2 = a[j] - a[desde]
+		var largo: float = v.length()
+		if largo < 0.001 or v.normalized().dot(d) < 0.5:
+			continue
+		var perpendicular: float = absf(v.cross(d))
+		var coste: float = largo + 1.5 * perpendicular
+		if coste < mejor_coste:
+			mejor_coste = coste
+			mejor = j
+	return mejor
+
+
 class Hueco extends Control:
 	var id: String = ""
 	var cantidad: int = 0
 	var bloqueado: bool = false
+	var cura: bool = false
+	var elegido: bool = false
+	var indice: int = -1
 	var pulsado: Callable
+	var al_pasar: Callable
 	var _encima: bool = false
 	var tam: float = BolsaUI.TAM
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(tam, tam)
-		mouse_entered.connect(func(): _encima = true; queue_redraw())
+		mouse_entered.connect(func():
+			_encima = true
+			queue_redraw()
+			if al_pasar.is_valid() and id != "":
+				al_pasar.call(indice))
 		mouse_exited.connect(func(): _encima = false; queue_redraw())
 
 	func _draw() -> void:
@@ -162,7 +264,11 @@ class Hueco extends Control:
 			draw_texture_rect(icono, Rect2(size * 0.5 + Vector2(-lado * 0.5, -lado * 0.5 - 3.0), Vector2(lado, lado)), false)
 		else:
 			Objetos.dibujar(self, id, size * 0.5 + Vector2(0, -3), size.x * 0.26)
-		if cantidad > 1:
+		if cura:
+			BolsaUI.corazon(self, Vector2(size.x * 0.2, size.y * 0.2), size.x * 0.11)
+		if elegido:
+			draw_polyline(BolsaUI.camino(r.grow(-0.5), clampf(size.x * 0.14, 5.0, 10.0)), BolsaUI.COLOR_ELEGIDO, 3.0, true)
+		if cantidad >= 1:
 			var f: Font = ThemeDB.fallback_font
 			var cuerpo: int = maxi(13, int(size.x * 0.3))
 			var pos := Vector2(0.0, size.y - 6.0)
@@ -174,6 +280,32 @@ class Hueco extends Control:
 		var m := event as InputEventMouseButton
 		if m != null and m.pressed and m.button_index == MOUSE_BUTTON_LEFT and id != "" and pulsado.is_valid():
 			pulsado.call(id)
+
+
+## Un corazón rojo de radio `r` centrado en `p` (dos círculos y un triángulo), para los objetos que curan.
+static func corazon(c: CanvasItem, p: Vector2, r: float) -> void:
+	c.draw_circle(p + Vector2(-r * 0.5, -r * 0.25), r * 0.58, COLOR_CORAZON)
+	c.draw_circle(p + Vector2(r * 0.5, -r * 0.25), r * 0.58, COLOR_CORAZON)
+	c.draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 1.04, -r * 0.05), p + Vector2(r * 1.04, -r * 0.05), p + Vector2(0.0, r * 1.15)]), COLOR_CORAZON)
+	c.draw_circle(p + Vector2(-r * 0.6, -r * 0.5), r * 0.16, Color(1, 1, 1, 0.55))
+
+
+## La bolsa de fondo: su silueta (el PNG `mochila_silueta` del Pipeline si existe; si no, un gris cálido con borde y la cuerda del cuello).
+class Bolsa extends Control:
+	func _draw() -> void:
+		var arte: Texture2D = BolsaUI.tex("mochila_silueta")
+		if arte != null:
+			draw_texture_rect(arte, Rect2(Vector2.ZERO, size), false)
+			return
+		var s: PackedVector2Array = BolsaUI.silueta()
+		draw_colored_polygon(s, BolsaUI.COLOR_SILUETA)
+		var borde := PackedVector2Array(s)
+		borde.append(s[0])
+		draw_polyline(borde, BolsaUI.COLOR_SILUETA_BORDE, 3.0, true)
+		# La cuerda del cuello.
+		var cx: float = BolsaUI.BOLSA_ANCHO * 0.5
+		draw_line(Vector2(cx - 58.0, 34.0), Vector2(cx + 58.0, 34.0), BolsaUI.COLOR_SILUETA_BORDE, 4.0, true)
+		draw_circle(Vector2(cx, 38.0), 5.0, BolsaUI.COLOR_SILUETA_BORDE)
 
 
 ## El marco de cuero con el interior de pergamino y la costura. Se dibuja entero aquí (el estilo del contenedor va vacío:
@@ -316,17 +448,16 @@ func _ready() -> void:
 	_solapa.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	caja.add_child(_solapa)
 
-	var filas: int = int(ceil(float(Estado.CAPACIDAD_MAX) / float(COLUMNAS)))
-	_rejilla = GridContainer.new()
-	_rejilla.columns = COLUMNAS
-	_rejilla.add_theme_constant_override("h_separation", int(SEP))
-	_rejilla.add_theme_constant_override("v_separation", int(SEP))
-	# Alto fijo (los 20 huecos, aunque aún no estén creados): así el marco mide lo mismo al abrir y no salta.
-	_rejilla.custom_minimum_size = Vector2(COLUMNAS * TAM + (COLUMNAS - 1) * SEP, filas * TAM + (filas - 1) * SEP)
+	# La bolsa: un solo control con la silueta, y los huecos colgando de él en sus anclas. Medida fija: el marco mide lo mismo al abrir.
+	_rejilla = Bolsa.new()
+	_rejilla.custom_minimum_size = Vector2(BOLSA_ANCHO, BOLSA_ALTO)
+	_rejilla.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	caja.add_child(_rejilla)
 
-	_info = _etiqueta(14)
-	_info.custom_minimum_size = Vector2(COLUMNAS * (TAM + SEP), 40.0)
+	# La banda bajo la bolsa: el nombre del objeto elegido y, debajo, qué hace.
+	_info = _etiqueta(15)
+	_info.custom_minimum_size = Vector2(BOLSA_ANCHO, 44.0)
+	_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	caja.add_child(_info)
 
@@ -337,7 +468,7 @@ func _ready() -> void:
 	caja.add_child(fila)
 	var pista := _etiqueta(13)
 	pista.add_theme_color_override("font_color", Color(TINTA, 0.8))
-	pista.text = "[I / Esc] cerrar     clic en una poción: beber"
+	pista.text = "[I / Esc] cerrar   [↑↓←→] elegir   [Enter] beber"
 	pista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pista.size_flags_vertical = Control.SIZE_SHRINK_END
 	fila.add_child(pista)
@@ -436,6 +567,23 @@ func _input(event: InputEvent) -> void:
 	elif k.keycode == KEY_ESCAPE and abierta:
 		get_viewport().set_input_as_handled()
 		alternar()
+	elif abierta:
+		match k.keycode:
+			KEY_UP:
+				get_viewport().set_input_as_handled()
+				mover(Vector2.UP)
+			KEY_DOWN:
+				get_viewport().set_input_as_handled()
+				mover(Vector2.DOWN)
+			KEY_LEFT:
+				get_viewport().set_input_as_handled()
+				mover(Vector2.LEFT)
+			KEY_RIGHT:
+				get_viewport().set_input_as_handled()
+				mover(Vector2.RIGHT)
+			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
+				get_viewport().set_input_as_handled()
+				usar_elegido()
 
 
 func _refrescar() -> void:
@@ -443,22 +591,95 @@ func _refrescar() -> void:
 	_oro.text = str(e.oro)
 	if not abierta:
 		return
-	for h in _rejilla.get_children():
-		h.queue_free()
-	# Una entrada por pila (si hay más de 9, ocupa varios huecos)
+	for h in _huecos:
+		if is_instance_valid(h):
+			(h as Node).queue_free()
+	_huecos.clear()
+	# Una entrada por pila (si hay más de 9, ocupa varios huecos), en orden de categoría; cada una en su ancla.
 	var pilas: Array = _pilas(e)
-	for i in range(Estado.CAPACIDAD_MAX):
+	var anc: PackedVector2Array = anclas()
+	for i in range(anc.size()):
 		var h := Hueco.new()
+		h.tam = TAM_BOLSA
+		h.indice = i
 		h.bloqueado = i >= e.capacidad
 		if i < pilas.size() and not h.bloqueado:
 			h.id = String(pilas[i][0])
 			h.cantidad = int(pilas[i][1])
+			h.cura = Objetos.cura(h.id)
 			h.tooltip_text = "%s\n%s" % [Objetos.nombre(h.id), String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
 			h.pulsado = _usar
+			h.al_pasar = _elegir
 		elif h.bloqueado:
 			h.tooltip_text = "Hueco bloqueado: el alquimista puede ampliar la mochila"
+		h.size = Vector2(TAM_BOLSA, TAM_BOLSA)
+		h.position = anc[i] - Vector2(TAM_BOLSA, TAM_BOLSA) * 0.5
 		_rejilla.add_child(h)
-	_info.text = "%d/%d huecos. Pasa el ratón sobre un objeto para ver qué es." % [e.huecos_usados(), e.capacidad]
+		_huecos.append(h)
+	# La selección sigue en su hueco si aún tiene objeto; si no, pasa al primero con objeto.
+	if _sel < 0 or _sel >= _huecos.size() or (_huecos[_sel] as Hueco).id == "":
+		_sel = _primero_ocupado()
+	_elegir(_sel)
+
+
+## ¿Qué hueco está elegido? (-1 = ninguno). Para las pruebas y para quien quiera leerlo.
+func elegido() -> int:
+	return _sel
+
+
+func hueco(i: int) -> Hueco:
+	return _huecos[i] as Hueco if i >= 0 and i < _huecos.size() else null
+
+
+func _primero_ocupado() -> int:
+	for i in range(_huecos.size()):
+		if (_huecos[i] as Hueco).id != "":
+			return i
+	return -1
+
+
+## Elige un hueco (ratón o teclado): pinta su aro y pone su nombre en la banda de debajo de la bolsa.
+func _elegir(i: int) -> void:
+	_sel = i
+	for k in range(_huecos.size()):
+		var h: Hueco = _huecos[k]
+		var ahora: bool = k == _sel and h.id != ""
+		if h.elegido != ahora:
+			h.elegido = ahora
+			h.queue_redraw()
+	_pintar_nombre()
+
+
+## La banda: nombre del objeto elegido y su descripción; sin elegido, cuántos huecos se usan.
+func _pintar_nombre() -> void:
+	var e: Estado = Estado.i()
+	var h: Hueco = hueco(_sel)
+	if h != null and h.id != "":
+		_info.text = "%s\n%s" % [Objetos.nombre(h.id), String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
+	else:
+		_info.text = "%d/%d huecos" % [e.huecos_usados(), e.capacidad]
+
+
+## Mueve la elección con las flechas: al hueco con objeto más cercano en esa dirección. Sin elegido, empieza por el primero.
+func mover(dir: Vector2) -> void:
+	if _huecos.is_empty():
+		return
+	if _sel < 0 or hueco(_sel).id == "":
+		_elegir(_primero_ocupado())
+		return
+	var validos: Array = []
+	for h in _huecos:
+		validos.append((h as Hueco).id != "")
+	var j: int = vecino(_sel, dir, validos)
+	if j >= 0:
+		_elegir(j)
+
+
+## Usa el objeto elegido (Enter / Espacio / E): hoy solo las pociones se usan.
+func usar_elegido() -> void:
+	var h: Hueco = hueco(_sel)
+	if h != null and h.id != "":
+		_usar(h.id)
 
 
 func _usar(id: String) -> void:
@@ -472,10 +693,4 @@ func _usar(id: String) -> void:
 
 
 func _pilas(e: Estado) -> Array:
-	var pilas: Array = []
-	for id in e.items:
-		var n: int = int(e.items[id])
-		while n > 0:
-			pilas.append([id, mini(n, Estado.PILA_MAX)])
-			n -= Estado.PILA_MAX
-	return pilas
+	return ordenar(e.items)

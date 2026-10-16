@@ -14,10 +14,13 @@ const HELADA: String = "helada"
 const ELECTRIFICADA: String = "electrificada"
 const QUEMADA: String = "quemada"
 const MOJADA: String = "mojada"
-const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada"]
+## 16/10 (14.2 · P3): la hierba de la casilla está SEGADA (cortada o consumida por el fuego): queda rastrojo y no vuelve a crecer en la sesión.
+## La pone quien la siega (hoy: el fuego al acabar la ceniza de una mata); la maqueta (`Rastrojo3D`) solo DIBUJA el rastrojo al oír `cambio`.
+const SEGADA: String = "segada"
+const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada", "segada"]
 
 ## Cómo se llama cada estado en `Mundo3D.casilla_cambio(c, que)`, que habla de lo que pasó, no de cómo queda la casilla.
-const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado"}
+const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado", "segada": "siega"}
 
 ## Se emite SOLO cuando el estado cambia de verdad (poner lo que ya hay no avisa a nadie).
 signal cambio(c: Vector2i, estado: String, si: bool)

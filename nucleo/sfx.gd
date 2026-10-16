@@ -90,6 +90,18 @@ const CATALOGO: Dictionary = {
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
+
+	# --- Piezas de puzle (16/10, Pipeline; audio/gen_sfx_puzles.py). Las llama PiezaPuzle3D al cambiar de estado; el Juego puede llamarlas
+	# también con Sfx.play(nodo, "nombre"). «llenado» se toca con `Sfx.llenado(nodo, nivel)` para que el tono suba con el agua.
+	"boton_clic":        {"f": ["boton_clic.wav"],        "db": -8.0,  "tono": 0.05},
+	"placa_hunde":       {"f": ["placa_hunde.wav"],       "db": -7.0,  "tono": 0.06},
+	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
+	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"],     "db": -9.0,  "tono": 0.08},
+	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
+	"explosion":         {"f": ["explosion.wav"],         "db": -3.0,  "tono": 0.06},
+	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
+	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
+	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
 }
 
 ## Etiqueta del elemento -> sonido. Se mira en ESTE orden, y el orden
@@ -123,7 +135,8 @@ static var _ultima: Dictionary = {}
 ## partículas y las luces: muchos de los sonidos que más importan ocurren
 ## justo cuando el objeto DESAPARECE —una roca que se desmorona, una
 ## flecha que se clava— y un hijo se va con su padre.
-static func play(origen: Node, nombre: String) -> void:
+## `tono` > 0 fija el pitch_scale (16/10: el llenado sube con el nivel); 0 = el aleatorio de siempre. Quien llama sin él no nota nada.
+static func play(origen: Node, nombre: String, tono: float = 0.0) -> void:
 	if not CATALOGO.has(nombre) or origen == null or not origen.is_inside_tree():
 		return
 
@@ -144,6 +157,8 @@ static func play(origen: Node, nombre: String) -> void:
 	p.set("volume_db", float(cfg["db"]))
 	var v: float = float(cfg["tono"])
 	p.set("pitch_scale", 1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
+	if tono > 0.0:
+		p.set("pitch_scale", tono)
 
 	# El grimorio detiene el árbol entero (get_tree().paused). Si el
 	# reproductor se pausara con él, abrir el libro cortaría el sonido a
@@ -158,6 +173,12 @@ static func play(origen: Node, nombre: String) -> void:
 	p.set("global_position", origen.get("global_position"))
 	p.connect("finished", p.queue_free)
 	p.call("play")
+
+
+## El llenado de un pozo o una cuenca: `nivel` 0..1 (profundidad / profundidad máxima) sube el tono de 0,7 a 1,6, como cuando se llena
+## un vaso. El antirráfaga (VEDA_MS) lo deja sonar a lo sumo cada 70 ms: llamarlo cada 0,3 s con el nivel actual va bien.
+static func llenado(origen: Node, nivel: float) -> void:
+	play(origen, "llenado", lerpf(0.7, 1.6, clampf(nivel, 0.0, 1.0)))
 
 
 ## El sonido que le toca a un elemento. Lo decide la ETIQUETA y no el

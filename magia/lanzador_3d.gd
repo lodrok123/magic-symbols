@@ -58,11 +58,22 @@ const RADIO_GOLPE: float = 0.42             ## casillas: radio de cada manifesta
 const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a su escala
 
 ## --- Tierra e hielo con duración (§0b) ---
-const ESCALA_CUPULA: float = 0.2            ## la cúpula de la barrera se dibuja al 20 % del radio del aro (pedido de Pablo 22:03)
+## --- Barrera-burbuja (Fase 12, 16/10; referencia: la burbuja de agua de Sidon en TotK, vídeo de Pablo 15/10) ---
+## Una esfera que envuelve al jugador, le sigue, para el PRIMER impacto que la toque y revienta. Sustituye a la cúpula con escudo de vida
+## (VIDA_ESCUDO y la resistencia ×1,5 por barrera repetida se retiran: repetir la barrera es una burbuja nueva, no una más dura).
+const RADIO_BURBUJA: float = 1.3             ## u de mundo: radio de la esfera que para golpes, flechas y elementos
+const ALTO_BURBUJA: float = 0.9              ## u: el centro de la esfera sobre los pies del jugador
+## Qué le pasa al mundo cuando la burbuja `barrera` revienta con el elemento `recibido`: [nombre de la reacción, elemento de la
+## AccionElemental que se aplica en el punto]. Lo que no está aquí no reacciona (la salpicadura del elemento de la burbuja sí sale
+## siempre) y la TIERRA absorbe cualquier cosa sin más.
+const REACCIONES_BURBUJA: Dictionary = {
+	"agua": {"fuego": ["vapor", "fuego"]},       # el fuego evapora la burbuja: vapor (y se quita el agua que hubiera en el punto)
+	"fuego": {"agua": ["vapor", "fuego"]},       # y al revés: el agua apaga la burbuja de fuego
+	"hielo": {"fuego": ["charco", "agua"]},      # el hielo se funde: un charco donde estalla
+}
 ## --- Barrera que protege (6.3) ---
 const MULT_VIDA_BARRERA: float = 2.0        ## la barrera quieta dura el doble que antes...
 const VIDA_MIN_BARRERA: float = 6.0         ## ...y como poco esto (s)
-const VIDA_ESCUDO: float = 60.0             ## daño que absorbe antes de romperse (golpe goblin 20, flecha 12)
 const T_CRECE: float = 0.9                  ## s que tarda el anillo de barrera + pulso en llegar a su radio (6.4)
 const MAX_TIERRA_APILADA: int = 1           ## bloques de tierra uno encima de otro
 const MAX_NIVELES_TIERRA: int = 8           ## tope de bloques vivos a la vez (FIFO)
@@ -119,6 +130,7 @@ var altura: int = 0                     ## nivel del hechizo que pregunta a una 
 
 var capa_ui: CanvasLayer = null
 var mochila: BolsaUI = null            ## la mochila (I): en 3D la monta el lanzador, como el libro
+var diario: DiarioMisiones = null        ## el diario de misiones (J)
 var libro: Control = null
 var _libro_lento: bool = false
 var _barrera_activa: Campo = null
@@ -154,6 +166,36 @@ signal lanzado(elemento: String, forma: String, manifestaciones: int)
 signal modo_cambiado(activo: bool)
 ## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
 signal agua_cambio(c: Vector2i, es_agua: bool)
+
+## --- CONJURO (Fase 14.5 · A3, 16/10, Juego): del libro a la mano, y dispara ---
+## Al SOLTAR el botón ya no sale el hechizo al instante: primero se «conjura» en tres tiempos (total ~0,45 s de anticipación):
+##   1. RUNA   (~0,10 s)  la runa brilla en la página (el HUD de páginas la destella).
+##   2. VOLUTA (~0,25 s)  una voluta del elemento (HiloLuz3D) viaja del libro a la mano del jugador.
+##   3. FORMA  (~0,10 s)  en la mano se forma la bola del elemento, que crece hasta el disparo.
+##   4. DISPARO           `_disparar`: sale el hechizo, con lo mismo que salía antes (receta, tinta y recarga ya cobradas al soltar).
+## Por qué el coste y la recarga se cobran AL SOLTAR y no al disparar: si no, se podría lanzar dos veces en la ventana de 0,45 s.
+## PARA QUE PABLO LO AFINE: todo está aquí, en `RETARDO_CONJURO` (segundos [runa, voluta, forma] por elemento), `conjuro_escala` (un
+## multiplicador de todos: 0 = sin anticipación, 1 = lo previsto, 2 = el doble) y `conjuro_activo` (apagarlo vuelve al disparo
+## instantáneo de antes). PlayLog anota cada conjuro (`conjuro`) con el retardo medido, para ver si molesta.
+## Qué espera el Pipeline (VFX/pose): la señal `conjuro_fase(fase, elemento, posicion)` sale al empezar cada tiempo ("runa", "voluta",
+## "forma", "disparo"); `posicion` es la de la mano (la del libro en "voluta" para el arranque). Lo que se ve hoy es un sustituto
+## (hilo de luz y una esfera brillante) que ellos cambiarán por el VFX de verdad sin tocar los tiempos.
+const RETARDO_CONJURO: Dictionary = {
+	"defecto": [0.10, 0.25, 0.10],
+	"fuego": [0.10, 0.25, 0.10],
+	"agua": [0.10, 0.28, 0.12],
+	"viento": [0.08, 0.20, 0.08],
+	"rayo": [0.06, 0.14, 0.06],      ## el rayo es instantáneo por naturaleza: la anticipación más corta
+	"hielo": [0.10, 0.26, 0.12],
+	"tierra": [0.12, 0.30, 0.14],    ## la tierra es lenta y pesada
+	"tiempo": [0.12, 0.30, 0.12],
+}
+var conjuro_activo: bool = true
+var conjuro_escala: float = 1.0
+var conjurando: bool = false             ## hay un conjuro en marcha (entre soltar y disparar)
+var _t_conjuro: float = 0.0              ## segundos DE JUEGO (con time_scale y pausa) desde que se soltó: es lo que se anota como retardo
+var _page_hud: Control = null
+signal conjuro_fase(fase: String, elemento: String, posicion: Vector3)
 
 
 ## =====================================================================================================
@@ -466,6 +508,7 @@ func construir_interfaz() -> void:
 
 	var paginas := Control.new()
 	paginas.set_script(load("res://presentacion/ui/page_hud.gd"))
+	_page_hud = paginas
 	capa_ui.add_child(paginas)
 	paginas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
@@ -479,6 +522,11 @@ func construir_interfaz() -> void:
 	# La mochila (I) también en 3D: antes solo la montaba nivel_base (2D). Pausa el árbol; el lanzador es ALWAYS.
 	mochila = BolsaUI.new()
 	capa_ui.add_child(mochila)
+
+	# El diario de misiones (J) y su línea en el HUD (Fase 14.3). Pausa como la mochila; solo lee de `Misiones`.
+	diario = DiarioMisiones.new()
+	capa_ui.add_child(diario)
+	capa_ui.add_child(MisionHud.new())
 
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -693,14 +741,15 @@ func cast_page(indice: int) -> void:
 ## el origen y la dirección dados. Existe para los escenarios de `herramientas/` (que no tienen ratón ni cámara que apunte) y para
 ## cualquier mando futuro que no apunte con el puntero. Devuelve false si `cast_page` se negó (recarga, sin glifos, altura de más…).
 ## Por qué aquí y no en la prueba: salir del modo toca estado privado (`_preparado`, el tiempo ralentizado) que no debe manejar de fuera.
-func lanzar_pagina_ya(indice: int, origen: Vector3, dir: Vector3) -> bool:
+## `con_conjuro` (false por defecto: los escenarios existentes esperan el hechizo al instante) pasa por la secuencia del conjuro.
+func lanzar_pagina_ya(indice: int, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> bool:
 	cast_page(indice)
 	if not modo_lanzar:
 		return false
 	var datos: Dictionary = _preparado
 	_salir_modo()
 	_preparado = {}
-	lanzar_ahora(datos, origen, dir)
+	lanzar_ahora(datos, origen, dir, con_conjuro)
 	return true
 
 
@@ -841,6 +890,8 @@ func _process(delta: float) -> void:
 		procesar_cambios_hielo()             # 11.13: el hielo que se suelta solo al acabar su tiempo
 		vigilar_presos()                     # 11.15: grietas en la costra cuando al hielo le queda poco
 	super._process(delta)
+	if conjurando:
+		_t_conjuro += delta
 	_avanzar_caducidades(delta)
 	if modo_lanzar:
 		if Time.get_ticks_msec() - _ms_modo > int(TIEMPO_MAX_MODO * 1000.0):
@@ -860,11 +911,12 @@ func _soltar() -> void:
 	_preparado = {}
 	if datos.is_empty():
 		return
-	lanzar_ahora(datos, origen, dir)
+	lanzar_ahora(datos, origen, dir, true)
 
 
-## Lo que pasa al soltar: animación, hechizo, recarga y registro. Público para las pruebas.
-func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
+## Lo que pasa al soltar: animación, cobro, recarga y (tras el conjuro, si lo hay) el disparo. Público para las pruebas.
+## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
+func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> void:
 	var receta: Receta3D = datos["receta"]
 	var rune: RuneData = datos["rune"]
 	var indice: int = int(datos["indice"])
@@ -877,15 +929,149 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	if tinta != null:
 		tinta.gastar(forma)
 
-	var n: int = _materializar(receta, rune, origen, dir)
-
+	# Recarga y coste al SOLTAR: durante el conjuro la página ya no se puede volver a lanzar.
 	cooldown_total[indice] = receta.cooldown
 	cooldown_left[indice] = receta.cooldown
-	PlayLog.event("cast", {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
+
+	var tiempos: Array = tiempos_conjuro(elemento)
+	if con_conjuro and conjuro_activo and is_inside_tree() and (float(tiempos[0]) + float(tiempos[1]) + float(tiempos[2])) > 0.0:
+		_conjurar(datos, origen, dir, tiempos)
+	else:
+		_disparar(datos, origen, dir, 0.0)
+
+
+## Los tres tiempos [runa, voluta, forma] de un elemento, ya con `conjuro_escala`.
+func tiempos_conjuro(elemento: String) -> Array:
+	var base: Array = RETARDO_CONJURO.get(elemento, RETARDO_CONJURO["defecto"])
+	var k: float = maxf(conjuro_escala, 0.0)
+	return [float(base[0]) * k, float(base[1]) * k, float(base[2]) * k]
+
+
+## Segundos que pasan entre soltar y que salga el hechizo (la suma de los tres tiempos).
+func retardo_total(elemento: String) -> float:
+	var t: Array = tiempos_conjuro(elemento)
+	return float(t[0]) + float(t[1]) + float(t[2])
+
+
+## La secuencia. Usa temporizadores que respetan la pausa y el `time_scale` (como todo lo del mundo).
+func _conjurar(datos: Dictionary, origen: Vector3, dir: Vector3, tiempos: Array) -> void:
+	var rune: RuneData = datos["rune"]
+	var elemento: String = Objetos.elemento_de(rune)
+	var indice: int = int(datos["indice"])
+	var color: Color = rune.color
+	_t_conjuro = 0.0
+	conjurando = true
+	# 1. La runa brilla en la página.
+	conjuro_fase.emit("runa", elemento, _pos_mano())
+	if _page_hud != null and _page_hud.has_method("destello"):
+		_page_hud.call("destello", indice, float(tiempos[0]) + 0.15)
+	await get_tree().create_timer(float(tiempos[0]), false).timeout
+	# 2. La voluta del libro a la mano.
+	var libro_p: Vector3 = _pos_libro()
+	conjuro_fase.emit("voluta", elemento, libro_p)
+	_voluta(libro_p, color, float(tiempos[1]))
+	await get_tree().create_timer(float(tiempos[1]), false).timeout
+	# 3. La forma se crece en la mano.
+	var mano: Vector3 = _pos_mano()
+	conjuro_fase.emit("forma", elemento, mano)
+	var esfera: MeshInstance3D = _forma_en_mano(mano, color, float(tiempos[2]))
+	await get_tree().create_timer(float(tiempos[2]), false).timeout
+	if is_instance_valid(esfera):
+		esfera.queue_free()
+	conjurando = false
+	# Si el jugador murió mientras conjuraba, no sale nada (la tinta ya se gastó: se anota).
+	if jugador != null and bool(jugador.get("muerto")):
+		PlayLog.event("conjuro", {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "interrumpido": true})
+		return
+	_disparar(datos, origen, dir, _t_conjuro)
+
+
+## El disparo: lo que antes hacía `lanzar_ahora` tras cobrar. `retardo` = lo que tardó el conjuro (0 si no lo hubo).
+func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float) -> void:
+	var receta: Receta3D = datos["receta"]
+	var rune: RuneData = datos["rune"]
+	var indice: int = int(datos["indice"])
+	var elemento: String = Objetos.elemento_de(rune)
+	var forma: String = receta.forma()
+	conjuro_fase.emit("disparo", elemento, _pos_mano())
+	var n: int = _materializar(receta, rune, origen, dir)
+	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
-		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n})
+		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}
+	if retardo > 0.0:
+		ev["retardo"] = snappedf(retardo, 0.01)
+	PlayLog.event("cast", ev)
+	if retardo > 0.0:
+		var t: Array = tiempos_conjuro(elemento)
+		PlayLog.event("conjuro", {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "runa": t[0], "voluta": t[1], "forma": t[2],
+			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	lanzado.emit(elemento, forma, n)
+
+
+## La mano que lanza (la derecha: la de las motas del lanzamiento). Sin esqueleto (laboratorios) se aproxima.
+func _pos_mano() -> Vector3:
+	var pj: Node3D = jugador.get("pj") if jugador != null else null
+	if pj != null:
+		var chispas: Variant = pj.get("_chispas")
+		if chispas is Node3D and is_instance_valid(chispas) and (chispas as Node3D).is_inside_tree():
+			return (chispas as Node3D).global_position
+		return pj.global_transform * Vector3(0.28, 0.85, 0.30)
+	if jugador != null:
+		return jugador.global_position + Vector3(0.0, 0.9, 0.0)
+	return Vector3.ZERO
+
+
+## El libro del jugador: el del cinto si se ve, o un punto en la cadera.
+func _pos_libro() -> Vector3:
+	var pj: Node3D = jugador.get("pj") if jugador != null else null
+	if pj != null:
+		if pj.has_method("_libro_cinto"):
+			var cinto: Variant = pj.call("_libro_cinto")
+			if cinto is Node3D and is_instance_valid(cinto) and (cinto as Node3D).is_inside_tree():
+				return (cinto as Node3D).global_position
+		return pj.global_transform * Vector3(-0.30, 0.55, -0.05)
+	if jugador != null:
+		return jugador.global_position + Vector3(-0.3, 0.55, 0.0)
+	return Vector3.ZERO
+
+
+## La voluta: un hilo de luz con un arco suave (sube a mitad de camino) del libro a la mano. Se borra sola al llegar.
+func _voluta(desde: Vector3, color: Color, dura: float) -> void:
+	var hasta: Vector3 = _pos_mano()
+	var medio: Vector3 = (desde + hasta) * 0.5 + Vector3(0.0, 0.25, 0.0)
+	var hilo := HiloLuz3D.new()
+	var padre: Node = mundo if mundo != null else self
+	padre.add_child(hilo)
+	hilo.preparar([desde, desde.lerp(medio, 0.6), medio, medio.lerp(hasta, 0.6), hasta], color)
+	hilo.viajar(maxf(dura, 0.05))
+	get_tree().create_timer(dura + 0.8, false).timeout.connect(func() -> void:
+		if is_instance_valid(hilo):
+			hilo.queue_free())
+
+
+## La forma en la mano: una esfera emisiva que crece de 0 a su tamaño en `dura` s (sustituto del VFX del Pipeline).
+func _forma_en_mano(pos: Vector3, color: Color, dura: float) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	var esfera := SphereMesh.new()
+	esfera.radius = RADIO_BOLA * 0.8
+	esfera.height = RADIO_BOLA * 1.6
+	m.mesh = esfera
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = color
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = 2.0
+	m.material_override = mat
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var padre: Node = mundo if mundo != null else self
+	padre.add_child(m)
+	m.global_position = pos
+	m.scale = Vector3.ONE * 0.05
+	var tw := m.create_tween()
+	tw.tween_property(m, "scale", Vector3.ONE, maxf(dura, 0.05)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	return m
 
 
 ## --- Marcadores del modo lanzar ---
@@ -1368,6 +1554,9 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	# 11.4: un chorro de AGUA es un manantial en cada casilla que toca, mientras dura el campo.
 	campo.caudal = CAUDAL_CHORRO_CELDA if elemento == "agua" and receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro" else 0.0
 	campo.altura_barrera = receta.height
+	if cupula:
+		campo.burbuja = true
+		campo.bloquea = false            # los hechizos del propio jugador salen de dentro de la burbuja sin chocar con ella
 
 	# Centroide de cada dirección (una onda se abre desde el centro de lo suyo).
 	var suma := Vector2.ZERO
@@ -1378,7 +1567,18 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	var origen2 := Vector2(origen.x, origen.z)
 	var y_base: float = y_pies(celda_de(origen))
 	var cuenta: int = 0
-	for m in manifest:
+	if cupula:
+		# UNA esfera de RADIO_BURBUJA centrada en el jugador (+ ALTO_BURBUJA) que le sigue: sustituye al anillo de casillas del manifiesto
+		# (que además marcaba el suelo de alrededor con el elemento: la burbuja no toca el suelo hasta que revienta).
+		var centro_b: Vector3 = (jugador as Node3D).position + Vector3(0.0, ALTO_BURBUJA, 0.0)
+		campo.puntos.append(centro_b)
+		campo.vel.append(Vector3.ZERO)
+		campo.dirs.append(Vector3.ZERO)
+		campo.niveles.append(nivel)
+		campo.vivos.append(true)
+		campo.rel.append(Vector3(0.0, ALTO_BURBUJA, 0.0))
+		cuenta = 1
+	for m in (manifest if not cupula else []):
 		var rel: Vector2 = (m["p"] as Vector2).rotated(giro) * Terreno3D.casilla
 		var p2: Vector2 = origen2 + rel
 		var dir2: Vector2 = (m["dir"] as Vector2).rotated(giro)
@@ -1407,7 +1607,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	_visual_campo(receta, elemento, origen, campo, muro, receta.blocks and receta.height > 0 and receta.spread and not onda)
 	campo.iniciar()
 	if cupula:
-		_proteger_con(campo, receta)
+		_proteger_con(campo)
 	manifestaciones_vivas += cuenta
 	campo.tree_exited.connect(func() -> void:
 		manifestaciones_vivas = maxi(0, manifestaciones_vivas - cuenta)
@@ -1516,7 +1716,11 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 		else:
 			# Barrera quieta (6.3, 6.4): CÚPULA que envuelve al personaje y LE SIGUE; la de tierra es de bloques. Vive lo que el campo.
 			var antes: Array = fx.get_children()
-			fx.lanzar_forma("cupula", elemento, pie_o, pie_c, {"radio": clampf(radio * ESCALA_CUPULA, 0.5, 3.5), "dura": dura,
+			# Burbuja: el radio REAL (RADIO_BURBUJA, el de la colisión). Vfx3D multiplica `radio` por su `escala`, de ahí la división.
+			# Mientras el Pipeline no tenga la forma "burbuja" se pide la "cupula" de siempre; cuando exista se usa sola (FORMAS).
+			var esc_b: float = maxf(float(fx.get("escala")), 0.01)
+			var forma_b: String = "burbuja" if Vfx3D.FORMAS.has("burbuja") else "cupula"
+			fx.lanzar_forma(forma_b, elemento, pie_o, pie_c, {"radio": RADIO_BURBUJA / esc_b, "dura": dura,
 				"rompe": elemento == "tierra" or elemento == "hielo"})
 			for h in fx.get_children():
 				if antes.has(h) or not (h is Node3D) or h is Light3D:
@@ -1529,15 +1733,11 @@ func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: N
 					break
 
 
-## La barrera cúpula protege: una a la vez (la nueva sustituye a la vieja) y el jugador se la apunta para absorber golpes.
-func _proteger_con(campo: Node3D, receta: Receta3D = null) -> void:
+## La burbuja protege: una a la vez (la nueva sustituye a la vieja, que se va sin reventar) y el jugador se la apunta para parar golpes.
+## 16/10: ya no hay escudo de vida ni «×1,5 por barrera repetida» (8.5): la burbuja para UN impacto y revienta; repetirla es una nueva.
+func _proteger_con(campo: Node3D) -> void:
 	if _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa != campo:
 		_barrera_activa.queue_free()
-	# Barrera repetida = escudo más resistente (×1,5 por vez, tope ×3), no un aro más grande (8.5).
-	var resistencia: float = 1.0
-	if receta != null and receta.usa_geo() and float(receta.geo()["resistencia"]) > 0.0:
-		resistencia = float(receta.geo()["resistencia"])
-	(campo as Campo).escudo = VIDA_ESCUDO * resistencia
 	_barrera_activa = campo as Campo
 
 
@@ -1579,6 +1779,33 @@ func absorber_golpe(cantidad: float, desde: Vector3) -> bool:
 		_barrera_activa = null
 		return false
 	return _barrera_activa.absorber(cantidad, desde)
+
+
+## ¿Hay una burbuja VIVA que contenga este punto? Para lo ajeno que vuela (la flecha de un goblin) y quiere saber si ya la tocó.
+func burbuja_contiene(p: Vector3) -> bool:
+	return _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa.contiene(p)
+
+
+## Algo AJENO con `elemento` ("" = golpe o flecha normal) toca la burbuja en `punto`: la burbuja revienta con él. Devuelve true si
+## había una burbuja que lo ha parado. `atacante` (opcional) recibe el elemento de la burbuja, como en el golpe cuerpo a cuerpo (8/10).
+func burbuja_recibe(elemento: String, punto: Vector3, atacante: Combate3D = null) -> bool:
+	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
+		_barrera_activa = null
+		return false
+	return _barrera_activa.reventar(elemento, punto, atacante)
+
+
+## Lo que le pasa al mundo cuando una burbuja de `barrera` revienta con `recibido` en `punto` (tabla REACCIONES_BURBUJA). Estática: se
+## mide sin lanzador. Devuelve el nombre de la reacción: «vapor», «charco», «absorbe» (la tierra) o «» (ninguna).
+static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) -> String:
+	var r: Array = (REACCIONES_BURBUJA.get(barrera, {}) as Dictionary).get(recibido, [])
+	if r.is_empty():
+		return "absorbe" if barrera == "tierra" else ""
+	var nombre: String = String(r[0])
+	if nombre == "vapor" and Mundo3D.actual != null:
+		Mundo3D.actual.avisar_impacto(punto, "vapor", RADIO_BURBUJA)       # la maqueta pinta la bocanada (ver _al_impacto_mundo)
+	Mundo3D.aplicar_accion(AccionElemental.nueva(String(r[1]), punto))     # evapora el agua del punto / echa el charco
+	return nombre
 
 
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
@@ -2178,8 +2405,10 @@ class Campo extends Node3D:
 	var sigue: Node3D = null
 	var visual: Node3D = null        ## la cúpula de Vfx3D, que se mueve con el jugador (6.3)
 	var visual_rel: Vector3 = Vector3.ZERO
-	var escudo: float = 0.0          ## daño que aún puede absorber (0 = no protege)
-	var ultimo_atacante: Combate3D = null   ## a quien le ha parado un golpe (el elemento le llega también al caducar)
+	var burbuja: bool = false        ## es la barrera-burbuja (Fase 12): una esfera que sigue al jugador y revienta al primer impacto
+	var reventada: bool = false      ## ya ha reventado (ya no para nada, y solo se va a liberar al final del fotograma)
+	var reaccion: String = ""        ## qué reacción hubo al reventar («vapor», «charco», «absorbe» o «»): para las pruebas y el diario
+	var _t_vigia: float = 0.0        ## s hasta volver a mirar el mundo (fuego y electricidad) alrededor de la burbuja
 
 	var puntos: Array = []          ## Vector3
 	var vel: Array = []             ## Vector3
@@ -2193,12 +2422,87 @@ class Campo extends Node3D:
 	var _celdas: Dictionary = {}
 	var _forma: SphereShape3D = null
 
+	## Se emite al reventar la burbuja: con qué elemento ("" = golpe/flecha normal), dónde y qué reacción hubo.
+	signal revento(recibido: String, punto: Vector3, reaccion: String)
+
 	func iniciar() -> void:
 		_forma = SphereShape3D.new()
 		_forma.radius = Lanzador3D.RADIO_GOLPE * Terreno3D.casilla
 		name = "Campo_" + elemento
+		if burbuja:
+			return                          # la burbuja no marca el suelo de alrededor: solo lo toca al reventar
 		for i in range(puntos.size()):
 			_marcar_suelo(puntos[i] as Vector3)
+
+	## El centro de la esfera: el jugador + ALTO_BURBUJA (o el punto fijo si no hay jugador al que seguir).
+	func centro() -> Vector3:
+		if sigue != null and is_instance_valid(sigue):
+			return sigue.position + Vector3(0.0, Lanzador3D.ALTO_BURBUJA, 0.0)
+		return puntos[0] as Vector3 if not puntos.is_empty() else global_position
+
+	## ¿Está `p` dentro de la esfera? (solo una burbuja viva, que no haya reventado, contiene algo).
+	func contiene(p: Vector3) -> bool:
+		return burbuja and not reventada and p.distance_to(centro()) <= Lanzador3D.RADIO_BURBUJA
+
+	## El punto de la esfera que mira hacia `desde` (a la altura del centro): donde se dibuja y se calcula lo que impactó.
+	func punto_hacia(desde: Vector3) -> Vector3:
+		var c: Vector3 = centro()
+		var d := Vector3(desde.x - c.x, 0.0, desde.z - c.z)
+		if d.length() < 0.01:
+			d = Vector3(0.0, 0.0, 1.0)
+		return c + d.normalized() * Lanzador3D.RADIO_BURBUJA
+
+	## REVIENTA al primer impacto. `recibido` es el elemento de lo que la tocó ("" = golpe o flecha normal) y `punto` dónde.
+	##   · salpicadura de SU elemento por la fachada (`Mundo3D.avisar_impacto`: la maqueta decide qué pinta y suena);
+	##   · la REACCIÓN entre los dos elementos (Lanzador3D.REACCIONES_BURBUJA) como una AccionElemental en el punto;
+	##   · regla del 8/10 intacta: si hubo atacante, la burbuja le devuelve SU elemento (sin daño: el golpe ya lo ha parado ella).
+	## Devuelve true si ha reventado ahora; false si no es una burbuja o ya había reventado (el segundo impacto no la encuentra).
+	func reventar(recibido: String, punto: Vector3, atacante: Combate3D = null) -> bool:
+		if not burbuja or reventada:
+			return false
+		reventada = true
+		if Mundo3D.actual != null:
+			Mundo3D.actual.avisar_impacto(punto, elemento, Lanzador3D.RADIO_BURBUJA)
+		reaccion = Lanzador3D.reaccion_burbuja(elemento, recibido, punto)
+		if atacante != null:
+			lanz.aplicar_elemento(atacante, elemento)
+		Combate3D.flotante(lanz.mundo, centro() + Vector3(0.0, 1.5, 0.0), "¡Revienta!", Color(0.6, 0.9, 1.0))
+		PlayLog.event("barrera_revienta", {"elemento": elemento, "recibido": recibido, "reaccion": reaccion,
+			"punto": [snappedf(punto.x, 0.1), snappedf(punto.z, 0.1)]})
+		revento.emit(recibido, punto, reaccion)
+		queue_free()
+		return true
+
+	## Lo que ya arde o lleva corriente DENTRO de la esfera (o pegado a ella) la revienta sin que nadie la golpee: fuego (los objetos
+	## `flammable3d` encendidos y las barreras de fuego «B») y agua electrificada (`EmisorRayo3D.electrificada`, casillas que toca la esfera).
+	## Se mira cada 0,1 s: son decenas de objetos, no hace falta en cada fotograma de física.
+	func _vigilar_mundo() -> void:
+		var c0: Vector3 = centro()
+		var r: float = Lanzador3D.RADIO_BURBUJA
+		for n in get_tree().get_nodes_in_group("emisor_rayo"):
+			if not is_instance_valid(n):
+				continue
+			for ce in (n.get("electrificada") as Array):
+				var centro_c: Vector3 = Terreno3D.centro_de(ce as Vector2i)
+				var m: float = Terreno3D.casilla * 0.5
+				# distancia del centro de la esfera al cuadrado de la casilla (en planta): la esfera la toca si es ≤ radio
+				var dx: float = maxf(absf(c0.x - centro_c.x) - m, 0.0)
+				var dz: float = maxf(absf(c0.z - centro_c.z) - m, 0.0)
+				if dx * dx + dz * dz <= r * r:
+					reventar("rayo", Vector3(clampf(c0.x, centro_c.x - m, centro_c.x + m), c0.y, clampf(c0.z, centro_c.z - m, centro_c.z + m)))
+					return
+		for n in get_tree().get_nodes_in_group("flammable3d"):
+			if is_instance_valid(n) and bool(n.get("is_lit")):
+				var pn: Vector3 = (n as Node3D).global_position
+				if Vector2(pn.x - c0.x, pn.z - c0.z).length() <= r + 0.4:
+					reventar("fuego", Vector3(pn.x, c0.y, pn.z))
+					return
+		for h in lanz.mundo.get_children():
+			if h is Lanzador3D.BarreraFuego and not (h as Lanzador3D.BarreraFuego).apagada:
+				var ph: Vector3 = (h as Node3D).global_position
+				if Vector2(ph.x - c0.x, ph.z - c0.z).length() <= r + Terreno3D.casilla * 0.5:
+					reventar("fuego", Vector3(ph.x, c0.y, ph.z))
+					return
 
 	## ¿Esta barrera frena a algo que vuela por `p` a nivel `n`? Lo que levita más alto que ella pasa por encima.
 	func bloquea_a(p: Vector3, n: int) -> bool:
@@ -2221,21 +2525,13 @@ class Campo extends Node3D:
 		if caudal > 0.0:
 			Mundo3D.aplicar_accion(AccionElemental.nueva("agua", Terreno3D.centro_de(c), 0.0, caudal, maxf(vida - _t, 0.1)))   # M3: un manantial mientras dura
 
-	## Un golpe o una flecha contra la cúpula: se queda con el daño. Devuelve true si lo ha parado entero.
-	func absorber(cantidad: float, desde: Vector3) -> bool:
-		if escudo <= 0.0:
+	## Un golpe o una flecha de un enemigo contra la burbuja (lo llama Jugador3D.recibir_dano): la burbuja revienta con él y el daño no
+	## llega. Devuelve true si lo ha parado. Los demás campos (muros, corros…) no paran golpes. `_cantidad`: ya no cuenta, la burbuja
+	## para UN impacto sea del tamaño que sea (antes había un escudo de 60 puntos).
+	func absorber(_cantidad: float, desde: Vector3) -> bool:
+		if not burbuja or reventada:
 			return false
-		escudo -= cantidad
-		var atacante: Combate3D = lanz.atacante_en(desde)
-		if atacante != null:
-			ultimo_atacante = atacante
-			lanz.aplicar_elemento(atacante, elemento)          # al recibir el golpe
-		Combate3D.flotante(lanz.mundo, (sigue.position if sigue != null else global_position) + Vector3(0, 1.8, 0),
-			"Bloqueado" if escudo > 0.0 else "Rota", Color(0.6, 0.9, 1.0))
-		PlayLog.event("barrera_absorbe", {"dano": cantidad, "escudo": maxf(escudo, 0.0), "desde": [snappedf(desde.x, 0.1), snappedf(desde.z, 0.1)]})
-		if escudo <= 0.0:
-			queue_free()
-		return true
+		return reventar("", punto_hacia(desde), lanz.atacante_en(desde))
 
 	func _exit_tree() -> void:
 		if visual != null and is_instance_valid(visual):
@@ -2246,9 +2542,16 @@ class Campo extends Node3D:
 		if visual != null and is_instance_valid(visual) and sigue != null and is_instance_valid(sigue):
 			visual.position = sigue.position + visual_rel
 		if _t >= vida:
-			if escudo > 0.0 and ultimo_atacante != null and is_instance_valid(ultimo_atacante):
-				lanz.aplicar_elemento(ultimo_atacante, elemento)    # y al caducar (timeout) vuelve a dárselo
-			queue_free()
+			queue_free()                    # sin tocarla, la burbuja se desvanece: NO revienta (ni salpica ni reacciona)
+			return
+		if burbuja:
+			if reventada:
+				return
+			puntos[0] = centro()
+			_t_vigia -= delta
+			if _t_vigia <= 0.0:
+				_t_vigia = 0.1
+				_vigilar_mundo()
 			return
 		var espacio: PhysicsDirectSpaceState3D = lanz.mundo.get_world_3d().direct_space_state
 		var algun_vivo: bool = false

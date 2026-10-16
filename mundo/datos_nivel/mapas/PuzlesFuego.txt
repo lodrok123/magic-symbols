@@ -1,0 +1,120 @@
+; Laboratorio de PUZLES DE FUEGO (Fase 14.6, 16/10, Juego). 33 x 25: doce salas de 7 x 7 (4 x 3) separadas por muros, con un hueco entre
+; salas vecinas (el mismo esqueleto que PuzlesAgua). El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesFuego"); las
+; piezas y los puzles de cada sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd; el lab solo pone HUD, teclas,
+; carteles y la MECHA de F4). NO se hornea: es un laboratorio. Permiso de Pablo para crear este archivo (16/10).
+; Letras de la maqueta: # muro . suelo S jugador T brasero z seto seco c cauce seco - canal recto (F3: el arroyo) .
+; Letras del lab (PruebaTest2 las ignora, son suelo): ! boton de piedra (cualquier magia) @ placa de presencia (pisarla) Z puerta de premio.
+; Salas (columna, fila): F5 derrite el bloque (0,0) · F1 cuatro antorchas (1,0) · F3 quema la cuerda (2,0) · F4 contrafuego (3,0) ·
+;   F2 rele de braseros (0,1) · inicio (1,1) · (2,1) (3,1) (0,2) (1,2) (2,2) (3,2) libres para F6-F10 (segunda tanda).
+; Los puzles y sus vias: cada uno se resuelve por su via NATURAL (el hechizo de fuego/agua) y por boton ! / placa @ (separan «falla el fuego»
+;   de «falla el disparador»).
+; giro 18 1 90
+; giro 18 2 90
+; giro 18 3 90
+; giro 18 4 90
+; giro 18 5 90
+; giro 18 6 90
+; giro 18 7 90
+; ---------------------------------------------------------------------------------------------------------------------------------
+; Piezas y puzles de cada sala (la gramatica esta en la cabecera de escenas/puzle.gd).
+; ---------------------------------------------------------------------------------------------------------------------------------
+; --- F1 CUATRO ANTORCHAS: 4 braseros T en las esquinas; el contador cuenta los encendidos y con 4/4 se abre la puerta (se cierra si baja).
+; pieza f1_b1 brasero 10 2
+; pieza f1_b2 brasero 14 2
+; pieza f1_b3 brasero 10 6
+; pieza f1_b4 brasero 14 6
+; pieza f1_cont contador 12 4 de=10,2+14,2+10,6+14,6
+; pieza f1_puerta puerta 12 1
+; pieza f1_boton pulsador 10 7 modo=magia
+; pieza f1_placa pulsador 14 7 modo=presencia
+; puzle f1_abre cuando=f1_cont.todos hace=f1_puerta.abrir
+; puzle f1_cierra cuando=f1_cont.no_todos hace=f1_puerta.cerrar
+; puzle f1_boton_enciende cuando=f1_boton.pulsado hace=f1_b1.encender y=f1_b2.encender y=f1_b3.encender y=f1_b4.encender
+; puzle f1_placa_enciende cuando=f1_placa.pulsado hace=f1_b1.encender y=f1_b2.encender y=f1_b3.encender y=f1_b4.encender
+; --- F2 RELE DE BRASEROS: fila de 4 braseros (1,3,5,7 en y=11). Al encenderse, cada uno enciende al siguiente 1.5 s despues y se apaga a los 6 s.
+; ---   Encendido el primero a t=0: A 0-6 s, B 1.5-7.5, C 3-9, D 4.5-10.5. La puerta solo esta abierta cuando A y D arden A LA VEZ: de 4.5 a 6 s.
+; pieza f2_a brasero 1 11 rele=f2_b
+; pieza f2_b brasero 3 11 rele=f2_c
+; pieza f2_c brasero 5 11 rele=f2_d
+; pieza f2_d brasero 7 11 dura=6
+; pieza f2_cont contador 4 13 de=1,11+7,11
+; pieza f2_puerta puerta 7 9
+; pieza f2_boton pulsador 2 14 modo=magia
+; pieza f2_placa pulsador 6 14 modo=presencia
+; puzle f2_abre cuando=f2_cont.todos hace=f2_puerta.abrir
+; puzle f2_cierra cuando=f2_cont.no_todos hace=f2_puerta.cerrar
+; puzle f2_boton_enciende cuando=f2_boton.pulsado hace=f2_a.encender
+; puzle f2_placa_enciende cuando=f2_placa.pulsado hace=f2_a.encender
+; --- F3 QUEMA LA CUERDA: arroyo de canal (18,1..7). Una compuerta LEVANTADA (abierta) en (18,2) lo deja correr; la cuerda de al lado la sostiene.
+; ---   Quemarla (fuego, boton o placa) hace caer la compuerta: corta el agua y el vado (18,4) baja de 0.25 -> se abre la puerta.
+; pieza f3_arroyo manantial 18 1 celdas=18,1..18,7 caudal=1.5 volumen=0
+; pieza f3_desague cuenca 18 7 fijo=0.02
+; pieza f3_compuerta compuerta 18 2 abierta=si vertical=no estrecha=no
+; pieza f3_cuerda cuerda 19 2 sostiene=f3_compuerta
+; pieza f3_nivel nivel 18 4 objetivo=0.25 invertido=si
+; pieza f3_puerta puerta 22 4
+; pieza f3_boton pulsador 17 6 modo=magia
+; pieza f3_placa pulsador 21 6 modo=presencia
+; puzle f3_abre cuando=f3_nivel.alcanzado hace=f3_puerta.abrir
+; puzle f3_cierra cuando=f3_nivel.perdido hace=f3_puerta.cerrar
+; puzle f3_boton_quema cuando=f3_boton.pulsado hace=f3_cuerda.quemar
+; puzle f3_placa_quema cuando=f3_placa.pulsado hace=f3_cuerda.quemar
+; --- F4 CONTRAFUEGO: brasero-mecha T (25,4), 4 setos secos z (26..29,4) y un barril (30,4). A los 5 s de entrar en la sala el lab enciende la mecha y
+; ---   prende el primer seto (la MECHA es del lab: lab_puzles_fuego_3d.gd). El fuego corre por los setos y enciende el barril (Barril3D lo vigila).
+; ---   El barril explota y abre la puerta. CORTAFUEGOS: agua al seto del medio (28,4) antes de que llegue (mojable): se queda sin arder, el fuego
+; ---   para en (27,4) y el barril sigue entero; entonces el barril se enciende a mano (fuego, boton o placa) cuando el jugador quiera.
+; pieza f4_mecha brasero 25 4
+; pieza f4_s1 seto 26 4 mojable=si
+; pieza f4_s2 seto 27 4 mojable=si
+; pieza f4_s3 seto 28 4 mojable=si
+; pieza f4_s4 seto 29 4 mojable=si
+; pieza f4_barril barril 30 4
+; pieza f4_puerta puerta 31 1
+; pieza f4_boton pulsador 26 6 modo=magia
+; pieza f4_placa pulsador 30 6 modo=presencia
+; puzle f4_abre cuando=f4_barril.explota hace=f4_puerta.abrir
+; puzle f4_boton_enciende cuando=f4_boton.pulsado hace=f4_barril.encender
+; puzle f4_placa_enciende cuando=f4_placa.pulsado hace=f4_barril.encender
+; --- F5 DERRITE EL BLOQUE: cuenca A llena (0.9) y cuenca B vacia unidas por una compuerta de HIELO en (4,3); una antorcha T en (6,5) debajo de B.
+; ---   Derretir el hielo (fuego) suelta el agua; cuando B llega a 0.2 el charco APAGA la antorcha. La puerta se abre con la antorcha encendida
+; ---   Y el hielo derretido: el ORDEN importa (antorcha y luego hielo = la antorcha se apaga y hay que volver a encenderla).
+; pieza f5_a cuenca 2 2 celdas=2,2..3,3 nivel=0.9
+; pieza f5_b cuenca 5 2 celdas=5,2..6,3
+; pieza f5_hielo compuerta 4 3 abre_con=fuego
+; pieza f5_charco nivel 6 3 objetivo=0.2
+; pieza f5_antorcha brasero 6 5
+; pieza f5_cont contador 4 5 de=6,5
+; pieza f5_puerta puerta 1 6
+; pieza f5_boton pulsador 2 6 modo=magia
+; pieza f5_placa pulsador 6 6 modo=presencia
+; puzle f5_abre cuando=f5_cont.todos si=f5_hielo.abierta hace=f5_puerta.abrir
+; puzle f5_cierra cuando=f5_cont.no_todos hace=f5_puerta.cerrar
+; puzle f5_charco_apaga cuando=f5_charco.alcanzado hace=f5_antorcha.apagar
+; puzle f5_boton_derrite cuando=f5_boton.pulsado hace=f5_hielo.abrir
+; puzle f5_placa_enciende cuando=f5_placa.pulsado hace=f5_antorcha.encender
+; ---------------------------------------------------------------------------------------------------------------------------------
+#################################
+#.......#...Z...#.-.....#......Z#
+#.cc.cc.#.T...T.#.-.....#.......#
+#.ccccc.#.......#.-.....#.......#
+#.......#.......#.-...Z.#Tzzzz..#
+#.....T.#.......#.-.....#.......#
+#Z!...@.#.T...T.#!-..@..#.!...@.#
+#.......#.!...@.#.-.....#.......#
+####.#######.#######.#######.####
+#......Z#.......#.......#.......#
+#.......#.......#.......#.......#
+#T.T.T.T#.......#.......#.......#
+#...........S...................#
+#.......#.......#.......#.......#
+#.!...@.#.......#.......#.......#
+#.......#.......#.......#.......#
+####.#######.#######.#######.####
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#################################

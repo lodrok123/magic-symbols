@@ -19,6 +19,11 @@ días antes (17 KB menos) sin que nadie lo pidiera. Por eso la sección 5 pide
 §2) y `poc_25d/` ya no existe. La propiedad va **por carpeta**, con las
 excepciones que se indican.
 
+Los entornos de trabajo pueden ser:
+- C:\Users\pablo\Documents\magic-symbols -- ordenador escritorio usuario pablo
+- C:\Users\paranda\Documents\magic-symbols  -- Portátil con usuario paranda
+
+Ambos pueden ser usados indistintivamente. 
 ---
 
 ## 1. Juego (proyecto "Magic_Runes")
@@ -167,5 +172,7 @@ Las firmas **no cambian sin entrada en el diario**.
 hace falta, lo propone en el diario y lo crea Pablo o quien él diga. Los
 documentos que no están en la tabla son **borradores** pendientes de
 integrar y borrar.
+
+Antes de empezar la primera iteración después de un cambio de ordenador (paranda/pablo) revisar que la versión es la más actualizada para iterar desde ahí. En caso de detectarse cualquier cosa informar.
 
 **Firmas del diario.** Solo hay dos contextos: `Juego` y `Pipeline`.
