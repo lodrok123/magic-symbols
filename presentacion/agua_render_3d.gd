@@ -62,6 +62,15 @@ uniform float prof_rio = 0.9;                 // y a esta, el azul del río, opa
 uniform float alfa_clara = 0.2;
 uniform float alfa_rio = 0.95;
 uniform float menisco = 0.55;                 // fuerza de la franja clara de la orilla
+// 15/10 (DIARIO 95) · CORRIENTE DEL RÍO Y CAÍDAS.
+uniform sampler2D flujo : filter_nearest, hint_default_black, repeat_disable;   // RG = dirección × tamaño (0-1) de la corriente propia del río, por trocito (`proveedor_flujo`)
+uniform float flujo_activo = 0.0;
+uniform float vel_rio = 0.9;                  // u/s que se suman a la corriente de la simulación en la dirección del flujo (0 = el río no corre solo)
+uniform float avance_flujo = 1.5;             // cuánto avanzan franjas, olas y espuma por ciclo y por u/s de corriente (antes 0,9: iban a la mitad)
+uniform float adveccion_olas = 1.0;           // 0 = las facetas y la espuma no viajan con la corriente
+uniform float caida_fuerza = 1.0;             // 0 = sin efecto de cascada
+uniform float caida_pend_min = 0.12;          // inclinación (1 − normal.y) a partir de la cual la superficie es una caída
+uniform float vel_caida = 1.6;                // velocidad (u/s) de las vetas de la cortina
 uniform sampler2D topes : filter_nearest, hint_default_black, repeat_disable;   // 13.9 (c): Y máxima a la que se dibuja cada trocito (0 = sin tope)
 uniform float topes_activos = 0.0;
 uniform float bandas = 3.0;                   // escalones entre somero y hondo
@@ -101,6 +110,7 @@ uniform float tam_faceta_hielo = 1.3;         // tamaño de las facetas del hiel
 varying float v_prof;
 varying vec2 v_corr;
 varying vec3 v_pos;
+varying vec2 v_caida;                 // x = cuánto sube el vecino más alto (base de una caída), y = cuánto baja el más bajo (labio); en pendiente (u de altura / u de trocito)
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -180,6 +190,23 @@ void vertex() {
 			prof = -1.0;
 		}
 	}
+	if (flujo_activo > 0.5 && prof > 0.0) {
+		corr += texelFetch(flujo, clamp(p, ivec2(0), s - 1), 0).rg * vel_rio;     // la corriente propia del río (cae a cero hacia las orillas)
+	}
+	float base_c = 0.0;
+	float labio_c = 0.0;
+	if (caida_fuerza > 0.0 && d.g >= minima) {
+		ivec2 dir2[4] = ivec2[4](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+		for (int k = 0; k < 4; k++) {
+			vec4 n2 = dato(p + dir2[k]);
+			if (n2.g >= minima) {
+				float dy = (n2.r - d.r) / lado_trocito;
+				base_c = max(base_c, dy);
+				labio_c = max(labio_c, -dy);
+			}
+		}
+	}
+	v_caida = vec2(base_c, labio_c);
 	if (hielo_activo > 0.5) {
 		y += alto_hielo * hielo_f(p);                  // el hielo sobresale un poco: se ve una losa, no una mancha
 	}
@@ -262,6 +289,12 @@ void fragment() {
 	vec3 pm = v_pos;
 	vec2 corr = v_corr;
 	float vel = length(corr);
+	// Flow map de dos fases (franjas, facetas y espuma): desfasadas medio ciclo y mezcladas, así nada «salta» al reiniciarse.
+	vec2 dir = vel > 0.001 ? corr / vel : vec2(1.0, 0.0);
+	float fase0 = fract(TIME * vel_franja);
+	float fase1 = fract(TIME * vel_franja + 0.5);
+	float peso0 = 1.0 - abs(2.0 * fase0 - 1.0);
+	float avance = clamp(vel, 0.0, 2.5) * avance_flujo;
 
 	// Hielo (11.14): cuánto hay aquí y cuánto avisa de que se rompe. El borde es irregular (ruido) y suave (smoothstep).
 	float hielo = 0.0;
@@ -277,7 +310,8 @@ void fragment() {
 	if (gn.y < 0.0) {
 		gn = -gn;
 	}
-	vec3 nm = normal_faceta(pm.xz, TIME);
+	vec3 nm = normalize(mix(normal_faceta(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
+			normal_faceta(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));     // las olas viajan con la corriente
 	nm = normalize(nm + (gn - vec3(0.0, 1.0, 0.0)) * 2.0);
 	// Ondas que reaccionan: su pendiente se suma a la normal.
 	float cresta = 0.0;
@@ -305,19 +339,16 @@ void fragment() {
 	// Franjas que corren con la corriente (flow map de dos fases desfasadas medio ciclo y mezcladas).
 	vec2 uv = pm.xz / tam_franja;
 	float efecto_flujo = smoothstep(0.04, 0.3, vel);
-	vec2 dir = vel > 0.001 ? corr / vel : vec2(1.0, 0.0);
-	float fase0 = fract(TIME * vel_franja);
-	float fase1 = fract(TIME * vel_franja + 0.5);
-	float peso0 = 1.0 - abs(2.0 * fase0 - 1.0);
-	float avance = clamp(vel, 0.0, 2.0) * 0.9;
 	float fr = franja(uv - dir * avance * fase0 / tam_franja, dir) * peso0
 			+ franja(uv + 0.37 - dir * avance * fase1 / tam_franja, dir) * (1.0 - peso0);
 	float franjas = smoothstep(0.62, 0.70, fr) * efecto_flujo;
 	ce = mix(ce, color_espuma, franjas * 0.32);
 
 	// Espuma: manchas de dos ruidos que corren en sentidos opuestos, más abundantes donde la corriente es fuerte.
-	float s1 = ruido(pm.xz * 0.95 + TIME * vec2(0.09, 0.05));
-	float s2 = ruido(pm.xz * 1.35 - TIME * vec2(0.06, 0.08) + 7.3);
+	vec2 pf0 = pm.xz - dir * avance * fase0 * adveccion_olas;      // la espuma también va con la corriente (dos fases)
+	vec2 pf1 = pm.xz - dir * avance * fase1 * adveccion_olas;
+	float s1 = mix(ruido(pf1 * 0.95 + TIME * vec2(0.09, 0.05)), ruido(pf0 * 0.95 + TIME * vec2(0.09, 0.05)), peso0);
+	float s2 = mix(ruido(pf1 * 1.35 - TIME * vec2(0.06, 0.08) + 7.3), ruido(pf0 * 1.35 - TIME * vec2(0.06, 0.08) + 7.3), peso0);
 	float suma = s1 + s2 - 1.0;
 	float rompe = smoothstep(vel_espuma, vel_espuma + 0.9, vel);
 	float manchas = step(espuma_manchas - rompe * 0.3, suma) + step(0.22, suma) * (1.0 - step(0.3, suma)) * 0.12;
@@ -329,6 +360,17 @@ void fragment() {
 	linea *= linea;
 	float men = (1.0 - smoothstep(transicion_orilla, transicion_orilla * 3.5, v_prof)) * menisco * (0.55 + 0.45 * borde);
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8)), 0.0, 1.0);
+	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
+	// tiene un vecino mucho más alto) niebla de espuma que se agita; en el LABIO (el que tiene uno mucho más bajo) un filo de agua rápida.
+	float pend_s = 1.0 - clamp(gn.y, 0.0, 1.0);
+	float caida = smoothstep(caida_pend_min, caida_pend_min + 0.3, pend_s) * caida_fuerza * (1.0 - hielo);
+	vec2 dd = normalize(gn.xz + vec2(0.0001, 0.0));
+	float veta = ruido(vec2(dot(pm.xz, vec2(-dd.y, dd.x)) * 4.0, pm.y * 1.4 + TIME * vel_caida));
+	float cortina = smoothstep(0.50, 0.70, veta) * caida;
+	float base_f = smoothstep(0.10, 0.50, v_caida.x) * caida_fuerza * (1.0 - hielo);
+	float labio_f = smoothstep(0.10, 0.50, v_caida.y) * caida_fuerza * (1.0 - hielo);
+	float niebla = base_f * (0.45 + 0.55 * ruido(pm.xz * 2.4 + vec2(0.0, -TIME * 1.1)));
+	espuma = clamp(max(espuma, max(cortina * 0.85, max(niebla * 0.9, labio_f * 0.45))), 0.0, 1.0);
 	ce = mix(ce, color_espuma, espuma);
 	ce = mix(ce, color_espuma, men * 0.45);
 
@@ -448,6 +490,14 @@ var _ms_lectura: float = 0.0          ## media de lo que cuesta leer la simulaci
 @export var paredes_cada: int = 1
 ## (c) Si no se llama a `poner_topes`, se pregunta a este Callable al enlazar: devuelve {Vector2i casilla: Y máxima del agua}.
 var proveedor_topes: Callable = Callable()
+## 15/10 (DIARIO 95): {casilla (Vector2i): dirección (Vector2 unitario)} de la corriente PROPIA del río. La simulación casi no mueve el agua del
+## río (el nivel está fijo), así que sin esto se lee como un lago quieto. `flujo_hacia_salidas` lo calcula desde el mapa. Vacío = sin corriente propia.
+var proveedor_flujo: Callable = Callable()
+## Una caída detectada en la simulación: `pos` = el trocito de la base (mundo) y `salto` = lo que sube el vecino más alto (u). La maqueta la
+## conecta a las ondas (anillos que salen de donde cae el agua). Se emite hasta MAX_CAIDAS veces cada ~0,33 s.
+signal caida_detectada(pos: Vector3, salto: float)
+const SALTO_CAIDA: float = 0.2
+const MAX_CAIDAS: int = 6
 var _topes_casillas: Dictionary = {}
 var _topes_cpu := PackedFloat32Array()   ## por trocito, la Y máxima a la que se dibuja (0 = sin tope); la misma que lleva la textura `topes`
 var _paredes: MeshInstance3D = null
@@ -497,6 +547,7 @@ func enlazar(p_sim: AguaSim3D) -> void:
 			_topes_casillas = t
 	_aplicar_topes()
 	_montar_paredes()
+	_montar_flujo()
 	_leer(true)
 
 
@@ -614,11 +665,116 @@ func _leer(primera: bool) -> void:
 	_leer_hielo(primera)
 	_ms_hielo = lerpf(_ms_hielo, float(Time.get_ticks_usec() - t1) / 1000.0, 0.2)
 	_lecturas += 1
+	if _lecturas % 4 == 0:
+		_buscar_caidas()
 	if paredes and (primera or _lecturas % maxi(paredes_cada, 1) == 0):
 		var t2: int = Time.get_ticks_usec()
 		_reconstruir_paredes()
 		_ms_paredes = lerpf(_ms_paredes, float(Time.get_ticks_usec() - t2) / 1000.0, 0.2)
 	_ms_lectura = lerpf(_ms_lectura, float(Time.get_ticks_usec() - t0) / 1000.0, 0.2)
+
+
+## Dirección de la corriente propia del río por casilla, desde el mapa: cada casilla de agua (`es_agua(c) -> bool`) fluye hacia la salida más cercana, que es el
+## casilla de agua que `es_salida(c) -> bool` marque (por defecto el agua del borde del mapa; un río tiene entrada y salida y solo la salida tira del agua). Se calcula la distancia a esas salidas (anchura) y la
+## dirección es el descenso de esa distancia; en la salida misma, hacia fuera del mapa. Un lago sin salida (sin agua en el borde) no fluye.
+static func flujo_hacia_salidas(lado: int, es_agua: Callable, es_salida: Callable = Callable()) -> Dictionary:
+	var dist: Dictionary = {}
+	var cola: Array[Vector2i] = []
+	for y in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, y)
+			if not bool(es_agua.call(c)):
+				continue
+			var vale: bool = bool(es_salida.call(c)) if es_salida.is_valid() else (x == 0 or y == 0 or x == lado - 1 or y == lado - 1)
+			if vale:
+				dist[c] = 0
+				cola.append(c)
+	var dirs: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var i: int = 0
+	while i < cola.size():
+		var c: Vector2i = cola[i]
+		i += 1
+		for d in dirs:
+			var n: Vector2i = c + d
+			if n.x < 0 or n.y < 0 or n.x >= lado or n.y >= lado or dist.has(n) or not bool(es_agua.call(n)):
+				continue
+			dist[n] = int(dist[c]) + 1
+			cola.append(n)
+	var res: Dictionary = {}
+	for c in dist.keys():
+		var v := Vector2.ZERO
+		for d in dirs:
+			var n: Vector2i = (c as Vector2i) + d
+			if n.x < 0 or n.y < 0 or n.x >= lado or n.y >= lado:
+				if int(dist[c]) == 0:
+					v += Vector2(d)                       # salida en el borde: hacia fuera del mapa (en una salida interior, el término de abajo apunta de la casilla que llega hacia ella)
+			elif dist.has(n):
+				v += Vector2(d) * float(int(dist[c]) - int(dist[n]))
+		if v.length() > 0.01:
+			res[c] = v.normalized()
+	return res
+
+
+## Textura de la corriente propia por TROCITO (RGF; el mismo tamaño que la de la simulación). Se interpola entre los centros de casilla con 0 donde no
+## hay río: la corriente se apaga sola hacia las orillas (el centro corre más que la orilla) y los giros del cauce son curvas, no esquinas.
+func _montar_flujo() -> void:
+	if not proveedor_flujo.is_valid() or _mat == null:
+		return
+	var d: Variant = proveedor_flujo.call()
+	if not (d is Dictionary) or (d as Dictionary).is_empty():
+		return
+	var flu: Dictionary = d
+	var img := Image.create(sim.w, sim.h, false, Image.FORMAT_RGF)
+	for y in range(sim.h):
+		for x in range(sim.w):
+			var pos := Vector2((float(x) + 0.5) * sim.l, (float(y) + 0.5) * sim.l) / sim.lado_casilla - Vector2(0.5, 0.5)
+			var cx: int = floori(pos.x)
+			var cy: int = floori(pos.y)
+			var fx: float = pos.x - float(cx)
+			var fy: float = pos.y - float(cy)
+			var v := Vector2.ZERO
+			for oy in range(2):
+				for ox in range(2):
+					var peso: float = (fx if ox == 1 else 1.0 - fx) * (fy if oy == 1 else 1.0 - fy)
+					v += (flu.get(Vector2i(cx + ox, cy + oy), Vector2.ZERO) as Vector2) * peso
+			img.set_pixel(x, y, Color(v.x, v.y, 0.0))
+	_mat.set_shader_parameter("flujo", ImageTexture.create_from_image(img))
+	_mat.set_shader_parameter("flujo_activo", 1.0)
+
+
+## Busca en la simulación los trocitos de BASE de una caída (agua con un vecino de agua bastante más alto) y avisa de los mayores (`caida_detectada`).
+func _buscar_caidas() -> void:
+	if sim == null or not caida_detectada.has_connections():
+		return
+	var w: int = sim.w
+	var h: int = sim.h
+	var caja: Rect2i = sim.caja_trabajo() if sim.has_method("caja_trabajo") else Rect2i(0, 0, w, h)
+	if caja.size.x <= 0 or caja.size.y <= 0:
+		return
+	var prof: PackedFloat32Array = sim.prof
+	var suelo: PackedFloat32Array = sim.suelo
+	var cerrado: PackedByteArray = sim.cerrado
+	var helado: PackedByteArray = sim.helado
+	var vec: PackedInt32Array = sim.vecinos
+	var minima: float = profundidad_minima
+	var cand: Array = []
+	for y in range(maxi(0, caja.position.y - 1), mini(h, caja.position.y + caja.size.y + 1)):
+		for x in range(maxi(0, caja.position.x - 1), mini(w, caja.position.x + caja.size.x + 1)):
+			var i: int = y * w + x
+			if prof[i] < minima or cerrado[i] == 1 or helado[i] == 1:
+				continue
+			var sup: float = suelo[i] + prof[i]
+			var mejor: float = 0.0
+			for k in range(4):
+				var j: int = vec[i * 4 + k]
+				if j < 0 or cerrado[j] == 1 or prof[j] < minima:
+					continue
+				mejor = maxf(mejor, suelo[j] + prof[j] - sup)
+			if mejor >= SALTO_CAIDA:
+				cand.append([mejor, Vector3((float(x) + 0.5) * sim.l, sup, (float(y) + 0.5) * sim.l)])
+	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+	for k in range(mini(cand.size(), MAX_CAIDAS)):
+		caida_detectada.emit(global_transform * (cand[k][1] as Vector3) if is_inside_tree() else (cand[k][1] as Vector3), float(cand[k][0]))
 
 
 ## Hielo (11.14): lee `imagen_hielo()` y guarda por trocito CUÁNDO empezó a helarse y CUÁNDO a soltarse (en el reloj propio), para que el

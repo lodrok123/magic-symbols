@@ -13,20 +13,28 @@ setlocal EnableDelayedExpansion
 cd /d "%~dp0.."
 if "%~1"=="" (
   echo Falta el nombre. Ejemplo:  tools\prueba_una.cmd escenario_puzles_agua
+  pause
   exit /b 2
 )
 set NOMBRE=%~1
 set NOMBRE=%NOMBRE:.gd=%
 if not exist "herramientas\%NOMBRE%.gd" (
   echo No existe herramientas\%NOMBRE%.gd
+  pause
   exit /b 2
 )
 set GODOT=
 if exist tools\godot_local.txt set /p GODOT=<tools\godot_local.txt
 set "GODOT=!GODOT:"=!"
-if not exist "!GODOT!" if exist "tools\Godot_v4.7.2-stable_win64.exe" set "GODOT=tools\Godot_v4.7.2-stable_win64.exe"
+rem godot_local.txt puede traer la ruta de OTRO ordenador (si alguien lo sube a git): si no existe, se usa el Godot de tools\ y se corrige el archivo.
+if not exist "!GODOT!" if exist "%~dp0Godot_v4.7.2-stable_win64.exe" (
+  set "GODOT=%~dp0Godot_v4.7.2-stable_win64.exe"
+  echo !GODOT!>tools\godot_local.txt
+  echo Aviso: godot_local.txt apuntaba a una ruta que no existe aqui; corregido a !GODOT!
+)
 if not exist "!GODOT!" (
   echo No encuentro Godot. Escribe su ruta en tools\godot_local.txt o ejecuta antes tools\pruebas.cmd.
+  pause
   exit /b 2
 )
 set OPC=
@@ -48,6 +56,7 @@ if not defined FALLOS (
   echo RESULTADO: SIN RESULTADO - la prueba no llego al final. Mira salida_prueba.txt ^(ultimas lineas^):
   powershell -NoProfile -Command "Get-Content salida_prueba.txt -Tail 15"
   echo ================================================================
+  pause
   exit /b 1
 )
 if "!FALLOS!"=="0" (
@@ -60,4 +69,6 @@ if "!FALLOS!"=="0" (
   echo RESULTADO: MAL - !FALLOS! fallos, !ERRORES! errores de codigo, !AVISOS! avisos
 )
 echo ================================================================
+rem La ventana se queda abierta (si se abrio con doble clic, si no se cerraria sin dejar leer).
+pause
 endlocal

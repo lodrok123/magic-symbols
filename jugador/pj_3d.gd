@@ -151,6 +151,7 @@ func cargar(p_id: String) -> bool:
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 
 	_anular_raiz("roll")
+	_colocar_nado()
 	_acortar_paso()
 	_aplicar_factor_zancada()
 	_corregir_postura()
@@ -829,6 +830,47 @@ func _anular_raiz(rol: String) -> void:
 		for k in range(an.track_get_key_count(t)):
 			var v: Vector3 = an.track_get_key_value(t, k)
 			an.track_set_key_value(t, k, Vector3(p0.x, v.y, p0.z))
+
+
+## 15/10 (DIARIO 94) · NADO: el clip `swim` (SwimForward de Meshy) viene con la cadera MUY por debajo del origen (y ≈ −0,75 en unidades del modelo,
+## frente a 0,74 de pie: el cuerpo tumbado quedaba 0,5 u BAJO los pies del personaje, o sea bajo el fondo del pozo o bajo un agua casi opaca) y con la
+## cadera avanzando ~4,6 unidades del modelo (≈ 2,7 u en el juego) en cada vuelta de 4,5 s: el modelo se alejaba del jugador y volvía de golpe.
+## Se arregla en el propio clip, como `_anular_raiz` con la voltereta: la cadera se queda sobre el origen (el Juego mueve al personaje) y se sube hasta
+## `NADO_CADERA` × la altura de su cadera de pie (0,93: tumbado, con la espalda a ras de agua cuando los pies van a `superficie − HUNDIDO`, 0,35 u).
+## Idempotente (las animaciones se comparten entre instancias del mismo GLB): fija la MEDIA de y y la x/z al valor pedido, no suma.
+const NADO_CADERA: float = 0.93
+
+
+func _colocar_nado() -> void:
+	if _ap == null:
+		return
+	var swim: String = _buscar_clip("swim")
+	var idle: String = _buscar_clip("idle")
+	if swim == "" or idle == "":
+		return
+	var y_pie: float = NAN
+	var an_i: Animation = _ap.get_animation(idle)
+	for t in range(an_i.get_track_count()):
+		if an_i.track_get_type(t) == Animation.TYPE_POSITION_3D and str(an_i.track_get_path(t)).to_lower().contains("hips") \
+				and an_i.track_get_key_count(t) > 0:
+			y_pie = (an_i.track_get_key_value(t, 0) as Vector3).y
+	if is_nan(y_pie):
+		return
+	var an: Animation = _ap.get_animation(swim)
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) != Animation.TYPE_POSITION_3D or an.track_get_key_count(t) < 2:
+			continue
+		if not str(an.track_get_path(t)).to_lower().contains("hips"):
+			continue
+		var n: int = an.track_get_key_count(t)
+		var media: float = 0.0
+		for k in range(n):
+			media += (an.track_get_key_value(t, k) as Vector3).y
+		media /= float(n)
+		var dy: float = y_pie * NADO_CADERA - media
+		for k in range(n):
+			var v: Vector3 = an.track_get_key_value(t, k)
+			an.track_set_key_value(t, k, Vector3(0.0, v.y + dy, 0.0))
 
 
 ## (c) BEBER: `beber(dur = 1.5)` pone la poción (50 % de su tamaño en el suelo) en la mano derecha, reproduce `stand_drink` recortado

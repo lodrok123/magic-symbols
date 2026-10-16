@@ -26,10 +26,17 @@ extends Node
 ##            sumidero (20,14). Fuego la abre (o `!`/`@`); con (20,11) ≤ 0,25 Z se abre. El fuego también evapora (VOL_EVAPORA por golpe).
 ##   Q6 (1,2) RIEGA: pulsador de AGUA `%` (12,19): solo el agua lo activa (el botón `!` de al lado NO abre Z: es el control). También `@`.
 ##            La sala es hierba: para ver el charco de un impacto (y si se seca: bug «charco eterno»).
-##   Q7 (2,2) RESERVADA (rayo por el agua: necesita la fuente eléctrica de la maqueta).
+##   Q7 (2,2) RAYO POR EL AGUA: fuente eléctrica `e` (18,20) → canal seco `-` (19–21, 20) → tótem de rayo `i` (22,20). El canal está
+##            abierto pero vacío: ~6 hechizos de agua lo llenan (≥ 0,25: 1,33 u³ en 9 trocitos) y la fuente (EmisorRayo3D) conduce hasta el tótem, que abre Z.
+##            Fuego lo evapora y corta. `!`/`@` echan el agua por código.
+##   Q9 (3,0) MOLINO: arroyo de canal (28, 1–7) cerrado por una compuerta en (28,2); el molino (28,5) gira con la corriente (abre Z
+##            mientras gira) o 6 s si lo golpea un hechizo de agua (Z se abre y se vuelve a cerrar). `!`/`@` abren la compuerta.
+##   Q10 (3,1) ROCA Y BARRIL: cauce (25–30, 12) con manantial en (26,12) y aliviadero en (25,12); una ROCA en (28,12) corta el curso.
+##            Fuego al barril (28,11) → explota → la roca se desmorona → el agua llega al este; (30,12) ≥ 0,4 abre Z. Hielo en (27,12)
+##            vuelve a cortarlo. `!`/`@` encienden el barril por código.
 ##   Q8 (0,2) NIVEL JUSTO: tinaja `u` (5,19) → recto `-` (4,19) → cuenca (2–3, 18–19). Z abre solo con (2,18) en 0,5 ± 0,08. El `!` CIERRA
 ##            EL GRIFO (AguaSim3D.apagar_fuente) y el fuego evapora para bajar. Las tinajas del lab vierten CAUDAL_TINAJA_LAB durante VOL_TINAJA_LAB u³.
-## Teclas: 1–8 lleva al jugador a la entrada de esa sala · R recarga la escena · (las de la maqueta siguen valiendo).
+## Teclas: 1–9 y 0 (= Q10) llevan al jugador a la entrada de esa sala · R recarga la escena · (las de la maqueta siguen valiendo).
 ## El HUD muestra, por puzle, la profundidad leída por su detector, el estado de su compuerta y si la puerta está abierta; y el
 ## volumen total de agua de la escena (si crece sin manantiales, hay una fuga al revés).
 
@@ -108,7 +115,10 @@ func iniciar(mundo: Variant) -> void:
 	_montar_q4()
 	_montar_q5()
 	_montar_q6()
+	_montar_q7()
 	_montar_q8()
+	_montar_q9()
+	_montar_q10()
 	_montar_hud()
 	set_process(true)
 
@@ -120,6 +130,8 @@ func _comprobar_mapa() -> void:
 		Vector2i(4, 3): "c", Vector2i(6, 3): "c", Vector2i(18, 2): "-", Vector2i(18, 4): "-",
 		Vector2i(3, 12): "c", Vector2i(6, 12): "c", Vector2i(20, 13): "c", Vector2i(12, 19): "%",
 		Vector2i(5, 19): "u", Vector2i(4, 19): "-", Vector2i(2, 18): "c",
+		Vector2i(18, 20): "e", Vector2i(20, 20): "-", Vector2i(22, 20): "i",
+		Vector2i(28, 2): "-", Vector2i(28, 5): "-", Vector2i(26, 12): "c", Vector2i(28, 12): "c", Vector2i(30, 12): "c",
 	}
 	for c in esperadas:
 		var l: String = Terreno3D.letra_de(c)
@@ -329,6 +341,79 @@ func _montar_q8() -> void:
 	q["tinaja"] = _tinaja_en(Vector2i(5, 19))
 
 
+func _montar_q7() -> void:
+	var canal: Array = [Vector2i(19, 20), Vector2i(20, 20), Vector2i(21, 20)]
+	_abrir_cuenca(canal)                                                          # abierto y vacío (abrir_solo recordado: forma de canal)
+	var em := EmisorRayo3D.new()
+	em.name = "emisor_18_20"
+	(m.get("_props") as Node).add_child(em)
+	em.preparar(m, Vector2i(18, 20))
+	var puerta: PuertaLab = _puerta(Vector2i(20, 22))
+	var q: Dictionary = _registrar("Q7 rayo", Vector2i(20, 16), null, null, puerta)
+	var totem: Reactivo3D = null
+	for r in (m.get("_reactivos") as Array):
+		if is_instance_valid(r) and String(r.get("tipo")) == "totem" and String(r.get("elemento")) == "rayo" and r.celda == Vector2i(22, 20):
+			totem = r
+	if totem != null:
+		totem.activado.connect(func(_t: String, _e: String) -> void: puerta.poner(true))
+	else:
+		_avisos.append("Q7: no hay tótem de rayo en (22,20)")
+	q["emisor"] = em
+	q["totem"] = totem
+	q["canal"] = canal
+	var echar := func(_mo: String) -> void:
+		for c in canal:
+			Terreno3D.agua_sim.llenar_casilla(c as Vector2i, Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + 0.35)   # como ~6 hechizos: 0,35 u en el cajón
+	_pulsador(Vector2i(18, 22), "magia", 1.0).pulsado.connect(echar)
+	_pulsador(Vector2i(22, 22), "presencia").pulsado.connect(echar)
+
+
+func _montar_q9() -> void:
+	var arroyo: Array = []
+	for y in range(1, 8):
+		arroyo.append(Vector2i(28, y))
+	_abrir_cuenca(arroyo)                                                         # el canal, abierto pero SECO: el manantial nace al abrir la compuerta
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	sim.fijar_nivel(Vector2i(28, 7), Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + 0.02)   # desagüe abajo
+	# La compuerta hace de grifo: abierta, arranca el manantial (con su rampa); cerrada, lo apaga. (Con el manantial siempre abierto y la
+	# compuerta cerrada el agua se apilaba sin fin en la primera casilla: el cajón del canal no rebosa hacia los lados.)
+	var k: Compuerta3D = _compuerta(Vector2i(28, 2), false, "", "", false)      # losa E-O: el agua va N-S
+	k.cambio.connect(func(abierta: bool) -> void:
+		if abierta:
+			sim.sumar_fuente_gradual(Vector2i(28, 1), CAUDAL_ARROYO_Q3, ReaccionesAgua3D.ARRANQUE_CAUCE)
+		else:
+			sim.apagar_fuente(Vector2i(28, 1))
+	)
+	var mol := Molino3D.new()
+	mol.name = "molino_28_5"
+	mol.preparar(Vector2i(28, 5), 0.3, true)
+	(m.get("_props") as Node).add_child(mol)
+	var puerta: PuertaLab = _puerta(Vector2i(31, 4))
+	var q: Dictionary = _registrar("Q9 molino", Vector2i(28, 8), null, k, puerta)
+	mol.girando.connect(puerta.poner)
+	q["molino"] = mol
+	_pulsador(Vector2i(26, 6), "magia").pulsado.connect(func(_mo: String) -> void: k.abrir())
+	_pulsador(Vector2i(30, 6), "presencia").pulsado.connect(func(_mo: String) -> void: k.abrir())
+
+
+func _montar_q10() -> void:
+	var cauce: Array = [Vector2i(25, 12), Vector2i(26, 12), Vector2i(27, 12), Vector2i(29, 12), Vector2i(30, 12)]
+	_abrir_cuenca(cauce)
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	sim.fuente_en(Vector2i(26, 12), CAUDAL_ARROYO)
+	sim.fijar_nivel(Vector2i(25, 12), _lecho() + 0.85)                           # aliviadero: lo que sobra se va por aquí, no por la sala
+	var roca: Compuerta3D = _compuerta(Vector2i(28, 12), false, "explosion", "", true, false)
+	var barril := Barril3D.new()
+	barril.name = "barril_28_11"
+	barril.preparar(Vector2i(28, 11))
+	(m.get("_props") as Node).add_child(barril)
+	var det: NivelAgua3D = _detector(Vector2i(30, 12), 0.4)
+	var q: Dictionary = _registrar("Q10 roca", Vector2i(24, 12), det, roca, _puerta(Vector2i(30, 10)))
+	q["barril"] = barril
+	_pulsador(Vector2i(26, 10), "magia").pulsado.connect(func(_mo: String) -> void: barril.encender())
+	_pulsador(Vector2i(30, 14), "presencia").pulsado.connect(func(_mo: String) -> void: barril.encender())
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 #  Marcha
 # ---------------------------------------------------------------------------------------------------------------------
@@ -357,8 +442,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if k.keycode == KEY_R:
 		get_tree().reload_current_scene()
 		return
-	# 1–6 son Q1–Q6 en el orden de _puzles; 8 es Q8 (la 7 está reservada).
-	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4, KEY_6: 5, KEY_8: 6}
+	# El orden de _puzles es Q1…Q6, Q7, Q8, Q9, Q10; la tecla 0 es Q10.
+	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4, KEY_6: 5, KEY_7: 6, KEY_8: 7, KEY_9: 8, KEY_0: 9}
 	if teclas.has(k.keycode):
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
@@ -377,7 +462,7 @@ func colocar_jugador(c: Vector2i) -> void:
 
 func puzle(nombre: String) -> Dictionary:
 	for q in _puzles:
-		if String(q["nombre"]).begins_with(nombre):
+		if String(q["nombre"]).split(" ")[0] == nombre:        # «Q1», no «Q1 cuenca»; y «Q1» no es «Q10»
 			return q
 	return {}
 
@@ -398,7 +483,7 @@ func _montar_hud() -> void:
 func _refrescar_hud() -> void:
 	if _hud == null or Terreno3D.agua_sim == null:
 		return
-	var t: String = "LAB PUZLES DE AGUA · 1–8 ir a la sala · R recargar · agua total %.1f u³\n" % Terreno3D.agua_sim.volumen_total()
+	var t: String = "LAB PUZLES DE AGUA · 1–9, 0 ir a la sala · R recargar · agua total %.1f u³\n" % Terreno3D.agua_sim.volumen_total()
 	for q in _puzles:
 		var linea: String = "  %-16s" % String(q["nombre"])
 		var det: NivelAgua3D = q["detector"]
@@ -408,6 +493,15 @@ func _refrescar_hud() -> void:
 		var k: Compuerta3D = q["compuerta"]
 		if k != null:
 			linea += "  compuerta %s" % ("ABIERTA" if k.abierta else "cerrada")
+		if q.has("molino"):
+			var mo: Molino3D = q["molino"]
+			linea += "  corriente %.2f u/s  rueda %s" % [mo.corriente(), "GIRA" if mo.activo else "quieta"]
+		if q.has("barril"):
+			var ba: Barril3D = q["barril"]
+			linea += "  barril %s" % ("EXPLOTADO" if ba.explotado else ("encendido" if ba.encendido else "entero"))
+		if q.has("emisor"):
+			var em: EmisorRayo3D = q["emisor"]
+			linea += "  agua electrificada %d casillas" % em.electrificada.size()
 		var p: PuertaLab = q["puerta"]
 		if p != null:
 			linea += "  puerta %s" % ("ABIERTA" if p.abierta else "cerrada")

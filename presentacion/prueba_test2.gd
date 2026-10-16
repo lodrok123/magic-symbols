@@ -581,6 +581,15 @@ const ALTO_CAUCE: float = ALTO - 0.1          ## el lecho va 0,1 por debajo del 
 const ALTO_RUNAS: float = 3.1                 ## sobre el suelo: encima del dintel del arco
 var _guijarros: MultiMeshInstance3D = null
 var _agua_cauce: Dictionary = {}             ## casilla `c` -> MeshInstance3D de su agua (oculta hasta llenar_cauce)
+## 13.9 (15/10, DIARIO 92): la casilla `c` ABIERTA a la simulación (`Terreno3D.es_cuenca`) es un POZO con fondo (PozoCauce3D), no el bloque macizo de
+## ALTO_CAUCE. Cerrada se ve como siempre (el lecho seco del Bosque). `_actualizar_pozos` mira cada 0,1 s si alguna se abrió o se cerró.
+var _tapas_cauce: Dictionary = {}            ## casilla `c` -> MeshInstance3D del bloque del lecho seco (visible mientras NO es cuenca)
+var _pozos_cauce: Dictionary = {}            ## casilla `c` -> PozoCauce3D (se crea la primera vez que se abre: así lee el alto del agua ya configurado)
+var _estado_pozo: Dictionary = {}            ## casilla `c` -> bool: último estado visto (abierta = pozo)
+var _guijarros_cauce: Dictionary = {}        ## casilla `c` -> [índice del primer guijarro, Array de sus 9 transformadas con la tapa puesta]
+var _mat_lecho_cauce: StandardMaterial3D = null
+var _mat_piedra_pozo: StandardMaterial3D = null
+var _t_pozos: float = 0.0
 var _runas_puerta: Dictionary = {}           ## elemento -> [StandardMaterial3D del símbolo, posición]
 var _canal_orden: Array = []                 ## 13/10: casillas del canal en orden de llenado (índice = el de Canal3D)
 var _chispas_agua: Dictionary = {}           ## casilla -> Node3D con las chispas del agua electrificada
@@ -906,9 +915,12 @@ func _construir_suelo() -> void:
 ## guijarros aplastados de tonos tierra-gris encima. Cada casilla trae ya su bloque de agua, oculto: llenar_cauce lo sube.
 ## Por qué un bloque de agua por casilla y no un MultiMesh: el Juego puede llenar solo una parte (el agua avanza).
 func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
+	_tapas_cauce.clear()
+	_pozos_cauce.clear()
+	_estado_pozo.clear()
+	_guijarros_cauce.clear()
 	if celdas.is_empty():
 		return
-	var lecho: Array[Transform3D] = []
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -926,16 +938,18 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	var malla_agua: ArrayMesh = _malla_bloque(ALTO_AGUA, _mat_agua, mat_lado)
 	var i: int = 0
 	for c in celdas:
-		lecho.append(Transform3D(Basis.IDENTITY, _centro_celda(c, 0.0)))
+		var base_guij: Array = []
 		for k in range(9):
 			var h: int = _hash(c.x, c.y, 40 + k)
 			var off := Vector3(float(h % 97) / 96.0 - 0.5, 0.0, float((h >> 7) % 97) / 96.0 - 0.5) * S * 0.85
 			var r: float = 0.1 + float((h >> 3) % 10) / 70.0
-			mm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, float(h % 360)).scaled(Vector3(r * 1.4, r * 0.45, r)),
-				_centro_celda(c, ALTO_CAUCE) + off))
+			var tf_g := Transform3D(Basis(Vector3.UP, float(h % 360)).scaled(Vector3(r * 1.4, r * 0.45, r)), _centro_celda(c, ALTO_CAUCE) + off)
+			mm.set_instance_transform(i, tf_g)
+			base_guij.append(tf_g)
 			var gris: float = 0.32 + 0.16 * float((h >> 11) % 10) / 9.0
 			mm.set_instance_color(i, Color(gris * 1.05, gris, gris * 0.9))
 			i += 1
+		_guijarros_cauce[c] = [i - 9, base_guij]
 		var agua := MeshInstance3D.new()
 		agua.mesh = malla_agua
 		agua.position = _centro_celda(c, 0.0)
@@ -945,10 +959,70 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	# Tapa propia (no el shader del suelo): piedra apagada y algo parda, que se lea «seco» al lado de la hierba y del río.
 	var mat_lecho: StandardMaterial3D = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
 	mat_lecho.albedo_color = mat_lecho.albedo_color * Color(0.72, 0.66, 0.58)
-	_multimalla(_malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado), lecho)
+	# Un bloque por casilla (no un MultiMesh): cada uno se oculta cuando su casilla se abre y pasa a ser pozo.
+	_mat_lecho_cauce = mat_lecho
+	_mat_piedra_pozo = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
+	var malla_lecho: ArrayMesh = _malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado)
+	for c in celdas:
+		var tapa := MeshInstance3D.new()
+		tapa.mesh = malla_lecho
+		tapa.position = _centro_celda(c, 0.0)
+		add_child(tapa)
+		_tapas_cauce[c] = tapa
+		_estado_pozo[c] = false
 	_guijarros = MultiMeshInstance3D.new()
 	_guijarros.multimesh = mm
 	add_child(_guijarros)
+
+
+## 13.9 · POZOS: cada 0,1 s mira qué casillas `c` están abiertas a la simulación (`Terreno3D.es_cuenca`). Abierta = pozo (PozoCauce3D, sin
+## tapa, fondo en `alto_agua − LECHO_AGUA` como el lecho del río y el suelo de la simulación) y los guijarros bajan al fondo; cerrada = el lecho
+## seco de siempre. Se mira por sondeo y no por señal porque quien abre (`Surtidor3D`, `Mundo3D.abrir_cauce`, las compuertas) escribe directamente
+## en `Terreno3D.cauces_abiertos`. Entre dos pozos vecinos, y contra el agua de río, no se dibuja pared.
+func _actualizar_pozos(delta: float) -> void:
+	if _tapas_cauce.is_empty():
+		return
+	_t_pozos += delta
+	if _t_pozos < 0.1:
+		return
+	_t_pozos = 0.0
+	var cambio: bool = false
+	for c in _tapas_cauce.keys():
+		var abierta: bool = Terreno3D.es_cuenca(c)
+		if abierta == bool(_estado_pozo.get(c, false)):
+			continue
+		_estado_pozo[c] = abierta
+		cambio = true
+		(_tapas_cauce[c] as MeshInstance3D).visible = not abierta
+		if abierta and not _pozos_cauce.has(c):
+			var p := PozoCauce3D.new()
+			p.position = _centro_celda(c, 0.0)
+			add_child(p)
+			p.construir(S, Terreno3D.alto_agua - Terreno3D.LECHO_AGUA, Terreno3D.alto_suelo, _mat_piedra_pozo, _mat_lecho_cauce)
+			_pozos_cauce[c] = p
+		if _pozos_cauce.has(c):
+			(_pozos_cauce[c] as Node3D).visible = abierta
+		_mover_guijarros_cauce(c, abierta)
+	if cambio:
+		for c in _pozos_cauce.keys():
+			var p: PozoCauce3D = _pozos_cauce[c]
+			for i in range(PozoCauce3D.LADOS.size()):
+				var n: Vector2i = (c as Vector2i) + PozoCauce3D.LADOS[i]
+				var sin_pared: bool = bool(_estado_pozo.get(n, false)) or _letra(n) == "~"
+				p.mostrar_lado(i, not sin_pared)
+
+
+## Los 9 guijarros de una casilla: sobre el lecho (cerrada) o en el fondo del pozo (abierta).
+func _mover_guijarros_cauce(c: Vector2i, abierta: bool) -> void:
+	if _guijarros == null or not _guijarros_cauce.has(c):
+		return
+	var datos: Array = _guijarros_cauce[c]
+	var mm: MultiMesh = _guijarros.multimesh
+	var dy: float = (Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + 0.02 - ALTO_CAUCE) if abierta else 0.0
+	for k in range(9):
+		var tf: Transform3D = (datos[1] as Array)[k]
+		tf.origin.y += dy
+		mm.set_instance_transform(int(datos[0]) + k, tf)
 
 
 ## --- 6.16 ORILLA: transición agua → hierba ---
@@ -3722,6 +3796,7 @@ func _colocar_camara() -> void:
 
 
 func _process(delta: float) -> void:
+	_actualizar_pozos(delta)
 	if _jugador != null:
 		if not externo:
 			_mover(delta)
@@ -4019,6 +4094,8 @@ func _montar_agua_fisica() -> void:
 	# 13/10: la simulación de agua se lee de Terreno3D (capa mundo/), ya no por reflexión sobre el Lanzador (ARQUITECTURA_MODULAR §5.2).
 	_agua_render.proveedor = func() -> Variant: return Terreno3D.agua_sim
 	_agua_render.proveedor_topes = _topes_agua_canal        # 13.9 (c): el agua del canal no sobresale de la piedra
+	_agua_render.proveedor_flujo = _flujo_rio               # 15/10 (diario 95): el río corre hacia su salida (si no, se lee como un lago)
+	_agua_render.caida_detectada.connect(_onda_de_caida)    # y donde el agua CAE se levantan anillos en la base
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()
@@ -4077,6 +4154,31 @@ func _asegurar_ondas() -> AguaOndas3D:
 		add_child(_ondas_agua)
 		_ondas_agua.conectar(_agua_render)
 	return _ondas_agua
+
+
+## 15/10 (diario 95) · Corriente propia del río (`AguaRender3D.proveedor_flujo`): {casilla: dirección}. El río del Bosque está cerrado por `#`
+## (no toca el borde), así que la salida es su extremo SUR: las casillas de río con la Y mayor. El mapa aún no dice por dónde sale el agua;
+## si un nivel lo necesita distinto, que Juego añada una instrucción de mapa y esto la lea (aquí solo se decide la salida).
+func _flujo_rio() -> Dictionary:
+	var lado: int = Terreno3D.lado_del_mapa()
+	var es_rio := func(c: Vector2i) -> bool: return Terreno3D.letra_de(c) == "~" or Terreno3D.letra_de(c) == "b"
+	var y_sur: int = -1
+	for y in range(lado):
+		for x in range(lado):
+			if es_rio.call(Vector2i(x, y)):
+				y_sur = y
+	if y_sur < 0:
+		return {}
+	var es_salida := func(c: Vector2i) -> bool: return c.y == y_sur
+	return AguaRender3D.flujo_hacia_salidas(lado, es_rio, es_salida)
+
+
+## 15/10 (diario 95) · Una caída detectada en la simulación (cuenca que se llena, agua que baja de un escalón): anillos en su base.
+const FUERZA_ONDA_CAIDA: float = 0.03
+func _onda_de_caida(pos: Vector3, salto: float) -> void:
+	var o: AguaOndas3D = _asegurar_ondas()
+	if o != null:
+		o.impulso(pos, FUERZA_ONDA_CAIDA * clampf(salto / 0.5, 0.5, 2.0), RADIO_ONDA)
 
 
 ## 13.9 (c) · {casilla: Y máxima del agua dibujada} de todas las casillas de canal de ruinas del mapa (`AguaRender3D.proveedor_topes`).

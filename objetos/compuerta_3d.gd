@@ -7,8 +7,9 @@ extends Area3D
 ## una compuerta se igualan al abrirla (medido con el gemelo: 0,64 u → 0,36/0,36).
 ##
 ## Cómo se abre: por código (`abrir`, `cerrar`, `alternar`: lo llama un Pulsador3D o el puzle) o con un hechizo si se le dice
-## con qué: `abre_con` / `cierra_con` ∈ "fuego" | "agua" | "hielo" | "rayo" | "". Una compuerta de HIELO es `abre_con = "fuego"`
-## (se derrite); una de TIERRA que el hielo tapona es `cierra_con = "hielo"`. Lo demás no le hace nada.
+## con qué: `abre_con` / `cierra_con` ∈ "fuego" | "agua" | "hielo" | "rayo" | "explosion" | "". Una compuerta de HIELO es
+## `abre_con = "fuego"` (se derrite); una de TIERRA que el hielo tapona es `cierra_con = "hielo"`; una ROCA que solo abre un barril
+## (Barril3D) es `abre_con = "explosion"` (se dibuja como pedrusco y no reacciona a ningún hechizo). Lo demás no le hace nada.
 ##
 ## Qué pasa con el agua al cerrar: la que había en la casilla se reparte entre las vecinas abiertas (lo hace `_poner_cerrado`).
 ## Qué NO hace: no es una puerta para el jugador (la casilla de cauce no se pisa). Se dibuja sola: una losa que baja al abrirse.
@@ -18,6 +19,7 @@ signal cambio(abierta: bool)
 const ETIQUETA: Dictionary = {"fuego": "calor", "agua": "agua", "hielo": "frio", "rayo": "rayo"}
 const COLOR_CERRADA: Color = Color(0.55, 0.5, 0.45)
 const COLOR_HIELO: Color = Color(0.8, 0.92, 1.0, 0.85)
+const COLOR_ROCA: Color = Color(0.42, 0.4, 0.38)
 const ALTO: float = 1.3
 const GROSOR: float = 0.3
 const T_MOVER: float = 0.6
@@ -46,7 +48,10 @@ func _ready() -> void:
 	monitoring = false
 	monitorable = true
 	collision_mask = 0
-	collision_layer = Lanzador3D.CAPA_REACTIVO if (abre_con != "" or cierra_con != "") else 0
+	var por_hechizo: bool = (abre_con != "" and abre_con != "explosion") or (cierra_con != "" and cierra_con != "explosion")
+	collision_layer = Lanzador3D.CAPA_REACTIVO if por_hechizo else 0
+	if abre_con == "explosion" or cierra_con == "explosion":
+		add_to_group("explosionable")
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
 	caja.size = Vector3(Terreno3D.casilla * 0.9, ALTO, Terreno3D.casilla * 0.9)
@@ -64,7 +69,17 @@ func _dibujar() -> void:
 	b.size = Vector3(GROSOR, ALTO + Terreno3D.LECHO_AGUA, ancho) if vertical else Vector3(ancho, ALTO + Terreno3D.LECHO_AGUA, GROSOR)
 	_losa.mesh = b
 	var mat := StandardMaterial3D.new()
-	if abre_con == "fuego":
+	if abre_con == "explosion":
+		# Una roca: un pedrusco que tapa la casilla entera (al «abrirse» se hunde, como si se desmoronara).
+		var roca := SphereMesh.new()
+		roca.radius = Terreno3D.casilla * 0.48
+		roca.height = ALTO + Terreno3D.LECHO_AGUA
+		roca.radial_segments = 7
+		roca.rings = 4
+		_losa.mesh = roca
+		mat.albedo_color = COLOR_ROCA
+		mat.roughness = 1.0
+	elif abre_con == "fuego":
 		mat.albedo_color = COLOR_HIELO
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		mat.roughness = 0.15
@@ -106,6 +121,14 @@ func nivel_altura() -> int:
 
 func punto_activacion() -> Vector3:
 	return to_global(Vector3(0.0, ALTO * 0.6, 0.0))
+
+
+## Un Barril3D ha explotado a `_punto`: la roca se desmorona (o, si `cierra_con` es explosión, el derrumbe tapona el paso).
+func recibir_explosion(_punto: Vector3) -> void:
+	if not abierta and abre_con == "explosion":
+		abrir()
+	elif abierta and cierra_con == "explosion":
+		cerrar()
 
 
 ## --- Abrir y cerrar ---

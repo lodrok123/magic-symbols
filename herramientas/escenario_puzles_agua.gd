@@ -14,7 +14,7 @@ var lab: Node = null
 func _escenario() -> void:
 	await cargar(RUTA_LAB)
 	lab = maqueta.get_node_or_null("Reglas")
-	_ok("0 el laboratorio cuelga de la escena y ha montado sus puzles", lab != null and lab.get("_puzles") != null and (lab.get("_puzles") as Array).size() == 7)
+	_ok("0 el laboratorio cuelga de la escena y ha montado sus diez puzles", lab != null and lab.get("_puzles") != null and (lab.get("_puzles") as Array).size() == 10, str((lab.get("_puzles") as Array).size()) if lab != null else "sin lab")
 	if lab == null:
 		return
 	_ok("0 el mapa tiene las letras que el lab espera", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
@@ -25,6 +25,9 @@ func _escenario() -> void:
 	await _q3_presa()
 	await _q4_desvio()
 	await _q8_nivel_justo()
+	await _q7_rayo()
+	await _q9_molino()
+	await _q10_roca()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -211,3 +214,96 @@ func _q8_nivel_justo() -> void:
 	var p2: float = sim.profundidad_casilla(Vector2i(2, 18))
 	_ok("Q8.4 el botón cierra el grifo: el nivel deja de subir (apagar_fuente)", p2 <= p1 + 0.02, "%.2f → %.2f en 6 s" % [p1, p2])
 	volcar("q8", {"abrio": abrio, "cerro": cerro, "tras_grifo": [snappedf(p1, 0.01), snappedf(p2, 0.01)]})
+
+
+func _q7_rayo() -> void:
+	var q: Dictionary = lab.call("puzle", "Q7")
+	var puerta: Node = q["puerta"]
+	var em: Node = q["emisor"]
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	_ok("Q7.1 hay fuente eléctrica y tótem de rayo", em != null and q.get("totem") != null)
+	_ok("Q7.2 el canal seco no conduce: nada electrificado y puerta cerrada", (em.get("electrificada") as Array).is_empty() and not bool(puerta.get("abierta")))
+	# Seis hechizos de agua al tramo central del canal, desde TRES casillas al sur (ALCANCE_FLECHA = 3: la flecha cae a 3 casillas; desde dos
+	# pasaba de largo y el charco caía en la hierba de detrás). Por qué seis: cada impacto echa VOL_AGUA_IMPACTO (0,24 u³) y las tres
+	# casillas del canal tienen 9 trocitos abiertos (5,3 u²): para 0,25 u hacen falta 1,33 u³.
+	var n: int = 0
+	for i in range(6):
+		# A la casilla ESTE del canal (21,20), no a la central: en la columna 20 está la puerta Z en (20,22) y la flecha chocaba con ella.
+		if lanzar_a_celda("agua", ["flecha"], Vector2i(21, 20), Vector2i(21, 23)):
+			n += 1
+		await avanzar_s(1.2)
+	_ok("Q7.3 salen seis hechizos de agua", n == 6, "%d" % n)
+	await avanzar_s(2.0)
+	# Se mira la casilla más honda del canal: el agua se reparte por el cajón y la del impacto no es siempre la que más tiene
+	# (medido 15/10: 0,31 / 0,26 / 0,24 con el impacto en la del este).
+	var prof: float = 0.0
+	for c in q["canal"]:
+		prof = maxf(prof, sim.profundidad_casilla(c as Vector2i))
+	_ok("Q7.4 el canal lleva agua de juego (≥ UMBRAL_AGUA en alguna casilla) tras los hechizos", prof >= AguaSim3D.UMBRAL_AGUA, "%.2f u (las tres casillas: %s; alrededor: %s)" % [prof, str(profundidades(q["canal"])), str(profundidades([Vector2i(21, 19), Vector2i(21, 21), Vector2i(21, 22), Vector2i(20, 21)]))])
+	var r: Dictionary = {"t": -1.0}
+	await avanzar_vigilando(12.0, 0.5, func(t: float) -> void:
+		if float(r["t"]) < 0.0 and bool(puerta.get("abierta")):
+			r["t"] = t
+	)
+	_ok("Q7.5 la fuente descarga por el agua, el tótem se activa y la puerta se abre", float(r["t"]) > 0.0, "a los %.1f s (electrificadas %d)" % [float(r["t"]), (em.get("electrificada") as Array).size()])
+	volcar("q7", {"prof": snappedf(prof, 0.01), "t_puerta": r["t"]})
+
+
+func _q9_molino() -> void:
+	var q: Dictionary = lab.call("puzle", "Q9")
+	var puerta: Node = q["puerta"]
+	var k: Node = q["compuerta"]
+	var mol: Node = q["molino"]
+	_ok("Q9.1 el arroyo está seco y el molino quieto", float(mol.call("corriente")) < 0.05 and not bool(mol.get("activo")) and not bool(puerta.get("abierta")))
+	# Vía 1: un hechizo de agua a la rueda la hace girar T_IMPULSO s y la puerta se abre y se vuelve a cerrar.
+	_ok("Q9.2 agua + flecha a la rueda", lanzar_a_celda("agua", ["flecha"], Vector2i(28, 5), Vector2i(26, 5)))
+	await avanzar_s(2.0)
+	_ok("Q9.3 la rueda gira por el golpe y abre la puerta", bool(mol.get("activo")) and bool(puerta.get("abierta")), "vel %.2f" % float(mol.get("velocidad")))
+	await avanzar_s(Molino3D.T_IMPULSO + 2.0)
+	_ok("Q9.4 sin agua se para y la puerta se cierra", not bool(mol.get("activo")) and not bool(puerta.get("abierta")))
+	# Vía 2: abrir la compuerta: el arroyo corre y la rueda gira mientras corra.
+	(lab.call("pulsador_en", Vector2i(26, 6)) as Node).call("pulsar")
+	_ok("Q9.5 el botón abre la compuerta", bool(k.get("abierta")))
+	var r: Dictionary = {"t": -1.0}
+	await avanzar_vigilando(40.0, 0.5, func(t: float) -> void:
+		if float(r["t"]) < 0.0 and bool(puerta.get("abierta")):
+			r["t"] = t
+	)
+	var sim9: AguaSim3D = Terreno3D.agua_sim
+	var arroyo: Array = []
+	for y in range(1, 8):
+		arroyo.append(Vector2i(28, y))
+	_ok("Q9.6 con el arroyo corriendo la rueda gira (corriente ≥ umbral) y la puerta se abre", float(r["t"]) > 0.0 and bool(mol.get("activo")),
+		"a los %.1f s, corriente %.2f u/s; manantial %.2f u³/s en (28,1); profundidades %s; trocitos abiertos de (28,2): %d" % [float(r["t"]), float(mol.call("corriente")),
+		sim9.caudal_en(Vector2i(28, 1)), str(profundidades(arroyo)), sim9._trozos_abiertos(Vector2i(28, 2)).size()])
+	# Diagnóstico (15/10): dónde está el agua de (28,1) si no baja por el canal. Por trocito: cerrado / prof / fuente, y las casillas vecinas.
+	for c in [Vector2i(28, 0), Vector2i(28, 1), Vector2i(28, 2), Vector2i(28, 3)]:
+		var fila: String = ""
+		for i in sim9._trozos(c):
+			fila += "[%d %.2f %.2f] " % [sim9.cerrado[i], sim9.prof[i], sim9.fuente[i]]
+		print("      %s: %s" % [c, fila])
+	print("      vecinas de (28,1): oeste %.3f este %.3f · mojadas: %s %s · lado del mapa %d" % [sim9.profundidad_casilla(Vector2i(27, 1)), sim9.profundidad_casilla(Vector2i(29, 1)),
+		str(sim9.casilla_mojada(Vector2i(27, 1))), str(sim9.casilla_mojada(Vector2i(29, 1))), Terreno3D.lado_del_mapa()])
+	volcar("q9", {"t_puerta": r["t"], "corriente": snappedf(float(mol.call("corriente")), 0.01)})
+
+
+func _q10_roca() -> void:
+	var q: Dictionary = lab.call("puzle", "Q10")
+	var puerta: Node = q["puerta"]
+	var roca: Node = q["compuerta"]
+	var barril: Node = q["barril"]
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	var este: float = sim.profundidad_casilla(Vector2i(30, 12))
+	_ok("Q10.1 la roca corta el curso: el este está seco y el oeste no rebosa (aliviadero)", este < 0.02 and sim.profundidad_casilla(Vector2i(26, 12)) < 0.95 and not bool(roca.get("abierta")), "este %.2f oeste %.2f" % [este, sim.profundidad_casilla(Vector2i(26, 12))])
+	_ok("Q10.2 fuego + flecha al barril", lanzar_a_celda("fuego", ["flecha"], Vector2i(28, 11), Vector2i(28, 9)))
+	await avanzar_s(1.0)                                    # la flecha tarda ~0,5 s en llegar
+	_ok("Q10.3 el barril se enciende (mecha)", is_instance_valid(barril) and bool(barril.get("encendido")))
+	await avanzar_s(Barril3D.T_MECHA + 1.0)
+	_ok("Q10.4 explota y la roca se desmorona", is_instance_valid(barril) and bool(barril.get("explotado")) and bool(roca.get("abierta")))
+	var r: Dictionary = {"t": -1.0}
+	await avanzar_vigilando(30.0, 0.5, func(t: float) -> void:
+		if float(r["t"]) < 0.0 and bool(puerta.get("abierta")):
+			r["t"] = t
+	)
+	_ok("Q10.5 el agua llega al este (≥ 0,4) y la puerta se abre", float(r["t"]) > 0.0, "a los %.1f s (este %.2f)" % [float(r["t"]), sim.profundidad_casilla(Vector2i(30, 12))])
+	volcar("q10", {"t_puerta": r["t"]})

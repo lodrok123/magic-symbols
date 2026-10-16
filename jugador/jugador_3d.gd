@@ -620,6 +620,8 @@ func _puede_estar(p: Vector3) -> bool:
 		return Terreno3D.altura_en(c) == 0          # del agua solo se sale a suelo llano
 	var y_dest: float = Terreno3D.y_pies(c)
 	var tolerancia: float = TOLERANCIA_SUELO if en_suelo else TOLERANCIA_AIRE
+	if Terreno3D.es_cuenca(actual) and not Terreno3D.es_cuenca(c):
+		tolerancia += Terreno3D.LECHO_AGUA + (Terreno3D.alto_suelo - Terreno3D.alto_agua)   # 15/10: de una cuenca vacía se sale trepando el borde (un pozo de 1,3 u)
 	return y_dest <= position.y + tolerancia
 
 
@@ -632,7 +634,8 @@ func _vertical(delta: float, salto: bool) -> void:
 			_cambiar_nado(false)                       # tocó suelo, puente o hielo: sale
 			position.y = Terreno3D.y_pies(c)
 		else:
-			position.y = move_toward(position.y, Terreno3D.alto_agua - HUNDIDO, 3.0 * delta)
+			# 15/10: se flota en la superficie que diga el mundo (en una cuenca, la de la simulación: sube y baja con el nivel).
+			position.y = move_toward(position.y, Terreno3D.superficie_agua(c) - HUNDIDO, 3.0 * delta)
 			vy = 0.0
 			en_suelo = true
 			_salto_antes = salto
@@ -660,7 +663,7 @@ func _vertical(delta: float, salto: bool) -> void:
 				_cambiar_nado(true)
 	_salto_antes = salto
 	# Por si algo ha cambiado el suelo justo debajo (el hielo se derrite bajo los pies ya apoyados)
-	if en_suelo and agua and not nadando and position.y <= Terreno3D.alto_agua + 0.3:
+	if en_suelo and agua and not nadando and position.y <= Terreno3D.superficie_agua(c) + 0.3:
 		_cambiar_nado(true)
 
 

@@ -441,11 +441,32 @@ static func y_pies(c: Vector2i) -> float:
 			return y_hielo
 	if es_canal_ruinas(c):
 		return alto_suelo + FONDO_CANAL       # P3: el suelo de la pieza, con o sin agua. La lámina del canal no se nada: se vadea
+	if es_cuenca(c):
+		return alto_agua - LECHO_AGUA         # 15/10 (Pablo: «que se intuya profundidad»): el fondo del pozo; con agua, el jugador nada en su superficie
 	if l == "b" or helada:
 		return alto_agua + 0.12
 	if l == "~":
 		return alto_agua
 	return alto_suelo
+
+
+## ¿Es una CUENCA: un cauce seco `c` ya abierto a la simulación (un pozo de LECHO_AGUA de hondo que se llena y se vacía)? 15/10, lab de
+## puzles de agua. Un `c` sin abrir sigue siendo «cauce seco» (se pisa a ras: es el lecho de piedras del Bosque hasta que el surtidor lo llena).
+static func es_cuenca(c: Vector2i) -> bool:
+	return hay_mundo() and letra_de(c) == "c" and cauces_abiertos.has(c)
+
+
+## Y de la SUPERFICIE del agua en la casilla: lo que el jugador tiene que flotar. El río y el puente, `alto_agua`; una cuenca o un canal,
+## lo que diga la simulación (suelo + profundidad en su centro). Sin agua, el suelo de la casilla (y_pies).
+static func superficie_agua(c: Vector2i) -> float:
+	if agua_sim != null and (es_cuenca(c) or es_canal_ruinas(c)):
+		var p: float = agua_sim.profundidad_casilla(c)
+		if p > AguaSim3D.PROF_MIN:
+			return agua_sim.superficie_en(centro_de(c, 0.0))
+		return y_pies(c)
+	if letra_de(c) == "~" or letra_de(c) == "b":
+		return alto_agua
+	return y_pies(c)
 
 
 ## Lo sólido para un hechizo que vuela a nivel `nivel`: el mapa (árboles, muros, objetos) o una torre de tierra.
