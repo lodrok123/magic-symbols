@@ -42,13 +42,13 @@ func _letras() -> Dictionary:
 
 func _mapa() -> void:
 	var l: Dictionary = _letras()
-	_ok("2.1 el nivel horneado es de 28 × 28", int(maqueta.get("_lado")) == 28, "lado %s" % str(maqueta.get("_lado")))
+	_ok("2.1 el nivel ampliado es de 52 × 44 (los primeros 28 × 28 siguen en las mismas coordenadas)", int(maqueta.get("_ancho")) == 52 and int(maqueta.get("_alto")) == 44, "%s × %s" % [str(maqueta.get("_ancho")), str(maqueta.get("_alto"))])
 	_ok("2.2 un jugador, un elemental, una puerta, un alquimista", int(l.get("S", 0)) == 1 and int(l.get("G", 0)) == 1 and int(l.get("X", 0)) == 1 and int(l.get("Q", 0)) == 1, str(l))
-	_ok("2.3 dos guerreros goblin (los lobernos ya no son letra W) y dos cofres", int(l.get("W", 0)) == 2 and int(l.get("Z", 0)) == 2)
-	_ok("2.4 tres tótems de fuego y las siete antorchas", int(l.get("j", 0)) == 3 and int(l.get("T", 0)) == 7, "j=%s T=%s" % [l.get("j"), l.get("T")])
-	_ok("2.5 telaraña, raíz y dos setas (sin letras `l` ni `P`); el estanque conserva sus 15 casillas c", int(l.get("r", 0)) == 1 and int(l.get("l", 0)) == 0 and int(l.get("P", 0)) == 0 and int(l.get("q", 0)) == 1 and int(l.get("s", 0)) == 2 and int(l.get("c", 0)) == 15, "c=%s" % l.get("c"))
+	_ok("2.3 cuatro guerreros (2 del cofre 1, 1 de la patrulla, 1 de la explanada), dos arqueros y siete cofres", int(l.get("W", 0)) == 4 and int(l.get("A", 0)) == 2 and int(l.get("Z", 0)) == 7, "W=%s A=%s Z=%s" % [l.get("W"), l.get("A"), l.get("Z")])
+	_ok("2.4 tres tótems de fuego y 14 braseros/antorchas (6 de antes + 4 de la cámara A + 4 de la C)", int(l.get("j", 0)) == 3 and int(l.get("T", 0)) == 14, "j=%s T=%s" % [l.get("j"), l.get("T")])
+	_ok("2.5 cuatro telarañas (M8, F17 y las dos del sendero del este), raíz, dos setas y cuatro setos; el estanque conserva sus 15 casillas c", int(l.get("r", 0)) == 4 and int(l.get("l", 0)) == 0 and int(l.get("P", 0)) == 0 and int(l.get("q", 0)) == 1 and int(l.get("s", 0)) == 2 and int(l.get("z", 0)) == 4 and int(l.get("c", 0)) == 15, "c=%s" % l.get("c"))
 	_ok("2.6 los tres tótems y las cuatro antorchas de la secuencia los encontró la regla", (reglas.get("_totems") as Dictionary).size() == 3 and (reglas.get("_sec") as Array).size() == 4)
-	_ok("2.7 la regla ve los dos goblins del cofre 1", (reglas.get("_goblins") as Array).size() == 2, "goblins %d" % (reglas.get("_goblins") as Array).size())
+	_ok("2.7 la regla ve los dos goblins del cofre 1 y los tres de la patrulla", (reglas.get("_goblins") as Array).size() == 2 and (reglas.get("_patrulla") as Array).size() == 3, "goblins %d patrulla %d" % [(reglas.get("_goblins") as Array).size(), (reglas.get("_patrulla") as Array).size()])
 	if (reglas.get("_elementales") as Array).size() == 1:
 		_ok("2.7b y el elemental", true)
 	else:
@@ -57,7 +57,7 @@ func _mapa() -> void:
 	for mc in (maqueta.get("_marcas") as Array):
 		var g: String = String((mc as Dictionary)["grupo"])
 		grupos[g] = int(grupos.get(g, 0)) + 1
-	_ok("2.8 marcadores de datos: un tronco-puente, un tronco del estanque, dos lobernos; sin puente reactivo", int(grupos.get("tronco_puente", 0)) == 1 and int(grupos.get("tronco_estanque", 0)) == 1 and int(grupos.get("loberno", 0)) == 2 and (maqueta.get("_puentes_def") as Array).is_empty(), str(grupos))
+	_ok("2.8 marcadores de datos: un tronco-puente, un tronco del estanque, cuatro lobernos (dos del claro del este); sin puente reactivo", int(grupos.get("tronco_puente", 0)) == 1 and int(grupos.get("tronco_estanque", 0)) == 1 and int(grupos.get("loberno", 0)) == 4 and (maqueta.get("_puentes_def") as Array).is_empty(), str(grupos))
 
 
 func _totem(c: Vector2i) -> Variant:
@@ -193,20 +193,20 @@ func _fuego() -> RuneData:
 
 func _lobernos() -> void:
 	var lista: Array = reglas.get("_lobernos")
-	if not ResourceLoader.exists("res://arte/modelos/loberno.glb"):
-		_aviso("11 lobernos", "falta arte/modelos/loberno.glb en este entorno (el del proyecto sí lo tiene)")
+	if not ResourceLoader.exists("res://arte/modelos/emberheart.glb"):
+		_aviso("11 lobernos", "falta arte/modelos/emberheart.glb en este entorno (el del proyecto sí lo tiene)")
 		return
-	_ok("11.1 salen los dos lobernos del nivel", lista.size() == 2, "lobernos %d" % lista.size())
+	_ok("11.1 salen los cuatro lobernos del nivel (dos del prado y dos del claro del este)", lista.size() == 4, "lobernos %d" % lista.size())
 	var buenos: int = 0
 	for g in lista:
-		if is_instance_valid(g) and (g as Pj3D).id == "loberno" and Pj3D.glb_de("loberno") == "loberno":
+		if is_instance_valid(g) and (g as Pj3D).id == "loberno" and Pj3D.glb_de("loberno") == "emberheart":
 			buenos += 1
-	_ok("11.2 usan el modelo loberno.glb (no emberheart) y la regla no los cuenta como goblins del cofre 1", buenos == 2 and (reglas.get("_goblins") as Array).size() == 2)
+	_ok("11.2 usan el modelo emberheart.glb (Pablo, 17/10) y la regla no los cuenta como goblins del cofre 1", buenos == 4 and (reglas.get("_goblins") as Array).size() == 2)
 	var n: int = 0
 	for nodo in maqueta.get_tree().get_nodes_in_group("combate3d"):
 		if (nodo as Combate3D).pj != null and (nodo as Combate3D).pj.id == "loberno":
 			n += 1
-	_ok("11.3 cada loberno lleva su Combate3D", n == 2, "combates %d" % n)
+	_ok("11.3 cada loberno lleva su Combate3D", n == 4, "combates %d" % n)
 
 
 func _tronco_puente() -> void:
@@ -223,10 +223,26 @@ func _tronco_puente() -> void:
 	_ok("12.4 el agua no lo tumba", not t.spell_reacts(agua))
 	_ok("12.5 está en la capa de hechizos", (t.collision_layer & Lanzador3D.CAPA_REACTIVO) != 0)
 	t.on_spell_hit(_fuego(), Vector3.ZERO)
-	await avanzar_s(2.0)
+	await avanzar_s(0.4)
+	if t.mundo != null and t.mundo.get("_fx") != null:
+		_ok("12.5b prende un fuego pequeño en la base y el tronco aún no ha caído", t.get("_llama") != null and is_instance_valid(t.get("_llama")) and absf((t.get("_pivote") as Node3D).basis.y.y - 1.0) < 0.02, "cayó el pivote: %s" % str((t.get("_pivote") as Node3D).basis.y))
+	await avanzar_s(TroncoPuente3D.T_ARDE + TroncoPuente3D.T_CAIDA + 0.8)
+	_ok("12.5c y el fuego se apaga al empezar a caer (no hay versión quemada)", t.get("_llama") == null)
 	_ok("12.6 golpeado con fuego, cae y la casilla del río pasa a puente", t.cayo and String(maqueta.call("_letra", c)) == "b", "letra «%s»" % String(maqueta.call("_letra", c)))
 	_ok("12.7 el tronco quedó tumbado (su eje largo, horizontal)", absf((t.get("_pivote") as Node3D).basis.y.y) < 0.05)
 	_ok("12.8 el puente se pisa", Terreno3D.pisable(c, 0, false, 0, false))
+	# Modelo de la lámina «Verdant Timber Ruins» (ARTE §15): el caído, escalado a 3,4, cubre del pie a la orilla de enfrente
+	if PiezaBosque3D.malla_modelo("tronco_puente_caido") == null:
+		_aviso("12.9 modelo del tronco caído", "falta arte/meshy/bosque/bosque_ruinas.glb en este entorno: se usó el cilindro provisional")
+	else:
+		# Pablo (16/10): sin versión quemada. El tronco NO cambia al modelo oscuro: se queda el de pie, tumbado y estirado a la escala del hueco.
+		var piv: Node3D = t.get("_pivote") as Node3D
+		_ok("12.9 al caer NO se cambia al modelo oscuro (se queda el mismo, sin versión quemada)", piv.visible and (t.get("_caido_modelo") == null or not (t.get("_caido_modelo") as Node3D).visible))
+		var largo: float = piv.basis.y.length() * float(t.get("_alto"))
+		var dir: Vector3 = piv.basis.y.normalized()
+		_ok("12.10 tumbado mide 3,4 desde el pie y apunta hacia donde cae (el oeste)", absf(largo - 3.4) < 0.05 and dir.dot(t.direccion) > 0.99, "largo %.2f, dir %s" % [largo, str(dir)])
+		var hasta_orilla: float = 2.3 + 1.15       # del centro de la orilla este al borde lejano de la casilla del río (la casilla mide 2,3)
+		_ok("12.11 y llega a menos de 10 cm de la orilla de enfrente (necesita %.2f, tiene %.2f)" % [hasta_orilla, largo], largo >= hasta_orilla - 0.1)
 
 
 func _tronco_estanque() -> void:
@@ -236,7 +252,11 @@ func _tronco_estanque() -> void:
 	if tr == null:
 		return
 	# El estanque ya se llenó en la prueba 9 (60 s con la losa pisada): el tronco tiene que haber subido y abierto el paso.
-	_ok("13.2 con el agua llena, el tronco ha subido a ras del suelo", tr.abierto and absf(tr.position.y - (Terreno3D.alto_suelo - TroncoEstanque3D.RADIO + 0.04)) < 0.06, "y %.2f abierto %s" % [tr.position.y, str(tr.abierto)])
+	_ok("13.2 con el agua llena, el tronco ha subido a ras del suelo", tr.abierto and absf(tr.position.y - float(tr.get("_y_arriba"))) < 0.06, "y %.2f abierto %s" % [tr.position.y, str(tr.abierto)])
+	if PiezaBosque3D.malla_modelo("tronco_estanque") != null:
+		_ok("13.2b con la lámina, el tronco es el modelo (±0,327 sobre el eje) y su cara de arriba queda casi a ras del suelo", tr.get_node("tronco").get("mesh") != null and not (tr.get_node("tronco").get("mesh") is CylinderMesh) and absf(tr.position.y + TroncoEstanque3D.RADIO_MODELO - Terreno3D.alto_suelo) < 0.06, "cara de arriba %.2f, suelo %.2f" % [tr.position.y + TroncoEstanque3D.RADIO_MODELO, Terreno3D.alto_suelo])
+	else:
+		_aviso("13.2b modelo del tronco del estanque", "falta arte/meshy/bosque/bosque_orilla.glb en este entorno: se usó el cilindro provisional")
 	_ok("13.3 su casilla pasó a puente", String(maqueta.call("_letra", c)) == "b", "letra «%s»" % String(maqueta.call("_letra", c)))
 	_ok("13.4 la regla cortó el resto de la columna del cauce", bool(reglas.get("_columna_cortada")))
 	var col: Array = reglas.get("COLUMNA_ESTANQUE")

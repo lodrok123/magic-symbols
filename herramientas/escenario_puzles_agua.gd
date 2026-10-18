@@ -225,8 +225,8 @@ func _q7_rayo() -> void:
 	await avanzar_s(6.0)                                     # una descarga completa de la fuente (PERIODO 4 s) con el nexo seco
 	_ok("Q7.2 con el nexo seco la corriente no llega al tótem: puerta cerrada", not bool(nexo.get("conduce")) and not bool(puerta.get("abierta")),
 		"electrificadas %d" % (em.get("electrificada") as Array).size())
-	_ok("Q7.3 agua + flecha a la pila (desde tres casillas al sur)", lanzar_a_celda("agua", ["flecha"], Vector2i(20, 20), Vector2i(20, 23)))
-	await avanzar_s(1.0)
+	_ok("Q7.3 agua + flecha a la pila (desde tres casillas al sur: dos glifos de flecha, alcance 3)", lanzar_a_celda("agua", ["flecha", "flecha"], Vector2i(20, 20), Vector2i(20, 23)))
+	await avanzar_s(3.0)
 	_ok("Q7.4 el nexo se moja y conduce", bool(nexo.get("conduce")) and Terreno3D.conduce(Vector2i(20, 20)), "mojado %.0f s" % float(nexo.get("mojado")))
 	var r: Dictionary = {"t": -1.0}
 	await avanzar_vigilando(12.0, 0.5, func(t: float) -> void:
@@ -234,8 +234,8 @@ func _q7_rayo() -> void:
 			r["t"] = t
 	)
 	_ok("Q7.5 la fuente descarga por pozo → nexo → pozo, el tótem se activa y la puerta se abre", float(r["t"]) > 0.0, "a los %.1f s" % float(r["t"]))
-	_ok("Q7.6 fuego + flecha a la pila", lanzar_a_celda("fuego", ["flecha"], Vector2i(20, 20), Vector2i(20, 23)))
-	await avanzar_s(1.0)
+	_ok("Q7.6 fuego + flecha a la pila", lanzar_a_celda("fuego", ["flecha", "flecha"], Vector2i(20, 20), Vector2i(20, 23)))
+	await avanzar_s(3.0)
 	_ok("Q7.7 el fuego seca el nexo: deja de conducir", not bool(nexo.get("conduce")))
 	volcar("q7", {"t_puerta": r["t"]})
 

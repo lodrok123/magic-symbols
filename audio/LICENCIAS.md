@@ -64,3 +64,8 @@ como paso genérico.
 Copiar el archivo nuevo en `audio/` y tocar su línea en `CATALOGO`
 (`sfx.gd`). Nada más: ningún sitio que llame a `Sfx.play()` sabe qué
 archivo hay detrás ni en qué formato.
+
+## Fases del conjuro (18/10, Pipeline)
+
+`fuego|agua|hielo|rayo|viento|tierra|tiempo` + `_carga` y `x_mano_impacto`, `alto_impacto`, `abajo_impacto`: **sintetizados** con
+`audio/gen_sfx_hechizos.py` (numpy, sin dependencias; semilla fija, así que se regeneran idénticos). Sin licencia externa.

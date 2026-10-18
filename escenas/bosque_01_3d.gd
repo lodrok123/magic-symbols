@@ -20,9 +20,21 @@ extends Node
 ##
 ##   · El estanque: el TRONCO (marcador `tronco_estanque`, T19) está al fondo del cauce vacío; al llenarse de agua (la losa T_C) SUBE hasta quedar
 ##     a ras y el paso se abre (TroncoEstanque3D). Con el agua, el resto de la columna del cauce deja de pisarse: el único paso es el tronco.
-##   · Los LOBERNOS (marcadores `loberno`, M19 y M23) usan el modelo aprobado `loberno.glb`; combaten como los goblins (Combate3D genérico).
+##   · Los LOBERNOS (marcadores `loberno`, M19 y M23) usan el modelo aprobado `emberheart.glb` (17/10, Pablo; ver `Pj3D.MODELO_DE`); combaten como los goblins (Combate3D genérico).
 ##
 ## PROVISIONAL (modelo): los dos troncos son cilindros (falta el modelo con su versión caída/hundida y las enredaderas).
+##
+## AMPLIACIÓN (16/10, tools/ampliar_bosque_01.py). El 28 × 28 de arriba sigue en las mismas casillas; alrededor hay ramas nuevas:
+##   · Rama NE (desde el campamento): un claro con una patrulla goblin (un guerrero y dos arqueros) y el COFRE 3, que aparece al caer los tres.
+##     Sigue por un sendero oriental (con dos telarañas que se queman) hasta el claro de los lobernos y baja a la explanada del sur.
+##   · Rama S (desde el prado): la explanada y tres CÁMARAS DE FUEGO, cada una con un puzle del laboratorio que solo pide la flecha de fuego
+##     (diario 100): A «cuatro antorchas» (F1), B «contrafuego» (F4) y C «relé de braseros» (F2). Su puerta (líneas `; pieza` / `; puzle` del
+##     .txt, las monta Puzle3D) da paso a la trastienda: al abrirla aparece su cofre (4, 5 y 6). Las puertas NO se vuelven a cerrar.
+## QUÉ MARCADOR ES CUÁL: los marcadores del .tscn llevan NOMBRE (`cofre_01`, `antorcha_03`, `totem_fuego_02`…) y esta regla los lee POR NOMBRE
+## (`PackedScene.get_state()`, sin instanciar el nivel), no por casilla: si Pablo mueve un marcador en el editor, las reglas lo siguen. Los
+## nombres son el contrato: `cofre_01..07`, `totem_fuego_01` (propagación) / `_02` (antorchas) / `_03` (secuencia), `brasero_01/02` (el par de TF_2),
+## `antorcha_01..04` (la secuencia, EN ORDEN), `guerrero_01/02` (los del cofre 1), `guerrero_03` + `arquero_01/02` (la patrulla del cofre 3).
+## Un nombre que falta (un nivel editado a mano) cae a la casilla de siempre (las constantes de abajo) y avisa con push_warning.
 
 const MISION: String = "bosque_01"
 const OBJ_GOBLINS: int = 0
@@ -31,13 +43,30 @@ const OBJ_TOTEMS: int = 2
 const OBJ_PUERTA: int = 3
 const OBJ_ELEMENTAL: int = 4
 const OBJ_COFRE_2: int = 5
+const OBJ_PATRULLA: int = 6                  ## opcional: la patrulla del claro del NE
+const OBJ_CAMARAS: int = 7                   ## opcional: las cuatro cámaras de fuego
+const OBJ_SECRETOS: int = 8                  ## opcional: los cinco cofres de las ramas
 
-## Casillas del mapa horneado (columna, fila). Cambian solo si se mueven en el editor: son lo único que este archivo conoce del dibujo.
-const TOTEM_PROPAGACION: Vector2i = Vector2i(18, 25)        ## TF_1
-const TOTEM_ANTORCHAS: Vector2i = Vector2i(19, 8)           ## TF_2
-const TOTEM_SECUENCIA: Vector2i = Vector2i(17, 19)          ## TF_3
-const ANTORCHAS_DEL_TOTEM_2: Array = [Vector2i(18, 9), Vector2i(19, 9)]      ## V14, W14
-## T_1..T_4 en el orden correcto (W18, U21, U16, W22 de la hoja).
+## Los cofres, en el orden de `_cofres` / `_celdas_cofre` / `_entregado` (el 0 y el 1 son los de siempre: glifo y fin de demo).
+## `nombre`: el del marcador. `puerta`: la pieza de Puzle3D cuya apertura lo hace aparecer (los de las cámaras). `botin`: lo que da al abrirse.
+const COFRES: Array = [
+	{"nombre": "cofre_01"}, {"nombre": "cofre_02"},
+	{"nombre": "cofre_03", "botin": {"oro": 40, "pocion": 1}},
+	{"nombre": "cofre_04", "puerta": "a_puerta", "botin": {"oro": 30, "pocion": 2}},
+	{"nombre": "cofre_05", "puerta": "b_puerta", "botin": {"oro": 60, "seta_asada": 2}},
+	{"nombre": "cofre_06", "puerta": "c_puerta", "botin": {"oro": 45, "flor_ardiente": 2, "pocion": 1}},
+	{"nombre": "cofre_07", "puerta": "d_puerta", "exige_rota": "d_cuerda", "botin": {"oro": 70, "raiz_cenizas": 2, "pocion": 1}},
+]
+## La patrulla del claro del NE (marcadores): al caer los tres aparece el cofre 3.
+const PATRULLA: PackedStringArray = ["guerrero_03", "arquero_01", "arquero_02"]
+const GOBLINS_COFRE_1: PackedStringArray = ["guerrero_01", "guerrero_02"]
+
+## Casillas del mapa horneado (columna, fila) POR DEFECTO: solo valen si el nivel no trae el marcador con su nombre (ver arriba).
+const TOTEM_PROPAGACION: Vector2i = Vector2i(18, 25)        ## TF_1 (`totem_fuego_01`)
+const TOTEM_ANTORCHAS: Vector2i = Vector2i(19, 8)           ## TF_2 (`totem_fuego_02`)
+const TOTEM_SECUENCIA: Vector2i = Vector2i(17, 19)          ## TF_3 (`totem_fuego_03`)
+const ANTORCHAS_DEL_TOTEM_2: Array = [Vector2i(18, 9), Vector2i(19, 9)]      ## V14, W14 (`brasero_01`, `brasero_02`)
+## T_1..T_4 en el orden correcto (W18, U21, U16, W22 de la hoja): `antorcha_01..04`.
 const SECUENCIA: Array = [Vector2i(19, 13), Vector2i(17, 16), Vector2i(17, 11), Vector2i(19, 17)]
 const ID_LOBERNO: String = "loberno"
 ## Casillas del cauce que dejan de pisarse al llenarse el estanque (la columna oeste, menos la del tronco). Por qué solo estas: el brazo de
@@ -57,6 +86,8 @@ const DIALOGO_ALQUIMISTA: Array = [
 	"Cuatro antorchas del prado de este lado. El orden importa: la del medio, la de abajo, la de arriba y, por último, la de abajo a la derecha.",
 	"Un fallo y se apagan todas. A mí ya me ha pasado. Dos veces.",
 	"Al tótem del sur no se le enciende con un hechizo: lo despierta el fuego que se contagia. La hierba alta ayuda.",
+	"Dicen que al sur del prado hay cuatro cámaras con trastienda. Allí solo sirve la flecha de fuego: braseros, setos, un barril que no es de fiar y una cuerda que sostiene el agua.",
+	"Y por el norte, tras el campamento, un claro con goblins que no te quieren bien. Al otro lado, un sendero con telarañas: llévate fuego.",
 ]
 
 var m: Variant = null                       ## la maqueta (PruebaTest2); sin tipo: se le llaman métodos suyos
@@ -65,6 +96,9 @@ var _aviso: Label = null
 var _t_aviso: float = 0.0
 var _acum: float = 0.0
 var _totems: Dictionary = {}                ## Vector2i -> Reactivo3D (los tres tótems)
+var _totem_propagacion: Vector2i = TOTEM_PROPAGACION     ## las casillas de los tres tótems, ya resueltas por nombre
+var _totem_antorchas: Vector2i = TOTEM_ANTORCHAS
+var _totem_secuencia: Vector2i = TOTEM_SECUENCIA
 var _sec: Array = []                        ## Reactivo3D de las cuatro antorchas, en orden
 var _sec_prev: Array = [false, false, false, false]
 var _sec_sig: int = 0                       ## cuántas llevas bien
@@ -80,9 +114,12 @@ var _celda_puerta: Vector2i = Vector2i(-1, -1)
 var _puerta: MeshInstance3D = null
 var _lamparas: Array = []
 var _puerta_abierta: bool = false
-var _celdas_cofre: Array = []               ## [C_1, C_2] (de arriba abajo en el mapa)
-var _entregado: Array = [false, false]      ## el botín de cada cofre se da UNA vez, abra como abra
-var _cofres: Array = [null, null]           ## Node3D de cada cofre cuando ya ha aparecido
+var _celdas_cofre: Array = []               ## la casilla de cada cofre, en el orden de COFRES (cofre_01..07)
+var _entregado: Array = [false, false, false, false, false, false, false]      ## el botín de cada cofre se da UNA vez, abra como abra
+var _cofres: Array = [null, null, null, null, null, null, null]               ## Node3D de cada cofre cuando ya ha aparecido
+var _marca: Dictionary = {}                 ## nombre de marcador -> casilla (leído del .tscn con PackedScene.get_state())
+var _patrulla: Array = []                   ## Combate3D de la patrulla del claro del NE (cofre 3)
+var _puzles: Node = null                    ## el nodo «Puzles» (Puzle3D) de la escena, para saber si ya se abrió cada puerta
 var _npc: Pj3D = null
 var _lineas: int = 0
 var _muestra_dada: bool = false
@@ -108,29 +145,45 @@ func iniciar(mundo: Variant) -> void:
 		if n is Jugador3D:
 			_jug = n
 	var mapa: PackedStringArray = m.get("_mapa")
+	_leer_marcas_por_nombre()
+	_puzles = (m as Node).get_node_or_null("Puzles")
+	var cofres_letra: Array = []
 	for y in range(mapa.size()):
 		for x in range(mapa[y].length()):
 			match mapa[y][x]:
 				"X":
 					_celda_puerta = Vector2i(x, y)
 				"Z":
-					_celdas_cofre.append(Vector2i(x, y))     # se recorre de arriba abajo: C_1 (campamento) antes que C_2 (este)
+					cofres_letra.append(Vector2i(x, y))      # de arriba abajo: C_1 (campamento) antes que C_2 (este); solo vale sin nombres
+	for i in range(COFRES.size()):
+		var nombre: String = String((COFRES[i] as Dictionary)["nombre"])
+		if _marca.has(nombre):
+			_celdas_cofre.append(_marca[nombre])
+		elif i < cofres_letra.size() and not _marca.has("cofre_01"):
+			_celdas_cofre.append(cofres_letra[i])             # un nivel antiguo sin nombres: los dos Z de siempre
+		else:
+			_celdas_cofre.append(Vector2i(-1, -1))            # este cofre no existe en este nivel
 	# Tótems y antorchas: los reactivos que puso la maqueta. Los tótems salen de la capa de hechizos: no se encienden «a pelo».
 	var por_celda: Dictionary = {}
 	for r in (m.get("_reactivos") as Array):
 		if is_instance_valid(r):
 			por_celda[r.celda] = r
-	for c in [TOTEM_PROPAGACION, TOTEM_ANTORCHAS, TOTEM_SECUENCIA]:
+	for c in [_celda("totem_fuego_01", TOTEM_PROPAGACION), _celda("totem_fuego_02", TOTEM_ANTORCHAS), _celda("totem_fuego_03", TOTEM_SECUENCIA)]:
 		var t: Variant = por_celda.get(c)
 		if t != null and t.tipo == "totem":
 			_totems[c] = t
 			(t as CollisionObject3D).collision_layer = 0
-	for c in ANTORCHAS_DEL_TOTEM_2:
-		if por_celda.has(c):
-			_antorchas2.append(por_celda[c])
-	for c in SECUENCIA:
-		if por_celda.has(c):
-			_sec.append(por_celda[c])
+	_totem_propagacion = _celda("totem_fuego_01", TOTEM_PROPAGACION)
+	_totem_antorchas = _celda("totem_fuego_02", TOTEM_ANTORCHAS)
+	_totem_secuencia = _celda("totem_fuego_03", TOTEM_SECUENCIA)
+	for i in range(ANTORCHAS_DEL_TOTEM_2.size()):
+		var c2: Vector2i = _celda("brasero_%02d" % (i + 1), ANTORCHAS_DEL_TOTEM_2[i])
+		if por_celda.has(c2):
+			_antorchas2.append(por_celda[c2])
+	for i in range(SECUENCIA.size()):
+		var c3: Vector2i = _celda("antorcha_%02d" % (i + 1), SECUENCIA[i])
+		if por_celda.has(c3):
+			_sec.append(por_celda[c3])
 	_clasificar_combates()
 	_montar_troncos_y_lobernos()
 	_buscar_alquimista()
@@ -139,26 +192,98 @@ func iniciar(mundo: Variant) -> void:
 	_montar_aviso()
 	var objetivos: Array = [
 		"Derrotar a los goblins del camino (0/%d)" % _goblins.size(), "Abrir el cofre del campamento",
-		"Activar los tres tótems de fuego (0/3)", "Abrir la puerta de los tótems", "Derrotar al elemental del bosque", "Abrir el cofre final"]
+		"Activar los tres tótems de fuego (0/3)", "Abrir la puerta de los tótems", "Derrotar al elemental del bosque", "Abrir el cofre final",
+		"(Opcional) Derrotar a la patrulla del claro (0/%d)" % _patrulla.size(), "(Opcional) Abrir las cuatro cámaras de fuego (0/4)",
+		"(Opcional) Encontrar los cinco cofres de las ramas (0/5)"]
 	Misiones.i().definir({"id": MISION, "titulo": "El Bosque (1.ª parte)", "tipo": "principal",
 		"texto": "Tres tótems de fuego, cada uno con su manera de despertar, abren la puerta del fondo. Detrás espera el elemental del bosque.",
 		"origen": "Bosque 01", "objetivos": objetivos})
 	Misiones.i().activar(MISION)
 	if _goblins.is_empty():
 		Misiones.i().objetivo_hecho(MISION, OBJ_GOBLINS)
+	if _patrulla.is_empty():
+		Misiones.i().objetivo_hecho(MISION, OBJ_PATRULLA)
 	set_process(true)
 
 
-## Los goblins guerreros del nivel dan el cofre 1; el elemental, el cofre 2. Los lobernos se crean después, así que no cuentan aquí.
+## Los goblins guerreros del cofre 1 (`guerrero_01/02`) y la patrulla del claro (`guerrero_03`, `arquero_01/02`) se reconocen por la casilla donde
+## nacen (`Combate3D.casa`); el elemental da el cofre 2; cualquier otro enemigo del nivel (el guerrero de la explanada) no cuenta para nada.
+## Sin marcadores con nombre (un nivel antiguo) vale lo de siempre: todo guerrero es del cofre 1. Los lobernos se crean después y no cuentan aquí.
 func _clasificar_combates() -> void:
+	var con_nombres: bool = _marca.has("guerrero_01")
+	var cofre1: Array = []
+	var patrulla: Array = []
+	for n in GOBLINS_COFRE_1:
+		if _marca.has(n):
+			cofre1.append(_marca[n])
+	for n in PATRULLA:
+		if _marca.has(n):
+			patrulla.append(_marca[n])
 	for n in get_tree().get_nodes_in_group("combate3d"):
 		var cb: Combate3D = n as Combate3D
 		if cb == null:
 			continue
 		if cb.elemental:
 			_elementales.append(cb)
-		elif not cb.arquero:
+			continue
+		var c: Vector2i = Terreno3D.celda_de(cb.casa)
+		if not con_nombres:
+			if not cb.arquero:
+				_goblins.append(cb)
+		elif cofre1.has(c):
 			_goblins.append(cb)
+		elif patrulla.has(c):
+			_patrulla.append(cb)
+
+
+## Lee del .tscn del nivel la casilla de cada marcador con nombre, SIN instanciarlo: `PackedScene.get_state()` da los nodos y sus propiedades.
+## La casilla es la del mapa horneado (origen = la casilla pintada más al noroeste, como `_leer_nivel_de` de la maqueta).
+func _leer_marcas_por_nombre() -> void:
+	_marca.clear()
+	var nivel: Variant = (m as Object).get("nivel")
+	if nivel == null or String(nivel) == "":
+		return
+	var ruta: String = HorneadorNivel.ruta(String(nivel))
+	if not ResourceLoader.exists(ruta):
+		return
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null:
+		return
+	var est: SceneState = ps.get_state()
+	var mn := Vector2i(1 << 30, 1 << 30)
+	var pos_marca: Dictionary = {}
+	for i in range(est.get_node_count()):
+		var ruta_nodo: String = String(est.get_node_path(i)).trim_prefix("./")      # las rutas de SceneState empiezan por «./»
+		if ruta_nodo == "Suelo":
+			for k in range(est.get_node_property_count(i)):
+				if est.get_node_property_name(i, k) == "data":
+					var celdas: PackedInt32Array = (est.get_node_property_value(i, k) as Dictionary).get("cells", PackedInt32Array())
+					for j in range(0, celdas.size(), 3):
+						mn = Vector2i(mini(mn.x, _s16(celdas[j])), mini(mn.y, _s16(celdas[j + 1])))
+		elif ruta_nodo.begins_with("Marcadores/"):
+			for k in range(est.get_node_property_count(i)):
+				if est.get_node_property_name(i, k) == "transform":
+					pos_marca[String(est.get_node_name(i))] = (est.get_node_property_value(i, k) as Transform3D).origin
+	if mn.x == 1 << 30:
+		return
+	for nombre in pos_marca:
+		var p: Vector3 = pos_marca[nombre]
+		_marca[nombre] = Vector2i(int(floor(p.x / Terreno3D.casilla)), int(floor(p.z / Terreno3D.casilla))) - mn
+
+
+## Los índices de GridMap van en 16 bits con signo.
+static func _s16(v: int) -> int:
+	v &= 0xFFFF
+	return v - 0x10000 if v >= 0x8000 else v
+
+
+## La casilla del marcador `nombre`; si el nivel no lo trae, `defecto` (y se avisa: el nivel está editado a mano sin ese nombre).
+func _celda(nombre: String, defecto: Vector2i) -> Vector2i:
+	if _marca.has(nombre):
+		return _marca[nombre]
+	if not _marca.is_empty():
+		push_warning("Bosque 01: no hay marcador «%s» en el nivel; se usa la casilla de siempre %s" % [nombre, str(defecto)])
+	return defecto
 
 
 ## Lee los marcadores de datos del nivel (`tronco_puente`, `tronco_estanque`, `loberno`) y crea lo que piden. Sin marcador no hace nada:
@@ -191,7 +316,7 @@ func _montar_troncos_y_lobernos() -> void:
 func _crear_loberno(c: Vector2i) -> void:
 	var pj: Pj3D = m.call("_personaje", [ID_LOBERNO], m.call("_pos_marca", c, m.ALTO))
 	if pj == null or _jug == null:
-		push_warning("Bosque 01: no se pudo crear el loberno de %s (¿falta arte/modelos/loberno.glb?)" % str(c))
+		push_warning("Bosque 01: no se pudo crear el loberno de %s (¿falta arte/modelos/emberheart.glb?)" % str(c))
 		return
 	(m.get("_goblins") as Array).append(pj)
 	_lobernos.append(pj)
@@ -281,6 +406,7 @@ func _process(delta: float) -> void:
 	_criterio_secuencia()
 	_revisar_totems_y_puerta()
 	_revisar_combates()
+	_revisar_camaras()
 	_revisar_estanque()
 
 
@@ -304,13 +430,13 @@ func _revisar_estanque() -> void:
 
 ## TF_1: se despierta cuando el fuego se ha contagiado a su lado (la casilla del tótem o alguna vecina arde o ya es ceniza).
 func _criterio_propagacion() -> void:
-	var t: Variant = _totems.get(TOTEM_PROPAGACION)
+	var t: Variant = _totems.get(_totem_propagacion)
 	if t == null or bool(t.activo):
 		return
 	var hf: Dictionary = m.get("_hf")
 	for dx in range(-1, 2):
 		for dy in range(-1, 2):
-			var q: Vector2i = TOTEM_PROPAGACION + Vector2i(dx, dy)
+			var q: Vector2i = _totem_propagacion + Vector2i(dx, dy)
 			if hf.has(q) and int((hf[q] as Dictionary)["fase"]) >= FASE_ARDIENDO:
 				_activar(t)
 				return
@@ -318,7 +444,7 @@ func _criterio_propagacion() -> void:
 
 ## TF_2: las dos antorchas de su lado arden a la vez.
 func _criterio_antorchas() -> void:
-	var t: Variant = _totems.get(TOTEM_ANTORCHAS)
+	var t: Variant = _totems.get(_totem_antorchas)
 	if t == null or bool(t.activo) or _antorchas2.is_empty():
 		return
 	for r in _antorchas2:
@@ -329,7 +455,7 @@ func _criterio_antorchas() -> void:
 
 ## TF_3: T_1..T_4 en orden. Cada antorcha que se enciende se compara con la que tocaba; si no es esa, se apagan todas y se empieza de cero.
 func _criterio_secuencia() -> void:
-	var t: Variant = _totems.get(TOTEM_SECUENCIA)
+	var t: Variant = _totems.get(_totem_secuencia)
 	if t == null or _sec_hecha or _sec.size() != SECUENCIA.size():
 		return
 	var fallo: bool = false
@@ -418,6 +544,7 @@ func _revisar_combates() -> void:
 		Misiones.i().objetivo_hecho(MISION, OBJ_GOBLINS)
 		_aparecer_cofre(0)
 		_decir("Los goblins han caído. En el campamento, algo brilla.", 5.0)
+	_revisar_patrulla()
 	if _elementales.is_empty() or _cofres[1] != null:
 		return
 	for e in _elementales:
@@ -428,13 +555,60 @@ func _revisar_combates() -> void:
 	_decir("El elemental ha caído. Hay un cofre al fondo.", 5.0)
 
 
-## El cofre aparece donde la hoja lo marca (letra `Z`), creciendo desde nada; bloquea su casilla.
+## La patrulla del claro del NE (guerrero_03 + arquero_01/02): al caer los tres aparece el cofre 3.
+func _revisar_patrulla() -> void:
+	if _patrulla.is_empty():
+		return
+	var caidos: int = 0
+	for g in _patrulla:
+		if not is_instance_valid(g) or bool(g.muerto):
+			caidos += 1
+	Misiones.i().objetivo_texto(MISION, OBJ_PATRULLA, "(Opcional) Derrotar a la patrulla del claro (%d/%d)" % [caidos, _patrulla.size()])
+	if caidos >= _patrulla.size() and _cofres[2] == null:
+		Misiones.i().objetivo_hecho(MISION, OBJ_PATRULLA)
+		_aparecer_cofre(2)
+		_decir("La patrulla ha caído. En el claro, algo brilla.", 5.0)
+
+
+## Las cámaras de fuego: cuando Puzle3D abre la puerta de una trastienda, aparece su cofre. Se mira cada T_SONDEO: no hay señal que escuchar
+## (la pieza vive en el nodo «Puzles», que se monta antes que esto) y así tampoco depende del orden de arranque de los dos nodos.
+func _revisar_camaras() -> void:
+	if _puzles == null:
+		return
+	var abiertas: int = 0
+	var total: int = 0
+	for i in range(COFRES.size()):
+		var puerta_id: String = String((COFRES[i] as Dictionary).get("puerta", ""))
+		if puerta_id == "":
+			continue
+		var pz: Variant = (_puzles as Puzle3D).pieza(puerta_id)
+		if pz == null or not is_instance_valid(pz.nodo):
+			continue
+		total += 1
+		# La puerta de la cámara de la cuerda arranca ABIERTA (el arroyo tarda ~18 s en llegar y el vado está a 0): el cofre solo cuenta cuando la cuerda ya se rompió.
+		var exige: String = String((COFRES[i] as Dictionary).get("exige_rota", ""))
+		var ya_rota: bool = true
+		if exige != "":
+			var cz: Variant = (_puzles as Puzle3D).pieza(exige)
+			ya_rota = cz != null and is_instance_valid(cz.nodo) and bool(cz.nodo.get("rota_ya"))
+		if bool(pz.nodo.get("abierta")) and ya_rota:
+			abiertas += 1
+			if _cofres[i] == null and _celdas_cofre[i].x >= 0:
+				_aparecer_cofre(i)
+				_decir("Se abre la trastienda. Algo brilla dentro.", 5.0)
+	if total > 0:
+		Misiones.i().objetivo_texto(MISION, OBJ_CAMARAS, "(Opcional) Abrir las cuatro cámaras de fuego (%d/%d)" % [abiertas, total])
+		if abiertas >= total:
+			Misiones.i().objetivo_hecho(MISION, OBJ_CAMARAS)
+
+
+## El cofre aparece donde el nivel lo marca (marcador `cofre_0N`), creciendo desde nada; bloquea su casilla.
 func _aparecer_cofre(i: int) -> void:
-	if i >= _celdas_cofre.size() or ResourceLoader.exists(COFRE_ESCENA) == false:
+	if i >= _celdas_cofre.size() or ResourceLoader.exists(COFRE_ESCENA) == false or (_celdas_cofre[i] as Vector2i).x < 0:
 		return
 	var c: Vector2i = _celdas_cofre[i]
 	var nodo: Node3D = (load(COFRE_ESCENA) as PackedScene).instantiate() as Node3D
-	nodo.name = "cofre_%d" % (i + 1)
+	nodo.name = "cofre_%02d" % (i + 1)
 	nodo.position = m.call("_centro_celda", c, float(m.get("ALTO")))
 	(m.get("_props") as Node).add_child(nodo)
 	nodo.scale = Vector3.ONE * 0.01
@@ -480,10 +654,38 @@ func _al_abrir_cofre(i: int) -> void:
 			_decir("Glifo de barrera conseguido: ya puedes dibujarlo.", 6.0)
 		else:
 			_decir("El cofre está vacío: la barrera ya era tuya.", 4.0)
-	else:
+	elif i == 1:
 		Misiones.i().objetivo_hecho(MISION, OBJ_COFRE_2)
 		_terminado = true
 		_decir("Fin de la demo. Gracias por jugar el Bosque.", 10.0)
+	else:
+		_dar_botin(i)
+
+
+## El botín de un cofre de las ramas: oro y lo que quepa en la bolsa (lo que no cabe se queda fuera y se dice).
+func _dar_botin(i: int) -> void:
+	var botin: Dictionary = (COFRES[i] as Dictionary).get("botin", {})
+	var texto: PackedStringArray = []
+	var sin_sitio: bool = false
+	for id in botin:
+		var n: int = int(botin[id])
+		if id == "oro":
+			Estado.i().dar_oro(n)
+			texto.append("%d de oro" % n)
+		else:
+			var entra: int = Estado.i().agregar(String(id), n)
+			if entra > 0:
+				texto.append("%d × %s" % [entra, Objetos.nombre(String(id))])
+			if entra < n:
+				sin_sitio = true
+	var propios: int = 0
+	for k in range(2, COFRES.size()):
+		if bool(_entregado[k]):
+			propios += 1
+	Misiones.i().objetivo_texto(MISION, OBJ_SECRETOS, "(Opcional) Encontrar los cinco cofres de las ramas (%d/5)" % propios)
+	if propios >= 5:
+		Misiones.i().objetivo_hecho(MISION, OBJ_SECRETOS)
+	_decir("Cofre abierto: %s.%s" % [", ".join(texto), " (La bolsa está llena: lo demás se queda aquí.)" if sin_sitio else ""], 6.0)
 
 
 func _hablar_alquimista(yo: Vector3) -> void:

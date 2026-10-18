@@ -11,16 +11,16 @@ extends Combate3D
 ##   - Si estás muy cerca (DIST_SIN_PARADA) o acaba de recibir un golpe, no se para: huye sin pausas y algo más rápido.
 ##   - No se aleja más de RADIO_CASA de su sitio: rodea en vez de irse del tutorial. Si pierde de vista al jugador, vuelve a casa.
 ##
-## Definición de enemigo (Pablo): «debe caer con 2 flechas de fuego». El fuego de la página hace 40 de daño (fire_rune.tres) y deja
-## ardiendo 3 s (3 de daño cada 0,5 s = hasta 18 más). Con VIDA = 70: una flecha + toda la quemadura = 58 -> sobrevive; dos flechas
-## = 80 -> cae. (Con otro elemento la cuenta es la del resto de enemigos: sin debilidad ni resistencia, 1,0 × el daño del hechizo.)
+## Definición de enemigo (Pablo): «debe caer con 2 flechas de fuego». El fuego de la página hace 50 de daño (fire_rune.tres; 17/10, antes 40) y deja
+## ardiendo 3 s (3 de daño cada 0,5 s = hasta 18 más). Con VIDA = 85: una flecha + toda la quemadura = 68 -> sobrevive; dos flechas
+## = 100 -> cae (margen de 17 y de 15 a cada lado, como antes: 12 y 10). (Con otro elemento la cuenta es la del resto de enemigos: sin debilidad ni resistencia, 1,0 × el daño del hechizo.)
 ## Si se cambia el daño del fuego o la quemadura, hay que revisar VIDA: lo comprueba herramientas/prueba_gatopedro.gd.
 ##
 ## Todo lo medible está en constantes. Las marcadas ESTIMADO no se han visto en el juego: afinar a ojo.
 
 const ID_MODELO: String = "lince"
 const NOMBRE_OFICIAL: String = "Gatopedro"
-const VIDA: float = 70.0                  ## ver arriba: 2 flechas de fuego (80) lo tumban, 1 flecha + quemadura (58) no
+const VIDA: float = 85.0                  ## ver arriba: 2 flechas de fuego (100) lo tumban, 1 flecha + quemadura (68) no
 const ORO_GATOPEDRO: int = 15
 const VEL_HUIDA: float = 2.6              ## u/s corriendo (ESTIMADO): entre andar (1,6) y correr (3,0) del jugador
 const MULT_SUSTO: float = 1.3             ## × la velocidad mientras está asustado por un golpe
@@ -84,9 +84,9 @@ static func invocar(p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D, p
 
 
 ## Un hechizo que no lo mata lo asusta (huye sin pausas y más rápido unos segundos), lo vea o no.
-func golpe(rune_data: RuneData, direccion: Vector3) -> void:
+func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	var vivo_antes: bool = not muerto
-	super.golpe(rune_data, direccion)
+	super.golpe(hechizo, direccion)
 	if vivo_antes and not muerto:
 		_t_susto = T_SUSTO
 		if estado != "huye":

@@ -11,6 +11,8 @@ extends Node3D
 ##  · MEDIDOR DE PATINAJE: mide en vivo a qué velocidad se mueven los pies mientras están apoyados y lo compara con la velocidad a la que
 ##    el juego mueve al personaje (presets: patrulla 1,0 · andar 1,6 · perseguir 2,4 · correr 3,0). Si el suelo va más rápido que el pie, patina.
 ##    «Ajustar velocidad» pone la velocidad del clip para que coincidan.
+## CASTS A UNA MANO (17/10, T-CP4): botones para ver y MEDIR los tres clips CastOneHand* de la heroína (woodland_wanderer): mano derecha lanza, izquierda
+## sujeta un libro cerrado al pecho (caja opcional). Mide cadera, fotograma de máxima extensión y recorrido de la mano del libro, y dibuja la traza de la mano.
 ## No modifica ningún archivo: el panel escribe los números; pásaselos a Claude (van a Pj3D.CORRECCION_POSTURA / futuros factores).
 ##
 ## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
@@ -27,6 +29,22 @@ const COLOR_SEL: Color = Color(1.0, 0.85, 0.1)
 const GRUPOS: Array = [["piernas", "piernas"], ["brazos", "brazos"], ["resto", "resto del cuerpo"]]
 const PRESETS_SUELO: Array = [["patrulla 1,0", 1.0], ["andar 1,6", 1.6], ["perseguir 2,4", 2.4], ["correr 3,0", 3.0]]
 const VENTANA_S: float = 1.6       ## segundos de muestras de pies que usa el medidor
+
+## Casts a una mano (los clips los genera Pipeline en woodland_wanderer_suave.glb). [clip, texto del botón, dirección del lanzamiento (adelante, arriba)].
+## La «máxima extensión» es el fotograma en que la mano llega más lejos de la cadera EN ESA DIRECCIÓN (la distancia a la cadera a secas falla en el golpe al suelo:
+## el puño alzado de la preparación queda más lejos que el golpe).
+const CASTS_UNA_MANO: Array = [
+	["CastOneHandFront", "Lanzar al frente", Vector2(1.0, 0.0)],
+	["CastOneHandUp", "Invocar hacia arriba", Vector2(0.0, 1.0)],
+	["CastOneHandGround", "Señalar / golpear el suelo", Vector2(0.83, -0.55)]]
+const LIM_CADERA_CAST: float = 0.3     ## alturas de cadera (el criterio del Juego, DIARIO «cadera < 0,3 alturas»)
+const LIM_LIBRO_CAST: float = 0.2      ## alturas que puede moverse la mano del libro
+const PASO_MEDIDA_CAST: float = 1.0 / 30.0
+const COLOR_TRAZA: Color = Color(1.0, 0.85, 0.1)
+const COLOR_MAXIMO: Color = Color(1.0, 0.2, 0.9)
+## Libro cerrado sobre la palma izquierda, en el marco local del hueso de la mano (medido con SVD de los vértices de la mano: dedos ≈ +Y, normal de la palma ≈ +X).
+const LIBRO_TAM: Vector3 = Vector3(0.04, 0.19, 0.14)
+const LIBRO_POS: Vector3 = Vector3(0.04, 0.09, 0.0)
 
 @export var personaje_inicial: String = "chibi_elf"
 
@@ -75,6 +93,12 @@ var _id2: String = ""
 var _modelo2: Node3D = null
 var _ap2: AnimationPlayer = null
 var _opt_cmp: OptionButton = null
+## Casts a una mano: controles, libro (caja en la mano izquierda) y medidas del clip visto ({"traza": PackedVector3Array en espacio del esqueleto, "max": Vector3, "texto": String}).
+var _chk_libro: CheckBox = null
+var _chk_traza: CheckBox = null
+var _lbl_cast: Label = null
+var _libro_caja: BoneAttachment3D = null
+var _cast: Dictionary = {}
 
 
 func _ready() -> void:
@@ -376,6 +400,28 @@ func _montar_interfaz() -> void:
 			_elegir_hueso(_sel))
 	fila.add_child(b_todo)
 
+	caja.add_child(_titulo("Casts a una mano (héroe: der. lanza, izq. libro cerrado)"))
+	for c in CASTS_UNA_MANO:
+		var b_c := Button.new()
+		b_c.text = String(c[1])
+		b_c.tooltip_text = String(c[0])
+		b_c.pressed.connect(_probar_cast.bind(String(c[0])))
+		caja.add_child(b_c)
+	_chk_libro = CheckBox.new()
+	_chk_libro.text = "Libro cerrado en la mano izquierda (caja)"
+	_chk_libro.button_pressed = true
+	_chk_libro.toggled.connect(func(_on: bool) -> void: _poner_libro())
+	caja.add_child(_chk_libro)
+	_chk_traza = CheckBox.new()
+	_chk_traza.text = "Trazar la mano que lanza y marcar la máxima extensión"
+	_chk_traza.button_pressed = true
+	caja.add_child(_chk_traza)
+	_lbl_cast = Label.new()
+	_lbl_cast.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_lbl_cast.custom_minimum_size = Vector2(340.0, 0.0)
+	_lbl_cast.text = "(elige un clip CastOneHand* para medirlo)"
+	caja.add_child(_lbl_cast)
+
 	caja.add_child(_titulo("Resultado (se actualiza solo)"))
 	_txt = TextEdit.new()
 	_txt.editable = false
@@ -543,6 +589,7 @@ func _elegir_clip(nombre: String) -> void:
 	_poner_clip_comparacion()
 	if _sel != "":
 		_elegir_hueso(_sel)
+	_actualizar_cast()
 	_refrescar_texto()
 
 
@@ -729,6 +776,161 @@ func _refrescar_texto() -> void:
 	_txt.text = s
 
 
+# ---------- casts a una mano ----------
+
+func _es_cast(clip: String) -> bool:
+	for c in CASTS_UNA_MANO:
+		if String(c[0]) == clip:
+			return true
+	return false
+
+
+## Pone a la heroína (si no es ya la que se ve) y reproduce el clip. Solo está en woodland_wanderer_suave.glb (el que usa el juego), no en el «orig».
+func _probar_cast(clip: String) -> void:
+	if _id != "woodland_wanderer":
+		_elegir_personaje("woodland_wanderer")
+	if _ap == null or not _ap.has_animation(clip):
+		_lbl_cast.text = "El GLB de «%s» no trae el clip %s." % [_id, clip]
+		return
+	_elegir_clip(clip)
+
+
+## Si el clip visto es de CASTS_UNA_MANO: lo mide y pone el libro; si no, quita el libro y la traza.
+func _actualizar_cast() -> void:
+	_cast = {}
+	_poner_libro()
+	if _lbl_cast == null:
+		return
+	if not _es_cast(_clip) or _ap == null or _sk == null:
+		_lbl_cast.text = "(elige un clip CastOneHand* para medirlo)"
+		return
+	_cast = _medir_cast(_clip)
+	_lbl_cast.text = String(_cast.get("texto", ""))
+
+
+## Caja del libro cerrado en la mano izquierda (solo en los clips de cast: en el resto la mano va suelta).
+func _poner_libro() -> void:
+	if _libro_caja != null and is_instance_valid(_libro_caja):
+		_libro_caja.free()
+	_libro_caja = null
+	if _chk_libro == null or not _chk_libro.button_pressed or _sk == null or not _es_cast(_clip):
+		return
+	var h: int = Equipo3D._hueso(_sk, "LeftHand")
+	if h < 0:
+		return
+	_libro_caja = BoneAttachment3D.new()
+	_libro_caja.bone_name = _sk.get_bone_name(h)
+	_sk.add_child(_libro_caja)
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = LIBRO_TAM
+	mi.mesh = bm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.5, 0.2, 0.15)
+	mi.material_override = mat
+	mi.position = LIBRO_POS
+	_libro_caja.add_child(mi)
+
+
+## Dirección del lanzamiento del clip (adelante, arriba); (1, 0) si no está en la lista.
+func _dir_cast(clip: String) -> Vector2:
+	for c in CASTS_UNA_MANO:
+		if String(c[0]) == clip:
+			return c[2] as Vector2
+	return Vector2(1.0, 0.0)
+
+
+## Mide el clip a 30 fps llevando el AnimationPlayer fotograma a fotograma (los huesos que se leen son los que se verían en el juego, con las correcciones del panel).
+## Cadera: lo que se aleja del primer fotograma, en alturas de cadera (Hips en reposo; entre paréntesis en cadera→cabeza). Mano que lanza: el fotograma con el brazo
+## más lejos de la cadera en la dirección del lanzamiento (CASTS_UNA_MANO; «adelante» = de la articulación del pie a la punta, en horizontal). Mano del libro: la mayor distancia entre dos posiciones suyas durante el clip.
+func _medir_cast(clip: String) -> Dictionary:
+	var h_cad: int = Equipo3D._hueso(_sk, "Hips")
+	var h_cab: int = Equipo3D._hueso(_sk, "Head")
+	var h_hom: int = Equipo3D._hueso(_sk, "RightArm")
+	var h_cod: int = Equipo3D._hueso(_sk, "RightForeArm")
+	var h_der: int = Equipo3D._hueso(_sk, "RightHand")
+	var h_izq: int = Equipo3D._hueso(_sk, "LeftHand")
+	if h_cad < 0 or h_cab < 0 or h_hom < 0 or h_cod < 0 or h_der < 0 or h_izq < 0:
+		return {"texto": "Faltan huesos (Hips, Head, RightArm, RightForeArm, RightHand, LeftHand)."}
+	var dur: float = _ap.get_animation(clip).length
+	var antes: float = _ap.current_animation_position
+	var alto_cad: float = maxf(_sk.get_bone_global_rest(h_cad).origin.y, 0.0001)
+	var cad_cab: float = maxf((_sk.get_bone_global_rest(h_cab).origin - _sk.get_bone_global_rest(h_cad).origin).length(), 0.0001)
+	var h_pie: int = Equipo3D._hueso(_sk, "LeftFoot")
+	var h_dedos: int = Equipo3D._hueso(_sk, "LeftToeBase")
+	if h_pie < 0 or h_dedos < 0:
+		return {"texto": "Faltan huesos LeftFoot / LeftToeBase (para saber dónde es «adelante»)."}
+	var adelante: Vector3 = _sk.get_bone_global_rest(h_dedos).origin - _sk.get_bone_global_rest(h_pie).origin
+	adelante.y = 0.0
+	adelante = adelante.normalized() if adelante.length() > 0.0001 else Vector3.BACK
+	var d2: Vector2 = _dir_cast(clip)
+	var dir_cast: Vector3 = (adelante * d2.x + Vector3.UP * d2.y).normalized()
+	var largo_brazo: float = (_sk.get_bone_global_rest(h_hom).origin - _sk.get_bone_global_rest(h_cod).origin).length() \
+		+ (_sk.get_bone_global_rest(h_cod).origin - _sk.get_bone_global_rest(h_der).origin).length()
+	var n: int = int(ceil(dur / PASO_MEDIDA_CAST))
+	var cad0: Vector3 = Vector3.ZERO
+	var mov_cad: float = 0.0
+	var mov_h: float = 0.0           ## solo en el plano del suelo, en alturas de la cadera del primer fotograma: la cuenta de Pj3D._desplazamiento()
+	var izq: Array[Vector3] = []
+	var traza := PackedVector3Array()
+	var ext_max: float = -1.0
+	var k_max: int = 0
+	var brazo_max: float = 0.0
+	var p_max: Vector3 = Vector3.ZERO
+	for k in range(n + 1):
+		_ap.seek(minf(k * PASO_MEDIDA_CAST, dur), true)
+		_sk.force_update_all_bone_transforms()
+		var cad: Vector3 = _sk.get_bone_global_pose(h_cad).origin
+		if k == 0:
+			cad0 = cad
+		mov_cad = maxf(mov_cad, (cad - cad0).length())
+		mov_h = maxf(mov_h, Vector2(cad.x - cad0.x, cad.z - cad0.z).length() / maxf(absf(cad0.y), 0.0001))
+		var der: Vector3 = _sk.get_bone_global_pose(h_der).origin
+		traza.append(der)
+		izq.append(_sk.get_bone_global_pose(h_izq).origin)
+		var ext: float = (der - cad).dot(dir_cast)
+		if ext > ext_max + 0.0005:      # a igualdad (pose mantenida) se queda el primer fotograma
+			ext_max = ext
+			k_max = k
+			p_max = der
+			brazo_max = (der - _sk.get_bone_global_pose(h_hom).origin).length()
+	_ap.seek(antes, true)
+	var mov_libro: float = 0.0
+	for i in range(izq.size()):
+		for j in range(i + 1, izq.size()):
+			mov_libro = maxf(mov_libro, izq[i].distance_to(izq[j]))
+	var t_max: float = minf(k_max * PASO_MEDIDA_CAST, dur)
+	var texto: String = "%s · %.2f s\n" % [clip, dur]
+	var ok_cad: bool = mov_h < LIM_CADERA_CAST and mov_cad / alto_cad < LIM_CADERA_CAST
+	texto += "cadera: %.2f alturas en el suelo (la cuenta de Pj3D) y %.2f en 3D, límite %.2f: %s · en 3D y en cadera→cabeza %.2f\n" % [mov_h, mov_cad / alto_cad, LIM_CADERA_CAST, "OK" if ok_cad else "NO", mov_cad / cad_cab]
+	texto += "mano que lanza: máxima extensión en t = %.2f s (fotograma %d a 30 fps, %d %% del clip), %.2f alturas de cadera en la dirección del lanzamiento, brazo estirado al %d %%\n" % [t_max, k_max, roundi(100.0 * t_max / maxf(dur, 0.0001)), ext_max / alto_cad, roundi(100.0 * brazo_max / largo_brazo)]
+	texto += "mano del libro: se mueve %.2f alturas de cadera (límite %.2f) %s · %.2f en cadera→cabeza" % [mov_libro / alto_cad, LIM_LIBRO_CAST, "OK" if mov_libro / alto_cad < LIM_LIBRO_CAST else "NO", mov_libro / cad_cab]
+	return {"traza": traza, "max": p_max, "texto": texto}
+
+
+## Traza amarilla de la mano que lanza durante el clip y una cruz magenta donde el brazo está más estirado.
+func _dibujar_cast() -> void:
+	if _chk_traza == null or not _chk_traza.button_pressed or not _cast.has("traza") or _sk == null:
+		return
+	var traza: PackedVector3Array = _cast["traza"]
+	if traza.size() < 2:
+		return
+	_im.surface_begin(Mesh.PRIMITIVE_LINES)
+	for i in range(traza.size() - 1):
+		_im.surface_set_color(COLOR_TRAZA)
+		_im.surface_add_vertex(_sk.global_transform * traza[i])
+		_im.surface_set_color(COLOR_TRAZA)
+		_im.surface_add_vertex(_sk.global_transform * traza[i + 1])
+	var c: Vector3 = _sk.global_transform * (_cast["max"] as Vector3)
+	var r: float = 0.04 * _alto
+	for eje in [Vector3.RIGHT, Vector3.UP, Vector3.BACK]:
+		_im.surface_set_color(COLOR_MAXIMO)
+		_im.surface_add_vertex(c - (eje as Vector3) * r)
+		_im.surface_set_color(COLOR_MAXIMO)
+		_im.surface_add_vertex(c + (eje as Vector3) * r)
+	_im.surface_end()
+
+
 # ---------- cámara y dibujo ----------
 
 func _process(delta: float) -> void:
@@ -746,6 +948,7 @@ func _process(delta: float) -> void:
 	_medir(delta)
 	_colocar_camara()
 	_dibujar_esqueleto()
+	_dibujar_cast()
 
 
 func _colocar_camara() -> void:

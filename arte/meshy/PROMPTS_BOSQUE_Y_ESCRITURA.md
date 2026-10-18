@@ -104,8 +104,11 @@ Suelta, para el icono del objeto y la animación de la tinta.
 Pedido (b) de la entrada 110: **sube con el agua** hasta quedar a ras y dejar pasar. Un solo modelo (el Juego lo sube y baja).
 
 ### D1. `tronco_estanque` (1 500–3 000 tris, textura 1024)
-> A thick fallen log lying horizontally, mossy on the top, bright green moss patches and small ferns on one side, a few green vines hanging off the sides, flat-ish walkable top, rough bark with a couple
-> of knots, both ends cut flat with visible tree rings. Dark damp bark. Length 2.2 units, diameter 0.7 units, lying along the X axis. **Origin at the center of the base** (the underside).
+Medidas tomadas de `TroncoEstanque3D` (diámetro 0,6, largo 2,6): el código lo gira a lo largo de `eje` y lo sube y baja, así que **el origen es el CENTRO DEL EJE del tronco** (no la base).
+> A thick fallen log lying horizontally, dark damp bark with a couple of knots, thick bright green moss covering most of the top, a few small ferns and soft green vines hanging off the sides, a flat-ish walkable top, both ends cut flat with visible tree rings. Chunky rounded shapes, slightly tapered, no branches sticking out. Length 2.6 units along the X axis, diameter 0.6 units. **Origin at the center of the log (the middle of its axis)**, lying along +X, moss facing +Y. No water, no ground, no roots.
+> + [ESTILO]
+
+**Nota (16/10, Pablo):** `grimorio_cerrado` y `grimorio_abierto` (C5, C6) **ya no hacen falta**: el libro cerrado es el render 3D de Pablo y las páginas son la lámina 2D (`docs/ARTE.md` §16).
 
 ---
 

@@ -57,10 +57,20 @@ static func en(nodo: Node) -> Cofre3D:
 	var c := Cofre3D.new()
 	c.name = "Cofre3D"
 	nodo.add_child(c)
-	if not c.preparar(nodo):
+	# Si `nodo` ya está en el árbol, el `_ready` de `c` lo acaba de preparar; si no, se prepara aquí (y el `_ready` posterior no repite).
+	if c._tapa == null and not c.preparar(nodo):
 		c.queue_free()
 		return null
 	return c
+
+
+## 16/10 (Pablo, Bosque 01: «el cofre estaba abierto inicialmente»): el GLB sale con la tapa ABIERTA y solo `preparar` lo deja en «cerrado», pero
+## `preparar` solo se llamaba al pulsar E (`Cofre3D.en`): hasta entonces el cofre se veía abierto. Ahora `arte/piezas/cofre.tscn` trae este nodo como hijo
+## de la pieza y se prepara solo al entrar en el árbol: el cofre nace cerrado se coloque quien lo coloque. (Medido: sin preparar, la tapa queda a 0° y el
+## cofre mide 0,85 de alto; preparado, la tapa gira y mide 0,75.)
+func _ready() -> void:
+	if _tapa == null and get_parent() != null:
+		preparar(get_parent())
 
 
 ## Busca en `raiz` el cuerpo, la tapa y el AnimationPlayer. false si no está la tapa (no hay nada que abrir).

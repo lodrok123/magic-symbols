@@ -31,7 +31,6 @@ extends RefCounted
 ##             Spell.bloquea_a(), no repartida por el código
 const FORM: Dictionary = {
 	"flecha": {"travels": true, "reach": 1, "cooldown": 1.0},
-	"pilar": {"origin": 128.0, "cooldown": 2.0},
 
 	# La barrera no dice dónde: dice QUE OCUPA SITIO. Sola, el corro te
 	# rodea a ti; con flecha el área se pone de través y sale un muro;
@@ -61,8 +60,7 @@ const FORM: Dictionary = {
 	"espejo": {"mirror": true, "cooldown": 1.5},
 	"linea": {"spread": true, "blocks": true, "cooldown": 2.0},
 	# Fase 8 (glifos como geometría): en 3D el significado lo pone Receta3D/GeometriaHechizo; aquí solo la recarga.
-	"altura": {"cooldown": 2.0},
-	"tamano": {"cooldown": 1.5}
+	"altura": {"cooldown": 2.0}
 }
 
 ## Los sellos OPERADORES no dicen dónde, sino cuánto: transforman lo que
@@ -113,6 +111,13 @@ const GLYPHS: Dictionary = {
 	"pulso": preload("res://art/ui/glyphs/pulso.png"),
 	"atraccion": preload("res://art/ui/glyphs/atraccion.png"),
 	"espejo": preload("res://art/ui/glyphs/espejo.png"),
+	# Lámina de runas de Pablo (17/10): ᛁ `linea` ya tiene su PNG (art/ui/glyphs/linea.png) pero faltaba aquí, y sin entrada el libro la
+	# pintaba con el trazo a mano y la chuleta no la listaba. Los sellos nuevos de la lámina se enchufan igual: un PNG + una línea aquí.
+	"linea": preload("res://art/ui/glyphs/linea.png"),
+	# 18/10 (diario 156): las dos lecturas de ᛁ que guarda el componente de la página (`Spellcaster._nombre_linea`) usan el MISMO PNG: el libro
+	# lo gira al pintar (`EjesRecetaUi.giro_linea`: linea_x 90°, linea_z 0°). `linea` se queda para la chuleta y la paleta (GestureLibrary.SIGILS).
+	"linea_x": preload("res://art/ui/glyphs/linea.png"),
+	"linea_z": preload("res://art/ui/glyphs/linea.png"),
 }
 
 ## --- LA BARRERA QUE AVANZA (barrera + flecha) ---
@@ -203,7 +208,6 @@ const MAX_MANIFESTATIONS: int = 48
 ## el sello es el lenguaje, y solo el sello se puede combinar.
 const PATTERN_AS_SIGIL: Dictionary = {
 	Runes.Pattern.ARROW: "flecha",
-	Runes.Pattern.PILLAR: "pilar",
 	Runes.Pattern.BARRIER: "barrera",
 }
 
@@ -243,7 +247,7 @@ static func quality_factor(quality: float) -> float:
 
 
 static func is_known(sigil_name: String) -> bool:
-	return FORM.has(sigil_name) or OPERATOR.has(sigil_name)
+	return FORM.has(sigil_name) or OPERATOR.has(sigil_name) or GLIFOS_V2.has(sigil_name) or ALIAS_V2.has(sigil_name)
 
 
 ## ¿Puede este sello usarse hacia ahí? Lo que no aparece en AXIS vale en
@@ -253,3 +257,142 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 	if AXIS.get(sigil_name, "") != "plano":
 		return true
 	return absf(sector.y) <= FLAT_TOLERANCE
+
+
+## =====================================================================================================
+##  RECETA V2 (17/10, Pablo; docs/GLIFOS_RECETA.md): volumen por ejes + propiedades aditivas
+## =====================================================================================================
+##
+## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,5 casilla). Cada glifo de EJE agranda un semieje del elipsoide;
+## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. Esta tabla es lo ÚNICO que sabe qué hace cada glifo: `aplicar_v2`
+## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR siguen
+## sirviendo al camino actual (V2 está detrás de `Receta3D.V2`).
+##
+##   tipo       "eje" (escribe en x|y|z) o "prop" (escribe en props[param])
+##   eje/param  a qué número va
+##   inicio     valor con el que arranca (el radio base en los ejes; 1 en las copias y en la solidez; 0 en el resto)
+##   por_glifo  cuánto aporta CADA glifo: se SUMA, o se MULTIPLICA si modo == "multiplica"
+##   tope       el valor no pasa de aquí (en casillas de SEMIEJE para los ejes)
+##   repertorio nombre del glifo en el Repertoire/libro (linea_x y linea_z son dos lecturas del mismo ᛁ)
+##   cooldown   recarga de la página, la MISMA que le da hoy `FORM` (V2 no toca la recarga)
+const RADIO_BASE_V2: float = 0.15         ## semieje base en casillas (18/10 Pablo: -70 % sobre el 0,5 de antes: la esfera base mide 0,3 casillas de ancho)
+const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
+const VELOCIDAD_FLECHA_U: float = 4.0    ## u/s de una flecha (1,7 casillas/s con casilla 2,4): la velocidad que pone el 1.er glifo de flecha
+const COSTE_PROP_V2: float = 0.25       ## cada propiedad distinta encarece un 25 %
+const GLIFOS_V2: Dictionary = {
+	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
+	# Tope 3,0 de semieje en X y Z (6 casillas) y 2,0 en Y (4 niveles): con +0,15 por glifo el tope ya no se alcanza con los glifos que caben en una página.
+	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 3.0, "repertorio": "linea", "cooldown": 2.0},
+	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 3.0, "repertorio": "linea", "cooldown": 2.0},
+	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 2.0, "repertorio": "altura", "cooldown": 2.0},
+	# Propiedades.
+	"flecha": {"tipo": "prop", "param": "viaja", "inicio": 1.0, "por_glifo": 1.0, "tope": 6.0, "modo": "suma", "repertorio": "flecha", "cooldown": 1.0},
+	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
+	"repeticion": {"tipo": "prop", "param": "copias", "inicio": 1.0, "por_glifo": 1.0, "tope": 4.0, "modo": "suma", "repertorio": "repeticion", "cooldown": 1.5},
+	"rebote": {"tipo": "prop", "param": "rebotes", "inicio": 0.0, "por_glifo": 1.0, "tope": 3.0, "modo": "suma", "repertorio": "rebote", "cooldown": 1.5},
+	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": 0.5, "tope": 1.5, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
+}
+
+
+## =====================================================================================================
+##  GLIFOS: la misma tabla, en el idioma de MODIFICADORES de `Hechizo` (HC1, 18/10; docs HECHIZO_CLASE.md §2.1)
+## =====================================================================================================
+## Cada glifo es una lista de modificadores `{campo, op, valor, tope, desde}` sobre campos de `Hechizo`:
+##   campo   nombre de un campo de Hechizo; un componente de un Vector3 se escribe con punto («semiejes.x»)
+##   op      "suma" (v + valor·n) · "multiplica" (v · valor^n) · "fija" (v = valor) · "minimo" (v = max(v, valor), después de los topes)
+##   valor   número; o «@radio_barrera» = Sigils.radio_barrera_casillas() (depende de la casilla del terreno, no puede ser una constante)
+##   tope    el campo no pasa de aquí (opcional)
+##   salta   (opcional) los k primeros glifos no cuentan: n = max(n − k, 0), y con n = 0 el modificador no se aplica («persiste +1 por cada glifo SUCESIVO»: salta 1)
+##   desde   valor de partida si ningún otro glifo ha tocado ya ese campo (opcional; p. ej. la solidez parte de 1 con el primer glifo y vale 0 sin ninguno)
+## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
+## GLIFOS_V2 se conserva MIENTRAS lo lean el laboratorio, la UI de ejes (Pipeline) y las pruebas; `prueba_hechizo` comprueba que las dos tablas dicen lo mismo.
+const GLIFOS: Dictionary = {
+	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": RADIO_BASE_V2, "tope": 3.0}]},
+	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": RADIO_BASE_V2, "tope": 3.0}]},
+	"altura": {"repertorio": "altura", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": RADIO_BASE_V2, "tope": 2.0}]},
+	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
+	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "modificadores": [
+		{"campo": "velocidad", "op": "fija", "valor": VELOCIDAD_FLECHA_U},
+		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0}]},
+	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). El 1.er glifo la hace nacer DONDE APUNTAS (en_punto); cada glifo sucesivo suma 1 s de persistencia (salta 1). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
+	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "modificadores": [
+		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
+		{"campo": "en_punto", "op": "fija", "valor": true},
+		{"campo": "persiste", "op": "suma", "valor": 1.0, "salta": 1}]},
+	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
+	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
+	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "modificadores": [{"campo": "crece", "op": "suma", "valor": 0.5, "tope": 1.5}]},
+}
+
+
+## Cuántas veces se dibujó cada glifo (`contadores`: nombre -> n; los que falten valen 0) -> el volumen y las propiedades:
+##   {x, y, z: semiejes del elipsoide en casillas, props: {param: valor}} (x_glifos / z_glifos ya no se escriben: la barrera dejó de tener radio mínimo, 18/10)
+## `props` SOLO lleva las propiedades de glifos usados (sin glifos, está vacío), así `props.size()` es el nº de propiedades.
+## Solo suma o multiplica con topes; el orden en que se dibujó cada glifo no existe (es un multiconjunto). Un nombre que no esté en la
+## tabla se ignora.
+static func aplicar_v2(contadores: Dictionary) -> Dictionary:
+	var salida: Dictionary = {"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2, "props": {}}
+	var destinos: Dictionary = {"eje": salida, "prop": salida["props"]}
+	for nombre in GLIFOS_V2:
+		var n: int = maxi(int(contadores.get(nombre, 0)), 0)
+		if n == 0:
+			continue
+		var d: Dictionary = GLIFOS_V2[nombre]
+		var destino: Dictionary = destinos[d["tipo"]]
+		var clave: String = String(d.get("eje", d.get("param", "")))
+		var v: float = float(destino.get(clave, d["inicio"]))
+		# multiplica: v × por_glifo^n · suma: v + por_glifo × n (un glifo repetido n veces vale n veces su aporte)
+		v = v * pow(float(d["por_glifo"]), float(n)) if d.get("modo", "suma") == "multiplica" else v + float(d["por_glifo"]) * float(n)
+		destino[clave] = minf(v, float(d["tope"]))
+	return salida
+
+
+## El radio de la circunferencia de la barrera (RADIO_BARRERA_U, en u) expresado en casillas de semieje.
+static func radio_barrera_casillas() -> float:
+	return RADIO_BARRERA_U / maxf(Terreno3D.casilla, 0.001)
+
+
+## Glifos del libro que en la receta V2 valen lo mismo que otro (R3, 17/10): ᛏ (`levitacion`) ya no da permanencia ni altura aparte, es SOLO `altura`.
+const ALIAS_V2: Dictionary = {"levitacion": "altura"}
+
+
+## El nombre con el que cuenta un glifo en la receta V2 (resuelve ALIAS_V2; lo que no tenga alias se devuelve igual).
+static func glifo_v2(sigil_name: String) -> String:
+	return String(ALIAS_V2.get(sigil_name, sigil_name))
+
+
+## Volumen del elipsoide en casillas cúbicas. Lo usa el coste y `Lanzador3D.GeometriaV2.volumen`.
+static func volumen_v2(g: Dictionary) -> float:
+	return 4.0 / 3.0 * PI * float(g["x"]) * float(g["y"]) * float(g["z"])
+
+
+## Coste en tinta (solo el número, relativo: la esfera base sin propiedades vale 1): crece con el volumen y con el nº de
+## propiedades distintas, ∝ volumen × (1 + COSTE_PROP_V2 × nº). La RECARGA no cambia: sigue siendo la de `cooldown_v2`.
+static func coste_v2(g: Dictionary, props: Dictionary) -> float:
+	var base: float = volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
+	# Con barrera el volumen sube al de la circunferencia del jugador, pero eso NO encarece el hechizo: se cuenta lo que dieron los glifos.
+	var gc: Dictionary = {"x": g.get("x_glifos", g["x"]), "y": g["y"], "z": g.get("z_glifos", g["z"])}
+	return volumen_v2(gc) / base * (1.0 + COSTE_PROP_V2 * float(props.size()))
+
+
+## Recarga de una página V2: la mayor de sus glifos (+ STACK_COOLDOWN por glifo repetido), igual que hace hoy SpellRecipe.apply.
+static func cooldown_v2(contadores: Dictionary) -> float:
+	var c: float = 0.0
+	for nombre in GLIFOS_V2:
+		var n: int = maxi(int(contadores.get(nombre, 0)), 0)
+		if n > 0:
+			c = maxf(c, float(GLIFOS_V2[nombre]["cooldown"]) + STACK_COOLDOWN * float(n - 1))
+	return c
+
+
+## Nombre del glifo en el Repertoire/libro: linea_x y linea_z son el mismo ᛁ (`linea`). Lo que no esté en GLIFOS_V2 se devuelve igual.
+static func repertorio_de(sigil_name: String) -> String:
+	return String(GLIFOS_V2[sigil_name]["repertorio"]) if GLIFOS_V2.has(sigil_name) else sigil_name
+
+
+## Orientación de la raya sola (ᛁ) respecto a la PÁGINA: más horizontal que vertical -> "linea_x"; más vertical -> "linea_z".
+## La diagonal exacta cuenta como X (docs/GLIFOS_RECETA.md §2.1). Las ocho direcciones del rectificador salen con un error de
+## coma flotante (cos 45° y sin 45° no son idénticos), por eso la comparación lleva un margen del 0,1 %.
+static func orientacion_linea(a: Vector2, b: Vector2) -> String:
+	var d: Vector2 = b - a
+	return "linea_x" if absf(d.x) >= absf(d.y) * 0.999 else "linea_z"

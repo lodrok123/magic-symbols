@@ -96,9 +96,14 @@ func _bosque() -> void:
 	_ok("3 con kit: progresión «pruebas»", clave == "pruebas")
 	_ok("3 el repertorio tiene hielo", Repertoire.element_active("hielo"))
 	_ok("3 seis sellos", Repertoire.active_elements().size() == 6, str(Repertoire.active_elements()))
-	_ok("3 nueve glifos", Repertoire.active_sigils().size() == 9, str(Repertoire.active_sigils()))
+	# R3 (17/10): `tamano` se retira (cada eje tiene su glifo), así que el kit de pruebas tiene ocho glifos y no nueve.
+	_ok("3 ocho glifos (sin tamano)", Repertoire.active_sigils().size() == 8 and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
 	_ok("3 tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("3 el libro de «todo» (sin libro propio)", Repertoire.libro == "")
+	_ok("3 el libro de «pruebas» es el nuevo (16/10: el antiguo era un placeholder; ya no hay progresión con libro «»)", Repertoire.libro == "bosque")
+	for k in Lanzador3D.PROGRESIONES:
+		Lanzador3D.aplicar_progresion(String(k))
+		_ok("3 la progresión «%s» usa el libro nuevo" % k, Repertoire.libro == "bosque", Repertoire.libro)
+	Lanzador3D.aplicar_progresion("pruebas")
 	# Lo que hace Bosque3D (solo desbloquear: agua al coger el sello, barrera al comprarla) no cierra ni cambia nada.
 	var antes_e: PackedStringArray = Repertoire.active_elements()
 	var antes_s: PackedStringArray = Repertoire.active_sigils()

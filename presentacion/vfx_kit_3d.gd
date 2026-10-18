@@ -186,6 +186,7 @@ static var _sh_plano: Shader = null
 static var _t_ruido: Texture2D = null
 static var _t_rampas: Dictionary = {}
 static var _t_mancha: Texture2D = null
+static var _t_mancha_em: Texture2D = null   ## mancha con el degradado en el RGB (emisión del Decal)
 static var _t_aro: Texture2D = null
 static var _t_quemado: Texture2D = null
 static var _m_particula: Dictionary = {}     ## elemento -> StandardMaterial3D
@@ -259,6 +260,25 @@ static func mancha() -> Texture2D:
 	if _t_mancha == null:
 		_t_mancha = _radial([0.0, 0.35, 1.0], [1.0, 0.45, 0.0])
 	return _t_mancha
+
+
+## La misma mancha, pero con el degradado en el COLOR (RGB = alfa) y no solo en el alfa. Un Decal solo lee el RGB de su textura de
+## emisión (el alfa no la enmascara), así que con `mancha()` el charco salía como un CUADRADO naranja liso de lado 2·radio (Pablo,
+## 16/10: flecha + fuego y barrera + fuego). Con el brillo ya dentro del RGB, las esquinas son negro = no emiten.
+static func mancha_emision() -> Texture2D:
+	if _t_mancha_em == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.colors = PackedColorArray([Color(1, 1, 1, 1), Color(0.45, 0.45, 0.45, 1), Color(0, 0, 0, 1)])
+		var t := GradientTexture2D.new()
+		t.gradient = g
+		t.fill = GradientTexture2D.FILL_RADIAL
+		t.fill_from = Vector2(0.5, 0.5)
+		t.fill_to = Vector2(1.0, 0.5)
+		t.width = 128
+		t.height = 128
+		_t_mancha_em = t
+	return _t_mancha_em
 
 
 static func aro() -> Texture2D:
@@ -471,7 +491,7 @@ static func charco(padre: Node3D, suelo: Vector3, radio: float, energia: float =
 	d.size = Vector3(radio * 2.0, 1.4, radio * 2.0)
 	d.position = suelo + Vector3(0.0, 0.5, 0.0)
 	d.texture_albedo = mancha()
-	d.texture_emission = mancha()
+	d.texture_emission = mancha_emision()
 	d.emission_energy = energia
 	d.albedo_mix = 0.0
 	var cc: Color = perfil()["charco"]
@@ -479,8 +499,9 @@ static func charco(padre: Node3D, suelo: Vector3, radio: float, energia: float =
 	d.cull_mask = 1                        # solo la capa 1: no se pinta sobre los efectos
 	padre.add_child(d)
 	if dura > 0.0:
+		# La emisión del Decal usa modulate.rgb y emission_energy, NO el alfa del modulate: se apaga bajando la energía.
 		var tw := d.create_tween()
-		tw.tween_property(d, "modulate:a", 0.0, dura).set_ease(Tween.EASE_IN)
+		tw.tween_property(d, "emission_energy", 0.0, dura).set_ease(Tween.EASE_IN)
 		tw.tween_callback(d.queue_free)
 	return d
 
@@ -851,7 +872,8 @@ static func cupula(padre: Node3D, suelo: Vector3, r: float, dura: float, esc: fl
 		tw.tween_property(pivote, "scale", Vector3(1.16, 0.55, 1.16), 0.5).set_trans(Tween.TRANS_QUAD)
 	var giro := cintas.create_tween()
 	giro.tween_property(cintas, "rotation:y", TAU * 1.3, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	giro.tween_property(cintas, "rotation:y", TAU * 1.3 + TAU * 2.0, maxf(dura, 1.0)).set_trans(Tween.TRANS_LINEAR)
+	# 16/10 (Pablo): tras la entrada las cintas ya NO siguen girando alrededor del personaje. El giro continuo (2 vueltas más) hacía
+	# que la textura de ruido de cada cinta barriera la pantalla y parpadeara; ahora el aro se queda quieto y solo se mueve el ruido.
 	var tc := cintas.create_tween().set_parallel(true)
 	tc.tween_property(cintas, "position:y", 0.04, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	for m in mats:

@@ -14,12 +14,14 @@ extends Node3D
 ## 13/10: también sirve para el LOBERNO (selector «Modelo» arriba, o tecla M). Con el lobo todo empieza neutro (factores 1, sin vaivén ni
 ## retraso de cola): se ven sus clips tal cual los exportó Meshy, y los mismos controles sirven para afinarlo si hace falta.
 ##
-## Teclas: M gato/loberno · 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
+## Teclas: M loberno/lince/canouro · 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · H humo negro en las patas (canouro) · Z zarpazo (clip + garras) · rueda = zoom · arrastrar = orbitar
 ## Abrir: poc_25d/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
 
-const MODELOS: Dictionary = {"gato": "res://arte/modelos/gato_guardabosques.glb", "loberno": "res://arte/modelos/emberheart.glb", "loberno_v1": "res://arte/modelos/emberstride.glb",
-	"loberno_meshy": "res://arte/modelos/loberno.glb", "lince": "res://arte/modelos/lince.glb",
-	"lince_gato": "res://arte/modelos/lince_gato.glb"}
+## 17/10 (encargo del Juego): solo quedan los tres enemigos en uso. El gato, el loberno v1/meshy y el lince_gato se quitaron con sus GLB.
+## Con el gato fuera, todos los modelos usan PERFIL_LOBERNO (`_cambiar_modelo` lo aplica a todo id distinto de «gato»); el canouro viene retargeteado al rig del lobo.
+const MODELOS: Dictionary = {"loberno": "res://arte/modelos/emberheart.glb",
+	"lince": "res://arte/modelos/lince.glb",
+	"canouro": "res://arte/modelos/canouro.glb"}
 const ALTO: float = 1.0            ## el gato se escala a esta altura (en el nivel mide 0,55; aquí más grande para verlo bien)
 const DELANTERAS: Array = ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033", "Bone_032"]
 const TRASERAS: Array = ["Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]
@@ -67,7 +69,8 @@ const PERFIL_LOBERNO: Dictionary = {
 	"cola": ["Tail1", "Tail2", "Tail3", "Tail4", "Tail5", "Tail6", "Tail7", "Tail8"],
 	"factor": {"del": 1.0, "tras": 1.0, "resto": 1.0}, "vel": 1.0, "dist": 3.4, "clip": "Walk",
 }
-var _id: String = "gato"
+var _humo: Node3D = null         ## humo negro de las patas del canouro (VfxCanouro3D); cuelga de `_modelo`, así que se libera con él
+var _id: String = ""            ## vacío hasta que `_ready` llama a `_cambiar_modelo` (es quien aplica el perfil del modelo)
 var _del: Array = DELANTERAS
 var _tras: Array = TRASERAS
 var _cola: Array = COLA
@@ -134,12 +137,9 @@ var _ocupado: bool = false         ## evita bucles al poner valores a los slider
 
 func _ready() -> void:
 	_montar_escena()
-	if not _cargar_gato():
-		return
-	_montar_interfaz()
-	_elegir_clip(_clip_inicial())
-	_camara_preset(0)
-	_refrescar_texto()
+	# Sin modelo «por defecto»: el estado inicial (_del, _tras, _cola, factores) es el del gato y ya no hay gato. `_cambiar_modelo` aplica el
+	# perfil del lobo, carga el GLB, monta la interfaz, elige el clip y coloca la cámara y el texto.
+	_cambiar_modelo("canouro")
 
 
 ## El clip con el que arranca cada modelo (el gato anda en «walk», el lobo en «Walk»; si no existe, el primero).
@@ -159,6 +159,7 @@ func _cambiar_modelo(id: String) -> void:
 	if _modelo != null:
 		_modelo.queue_free()
 		_modelo = null
+		_humo = null
 	if _capa != null:
 		_capa.queue_free()
 		_capa = null
@@ -724,5 +725,23 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_chk_pausa.button_pressed = not _chk_pausa.button_pressed
 			KEY_S:
 				_chk_esq.button_pressed = not _chk_esq.button_pressed
+			KEY_H:
+				# Humo negro de los pies. Se enciende/apaga; solo tiene sentido con el canouro, pero el rig del lobo lo admite igual.
+				if _humo == null and _modelo != null:
+					_humo = VfxCanouro3D.humo_patas(_modelo, 1.0)
+				elif _humo != null:
+					_humo.queue_free()
+					_humo = null
+			KEY_Z:
+				# Clip «Zarpazo» (si el modelo lo trae) y las garras sobre un «jugador» imaginario 1 m por delante del morro (el modelo mira
+				# a +Z). El tajo se dibuja entre ~0,33 y ~0,47 s del clip (golpe en 0,40) y con el ángulo REAL del barrido de la pata visto
+				# desde la cámara: gira la cámara (arrastrar) y pulsa Z de nuevo para ver que sigue coincidiendo. El lab repite el clip en
+				# bucle, pero las garras solo salen una vez por pulsación.
+				if _ap != null and _ap.has_animation("Zarpazo"):
+					_elegir_clip("Zarpazo")
+					_ap.seek(0.0, true)
+					await get_tree().create_timer((VfxCanouro3D.T_GOLPE_ZARPAZO - 0.07) / maxf(_ap.speed_scale, 0.05), false).timeout
+				var dir: Vector3 = _modelo.global_transform.basis.orthonormalized() * VfxCanouro3D.DIR_ZARPAZO_LOCAL
+				VfxCanouro3D.zarpazo(self, Vector3(0.0, 0.5, 1.0), dir, 1.0)
 			KEY_M:
 				_cambiar_modelo(String(MODELOS.keys()[(MODELOS.keys().find(_id) + 1) % MODELOS.size()]))

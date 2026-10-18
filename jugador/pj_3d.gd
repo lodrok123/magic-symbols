@@ -19,6 +19,11 @@ const SINONIMOS: Dictionary = {
 	"cast_corro": ["chargedgroundslam"],
 	"cast_columna": ["chargedspellcast002"],
 	"cast_muro": ["magesoellcast002"],
+	# T-CP1 (18/10): el empuje a dos manos (variación x_empuje) y los tres clips a UNA mano del Pipeline (diario 150; están en woodland_wanderer_suave.glb).
+	"cast_empuje": ["magesoellcast001"],
+	"cast_mano_frente": ["castonehandfront"],
+	"cast_mano_alto": ["castonehandup"],
+	"cast_mano_suelo": ["castonehandground"],
 	"hit": ["hit_reaction", "hit", "facepunchreaction", "slapreaction"],
 	"death": ["shot_and_fall_backward", "shot_in_the_back_and_fall", "death", "dead", "die"],
 	"talk": ["stand_talking", "talking"],
@@ -111,7 +116,9 @@ const MODELO_DE: Dictionary = {
 	"woodland_wanderer_orig": "woodland_wanderer",   # solo para el laboratorio: la elfa sin suavizar, para comparar
 	# 13/10: el loberno usa el modelo Emberstride (Meshy) pasado al esqueleto «Wolf» de 51 huesos (ver DIARIO 54). El GLB anterior (rig de Meshy,
 	# con las tiras del cuello deformadas) queda como `loberno.glb` solo para compararlo en el laboratorio.
-	# 16/10 (Pablo, Bosque 01): el loberno aprobado es `loberno.glb` (viene del lince, esqueleto y 12 clips iguales); `emberheart` queda para comparar.
+	# 16/10 (Pablo, Bosque 01) se había elegido `loberno.glb`; 17/10 Pablo dice que es una versión antigua y que el bueno es `emberheart` (Meshy,
+	# esqueleto «Wolf», DIARIO 56): vuelve aquí. `loberno.glb` y `emberstride.glb` quedan sin uso (a borrar por el Pipeline, dueño de arte/modelos).
+	"loberno": "emberheart",
 	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 
@@ -364,14 +371,23 @@ func mirar(d: Vector3, delta: float) -> void:
 const VEL_CAST: float = 1.6
 
 
-## Empieza a lanzar un hechizo de `forma` y `elemento` (el "modo lanzar" de DISENO_FUTURO §0b): el clip de
-## ANIM_CAST (o readandwrite) en bucle y partículas sutiles del elemento en la mano derecha. Devuelve lo que dura
-## el clip. Se termina con soltar_lanzar(). Solo el nombre del elemento: cómo se ve lo decide Vfx3D.
-func lanzar(forma: String, elemento: String) -> float:
+## Empieza a lanzar un hechizo de `forma` y `elemento` (el "modo lanzar" de DISENO_FUTURO §0b): el clip de ANIM_CAST (o readandwrite) en bucle y
+## partículas sutiles del elemento en la mano que lanza. Devuelve lo que dura el clip. Se termina con soltar_lanzar(). Solo el nombre del elemento:
+## cómo se ve lo decide Vfx3D.
+## T-CP1 (18/10): con `punto` (id de una variación de CastPoints) se usa el CAST POINT: el clip recortado, a su velocidad, con el libro en la mano que dice
+## la variación y el brazo del libro quieto; `fraccion_clip()` dice por dónde va. Si el id no existe o su clip no está en el GLB, se lanza como siempre.
+## El libro YA NO vuelve al cinto aquí (lo contrario de lo que pide el diseño): se queda en la mano mientras dura el lanzamiento y lo devuelve
+## `soltar_lanzar()` al acabar.
+func lanzar(forma: String, elemento: String, punto: String = "") -> float:
 	if _ap == null:
 		return 0.0
 	_quitar_chispas()
-	libro_en_manos(false, 0.15)
+	if punto != "" and CastPoints.existe(punto):
+		var d: float = _lanzar_punto(punto, elemento)
+		if d > 0.0:
+			return d
+	_cp = {}
+	_brazo_libro_peso(0.0)
 	var rol: String = String(ANIM_CAST.get(forma, "leer"))
 	var clip: String = _buscar_clip(rol)
 	if clip == "":
@@ -384,20 +400,197 @@ func lanzar(forma: String, elemento: String) -> float:
 	return _ap.get_animation(clip).length / VEL_CAST if clip != "" else 0.0
 
 
-## Para las partículas de la mano y vuelve a idle.
-func soltar_lanzar() -> void:
+## Para las partículas de la mano y vuelve a idle. `devolver_libro` false = el libro se queda en la mano (Jugador3D.terminar_apuntar lo usa al SOLTAR
+## para lanzar: el libro tiene que seguir en la mano durante el lanzamiento); true = lo guarda en el cinto (el final de siempre).
+func soltar_lanzar(devolver_libro: bool = true) -> void:
 	_quitar_chispas()
-	libro_en_manos(false, 0.15)
+	_cp = {}
+	_brazo_libro_peso(0.0)
+	if _ap != null:
+		_ap.speed_scale = 1.0
+	if devolver_libro:
+		libro_en_manos(false, 0.15)
 	animacion_actual = ""
 	jugar("idle")
 
 
-func _poner_chispas(elemento: String) -> void:
+# --- T-CP1: cast points ---
+
+## El lanzamiento por cast point en curso ({} = ninguno): id, clip, len (s del clip entero), a / b (s del recorte), t_inst (s del instante), vel,
+## sostener (s que se congela tras el instante), hold (s que le quedan de congelado), paso (true cuando ya pasó el instante), fin (true al llegar a `b`).
+var _cp: Dictionary = {}
+var _brazo: BrazoLibro3D = null
+var _libro_lado: String = "izquierda"          ## la mano en la que está ahora el libro
+
+
+## Empieza el clip recortado de la variación `id`. Devuelve los segundos que dura (con la velocidad y el factor del elemento, más el `sostener`), o 0 si no
+## se puede (variación sin clip en este GLB): entonces `lanzar` cae al camino de siempre.
+func _lanzar_punto(id: String, elemento: String) -> float:
+	var d: Dictionary = CastPoints.datos(id)
+	var rol: String = CastPoints.rol_clip(id)
+	var clip: String = _buscar_clip(rol)
+	if clip == "" and rol != String(d["clip"]):
+		rol = String(d["clip"])                 # la variación pide un clip a una mano y este GLB no lo trae: el original
+		clip = _buscar_clip(rol)
+	if clip == "":
+		return 0.0
+	var largo: float = _ap.get_animation(clip).length
+	var rec: Vector2 = CastPoints.recorte(id)
+	var vel: float = float(d["velocidad"]) / maxf(CastPoints.escala_tiempo(elemento), 0.05)
+	var a: float = rec.x * largo
+	var b: float = rec.y * largo
+	var t_inst: float = a + clampf(float(d["instante"]), 0.0, 1.0) * (b - a)
+	var una_mano: bool = CastPoints.es_una_mano(id) and rol == String(d["clip_una_mano"])
+	var lado: String = CastPoints.mano_libro(id) if not una_mano else "izquierda"
+	# El libro en la mano que corresponde (si ya estaba en la otra, pasa a esta).
+	libro_en_manos(true, 0.3, lado)
+	# El brazo del libro quieto (solo con el clip original: el de una mano ya trae el brazo del libro en su sitio).
+	_brazo_libro_lado(lado)
+	_brazo_libro_peso(CastPoints.peso_brazo if CastPoints.brazo_activo and not una_mano else 0.0)
+	animacion_actual = ""
+	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
+	animacion_actual = rol
+	_ap.speed_scale = 1.0
+	_ap.play(clip, MEZCLA_CLIPS, vel)
+	_ap.seek(a, true)
+	_cp = {"id": id, "clip": clip, "len": largo, "a": a, "b": b, "t_inst": t_inst, "vel": vel, "sostener": float(d["sostener"]), "hold": 0.0,
+		"paso": false, "fin": false, "lado": lado, "una_mano": una_mano}
+	_poner_chispas(elemento, "derecha" if lado == "izquierda" else "izquierda")
+	return (b - a) / vel + float(d["sostener"])
+
+
+## ¿Hay un lanzamiento por cast point en curso?
+func cast_activo() -> bool:
+	return not _cp.is_empty()
+
+
+## Por dónde va el clip recortado: 0 en `inicio`, 1 en `fin` (el `instante` de CastPoints se mide en esta escala). -1 si no hay lanzamiento por cast point.
+func fraccion_clip() -> float:
+	if _cp.is_empty() or _ap == null:
+		return -1.0
+	var rango: float = float(_cp["b"]) - float(_cp["a"])
+	return clampf((_ap.current_animation_position - float(_cp["a"])) / maxf(rango, 0.0001), 0.0, 1.0)
+
+
+## Segundos (de juego) que tarda el clip en llegar al instante desde que arranca. 0 si no hay lanzamiento por cast point.
+func tiempo_instante() -> float:
+	if _cp.is_empty():
+		return 0.0
+	return (float(_cp["t_inst"]) - float(_cp["a"])) / maxf(float(_cp["vel"]), 0.0001)
+
+
+## ¿Ya ha pasado el clip por el instante? (con `sostener` el clip queda congelado exactamente en él.)
+func paso_instante() -> bool:
+	return not _cp.is_empty() and bool(_cp["paso"])
+
+
+func punto_activo() -> String:
+	return String(_cp.get("id", ""))
+
+
+## Dónde está el punto del que nace el hechizo, en el mundo: `origen` de CastPoints (mano_libre · manos_alto · suelo_delante); `dir` es hacia donde se lanza
+## (en el plano). La mano libre es la contraria a la del libro.
+func posicion_punto(origen: String, dir: Vector3, lado_libro: String = "") -> Vector3:
+	var lado: String = lado_libro if lado_libro != "" else String(_cp.get("lado", "izquierda"))
+	var libre: String = "derecha" if lado == "izquierda" else "izquierda"
+	match origen:
+		"manos_alto":
+			var m: Vector3 = posicion_mano(libre)
+			return Vector3(global_position.x, maxf(m.y, global_position.y + alto_modelo() * scale.y), global_position.z)
+		"suelo_delante":
+			var d: Vector3 = Vector3(dir.x, 0.0, dir.z)
+			d = d.normalized() if d.length() > 0.001 else Vector3.FORWARD
+			return global_position + d * Terreno3D.casilla
+	return posicion_mano(libre)
+
+
+## Posición en el mundo de una mano ("izquierda" | "derecha"); si no hay esqueleto, un punto a la altura del pecho.
+func posicion_mano(lado: String) -> Vector3:
+	var sk: Skeleton3D = _esqueleto()
+	if sk != null:
+		var h: int = Equipo3D._hueso(sk, "LeftHand" if lado == "izquierda" else "RightHand")
+		if h >= 0:
+			return sk.global_transform * sk.get_bone_global_pose(h).origin
+	return global_transform * Vector3(0.28 if lado == "derecha" else -0.28, 0.85, 0.30)
+
+
+func _esqueleto() -> Skeleton3D:
+	if _modelo == null:
+		return null
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	return sks[0] as Skeleton3D if not sks.is_empty() else null
+
+
+## El modificador del brazo del libro, creado la primera vez que se pide (con la pose de `Readandwrite`). Null si el modelo no puede (sin esqueleto o sin ese clip).
+func _brazo_libro() -> BrazoLibro3D:
+	if _brazo != null and is_instance_valid(_brazo):
+		return _brazo
+	var sk: Skeleton3D = _esqueleto()
+	if sk == null or _ap == null:
+		return null
+	# La pose «libro recogido con la palma arriba» sale de CastOneHandFront (el Pipeline la hizo con la mano izquierda sujetando el libro, diario 150);
+	# si el GLB no la trae, de Readandwrite (la lectura, con el libro más vertical).
+	var clip: String = _buscar_clip("cast_mano_frente")
+	var t_ref: float = BrazoLibro3D.T_REF_UNA_MANO
+	if clip == "":
+		clip = _buscar_clip("leer")
+		t_ref = BrazoLibro3D.T_REF_POR_DEFECTO
+	if clip == "":
+		return null
+	var m := BrazoLibro3D.new()
+	m.name = "BrazoLibro"
+	m.influence = 0.0
+	sk.add_child(m)
+	if not m.preparar(_ap.get_animation(clip), t_ref):
+		m.queue_free()
+		return null
+	_brazo = m
+	return _brazo
+
+
+func _brazo_libro_peso(w: float) -> void:
+	if w <= 0.0 and (_brazo == null or not is_instance_valid(_brazo)):
+		return
+	var b: BrazoLibro3D = _brazo_libro()
+	if b != null:
+		b.influence = clampf(w, 0.0, 1.0)
+
+
+func _brazo_libro_lado(lado: String) -> void:
+	var b: BrazoLibro3D = _brazo_libro()
+	if b != null:
+		b.lado = lado
+
+
+## Cada fotograma: si hay un lanzamiento por cast point, congela el clip en el instante (si `sostener`) y al llegar a `fin`.
+func _process(delta: float) -> void:
+	if _cp.is_empty() or _ap == null:
+		return
+	var t: float = _ap.current_animation_position
+	if float(_cp["hold"]) > 0.0:
+		_cp["hold"] = float(_cp["hold"]) - delta
+		if float(_cp["hold"]) <= 0.0:
+			_ap.speed_scale = 1.0
+		return
+	if not bool(_cp["paso"]) and t >= float(_cp["t_inst"]):
+		_cp["paso"] = true
+		if float(_cp["sostener"]) > 0.0:
+			_ap.seek(float(_cp["t_inst"]), true)
+			_ap.speed_scale = 0.0
+			_cp["hold"] = float(_cp["sostener"])
+			return
+	if not bool(_cp["fin"]) and t >= float(_cp["b"]):
+		_cp["fin"] = true
+		_ap.seek(float(_cp["b"]), true)
+		_ap.speed_scale = 0.0
+
+
+func _poner_chispas(elemento: String, mano: String = "derecha") -> void:
 	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
 	if sks.is_empty():
 		return
 	var sk: Skeleton3D = sks[0] as Skeleton3D
-	var h: int = Equipo3D._hueso(sk, "RightHand")
+	var h: int = Equipo3D._hueso(sk, "RightHand" if mano == "derecha" else "LeftHand")
 	if h < 0:
 		return
 	var at := BoneAttachment3D.new()
@@ -417,7 +610,13 @@ func _poner_chispas(elemento: String) -> void:
 ## Es una copia aparte del grimorio (el de la cadera/espalda no se toca ni se "coge"): una pieza nueva en la mano izquierda que
 ## crece desde 0 en `dur` s con unas motas del elemento (o blancas) y, al cerrar, se encoge y se borra. El tween ignora el
 ## `Engine.time_scale` (el libro abierto va al 30 %): dura `dur` segundos REALES.
-var libro_mano: Array = [Vector3(0.0, 0.10, 0.05), Vector3(90.0, 0.0, 0.0)]    ## posición y giro respecto a la mano
+## T-CP1 (18/10, diario 150): el libro descansa en la PALMA de la mano, que va hacia arriba (en los clips CastOneHand* y en la pose del brazo del libro).
+## Medido en el esqueleto: en la mano izquierda la normal de la palma es el eje +X del hueso (en reposo, con la palma hacia abajo, X apunta al suelo; en
+## CastOneHand* apunta arriba, 0,87), los dedos van por +Y y la palma ocupa X ≈ 0,04…0,07, Y ≈ 0,04…0,11. Así que el libro (su espesor 0,068 es su eje Z) se
+## gira 90° en Y (su normal pasa a ser la de la palma), y su centro queda sobre la palma: x = 0,066 + media espesor (0,034) ≈ 0,10, y = centro de la palma,
+## z = ancho medio. Antes: (0, 0,10, 0,05) y giro (90, 0, 0): el libro de canto, con la normal a lo largo de los dedos (lo ajustó la pose de Readandwrite, que lo
+## sostiene casi vertical, leyendo). En la derecha el rig es el espejo: x → −x y los giros en Y y Z cambian de signo (`_libro_pose`).
+var libro_mano: Array = [Vector3(0.10, 0.08, -0.01), Vector3(0.0, 90.0, 0.0)]    ## posición y giro respecto a la mano izquierda
 var _libro: Node3D = null
 var _libro_tween: Tween = null
 
@@ -461,7 +660,47 @@ func _volar_libro(k: float, viejo: Node3D, cinto: Node3D, t0: Transform3D, q0: Q
 	viejo.global_transform = Transform3D(Basis(q).scaled(s), t0.origin.lerp(d.origin, k))
 
 
-func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
+## Posición y giro del libro respecto a la mano `mano`: los de `libro_mano` en la izquierda y su espejo en la derecha.
+func _libro_pose(mano: String) -> Array:
+	var p: Vector3 = libro_mano[0] as Vector3
+	var r: Vector3 = libro_mano[1] as Vector3
+	if mano == "derecha":
+		return [Vector3(-p.x, p.y, p.z), Vector3(r.x, -r.y, -r.z)]
+	return [p, r]
+
+
+## Cambia el libro de mano sin cerrarlo (el mismo nodo, otro BoneAttachment3D), con la pose espejada de esa mano.
+func _pasar_libro(mano: String) -> void:
+	var sk: Skeleton3D = _esqueleto()
+	if sk == null or _libro == null or not is_instance_valid(_libro):
+		return
+	var h: int = Equipo3D._hueso(sk, "LeftHand" if mano == "izquierda" else "RightHand")
+	if h < 0:
+		return
+	var at := BoneAttachment3D.new()
+	at.name = "LibroMano"
+	at.bone_name = sk.get_bone_name(h)
+	sk.add_child(at)
+	var viejo_at: Node = _libro.get_parent()
+	if viejo_at != null:
+		viejo_at.remove_child(_libro)
+		viejo_at.queue_free()
+	at.add_child(_libro)
+	var escala: float = 1.0
+	var n: Node = sk
+	while n != null and n != _modelo:
+		if n is Node3D:
+			escala *= (n as Node3D).scale.y
+		n = n.get_parent()
+	var pose_libro: Array = _libro_pose(mano)
+	_libro.position = (pose_libro[0] as Vector3) / maxf(escala, 0.0001)
+	_libro.rotation_degrees = pose_libro[1] as Vector3
+	_libro_lado = mano
+
+
+## `mano`: en cuál se sostiene (izquierda por defecto; T-CP1: con clips que lanzan con la izquierda, el libro va a la derecha). Si el libro ya está
+## en la otra mano, pasa a esta.
+func libro_en_manos(abrir: bool, dur: float = 0.3, mano: String = "izquierda") -> void:
 	if _modelo == null:
 		return
 	if _libro_tween != null and _libro_tween.is_valid():
@@ -493,7 +732,10 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 		_libro_vuelve.tween_callback(_acabar_vuelta_libro)
 		return
 	if _libro != null and is_instance_valid(_libro):
+		if mano != _libro_lado:
+			_pasar_libro(mano)
 		return
+	_libro_lado = mano
 	# Si aún estaba volviendo al cinto, se remata antes de sacar otro.
 	if _libro_vuelve != null and _libro_vuelve.is_valid():
 		_acabar_vuelta_libro()
@@ -501,9 +743,9 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	if sks.is_empty():
 		return
 	var sk: Skeleton3D = sks[0] as Skeleton3D
-	var h: int = Equipo3D._hueso(sk, "LeftHand")
+	var h: int = Equipo3D._hueso(sk, "LeftHand" if mano == "izquierda" else "RightHand")
 	if h < 0:
-		h = Equipo3D._hueso(sk, "RightHand")
+		h = Equipo3D._hueso(sk, "RightHand" if mano == "izquierda" else "LeftHand")
 	if h < 0:
 		return
 	var escala: float = 1.0
@@ -517,8 +759,9 @@ func libro_en_manos(abrir: bool, dur: float = 0.3) -> void:
 	at.bone_name = sk.get_bone_name(h)
 	sk.add_child(at)
 	var g: Node3D = Equipo3D.pieza("grimorio")
-	g.position = (libro_mano[0] as Vector3) / maxf(escala, 0.0001)
-	g.rotation_degrees = libro_mano[1] as Vector3
+	var pose_libro: Array = _libro_pose(mano)
+	g.position = (pose_libro[0] as Vector3) / maxf(escala, 0.0001)
+	g.rotation_degrees = pose_libro[1] as Vector3
 	var lleno: Vector3 = Vector3.ONE / maxf(escala, 0.0001)
 	g.scale = lleno * 0.02
 	at.add_child(g)

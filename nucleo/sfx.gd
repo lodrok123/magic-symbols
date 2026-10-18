@@ -102,6 +102,20 @@ const CATALOGO: Dictionary = {
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
 	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
 	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
+
+	# --- Fases del conjuro V2 (18/10, Pipeline; audio/gen_sfx_hechizos.py, diario 160/162). Las llama Lanzador3D._sonar_fase_v2: «<elemento>_carga» al
+	# empezar el conjuro, y «<nombre derivado>_impacto» (x_mano · alto · abajo) al materializarse el volumen. «<elemento>_disparo» no lleva sonido
+	# propio: sigue siendo el elem_* de arriba. Primera versión sintetizada: SE AFINA ESCUCHANDO (estos dB y el tono son un punto de partida).
+	"fuego_carga":  {"f": ["fuego_carga.wav"],  "db": -9.0,  "tono": 0.04},
+	"agua_carga":   {"f": ["agua_carga.wav"],   "db": -9.0,  "tono": 0.04},
+	"hielo_carga":  {"f": ["hielo_carga.wav"],  "db": -11.0, "tono": 0.03},
+	"rayo_carga":   {"f": ["rayo_carga.wav"],   "db": -9.0,  "tono": 0.04},
+	"viento_carga": {"f": ["viento_carga.wav"], "db": -12.0, "tono": 0.05},
+	"tierra_carga": {"f": ["tierra_carga.wav"], "db": -8.0,  "tono": 0.04},
+	"tiempo_carga": {"f": ["tiempo_carga.wav"], "db": -11.0, "tono": 0.02},
+	"x_mano_impacto": {"f": ["x_mano_impacto.wav"], "db": -6.0, "tono": 0.06},
+	"alto_impacto":   {"f": ["alto_impacto.wav"],   "db": -6.0, "tono": 0.06},
+	"abajo_impacto":  {"f": ["abajo_impacto.wav"],  "db": -5.0, "tono": 0.06},
 }
 
 ## Etiqueta del elemento -> sonido. Se mira en ESTE orden, y el orden

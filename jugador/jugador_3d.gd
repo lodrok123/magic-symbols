@@ -28,6 +28,11 @@ const VEL_SALTO: float = 8.4
 const TOLERANCIA_SUELO: float = 0.55        ## desnivel que se camina sin saltar (de puente a suelo, escalón)
 const TOLERANCIA_AIRE: float = 0.35         ## lo que una casilla puede estar por encima de tus pies en el aire
 const MULT_NADO: float = 0.4
+## NADO DESACTIVADO DE MOMENTO (Pablo, 16/10): nadar se salta los puzles del tronco (el río del Bosque 01 se cruza con el tronco-puente y el estanque
+## con el tronco del estanque). Con false el jugador NO entra al agua andando: el agua se comporta como una pared. Sigue funcionando el nado si algo lo
+## mete dentro (el hielo que se derrite bajo los pies, el agua que sube) para que no quede atrapado. Para probar el nado o un nivel que lo quiera:
+## `Jugador3D.nado_permitido = true`.
+static var nado_permitido: bool = false
 const HUNDIDO: float = 0.35                 ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 const INVULNERABLE: float = 0.7
 const TIEMPO_REAPARECER: float = 2.2
@@ -59,6 +64,7 @@ var muerto: bool = false
 var nadando: bool = false
 var en_suelo: bool = true
 var bloqueado: bool = false
+var salto_activo: bool = true         ## R4 (17/10): false = Espacio no salta (el laboratorio de recetas usa Espacio para lanzar)
 var vy: float = 0.0
 var puntos_inicio: Vector3 = Vector3.ZERO
 ## La pantalla de «Has muerto» (Fase 14.3). Si existe, ella decide cuándo reaparece el jugador; si no, reaparece solo a los TIEMPO_REAPARECER.
@@ -196,9 +202,10 @@ func apuntar_lanzar(elemento: String, _forma: String, ralentizado: float) -> voi
 
 
 ## Sale del modo apuntar (al soltar o al cancelar): vuelve a idle. Si se soltó, lanzar_clip vuelve a poner el clip.
-func terminar_apuntar() -> void:
+## `lanzando` true = se sale del apuntado PARA LANZAR: el libro se queda en la mano (T-CP1: no vuelve al cinto hasta que acabe el lanzamiento).
+func terminar_apuntar(lanzando: bool = false) -> void:
 	pj.set_velocidad_animacion(1.0)
-	pj.soltar_lanzar()
+	pj.soltar_lanzar(not lanzando)
 	_lanzando = false
 
 
@@ -215,9 +222,15 @@ func mirada() -> Vector3:
 
 
 ## Al soltar: el clip de la forma (Pj3D.ANIM_CAST, o readandwrite) y las motas, lo que dure el clip (entre 0,5 y 1,4 s).
-func lanzar_clip(elemento: String, forma: String) -> void:
+## T-CP1: con `punto` (id de CastPoints) el clip es el del cast point (recortado, a su velocidad, con el libro en la mano que toca) y `_t_lanzar` dura
+## lo que dura ese recorte; el disparo lo espera `Lanzador3D` mirando `fraccion_cast()`.
+func lanzar_clip(elemento: String, forma: String, punto: String = "") -> void:
 	pj.mirar(_mirada, 1.0)
-	pj.lanzar(forma, elemento)                 # pone las motas del elemento y el clip de la forma (en bucle)
+	var d_punto: float = pj.lanzar(forma, elemento, punto)      # pone las motas del elemento y el clip de la forma (en bucle)
+	if pj.cast_activo():
+		_t_lanzar = clampf(d_punto, 0.4, 4.0)
+		_lanzando = true
+		return
 	# 6.2: el clip de la forma se reproduce UNA vez entera y el jugador espera a que acabe antes de volver a idle.
 	var rol: String = String(Pj3D.ANIM_CAST.get(forma, "leer"))
 	if pj.duracion(rol) <= 0.0:
@@ -286,6 +299,23 @@ func push(direccion: Vector3, fuerza: float) -> void:
 		return
 	var f: float = fuerza * 0.0036 if fuerza > 100.0 else fuerza
 	_empuje += d.normalized() * f
+
+
+## T-CP1: cómo va el clip del cast point (0 en el recorte de inicio, 1 en el de fin; -1 si no hay), lo que tarda en llegar a su instante y dónde nace el hechizo.
+func fraccion_cast() -> float:
+	return pj.fraccion_clip()
+
+
+func tiempo_instante_cast() -> float:
+	return pj.tiempo_instante()
+
+
+func punto_cast() -> String:
+	return pj.punto_activo()
+
+
+func posicion_punto_cast(origen: String, dir: Vector3) -> Vector3:
+	return pj.posicion_punto(origen, dir)
 
 
 func _morir() -> void:
@@ -407,7 +437,7 @@ func _process(delta: float) -> void:
 		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
 			entrada.y += 1.0
 	var correr: bool = libre and Input.is_key_pressed(KEY_SHIFT)
-	var salto: bool = libre and Input.is_key_pressed(KEY_SPACE)
+	var salto: bool = libre and salto_activo and Input.is_key_pressed(KEY_SPACE)
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
@@ -622,7 +652,7 @@ func _puede_estar(p: Vector3) -> bool:
 	if parcial and Terreno3D.choca_huella(c, p):
 		return false
 	var nivel: int = Terreno3D.altura_en(actual)
-	if not Terreno3D.pisable(c, nivel, true, maxi(MAX_NIVELES_SUBIBLES, tope_niveles_nivel), true, parcial):
+	if not Terreno3D.pisable(c, nivel, true, maxi(MAX_NIVELES_SUBIBLES, tope_niveles_nivel), nado_permitido or nadando, parcial):
 		return false
 	if nadando:
 		return Terreno3D.altura_en(c) == 0          # del agua solo se sale a suelo llano

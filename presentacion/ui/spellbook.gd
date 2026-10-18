@@ -99,6 +99,17 @@ const BOOK_SIZE: Vector2 = Vector2(1470.0, 1070.0)
 ## `leyenda` = el centro de cada óvalo de la página derecha, en el orden en que se rellenan.
 ## `nucleo` = radio del círculo del sello, en unidades de diseño (como CORE_RADIUS, que se multiplica por _ui()).
 ## `guias` = false porque el arte ya trae impresos el aro, el núcleo y los huecos: el código no los repinta.
+##
+## Claves de la lámina «bosque» (16/10, Pablo; medidas en docs/ARTE.md §16), todas opcionales y sin efecto en las demás:
+## `nucleo_desp` = cuánto se desplaza el SELLO respecto al centro del círculo exterior, en px de lámina (+y = abajo). El sello no está
+##   en el centro (≈ 99 px más arriba), y los sectores se miden desde el círculo exterior, no desde el sello.
+## `orden_huecos` = en qué orden se abren los huecos de glifo y, con eso, cuáles admiten trazo: se abren los N primeros, N = glifos por
+##   página (`Repertoire.max_sigils_per_page`). Un hueco cerrado ni se ve ni admite trazo. Sin esta clave, todos están abiertos.
+## `hueco_sprite` / `hueco_sprite_radio` / `hueco_radios` = el aro suelto que se pinta en cada hueco ABIERTO (140 × 140 px, radio 58,1),
+##   escalado por `hueco_radios[sector] / hueco_sprite_radio`. El arte no trae los aros impresos: aparecen al desbloquear.
+## `leyenda_sellos` = dónde va cada ELEMENTO en la página derecha (6 círculos) y `leyenda` = dónde va cada GLIFO (rejilla 3 × 3). Si hay
+##   `leyenda_sellos`, elementos y glifos se cuentan por separado; `sello_tam` y `glifo_tam` son su tamaño en px de lámina.
+## `bloque` = el bloque de páginas que se encuadra (en px de lámina); sin él vale PAGE_BLOCK.
 const LIBROS: Dictionary = {
 	"nivel1": {
 		"textura": "res://art/ui/grimorio_nivel1.png",
@@ -110,11 +121,39 @@ const LIBROS: Dictionary = {
 		"leyenda": [Vector2(879.0, 263.0), Vector2(1039.0, 264.0), Vector2(1204.0, 264.0)],
 		"guias": false,
 	},
+	# Lámina `grimorio_bosque.png` (1470 × 1070, 16/10). Centros y radios MEDIDOS por Pipeline sobre la imagen (ARTE §16, diario 112).
+	# Desde el 16/10 la usan TODAS las progresiones (`PROGRESIONES.libro` = «bosque»): el libro antiguo era un placeholder (decisión de Pablo).
+	"bosque": {
+		"textura": "res://art/ui/grimorio_bosque.png",
+		"centro": Vector2(431.9, 482.4),
+		"radio": 232.8,
+		"nucleo": 119.6 * RADIUS / 232.8,           # radio del sello (119,6 px de lámina) en unidades de diseño
+		"nucleo_desp": Vector2(433.7 - 431.9, 383.1 - 482.4),
+		# Sectores por ángulo desde el círculo exterior: 1 ≈ 37°, 2 = 90° (abajo), 3 ≈ 143°. Abren abajo → abajo-izquierda → abajo-derecha.
+		"huecos": {2: Vector2(431.4, 628.1), 3: Vector2(305.4, 578.7), 1: Vector2(557.3, 578.7)},
+		"orden_huecos": [2, 3, 1],
+		"hueco_radios": {2: 59.8, 3: 58.1, 1: 58.1},
+		"hueco_sprite": "res://art/ui/grimorio_hueco_glifo.png",
+		"hueco_sprite_radio": 58.1,
+		"leyenda_sellos": [Vector2(838.3, 276.8), Vector2(913.8, 276.8), Vector2(989.9, 276.8), Vector2(1065.9, 276.8),
+				Vector2(1141.4, 276.8), Vector2(1216.9, 276.8)],
+		"sello_tam": 46.0,                           # el círculo mide 60,4 de diámetro: el glifo respira dentro
+		"leyenda": [Vector2(871.4, 415.6), Vector2(1028.8, 415.6), Vector2(1184.9, 415.6),
+				Vector2(871.4, 551.4), Vector2(1028.8, 551.4), Vector2(1184.9, 551.4),
+				Vector2(871.4, 683.8), Vector2(1028.8, 683.8), Vector2(1184.9, 683.8)],
+		"glifo_tam": 54.0,                           # el óvalo mide 140,5 × 101,0
+		"bloque": Rect2(107.0, 86.0, 1240.0, 760.0), # las dos páginas (papel x 107–1347) con la cenefa (y ≈ 90–840)
+		"guias": false,
+	},
 }
+
+## Marca de «este trazo no cae en ningún hueco abierto»: se descarta (no es un elemento, que es lo que daría Vector2.ZERO).
+const SIN_HUECO: Vector2 = Vector2(9999.0, 9999.0)
 
 var _libro_cache: String = "?"
 var _libro_datos: Dictionary = {}
 var _libro_tex: Texture2D = null
+var _hueco_tex: Texture2D = null
 
 
 ## Los datos de la lámina alternativa activa, o {} si toca la de siempre (también si falta el PNG).
@@ -123,12 +162,16 @@ func _libro() -> Dictionary:
 		_libro_cache = Repertoire.libro
 		_libro_datos = {}
 		_libro_tex = null
+		_hueco_tex = null
 		if LIBROS.has(_libro_cache):
 			var d: Dictionary = LIBROS[_libro_cache]
 			if ResourceLoader.exists(String(d["textura"])):
 				_libro_tex = load(String(d["textura"])) as Texture2D
 				if _libro_tex != null:
 					_libro_datos = d
+					var sp: String = String(d.get("hueco_sprite", ""))
+					if sp != "" and ResourceLoader.exists(sp):
+						_hueco_tex = load(sp) as Texture2D
 	return _libro_datos
 
 
@@ -140,6 +183,53 @@ func _circ_c() -> Vector2:
 func _circ_r() -> float:
 	var d: Dictionary = _libro()
 	return float(d["radio"]) if not d.is_empty() else CIRCLE_RADIUS
+
+
+## Centro del SELLO (núcleo) en px de lámina: el del círculo exterior más `nucleo_desp` (0 en las láminas de siempre).
+func _core_c() -> Vector2:
+	return _circ_c() + (_libro().get("nucleo_desp", Vector2.ZERO) as Vector2)
+
+
+## Los huecos de glifo que admiten trazo ahora: sector -> posición en la lámina. Sin `orden_huecos` están todos; con él, los N primeros
+## (N = glifos por página, `Repertoire.max_sigils_per_page`). Un hueco cerrado no se ve y no atrae trazos.
+func _huecos_abiertos() -> Dictionary:
+	var todos: Dictionary = _libro().get("huecos", {})
+	var orden: Array = _libro().get("orden_huecos", [])
+	if orden.is_empty():
+		return todos
+	var abiertos: Dictionary = {}
+	for i in range(mini(maxi(Repertoire.max_sigils_per_page, 0), orden.size())):
+		var k: int = int(orden[i])
+		if todos.has(k):
+			abiertos[k] = todos[k]
+	return abiertos
+
+
+## ¿La lámina limita en qué huecos se puede poner un glifo? (sí si tiene `orden_huecos`). Lo pregunta la paleta de pruebas (F1).
+func restringe_huecos() -> bool:
+	return not (_libro().get("orden_huecos", []) as Array).is_empty()
+
+
+## Las direcciones (vectores unitarios, como las del Spellcaster) de los huecos de glifo abiertos, en el orden en que se abrieron.
+func sectores_abiertos() -> Array:
+	var l: Array = []
+	var abiertos: Dictionary = _huecos_abiertos()
+	for k in (_libro().get("orden_huecos", []) as Array):
+		if abiertos.has(int(k)):
+			var ang: float = float(int(k)) * TAU / float(SECTORS)
+			l.append(Vector2.RIGHT if int(k) == 0 else Vector2(cos(ang), sin(ang)))
+	return l
+
+
+## El bloque de páginas que se encuadra: el de la lámina si lo dice, y si no PAGE_BLOCK.
+func _page_block() -> Rect2:
+	var d: Dictionary = _libro()
+	return (d.get("bloque", PAGE_BLOCK) as Rect2) if not d.is_empty() else PAGE_BLOCK
+
+
+## De px de lámina a px de pantalla para una MEDIDA suelta (no un punto: eso es `_on_page`).
+func _lam(px: float) -> float:
+	return px * (_book_rect().size.x / BOOK_SIZE.x)
 
 
 ## Radio del núcleo en unidades de diseño.
@@ -246,9 +336,35 @@ var _limpio_t: float = -1.0              ## < 0 = sin animación de redibujado
 var _limpio_desde: Array = []
 var _limpio_hasta: Array = []
 
+## --- TRAZO RECTO (Fase 14.4, 16/10; Pablo: «el trazo es muy lento… que solo tome en cuenta las direcciones») ---
+## Con `Estado.i().trazo_recto`, lo que el ratón dibuja (`stroke_crudo`) se rectifica en vivo a tramos rectos en las ocho direcciones del
+## compás (GestureRectify) y ESO es `stroke`: lo que se ve, lo que se reconoce y lo que se graba. Así las runas pueden ser líneas rectas
+## sin que un ángulo a medias o un temblor las estropee. La asistencia sigue encima (guía fantasma y aceptación anticipada), pero el imán
+## sobra: la rectificación ya es el imán. Y al soltar, si ningún gesto activo de la familia necesita más trazos de los ya dibujados
+## (GestureLibrary.trazos), el gesto se cierra al momento en vez de esperar GESTURE_PAUSE: es lo que quita la lentitud.
+var stroke_crudo: PackedVector2Array = PackedVector2Array()   ## el trazo tal cual lo dibuja el ratón (PlayLog y pluma)
+## Con el trazo recto, el reconocedor exige este múltiplo del margen de siempre (0,30 → 0,45): «la horquilla más estrecha» que
+## pidió Pablo. Valor a ojo hasta medirlo con las runas regrabadas (prueba_asistencia).
+const EXIGENCIA_RECTO: float = 1.0           ## 17/10 (playtest de Pablo): con 1,5 rechazaba levitaciones y repeticiones bien hechas («se parece a: levitacion»); 1 hasta medir con prueba_asistencia
+
+## --- LA MANO QUE ESCRIBE (Fase 14.4 · 4.2, 16/10; contrato en el diario 116 del Pipeline) ---
+## Con la mano se ve QUIÉN escribe: la tinta deja de aparecer sola. Es solo cara: no reconoce nada; el reconocimiento sigue usando el trazo REAL
+## (`stroke`). Con los GLB de `arte/meshy/escritura/` es `ManoPluma3D`; sin ellos, la de láminas 2D (o nada, si faltan también los PNG: `punta()` sigue
+## funcionando). La pluma tiene un retardo de 60 ms respecto al punto que se le da, así que la tinta del trazo EN CURSO se recorta hasta la punta
+## de verdad (`_tinta_hasta_punta`): si no, la línea iría por delante del plumín.
+var mano: ManoPluma2D = null
+const MANO_Z: int = 100                 ## por encima de los trazos y del resto del libro
+const MANO_ESCALA_2D: float = 0.55      ## tamaño de diseño de la mano 2D (PNG de 560 px) a 1470 de ancho de libro
+const TINTA_MIRA_ATRAS: int = 14        ## puntos del final del trazo entre los que se busca la punta (el retardo son ~60 ms: unos pocos puntos)
+
 
 func _ready() -> void:
 	visible = false
+	mano = ManoPluma3D.new() if ManoPluma3D.disponible() else ManoPluma2D.new()
+	mano.name = "ManoPluma"
+	mano.z_index = MANO_Z
+	mano.visible_al_inicio = false          # con el libro cerrado no se ve (ni se renderiza el viewport de la 3D)
+	add_child(mano)
 
 
 ## Se busca al Spellcaster cuando hace falta, no en _ready(): así da
@@ -375,6 +491,7 @@ func _toggle() -> void:
 
 
 func _open() -> void:
+	GestureRecognizer.exigencia = EXIGENCIA_RECTO if _recto_activo() else 1.0
 	# Si el árbol ya estaba congelado, la pausa es de otro: has muerto o
 	# has ganado. Abrir el libro y cerrarlo luego descongelaría esa
 	# pantalla, así que en ese caso no se abre.
@@ -395,6 +512,9 @@ func _open() -> void:
 	_asist_reiniciar()
 	gesture_countdown = 0.0
 	is_drawing = false
+	_mano_actualizar()
+	if mano != null:
+		mano.mostrar()
 
 	# ABRIR YA NO BORRA. Antes cada apertura empezaba en blanco porque
 	# solo había un hechizo y no tenía sentido conservarlo tras lanzarlo;
@@ -413,6 +533,8 @@ func _close() -> void:
 	Sfx.play(_oyente(), "libro_cierra")
 	visible = false
 	is_drawing = false
+	if mano != null:
+		mano.ocultar()
 	pending_strokes = []
 	_asist_reiniciar()
 	gesture_countdown = 0.0
@@ -429,10 +551,42 @@ func _close() -> void:
 
 ## --- Captura del trazo ---
 
+## Radio dentro del cual se puede trazar. Con una lámina (todas las progresiones usan ya la «bosque») es un 25 % mayor que el círculo impreso
+## (Pablo, 17/10): un trazo más amplio no se corta al rozar el borde. Es SOLO el límite de dónde nace y hasta dónde sigue el trazo: el dibujo del
+## libro, el imán, el rectificado y el reconocimiento siguen midiendo con `RADIUS`, así que nada de lo ya ajustado cambia de escala.
+const AMPLIA_AREA_TRAZO: float = 1.25
+
+func _radio_trazo() -> float:
+	return _u(RADIUS) * (AMPLIA_AREA_TRAZO if not _libro().is_empty() else 1.0)
+
+
+## Tolerancia al temblor dentro de un glifo, como fracción de la del círculo grande (diario 137/138). El temblor de la mano mide igual en un
+## círculo pequeño que en uno grande, así que no se reduce ×4 con él (medido: ×0,25 deja 73 % de aciertos con temblor fuerte; ×0,5, 98 %).
+const TOL_RECTIFICADO_GLIFO: float = 0.5
+
+## Escalas del rectificador para el trazo en curso: x = tolerancia al temblor, y = tamaño de las formas (tramo mínimo y cierre).
+## En el núcleo (elementos) y en las láminas sin huecos medidos, las dos valen `_u(RADIUS)` como siempre. En un hueco de glifo las formas
+## se miden con el RADIO DEL HUECO (≈ 58 de 233 de lámina): una forma del tamaño del hueco tiene tramos de ~24 px y con el tramo mínimo del
+## círculo grande (23 px) se fundían con los vecinos y los giros no salían. El sector se decide por el centro del trazo hasta ahora, igual
+## que `_familia_asistencia`.
+func _escalas_rectificado() -> Vector2:
+	var base: float = _u(RADIUS)
+	var radios: Dictionary = _libro().get("hueco_radios", {})
+	if radios.is_empty() or stroke_crudo.is_empty():
+		return Vector2(base, base)
+	var medio := Vector2.ZERO
+	for p in stroke_crudo:
+		medio += p
+	var sector: Vector2 = _sector_of_point(medio / float(stroke_crudo.size()))
+	if sector == Vector2.ZERO or sector == SIN_HUECO:
+		return Vector2(base, base)
+	return Vector2(base * TOL_RECTIFICADO_GLIFO, _lam(float(radios.get(_sector_idx(sector), 58.1))))
+
+
 func _begin_stroke(pos: Vector2) -> void:
 	# El trazo tiene que NACER dentro del círculo. Es la regla que hace
 	# del círculo algo más que decoración.
-	if pos.distance_to(_center()) > _u(RADIUS):
+	if pos.distance_to(_center()) > _radio_trazo():
 		return
 
 	is_drawing = true
@@ -440,6 +594,7 @@ func _begin_stroke(pos: Vector2) -> void:
 	# del mismo gesto que los anteriores.
 	gesture_countdown = 0.0
 	stroke = PackedVector2Array([pos])
+	stroke_crudo = PackedVector2Array([pos])
 	stroke_visible = PackedVector2Array([pos])
 	if pending_strokes.is_empty():
 		_t_gesto_ini = Time.get_ticks_msec()
@@ -452,14 +607,21 @@ func _add_point(pos: Vector2) -> void:
 	# Salirse del círculo termina el trazo. Preferimos esto a recortar el
 	# punto contra el borde: recortar deformaría el gesto y haría que el
 	# reconocimiento fallara sin que se entienda por qué.
-	if pos.distance_to(_center()) > _u(RADIUS):
+	if pos.distance_to(_center()) > _radio_trazo():
 		_end_stroke()
 		return
 
-	if stroke.is_empty() or stroke[-1].distance_to(pos) >= MIN_POINT_DISTANCE:
-		stroke.append(pos)
-		# El punto que se ve va imantado con la guía vigente (si la asistencia está activa); el real se guarda tal cual.
-		stroke_visible.append(asistente.punto_imantado(pos, _u(RADIUS)) if _asistencia_activa() else pos)
+	if stroke_crudo.is_empty() or stroke_crudo[-1].distance_to(pos) >= MIN_POINT_DISTANCE:
+		stroke_crudo.append(pos)
+		if _recto_activo():
+			# Rectificado en vivo: el trazo entero se recalcula (es determinista y barato: decenas de puntos) y se ve ya recto.
+			var esc: Vector2 = _escalas_rectificado()
+			stroke = GestureRectify.rectificar(stroke_crudo, esc.x, esc.y)
+			stroke_visible = stroke
+		else:
+			stroke.append(pos)
+			# El punto que se ve va imantado con la guía vigente (si la asistencia está activa); el real se guarda tal cual.
+			stroke_visible.append(asistente.punto_imantado(pos, _u(RADIUS)) if _asistencia_activa() else pos)
 		_asist_sucio = true
 		queue_redraw()
 
@@ -480,10 +642,15 @@ func _end_stroke() -> void:
 		gesture_countdown = GESTURE_PAUSE
 
 	stroke = PackedVector2Array()
+	stroke_crudo = PackedVector2Array()
 	stroke_visible = PackedVector2Array()
 	# Lectura final con el gesto entero (es la que decide la aceptación anticipada al cerrar).
 	if _asistencia_activa() and not pending_strokes.is_empty():
 		_actualizar_asistencia()
+	# Cierre inmediato (trazo recto): si ya no puede venir ningún trazo más, no se hace esperar la pausa.
+	if _recto_activo() and not pending_strokes.is_empty() and _cierre_inmediato():
+		gesture_countdown = 0.0
+		_commit_gesture()
 	queue_redraw()
 
 
@@ -499,6 +666,9 @@ var _aviso_visible: bool = false
 
 
 func _process(delta: float) -> void:
+	_mano_actualizar()
+	if is_drawing and mano != null and mano.visible:
+		queue_redraw()                       # la punta se mueve cada fotograma y la tinta del trazo en curso llega hasta ella
 	var lanzador := _spellcaster()
 	if lanzador:
 		var ahora: bool = Time.get_ticks_msec() < lanzador.feedback_until
@@ -540,14 +710,42 @@ func _commit_gesture() -> void:
 		var caster := _spellcaster()
 		if caster:
 			var sector: Vector2 = _sector_of_gesture()
-			var a_enviar: Array = pending_strokes
-			if _asistencia_activa():
-				a_enviar = _decidir_con_asistencia(caster, sector)
-			caster.add_gesture(a_enviar, sector)
+			if sector != SIN_HUECO:         # un hueco cerrado no admite trazo: se descarta
+				var a_enviar: Array = pending_strokes
+				if _asistencia_activa():
+					a_enviar = _decidir_con_asistencia(caster, sector)
+				caster.add_gesture(a_enviar, sector)
 
 	pending_strokes = []
 	_asist_reiniciar()
 	queue_redraw()
+
+
+## --- Trazo recto ---
+
+func _recto_activo() -> bool:
+	return Estado.i().trazo_recto
+
+
+## ¿Se puede cerrar el gesto YA? Solo si todos los gestos activos de su familia se dibujan con tantos trazos o menos de los que ya hay
+## (dato de GestureLibrary.trazos; si a alguno le falta, -1 y no se cierra) Y el trazo real pasa el reconocedor. Un gesto de un trazo
+## cuando queda por conocer uno de tres sigue esperando la pausa: cerrar de más sería peor que esperar.
+func _cierre_inmediato() -> bool:
+	if is_recording:
+		return false
+	var fam: Dictionary = _familia_asistencia(pending_strokes)
+	if fam.is_empty():
+		return false
+	# 17/10 (playtest): la raya sola YA NO cierra al instante. Levitación ᛏ y repetición ᚠ empiezan por un palo vertical, y el palo se
+	# convertía en `linea` antes de poder dibujar el resto. La raya espera como las demás: cierra al soltar solo cuando la regla general
+	# lo permita (ningún sello activo necesita más trazos, `GestureLibrary.trazos`) y, si no, a la pausa.
+	var maximo: int = library.trazos_max(fam["activos"])
+	if maximo < 0 or maximo > pending_strokes.size():
+		return false
+	var caster := _spellcaster()
+	if caster == null:
+		return false
+	return bool(_reconocer_real(caster, pending_strokes, _sector_of_gesture())["accepted"])
 
 
 ## --- Asistencia al trazo: puente entre el libro y GestureAssist ---
@@ -580,10 +778,19 @@ func _familia_asistencia(strokes: Array) -> Dictionary:
 			medio += p
 			n += 1
 	var sector: Vector2 = _sector_of_point(medio / float(maxi(n, 1)))
+	if sector == SIN_HUECO:
+		return {}
 	if sector == Vector2.ZERO:
 		return {"plantillas": library.templates_for(GestureLibrary.ELEMENTS), "activos": Repertoire.active_elements(), "giro": 0.0}
-	var giro: float = -sector.angle() if absf(sector.angle()) >= 0.01 else 0.0
-	return {"plantillas": library.templates_for(GestureLibrary.SIGILS), "activos": Repertoire.active_sigils(), "giro": giro}
+	# 16/10: el sello se dibuja apuntando al centro (GestureLibrary.giro_glifo); el trazo se desgira para compararlo derecho.
+	var giro: float = -GestureLibrary.giro_glifo(sector)
+	# ᛁ no se gira hacia el centro (se dibuja horizontal o vertical tal cual: EjesRecetaUi.exenta_del_giro, 156): su plantilla se compara con el trazo SIN girar.
+	var plantillas: Dictionary = library.templates_for(GestureLibrary.SIGILS)
+	var sin_giro := PackedStringArray()
+	for nombre in plantillas:
+		if EjesRecetaUi.exenta_del_giro(String(nombre)):
+			sin_giro.append(String(nombre))
+	return {"plantillas": plantillas, "activos": Repertoire.active_sigils(), "giro": giro, "sin_giro": sin_giro}
 
 
 ## Una lectura de lo que llevas dibujado (los trazos cerrados y el que está en curso).
@@ -595,9 +802,12 @@ func _actualizar_asistencia() -> void:
 		asistente.reiniciar()
 		return
 	var fam: Dictionary = _familia_asistencia(trazos)
-	asistente.actualizar(trazos, fam["plantillas"], fam["activos"], _asistencia(), fam["giro"])
-	# El trazo en curso se vuelve a imantar entero: la guía se recoloca al crecer lo dibujado.
-	if is_drawing and stroke.size() >= 1:
+	if fam.is_empty():              # trazo sobre un hueco cerrado: sin guía
+		asistente.reiniciar()
+		return
+	asistente.actualizar(trazos, fam["plantillas"], fam["activos"], _asistencia(), fam["giro"], fam.get("sin_giro", PackedStringArray()))
+	# El trazo en curso se vuelve a imantar entero: la guía se recoloca al crecer lo dibujado. Con el trazo recto no hay imán.
+	if is_drawing and stroke.size() >= 1 and not _recto_activo():
 		stroke_visible = asistente.trazo_imantado(stroke, _u(RADIUS))
 	queue_redraw()
 
@@ -612,7 +822,7 @@ func _decidir_con_asistencia(caster: Node, sector: Vector2) -> Array:
 	var correccion: String = "ninguna"
 	var a_enviar: Array = pending_strokes
 	if real["accepted"]:
-		if candidata != "" and asistente.fuerza_iman() > 0.0:
+		if candidata != "" and asistente.fuerza_iman() > 0.0 and not _recto_activo():
 			correccion = "iman"
 		# Redibujado limpio solo si lo reconocido coincide con la guía que se enseñaba.
 		if candidata != "" and real["name"] == candidata:
@@ -626,7 +836,7 @@ func _decidir_con_asistencia(caster: Node, sector: Vector2) -> Array:
 		"cobertura": snappedf(asistente.cobertura, 0.01), "tiempo": snappedf(tiempo, 0.01),
 		"correccion": correccion, "iman": snappedf(asistente.fuerza_iman(), 0.01),
 		"real": real["name"] if real["accepted"] else "", "asistencia": snappedf(_asistencia(), 0.01),
-		"ms": snappedf(asistente.ms_ultimo, 0.1)})
+		"ms": snappedf(asistente.ms_ultimo, 0.1), "recto": _recto_activo(), "trazos": pending_strokes.size()})
 	return a_enviar
 
 
@@ -693,7 +903,7 @@ func _record_sample() -> void:
 		return
 
 	var gesture_name: String = GestureLibrary.RECORDABLE[record_index]
-	library.add_sample(gesture_name, normalized)
+	library.add_sample(gesture_name, normalized, pending_strokes.size())
 
 	_save_library()
 	delete_armed = false
@@ -709,8 +919,9 @@ func _record_sample() -> void:
 ## bordes: un libro abierto a pantalla completa se lee mejor que un libro
 ## pequeño y centrado con fondo alrededor.
 func _book_rect() -> Rect2:
-	var fit: float = minf(size.x / PAGE_BLOCK.size.x, size.y / PAGE_BLOCK.size.y)
-	var block_centre: Vector2 = (PAGE_BLOCK.position + PAGE_BLOCK.size * 0.5) * fit
+	var pb: Rect2 = _page_block()
+	var fit: float = minf(size.x / pb.size.x, size.y / pb.size.y)
+	var block_centre: Vector2 = (pb.position + pb.size * 0.5) * fit
 	return Rect2(size * 0.5 - block_centre, BOOK_SIZE * fit)
 
 
@@ -782,14 +993,18 @@ func _sector_of_gesture() -> Vector2:
 
 func _sector_of_point(middle: Vector2) -> Vector2:
 	var offset := middle - _center()
-	if offset.length() < _u(_core_u()):
+	# El sello (núcleo) puede no estar en el centro del círculo: dentro de él es un elemento.
+	if (middle - _on_page(_core_c())).length() < _u(_core_u()):
 		return Vector2.ZERO
 
 	var step := TAU / float(SECTORS)
 	var angle := snappedf(offset.angle(), step)
 
-	# Con lámina alternativa solo existen ciertos huecos: se elige el más cercano en ángulo.
-	var huecos: Dictionary = _libro().get("huecos", {})
+	# Con lámina alternativa solo existen ciertos huecos: se elige el más cercano en ángulo, SOLO entre los abiertos.
+	# Sin ninguno abierto el trazo no va a ningún sitio (SIN_HUECO), y no se confunde con un elemento (ZERO).
+	var huecos: Dictionary = _huecos_abiertos()
+	if not (_libro().get("huecos", {}) as Dictionary).is_empty() and huecos.is_empty():
+		return SIN_HUECO
 	if not huecos.is_empty() and not huecos.has(_sector_idx(Vector2(cos(angle), sin(angle)))):
 		var mejor: float = INF
 		for k in huecos:
@@ -814,12 +1029,18 @@ func _draw() -> void:
 	# lados y sin el velo se vería el juego congelado asomando.
 	draw_rect(Rect2(Vector2.ZERO, size), VEIL)
 	_draw_book()
+	# Rejilla guía del trazo (entrada 130 del diario): va ANTES de los aros, la leyenda y el trazo para quedar por debajo de todo.
+	# Solo dibuja en las láminas que conoce (la «bosque»); no toca el reconocimiento.
+	# Se pasa `{}` como huecos A PROPÓSITO (Pablo, 17/10): la rejilla es una sola, continua por toda la página, sin rejillas finas dentro de los
+	# círculos de glifo (se veían mal) y sin apartar la de la página alrededor de ellos. `CuadriculaGuia` sigue sabiendo dibujarlas si se le pasan.
+	CuadriculaGuia.dibujar(self, Repertoire.libro, {}, {}, _on_page, _lam)
+	_draw_huecos()
 
 	_draw_legend()
 
 	_draw_ring(c)
 	_draw_sectors(c)
-	_draw_core(c)
+	_draw_core(_on_page(_core_c()))
 	_draw_components(c)
 	_draw_pages(c)
 
@@ -834,12 +1055,50 @@ func _draw() -> void:
 		if s.size() >= 2:
 			draw_polyline(s, ink, grosor, true)
 	var en_curso: PackedVector2Array = stroke_visible if (asistido and stroke_visible.size() == stroke.size()) else stroke
+	if is_drawing and mano != null and mano.visible:
+		en_curso = _tinta_hasta_punta(en_curso, mano.punta())
 	if en_curso.size() >= 2:
 		draw_polyline(en_curso, ink, grosor, true)
 	if _limpio_t >= 0.0:
 		_draw_redibujado(grosor)
 
 	_draw_hint(c)
+
+
+## Le da a la mano, cada fotograma, dónde apuntar. Dibujando: el ÚLTIMO punto del trazo ya imantado (`stroke_visible`), no el ratón crudo (así la pluma va
+## donde va la tinta, también con la asistencia). Sin dibujar: el ratón, para que se vea dónde empezaría el trazo. La escala sigue al tamaño del libro:
+## en la 3D, 1 = tamaño de diseño a 1470 de ancho; la 2D conserva su 0,55.
+func _mano_actualizar() -> void:
+	if mano == null or not is_open:
+		return
+	var relativa: float = _book_rect().size.x / BOOK_SIZE.x
+	mano.escala = relativa if mano is ManoPluma3D else MANO_ESCALA_2D * relativa
+	var punto: Vector2 = get_local_mouse_position()
+	if is_drawing and not stroke_visible.is_empty():
+		punto = stroke_visible[stroke_visible.size() - 1]
+	mano.apuntar(punto, is_drawing)
+
+
+## Recorta el trazo en curso hasta la punta de la pluma: la punta cae sobre la poligonal, un poco por detrás del último punto (retardo de 60 ms).
+## Se busca el segmento más cercano a la punta entre los últimos puntos y se corta ahí; si hay empate gana el más reciente. Solo cambia lo que se
+## PINTA: el reconocimiento usa `stroke`, entero.
+static func _tinta_hasta_punta(pts: PackedVector2Array, punta: Vector2) -> PackedVector2Array:
+	var n: int = pts.size()
+	if n < 2:
+		return pts
+	var mejor_i: int = n - 2
+	var mejor_p: Vector2 = pts[n - 1]
+	var mejor_d: float = INF
+	for i in range(n - 2, maxi(0, n - 2 - TINTA_MIRA_ATRAS) - 1, -1):
+		var q: Vector2 = Geometry2D.get_closest_point_to_segment(punta, pts[i], pts[i + 1])
+		var d: float = q.distance_squared_to(punta)
+		if d < mejor_d - 0.01:
+			mejor_d = d
+			mejor_i = i
+			mejor_p = q
+	var salida: PackedVector2Array = pts.slice(0, mejor_i + 1)
+	salida.append(mejor_p)
+	return salida
 
 
 ## La guía fantasma: puntos tenues a lo largo de la plantilla de la candidata líder. Sin candidata (empate o nada reconocible), nada.
@@ -876,6 +1135,18 @@ func _draw_redibujado(grosor: float) -> void:
 			draw_polyline(s, nuevo, grosor, true)
 
 
+## Los aros de los huecos de glifo ABIERTOS (la lámina no los trae impresos); los cerrados no se pintan.
+func _draw_huecos() -> void:
+	if _hueco_tex == null:
+		return
+	var radio_sprite: float = float(_libro().get("hueco_sprite_radio", 58.1))
+	var radios: Dictionary = _libro().get("hueco_radios", {})
+	var abiertos: Dictionary = _huecos_abiertos()
+	for k in abiertos:
+		var lado: float = _lam(float(_hueco_tex.get_width()) * float(radios.get(k, radio_sprite)) / radio_sprite)
+		_draw_texture_centred(_hueco_tex, _on_page(abiertos[k]), lado)
+
+
 func _draw_book() -> void:
 	var tex: Texture2D = BOOK_TEXTURE
 	if not _libro().is_empty():
@@ -910,6 +1181,10 @@ func _draw_legend() -> void:
 		return
 
 	var slot: int = 0
+	# Lámina con círculos de sello propios (bosque): los elementos van a los círculos y los glifos a la rejilla, contados por separado.
+	var ley_sellos: Array = _libro().get("leyenda_sellos", [])
+	var separa: bool = not ley_sellos.is_empty()
+	var limite: int = ley_sellos.size() if separa else LEGEND_SLOTS
 
 	for gesture_name in GestureLibrary.ELEMENTS:
 		# Lo que no está activo NO SE ENSEÑA, ni siquiera en marca de agua:
@@ -917,7 +1192,9 @@ func _draw_legend() -> void:
 		# aquí lo que hay que decir es que todavía no está a tu alcance.
 		if not Repertoire.element_active(gesture_name):
 			continue
-		if slot >= LEGEND_SLOTS:
+		if slot >= limite:
+			if separa:
+				break
 			return
 		var tipo: int = caster.GESTURE_TO_RUNE.get(gesture_name, Runes.Type.NONE)
 		var datos: RuneData = caster.rune_database.get(tipo)
@@ -927,13 +1204,16 @@ func _draw_legend() -> void:
 		# chuleta enseña la runa tal como se va a ver al dibujarla.
 		_draw_legend_slot(slot, datos.glyph, datos.display_name,
 			datos.color.darkened(CORE_GLYPH_DARKEN),
-			library.sample_count(gesture_name) > 0, _glyph_angle(gesture_name))
+			library.sample_count(gesture_name) > 0, _glyph_angle(gesture_name), separa)
 		slot += 1
 
+	if separa:
+		slot = 0
+		limite = (_libro().get("leyenda", []) as Array).size()
 	for gesture_name in GestureLibrary.SIGILS:
 		if not Repertoire.sigil_active(gesture_name):
 			continue
-		if slot >= LEGEND_SLOTS:
+		if slot >= limite:
 			return
 		var glyph: Texture2D = Sigils.GLYPHS.get(gesture_name)
 		if glyph == null:
@@ -967,26 +1247,64 @@ func _draw_glyph(texture: Texture2D, centre: Vector2, size: float, tint: Color,
 		_draw_texture_rotated(texture, centre, size, angle, tint)
 
 
+## Cuántas veces lleva la PÁGINA ABIERTA cada glifo de la receta V2 (el mismo multiconjunto que lee `Receta3D`): `linea_x` / `linea_z` ya vienen
+## separados en el componente (`Spellcaster._nombre_linea`) y `levitacion` cuenta como `altura` (`Sigils.ALIAS_V2`). Lo que la V2 no conoce
+## (un componente sin sello, los glifos aparcados) no cuenta. Es solo para PINTAR: no decide nada del hechizo.
+func _contadores_pagina() -> Dictionary:
+	var cont: Dictionary = {}
+	var caster := _spellcaster()
+	if caster == null:
+		return cont
+	for component in caster.components():
+		for sello_pagina in (component["sigils"] as Array):
+			var nombre: String = Sigils.glifo_v2(String(sello_pagina))
+			if Sigils.GLIFOS_V2.has(nombre):
+				cont[nombre] = int(cont.get(nombre, 0)) + 1
+	return cont
+
+
+## Lo que marcan las insignias de la chuleta: los mismos contadores.
+func _usos_pagina() -> Dictionary:
+	return _contadores_pagina()
+
+
+## `sello` = es un elemento y la lámina tiene círculos de sello aparte: va a su círculo, más pequeño y sin rótulo (no cabe dentro).
 func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
-		ink: Color, known: bool, angle: float = 0.0) -> void:
+		ink: Color, known: bool, angle: float = 0.0, sello: bool = false) -> void:
 	var cell := Vector2(float(slot % GRID_COLS), float(slot / GRID_COLS))
 	var at: Vector2 = _on_page(GRID_ORIGIN + GRID_STEP * cell)
 	var ley: Array = _libro().get("leyenda", [])
+	var tam: float = _u(GRID_GLYPH)
+	var caida: float = _u(GRID_LABEL_DROP)
+	var con_rotulo: bool = true
+	if sello and _libro().has("leyenda_sellos"):
+		ley = _libro().get("leyenda_sellos", [])
+		tam = _lam(float(_libro().get("sello_tam", 46.0)))
+		con_rotulo = false
+	elif _libro().has("leyenda_sellos"):
+		tam = _lam(float(_libro().get("glifo_tam", 54.0)))
+		caida = _lam(34.0)
 	if not ley.is_empty():
 		if slot >= ley.size():
 			return
 		at = _on_page(ley[slot])
 
+	# 18/10 (diario 156, Pipeline): ᛁ, ᛏ/altura y las cinco propiedades enseñan lo que hacen (ejes y rótulos) y cuántas lleva la página abierta.
+	# Para cualquier otro glifo `dibujar_casilla` devuelve false sin pintar y sigue el dibujo de siempre.
+	if not sello and EjesRecetaUi.dibujar_casilla(self, label, glyph, at, tam, ink, known, _usos_pagina()):
+		return
+
 	if not known:
 		# Sin muestras grabadas: la casilla se queda en marca de agua.
 		# Se ve que ese hueco existe y que le falta algo, que es más
 		# interesante que no enseñar nada.
-		_draw_glyph(glyph, at, _u(GRID_GLYPH), LEGEND_FADED, angle)
+		_draw_glyph(glyph, at, tam, LEGEND_FADED, angle)
 		return
 
-	_draw_glyph(glyph, at, _u(GRID_GLYPH), ink, angle)
-	_draw_centered_text(at + Vector2(0.0, _u(GRID_LABEL_DROP)), label,
-		Color(ink.r, ink.g, ink.b, 0.75))
+	_draw_glyph(glyph, at, tam, ink, angle)
+	if con_rotulo:
+		_draw_centered_text(at + Vector2(0.0, caida), label,
+			Color(ink.r, ink.g, ink.b, 0.75))
 
 
 ## EL ARO YA NO SE DIBUJA CON TEXTURA, y no es un recorte de trabajo: la
@@ -1070,6 +1388,9 @@ func _draw_core(c: Vector2) -> void:
 	# con el anillo del glifo.
 	_draw_centered_text(c + Vector2(0, _u(_core_u() - 28.0)), element.display_name,
 		element.color.darkened(CORE_NAME_DARKEN))
+
+	# 18/10: el tamaño del hechizo en casillas (x·y·z) como un cubo con las proporciones de la página. Sin glifos sale 1·1·1 (la esfera base).
+	EjesRecetaUi.dibujar_indicador(self, EjesRecetaUi.sitio_en_nucleo(c, _u(_core_u())), _u(_core_u()), Sigils.aplicar_v2(_contadores_pagina()))
 
 
 ## Las divisiones entre sectores: van del núcleo al borde, porque el
@@ -1156,7 +1477,8 @@ func _draw_components(c: Vector2) -> void:
 		# La ranura ocupada se marca solo con su aro, un poco más firme que
 		# el de las vacías. El lavado de tinta que llevaba dentro era una
 		# mancha gris más en una página que ya tiene bastante dibujo.
-		draw_arc(pos, _u(27.0 if _libro().is_empty() else 56.0), 0.0, TAU, 32, INK_SOFT, _u(1.5), true)
+		if _hueco_tex == null:         # con aro propio (lámina bosque) el hueco ya se ve marcado
+			draw_arc(pos, _u(27.0 if _libro().is_empty() else 56.0), 0.0, TAU, 32, INK_SOFT, _u(1.5), true)
 
 		_draw_sector_sigil(pos, dir, sigils)
 
@@ -1187,10 +1509,12 @@ func _draw_sector_sigil(pos: Vector2, dir: Vector2, sigils: Array) -> void:
 		# Sello sin lámina: hoy solo pilar, que está de retirada. Se
 		# dibuja con el trazo a mano de antes.
 		_draw_legacy_form_glyph(chosen, pos, dir)
-	elif chosen in DIRECTIONAL:
-		_draw_texture_rotated(glyph, pos, glyph_size, dir.angle(), INK)
 	else:
-		_draw_texture_centred(glyph, pos, glyph_size, INK)
+		# 16/10 (Pablo): TODOS los glifos del sector se pintan apuntando al centro, igual que se trazan (GestureLibrary.giro_glifo).
+		# La flecha deja de ser la excepción: la dirección la da el sector, no el dibujo.
+		# 18/10: ᛁ NO se gira hacia el centro: su dirección la da el eje (linea_x = ancho, horizontal; linea_z = fondo, vertical), no el hueco.
+		var angulo: float = EjesRecetaUi.giro_linea(chosen) if EjesRecetaUi.exenta_del_giro(chosen) else GestureLibrary.giro_glifo(dir)
+		_draw_texture_rotated(glyph, pos, glyph_size, angulo, INK)
 
 
 ## El respaldo para los sellos de forma que no tienen lámina. Queda uno

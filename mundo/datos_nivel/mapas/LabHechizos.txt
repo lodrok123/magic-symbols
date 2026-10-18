@@ -1,0 +1,26 @@
+; LABORATORIO DE HECHIZOS (H1, 18/10, Juego). 28 x 17: la sala de LabRecetas con un CUARTO goblin que ataca (docs/PLAN_TRES_FRENTES.md §0).
+; Lo lee PruebaTest2 (nivel = "LabHechizos") desde laboratorios/LabHechizos3D.tscn; el panel, las pestañas y las teclas son de laboratorios/lab_hechizos_3d.gd.
+; NO se hornea: es un laboratorio. Archivo NUEVO en datos_nivel/mapas (carpeta de Pablo), mismo precedente que LabRecetas.txt: Pablo, confirma o muevelo.
+; Letras de la maqueta: # muro . suelo S jugador D diana (muneco) W goblin guerrero A goblin arquero T brasero z seto seco ~ agua.
+; Los goblins de (23,8), (19,6) y el arquero (19,10) los congela el lab (Combate3D.quieto); el de (23,12) es el que ATACA (interruptor del lab).
+; Fila y=8 (la de S): tres dianas en x = 10, 14 y 18 y un goblin en x = 23; dos dianas mas en (14,5) y (14,11).
+; Combustibles: setos secos (8-12,3) y (8-12,13) con un brasero a cada lado (16,3) y (16,13); barriles en (21,3) y (21,13). Agua: estanque (3-10, 14-15).
+; pieza barril_n barril 21 3
+; pieza barril_s barril 21 13
+############################
+#..........................#
+#..........................#
+#.......zzzzz...T..........#
+#..........................#
+#.............D............#
+#..................W.......#
+#..........................#
+#...S.....D...D...D....W...#
+#..........................#
+#..................A.......#
+#.............D............#
+#......................W...#
+#.......zzzzz...T..........#
+#..~~~~~~~~................#
+#..~~~~~~~~................#
+############################

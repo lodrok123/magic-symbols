@@ -38,6 +38,28 @@ extends Resource
 ##   if rune_data.tags.has("frio"): _freeze()
 @export var tags: Array[String] = []
 
+## --- ESTADO Y MATERIA (receta V2, docs/GLIFOS_RECETA.md §2.3; 17/10) ---
+## De QUÉ está hecho el volumen que dibujan los glifos. Son datos en el .tres, sin código: la receta V2 lee el estado una sola vez
+## por estado, no una vez por forma. En R1 solo se LEEN (nada del juego actual los usa todavía; el Pipeline puede leerlos para su V1).
+##   estado    cómo llena el volumen: "solido" (cuerpo con colisión), "liquido" (agua en AguaSim3D), "plasma" (zona de daño que
+##             quema), "energia" (descarga instantánea que conduce), "gas" (campo de fuerza), "campo" (ralentiza lo de dentro)
+##   persiste  segundos que dura lo creado (0 = no se queda: la descarga del rayo es instantánea, el agua la lleva la simulación)
+##   empuje    fuerza sobre lo que toca, de 0 a 1 (0 = nada, 1 = lo máximo, el viento)
+##   pisable   ¿se puede subir encima? (sólidos: tierra, hielo)
+##   deja      estado de suelo que deja al pasar ("quemado", "mojado", "helado"), vacío si no deja
+const ESTADOS: PackedStringArray = ["solido", "liquido", "plasma", "energia", "gas", "campo"]
+@export_enum("solido", "liquido", "plasma", "energia", "gas", "campo") var estado: String = "solido"
+@export var persiste: float = 0.0
+@export_range(0.0, 1.0) var empuje: float = 0.0
+@export var pisable: bool = false
+@export var deja: String = ""
+
+## --- MODIFICADORES (HC1, 18/10; docs HECHIZO_CLASE.md §2.1) ---
+## El elemento también habla el idioma de los glifos: `{campo_de_Hechizo: {"op": "suma"|"multiplica"|"fija"|"minimo", "valor": v, "tope": t}}`.
+## `Hechizo.construir` traduce primero los campos de arriba (damage, persiste, empuje, pisable, deja, estado) y DESPUÉS aplica estos, así que un .tres puede
+## sobreescribir o ajustar cualquiera. Vacío por defecto: ningún .tres de hoy lo rellena, el comportamiento no cambia.
+@export var modificadores: Dictionary = {}
+
 ## --- Efecto visual ---
 ## La animación del elemento, en un único PNG con los fotogramas
 ## colocados en REJILLA. Es un dato más del elemento, igual que su color

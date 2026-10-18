@@ -51,6 +51,15 @@ var pigmento: String = PIGMENTO_BASE
 var _espera: float = 0.0
 
 
+## R3 (17/10): con la receta V2 el coste ya no sale de una forma con nombre sino de las medidas (`Sigils.coste_v2`: la esfera base vale 1,
+## crece con el volumen y con el nº de propiedades). Aquí se pasa a tinta: la esfera base cuesta lo que un `punto` (10) y el techo es la barra.
+const COSTE_BASE_V2: float = 10.0
+
+
+static func coste_receta(coste_relativo: float) -> float:
+	return clampf(COSTE_BASE_V2 * coste_relativo, COSTE_BASE_V2, MAXIMA)
+
+
 ## Cuánto cuesta una forma de hechizo.
 static func coste_de(forma: String) -> float:
 	return float(COSTES.get(forma, COSTE_DEFECTO))
@@ -87,13 +96,14 @@ func nombre_pigmento() -> String:
 	return String(PIGMENTOS[pigmento]["nombre"])
 
 
-func puede_pagar(forma: String) -> bool:
-	return actual + 1e-4 >= coste_de(forma)
+## `coste` >= 0 manda sobre la tabla de formas (receta V2: lo calcula `coste_receta`); -1 = el de siempre, por forma.
+func puede_pagar(forma: String, coste: float = -1.0) -> bool:
+	return actual + 1e-4 >= (coste if coste >= 0.0 else coste_de(forma))
 
 
 ## Descuenta el coste de la forma. Si no alcanza, NO descuenta nada (no hay lanzamientos a medias) y avisa por `insuficiente`.
-func gastar(forma: String) -> bool:
-	var c: float = coste_de(forma)
+func gastar(forma: String, coste: float = -1.0) -> bool:
+	var c: float = coste if coste >= 0.0 else coste_de(forma)
 	if actual + 1e-4 < c:
 		insuficiente.emit(forma, c, actual)
 		return false

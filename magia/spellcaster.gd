@@ -235,6 +235,17 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 		_add_component(sector)
 		return
 
+	# 16/10 (Pablo: «si añades una línea y sueltas, ya está: no compite»). UNA raya de UN trazo es el sello `linea` (ᛁ) sin pasar
+	# por el $P, si el jugador lo conoce; si no lo conoce, sigue siendo el atajo de siempre (componente sin sello).
+	if strokes.size() == 1 and _is_straight(strokes):
+		if Repertoire.sigil_active("linea") and Sigils.is_known("linea"):
+			Sfx.play(self, "sello_ok")
+			PlayLog.event("trazo", {"tipo": "glifo", "nombre": "linea", "margen": 9.99, "calidad": 1.0, "girado": false, "raya": true})
+			add_sigil(sector, _nombre_linea(), 1.0)
+		else:
+			_add_component(sector)
+		return
+
 	var result: Dictionary = _reconocer_glifo(strokes, sector)
 
 	# Se imprime también el RIVAL. Un rechazo sin rival no se puede
@@ -281,19 +292,31 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 			"rival": result["second_name"], "margen": snappedf(result["margin"], 0.01)})
 
 
+## Nombre con el que se registra la raya sola. Desde R3 (la receta V2 es la única) la raya tiene DOS lecturas
+## según cómo se dibujó respecto a la PÁGINA: horizontal -> `linea_x` (ancho), vertical -> `linea_z` (profundidad); ver
+## Sigils.orientacion_linea. Se mide sobre `stroke_points` tal cual: la raya queda FUERA del giro hacia el centro (GestureLibrary.giro_glifo),
+## que se aplica a los glifos de sector para reconocerlos y pintarlos pero cambiaría la orientación que el jugador dibujó (en el sector
+## norte, una raya horizontal estaría «girada» a vertical). Ya viene rectificada a un tramo en una de las ocho direcciones.
+func _nombre_linea() -> String:
+	if stroke_points.size() < 2:
+		return "linea"
+	return Sigils.orientacion_linea(stroke_points[0], stroke_points[stroke_points.size() - 1])
+
+
 ## Reconoce un glifo dibujado en un sector. Con ROTAR_POR_SECTOR se prueba también
-## el trazo GIRADO como si el sector fuera el de la derecha, y se queda lo que
-## mejor se reconozca: así una flecha dibujada "hacia fuera" en cualquier sector
-## vale, y las plantillas grabadas en otro sector siguen valiendo.
+## el trazo GIRADO según la convención del sector (16/10: el glifo apunta al centro,
+## GestureLibrary.giro_glifo), y se queda lo que mejor se reconozca: así el sello
+## dibujado "mirando al centro" en cualquier sector vale, y uno dibujado derecho
+## (como las plantillas) sigue valiendo.
 func _reconocer_glifo(strokes: Array, sector: Vector2) -> Dictionary:
 	var plantillas: Dictionary = gesture_library.templates_for(GestureLibrary.SIGILS)
 	var activos: PackedStringArray = Repertoire.active_sigils()
 	var directo: Dictionary = GestureRecognizer.recognize(strokes, plantillas, activos)
 
-	if not ROTAR_POR_SECTOR or absf(sector.angle()) < 0.01:
+	var giro: float = -GestureLibrary.giro_glifo(sector)
+	if not ROTAR_POR_SECTOR or absf(giro) < 0.01:
 		return directo
 
-	var giro: float = -sector.angle()
 	var girados: Array = []
 	for trazo in strokes:
 		var nuevo: Array = []
@@ -413,7 +436,7 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	# porque por esta función entran los dos caminos (el $P y la raya
 	# recta), y una regla que se pueda esquivar por uno de los dos no es
 	# una regla. Es la misma razón por la que vive aquí el filtro de eje.
-	if not Repertoire.sigil_active(sigil_name):
+	if not Repertoire.sigil_active(Sigils.repertorio_de(sigil_name)):
 		_refuse_locked("sello", sigil_name)
 		return
 
@@ -759,7 +782,7 @@ func cast_page(indice: int) -> void:
 	for component in a_lanzar:
 		var bloqueado: bool = false
 		for sigil_name in component["sigils"]:
-			if not Repertoire.sigil_active(sigil_name):
+			if not Repertoire.sigil_active(Sigils.repertorio_de(sigil_name)):
 				bloqueado = true
 		if bloqueado:
 			print("Un componente lleva un sello que ya no está activo: no se lanza.")

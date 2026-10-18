@@ -44,6 +44,10 @@ func _burbuja(elemento: String) -> Lanzador3D.Campo:
 	rune.tags.append(elemento)
 	var receta := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 	receta.apply("barrera")
+	# R3 (17/10): con la receta V2 «barrera» ya no dibuja una cúpula (es la propiedad `solidez` de un volumen: SolidezV2). La burbuja de la Fase 12
+	# (Campo.burbuja: sigue al jugador, revienta con reacción) se queda como MECANISMO, sin receta que la lance, hasta que Pablo decida qué
+	# glifo o propiedad la devuelve. Para seguir probándola se monta la receta que antes la producía: barrera sola = área que no viaja.
+	receta.spread = true
 	_l._una_ola(receta, rune, elemento, _jug.position, Vector3.RIGHT)
 	return _l._barrera_activa
 

@@ -1,103 +1,18 @@
 ﻿Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
 
-OK    0 la escena LabPuzlesAgua3D.tscn carga  
-Diario de la prueba: C:/Users/pablo/AppData/Roaming/Godot/app_userdata/Magic_Symbols/playtest_logs/run_2026-10-15T20-39-54.jsonl
-OK    0 la escena monta el Lanzador3D, el jugador y la simulación de agua  tras 0 fotogramas
-OK    0 el jugador puede lanzar (velo de precalentado levantado)  1357 ms de pared
-OK    0 el laboratorio cuelga de la escena y ha montado sus diez puzles  10
-OK    0 el mapa tiene las letras que el lab espera  []
-OK    Q1.1 la cuenca empieza vacía y la puerta cerrada  
-OK    Q1.2 la tinaja de Q1 existe  
-OK    Q1.3 el agua de la tinaja LLEGA a la cuenca (E1)  a los 11.5 s
-OK    Q1.4 el nivel sube a 0,45 y la puerta se abre  a los 43.0 s (detector 0.61)
-AVISO Q1 tiempo hasta abrir la puerta (AGUA_PUZLES.md pide 8–30 s para un puzle de espera)  43.0 s con 0.50 u³/s, 20 u³ y arranque 18 s
-OK    Q1.5 la tinaja tiene fondo: la cuenca NO rebosa y nada se sale a la sala (E2)  fuera 0.000 u³, cuenca 0.61 u
-OK    Q1.6 la tinaja se agota: el manantial queda apagado (VOL_TINAJA_LAB 20 u³ → ≤ 0.63 u en 6 casillas)  caudal 0.00, nivel 0.61
-      [q1] {"dur":90.0,"fuera":0.0,"t_agua":11.5,"t_puerta":43.0}
-OK    Q2.1 A llena (≈ 0,9) y B vacía con la compuerta cerrada  A 0.90 B 0.00
-OK    Q2.2 con la compuerta cerrada no pasa nada a B en 5 s  
-OK    Q2.3 el botón abre la compuerta  
-OK    Q2.4 vasos comunicantes: A y B se igualan (E3)  A 0.43 B 0.43
-OK    Q2.5 B pasa de 0,35 y la puerta se abre  B 0.43
-OK    Q2.6 nada se sale por el camino (el canal de cuenca no desborda)  fuera 0.000 u³
-      [q2] {"a":0.43,"b":0.43,"fuera":0.0}
-OK    Q5.1 el pasillo empieza inundado: se nada  0.70 u
-OK    Q5.2 el botón abre el desagüe  
-OK    Q5.3 el pasillo baja de 0,25 y la puerta se abre  a los 6.0 s (ahora 0.00 u)
-      [q5] {"prof":0.0,"t_puerta":6.0}
-Elemento (paleta): fuego
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q6.1 fuego + flecha sale  
-OK    Q6.2 el pulsador de AGUA no reacciona al fuego  
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q6.3 agua + flecha sale  
-OK    Q6.4 el agua lo activa y abre la puerta  
-Elemento (paleta): fuego
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q6.5 el botón de control (cualquier magia) reacciona al fuego  
-OK    Q6.6 … y cuenta una pulsación  veces 1
-OK    Q6.7 la placa de presencia nota al jugador  
-OK    Q6.8 … y lo suelta al irse  
-OK    Q3.1 el arroyo corre: el vado en régimen pasa de 0,25 (si no, la presa no tiene sentido)  0.53 u con 1.50 u³/s
-OK    Q3.2 el botón hiela la casilla de arriba  
-OK    Q3.3 la presa corta el agua: el vado baja de 0,25 (E4)  a los 1.5 s (ahora 0.00 u)
-OK    Q3.4 el hielo del botón caduca a los DURA_HIELO s  
-OK    Q3.5 tras deshelar el arroyo vuelve a correr y la puerta se cierra (la ventana de la presa es DURA_HIELO)  0.55 u
-OK    Q4.1 con la compuerta abierta el agua escapa por el oeste y el este (fondo de saco) se queda bajo  este 0.16 oeste 0.12
-OK    Q4.2 el botón cierra la compuerta del brazo oeste  
-OK    Q4.3 el caudal se embalsa en el este: sube claramente (E9)  este 0.16→0.73 oeste 0.12→0.10
-OK    Q4.4 la rueda (≥ 0,4) arranca y abre la puerta  a los 13.0 s
-OK    Q4.5 el botón vuelve a abrir la compuerta  
-AVISO Q4 con la compuerta reabierta el este baja a  0.13 u (puerta cerrada)
-      [q4] {"este":[0.16,0.73],"t_puerta":13.0}
-OK    Q8.1 la tinaja de Q8 existe (la maqueta solo cablea una; el lab, las dos)  
-OK    Q8.2 al pasar por la banda 0,5 ± 0,08 la puerta se abre  a los 31.5 s
-OK    Q8.3 … y al pasarse de la banda (la tinaja sigue) se vuelve a cerrar  a los 40.0 s (nivel 0.93)
-OK    Q8.4 el botón cierra el grifo: el nivel deja de subir (apagar_fuente)  0.93 → 0.93 en 6 s
-      [q8] {"abrio":31.5,"cerro":40.0,"tras_grifo":[0.93,0.93]}
-OK    Q7.1 hay fuente eléctrica y tótem de rayo  
-OK    Q7.2 el canal seco no conduce: nada electrificado y puerta cerrada  
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q7.3 salen seis hechizos de agua  6
-OK    Q7.4 el canal lleva agua de juego (≥ UMBRAL_AGUA en alguna casilla) tras los hechizos  0.31 u (las tres casillas: [0.30575512846311, 0.25991494953632, 0.23635631799698]; alrededor: [0.0, 0.0, 0.0, 0.0])
-OK    Q7.5 la fuente descarga por el agua, el tótem se activa y la puerta se abre  a los 1.5 s (electrificadas 0)
-      [q7] {"prof":0.31,"t_puerta":1.5}
-OK    Q9.1 el arroyo está seco y el molino quieto  
-Elemento (paleta): agua
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q9.2 agua + flecha a la rueda  
-OK    Q9.3 la rueda gira por el golpe y abre la puerta  vel 2.93
-OK    Q9.4 sin agua se para y la puerta se cierra  
-OK    Q9.5 el botón abre la compuerta  
-OK    Q9.6 con el arroyo corriendo la rueda gira (corriente ≥ umbral) y la puerta se abre  a los 8.5 s, corriente 5.50 u/s; manantial 1.50 u³/s en (28,1); profundidades [1.01868551969528, 0.89411872625351, 0.71441253026327, 0.53466806809107, 0.3547134300073, 0.17478048553069, 0.048268986245]; trocitos abiertos de (28,2): 3
-      (28, 0): [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] [1 0.00 0.00] 
-      (28, 1): [1 0.00 0.00] [0 1.05 0.50] [1 0.00 0.00] [1 0.00 0.00] [0 1.03 0.50] [1 0.00 0.00] [1 0.00 0.00] [0 0.99 0.50] [1 0.00 0.00] 
-      (28, 2): [1 0.00 0.00] [0 0.95 0.00] [1 0.00 0.00] [1 0.00 0.00] [0 0.89 0.00] [1 0.00 0.00] [1 0.00 0.00] [0 0.83 0.00] [1 0.00 0.00] 
-      (28, 3): [1 0.00 0.00] [0 0.77 0.00] [1 0.00 0.00] [1 0.00 0.00] [0 0.71 0.00] [1 0.00 0.00] [1 0.00 0.00] [0 0.65 0.00] [1 0.00 0.00] 
-      vecinas de (28,1): oeste 0.000 este 0.000 · mojadas: false false · lado del mapa 33
-      [q9] {"corriente":5.5,"t_puerta":8.5}
-OK    Q10.1 la roca corta el curso: el este está seco y el oeste no rebosa (aliviadero)  este 0.00 oeste 0.86
-Elemento (paleta): fuego
-Sello 'flecha' hacia (1.0, 0.0)  ->  ["flecha"]
-OK    Q10.2 fuego + flecha al barril  
-OK    Q10.3 el barril se enciende (mecha)  
-OK    Q10.4 explota y la roca se desmorona  
-OK    Q10.5 el agua llega al este (≥ 0,4) y la puerta se abre  a los 2.0 s (este 0.86)
-      [q10] {"t_puerta":2.0}
+OK    1 raya temblorosa → 1 tramo este  [0]
+OK    2 ele redondeada → sur, este  [2, 0] largos [157.0, 120.0]
+OK    2b largos de la ele ±10 %  
+OK    3 rombo a 35° casi cerrado → 4 diagonales  [1, 3, 5, 7]
+OK    3b y cierra exacto  0.0
+OK    4 diagonal a 40° → 45°  [1]
+OK    5 gancho de 12 px al empezar se quita  [0]
+OK    6 trazo diminuto → punto  
+    acierto $P: crudo 100.0 %  ·  rectificado 100.0 %  (240 muestras; rectificar: 30 µs de media)
+OK    7 rectificar no empeora el acierto  100.0 vs 100.0
+OK    7b rectificado acierta ≥ 90 %  100.0 %
+OK    7c rectificar es barato (< 500 µs de media)  
+OK    8 trazos_max con todos los datos  
+OK    8b trazos_max sin dato → -1  
+OK    8c gestos no grabados no cuentan  
 FALLOS: 0
-WARNING: 4 ObjectDB instances were leaked at exit (run with `--verbose` for details).
-   at: cleanup (core/object/object.cpp:2536)
-ERROR: 1 resources still in use at exit (run with --verbose for details).
-   at: clear (core/io/resource.cpp:822)

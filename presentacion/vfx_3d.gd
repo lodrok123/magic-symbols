@@ -57,6 +57,8 @@ const TONOS_LLAMA: Array = [Color(1.0, 0.93, 0.5), Color(1.0, 0.62, 0.22), Color
 const MAX_LLAMAS_COMPLETAS: int = 10
 const MAX_LUCES_LLAMA: int = 3
 const MAX_RESTOS: int = 40               ## piezas que se quedan en el mundo (marcas, cristales...) a la vez; al pasarse se borra la más vieja
+## Desplazamiento máximo de la cámara (unidades de h_offset/v_offset) cuando `temblor(intensidad)` recibe 1.
+const FUERZA_TEMBLOR_MAX: float = 0.2
 
 @export var escala: float = 1.0
 @export var velocidad: float = 7.0       ## unidades por segundo del proyectil
@@ -2310,19 +2312,66 @@ func _luz(p: Vector3, color: Color, energia: float, rango: float, dura: float) -
 	tw.tween_callback(l.queue_free)
 
 
-## Sacude la cámara activa un instante.
+## Sacude la cámara activa un instante (PÚBLICO, 17/10, T-CP3b): `intensidad` de 0 a 1. 0,25 ≈ golpe débil (el temblor más suave
+## de hoy, 0,05), 0,6 ≈ el más fuerte que se usa hoy (0,12), 1 = crítico. El Juego lo pide en golpes débiles y críticos.
+func temblor(intensidad: float = 0.5) -> void:
+	_temblor(clampf(intensidad, 0.0, 1.0) * FUERZA_TEMBLOR_MAX)
+
+
+## Lo que de verdad mueve la cámara; `fuerza` es el desplazamiento máximo (en unidades de h_offset/v_offset). Los usos internos de
+## este archivo (0,05–0,12) lo llaman directamente. Si ya había una sacudida en marcha se corta y se parte de la posición ORIGINAL de
+## la cámara: antes la nueva «recordaba» un desplazamiento a medias como si fuera el centro y, con golpes seguidos (que ahora pide
+## el Juego), la cámara acababa descentrada.
 func _temblor(fuerza: float) -> void:
 	var cam: Camera3D = get_viewport().get_camera_3d()
 	if cam == null:
 		return
+	if cam.has_meta("temblor_base"):
+		var viejo: Variant = cam.get_meta("temblor_tween")
+		if viejo is Tween and (viejo as Tween).is_valid():
+			(viejo as Tween).kill()
+		var b0: Vector2 = cam.get_meta("temblor_base")
+		cam.h_offset = b0.x
+		cam.v_offset = b0.y
 	var h: float = cam.h_offset
 	var v: float = cam.v_offset
+	cam.set_meta("temblor_base", Vector2(h, v))
 	var tw := cam.create_tween()
+	cam.set_meta("temblor_tween", tw)
 	for i in range(5):
 		tw.tween_property(cam, "h_offset", h + randf_range(-fuerza, fuerza), 0.03)
 		tw.tween_property(cam, "v_offset", v + randf_range(-fuerza, fuerza), 0.03)
 	tw.tween_property(cam, "h_offset", h, 0.03)
 	tw.tween_property(cam, "v_offset", v, 0.03)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(cam):
+			cam.remove_meta("temblor_base"))
+
+
+## 17/10 (T-CP3c) · Chispa de impacto sobre el ENEMIGO golpeado: una estrella del color del elemento que salta y se apaga en `dura`
+## (0,1 s), con unas chispas y un fogonazo de luz. Pública: `vfx.golpe_estrella(enemigo.global_position + Vector3(0, 0.6, 0), "fuego")`.
+## `esc` la agranda (p. ej. 1,5 en un crítico). Va aparte de `chispazo` (0,3–0,6 s, para objetos): esta es cortísima para que
+## acompañe al destello y al aplastamiento del enemigo sin taparlos.
+func golpe_estrella(p: Vector3, elemento: String, esc: float = 1.0, dura: float = 0.1) -> void:
+	var c: Color = COLOR.get(elemento, Color.WHITE)
+	var e: MeshInstance3D = _pieza("destello", self, 0.5 * esc * escala, c.lerp(Color.WHITE, 0.45))
+	e.position = p
+	var cam: Camera3D = get_viewport().get_camera_3d()
+	if cam != null:
+		# La estrella de Formas3D es plana (en XZ): se tumba para que su cara mire a la cámara y se le da un giro al azar.
+		e.look_at(cam.global_position, Vector3.UP)
+		e.rotate_object_local(Vector3.RIGHT, -PI * 0.5)
+		e.rotate_object_local(Vector3.UP, randf() * TAU)
+	else:
+		e.rotation_degrees.x = 90.0
+	e.scale = Vector3.ONE * 0.3
+	dura = maxf(dura, 0.04)
+	var tw := e.create_tween()
+	tw.tween_property(e, "scale", Vector3.ONE * 1.5, dura * 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(e, "scale", Vector3.ZERO, dura * 0.4).set_ease(Tween.EASE_IN)
+	tw.tween_callback(e.queue_free)
+	_estallido(p, "destello", 5, dura * 2.5, 2.4, 0.1, true, c, Vector3.ZERO)
+	_luz(p, c, 2.2, 2.2, dura * 1.5)
 
 
 ## Deja de emitir y borra el nodo cuando sus partículas se han apagado.

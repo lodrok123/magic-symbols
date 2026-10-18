@@ -1,0 +1,89 @@
+; Bosque_01 AMPLIADO (Fase 16, 16/10): 52 × 44 casillas pintadas. El 28 × 28 de antes está en las mismas casillas; las ramas nuevas salen de tools/ampliar_bosque_01.py.
+; Letras: marcador_3d.gd y hornear_nivel.gd. `t` tienda goblin (decorado). `#` ya NO es «pared de árboles»: es relleno de decorado (árboles, matorral, rocas) que no se pisa.
+; El TRONCO-PUENTE (cae sobre la casilla (6, 5)) y el TRONCO DEL ESTANQUE son marcadores de datos del Nivel_Bosque_01.tscn horneado; los lobernos también.
+; Reglas: escenas/bosque_01_3d.gd (nodo «Reglas» de escenas/PruebaBosque01.tscn): lee los marcadores POR NOMBRE (cofre_01, antorcha_03…). Los puzles: las líneas `pieza` y `puzle` de abajo.
+; azar_suelo 1 50 10
+; giro 21 15 90
+; --- ESTANQUE (sheet: «Estanque vacío con un tronco. Con la losa se sube el agua»): la losa T_C (presencia) abre el manantial.
+; --- El manantial es FINITO (volumen 50 u³ ≈ 15 casillas a 0,6 de hondo) y la cuenca es cerrada: una vez llena se queda llena.
+; pieza losa_estanque pulsador 16 9 modo=presencia
+; pieza estanque manantial 20 10 celdas=16,10..20,10+16,11..16,20 caudal=1.5 volumen=50 inicia=no
+; puzle losa_sube_agua cuando=losa_estanque.pulsado hace=estanque.abrir_cauce
+; --- CÁMARA A · F1 «cuatro antorchas»: los cuatro braseros (T) se encienden con la flecha de fuego; con 4/4 se abre la puerta de la trastienda (cofre_04).
+; pieza a_b1 brasero 5 34
+; pieza a_b2 brasero 11 34
+; pieza a_b3 brasero 5 37
+; pieza a_b4 brasero 11 37
+; pieza a_cont contador 8 35 de=5,34+11,34+5,37+11,37
+; pieza a_puerta puerta 8 39
+; puzle a_abre cuando=a_cont.todos hace=a_puerta.abrir
+; --- CÁMARA B · F4 «contrafuego»: cuatro setos secos (z) en fila y un barril al final. Una flecha de fuego al primer seto y el fuego corre por la fila,
+; ---   enciende el barril y su explosión abre la puerta de la trastienda (cofre_05). El jugador dispara desde la entrada, a más de 8 u del barril.
+; pieza b_barril barril 23 36
+; pieza b_puerta puerta 27 39
+; puzle b_abre cuando=b_barril.explota hace=b_puerta.abrir
+; --- CÁMARA C · F2 «relé de braseros»: encender el primero (A) enciende el siguiente 1,5 s después, y cada uno se apaga a los 6 s. La puerta de la trastienda
+; ---   (cofre_06) se abre cuando A y D arden A LA VEZ (de +4,5 s a +6 s de lanzar la flecha a A) y se queda abierta.
+; pieza c_a brasero 32 35 rele=c_b
+; pieza c_b brasero 34 35 rele=c_c
+; pieza c_c brasero 36 35 rele=c_d
+; pieza c_d brasero 38 35 dura=6
+; pieza c_cont contador 35 36 de=32,35+38,35
+; pieza c_puerta puerta 35 39
+; puzle c_abre cuando=c_cont.todos hace=c_puerta.abrir
+; --- CÁMARA D · F3 «quema la cuerda»: un arroyo de canal (47,33..39) parte la sala; una compuerta LEVANTADA (abierta) lo deja correr y la cuerda de al lado la
+; ---   sostiene. Una flecha de fuego a la cuerda (arde 1 s y se rompe) hace caer la compuerta: se corta el agua y el vado (47,36) baja de 0,25 -> se abre la
+; ---   puerta de la trastienda (cofre_07). El arroyo está en la mitad este: el jugador no lo cruza, dispara por encima.
+; pieza d_arroyo manantial 47 33 celdas=47,33..47,39 caudal=1.5 volumen=0
+; pieza d_desague cuenca 47 39 fijo=0.02
+; pieza d_compuerta compuerta 47 34 abierta=si vertical=no estrecha=no
+; pieza d_cuerda cuerda 46 34 sostiene=d_compuerta
+; pieza d_nivel nivel 47 36 objetivo=0.25 invertido=si
+; pieza d_puerta puerta 44 40
+; puzle d_abre cuando=d_nivel.alcanzado hace=d_puerta.abrir
+; puzle d_cierra cuando=d_nivel.perdido hace=d_puerta.cerrar
+; --- (d_cierra existe solo por el arranque: el manantial tarda ~18 s en llegar y hasta entonces el vado está a 0 («bajo») y la puerta abierta. Tras romper la cuerda el agua no vuelve nunca: la puerta ya no se cierra)
+############################                        
+#...##~#ggt##............Z.#                        
+#...##~#g.t##..........A...######                   
+##..##~#gr..gggggggWggggggggggg.#                   
+##g.##~gg.Z##..........A......g.#                   
+#.WW..~.gg###..............###g.#                   
+#.g.##~gg## ################ #g.#                   
+##g.##~#g#        ###        #gg#                   
+#.g###~#g#     ####j#        #rr#                   
+#.g###~#g###   #g#TT##       #gg#                   
+##g.##~#ggg#####ccccc####### #g.#                   
+#gg.##~##.......cT...#.....# #g.#                   
+##r###~##.......c....#.....###g.###                 
+#g..#~~##.......c..T.#.....#..g...#                 
+#g..##.##.s.....c....#..g..#..g...#                 
+##gg##..........c....X.ggGZ#..g...#                 
+#ggg##g##.......cT...#.ggg.#.vvvv.#                 
+#ggg##g##....#..c..T.#.ggg.#.vvvv.#                 
+#.gg##.##.s..#..c....#..g..#.vvvv.#                 
+#.gg##.##....Q..cj...#.....#..g...#                 
+#.#g##.##..g..##c....#.....#g.g...#                 
+#gSg##q###.g######.#########g.g...#                 
+######## #.g#    #vv#      ###g.###                 
+         #.g#    #vv#        #g.#                   
+         #.g#    #vv#        #g.#                   
+         #.g#    #j##        #g.#                   
+         #.g#    #v#         #g.#                   
+         #.g#    ###         #g.#                   
+   #######.g##################g.################    
+   #.......g..................g................#    
+   #ggggggggggggggggggWgggggggggggggggg........#    
+   #....g......gg.......g..........g...ggg.gg..#    
+   #####g.#####.g##################g.######.g#######
+   #....g....#..g......gg....##....g...g##g.g..-...#
+   #.T..g..T.#..g............##....g....##ggg..-...#
+   #....g....#..g............##.T.TgT.T.##ggg..-...#
+   #....g....#..g..zzzz......##....g....##gggg.-...#
+   #.T..g..T.#...............##....g....##gggg.-...#
+   #....g....#...............##....g....##.gg..-...#
+   #####.##################g#######g######..g..-...#
+      #...#              #.gg#   #.gg#   ###.#######
+      #.Z.#              #.Zg#   #.Zg#    #...#     
+      #####              #####   #####    #.Z.#     
+                                          #####     

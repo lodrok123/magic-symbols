@@ -1,0 +1,25 @@
+; LABORATORIO DE RECETAS V2 (R4, 17/10, Juego). 28 x 17: una sala abierta para lanzar recetas y ver que pasa (docs/GLIFOS_RECETA.md §3 F4).
+; Lo lee PruebaTest2 (nivel = "LabRecetas") desde laboratorios/LabRecetas3D.tscn; el panel, el barrido y las teclas son de laboratorios/lab_recetas_3d.gd.
+; NO se hornea: es un laboratorio. Archivo NUEVO en datos_nivel/mapas (carpeta de Pablo) creado con el mismo molde que PuzlesAgua/PuzlesFuego: Pablo, confirma o muevelo.
+; Letras de la maqueta: # muro . suelo S jugador D diana (muneco) W goblin guerrero A goblin arquero (los dos QUIETOS: los congela el lab) T brasero z seto seco ~ agua.
+; Fila y=8 (la de S): tres dianas en x = 10, 14 y 18 y un goblin en x = 23; dos dianas mas en (14,5) y (14,11); goblins en (19,6) y (19,10).
+; Combustibles: setos secos (8-12,3) y (8-12,13) con un brasero a cada lado (16,3) y (16,13); barriles en (21,3) y (21,13). Agua: estanque (3-10, 14-15).
+; pieza barril_n barril 21 3
+; pieza barril_s barril 21 13
+############################
+#..........................#
+#..........................#
+#.......zzzzz...T..........#
+#..........................#
+#.............D............#
+#..................W.......#
+#..........................#
+#...S.....D...D...D....W...#
+#..........................#
+#..................A.......#
+#.............D............#
+#..........................#
+#.......zzzzz...T..........#
+#..~~~~~~~~................#
+#..~~~~~~~~................#
+############################

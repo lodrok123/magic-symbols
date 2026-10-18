@@ -48,7 +48,6 @@ const ELEMENTS: PackedStringArray = [
 ## lleva la barra abajo y el otro la punta arriba.
 const SIGILS: PackedStringArray = [
 	"flecha",      # flecha apuntando a la derecha
-	"pilar",       # ⊥
 	"barrera",     # círculo cerrado
 	"levitacion",  # flecha hacia arriba
 	"repeticion",  # dos triángulos: multiplica lo que haya en su sector
@@ -60,7 +59,6 @@ const SIGILS: PackedStringArray = [
 	"espejo",      # NUEVO: eje con dos puntas hacia fuera
 	"linea",       # raya: muro delante (fase 8)
 	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
-	"tamano",      # +: escala la forma que haya, nunca la altura (fase 8)
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -68,14 +66,68 @@ const SIGILS: PackedStringArray = [
 ## arriba, para que el número de la tecla no se aprenda dos veces.
 const RECORDABLE: PackedStringArray = [
 	"fuego", "agua", "tierra", "rayo", "hielo", "tiempo", "viento",
-	"flecha", "pilar", "barrera", "levitacion", "repeticion", "amplificar",
+	"flecha", "barrera", "levitacion", "repeticion", "amplificar",
 	"rebote", "retardo", "pulso", "atraccion", "espejo",
+	# 16/10 (biblia de runas de Pablo): también se graban los que aún no lanzan nada, para tenerlos listos (assets, enemigos, señuelos).
+	"linea", "veneno", "naturaleza", "sombra", "luz", "thurisaz", "ansuz", "raido", "algiz", "berkana",
 ]
+
+## --- BIBLIA DE RUNAS (16/10, lámina de Pablo: 24 runas del futhark antiguo) ---
+## Qué runa es cada nombre y para qué sirve. Es DATO, no reconocimiento: el reconocedor sigue usando las muestras grabadas; esta tabla
+## dice cómo se llama cada forma, qué futhark es (para assets, carteles, el libro) y si hoy desemboca en algo.
+##   uso: "elemento" (núcleo) · "sello" (sector) · "enemigos" (la usan ellos, el jugador no la traza) · "asset" (decora: aún sin
+##        hechizo) · "libre" (sin asignar: puede usarse más adelante).
+## No todas las de `uso` sello/elemento están ya en el juego con esa forma: Pablo regraba las plantillas con G. Las de uso "asset" y
+## "libre" no están en ELEMENTS ni SIGILS, así que aunque se graben no compiten en el reconocimiento.
+const BIBLIA: Dictionary = {
+	"repeticion": {"futhark": "ᚠ", "nombre_runa": "fehu", "uso": "sello"},
+	"rebote":     {"futhark": "ᚢ", "nombre_runa": "uruz", "uso": "sello"},
+	"thurisaz":   {"futhark": "ᚦ", "nombre_runa": "thurisaz", "uso": "libre"},
+	"ansuz":      {"futhark": "ᚨ", "nombre_runa": "ansuz", "uso": "libre"},
+	"raido":      {"futhark": "ᚱ", "nombre_runa": "raido", "uso": "libre"},
+	"fuego":      {"futhark": "ᚲ", "nombre_runa": "kenaz", "uso": "elemento"},
+	"pulso":      {"futhark": "ᚷ", "nombre_runa": "gebo", "uso": "sello"},
+	"veneno":     {"futhark": "ᚹ", "nombre_runa": "wunjo", "uso": "enemigos"},
+	"hielo":      {"futhark": "ᚺ", "nombre_runa": "hagalaz", "uso": "elemento"},
+	"linea":      {"futhark": "ᛁ", "nombre_runa": "isa", "uso": "sello"},
+	"naturaleza": {"futhark": "ᛃ", "nombre_runa": "jera", "uso": "asset"},
+	"flecha":     {"futhark": "ᛇ", "nombre_runa": "eihwaz", "uso": "sello"},
+	"sombra":     {"futhark": "ᛈ", "nombre_runa": "perthro", "uso": "asset"},
+	"algiz":      {"futhark": "ᛉ", "nombre_runa": "algiz", "uso": "libre"},
+	"rayo":       {"futhark": "ᛊ", "nombre_runa": "sowilo", "uso": "elemento"},
+	"levitacion": {"futhark": "ᛏ", "nombre_runa": "tiwaz", "uso": "sello"},
+	"berkana":    {"futhark": "ᛒ", "nombre_runa": "berkana", "uso": "libre"},
+	"tierra":     {"futhark": "ᛗ", "nombre_runa": "mannaz", "uso": "elemento"},
+	"viento":     {"futhark": "ᚢ", "nombre_runa": "uruz (variante de lados rectos, lámina aparte)", "uso": "elemento"},
+	"agua":       {"futhark": "ᛚ", "nombre_runa": "laguz", "uso": "elemento"},
+	"barrera":    {"futhark": "ᛜ", "nombre_runa": "ingwaz", "uso": "sello"},
+	"tiempo":     {"futhark": "ᛟ", "nombre_runa": "othala", "uso": "elemento (solo en una ruina: cinemático)"},
+	"luz":        {"futhark": "ᛞ", "nombre_runa": "dagaz", "uso": "asset"},
+}
+
+
+## --- GIRO DE LOS GLIFOS EN LOS SECTORES (16/10, Pablo: «los glifos detectados siempre rótalos hacia el centro») ---
+## Un glifo trazado o pintado en un sector va girado de modo que su "arriba" APUNTA AL CENTRO del círculo: en el sector este queda
+## tumbado mirando al oeste, en el norte boca abajo, y así. Es una sola convención para las tres cosas que giran: lo que el jugador
+## dibuja (el reconocedor lo desgira con −giro antes de comparar con la plantilla derecha), la guía fantasma (la plantilla girada
+## con +giro) y el sello pintado en el hueco. Devuelve el ángulo (rad) que hay que aplicar a un glifo derecho para colocarlo así.
+## Para el núcleo (sector cero) es 0: los elementos van derechos.
+static func giro_glifo(sector: Vector2) -> float:
+	if sector.length_squared() < 0.0001:
+		return 0.0
+	# "Arriba" en pantalla es (0, −1), ángulo −π/2. Para que apunte hacia −sector hay que girar (ángulo de −sector) − (−π/2).
+	return (-sector).angle() + PI * 0.5
 
 ## nombre -> Array de nubes ya normalizadas (PackedVector2Array). Se
 ## guardan normalizadas porque una plantilla no es más que un gesto que
 ## ya pasó por GestureRecognizer.normalize().
 @export var templates: Dictionary = {}
+
+## nombre -> con CUÁNTOS TRAZOS se dibuja el gesto (el máximo de sus muestras). Lo apunta el grimorio al grabar (16/10, trazo
+## recto): con él sabe si un gesto puede darse por cerrado al soltar el ratón sin esperar la pausa (ningún gesto activo de la
+## familia necesita más trazos de los ya dibujados). Un gesto sin dato aquí (grabado antes) desactiva el cierre inmediato en su
+## familia: mejor esperar que cerrar de más.
+@export var trazos: Dictionary = {}
 
 ## --- Acceso compartido ---
 ## Antes esto se hacía con `preload`, y tenía un problema serio: un
@@ -130,10 +182,24 @@ func has_any(names: PackedStringArray) -> bool:
 	return false
 
 
-func add_sample(gesture_name: String, normalized_points: PackedVector2Array) -> void:
+func add_sample(gesture_name: String, normalized_points: PackedVector2Array, n_trazos: int = 0) -> void:
 	if not templates.has(gesture_name):
 		templates[gesture_name] = []
 	templates[gesture_name].append(normalized_points)
+	if n_trazos > 0:
+		trazos[gesture_name] = maxi(int(trazos.get(gesture_name, 0)), n_trazos)
+
+
+## El mayor número de trazos que necesita alguno de estos gestos, o -1 si a alguno le falta el dato (no se puede afirmar nada).
+func trazos_max(names: PackedStringArray) -> int:
+	var m: int = 0
+	for name in names:
+		if not templates.has(name):
+			continue
+		if not trazos.has(name):
+			return -1
+		m = maxi(m, int(trazos[name]))
+	return m
 
 
 func sample_count(gesture_name: String) -> int:
@@ -144,6 +210,7 @@ func sample_count(gesture_name: String) -> int:
 
 func clear_gesture(gesture_name: String) -> void:
 	templates.erase(gesture_name)
+	trazos.erase(gesture_name)
 
 
 ## Quita solo la última muestra. Es lo que más falta hace: casi nunca
@@ -160,6 +227,7 @@ func remove_last_sample(gesture_name: String) -> void:
 
 func clear_all() -> void:
 	templates.clear()
+	trazos.clear()
 
 
 ## Si está vacía, quien reconozca debe recurrir al método antiguo. Es lo

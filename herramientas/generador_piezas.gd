@@ -105,6 +105,12 @@ static func generar(id: String) -> bool:
 	raiz.add_child(vis)
 	vis.owner = raiz
 	_dueno(vis, raiz)
+	# 16/10: el cofre lleva su controlador puesto (el GLB sale con la tapa abierta y `Cofre3D` la deja cerrada al entrar en el árbol).
+	if id == "cofre":
+		var ctrl := Cofre3D.new()
+		ctrl.name = "Cofre3D"
+		raiz.add_child(ctrl)
+		ctrl.owner = raiz
 	var tipo: String = String(COLISION.get(id, "ninguna"))
 	if tipo != "ninguna":
 		var cuerpo := StaticBody3D.new()

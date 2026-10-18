@@ -281,6 +281,7 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> voi
 			_apagar()
 		elif mojable and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
 			_mojado_s = T_MOJADO
+			PiezaFuego3D.mojado(visual, true)       # capa húmeda del Pipeline (diario 109); se quita al secarse, en `_process`
 			set_process(true)
 		elif rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO:
 			_contagiar(CONTAGIO_VIENTO, direccion)
@@ -383,6 +384,8 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 func _process(delta: float) -> void:
 	if _mojado_s > 0.0:
 		_mojado_s = maxf(0.0, _mojado_s - delta)
+		if _mojado_s <= 0.0:
+			PiezaFuego3D.mojado(visual, false)
 	if rele_activo and is_lit:
 		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:

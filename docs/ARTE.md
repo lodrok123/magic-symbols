@@ -441,3 +441,114 @@ Una lámina de Meshy (un solo mesh, 15 488 tris, 3 JPEG de 2048²) separada con 
 - **Ojo:** el tronco en pie es achaparrado (1,43 de ancho a 2,6 de alto) y lleva piedras y vainas pegadas en la base, así que su huella real es ≈ 1,4 × 1,6, mayor que el cilindro provisional. El bloqueo mide 2,2 × 1,08 (más ancho y bajo que lo pedido en los prompts).
 - **Sobran:** restos quemados flotantes, vainas y piedras sueltas y unos veinte fragmentos mínimos; siguen en el GLB original.
 - **No verificado:** aspecto en Forward+ (solo Compatibility/llvmpipe); falta importar en Godot una vez. Del prompt siguen pendientes de generar: tronco_estanque, manos, pluma y libro.
+
+## 16. Las páginas del grimorio nuevo (lámina `grimorio_bosque.png`, 16/10)
+
+Lámina del libro abierto con el estilo del grimorio de cuero marrón y verde (cenefa de hojas y capullos): `art/ui/grimorio_bosque.png`, 1470 × 1070. La generó Pablo con un generador de imágenes a partir de dos prompts (base en blanco + trazos simples) y se ajustó aquí. **No sustituye a `grimorio_nivel1.png`** (que no existe) ni a `grimorio.png`: está aparte a propósito, porque su distribución es distinta y activarla con los datos de `nivel1` rompería el libro.
+
+- **Por qué se rellenó arriba y abajo:** la imagen generada medía 1266 × 865 (1,46:1) y `spellbook.gd` dibuja la lámina estirada a `BOOK_SIZE` 1470 × 1070 (1,37:1): estirarla habría vuelto ovalados los círculos. Se escaló uniforme a 1470 de ancho (×1,1611, alto 1004) y se repitió el borde oscuro 33 px arriba y abajo. Eso queda fuera del bloque de páginas, que es lo que se encuadra.
+- **Medidas** (px de lámina, medidas sobre la imagen con componentes conexos, no a ojo):
+
+| Pieza | Centro | Radio |
+|---|---|---|
+| Círculo exterior | (431,9; 482,4) | 232,8 |
+| Sello (núcleo), **desplazado hacia arriba** | (433,7; 383,1) | 119,6 |
+| Hueco de glifo abajo-izquierda (sector 3) — **no impreso** | (305,4; 578,7) | 58,1 |
+| Hueco de glifo abajo (sector 2) — **no impreso** | (431,4; 628,1) | 59,8 |
+| Hueco de glifo abajo-derecha (sector 1) — **no impreso** | (557,3; 578,7) | 58,1 |
+| 6 círculos de sello (derecha), y = 276,8 | x = 838,3 · 913,8 · 989,9 · 1065,9 · 1141,4 · 1216,9 | 30,2 |
+| 3 × 3 óvalos de glifo (derecha) | x = 871,4 · 1028,8 · 1184,9; y = 415,6 · 551,4 · 683,8 | 140,5 × 101,0 de caja |
+
+- **Pendiente de Juego** (`spellbook.gd` es suyo): el núcleo ya no está en el centro del círculo exterior (≈ 99 px más arriba), y hoy `LIBROS` solo tiene `centro` y `nucleo` (radio). Hace falta un dato de desplazamiento del núcleo; además los sectores de los huecos salen a ≈ 37°, 90° y 143° (no 45/90/135), así que se usan las posiciones exactas de `huecos`. La página derecha pasa de 12 casillas a **6 sellos + 9 glifos**. El bloque de páginas (`PAGE_BLOCK`) hay que revisarlo: por ojo la cenefa va de y ≈ 90 a ≈ 840 y el actual es 84–834.
+- **Siguiente paso de Pipeline:** variantes por progresión, con los huecos aún no comprados cerrados (capullo, de la hoja de piezas de Pablo) y los óvalos/círculos sin desbloquear en tenue.
+
+**Los huecos de glifo no vienen impresos (Pablo, 16/10).** Están ligados a las **mejoras** del jugador: al principio el sello es lo único que se ve y se puede escribir en la página, y cada hueco aparece al desbloquearlo. Por eso `grimorio_bosque.png` lleva solo el círculo exterior y el sello; los tres aros se quitaron de la lámina (relleno del pergamino por inpainting, comprobado a la vista) y quedan como sprite aparte, **`art/ui/grimorio_hueco_glifo.png`** (140 × 140, aro de tinta con alfa, centro (70; 70), radio 58,1): se pinta en cada hueco desbloqueado, escalado por `hueco_radio / 58,1`. Un hueco bloqueado ni se ve ni admite trazo (ver diario 112).
+
+## 17. Pluma y mano de escritura con modelo (láminas «Verdant Quill» y «Pointing Hand Emerging», 16/10)
+
+Dos GLB de Meshy, separados y reexportados con un nodo por pieza (origen y escala horneados): `arte/meshy/escritura/pluma.glb` y `arte/meshy/escritura/mano.glb`. Cargador `presentacion/pieza_escritura_3d.gd` (`PiezaEscritura3D.crear(id)`; null si falta el GLB) y prueba `herramientas/prueba_pieza_escritura.gd` (0 fallos).
+
+| id | tris | medida X × Y × Z | origen |
+|---|---|---|---|
+| `pluma` | 15 963 | 0,21 × 0,7 × 0,045 | la punta del plumín, de pie (la pluma sube por +Y; cara plana a +Z) |
+| `mano_apuntando` | 8 275 | 0,39 × 0,5 × 0,54 | la punta del índice (que apunta hacia abajo, −Y) |
+| `manga_mano` | 8 172 | 0,49 × 0,53 × 0,58 | el mismo que la mano: juntas forman el brazo |
+| `mano_agarre` | 6 456 | 0,27 × 0,23 × 0,5 | **el centro del pellizco**, entre la yema del pulgar y la del índice |
+| `manga_agarre` | 9 565 | 0,29 × 0,29 × 0,26 | el mismo que `mano_agarre` (la muñeca queda hacia −Z) |
+
+- **La mano no sujeta la pluma:** es un puño con el índice estirado ("señalando"), no la pose de agarre de los prompts C1–C3. Sirve tal cual para señalar o para escribir con el dedo; para una mano que sujete la pluma habría que generar otra o colocar la pluma a mano, sin garantía de que quede bien entre los dedos.
+- **Peso:** la pluma pesa 15 963 triángulos (el prompt pedía 300–700): es mucho para un objeto de 0,7. Si se usa en pantalla pequeña o muchas a la vez, conviene reducirla (decimar) o seguir con el PNG 2D.
+- **Textura:** cada GLB lleva su propio JPEG (≈ 12 MB entre los dos). No verificado en Forward+.
+
+**La mano de agarre (`mano_agarre.glb`, la buena para escribir).** Tercera mano, generada con Image to 3D a partir de la imagen editada por Pablo: pose de escritura con el pellizco abierto y sin pluma. Se separó por componentes (mano 6 456 tris, manga 9 565 tris con el disco de piel de la muñeca) y el origen se puso en el centro del pellizco. Dedos hacia +Z, palma a −Y, dorso a +Y.
+- **Pulgar cerrado a mano:** el hueco entre las yemas era de 0,255 (casi un 27 % de la mano) y ninguna pluma fina lo salvaba, así que el pulgar se acercó 0,09 hacia el índice con una deformación suave (peso por z y x; las UV no cambian). Se comprobó con render de lado y de arriba que no se ve estirado.
+- **La pluma en la mano:** `PiezaEscritura3D.pluma_en_agarre()` devuelve su `Transform3D` (el plumín asoma 10 cm hacia delante y abajo del pellizco, la pluma se tumba hacia atrás y arriba a 50° sobre el dorso, girada 40° sobre su eje). Salió de probar tres giros con render; se ve sujeta en las dos vistas.
+- **Pluma oculta al no escribir:** son piezas separadas, basta con ocultar la pluma.
+- **Pesa:** 16 021 triángulos entre mano y manga, más 15 963 de la pluma; se puede decimar después si hace falta (Pablo).
+
+## 18. Las dos láminas de bosque: orilla del estanque y sendero («Forest Flora Collection» y «Enchanted Forest Elements», 16/10)
+
+Salen de los prompts de `arte/meshy/PROMPTS_BOSQUE_LAMINAS.md` (lámina 1 = orilla, lámina 2 = sendero). Separadas con el método de siempre y reexportadas con un nodo por pieza en `arte/meshy/bosque/bosque_orilla.glb` y `bosque_sendero.glb`; las lee `PiezaBosque3D` (ahora con 28 ids; prueba `herramientas/prueba_piezas_bosque.gd`, 0 fallos). Origen: centro de la base, salvo `tronco_estanque` (centro del eje).
+
+**Se quitó la capa plana de hierba/hojas** que Meshy pegó bajo cada pieza (componentes de menos de 0,02 de alto, 20 triángulos o más, a ras de la base del grupo): 1 070 triángulos en los juncos, 1 076 en el tocón, 514 en las setas, 180 en la roca grande, y unas decenas en las piezas del sendero. **No** se quitó en las piezas que son planas de por sí (nenúfares, montón de hojas y hojas del suelo).
+
+| Pieza | tris | medida X × Y × Z |
+|---|---|---|
+| `tronco_estanque` | 3 842 | 2,6 × 0,65 × 0,79 |
+| `juncos_a` / `juncos_b` | 1 793 / 1 575 | 0,8 × 0,55 × 0,82 / 0,8 × 0,44 × 0,58 |
+| `tocon_musgo` | 1 272 | 0,9 × 0,45 × 0,67 |
+| `setas_grupo` | 886 | 0,5 × 0,3 × 0,31 |
+| `roca_musgo_g` / `_m` / `_p` | 332 / 406 / 216 | 1,2 × 0,8 × 0,94 / 0,7 × 0,44 × 0,83 / 0,35 × 0,16 × 0,35 |
+| `nenufar_a` (con capullo) / `nenufar_b` | 470 / 336 | 0,56 × 0,26 × 0,7 / 0,46 × 0,1 × 0,5 |
+| `arbusto_hojas` / `arbusto_frutos` | 2 755 / 2 104 | 1,2 × 0,68 × 1,16 / 1,4 × 0,86 × 1,31 |
+| `raiz_grande` | 1 298 | 1,4 × 0,72 × 1,45 |
+| `hojas_monton` | 1 344 | 0,7 × 0,19 × 0,9 |
+| `tronco_hueco` | 1 244 | 0,89 × 1,1 × 1,0 |
+| `valla_tramo` | 1 175 | 2,0 × 0,93 × 1,55 |
+| `troncos_apilados` | 861 | 1,0 × 0,54 × 1,0 |
+| `cartel_bosque` (tablilla en blanco) | 826 | 0,93 × 1,6 × 1,15 |
+| `hojas_suelo_a` / `_b` / `_c` | 638 / 437 / 430 | ≈ 0,55 × 0,05 × 0,7 |
+
+- **El tronco del estanque salió achaparrado** (largo/grueso ≈ 2,3, y hacía falta 4,3): se alargó **1,6× en X** respecto a Y y Z para llegar a 2,6 de largo, y aun así queda más grueso que el cilindro provisional (0,65 × 0,79 frente a Ø 0,6). Si molesta el grosor, o se acepta, o se pide otro tronco más fino. En `TroncoEstanque3D` cambiaría `RADIO` y `_y_arriba` (su cara de arriba queda ≈ 0,33 sobre el eje).
+- **Tamaño del cartel:** salió diminuto en la lámina (178 triángulos en la pieza principal) y se amplió ×7,9 a 1,6 de alto: a esa escala se verá poco detallado.
+- **No salieron** del prompt: el helecho grande (lámina 1) y las 3 piedras de pasadero salieron como pedazos de 24–62 triángulos (descartados). El «seto seco» se convirtió en `arbusto_frutos` (hojas verdes y frutos marrones, no seco), y el arbusto con flores salió sin flores (`arbusto_hojas`).
+- **Peso:** ≈ 8–9 MB por GLB (un JPEG de 2048² cada uno). No verificado en Forward+.
+
+## 19. La mano 3D que escribe en el libro (`ManoPluma3D`, 16/10, Pipeline)
+
+Sustituye a `ManoPluma2D` con el modelo de agarre (§17). Archivo: `presentacion/ui/mano_pluma_3d.gd`; prueba: `herramientas/prueba_mano_pluma_3d.gd` (necesita renderizador, no vale `--headless`); captura para mirar: `herramientas/captura_mano_pluma_3d.gd`.
+
+- **Interfaz: la misma.** `ManoPluma3D` **hereda** de `ManoPluma2D`, así que `apuntar()`, `punta()`, `mostrar()`, `ocultar()`, `pose`, el retardo de 60 ms y la inclinación son literalmente el mismo código (la prueba B1 compara las dos: diferencia 0,00000 px). Una variable tipada `ManoPluma2D` admite una `ManoPluma3D`. `TintaPluma2D` no cambia. `ManoPluma3D.disponible()` dice si están los GLB; sin ellos no pinta nada pero `punta()` sigue valiendo.
+- **Cómo se ve un 3D sobre una UI 2D.** Un `SubViewport` transparente (mundo 3D propio, MSAA 4×, 560 × 560, se renderiza solo si el nodo está visible) con una **cámara ortogonal** inclinada 28° de la vertical (para que se lea el volumen), y un `Sprite2D` que muestra su textura. Es un nodo 2D normal: `capa_z` (100) es su `z_index`, hereda la escala del libro y se oculta con `visible`. Sin perspectiva, la mano mide lo mismo en cualquier punto de la página: 520 px por metro (la mano ≈ 260 px, como la 2D). La manga sale por la esquina de abajo a la derecha y se desvanece con un shader para que no se vea el corte.
+- **Escala.** `escala` vale 1 = tamaño de diseño (libro a 1470 de ancho). Para que acompañe al libro en otra resolución, el Juego pone `mano.escala = book.size.x / BOOK_SIZE.x` (el mismo factor que `_on_page`). El viewport no cambia de resolución: con `escala` > 1 se ve algo más blando.
+- **Escribir y no escribir.** En `Pose.ESCRIBIENDO` la pluma se ve y el plumín está en la página (altura 0). En cualquier otra pose la mano sube 12 cm (en REPOSO, el 35 %) con la sombra más lejos y más clara, como la 2D. **Desde el 16/10 la pluma se ve siempre** (pedido de Pablo; export `pluma_siempre = true`; con `false` vuelve a ocultarse al no escribir). El conjunto es `ancla` (la punta del plumín, en el origen) → `brazo` (mano + manga) y `pluma`, usando `PiezaEscritura3D.pluma_en_agarre()`. La pluma gira con la velocidad y la mano un 55 % de eso, como antes.
+- **La punta (punto 5 del encargo).** `PUNTA_PX` ya **no existe** en la 3D: el plumín es el origen del modelo y la cámara lo coloca en el píxel `PUNTA_VP` (170, 170) del viewport; el sprite se desplaza esa cantidad y el nodo va en `punta()`. Por construcción el plumín cae en `punta()` sin depender de la lámina ni de su relleno de 33 px (esos 33 px ya van dentro del PNG de 1470 × 1070 que `spellbook` dibuja entero). Lo que tiene que ser exacto es el punto que da el libro con `_on_page`. **Medido** en la imagen renderizada, solo con la pluma, con el encuadre de `_book_rect()` y el `bloque` del libro nuevo: en los 3 huecos de glifo, el sello y dos círculos de sello de la derecha, error de **1,2–2,2 px de pantalla** (≤ 2,2 px de lámina) a 1280 × 720 y a 960 × 540. Es el tamaño del píxel con el que se mide más el redondeo de la punta del modelo; el trazo mide 2,4–7 px de ancho.
+- **Pluma de 15 963 triángulos (punto 6).** No hace falta una versión ligera de la malla: con la mano y la pluma puestas, los buffers de geometría suman **+1,4 MB** (medido) y la pluma ocupa unos 360 px de alto, así que sus triángulos son más pequeños que un píxel y decimarlos no cambiaría la imagen. Lo que pesa son las **texturas**: 2048² (albedo + normal) en la pluma y otras tantas en la mano. Medido en el sandbox (Compatibility/llvmpipe, sin compresión de VRAM): **+108 MB de memoria de textura** al instanciar la mano. En una GPU real con compresión sería bastante menos (no medido). Si se quiere recortar, lo útil es bajar las texturas de `pluma.glb` y `mano_agarre.glb` a 1024 (o 512 la pluma), no los triángulos: se puede hacer sin tocar la geometría ni el contrato.
+- **Sin ver en el juego real:** probado solo en Compatibility con llvmpipe, y la mano aún no está enchufada en `spellbook.gd` (ahí no hay ninguna llamada a `ManoPluma2D`: solo la usaban `prueba_escritura_hud` y `captura_escritura`).
+
+## 20. Retoques del Bosque 01 tras la prueba de Pablo (16/10, Pipeline)
+
+- **Cofre abierto al nacer.** `cofre_anim.glb` sale con la **tapa abierta** y solo `Cofre3D.preparar` la deja en el clip «cerrado»; como `preparar` se llamaba al pulsar E, el cofre se veía abierto hasta entonces (medido: sin preparar la tapa queda a 0° y el cofre mide 0,85; preparado, 0,75). Ahora `arte/piezas/cofre.tscn` lleva un nodo `Cofre3D` como hijo, el `Cofre3D._ready` se prepara solo, y `generador_piezas.gd` lo añade al regenerar la pieza. `Cofre3D.en(pieza)` devuelve el que ya lleva. Prueba: `herramientas/prueba_cofre_cerrado.gd` (0 fallos).
+- **Suelo y hierba.** Medido sobre las capturas de Pablo (agrupando los píxeles verdes en colores): el suelo sin hierba sale en (186, 230, 130) y (160, 217, 125), saturación 0,42–0,44; la hierba pintada en (158, 212, 85) y (127, 193, 81), saturación 0,58–0,60: el suelo era más pálido y menos saturado a igual brillo. `arte/suelo_meshy/hierba_arriba.png` se multiplica por (0,86 · 0,92 · 0,66) por canal, y la media pasa de (160, 210, 129) a (138, 193, 85), tono 97° → 91°, saturación 0,39 → 0,56. Se supone que una multiplicación sobre la textura es la misma en pantalla (luz × albedo y luego se codifica); la rampa de luz del suelo (`contraste`) puede apartarlo un poco: no medido. **No se tocan las briznas** de `Hierba3D` (`color_base`/`color_punta`, calculadas contra el suelo anterior): si ahora salen más pálidas que el suelo, hay que bajarles el azul. No visto en el juego real.
+- **Arbustos.** Los de la captura son `arbusto_flores` (bola verde azulada con bultos rosas); los demás arbustos del nivel son `arbusto` (amarillo-verdoso con flores amarillas) y `arbusto_otono`. Lámina 3 de `arte/meshy/PROMPTS_BOSQUE_LAMINAS.md`: seis arbustos nuevos en verde cálido para sustituirlos.
+
+## 21. Rejilla guía del trazo (`CuadriculaGuia`, 17/10, Pipeline)
+
+Pedido de Pablo: una cuadrícula muy tenue en la página donde se dibuja, para que el jugador construya la runa bien desde el principio (y se reconozca mejor). Por código, sin asset: `presentacion/ui/cuadricula_guia.gd`; captura y prueba: `herramientas/captura_cuadricula_guia.gd` (0 fallos; necesita renderizador).
+
+- **Qué dibuja.** (1) Una cuadrícula continua en toda la página izquierda, de **52,6 px de lámina** de paso, alineada con los **4 × 4 nodos del sello** (cuadrado de lado 0,66 × el diámetro del sello, centro 433,7 · 383,1, radio 119,6) y apagada hacia la cenefa (70 px) para no pelearse con las enredaderas. (2) Dentro de cada **círculo de glifo abierto**, una rejilla de 4 × 4 más fina (0,62 × su radio); ahí la de la página se aparta. Los huecos cerrados no llevan (igual que su aro).
+- **Cuánto se ve.** Tinta marrón del trazo; líneas al 9 % de opacidad (11 % en los huecos), nodos de 2 px al 23 % (1,6 px al 26 % en los huecos). Medido: el cambio medio de color respecto a la lámina sola es 0,001 por píxel. Para subir o bajar, las constantes `ALFA_*` y `RADIO_PUNTO*` del archivo.
+- **Geometría medida en la lámina** del bosque (1470 × 1070), guardada en `CuadriculaGuia.LIBROS["bosque"]`: si se rehace la lámina o se mueve un hueco, se cambian esos números (y `LIBROS` de `spellbook.gd`). Otra lámina no dibuja nada. `CuadriculaGuia.activa = false` la apaga.
+
+## 22. Glifos de runas desde la lámina (encargo 133)
+- **Origen:** `docs/runas_lista_definitiva.png`. Los 24 glifos de `art/ui/glyphs/` (96×96, blanco sobre transparente) salen de ahí. Los cuatro sin lámina (`amplificar, retardo, atraccion, espejo`) siguen con su versión anterior.
+- **Método (v2, la vigente):** cada runa está definida a mano como polilíneas sobre la retícula de la rejilla guía (alto = 3 unidades, y hacia abajo), con un script del Pipeline (`fino.py`, no versionado). Trazo de 7,2 px con puntas y uniones redondas, 8× de supersampleo, centrado en (48,48), 74 px el lado mayor. Se descartó vectorizar el esqueleto de la imagen (daba rabitos y puntas cortas) y recortar la imagen (diagonales onduladas).
+- **Si se rehace la lámina:** repetir el proceso con el mismo grosor y tamaño para que `glifo_tam` (76) siga valiendo. Una runa nueva = una piedra nueva en la lámina + un PNG con el nombre de la BIBLIA.
+
+## 23. Recortador de láminas con dos puertas (`arte/herramientas/recortar_assets.py`)
+- **Para qué:** cortar una lámina con muchos assets en un PNG por pieza, sin que nada llegue a su sitio final sin que Pablo lo vea. Detalle de uso en la cabecera del propio script.
+- **Puerta 1, aprobación:** `cortar` deja las piezas en `arte/aprobacion/<lote>/` (carpeta con `.gdignore`: Godot no la importa) con id `<lote>-001…`, una `hoja_contacto.png` y un `lote.json` con el estado de cada pieza. Se aprueba o rechaza con `marcar`.
+- **Puerta 2, procesar:** solo lo aprobado y con destino (`asignar`) se copia a su sitio (`procesar`), que solo escribe en carpetas del Pipeline y no pisa nada sin `--sobrescribir`.
+- **Personajes:** pasan antes por el laboratorio (`laboratorio` los copia a `arte/laboratorio/humanoides` o `enemigos`; `procesar` los rechaza hasta que estén `revisado`). Que los laboratorios lean esas carpetas está por hacer.
+- **Detección:** fondo = mediana del borde de la lámina (o `alfa`, o un color); se descartan las sombras del suelo (fondo oscurecido sin cambio de tono; `--con-sombras` las conserva); las partes sueltas de una pieza se agrupan con `--une`. Orden de lectura por filas. Dependencias: Python con Pillow, NumPy y SciPy.
+- **Probado** con la lámina de runas real (36 piezas: 24 runas más los óvalos y rótulos de la anotación, que se rechazan en la puerta 1) y con una lámina sintética de personajes con sombra.

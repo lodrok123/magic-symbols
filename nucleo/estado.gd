@@ -33,6 +33,9 @@ var vel_extra: float = 0.0
 ## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
 ## no una mejora: no se pierde ni se compra.
 var asistencia: float = 0.5
+## TRAZO RECTO (Fase 14.4, 16/10): lo dibujado se convierte en tramos rectos en las ocho direcciones del compás (GestureRectify), y
+## eso es lo que se ve, se reconoce y se graba. Sin rejilla: solo se corrigen las direcciones. `false` = trazo libre, como antes.
+var trazo_recto: bool = true
 
 
 static func i() -> Estado:

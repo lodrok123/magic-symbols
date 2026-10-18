@@ -31,6 +31,7 @@ func _init() -> void:
 	_señuelos(biblioteca)
 	await _libro(biblioteca)
 	_imán()
+	_sin_giro(biblioteca)
 	print("FALLOS: ", fallos)
 	quit(1 if fallos > 0 else 0)
 
@@ -337,3 +338,21 @@ func _dist_guia(a: GestureAssist, p: Vector2) -> float:
 		for i in range(pieza.size() - 1):
 			d = minf(d, p.distance_to(Geometry2D.get_closest_point_to_segment(p, pieza[i], pieza[i + 1])))
 	return d
+
+
+## `sin_giro` (156: ᛁ no se gira hacia el centro): una plantilla de esa lista se compara con el trazo TAL CUAL, aunque el sector pida girarlo. Se usa
+## `levitacion` (una raya vertical) como la plantilla de ejemplo: con un giro de 60° el trazo vertical ya no se parece a ninguna si se gira, y con `sin_giro` sí.
+func _sin_giro(biblioteca: GestureLibrary) -> void:
+	print("--- sin_giro ---")
+	var plantillas: Dictionary = biblioteca.templates_for(GestureLibrary.SIGILS)
+	var activos := PackedStringArray(plantillas.keys())
+	var trazo := PackedVector2Array()
+	for i in range(30):
+		trazo.append(Vector2(0.0, float(i) * 4.0))
+	var a := GestureAssist.new()
+	var con_giro: String = a.actualizar([trazo], plantillas, activos, 1.0, 1.05)
+	_ok(con_giro != "levitacion", "girado 60° el trazo vertical NO sale como la raya (sale %s)" % con_giro)
+	var sin: String = a.actualizar([trazo], plantillas, activos, 1.0, 1.05, PackedStringArray(["levitacion"]))
+	_ok(sin == "levitacion", "con `sin_giro` la raya se compara sin girar y gana (sale %s, margen %.2f)" % [sin, a.margen])
+	var otro: String = a.actualizar([trazo], plantillas, activos, 1.0, 0.0, PackedStringArray(["levitacion"]))
+	_ok(otro == a.candidata and a.candidata == "levitacion", "sin giro de sector `sin_giro` no cambia nada")

@@ -246,6 +246,18 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 		_add_component(sector)
 		return
 
+	# 18/10 (diario 156): lo que ya hacía Spellcaster (el 2D) y esta clase, la del juego 3D, no tenía. UNA raya de UN trazo es el sello `linea` (ᛁ) sin
+	# pasar por el $P, si el jugador lo conoce; si no lo conoce, sigue siendo el atajo de siempre (componente sin sello). Entra como `linea_x` o
+	# `linea_z` (`_nombre_linea`): sin eso la receta V2 no vería nunca ᛁ (`Receta3D` solo conoce las dos lecturas) y el libro no tendría qué enseñar.
+	if strokes.size() == 1 and _is_straight(strokes):
+		if Repertoire.sigil_active("linea") and Sigils.is_known("linea"):
+			Sfx.play(self, "sello_ok")
+			PlayLog.event("trazo", {"tipo": "glifo", "nombre": "linea", "margen": 9.99, "calidad": 1.0, "girado": false, "raya": true})
+			add_sigil(sector, _nombre_linea(), 1.0)
+		else:
+			_add_component(sector)
+		return
+
 	var result: Dictionary = _reconocer_glifo(strokes, sector)
 
 	# Se imprime también el RIVAL. Un rechazo sin rival no se puede
@@ -267,7 +279,8 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 			"margen": snappedf(result["margin"], 0.01),
 			"calidad": snappedf(result.get("quality", 1.0), 0.01),
 			"girado": result.get("girado", false)})
-		add_sigil(sector, result["name"], result.get("quality", 1.0))
+		# Si el $P reconoce `linea` (plantilla grabada), entra también con su orientación: `linea` a secas no existe en la receta V2.
+		add_sigil(sector, _nombre_linea() if String(result["name"]) == "linea" else String(result["name"]), result.get("quality", 1.0))
 		return
 
 	# EL ATAJO YA NO ES LA RED DE SEGURIDAD DE TODO.
@@ -290,6 +303,15 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 		_feedback("No reconocido · se parece a: %s" % _nombre_visible(result["name"]))
 		PlayLog.event("fallo", {"tipo": "glifo", "parece": result["name"],
 			"rival": result["second_name"], "margen": snappedf(result["margin"], 0.01)})
+
+
+## Nombre con el que se registra la raya sola: según cómo se dibujó respecto a la PÁGINA, horizontal -> `linea_x` (ancho), vertical -> `linea_z`
+## (profundidad); ver Sigils.orientacion_linea. Se mide sobre `stroke_points` tal cual: la raya queda FUERA del giro hacia el centro
+## (GestureLibrary.giro_glifo), que cambiaría la orientación que el jugador dibujó. Misma función que en spellcaster.gd.
+func _nombre_linea() -> String:
+	if stroke_points.size() < 2:
+		return "linea"
+	return Sigils.orientacion_linea(stroke_points[0], stroke_points[stroke_points.size() - 1])
 
 
 ## Reconoce un glifo dibujado en un sector. Con ROTAR_POR_SECTOR se prueba también
@@ -424,7 +446,8 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	# porque por esta función entran los dos caminos (el $P y la raya
 	# recta), y una regla que se pueda esquivar por uno de los dos no es
 	# una regla. Es la misma razón por la que vive aquí el filtro de eje.
-	if not Repertoire.sigil_active(sigil_name):
+	# 18/10: se pregunta por el sello del REPERTORIO (`linea_x` y `linea_z` son los dos usos del mismo sello `linea`; en el resto es el mismo nombre).
+	if not Repertoire.sigil_active(Sigils.repertorio_de(sigil_name)):
 		_refuse_locked("sello", sigil_name)
 		return
 

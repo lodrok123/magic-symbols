@@ -79,6 +79,11 @@ uniform float faceta = 0.75;                  // lado de los triángulos de las 
 uniform float altura_ola = 0.32;
 uniform float contraste_faceta = 0.2;
 uniform float espuma_manchas = 0.5;
+uniform float ruido_orilla = 0.11;            // 16/10: cuánto desordena el ruido el contorno del agua (u de profundidad; ~0,3 u de orilla). 0 = recto, como antes
+uniform float lecho = 0.5;                    // 16/10: fuerza del LECHO falso (la profundidad que se ve a través del agua); 0 = sin lecho
+uniform float prof_lecho = 0.9;               // cuánto se desplaza el lecho por unidad de profundidad (paralaje)
+uniform vec3 color_lecho : source_color = vec3(0.16, 0.38, 0.55);     // el fondo visto a través: más oscuro y frío que la arena
+uniform vec3 color_causticas : source_color = vec3(0.72, 0.93, 1.0);  // las redes de luz que dibuja el agua sobre el lecho
 uniform float transicion_orilla = 0.08;       // profundidad (u) en la que la espuma de la orilla se funde con el agua
 uniform float vel_espuma = 1.1;               // desde esta corriente (u/s) rompe en espuma
 uniform float tam_franja = 0.8;               // tamaño de las franjas de la corriente (u)
@@ -284,10 +289,15 @@ float franja(vec2 uv, vec2 dir) {
 }
 
 void fragment() {
-	if (v_prof < 0.0) {
-		discard;                       // fuera del agua: el borde sigue la orilla de la simulación
-	}
 	vec3 pm = v_pos;
+	// 16/10 (Pablo: «ruido entre la textura de la orilla y el agua»): la profundidad se interpola entre vértices de 0,77 u y su línea de cero sale
+	// recta y en diagonales; se le suma un ruido de dos escalas (quieto, casi sin deriva: no debe parpadear) para que el borde sea irregular.
+	// El mismo `prof_e` rige el corte, la línea de espuma y el menisco, así que espuma y arena siguen el mismo contorno.
+	float ruido_borde = ruido(pm.xz * 2.7 + vec2(TIME * 0.02, 0.0)) * 0.65 + ruido(pm.xz * 6.3 - 4.1) * 0.35;
+	float prof_e = v_prof + (ruido_borde - 0.5) * ruido_orilla * 2.0;
+	if (prof_e < 0.0) {
+		discard;                       // fuera del agua: el borde sigue la orilla de la simulación (con ruido)
+	}
 	vec2 corr = v_corr;
 	float vel = length(corr);
 	// Flow map de dos fases (franjas, facetas y espuma): desfasadas medio ciclo y mezcladas, así nada «salta» al reiniciarse.
@@ -345,6 +355,21 @@ void fragment() {
 	float franjas = smoothstep(0.62, 0.70, fr) * efecto_flujo;
 	ce = mix(ce, color_espuma, franjas * 0.32);
 
+	// LECHO (16/10, Pablo: «es translúcida y está bien, pero no hay sensación de profundidad»). No hay un fondo real bajo el agua (la
+	// superficie es lo único que se dibuja), así que se finge: el punto del lecho que se ve a través de este píxel está desplazado
+	// en la dirección contraria a la mirada tanto más cuanto más profundo es el agua (paralaje). Sobre ese punto se pinta un fondo oscuro
+	// y la red de cáusticas (celdas de Voronoi); al mover la cámara el lecho se desliza respecto a la superficie y se lee como profundidad.
+	// Pesa más donde el agua es somera/translúcida (ahí se ve el fondo) y casi nada donde ya es opaca; el hielo no lo lleva.
+	if (lecho > 0.0 && hielo < 0.5) {
+		vec3 vw = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+		vec2 pl = pm.xz - vw.xz / max(vw.y, 0.35) * v_prof * prof_lecho;
+		vec3 cl = celdas(pl / 0.9 + vec2(TIME * 0.03, -TIME * 0.02));
+		float red = 1.0 - smoothstep(0.0, 0.16, cl.y);
+		vec3 fondo = mix(color_lecho, color_causticas, red * 0.45);
+		float prof_k = smoothstep(0.1, 0.7, v_prof);                 // sin profundidad no hay lecho que ver (la orilla)
+		ce = mix(ce, fondo, lecho * prof_k * (0.45 - 0.25 * hondo));
+	}
+
 	// Espuma: manchas de dos ruidos que corren en sentidos opuestos, más abundantes donde la corriente es fuerte.
 	vec2 pf0 = pm.xz - dir * avance * fase0 * adveccion_olas;      // la espuma también va con la corriente (dos fases)
 	vec2 pf1 = pm.xz - dir * avance * fase1 * adveccion_olas;
@@ -352,14 +377,18 @@ void fragment() {
 	float s2 = mix(ruido(pf1 * 1.35 - TIME * vec2(0.06, 0.08) + 7.3), ruido(pf0 * 1.35 - TIME * vec2(0.06, 0.08) + 7.3), peso0);
 	float suma = s1 + s2 - 1.0;
 	float rompe = smoothstep(vel_espuma, vel_espuma + 0.9, vel);
-	float manchas = step(espuma_manchas - rompe * 0.3, suma) + step(0.22, suma) * (1.0 - step(0.3, suma)) * 0.12;
-	manchas *= step(0.12, v_prof);
+	// 16/10 (Pablo): las manchas salían con picos y también en agua quieta. Ahora el borde es un smoothstep (blando, redondeado) y las manchas
+	// solo existen donde el agua «lleva algo»: corriente (`rompe`) u ondas (`cresta`). Sin eso el agua queda limpia. Se quita el anillo fino de
+	// antes (era un segundo escalón de 0,08 de ancho que dibujaba contornos duros).
+	float umbral_m = espuma_manchas - rompe * 0.3;
+	float manchas = smoothstep(umbral_m - 0.02, umbral_m + 0.10, suma) * clamp(rompe * 1.6 + cresta, 0.0, 1.0);
+	manchas *= smoothstep(0.06, 0.2, v_prof);
 	// Orilla: espuma nítida donde la profundidad (interpolada hasta el borde) es casi cero; se funde con el agua hacia dentro.
 	// 13.9 (d): el ruido del borde lo arrastra la corriente (el mismo flow map), y por dentro de la orilla va el menisco: una franja ancha y tenue.
 	float borde = ruido(pm.xz * 2.2 - dir * TIME * clamp(vel, 0.0, 2.0) * 0.5 + TIME * 0.2);
-	float linea = 1.0 - smoothstep(0.0, transicion_orilla, v_prof + (borde - 0.5) * 0.04);
+	float linea = 1.0 - smoothstep(0.0, transicion_orilla, prof_e + (borde - 0.5) * 0.04);
 	linea *= linea;
-	float men = (1.0 - smoothstep(transicion_orilla, transicion_orilla * 3.5, v_prof)) * menisco * (0.55 + 0.45 * borde);
+	float men = (1.0 - smoothstep(transicion_orilla, transicion_orilla * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde);
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8)), 0.0, 1.0);
 	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
 	// tiene un vecino mucho más alto) niebla de espuma que se agita; en el LABIO (el que tiene uno mucho más bajo) un filo de agua rápida.

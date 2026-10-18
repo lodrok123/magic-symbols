@@ -1,0 +1,961 @@
+class_name HechizoVivo
+extends Node3D
+
+## UN HECHIZO EN MARCHA (HC2, 18/10; docs/HECHIZO_CLASE.md §2.1). Dueño: Juego.
+##
+## Ejecuta un `Hechizo` (la definición, datos puros): lo materializa en el mundo en el orden de siempre y lo deja vivir. El `Lanzador3D` solo conjura
+## y lo crea con `HechizoVivo.crear(hechizo, origen, dir, lanzador)`; todo lo que antes hacían `_materializar_v2`, `_eventos_v2` y `_materia_*` vive aquí.
+## **Su estado en marcha vive aquí, no en la definición** (el camino que recorre, a qué golpeó ya, qué le queda por hacer).
+##
+## HC2 es una MUDANZA: mismo resultado que antes (pruebas de materia, receta y lab a 0). Los servicios que siguen siendo del lanzador (trazar, golpear,
+## marcar suelo, construir tierra, el registro de zonas y solideces, la señal `hechizo_v2`) se piden con `lanz.`
+##
+## Nace en el origen del cast point, se desplaza, rebota y persiste (`eventos`), y cada tanda de casillas se llena según el estado de la materia
+## (`MATERIA_V2`). Cuando se han cumplido todos sus eventos retardados, se borra solo: lo que deja en el mundo (ZonaV2, SolidezV2, tierra, agua) tiene su propia vida.
+
+## --- MATERIA V2 (R2, 17/10; docs/GLIFOS_RECETA.md §2.3-2.4): lo que llena el volumen lo decide el estado de la materia, UNA vez por estado ---
+const TICK_ZONA_V2: float = 0.25            ## s entre dos pulsos de una zona (plasma, gas, campo)
+const FRAC_DANO_ZONA_V2: float = 0.2        ## plasma: daño por pulso = daño del elemento × esto (al entrar, el golpe entero)
+const T_LLENADO_V2: float = 1.0             ## líquido: s que tarda en echar el agua de su volumen
+const T_CAIDA_BASE_V2: float = 0.4          ## líquido: cuándo entra el agua en AguaSim = T_CAIDA_BASE_V2 + T_CAIDA_POR_Y_V2 × semieje_y (máx. T_CAIDA_MAX_V2): casa con la caída de la masa del VFX (155)
+const T_CAIDA_POR_Y_V2: float = 0.07
+const T_CAIDA_MAX_V2: float = 0.8
+const ESTADO_RESERVA_V2: String = "campo"   ## estado que se usa si un Hechizo trae uno que no conocemos (el más inofensivo)
+## estado -> método que lo materializa (recibe el contexto y devuelve cuántas manifestaciones ocupa). Añadir un estado es añadir una línea.
+const MATERIA_V2: Dictionary = {
+	"solido": "_materia_solido", "liquido": "_materia_liquido", "plasma": "_materia_plasma",
+	"energia": "_materia_energia", "gas": "_materia_gas", "campo": "_materia_campo",
+}
+## estado -> método que corre en cada pulso de su zona (los estados instantáneos no tienen)
+const PULSO_V2: Dictionary = {"plasma": "pulso_plasma", "gas": "pulso_gas", "campo": "pulso_campo"}
+
+## --- CICLO DE VIDA V2 (R3, 17/10; GLIFOS_RECETA §2.2 y §2.4) ---
+## Orden fijo, y cada paso lee SOLO números del Hechizo (ningún `if` por pareja de glifos):
+##   1. copias   repartidas a lo largo de X, una al lado de otra (separación = el ancho de cada una)
+##   2. nace en la mano, quieto, y crece si `crece` (solo en planta: la altura nace entera; ver diario)
+##   3. se desplaza `distancia_max` casillas, a VEL_VIAJA_V2 casillas/s, parando donde para `trazar` (casilla sólida, barrera, objeto)
+##   4. rebota `rebotes` veces (es el rebote de `trazar`); sin desplazamiento, el volumen refleja los proyectiles que le llegan
+##   5. dura `persiste` (ya × calidad)
+##   6. `solidez` por encima de cualquier estado: SolidezV2 bloquea proyectiles y aguanta golpes
+const VEL_VIAJA_V2: float = 8.0            ## casillas/s a las que se desplaza el volumen
+const ESCALA_NACE_V2: float = 0.3          ## fracción del tamaño en planta con la que nace un volumen que `crece`
+const MAX_FASES_CRECE_V2: int = 8          ## tope de fases de crecimiento (cada una es un TICK_ZONA_V2)
+const MAX_EVENTOS_V2: int = 64             ## tope de apariciones (copias × fases × posiciones) por hechizo
+## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
+## reactivos y enemigos que haya dentro, igual que lo hacía la flecha de siempre (`_golpear`: on_spell_hit, hielo que apresa, agua que moja…).
+const CONTACTO_V2: PackedStringArray = ["solido", "liquido", "campo"]
+const AGUANTE_SOLIDEZ_V2: float = 30.0     ## daño que aguanta cada ×1 de solidez antes de romperse
+const VIDA_MIN_SOLIDEZ_V2: float = 2.0     ## s que dura la solidez de lo que no persiste (agua, rayo)
+
+## --- HC4 (18/10; HECHIZO_CLASE §2.2 y §2.3): el hechizo que SE MUEVE y los eventos ---
+## Un hechizo con `velocidad` > 0 es un PROYECTIL: un punto con volumen que se mueve en el mundo paso a paso (`paso(dt)`) en vez de materializar sus casillas de golpe.
+## Un hechizo con `velocidad` = 0 (todos los de hoy) sigue por el camino de siempre, sin cambios. Ambos disparan los eventos de `Hechizo.eventos`.
+const GRAVEDAD_U: float = 9.8               ## u/s² de una caída con `gravedad` = 1
+const VEL_MIN_PROYECTIL: float = 0.5        ## u/s: por debajo, un proyectil que frena se da por parado
+const ALCANCE_DEFECTO_CAS: float = 12.0     ## casillas que recorre un proyectil sin `distancia_max` (para que nunca vuele para siempre)
+const VIDA_DEFECTO_S: float = 5.0           ## s que vive un proyectil sin `persiste`
+const VIDA_RETORNO_S: float = 4.0           ## s máximos de la vuelta de un `retorna`
+const RADIO_ENEMIGO_U: float = 0.6          ## radio con que un enemigo (o un reactivo) recibe un golpe de proyectil
+const CENTRO_ENEMIGO_U: float = 0.8         ## altura del pecho sobre sus pies: a donde apunta `busca` y de donde cuenta la ventana vertical del golpe
+const VENTANA_Y_U: float = 1.0              ## holgura vertical del golpe (más el radio del proyectil)
+const GIRO_BASE: float = TAU                ## rad/s de giro hacia el objetivo con `busca` = 1
+const BUSCA_ALCANCE_CAS: float = 6.0        ## casillas a las que `busca` ve un objetivo
+const BUSCA_COS: float = 0.5                ## cono de `busca`: coseno de 60° a cada lado
+const LLEGADA_U: float = 0.7                ## a esta distancia del lanzador, lo que vuelve (`retorna`) se da por recogido
+const SEGURIDAD_S: float = 0.25             ## s tras nacer en los que NO hiere al lanzador aunque `golpea_lanzador`
+const DESPLAZA_HIJO_U: float = 0.15         ## un hijo nace un poco por delante, para no chocar en el mismo punto que su padre
+const PASO_ESTELA_U: float = 0.5            ## cada cuántas unidades recorridas pide su `estela`
+
+## Cuántos hechizos vivos lleva un mismo lanzamiento (el padre y sus hijos comparten uno): el tope es Hechizo.MAX_VIVOS.
+class Linaje extends RefCounted:
+	var vivos: int = 0
+
+var linaje: Linaje = null
+var proyectil: bool = false                ## ¿se mueve? (velocidad > 0)
+var activo: bool = false                   ## proyectil en vuelo
+var motivo_fin: String = ""                ## «golpe» | «muro» | «suelo» | «alcance» | «tiempo» | «frenado» | «retorno»
+var p: Vector3 = Vector3.ZERO              ## posición en el mundo
+var v: Vector3 = Vector3.ZERO              ## velocidad (u/s): su dirección es hacia dónde va y su módulo, cuánto
+var recorrido: float = 0.0                 ## u recorridas en este tramo (la ida o la vuelta)
+var _p_previa: Vector3 = Vector3.ZERO     ## dónde estaba al empezar el paso (el rayo de los objetos va de aquí a `p`)
+var edad: float = 0.0                      ## s de este tramo
+var volviendo: bool = false
+var golpes_dados: int = 0                  ## objetos que ha golpeado en este tramo (perfora)
+var rebotes_usados: int = 0
+var golpeados: Dictionary = {}             ## instance_id -> true: a quién ya golpeó en este tramo (un hijo hereda los del padre)
+var eventos_vistos: Array = []             ## nombres de los eventos disparados, en orden (las pruebas y el lab los leen)
+var manual: bool = false                   ## true = no avanza solo (las pruebas llaman a `paso`)
+var _max_recorrido: float = 0.0
+var _vida: float = 0.0
+var _radio_u: float = 0.0
+var _viaja_sig: Array = []                 ## para cada acción de al_viajar, el recorrido en que le toca
+var _estela_sig: float = 0.0
+var _golpeo_lanzador: bool = false
+var _contado: bool = false
+
+var lanz: Lanzador3D = null                ## quien lo conjuró: presta trazar, golpear, marcar suelo, construir tierra y los registros
+var h: Hechizo = null                      ## la definición (no se toca)
+var g: Dictionary = {}                     ## su geometría en el formato de siempre (Hechizo.geo())
+var data: RuneData = null                  ## lo que ven los estados y los reactivos (Combate3D y Reactivo3D aún leen un RuneData: HC3)
+var elemento: String = ""
+var estado: String = "campo"
+var casillas: int = 0                      ## cuántas manifestaciones ocupó al nacer (lo que devolvía `_materializar_v2`)
+var golpes_camino: Array = []              ## lo que tocó el último `camino`: [{obj, punto, dir, desde}] (los golpes se dan cuando llega el volumen)
+var _pendientes: int = 0                   ## eventos retardados por cumplir
+var _nacido: bool = false
+
+
+## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
+## `linaje` y `ya_golpeados` los pasa `crear_hijo` (los límites son del lanzamiento entero y un hijo no repite el golpe de su padre); `a_mano` = no avanza solo (pruebas).
+static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lanzador3D, linaje_: Linaje = null, ya_golpeados: Dictionary = {}, a_mano: bool = false) -> HechizoVivo:
+	var nuevo: HechizoVivo = preparar(hechizo, lanzador)
+	nuevo.linaje = linaje_ if linaje_ != null else Linaje.new()
+	nuevo.linaje.vivos += 1
+	nuevo._contado = true
+	nuevo.golpeados = ya_golpeados.duplicate()
+	nuevo.manual = a_mano
+	lanzador.add_child(nuevo)
+	nuevo.set_physics_process(not a_mano)
+	if hechizo.velocidad > 0.0:
+		nuevo.casillas = nuevo._iniciar_proyectil(origen, dir)
+	else:
+		nuevo.casillas = nuevo._materializar(origen, dir)
+	nuevo._nacido = true
+	if nuevo.casillas > 0:
+		nuevo.disparar_evento("al_nacer", origen, dir)
+		if not nuevo.proyectil and (hechizo.eventos.has("al_expirar")):
+			nuevo._despues(maxf(hechizo.persiste, 0.0), func() -> void: nuevo.disparar_evento("al_expirar", origen, dir))
+	nuevo._revisar_fin()
+	return nuevo
+
+
+func _exit_tree() -> void:
+	if _contado and linaje != null:
+		linaje.vivos -= 1
+		_contado = false
+
+
+## Un HechizoVivo montado pero sin nacer ni colgar del árbol: lo que `crear` usa y lo que las pruebas piden para mirar `eventos` o `camino` sin lanzar.
+static func preparar(hechizo: Hechizo, lanzador: Lanzador3D) -> HechizoVivo:
+	var v := HechizoVivo.new()
+	v.lanz = lanzador
+	v.h = hechizo
+	v.g = hechizo.geo()
+	v.elemento = hechizo.elemento
+	v.estado = hechizo.estado_materia if MATERIA_V2.has(hechizo.estado_materia) else ESTADO_RESERVA_V2
+	# 5. dura `persiste` × calidad: lo vean los estados en una COPIA (el .tres es compartido).
+	v.data = hechizo.fuente
+	if v.data != null and v.data.persiste > 0.0:
+		v.data = hechizo.fuente.duplicate()
+		v.data.persiste = hechizo.persiste
+	return v
+
+
+## Cuándo entra el agua de un hechizo líquido: 0,4 s + 0,07 s por cada unidad de semieje Y, hasta 0,8 s (la caída de la masa del VFX por estado).
+static func tiempo_caida(geo: Dictionary) -> float:
+	return minf(T_CAIDA_BASE_V2 + T_CAIDA_POR_Y_V2 * float(geo.get("y", 0.0)), T_CAIDA_MAX_V2)
+
+
+## Hace que ocurra lo que dice el Hechizo: avisa al VFX, y cada tanda de casillas cobra vida a su hora. Devuelve cuántas casillas ocupa (0 = rechazado).
+func _materializar(origen: Vector3, dir: Vector3) -> int:
+	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, h.fuente)
+	if aviso != "":
+		PlayLog.event("cast_rechazado_altura", {"elemento": elemento, "y_tope": int(g["y_tope"])})
+		return 0
+	var props: Dictionary = g["props"]
+	var d2 := Vector2(dir.x, dir.z)
+	if d2.length() < 0.001:
+		d2 = Vector2.RIGHT
+	d2 = d2.normalized()
+	# 1-4. cuándo y dónde aparece cada tanda de casillas (solo números).
+	var eventos: Array = eventos_de(g, Vector2(origen.x, origen.z), d2)
+	var todas: Array = []
+	for ev in eventos:
+		todas.append_array(ev["celdas"] as Array)
+	var niveles: int = Lanzador3D.GeometriaV2.niveles(g)
+	# Lo que el VFX por estado (155) necesita y no podía adivinar: `persiste` ya multiplicado por la calidad, la altura del SUELO bajo el origen (el origen
+	# es la mano) y los eventos de tiempo del hechizo (copias, viaje, rebotes: {t, pos: Vector2 del mundo, dir: Vector2}), sin las casillas.
+	var t_caida: float = tiempo_caida(g) if estado == "liquido" else 0.0
+	var c_origen: Vector2i = Terreno3D.celda_de(origen)
+	var suelo: float = Terreno3D.y_pies(c_origen) if Terreno3D.en_mapa(c_origen) else origen.y
+	var eventos_vfx: Array = []
+	for ev in eventos:
+		eventos_vfx.append({"t": float(ev["t"]), "pos": ev["pos"], "dir": ev["dir"]})
+	var volumen: Dictionary = {"x": g["x"], "y": g["y"], "z": g["z"], "celdas": todas, "niveles": niveles,
+		"persiste": data.persiste, "suelo": suelo, "eventos": eventos_vfx, "t_caida": t_caida}
+	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, props)
+	var copias: float = float(props.get("copias", 1.0))
+	var solidez: float = float(props.get("solidez", 0.0))
+	var refleja: bool = float(props.get("rebotes", 0.0)) > 0.0 and float(props.get("viaja", 0.0)) <= 0.0
+	var cuenta: int = 0
+	var tocados: Dictionary = {}                       # a quién le llegó ya el golpe entero en ESTE hechizo (instance_id -> true)
+	for ev in eventos:
+		var celdas_ev: Array = ev["celdas"]
+		var dir_ev: Vector2 = ev["dir"]
+		var dir3: Vector3 = dir if dir_ev.is_equal_approx(d2) else Vector3(dir_ev.x, 0.0, dir_ev.y)
+		var pos: Vector2 = ev["pos"]
+		var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas_ev, "niveles": niveles,
+			"origen": origen if pos.is_equal_approx(Vector2(origen.x, origen.z)) else Vector3(pos.x, origen.y, pos.y),
+			"dir": dir3, "estado": estado, "fraccion": copias * float(celdas_ev.size()) / float(maxi(todas.size(), 1)),
+			"tocados": tocados, "golpes": ev.get("golpes", [])}
+		var t: float = float(ev["t"])
+		if t <= 0.001:
+			cuenta += _vivir(ctx, solidez, refleja)
+		else:
+			cuenta += celdas_ev.size()
+			_despues(t, func() -> void: _vivir(ctx, solidez, refleja))
+	return cuenta
+
+
+## Ejecuta `f` dentro de `t` s (de juego: respeta la pausa y el time_scale). El nodo no se borra hasta que se hayan cumplido todos sus retrasos.
+func _despues(t: float, f: Callable) -> void:
+	if t <= 0.001:
+		f.call()
+		return
+	_pendientes += 1
+	get_tree().create_timer(t, false).timeout.connect(func() -> void:
+		if is_inside_tree():
+			f.call()
+			_pendientes -= 1
+			_revisar_fin())
+
+
+## Cuando ya nació y no le queda nada por cumplir, se borra (lo que dejó en el mundo sigue con su vida propia).
+func _revisar_fin() -> void:
+	if _nacido and _pendientes <= 0 and not activo and is_inside_tree() and not is_queued_for_deletion():
+		queue_free()
+
+
+## Una tanda de casillas cobra vida: el estado del elemento la llena (MATERIA_V2) y, si hay `solidez`, un SolidezV2 la protege por encima.
+func _vivir(ctx: Dictionary, solidez: float, refleja: bool) -> int:
+	_golpes_del_camino(ctx)
+	if (ctx["celdas"] as Array).is_empty():
+		return 0
+	if CONTACTO_V2.has(String(ctx["estado"])):
+		_contacto(ctx)
+	var n: int = int(call(String(MATERIA_V2[String(ctx["estado"])]), ctx))
+	if solidez > 0.0:
+		_solidez(ctx, solidez, refleja)
+	return n
+
+
+## Lo que el desplazamiento tocó por el camino (`trazar`: objetos que reaccionan y paran el trazo): un golpe a cada uno, una vez.
+func _golpes_del_camino(ctx: Dictionary) -> void:
+	var tocados: Dictionary = ctx["tocados"]
+	for gp in ctx["golpes"]:
+		var obj: Node = gp["obj"]
+		if not is_instance_valid(obj) or tocados.has(obj.get_instance_id()):
+			continue
+		tocados[obj.get_instance_id()] = true
+		_golpear(obj, gp["dir"], gp["punto"], gp["desde"])
+
+
+## Golpe de contacto de los estados que no lo dan en su materia: a cada reactivo y enemigo de las casillas, una vez por hechizo.
+func _contacto(ctx: Dictionary) -> void:
+	var tocados: Dictionary = ctx["tocados"]
+	var celdas: Dictionary = {}
+	for c in ctx["celdas"]:
+		celdas[c] = true
+	for grupo in ["reactivo3d", "combate3d"]:
+		for obj in nodos_en(lanz, grupo, celdas):
+			if tocados.has(obj.get_instance_id()) or obj.get("muerto") == true:
+				continue
+			tocados[obj.get_instance_id()] = true
+			_golpear(obj, ctx["dir"], (obj as Node3D).global_position, ctx["origen"])
+
+
+## Las tandas de casillas de TODO el hechizo, en orden de tiempo: [{t, celdas, pos: Vector2, dir: Vector2}]. Las casillas de cada tanda son las
+## NUEVAS (las que no estaban ya en una anterior): un volumen que crece o viaja deja su rastro sin repetir casillas.
+##   1. copias   n volúmenes repartidos a lo largo de X (perpendicular a la mirada), separados lo que mide cada uno de ancho
+##   2. nace     en la mano, quieto; si `crece`, empieza a ESCALA_NACE_V2 en planta y crece `crece` por segundo hasta el 100 %
+##   3. viaja    `viaja` casillas desde ahí (a VEL_VIAJA_V2), parando donde para `trazar`; 4. rebota `rebotes` veces (el rebote de `trazar`)
+func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
+	var props: Dictionary = geo["props"]
+	var cas: float = Terreno3D.casilla
+	var copias: int = maxi(1, int(props.get("copias", 1.0)))
+	var crece: float = float(props.get("crece", 0.0))
+	var viaja: float = float(props.get("viaja", 0.0))
+	var rebotes: int = int(props.get("rebotes", 0.0))
+	var perp: Vector2 = d.orthogonal()
+	var separacion: float = maxf(2.0 * float(geo["x"]), 1.0) * cas
+	var fases: Array = fases_crece(crece)
+	var ya: Dictionary = {}
+	var eventos: Array = []
+	for i in range(copias):
+		var o: Vector2 = origen + perp * ((float(i) - float(copias - 1) * 0.5) * separacion)
+		for f in fases:
+			_evento(eventos, ya, geo, float(f["s"]), o, d, float(f["t"]))
+		if viaja > 0.0:
+			var t0: float = float((fases.back() as Dictionary)["t"])
+			var recorrido: Array = camino(o, d, viaja, rebotes)
+			for j in range(recorrido.size()):
+				var paso: Dictionary = recorrido[j]
+				_evento(eventos, ya, geo, 1.0, paso["p"], paso["d"], t0 + float(j + 1) / VEL_VIAJA_V2)
+			if not golpes_camino.is_empty():
+				var fin: Dictionary = recorrido.back() if not recorrido.is_empty() else {"p": o, "d": d}
+				eventos.append({"t": t0 + float(recorrido.size()) / VEL_VIAJA_V2, "celdas": [], "pos": fin["p"], "dir": fin["d"], "golpes": golpes_camino.duplicate()})
+	eventos.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["t"]) < float(b["t"]))
+	if eventos.size() > MAX_EVENTOS_V2:
+		eventos.resize(MAX_EVENTOS_V2)
+	return eventos
+
+
+## Fases de crecimiento en planta: [{t, s}] con s de ESCALA_NACE_V2 a 1. Sin `crece`: una sola fase al 100 % en t = 0.
+static func fases_crece(crece: float) -> Array:
+	if crece <= 0.0:
+		return [{"t": 0.0, "s": 1.0}]
+	var fases: Array = []
+	var total: float = (1.0 - ESCALA_NACE_V2) / crece
+	var paso: float = maxf(TICK_ZONA_V2, total / float(MAX_FASES_CRECE_V2))
+	var t: float = 0.0
+	while t < total - 0.001:
+		fases.append({"t": t, "s": minf(1.0, ESCALA_NACE_V2 + crece * t)})
+		t += paso
+	fases.append({"t": total, "s": 1.0})
+	return fases
+
+
+## Añade la tanda de casillas del volumen a escala `s` (en planta) centrado en `pos`, sin las que ya tenía un evento anterior.
+func _evento(eventos: Array, ya: Dictionary, geo: Dictionary, s: float, pos: Vector2, d: Vector2, t: float) -> void:
+	var gs: Dictionary = geo.duplicate()
+	gs["x"] = float(geo["x"]) * s
+	gs["z"] = float(geo["z"]) * s
+	var nuevas: Array = []
+	for c in Lanzador3D.GeometriaV2.celdas(gs, pos, d, Terreno3D.casilla):
+		var cc: Vector2i = c
+		if Lanzador3D.en_mapa(cc) and not ya.has(cc):
+			ya[cc] = true
+			nuevas.append(cc)
+	if not nuevas.is_empty():
+		eventos.append({"t": t, "celdas": nuevas, "pos": pos, "dir": d})
+
+
+## El camino del desplazamiento: una posición por casilla recorrida, [{p: Vector2, d: Vector2}], SIN la de partida. Lo traza `trazar` (para
+## en casillas sólidas, barreras y objetos que reaccionan; rebota `rebotes` veces), así que viajar y rebotar es lo MISMO que una flecha.
+func camino(origen: Vector2, d: Vector2, viaja: float, rebotes: int) -> Array:
+	var cas: float = Terreno3D.casilla
+	var res: Array = []
+	golpes_camino = []
+	if lanz.mundo == null:
+		for k in range(1, int(floorf(viaja)) + 1):
+			res.append({"p": origen + d * cas * float(k), "d": d})
+		return res
+	var inicio := Vector3(origen.x, Lanzador3D.y_pies(Lanzador3D.celda_de(Vector3(origen.x, 0.0, origen.y))) + Terreno3D.ALTO_NIVEL * 0.5, origen.y)
+	var altura_antes: int = lanz.altura
+	var tr: Dictionary = lanz.trazar(inicio, Vector3(d.x, 0.0, d.y), viaja * cas, 0, data, false, rebotes, false)
+	lanz.altura = altura_antes
+	var recorrido: float = 0.0
+	var siguiente: float = cas
+	for tramo in tr["tramos"]:
+		var a: Vector3 = tramo["desde"]
+		var b: Vector3 = tramo["hasta"]
+		var largo: float = a.distance_to(b)
+		var dd := Vector2((tramo["dir"] as Vector3).x, (tramo["dir"] as Vector3).z)
+		while siguiente <= recorrido + largo + 0.001:
+			var q: Vector3 = a.lerp(b, (siguiente - recorrido) / maxf(largo, 0.0001))
+			res.append({"p": Vector2(q.x, q.z), "d": dd})
+			siguiente += cas
+		recorrido += largo
+		for gp in tramo["golpes"]:
+			golpes_camino.append({"obj": gp["obj"], "punto": gp["punto"], "dir": tramo["dir"], "desde": tramo["desde"]})
+	# Si el trazo se cortó entre dos casillas (un objeto, una pared), el volumen llega hasta ese punto: ahí es donde «impacta».
+	var fin3: Vector3 = tr["fin"]
+	var fin2 := Vector2(fin3.x, fin3.z)
+	var hacia_atras := Vector2(((tr["tramos"] as Array).back() as Dictionary)["dir"].x, ((tr["tramos"] as Array).back() as Dictionary)["dir"].z)
+	for _k in range(8):                                   # `trazar` acaba unos centímetros DENTRO de la casilla sólida que lo para: el volumen se queda delante
+		if not Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(fin2.x, 0.0, fin2.y)), 0):
+			break
+		fin2 -= hacia_atras * cas * 0.1
+	var ultima: Vector2 = (res.back()["p"] as Vector2) if not res.is_empty() else origen
+	if fin2.distance_to(ultima) > cas * 0.05:
+		var tramos: Array = tr["tramos"]
+		var dir_fin := Vector2(((tramos.back() as Dictionary)["dir"] as Vector3).x, ((tramos.back() as Dictionary)["dir"] as Vector3).z)
+		res.append({"p": fin2, "d": dir_fin})
+	return res
+
+
+## SÓLIDO: un cuerpo con colisión por casilla × niveles. Pisable (`pisable`): el bloque de tierra de siempre, que sube `Terreno3D.alturas`
+## y hace de presa del agua; si no, una casilla bloqueada. Dura `persiste` s (el hielo, por tanto, se «derrite» al acabar: el bloque se hunde). Si el
+## elemento deja estado de suelo (`deja`: el hielo hiela el agua que cubre), se marca ANTES de construir (H4: con un bloque encima no se marca).
+func _materia_solido(ctx: Dictionary) -> int:
+	var rune: RuneData = ctx["data"]
+	var persiste: float = rune.persiste if rune.persiste > 0.0 else Lanzador3D.DURACION_TIERRA
+	var puestos: int = 0
+	for c in ctx["celdas"]:
+		var cc: Vector2i = c
+		if rune.deja != "":
+			lanz.marcar_celda(String(ctx["elemento"]), cc)
+		if rune.pisable:
+			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"])}
+			for _k in range(int(ctx["niveles"])):
+				if lanz.construir_tierra(cc, true, opc):
+					puestos += 1
+		elif Lanzador3D.en_mapa(cc) and not Lanzador3D.es_agua(cc) and not Lanzador3D.bloqueada(cc):
+			Lanzador3D.bloquear_celda(cc)
+			lanz._despues(persiste, Lanzador3D.liberar_celda.bind(cc))      # la casilla se libera aunque este nodo ya no exista
+			puestos += int(ctx["niveles"])
+	return puestos
+
+
+## LÍQUIDO: agua en la simulación con el volumen del elipsoide (casillas³ × casilla³ = u³), repartido a partes iguales entre las casillas libres. Cada
+## casilla echa su parte en T_LLENADO_V2 s y se apaga sola (fuente_en + limitar_fuente). Si la casilla ya tenía un manantial (un río, un surtidor) NO se
+## pisa: ahí el agua se añade de golpe (anadir). El agua no se apila: los niveles no cuentan (el volumen ya los lleva), y H4 sigue: nada sobre tierra.
+func _materia_liquido(ctx: Dictionary) -> int:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	if sim == null:
+		return 0
+	var libres: Array = []
+	for c in ctx["celdas"]:
+		if not Lanzador3D.bloqueada(c as Vector2i) and Lanzador3D.altura_en(c as Vector2i) < 1:
+			libres.append(c)
+	if libres.is_empty():
+		return 0
+	var total: float = Sigils.volumen_v2(ctx["g"]) * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
+	var parte: float = total / float(libres.size())
+	# El agua entra en la simulación cuando la masa del VFX por estado ha caído (t_caida); la solidez, si hay, protege desde el principio.
+	var echar: Callable = func() -> void:
+		for c in libres:
+			var cc: Vector2i = c
+			if sim.caudal_en(cc) > 0.0 or sim.volumen_restante(cc) != INF:
+				sim.anadir(Lanzador3D.centro_de(cc, Terreno3D.alto_agua), parte, Terreno3D.casilla * 0.5)
+			else:
+				sim.fuente_en(cc, parte / T_LLENADO_V2)
+				sim.limitar_fuente(cc, parte)
+	_despues(tiempo_caida(ctx["g"]), echar)
+	return libres.size()
+
+
+## PLASMA: una zona que hiere mientras dura (`persiste` s) y deja su estado de suelo (`deja`). Prende lo que arda: los reactivos (Reactivo3D) de
+## sus casillas reciben el golpe del elemento UNA vez. Quien entra recibe el golpe entero; luego, un pulso de FRAC_DANO_ZONA_V2 × daño cada TICK_ZONA_V2.
+func _materia_plasma(ctx: Dictionary) -> int:
+	return _abrir_zona(ctx)
+
+
+## ENERGÍA: una descarga instantánea sobre el volumen que además RECORRE el agua y los conductores conectados a él (la búsqueda de EmisorRayo3D).
+## Golpea una vez a todo lo que esté en esas casillas (enemigos y reactivos: un tótem de rayo se activa).
+func _materia_energia(ctx: Dictionary) -> int:
+	var area: Dictionary = {}
+	return _descarga(ctx, area)
+
+
+## GAS: un campo de empuje durante `persiste` s; cada pulso empuja a quien esté dentro con `FUERZA_EMPUJE × empuje` por segundo.
+func _materia_gas(ctx: Dictionary) -> int:
+	return _abrir_zona(ctx)
+
+
+## CAMPO: ralentiza durante `persiste` s lo que esté dentro (el `lento` de Combate3D).
+func _materia_campo(ctx: Dictionary) -> int:
+	return _abrir_zona(ctx)
+
+
+## Abre la zona de un estado con pulsos (plasma, gas, campo): la vida es `persiste` y cada pulso llama al de PULSO_V2. Devuelve las casillas.
+func _abrir_zona(ctx: Dictionary) -> int:
+	var rune: RuneData = ctx["data"]
+	var z := Lanzador3D.ZonaV2.new()
+	z.lanz = lanz
+	z.rune = rune
+	z.elemento = String(ctx["elemento"])
+	z.dir = ctx["dir"]
+	z.origen = ctx["origen"]
+	z.vida = maxf(rune.persiste, TICK_ZONA_V2)
+	z.metodo_pulso = String(PULSO_V2.get(String(ctx["estado"]), ""))
+	z.tocados = ctx["tocados"]                              # compartido con el resto de tandas del hechizo: el golpe entero llega una vez
+	for c in ctx["celdas"]:
+		z.celdas[c] = true
+		if rune.deja != "":
+			lanz.marcar_celda(z.elemento, c as Vector2i)    # el estado de suelo (quemado…) se marca al nacer, una vez por casilla
+	var l: Lanzador3D = lanz                               # el callback no puede capturar `self` (este nodo se borra al acabar sus eventos) ni el lanzador (puede morir antes que la zona)
+	l.mundo.add_child(z)
+	l._zonas_v2.append(z)
+	z.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), z))
+	z.pulso()                                              # el primer pulso es al nacer
+	return (ctx["celdas"] as Array).size()
+
+
+## Saca una zona o una solidez de las listas del lanzador cuando sale del árbol. Por una referencia DÉBIL: una lambda que captura el lanzador da error en el motor si el lanzador muere antes
+## (cambio de escena, pruebas) aunque la lambda compruebe `is_instance_valid`, porque el error salta al llamarla.
+static func _olvidar(lanzador_ref: WeakRef, nodo: Node) -> void:
+	var l: Variant = lanzador_ref.get_ref()
+	if l != null:
+		(l as Lanzador3D)._zonas_v2.erase(nodo)
+		(l as Lanzador3D)._solideces_v2.erase(nodo)
+
+
+## Los nodos de un grupo cuya casilla está en `celdas` (Dictionary Vector2i -> true).
+static func nodos_en(lanzador: Lanzador3D, grupo: String, celdas: Dictionary) -> Array:
+	var r: Array = []
+	for n in lanzador.get_tree().get_nodes_in_group(grupo):
+		if is_instance_valid(n) and celdas.has(Lanzador3D.celda_de((n as Node3D).global_position)):
+			r.append(n)
+	return r
+
+
+## Lo que hace una zona en cada pulso: la ZonaV2 pide aquí el método de su estado (PULSO_V2).
+static func pulsar(metodo: String, lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
+	match metodo:
+		"pulso_plasma":
+			pulso_plasma(lanzador, z)
+		"pulso_gas":
+			pulso_gas(lanzador, z)
+		"pulso_campo":
+			pulso_campo(lanzador, z)
+
+
+## PULSO DE PLASMA: el golpe entero a quien entra (los reactivos arden una vez); a los que siguen dentro, un trozo del daño.
+static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
+	var d: Vector3 = z.dir
+	for obj in nodos_en(lanzador, "reactivo3d", z.celdas):
+		if z.tocados.has(obj.get_instance_id()):
+			continue
+		z.tocados[obj.get_instance_id()] = true
+		lanzador._golpear(obj, z.rune, d, (obj as Node3D).global_position, 0, false, z.origen)
+	for e in nodos_en(lanzador, "combate3d", z.celdas):
+		if not is_instance_valid(e) or bool(e.get("muerto")):
+			continue
+		if z.tocados.has(e.get_instance_id()):
+			e.call("receive_damage", z.rune.damage * FRAC_DANO_ZONA_V2)
+		else:
+			z.tocados[e.get_instance_id()] = true
+			lanzador._golpear(e, z.rune, d, (e as Node3D).global_position, 0, false, z.origen)
+
+
+## PULSO DE GAS: empuja con `empuje` (0-1) × FUERZA_EMPUJE por segundo, en la dirección de la mirada. Los reactivos (no los enemigos: ya se empujan
+## aquí) reciben el golpe del elemento una vez.
+static func pulso_gas(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
+	for e in nodos_en(lanzador, "combate3d", z.celdas):
+		if e.has_method("push"):
+			e.call("push", z.dir, Lanzador3D.FUERZA_EMPUJE * z.rune.empuje * TICK_ZONA_V2)
+	for obj in nodos_en(lanzador, "reactivo3d", z.celdas):
+		if z.tocados.has(obj.get_instance_id()):
+			continue
+		z.tocados[obj.get_instance_id()] = true
+		lanzador._golpear(obj, z.rune, z.dir, (obj as Node3D).global_position, 0, false, z.origen)
+
+
+## PULSO DE CAMPO: ralentiza (el `lento` de Combate3D dura un poco más que el pulso, así no parpadea entre uno y otro).
+static func pulso_campo(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
+	for e in nodos_en(lanzador, "combate3d", z.celdas):
+		e.set("lento", maxf(float(e.get("lento")), TICK_ZONA_V2 * 2.0))
+
+
+## DESCARGA: las casillas del volumen + el agua y los conductores conectados a ellas (la búsqueda de EmisorRayo3D, por las 4 vecinas). Un
+## golpe a cada enemigo y reactivo que esté dentro. Instantánea: lo único que queda es el aviso al VFX (`hechizo_v2`) y el estado de suelo si lo hay.
+func _descarga(ctx: Dictionary, area: Dictionary) -> int:
+	var rune: RuneData = ctx["data"]
+	var conduce := func(c: Vector2i) -> bool: return Lanzador3D.en_mapa(c) and Terreno3D.conduce(c)
+	for c in ctx["celdas"]:
+		area[c] = true
+	var vistas: Dictionary = {}
+	for c in ctx["celdas"]:
+		if vistas.has(c):
+			continue
+		for w in EmisorRayo3D.agua_conectada(c as Vector2i, conduce):
+			area[w] = true
+			vistas[w] = true
+	var d: Vector3 = ctx["dir"]
+	var tocados: Dictionary = ctx["tocados"]
+	for grupo in ["reactivo3d", "combate3d"]:
+		for obj in nodos_en(lanz, grupo, area):
+			if tocados.has(obj.get_instance_id()):
+				continue
+			tocados[obj.get_instance_id()] = true
+			_golpear(obj, d, (obj as Node3D).global_position, ctx["origen"])
+	if rune.deja != "":
+		for c in ctx["celdas"]:
+			lanz.marcar_celda(String(ctx["elemento"]), c as Vector2i)
+	return (ctx["celdas"] as Array).size()
+
+
+## 6. SOLIDEZ por encima de cualquier estado: las casillas de la tanda bloquean proyectiles y aguantan golpes (también el agua o el gas).
+func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> void:
+	var rune: RuneData = ctx["data"]
+	var s := Lanzador3D.SolidezV2.new()
+	s.celdas = {}
+	for c in ctx["celdas"]:
+		s.celdas[c] = true
+	s.niveles = int(ctx["niveles"])
+	s.vida = maxf(rune.persiste, VIDA_MIN_SOLIDEZ_V2)
+	s.aguante = AGUANTE_SOLIDEZ_V2 * solidez
+	s.refleja = refleja
+	s.elemento = String(ctx["elemento"])
+	var l: Lanzador3D = lanz                               # (ver _abrir_zona: el callback sobrevive a este nodo)
+	l.mundo.add_child(s)
+	l._solideces_v2.append(s)
+	s.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), s))
+
+
+## =====================================================================================================
+##  HC4: golpe con eventos, proyectil y catálogo de acciones
+## =====================================================================================================
+
+## El golpe del hechizo a un objeto: lo da el lanzador (con ESTE Hechizo, así un enemigo recibe sus campos) y después saltan `al_golpear` y, si lo mata, `al_matar`.
+func _golpear(obj: Node, dir: Vector3, punto: Vector3, desde: Vector3) -> void:
+	lanz._golpear(obj, data, dir, punto, 0, false, desde, h)
+	_tras_golpe(obj, punto, dir)
+
+
+func _tras_golpe(obj: Node, punto: Vector3, dir: Vector3) -> void:
+	if h.efecto_impacto != "":
+		lanz.vfx_hechizo.emit(h.efecto_impacto, punto, elemento)
+	disparar_evento("al_golpear", punto, dir, {"obj": obj})
+	if is_instance_valid(obj) and obj.get("muerto") == true:
+		disparar_evento("al_matar", punto, dir, {"obj": obj})
+
+
+## Dispara un evento del Hechizo: sus acciones, en orden. `radio_explosion` > 0 añade a `al_golpear` una explosión de ese radio con el daño del hechizo.
+func disparar_evento(nombre: String, pos: Vector3, dir: Vector3, extra: Dictionary = {}) -> void:
+	var acciones: Array = (h.eventos.get(nombre, []) as Array).duplicate()
+	if nombre == "al_golpear" and h.radio_explosion > 0.0:
+		acciones.append({"accion": "danar_area", "radio": h.radio_explosion, "dano": h.dano})
+	if acciones.is_empty():
+		return
+	eventos_vistos.append(nombre)
+	for a in acciones:
+		_accion(a as Dictionary, pos, dir, extra)
+
+
+## El catálogo cerrado de acciones (Hechizo.ACCIONES). Una acción que no está en él se ignora: los datos nunca rompen el juego.
+func _accion(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> void:
+	match String(a.get("accion", "")):
+		"danar_area":
+			_danar_area(float(a.get("radio", 1.0)), float(a.get("dano", h.dano)), pos, dir)
+		"crear_hijo":
+			_crear_hijo(a, pos, dir, extra)
+		"estado_suelo":
+			_estado_suelo(String(a.get("estado", elemento)), float(a.get("radio", 0.0)), pos)
+		"sonido":
+			lanz._sonar_fase_v2(String(a.get("nombre", "impacto")), elemento, "", pos)
+		"vfx":
+			lanz.vfx_hechizo.emit(String(a.get("nombre", "")), pos, elemento)
+
+
+## Daño en área: a cada enemigo y reactivo a menos de `radio` casillas de `pos` le llega el golpe del elemento con ese `dano` (estados y empuje radial incluidos);
+## al lanzador, solo si `golpea_lanzador`.
+func _danar_area(radio: float, dano: float, pos: Vector3, dir: Vector3) -> void:
+	var alcance: float = radio * Terreno3D.casilla
+	var hd: Hechizo = h.copiar()
+	hd.dano = dano
+	hd.eventos = {}
+	for grupo in ["combate3d", "reactivo3d"]:
+		for obj in lanz.get_tree().get_nodes_in_group(grupo):
+			if not is_instance_valid(obj) or obj.get("muerto") == true:
+				continue
+			var c: Vector3 = (obj as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
+			var plano: Vector3 = c - pos
+			plano.y = 0.0
+			if plano.length() > alcance + RADIO_ENEMIGO_U or absf(c.y - pos.y) > alcance + VENTANA_Y_U + RADIO_ENEMIGO_U:
+				continue
+			var radial: Vector3 = plano.normalized() if plano.length() > 0.01 else dir
+			lanz._golpear(obj, data, radial, (obj as Node3D).global_position, 0, false, pos, hd)
+	if h.golpea_lanzador and lanz.jugador != null and is_instance_valid(lanz.jugador) and lanz.jugador.has_method("recibir_dano"):
+		var al_j: Vector3 = lanz.jugador.global_position - pos
+		al_j.y = 0.0
+		if al_j.length() <= alcance + RADIO_ENEMIGO_U:
+			lanz.jugador.call("recibir_dano", dano, pos)
+
+
+## Hijos: `cuantos` copias del hechizo (con `cambios` encima y SIN eventos, salvo que los traigan en «eventos»), repartidas en un abanico de `abanico` grados
+## alrededor de la dirección. Profundidad ≤ Hechizo.MAX_PROFUNDIDAD y ≤ Hechizo.MAX_VIVOS vivos por lanzamiento. No repiten el golpe del padre.
+func _crear_hijo(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> void:
+	if h.profundidad >= Hechizo.MAX_PROFUNDIDAD:
+		return
+	var cuantos: int = maxi(int(a.get("cuantos", 1)), 1)
+	var abanico: float = float(a.get("abanico", 0.0))
+	var ya: Dictionary = golpeados.duplicate()
+	if extra.has("obj") and is_instance_valid(extra["obj"]):
+		ya[(extra["obj"] as Object).get_instance_id()] = true
+	var d0: Vector3 = dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
+	for i in range(cuantos):
+		if linaje.vivos >= Hechizo.MAX_VIVOS:
+			break
+		var hijo: Hechizo = h.copiar()
+		hijo.eventos = {}
+		hijo.profundidad = h.profundidad + 1
+		hijo.con(a.get("cambios", {}) as Dictionary)
+		var grados: float = 0.0 if cuantos == 1 else lerpf(-abanico * 0.5, abanico * 0.5, float(i) / float(cuantos - 1))
+		var d: Vector3 = d0.rotated(Vector3.UP, deg_to_rad(grados))
+		HechizoVivo.crear(hijo, pos + d * DESPLAZA_HIJO_U, d, lanz, linaje, ya, manual)
+
+
+## Marca el suelo con el estado de un elemento en un círculo de `radio` casillas (0 = solo la casilla de `pos`).
+func _estado_suelo(estado_: String, radio: float, pos: Vector3) -> void:
+	var c0: Vector2i = Terreno3D.celda_de(pos)
+	var r: int = int(ceilf(radio))
+	for dx in range(-r, r + 1):
+		for dy in range(-r, r + 1):
+			if Vector2(dx, dy).length() <= radio + 0.001:
+				lanz.marcar_celda(estado_, c0 + Vector2i(dx, dy))
+
+
+## ---------------------------------------------------------------------------------------------------
+##  El proyectil
+## ---------------------------------------------------------------------------------------------------
+
+func _iniciar_proyectil(origen: Vector3, dir: Vector3) -> int:
+	proyectil = true
+	activo = true
+	# Sale a `altura_salida` sobre el suelo de su casilla (el origen que llega es el de los pies del jugador: sin esto, un proyectil con gravedad nace ya en el suelo).
+	var c0: Vector2i = Terreno3D.celda_de(origen)
+	p = Vector3(origen.x, (Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y) + h.altura_salida, origen.z)
+	var d: Vector3 = dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
+	v = d * h.velocidad
+	_max_recorrido = (h.distancia_max if h.distancia_max > 0.0 else ALCANCE_DEFECTO_CAS) * Terreno3D.casilla
+	_vida = h.persiste if h.persiste > 0.0 else VIDA_DEFECTO_S
+	_radio_u = maxf(h.semieje_x, h.semieje_z) * Terreno3D.casilla
+	_viaja_sig = []
+	for a in (h.eventos.get("al_viajar", []) as Array):
+		_viaja_sig.append(maxf(float((a as Dictionary).get("cada", 1.0)), 0.1) * Terreno3D.casilla)
+	if is_inside_tree():
+		global_position = p
+	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+	if h.estela != "":
+		lanz.vfx_hechizo.emit(h.estela, p, elemento)
+	return 1
+
+
+func _physics_process(delta: float) -> void:
+	paso(delta)
+
+
+## Un paso de `dt` segundos: orienta (busca o vuelta), acelera, cae, avanza chocando con el mundo, golpea y comprueba si ha acabado. En este orden y sin más estado que el de arriba.
+func paso(dt: float) -> void:
+	if not activo or dt <= 0.0:
+		return
+	edad += dt
+	# 1. hacia dónde: la vuelta apunta al lanzador; `busca` gira hacia el objetivo más cercano del cono
+	if volviendo:
+		var j: Vector3 = _pos_lanzador()
+		if (j - p).length() > 0.01:
+			v = (j - p).normalized() * v.length()
+	elif h.busca > 0.0:
+		_buscar(dt)
+	# 2. cuánto: aceleración (negativa = frena) y caída
+	if h.aceleracion != 0.0:
+		var nuevo_modulo: float = v.length() + h.aceleracion * dt
+		if nuevo_modulo <= VEL_MIN_PROYECTIL:
+			_terminar("frenado")
+			return
+		v = v.normalized() * nuevo_modulo
+	if h.gravedad != 0.0:
+		v.y -= GRAVEDAD_U * h.gravedad * dt
+	# 3. avanza, chocando con el mundo si le toca
+	var sigue: bool = _avanzar(dt)
+	if not sigue or not activo:
+		return
+	if is_inside_tree():
+		global_position = p
+	# 4. golpes, rastro y estela
+	_golpes_del_paso()
+	if not activo:
+		return
+	_rastro()
+	# 5. ¿ha llegado al final de su tramo?
+	if volviendo:
+		if (_pos_lanzador() - p).length() <= LLEGADA_U or edad >= VIDA_RETORNO_S:
+			_terminar("retorno")
+	elif recorrido >= _max_recorrido:
+		_fin_de_ida("alcance")
+	elif edad >= _vida:
+		_fin_de_ida("tiempo")
+
+
+func _pos_lanzador() -> Vector3:
+	if lanz.jugador != null and is_instance_valid(lanz.jugador):
+		return lanz.jugador.global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
+	return p
+
+
+func _choca_mundo() -> bool:
+	return h.choca_con == 0 or (h.choca_con & Hechizo.CHOCA_MUNDO) != 0
+
+
+func _choca_enemigos() -> bool:
+	return h.choca_con == 0 or (h.choca_con & Hechizo.CHOCA_ENEMIGOS) != 0
+
+
+## Mueve el punto `v·dt`. Si entra en una casilla sólida (o toca el suelo), rebota si le quedan rebotes y si no, acaba. Devuelve false si ha acabado.
+func _avanzar(dt: float) -> bool:
+	_p_previa = p
+	var nuevo: Vector3 = p + v * dt
+	if _choca_mundo():
+		var sol_x: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(nuevo.x, p.y, p.z)), 0)
+		var sol_z: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(p.x, p.y, nuevo.z)), 0)
+		var sol_n: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(nuevo), 0)
+		if sol_x or sol_z or sol_n:
+			if rebotes_usados < h.rebotes:
+				if sol_x or not sol_z:
+					v.x = -v.x
+				if sol_z or not sol_x:
+					v.z = -v.z
+				_rebotar()
+				return true
+			# Un reactivo (pulsador, brasero, tótem…) o un enemigo en la casilla SÓLIDA contra la que choca también recibe el golpe: su casilla bloquea, así que el
+			# proyectil nunca llegaría a su radio. Es lo que hacía la flecha de siempre (tocaba lo que había en la casilla donde paraba).
+			_golpear_celdas([Lanzador3D.celda_de(Vector3(nuevo.x, p.y, p.z)) if sol_x else Vector2i(-9999, -9999),
+				Lanzador3D.celda_de(Vector3(p.x, p.y, nuevo.z)) if sol_z else Vector2i(-9999, -9999),
+				Lanzador3D.celda_de(nuevo) if sol_n else Vector2i(-9999, -9999)])
+			_golpes_areas(p, p + v.normalized() * Terreno3D.casilla * 1.05)         # lo que hay DENTRO de la casilla sólida (un pulsador, una antorcha…)
+			_terminar_o_volver("muro")
+			return false
+		var c: Vector2i = Lanzador3D.celda_de(nuevo)
+		if v.y < 0.0 and Lanzador3D.en_mapa(c) and nuevo.y < Lanzador3D.y_pies(c) + 0.05:
+			if rebotes_usados < h.rebotes:
+				nuevo.y = Lanzador3D.y_pies(c) + 0.05
+				v.y = absf(v.y)
+				p = nuevo
+				_rebotar()
+				return true
+			_terminar_o_volver("suelo")
+			return false
+	recorrido += (nuevo - p).length()
+	p = nuevo
+	return true
+
+
+## Los objetos que no están en los grupos (pulsadores, antorchas, barriles, compuertas, tótems…) son Area3D en la capa reactiva: se encuentran con un rayo del tramo
+## recorrido, como hacía `trazar`. Un objeto activable detiene el proyectil (más allá de `perfora`); una barrera que bloquea proyectiles también.
+func _golpes_areas(desde: Vector3, hasta: Vector3) -> void:
+	if not activo or not _choca_enemigos() or lanz.mundo == null:
+		return
+	var plano: Vector3 = Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
+	var largo: float = plano.length()
+	if largo < 0.0001:
+		return
+	var c: Vector2i = Lanzador3D.celda_de(desde)
+	var y: float = desde.y if (h.gravedad != 0.0 or absf(v.y) > 0.01) else ((Lanzador3D.y_pies(c) + Terreno3D.ALTO_NIVEL * 0.5) if Terreno3D.en_mapa(c) else desde.y)
+	var espacio: PhysicsDirectSpaceState3D = lanz.mundo.get_world_3d().direct_space_state
+	for hit in lanz._rayo_areas(espacio, Vector3(desde.x, y, desde.z), plano / largo, largo):
+		var obj: Node = hit["obj"]
+		if not is_instance_valid(obj) or golpeados.has(obj.get_instance_id()):
+			continue
+		if obj.has_method("bloquea_proyectiles") and bool(obj.call("bloquea_proyectiles", lanz)):
+			_terminar_o_volver("muro")
+			return
+		if not obj.has_method("on_spell_hit") or obj.get("muerto") == true:
+			continue
+		golpeados[obj.get_instance_id()] = true
+		golpes_dados += 1
+		_golpear(obj, v.normalized(), (obj as Node3D).global_position, p)
+		if not volviendo and golpes_dados > h.perfora:
+			_terminar_o_volver("golpe")
+			return
+
+
+## Golpea (una vez por objeto y tramo) a los reactivos y enemigos cuya casilla está en `celdas`. Solo se usa al chocar con una casilla sólida.
+func _golpear_celdas(celdas: Array) -> void:
+	if not _choca_enemigos():
+		return
+	for grupo in ["combate3d", "reactivo3d"]:
+		for obj in lanz.get_tree().get_nodes_in_group(grupo):
+			if not is_instance_valid(obj) or obj.get("muerto") == true or golpeados.has((obj as Object).get_instance_id()):
+				continue
+			if not celdas.has(Lanzador3D.celda_de((obj as Node3D).global_position)):
+				continue
+			golpeados[(obj as Object).get_instance_id()] = true
+			golpes_dados += 1
+			_golpear(obj, v.normalized(), (obj as Node3D).global_position, p)
+
+
+func _rebotar() -> void:
+	rebotes_usados += 1
+	disparar_evento("al_rebotar", p, v.normalized())
+
+
+## `busca`: gira la velocidad hacia el enemigo vivo más cercano del cono delante (BUSCA_COS) y dentro de BUSCA_ALCANCE_CAS, hasta `busca × GIRO_BASE` rad/s.
+## Ignora a los ya golpeados en este tramo (así un hijo que encadena no vuelve al que acaba de herir).
+func _buscar(dt: float) -> void:
+	var dir: Vector3 = v.normalized()
+	var mejor: Vector3 = Vector3.ZERO
+	var mejor_d: float = INF
+	for e in lanz.get_tree().get_nodes_in_group("combate3d"):
+		if not is_instance_valid(e) or e.get("muerto") == true or golpeados.has((e as Object).get_instance_id()):
+			continue
+		var a: Vector3 = (e as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - p
+		var dist: float = a.length()
+		if dist < 0.01 or dist > BUSCA_ALCANCE_CAS * Terreno3D.casilla or dir.dot(a / dist) < BUSCA_COS:
+			continue
+		if dist < mejor_d:
+			mejor_d = dist
+			mejor = a / dist
+	if mejor_d == INF:
+		return
+	var ang: float = dir.angle_to(mejor)
+	if ang < 0.0001:
+		return
+	var giro: float = minf(ang, h.busca * GIRO_BASE * dt)
+	v = dir.slerp(mejor, giro / ang) * v.length()
+
+
+## Los objetos que toca el proyectil en su posición: enemigos y reactivos a menos de radio + RADIO_ENEMIGO_U (en planta) y dentro de la ventana vertical. Uno por objeto y tramo.
+func _golpes_del_paso() -> void:
+	_golpes_areas(_p_previa, p)
+	if not activo:
+		return
+	if _choca_enemigos():
+		for grupo in ["combate3d", "reactivo3d"]:
+			for obj in lanz.get_tree().get_nodes_in_group(grupo):
+				if not activo:
+					return
+				if not is_instance_valid(obj) or obj.get("muerto") == true or golpeados.has((obj as Object).get_instance_id()):
+					continue
+				var c: Vector3 = (obj as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
+				var plano: Vector3 = c - p
+				plano.y = 0.0
+				if plano.length() > _radio_u + RADIO_ENEMIGO_U or absf(c.y - p.y) > _radio_u + VENTANA_Y_U:
+					continue
+				golpeados[(obj as Object).get_instance_id()] = true
+				golpes_dados += 1
+				_golpear(obj, v.normalized(), (obj as Node3D).global_position, p)
+				if not volviendo and golpes_dados > h.perfora:
+					_terminar_o_volver("golpe")
+					return
+	if h.golpea_lanzador and not volviendo and not _golpeo_lanzador and edad > SEGURIDAD_S and lanz.jugador != null and is_instance_valid(lanz.jugador):
+		var al_j: Vector3 = _pos_lanzador() - p
+		al_j.y = 0.0
+		if al_j.length() <= _radio_u + RADIO_ENEMIGO_U and lanz.jugador.has_method("recibir_dano"):
+			_golpeo_lanzador = true
+			lanz.jugador.call("recibir_dano", h.dano, p)
+			disparar_evento("al_golpear", p, v.normalized(), {"obj": lanz.jugador})
+
+
+## Estela y `al_viajar`: lo que toca según lo recorrido.
+func _rastro() -> void:
+	if h.estela != "" and recorrido + (PASO_ESTELA_U if recorrido == 0.0 else 0.0) >= _estela_sig:
+		_estela_sig = recorrido + PASO_ESTELA_U
+		lanz.vfx_hechizo.emit(h.estela, p, elemento)
+	var acciones: Array = h.eventos.get("al_viajar", []) as Array
+	for i in range(mini(acciones.size(), _viaja_sig.size())):
+		if recorrido >= float(_viaja_sig[i]):
+			_viaja_sig[i] = float(_viaja_sig[i]) + maxf(float((acciones[i] as Dictionary).get("cada", 1.0)), 0.1) * Terreno3D.casilla
+			eventos_vistos.append("al_viajar")
+			_accion(acciones[i] as Dictionary, p, v.normalized(), {})
+
+
+## Acaba la ida: si `retorna`, da la vuelta (nuevo tramo: puede volver a golpear a todos); si no, acaba.
+func _terminar_o_volver(causa: String) -> void:
+	_fin_de_ida(causa)
+
+
+func _fin_de_ida(causa: String) -> void:
+	if h.retorna and not volviendo:
+		volviendo = true
+		golpeados.clear()
+		golpes_dados = 0
+		recorrido = 0.0
+		edad = 0.0
+		if v.length() < VEL_MIN_PROYECTIL:
+			v = Vector3.RIGHT * maxf(h.velocidad, VEL_MIN_PROYECTIL)
+		return
+	_terminar(causa)
+
+
+## Acaba el proyectil. `al_expirar` salta salvo que lo haya parado un golpe (ese ya tuvo su `al_golpear`).
+func _terminar(causa: String) -> void:
+	if not activo:
+		return
+	activo = false
+	motivo_fin = causa
+	if causa != "golpe":
+		disparar_evento("al_expirar", p, v.normalized() if v.length() > 0.001 else Vector3.RIGHT)
+	_revisar_fin()

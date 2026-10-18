@@ -58,6 +58,12 @@ const MIN_MARGIN_BY_GESTURE: Dictionary = {
 	"flecha": 0.20,
 }
 
+## EXIGENCIA (16/10, Pablo: «el reconocimiento debería ser más preciso, por tanto la horquilla debe ser más estrecha»). Multiplica
+## el margen mínimo de TODOS los gestos. Con el trazo recto (GestureRectify) el temblor desaparece antes de comparar, así que un
+## trazo bueno saca mucho más margen que antes y se puede pedir más sin perder aciertos. Lo pone el grimorio al abrirse según
+## `Estado.trazo_recto` (Spellbook.EXIGENCIA_RECTO); 1,0 = los cortes de siempre. Pendiente de medir con las runas regrabadas.
+static var exigencia: float = 1.0
+
 
 ## --- Interfaz pública ---
 
@@ -183,7 +189,7 @@ static func recognize(strokes: Array, templates: Dictionary,
 	# LA CALIDAD DEL TRAZO: de 0 (justo en el límite de ser aceptado) a 1 (el
 	# margen llega a QUALITY_FULL_MARGIN o más). Sale del mismo margen que decide
 	# si se acepta, así que un trazo dudoso es también un trazo flojo.
-	var umbral: float = MIN_MARGIN_BY_GESTURE.get(first_name, MIN_MARGIN)
+	var umbral: float = float(MIN_MARGIN_BY_GESTURE.get(first_name, MIN_MARGIN)) * exigencia
 	var calidad: float = clampf((margin - umbral) / maxf(QUALITY_FULL_MARGIN - umbral, 0.01), 0.0, 1.0)
 
 	return {

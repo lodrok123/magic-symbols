@@ -33,15 +33,26 @@ func _escenario() -> void:
 	_ok("2 el elemento es fuego", lanzador.page_element_data(0) != null and Objetos.elemento_de(lanzador.page_element_data(0)) == "fuego")
 
 	# --- Lanzar ---
+	# R3 (17/10): la forma ya no es «proyectil» sino el nombre DERIVADO de las medidas (flecha = viaja ⇒ «x_mano»).
 	var lanzados: Array = []
 	lanzador.lanzado.connect(func(elem: String, forma: String, n: int) -> void: lanzados.append([elem, forma, n]))
 	var salio: bool = lanzador.lanzar_pagina_ya(0, jugador.position, Vector3.RIGHT)
 	_ok("3 sale un hechizo", salio)
-	_ok("3 el Lanzador avisa (señal `lanzado`): fuego, proyectil, al menos una manifestación", lanzados.size() == 1 and lanzados[0][0] == "fuego" and lanzados[0][1] == "proyectil" and int(lanzados[0][2]) >= 1, str(lanzados))
+	_ok("3 el Lanzador avisa (señal `lanzado`): fuego, x_mano, al menos una manifestación", lanzados.size() == 1 and lanzados[0][0] == "fuego" and lanzados[0][1] == "x_mano" and int(lanzados[0][2]) >= 1, str(lanzados))
 	_ok("3 y no se queda en el modo de apuntar (el tiempo vuelve a la normalidad)", not lanzador.modo_lanzar and is_equal_approx(Engine.time_scale, 1.0), "time_scale %.2f" % Engine.time_scale)
 	var casts: Array = eventos("cast")
 	_ok("3 el diario anota el lanzamiento con elemento, forma y glifos", casts.size() == antes + 1 and String(casts.back().get("elemento", "")) == "fuego"
-		and String(casts.back().get("forma", "")) == "proyectil" and casts.back().get("glifos", []) == ["flecha"], str(casts.back()) if not casts.is_empty() else "sin eventos")
+		and String(casts.back().get("forma", "")) == "x_mano" and casts.back().get("glifos", []) == ["flecha"], str(casts.back()) if not casts.is_empty() else "sin eventos")
+
+	# R3: el diario anota la receta en números (`receta_v2`): dimensiones, propiedades, estado y coste.
+	var rv: Array = eventos("receta_v2")
+	var rv_ok: bool = not rv.is_empty()
+	if rv_ok:
+		var e: Dictionary = rv.back()
+		var props: Dictionary = e.get("propiedades", {})
+		rv_ok = String(e.get("estado", "")) == "plasma" and String(e.get("nombre", "")) == "x_mano" and is_equal_approx(float(props.get("viaja", 0.0)), 2.0) \
+			and float(e.get("x", 0.0)) > 0.0 and float(e.get("coste_relativo", 0.0)) >= 1.0 and float(e.get("coste_tinta", 0.0)) >= Tinta.COSTE_BASE_V2
+	_ok("3 el diario anota `receta_v2` con dimensiones, propiedades (viaja 2: una flecha), estado (plasma) y coste", rv_ok, str(rv.back()) if not rv.is_empty() else "sin eventos")
 
 	# --- Recarga ---
 	_ok("4 la página queda recargando", lanzador.cooldown_left[0] > 0.0, "%.2f s" % lanzador.cooldown_left[0])
@@ -64,4 +75,52 @@ func _escenario() -> void:
 	_ok("5 y el diario anota «cast_sin_tinta»", eventos("cast_sin_tinta").size() == sin + 1)
 	tinta.actual = 100.0
 	_ok("6 con la tinta llena la flecha sale", lanzador.lanzar_pagina_ya(0, jugador.position, Vector3.RIGHT))
-	_ok("6 y cuesta 10", tinta.actual > 89.9 and tinta.actual < 90.5, "%.2f" % tinta.actual)
+	# R3: la tinta sale de las medidas (Tinta.coste_receta: 10 × coste_v2). Una flecha es la esfera base con UNA propiedad: 10 × 1,25 = 12,5 (antes, 10 por la forma «proyectil»).
+	_ok("6 y cuesta 12,5", tinta.actual > 87.0 and tinta.actual < 88.0, "%.2f" % tinta.actual)
+
+	# --- El libro enseña los ejes (diario 156, 18/10): contadores de la página, ᛁ girada, cubo X·Y·Z y chuleta ---
+	await avanzar_s(lanzador.cooldown_total[0] + 0.5)
+	var libro: Control = lanzador.libro
+	_ok("7 el Lanzador tiene el libro", libro != null)
+	if libro != null:
+		lanzador.clear_sequence()
+		_ok("7 la página vacía no lleva ningún glifo", (libro.call("_contadores_pagina") as Dictionary).is_empty())
+		Repertoire.activate_all()           # ᛁ (`linea`) no está en el repertorio inicial P0 y `add_sigil` rechaza lo inactivo
+		Repertoire.max_sigils_per_page = 0  # sin tope de sellos por página (con el ratón además es UN glifo por sector: abajo, cuatro sectores)
+		lanzador.place_element("fuego")
+		lanzador.add_sigil(Vector2.RIGHT, "linea_x", 1.0)
+		lanzador.add_sigil(Vector2.LEFT, "linea_x", 1.0)
+		lanzador.add_sigil(Vector2.UP, "levitacion", 1.0)
+		lanzador.add_sigil(Vector2.DOWN, "linea_z", 1.0)
+		var cont: Dictionary = libro.call("_contadores_pagina")
+		_ok("7 los contadores de la página: ᛁ ancho ×2, ᛁ fondo ×1 y la levitación como altura ×1", cont == {"linea_x": 2, "linea_z": 1, "altura": 1}, str(cont))
+		var g: Dictionary = Sigils.aplicar_v2(cont)
+		var dim: Vector3 = EjesRecetaUi.dimensiones(g)
+		var rb: float = Sigils.RADIO_BASE_V2
+		_ok("7 el cubo del núcleo sale de esos contadores (ᛁ ancho ×2, ᛁ fondo ×1, altura ×1: cada glifo suma el radio base)", is_equal_approx(dim.x, 2.0 * rb * 3.0) and is_equal_approx(dim.y, 2.0 * rb * 2.0) and is_equal_approx(dim.z, 2.0 * rb * 2.0), str(dim))
+		_ok("7 el libro conoce las dos lecturas de ᛁ (mismo PNG, se gira al pintar)", Sigils.GLYPHS.has("linea_x") and Sigils.GLYPHS.has("linea_z") and Sigils.GLYPHS["linea_x"] == Sigils.GLYPHS["linea"])
+		_ok("7 ᛁ ancho se pinta a 90° y ᛁ fondo a 0° (exentas del giro hacia el centro)", EjesRecetaUi.exenta_del_giro("linea_x") and is_equal_approx(EjesRecetaUi.giro_linea("linea_x"), PI * 0.5) and is_equal_approx(EjesRecetaUi.giro_linea("linea_z"), 0.0))
+		# Se abre y se repinta con la página cargada: si la chuleta, el sello o el cubo fallaran, saldría un error de script y el escenario no acaba en 0.
+		libro.visible = true
+		for _i in range(4):
+			libro.queue_redraw()
+			await process_frame
+		libro.visible = false
+		_ok("7 el libro se repinta con la página compuesta sin romper", true)
+		# La raya recta de UN trazo entra en la página como `linea_x` (horizontal) o `linea_z` (vertical) en el Grimorio del juego 3D
+		# (antes solo lo hacía spellcaster.gd, el 2D, y en 3D `linea` no llegaba nunca a la receta).
+		lanzador.clear_sequence()
+		var raya_h: Array[Vector2] = [Vector2(0, 0), Vector2(40, 0), Vector2(80, 0)]
+		lanzador.stroke_points = raya_h
+		lanzador.call("_add_sigil_gesture", [raya_h], Vector2.RIGHT)
+		var raya_v: Array[Vector2] = [Vector2(0, 0), Vector2(0, 40), Vector2(0, 80)]
+		lanzador.stroke_points = raya_v
+		lanzador.call("_add_sigil_gesture", [raya_v], Vector2.UP)
+		var nombres_raya: Array = []
+		for comp in lanzador.components():
+			nombres_raya.append_array(comp["sigils"] as Array)
+		if lanzador.gesture_library.has_any(GestureLibrary.SIGILS):
+			_ok("7 una raya horizontal y otra vertical entran como linea_x y linea_z", nombres_raya == ["linea_x", "linea_z"], str(nombres_raya))
+		else:
+			_aviso("raya recta", "la biblioteca de gestos de este equipo no tiene sellos grabados: la raya queda como componente sin sello (%s)" % str(nombres_raya))
+		lanzador.clear_sequence()

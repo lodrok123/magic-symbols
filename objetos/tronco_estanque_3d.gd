@@ -9,11 +9,13 @@ extends Node3D
 ## Una vez arriba se queda: el estanque no se vacía (el manantial del mapa es finito y la cuenca, cerrada).
 ##
 ## No es un Flotador3D (RigidBody3D con sondas): ese pide colisión de suelo en el nivel. Esto es una subida dirigida y siempre sale igual.
-## PROVISIONAL (modelo): cilindro con corteza; falta el modelo del tronco con su versión hundida y la activada.
+## Modelo: `tronco_estanque` de `PiezaBosque3D` (origen en el centro del eje, tumbado a lo largo de +X, 2,6 × 0,65 × 0,79; ARTE §18). Es el mismo en el fondo y a ras
+## (sube, no hay otra versión). Si falta la lámina `bosque_orilla.glb`, vuelve al cilindro provisional de siempre (RADIO 0,3).
 
 signal paso_abierto
 
 const RADIO: float = 0.3
+const RADIO_MODELO: float = 0.327        ## u: medio alto del modelo (medido en su malla: de −0,327 a +0,327 sobre el eje); es más grueso que el cilindro
 const LARGO: float = 2.6                 ## u: cruza la casilla del cauce (2,3) y apoya en las dos orillas
 const PROF_ABRE: float = 0.45            ## u de agua en su casilla a la que ya flota a ras
 const VEL_SUBIDA: float = 1.2            ## u/s como mucho (suave aunque el agua suba de golpe)
@@ -32,9 +34,20 @@ func preparar(p_mundo: Variant, p_celda: Vector2i, eje: Vector3 = Vector3.RIGHT)
 	mundo = p_mundo
 	celda = p_celda
 	var c: Vector3 = Terreno3D.centro_de(p_celda, 0.0)
-	_y_fondo = Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + RADIO + 0.03
-	_y_arriba = Terreno3D.alto_suelo - RADIO + 0.04          # su cara superior casi a ras del suelo de las orillas
+	var modelo: MeshInstance3D = PiezaBosque3D.crear("tronco_estanque")
+	var r: float = RADIO_MODELO if modelo != null else RADIO      # el origen es el eje: el tronco mide ±r por arriba y por abajo
+	_y_fondo = Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + r + 0.03
+	_y_arriba = Terreno3D.alto_suelo - r + 0.04              # su cara superior casi a ras del suelo de las orillas
 	position = Vector3(c.x, _y_fondo, c.z)
+	var e: Vector3 = Vector3(eje.x, 0.0, eje.z).normalized()
+	if modelo != null:
+		# El modelo yace a lo largo de +X: basta girarlo sobre Y para que quede a lo largo de `eje`.
+		_tronco = modelo
+		_tronco.name = "tronco"
+		_tronco.rotation.y = atan2(-e.z, e.x)
+		add_child(_tronco)
+		set_process(true)
+		return
 	var cil := CylinderMesh.new()
 	cil.top_radius = RADIO
 	cil.bottom_radius = RADIO
@@ -47,7 +60,6 @@ func preparar(p_mundo: Variant, p_celda: Vector2i, eje: Vector3 = Vector3.RIGHT)
 	_tronco.name = "tronco"
 	_tronco.mesh = cil
 	# Un cilindro yace a lo largo de su Y local: se gira para que quede a lo largo de `eje`.
-	var e: Vector3 = Vector3(eje.x, 0.0, eje.z).normalized()
 	_tronco.basis = Basis(Vector3.UP.cross(e).normalized(), PI * 0.5) if absf(e.dot(Vector3.UP)) < 0.99 else Basis.IDENTITY
 	add_child(_tronco)
 	set_process(true)

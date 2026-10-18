@@ -813,6 +813,15 @@ func _ready() -> void:
 	Jugador3D.montar(self)
 	# 16/10 (T6b): el VFX del conjuro (voluta del libro a la mano y forma en la mano, por elemento). Escucha `conjuro_fase` del Lanzador3D del Juego.
 	ConjuroVfx3D.conectar(get_node_or_null("Lanzador3D"), self)
+	# 18/10 (H5): el VFX por ESTADO de la receta V2 (VfxEstado3D, diario 155/162). Escucha `hechizo_v2` y dibuja el volumen X·Y·Z según el estado del
+	# elemento, con lo que manda la señal (persiste, suelo, t_caida, eventos, celdas). Se cuelga de esta maqueta como «VfxEstado3D». El dibujo de forma
+	# antiguo (Vfx3D.lanzar_forma) ya no lo pide ningún hechizo: `_materializar` es solo la V2. Medidas del terreno: las mismas que usa el Lanzador3D.
+	var vfx_estado: VfxEstado3D = VfxEstado3D.conectar(get_node_or_null("Lanzador3D"), self)
+	vfx_estado.casilla = Terreno3D.casilla
+	vfx_estado.alto_nivel = Terreno3D.ALTO_NIVEL
+	vfx_estado.y_pies = func(c: Vector2i) -> float: return Terreno3D.y_pies(c)
+	if _velo != null:
+		vfx_estado.precalentar(_jugador.position)       # detrás del velo de «Preparando efectos…»: compila los siete efectos antes de jugar
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
@@ -889,12 +898,29 @@ func _tipo_suelo(c: Vector2i) -> int:
 
 ## --- Suelo ---
 
+## 16/10 (Pablo): arena (el suelo de «camino», marrón claro) en las casillas de tierra pegadas al agua por sus 4 lados, en los niveles
+## editables y los de archivo. Es solo el color del suelo del shader: `_tipo_suelo` no cambia, así que `_es_hierba` (dónde crece y arde
+## la hierba) sigue igual. En el Test 2 no: conserva su aldea y su suelo de siempre. `false` lo quita.
+const ORILLA_SIEMPRE: bool = true
+
+
+func _junto_a_agua(c: Vector2i) -> bool:
+	if not (_reglas != null or _de_archivo or (_modo_nivel and nivel != "test2")):
+		return false
+	for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		if _es_agua(_letra(c + v)):
+			return true
+	return false
+
+
 func _construir_suelo() -> void:
 	# Mapa de tipos para el shader.
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
 	for y in range(_lado):
 		for x in range(_lado):
 			var t: int = _tipo_suelo(Vector2i(x, y))
+			if t == 0 and ORILLA_SIEMPRE and _junto_a_agua(Vector2i(x, y)):
+				t = 1       # 16/10 (Pablo): la orilla de arena va SIEMPRE alrededor del agua (solo el color del suelo: la hierba y su fuego no cambian)
 			img.set_pixel(x, y, Color(1.0 if t == 0 else 0.0, 1.0 if t == 1 else 0.0, 1.0 if t == 2 else 0.0, 1.0 if t == 3 else 0.0))
 	_img_mapa = img
 	_img_zona_v = null
@@ -4171,6 +4197,10 @@ func _actualizar_hud() -> void:
 		"sí" if _efectos.visible else "no", tipo_hierba, dibujo, aviso, _contraste, _hf.size() + _pisadas.size(), _ms_estado]
 	if _reglas != null:
 		_hud.text = _hud.text.replace("TEST 2 en 3D", "Test de jugabilidad en 3D")
+	# En un laboratorio de hechizos (LabRecetas3D / LabHechizos3D) la línea de la maqueta sobra: sombras, hierba, postura, decorado… son de otros tests y
+	# se pisan con los paneles del lab. Solo queda lo imprescindible para mover al jugador (18/10, Pablo: «solo lo imprescindible para pruebas»).
+	if _reglas != null and _reglas.get_script() != null and String((_reglas.get_script() as Script).get_global_name()) in ["LabRecetas3D", "LabHechizos3D"]:
+		_hud.text = "%d FPS · WASD mover · Shift correr · +/- zoom" % int(Engine.get_frames_per_second())
 
 
 ## --- 9.7 · API del Bosque (la usa el Juego: Bosque3D, 9.8–9.11) ---

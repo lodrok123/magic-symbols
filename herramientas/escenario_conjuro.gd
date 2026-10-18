@@ -37,7 +37,8 @@ func _escenario() -> void:
 	var previsto: float = lanzador.retardo_total("fuego")
 	_ok("2 el retardo previsto del fuego ronda los 0,45 s", absf(previsto - 0.45) < 0.001, "%.3f" % previsto)
 	var real: float = float(casts_retardo(eventos("cast")))
-	_ok("2 y el disparo salió entre 0,40 y 0,55 s (de juego) después de soltar", real > 0.40 and real < 0.55, "%.2f s" % real)
+	# T-CP1 (18/10): con cast point el disparo sale cuando el CLIP llega a su instante (x_mano: ≈ 0,40 s), no por el reloj de RETARDO_CONJURO (0,45 s).
+	_ok("2 y el disparo salió entre 0,35 y 0,55 s (de juego) después de soltar", real > 0.35 and real < 0.55, "%.2f s" % real)
 	_ok("2 ya no hay conjuro en marcha", not lanzador.conjurando)
 	var casts: Array = eventos("cast")
 	_ok("2 PlayLog: un `cast` más, con su retardo", casts.size() == casts_antes + 1 and float(casts.back().get("retardo", 0.0)) > 0.3, str(casts.back()) if not casts.is_empty() else "")

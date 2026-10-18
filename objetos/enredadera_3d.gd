@@ -23,6 +23,10 @@ extends Node3D
 ##   e.preparar(fx)              # fx: el Vfx3D del nivel (para las llamas); sin él arde sin llamas visibles
 ##   e.brotar()
 ##   e.quemar()                  # cuando le llegue el fuego
+##
+## VARIANTE «bloqueo» (16/10, Pipeline, ARTE §15): el matorral que corta un paso. Usa las piezas de `PiezaBosque3D` (`bloqueo_enredaderas` vivo y
+## `bloqueo_enredaderas_quemado`, 2,2 × 1,08 y 1,83 × 0,66, mismo factor de escala) y, al quemarse, deja `enredadera_quemada_a/_b` y
+## `ceniza_enredadera` en el suelo. `ancho` sigue siendo el ancho del VIVO en el mundo (2,2 a escala 1). Si falta la lámina, no se crea (aviso).
 
 signal brotada
 signal ardiendo
@@ -37,6 +41,10 @@ const GLB_ESPINOSA: String = "res://arte/meshy/enredadera/enredadera_espinosa.gl
 ## Ancho de la malla `viva` tal como viene en cada GLB (para que `ancho` signifique siempre «ancho en el mundo»).
 const ANCHO_BASE: float = 1.0
 const ANCHO_BASE_ESPINOSA: float = 0.767
+const ANCHO_BASE_BLOQUEO: float = 2.2
+## Dónde caen los restos de la variante «bloqueo», en coordenadas de la pieza a escala 1 (x, z) y giro (rad): a ambos lados del quemado y la ceniza delante.
+const RESTOS_BLOQUEO: Array = [["enredadera_quemada_a", Vector3(-0.95, 0.0, 0.5), 0.6], ["enredadera_quemada_b", Vector3(0.9, 0.0, -0.45), -0.8],
+		["ceniza_enredadera", Vector3(0.1, 0.0, 0.75), 0.0]]
 const DURA_BROTE: float = 0.75
 const HUNDIDA: float = 0.32          ## cuánto empieza por debajo del suelo (la malla mide ~0,3 de alto a escala 1)
 const INTERVALO_FOCO: float = 0.4
@@ -79,6 +87,7 @@ var _mat: ShaderMaterial = null
 var _tw: Tween = null
 var _llamas: Array = []
 var _alto_real: float = 0.3
+var _restos: Array = []               ## MeshInstance3D de los restos (solo variante «bloqueo»): se ven al quemarse
 
 
 ## `fx`: el Vfx3D para las llamas (opcional). `variante`: "" = la enredadera normal; "espinosa" = la grande con espinas y restos
@@ -88,13 +97,36 @@ func preparar(fx: Vfx3D = null, p_ancho: float = 1.3, variante: String = "") -> 
 	ancho = p_ancho
 	var ruta: String = GLB_ESPINOSA if variante == "espinosa" else GLB
 	var ancho_modelo: float = ANCHO_BASE_ESPINOSA if variante == "espinosa" else ANCHO_BASE
-	var ps: PackedScene = load(ruta) as PackedScene
-	if ps == null:
-		push_warning("Enredadera3D: falta " + ruta)
-		return
-	var m: Node3D = ps.instantiate() as Node3D
-	m.scale = Vector3.ONE * (ancho / ancho_modelo)
-	add_child(m)
+	var m: Node3D = null
+	if variante == "bloqueo":
+		var v: MeshInstance3D = PiezaBosque3D.crear("bloqueo_enredaderas")
+		var q: MeshInstance3D = PiezaBosque3D.crear("bloqueo_enredaderas_quemado")
+		if v == null or q == null:
+			push_warning("Enredadera3D: falta la lámina res://arte/meshy/bosque/bosque_ruinas.glb (variante bloqueo)")
+			return
+		v.name = "viva"
+		q.name = "quemada"
+		m = Node3D.new()
+		m.add_child(v)
+		m.add_child(q)
+		m.scale = Vector3.ONE * (ancho / ANCHO_BASE_BLOQUEO)
+		for d in RESTOS_BLOQUEO:
+			var resto: MeshInstance3D = PiezaBosque3D.crear(String(d[0]))
+			if resto != null:
+				resto.position = d[1]
+				resto.rotation.y = float(d[2])
+				resto.visible = false
+				m.add_child(resto)
+				_restos.append(resto)
+		add_child(m)
+	else:
+		var ps: PackedScene = load(ruta) as PackedScene
+		if ps == null:
+			push_warning("Enredadera3D: falta " + ruta)
+			return
+		m = ps.instantiate() as Node3D
+		m.scale = Vector3.ONE * (ancho / ancho_modelo)
+		add_child(m)
 	_viva = m.find_child("viva", true, false) as MeshInstance3D
 	_quemada = m.find_child("quemada", true, false) as MeshInstance3D
 	var base: BaseMaterial3D = _viva.mesh.surface_get_material(0) as BaseMaterial3D if _viva != null else null
@@ -106,7 +138,7 @@ func preparar(fx: Vfx3D = null, p_ancho: float = 1.3, variante: String = "") -> 
 		_mat.set_shader_parameter("t_albedo", base.albedo_texture)
 	_alto_real = _viva.mesh.get_aabb().size.y if _viva != null else 0.3
 	_mat.set_shader_parameter("alto", maxf(_quemada.mesh.get_aabb().size.y, _alto_real) if _quemada != null else _alto_real)
-	for n in [_viva, _quemada]:
+	for n in [_viva, _quemada] + _restos:
 		if n != null:
 			(n as MeshInstance3D).material_override = _mat
 			(n as MeshInstance3D).visible = false
@@ -202,6 +234,8 @@ func _mostrar(quemada_: bool) -> void:
 		_viva.visible = not quemada_
 	if _quemada != null:
 		_quemada.visible = quemada_
+	for r in _restos:
+		(r as MeshInstance3D).visible = quemada_
 
 
 func _apagar_llamas() -> void:

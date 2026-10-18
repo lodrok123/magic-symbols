@@ -74,39 +74,53 @@ func reiniciar() -> void:
 
 ## Una pasada. `trazos`: lo dibujado hasta ahora (varios trazos si el gesto es de varios). `plantillas`: nombre → muestras (TODAS las de la
 ## familia, también las runas aún no conocidas, que hacen de señuelo). `activos`: los nombres que cuentan como rival. `giro`: ángulo (rad) con que se giran los trazos antes
-## de comparar (los sellos se reconocen girados por el sector; 0 para elementos). Devuelve `candidata`.
-func actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArray, p_asistencia: float = 1.0, giro: float = 0.0) -> String:
+## de comparar (los sellos se reconocen girados por el sector; 0 para elementos). `sin_giro`: plantillas que se comparan con el trazo SIN girar aunque haya `giro`
+## (ᛁ no se gira hacia el centro: se dibuja como está, horizontal o vertical; EjesRecetaUi.exenta_del_giro). Devuelve `candidata`.
+func actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArray, p_asistencia: float = 1.0, giro: float = 0.0,
+		sin_giro: PackedStringArray = PackedStringArray()) -> String:
 	var t0: int = Time.get_ticks_usec()
 	reiniciar()
 	asistencia = p_asistencia
 	_giro = giro
-	_actualizar(trazos, plantillas, activos, giro)
+	_actualizar(trazos, plantillas, activos, giro, sin_giro)
 	ms_ultimo = float(Time.get_ticks_usec() - t0) / 1000.0
 	return candidata
 
 
-func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArray, giro: float) -> void:
-	# Los puntos del parcial (girados si toca), con el id de trazo para no contar los saltos.
+## Los trazos (girados `giro`) ya remuestreados y normalizados como pide $P; vacío si es muy poco o muy corto.
+func _preparar(trazos: Array, giro: float) -> Dictionary:
 	var puntos := PackedVector2Array()
 	var ids := PackedInt32Array()
 	for i in range(trazos.size()):
 		for p in trazos[i]:
 			puntos.append((p as Vector2).rotated(giro) if giro != 0.0 else p)
 			ids.append(i)
-	if puntos.size() < 4 or activos.size() < 2:
-		return
+	if puntos.size() < 4:
+		return {}
 	var caja: Rect2 = GestureRecognizer._bounding_box(puntos)
 	var tam: float = maxf(caja.size.x, caja.size.y)
 	if tam < LARGO_MIN:
-		return
+		return {}
 	var remuestreado: PackedVector2Array = GestureRecognizer._resample(puntos, ids, GestureRecognizer.NUM_POINTS)
 	if remuestreado.is_empty():
-		return
+		return {}
 	var escalado: PackedVector2Array = GestureRecognizer._scale_to_unit(remuestreado)
-	var nube: PackedVector2Array = GestureRecognizer._translate_to_origin(escalado)
-	var centro_in: Vector2 = GestureRecognizer._centroid(remuestreado)
 	var caja_re: Rect2 = GestureRecognizer._bounding_box(remuestreado)
-	var tam_re: float = maxf(maxf(caja_re.size.x, caja_re.size.y), 0.0001)
+	return {"nube": GestureRecognizer._translate_to_origin(escalado), "centro": GestureRecognizer._centroid(remuestreado),
+		"tam_re": maxf(maxf(caja_re.size.x, caja_re.size.y), 0.0001), "giro": giro}
+
+
+func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArray, giro: float, sin_giro: PackedStringArray = PackedStringArray()) -> void:
+	var base: Dictionary = _preparar(trazos, giro)
+	if base.is_empty() or activos.size() < 2:
+		return
+	# Las plantillas «sin giro» se miden contra el trazo tal cual se dibujó (otra nube, solo si hace falta).
+	var sin: Dictionary = base
+	if giro != 0.0 and not sin_giro.is_empty():
+		sin = _preparar(trazos, 0.0)
+		if sin.is_empty():
+			sin = base
+	var nube_de: Callable = func(nombre: String) -> Dictionary: return sin if sin_giro.has(nombre) else base
 
 	# Pasada rápida: una sola dirección y un solo punto de partida, para ordenar los gestos. Luego se mide bien a los mejores.
 	var mejor_rapido: Dictionary = {}       # nombre → {d, idx, f}
@@ -120,7 +134,7 @@ func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArr
 				var pre: Dictionary = _prefijos["%s#%d#%d" % [nombre, i, fi]]
 				if pre.is_empty():
 					continue
-				var d: float = GestureRecognizer._greedy_match(nube, pre["nube"], 0)
+				var d: float = GestureRecognizer._greedy_match(nube_de.call(nombre)["nube"], pre["nube"], 0)
 				todos.append([d, i, fi])
 				mejor = minf(mejor, d)
 		if mejor < INF:
@@ -140,7 +154,7 @@ func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArr
 		var info2: Dictionary = {}
 		for par in mejor_rapido[nombre]["mejores"]:
 			var pre2: Dictionary = _prefijos["%s#%d#%d" % [nombre, par[1], par[2]]]
-			var d2: float = GestureRecognizer._cloud_distance(nube, pre2["nube"])
+			var d2: float = GestureRecognizer._cloud_distance(nube_de.call(nombre)["nube"], pre2["nube"])
 			if d2 < mejor2:
 				mejor2 = d2
 				info2 = {"d": d2, "i": par[1], "fi": par[2]}
@@ -190,10 +204,13 @@ func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArr
 	# (P - pos)/tam - c; el parcial, igual con su caja y su centroide. Igualar ambos da una escala y un desplazamiento:
 	#   p_trazo = P * (S/tam) + (centro_in - c*S - pos*(S/tam))
 	_plantilla_lider = plantillas[primero][ganadora["i"]]
+	var elegida: Dictionary = nube_de.call(primero)       # la nube con la que ganó (girada o no) manda en la escala, el sitio y el giro de la guía
+	var tam_re: float = float(elegida["tam_re"])
+	var centro_in: Vector2 = elegida["centro"]
 	var k: float = tam_re / float(pre_g["tam"])
 	_k = k
 	_o = centro_in - (pre_g["centroide"] as Vector2) * tam_re - (pre_g["pos"] as Vector2) * k
-	guia = _construir_guia(_plantilla_lider, giro)
+	guia = _construir_guia(_plantilla_lider, float(elegida["giro"]))
 
 
 ## Los trazos de la guía: la plantilla (16 puntos) subdividida y cortada donde hay un salto (levantar el lápiz entre trazos), en el
