@@ -14,6 +14,14 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 		_fallos += 1
 
 
+## Leer de vuelta las transformaciones de un MultiMesh necesita un renderizador real: el ficticio de `--headless` devuelve ceros. Sin ventana se avisa y se salta.
+func _ok_render(nombre: String, bien: bool, info: String = "") -> void:
+	if DisplayServer.get_name() == "headless":
+		print("AVISO saltada sin renderizador (usa xvfb): " + nombre)
+		return
+	_ok(nombre, bien, info)
+
+
 func _initialize() -> void:
 	_paleta()
 	_bordes()
@@ -83,7 +91,7 @@ func _bordes() -> void:
 			var diam: float = tf.basis.get_scale().x
 			bien_tam = bien_tam and diam >= b.piedra_min - 0.001 and diam <= b.piedra_max + 0.001
 			bien_y = bien_y and absf(tf.origin.y - 1.0) < 0.4
-	_ok("B4 cada canto mide entre 0,3 y 0,6 u y está en el labio de arriba", bien_tam and bien_y)
+	_ok_render("B4 cada canto mide entre 0,3 y 0,6 u y está en el labio de arriba", bien_tam and bien_y)
 	# Determinismo: reconstruir da lo mismo (el jitter sale de un hash, no de randf).
 	var antes: Transform3D = pie.multimesh.get_instance_transform(0) if pie != null else Transform3D.IDENTITY
 	var n_antes: int = b.n_piedras()

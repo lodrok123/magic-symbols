@@ -39,6 +39,7 @@ func _initialize() -> void:
 	var c: ConjuroVfx3D = ConjuroVfx3D.conectar(l, mundo)
 	ok(c != null, "conectar devuelve el nodo")
 	ok(ConjuroVfx3D.conectar(Node.new(), mundo) == null, "sin señal conjuro_fase no conecta")
+	await process_frame      # calentamiento: el primer fotograma de un script trae un delta enorme que se come de golpe el temporizador de 0,14 s, y el primer paso de un tween es de 0 s
 	var libro := Vector3(-0.3, 0.55, 0.0)
 	var mano := Vector3(0.4, 0.8, 0.2)
 	for el in ConjuroVfx3D.PERFIL.keys() + ["inventado"]:

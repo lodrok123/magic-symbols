@@ -526,7 +526,6 @@ func _h4(vfx: VfxEstado3D, l: FalsoLanzador, mundo: Node3D) -> void:
 ## Un HechizoVivo de mentira: un proyectil a mano (sin el motor físico ni el lanzador de verdad) que hace como si ya hubiera nacido.
 func _proyectil(l: FalsoLanzador, estado: String, elemento: String, velocidad: float, pos: Vector3, semieje: float = 0.3) -> HechizoVivo:
 	var hv := HechizoVivo.new()
-	hv.set_physics_process(false)
 	hv.h = Hechizo.new()
 	hv.h.velocidad = velocidad
 	hv.h.semieje_x = semieje
@@ -538,6 +537,7 @@ func _proyectil(l: FalsoLanzador, estado: String, elemento: String, velocidad: f
 	hv.proyectil = velocidad > 0.0
 	hv.v = Vector3(velocidad, 0.0, 0.0)
 	l.add_child(hv)
+	hv.set_physics_process(false)      # DESPUÉS de add_child: al entrar en el árbol (NOTIFICATION_READY) el motor reactiva la física de todo script que define _physics_process; antes no sirve y en una máquina lenta el proyectil avanza solo, toca el suelo y se acaba
 	hv.global_position = pos
 	return hv
 

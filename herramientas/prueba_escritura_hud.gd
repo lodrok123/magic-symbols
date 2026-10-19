@@ -13,6 +13,15 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 		_fallos += 1
 
 
+## Lo que se mide leyendo de vuelta un MultiMesh (transformaciones, colores) solo existe con un renderizador real: el servidor ficticio de `--headless`
+## no los guarda y devuelve ceros. Sin ventana se avisa y se salta (con xvfb o con ventana se comprueba entero).
+func _ok_render(nombre: String, bien: bool, info: String = "") -> void:
+	if DisplayServer.get_name() == "headless":
+		print("AVISO saltada sin renderizador (usa xvfb): " + nombre)
+		return
+	_ok(nombre, bien, info)
+
+
 func _initialize() -> void:
 	_pngs()
 	_bolsa()
@@ -208,7 +217,7 @@ func _rastrojo() -> void:
 		var o: Vector3 = mm.multimesh.get_instance_transform(i).origin
 		var c: Vector2i = Vector2i(int(floorf(o.x / r.lado)), int(floorf(o.z / r.lado)))
 		dentro = dentro and (c == Vector2i(3, 4) or c == Vector2i(5, 4)) and absf(o.y - 1.0) < 0.001
-	_ok("R4 cada mata queda dentro de su casilla y sobre el suelo", dentro)
+	_ok_render("R4 cada mata queda dentro de su casilla y sobre el suelo", dentro)
 	var antes: Vector3 = mm.multimesh.get_instance_transform(0).origin
 	r.limpiar()
 	r.poner(Vector2i(3, 4), 1.0, Rastrojo3D.TIPO_CORTADO)
@@ -218,7 +227,7 @@ func _rastrojo() -> void:
 	_ok("R5 reconstruir da las mismas matas (sin parpadeo)", mm2 != null and mm2.multimesh.get_instance_transform(0).origin.is_equal_approx(antes))
 	var c0: Color = mm.multimesh.get_instance_color(0)
 	var c3: Color = mm.multimesh.get_instance_color(3)
-	_ok("R6 el quemado es más oscuro que el cortado", c3.get_luminance() < c0.get_luminance() * 0.6, "cortado %.2f quemado %.2f" % [c0.get_luminance(), c3.get_luminance()])
+	_ok_render("R6 el quemado es más oscuro que el cortado", c3.get_luminance() < c0.get_luminance() * 0.6, "cortado %.2f quemado %.2f" % [c0.get_luminance(), c3.get_luminance()])
 	var cambios: int = r.numero()
 	r.poner(Vector2i(3, 4), 1.0, Rastrojo3D.TIPO_QUEMADO)
 	r.reconstruir_ahora()

@@ -92,6 +92,10 @@ func _recorte() -> void:
 		for _i in 4:
 			await process_frame
 		var im: Image = b._vp.get_texture().get_image()
+		if im == null:        # sin renderizador (--headless) el viewport no devuelve imagen: se avisa y se salta, no es un fallo de la mano
+			print("AVISO C saltada: el viewport no devuelve imagen sin renderizador (usa xvfb)")
+			vp.queue_free()
+			return
 		var w: int = im.get_width()
 		var h: int = im.get_height()
 		var corte: int = 0
@@ -133,6 +137,10 @@ func _punta(tam: Vector2i) -> void:
 		for _i in 2:
 			await process_frame
 		var im: Image = vp.get_texture().get_image()
+		if im == null:        # ídem: sin renderizador no hay imagen que medir
+			print("AVISO D saltada: el viewport no devuelve imagen sin renderizador (usa xvfb)")
+			vp.queue_free()
+			return
 		# Eje de la pluma en pantalla: de la punta hacia arriba.
 		var enganche: Transform3D = PiezaEscritura3D.pluma_en_agarre()
 		var eje: Vector2 = ManoPluma3D.proyectar(Basis(Vector3.UP, deg_to_rad(ManoPluma3D.YAW_BASE)) * enganche.basis * Vector3.UP).normalized()
