@@ -8,7 +8,13 @@ extends Node3D
 ##   - en medio, un HOYO de un nivel de hondo: se llena hasta el borde y no más;
 ##   - una fila de casillas donde levantar una PRESA de tierra (clic derecho);
 ##   - abajo, un RÍO con salida a la derecha (nivel fijo): el agua que llega se va y se ve la corriente.
+## ESCENA DE REFERENCIA (19/10, PLAN_TRES_FRENTES §3): las tres situaciones del vídeo de Pablo, con su MEDIDA en pantalla para compararlas con él al lado:
+##   POZO (el hoyo): capacidad, volumen, % lleno y segundos que faltan con el manantial del pozo (P lo abre y cuenta el tiempo real hasta llenarse;
+##        el volumen del recipiente sale del suelo, no del agua: `AguaSim3D.recipiente`).
+##   CASCADA (la escalera del manantial): la mayor caída de la superficie y cuántas casillas pasan de UMBRAL_CAIDA (`AguaSim3D.caida_en_trozo`).
+##   RÍO (abajo): corriente media y máxima (u/s) de sus casillas.
 ## Controles:
+##   P: abre o cierra el manantial del pozo (y reinicia el cronómetro de llenado)
 ##   clic izquierdo: echa 3 u³ de agua donde apuntas (un hechizo de agua)
 ##   clic derecho: levanta o quita tierra en esa casilla (presa)
 ##   H: hiela o deshiela la casilla que apuntas · F: abre o cierra el manantial · R: empezar de nuevo
@@ -21,6 +27,9 @@ const ANCHO: int = 12
 const ALTO: int = 10
 const SUB: int = 3
 const CAUDAL_MANANTIAL: float = 1.2      ## u³/s
+const CAUDAL_POZO: float = 1.5           ## u³/s del manantial que llena el pozo (P)
+const CASILLA_POZO: Vector2i = Vector2i(6, 4)   ## una casilla del hoyo (las del hoyo son 'o': 6-7 × 4-5)
+const CASILLAS_CASCADA: Array = [Vector2i(1, 1), Vector2i(2, 1), Vector2i(3, 1), Vector2i(4, 1), Vector2i(5, 1), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 2), Vector2i(1, 3), Vector2i(2, 3)]   ## escalera: '2' y '1'
 
 ## Plano en letras (una por casilla): # pared · . suelo · 1 / 2 escalón de 1 o 2 niveles · o hoyo (-1 nivel)
 ## r cauce del río (-0,5 niveles) · M manantial (sobre el escalón 2) · p presa posible (suelo) · s salida del río
@@ -51,6 +60,10 @@ var _ondas: AguaOndas3D = null          ## 11.8 (Pipeline): ondas que reaccionan
 var _gotas: AguaMetaballs3D = null      ## 11.9 (Pipeline): chorros y salpicaduras; G = salpicadura, V = chorro (alterna) donde apuntas
 var _chorro: GPUParticles3D = null
 var _flotadores: Array = []              ## troncos que flotan (Flotador3D, Fase 11.6)
+var _pozo_abierto: bool = false          ## manantial del pozo (P)
+var _pozo_t: float = 0.0                 ## s de simulación desde que se abrió
+var _pozo_lleno_t: float = -1.0          ## s que tardó en llenarse (-1 = aún no)
+var _pozo_prevision: float = 0.0         ## s previstos al abrirlo: (capacidad − volumen) / caudal
 
 
 func _ready() -> void:
@@ -111,6 +124,10 @@ func _empezar() -> void:
 		(f as Node).queue_free()
 	_flotadores.clear()
 	_helada.clear()
+	_pozo_abierto = false
+	_pozo_t = 0.0
+	_pozo_lleno_t = -1.0
+	_pozo_prevision = 0.0
 	_suelo_nodo = Node3D.new()
 	add_child(_suelo_nodo)
 	agua = AguaSim3D.new()
@@ -195,6 +212,10 @@ func _physics_process(delta: float) -> void:
 	var ms: float = float(Time.get_ticks_usec() - t0) / 1000.0
 	_ms_paso = lerpf(_ms_paso, ms, 0.1)
 	agua.cambios()                                   # en el juego, el Lanzador las usa; aquí solo se vacían
+	if _pozo_abierto:
+		_pozo_t += delta
+		if _pozo_lleno_t < 0.0 and float(agua.recipiente(CASILLA_POZO).get("fraccion", 0.0)) >= 0.995:
+			_pozo_lleno_t = _pozo_t
 	_dibujar()
 
 
@@ -227,7 +248,7 @@ func _dibujar() -> void:
 		info = "casilla %s · prof %.2f · agua %s · nado %s · corriente %.2f u/s · mojada %s" % [c, agua.profundidad_casilla(c),
 			"sí" if agua.es_agua_casilla(c) else "no", "sí" if agua.se_nada_en(c) else "no", v.length(),
 			"sí" if agua.casilla_mojada(c) else "no"]
-	_texto.text = "LAB AGUA · volumen %.1f u³ · %.2f ms por paso · manantial %s\n%s\nclic izq: agua · clic der: tierra · H: hielo · F: manantial · T: tronco · R: de nuevo · Y: cajas/dibujo · G: salpicadura · V: chorro" % [
+	_texto.text = texto_referencia() + "\n" + "LAB AGUA · volumen %.1f u³ · %.2f ms por paso · manantial %s\n%s\nclic izq: agua · clic der: tierra · H: hielo · F: manantial · T: tronco · R: de nuevo · Y: cajas/dibujo · G: salpicadura · V: chorro" % [
 		agua.volumen_total(), _ms_paso, "abierto" if _manantial_abierto else "cerrado", info]
 
 
@@ -251,6 +272,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		match k.keycode:
 			KEY_R:
 				_empezar()
+			KEY_P:
+				poner_pozo(not _pozo_abierto)
 			KEY_Y:
 				_cajas.visible = not _cajas.visible
 				_render.visible = not _cajas.visible
@@ -281,6 +304,57 @@ func _unhandled_input(ev: InputEvent) -> void:
 						_helada[c] = true
 					else:
 						_helada.erase(c)
+
+
+## Abre o cierra el manantial del pozo. Al abrir, guarda cuánto debería tardar en llenarse (por volumen) y arranca el cronómetro.
+func poner_pozo(abierto: bool) -> void:
+	_pozo_abierto = abierto
+	agua.fuente_en(CASILLA_POZO, CAUDAL_POZO if abierto else 0.0)
+	if abierto:
+		_pozo_t = 0.0
+		_pozo_lleno_t = -1.0
+		_pozo_prevision = agua.segundos_hasta_llenar(CASILLA_POZO, CAUDAL_POZO)
+
+
+## Las tres medidas de referencia como datos (para la prueba y para el texto): pozo {capacidad, volumen, fraccion, rebose, prevision, tardo},
+## cascada {caida_max, casillas}, rio {media, max} (u/s).
+func referencia() -> Dictionary:
+	var d: Dictionary = agua.recipiente(CASILLA_POZO)
+	var caida_max: float = 0.0
+	var casillas: int = 0
+	for c in CASILLAS_CASCADA:
+		var m: float = 0.0
+		for i in agua._trozos(c as Vector2i):
+			m = maxf(m, agua.caida_en_trozo(i))
+		caida_max = maxf(caida_max, m)
+		if m >= AguaSim3D.UMBRAL_CAIDA:
+			casillas += 1
+	var suma: float = 0.0
+	var maxv: float = 0.0
+	var n: int = 0
+	for y in range(ALTO):
+		for x in range(ANCHO):
+			if MAPA[y][x] == "r":
+				var v: float = agua.corriente_en(Vector3((x + 0.5) * S, 0.0, (y + 0.5) * S)).length()
+				suma += v
+				maxv = maxf(maxv, v)
+				n += 1
+	return {"pozo": {"capacidad": float(d.get("capacidad", 0.0)), "volumen": float(d.get("volumen", 0.0)), "fraccion": float(d.get("fraccion", 0.0)),
+			"rebose": float(d.get("rebose", 0.0)), "prevision": _pozo_prevision, "tardo": _pozo_lleno_t},
+		"cascada": {"caida_max": caida_max, "casillas": casillas}, "rio": {"media": suma / float(maxi(n, 1)), "max": maxv}}
+
+
+func texto_referencia() -> String:
+	var r: Dictionary = referencia()
+	var p: Dictionary = r["pozo"]
+	var estado: String = "cerrado (P abre)"
+	if _pozo_abierto:
+		estado = "abierto %.1f s de %.1f previstos" % [_pozo_t, float(p["prevision"])]
+		if float(p["tardo"]) >= 0.0:
+			estado = "LLENO en %.1f s (previstos %.1f)" % [float(p["tardo"]), float(p["prevision"])]
+	return "POZO %.0f %% · %.1f / %.1f u³ · rebosa a Y %.2f · manantial %s\nCASCADA caída máx %.2f u (umbral %.2f) · %d casillas caen · RÍO corriente media %.2f · máx %.2f u/s" % [
+		float(p["fraccion"]) * 100.0, float(p["volumen"]), float(p["capacidad"]), float(p["rebose"]), estado,
+		float(r["cascada"]["caida_max"]), AguaSim3D.UMBRAL_CAIDA, int(r["cascada"]["casillas"]), float(r["rio"]["media"]), float(r["rio"]["max"])]
 
 
 func _alternar_tierra(c: Vector2i) -> void:

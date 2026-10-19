@@ -1,486 +1,445 @@
-extends Node3D
-
-## LABORATORIO DE EFECTOS 3D (estética pastel). Un claro de hierba con la elfa en el centro y una fila de
-## objetivos (dummy, seto, tótem, tronco, goblin). Cada tecla lanza un elemento con Vfx3D (vfx_3d.gd)
-## al objetivo marcado. Sirve para ajustar los efectos mirándolos con la misma cámara que el juego.
+class_name LabVfx3D
+extends RefCounted
+## Pestaña F4 del laboratorio de hechizos (PLAN_TRES_FRENTES §2/§3, LAB_HECHIZOS_SIGUIENTE #11): la MATRIZ DE APROBACIÓN DE VFX (19/10, Juego).
+## Pablo mira cada combinación lanzada en la sala y la marca aprobada / rechazada / con nota. Lo marcado se guarda en `user://vfx_aprobados.json`:
+## esa lista es el trabajo pendiente del Pipeline (lo rechazado y lo que lleva nota).
 ##
-## Teclas: 1 fuego · 2 agua · 3 tierra · 4 viento · 5 rayo · 6 hielo · Espacio repetir
-##         Tab / flechas: cambiar objetivo · B bucle (todos seguidos) · T cámara lenta
-##         X tamaño de los efectos · V velocidad del proyectil · C cámara (juego / baja / lateral)
-##         + / - zoom · G hierba · L luces de los efectos
+## La matriz son cuatro ejes:   estado (6) × volumen (4) × propiedad (5) × impacto (4) = 480 celdas.
+##   estado     sólido · líquido · plasma · energía · gas · campo   (cada uno con su elemento: tierra, agua, fuego, rayo, viento, tiempo)
+##   volumen    esfera · X×3 · Y×2 · Z×3                           (N × el diámetro de la esfera base; se da por los semiejes del Hechizo)
+##   propiedad  ninguna · viaja · copias · crece · solidez
+##   impacto    suelo · goblin · agua · objeto                     (sobre qué cae o contra qué choca)
+## CRITERIO de la fase (PLAN_TRES_FRENTES §2): las 24 celdas BASE (volumen esfera, propiedad ninguna) aprobadas, o sea los 4 impactos en los 6 estados.
+## PRESUPUESTO por hechizo (§2): ≤ MAX_LUCES luces y ≤ MAX_PARTICULAS partículas. Se MIDE en la sala al lanzar (pico de la ventana de medida menos lo que ya
+## había) y se guarda con la marca; una celda por encima del presupuesto no se puede aprobar (se anota y se rechaza a mano).
+##
+## Por qué los volúmenes se dan por semiejes y no con los glifos: los glifos topan en 3 m de semieje horizontal y 1 m de vertical (ESPEC_HECHIZO §2) y la
+## matriz del Pipeline pide 3,0 y 2,0; así se compara lo que el juego puede dar de verdad. Cada celda parte de `Hechizo.construir(runa, {}, 1.0)` SIN lo
+## que haya tocado el lab en F1 (se aparta `cambios_hechizo` mientras se lanza), para que la matriz no dependa de la sesión de diseño.
+##
+## Lo monta `LabHechizos3D._montar_f4` y le pasa las teclas mientras F4 está abierta; `paso(delta)` lo llama el `_process` del lab.
+## Teclas:  ↑ ↓ eje · ← → valor · Espacio lanza la celda · A aprueba · R rechaza · N nota rápida (rota) · Supr borra la marca ·
+##          Tab salta a la siguiente celda base sin marcar · G (la del lab) guarda también todo lo demás.
 
-## Las mismas bibliotecas que la maqueta (PruebaTest2): primero las regeneradas sueltas de meshy/piezas/.
-const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/mercado.glb",
-	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb"]
-const CARPETA_PIEZAS: String = "res://arte/meshy/piezas/"
-## Segundos del aviso "Preparando efectos" al abrir: mientras, se lanza cada elemento una vez para que Godot
-## compile sus shaders (sin esto, el primer hechizo de cada elemento da un tirón).
-const PRECALENTAR: float = 1.6
-const SUELO: String = "res://arte/suelo_meshy/"
-const OBJETIVOS: Array = [["dummy", 1.4], ["arbusto_otono", 0.8], ["totem_runico", 1.8], ["tronco", 0.7],
-	["goblin", 0.85]]
-const LANZADOR: Array = ["chibi_elf_v2", "chibi_elf", "chibi_test"]
-const CAMARAS: Array = [["juego", 20.0], ["baja", 45.0], ["lateral", 72.0]]
-const ESCALAS: Array = [0.6, 1.3, 1.8, 0.9]        ## 9/10: 0,6 por defecto (Pablo); X recorre el resto
-const VELOCIDADES: Array = [4.5, 7.0, 3.5, 12.0]   ## 9/10: 4,5 u/s por defecto (Pablo); V recorre el resto
+const RUTA: String = "user://vfx_aprobados.json"
+const MAX_LUCES: int = 2
+const MAX_PARTICULAS: int = 400
+const VENTANA_MEDIDA_S: float = 1.2         ## s de juego tras lanzar durante los que se vigila el pico de luces y partículas
+const PERIODO_MEDIDA_S: float = 0.05
+const DISTANCIA_VIAJE: float = 3.0          ## casillas que recorre la propiedad «viaja» (= lo que separa al jugador de su objetivo)
+const COPIAS: int = 3
+const CRECE: float = 1.0                    ## m/s de radio
+const SOLIDEZ: float = 1.0
 
-var _fx: Vfx3D = null
-var _env: Environment = null             ## para alternar el bloom (K)
-var _t_hud: float = 0.0
-var _lanzador: Pj3D = null
-var _objetivos: Array[Node3D] = []
-var _marcador: MeshInstance3D = null
-var _sel: int = 2
-var _ultimo: String = "fuego"
-var _i_forma: int = 0
-var _bucle: bool = false
-var _t_bucle: float = 0.0
-var _i_bucle: int = 0
-var _lenta: bool = false
-var _i_escala: int = 0
-var _i_vel: int = 0
-var _i_cam: int = 0
-var _zoom: float = 9.0
-var _camara: Camera3D = null
-var _hierba: Hierba3D = null
-var _hud: Label = null
-var _bibliotecas: Array[Node3D] = []
-var _grimorio: GrimorioUI = null
-var _velo: Control = null
-var _t_velo: float = 0.0
-var _f_velo: int = 0
+## [id, elemento (.tres), nombre]
+const ESTADOS: Array = [["solido", "earth", "sólido"], ["liquido", "water", "líquido"], ["plasma", "fire", "plasma"],
+	["energia", "lightning", "energía"], ["gas", "wind", "gas"], ["campo", "time", "campo"]]
+## [id, múltiplo del diámetro en X, en Y, en Z]
+const VOLUMENES: Array = [["esfera", 1.0, 1.0, 1.0], ["X3", 3.0, 1.0, 1.0], ["Y2", 1.0, 2.0, 1.0], ["Z3", 1.0, 1.0, 3.0]]
+const PROPIEDADES: Array = ["ninguna", "viaja", "copias", "crece", "solidez"]
+## id -> {objetivo: casilla del lab donde cae/choca, desde: donde se pone el jugador}. Siempre a DISTANCIA_VIAJE casillas en línea recta de X creciente o Z creciente.
+const IMPACTOS: Array = [
+	{"id": "suelo", "objetivo": Vector2i(8, 8), "desde": Vector2i(5, 8)},         # suelo libre, entre el jugador y la primera diana
+	{"id": "goblin", "objetivo": Vector2i(19, 6), "desde": Vector2i(16, 6)},      # goblin quieto
+	{"id": "agua", "objetivo": Vector2i(6, 14), "desde": Vector2i(6, 11)},        # el estanque
+	{"id": "objeto", "objetivo": Vector2i(21, 13), "desde": Vector2i(18, 13)},    # el barril
+]
+const EJES: PackedStringArray = ["estado", "volumen", "propiedad", "impacto"]
+const NOTAS_RAPIDAS: PackedStringArray = ["", "demasiado pequeño", "demasiado grande", "color", "forma", "dura poco", "dura mucho", "no se ve el impacto", "demasiado caro"]
+const APROBADO: String = "aprobado"
+const RECHAZADO: String = "rechazado"
+
+var lab: Variant = null                     ## LabHechizos3D
+var sel: Array = [0, 0, 0, 0]               ## índice elegido en cada eje
+var eje: int = 0
+var marcas: Dictionary = {}                 ## clave -> {estado: "aprobado"|"rechazado"|"", nota: String, luces: int, particulas: int}
+var ultimo_mensaje: String = ""
+var lanzamientos: int = 0
+var guardar_al_marcar: bool = true          ## las pruebas lo apagan para no escribir en user://
+
+var _medida: Dictionary = {}                ## medida en curso: {clave, t, prox, base_luces, base_part, luces, part}
+var _ultima_medida: Dictionary = {}         ## la última terminada: {clave, luces, particulas}
 
 
-func _ready() -> void:
-	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.81, 0.91, 0.94)
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.95, 0.94, 1.0)
-	env.ambient_light_energy = 0.42
-	var we := WorldEnvironment.new()
-	we.environment = env
-	_env = env
-	VfxKit3D.activar_glow(env)          # bloom del fuego luminoso: solo lo que pasa de 1,4 en HDR
-	add_child(we)
-	var sol := DirectionalLight3D.new()
-	sol.rotation_degrees = Vector3(-55.0, 25.0, 0.0)
-	sol.light_color = Color(1.0, 0.96, 0.88)
-	sol.light_energy = 0.78
-	sol.shadow_enabled = true
-	add_child(sol)
+func iniciar(l: Variant) -> void:
+	lab = l
+	cargar()
 
-	_suelo()
-	_cargar_bibliotecas()
-	_poner_objetivos()
-	for b in _bibliotecas:
-		b.free()
-	_bibliotecas.clear()
 
-	_lanzador = Pj3D.new()
-	add_child(_lanzador)
-	for id in LANZADOR:
-		if ResourceLoader.exists("res://arte/modelos/%s.glb" % id) and _lanzador.cargar(String(id)):
+# ---------------------------------------------------------------------------------------------------------------------
+#  La matriz
+# ---------------------------------------------------------------------------------------------------------------------
+
+static func total_celdas() -> int:
+	return ESTADOS.size() * VOLUMENES.size() * PROPIEDADES.size() * IMPACTOS.size()
+
+
+static func clave_de(e: int, v: int, p: int, i: int) -> String:
+	return "%s|%s|%s|%s" % [ESTADOS[e][0], VOLUMENES[v][0], PROPIEDADES[p], IMPACTOS[i]["id"]]
+
+
+func clave() -> String:
+	return clave_de(int(sel[0]), int(sel[1]), int(sel[2]), int(sel[3]))
+
+
+static func es_base(e: int, v: int, p: int, _i: int) -> bool:
+	return v == 0 and p == 0
+
+
+## Las 24 celdas del criterio: [[e, v, p, i], …] en orden estado → impacto.
+static func celdas_base() -> Array:
+	var r: Array = []
+	for e in range(ESTADOS.size()):
+		for i in range(IMPACTOS.size()):
+			r.append([e, 0, 0, i])
+	return r
+
+
+func valor_marca(k: String) -> String:
+	return String((marcas.get(k, {}) as Dictionary).get("estado", ""))
+
+
+func mover_eje(d: int) -> void:
+	eje = posmod(eje + d, EJES.size())
+
+
+func cambiar_valor(d: int) -> void:
+	sel[eje] = posmod(int(sel[eje]) + d, _cuantos(eje))
+
+
+func _cuantos(e: int) -> int:
+	return [ESTADOS.size(), VOLUMENES.size(), PROPIEDADES.size(), IMPACTOS.size()][e]
+
+
+func poner(e: int, v: int, p: int, i: int) -> void:
+	sel = [clampi(e, 0, ESTADOS.size() - 1), clampi(v, 0, VOLUMENES.size() - 1), clampi(p, 0, PROPIEDADES.size() - 1), clampi(i, 0, IMPACTOS.size() - 1)]
+
+
+## El hechizo de la celda elegida (o de la que se pida): el elemento solo, sin glifos, con el volumen y la propiedad puestos por los campos.
+func hechizo(s: Array = []) -> Hechizo:
+	var q: Array = sel if s.is_empty() else s
+	var rune: RuneData = load("res://nucleo/%s_rune.tres" % String(ESTADOS[int(q[0])][1])) as RuneData
+	var h: Hechizo = Hechizo.construir(rune, {}, 1.0)
+	var vol: Array = VOLUMENES[int(q[1])]
+	var base: float = Sigils.RADIO_BASE_V2
+	var cambios: Dictionary = {"semiejes.x": base * float(vol[1]), "semiejes.y": base * float(vol[2]), "semiejes.z": base * float(vol[3]),
+		"velocidad": 0.0, "distancia_max": 0.0, "persiste": maxf(h.persiste, 1.0)}            # quieto y con vida: se queda a la vista mientras se mide
+	match String(PROPIEDADES[int(q[2])]):
+		"viaja":
+			cambios["distancia_max"] = DISTANCIA_VIAJE
+		"copias":
+			cambios["copias"] = COPIAS
+		"crece":
+			cambios["crece"] = CRECE
+		"solidez":
+			cambios["solidez"] = SOLIDEZ
+	return h.con(cambios)
+
+
+## Dónde nace y hacia dónde va (mundo). «viaja» sale del jugador y llega al objetivo; lo demás nace en la casilla de delante del objetivo (pegado a él).
+func salida(s: Array = []) -> Dictionary:
+	var q: Array = sel if s.is_empty() else s
+	var imp: Dictionary = IMPACTOS[int(q[3])]
+	var desde: Vector2i = imp["desde"]
+	var obj: Vector2i = imp["objetivo"]
+	var dir: Vector3 = Terreno3D.centro_de(obj, 0.0) - Terreno3D.centro_de(desde, 0.0)
+	dir.y = 0.0
+	dir = dir.normalized()
+	var origen: Vector3 = Terreno3D.centro_de(desde, Terreno3D.y_pies(desde))
+	if int(q[2]) != 1:
+		# Lo que no viaja nace JUNTO al objetivo (una casilla antes): sobre el agua o el barril un sólido o un líquido no se puede colocar (el lanzador lo rechaza)
+		var antes: Vector2i = obj - Vector2i(roundi(dir.x), roundi(dir.z))
+		origen = Terreno3D.centro_de(antes, Terreno3D.y_pies(antes))
+	return {"desde": desde, "origen": origen, "dir": dir}
+
+
+## Lanza la celda elegida en la sala: limpia lo que dejó la anterior, pone al jugador, lanza y empieza a medir. Devuelve las casillas que ocupó (0 = no salió).
+func lanzar() -> int:
+	if lab == null or lab._l == null:
+		return 0
+	lab.limpiar_sala()
+	var antes: Array = _luces_y_particulas()            # lo que ya había en la sala (luces de los braseros, restos de VFX anterior): se resta del pico
+	var sa: Dictionary = salida()
+	lab.colocar_jugador(sa["desde"])
+	lab._jug.mirar_hacia(sa["dir"])
+	var guardados: Dictionary = (lab.cambios_hechizo as Dictionary).duplicate(true)
+	lab.cambios_hechizo.clear()                          # el mismo diccionario que ve el lanzador: aparte lo de F1 mientras sale
+	var n: int = lab._l.lanzar_hechizo(hechizo(), sa["origen"], sa["dir"])
+	lab.cambios_hechizo.merge(guardados)
+	lanzamientos += 1
+	_medida = {"clave": clave(), "t": 0.0, "prox": 0.0, "base_luces": int(antes[0]), "base_part": int(antes[1]), "luces": 0, "part": 0}
+	ultimo_mensaje = "lanzado %s (%d casillas)" % [clave(), n]
+	return n
+
+
+## Cuenta las luces y las partículas VISIBLES del árbol. Devuelve [luces, partículas].
+func _luces_y_particulas() -> Array:
+	var luces: int = 0
+	var part: int = 0
+	if lab == null:
+		return [0, 0]
+	var pila: Array = [(lab as Node).get_tree().root]
+	while not pila.is_empty():
+		var n: Node = pila.pop_back()
+		if n is Light3D:
+			var l3: Light3D = n as Light3D
+			if l3.is_visible_in_tree() and l3.light_energy > 0.0 and not (l3 is DirectionalLight3D):
+				luces += 1
+		elif n is GPUParticles3D:
+			var g: GPUParticles3D = n as GPUParticles3D
+			if g.emitting and g.is_visible_in_tree():
+				part += g.amount
+		elif n is CPUParticles3D:
+			var c: CPUParticles3D = n as CPUParticles3D
+			if c.emitting and c.is_visible_in_tree():
+				part += c.amount
+		for h in n.get_children():
+			pila.append(h)
+	return [luces, part]
+
+
+func paso(delta: float) -> void:
+	if _medida.is_empty():
+		return
+	_medida["t"] = float(_medida["t"]) + delta
+	if float(_medida["t"]) >= float(_medida["prox"]):
+		_medida["prox"] = float(_medida["t"]) + PERIODO_MEDIDA_S
+		var m: Array = _luces_y_particulas()
+		_medida["luces"] = maxi(int(_medida["luces"]), int(m[0]) - int(_medida["base_luces"]))
+		_medida["part"] = maxi(int(_medida["part"]), int(m[1]) - int(_medida["base_part"]))
+	if float(_medida["t"]) >= VENTANA_MEDIDA_S:
+		_ultima_medida = {"clave": _medida["clave"], "luces": int(_medida["luces"]), "particulas": int(_medida["part"])}
+		var k: String = String(_medida["clave"])
+		var ficha: Dictionary = marcas.get(k, {"estado": "", "nota": ""})
+		ficha["luces"] = int(_medida["luces"])
+		ficha["particulas"] = int(_medida["part"])
+		marcas[k] = ficha
+		_medida = {}
+		ultimo_mensaje = "medido %s: %d luces, %d partículas" % [k, int(ficha["luces"]), int(ficha["particulas"])]
+
+
+func midiendo() -> bool:
+	return not _medida.is_empty()
+
+
+## ¿La celda cabe en el presupuesto? Sin medida todavía, no se sabe: false.
+func en_presupuesto(k: String) -> bool:
+	var f: Dictionary = marcas.get(k, {})
+	return f.has("luces") and int(f["luces"]) <= MAX_LUCES and int(f["particulas"]) <= MAX_PARTICULAS
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Marcar
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _ficha(k: String) -> Dictionary:
+	if not marcas.has(k):
+		marcas[k] = {"estado": "", "nota": ""}
+	return marcas[k]
+
+
+## Aprueba la celda elegida. Si la medida dice que se pasa del presupuesto (o no se ha medido), NO la aprueba y lo dice. Devuelve si quedó aprobada.
+func aprobar() -> bool:
+	var k: String = clave()
+	var f: Dictionary = _ficha(k)
+	if not f.has("luces"):
+		ultimo_mensaje = "no se aprueba: lánzala antes (Espacio) para medir luces y partículas"
+		return false
+	if not en_presupuesto(k):
+		ultimo_mensaje = "no se aprueba: se pasa del presupuesto (%d luces ≤ %d, %d partículas ≤ %d)" % [int(f["luces"]), MAX_LUCES, int(f["particulas"]), MAX_PARTICULAS]
+		return false
+	f["estado"] = APROBADO
+	ultimo_mensaje = "aprobada %s" % k
+	_guardar_auto()
+	return true
+
+
+func rechazar() -> void:
+	var f: Dictionary = _ficha(clave())
+	f["estado"] = RECHAZADO
+	ultimo_mensaje = "rechazada %s" % clave()
+	_guardar_auto()
+
+
+## Rota la nota rápida de la celda elegida (vacía → … → vacía). Una nota no cambia aprobado/rechazado: va aparte.
+func rotar_nota() -> String:
+	var f: Dictionary = _ficha(clave())
+	var i: int = NOTAS_RAPIDAS.find(String(f.get("nota", "")))
+	f["nota"] = String(NOTAS_RAPIDAS[(i + 1) % NOTAS_RAPIDAS.size()])
+	ultimo_mensaje = "nota de %s: %s" % [clave(), String(f["nota"]) if String(f["nota"]) != "" else "(ninguna)"]
+	_guardar_auto()
+	return String(f["nota"])
+
+
+func poner_nota(texto: String) -> void:
+	_ficha(clave())["nota"] = texto
+	_guardar_auto()
+
+
+## Quita la marca (y la nota) pero deja la medida.
+func borrar_marca() -> void:
+	var f: Dictionary = _ficha(clave())
+	f["estado"] = ""
+	f["nota"] = ""
+	ultimo_mensaje = "marca borrada de %s" % clave()
+	_guardar_auto()
+
+
+## Salta a la primera celda BASE sin aprobar ni rechazar (después de la actual, dando la vuelta). Devuelve false si ya no quedan.
+func siguiente_base_pendiente() -> bool:
+	var base: Array = celdas_base()
+	var actual: int = -1
+	for j in range(base.size()):
+		if clave_de(base[j][0], base[j][1], base[j][2], base[j][3]) == clave():
+			actual = j
 			break
-	_lanzador.set_alto(1.0)
-	_lanzador.rotation.y = PI * 0.5
-
-	_fx = Vfx3D.new()
-	_fx.escala = float(ESCALAS[0])
-	_fx.velocidad = float(VELOCIDADES[0])
-	_fx.estilo_fuego_nuevo = true      # el Lab arranca con el fuego nuevo; Y alterna con el viejo en el mismo sitio
-	add_child(_fx)
-	_fx.impacto.connect(_al_impactar)
-
-	_marcador = MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2(1.2, 1.2)
-	q.orientation = PlaneMesh.FACE_Y
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.albedo_texture = load("res://presentacion/vfx/circulo_runico.png") as Texture2D
-	m.albedo_color = Color(1, 1, 1, 0.55)
-	q.material = m
-	_marcador.mesh = q
-	add_child(_marcador)
-
-	_camara = Camera3D.new()
-	_camara.projection = Camera3D.PROJECTION_ORTHOGONAL
-	_camara.far = 200.0
-	add_child(_camara)
-	_colocar_camara()
-
-	_grimorio = GrimorioUI.new()
-	add_child(_grimorio)
-	_grimorio.abierto_cambiado.connect(_al_abrir_grimorio)
-
-	var capa := CanvasLayer.new()
-	add_child(capa)
-	_hud = Label.new()
-	_hud.position = Vector2(12.0, 8.0)
-	_hud.add_theme_color_override("font_outline_color", Color.BLACK)
-	_hud.add_theme_constant_override("outline_size", 6)
-	capa.add_child(_hud)
-	_actualizar_hud()
-	_precalentar(capa)
+	for d in range(1, base.size() + 1):
+		var c: Array = base[posmod(actual + d, base.size())]
+		if valor_marca(clave_de(c[0], c[1], c[2], c[3])) == "":
+			poner(c[0], c[1], c[2], c[3])
+			return true
+	return false
 
 
-## Tapa la pantalla un momento y lanza los seis elementos a la vez: compila shaders y carga texturas ya.
-func _precalentar(capa: CanvasLayer) -> void:
-	if _objetivos.is_empty():
-		return
-	var velo := ColorRect.new()
-	velo.color = Color(0.81, 0.91, 0.94)
-	velo.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var aviso := Label.new()
-	aviso.text = "Preparando efectos..."
-	aviso.position = Vector2(24.0, 24.0)
-	aviso.add_theme_color_override("font_color", Color(0.25, 0.35, 0.4))
-	velo.add_child(aviso)
-	capa.add_child(velo)
-	var o: Vector3 = _objetivos[_sel].position
-	_fx.precalentar(_lanzador.position, o, true)
-	_velo = velo
-	_t_velo = 0.0
-	_f_velo = 0
+# ---------------------------------------------------------------------------------------------------------------------
+#  Cuentas
+# ---------------------------------------------------------------------------------------------------------------------
+
+func contar(estado: String) -> int:
+	var n: int = 0
+	for k in marcas:
+		if String((marcas[k] as Dictionary).get("estado", "")) == estado:
+			n += 1
+	return n
 
 
-## --- Escenario ---
-
-## Un claro de 14 x 10 con la textura de hierba, una plazoleta de piedra bajo la elfa y una charca.
-func _suelo() -> void:
-	var caja := BoxMesh.new()
-	caja.size = Vector3(16.0, 1.0, 11.0)
-	var mi := MeshInstance3D.new()
-	mi.mesh = caja
-	mi.position = Vector3(3.0, -0.5, 0.0)
-	mi.material_override = _triplanar("hierba_arriba.png", Color(0.6, 0.8, 0.5))
-	add_child(mi)
-	var plaza := MeshInstance3D.new()
-	var cil := CylinderMesh.new()
-	cil.top_radius = 1.3
-	cil.bottom_radius = 1.3
-	cil.height = 0.04
-	plaza.mesh = cil
-	plaza.position = Vector3(0.0, 0.0, 0.0)
-	plaza.material_override = _triplanar("stone_arriba.png", Color(0.8, 0.8, 0.85))
-	add_child(plaza)
-	var charca := MeshInstance3D.new()
-	var pq := QuadMesh.new()
-	pq.size = Vector2(3.0, 2.0)
-	pq.orientation = PlaneMesh.FACE_Y
-	charca.mesh = pq
-	charca.position = Vector3(7.5, 0.02, 2.6)
-	charca.material_override = _triplanar("water_arriba.png", Color(0.6, 0.85, 0.9))
-	add_child(charca)
-	_hierba = Hierba3D.new()
-	add_child(_hierba)
-	_hierba.sembrar(Rect2(-5.0, -5.5, 16.0, 11.0), 0.0, _peso_hierba)
+## Cuántas de las 24 celdas base están aprobadas (en total y por estado).
+func base_aprobadas() -> int:
+	var n: int = 0
+	for c in celdas_base():
+		if valor_marca(clave_de(c[0], c[1], c[2], c[3])) == APROBADO:
+			n += 1
+	return n
 
 
-func _peso_hierba(x: float, z: float) -> float:
-	var d_plaza: float = Vector2(x, z).length()
-	if d_plaza < 1.5:
-		return clampf((d_plaza - 1.3) / 0.2, 0.0, 1.0) * 0.6
-	if x > 5.8 and x < 9.2 and z > 2.2 and z < 4.6:
-		return 0.0
-	# Calva alrededor de los objetivos para ver bien el suelo de los impactos.
-	for o in _objetivos:
-		if Vector2(x - o.position.x, z - o.position.z).length() < 0.9:
-			return 0.35
-	return 1.0
+func base_aprobadas_de(e: int) -> int:
+	var n: int = 0
+	for i in range(IMPACTOS.size()):
+		if valor_marca(clave_de(e, 0, 0, i)) == APROBADO:
+			n += 1
+	return n
 
 
-func _triplanar(archivo: String, si_falta: Color) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.roughness = 1.0
-	m.metallic_specular = 0.0
-	var ruta: String = SUELO + archivo
-	if ResourceLoader.exists(ruta):
-		m.albedo_texture = load(ruta) as Texture2D
-		m.uv1_triplanar = true
-		m.uv1_world_triplanar = true
-		m.uv1_scale = Vector3.ONE / 4.6
-		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	else:
-		m.albedo_color = si_falta
-	return m
+## ¿Se cumple el criterio de la fase? Las 24 celdas base aprobadas.
+func criterio_cumplido() -> bool:
+	return base_aprobadas() == celdas_base().size()
 
 
-func _cargar_bibliotecas() -> void:
-	for ruta in _piezas_sueltas() + BIBLIOTECAS:
-		var r: String = String(ruta)
-		if ResourceLoader.exists(r):
-			_bibliotecas.append((load(r) as PackedScene).instantiate() as Node3D)
+# ---------------------------------------------------------------------------------------------------------------------
+#  Guardar / cargar
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Lo que se guarda: solo las celdas con marca o nota (la medida sola no es trabajo para el Pipeline) más las cuentas.
+func datos() -> Dictionary:
+	var celdas: Dictionary = {}
+	for k in marcas:
+		var f: Dictionary = marcas[k]
+		if String(f.get("estado", "")) != "" or String(f.get("nota", "")) != "":
+			celdas[k] = f.duplicate()
+	return {"version": 1, "presupuesto": {"luces": MAX_LUCES, "particulas": MAX_PARTICULAS},
+		"cuentas": {"celdas": total_celdas(), "aprobadas": contar(APROBADO), "rechazadas": contar(RECHAZADO),
+			"base_aprobadas": base_aprobadas(), "base_total": celdas_base().size(), "criterio_cumplido": criterio_cumplido()},
+		"celdas": celdas}
 
 
-## Las regeneradas de meshy/piezas/ (como PruebaTest2, pero sin cargar su script: arrastraba todo el juego).
-func _piezas_sueltas() -> Array:
-	var res: Array = []
-	if DirAccess.dir_exists_absolute(CARPETA_PIEZAS):
-		for f in DirAccess.get_files_at(CARPETA_PIEZAS):
-			var nombre: String = String(f).trim_suffix(".import").trim_suffix(".remap")
-			if nombre.get_extension().to_lower() == "glb" and not res.has(CARPETA_PIEZAS + nombre):
-				res.append(CARPETA_PIEZAS + nombre)
-	return res
+func guardar(ruta: String = RUTA) -> bool:
+	var f := FileAccess.open(ruta, FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(JSON.stringify(datos(), "\t"))
+	return true
 
 
-func _pieza(id: String, alto: float) -> Node3D:
-	for b in _bibliotecas:
-		var n: Node = b.find_child(id, true, false)
-		if n is Node3D:
-			var copia: Node3D = (n as Node3D).duplicate() as Node3D
-			copia.transform = Transform3D.IDENTITY
-			var caja: AABB = _caja(copia, Transform3D.IDENTITY)
-			var raiz := Node3D.new()
-			raiz.add_child(copia)
-			var f: float = alto / maxf(caja.size.y, 0.0001)
-			copia.scale *= f
-			copia.position = -Vector3(caja.position.x + caja.size.x * 0.5, caja.position.y, caja.position.z + caja.size.z * 0.5) * f
-			return raiz
-	return null
+func cargar(ruta: String = RUTA) -> bool:
+	if not FileAccess.file_exists(ruta):
+		return false
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(ruta))
+	if not (d is Dictionary) or not (d as Dictionary).has("celdas"):
+		return false
+	marcas.clear()
+	var celdas: Dictionary = (d as Dictionary)["celdas"]
+	for k in celdas:
+		if celdas[k] is Dictionary:
+			marcas[String(k)] = (celdas[k] as Dictionary).duplicate()
+	return true
 
 
-func _caja(n: Node, acum: Transform3D) -> AABB:
-	var t: Transform3D = acum
-	if n is Node3D:
-		t = acum * (n as Node3D).transform
-	var res := AABB()
-	var vacia: bool = true
-	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
-		res = t * (n as MeshInstance3D).mesh.get_aabb()
-		vacia = false
-	for h in n.get_children():
-		var sub: AABB = _caja(h, t)
-		if sub.size != Vector3.ZERO:
-			res = sub if vacia else res.merge(sub)
-			vacia = false
-	return res
+func _guardar_auto() -> void:
+	if guardar_al_marcar:
+		guardar()
 
 
-## Los objetivos en columna delante de la elfa.
-func _poner_objetivos() -> void:
-	for i in range(OBJETIVOS.size()):
-		var id: String = String(OBJETIVOS[i][0])
-		var alto: float = float(OBJETIVOS[i][1])
-		# En columna a 4 unidades, separados 1,7: cada objetivo tiene su carril limpio.
-		var pos := Vector3(4.0, 0.0, (float(i) - float(OBJETIVOS.size() - 1) * 0.5) * 1.7)
-		var n: Node3D = null
-		if id == "goblin":
-			for g in ["goblin_warrior_chibi", "goblin_warrior"]:
-				if ResourceLoader.exists("res://arte/modelos/%s.glb" % g):
-					var pj := Pj3D.new()
-					add_child(pj)
-					pj.cargar(String(g))
-					pj.set_alto(alto)
-					n = pj
-					break
-		else:
-			n = _pieza(id, alto)
-			if n != null:
-				add_child(n)
-		if n == null:
-			continue
-		n.position = pos
-		# El goblin mira a la elfa; el resto de piezas, de frente a la cámara.
-		n.rotation.y = atan2(-pos.x, -pos.z) if id == "goblin" else 0.0
-		n.name = id
-		_objetivos.append(n)
+# ---------------------------------------------------------------------------------------------------------------------
+#  Teclas y texto
+# ---------------------------------------------------------------------------------------------------------------------
 
-
-## --- Hechizos ---
-
-func _lanzar(elemento: String) -> void:
-	if _objetivos.is_empty():
-		return
-	_ultimo = elemento
-	var o: Node3D = _objetivos[_sel]
-	var d: Vector3 = o.position - _lanzador.position
-	_lanzador.rotation.y = atan2(d.x, d.z)
-	var forma: String = String(Vfx3D.FORMAS[_i_forma])
-	_lanzador.lanzar(forma, elemento)
-	get_tree().create_timer(1.2, false).timeout.connect(_lanzador.soltar_lanzar)
-	var pie_destino: Vector3 = o.position - d.normalized() * 0.35
-	var pie_origen: Vector3 = _lanzador.position + d.normalized() * 0.3
-	match forma:
-		"corro", "columna":
-			_fx.lanzar_forma(forma, elemento, pie_origen, o.position)
-		"muro":
-			# Sale 1,5 u por delante de la elfa y avanza hacia el objetivo.
-			_fx.lanzar_forma(forma, elemento, pie_origen, _lanzador.position + d.normalized() * 1.5)
-		"chorro":
-			# 9/10: haz continuo hasta el objetivo (el Vfx3D multiplica `largo` por su escala; aquí se compensa).
-			_fx.lanzar_forma(forma, elemento, _lanzador.position, o.position,
-				{"largo": _lanzador.position.distance_to(o.position) / maxf(_fx.escala, 0.1), "dura": 2.2})
-		"cupula":
-			# 9/10: barrera alrededor de la elfa.
-			_fx.lanzar_forma(forma, elemento, _lanzador.position, _lanzador.position, {"radio": 2.0, "dura": 3.5})
-		"proyectil", "bola":
-			_fx.lanzar(elemento, pie_origen, pie_destino)
-		_:
-			# Las demás formas (onda, pilar, acompañante, tormenta, arco...) por su nombre; antes caían todas a la bola.
-			_fx.lanzar_forma(forma, elemento, pie_origen, o.position)
-	_actualizar_hud()
-
-
-func _al_impactar(_elemento: String, _punto: Vector3) -> void:
-	var o: Node3D = _objetivos[_sel]
-	if o is Pj3D:
-		(o as Pj3D).jugar("hit")
-		get_tree().create_timer(0.8, false).timeout.connect((o as Pj3D).jugar.bind("idle"))
-	else:
-		# La escala de reposo se guarda la primera vez: si llega otro impacto en mitad del rebote, no se
-		# toma la escala aplastada como base (el objetivo se iba deformando con Espacio o el bucle).
-		if not o.has_meta("escala_base"):
-			o.set_meta("escala_base", o.scale)
-		var base: Vector3 = o.get_meta("escala_base")
-		var tw := o.create_tween()
-		tw.tween_property(o, "scale", base * Vector3(1.12, 0.88, 1.12), 0.06)
-		tw.tween_property(o, "scale", base, 0.25).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-
-
-## Abre el grimorio con un estilo y un libro dados (para pruebas y capturas). `muestra` = huecos llenos.
-func abrir_grimorio(datos: Vector3i) -> void:
-	_grimorio.set_estilo(datos.x)
-	_grimorio.set_distribucion(datos.y)
-	if datos.z == 1:
-		_grimorio._llenos = true
-	if not _grimorio.abierto:
-		_grimorio.alternar()
-
-
-## Con el grimorio abierto la elfa lee y escribe (a velocidad normal aunque el mundo vaya a cámara lenta).
-func _al_abrir_grimorio(abierto: bool) -> void:
-	if abierto:
-		_lanzador.jugar("leer")
-		_lanzador.set_velocidad_animacion(1.0 / maxf(GrimorioUI.TIEMPO_ABIERTO, 0.01))
-	else:
-		_lanzador.set_velocidad_animacion(1.0)
-		_lanzador.jugar("idle")
-
-
-## Para pruebas y capturas: lanza la forma `v.x` (índice de Vfx3D.FORMAS) del elemento `v.y` sin esperar al velo.
-func probar(v: Vector2i) -> void:
-	if _velo != null:
-		_velo.queue_free()
-		_velo = null
-	_i_forma = v.x
-	_lanzar(String(Vfx3D.ELEMENTOS[v.y]))
-
-
-## Activa o para el bucle de todos los elementos (también con la tecla B).
-func set_bucle(activo: bool) -> void:
-	_bucle = activo
-	_t_bucle = 1.6
-	_actualizar_hud()
-
-
-## --- Cámara, entrada y HUD ---
-
-func _colocar_camara() -> void:
-	var incl: float = float(CAMARAS[_i_cam][1])
-	var e: float = deg_to_rad(90.0 - incl)
-	var dir: Vector3 = -Vector3(0.0, sin(e), cos(e))
-	var foco := Vector3(2.0, 0.5, 0.0)
-	_camara.size = _zoom
-	_camara.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), foco - dir * 40.0)
-
-
-func _process(delta: float) -> void:
-	if _velo != null:
-		# Por fotogramas y por tiempo (el primer fotograma tras cargar trae un delta enorme).
-		_f_velo += 1
-		_t_velo += minf(delta, 0.05)
-		if _f_velo > 10 and _t_velo >= PRECALENTAR:
-			_velo.queue_free()
-			_velo = null
-	if _bucle:
-		_t_bucle += delta
-		if _t_bucle > 1.6:
-			_t_bucle = 0.0
-			_i_forma = (_i_bucle / Vfx3D.ELEMENTOS.size()) % Vfx3D.FORMAS.size()
-			_lanzar(String(Vfx3D.ELEMENTOS[_i_bucle % Vfx3D.ELEMENTOS.size()]))
-			_i_bucle += 1
-	_t_hud += delta
-	if _t_hud > 0.5:
-		_t_hud = 0.0
-		_actualizar_hud()
-	if not _objetivos.is_empty():
-		_marcador.position = _objetivos[_sel].position + Vector3(0.0, 0.03, 0.0)
-		_marcador.rotate_y(delta * 0.8)
-
-
-func _unhandled_input(ev: InputEvent) -> void:
-	if not (ev is InputEventKey):
-		return
-	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or (_grimorio != null and _grimorio.abierto):
-		return
+## Devuelve true si la tecla era de F4 (el lab no la procesa más). G, P, F1–F4 y el Numpad se dejan al lab.
+func tecla(k: InputEventKey) -> bool:
+	var arrastre: bool = k.keycode == KEY_LEFT or k.keycode == KEY_RIGHT or k.keycode == KEY_UP or k.keycode == KEY_DOWN
+	if k.echo and not arrastre:
+		return false
 	match k.keycode:
-		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
-			_lanzar(String(Vfx3D.ELEMENTOS[k.keycode - KEY_1]))
+		KEY_UP:
+			mover_eje(-1)
+		KEY_DOWN:
+			mover_eje(1)
+		KEY_LEFT:
+			cambiar_valor(-1)
+		KEY_RIGHT:
+			cambiar_valor(1)
 		KEY_SPACE:
-			_lanzar(_ultimo)
-		KEY_TAB, KEY_RIGHT, KEY_DOWN:
-			_sel = (_sel + 1) % maxi(1, _objetivos.size())
-		KEY_LEFT, KEY_UP:
-			_sel = (_sel - 1 + _objetivos.size()) % maxi(1, _objetivos.size())
-		KEY_F:
-			_i_forma = (_i_forma + 1) % Vfx3D.FORMAS.size()
-		KEY_B:
-			_bucle = not _bucle
-			_t_bucle = 1.6
-		KEY_M:
-			_lenta = not _lenta
-			Engine.time_scale = 0.25 if _lenta else 1.0
-		KEY_X:
-			_i_escala = (_i_escala + 1) % ESCALAS.size()
-			_fx.escala = float(ESCALAS[_i_escala])
-		KEY_V:
-			_i_vel = (_i_vel + 1) % VELOCIDADES.size()
-			_fx.velocidad = float(VELOCIDADES[_i_vel])
-		KEY_C:
-			_i_cam = (_i_cam + 1) % CAMARAS.size()
-			_colocar_camara()
-		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
-			_zoom = maxf(2.0, _zoom * 0.85)
-			_colocar_camara()
-		KEY_MINUS, KEY_KP_SUBTRACT:
-			_zoom = minf(30.0, _zoom / 0.85)
-			_colocar_camara()
-		KEY_G:
-			_hierba.visible = not _hierba.visible
-		KEY_L:
-			_fx.con_luces = not _fx.con_luces
-		KEY_Y:
-			_fx.estilo_fuego_nuevo = not _fx.estilo_fuego_nuevo
-		KEY_K:
-			_env.glow_enabled = not _env.glow_enabled
+			lanzar()
+		KEY_A:
+			aprobar()
+		KEY_R:
+			rechazar()
 		KEY_N:
-			set_nivel_grimorio(Equipo3D.nivel_grimorio % 3 + 1)
-	_actualizar_hud()
+			rotar_nota()
+		KEY_DELETE:
+			borrar_marca()
+		KEY_TAB:
+			if not siguiente_base_pendiente():
+				ultimo_mensaje = "las 24 celdas base ya tienen marca"
+		_:
+			return false
+	return true
 
 
-## Grimorio 1 botánico · 2 rúnico · 3 legendario: el de la cadera y el estilo de página del grimorio abierto.
-func set_nivel_grimorio(n: int) -> void:
-	if _lanzador != null:
-		_lanzador.set_nivel_grimorio(n)
-	if _grimorio != null:
-		_grimorio.set_estilo(Equipo3D.nivel_grimorio - 1)   # botánico, astral, acuarela
-
-
-func _exit_tree() -> void:
-	Engine.time_scale = 1.0
-
-
-func _actualizar_hud() -> void:
-	if _hud == null:
-		return
-	var objetivo: String = String(_objetivos[_sel].name) if not _objetivos.is_empty() else "-"
-	_hud.text = "LAB DE EFECTOS 3D | objetivo: %s | último: %s (%s) | tamaño x%.1f | proyectil %.1f u/s | cámara %s%s%s%s\n1 fuego · 2 agua · 3 tierra · 4 viento · 5 rayo · 6 hielo · Espacio repetir · F forma (proyectil/corro/columna/muro) · Tab/flechas objetivo\nB bucle (24 celdas) · M cámara lenta · T grimorio · X tamaño · V velocidad · C cámara · +/- zoom · G hierba · L luces · N grimorio (%s)" % [
-		objetivo, _ultimo, String(Vfx3D.FORMAS[_i_forma]), _fx.escala, _fx.velocidad, String(CAMARAS[_i_cam][0]),
-		" | BUCLE" if _bucle else "", " | LENTA" if _lenta else "", "" if _fx.con_luces else " | sin luces",
-		Equipo3D.NIVELES_GRIMORIO[Equipo3D.nivel_grimorio]]
-	_hud.text += "\nY fuego %s · K bloom %s · %d FPS" % ["NUEVO (luminoso)" if _fx.estilo_fuego_nuevo else "VIEJO (facetado)", "sí" if _env.glow_enabled else "no", Engine.get_frames_per_second()]
+func texto() -> String:
+	var t: PackedStringArray = []
+	var k: String = clave()
+	var f: Dictionary = marcas.get(k, {})
+	var partes: PackedStringArray = []
+	for e in range(EJES.size()):
+		var nombre: String = [String(ESTADOS[int(sel[0])][2]), String(VOLUMENES[int(sel[1])][0]), String(PROPIEDADES[int(sel[2])]), String(IMPACTOS[int(sel[3])]["id"])][e]
+		partes.append(("▶ %s: %s ◀" if e == eje else "%s: %s") % [EJES[e], nombre])
+	t.append("F4 VFX · " + "   ".join(partes))
+	var marca: String = String(f.get("estado", ""))
+	var medida: String = "sin medir"
+	if f.has("luces"):
+		var ok: bool = en_presupuesto(k)
+		medida = "%d luces (≤ %d) · %d partículas (≤ %d)%s" % [int(f["luces"]), MAX_LUCES, int(f["particulas"]), MAX_PARTICULAS, "" if ok else "   ¡SE PASA!"]
+	if midiendo():
+		medida = "midiendo… %.1f/%.1f s" % [float(_medida["t"]), VENTANA_MEDIDA_S]
+	t.append("Celda %s%s · marca: %s%s · %s" % [k, " (BASE)" if es_base(int(sel[0]), int(sel[1]), int(sel[2]), int(sel[3])) else "",
+		marca if marca != "" else "sin marcar", (" · nota: " + String(f.get("nota", ""))) if String(f.get("nota", "")) != "" else "", medida])
+	var por_estado: PackedStringArray = []
+	for e in range(ESTADOS.size()):
+		por_estado.append("%s %d/%d" % [String(ESTADOS[e][2]), base_aprobadas_de(e), IMPACTOS.size()])
+	t.append("Criterio (base: esfera · ninguna · 4 impactos): %d/%d → %s        Todas: %d aprobadas · %d rechazadas de %d" % [
+		base_aprobadas(), celdas_base().size(), "CUMPLIDO" if criterio_cumplido() else "pendiente", contar(APROBADO), contar(RECHAZADO), total_celdas()])
+	t.append("Por estado: " + " · ".join(por_estado))
+	t.append("↑↓ eje · ←→ valor · Espacio lanza · A aprueba · R rechaza · N nota · Supr borra · Tab siguiente base sin marcar · se guarda solo en %s" % RUTA)
+	if ultimo_mensaje != "":
+		t.append(ultimo_mensaje)
+	return "\n".join(t)

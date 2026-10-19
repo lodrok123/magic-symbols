@@ -33,6 +33,7 @@ const MARGEN_EMPATE: float = 0.10        ## por debajo, hay empate y no se ense�
 const MARGEN_CANDIDATA: float = 0.15     ## margen mínimo para tener candidata (el del reconocedor es 0,30: aquí el trazo está a medias)
 const TOPE_IMAN: float = 0.6
 const COBERTURA_ANTICIPADA: float = 0.85
+const DESV_RAYA: float = 0.08            ## un trazo cuya mayor desviación de la cuerda es < esto × su largo es UN solo tramo recto («raya»)
 const LARGO_MIN: float = 40.0            ## tamaño mínimo (px) de lo dibujado para opinar; con menos, cualquier cosa se parece a todo
 const SUBDIVISION: int = 3               ## cada tramo de la plantilla (16 puntos) se parte en 3 para la guía y el imán
 const ALCANCE_IMAN: float = 0.35         ## el imán solo actúa a menos de esto (× tamaño del trazo) de la guía; más lejos no tira
@@ -46,6 +47,7 @@ var confianza: float = 0.0
 var margen: float = 0.0
 var cobertura: float = 0.0
 var aceptable: bool = false
+var raya: bool = false                 ## lo dibujado es un solo tramo recto: no hay forma que medir, se concreta al soltar o al aparecer el 2º tramo
 var guia: Array = []
 var asistencia: float = 1.0
 var ms_ultimo: float = 0.0
@@ -68,6 +70,7 @@ func reiniciar() -> void:
 	margen = 0.0
 	cobertura = 0.0
 	aceptable = false
+	raya = false
 	guia = []
 	_plantilla_lider = PackedVector2Array()
 
@@ -87,6 +90,33 @@ func actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArra
 	return candidata
 
 
+## ¿Alguno de los gestos activos es, él mismo, un único trazo recto?
+func _hay_raya_activa(plantillas: Dictionary, activos: PackedStringArray) -> bool:
+	for nombre in activos:
+		if plantillas.has(nombre) and not (plantillas[nombre] as Array).is_empty() and _es_raya([plantillas[nombre][0]]):
+			return true
+	return false
+
+
+## ¿Lo dibujado es un único trazo recto? (con `Estado.trazo_recto` llega como polilínea de 2–3 vértices; también vale uno a mano alzada casi recto)
+func _es_raya(trazos: Array) -> bool:
+	if trazos.size() != 1 or (trazos[0] as PackedVector2Array).size() < 2:
+		return false
+	var p: PackedVector2Array = trazos[0]
+	var a: Vector2 = p[0]
+	var b: Vector2 = p[p.size() - 1]
+	var cuerda: float = a.distance_to(b)
+	if cuerda < 0.001:
+		return false
+	var mayor: float = 0.0
+	var largo: float = 0.0
+	for i in range(p.size()):
+		mayor = maxf(mayor, absf((b - a).cross(p[i] - a)) / cuerda)
+		if i > 0:
+			largo += p[i - 1].distance_to(p[i])
+	return mayor <= DESV_RAYA * cuerda and largo <= cuerda * 1.15
+
+
 ## Los trazos (girados `giro`) ya remuestreados y normalizados como pide $P; vacío si es muy poco o muy corto.
 func _preparar(trazos: Array, giro: float) -> Dictionary:
 	var puntos := PackedVector2Array()
@@ -95,7 +125,8 @@ func _preparar(trazos: Array, giro: float) -> Dictionary:
 		for p in trazos[i]:
 			puntos.append((p as Vector2).rotated(giro) if giro != 0.0 else p)
 			ids.append(i)
-	if puntos.size() < 4:
+	# Con el trazo recto (Estado.trazo_recto) lo dibujado llega como polilínea de pocos vértices (un trazo recortado puede ser de 3): lo que manda es el LARGO (LARGO_MIN), no el número de puntos.
+	if puntos.size() < 2:
 		return {}
 	var caja: Rect2 = GestureRecognizer._bounding_box(puntos)
 	var tam: float = maxf(caja.size.x, caja.size.y)
@@ -113,6 +144,12 @@ func _preparar(trazos: Array, giro: float) -> Dictionary:
 func _actualizar(trazos: Array, plantillas: Dictionary, activos: PackedStringArray, giro: float, sin_giro: PackedStringArray = PackedStringArray()) -> void:
 	var base: Dictionary = _preparar(trazos, giro)
 	if base.is_empty() or activos.size() < 2:
+		return
+	# Un solo tramo recto no tiene forma: su prefijo de ᛏ, de fuego o de agua es el mismo palo, y la medida sale en empate de ~0 (o, peor, con
+	# un margen enorme hacia la runa equivocada). Callarse es mejor: candidata «raya», sin guía ni imán, y se decide al soltar o con el 2º tramo.
+	# Excepción: si entre los gestos activos hay uno que ES una raya (ᛁ), un palo sí puede ser la respuesta y se mide como siempre.
+	if _es_raya(trazos) and not _hay_raya_activa(plantillas, activos):
+		raya = true
 		return
 	# Las plantillas «sin giro» se miden contra el trazo tal cual se dibujó (otra nube, solo si hace falta).
 	var sin: Dictionary = base

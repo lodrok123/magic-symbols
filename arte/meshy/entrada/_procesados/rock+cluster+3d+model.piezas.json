@@ -1,0 +1,38 @@
+{
+ "p0": {
+  "trozos": [
+   0
+  ],
+  "id": "",
+  "tris": 4000,
+  "directo": false,
+  "nota": ""
+ },
+ "p1": {
+  "trozos": [
+   1
+  ],
+  "id": "",
+  "tris": 4000,
+  "directo": false,
+  "nota": ""
+ },
+ "p2": {
+  "trozos": [
+   2
+  ],
+  "id": "",
+  "tris": 4000,
+  "directo": false,
+  "nota": ""
+ },
+ "p3": {
+  "trozos": [
+   3
+  ],
+  "id": "",
+  "tris": 4000,
+  "directo": false,
+  "nota": ""
+ }
+}

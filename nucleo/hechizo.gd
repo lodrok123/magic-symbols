@@ -12,19 +12,24 @@ extends RefCounted
 ##   5. derivados: forma, niveles, coste, recarga, cast point (no se tocan a mano)
 ## Un modificador es `{campo, op, valor, tope, desde}` (ver Sigils.GLIFOS). Un glifo o un elemento nuevo es solo datos.
 ##
+## UNIDADES (19/10, claude/ESPEC_HECHIZO.md §0.1): 1 casilla = 1 m. Todo lo que mide longitud va en METROS-CASILLA (semiejes, distancia_max, elevacion, altura_salida, radio_explosion, separacion…)
+## y las velocidades en m/s. La conversión a unidades del motor (× `Terreno3D.casilla`) se hace SOLO en `HechizoVivo`, al ejecutar.
+##
 ## HC1 es REFACTORIZACIÓN: aún no lo lee nadie. Convive con `Sigils.aplicar_v2` + `RuneData` + `Receta3D`, y `prueba_hechizo` comprueba que da los mismos números.
 
 const EPS: float = 0.0001
 
 ## Los campos, por grupos, en el orden en que los enseñará el laboratorio (HC5). [nombre, grupo].
+## Los campos nuevos de la ESPEC (19/10) se han metido en los grupos de siempre para no tocar el orden del lab: tiempo → movimiento, física → materia.
 const CAMPOS: Array = [
-	["semiejes", "forma"], ["copias", "forma"], ["crece", "forma"], ["solidez", "forma"],
-	["velocidad", "movimiento"], ["aceleracion", "movimiento"], ["gravedad", "movimiento"], ["distancia_max", "movimiento"],
-	["persiste", "movimiento"], ["altura_salida", "movimiento"], ["rebotes", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
-	["dano", "combate"], ["empuje", "combate"], ["fuerza_golpe", "combate"], ["perfora", "combate"], ["radio_explosion", "combate"], ["golpea_lanzador", "combate"],
+	["semiejes", "forma"], ["grosor_min", "forma"], ["copias", "forma"], ["separacion", "forma"], ["dispersion", "forma"], ["crece", "forma"], ["escala_nace", "forma"], ["solidez", "forma"],
+	["velocidad", "movimiento"], ["aceleracion", "movimiento"], ["gravedad", "movimiento"], ["distancia_max", "movimiento"], ["elevacion", "movimiento"],
+	["persiste", "movimiento"], ["permanencia", "movimiento"], ["retardo", "movimiento"], ["intervalo", "movimiento"],
+	["altura_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
+	["dano", "combate"], ["dano_periodico", "combate"], ["potencia", "combate"], ["empuje", "combate"], ["fuerza_golpe", "combate"], ["perfora", "combate"], ["radio_explosion", "combate"], ["golpea_lanzador", "combate"],
 	["quema", "estados"], ["moja", "estados"], ["congela", "estados"], ["congela_mojado", "estados"], ["aturde", "estados"],
-	["ralentiza", "estados"], ["ralentiza_fuerza", "estados"], ["interrumpe", "estados"], ["veneno", "estados"], ["veneno_dps", "estados"], ["deja", "estados"],
-	["estado_materia", "materia"], ["pisable", "materia"],
+	["ralentiza", "estados"], ["ralentiza_fuerza", "estados"], ["interrumpe", "estados"], ["veneno", "estados"], ["veneno_dps", "estados"], ["intensidad_estado", "estados"], ["deja", "estados"],
+	["estado_materia", "materia"], ["pisable", "materia"], ["densidad", "materia"], ["temperatura", "materia"], ["humedad", "materia"], ["conductividad", "materia"],
 	["choca_con", "choque"], ["color", "aspecto"], ["estela", "aspecto"], ["efecto_impacto", "aspecto"],
 	["eventos", "eventos"],
 ]
@@ -39,29 +44,52 @@ const CHOCA_ENEMIGOS: int = 2
 ## Límites de HC4 (§2.3): profundidad de hijos y hechizos vivos por lanzamiento.
 const MAX_PROFUNDIDAD: int = 2
 const MAX_VIVOS: int = 32
+## Límites globales de seguridad (ESPEC_HECHIZO §1.9). Se aplican al final de `construir()` y de `con()`: ni los glifos ni el laboratorio pueden saltárselos.
+const LIM_SEMIEJE_HORIZONTAL: float = 3.0     ## m (6 m de ancho o fondo total)
+const LIM_SEMIEJE_ALTO: float = 1.0           ## m (2 niveles)
+const LIM_ELEVACION: float = 2.0              ## m
+const LIM_DISTANCIA: float = 8.0              ## m (la flecha llega a 6 con 5 glifos)
+const LIM_VIDA_S: float = 25.0                ## s: persiste + permanencia
+const LIM_COPIAS: int = 8                     ## el glifo topa en 4; el laboratorio puede subir a 8
+const MAX_GLIFOS: int = 6                     ## glifos máximos por hechizo (ESPEC §1.9): el mismo número que los huecos de la página del libro. Lo aplican el libro y el lab (Mayús+L lo quita); `construir()` no cuenta glifos.
+## Velocidad (m/s) a la que se desplaza algo con `distancia_max` > 0 pero `velocidad` = 0: la de los volúmenes que viajaban por tandas (8 casillas/s).
+const VELOCIDAD_VIAJE_DEFECTO: float = 8.0
+## Lo que dura una `permanencia` o `persiste` ya multiplicada por la calidad también pasa por el límite de arriba.
+## Resistencia de una barrera por cada ×1 de solidez: la `AGUANTE_SOLIDEZ_V2` de HechizoVivo (30), que ahora vive aquí (ESPEC §1.4 dice «base 10»: se mantiene 30 para no cambiar lo que aguanta hoy).
+const RESISTENCIA_POR_SOLIDEZ: float = 30.0
+## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
+const ALTURA_MANO_U: float = 0.9
+## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota"]
 
 ## Qué propiedad de la receta (`Sigils.aplicar_v2(...)["props"]`) es cada campo. Cuenta como «propiedad usada» (encarece el hechizo) cuando algún glifo lo toca.
-const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece"}
+const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece", "permanencia": "permanencia"}
 
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
 ## (color, deja, estela, efecto_impacto, eventos: son nombres o listas, no números).
 const EDITABLES: Dictionary = {
-	"semiejes.x": {"paso": 0.05, "min": 0.05, "max": 6.0}, "semiejes.y": {"paso": 0.05, "min": 0.05, "max": 6.0}, "semiejes.z": {"paso": 0.05, "min": 0.05, "max": 6.0},
-	"copias": {"paso": 1.0, "min": 1.0, "max": 9.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
-	"velocidad": {"paso": 1.0, "min": 0.0, "max": 40.0}, "aceleracion": {"paso": 1.0, "min": -20.0, "max": 40.0}, "gravedad": {"paso": 0.1, "min": 0.0, "max": 3.0},
-	"distancia_max": {"paso": 0.5, "min": 0.0, "max": 20.0}, "altura_salida": {"paso": 0.1, "min": 0.0, "max": 4.0}, "persiste": {"paso": 0.5, "min": 0.0, "max": 30.0}, "rebotes": {"paso": 1.0, "min": 0.0, "max": 6.0},
+	"semiejes.x": {"paso": 0.05, "min": 0.15, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.15, "max": 1.0}, "semiejes.z": {"paso": 0.05, "min": 0.15, "max": 3.0},
+	"grosor_min": {"paso": 0.05, "min": 0.05, "max": 0.5}, "separacion": {"paso": 0.25, "min": 0.0, "max": 3.0}, "dispersion": {"paso": 5.0, "min": 0.0, "max": 90.0},
+	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
+	"velocidad": {"paso": 0.5, "min": 0.0, "max": 20.0}, "aceleracion": {"paso": 0.5, "min": -10.0, "max": 20.0}, "gravedad": {"paso": 0.1, "min": 0.0, "max": 3.0},
+	"distancia_max": {"paso": 0.5, "min": 0.0, "max": 8.0}, "elevacion": {"paso": 0.25, "min": 0.0, "max": 2.0}, "altura_salida": {"paso": 0.05, "min": 0.0, "max": 2.0},
+	"persiste": {"paso": 0.5, "min": 0.0, "max": 25.0}, "permanencia": {"paso": 0.5, "min": 0.0, "max": 25.0}, "retardo": {"paso": 0.1, "min": 0.0, "max": 5.0}, "intervalo": {"paso": 0.05, "min": 0.05, "max": 2.0},
+	"rebotes": {"paso": 1.0, "min": 0.0, "max": 6.0}, "elasticidad": {"paso": 0.1, "min": 0.0, "max": 1.0},
 	"retorna": {"tipo": "bool"}, "en_punto": {"tipo": "bool"}, "busca": {"paso": 0.25, "min": 0.0, "max": 4.0},
-	"dano": {"paso": 5.0, "min": 0.0, "max": 300.0}, "empuje": {"paso": 0.1, "min": 0.0, "max": 1.0}, "fuerza_golpe": {"paso": 100.0, "min": 0.0, "max": 3000.0},
+	"dano": {"paso": 5.0, "min": 0.0, "max": 300.0}, "dano_periodico": {"paso": 1.0, "min": 0.0, "max": 100.0}, "potencia": {"paso": 0.25, "min": 0.0, "max": 5.0},
+	"empuje": {"paso": 0.1, "min": 0.0, "max": 1.0}, "fuerza_golpe": {"paso": 100.0, "min": 0.0, "max": 3000.0},
 	"perfora": {"paso": 1.0, "min": 0.0, "max": 5.0}, "radio_explosion": {"paso": 0.25, "min": 0.0, "max": 5.0}, "golpea_lanzador": {"tipo": "bool"},
 	"quema": {"paso": 0.5, "min": 0.0, "max": 20.0}, "moja": {"paso": 0.5, "min": 0.0, "max": 20.0}, "congela": {"paso": 0.5, "min": 0.0, "max": 20.0},
 	"congela_mojado": {"paso": 0.5, "min": 0.0, "max": 20.0}, "aturde": {"paso": 0.1, "min": 0.0, "max": 10.0}, "ralentiza": {"paso": 0.5, "min": 0.0, "max": 20.0},
 	"ralentiza_fuerza": {"paso": 0.05, "min": 0.0, "max": 1.0}, "interrumpe": {"paso": 0.1, "min": 0.0, "max": 5.0}, "veneno": {"paso": 0.5, "min": 0.0, "max": 20.0},
-	"veneno_dps": {"paso": 0.5, "min": 0.0, "max": 30.0},
+	"veneno_dps": {"paso": 0.5, "min": 0.0, "max": 30.0}, "intensidad_estado": {"paso": 0.25, "min": 0.0, "max": 5.0},
 	"estado_materia": {"tipo": "lista", "valores": ["solido", "liquido", "plasma", "energia", "gas", "campo"]}, "pisable": {"tipo": "bool"},
+	"densidad": {"paso": 0.1, "min": 0.0, "max": 5.0}, "temperatura": {"paso": 0.25, "min": -1.0, "max": 1.0}, "humedad": {"paso": 0.1, "min": 0.0, "max": 1.0}, "conductividad": {"paso": 0.1, "min": 0.0, "max": 1.0},
 	"choca_con": {"paso": 1.0, "min": 0.0, "max": 3.0},
 }
 ## Los derivados que enseña la tabla (no se tocan: salen de lo demás).
-const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga"]
+const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga", "volumen", "superficie", "masa", "resistencia",
+	"flota", "anclado", "protege", "se_expande", "se_repite", "rebota"]
 
 # --- Forma y volumen ---
 ## Casillas de semieje (X ancho, Y alto, Z fondo). Se guardan como tres `float` (64 bits) y no como un Vector3 (32 bits): así los números son EXACTAMENTE los de
@@ -72,24 +100,35 @@ var semieje_z: float = Sigils.RADIO_BASE_V2
 var semiejes: Vector3:
 	get:
 		return Vector3(semieje_x, semieje_y, semieje_z)
+var grosor_min: float = 0.15           ## m: ningún semieje baja de aquí (un muro fino no desaparece) · ESPEC §1.1
 var copias: int = 1                    ## n volúmenes repartidos en X
-var crece: float = 0.0                 ## escala por segundo al nacer
+var separacion: float = 0.5            ## m entre copias (hoy, el ancho de cada copia) · ESPEC §1.6
+var dispersion: float = 15.0           ## grados que se abre el abanico de copias (hoy no hay abanico) · ESPEC §1.6
+var crece: float = 0.0                 ## m/s de radio al nacer (ESPEC §1.3: antes «escala por segundo»; el cambio de significado lo aplica HechizoVivo en E2)
+var escala_nace: float = 0.3           ## fracción del tamaño con la que nace un volumen que crece · antes `ESCALA_NACE_V2`
 var solidez: float = 0.0               ## 0 = no bloquea; con barrera, 1·1,5^n (diverge del doc, que dice 1: hoy «sin barrera» es la ausencia de la propiedad)
 
 # --- Movimiento ---
-var velocidad: float = 0.0             ## u/s (0 = la de siempre del lanzador) · HC4
-var aceleracion: float = 0.0           ## u/s², negativa = frena · HC4
-var gravedad: float = 0.0              ## caída: 1 = como un objeto · HC4
-var distancia_max: float = 0.0         ## casillas que recorre (0 = quieto; hoy `viaja`)
-var persiste: float = 0.0              ## segundos que vive lo creado, YA multiplicado por el factor de calidad del trazo
-var altura_salida: float = 0.9         ## u sobre el suelo desde donde sale un PROYECTIL (0,9 = la mano). Los hechizos sin velocidad no la usan: nacen en su casilla · HC4
+var velocidad: float = 0.0             ## m/s (0 = quieto; con `distancia_max` > 0 y velocidad 0, HechizoVivo usa 8 m/s) · HC4
+var aceleracion: float = 0.0           ## m/s², negativa = frena · HC4
+var gravedad: float = 1.0              ## caída: 1 = como un objeto; el elemento lo multiplica por su estado (§2). Solo afecta a lo que se desplaza · ESPEC §1.2
+var distancia_max: float = 0.0         ## m (casillas) que recorre (0 = quieto; hoy `viaja`)
+var elevacion: float = 0.0             ## m sobre el suelo a los que nace (glifo futuro «flota») · ESPEC §1.2
+var persiste: float = 0.0              ## s de VIDA NATURAL del elemento, YA multiplicados por la calidad del trazo. Solo cuenta para lo que nace quieto (ESPEC §0.3)
+var permanencia: float = 0.0           ## s EXTRA que se queda donde nace o donde se para (ᛉ Permanencia, barrera), ya multiplicados por la calidad · ESPEC §0.3
+var retardo: float = 0.0               ## s entre lanzar y nacer (glifo aparcado) · ESPEC §1.3
+var intervalo: float = 0.25            ## s entre pulsos de una zona · antes `TICK_ZONA_V2`
+var altura_salida: float = ALTURA_MANO_U / Terreno3D.casilla   ## m sobre el suelo desde donde sale un PROYECTIL (0,9 u de la mano ≈ 0,39 m). Los hechizos sin velocidad no la usan: nacen en su casilla · HC4
 var rebotes: int = 0                   ## cambios de dirección al chocar
+var elasticidad: float = 0.2           ## 0–1: velocidad que conserva al rebotar · ESPEC §1.4 (aún no la lee nadie)
 var retorna: bool = false              ## vuelve al lanzador al acabar · HC4
 var en_punto: bool = false            ## nace donde apunta el cursor (dentro del anillo de alcance) y no en el lanzador · 18/10 diseño de Pablo («cast on point»)
 var busca: float = 0.0                 ## fuerza de giro hacia un objetivo (0 = recto) · HC4
 
 # --- Daño y combate ---
-var dano: float = 0.0                  ## daño base (hoy RuneData.damage × potencia 1; el daño no depende de la calidad)
+var dano: float = 1.0                  ## daño base (hoy RuneData.damage × potencia 1; el daño no depende de la calidad). Base 1 (ESPEC §1.5)
+var dano_periodico: float = 0.0        ## puntos/s de una zona de plasma · antes `FRAC_DANO_ZONA_V2` (20 % del daño por pulso)
+var potencia: float = 1.0              ## factor del daño (glifo amplificar, aparcado) · ESPEC §1.5
 var empuje: float = 0.0                ## 0..1: cuánto empuja un campo de gas (la zona) y qué fracción de la fuerza máxima es
 var fuerza_golpe: float = 400.0        ## fuerza con que empuja a un enemigo al golpearlo, ANTES de MULT_EMPUJE y del suelo de Combate3D (0 = no empuja: el viento lo empuja el Lanzador). 400 = la de siempre para lo que no tiene valor propio
 var perfora: int = 0                   ## enemigos que atraviesa antes de pararse · HC4
@@ -107,11 +146,16 @@ var ralentiza_fuerza: float = 0.0      ## 0..1: cuánto frena (hoy Combate3D mul
 var interrumpe: float = 0.0
 var veneno: float = 0.0                ## segundos que dura el veneno que deja al golpear (0 = no envenena) · HC4
 var veneno_dps: float = 3.0            ## daño por segundo mientras dura (solo cuenta si `veneno` > 0)
+var intensidad_estado: float = 1.0     ## × todas las duraciones de estado (ESPEC §1.5; aún no la lee nadie)
 var deja: String = ""                  ## estado de suelo que deja ("quemado", "mojado", "helado")
 
 # --- Materia ---
 var estado_materia: String = "solido"  ## "solido" | "liquido" | "plasma" | "energia" | "gas" | "campo"
 var pisable: bool = false
+var densidad: float = 1.0              ## unidad/m³ (masa = densidad × volumen) · el elemento la fija (ESPEC §2)
+var temperatura: float = 0.0           ## −1 (frío) … +1 (calor). Solo se rellena: las reacciones saldrán de aquí en la fase de cálculo
+var humedad: float = 0.0               ## 0…1
+var conductividad: float = 0.0         ## 0…1
 
 # --- Choque y aspecto ---
 var choca_con: int = 0                 ## máscara de lo que lo para (0 = la de siempre: mundo + enemigos) · HC4
@@ -137,6 +181,37 @@ var _glifos_z: float = 0.0
 var semiejes_glifos: Vector3:
 	get:
 		return Vector3(_glifos_x, _glifos_y, _glifos_z)
+## Derivados de solo lectura (ESPEC §1.4 y §1.7): salen de los campos, nunca se fijan a mano.
+var volumen: float:
+	get:
+		return 4.0 / 3.0 * PI * semieje_x * semieje_y * semieje_z                ## m³ del elipsoide
+var superficie: float:
+	get:
+		return _superficie_elipsoide(semieje_x, semieje_y, semieje_z)           ## m²
+var masa: float:
+	get:
+		return densidad * volumen
+var resistencia: float:
+	get:
+		return RESISTENCIA_POR_SOLIDEZ * solidez                                 ## puntos que aguanta antes de romperse (hoy 30 por ×1)
+var flota: bool:
+	get:
+		return elevacion > 0.0
+var anclado: bool:
+	get:
+		return permanencia > 0.0
+var protege: bool:
+	get:
+		return solidez > 0.0
+var se_expande: bool:
+	get:
+		return crece > 0.0
+var se_repite: bool:
+	get:
+		return copias > 1
+var rebota: bool:
+	get:
+		return rebotes > 0
 var forma: String = "x_mano"           ## nombre derivado: x_mano | alto | abajo
 var cast_point: String = ""            ## id de la variación de CastPoints para esa forma
 var niveles: int = 1
@@ -153,6 +228,7 @@ var _tocados: Dictionary = {}          ## campos que algún glifo ha tocado (par
 ## Construye el hechizo de un elemento con unos glifos. `glifos` = nombre V2 -> cuántas veces (los nombres con alias, como «levitacion», se resuelven).
 static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0) -> Hechizo:
 	var h := Hechizo.new()
+	CapaBases.aplicar_defectos(h)          # 1. los defectos: los del `var`, salvo lo que el laboratorio haya tocado en «Bases» (vacía en el juego normal)
 	h.calidad = calidad_trazo
 	h.fuente = elemento_rune
 	# 2. el elemento
@@ -175,18 +251,34 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 	for nombre in Sigils.GLIFOS:             # en el orden de la tabla, no en el de dibujo: la receta es un multiconjunto
 		if not h.glifos.has(nombre):
 			continue
-		for m in (Sigils.GLIFOS[nombre]["modificadores"] as Array):
+		for m in CapaBases.modificadores_glifo(nombre):      # = Sigils.GLIFOS[nombre]["modificadores"] salvo que «Bases» los haya tocado
 			var mod: Dictionary = (m as Dictionary).duplicate()
 			mod["n"] = int(h.glifos[nombre])
 			mod["de"] = "glifo:%s" % nombre
 			lista.append(mod)
 	h._aplicar(lista, "glifo", true)
-	# la calidad del trazo solo alarga lo que dura
+	# la calidad del trazo solo alarga lo que dura: la vida natural y la permanencia
 	if h.persiste > 0.0:
 		h.persiste *= Sigils.quality_factor(h.calidad)
 		h.origen["persiste"] = "calidad"
+	if h.permanencia > 0.0:
+		h.permanencia *= Sigils.quality_factor(h.calidad)
+		h.origen["permanencia"] = "calidad"
+	h._limitar()
 	h._derivar()
 	return h
+
+
+## Límites globales de seguridad (ESPEC §1.9), al final de `construir()` y de `con()`. Un semieje tampoco baja de `grosor_min`.
+func _limitar() -> void:
+	semieje_x = clampf(semieje_x, grosor_min, LIM_SEMIEJE_HORIZONTAL)
+	semieje_z = clampf(semieje_z, grosor_min, LIM_SEMIEJE_HORIZONTAL)
+	semieje_y = clampf(semieje_y, grosor_min, LIM_SEMIEJE_ALTO)
+	elevacion = clampf(elevacion, 0.0, LIM_ELEVACION)
+	distancia_max = clampf(distancia_max, 0.0, LIM_DISTANCIA)
+	persiste = clampf(persiste, 0.0, LIM_VIDA_S)
+	permanencia = clampf(permanencia, 0.0, LIM_VIDA_S - persiste)       # persiste + permanencia ≤ 25 s: primero la vida natural, la permanencia se queda con el resto
+	copias = clampi(copias, 1, LIM_COPIAS)
 
 
 ## Los campos de RuneData de hoy, traducidos a modificadores «fija», más los `modificadores` propios del .tres (HC3: ahí viven las duraciones de estado, la fuerza del golpe y el daño extra de la tierra).
@@ -194,8 +286,9 @@ static func _modificadores_de_elemento(r: RuneData) -> Array:
 	var lista: Array = []
 	for par in [["dano", r.damage], ["persiste", r.persiste], ["empuje", r.empuje], ["pisable", r.pisable], ["deja", r.deja], ["estado_materia", r.estado]]:
 		lista.append({"campo": par[0], "op": "fija", "valor": par[1], "n": 1})
-	for campo in r.modificadores:
-		var m: Dictionary = (r.modificadores[campo] as Dictionary).duplicate()
+	var propios: Dictionary = CapaBases.modificadores_elemento(r)       # los del .tres, o los de «Bases» si se tocaron
+	for campo in propios:
+		var m: Dictionary = (propios[campo] as Dictionary).duplicate()
 		m["campo"] = String(campo)
 		m["n"] = 1
 		lista.append(m)
@@ -252,10 +345,14 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 			origen[campo] = String(m.get("de", etiqueta))
 
 
-## Un valor simbólico («@radio_barrera») se resuelve aquí; cualquier otro se devuelve tal cual.
+## Un valor simbólico («@radio_barrera», «@velocidad_flecha») se resuelve aquí; cualquier otro se devuelve tal cual.
 static func _valor_de(v: Variant) -> Variant:
-	if v is String and String(v) == "@radio_barrera":
-		return Sigils.radio_barrera_casillas()
+	if v is String:
+		match String(v):
+			"@radio_barrera":
+				return Sigils.radio_barrera_casillas()
+			"@velocidad_flecha":
+				return Sigils.velocidad_flecha()
 	return v
 
 
@@ -293,8 +390,14 @@ func _derivar() -> void:
 	coste = vol / base * (1.0 + Sigils.COSTE_PROP_V2 * float(propiedades_usadas().size()))
 	coste_tinta = Tinta.coste_receta(coste)
 	recarga = Sigils.cooldown_v2(glifos)
-	for campo in ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga"]:
+	for campo in DERIVADOS:
 		origen[campo] = "derivado"
+
+
+## Superficie aproximada de un elipsoide (fórmula de Knud Thomsen, error < 1,1 %).
+static func _superficie_elipsoide(a: float, b: float, c: float) -> float:
+	var p: float = 1.6075
+	return 4.0 * PI * pow((pow(a * b, p) + pow(a * c, p) + pow(b * c, p)) / 3.0, 1.0 / p)
 
 
 ## Eje en el que más se estira: "x" | "y" | "z", o "esfera" si no se ha estirado ninguno. (Empate: gana Z, luego Y, luego X.)
@@ -324,7 +427,13 @@ static func nombre_derivado(sx: float, sy: float, sz: float, viaja_: bool) -> St
 func propiedades_usadas() -> Dictionary:
 	var salida: Dictionary = {}
 	for campo in PROPIEDAD_DE:
-		if _tocados.has(campo):
+		if campo == "permanencia":
+			# Solo cuenta (y encarece) la parte del glifo ᛉ: el segundo en adelante de la barrera también suma permanencia, pero eso es tiempo extra, no una propiedad nueva.
+			var n: int = int(glifos.get("permanencia", 0))
+			if n > 0 and Sigils.GLIFOS_V2.has("permanencia"):
+				var d: Dictionary = Sigils.GLIFOS_V2["permanencia"]
+				salida["permanencia"] = minf(float(d["inicio"]) + float(d["por_glifo"]) * float(n), float(d["tope"]))
+		elif _tocados.has(campo):
 			salida[PROPIEDAD_DE[campo]] = float(_leer(String(campo)))
 	return salida
 
@@ -343,7 +452,7 @@ func copiar() -> Hechizo:
 		if (int(p["usage"]) & PROPERTY_USAGE_SCRIPT_VARIABLE) == 0:
 			continue
 		var nombre: String = String(p["name"])
-		if nombre == "semiejes" or nombre == "semiejes_glifos":      # vistas de solo lectura
+		if SOLO_LECTURA.has(nombre):      # vistas y derivados de solo lectura
 			continue
 		var v: Variant = get(nombre)
 		if v is Dictionary or v is Array:
@@ -365,6 +474,7 @@ func con(cambios: Dictionary) -> Hechizo:
 		if PROPIEDAD_DE.has(String(campo)):
 			_tocados[String(campo)] = true
 		origen[String(campo)] = "lab"
+	_limitar()
 	_derivar()
 	return self
 
@@ -432,7 +542,7 @@ func a_diccionario() -> Dictionary:
 		d[par[0]] = _plano(get(String(par[0])))
 	d["elemento"] = elemento
 	d["calidad"] = calidad
-	for campo in ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga"]:
+	for campo in DERIVADOS:
 		d[campo] = get(campo)
 	d["semiejes_glifos"] = _plano(semiejes_glifos)
 	d["glifos"] = glifos.duplicate()
@@ -450,6 +560,13 @@ static func _plano(v: Variant) -> Variant:
 
 ## El valor por defecto de un campo (el del `var`): se lee de un Hechizo recién creado, así no hay dos copias.
 static func defecto(campo: String) -> Variant:
+	var h := Hechizo.new()
+	CapaBases.aplicar_defectos(h)          # refleja «Bases»; sin ella es el `var`
+	return h._leer(campo)
+
+
+## El defecto ORIGINAL (el del `var`), sin la capa de «Bases»: lo que el lab compara para saber qué se tocó y qué se exporta.
+static func defecto_original(campo: String) -> Variant:
 	return Hechizo.new()._leer(campo)
 
 

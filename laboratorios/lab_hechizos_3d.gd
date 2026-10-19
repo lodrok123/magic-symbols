@@ -6,13 +6,15 @@ extends LabRecetas3D
 ## copiar para no tener dos laboratorios que se desincronicen: lo de R4 (154) sigue igual y aquí solo se añade.
 ## Escena: laboratorios/LabHechizos3D.tscn (LabRecetas3D.tscn queda como alias que la instancia). Mapa: mapas/LabHechizos.txt.
 ##
-## PESTAÑAS (F1–F3; el lab se las queda: las F1–F6 de la maqueta —modo de luz, rugosidad, cabeza— no llegan a ella mientras está abierto):
+## PESTAÑAS (F1–F4; el lab se las queda: las F1–F6 de la maqueta —modo de luz, rugosidad, cabeza— no llegan a ella mientras está abierto):
 ##   F1 Receta  · lo de hoy (panel de glifos, alambre, casillas, barrido) + (HC5) la TABLA DEL HECHIZO a la derecha: cada campo con su valor, su defecto y de dónde viene
 ##        (elemento / glifo / calidad / derivado / lab); lo que difiere del defecto, resaltado. ↑/↓ elige fila, ←/→ cambia el valor (Mayús ×10), Retroceso restaura la fila
 ##        (Mayús+Retroceso todas): el SIGUIENTE lanzamiento usa lo tocado. G lo guarda, P lo imprime como modificadores listos para pegar en Sigils.GLIFOS o un .tres.
 ##   F2 Cast point · lab_cast_point_3d.gd (LabCastPoint3D, T-CP1): clip recortado, instante, origen desplazable, una mano.
 ##   F3 Impacto · las constantes `static` de Combate3D EN VIVO (empuje, suelo, hit-stop, destello, aplastamiento, salto, interrupción):
 ##        ↑/↓ elige, ←/→ cambia (Mayús ×10), G guarda en user://lab_hechizos.json, P imprime la tabla para volcarla a combate_3d.gd.
+##   F4 VFX · lab_vfx_3d.gd (LabVfx3D): la MATRIZ DE APROBACIÓN de efectos (estado × volumen × propiedad × impacto): Pablo lanza cada celda y la marca
+##        aprobada / rechazada / con nota; se guarda en user://vfx_aprobados.json (trabajo pendiente del Pipeline) y mide luces y partículas contra el presupuesto.
 ## COMUNES: G guarda · P imprime · Numpad / cámara lateral ↔ de juego · L / . / , tiempo (TiempoLab3D).
 ##
 ## MODO CONJURO COMPLETO (C): lanza por el CAMINO REAL, `Lanzador3D.lanzar_ahora(datos, origen, dir, true)`: las fases runa → voluta → forma → (clip) →
@@ -26,9 +28,9 @@ extends LabRecetas3D
 ## derrite el hielo y borra los estados de suelo; sin eso los resultados se contaminan y salen falsos «sin_efecto_visible».
 ##
 ## TECLAS (en F2 mandan las de F2; B es el barrido solo fuera de F2):
-##   F1/F2/F3 pestaña · C modo completo ↔ rápido (en F2 la C es de «fuente de clip») · Numpad + tinta infinita · Numpad − recarga · Numpad × goblin que ataca
+##   F1/F2/F3/F4 pestaña · C modo completo ↔ rápido (en F2 la C es de «fuente de clip») · Numpad + tinta infinita · Numpad − recarga · Numpad × goblin que ataca
 ##   Numpad / cámara lateral · Espacio lanza · B barrido · Tab elemento · Numpad 1–8 glifos · Numpad 0 limpia · R recarga · L . , tiempo · G guarda · P imprime
-##   F4 interfaz completa ↔ compacta (la compacta es la de F1 por defecto; ver la sección «Interfaz COMPACTA» del final)
+##   F6 interfaz completa ↔ compacta (era F4 hasta el 19/10) (la compacta es la de F1 por defecto; ver la sección «Interfaz COMPACTA» del final)
 
 const NIVEL_HECHIZOS: String = "LabHechizos"
 const FILAS_TABLA: int = 34                      ## filas de la tabla de F1 que caben a la vez (el resto se desplaza con la selección)
@@ -57,7 +59,7 @@ const IMPACTO: Array = [
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
 ]
 
-enum Pestana { RECETA, CAST_POINT, IMPACTO }
+enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX }
 
 var pestana: int = Pestana.RECETA
 var modo_completo: bool = false
@@ -74,6 +76,7 @@ var impacto_inicial: Dictionary = {}           ## los valores de Combate3D al ab
 var fases_vistas: Array = []                   ## [{fase, t_ms}] del último conjuro completo, en el orden en que salieron
 var conjuros: int = 0                          ## lanzamientos por el camino real
 var f2: Variant = null                         ## LabCastPoint3D si existe (T-CP1); null si no
+var f4: Variant = null                         ## LabVfx3D si existe (F4, matriz de aprobación de VFX); null si no
 var limpiezas: int = 0
 
 var _cam_lat: Camera3D = null
@@ -104,9 +107,16 @@ func iniciar(mundo: Variant) -> void:
 	_l.cambios_hechizo = cambios_hechizo           # el mismo diccionario: lo que se toque aquí lo ve el lanzador al instante
 	_montar_panel_modos()
 	_montar_f2()
+	_montar_f4()
 	_montar_tabla()
 	_quitar_paleta()
 	_montar_ui_compacta()
+	_montar_diseno()
+	if cargar_al_abrir:
+		cargar_recetas()
+		cargar()
+	else:
+		recetas = RecetasLab.por_defecto()
 	poner_atacar(false)
 	_refrescar_hud()
 	_aplicar_ui()
@@ -233,6 +243,8 @@ func _process(delta: float) -> void:
 		_t_aviso -= delta
 		if _t_aviso <= 0.0 and _lbl_aviso != null:
 			_lbl_aviso.text = ""
+	if f4 != null:
+		f4.call("paso", delta)
 	if atacar_goblin and _jug != null:
 		_jug.vida = 100.0
 		_jug.muerto = false
@@ -392,8 +404,20 @@ func tabla_cambiar(pasos: int) -> Variant:
 	var campo: String = String(fila["campo"])
 	if not Hechizo.EDITABLES.has(campo):
 		return null
+	var nuevo: Variant = _valor_cambiado(campo, fila["valor"], pasos)
+	var base: Variant = hechizo_base()._leer(campo)
+	if (nuevo is float and base is float and is_equal_approx(float(nuevo), float(base))) or nuevo == base:
+		cambios_hechizo.erase(campo)
+	else:
+		cambios_hechizo[campo] = nuevo
+	_refrescar_hud()
+	return nuevo
+
+
+## El valor de un campo editable tras `pasos` pulsaciones (los bool se alternan, las listas avanzan, los números suman su paso dentro de [min, max]). Lo comparten la tabla de
+## «Este lanzamiento» y los defectos de «Bases».
+func _valor_cambiado(campo: String, actual: Variant, pasos: int) -> Variant:
 	var e: Dictionary = Hechizo.EDITABLES[campo]
-	var actual: Variant = fila["valor"]
 	var nuevo: Variant
 	match String(e.get("tipo", "numero")):
 		"bool":
@@ -406,12 +430,6 @@ func tabla_cambiar(pasos: int) -> Variant:
 			nuevo = snappedf(v, float(e["paso"]) * 0.1)
 			if actual is int:
 				nuevo = int(roundf(float(nuevo)))
-	var base: Variant = hechizo_base()._leer(campo)
-	if (nuevo is float and base is float and is_equal_approx(float(nuevo), float(base))) or nuevo == base:
-		cambios_hechizo.erase(campo)
-	else:
-		cambios_hechizo[campo] = nuevo
-	_refrescar_hud()
 	return nuevo
 
 
@@ -449,10 +467,12 @@ func _montar_tabla() -> void:
 ## El texto de la tabla (BBCode) de las filas visibles, en una tabla de 4 columnas (campo, valor, defecto, origen) para que alinee con cualquier tipografía. ► = la fila elegida;
 ## lo que difiere del defecto va en negrita y en el color de su origen (elemento, glifo, calidad, lab); lo que no difiere, en gris; los derivados, en gris oscuro.
 func texto_tabla() -> String:
+	if nivel == Nivel.BASES:
+		return texto_tabla_bases()
 	var filas: Array = tabla_filas()
 	var desde: int = clampi(tabla_sel - FILAS_TABLA / 2, 0, maxi(filas.size() - FILAS_TABLA, 0))
 	var t: PackedStringArray = []
-	t.append("[b]HECHIZO[/b] · ↑↓ fila · ←→ cambia (Mayús ×10) · Retroceso restaura (Mayús: todas) · G guarda · P imprime%s" % [
+	t.append("[b]HECHIZO · «Este lanzamiento»[/b] (N: Bases) · ↑↓ fila · ←→ cambia (Mayús ×10) · X restaura (Mayús: todas) · G guarda · P imprime%s" % [
 		"   [color=#ffe45e]%d tocado(s)[/color]" % cambios_hechizo.size() if not cambios_hechizo.is_empty() else ""])
 	t.append("[table=4]")
 	for cab in ["campo", "valor", "defecto", "origen"]:
@@ -487,7 +507,7 @@ func _fmt(v: Variant) -> String:
 
 func datos_guardado() -> Dictionary:
 	var d: Dictionary = {"impacto": impacto_tabla(), "modo_completo": modo_completo, "tinta_infinita": tinta_infinita, "recarga_activa": recarga_activa,
-		"hechizo": cambios_hechizo.duplicate()}
+		"hechizo": cambios_hechizo.duplicate(), "bases": texto_bases(), "orden": orden.duplicate(), "elemento": elemento, "limite_glifos": limite_glifos}
 	if f2 != null and f2.has_method("datos"):
 		d["cast_point"] = f2.call("datos")
 	return d
@@ -498,6 +518,8 @@ func guardar() -> bool:
 	if f == null:
 		return false
 	f.store_string(JSON.stringify(datos_guardado(), "\t"))
+	if f4 != null:
+		f4.call("guardar")                       # la matriz de F4 va a su propio archivo (user://vfx_aprobados.json): lo lee el Pipeline
 	return true
 
 
@@ -511,8 +533,12 @@ func tabla_texto() -> String:
 		var ahora: float = impacto_valor(n)
 		t.append("%s = %s%s" % [n, str(snappedf(ahora, 0.0001)), ("   # (antes %s)" % str(snappedf(base, 0.0001))) if not is_equal_approx(base, ahora) else ""])
 	t.append("")
-	t.append("# F1 Hechizo · lo que has tocado en la tabla (modificadores listos para pegar)")
-	t.append(Hechizo.texto_modificadores(cambios_hechizo))
+	if nivel == Nivel.BASES:
+		t.append("# F1 Bases · lo que has tocado (listo para pegar en Sigils.GLIFOS, en el `modificadores` de cada .tres y en los `var` de Hechizo)")
+		t.append(texto_bases())
+	else:
+		t.append("# F1 Hechizo · lo que has tocado en la tabla (modificadores listos para pegar)")
+		t.append(Hechizo.texto_modificadores(cambios_hechizo))
 	if f2 != null and f2.has_method("tabla_texto"):
 		t.append("")
 		t.append(String(f2.call("tabla_texto")))
@@ -547,7 +573,7 @@ func poner_camara_lateral(si: bool) -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 
 func poner_pestana(p: int) -> void:
-	pestana = clampi(p, Pestana.RECETA, Pestana.IMPACTO)
+	pestana = clampi(p, Pestana.RECETA, Pestana.VFX)
 	_actualizar_panel_modos()
 	_refrescar_hud()
 
@@ -560,13 +586,20 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var atendida: bool = true
 	# Con F2 abierta, sus teclas mandan (también las repeticiones: las flechas y Q/A se dejan pulsadas).
-	if pestana == Pestana.CAST_POINT and f2 != null and f2.has_method("tecla") and not _es_comun(k):
-		if bool(f2.call("tecla", k)):
+	var pestana_ext: Variant = f2 if pestana == Pestana.CAST_POINT else (f4 if pestana == Pestana.VFX else null)
+	if pestana_ext != null and pestana_ext.has_method("tecla") and not _es_comun(k):
+		if bool(pestana_ext.call("tecla", k)):
 			get_viewport().set_input_as_handled()
 			return
 	if k.echo and not ((pestana == Pestana.IMPACTO or pestana == Pestana.RECETA) and (k.keycode == KEY_LEFT or k.keycode == KEY_RIGHT)):
 		return
 	var paso: int = 10 if k.shift_pressed else 1
+	if _tecla_diseno(k):
+		get_viewport().set_input_as_handled()
+		_refrescar_hud()
+		return
+	var receta_f1: bool = pestana == Pestana.RECETA
+	var en_bases: bool = receta_f1 and nivel == Nivel.BASES
 	if k.keycode == KEY_F1:
 		poner_pestana(Pestana.RECETA)
 	elif k.keycode == KEY_F2:
@@ -586,22 +619,51 @@ func _unhandled_input(ev: InputEvent) -> void:
 	elif k.keycode == KEY_KP_DIVIDE:
 		poner_camara_lateral(not camara_lateral)
 	elif k.keycode == KEY_F4:
+		poner_pestana(Pestana.VFX)
+	elif k.keycode == KEY_F6:                                  # 19/10: antes era F4; F4 pasó a ser la pestaña de VFX
 		ui_compacta = not ui_compacta
 		_aplicar_ui()
 	elif k.keycode == KEY_G:
 		guardar()
 	elif k.keycode == KEY_P:
 		print(tabla_texto())
-	elif pestana == Pestana.RECETA and k.keycode == KEY_UP:
+	elif receta_f1 and k.keycode == KEY_N:
+		poner_nivel(Nivel.LANZAMIENTO if nivel == Nivel.BASES else Nivel.BASES)
+	elif receta_f1 and k.keycode == KEY_K:
+		comparar()
+	elif receta_f1 and k.keycode == KEY_KP_9 and Sigils.GLIFOS_V2.size() > 8:
+		sumar(String(Sigils.GLIFOS_V2.keys()[8]), -1 if k.shift_pressed else 1)             # el 9.º glifo (ᛉ permanencia): el Numpad solo tiene 8 teclas de 1 a 8 en LabRecetas3D
+	elif receta_f1 and k.keycode == KEY_BACKSPACE:
+		quitar_ultimo()                                                                        # antes restauraba la fila de la tabla: eso pasó a X
+	elif receta_f1 and k.keycode == KEY_DELETE:
+		limpiar()
+	elif receta_f1 and k.keycode == KEY_X:
+		if en_bases:
+			bases_restaurar(k.shift_pressed)
+		else:
+			tabla_restaurar(k.shift_pressed)
+	elif en_bases and k.keycode == KEY_UP:
+		bases_mover(-1)
+	elif en_bases and k.keycode == KEY_DOWN:
+		bases_mover(1)
+	elif en_bases and k.keycode == KEY_LEFT:
+		bases_cambiar(-paso)
+	elif en_bases and k.keycode == KEY_RIGHT:
+		bases_cambiar(paso)
+	elif en_bases and k.keycode == KEY_PAGEUP:
+		bases_cambiar_pagina(-1)
+	elif en_bases and k.keycode == KEY_PAGEDOWN:
+		bases_cambiar_pagina(1)
+	elif en_bases and k.keycode == KEY_T:
+		bases_edita_tope = not bases_edita_tope
+	elif receta_f1 and k.keycode == KEY_UP:
 		tabla_mover(-1)
-	elif pestana == Pestana.RECETA and k.keycode == KEY_DOWN:
+	elif receta_f1 and k.keycode == KEY_DOWN:
 		tabla_mover(1)
-	elif pestana == Pestana.RECETA and k.keycode == KEY_LEFT:
+	elif receta_f1 and k.keycode == KEY_LEFT:
 		tabla_cambiar(-paso)
-	elif pestana == Pestana.RECETA and k.keycode == KEY_RIGHT:
+	elif receta_f1 and k.keycode == KEY_RIGHT:
 		tabla_cambiar(paso)
-	elif pestana == Pestana.RECETA and k.keycode == KEY_BACKSPACE:
-		tabla_restaurar(k.shift_pressed)
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_UP:
 		impacto_sel = (impacto_sel - 1 + IMPACTO.size()) % IMPACTO.size()
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_DOWN:
@@ -624,7 +686,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 ## Teclas que valen en cualquier pestaña y que F2 NO puede quitarse: las de cambiar de pestaña, el tiempo y los interruptores del Numpad.
 func _es_comun(k: InputEventKey) -> bool:
-	return [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_KP_ADD, KEY_KP_SUBTRACT, KEY_KP_MULTIPLY, KEY_KP_DIVIDE].has(k.keycode)
+	return [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F6, KEY_KP_ADD, KEY_KP_SUBTRACT, KEY_KP_MULTIPLY, KEY_KP_DIVIDE].has(k.keycode)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -640,6 +702,18 @@ func _montar_f2() -> void:
 		return
 	f2 = sc.new()
 	f2.call("iniciar", self)
+
+
+## F4 (lab_vfx_3d.gd): la matriz de aprobación de VFX. Si el archivo no está, la pestaña enseña un aviso.
+func _montar_f4() -> void:
+	var ruta: String = "res://laboratorios/lab_vfx_3d.gd"
+	if not ResourceLoader.exists(ruta):
+		return
+	var sc: GDScript = load(ruta) as GDScript
+	if sc == null:
+		return
+	f4 = sc.new()
+	f4.call("iniciar", self)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -665,8 +739,8 @@ func _montar_panel_modos() -> void:
 	caja.add_child(v)
 	var fila := HBoxContainer.new()
 	v.add_child(fila)
-	for i in range(3):
-		var nombre: String = ["F1 Receta", "F2 Cast point", "F3 Impacto"][i]
+	for i in range(4):
+		var nombre: String = ["F1 Receta", "F2 Cast point", "F3 Impacto", "F4 VFX"][i]
 		var b: Button = _boton(nombre, func() -> void: poner_pestana(i))
 		fila.add_child(b)
 		_panel_extra["pestana%d" % i] = b
@@ -690,7 +764,7 @@ func _montar_panel_modos() -> void:
 func _actualizar_panel_modos() -> void:
 	if _panel_extra.is_empty():
 		return
-	for i in range(3):
+	for i in range(4):
 		(_panel_extra["pestana%d" % i] as Button).disabled = (pestana == i)
 	(_panel_extra["modo"] as Button).text = "Modo: CONJURO COMPLETO (C)" if modo_completo else "Modo: rápido (C)"
 	(_panel_extra["tinta"] as Button).text = "Tinta: infinita (Num +)" if tinta_infinita else "Tinta: real (Num +)"
@@ -703,24 +777,33 @@ func _actualizar_panel_modos() -> void:
 func _refrescar_hud() -> void:
 	super._refrescar_hud()
 	if _tabla_label != null:
-		_tabla_label.visible = pestana == Pestana.RECETA and not _compacta_activa()
+		_tabla_label.visible = pestana == Pestana.RECETA and (not _compacta_activa() or nivel == Nivel.BASES)        # «Bases» se ve también con la interfaz compacta
 		if _tabla_label.visible:
 			_tabla_label.text = texto_tabla()
+			_colocar_tabla()
 	_refrescar_ui_compacta()
+	if _lbl_diseno != null:
+		_lbl_diseno.visible = pestana == Pestana.RECETA
+		_lbl_diseno.text = texto_diseno()
+	if _lbl_registro != null:
+		_lbl_registro.visible = nivel != Nivel.BASES
 
 
 func texto_hud() -> String:
 	var lineas: PackedStringArray = []
-	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto        MODO: %s        tinta %s · recarga %s · goblin %s" % [
-		["F1 RECETA", "F2 CAST POINT", "F3 IMPACTO"][pestana], "CONJURO COMPLETO" if modo_completo else "rápido",
+	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto · F4 VFX        MODO: %s        tinta %s · recarga %s · goblin %s" % [
+		["F1 RECETA", "F2 CAST POINT", "F3 IMPACTO", "F4 VFX"][pestana], "CONJURO COMPLETO" if modo_completo else "rápido",
 		"infinita" if tinta_infinita else "real", "real" if recarga_activa else "apagada", "ATACA" if atacar_goblin else "quieto"])
 	match pestana:
 		Pestana.RECETA:
 			lineas.append(super.texto_hud())
+			lineas.append("Diseño: N Bases · Numpad 1-9 en orden · Retroceso quita · Supr vacía · Mayús+L límite · Ctrl+S guarda · Ctrl+1-9 relanza · K compara · X restaura · P exporta · G guarda todo")
 		Pestana.CAST_POINT:
 			lineas.append(String(f2.call("texto")) if f2 != null and f2.has_method("texto") else "(F2: el laboratorio de cast points no está cargado)")
 		Pestana.IMPACTO:
 			lineas.append(_texto_impacto())
+		Pestana.VFX:
+			lineas.append(String(f4.call("texto")) if f4 != null and f4.has_method("texto") else "(F4: la matriz de VFX no está cargada)")
 	lineas.append(_texto_conjuro())
 	return "\n".join(lineas)
 
@@ -822,13 +905,16 @@ func registro_lineas() -> PackedStringArray:
 ## Las variables del hechizo que NO valen cero (las que de verdad están en marcha), una por línea: «campo = valor (origen)». Salen del `Hechizo` real (hechizo_actual: elemento +
 ## glifos + lo tocado), o sea lo que lanzaría Espacio; el origen dice de dónde viene («lab» = lo has tocado tú). Criterio de Juego (diario 177): número ≠ 0, bool verdadero, texto
 ## no vacío; sin color, eventos ni derivados (se calculan) y sin los semiejes (están a la derecha, siempre). Pablo las usa para pedir «sube esta, baja aquella»: por eso lleva el
-## nombre exacto del campo. Con el elemento solo ya salen `copias`, `fuerza_golpe`, `veneno_dps` y `estado_materia`: son sus valores de partida, no ruido de la lista.
+## nombre exacto del campo. Solo salen los que DIFIEREN de su base (`difiere`, de `Hechizo.tabla()`): desde la ESPEC_HECHIZO (19/10) casi todos los campos nuevos valen algo por defecto
+## (copias 1, separacion 0,5, dispersion 15, intervalo 0,25, potencia 1, densidad 1…) y saldrían siempre; así la lista enseña lo que el elemento, los glifos o tú habéis tocado.
 func variables_no_cero_lineas() -> PackedStringArray:
 	var l: PackedStringArray = []
 	for f in tabla_filas():
 		var campo: String = String(f["campo"])
 		if String(f["grupo"]) == "derivado" or campo == "color" or campo == "eventos" or campo.begins_with("semiejes."):
 			continue
+		if not bool(f.get("difiere", true)):
+			continue                                   # ESPEC_HECHIZO: con los campos nuevos (grosor_min, separacion, dispersion, intervalo, potencia…) casi todo vale algo por defecto; solo se enseña lo que se ha movido de su base
 		var v: Variant = f["valor"]
 		var activo: bool = false
 		if v is bool:
@@ -878,7 +964,7 @@ func _aplicar_ui() -> void:
 	if _caja_modos != null:
 		_caja_modos.visible = not c
 	if _tabla_label != null:
-		_tabla_label.visible = pestana == Pestana.RECETA and not c
+		_tabla_label.visible = pestana == Pestana.RECETA and (not c or nivel == Nivel.BASES)
 	_refrescar_ui_compacta()
 
 
@@ -913,8 +999,8 @@ func desactivar(clave: String) -> void:
 	activas.erase(clave)
 	var nombre: String = clave.get_slice(":", 1)
 	if clave.begins_with("glifo:"):
-		contadores.erase(nombre)
-		_refrescar(true)
+		orden = orden.filter(func(g: Variant) -> bool: return String(g) != nombre)        # la fila y el multiconjunto van juntos
+		_sincronizar_orden()
 	else:
 		cambios_hechizo.erase(nombre)
 	_refrescar_hud()
@@ -1021,7 +1107,7 @@ func _montar_ui_compacta() -> void:
 	_capa_compacta.layer = 7
 	add_child(_capa_compacta)
 	var ayuda: Label = _etiqueta_ui(0.0)
-	ayuda.text = "Espacio lanza · Tab elemento · F4 interfaz completa"
+	ayuda.text = "Espacio lanza · Tab elemento · F6 interfaz completa"
 	ayuda.modulate = Color(0.85, 0.85, 0.85, 0.8)
 	ayuda.anchor_top = 1.0
 	ayuda.anchor_bottom = 1.0
@@ -1259,3 +1345,530 @@ func _pintar_elipsoide(g: Dictionary, d: Vector3) -> void:
 	_rotulo.text = "x %.2f · y %.2f · z %.2f casillas\n%.1f × %.1f × %.1f u · %d nivel(es) · %d casillas" % [
 		float(g["x"]), float(g["y"]), float(g["z"]), 2.0 * float(g["x"]) * cas, 2.0 * float(g["z"]) * cas, alto, niveles, n_cas]
 	_rotulo.position = _jug.position + Vector3(0.0, alto + 1.4, 0.0)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  DISEÑAR (19/10): «Bases», glifos en orden, recetas con nombre, exportar y comparar
+# ---------------------------------------------------------------------------------------------------------------------
+##  El lab deja de ser solo un sitio donde probar lanzamientos: sirve para diseñar glifos y valores.
+##    N                     alterna el nivel de la tabla de F1: «Este lanzamiento» (cambios_hechizo; solo los siguientes lanzamientos) o «Bases»
+##                          (la capa `CapaBases`: valores por defecto del Hechizo, modificadores de cada glifo y de cada elemento; en MEMORIA, nunca en res://)
+##    Numpad 1–9            añade el glifo al FINAL de la fila (Mayús+Numpad quita el último de ese glifo) · Retroceso quita el último · Supr vacía
+##    Mayús+L               quita/pone el límite de 6 glifos (Hechizo.MAX_GLIFOS)
+##    Ctrl+S                guarda la receta actual (Ctrl+Mayús+S sobrescribe la última lanzada) · Ctrl+1…9 relanza la receta guardada
+##    P / G                 imprime lo tocado (en «Bases», como texto listo para pegar) / guarda todo en user://lab_hechizos.json (se recarga al abrir)
+##    K                     lanza la receta actual con las bases ORIGINALES y con las TOCADAS, una a cada lado (dos casillas entre ellas)
+##    X                     restaura la fila (Mayús: todas en «Este lanzamiento», la página en «Bases») — antes era Retroceso
+##    Solo en «Bases»:      ↑↓ fila · ←→ cambia (Mayús ×10) · RePág/AvPág cambia de página (defectos · cada glifo · el elemento) · T edita valor o tope
+
+enum Nivel { LANZAMIENTO, BASES }
+const FILAS_BASES: int = 26
+const TECLAS_DIGITO: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
+
+## Si es false, `iniciar` no recarga user://lab_hechizos.json ni user://lab_recetas.json (las pruebas lo apagan: no deben leer lo que dejó una sesión de diseño).
+static var cargar_al_abrir: bool = true
+
+var nivel: int = Nivel.LANZAMIENTO
+var orden: Array = []                          ## los glifos EN ORDEN, como en el libro (nombres de GLIFOS_V2). `contadores` (el multiconjunto) sale de aquí.
+var limite_glifos: bool = true                 ## Mayús+L lo apaga
+var recetas: Array = []                        ## las recetas con nombre (RecetasLab)
+var receta_sel: int = -1                       ## la última receta lanzada o guardada (la que sobrescribe Ctrl+Mayús+S)
+var ruta_recetas: String = RecetasLab.RUTA
+var bases_pag: int = 0                         ## página de «Bases»: 0 = defectos · 1..N = cada glifo de Sigils.GLIFOS · N+1 = el elemento elegido
+var bases_sel: int = 0
+var bases_edita_tope: bool = false             ## T: ←→ cambian el `tope` en vez del `valor`
+var comparacion: Dictionary = {}               ## lo último que hizo K: {original, tocadas} (casillas de cada lanzamiento)
+var _lbl_diseno: Label = null
+
+
+# --- glifos en orden -------------------------------------------------------------------------------------------------
+
+## Suma `delta` veces el glifo AL FINAL de la fila (o quita, si es negativo, la última aparición de ese glifo). Respeta el tope de cada glifo (+1 para ver la saturación) y
+## `Hechizo.MAX_GLIFOS` mientras el límite esté puesto. Sustituye a LabRecetas3D.sumar para que el orden se guarde.
+func sumar(glifo: String, delta: int) -> void:
+	if not Sigils.GLIFOS_V2.has(glifo):
+		return
+	if delta > 0:
+		for _i in range(delta):
+			if orden.count(glifo) >= glifos_hasta_tope(glifo) + 1:
+				break
+			if limite_glifos and orden.size() >= Hechizo.MAX_GLIFOS:
+				_aviso_ui("Máximo %d glifos (Mayús+L quita el límite)" % Hechizo.MAX_GLIFOS)
+				break
+			orden.append(glifo)
+	else:
+		for _i in range(-delta):
+			var idx: int = orden.rfind(glifo)
+			if idx < 0:
+				break
+			orden.remove_at(idx)
+	_sincronizar_orden()
+
+
+func limpiar() -> void:
+	orden.clear()
+	_sincronizar_orden()
+
+
+## Quita el último glifo de la fila (Retroceso).
+func quitar_ultimo() -> void:
+	if not orden.is_empty():
+		orden.pop_back()
+	_sincronizar_orden()
+
+
+## Pone la fila entera (para recetas y para recargar). Respeta el límite si está puesto; ignora lo que no sea un glifo.
+func poner_orden(lista: Array) -> void:
+	orden.clear()
+	for g in lista:
+		if Sigils.GLIFOS_V2.has(String(g)) and not (limite_glifos and orden.size() >= Hechizo.MAX_GLIFOS):
+			orden.append(String(g))
+	_sincronizar_orden()
+
+
+## `contadores` (el multiconjunto con el que se construye) se rehace desde la fila. El MISMO diccionario: otros lo tienen referenciado.
+func _sincronizar_orden() -> void:
+	contadores.clear()
+	for g in orden:
+		contadores[g] = int(contadores.get(g, 0)) + 1
+	_refrescar(true)
+	_refrescar_hud()
+
+
+## Mayús+L. Al volver a poner el límite, la fila se recorta a 6 (con aviso).
+func poner_limite(si: bool) -> void:
+	limite_glifos = si
+	if si and orden.size() > Hechizo.MAX_GLIFOS:
+		orden.resize(Hechizo.MAX_GLIFOS)
+		_sincronizar_orden()
+		_aviso_ui("Límite puesto: la fila se recorta a %d glifos" % Hechizo.MAX_GLIFOS)
+	elif not si:
+		_aviso_ui("⚠ LÍMITE DE GLIFOS DESACTIVADO (Mayús+L lo vuelve a poner)")
+	_refrescar_hud()
+
+
+func texto_orden() -> String:
+	if orden.is_empty():
+		return "Glifos (0/%d): —  (esfera base)" % Hechizo.MAX_GLIFOS
+	return "Glifos (%d/%d): %s" % [orden.size(), Hechizo.MAX_GLIFOS, " → ".join(PackedStringArray(orden))]
+
+
+# --- nivel «Bases» -----------------------------------------------------------------------------------------------------
+
+func poner_nivel(n: int) -> void:
+	nivel = n
+	bases_sel = 0
+	_aplicar_ui()
+	_refrescar_hud()
+
+
+func bases_paginas() -> Array:
+	var p: Array = [["defectos", ""]]
+	for g in Sigils.GLIFOS:
+		p.append(["glifo", String(g)])
+	p.append(["elemento", elemento])
+	return p
+
+
+func bases_cambiar_pagina(d: int) -> void:
+	bases_pag = posmod(bases_pag + d, bases_paginas().size())
+	bases_sel = 0
+	_refrescar_hud()
+
+
+func _pagina_actual() -> Array:
+	var pgs: Array = bases_paginas()
+	return pgs[clampi(bases_pag, 0, pgs.size() - 1)]
+
+
+## Las filas de la página actual. «defecto»: {tipo, campo, valor, original}. «mod»: {tipo, clave, campo, op, valor, tope, desde, salta, orig (el modificador original), difiere}.
+func bases_filas() -> Array:
+	var pag: Array = _pagina_actual()
+	var filas: Array = []
+	match String(pag[0]):
+		"defectos":
+			for f in Hechizo.construir(null, {}).tabla():
+				if not bool(f["editable"]) or String(f["grupo"]) == "derivado":
+					continue
+				var campo: String = String(f["campo"])
+				var orig: Variant = Hechizo.defecto_original(campo)
+				filas.append({"tipo": "defecto", "campo": campo, "valor": f["valor"], "original": orig, "difiere": _distinto(f["valor"], orig)})
+		"glifo":
+			var lista: Array = CapaBases.modificadores_glifo(String(pag[1]))
+			var origl: Array = Sigils.GLIFOS[String(pag[1])]["modificadores"]
+			for i in range(lista.size()):
+				var m: Dictionary = lista[i]
+				var o: Dictionary = origl[i] if i < origl.size() else {}
+				filas.append(_fila_mod(i, String(m["campo"]), m, o))
+		"elemento":
+			var mods: Dictionary = CapaBases.modificadores_elemento(runa())
+			var origs: Dictionary = runa().modificadores
+			var i2: int = 0
+			for campo2 in mods:
+				filas.append(_fila_mod(i2, String(campo2), mods[campo2] as Dictionary, (origs.get(campo2, {}) as Dictionary)))
+				i2 += 1
+	return filas
+
+
+func _fila_mod(i: int, campo: String, m: Dictionary, orig: Dictionary) -> Dictionary:
+	return {"tipo": "mod", "clave": i, "campo": campo, "op": m.get("op", ""), "valor": m.get("valor"), "tope": m.get("tope"), "desde": m.get("desde"), "salta": m.get("salta"),
+		"orig": orig, "difiere": not _mod_igual(m, orig)}
+
+
+## ¿Dos modificadores son el mismo? (los números se comparan con tolerancia; JSON los devuelve todos como float).
+static func _mod_igual(a: Dictionary, b: Dictionary) -> bool:
+	if a.size() != b.size():
+		return false
+	for k in a:
+		if not b.has(k):
+			return false
+		if _distinto(a[k], b[k]):
+			return false
+	return true
+
+
+static func _distinto(a: Variant, b: Variant) -> bool:
+	if (a is float or a is int) and (b is float or b is int):
+		return not is_equal_approx(float(a), float(b))
+	return a != b
+
+
+func bases_mover(pasos: int) -> void:
+	bases_sel = posmod(bases_sel + pasos, maxi(bases_filas().size(), 1))
+	_refrescar_hud()
+
+
+## Paso de un número de modificador según su tamaño (0,05 hasta 1; 0,25 hasta 10; 1 hasta 100; 5 por encima).
+static func _paso_numero(v: float) -> float:
+	var a: float = absf(v)
+	return 0.05 if a < 1.0 else (0.25 if a < 10.0 else (1.0 if a < 100.0 else 5.0))
+
+
+## Cambia la fila elegida de «Bases» `pasos` veces su paso. Devuelve el valor nuevo, o null si esa celda no se toca (un símbolo como «@radio_barrera»).
+## Si lo editado vuelve a ser igual que el original, la entrada se quita de la capa. Nunca escribe en res://.
+func bases_cambiar(pasos: int) -> Variant:
+	var filas: Array = bases_filas()
+	if filas.is_empty():
+		return null
+	var f: Dictionary = filas[clampi(bases_sel, 0, filas.size() - 1)]
+	var pag: Array = _pagina_actual()
+	var nuevo: Variant = null
+	if String(f["tipo"]) == "defecto":
+		var campo: String = String(f["campo"])
+		nuevo = _valor_cambiado(campo, f["valor"], pasos)
+		if not _distinto(nuevo, f["original"]):
+			CapaBases.quitar_defecto(campo)
+		else:
+			CapaBases.poner_defecto(campo, nuevo)
+	else:
+		var que: String = "tope" if bases_edita_tope else "valor"
+		var i: int = int(f["clave"])
+		var mods_g: Array = []
+		var mods_e: Dictionary = {}
+		var m: Dictionary
+		if String(pag[0]) == "glifo":
+			mods_g = CapaBases.lista_glifo(String(pag[1]))
+			m = mods_g[i]
+		else:
+			mods_e = CapaBases.diccionario_elemento(runa())
+			m = mods_e[String(f["campo"])]
+		var actual: Variant = m.get(que, m.get("valor") if que == "tope" else null)
+		if actual is String or actual == null:
+			_aviso_ui("«%s» es un símbolo (%s): se cambia en Sigils / en la constante" % [f["campo"], str(actual)])
+			return null
+		if actual is bool:
+			if que == "tope":
+				return null
+			nuevo = not bool(actual)
+		else:
+			nuevo = snappedf(float(actual) + float(pasos) * _paso_numero(float(actual)), 0.001)
+			if actual is int:
+				nuevo = int(roundf(float(nuevo)))
+		m[que] = nuevo
+		if String(pag[0]) == "glifo":
+			mods_g[i] = m
+			if mods_g == Sigils.GLIFOS[String(pag[1])]["modificadores"]:
+				CapaBases.quitar_glifo(String(pag[1]))
+			else:
+				CapaBases.poner_glifo(String(pag[1]), mods_g)
+		else:
+			mods_e[String(f["campo"])] = m
+			if mods_e == runa().modificadores:
+				CapaBases.quitar_elemento(runa())
+			else:
+				CapaBases.poner_elemento(runa(), mods_e)
+	_refrescar(true)
+	_refrescar_hud()
+	return nuevo
+
+
+## X en «Bases»: restaura la fila elegida a su valor original, o (Mayús) toda la página.
+func bases_restaurar(pagina: bool) -> void:
+	var pag: Array = _pagina_actual()
+	var filas: Array = bases_filas()
+	var f: Dictionary = filas[clampi(bases_sel, 0, filas.size() - 1)] if not filas.is_empty() else {}
+	match String(pag[0]):
+		"defectos":
+			if pagina:
+				CapaBases.defectos = {}
+			elif not f.is_empty():
+				CapaBases.quitar_defecto(String(f["campo"]))
+		"glifo":
+			var n: String = String(pag[1])
+			if pagina or f.is_empty():
+				CapaBases.quitar_glifo(n)
+			else:
+				var lista: Array = CapaBases.lista_glifo(n)
+				var orig: Array = Sigils.GLIFOS[n]["modificadores"]
+				var i: int = int(f["clave"])
+				if i < orig.size():
+					lista[i] = (orig[i] as Dictionary).duplicate(true)
+				CapaBases.poner_glifo(n, lista)
+				if lista == orig:
+					CapaBases.quitar_glifo(n)
+		"elemento":
+			if pagina or f.is_empty():
+				CapaBases.quitar_elemento(runa())
+			else:
+				var mods: Dictionary = CapaBases.diccionario_elemento(runa())
+				var campo: String = String(f["campo"])
+				if runa().modificadores.has(campo):
+					mods[campo] = (runa().modificadores[campo] as Dictionary).duplicate(true)
+				CapaBases.poner_elemento(runa(), mods)
+				if mods == runa().modificadores:
+					CapaBases.quitar_elemento(runa())
+	_refrescar(true)
+	_refrescar_hud()
+
+
+func _elementos_rune() -> Dictionary:
+	var d: Dictionary = {}
+	for e in ELEMENTOS:
+		var r: RuneData = load("res://nucleo/%s_rune.tres" % e) as RuneData
+		d[Objetos.elemento_de(r)] = r
+	return d
+
+
+## Lo tocado en «Bases» como texto LISTO PARA PEGAR en `Sigils.GLIFOS`, en el `modificadores` de cada .tres y en los `var` de Hechizo (ver CapaBases.texto).
+func texto_bases() -> String:
+	return CapaBases.texto(_elementos_rune())
+
+
+func texto_tabla_bases() -> String:
+	var pag: Array = _pagina_actual()
+	var filas: Array = bases_filas()
+	var t: PackedStringArray = []
+	var nombre_pag: String = "valores por defecto del Hechizo" if String(pag[0]) == "defectos" else ("glifo %s" % pag[1] if String(pag[0]) == "glifo" else "elemento %s" % NOMBRE_ELEMENTO.get(elemento, elemento))
+	t.append("[b][color=#ffb070]BASES[/color][/b] · en memoria, afecta a TODOS los hechizos que se construyan · [b]N[/b] vuelve a «Este lanzamiento»")
+	t.append("Página %d/%d: [b]%s[/b] · RePág/AvPág página · ↑↓ fila · ←→ cambia %s (Mayús ×10) · T edita %s · X restaura (Mayús: página) · P exporta" % [
+		bases_pag + 1, bases_paginas().size(), nombre_pag, "el TOPE" if bases_edita_tope else "el VALOR", "el valor" if bases_edita_tope else "el tope"])
+	if not CapaBases.vacia():
+		t.append("[color=#ffe45e]capa de bases con cambios: %d defecto(s) · %d glifo(s) · %d elemento(s)[/color]" % [CapaBases.defectos.size(), CapaBases.glifos.size(), CapaBases.elementos.size()])
+	var desde: int = clampi(bases_sel - FILAS_BASES / 2, 0, maxi(filas.size() - FILAS_BASES, 0))
+	if String(pag[0]) == "defectos":
+		t.append("[table=3]")
+		for cab in ["campo", "valor", "original"]:
+			t.append("[cell][color=#909090]%s[/color]   [/cell]" % cab)
+		for i in range(desde, mini(desde + FILAS_BASES, filas.size())):
+			var f: Dictionary = filas[i]
+			var col: String = "#ffe45e" if bool(f["difiere"]) else "#9a9a9a"
+			for c in [("► " if i == bases_sel else "   ") + String(f["campo"]), _fmt(f["valor"]), _fmt(f["original"])]:
+				t.append("[cell][color=%s]%s[/color]   [/cell]" % [col, ("[b]%s[/b]" % String(c)) if bool(f["difiere"]) else String(c)])
+		t.append("[/table]")
+	else:
+		t.append("[table=7]")
+		for cab in ["campo", "op", "valor", "tope", "desde", "salta", "original (valor/tope)"]:
+			t.append("[cell][color=#909090]%s[/color]   [/cell]" % cab)
+		for i in range(desde, mini(desde + FILAS_BASES, filas.size())):
+			var f: Dictionary = filas[i]
+			var col2: String = "#ffe45e" if bool(f["difiere"]) else "#9a9a9a"
+			var o: Dictionary = f["orig"]
+			var celdas: Array = [("► " if i == bases_sel else "   ") + String(f["campo"]), str(f["op"]), _marca_edicion(f["valor"], not bases_edita_tope and i == bases_sel),
+				_marca_edicion(f["tope"], bases_edita_tope and i == bases_sel), _fmt_o(f["desde"]), _fmt_o(f["salta"]), "%s / %s" % [_fmt_o(o.get("valor")), _fmt_o(o.get("tope"))]]
+			for c in celdas:
+				t.append("[cell][color=%s]%s[/color]   [/cell]" % [col2, ("[b]%s[/b]" % String(c)) if bool(f["difiere"]) else String(c)])
+		t.append("[/table]")
+		if filas.is_empty():
+			t.append("(sin modificadores)")
+	return "\n".join(t)
+
+
+func _fmt_o(v: Variant) -> String:
+	return "—" if v == null else _fmt(v).replace("[", "(")
+
+
+func _marca_edicion(v: Variant, activa: bool) -> String:
+	var txt: String = _fmt_o(v)
+	return "‹%s›" % txt if activa else txt
+
+
+# --- recetas con nombre ------------------------------------------------------------------------------------------------
+
+func cargar_recetas() -> void:
+	recetas = RecetasLab.cargar(ruta_recetas)
+
+
+## Ctrl+S: guarda la receta actual (glifos en orden, elemento y cambios de lanzamiento) con el primer nombre libre, o (sobrescribir) pisa la última lanzada/guardada.
+func guardar_receta(sobrescribir: bool = false) -> int:
+	var nombre: String = RecetasLab.nombre_libre(recetas)
+	var r: Dictionary = RecetasLab.nueva(nombre, orden, elemento, cambios_hechizo)
+	if sobrescribir and receta_sel >= 0 and receta_sel < recetas.size():
+		r["nombre"] = String((recetas[receta_sel] as Dictionary)["nombre"])
+		recetas[receta_sel] = r
+	else:
+		recetas.append(r)
+		receta_sel = recetas.size() - 1
+	RecetasLab.guardar(recetas, ruta_recetas)
+	_aviso_ui("Receta guardada: %s" % String((recetas[receta_sel] as Dictionary)["nombre"]))
+	_refrescar_hud()
+	return receta_sel
+
+
+## Pone la receta (glifos, elemento, cambios) y la lanza. Ctrl+N. Devuelve la ficha del lanzamiento, o {} si no existe.
+func lanzar_receta_guardada(i: int) -> Dictionary:
+	if i < 0 or i >= recetas.size():
+		return {}
+	var r: Dictionary = recetas[i]
+	receta_sel = i
+	poner_elemento(String(r["elemento"]))
+	cambios_hechizo.clear()
+	cambios_hechizo.merge((r.get("cambios", {}) as Dictionary).duplicate(true))
+	poner_orden(r["glifos"] as Array)
+	return lanzar()
+
+
+func texto_recetas() -> String:
+	var l: PackedStringArray = []
+	for i in range(recetas.size()):
+		l.append("%sCtrl+%s  %s" % ["► " if i == receta_sel else "   ", str(i + 1) if i < 9 else "—", String((recetas[i] as Dictionary)["nombre"])])
+	return "\n".join(l)
+
+
+# --- comparar (K) ------------------------------------------------------------------------------------------------------
+
+## Lanza la receta actual DOS veces, una al lado de la otra (dos casillas entre ellas, perpendicular a la dirección): a la izquierda con las bases ORIGINALES (la capa vacía)
+## y a la derecha con las TOCADAS. Devuelve {original, tocadas}: las casillas que ocupó cada una (0 = rechazada). No gasta tinta ni recarga: es para mirar la diferencia.
+func comparar() -> Dictionary:
+	if _l == null or _jug == null:
+		return {}
+	var dir: Vector3 = direccion()
+	var lado: Vector3 = Vector3(-dir.z, 0.0, dir.x).normalized() * Terreno3D.casilla         # a la izquierda de quien mira
+	var guardada: Dictionary = CapaBases.copia()
+	CapaBases.limpiar()
+	var h0: Hechizo = hechizo_base()
+	CapaBases.restaurar(guardada)
+	var h1: Hechizo = hechizo_base()
+	_jug.mirar_hacia(dir)
+	var n0: int = _l.lanzar_hechizo(h0, _jug.position + lado, dir)
+	var n1: int = _l.lanzar_hechizo(h1, _jug.position - lado, dir)
+	lanzadas += 2
+	comparacion = {"original": n0, "tocadas": n1, "iguales": CapaBases.vacia()}
+	_aviso_ui("Comparar: izquierda = bases originales, derecha = bases tocadas%s" % ("  (¡la capa está vacía: salen dos iguales!)" if CapaBases.vacia() else ""))
+	return comparacion
+
+
+# --- teclas de diseño ------------------------------------------------------------------------------------------------
+
+## Las teclas que NO pueden esperar al resto de nodos: TiempoLab3D (hijo) se queda con L sin mirar Mayús, y el libro/lanzador usan los dígitos. Por eso las atiende `_input`
+## (antes que todos los `_unhandled_input`) y, para las pruebas, también `_unhandled_input`. Devuelve true si la tecla era suya.
+func _tecla_diseno(k: InputEventKey) -> bool:
+	if pestana != Pestana.RECETA:
+		return false
+	if k.keycode == KEY_L and k.shift_pressed and not k.ctrl_pressed:
+		poner_limite(not limite_glifos)
+		return true
+	if k.ctrl_pressed and k.keycode == KEY_S:
+		guardar_receta(k.shift_pressed)
+		return true
+	if k.ctrl_pressed and TECLAS_DIGITO.has(k.keycode):
+		lanzar_receta_guardada(TECLAS_DIGITO.find(k.keycode))
+		return true
+	return false
+
+
+func _input(ev: InputEvent) -> void:
+	if ev is InputEventKey and m != null and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo:
+		if _tecla_diseno(ev as InputEventKey):
+			get_viewport().set_input_as_handled()
+			_refrescar_hud()
+
+
+## El texto del panel de diseño (abajo a la derecha): nivel, fila de glifos, límite y recetas.
+func texto_diseno() -> String:
+	var l: PackedStringArray = []
+	l.append("TABLA F1: %s   (N alterna)" % ("«Este lanzamiento»" if nivel == Nivel.LANZAMIENTO else "«BASES» (en memoria)"))
+	l.append(texto_orden())
+	if not limite_glifos:
+		l.append("⚠ LÍMITE DE GLIFOS DESACTIVADO (Mayús+L)")
+	l.append("Numpad 1-9 añade · Retroceso quita · Supr vacía · K compara · Ctrl+S guarda")
+	if not recetas.is_empty():
+		l.append("Recetas:")
+		l.append(texto_recetas())
+	return "\n".join(l)
+
+
+func _montar_diseno() -> void:
+	var capa := CanvasLayer.new()
+	capa.layer = 8
+	add_child(capa)
+	_lbl_diseno = _etiqueta_ui(0.0)
+	_lbl_diseno.anchor_left = 1.0
+	_lbl_diseno.anchor_right = 1.0
+	_lbl_diseno.anchor_top = 1.0
+	_lbl_diseno.anchor_bottom = 1.0
+	_lbl_diseno.offset_left = -430.0
+	_lbl_diseno.offset_right = -10.0
+	_lbl_diseno.offset_bottom = -10.0
+	_lbl_diseno.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_lbl_diseno.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	capa.add_child(_lbl_diseno)
+
+
+# --- G: guardar todo y recargar al abrir -----------------------------------------------------------------------------------
+
+## Vuelve a poner lo que guardó G (si el archivo existe): la tabla de impacto, los modos, lo tocado en la tabla, las bases, la fila de glifos y el elemento.
+## Devuelve false si no había archivo. Lo llama `iniciar` (salvo `cargar_al_abrir = false`).
+func cargar(ruta: String = RUTA_GUARDADO) -> bool:
+	if not FileAccess.file_exists(ruta):
+		return false
+	var f := FileAccess.open(ruta, FileAccess.READ)
+	if f == null:
+		return false
+	var j: Variant = JSON.parse_string(f.get_as_text())
+	if not (j is Dictionary):
+		return false
+	var d: Dictionary = j
+	if d.get("impacto") is Dictionary:
+		for n in (d["impacto"] as Dictionary):
+			if impacto_inicial.has(String(n)):
+				impacto_poner(String(n), float(d["impacto"][n]))
+	tinta_infinita = bool(d.get("tinta_infinita", tinta_infinita))
+	recarga_activa = bool(d.get("recarga_activa", recarga_activa))
+	if d.get("hechizo") is Dictionary:
+		cambios_hechizo.clear()
+		cambios_hechizo.merge((d["hechizo"] as Dictionary).duplicate(true))
+	CapaBases.limpiar()
+	if d.get("bases") is String and String(d["bases"]) != "":
+		CapaBases.desde_texto(String(d["bases"]))
+	limite_glifos = bool(d.get("limite_glifos", true))
+	if d.get("elemento") is String and ELEMENTOS.has(String(d["elemento"])):
+		poner_elemento(String(d["elemento"]))
+	if d.get("orden") is Array:
+		poner_orden(d["orden"] as Array)
+	_actualizar_panel_modos()
+	_refrescar_hud()
+	return true
+
+
+## «Este lanzamiento» va a la derecha (como siempre); «Bases» a la izquierda, porque la columna de la derecha de la interfaz compacta ya está ocupada.
+func _colocar_tabla() -> void:
+	if nivel == Nivel.BASES:
+		_tabla_label.anchor_left = 0.0
+		_tabla_label.anchor_right = 0.0
+		_tabla_label.offset_left = 10.0
+		_tabla_label.offset_right = 760.0
+	else:
+		_tabla_label.anchor_left = 1.0
+		_tabla_label.anchor_right = 1.0
+		_tabla_label.offset_left = -600.0
+		_tabla_label.offset_right = -8.0

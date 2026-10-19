@@ -1,0 +1,287 @@
+{
+ "troncos_apilados": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "troncos_apilados.glb",
+    "tris": 12000,
+    "kb": 3337
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 24.6
+ },
+ "raices_musgo": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "raices_musgo_12000.glb",
+    "tris": 12000,
+    "kb": 3382
+   },
+   "8000": {
+    "archivo": "raices_musgo.glb",
+    "tris": 8000,
+    "kb": 2991
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 29.8
+ },
+ "tocon_alto": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "tocon_alto.glb",
+    "tris": 12000,
+    "kb": 3385
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 25.8
+ },
+ "valla": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "valla.glb",
+    "tris": 12000,
+    "kb": 3388
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 29.6
+ },
+ "hojas_monton": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "hojas_monton_12000.glb",
+    "tris": 12000,
+    "kb": 3389
+   },
+   "8000": {
+    "archivo": "hojas_monton.glb",
+    "tris": 8000,
+    "kb": 2993
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 40.0
+ },
+ "seto_seco": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "seto_seco_12000.glb",
+    "tris": 12000,
+    "kb": 3387
+   },
+   "8000": {
+    "archivo": "seto_seco.glb",
+    "tris": 8000,
+    "kb": 2992
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 24.0
+ },
+ "arbusto_flores": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "arbusto_flores_12000.glb",
+    "tris": 12000,
+    "kb": 3391
+   },
+   "8000": {
+    "archivo": "arbusto_flores.glb",
+    "tris": 8000,
+    "kb": 2993
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 60.9
+ },
+ "cuenco_piedra": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "8000": {
+    "archivo": "cuenco_piedra.glb",
+    "tris": 8000,
+    "kb": 2515
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 3.7
+ },
+ "tocon_hueco": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "tocon_hueco_12000.glb",
+    "tris": 12000,
+    "kb": 3382
+   },
+   "8000": {
+    "archivo": "tocon_hueco.glb",
+    "tris": 8000,
+    "kb": 2991
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 24.0
+ },
+ "juncos": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "juncos_12000.glb",
+    "tris": 12000,
+    "kb": 3391
+   },
+   "8000": {
+    "archivo": "juncos.glb",
+    "tris": 8000,
+    "kb": 2993
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 76.7
+ },
+ "nenufar": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "8000": {
+    "archivo": "nenufar.glb",
+    "tris": 7786,
+    "kb": 1422
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 2.9
+ },
+ "helecho": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "helecho_12000.glb",
+    "tris": 12000,
+    "kb": 3392
+   },
+   "8000": {
+    "archivo": "helecho.glb",
+    "tris": 8000,
+    "kb": 2993
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 73.8
+ },
+ "setas": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "setas_12000.glb",
+    "tris": 12000,
+    "kb": 3341
+   },
+   "8000": {
+    "archivo": "setas.glb",
+    "tris": 8000,
+    "kb": 2974
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 18.2
+ },
+ "roca_hueca": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "roca_hueca.glb",
+    "tris": 12000,
+    "kb": 2923
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 5.5
+ },
+ "tronco": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "tronco.glb",
+    "tris": 12000,
+    "kb": 3392
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 69.3
+ },
+ "tocon_roca": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "tocon_roca_12000.glb",
+    "tris": 12000,
+    "kb": 3391
+   },
+   "8000": {
+    "archivo": "tocon_roca.glb",
+    "tris": 8000,
+    "kb": 2993
+   }
+  },
+  "origen": "s_enchanted.glb",
+  "nota": "",
+  "seg": 48.9
+ }
+}

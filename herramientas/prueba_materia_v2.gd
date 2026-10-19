@@ -151,8 +151,8 @@ func _caso(estado: String, nombre: String) -> void:
 		_ok("%s: no se lanza (aviso de altura, %d niveles > %d)" % [et, niv, Jugador3D.MAX_NIVELES_SUBIBLES], n == 0 and _senales.is_empty() and Terreno3D.alturas.is_empty() and Lanzador3D.GeometriaV2.aviso_materia(g, rune) != "")
 		return
 	# La señal para el VFX: una vez, con el estado, el elemento y {x, y, z, celdas, niveles}.
-	_ok("%s: emite hechizo_v2 una vez (estado, elemento, g, origen, dir, props)" % et, _senales.size() == 1 and _senales[0][0] == estado and _senales[0][1] == Objetos.elemento_de(rune) \
-		and (_senales[0][2] as Dictionary).keys().size() == 9 and (_senales[0][2]["celdas"] as Array).size() == celdas_esperadas.size() and int(_senales[0][2]["niveles"]) == niv \
+	_ok("%s: emite hechizo_v2 una vez (estado, elemento, g, origen, dir, props; el volumen lleva 9 claves de siempre + viaja, velocidad, permanencia, vida_total, elevacion, separacion, dispersion, gravedad de E2)" % et, _senales.size() == 1 and _senales[0][0] == estado and _senales[0][1] == Objetos.elemento_de(rune) \
+		and (_senales[0][2] as Dictionary).keys().size() == 17 and (_senales[0][2]["celdas"] as Array).size() == celdas_esperadas.size() and int(_senales[0][2]["niveles"]) == niv \
 		and is_equal_approx(float(_senales[0][2]["z"]), float(g["z"])) and (_senales[0][3] as Vector3).is_equal_approx(_origen()) and (_senales[0][5] as Dictionary).is_empty())
 	# T-VFX (155): `persiste` (ya con la calidad), `suelo` (y de los pies bajo el origen) y `eventos` [{t, pos, dir}] de HechizoVivo.eventos_de.
 	var sg: Dictionary = _senales[0][2]
@@ -312,7 +312,7 @@ func _vivo() -> void:
 	for c in _l.get_children():
 		hijos += 1 if c is HechizoVivo else 0
 	_ok("HC2: con eventos retardados (viaja) el HechizoVivo sigue vivo tras nacer (%d)" % hijos, n > 0 and hijos == 1)
-	await create_timer(float(6) / HechizoVivo.VEL_VIAJA_V2 + 1.4).timeout
+	await create_timer(float(6) / Hechizo.VELOCIDAD_VIAJE_DEFECTO + 1.4).timeout
 	hijos = 0
 	for c in _l.get_children():
 		hijos += 1 if c is HechizoVivo else 0
@@ -331,3 +331,19 @@ func _vivo() -> void:
 	var alto: HechizoVivo = HechizoVivo.crear(_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"]).hechizo(load("res://nucleo/earth_rune.tres")), _origen(), Vector3.RIGHT, _l)
 	_ok("HC2: un sólido más alto de lo que se pisa devuelve 0 casillas", alto.casillas == 0)
 
+	# ESPEC_HECHIZO §0.3: la flecha de agua que viaja no echa agua al salir, la echa al llegar a su alcance, y entonces el hechizo desaparece
+	_montar()
+	var sim_f: AguaSim3D = Lanzador3D.montar_agua_sim()
+	var fl: HechizoVivo = HechizoVivo.crear(_receta(["flecha", "flecha"]).hechizo(rune), _origen(), Vector3.RIGHT, _l, null, {}, true)
+	for _i in range(30):
+		fl.paso(DT)
+	_ok("flecha de agua: en pleno vuelo todavía no hay agua", fl.activo and sim_f.volumen_total() < 0.0001)
+	var pasos_f: int = 0
+	while fl.activo and pasos_f < 1500:
+		fl.paso(DT)
+		pasos_f += 1
+	var fin_f: String = fl.motivo_fin
+	await create_timer(0.9).timeout                  # t_caida ≤ 0,8 s
+	for _i in range(int((HechizoVivo.T_LLENADO_V2 + 0.3) / DT)):
+		sim_f.paso(DT)
+	_ok("flecha de agua: llega (%s) y forma charco (%.3f u³), luego desaparece" % [fin_f, sim_f.volumen_total()], (fin_f == "alcance" or fin_f == "suelo") and sim_f.volumen_total() > 0.01 and (not is_instance_valid(fl) or fl.is_queued_for_deletion()))

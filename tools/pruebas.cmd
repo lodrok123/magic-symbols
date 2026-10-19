@@ -1,7 +1,7 @@
 @echo off
 rem pruebas.cmd - lanza todas las pruebas sin ventana (herramientas\prueba_*.gd) y los escenarios con la escena entera
 rem (herramientas\escenario_*.gd, a 30 fps fijos; escenario_base.gd es el armazon y no se lanza) y resume. Lo escribe el Juego.
-rem Uso, desde la raiz del repo (o doble clic):   tools\pruebas.cmd
+rem Uso, desde la raiz del repo (o doble clic):   tools\pruebas.cmd      (o   tools\pruebas.cmd solo <trozo de nombre> ...   para un subconjunto)
 rem Donde esta Godot: tools\godot_local.txt (una linea con la ruta al .exe). Si no existe, lo busca en los sitios habituales y, si no, lo pregunta.
 setlocal EnableDelayedExpansion
 cd /d "%~dp0.."
@@ -32,33 +32,14 @@ echo !GODOT!>tools\godot_local.txt
 set "GODOT=!GODOT:"=!"
 for %%G in ("!GODOT!") do set "GODOT=%%~sG"
 echo Godot: !GODOT!
-set FALLOS_TOTAL=0
-for %%P in (herramientas\prueba_*.gd) do call :una "%%~nxP"
-rem 15/10 (13.10): los escenarios cargan escenas/PruebaBosque.tscn; tardan mas (unos 20-60 s cada uno) y van a 30 fps fijos, que es lo que pide el plan.
-for %%P in (herramientas\escenario_*.gd) do if /i not "%%~nxP"=="escenario_base.gd" call :una "%%~nxP" "--fixed-fps 30"
-echo.
-echo ================ TOTAL DE FALLOS: !FALLOS_TOTAL! ================
+rem 19/10: el recuento lo hace tools\resumen_prueba.ps1 (acepta FALLOS: N / FALLOS N / FALLOS <nombre>: N / OK: N fallos / RESULTADO <nombre>: N fallos,
+rem descarta el ruido de fugas de Godot, cuenta aparte los "Lambda capture ... was freed" como AVISOS y saca una tabla prueba / fallos / avisos / veredicto).
+rem Uso:   tools\pruebas.cmd                    todas
+rem        tools\pruebas.cmd solo golpe hechizo  solo las que contengan alguno de esos trozos de nombre (golpe, hechizo_vivo, prueba_hechizo...)
+set "PATRON="
+set "ARGS=%*"
+if /i "%~1"=="solo" set "PATRON=!ARGS:~5!"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0resumen_prueba.ps1" -Godot "!GODOT!" -Patron "!PATRON!"
 pause
 endlocal
-exit /b 0
-
-:una
-echo.
-echo ===== %~1 =====
-rem %~2 son opciones de Godot extra (los escenarios pasan --fixed-fps 30).
-!GODOT! --headless %~2 --path . --script res://herramientas/%~1 >"%TEMP%\prueba_salida.txt" 2>&1
-findstr /C:"FALLO " "%TEMP%\prueba_salida.txt"
-rem (Con escena, Godot sin ventana suelta al salir avisos de fugas del renderizador de mentira: no son de la prueba y se descartan.)
-findstr /C:"SCRIPT ERROR" /C:"Parse Error" /C:"Failed to load" /C:"ERROR:" "%TEMP%\prueba_salida.txt" | findstr /V /C:"Pages in use" /C:"RID allocations" /C:"leaked at exit"
-set HAY=0
-for /f "tokens=2" %%N in ('findstr /C:"FALLOS:" "%TEMP%\prueba_salida.txt"') do (
-  set HAY=1
-  set /a FALLOS_TOTAL+=%%N
-  echo FALLOS: %%N
-)
-if "!HAY!"=="0" (
-  echo SIN RESULTADO: la prueba no llego al final. Salida completa:
-  type "%TEMP%\prueba_salida.txt"
-  set /a FALLOS_TOTAL+=1
-)
 exit /b 0

@@ -240,9 +240,11 @@ func forma(elemento: String, pos: Vector3, dura: float, origen: String = "mano_l
 		_:
 			_forma_mano(raiz, p, dura)
 	# Si el disparo no llega (muerte, interrupción) la forma no se queda colgando para siempre.
-	get_tree().create_timer(T_AUTOLIMPIEZA, false).timeout.connect(func() -> void:
-		if is_instance_valid(raiz):
-			raiz.queue_free())
+	# Un tween atado a `raiz` y no un temporizador del árbol con una lambda que captura `raiz`: si el disparo la retira antes de los 6 s, el tween muere con ella,
+	# mientras que el temporizador seguía vivo y, al saltar, llamaba a una lambda cuya captura ya estaba liberada («Lambda capture at index 0 was freed», 26 avisos por pasada de la prueba).
+	var auto := raiz.create_tween()
+	auto.tween_interval(T_AUTOLIMPIEZA)
+	auto.tween_callback(raiz.queue_free)
 	return raiz
 
 
@@ -633,8 +635,6 @@ func _nucleo(p: Dictionary, radio: float) -> MeshInstance3D:
 	dentro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.add_child(dentro)
 	var halo := MeshInstance3D.new()
-	var q := QuadMesh.new()
-	q.size = Vector2.ONE * radio * 5.0
 	var hm := StandardMaterial3D.new()
 	hm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	hm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -643,10 +643,33 @@ func _nucleo(p: Dictionary, radio: float) -> MeshInstance3D:
 	hm.albedo_texture = VfxKit3D.mancha()
 	hm.albedo_color = Color(color, 0.55)
 	hm.no_depth_test = false
-	q.material = hm
-	halo.mesh = q
+	hm.cull_mode = BaseMaterial3D.CULL_DISABLED      # el billboard da la vuelta al cuadrado: con las caras de culling normal la malla propia (a diferencia de QuadMesh) quedaba de espaldas y el halo desaparecía
+	halo.mesh = _malla_halo(radio * 5.0)
+	halo.material_override = hm
 	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.add_child(halo)
+	return m
+
+
+## El cuadrado del halo como `ArrayMesh` (centrado, mirando a +Z) y no como `QuadMesh`: en Godot `QuadMesh` HEREDA de `PlaneMesh`, y la prueba reconoce el círculo rúnico del suelo
+## con `mesh is PlaneMesh`, así que un halo de núcleo de la mano lo tomaba por un círculo en el suelo (fallaba «orbe con chispas que convergen» en los ocho elementos). El tamaño va
+## en la malla y no en la escala del nodo: con `billboard_mode` y sin `billboard_keep_scale` el material descarta la escala. Una malla por tamaño, cacheada.
+static var _mallas_halo: Dictionary = {}
+
+static func _malla_halo(lado: float) -> ArrayMesh:
+	var clave: int = roundi(lado * 1000.0)
+	if _mallas_halo.has(clave):
+		return _mallas_halo[clave]
+	var h: float = lado * 0.5
+	var arr: Array = []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3(-h, -h, 0.0), Vector3(h, -h, 0.0), Vector3(h, h, 0.0), Vector3(-h, h, 0.0)])
+	arr[Mesh.ARRAY_NORMAL] = PackedVector3Array([Vector3.BACK, Vector3.BACK, Vector3.BACK, Vector3.BACK])
+	arr[Mesh.ARRAY_TEX_UV] = PackedVector2Array([Vector2(0.0, 1.0), Vector2(1.0, 1.0), Vector2(1.0, 0.0), Vector2(0.0, 0.0)])
+	arr[Mesh.ARRAY_INDEX] = PackedInt32Array([0, 1, 2, 0, 2, 3])
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	_mallas_halo[clave] = m
 	return m
 
 

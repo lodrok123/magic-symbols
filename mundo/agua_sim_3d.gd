@@ -48,6 +48,15 @@ const UMBRAL_AGUA: float = 0.25         ## profundidad media (u) a partir de la 
 const UMBRAL_NADO: float = 0.55         ## y a partir de la cual se nada
 const DURA_HIELO: float = 20.0          ## s que dura el hielo de un hechizo si nadie lo funde antes (11.12)
 const SECA_EN: float = 20.0             ## s que tarda en secarse un trocito desde que se queda sin agua (estado «mojado»)
+## --- W0 (19/10, PLAN_TRES_FRENTES §3): lo que el dibujo necesita y la simulación no exponía. NO cambian el agua: solo la describen. ---
+const UMBRAL_CAIDA: float = 0.5         ## u de salto de superficie entre un trocito y el vecino al que le corre agua a partir del cual es CASCADA (un nivel de tierra = 1,035 u)
+const MAX_RECIPIENTE: int = 20000       ## trocitos que explora `recipiente` antes de darlo por «abierto» (sin fondo: un llano, el mar)
+const EVENTO_ENTRA: int = 1             ## entra agua (hechizo de agua, cubo que se vuelca)
+const EVENTO_HIELO_ROTO: int = 2        ## un trocito de hielo se suelta (por tiempo o por fuego)
+const EVENTO_EVAPORA: int = 3           ## el fuego quita agua
+const EVENTO_HIELA: int = 4             ## un hechizo de hielo hiela agua
+const VOLUMEN_EVENTO_REF: float = 1.0   ## u³ que dan intensidad 1 a un evento de entrada
+const VIDA_EVENTO: float = 1.0          ## s que un evento sin consumir sigue contando (el dibujo debe leerlos antes; después se tiran)
 
 var ancho: int = 0                      ## en casillas
 var alto: int = 0
@@ -86,6 +95,12 @@ var _hielo_vivo: bool = false           ## ¿hubo hielo desde la última imagen?
 var _hielo_sucias: Dictionary = {}      ## casillas cuyo hielo ha cambiado desde la última llamada a cambios_hielo()
 var _hielo_estado := PackedByteArray()  ## por casilla: 1 si en el último aviso estaba helada
 var _tex_hielo: ImageTexture = null
+var _eventos: Dictionary = {}           ## trocito -> Vector3(tipo, intensidad 0..1, instante): lo último que pasó ahí (uno por trocito: el último gana)
+var _t: float = 0.0                     ## segundos de simulación (para la vida de los eventos)
+var _img_eventos: Image = null
+var _tex_eventos: ImageTexture = null
+var _img_eventos_vacia: bool = false
+var _tex_caida: ImageTexture = null
 var _img_hielo: Image = null
 var _estrechos: Dictionary = {}         ## Vector2i -> Array de Vector2i: casillas «estrechas» (canal) y los lados que abren; ver abrir_solo
 var _suelo_de: Callable
@@ -346,6 +361,7 @@ func anadir(pos: Vector3, volumen: float, radio: float = 0.0) -> void:
 			continue                            # sobre el hielo el agua no entra (se pierde ese trocito del reparto)
 		prof[i] += por
 		_incluir(i)
+		_evento(i, EVENTO_ENTRA, volumen / VOLUMEN_EVENTO_REF)
 
 
 ## Quita hasta `volumen` u³ alrededor de un punto (fuego que evapora). Devuelve lo que ha quitado de verdad (para el vapor).
@@ -359,6 +375,8 @@ func quitar(pos: Vector3, volumen: float, radio: float = 0.0) -> float:
 		var q: float = minf(prof[i], pide)
 		prof[i] -= q
 		quitado += q * l * l
+		if q > 0.0:
+			_evento(i, EVENTO_EVAPORA, 1.0)
 	return quitado
 
 
@@ -471,6 +489,7 @@ func _helar_trozo(i: int, segundos: float) -> void:
 	_incluir(i)                                 # la caja de trabajo tiene que incluir el hielo, o su tiempo no baja
 	_hielo_vivo = true
 	_marcar_hielo(i)
+	_evento(i, EVENTO_HIELA, 1.0)
 
 
 func _soltar_trozo(i: int) -> void:
@@ -479,6 +498,7 @@ func _soltar_trozo(i: int) -> void:
 	hielo_ini[i] = 0.0
 	_incluir(i)
 	_marcar_hielo(i)
+	_evento(i, EVENTO_HIELO_ROTO, 1.0)
 
 
 func _marcar_hielo(i: int) -> void:
@@ -576,9 +596,239 @@ func cambios() -> Array:
 	return r
 
 
+## --- W0 · Llenado de un recipiente (19/10) ---
+## Un pozo, un vaso o un hoyo se llena por VOLUMEN: la simulación ya guarda una cantidad de agua por trocito y la reparte hasta el borde. Lo que no
+## existía es PREGUNTARLO: ¿cuánto cabe?, ¿cuánto hay?, ¿a qué altura rebosa?, ¿cuánto falta? Se contesta con el suelo, no con el agua actual: el
+## recipiente es la región de trocitos abiertos que se llena antes de que el agua se escape por el punto más bajo de su borde (inundación por
+## prioridad: se crece desde el fondo por el trocito más bajo de la frontera; cuando el más bajo tiene un vecino aún más bajo fuera de la región, por ahí
+## se derramaría y esa es la altura de rebose). Un llano sin borde (o sin fondo: capacidad 0) o que pasa de MAX_RECIPIENTE trocitos sale `abierto`.
+##
+## `c` es cualquier casilla del recipiente (se baja desde ella al fondo local). `rebose` opcional fija la altura del borde (Y del mundo) en vez de
+## calcularla: sirve para un vaso cuyo borde no es el punto de derrame del terreno. Devuelve {rebose (Y), capacidad (u³), volumen (u³ de agua que hay ahora
+## dentro), fraccion (0..1), trozos, abierto, semilla (casilla del fondo)}; {} si la casilla es pared.
+func recipiente(c: Vector2i, rebose: float = INF) -> Dictionary:
+	var ab: PackedInt32Array = _trozos_abiertos(c)
+	if ab.is_empty():
+		return {}
+	var semilla: int = ab[0]
+	for i in ab:
+		if suelo[i] < suelo[semilla]:
+			semilla = i
+	for _n in range(w + h):                     # bajar al fondo local: si un vecino de fuera de la casilla es más bajo, el agua se iría hacia allí
+		var mejor: int = semilla
+		for k in range(4):
+			var j: int = vecinos[semilla * 4 + k]
+			if j >= 0 and cerrado[j] == 0 and suelo[j] < suelo[mejor]:
+				mejor = j
+		if mejor == semilla:
+			break
+		semilla = mejor
+	var vis := PackedByteArray()
+	vis.resize(w * h)
+	var cola: Array = []                         # montículo mínimo de Vector2(altura de suelo, trocito)
+	_mont_meter(cola, Vector2(suelo[semilla], float(semilla)))
+	vis[semilla] = 1
+	var region := PackedInt32Array()
+	var borde: float = rebose
+	var abierto: bool = false
+	while not cola.is_empty():
+		var top: Vector2 = _mont_sacar(cola)
+		var i: int = int(top.y)
+		var hi: float = top.x
+		if rebose != INF and hi > rebose:
+			break
+		if rebose == INF:
+			var derrama: bool = false
+			for k in range(4):
+				var j: int = vecinos[i * 4 + k]
+				if j < 0 or (cerrado[j] == 0 and vis[j] == 0 and suelo[j] < hi):
+					derrama = true
+					break
+			if derrama:
+				borde = hi
+				break
+		region.append(i)
+		if region.size() > MAX_RECIPIENTE:
+			abierto = true
+			break
+		for k in range(4):
+			var j2: int = vecinos[i * 4 + k]
+			if j2 >= 0 and cerrado[j2] == 0 and vis[j2] == 0:
+				vis[j2] = 1
+				_mont_meter(cola, Vector2(suelo[j2], float(j2)))
+	var cap: float = 0.0
+	var vol: float = 0.0
+	if borde != INF and not abierto:
+		for i in region:
+			cap += maxf(0.0, borde - suelo[i])
+			vol += prof[i]
+		cap *= l * l
+		vol *= l * l
+		if cap <= 0.0:
+			abierto = true                       # un llano: el borde está a la altura del fondo, no cabe nada
+			borde = INF
+	else:
+		abierto = true
+		borde = INF
+	return {"rebose": borde, "capacidad": cap, "volumen": vol, "fraccion": clampf(vol / cap, 0.0, 1.0) if cap > 0.0 else 0.0,
+		"trozos": region.size(), "abierto": abierto, "semilla": Vector2i((semilla % w) / sub, (semilla / w) / sub)}
+
+
+## Segundos que faltan para llenar el recipiente de `c` echándole `caudal_u3s` (u³/s): (capacidad − volumen) / caudal. 0 si ya está lleno, INF si el
+## caudal es 0 o el recipiente está abierto. Aproximado: no cuenta lo que el suelo absorbe de las láminas finas ni el tiempo que tarda el agua en repartirse.
+func segundos_hasta_llenar(c: Vector2i, caudal_u3s: float, rebose: float = INF) -> float:
+	var d: Dictionary = recipiente(c, rebose)
+	if d.is_empty() or bool(d["abierto"]) or caudal_u3s <= 0.0:
+		return INF
+	return maxf(0.0, float(d["capacidad"]) - float(d["volumen"])) / caudal_u3s
+
+
+func _mont_meter(m: Array, v: Vector2) -> void:
+	m.append(v)
+	var k: int = m.size() - 1
+	while k > 0:
+		var p: int = (k - 1) / 2
+		if (m[p] as Vector2).x <= (m[k] as Vector2).x:
+			break
+		var t: Vector2 = m[p]
+		m[p] = m[k]
+		m[k] = t
+		k = p
+
+
+func _mont_sacar(m: Array) -> Vector2:
+	var cima: Vector2 = m[0]
+	var ult: Vector2 = m.pop_back()
+	if not m.is_empty():
+		m[0] = ult
+		var k: int = 0
+		var n: int = m.size()
+		while true:
+			var a: int = 2 * k + 1
+			var b: int = a + 1
+			var s: int = k
+			if a < n and (m[a] as Vector2).x < (m[s] as Vector2).x:
+				s = a
+			if b < n and (m[b] as Vector2).x < (m[s] as Vector2).x:
+				s = b
+			if s == k:
+				break
+			var t: Vector2 = m[s]
+			m[s] = m[k]
+			m[k] = t
+			k = s
+	return cima
+
+
+## --- W0 · Caída (cascadas) ---
+## Salto de la superficie entre un trocito con agua y el vecino al que le está corriendo agua (u; 0 si no cae). A partir de UMBRAL_CAIDA es una cascada: el
+## dibujo pone salpicadura y espuma ahí. Solo cuenta los saltos con caudal de verdad: un escalón con agua parada arriba no es una caída.
+func caida_en_trozo(i: int) -> float:
+	if i < 0 or prof[i] <= PROF_MIN or cerrado[i] == 1 or helado[i] == 1:
+		return 0.0
+	var sup: float = suelo[i] + prof[i]
+	var m: float = 0.0
+	for k in range(4):
+		var j: int = vecinos[i * 4 + k]
+		if j >= 0 and cerrado[j] == 0 and caudal[i * 4 + k] > 0.0:
+			m = maxf(m, sup - (suelo[j] + prof[j]))
+	return m
+
+
+func caida_en(pos: Vector3) -> float:
+	return caida_en_trozo(_trozo_de(pos))
+
+
+## ¿Hay una cascada en la casilla? (algún trocito suyo cae al menos UMBRAL_CAIDA)
+func hay_cascada_en_casilla(c: Vector2i) -> bool:
+	for i in _trozos(c):
+		if caida_en_trozo(i) >= UMBRAL_CAIDA:
+			return true
+	return false
+
+
+## Imagen w × h, FORMAT_RF: un float por trocito (u de caída), mismo origen y tamaño de texel que `textura()`. Solo recorre la caja de trabajo.
+func imagen_caida() -> Image:
+	var datos := PackedFloat32Array()
+	datos.resize(w * h)
+	if _x1 >= _x0 and _y1 >= _y0:
+		for y in range(maxi(0, _y0 - 1), mini(h - 1, _y1 + 1) + 1):
+			for x in range(maxi(0, _x0 - 1), mini(w - 1, _x1 + 1) + 1):
+				datos[y * w + x] = caida_en_trozo(y * w + x)
+	return Image.create_from_data(w, h, false, Image.FORMAT_RF, datos.to_byte_array())
+
+
+func textura_caida() -> ImageTexture:
+	var img: Image = imagen_caida()
+	if _tex_caida == null:
+		_tex_caida = ImageTexture.create_from_image(img)
+	else:
+		_tex_caida.update(img)
+	return _tex_caida
+
+
+## --- W0 · Eventos ---
+## Lo que acaba de pasar y el dibujo debe animar una vez: entra agua, se rompe hielo, se evapora, se hiela. Uno por trocito (el último gana) y se tiran
+## solos a los VIDA_EVENTO s si nadie los consume. No tocan la simulación.
+func _evento(i: int, tipo: int, intensidad: float) -> void:
+	_eventos[i] = Vector3(float(tipo), clampf(intensidad, 0.1, 1.0), _t)
+
+
+func _podar_eventos() -> void:
+	for i in _eventos.keys():
+		if _t - (_eventos[i] as Vector3).z > VIDA_EVENTO:
+			_eventos.erase(i)
+
+
+## Imagen RG8 w × h (mismo origen y texel que `textura()`): R = tipo (EVENTO_*, 0 = nada), G = intensidad (255 = 1). Con `consumir` (por defecto) los
+## eventos se borran: el dibujo los lee UNA vez por fotograma de dibujo.
+func imagen_eventos(consumir: bool = true) -> Image:
+	if _eventos.is_empty() and _img_eventos != null and _img_eventos_vacia:
+		return _img_eventos
+	var datos := PackedByteArray()
+	datos.resize(w * h * 2)
+	var n: int = 0
+	for i in _eventos:
+		var v: Vector3 = _eventos[i]
+		if _t - v.z <= VIDA_EVENTO:
+			datos[int(i) * 2] = int(v.x)
+			datos[int(i) * 2 + 1] = int(roundf(v.y * 255.0))
+			n += 1
+	_img_eventos = Image.create_from_data(w, h, false, Image.FORMAT_RG8, datos)
+	_img_eventos_vacia = n == 0
+	if consumir:
+		_eventos.clear()
+	return _img_eventos
+
+
+func textura_eventos(consumir: bool = true) -> ImageTexture:
+	var img: Image = imagen_eventos(consumir)
+	if _tex_eventos == null:
+		_tex_eventos = ImageTexture.create_from_image(img)
+	else:
+		_tex_eventos.update(img)
+	return _tex_eventos
+
+
+## Los mismos eventos como lista, con posición en el mundo (para soltar partículas): [{tipo, intensidad, pos: Vector3 (centro del trocito, en la superficie)}].
+func eventos_pendientes(consumir: bool = false) -> Array:
+	var r: Array = []
+	for i in _eventos:
+		var v: Vector3 = _eventos[i]
+		if _t - v.z <= VIDA_EVENTO:
+			var k: int = int(i)
+			r.append({"tipo": int(v.x), "intensidad": v.y, "pos": Vector3((float(k % w) + 0.5) * l, suelo[k] + prof[k], (float(k / w) + 0.5) * l)})
+	if consumir:
+		_eventos.clear()
+	return r
+
+
 ## --- El paso ---
 
 func paso(delta: float) -> void:
+	_t += delta
+	if not _eventos.is_empty():
+		_podar_eventos()
 	_acumulado = minf(_acumulado + delta, PASO_FIJO * float(MAX_PASOS))
 	var n_pasos: int = 0
 	while _acumulado >= PASO_FIJO and n_pasos < MAX_PASOS:

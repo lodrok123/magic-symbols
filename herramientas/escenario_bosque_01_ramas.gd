@@ -10,7 +10,7 @@ extends "res://herramientas/escenario_base.gd"
 const RUTA: String = "res://escenas/PruebaBosque01.tscn"
 const INICIO: Vector2i = Vector2i(2, 21)
 const NOMBRES: PackedStringArray = [
-	"inicio_01", "guerrero_01", "guerrero_02", "guerrero_03", "arquero_01", "arquero_02", "telarana_01", "telarana_02", "telarana_03", "telarana_04",
+	"inicio_01", "guerrero_01", "guerrero_03", "arquero_01", "arquero_02", "telarana_01", "telarana_02", "telarana_03", "telarana_04",
 	"cofre_01", "cofre_02", "cofre_03", "cofre_04", "cofre_05", "cofre_06", "cofre_07", "elemental_01", "puerta_01", "alquimista_01",
 	"totem_fuego_01", "totem_fuego_02", "totem_fuego_03", "brasero_01", "brasero_02", "brasero_03", "brasero_04", "brasero_05", "brasero_06",
 	"brasero_07", "brasero_08", "brasero_09", "brasero_10", "seto_01", "seto_02", "seto_03", "seto_04", "canal_01", "canal_07",
@@ -49,8 +49,8 @@ func _nodo(id: String) -> Node:
 	return pz.nodo(id)
 
 
-func _fuego(objetivo: Vector2i, desde: Vector2i) -> bool:
-	var ok: bool = lanzar_a_celda("fuego", ["flecha"], objetivo, desde)
+func _fuego(objetivo: Vector2i, desde: Vector2i, glifos: Array = ["flecha"]) -> bool:
+	var ok: bool = lanzar_a_celda("fuego", glifos, objetivo, desde)
 	await avanzar_s(1.2)
 	return ok
 
@@ -250,7 +250,7 @@ func _telaranas() -> void:
 	for n in ["telarana_03", "telarana_04"]:
 		var c: Vector2i = _marca()[n]
 		_ok("T.1 %s bloquea su casilla antes de quemarla" % n, Terreno3D.bloqueada(c), str(c))
-		_ok("T.2 flecha de fuego a %s" % n, await _fuego(c, c + Vector2i(0, 3)))
+		_ok("T.2 flecha de fuego a %s" % n, await _fuego(c, c + Vector2i(0, 3), ["flecha", "flecha"]))        # 3 casillas = flecha ×2 (la 1.ª da 2 de alcance, cada una más suma 1)
 		var t: float = await _espera(func() -> bool: return not Terreno3D.bloqueada(c), 8.0)
 		_ok("T.3 %s arde y libera la casilla" % n, t >= 0.0, "%.1f s" % t)
 

@@ -44,11 +44,20 @@ func _mapa() -> void:
 	var l: Dictionary = _letras()
 	_ok("2.1 el nivel ampliado es de 52 × 44 (los primeros 28 × 28 siguen en las mismas coordenadas)", int(maqueta.get("_ancho")) == 52 and int(maqueta.get("_alto")) == 44, "%s × %s" % [str(maqueta.get("_ancho")), str(maqueta.get("_alto"))])
 	_ok("2.2 un jugador, un elemental, una puerta, un alquimista", int(l.get("S", 0)) == 1 and int(l.get("G", 0)) == 1 and int(l.get("X", 0)) == 1 and int(l.get("Q", 0)) == 1, str(l))
-	_ok("2.3 cuatro guerreros (2 del cofre 1, 1 de la patrulla, 1 de la explanada), dos arqueros y siete cofres", int(l.get("W", 0)) == 4 and int(l.get("A", 0)) == 2 and int(l.get("Z", 0)) == 7, "W=%s A=%s Z=%s" % [l.get("W"), l.get("A"), l.get("Z")])
+	_ok("2.3 tres guerreros (1 del cofre 1, 1 de la patrulla, 1 de la explanada), dos arqueros y siete cofres (Pablo, 19/10: este es el nivel bueno; no hay guerrero_02)", int(l.get("W", 0)) == 3 and int(l.get("A", 0)) == 2 and int(l.get("Z", 0)) == 7, "W=%s A=%s Z=%s" % [l.get("W"), l.get("A"), l.get("Z")])
 	_ok("2.4 tres tótems de fuego y 14 braseros/antorchas (6 de antes + 4 de la cámara A + 4 de la C)", int(l.get("j", 0)) == 3 and int(l.get("T", 0)) == 14, "j=%s T=%s" % [l.get("j"), l.get("T")])
-	_ok("2.5 cuatro telarañas (M8, F17 y las dos del sendero del este), raíz, dos setas y cuatro setos; el estanque conserva sus 15 casillas c", int(l.get("r", 0)) == 4 and int(l.get("l", 0)) == 0 and int(l.get("P", 0)) == 0 and int(l.get("q", 0)) == 1 and int(l.get("s", 0)) == 2 and int(l.get("z", 0)) == 4 and int(l.get("c", 0)) == 15, "c=%s" % l.get("c"))
+	_ok("2.5 tres telarañas en el mapa (M8 y las dos del sendero del este; ver el aviso 2.5b), raíz, dos setas y cuatro setos; el estanque conserva sus 15 casillas c", int(l.get("r", 0)) == 3 and int(l.get("l", 0)) == 0 and int(l.get("P", 0)) == 0 and int(l.get("q", 0)) == 1 and int(l.get("s", 0)) == 2 and int(l.get("z", 0)) == 4 and int(l.get("c", 0)) == 15, "c=%s" % l.get("c"))
+	# 2.5b (aviso, no fallo): el nivel tiene el marcador `telarana_02` pero su casilla se hornea como pared ('#') y no sale telaraña: el mapa trae 3, no 4.
+	var marca_5: Dictionary = reglas.get("_marca") as Dictionary
+	var mapa_5: PackedStringArray = maqueta.get("_mapa")
+	for k5 in marca_5:
+		if String(k5).begins_with("telarana_"):
+			var c5: Vector2i = marca_5[k5]
+			var ch5: String = mapa_5[c5.y][c5.x] if c5.y >= 0 and c5.y < mapa_5.size() and c5.x >= 0 and c5.x < mapa_5[c5.y].length() else "?"
+			if ch5 != "r":
+				_aviso("2.5b el marcador %s está en %s, que en el mapa horneado es '%s' y no una telaraña" % [String(k5), str(c5), ch5], "revisar en Nivel_Bosque_01.tscn (¿quedó dentro del muro del borde?)")
 	_ok("2.6 los tres tótems y las cuatro antorchas de la secuencia los encontró la regla", (reglas.get("_totems") as Dictionary).size() == 3 and (reglas.get("_sec") as Array).size() == 4)
-	_ok("2.7 la regla ve los dos goblins del cofre 1 y los tres de la patrulla", (reglas.get("_goblins") as Array).size() == 2 and (reglas.get("_patrulla") as Array).size() == 3, "goblins %d patrulla %d" % [(reglas.get("_goblins") as Array).size(), (reglas.get("_patrulla") as Array).size()])
+	_ok("2.7 la regla ve el goblin del cofre 1 (guerrero_01) y los tres de la patrulla", (reglas.get("_goblins") as Array).size() == 1 and (reglas.get("_patrulla") as Array).size() == 3, "goblins %d patrulla %d" % [(reglas.get("_goblins") as Array).size(), (reglas.get("_patrulla") as Array).size()])
 	if (reglas.get("_elementales") as Array).size() == 1:
 		_ok("2.7b y el elemental", true)
 	else:
@@ -116,7 +125,7 @@ func _cofres() -> void:
 	for g in (reglas.get("_goblins") as Array):
 		g.muerto = true
 	await avanzar_s(0.5)
-	_ok("7.2 al caer los dos goblins aparece el cofre 1", (reglas.get("_cofres") as Array)[0] != null and (reglas.get("_cofres") as Array)[1] == null)
+	_ok("7.2 al caer el goblin del cofre 1 aparece el cofre 1", (reglas.get("_cofres") as Array)[0] != null and (reglas.get("_cofres") as Array)[1] == null)
 	var cof: Node3D = (reglas.get("_cofres") as Array)[0]
 	if cof != null:
 		_ok("7.3 el cofre 1 bloquea su casilla", (maqueta.get("_bloqueadas") as Dictionary).has((reglas.get("_celdas_cofre") as Array)[0]))
@@ -160,12 +169,12 @@ func _alquimista() -> void:
 	await avanzar(2)
 	_tecla(KEY_E, false)
 	await avanzar_s(0.3)
-	_ok("8.2 la primera conversación da UNA poción (muestra gratis)", Estado.i().cuenta("pocion") == antes + 1, "%d → %d" % [antes, Estado.i().cuenta("pocion")])
+	_ok("8.2 la primera conversación NO da poción (Pablo, 19/10)", Estado.i().cuenta("pocion") == antes, "%d → %d" % [antes, Estado.i().cuenta("pocion")])
 	_tecla(KEY_E, true)
 	await avanzar(2)
 	_tecla(KEY_E, false)
 	await avanzar_s(0.3)
-	_ok("8.3 la segunda no da otra", Estado.i().cuenta("pocion") == antes + 1)
+	_ok("8.3 la segunda tampoco", Estado.i().cuenta("pocion") == antes)
 
 
 func _estanque() -> void:
@@ -201,7 +210,7 @@ func _lobernos() -> void:
 	for g in lista:
 		if is_instance_valid(g) and (g as Pj3D).id == "loberno" and Pj3D.glb_de("loberno") == "emberheart":
 			buenos += 1
-	_ok("11.2 usan el modelo emberheart.glb (Pablo, 17/10) y la regla no los cuenta como goblins del cofre 1", buenos == 4 and (reglas.get("_goblins") as Array).size() == 2)
+	_ok("11.2 los lobernos usan el modelo emberheart.glb (Pablo, 17/10) y la regla no los cuenta como goblins del cofre 1 (siguen siendo solo guerrero_01)", buenos == 4 and (reglas.get("_goblins") as Array).size() == 1)
 	var n: int = 0
 	for nodo in maqueta.get_tree().get_nodes_in_group("combate3d"):
 		if (nodo as Combate3D).pj != null and (nodo as Combate3D).pj.id == "loberno":

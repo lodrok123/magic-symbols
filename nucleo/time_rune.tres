@@ -14,3 +14,4 @@ persiste = 4.0
 empuje = 0.0
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
+modificadores = { "gravedad": { "op": "fija", "valor": 0.0 }, "densidad": { "op": "fija", "valor": 0.0 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.0 }, "conductividad": { "op": "fija", "valor": 0.0 } }

@@ -154,7 +154,14 @@ void fragment() {
 const ELEMENTOS: Dictionary = {
 	"fuego": "res://presentacion/vfx_elementos/fuego.gd",
 	"agua": "res://presentacion/vfx_elementos/agua.gd",
+	"rayo": "res://presentacion/vfx_elementos/rayo.gd",
+	"hielo": "res://presentacion/vfx_elementos/hielo.gd",
+	"tierra": "res://presentacion/vfx_elementos/tierra.gd",
+	"viento": "res://presentacion/vfx_elementos/viento.gd",
+	"tiempo": "res://presentacion/vfx_elementos/tiempo.gd",
 }
+## Elementos cuyo ARTE ha validado Pablo (el resto reutiliza las piezas del kit con su rampa y perfil, pero no cambia el estilo de Vfx3D).
+const VALIDADOS: Array = ["fuego", "agua"]
 static var _elementos: Dictionary = {}       ## nombre -> ElementoVfx (instancia, se crea la primera vez)
 
 ## Elemento con el que se construye lo siguiente (rampa, luz, partículas, marca). El Vfx3D lo pone justo antes de llamar a una de
@@ -162,9 +169,9 @@ static var _elementos: Dictionary = {}       ## nombre -> ElementoVfx (instancia
 static var elemento: String = "fuego"
 
 
-## ¿El kit sabe dibujar este elemento?
+## ¿Es un elemento con arte validado? (Vfx3D usa el estilo nuevo solo para estos; `de()` sirve a todos los de ELEMENTOS.)
 static func tiene(nombre: String) -> bool:
-	return ELEMENTOS.has(nombre)
+	return VALIDADOS.has(nombre)
 
 
 ## El ElementoVfx de `nombre` (por defecto, el actual). Si no existe, el de fuego.

@@ -1,0 +1,422 @@
+{
+ "cubo_hielo": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cubo_hielo_12000.glb",
+    "tris": 12000,
+    "kb": 709
+   },
+   "8000": {
+    "archivo": "cubo_hielo.glb",
+    "tris": 8000,
+    "kb": 637
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 5.8
+ },
+ "hierba_espesa": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "hierba_espesa_12000.glb",
+    "tris": 12000,
+    "kb": 1160
+   },
+   "8000": {
+    "archivo": "hierba_espesa.glb",
+    "tris": 8000,
+    "kb": 882
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 8.2
+ },
+ "arco_puerta": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "arco_puerta.glb",
+    "tris": 12000,
+    "kb": 1294
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 25.8
+ },
+ "fogata": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "fogata_12000.glb",
+    "tris": 12000,
+    "kb": 1272
+   },
+   "8000": {
+    "archivo": "fogata.glb",
+    "tris": 8000,
+    "kb": 887
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 14.8
+ },
+ "flores_colores": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "flores_colores_12000.glb",
+    "tris": 12000,
+    "kb": 1079
+   },
+   "8000": {
+    "archivo": "flores_colores.glb",
+    "tris": 8000,
+    "kb": 862
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 7.8
+ },
+ "pasadero": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "pasadero_12000.glb",
+    "tris": 12000,
+    "kb": 971
+   },
+   "8000": {
+    "archivo": "pasadero.glb",
+    "tris": 8000,
+    "kb": 789
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 7.8
+ },
+ "cofre": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cofre_12000.glb",
+    "tris": 12000,
+    "kb": 1049
+   },
+   "8000": {
+    "archivo": "cofre.glb",
+    "tris": 8000,
+    "kb": 806
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "Modelo ESTÁTICO: no sustituye al cofre animado (piezas/cofre.glb se mantiene). Solo si se rehace con tapa separada.",
+  "seg": 9.1
+ },
+ "helecho_ancho": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "helecho_ancho_12000.glb",
+    "tris": 12000,
+    "kb": 1222
+   },
+   "8000": {
+    "archivo": "helecho_ancho.glb",
+    "tris": 8000,
+    "kb": 890
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 10.5
+ },
+ "puesto": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "puesto.glb",
+    "tris": 12000,
+    "kb": 1294
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 24.4
+ },
+ "baldosa_guardado": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "baldosa_guardado_12000.glb",
+    "tris": 12000,
+    "kb": 1177
+   },
+   "8000": {
+    "archivo": "baldosa_guardado.glb",
+    "tris": 8000,
+    "kb": 879
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 11.2
+ },
+ "planta_violeta": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "planta_violeta_12000.glb",
+    "tris": 12000,
+    "kb": 1219
+   },
+   "8000": {
+    "archivo": "planta_violeta.glb",
+    "tris": 8000,
+    "kb": 889
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 9.6
+ },
+ "barril": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "barril_12000.glb",
+    "tris": 12000,
+    "kb": 862
+   },
+   "8000": {
+    "archivo": "barril.glb",
+    "tris": 8000,
+    "kb": 744
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 7.7
+ },
+ "setas_amarillas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "setas_amarillas_12000.glb",
+    "tris": 12000,
+    "kb": 1162
+   },
+   "8000": {
+    "archivo": "setas_amarillas.glb",
+    "tris": 8000,
+    "kb": 882
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 8.7
+ },
+ "canas": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "canas_12000.glb",
+    "tris": 12000,
+    "kb": 1277
+   },
+   "8000": {
+    "archivo": "canas.glb",
+    "tris": 8000,
+    "kb": 894
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 11.5
+ },
+ "caja": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "caja_12000.glb",
+    "tris": 12000,
+    "kb": 1085
+   },
+   "8000": {
+    "archivo": "caja.glb",
+    "tris": 8000,
+    "kb": 797
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 9.0
+ },
+ "totem_runico": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "totem_runico.glb",
+    "tris": 12000,
+    "kb": 1293
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 15.5
+ },
+ "arbusto_bayas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "arbusto_bayas_12000.glb",
+    "tris": 12000,
+    "kb": 1176
+   },
+   "8000": {
+    "archivo": "arbusto_bayas.glb",
+    "tris": 8000,
+    "kb": 885
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 8.3
+ },
+ "nenufar_flor": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "nenufar_flor_12000.glb",
+    "tris": 12000,
+    "kb": 378
+   },
+   "8000": {
+    "archivo": "nenufar_flor.glb",
+    "tris": 8000,
+    "kb": 465
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 4.9
+ },
+ "flores_amarillas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "flores_amarillas_12000.glb",
+    "tris": 12000,
+    "kb": 1177
+   },
+   "8000": {
+    "archivo": "flores_amarillas.glb",
+    "tris": 8000,
+    "kb": 887
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 8.3
+ },
+ "bloque_hierba": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_hierba_12000.glb",
+    "tris": 12000,
+    "kb": 1219
+   },
+   "8000": {
+    "archivo": "bloque_hierba.glb",
+    "tris": 8000,
+    "kb": 881
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 9.7
+ },
+ "brasero": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "brasero.glb",
+    "tris": 12000,
+    "kb": 1283
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 13.7
+ },
+ "planta_agua": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "planta_agua_12000.glb",
+    "tris": 12000,
+    "kb": 902
+   },
+   "8000": {
+    "archivo": "planta_agua.glb",
+    "tris": 8000,
+    "kb": 818
+   }
+  },
+  "origen": "s_fantasy_garden_props.glb",
+  "nota": "",
+  "seg": 6.8
+ }
+}

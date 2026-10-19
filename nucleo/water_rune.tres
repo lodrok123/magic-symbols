@@ -18,4 +18,4 @@ empuje = 0.5
 deja = "mojado"
 vfx_sheet = ExtResource("2")
 vfx_frames = 19
-modificadores = { "moja": { "op": "fija", "valor": 6.0 }, "fuerza_golpe": { "op": "fija", "valor": 600.0 } }
+modificadores = { "moja": { "op": "fija", "valor": 6.0 }, "fuerza_golpe": { "op": "fija", "valor": 600.0 }, "gravedad": { "op": "fija", "valor": 0.5 }, "densidad": { "op": "fija", "valor": 1.0 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 1.0 }, "conductividad": { "op": "fija", "valor": 0.3 } }

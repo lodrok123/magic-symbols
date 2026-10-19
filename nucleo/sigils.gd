@@ -44,6 +44,9 @@ const FORM: Dictionary = {
 	# quieto, el chorro que permanece y la columna.
 	"levitacion": {"lifetime": 2.0, "height": 1, "cooldown": 2.0},
 
+	# ᛉ Permanencia (19/10): lo que sale se QUEDA un rato más. En la receta antigua es solo `lifetime`; el hechizo nuevo lo lee de GLIFOS.
+	"permanencia": {"lifetime": 2.0, "cooldown": 1.5},
+
 	# --- LENGUAJE NUEVO: cada uno es UN parámetro más de la receta ---
 	#   rebote     bounces  el proyectil rebota en barreras y en lo que golpea; con
 	#                       una barrera, la barrera REFLEJA en vez de absorber
@@ -118,6 +121,8 @@ const GLYPHS: Dictionary = {
 	# lo gira al pintar (`EjesRecetaUi.giro_linea`: linea_x 90°, linea_z 0°). `linea` se queda para la chuleta y la paleta (GestureLibrary.SIGILS).
 	"linea_x": preload("res://art/ui/glyphs/linea.png"),
 	"linea_z": preload("res://art/ui/glyphs/linea.png"),
+	# 19/10: ᛉ permanencia (el PNG ya existía en art/ui/glyphs): hace falta aquí para que el panel del laboratorio lo pinte.
+	"permanencia": preload("res://art/ui/glyphs/permanencia.png"),
 }
 
 ## --- LA BARRERA QUE AVANZA (barrera + flecha) ---
@@ -263,7 +268,7 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##  RECETA V2 (17/10, Pablo; docs/GLIFOS_RECETA.md): volumen por ejes + propiedades aditivas
 ## =====================================================================================================
 ##
-## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,5 casilla). Cada glifo de EJE agranda un semieje del elipsoide;
+## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,25 m). Cada glifo de EJE agranda un semieje del elipsoide;
 ## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. Esta tabla es lo ÚNICO que sabe qué hace cada glifo: `aplicar_v2`
 ## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR siguen
 ## sirviendo al camino actual (V2 está detrás de `Receta3D.V2`).
@@ -275,22 +280,32 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##   tope       el valor no pasa de aquí (en casillas de SEMIEJE para los ejes)
 ##   repertorio nombre del glifo en el Repertoire/libro (linea_x y linea_z son dos lecturas del mismo ᛁ)
 ##   cooldown   recarga de la página, la MISMA que le da hoy `FORM` (V2 no toca la recarga)
-const RADIO_BASE_V2: float = 0.15         ## semieje base en casillas (18/10 Pablo: -70 % sobre el 0,5 de antes: la esfera base mide 0,3 casillas de ancho)
+const RADIO_BASE_V2: float = 0.25         ## semieje base en metros-casilla (19/10, ESPEC_HECHIZO §1.1: antes 0,15; la esfera base mide 0,5 m de ancho)
+const PASO_EJE_V2: float = 0.15           ## m que suma CADA glifo de eje a su semieje (antes sumaba lo mismo que el radio base; ahora son dos números)
+const TOPE_EJE_HORIZONTAL_V2: float = 3.0  ## semieje máximo en X y Z (§1.9: 6 m de ancho o fondo total)
+const TOPE_EJE_ALTURA_V2: float = 1.0      ## semieje máximo en Y (§1.9: 2 niveles; antes 2,0)
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
-const VELOCIDAD_FLECHA_U: float = 4.0    ## u/s de una flecha (1,7 casillas/s con casilla 2,4): la velocidad que pone el 1.er glifo de flecha
+const VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U: float = 4.0   ## u/s: la velocidad de la flecha de ayer (decisión de Pablo, 19/10: la misma). En metros sale de dividirla por la casilla: `velocidad_flecha()`
+## m/s de una flecha = 4 u/s / casilla (≈ 1,7 con casilla 2,3). Es una función y no una const porque depende de `Terreno3D.casilla`; la tabla `GLIFOS` la pide con «@velocidad_flecha».
+static func velocidad_flecha() -> float:
+	return VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U / maxf(Terreno3D.casilla, 0.001)
+
+
 const COSTE_PROP_V2: float = 0.25       ## cada propiedad distinta encarece un 25 %
 const GLIFOS_V2: Dictionary = {
 	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
-	# Tope 3,0 de semieje en X y Z (6 casillas) y 2,0 en Y (4 niveles): con +0,15 por glifo el tope ya no se alcanza con los glifos que caben en una página.
-	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 3.0, "repertorio": "linea", "cooldown": 2.0},
-	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 3.0, "repertorio": "linea", "cooldown": 2.0},
-	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": RADIO_BASE_V2, "tope": 2.0, "repertorio": "altura", "cooldown": 2.0},
+	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma PASO_EJE_V2 (0,15). Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
+	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
 	# Propiedades.
 	"flecha": {"tipo": "prop", "param": "viaja", "inicio": 1.0, "por_glifo": 1.0, "tope": 6.0, "modo": "suma", "repertorio": "flecha", "cooldown": 1.0},
 	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
 	"repeticion": {"tipo": "prop", "param": "copias", "inicio": 1.0, "por_glifo": 1.0, "tope": 4.0, "modo": "suma", "repertorio": "repeticion", "cooldown": 1.5},
 	"rebote": {"tipo": "prop", "param": "rebotes", "inicio": 0.0, "por_glifo": 1.0, "tope": 3.0, "modo": "suma", "repertorio": "rebote", "cooldown": 1.5},
 	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": 0.5, "tope": 1.5, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
+	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): +2 s por glifo de tiempo que se queda donde nace o donde para. Tope 25 s (el límite global cuenta además la `persiste`).
+	"permanencia": {"tipo": "prop", "param": "permanencia", "inicio": 0.0, "por_glifo": 2.0, "tope": 25.0, "modo": "suma", "repertorio": "permanencia", "cooldown": 1.5},
 }
 
 
@@ -300,28 +315,30 @@ const GLIFOS_V2: Dictionary = {
 ## Cada glifo es una lista de modificadores `{campo, op, valor, tope, desde}` sobre campos de `Hechizo`:
 ##   campo   nombre de un campo de Hechizo; un componente de un Vector3 se escribe con punto («semiejes.x»)
 ##   op      "suma" (v + valor·n) · "multiplica" (v · valor^n) · "fija" (v = valor) · "minimo" (v = max(v, valor), después de los topes)
-##   valor   número; o «@radio_barrera» = Sigils.radio_barrera_casillas() (depende de la casilla del terreno, no puede ser una constante)
+##   valor   número; o un símbolo que depende de la casilla del terreno y por eso no puede ser una constante: «@radio_barrera» = Sigils.radio_barrera_casillas(), «@velocidad_flecha» = Sigils.velocidad_flecha()
 ##   tope    el campo no pasa de aquí (opcional)
 ##   salta   (opcional) los k primeros glifos no cuentan: n = max(n − k, 0), y con n = 0 el modificador no se aplica («persiste +1 por cada glifo SUCESIVO»: salta 1)
 ##   desde   valor de partida si ningún otro glifo ha tocado ya ese campo (opcional; p. ej. la solidez parte de 1 con el primer glifo y vale 0 sin ninguno)
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
 ## GLIFOS_V2 se conserva MIENTRAS lo lean el laboratorio, la UI de ejes (Pipeline) y las pruebas; `prueba_hechizo` comprueba que las dos tablas dicen lo mismo.
 const GLIFOS: Dictionary = {
-	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": RADIO_BASE_V2, "tope": 3.0}]},
-	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": RADIO_BASE_V2, "tope": 3.0}]},
-	"altura": {"repertorio": "altura", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": RADIO_BASE_V2, "tope": 2.0}]},
+	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"altura": {"repertorio": "altura", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
 	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "modificadores": [
-		{"campo": "velocidad", "op": "fija", "valor": VELOCIDAD_FLECHA_U},
+		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
 		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0}]},
-	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). El 1.er glifo la hace nacer DONDE APUNTAS (en_punto); cada glifo sucesivo suma 1 s de persistencia (salta 1). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
+	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). El 1.er glifo la hace nacer DONDE APUNTAS (en_punto); cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
 	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
 		{"campo": "en_punto", "op": "fija", "valor": true},
-		{"campo": "persiste", "op": "suma", "valor": 1.0, "salta": 1}]},
+		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},
 	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
 	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "modificadores": [{"campo": "crece", "op": "suma", "valor": 0.5, "tope": 1.5}]},
+	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): lo que hace que un hechizo SE QUEDE (defensas, piezas de puzle). +2 s por glifo; `Hechizo._limitar` recorta persiste + permanencia a 25 s.
+	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
 }
 
 

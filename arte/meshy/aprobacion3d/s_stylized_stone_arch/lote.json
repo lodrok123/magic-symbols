@@ -1,0 +1,117 @@
+{
+ "cartel": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_12000.glb",
+    "tris": 12000,
+    "kb": 1277
+   },
+   "8000": {
+    "archivo": "cartel.glb",
+    "tris": 8000,
+    "kb": 903
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 15.6
+ },
+ "arco_ruina": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "arco_ruina.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 50.9
+ },
+ "tocon": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "tocon_12000.glb",
+    "tris": 12000,
+    "kb": 1292
+   },
+   "8000": {
+    "archivo": "tocon.glb",
+    "tris": 8000,
+    "kb": 902
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 13.6
+ },
+ "arbusto_otono": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "arbusto_otono_12000.glb",
+    "tris": 12000,
+    "kb": 1313
+   },
+   "8000": {
+    "archivo": "arbusto_otono.glb",
+    "tris": 8000,
+    "kb": 914
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 63.7
+ },
+ "laja_piedra": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "laja_piedra_12000.glb",
+    "tris": 12000,
+    "kb": 1097
+   },
+   "8000": {
+    "archivo": "laja_piedra.glb",
+    "tris": 8000,
+    "kb": 799
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 9.4
+ },
+ "planta_hojas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "planta_hojas_12000.glb",
+    "tris": 12000,
+    "kb": 1312
+   },
+   "8000": {
+    "archivo": "planta_hojas.glb",
+    "tris": 8000,
+    "kb": 914
+   }
+  },
+  "origen": "s_stylized_stone_arch.glb",
+  "nota": "",
+  "seg": 12.7
+ }
+}

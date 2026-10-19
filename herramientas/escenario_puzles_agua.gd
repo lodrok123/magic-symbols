@@ -251,6 +251,12 @@ func _q9_molino() -> void:
 	await avanzar_s(2.0)
 	_ok("Q9.3 la rueda gira por el golpe y abre la puerta", bool(mol.get("activo")) and bool(puerta.get("abierta")), "vel %.2f" % float(mol.get("velocidad")))
 	await avanzar_s(Molino3D.T_IMPULSO + 2.0)
+	# desde la regla del impacto (ESPEC_HECHIZO §0.3, 19/10) la flecha de agua que llega a la rueda deja además su charco en AguaSim, y ese poco de agua sigue empujando la rueda
+	# hasta que se esparce (≈ 1 s medido): «sin agua» es cuando el charco se acaba, no justo al agotarse el impulso. Se espera a que pare, con tope.
+	var t_extra: float = 0.0
+	while bool(mol.get("activo")) and t_extra < 20.0:
+		await avanzar_s(0.5)
+		t_extra += 0.5
 	_ok("Q9.4 sin agua se para y la puerta se cierra", not bool(mol.get("activo")) and not bool(puerta.get("abierta")))
 	# Vía 2: abrir la compuerta: el arroyo corre y la rueda gira mientras corra.
 	(lab.call("pulsador_en", Vector2i(26, 6)) as Node).call("pulsar")

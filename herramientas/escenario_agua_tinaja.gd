@@ -40,7 +40,7 @@ func _escenario() -> void:
 	_ok("2 antes del golpe el canal está seco", profundidades(CANAL).all(func(p: float) -> bool: return p == 0.0), str(profundidades(CANAL)))
 
 	_t_cast = reloj.t
-	var salio: bool = lanzar_a_celda("agua", ["flecha"], TINAJA, DESDE)
+	var salio: bool = lanzar_a_celda("agua", ["flecha", "flecha"], TINAJA, DESDE)        # 3 casillas = flecha ×2 (la 1.ª da 2 de alcance, cada una más suma 1)
 	_ok("3 el hechizo agua + flecha sale", salio)
 	await avanzar_vigilando(DURACION, 1.0, _al_segundo)
 

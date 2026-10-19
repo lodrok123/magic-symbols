@@ -12,6 +12,10 @@ extends Node3D
 const BIBLIOTECAS: Array = ["res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb",
 	"res://arte/meshy/magia.glb"]
 const PERSONAJES: Array = ["chibi_elf_v2", "chibi_elf", "bookseller_chibi", "goblin_warrior_chibi", "goblin_espadachin", "chibi_test"]
+## Vista de piezas SUELTAS (tecla P): las `.glb` de meshy/piezas (las que gana la maqueta por id) y las de
+## meshy/comparar (versiones a otra calidad, p. ej. `arbol_redondo_4k`, para verlas junto a la actual).
+const CARPETAS_SUELTAS: Array = ["res://arte/meshy/piezas/", "res://arte/meshy/comparar/"]
+const MAX_BYTES_SUELTA: int = 3000000   ## las bibliotecas grandes de piezas/ (bosque_*, campamento...) pesan más
 const POR_FILA: int = 6
 const HUECO: float = 3.4
 
@@ -101,6 +105,8 @@ func _montar() -> void:
 	add_child(_raiz)
 	if modo == 0:
 		_montar_piezas()
+	elif modo == 2:
+		_montar_sueltas()
 	else:
 		_montar_personajes()
 	if foco != Vector3.INF:
@@ -163,6 +169,65 @@ func _montar_piezas() -> void:
 	_centro = Vector3(float(POR_FILA - 1) * HUECO * 0.5, 1.0, float(filas - 1) * HUECO * 1.1 * 0.5)
 	_tam = float(filas) * HUECO * 1.1 + 3.0
 	_hud.text = "CATÁLOGO · %d piezas %s\n1 piezas · 2 personajes · Q/E girar · R/F inclinación · +/- zoom · flechas · L luz" % [i, " ".join(avisos)]
+
+
+## Piezas sueltas (modo 2). Todas al mismo tamaño para comparar la forma; el rótulo lleva id, triángulos y KB.
+## Por qué existe: el modo 0 solo carga las tres bibliotecas y no enseña lo que `Pieza3D` coge suelto por id.
+func _montar_sueltas() -> void:
+	var rutas: Array[String] = []
+	for carpeta in CARPETAS_SUELTAS:
+		var d: DirAccess = DirAccess.open(String(carpeta))
+		if d == null:
+			continue
+		for f in d.get_files():
+			var nombre: String = f.trim_suffix(".import")
+			if nombre.ends_with(".glb") and not rutas.has(String(carpeta) + nombre):
+				rutas.append(String(carpeta) + nombre)
+	rutas.sort_custom(func(a: String, b: String) -> bool: return a.get_file() < b.get_file())
+	var i: int = 0
+	var saltadas: int = 0
+	for r in rutas:
+		var id: String = r.get_file().get_basename()
+		if solo_pieza != "" and not id.begins_with(solo_pieza):
+			continue
+		var fa: FileAccess = FileAccess.open(r, FileAccess.READ)
+		var kb: int = 0
+		if fa != null:
+			if fa.get_length() > MAX_BYTES_SUELTA:
+				saltadas += 1
+				continue
+			kb = floori(fa.get_length() / 1024.0)
+		if not ResourceLoader.exists(r):
+			continue
+		var lib: Node3D = (load(r) as PackedScene).instantiate() as Node3D
+		var copia: Node3D = lib
+		var caja: AABB = _caja(copia, Transform3D.IDENTITY)
+		var lado: float = maxf(caja.size.x, maxf(caja.size.y, caja.size.z))
+		if lado < 0.0001:
+			lib.free()
+			continue
+		var f: float = 2.2 / lado
+		var cont := Node3D.new()
+		cont.add_child(copia)
+		copia.scale *= f
+		copia.position = -Vector3(caja.position.x + caja.size.x * 0.5, caja.position.y, caja.position.z + caja.size.z * 0.5) * f
+		cont.position = Vector3(float(i % POR_FILA) * HUECO, 0.0, float(floori(float(i) / float(POR_FILA))) * HUECO * 1.1)
+		cont.rotation_degrees.y = giro
+		_raiz.add_child(cont)
+		var l := Label3D.new()
+		l.text = "%s\n%d tri · %d KB" % [id, _triangulos(copia), kb]
+		l.font_size = 40
+		l.outline_size = 10
+		l.pixel_size = 0.009
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.position = cont.position + Vector3(0.0, 2.7, 0.0)
+		_raiz.add_child(l)
+		i += 1
+	var filas: int = maxi(1, int(ceil(float(i) / float(POR_FILA))))
+	_centro = Vector3(float(POR_FILA - 1) * HUECO * 0.5, 1.0, float(filas - 1) * HUECO * 1.1 * 0.5)
+	_tam = float(filas) * HUECO * 1.1 + 3.0
+	_hud.text = "PIEZAS SUELTAS · %d (omitidas %d bibliotecas grandes)\n1 bibliotecas · 2 personajes · P sueltas · Q/E girar · R/F inclinación · +/- zoom · flechas" % [i, saltadas]
 
 
 ## Las piezas son los hijos de la raíz de la biblioteca (o del primer nivel que tenga varios).
@@ -290,6 +355,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_montar()
 		KEY_2:
 			modo = 1
+			_montar()
+		KEY_P:
+			modo = 2
 			_montar()
 		KEY_Q, KEY_E:
 			giro += 30.0 if (ev as InputEventKey).keycode == KEY_E else -30.0

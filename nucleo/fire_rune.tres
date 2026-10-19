@@ -25,4 +25,4 @@ vfx_sheet_mid = ExtResource("3")
 vfx_frames_mid = 18
 vfx_sheet_high = ExtResource("4")
 vfx_frames_high = 18
-modificadores = { "quema": { "op": "fija", "valor": 3.0 }, "fuerza_golpe": { "op": "fija", "valor": 500.0 } }
+modificadores = { "quema": { "op": "fija", "valor": 3.0 }, "fuerza_golpe": { "op": "fija", "valor": 500.0 }, "gravedad": { "op": "fija", "valor": 0.0 }, "densidad": { "op": "fija", "valor": 0.2 }, "temperatura": { "op": "fija", "valor": 1.0 }, "humedad": { "op": "fija", "valor": 0.0 }, "conductividad": { "op": "fija", "valor": 0.0 }, "dano_periodico": { "op": "fija", "valor": 40.0 } }

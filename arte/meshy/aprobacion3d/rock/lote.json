@@ -1,0 +1,77 @@
+{
+ "hojas_caidas": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "hojas_caidas_12000.glb",
+    "tris": 12000,
+    "kb": 1285
+   },
+   "8000": {
+    "archivo": "hojas_caidas.glb",
+    "tris": 8000,
+    "kb": 887
+   }
+  },
+  "origen": "rock.glb",
+  "nota": "",
+  "seg": 33.7
+ },
+ "hierba_alta": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "hierba_alta_12000.glb",
+    "tris": 12000,
+    "kb": 1285
+   },
+   "8000": {
+    "archivo": "hierba_alta.glb",
+    "tris": 8000,
+    "kb": 887
+   }
+  },
+  "origen": "rock.glb",
+  "nota": "",
+  "seg": 42.0
+ },
+ "rocas_pequenas": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "rocas_pequenas_12000.glb",
+    "tris": 12000,
+    "kb": 1260
+   },
+   "8000": {
+    "archivo": "rocas_pequenas.glb",
+    "tris": 8000,
+    "kb": 862
+   }
+  },
+  "origen": "rock.glb",
+  "nota": "",
+  "seg": 27.5
+ },
+ "roca_musgosa": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "roca_musgosa.glb",
+    "tris": 12000,
+    "kb": 1285
+   }
+  },
+  "origen": "rock.glb",
+  "nota": "",
+  "seg": 38.3
+ }
+}

@@ -16,4 +16,4 @@ persiste = 1.5
 empuje = 1.0
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
-modificadores = { "interrumpe": { "op": "fija", "valor": 0.7 }, "fuerza_golpe": { "op": "fija", "valor": 0.0 } }
+modificadores = { "interrumpe": { "op": "fija", "valor": 0.7 }, "fuerza_golpe": { "op": "fija", "valor": 0.0 }, "gravedad": { "op": "fija", "valor": 0.0 }, "densidad": { "op": "fija", "valor": 0.1 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.0 }, "conductividad": { "op": "fija", "valor": 0.0 } }

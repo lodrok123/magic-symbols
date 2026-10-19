@@ -216,8 +216,16 @@ func lanzar(elemento: String, glifos: Array, dir: Vector3) -> bool:
 	for g in glifos:
 		lanzador.place_sigil(String(g))
 	lanzador.cooldown_left[0] = 0.0
+	# 19/10: los elementos líquidos y sólidos ya CAEN (ESPEC_HECHIZO §2: gravedad base 1 × el estado). Estos escenarios prueban reglas de puzle, no balística:
+	# se lanza sin gravedad, como asumían todos antes de la ESPEC. Si Pablo ajusta la gravedad de las flechas, se quita esta línea.
+	var previos: Dictionary = lanzador.cambios_hechizo.duplicate()
+	if not previos.has("gravedad"):
+		lanzador.cambios_hechizo = previos.duplicate()
+		lanzador.cambios_hechizo["gravedad"] = 0.0
 	var d := Vector3(dir.x, 0.0, dir.z).normalized()
-	return lanzador.lanzar_pagina_ya(0, jugador.position, d)
+	var salio: bool = lanzador.lanzar_pagina_ya(0, jugador.position, d)
+	lanzador.cambios_hechizo = previos                       # el hechizo ya está construido: lo que toque un laboratorio queda como estaba
+	return salio
 
 
 ## Como `lanzar`, pero apunta a una casilla: coloca al jugador `distancia` casillas antes (en línea recta desde `desde_celda`, o

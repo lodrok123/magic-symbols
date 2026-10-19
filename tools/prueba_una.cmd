@@ -8,7 +8,7 @@ rem   FALLO         la afirmacion NO se cumplio: el contrato esta roto (o la pru
 rem   AVISO         una medida que se imprime para calibrar; no es un error.
 rem   SCRIPT ERROR  el codigo ha petado en algun sitio (la linea "at:" de debajo dice donde). Es un error del codigo,
 rem                 aunque la prueba siga y acabe en FALLOS: 0.
-rem   "SIN RESULTADO"  la prueba no llego al final (se colgo o no compilo): mirar salida_prueba.txt.
+rem   "SIN RESULTADO"  ninguna linea de resultado (FALLOS: N, OK: N fallos, RESULTADO x: N fallos...): no compilo o se colgo (se colgo o no compilo): mirar salida_prueba.txt.
 setlocal EnableDelayedExpansion
 cd /d "%~dp0.."
 if "%~1"=="" (
@@ -43,32 +43,12 @@ echo ===== %NOMBRE% =====  (Godot: !GODOT!)  %OPC%
 echo Arrancando... (un escenario tarda minutos: cada OK/FALLO sale segun ocurre)
 echo.
 rem PowerShell hace de "tee": ensena cada linea al momento y la guarda. Solo se ensenan las lineas que importan.
-!GODOT! --headless %OPC% --path . --script res://herramientas/%NOMBRE%.gd 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath salida_prueba.txt | Select-String -Pattern '^(OK |FALLO|AVISO|SCRIPT ERROR|   at:|FALLOS:)' | ForEach-Object { $_.Line }"
+!GODOT! --headless %OPC% --path . --script res://herramientas/%NOMBRE%.gd 2>&1 | powershell -NoProfile -Command "$input | Tee-Object -FilePath salida_prueba.txt | Select-String -Pattern '^\s*(OK |OK:|FALLO|AVISO|SCRIPT ERROR|at:|RESULTADO)' | ForEach-Object { $_.Line }"
 rem Tee-Object escribe UTF-16 y findstr no lo lee: se pasa a UTF-8.
 powershell -NoProfile -Command "(Get-Content salida_prueba.txt) | Set-Content -Encoding UTF8 salida_prueba.txt"
 echo.
-set FALLOS=
-for /f "tokens=2" %%N in ('findstr /C:"FALLOS:" salida_prueba.txt') do set FALLOS=%%N
-for /f %%N in ('findstr /C:"SCRIPT ERROR" salida_prueba.txt ^| find /c /v ""') do set ERRORES=%%N
-for /f %%N in ('findstr /B /C:"AVISO" salida_prueba.txt ^| find /c /v ""') do set AVISOS=%%N
-echo ================================================================
-if not defined FALLOS (
-  echo RESULTADO: SIN RESULTADO - la prueba no llego al final. Mira salida_prueba.txt ^(ultimas lineas^):
-  powershell -NoProfile -Command "Get-Content salida_prueba.txt -Tail 15"
-  echo ================================================================
-  pause
-  exit /b 1
-)
-if "!FALLOS!"=="0" (
-  if "!ERRORES!"=="0" (
-    echo RESULTADO: BIEN - 0 fallos, 0 errores de codigo, !AVISOS! avisos ^(los avisos son medidas, no errores^)
-  ) else (
-    echo RESULTADO: PASA CON ERRORES DE CODIGO - 0 fallos pero !ERRORES! SCRIPT ERROR ^(mira las lineas "at:" de arriba^)
-  )
-) else (
-  echo RESULTADO: MAL - !FALLOS! fallos, !ERRORES! errores de codigo, !AVISOS! avisos
-)
-echo ================================================================
+rem 19/10: el veredicto lo saca tools\resumen_prueba.ps1 (mismas reglas que pruebas.cmd: acepta las cinco formas de linea de resultado y descarta el ruido de fugas).
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0resumen_prueba.ps1" -Una -Archivo salida_prueba.txt
 rem La ventana se queda abierta (si se abrio con doble clic, si no se cerraria sin dejar leer).
 pause
 endlocal

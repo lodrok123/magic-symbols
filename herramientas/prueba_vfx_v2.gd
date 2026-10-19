@@ -119,6 +119,7 @@ func _correr() -> void:
 			_ok((anchos.get("%s/Y2" % e, Vector3.ZERO) as Vector3).y > esf.y * 1.3, "%s: Y×2 es más alto que la esfera" % e)
 	await _h3(vfx, l)
 	await _h4(vfx, l, mundo)
+	await _h5(vfx, l)
 	# --- 3. nada vivo 10 s después del último disparo
 	await create_timer(ESPERA_FINAL).timeout
 	_ok(vfx.activos() == 0, "10 s después no queda ningún hechizo vivo (quedan %d)" % vfx.activos())
@@ -128,6 +129,84 @@ func _correr() -> void:
 	_ok(l.get_child_count() == 0, "el lanzador no conserva nodos de la prueba (%d)" % l.get_child_count())
 	print("%s: %d fallos" % ["FALLO" if _fallos > 0 else "OK", _fallos])
 	quit(1 if _fallos > 0 else 0)
+
+## SECCIÓN H5 (P-E1, ESPEC_HECHIZO): la señal trae `viaja`, `permanencia`, `vida_total`, `elevacion`, `separacion`, `dispersion`, `gravedad` y el VFX los usa.
+func _h5(vfx: VfxEstado3D, l: FalsoLanzador) -> void:
+	var cas: float = vfx.casilla
+	var dir := Vector3(0.0, 0.0, 1.0)
+	var vol: Dictionary = {"x": 0.5, "y": 0.5, "z": 0.5, "niveles": 1}
+	var o := Vector3(1300.0, 0.0, 0.0)
+	# --- §0.3 lo que VIAJA: desaparece al llegar; solo se queda `permanencia`. La `persiste` del elemento (fuego 3 s) no cuenta.
+	var pv: Dictionary = {"viaja": 3.0}
+	var g: Dictionary = _senal(vol, "fuego", o, dir, pv)
+	g.merge({"viaja": true, "permanencia": 0.0, "vida_total": 3.0 / 8.0, "elevacion": 0.0, "gravedad": 0.0}, true)
+	var h0: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "plasma", "fuego", g, o, dir, pv)[0]
+	_ok(absf(h0.vida - (h0._t_pista + h0.nace + h0.muere)) < 0.001, "viaja sin permanencia: desaparece al llegar (vida %.2f s = viaje %.2f + nacer + morir; la persiste de 3 s no cuenta)" % [h0.vida, h0._t_pista])
+	var o1: Vector3 = o + Vector3(0.0, 0.0, 30.0)
+	g = _senal(vol, "fuego", o1, dir, pv)
+	g.merge({"viaja": true, "permanencia": 2.0, "vida_total": 3.0 / 8.0 + 2.0, "elevacion": 0.0, "gravedad": 0.0}, true)
+	var h1: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "plasma", "fuego", g, o1, dir, pv)[0]
+	_ok(absf(h1.vida - h0.vida - 2.0) < 0.001, "viaja con permanencia 2: se queda 2 s más donde llega (+%.2f s)" % (h1.vida - h0.vida))
+	# --- lo que nace quieto: persiste + permanencia (= vida_total)
+	var o2: Vector3 = o + Vector3(0.0, 0.0, 60.0)
+	g = _senal(vol, "fuego", o2, dir, {})
+	g.merge({"viaja": false, "permanencia": 2.0, "vida_total": 5.0, "elevacion": 0.0, "gravedad": 0.0}, true)
+	var h2: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "plasma", "fuego", g, o2, dir, {})[0]
+	_ok(absf(h2.vida - (5.0 + h2.nace + h2.muere)) < 0.001, "quieto: vive persiste + permanencia = 5 s (vida %.2f s)" % h2.vida)
+	# --- elevación: el volumen nace a `elevacion` m sobre el suelo (1 m = una casilla)
+	var o3: Vector3 = o + Vector3(0.0, 0.0, 90.0)
+	g = _senal(vol, "viento", o3, dir, {})
+	g.merge({"viaja": false, "permanencia": 0.0, "vida_total": 1.5, "elevacion": 1.0, "gravedad": 0.0}, true)
+	var h3: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "gas", "viento", g, o3, dir, {})[0]
+	var o3b: Vector3 = o + Vector3(0.0, 0.0, 120.0)
+	g = _senal(vol, "viento", o3b, dir, {})
+	g.merge({"viaja": false, "permanencia": 0.0, "vida_total": 1.5, "elevacion": 0.0, "gravedad": 0.0}, true)
+	var h3b: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "gas", "viento", g, o3b, dir, {})[0]
+	_ok(absf((h3.position.y - h3b.position.y) - cas) < 0.001, "elevación 1 m: el volumen sube una casilla (%.3f u)" % (h3.position.y - h3b.position.y))
+	# --- gravedad: el agua con ×0,5 cae más despacio (tiempo ∝ 1/√g)
+	var o4: Vector3 = o + Vector3(0.0, 0.0, 150.0)
+	g = _senal(vol, "agua", o4, dir, {})
+	g.merge({"viaja": false, "permanencia": 0.0, "vida_total": 0.0, "elevacion": 0.0, "gravedad": 1.0}, true)
+	var a1: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "liquido", "agua", g, o4, dir, {})[0]
+	var o4b: Vector3 = o + Vector3(0.0, 0.0, 180.0)
+	g = _senal(vol, "agua", o4b, dir, {})
+	g.merge({"viaja": false, "permanencia": 0.0, "vida_total": 0.0, "elevacion": 0.0, "gravedad": 0.5}, true)
+	var a5: VfxEstado3D.EfectoHechizo = _emitir(vfx, l, "liquido", "agua", g, o4b, dir, {})[0]
+	_ok(absf(a5._t_caida / a1._t_caida - sqrt(2.0)) < 0.01, "agua con gravedad ×0,5: cae √2 veces más despacio (%.2f s frente a %.2f)" % [a5._t_caida, a1._t_caida])
+	# --- copias con separacion y dispersion (señal sin `eventos`: el respaldo del VFX usa los mismos campos que HechizoVivo.eventos_de)
+	var pc: Dictionary = {"copias": 3.0}
+	var o5: Vector3 = o + Vector3(0.0, 0.0, 210.0)
+	g = {"x": 0.5, "y": 0.5, "z": 0.5, "niveles": 1, "celdas": [], "props": pc, "persiste": 4.0, "suelo": 0.0, "t_caida": 0.0, "separacion": 1.0, "dispersion": 0.0}
+	var hs: Array = _emitir(vfx, l, "campo", "tiempo", g, o5, dir, pc)
+	_ok(hs.size() == 3, "tres copias, tres volúmenes (%d)" % hs.size())
+	if hs.size() == 3:
+		var sep_real: float = (hs[0] as Node3D).position.distance_to((hs[1] as Node3D).position)
+		_ok(absf(sep_real - (2.0 * 0.5 + 1.0) * cas) < 0.01, "copias a 2·semieje + separación = 2 m de centro a centro (%.3f u, se esperaba %.3f)" % [sep_real, 2.0 * cas])
+	var o6: Vector3 = o + Vector3(0.0, 0.0, 240.0)
+	g = {"x": 0.5, "y": 0.5, "z": 0.5, "niveles": 1, "celdas": [], "props": pc, "persiste": 4.0, "suelo": 0.0, "t_caida": 0.0, "separacion": 1.0, "dispersion": 20.0}
+	var hc: Array = _emitir(vfx, l, "campo", "tiempo", g, o6, dir, pc)
+	_ok(hc.size() == 3, "tres copias en abanico, tres volúmenes (%d)" % hc.size())
+	if hc.size() == 3:
+		var d0: Vector3 = ((hc[0] as Node3D).global_transform.basis.z).normalized()
+		var d1: Vector3 = ((hc[1] as Node3D).global_transform.basis.z).normalized()
+		_ok(absf(rad_to_deg(d0.angle_to(d1)) - 20.0) < 0.5, "cada copia gira `dispersion` grados respecto a la anterior (%.1f°)" % rad_to_deg(d0.angle_to(d1)))
+	# --- proyectil con permanencia: al pararse se queda dibujado donde está mientras `quedandose`, y luego se apaga
+	var hv: HechizoVivo = _proyectil(l, "plasma", "fuego", 5.0, o + Vector3(0.0, 1.2, 270.0), 0.3)
+	await process_frame
+	await process_frame
+	var dib: VfxEstado3D.EfectoHechizo = _dibujo_de(hv)
+	_ok(dib != null, "el proyectil se dibuja")
+	if dib != null:
+		hv.activo = false
+		hv.quedandose = true
+		await create_timer(0.6).timeout           # más que lo que tarda en apagarse un proyectil normal (0,35 s)
+		_ok(is_instance_valid(dib) and dib.get_parent() == hv, "con permanencia el dibujo sigue colgado del proyectil parado")
+		hv.quedandose = false
+		await create_timer(0.1).timeout
+		_ok(is_instance_valid(dib) and dib.get_parent() == vfx, "al acabar la permanencia se suelta y se apaga")
+	if is_instance_valid(hv):
+		hv.queue_free()
+
 
 ## Extensión en X, Y, Z (locales del hechizo) de los MultiMesh y mallas hijas, en unidades. Es aproximada pero monótona con el volumen.
 func _extension(h: Node3D) -> Vector3:
@@ -356,7 +435,7 @@ func _h4(vfx: VfxEstado3D, l: FalsoLanzador, mundo: Node3D) -> void:
 	await process_frame
 	_ok(vfx.proyectiles() == 0 and _dibujo_de(quieto) == null, "un HechizoVivo sin velocidad no se dibuja aquí (usa hechizo_v2)")
 	quieto.queue_free()
-	var hv: HechizoVivo = _proyectil(l, "plasma", "fuego", 10.0, o + Vector3(0.0, 1.2, 120.0), Sigils.RADIO_BASE_V2)
+	var hv: HechizoVivo = _proyectil(l, "plasma", "fuego", 10.0, o + Vector3(0.0, 1.2, 120.0), 0.12)      # 0,12 casillas: por debajo de la esfera base (0,25), para ver que no se le sube al mínimo
 	await process_frame
 	await process_frame
 	var dib: VfxEstado3D.EfectoHechizo = _dibujo_de(hv)
@@ -369,7 +448,7 @@ func _h4(vfx: VfxEstado3D, l: FalsoLanzador, mundo: Node3D) -> void:
 		var centro: Vector3 = dib.global_position + Vector3(0.0, dib.semi.y, 0.0)
 		_ok(centro.distance_to(hv.global_position) < 0.01, "el centro del volumen está en el proyectil (a %.3f u)" % centro.distance_to(hv.global_position))
 		_ok(dib.global_transform.basis.z.dot(Vector3(0.0, 0.0, -1.0)) > 0.95, "el volumen mira hacia donde va (%.2f)" % dib.global_transform.basis.z.dot(Vector3(0.0, 0.0, -1.0)))
-		_ok(absf(dib.semi.x - Sigils.RADIO_BASE_V2 * cas) < 0.001, "un proyectil se dibuja a su tamaño y no al mínimo de 0,25 casillas (radio %.3f u, el suyo %.3f)" % [dib.semi.x, Sigils.RADIO_BASE_V2 * cas])
+		_ok(absf(dib.semi.x - 0.12 * cas) < 0.001, "un proyectil se dibuja a su tamaño y no al mínimo de 0,25 casillas (radio %.3f u, el suyo %.3f)" % [dib.semi.x, 0.12 * cas])
 		# al acabar se suelta del nodo, se queda donde acabó y se apaga
 		var fin: Vector3 = dib.global_position
 		hv.activo = false

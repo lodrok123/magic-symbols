@@ -18,7 +18,7 @@ func _escenario() -> void:
 	_ok("1 la telaraña (4,33) bloquea su casilla", Lanzador3D.bloqueada(WEB) and not Terreno3D.pisable(WEB, 0, false, 0, false))
 	_ok("1 la de al lado (4,34) también", Lanzador3D.bloqueada(OTRA))
 
-	var salio: bool = lanzar_a_celda("fuego", ["flecha"], WEB, DESDE)
+	var salio: bool = lanzar_a_celda("fuego", ["flecha", "flecha"], WEB, DESDE)        # 3 casillas = flecha ×2 (la 1.ª da 2 de alcance, cada una más suma 1)
 	_ok("2 el hechizo fuego + flecha sale", salio)
 	await avanzar_s(8.0)
 	var golpes: Array = eventos("golpe_objeto").filter(func(e: Dictionary) -> bool: return String(e.get("objeto", "")) == "telarana")

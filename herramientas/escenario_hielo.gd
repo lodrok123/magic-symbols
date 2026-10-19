@@ -30,7 +30,7 @@ func _escenario() -> void:
 	_ok("2 y todavía no está preso", not g.has_meta("preso_hielo"))
 
 	colocar_jugador(DESDE)
-	var salio: bool = lanzar_a_celda("hielo", ["flecha"], ESTANQUE, DESDE)
+	var salio: bool = lanzar_a_celda("hielo", ["flecha", "flecha"], ESTANQUE, DESDE)        # 3 casillas = flecha ×2 (la 1.ª da 2 de alcance, cada una más suma 1)
 	_ok("3 el hechizo hielo + flecha sale", salio)
 	var t0: float = reloj.t
 	await avanzar_s(2.0)

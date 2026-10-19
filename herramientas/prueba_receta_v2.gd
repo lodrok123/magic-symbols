@@ -96,9 +96,9 @@ func _topes_y_casos() -> void:
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
 	g = Sigils.aplicar_v2({"linea_x": 4})
-	_ok(_casi(g["x"], rb * 5.0) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4·base (18/10 «A»: cada glifo de eje suma el radio base)")
+	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_EJE_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos (19/10: base 0,25 y cada glifo suma 0,15)")
 	g = Sigils.aplicar_v2({"linea_z": 2})
-	_ok(_casi(g["z"], rb * 3.0) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2·base")
+	_ok(_casi(g["z"], rb + 2.0 * Sigils.PASO_EJE_V2) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2 pasos")
 	g = Sigils.aplicar_v2({"altura": 4})
 	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1, "altura ×4 → 2 niveles (con uno solo se queda en 1)")
 	g = Sigils.aplicar_v2({"barrera": 1})
@@ -109,7 +109,7 @@ func _topes_y_casos() -> void:
 	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 1.0), "valores de propiedades: %s" % str(p))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
 	p = g["props"]
-	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 2.0), "topes de ejes 3 / 3 / 2: %s" % str(g))
+	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 1.0), "topes de ejes 3 / 3 / 1 (19/10: la altura topa en 1,0 = 2 niveles): %s" % str(g))
 	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], 1.5), "topes de propiedades: %s" % str(p))
 	_ok(Sigils.aplicar_v2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
 	# nombre derivado
@@ -372,9 +372,12 @@ func _max_x(celdas: Array) -> int:
 	return m
 
 
+## Espera SEGUNDOS DE JUEGO (el reloj de los temporizadores del código: `create_timer`), no fotogramas. Antes contaba `segundos × 60` fotogramas: a 30 fps esperaba el doble y a 120 la mitad,
+## y los casos de crecer y de volúmenes que viajan fallaban según los fps con que se lanzara la prueba (a 60 pasaban; a 30 y a 120 no). Un `process_frame` previo evita que el primer
+## fotograma del script, con su delta enorme, se coma el temporizador entero (medido por Pipeline en la entrada 194).
 func _esperar(segundos: float) -> void:
-	for _i in range(int(ceilf(segundos * 60.0))):
-		await process_frame
+	await process_frame
+	await create_timer(segundos).timeout
 
 
 func _ciclo_de_vida() -> void:
@@ -403,9 +406,9 @@ func _ciclo_de_vida() -> void:
 	var al_final: int = 0
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()
-	_ok(al_final == final_.size(), "crece: tras la fase de crecimiento las zonas suman las casillas del volumen entero (%d de %d)" % [al_final, final_.size()])
-	var rapido: Array = HechizoVivo.fases_crece(1.5)
-	var lento: Array = HechizoVivo.fases_crece(0.5)
+	_ok(al_final == final_.size(), "crece (ESPEC §1.3): el volumen escala hasta el 100 %% y las zonas que deja suman las casillas del volumen FINAL (%d de %d)" % [al_final, final_.size()])
+	var rapido: Array = HechizoVivo.fases_crece(1.5, 0.3, 0.25)
+	var lento: Array = HechizoVivo.fases_crece(0.5, 0.3, 0.25)
 	_ok(float((rapido.back() as Dictionary)["t"]) < float((lento.back() as Dictionary)["t"]), "crece: más glifos de pulso, crece antes (%.2f s < %.2f s)" % [(rapido.back() as Dictionary)["t"], (lento.back() as Dictionary)["t"]])
 
 	# --- 3. viaja: se desplaza `viaja` casillas ---
@@ -415,10 +418,48 @@ func _ciclo_de_vida() -> void:
 	_ok(_max_x(v2) == 5 + 6, "viaja: cinco flechas, 6 casillas (tope) (x=%d)" % _max_x(v2))
 	var v3: Array = _lanzar0(["flecha", "flecha", "flecha", "flecha", "flecha", "flecha"], "fire")
 	_ok(_max_x(v3) == _max_x(v2), "viaja: el tope es 6 casillas, una sexta flecha no suma")
-	# aparece por tandas, en orden y a VEL_VIAJA_V2 casillas/s
+	# ESPEC §0.3 (regla de impacto, 19/10): lo que VIAJA (una flecha, con su velocidad de siempre) se para donde acaba y aplica su MATERIA UNA vez ahí; no deja tandas por el camino.
+	# Se avanza a mano (`a_mano`, `paso(dt)`): sin depender de los fps. La materia del fuego es una zona que vive su `persiste` (3 s); el HechizoVivo solo se queda si lleva Permanencia.
+	for con_perm in [true, false]:
+		_montar()
+		var hz_f: Hechizo = _receta(["flecha", "flecha", "flecha", "flecha", "flecha"]).hechizo(_rune("fire"))
+		if con_perm:
+			hz_f = hz_f.con({"permanencia": 5.0})
+		var fl: HechizoVivo = HechizoVivo.crear(hz_f, _origen(), Vector3.RIGHT, _l, null, {}, true)
+		var et_f: String = "viaja (%s)" % ("con permanencia 5 s" if con_perm else "sin permanencia")
+		_ok(_l._zonas_v2.is_empty(), "%s: al lanzar no hay nada en el mundo (no deja la tanda de la mano) (%d zonas)" % [et_f, _l._zonas_v2.size()])
+		var pasos_f: int = 0
+		while fl.activo and pasos_f < 3000:
+			fl.paso(1.0 / 60.0)
+			if pasos_f == 60:
+				_ok(_l._zonas_v2.is_empty(), "%s: a mitad de camino sigue sin dejar nada (%d zonas)" % [et_f, _l._zonas_v2.size()])
+			pasos_f += 1
+		var cas_f: float = Terreno3D.casilla
+		_ok(fl.motivo_fin == "alcance" and absf(fl.recorrido / cas_f - 6.0) < 0.05, "%s: llega a su alcance de 6 casillas (%.2f, «%s»)" % [et_f, fl.recorrido / cas_f, fl.motivo_fin])
+		_ok(_l._zonas_v2.size() == 1, "%s: al pararse aplica su materia UNA vez, una zona (%d)" % [et_f, _l._zonas_v2.size()])
+		if _l._zonas_v2.size() == 1:
+			var zf: Lanzador3D.ZonaV2 = _l._zonas_v2[0]
+			_ok(zf.celdas.has(ORIGEN_C + Vector2i(6, 0)), "%s: ...y está donde acaba (casilla x = %d)" % [et_f, ORIGEN_C.x + 6])
+			_ok(absf(zf.vida - (3.0 + (5.0 if con_perm else 0.0))) < 0.05, "%s: ...y vive lo que dura la materia (persiste 3 s + permanencia): %.2f s" % [et_f, zf.vida])
+		if con_perm:
+			_ok(fl.quedandose and not fl.is_queued_for_deletion(), "%s: el hechizo se queda en el sitio" % et_f)
+			await _esperar(5.4)
+			_ok(not is_instance_valid(fl) or fl.is_queued_for_deletion(), "%s: pasados sus 5 s desaparece" % et_f)
+		else:
+			_ok(not fl.quedandose and fl.is_queued_for_deletion(), "%s: el hechizo desaparece al llegar aunque el fuego persista 3 s" % et_f)
+	# Y el VOLUMEN que viaja (velocidad 0 + distancia_max, el camino por tandas de HechizoVivo.eventos_de) aparece por tandas, en orden y a la velocidad por defecto (8 m/s).
+	# OJO (diario 195): ese camino NO aplica la materia una vez al llegar, deja una tanda por casilla; la ESPEC §0.3 pide que «los proyectiles y los volúmenes que viajan usen la misma regla».
+	# aparece por tandas, en orden y a la velocidad por defecto (8 m/s: velocidad = 0). Con Permanencia 5 s se quedan todas hasta el final; sin ella desaparecen al llegar (ESPEC §0.3)
+	var vel_viaje: float = Hechizo.VELOCIDAD_VIAJE_DEFECTO
+	_montar()
+	_l.lanzar_hechizo(_receta(["flecha", "flecha", "flecha", "flecha", "flecha"]).hechizo(_rune("fire")).con({"velocidad": 0.0, "permanencia": 5.0}), _origen(), Vector3.RIGHT)
 	_ok(_l._zonas_v2.size() == 1, "viaja: al lanzar solo existe la tanda de la mano (%d zonas)" % _l._zonas_v2.size())
-	await _esperar(float(6) / HechizoVivo.VEL_VIAJA_V2 + 0.3)
-	_ok(_l._zonas_v2.size() == 7, "viaja: tras recorrer 6 casillas hay una tanda por casilla (%d zonas)" % _l._zonas_v2.size())
+	await _esperar(float(6) / vel_viaje + 0.3)
+	_ok(_l._zonas_v2.size() == 7, "volumen que viaja (con permanencia): tras recorrer 6 casillas hay una tanda por casilla y siguen ahí (%d zonas)" % _l._zonas_v2.size())
+	_montar()
+	_l.lanzar_hechizo(_receta(["flecha", "flecha", "flecha", "flecha", "flecha"]).hechizo(_rune("fire")).con({"velocidad": 0.0}), _origen(), Vector3.RIGHT)
+	await _esperar(float(6) / vel_viaje + 0.45)
+	_ok(_l._zonas_v2.is_empty(), "volumen que viaja (sin permanencia): al llegar desaparece todo aunque el fuego persista 3 s (%d zonas)" % _l._zonas_v2.size())
 	# el golpe de lo que toca: cada estado da UN golpe a los reactivos que haya en su camino, vuelva a pasar por ellos o no
 	for par in [["ice", "solido"], ["water", "liquido"], ["time", "campo"], ["fire", "plasma"], ["wind", "gas"], ["lightning", "energia"]]:
 		_montar()
@@ -475,7 +516,7 @@ func _ciclo_de_vida() -> void:
 		if _l._solideces_v2.is_empty():
 			continue
 		var s: Lanzador3D.SolidezV2 = _l._solideces_v2[0]
-		_ok(absf(s.aguante - HechizoVivo.AGUANTE_SOLIDEZ_V2 * 2.25) < 0.001, "solidez · %s: aguante = %.1f × 2,25 (×1,5²) = %.1f" % [e, HechizoVivo.AGUANTE_SOLIDEZ_V2, s.aguante])
+		_ok(absf(s.aguante - Hechizo.RESISTENCIA_POR_SOLIDEZ * 2.25) < 0.001, "solidez · %s: aguante = %.1f × 2,25 (×1,5²) = %.1f" % [e, Hechizo.RESISTENCIA_POR_SOLIDEZ, s.aguante])
 		var lejos := Vector3((ORIGEN_C.x + 1.5) * Terreno3D.casilla, 0.5, (ORIGEN_C.y + 0.5) * Terreno3D.casilla)
 		var propia: Vector2i = Lanzador3D.celda_de(_jug.position)
 		_ok(s.contiene(Lanzador3D.centro_de(ORIGEN_C, 0.5)) and s.bloquea_a(Lanzador3D.centro_de(ORIGEN_C, 0.5), 0, propia), "solidez · %s: bloquea en la casilla de la mano" % e)
@@ -537,4 +578,7 @@ func _retiradas() -> void:
 	_ok(ciclo.contains("func _materializar(") and ciclo.contains("func eventos_de("), "el ciclo de vida está en HechizoVivo")
 	_ok(not fuente.contains("func _materializar_v2") and not fuente.contains("func _eventos_v2") and not fuente.contains("func _materia_"), "retirado de Lanzador3D: _materializar_v2, _eventos_v2 y _materia_*")
 	for glifo in Sigils.GLIFOS_V2:
+		if glifo == "permanencia":
+			continue                      # ᛉ se llama igual que el campo del Hechizo (`permanencia`, que el ciclo de vida SÍ lee): se comprueba abajo que no pregunta por el glifo
 		_ok(not ciclo.contains("\"%s\"" % glifo), "ciclo de vida: no pregunta por el glifo «%s» por su nombre" % glifo)
+	_ok(not ciclo.contains("glifos.get(") and not ciclo.contains("Sigils.GLIFOS"), "ciclo de vida: no mira los contadores de glifos ni las tablas de Sigils (solo campos del Hechizo)")

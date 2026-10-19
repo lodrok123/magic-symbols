@@ -1195,9 +1195,7 @@ func _voluta(desde: Vector3, color: Color, dura: float) -> void:
 	padre.add_child(hilo)
 	hilo.preparar([desde, desde.lerp(medio, 0.6), medio, medio.lerp(hasta, 0.6), hasta], color)
 	hilo.viajar(maxf(dura, 0.05))
-	get_tree().create_timer(dura + 0.8, false).timeout.connect(func() -> void:
-		if is_instance_valid(hilo):
-			hilo.queue_free())
+	get_tree().create_timer(dura + 0.8, false).timeout.connect(Lanzador3D._borrar_si_vive.bind(weakref(hilo)))   # referencia DÉBIL: una lambda que capture el hilo da error en el motor si muere antes (ver HechizoVivo._olvidar)
 
 
 ## La forma en la mano: una esfera emisiva que crece de 0 a su tamaño en `dura` s (sustituto del VFX del Pipeline).
@@ -1438,6 +1436,31 @@ func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3
 func _visual(elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
 	if fx != null and is_instance_valid(fx):
 		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": _radio_bola_actual})
+
+
+## Borra un nodo si sigue vivo. Se conecta con `.bind(weakref(nodo))`: una lambda que capture el nodo da error en el motor («Lambda capture at index 0 was freed») cuando
+## muere antes que el temporizador (pruebas, cambio de escena), aunque la lambda compruebe `is_instance_valid`.
+static func _borrar_si_vive(ref: WeakRef) -> void:
+	var n: Variant = ref.get_ref()
+	if n != null and is_instance_valid(n):
+		(n as Node).queue_free()
+
+
+## Un campo salió del árbol: cuenta una manifestación menos y se saca de `_campos`. Por referencias débiles (ver `_borrar_si_vive`): el lanzador puede haber muerto ya.
+static func _campo_terminado(lanzador_ref: WeakRef, campo_ref: WeakRef, cuenta: int) -> void:
+	var l: Variant = lanzador_ref.get_ref()
+	if l == null:
+		return
+	(l as Lanzador3D).manifestaciones_vivas = maxi(0, (l as Lanzador3D).manifestaciones_vivas - cuenta)
+	var c: Variant = campo_ref.get_ref()
+	if c != null:
+		(l as Lanzador3D)._campos.erase(c)
+
+
+## Levanta un bloque de tierra por casilla (el anillo Vfx3D "corro" ya dibuja la tierra).
+func _levantar_tierra(celdas: Dictionary) -> void:
+	for c in celdas:
+		construir_tierra(c as Vector2i, false)
 
 
 func _despues(t: float, f: Callable) -> void:
@@ -1759,9 +1782,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	if cupula:
 		_proteger_con(campo)
 	manifestaciones_vivas += cuenta
-	campo.tree_exited.connect(func() -> void:
-		manifestaciones_vivas = maxi(0, manifestaciones_vivas - cuenta)
-		_campos.erase(campo))
+	campo.tree_exited.connect(Lanzador3D._campo_terminado.bind(weakref(self), weakref(campo), cuenta))
 
 	# Lo que construye: tierra quieta (un bloque por casilla) y columna (barrera + levitación).
 	var columna: bool = receta.blocks and receta.height > 0 and receta.spread and not onda
@@ -1771,9 +1792,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 		var celdas: Dictionary = {}
 		for pt in campo.puntos:
 			celdas[celda_de(pt as Vector3)] = true
-		var levantar := func() -> void:
-			for c in celdas:
-				construir_tierra(c as Vector2i, false)   # el anillo (Vfx3D "corro") ya dibuja la tierra
+		var levantar: Callable = _levantar_tierra.bind(celdas)       # método del lanzador, no lambda: si el lanzador muere antes, el motor suelta la conexión sin error
 		if onda:
 			_despues(T_CRECE, levantar)          # barrera + pulso: el anillo crece y los bloques aparecen al llegar
 		else:
@@ -2735,7 +2754,7 @@ static func colocar_barreras(p_mundo: Node3D) -> int:
 	return n
 
 
-## Zona de una receta V2 con pulsos (plasma, gas, campo): vive `vida` s y cada TICK_ZONA_V2 llama al pulso de su estado (HechizoVivo.pulsar).
+## Zona de una receta V2 con pulsos (plasma, gas, campo): vive `vida` s y cada `intervalo` llama al pulso de su estado (HechizoVivo.pulsar).
 class ZonaV2 extends Node3D:
 	var lanz: Lanzador3D = null
 	var rune: RuneData = null
@@ -2745,6 +2764,8 @@ class ZonaV2 extends Node3D:
 	var celdas: Dictionary = {}          ## Vector2i -> true
 	var vida: float = 1.0
 	var metodo_pulso: String = ""
+	var intervalo: float = 0.25          ## s entre pulsos (el `intervalo` del Hechizo)
+	var dano_periodico: float = 0.0      ## puntos/s del pulso de plasma (el `dano_periodico` del Hechizo)
 	var tocados: Dictionary = {}         ## instance_id -> true: a quién ya le llegó el golpe entero
 	var _acum: float = 0.0
 
@@ -2756,8 +2777,8 @@ class ZonaV2 extends Node3D:
 	func avanzar(delta: float) -> void:
 		vida -= delta
 		_acum += delta
-		while _acum >= HechizoVivo.TICK_ZONA_V2 and vida > 0.0:
-			_acum -= HechizoVivo.TICK_ZONA_V2
+		while _acum >= intervalo and vida > 0.0:
+			_acum -= intervalo
 			pulso()
 		if vida <= 0.0:
 			queue_free()

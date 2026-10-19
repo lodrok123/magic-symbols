@@ -54,6 +54,8 @@ func _initialize() -> void:
 	await _limites()
 	await _vivo_real()
 	await _en_punto_y_areas()
+	await _unidades()
+	await _vida()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -91,7 +93,17 @@ func _montar() -> void:
 
 ## Un hechizo de un elemento con cambios de campos encima (el modo de crear hechizos nuevos: datos, no código).
 func _hz(fichero: String, cambios: Dictionary) -> Hechizo:
-	return Hechizo.construir(load("res://nucleo/%s_rune.tres" % fichero) as RuneData, {}).con(cambios)
+	return Hechizo.construir(load("res://nucleo/%s_rune.tres" % fichero) as RuneData, {}).con(_en_m(cambios))
+
+
+## Desde el 19/10 (ESPEC_HECHIZO §0.1) el Hechizo habla en m/s y metros-casilla. Los números de esta prueba se escribieron en u/s y u (HC4) y tienen sentido físico en u: aquí se pasan a metros
+## al construir (÷ casilla), así el hechizo recibe lo que toca y las medidas de abajo siguen siendo en u. HechizoVivo los multiplica de vuelta.
+func _en_m(cambios: Dictionary) -> Dictionary:
+	var r: Dictionary = cambios.duplicate()
+	for campo in ["velocidad", "aceleracion", "altura_salida"]:
+		if r.has(campo):
+			r[campo] = float(r[campo]) / Terreno3D.casilla
+	return r
 
 
 func _origen(c: Vector2i = SALIDA, dy: float = Terreno3D.ALTO_NIVEL * 0.0 + 0.8) -> Vector3:
@@ -99,7 +111,7 @@ func _origen(c: Vector2i = SALIDA, dy: float = Terreno3D.ALTO_NIVEL * 0.0 + 0.8)
 
 
 func _lanzar(h: Hechizo, c: Vector2i = SALIDA, dir: Vector3 = Vector3.RIGHT, dy: float = 0.8) -> HechizoVivo:
-	return HechizoVivo.crear(h.con({"altura_salida": dy}), _origen(c, dy), dir, _l, null, {}, true)
+	return HechizoVivo.crear(h.con(_en_m({"altura_salida": dy})), _origen(c, dy), dir, _l, null, {}, true)
 
 
 func _correr(v: HechizoVivo, max_pasos: int = 1500) -> int:
@@ -535,3 +547,77 @@ func _en_punto_y_areas() -> void:
 	# el hechizo de una barrera lo pide; el de una línea, no (cast_page lo lee de Hechizo.en_punto)
 	var rune: RuneData = load("res://nucleo/earth_rune.tres")
 	_ok("en_punto: lo pide el glifo de barrera", Hechizo.construir(rune, {"barrera": 1}).en_punto and not Hechizo.construir(rune, {"linea_x": 2}).en_punto)
+
+
+# --- E1 (19/10): el Hechizo habla en metros-casilla y m/s; HechizoVivo convierte a u con la casilla ---
+func _unidades() -> void:
+	_montar()
+	var cas: float = Terreno3D.casilla
+	var pies: Vector3 = Lanzador3D.centro_de(SALIDA, Terreno3D.y_pies(SALIDA))
+	var rapido: Hechizo = Hechizo.construir(load("res://nucleo/fire_rune.tres") as RuneData, {}).con({"velocidad": 2.0, "distancia_max": 4.0})     # SIN _en_m: metros de verdad
+	var v: HechizoVivo = HechizoVivo.crear(rapido, pies, Vector3.RIGHT, _l, null, {}, true)
+	_ok("unidades: velocidad 2 m/s = 2 casillas/s = %.2f u/s (mide %.2f)" % [2.0 * cas, v.v.length()], absf(v.v.length() - 2.0 * cas) < 0.001)
+	_ok("unidades: altura_salida en m: sale a (altura_salida + elevacion) × casilla sobre el suelo (%.3f u)" % (v.p.y - pies.y), absf((v.p.y - pies.y) - rapido.altura_salida * cas) < 0.001 and absf(rapido.altura_salida * cas - 0.9) < 0.001)
+	var alto: HechizoVivo = HechizoVivo.crear(rapido.copiar().con({"elevacion": 1.0}), pies, Vector3.RIGHT, _l, null, {}, true)
+	_ok("unidades: elevacion 1 m sube un metro-casilla más (%.3f u)" % (alto.p.y - v.p.y), absf((alto.p.y - v.p.y) - cas) < 0.001)
+	_correr(v)
+	_ok("unidades: distancia_max 4 m = 4 casillas (%.2f u de %.2f)" % [v.p.x - pies.x, 4.0 * cas], absf((v.p.x - pies.x) - 4.0 * cas) < 0.3)
+
+
+## Regla de vida (ESPEC_HECHIZO §0.3, E2): lo que viaja desaparece al llegar o chocar salvo que lleve `permanencia`; la `persiste` del elemento solo cuenta para lo que nace quieto.
+func _vida() -> void:
+	var cas: float = Terreno3D.casilla
+	# 1. flecha de fuego (persiste 3) de alcance 3 m, SIN permanencia: avanza 3 y desaparece (a 1,7 m/s tardaría 1,7 s; con alcance 6 llegaría a 3,4 s y antes la mataba la `persiste`)
+	_montar()
+	var f: HechizoVivo = HechizoVivo.crear(_hz("fire", {"persiste": 3.0, "velocidad": 4.0, "distancia_max": 3.0, "gravedad": 0.0}), _origen(), Vector3.RIGHT, _l, null, {}, true)
+	_correr(f)
+	_ok("vida: flecha de alcance 3 sin permanencia avanza 3 casillas (%.2f) y acaba por «alcance»" % (f.recorrido / cas), absf(f.recorrido / cas - 3.0) < 0.05 and f.motivo_fin == "alcance")
+	_ok("vida: ...y desaparece ya (no se queda, aunque el fuego persista 3 s)", not f.quedandose and f.is_queued_for_deletion())
+	var larga: HechizoVivo = HechizoVivo.crear(_hz("fire", {"persiste": 3.0, "velocidad": 4.0, "distancia_max": 6.0, "gravedad": 0.0}), _origen(Vector2i(2, 8)), Vector3.RIGHT, _l, null, {}, true)
+	_correr(larga)
+	_ok("vida: alcance 6 a 1,7 m/s dura 3,4 s > persiste 3: ya NO la corta el tiempo, llega a su alcance (%.2f casillas, «%s»)" % [larga.recorrido / cas, larga.motivo_fin], absf(larga.recorrido / cas - 6.0) < 0.05 and larga.motivo_fin == "alcance")
+	# 2. pared a 2 casillas: se para ahí y desaparece (la pared de la derecha es la casilla x = 19; sale de x = 17)
+	_montar()
+	var pared: HechizoVivo = HechizoVivo.crear(_hz("fire", {"velocidad": 4.0, "distancia_max": 5.0, "gravedad": 0.0}), _origen(Vector2i(17, 8)), Vector3.RIGHT, _l, null, {}, true)
+	_correr(pared)
+	_ok("vida: con una pared a 2 casillas se para antes de llegar (%.2f casillas, motivo «%s») y desaparece" % [pared.recorrido / cas, pared.motivo_fin], pared.motivo_fin == "muro" and pared.recorrido / cas < 2.0 and not pared.quedandose and pared.is_queued_for_deletion())
+	# 3. con Permanencia 2 s: avanza 3 y se queda 2 s
+	_montar()
+	var p2: HechizoVivo = HechizoVivo.crear(_hz("fire", {"velocidad": 4.0, "distancia_max": 3.0, "gravedad": 0.0, "permanencia": 2.0}), _origen(), Vector3.RIGHT, _l, null, {}, true)
+	_correr(p2)
+	var x_fin: float = p2.p.x
+	_ok("vida: con permanencia 2 avanza 3 casillas (%.2f) y se queda en el sitio" % (p2.recorrido / cas), absf(p2.recorrido / cas - 3.0) < 0.05 and p2.quedandose and not p2.is_queued_for_deletion())
+	await create_timer(1.0).timeout
+	_ok("vida: a 1 s de parar sigue ahí, quieto", is_instance_valid(p2) and p2.quedandose and p2.p.x == x_fin)
+	await create_timer(1.3).timeout
+	_ok("vida: pasados sus 2 s desaparece", not is_instance_valid(p2) or (not p2.quedandose and p2.is_queued_for_deletion()))
+	# 4. el volumen que nace quieto: persiste + permanencia (muro de tierra con solidez: 8 s, con Permanencia ×1 → 10 s)
+	for par in [[0.0, 8.0], [2.0, 10.0]]:
+		_montar()
+		var muro: HechizoVivo = HechizoVivo.crear(_hz("earth", {"solidez": 1.0, "permanencia": par[0]}), _origen(), Vector3.RIGHT, _l, null, {}, true)
+		var vida_s: float = 0.0
+		for s2 in _l._solideces_v2:
+			vida_s = maxf(vida_s, (s2 as Lanzador3D.SolidezV2).vida)
+		_ok("vida: muro de tierra quieto con permanencia %.0f dura %.1f s (mide %.1f)" % [par[0], par[1], vida_s], absf(vida_s - par[1]) < 0.001 and muro != null)
+	# 5. el volumen que viaja: la `persiste` del elemento no cuenta (fuego de zona: vida = lo que falta para llegar, no 3 s)
+	_montar()
+	HechizoVivo.crear(_hz("fire", {"velocidad": 0.0, "distancia_max": 3.0}), _origen(), Vector3.RIGHT, _l, null, {}, true)
+	var primera: float = 0.0
+	for z in _l._zonas_v2:
+		primera = maxf(primera, (z as Lanzador3D.ZonaV2).vida)
+	_ok("vida: la primera tanda de un volumen que viaja 3 m a 8 m/s vive lo que falta para llegar (%.2f s ≈ 0,375), no los 3 s del fuego" % primera, absf(primera - 3.0 / Hechizo.VELOCIDAD_VIAJE_DEFECTO) < 0.01)
+	# 6. (ESPEC_HECHIZO §0.3, 19/10) la flecha de agua que viaja: mientras viaja no deja nada; al PARARSE aplica su materia una vez (charco en AguaSim) y desaparece
+	_montar()
+	var sim: AguaSim3D = Lanzador3D.montar_agua_sim()
+	var fa: HechizoVivo = HechizoVivo.crear(_hz("water", {"velocidad": 4.0, "distancia_max": 3.0, "gravedad": 0.0}), _origen(), Vector3.RIGHT, _l, null, {}, true)
+	for _i in range(30):
+		fa.paso(DT)
+	_ok("vida: la flecha de agua en pleno vuelo (%.2f casillas) aún no ha echado agua" % (fa.recorrido / cas), fa.activo and sim.volumen_total() < 0.0001)
+	_correr(fa)
+	var rec_a: float = fa.recorrido / cas                # se lee ANTES de esperar: el hechizo se libera solo al cumplirse
+	var fin_a: String = fa.motivo_fin
+	await create_timer(0.9).timeout                  # el agua entra cuando la masa ha caído (t_caida ≤ 0,8 s, temporizador real)
+	for _i in range(int((HechizoVivo.T_LLENADO_V2 + 0.3) / DT)):
+		sim.paso(DT)
+	_ok("vida: flecha de agua llega (%.2f casillas, «%s») y forma charco (%.3f u³ en AguaSim)" % [rec_a, fin_a, sim.volumen_total()], fin_a == "alcance" and sim.volumen_total() > 0.01)
+	_ok("vida: ...y luego desaparece (permanencia 0)", not is_instance_valid(fa) or (not fa.quedandose and fa.is_queued_for_deletion()))

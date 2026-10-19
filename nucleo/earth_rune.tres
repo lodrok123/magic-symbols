@@ -17,4 +17,4 @@ empuje = 0.8
 pisable = true
 vfx_sheet = ExtResource("2")
 vfx_frames = 19
-modificadores = { "ralentiza": { "op": "fija", "valor": 3.0 }, "ralentiza_fuerza": { "op": "fija", "valor": 0.4 }, "fuerza_golpe": { "op": "fija", "valor": 2200.0 }, "dano": { "op": "suma", "valor": 18.0 } }
+modificadores = { "ralentiza": { "op": "fija", "valor": 3.0 }, "ralentiza_fuerza": { "op": "fija", "valor": 0.4 }, "fuerza_golpe": { "op": "fija", "valor": 2200.0 }, "dano": { "op": "suma", "valor": 18.0 }, "gravedad": { "op": "fija", "valor": 1.0 }, "densidad": { "op": "fija", "valor": 2.0 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.2 }, "conductividad": { "op": "fija", "valor": 0.0 } }

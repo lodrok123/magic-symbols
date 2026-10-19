@@ -18,4 +18,4 @@ empuje = 0.2
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
 beam = true
-modificadores = { "aturde": { "op": "fija", "valor": 1.2 }, "fuerza_golpe": { "op": "fija", "valor": 400.0 } }
+modificadores = { "aturde": { "op": "fija", "valor": 1.2 }, "fuerza_golpe": { "op": "fija", "valor": 400.0 }, "gravedad": { "op": "fija", "valor": 0.0 }, "densidad": { "op": "fija", "valor": 0.0 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.0 }, "conductividad": { "op": "fija", "valor": 1.0 } }

@@ -57,6 +57,7 @@ const SIGILS: PackedStringArray = [
 	"pulso",       # NUEVO: aros que se abren
 	"atraccion",   # NUEVO: puntas que convergen
 	"espejo",      # NUEVO: eje con dos puntas hacia fuera
+	"permanencia", # ᛉ algiz (19/10, Pablo): lo que sale se queda más tiempo. Hasta que Pablo grabe sus muestras con G no se reconoce
 	"linea",       # raya: muro delante (fase 8)
 	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
 ]
@@ -69,7 +70,7 @@ const RECORDABLE: PackedStringArray = [
 	"flecha", "barrera", "levitacion", "repeticion", "amplificar",
 	"rebote", "retardo", "pulso", "atraccion", "espejo",
 	# 16/10 (biblia de runas de Pablo): también se graban los que aún no lanzan nada, para tenerlos listos (assets, enemigos, señuelos).
-	"linea", "veneno", "naturaleza", "sombra", "luz", "thurisaz", "ansuz", "raido", "algiz", "berkana",
+	"linea", "veneno", "naturaleza", "sombra", "luz", "thurisaz", "ansuz", "raido", "permanencia", "berkana",
 ]
 
 ## --- BIBLIA DE RUNAS (16/10, lámina de Pablo: 24 runas del futhark antiguo) ---
@@ -93,7 +94,7 @@ const BIBLIA: Dictionary = {
 	"naturaleza": {"futhark": "ᛃ", "nombre_runa": "jera", "uso": "asset"},
 	"flecha":     {"futhark": "ᛇ", "nombre_runa": "eihwaz", "uso": "sello"},
 	"sombra":     {"futhark": "ᛈ", "nombre_runa": "perthro", "uso": "asset"},
-	"algiz":      {"futhark": "ᛉ", "nombre_runa": "algiz", "uso": "libre"},
+	"permanencia": {"futhark": "ᛉ", "nombre_runa": "algiz", "uso": "sello"},       # antes «algiz», libre (ESPEC_HECHIZO §3, decidido el 19/10)
 	"rayo":       {"futhark": "ᛊ", "nombre_runa": "sowilo", "uso": "elemento"},
 	"levitacion": {"futhark": "ᛏ", "nombre_runa": "tiwaz", "uso": "sello"},
 	"berkana":    {"futhark": "ᛒ", "nombre_runa": "berkana", "uso": "libre"},

@@ -1,0 +1,77 @@
+{
+ "arbol_redondo": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "arbol_redondo.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_trees.glb",
+  "nota": "",
+  "seg": 122.2
+ },
+ "sauce": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "sauce.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_trees.glb",
+  "nota": "",
+  "seg": 72.4
+ },
+ "abedul_amarillo": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "abedul_amarillo.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_trees.glb",
+  "nota": "",
+  "seg": 64.9
+ },
+ "arbol_viejo": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "arbol_viejo.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_trees.glb",
+  "nota": "",
+  "seg": 79.7
+ },
+ "pino": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "pino.glb",
+    "tris": 12000,
+    "kb": 1313
+   }
+  },
+  "origen": "s_stylized_trees.glb",
+  "nota": "",
+  "seg": 61.6
+ }
+}

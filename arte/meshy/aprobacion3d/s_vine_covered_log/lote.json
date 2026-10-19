@@ -1,0 +1,122 @@
+{
+ "valla_lianas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "valla_lianas.glb",
+    "tris": 12000,
+    "kb": 1562
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 131.5
+ },
+ "raices_secas": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "raices_secas_12000.glb",
+    "tris": 12000,
+    "kb": 1561
+   },
+   "8000": {
+    "archivo": "raices_secas.glb",
+    "tris": 8000,
+    "kb": 1163
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 34.4
+ },
+ "tocon_seco": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "tocon_seco_12000.glb",
+    "tris": 12000,
+    "kb": 1534
+   },
+   "8000": {
+    "archivo": "tocon_seco.glb",
+    "tris": 8000,
+    "kb": 1161
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 16.3
+ },
+ "tronco_seco": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "tronco_seco.glb",
+    "tris": 11999,
+    "kb": 1561
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 64.3
+ },
+ "ramas_suelo": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "ramas_suelo_12000.glb",
+    "tris": 12000,
+    "kb": 1498
+   },
+   "8000": {
+    "archivo": "ramas_suelo.glb",
+    "tris": 8000,
+    "kb": 1127
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 18.3
+ },
+ "tronco_musgoso": {
+  "estado": "pendiente",
+  "directo": true,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "tronco_musgoso.glb",
+    "tris": 12000,
+    "kb": 1562
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 82.9
+ },
+ "tronco_enredadera": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 12000,
+  "niveles": {
+   "12000": {
+    "archivo": "tronco_enredadera.glb",
+    "tris": 12000,
+    "kb": 1562
+   }
+  },
+  "origen": "s_vine-covered_log.glb",
+  "nota": "",
+  "seg": 97.9
+ }
+}

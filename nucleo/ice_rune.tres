@@ -19,4 +19,4 @@ pisable = true
 deja = "helado"
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
-modificadores = { "congela": { "op": "fija", "valor": 1.5 }, "congela_mojado": { "op": "fija", "valor": 2.5 }, "fuerza_golpe": { "op": "fija", "valor": 300.0 } }
+modificadores = { "congela": { "op": "fija", "valor": 1.5 }, "congela_mojado": { "op": "fija", "valor": 2.5 }, "fuerza_golpe": { "op": "fija", "valor": 300.0 }, "gravedad": { "op": "fija", "valor": 1.0 }, "densidad": { "op": "fija", "valor": 0.9 }, "temperatura": { "op": "fija", "valor": -1.0 }, "humedad": { "op": "fija", "valor": 0.5 }, "conductividad": { "op": "fija", "valor": 0.0 } }

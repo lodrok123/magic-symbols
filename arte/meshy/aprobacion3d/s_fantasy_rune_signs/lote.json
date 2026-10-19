@@ -1,0 +1,242 @@
+{
+ "bloque_runa_roja": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_roja_12000.glb",
+    "tris": 12000,
+    "kb": 1204
+   },
+   "8000": {
+    "archivo": "bloque_runa_roja.glb",
+    "tris": 8000,
+    "kb": 830
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 14.3
+ },
+ "cartel_runa_roja": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_roja_12000.glb",
+    "tris": 12000,
+    "kb": 1279
+   },
+   "8000": {
+    "archivo": "cartel_runa_roja.glb",
+    "tris": 8000,
+    "kb": 893
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 19.1
+ },
+ "bloque_runa_naranja": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_naranja_12000.glb",
+    "tris": 12000,
+    "kb": 1240
+   },
+   "8000": {
+    "archivo": "bloque_runa_naranja.glb",
+    "tris": 8000,
+    "kb": 864
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 17.0
+ },
+ "cartel_runa_naranja": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_naranja_12000.glb",
+    "tris": 12000,
+    "kb": 1287
+   },
+   "8000": {
+    "archivo": "cartel_runa_naranja.glb",
+    "tris": 8000,
+    "kb": 893
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 21.6
+ },
+ "bloque_runa_verde": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_verde_12000.glb",
+    "tris": 12000,
+    "kb": 1235
+   },
+   "8000": {
+    "archivo": "bloque_runa_verde.glb",
+    "tris": 8000,
+    "kb": 860
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 17.3
+ },
+ "cartel_runa_verde": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_verde_12000.glb",
+    "tris": 12000,
+    "kb": 1289
+   },
+   "8000": {
+    "archivo": "cartel_runa_verde.glb",
+    "tris": 8000,
+    "kb": 893
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 22.2
+ },
+ "bloque_runa_azul": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_azul_12000.glb",
+    "tris": 12000,
+    "kb": 1256
+   },
+   "8000": {
+    "archivo": "bloque_runa_azul.glb",
+    "tris": 8000,
+    "kb": 882
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 16.2
+ },
+ "cartel_runa_azul": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_azul_12000.glb",
+    "tris": 12000,
+    "kb": 1285
+   },
+   "8000": {
+    "archivo": "cartel_runa_azul.glb",
+    "tris": 8000,
+    "kb": 892
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 19.6
+ },
+ "cartel_runa_amarilla": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_amarilla_12000.glb",
+    "tris": 12000,
+    "kb": 1286
+   },
+   "8000": {
+    "archivo": "cartel_runa_amarilla.glb",
+    "tris": 8000,
+    "kb": 892
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 21.2
+ },
+ "bloque_runa_amarilla": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_amarilla_12000.glb",
+    "tris": 12000,
+    "kb": 1267
+   },
+   "8000": {
+    "archivo": "bloque_runa_amarilla.glb",
+    "tris": 8000,
+    "kb": 890
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 17.7
+ },
+ "cartel_runa_cian": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "cartel_runa_cian_12000.glb",
+    "tris": 12000,
+    "kb": 1288
+   },
+   "8000": {
+    "archivo": "cartel_runa_cian.glb",
+    "tris": 8000,
+    "kb": 893
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 22.1
+ },
+ "bloque_runa_cian": {
+  "estado": "pendiente",
+  "directo": false,
+  "objetivo": 8000,
+  "niveles": {
+   "12000": {
+    "archivo": "bloque_runa_cian_12000.glb",
+    "tris": 12000,
+    "kb": 1225
+   },
+   "8000": {
+    "archivo": "bloque_runa_cian.glb",
+    "tris": 8000,
+    "kb": 852
+   }
+  },
+  "origen": "s_fantasy_rune_signs.glb",
+  "nota": "",
+  "seg": 15.8
+ }
+}
