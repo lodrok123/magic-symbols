@@ -33,7 +33,7 @@ const LADO: int = 16
 const ORIGEN_C: Vector2i = Vector2i(5, 8)        ## casilla de la mano en las pruebas del ciclo de vida
 
 const MAX_GLIFOS: int = 4
-const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind", "time"]
+const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       # 20/10: seis; «time» es cinemática
 const NOMBRES_OK: Array = ["x_mano", "alto", "abajo"]
 const ORIGENES: Array = [Vector2(11.5, 11.5), Vector2(11.0, 11.0), Vector2(11.9, 11.3)]    ## en casillas (se multiplica por la casilla)
 const DIRECCIONES: int = 8
@@ -68,7 +68,7 @@ func _datos_de_elementos() -> void:
 	var esperado: Dictionary = {
 		"fire": ["plasma", 3.0, false, "quemado"], "water": ["liquido", 0.0, false, "mojado"], "earth": ["solido", 8.0, true, ""],
 		"ice": ["solido", 6.0, true, "helado"], "lightning": ["energia", 0.2, false, ""], "wind": ["gas", 1.5, false, ""],
-		"time": ["campo", 4.0, false, ""]}
+		}
 	for e in ELEMENTOS:
 		var r: RuneData = load("res://nucleo/%s_rune.tres" % e)
 		_ok(r != null, "no carga %s" % e)
@@ -461,7 +461,7 @@ func _ciclo_de_vida() -> void:
 	await _esperar(float(6) / vel_viaje + 0.45)
 	_ok(_l._zonas_v2.is_empty(), "volumen que viaja (sin permanencia): al llegar desaparece todo aunque el fuego persista 3 s (%d zonas)" % _l._zonas_v2.size())
 	# el golpe de lo que toca: cada estado da UN golpe a los reactivos que haya en su camino, vuelva a pasar por ellos o no
-	for par in [["ice", "solido"], ["water", "liquido"], ["time", "campo"], ["fire", "plasma"], ["wind", "gas"], ["lightning", "energia"]]:
+	for par in [["ice", "solido"], ["water", "liquido"], ["fire", "plasma"], ["wind", "gas"], ["lightning", "energia"]]:
 		_montar()
 		var rv := ReactivoFalso.new()
 		rv.add_to_group("reactivo3d")
@@ -476,7 +476,7 @@ func _ciclo_de_vida() -> void:
 	_mat0(_receta(["flecha", "flecha", "flecha"]), _rune("fire"), _origen(), Vector3.RIGHT)
 	_ok(_max_x((_senales[0][2]["celdas"] as Array)) <= 7, "viaja: una casilla sólida lo para (llega a x=%d)" % _max_x((_senales[0][2]["celdas"] as Array)))
 	# y el desplazamiento no mira el estado: también el agua y el hielo viajan
-	for e in ["water", "wind", "time", "lightning"]:
+	for e in ["water", "wind", "lightning"]:
 		_ok(_max_x(_lanzar0(["flecha"], e)) == 7, "viaja: también con %s" % e)
 
 	# --- 4. rebotes ---
@@ -509,7 +509,7 @@ func _ciclo_de_vida() -> void:
 	_ok(absf(_rune("fire").persiste - 3.0) < 0.0001, "persiste × calidad: el .tres compartido no se toca")
 
 	# --- 6. solidez por encima de cualquier estado ---
-	for e in ["water", "wind", "fire", "time", "lightning", "earth", "ice"]:
+	for e in ["water", "wind", "fire", "lightning", "earth", "ice"]:
 		_montar()
 		var celdas: Array = _lanzar(["barrera", "barrera"], e)
 		_ok(_l._solideces_v2.size() >= 1, "solidez · %s: aparece el volumen sólido encima" % e)

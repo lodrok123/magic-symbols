@@ -47,6 +47,9 @@ var _t_colisiones: float = 0.0
 var _pool_col: Array[MeshInstance3D] = []
 var _caja_col: BoxMesh = null
 var _mat_col: Dictionary = {}
+var _pool_forma: Array[MeshInstance3D] = []      ## 20/10: las formas REALES de lo que bloquea (cajas y cilindros planos), no la casilla
+var _malla_caja: BoxMesh = null
+var _malla_cil: CylinderMesh = null
 
 
 ## --- Registro (estático) ---
@@ -163,6 +166,9 @@ func _process(delta: float) -> void:
 ## --- F10: dibuja lo que BLOQUEA el paso del jugador, alrededor de él ---
 ## rojo = casilla bloqueada del mapa (objeto, pared, arbusto) · naranja = hierba crecida (sólida) ·
 ## violeta = tierra/columna (nivel ≥ 1; se sube saltando) · azul = agua (se nada) · cian = hielo (se pisa).
+## 20/10 (Pablo: colisiones cercanas al modelo y no a la cuadrícula): una casilla bloqueada cuya forma real se conoce («parcial») ya NO se pinta entera en
+## rojo: se dibuja la forma que choca de verdad (verde: caja, cilindro o círculo de huella), que es lo que rozan el jugador y los goblins. El rojo queda
+## solo para lo que sigue siendo la casilla entera (muros, telaraña, lo creado jugando, agua/borde). El cuerpo del jugador añade 0,3 u alrededor de la forma.
 const RADIO_COLISIONES: int = 7
 
 func _material_col(clave: String, color: Color) -> StandardMaterial3D:
@@ -180,6 +186,69 @@ func _borrar_colisiones() -> void:
 	for n in _pool_col:
 		if is_instance_valid(n):
 			n.visible = false
+	for n in _pool_forma:
+		if is_instance_valid(n):
+			n.visible = false
+
+
+## Una forma plana (alto 0,06) en el suelo: `cil` = círculo de ese radio (r), si no una caja de `tam` (x, z) girada `giro` rad.
+func _pintar_forma(usados: int, centro: Vector3, tam: Vector2, giro: float, cil: bool) -> int:
+	if _malla_caja == null:
+		_malla_caja = BoxMesh.new()
+		_malla_caja.size = Vector3.ONE
+		_malla_cil = CylinderMesh.new()
+		_malla_cil.top_radius = 1.0
+		_malla_cil.bottom_radius = 1.0
+		_malla_cil.height = 1.0
+	var mi: MeshInstance3D
+	if usados < _pool_forma.size():
+		mi = _pool_forma[usados]
+	else:
+		mi = MeshInstance3D.new()
+		mundo.add_child(mi)
+		_pool_forma.append(mi)
+	mi.mesh = _malla_cil if cil else _malla_caja
+	mi.material_override = _material_col("forma", Color(0.1, 1.0, 0.3, 0.55))
+	mi.transform = Transform3D(Basis(Vector3.UP, giro) * Basis.from_scale(Vector3(tam.x, 0.06, tam.y)), centro)
+	mi.visible = true
+	return usados + 1
+
+
+## Las formas reales de las casillas «parciales» cercanas: huellas (círculos) si la solidez es por casillas, cuerpos de la capa sólida si es por nodos.
+func _pintar_formas(c0: Vector2i) -> void:
+	var usados: int = 0
+	var alcance: float = float(RADIO_COLISIONES) * Terreno3D.casilla
+	var y: float = Terreno3D.y_pies(c0) + 0.15
+	var por_nodos: bool = Terreno3D.fuente is Terreno3D.FuenteNodos
+	for celda in ({} if por_nodos else Terreno3D.huellas):
+		var cc: Vector2i = celda
+		if absi(cc.x - c0.x) > RADIO_COLISIONES or absi(cc.y - c0.y) > RADIO_COLISIONES or not Terreno3D.es_parcial(cc):
+			continue
+		for h in (Terreno3D.huellas[cc] as Array):
+			var hv: Vector3 = h
+			usados = _pintar_forma(usados, Vector3(hv.x, Terreno3D.y_pies(cc) + 0.15, hv.y), Vector2(hv.z, hv.z), 0.0, true)
+	var centro_j: Vector3 = ((mundo.get("_jugador") as Node3D).position)
+	for b in mundo.get_tree().get_nodes_in_group("bloquea"):
+		if not (b is CollisionObject3D) or not is_instance_valid(b):
+			continue
+		var cb: Node3D = b as Node3D
+		if Vector2(cb.global_position.x - centro_j.x, cb.global_position.z - centro_j.z).length() > alcance:
+			continue
+		for h in cb.get_children():
+			if not (h is CollisionShape3D) or (h as CollisionShape3D).shape == null:
+				continue
+			var cs: CollisionShape3D = h as CollisionShape3D
+			var g: Transform3D = cs.global_transform
+			var giro: float = g.basis.get_euler().y
+			var centro := Vector3(g.origin.x, y, g.origin.z)
+			if cs.shape is BoxShape3D:
+				var sz: Vector3 = (cs.shape as BoxShape3D).size
+				usados = _pintar_forma(usados, centro, Vector2(sz.x, sz.z), giro, false)
+			elif cs.shape is CylinderShape3D:
+				var r: float = (cs.shape as CylinderShape3D).radius
+				usados = _pintar_forma(usados, centro, Vector2(r, r), 0.0, true)
+	for i in range(usados, _pool_forma.size()):
+		_pool_forma[i].visible = false
 
 
 func _pintar_colisiones() -> void:
@@ -204,6 +273,8 @@ func _pintar_colisiones() -> void:
 			if l == "~":
 				clave = "hielo" if Terreno3D.helada(c) else "agua"
 			elif Terreno3D.bloqueada(c):
+				if Terreno3D.es_parcial(c):
+					continue                                    # su forma real se pinta aparte (_pintar_formas): la casilla entera no es lo que choca
 				clave = "rojo"
 			elif hf.has(c) and int((hf[c] as Dictionary)["fase"]) == 1 and float((hf[c] as Dictionary)["v"]) > 0.5:
 				clave = "naranja"
@@ -227,6 +298,7 @@ func _pintar_colisiones() -> void:
 			usados += 1
 	for i in range(usados, _pool_col.size()):
 		_pool_col[i].visible = false
+	_pintar_formas(c0)
 
 
 ## --- Lo que se mide ---

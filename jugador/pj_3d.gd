@@ -130,6 +130,13 @@ var animacion_actual: String = ""
 var _modelo: Node3D = null
 var _equipo: Array[Node3D] = []
 var _ap: AnimationPlayer = null
+var _arbol: ArbolAnimPj = null   ## A1: la máquina de estados de la animación (ArbolAnimPj). Es lo ÚNICO que reproduce clips: `_ap` solo se lee.
+## Qué estados existen: ArbolAnimPj.GRAFO_HEROE (todos) o GRAFO_REDUCIDO (enemigos: idle, andar, correr, atacar, lanzar, golpeado, muerto).
+var grafo: String = ArbolAnimPj.GRAFO_HEROE:
+	set(v):
+		grafo = v
+		if _arbol != null:
+			_arbol.grafo = v
 var _materiales: Array[StandardMaterial3D] = []
 var _caja: AABB = AABB()
 var _caja_vacia: bool = true
@@ -157,6 +164,10 @@ func cargar(p_id: String) -> bool:
 		_ap = aps[0] as AnimationPlayer
 		for nombre in _ap.get_animation_list():
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
+		_arbol = ArbolAnimPj.new()
+		_arbol.name = "ArbolAnim"
+		_ap.get_parent().add_child(_arbol)
+		_arbol.montar(_ap, grafo)
 
 	_anular_raiz("roll")
 	_colocar_nado()
@@ -395,6 +406,8 @@ func lanzar(forma: String, elemento: String, punto: String = "") -> float:
 		clip = _buscar_clip(rol)
 	animacion_actual = ""
 	jugar(rol, false, VEL_CAST)
+	if animacion_actual != rol:
+		return 0.0                                  # el árbol lo prohíbe (p. ej. nadando): no se lanza
 	_poner_chispas(elemento)
 	# Dura menos por ir más rápido: el Juego espera este tiempo para llamar a soltar_lanzar().
 	return _ap.get_animation(clip).length / VEL_CAST if clip != "" else 0.0
@@ -406,8 +419,9 @@ func soltar_lanzar(devolver_libro: bool = true) -> void:
 	_quitar_chispas()
 	_cp = {}
 	_brazo_libro_peso(0.0)
-	if _ap != null:
-		_ap.speed_scale = 1.0
+	if _arbol != null:
+		_arbol.vel_global = 1.0
+		_arbol.retenido = false
 	if devolver_libro:
 		libro_en_manos(false, 0.15)
 	animacion_actual = ""
@@ -432,7 +446,7 @@ func _lanzar_punto(id: String, elemento: String) -> float:
 	if clip == "" and rol != String(d["clip"]):
 		rol = String(d["clip"])                 # la variación pide un clip a una mano y este GLB no lo trae: el original
 		clip = _buscar_clip(rol)
-	if clip == "":
+	if clip == "" or _arbol == null or _arbol.motivo_prohibida(_arbol.estado, "lanzar_" + id) != "":
 		return 0.0
 	var largo: float = _ap.get_animation(clip).length
 	var rec: Vector2 = CastPoints.recorte(id)
@@ -443,16 +457,14 @@ func _lanzar_punto(id: String, elemento: String) -> float:
 	var una_mano: bool = CastPoints.es_una_mano(id) and rol == String(d["clip_una_mano"])
 	var lado: String = CastPoints.mano_libro(id) if not una_mano else "izquierda"
 	# El libro en la mano que corresponde (si ya estaba en la otra, pasa a esta).
-	libro_en_manos(true, 0.3, lado)
+	libro_en_manos(true, 0.3, lado, true)           # lanzando: el libro está «en_mano_cerrado»
 	# El brazo del libro quieto (solo con el clip original: el de una mano ya trae el brazo del libro en su sitio).
 	_brazo_libro_lado(lado)
 	_brazo_libro_peso(CastPoints.peso_brazo if CastPoints.brazo_activo and not una_mano else 0.0)
-	animacion_actual = ""
-	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
+	# El clip recortado [a, b] es un estado propio del árbol (sin bucle: al llegar a `b` se queda en ese fotograma).
+	_arbol.vel_global = 1.0
+	_arbol.pedir("lanzar_" + id, clip, {"desde": a, "hasta": b, "bucle": Animation.LOOP_NONE, "vel": vel, "mezcla": MEZCLA_CLIPS})
 	animacion_actual = rol
-	_ap.speed_scale = 1.0
-	_ap.play(clip, MEZCLA_CLIPS, vel)
-	_ap.seek(a, true)
 	_cp = {"id": id, "clip": clip, "len": largo, "a": a, "b": b, "t_inst": t_inst, "vel": vel, "sostener": float(d["sostener"]), "hold": 0.0,
 		"paso": false, "fin": false, "lado": lado, "una_mano": una_mano}
 	_poner_chispas(elemento, "derecha" if lado == "izquierda" else "izquierda")
@@ -466,10 +478,10 @@ func cast_activo() -> bool:
 
 ## Por dónde va el clip recortado: 0 en `inicio`, 1 en `fin` (el `instante` de CastPoints se mide en esta escala). -1 si no hay lanzamiento por cast point.
 func fraccion_clip() -> float:
-	if _cp.is_empty() or _ap == null:
+	if _cp.is_empty() or _arbol == null:
 		return -1.0
 	var rango: float = float(_cp["b"]) - float(_cp["a"])
-	return clampf((_ap.current_animation_position - float(_cp["a"])) / maxf(rango, 0.0001), 0.0, 1.0)
+	return clampf(_arbol.posicion() / maxf(rango, 0.0001), 0.0, 1.0)
 
 
 ## Segundos (de juego) que tarda el clip en llegar al instante desde que arranca. 0 si no hay lanzamiento por cast point.
@@ -564,25 +576,25 @@ func _brazo_libro_lado(lado: String) -> void:
 
 ## Cada fotograma: si hay un lanzamiento por cast point, congela el clip en el instante (si `sostener`) y al llegar a `fin`.
 func _process(delta: float) -> void:
-	if _cp.is_empty() or _ap == null:
+	if _cp.is_empty() or _arbol == null or not _arbol.listo():
 		return
-	var t: float = _ap.current_animation_position
+	# `posicion()` es relativa al recorte [a, b]; el instante, en segundos absolutos del clip como siempre. El congelado es la velocidad 0 del árbol:
+	# se queda en el primer fotograma que pasa del instante (≤ 1 fotograma de diferencia con el seek exacto de antes).
+	var t: float = float(_cp["a"]) + _arbol.posicion()
 	if float(_cp["hold"]) > 0.0:
 		_cp["hold"] = float(_cp["hold"]) - delta
 		if float(_cp["hold"]) <= 0.0:
-			_ap.speed_scale = 1.0
+			_arbol.retenido = false
 		return
 	if not bool(_cp["paso"]) and t >= float(_cp["t_inst"]):
 		_cp["paso"] = true
 		if float(_cp["sostener"]) > 0.0:
-			_ap.seek(float(_cp["t_inst"]), true)
-			_ap.speed_scale = 0.0
+			_arbol.retenido = true
 			_cp["hold"] = float(_cp["sostener"])
 			return
-	if not bool(_cp["fin"]) and t >= float(_cp["b"]):
+	if not bool(_cp["fin"]) and t >= float(_cp["b"]) - 0.001:
 		_cp["fin"] = true
-		_ap.seek(float(_cp["b"]), true)
-		_ap.speed_scale = 0.0
+		_arbol.retenido = true
 
 
 func _poner_chispas(elemento: String, mano: String = "derecha") -> void:
@@ -618,7 +630,33 @@ func _poner_chispas(elemento: String, mano: String = "derecha") -> void:
 ## sostiene casi vertical, leyendo). En la derecha el rig es el espejo: x → −x y los giros en Y y Z cambian de signo (`_libro_pose`).
 var libro_mano: Array = [Vector3(0.10, 0.08, -0.01), Vector3(0.0, 90.0, 0.0)]    ## posición y giro respecto a la mano izquierda
 var _libro: Node3D = null
+
+## A2 · EL LIBRO ES UNA MÁQUINA DE ESTADOS, no tres tweens sueltos (ya se mataron entre sí una vez: el libro «cosido» a la mano). Cuatro estados:
+##   `cinto`            el libro del cinto a la vista; no hay libro en la mano.
+##   `en_mano_abierto`  el libro en la mano mientras se apunta/lee (`apuntar()`, el laboratorio).
+##   `en_mano_cerrado`  el libro en la mano durante el lanzamiento por cast point (`libro_en_manos(..., cerrado = true)`).
+##   `volando`          el libro de la mano vuela de vuelta al cinto.
+## UNA función de transición (`libro_en_manos`) y UN tween (`_libro_tween`: el de aparecer o el de volar; nunca los dos). Reglas: cerrar mientras VUELA no hace
+## nada (el vuelo sigue; antes un segundo `false` seguido lo mataba y dejaba el libro a medio tamaño); abrir mientras vuela remata el vuelo (el libro llega
+## al cinto) y saca otro; cerrar mientras APARECE lo recoge desde donde esté. `libro_asentar()` termina al instante lo que esté en marcha.
+const LIBRO_ESTADOS: PackedStringArray = ["cinto", "en_mano_abierto", "en_mano_cerrado", "volando"]
+signal libro_estado_cambiado(de: String, a: String)
+var _libro_estado: String = "cinto"
 var _libro_tween: Tween = null
+var _libro_viejo: Node3D = null              ## el libro que está volando al cinto
+var _libro_lleno: Vector3 = Vector3.ONE      ## la escala a la que se queda el libro en la mano
+
+
+func libro_estado() -> String:
+	return _libro_estado
+
+
+func _libro_poner(e: String) -> void:
+	if e == _libro_estado:
+		return
+	var de: String = _libro_estado
+	_libro_estado = e
+	libro_estado_cambiado.emit(de, e)
 
 
 ## El libro del cinto (la pieza "grimorio" de Equipo3D.EQUIPO): se esconde mientras el personaje lo sostiene y vuelve a verse
@@ -630,24 +668,51 @@ func _libro_cinto() -> Node3D:
 	return null
 
 
-## Tween del libro de la mano que VUELVE al cinto. Va aparte de `_libro_tween` (el de aparecer): antes las llamadas seguidas
-## a `libro_en_manos(false)` (lanzar() y luego soltar_lanzar()/cancelar_apuntar()) mataban el tween de encoger a medias y el
-## libro se quedaba "cosido" a la mano, a medio tamaño, para siempre.
-var _libro_vuelve: Tween = null
-var _libro_viejo: Node3D = null
-
-
-## Remata una vuelta al cinto que siga en marcha: borra el libro de la mano y muestra el del cinto.
+## Remata una vuelta al cinto que siga en marcha: borra el libro de la mano y muestra el del cinto. Termina en `cinto`.
 func _acabar_vuelta_libro() -> void:
-	if _libro_vuelve != null and _libro_vuelve.is_valid():
-		_libro_vuelve.kill()
-	_libro_vuelve = null
+	if _libro_tween != null and _libro_tween.is_valid():
+		_libro_tween.kill()
+	_libro_tween = null
 	if _libro_viejo != null and is_instance_valid(_libro_viejo) and _libro_viejo.get_parent() != null:
 		_libro_viejo.get_parent().queue_free()
 	_libro_viejo = null
 	var c: Node3D = _libro_cinto()
 	if c != null:
 		c.visible = true
+	_libro_poner("cinto")
+
+
+## Hace avanzar `delta` s el tween del libro (aparecer o volar). Solo para las pruebas y el laboratorio: en juego lo mueve el motor.
+func libro_avanzar(delta: float) -> void:
+	if _libro_tween != null and _libro_tween.is_valid():
+		_libro_tween.custom_step(delta)
+
+
+## Termina YA lo que el libro tenga en marcha (aparecer: llega a su tamaño; volar: llega al cinto). Lo usan las pruebas y el cierre del laboratorio.
+func libro_asentar() -> void:
+	if _libro_estado == "volando":
+		_acabar_vuelta_libro()
+		return
+	if _libro_tween != null and _libro_tween.is_valid():
+		_libro_tween.kill()
+	_libro_tween = null
+	if _libro != null and is_instance_valid(_libro):
+		_libro.scale = _libro_lleno
+
+
+## ¿El libro está en un estado coherente? (un solo sitio: o en la mano o en el cinto, y el estado dice cuál.) Lo comprueba la prueba de las 1 000 secuencias.
+func libro_valido() -> bool:
+	if not LIBRO_ESTADOS.has(_libro_estado):
+		return false
+	var en_mano: bool = _libro != null and is_instance_valid(_libro) and _libro.is_inside_tree()
+	match _libro_estado:
+		"cinto":
+			return not en_mano and _libro_viejo == null
+		"volando":
+			return not en_mano and _libro_viejo != null and is_instance_valid(_libro_viejo) and _libro_tween != null and _libro_tween.is_valid()
+		_:
+			return en_mano and _libro_viejo == null
+	return false
 
 
 ## Un paso (k de 0 a 1) del vuelo del libro de la mano al cinto. El destino se vuelve a leer en cada paso: el cinto se mueve con la cadera.
@@ -699,46 +764,53 @@ func _pasar_libro(mano: String) -> void:
 
 
 ## `mano`: en cuál se sostiene (izquierda por defecto; T-CP1: con clips que lanzan con la izquierda, el libro va a la derecha). Si el libro ya está
-## en la otra mano, pasa a esta.
-func libro_en_manos(abrir: bool, dur: float = 0.3, mano: String = "izquierda") -> void:
+## en la otra mano, pasa a esta. `cerrado`: el estado en mano es `en_mano_cerrado` (lanzando) en vez de `en_mano_abierto` (apuntando).
+## Es LA transición del libro (ver arriba): `abrir` true saca el libro a la mano; false lo manda al cinto volando.
+func libro_en_manos(abrir: bool, dur: float = 0.3, mano: String = "izquierda", cerrado: bool = false) -> void:
 	if _modelo == null:
 		return
-	if _libro_tween != null and _libro_tween.is_valid():
-		_libro_tween.kill()
 	if not abrir:
 		if _libro == null or not is_instance_valid(_libro):
 			_libro = null
-			# Si no hay libro en la mano, el del cinto tiene que estar a la vista (salvo que ya venga volando de vuelta).
-			if _libro_vuelve == null or not _libro_vuelve.is_valid():
+			# Sin libro en la mano: el del cinto tiene que estar a la vista (salvo que ya venga volando de vuelta: entonces el vuelo sigue).
+			if _libro_estado != "volando":
 				var c0: Node3D = _libro_cinto()
 				if c0 != null:
 					c0.visible = true
+				_libro_poner("cinto")
 			return
+		if _libro_tween != null and _libro_tween.is_valid():
+			_libro_tween.kill()                       # (el de aparecer, si seguía: el libro se recoge desde el tamaño que tenga)
 		var viejo: Node3D = _libro
 		_libro = null
 		var cinto: Node3D = _libro_cinto()
 		_libro_viejo = viejo
-		_libro_vuelve = viejo.create_tween().set_ignore_time_scale(true)
+		_libro_tween = viejo.create_tween().set_ignore_time_scale(true)
 		if cinto == null:
 			# Sin libro de cinto (otro personaje): se encoge y se borra, como antes.
-			_libro_vuelve.tween_property(viejo, "scale", viejo.scale * 0.02, dur).set_ease(Tween.EASE_IN)
+			_libro_tween.tween_property(viejo, "scale", viejo.scale * 0.02, dur).set_ease(Tween.EASE_IN)
 		else:
 			# El libro de la mano VUELA al cinto (posición, giro y tamaño) y al llegar se esconde y se muestra el del cinto.
 			var t0: Transform3D = viejo.global_transform
 			var q0: Quaternion = t0.basis.get_rotation_quaternion()
 			var s0: Vector3 = t0.basis.get_scale()
-			_libro_vuelve.tween_method(_volar_libro.bind(viejo, cinto, t0, q0, s0), 0.0, 1.0, maxf(dur, 0.3)) \
+			_libro_tween.tween_method(_volar_libro.bind(viejo, cinto, t0, q0, s0), 0.0, 1.0, maxf(dur, 0.3)) \
 				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		_libro_vuelve.tween_callback(_acabar_vuelta_libro)
+		_libro_tween.tween_callback(_acabar_vuelta_libro)
+		_libro_poner("volando")
 		return
+	var destino: String = "en_mano_cerrado" if cerrado else "en_mano_abierto"
 	if _libro != null and is_instance_valid(_libro):
 		if mano != _libro_lado:
 			_pasar_libro(mano)
+		_libro_poner(destino)
 		return
 	_libro_lado = mano
 	# Si aún estaba volviendo al cinto, se remata antes de sacar otro.
-	if _libro_vuelve != null and _libro_vuelve.is_valid():
+	if _libro_estado == "volando":
 		_acabar_vuelta_libro()
+	if _libro_tween != null and _libro_tween.is_valid():
+		_libro_tween.kill()
 	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
 	if sks.is_empty():
 		return
@@ -766,6 +838,8 @@ func libro_en_manos(abrir: bool, dur: float = 0.3, mano: String = "izquierda") -
 	g.scale = lleno * 0.02
 	at.add_child(g)
 	_libro = g
+	_libro_lleno = lleno
+	_libro_poner(destino)
 	# El libro del cinto desaparece mientras el personaje lo sostiene (vuelve en _acabar_vuelta_libro).
 	var cinto_oculto: Node3D = _libro_cinto()
 	if cinto_oculto != null:
@@ -810,26 +884,23 @@ var _giro_activo: bool = false
 
 
 func giro_al_andar(grados: float) -> void:
-	if _ap == null or _giro_activo or absf(grados) < 35.0:
+	if _arbol == null or _giro_activo or absf(grados) < 35.0:
 		return
 	if animacion_actual != "walk" and animacion_actual != "run":
 		return
 	var clip: String = _buscar_clip("walk02")
 	if clip == "":
 		return
+	if not _arbol.pedir("giro", clip, {"bucle": Animation.LOOP_NONE, "mezcla": 0.12}):
+		return
 	_giro_activo = true
-	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
-	_ap.play(clip, 0.12)
 	var rol: String = animacion_actual
 	var tw := create_tween()
 	tw.tween_interval(0.4)
 	tw.tween_callback(func() -> void:
 		_giro_activo = false
 		if animacion_actual == rol:
-			var c2: String = _buscar_clip(rol)
-			if c2 != "":
-				_ap.get_animation(c2).loop_mode = Animation.LOOP_LINEAR
-				_ap.play(c2, 0.2))
+			_reproducir(rol, false, 1.0, 0.2, true))
 
 
 ## (b) VOLTERETA: `rodar()` reproduce `roll_dodge` UNA vez, sin desplazamiento de la cadera (lo mueve el Juego: ≤ 1 casilla, 4 s de
@@ -1127,22 +1198,22 @@ var _bebiendo: bool = false
 
 
 func beber(dur: float = 1.5) -> float:
-	if _ap == null or _bebiendo:
+	if _arbol == null or _bebiendo:
 		return 0.0
 	var clip: String = _buscar_clip("drink")
 	if clip == "":
 		return 0.0
+	# El tramo que bebe (2…6 s del clip) es el estado «beber», acelerado para durar `dur`. Sin bucle: al llegar a 6 s se queda ahí hasta el idle.
+	if not _arbol.pedir("beber", clip, {"desde": BEBER_DESDE, "hasta": BEBER_HASTA, "bucle": Animation.LOOP_NONE,
+			"vel": (BEBER_HASTA - BEBER_DESDE) / maxf(dur, 0.2), "mezcla": 0.0}):
+		return 0.0
 	_bebiendo = true
 	equipar("pocion")
 	animacion_actual = "drink"
-	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
-	_ap.play(clip)
-	_ap.seek(BEBER_DESDE, true)
-	_ap.speed_scale = (BEBER_HASTA - BEBER_DESDE) / maxf(dur, 0.2)
+	_arbol.vel_global = 1.0
 	var tw := create_tween().set_ignore_time_scale(true)
 	tw.tween_interval(dur)
 	tw.tween_callback(func() -> void:
-		_ap.speed_scale = 1.0
 		_bebiendo = false
 		desequipar("pocion")
 		animacion_actual = ""
@@ -1220,19 +1291,38 @@ const VEL_CLIP: Dictionary = {"roll": 2.0}
 
 
 func jugar(nombre: String, una_vez: bool = false, vel: float = 1.0) -> void:
-	if _ap == null or nombre == animacion_actual:
+	if _arbol == null or nombre == animacion_actual:
 		return
+	_reproducir(nombre, una_vez, vel, MEZCLA_CLIPS)
+
+
+## El nombre del ESTADO del árbol para un rol de clip: los del héroe en español (andar, correr, nadar, apuntar, golpeado, rodar, beber, muerto, atacar),
+## los de lanzar como «lanzar» / «lanzar_<forma>», y el resto con el nombre del rol (talk, walk_back...).
+const ESTADO_DE: Dictionary = {"walk": "andar", "run": "correr", "swim": "nadar", "leer": "apuntar", "hit": "golpeado", "roll": "rodar",
+	"drink": "beber", "death": "muerto", "attack": "atacar", "cast": "lanzar"}
+
+
+static func estado_de(rol: String) -> String:
+	if ESTADO_DE.has(rol):
+		return String(ESTADO_DE[rol])
+	if rol.begins_with("cast_"):
+		return "lanzar_" + rol.substr(5)
+	return rol
+
+
+## Pide al árbol el clip del rol `nombre`. `una_vez`: el clip se reproduce entero y se queda en su último fotograma (muerte, golpe, disparo); para repetirlo hay
+## que pasar antes por otro clip (jugar("idle")) o poner animacion_actual = "". Sin `una_vez` va en bucle (`leer`, en ida y vuelta). `forzar` salta la
+## comprobación de que ya esté puesto. Si la regla del árbol lo prohíbe no cambia nada (ni animacion_actual).
+func _reproducir(nombre: String, una_vez: bool, vel: float, mezcla: float, _forzar: bool = false) -> void:
 	var clip: String = _buscar_clip(nombre)
 	if clip == "":
 		return
-	animacion_actual = nombre
-	# `una_vez`: el clip se reproduce entero y se queda en su último fotograma (muerte, golpe, disparo); para repetirlo hay que
-	# pasar antes por otro clip (jugar("idle")). Sin `una_vez` va en bucle, como siempre.
 	var bucle: int = Animation.LOOP_NONE if una_vez else (Animation.LOOP_PINGPONG if PINGPONG.has(nombre) else Animation.LOOP_LINEAR)
-	_ap.get_animation(clip).loop_mode = bucle as Animation.LoopMode
 	# Mezcla corta con el clip anterior. Sin ella el cambio es un salto seco: en el elemental la cadera pasa de 0,81 (idle) a 0,65
 	# (walk) de golpe, y si la IA alterna quieto/andando en el borde del rango se ve como tirones. Medido en los GLB.
-	_ap.play(clip, MEZCLA_CLIPS, vel * float(VEL_CLIP.get(nombre, 1.0)) * float(VEL_CLIP_PJ.get(id, {}).get(nombre, 1.0)))
+	var v: float = vel * float(VEL_CLIP.get(nombre, 1.0)) * float(VEL_CLIP_PJ.get(id, {}).get(nombre, 1.0))
+	if _arbol.pedir(estado_de(nombre), clip, {"bucle": bucle, "vel": v, "mezcla": mezcla}):
+		animacion_actual = nombre
 
 
 ## Lo que dura el clip de `nombre` (s) a su velocidad normal (la de VEL_CLIP si la tiene: la voltereta va al doble), o 0 si no existe.
@@ -1262,20 +1352,20 @@ func fotograma_apuntado(nombre: String) -> float:
 func apuntar_clip(nombre: String = "attack") -> bool:
 	var t: float = fotograma_apuntado(nombre)
 	var clip: String = _buscar_clip(nombre)
-	if _ap == null or t <= 0.0 or clip == "":
+	if _arbol == null or t <= 0.0 or clip == "":
+		return false
+	# El clip desde el fotograma de apuntado hasta el final, RETENIDO (velocidad 0): es el estado «atacar_apuntado». Al soltar sigue desde ahí.
+	if not _arbol.pedir(estado_de(nombre) + "_apuntado", clip, {"desde": t, "bucle": Animation.LOOP_NONE, "mezcla": 0.0, "retenido": true}):
 		return false
 	animacion_actual = nombre
-	_ap.get_animation(clip).loop_mode = Animation.LOOP_NONE
-	_ap.play(clip)
-	_ap.seek(t, true)
-	_ap.speed_scale = 0.0
 	return true
 
 
 ## Suelta el apuntado: el clip sigue desde donde estaba (velocidad `vel`, 1 por defecto) hasta que sale la flecha y termina.
 func soltar_apuntado(vel: float = 1.0) -> void:
-	if _ap != null:
-		_ap.speed_scale = vel
+	if _arbol != null:
+		_arbol.retenido = false
+		_arbol.vel_global = vel
 
 
 func momento_golpe(nombre: String) -> float:
@@ -1285,8 +1375,36 @@ func momento_golpe(nombre: String) -> float:
 ## Velocidad de las animaciones (1 = normal). Sirve para que la elfa siga animada a velocidad normal
 ## cuando el mundo va a cámara lenta (grimorio abierto): se le pasa 1 / Engine.time_scale.
 func set_velocidad_animacion(v: float) -> void:
-	if _ap != null:
-		_ap.speed_scale = v
+	if _arbol != null:
+		_arbol.vel_global = v
+
+
+## La velocidad de animación puesta con `set_velocidad_animacion` (1 si no hay árbol).
+func velocidad_animacion() -> float:
+	return _arbol.vel_global if _arbol != null else 1.0
+
+
+## El estado de animación al que ha ido el personaje (idle, andar, lanzar_x_mano…) y el clip que reproduce; «» si no hay árbol.
+func estado_anim() -> String:
+	return _arbol.estado if _arbol != null else ""
+
+
+func clip_actual() -> String:
+	return _arbol.clip_actual() if _arbol != null else ""
+
+
+## El árbol de animación (para el laboratorio F5 y las pruebas; no para reproducir clips).
+func arbol() -> ArbolAnimPj:
+	return _arbol
+
+
+## Deja el personaje en el instante `t` (s) del clip del rol, quieto. Solo para pruebas y laboratorios (poner una pose conocida).
+func pose_fija(rol: String, t: float) -> bool:
+	var clip: String = _buscar_clip(rol)
+	if _arbol == null or clip == "":
+		return false
+	animacion_actual = rol
+	return _arbol.pedir("pose_" + rol, clip, {"desde": t, "bucle": Animation.LOOP_NONE, "mezcla": 0.0, "retenido": true})
 
 
 func lista_clips() -> PackedStringArray:

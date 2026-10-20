@@ -822,6 +822,12 @@ func _ready() -> void:
 	vfx_estado.y_pies = func(c: Vector2i) -> float: return Terreno3D.y_pies(c)
 	if _velo != null:
 		vfx_estado.precalentar(_jugador.position)       # detrás del velo de «Preparando efectos…»: compila los siete efectos antes de jugar
+	# 20/10 (entrada 203): el efecto por ELEMENTO vuelve a mandar. VfxElemento3D escucha lo mismo que VfxEstado3D (el `HechizoVivo` que entra en el
+	# lanzador y `hechizo_v2`) y cuelga del HechizoVivo las piezas de VfxKit3D del elemento. VfxEstado3D (por estado de la materia) se queda APAGADO hasta
+	# validarlo elemento por elemento (F8 lo enciende y apaga), para que no se dibuje encima del de elemento.
+	var vfx_elemento: VfxElemento3D = VfxElemento3D.conectar(get_node_or_null("Lanzador3D"), self)
+	vfx_elemento.casilla = Terreno3D.casilla
+	vfx_estado.encendido = false
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
@@ -3944,6 +3950,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 	match k.keycode:
 		KEY_F9:
 			_hornear_con_aviso()
+		KEY_F10:
+			_alternar_capa_agua()
 		KEY_Z, KEY_C:
 			# Giro de 90° de la cámara (Z/C: Q y E son beber y hablar en Jugador3D). El movimiento sigue a la cámara.
 			_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
@@ -3975,6 +3983,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_contraste = 1.0 if _contraste >= 4.0 else (2.5 if _contraste < 2.5 else 4.0)
 			_mat_suelo.set_shader_parameter("contraste", _contraste)
 			_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
+		KEY_F8:
+			# 20/10 (203): enciende/apaga el VFX por ESTADO de la materia (VfxEstado3D), apagado de serie. Para compararlo con el de elemento.
+			var ve: VfxEstado3D = get_node_or_null("VfxEstado3D") as VfxEstado3D
+			if ve != null:
+				ve.encendido = not ve.encendido
+				print("VFX por estado (VfxEstado3D): %s" % ("ENCENDIDO" if ve.encendido else "apagado"))
 		KEY_V:
 			_danar_empujable_cercano()
 		KEY_B:
@@ -4389,6 +4403,44 @@ func _montar_agua_fisica() -> void:
 	reloj.autostart = true
 	reloj.timeout.connect(_actualizar_suelo_mojado)
 	add_child(reloj)
+
+
+## 20/10 (entrada 204, W1 del PLAN_TRES_FRENTES): F10 alterna el dibujo del agua entre AguaRender3D (el de siempre) y la capa nueva AguaCapa3D (superficie ×4
+## que sigue a la simulación, ver `agua_capa_3d.gd`) SOBRE EL MAPA REAL, para compararlas con la misma simulación. Es una prueba: la capa ya tiene hielo, ondas,
+## cascada y orilla con ruido (W2, entrada 208), pero NO paredes ni topes del canal: en un canal de piedra el agua puede sobresalir. El sitio donde verla entera es
+## `laboratorios/LabAguaCapa3D.tscn` (entrada 209). Al encenderla se imprime lo
+## que cuesta (GPU y lectura); al apagarla se para la capa y vuelve el dibujo de siempre.
+var _capa_agua: AguaCapa3D = null
+
+
+func _alternar_capa_agua() -> void:
+	if _agua_render == null or Terreno3D.agua_sim == null:
+		print("Capa de agua (F10): este mapa no tiene agua física (agua_fisica = false o aún sin simulación)")
+		return
+	if _capa_agua == null:
+		_capa_agua = AguaCapa3D.new()
+		_capa_agua.name = "AguaCapa"
+		add_child(_capa_agua)
+		_capa_agua.process_mode = Node.PROCESS_MODE_DISABLED
+		_capa_agua.visible = false
+	var encender: bool = not _capa_agua.visible
+	if encender:
+		if _capa_agua.sim != Terreno3D.agua_sim:
+			_capa_agua.enlazar(Terreno3D.agua_sim)             # la primera vez, o si el nivel se ha recargado con otra simulación
+	_capa_agua.visible = encender
+	_capa_agua.process_mode = Node.PROCESS_MODE_INHERIT if encender else Node.PROCESS_MODE_DISABLED
+	_agua_render.visible = not encender
+	if encender:
+		var d: Vector2i = _capa_agua.dimension_fina()
+		print("Capa de agua (F10): ENCENDIDA · %d × %d texels · F10 vuelve al dibujo de siempre" % [d.x, d.y])
+		get_tree().create_timer(3.0).timeout.connect(_informar_capa_agua)
+	else:
+		print("Capa de agua (F10): apagada (dibujo de siempre)")
+
+
+func _informar_capa_agua() -> void:
+	if _capa_agua != null and _capa_agua.visible:
+		print("Capa de agua: GPU %.3f ms por pasada · lectura de la simulación %.3f ms (a %.0f Hz)" % [_capa_agua.milisegundos_gpu(), _capa_agua.milisegundos_lectura(), _capa_agua.hz_lectura])
 
 
 ## 12/10 (Fase 11.18, Pipeline) · Chorros y salpicaduras de gotas (AguaMetaballs3D) para el Juego y la tinaja. Solo con agua física; sin ella

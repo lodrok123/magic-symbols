@@ -212,8 +212,8 @@ func texto() -> String:
 	l.append("F2 · CAST POINT   %s   (%d/%d)   posición %s" % [id(), sel + 1, CastPoints.ORDEN.size(), posicion()])
 	var pj: Variant = _pj()
 	var clip_real: String = ""
-	if pj != null and pj.cast_activo() and pj._ap != null:
-		clip_real = String(pj._ap.current_animation)
+	if pj != null and pj.cast_activo():
+		clip_real = String(pj.clip_actual())
 	l.append("clip: %s → %s%s" % [CastPoints.rol_clip(id()), clip_real if clip_real != "" else "(no suena)",
 		"   [UNA MANO]" if CastPoints.es_una_mano(id()) else ""])
 	l.append(barra())

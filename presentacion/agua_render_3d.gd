@@ -105,6 +105,9 @@ uniform float hielo_activo = 0.0;
 uniform float reloj = 0.0;                    // segundos propios del dibujo (los de hielo_t van con este reloj)
 uniform float lado_trocito = 0.7667;
 uniform float alto_hielo = 0.07;              // cuánto sobresale el hielo del agua (u)
+// 20/10 (DIARIO 211) · DOS RETOQUES. Los valores reales los manda GDScript (`BAJADA_LAMINA`, `ORILLA_MOV`); estos son solo por defecto.
+uniform float bajada_lamina = 0.08;           // cuánto se baja toda la lámina (u) respecto a lo que dice la simulación, para que los bloques de al lado la sobresalgan
+uniform float orilla_mov = 0.02;              // amplitud (u) del vaivén vertical de las casillas de agua que tocan tierra; 0 = quieta
 uniform float crece_s = 0.1;                  // lo que tarda un trocito en pasar de agua a hielo una vez le toca
 uniform float funde_s = 0.2;                  // y en deshacerse una vez le toca (cada trocito con un retraso al azar de hasta 0,12 s)
 uniform float aviso_umbral = 0.15;            // por debajo de este G aparecen las grietas grandes
@@ -116,6 +119,7 @@ uniform float tam_faceta_hielo = 1.3;         // tamaño de las facetas del hiel
 varying float v_prof;
 varying vec2 v_corr;
 varying vec3 v_pos;
+varying float v_oleaje;                // -1..1: el vaivén de orilla de este vértice (0 lejos de tierra); el fragmento lo usa para ensanchar la espuma
 varying vec2 v_caida;                 // x = cuánto sube el vecino más alto (base de una caída), y = cuánto baja el más bajo (labio); en pendiente (u de altura / u de trocito)
 
 float hash(vec2 p) {
@@ -172,6 +176,7 @@ void vertex() {
 	float y = d.r;
 	float prof = d.g;
 	vec2 corr = d.ba;
+	float orilla = 0.0;                              // 1 = casilla de agua con algún vecino seco/tierra (la franja de orilla de 125)
 	if (d.g < minima) {
 		// Trocito seco: baja el vértice a la altura del agua vecina (si no, la orilla de tierra más alta lo levantaría y
 		// el borde saldría torcido) y su profundidad pasa a NEGATIVA: así el borde del agua cae en medio, entre el último
@@ -189,6 +194,7 @@ void vertex() {
 			}
 		}
 		if (mejor > 0.0) {
+			orilla = 1.0;              // 20/10: este vértice seco que adopta el agua vecina ES la orilla
 			y = hs;                    // 13.9: a ras del agua vecina (la pared vertical baja desde aquí; ver `_reconstruir_paredes`)
 			prof = -mejor;
 			corr = cs;
@@ -201,7 +207,7 @@ void vertex() {
 	}
 	float base_c = 0.0;
 	float labio_c = 0.0;
-	if (caida_fuerza > 0.0 && d.g >= minima) {
+	if ((caida_fuerza > 0.0 || orilla_mov > 0.0) && d.g >= minima) {
 		ivec2 dir2[4] = ivec2[4](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
 		for (int k = 0; k < 4; k++) {
 			vec4 n2 = dato(p + dir2[k]);
@@ -209,6 +215,8 @@ void vertex() {
 				float dy = (n2.r - d.r) / lado_trocito;
 				base_c = max(base_c, dy);
 				labio_c = max(labio_c, -dy);
+			} else {
+				orilla = 1.0;
 			}
 		}
 	}
@@ -222,6 +230,17 @@ void vertex() {
 			y = min(y, tp);
 		}
 	}
+	// 20/10 (a): la lámina baja un margen fijo. Se limita a la mitad de la profundidad para que una lámina fina no atraviese su lecho;
+	// con el agua llena (prof > 2·bajada) la bajada es siempre `bajada_lamina`, igual en pozo, canal y estanque. Va al final, después
+	// de los topes y del hielo, para que todo lo que se dibuja baje a la vez. `_reconstruir_paredes` aplica la misma cuenta a la cima de la pared.
+	y -= min(bajada_lamina, 0.5 * abs(prof));
+	// 20/10 (b): vaivén tenue de la orilla. Dos senos de periodos distintos (3,7 s y 2,3 s) desfasados por posición, para que la orilla no respire
+	// entera a la vez. Amplitud total ≤ `orilla_mov`. Es un movimiento de la superficie, no de la simulación: no cambia profundidad ni corriente.
+	vec2 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	float oleaje = 0.55 * sin(TIME * 1.698 + dot(wp, vec2(1.3, 0.9))) + 0.45 * sin(TIME * 2.732 + dot(wp, vec2(-0.7, 1.6)));
+	oleaje *= orilla * (hielo_activo > 0.5 ? 1.0 - hielo_f(p) : 1.0);        // el hielo no se mece
+	y += orilla_mov * oleaje;
+	v_oleaje = oleaje;
 	VERTEX.y = y;
 	v_prof = prof;
 	v_corr = corr;
@@ -386,9 +405,11 @@ void fragment() {
 	// Orilla: espuma nítida donde la profundidad (interpolada hasta el borde) es casi cero; se funde con el agua hacia dentro.
 	// 13.9 (d): el ruido del borde lo arrastra la corriente (el mismo flow map), y por dentro de la orilla va el menisco: una franja ancha y tenue.
 	float borde = ruido(pm.xz * 2.2 - dir * TIME * clamp(vel, 0.0, 2.0) * 0.5 + TIME * 0.2);
-	float linea = 1.0 - smoothstep(0.0, transicion_orilla, prof_e + (borde - 0.5) * 0.04);
+	// 20/10 (b): la franja de espuma respira con el vaivén (±30 % de su ancho a la amplitud por defecto); proporcional a `orilla_mov`.
+	float trans = transicion_orilla * (1.0 + 0.3 * v_oleaje * clamp(orilla_mov / 0.02, 0.0, 2.0));
+	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04);
 	linea *= linea;
-	float men = (1.0 - smoothstep(transicion_orilla, transicion_orilla * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde);
+	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde);
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8)), 0.0, 1.0);
 	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
 	// tiene un vecino mucho más alto) niebla de espuma que se agita; en el LABIO (el que tiene uno mucho más bajo) un filo de agua rápida.
@@ -528,6 +549,27 @@ var proveedor_flujo: Callable = Callable()
 ## conecta a las ondas (anillos que salen de donde cae el agua). Se emite hasta MAX_CAIDAS veces cada ~0,33 s.
 signal caida_detectada(pos: Vector3, salto: float)
 const SALTO_CAIDA: float = 0.2
+## 20/10 (DIARIO 211) · CONSTANTE 1. Cuánto se baja la lámina de agua (u) respecto a la superficie de la simulación. Hasta ahora quedaba
+## 0,04 u por debajo de la cara superior del bloque vecino (ALTO_AGUA = ALTO − 0,04): cualquier onda de más de 0,04 u la cortaba el bloque.
+## Con 0,08 el margen total es de 0,12 u. Es solo dibujo: nado, física y simulación no cambian. Misma para pozo, canal y estanque.
+const BAJADA_LAMINA: float = 0.08
+## CONSTANTE 2. Amplitud (u) del vaivén vertical de la orilla (casillas de agua que tocan tierra). Dos senos de 3,7 s y 2,3 s, desfasados por
+## posición. Tiene que quedar ≤ 0,02 u y ≤ BAJADA_LAMINA para que la cresta más alta siga por debajo del borde del bloque. 0 = orilla quieta.
+const ORILLA_MOV: float = 0.02
+## Valores en uso (empiezan en las constantes; el laboratorio los cambia en vivo). Las paredes los releen en la siguiente lectura (12 Hz).
+var bajada_lamina: float = BAJADA_LAMINA:
+	set(v):
+		bajada_lamina = v
+		if _mat != null:
+			_mat.set_shader_parameter("bajada_lamina", v)
+var orilla_mov: float = ORILLA_MOV:
+	set(v):
+		orilla_mov = v
+		if _mat != null:
+			_mat.set_shader_parameter("orilla_mov", v)
+## Lo que se baja la lámina en una casilla de profundidad `p`: igual que en el shader (nunca más de la mitad de la profundidad).
+func bajada_para(p: float) -> float:
+	return minf(bajada_lamina, 0.5 * absf(p))
 const MAX_CAIDAS: int = 6
 var _topes_casillas: Dictionary = {}
 var _topes_cpu := PackedFloat32Array()   ## por trocito, la Y máxima a la que se dibuja (0 = sin tope); la misma que lleva la textura `topes`
@@ -571,6 +613,8 @@ func enlazar(p_sim: AguaSim3D) -> void:
 		_mat.shader = sh
 	material_override = _mat
 	_mat.set_shader_parameter("minima", profundidad_minima)
+	_mat.set_shader_parameter("bajada_lamina", bajada_lamina)
+	_mat.set_shader_parameter("orilla_mov", orilla_mov)
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if proveedor_topes.is_valid() and _topes_casillas.is_empty():
 		var t: Variant = proveedor_topes.call()
@@ -962,7 +1006,7 @@ func _reconstruir_paredes() -> void:
 			var p: float = prof[i]
 			if p < minima or cerrado[i] == 1 or helado[i] == 1:
 				continue
-			var sup: float = suelo[i] + p
+			var sup: float = suelo[i] + p - bajada_para(p)             # 20/10: la cima de la pared baja igual que la lámina (si no, asomaría sobre ella)
 			if hay_topes and _topes_cpu[i] > 0.0:
 				continue                                          # casilla con tope = canal de piedra: la piedra ya es su pared (y el agua no sobresale)
 			for k in range(4):

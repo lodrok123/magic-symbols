@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://laboratorios/lab_agua_capa_3d.gd" id="1"]
+
+[node name="LabAguaCapa3D" type="Node3D"]
+script = ExtResource("1")

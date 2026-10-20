@@ -13,7 +13,7 @@ extends Node3D
 ##
 ## 13/10: también sirve para el LOBERNO (selector «Modelo» arriba, o tecla M). Con el lobo todo empieza neutro (factores 1, sin vaivén ni
 ## retraso de cola): se ven sus clips tal cual los exportó Meshy, y los mismos controles sirven para afinarlo si hace falta.
-##
+## 
 ## Teclas: M loberno/lince/canouro · 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · H humo negro en las patas (canouro) · Z zarpazo (clip + garras) · rueda = zoom · arrastrar = orbitar
 ## Abrir: poc_25d/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
 
@@ -22,6 +22,7 @@ extends Node3D
 const MODELOS: Dictionary = {"loberno": "res://arte/modelos/emberheart.glb",
 	"lince": "res://arte/modelos/lince.glb",
 	"canouro": "res://arte/modelos/canouro.glb"}
+const LIBRERIA_HIENA: String = "res://arte/modelos/canouro_hiena.res"   ## clips de la hiena sobre el esqueleto del canouro (prueba 20/10)
 const ALTO: float = 1.0            ## el gato se escala a esta altura (en el nivel mide 0,55; aquí más grande para verlo bien)
 const DELANTERAS: Array = ["Bone_030", "Bone_029", "Bone_028", "Bone_027", "Bone_035", "Bone_034", "Bone_033", "Bone_032"]
 const TRASERAS: Array = ["Bone_009", "Bone_008", "Bone_007", "Bone_006", "Bone_014", "Bone_013", "Bone_012", "Bone_011"]
@@ -259,6 +260,10 @@ func _cargar_gato() -> bool:
 		return false
 	_sk = sks[0] as Skeleton3D
 	_ap = aps[0] as AnimationPlayer
+	# 20/10 (prueba): los 27 clips de la hiena retargeteados al rig del canouro (herramientas/retargetear_hiena.gd). Salen en el selector
+	# como «hiena/Hiena_*». Si el .res no existe no pasa nada: el lab sigue con los clips propios del canouro.
+	if _id == "canouro" and ResourceLoader.exists(LIBRERIA_HIENA) and not _ap.has_animation_library("hiena"):
+		_ap.add_animation_library("hiena", load(LIBRERIA_HIENA) as AnimationLibrary)
 	for n in _ap.get_animation_list():
 		_ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
 	# Escala a ALTO y apoya los pies en y = 0, midiendo con la malla (igual que Pj3D._apoyar_en_el_suelo).

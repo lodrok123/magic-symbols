@@ -207,6 +207,8 @@ static func equipar(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3D, p_lanz:
 	var c := Combate3D.new()
 	c.name = "Combate_" + modelo.id
 	c.pj = modelo
+	# A2: los enemigos usan un grafo de animación reducido (idle, andar, correr, atacar, lanzar, golpeado, muerto): lo que no está ahí no se reproduce.
+	modelo.grafo = ArbolAnimPj.GRAFO_REDUCIDO
 	c.mundo = p_mundo
 	c.jugador = p_jugador
 	c.lanz = p_lanz
@@ -281,7 +283,10 @@ func nivel_altura() -> int:
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if rune_data == null:
 		return
-	golpe(hechizo if hechizo != null else Hechizo.construir(rune_data, {}), direccion)
+	var h: Hechizo = hechizo if hechizo != null else Hechizo.construir(rune_data, {})
+	if h == null:
+		return                                              # runa cinemática sin su Hechizo: no es un golpe del jugador
+	golpe(h, direccion)
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador          # un golpe te hace mirar a quien viene
 
@@ -881,12 +886,19 @@ func _puede_estar(p: Vector3) -> bool:
 	if elemental and not _cabe_con_cuerpo(p):
 		return false
 	var c: Vector2i = Terreno3D.celda_de(p)
+	# 20/10 (Pablo: colisiones cercanas al modelo y no a la cuadrícula): como el jugador, en una casilla bloqueada cuya forma real se conoce («parcial»: un barril,
+	# una roca, un arbusto) solo choca contra esa forma, no contra la casilla entera. Sin forma conocida (agua, muro, telaraña…) sigue siendo la casilla.
+	var parcial: bool = Terreno3D.es_parcial(c)
 	if c == Terreno3D.celda_de(position):
+		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, position):
+			return false
 		return Terreno3D.en_mapa(c)
+	if parcial and Terreno3D.choca_huella(c, p):
+		return false
 	# Se mueve por SU nivel (el de la casilla donde está): a nivel 0 es lo de siempre; en una terraza (Terra Fina) recorre la
 	# terraza y puede bajar, pero no sube: pisable con `sube = false` y tope = su nivel.
 	var nivel: int = Terreno3D.altura_en(Terreno3D.celda_de(position))
-	if not Terreno3D.pisable(c, nivel, false, nivel, false):
+	if not Terreno3D.pisable(c, nivel, false, nivel, false, parcial):
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
 	return absf(Terreno3D.y_pies(c) - position.y) <= 0.6

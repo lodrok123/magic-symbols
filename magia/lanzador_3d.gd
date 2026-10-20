@@ -195,7 +195,6 @@ const RETARDO_CONJURO: Dictionary = {
 	"rayo": [0.06, 0.14, 0.06],      ## el rayo es instantáneo por naturaleza: la anticipación más corta
 	"hielo": [0.10, 0.26, 0.12],
 	"tierra": [0.12, 0.30, 0.14],    ## la tierra es lenta y pesada
-	"tiempo": [0.12, 0.30, 0.12],
 }
 var conjuro_activo: bool = true
 var conjuro_escala: float = 1.0
@@ -1320,12 +1319,14 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 ## =====================================================================================================
 
 ## Devuelve cuántas manifestaciones salen en total. Desde HC2 (18/10) el Lanzador solo conjura: construye el `Hechizo` de la receta y crea el `HechizoVivo` que lo ejecuta.
-func _materializar(receta: Receta3D, rune: RuneData, origen: Vector3, dir: Vector3) -> int:
-	return lanzar_hechizo(receta.hechizo(rune), origen, dir)
+func _materializar(receta: Receta3D, rune: RuneData, origen: Vector3, dir: Vector3, permitir_cinematico: bool = false) -> int:
+	return lanzar_hechizo(receta.hechizo(rune, permitir_cinematico), origen, dir)
 
 
 ## HC2: lanza un `Hechizo` ya construido (el de `Hechizo.construir`, el del libro o el que un laboratorio haya tocado a mano). Devuelve cuántas casillas ocupa (0 = rechazado).
 func lanzar_hechizo(hechizo: Hechizo, origen: Vector3, dir: Vector3) -> int:
+	if hechizo == null:
+		return 0                                            # p. ej. una runa cinemática sin permiso (Hechizo.construir devolvió null)
 	return HechizoVivo.crear(_con_cambios(hechizo), origen, dir, self).casillas
 
 
@@ -2378,8 +2379,10 @@ class Receta3D extends SpellRecipe:
 		_sincronizar()
 
 	## HC2: el `Hechizo` que sale de esta receta con un elemento (los glifos dibujados, la calidad del trazo y lo que la receta no conoce, anotado en `ignorados`).
-	func hechizo(rune: RuneData) -> Hechizo:
-		var h: Hechizo = Hechizo.construir(rune, contadores, calidad)
+	func hechizo(rune: RuneData, permitir_cinematico: bool = false) -> Hechizo:
+		var h: Hechizo = Hechizo.construir(rune, contadores, calidad, permitir_cinematico)
+		if h == null:
+			return null                                    # runa cinemática sin permiso (ver Hechizo.construir)
 		h.ignorados.append_array(ignorados)
 		return h
 

@@ -57,6 +57,10 @@ const MAX_BLOQUES: int = 150               ## tope de bloques de roca de un hech
 
 ## Tamaño de una casilla en unidades (Terreno3D.casilla = 2,3). Es propiedad para que la prueba y el juego puedan fijarlo sin depender de Terreno3D.
 var casilla: float = 2.3
+## ENCENDIDO (Pipeline, 20/10, entrada 203): con false NO dibuja los volúmenes ni los proyectiles por estado de la materia. El efecto que manda es el del
+## ELEMENTO (`VfxElemento3D`); este queda apagado en la maqueta hasta que se valide elemento por elemento (la bandera del lab lo enciende). Las ráfagas de
+## `vfx_hechizo` (estela, efecto_impacto, acción `vfx`) NO dependen de la bandera: no las dibuja ningún otro receptor.
+var encendido: bool = true
 ## Alto de un nivel de tierra (Terreno3D.ALTO_NIVEL = 2,3 · 0,45). Con él se apilan los bloques de un volumen sólido sobre sus casillas reales.
 var alto_nivel: float = 2.3 * 0.45
 ## Opcional: altura del suelo de una casilla (Terreno3D.y_pies). Sin ella, todo el volumen se apoya en `g["suelo"]` (la altura bajo el origen).
@@ -231,7 +235,7 @@ func _en_nodo_del_lanzador(n: Node) -> void:
 	if not (n is HechizoVivo):
 		return
 	var hv: HechizoVivo = n
-	if hv.h == null or hv.h.velocidad <= 0.0:
+	if not encendido or hv.h == null or hv.h.velocidad <= 0.0:
 		return
 	_dibujar_proyectil.call_deferred(hv)
 
@@ -281,6 +285,8 @@ static func tipo_de_vfx(nombre: String) -> String:
 
 
 func _en_hechizo(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary) -> void:
+	if not encendido:
+		return
 	var carriles: Array = _carriles(g, origen, dir, props)
 	# Un sólido con las casillas REALES de la señal se dibuja una sola vez sobre ellas (los bloques quedan donde el Juego pone la colisión); lo demás,
 	# un volumen por carril (copia).

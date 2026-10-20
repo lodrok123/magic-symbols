@@ -226,7 +226,12 @@ var _tocados: Dictionary = {}          ## campos que algún glifo ha tocado (par
 
 
 ## Construye el hechizo de un elemento con unos glifos. `glifos` = nombre V2 -> cuántas veces (los nombres con alias, como «levitacion», se resuelven).
-static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0) -> Hechizo:
+## `permitir_cinematico` (20/10): una runa cinemática (la del tiempo; `RuneData.cinematico`) solo se construye si quien llama lo pide con `true`, y solo lo hace una
+## cinemática o un evento de guion; el libro y los laboratorios no lo pasan nunca. Sin él devuelve null (y avisa), no un hechizo «sin elemento» que pasaría por bueno.
+static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0, permitir_cinematico: bool = false) -> Hechizo:
+	if elemento_rune != null and elemento_rune.cinematico and not permitir_cinematico:
+		push_warning("Hechizo.construir: «%s» es una runa cinemática (no la lanza el jugador); pide permitir_cinematico = true si es un evento de guion." % elemento_rune.display_name)
+		return null
 	var h := Hechizo.new()
 	CapaBases.aplicar_defectos(h)          # 1. los defectos: los del `var`, salvo lo que el laboratorio haya tocado en «Bases» (vacía en el juego normal)
 	h.calidad = calidad_trazo

@@ -60,6 +60,14 @@ const MEDIDA: Dictionary = {
 	# 15/10: bosque_crafting.glb y bosque_tile.glb (Meshy «Enchanted Crafting» / «Enchanted Forest Tile»; cada hoja era una sola malla).
 	# Las parejas que se cambian una por otra en el juego (seta azul ↔ quemada, tronco con ↔ sin resina) miden parecido para que el cambio no «salte»
 	# (la seta azul es `seta_reactiva`, arriba: 0,8).
+	# 20/10: las 43 piezas nuevas de aprobacion3d/ (Pipeline, diario 213). Los glb miden 0,03–0,57 en sus unidades: sin esta entrada saldrían a 1,0 de alto.
+	# VALORES DE PARTIDA a ojo desde las proporciones medidas (los de ancho, en MEDIDA_ANCHO): se afinan viéndolas en el nivel. `arbusto_flores` ya estaba (1,0).
+	"abedul_amarillo": 4.0, "arbol_viejo": 4.4, "sauce": 3.8, "arbusto_bayas": 0.9,
+	"tocon_alto": 1.1, "tocon_hueco": 0.8, "tocon_seco": 0.5, "tronco_enredadera": 1.8, "valla_lianas": 0.9, "roca_hueca": 0.7,
+	"hierba_espesa": 0.55, "helecho_ancho": 0.5, "flores_amarillas": 0.45, "flores_colores": 0.5, "planta_violeta": 0.55, "planta_agua": 0.5, "planta_hojas": 0.6,
+	"setas_amarillas": 0.35, "bloque_hierba": 0.5, "cubo_hielo": 0.5,
+	"bloque_runa_roja": 0.8, "bloque_runa_naranja": 0.8, "bloque_runa_verde": 0.8, "bloque_runa_azul": 0.8, "bloque_runa_amarilla": 0.8, "bloque_runa_cian": 0.8,
+	"cartel_runa_roja": 1.2, "cartel_runa_naranja": 1.2, "cartel_runa_verde": 1.2, "cartel_runa_azul": 1.2, "cartel_runa_amarilla": 1.2, "cartel_runa_cian": 1.2,
 	"seta_quemada": 0.57, "tronco_resina": 0.8, "tronco_sin_resina": 0.8, "raiz_mundo": 0.7, "cristal_elemental": 0.6, "paja": 0.45,
 }
 
@@ -75,7 +83,10 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 	"canal_recto": S, "canal_codo": S * 0.89,
 	# Campamento goblin: la puerta mide 1,6 casillas de ancho (cabe en una y se apoya en las empalizadas de los lados, ~1,8 de alto);
 	# la empalizada, 1 casilla (~1,0 de alto). La tienda es más ancha que una casilla (~3 de ancho con 2,0 de alto).
-	"puerta_goblin": S * 1.6, "empalizada_goblin": S}
+	"puerta_goblin": S * 1.6, "empalizada_goblin": S,
+	# 20/10: piezas nuevas anchas o planas (diario 213): se miden por ancho para conservar la proporción real. Valores de partida.
+	"nenufar": 1.0, "nenufar_flor": 0.5, "laja_piedra": 1.4, "cuenco_piedra": 0.8, "hojas_monton": 0.9, "raices_musgo": 1.4, "raices_secas": 1.6,
+	"ramas_suelo": 1.2, "tocon_roca": 1.6, "tronco_seco": 1.8}
 
 ## Giro (grados, sobre Y) que se le da al modelo suelto para que mire como espera el juego (+Z local = hacia donde apunta el marcador).
 ## 11/10 puse 180 al cristal de la fuente eléctrica creyendo que su canal azul salía por -Z: era al revés (visto desde arriba, el canal
@@ -84,7 +95,8 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 const GIRO_MODELO: Dictionary = {"cristal_sanctuario": 0.0}
 
 const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10,
-	"losa_runas_llana": 0.08, "losa_runas_remaches": 0.08, "losa_runas_ovalo": 0.08}
+	"losa_runas_llana": 0.08, "losa_runas_remaches": 0.08, "losa_runas_ovalo": 0.08,
+	"nenufar": 0.05, "nenufar_flor": 0.12, "laja_piedra": 0.10}       # 20/10: grosor de las piezas nuevas planas (diario 213; partida)
 
 
 func _ready() -> void:
@@ -229,38 +241,64 @@ static func cambiar_visual(pieza: Node3D, id_nuevo: String) -> bool:
 
 ## --- Colisión de la pieza (6.10, para la fuente de solidez por nodos del Lanzador) ---
 
-## Piezas cuyo cuerpo sólido es solo el tronco (la copa no impide el paso: se pasa por debajo).
-const SOLO_TRONCO: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2"]
-const TRONCO_RADIO: float = 0.38
-const TRONCO_ALTO: float = 2.0
-## Las demás: una caja del 80 % de lo que ocupa el modelo (se roza el borde sin chocar, como las huellas de siempre),
-## con altura entre 1,0 y 1,6: ha de cubrir de sobra donde mira la esfera del jugador (0,3-0,9 por encima del suelo).
-const COLISION_ANCHO: float = 0.8
-const COLISION_ALTO_MIN: float = 1.0
-const COLISION_ALTO_MAX: float = 1.6
-
+## Colisión de la pieza: MEDIDA SOBRE EL MODELO (20/10). Antes: un cilindro fijo de 0,38 para los árboles y una caja del 80 % del
+## AABB para el resto; la caja rellenaba el hueco de los arcos y las puertas (muros invisibles) y el cilindro no seguía el tronco.
+## Ahora los cascos salen de `ColisionPieza` (franja de paso del personaje, un casco por cada trozo que de verdad esté ahí).
 static var _formas: Dictionary = {}
+static var _cascos: Dictionary = {}
 
 
-## Forma de la colisión de la pieza `id_pedido`, en su espacio local (base en y = 0, sin escala):
-## {"cilindro": bool, "radio": float, "tam": Vector3 (caja), "alto": float, "centro": Vector3}.
+## Cascos convexos medidos de la pieza `id_pedido` (nubes de puntos en su espacio local, base en y = 0, sin escala).
+## Modo según `ColisionPieza.MODO`; una pieza que no está en la tabla se mide como «contorno» (alguien la ha pedido sólida
+## en un nivel). Vacía si no hay modelo o es más baja que `ColisionPieza.ALTO_MIN_SOLIDO` (se pisa).
+static func cascos_colision(id_pedido: String) -> Array:
+	var id: String = id_real(id_pedido)
+	if _cascos.has(id):
+		return _cascos[id]
+	var lista: Array = []
+	var vis: Node3D = crear_visual(id)
+	if vis != null:
+		var modo: String = ColisionPieza.modo(id)
+		lista = ColisionPieza.cascos(vis, "contorno" if modo == "ninguna" else modo)
+		vis.free()
+	_cascos[id] = lista
+	return lista
+
+
+## Los cuerpos de colisión de la pieza, listos para colgar de un StaticBody3D: un CollisionShape3D por casco, con la
+## escala `k` ya aplicada a los puntos (un StaticBody con escala no uniforme deforma la colisión).
+static func formas_colision(id_pedido: String, k: float = 1.0) -> Array:
+	var res: Array = []
+	for nube in cascos_colision(id_pedido):
+		var pts := PackedVector3Array()
+		for p in (nube as PackedVector3Array):
+			pts.append(p * k)
+		var sh := ConvexPolygonShape3D.new()
+		sh.points = pts
+		var cs := CollisionShape3D.new()
+		cs.shape = sh
+		res.append(cs)
+	return res
+
+
+## Resumen en caja/cilindro de esos cascos, para quien solo sabe de cajas (la maqueta hasta que use `formas_colision`), en su
+## espacio local (base en y = 0, sin escala): {"cilindro": bool, "radio", "tam" (caja), "alto", "centro", "cascos": n}.
+## OJO: una caja que envuelve dos pilares sigue tapando el paso entre ellos; para arcos y puertas hay que usar `formas_colision`.
 static func forma_colision(id_pedido: String) -> Dictionary:
 	var id: String = id_real(id_pedido)
 	if _formas.has(id):
 		return _formas[id]
+	var lista: Array = cascos_colision(id)
 	var f: Dictionary = {}
-	if SOLO_TRONCO.has(id):
-		f = {"cilindro": true, "radio": TRONCO_RADIO, "alto": TRONCO_ALTO, "centro": Vector3(0.0, TRONCO_ALTO * 0.5, 0.0)}
+	if lista.is_empty():
+		# sin cuerpo medido (pieza baja que se pisa o sin modelo): un metro cúbico, como cuando no hay modelo
+		f = {"cilindro": false, "tam": Vector3(1.0, 1.0, 1.0), "alto": 1.0, "centro": Vector3(0.0, 0.5, 0.0), "cascos": 0}
 	else:
-		var vis: Node3D = crear_visual(id)
-		var caja := AABB(Vector3(-0.5, 0.0, -0.5), Vector3(1.0, 1.0, 1.0))     # sin modelo: un metro cúbico
-		if vis != null:
-			caja = _caja(vis, Transform3D.IDENTITY)
-			vis.free()
-		var alto: float = clampf(caja.size.y, COLISION_ALTO_MIN, COLISION_ALTO_MAX)
-		var tam := Vector3(maxf(caja.size.x * COLISION_ANCHO, 0.3), alto, maxf(caja.size.z * COLISION_ANCHO, 0.3))
-		var c: Vector3 = caja.position + caja.size * 0.5
-		f = {"cilindro": false, "tam": tam, "alto": alto, "centro": Vector3(c.x, alto * 0.5, c.z)}
+		f = ColisionPieza.caja_de(lista)
+		if ColisionPieza.modo(id) == "tronco":
+			var r: float = maxf((f["tam"] as Vector3).x, (f["tam"] as Vector3).z) * 0.5
+			f["cilindro"] = true
+			f["radio"] = r
 	_formas[id] = f
 	return f
 

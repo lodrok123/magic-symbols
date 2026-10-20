@@ -122,7 +122,7 @@ func _zona() -> Lanzador3D.ZonaV2:
 
 func _caso(estado: String, nombre: String) -> void:
 	_montar()
-	var rune: RuneData = load("res://nucleo/%s_rune.tres" % ELEMENTOS[estado])
+	var rune: RuneData = load("res://nucleo/%s_rune.tres" % ELEMENTOS[estado])      # 20/10: «campo» sale de la runa del tiempo (cinemática): abajo se pide expresamente
 	var receta: Lanzador3D.Receta3D = _receta(RECETAS[nombre])
 	var g: Dictionary = receta.geo()
 	var celdas_esperadas: Array = []
@@ -146,7 +146,7 @@ func _caso(estado: String, nombre: String) -> void:
 		dentro.position = Lanzador3D.centro_de(ult + Vector2i(2, 0), MundoFalso.ALTO)
 	var aviso_esperado: bool = estado == "solido" and niv > Jugador3D.MAX_NIVELES_SUBIBLES
 	var suelo_esp: float = Terreno3D.y_pies(Terreno3D.celda_de(_origen()))      # ANTES de lanzar: un sólido levanta la casilla del origen
-	var n: int = _l._materializar(receta, rune, _origen(), Vector3.RIGHT)
+	var n: int = _l._materializar(receta, rune, _origen(), Vector3.RIGHT, rune.cinematico)
 	if aviso_esperado:
 		_ok("%s: no se lanza (aviso de altura, %d niveles > %d)" % [et, niv, Jugador3D.MAX_NIVELES_SUBIBLES], n == 0 and _senales.is_empty() and Terreno3D.alturas.is_empty() and Lanzador3D.GeometriaV2.aviso_materia(g, rune) != "")
 		return

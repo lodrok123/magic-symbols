@@ -39,6 +39,8 @@ if not exist "!GODOT!" (
 )
 set OPC=
 echo %NOMBRE% | findstr /B /C:"escenario_" >nul && set OPC=--fixed-fps 30
+rem 20/10 (Pipeline, con permiso de Pablo): tambien las pruebas que extienden escenario_base (cast_points, nado_desactivado) piden 30 fps fijos
+findstr /C:"escenario_base.gd" herramientas\%NOMBRE%.gd 2>nul | findstr /C:"extends" >nul && set OPC=--fixed-fps 30
 echo ===== %NOMBRE% =====  (Godot: !GODOT!)  %OPC%
 echo Arrancando... (un escenario tarda minutos: cada OK/FALLO sale segun ocurre)
 echo.

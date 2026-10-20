@@ -29,7 +29,6 @@ const ELEMENTS: PackedStringArray = [
 	"tierra",   # triángulo abierto por abajo
 	"rayo",     # zigzag
 	"hielo",    # copo / asterisco
-	"tiempo",   # X
 	"viento",   # 2-3 líneas horizontales
 ]
 
@@ -66,7 +65,7 @@ const SIGILS: PackedStringArray = [
 ## los elementos, luego los sellos: es el mismo orden en que aparecen
 ## arriba, para que el número de la tecla no se aprenda dos veces.
 const RECORDABLE: PackedStringArray = [
-	"fuego", "agua", "tierra", "rayo", "hielo", "tiempo", "viento",
+	"fuego", "agua", "tierra", "rayo", "hielo", "viento",          # 20/10: «tiempo» ya no se graba ni se reconoce (es cinemática, ver BIBLIA)
 	"flecha", "barrera", "levitacion", "repeticion", "amplificar",
 	"rebote", "retardo", "pulso", "atraccion", "espejo",
 	# 16/10 (biblia de runas de Pablo): también se graban los que aún no lanzan nada, para tenerlos listos (assets, enemigos, señuelos).
@@ -76,7 +75,7 @@ const RECORDABLE: PackedStringArray = [
 ## --- BIBLIA DE RUNAS (16/10, lámina de Pablo: 24 runas del futhark antiguo) ---
 ## Qué runa es cada nombre y para qué sirve. Es DATO, no reconocimiento: el reconocedor sigue usando las muestras grabadas; esta tabla
 ## dice cómo se llama cada forma, qué futhark es (para assets, carteles, el libro) y si hoy desemboca en algo.
-##   uso: "elemento" (núcleo) · "sello" (sector) · "enemigos" (la usan ellos, el jugador no la traza) · "asset" (decora: aún sin
+##   uso: "cinematico" (20/10: la runa del tiempo; solo eventos de nivel o de guion, el jugador no la traza ni se reconoce; no está en ELEMENTS) · "elemento" (núcleo) · "sello" (sector) · "enemigos" (la usan ellos, el jugador no la traza) · "asset" (decora: aún sin
 ##        hechizo) · "libre" (sin asignar: puede usarse más adelante).
 ## No todas las de `uso` sello/elemento están ya en el juego con esa forma: Pablo regraba las plantillas con G. Las de uso "asset" y
 ## "libre" no están en ELEMENTS ni SIGILS, así que aunque se graben no compiten en el reconocimiento.
@@ -102,7 +101,7 @@ const BIBLIA: Dictionary = {
 	"viento":     {"futhark": "ᚢ", "nombre_runa": "uruz (variante de lados rectos, lámina aparte)", "uso": "elemento"},
 	"agua":       {"futhark": "ᛚ", "nombre_runa": "laguz", "uso": "elemento"},
 	"barrera":    {"futhark": "ᛜ", "nombre_runa": "ingwaz", "uso": "sello"},
-	"tiempo":     {"futhark": "ᛟ", "nombre_runa": "othala", "uso": "elemento (solo en una ruina: cinemático)"},
+	"tiempo":     {"futhark": "ᛟ", "nombre_runa": "othala", "uso": "cinematico"},
 	"luz":        {"futhark": "ᛞ", "nombre_runa": "dagaz", "uso": "asset"},
 }
 

@@ -164,12 +164,36 @@ func lanzar() -> int:
 	lab._jug.mirar_hacia(sa["dir"])
 	var guardados: Dictionary = (lab.cambios_hechizo as Dictionary).duplicate(true)
 	lab.cambios_hechizo.clear()                          # el mismo diccionario que ve el lanzador: aparte lo de F1 mientras sale
+	var previos: Array = _dibujo_por_estado(true)
 	var n: int = lab._l.lanzar_hechizo(hechizo(), sa["origen"], sa["dir"])
+	_dibujo_por_estado(false, previos)
 	lab.cambios_hechizo.merge(guardados)
 	lanzamientos += 1
 	_medida = {"clave": clave(), "t": 0.0, "prox": 0.0, "base_luces": int(antes[0]), "base_part": int(antes[1]), "luces": 0, "part": 0}
 	ultimo_mensaje = "lanzado %s (%d casillas)" % [clave(), n]
 	return n
+
+
+## 20/10 (Pipeline, entrada 203): esta matriz aprueba el dibujo POR ESTADO (VfxEstado3D), que en la maqueta está apagado de serie porque manda el de ELEMENTO
+## (VfxElemento3D). Mientras se lanza la celda se enciende el de estado y se apaga el de elemento, para que se mida y se vea solo aquel; después se restituye.
+## Los receptores deciden al RECIBIR la señal (síncrona dentro de `lanzar_hechizo`), así que basta con rodear esa llamada. Devuelve las banderas de antes.
+func _dibujo_por_estado(entrar: bool, previos: Array = []) -> Array:
+	var raiz: Node = (lab as Node).get_tree().root
+	var ve: VfxEstado3D = raiz.find_child("VfxEstado3D", true, false) as VfxEstado3D
+	var vl: VfxElemento3D = raiz.find_child("VfxElemento3D", true, false) as VfxElemento3D
+	if entrar:
+		var antes: Array = [ve.encendido if ve != null else true, vl.encendido if vl != null else true]
+		if ve != null:
+			ve.encendido = true
+		if vl != null:
+			vl.encendido = false
+		return antes
+	if previos.size() == 2:
+		if ve != null:
+			ve.encendido = bool(previos[0])
+		if vl != null:
+			vl.encendido = bool(previos[1])
+	return previos
 
 
 ## Cuenta las luces y las partículas VISIBLES del árbol. Devuelve [luces, partículas].

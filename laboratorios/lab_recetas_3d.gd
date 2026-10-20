@@ -22,8 +22,8 @@ extends Node
 ##   así que no gasta tinta ni espera recarga.
 
 const NIVEL_MAPA: String = "LabRecetas"
-const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind", "time"]
-const NOMBRE_ELEMENTO: Dictionary = {"fire": "fuego", "water": "agua", "earth": "tierra", "ice": "hielo", "lightning": "rayo", "wind": "viento", "time": "tiempo"}
+const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       # 20/10: sin «time» (cinemática, no se lanza)
+const NOMBRE_ELEMENTO: Dictionary = {"fire": "fuego", "water": "agua", "earth": "tierra", "ice": "hielo", "lightning": "rayo", "wind": "viento"}
 const PERIODO_BARRIDO: float = 2.0
 const VENTANA_S: float = 0.8                  ## segundos de juego que se vigila una receta lanzada
 const UMBRAL_MS: float = 16.0                 ## un fotograma a 60 fps

@@ -1,0 +1,44 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://c2ahtsu0mkmkf"
+path.s3tc="res://.godot/imported/setas_amarillas_1.jpg-70d4cb38e7a8068e0ee773602d73bca0.s3tc.ctex"
+metadata={
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
+}
+generator_parameters={
+"md5": "9c3465f6bc99d5faabbcd1361d53fde6"
+}
+
+[deps]
+
+source_file="res://arte/meshy/piezas/setas_amarillas_1.jpg"
+dest_files=["res://.godot/imported/setas_amarillas_1.jpg-70d4cb38e7a8068e0ee773602d73bca0.s3tc.ctex"]
+
+[params]
+
+compress/mode=2
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/uastc_level=0
+compress/rdo_quality_loss=0.0
+compress/hdr_compression=1
+compress/normal_map=1
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=1
+roughness/src_normal="res://arte/meshy/piezas/setas_amarillas_1.jpg"
+process/channel_remap/red=0
+process/channel_remap/green=1
+process/channel_remap/blue=2
+process/channel_remap/alpha=3
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=0

@@ -140,6 +140,7 @@ var _mano: Vector3 = Vector3.ZERO
 var _vivos: Array[Node] = []
 var _origen: String = "mano_libre"      ## origen del cast point del conjuro en curso (lo resuelve `_resolver_origen` al empezar «forma»)
 var _destino: Vector3 = Vector3.INF    ## punto del suelo donde nacerá el hechizo (INF = no lo sabemos)
+var _snd_carga: Node = null            ## bucle de sonido de la carga (20/10, solo fuego: FasesFuego3D); se corta al disparar o al limpiar
 
 
 ## Crea el nodo, lo cuelga de `padre` y lo conecta al Lanzador. Devuelve null si no hay señal a la que engancharse.
@@ -168,12 +169,25 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 			_mano = posicion
 			_resolver_origen(elemento)
 			forma(elemento, posicion, float(t[2]), _origen, _destino)
+			_parar_sonido_carga(0.0)
+			if FasesFuego3D.aplica(elemento):
+				_snd_carga = FasesFuego3D.sonido_carga(self)
+				if _snd_carga != null:
+					_snd_carga.set("global_position", posicion)
 		"disparo":
+			_parar_sonido_carga(0.1)
 			destello(elemento, posicion, _origen)
 			onda(elemento, posicion, _origen)
 			retirar_forma()
 			_origen = "mano_libre"
 			_destino = Vector3.INF
+
+
+## Corta el bucle de sonido de la carga (si lo hay) con un fundido.
+func _parar_sonido_carga(fundido: float) -> void:
+	if _snd_carga != null:
+		Sfx.parar(_snd_carga, fundido)
+		_snd_carga = null
 
 
 ## Pregunta al Lanzador por el origen del cast point (`origen_conjuro(elemento) -> {"origen", "destino"}`). Sin ese método, o con un
@@ -230,6 +244,7 @@ func forma(elemento: String, pos: Vector3, dura: float, origen: String = "mano_l
 	var raiz := Node3D.new()
 	add_child(raiz)
 	raiz.global_position = pos
+	raiz.set_meta("elemento", elemento)          # `_forma_mano` lo lee para saber si le toca la carga del fuego (FasesFuego3D)
 	_vivos.append(raiz)
 	dura = maxf(dura, 0.05)
 	match origen:
@@ -250,11 +265,15 @@ func forma(elemento: String, pos: Vector3, dura: float, origen: String = "mano_l
 
 ## mano_libre: el núcleo del elemento crece de 0,2 a 1 con una luz, y a su alrededor convergen chispas hacia él. Después late.
 func _forma_mano(raiz: Node3D, p: Dictionary, dura: float) -> void:
-	var nucleo: MeshInstance3D = _nucleo(p, RADIO_FORMA)
+	# FUEGO (20/10, Pablo: «cuando se está apuntando se aglutinan partículas»): más chispas, desde más lejos y cada vez más densas mientras dura la forma (FasesFuego3D).
+	# Y la bola de la mano ES la bola del proyectil (rojo → naranja → amarillo, 20:13): `FasesFuego3D.bola_carga`, no el orbe liso de siempre.
+	var fuego: bool = FasesFuego3D.aplica(String(raiz.get_meta("elemento", "")))
+	var nucleo: Node3D = FasesFuego3D.bola_carga(FasesFuego3D.radio_carga()) if fuego else _nucleo(p, RADIO_FORMA)
 	raiz.add_child(nucleo)
 	nucleo.scale = Vector3.ONE * 0.2
 	raiz.add_child(_motas(p, 0.8))
-	raiz.add_child(_chispas_convergentes(p, 0.6))
+	var chis: GPUParticles3D = _chispas_convergentes(p, FasesFuego3D.v("carga_radio") if fuego else 0.6, FasesFuego3D.v("carga_tam") if fuego else 0.07)
+	raiz.add_child(chis)
 	var luz := OmniLight3D.new()
 	luz.light_color = p["color"]
 	luz.omni_range = 2.2
@@ -262,11 +281,18 @@ func _forma_mano(raiz: Node3D, p: Dictionary, dura: float) -> void:
 	luz.shadow_enabled = false
 	raiz.add_child(luz)
 	var tw := raiz.create_tween().set_parallel(true)
-	tw.tween_property(nucleo, "scale", Vector3.ONE, dura).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(luz, "light_energy", 1.4, dura)
+	var espera_latido: float = dura
+	raiz.set_meta("bola", nucleo)                # (la prueba y el lab lo miran)
+	if fuego:
+		# La bola nace de un punto y CRECE durante el casteo (`carga_bola_ini` → 1 en `carga_bola_s`); el latido espera a que llegue a su tamaño.
+		espera_latido = FasesFuego3D.crecer_bola(nucleo)
+		FasesFuego3D.montar_carga(chis, luz)
+	else:
+		tw.tween_property(nucleo, "scale", Vector3.ONE, dura).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(luz, "light_energy", 1.4, dura)
 	if nucleo.has_meta("gira"):
 		tw.tween_property(nucleo, "rotation:y", TAU, dura + 0.3)
-	_latido(raiz, nucleo, dura)
+	_latido(raiz, nucleo, espera_latido)
 
 
 ## manos_alto: una columna de luz sube sobre las manos y, en el suelo delante, se dibuja el círculo donde nacerá el hechizo.
@@ -440,8 +466,8 @@ func _particulas_luz(p: Dictionary, n: int, vida: float, tam: float) -> GPUParti
 
 ## Chispas que nacen en una esfera de radio `radio` alrededor del núcleo y convergen hacia él (aceleración radial hacia dentro).
 ## Con `local_coords` siguen a la mano si se mueve.
-func _chispas_convergentes(p: Dictionary, radio: float) -> GPUParticles3D:
-	var gp: GPUParticles3D = _particulas_luz(p, 30, 0.36, 0.07)
+func _chispas_convergentes(p: Dictionary, radio: float, tam: float = 0.07) -> GPUParticles3D:
+	var gp: GPUParticles3D = _particulas_luz(p, 30, 0.36, tam)
 	gp.name = "Convergen"
 	gp.local_coords = true
 	var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
@@ -510,6 +536,8 @@ func destello(elemento: String, pos: Vector3, origen: String = "mano_libre") -> 
 	var fin: Vector3 = Vector3.ONE * 2.2
 	if origen == "suelo_delante":
 		fin = Vector3(2.6, 0.7, 2.6)
+	if FasesFuego3D.aplica(elemento):
+		fin *= FasesFuego3D.v("carga_destello")          # 0 = sin destello (20/10)
 	var tw := m.create_tween().set_parallel(true)
 	tw.tween_property(m, "scale", fin, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(mat, "albedo_color:a", 0.0, 0.2)
@@ -582,6 +610,7 @@ func _apagar_mats(v: float, mats: Array) -> void:
 
 ## Retira lo que quede del conjuro (la forma en la mano). La cola de la voluta se apaga sola.
 func limpiar() -> void:
+	_parar_sonido_carga(0.1)
 	for n in _vivos:
 		if is_instance_valid(n):
 			n.queue_free()

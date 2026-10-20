@@ -138,7 +138,7 @@ func _ciclo(c: ConjuroVfx3D, l: FalsoLanzador, el: String, esperado: String, pos
 		var mi: MeshInstance3D = m as MeshInstance3D
 		if mi.mesh is CylinderMesh and mi.material_override is ShaderMaterial and mi.get_parent() != raiz:
 			tiene_columna = true
-		if mi.mesh is PlaneMesh:
+		if mi.mesh is PlaneMesh and not (mi.mesh is QuadMesh):          # QuadMesh hereda de PlaneMesh: el resplandor del núcleo del fuego (quads) no es un círculo rúnico
 			anillo_en = mi.global_position
 	match esperado:
 		"mano_libre":

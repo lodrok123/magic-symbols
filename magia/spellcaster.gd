@@ -10,7 +10,7 @@ var stroke_points: Array[Vector2] = []
 
 # Conteo de esquinas: el reconocedor ANTIGUO, y solo de emergencia.
 #
-# Ya no pretende acertar: con siete elementos y formas nuevas, contar
+# Ya no pretende acertar: con seis elementos y formas nuevas, contar
 # esquinas no distingue un rayo de una tierra. Su único trabajo es que
 # el juego arranque y se deje jugar con la biblioteca vacía, el rato
 # que tardes en grabar las plantillas. En cuanto haya una sola muestra
@@ -31,7 +31,6 @@ const WIND_RUNE: RuneData = preload("res://nucleo/wind_rune.tres")
 const EARTH_RUNE: RuneData = preload("res://nucleo/earth_rune.tres")
 const LIGHTNING_RUNE: RuneData = preload("res://nucleo/lightning_rune.tres")
 const ICE_RUNE: RuneData = preload("res://nucleo/ice_rune.tres")
-const TIME_RUNE: RuneData = preload("res://nucleo/time_rune.tres")
 
 var rune_database: Dictionary = {
 	Runes.Type.SHAPE_TRIANGLE: FIRE_RUNE,
@@ -40,7 +39,6 @@ var rune_database: Dictionary = {
 	Runes.Type.SHAPE_ARC: EARTH_RUNE,
 	Runes.Type.ELEMENT_LIGHTNING: LIGHTNING_RUNE,
 	Runes.Type.ELEMENT_ICE: ICE_RUNE,
-	Runes.Type.ELEMENT_TIME: TIME_RUNE,
 }
 
 ## Cuánto tiene que irse un trazo hacia fuera o hacia dentro para contar
@@ -903,7 +901,6 @@ const GESTURE_TO_RUNE: Dictionary = {
 	"tierra": Runes.Type.SHAPE_ARC,
 	"rayo": Runes.Type.ELEMENT_LIGHTNING,
 	"hielo": Runes.Type.ELEMENT_ICE,
-	"tiempo": Runes.Type.ELEMENT_TIME,
 }
 
 

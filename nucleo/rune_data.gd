@@ -38,6 +38,12 @@ extends Resource
 ##   if rune_data.tags.has("frio"): _freeze()
 @export var tags: Array[String] = []
 
+## --- Runa CINEMÁTICA (20/10, Pablo: la runa del tiempo deja de ser lanzable) ---
+## true = la usan los eventos de nivel o de guion (una ruina, una cinemática), NUNCA el jugador. El libro no la ofrece ni la reconoce, y
+## `Hechizo.construir` se niega a construir su hechizo salvo que quien llama lo pida con `permitir_cinematico = true` (la cinemática, explícitamente).
+## El .tres y el estado «campo» de HechizoVivo siguen existiendo para ella.
+@export var cinematico: bool = false
+
 ## --- ESTADO Y MATERIA (receta V2, docs/GLIFOS_RECETA.md §2.3; 17/10) ---
 ## De QUÉ está hecho el volumen que dibujan los glifos. Son datos en el .tres, sin código: la receta V2 lee el estado una sola vez
 ## por estado, no una vez por forma. En R1 solo se LEEN (nada del juego actual los usa todavía; el Pipeline puede leerlos para su V1).

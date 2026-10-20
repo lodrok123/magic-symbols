@@ -195,7 +195,11 @@ func _alto_cuerpo() -> float:
 ## 11/10 (Pablo): las cajas de acierto eran demasiado grandes (0,9 casillas para todo) y la de la telaraña no coincidía con la red.
 ## Ahora el cuerpo se ajusta a lo que se VE: el tamaño de la caja de los tipos de TIPOS_CUERPO_AJUSTADO es el de su visual (más
 ## MARGEN_CUERPO), sin pasar de lo que tenía ni bajar de MIN_CUERPO. La telaraña, además, usa el alto y el sitio exactos de la red.
-const TIPOS_CUERPO_AJUSTADO: Array = ["totem", "fogata", "brasero", "seto", "tronco", "emisor_rayo", "telarana"]
+## 20/10 (Pablo: «que las colisiones sean cercanas al modelo real y no a la cuadrícula»): ahora se ajustan TODOS los tipos salvo estos. La caja solo se
+## ENCOGE (nunca pasa de lo que tenía): antes un barril de 0,8 u o una seta tenían una caja de acierto de 0,9 casillas (2,07 u).
+##   · «placa»: la caja es el área que PISA el jugador (no el modelo, que es una lámina) · «puente»: va plegado y girado ·
+##   · «surtidor»: su ANCHO_CUERPO/FONDO_CUERPO está medido a mano para que envuelva la tinaja aunque se incline.
+const TIPOS_SIN_AJUSTE: Array = ["placa", "puente", "surtidor"]
 const MARGEN_CUERPO: float = 0.1         ## cuánto sobresale el cuerpo de lo que se ve (u): que acertar no pida puntería de píxel
 const MIN_CUERPO: float = 0.8            ## lado mínimo de la caja (u)
 const PUNTO_BAJO_TECHO: float = 0.05     ## cuánto por debajo de lo más alto del visual queda el punto de activación (u)
@@ -203,7 +207,7 @@ const TIPOS_PUNTO_ALTO: Array = ["totem", "fogata", "brasero", "emisor_rayo"]
 
 
 func _ajustar_cuerpo(caja: BoxShape3D, forma: CollisionShape3D) -> void:
-	if not TIPOS_CUERPO_AJUSTADO.has(tipo):
+	if TIPOS_SIN_AJUSTE.has(tipo):
 		return
 	var ab: AABB = _aabb_visual()
 	if ab.size.x < 0.05 or ab.size.z < 0.05:

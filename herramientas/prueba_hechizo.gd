@@ -8,7 +8,7 @@ extends SceneTree
 ## (sin tocar el recurso compartido), que los glifos desconocidos se ignoran y que Sigils.GLIFOS y Sigils.GLIFOS_V2 dicen lo mismo.
 
 const MAX_GLIFOS: int = 4
-const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind", "time"]
+const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       ## 20/10: seis; «time» es cinemática (ver _cinematica)
 const CALIDADES: Array = [1.0, 0.4]
 ## Lo que Combate3D.golpe tenía escrito a mano el 18/10 (nombre del elemento -> campo -> valor).
 ## Y la fuerza del golpe por elemento (FUERZA_POR_ELEMENTO; el viento no empuja él: lo hace el Lanzador).
@@ -53,6 +53,7 @@ func _initialize() -> void:
 	_casos_sueltos(runes)
 	_tabla_hc5(runes)
 	_espec_e1(runes)
+	_cinematica()
 	print("%d combinaciones × %d elementos × %d calidades · %d comparaciones · FALLOS: %d" % [combos.size(), ELEMENTOS.size(), CALIDADES.size(), comparaciones, fallos])
 	quit(1 if fallos > 0 else 0)
 
@@ -293,6 +294,23 @@ func _tabla_hc5(runes: Dictionary) -> void:
 	_ok(Hechizo.texto_modificadores({}).begins_with("#"), "texto_modificadores sin cambios dice que no hay")
 
 
+# --- 20/10 (Pablo): la runa del tiempo es CINEMÁTICA: existe (el .tres, el estado «campo»), pero el jugador no la lanza ni la reconoce ---
+func _cinematica() -> void:
+	var t: RuneData = load("res://nucleo/time_rune.tres")
+	_ok(t != null and t.cinematico, "time_rune.tres está marcado como cinemático")
+	_ok(t.estado == "campo" and t.tags.has("cinematico"), "…y conserva su estado «campo» y la etiqueta")
+	_ok(Hechizo.construir(t, {}) == null and Hechizo.construir(t, {"flecha": 2}, 0.5) == null, "Hechizo.construir lo rechaza si no se le pide expresamente (devuelve null)")
+	var c: Hechizo = Hechizo.construir(t, {"flecha": 1}, 1.0, true)
+	_ok(c != null and c.estado_materia == "campo" and c.elemento == Objetos.elemento_de(t), "con permitir_cinematico = true sí lo construye, en estado «campo»")
+	for e in ELEMENTOS:
+		_ok(not (load("res://nucleo/%s_rune.tres" % e) as RuneData).cinematico, "%s no es cinemático" % e)
+	_ok(not GestureLibrary.ELEMENTS.has("tiempo") and not GestureLibrary.RECORDABLE.has("tiempo"), "el libro no lo ofrece ni se puede grabar («tiempo» fuera de ELEMENTS y RECORDABLE)")
+	_ok(GestureLibrary.ELEMENTS.size() == 6 and ELEMENTOS.size() == 6, "los elementos del jugador son 6")
+	var g := Grimorio.new()
+	_ok(not g.rune_database.has(Runes.Type.ELEMENT_TIME) and not Grimorio.GESTURE_TO_RUNE.has("tiempo"), "el Grimorio no tiene la runa del tiempo en su tabla ni la reconoce")
+	g.free()
+
+
 # --- E1 (19/10, claude/ESPEC_HECHIZO.md): bases, derivados, límites y elementos ---
 func _espec_e1(runes: Dictionary) -> void:
 	var vacio: Hechizo = Hechizo.construir(null, {})
@@ -334,7 +352,7 @@ func _espec_e1(runes: Dictionary) -> void:
 	# la velocidad de la flecha: la de ayer (4 u/s) dicha en metros
 	_ok(_casi(Sigils.velocidad_flecha() * Terreno3D.casilla, 4.0) and Hechizo.construir(runes["fire"], {"flecha": 1}).velocidad == Sigils.velocidad_flecha(), "flecha: 4 u/s de la escala antigua = %.3f m/s" % Sigils.velocidad_flecha())
 	# lo que aporta cada elemento (§2)
-	var esperado: Dictionary = {"fire": [0.0, 0.2, 1.0, 0.0, 0.0], "water": [0.5, 1.0, 0.0, 1.0, 0.3], "earth": [1.0, 2.0, 0.0, 0.2, 0.0], "ice": [1.0, 0.9, -1.0, 0.5, 0.0], "lightning": [0.0, 0.0, 0.0, 0.0, 1.0], "wind": [0.0, 0.1, 0.0, 0.0, 0.0], "time": [0.0, 0.0, 0.0, 0.0, 0.0]}
+	var esperado: Dictionary = {"fire": [0.0, 0.2, 1.0, 0.0, 0.0], "water": [0.5, 1.0, 0.0, 1.0, 0.3], "earth": [1.0, 2.0, 0.0, 0.2, 0.0], "ice": [1.0, 0.9, -1.0, 0.5, 0.0], "lightning": [0.0, 0.0, 0.0, 0.0, 1.0], "wind": [0.0, 0.1, 0.0, 0.0, 0.0]}
 	for e in esperado:
 		var he: Hechizo = Hechizo.construir(runes[e], {})
 		var t: Array = esperado[e]

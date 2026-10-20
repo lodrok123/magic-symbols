@@ -107,6 +107,8 @@ const CATALOGO: Dictionary = {
 	# empezar el conjuro, y «<nombre derivado>_impacto» (x_mano · alto · abajo) al materializarse el volumen. «<elemento>_disparo» no lleva sonido
 	# propio: sigue siendo el elem_* de arriba. Primera versión sintetizada: SE AFINA ESCUCHANDO (estos dB y el tono son un punto de partida).
 	"fuego_carga":  {"f": ["fuego_carga.wav"],  "db": -9.0,  "tono": 0.04},
+	# Bucle MIENTRAS se carga/apunta (20/10, Pablo): se pide con `Sfx.bucle`, no con `play`. Lo genera audio/gen_sfx_hechizos.py::fuego_carga_bucle.
+	"fuego_carga_bucle": {"f": ["fuego_carga_bucle.wav"], "db": -14.0, "tono": 0.0},
 	"agua_carga":   {"f": ["agua_carga.wav"],   "db": -9.0,  "tono": 0.04},
 	"hielo_carga":  {"f": ["hielo_carga.wav"],  "db": -11.0, "tono": 0.03},
 	"rayo_carga":   {"f": ["rayo_carga.wav"],   "db": -9.0,  "tono": 0.04},
@@ -187,6 +189,54 @@ static func play(origen: Node, nombre: String, tono: float = 0.0) -> void:
 	p.set("global_position", origen.get("global_position"))
 	p.connect("finished", p.queue_free)
 	p.call("play")
+
+
+## Sonido en BUCLE que dura mientras alguien lo mantenga (la carga de un hechizo: suena mientras se apunta y se corta al disparar). Devuelve el reproductor
+## para que quien lo pide le cambie el tono (`pitch_scale`) o el volumen con el tiempo y lo pare con `Sfx.parar`; null si no hay sonido o no hay árbol.
+## Va a la raíz de la escena, como `play`, y NO se pausa con el grimorio por lo mismo. Un `AudioStreamWAV` importado trae el bucle apagado: se duplica
+## el recurso (el original lo comparten todos) y se activa el bucle hacia delante sobre todo el audio.
+static func bucle(origen: Node, nombre: String, tono: float = 1.0) -> Node:
+	if not CATALOGO.has(nombre) or origen == null or not origen.is_inside_tree():
+		return null
+	var cfg: Dictionary = CATALOGO[nombre]
+	var flujo: AudioStream = load(CARPETA + String((cfg["f"] as Array)[0]))
+	if flujo == null:
+		return null
+	if flujo is AudioStreamWAV:
+		var w: AudioStreamWAV = (flujo as AudioStreamWAV).duplicate() as AudioStreamWAV
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_begin = 0
+		var muestras: int = w.data.size() / (2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1) / (2 if w.stereo else 1)
+		w.loop_end = muestras
+		flujo = w
+	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
+	p.set("stream", flujo)
+	p.set("volume_db", float(cfg["db"]))
+	p.set("pitch_scale", tono)
+	p.process_mode = Node.PROCESS_MODE_ALWAYS
+	var padre: Node = origen.get_tree().current_scene
+	if padre == null:
+		padre = origen.get_tree().root
+	padre.add_child(p)
+	p.set("global_position", origen.get("global_position"))
+	p.call("play")
+	return p
+
+
+## Corta un bucle de `Sfx.bucle` con un fundido (`fundido` s; 0 = de golpe) y libera el reproductor. Admite null y reproductores ya liberados.
+static func parar(p: Node, fundido: float = 0.12) -> void:
+	if p == null or not is_instance_valid(p):
+		return
+	if fundido <= 0.0 or not p.is_inside_tree():
+		p.queue_free()
+		return
+	if p.has_meta("tween_bucle"):                       # el tono/volumen que subía quien lo pidió: se cancela, o pelearía con el fundido
+		var viejo: Variant = p.get_meta("tween_bucle")
+		if viejo is Tween and (viejo as Tween).is_valid():
+			(viejo as Tween).kill()
+	var tw: Tween = p.create_tween()
+	tw.tween_property(p, "volume_db", -60.0, fundido)
+	tw.tween_callback(p.queue_free)
 
 
 ## El llenado de un pozo o una cuenca: `nivel` 0..1 (profundidad / profundidad máxima) sube el tono de 0,7 a 1,6, como cuando se llena

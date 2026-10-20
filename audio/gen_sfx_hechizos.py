@@ -61,16 +61,17 @@ def entra_sale(n, ataque, cola):
     return np.minimum(1.0, tt / max(ataque, 1e-4)) * np.minimum(1.0, (d - tt) / max(cola, 1e-4))
 
 
-def guardar(nombre, x, rms_obj=0.08):
+def guardar(nombre, x, rms_obj=0.08, fade_borde=True):
     x = x - np.mean(x)
     r = np.sqrt(np.mean(x ** 2)) + 1e-9
     x = x * (rms_obj / r)
     pico = np.max(np.abs(x))
     if pico > 0.95:
         x = x * (0.95 / pico)
-    fade = int(SR * 0.004)
-    x[:fade] *= np.linspace(0, 1, fade)
-    x[-fade:] *= np.linspace(1, 0, fade)
+    if fade_borde:                      # los bucles NO: el empalme ya es continuo y un fundido a cero metería un «tic» en cada vuelta
+        fade = int(SR * 0.004)
+        x[:fade] *= np.linspace(0, 1, fade)
+        x[-fade:] *= np.linspace(1, 0, fade)
     ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), nombre)
     with wave.open(ruta, "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
@@ -176,6 +177,26 @@ def abajo_impacto():
     return losa * 1.3 + grava + crujido + tierra
 
 
+
+# ------------------------------------------------------------------------------------------------ bucles (20/10, Pablo: «sonido mientras se carga el hechizo»)
+def fuego_carga_bucle():
+    """Lo que suena MIENTRAS se carga/apunta el fuego, en bucle (1,6 s, sin clic): un rugido de llama grave y constante, un zumbido que late, chasquidos
+    sueltos y un siseo agudo. Es la base: el juego le sube el tono (0,8 → 1,6) y el volumen mientras dura la carga, así que sube solo sin ser un sonido que sube.
+    Todos los armónicos tienen un número ENTERO de ciclos en el bucle y el ruido se filtra sobre tres copias iguales: el empalme es continuo."""
+    d = 1.6; n = int(SR * d); tt = t(d)
+    base = ruido(d)
+    tri = np.concatenate([base, base, base])
+    llama = banda(tri, 520.0, 380.0)[n:2 * n]                                   # rugido medio
+    llama = llama * (0.75 + 0.25 * np.sin(2 * np.pi * 3 * tt))                  # 3 latidos por bucle
+    siseo = pasaaltos(tri, 3500.0)[n:2 * n] * 0.18
+    grave = (np.sin(2 * np.pi * 94 * tt) + 0.5 * np.sin(2 * np.pi * 188 * tt) + 0.25 * np.sin(2 * np.pi * 282 * tt)) * (0.55 + 0.45 * np.sin(2 * np.pi * 5 * tt + 1.0))
+    puntos = (rng.uniform(0, 1, n) > 0.9992).astype(float)
+    ptri = np.concatenate([puntos, puntos, puntos])
+    crep = np.convolve(ptri, np.exp(-np.arange(500) / 45.0))[:3 * n]
+    crep = pasaaltos(pasabajos(crep, 5500.0), 900.0)[n:2 * n] * 3.2
+    return llama * 0.9 + siseo + grave * 0.32 + crep
+
+
 if __name__ == "__main__":
     for nombre, f in [("fuego", fuego_carga), ("agua", agua_carga), ("hielo", hielo_carga), ("rayo", rayo_carga),
                       ("viento", viento_carga), ("tierra", tierra_carga), ("tiempo", tiempo_carga)]:
@@ -183,3 +204,4 @@ if __name__ == "__main__":
     guardar("x_mano_impacto.wav", x_mano_impacto())
     guardar("alto_impacto.wav", alto_impacto())
     guardar("abajo_impacto.wav", abajo_impacto())
+    guardar("fuego_carga_bucle.wav", fuego_carga_bucle(), fade_borde=False)

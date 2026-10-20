@@ -89,7 +89,7 @@ func _escenario() -> void:
 	pj.soltar_lanzar()
 	await avanzar_s(0.7)
 	_ok("C al acabar (soltar_lanzar) el libro vuelve al cinto y el lanzamiento termina", not pj.cast_activo() and pj._libro == null and pj.fraccion_clip() < 0.0)
-	_ok("C la velocidad de la animación se restaura", is_equal_approx(pj._ap.speed_scale, 1.0))
+	_ok("C la velocidad de la animación se restaura", is_equal_approx(pj.velocidad_animacion(), 1.0))
 
 	# `sostener`: el clip se congela en el instante.
 	CastPoints.VARIACIONES["x_mano"]["sostener"] = 0.5
@@ -126,8 +126,7 @@ func _escenario() -> void:
 		b.lado = lado
 		b.influence = 1.0
 		_mantener_lanzando(true)
-		pj._ap.play(pj._buscar_clip("cast_corro"))
-		pj._ap.seek(1.2, true)
+		pj.pose_fija("cast_corro", 1.2)               # (A1: el árbol es lo único que reproduce; la pose conocida se pide con pose_fija)
 		await avanzar(3)
 		var inv: Transform3D = torso.global_transform.affine_inverse()
 		if lado == "izquierda":
@@ -223,7 +222,7 @@ func _escenario() -> void:
 	lanzador._preparado = {}
 	lanzador.lanzar_ahora(datos_h, jugador.position, Vector3.RIGHT, true)
 	await avanzar(2)
-	_ok("H al SOLTAR para lanzar el libro NO vuelve al cinto (sigue en la mano)", pj._libro != null and is_instance_valid(pj._libro) and pj._libro_vuelve == null, "libro %s" % str(pj._libro))
+	_ok("H al SOLTAR para lanzar el libro NO vuelve al cinto (sigue en la mano)", pj._libro != null and is_instance_valid(pj._libro) and pj.libro_estado() != "volando", "libro %s" % str(pj._libro))
 	tf = 0.0
 	while lanzador.conjurando and tf < 3.0:
 		tf += await avanzar_s(0.05)

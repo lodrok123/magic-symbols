@@ -15,6 +15,8 @@ extends LabRecetas3D
 ##        ↑/↓ elige, ←/→ cambia (Mayús ×10), G guarda en user://lab_hechizos.json, P imprime la tabla para volcarla a combate_3d.gd.
 ##   F4 VFX · lab_vfx_3d.gd (LabVfx3D): la MATRIZ DE APROBACIÓN de efectos (estado × volumen × propiedad × impacto): Pablo lanza cada celda y la marca
 ##        aprobada / rechazada / con nota; se guarda en user://vfx_aprobados.json (trabajo pendiente del Pipeline) y mide luces y partículas contra el presupuesto.
+##   F5 Estados · lab_estados_3d.gd (LabEstados3D, A1+A2): el grafo de animación de la jugadora EN VIVO (estado pedido / real, clip, posición, velocidad), el estado del
+##        libro y las últimas transiciones con el motivo si una regla las rechaza; Intro fuerza cada rol, B abre/cierra el libro, V cambia la velocidad del mundo.
 ## COMUNES: G guarda · P imprime · Numpad / cámara lateral ↔ de juego · L / . / , tiempo (TiempoLab3D).
 ##
 ## MODO CONJURO COMPLETO (C): lanza por el CAMINO REAL, `Lanzador3D.lanzar_ahora(datos, origen, dir, true)`: las fases runa → voluta → forma → (clip) →
@@ -59,7 +61,7 @@ const IMPACTO: Array = [
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
 ]
 
-enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX }
+enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX, ESTADOS }
 
 var pestana: int = Pestana.RECETA
 var modo_completo: bool = false
@@ -77,6 +79,7 @@ var fases_vistas: Array = []                   ## [{fase, t_ms}] del último con
 var conjuros: int = 0                          ## lanzamientos por el camino real
 var f2: Variant = null                         ## LabCastPoint3D si existe (T-CP1); null si no
 var f4: Variant = null                         ## LabVfx3D si existe (F4, matriz de aprobación de VFX); null si no
+var f5: Variant = null                         ## LabEstados3D si existe (F5, estados de animación en vivo); null si no
 var limpiezas: int = 0
 
 var _cam_lat: Camera3D = null
@@ -108,6 +111,7 @@ func iniciar(mundo: Variant) -> void:
 	_montar_panel_modos()
 	_montar_f2()
 	_montar_f4()
+	_montar_f5()
 	_montar_tabla()
 	_quitar_paleta()
 	_montar_ui_compacta()
@@ -245,6 +249,8 @@ func _process(delta: float) -> void:
 			_lbl_aviso.text = ""
 	if f4 != null:
 		f4.call("paso", delta)
+	if f5 != null:
+		f5.call("paso", delta)
 	if atacar_goblin and _jug != null:
 		_jug.vida = 100.0
 		_jug.muerto = false
@@ -573,7 +579,10 @@ func poner_camara_lateral(si: bool) -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 
 func poner_pestana(p: int) -> void:
-	pestana = clampi(p, Pestana.RECETA, Pestana.VFX)
+	var antes_estados: bool = pestana == Pestana.ESTADOS
+	pestana = clampi(p, Pestana.RECETA, Pestana.ESTADOS)
+	if f5 != null and (pestana == Pestana.ESTADOS) != antes_estados:
+		f5.call("activar", pestana == Pestana.ESTADOS)          # F5 lleva la animación del personaje mientras está abierta
 	_actualizar_panel_modos()
 	_refrescar_hud()
 
@@ -586,7 +595,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var atendida: bool = true
 	# Con F2 abierta, sus teclas mandan (también las repeticiones: las flechas y Q/A se dejan pulsadas).
-	var pestana_ext: Variant = f2 if pestana == Pestana.CAST_POINT else (f4 if pestana == Pestana.VFX else null)
+	var pestana_ext: Variant = f2 if pestana == Pestana.CAST_POINT else (f4 if pestana == Pestana.VFX else (f5 if pestana == Pestana.ESTADOS else null))
 	if pestana_ext != null and pestana_ext.has_method("tecla") and not _es_comun(k):
 		if bool(pestana_ext.call("tecla", k)):
 			get_viewport().set_input_as_handled()
@@ -620,6 +629,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		poner_camara_lateral(not camara_lateral)
 	elif k.keycode == KEY_F4:
 		poner_pestana(Pestana.VFX)
+	elif k.keycode == KEY_F5:
+		poner_pestana(Pestana.ESTADOS)
 	elif k.keycode == KEY_F6:                                  # 19/10: antes era F4; F4 pasó a ser la pestaña de VFX
 		ui_compacta = not ui_compacta
 		_aplicar_ui()
@@ -686,7 +697,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 ## Teclas que valen en cualquier pestaña y que F2 NO puede quitarse: las de cambiar de pestaña, el tiempo y los interruptores del Numpad.
 func _es_comun(k: InputEventKey) -> bool:
-	return [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F6, KEY_KP_ADD, KEY_KP_SUBTRACT, KEY_KP_MULTIPLY, KEY_KP_DIVIDE].has(k.keycode)
+	return [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_KP_ADD, KEY_KP_SUBTRACT, KEY_KP_MULTIPLY, KEY_KP_DIVIDE].has(k.keycode)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -716,6 +727,18 @@ func _montar_f4() -> void:
 	f4.call("iniciar", self)
 
 
+## F5 (lab_estados_3d.gd): los estados de animación en vivo. Si el archivo no está, la pestaña enseña un aviso.
+func _montar_f5() -> void:
+	var ruta: String = "res://laboratorios/lab_estados_3d.gd"
+	if not ResourceLoader.exists(ruta):
+		return
+	var sc: GDScript = load(ruta) as GDScript
+	if sc == null:
+		return
+	f5 = sc.new()
+	f5.call("iniciar", self)
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 #  Panel de modos y HUD
 # ---------------------------------------------------------------------------------------------------------------------
@@ -739,8 +762,8 @@ func _montar_panel_modos() -> void:
 	caja.add_child(v)
 	var fila := HBoxContainer.new()
 	v.add_child(fila)
-	for i in range(4):
-		var nombre: String = ["F1 Receta", "F2 Cast point", "F3 Impacto", "F4 VFX"][i]
+	for i in range(5):
+		var nombre: String = ["F1 Receta", "F2 Cast point", "F3 Impacto", "F4 VFX", "F5 Estados"][i]
 		var b: Button = _boton(nombre, func() -> void: poner_pestana(i))
 		fila.add_child(b)
 		_panel_extra["pestana%d" % i] = b
@@ -764,7 +787,7 @@ func _montar_panel_modos() -> void:
 func _actualizar_panel_modos() -> void:
 	if _panel_extra.is_empty():
 		return
-	for i in range(4):
+	for i in range(5):
 		(_panel_extra["pestana%d" % i] as Button).disabled = (pestana == i)
 	(_panel_extra["modo"] as Button).text = "Modo: CONJURO COMPLETO (C)" if modo_completo else "Modo: rápido (C)"
 	(_panel_extra["tinta"] as Button).text = "Tinta: infinita (Num +)" if tinta_infinita else "Tinta: real (Num +)"
@@ -791,8 +814,8 @@ func _refrescar_hud() -> void:
 
 func texto_hud() -> String:
 	var lineas: PackedStringArray = []
-	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto · F4 VFX        MODO: %s        tinta %s · recarga %s · goblin %s" % [
-		["F1 RECETA", "F2 CAST POINT", "F3 IMPACTO", "F4 VFX"][pestana], "CONJURO COMPLETO" if modo_completo else "rápido",
+	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto · F4 VFX · F5 Estados        MODO: %s        tinta %s · recarga %s · goblin %s" % [
+		["F1 RECETA", "F2 CAST POINT", "F3 IMPACTO", "F4 VFX", "F5 ESTADOS"][pestana], "CONJURO COMPLETO" if modo_completo else "rápido",
 		"infinita" if tinta_infinita else "real", "real" if recarga_activa else "apagada", "ATACA" if atacar_goblin else "quieto"])
 	match pestana:
 		Pestana.RECETA:
@@ -804,6 +827,8 @@ func texto_hud() -> String:
 			lineas.append(_texto_impacto())
 		Pestana.VFX:
 			lineas.append(String(f4.call("texto")) if f4 != null and f4.has_method("texto") else "(F4: la matriz de VFX no está cargada)")
+		Pestana.ESTADOS:
+			lineas.append(String(f5.call("texto")) if f5 != null and f5.has_method("texto") else "(F5: los estados de animación no están cargados)")
 	lineas.append(_texto_conjuro())
 	return "\n".join(lineas)
 

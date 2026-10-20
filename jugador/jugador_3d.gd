@@ -357,29 +357,11 @@ func reaparecer() -> void:
 		lanz.avisar("Reapareces", Color(0.7, 1, 0.8))
 
 
-## Reproduce un clip y lo deja en su último fotograma (los clips de Pj3D son bucles). No toca el recurso de animación,
-## que comparten todas las copias del personaje: solo pausa SU AnimationPlayer.
+## Reproduce un clip UNA vez y lo deja en su último fotograma (muerte, golpe final). A1: lo hace el árbol de animación (estado sin bucle, que se queda
+## en el último fotograma); antes se dejaba el clip en bucle y un temporizador pausaba el AnimationPlayer justo antes de que acabara.
 static func una_vez(pj_: Pj3D, nombre: String) -> void:
 	pj_.animacion_actual = ""
-	pj_.jugar(nombre)
-	if pj_.animacion_actual != nombre:
-		return
-	var ap: AnimationPlayer = pj_.get("_ap")
-	if ap == null or not ap.is_inside_tree():
-		return
-	var clip: String = ap.current_animation
-	if clip == "" or not ap.has_animation(clip):
-		return
-	var largo: float = ap.get_animation(clip).length / maxf(ap.speed_scale, 0.1)
-	ap.get_tree().create_timer(maxf(largo - 0.05, 0.05), false).timeout.connect(
-		Jugador3D._congelar_si.bind(weakref(pj_), weakref(ap), nombre))
-
-
-static func _congelar_si(modelo: WeakRef, reproductor: WeakRef, nombre: String) -> void:
-	var m: Pj3D = modelo.get_ref() as Pj3D
-	var ap: AnimationPlayer = reproductor.get_ref() as AnimationPlayer
-	if m != null and ap != null and m.animacion_actual == nombre:
-		ap.pause()
+	pj_.jugar(nombre, true)
 
 
 ## =====================================================================================================
@@ -719,7 +701,13 @@ func _cambiar_nado(n: bool) -> void:
 	nado_cambiado.emit(n)
 
 
+## A1: true = otro (el laboratorio, pestaña F5) lleva la animación del personaje; el Jugador3D no pide idle/andar/correr/nadar cada fotograma. Solo el laboratorio lo pone.
+var animacion_externa: bool = false
+
+
 func _animar(mov: Vector3, correr: bool) -> void:
+	if animacion_externa:
+		return
 	if _t_roll > 0.0 or _t_beber > 0.0:
 		return                                         # el clip de voltereta / beber ya está sonando
 	if _t_lanzar > 0.0 or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar):

@@ -12,7 +12,7 @@ class MundoFalso extends Node3D:
 	func _letra(c: Vector2i) -> String:
 		return String(_mapa[c.y][c.x])
 
-const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "tierra": "earth", "hielo": "ice", "rayo": "lightning", "viento": "wind", "tiempo": "time"}
+const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "tierra": "earth", "hielo": "ice", "rayo": "lightning", "viento": "wind"}   # 20/10: sin «tiempo» (cinemática)
 const MONTAJES: Array = ["normal", "mojado", "elemental"]
 const CAMPOS: Array = ["dano", "mojado", "quemando", "congelado", "lento", "interrupcion", "stun", "empuje"]
 
@@ -109,7 +109,4 @@ const ANTES: Dictionary = {
 	"viento/normal": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
 	"viento/mojado": { "dano": 0.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
 	"viento/elemental": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 0.0 },
-	"tiempo/normal": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 2.9 },
-	"tiempo/mojado": { "dano": 0.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 2.9 },
-	"tiempo/elemental": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 0.9 },
 }
