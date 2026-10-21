@@ -2228,8 +2228,7 @@ func _avanzar_caducidades(delta: float) -> void:
 
 
 func _casilla_helada(c: Vector2i) -> bool:
-	var img: Image = mundo.get("_img_estado")
-	return img != null and en_mapa(c) and img.get_pixel(c.x, c.y).b >= 0.5
+	return en_mapa(c) and Terreno3D.helada(c)      # B2: el estado oficial; la maqueta ya no tiene imagen propia
 
 
 ## Cada impacto de hielo o de agua puede haber helado una casilla: si es así, se apunta cuándo se deshace.
@@ -2252,15 +2251,15 @@ func al_impactar(elemento: String, punto: Vector3) -> void:
 ## El hielo se deshace: el agua vuelve a ser agua (y se vuelve a bloquear para quien camina) y el suelo
 ## neutro se queda mojado. Quien estuviera encima cae al agua (Jugador3D lo ve solo).
 func _derretir(c: Vector2i, era_agua: bool) -> void:
-	mundo.call("_poner_canal", c, 2, 0.0)
 	if Terreno3D.agua_sim != null:
 		Terreno3D.agua_sim.helar_casilla(c, false)     # 11.4: el agua vuelve a correr
 	if era_agua:
 		Terreno3D.poner_helada(c, false)
 		bloquear_celda(c)
 	else:
-		mundo.call("_poner_canal", c, 1, 1.0)
-		ReaccionesSuelo3D.derretir(c)      # el estado del suelo hace lo mismo que la imagen: sin escarcha y mojada
+		ReaccionesSuelo3D.derretir(c)      # el estado del suelo: sin escarcha y mojada (el suelo lo dibuja leyendo ese estado)
+	if mundo != null and mundo.has_method("quitar_placa_hielo"):
+		mundo.call("quitar_placa_hielo", c)      # 11.16: sin hielo no hay placa (antes lo hacía el canal B de la imagen de la maqueta)
 	if fx != null:
 		fx.vapor(centro_de(c, Terreno3D.alto_agua if era_agua else Terreno3D.alto_suelo))
 	PlayLog.event("hielo_deshecho", {"celda": [c.x, c.y]})

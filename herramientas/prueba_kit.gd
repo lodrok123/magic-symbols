@@ -22,8 +22,6 @@ class MundoFalso extends Node3D:
 		return _letra(c) == "-"
 	func _liberar(c: Vector2i) -> void:
 		_bloqueadas.erase(c)
-	func _poner_canal(_c: Vector2i, _canal: int, _valor: float) -> void:
-		pass
 
 class RenderFalso extends Object:
 	var llamadas: Array = []

@@ -18,9 +18,9 @@ func _initialize() -> void:
 	print("celdas ", celdas)
 	m.marcar_segada(celdas[0], true)
 	m.marcar_segada(celdas[1], true)
-	m.call("_poner_canal", celdas[2], 0, 1.0)
+	m.call("_poner_quemado", celdas[2], 1.0)
 	m.marcar_segada(celdas[2], true)
-	m.call("_poner_canal", celdas[3], 0, 1.0)
+	m.call("_poner_quemado", celdas[3], 1.0)
 	m.marcar_segada(celdas[3], true)
 	for h in root.get_children():
 		pass

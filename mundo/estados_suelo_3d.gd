@@ -6,10 +6,10 @@
 ##
 ## B1 (PLAN_EOW, 21/10): además del HECHO guarda su INTENSIDAD (0..1: cuánto está quemada una casilla mientras arde) y su
 ## CADUCIDAD (segundos que le quedan; 0 = no caduca, que es lo de siempre), y da la imagen del estado: `textura()`, un píxel
-## por casilla con los mismos canales que la `_img_estado` de la maqueta (R quemada · G mojada · B helada · A segada). Así la
-## hierba, los VFX y las condiciones de puzle leen el MISMO dato. La maqueta todavía pinta su propia `_img_estado`: retirarla
-## es el encargo B2 al Pipeline (ver diario). El canal A de la maqueta es «pisado» (solo aspecto, caduca en 2 s); aquí es
-## «segada», que sí es un hecho: lo pisado no se guarda aquí porque avisaría a todo el juego a cada paso.
+## por casilla (R quemada · G mojada · B helada · A segada). Así la hierba, el suelo, el agua, los VFX y las condiciones de puzle
+## leen el MISMO dato. B2 (21/10): la maqueta ya NO tiene su propia imagen de estado (se retiró `_img_estado`); lo único que pinta
+## por su cuenta es lo «pisado» (hierba aplastada, solo aspecto, caduca en 2 s) en una textura suya de un canal (`_tex_pisado`):
+## aquí no se guarda porque avisaría a todo el juego a cada paso. El canal A de esta imagen es «segada», que sí es un hecho.
 ## Las reglas de paso entre estados (dos aguas hielan, el calor funde el hielo…) están en una TABLA (`TRANSICIONES`), no en `if`.
 class_name EstadosSuelo3D
 extends RefCounted
@@ -30,7 +30,7 @@ const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": 
 ## Se emite SOLO cuando el estado cambia de verdad (poner lo que ya hay no avisa a nadie).
 signal cambio(c: Vector2i, estado: String, si: bool)
 
-## Canal de la textura de cada estado (el orden de `_img_estado` de la maqueta).
+## Canal de la textura de cada estado.
 const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
 
 ## Transiciones por acción sobre UNA casilla. Se recorren en orden y gana la PRIMERA fila que encaja (como el `match` que
@@ -62,6 +62,11 @@ var _queda: Dictionary = {}           ## estado -> Dictionary(Vector2i -> float 
 ## y NO cambia cómo se anda ni a qué altura se pisa. Esta lista dice qué casillas con «helada» son del segundo tipo; la llena `aplicar`
 ## (que solo se usa en suelo) y la vacía quien deshiela o convierte la casilla en hielo de verdad (`Terreno3D.poner_helada`).
 var _escarcha: Dictionary = {}        ## Vector2i -> true
+## B2 (21/10): AVANCE VISUAL. No es un hecho (no avisa, no cuenta para los puzles): es cuánto se VE ya un estado en una casilla mientras llega
+## a serlo. Lo usa la maqueta para el círculo quemado que crece mientras la hierba arde (la casilla solo es `quemada` de verdad pasada la
+## mitad, `ReaccionesSuelo3D.sincronizar_hierba`) y para la hierba segada, que deja el suelo oscurecido. En la imagen manda sobre la
+## intensidad del hecho: la casilla se pinta con el avance mientras haya uno (> 0).
+var _avance: Dictionary = {}          ## estado -> Dictionary(Vector2i -> float 0..1)
 
 ## Lado de la textura (casillas). 40 = el `_lado` de la maqueta; `dimensionar` lo cambia (Mundo3D le pasa el del mapa).
 var lado: int = 40
@@ -121,6 +126,27 @@ func intensidad(c: Vector2i, estado: String) -> float:
 	if not tiene(c, estado):
 		return 0.0
 	return float((_intensidad.get(estado, {}) as Dictionary).get(c, 1.0))
+
+
+## Avance visual de un estado en la casilla (0..1; 0 = ninguno). Ver `_avance`: solo aspecto, no es el hecho.
+func avance(c: Vector2i, estado: String) -> float:
+	return float((_avance.get(estado, {}) as Dictionary).get(c, 0.0))
+
+
+## Pone el avance visual (0 lo quita). No avisa a nadie: no es un hecho. Solo para estados con canal en la imagen.
+func poner_avance(c: Vector2i, estado: String, valor: float) -> void:
+	if not CANAL.has(estado):
+		push_warning("EstadosSuelo3D: avance de un estado sin canal «%s»" % estado)
+		return
+	var d: Dictionary = _avance.get(estado, {})
+	var v: float = clampf(valor, 0.0, 1.0)
+	if v <= 0.0:
+		if d.erase(c):
+			_sucia = true
+	elif not is_equal_approx(float(d.get(c, -1.0)), v):
+		d[c] = v
+		_sucia = true
+	_avance[estado] = d
 
 
 ## Segundos que le quedan (0 = no caduca o no lo tiene).
@@ -203,6 +229,16 @@ func textura() -> ImageTexture:
 				var col: Color = _img.get_pixelv(p)
 				col[k] = intensidad(p, String(estado))
 				_img.set_pixelv(p, col)
+		for estado in _avance.keys():
+			var k2: int = int(CANAL[estado])
+			var av: Dictionary = _avance[estado]
+			for c in av.keys():
+				var p2: Vector2i = c
+				if p2.x < 0 or p2.y < 0 or p2.x >= lado or p2.y >= lado:
+					continue
+				var col2: Color = _img.get_pixelv(p2)
+				col2[k2] = float(av[c])
+				_img.set_pixelv(p2, col2)
 		if _tex == null:
 			_tex = ImageTexture.create_from_image(_img)
 		else:
@@ -232,4 +268,5 @@ func limpiar() -> void:
 	_intensidad.clear()
 	_queda.clear()
 	_escarcha.clear()
+	_avance.clear()
 	_sucia = true

@@ -684,12 +684,12 @@ func _sala_5() -> void:
 	# --- Sin ayuda del lab (el puente de estados se retiró el 21/10): el agua de verdad moja la imagen de la maqueta Y el dato de Terreno3D.estados que leen las reglas ---
 	var suelta: Vector2i = Vector2i(1, 13)
 	var salio0: bool = await _disparo_a("agua", suelta)
-	var img: Image = maqueta.get("_img_estado") as Image
+	var img: Image = Terreno3D.estados.imagen()      # B2: la imagen que dibuja el suelo es la del estado oficial (la maqueta ya no tiene otra)
 	var en_imagen: bool = img != null and img.get_pixelv(suelta).g >= 0.5
-	_ok("5.3b el agua de verdad moja la imagen de la maqueta Y Terreno3D.estados dice «mojada» (sin puente: casilla(x,y).mojada se cumple jugando)", salio0 and en_imagen and _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
+	_ok("5.3b el agua de verdad moja la imagen que dibuja el suelo Y Terreno3D.estados dice «mojada» (sin puente: casilla(x,y).mojada se cumple jugando)", salio0 and en_imagen and _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
 	_ok("5.3c la imagen y el estado coinciden: ni mojada ni helada de más", not _estado(suelta, "helada") and img.get_pixelv(suelta).b < 0.5)
 	await _disparo_a("fuego", suelta)
-	_ok("5.3d el fuego de verdad seca esa casilla: se borra de la imagen Y del estado a la vez", not _estado(suelta, "mojada") and img.get_pixelv(suelta).g < 0.5)
+	_ok("5.3d el fuego de verdad seca esa casilla: se borra de la imagen Y del estado a la vez", not _estado(suelta, "mojada") and Terreno3D.estados.imagen().get_pixelv(suelta).g < 0.5)
 	# --- PUERTA A: tres mojadas Y brasero apagado ---
 	await _pisar(Vector2i(1, 11))
 	_ok("5.4 placa A con 0 casillas mojadas y el brasero encendido: NO abre, la regla se ignora y el HUD dice por qué", not _abierta("puerta_a") and int(z.puzle("s5_abre_a")["ignoradas"]) == 1 and lab.texto_hud().contains("Puerta A NO abre"), lab.texto_hud())
@@ -1019,16 +1019,15 @@ func _sala_7_quemando() -> void:
 		(g as Combate3D).pj.position = (g as Combate3D).casa
 	# --- Sin ayuda del lab (puente retirado el 21/10): la hierba quemada de verdad llega a Terreno3D.estados y la condición del cofre la ve ---
 	jugador.set("vida", 100.0)
-	var img: Image = maqueta.get("_img_estado") as Image
 	colocar_jugador(Vector2i(19, 14))
 	var salio: bool = await _disparo_a("fuego", h)
 	var t_q: float = 0.0
-	while t_q < 14.0 and not (img != null and img.get_pixelv(h).r >= 0.5):
+	while t_q < 14.0 and not Terreno3D.estados.imagen().get_pixelv(h).r >= 0.5:
 		await avanzar_s(0.5)
 		t_q += 0.5
 	await avanzar_s(0.5)
-	var en_imagen: bool = img != null and img.get_pixelv(h).r >= 0.5
-	_ok("7Q.3 el fuego de verdad deja la hierba quemada en la imagen de la maqueta Y Terreno3D.estados dice «quemada» (sin puente: la condición del cofre la ve)", salio and en_imagen and _estado(h, "quemada"), "imagen %s (a los %.1f s) · estados %s" % [str(en_imagen), t_q, str(_estado(h, "quemada"))])
+	var en_imagen: bool = Terreno3D.estados.imagen().get_pixelv(h).r >= 0.5
+	_ok("7Q.3 el fuego de verdad deja la hierba quemada en la imagen que dibuja el suelo Y Terreno3D.estados dice «quemada» (sin puente: la condición del cofre la ve)", salio and en_imagen and _estado(h, "quemada"), "imagen %s (a los %.1f s) · estados %s" % [str(en_imagen), t_q, str(_estado(h, "quemada"))])
 	await avanzar(3)
 	_ok("7Q.5 esa casilla sigue «quemada» en Terreno3D.estados y el HUD lo dice", _estado(h, "quemada") and lab.texto_hud().contains("QUEMADA"), lab.texto_hud())
 	# --- Ahora se derrota a los tres: la sala se abre pero el cofre NO aparece ---

@@ -2,9 +2,9 @@
 ##
 ## Por qué existe: los impactos de agua, hielo y fuego sobre una casilla de SUELO solo pintaban la imagen de estado de la maqueta
 ## (`_img_estado`, `_impacto_en_suelo`); `Terreno3D.estados` no se enteraba, así que las condiciones de puzle
-## `casilla(x,y).mojada|helada|quemada` no se cumplían nunca jugando (diario 240). Aquí el Juego escribe el MISMO resultado en el estado, con
-## la tabla `EstadosSuelo3D.TRANSICIONES` (que es la regla de `_impacto_en_suelo` hecha datos). La maqueta sigue pintando lo suyo: las dos
-## cosas salen de la misma regla y no se contradicen (hay una prueba que lo mide: `prueba_suelo_impactos`).
+## `casilla(x,y).mojada|helada|quemada` no se cumplían nunca jugando (diario 240). Aquí el Juego escribe el estado, con
+## la tabla `EstadosSuelo3D.TRANSICIONES` (que es la regla de `_impacto_en_suelo` hecha datos). B2 (21/10): la imagen de la maqueta se retiró;
+## el suelo, la hierba y el agua se dibujan leyendo ESTE estado (`Mundo3D.textura_estados()`), así que ya no hay dos fuentes que pudieran contradecirse.
 ##
 ## UN SOLO PUNTO DE ENTRADA: `Mundo3D.aplicar_accion` reparte cada acción al agua (`ReaccionesAgua3D`) y a esto. Lo llama `Lanzador3D.al_impactar`,
 ## por donde pasa todo impacto de un hechizo (su casilla, un muro o un corro). Ningún hechizo escribe estados por su cuenta.
@@ -78,10 +78,11 @@ static func derretir(c: Vector2i) -> void:
 	e.poner(c, EstadosSuelo3D.MOJADA, true)
 
 
-## «quemada» de la hierba: sigue al autómata de la maqueta (`_hf`: fase por casilla) y a su imagen (`_img_estado`, canal R). Una casilla es
-## `quemada` mientras su hierba está ARDIENDO o hecha CENIZAS y el círculo quemado ya se ve (R ≥ UMBRAL_QUEMADA). Si el agua la apaga (la
-## maqueta la deja FINA otra vez y borra la marca), el estado se quita en el mismo fotograma. Barato: solo recorre las casillas de hierba que
-## no son finas, y nada si no hay ninguna. Lo llama `Lanzador3D._process`.
+## «quemada» de la hierba: sigue al autómata de la maqueta (`_hf`: fase por casilla) y a su AVANCE visual (`EstadosSuelo3D.avance`, que la
+## maqueta sube mientras arde: el círculo quemado que crece). Una casilla es `quemada` mientras su hierba está ARDIENDO o hecha CENIZAS y el
+## círculo quemado ya se ve (avance ≥ UMBRAL_QUEMADA). Si el agua la apaga (la maqueta la deja FINA otra vez y borra el avance), el estado
+## se quita en el mismo fotograma. Barato: solo recorre las casillas de hierba que no son finas, y nada si no hay ninguna. Lo llama
+## `Lanzador3D._process`.
 static func sincronizar_hierba(m: Object) -> void:
 	if m == null:
 		return
@@ -91,9 +92,6 @@ static func sincronizar_hierba(m: Object) -> void:
 	var fases: Dictionary = hf
 	if fases.is_empty() and _hierba_mia.is_empty():
 		return
-	var img: Image = m.get("_img_estado") as Image
-	if img == null:
-		return
 	var e: EstadosSuelo3D = Terreno3D.estados
 	var vistas: Dictionary = {}
 	for k in fases:
@@ -101,7 +99,7 @@ static func sincronizar_hierba(m: Object) -> void:
 		var f: int = int((fases[k] as Dictionary).get("fase", 0))
 		if f != FASE_ARDIENDO and f != FASE_CENIZAS:
 			continue
-		if c.x < 0 or c.y < 0 or c.x >= img.get_width() or c.y >= img.get_height() or img.get_pixelv(c).r < UMBRAL_QUEMADA:
+		if e.avance(c, EstadosSuelo3D.QUEMADA) < UMBRAL_QUEMADA:
 			continue
 		vistas[c] = true
 		if not _hierba_mia.has(c) and e.poner(c, EstadosSuelo3D.QUEMADA, true):

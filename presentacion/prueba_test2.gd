@@ -146,7 +146,6 @@ shader_type spatial;
 render_mode cull_disabled;
 uniform sampler2D mapa : filter_linear, repeat_disable;
 uniform sampler2D campo : filter_linear, repeat_enable;
-uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;   // R quemado · G mojado · B helado · A pisado
 uniform sampler2D t_hierba : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_camino : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D t_tierra : source_color, filter_linear_mipmap, repeat_enable;
@@ -172,15 +171,14 @@ uniform float invade_hierba = 1.0;                                      // matas
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
-// 21/10 (Juego/Pipeline, V4 de PLAN_EOW_VISUAL): ESTADO DEL SUELO. Dos texturas, una casilla por píxel:
+// 21/10 (Juego/Pipeline, V4 de PLAN_EOW_VISUAL + B2): ESTADO DEL SUELO, una casilla por píxel, de UNA sola fuente:
 //   estado_juego  = Mundo3D.textura_estados() = Terreno3D.estados (OFICIAL): R quemada · G mojada · B helada · A segada (cada canal con su intensidad)
-//   estado        = _img_estado de la maqueta: R quemado · G mojado · B helado · A PISADO (solo aspecto: lo pisado no es un hecho del juego)
-// Por canal manda el mayor de los dos (`respaldo_maqueta` = 0 deja solo el oficial). `estado_eow` = 0 devuelve el shader de antes (solo `estado`).
+// (Lo pisado de la hierba no es del suelo: lo lee solo el shader de la hierba, de `_tex_pisado`.) `estado_eow` = 0 devuelve el aspecto de antes de V4
+// (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo) con la misma textura.
 // Sin casillas: el canal filtrado (bilineal) sube de 0 a 1 en una casilla; en vez de cortarlo en 0,5 (el borde de la casilla) se le suma un ruido de
 // `estado_ruido` y se corta ahí con un filo de `estado_filo` de ancho: el contorno sale irregular y pintado, no un cuadrado.
 uniform sampler2D estado_juego : hint_default_black, filter_linear, repeat_disable;
 uniform float estado_eow = 1.0;
-uniform float respaldo_maqueta = 1.0;
 uniform float estado_ruido = 0.6;        // cuánto desplaza el ruido el contorno (en unidades del canal: 0,5 ≈ media casilla)
 uniform float estado_filo = 0.06;        // ancho del filo del contorno (en unidades del canal)
 // Quemado: albedo × carbón, un borde chamuscado hacia fuera y manchas de ceniza gris encima. Fuera de la hierba se pinta un poco menos.
@@ -304,15 +302,15 @@ void fragment() {
 		}
 	}
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
-	vec4 e = texture(estado, uvm);
+	vec4 e = texture(estado_juego, uvm);
 	float q;
 	float mo;
 	float he;
 	float espec = 0.0;
 	float rug = 1.0;
 	if (estado_eow > 0.5) {
-		// V4. El mayor de los dos por canal (R quemada · G mojada · B helada) y el contorno cortado por ruido, no por casilla.
-		vec3 est = max(texture(estado_juego, uvm).rgb, e.rgb * respaldo_maqueta);
+		// V4. El estado oficial por canal (R quemada · G mojada · B helada) y el contorno cortado por ruido, no por casilla.
+		vec3 est = e.rgb;
 		float nq = texture(campo, c / lado * 2.3).r * 0.55 + texture(campo, c / lado * 5.7 + vec2(0.37, 0.11)).g * 0.45;
 		float nm = texture(campo, c / lado * 2.9 + vec2(0.52, 0.23)).g * 0.55 + texture(campo, c / lado * 6.3 + vec2(0.11, 0.71)).r * 0.45;
 		float nh = texture(campo, c / lado * 3.3 + vec2(0.81, 0.47)).r * 0.55 + texture(campo, c / lado * 7.1 + vec2(0.29, 0.93)).g * 0.45;
@@ -603,13 +601,10 @@ const ESCALA_VFX_NUEVO: float = 0.6
 @export var bisel_suelo: bool = true
 ## 21/10 (V4 de PLAN_EOW_VISUAL): el ESTADO del suelo (mojado, quemado, helado) leído del estado del juego (`Mundo3D.textura_estados()`), con el borde
 ## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
-## (solo la imagen `_img_estado`, bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo).
+## (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo; B2: lee el mismo estado oficial, solo cambia cómo se pinta).
 @export var estado_suelo_eow: bool = true
 const BORDE_LABIO_ANCHO: float = 0.2         ## u: lo que se adentra el labio en la cara de arriba y baja por la pared (0,15–0,25)
 const BORDE_LABIO_SOBRESALE: float = 0.05    ## u: lo que asoma sobre la arista viva (la tira va por fuera del bloque y la tapa)
-## V4: 1 = el shader mezcla el estado del juego con la imagen de la maqueta (el mayor de los dos por canal: la maqueta sigue pintando la hierba
-## mojada por el reloj, el agua de la simulación y lo suyo que `Terreno3D.estados` no guarda); 0 = SOLO el estado del juego (lo oficial).
-const ESTADO_RESPALDO_MAQUETA: float = 1.0
 var _camara_dof: CameraAttributesPractical = null
 ## 21/10 (F1–F3 de PLAN_EOW, entrada 233): luz por zona, banda tilt-shift y sonda de reflejos. Los tres se prueban con teclas (AvPág / RePág / Inicio).
 ## `zona_luz` es una fila de `LuzZona3D.ZONAS` (sol y ambiente de dos colores). «bosque» es EXACTAMENTE la luz de antes: no cambia el aspecto de nada.
@@ -681,15 +676,17 @@ var _goblins: Array[Pj3D] = []
 var _jugador: Pj3D = null
 var _mat_agua: ShaderMaterial = null
 var _mat_suelo: ShaderMaterial = null
-var _img_estado: Image = null             ## 40×40 RGBA8: R quemado · G mojado · B helado · A pisado
-var _tex_estado: ImageTexture = null
-var _tex_estado_juego: ImageTexture = null    ## V4: `Mundo3D.textura_estados()` tal y como la tiene el shader del suelo
-var _estado_sucio: bool = false
+var _tex_estado_juego: ImageTexture = null    ## `Mundo3D.textura_estados()` (R quemada · G mojada · B helada · A segada): la ÚNICA imagen de estado; la leen suelo, agua y hierba
+## B2: lo PISADO (hierba aplastada por la chibi o el viento) no es un hecho del juego y no cabe en el estado oficial (avisaría a todo el juego a cada
+## paso): textura propia de un canal (R8, una casilla por píxel, 0..1) que solo lee el shader de la hierba. Se levanta sola en `T_PISADO` s.
+var _img_pisado: Image = null
+var _tex_pisado: ImageTexture = null
+var _pisado_sucio: bool = false
 var _mojada: Dictionary = {}             ## Vector2i -> ms hasta los que la hierba no prende (la acaba de mojar el agua)
 const T_MOJADA_MS: int = 8000
 const RADIO_APAGAR: int = 2               ## el agua apaga en un cuadrado de (2r+1) casillas, no solo en la del impacto
 var _hf: Dictionary = {}                  ## Vector2i -> {fase, t, v, frente, contagia, fx}: hierba que no es FINA
-var _pisadas: Dictionary = {}             ## casillas con A > 0 (se levantan solas)
+var _pisadas: Dictionary = {}             ## casillas con pisado > 0 (se levantan solas)
 var _mundo: Mundo3D = null                ## 13/10 (M2): el mundo vivo. «¿Está helada?» ya no se guarda aquí: `Terreno3D.helada(c)`
 var _fx: Vfx3D = null
 var _dir_hechizo: Vector3 = Vector3(0.0, 0.0, 1.0)
@@ -1074,16 +1071,12 @@ func _construir_suelo() -> void:
 	mat_suelo.set_shader_parameter("contraste", _contraste)
 	mat_suelo.set_shader_parameter("normal_suelo", _normal_suelo())
 	mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
-	_img_estado = Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
-	_img_estado.fill(Color(0.0, 0.0, 0.0, 0.0))
-	_tex_estado = ImageTexture.create_from_image(_img_estado)
-	mat_suelo.set_shader_parameter("estado", _tex_estado)
-	# V4: el estado oficial del juego (R quemada · G mojada · B helada · A segada) y los dos interruptores. La textura se vuelve a pedir cada fotograma
-	# (`_subir_estado_juego`): es siempre el mismo objeto salvo que el mapa cambie de tamaño.
+	_img_pisado = Image.create_empty(_lado, _lado, false, Image.FORMAT_R8)
+	_tex_pisado = ImageTexture.create_from_image(_img_pisado)
+	# El estado oficial del juego (R quemada · G mojada · B helada · A segada) y el interruptor. La textura se vuelve a pedir cada fotograma
+	# (`_subir_estado_juego`): es siempre el mismo objeto salvo que el mapa cambie de tamaño; entonces la reparte al suelo, al agua y a la hierba.
 	mat_suelo.set_shader_parameter("estado_eow", 1.0 if estado_suelo_eow else 0.0)
-	mat_suelo.set_shader_parameter("respaldo_maqueta", ESTADO_RESPALDO_MAQUETA)
 	_mat_suelo = mat_suelo
-	_subir_estado_juego()
 
 	var mat_lado := _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
 	var sha := Shader.new()
@@ -1092,7 +1085,6 @@ func _construir_suelo() -> void:
 	_mat_agua.shader = sha
 	_mat_agua.set_shader_parameter("orilla", ImageTexture.create_from_image(_mapa_orilla()))
 	_mat_agua.set_shader_parameter("campo", mat_suelo.get_shader_parameter("campo"))
-	_mat_agua.set_shader_parameter("estado", _tex_estado)
 	_mat_agua.set_shader_parameter("t_agua", _tex(SUELO + "water_arriba.png"))
 	_mat_agua.set_shader_parameter("normal_agua", _normal_agua())
 	_mat_agua.set_shader_parameter("celda", S)
@@ -1101,6 +1093,7 @@ func _construir_suelo() -> void:
 	_mat_agua.set_shader_parameter("brillo", OSCURECER_SUELO)
 	_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
 	_mat_agua.set_shader_parameter("estilizada", 1.0 if agua_estilizada else 0.0)
+	_subir_estado_juego()      # el suelo y el agua reciben el estado oficial (la hierba, cuando se siembra)
 
 	var tierra: Array[Transform3D] = []
 	var agua: Array[Transform3D] = []
@@ -1453,15 +1446,20 @@ func _construir_bisel_mapa() -> void:
 	_bordes_mapa.construir(bordes, S, _mat_lado_suelo, _mat_suelo)
 
 
-## V4: pide la imagen del estado del juego (`Mundo3D.textura_estados()`: se rehace sola si algo cambió y es el mismo objeto de siempre) y se la da al
-## shader del suelo. Solo vuelve a asignar el uniform si el objeto cambió (el mapa cambió de tamaño). Barato: sin cambios no sube nada.
+## V4/B2: pide la imagen del estado del juego (`Mundo3D.textura_estados()`: se rehace sola si algo cambió y es el mismo objeto de siempre) y se la da
+## al suelo (`estado_juego`), al agua (`estado`, B = helado) y a la hierba. Solo vuelve a asignar los uniforms si el objeto cambió (el mapa cambió de
+## tamaño, o es la primera vez). Barato: sin cambios no sube nada. La hierba, al sembrarse, la pide ella misma (`set_estado`).
 func _subir_estado_juego() -> void:
-	if _mat_suelo == null or not estado_suelo_eow:
+	if _mat_suelo == null:
 		return
 	var tex: ImageTexture = Mundo3D.textura_estados()
 	if tex != _tex_estado_juego:
 		_tex_estado_juego = tex
 		_mat_suelo.set_shader_parameter("estado_juego", tex)
+		if _mat_agua != null:
+			_mat_agua.set_shader_parameter("estado", tex)
+		if _hierba != null:
+			_hierba.set_estado_textura(tex)
 
 
 ## Cada 0,5 s mira si cambió `Terreno3D.alturas` (lo escribe el nivel —TerraFina3D— DESPUÉS de que la maqueta se monte, y la maqueta no pinta
@@ -1556,8 +1554,8 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 var _placas_hielo: Dictionary = {}
 
 
-## Quita la placa de una casilla (el hielo se soltó: ya es agua otra vez). La llama `_poner_canal` cuando el canal «helado» baja a 0, que es
-## lo que hace el Lanzador al soltarse el hielo de la simulación (20 s o fuego); también se puede llamar a mano.
+## Quita la placa de una casilla (el hielo se soltó: ya es agua otra vez). La llama `_al_cambiar_casilla` cuando la casilla deja de estar helada y el
+## Lanzador al soltarse el hielo de la simulación (20 s o fuego); también se puede llamar a mano.
 func quitar_placa_hielo(c: Vector2i) -> void:
 	if not _placas_hielo.has(c):
 		return
@@ -1683,7 +1681,7 @@ func _sembrar_hierba() -> void:
 	_hierba.brillo = OSCURECER_SUELO
 	add_child(_hierba)
 	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba)
-	_hierba.set_estado(_tex_estado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
+	_hierba.set_estado(Mundo3D.textura_estados(), _tex_pisado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
 	if not hierba_completa and _jugador != null:
 		_hierba.actualizar(_jugador.position, true)     # lo que se ve al empezar, de golpe; el resto al andar
 
@@ -3734,7 +3732,8 @@ func _cartel_plano(ruta: String, p: Vector3, tam: float, aditivo: bool, color: C
 
 ## --- Estado del suelo -------------------------------------------------------------------------------------
 ## Las reglas son las de docs/ESTADOS_SUELO.md (sacadas del 2D); si difieren de IMPLEMENTAR_TECNICAS.md Paso 1,
-## manda aquel. Canales de _img_estado: 0 R quemado · 1 G mojado · 2 B helado · 3 A pisado (solo aspecto).
+## manda aquel. B2: el estado (R quemado · G mojado · B helado) es `Terreno3D.estados`, el oficial; aquí solo se escribe el AVANCE visual del quemado
+## (`_poner_quemado`) y lo PISADO (solo aspecto, `_img_pisado`).
 
 func _celda_de(p: Vector3) -> Vector2i:
 	return Vector2i(int(floorf(p.x / S)), int(floorf(p.z / S)))
@@ -3768,32 +3767,29 @@ func _alto_hierba(x: float, z: float) -> float:
 	return ALTO_HIERBA_CORTA if _letra(Vector2i(floori(x / S), floori(z / S))) == "," else 1.0
 
 
-func _poner_canal(c: Vector2i, canal: int, valor: float) -> void:
+## Lo que se VE de «quemado» en una casilla (0..1): el círculo que crece mientras la hierba arde, y 1 en la ceniza y en la hierba segada (el suelo
+## queda oscurecido). Es el AVANCE visual del estado oficial (`EstadosSuelo3D.poner_avance`): no es un hecho, la casilla solo pasa a `quemada` para
+## los puzles pasada la mitad (`ReaccionesSuelo3D.sincronizar_hierba`). Mojado y helado no pasan por aquí: son hechos y los escribe el estado.
+func _poner_quemado(c: Vector2i, valor: float) -> void:
 	if not _en_mapa(c):
 		return
-	var p: Color = _img_estado.get_pixel(c.x, c.y)
-	p[canal] = clampf(valor, 0.0, 1.0)
-	_img_estado.set_pixel(c.x, c.y, p)
-	_estado_sucio = true
-	if canal == 2 and valor < 0.5:
-		quitar_placa_hielo(c)            # 11.16: sin hielo no hay placa (antes se quedaba para siempre aunque el agua volviera)
+	Terreno3D.estados.poner_avance(c, EstadosSuelo3D.QUEMADA, valor)
 
 
-## Suma `cantidad` al canal de la casilla y las de alrededor (radio en casillas), saturando a 1.
+## Suma `cantidad` a lo pisado de la casilla y las de alrededor (radio en casillas), saturando a 1.
 ## Las esquinas del cuadrado reciben la mitad: la marca queda redondeada.
-func marcar_estado(c: Vector2i, canal: int, cantidad: float, radio: int = 0) -> void:
+func marcar_pisado(c: Vector2i, cantidad: float, radio: int = 0) -> void:
 	for y in range(c.y - radio, c.y + radio + 1):
 		for x in range(c.x - radio, c.x + radio + 1):
 			var q := Vector2i(x, y)
-			if not _en_mapa(q):
+			if not _en_mapa(q) or x < 0 or y < 0 or x >= _img_pisado.get_width() or y >= _img_pisado.get_height():
 				continue
 			var k: float = cantidad * (0.5 if absi(x - c.x) + absi(y - c.y) > radio else 1.0)
-			var p: Color = _img_estado.get_pixel(x, y)
-			p[canal] = clampf(p[canal] + k, 0.0, 1.0)
-			_img_estado.set_pixel(x, y, p)
-			if canal == 3 and p[canal] > 0.0:
+			var v: float = clampf(_img_pisado.get_pixel(x, y).r + k, 0.0, 1.0)
+			_img_pisado.set_pixel(x, y, Color(v, 0.0, 0.0, 1.0))
+			if v > 0.0:
 				_pisadas[q] = true
-	_estado_sucio = true
+	_pisado_sucio = true
 
 
 ## Qué deja cada hechizo en el suelo, según el tipo de casilla. Un impacto toca UNA casilla (radio 0 como en el 2D).
@@ -3813,42 +3809,35 @@ func _al_impactar(elemento: String, punto: Vector3) -> void:
 	elif not _bloqueadas.has(c):
 		_impacto_en_suelo(elemento, c)
 	if elemento == "viento":
-		marcar_estado(c, 3, 1.0, 2)      # tumba la hierba en un radio grande: solo aspecto (§5)
+		marcar_pisado(c, 1.0, 2)      # tumba la hierba en un radio grande: solo aspecto (§5)
 
 
 ## Suelo neutro (§1.1, §4.1): SECO → MOJADO → HELADO. El fuego deshace un escalón y no quema.
+## B2: la regla es `EstadosSuelo3D.TRANSICIONES` y quien la aplica es `Mundo3D.aplicar_accion` desde `Lanzador3D.al_impactar` (el juego). La maqueta
+## suelta (sin Lanzador: Test 2, capturas) la aplica ella misma aquí, UNA vez, para que el suelo se moje igualmente. En los dos casos el suelo solo
+## se DIBUJA leyendo el estado; aquí lo único propio es el vapor del charco que se seca (se decide con el estado de ANTES del impacto).
 func _impacto_en_suelo(elemento: String, c: Vector2i) -> void:
-	var p: Color = _img_estado.get_pixel(c.x, c.y)
-	match elemento:
-		"agua":
-			if p.b >= 0.5:
-				return
-			if p.g >= 0.5:              # dos aguas hielan
-				_poner_canal(c, 1, 0.0)
-				_poner_canal(c, 2, 1.0)
-			else:
-				_poner_canal(c, 1, 1.0)
-		"hielo":
-			_poner_canal(c, 1, 0.0)
-			_poner_canal(c, 2, 1.0)
-		"fuego":
-			if p.b >= 0.5:              # el hielo pasa a charco
-				_poner_canal(c, 2, 0.0)
-				_poner_canal(c, 1, 1.0)
-			elif p.g >= 0.5:            # el charco se seca con vapor
-				_poner_canal(c, 1, 0.0)
-				_fx.vapor(_centro_celda(c, ALTO))
-		# rayo (descarga: lo hace el VFX), tierra y viento: no cambian canales del suelo.
+	var accion: String = String(ReaccionesSuelo3D.ACCION_DE.get(elemento, ""))
+	if accion == "":
+		return                    # rayo (descarga: lo hace el VFX), tierra y viento: no cambian canales del suelo.
+	var e: EstadosSuelo3D = Terreno3D.estados
+	if elemento == "fuego" and e.tiene(c, EstadosSuelo3D.MOJADA) and not e.tiene(c, EstadosSuelo3D.HELADA):
+		_fx.vapor(_centro_celda(c, ALTO))      # el charco se seca con vapor (el hielo, en cambio, pasa a charco sin vapor)
+	if not _juego_aplica_estado():
+		e.aplicar(c, accion)
+
+
+## ¿Hay un Lanzador que aplica los estados del suelo (`Mundo3D.aplicar_accion`) en cada impacto? Si no, la maqueta lo hace ella (ver `_impacto_en_suelo`).
+func _juego_aplica_estado() -> bool:
+	return Lanzador3D.mundo_s == self or get_node_or_null("Lanzador3D") != null
 
 
 ## Agua (§1.5): el agua helada se puede pisar. El hielo dura (20 s con la simulación) y el fuego lo funde; la placa se quita al soltarse.
 func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
-	var p: Color = _img_estado.get_pixel(c.x, c.y)
 	match elemento:
 		"hielo":
-			if p.b < 0.5:
-				_poner_canal(c, 2, 1.0)
-				Terreno3D.poner_helada(c, true)      # el hecho vive en Mundo3D.estados; el canal B de _img_estado sigue por casilla_cambio
+			if not Terreno3D.helada(c):
+				Terreno3D.poner_helada(c, true)      # el hecho vive en Mundo3D.estados; el agua y el suelo lo dibujan leyéndolo
 				_liberar(c)
 				if not agua_fisica:
 					_poner_placa_hielo(c)      # con agua física el hielo lo dibuja AguaRender3D desde la simulación (11.14)
@@ -3857,28 +3846,28 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 
 
 ## El Mundo3D avisa de que algo cambió en una casilla. Aquí solo se redibuja: el dato ya lo tiene el mundo.
-## «hielo»: el canal B (helado) de `_img_estado` sigue al estado, lo hiele o derrita quien sea (esta maqueta o el Juego).
-## Es idempotente: poner el canal al valor que ya tiene no cambia nada (y al soltar el hielo quita la placa, como antes).
+## «hielo»: el suelo y el agua ya dibujan el hielo leyendo el estado; aquí solo se quita la placa cuando la casilla deja de estar helada (11.16: sin
+## hielo no hay placa; antes se quedaba para siempre aunque el agua volviera), lo deshiele quien sea (esta maqueta o el Juego). Idempotente.
 ## 14.2 · P3 (rastrojo). El Juego emite `EstadosSuelo3D.cambio(c, "segada", si)`; la maqueta dibuja el rastrojo y deja la hierba de la casilla
-## encogida (canal R, el mismo de «quemado»). `quemada` = que antes de segarse ardió (mata carbonizada en vez de cortada); si no se dice, se
-## mira el canal R de la casilla. Pública para que el Juego la pueda llamar directamente si prefiere no pasar por el estado.
+## encogida (avance de «quemado» a 1, el mismo canal R). `quemada` = que antes de segarse ardió (mata carbonizada en vez de cortada); si no se dice, se
+## mira el quemado de la casilla. Pública para que el Juego la pueda llamar directamente si prefiere no pasar por el estado.
 func marcar_segada(c: Vector2i, si: bool, quemada: bool = false) -> void:
 	if _rastrojo == null or not _en_mapa(c):
 		return
 	if si:
-		var ardio: bool = quemada or (_img_estado != null and _img_estado.get_pixel(c.x, c.y).r >= 0.5)
+		var e: EstadosSuelo3D = Terreno3D.estados
+		var ardio: bool = quemada or e.avance(c, EstadosSuelo3D.QUEMADA) >= 0.5 or e.tiene(c, EstadosSuelo3D.QUEMADA)
 		var y: float = ALTO
 		if Terreno3D.datos_propios:
 			y = Terreno3D.alto_suelo + float(Terreno3D.altura_en(c)) * Terreno3D.ALTO_NIVEL
 		_rastrojo.poner(c, y, Rastrojo3D.TIPO_QUEMADO if ardio else Rastrojo3D.TIPO_CORTADO)
-		if _img_estado != null:
-			_poner_canal(c, 0, 1.0)
+		_poner_quemado(c, 1.0)
 		if _hierba != null:
 			_hierba.set_crecida(c, 0.0)
 	else:
 		_rastrojo.quitar(c)
-		if _img_estado != null and not _hf.has(c):
-			_poner_canal(c, 0, 0.0)
+		if not _hf.has(c):
+			_poner_quemado(c, 0.0)
 
 
 func _al_cambiar_estado_suelo(c: Vector2i, estado: String, si: bool) -> void:
@@ -3887,8 +3876,8 @@ func _al_cambiar_estado_suelo(c: Vector2i, estado: String, si: bool) -> void:
 
 
 func _al_cambiar_casilla(c: Vector2i, que: String) -> void:
-	if que == "hielo" and _img_estado != null and _en_mapa(c):
-		_poner_canal(c, 2, 1.0 if Terreno3D.helada(c) else 0.0)
+	if que == "hielo" and _en_mapa(c) and not Terreno3D.helada(c):
+		quitar_placa_hielo(c)
 
 
 ## M3 (13/10): el mundo avisa de DÓNDE y de QUÉ pasó con `impacto`; aquí se decide cómo se pinta. Hoy el Lanzador pinta el vapor y
@@ -3987,7 +3976,7 @@ func _apagar_area(c: Vector2i, punto: Vector3) -> void:
 func _apagar(c: Vector2i) -> void:
 	_quitar_fx(c)
 	_hf.erase(c)
-	_poner_canal(c, 0, 1.0 if _rastrojo != null and _rastrojo.hay(c) else 0.0)       # una casilla segada no vuelve a crecer
+	_poner_quemado(c, 1.0 if _rastrojo != null and _rastrojo.hay(c) else 0.0)       # una casilla segada no vuelve a crecer
 	if _hierba != null:
 		_hierba.set_crecida(c, 0.0)
 
@@ -4029,7 +4018,7 @@ func _avanzar_estado(dt: float) -> void:
 		if f == Fase.PRENDIENDO and float(d["t"]) >= T_PRENDIENDO:
 			promover.append(c)
 		elif f == Fase.ARDIENDO:
-			_poner_canal(c, 0, float(d["t"]) / T_ARDIENDO)        # el círculo quemado crece mientras arde
+			_poner_quemado(c, float(d["t"]) / T_ARDIENDO)        # el círculo quemado crece mientras arde
 			if float(d["t"]) >= T_ARDIENDO:
 				ceniza.append(c)
 		# Contagio por frente: un círculo que crece desde la casilla; prende la primera hierba que toque y se acaba.
@@ -4068,7 +4057,7 @@ func _avanzar_estado(dt: float) -> void:
 		(_hf[c] as Dictionary)["t"] = 0.0
 	for c in ceniza:
 		_quitar_fx(c)
-		_poner_canal(c, 0, 1.0)
+		_poner_quemado(c, 1.0)
 		var d2: Dictionary = _hf[c]
 		d2["fase"] = Fase.CENIZAS
 	for o in objetos_a_prender:
@@ -4078,14 +4067,13 @@ func _avanzar_estado(dt: float) -> void:
 		var fq2: int = int((_hf[q] as Dictionary)["fase"]) if _hf.has(q) else 0
 		if fq2 == 0 or fq2 == Fase.CRECIDA:
 			_poner_fase(q, Fase.PRENDIENDO)
-	# Lo pisado se levanta solo (A baja en T_PISADO s). Mojado y helado no caducan (§4.4.5).
+	# Lo pisado se levanta solo (baja en T_PISADO s). Mojado y helado no caducan (§4.4.5).
 	var libres: Array[Vector2i] = []
 	for c in _pisadas:
-		var p: Color = _img_estado.get_pixel(c.x, c.y)
-		p.a = maxf(p.a - dt / T_PISADO, 0.0)
-		_img_estado.set_pixel(c.x, c.y, p)
-		_estado_sucio = true
-		if p.a <= 0.0:
+		var v: float = maxf(_img_pisado.get_pixel(c.x, c.y).r - dt / T_PISADO, 0.0)
+		_img_pisado.set_pixel(c.x, c.y, Color(v, 0.0, 0.0, 1.0))
+		_pisado_sucio = true
+		if v <= 0.0:
 			libres.append(c)
 	for c in libres:
 		_pisadas.erase(c)
@@ -4255,7 +4243,10 @@ func set_modo_hierba(m: int) -> void:
 func impactar_en(lista: Array) -> void:
 	_precalentando = false
 	for e in lista:
-		_al_impactar(String(e[0]), _centro_celda(e[1] as Vector2i, ALTO))
+		var punto: Vector3 = _centro_celda(e[1] as Vector2i, ALTO)
+		_al_impactar(String(e[0]), punto)
+		if _juego_aplica_estado():      # con Lanzador, el estado lo escribe `Lanzador3D.al_impactar`, que aquí no pasa: se hace como él
+			Mundo3D.aplicar_accion(AccionElemental.nueva(String(e[0]), punto))
 
 
 ## Escribe en la consola el estado de cada casilla viva (QA): fase de la hierba y canales del suelo.
@@ -4263,9 +4254,10 @@ func imprimir_estado() -> void:
 	for c in _hf:
 		var d: Dictionary = _hf[c]
 		print("CAPTURA estado ", c, " fase=", Fase.find_key(int(d["fase"])), " t=", snappedf(float(d["t"]), 0.1))
-	for y in range(_lado):
-		for x in range(_lado):
-			var p: Color = _img_estado.get_pixel(x, y)
+	var img: Image = Terreno3D.estados.imagen()
+	for y in range(mini(_lado, img.get_height())):
+		for x in range(mini(_lado, img.get_width())):
+			var p: Color = img.get_pixel(x, y)
 			if p.r > 0.0 or p.g > 0.0 or p.b > 0.0:
 				print("CAPTURA canales ", Vector2i(x, y), " R=", snappedf(p.r, 0.01), " G=", p.g, " B=", p.b)
 
@@ -4326,9 +4318,9 @@ func _process(delta: float) -> void:
 		var t0: int = Time.get_ticks_usec()
 		_avanzar_estado(delta)
 		_ms_estado = lerpf(_ms_estado, float(Time.get_ticks_usec() - t0) / 1000.0, 0.1)
-	if _estado_sucio:
-		_tex_estado.update(_img_estado)      # update() reutiliza la textura en GPU; create_from_image la recrearía
-		_estado_sucio = false
+	if _pisado_sucio:
+		_tex_pisado.update(_img_pisado)      # update() reutiliza la textura en GPU; create_from_image la recrearía
+		_pisado_sucio = false
 	_subir_estado_juego()
 	if _hierba != null:
 		_hierba.subir_crecida()
@@ -4385,7 +4377,7 @@ func _mover(delta: float) -> void:
 	var c := Vector2i(int(floorf(destino.x / S)), int(floorf(destino.z / S)))
 	destino.y = ALTO_AGUA + 0.12 if (_letra(c) == "b" or Terreno3D.helada(c)) else ALTO
 	_jugador.position = destino
-	marcar_estado(c, 3, 0.35)      # pisa la hierba de su casilla (solo aspecto)
+	marcar_pisado(c, 0.35)      # pisa la hierba de su casilla (solo aspecto)
 	_jugador.mirar(mov, delta)
 	_jugador.jugar("run" if correr else "walk")
 

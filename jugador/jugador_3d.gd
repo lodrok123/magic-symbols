@@ -452,8 +452,8 @@ func _process(delta: float) -> void:
 	if mov != Vector3.ZERO:
 		_mirada = mov
 		pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
-		if mundo.has_method("marcar_estado") and not nadando:
-			mundo.call("marcar_estado", Terreno3D.celda_de(position), 3, 0.35)
+		if mundo.has_method("marcar_pisado") and not nadando:
+			mundo.call("marcar_pisado", Terreno3D.celda_de(position), 0.35)
 
 	_vertical(delta, salto)
 	_animar(mov, correr)

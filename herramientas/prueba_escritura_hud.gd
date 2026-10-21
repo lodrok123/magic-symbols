@@ -249,7 +249,6 @@ func _maqueta() -> void:
 		await process_frame
 	var ras: Rastrojo3D = m.get("_rastrojo")
 	_ok("S1 el Bosque monta el nodo de rastrojo", ras != null)
-	var img: Image = m.get("_img_estado")
 	var c := Vector2i(-1, -1)
 	var lado: int = int(m.get("_lado"))
 	for y in lado:
@@ -262,9 +261,9 @@ func _maqueta() -> void:
 		return
 	m.marcar_segada(c, true)
 	ras.reconstruir_ahora()
-	_ok("S3 marcar_segada dibuja el rastrojo (cortado) y encoge la hierba (canal R = 1)", ras.hay(c) and ras.tipo_de(c) == "cortado" and img.get_pixel(c.x, c.y).r >= 0.99)
+	_ok("S3 marcar_segada dibuja el rastrojo (cortado) y encoge la hierba (canal R = 1 de la imagen del estado oficial)", ras.hay(c) and ras.tipo_de(c) == "cortado" and Terreno3D.estados.imagen().get_pixel(c.x, c.y).r >= 0.99)
 	m.call("_apagar", c)
-	_ok("S4 apagar una casilla segada no la deja crecer otra vez", img.get_pixel(c.x, c.y).r >= 0.99)
+	_ok("S4 apagar una casilla segada no la deja crecer otra vez", Terreno3D.estados.imagen().get_pixel(c.x, c.y).r >= 0.99)
 	m.marcar_segada(c, false)
 	_ok("S5 quitar la marca quita el rastrojo", not ras.hay(c))
 	# La vía normal: el Juego pone el estado y la maqueta lo ve por la señal.
@@ -275,7 +274,7 @@ func _maqueta() -> void:
 	# Una casilla que ardió antes de segarse deja carbón.
 	var c2: Vector2i = c + Vector2i(1, 0)
 	if m._en_mapa(c2):
-		m.call("_poner_canal", c2, 0, 1.0)
+		m.call("_poner_quemado", c2, 1.0)
 		m.marcar_segada(c2, true)
 		_ok("S8 si la casilla ardió, el rastrojo es quemado", ras.tipo_de(c2) == "quemado")
 	m.queue_free()

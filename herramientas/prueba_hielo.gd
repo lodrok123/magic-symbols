@@ -12,7 +12,6 @@ class MundoFalso extends Node3D:
 	var _bloqueadas: Dictionary = {}
 	var _mapa: PackedStringArray = []
 	var liberadas: Array = []
-	var canales: Array = []
 	func _letra(c: Vector2i) -> String:
 		return String(_mapa[c.y][c.x])
 	func _es_canal(c: Vector2i) -> bool:
@@ -20,8 +19,6 @@ class MundoFalso extends Node3D:
 	func _liberar(c: Vector2i) -> void:
 		liberadas.append(c)
 		_bloqueadas.erase(c)
-	func _poner_canal(c: Vector2i, canal: int, valor: float) -> void:
-		canales.append([c, canal, valor])
 
 class GoblinFalso extends Node3D:
 	var congelado: float = 0.0

@@ -73,7 +73,7 @@ func _initialize() -> void:
 	e.aplicar(t, "agua")
 	_ok("5 dos aguas: tres avisos (mojada, -mojada, helada), sin repetidos", visto == [[t, "mojada", true], [t, "mojada", false], [t, "helada", true]], str(visto))
 
-	# 6. Textura: el píxel correcto en la casilla correcta, canales de _img_estado.
+	# 6. Textura: el píxel correcto en la casilla correcta, canales R quemada · G mojada · B helada · A segada.
 	e.limpiar()
 	e.dimensionar(16)
 	e.poner(Vector2i(2, 3), "quemada", true, 0.5)

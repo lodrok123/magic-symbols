@@ -8,8 +8,8 @@ extends "res://herramientas/escenario_base.gd"
 ##   2  interruptores del labio: `labio_activo`, sin material, pared demasiado baja, `solo_labio` (ni falda ni piedras)
 ##   3  la maqueta del laboratorio: labio de mapa, de orillas y de escalones; sin colisiones nuevas; `Terreno3D` intacto
 ##   4  el shader recibe `Mundo3D.textura_estados()` (el mismo objeto) y los interruptores de V4
-##   5  la imagen de la maqueta y el estado del juego dicen lo mismo (R, G, B) tras impactos reales, y por qué difieren donde difieren
-##   6  apagado: `bisel_suelo = false` no deja labio y `estado_suelo_eow = false` apaga el shader nuevo
+##   5  tras impactos reales, el estado oficial (y su píxel R, G, B) dice lo que se dibuja; el avance visual del quemado no es un hecho (B2: sin imagen propia en la maqueta)
+##   6  apagado: `bisel_suelo = false` no deja labio y `estado_suelo_eow = false` devuelve el aspecto de antes de V4 (misma textura)
 
 const RUTA_LAB: String = "res://laboratorios/LabPlaytestEoW.tscn"
 const LADO: float = 2.3
@@ -165,8 +165,13 @@ func _shader_y_estado() -> void:
 		return
 	var tex: Variant = mat.get_shader_parameter("estado_juego")
 	_ok("4.2 el shader lee Mundo3D.textura_estados() (el mismo objeto, no una copia)", tex != null and tex == Mundo3D.textura_estados())
-	_ok("4.3 estado_eow = 1 y respaldo de la maqueta como dice la constante", float(mat.get_shader_parameter("estado_eow")) == 1.0 and is_equal_approx(float(mat.get_shader_parameter("respaldo_maqueta")), float(maqueta.get("ESTADO_RESPALDO_MAQUETA"))))
-	_ok("4.4 el canal «pisado» sigue siendo de la maqueta (el uniform `estado` es su _tex_estado)", mat.get_shader_parameter("estado") == maqueta.get("_tex_estado"))
+	_ok("4.3 estado_eow = 1 y el shader ya no tiene respaldo de la maqueta (B2)", float(mat.get_shader_parameter("estado_eow")) == 1.0 and not (mat.shader as Shader).code.contains("respaldo_maqueta") and maqueta.get("_img_estado") == null)
+	var agua: ShaderMaterial = maqueta.get("_mat_agua") as ShaderMaterial
+	_ok("4.4 el agua lee el MISMO estado oficial (uniform `estado`)", agua != null and agua.get_shader_parameter("estado") == Mundo3D.textura_estados())
+	var hierba: Node = maqueta.get("_hierba") as Node
+	var mh: ShaderMaterial = hierba.get("_mat_matojo") as ShaderMaterial if hierba != null else null
+	_ok("4.4b la hierba lee el estado oficial y, aparte, la textura de lo pisado de la maqueta (`_tex_pisado`, R8)",
+		mh != null and mh.get_shader_parameter("estado") == Mundo3D.textura_estados() and mh.get_shader_parameter("pisado") == maqueta.get("_tex_pisado") and (maqueta.get("_img_pisado") as Image).get_format() == Image.FORMAT_R8)
 	var sh: String = (mat.shader as Shader).code
 	_ok("4.5 los parámetros de V4 existen en el shader con nombre (carbón, ceniza, mojado, fresnel del hielo)",
 		sh.contains("uniform vec3 carbon_mult") and sh.contains("uniform float ceniza_gris") and sh.contains("uniform float rug_mojado") and sh.contains("uniform float espec_mojado")
@@ -175,11 +180,10 @@ func _shader_y_estado() -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-#  5 · la imagen de la maqueta y el estado del juego dicen lo mismo
+#  5 · el estado oficial es lo que se dibuja (B2: ya no hay imagen propia de la maqueta que comparar)
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _estado_igual() -> void:
-	var img: Image = maqueta.get("_img_estado") as Image
 	# Impactos de verdad en suelo desnudo (sala 5), hierba y agua; el mismo camino que un hechizo de área.
 	var suelo: Vector2i = Vector2i(1, 13)
 	var hierba: Vector2i = LabPlaytestEoW3D.SALA5_FUEGO
@@ -190,32 +194,16 @@ func _estado_igual() -> void:
 	lanzador.marcar_celda("fuego", hierba)
 	await avanzar_s(8.0)
 	var est: Image = Terreno3D.estados.imagen()
-	var n: int = Terreno3D.lado_del_mapa()
-	var difieren: Dictionary = {"R": [], "G": [], "B": []}
-	var vistas: int = 0
-	for y in range(n):
-		for x in range(n):
-			var c := Vector2i(x, y)
-			var a: Color = img.get_pixelv(c)
-			var e: Color = est.get_pixelv(c)
-			for k in range(3):
-				var canal: String = ["R", "G", "B"][k]
-				if (a[k] >= 0.5) != (e[k] >= 0.5):
-					(difieren[canal] as Array).append(c)
-			if e.r >= 0.5 or e.g >= 0.5 or e.b >= 0.5 or a.r >= 0.5 or a.g >= 0.5 or a.b >= 0.5:
-				vistas += 1
-	_ok("5.1 hubo casillas con estado que comparar (%d)" % vistas, vistas >= 3)
-	# El hielo y el mojado de SUELO coinciden exactos (prueba_suelo_impactos lo mide casilla a casilla con todas las combinaciones).
-	_ok("5.2 helada: la imagen y el estado dicen lo mismo en todo el mapa", (difieren["B"] as Array).is_empty(), str((difieren["B"] as Array).slice(0, 6)))
-	_ok("5.3 quemada: la imagen y el estado dicen lo mismo en todo el mapa", (difieren["R"] as Array).is_empty(), str((difieren["R"] as Array).slice(0, 6)))
-	# El mojado puede diferir A PROPÓSITO: la hierba mojada por un agua (reloj de la maqueta) no se escribe en el estado (así que la imagen no la tiene tampoco),
-	# pero el agua de simulación mojada va por otro uniform. Se informa, no se exige igualdad.
-	if (difieren["G"] as Array).is_empty():
-		_ok("5.4 mojada: la imagen y el estado dicen lo mismo en todo el mapa", true)
-	else:
-		_aviso("5.4 mojada: %d casillas donde la imagen y el estado difieren" % (difieren["G"] as Array).size(), str((difieren["G"] as Array).slice(0, 8)))
-	# Por eso el shader toma el mayor de los dos canales: donde difieren, no se pierde lo que solo uno sabe.
-	_ok("5.5 el shader mezcla con el MAYOR de los dos (respaldo de la maqueta encendido)", float(maqueta.get("ESTADO_RESPALDO_MAQUETA")) == 1.0)
+	var e: EstadosSuelo3D = Terreno3D.estados
+	_ok("5.1 mojada en el suelo del agua: el estado Y su píxel G", e.tiene(suelo, "mojada") and est.get_pixelv(suelo).g >= 0.5)
+	_ok("5.2 helada (hielo, y dos aguas) en el estado Y su píxel B", e.tiene(Vector2i(2, 14), "helada") and e.tiene(Vector2i(3, 13), "helada") and est.get_pixelv(Vector2i(2, 14)).b >= 0.5 and est.get_pixelv(Vector2i(3, 13)).b >= 0.5)
+	_ok("5.3 quemada: la hierba que arde acaba en el estado Y en su píxel R", e.tiene(hierba, "quemada") and est.get_pixelv(hierba).r >= 0.5, str(est.get_pixelv(hierba)))
+	# El avance del círculo quemado (visual) no es un hecho: sube la imagen sin tocar `tiene`.
+	var cv := Vector2i(7, 7)
+	e.poner_avance(cv, "quemada", 0.3)
+	_ok("5.4 el avance visual sube el píxel R pero la casilla NO es quemada para los puzles",absf(e.imagen().get_pixelv(cv).r - 0.3) < 0.01 and not e.tiene(cv, "quemada"))
+	e.poner_avance(cv, "quemada", 0.0)
+	_ok("5.5 y al quitarlo el píxel vuelve a 0", e.imagen().get_pixelv(cv).r == 0.0)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -237,7 +225,7 @@ func _apagado() -> void:
 	var agua_b: BordePiedras3D = m.get("_bordes") as BordePiedras3D
 	var terraza_b: BordePiedras3D = m.get("_bordes_terraza") as BordePiedras3D
 	_ok("6.2 ni de orillas ni de escalones (queda falda y piedras de antes)", agua_b != null and agua_b.n_triangulos_labio() == 0 and agua_b.n_bordes() > 0 and (terraza_b == null or terraza_b.n_triangulos_labio() == 0))
-	_ok("6.3 con estado_suelo_eow = false el uniform vale 0 (shader de antes) y no se sube el estado del juego", mat != null and float(mat.get_shader_parameter("estado_eow")) == 0.0 and mat.get_shader_parameter("estado_juego") == null)
+	_ok("6.3 con estado_suelo_eow = false el uniform vale 0 (aspecto de antes de V4) y el estado oficial se sube igual (es la única fuente)", mat != null and float(mat.get_shader_parameter("estado_eow")) == 0.0 and mat.get_shader_parameter("estado_juego") == Mundo3D.textura_estados())
 	var sin: int = _contar_colisiones(m)
 	_ok("6.4 la misma maqueta con y sin labio tiene EXACTAMENTE las mismas colisiones (%d)" % _colisiones_con, sin == _colisiones_con, "con labio %d · sin %d" % [_colisiones_con, sin])
 	m.queue_free()

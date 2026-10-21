@@ -112,8 +112,8 @@ func letra(c: Vector2i) -> String:
 	return Terreno3D.letra_de(c)
 
 
-## B1 (21/10): la imagen del estado del suelo, un píxel por casilla (R quemada · G mojada · B helada · A segada). Es la que debe
-## leer el shader del suelo (encargo B2 al Pipeline) en vez de `_img_estado`. Siempre el mismo objeto; se actualiza sola al pedirla
+## B1 (21/10): la imagen del estado del suelo, un píxel por casilla (R quemada · G mojada · B helada · A segada). B2: es la ÚNICA que leen el
+## shader del suelo, el del agua y el de la hierba (la maqueta ya no tiene `_img_estado`). Siempre el mismo objeto; se actualiza sola al pedirla
 ## si algo cambió. Estática: vale sin Mundo3D en el árbol (pruebas).
 static func textura_estados() -> ImageTexture:
 	var n: int = Terreno3D.lado_del_mapa()

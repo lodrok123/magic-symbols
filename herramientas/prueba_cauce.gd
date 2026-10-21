@@ -20,8 +20,6 @@ class MundoFalso extends Node3D:
 		return (_abre.get(c, []) as Array).has(v)
 	func _liberar(c: Vector2i) -> void:
 		_bloqueadas.erase(c)
-	func _poner_canal(_c: Vector2i, _canal: int, _valor: float) -> void:
-		pass
 
 var _fallos: int = 0
 

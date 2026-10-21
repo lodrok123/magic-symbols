@@ -26,8 +26,6 @@ class MundoFalso extends Node3D:
 		return (_abre.get(c, []) as Array).has(v)
 	func _liberar(c: Vector2i) -> void:
 		_bloqueadas.erase(c)
-	func _poner_canal(_c: Vector2i, _canal: int, _valor: float) -> void:
-		pass
 
 const DT: float = 1.0 / 60.0
 const MEDIDA: float = ReaccionesAgua3D.ARRANQUE_CAUCE     ## instante de la medida: cuando el manantial acaba de llegar a su caudal (antes eran 10 s, con el arranque de 5 s)

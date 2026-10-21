@@ -64,7 +64,8 @@ uniform vec3 base : source_color = vec3(0.58, 0.77, 0.45);
 uniform vec3 punta : source_color = vec3(0.76, 0.93, 0.63);
 uniform float viento = 1.0;
 uniform float brillo = 1.0;
-uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;     // R quemado · G mojado · B helado · A pisado
+uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;     // estado oficial del suelo (Mundo3D.textura_estados()): aquí solo R quemado
+uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;     // R: hierba aplastada (solo aspecto; la escribe la maqueta, no es estado de juego)
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;    // R: 1 = hierba crecida (alta y tupida)
 uniform float celda = 2.3;
 uniform float lado = 40.0;
@@ -90,8 +91,8 @@ void vertex() {
 	float inv_z = 1.0 / max(length(MODEL_MATRIX[2].xyz), 0.001);
 	VERTEX.x += empuje * 0.05 * inv_x;
 	VERTEX.z += empuje * 0.025 * inv_z;
-	// Pisada por celda (canal A, solo aspecto): se tumba hacia +x+z.
-	float tumbar = e.a * alto * alto;
+	// Pisada por celda (solo aspecto): se tumba hacia +x+z.
+	float tumbar = texture(pisado, uv_e).r * alto * alto;
 	VERTEX.x += tumbar * 0.18 * inv_x;
 	VERTEX.z += tumbar * 0.10 * inv_z;
 	// Se aparta de la chibi en radial.
@@ -121,6 +122,7 @@ uniform sampler2D atlas : source_color, filter_linear_mipmap;
 uniform float viento = 1.0;
 uniform float brillo = 1.0;
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;
+uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;
 uniform float celda = 2.3;
 uniform float lado = 40.0;
@@ -141,7 +143,7 @@ void vertex() {
 	float escala_y = mix(1.0, 0.1, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre);   // 6.14
 	vec2 d = origen.xz - posicion_jugador.xz;
 	float cerca = 1.0 - smoothstep(0.0, radio_pisar, length(d));
-	float tumbar = (e.a + cerca) * alto * alto * 0.25;
+	float tumbar = (texture(pisado, uv_e).r + cerca) * alto * alto * 0.25;
 	float esc = length(MODEL_MATRIX[0].xyz);
 	vec3 der = normalize(INV_VIEW_MATRIX[0].xyz);
 	vec3 arr = normalize(INV_VIEW_MATRIX[1].xyz);
@@ -403,18 +405,27 @@ func numero_de_bloques() -> int:
 	return _bloques.size()
 
 
-## Textura de estado del suelo (R quemado · G mojado · B helado · A pisado) y la rejilla que la indexa.
+## Texturas de estado del suelo y la rejilla que las indexa: `tex` = el estado OFICIAL (`Mundo3D.textura_estados()`: aquí solo se lee R quemado) y
+## `pisado` = la hierba aplastada (R8, la pone la maqueta; solo aspecto). B2: ya no hay una imagen propia con los dos mezclados.
 ## También crea la capa de hierba CRECIDA (un estado del objeto hierba, no del suelo: ESTADOS_SUELO.md §4.4).
-func set_estado(tex: Texture2D, celda: float, lado: float) -> void:
+func set_estado(tex: Texture2D, pisado: Texture2D, celda: float, lado: float) -> void:
 	_img_crecida = Image.create_empty(int(lado), int(lado), false, Image.FORMAT_R8)
 	_img_crecida.fill(Color(0.0, 0.0, 0.0, 1.0))
 	_tex_crecida = ImageTexture.create_from_image(_img_crecida)
 	for m in [_mat_matojo, _mat_tarjeta]:
 		if m != null:
 			m.set_shader_parameter("estado", tex)
+			m.set_shader_parameter("pisado", pisado)
 			m.set_shader_parameter("crecida", _tex_crecida)
 			m.set_shader_parameter("celda", celda)
 			m.set_shader_parameter("lado", lado)
+
+
+## El estado oficial cambió de objeto (el mapa cambió de tamaño): se lo da otra vez a los materiales.
+func set_estado_textura(tex: Texture2D) -> void:
+	for m in [_mat_matojo, _mat_tarjeta]:
+		if m != null:
+			m.set_shader_parameter("estado", tex)
 
 
 ## Dónde está la chibi: las matas cercanas se apartan.

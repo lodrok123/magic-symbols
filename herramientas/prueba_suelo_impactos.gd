@@ -7,7 +7,7 @@ extends "res://herramientas/escenario_base.gd"
 ##
 ## Qué se mide:
 ##   1  agua → mojada · dos aguas → helada (y ya no mojada) · agua sobre helada → nada · fuego sobre helada → mojada · fuego sobre mojada → seca · fuego sobre seca → nada · hielo → helada
-##   2  en cada paso la IMAGEN de la maqueta (canales G y B) dice lo mismo que el estado
+##   2  en cada paso la IMAGEN que dibuja el suelo (canales G y B de `Mundo3D.textura_estados()`) dice lo mismo que el estado y la maqueta NO escribió dos veces
 ##   3  la hierba que arde → quemada en cuanto el círculo quemado se ve; si el agua la apaga, el estado se quita con la imagen
 ##   4  el hielo del suelo caduca a los 20 s y la imagen y el estado se quedan igual (seca la escarcha y moja)
 ##   5  una regla de puzle `casilla(x,y).mojada` se cumple tras un impacto real
@@ -43,8 +43,9 @@ func _e(c: Vector2i, estado: String) -> bool:
 	return Terreno3D.estados.tiene(c, estado)
 
 
+## B2: el píxel que dibuja el suelo (la imagen de `Mundo3D.textura_estados()`; la maqueta ya no tiene imagen propia).
 func _px(c: Vector2i) -> Color:
-	return (maqueta.get("_img_estado") as Image).get_pixelv(c)
+	return Terreno3D.estados.imagen().get_pixelv(c)
 
 
 ## Un impacto de verdad en el suelo de la casilla (Lanzador3D.marcar_celda → maqueta._al_impactar + al_impactar). Las dos cosas ocurren en el mismo fotograma.
@@ -286,7 +287,7 @@ func _filtros() -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _barrido() -> void:
-	var img: Image = maqueta.get("_img_estado") as Image
+	var img: Image = Terreno3D.estados.imagen()
 	var n: int = 0
 	var mal: Array = []
 	for y in range(Terreno3D.lado_del_mapa()):
