@@ -8,24 +8,24 @@ extends Node
 ## `Puzle3D`; este nodo pone lo que un mapa no sabe decir: el enganche de los efectos, el HUD, las teclas, los carteles y lo que cada sala necesita
 ## al arrancar (encender el brasero del arquero, crear al arquero…).
 ##
-## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Solo la 1 está hecha; las demás tienen su hook `_preparar_sala_N()`
+## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Hechas la 1, la 2 y la 3; las demás tienen su hook `_preparar_sala_N()`
 ## vacío y documentado para que cada tarea siguiente lo rellene SIN tocar el resto:
 ##   1 (0,0) FUEGO POR CONTACTO (A2) · 2 (1,0) AL AGUA (A3) · 3 (2,0) ESCUDO (A5) · 4 (3,0) CAMINOS (D2) · 5 (0,1) SUELO Y CONDICIONES (B1+C2) ·
 ##   6 (1,1) SALA CERRADA (C3+C1) · 7 (2,1) FINAL INTEGRADO · (3,1) reserva.
 ##
 ## TECLAS (constantes de abajo; libres: no las usan la maqueta ni Jugador3D — F7 es diorama, F9 hornear, F10 capa de agua):
-##   1–7 ir a la sala (también el teclado numérico KP 1–7) · X dibuja/oculta la RUTA de cada goblin (Caminos3D) · M guardar las flags · F cargarlas ·
-##   R reiniciar el laboratorio.
-##   OJO con 1, 2 y 3: el libro de hechizos (presentacion/ui/spellbook.gd) las usa para LANZAR la página 1–3 y lee la entrada antes que nadie (`_input`). Este nodo
-##   se pone el último hijo de la maqueta para ver la tecla ANTES que el libro, y NO la consume: ir a la sala 1, 2 o 3 también lanza esa página (si no está
-##   vacía). Para saltar de sala sin lanzar nada, el teclado numérico (KP 1–7) no lo usa el libro.
+##   Shift + 1–7 ir a la sala (también el teclado numérico KP 1–7, sin Shift) · X dibuja/oculta la RUTA de cada goblin (Caminos3D) · M guardar las flags ·
+##   F cargarlas · R reiniciar el laboratorio.
+##   POR QUÉ SHIFT: el libro de hechizos (presentacion/ui/spellbook.gd) usa 1, 2 y 3 para LANZAR la página 1–3 y lee la entrada antes que nadie (`_input`) sin mirar
+##   Shift. Este nodo es el último hijo de la maqueta, así que ve la tecla ANTES que el libro, y CONSUME Shift + 1–7 (`set_input_as_handled`): saltar de sala no lanza
+##   página. Las cifras sueltas siguen siendo del libro. El teclado numérico (KP 1–7) tampoco lo usa el libro y vale sin Shift.
 ## HUD: sala actual, estado del enganche de efectos, las últimas 8 reacciones (`Mundo3D.reaccion`), las flags puestas y los estados de la casilla del jugador.
 
 const NIVEL_MAPA: String = "PlaytestEoW"
 
 # --- Teclas ---
 const TECLAS_SALA: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7]   ## en el orden de las salas
-const TECLAS_SALA_KP: Array = [KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7]   ## lo mismo en el teclado numérico (no lanza páginas)
+const TECLAS_SALA_KP: Array = [KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7]   ## lo mismo en el teclado numérico (sin Shift; no lanza páginas)
 const TECLA_RUTAS: Key = KEY_X
 const TECLA_GUARDAR: Key = KEY_M
 const TECLA_CARGAR: Key = KEY_F
@@ -60,17 +60,38 @@ const SALA1_LIBERAR_BRASERO_ARQUERO: bool = true
 const SALA1_CORRIMIENTO_BRASERO: float = 0.6          ## u en X hacia el goblin (el brasero de la izquierda)
 const SALA1_QUEMA_GOBLIN_S: float = 8.0               ## s de quemadura del goblin guerrero al prenderse (0 = la del juego, 3 s)
 
+# --- Sala 2 · al agua (A3) ---
+## La charca son las letras `~` del mapa (x 10–14, y 2–4): agua honda en la que se nada. El mapa NO sabe decir «esta agua empieza helada» (no hay letra de hielo), así
+## que la franja del este (x 13–14) se hiela al arrancar con `Terreno3D.poner_helada`: es donde un goblin empujado NO se hunde. `SALA2_HELAR_FRANJA` = false es el
+## mapa tal cual (toda la charca honda; el hielo solo existe si el jugador lo lanza).
+const SALA2_HELAR_FRANJA: bool = true
+const SALA2_FRANJA_X: Array = [13, 14]                ## columnas de la charca que empiezan heladas
+const SALA2_FRANJA_Y: Array = [2, 3, 4]               ## filas de la charca
+## EL CLIP DE AHOGARSE NO SE VE (medido): `Combate3D._physics_process` llama a `_ajustar_al_suelo` (que hunde al goblin: `_morir(true)` pide el clip «drown») y SIN
+## comprobar `muerto` sigue con `_animar()`, que ese mismo fotograma pide `idle` y lo pisa. El goblin se hunde en postura de reposo (la prueba D del escenario lo ve
+## bien porque llama a `_morir(true)` fuera de la física). El arreglo real es de una línea en enemigos/combate_3d.gd (`if muerto: return` entre las dos llamadas); el lab
+## no toca las mecánicas: cuando oye «hundido» vuelve a pedir el clip un instante después. `SALA2_ARREGLAR_DROWN` = false es el juego tal cual.
+const SALA2_ARREGLAR_DROWN: bool = true
+
+# --- Sala 3 · escudo (A5) ---
+## El goblin del escudo es la letra `W` de (20,3). Con su IA de verdad MIRA SIEMPRE al jugador en cuanto lo ve (`mirada` = hacia el objetivo al perseguir; patrullando mira
+## a ±X), así que «por la espalda» solo se puede si no lo ha visto, y a un jugador que ya está en su radio de detección (5,75 u) el escudo se le gira con él (medido en el
+## escenario, aviso 3.14: de cara, `persigue`, en unas ejecuciones; en otras no lo ve a 4,6 u de espaldas y sigue patrullando). Para poder rodearlo y comprobar el cono, el lab lo deja QUIETO mirando a la entrada (+Z): sin IA, pero recibe disparos, empujes y efectos.
+## `SALA3_QUIETO` = false es el juego tal cual (el goblin ve al jugador, le planta cara y el escudo siempre está de frente).
+const SALA3_GOBLIN: Vector2i = Vector2i(20, 3)
+const SALA3_QUIETO: bool = true
+
 ## Las salas, en el orden de las teclas. `rect`: casillas (x, y, ancho, alto) · `entrada`: a dónde lleva la tecla · `cartel`: dónde se cuelga el texto.
 ## `ids`: papel → id de la pieza en el .txt (los que no existen en el mapa salen como aviso en el HUD, no tumban el lab).
 const SALAS: Array = [
 	{"nombre": "1 Fuego por contacto (A2)", "rect": Rect2i(1, 1, 7, 7), "entrada": Vector2i(2, 6), "cartel": Vector2i(3, 7),
 		"texto": "1 · FUEGO POR CONTACTO (A2)\nFuego al brasero de arriba a la izquierda (a 2 casillas, no más): el goblin que patrulla pegado a él se prende\ny, ardiendo, prende los setos secos (el fuego corre por la fila; tarda 8–12 s en llegar al tercero).\nCORTAFUEGOS: agua al TERCER seto (se seca a los 12 s: repite el agua si hace falta): no prende y el cuarto se salva.\nAbajo a la derecha, el arquero: acércate a su brasero por el norte y su flecha lo cruza y llega ardiendo.\n(Ajustes del lab, medidos: ver las constantes SALA1_* en lab_playtest_eow_3d.gd.)",
 		"ids": {"brasero": "s1_brasero", "seto1": "s1_seto1", "seto2": "s1_seto2", "seto3": "s1_seto3", "seto4": "s1_seto4", "brasero_arquero": "s1_brasero_arq"}},
-	{"nombre": "2 Al agua (A3)", "rect": Rect2i(9, 1, 7, 7), "entrada": Vector2i(12, 6), "cartel": Vector2i(12, 7),
-		"texto": "2 · AL AGUA (A3)\n(sala vacía: la rellena otra tarea)\nGoblin empujado a agua honda, hielo que se derrite bajo sus pies y clip de ahogarse.",
+	{"nombre": "2 Al agua (A3)", "rect": Rect2i(9, 1, 7, 7), "entrada": Vector2i(12, 7), "cartel": Vector2i(12, 6),
+		"texto": "2 · AL AGUA (A3)\nTres goblins en la orilla sur de la charca. VIENTO (flecha) desde el sur contra los de la IZQUIERDA y el del centro: empujados\na la parte honda se HUNDEN (sin botín, aviso «hundido»). El de la DERECHA cae en la franja de HIELO: no se hunde.\nLanza HIELO a la charca honda y vuelve a empujar: el hielo lo sostiene. FUEGO al hielo y se derrite.\nAl norte, otro goblin no te ve desde allí (la charca es más ancha que su vista): dispárale (agua, flecha) desde la orilla y te rodea\npor la orilla o cruza por el hielo, pero nunca se mete solo en el agua honda.",
 		"ids": {}},
 	{"nombre": "3 Escudo (A5)", "rect": Rect2i(17, 1, 7, 7), "entrada": Vector2i(20, 6), "cartel": Vector2i(20, 7),
-		"texto": "3 · ESCUDO (A5)\n(sala vacía: la rellena otra tarea)\nGoblin con escudo: de frente lo para todo; por la espalda o el lado, pasa.",
+		"texto": "3 · ESCUDO (A5)\nGoblin con escudo, quieto y mirando a la entrada. Dispara desde aquí (de frente): el escudo lo para («bloqueado»).\nRodéalo y dispara por la ESPALDA o de lado: pasa. FUEGO de frente: el escudo ARDE («prendido») y a los 3 s se consume\n(«consumido»); después el disparo de frente ya llega. AGUA apaga el escudo que arde; TIERRA lo desgasta hasta romperlo.",
 		"ids": {}},
 	{"nombre": "4 Caminos (D2)", "rect": Rect2i(25, 1, 7, 7), "entrada": Vector2i(28, 6), "cartel": Vector2i(28, 7),
 		"texto": "4 · CAMINOS (D2)\n(sala vacía: la rellena otra tarea)\nRutas de goblin con obstáculos, escalones y agua. Tecla X: dibuja la ruta.",
@@ -108,6 +129,7 @@ var _guerrero_s1: Combate3D = null
 var _arquero_s1: Combate3D = null
 var _sala_anterior: int = -1                   ## la sala del jugador en el fotograma anterior (para avisar a `_al_entrar_sala`)
 var quema_goblin_s1: float = SALA1_QUEMA_GOBLIN_S   ## s de quemadura del guerrero de la sala 1 al prenderse; las pruebas pueden cambiarlo (0 = la del juego)
+var arreglar_drown_s2: bool = SALA2_ARREGLAR_DROWN  ## ver SALA2_ARREGLAR_DROWN; las pruebas pueden apagarlo para medir el juego tal cual
 
 
 func _ready() -> void:
@@ -155,6 +177,8 @@ func _al_reaccionar(nombre: String, _punto: Vector3, nodo: Node) -> void:
 	# Sala 1: la quemadura del goblin guerrero se alarga (ver SALA1_QUEMA_GOBLIN_S). `prender_por_contacto` pone `quemando` ANTES de avisar «prendido».
 	if nombre == "prendido" and nodo != null and nodo == _guerrero_s1 and quema_goblin_s1 > 0.0:
 		_guerrero_s1.quemando = maxf(_guerrero_s1.quemando, quema_goblin_s1)
+	if nombre == "hundido" and arreglar_drown_s2 and nodo is Combate3D:
+		_pedir_ahogarse.call_deferred(nodo as Combate3D)         # después de este fotograma de física: su `_animar()` pide `idle` justo tras hundirse
 	var tipo: String = ReaccionesVfx3D.tipo_de(nodo)
 	if tipo == "" and nodo != null:
 		tipo = String(nodo.get_class())
@@ -162,6 +186,14 @@ func _al_reaccionar(nombre: String, _punto: Vector3, nodo: Node) -> void:
 	_n_reacciones += 1
 	while _reacciones.size() > MAX_REACCIONES:
 		_reacciones.pop_front()
+
+
+## Vuelve a pedir el clip de ahogarse a un goblin ya hundido (ver SALA2_ARREGLAR_DROWN). Muerto, su física ya no corre: nadie más lo pisa.
+func _pedir_ahogarse(c: Combate3D) -> void:
+	if c == null or not is_instance_valid(c) or c.pj == null or not is_instance_valid(c.pj):
+		return
+	c.pj.animacion_actual = ""
+	c.pj.jugar(Combate3D.CLIP_AHOGARSE, true)
 
 
 ## Cada sala como diccionario de piezas (los ids de SALAS buscados en el .txt) y su cartel. Un id que no está en el mapa deja el papel en null y sale como
@@ -230,16 +262,38 @@ func _preparar_sala_1() -> void:
 		_avisos.append("sala 1: no se pudo crear el arquero (¿falta arte/modelos/goblin_archer_chibi.glb?)")
 
 
-## SALA 2 · AL AGUA (A3). HOOK VACÍO. Idea: un goblin junto a una charca honda y algo que lo empuje (viento), y un hielo sobre agua que se derrite con fuego;
-## el HUD ya enseña `hundido`/`derretido` en las reacciones. Para un goblin nuevo usa `_crear_arquero`/`_crear_goblin`. Pon sus piezas en el .txt con prefijo `s2_`.
+## SALA 2 · AL AGUA (A3). El mapa pone la charca (`~`), los tres goblins de la orilla sur (W en (10,5), (12,5), (14,5)) y el que persigue desde la orilla norte (W en
+## (12,1)). Lo que el mapa no dice: la franja de hielo inicial (ver SALA2_HELAR_FRANJA). El HUD enseña `hundido` y `empujado` en las reacciones.
 func _preparar_sala_2() -> void:
-	pass
+	var q: Dictionary = sala(2)
+	if SALA2_HELAR_FRANJA:
+		for x in SALA2_FRANJA_X:
+			for y in SALA2_FRANJA_Y:
+				Terreno3D.poner_helada(Vector2i(int(x), int(y)), true)
+	q["orilla_izq"] = _combate_en(Vector2i(10, 5))
+	q["orilla_centro"] = _combate_en(Vector2i(12, 5))
+	q["orilla_hielo"] = _combate_en(Vector2i(14, 5))
+	q["perseguidor"] = _combate_en(Vector2i(12, 1))
+	for papel in ["orilla_izq", "orilla_centro", "orilla_hielo", "perseguidor"]:
+		if q[papel] == null:
+			_avisos.append("sala 2: no hay goblin «%s» (letra W del mapa)" % papel)
 
 
-## SALA 3 · ESCUDO (A5). HOOK VACÍO. Idea: `_crear_goblin(c)` y luego `Escudo3D.equipar(combate)` (enemigos/escudo_3d.gd) para que lleve escudo;
-## el HUD enseñará `bloqueado`, `prendido`, `consumido`, `apagado_agua`. Piezas del .txt con prefijo `s3_`.
+## SALA 3 · ESCUDO (A5). El mapa pone al goblin (W en (20,3)); aquí se le cuelga el escudo y se le deja mirando a la entrada (ver SALA3_QUIETO).
 func _preparar_sala_3() -> void:
-	pass
+	var q: Dictionary = sala(3)
+	var g: Combate3D = _combate_en(SALA3_GOBLIN)
+	q["goblin"] = g
+	q["escudo"] = null
+	if g == null:
+		_avisos.append("sala 3: no hay goblin en %s (letra W del mapa)" % str(SALA3_GOBLIN))
+		return
+	q["escudo"] = Escudo3D.equipar(g)
+	g.mirada = Vector3(0.0, 0.0, 1.0)                  # hacia el sur, a la entrada (20,6)
+	if SALA3_QUIETO:
+		g.quieto = true
+	if g.pj != null:
+		g.pj.mirar(g.mirada, 1.0)
 
 
 ## SALA 4 · CAMINOS (D2). HOOK VACÍO. Idea: muros/agua/escalones de por medio y un goblin que persigue; la tecla X (rutas) dibuja lo que calcula Caminos3D
@@ -432,11 +486,12 @@ func _input(ev: InputEvent) -> void:
 	elif k.keycode == TECLA_CARGAR:
 		cargar_flags()
 	else:
-		var i: int = TECLAS_SALA.find(k.keycode)
+		var i: int = TECLAS_SALA.find(k.keycode) if k.shift_pressed else -1       # solo con Shift: sin él, 1–3 son del libro de hechizos
 		if i < 0:
 			i = TECLAS_SALA_KP.find(k.keycode)
 		if i >= 0:
 			ir_a_sala(i + 1)
+			get_viewport().set_input_as_handled()             # el libro no debe ver esta tecla (si no, lanzaría la página 1–3)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -536,7 +591,7 @@ func texto_hud() -> String:
 		t += "  >> %s\n" % _mensaje
 	for a in _avisos:
 		t += "  AVISO %s\n" % String(a)
-	t += "1–7 sala (KP 1–7: sin lanzar página) · X rutas goblins (%s) · M guardar flags · F cargar flags · R reiniciar" % ("SÍ" if _rutas_visibles else "no")
+	t += "Shift+1–7 sala (o KP 1–7) · X rutas goblins (%s) · M guardar flags · F cargar flags · R reiniciar" % ("SÍ" if _rutas_visibles else "no")
 	return t
 
 
