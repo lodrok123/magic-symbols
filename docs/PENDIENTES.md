@@ -33,8 +33,11 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 **PLAN_EOW, rondas 1–4**
 - [x] ~~B1 estado de suelo con un solo dueño~~ · ~~C1 flags con nombre~~ · ~~D1 ocupación por casilla~~ · ~~A2 propagación por contacto~~ · ~~A3 reacciones de enemigo y hundirse~~ · ~~C2 condiciones y/o/no~~ · ~~C3 sala cerrada~~ · ~~A4 `Mundo3D.reaccion`~~ · ~~A5 escudo del goblin~~ · ~~D2 pathfinding~~ — hechas el 21/10, sin commit (diario 238).
-- [ ] Lo que dejaron abierto (diario 238): activar el clip «Drowning» (`"drown"` en `ArbolAnimPj.ESTADOS_REDUCIDO`); `Jugador3D.quemar(s)` si el jugador debe arder; la patrulla y el gatopedro aún no usan rutas; peor caso del A* con altura ≈ 5,4 ms (> 1 ms); pasar los cofres de `bosque_01_3d.gd` a la gramática de C3.
+- [ ] Lo que dejaron abierto (diario 238; el clip «Drowning» ya está activo, diario 240): `Jugador3D.quemar(s)` si el jugador debe arder; la patrulla y el gatopedro aún no usan rutas; peor caso del A* con altura ≈ 5,4 ms (> 1 ms); pasar los cofres de `bosque_01_3d.gd` a la gramática de C3.
 - [x] ~~Decidir: ¿siete reacciones también para el elemental? ¿el escudo ardiendo prende al goblin? ¿se queda `CONTACTO_ENTRE_ENEMIGOS = true`?~~ — decidido y aplicado el 21/10 (diario 239): el elemental basta con fuego (daño) y agua (cura); el escudo quemado le quema la mano y se desintegra; los enemigos no se contagian entre ellos.
+- [x] ~~Laboratorio de playtest EoW (`laboratorios/LabPlaytestEoW.tscn`, 7 salas)~~ — hecho el 21/10 (diario 240).
+- [ ] **El suelo no guarda «mojada» ni «quemada» al jugar** (hallazgo del lab, diario 240): los impactos solo pintan `_img_estado` de la maqueta, así que `casilla(x,y).mojada/quemada` de los puzles nunca se cumple fuera del lab (allí lo suple `SALA5_PUENTE_ESTADOS`). Decidir: que el Juego lo escriba al aplicar la acción (`Mundo3D.aplicar` → `EstadosSuelo3D.aplicar`) o esperar a B2.
+- [ ] Decidir sobre los ajustes del lab (diario 240), uno por uno: ¿pasan al juego o se quedan como ayuda? `SALA1_LIBERAR_BRASERO_ARQUERO` (una flecha nunca cruza un brasero), `SALA1_CORRIMIENTO_BRASERO` (un goblin no llega a tocar el brasero), `SALA1_QUEMA_GOBLIN_S` (la quemadura de 3 s se apaga antes del seto), `SALA4_OLFATO` (el goblin tras una pared no se entera; se rinde a > 10 u), letra de hielo inicial en el mapa (`SALA2_HELAR_FRANJA`), tierra de 1 nivel que no frena a un goblin.
 - [ ] Al andar, a veces el personaje vuelve al «círculo marrón» del inicio (playtest 21/10). Sin reproducir: falta un vídeo o más detalle de Pablo.
 
 **Otras tareas**
@@ -56,7 +59,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 **Encargos del plan EoW (diario 238)**
 - [ ] B2: el shader del suelo lee `Mundo3D.textura_estados()` y se retira `_img_estado` de `prueba_test2.gd`.
-- [ ] Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel: sin eso las reacciones de A4 no se ven ni suenan.
+- [ ] Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel: sin eso las reacciones de A4 no se ven ni suenan. (El lab de playtest ya lo hace por su cuenta; falta en la maqueta para todos los niveles.)
 - [ ] Burbujas del hundimiento al aviso `impacto(…, "hundido", …)` / reacción `hundido` (1,6 s de efecto frente a 1,0 s de hundimiento).
 - [ ] Escudo del goblin: ajuste visual en el brazo, efectos de `EXCEPCIONES["escudo"]` con el nodo real y escudo mojado visible.
 - [ ] Mano quemada (diario 239): clip `mano_quemada` del goblin (+ `"mano_quemada"` en `ArbolAnimPj.ESTADOS_REDUCIDO` y en `Pj3D.SINONIMOS`), disolver por celdas del escudo quemado en vez del encogido provisional, y chispas en la mano con la señal `Escudo3D.mano_quemada`.
