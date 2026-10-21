@@ -295,7 +295,7 @@ static func forma_colision(id_pedido: String) -> Dictionary:
 		f = {"cilindro": false, "tam": Vector3(1.0, 1.0, 1.0), "alto": 1.0, "centro": Vector3(0.0, 0.5, 0.0), "cascos": 0}
 	else:
 		f = ColisionPieza.caja_de(lista)
-		if ColisionPieza.modo(id) == "tronco":
+		if ColisionPieza.modo(id) == "tronco" or ColisionPieza.modo(id) == "tronco_bajo":
 			var r: float = maxf((f["tam"] as Vector3).x, (f["tam"] as Vector3).z) * 0.5
 			f["cilindro"] = true
 			f["radio"] = r

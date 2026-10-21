@@ -39,11 +39,12 @@ const TROZOS_MAX: int = 16
 ## Modo de cada pieza:
 ##   "contorno" → cascos medidos en la franja completa (lo normal: rocas, vallas, arcos, puestos, tocones…)
 ##   "tronco"   → solo el tronco (árboles: franja TRONCO_BAJO..TRONCO_ALTO y el trozo más cercano al eje)
+##   "tronco_bajo" → como "tronco" pero solo la franja baja TRONCO_BANDAS_BAJO (el pino, cuyas ramas llegan al suelo)
 ##   "ninguna"  → se pisa (decorado, plantas, losas, nenúfares)
 ## Las piezas que no salen aquí se tratan como «ninguna», igual que `GeneradorPiezas.COLISION`.
 const MODO: Dictionary = {
 	# --- ya horneadas (mismos ids y misma intención que GeneradorPiezas.COLISION; "convexa" y "mesa" pasan a "contorno") ---
-	"arbol_redondo": "tronco", "arbol_redondo_2": "tronco", "pino": "tronco", "pino_2": "tronco",
+	"arbol_redondo": "tronco", "arbol_redondo_2": "tronco_bajo", "pino": "tronco_bajo", "pino_2": "tronco",
 	"arbusto": "contorno", "arbusto_flores": "contorno", "arbusto_otono": "contorno", "seto_seco": "contorno",
 	"roca_cristal": "contorno", "roca_grande": "contorno", "piedras": "contorno", "tocon": "contorno", "tronco": "contorno",
 	"valla": "contorno", "cartel": "contorno", "totem_runico": "contorno", "brasero": "contorno", "fogata": "contorno",
@@ -73,6 +74,12 @@ const MODO: Dictionary = {
 ## se pasan por encima) y el césped pegado; por encima de 1,4 la copa. Medido en la planta de los 7 árboles. En el pino
 ## las ramas llegan al suelo y se ven sólidas: ahí el «tronco» es el cono de ramas, que sí es obstáculo.
 const TRONCO_BANDAS: Array = [[0.45, 0.95], [0.7, 1.2], [0.9, 1.4]]
+## Modo "tronco_bajo" (pino y arbol_redondo_2, 21/10, diario 227; en el redondo_2 la franja 0,45-0,95 medía r=1,03 con un lóbulo de raíz/rama que cerraba (6,15) de Bosque 01): sus ramas arrancan en y ≈ 0,45 y bajan en cono (radio ≈ 1,59), así que
+## ninguna franja de TRONCO_BANDAS da un tronco: da el cono, que cerraba pasillos de una casilla. Por debajo de la rama baja sí
+## hay tronco (radio ≈ 0,65 en la planta; por encima de 0,45 las ramas se unen a él en el casco). Se mide solo ahí y el casco se
+## sube como columna hasta ALTO_TRONCO_BAJO, para que el cuerpo del jugador (0,3-0,9) no pueda trepar por un borde de 0,45.
+const TRONCO_BANDAS_BAJO: Array = [[0.2, 0.45]]
+const ALTO_TRONCO_BAJO: float = 1.4
 
 
 ## Modo de colisión de la pieza `id` ("ninguna" si no está en la tabla).
@@ -94,11 +101,11 @@ static func cascos(vis: Node3D, modo_pieza: String) -> Array:
 	if ymax_modelo < ALTO_MIN_SOLIDO:
 		return []
 	var res: Array = []
-	if modo_pieza == "tronco":
+	if modo_pieza == "tronco" or modo_pieza == "tronco_bajo":
 		# el tronco no está a la misma altura en todos los árboles (en el redondo_2 la copa baja desde 0,9): de las franjas
 		# candidatas se queda con la que da el trozo central más estrecho, que es donde de verdad solo hay tronco
 		var mejor: float = INF
-		for banda in TRONCO_BANDAS:
+		for banda in (TRONCO_BANDAS_BAJO if modo_pieza == "tronco_bajo" else TRONCO_BANDAS):
 			var cand: Array = _cascos_banda(tris, banda[0], banda[1], true)
 			var area: float = 0.0
 			for nube in cand:
@@ -118,7 +125,13 @@ static func cascos(vis: Node3D, modo_pieza: String) -> Array:
 		buenos.resize(TROZOS_MAX)
 	var salida: Array = []
 	for nube in buenos:
-		salida.append(_con_base(nube as PackedVector3Array))
+		var pts_n: PackedVector3Array = nube as PackedVector3Array
+		if modo_pieza == "tronco_bajo":
+			var arriba := PackedVector3Array(pts_n)
+			for p in pts_n:
+				arriba.append(Vector3(p.x, ALTO_TRONCO_BAJO, p.z))
+			pts_n = arriba
+		salida.append(_con_base(pts_n))
 	return salida
 
 
