@@ -777,6 +777,8 @@ func cast_page(indice: int) -> void:
 	# TINTA (15/10): se comprueba aquí, antes de apuntar, para no ralentizar el tiempo y luego negarte el lanzamiento. Se COBRA al soltar
 	# (`lanzar_ahora`): si cancelas el apuntado no pierdes nada.
 	var coste_tinta: float = Tinta.coste_receta(receta.coste_v2())
+	if tinta != null:
+		coste_tinta = tinta.coste_efectivo(coste_tinta, Objetos.elemento_de(element_data))     # E1: la rebaja del pigmento (la aplica Tinta, aquí solo se le dice el elemento)
 	if tinta != null and not tinta.puede_pagar(receta.forma(), coste_tinta):
 		Sfx.play(self, "sello_no")
 		_feedback("Tinta insuficiente (%d / %d)" % [int(ceil(tinta.actual)), int(ceil(coste_tinta))])
@@ -999,7 +1001,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}
 
 	if tinta != null:
-		tinta.gastar(forma, Tinta.coste_receta(receta.coste_v2()))
+		tinta.gastar(forma, Tinta.coste_receta(receta.coste_v2()), elemento)       # E1: con el elemento, para la rebaja del pigmento
 
 	# Recarga y coste al SOLTAR: durante el conjuro la página ya no se puede volver a lanzar.
 	cooldown_total[indice] = receta.cooldown
@@ -1160,6 +1162,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
 	_sonar_fase_v2("disparo", elemento)
 	var hechizo: Hechizo = receta.hechizo(rune)
+	if tinta != null and hechizo != null:
+		hechizo.dano *= tinta.mult_dano(elemento)         # E1: pigmento de daño del elemento (único sitio; 1 si no toca). Se queda en el hechizo: golpe, área y escudo lo leen de ahí
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
