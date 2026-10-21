@@ -7,7 +7,7 @@ extends SceneTree
 ##      Guerrero, arquero y gatopedro tienen las siete. El elemental NO tiene «mojado» (el agua lo cura) ni «aturdido» (pesa demasiado): decisión de diseño anterior
 ##      a A3 que se declara, no se finge.
 ##   2. Un enemigo empujado a una charca honda se hunde: muere sin botín (control: el que muere por daño sí lo suelta), emite `hundido`, avisa a Mundo3D con
-##      «hundido» en la superficie y desaparece bajo el agua en ~1 s.
+##      «hundido» en la superficie y se hunde despacio (lo que dura el clip, ~3,2 s) hasta desaparecer bajo el agua.
 ##   3. Sobre hielo no: lo sostiene. Si el hielo se derrite bajo sus pies, cae.
 ##   4. Un goblin que patrulla junto al agua, y uno que persigue al jugador al otro lado del río, NO se meten solos.
 
@@ -222,10 +222,37 @@ func _hundirse_empujado() -> void:
 	_ok("2 avisa a Mundo3D «hundido» en la superficie del agua con radio", aviso_ok, str(_avisos))
 	_ok("2 sin botín: no suelta oro", _oros() == oros_antes, "oros %d" % _oros())
 	_ok("2 sale del grupo de combate (ya no es objetivo)", not g.is_in_group("combate3d"))
-	await create_timer(0.5).timeout
-	_ok("2 a los 0,5 s el modelo ya está bajando", is_instance_valid(g.pj) and g.pj.position.y < y0 - 0.05, "y %.2f → %.2f" % [y0, g.pj.position.y if is_instance_valid(g.pj) else -99.0])
-	await create_timer(1.3).timeout
-	_ok("2 a los ~1,8 s ha desaparecido bajo el agua (liberado)", not is_instance_valid(g))
+	# Ahogamiento lento: dura lo que el clip (o TIEMPO_HUNDIMIENTO sin clip). Se mide la altura del modelo cada 0,4 s: baja a lo largo de todo el hundimiento
+	# (tendencia monótona: cada muestra por debajo de la de 0,8 s antes, que absorbe los rebotes de flotación), el nodo sigue vivo casi hasta el final,
+	# acaba con la cabeza bajo la superficie y la señal `hundido` no se repite.
+	var dur_h: float = g.pj.duracion(Combate3D.CLIP_AHOGARSE)
+	if dur_h <= 0.0 or not String(g.pj.animacion_actual).contains(Combate3D.CLIP_AHOGARSE):
+		dur_h = Combate3D.TIEMPO_HUNDIMIENTO
+	var modelo: Node3D = g.pj
+	var ys: Array = [modelo.position.y]
+	var t: float = 0.0
+	while t < dur_h - 0.5:   # la última muestra cae antes del final: el nodo se libera justo al acabar
+		await create_timer(0.4).timeout
+		t += 0.4
+		if not is_instance_valid(modelo):
+			break
+		ys.append(modelo.position.y)
+	var tendencia_ok: bool = ys.size() >= 5
+	for i in range(2, ys.size()):
+		if ys[i] > ys[i - 2] + 0.001:
+			tendencia_ok = false
+	var tendencia: String = ""
+	for y in ys:
+		tendencia += "%.2f " % y
+	_ok("2 el hundimiento es lento y progresivo (alturas cada 0,4 s, sin subir)", tendencia_ok, tendencia)
+	_ok("2 a los ~0,8 s sigue casi arriba (forcejea), no se ha hundido ya", ys.size() > 2 and ys[2] > y0 - 0.5, tendencia)
+	_ok("2 el nodo sigue vivo mientras se hunde (no se libera antes de tiempo)", is_instance_valid(g) and is_instance_valid(modelo), "t %.1f de %.1f" % [t, dur_h])
+	var y_sup: float = Terreno3D.alto_agua
+	_ok("2 la última muestra va por debajo de la superficie del agua", ys.back() < y_sup - 0.2, "y %.2f, agua %.2f" % [ys.back(), y_sup])
+	_ok("2 la señal hundido salió una sola vez (al principio)", _hundidos.size() == 1, "n=%d" % _hundidos.size())
+	await create_timer(maxf(dur_h - t, 0.0) + 0.5).timeout
+	_ok("2 pasado el hundimiento se libera (desaparece bajo el agua)", not is_instance_valid(g) and not is_instance_valid(modelo))
+	_ok("2 la señal hundido sigue siendo una sola", _hundidos.size() == 1, "n=%d" % _hundidos.size())
 
 	# Un goblin que no llega al agua (empujón corto) no se hunde.
 	var corto := _nuevo("guerrero", Vector3(COL_AGUA[0] * S - 1.5, Terreno3D.alto_suelo, 5.5 * S))

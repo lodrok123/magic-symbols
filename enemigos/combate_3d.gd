@@ -141,8 +141,12 @@ const REACCIONES: PackedStringArray = ["quemado", "mojado", "congelado", "electr
 ## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
 ## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
 const AVISO_HUNDIDO: String = "hundido"
-const TIEMPO_HUNDIMIENTO: float = 1.0          ## s que tarda en desaparecer bajo la superficie
+## Ahogamiento lento (diario 245, pedido de Pablo tras validar el clip «Drowning»): el agua «se lo traga» despacio, no de golpe.
+const TIEMPO_HUNDIMIENTO: float = 3.2          ## s que dura el hundimiento si el modelo NO trae clip (con clip, dura lo que el clip: así acaban a la vez)
 const PROFUNDIDAD_EXTRA_HUNDIDO: float = 0.3   ## u que baja de más por debajo de la superficie (la cabeza también se pierde)
+const HUNDIMIENTO_CURVA: float = 2.2           ## exponente de la bajada: 1 = lineal; >1 = se hunde poco mientras forcejea y más deprisa al final (el agua lo agarra)
+const HUNDIMIENTO_REBOTES: float = 2.0         ## nº de «sacudidas» de flotación (sube un poco, vuelve a bajar) durante la caída; 0 = sin rebotes
+const HUNDIMIENTO_REBOTE_ALTURA: float = 0.05  ## u que sube cada rebote al principio (se apaga hacia el final para no frenar el último tramo)
 const CLIP_AHOGARSE: String = "drown"          ## rol del clip «Drowning» (diario 231): se usa si el modelo lo trae Y el árbol de animación lo admite
 ## Un enemigo se ha hundido en agua honda. Ya está marcado `muerto` y sin botín. `Estado.enemigo_muerto` también se emite (las misiones cuentan al caído).
 signal hundido(enemigo: Combate3D)
@@ -1747,9 +1751,9 @@ func _morir(ahogado: bool = false) -> void:
 	_cancelar_squash()
 	_destello_blanco(false)
 	_aplicar_tinte(tinte)
-	var retraso_hundir: float = 0.0
+	var dur_hundir: float = 0.0
 	if ahogado:
-		retraso_hundir = _animar_ahogo()
+		dur_hundir = _animar_ahogo()
 	else:
 		Jugador3D.una_vez(pj, "death")
 	if not elemental:
@@ -1760,7 +1764,7 @@ func _morir(ahogado: bool = false) -> void:
 	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y], "ahogado": ahogado})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
 	if ahogado:
-		_hundir_modelo(retraso_hundir)
+		_hundir_modelo(dur_hundir)
 		return
 	if oro > 0:
 		Botin3D.soltar(mundo, jugador, oro, position)
@@ -1774,23 +1778,38 @@ func _morir(ahogado: bool = false) -> void:
 
 
 ## Pone el clip «Drowning» si el modelo lo trae Y el árbol de animación lo admite (el grafo reducido de los enemigos hoy no: ver el encargo del informe). Si no, la pose de
-## muerte de siempre. Devuelve cuánto esperar antes de empezar a bajar: con el clip, hasta el 60 % (los brazos ya van arriba, pedido del Pipeline en el diario 231); sin él, 0.
+## muerte de siempre. Devuelve cuánto debe durar el hundimiento: lo que dura el clip (así la cabeza se pierde justo al acabar el forcejeo) o TIEMPO_HUNDIMIENTO sin clip.
+## Ya no se espera al 60 % del clip: se empieza a bajar en el acto y es la curva (HUNDIMIENTO_CURVA) la que hace que al principio apenas se hunda.
 func _animar_ahogo() -> float:
 	if pj == null or not is_instance_valid(pj):
-		return 0.0
+		return TIEMPO_HUNDIMIENTO
 	var dur: float = pj.duracion(CLIP_AHOGARSE)
 	if dur > 0.0:
 		pj.animacion_actual = ""
 		pj.jugar(CLIP_AHOGARSE, true)
 		if pj.animacion_actual == CLIP_AHOGARSE:
-			return dur * 0.6
+			return dur
 	Jugador3D.una_vez(pj, "death")
-	return 0.0
+	return TIEMPO_HUNDIMIENTO
 
 
-## El hundimiento en sí: avisa a Mundo3D («hundido», en la superficie, para las burbujas), emite `hundido` y baja el modelo bajo el agua en TIEMPO_HUNDIMIENTO.
+## Altura relativa del hundimiento (0 = en la superficie, 1 = todo el recorrido) para el progreso `p` (0..1): curva potencial y, encima, rebotes de flotación
+## que se apagan al final. Es función pura para poder medirla en las pruebas.
+static func perfil_hundimiento(p: float) -> float:
+	p = clampf(p, 0.0, 1.0)
+	return pow(p, HUNDIMIENTO_CURVA)
+
+
+## Subida (en u, >= 0) por los rebotes de flotación en el progreso `p`: |seno| apagado con (1 - p), así nunca sube de la superficie y a p = 1 vale 0.
+static func rebote_hundimiento(p: float) -> float:
+	p = clampf(p, 0.0, 1.0)
+	return absf(sin(p * PI * HUNDIMIENTO_REBOTES)) * HUNDIMIENTO_REBOTE_ALTURA * (1.0 - p)
+
+
+## El hundimiento en sí: avisa a Mundo3D («hundido», en la superficie, para las burbujas) y emite `hundido` UNA vez, en el contacto con el agua (no al final), y
+## baja el modelo bajo el agua durante `duracion` s con la curva de arriba. El nodo no se libera hasta que acaba.
 ## Se mueve el modelo y no este nodo: `_physics_process` ya no corre (muerto) y es el que copiaba la posición. Sin botín.
-func _hundir_modelo(espera: float) -> void:
+func _hundir_modelo(duracion: float) -> void:
 	texto("¡Hundido!", COLORES["agua"], 0.1)
 	if Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(_punto_hundido, AVISO_HUNDIDO, maxf(_radio_cuerpo(), 0.4) * 1.5)
@@ -1799,11 +1818,14 @@ func _hundir_modelo(espera: float) -> void:
 	if pj == null or not is_instance_valid(pj):
 		queue_free()
 		return
-	var y_fin: float = minf(_punto_hundido.y, pj.position.y) - altura - PROFUNDIDAD_EXTRA_HUNDIDO
+	var y_ini: float = pj.position.y
+	var y_fin: float = minf(_punto_hundido.y, y_ini) - altura - PROFUNDIDAD_EXTRA_HUNDIDO
+	var modelo: Pj3D = pj
 	var tw: Tween = create_tween()
-	if espera > 0.0:
-		tw.tween_interval(espera)
-	tw.tween_property(pj, "position:y", y_fin, TIEMPO_HUNDIMIENTO).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_method(func(p: float) -> void:
+		if is_instance_valid(modelo):
+			modelo.position.y = lerpf(y_ini, y_fin, perfil_hundimiento(p)) + rebote_hundimiento(p),
+		0.0, 1.0, maxf(duracion, 0.1))
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(pj):
 			pj.queue_free()
