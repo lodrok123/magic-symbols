@@ -1,6 +1,6 @@
 # Clips de lanzar a UNA mano para el héroe (17 de octubre de 2026)
 
-Encargo T-CP4 de `claude/LAB_CASTPOINT.md` (§4): tres clips para `woodland_wanderer` (esqueleto `mixamorig`, el GLB que usa el juego es `woodland_wanderer_suave.glb`) con la
+Encargo T-CP4 de `docs/LAB_CASTPOINT.md` (§4): tres clips para `woodland_wanderer` (esqueleto `mixamorig`, el GLB que usa el juego es `woodland_wanderer_suave.glb`) con la
 **mano derecha lanzando y la izquierda sujetando un libro cerrado al pecho**: (1) lanzar al frente, (2) invocar hacia arriba, (3) señalar o golpear el suelo delante.
 Cada uno corresponde a un origen del punto de conjuración (`mano_libre`, `manos_alto`, `suelo_delante`).
 
