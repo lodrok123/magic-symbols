@@ -27,7 +27,8 @@ const T_CONSUMO: float = 3.0                  ## s que tarda en consumirse una v
 const T_MOJADO: float = 6.0                   ## s que un escudo mojado no prende
 ## MANO QUEMADA (21/10, Pablo tras el playtest): cuando el escudo termina de arder, al goblin le quema la mano: lo suelta, se queda aturdido T_MANO_QUEMADA s
 ## con el clip ROL_MANO_QUEMADA (si su GLB lo trae; si no, el de golpe) y el escudo se DESINTEGRA en T_DESINTEGRA s en vez de quedarse quemado en el brazo.
-## El goblin NO se prende por su propio escudo. El clip y el disolver bonito son del Pipeline (diario); aquí la malla quemada solo encoge hasta desaparecer.
+## El goblin NO se prende por su propio escudo. El clip es del Pipeline (diario); el disolver por celdas es V6 (`Ocluso3D`, uniform `disolver`): la malla quemada se deshace en T_DESINTEGRA s. Con
+## `Ocluso3D.usar_quemado_disolver = false` (o sin material común) vuelve a encoger hasta desaparecer, como antes.
 const T_MANO_QUEMADA: float = 1.2
 const T_DESINTEGRA: float = 0.8
 const ROL_MANO_QUEMADA: String = "mano_quemada"
@@ -60,6 +61,8 @@ var desintegra_t: float = 0.0                  ## s que le quedan a la malla que
 var _entero: PiezaFuego3D = null
 var _quemado: PiezaFuego3D = null
 var _escala_quemado: Vector3 = Vector3.ONE
+var _mats_quemado: Array[ShaderMaterial] = []  ## V6: materiales comunes de la malla quemada (su uniform `disolver` hace la desintegración)
+var disolver: float = 0.0                      ## V6: 0..1, cuánto lleva deshecho (lo lee la prueba; 0 si no se usa el disolver)
 
 
 ## Le pone un escudo a `c` (o devuelve el que ya tiene). `con_modelo = false` fuerza las formas sencillas de PiezaFuego3D.
@@ -79,6 +82,11 @@ static func equipar(c: Combate3D, con_modelo: bool = true) -> Escudo3D:
 	if e._quemado != null:
 		e._quemado.visible = false
 		e.add_child(e._quemado)
+		# V6: la malla quemada se dibuja con el material común para poder DISOLVERSE por celdas (con el borde de brasa) al desintegrarse.
+		Ocluso3D.preparar()                                  # idempotente; el parámetro global no hace nada mientras nadie lo active
+		e._mats_quemado = Ocluso3D.convertir_nodo(e._quemado)
+		for m in e._mats_quemado:
+			Ocluso3D.configurar_disolver(m, Ocluso3D.DISOLVER_COLOR, Ocluso3D.DISOLVER_CELDA_ESCUDO)
 	c.escudo = e
 	c.add_child(e)
 	e._colocar()
@@ -230,7 +238,13 @@ func _physics_process(delta: float) -> void:
 	if desintegra_t > 0.0:
 		desintegra_t = maxf(0.0, desintegra_t - delta)
 		if _quemado != null:
-			_quemado.scale = _escala_quemado * maxf(desintegra_t / T_DESINTEGRA, 0.001)
+			if Ocluso3D.usar_quemado_disolver and not _mats_quemado.is_empty():
+				# V6: se deshace por celdas en el MISMO tiempo que antes tardaba en encoger (decisión de Pablo, diario 239).
+				disolver = 1.0 - desintegra_t / T_DESINTEGRA
+				for m in _mats_quemado:
+					Ocluso3D.poner_disolver(m, disolver)
+			else:
+				_quemado.scale = _escala_quemado * maxf(desintegra_t / T_DESINTEGRA, 0.001)    # comportamiento de antes de V6 (encoger)
 			_quemado.visible = desintegra_t > 0.0
 	# A2: lo que el goblin lleva encima arde con él (el escudo es inflamable y lo toca). El agua lo protege igual que a cualquier madera.
 	if estado == "entero" and combate.esta_ardiendo():

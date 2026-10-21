@@ -68,7 +68,10 @@ const CONTAGIO_VIENTO: float = 3.6 * S     ## 230 px
 const PUNTO_VIENTO: float = 0.3
 const INTERVALO_CONTAGIO: float = 0.8
 const FUNDIDO: float = 0.6
-const CHAMUSCADO: Color = Color(0.3, 0.25, 0.22)
+const CHAMUSCADO: Color = Color(0.3, 0.25, 0.22)       ## tinte uniforme de antes de V6: solo se usa si el material no es el común o `Ocluso3D.usar_quemado_disolver` = false
+## V6: con el material común de `Ocluso3D` mientras arde sube su uniform `quemado` (0 → 1 a lo largo de los segundos de combustión) y al consumirse
+## `disolver` va de 0 a 1 en T_DISOLVER s (el tiempo que antes tardaba en aplastarse) y SOLO ENTONCES se libera la pieza. La lógica no cambia.
+const T_DISOLVER: float = 0.5
 const APAGADO: Color = Color(0.72, 0.7, 0.72)          ## la pira apagada del 2D
 const COLOR_ELEMENTO: Dictionary = {
 	"fuego": Color(1.0, 0.55, 0.25), "agua": Color(0.45, 0.75, 1.0), "rayo": Color(1.0, 0.92, 0.4),
@@ -175,7 +178,9 @@ var mojable: bool:
 		_fijar_papel(P_MOJABLE, v)
 var _mojado_s: float = 0.0           ## s que le quedan empapado (se cuenta con el delta del juego, no con el reloj de pared)
 
-var _mats: Array = []              ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
+var _quemado_v: float = 0.0        ## V6: último valor de `quemado` aplicado (0..1)
+var _disolver_v: float = 0.0       ## V6: último valor de `disolver` aplicado (0..1)
+var _mats: Array = []            ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
 var _llama: Node3D = null
 var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
@@ -524,7 +529,12 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_ver_ardiendo(true)
-	_animar_k(1.0)
+	if _hay_comun():
+		if _tween != null and _tween.is_valid():
+			_tween.kill()                   # un apagado anterior aún volviendo a sano no puede pelearse con el frente
+		_poner_quemado(0.0)                 # lo sube _process con el tiempo que lleva ardiendo
+	else:
+		_animar_k(1.0)
 	set_process(true)
 	if hierba_cerca.is_valid():
 		hierba_cerca.call(global_position, CONTAGIO, Vector3.ZERO)
@@ -543,6 +553,8 @@ func _process(delta: float) -> void:
 			set_process(false)
 		return
 	_t += delta
+	if _hay_comun():
+		_poner_quemado(clampf(_t / maxf(float(_num_combustible()[0]), 0.01), 0.0, 1.0))
 	_t_contagio += delta
 	if _t_contagio >= INTERVALO_CONTAGIO:
 		_t_contagio = 0.0
@@ -563,6 +575,7 @@ func _apagar() -> void:
 	_reaccionar("apagado_agua")             # solo lo apaga el agua o el frío (`humedo` en on_spell_hit); el viento no apaga, lleva la llama
 	_quitar_fuego()
 	_ver_ardiendo(false)
+	_k = maxf(_k, _quemado_v)               # el fundido a sano parte de lo que llevara quemado (con el material común _k no se anima mientras arde)
 	_animar_k(0.0)
 	fx.vapor(global_position + Vector3(0.0, 0.5, 0.0))
 	set_process(false)
@@ -580,7 +593,12 @@ func _consumir() -> void:
 	set_process(false)
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(self, "scale", Vector3(1.0, 0.05, 1.0), 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	if _hay_comun():
+		# V6: se deshace por celdas con el borde brillante en vez de aplastarse; carbonizado del todo (ceniza) mientras tanto.
+		_poner_quemado(1.0)
+		tw.tween_method(_poner_disolver, 0.0, 1.0, T_DISOLVER)
+	else:
+		tw.tween_property(self, "scale", Vector3(1.0, 0.05, 1.0), T_DISOLVER).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	for s in _sprites:
 		tw.tween_property(s[0], "modulate:a", 0.0, 0.5)
 	tw.chain().tween_callback(queue_free)
@@ -1383,6 +1401,7 @@ func _recoger_materiales() -> void:
 			if mat is StandardMaterial3D:
 				var copia: Material = (mat as StandardMaterial3D).duplicate() as Material
 				copia = Ocluso3D.convertir(copia)      # con el círculo de transparencia del jugador (si está activo)
+				Ocluso3D.poner_caja(copia, mi.mesh)    # V6: la altura de la malla, para que el frente del quemado suba por ella
 				mi.set_surface_override_material(s, copia)
 				_mats.append([copia, Ocluso3D.color_de(copia)])
 	for n in visual.find_children("*", "SpriteBase3D", true, false):
@@ -1416,8 +1435,38 @@ func _poner_k(k: float) -> void:
 	_k = k
 	if tipo == "totem":
 		_pintar_emision(COLOR_ELEMENTO.get(elemento, Color.WHITE), 1.2 * k)
+	elif _hay_comun():
+		_poner_quemado(k)
 	else:
 		_pintar_tinte(k, CHAMUSCADO)
+
+
+## V6: ¿hay algún material común de Ocluso3D en este objeto (y el interruptor está puesto)? Si no, todo se dibuja como antes de V6.
+func _hay_comun() -> bool:
+	if not Ocluso3D.usar_quemado_disolver:
+		return false
+	for m in _mats:
+		if Ocluso3D.es_comun(m[0] as Material):
+			return true
+	return false
+
+
+## `quemado` 0..1 en los materiales comunes; lo que no lo es (sprites, materiales transparentes) conserva el tinte uniforme de antes.
+func _poner_quemado(v: float) -> void:
+	_quemado_v = v
+	for m in _mats:
+		if Ocluso3D.es_comun(m[0] as Material):
+			Ocluso3D.poner_quemado(m[0] as Material, v)
+		else:
+			Ocluso3D.poner_color(m[0] as Material, (m[1] as Color).lerp((m[1] as Color) * CHAMUSCADO, v))
+	for s in _sprites:
+		(s[0] as SpriteBase3D).modulate = (s[1] as Color).lerp((s[1] as Color) * CHAMUSCADO, v)
+
+
+func _poner_disolver(v: float) -> void:
+	_disolver_v = v
+	for m in _mats:
+		Ocluso3D.poner_disolver(m[0] as Material, v)
 
 
 func _crear_luz(c: Color, energia: float, rango: float, p: Vector3) -> OmniLight3D:
