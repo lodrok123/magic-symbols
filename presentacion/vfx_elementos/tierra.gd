@@ -54,7 +54,14 @@ const POLVO_VUELO_N: int = 14              ## partículas de polvo que deja atr�
 const CASCOTES_MIN: int = 3
 const CASCOTES_MAX: int = 5
 const CASCOTE_ESCALA_MIN: float = 0.8      ## los cascotes escalan con el impacto (esc), entre estos dos
-const CASCOTE_ESCALA_MAX: float = 2.0
+const CASCOTE_ESCALA_MAX: float = 1.5      ## (antes 2,0: con los cascotes más grandes de abajo, un impacto grande los volvía enormes)
+const CASCOTE_LADO_MIN: float = 0.20       ## lado mayor de un cascote al lanzarlo (u, × la escala del impacto): legible desde la cámara del juego (antes 0,10–0,20 u: no se distinguía la textura)
+const CASCOTE_LADO_MAX: float = 0.32
+const TERRONES_MIN: int = 2                ## el impacto lanza también terrones (los GLB terron_*): marrones, con textura, más pesados que los cascotes
+const TERRONES_MAX: int = 4
+const TERRON_IMPACTO_ESCALA: float = 0.8   ## lado mayor del terrón del impacto = el de MEDIDA (0,25–0,45 u) × esto × la escala del impacto
+const TERRON_VEL_K: float = 0.6            ## velocidad horizontal de un terrón respecto a la de un cascote (pesan más)
+const TERRON_SALTO_K: float = 0.8          ## ídem vertical
 const CASCOTE_SALTO_MIN: float = 2.5       ## velocidad vertical al saltar (u/s)
 const CASCOTE_SALTO_MAX: float = 4.5
 const CASCOTE_LATERAL_MIN: float = 1.2     ## velocidad horizontal (u/s)
@@ -63,7 +70,17 @@ const GRAVEDAD: float = 14.0
 const CASCOTE_REBOTES: int = 1
 const T_REPOSO: float = 1.5                ## s que se quedan en el suelo antes de hundirse
 const T_HUNDE: float = 0.45                ## s que tardan en hundirse
+## Polvo del impacto: ANTES era `VfxPuzle3D.polvo` (16 partículas de 0,8–1,9 u, nube naranja del 70 % que dominaba el dibujo) y piedrecitas grises. Ahora es propio de la
+## tierra: pocas partículas, pequeñas, muy translúcidas, pardas, bajas y que se disipan en medio segundo, para que se vean las piezas.
 const POLVO_IMPACTO: float = 0.55          ## radio del polvo del impacto = esto · esc (u)
+const POLVO_N: int = 9                     ## partículas (antes 16)
+const POLVO_VIDA: float = 0.55             ## s que dura cada una (antes 1,1)
+const POLVO_TAM_K: float = 0.45            ## tamaño de la partícula = radio · esto (antes 0,8–1,9 × radio)
+const POLVO_VEL_K: float = 1.1             ## velocidad inicial = radio · esto
+const POLVO_COLOR: Color = Color(0.50, 0.38, 0.26, 0.38)   ## tierra parda y translúcida (antes 0,74 / 0,64 / 0,52 con alfa 0,7: naranja pálido)
+const POLVO_ALTO: float = 0.03             ## a qué altura sobre el suelo nace (u)
+const POLVO_ABANICO: float = 70.0          ## grados de apertura (más bajo = más a ras de suelo)
+const POLVO_SUBE: float = 0.12             ## componente vertical de su dirección (0 = a ras)
 const SUELO_FALTA: float = 0.9             ## si no se encuentra suelo, cae esta altura por debajo del punto de impacto
 
 ## FORMAS QUIETAS
@@ -94,6 +111,7 @@ static var _hoja: Dictionary = {}          ## nombre del nodo -> Mesh de la lám
 static var _hoja_leida: bool = false
 static var _horneado: Dictionary = {}       ## id -> true: su malla es un GLB suelto ya horneado a la medida (no hace falta escalarla)
 static var _mat_solido: StandardMaterial3D = null
+static var ultimos_terrones: Array = []     ## los terrones del último `impacto` (las pruebas los leen; `impacto` devuelve solo los cascotes)
 
 
 ## Gira sobre un eje cualquiera (el terrón que rueda). Un nodo con _process en vez de un tween en bucle: muere con su padre.
@@ -423,35 +441,57 @@ static func proyectil(seg: Node3D, _d: Vector3, r_u: float) -> MeshInstance3D:
 ## y sale una nube de polvo pardo. `esc` = el tamaño del impacto (Proyectil.esc). Devuelve los cascotes.
 static func impacto(mundo: Node, pos: Vector3, esc: float, suelo: float = NAN, n: int = -1) -> Array:
 	var res: Array = []
+	ultimos_terrones = []
 	if mundo == null or not is_instance_valid(mundo) or not (mundo is Node3D):
 		return res
 	var y_suelo: float = suelo if not is_nan(suelo) else pos.y - SUELO_FALTA
 	var cuantos: int = n if n > 0 else randi_range(CASCOTES_MIN, CASCOTES_MAX)
 	var k: float = clampf(esc, CASCOTE_ESCALA_MIN, CASCOTE_ESCALA_MAX)
 	for i in range(cuantos):
-		var c := Cascote.new()
-		c.name = "CascoteVfx%d" % i
 		var id: String = "cascote_%d" % (randi() % N_CASCOTES)
-		var mi: MeshInstance3D = pieza(id)
-		mi.scale *= k
-		mi.position *= k
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		c.add_child(mi)
-		var med: Vector3 = MEDIDA[id]
-		c.esc_base = Vector3.ONE
-		c.apoyo = med.y * k * 0.35
-		c.suelo = y_suelo
-		c.t_reposo = T_REPOSO * randf_range(0.9, 1.15)
-		var a: float = TAU * (float(i) + randf()) / float(cuantos)
-		c.vel = Vector3(cos(a), 0.0, sin(a)) * randf_range(CASCOTE_LATERAL_MIN, CASCOTE_LATERAL_MAX) + Vector3(0.0, randf_range(CASCOTE_SALTO_MIN, CASCOTE_SALTO_MAX), 0.0)
-		c.giro = Vector3(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
-		c.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-		c.position = pos
-		(mundo as Node3D).add_child(c)
-		res.append(c)
+		var lado: float = randf_range(CASCOTE_LADO_MIN, CASCOTE_LADO_MAX) * k
+		res.append(_pieza_suelta(mundo as Node3D, "CascoteVfx%d" % i, id, lado, pos, y_suelo, 1.0, 1.0, TAU * (float(i) + randf()) / float(cuantos), 0.35))
+	# Terrones: pocos, más grandes y pesados (menos velocidad). Se guardan aparte: `impacto` sigue devolviendo solo los cascotes.
+	var n_terrones: int = randi_range(TERRONES_MIN, TERRONES_MAX)
+	for i in range(n_terrones):
+		var id_t: String = "terron_%d" % (randi() % N_TERRONES)
+		var med_t: Vector3 = MEDIDA[id_t]
+		var lado_t: float = maxf(med_t.x, maxf(med_t.y, med_t.z)) * TERRON_IMPACTO_ESCALA * k
+		var a_t: float = TAU * (float(i) + randf()) / float(n_terrones)
+		ultimos_terrones.append(_pieza_suelta(mundo as Node3D, "TerronVfx%d" % i, id_t, lado_t, pos, y_suelo, TERRON_VEL_K, TERRON_SALTO_K, a_t, 0.5))
 	if mundo.is_inside_tree():
-		VfxPuzle3D.polvo(mundo as Node3D, Vector3(pos.x, y_suelo + 0.05, pos.z), POLVO_IMPACTO * clampf(esc, 0.6, 3.0))
+		_polvo_impacto(mundo as Node3D, Vector3(pos.x, y_suelo + POLVO_ALTO, pos.z), POLVO_IMPACTO * clampf(esc, 0.6, 3.0))
 	return res
+
+
+## Una pieza (cascote o terrón) que salta de `pos` con gravedad, rebota, se queda en el suelo y se hunde (clase `Cascote`). `lado` = su lado mayor en u. `vel_k` y `salto_k`
+## multiplican la velocidad horizontal y vertical; `ang` = hacia dónde sale; `apoyo_k` = cuánto de su alto sube el centro sobre el suelo en reposo.
+static func _pieza_suelta(mundo: Node3D, nombre: String, id: String, lado: float, pos: Vector3, y_suelo: float, vel_k: float, salto_k: float, ang: float, apoyo_k: float) -> Cascote:
+	var c := Cascote.new()
+	c.name = nombre
+	var mi: MeshInstance3D = pieza(id)
+	var med: Vector3 = MEDIDA[id]
+	var k: float = lado / maxf(med.x, maxf(med.y, med.z))      # las piezas ya vienen al lado mayor de `MEDIDA`: esto las lleva al lado pedido
+	mi.scale *= k
+	mi.position *= k
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	c.add_child(mi)
+	c.esc_base = Vector3.ONE
+	c.apoyo = med.y * k * apoyo_k
+	c.suelo = y_suelo
+	c.t_reposo = T_REPOSO * randf_range(0.9, 1.15)
+	c.vel = Vector3(cos(ang), 0.0, sin(ang)) * randf_range(CASCOTE_LATERAL_MIN, CASCOTE_LATERAL_MAX) * vel_k + Vector3(0.0, randf_range(CASCOTE_SALTO_MIN, CASCOTE_SALTO_MAX) * salto_k, 0.0)
+	c.giro = Vector3(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0), randf_range(-6.0, 6.0))
+	c.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+	c.position = pos
+	mundo.add_child(c)
+	return c
+
+
+## Polvo del impacto (ver las constantes POLVO_*): una nube corta, baja y translúcida de tierra parda.
+static func _polvo_impacto(padre: Node3D, pos: Vector3, radio: float) -> void:
+	VfxPuzle3D._emisor(padre, pos, "polvo", POLVO_N, POLVO_VIDA, POLVO_TAM_K * radio, POLVO_VEL_K * radio,
+		{"color": POLVO_COLOR, "gravedad": 0.0, "abanico": POLVO_ABANICO, "direccion": Vector3(0.0, POLVO_SUBE, 0.0), "crece": true, "radio_emision": 0.3 * radio, "amortigua": 1.6})
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------

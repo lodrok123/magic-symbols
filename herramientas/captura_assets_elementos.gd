@@ -7,6 +7,9 @@ extends SceneTree
 ## Escribe <cosa>_<modo>.png: tierra_proyectil, tierra_impacto, tierra_muro, hielo_proyectil, hielo_impacto, hielo_barrera, viento_hojas, viento_remolino; y, solo
 ## «despues», catalogo_tierra, catalogo_hielo, hielo_escarcha, hielo_placa_rota. Pasa el nombre de un solo caso como tercer argumento para sacar solo ese.
 
+const TAM_NORMAL: Vector2i = Vector2i(1000, 620)
+const TAM_JUEGO: Vector2i = Vector2i(1280, 720)     ## 120 px por unidad de juego (cámara de 6 u de alto; un 1080p son 180)
+
 var _vp: SubViewport = null
 var _mundo: Node3D = null
 var _cam: Camera3D = null
@@ -41,21 +44,29 @@ func _correr() -> void:
 		_dir = ProjectSettings.globalize_path("res://" + _dir)
 	DirAccess.make_dir_recursive_absolute(_dir)
 	_vp = SubViewport.new()
-	_vp.size = Vector2i(1000, 620)
+	_vp.size = TAM_NORMAL
 	_vp.own_world_3d = true
 	_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(_vp)
 	_cam = Camera3D.new()
 	_vp.add_child(_cam)
 	var luz := DirectionalLight3D.new()
-	luz.rotation_degrees = Vector3(-50, 25, 0)
+	luz.rotation_degrees = Vector3(-55, 25, 0)
+	luz.light_color = Color(1.0, 0.96, 0.88)
+	luz.light_energy = 1.0
+	luz.directional_shadow_max_distance = 30.0
 	luz.shadow_enabled = true
 	_vp.add_child(luz)
+	# Luz y entorno COMO LA MAQUETA (prueba_test2.gd): ambiente lila claro a 0,6, sol cálido a (-55, 25), ajuste de color de Paleta3D, bloom y posproceso (Filmic 0,8, SSAO, FXAA).
 	var e := Environment.new()
 	e.background_mode = Environment.BG_COLOR
-	e.background_color = Color(0.50, 0.60, 0.68)
+	e.background_color = Color(0.81, 0.91, 0.94)
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	e.ambient_light_color = Color(0.7, 0.7, 0.7)
+	e.ambient_light_color = Color(0.95, 0.94, 1.0)
+	e.ambient_light_energy = 0.6
+	Paleta3D.aplicar_ajuste(e)
+	VfxKit3D.activar_glow(e)
+	Posproceso3D.aplicar_entorno(e, _vp)
 	var we := WorldEnvironment.new()
 	we.environment = e
 	_vp.add_child(we)
@@ -123,6 +134,25 @@ func _correr() -> void:
 		await _esperar(2.4)
 		_limpiar()
 
+	if _quiero("tierra_impacto_juego"):
+		# Cámara DEL JUEGO, en 3 momentos (0,15 / 0,5 / 1,3 s). «antes» reproduce el impacto de antes del ajuste (cascotes de 0,10–0,20 u, sin terrones, polvo de
+		# `VfxPuzle3D.polvo`); «despues» es el de ahora. Misma semilla en los dos para que las piezas caigan parecido.
+		seed(11)
+		VfxTierra.usar_modelos = true       # los dos con los GLB de Meshy (es lo que se ve en el juego); «antes» solo cambia tamaños, terrones y polvo
+		_camara_juego(Vector3(0.0, 0.4, 0.0))
+		_referencia(Vector3(-1.5, 0.0, 0.5))
+		if _modo == "antes":
+			_impacto_tierra_antiguo(Vector3(0.0, 1.0, 0.0), 1.28, 0.0)
+		else:
+			VfxTierra.impacto(_mundo, Vector3(0.0, 1.0, 0.0), 1.28, 0.0)
+		var t_ant: float = 0.0
+		for par in [[0.15, "1_0150ms"], [0.5, "2_0500ms"], [1.3, "3_1300ms"]]:
+			await _esperar(float(par[0]) - t_ant)
+			t_ant = float(par[0])
+			await _foto("tierra_impacto_juego_%s_%s" % [par[1], _modo])
+		await _esperar(2.4)
+		_limpiar()
+
 	if _quiero("tierra_muro"):
 		_poner_camara(Vector3(0.0, 3.4, 6.2), Vector3(0.0, 0.5, 0.0))
 		_ve._con_elemento("tierra", _ve._pieza_volumen.bind("tierra", _mundo, "barrera", Vector3.ZERO, Vector3.RIGHT, 0.8, 1.0, 8.0, false))
@@ -140,27 +170,45 @@ func _correr() -> void:
 		await _foto("hielo_proyectil_" + _modo)
 		_limpiar()
 		if nuevo:
-			# por defecto el cometa del kit; la esquirla de Meshy, para comparar, con VfxHielo.proyectil_esquirla = true
-			_poner_camara(Vector3(0.5, 1.4, 3.0), Vector3(0.5, 1.0, 0.0))
+			# la esquirla de Meshy (el valor por defecto, decisión de Pablo) y, para comparar, el cometa del kit (VfxHielo.proyectil_esquirla = false)
+			for variante in [["esquirla", true], ["cometa", false]]:
+				VfxHielo.proyectil_esquirla = bool(variante[1])
+				_poner_camara(Vector3(0.5, 1.4, 3.0), Vector3(0.5, 1.0, 0.0))
+				var seg_e := Node3D.new()
+				_mundo.add_child(seg_e)
+				seg_e.position = Vector3(0.5, 1.0, 0.0)
+				_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_e, Vector3.RIGHT, 0.5, 6.0))
+				await _esperar(0.5)
+				await _foto("hielo_proyectil_%s_%s" % [variante[0], _modo])
+				_limpiar()
+				# y a la cámara del juego, junto a la jugadora de referencia (r_u = 0,29 u: lo que mide la flecha de verdad)
+				_camara_juego(Vector3(0.0, 0.8, 0.0))
+				_referencia(Vector3(-1.2, 0.0, 0.0))
+				var seg_j := Node3D.new()
+				_mundo.add_child(seg_j)
+				seg_j.position = Vector3(0.6, 1.0, 0.0)
+				_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_j, Vector3.RIGHT, 0.29, 6.0))
+				await _esperar(0.5)
+				await _foto("hielo_proyectil_juego_%s_%s" % [variante[0], _modo])
+				_limpiar()
 			VfxHielo.proyectil_esquirla = true
-			var seg_e := Node3D.new()
-			_mundo.add_child(seg_e)
-			seg_e.position = Vector3(0.5, 1.0, 0.0)
-			_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_e, Vector3.RIGHT, 0.5, 6.0))
-			VfxHielo.proyectil_esquirla = false
-			await _esperar(0.5)
-			await _foto("hielo_proyectil_esquirla_" + _modo)
-			_limpiar()
-			# y a la cámara del juego, junto a la jugadora de referencia
-			_camara_juego(Vector3(0.0, 0.8, 0.0))
-			_referencia(Vector3(-1.2, 0.0, 0.0))
-			var seg_j := Node3D.new()
-			_mundo.add_child(seg_j)
-			seg_j.position = Vector3(0.6, 1.0, 0.0)
-			_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_j, Vector3.RIGHT, 0.4, 6.0))
-			await _esperar(0.5)
-			await _foto("hielo_proyectil_juego_" + _modo)
-			_limpiar()
+
+	if nuevo and _quiero("hielo_rayo"):
+		# El rayo de hielo (VfxHielo.rayo): cámara de cerca y cámara del juego, de la mano de la jugadora de referencia hacia la derecha, hasta el suelo.
+		seed(5)
+		_poner_camara(Vector3(0.8, 1.4, 4.4), Vector3(0.8, 0.5, 0.0))
+		VfxHielo.rayo(_mundo, Vector3(-1.0, 0.9, 0.0), Vector3(2.4, 0.1, 0.0), 3.0, 1.0, 0.0)
+		await _esperar(0.7)
+		await _foto("hielo_rayo_cerca_despues")
+		_limpiar()
+		_camara_juego(Vector3(0.6, 0.4, 0.0))
+		_referencia(Vector3(-1.9, 0.0, 0.0))
+		VfxHielo.rayo(_mundo, Vector3(-1.5, 0.9, 0.0), Vector3(2.3, 0.1, 0.0), 3.0, 1.0, 0.0)
+		for par in [[0.12, "1_0120ms"], [0.45, "2_0450ms"], [1.5, "3_1500ms"]]:
+			await _esperar(float(par[0]) - (0.0 if par[1] == "1_0120ms" else (0.12 if par[1] == "2_0450ms" else 0.45)))
+			await _foto("hielo_rayo_juego_%s_despues" % par[1])
+		await _esperar(2.4)
+		_limpiar()
 
 	if _quiero("hielo_impacto"):
 		_poner_camara(Vector3(0.0, 1.8, 4.2), Vector3(0.0, 0.5, 0.0))
@@ -262,17 +310,34 @@ func _correr() -> void:
 	quit()
 
 
+## El impacto de tierra de ANTES del ajuste (para la captura «antes»): cascotes de 0,10–0,20 u × la escala del impacto, sin terrones, y el polvo de `VfxPuzle3D.polvo`.
+func _impacto_tierra_antiguo(pos: Vector3, esc: float, suelo: float) -> void:
+	var k: float = clampf(esc, 0.8, 2.0)
+	for i in range(4):
+		var id: String = "cascote_%d" % (randi() % VfxTierra.N_CASCOTES)
+		var med: Vector3 = VfxTierra.MEDIDA[id]
+		VfxTierra._pieza_suelta(_mundo, "CascoteViejo%d" % i, id, maxf(med.x, maxf(med.y, med.z)) * k, pos, suelo, 1.0, 1.0, TAU * (float(i) + randf()) / 4.0, 0.35)
+	VfxPuzle3D.polvo(_mundo, Vector3(pos.x, suelo + 0.05, pos.z), VfxTierra.POLVO_IMPACTO * clampf(esc, 0.6, 3.0))
+
+
 func _poner_camara(pos: Vector3, mira: Vector3) -> void:
+	_vp.size = TAM_NORMAL
 	_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(pos, mira)
 	_cam.current = true
 
 
-## Cámara del juego: ortogonal, 6 u de alto (ZOOM_INICIAL de la maqueta), mirando hacia abajo unos 40°. `lejos` = lo que se aleja del punto mirado.
+## Cámara del juego, la de `prueba_test2.gd::_colocar_camara`: ortogonal, 6 u de alto (ZOOM_INICIAL), INCLINACION 60 (mira 30° por debajo del horizonte), a 40 u del
+## foco, near 0,1 y far 300; imagen 16:9 (120 px por unidad, dos tercios de un 1080p).
 func _camara_juego(mira: Vector3) -> void:
+	_vp.size = TAM_JUEGO
 	_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_cam.size = 6.0
-	_cam.look_at_from_position(mira + Vector3(0.0, 9.0, 9.0) * 1.0, mira)
+	_cam.near = 0.1
+	_cam.far = 300.0
+	var e: float = deg_to_rad(90.0 - 60.0)
+	var dir: Vector3 = -Vector3(0.0, sin(e), cos(e))
+	_cam.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), mira - dir * 40.0)
 	_cam.current = true
 
 

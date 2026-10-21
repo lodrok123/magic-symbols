@@ -561,6 +561,13 @@ func _chorro_forma(elemento: String, pie_origen: Vector3, pie_destino: Vector3, 
 	if dir.length() < 0.01:
 		dir = Vector3(0.0, 0.0, 1.0)
 	dir = dir.normalized()
+	if elemento == "hielo" and VfxHielo.activo():
+		# Rayo de hielo con los modelos (VfxHielo.usar_modelos): haz de cristal con la textura de la esquirla, esquirlas pequeñas y escarcha donde da.
+		_carga(elemento, pie_origen)
+		var mano_h: Vector3 = pie_origen + Vector3(0.0, 0.9 * escala, 0.0) + dir * 0.4 * escala
+		var punta_h: Vector3 = pie_origen + dir * maxf(largo, 1.0) * escala + Vector3(0.0, 0.1, 0.0)
+		VfxHielo.rayo(self, mano_h, punta_h, dura, escala, pie_destino.y)
+		return
 	if _estilo_nuevo(elemento):
 		# Haz continuo de la mano al suelo, a `largo` de distancia; en el extremo arde el impacto mientras dure.
 		_carga(elemento, pie_origen)

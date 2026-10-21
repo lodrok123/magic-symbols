@@ -23,7 +23,9 @@ extends ElementoVfx
 ##   · REACCIÓN  `escarcha_modelos`: lo que se congela (goblin atrapado): racimos pequeños y pinchos de escarcha alrededor del punto.
 ##   · AGUA      `placa_rota`: la placa helada del agua al romperse (4 trozos que se separan y se hunden). La llama `VfxElemento3D` al oír
 ##               `Mundo3D.impacto(punto, "hielo_roto", casilla)`, que avisa `Lanzador3D._hielo_cambio` cuando una casilla pierde su hielo.
-##   · VUELO     (nota) el proyectil de hielo es el cometa del kit salvo `proyectil_esquirla = true`.
+##   · VUELO     (nota) el proyectil de hielo es la esquirla; con `proyectil_esquirla = false` vuelve el cometa del kit.
+##   · RAYO      `rayo(padre, desde, hasta, dura, esc, suelo)`: haz de cristal (cilindros con el MISMO shader translúcido y la textura de la esquirla, estirada y
+##               corriendo a lo largo), esquirlas pequeñas que lo acompañan y racimos p + pinchos de escarcha donde da. Lo llama `Vfx3D._chorro_forma` (línea sola de hielo).
 
 const MEDIDA: Dictionary = {
 	"esquirla_hielo": Vector3(0.12, 0.12, 0.45),
@@ -66,6 +68,29 @@ const ESCARCHA_PINCHOS: int = 6
 const ESCARCHA_RACIMOS: int = 2
 const T_ESCARCHA: float = 1.8
 
+## RAYO (haz de cristal)
+const RAYO_RADIO: float = 0.22            ## radio del haz en el extremo lejano (u, × esc); en la mano es RAYO_RADIO_MANO_K veces eso
+const RAYO_RADIO_MANO_K: float = 0.35
+const RAYO_NUCLEO_K: float = 0.45          ## el corazón claro mide esto del radio del haz
+const RAYO_TEXEL: float = 0.6              ## largo (u) del haz que cubre UNA repetición de la textura de la esquirla
+const RAYO_REPITE_X: int = 2               ## repeticiones alrededor del haz (entero: sin costura)
+const RAYO_ACLARA: float = 0.12            ## cuánto se lleva el cristal exterior hacia el blanco (el modelo usa 0,5)
+const RAYO_SATURA: float = 0.7             ## cuánto del azul de la textura se conserva (el modelo, 0,2)
+const RAYO_SCROLL: float = 1.1            ## repeticiones/s que corre la textura de la mano hacia la punta
+const RAYO_SCROLL_NUCLEO: float = 2.2
+const RAYO_T_CRECE: float = 0.2            ## s que tarda el haz en crecer desde la mano
+const RAYO_T_FUNDE: float = 0.35           ## s que tarda en desvanecerse al final
+const RAYO_ESQUIRLAS_POR_U: float = 1.6    ## esquirlas pequeñas por unidad de largo
+const RAYO_ESQUIRLAS_MIN: int = 4
+const RAYO_ESQUIRLAS_MAX: int = 14
+const RAYO_ESQUIRLA_ESC_MIN: float = 0.45  ## escala respecto a la esquirla del proyectil (0,45 u de largo)
+const RAYO_ESQUIRLA_ESC_MAX: float = 0.85
+const RAYO_ESQUIRLA_LATERAL: float = 1.9   ## cuánto se apartan del eje, en radios del haz
+const RAYO_ESQUIRLA_DERIVA: float = 1.2    ## u/s que avanzan hacia la punta
+const RAYO_IMPACTO_PEQUENOS: int = 2       ## racimos pequeños donde da
+const RAYO_IMPACTO_PINCHOS: int = 4
+const RAYO_IMPACTO_RADIO: float = 0.4      ## a qué distancia (× esc) del punto brotan
+
 ## PLACA ROTA
 const T_PLACA_SEPARA: float = 0.35
 const T_PLACA_REPOSO: float = 1.2
@@ -74,9 +99,9 @@ const PLACA_SEPARACION: float = 0.3        ## u que se aparta cada trozo del cen
 const PLACA_INCLINA: float = 0.3           ## rad máx. que se ladea cada trozo (antes 0,18)
 
 static var usar_modelos: bool = true
-## Proyectil de hielo con la esquirla de Meshy. false (por defecto): el cometa brillante del kit (`VfxKit3D.bola` con cola), porque la esquirla actual tiene dos puntas
-## iguales y no se lee como proyectil. Impacto, barrera, escarcha y reacción siguen con los modelos. Ponerlo a true cuando llegue una esquirla mejor.
-static var proyectil_esquirla: bool = false
+## Proyectil de hielo con la esquirla de Meshy girando (DECISIÓN DE PABLO, 22/10, tras ver las capturas: «mejor que la bola»). true (por defecto): la esquirla.
+## false: vuelve el cometa brillante del kit (`VfxKit3D.bola` con cola). Impacto, barrera, escarcha y reacción usan los modelos en los dos casos.
+static var proyectil_esquirla: bool = true
 static var _modelos: Dictionary = {}       ## id -> Mesh o null (modelo horneado; las pruebas pueden poner uno)
 static var _prim: Dictionary = {}          ## id -> ArrayMesh (primitivas)
 static var _mats: Dictionary = {}          ## textura (instance id) -> material de hielo
@@ -306,6 +331,177 @@ static func proyectil(seg: Node3D, d: Vector3, r_u: float) -> MeshInstance3D:
 	giro.add_child(mi)
 	VfxKit3D.particulas(seg, Vector3.ZERO, COPOS_VUELO, 0.8, 0.1, 0.5, false, true, r_u * 0.7, -0.5, Vector3.UP, 180.0)
 	return mi
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# RAYO: haz de cristal de la mano al punto
+# ---------------------------------------------------------------------------------------------------------------------------------
+
+static var _sh_haz: Shader = null
+
+
+## La textura de la esquirla (la del GLB de Meshy), o null si no hay modelo / están apagados. Es la que lleva el haz.
+static func textura_esquirla() -> Texture2D:
+	var m: Mesh = _modelo("esquirla_hielo") if usar_modelos else null
+	if m != null and m.get_surface_count() > 0:
+		var src: Material = m.surface_get_material(0)
+		if src is StandardMaterial3D:
+			return (src as StandardMaterial3D).albedo_texture
+	return null
+
+
+## Material de un cilindro del haz: el MISMO tratamiento que `material_modelo` (textura casi sin color, aclarada a blanco azulado, translúcida con fresnel) pero la
+## textura se repite a lo largo (`RAYO_TEXEL`) y corre hacia la punta. `fade` (0–1) lo sube y baja al nacer y morir. Uno por haz (no se comparte: cada haz se desvanece solo).
+static func material_haz(tex: Texture2D, largo: float, nucleo: bool) -> ShaderMaterial:
+	var sm := ShaderMaterial.new()
+	sm.shader = _shader_haz()
+	if tex != null:
+		sm.set_shader_parameter("tex", tex)
+	sm.set_shader_parameter("repite", Vector2(1.0 if nucleo else float(RAYO_REPITE_X), maxf(largo / RAYO_TEXEL, 1.0) * (0.7 if nucleo else 1.0)))
+	sm.set_shader_parameter("scroll", RAYO_SCROLL_NUCLEO if nucleo else RAYO_SCROLL)
+	sm.set_shader_parameter("fade", 0.0)
+	if nucleo:
+		sm.set_shader_parameter("tinte", Vector3(0.92, 0.98, 1.0))
+		sm.set_shader_parameter("aclara", 0.8)
+		sm.set_shader_parameter("alfa_centro", 0.8)
+		sm.set_shader_parameter("alfa_borde", 0.95)
+		sm.set_shader_parameter("luz_propia", 0.35)
+	else:
+		sm.set_shader_parameter("aclara", RAYO_ACLARA)         # menos blanco que el modelo: que se lea la textura del cristal
+		sm.set_shader_parameter("satura", RAYO_SATURA)
+		sm.set_shader_parameter("alfa_centro", 0.5)
+		sm.set_shader_parameter("alfa_borde", 0.9)
+		sm.set_shader_parameter("luz_propia", 0.1)
+	return sm
+
+
+static func _shader_haz() -> Shader:
+	if _sh_haz == null:
+		_sh_haz = Shader.new()
+		_sh_haz.code = """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_disabled;
+uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec3 tinte : source_color = vec3(0.80, 0.92, 1.0);
+uniform vec2 repite = vec2(2.0, 4.0);  // repeticiones alrededor y a lo largo
+uniform float scroll = 1.1;            // repeticiones por segundo hacia la punta (el v del cilindro crece hacia la mano)
+uniform float satura = 0.2;
+uniform float aclara = 0.5;
+uniform float alfa_centro = 0.5;
+uniform float alfa_borde = 0.9;
+uniform float luz_propia = 0.2;
+uniform float fade = 1.0;
+void fragment() {
+	vec2 uv = vec2(UV.x * repite.x, UV.y * repite.y + TIME * scroll);
+	vec3 t = texture(tex, uv).rgb;
+	float l = dot(t, vec3(0.299, 0.587, 0.114));
+	vec3 c = mix(vec3(l), t, satura);
+	c = mix(c, tinte, 0.55);
+	c = mix(c, vec3(1.0), aclara * (0.4 + 0.6 * l));
+	float f = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 2.5);
+	ALBEDO = c;
+	ROUGHNESS = 0.18;
+	SPECULAR = 0.5;
+	EMISSION = tinte * luz_propia + vec3(0.55, 0.82, 1.0) * f * 0.35;
+	ALPHA = mix(alfa_centro, alfa_borde, f) * fade;
+}
+"""
+	return _sh_haz
+
+
+## RAYO de hielo de `desde` (la mano) a `hasta`, de `dura` s: un haz de cristal (dos cilindros de la textura de la esquirla, estirada y corriendo hacia la punta;
+## el interior más claro), esquirlas pequeñas que giran y avanzan a lo largo, y donde da brotan racimos pequeños y pinchos de escarcha (`suelo` = y del suelo;
+## NAN = la del punto). `esc` = tamaño (1 = normal). Crece desde la mano en `RAYO_T_CRECE` s y se desvanece al final. Devuelve la raíz (+Z = hacia `hasta`);
+## el impacto cuelga de `padre` y se libera solo.
+static func rayo(padre: Node3D, desde: Vector3, hasta: Vector3, dura: float = 1.0, esc: float = 1.0, suelo: float = NAN) -> Node3D:
+	if padre == null or not is_instance_valid(padre) or not padre.is_inside_tree():
+		return null
+	var d: Vector3 = hasta - desde
+	var largo: float = maxf(d.length(), 0.5)
+	var dir: Vector3 = d.normalized() if d.length() > 0.001 else Vector3.RIGHT
+	var k: float = maxf(esc, 0.3)
+	var vida: float = maxf(dura, 0.3)
+	var raiz := Node3D.new()
+	raiz.name = "RayoHielo"
+	padre.add_child(raiz)
+	var arriba: Vector3 = Vector3.UP if absf(dir.y) < 0.95 else Vector3.RIGHT
+	raiz.transform = Transform3D(Basis.looking_at(-dir, arriba), desde)         # la +Z de la raíz (y de las esquirlas) apunta hacia donde va el haz
+	# El haz: cilindros con el eje Y girado a +Z; la mano en el origen, la punta (más gruesa) en `largo`.
+	var haz := Node3D.new()
+	haz.name = "Haz"
+	haz.rotation = Vector3(PI * 0.5, 0.0, 0.0)
+	raiz.add_child(haz)
+	var tex: Texture2D = textura_esquirla()
+	var mats: Array[ShaderMaterial] = []
+	for nucleo in [false, true]:
+		var mesh := CylinderMesh.new()
+		var r: float = RAYO_RADIO * k * (RAYO_NUCLEO_K if nucleo else 1.0)
+		mesh.top_radius = r
+		mesh.bottom_radius = r * RAYO_RADIO_MANO_K
+		mesh.height = largo
+		mesh.radial_segments = 12
+		mesh.rings = 1
+		mesh.cap_top = false
+		mesh.cap_bottom = false
+		var mat: ShaderMaterial = material_haz(tex, largo, nucleo)
+		mats.append(mat)
+		var mi := MeshInstance3D.new()
+		mi.name = "Nucleo" if nucleo else "Cristal"
+		mi.mesh = mesh
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = Vector3(0.0, largo * 0.5, 0.0)
+		haz.add_child(mi)
+	haz.scale = Vector3(1.0, 0.04, 1.0)
+	var tc: Tween = haz.create_tween().set_parallel(true)
+	tc.tween_property(haz, "scale:y", 1.0, RAYO_T_CRECE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	for m in mats:
+		tc.tween_property(m, "shader_parameter/fade", 1.0, RAYO_T_CRECE)
+	# Esquirlas pequeñas a lo largo del haz: aparecen según crece, giran sobre su eje y derivan hacia la punta.
+	var n: int = clampi(roundi(largo * RAYO_ESQUIRLAS_POR_U), RAYO_ESQUIRLAS_MIN, RAYO_ESQUIRLAS_MAX)
+	for i in range(n):
+		var t: float = (float(i) + 0.1 + randf() * 0.8) / float(n)
+		var giro := Giro.new()
+		giro.name = "EsquirlaRayoGiro%d" % i
+		giro.w = randf_range(-3.5, 3.5)
+		var a: float = randf() * TAU
+		var lat: float = RAYO_RADIO * k * RAYO_ESQUIRLA_LATERAL * randf_range(0.6, 1.4) * (RAYO_RADIO_MANO_K + (1.0 - RAYO_RADIO_MANO_K) * t)
+		var z0: float = largo * t
+		giro.position = Vector3(cos(a) * lat, sin(a) * lat, z0)
+		giro.scale = Vector3.ZERO
+		raiz.add_child(giro)
+		var e: MeshInstance3D = pieza("esquirla_hielo")
+		e.name = "esquirla_hielo_rayo"
+		e.scale = Vector3.ONE * randf_range(RAYO_ESQUIRLA_ESC_MIN, RAYO_ESQUIRLA_ESC_MAX) * k
+		e.rotation = Vector3(randf_range(-0.35, 0.35), randf_range(-0.35, 0.35), 0.0)
+		giro.add_child(e)
+		var espera: float = t * RAYO_T_CRECE
+		var tw: Tween = giro.create_tween()
+		tw.tween_interval(espera)
+		tw.tween_property(giro, "scale", Vector3.ONE, 0.12)
+		tw.tween_interval(maxf(vida - espera - 0.12, 0.0))
+		tw.tween_property(giro, "scale", Vector3.ZERO, RAYO_T_FUNDE)
+		var tp: Tween = giro.create_tween()
+		tp.tween_property(giro, "position:z", minf(z0 + RAYO_ESQUIRLA_DERIVA * (vida + RAYO_T_FUNDE), largo), vida + RAYO_T_FUNDE)
+	# Impacto: racimos pequeños y pinchos de escarcha donde da (brotan cuando el haz llega).
+	var y_s: float = suelo if not is_nan(suelo) else hasta.y
+	var base := Vector3(hasta.x, y_s, hasta.z)
+	var ki: float = clampf(k, 0.6, 2.0)
+	var reposo: float = maxf(vida - RAYO_T_CRECE - T_BROTA, 0.2)
+	var a0: float = randf() * TAU
+	for i in range(RAYO_IMPACTO_PEQUENOS):
+		var a: float = a0 + TAU * float(i) / float(RAYO_IMPACTO_PEQUENOS)
+		_brotar(padre, "racimo_hielo_p", base + Vector3(cos(a), 0.0, sin(a)) * RAYO_IMPACTO_RADIO * 0.5 * ki, ki, randf() * TAU, RAYO_T_CRECE + randf() * 0.1, reposo)
+	for i in range(RAYO_IMPACTO_PINCHOS):
+		var a: float = a0 + TAU * (float(i) + 0.5) / float(RAYO_IMPACTO_PINCHOS) + randf_range(-0.25, 0.25)
+		_brotar(padre, "pincho_escarcha_%d" % (i % N_PINCHOS), base + Vector3(cos(a), 0.0, sin(a)) * RAYO_IMPACTO_RADIO * ki * randf_range(1.0, 1.5), ki, randf() * TAU, RAYO_T_CRECE + randf() * 0.15, reposo)
+	# Fin: el haz se desvanece y la raíz se libera.
+	var tf: Tween = raiz.create_tween()
+	tf.tween_interval(vida)
+	tf.tween_property(mats[0], "shader_parameter/fade", 0.0, RAYO_T_FUNDE)
+	tf.parallel().tween_property(mats[1], "shader_parameter/fade", 0.0, RAYO_T_FUNDE)
+	tf.tween_callback(raiz.queue_free)
+	return raiz
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------

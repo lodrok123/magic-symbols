@@ -7,7 +7,8 @@ extends SceneTree
 ##   3. El material de hielo es translúcido (ShaderMaterial con alfa), no el opaco del GLB.
 ##   4. Enganche: el proyectil de tierra y el de hielo dibujan el modelo; el de hielo apunta con la punta (+Z) hacia donde va; impacto, racimos que brotan, escarcha y
 ##      placa rota crean piezas y se liberan solos; el remolino de viento lleva tarjetas de la fila 3 del atlas y las hojas usan el atlas.
-##   5. El proyectil de hielo es el cometa del kit por defecto (`VfxHielo.proyectil_esquirla = false`); con true lleva la esquirla; con los modelos apagados, la bola.
+##   5. El proyectil de hielo es la esquirla girando por defecto (`VfxHielo.proyectil_esquirla = true`); con false vuelve el cometa; con los modelos apagados, la bola.
+##   7. Impacto de tierra legible (terrones + cascotes 0,2–0,32 u + polvo propio, corto y translúcido; GLB con textura de tierra). 8. Rayo de hielo (`VfxHielo.rayo`).
 ##   6. Placa rota: al fundirse o soltarse el hielo del agua, `Lanzador3D` avisa «hielo_roto» por `Mundo3D.impacto` y `VfxElemento3D` dibuja `VfxHielo.placa_rota`.
 ##   4b. Hojas de viento de 0,25–0,5 u y tarjetas de remolino de 0,5–1,0 u.
 ##   godot --headless --path . --fixed-fps 30 -s res://herramientas/prueba_assets_elementos.gd
@@ -50,6 +51,8 @@ func _correr() -> void:
 	await _viento()
 	_interruptor_hielo()
 	await _placa_al_romper_hielo()
+	await _tierra_legible()
+	await _rayo_hielo()
 	_mundo.queue_free()
 	await process_frame
 	print("FALLOS: %d" % _fallos)
@@ -263,10 +266,10 @@ func _enganche() -> void:
 	VfxReaccion3D.escarcha(_mundo, Vector3(70, 0, 0), 1.0)
 	_ok(_hijos("pincho_escarcha_*").size() > antes, "VfxReaccion3D.escarcha (reacción «congelado») saca pinchos de escarcha")
 	await _esperar(0.6)
-	_ok(_hijos("racimo_hielo_*").size() > 0 and _hijos("terron_*").size() == 0, "durante el efecto las piezas están en el árbol")
+	_ok(_hijos("racimo_hielo_*").size() > 0 and _hijos("terron_*").size() > 0, "durante el efecto las piezas (racimos de hielo, terrones del impacto de tierra) están en el árbol")
 	await _esperar(4.2)
-	_ok(_hijos("racimo_hielo_*").is_empty() and _hijos("pincho_escarcha_*").is_empty() and _hijos("placa_hielo_rota_*").is_empty() and _hijos("cascote_*").is_empty(),
-		"al acabar no queda ninguna pieza viva de hielo ni de tierra")
+	_ok(_hijos("racimo_hielo_*").is_empty() and _hijos("pincho_escarcha_*").is_empty() and _hijos("placa_hielo_rota_*").is_empty() and _hijos("cascote_*").is_empty() and _hijos("terron_*").is_empty(),
+		"al acabar no queda ninguna pieza viva de hielo ni de tierra (cascotes y terrones incluidos)")
 	_ok(_hijos("bloque_tierra_*").is_empty(), "ni bloques de tierra")
 
 
@@ -300,15 +303,31 @@ func _viento() -> void:
 	var rem: Node3D = VfxViento.remolino(_mundo, Vector3(80, 0, 0), 1.2, 0.0)
 	var tarjetas: Array = rem.find_children("remolino_*", "MeshInstance3D", true, false)
 	var fila3: bool = tarjetas.size() > 0
+	var mascara: bool = VfxViento.remolino_mascara
 	for t in tarjetas:
-		var m3: StandardMaterial3D = (t as MeshInstance3D).material_override as StandardMaterial3D
-		fila3 = fila3 and absf(m3.uv1_offset.y - 0.75) < 0.001 and m3.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED and m3.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+		var mo: Material = (t as MeshInstance3D).material_override
+		if mo is ShaderMaterial:
+			# con `remolino_mascara`: ShaderMaterial (forma del atlas, color COLOR_CINTA); la casilla va en el uniform `uv_desfase`
+			fila3 = fila3 and mascara and absf((mo as ShaderMaterial).get_shader_parameter("uv_desfase").y - 0.75) < 0.001
+		else:
+			var m3: StandardMaterial3D = mo as StandardMaterial3D
+			fila3 = fila3 and not mascara and m3 != null and absf(m3.uv1_offset.y - 0.75) < 0.001 and m3.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED and m3.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
 	var rem_ok: bool = tarjetas.size() > 0
 	for t in tarjetas:
 		var lt: float = ((t as MeshInstance3D).mesh as QuadMesh).size.x
 		rem_ok = rem_ok and lt >= 0.5 - 1e-4 and lt <= 1.0 + 1e-4
 	_ok(rem_ok, "las tarjetas de remolino miden entre 0,5 y 1,0 u (la jugadora ≈ 1 u)")
 	_ok(fila3, "el remolino de impacto lleva %d tarjetas de la fila 3 (remolinos blancos, billboard, mezcla alfa)" % tarjetas.size())
+	_ok(mascara, "por defecto VfxViento.remolino_mascara = true (tarjetas con ShaderMaterial)")
+	VfxViento.remolino_mascara = false
+	var rem_ant: Node3D = VfxViento.remolino(_mundo, Vector3(85, 0, 0), 1.2, 0.0)
+	var tarj_ant: Array = rem_ant.find_children("remolino_*", "MeshInstance3D", true, false)
+	var antiguo: bool = tarj_ant.size() > 0
+	for t in tarj_ant:
+		var ma: StandardMaterial3D = (t as MeshInstance3D).material_override as StandardMaterial3D
+		antiguo = antiguo and ma != null and absf(ma.uv1_offset.y - 0.75) < 0.001 and ma.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED and ma.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+	VfxViento.remolino_mascara = mascara
+	_ok(antiguo, "con remolino_mascara = false las tarjetas vuelven al StandardMaterial3D de antes (%d, uv1_offset, billboard, alfa)" % tarj_ant.size())
 	var pie := Node3D.new()
 	_mundo.add_child(pie)
 	var tor: Node3D = VfxViento.torbellino(pie, Vector3.UP, 0.8, 2.0, 3.0)
@@ -323,28 +342,35 @@ func _viento() -> void:
 
 
 func _interruptor_hielo() -> void:
-	print("--- 5. proyectil de hielo: cometa del kit por defecto; esquirla solo con VfxHielo.proyectil_esquirla")
+	print("--- 5. proyectil de hielo: esquirla por defecto (decisión de Pablo); con VfxHielo.proyectil_esquirla = false vuelve el cometa del kit")
 	var hv := VfxElemento3D.new()
 	_mundo.add_child(hv)
 	VfxHielo.usar_modelos = true
-	_ok(not VfxHielo.proyectil_esquirla and not VfxHielo.proyectil_con_esquirla(), "por defecto proyectil_esquirla = false")
+	VfxHielo.proyectil_esquirla = true
+	_ok(VfxHielo.proyectil_esquirla and VfxHielo.proyectil_con_esquirla(), "por defecto proyectil_esquirla = true")
 	var seg0 := Node3D.new()
 	_mundo.add_child(seg0)
 	hv._pieza_proyectil("hielo", seg0, Vector3.RIGHT, 0.3, 4.0)
-	_ok(seg0.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg0.get_child_count() > 0, "por defecto el proyectil de hielo es la bola del kit (cometa), sin esquirla")
-	_ok(not seg0.find_children("*", "GPUParticles3D", true, false).is_empty() or not seg0.find_children("*", "MeshInstance3D", true, false).is_empty(), "y lleva cuerpo y cola del kit")
-	var cola0: Array = hv._recoger_cola(seg0, "hielo")
-	var mallas_no_esfera: int = 0
-	for n in seg0.find_children("*", "MeshInstance3D", true, false):
-		if not ((n as MeshInstance3D).mesh is SphereMesh):
-			mallas_no_esfera += 1
-	_ok(mallas_no_esfera == 0 or cola0.size() >= mallas_no_esfera, "la cola de cometa se recoge como cola (se apaga al pararse): %d nodos" % cola0.size())
-	VfxHielo.proyectil_esquirla = true
+	_ok(not seg0.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty(), "por defecto el proyectil de hielo lleva la esquirla")
+	var giros: Array = seg0.find_children("EsquirlaGiro", "Node3D", true, false)
+	_ok(giros.size() == 1 and giros[0].has_method("_process"), "y la esquirla GIRA sobre su eje (nodo con _process)")
+	var cola_e: Array = hv._recoger_cola(seg0, "hielo")
+	var mallas_cola: int = 0
+	for n in cola_e:
+		if n is MeshInstance3D:
+			mallas_cola += 1
+	_ok(mallas_cola == 0, "la esquirla es el cuerpo, no cola (solo se recogen partículas: %d nodos)" % cola_e.size())
+	VfxHielo.proyectil_esquirla = false
 	var seg := Node3D.new()
 	_mundo.add_child(seg)
 	hv._pieza_proyectil("hielo", seg, Vector3.RIGHT, 0.3, 4.0)
-	_ok(not seg.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty(), "con proyectil_esquirla = true el proyectil de hielo lleva la esquirla")
-	VfxHielo.proyectil_esquirla = false
+	_ok(seg.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg.get_child_count() > 0, "con proyectil_esquirla = false vuelve la bola del kit (cometa), sin esquirla")
+	var cola0: Array = hv._recoger_cola(seg, "hielo")
+	var mallas_no_esfera: int = 0
+	for n in seg.find_children("*", "MeshInstance3D", true, false):
+		if not ((n as MeshInstance3D).mesh is SphereMesh):
+			mallas_no_esfera += 1
+	_ok(mallas_no_esfera == 0 or cola0.size() >= mallas_no_esfera, "y la cola de cometa se recoge como cola (se apaga al pararse): %d nodos" % cola0.size())
 	var seg2 := Node3D.new()
 	_mundo.add_child(seg2)
 	VfxHielo.usar_modelos = false
@@ -352,9 +378,121 @@ func _interruptor_hielo() -> void:
 	hv._pieza_proyectil("hielo", seg2, Vector3.RIGHT, 0.3, 4.0)
 	_ok(seg2.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg2.get_child_count() > 0, "con los modelos apagados vuelve la bola del kit aunque proyectil_esquirla sea true")
 	VfxHielo.usar_modelos = true
-	VfxHielo.proyectil_esquirla = false
+	VfxHielo.proyectil_esquirla = true
 	hv.free()
 
+
+## --- 7. Impacto de tierra legible: terrones + cascotes más grandes + polvo corto y translúcido; GLB con su textura y color tierra ---
+func _tierra_legible() -> void:
+	print("--- 7. impacto de tierra legible")
+	VfxTierra.usar_modelos = true
+	var k: float = clampf(1.2, VfxTierra.CASCOTE_ESCALA_MIN, VfxTierra.CASCOTE_ESCALA_MAX)
+	var cas: Array = VfxTierra.impacto(_mundo, Vector3(110, 1, 0), 1.2, 0.0, 5)
+	var ter: Array = VfxTierra.ultimos_terrones.duplicate()
+	_okc("el impacto devuelve los cascotes (5) y lanza además entre %d y %d terrones" % [VfxTierra.TERRONES_MIN, VfxTierra.TERRONES_MAX], cas.size() == 5 and ter.size() >= VfxTierra.TERRONES_MIN and ter.size() <= VfxTierra.TERRONES_MAX, "%d terrones" % ter.size())
+	var terr_ok: bool = not ter.is_empty()
+	for t in ter:
+		var mi: MeshInstance3D = (t as Node3D).get_child(0) as MeshInstance3D
+		terr_ok = terr_ok and mi.name.begins_with("terron_") and bool(mi.get_meta("modelo"))
+	_okc("los terrones son los GLB terron_* de Meshy", terr_ok)
+	var lados_ok: bool = true
+	var lmin: float = INF
+	var lmax: float = 0.0
+	for c in cas:
+		var mi: MeshInstance3D = (c as Node3D).get_child(0) as MeshInstance3D
+		var a: AABB = mi.mesh.get_aabb()
+		var lado: float = maxf(a.size.x, maxf(a.size.y, a.size.z)) * mi.scale.x
+		lmin = minf(lmin, lado)
+		lmax = maxf(lmax, lado)
+		lados_ok = lados_ok and lado >= VfxTierra.CASCOTE_LADO_MIN * k - 0.01 and lado <= VfxTierra.CASCOTE_LADO_MAX * k + 0.01
+	_okc("los cascotes miden %.2f–%.2f u (legibles: %.2f–%.2f × escala %.2f; antes 0,10–0,20)" % [lmin, lmax, VfxTierra.CASCOTE_LADO_MIN, VfxTierra.CASCOTE_LADO_MAX, k], lados_ok and VfxTierra.CASCOTE_LADO_MIN >= 0.2 and VfxTierra.CASCOTE_LADO_MAX <= 0.35)
+	var lt_ok: bool = true
+	for t in ter:
+		var mi: MeshInstance3D = (t as Node3D).get_child(0) as MeshInstance3D
+		var a: AABB = mi.mesh.get_aabb()
+		var lado: float = maxf(a.size.x, maxf(a.size.y, a.size.z)) * mi.scale.x
+		lt_ok = lt_ok and lado >= 0.25 * VfxTierra.TERRON_IMPACTO_ESCALA * k - 0.01 and lado <= 0.45 * VfxTierra.TERRON_IMPACTO_ESCALA * k + 0.01
+	_okc("los terrones miden entre 0,25 y 0,45 u × %.1f × escala" % VfxTierra.TERRON_IMPACTO_ESCALA, lt_ok)
+	# polvo: propio, corto y translúcido (no VfxPuzle3D.polvo)
+	var polvos: Array = _mundo.find_children("*", "GPUParticles3D", true, false).filter(func(g: Node) -> bool: return (g as GPUParticles3D).amount == VfxTierra.POLVO_N)
+	var pol_ok: bool = not polvos.is_empty()
+	for g in polvos:
+		pol_ok = pol_ok and absf((g as GPUParticles3D).lifetime - VfxTierra.POLVO_VIDA) < 0.001
+	_okc("el polvo es el de la tierra: %d partículas, vida %.2f s (antes 16 y 1,1 s)" % [VfxTierra.POLVO_N, VfxTierra.POLVO_VIDA], pol_ok and VfxTierra.POLVO_N < 16 and VfxTierra.POLVO_VIDA < 1.1)
+	_okc("y es translúcido y pardo (alfa %.2f, antes 0,70; rojo > azul)" % VfxTierra.POLVO_COLOR.a, VfxTierra.POLVO_COLOR.a <= 0.45 and VfxTierra.POLVO_COLOR.r > VfxTierra.POLVO_COLOR.b + 0.15)
+	# GLB: textura de albedo y color tierra (media de la textura marrón, no gris lila)
+	var ids_ok: bool = true
+	var tierra_ok: bool = true
+	var info: String = ""
+	for id in ["terron_0", "terron_3", "cascote_0", "cascote_2"]:
+		var m: Mesh = VfxTierra.pieza(id).mesh
+		var mat: Material = m.surface_get_material(0)
+		var tex: Texture2D = (mat as StandardMaterial3D).albedo_texture if mat is StandardMaterial3D else null
+		ids_ok = ids_ok and tex != null and (mat as StandardMaterial3D).shading_mode == BaseMaterial3D.SHADING_MODE_PER_PIXEL
+		if tex != null:
+			var img: Image = tex.get_image()
+			if img.is_compressed():
+				img.decompress()
+			var r: float = 0.0
+			var g: float = 0.0
+			var b: float = 0.0
+			var cnt: int = 0
+			for y in range(0, img.get_height(), 16):
+				for x in range(0, img.get_width(), 16):
+					var col: Color = img.get_pixel(x, y)
+					r += col.r
+					g += col.g
+					b += col.b
+					cnt += 1
+			tierra_ok = tierra_ok and r > g and g > b and r - b > 0.2 * (r / cnt) * cnt
+			info = "media (%.2f, %.2f, %.2f)" % [r / cnt, g / cnt, b / cnt]
+	_okc("los GLB de tierra llevan su textura de albedo y sombreado normal (iluminados, no lisos)", ids_ok)
+	_okc("y la textura es de tierra (rojo > verde > azul, no gris lila): " + info, tierra_ok)
+	await _esperar(0.3)
+
+
+## --- 8. Rayo de hielo: haz de cristal con la textura de la esquirla ---
+func _rayo_hielo() -> void:
+	print("--- 8. rayo de hielo (VfxHielo.rayo)")
+	VfxHielo.usar_modelos = true
+	var padre := Node3D.new()
+	_mundo.add_child(padre)
+	var desde := Vector3(0, 1, 0)
+	var hasta := Vector3(3, 0.2, 4)
+	var dir: Vector3 = (hasta - desde).normalized()
+	var raiz: Node3D = VfxHielo.rayo(padre, desde, hasta, 1.0, 1.0, 0.0)
+	_okc("el rayo devuelve su raíz, en la mano y con +Z hacia el punto (producto escalar %.3f)" % raiz.global_transform.basis.z.dot(dir), raiz != null and raiz.position.is_equal_approx(desde) and raiz.global_transform.basis.z.dot(dir) > 0.99)
+	var cil: Array = raiz.find_children("*", "MeshInstance3D", true, false).filter(func(n: Node) -> bool: return (n as MeshInstance3D).mesh is CylinderMesh)
+	_okc("el haz son 2 cilindros (cristal y núcleo)", cil.size() == 2)
+	var largo: float = desde.distance_to(hasta)
+	var tex: Texture2D = VfxHielo.textura_esquirla()
+	var mat_ok: bool = cil.size() == 2 and tex != null
+	var largo_ok: bool = cil.size() == 2
+	for c in cil:
+		var m: Material = (c as MeshInstance3D).material_override
+		mat_ok = mat_ok and m is ShaderMaterial and (m as ShaderMaterial).get_shader_parameter("tex") == tex and (m as ShaderMaterial).shader.code.contains("ALPHA") and (m as ShaderMaterial).shader.code.contains("TIME")
+		largo_ok = largo_ok and absf(((c as MeshInstance3D).mesh as CylinderMesh).height - largo) < 0.01
+	_okc("lleva el shader translúcido de hielo con la TEXTURA DE LA ESQUIRLA, que corre (TIME)", mat_ok)
+	_okc("y mide lo que la distancia mano–punto (%.2f u)" % largo, largo_ok)
+	var esq: Array = raiz.find_children("esquirla_hielo_rayo", "MeshInstance3D", true, false)
+	_okc("esquirlas pequeñas a lo largo del haz (%d, entre %d y %d)" % [esq.size(), VfxHielo.RAYO_ESQUIRLAS_MIN, VfxHielo.RAYO_ESQUIRLAS_MAX], esq.size() >= VfxHielo.RAYO_ESQUIRLAS_MIN and esq.size() <= VfxHielo.RAYO_ESQUIRLAS_MAX)
+	var chicas: bool = not esq.is_empty()
+	for e in esq:
+		chicas = chicas and bool((e as MeshInstance3D).get_meta("modelo")) and (e as MeshInstance3D).scale.x <= VfxHielo.RAYO_ESQUIRLA_ESC_MAX + 0.001
+	_okc("y son el modelo de la esquirla a escala pequeña", chicas)
+	await _esperar(0.7)
+	_okc("donde da brotan %d racimos pequeños y %d pinchos de escarcha" % [VfxHielo.RAYO_IMPACTO_PEQUENOS, VfxHielo.RAYO_IMPACTO_PINCHOS],
+		padre.find_children("racimo_hielo_p_*", "MeshInstance3D", true, false).size() == VfxHielo.RAYO_IMPACTO_PEQUENOS and padre.find_children("pincho_escarcha_*", "MeshInstance3D", true, false).size() == VfxHielo.RAYO_IMPACTO_PINCHOS)
+	var fade_ok: bool = cil.size() == 2
+	for c in cil:
+		fade_ok = fade_ok and float(((c as MeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("fade")) > 0.95
+	_okc("a los 0,7 s el haz ya está entero (fade ≈ 1)", fade_ok)
+	await _esperar(1.8)
+	_okc("tras su duración el haz y el impacto se liberan solos", not is_instance_valid(raiz) and padre.find_children("racimo_hielo_p_*", "MeshInstance3D", true, false).is_empty() and padre.find_children("pincho_escarcha_*", "MeshInstance3D", true, false).is_empty())
+	VfxHielo.usar_modelos = false
+	_okc("con los modelos apagados el rayo tiene textura null y no revienta", VfxHielo.textura_esquirla() == null)
+	VfxHielo.usar_modelos = true
+	padre.queue_free()
 
 class MundoFalso extends Node3D:
 	var _lado: int = 6

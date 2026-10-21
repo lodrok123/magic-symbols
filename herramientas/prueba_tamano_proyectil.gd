@@ -46,8 +46,9 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 func _initialize() -> void:
 	await process_frame
-	# ANTES_CAJA["ice"] es la del cometa del kit (bola + cola): es lo que dibuja el proyectil de hielo por defecto (`VfxHielo.proyectil_esquirla = false`), sin apagar los modelos.
-	_ok("el proyectil de hielo es el cometa del kit con los interruptores por defecto", VfxHielo.usar_modelos and not VfxHielo.proyectil_esquirla)
+	# ANTES_CAJA["ice"] es la del cometa del kit (bola + cola). Por defecto el proyectil de hielo es la ESQUIRLA girando (`VfxHielo.proyectil_esquirla = true`, decisión de Pablo): su caja es
+	# la esquirla de largo r_u · ESQUIRLA_LARGO_K (r_u = semieje de vuelo en u; ver `_visual`). Con `proyectil_esquirla = false` vuelve el cometa y se compara con ANTES_CAJA.
+	_ok("el proyectil de hielo es la esquirla con los interruptores por defecto", VfxHielo.usar_modelos and VfxHielo.proyectil_esquirla)
 	_montar()
 	print("--- ESCALA_PROYECTIL = %.2f · casilla = %.2f u" % [Hechizo.ESCALA_PROYECTIL, Terreno3D.casilla])
 	_hechizo()
@@ -186,7 +187,10 @@ func _visual() -> void:
 			medidas[el] = caja
 			var antes: float = float(ANTES_CAJA[el])
 			print("     %s: caja del dibujo %.3f u (antes %.3f)" % [el, caja, antes])
-			if antes > 0.0:
+			if el == "ice" and VfxHielo.proyectil_con_esquirla():
+				var largo_e: float = maxf(Sigils.RADIO_BASE_V2 * cas * Hechizo.ESCALA_PROYECTIL * VfxHielo.ESQUIRLA_LARGO_K, (VfxHielo.MEDIDA["esquirla_hielo"] as Vector3).z)
+				_ok("ice: la esquirla mide %.3f u (r_u × %.1f = %.3f; el cometa de antes medía %.3f)" % [caja, VfxHielo.ESQUIRLA_LARGO_K, largo_e, antes * Hechizo.ESCALA_PROYECTIL], absf(caja - largo_e) < 0.06)
+			elif antes > 0.0:
 				_ok("%s: el dibujo mide ×%.3f de lo de antes (esperado ×%.2f)" % [el, caja / antes, Hechizo.ESCALA_PROYECTIL], absf(caja - antes * Hechizo.ESCALA_PROYECTIL) < (0.2 if el in ["earth", "wind"] else 0.03) * antes + 0.005)         # tierra (terrones al azar) y viento (anillos que se animan) cambian ±10-15 % de caja según el fotograma; el resto es exacto
 			var esc_antes: float = clampf(Sigils.RADIO_BASE_V2 * cas / 0.45, VfxElemento3D.ESCALA_VOL_MIN, VfxElemento3D.ESCALA_VOL_MAX)
 			_ok("%s: el impacto (Proyectil.esc = %.3f) no se encoge (era %.3f)" % [el, seg.esc, esc_antes], absf(seg.esc - esc_antes) < 1e-6)
