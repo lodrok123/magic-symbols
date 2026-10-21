@@ -309,6 +309,9 @@ func _ready() -> void:
 	if elemental:
 		_preparar_elemental()
 	_aplicar_tinte(tinte)
+	# V5: el borde brillante del enemigo es del color de su debilidad (el mismo rombo que lleva sobre la cabeza): se lee de un vistazo con qué pegarle.
+	if pj != null:
+		pj.set_rol_visual("enemigo", (COLORES.get(debil, Pj3D.RIM_ENEMIGO) as Color).lerp(Color.WHITE, 0.25))
 
 
 func _ultima_celda_ok() -> void:
@@ -1734,6 +1737,8 @@ func _morir(ahogado: bool = false) -> void:
 		_reaccionar("apagado_agua" if ahogado else "consumido")     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
 	muerto = true
 	se_hundio = ahogado
+	if pj != null:
+		pj.apagar_sombra()      # V5: sin mancha en el suelo bajo un cuerpo caído o hundiéndose
 	collision_layer = 0
 	monitorable = false
 	remove_from_group("combate3d")

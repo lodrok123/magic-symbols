@@ -142,6 +142,31 @@ var grafo: String = ArbolAnimPj.GRAFO_HEROE:
 			_arbol.grafo = v
 var _materiales: Array[StandardMaterial3D] = []
 var _caja: AABB = AABB()
+
+# --- V5 «personajes juguete» (docs/PLAN_EOW_VISUAL.md): rim de color, silueta tras paredes y sombra de contacto ---
+## Interruptores (static var para poder apagarlos desde una prueba o una captura «antes» sin tocar el código). Cada cosa se apaga sola.
+static var rim_activo: bool = true                 ## el fresnel de color en el borde (MaterialPersonaje3D.rim)
+static var silueta_activa: bool = true             ## la silueta a través de lo que tapa a la JUGADORA
+static var silueta_enemigos: bool = false          ## lo mismo para los enemigos (apagado: con muchos goblins sería un enjambre de manchas)
+static var sombra_contacto_activa: bool = true     ## la mancha suave bajo los pies (SombraContacto3D)
+static var pbr_juguete_activo: bool = true         ## rugosidad media-alta en vez de 1,0 (sin ello no hay brillo de plástico)
+
+const ROUGHNESS_JUGUETE: float = 0.72              ## media-alta: un brillo ancho y suave, no un espejo (metalness sigue en 0)
+const RIM_POTENCIA: float = 1.8                    ## cuánto se pega el brillo a la arista (más = más fino). Con cámara cenital 2,2 apenas se veía
+const RIM_INTENSIDAD: float = 1.1
+const RIM_JUGADORA: Color = Color(1.0, 0.72, 0.42)   ## cálido: la elfa es lo que el ojo debe encontrar primero
+const RIM_NPC: Color = Color(1.0, 0.86, 0.66)        ## cálido pálido, para que no compita con la jugadora
+const RIM_ENEMIGO: Color = Color(0.55, 0.72, 1.0)    ## frío por defecto; Combate3D lo cambia al color de su debilidad (set_rol_visual)
+const SILUETA_COLOR: Color = Color(1.0, 0.8, 0.5, 0.42)
+const SILUETA_SESGO_ALTURAS: float = 0.4           ## cuánto más cerca (en alturas del personaje) debe estar lo que lo tapa para dibujar la silueta
+const SOMBRA_DIAMETRO_ALTURAS: float = 0.7         ## diámetro de la mancha en alturas del modelo
+const SOMBRA_ALFA: float = 0.36
+const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test"]   ## prefijos de id que son la jugadora (rol «jugadora»)
+
+var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta
+var _rim_mat: ShaderMaterial = null
+var _sil_mat: ShaderMaterial = null
+var _sombra: MeshInstance3D = null
 var _caja_vacia: bool = true
 var _yaw: float = 0.0
 var _chispas: Node3D = null      ## BoneAttachment3D con las partículas de la mano mientras se lanza
@@ -186,6 +211,7 @@ func cargar(p_id: String) -> bool:
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
 	_crear_sombra()
+	set_rol_visual(_rol_por_defecto())
 	set_modo_luz(modo_luz)
 	jugar("idle")
 	if validar_al_cargar and not _validados.has(id):
@@ -263,22 +289,51 @@ func postura() -> Array:
 		proporcion.rodillas_estirar, proporcion.pies_abrir, proporcion.pelvis_atras]
 
 
-## Disco oscuro bajo los pies, como la sombra de los sprites.
+## Sombra de contacto bajo los pies (V5): la misma mancha suave que el decorado (SombraContacto3D) en vez del disco duro de antes, para que el
+## personaje y las piezas se vean igual de asentados. Va en unidades del modelo (el `scale` del Pj3D la agranda con él). Se apaga con
+## `apagar_sombra()` al morir/hundirse: si no, una mancha se quedaría en el suelo bajo un cuerpo que se hunde en el agua.
 func _crear_sombra() -> void:
-	var disco := CylinderMesh.new()
-	disco.top_radius = 0.55
-	disco.bottom_radius = 0.55
-	disco.height = 0.01
-	disco.radial_segments = 24
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.0, 0.0, 0.0, 0.32)
-	disco.material = mat
-	var mi := MeshInstance3D.new()
-	mi.mesh = disco
-	mi.position = Vector3(0.0, 0.02, 0.0)
-	add_child(mi)
+	if _sombra != null and is_instance_valid(_sombra):
+		_sombra.queue_free()
+		_sombra = null
+	if not sombra_contacto_activa:
+		return
+	var d: float = alto_modelo() * SOMBRA_DIAMETRO_ALTURAS
+	_sombra = SombraContacto3D.poner(self, d, d, 0.02, SOMBRA_ALFA)
+
+
+## Quita la sombra de contacto (el personaje muere, se hunde o desaparece).
+func apagar_sombra() -> void:
+	if _sombra != null and is_instance_valid(_sombra):
+		_sombra.visible = false
+
+
+## ¿Cuál es el rol visual de este id? La jugadora por prefijo de id; el resto, NPC (Combate3D lo pasa a «enemigo» al equiparse).
+func _rol_por_defecto() -> String:
+	for p in IDS_JUGADORA:
+		if id.begins_with(String(p)):
+			return "jugadora"
+	return "npc"
+
+
+## Fija el rol visual: el color del rim (`color_rim` alfa 0 = el de serie del rol) y si lleva silueta a través de paredes.
+func set_rol_visual(rol: String, color_rim: Color = Color(0, 0, 0, 0)) -> void:
+	rol_visual = rol
+	if _rim_mat == null:
+		return
+	var c: Color = color_rim
+	if c.a <= 0.0:
+		c = RIM_JUGADORA if rol == "jugadora" else (RIM_ENEMIGO if rol == "enemigo" else RIM_NPC)
+	_rim_mat.set_shader_parameter("color", Vector3(c.r, c.g, c.b))
+	var con_silueta: bool = silueta_activa and (rol == "jugadora" or (silueta_enemigos and rol == "enemigo"))
+	_rim_mat.next_pass = _sil_mat if con_silueta else null
+	_actualizar_silueta()
+
+
+## El sesgo de la silueta va en unidades de mundo: depende de lo alto que mide el personaje YA escalado.
+func _actualizar_silueta() -> void:
+	if _sil_mat != null:
+		_sil_mat.set_shader_parameter("sesgo", alto_modelo() * scale.y * SILUETA_SESGO_ALTURAS)
 
 
 ## Pies en el origen y el centro del modelo sobre la vertical.
@@ -321,7 +376,13 @@ func _preparar_materiales(modelo: Node3D) -> void:
 			if mat is StandardMaterial3D:
 				var copia: StandardMaterial3D = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
 				copia.metallic = 0.0
-				copia.roughness = 1.0
+				copia.roughness = ROUGHNESS_JUGUETE if pbr_juguete_activo else 1.0
+				# Rim (+ silueta encadenada): solo en superficies opacas. Un material con alfa (pelo, hojas) pintaría el rim sobre el recorte.
+				if rim_activo and copia.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
+					if _rim_mat == null:
+						_rim_mat = MaterialPersonaje3D.rim(RIM_NPC, RIM_POTENCIA, RIM_INTENSIDAD)
+						_sil_mat = MaterialPersonaje3D.silueta(SILUETA_COLOR, 0.4)
+					copia.next_pass = _rim_mat
 				mi.set_surface_override_material(s, copia)
 				_materiales.append(copia)
 
@@ -330,6 +391,9 @@ func set_modo_luz(m: int) -> void:
 	modo_luz = m
 	for mat in _materiales:
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if m == 0 else BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	# La luz plana es el modo «sin sombreado» del laboratorio: sin rim (un borde que brilla en un muñeco plano lo estropea). La silueta sigue.
+	if _rim_mat != null:
+		_rim_mat.set_shader_parameter("intensidad", 0.0 if m == 0 else RIM_INTENSIDAD)
 
 
 ## Alto del modelo tal como viene (antes de escalar), medido por su caja. 1,7 si no se pudo medir.
@@ -369,6 +433,7 @@ func set_alto(alto: float) -> void:
 
 func set_escala(s: float) -> void:
 	scale = Vector3.ONE * s
+	_actualizar_silueta()
 
 
 ## Gira suavemente hacia `d` (vector en el plano del suelo).
