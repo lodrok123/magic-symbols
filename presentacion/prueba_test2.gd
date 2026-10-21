@@ -1499,7 +1499,9 @@ func _vigilar_alturas(delta: float) -> void:
 		_mat_labio_terraza = StandardMaterial3D.new()          # como el de las terrazas (TerraFina3D._mat_vertices): color por vértice
 		_mat_labio_terraza.vertex_color_use_as_albedo = true
 		_mat_labio_terraza.roughness = 1.0
-	_bordes_terraza.construir(bordes, S, _mat_lado_suelo, _mat_labio_terraza if bisel_suelo else null)
+	# V7: con TerraFina3D.terrazas_shader_suelo el labio lleva el shader del suelo (igual que la tapa de la terraza); si no, el de vértices de antes.
+	var mat_labio: Material = _mat_suelo if (TerraFina3D.terrazas_shader_suelo and _mat_suelo != null) else _mat_labio_terraza
+	_bordes_terraza.construir(bordes, S, _mat_lado_suelo, mat_labio if bisel_suelo else null)
 
 
 ## (d) LECHO DEL RÍO. Con la simulación de agua el fondo era un bloque liso a ALTO_AGUA − LECHO_AGUA; con el agua más transparente

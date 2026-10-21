@@ -28,6 +28,10 @@ const COLOR_ROCA_S: Color = Color(0.52, 0.48, 0.40)    ## cara sur de una terraz
 const COLOR_ROCA_LADO: Color = Color(0.44, 0.41, 0.35)
 const COLOR_ROCA_N: Color = Color(0.38, 0.36, 0.31)
 const COLOR_TOPE: Dictionary = {".": Color(0.36, 0.58, 0.30), ",": Color(0.47, 0.68, 0.36), "g": Color(0.45, 0.33, 0.22), "v": Color(0.55, 0.75, 0.3)}
+## V7 (PLAN_EOW_VISUAL): las terrazas se dibujan con el shader del suelo (tapa) y el material del costado del suelo (muro), y el labio de sus bordes
+## (BordePiedras3D, en la maqueta) lleva el shader del suelo. false = color por vértice como antes. Se lee al montar (no cambia en caliente);
+## también lo lee `PruebaTest2._vigilar_alturas` para el material del labio.
+static var terrazas_shader_suelo: bool = true
 const SEMILLA_TITAN: int = 7
 const COLOR_SUELO: Color = Color(0.36, 0.52, 0.26)
 const COLOR_CASA: Color = Color(0.46, 0.40, 0.30)
@@ -226,11 +230,25 @@ static func leer_alturas(nivel: String) -> Array:
 ## Una sola malla con color por vértice: la tapa de cada casilla elevada (verde, hierba corta o tierra, según su letra) y, donde la
 ## vecina es más baja, el muro de roca hasta el suelo de esa vecina. Las casillas del mapa de abajo quedan enterradas bajo la tapa.
 func _montar_terrazas(mapa: PackedStringArray, s: float) -> void:
+	# V7: con `terrazas_shader_suelo` la malla lleva DOS superficies: la tapa con el shader del suelo de la maqueta (`_mat_suelo`: mismo mapa, estados y
+	# textura por posición XZ que el suelo de abajo) y el muro con el material del costado del suelo (`_mat_lado_suelo`, triplanar). Si la maqueta no los
+	# tiene, o el interruptor está apagado, queda una sola superficie de color por vértice como antes (el muro va en el mismo SurfaceTool que la tapa).
+	var mat_tapa: Material = null
+	var mat_muro: Material = null
+	if terrazas_shader_suelo and m != null:
+		mat_tapa = m.get("_mat_suelo") as Material
+		mat_muro = m.get("_mat_lado_suelo") as Material
+	var con_shader: bool = mat_tapa != null and mat_muro != null
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var st_muro: SurfaceTool = st
+	if con_shader:
+		st_muro = SurfaceTool.new()
+		st_muro.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var ancho: int = int(m.get("_ancho"))
 	var alto_m: int = int(m.get("_alto"))
 	var n_celdas: int = 0
+	var n_muros: int = 0
 	for y in range(alto_m):
 		for x in range(ancho):
 			var c := Vector2i(x, y)
@@ -256,20 +274,31 @@ func _montar_terrazas(mapa: PackedStringArray, s: float) -> void:
 				var y_bajo: float = Terreno3D.alto_suelo + float(nv) * Terreno3D.ALTO_NIVEL
 				var dd: Vector2i = d[0]
 				var cc: Color = d[1]
+				n_muros += 1
 				if dd == Vector2i(0, 1):
-					_cuad(st, Vector3(x0, y_top, z0 + s), Vector3(x0 + s, y_top, z0 + s), Vector3(x0 + s, y_bajo, z0 + s), Vector3(x0, y_bajo, z0 + s), Vector3(0, 0, 1), cc)
+					_cuad(st_muro, Vector3(x0, y_top, z0 + s), Vector3(x0 + s, y_top, z0 + s), Vector3(x0 + s, y_bajo, z0 + s), Vector3(x0, y_bajo, z0 + s), Vector3(0, 0, 1), cc)
 				elif dd == Vector2i(0, -1):
-					_cuad(st, Vector3(x0 + s, y_top, z0), Vector3(x0, y_top, z0), Vector3(x0, y_bajo, z0), Vector3(x0 + s, y_bajo, z0), Vector3(0, 0, -1), cc)
+					_cuad(st_muro, Vector3(x0 + s, y_top, z0), Vector3(x0, y_top, z0), Vector3(x0, y_bajo, z0), Vector3(x0 + s, y_bajo, z0), Vector3(0, 0, -1), cc)
 				elif dd == Vector2i(1, 0):
-					_cuad(st, Vector3(x0 + s, y_top, z0 + s), Vector3(x0 + s, y_top, z0), Vector3(x0 + s, y_bajo, z0), Vector3(x0 + s, y_bajo, z0 + s), Vector3(1, 0, 0), cc)
+					_cuad(st_muro, Vector3(x0 + s, y_top, z0 + s), Vector3(x0 + s, y_top, z0), Vector3(x0 + s, y_bajo, z0), Vector3(x0 + s, y_bajo, z0 + s), Vector3(1, 0, 0), cc)
 				else:
-					_cuad(st, Vector3(x0, y_top, z0), Vector3(x0, y_top, z0 + s), Vector3(x0, y_bajo, z0 + s), Vector3(x0, y_bajo, z0), Vector3(-1, 0, 0), cc)
+					_cuad(st_muro, Vector3(x0, y_top, z0), Vector3(x0, y_top, z0 + s), Vector3(x0, y_bajo, z0 + s), Vector3(x0, y_bajo, z0), Vector3(-1, 0, 0), cc)
 	if n_celdas == 0:
 		return
 	var mi := MeshInstance3D.new()
 	mi.name = "Terrazas"
-	mi.mesh = st.commit()
-	mi.material_override = _mat_vertices()
+	if con_shader:
+		var malla: ArrayMesh = st.commit()                  # superficie 0: las tapas
+		if n_muros > 0:
+			st_muro.commit(malla)                            # superficie 1: los muros
+		malla.surface_set_material(0, mat_tapa)
+		if malla.get_surface_count() > 1:
+			malla.surface_set_material(1, mat_muro)
+		mi.mesh = malla
+	else:
+		mi.mesh = st.commit()
+		mi.material_override = _mat_vertices()
+	mi.set_meta("con_shader_suelo", con_shader)
 	(m as Node).add_child(mi)
 
 
