@@ -209,6 +209,12 @@ func _hundirse_empujado() -> void:
 	_pasos(g, 120)
 	_ok("2 un goblin empujado a una charca honda se hunde (muerto y ahogado)", g.muerto and g.se_hundio)
 	_ok("2 emite la señal hundido(enemigo) una vez", _hundidos.size() == 1 and _hundidos[0] == g, "n=%d" % _hundidos.size())
+	# Se hundió DENTRO de la física (`_ajustar_al_suelo` dentro de `_physics_process`, no `_morir(true)` a mano): `_animar()` no puede pisar el clip de ahogarse con `idle`.
+	# Solo se exige si este modelo trae el clip (sin él, la pose de muerte de siempre).
+	if g.pj.duracion(Combate3D.CLIP_AHOGARSE) > 0.0:
+		_ok("2 hundido por la física, el modelo queda en el clip de ahogarse y no en idle", String(g.pj.animacion_actual).contains(Combate3D.CLIP_AHOGARSE), "anim «%s»" % g.pj.animacion_actual)
+	else:
+		print("AVISO 2 este modelo no trae el clip %s: no se comprueba el estado de animación" % Combate3D.CLIP_AHOGARSE)
 	var aviso_ok: bool = false
 	for a in _avisos:
 		if a[1] == "hundido" and Terreno3D.es_agua(Terreno3D.celda_de(a[0])) and absf(a[0].y - Terreno3D.alto_agua) < 0.01 and a[2] > 0.0:

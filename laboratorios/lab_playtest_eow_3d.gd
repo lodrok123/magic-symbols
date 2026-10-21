@@ -67,11 +67,8 @@ const SALA1_QUEMA_GOBLIN_S: float = 8.0               ## s de quemadura del gobl
 const SALA2_HELAR_FRANJA: bool = true
 const SALA2_FRANJA_X: Array = [13, 14]                ## columnas de la charca que empiezan heladas
 const SALA2_FRANJA_Y: Array = [2, 3, 4]               ## filas de la charca
-## EL CLIP DE AHOGARSE NO SE VE (medido): `Combate3D._physics_process` llama a `_ajustar_al_suelo` (que hunde al goblin: `_morir(true)` pide el clip «drown») y SIN
-## comprobar `muerto` sigue con `_animar()`, que ese mismo fotograma pide `idle` y lo pisa. El goblin se hunde en postura de reposo (la prueba D del escenario lo ve
-## bien porque llama a `_morir(true)` fuera de la física). El arreglo real es de una línea en enemigos/combate_3d.gd (`if muerto: return` entre las dos llamadas); el lab
-## no toca las mecánicas: cuando oye «hundido» vuelve a pedir el clip un instante después. `SALA2_ARREGLAR_DROWN` = false es el juego tal cual.
-const SALA2_ARREGLAR_DROWN: bool = true
+## (Retirado 21/10: el clip de ahogarse se pisaba con `idle` porque `Combate3D._physics_process` seguía con `_animar()` tras hundirse el goblin. Ya está arreglado en
+## origen —`if muerto: return` entre `_ajustar_al_suelo` y `_animar`— y el lab no retoca nada.)
 
 # --- Sala 3 · escudo (A5) ---
 ## El goblin del escudo es la letra `W` de (20,3). Con su IA de verdad MIRA SIEMPRE al jugador en cuanto lo ve (`mirada` = hacia el objetivo al perseguir; patrullando mira
@@ -129,7 +126,6 @@ var _guerrero_s1: Combate3D = null
 var _arquero_s1: Combate3D = null
 var _sala_anterior: int = -1                   ## la sala del jugador en el fotograma anterior (para avisar a `_al_entrar_sala`)
 var quema_goblin_s1: float = SALA1_QUEMA_GOBLIN_S   ## s de quemadura del guerrero de la sala 1 al prenderse; las pruebas pueden cambiarlo (0 = la del juego)
-var arreglar_drown_s2: bool = SALA2_ARREGLAR_DROWN  ## ver SALA2_ARREGLAR_DROWN; las pruebas pueden apagarlo para medir el juego tal cual
 
 
 func _ready() -> void:
@@ -177,8 +173,6 @@ func _al_reaccionar(nombre: String, _punto: Vector3, nodo: Node) -> void:
 	# Sala 1: la quemadura del goblin guerrero se alarga (ver SALA1_QUEMA_GOBLIN_S). `prender_por_contacto` pone `quemando` ANTES de avisar «prendido».
 	if nombre == "prendido" and nodo != null and nodo == _guerrero_s1 and quema_goblin_s1 > 0.0:
 		_guerrero_s1.quemando = maxf(_guerrero_s1.quemando, quema_goblin_s1)
-	if nombre == "hundido" and arreglar_drown_s2 and nodo is Combate3D:
-		_pedir_ahogarse.call_deferred(nodo as Combate3D)         # después de este fotograma de física: su `_animar()` pide `idle` justo tras hundirse
 	var tipo: String = ReaccionesVfx3D.tipo_de(nodo)
 	if tipo == "" and nodo != null:
 		tipo = String(nodo.get_class())
@@ -186,14 +180,6 @@ func _al_reaccionar(nombre: String, _punto: Vector3, nodo: Node) -> void:
 	_n_reacciones += 1
 	while _reacciones.size() > MAX_REACCIONES:
 		_reacciones.pop_front()
-
-
-## Vuelve a pedir el clip de ahogarse a un goblin ya hundido (ver SALA2_ARREGLAR_DROWN). Muerto, su física ya no corre: nadie más lo pisa.
-func _pedir_ahogarse(c: Combate3D) -> void:
-	if c == null or not is_instance_valid(c) or c.pj == null or not is_instance_valid(c.pj):
-		return
-	c.pj.animacion_actual = ""
-	c.pj.jugar(Combate3D.CLIP_AHOGARSE, true)
 
 
 ## Cada sala como diccionario de piezas (los ids de SALAS buscados en el .txt) y su cartel. Un id que no está en el mapa deja el papel en null y sale como

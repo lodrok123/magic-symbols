@@ -333,6 +333,12 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 		objetivo = jugador          # un golpe te hace mirar a quien viene
 
 
+## ¿Le cubre el escudo de lo que viaja en `direccion`, sin que el escudo lo «reciba»? Consulta pura (no cuenta bloqueo ni prende nada). La usa el daño por pulsos de
+## una zona (`HechizoVivo.pulso_plasma`), que no pasa por `on_spell_hit`: lo que deja el impacto que el escudo paró (el campo de llamas) tampoco le llega al goblin.
+func escudo_cubre(direccion: Vector3) -> bool:
+	return escudo != null and is_instance_valid(escudo) and escudo.esta_activo() and escudo.es_de_frente(direccion)
+
+
 ## `suelo` = es un golpe con daño: no recorre menos de EMPUJE_MIN_CASILLAS casillas (v0 mínima = casillas × tamaño × DECAIMIENTO, porque el
 ## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El elemental recibe MULT_EMPUJE_ELEMENTAL también en el suelo (si no, pegaría igual que un goblin).
 func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
@@ -562,6 +568,10 @@ func _physics_process(delta: float) -> void:
 	_efectos(delta)
 	_ia(delta)
 	_ajustar_al_suelo(delta)
+	if muerto:
+		# `_ajustar_al_suelo` puede haberlo ahogado (`_hundirse` → `_morir(true)`, que ya pidió el clip `drown`): seguir con `_animar` pediría `idle`
+		# y lo pisaría, y `pj.position` pelearía con el tween que lo hunde. Muerto, esta pasada se acaba aquí.
+		return
 	_animar()
 	pj.position = position + Vector3(0.0, _salto_y, 0.0)
 	_dibujar_estado(delta)

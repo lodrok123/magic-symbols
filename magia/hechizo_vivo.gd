@@ -550,6 +550,10 @@ static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 		if not is_instance_valid(e) or bool(e.get("muerto")):
 			continue
 		if z.tocados.has(e.get_instance_id()):
+			# El impacto que el escudo paró deja su zona, y sus pulsos entran por aquí directos a `receive_damage` (no por `on_spell_hit`): sin esta
+			# consulta el escudo ardiendo no protegía de su propio campo de llamas (el goblin perdía 10 cada 0,25 s). Si el escudo cubre de frente, no hay daño.
+			if e.has_method("escudo_cubre") and bool(e.call("escudo_cubre", d)):
+				continue
 			e.call("receive_damage", z.dano_periodico * z.intervalo)
 		else:
 			z.tocados[e.get_instance_id()] = true

@@ -33,6 +33,7 @@ func _initialize() -> void:
 	_equipar()
 	_cono()
 	_fuego()
+	_zona_de_llamas()
 	_agua_y_rotura()
 	_contacto()
 	_papeles()
@@ -210,6 +211,53 @@ func _fuego() -> void:
 	_ok("4 y el disparo de frente SÍ llega al goblin", g.health < v0, str(v0 - g.health))
 	_ok("4 no hay más «bloqueado» tras consumirse", _n("bloqueado", e) == 3)
 	_pasos(e, 1.0)
+
+
+## El impacto de fuego que el escudo para deja su CAMPO DE LLAMAS (ZonaV2, plasma), y sus pulsos hieren por `receive_damage` sin pasar por `on_spell_hit`:
+## el escudo ardiendo tenía que protegerle también de eso (bug del playtest 21/10: el goblin perdía 10 cada 0,25 s). Después de consumirse, el campo sí le hiere.
+func _zona_de_llamas() -> void:
+	var g := _goblin(8, 4)
+	var e: Escudo3D = Escudo3D.equipar(g)
+	var l := Lanzador3D.new()
+	l.mundo = _mundo
+	l.jugador = _jugador
+	root.add_child(l)
+	var z := Lanzador3D.ZonaV2.new()
+	z.lanz = l
+	z.rune = _r("fire")
+	z.elemento = "fuego"
+	z.dir = Vector3(0, 0, -1)                      # el disparo de frente (la mirada del goblin es +Z)
+	z.celdas[Terreno3D.celda_de(g.position)] = true
+	z.vida = 20.0
+	z.intervalo = 0.25
+	z.dano_periodico = 40.0                        # 10 por pulso, como el fuego del juego
+	z.metodo_pulso = "pulso_plasma"
+	z.tocados[g.get_instance_id()] = true          # el impacto que paró el escudo ya cuenta como «golpeado» (así nace la zona)
+	z.set_physics_process(false)
+	_tiro(g, "fire", Vector3(0, 0, -1))
+	var v0: float = g.health
+	_ok("4z el fuego de frente prende el escudo", e.esta_ardiendo())
+	var t: float = 0.0
+	while e.esta_ardiendo() and t < Escudo3D.T_CONSUMO + 1.0:
+		z.avanzar(DT)
+		_pasos(e, DT)
+		t += DT
+	_ok("4z durante los 3 s que arde el escudo, el campo de llamas NO hiere al goblin (ni lo prende)", g.health == v0 and g.quemando <= 0.0 and not g.esta_ardiendo(), "vida %.1f → %.1f en %.1f s" % [v0, g.health, t])
+	_ok("4z el escudo se consumió a su hora", e.estado == "quemado" and not e.esta_activo(), str(e.estado))
+	for _i in range(int(0.6 / DT)):
+		z.avanzar(DT)
+	_ok("4z después, con el escudo quemado, el campo SÍ le hiere (expuesto)", g.health < v0, "vida %.1f → %.1f" % [v0, g.health])
+	# El mismo campo por la ESPALDA del escudo (el goblin mira al otro lado de lo que viaja el disparo): lo hiere aunque el escudo esté entero.
+	var h := _goblin(8, 6)
+	Escudo3D.equipar(h)
+	z.celdas = {Terreno3D.celda_de(h.position): true}
+	z.tocados[h.get_instance_id()] = true
+	z.dir = Vector3(0, 0, 1)
+	var vh: float = h.health
+	z.avanzar(0.3)
+	_ok("4z lo que viaja por la espalda del escudo sí hiere (solo cubre de frente)", h.health < vh, "vida %.1f → %.1f" % [vh, h.health])
+	z.queue_free()
+	l.queue_free()
 	_ok("4 consumido solo una vez aunque pasen fotogramas", _n("consumido", e) == 1)
 
 

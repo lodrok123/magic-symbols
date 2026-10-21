@@ -320,16 +320,14 @@ func _sala_2() -> void:
 	_ok("2.5 ninguno está ya en el agua al empezar", [gi, gc, gh, per].all(func(g): return not (g as Combate3D).muerto and not Terreno3D.es_agua(Terreno3D.celda_de((g as Combate3D).global_position))))
 
 	# --- Empujados con VIENTO REAL (el Lanzador3D llama a Combate3D.push): los dos de la izquierda al agua honda ---
-	lab.arreglar_drown_s2 = false                   # el primero se mide con el juego tal cual
 	var oros0: int = _oros()
 	var r1: Dictionary = await _empuje_de_viento(gi)
 	volcar("playtest_s2_viento_izq", r1)
 	_ok("2.6 el viento sale y el goblin de la izquierda, empujado a la parte honda, se HUNDE (muere ahogado)", bool(r1["lanzado"]) and bool(r1["muerto"]) and bool(r1["hundido"]), str(r1))
 	_ok("2.7 su señal `hundido` se emite una vez y la reacción «hundido» llega al HUD", int(r1["senal"]) == 1 and _hud_tiene("hundido"), str(lab.reacciones()))
-	_ok("2.8 el juego tal cual NO pide el clip de ahogarse a un goblin hundido por la física (HALLAZGO: `_animar()` lo pisa con `idle` el mismo fotograma)", not bool(r1["drown"]), str(r1))
-	lab.arreglar_drown_s2 = true                    # desde aquí, con el retoque del lab (SALA2_ARREGLAR_DROWN)
+	_ok("2.8 el goblin hundido por la física (sin ningún retoque) queda en el clip de ahogarse, «drown» (antes `_animar()` lo pisaba con `idle`)", bool(r1["drown"]), str(r1))
 	var r2: Dictionary = await _empuje_de_viento(gc)
-	_ok("2.9b con el retoque del lab el modelo pide el clip de ahogarse (estado «drown»)", bool(r2["drown"]), str(r2))
+	_ok("2.9b el del centro también queda en «drown»", bool(r2["drown"]), str(r2))
 	volcar("playtest_s2_viento_centro", r2)
 	_ok("2.9 el del centro también se hunde", bool(r2["muerto"]) and bool(r2["hundido"]) and int(r2["senal"]) == 1, str(r2))
 	_ok("2.10 los ahogados no sueltan botín (ni oro)", _oros() == oros0, "oros %d → %d" % [oros0, _oros()])
@@ -445,7 +443,7 @@ func _sala_3() -> void:
 	_ok("3.10 el escudo ARDE («prendido» del escudo en el HUD) y el goblin no se prende", e.estado == "ardiendo" and _hud_tiene_de("prendido", "escudo") and g.quemando <= 0.0 and not g.esta_ardiendo(),
 		"escudo %s · quemando %.1f · %s" % [e.estado, g.quemando, str(lab.reacciones())])
 	var perdida: float = g.vida_max - g.health
-	_aviso("3.10b HALLAZGO: mientras el escudo arde, el goblin que lo lleva pierde vida sin estar quemándose", "%.0f de vida en %.1f s (un goblin normal tiene %.0f)" % [perdida, Escudo3D.T_CONSUMO, Combate3D.VIDA_MAXIMA])
+	_ok("3.10b mientras el escudo arde, el goblin que lo lleva NO pierde vida (ni por el campo de llamas del impacto que paró el escudo)", perdida == 0.0, "%.0f de vida en %.1f s · caídas %s" % [perdida, Escudo3D.T_CONSUMO, str(caidas)])
 	await avanzar_s(maxf(Escudo3D.T_CONSUMO, 0.0))
 	_ok("3.11 a los T_CONSUMO s se consume («consumido» del escudo en el HUD, malla quemada)", e.estado == "quemado" and _hud_tiene_de("consumido", "escudo") and not e.esta_activo(), "escudo %s · %s" % [e.estado, str(lab.reacciones())])
 	jugador.set("vida", 100.0)
