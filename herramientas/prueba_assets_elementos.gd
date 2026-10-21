@@ -7,7 +7,9 @@ extends SceneTree
 ##   3. El material de hielo es translúcido (ShaderMaterial con alfa), no el opaco del GLB.
 ##   4. Enganche: el proyectil de tierra y el de hielo dibujan el modelo; el de hielo apunta con la punta (+Z) hacia donde va; impacto, racimos que brotan, escarcha y
 ##      placa rota crean piezas y se liberan solos; el remolino de viento lleva tarjetas de la fila 3 del atlas y las hojas usan el atlas.
-##   5. Con `VfxHielo.usar_modelos = false` el hielo vuelve al dibujo del kit (VfxElemento3D no monta la esquirla).
+##   5. El proyectil de hielo es el cometa del kit por defecto (`VfxHielo.proyectil_esquirla = false`); con true lleva la esquirla; con los modelos apagados, la bola.
+##   6. Placa rota: al fundirse o soltarse el hielo del agua, `Lanzador3D` avisa «hielo_roto» por `Mundo3D.impacto` y `VfxElemento3D` dibuja `VfxHielo.placa_rota`.
+##   4b. Hojas de viento de 0,25–0,5 u y tarjetas de remolino de 0,5–1,0 u.
 ##   godot --headless --path . --fixed-fps 30 -s res://herramientas/prueba_assets_elementos.gd
 
 var _fallos: int = 0
@@ -26,6 +28,11 @@ func _ok(cond: bool, texto: String) -> void:
 		_fallos += 1
 
 
+## Como `_ok` pero con el texto primero (y una info opcional).
+func _okc(texto: String, cond: bool, info: String = "") -> void:
+	_ok(cond, texto + ((" · " + info) if info != "" else ""))
+
+
 func _esperar(s: float) -> void:
 	await create_timer(maxf(s, 0.02)).timeout
 	await process_frame
@@ -42,6 +49,7 @@ func _correr() -> void:
 	await _enganche()
 	await _viento()
 	_interruptor_hielo()
+	await _placa_al_romper_hielo()
 	_mundo.queue_free()
 	await process_frame
 	print("FALLOS: %d" % _fallos)
@@ -278,6 +286,16 @@ func _viento() -> void:
 		filas_ok = filas_ok and m.uv1_offset.y < 0.74 and m.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED
 	_ok(hojas.size() > 0 and del_atlas == hojas.size(), "las hojas del proyectil de viento (%d) usan el atlas de Meshy" % hojas.size())
 	_ok(filas_ok, "las hojas arrastradas eligen casillas de las filas 0–2 y son billboard")
+	var lados_ok: bool = hojas.size() > 0
+	var lmin: float = INF
+	var lmax: float = 0.0
+	for h in hojas:
+		var lado: float = ((h as MeshInstance3D).mesh as QuadMesh).size.x
+		lmin = minf(lmin, lado)
+		lmax = maxf(lmax, lado)
+		lados_ok = lados_ok and lado >= 0.25 - 1e-4 and lado <= 0.5 + 1e-4
+	_ok(lados_ok, "las hojas del proyectil miden %.2f–%.2f u (legible: 0,25–0,5; antes 0,09–0,26)" % [lmin, lmax])
+	_ok(VfxViento.HOJA_TAM_MIN >= 0.25 and VfxViento.HOJA_TAM_MAX <= 0.5, "constantes con nombre HOJA_TAM_MIN/MAX = %.2f/%.2f" % [VfxViento.HOJA_TAM_MIN, VfxViento.HOJA_TAM_MAX])
 	seg.free()
 	var rem: Node3D = VfxViento.remolino(_mundo, Vector3(80, 0, 0), 1.2, 0.0)
 	var tarjetas: Array = rem.find_children("remolino_*", "MeshInstance3D", true, false)
@@ -285,6 +303,11 @@ func _viento() -> void:
 	for t in tarjetas:
 		var m3: StandardMaterial3D = (t as MeshInstance3D).material_override as StandardMaterial3D
 		fila3 = fila3 and absf(m3.uv1_offset.y - 0.75) < 0.001 and m3.billboard_mode == BaseMaterial3D.BILLBOARD_ENABLED and m3.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA
+	var rem_ok: bool = tarjetas.size() > 0
+	for t in tarjetas:
+		var lt: float = ((t as MeshInstance3D).mesh as QuadMesh).size.x
+		rem_ok = rem_ok and lt >= 0.5 - 1e-4 and lt <= 1.0 + 1e-4
+	_ok(rem_ok, "las tarjetas de remolino miden entre 0,5 y 1,0 u (la jugadora ≈ 1 u)")
 	_ok(fila3, "el remolino de impacto lleva %d tarjetas de la fila 3 (remolinos blancos, billboard, mezcla alfa)" % tarjetas.size())
 	var pie := Node3D.new()
 	_mundo.add_child(pie)
@@ -300,18 +323,107 @@ func _viento() -> void:
 
 
 func _interruptor_hielo() -> void:
-	print("--- 5. interruptor de hielo (VfxElemento3D)")
+	print("--- 5. proyectil de hielo: cometa del kit por defecto; esquirla solo con VfxHielo.proyectil_esquirla")
 	var hv := VfxElemento3D.new()
 	_mundo.add_child(hv)
+	VfxHielo.usar_modelos = true
+	_ok(not VfxHielo.proyectil_esquirla and not VfxHielo.proyectil_con_esquirla(), "por defecto proyectil_esquirla = false")
+	var seg0 := Node3D.new()
+	_mundo.add_child(seg0)
+	hv._pieza_proyectil("hielo", seg0, Vector3.RIGHT, 0.3, 4.0)
+	_ok(seg0.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg0.get_child_count() > 0, "por defecto el proyectil de hielo es la bola del kit (cometa), sin esquirla")
+	_ok(not seg0.find_children("*", "GPUParticles3D", true, false).is_empty() or not seg0.find_children("*", "MeshInstance3D", true, false).is_empty(), "y lleva cuerpo y cola del kit")
+	var cola0: Array = hv._recoger_cola(seg0, "hielo")
+	var mallas_no_esfera: int = 0
+	for n in seg0.find_children("*", "MeshInstance3D", true, false):
+		if not ((n as MeshInstance3D).mesh is SphereMesh):
+			mallas_no_esfera += 1
+	_ok(mallas_no_esfera == 0 or cola0.size() >= mallas_no_esfera, "la cola de cometa se recoge como cola (se apaga al pararse): %d nodos" % cola0.size())
+	VfxHielo.proyectil_esquirla = true
 	var seg := Node3D.new()
 	_mundo.add_child(seg)
-	VfxHielo.usar_modelos = true
 	hv._pieza_proyectil("hielo", seg, Vector3.RIGHT, 0.3, 4.0)
-	_ok(not seg.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty(), "con el interruptor encendido el proyectil de hielo lleva la esquirla")
+	_ok(not seg.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty(), "con proyectil_esquirla = true el proyectil de hielo lleva la esquirla")
+	VfxHielo.proyectil_esquirla = false
 	var seg2 := Node3D.new()
 	_mundo.add_child(seg2)
 	VfxHielo.usar_modelos = false
+	VfxHielo.proyectil_esquirla = true
 	hv._pieza_proyectil("hielo", seg2, Vector3.RIGHT, 0.3, 4.0)
-	_ok(seg2.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg2.get_child_count() > 0, "con él apagado vuelve la bola del kit (sin esquirla)")
+	_ok(seg2.find_children("esquirla_hielo", "MeshInstance3D", true, false).is_empty() and seg2.get_child_count() > 0, "con los modelos apagados vuelve la bola del kit aunque proyectil_esquirla sea true")
 	VfxHielo.usar_modelos = true
+	VfxHielo.proyectil_esquirla = false
 	hv.free()
+
+
+class MundoFalso extends Node3D:
+	var _lado: int = 6
+	var _helada: Dictionary = {}
+	var _bloqueadas: Dictionary = {}
+	var _mapa: PackedStringArray = []
+	func _letra(c: Vector2i) -> String:
+		return String(_mapa[c.y][c.x])
+	func _es_canal(c: Vector2i) -> bool:
+		return _letra(c) == "-"
+	func _liberar(c: Vector2i) -> void:
+		_bloqueadas.erase(c)
+	func _poner_canal(_c: Vector2i, _canal: int, _valor: float) -> void:
+		pass
+
+
+## El hielo del agua se rompe (fuego, o se acaba su tiempo) → Lanzador3D lo avisa por Mundo3D.impacto → VfxElemento3D dibuja la placa rota en la casilla.
+func _placa_al_romper_hielo() -> void:
+	print("--- 6. placa rota al romperse el hielo del agua")
+	var m := MundoFalso.new()
+	m._mapa = ["######", "#....#", "~~~~~~", "~~~~~~", "#....#", "######"]
+	root.add_child(m)
+	Lanzador3D.configurar(m)
+	for y in range(6):
+		for x in range(6):
+			if m._mapa[y][x] == "#" or m._mapa[y][x] == "~":
+				m._bloqueadas[Vector2i(x, y)] = true
+	var w := Mundo3D.new()
+	root.add_child(w)
+	var vfx: VfxElemento3D = VfxElemento3D.conectar(null, m)
+	vfx.casilla = Terreno3D.casilla
+	var sim: AguaSim3D = Terreno3D.montar_agua_sim()
+	var c := Vector2i(2, 2)
+	var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.alto_agua)
+	for _i in range(60):
+		sim.paso(1.0 / 60.0)
+		Lanzador3D.procesar_cambios_hielo()
+	var impactos: Array = []
+	w.impacto.connect(func(pt: Vector3, el: String, r: float) -> void: impactos.append([pt, el, r]))
+	Lanzador3D.hechizo_sobre_agua("hielo", p)
+	_okc("al helar la casilla NO sale placa rota", sim.casilla_helada(c) and vfx.placas() == 0 and m.find_children("PlacaRota", "Node3D", true, false).is_empty())
+	Lanzador3D.hechizo_sobre_agua("fuego", p)
+	_okc("al fundirse el hielo la casilla deja de estar helada", not sim.casilla_helada(c))
+	var rotos: Array = impactos.filter(func(i: Array) -> bool: return i[1] == "hielo_roto")
+	_okc("Mundo3D.impacto avisa «hielo_roto» una vez", rotos.size() == 1, "%d avisos" % rotos.size())
+	if rotos.size() == 1:
+		var q: Vector3 = rotos[0][0]
+		var ctr: Vector3 = Terreno3D.centro_de(c)
+		_okc("el aviso es en el centro de la casilla (%.2f, %.2f) a la altura del agua (y %.2f)" % [q.x, q.z, q.y], absf(q.x - ctr.x) < 0.01 and absf(q.z - ctr.z) < 0.01 and absf(q.y - Terreno3D.superficie_agua(c)) < 0.01)
+		_okc("y lleva el tamaño de casilla (%.2f)" % float(rotos[0][2]), absf(float(rotos[0][2]) - Terreno3D.casilla) < 0.01)
+	var placas: Array = m.find_children("PlacaRota", "Node3D", true, false)
+	_okc("VfxElemento3D dibuja la placa rota (VfxHielo.placa_rota) con %d trozos" % VfxHielo.N_TROZOS, vfx.placas() == 1 and placas.size() == 1 and placas[0].get_child_count() == VfxHielo.N_TROZOS)
+	if placas.size() == 1:
+		var pl: Node3D = placas[0]
+		_okc("la placa está en la casilla, a la altura del agua, a escala de casilla (×%.3f)" % pl.scale.x, absf(pl.position.x - Terreno3D.centro_de(c).x) < 0.01 and absf(pl.position.y - Terreno3D.superficie_agua(c)) < 0.01 and absf(pl.scale.x - Terreno3D.casilla / 2.2) < 0.01)
+	# la otra forma de romperse: se acaba su tiempo
+	Lanzador3D.hechizo_sobre_agua("hielo", p)
+	for _i in range(int(21.0 * 60.0)):
+		sim.paso(1.0 / 60.0)
+		Lanzador3D.procesar_cambios_hielo()
+	_okc("si el hielo se suelta solo al acabarse su tiempo, también sale su placa (2 en total)", vfx.placas() == 2, "%d" % vfx.placas())
+	# con los modelos apagados no se dibuja nada
+	var antes: int = vfx.placas()
+	VfxHielo.usar_modelos = false
+	Terreno3D.mundo_s = m
+	w.avisar_impacto(p, "hielo_roto", Terreno3D.casilla)
+	VfxHielo.usar_modelos = true
+	_okc("con VfxHielo.usar_modelos = false no hay placa", vfx.placas() == antes)
+	await _esperar(2.6)
+	_okc("las placas se liberan solas", m.find_children("PlacaRota", "Node3D", true, false).is_empty())
+	for n in [m, w]:
+		n.queue_free()

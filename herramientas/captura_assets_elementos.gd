@@ -139,6 +139,28 @@ func _correr() -> void:
 		await _esperar(0.5)
 		await _foto("hielo_proyectil_" + _modo)
 		_limpiar()
+		if nuevo:
+			# por defecto el cometa del kit; la esquirla de Meshy, para comparar, con VfxHielo.proyectil_esquirla = true
+			_poner_camara(Vector3(0.5, 1.4, 3.0), Vector3(0.5, 1.0, 0.0))
+			VfxHielo.proyectil_esquirla = true
+			var seg_e := Node3D.new()
+			_mundo.add_child(seg_e)
+			seg_e.position = Vector3(0.5, 1.0, 0.0)
+			_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_e, Vector3.RIGHT, 0.5, 6.0))
+			VfxHielo.proyectil_esquirla = false
+			await _esperar(0.5)
+			await _foto("hielo_proyectil_esquirla_" + _modo)
+			_limpiar()
+			# y a la cámara del juego, junto a la jugadora de referencia
+			_camara_juego(Vector3(0.0, 0.8, 0.0))
+			_referencia(Vector3(-1.2, 0.0, 0.0))
+			var seg_j := Node3D.new()
+			_mundo.add_child(seg_j)
+			seg_j.position = Vector3(0.6, 1.0, 0.0)
+			_ve._con_elemento("hielo", _ve._pieza_proyectil.bind("hielo", seg_j, Vector3.RIGHT, 0.4, 6.0))
+			await _esperar(0.5)
+			await _foto("hielo_proyectil_juego_" + _modo)
+			_limpiar()
 
 	if _quiero("hielo_impacto"):
 		_poner_camara(Vector3(0.0, 1.8, 4.2), Vector3(0.0, 0.5, 0.0))
@@ -167,6 +189,26 @@ func _correr() -> void:
 		_limpiar()
 
 	if nuevo and _quiero("hielo_placa_rota"):
+		# Una casilla de agua (2,3 u) con la placa encima; se dispara por el MISMO camino que el juego: el aviso «hielo_roto» de Mundo3D.impacto.
+		var agua := MeshInstance3D.new()
+		var qa := PlaneMesh.new()
+		qa.size = Vector2(2.3, 2.3)
+		agua.mesh = qa
+		var ma := StandardMaterial3D.new()
+		ma.albedo_color = Color(0.18, 0.42, 0.62)
+		agua.material_override = ma
+		agua.position = Vector3(0.0, 0.0, 0.0)
+		_mundo.add_child(agua)
+		agua.position.y = 0.03                   # un pelo sobre el suelo verde (y = 0)
+		_poner_camara(Vector3(0.0, 3.6, 3.8), Vector3(0.0, 0.0, 0.0))
+		_ve._mundo = _mundo
+		_ve.casilla = 2.3
+		_ve.placa_rota(Vector3(0.0, 0.05, 0.0), 2.3)
+		for par in [[0.12, "1_sepa"], [0.4, "2_reposo"], [1.5, "3_hunde"]]:
+			await _esperar(float(par[0]))
+			await _foto("hielo_placa_rota_%s_%s" % [par[1], _modo])
+		await _esperar(1.2)
+		_limpiar()
 		_poner_camara(Vector3(0.0, 3.6, 3.8), Vector3(0.0, 0.0, 0.0))
 		VfxHielo.placa_rota(_mundo, Vector3(0.0, 0.02, 0.0), 1.0)
 		await _esperar(0.75)
@@ -182,6 +224,24 @@ func _correr() -> void:
 		_ve._con_elemento("viento", _ve._pieza_proyectil.bind("viento", sv, Vector3.RIGHT, 0.5, 6.0))
 		await _esperar(0.4)
 		await _foto("viento_hojas_" + _modo)
+		_limpiar()
+
+	if _quiero("viento_hojas_juego"):
+		# la cámara del juego (ortogonal 6 u) con la jugadora de referencia (1 u): ¿se leen las hojas?
+		_camara_juego(Vector3(0.0, 0.8, 0.0))
+		_referencia(Vector3(-1.2, 0.0, 0.0))
+		var sj := Node3D.new()
+		_mundo.add_child(sj)
+		sj.position = Vector3(0.6, 1.0, 0.0)
+		_ve._con_elemento("viento", _ve._pieza_proyectil.bind("viento", sj, Vector3.RIGHT, 0.4, 6.0))
+		await _esperar(0.5)
+		await _foto("viento_hojas_juego_" + _modo)
+		_limpiar()
+		_camara_juego(Vector3(0.0, 0.8, 0.0))
+		_referencia(Vector3(-1.6, 0.0, 0.0))
+		VfxViento.remolino(_mundo, Vector3(0.6, 0.0, 0.0), 1.0, 0.0)
+		await _esperar(0.5)
+		await _foto("viento_remolino_juego_" + _modo)
 		_limpiar()
 
 	if _quiero("viento_remolino"):
@@ -203,8 +263,31 @@ func _correr() -> void:
 
 
 func _poner_camara(pos: Vector3, mira: Vector3) -> void:
+	_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
 	_cam.look_at_from_position(pos, mira)
 	_cam.current = true
+
+
+## Cámara del juego: ortogonal, 6 u de alto (ZOOM_INICIAL de la maqueta), mirando hacia abajo unos 40°. `lejos` = lo que se aleja del punto mirado.
+func _camara_juego(mira: Vector3) -> void:
+	_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	_cam.size = 6.0
+	_cam.look_at_from_position(mira + Vector3(0.0, 9.0, 9.0) * 1.0, mira)
+	_cam.current = true
+
+
+## Una jugadora de referencia (cápsula de 1 u de alto) en `pos` para juzgar los tamaños.
+func _referencia(pos: Vector3) -> void:
+	var mi := MeshInstance3D.new()
+	var cm := CapsuleMesh.new()
+	cm.radius = 0.25
+	cm.height = 1.0
+	mi.mesh = cm
+	var mt := StandardMaterial3D.new()
+	mt.albedo_color = Color(0.85, 0.35, 0.55)
+	mi.material_override = mt
+	_mundo.add_child(mi)
+	mi.position = pos + Vector3(0.0, 0.5, 0.0)
 
 
 func _esperar(s: float) -> void:

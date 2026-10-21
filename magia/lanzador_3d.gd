@@ -284,6 +284,9 @@ static func _hielo_cambio(c: Vector2i, helada: bool) -> void:
 	else:
 		if letra_de(c) == "~":
 			bloquear_celda(c)                        # vuelve a ser agua: a pie no se pisa (se nada desde la orilla)
+		# ajustes VFX: la placa de hielo se rompe. Se avisa por la fachada y VfxElemento3D (lo comparten la maqueta y el lab) dibuja VfxHielo.placa_rota.
+		if Mundo3D.actual != null and is_instance_valid(Mundo3D.actual):
+			Mundo3D.actual.avisar_impacto(Terreno3D.centro_de(c, Terreno3D.superficie_agua(c)), "hielo_roto", Terreno3D.casilla)
 		# (El canal «helado» del suelo lo apaga la maqueta al oír casilla_cambio «hielo»: ya no se le llama por reflexión.)
 		soltar_presos(c)
 

@@ -21,8 +21,9 @@ extends ElementoVfx
 ##   · IMPACTO   `impacto`: un racimo mediano que brota donde choca, racimos pequeños y pinchos de escarcha alrededor; se quedan `T_REPOSO` s y se funden.
 ##   · QUIETAS   `emerger`: racimos grandes que BROTAN del suelo en la barrera (círculo), el pulso (círculo grande) o la esfera (uno central y tres pequeños).
 ##   · REACCIÓN  `escarcha_modelos`: lo que se congela (goblin atrapado): racimos pequeños y pinchos de escarcha alrededor del punto.
-##   · AGUA      `placa_rota`: la placa helada del agua al romperse (4 trozos que se separan y se hunden). Todavía NO la llama nadie: el agua helada solo
-##               suelta una onda (`AguaSim3D.EVENTO_HIELO_ROTO`); la función queda preparada para engancharla donde el agua pierda un trozo de hielo.
+##   · AGUA      `placa_rota`: la placa helada del agua al romperse (4 trozos que se separan y se hunden). La llama `VfxElemento3D` al oír
+##               `Mundo3D.impacto(punto, "hielo_roto", casilla)`, que avisa `Lanzador3D._hielo_cambio` cuando una casilla pierde su hielo.
+##   · VUELO     (nota) el proyectil de hielo es el cometa del kit salvo `proyectil_esquirla = true`.
 
 const MEDIDA: Dictionary = {
 	"esquirla_hielo": Vector3(0.12, 0.12, 0.45),
@@ -69,8 +70,13 @@ const T_ESCARCHA: float = 1.8
 const T_PLACA_SEPARA: float = 0.35
 const T_PLACA_REPOSO: float = 1.2
 const T_PLACA_HUNDE: float = 0.7
+const PLACA_SEPARACION: float = 0.3        ## u que se aparta cada trozo del centro (en unidades de la placa; antes 0,18: se leía poco)
+const PLACA_INCLINA: float = 0.3           ## rad máx. que se ladea cada trozo (antes 0,18)
 
 static var usar_modelos: bool = true
+## Proyectil de hielo con la esquirla de Meshy. false (por defecto): el cometa brillante del kit (`VfxKit3D.bola` con cola), porque la esquirla actual tiene dos puntas
+## iguales y no se lee como proyectil. Impacto, barrera, escarcha y reacción siguen con los modelos. Ponerlo a true cuando llegue una esquirla mejor.
+static var proyectil_esquirla: bool = false
 static var _modelos: Dictionary = {}       ## id -> Mesh o null (modelo horneado; las pruebas pueden poner uno)
 static var _prim: Dictionary = {}          ## id -> ArrayMesh (primitivas)
 static var _mats: Dictionary = {}          ## textura (instance id) -> material de hielo
@@ -105,6 +111,11 @@ static func ids() -> PackedStringArray:
 ## ¿Se dibuja el hielo con los modelos? (el interruptor). Con false, `VfxElemento3D` vuelve al hielo del kit de antes.
 static func activo() -> bool:
 	return usar_modelos
+
+
+## ¿Vuela el proyectil como esquirla del modelo? (modelos encendidos Y `proyectil_esquirla`). Si no, es el cometa del kit.
+static func proyectil_con_esquirla() -> bool:
+	return usar_modelos and proyectil_esquirla
 
 
 ## ¿Hay modelo de Meshy para esta pieza (y está encendido el interruptor)?
@@ -431,8 +442,8 @@ static func placa_rota(mundo: Node, centro: Vector3, esc: float = 1.0) -> Node3D
 		var d: Vector2 = trozo_desplazamiento(i) if hay_modelo(t.name) else Vector2(1.0 if i % 2 == 1 else -1.0, 1.0 if i >= 2 else -1.0) * 0.55
 		var fuera := Vector3(d.x, 0.0, d.y).normalized() if d.length() > 0.01 else Vector3(cos(float(i) * 1.6), 0.0, sin(float(i) * 1.6))
 		var tw: Tween = t.create_tween()
-		tw.tween_property(t, "position", fuera * 0.18 + Vector3(0.0, -0.03, 0.0), T_PLACA_SEPARA).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.parallel().tween_property(t, "rotation", Vector3(randf_range(-0.18, 0.18), randf_range(-0.1, 0.1), randf_range(-0.18, 0.18)), T_PLACA_SEPARA)
+		tw.tween_property(t, "position", fuera * PLACA_SEPARACION + Vector3(0.0, -0.03, 0.0), T_PLACA_SEPARA).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(t, "rotation", Vector3(randf_range(-PLACA_INCLINA, PLACA_INCLINA), randf_range(-0.1, 0.1), randf_range(-PLACA_INCLINA, PLACA_INCLINA)), T_PLACA_SEPARA)
 		tw.tween_interval(T_PLACA_REPOSO)
 		tw.tween_property(t, "position:y", -0.25, T_PLACA_HUNDE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.parallel().tween_property(t, "scale", Vector3.ONE * 0.6, T_PLACA_HUNDE)

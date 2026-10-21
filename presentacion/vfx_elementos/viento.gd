@@ -51,8 +51,9 @@ const T_FUNDIDO_ENTRADA: float = 0.3
 const T_FUNDIDO_SALIDA: float = 0.6
 const TORBELLINO_GIRO: float = 4.0
 
-const HOJA_TAM_MIN: float = 0.09           ## lado de una tarjeta de hoja (u)
-const HOJA_TAM_MAX: float = 0.26
+const HOJA_TAM_MIN: float = 0.25           ## lado de una tarjeta de hoja (u; la jugadora mide ≈ 1 u). Antes 0,09–0,26: con la cámara del juego casi no se leían
+const HOJA_TAM_MAX: float = 0.5
+const HOJA_FACTOR: float = 1.8             ## las hojas valen tantas veces el tamaño de referencia de cada efecto (antes ×1), luego se limitan a MIN–MAX
 
 static var usar_atlas: bool = true         ## false = el atlas sencillo generado por código (el de antes de Meshy) y sin tarjetas de remolino: para comparar y para las pruebas
 static var _atlas: Texture2D = null
@@ -61,8 +62,8 @@ static var _mat_hojas: Dictionary = {}     ## (casilla, atlas real o no) -> mate
 
 const REMOLINO_TARJETAS: int = 2           ## tarjetas de la fila 3 del atlas (remolinos blancos) en el remolino de impacto
 const TORBELLINO_TARJETAS: int = 3         ## y en el tornado / corro
-const TARJETA_REMOLINO_K: float = 2.6      ## una tarjeta de remolino es tantas veces más grande que una hoja
-const TARJETA_REMOLINO_MAX: float = 0.7
+const TARJETA_REMOLINO_K: float = 2.0      ## una tarjeta de remolino es tantas veces más grande que una hoja (antes 2,6 con hojas más chicas: 0,23–0,7 u; ahora 0,5–1,0 u)
+const TARJETA_REMOLINO_MAX: float = 1.0
 
 
 ## Gira sobre su eje Y local (las cintas en espiral). Un nodo con _process en vez de un tween en bucle: muere con su padre.
@@ -268,7 +269,7 @@ static func _hojas_en(rueda: Node3D, n: int, largo: float, r_ini: float, r_fin: 
 		var s: float = randf_range(0.15, 0.95)
 		var a: float = randf() * TAU
 		var r: float = lerpf(r_ini, r_fin, s) * randf_range(0.8, 1.3)
-		var tam: float = clampf(tam_ref * randf_range(0.7, 1.3), HOJA_TAM_MIN, HOJA_TAM_MAX)
+		var tam: float = clampf(tam_ref * HOJA_FACTOR * randf_range(0.7, 1.3), HOJA_TAM_MIN, HOJA_TAM_MAX)
 		var h: MeshInstance3D = hoja(minf(tam * TARJETA_REMOLINO_K, TARJETA_REMOLINO_MAX) if rem else tam, i, rem)
 		h.position = Vector3(cos(a) * r, sentido * s * largo, sin(a) * r)
 		rueda.add_child(h)

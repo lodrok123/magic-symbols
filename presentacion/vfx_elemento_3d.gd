@@ -47,6 +47,7 @@ var _ultimo: WeakRef = null
 var _vivos: int = 0
 var _proyectiles_n: int = 0
 var _volumenes_n: int = 0
+var _placas_n: int = 0
 var _log: String = ""
 
 
@@ -196,7 +197,25 @@ static func conectar(lanzador: Object, mundo: Node3D) -> VfxElemento3D:
 		lanzador.connect("hechizo_v2", v._en_hechizo)
 	if lanzador is Node:
 		(lanzador as Node).child_entered_tree.connect(v._en_nodo)
+	# ajustes VFX: el hielo del agua se rompe (Lanzador3D._hielo_cambio → Mundo3D.impacto «hielo_roto») → placa rota. Mismo camino en maqueta y lab.
+	if Mundo3D.actual != null and is_instance_valid(Mundo3D.actual) and not Mundo3D.actual.impacto.is_connected(v._en_impacto_mundo):
+		Mundo3D.actual.impacto.connect(v._en_impacto_mundo)
 	return v
+
+
+## Avisos de `Mundo3D.impacto` que dibuja este nodo: «hielo_roto» (punto = centro de la casilla a la altura del agua, radio = tamaño de casilla).
+func _en_impacto_mundo(punto: Vector3, elemento: String, radio: float) -> void:
+	if elemento == "hielo_roto":
+		placa_rota(punto, radio)
+
+
+## La placa helada de una casilla se rompe: 4 trozos que se separan, se ladean y se hunden (VfxHielo.placa_rota). Devuelve la raíz o null.
+func placa_rota(punto: Vector3, tam_casilla: float = 0.0) -> Node3D:
+	if not encendido or _mundo == null or not is_instance_valid(_mundo) or not VfxHielo.activo():
+		return null
+	var lado: float = tam_casilla if tam_casilla > 0.1 else casilla
+	_placas_n += 1
+	return VfxHielo.placa_rota(_mundo, punto, lado / 2.2)      # el GLB mide 2,2 u: a la casilla de 2,3 le toca ×1,045
 
 
 ## Para la medida y las pruebas: cuántos efectos ha montado y qué ha recibido por última vez.
@@ -214,6 +233,11 @@ func proyectiles() -> int:
 
 func volumenes() -> int:
 	return _volumenes_n
+
+
+## Placas de hielo rotas dibujadas (la prueba lo lee).
+func placas() -> int:
+	return _placas_n
 
 
 ## --- Entradas ---
@@ -306,7 +330,7 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 
 ## Lo que se monta en un proyectil según el elemento (se llama con `VfxKit3D.elemento` ya puesto, vía `_con_elemento`).
 func _pieza_proyectil(el: String, seg: Node3D, d: Vector3, r_u: float, vel: float) -> void:
-	if el == "hielo" and VfxHielo.activo():      # assets elementos: la esquirla de Meshy (VfxHielo.usar_modelos = false vuelve a la bola del kit)
+	if el == "hielo" and VfxHielo.proyectil_con_esquirla():      # la esquirla de Meshy solo si `VfxHielo.proyectil_esquirla = true`; por defecto, el cometa del kit
 		VfxHielo.proyectil(seg, d, r_u)
 		return
 	match el:
@@ -373,7 +397,7 @@ func _tierra_cae(raiz: Node3D, pie: Vector3, r_u: float, alto_u: float, vida: fl
 ## viento— se queda. Se reconoce por el tipo de malla, sin tocar el kit: así un elemento nuevo que use `VfxKit3D.bola` cumple la regla sin hacer nada.
 func _recoger_cola(raiz: Node, el: String) -> Array:
 	var lista: Array = []
-	var mallas_cola: bool = el != "tierra" and el != "viento" and not (el == "hielo" and VfxHielo.activo())      # assets elementos: la esquirla es el cuerpo, no cola
+	var mallas_cola: bool = el != "tierra" and el != "viento" and not (el == "hielo" and VfxHielo.proyectil_con_esquirla())      # la esquirla (si se usa) es el cuerpo, no cola
 	for n in raiz.find_children("*", "", true, false):
 		if n is GPUParticles3D:
 			lista.append(n)

@@ -46,7 +46,8 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 func _initialize() -> void:
 	await process_frame
-	VfxHielo.usar_modelos = false     # assets elementos: ANTES_CAJA["ice"] es la del hielo del kit (bola + cola); la esquirla de Meshy se mide en prueba_assets_elementos.gd
+	# ANTES_CAJA["ice"] es la del cometa del kit (bola + cola): es lo que dibuja el proyectil de hielo por defecto (`VfxHielo.proyectil_esquirla = false`), sin apagar los modelos.
+	_ok("el proyectil de hielo es el cometa del kit con los interruptores por defecto", VfxHielo.usar_modelos and not VfxHielo.proyectil_esquirla)
 	_montar()
 	print("--- ESCALA_PROYECTIL = %.2f · casilla = %.2f u" % [Hechizo.ESCALA_PROYECTIL, Terreno3D.casilla])
 	_hechizo()
