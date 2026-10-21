@@ -8,10 +8,18 @@ extends Node
 ## `Puzle3D`; este nodo pone lo que un mapa no sabe decir: el enganche de los efectos, el HUD, las teclas, los carteles y lo que cada sala necesita
 ## al arrancar (encender el brasero del arquero, crear al arquero…).
 ##
-## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Hechas la 1, la 2, la 3, la 4 y la 5; las demás tienen su hook `_preparar_sala_N()`
-## vacío y documentado para que cada tarea siguiente lo rellene SIN tocar el resto:
+## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Las siete están hechas; cada una rellena SU hook `_preparar_sala_N()` sin tocar el resto:
 ##   1 (0,0) FUEGO POR CONTACTO (A2) · 2 (1,0) AL AGUA (A3) · 3 (2,0) ESCUDO (A5) · 4 (3,0) CAMINOS (D2) · 5 (0,1) SUELO Y CONDICIONES (B1+C2) ·
-##   6 (1,1) SALA CERRADA (C3+C1) · 7 (2,1) FINAL INTEGRADO · (3,1) reserva.
+##   6 (1,1) SALA CERRADA (C3+C1: vigía + cerrojo + cofre + flags, 3 goblins) · 7 (2,1) FINAL INTEGRADO (sala cerrada con escudo, arquero con brasero, estanque, setos
+##   y un cofre que no aparece si quemas la hierba) · (3,1) reserva.
+## Las salas 6 y 7 SE CIERRAN al entrar el jugador a pie (Shift+6 / Shift+7 ya lo deja dentro): para ver cómo se cierran, entra por una puerta.
+##
+## AJUSTES DEL LAB (lo que el juego tal cual no hace sin ayuda). Cada uno es una constante `SALAn_*` con su hallazgo documentado junto a ella; el valor NEUTRO es el juego tal cual
+## y al arrancar el lab imprime en la consola los que están activos (`ajustes_activos()`, también en el HUD):
+##   SALA1_LIBERAR_BRASERO_ARQUERO  false · SALA1_CORRIMIENTO_BRASERO  0.0 · SALA1_QUEMA_GOBLIN_S  0.0 (quemadura de 3 s) · SALA2_HELAR_FRANJA  false · SALA3_QUIETO  false ·
+##   SALA4_OLFATO  false · SALA5_BRASERO_ENCENDIDO  false · SALA5_PUENTE_ESTADOS  false (8 en total). La sala 7 reutiliza SALA1_LIBERAR_BRASERO_ARQUERO (el brasero de su arquero)
+##   y SALA5_PUENTE_ESTADOS (la hierba `quemada` del cofre) y no añade ninguno propio: el escudo con su IA de verdad basta. La sala 6 no necesita ningún ajuste.
+## R reinicia el lab y BORRA las flags de la memoria (partida nueva: así F, cargar, demuestra que el guardado recuerda cofre y sala).
 ##
 ## TECLAS (constantes de abajo; libres: no las usan la maqueta ni Jugador3D — F7 es diorama, F9 hornear, F10 capa de agua):
 ##   Shift + 1–7 ir a la sala (también el teclado numérico KP 1–7, sin Shift) · X dibuja/oculta la RUTA de cada goblin (Caminos3D) · M guardar las flags ·
@@ -105,9 +113,30 @@ const SALA5_BRASERO_ENCENDIDO: bool = true
 ## PUENTE DE ESTADOS (hallazgo, medido): los disparos de verdad (agua, hielo, fuego a una casilla de suelo) solo escriben la imagen de estado de la MAQUETA (`_img_estado`: R quemada ·
 ## G mojada · B helada, `_impacto_en_suelo`); NADIE llama a `EstadosSuelo3D.aplicar` ni a `poner` con mojada/quemada (solo la electricidad y el hielo sobre AGUA escriben en
 ## `Terreno3D.estados`), así que `si=casilla(x,y).mojada` no se cumple nunca jugando (B2 del Pipeline: que la maqueta lea/escriba el mismo dato). Mientras tanto el lab copia a
-## `Terreno3D.estados` los cambios de ESA imagen en las casillas de la sala 5 (solo cuando cambian, para no pisar lo que ponga otro). false = el juego tal cual.
+## `Terreno3D.estados` los cambios de ESA imagen en las casillas de la sala 5 y de la sala 7 (solo cuando cambian, para no pisar lo que ponga otro; la 7 lo necesita para que el
+## cofre vea la hierba `quemada`: medido en el escenario, 7Q.3). false = el juego tal cual.
 const SALA5_PUENTE_ESTADOS: bool = true
 const REGLAS_SALA5: Dictionary = {"s5_abre_a": "A", "s5_abre_b": "B", "s5_abre_c": "C", "s5_abre_d": "D"}      ## las reglas `; puzle` del mapa y la letra de su puerta
+
+# --- Sala 6 · sala cerrada (C3 + C1) ---
+## Todo está en el mapa (letras W y `~`, líneas `; pieza` vigia / cerrojo / cofre y la regla `s6_abre`): la sala NO necesita ningún ajuste del lab. Aquí solo las casillas de los
+## goblins, para reconocerlos (la casilla de PARTIDA, `Combate3D.casa`, que es lo que mira el vigía).
+const SALA6_GOBLIN_ESTANQUE: Vector2i = Vector2i(14, 12)      ## al sur del estanque (13–15, 9–11): el viento lo empuja al agua honda
+const SALA6_GOBLINS: Array = [Vector2i(10, 10), Vector2i(14, 12), Vector2i(10, 14)]
+const SALA6_FLAG_LIMPIA: String = "playtest.s6.limpia"
+const SALA6_FLAG_COFRE: String = "playtest.s6.cofre"
+
+# --- Sala 7 · final integrado ---
+const SALA7_GOBLIN_ESTANQUE: Vector2i = Vector2i(18, 12)      ## al sur del estanque (17–19, 9–11)
+const SALA7_ESCUDO: Vector2i = Vector2i(20, 13)               ## el goblin del escudo (letra W; el lab le cuelga el Escudo3D)
+const SALA7_ARQUERO: Vector2i = Vector2i(22, 12)              ## lo crea el lab; justo al norte, el brasero (22,11), en su misma columna (ver SALA1_*: así su ronda no lo acerca al brasero)
+const SALA7_BRASERO: Vector2i = Vector2i(22, 11)
+const SALA7_HIERBA: Vector2i = Vector2i(17, 14)               ## la casilla que NO debe quemarse (letra v: hierba) ...
+const SALA7_PAJA: Vector2i = Vector2i(17, 15)                 ## ... y el «cofre de paja» (un seto) a su lado
+const SALA7_FLAG_LIMPIA: String = "playtest.s7.limpia"
+const SALA7_FLAG_COFRE: String = "playtest.s7.cofre"
+## El goblin del escudo va con su IA de verdad (medido: ve al jugador, le planta cara y el escudo queda siempre de frente, ver SALA3_QUIETO) y AQUÍ NO HACE FALTA quitársela: en esta
+## sala hay que derrotarlo, no rodearlo, y de frente se puede (la tierra rebota, el fuego prende el escudo, a los 3 s se consume y el siguiente disparo llega). Sin ajuste.
 
 ## Las salas, en el orden de las teclas. `rect`: casillas (x, y, ancho, alto) · `entrada`: a dónde lleva la tecla · `cartel`: dónde se cuelga el texto.
 ## `ids`: papel → id de la pieza en el .txt (los que no existen en el mapa salen como aviso en el HUD, no tumban el lab).
@@ -129,11 +158,11 @@ const SALAS: Array = [
 		"ids": {"brasero": "s5_br", "placa_a": "s5_pa", "puerta_a": "s5_ua", "placa_b": "s5_pb", "puerta_b": "s5_ub", "placa_c": "s5_pc", "puerta_c": "s5_uc",
 			"placa_d": "s5_pd", "puerta_d": "s5_ud"}},
 	{"nombre": "6 Sala cerrada (C3+C1)", "rect": Rect2i(9, 9, 7, 7), "entrada": Vector2i(12, 14), "cartel": Vector2i(12, 15),
-		"texto": "6 · SALA CERRADA (C3+C1)\n(sala vacía: la rellena otra tarea)\nCerrojo + vigía + cofre + flags. M guarda las flags, F las carga.",
-		"ids": {}},
+		"texto": "6 · SALA CERRADA (C3+C1)\nENTRA A PIE por la puerta del norte (arriba) o la del oeste: al pisar la sala las dos puertas se CIERRAN. Hay tres goblins; el de la derecha está junto al estanque:\nVIENTO (flecha) desde el sur y se HUNDE («hundido»). Cuando caigan los tres se abren las puertas y APARECE el cofre (E lo abre y pone su flag).\nPRUEBA DE GUARDADO: abre el cofre, M (guardar), R (reiniciar el lab: borra las flags de la memoria), F (cargar): el cofre vuelve ABIERTO\ny la sala ya NO se cierra al entrar. Los goblins vuelven, pero la sala ya está vencida.",
+		"ids": {"vigia": "s6_vigia", "cerrojo": "s6_cerrojo", "cofre": "s6_cofre"}},
 	{"nombre": "7 Final integrado", "rect": Rect2i(17, 9, 7, 7), "entrada": Vector2i(20, 14), "cartel": Vector2i(20, 15),
-		"texto": "7 · FINAL INTEGRADO\n(sala vacía: la rellena otra tarea)\nTodas las mecánicas juntas.",
-		"ids": {}},
+		"texto": "7 · FINAL INTEGRADO (entra a pie por el norte o el este: se cierra)\nGoblin con ESCUDO (centro): de frente «bloqueado»; fuego de frente y «prendido»; rodéalo. Arquero junto al brasero encendido (derecha): su flecha llega ARDIENDO.\nEstanque arriba a la izquierda: VIENTO desde el sur al goblin de al lado y «hundido». Setos secos abajo a la derecha: arden.\nEl cofre (abajo) aparece al caer los tres Y SOLO SI LA HIERBA (abajo a la izquierda, junto al COFRE DE PAJA) NO SE HA QUEMADO:\nvía limpia = cofre; si le prendes fuego a la hierba, el cofre ya no aparece. M guardar · R reiniciar · F cargar.",
+		"ids": {"vigia": "s7_vigia", "cerrojo": "s7_cerrojo", "cofre": "s7_cofre", "brasero": "s7_brasero", "paja": "s7_paja", "seto1": "s7_seto1", "seto2": "s7_seto2", "seto3": "s7_seto3"}},
 ]
 
 var m: Variant = null                          ## la maqueta (PruebaTest2). Sin tipo: se le llama a métodos suyos
@@ -192,6 +221,7 @@ func iniciar(mundo: Variant) -> void:
 	_preparar_salas()
 	_montar_hud()
 	set_process(true)
+	print("LabPlaytestEoW: AJUSTES ACTIVOS (ayudas del lab sobre el juego tal cual; el valor neutro de cada constante SALAn_* las quita): %s" % (" · ".join(PackedStringArray(ajustes_activos())) if not ajustes_activos().is_empty() else "ninguno"))
 
 
 ## Engancha la tabla reacción → efecto + sonido del Pipeline (`ReaccionesVfx3D`) a `Mundo3D.reaccion` (sin esto A4 no se ve ni suena; el Pipeline pidió que el
@@ -429,22 +459,23 @@ func _puente_estados_sala_5() -> void:
 	var img: Image = m.get("_img_estado") as Image
 	if img == null:
 		return
-	var r: Rect2i = SALAS[4]["rect"]
-	for y in range(r.position.y, r.end.y):
-		for x in range(r.position.x, r.end.x):
-			var c := Vector2i(x, y)
-			var p: Color = img.get_pixelv(c)
-			var nuevo := Vector3i(int(p.r >= 0.5), int(p.g >= 0.5), int(p.b >= 0.5))
-			var viejo: Vector3i = _img_s5.get(c, Vector3i.ZERO)
-			if nuevo == viejo:
-				continue
-			_img_s5[c] = nuevo
-			if nuevo.x != viejo.x:
-				Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, nuevo.x == 1)
-			if nuevo.y != viejo.y:
-				Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, nuevo.y == 1)
-			if nuevo.z != viejo.z:
-				Terreno3D.estados.poner(c, EstadosSuelo3D.HELADA, nuevo.z == 1)
+	# Sala 5 (puertas por estado de casilla) y sala 7 (el cofre que no aparece si la hierba está `quemada`): las dos leen `casilla(x,y).estado`.
+	for r in [SALAS[4]["rect"] as Rect2i, SALAS[6]["rect"] as Rect2i]:
+		for y in range(r.position.y, r.end.y):
+			for x in range(r.position.x, r.end.x):
+				var c := Vector2i(x, y)
+				var p: Color = img.get_pixelv(c)
+				var nuevo := Vector3i(int(p.r >= 0.5), int(p.g >= 0.5), int(p.b >= 0.5))
+				var viejo: Vector3i = _img_s5.get(c, Vector3i.ZERO)
+				if nuevo == viejo:
+					continue
+				_img_s5[c] = nuevo
+				if nuevo.x != viejo.x:
+					Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, nuevo.x == 1)
+				if nuevo.y != viejo.y:
+					Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, nuevo.y == 1)
+				if nuevo.z != viejo.z:
+					Terreno3D.estados.poner(c, EstadosSuelo3D.HELADA, nuevo.z == 1)
 
 
 ## ¿Cumple la casilla lo que esa losa pide? (`seca` = sin agua encima.)
@@ -519,6 +550,25 @@ func _texto_sala_5() -> String:
 	return t
 
 
+## Líneas de HUD de las salas cerradas (6 y 7): vigía, cerrojo, cofre y, en la 7, la hierba que no debe quemarse.
+func _texto_sala_cerrada(n: int) -> String:
+	var q: Dictionary = sala(n)
+	var v: Variant = q.get("vigia")
+	var c: Variant = q.get("cerrojo")
+	var cf: Variant = q.get("cofre")
+	if v == null or c == null or cf == null or not is_instance_valid(v) or not is_instance_valid(c) or not is_instance_valid(cf):
+		return ""
+	var vigia: Puzle3D.VigiaPuzle = v as Puzle3D.VigiaPuzle
+	var cofre: Puzle3D.CofrePuzle = cf as Puzle3D.CofrePuzle
+	var estado_cofre: String = "ABIERTO" if cofre.es_abierto else ("cerrado (pulsa E a menos de 2,7 u)" if cofre.es_cerrado else "oculto")
+	var t: String = "SALA %d · vigía: %s · cerrojo: %s · cofre: %s\n" % [n, "LIMPIA" if vigia.completo else ("quedan %d de %d" % [vigia.restantes(), vigia.vistos.size()] if not vigia.vistos.is_empty() else "sin ver enemigos"),
+		"CERRADO" if (c as Puzle3D.CerrojoPuzle).cerrado else "abierto", estado_cofre]
+	if n == 7:
+		var quemada: bool = Terreno3D.estados.tiene(SALA7_HIERBA, EstadosSuelo3D.QUEMADA)
+		t += "  hierba %s: %s (el cofre pide sala limpia Y hierba SIN quemar)\n" % [str(SALA7_HIERBA), "QUEMADA: el cofre ya no aparecerá" if quemada else "intacta"]
+	return t
+
+
 func _estado_puerta_s5(papel: String) -> String:
 	var p: Variant = sala(5).get(papel)
 	if p == null or not is_instance_valid(p):
@@ -526,15 +576,82 @@ func _estado_puerta_s5(papel: String) -> String:
 	return "ABIERTA" if bool((p as Object).get("abierta")) else "cerrada"
 
 
-## SALA 6 · SALA CERRADA (C3+C1). HOOK VACÍO. Idea: `vigia` + `cerrojo` + `cofre` en el .txt (prefijo `s6_`; ejemplo completo en la cabecera de escenas/puzle.gd)
-## y goblins creados aquí con `_crear_goblin`. M guarda las flags (`RUTA_GUARDADO`) y F las carga: el HUD las lista.
+## SALA 6 · SALA CERRADA (C3+C1). El mapa pone todo: estanque, los tres goblins (W), el vigía, el cerrojo en las dos puertas, el cofre y la regla que abre el cerrojo. Aquí solo se
+## guardan los nodos para el HUD y las pruebas. M guarda las flags (`RUTA_GUARDADO`) y F las carga: el HUD las lista.
 func _preparar_sala_6() -> void:
-	pass
+	var q: Dictionary = sala(6)
+	q["estanque"] = _combate_en(SALA6_GOBLIN_ESTANQUE)
+	q["goblins"] = []
+	for c in SALA6_GOBLINS:
+		var g: Combate3D = _combate_en(c as Vector2i)
+		if g == null:
+			_avisos.append("sala 6: no hay goblin en %s (letra W del mapa)" % str(c))
+		else:
+			(q["goblins"] as Array).append(g)
+	_rotulo_suelo(SALA6_GOBLIN_ESTANQUE + Vector2i(0, 1), "VIENTO desde aquí al goblin del estanque", Color(0.6, 0.9, 1.0), 0.6)
 
 
-## SALA 7 · FINAL INTEGRADO. HOOK VACÍO. Idea: una sala que junte las anteriores. Piezas del .txt con prefijo `s7_`.
+## SALA 7 · FINAL INTEGRADO. El mapa pone el estanque, los setos, la hierba, el brasero, el goblin del estanque (W), el del escudo (W), el vigía, el cerrojo y el cofre. El lab: cuelga
+## el escudo, crea al arquero y enciende su brasero (ver SALA1_*, que esta sala reutiliza) y rotula el «cofre de paja» y la hierba que no hay que quemar.
 func _preparar_sala_7() -> void:
-	pass
+	var q: Dictionary = sala(7)
+	q["estanque"] = _combate_en(SALA7_GOBLIN_ESTANQUE)
+	var g: Combate3D = _combate_en(SALA7_ESCUDO)
+	q["goblin_escudo"] = g
+	q["escudo"] = null
+	if g == null:
+		_avisos.append("sala 7: no hay goblin del escudo en %s (letra W del mapa)" % str(SALA7_ESCUDO))
+	else:
+		q["escudo"] = Escudo3D.equipar(g)                       # con su IA de verdad (ver la nota de SALA7_ESCUDO)
+	if q["estanque"] == null:
+		_avisos.append("sala 7: no hay goblin del estanque en %s (letra W del mapa)" % str(SALA7_GOBLIN_ESTANQUE))
+	var br: Variant = q.get("brasero")
+	if br != null and is_instance_valid(br):
+		(br as Reactivo3D).encender_llama()
+	if SALA1_LIBERAR_BRASERO_ARQUERO:
+		Terreno3D.liberar_celda(SALA7_BRASERO)                  # ver SALA1_LIBERAR_BRASERO_ARQUERO: si no, el brasero corta la vista y la flecha del arquero
+	q["arquero"] = _crear_arquero(SALA7_ARQUERO)
+	if q["arquero"] == null:
+		_avisos.append("sala 7: no se pudo crear el arquero (¿falta arte/modelos/goblin_archer_chibi.glb?)")
+	_rotulo_suelo(SALA7_PAJA, "COFRE DE PAJA", Color(1.0, 0.85, 0.4), 1.3)
+	_rotulo_suelo(SALA7_HIERBA, "HIERBA: no la quemes", Color(0.5, 1.0, 0.5), 0.9)
+	_rotulo_suelo(SALA7_GOBLIN_ESTANQUE + Vector2i(0, 1), "VIENTO desde aquí", Color(0.6, 0.9, 1.0), 0.6)
+
+
+## Un rótulo flotante `alto` u sobre la casilla `c` (sin losa): señala algo de la sala sin estorbar.
+func _rotulo_suelo(c: Vector2i, texto: String, color: Color, alto: float) -> void:
+	var rot := Label3D.new()
+	rot.text = texto
+	rot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	rot.font_size = 24
+	rot.outline_size = 8
+	rot.pixel_size = 0.005
+	rot.modulate = color
+	rot.position = Terreno3D.centro_de(c, Terreno3D.y_pies(c) + alto)
+	(m.get("_props") as Node).add_child(rot)
+
+
+## ¿Qué ajustes del lab están ACTIVOS ahora mismo? Cada uno es una ayuda sobre el juego tal cual (el valor neutro de cada constante SALAn_* lo apaga: ver la cabecera).
+## Las variables de instancia (`olfato_s4`, `puente_estados_s5`, `quema_goblin_s1`) cuentan con su valor actual, que las pruebas pueden haber cambiado.
+func ajustes_activos() -> Array:
+	var a: Array = []
+	if SALA1_LIBERAR_BRASERO_ARQUERO:
+		a.append("SALA1_LIBERAR_BRASERO_ARQUERO (salas 1 y 7: el brasero del arquero no corta la vista)")
+	if SALA1_CORRIMIENTO_BRASERO != 0.0:
+		a.append("SALA1_CORRIMIENTO_BRASERO=%.1f" % SALA1_CORRIMIENTO_BRASERO)
+	if quema_goblin_s1 > 0.0:
+		a.append("SALA1_QUEMA_GOBLIN_S=%.0f" % quema_goblin_s1)
+	if SALA2_HELAR_FRANJA:
+		a.append("SALA2_HELAR_FRANJA (franja de hielo)")
+	if SALA3_QUIETO:
+		a.append("SALA3_QUIETO (goblin del escudo quieto)")
+	if olfato_s4:
+		a.append("SALA4_OLFATO (el goblin te huele a %.1f u)" % SALA4_OLFATO_RADIO)
+	if SALA5_BRASERO_ENCENDIDO:
+		a.append("SALA5_BRASERO_ENCENDIDO")
+	if puente_estados_s5:
+		a.append("SALA5_PUENTE_ESTADOS (salas 5 y 7: mojada/quemada/helada llegan a Terreno3D.estados)")
+	return a
 
 
 ## Se llama cuando el jugador pasa de una sala a otra (`n` = 1–7, 0 = pasillo o hueco de reserva). HOOK VACÍO para lo que haya que hacer al entrar
@@ -645,6 +762,13 @@ func colocar_jugador(c: Vector2i) -> void:
 	_jug.position = p
 
 
+## Reinicia el laboratorio como una PARTIDA NUEVA: las flags viven en memoria (`Flags` es un singleton que sobrevive a recargar la escena), así que se borran antes de
+## recargar; si no, «guardar → reiniciar → cargar» no demostraría nada (el cofre y la sala ya estarían recordados sin cargar). El archivo guardado NO se toca: F lo recupera.
+func reiniciar() -> void:
+	Flags.nuevo()
+	get_tree().reload_current_scene()
+
+
 ## Guarda las flags en `RUTA_GUARDADO`. Devuelve si se pudo.
 func guardar_flags() -> bool:
 	var ok: bool = Flags.i().guardar(RUTA_GUARDADO)
@@ -699,7 +823,7 @@ func _input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo:
 		return
 	if k.keycode == TECLA_REINICIAR:
-		get_tree().reload_current_scene()
+		reiniciar()
 	elif k.keycode == TECLA_RUTAS:
 		alternar_rutas()
 	elif k.keycode == TECLA_GUARDAR:
@@ -812,11 +936,16 @@ func texto_hud() -> String:
 		t += _texto_sala_4()
 	elif n == 5:
 		t += _texto_sala_5()
+	elif n == 6 or n == 7:
+		t += _texto_sala_cerrada(n)
 	if _t_mensaje > 0.0:
 		t += "  >> %s\n" % _mensaje
 	for a in _avisos:
 		t += "  AVISO %s\n" % String(a)
-	t += "Shift+1–7 sala (o KP 1–7) · X rutas goblins (%s) · M guardar flags · F cargar flags · R reiniciar" % ("SÍ" if _rutas_visibles else "no")
+	var ayudas: Array = ajustes_activos()
+	t += "SALAS: 1 fuego (A2) · 2 agua (A3) · 3 escudo (A5) · 4 caminos (D2) · 5 suelo y condiciones (B1+C2) · 6 sala cerrada (C3+C1) · 7 final integrado\n"
+	t += "AYUDAS DEL LAB activas: %d de 8 (SALAn_* en lab_playtest_eow_3d.gd; la consola las lista)\n" % ayudas.size()
+	t += "Shift+1–7 sala (o KP 1–7) · X rutas goblins (%s) · M guardar flags · F cargar flags · R reiniciar (borra las flags de memoria) · E abre el cofre" % ("SÍ" if _rutas_visibles else "no")
 	return t
 
 

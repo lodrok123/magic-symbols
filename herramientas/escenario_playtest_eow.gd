@@ -12,6 +12,10 @@ extends "res://herramientas/escenario_base.gd"
 ##   · 4  sala 4 · caminos (D2): sin helar no hay ruta; con una casilla helada la ruta rodea la pared, sube la terraza de 1 nivel (la de 2 no) y cruza el hielo; tecla X; tierra de 1 nivel no
 ##        es muro, de 2 niveles sí (la ruta cambia sola); el goblin de verdad recorre cada ruta. El olfato del lab (SALA4_OLFATO) y el hielo/tierra son lo que se mide aparte.
 ##   · 5  sala 5 · suelo y condiciones (B1+C2): puerta A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`), dos aguas hielan, el puente de estados del lab.
+##   · 6  sala 6 · sala cerrada (C3+C1): entrar la cierra, tres goblins (uno hundido con viento) la abren y aparece el cofre, E lo abre, M guarda, el lab se RECARGA como con R (partida nueva)
+##        y F devuelve el cofre abierto y la sala sin cerrarse.
+##   · 7  sala 7 · final integrado: vía limpia (escudo: bloqueado/prendido/consumido; arquero con flecha ardiendo; setos; hundido; el cofre aparece) y vía «quemando la hierba» (el cofre NO aparece).
+##        Las salas 6 y 7 recargan el lab (`_recargar`), por eso van detrás de las demás y cada una arranca de partida nueva.
 ##   · D  el clip de ahogarse (`drown`) lo pide un goblin que se hunde (con el modelo de verdad cargado).
 
 const RUTA_LAB: String = "res://laboratorios/LabPlaytestEoW.tscn"
@@ -32,7 +36,10 @@ func _escenario() -> void:
 	await _sala_3()
 	await _sala_4()
 	await _sala_5()
-	# --- Aquí, una línea por sala cuando se rellene: `await _sala_6()` y `await _sala_7()` ---
+	# Las salas 6 y 7 cambian de laboratorio a mitad (recargan, como R) y empiezan siempre de partida nueva, así que van detrás de las demás.
+	await _recargar()
+	await _sala_6()
+	await _sala_7()
 	await _ahogarse()
 
 
@@ -90,7 +97,9 @@ func _base() -> void:
 	var puzle: Puzle3D = lab.puzle_nodo()
 	_ok("0.6 las piezas de la sala 1 se han montado desde el .txt", is_instance_valid(puzle.nodo("s1_brasero")) and is_instance_valid(puzle.nodo("s1_seto4")) and is_instance_valid(puzle.nodo("s1_brasero_arq")))
 	_ok("0.7 el jugador nace en la sala 1", lab.sala_actual() == 1, str(celda_jugador()))
-	_ok("0.8 hay un hook de preparación por sala (2–7 vacíos)", range(1, 8).all(func(n: int) -> bool: return lab.has_method("_preparar_sala_%d" % n)))
+	_ok("0.8 hay un hook de preparación por sala", range(1, 8).all(func(n: int) -> bool: return lab.has_method("_preparar_sala_%d" % n)))
+	_ok("0.16 el lab declara sus 8 ayudas (SALAn_*) como activas, el HUD las cuenta y describe las 7 salas", lab.ajustes_activos().size() == 8 and lab.texto_hud().contains("AYUDAS DEL LAB activas: 8 de 8")
+		and lab.texto_hud().contains("6 sala cerrada") and lab.texto_hud().contains("7 final integrado"), str(lab.ajustes_activos()))
 
 
 ## Las teclas llevan a cada sala; guardar y cargar flags; rutas. El evento va por el sistema de entrada (llega a `_unhandled_input` como en el juego).
@@ -231,8 +240,8 @@ func _sala_1() -> void:
 
 
 ## Pone al jugador en (6,5) (al norte del brasero del arquero) y cuenta, durante `segundos`, las flechas del arquero, las que van ardiendo y los impactos con fuego.
-func _tiro_del_arquero(arq: Combate3D, segundos: float) -> Dictionary:
-	colocar_jugador(Vector2i(6, 5))
+func _tiro_del_arquero(arq: Combate3D, segundos: float, desde: Vector2i = Vector2i(6, 5)) -> Dictionary:
+	colocar_jugador(desde)
 	var res: Dictionary = {"flechas": 0, "ardiendo": 0, "impactos_ardiendo": 0}
 	var vistas: Dictionary = {}                       # instance_id de cada flecha ya contada
 	var impactos: Array = [0]
@@ -267,14 +276,14 @@ func _oros() -> int:
 
 ## Un viento (flecha) al goblin `g` lanzado desde el sur (misma columna, fila 7) y lo que le pasa en `segundos`: si murió, si se hundió, si pidió el clip «drown» y
 ## cuántos «hundido» salieron por su señal.
-func _empuje_de_viento(g: Combate3D, segundos: float = 3.5) -> Dictionary:
+func _empuje_de_viento(g: Combate3D, segundos: float = 3.5, desde: Vector2i = Vector2i(-1, -1)) -> Dictionary:
 	var c: Vector2i = Terreno3D.celda_de(g.global_position)
 	var res: Dictionary = {"muerto": false, "hundido": false, "drown": false, "senal": 0, "x": g.global_position.x, "z": g.global_position.z, "lanzado": false, "anim": ""}
 	var cuenta: Array = [0]
 	var cb := func(_e: Combate3D) -> void: cuenta[0] += 1
 	g.hundido.connect(cb)
 	jugador.set("vida", 100.0)
-	res["lanzado"] = lanzar_a_celda("viento", ["flecha"], c, Vector2i(c.x, 7))
+	res["lanzado"] = lanzar_a_celda("viento", ["flecha"], c, desde if desde.x >= 0 else Vector2i(c.x, 7))      # por defecto: la fila 7, 2 casillas al sur de la orilla de la sala 2
 	var ref: Array = [g]                           # el goblin se libera a los ~2 s de hundirse: una lambda que lo capture directo falla (y el contenedor sí sobrevive)
 	await avanzar_vigilando(segundos, 0.05, func(_t: float) -> void:
 		var e: Combate3D = ref[0] if is_instance_valid(ref[0]) else null
@@ -760,8 +769,280 @@ func _sala_5() -> void:
 	await avanzar_s(0.5)
 	_ok("5.26 el HUD de la sala 5 enseña las cuatro puertas y qué falta", lab.texto_hud().contains("SALA 5") and lab.texto_hud().contains("A (3 mojadas Y brasero apagado)") and lab.texto_hud().contains("B (hielo O fuego"), lab.texto_hud())
 
-# func _sala_6() -> void: …  (C3 + C1 sala cerrada)
-# func _sala_7() -> void: …  (final integrado)
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  6 · sala cerrada (C3 + C1)
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Tira el laboratorio y carga uno nuevo como haría R en el juego: partida nueva (`Flags.nuevo`), todo el mapa otra vez. No se puede usar `lab.reiniciar()`: recarga la «escena
+## actual» del árbol y este escenario cuelga la maqueta a mano (no hay escena actual).
+func _recargar() -> void:
+	if maqueta != null and is_instance_valid(maqueta):
+		maqueta.queue_free()
+	await avanzar(3)
+	Flags.nuevo()
+	await cargar(RUTA_LAB)
+	lab = maqueta.get_node_or_null("Reglas")
+	await avanzar_s(1.0)
+
+
+## ¿Está la casilla bloqueada para andar? (las puertas del cerrojo y el cofre visible bloquean la suya.)
+func _bloq(c: Vector2i) -> bool:
+	return Terreno3D.bloqueada(c)
+
+
+func _sala_6() -> void:
+	var q: Dictionary = lab.sala(6)
+	var v: Puzle3D.VigiaPuzle = q["vigia"] as Puzle3D.VigiaPuzle
+	var cj: Puzle3D.CerrojoPuzle = q["cerrojo"] as Puzle3D.CerrojoPuzle
+	var cf: Puzle3D.CofrePuzle = q["cofre"] as Puzle3D.CofrePuzle
+	var gs: Array = q["goblins"]
+	_ok("6.1 están el vigía, el cerrojo, el cofre y los tres goblins (todo del mapa)", v != null and cj != null and cf != null and gs.size() == 3 and q["estanque"] != null)
+	if v == null or cj == null or cf == null or gs.size() != 3:
+		return
+	await avanzar_s(1.0)
+	_ok("6.2 el vigía ve a los tres goblins de la sala (la sala 6 no usa ningún ajuste del lab)", v.vistos.size() == 3 and not v.completo and v.restantes() == 3, "vistos %d" % v.vistos.size())
+	_ok("6.3 las puertas nacen ABIERTAS (casillas (12,8) y (8,12) libres), el hueco del este (16,12) es muro y el cofre está OCULTO",
+		not cj.cerrado and not _bloq(Vector2i(12, 8)) and not _bloq(Vector2i(8, 12)) and _bloq(Vector2i(16, 12)) and cf.es_oculto and not _bloq(Vector2i(14, 15)))
+	var honda: bool = true
+	for x in [13, 14, 15]:
+		for y in [9, 10, 11]:
+			honda = honda and Terreno3D.se_nada(Vector2i(x, y)) and (Terreno3D.agua_sim == null or Terreno3D.agua_sim.se_nada_en(Vector2i(x, y)))
+	_ok("6.4 el estanque (13–15, 9–11) es agua HONDA de la que se nada", honda)
+	# --- Entrar: desde fuera no cierra; pisar la sala, sí ---
+	jugador.set("vida", 100.0)
+	colocar_jugador(Vector2i(7, 12))
+	await avanzar_s(1.0)
+	_ok("6.5 con el jugador FUERA (sala 5) el cerrojo no cierra", not cj.cerrado)
+	colocar_jugador(Vector2i(8, 12))
+	await avanzar_s(0.6)
+	_ok("6.6 pisar la propia puerta (8,12) no es entrar: no se cierra encima", not cj.cerrado)
+	colocar_jugador(Vector2i(9, 12))
+	await avanzar_s(0.6)
+	_ok("6.7 al pisar la sala el cerrojo se CIERRA y bloquea las dos puertas; el HUD lo dice", cj.cerrado and _bloq(Vector2i(12, 8)) and _bloq(Vector2i(8, 12)) and lab.texto_hud().contains("cerrojo: CERRADO"), lab.texto_hud())
+	await avanzar_s(3.0)
+	var vivos: Array = gs.filter(func(g): return is_instance_valid(g) and not (g as Combate3D).muerto)
+	_aviso("6.8 con la IA de verdad, a los 3 s de entrar los goblins que persiguen al jugador son", "%d de 3 (estados: %s)" % [vivos.filter(func(g): return (g as Combate3D).estado == "persigue").size(), str(vivos.map(func(g): return (g as Combate3D).estado))])
+	for g in gs:
+		(g as Combate3D).quieto = true                 # quietos: lo que se mide es el vigía y el cerrojo, no la pelea
+		(g as Combate3D).position = (g as Combate3D).casa
+		(g as Combate3D).pj.position = (g as Combate3D).casa
+	var derrotas: Array = [0]
+	v.todos_derrotados.connect(func() -> void: derrotas[0] += 1)
+	var apariciones: Array = [0]
+	cf.aparecido.connect(func() -> void: apariciones[0] += 1)
+	# --- Derrotar a los tres: dos por daño, el del estanque HUNDIDO con viento ---
+	(gs[0] as Combate3D).receive_damage(100000.0)
+	await avanzar_s(1.0)
+	_ok("6.9 con uno caído nada se abre y el cofre sigue oculto (quedan 2)", v.restantes() == 2 and cj.cerrado and cf.es_oculto and lab.texto_hud().contains("quedan 2 de 3"), lab.texto_hud())
+	(gs[2] as Combate3D).receive_damage(100000.0)
+	await avanzar_s(1.0)
+	_ok("6.10 con dos caídos, tampoco (queda 1)", v.restantes() == 1 and cj.cerrado and cf.es_oculto and derrotas[0] == 0)
+	var estanque: Combate3D = q["estanque"]
+	var r: Dictionary = await _empuje_de_viento(estanque, 4.0, Vector2i(14, 14))
+	volcar("playtest_s6_viento", r)
+	_ok("6.11 el viento del sur empuja al goblin del estanque a la parte honda y se HUNDE (señal, sin botín)", bool(r["lanzado"]) and bool(r["muerto"]) and bool(r["hundido"]) and int(r["senal"]) == 1, str(r))
+	await avanzar_s(1.5)
+	_ok("6.12 el vigía lo cuenta: UNA señal `todos_derrotados` y la flag playtest.s6.limpia puesta", v.completo and derrotas[0] == 1 and Flags.i().tiene(LabPlaytestEoW3D.SALA6_FLAG_LIMPIA))
+	_ok("6.13 la regla `s6_abre` abre el cerrojo: las dos puertas libres", not cj.cerrado and not _bloq(Vector2i(12, 8)) and not _bloq(Vector2i(8, 12)) and int(lab.puzle_nodo().puzle("s6_abre")["veces"]) == 1)
+	_ok("6.14 el cofre APARECE (una vez) cerrado, visible y bloqueando su casilla", cf.es_cerrado and not cf.es_oculto and apariciones[0] == 1 and cf.modelo.visible and _bloq(Vector2i(14, 15)))
+	_ok("6.15 el HUD muestra «hundido», la sala LIMPIA y el cofre cerrado", _hud_tiene("hundido") and lab.texto_hud().contains("vigía: LIMPIA") and lab.texto_hud().contains("cofre: cerrado"), lab.texto_hud())
+	# --- Abrir el cofre con la tecla E, como el jugador ---
+	await avanzar_s(1.2)                               # que acabe la animación de aparecer
+	colocar_jugador(Vector2i(13, 15))
+	await avanzar(2)
+	_pulsar(KEY_E)
+	await avanzar_s(2.5)
+	_ok("6.16 E a una casilla del cofre lo abre y pone su flag playtest.s6.cofre", cf.es_abierto and Flags.i().tiene(LabPlaytestEoW3D.SALA6_FLAG_COFRE) and lab.texto_hud().contains("cofre: ABIERTO"), lab.texto_hud())
+	colocar_jugador(Vector2i(10, 12))
+	await avanzar_s(0.8)
+	_ok("6.17 la sala ya vencida no se vuelve a cerrar al reentrar", not cj.cerrado)
+	# --- Guardar (M), reiniciar el lab (partida nueva) y cargar (F) ---
+	_pulsar(LabPlaytestEoW3D.TECLA_GUARDAR)
+	await avanzar(3)
+	_ok("6.18 M guarda las flags (limpia y cofre) en el archivo del lab", FileAccess.file_exists(LabPlaytestEoW3D.RUTA_GUARDADO) and lab.texto_hud().contains("flags guardadas (2)"), lab.texto_hud())
+	await _recargar()
+	q = lab.sala(6)
+	v = q["vigia"] as Puzle3D.VigiaPuzle
+	cj = q["cerrojo"] as Puzle3D.CerrojoPuzle
+	cf = q["cofre"] as Puzle3D.CofrePuzle
+	_ok("6.19 el lab nuevo es una partida nueva: sin flags, goblins vivos, cofre oculto y puertas abiertas", Flags.i().nombres().is_empty() and v.restantes() == 3 and cf.es_oculto and not cj.cerrado and (q["goblins"] as Array).all(func(g): return not (g as Combate3D).muerto))
+	_pulsar(LabPlaytestEoW3D.TECLA_CARGAR)
+	await avanzar_s(1.0)
+	_ok("6.20 F carga el guardado: el cofre vuelve ABIERTO (visible, sin efecto de aparecer) y las flags están en el HUD", cf.es_abierto and cf.modelo.visible and Flags.i().tiene(LabPlaytestEoW3D.SALA6_FLAG_COFRE) and lab.texto_hud().contains(LabPlaytestEoW3D.SALA6_FLAG_LIMPIA), lab.texto_hud())
+	_ok("6.21 y el cerrojo queda vencido: ya no se cerrará", cj.vencido and not cj.cerrado)
+	colocar_jugador(Vector2i(9, 12))
+	await avanzar_s(1.0)
+	var vive: bool = (q["goblins"] as Array).any(func(g): return is_instance_valid(g) and not (g as Combate3D).muerto)
+	_ok("6.22 entrar a la sala (con los goblins vivos otra vez) NO la cierra: bloqueos libres", vive and not cj.cerrado and not _bloq(Vector2i(12, 8)) and not _bloq(Vector2i(8, 12)), "goblins vivos: %s" % str(vive))
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(LabPlaytestEoW3D.RUTA_GUARDADO))
+	Flags.nuevo()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  7 · final integrado
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Carga un lab nuevo (partida nueva) y devuelve las piezas de la sala 7 en un diccionario. Comprueba el montaje.
+func _montar_sala_7(prefijo: String) -> Dictionary:
+	await _recargar()
+	var q: Dictionary = lab.sala(7)
+	var d: Dictionary = {"v": q["vigia"], "cj": q["cerrojo"], "cf": q["cofre"], "esc": q["goblin_escudo"], "e": q["escudo"], "arq": q["arquero"], "est": q["estanque"], "br": q["brasero"]}
+	_ok("%s.1 están las piezas del mapa (vigía, cerrojo, cofre, brasero, setos, paja) y los tres goblins (escudo, arquero, estanque)" % prefijo, d.values().all(func(x): return x != null)
+		and q["paja"] != null and q["seto1"] != null and q["seto2"] != null and q["seto3"] != null, str(lab.avisos()))
+	return d
+
+
+func _sala_7() -> void:
+	await _sala_7_limpia()
+	await _sala_7_quemando()
+
+
+## VÍA LIMPIA: entrar (se cierra), escudo, arquero con fuego, setos, hundir al del estanque → se abre y aparece el cofre → abrirlo.
+func _sala_7_limpia() -> void:
+	var d: Dictionary = await _montar_sala_7("7L")
+	var v: Puzle3D.VigiaPuzle = d["v"]
+	var cj: Puzle3D.CerrojoPuzle = d["cj"]
+	var cf: Puzle3D.CofrePuzle = d["cf"]
+	var esc: Combate3D = d["esc"]
+	var e: Escudo3D = d["e"]
+	var arq: Combate3D = d["arq"]
+	var est: Combate3D = d["est"]
+	var br: Reactivo3D = d["br"]
+	var z: Puzle3D = lab.puzle_nodo()
+	var seen: Dictionary = {}                        # todas las reacciones que han llegado (el HUD solo guarda las 8 últimas)
+	(lab.get("_mundo") as Mundo3D).reaccion.connect(func(nombre: String, _p: Vector3, _n: Node) -> void: seen[nombre] = true)
+	await avanzar_s(1.0)
+	_ok("7L.2 el escudo está activo, el arquero es un arquero, el brasero arde y el arquero no", e.esta_activo() and arq.arquero and not esc.arquero and _arde(br) and not arq.esta_ardiendo())
+	_ok("7L.3 el vigía ve a los tres, el cofre está OCULTO y la hierba (17,14) intacta", v.vistos.size() == 3 and cf.es_oculto and not _estado(LabPlaytestEoW3D.SALA7_HIERBA, "quemada") and not cj.cerrado, "vistos %d" % v.vistos.size())
+	_ok("7L.4 el hueco (16,12) es muro, el cofre no bloquea aún su casilla y las puertas (20,8) y (24,12) están libres", _bloq(Vector2i(16, 12)) and not _bloq(Vector2i(19, 15)) and not _bloq(Vector2i(20, 8)) and not _bloq(Vector2i(24, 12)))
+	var honda: bool = true
+	for x in [17, 18, 19]:
+		for y in [9, 10, 11]:
+			honda = honda and Terreno3D.se_nada(Vector2i(x, y)) and (Terreno3D.agua_sim == null or Terreno3D.agua_sim.se_nada_en(Vector2i(x, y)))
+	_ok("7L.5 el estanque (17–19, 9–11) es agua HONDA de la que se nada", honda)
+	# --- Entrar por el norte: se cierra ---
+	jugador.set("vida", 100.0)
+	colocar_jugador(Vector2i(20, 7))
+	await avanzar_s(1.0)
+	_ok("7L.6 con el jugador fuera (sala 3) no se cierra", not cj.cerrado)
+	colocar_jugador(Vector2i(20, 9))
+	await avanzar_s(0.6)
+	_ok("7L.7 al pisar la sala el cerrojo se CIERRA: puertas (20,8) y (24,12) bloqueadas y el HUD lo dice", cj.cerrado and _bloq(Vector2i(20, 8)) and _bloq(Vector2i(24, 12)) and lab.texto_hud().contains("SALA 7") and lab.texto_hud().contains("cerrojo: CERRADO"), lab.texto_hud())
+	# --- ESCUDO (con la IA de verdad: ve al jugador y le planta cara) ---
+	esc.vida_max = 100000.0
+	esc.health = 100000.0
+	est.quieto = true
+	est.position = est.casa
+	est.pj.position = est.casa
+	var bloq0: int = e.bloqueos
+	jugador.set("vida", 100.0)
+	colocar_jugador(Vector2i(20, 11))
+	await avanzar_s(0.5)
+	var salio_t: bool = _apuntado("tierra", esc, Vector2i(20, 11))
+	await avanzar_s(3.0)
+	_aviso("7L.8 con la IA de verdad el goblin del escudo, tras 3,5 s con el jugador a 2 casillas", "estado %s · mira al jugador %.2f (1 = de cara) · bloqueos %d" % [esc.estado, esc.mirada.normalized().dot((jugador.global_position - esc.global_position).normalized()), e.bloqueos - bloq0])
+	_ok("7L.9 la tierra de frente sale y el escudo la BLOQUEA (la reacción «bloqueado» llega al HUD)", salio_t and e.bloqueos > bloq0 and _hud_tiene("bloqueado"), "bloqueos %d · %s" % [e.bloqueos - bloq0, str(lab.reacciones())])
+	jugador.set("vida", 100.0)
+	var salio_f: bool = _apuntado("fuego", esc, Vector2i(20, 11))
+	await avanzar_s(Escudo3D.T_CONSUMO + 1.5)
+	_ok("7L.10 el fuego de frente prende el escudo («prendido» de tipo escudo en el HUD) y a los T_CONSUMO s se consume («consumido»)", salio_f and _hud_tiene_de("prendido", "escudo") and e.estado == "quemado" and _hud_tiene_de("consumido", "escudo"), "escudo %s · %s" % [e.estado, str(lab.reacciones())])
+	var v0: float = esc.health
+	jugador.set("vida", 100.0)
+	_apuntado("tierra", esc, Vector2i(20, 11))
+	await avanzar_s(3.0)
+	_ok("7L.11 consumido el escudo, la tierra de frente ya llega al goblin", esc.health < v0, "vida %.1f → %.1f" % [v0, esc.health])
+	esc.receive_damage(1.0e7)
+	await avanzar_s(1.0)
+	_ok("7L.12 el goblin del escudo cae y el vigía cuenta 2 por caer", esc.muerto and v.restantes() == 2 and cj.cerrado and cf.es_oculto)
+	# --- ARQUERO junto al brasero encendido: la flecha cruza la llama y llega ardiendo ---
+	jugador.set("vida", 100.0)
+	var a1: Dictionary = await _tiro_del_arquero(arq, 10.0, Vector2i(22, 9))
+	volcar("playtest_s7_arquero", a1)
+	_ok("7L.13 el arquero ve al jugador (con su brasero en medio) y dispara; su flecha cruza la llama y sale ARDIENDO", int(a1["flechas"]) >= 1 and int(a1["ardiendo"]) >= 1, str(a1))
+	_ok("7L.14 el impacto de esa flecha lleva fuego al jugador (flecha_ardiente_impacta)", int(a1["impactos_ardiendo"]) >= 1, str(a1))
+	# --- SETOS secos: fuego a uno y el fuego corre ---
+	jugador.set("vida", 100.0)
+	var ss: Array = [lab.sala(7)["seto1"], lab.sala(7)["seto2"], lab.sala(7)["seto3"]]
+	_ok("7L.15 los tres setos secos están apagados", ss.all(func(s): return is_instance_valid(s) and not _arde(s)))
+	lanzar_a_celda("fuego", ["flecha"], Vector2i(23, 14), Vector2i(21, 14))
+	await avanzar_s(3.0)
+	_ok("7L.16 el fuego a un seto lo prende (reacción «prendido»)", _arde(ss[1]) or not is_instance_valid(ss[1]), "seto2 arde %s" % str(_arde(ss[1])))
+	await avanzar_s(8.0)
+	var arden: int = ss.filter(func(s): return not is_instance_valid(s) or _arde(s)).size()
+	_aviso("7L.17 a los 11 s del fuego, setos secos que han ardido (de 3)", "%d" % arden)
+	arq.receive_damage(1.0e7)
+	await avanzar_s(1.0)
+	_ok("7L.18 el arquero cae: queda UNO (el del estanque) y la sala sigue cerrada", arq.muerto and v.restantes() == 1 and cj.cerrado and cf.es_oculto)
+	# --- ESTANQUE: viento desde el sur ---
+	var r: Dictionary = await _empuje_de_viento(est, 4.0, Vector2i(18, 14))
+	volcar("playtest_s7_viento", r)
+	_ok("7L.19 el viento del sur empuja al goblin del estanque y se HUNDE (señal una vez, sin botín, clip de ahogarse)", bool(r["lanzado"]) and bool(r["muerto"]) and bool(r["hundido"]) and int(r["senal"]) == 1 and bool(r["drown"]), str(r))
+	await avanzar_s(1.5)
+	_ok("7L.20 el vigía da la sala por limpia: flag playtest.s7.limpia, cerrojo abierto (puertas libres)", v.completo and Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_LIMPIA) and not cj.cerrado and not _bloq(Vector2i(20, 8)) and not _bloq(Vector2i(24, 12)) and int(z.puzle("s7_abre")["veces"]) == 1)
+	_ok("7L.21 VÍA LIMPIA: la hierba no se quemó, así que el cofre APARECE cerrado y bloquea su casilla", cf.es_cerrado and not cf.es_oculto and cf.modelo.visible and _bloq(Vector2i(19, 15)) and not _estado(LabPlaytestEoW3D.SALA7_HIERBA, "quemada"))
+	_ok("7L.22 durante el recorrido llegaron al HUD (Mundo3D.reaccion) bloqueado, prendido y hundido, y el HUD dice «hierba … intacta» y «vigía: LIMPIA»", seen.has("bloqueado") and seen.has("prendido") and seen.has("hundido")
+		and lab.texto_hud().contains("intacta") and lab.texto_hud().contains("vigía: LIMPIA"), "%s · %s" % [str(seen.keys()), lab.texto_hud()])
+	await avanzar_s(1.2)
+	colocar_jugador(Vector2i(19, 14))
+	await avanzar(2)
+	_pulsar(KEY_E)
+	await avanzar_s(2.5)
+	_ok("7L.23 E abre el cofre y pone playtest.s7.cofre", cf.es_abierto and Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_COFRE) and lab.texto_hud().contains("cofre: ABIERTO"), lab.texto_hud())
+
+
+## VÍA «QUEMANDO LA HIERBA»: el mismo recorrido, pero se prende la hierba (17,14) y el cofre ya no aparece.
+func _sala_7_quemando() -> void:
+	var d: Dictionary = await _montar_sala_7("7Q")
+	var v: Puzle3D.VigiaPuzle = d["v"]
+	var cj: Puzle3D.CerrojoPuzle = d["cj"]
+	var cf: Puzle3D.CofrePuzle = d["cf"]
+	var h: Vector2i = LabPlaytestEoW3D.SALA7_HIERBA
+	var z: Puzle3D = lab.puzle_nodo()
+	jugador.set("vida", 100.0)
+	colocar_jugador(Vector2i(20, 9))
+	await avanzar_s(0.8)
+	_ok("7Q.2 entrar cierra la sala", cj.cerrado)
+	var todos: Array = [d["esc"], d["arq"], d["est"]]
+	for g in todos:
+		(g as Combate3D).quieto = true              # quietos: aquí lo que se mide es el fuego sobre la hierba, no la pelea
+		(g as Combate3D).position = (g as Combate3D).casa
+		(g as Combate3D).pj.position = (g as Combate3D).casa
+	# --- HALLAZGO del puente: sin él, la hierba quemada de verdad NO llega a Terreno3D.estados y la condición no la vería ---
+	lab.puente_estados_s5 = false
+	jugador.set("vida", 100.0)
+	var img: Image = maqueta.get("_img_estado") as Image
+	colocar_jugador(Vector2i(19, 14))
+	var salio: bool = await _disparo_a("fuego", h)
+	var t_q: float = 0.0
+	while t_q < 14.0 and not (img != null and img.get_pixelv(h).r >= 0.5):
+		await avanzar_s(0.5)
+		t_q += 0.5
+	await avanzar_s(0.5)
+	var en_imagen: bool = img != null and img.get_pixelv(h).r >= 0.5
+	_ok("7Q.3 SIN el puente (el juego tal cual) el fuego de verdad deja la hierba quemada en la imagen de la maqueta pero Terreno3D.estados NO dice «quemada»: la condición no la vería", salio and en_imagen and not _estado(h, "quemada"), "imagen %s (a los %.1f s) · estados %s" % [str(en_imagen), t_q, str(_estado(h, "quemada"))])
+	lab.puente_estados_s5 = true
+	await avanzar(3)
+	_ok("7Q.5 con el puente del lab esa casilla queda «quemada» en Terreno3D.estados y el HUD lo dice", _estado(h, "quemada") and lab.texto_hud().contains("QUEMADA"), lab.texto_hud())
+	# --- Ahora se derrota a los tres: la sala se abre pero el cofre NO aparece ---
+	var apariciones: Array = [0]
+	cf.aparecido.connect(func() -> void: apariciones[0] += 1)
+	(d["esc"] as Combate3D).receive_damage(1.0e7)
+	(d["arq"] as Combate3D).receive_damage(1.0e7)
+	await avanzar_s(0.8)
+	_ok("7Q.6 con 2 caídos la sala sigue cerrada", v.restantes() == 1 and cj.cerrado)
+	var r: Dictionary = await _empuje_de_viento(d["est"], 4.0, Vector2i(18, 14))
+	_ok("7Q.7 el del estanque se hunde", bool(r["hundido"]) and bool(r["muerto"]), str(r))
+	await avanzar_s(2.0)
+	_ok("7Q.8 el vigía da la sala por limpia y el cerrojo abre (puertas libres)", v.completo and Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_LIMPIA) and not cj.cerrado and not _bloq(Vector2i(20, 8)))
+	_ok("7Q.9 VÍA QUEMANDO: el cofre NO aparece (oculto, invisible, sin bloquear su casilla), ni siquiera pasados unos segundos", cf.es_oculto and not cf.modelo.visible and not _bloq(Vector2i(19, 15)) and apariciones[0] == 0 and not cf.abrir())
+	await avanzar_s(3.0)
+	_ok("7Q.10 sigue sin aparecer y el HUD avisa de que la hierba está quemada", cf.es_oculto and apariciones[0] == 0 and lab.texto_hud().contains("QUEMADA: el cofre ya no aparecerá") and not Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_COFRE), lab.texto_hud())
+	# Control: la misma expresión SIN la hierba quemada sí se cumpliría (es la condición, no un fallo del vigía).
+	Terreno3D.estados.poner(h, "quemada", false)
+	_ok("7Q.11 (control) si la hierba no estuviera quemada la condición se cumpliría", z.cumple_expr(cf.expr))
+	Terreno3D.estados.poner(h, "quemada", true)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(LabPlaytestEoW3D.RUTA_GUARDADO))
 
 
 # ---------------------------------------------------------------------------------------------------------------------

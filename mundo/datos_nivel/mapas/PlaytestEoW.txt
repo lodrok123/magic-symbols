@@ -14,10 +14,17 @@
 ;   3 (2,0) ESCUDO (A5)                  x 17-23 y 1-7    HECHA. Goblin con Escudo3D quieto mirando a la entrada (de frente lo para todo, por la espalda pasa, el fuego lo consume).
 ;   4 (3,0) CAMINOS (D2)                 x 25-31 y 1-7    HECHA. Pared, rio y dos terrazas (1 y 2 niveles) entre un goblin y el jugador (tecla X dibuja la ruta).
 ;   5 (0,1) SUELO Y CONDICIONES (B1+C2)  x 1-7   y 9-15   HECHA. Cuatro puertas con placa: A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`).
-;   6 (1,1) SALA CERRADA (C3+C1)         x 9-15  y 9-15   VACIA: cerrojo + vigia + cofre + flags (teclas M guardar y F cargar).
-;   7 (2,1) FINAL INTEGRADO              x 17-23 y 9-15   VACIA: todo junto.
+;   6 (1,1) SALA CERRADA (C3+C1)         x 9-15  y 9-15   HECHA. Tres goblins (uno junto al estanque, para hundirlo con viento), vigia + cerrojo en 2 puertas + cofre + flags (M guardar, F cargar).
+;   7 (2,1) FINAL INTEGRADO              x 17-23 y 9-15   HECHA. Sala cerrada con goblin con escudo, arquero junto a un brasero encendido, estanque, setos secos y un cofre que
+;                                                         NO aparece si se quema la hierba (17,14) (con su «cofre de paja» al lado).
 ;   - (3,1) RESERVA                      x 25-31 y 9-15   libre.
-; Huecos de paso: y=4 e y=12 entre salas vecinas (x=8, 16, 24); x=4, 12, 20, 28 entre las dos filas (y=8).
+; Huecos de paso: y=4 e y=12 entre salas vecinas (x=8, 16, 24); x=4, 12, 20, 28 entre las dos filas (y=8). EXCEPCION: el hueco (16,12) entre las salas 6 y 7 es MURO (cada una tiene
+; su propio cerrojo y dos cerrojos no pueden compartir una casilla). Las salas 6 y 7 se cierran al entrar el jugador (Shift+6 / Shift+7 ya lo deja DENTRO: entra a pie para verlo).
+;
+; AJUSTES DEL LAB (lo que el mapa no sabe decir; cada uno es una constante SALAn_* de lab_playtest_eow_3d.gd, con su valor neutro = el juego tal cual; el lab imprime los activos al arrancar):
+;   SALA1_LIBERAR_BRASERO_ARQUERO (false) · SALA1_CORRIMIENTO_BRASERO (0.0) · SALA1_QUEMA_GOBLIN_S (0.0) · SALA2_HELAR_FRANJA (false) · SALA3_QUIETO (false) · SALA4_OLFATO (false) ·
+;   SALA5_BRASERO_ENCENDIDO (false) · SALA5_PUENTE_ESTADOS (false; tambien lo usa la sala 7).
+;   La sala 7 reutiliza SALA1_LIBERAR_BRASERO_ARQUERO y SALA5_PUENTE_ESTADOS y no anade ninguno propio; la sala 6 no usa ninguno.
 ;
 ; ---------------------------------------------------------------------------------------------------------------------------------
 ; Piezas y puzles de cada sala (la gramatica esta en la cabecera de escenas/puzle.gd).
@@ -79,8 +86,29 @@
 ; pieza s5_ud puerta 7 10
 ; pieza s5_cd cofre 7 9
 ; puzle s5_abre_d cuando=s5_pd.pulsado si=casilla($x,$y).mojada hace=s5_ud.abrir
-; --- SALA 6 SALA CERRADA (C3+C1): vacia.
-; --- SALA 7 FINAL INTEGRADO: vacia.
+; --- SALA 6 SALA CERRADA (C3+C1): estanque de agua honda `~` en la esquina NE (x 13-15, y 9-11) y tres goblins guerreros W: (10,10) arriba a la izquierda,
+; ---   (14,12) JUNTO AL ESTANQUE (al sur de el: el viento desde el sur lo empuja al agua y se hunde) y (10,14) abajo a la izquierda. Dos entradas, las dos con cerrojo: la del norte (12,8) y la del oeste
+; ---   (8,12). La del este (16,12) es MURO (`#`): la sala 7 tiene alli su propia puerta y dos cerrojos no pueden compartir casilla (al abrirse uno liberaria la del otro).
+; ---   Flags (nombre nivel.sala.hecho): playtest.s6.limpia (la pone el vigia al caer los tres; el cerrojo la usa de `hasta`) y playtest.s6.cofre (la pone el cofre al abrirse).
+; ---   El cofre (14,15) nace OCULTO y aparece cuando el vigia da la sala por limpia; la regla abre el cerrojo.
+; pieza s6_vigia vigia 9 9 de=9,9..15,15 flag=playtest.s6.limpia
+; pieza s6_cerrojo cerrojo 12 8 celdas=12,8+8,12 sala=9,9..15,15 hasta=playtest.s6.limpia
+; pieza s6_cofre cofre 14 15 aparece_si=s6_vigia.todos abierto=playtest.s6.cofre
+; puzle s6_abre cuando=s6_vigia.todos_derrotados hace=s6_cerrojo.abrir
+; --- SALA 7 FINAL INTEGRADO: sala cerrada con todo junto. Estanque honda NW (x 17-19, y 9-11) con un goblin guerrero W (18,12) al sur (viento = se hunde); goblin con ESCUDO W (20,13)
+; ---   (el lab le cuelga el Escudo3D); brasero T (22,11) que el lab ENCIENDE con el ARQUERO justo debajo (22,12) (lo crea el lab: la flecha cruza la llama y llega ARDIENDO); tres
+; ---   setos secos z (22,14), (23,14), (23,15); la HIERBA v (17,14) con un «COFRE DE PAJA» (un seto z en (17,15), rotulado por el lab) a su lado, y el cofre de verdad en (19,15).
+; ---   El cofre aparece si la sala esta limpia Y la hierba (17,14) NO esta quemada: quemarla (fuego a la hierba) castiga y el cofre ya no sale.
+; ---   Puertas con cerrojo: la del norte (20,8) y la del este (24,12); la del oeste (16,12) es muro (ver sala 6). Flags playtest.s7.limpia y playtest.s7.cofre.
+; pieza s7_vigia vigia 23 9 de=17,9..23,15 flag=playtest.s7.limpia
+; pieza s7_cerrojo cerrojo 20 8 celdas=20,8+24,12 sala=17,9..23,15 hasta=playtest.s7.limpia
+; pieza s7_brasero brasero 22 11
+; pieza s7_seto1 seto 22 14
+; pieza s7_seto2 seto 23 14
+; pieza s7_seto3 seto 23 15
+; pieza s7_paja seto 17 15
+; pieza s7_cofre cofre 19 15 aparece_si=s7_vigia.todos+!casilla(17,14).quemada abierto=playtest.s7.cofre
+; puzle s7_abre cuando=s7_vigia.todos_derrotados hace=s7_cerrojo.abrir
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...W...#.......#.......#
@@ -91,11 +119,11 @@
 #.S...T.#.......#.......#.......#
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
-#.#.#.#.#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#...............................#
-#.......#.......#.......#.......#
-#.....v.#.......#.......#.......#
-#...T...#.......#.......#.......#
+#.#.#.#.#....~~~#~~~....#.......#
+#.......#.W..~~~#~~~....#.......#
+#.......#....~~~#~~~..T.#.......#
+#.............W.#.W.............#
+#.......#.......#...W...#.......#
+#.....v.#.W.....#v....zz#.......#
+#...T...#.......#z.....z#.......#
 #################################
