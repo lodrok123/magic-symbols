@@ -71,6 +71,9 @@ static var alto_agua: float = 2.3 * 0.45 * 0.6
 static var alturas: Dictionary = {}
 ## Alturas FIJAS que pone el nivel (una cornisa de un nivel): Vector2i -> int. No caducan.
 static var permanentes: Dictionary = {}
+## Altura a la que se pisa una casilla de puente «b» cuando el puente NO es una losa a ras del agua (el tronco-puente: se anda sobre
+## su cara de arriba, 0,35 u por encima de la orilla). Vector2i -> y. Sin entrada, la «b» de siempre (alto_agua + 0,12).
+static var y_puentes: Dictionary = {}
 
 ## La simulación del nivel (null si no hay). La crea montar_agua_sim() al arrancar el Lanzador.
 static var agua_sim: AguaSim3D = null
@@ -374,6 +377,11 @@ static func es_canal_ruinas(c: Vector2i) -> bool:
 
 
 ## Lados (Vector2i en 4 direcciones) por los que el canal de la casilla `c` deja pasar el agua: los que abre la pieza
+	# Un puente («b»: losa o tronco-puente caído) se ANDA: no es agua para pisar, nadar, hundirse ni rutear, aunque la simulación siga viendo agua debajo (la
+	# letra cambió, la profundidad no). Sin esta salida el goblin que cruza el tronco lo mandaba `_ajustar_al_suelo` de vuelta a su puesto («se le fue el suelo»).
+	# Lo que el puente NO apaga es la corriente: bajo él el agua sigue conduciendo (ver `conduce`).
+	if letra_de(c) == "b":
+		return false
 ## (`_abre_hacia` de la maqueta); sin ese método, los vecinos que también son canal.
 static func lados_de_canal(c: Vector2i) -> Array:
 	var r: Array = []
@@ -470,7 +478,14 @@ static func y_pies(c: Vector2i) -> float:
 
 ## ¿Pasa la electricidad por esta casilla? Agua de juego (es_agua) o un conductor declarado (NexoRayo3D mojado).
 static func conduce(c: Vector2i) -> bool:
-	return es_agua(c) or conductores.has(c)
+	# El agua que corre BAJO un puente («b») sigue conduciendo: el tronco no la corta (es_agua dice «no» para andar, la simulación sigue diciendo «sí»).
+	var bajo_puente: bool = agua_sim != null and letra_de(c) == "b" and not hielo_fisico(c) and agua_sim.es_agua_casilla(c)
+	return es_agua(c) or bajo_puente or conductores.has(c)
+
+## Un puente «b» que se pisa a otra altura que la losa (la cara de arriba de un tronco). Se pone ANTES de `poner_letra(c, "b")`.
+static func fijar_y_puente(c: Vector2i, y: float) -> void:
+	y_puentes[c] = y
+
 
 
 ## ¿Es una CUENCA: un cauce seco `c` ya abierto a la simulación (un pozo de LECHO_AGUA de hondo que se llena y se vacía)? 15/10, lab de
@@ -478,6 +493,8 @@ static func conduce(c: Vector2i) -> bool:
 static func es_cuenca(c: Vector2i) -> bool:
 	return hay_mundo() and letra_de(c) == "c" and cauces_abiertos.has(c)
 
+	if l == "b" and y_puentes.has(c):
+		return float(y_puentes[c])
 
 ## Y de la SUPERFICIE del agua en la casilla: lo que el jugador tiene que flotar. El río y el puente, `alto_agua`; una cuenca o un canal,
 ## lo que diga la simulación (suelo + profundidad en su centro). Sin agua, el suelo de la casilla (y_pies).
@@ -650,3 +667,4 @@ static func configurar(p_mundo: Node3D) -> void:
 	permanentes.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	agua_sim = null
+	y_puentes.clear()

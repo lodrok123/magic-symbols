@@ -249,9 +249,12 @@ func _tronco_puente() -> void:
 		_ok("12.9 al caer NO se cambia al modelo oscuro (se queda el mismo, sin versión quemada)", piv.visible and (t.get("_caido_modelo") == null or not (t.get("_caido_modelo") as Node3D).visible))
 		var largo: float = piv.basis.y.length() * float(t.get("_alto"))
 		var dir: Vector3 = piv.basis.y.normalized()
-		_ok("12.10 tumbado mide 3,4 desde el pie y apunta hacia donde cae (el oeste)", absf(largo - 3.4) < 0.05 and dir.dot(t.direccion) > 0.99, "largo %.2f, dir %s" % [largo, str(dir)])
+		# 21/10: el largo ya no es un 3,4 fijo: sale del río (casillas de agua × casilla + un margen de apoyo en cada orilla) y el pie se desliza hacia el agua.
+		var esperado: float = float(t.celdas_rio.size()) * Terreno3D.casilla + 2.0 * TroncoPuente3D.MARGEN_ORILLA
+		_ok("12.10 tumbado mide lo que pide el río (%.2f) y apunta hacia donde cae (el oeste)" % esperado, absf(largo - esperado) < 0.05 and dir.dot(t.direccion) > 0.99, "largo %.2f, dir %s" % [largo, str(dir)])
 		var hasta_orilla: float = 2.3 + 1.15       # del centro de la orilla este al borde lejano de la casilla del río (la casilla mide 2,3)
-		_ok("12.11 y llega a menos de 10 cm de la orilla de enfrente (necesita %.2f, tiene %.2f)" % [hasta_orilla, largo], largo >= hasta_orilla - 0.1)
+		var punta: float = t.desliza + largo       # del pie de partida a la punta, ya con el deslizamiento
+		_ok("12.11 y la punta pasa el borde de la orilla de enfrente con apoyo (necesita %.2f, llega a %.2f; a fondo en prueba_tronco_puente)" % [hasta_orilla, punta], punta >= hasta_orilla + 0.3)
 
 
 func _tronco_estanque() -> void:
