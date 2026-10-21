@@ -1,0 +1,69 @@
+; LABORATORIO DE PLAYTEST DE LAS MECANICAS DEL PLAN EoW (21/10, Juego). 33 x 17: ocho huecos de 7 x 7 (rejilla 4 x 2) separados por muros, con
+; un hueco de paso entre salas vecinas (el mismo esqueleto que PuzlesFuego). El jugador S nace en la sala 1. Lo lee PruebaTest2 (nivel = "PlaytestEoW");
+; las piezas y los puzles de cada sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd); el lab
+; (laboratorios/lab_playtest_eow_3d.gd) pone HUD, teclas, carteles y lo que un mapa no sabe decir (encender un brasero al empezar, el goblin arquero).
+; NO se hornea: es un laboratorio. Cada sala se rellena por una tarea distinta, asi que cada una tiene SU bloque de piezas con el prefijo `sN_`.
+; Letras de la maqueta: # muro . suelo S jugador T brasero z seto seco W goblin guerrero (patrulla en X) A goblin (sin reglas sale ESPADACHIN: el
+;   arquero de la sala 1 lo crea el lab) ~ agua c cauce seco - canal recto G elemental.
+; Letras del lab (PruebaTest2 las ignora, son suelo): ! boton de piedra (cualquier magia) @ placa de presencia (pisarla) Z puerta de premio.
+;
+; LAS SALAS (columna, fila de salas; casillas x 1-7 / 9-15 / 17-23 / 25-31, y 1-7 / 9-15). Teclas 1-7 llevan a cada una:
+;   1 (0,0) FUEGO POR CONTACTO (A2)      x 1-7   y 1-7    HECHA. Goblin que patrulla junto a un brasero apagado y 4 setos secos; arquero que dispara a
+;                                                         traves de un brasero encendido; un seto mojable de cortafuegos.
+;   2 (1,0) AL AGUA (A3)                 x 9-15  y 1-7    VACIA: goblin empujado al agua honda, hielo que se derrite bajo sus pies, clip de ahogarse.
+;   3 (2,0) ESCUDO (A5)                  x 17-23 y 1-7    VACIA: goblin con Escudo3D (viento/fuego/agua lo rodean, por la espalda pasa).
+;   4 (3,0) CAMINOS (D2)                 x 25-31 y 1-7    VACIA: rutas de goblin con obstaculos, escalones y agua (tecla X dibuja la ruta).
+;   5 (0,1) SUELO Y CONDICIONES (B1+C2)  x 1-7   y 9-15   VACIA: casillas mojadas/heladas/quemadas y reglas `si=casilla(x,y).estado`.
+;   6 (1,1) SALA CERRADA (C3+C1)         x 9-15  y 9-15   VACIA: cerrojo + vigia + cofre + flags (teclas M guardar y F cargar).
+;   7 (2,1) FINAL INTEGRADO              x 17-23 y 9-15   VACIA: todo junto.
+;   - (3,1) RESERVA                      x 25-31 y 9-15   libre.
+; Huecos de paso: y=4 e y=12 entre salas vecinas (x=8, 16, 24); x=4, 12, 20, 28 entre las dos filas (y=8).
+;
+; ---------------------------------------------------------------------------------------------------------------------------------
+; Piezas y puzles de cada sala (la gramatica esta en la cabecera de escenas/puzle.gd).
+; ---------------------------------------------------------------------------------------------------------------------------------
+; --- SALA 1 FUEGO POR CONTACTO (A2). Fila y=3: brasero APAGADO T (2,3), el goblin guerrero W (3,3) y cuatro setos secos z (4..7,3).
+; ---   El goblin patrulla en X entre el brasero y el primer seto: si se enciende el brasero lo toca y se prende; ardiendo, toca el primer seto
+; ---   y el fuego corre por la fila. El tercer seto (6,3) es MOJABLE: agua encima = cortafuegos (no prende, el cuarto se salva).
+; ---   Columna x=6: un brasero T (6,6) que el lab ENCIENDE al empezar y, justo debajo, el arquero (6,7). El arquero NO tiene letra (sin reglas la letra A sale
+; ---   espadachin): lo crea el lab en SALA1_ARQUERO. El jugador S nace en (2,6), fuera de la vista de todos; si se acerca por el norte ((6,5)) la flecha cruza
+; ---   el brasero encendido y llega ardiendo. En la misma fila el arquero se prendia solo (patrulla en X): por eso van uno sobre otro, no uno al lado del otro.
+; ---   Ajustes que el mapa no puede decir y hace el lab (cada uno medido, ver las constantes SALA1_* de lab_playtest_eow_3d.gd): el brasero de la izquierda se
+; ---   mueve 0,6 u hacia el goblin dentro de su casilla; la casilla del brasero del arquero se libera (si no, corta la vista del arquero); la quemadura del goblin
+; ---   se alarga a 8 s (la de 3 s se apaga antes de llegar al seto).
+; ---   `; giro x y 0` en los 4 setos: sin ello cada seto sale girado al azar y su caja de contacto (2,07 x 0,92 u) puede quedar de canto frente al goblin, que
+; ---   patrulla en X y entonces no llega a tocarla (medido: a 0,99 u del centro del seto con 0,78 u de alcance). Con giro 0 la parte larga queda a lo largo de la fila.
+; giro 4 3 0
+; giro 5 3 0
+; giro 6 3 0
+; giro 7 3 0
+; pieza s1_brasero brasero 2 3
+; pieza s1_seto1 seto 4 3
+; pieza s1_seto2 seto 5 3
+; pieza s1_seto3 seto 6 3 mojable=si
+; pieza s1_seto4 seto 7 3
+; pieza s1_brasero_arq brasero 6 6
+; --- SALA 2 AL AGUA (A3): vacia.
+; --- SALA 3 ESCUDO (A5): vacia.
+; --- SALA 4 CAMINOS (D2): vacia.
+; --- SALA 5 SUELO Y CONDICIONES (B1+C2): vacia.
+; --- SALA 6 SALA CERRADA (C3+C1): vacia.
+; --- SALA 7 FINAL INTEGRADO: vacia.
+; ---------------------------------------------------------------------------------------------------------------------------------
+#################################
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.TWzzzz#.......#.......#.......#
+#...............................#
+#.......#.......#.......#.......#
+#.S...T.#.......#.......#.......#
+#.......#.......#.......#.......#
+####.#######.#######.#######.####
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#...............................#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#################################

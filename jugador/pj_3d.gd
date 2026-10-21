@@ -26,6 +26,8 @@ const SINONIMOS: Dictionary = {
 	"cast_mano_suelo": ["castonehandground"],
 	"hit": ["hit_reaction", "hit", "facepunchreaction", "slapreaction"],
 	"death": ["shot_and_fall_backward", "shot_in_the_back_and_fall", "death", "dead", "die"],
+	# Ahogarse (diario 231): el clip «Drowning» de los goblins. Sin esta entrada el rol solo se encontraba por el segundo barrido (`contains("drown")`).
+	"drown": ["drowning", "drown", "ahogarse"],
 	"talk": ["stand_talking", "talking"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
@@ -77,8 +79,9 @@ const MINIMOS: Dictionary = {
 }
 
 ## Roles cuyo clip debe quedarse en su sitio: la cadera no se aleja de donde empieza (en alturas de cadera).
-## death, roll y swim sí se desplazan a propósito.
-const EN_SITIO: Array = ["idle", "walk", "walk_back", "run", "cast", "attack", "hit", "leer", "talk", "wave"]
+## death, roll y swim sí se desplazan a propósito. `drown` se queda en sitio (el hundimiento lo hace Combate3D bajando el nodo); no está en MINIMOS a
+## propósito: no todos los modelos de goblin futuros lo traerán y sin él `Combate3D` ya cae con la pose de muerte.
+const EN_SITIO: Array = ["idle", "walk", "walk_back", "run", "cast", "attack", "hit", "leer", "talk", "wave", "drown"]
 ## Roles que van y vuelven en vez de saltar del final al principio (readandwrite termina 16º torcido respecto a como empieza).
 const PINGPONG: Array = ["leer"]
 const DESPLAZA_MAX: float = 0.35

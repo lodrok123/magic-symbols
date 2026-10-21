@@ -29,7 +29,9 @@ const MEZCLA_DEFECTO: float = 0.15
 const GRAFO_HEROE: String = "heroe"
 const GRAFO_REDUCIDO: String = "reducido"
 ## Los estados que existen en el grafo reducido de los enemigos (A2). `lanzar*` = cualquier subestado de lanzar.
-const ESTADOS_REDUCIDO: PackedStringArray = ["idle", "andar", "correr", "atacar", "lanzar", "golpeado", "muerto"]
+## `drown` (21/10, diario 231 + 238): el clip «Drowning» de los goblins. Lo pide `Combate3D._animar_ahogo` al hundirse; sin esta entrada el grafo reducido lo
+## rechazaba (`motivo_prohibida`) y el goblin caía con la pose de muerte de siempre. El estado se llama como el rol (`Pj3D.estado_de("drown")` = «drown»).
+const ESTADOS_REDUCIDO: PackedStringArray = ["idle", "andar", "correr", "atacar", "lanzar", "golpeado", "muerto", "drown"]
 const ENTRADAS_BLOQUEADAS_AL_NADAR: PackedStringArray = ["rodar", "beber", "apuntar", "lanzar"]
 const MAX_HISTORIAL: int = 16
 
