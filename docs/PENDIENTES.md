@@ -76,7 +76,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 ## Dirección (documentación y orden)
 
 **Documentos**
-- [ ] Pasar `PLAN_EOW.md` a `PLAN_ARREGLOS.md` como Fase 15. La Fase 14 está en `FASE14_PRESENTACION.md`.
+- [x] ~~Pasar `PLAN_EOW.md` a `PLAN_ARREGLOS.md` como Fase 15~~ — hecho el 21/10 (con una entrada que apunta a la Fase 14, que sigue en `FASE14_PRESENTACION.md`).
 - [x] ~~Reescribir para el 3D las secciones de `ARQUITECTURA.md` (Arte, Animación, Vista isométrica) y la cabecera y §3–§8 de `ARTE.md` (ver `DECISIONES_CHATS.md` §2).~~ Hecho el 21/10 (diario 237).
 - [ ] Reescribir para el 3D las secciones de lógica de `ARQUITECTURA.md` (piezas del sistema, mundo, niveles, Test 2, partículas, bloqueo físico, interfaz): nombran scripts 2D que ya no existen (diario 237).
 - [ ] Resolver la contradicción del radio base: 0,10 frente a 0,25 de `ESPEC_HECHIZO.md`.

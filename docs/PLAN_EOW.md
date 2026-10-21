@@ -1,6 +1,6 @@
 # Plan de acción · lo aprendido de *Echoes of Wisdom*
 
-21/10/2026 · contexto JUEGO (chat de análisis). **Propuesta**: Pablo la integra en `docs/PLAN_ARREGLOS.md` como fase nueva (propongo **Fase 15**; si ya existe ese número, la siguiente libre), igual que se hizo con la Fase 14.
+21/10/2026 · contexto JUEGO (chat de análisis). **Integrado en `docs/PLAN_ARREGLOS.md` como Fase 15** (21/10), con el estado de cada tarea; este documento queda como el detalle (qué, por qué, archivos, comprobación y prompt). **E1 cambió por decisión de Pablo** (21/10): tope de tinta 300 con reparto 60/40 jefes/secretos, y el pigmento es un aumento temporal sobre un sello (abarata su tinta o sube su daño), no una rebaja permanente por grupo de formas.
 Lo ejecuta **otro chat del contexto Juego**, tarea a tarea. Las tareas del Pipeline las pide el Juego por el diario; no las hace el Juego.
 
 Fuentes: `docs/ANALISIS_EOW.md` (síntesis) y sus anexos `EOW_1…4`. Diagnóstico del código leído del disco el 21/10 (rutas abajo).

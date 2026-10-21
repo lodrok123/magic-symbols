@@ -1658,3 +1658,42 @@ gotas (11.18) llega, pero no hay continuidad visual entre las gotas y el agua de
 13.11 ∥ 13.13 → 13.12 → 13.14 → 13.15. **Respecto a la Fase 12:** 13.8 y 13.10 van antes de 12.1; 13.1–13.2 antes de 12.14 (el lobo
 nace ya sobre el esqueleto estándar); el resto en paralelo con el nivel 1. El agua sigue sin entrar en el nivel 1 como mecánica;
 13.8–13.9 son para que lo que ya existe se vea bien y deje de dar sensación de «a medias».
+
+---
+
+## Fase 14 — Presentación, HUD, escritura de runas, animación y laboratorio de fuego (16/10)
+
+Vive en su propio documento: `docs/FASE14_PRESENTACION.md` (tareas con prompt por responsable). Se apunta aquí para que la numeración de fases no salte.
+
+---
+
+## Fase 15 — Lo aprendido de *Echoes of Wisdom* (21/10)
+
+Detalle de cada tarea (qué, por qué, archivos, comprobación y prompt): `docs/PLAN_EOW.md`; síntesis del estudio: `docs/ANALISIS_EOW.md`. Regla: de EoW no entra nada en el repo (ni datos, ni textos, ni assets), solo las ideas. Lo hizo el Juego el 21/10 (diario 236, 238 y 240–242); todo probado sin ventana y jugado por Pablo en `laboratorios/LabPlaytestEoW.tscn`.
+
+### Juego
+
+- [x] **A1** papeles en `Reactivo3D` (inflamable, propaga_llama, apaga, mojable…) en vez de `match tipo` (diario 236).
+- [x] **B1** el estado del suelo tiene un solo dueño: `EstadosSuelo3D` con intensidad, caducidad, transiciones en tabla y `textura()` (diario 238). Desde el 21/10 el juego lo escribe de verdad al impactar (`ReaccionesSuelo3D`, escarcha frente a hielo físico; diario 242).
+- [x] **C1** flags con nombre `nivel.sala.hecho` (`nucleo/flags.gd`) y en `Puzle3D` (diario 238).
+- [x] **D1** `Terreno3D.ocupado` / `cabe` (diario 238).
+- [x] **A2** el fuego pasa solo por contacto; flecha ardiendo (diario 238). Decisión de Pablo tras el playtest: sin contagio entre enemigos (diario 239).
+- [x] **A3** siete reacciones por enemigo y hundirse al ser empujado al agua honda, con el clip «Drowning» (diario 238, 240).
+- [x] **C2** `si=` con `+` `|` `!`, `casilla(x,y).estado` y plantilla `$` (diario 238).
+- [x] **C3** piezas `vigia`, `cerrojo` y `cofre` (diario 238).
+- [x] **A4** `Mundo3D.reaccion` con el catálogo de `ReaccionesVfx3D` (diario 238).
+- [x] **A5** `Escudo3D` (cono frontal de 120°); al consumirse le quema la mano al goblin (diario 238, 239).
+- [x] **D2** `Caminos3D`, rutas por casillas con altura (diario 238).
+- [ ] **E1** tinta: máximo cerrado y pigmentos (decisión de Pablo del 21/10: tope 300, reparto 60/40 jefes/secretos; el pigmento es un aumento temporal sobre un sello: abarata su tinta o sube su daño).
+
+### Pipeline (encargos del Juego por el diario)
+
+- [ ] **B2** el shader del suelo lee `Mundo3D.textura_estados()` y se retira `_img_estado`.
+- [x] **PL1** clip «Drowning» de los goblins (diario 231).
+- [x] **PL2** tabla reacción → efecto + sonido (`ReaccionesVfx3D`, diario 234). Falta engancharla en la maqueta para todos los niveles (el laboratorio lo hace por su cuenta).
+- [x] **F1–F3** luz por zona, tilt-shift y sonda de reflejos (diario 233). · [x] **F4** presupuesto medido (`arte/meshy/PRESUPUESTO.md`, diario 232; decimar lo decide Pablo).
+
+### Pablo
+
+- [ ] Decidir qué ayudas del laboratorio pasan al juego (lista en `docs/PENDIENTES.md` y diario 240).
+- [ ] Ajustar los números de la tinta y de los pigmentos tras jugarlos.
