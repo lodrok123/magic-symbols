@@ -65,6 +65,47 @@ const TORBELLINO_TARJETAS: int = 3         ## y en el tornado / corro
 const TARJETA_REMOLINO_K: float = 2.0      ## una tarjeta de remolino es tantas veces más grande que una hoja (antes 2,6 con hojas más chicas: 0,23–0,7 u; ahora 0,5–1,0 u)
 const TARJETA_REMOLINO_MAX: float = 1.0
 
+## REMOLINO COMO MÁSCARA (22/10): las tarjetas de remolino NO usan el color del atlas (trazos blancos con contorno azul fuerte: parecían pegatinas sobre las cintas
+## verdes translúcidas) sino `COLOR_CINTA`, el de las cintas; el atlas solo pone la FORMA: alfa = alfa × luminancia (el contorno azul oscuro cae), con borde suave.
+static var remolino_mascara: bool = true   ## false = tarjetas con el color del atlas, como antes
+const REMOLINO_MASCARA_ALFA: float = 0.45  ## alfa global máximo de una tarjeta de remolino
+const MASCARA_BORDE_INI: float = 0.25      ## smoothstep sobre (alfa × luminancia): por debajo, nada; por encima de FIN, pleno (quita el contorno oscuro sin línea dura)
+const MASCARA_BORDE_FIN: float = 0.9
+const MASCARA_DESENFOQUE_PX: float = 1.5   ## radio del suavizado del borde (píxeles del atlas)
+const REMOLINO_FUNDIDO_ENTRADA: float = 0.25  ## fracción de T_REMOLINO que tardan en aparecer
+const REMOLINO_FUNDIDO_SALIDA_DESDE: float = 0.4  ## y a partir de qué fracción se desvanecen (hasta el final)
+
+const _SHADER_MASCARA: String = """
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never;
+uniform sampler2D atlas : source_color, filter_linear;
+uniform vec4 color : source_color = vec4(0.85, 1.0, 0.92, 1.0);
+uniform float alfa = 0.45;
+uniform float borde_ini = 0.25;
+uniform float borde_fin = 0.9;
+uniform vec2 uv_escala = vec2(0.25, 0.25);
+uniform vec2 uv_desfase = vec2(0.0, 0.0);
+uniform float desenfoque_px = 1.5;
+instance uniform float fundido : hint_range(0.0, 1.0) = 1.0;
+void vertex() {
+	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = MODELVIEW_MATRIX * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0), vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0), vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0), vec4(0.0, 0.0, 0.0, 1.0));
+}
+float forma(vec2 uv) {
+	vec4 t = texture(atlas, uv);
+	return t.a * dot(t.rgb, vec3(0.299, 0.587, 0.114));
+}
+void fragment() {
+	vec2 uv = UV * uv_escala + uv_desfase;
+	vec2 d = vec2(desenfoque_px / 512.0);
+	float m = forma(uv) * 0.4 + 0.15 * (forma(uv + vec2(d.x, 0.0)) + forma(uv - vec2(d.x, 0.0)) + forma(uv + vec2(0.0, d.y)) + forma(uv - vec2(0.0, d.y)));
+	m = smoothstep(borde_ini, borde_fin, m);
+	ALBEDO = color.rgb;
+	ALPHA = m * alfa * fundido;
+}
+"""
+static var _shader_mascara: Shader = null
+
 
 ## Gira sobre su eje Y local (las cintas en espiral). Un nodo con _process en vez de un tween en bucle: muere con su padre.
 class Rueda extends Node3D:
@@ -228,9 +269,12 @@ static func _atlas_placeholder() -> Texture2D:
 ## Material de una tarjeta de la casilla (col, fila): billboard, sin luz, con alfa. Uno por casilla, compartido. Hojas, hierbas y vilanos (filas 0–2) son
 ## opacos en el cuerpo y suaves en el borde: pasada previa de profundidad (se ordenan bien con las cintas, que no escriben profundidad). Los remolinos
 ## (fila 3) son blancos translúcidos: mezcla pura, sin profundidad.
-static func _material_hoja(col: int, fila: int) -> StandardMaterial3D:
-	var clave := Vector3i(col, fila, 1 if atlas_real() else 0)
+static func _material_hoja(col: int, fila: int) -> Material:
+	var clave := Vector3i(col, fila, (1 if atlas_real() else 0) + (2 if remolino_mascara else 0))
 	if _mat_hojas.has(clave):
+		return _mat_hojas[clave]
+	if fila >= 3 and remolino_mascara:
+		_mat_hojas[clave] = material_mascara(col, fila)
 		return _mat_hojas[clave]
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -244,6 +288,42 @@ static func _material_hoja(col: int, fila: int) -> StandardMaterial3D:
 	mat.uv1_offset = Vector3(float(col) / CASILLAS, float(fila) / CASILLAS, 0.0)
 	_mat_hojas[clave] = mat
 	return mat
+
+
+## Material de máscara de una tarjeta de remolino (casilla col, fila): color de las cintas, forma del atlas. El fundido va por instancia (`fundido`).
+static func material_mascara(col: int, fila: int) -> ShaderMaterial:
+	if _shader_mascara == null:
+		_shader_mascara = Shader.new()
+		_shader_mascara.code = _SHADER_MASCARA
+	var mat := ShaderMaterial.new()
+	mat.shader = _shader_mascara
+	mat.set_shader_parameter("atlas", atlas())
+	mat.set_shader_parameter("color", COLOR_CINTA)
+	mat.set_shader_parameter("alfa", REMOLINO_MASCARA_ALFA)
+	mat.set_shader_parameter("borde_ini", MASCARA_BORDE_INI)
+	mat.set_shader_parameter("borde_fin", MASCARA_BORDE_FIN)
+	mat.set_shader_parameter("desenfoque_px", MASCARA_DESENFOQUE_PX)
+	mat.set_shader_parameter("uv_escala", Vector2(1.0 / CASILLAS, 1.0 / CASILLAS))
+	mat.set_shader_parameter("uv_desfase", Vector2(float(col) / CASILLAS, float(fila) / CASILLAS))
+	return mat
+
+
+## ¿Esta tarjeta es un remolino con máscara (tiene fundido por instancia)?
+static func es_mascara(mi: Node) -> bool:
+	return mi is MeshInstance3D and (mi as MeshInstance3D).material_override is ShaderMaterial
+
+
+## Fundido (0–1) de una tarjeta de remolino con máscara.
+static func fundir(mi: MeshInstance3D, v: float) -> void:
+	if is_instance_valid(mi):
+		mi.set_instance_shader_parameter("fundido", v)
+
+
+## `fundir` por id de instancia (para tweens: un Callable que captura la tarjeta da error si ésta se libera antes que el tween).
+static func fundir_id(v: float, id: int) -> void:
+	var o: Object = instance_from_id(id)
+	if o != null and o is MeshInstance3D:
+		fundir(o as MeshInstance3D, v)
 
 
 ## Una tarjeta de hoja o brizna (filas 0–2 del atlas) de lado `tam`; con `remolino` = true, un remolino blanco (fila 3).
@@ -327,6 +407,10 @@ static func remolino(mundo: Node, pos: Vector3, esc: float, suelo: float = NAN) 
 		(h as MeshInstance3D).position.y = y0
 		tw.tween_property(h, "position:y", y0 + alto * 0.7, T_REMOLINO)
 		tw.tween_property(h, "scale", Vector3.ZERO, T_REMOLINO * 0.4).set_delay(T_REMOLINO * 0.6)
+		if es_mascara(h):
+			fundir(h as MeshInstance3D, 0.0)
+			tw.tween_method(fundir_id.bind((h as MeshInstance3D).get_instance_id()), 0.0, 1.0, T_REMOLINO * REMOLINO_FUNDIDO_ENTRADA)
+			tw.tween_method(fundir_id.bind((h as MeshInstance3D).get_instance_id()), 1.0, 0.0, T_REMOLINO * (1.0 - REMOLINO_FUNDIDO_SALIDA_DESDE)).set_delay(T_REMOLINO * REMOLINO_FUNDIDO_SALIDA_DESDE)
 	tw.chain().tween_callback(raiz.queue_free)
 	return raiz
 
@@ -352,9 +436,14 @@ static func torbellino(padre: Node3D, eje_dir: Vector3, r_u: float, alto_u: floa
 	for h in hojas:
 		(h as MeshInstance3D).scale = Vector3.ZERO
 		tw.parallel().tween_property(h, "scale", Vector3.ONE, T_FUNDIDO_ENTRADA)
+		if es_mascara(h):
+			fundir(h as MeshInstance3D, 0.0)
+			tw.parallel().tween_method(fundir_id.bind((h as MeshInstance3D).get_instance_id()), 0.0, 1.0, T_FUNDIDO_ENTRADA)
 	tw.tween_interval(v - T_FUNDIDO_ENTRADA - T_FUNDIDO_SALIDA)
 	tw.tween_property(mat, "albedo_color:a", 0.0, T_FUNDIDO_SALIDA)
 	for h in hojas:
 		tw.parallel().tween_property(h, "scale", Vector3.ZERO, T_FUNDIDO_SALIDA)
+		if es_mascara(h):
+			tw.parallel().tween_method(fundir_id.bind((h as MeshInstance3D).get_instance_id()), 1.0, 0.0, T_FUNDIDO_SALIDA)
 	tw.tween_callback(eje.queue_free)
 	return eje
