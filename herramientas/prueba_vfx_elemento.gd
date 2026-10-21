@@ -65,9 +65,9 @@ func _correr() -> void:
 				var med: Array = _medir(colgado)
 				_ok(int(med[0]) <= 2 and int(med[1]) <= 400, "%s/%s: %d luces, %d partículas (≤ 2 y ≤ 400)" % [par[1], forma, int(med[0]), int(med[1])])
 				if par[1] == "tierra":
-					_ok(_contar(colgado, "BoxMesh") >= 8, "tierra/%s: terrones (BoxMesh) que caen" % forma)
+					_ok(_contar_nombre(colgado, "bloque_tierra") + _contar_nombre(colgado, "pincho_tierra") >= 1, "tierra/%s: bloques facetados que emergen (21/10; antes BoxMesh que caían)" % forma)
 				if par[1] == "viento":
-					_ok(_contar(colgado, "TorusMesh") >= 4, "viento/%s: anillos (TorusMesh)" % forma)
+					_ok(_contar_nombre(colgado, "cinta") >= 3, "viento/%s: cintas en espiral (21/10; antes aros TorusMesh)" % forma)
 			if colgado != null:
 				colgado.queue_free()            # se libera ya: VfxElemento3D tiene un tope de dibujos a la vez (MAX_VIVOS) y la prueba lanza más
 			hv.queue_free()
@@ -181,6 +181,14 @@ func _contar(raiz: Node, clase_malla: String) -> int:
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null and (n as MeshInstance3D).mesh.get_class() == clase_malla:
 			c += 1
 		pila.append_array(n.get_children())
+	return c
+
+
+## Cuántos MeshInstance3D del subárbol se llaman `nombre` (las piezas de tierra y las cintas de viento llevan el nombre de su id).
+func _contar_nombre(raiz: Node, nombre: String) -> int:
+	var c: int = 0
+	for n in raiz.find_children(nombre + "*", "MeshInstance3D", true, false):
+		c += 1
 	return c
 
 

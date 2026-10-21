@@ -141,6 +141,9 @@ class Proyectil extends Seguidor:
 		if _avisado or (hv != null and is_instance_valid(hv) and bool(hv.get("activo"))):
 			return                       # ya hecho, o el HechizoVivo se va con el proyectil todavía vivo (fin de nivel): sin explosión
 		_avisado = true
+		if elemento == "tierra" or elemento == "viento":
+			_impacto_materia(hv)
+			return
 		if not FasesFuego3D.aplica(elemento):
 			return
 		# El fuego que se para (aunque el HechizoVivo se quede por `permanencia`) deja de dibujar su bola: la explosión / el fin ya la sustituyen, y una bola ardiendo
@@ -151,16 +154,34 @@ class Proyectil extends Seguidor:
 		var pos: Vector3 = global_position
 		var motivo: String = String(hv.get("motivo_fin")) if hv != null and is_instance_valid(hv) else ""
 		if ["golpe", "muro", "suelo"].has(motivo):
-			var suelo: float = NAN
-			var w: World3D = get_world_3d()
-			if w != null:
-				var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0)
-				var r: Dictionary = w.direct_space_state.intersect_ray(q)
-				if not r.is_empty():
-					suelo = (r["position"] as Vector3).y
-			FasesFuego3D.impacto(mundo, pos, esc, suelo)
+			FasesFuego3D.impacto(mundo, pos, esc, _suelo_bajo(pos))
 		else:
 			FasesFuego3D.desvanecer(mundo, pos, esc)
+
+	## Y del suelo bajo `pos` (rayo hacia abajo), o NAN si no hay mundo físico / suelo.
+	func _suelo_bajo(pos: Vector3) -> float:
+		var w: World3D = get_world_3d()
+		if w != null:
+			var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 0.3, pos + Vector3.DOWN * 4.0)
+			var r: Dictionary = w.direct_space_state.intersect_ray(q)
+			if not r.is_empty():
+				return (r["position"] as Vector3).y
+		return NAN
+
+	## Tierra y viento (21/10): al CHOCAR (golpe, muro, suelo) el cuerpo se va —el terrón se rompe en cascotes que caen y se quedan, las cintas se abren en un
+	## remolino— y se oculta lo que volaba. Si solo se agota (alcance, tiempo, frenado) se queda como estaba (la permanencia): no hay impacto que contar.
+	func _impacto_materia(hv: Object) -> void:
+		if mundo == null or not is_instance_valid(mundo) or not is_inside_tree():
+			return
+		var motivo: String = String(hv.get("motivo_fin")) if hv != null and is_instance_valid(hv) else ""
+		if not ["golpe", "muro", "suelo"].has(motivo):
+			return
+		var pos: Vector3 = global_position
+		visible = false
+		if elemento == "tierra":
+			VfxTierra.impacto(mundo, pos, esc, _suelo_bajo(pos))
+		else:
+			VfxViento.remolino(mundo, pos, esc, _suelo_bajo(pos))
 
 
 static func conectar(lanzador: Object, mundo: Node3D) -> VfxElemento3D:
@@ -285,9 +306,9 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 func _pieza_proyectil(el: String, seg: Node3D, d: Vector3, r_u: float, vel: float) -> void:
 	match el:
 		"tierra":
-			_tierra_viaja(seg, d, r_u)
+			VfxTierra.proyectil(seg, d, r_u)       # un terrón facetado que rueda (21/10; antes cinco cajas que orbitaban)
 		"viento":
-			_viento_anillos(seg, d, r_u, 1.0, true)
+			VfxViento.proyectil(seg, d, r_u)       # cintas en espiral y hojas arrastradas (antes cuatro aros)
 		_:
 			VfxKit3D.bola(seg, d, clampf(r_u / 0.3, FACTOR_BOLA_MIN, FACTOR_BOLA_MAX), 1.0, vel)
 			if el == "fuego":
@@ -301,7 +322,7 @@ func _pieza_volumen(el: String, raiz: Node3D, forma: String, pie: Vector3, d: Ve
 		_tierra_cae(raiz, pie, r_u, alto_u, vida, forma)
 		return
 	if el == "viento":
-		_viento_anillos(_nodo_en(raiz, pie), d if viaja else Vector3.UP, r_u, maxf(vida, 1.0), false)
+		VfxViento.torbellino(_nodo_en(raiz, pie), d if viaja else Vector3.UP, r_u, alto_u, maxf(vida, 1.0))
 		return
 	if forma == "pulso":
 		VfxKit3D.onda(raiz, pie + Vector3(0.0, 0.1, 0.0), r_u * 4.0, vida, esc)
@@ -322,115 +343,18 @@ func _volumen(raiz: Node3D, el: String, forma: String, pie: Vector3, d: Vector3,
 	_con_elemento(el, _pieza_volumen.bind(el, raiz, forma, pie, d, r_u, alto_u, vida, viaja))
 
 
-## --- Tierra: terrones y polvo marrón que caen, y una grieta corta en el suelo ---
+## --- Tierra y viento: el dibujo vive en `presentacion/vfx_elementos/tierra.gd` y `viento.gd` (VfxTierra / VfxViento) ---
+## Aquí solo queda lo que depende del volumen: la grieta del suelo (Vfx3D) y el polvo de fondo de la tierra quieta.
 
 func _tierra_cae(raiz: Node3D, pie: Vector3, r_u: float, alto_u: float, vida: float, forma: String) -> void:
 	var esc: float = clampf(r_u / 0.45, ESCALA_VOL_MIN, ESCALA_VOL_MAX)
-	var n: int = 10 if forma == "esfera" else 14
 	var anillo: float = r_u * (1.3 if forma != "pulso" else 3.0)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.38, 0.26, 0.16)
-	mat.roughness = 1.0
-	for i in range(n):
-		var a: float = TAU * float(i) / float(n) + randf_range(-0.25, 0.25)
-		var rr: float = anillo * randf_range(0.25, 1.0)
-		var m := MeshInstance3D.new()
-		var b := BoxMesh.new()
-		var lado: float = randf_range(0.09, 0.2) * esc
-		b.size = Vector3(lado, lado * randf_range(0.6, 1.0), lado * randf_range(0.8, 1.2))
-		m.mesh = b
-		var mi: StandardMaterial3D = mat.duplicate() as StandardMaterial3D
-		mi.albedo_color = mat.albedo_color.lerp(Color(0.55, 0.42, 0.28), randf() * 0.6)
-		m.material_override = mi
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		m.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-		m.position = pie + Vector3(cos(a) * rr, alto_u + 1.6 + randf() * 0.8, sin(a) * rr)
-		raiz.add_child(m)
-		var cae: float = randf_range(0.35, 0.65)
-		var tw := m.create_tween()
-		tw.tween_interval(randf() * 0.25)
-		tw.tween_property(m, "position:y", pie.y + lado * 0.4, cae).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		tw.parallel().tween_property(m, "rotation", m.rotation + Vector3(randf_range(-2.0, 2.0), randf_range(-2.0, 2.0), randf_range(-2.0, 2.0)), cae)
-		tw.tween_callback(func() -> void: VfxKit3D.particulas(raiz, Vector3(m.position.x, pie.y + 0.05, m.position.z), 5, 0.7, 0.14 * esc, 0.9, false, false, 0.05, -1.0, Vector3.UP, 60.0))
-		tw.tween_interval(maxf(vida - cae - 0.6, 0.1))
-		tw.tween_property(m, "scale", Vector3.ZERO, 0.4)
-		tw.tween_callback(m.queue_free)
-	VfxKit3D.particulas(raiz, pie + Vector3(0.0, 0.15, 0.0), 22, 1.3, 0.2 * esc, 0.7, false, false, anillo * 0.6, -0.15, Vector3.UP, 75.0)
+	# bloques facetados que EMERGEN del suelo de abajo arriba (VfxTierra.emerger), con su polvo
+	VfxTierra.emerger(raiz, pie, r_u, alto_u, vida, forma, esc)
+	VfxKit3D.particulas(raiz, pie + Vector3(0.0, 0.15, 0.0), 16, 1.3, 0.2 * esc, 0.7, false, false, anillo * 0.6, -0.15, Vector3.UP, 75.0)
 	var fx: Vfx3D = _fx()
 	if fx != null:
 		fx.grietas(pie, maxf(anillo * 1.5, 0.9), maxf(vida, 1.5))
-
-
-func _tierra_viaja(seg: Node3D, d: Vector3, r_u: float) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.4, 0.28, 0.17)
-	mat.roughness = 1.0
-	var giro := Giro.new()
-	giro.w = 5.0
-	seg.add_child(giro)
-	for i in range(5):
-		var m := MeshInstance3D.new()
-		var b := BoxMesh.new()
-		var lado: float = randf_range(0.12, 0.22) * clampf(r_u / 0.45, ESCALA_VOL_MIN, ESCALA_VOL_MAX * 0.5)
-		b.size = Vector3(lado, lado, lado * 1.2)
-		m.mesh = b
-		m.material_override = mat
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var a: float = TAU * float(i) / 5.0
-		m.position = Vector3(cos(a), randf_range(-0.25, 0.25), sin(a)) * r_u * randf_range(0.6, 1.1)
-		m.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-		giro.add_child(m)
-	# polvo que se queda atrás y cae (gravedad negativa), en coordenadas de mundo (`local_coords` = false en el kit)
-	VfxKit3D.particulas(seg, Vector3.ZERO, 28, 0.9, 0.18, 0.6, false, true, r_u * 0.8, -1.2, Vector3.UP, 120.0)
-	if _fx() != null:
-		_fx().grietas(Vector3(seg.global_position.x, seg.global_position.y - r_u, seg.global_position.z), 1.0, 1.5)
-
-
-## --- Viento: anillos blancos semitransparentes que giran y se estiran en la dirección del viaje ---
-
-func _viento_anillos(padre: Node3D, eje_dir: Vector3, r_u: float, vida: float, sigue: bool) -> void:
-	var eje := Node3D.new()
-	var y: Vector3 = eje_dir.normalized()
-	var x: Vector3 = y.cross(Vector3.UP)
-	if x.length() < 0.01:
-		x = Vector3.RIGHT
-	x = x.normalized()
-	eje.basis = Basis(x, y, x.cross(y).normalized())     # el eje Y del toro queda a lo largo de la dirección: los aros son perpendiculares al viaje
-	padre.add_child(eje)
-	var n: int = 4
-	for i in range(n):
-		var g := Giro.new()
-		g.w = (5.0 + 2.0 * float(i)) * (1.0 if i % 2 == 0 else -1.0)
-		var atras: float = float(i) * r_u * 0.9
-		g.position = Vector3(0.0, -atras if sigue else atras * 0.8, 0.0)
-		eje.add_child(g)
-		var t := TorusMesh.new()
-		var rad: float = r_u * (1.0 + 0.35 * float(i))
-		t.outer_radius = rad
-		t.inner_radius = rad * 0.86
-		t.rings = 28
-		t.ring_segments = 8
-		var m := MeshInstance3D.new()
-		m.mesh = t
-		var mat := StandardMaterial3D.new()
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-		mat.albedo_color = Color(1.0, 1.0, 1.0, 0.34 - 0.05 * float(i))
-		m.material_override = mat
-		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		m.scale = Vector3(1.0, 0.35, 1.0)                # aplastado en el eje: un aro fino, no un donut
-		g.add_child(m)
-		var tw := m.create_tween().set_parallel(true)
-		# se estira en la dirección del viaje (eje Y) y se abre un poco; si no viaja, sube como un remolino y se desvanece
-		tw.tween_property(m, "scale", Vector3(1.25, 1.6 if sigue else 2.2, 1.25), maxf(vida, 0.6)).set_trans(Tween.TRANS_SINE)
-		if not sigue:
-			tw.tween_property(g, "position:y", g.position.y + r_u * 2.0, maxf(vida, 0.6))
-			tw.tween_property(mat, "albedo_color:a", 0.0, maxf(vida, 0.6)).set_ease(Tween.EASE_IN)
-	# jirones: motas blancas que se arrastran
-	VfxKit3D.particulas(eje, Vector3.ZERO, 18, 0.8, 0.12, 0.5, false, sigue, r_u, 0.0, Vector3.UP, 180.0)
-	if not sigue:
-		eje.get_tree().create_timer(maxf(vida, 0.6) + 0.5, false).timeout.connect(eje.queue_free)
 
 
 ## --- Utilidades ---

@@ -2088,11 +2088,14 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	caja.material = mat
 	var mi := MeshInstance3D.new()
 	mi.mesh = caja
-	mi.visible = dibujar                    # con el anillo de tierra dibujado encima, el bloque es solo colisión
+	var facetado: bool = dibujar and VfxTierra.vestir_bloques       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja
+	mi.visible = dibujar and not facetado   # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
 	var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * (float(n) - 0.5))
 	bloque.position = centro - Vector3(0, Terreno3D.ALTO_NIVEL * 0.6, 0)
 	mundo.add_child(bloque)
+	if facetado:
+		VfxTierra.vestir_bloque(bloque, caja.size, Vector3(centro.x, centro.y - Terreno3D.ALTO_NIVEL * 0.5, centro.z))      # solo dibujo: la colisión de arriba no cambia
 	(entrada["nodos"] as Array).append(bloque)
 	var tw: Tween = bloque.create_tween()
 	tw.tween_property(bloque, "position", centro, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
