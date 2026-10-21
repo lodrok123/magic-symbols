@@ -128,3 +128,24 @@ apilados (−0,11 M).
 
 `escenario_bosque_01` (--fixed-fps 30): FALLOS 0 · `escenario_playtest_eow` (--fixed-fps 30): FALLOS 0 · `prueba_presentacion`: FALLOS 0. El mensaje
 de PagedAllocator al salir es el aviso habitual de los scripts de prueba.
+
+
+---
+
+## 5. Aplicado (21/10) — decisiones de Pablo sobre 1 y 3
+
+Medido con ventana, mismas vistas y herramienta (`captura_presupuesto_v8.gd`, modo «actual»), 3 pasadas (la GPU estaba menos contaminada que en la medición anterior: las tres pasadas coinciden a ±0,03 ms; números en `medidas_aplicado.txt`, capturas en `aplicado/`). Antes = fila «Actual» de la sección 1.
+
+| | Antes | Después |
+|---|---|---|
+| Triángulos de árboles (lotes) | 2 897 903 | **1 794 136** (−1,10 M) |
+| Triángulos de todos los lotes del nivel | 4 661 031 | **3 149 264** (−1,51 M, −32 %) |
+| Triángulos dibujados en el fotograma · jugador / denso / amplia | 3,73 M · 3,39 M · 5,47 M | **2,15 M · 1,40 M · 2,39 M** |
+| GPU ms · jugador / denso / amplia | 2,43 · 3,02 · 5,39 (mejor de varias pasadas) | **1,72 · 2,00 · 2,68** (mejor de 3) |
+| Llamadas de dibujo (jugador / denso / amplia) | 280 / 258 / 443 | 291–302 / 166 / 335 |
+
+Qué se aplicó: (a) `arbol_redondo` → `arbol_redondo_2` en las 133 copias (ahora 176 `_2`; `pino` 89 de 12 k y `pino_2` 42 sin cambios);
+(b) `roca_musgosa`, `tronco_musgoso`, `troncos_apilados` de 12 k a 6 k (−0,41 M, justo lo calculado). El resto del ahorro (−1,10 M) es de los árboles.
+Aviso de honestidad: los «antes» de GPU salen de pasadas con el sistema más cargado, así que la mejora en ms está algo inflada; los triángulos son exactos.
+Cómo deshacerlo: `DESHACER.md`. Capturas de las piezas: `piezas_6k/` (ver ahí `zoom6`, `zoom2` y `lupa_*`).
+Roca de 2,5 k: hecha y comparada, **no instalada** (la silueta aguanta, pero se ven las facetas y aparece una mancha naranja en un triángulo del musgo); instrucciones en `DESHACER.md` §3.

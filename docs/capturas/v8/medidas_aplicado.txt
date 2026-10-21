@@ -1,0 +1,13 @@
+
+run1 RECUENTO actual | copias por id: { "arbol_redondo_2": 176, "pino": 89, "pino_2": 42 } | triángulos de árboles 1794136 | de todos los lotes 3149264 | cambiadas 0
+run1 MEDIDA actual | jugador | fotograma 2.85 ms (351 fps) | GPU 1.74 ms | CPU render 0.39 ms | triángulos en el fotograma 2149595 | llamadas 299 | docs/capturas/v8/aplicado/bosque_jugador_actual.png
+run1 MEDIDA actual | denso | fotograma 3.19 ms (313 fps) | GPU 2.03 ms | CPU render 0.31 ms | triángulos en el fotograma 1397806 | llamadas 166 | docs/capturas/v8/aplicado/bosque_denso_actual.png
+run1 MEDIDA actual | amplia | fotograma 3.90 ms (256 fps) | GPU 2.68 ms | CPU render 0.43 ms | triángulos en el fotograma 2393182 | llamadas 335 | docs/capturas/v8/aplicado/bosque_amplia_actual.png
+run2 RECUENTO actual | copias por id: { "arbol_redondo_2": 176, "pino": 89, "pino_2": 42 } | triángulos de árboles 1794136 | de todos los lotes 3149264 | cambiadas 0
+run2 MEDIDA actual | jugador | fotograma 2.86 ms (350 fps) | GPU 1.74 ms | CPU render 0.39 ms | triángulos en el fotograma 2149782 | llamadas 302 | docs/capturas/v8/aplicado/bosque_jugador_actual.png
+run2 MEDIDA actual | denso | fotograma 3.21 ms (312 fps) | GPU 2.02 ms | CPU render 0.31 ms | triángulos en el fotograma 1397806 | llamadas 166 | docs/capturas/v8/aplicado/bosque_denso_actual.png
+run2 MEDIDA actual | amplia | fotograma 3.90 ms (256 fps) | GPU 2.69 ms | CPU render 0.42 ms | triángulos en el fotograma 2393182 | llamadas 335 | docs/capturas/v8/aplicado/bosque_amplia_actual.png
+run3 RECUENTO actual | copias por id: { "arbol_redondo_2": 176, "pino": 89, "pino_2": 42 } | triángulos de árboles 1794136 | de todos los lotes 3149264 | cambiadas 0
+run3 MEDIDA actual | jugador | fotograma 3.04 ms (329 fps) | GPU 1.72 ms | CPU render 0.40 ms | triángulos en el fotograma 2149526 | llamadas 291 | docs/capturas/v8/aplicado/bosque_jugador_actual.png
+run3 MEDIDA actual | denso | fotograma 3.17 ms (316 fps) | GPU 2.00 ms | CPU render 0.32 ms | triángulos en el fotograma 1397806 | llamadas 166 | docs/capturas/v8/aplicado/bosque_denso_actual.png
+run3 MEDIDA actual | amplia | fotograma 4.24 ms (236 fps) | GPU 2.70 ms | CPU render 0.57 ms | triángulos en el fotograma 2393182 | llamadas 335 | docs/capturas/v8/aplicado/bosque_amplia_actual.png
