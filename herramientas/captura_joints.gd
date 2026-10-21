@@ -1,6 +1,7 @@
 extends SceneTree
 ## CAPTURAS ANTES / DESPUÉS de las tiras de transición del suelo («joints», PLAN_EOW_VISUAL §1 punto 3). NECESITA VENTANA (sin GPU no hay imagen).
-##   godot --path . --script res://herramientas/captura_joints.gd -- <bosque|lab> <antes|despues> <carpeta>
+##   godot --path . --script res://herramientas/captura_joints.gd -- <bosque|lab> <antes|despues|procedural> <carpeta>
+##   «procedural» = la tira procedural de antes de la lámina (`joints_lamina = false`); «despues» = con el atlas pintado (por defecto).
 ## «antes» = `joints_suelo = false` en la maqueta; «despues» = los valores de serie. Para cada pareja de suelos distintos que hay en el nivel
 ## busca una casilla de ejemplo lejos del borde y captura con la cámara del juego (ZOOM_INICIAL) y de cerca (3,2). Imprime triángulos y llamadas.
 const S: float = 2.3
@@ -30,12 +31,15 @@ func _correr() -> void:
 		return
 	var cual: String = a[0]
 	var antes: bool = a[1] == "antes"
+	var modo: String = a[1]
 	var carpeta: String = a[2]
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	var m: Node3D = (load(ESCENAS[cual]) as PackedScene).instantiate()
 	if antes:
 		m.set("joints_suelo", false)
+	if modo == "procedural":
+		m.set("joints_lamina", false)
 	root.add_child(m)
 	for _i in 150:
 		await process_frame
@@ -89,9 +93,9 @@ func _correr() -> void:
 			var ms: float = float(Time.get_ticks_usec() - t0) / 60000.0
 			var tri: int = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME))
 			var dc: int = int(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
-			var ruta: String = "%s/%s_%s_%s_%s.png" % [carpeta, cual, k, ("z%d%s" % [int(tam), "_suelo" if solo else ""]), "antes" if antes else "despues"]
+			var ruta: String = "%s/%s_%s_%s_%s.png" % [carpeta, cual, k, ("z%d%s" % [int(tam), "_suelo" if solo else ""]), "antes" if antes else modo]
 			root.get_viewport().get_texture().get_image().save_png(ruta)
-			print("MEDIDA %s | %s %s | %s | casilla %s | fotograma %.2f ms | triangulos %d | llamadas %d" % [cual, k, tam, "antes" if antes else "despues", c, ms, tri, dc])
+			print("MEDIDA %s | %s %s | %s | casilla %s | fotograma %.2f ms | triangulos %d | llamadas %d" % [cual, k, tam, "antes" if antes else modo, c, ms, tri, dc])
 	quit()
 
 

@@ -10,6 +10,8 @@ extends "res://herramientas/escenario_base.gd"
 ##      y coinciden con un recuento independiente hecho por letras
 ##   3  `mapa_fuera` marca exactamente el agua, el cauce seco y los huecos (lo que apaga las tiras junto a ellos)
 ##   4  interruptor: `joints_suelo = false` no deja aristas y el uniform `joints_fuerza` vale 0; true = 1
+##   6  lámina (atlas pintado `joints_atlas.png`): 1024 x 640 con 5 filas con alfa y lado denso arriba, costura horizontal continua, el material lo recibe y el
+##      interruptor `joints_lamina` lo apaga; si falta el archivo cae a la procedural (uniform a 0, sin fallo) y las aristas no cambian
 ##   5  nada más cambia: mismas colisiones, mismo `Terreno3D.alturas` y mapa, mismos nodos de dibujo (sin mallas ni llamadas nuevas), mismo tipo de suelo por casilla
 
 const ESCENAS: Dictionary = {"bosque": "res://escenas/PruebaBosque01.tscn", "lab": "res://laboratorios/LabPlaytestEoW.tscn"}
@@ -32,6 +34,7 @@ func _escenario() -> void:
 		_nada_mas(k, con, sin)
 		(sin["m"] as Node).queue_free()
 		await avanzar(3)
+		await _lamina(k)
 
 
 ## Monta la escena con el interruptor en `joints` y devuelve la maqueta con una foto de lo que no debe cambiar.
@@ -177,3 +180,72 @@ func _nada_mas(k: String, con: Dictionary, sin: Dictionary) -> void:
 	_ok("5.2 [%s] mismo Terreno3D (alturas, mapa y lado)" % k, con["alturas"] == sin["alturas"] and con["mapa"] == sin["mapa"] and con["lado"] == sin["lado"])
 	_ok("5.3 [%s] mismos nodos de dibujo: las tiras no añaden mallas ni llamadas de dibujado" % k, con["dibujo"] == sin["dibujo"], "%d · %d" % [con["dibujo"], sin["dibujo"]])
 	_ok("5.4 [%s] mismo tipo de suelo por casilla (donde crece y arde la hierba no cambia)" % k, con["tipos"] == sin["tipos"])
+
+
+func _uniform_lamina(m: Node) -> float:
+	return float(((m.get("_mat_suelo") as ShaderMaterial).get_shader_parameter("joints_lamina")))
+
+
+func _lamina(k: String) -> void:
+	var ruta: String = "res://arte/suelo_meshy/joints_atlas.png"
+	_ok("6.1 [%s] el atlas existe y se importa como textura" % k, ResourceLoader.exists(ruta) and load(ruta) is Texture2D)
+	var img: Image = Image.load_from_file(ProjectSettings.globalize_path(ruta))
+	_ok("6.2 [%s] mide 1024 x 640 (5 filas de 128)" % k, img != null and img.get_width() == 1024 and img.get_height() == 640)
+	if img != null and img.get_width() == 1024 and img.get_height() == 640:
+		var mal: Array = []
+		for f in range(5):
+			# Lado denso arriba: más alfa en el tercio de arriba de la fila que en el de abajo; y la fila no está vacía.
+			var arriba: float = 0.0
+			var abajo: float = 0.0
+			for x in range(0, 1024, 4):
+				for y in range(f * 128 + 6, f * 128 + 48):
+					arriba += img.get_pixel(x, y).a
+				for y in range(f * 128 + 86, f * 128 + 128):
+					abajo += img.get_pixel(x, y).a
+			if arriba <= 0.0 or arriba <= abajo * 1.5:
+				mal.append(f)
+		_ok("6.3 [%s] las 5 filas tienen el lado denso arriba (y migas abajo)" % k, mal.is_empty(), "filas mal %s" % [mal])
+		# Costura: la diferencia entre la última columna y la primera no es mayor que la habitual entre columnas vecinas.
+		var peor: Array = []
+		for f in range(5):
+			var vecinas: float = 0.0
+			var costura: float = 0.0
+			for y in range(f * 128, f * 128 + 128):
+				costura += _dif(img.get_pixel(1023, y), img.get_pixel(0, y))
+			for x in range(0, 1023, 8):
+				for y in range(f * 128, f * 128 + 128):
+					vecinas += _dif(img.get_pixel(x, y), img.get_pixel(x + 1, y)) * 8.0 / 8.0
+			vecinas /= 128.0
+			vecinas /= 128.0
+			costura /= 128.0
+			if costura > vecinas * 3.0 + 0.02:
+				peor.append("%d: %.3f vs %.3f" % [f, costura, vecinas])
+		_ok("6.4 [%s] la costura horizontal no se nota (última y primera columna casan como dos vecinas)" % k, peor.is_empty(), "%s" % [peor])
+	var con: Dictionary = await _montar(String(ESCENAS[k]), true)
+	var m: Node = con["m"]
+	var mat: ShaderMaterial = m.get("_mat_suelo") as ShaderMaterial
+	_ok("6.5 [%s] por defecto el suelo recibe el atlas y `joints_lamina` vale 1" % k, mat.get_shader_parameter("t_joints") is Texture2D and _uniform_lamina(m) == 1.0)
+	_ok("6.6 [%s] contraste, escala y línea de la tira llegan al shader" % k, float(mat.get_shader_parameter("joints_contraste")) == float(m.get("JOINTS_CONTRASTE")) and float(mat.get_shader_parameter("joints_escala")) == float(m.get("JOINTS_ESCALA")) and float(mat.get_shader_parameter("joints_linea")) == float(m.get("JOINTS_LINEA")))
+	var n_aristas: int = (m.call("joints_aristas") as Array).size()
+	m.queue_free()
+	await avanzar(3)
+	# Interruptor apagado: procedural.
+	var m2: Node = (load(String(ESCENAS[k])) as PackedScene).instantiate()
+	m2.set("joints_lamina", false)
+	root.add_child(m2)
+	await avanzar(30)
+	_ok("6.7 [%s] `joints_lamina = false` pone el uniform a 0 (tira procedural) y deja las mismas aristas" % k, _uniform_lamina(m2) == 0.0 and (m2.call("joints_aristas") as Array).size() == n_aristas)
+	m2.queue_free()
+	await avanzar(3)
+	# Falta el archivo: cae a la procedural sola.
+	var m3: Node = (load(String(ESCENAS[k])) as PackedScene).instantiate()
+	m3.set("joints_atlas_ruta", "res://arte/suelo_meshy/no_existe_joints.png")
+	root.add_child(m3)
+	await avanzar(30)
+	_ok("6.8 [%s] sin el archivo del atlas, `joints_lamina` vale 0, no hay textura y el suelo sigue con sus tiras" % k, _uniform_lamina(m3) == 0.0 and (m3.call("joints_atlas_textura") == null) and float(((m3.get("_mat_suelo") as ShaderMaterial).get_shader_parameter("joints_fuerza"))) == 1.0 and (m3.call("joints_aristas") as Array).size() == n_aristas)
+	m3.queue_free()
+	await avanzar(3)
+
+
+func _dif(a: Color, b: Color) -> float:
+	return (absf(a.r * a.a - b.r * b.a) + absf(a.g * a.a - b.g * b.a) + absf(a.b * a.a - b.b * b.a) + absf(a.a - b.a)) * 0.25

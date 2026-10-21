@@ -183,6 +183,16 @@ uniform vec3 joint_tinte_cp : source_color = vec3(1.0, 1.0, 1.0);
 uniform vec3 joint_tinte_tp : source_color = vec3(1.0, 1.0, 1.0);
 uniform vec3 joint_matas = vec3(0.7, 0.0, 0.8);                         // fuerza de las matas de hierba sobre camino, (tierra: ya lo hace invade_hierba), piedra
 uniform vec3 joint_matas_ancho = vec3(1.4, 0.0, 1.2);                   // y hasta dónde se adentran (u) sobre camino, tierra, piedra
+// joints lámina: ATLAS pintado (arte/suelo_meshy/joints_atlas.png, 1024 x 640 = 5 filas de 128 px; orden y orientación en herramientas/joints_atlas.py:
+// 0 camino→tierra · 1 camino→piedra · 2 tierra→piedra · 3 hierba→camino · 4 hierba→piedra; arriba = lado denso = suelo de origen, abajo = migas sobre el vecino).
+// `joints_lamina` 1 = usa el atlas en esas cinco parejas (0 = la tira procedural de antes; se pone a 0 sola si falta el archivo). Hierba→tierra no
+// tiene fila: sigue con las matas de `invade_hierba`.
+uniform sampler2D t_joints : source_color, filter_linear_mipmap, repeat_enable;
+uniform float joints_lamina = 0.0;
+uniform float joints_contraste = 0.55;     // 1 = como está pintada; menos = cada píxel se acerca a la media local (las losas y el sombreado pierden contorno)
+uniform float joints_escala = 3.5;         // u de mundo que mide el atlas a lo ancho (1024 px); la altura de la fila (128 px) es la octava parte de eso
+uniform float joints_sigue = 1.0;         // 0 = la tira sigue la frontera lisa de la rejilla; 1 = la frontera ruidosa real del suelo (la misma que corta el degradado)
+uniform float joints_linea = 0.44;         // v (0-1 dentro de la fila) donde cae la frontera de los dos suelos
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
@@ -244,7 +254,7 @@ vec3 muestra(sampler2D t, vec2 p, float mezcla) {
 // Una pareja de materiales. `k` selecciona los canales de `mapa` (+ el que lame, - el lamido): `d` = +1 dentro del que lame, -1 dentro del otro,
 // 0 en la frontera. De d y de su gradiente sale la distancia con signo `sd` (u; + = dentro del que lame) a la frontera, igual que el borde de hierba.
 // Devuelve el color de la pareja y, en `peso`, cuánto manda esa pareja en este punto (0 lejos de ella).
-vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, vec2 fino, out float peso, out float sd_o) {
+vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, vec2 fino, out float peso, out float sd_o, out vec3 nrm_o) {
 	float eb = 0.5 / lado;
 	vec4 m0 = texture(mapa, uvm);
 	float d = dot(m0, k);
@@ -257,9 +267,31 @@ vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, v
 	col *= 1.0 - par_sombra * (1.0 - smoothstep(0.0, 0.5, sd)) * step(0.0, sd);   // el filo del que lame, algo más oscuro
 	peso = smoothstep(0.5, 0.85, dot(m0, abs(k)));
 	sd_o = sd;
+	nrm_o = vec3(g / max(length(g), 0.0001), smoothstep(0.2, 0.5, length(g)));   // joints lámina: hacia el que lame (xy) y cuánto fiarse de ello (z)
 	return col;
 }
-// joints: la tira de migas de una pareja. `sd` = distancia con signo de `pareja` (+ dentro del que lame): las migas caen en el lado del otro suelo
+// joints lámina: una muestra del atlas. `dir` = dirección de la frontera (el eje de la tira sale perpendicular a ella), `sabajo` = u de mundo desde la
+// frontera hacia el lado de las migas (+), `fila` = 0-4. Devuelve el alfa y en `rgb` el color con el contraste ya bajado (mezcla hacia la media local,
+// nivel 3 de mipmap; el PNG no se toca).
+// A lo largo de la tira, u = pm.x o pm.z según hacia dónde mire la frontera (y una mezcla suave en las diagonales): proyectar la posición sobre una
+// dirección que gira con el suelo (u = pm · tangente) da un u que corre decenas de veces más deprisa de lo debido y estira el atlas en rayas.
+float lamina_tira(float fila, vec2 dir, float sabajo, vec2 pmxz, out vec3 rgb) {
+	float pxu = 1024.0 / joints_escala;                                  // píxeles del atlas por u de mundo
+	float ypx = joints_linea * 128.0 + sabajo * pxu;
+	float vv = (fila * 128.0 + clamp(ypx, 1.0, 127.0)) / 640.0;
+	vec2 uva = vec2(pmxz.x / joints_escala, vv);
+	vec2 uvb = vec2(pmxz.y / joints_escala + 0.37, vv);
+	vec2 dsx = vec2(0.0, dFdx(sabajo) * pxu / 640.0);                    // derivadas explícitas (fuera de ramas): sin costuras de mipmap
+	vec2 dsy = vec2(0.0, dFdy(sabajo) * pxu / 640.0);
+	vec4 ta = textureGrad(t_joints, uva, vec2(dFdx(pmxz.x) / joints_escala, dsx.y), vec2(dFdy(pmxz.x) / joints_escala, dsy.y));
+	vec4 tb = textureGrad(t_joints, uvb, vec2(dFdx(pmxz.y) / joints_escala, dsx.y), vec2(dFdy(pmxz.y) / joints_escala, dsy.y));
+	float wa = smoothstep(0.35, 0.65, abs(dir.y));                       // tangente = (-dir.y, dir.x): si es sobre todo horizontal, u = x
+	vec4 tx = mix(tb, ta, wa);
+	vec3 media = mix(textureLod(t_joints, uvb, 3.0).rgb, textureLod(t_joints, uva, 3.0).rgb, wa);
+	float ct = (fila == 1.0 || fila == 2.0 || fila == 4.0) ? joints_contraste : mix(1.0, joints_contraste, 0.35);   // las losas (filas 1, 2, 4) pierden todo el contraste pedido; la arena/tierra y la hierba pintada solo un poco: la media local de esas filas mezcla verde con arena y ensucia
+	rgb = mix(media, tx.rgb, ct);
+	return tx.a * step(1.0, ypx) * step(ypx, 127.0);
+}// joints: la tira de migas de una pareja. `sd` = distancia con signo de `pareja` (+ dentro del que lame): las migas caen en el lado del otro suelo
 // (sd < 0), densas en la frontera y cada vez más raras hasta `ancho` u; el ruido de `amp` u desplaza la frontera antes de cortar, y el grano son dos
 // octavas del campo de ruido. `rim` (0-1) = el borde de cada miga, para oscurecerlo un poco.
 float migas(float sd, vec4 p, vec2 c, out float rim) {
@@ -270,6 +302,34 @@ float migas(float sd, vec4 p, vec2 c, out float rim) {
 	float m = dens * p.z - g;
 	rim = 1.0 - smoothstep(0.0, 0.12, m);
 	return smoothstep(0.0, 0.035, m);
+}
+// joints lámina: distancia con signo (u; + = en el que lame) y dirección de la frontera de una pareja leídas del mapa SIN el ruido de borde: xy = hacia el que lame,
+// z = fiabilidad (0 en esquinas y huecos sueltos), w = distancia.
+vec4 sd_limpia(vec4 k, vec2 c) {
+	float eb = 0.5 / lado;
+	vec2 u0 = c / lado;
+	float d = dot(texture(mapa, u0), k);
+	vec2 g = vec2(dot(texture(mapa, u0 + vec2(eb, 0.0)), k) - dot(texture(mapa, u0 - vec2(eb, 0.0)), k),
+		dot(texture(mapa, u0 + vec2(0.0, eb)), k) - dot(texture(mapa, u0 - vec2(0.0, eb)), k));
+	float gl = length(g);
+	return vec4(g / max(gl, 0.0001), smoothstep(0.2, 0.5, gl), d / max(gl, 0.3) * celda);
+}
+// joints lámina: cobertura de la tira de migas de una pareja (`fila` del atlas) y su color. Mezcla la procedural (`migas`) con el atlas según `joints_lamina`
+// (`sd_limpia`: la distancia y la dirección de la frontera SIN el ruido de borde de `uvm` ni el desflecado fino de `pareja`, que varían tan deprisa que estiran el atlas en rayas) y la fiabilidad de la dirección (`nrm.z`: en esquinas y huecos sueltos cae a la procedural sola).
+float joint_migas(float fila, vec4 p, float sdp, vec4 k, vec3 nrm, vec2 c, vec2 pmxz, vec3 base, vec3 tinte, out vec3 colo) {
+	float rim;
+	float mp = migas(sdp, p, c, rim);
+	colo = base * tinte * (1.0 - 0.14 * rim);
+	float L = joints_lamina * nrm.z;
+	if (L > 0.0) {
+		vec3 rgb;
+		vec4 sl = sd_limpia(k, c);
+		float a = lamina_tira(fila, sl.xy, -(mix(sl.w, sdp, joints_sigue) + (texture(campo, c / lado).a - 0.5) * 0.9 * (1.0 - joints_sigue)), pmxz, rgb);
+		L = joints_lamina * sl.z;
+		colo = mix(colo, rgb * tinte, L);
+		mp = mix(mp, a, L);
+	}
+	return mp;
 }
 void fragment() {
 	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -297,21 +357,22 @@ void fragment() {
 		vec2 fino = texture(campo, c / lado * 3.7).rg;                           // ruido fino del filo (campo se repite)
 		float pw;
 		float sdp;
-		float rimj;
-		col = mix(col, pareja(cg, cb, vec4(0.0, 1.0, -1.0, 0.0), par_lame.x, par_ruido.x, uvm, fino, pw, sdp), pw * par_fuerza);
+		vec3 nrmj;
+		vec3 cmj;
+		col = mix(col, pareja(cg, cb, vec4(0.0, 1.0, -1.0, 0.0), par_lame.x, par_ruido.x, uvm, fino, pw, sdp, nrmj), pw * par_fuerza);
 		if (joints_fuerza > 0.0 && pw > 0.0) {      // joints camino→tierra: sobre la mezcla de la pareja, las migas del camino
-			float mk = migas(sdp, joint_ct, c, rimj) * pw * apaga * joints_fuerza;
-			col = mix(col, cg * joint_tinte_ct * (1.0 - 0.14 * rimj), mk);
+			float mk = joint_migas(0.0, joint_ct, sdp, vec4(0.0, 1.0, -1.0, 0.0), nrmj, c, pm.xz, cg, joint_tinte_ct, cmj) * pw * apaga * joints_fuerza;
+			col = mix(col, cmj, mk);
 		}
-		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw, sdp), pw * par_fuerza);
+		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw, sdp, nrmj), pw * par_fuerza);
 		if (joints_fuerza > 0.0 && pw > 0.0) {      // camino→piedra
-			float mk = migas(sdp, joint_cp, c, rimj) * pw * apaga * joints_fuerza;
-			col = mix(col, cg * joint_tinte_cp * (1.0 - 0.14 * rimj), mk);
+			float mk = joint_migas(1.0, joint_cp, sdp, vec4(0.0, 1.0, 0.0, -1.0), nrmj, c, pm.xz, cg, joint_tinte_cp, cmj) * pw * apaga * joints_fuerza;
+			col = mix(col, cmj, mk);
 		}
-		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw, sdp), pw * par_fuerza);
+		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw, sdp, nrmj), pw * par_fuerza);
 		if (joints_fuerza > 0.0 && pw > 0.0) {      // tierra→piedra
-			float mk = migas(sdp, joint_tp, c, rimj) * pw * apaga * joints_fuerza;
-			col = mix(col, cb * joint_tinte_tp * (1.0 - 0.14 * rimj), mk);
+			float mk = joint_migas(2.0, joint_tp, sdp, vec4(0.0, 0.0, 1.0, -1.0), nrmj, c, pm.xz, cb, joint_tinte_tp, cmj) * pw * apaga * joints_fuerza;
+			col = mix(col, cmj, mk);
 		}
 	}
 	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
@@ -338,16 +399,22 @@ void fragment() {
 				if (joints_fuerza > 0.0) {
 					float cj = (1.0 - smoothstep(0.1, max(dot(w.gba, joint_matas_ancho), 0.11), sb)) * step(0.0, sb);
 					float fj = (w.g * joint_matas.x + w.a * joint_matas.z) * apaga;
-					col = mix(col, muestra(t_hierba, t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza);
+					col = mix(col, muestra(t_hierba, t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza * (1.0 - joints_lamina));
 				}
 			}
-			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
+			if (joints_lamina > 0.0 && joints_fuerza > 0.0) {      // joints lámina: hierba→camino (fila 3) y hierba→piedra (fila 4) del atlas, debajo de la franja (las hojas de hierba_borde van encima): la hierba densa en el lado de arriba, las matas sueltas sobre el vecino
+				vec4 ot = texture(mapa, uvm + nb * (0.75 / lado));          // qué hay al otro lado de la frontera: camino (G) o piedra (A); tierra no tiene fila
+				vec3 rgbl;
+				float al = lamina_tira(ot.a > ot.g ? 4.0 : 3.0, nb, sb + (texture(campo, c / lado).a - 0.5) * 0.5, pm.xz, rgbl);
+				col = mix(col, rgbl * borde_tinte, al * clamp(ot.g + ot.a, 0.0, 1.0) * apaga * fb * joints_fuerza * joints_lamina);
+			}			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
 			float vb = (sb + 0.65 * borde_ancho) / borde_ancho;
 			if (vb > 0.0 && vb < 1.0) {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
 				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza);
 			}
+
 		}
 	}
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
@@ -655,6 +722,13 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## joints (PLAN_EOW_VISUAL §1.3, 22/10): TIRAS DE TRANSICIÓN entre suelos distintos, con el filo cortado por ruido (ver `JOINTS_PARES` y el bloque «joints» del shader
 ## del suelo). Desmarcar = el suelo de antes (sin migas ni matas nuevas). Se pone antes de añadir la maqueta al árbol.
 @export var joints_suelo: bool = true
+## joints lámina (22/10): las cinco tiras (camino→tierra, camino→piedra, tierra→piedra, hierba→camino, hierba→piedra) salen del ATLAS pintado
+## `joints_atlas.png`. Desmarcar = la tira procedural de antes. Si falta el archivo del atlas también cae a la procedural. Antes de añadir la maqueta al árbol.
+@export var joints_lamina: bool = true
+const JOINTS_ATLAS: String = "res://arte/suelo_meshy/joints_atlas.png"
+const JOINTS_CONTRASTE: float = 0.55    ## 1 = atlas como está pintado; menos = más cerca de la media local (losas y sombreado más suaves)
+const JOINTS_ESCALA: float = 3.5        ## u de mundo que mide el atlas a lo ancho (1024 px); la fila (128 px) mide 1/8 de eso (0,44 u) y una losa del atlas ~0,5 u (la del suelo, ~1 u)
+const JOINTS_LINEA: float = 0.44        ## fracción de la fila donde cae la frontera de los dos suelos
 const BORDE_LABIO_ANCHO: float = 0.2         ## u: lo que se adentra el labio en la cara de arriba y baja por la pared (0,15–0,25)
 const BORDE_LABIO_SOBRESALE: float = 0.05    ## u: lo que asoma sobre la arista viva (la tira va por fuera del bloque y la tapa)
 var _camara_dof: CameraAttributesPractical = null
@@ -1135,6 +1209,16 @@ func joints_aristas() -> Array:
 	return res
 
 
+## joints lámina · el atlas de tiras (5 filas de 128 px) o null si no está el archivo (entonces el suelo usa la tira procedural). Ruta sustituible para las pruebas.
+var joints_atlas_ruta: String = JOINTS_ATLAS
+
+
+func joints_atlas_textura() -> Texture2D:
+	if not ResourceLoader.exists(joints_atlas_ruta):
+		return null
+	return load(joints_atlas_ruta) as Texture2D
+
+
 ## joints · el mapa de «no es suelo llano» (R = 1 en agua, cauce seco y huecos) que apaga las tiras junto a ellos, y los uniforms de la tabla.
 func _aplicar_joints(mat: ShaderMaterial) -> void:
 	var fuera := Image.create_empty(_lado, _lado, false, Image.FORMAT_R8)
@@ -1154,6 +1238,13 @@ func _aplicar_joints(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("joint_matas", Vector3(float(mc["fuerza"]), 0.0, float(mp["fuerza"])))
 	mat.set_shader_parameter("joint_matas_ancho", Vector3(float(mc["ancho"]), 0.0, float(mp["ancho"])))
 	mat.set_shader_parameter("joints_fuerza", 1.0 if joints_suelo else 0.0)
+	var atlas: Texture2D = joints_atlas_textura()
+	if atlas != null:
+		mat.set_shader_parameter("t_joints", atlas)
+	mat.set_shader_parameter("joints_lamina", 1.0 if (joints_lamina and joints_suelo and atlas != null) else 0.0)
+	mat.set_shader_parameter("joints_contraste", JOINTS_CONTRASTE)
+	mat.set_shader_parameter("joints_escala", JOINTS_ESCALA)
+	mat.set_shader_parameter("joints_linea", JOINTS_LINEA)
 
 
 func _construir_suelo() -> void:
