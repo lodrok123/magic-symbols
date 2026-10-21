@@ -107,9 +107,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 ## Lote del 21/10 noche (diario 246)
 - [x] ~~Lotes de tierra y hielo y atlas de viento: instalar y enganchar en los VFX~~ — hecho y aprobado el 21/10 (diario 247).
 - [x] ~~Capturas de V3–V7 y decisión de V8~~ — revisado y aprobado por Pablo el 21/10 (diario 247).
-- [ ] Esquirla de hielo con una punta clara (pedir a Meshy) o volver al cometa solo en el proyectil.
-- [ ] Llamar a `VfxHielo.placa_rota` cuando el agua helada se rompe (hoy solo `AguaSim3D.EVENTO_HIELO_ROTO` con una onda).
-- [ ] Hojas del viento más grandes (0,09–0,26 u se leen poco).
+- [x] ~~Esquirla, placa rota y hojas de viento~~ — hecho el 21/10 (`5b1d368`): cometa en el proyectil de hielo (`VfxHielo.proyectil_esquirla` para volver), placa rota al perder el hielo una casilla, hojas 0,25–0,5 u. Falta verlo jugando.
 - [ ] Pablo: ¿roca a 2,5 k (`aprobacion3d/v8_piezas/`)? ¿`pino_2` con otro color para pasar también el pino?
 - [ ] Commitear (su sesión) los cambios ajenos de `Nivel_Bosque_01.tscn` y de `prueba_test2.gd` (colisión por contorno, F7).
 - [ ] Migrar los usos de `_img_estado` (hierba, agua, Lanzador, reacciones, lab) a `Mundo3D.textura_estados()` para poder retirarlo (cierra B2).
