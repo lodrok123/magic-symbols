@@ -1,0 +1,27 @@
+﻿MEDIDAS V1+V2 (21/10/2026, Forward+, RTX 3070, ventana 1152x648, vsync apagado). Generadas con herramientas/captura_look_v1v2.gd
+Color medio de los pixeles "hierba" (matiz 70-150) y "tierra" (15-40) de cada captura. S = saturacion, V = valor.
+
+ANTES (todo como antes: lineal, sin SSAO/FXAA/vineta, zona clasico, sin tilt-shift ni sonda)
+ sala1 hierba #9bce51 S.61 V.81 | tierra #9a6c40 S.58 V.60 | 2.07 ms
+ sala2 hierba #96c950 S.60 V.79 | tierra #bf8f5a S.53 V.75 | 1.81 ms
+ sala5 hierba #96c954 S.58 V.79 | tierra #ac7040 S.63 V.67 | 1.87 ms
+ bosque hierba #9dc856 S.57 V.79 | tierra #b27444 S.62 V.70 | 3.03 ms
+
+ELECCION DE TONEMAP (solo con la luz nueva, sala 1; hierba / tierra)
+ linear        hierba S.61 V.78 | tierra S.57 V.56
+ filmic  e1.0  hierba S.54 V.88 | tierra S.57 V.67   (aclara)
+ filmic  e0.8  hierba S.57 V.82 | tierra S.59 V.62   <- ELEGIDO: lo mas parecido al antes
+ filmic  e0.72 hierba S.58 V.80 | tierra S.60 V.60
+ agx     e1.0  hierba S.45 V.69 | tierra S.56 V.55   (desatura)
+ agx     e1.3  hierba S.40 V.74 | tierra S.54 V.60   (lavado, la tierra clara de la sala 2 pasa a S.22)
+ agx     e1.5  hierba S.37 V.77
+ aces    e1.0  hierba S.46 V.89 | tierra S.62 V.67   (muy claro)
+
+DESPUES (V1+V2 de serie: Filmic 0.8, SSAO, FXAA, vineta, tilt-shift, sonda, sol -70, ambiente 2 colores, sombra ortogonal)
+ sala1 hierba #a6d25a S.57 V.82 | tierra #9e7342 S.59 V.62 | 2.43 ms
+ sala2 hierba #9eca58 S.57 V.79 | tierra #c19c69 S.46 V.76 | 2.11 ms
+ sala5 hierba #9fcb5b S.55 V.80 | tierra #a77139 S.66 V.66 | 2.25 ms
+ bosque hierba #a4ca61 S.52 V.79 | tierra #b77d44 S.63 V.72 | 3.56 ms
+
+Coste (ms por fotograma, GPU incluida): lab +0.3 ms (+15 %), bosque +0.5 ms (+17 %). Siguen en 280-480 fps.
+Nota: el fondo (color liso 0.81,0.91,0.94) tambien pasa por el tonemap y queda mas grisaceo; no se ha compensado.

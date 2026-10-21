@@ -526,6 +526,16 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## 16/10 (Fase 14.2, b): falda biselada al pie de cada escalón y borde de agua + anillo de cantos rodados en el labio (BordePiedras3D).
 @export var bordes_blandos: bool = true
 var _camara_dof: CameraAttributesPractical = null
+## 21/10 (F1–F3 de PLAN_EOW, entrada 233): luz por zona, banda tilt-shift y sonda de reflejos. Los tres se prueban con teclas (AvPág / RePág / Inicio).
+## `zona_luz` es una fila de `LuzZona3D.ZONAS` (sol y ambiente de dos colores). «bosque» es EXACTAMENTE la luz de antes: no cambia el aspecto de nada.
+@export var zona_luz: String = "bosque"
+## Banda de tilt-shift (nítido en el centro, borroso arriba y abajo). V1 (21/10): ENCENDIDA de serie (`Posproceso3D.TILT_SHIFT_DEFECTO`); RePág la apaga para comparar.
+@export var tilt_shift: bool = Posproceso3D.TILT_SHIFT_DEFECTO
+## Sonda de reflejos de la sala (el agua y el hielo reflejan lo que hay alrededor). V1 (21/10): ENCENDIDA de serie (`Posproceso3D.SONDA_DEFECTO`); Inicio la quita / la vuelve a hornear.
+@export var sonda_reflejos: bool = Posproceso3D.SONDA_DEFECTO
+var _env: Environment = null
+var _tilt: TiltShift3D = null
+var _sonda: ReflectionProbe = null
 var _bordes: BordePiedras3D = null              ## orilla del agua
 var _rastrojo: Rastrojo3D = null                ## lo que queda de la hierba segada o quemada (14.2 · P3)
 var _bordes_terraza: BordePiedras3D = null      ## escalones de altura (Terreno3D.alturas, las pone el nivel después de montarse la maqueta)
@@ -741,6 +751,7 @@ func _ready() -> void:
 	entorno.environment = env
 	Paleta3D.aplicar_ajuste(env)        # 14.2 (c): ajuste de color ÚNICO (brillo/contraste/saturación): ver Paleta3D y ARTE.md §10
 	VfxKit3D.activar_glow(env)          # bloom: solo brilla lo que pasa de 1,4 en HDR (el corazón del fuego nuevo); agua y cristales no llegan
+	Posproceso3D.aplicar_entorno(env, get_viewport())   # V1 (21/10): SSAO, tonemap y FXAA (todo apagable: ver posproceso_3d.gd)
 	add_child(entorno)
 
 	_sol = DirectionalLight3D.new()
@@ -750,6 +761,8 @@ func _ready() -> void:
 	_sol.shadow_enabled = true
 	_sol.directional_shadow_max_distance = 30.0
 	add_child(_sol)
+	_env = env
+	LuzZona3D.aplicar(env, _sol, zona_luz)    # F1: sol y ambiente de la zona (con «bosque» queda igual que lo de arriba)
 
 	_props = Node3D.new()
 	_props.name = "Decorado"
@@ -800,6 +813,8 @@ func _ready() -> void:
 		_foco = _centro(_jugador)
 	_colocar_camara()
 	_montar_diorama()
+	_montar_tilt_shift()
+	_montar_sonda()
 
 	var capa := CanvasLayer.new()
 	add_child(capa)
@@ -1246,6 +1261,25 @@ func _montar_diorama() -> void:
 	_camara_dof.dof_blur_near_enabled = false      # solo el fondo: lo de delante (el borde de abajo de la pantalla) se queda nítido
 	_camara.attributes = _camara_dof
 	_actualizar_diorama()
+
+
+## F2: la banda de tilt-shift (TiltShift3D, capa 0: por debajo del HUD). Apagada salvo que `tilt_shift` esté marcado.
+func _montar_tilt_shift() -> void:
+	_tilt = TiltShift3D.new()
+	_tilt.encendido = tilt_shift
+	add_child(_tilt)
+	Posproceso3D.montar_vineta(self)    # V1: viñeta suave (capa 0, después del tilt-shift para quedar encima; el HUD sigue por encima de todo)
+
+
+## F3: una sonda de reflejos que cubre el mapa entero (la sala), horneada una vez. Si ya hay una, se quita y se crea otra (así se vuelve a hornear).
+func _montar_sonda() -> void:
+	if _sonda != null:
+		_sonda.queue_free()
+		_sonda = null
+	if not sonda_reflejos or _lado <= 0:
+		return
+	var centro: Vector3 = _centro_celda(Vector2i(_lado / 2, _lado / 2), 3.0)
+	_sonda = LuzZona3D.sonda_reflejos(self, centro, Vector3(_lado * S, 10.0, _lado * S))
 
 
 func _actualizar_diorama() -> void:
@@ -3976,6 +4010,22 @@ func _unhandled_input(ev: InputEvent) -> void:
 			diorama = not diorama
 			print("Diorama (desenfoque del fondo): %s" % ("sí" if diorama else "no"))
 		KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6:
+		KEY_PAGEUP:
+			# F1: siguiente zona de luz (bosque → cenital → atardecer → ruinas → hielo). Solo cambia sol y ambiente.
+			zona_luz = LuzZona3D.siguiente(zona_luz)
+			LuzZona3D.aplicar(_env, _sol, zona_luz)
+			print("Zona de luz: %s" % zona_luz)
+		KEY_PAGEDOWN:
+			# F2: enciende/apaga la banda de tilt-shift.
+			tilt_shift = not tilt_shift
+			if _tilt != null:
+				_tilt.encendido = tilt_shift
+			print("Tilt-shift: %s" % ("sí" if tilt_shift else "no"))
+		KEY_HOME:
+			# F3: crea / quita la sonda de reflejos (al crearla se hornea de nuevo con lo que haya ahora).
+			sonda_reflejos = not sonda_reflejos
+			_montar_sonda()
+			print("Sonda de reflejos: %s" % ("sí" if sonda_reflejos else "no"))
 			if _jugador != null and _velo == null:
 				_lanzar(String(Vfx3D.ELEMENTOS[k.keycode - KEY_F1]))
 		KEY_T:
