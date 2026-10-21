@@ -22,6 +22,16 @@ signal impacto(punto: Vector3, elemento: String, radio: float)
 ## A4: la lógica avisa de QUÉ ha pasado con un nombre del catálogo cerrado `REACCIONES`; qué se ve y qué suena lo decide la tabla del Pipeline
 ## (`ReaccionesVfx3D`, PL2), no el Juego. `nodo` = quien reacciona (el Pipeline saca de él el tipo: goblin, flecha, seto...). `punto` en coordenadas de mundo.
 signal reaccion(nombre: String, punto: Vector3, nodo: Node)
+## Respuesta positiva al jugador (PLAN_EOW_VISUAL §4): la lógica avisa de QUÉ ha logrado con un nombre del catálogo cerrado `LOGROS`; sonido,
+## destello, texto y hitstop los decide la tabla de la presentación (`Logros3D`). `punto` = dónde ocurre; `nodo` = la pieza que lo emite.
+signal logro(nombre: String, punto: Vector3, nodo: Node)
+
+## CATÁLOGO CERRADO de logros (contrato con la presentación: `Logros3D.TABLA` tiene una fila por nombre). Se avisa UNA vez por suceso real,
+## nunca al recargar algo ya resuelto.
+##   paso_puzle · parte resuelta (contador que sube sin completar: 2 de 3 braseros)   puzle_resuelto · regla o contador que abre algo
+##   sala_limpia · el vigía vio caer al último enemigo     cofre_aparece / cofre_abierto · el cofre del puzle
+##   puerta_abierta · un cerrojo se abre      nivel_completado · lo emite el nivel/pedestal final (aún sin emisor propio)
+const LOGROS: PackedStringArray = ["paso_puzle", "puzle_resuelto", "sala_limpia", "cofre_aparece", "cofre_abierto", "puerta_abierta", "nivel_completado"]
 
 ## CATÁLOGO CERRADO de reacciones (contrato con el Pipeline: `ReaccionesVfx3D.CATALOGO` tiene estos mismos nombres, en este orden).
 ## Se avisa UNA vez por cambio real de estado, nunca por fotograma. «bloqueado» lo añadió el Pipeline para el escudo; lo emite `Escudo3D` (A5) cuando para un disparo de frente.
@@ -125,3 +135,12 @@ static func avisar_reaccion(nombre: String, punto: Vector3, nodo: Node = null) -
 		return
 	if actual != null and is_instance_valid(actual):
 		actual.reaccion.emit(nombre, punto, nodo)
+
+
+## Avisa de un logro (respuesta positiva). Estática y sin efecto si no hay Mundo3D; un nombre fuera del catálogo avisa con push_warning y no se emite.
+static func avisar_logro(nombre: String, punto: Vector3, nodo: Node = null) -> void:
+	if not LOGROS.has(nombre):
+		push_warning("Mundo3D.avisar_logro: «%s» no está en el catálogo de logros" % nombre)
+		return
+	if actual != null and is_instance_valid(actual):
+		actual.logro.emit(nombre, punto, nodo)

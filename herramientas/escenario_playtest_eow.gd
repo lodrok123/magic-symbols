@@ -49,6 +49,11 @@ func _arde(n: Variant) -> bool:
 	return n != null and is_instance_valid(n) and bool((n as Object).get("is_lit"))
 
 
+## Los nombres de los últimos logros que han llegado al lab (respuesta positiva, `Mundo3D.logro`), el más reciente al final.
+func _ln() -> Array:
+	return lab.logros().map(func(l): return String((l as Dictionary)["nombre"]))
+
+
 func _hud_tiene_de(nombre: String, tipo: String) -> bool:
 	for r in lab.reacciones():
 		if String((r as Dictionary)["nombre"]) == nombre and String((r as Dictionary)["tipo"]) == tipo:
@@ -702,10 +707,13 @@ func _sala_5() -> void:
 	if _arde(br):
 		br.apagar_llama()
 	_ok("5.7b el brasero está apagado", not _arde(br))
+	var logros_a: int = lab.total_logros()
 	for c in mojadas:
 		_ok("5.7c %s sigue mojada tras apagar el brasero (el agua del brasero no la seca)" % str(c), _estado(c as Vector2i, "mojada"))
 	await _pisar(Vector2i(1, 11))
 	_ok("5.8 tres mojadas Y brasero apagado: la puerta A ABRE", _abierta("puerta_a") and int(z.puzle("s5_abre_a")["veces"]) == 1 and lab.texto_hud().contains("Puerta A ABRE"), lab.texto_hud())
+	_ok("5.8b respuesta positiva: abrir la puerta A es UN «puzle_resuelto» que llega al lab (y la línea LOGROS del HUD lo dice); el lab tiene la tabla enganchada",
+		lab.enganche_logros_ok() and lab.total_logros() == logros_a + 1 and _ln().back() == "puzle_resuelto" and lab.texto_hud().contains("último «puzle_resuelto»"), "%d → %d · %s" % [logros_a, lab.total_logros(), str(_ln())])
 	# Dos mojadas no bastan (cumple_expr directo, con la misma regla del mapa).
 	var expr_a: Array = z.puzle("s5_abre_a")["si_expr"]
 	Terreno3D.estados.poner(mojadas[1] as Vector2i, "mojada", false)
@@ -747,6 +755,7 @@ func _sala_5() -> void:
 	_ok("5.17 el hielo de verdad sobre (2,14) deja la casilla «helada» (Terreno3D.estados, sin ayuda del lab)", salio_h and _estado(h, "helada"))
 	await _pisar(Vector2i(3, 11))
 	_ok("5.19 placa B con el hielo en su sitio y el centro seco: la puerta B ABRE", _abierta("puerta_b") and int(z.puzle("s5_abre_b")["veces"]) == 1)
+	_ok("5.19b y la puerta B también da su «puzle_resuelto» (las placas que NO abren no dieron ninguno: 2 en total, A y B)", _ln().count("puzle_resuelto") == 2 and lab.total_logros() == logros_a + 2, str(_ln()))
 	# --- PUERTAS C y D: la MISMA regla con plantilla ---
 	var rc: Dictionary = z.puzle("s5_abre_c")
 	var rd: Dictionary = z.puzle("s5_abre_d")
@@ -843,6 +852,7 @@ func _sala_6() -> void:
 	_ok("6.13 la regla `s6_abre` abre el cerrojo: las dos puertas libres", not cj.cerrado and not _bloq(Vector2i(12, 8)) and not _bloq(Vector2i(8, 12)) and int(lab.puzle_nodo().puzle("s6_abre")["veces"]) == 1)
 	_ok("6.14 el cofre APARECE (una vez) cerrado, visible y bloqueando su casilla", cf.es_cerrado and not cf.es_oculto and apariciones[0] == 1 and cf.modelo.visible and _bloq(Vector2i(14, 15)))
 	_ok("6.15 el HUD muestra «hundido», la sala LIMPIA y el cofre cerrado", _hud_tiene("hundido") and lab.texto_hud().contains("vigía: LIMPIA") and lab.texto_hud().contains("cofre: cerrado"), lab.texto_hud())
+	_ok("6.15b respuesta positiva: llegaron «sala_limpia», «puerta_abierta» y «cofre_aparece» (UNA vez, en ese orden) y el HUD enseña el último", _ln() == ["sala_limpia", "puerta_abierta", "cofre_aparece"] and lab.texto_hud().contains("último «cofre_aparece»"), str(_ln()))
 	# --- Abrir el cofre con la tecla E, como el jugador ---
 	await avanzar_s(1.2)                               # que acabe la animación de aparecer
 	colocar_jugador(Vector2i(13, 15))
@@ -850,9 +860,10 @@ func _sala_6() -> void:
 	_pulsar(KEY_E)
 	await avanzar_s(2.5)
 	_ok("6.16 E a una casilla del cofre lo abre y pone su flag playtest.s6.cofre", cf.es_abierto and Flags.i().tiene(LabPlaytestEoW3D.SALA6_FLAG_COFRE) and lab.texto_hud().contains("cofre: ABIERTO"), lab.texto_hud())
+	_ok("6.16b al abrirse el cofre llega «cofre_abierto» (UNO más: 4 logros en total)", _ln() == ["sala_limpia", "puerta_abierta", "cofre_aparece", "cofre_abierto"] and lab.total_logros() == 4, str(_ln()))
 	colocar_jugador(Vector2i(10, 12))
 	await avanzar_s(0.8)
-	_ok("6.17 la sala ya vencida no se vuelve a cerrar al reentrar", not cj.cerrado)
+	_ok("6.17 la sala ya vencida no se vuelve a cerrar al reentrar", not cj.cerrado and lab.total_logros() == 4)
 	# --- Guardar (M), reiniciar el lab (partida nueva) y cargar (F) ---
 	_pulsar(LabPlaytestEoW3D.TECLA_GUARDAR)
 	await avanzar(3)
@@ -867,6 +878,7 @@ func _sala_6() -> void:
 	await avanzar_s(1.0)
 	_ok("6.20 F carga el guardado: el cofre vuelve ABIERTO (visible, sin efecto de aparecer) y las flags están en el HUD", cf.es_abierto and cf.modelo.visible and Flags.i().tiene(LabPlaytestEoW3D.SALA6_FLAG_COFRE) and lab.texto_hud().contains(LabPlaytestEoW3D.SALA6_FLAG_LIMPIA), lab.texto_hud())
 	_ok("6.21 y el cerrojo queda vencido: ya no se cerrará", cj.vencido and not cj.cerrado)
+	_ok("6.21b cargar el guardado NO da ninguna fanfarria: la sala y el cofre ya estaban resueltos (0 logros en el lab nuevo)", lab.total_logros() == 0, str(_ln()))
 	colocar_jugador(Vector2i(9, 12))
 	await avanzar_s(1.0)
 	var vive: bool = (q["goblins"] as Array).any(func(g): return is_instance_valid(g) and not (g as Combate3D).muerto)
@@ -985,6 +997,7 @@ func _sala_7_limpia() -> void:
 	_pulsar(KEY_E)
 	await avanzar_s(2.5)
 	_ok("7L.23 E abre el cofre y pone playtest.s7.cofre", cf.es_abierto and Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_COFRE) and lab.texto_hud().contains("cofre: ABIERTO"), lab.texto_hud())
+	_ok("7L.24 respuesta positiva de toda la sala: «sala_limpia», «puerta_abierta», «cofre_aparece» y «cofre_abierto», cada uno una vez y en ese orden", _ln() == ["sala_limpia", "puerta_abierta", "cofre_aparece", "cofre_abierto"], str(_ln()))
 
 
 ## VÍA «QUEMANDO LA HIERBA»: el mismo recorrido, pero se prende la hierba (17,14) y el cofre ya no aparece.
@@ -1032,6 +1045,7 @@ func _sala_7_quemando() -> void:
 	_ok("7Q.9 VÍA QUEMANDO: el cofre NO aparece (oculto, invisible, sin bloquear su casilla), ni siquiera pasados unos segundos", cf.es_oculto and not cf.modelo.visible and not _bloq(Vector2i(19, 15)) and apariciones[0] == 0 and not cf.abrir())
 	await avanzar_s(3.0)
 	_ok("7Q.10 sigue sin aparecer y el HUD avisa de que la hierba está quemada", cf.es_oculto and apariciones[0] == 0 and lab.texto_hud().contains("QUEMADA: el cofre ya no aparecerá") and not Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_COFRE), lab.texto_hud())
+	_ok("7Q.9b respuesta positiva de la vía quemando: «sala_limpia» y «puerta_abierta», y NINGÚN «cofre_aparece» (el cofre no existe)", _ln() == ["sala_limpia", "puerta_abierta"], str(_ln()))
 	# Control: la misma expresión SIN la hierba quemada sí se cumpliría (es la condición, no un fallo del vigía).
 	Terreno3D.estados.poner(h, "quemada", false)
 	_ok("7Q.11 (control) si la hierba no estuviera quemada la condición se cumpliría", z.cumple_expr(cf.expr))

@@ -27,7 +27,8 @@ extends Node
 ##   POR QUÉ SHIFT: el libro de hechizos (presentacion/ui/spellbook.gd) usa 1, 2 y 3 para LANZAR la página 1–3 y lee la entrada antes que nadie (`_input`) sin mirar
 ##   Shift. Este nodo es el último hijo de la maqueta, así que ve la tecla ANTES que el libro, y CONSUME Shift + 1–7 (`set_input_as_handled`): saltar de sala no lanza
 ##   página. Las cifras sueltas siguen siendo del libro. El teclado numérico (KP 1–7) tampoco lo usa el libro y vale sin Shift.
-## HUD: sala actual, estado del enganche de efectos, las últimas 8 reacciones (`Mundo3D.reaccion`), las flags puestas y los estados de la casilla del jugador.
+## HUD: sala actual, estado del enganche de efectos, las últimas 8 reacciones (`Mundo3D.reaccion`), una línea LOGROS con el último logro de la respuesta positiva
+## (`Mundo3D.logro` → `Logros3D`: jingle, destello, rótulo arriba y, en «sala_limpia», hitstop y zoom), las flags puestas y los estados de la casilla del jugador.
 
 const NIVEL_MAPA: String = "PlaytestEoW"
 
@@ -42,6 +43,7 @@ const TECLA_REINICIAR: Key = KEY_R
 const T_HUD: float = 0.2                       ## s entre dos refrescos del HUD
 const T_RUTAS: float = 0.5                     ## s entre dos recálculos de las rutas dibujadas (el mismo periodo que usa la IA: Combate3D.PERIODO_CAMINO)
 const MAX_REACCIONES: int = 8                  ## cuántas reacciones recientes enseña el HUD
+const MAX_LOGROS: int = 5                      ## cuántos logros recientes guarda el lab (el HUD enseña el último y cuántos van)
 const T_MENSAJE: float = 4.0                   ## s que se queda en el HUD el resultado de guardar/cargar
 ## Dónde se guardan las flags de ESTE laboratorio. No es el `user://flags.json` del juego a propósito: guardar aquí no debe pisar la partida de Pablo.
 const RUTA_GUARDADO: String = "user://flags_playtest_eow.json"
@@ -174,6 +176,9 @@ var _reloj: float = 0.0                        ## s desde que arrancó el lab (c
 var _enganche_ok: bool = false                 ## lo que devolvió `ReaccionesVfx3D.conectar`
 var _reacciones: Array = []                    ## [{nombre, tipo, t}] las últimas MAX_REACCIONES, la más reciente al final
 var _n_reacciones: int = 0                     ## cuántas han llegado en total (el HUD no las pierde aunque la lista rote)
+var _enganche_logros_ok: bool = false          ## lo que devolvió `Logros3D.conectar`
+var _logros: Array = []                        ## [{nombre, pieza, t}] los últimos MAX_LOGROS, el más reciente al final
+var _n_logros: int = 0
 var _mensaje: String = ""
 var _t_mensaje: float = 0.0
 var _rutas_visibles: bool = false
@@ -228,6 +233,21 @@ func _enganchar_efectos() -> void:
 		_avisos.append("ReaccionesVfx3D.conectar devolvió false (mundo %s, padre de efectos %s): las reacciones no se verán ni sonarán" % [str(_mundo), str(padre_fx)])
 	if _mundo != null and not _mundo.reaccion.is_connected(_al_reaccionar):
 		_mundo.reaccion.connect(_al_reaccionar)
+	# Respuesta positiva al jugador (PLAN_EOW_VISUAL §4): la tabla `Logros3D` (jingle, destello, texto del HUD, hitstop, zoom) escucha `Mundo3D.logro`; el HUD del lab
+	# apunta el último (línea LOGROS). Cuando un nivel la monte, es esta misma llamada.
+	_enganche_logros_ok = _mundo != null and padre_fx != null and Logros3D.conectar(_mundo, padre_fx)
+	if not _enganche_logros_ok:
+		_avisos.append("Logros3D.conectar devolvió false: la respuesta positiva (jingle, destello, texto) no se verá ni sonará")
+	if _mundo != null and not _mundo.logro.is_connected(_al_lograr):
+		_mundo.logro.connect(_al_lograr)
+
+
+## Anota el logro para el HUD (nombre, de qué pieza y cuándo).
+func _al_lograr(nombre: String, _punto: Vector3, nodo: Node) -> void:
+	_logros.append({"nombre": nombre, "pieza": String(nodo.name) if nodo != null and is_instance_valid(nodo) else "-", "t": _reloj})
+	_n_logros += 1
+	while _logros.size() > MAX_LOGROS:
+		_logros.pop_front()
 
 
 ## Anota la reacción para el HUD. El tipo se calcula AHORA (con la misma regla que usa la tabla de efectos): el nodo puede liberarse un segundo después.
@@ -686,6 +706,19 @@ func total_reacciones() -> int:
 	return _n_reacciones
 
 
+## Los últimos logros ([{nombre, pieza, t}], el más reciente al final) y cuántos han llegado en total (respuesta positiva, `Mundo3D.logro`).
+func logros() -> Array:
+	return _logros.duplicate()
+
+
+func total_logros() -> int:
+	return _n_logros
+
+
+func enganche_logros_ok() -> bool:
+	return _enganche_logros_ok
+
+
 func hud() -> Label:
 	return _hud
 
@@ -745,7 +778,10 @@ func guardar_flags() -> bool:
 
 ## Carga las flags de `RUTA_GUARDADO`. Devuelve si había algo que cargar.
 func cargar_flags() -> bool:
+	# Cargar con el nivel ya montado reabre puertas por las flags que llegan: eso no es un logro del jugador, no hay fanfarria.
+	Puzle3D.silencio_logros = true
 	var ok: bool = Flags.i().cargar(RUTA_GUARDADO)
+	Puzle3D.silencio_logros = false
 	_decir("flags cargadas (%d)" % Flags.i().nombres().size() if ok else "no hay guardado en %s" % RUTA_GUARDADO)
 	return ok
 
@@ -894,6 +930,11 @@ func texto_hud() -> String:
 	for i in range(_reacciones.size() - 1, -1, -1):
 		var r: Dictionary = _reacciones[i]
 		t += "  %-14s %-10s hace %4.1f s\n" % [r["nombre"], r["tipo"], _reloj - float(r["t"])]
+	if _logros.is_empty():
+		t += "LOGROS (respuesta positiva, %s): ninguno todavía\n" % ("enganchada" if _enganche_logros_ok else "NO ENGANCHADA")
+	else:
+		var ult: Dictionary = _logros.back()
+		t += "LOGROS (%d, %s): último «%s» de %s hace %.1f s\n" % [_n_logros, "enganchada" if _enganche_logros_ok else "NO ENGANCHADA", ult["nombre"], ult["pieza"], _reloj - float(ult["t"])]
 	var flags: Array = Flags.i().nombres()
 	t += "FLAGS (%d): %s\n" % [flags.size(), ", ".join(PackedStringArray(flags)) if not flags.is_empty() else "ninguna"]
 	if _jug != null:

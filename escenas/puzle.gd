@@ -232,6 +232,17 @@ const T_VIGIA_SIN_ENEMIGOS: float = 3.0
 ## C1: el «id» con el que se nombran las flags en las reglas (cuando=flag.x, si=flag.x, hace=flag.poner(x)).
 const ID_FLAG: String = "flag"
 const ACCIONES_FLAG: Array = ["poner", "quitar"]
+## RESPUESTA POSITIVA (PLAN_EOW_VISUAL §4): las piezas lógicas avisan de un LOGRO con un nombre del catálogo cerrado `Mundo3D.LOGROS`; qué se ve y suena lo decide
+## `Logros3D`. Quién emite qué (cada uno UNA vez por suceso real, nunca al montar ni al recargar algo que ya estaba hecho):
+##   paso_puzle     un contador SUBE sin llegar a su mínimo (2 de 3 braseros)      puzle_resuelto  un contador COMPLETA, o una regla ABRE una compuerta/puerta que estaba cerrada
+##   sala_limpia    el vigía ve caer al último enemigo                              puerta_abierta  un cerrojo pasa de cerrado a abierto
+##   cofre_aparece  el cofre pasa de oculto a cerrado CON efecto                    cofre_abierto   el cofre acaba de abrirse (animación terminada)
+## `nivel_completado` aún no tiene emisor en Puzle3D: lo emitirá el nivel (pedestal final). Una cascada del mismo fotograma (un contador completa y su regla
+## abre la puerta) cuenta como UN suceso: el mismo nombre no se repite en VENTANA_LOGRO fotogramas.
+const VENTANA_LOGRO: int = 2
+## Mientras sea true no se avisa de ningún logro: lo pone quien CARGA una partida con el nivel ya montado (las flags que llegan reabren puertas sin que el jugador haya hecho nada).
+static var silencio_logros: bool = false
+static var _logro_en: Dictionary = {}                    ## nombre -> fotograma del último aviso
 ## C2: condición de casilla `casilla(x,y).<estado>`: los estados de EstadosSuelo3D (B1) y «agua» (Terreno3D.es_agua).
 const TERMINO_CASILLA: String = "casilla"
 const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua"]
@@ -359,6 +370,9 @@ class VigiaPuzle extends Node:
 			return
 		if restantes() == 0:
 			completo = true
+			# El logro va ANTES de poner la flag: la flag abre el cerrojo (`hasta=`) y hace aparecer el cofre, y la respuesta debe llegar en su orden
+			# (sala despejada → puerta → cofre), no al revés.
+			Puzle3D._logro("sala_limpia", (vistos.back() as Node) if is_instance_valid(vistos.back()) else self)   # el punto: el último enemigo caído
 			if flag != "":
 				Flags.i().poner(flag)
 			todos_derrotados.emit()
@@ -423,6 +437,8 @@ class CerrojoPuzle extends Node3D:
 		cerrado = not abiertas
 		for pu in _puertas:
 			(pu as PuertaPuzle).poner(abiertas)
+		if abiertas:
+			Puzle3D._logro("puerta_abierta", _puertas[0] as Node if not _puertas.is_empty() else self)
 		cambio.emit(cerrado)
 
 	func _process(delta: float) -> void:
@@ -534,6 +550,7 @@ class CofrePuzle extends Node3D:
 			modelo.visible = true
 		if ctrl != null:
 			ctrl.call("aparecer")
+		Puzle3D._logro("cofre_aparece", self)
 		aparecido.emit()
 		return true
 
@@ -556,6 +573,7 @@ class CofrePuzle extends Node3D:
 		es_abierto = true                         # antes de poner la flag: su aviso no debe tomarse por una carga de partida
 		if flag_abierto != "":
 			Flags.i().poner(flag_abierto)
+		Puzle3D._logro("cofre_abierto", self)
 		abierto.emit()
 
 	func _process(delta: float) -> void:
@@ -1395,6 +1413,15 @@ func _crear(pz: Pieza) -> void:
 			ct.preparar(lista, int(pz.p.get("minimo", 0)), pz.celda)
 			cont.add_child(ct)
 			pz.nodo = ct
+			# Respuesta positiva: subir sin completar = «vas bien»; completar = puzle resuelto. `previos` guarda la cuenta anterior (la señal solo trae la nueva).
+			var previos: Array = [ct.encendidos]
+			ct.cambio.connect(func(enc: int, _total: int) -> void:
+				if enc > int(previos[0]) and enc < ct.minimo:
+					Puzle3D._logro("paso_puzle", ct)
+				previos[0] = enc)
+			ct.todos.connect(func(si: bool) -> void:
+				if si:
+					Puzle3D._logro("puzle_resuelto", ct))
 		"cuerda":
 			var cu := Cuerda3D.new()
 			cu.name = pz.id
@@ -1426,6 +1453,21 @@ func _crear(pz: Pieza) -> void:
 			cont.add_child(cf)
 			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo, ESCENA_COFRE)
 			pz.nodo = cf
+
+
+## Avisa de un logro (ver arriba). `nodo` = la pieza que lo origina: de ella sale el punto (1 u por encima de su base) para destello y sonido.
+static func _logro(nombre: String, nodo: Node = null) -> void:
+	if silencio_logros:
+		return
+	var f: int = Engine.get_process_frames()
+	if _logro_en.has(nombre) and f - int(_logro_en[nombre]) <= VENTANA_LOGRO:
+		return
+	_logro_en[nombre] = f
+	var punto: Vector3 = Vector3.ZERO
+	if nodo is Node3D:
+		var n3: Node3D = nodo as Node3D
+		punto = (n3.global_position if n3.is_inside_tree() else n3.position) + Vector3(0.0, 1.0, 0.0)
+	Mundo3D.avisar_logro(nombre, punto, nodo)
 
 
 ## Lo que arde (o puede arder) en una casilla y tiene `is_lit`: un brasero, una fogata, un seto, una cuerda… `null` si no hay nada.
@@ -1654,7 +1696,11 @@ func _ejecutar(a: Dictionary) -> void:
 				nd.call("pulsar")
 		"abrir":
 			if nd != null:
+				var estaba_cerrada: bool = (pz.tipo == "compuerta" or pz.tipo == "puerta") and not bool(nd.get("abierta"))
 				nd.call("abrir")
+				# Respuesta positiva: una regla que ABRE una compuerta/puerta que estaba cerrada = puzle resuelto (abrir una ya abierta no cuenta).
+				if estaba_cerrada and bool(nd.get("abierta")):
+					_logro("puzle_resuelto", nd)
 		"cerrar":
 			if nd != null:
 				nd.call("cerrar")
@@ -1663,7 +1709,10 @@ func _ejecutar(a: Dictionary) -> void:
 				nd.call("aparecer")
 		"alternar":
 			if nd != null:
+				var estaba_cerrada_a: bool = (pz.tipo == "compuerta" or pz.tipo == "puerta") and not bool(nd.get("abierta"))
 				nd.call("alternar")
+				if estaba_cerrada_a and bool(nd.get("abierta")):
+					_logro("puzle_resuelto", nd)
 		"encender":
 			if nd != null:
 				if pz.tipo == "brasero":
