@@ -152,8 +152,9 @@ static var sombra_contacto_activa: bool = true     ## la mancha suave bajo los p
 static var pbr_juguete_activo: bool = true         ## rugosidad media-alta en vez de 1,0 (sin ello no hay brillo de plástico)
 
 const ROUGHNESS_JUGUETE: float = 0.72              ## media-alta: un brillo ancho y suave, no un espejo (metalness sigue en 0)
-const RIM_POTENCIA: float = 1.8                    ## cuánto se pega el brillo a la arista (más = más fino). Con cámara cenital 2,2 apenas se veía
-const RIM_INTENSIDAD: float = 1.1
+const RIM_POTENCIA: float = 3.0                    ## cuánto se pega el brillo a la arista (más = más fino). 21/10 (Pablo): con 1,8 / 1,1 rodeaba al personaje como un halo
+const RIM_INTENSIDAD: float = 0.5
+static var rim_solo_jugadora: bool = true           ## 21/10 (Pablo): el rim solo en la jugadora; NPC y enemigos sin borde (el material sigue, a intensidad 0, por la silueta)
 const RIM_JUGADORA: Color = Color(1.0, 0.72, 0.42)   ## cálido: la elfa es lo que el ojo debe encontrar primero
 const RIM_NPC: Color = Color(1.0, 0.86, 0.66)        ## cálido pálido, para que no compita con la jugadora
 const RIM_ENEMIGO: Color = Color(0.55, 0.72, 1.0)    ## frío por defecto; Combate3D lo cambia al color de su debilidad (set_rol_visual)
@@ -325,6 +326,7 @@ func set_rol_visual(rol: String, color_rim: Color = Color(0, 0, 0, 0)) -> void:
 	if c.a <= 0.0:
 		c = RIM_JUGADORA if rol == "jugadora" else (RIM_ENEMIGO if rol == "enemigo" else RIM_NPC)
 	_rim_mat.set_shader_parameter("color", Vector3(c.r, c.g, c.b))
+	_rim_mat.set_shader_parameter("intensidad", _intensidad_rim())
 	var con_silueta: bool = silueta_activa and (rol == "jugadora" or (silueta_enemigos and rol == "enemigo"))
 	_rim_mat.next_pass = _sil_mat if con_silueta else null
 	_actualizar_silueta()
@@ -393,7 +395,14 @@ func set_modo_luz(m: int) -> void:
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if m == 0 else BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	# La luz plana es el modo «sin sombreado» del laboratorio: sin rim (un borde que brilla en un muñeco plano lo estropea). La silueta sigue.
 	if _rim_mat != null:
-		_rim_mat.set_shader_parameter("intensidad", 0.0 if m == 0 else RIM_INTENSIDAD)
+		_rim_mat.set_shader_parameter("intensidad", _intensidad_rim())
+
+
+## Intensidad del rim según el modo de luz y el rol (con `rim_solo_jugadora`, solo la jugadora brilla en el borde).
+func _intensidad_rim() -> float:
+	if modo_luz == 0 or (rim_solo_jugadora and rol_visual != "jugadora"):
+		return 0.0
+	return RIM_INTENSIDAD
 
 
 ## Alto del modelo tal como viene (antes de escalar), medido por su caja. 1,7 si no se pudo medir.

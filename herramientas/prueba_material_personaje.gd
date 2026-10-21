@@ -138,8 +138,14 @@ func _correr() -> void:
 	_ok(mat0.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "modo_luz 0 sigue siendo UNSHADED")
 	_ok(float(modelo._rim_mat.get_shader_parameter("intensidad")) == 0.0, "modo_luz 0 apaga el rim")
 	modelo.set_modo_luz(1)
-	_ok(mat0.shading_mode == BaseMaterial3D.SHADING_MODE_PER_PIXEL and float(modelo._rim_mat.get_shader_parameter("intensidad")) > 0.0,
-		"modo_luz 1 vuelve a luz por píxel con rim")
+	# 21/10 (Pablo): el rim solo lo lleva la jugadora; el goblin vuelve a luz por píxel con el rim a 0 (y con el interruptor apagado, lo recupera).
+	_ok(mat0.shading_mode == BaseMaterial3D.SHADING_MODE_PER_PIXEL and float(modelo._rim_mat.get_shader_parameter("intensidad")) == 0.0,
+		"modo_luz 1 vuelve a luz por píxel; el goblin sin rim (rim_solo_jugadora)")
+	Pj3D.rim_solo_jugadora = false
+	modelo.set_modo_luz(1)
+	_ok(float(modelo._rim_mat.get_shader_parameter("intensidad")) > 0.0, "con rim_solo_jugadora = false el goblin recupera el rim")
+	Pj3D.rim_solo_jugadora = true
+	modelo.set_modo_luz(1)
 
 	# 6 · muerte: la sombra desaparece
 	g._morir()
