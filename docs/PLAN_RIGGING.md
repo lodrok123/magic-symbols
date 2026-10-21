@@ -1,0 +1,72 @@
+# Plan de rigging común · rigs propios sin depender del autorig
+
+21/10/2026 · análisis (Opus) a petición de Pablo tras el playtest: «preparar un plan de rigging común para desarrollar mejores rigs y no depender del autorig».
+Es el desarrollo de las tareas **13.1–13.4** de `docs/PLAN_ARREGLOS.md` (Fase 13, «Animación», sin empezar). Responsable: **Pipeline** (`docs/PROPIETARIOS.md`); el Juego solo pone el contrato (`Pj3D`) y la prueba automática.
+
+---
+
+## 1. El problema, medido en lo que ya ha pasado
+
+| síntoma | dónde se vio | causa |
+|---|---|---|
+| Cada personaje necesita su tabla de arreglos | `Pj3D.CORRECCION_POSTURA`, `POSTURAS`, `FACTOR_ZANCADA`, `_anular_raiz`, `_acortar_paso` (`jugador/pj_3d.gd`) | el autorig de Meshy coloca los huesos donde cree; la pose de reposo y las longitudes cambian de un modelo a otro, así que los mismos clips dan posturas distintas |
+| Clips que arrastran la cadera o se salen de su sitio | `MageSoellCast001` (0,36), `HitReaction` del guerrero (1,25 alturas), ataque/andar/golpe del elemental (diario y comentarios de `Pj3D.SINONIMOS` / `CLIPS_DE`) | movimiento de raíz metido en la pelvis; cada clip viene de una fuente distinta |
+| Mangas y abrigo que se deforman | `woodland_wanderer_suave.glb` (pesos suavizados a mano, diario 29) y pendiente «mangas y túnica de la elfa» | pesos automáticos sin revisar en ropa ancha |
+| Rig de cuadrúpedo rechazado | loberno («no me gusta el rig», diario 53–54) | autorig de cuadrúpedo muy irregular |
+| **Retarget de la hiena al canouro rechazado** (21/10: «las formas se estiran mucho más que antes») | diario 207 | se copiaron giros entre dos esqueletos con **proporciones distintas** (patas de la hiena más largas) sin compensar longitudes ni pies: el resultado estira la malla. **Lección: retargetear solo entre esqueletos de la misma familia y proporciones parecidas, y con los pies resueltos por IK o con pistas de posición escaladas.** |
+
+Conclusión: el problema no es «un rig malo», es que **no hay un esqueleto de referencia por familia**. Cada modelo trae el suyo y cada clip se apaña para ese modelo.
+
+## 2. La idea: un esqueleto maestro por familia
+
+| familia | maestro | quién lo usa hoy | huesos |
+|---|---|---|---|
+| **Bípedo** | Mixamo (nombres `mixamorig:*`), versión **ligera sin dedos** (≈ 28 huesos, la que ya llevan goblins y elemental) | elfa, goblins, NPC, elemental | ~28 (+ dedos opcionales si un clip los pide) |
+| **Cuadrúpedo** | «Wolf» (51 huesos, el del loberno/emberheart) | loberno, canouro, futuros animales | 51 |
+
+Cada maestro se guarda **una vez** en `arte/rigs/<familia>/`:
+- `maestro.blend` + `maestro.glb`: el esqueleto en **pose de reposo fija** (A-pose para el bípedo, de pie para el cuadrúpedo), mirando a +Z, Y arriba, a escala del juego (chibi ≈ 1 u de alto; goblin 0,85; casilla 2,3).
+- `maniqui.glb`: una malla neutra de esa familia **ya pesada y revisada** (hombros, caderas, codos, rodillas, cuello). Sirve de fuente para transferir pesos.
+- `biblioteca.res`: la `AnimationLibrary` con los clips de la familia (`idle, walk, run, attack, hit, death, cast…`), **todos sin movimiento de raíz en la pelvis** (el avance lo pone el juego) y con la cadera dentro de 0,3 alturas.
+
+## 3. El flujo de un personaje nuevo (sin autorig)
+
+1. **Meshy, sin rig.** Pedir la malla en la pose de reposo de la familia (A-pose / de pie), simétrica, con brazos separados del cuerpo y sin ropa fundida con las manos. En el prompt, la imagen de referencia de la pose (como se hace ya con la elfa).
+2. **Blender, encajar el maestro** (script, no a mano): importar la malla, escalarla a la altura de su familia, y mover las articulaciones del maestro a la malla **sin renombrar ni añadir huesos** (puntos de encaje: hombros, codos, muñecas, caderas, rodillas, tobillos, cuello, cabeza; marcados una vez y guardados en un `.json` por modelo para repetirlo).
+3. **Pesos:** `Data Transfer` desde el `maniqui.glb` (proyección por superficie) + `Automatic Weights` solo donde no llegue + `Smooth`, **máximo 4 influencias por vértice, normalizado**. Ropa ancha (mangas, túnica, capa): grupo aparte con pesos suavizados, como se hizo con la elfa.
+4. **Comprobar en 6 poses de prueba** (brazos arriba, sentadilla, zancada, giro de cintura, cabeza a los lados, cast): captura automática para Pablo antes de seguir.
+5. **Exportar** `arte/modelos/<id>.glb` **sin animaciones** (o con las propias si las tiene únicas).
+6. **Godot:** `Pj3D` carga la biblioteca de su familia cuando el modelo no trae el clip (tarea 13.2). Con el mismo esqueleto y la misma pose de reposo, **los clips se comparten sin retarget** y sin tablas de corrección por personaje. `ProporcionChibi` sigue sirviendo para la cabeza grande: actúa después de la animación.
+
+Todo el paso 2–5 va en **un script de Blender** (`herramientas/rig/encajar_maestro.py`) que se lanza con un `.cmd` completo en el PC de Pablo (el sandbox no tiene Blender). Objetivo de 13.1: **una hora, determinista** por personaje.
+
+## 4. De dónde salen los clips
+
+- **Bípedo:** Mixamo (gratis) bajado una vez sobre el maestro, más Cascadeur para lo que no haya (cast a una mano con el libro al pecho, `mano_quemada`, ahogarse de verdad). Los clips procedurales del Pipeline (`Drowning`, diario 231) se generan ya sobre el maestro.
+- **Cuadrúpedo:** los 12 clips de «Wolf» + Cascadeur. **No** traer clips de otro cuadrúpedo con otras proporciones (la hiena): si hace falta uno, se rehace sobre el «Wolf».
+- **Retarget (solo si un clip viene de otro esqueleto de la misma familia):** el importador de Godot 4 con `BoneMap` + `SkeletonProfileHumanoid` (bípedos) o un `SkeletonProfile` propio del «Wolf», con «Rest Fixer» y la posición de la pelvis **escalada por la altura** (no copiada). Así no se estira: es lo que faltó en la hiena.
+
+## 5. Prueba automática (Juego escribe, Pipeline mantiene la lista)
+
+`herramientas/prueba_rigs.gd` (es la 13.3 de PLAN_ARREGLOS), recorre `arte/modelos/*.glb` y por cada uno:
+- esqueleto = el de su familia (mismos nombres, misma jerarquía, pose de reposo dentro de una tolerancia);
+- altura = la de su familia (± 5 %), pies en el suelo en `idle`;
+- pesos: ≤ 4 influencias, ningún vértice sin peso, suma = 1;
+- cada rol de `Pj3D.SINONIMOS` que su familia promete tiene clip (propio o de biblioteca);
+- ningún clip arrastra la cadera más de 0,3 alturas (lo que hoy se corrige a mano con `_anular_raiz`);
+- con el maestro aplicado, `CORRECCION_POSTURA` / `FACTOR_ZANCADA` de ese personaje deberían quedarse vacíos: si hace falta uno, el encaje del paso 2 está mal.
+
+## 6. Migración (orden por lo que más se ve)
+
+1. Goblins (guerrero, arquero, espadachín): son los que más salen y ya comparten esqueleto.
+2. La elfa jugadora (`woodland_wanderer`): quitar sus correcciones de postura y la versión `_suave`.
+3. NPC (librera, alquimista, guardabosques, grandmaster).
+4. Elemental.
+5. Cuadrúpedos sobre «Wolf»: loberno (ya está), canouro (sin la hiena), gato.
+
+## 7. Lo que tiene que decidir Pablo antes de empezar
+
+1. **A-pose o T-pose** para el bípedo maestro (propuesta: **A-pose**, deforma mejor los hombros; Meshy la genera bien con referencia).
+2. **Bípedo ligero (≈ 28 huesos, sin dedos) o completo (≈ 65, con dedos).** Propuesta: ligero; dedos solo si el cast con la pluma lo exige (entonces una variante «con manos» del maestro, misma raíz).
+3. **Cascadeur** para los clips que falten (gratis para uso indie) o seguir con clips procedurales del Pipeline.
+4. **Quién encaja el maestro** la primera vez (marcar los puntos de encaje de cada modelo): Pablo en Blender con el script, o el Pipeline con capturas para que Pablo valide.
