@@ -7,7 +7,13 @@ extends Node3D
 ##   1. FALDA: una tira de 0,3 u en el pie de la pared, con las normales suavizadas (la del extremo de la pared mira de lado y la del
 ##      extremo del suelo mira arriba, el sombreado las interpola) que «funde» la pared vertical con el suelo de abajo. Un solo segmento
 ##      por borde: dos triángulos.
-##   2. ANILLO DE PIEDRAS: cantos rodados de 0,3–0,6 u con jitter (posición, giro, tamaño, tono) a lo largo del labio de arriba, medio
+##   2. LABIO (V3 de PLAN_EOW_VISUAL, 21/10): la arista de ARRIBA de la pared (la del bloque o del escalón) también era viva. Una tira de
+##      `ancho_labio` u que arranca en la cara de arriba, sube un pelín (`sobresale_labio`) sobre la esquina y baja por la pared, con las
+##      normales de sus tres vértices (arriba · 45° · lado) para que el sombreado la lea redondeada. Es una tira ENCIMA de la malla del
+##      bloque, no un chaflán dentro de ella, a propósito: un bisel en `_malla_bloque` también abriría un surco en cada junta entre dos
+##      bloques del mismo nivel (el MultiMesh usa una sola malla para todos), y aquí solo se pone donde hay arista de verdad. Cuatro
+##      triángulos por borde. Se apaga con `labio_activo = false` o `PruebaTest2.bisel_suelo = false`.
+##   3. ANILLO DE PIEDRAS: cantos rodados de 0,3–0,6 u con jitter (posición, giro, tamaño, tono) a lo largo del labio de arriba, medio
 ##      hundidos. Rompen la línea recta del borde y le dan un remate redondeado. Un solo MultiMesh para todos.
 ##
 ## QUÉ NECESITA. Una lista de bordes (los reúne quien conoce el mapa: la maqueta, `prueba_test2.gd`). Cada borde es un Dictionary:
@@ -16,7 +22,10 @@ extends Node3D
 ##     y_alto   float     y de la cara de arriba de la casilla alta
 ##     y_bajo   float     y del suelo del lado bajo (en un río, el lecho: se ve a través del agua)
 ##     piedras  bool      (opcional, por defecto true) false = solo falda (p. ej. junto a un puente: las piedras taparían el paso)
+##     solo_labio bool    (opcional, por defecto false) true = ni falda ni piedras, solo el labio (el borde del mapa: no hay suelo bajo el que fundirla)
+##     color    Color     (opcional) color de vértice del labio, para un material que lo use (las terrazas, que se pintan por vértice)
 ## y el lado de la casilla `lado` (2,3 u) y el material de la falda (el mismo de los costados del suelo: así la tira continúa la pared).
+## El material del labio (opcional) es el de la TAPA de ese suelo: el shader del suelo en la maqueta, el de vértices en las terrazas.
 
 @export var ancho_falda: float = 0.3                   ## lo que se adentra la falda en el suelo bajo (y lo que sube por la pared)
 @export var piedra_min: float = 0.3                    ## diámetro menor de un canto (u)
@@ -24,21 +33,41 @@ extends Node3D
 @export_range(1, 8) var piedras_por_borde: int = 3     ## cantos por cada lado de casilla (2,3 u): con 3 quedan huecos entre ellos
 @export_range(0.0, 1.0) var hundimiento: float = 0.3   ## parte del canto que queda bajo el labio (0 = apoyado, 0,5 = medio enterrado)
 @export var semilla: int = 17
+## V3: el labio redondeado de arriba. `labio_activo = false` lo quita (queda lo de antes: falda y piedras).
+@export var labio_activo: bool = true
+@export var ancho_labio: float = 0.2                   ## lo que se adentra el labio en la cara de arriba (y lo que baja por la pared), 0,15–0,25 u
+@export var sobresale_labio: float = 0.05              ## lo que asoma sobre la esquina viva (la tira queda por FUERA del bloque, así la tapa)
+## Un centímetro por encima de la tapa en el arranque del labio: coplanar con la tapa titilaría (z-fighting).
+const ELEVA_ARRANQUE: float = 0.012
+## Cuánto de «arriba» lleva la normal del pie del labio (0 = horizontal, como la pared; 1 = 45°). Menos oscuro el pie sin romper la lectura del remate.
+const LABIO_PIE_ARRIBA: float = 0.3
 
 var _n_bordes: int = 0
 var _n_piedras: int = 0
+var _n_tris_labio: int = 0
 
 
 ## Borra lo anterior y dibuja la lista de bordes. Se puede llamar otra vez cuando cambian las alturas.
-func construir(bordes: Array, lado: float, material_falda: Material) -> void:
+## `material_labio` (opcional): el de la tapa del suelo; sin él no hay labio (como antes de V3).
+func construir(bordes: Array, lado: float, material_falda: Material, material_labio: Material = null) -> void:
 	for h in get_children():
 		h.queue_free()
 	_n_bordes = bordes.size()
 	_n_piedras = 0
+	_n_tris_labio = 0
 	if bordes.is_empty():
 		return
-	_montar_faldas(bordes, lado, material_falda)
-	_montar_piedras(bordes, lado)
+	var con_falda: Array = bordes.filter(func(b): return not bool(b.get("solo_labio", false)))
+	if not con_falda.is_empty():
+		_montar_faldas(con_falda, lado, material_falda)
+		_montar_piedras(con_falda, lado)
+	if labio_activo and material_labio != null:
+		_montar_labio(bordes, lado, material_labio)
+
+
+## Triángulos del labio (V3): 4 por borde con pared suficiente.
+func n_triangulos_labio() -> int:
+	return _n_tris_labio
 
 
 func n_bordes() -> int:
@@ -96,6 +125,74 @@ func _montar_faldas(bordes: Array, lado: float, material: Material) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "faldas"
 	mi.mesh = malla
+	add_child(mi)
+
+
+## V3 · el labio de arriba de cada borde. Perfil (visto de lado, `d` = hacia fuera de la pared, y = arriba):
+##     arranque  `ancho_labio` DENTRO de la cara de arriba, 1 cm por encima, normal arriba
+##     esquina   un pelín fuera de la arista y por encima de ella (`sobresale_labio`), normal a 45° (arriba + fuera)
+##     pie       en la pared, `ancho_labio` más abajo (o lo que mida la pared), normal hacia fuera
+## Los tres vértices comparten color y UV de mundo; el sombreado interpola las normales entre ellos y la arista deja de leerse como un corte.
+func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tris: int = 0
+	for b in bordes:
+		var v: Vector2i = b["v"]
+		var c: Vector2i = b["c"]
+		var y_alto: float = float(b["y_alto"])
+		var y_bajo: float = float(b["y_bajo"])
+		var baja: float = minf(ancho_labio, y_alto - y_bajo)          # una pared más baja que el labio: el labio se acorta con ella
+		if baja <= 0.04:
+			continue
+		var d := Vector3(float(v.x), 0.0, float(v.y))
+		var a := Vector3(absf(float(v.y)), 0.0, absf(float(v.x)))
+		var pared := Vector3((float(c.x) + 0.5) * lado, 0.0, (float(c.y) + 0.5) * lado) + d * (lado * 0.5)   # mitad del borde, en la pared
+		var l2: float = lado * 0.5
+		# Un pelín de diferencia de altura según la dirección: en una esquina exterior las dos tiras se cruzan y, sin ella, serían coplanares.
+		var eleva: float = ELEVA_ARRANQUE + 0.003 * float(absi(v.x) + 2 * absi(v.y))
+		var s: float = sobresale_labio
+		# [posición, normal, UV2]. UV2 = cuánto hay que correr (x, z) la posición de mundo para MUESTREAR la textura: el shader del suelo pinta por
+		# coordenadas de mundo en planta, y en la parte que baja por la pared eso estira un hilo vertical de colores (rayas). Con este corrimiento la
+		# textura de la tapa «se dobla hacia dentro»: el pie del labio muestrea lo que hay `baja` u dentro de la arista, sin rayas ni salirse de la casilla.
+		var perfil: Array = [
+			[pared - d * ancho_labio + Vector3(0.0, y_alto + eleva, 0.0), Vector3.UP, Vector2.ZERO],
+			[pared + d * s + Vector3(0.0, y_alto + s, 0.0), (d + Vector3.UP).normalized(), Vector2(-d.x, -d.z) * s],
+			# La normal del pie se inclina un poco hacia arriba (no es la de la pared, que es horizontal): la pared tiene su propia luz y el pie del labio
+			# no debe quedar tan oscuro como ella (sale una banda sucia pegada a la tapa); la tira se lee como un remate, no como un trozo de pared.
+			[pared + d * s + Vector3(0.0, y_alto - baja, 0.0), (d + Vector3.UP * LABIO_PIE_ARRIBA).normalized(), Vector2(-d.x, -d.z) * (s + baja)]]
+		var col: Color = b.get("color", Color(1.0, 1.0, 1.0)) as Color
+		for k in range(2):
+			var p: Array = perfil[k]
+			var q: Array = perfil[k + 1]
+			# Cuadrilátero p0 p1 q1 q0 (p a lo largo -a..+a); cada triángulo con la cara visible hacia (fuera + arriba).
+			var p0: Array = [(p[0] as Vector3) - a * l2, p[1], p[2]]
+			var p1: Array = [(p[0] as Vector3) + a * l2, p[1], p[2]]
+			var q0: Array = [(q[0] as Vector3) - a * l2, q[1], q[2]]
+			var q1: Array = [(q[0] as Vector3) + a * l2, q[1], q[2]]
+			var ref: Vector3 = d + Vector3.UP
+			for t in [[p0, p1, q1], [p0, q1, q0]]:
+				var geo: Vector3 = ((t[1][0] as Vector3) - (t[0][0] as Vector3)).cross((t[2][0] as Vector3) - (t[0][0] as Vector3))
+				var orden: Array = [0, 1, 2] if geo.dot(ref) > 0.0 else [0, 2, 1]
+				for i in orden:
+					var vtx: Array = t[i]
+					st.set_color(col)
+					st.set_normal(vtx[1] as Vector3)
+					st.set_uv(Vector2((vtx[0] as Vector3).x, (vtx[0] as Vector3).z))
+					st.set_uv2(vtx[2] as Vector2)
+					st.add_vertex(vtx[0] as Vector3)
+				tris += 1
+	if tris == 0:
+		return
+	var malla: ArrayMesh = st.commit()
+	if malla == null or malla.get_surface_count() == 0:
+		return
+	malla.surface_set_material(0, material)
+	_n_tris_labio = tris
+	var mi := MeshInstance3D.new()
+	mi.name = "labio"
+	mi.mesh = malla
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF      # asoma 5 cm: la sombra del bloque ya la cubre y no merece un caster
 	add_child(mi)
 
 

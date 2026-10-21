@@ -172,6 +172,35 @@ uniform float invade_hierba = 1.0;                                      // matas
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
+// 21/10 (Juego/Pipeline, V4 de PLAN_EOW_VISUAL): ESTADO DEL SUELO. Dos texturas, una casilla por píxel:
+//   estado_juego  = Mundo3D.textura_estados() = Terreno3D.estados (OFICIAL): R quemada · G mojada · B helada · A segada (cada canal con su intensidad)
+//   estado        = _img_estado de la maqueta: R quemado · G mojado · B helado · A PISADO (solo aspecto: lo pisado no es un hecho del juego)
+// Por canal manda el mayor de los dos (`respaldo_maqueta` = 0 deja solo el oficial). `estado_eow` = 0 devuelve el shader de antes (solo `estado`).
+// Sin casillas: el canal filtrado (bilineal) sube de 0 a 1 en una casilla; en vez de cortarlo en 0,5 (el borde de la casilla) se le suma un ruido de
+// `estado_ruido` y se corta ahí con un filo de `estado_filo` de ancho: el contorno sale irregular y pintado, no un cuadrado.
+uniform sampler2D estado_juego : hint_default_black, filter_linear, repeat_disable;
+uniform float estado_eow = 1.0;
+uniform float respaldo_maqueta = 1.0;
+uniform float estado_ruido = 0.6;        // cuánto desplaza el ruido el contorno (en unidades del canal: 0,5 ≈ media casilla)
+uniform float estado_filo = 0.06;        // ancho del filo del contorno (en unidades del canal)
+// Quemado: albedo × carbón, un borde chamuscado hacia fuera y manchas de ceniza gris encima. Fuera de la hierba se pinta un poco menos.
+uniform float fuerza_quemado = 1.0;
+uniform vec3 carbon_mult = vec3(0.10, 0.09, 0.085);        // el albedo se multiplica por esto en lo quemado
+uniform vec3 chamusco_mult = vec3(0.50, 0.38, 0.27);      // y por esto en el filo, antes del carbón
+uniform vec3 color_ceniza_gris : source_color = vec3(0.50, 0.49, 0.47);
+uniform float ceniza_gris = 0.3;                          // cuánto cubren las manchas de ceniza gris (0 = nada)
+uniform float quemado_sin_hierba = 0.75;                  // fuerza del quemado sobre tierra, camino o piedra (1 = igual que en la hierba)
+// Mojado: oscuro y azulado, con el filo un poco más oscuro, y brillante: baja la rugosidad y sube SPECULAR para que refleje la sonda de la sala.
+uniform vec3 tinte_mojado = vec3(0.62, 0.66, 0.78);       // el mismo tinte del 2D
+uniform float filo_mojado = 0.14;                         // lo que se oscurece el borde del charco
+uniform float rug_mojado = 0.18;
+uniform float espec_mojado = 0.6;
+// Helado: escarcha clara con un borde azulado de fresnel (más azul y más brillo donde el suelo se ve de refilón) y rugosidad baja.
+uniform vec3 color_fresnel_hielo : source_color = vec3(0.45, 0.72, 1.0);
+uniform float fresnel_hielo = 1.1;
+uniform float fresnel_exp = 2.0;
+uniform float rug_hielo = 0.12;
+uniform float espec_hielo = 0.7;
 uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform float tam_tex = 4.6;
@@ -218,6 +247,7 @@ vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, v
 }
 void fragment() {
 	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	pm.xz += UV2;     // V3: el labio de BordePiedras3D «dobla» la textura de la tapa por la pared (sin rayas); la malla del bloque no trae UV2 y vale 0
 	vec2 c = pm.xz / celda;
 	vec4 r = texture(campo, c / lado);
 	vec2 uvm = (c + (r.rg - 0.5) * 2.0 * ruido) / lado;
@@ -275,21 +305,64 @@ void fragment() {
 	}
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
 	vec4 e = texture(estado, uvm);
-	float q = smoothstep(0.5 - dureza, 0.5 + dureza, e.r) * w.r;               // quemado: solo donde hay hierba
-	col = mix(col, color_ceniza * (0.8 + 0.4 * r.a), q * fuerza_ceniza);
-	float mo = smoothstep(0.35, 0.65, e.g);                                    // mojado: el tinte del 2D (0,62 0,66 0,78)
-	if (mojado_activo > 0.5) {
-		vec2 uvf = (pm.xz - mojado_rect.xy) / mojado_rect.zw;
-		if (uvf.x > 0.0 && uvf.y > 0.0 && uvf.x < 1.0 && uvf.y < 1.0) {
-			mo = max(mo, smoothstep(0.05, 0.6, texture(mojado_fisico, uvf).r));   // 11.10: el suelo que moja el agua física
+	float q;
+	float mo;
+	float he;
+	float espec = 0.0;
+	float rug = 1.0;
+	if (estado_eow > 0.5) {
+		// V4. El mayor de los dos por canal (R quemada · G mojada · B helada) y el contorno cortado por ruido, no por casilla.
+		vec3 est = max(texture(estado_juego, uvm).rgb, e.rgb * respaldo_maqueta);
+		float nq = texture(campo, c / lado * 2.3).r * 0.55 + texture(campo, c / lado * 5.7 + vec2(0.37, 0.11)).g * 0.45;
+		float nm = texture(campo, c / lado * 2.9 + vec2(0.52, 0.23)).g * 0.55 + texture(campo, c / lado * 6.3 + vec2(0.11, 0.71)).r * 0.45;
+		float nh = texture(campo, c / lado * 3.3 + vec2(0.81, 0.47)).r * 0.55 + texture(campo, c / lado * 7.1 + vec2(0.29, 0.93)).g * 0.45;
+		// QUEMADO: carbón con manchas de ceniza gris y un filo chamuscado hacia fuera.
+		float fq = est.r + (nq - 0.5) * estado_ruido;
+		q = smoothstep(0.5 - estado_filo, 0.5 + estado_filo, fq) * mix(quemado_sin_hierba, 1.0, w.r) * fuerza_quemado;
+		float dentro = smoothstep(0.5 + estado_filo, 0.5 + estado_filo + 0.22, fq);   // 0 en el filo, 1 dentro
+		float mancha = smoothstep(0.46, 0.64, texture(campo, c / lado * 9.0).b * 0.5 + texture(campo, c / lado * 15.0 + vec2(0.2, 0.6)).g * 0.5);
+		vec3 negro = col * carbon_mult;
+		vec3 gris = color_ceniza_gris * (0.8 + 0.4 * r.a);
+		vec3 quemado = mix(col * chamusco_mult, mix(negro, gris, mancha * ceniza_gris), dentro);
+		col = mix(col, quemado, q);
+		// MOJADO: oscuro y azulado; el filo del charco algo más oscuro.
+		float fm = est.g + (nm - 0.5) * estado_ruido;
+		mo = smoothstep(0.5 - estado_filo, 0.5 + estado_filo, fm);
+		float filo_m = mo * (1.0 - smoothstep(0.5 + estado_filo, 0.5 + estado_filo + 0.2, fm));
+		if (mojado_activo > 0.5) {
+			vec2 uvf = (pm.xz - mojado_rect.xy) / mojado_rect.zw;
+			if (uvf.x > 0.0 && uvf.y > 0.0 && uvf.x < 1.0 && uvf.y < 1.0) {
+				mo = max(mo, smoothstep(0.05, 0.6, texture(mojado_fisico, uvf).r));   // 11.10: el suelo que moja el agua física
+			}
 		}
+		col = mix(col, col * tinte_mojado, mo);
+		col *= 1.0 - filo_mojado * filo_m;
+		// HELADO: escarcha por encima de todo, con el azul de fresnel en lo que se ve de refilón.
+		float fh = est.b + (nh - 0.5) * estado_ruido;
+		he = smoothstep(0.5 - estado_filo, 0.5 + estado_filo, fh);
+		col = mix(col, mix(col * vec3(0.8, 0.95, 1.05), color_escarcha * (0.9 + 0.2 * r.a), 0.7), he);
+		float refilon = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), fresnel_exp);
+		col += color_fresnel_hielo * refilon * fresnel_hielo * he;
+		rug = mix(mix(1.0, rug_mojado, mo), rug_hielo, he);
+		espec = max(mo * espec_mojado, he * espec_hielo);
+	} else {
+		q = smoothstep(0.5 - dureza, 0.5 + dureza, e.r) * w.r;               // quemado: solo donde hay hierba
+		col = mix(col, color_ceniza * (0.8 + 0.4 * r.a), q * fuerza_ceniza);
+		mo = smoothstep(0.35, 0.65, e.g);                                    // mojado: el tinte del 2D (0,62 0,66 0,78)
+		if (mojado_activo > 0.5) {
+			vec2 uvf = (pm.xz - mojado_rect.xy) / mojado_rect.zw;
+			if (uvf.x > 0.0 && uvf.y > 0.0 && uvf.x < 1.0 && uvf.y < 1.0) {
+				mo = max(mo, smoothstep(0.05, 0.6, texture(mojado_fisico, uvf).r));   // 11.10: el suelo que moja el agua física
+			}
+		}
+		col = mix(col, col * vec3(0.62, 0.66, 0.78), mo);
+		he = smoothstep(0.4, 0.6, e.b);                                      // helado: escarcha por encima de todo
+		col = mix(col, mix(col * vec3(0.8, 0.95, 1.05), color_escarcha * (0.9 + 0.2 * r.a), 0.7), he);
+		rug = mix(1.0, 0.35, mo);
 	}
-	col = mix(col, col * vec3(0.62, 0.66, 0.78), mo);
-	float he = smoothstep(0.4, 0.6, e.b);                                      // helado: escarcha por encima de todo
-	col = mix(col, mix(col * vec3(0.8, 0.95, 1.05), color_escarcha * (0.9 + 0.2 * r.a), 0.7), he);
 	ALBEDO = col * brillo * (1.0 + (r.a - 0.5) * 2.0 * variacion);
-	ROUGHNESS = mix(1.0, 0.35, mo);
-	SPECULAR = 0.0;
+	ROUGHNESS = rug;
+	SPECULAR = espec;
 	// Relieve: dos escalas del mismo mapa (gruesa y fina) para que no se vea la repetición; la escarcha lo alisa,
 	// la hierba lo suaviza (sus briznas ya dan textura) y la piedra lo marca más.
 	vec2 tr = pm.xz / tam_rugosidad;
@@ -525,6 +598,18 @@ const ESCALA_VFX_NUEVO: float = 0.6
 @export_range(0.2, 1.0) var diorama_nitidez: float = 0.6
 ## 16/10 (Fase 14.2, b): falda biselada al pie de cada escalón y borde de agua + anillo de cantos rodados en el labio (BordePiedras3D).
 @export var bordes_blandos: bool = true
+## 21/10 (V3 de PLAN_EOW_VISUAL): el LABIO redondeado de la arista de arriba de los bordes (orillas del agua, escalones de `Terreno3D.alturas`, borde del
+## mapa y huecos del mapa): una tira de `BORDE_LABIO_ANCHO` u por encima del bloque (ver BordePiedras3D). Desmarcar = las aristas vivas de antes.
+@export var bisel_suelo: bool = true
+## 21/10 (V4 de PLAN_EOW_VISUAL): el ESTADO del suelo (mojado, quemado, helado) leído del estado del juego (`Mundo3D.textura_estados()`), con el borde
+## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
+## (solo la imagen `_img_estado`, bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo).
+@export var estado_suelo_eow: bool = true
+const BORDE_LABIO_ANCHO: float = 0.2         ## u: lo que se adentra el labio en la cara de arriba y baja por la pared (0,15–0,25)
+const BORDE_LABIO_SOBRESALE: float = 0.05    ## u: lo que asoma sobre la arista viva (la tira va por fuera del bloque y la tapa)
+## V4: 1 = el shader mezcla el estado del juego con la imagen de la maqueta (el mayor de los dos por canal: la maqueta sigue pintando la hierba
+## mojada por el reloj, el agua de la simulación y lo suyo que `Terreno3D.estados` no guarda); 0 = SOLO el estado del juego (lo oficial).
+const ESTADO_RESPALDO_MAQUETA: float = 1.0
 var _camara_dof: CameraAttributesPractical = null
 ## 21/10 (F1–F3 de PLAN_EOW, entrada 233): luz por zona, banda tilt-shift y sonda de reflejos. Los tres se prueban con teclas (AvPág / RePág / Inicio).
 ## `zona_luz` es una fila de `LuzZona3D.ZONAS` (sol y ambiente de dos colores). «bosque» es EXACTAMENTE la luz de antes: no cambia el aspecto de nada.
@@ -539,6 +624,8 @@ var _sonda: ReflectionProbe = null
 var _bordes: BordePiedras3D = null              ## orilla del agua
 var _rastrojo: Rastrojo3D = null                ## lo que queda de la hierba segada o quemada (14.2 · P3)
 var _bordes_terraza: BordePiedras3D = null      ## escalones de altura (Terreno3D.alturas, las pone el nivel después de montarse la maqueta)
+var _bordes_mapa: BordePiedras3D = null         ## V3: labio del borde del mapa (solo labio)
+var _mat_labio_terraza: StandardMaterial3D = null   ## V3: el labio de las terrazas, de color de vértice como ellas
 var _mat_lado_suelo: Material = null
 var _hash_alturas: int = 0
 var _t_alturas: float = 0.0
@@ -596,6 +683,7 @@ var _mat_agua: ShaderMaterial = null
 var _mat_suelo: ShaderMaterial = null
 var _img_estado: Image = null             ## 40×40 RGBA8: R quemado · G mojado · B helado · A pisado
 var _tex_estado: ImageTexture = null
+var _tex_estado_juego: ImageTexture = null    ## V4: `Mundo3D.textura_estados()` tal y como la tiene el shader del suelo
 var _estado_sucio: bool = false
 var _mojada: Dictionary = {}             ## Vector2i -> ms hasta los que la hierba no prende (la acaba de mojar el agua)
 const T_MOJADA_MS: int = 8000
@@ -985,7 +1073,12 @@ func _construir_suelo() -> void:
 	_img_estado.fill(Color(0.0, 0.0, 0.0, 0.0))
 	_tex_estado = ImageTexture.create_from_image(_img_estado)
 	mat_suelo.set_shader_parameter("estado", _tex_estado)
+	# V4: el estado oficial del juego (R quemada · G mojada · B helada · A segada) y los dos interruptores. La textura se vuelve a pedir cada fotograma
+	# (`_subir_estado_juego`): es siempre el mismo objeto salvo que el mapa cambie de tamaño.
+	mat_suelo.set_shader_parameter("estado_eow", 1.0 if estado_suelo_eow else 0.0)
+	mat_suelo.set_shader_parameter("respaldo_maqueta", ESTADO_RESPALDO_MAQUETA)
 	_mat_suelo = mat_suelo
+	_subir_estado_juego()
 
 	var mat_lado := _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
 	var sha := Shader.new()
@@ -1030,6 +1123,7 @@ func _construir_suelo() -> void:
 	_mat_lado_suelo = mat_lado
 	_construir_lecho_rio(agua)
 	_construir_bordes_agua(mat_lado)
+	_construir_bisel_mapa()
 
 
 ## 9.7 · LECHO DEL CAUCE SECO: bloque hundido ALTO_CAUCE con la piedra del suelo oscurecida y parda (material propio) y
@@ -1318,8 +1412,51 @@ func _construir_bordes_agua(mat_lado: Material) -> void:
 					bordes.append({"c": c, "v": v, "y_alto": ALTO, "y_bajo": y_bajo})
 	_bordes = BordePiedras3D.new()
 	_bordes.name = "BordesAgua"
+	_bordes.ancho_labio = BORDE_LABIO_ANCHO
+	_bordes.sobresale_labio = BORDE_LABIO_SOBRESALE
 	add_child(_bordes)
-	_bordes.construir(bordes, S, mat_lado)
+	_bordes.construir(bordes, S, mat_lado, _mat_suelo if bisel_suelo else null)     # V3: el labio lleva el shader del suelo (la tapa continúa por encima de la arista)
+
+
+## V3 · LABIO DEL BORDE DEL MAPA. Los bloques de tierra que dan al vacío (el borde del cuadrado, o una casilla « » sin suelo) enseñan una pared con
+## la arista de arriba viva. Solo labio: no hay suelo bajo el que fundir una falda ni se ponen piedras. No se tocan el agua, los puentes ni el
+## cauce seco (su banco ya lleva lo suyo). Las terrazas (`Terreno3D.alturas`, las pone el nivel después) llevan su propio labio en `_vigilar_alturas`;
+## el de una casilla elevada en el borde del mapa (hoy ninguna) quedaría enterrado en su columna.
+func _construir_bisel_mapa() -> void:
+	if not bisel_suelo or _mat_suelo == null:
+		return
+	var bordes: Array = []
+	var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for y in range(_lado):
+		for x in range(_mapa[y].length()):
+			var c := Vector2i(x, y)
+			var l: String = _letra(c)
+			if _es_agua(l) or l == " " or l == "c":
+				continue
+			for v in dirs:
+				var vec: Vector2i = c + (v as Vector2i)
+				var fuera: bool = vec.x < 0 or vec.y < 0 or vec.y >= _lado or vec.x >= _mapa[vec.y].length() or _letra(vec) == " "
+				if fuera:
+					bordes.append({"c": c, "v": v, "y_alto": ALTO, "y_bajo": 0.0, "solo_labio": true})
+	if bordes.is_empty():
+		return
+	_bordes_mapa = BordePiedras3D.new()
+	_bordes_mapa.name = "BordesMapa"
+	_bordes_mapa.ancho_labio = BORDE_LABIO_ANCHO
+	_bordes_mapa.sobresale_labio = BORDE_LABIO_SOBRESALE
+	add_child(_bordes_mapa)
+	_bordes_mapa.construir(bordes, S, _mat_lado_suelo, _mat_suelo)
+
+
+## V4: pide la imagen del estado del juego (`Mundo3D.textura_estados()`: se rehace sola si algo cambió y es el mismo objeto de siempre) y se la da al
+## shader del suelo. Solo vuelve a asignar el uniform si el objeto cambió (el mapa cambió de tamaño). Barato: sin cambios no sube nada.
+func _subir_estado_juego() -> void:
+	if _mat_suelo == null or not estado_suelo_eow:
+		return
+	var tex: ImageTexture = Mundo3D.textura_estados()
+	if tex != _tex_estado_juego:
+		_tex_estado_juego = tex
+		_mat_suelo.set_shader_parameter("estado_juego", tex)
 
 
 ## Cada 0,5 s mira si cambió `Terreno3D.alturas` (lo escribe el nivel —TerraFina3D— DESPUÉS de que la maqueta se monte, y la maqueta no pinta
@@ -1348,13 +1485,21 @@ func _vigilar_alturas(delta: float) -> void:
 			var nv: int = Terreno3D.altura_en(vec)
 			if nv >= n:
 				continue
+			# V3: el color del labio es el de la tapa de la terraza (TerraFina3D.COLOR_TOPE, por la letra de la casilla alta, sin su variación por casilla).
 			bordes.append({"c": c, "v": v, "y_alto": Terreno3D.alto_suelo + float(n) * Terreno3D.ALTO_NIVEL,
-				"y_bajo": Terreno3D.alto_suelo + float(nv) * Terreno3D.ALTO_NIVEL})
+				"y_bajo": Terreno3D.alto_suelo + float(nv) * Terreno3D.ALTO_NIVEL,
+				"color": TerraFina3D.COLOR_TOPE.get(_letra(c as Vector2i), TerraFina3D.COLOR_TOPE["."])})
 	if _bordes_terraza == null:
 		_bordes_terraza = BordePiedras3D.new()
 		_bordes_terraza.name = "BordesTerraza"
+		_bordes_terraza.ancho_labio = BORDE_LABIO_ANCHO
+		_bordes_terraza.sobresale_labio = BORDE_LABIO_SOBRESALE
 		add_child(_bordes_terraza)
-	_bordes_terraza.construir(bordes, S, _mat_lado_suelo)
+	if _mat_labio_terraza == null:
+		_mat_labio_terraza = StandardMaterial3D.new()          # como el de las terrazas (TerraFina3D._mat_vertices): color por vértice
+		_mat_labio_terraza.vertex_color_use_as_albedo = true
+		_mat_labio_terraza.roughness = 1.0
+	_bordes_terraza.construir(bordes, S, _mat_lado_suelo, _mat_labio_terraza if bisel_suelo else null)
 
 
 ## (d) LECHO DEL RÍO. Con la simulación de agua el fondo era un bloque liso a ALTO_AGUA − LECHO_AGUA; con el agua más transparente
@@ -4177,6 +4322,7 @@ func _process(delta: float) -> void:
 	if _estado_sucio:
 		_tex_estado.update(_img_estado)      # update() reutiliza la textura en GPU; create_from_image la recrearía
 		_estado_sucio = false
+	_subir_estado_juego()
 	if _hierba != null:
 		_hierba.subir_crecida()
 		if _jugador != null:
