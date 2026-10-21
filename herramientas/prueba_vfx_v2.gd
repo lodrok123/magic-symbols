@@ -435,7 +435,7 @@ func _h4(vfx: VfxEstado3D, l: FalsoLanzador, mundo: Node3D) -> void:
 	await process_frame
 	_ok(vfx.proyectiles() == 0 and _dibujo_de(quieto) == null, "un HechizoVivo sin velocidad no se dibuja aquí (usa hechizo_v2)")
 	quieto.queue_free()
-	var hv: HechizoVivo = _proyectil(l, "plasma", "fuego", 10.0, o + Vector3(0.0, 1.2, 120.0), 0.12)      # 0,12 casillas: por debajo de la esfera base (0,25), para ver que no se le sube al mínimo
+	var hv: HechizoVivo = _proyectil(l, "plasma", "fuego", 10.0, o + Vector3(0.0, 1.2, 120.0), 0.12 / Hechizo.ESCALA_PROYECTIL)      # se dibuja a 0,12 casillas (semieje ÷ ESCALA_PROYECTIL, 21/10): por debajo de la esfera base (0,25), para ver que no se le sube al mínimo
 	await process_frame
 	await process_frame
 	var dib: VfxEstado3D.EfectoHechizo = _dibujo_de(hv)

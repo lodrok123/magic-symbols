@@ -229,7 +229,8 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 		return
 	_proyectiles_n += 1
 	var el: String = _nombre_elemento(hv.elemento)
-	var r_u: float = maxf(hv.h.semieje_x, hv.h.semieje_z) * casilla
+	var r_u: float = maxf(hv.h.semiejes_vuelo.x, hv.h.semiejes_vuelo.z) * casilla      # lo que se ve volar y choca: Hechizo.ESCALA_PROYECTIL
+	var r_impacto_u: float = maxf(hv.h.semieje_x, hv.h.semieje_z) * casilla            # el impacto (explosión, fin) NO se encoge: mide lo de siempre
 	var vel: float = maxf(hv.v.length(), hv.h.velocidad * casilla)
 	var d: Vector3 = hv.v.normalized() if hv.v.length() > 0.01 else Vector3.RIGHT
 	_log = "proyectil %s" % el
@@ -240,7 +241,7 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 	seg.hv_ref = weakref(hv)
 	seg.elemento = el
 	seg.mundo = _mundo
-	seg.esc = clampf(r_u / 0.45, ESCALA_VOL_MIN, ESCALA_VOL_MAX)
+	seg.esc = clampf(r_impacto_u / 0.45, ESCALA_VOL_MIN, ESCALA_VOL_MAX)
 	# Fuego: nace del tamaño de la bola que ya tenía en la mano (continuidad: es la MISMA bola); el resto de elementos, de PROYECTIL_ESCALA_INICIAL.
 	seg.escala_ini = FasesFuego3D.escala_inicial_proyectil(clampf(r_u, 0.3 * FACTOR_BOLA_MIN, 0.3 * FACTOR_BOLA_MAX), PROYECTIL_ESCALA_INICIAL) if el == "fuego" else PROYECTIL_ESCALA_INICIAL
 	seg.scale = Vector3.ONE * seg.escala_ini      # nace pequeño (el primer fotograma ya lo es, sin parpadeo a tamaño completo)

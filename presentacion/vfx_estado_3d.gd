@@ -248,7 +248,8 @@ func _dibujar_proyectil(hv: HechizoVivo) -> void:
 	e.vivo = hv
 	e.estado = hv.estado
 	e.elemento = hv.elemento
-	e.g = {"x": hv.h.semieje_x, "y": hv.h.semieje_y, "z": hv.h.semieje_z, "niveles": 1, "celdas": [], "persiste": 0.0, "eventos": []}
+	var sv: Vector3 = hv.h.semiejes_vuelo       # el proyectil se dibuja del tamaño con el que choca (Hechizo.ESCALA_PROYECTIL)
+	e.g = {"x": sv.x, "y": sv.y, "z": sv.z, "niveles": 1, "celdas": [], "persiste": 0.0, "eventos": []}
 	e.props = {}
 	e.origen = hv.global_position
 	e.dir = hv.v

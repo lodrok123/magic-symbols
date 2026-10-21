@@ -15,7 +15,8 @@ extends RefCounted
 
 ## [clave, valor, mín, máx, paso, grupo, texto]. El orden es el del lab.
 const DEF: Array = [
-	["carga_bola_r", 0.35, 0.15, 0.8, 0.01, "carga", "radio de la bola de la mano (u); el proyectil nace de este tamaño"],
+	# 0,175 = 0,35 × Hechizo.ESCALA_PROYECTIL (21/10): la bola de la mano es la MISMA que el proyectil, y éste ahora mide la mitad; así sigue naciendo a ~0,6 de su tamaño y sin salto al soltarla.
+	["carga_bola_r", 0.175, 0.15, 0.8, 0.01, "carga", "radio de la bola de la mano (u); el proyectil nace de este tamaño"],
 	["carga_bola_ini", 0.03, 0.01, 1.0, 0.01, "carga", "tamaño de la bola al empezar a cargar (fracción del final)"],
 	["carga_bola_s", 0.9, 0.05, 3.0, 0.05, "carga", "segundos que tarda la bola en llegar a su tamaño"],
 	["carga_n_ini", 10.0, 0.0, 60.0, 1.0, "carga", "chispas al empezar a cargar"],

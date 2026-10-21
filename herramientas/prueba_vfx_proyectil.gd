@@ -3,6 +3,7 @@ extends SceneTree
 ## PRUEBA (Pipeline, 20/10, entrada 215): el dibujo de un PROYECTIL de VfxElemento3D. Mide, sobre el árbol:
 ##   1. NACE PEQUEÑO: justo al montarse, la escala del seguidor es ≈ PROYECTIL_ESCALA_INICIAL y a los PROYECTIL_CRECE_S s es 1 (monótona entre medias).
 ##   2. EL TAMAÑO SIGUE A LA VARIABLE: el radio de la esfera mayor del dibujo crece con `semieje_x` sin toparse (antes se paraba en 0,9 u, semieje ≈ 0,39 m).
+##      Desde el 21/10 el dibujo mide `semieje_x` × Hechizo.ESCALA_PROYECTIL (el proyectil en vuelo es la mitad; ver prueba_tamano_proyectil).
 ##   3. EN REPOSO NO HAY LÍNEAS: en movimiento hay cola/chispas visibles; al dejar de estar `activo` (llegó, chocó, golpeó) no queda ninguna partícula ni cono visible,
 ##      y el cuerpo (esferas del fuego y el agua, terrones, aros) sigue ahí.
 ##   godot --headless --path . --script res://herramientas/prueba_vfx_proyectil.gd
@@ -47,7 +48,7 @@ func _correr() -> void:
 		return
 	var e0: float = seg.scale.x
 	# Fuego: nace del tamaño de la bola que ya tenía en la mano (RADIO_CARGA), para que sea la MISMA bola: radio real × escala al nacer = radio de la carga (si no se sale de los límites).
-	var r_real: float = 0.3 * clampf(maxf(hv.h.semieje_x, hv.h.semieje_z) * vfx.casilla / 0.3, VfxElemento3D.FACTOR_BOLA_MIN, VfxElemento3D.FACTOR_BOLA_MAX)
+	var r_real: float = 0.3 * clampf(maxf(hv.h.semiejes_vuelo.x, hv.h.semiejes_vuelo.z) * vfx.casilla / 0.3, VfxElemento3D.FACTOR_BOLA_MIN, VfxElemento3D.FACTOR_BOLA_MAX)
 	var esperado: float = clampf(FasesFuego3D.radio_carga() / r_real, VfxElemento3D.PROYECTIL_ESCALA_INICIAL, 1.0)
 	_ok(absf(e0 - esperado) < 0.001, "fuego: al nacer mide %.2f del tamaño real (esperado %.2f: la bola de la mano era %.2f u, la del proyectil %.2f u)" % [e0, esperado, FasesFuego3D.radio_carga(), r_real])
 	_ok(absf(e0 * r_real - FasesFuego3D.radio_carga()) < 0.01 or e0 <= VfxElemento3D.PROYECTIL_ESCALA_INICIAL + 0.001 or e0 >= 0.999, "fuego: sin salto de tamaño al soltar la bola (%.3f u al nacer frente a %.2f u en la mano)" % [e0 * r_real, FasesFuego3D.radio_carga()])
@@ -68,7 +69,7 @@ func _correr() -> void:
 		var h2: HechizoVivo = _proyectil(mundo, "plasma", "fuego", s, Vector3(0.0, 0.0, 20.0))
 		vfx._dibujar_proyectil(weakref(h2))
 		var r: float = _radio_mayor(h2.get_node("VfxElementoProyectil"))
-		var r_u: float = s * 2.3
+		var r_u: float = s * Hechizo.ESCALA_PROYECTIL * 2.3        # se dibuja el tamaño EN VUELO (21/10: la mitad del semieje del hechizo)
 		print("     semieje %.2f m → radio dibujado %.3f u (esperado ≈ %.3f)" % [s, r, r_u * 1.15])
 		_ok(r > ultimo + 0.001 and absf(r - r_u * 1.15) < 0.02 * maxf(r_u, 1.0), "semieje %.2f: crece y coincide con la caja de golpe" % s)
 		ultimo = r

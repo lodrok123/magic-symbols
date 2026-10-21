@@ -743,7 +743,7 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3) -> int:
 	if h.gravedad > 0.0 and h.impulso_salida > 0.0:
 		v.y += h.impulso_salida * Terreno3D.casilla               # sale en arco (el agua): sin gravedad no se aplica, o subiría para siempre
 	_max_recorrido = (h.distancia_max if h.distancia_max > 0.0 else Hechizo.LIM_DISTANCIA) * Terreno3D.casilla     # sin alcance, el tope de seguridad: nada vuela para siempre
-	_radio_u = maxf(h.semieje_x, h.semieje_z) * Terreno3D.casilla
+	_radio_u = maxf(h.semiejes_vuelo.x, h.semiejes_vuelo.z) * Terreno3D.casilla       # con qué radio acierta EN VUELO (Hechizo.ESCALA_PROYECTIL); la explosión y las zonas no lo usan
 	_viaja_sig = []
 	for a in (h.eventos.get("al_viajar", []) as Array):
 		_viaja_sig.append(maxf(float((a as Dictionary).get("cada", 1.0)), 0.1) * Terreno3D.casilla)

@@ -54,6 +54,11 @@ const LIM_COPIAS: int = 8                     ## el glifo topa en 4; el laborato
 const MAX_GLIFOS: int = 6                     ## glifos máximos por hechizo (ESPEC §1.9): el mismo número que los huecos de la página del libro. Lo aplican el libro y el lab (Mayús+L lo quita); `construir()` no cuenta glifos.
 ## Velocidad (m/s) a la que se desplaza algo con `distancia_max` > 0 pero `velocidad` = 0: la de los volúmenes que viajaban por tandas (8 casillas/s).
 const VELOCIDAD_VIAJE_DEFECTO: float = 8.0
+## Tamaño EN VUELO de un proyectil (hechizo con `velocidad` > 0, o sea el de la flecha) respecto a sus semiejes. Decisión de Pablo (21/10, tras el playtest): el proyectil de
+## «flecha + elemento» medía 0,5 casillas de ancho (≈ 1,15 u, más que la chibi) y era demasiado grande; ahora mide la mitad. AJUSTABLE: 1.0 lo deja como estaba.
+## Vive aquí y no en `RADIO_BASE_V2` porque de ese salen la barrera, el muro, la columna y el paso de cada glifo de eje, y el rasterizado de casillas de lo que está quieto.
+## Solo escala lo que se VE volar (VFX del proyectil) y lo que CHOCA (radio de acierto, `HechizoVivo._radio_u`): los semiejes, el coste, la forma y las zonas/explosiones no cambian.
+const ESCALA_PROYECTIL: float = 0.5
 ## Lo que dura una `permanencia` o `persiste` ya multiplicada por la calidad también pasa por el límite de arriba.
 ## Resistencia de una barrera por cada ×1 de solidez: la `AGUANTE_SOLIDEZ_V2` de HechizoVivo (30), que ahora vive aquí (ESPEC §1.4 dice «base 10»: se mantiene 30 para no cambiar lo que aguanta hoy).
 const RESISTENCIA_POR_SOLIDEZ: float = 30.0
@@ -101,6 +106,14 @@ var semieje_z: float = Sigils.RADIO_BASE_V2
 var semiejes: Vector3:
 	get:
 		return Vector3(semieje_x, semieje_y, semieje_z)
+## Factor de tamaño en vuelo: `ESCALA_PROYECTIL` si es un proyectil (`velocidad` > 0), 1 si no. Es un getter (no un campo derivado en `_derivar`) para que siga a `velocidad` si se edita en el lab.
+var escala_vuelo: float:
+	get:
+		return ESCALA_PROYECTIL if velocidad > 0.0 else 1.0
+## Los semiejes tal como se ven y chocan EN VUELO (= `semiejes` × `escala_vuelo`). Los que dibujan o hacen chocar al proyectil leen este, no `semiejes`.
+var semiejes_vuelo: Vector3:
+	get:
+		return semiejes * escala_vuelo
 var grosor_min: float = 0.15           ## m: ningún semieje baja de aquí (un muro fino no desaparece) · ESPEC §1.1
 var copias: int = 1                    ## n volúmenes repartidos en X
 var separacion: float = 0.5            ## m entre copias (hoy, el ancho de cada copia) · ESPEC §1.6
