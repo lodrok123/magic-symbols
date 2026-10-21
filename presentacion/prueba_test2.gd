@@ -189,9 +189,13 @@ uniform vec3 joint_matas_ancho = vec3(1.4, 0.0, 1.2);                   // y has
 // tiene fila: sigue con las matas de `invade_hierba`.
 uniform sampler2D t_joints : source_color, filter_linear_mipmap, repeat_enable;
 uniform float joints_lamina = 0.0;
-uniform float joints_contraste = 0.55;     // 1 = como está pintada; menos = cada píxel se acerca a la media local (las losas y el sombreado pierden contorno)
-uniform float joints_escala = 3.5;         // u de mundo que mide el atlas a lo ancho (1024 px); la altura de la fila (128 px) es la octava parte de eso
-uniform float joints_sigue = 1.0;         // 0 = la tira sigue la frontera lisa de la rejilla; 1 = la frontera ruidosa real del suelo (la misma que corta el degradado)
+uniform float joints_contraste = 0.85;     // CONSERVACIÓN del contraste pintado: 1 = como está pintada (máximo contraste); 0 = todo a la media local (liso). Más alto = más contraste y más presencia
+uniform float joints_escala = 5.5;         // u de mundo que mide el atlas a lo ancho (1024 px); la altura de la fila (128 px) es la octava parte de eso, multiplicada por `joints_ancho` de la pareja
+uniform vec4 joints_ancho = vec4(1.6, 1.8, 1.8, 1.6);   // estiramiento a lo ancho de la tira (a lo largo de su eje perpendicular a la frontera) de las filas 0-3: 1 = proporción pintada; 2 = el doble de ancha
+uniform float joints_ancho4 = 1.8;         // lo mismo de la fila 4 (hierba→piedra)
+uniform float joints_afina = 0.6;          // 0-1: cuánto se acerca el color de las losas (todo) y el de la arena/tierra (parcial) del atlas al de su suelo de origen
+uniform float joints_piedra_ref = 0.30;    // luminancia lineal media de las losas del atlas (para conservar su luminancia relativa al teñirlas)
+uniform float joints_sigue = 0.4;         // 0 = la tira sigue la frontera lisa de la rejilla; 1 = la frontera ruidosa real del suelo (la misma que corta el degradado)
 uniform float joints_linea = 0.44;         // v (0-1 dentro de la fila) donde cae la frontera de los dos suelos
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
@@ -275,21 +279,37 @@ vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, v
 // nivel 3 de mipmap; el PNG no se toca).
 // A lo largo de la tira, u = pm.x o pm.z según hacia dónde mire la frontera (y una mezcla suave en las diagonales): proyectar la posición sobre una
 // dirección que gira con el suelo (u = pm · tangente) da un u que corre decenas de veces más deprisa de lo debido y estira el atlas en rayas.
+// joints lámina: tono de una muestra del atlas hacia el de sus suelos. Las losas (poco saturadas, filas 1, 2 y 4) toman el color MEDIO de la textura
+// de piedra del suelo × su luminancia relativa; la arena (filas 0, 1, 3) y la tierra (fila 2) se acercan parcialmente a la del camino / la tierra.
+vec3 lamina_tono(float fila, vec3 c) {
+	float mx = max(c.r, max(c.g, c.b));
+	float sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 0.01);
+	float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+	float losa = (fila == 1.0 || fila == 2.0 || fila == 4.0) ? 1.0 - smoothstep(0.34, 0.5, sat) : 0.0;
+	vec3 pie = textureLod(t_piedra, vec2(0.5), 11.0).rgb * clamp(lum / joints_piedra_ref, 0.3, 1.8);
+	float calido = (1.0 - losa) * smoothstep(0.03, 0.1, c.r - c.g);          // arena / tierra (la hierba tiene g > r)
+	vec3 ref = fila == 2.0 ? vec3(0.35, 0.18, 0.10) : vec3(0.62, 0.38, 0.18);   // color medio lineal de la arena / tierra pintada
+	vec3 des = fila == 2.0 ? textureLod(t_tierra, vec2(0.5), 11.0).rgb : textureLod(t_camino, vec2(0.5), 11.0).rgb;
+	vec3 mult = pow(des / ref, vec3(joints_afina));
+	return mix(mix(c, c * mult, calido), pie, losa * joints_afina);
+}
 float lamina_tira(float fila, vec2 dir, float sabajo, vec2 pmxz, out vec3 rgb) {
-	float pxu = 1024.0 / joints_escala;                                  // píxeles del atlas por u de mundo
-	float ypx = joints_linea * 128.0 + sabajo * pxu;
+	float pxu = 1024.0 / joints_escala;                                  // píxeles del atlas por u de mundo (a lo largo de la tira)
+	float anch = fila < 0.5 ? joints_ancho.x : (fila < 1.5 ? joints_ancho.y : (fila < 2.5 ? joints_ancho.z : (fila < 3.5 ? joints_ancho.w : joints_ancho4)));
+	float pyu = pxu / anch;                                              // y a lo ancho: estirado, la tira es `anch` veces más ancha
+	float ypx = joints_linea * 128.0 + sabajo * pyu;
 	float vv = (fila * 128.0 + clamp(ypx, 1.0, 127.0)) / 640.0;
 	vec2 uva = vec2(pmxz.x / joints_escala, vv);
 	vec2 uvb = vec2(pmxz.y / joints_escala + 0.37, vv);
-	vec2 dsx = vec2(0.0, dFdx(sabajo) * pxu / 640.0);                    // derivadas explícitas (fuera de ramas): sin costuras de mipmap
-	vec2 dsy = vec2(0.0, dFdy(sabajo) * pxu / 640.0);
+	vec2 dsx = vec2(0.0, dFdx(sabajo) * pyu / 640.0);                    // derivadas explícitas (fuera de ramas): sin costuras de mipmap
+	vec2 dsy = vec2(0.0, dFdy(sabajo) * pyu / 640.0);
 	vec4 ta = textureGrad(t_joints, uva, vec2(dFdx(pmxz.x) / joints_escala, dsx.y), vec2(dFdy(pmxz.x) / joints_escala, dsy.y));
 	vec4 tb = textureGrad(t_joints, uvb, vec2(dFdx(pmxz.y) / joints_escala, dsx.y), vec2(dFdy(pmxz.y) / joints_escala, dsy.y));
 	float wa = smoothstep(0.35, 0.65, abs(dir.y));                       // tangente = (-dir.y, dir.x): si es sobre todo horizontal, u = x
 	vec4 tx = mix(tb, ta, wa);
 	vec3 media = mix(textureLod(t_joints, uvb, 3.0).rgb, textureLod(t_joints, uva, 3.0).rgb, wa);
 	float ct = (fila == 1.0 || fila == 2.0 || fila == 4.0) ? joints_contraste : mix(1.0, joints_contraste, 0.35);   // las losas (filas 1, 2, 4) pierden todo el contraste pedido; la arena/tierra y la hierba pintada solo un poco: la media local de esas filas mezcla verde con arena y ensucia
-	rgb = mix(media, tx.rgb, ct);
+	rgb = lamina_tono(fila, mix(media, tx.rgb, ct));
 	return tx.a * step(1.0, ypx) * step(ypx, 127.0);
 }// joints: la tira de migas de una pareja. `sd` = distancia con signo de `pareja` (+ dentro del que lame): las migas caen en el lado del otro suelo
 // (sd < 0), densas en la frontera y cada vez más raras hasta `ancho` u; el ruido de `amp` u desplaza la frontera antes de cortar, y el grano son dos
@@ -402,17 +422,20 @@ void fragment() {
 					col = mix(col, muestra(t_hierba, t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza * (1.0 - joints_lamina));
 				}
 			}
-			if (joints_lamina > 0.0 && joints_fuerza > 0.0) {      // joints lámina: hierba→camino (fila 3) y hierba→piedra (fila 4) del atlas, debajo de la franja (las hojas de hierba_borde van encima): la hierba densa en el lado de arriba, las matas sueltas sobre el vecino
+			float cubre = 0.0;     // cuánto de este píxel lo cubre la lámina: las hojas de hierba_borde no la tapan donde hay lámina
+			if (joints_lamina > 0.0 && joints_fuerza > 0.0) {      // joints lámina: hierba→camino (fila 3) y hierba→piedra (fila 4) del atlas: la hierba densa en el lado de arriba, las matas sueltas sobre el vecino
 				vec4 ot = texture(mapa, uvm + nb * (0.75 / lado));          // qué hay al otro lado de la frontera: camino (G) o piedra (A); tierra no tiene fila
 				vec3 rgbl;
 				float al = lamina_tira(ot.a > ot.g ? 4.0 : 3.0, nb, sb + (texture(campo, c / lado).a - 0.5) * 0.5, pm.xz, rgbl);
-				col = mix(col, rgbl * borde_tinte, al * clamp(ot.g + ot.a, 0.0, 1.0) * apaga * fb * joints_fuerza * joints_lamina);
-			}			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
+				cubre = al * clamp(ot.g + ot.a, 0.0, 1.0) * apaga * fb * joints_fuerza * joints_lamina;
+				col = mix(col, rgbl * mix(vec3(1.0), borde_tinte, 0.5), cubre);       // el tinte de las hojas, a medias: la hierba del atlas ya es del tono bueno
+			}
+			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
 			float vb = (sb + 0.65 * borde_ancho) / borde_ancho;
 			if (vb > 0.0 && vb < 1.0) {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
-				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza);
+				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre));
 			}
 
 		}
@@ -726,9 +749,11 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## `joints_atlas.png`. Desmarcar = la tira procedural de antes. Si falta el archivo del atlas también cae a la procedural. Antes de añadir la maqueta al árbol.
 @export var joints_lamina: bool = true
 const JOINTS_ATLAS: String = "res://arte/suelo_meshy/joints_atlas.png"
-const JOINTS_CONTRASTE: float = 0.55    ## 1 = atlas como está pintado; menos = más cerca de la media local (losas y sombreado más suaves)
-const JOINTS_ESCALA: float = 3.5        ## u de mundo que mide el atlas a lo ancho (1024 px); la fila (128 px) mide 1/8 de eso (0,44 u) y una losa del atlas ~0,5 u (la del suelo, ~1 u)
-const JOINTS_LINEA: float = 0.44        ## fracción de la fila donde cae la frontera de los dos suelos
+const JOINTS_CONTRASTE: float = 0.85    ## CONSERVACIÓN del contraste: 1 = atlas como está pintado (máximo contraste); 0 = todo a la media local (liso). Antes 0,55; más alto = losas y migas con más presencia
+const JOINTS_ESCALA: float = 5.5        ## u de mundo que mide el atlas a lo ancho (1024 px); la fila (128 px) mide 1/8 de eso (0,69 u) × el ancho de la pareja, y una losa del atlas ~0,55 u
+const JOINTS_LINEA: float = 0.40        ## fracción de la fila donde cae la frontera de los dos suelos
+const JOINTS_AFINA: float = 0.6         ## 0-1: cuánto se tiñen las losas del atlas al color medio del suelo de piedra (y la arena/tierra hacia su suelo)
+const JOINTS_PIEDRA_REF: float = 0.30   ## luminancia lineal media de las losas pintadas (para teñir conservando su luminancia relativa)
 const BORDE_LABIO_ANCHO: float = 0.2         ## u: lo que se adentra el labio en la cara de arriba y baja por la pared (0,15–0,25)
 const BORDE_LABIO_SOBRESALE: float = 0.05    ## u: lo que asoma sobre la arista viva (la tira va por fuera del bloque y la tapa)
 var _camara_dof: CameraAttributesPractical = null
@@ -1160,11 +1185,11 @@ func _junto_a_agua(c: Vector2i) -> bool:
 ## Textura de borde: PROCEDURAL (migas = máscara de ruido del campo × la textura del suelo que lame; matas = la máscara de `invade_hierba` con la textura de
 ## hierba). No hay asset: arte/meshy/PROMPTS_JOINTS.md propone uno para pedirlo si se quiere sustituir.
 const JOINTS_PARES: Dictionary = {
-	"camino_tierra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
-	"camino_piedra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.8, "amp": 0.3, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
-	"tierra_piedra": {"sobre": "tierra", "textura": "migas de tierra / grava", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
-	"hierba_camino": {"sobre": "hierba", "textura": "matas de hierba", "ancho": 1.4, "fuerza": 0.7},
-	"hierba_piedra": {"sobre": "hierba", "textura": "matas de hierba entre las losas", "ancho": 1.2, "fuerza": 0.8},
+	"camino_tierra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0), "lamina_ancho": 1.7},
+	"camino_piedra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.8, "amp": 0.3, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0), "lamina_ancho": 1.9},
+	"tierra_piedra": {"sobre": "tierra", "textura": "migas de tierra / grava", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0), "lamina_ancho": 1.9},
+	"hierba_camino": {"sobre": "hierba", "textura": "matas de hierba", "ancho": 1.4, "fuerza": 0.7, "lamina_ancho": 1.3},
+	"hierba_piedra": {"sobre": "hierba", "textura": "matas de hierba entre las losas", "ancho": 1.2, "fuerza": 0.8, "lamina_ancho": 1.3},
 	"hierba_tierra": {"sobre": "hierba", "textura": "matas de hierba (invade_hierba)", "ancho": 1.0, "fuerza": 1.0},
 }
 const TIPOS_SUELO: Array = ["hierba", "camino", "tierra", "piedra"]
@@ -1245,6 +1270,14 @@ func _aplicar_joints(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("joints_contraste", JOINTS_CONTRASTE)
 	mat.set_shader_parameter("joints_escala", JOINTS_ESCALA)
 	mat.set_shader_parameter("joints_linea", JOINTS_LINEA)
+	mat.set_shader_parameter("joints_afina", JOINTS_AFINA)
+	mat.set_shader_parameter("joints_piedra_ref", JOINTS_PIEDRA_REF)
+	# Ancho de la tira del atlas por pareja («lamina_ancho» de JOINTS_PARES): 1 = proporción pintada.
+	var anchos: Array = []
+	for par in ["camino_tierra", "camino_piedra", "tierra_piedra", "hierba_camino", "hierba_piedra"]:
+		anchos.append(float(JOINTS_PARES[par].get("lamina_ancho", 1.0)))
+	mat.set_shader_parameter("joints_ancho", Vector4(anchos[0], anchos[1], anchos[2], anchos[3]))
+	mat.set_shader_parameter("joints_ancho4", anchos[4])
 
 
 func _construir_suelo() -> void:
