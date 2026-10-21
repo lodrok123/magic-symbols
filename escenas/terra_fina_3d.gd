@@ -402,6 +402,7 @@ func _process(delta: float) -> void:
 			_decir(String(AVISOS[i][1]), 6.0)
 	if _salida_abierta and not _terminado and c == _salida_c:
 		_terminado = true
+		Mundo3D.avisar_logro("nivel_completado", pj.position + Vector3.UP, pj)      # fin del nivel (una vez: `_terminado`); la celebracion la pone Logros3D
 		Misiones.i().objetivo_hecho(MISION, 1)
 		_decir("¡Terra Fina completada en %d s! Por el túnel se llega al bosque." % int(_t), 8.0)
 	if _t_aviso <= 0.0 and _aviso != null:

@@ -30,7 +30,7 @@ signal logro(nombre: String, punto: Vector3, nodo: Node)
 ## nunca al recargar algo ya resuelto.
 ##   paso_puzle · parte resuelta (contador que sube sin completar: 2 de 3 braseros)   puzle_resuelto · regla o contador que abre algo
 ##   sala_limpia · el vigía vio caer al último enemigo     cofre_aparece / cofre_abierto · el cofre del puzle
-##   puerta_abierta · un cerrojo se abre      nivel_completado · lo emite el nivel/pedestal final (aún sin emisor propio)
+##   puerta_abierta · un cerrojo se abre      nivel_completado · lo emiten las reglas del nivel al cruzar la salida / abrir el cofre final (`avisar_logro`)
 const LOGROS: PackedStringArray = ["paso_puzle", "puzle_resuelto", "sala_limpia", "cofre_aparece", "cofre_abierto", "puerta_abierta", "nivel_completado"]
 
 ## CATÁLOGO CERRADO de reacciones (contrato con el Pipeline: `ReaccionesVfx3D.CATALOGO` tiene estos mismos nombres, en este orden).

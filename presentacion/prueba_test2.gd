@@ -864,6 +864,10 @@ func _ready() -> void:
 		_fx.escala = ESCALA_VFX_NUEVO      # 10/10 (Pablo): la flecha de fuego y el resto del kit nuevo, al 0,6 que fijó en el Lab
 	_efectos.add_child(_fx)
 	_fx.impacto.connect(_al_impactar)
+	# enganche logros (diario 245): la presentacion de las reacciones (A4) y de los logros (PLAN_EOW_VISUAL §4) se engancha AQUI, una vez por nivel montado,
+	# no en cada laboratorio. `conectar` es idempotente por mundo (is_connected sobre un Callable estatico), asi que el lab que la repita no duplica.
+	ReaccionesVfx3D.conectar(_mundo, _efectos)
+	Logros3D.conectar(_mundo, _efectos)
 
 	if transparencia_jugador and decorado_por_lotes:
 		Ocluso3D.preparar()
@@ -945,6 +949,7 @@ func _ready() -> void:
 ## empezaría viendo el mapa y los bloqueos de este.
 func _exit_tree() -> void:
 	Terreno3D.olvidar_datos()
+	Logros3D.restaurar_tiempo()      # enganche logros: salir en pleno hitstop no deja el juego a cámara lenta
 
 
 ## --- Utilidades de rejilla ---

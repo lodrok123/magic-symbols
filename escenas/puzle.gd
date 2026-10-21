@@ -237,7 +237,7 @@ const ACCIONES_FLAG: Array = ["poner", "quitar"]
 ##   paso_puzle     un contador SUBE sin llegar a su mínimo (2 de 3 braseros)      puzle_resuelto  un contador COMPLETA, o una regla ABRE una compuerta/puerta que estaba cerrada
 ##   sala_limpia    el vigía ve caer al último enemigo                              puerta_abierta  un cerrojo pasa de cerrado a abierto
 ##   cofre_aparece  el cofre pasa de oculto a cerrado CON efecto                    cofre_abierto   el cofre acaba de abrirse (animación terminada)
-## `nivel_completado` aún no tiene emisor en Puzle3D: lo emitirá el nivel (pedestal final). Una cascada del mismo fotograma (un contador completa y su regla
+## `nivel_completado` no lo emite Puzle3D: lo emite cada nivel al terminarlo (salida o cofre final, `Mundo3D.avisar_logro`). Una cascada del mismo fotograma (un contador completa y su regla
 ## abre la puerta) cuenta como UN suceso: el mismo nombre no se repite en VENTANA_LOGRO fotogramas.
 const VENTANA_LOGRO: int = 2
 ## Mientras sea true no se avisa de ningún logro: lo pone quien CARGA una partida con el nivel ya montado (las flags que llegan reabren puertas sin que el jugador haya hecho nada).

@@ -482,6 +482,7 @@ func _process(delta: float) -> void:
 		_abrir()
 	if _abierta and not _terminado and c == _salida_c:
 		_terminado = true
+		Mundo3D.avisar_logro("nivel_completado", (m._jugador as Node3D).position + Vector3.UP, m._jugador)      # fin del nivel (una vez: `_terminado`)
 		_decir("¡Nivel completado en %d s!" % int(_t), 8.0)
 	# Texto flotante y NPC hablando.
 	_t_aviso = maxf(_t_aviso - delta, 0.0)

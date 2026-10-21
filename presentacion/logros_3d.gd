@@ -54,7 +54,7 @@ const TABLA: Dictionary = {
 	# Una puerta de sala que se abre: su sonido de siempre y un polvillo de luz; el texto lo da «sala_limpia», que ocurre en el mismo instante.
 	"puerta_abierta":   {"sfx": "puerta_abre", "motas": 8, "anillo": 1.5, "color": BLANCO_CALIDO},
 	# Lo emitirá el nivel (pedestal final); la fila ya está lista.
-	"nivel_completado": {"sfx": "logro_fanfarria", "sfx2": "logro_acierto", "motas": 64, "anillo": 4.2, "luz": 3.0, "color": ORO, "texto": "¡Nivel completado!", "texto_dura": 3.5, "zoom": 0.15},
+	"nivel_completado": {"sfx": "logro_fanfarria", "sfx2": "logro_acierto", "motas": 64, "anillo": 4.2, "luz": 3.0, "color": ORO, "texto": "¡Nivel completado!", "texto_dura": 3.5, "hitstop": 0.10, "zoom": 0.15},
 }
 
 static var _fx: Node3D = null

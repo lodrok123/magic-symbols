@@ -234,7 +234,7 @@ func _enganchar_efectos() -> void:
 	if _mundo != null and not _mundo.reaccion.is_connected(_al_reaccionar):
 		_mundo.reaccion.connect(_al_reaccionar)
 	# Respuesta positiva al jugador (PLAN_EOW_VISUAL §4): la tabla `Logros3D` (jingle, destello, texto del HUD, hitstop, zoom) escucha `Mundo3D.logro`; el HUD del lab
-	# apunta el último (línea LOGROS). Cuando un nivel la monte, es esta misma llamada.
+	# apunta el último (línea LOGROS). La maqueta ya la monta para todos los niveles; `conectar` es idempotente, así que aquí no duplica.
 	_enganche_logros_ok = _mundo != null and padre_fx != null and Logros3D.conectar(_mundo, padre_fx)
 	if not _enganche_logros_ok:
 		_avisos.append("Logros3D.conectar devolvió false: la respuesta positiva (jingle, destello, texto) no se verá ni sonará")

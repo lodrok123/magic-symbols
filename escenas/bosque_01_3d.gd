@@ -657,6 +657,10 @@ func _al_abrir_cofre(i: int) -> void:
 	elif i == 1:
 		Misiones.i().objetivo_hecho(MISION, OBJ_COFRE_2)
 		_terminado = true
+		# Fin de la demo = nivel completado (una vez: `_entregado[1]` ya lo guarda). Sale del cofre, que es donde esta el jugador.
+		var cofre: Variant = _cofres[1]
+		var pos_fin: Vector3 = (cofre as Node3D).position + Vector3.UP if cofre is Node3D else Vector3.ZERO
+		Mundo3D.avisar_logro("nivel_completado", pos_fin, cofre as Node)
 		_decir("Fin de la demo. Gracias por jugar el Bosque.", 10.0)
 	else:
 		_dar_botin(i)
