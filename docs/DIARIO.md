@@ -3775,3 +3775,19 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 - **VFX de tierra y viento** (`35cb21e`): tierra = terrón facetado, cascotes que caen y se quedan, bloques que emergen (y el bloque pisable vestido); viento = cintas en espiral con hojas, remolino, tornado. Primitivas con los ids de los prompts: con los GLB se usan solos. Capturas en `docs/capturas/vfx_tierra_viento/`.
 
 **Regresión completa (101):** solo los 3 conocidos. **Encargos (Pipeline / maqueta):** enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta para todos los niveles; afinar los jingles; los sonidos de reacciones (PL2) siguen sin commit. **No visto en pantalla jugando:** nada de este lote salvo las capturas.
+
+## 246 — Juego + Pipeline (21/10): **plan visual V3–V8 y assets de tierra, hielo y viento** — commits `28fabdc` `271e611` `bab3b86` `6b505df` `a9ccdbd`. Código de Sonnet (4 agentes en paralelo + V7), verificación y commits de Opus.
+
+**Plan visual (`docs/PLAN_EOW_VISUAL.md`), cada uno con interruptor, prueba nueva y capturas antes/después en `docs/capturas/vN/`:**
+- **V3 + V4** (`28fabdc`): labio de 0,2 u en orillas, escalones y borde del mapa (`BordePiedras3D`, `bisel_suelo`); la silueta de la arista sigue recta. El shader del suelo lee `Mundo3D.textura_estados()` (encargo B2) con contorno por ruido, carbón y ceniza, charco con especular y escarcha con fresnel (`estado_suelo_eow`). `_img_estado` **no se retira**: lo usan hierba, agua, Lanzador, reacciones, el lab y la lógica de la maqueta; queda de respaldo y para «pisado». ≈ +0,1 ms. `prueba_bisel_estado`.
+- **V5** (`271e611`): `MaterialPersonaje3D` en `next_pass`: rim de color por rol (enemigos, el de su debilidad), silueta de la jugadora tras paredes por profundidad, `SombraContacto3D` bajo los pies (se apaga al morir/hundirse). El rim es sutil con la cámara cenital (`RIM_INTENSIDAD`). `prueba_material_personaje`.
+- **V6** (`bab3b86`): `Ocluso3D` gana `quemado` (carbón, frente de brasas, ceniza) y `disolver` (celdas Voronoi con `discard`); seto/tronco/telaraña se carbonizan al arder y se deshacen al consumirse; el escudo se disuelve en vez de encoger. La enredadera sigue con su shader. `usar_quemado_disolver`. `prueba_quemado_disolver`.
+- **V7** (`6b505df`): las terrazas usan `_mat_suelo` en la tapa y el costado del suelo en el muro; el labio de terraza con el shader del suelo (`TerraFina3D.terrazas_shader_suelo`). Detalles: banda verde algo oscura en el labio y un borde vecino rectangular en `terra_pared_despues`. `prueba_terrazas_v7`.
+- **V8** (`a9ccdbd`): texturas de personajes a 1024 (`size_limit` en 38 `.import`, −90 MB de VRAM, diferencia media 1,3–2,9 %). **Sin aplicar, decide Pablo** (`docs/capturas/v8/DECIDIR.md`): árboles `_2` (recomendado solo `arbol_redondo_2`; `pino_2` sale turquesa) y piezas de 12 k a 6 k.
+
+**Assets de Meshy/Tripo** (en `arte/meshy/entrada/`, lotes en `aprobacion3d/`, sin instalar): se instalaron numpy, scipy y Pillow con pip (con permiso de Pablo) para `recibir_assets.py`.
+- **Tierra** (`elem_tierra`): 15 piezas como el prompt (terrones 0–5, cascotes 0–3, bloques 0–2, pinchos 0–1), 4.001 tris en total, sin reducir; las piedrecitas sueltas se agruparon con su pieza.
+- **Hielo** (`elem_hielo`, de Tripo): las 10 piezas del prompt, de 333 k a ≈ 4 k tris sin pérdida visible; la placa entera y en 4 trozos. Más azul y opaco que lo pedido: se corrige con el material.
+- **Viento:** el primer atlas no tenía alfa; el segundo sí. Recortado a 4×4 de 512² en `presentacion/vfx/viento_atlas.png` (sin enganchar aún).
+
+**Regresión completa (105):** solo los 3 conocidos (`escenario_bosque_01_ramas` 2, `escenario_lab_hechizos` 1, `escenario_lab_recetas` 1). **Hunks ajenos** de `prueba_test2.gd` (colisión por contorno, diario 227; F7 movido) se dejaron fuera de los commits. **No visto jugando:** nada de este lote salvo capturas.

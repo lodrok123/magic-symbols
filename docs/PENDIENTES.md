@@ -99,7 +99,14 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 ## Lote del 21/10 tarde (diario 245)
 - [ ] Pablo: mirar las capturas de `docs/capturas/look_v1v2/` y decidir la fuerza del tilt-shift y el gris del fondo.
 - [ ] Pablo: las 4 decisiones de `docs/PLAN_RIGGING.md` §7 antes de empezar el rigging común.
-- [ ] Pablo: generar en Meshy lo de `arte/meshy/PROMPTS_ELEMENTOS.md` (tierra, hielo; atlas 2D de viento).
 - [ ] Afinar de oído los 4 jingles de logros (`Sfx.CATALOGO`, `audio/gen_sfx_logros.py`).
 - [ ] Enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta (todos los niveles), y un emisor de «nivel_completado».
-- [ ] Plan visual V3–V8 (`docs/PLAN_EOW_VISUAL.md`): bisel, estado del suelo sin casillas, personajes juguete, quemado/disolver, terrazas, presupuesto.
+- [x] ~~Plan visual V3–V8~~ — hecho el 21/10 (diario 246).
+- [x] ~~Pablo: generar en Meshy tierra, hielo y el atlas de viento~~ — recibidos el 21/10 (diario 246).
+
+## Lote del 21/10 noche (diario 246)
+- [ ] Pablo: aprobar los lotes `arte/meshy/aprobacion3d/elem_tierra/` y `elem_hielo/` (escalera.png); luego instalar y enganchar en los VFX (con el atlas de viento).
+- [ ] Pablo: mirar las capturas de `docs/capturas/v3_v4/`, `v5/`, `v6/` y `v7/` (labio del borde del mapa, fuerza del rim, banda del labio en terrazas).
+- [ ] Pablo: decidir V8 (`docs/capturas/v8/DECIDIR.md`): árboles `_2` y piezas de 12 k.
+- [ ] Migrar los usos de `_img_estado` (hierba, agua, Lanzador, reacciones, lab) a `Mundo3D.textura_estados()` para poder retirarlo (cierra B2).
+- [ ] Enredadera con el `quemado`/`disolver` común (necesita `corte_y` en el shader común); cofre que aparece con `disolver`.
