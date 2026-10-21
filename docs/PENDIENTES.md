@@ -1,0 +1,91 @@
+# Pendientes abiertos
+
+Foto del 21/10/2026, sacada de los chats de claude.ai y cruzada con el DIARIO (hasta la entrada 236).
+Cada tarea tiene **un dueño**. Al cerrarla, se tacha aquí y se apunta en el DIARIO.
+La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`; esto es el índice de lo que está vivo.
+
+## Pablo (decidir o validar)
+
+**Commits y horneado**
+- [ ] Commitear las entradas 226–236 del DIARIO (todas «sin commit»).
+- [ ] Re-hornear las piezas viejas con la colisión por contorno (DIARIO 228–229).
+
+**Decidir o validar**
+- [ ] Validar el clip «Drowning» de los dos goblins (DIARIO 231).
+- [ ] Aplicar el ajuste de proyecto que pide la entrada 233 (luz por zona / tilt-shift).
+- [ ] Números de la tinta (PLAN_EOW E1) y recetas de pigmentos por zona (tinta, paso 2).
+- [ ] Presupuesto de polígonos: 8–12k frente al de EoW; decimar o sustituir `arbol_redondo` y `pino` por sus `_2` (`arte/meshy/PRESUPUESTO.md`).
+- [ ] Puente 0,41 u por debajo de las orillas: subirlo o dejarlo.
+- [ ] Tronco-puente: aceptar el estirado ×1,31 o reexportar a 3,4 con enredaderas.
+- [ ] Integrar el esqueleto en el canouro.
+- [ ] Recetas y mejoras del alquimista (DISENO_FUTURO §7, tarea 3.4).
+- [ ] Aprobar los diálogos del guardabosques y la librera (tarea 9.12).
+- [ ] Describir el «hay dos problemas» del trazo del 16/10 (el mensaje se cortó).
+
+**Grabar**
+- [ ] Gestos de ᛁ (dos orientaciones) y de ᛉ.
+
+## Juego
+
+**Pruebas**
+- [ ] Colisiones por contorno: `escenario_bosque_01_ramas` pasó de 0 a 4 fallos (no se llega a pie a los marcadores; las telarañas no liberan su casilla). Verificar si la entrada 230 lo resuelve.
+- [ ] Bajar a 0 los 46 fallos de `pruebas_resultado.txt` del 20/10. Los peores: agua_tinaja, bosque_01, agua_estanque, hielo, asistencia.
+
+**PLAN_EOW, rondas 1–4**
+- [x] ~~B1 estado de suelo con un solo dueño~~ · ~~C1 flags con nombre~~ · ~~D1 ocupación por casilla~~ · ~~A2 propagación por contacto~~ · ~~A3 reacciones de enemigo y hundirse~~ · ~~C2 condiciones y/o/no~~ · ~~C3 sala cerrada~~ · ~~A4 `Mundo3D.reaccion`~~ · ~~A5 escudo del goblin~~ · ~~D2 pathfinding~~ — hechas el 21/10, sin commit (diario 238).
+- [ ] Lo que dejaron abierto (diario 238): activar el clip «Drowning» (`"drown"` en `ArbolAnimPj.ESTADOS_REDUCIDO`); `Jugador3D.quemar(s)` si el jugador debe arder; la patrulla y el gatopedro aún no usan rutas; peor caso del A* con altura ≈ 5,4 ms (> 1 ms); pasar los cofres de `bosque_01_3d.gd` a la gramática de C3.
+- [ ] Decidir: ¿siete reacciones también para el elemental? ¿el escudo ardiendo prende al goblin? ¿se queda `CONTACTO_ENTRE_ENEMIGOS = true`?
+
+**Otras tareas**
+- [ ] 10.4 controles relativos a la cámara (sin marcar en PLAN_ARREGLOS).
+- [ ] Asistencia al trazo: los parciales al 60 % siguen por debajo del 80 %.
+- [ ] Glifos nuevos de MEJORAS_POTENCIA §6 (perforar, senda, marca…), solo si Pablo los aprueba.
+
+## Pipeline
+
+**Agua y suelo**
+- [ ] Triángulos vacíos en las esquinas del agua o la orilla.
+- [ ] `OSCURECER_SUELO`: igualar hierba y suelo (ARTE §10).
+- [ ] La tinaja deja de verter cuando el puzle se completa: comprobar.
+- [ ] Más sensación de movimiento en la caída y en el río.
+
+**Hechizos**
+- [ ] Hielo con la textura del hielo renderizado en 3D.
+- [ ] Comprobar que la bola de fuego crece a la vista (DIARIO 226).
+
+**Encargos del plan EoW (diario 238)**
+- [ ] B2: el shader del suelo lee `Mundo3D.textura_estados()` y se retira `_img_estado` de `prueba_test2.gd`.
+- [ ] Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel: sin eso las reacciones de A4 no se ven ni suenan.
+- [ ] Burbujas del hundimiento al aviso `impacto(…, "hundido", …)` / reacción `hundido` (1,6 s de efecto frente a 1,0 s de hundimiento).
+- [ ] Escudo del goblin: ajuste visual en el brazo, efectos de `EXCEPCIONES["escudo"]` con el nodo real y escudo mojado visible.
+- [ ] Opcional: llama visible en la flecha ardiendo (meta `ardiendo`), pista «E: abrir» en el cofre, losa propia de puerta de sala.
+
+**Personajes y objetos**
+- [ ] Clips de cast a una mano con el libro al pecho (`arte/meshy/PROMPTS_CAST.md`).
+- [ ] El libro vuelve al cinto tras el cast; cast más rápido sin quitar fotogramas.
+- [ ] Mangas y túnica de la elfa (choque con la túnica de la cadera).
+- [ ] Regenerar los objetos del catálogo con los prompts nuevos.
+- [ ] Panel del laboratorio con las variables distintas de cero (abajo a la izquierda): comprobar si se hizo.
+
+## Dirección (documentación y orden)
+
+**Documentos**
+- [ ] Pasar `PLAN_EOW.md` a `PLAN_ARREGLOS.md` como Fase 15. La Fase 14 está en `FASE14_PRESENTACION.md`.
+- [x] ~~Reescribir para el 3D las secciones de `ARQUITECTURA.md` (Arte, Animación, Vista isométrica) y la cabecera y §3–§8 de `ARTE.md` (ver `DECISIONES_CHATS.md` §2).~~ Hecho el 21/10 (diario 237).
+- [ ] Reescribir para el 3D las secciones de lógica de `ARQUITECTURA.md` (piezas del sistema, mundo, niveles, Test 2, partículas, bloqueo físico, interfaz): nombran scripts 2D que ya no existen (diario 237).
+- [ ] Resolver la contradicción del radio base: 0,10 frente a 0,25 de `ESPEC_HECHIZO.md`.
+
+**Organización**
+- [ ] Fundir los laboratorios sueltos en LabHechizos.
+- [ ] Decidir AguaCapa frente a W1' midiendo la GPU.
+- [ ] Conectar ConsumoFuego3D.
+
+**Limpieza del repo**
+- [ ] Meter `tools/godot_local.txt`, `salida*.txt` y `pruebas_resultado.txt` en `.gitignore`.
+- [ ] Quitar el archivo `main)` de la raíz.
+- [ ] Archivar los `.cmd` de OneDrive.
+- [ ] Arreglar la fila mal formada «Shaders del suelo» en `PROPIETARIOS.md` y subir esa versión al Project de claude.ai.
+
+**Rutina**
+- [ ] Playtest de 20 minutos.
+- [ ] Medición de rendimiento semanal.
