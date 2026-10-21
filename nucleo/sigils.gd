@@ -61,6 +61,7 @@ const FORM: Dictionary = {
 	"pulso": {"spread": true, "pulse": true, "cooldown": 2.5},
 	"atraccion": {"pull": true, "cooldown": 1.5},
 	"espejo": {"mirror": true, "cooldown": 1.5},
+	# OJO (21/10): esto es la receta ANTIGUA (SpellRecipe, 2D). En el juego 3D (receta V2) `linea` ya NO es un muro: es el RAYO («haz»); el muro es solo de `barrera`. Ver `aplicar_v2` y `Hechizo.haz`.
 	"linea": {"spread": true, "blocks": true, "cooldown": 2.0},
 	# Fase 8 (glifos como geometría): en 3D el significado lo pone Receta3D/GeometriaHechizo; aquí solo la recarga.
 	"altura": {"cooldown": 2.0}
@@ -292,6 +293,9 @@ static func velocidad_flecha() -> float:
 
 
 const COSTE_PROP_V2: float = 0.25       ## cada propiedad distinta encarece un 25 %
+## RAYO (21/10): con false, ᛁ `linea` vuelve a ser SOLO un eje del volumen (sin haz). Es un interruptor de PRUEBAS y de diseño (las pruebas del volumen genérico —`prueba_materia_v2`, que mide el
+## sólido, el líquido, el plasma… sobre elipsoides estirados— lo apagan); el juego lo deja en true.
+static var HAZ_ACTIVO: bool = true
 const GLIFOS_V2: Dictionary = {
 	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
 	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma PASO_EJE_V2 (0,15). Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
@@ -361,6 +365,10 @@ static func aplicar_v2(contadores: Dictionary) -> Dictionary:
 		# multiplica: v × por_glifo^n · suma: v + por_glifo × n (un glifo repetido n veces vale n veces su aporte)
 		v = v * pow(float(d["por_glifo"]), float(n)) if d.get("modo", "suma") == "multiplica" else v + float(d["por_glifo"]) * float(n)
 		destino[clave] = minf(v, float(d["tope"]))
+	# RAYO (21/10, Pablo): ᛁ `linea` + elemento = un haz recto; el MURO es solo de `barrera`. Hay haz si se dibujó alguna ᛁ y no hay barrera (solidez) ni flecha (viaja).
+	# Es un dato derivado de la receta (como el nombre de la forma): `GeometriaV2.nombre_derivado` y `Hechizo.haz` lo leen igual.
+	var props_salida: Dictionary = salida["props"]
+	salida["haz"] = HAZ_ACTIVO and maxi(int(contadores.get("linea_x", 0)), 0) + maxi(int(contadores.get("linea_z", 0)), 0) > 0 and not props_salida.has("solidez") and not props_salida.has("viaja")
 	return salida
 
 

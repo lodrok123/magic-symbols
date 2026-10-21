@@ -86,6 +86,13 @@ const SUELO_FALTA: float = 0.9             ## si no se encuentra suelo, cae esta
 ## FORMAS QUIETAS
 const BLOQUE_ALTO: float = 1.0             ## alto de una pieza `bloque_tierra` (u): los pisos se apilan de a uno
 const BLOQUE_ANCHO: float = 0.9
+const FILA_PASO_U: float = 0.6              ## RAYO de tierra: u entre pinchos de la fila (× esc)
+const FILA_SALIDA_U: float = 0.9            ## u de la mano al primer pincho (× esc)
+const FILA_MAX: int = 14                    ## pinchos como mucho
+const FILA_RETARDO_S: float = 0.05          ## s entre un pincho y el siguiente (la secuencia)
+const FILA_LADO_U: float = 0.12             ## desvío lateral al azar de cada pincho (u)
+const FILA_ESCALA: float = 1.5              ## los pinchos de la fila miden esto × `MEDIDA` (a la escala de un pincho de esfera se leen pequeños en fila)
+const FILA_ESCALA_INI: float = 0.7          ## y el primero (junto a la mano) es este tanto del último
 const PISOS_MAX: int = 3
 const MAX_BLOQUES: int = 18                ## por hechizo (las formas grandes se recortan)
 const T_EMERGE: float = 0.4                ## s que tarda un bloque en salir
@@ -556,14 +563,15 @@ static func _bloque_que_sale(raiz: Node3D, pie: Vector3, xz: Vector2, piso: int,
 	return m
 
 
-static func _pincho_que_sale(raiz: Node3D, pie: Vector3, xz: Vector2, vida: float, esc: float, orden: int) -> MeshInstance3D:
+static func _pincho_que_sale(raiz: Node3D, pie: Vector3, xz: Vector2, vida: float, esc: float, orden: int, retardo_fijo: float = -1.0, escala: float = 1.0) -> MeshInstance3D:
 	var m: MeshInstance3D = pieza("pincho_tierra_%d" % (orden % N_PINCHOS))
 	m.name = "pincho_tierra_%d" % orden
-	var y_ini: float = pie.y - 1.0
+	var y_ini: float = pie.y - 1.0 * escala
 	m.position = Vector3(pie.x + xz.x, y_ini, pie.z + xz.y)
 	m.rotation = Vector3(randf_range(-0.25, 0.25), randf() * TAU, randf_range(-0.25, 0.25))
+	m.scale = m.scale * escala                       # `escala` > 1 lo agranda (la fila del rayo de tierra); la `scale` previa es la de una malla suelta sin hornear
 	raiz.add_child(m)
-	var retardo: float = randf() * RETARDO_MAX
+	var retardo: float = randf() * RETARDO_MAX if retardo_fijo < 0.0 else retardo_fijo      # con `retardo_fijo` el orden de salida es el de la fila
 	var espera: float = maxf(vida - retardo - T_EMERGE - T_HUNDE_BLOQUE, 0.1)
 	var tw: Tween = m.create_tween()
 	tw.tween_interval(retardo)
@@ -573,6 +581,29 @@ static func _pincho_que_sale(raiz: Node3D, pie: Vector3, xz: Vector2, vida: floa
 	tw.tween_property(m, "position:y", y_ini, T_HUNDE_BLOQUE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(m.queue_free)
 	return m
+
+
+## RAYO de tierra (21/10, ᛁ `linea` + tierra): una FILA de pinchos `pincho_tierra_*` que brotan del suelo EN SECUENCIA a lo largo del haz, de la mano a la punta (cada uno `FILA_RETARDO_S` s
+## después del anterior), con su polvo, y se hunden a la vez. Más grandes hacia la punta. `suelo` = y del suelo (NAN = la de la punta). `esc` = tamaño (1 = normal). Devuelve los pinchos.
+static func fila_pinchos(padre: Node3D, desde: Vector3, hasta: Vector3, vida: float, esc: float = 1.0, suelo: float = NAN) -> Array:
+	var res: Array = []
+	if padre == null or not is_instance_valid(padre) or not padre.is_inside_tree():
+		return res
+	var d := Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
+	var largo: float = d.length()
+	var dir: Vector3 = d / largo if largo > 0.01 else Vector3.RIGHT
+	var k: float = clampf(esc, 0.5, 2.0)
+	var y_s: float = suelo if not is_nan(suelo) else hasta.y - 0.1
+	var salida: float = minf(FILA_SALIDA_U * k, largo * 0.5)
+	var util: float = maxf(largo - salida, 0.0)
+	var n: int = clampi(int(util / (FILA_PASO_U * k)) + 1, 1, FILA_MAX)
+	var lado: Vector3 = dir.cross(Vector3.UP)
+	for i in range(n):
+		var t: float = float(i) / float(maxi(n - 1, 1))
+		var p: Vector3 = desde + dir * (salida + util * t)
+		var xz := Vector2(lado.x, lado.z) * randf_range(-FILA_LADO_U, FILA_LADO_U) * k
+		res.append(_pincho_que_sale(padre, Vector3(p.x, y_s, p.z), xz, vida, esc, i, float(i) * FILA_RETARDO_S, FILA_ESCALA * lerpf(FILA_ESCALA_INI, 1.0, t) * k))
+	return res
 
 
 ## Un poco de polvo al pie de un bloque que empieza a salir. Pone `VfxKit3D.elemento` a «tierra» solo durante la llamada (se llama diferida, de un tween).

@@ -118,11 +118,13 @@ func _topes_y_casos() -> void:
 		return Lanzador3D.GeometriaV2.nombre_derivado(gg, float((gg["props"] as Dictionary).get("viaja", 0.0)) > 0.0)
 	_ok(N.call({}) == "x_mano", "esfera → x_mano")
 	_ok(N.call({"altura": 2}) == "alto", "pilar → alto")
-	_ok(N.call({"linea_x": 2}) == "abajo", "muro bajo quieto → abajo")
+	_ok(N.call({"barrera": 1, "linea_x": 2}) == "abajo", "muro bajo quieto (barrera + ᛁ) → abajo")
+	_ok(N.call({"linea_x": 2}) == "x_mano" and Sigils.aplicar_v2({"linea_x": 2})["haz"] == true, "21/10: ᛁ sola (sin barrera ni flecha) es un haz → x_mano (mano al frente)")
+	_ok(Sigils.aplicar_v2({"barrera": 1, "linea_x": 2})["haz"] == false and Sigils.aplicar_v2({"flecha": 1, "linea_x": 2})["haz"] == false and Sigils.aplicar_v2({"altura": 2})["haz"] == false and Sigils.aplicar_v2({})["haz"] == false, "con barrera, con flecha o sin ᛁ no hay haz")
 	_ok(N.call({"linea_x": 1, "linea_z": 1}) == "abajo" or N.call({"linea_x": 1, "linea_z": 1}) == "x_mano", "losa pequeña: nombre válido")
 	_ok(N.call({"linea_z": 3}) == "x_mano", "haz (Z grande) → x_mano")
 	_ok(N.call({"linea_x": 2, "flecha": 1}) == "x_mano", "lo que viaja → x_mano")
-	_ok(N.call({"linea_x": 1, "altura": 2}) == "alto", "muro alto → alto")
+	_ok(N.call({"barrera": 1, "linea_x": 1, "altura": 2}) == "alto", "muro alto (barrera + ᛁ + altura) → alto")
 	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({})) == "esfera", "eje dominante de la esfera")
 	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({"linea_x": 2})) == "x", "eje dominante x")
 	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({"altura": 2})) == "y", "eje dominante y")
@@ -395,6 +397,7 @@ func _ciclo_de_vida() -> void:
 	_ok(_l is Lanzador3D, "copias de agua: no rompe el reparto de volumen")
 
 	# --- 2. nace en la mano y crece ---
+	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola es ahora un rayo (prueba_haz.gd); aquí se mide el volumen estirado que crece, que sigue existiendo (barrera o laboratorio)
 	var sin_crecer: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x"], "fire")
 	var final_: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
 	_ok(final_.size() == sin_crecer.size(), "crece: al acabar de crecer ocupa lo mismo que sin crecer (%d y %d casillas)" % [final_.size(), sin_crecer.size()])
@@ -407,6 +410,7 @@ func _ciclo_de_vida() -> void:
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()
 	_ok(al_final == final_.size(), "crece (ESPEC §1.3): el volumen escala hasta el 100 %% y las zonas que deja suman las casillas del volumen FINAL (%d de %d)" % [al_final, final_.size()])
+	Sigils.HAZ_ACTIVO = true
 	var rapido: Array = HechizoVivo.fases_crece(1.5, 0.3, 0.25)
 	var lento: Array = HechizoVivo.fases_crece(0.5, 0.3, 0.25)
 	_ok(float((rapido.back() as Dictionary)["t"]) < float((lento.back() as Dictionary)["t"]), "crece: más glifos de pulso, crece antes (%.2f s < %.2f s)" % [(rapido.back() as Dictionary)["t"], (lento.back() as Dictionary)["t"]])

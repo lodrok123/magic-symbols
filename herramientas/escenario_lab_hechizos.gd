@@ -358,6 +358,7 @@ func _escenario() -> void:
 	await avanzar_s(0.5)
 
 	# --- 10 · Limpieza de la sala entre rondas ---
+	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola es ahora un rayo (prueba_haz.gd), sin bloques ni agua; aquí se mide la limpieza de lo que dejan los VOLÚMENES estirados
 	var sim: AguaSim3D = Terreno3D.agua_sim
 	var vol0: float = sim.volumen_total() if sim != null else 0.0
 	lab.limpiar()
@@ -399,6 +400,7 @@ func _escenario() -> void:
 		await process_frame
 		guard += 1
 	_ok("10 el barrido en modo completo hace sus 4 rondas y se para", int(lab.rondas) == 4 and not lab.barrido, "rondas %d" % int(lab.rondas))
+	Sigils.HAZ_ACTIVO = true
 	_ok("10 limpió la sala antes de cada ronda (4 limpiezas)", int(lab.limpiezas) - lim0 == 4, "%d" % (int(lab.limpiezas) - lim0))
 	_ok("10 el barrido completo usó el camino real (fases vistas en alguna ronda)", int(lab.conjuros) >= 2, "conjuros %d" % int(lab.conjuros))
 	for i in range(raras0, (lab.raras as Array).size()):

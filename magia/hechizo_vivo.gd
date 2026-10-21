@@ -58,6 +58,8 @@ const LLEGADA_U: float = 0.7                ## a esta distancia del lanzador, lo
 const SEGURIDAD_S: float = 0.25             ## s tras nacer en los que NO hiere al lanzador aunque `golpea_lanzador`
 const DESPLAZA_HIJO_U: float = 0.15         ## un hijo nace un poco por delante, para no chocar en el mismo punto que su padre
 const PASO_ESTELA_U: float = 0.5            ## cada cuántas unidades recorridas pide su `estela`
+const HAZ_BOCA_U: float = 0.4               ## RAYO: u que el haz nace por delante de la mano (el lanzallamas de siempre)
+const HAZ_PUNTA_Y_U: float = 0.1            ## RAYO: altura sobre el suelo (u) de la punta del dibujo
 
 ## Cuántos hechizos vivos lleva un mismo lanzamiento (el padre y sus hijos comparten uno): el tope es Hechizo.MAX_VIVOS.
 class Linaje extends RefCounted:
@@ -120,7 +122,7 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 		nuevo.disparar_evento("al_nacer", origen, dir)
 		if not nuevo.proyectil and (hechizo.eventos.has("al_expirar")):
 			# §0.3: lo que viaja expira al llegar + `permanencia`; lo que nace quieto, a `persiste` + `permanencia`
-			var hasta: float = (nuevo._t_viaje if hechizo.viaja else maxf(hechizo.persiste, 0.0)) + hechizo.permanencia
+			var hasta: float = (Hechizo.HAZ_DURA_S if hechizo.haz else (nuevo._t_viaje if hechizo.viaja else maxf(hechizo.persiste, 0.0))) + hechizo.permanencia
 			nuevo._despues(hasta, func() -> void: nuevo.disparar_evento("al_expirar", origen, dir))
 	nuevo._revisar_fin()
 	return nuevo
@@ -155,6 +157,8 @@ static func tiempo_caida(geo: Dictionary) -> float:
 
 ## Hace que ocurra lo que dice el Hechizo: avisa al VFX, y cada tanda de casillas cobra vida a su hora. Devuelve cuántas casillas ocupa (0 = rechazado).
 func _materializar(origen: Vector3, dir: Vector3) -> int:
+	if h.haz:
+		return _materializar_haz(origen, dir)             # RAYO (21/10): ᛁ + elemento. No es un volumen que se rasteriza: es un recorrido
 	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, h.fuente)
 	if aviso != "":
 		PlayLog.event("cast_rechazado_altura", {"elemento": elemento, "y_tope": int(g["y_tope"])})
@@ -214,6 +218,68 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 			cuenta += celdas_ev.size()
 			_despues(t, func() -> void: _vivir(ctx, solidez, refleja))
 	return cuenta
+
+
+## RAYO («haz», 21/10, decisión de Pablo): ᛁ `linea` + elemento. Un haz recto de la mano hacia `dir`, de `Hechizo.alcance_haz` m, que se PARA en casillas sólidas y barreras (el mismo `trazar` que el
+## desplazamiento) y aplica el golpe del elemento a TODO el recorrido a la vez: cada casilla recibe su estado de suelo (mojado, quemado, helado…) y cada enemigo o reactivo que cruza, el golpe UNA vez
+## (un haz perfora: no se detiene en el primero). No deja bloques, agua en la simulación ni zonas: el muro es de `barrera`. El dibujo (VfxElemento3D) llega por `hechizo_v2` con `volumen["haz"]`
+## ({desde: la mano, hasta: la punta a ras de suelo, ancho en u, alcance, largo}). Devuelve las casillas que recorre (mínimo 1: un haz contra una pared pegada también se dispara).
+func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
+	var d2 := Vector2(dir.x, dir.z)
+	if d2.length() < 0.001:
+		d2 = Vector2.RIGHT
+	d2 = d2.normalized()
+	var o2 := Vector2(origen.x, origen.z)
+	var cas: float = Terreno3D.casilla
+	var tramo: Array = camino(o2, d2, h.alcance_haz, 0, true)
+	var fin2: Vector2 = (tramo.back()["p"] as Vector2) if not tramo.is_empty() else o2
+	# Las casillas del recorrido: la recta de la mano al final muestreada a un cuarto de casilla (una diagonal no se salta ninguna), sin la del lanzador ni las sólidas.
+	var c0: Vector2i = Terreno3D.celda_de(origen)
+	var celdas: Array = []
+	var vistas: Dictionary = {}
+	var largo: float = o2.distance_to(fin2)
+	var pasos: int = maxi(int(ceilf(largo / (cas * 0.25))), 1)
+	for i in range(pasos + 1):
+		var q: Vector2 = o2.lerp(fin2, float(i) / float(pasos))
+		var c: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
+		if c == c0 or vistas.has(c) or not Lanzador3D.en_mapa(c) or Lanzador3D.celda_solida(c, 0):
+			continue
+		vistas[c] = true
+		celdas.append(c)
+	var suelo: float = Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y
+	var d3 := Vector3(d2.x, 0.0, d2.y)
+	var mano := Vector3(o2.x, suelo + (h.altura_salida + h.elevacion) * cas, o2.y) + d3 * HAZ_BOCA_U                # de donde sale: la altura de la mano de una flecha, un poco por delante
+	var punta := Vector3(fin2.x, suelo + HAZ_PUNTA_Y_U, fin2.y)                                                          # y acaba a ras del suelo, como el lanzallamas de siempre
+	var vida_vfx: float = Hechizo.HAZ_DURA_S + h.permanencia
+	var volumen: Dictionary = {"x": g["x"], "y": g["y"], "z": g["z"], "celdas": celdas, "niveles": 1, "persiste": 0.0, "suelo": suelo,
+		"eventos": [{"t": 0.0, "pos": o2, "dir": d2}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": vida_vfx,
+		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,
+		"haz": {"desde": mano, "hasta": punta, "ancho": Hechizo.HAZ_ANCHO * cas, "alcance": h.alcance_haz, "largo": largo}}
+	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
+	var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas, "niveles": 1, "vida": vida_vfx, "origen": origen, "dir": d3, "estado": estado,
+		"fraccion": 1.0, "tocados": {}, "golpes": golpes_camino.duplicate()}
+	_golpes_del_camino(ctx)
+	_materia_haz(ctx)
+	if is_inside_tree():
+		_despues(vida_vfx, func() -> void: pass)         # el HechizoVivo vive lo que se ve el haz: el dibujo cuelga de él y, si se va antes, se apaga a los 0,5 s (VfxElemento3D._soltar)
+	return maxi(celdas.size(), 1)
+
+
+## Lo que el haz hace en sus casillas (RAYO): la ENERGÍA es la descarga de siempre (recorre el agua y los conductores y golpea a todo lo que haya); el resto marca el estado de suelo que deja el
+## elemento (`deja`) y golpea UNA vez a cada enemigo y reactivo de las casillas, como un impacto de ese elemento (`_contacto` → `Lanzador3D._golpear`: daño, estados, empuje del viento…).
+func _materia_haz(ctx: Dictionary) -> int:
+	var celdas: Array = ctx["celdas"]
+	if celdas.is_empty():
+		return 0
+	if String(ctx["estado"]) == "energia":
+		return _descarga(ctx, {})
+	var rune: RuneData = ctx["data"]
+	if rune != null and rune.deja != "":
+		for c in celdas:
+			lanz.marcar_celda(String(ctx["elemento"]), c as Vector2i)
+	_contacto(ctx)
+	return celdas.size()
 
 
 ## Ejecuta `f` dentro de `t` s (de juego: respeta la pausa y el time_scale). El nodo no se borra hasta que se hayan cumplido todos sus retrasos.
@@ -354,7 +420,7 @@ func _evento(eventos: Array, ya: Dictionary, geo: Dictionary, s: float, pos: Vec
 
 ## El camino del desplazamiento: una posición por casilla recorrida, [{p: Vector2, d: Vector2}], SIN la de partida. Lo traza `trazar` (para
 ## en casillas sólidas, barreras y objetos que reaccionan; rebota `rebotes` veces), así que viajar y rebotar es lo MISMO que una flecha.
-func camino(origen: Vector2, d: Vector2, viaja: float, rebotes: int) -> Array:
+func camino(origen: Vector2, d: Vector2, viaja: float, rebotes: int, atraviesa: bool = false) -> Array:
 	var cas: float = Terreno3D.casilla
 	var res: Array = []
 	golpes_camino = []
@@ -364,7 +430,7 @@ func camino(origen: Vector2, d: Vector2, viaja: float, rebotes: int) -> Array:
 		return res
 	var inicio := Vector3(origen.x, Lanzador3D.y_pies(Lanzador3D.celda_de(Vector3(origen.x, 0.0, origen.y))) + Terreno3D.ALTO_NIVEL * 0.5, origen.y)
 	var altura_antes: int = lanz.altura
-	var tr: Dictionary = lanz.trazar(inicio, Vector3(d.x, 0.0, d.y), viaja * cas, 0, data, false, rebotes, false)
+	var tr: Dictionary = lanz.trazar(inicio, Vector3(d.x, 0.0, d.y), viaja * cas, 0, data, atraviesa, rebotes, false)
 	lanz.altura = altura_antes
 	var recorrido: float = 0.0
 	var siguiente: float = cas

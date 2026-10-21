@@ -12,7 +12,7 @@ extends "res://herramientas/escenario_base.gd"
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_cast_points.gd
 
 const DESDE := Vector2i(6, 24)
-const POSICIONES: Dictionary = {"x_mano": ["linea_z"], "alto": ["altura"], "abajo": ["linea_x", "linea_x", "linea_x"]}
+const POSICIONES: Dictionary = {"x_mano": ["linea_z"], "alto": ["altura"], "abajo": ["barrera", "linea_x", "linea_x", "linea_x"]}       # 21/10: ᛁ sola es un rayo (x_mano): el volumen plano y quieto que va al suelo es el muro (barrera + ᛁ)
 
 var pj: Pj3D = null
 

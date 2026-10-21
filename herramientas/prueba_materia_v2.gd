@@ -47,6 +47,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 func _initialize() -> void:
 	await process_frame
+	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola ahora es un rayo (prueba_haz.gd); esta prueba mide la materia de los VOLÚMENES estirados (X×6, Z×6…), que siguen existiendo con barrera o por el laboratorio
 	for estado in ELEMENTOS:
 		for nombre in RECETAS:
 			await _caso(estado, nombre)

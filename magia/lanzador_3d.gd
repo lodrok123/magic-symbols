@@ -2337,6 +2337,8 @@ class GeometriaV2 extends RefCounted:
 	## mano al frente ("x_mano"); lo que domina en altura se eleva ("alto"); lo plano y quieto se pone en el suelo ("abajo"). Una esfera, o una mezcla que no
 	## encaja en ninguna (p. ej. ancho y alto a la vez sin Z), sale con la mano al frente: es el lanzar de siempre.
 	static func nombre_derivado(g: Dictionary, viaja: bool) -> String:
+		if bool(g.get("haz", false)):
+			return "x_mano"                             # RAYO (21/10): ᛁ + elemento es un haz; sale con la mano al frente aunque ᛁ vaya en X (ancho) o en Z (fondo)
 		var dom: String = eje_dominante(g)
 		if viaja or (dom == "z" and float(g["z"]) > float(g["x"]) + EPS and float(g["z"]) > float(g["y"]) + EPS):
 			return "x_mano"

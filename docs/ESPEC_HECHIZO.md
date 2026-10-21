@@ -200,8 +200,8 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 
 | glifo | campos que toca |
 |---|---|
-| ᛁ horizontal | `semieje_x` +0,15 (tope 3,0) |
-| ᛁ vertical | `semieje_z` +0,15 (tope 3,0) |
+| ᛁ horizontal | `semieje_x` +0,15 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛁ vertical | `semieje_z` +0,15 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛏ | `semieje_y` +0,15 (tope 1,0) |
 | ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
@@ -211,6 +211,34 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 | **ᛉ Permanencia** (nuevo; algiz, decidido 19/10) | `permanencia` +2 s por glifo (tope 25 con `persiste`) |
 
 Retardo, atracción, espejo y amplificar siguen aparcados.
+
+## 3b. ᛁ `linea` = RAYO (21/10, decisión de Pablo; el muro es solo de `barrera`)
+
+El glifo `linea` **ya no es «muro delante»**. **El muro es solo de ᛁ-con-`barrera`** (`barrera` pone la `solidez`), y **`linea` + elemento = RAYO**: un **haz recto desde la mano hacia donde apunta**.
+«Rayo» es también el elemento relámpago (ᛊ): en el código la forma se llama **`haz`** (`Hechizo.haz`, `Hechizo.figura() == "haz"`, `volumen["haz"]` en la señal `hechizo_v2`); el nombre visible
+es «rayo de fuego», «rayo de hielo»…
+
+**Cuándo hay haz** (`Hechizo.haz`, lo mismo que `Sigils.aplicar_v2(...)["haz"]`): se dibujó alguna ᛁ (`linea_x` o `linea_z`: da igual cuál, suman al mismo haz) **y** no hay `barrera` (solidez) **ni** `flecha`
+(`distancia_max`). Con barrera es el muro de siempre (ᛁ le da ancho); con flecha es un proyectil alargado.
+
+| campo / constante | valor | qué es |
+|---|---|---|
+| `Hechizo.HAZ_ALCANCE_BASE` | 3 m | alcance con una ᛁ |
+| `Hechizo.HAZ_ALCANCE_POR_GLIFO` | +1 m | por cada ᛁ sucesiva |
+| `Hechizo.HAZ_ALCANCE_MAX` | 6 m | tope (≤ `LIM_DISTANCIA`) |
+| `Hechizo.HAZ_ANCHO` | 0,35 m | grosor del dibujo (el golpe cubre la casilla entera) |
+| `Hechizo.HAZ_DURA_S` | 0,9 s | lo que se ve (+ `permanencia`) |
+| `Hechizo.alcance_haz` | derivado | alcance en m (0 si no es haz) |
+
+**Qué hace** (`HechizoVivo._materializar_haz`): es **instantáneo** y aplica el golpe del elemento a TODO el recorrido a la vez. Se **para** en casillas sólidas y en barreras (el mismo `trazar`
+del desplazamiento, sin detenerse en enemigos: el haz **perfora**). Cada **casilla** del recorrido recibe el estado de suelo del elemento (`deja`: mojado, quemado, helado…; las alturas ≥ 1 lo
+rechazan como siempre) y cada **enemigo y reactivo** de esas casillas, el golpe del elemento **una vez** (daño, estados, empuje del viento). La energía (rayo) usa la descarga de siempre
+(recorre el agua y los conductores). **No deja** bloques, agua en la simulación ni zonas, y no bloquea proyectiles (eso es del muro). `copias`, `rebotes` y `crece` no cambian el haz. La forma de lanzar
+es siempre `x_mano` (mano al frente).
+
+**Dibujo por elemento** (`VfxElemento3D.haz` → una pieza por elemento): fuego `VfxKit3D.haz` (lanzallamas) · agua `VfxAgua.chorro` (haz translúcido del kit + gotas, salpicadura y charco) ·
+tierra `VfxTierra.fila_pinchos` (pinchos `pincho_tierra_*` que brotan en secuencia) · viento `VfxViento.corriente` (cintas rectas con hojas) · rayo `VfxRayo.descarga` (descarga quebrada que cambia
+de trazado a saltos) · hielo `VfxHielo.rayo` (haz de cristal con esquirlas y escarcha). Prueba: `herramientas/prueba_haz.gd`; capturas: `herramientas/captura_haz.gd` → `docs/capturas/haz/`.
 
 ## 4. Ajustes para implementar
 

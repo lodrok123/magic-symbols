@@ -47,6 +47,16 @@ const HOJAS_REMOLINO: int = 5
 ## QUIETAS
 const CINTAS_TORBELLINO: int = 4
 const HOJAS_TORBELLINO: int = 6
+const CORRIENTE_CINTAS: int = 4                ## RAYO de viento: cintas de la corriente
+const CORRIENTE_VUELTAS_POR_U: float = 0.45    ## vueltas de cada cinta por unidad de largo del haz
+const CORRIENTE_RADIO_INI: float = 0.12        ## radio de la espiral junto a la mano (u × esc)
+const CORRIENTE_RADIO_FIN: float = 0.5         ## y en la punta
+const CORRIENTE_ANCHO: float = 0.4             ## ancho de la tira (u × esc)
+const CORRIENTE_GIRO: float = 9.0              ## rad/s
+const CORRIENTE_ALFA: float = 0.55             ## más opaca que las del proyectil (0,42): la corriente es larga y se tiene que leer a la distancia de la cámara
+const CORRIENTE_HOJAS: int = 7
+const CORRIENTE_TARJETAS: int = 2              ## tarjetas de remolino (fila 3 del atlas) en la corriente
+const CORRIENTE_DERIVA_U: float = 1.2          ## u/s que las hojas avanzan hacia la punta
 const T_FUNDIDO_ENTRADA: float = 0.3
 const T_FUNDIDO_SALIDA: float = 0.6
 const TORBELLINO_GIRO: float = 4.0
@@ -418,6 +428,49 @@ static func remolino(mundo: Node, pos: Vector3, esc: float, suelo: float = NAN) 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # FORMAS QUIETAS
 # ---------------------------------------------------------------------------------------------------------------------------------
+
+## RAYO de viento (21/10, ᛁ `linea` + viento): una CORRIENTE recta de `desde` (la mano) a `hasta` (la punta): cintas que se enroscan a lo largo del eje y se abren hacia la punta (las del
+## proyectil, pero hacia delante), con hojas y motas arrastradas por la corriente. Entra y sale con un fundido; vive `vida` s y se libera sola. `esc` = tamaño (1 = normal). Devuelve la raíz.
+static func corriente(padre: Node3D, desde: Vector3, hasta: Vector3, vida: float, esc: float = 1.0) -> Node3D:
+	if padre == null or not is_instance_valid(padre) or not padre.is_inside_tree():
+		return null
+	var d: Vector3 = hasta - desde
+	var largo: float = maxf(d.length(), 0.5)
+	var k: float = clampf(esc, 0.5, 2.0)
+	var raiz := Node3D.new()
+	raiz.name = "CorrienteViento"
+	padre.add_child(raiz)
+	raiz.position = desde
+	var eje: Node3D = _eje(raiz, d)
+	var r0: float = CORRIENTE_RADIO_INI * k
+	var r1: float = CORRIENTE_RADIO_FIN * k
+	var mat: StandardMaterial3D = material_cinta(0.0)
+	var rueda: Rueda = _cintas(eje, CORRIENTE_CINTAS, largo, r0, r1, largo * CORRIENTE_VUELTAS_POR_U, CORRIENTE_ANCHO * k, 1.0, CORRIENTE_GIRO, mat)
+	var hojas: Array = _hojas_en(rueda, CORRIENTE_HOJAS, largo, r0, r1, 1.0, 0.3 * k, CORRIENTE_TARJETAS)
+	VfxKit3D.particulas(raiz, Vector3.ZERO, MOTAS_VUELO, 0.8, 0.1, 0.5, false, true, r1, 0.0, d.normalized(), 25.0)
+	var v: float = maxf(vida, T_FUNDIDO_ENTRADA + T_FUNDIDO_SALIDA + 0.1)
+	var tw: Tween = raiz.create_tween()
+	var td: Tween = raiz.create_tween().set_parallel(true)         # el arrastre de las hojas va aparte: no debe alargar el fundido de salida
+	tw.tween_property(mat, "albedo_color:a", CORRIENTE_ALFA, T_FUNDIDO_ENTRADA)
+	for h in hojas:
+		var mi := h as MeshInstance3D
+		mi.scale = Vector3.ZERO
+		tw.parallel().tween_property(mi, "scale", Vector3.ONE, T_FUNDIDO_ENTRADA)
+		if es_mascara(mi):
+			fundir(mi, 0.0)
+			tw.parallel().tween_method(fundir_id.bind(mi.get_instance_id()), 0.0, 1.0, T_FUNDIDO_ENTRADA)
+		# la corriente las arrastra hacia la punta (nunca más allá)
+		var y1: float = minf(mi.position.y + CORRIENTE_DERIVA_U * v, largo * 0.97)
+		td.tween_property(mi, "position:y", y1, v)
+	tw.tween_interval(v - T_FUNDIDO_ENTRADA - T_FUNDIDO_SALIDA)
+	tw.tween_property(mat, "albedo_color:a", 0.0, T_FUNDIDO_SALIDA)
+	for h in hojas:
+		tw.parallel().tween_property(h, "scale", Vector3.ZERO, T_FUNDIDO_SALIDA)
+		if es_mascara(h):
+			tw.parallel().tween_method(fundir_id.bind((h as MeshInstance3D).get_instance_id()), 1.0, 0.0, T_FUNDIDO_SALIDA)
+	tw.tween_callback(raiz.queue_free)
+	return raiz
+
 
 ## Tornado / corro de viento en `padre` (en el pie): cintas en espiral que suben alrededor de `eje_dir` (hacia arriba si no viaja), con fundido de entrada y
 ## salida; vive `vida` s y se libera solo. Más ancho arriba que abajo. Devuelve el eje (con `Rueda` y las cintas).

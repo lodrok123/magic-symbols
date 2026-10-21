@@ -57,7 +57,7 @@ const SIGILS: PackedStringArray = [
 	"atraccion",   # NUEVO: puntas que convergen
 	"espejo",      # NUEVO: eje con dos puntas hacia fuera
 	"permanencia", # ᛉ algiz (19/10, Pablo): lo que sale se queda más tiempo. Hasta que Pablo grabe sus muestras con G no se reconoce
-	"linea",       # raya: muro delante (fase 8)
+	"linea",       # raya (ᛁ isa): con un elemento es un RAYO («haz», 21/10, Pablo); el muro es solo de `barrera`
 	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
 ]
 

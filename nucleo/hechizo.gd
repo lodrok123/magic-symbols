@@ -54,6 +54,15 @@ const LIM_COPIAS: int = 8                     ## el glifo topa en 4; el laborato
 const MAX_GLIFOS: int = 6                     ## glifos máximos por hechizo (ESPEC §1.9): el mismo número que los huecos de la página del libro. Lo aplican el libro y el lab (Mayús+L lo quita); `construir()` no cuenta glifos.
 ## Velocidad (m/s) a la que se desplaza algo con `distancia_max` > 0 pero `velocidad` = 0: la de los volúmenes que viajaban por tandas (8 casillas/s).
 const VELOCIDAD_VIAJE_DEFECTO: float = 8.0
+## RAYO («haz», 21/10, decisión de Pablo): ᛁ `linea` + elemento = un haz recto desde la mano hacia donde apunta; el MURO es solo de `barrera`. «Rayo» es también el elemento relámpago (ᛊ):
+## en el código la forma se llama `haz`. Es INSTANTÁNEO (aplica el golpe del elemento a todo el recorrido al nacer) y se queda dibujado `HAZ_DURA_S` s (+ `permanencia`). Se para en casillas
+## sólidas y en barreras. Alcance: `HAZ_ALCANCE_BASE` m con una ᛁ y +`HAZ_ALCANCE_POR_GLIFO` por cada ᛁ sucesiva (X o Z da igual), tope `HAZ_ALCANCE_MAX`. Con barrera es un muro y con flecha un
+## proyectil largo: no hay haz. El ancho lo pone el dibujo (`HAZ_ANCHO`); el recorrido es de una casilla de ancho.
+const HAZ_ALCANCE_BASE: float = 3.0           ## m con una sola ᛁ
+const HAZ_ALCANCE_POR_GLIFO: float = 1.0      ## m más por cada ᛁ sucesiva
+const HAZ_ALCANCE_MAX: float = 6.0            ## m (≤ LIM_DISTANCIA)
+const HAZ_ANCHO: float = 0.35                 ## m de grosor del dibujo (el golpe cubre la casilla entera)
+const HAZ_DURA_S: float = 0.9                 ## s que se ve el haz (+ `permanencia`)
 ## Tamaño EN VUELO de un proyectil (hechizo con `velocidad` > 0, o sea el de la flecha) respecto a sus semiejes. Decisión de Pablo (21/10, tras el playtest): el proyectil de
 ## «flecha + elemento» medía 0,5 casillas de ancho (≈ 1,15 u, más que la chibi) y era demasiado grande; ahora mide la mitad. AJUSTABLE: 1.0 lo deja como estaba.
 ## Vive aquí y no en `RADIO_BASE_V2` porque de ese salen la barrera, el muro, la columna y el paso de cada glifo de eje, y el rasterizado de casillas de lo que está quieto.
@@ -65,7 +74,7 @@ const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
 ## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
-const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota"]
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz"]
 
 ## Qué propiedad de la receta (`Sigils.aplicar_v2(...)["props"]`) es cada campo. Cuenta como «propiedad usada» (encarece el hechizo) cuando algún glifo lo toca.
 const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece", "permanencia": "permanencia"}
@@ -95,7 +104,7 @@ const EDITABLES: Dictionary = {
 }
 ## Los derivados que enseña la tabla (no se tocan: salen de lo demás).
 const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga", "volumen", "superficie", "masa", "resistencia",
-	"flota", "anclado", "protege", "se_expande", "se_repite", "rebota"]
+	"flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz"]
 
 # --- Forma y volumen ---
 ## Casillas de semieje (X ancho, Y alto, Z fondo). Se guardan como tres `float` (64 bits) y no como un Vector3 (32 bits): así los números son EXACTAMENTE los de
@@ -229,7 +238,18 @@ var se_repite: bool:
 var rebota: bool:
 	get:
 		return rebotes > 0
-var forma: String = "x_mano"           ## nombre derivado: x_mano | alto | abajo
+## RAYO (21/10): ¿es un haz? = se dibujó alguna ᛁ (`linea_x`/`linea_z`) y no hay barrera (`solidez`) ni flecha (`distancia_max`). Ver `HAZ_*`. Sale de los glifos y de dos campos, así que si el laboratorio
+## le da solidez o alcance de proyectil deja de serlo.
+var haz: bool:
+	get:
+		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0
+## Alcance del haz en m (0 si no es haz).
+var alcance_haz: float:
+	get:
+		if not haz:
+			return 0.0
+		return clampf(HAZ_ALCANCE_BASE + HAZ_ALCANCE_POR_GLIFO * float(maxi(glifos_linea() - 1, 0)), 0.0, minf(HAZ_ALCANCE_MAX, LIM_DISTANCIA))
+var forma: String = "x_mano"           ## nombre derivado: x_mano | alto | abajo (un haz siempre sale con la mano al frente)
 var cast_point: String = ""            ## id de la variación de CastPoints para esa forma
 var niveles: int = 1
 var viaja: bool = false
@@ -404,7 +424,7 @@ func _escribir(campo: String, valor: Variant) -> void:
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
-	forma = nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)
+	forma = "x_mano" if haz else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
 	niveles = maxi(1, roundi(2.0 * semieje_y))
 	cast_point = CastPoints.variacion_de(forma)
 	var base: float = 4.0 / 3.0 * PI * pow(Sigils.RADIO_BASE_V2, 3.0)
@@ -464,7 +484,25 @@ func propiedades_usadas() -> Dictionary:
 ## Es lo que leen `GeometriaV2.celdas`, el VFX por estado y el laboratorio mientras no pasen a leer el Hechizo directamente.
 func geo() -> Dictionary:
 	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "z_glifos": _glifos_z,
-		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": ""}
+		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": "", "haz": haz}
+
+
+## Cuántas ᛁ (`linea_x` + `linea_z`) lleva el hechizo.
+func glifos_linea() -> int:
+	return maxi(int(glifos.get("linea_x", 0)), 0) + maxi(int(glifos.get("linea_z", 0)), 0)
+
+
+## La figura que dibuja el VFX de un elemento: «haz» (ᛁ), «barrera» (solidez), «proyectil» (viaja), «pulso» (crece) o «esfera». Es la que decide `VfxElemento3D`.
+func figura() -> String:
+	if haz:
+		return "haz"
+	if solidez > 0.0:
+		return "barrera"
+	if viaja or velocidad > 0.0:
+		return "proyectil"
+	if crece > 0.0:
+		return "pulso"
+	return "esfera"
 
 
 ## Una copia independiente (los hijos de `crear_hijo` parten de ella y le cambian campos). No copia el RuneData (se comparte) ni toca los derivados: se copian tal cual.

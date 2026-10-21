@@ -814,11 +814,15 @@ static func haz(padre: Node3D, origen: Vector3, fin: Vector3, dura: float, esc: 
 	tw2.tween_callback(raiz.queue_free)
 	_luz(raiz, dir * largo * 0.5, 1.4, 3.0 + largo * 0.4)
 	# Impacto en el extremo, en bucle mientras dura el haz
+	var el_haz: String = elemento           # rayo: el impacto sale 0,25 s después, cuando `elemento` (estado global) ya puede haber vuelto a otro; se acuerda del suyo
 	var tx := padre.create_tween()
 	tx.tween_interval(0.25)
 	tx.tween_callback(func() -> void:
 		if is_instance_valid(padre):
-			impacto(padre, fin, y_suelo, esc, maxf(fin_t - 0.25, 0.2)))
+			var antes_el: String = elemento
+			elemento = el_haz
+			impacto(padre, fin, y_suelo, esc, maxf(fin_t - 0.25, 0.2))
+			elemento = antes_el)
 	particulas(raiz, Vector3.ZERO, 14, 0.5, 0.08 * esc, 0.6, false, true, 0.05, 0.0, dir, 25.0)
 	return raiz
 

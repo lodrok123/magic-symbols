@@ -61,6 +61,25 @@ func bola(cabeza: Node3D, avance: Vector3, r: float, esc: float, vel: float) -> 
 	return true
 
 
+## RAYO de agua (21/10, ᛁ `linea` + agua): un CHORRO de la mano a la punta. El cuerpo es el haz translúcido del kit con la rampa del agua (borde claro, burbujas que suben por él y la
+## cuña que sale de la mano); encima, gotas que se desprenden y caen a lo largo, y donde da, una salpicadura hacia arriba y el charco de luz. `esc` = tamaño; `suelo` = y del suelo bajo
+## la punta (NAN = la de la punta). Se libera solo a los `vida` s. Devuelve el haz. Hay que llamarlo con `VfxKit3D.elemento = "agua"` (lo pone `VfxElemento3D._con_elemento`).
+static func chorro(padre: Node3D, desde: Vector3, hasta: Vector3, vida: float, esc: float = 1.0, suelo: float = NAN) -> Node3D:
+	if padre == null or not is_instance_valid(padre) or not padre.is_inside_tree():
+		return null
+	var k: float = clampf(esc, 0.5, 2.0)
+	var y_s: float = suelo if not is_nan(suelo) else hasta.y - 0.1
+	var d: Vector3 = hasta - desde
+	var dir: Vector3 = d.normalized() if d.length() > 0.001 else Vector3.RIGHT
+	var raiz: Node3D = VfxKit3D.haz(padre, desde, hasta, vida, k, y_s)
+	# gotas que se desprenden del chorro y caen (a lo largo de todo él: nacen en la mano y salen a la velocidad del chorro)
+	VfxKit3D.particulas(raiz, Vector3.ZERO, 22, 0.55, 0.07 * k, maxf(d.length() * 1.6, 2.0), false, true, 0.06 * k, -6.0, dir, 14.0)
+	var punta := Vector3(hasta.x, y_s, hasta.z)
+	VfxKit3D.particulas(padre, punta + Vector3(0.0, 0.1, 0.0), 14, 0.6, 0.08 * k, 2.2, false, false, 0.15 * k, -7.0, Vector3.UP, 60.0)
+	VfxKit3D.charco(padre, punta, 0.6 * k, 1.0, vida)
+	return raiz
+
+
 ## La ola de agua es más alta que el muro de fuego (lámina de Pablo, 11:47).
 func alto_muro(alto: float) -> float:
 	return alto * 2.5

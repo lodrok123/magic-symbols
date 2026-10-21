@@ -12,6 +12,7 @@ extends Node
 ##     cuelga el efecto (nace con él y muere con él; si el HechizoVivo se libera antes de que acabe el dibujo, el dibujo se suelta y se apaga en 0,5 s).
 ## Variaciones de antes, leídas del `Hechizo` y de `props` (no de nombres de forma, que ya no existen):
 ##   velocidad > 0 → viaja (bola + estela);  props con `crece` → pulso (aro que se abre);  props con `solidez` → barrera (cúpula);  si no, esfera (impacto en sitio).
+##   El volumen trae `haz` (ᛁ `linea` + elemento, 21/10: «rayo de X») → HAZ de la mano a la punta, con el dibujo de cada elemento (`haz`). El muro es solo de `barrera`.
 ## VfxEstado3D (por estado) queda aparte: `VfxEstado3D.encendido` lo apaga y la maqueta lo deja apagado hasta validar elemento por elemento.
 ## Uso:   VfxElemento3D.conectar(lanzador, mundo)
 
@@ -20,6 +21,10 @@ const PROPIOS: PackedStringArray = ["fuego", "agua", "tierra", "viento"]
 const VIDA_MIN: float = 1.0
 const VIDA_MAX: float = 25.0         ## = el límite global `persiste + permanencia` de ESPEC_HECHIZO §1.9. Antes 4 s: un bloque de tierra (8 s) o una barrera con Permanencia perdían el dibujo a los 4 s
 const MAX_VIVOS: int = 12            ## efectos a la vez (cada uno puede traer una luz y ~150 partículas; el resto se descarta)
+## RAYO (21/10): el haz de ᛁ `linea`. `esc` del dibujo = ancho del haz (u) / HAZ_ANCHO_REF_U, limitado a [HAZ_ESC_MIN, HAZ_ESC_MAX]. 0,8 u = el ancho por defecto (Hechizo.HAZ_ANCHO 0,35 m × casilla 2,3).
+const HAZ_ANCHO_REF_U: float = 0.8
+const HAZ_ESC_MIN: float = 0.5
+const HAZ_ESC_MAX: float = 2.0
 
 ## Tamaño del dibujo respecto al hechizo (20/10, entrada 215). Antes eran `clampf` escondidos en el código y los cambios de tamaño (glifos de eje, tabla F1 del lab)
 ## dejaban de verse: la bola del proyectil se paraba en radio 0,9 u (semieje ≈ 0,39 m) y los volúmenes en ×3. Ahora el radio dibujado = el semieje (la caja de golpe) hasta el límite
@@ -47,6 +52,7 @@ var _ultimo: WeakRef = null
 var _vivos: int = 0
 var _proyectiles_n: int = 0
 var _volumenes_n: int = 0
+var _haces_n: int = 0
 var _placas_n: int = 0
 var _log: String = ""
 
@@ -240,6 +246,11 @@ func placas() -> int:
 	return _placas_n
 
 
+## Haces (ᛁ `linea`) dibujados (la prueba lo lee).
+func haces() -> int:
+	return _haces_n
+
+
 ## --- Entradas ---
 
 func _en_nodo(n: Node) -> void:
@@ -279,6 +290,12 @@ func _en_hechizo(estado: String, elemento: String, g: Dictionary, origen: Vector
 	if sitios.is_empty():
 		sitios.append(origen)
 	var suelo_y: float = float(g.get("suelo", origen.y))
+	if g.has("haz"):
+		# RAYO (21/10): ᛁ `linea` + elemento. No es un volumen: es UN haz de la mano a la punta, con el dibujo de su elemento (`haz`).
+		var hz: Dictionary = g["haz"] as Dictionary
+		haz(el, hz["desde"] as Vector3, hz["hasta"] as Vector3, vida, float(hz.get("ancho", HAZ_ANCHO_REF_U)), suelo_y, raiz)
+		_vigilar(raiz, hv, vida)
+		return
 	var forma: String = "barrera" if props.has("solidez") else ("pulso" if props.has("crece") else "esfera")
 	var d: Vector3 = Vector3(dir.x, 0.0, dir.z)
 	d = d.normalized() if d.length() > 0.01 else Vector3.RIGHT
@@ -367,6 +384,44 @@ func _pieza_volumen(el: String, raiz: Node3D, forma: String, pie: Vector3, d: Ve
 			if _fx() != null:
 				_fx().salpicadura(pie, esc)
 			VfxKit3D.charco(raiz, pie, r_u * 1.4, 1.0, vida)
+
+
+## --- Haz (ᛁ `linea` + elemento, 21/10: «rayo de X») ---
+
+## Dibuja el haz de un elemento de `desde` (la mano) a `hasta` (la punta, a ras de suelo), de `vida` s, con `ancho_u` de grosor en la punta y `suelo` = y del suelo bajo la punta. Cuelga de `raiz`
+## (o de un efecto nuevo del mundo) en un nodo `Haz_<elemento>`; lo que el elemento deja en el suelo (impacto, escarcha, pinchos) cuelga de ese nodo. Cada elemento dibuja el suyo:
+##   fuego → `VfxKit3D.haz` (el lanzallamas) · agua → `VfxAgua.chorro` (cintas y gotas) · tierra → `VfxTierra.fila_pinchos` (pinchos que brotan en secuencia) · viento → `VfxViento.corriente`
+##   (cintas rectas con hojas) · rayo → `VfxRayo.descarga` (descarga quebrada) · hielo → `VfxHielo.rayo` (haz de cristal con esquirlas y escarcha). Devuelve el nodo.
+func haz(el: String, desde: Vector3, hasta: Vector3, vida: float, ancho_u: float, suelo: float, raiz: Node3D = null) -> Node3D:
+	if _mundo == null or not is_instance_valid(_mundo):
+		return null
+	var padre: Node3D = raiz if raiz != null and is_instance_valid(raiz) else _raiz_para(null)
+	var nodo := Node3D.new()
+	nodo.name = "Haz_" + el
+	padre.add_child(nodo)
+	_haces_n += 1
+	var esc: float = clampf(ancho_u / HAZ_ANCHO_REF_U, HAZ_ESC_MIN, HAZ_ESC_MAX)
+	_con_elemento(el, _pieza_haz.bind(el, nodo, desde, hasta, maxf(vida, 0.3), esc, suelo))
+	return nodo
+
+
+func _pieza_haz(el: String, nodo: Node3D, desde: Vector3, hasta: Vector3, vida: float, esc: float, suelo: float) -> void:
+	match el:
+		"hielo":
+			if VfxHielo.activo():
+				VfxHielo.rayo(nodo, desde, hasta, vida, esc, suelo)
+			else:
+				VfxKit3D.haz(nodo, desde, hasta, vida, esc, suelo)
+		"tierra":
+			VfxTierra.fila_pinchos(nodo, desde, hasta, vida, esc, suelo)
+		"viento":
+			VfxViento.corriente(nodo, desde, hasta, vida, esc)
+		"agua":
+			VfxAgua.chorro(nodo, desde, hasta, vida, esc, suelo)
+		"rayo":
+			VfxRayo.descarga(nodo, desde, hasta, vida, esc)
+		_:
+			VfxKit3D.haz(nodo, desde, hasta, vida, esc, suelo)
 
 
 ## --- Volúmenes (esfera, pulso, barrera) ---

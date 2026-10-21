@@ -5,6 +5,11 @@ profundidad (Z), otro en altura (Y); más glifos, más tamaño en ese eje. Glifo
 aditiva. Que n combinaciones de un glifo, sea el que sea, se produzcan solas sin hardcodear. Con los elementos igual:
 el elemento da su etiqueta, características y tipo (sólido como tierra o hielo, "líquido" como fuego o agua).»
 
+> **REGLA NUEVA (21/10, decisión de Pablo): ᛁ `linea` + elemento = RAYO.** El glifo `linea` deja de ser «muro delante»: **el muro es solo de `barrera`**, y `linea` con un
+> elemento da un **haz recto desde la mano hacia donde apuntas** (en el código la forma se llama `haz`, para no mezclarlo con el elemento relámpago ᛊ; el nombre visible es
+> «rayo de fuego», «rayo de hielo»…). Detalle en `ESPEC_HECHIZO.md` §3b. Donde más abajo se lea «ᛁᛁ = muro» o «Muro es X grande», vale lo antiguo solo con `barrera`
+> (barrera + ᛁ sigue siendo el muro, y ᛁ le da ancho); sin barrera ni flecha, ᛁ es un haz.
+
 ## 1. Lo que hay hoy (medido en `magia/lanzador_3d.gd` y `nucleo/`)
 
 - **Dos caminos.** `Receta3D` cuenta cinco glifos de geometría (línea, altura, tamaño, flecha, barrera) y
@@ -46,8 +51,8 @@ vertical → X, más vertical → Z, diagonal exacta → X. La línea queda **ex
 como se dibujó, con el mismo `linea.png` girado 90° para Z. Raido ᚱ queda libre.
 
 Las formas **dejan de tener nombre en la lógica**: se rasteriza el elipsoide sobre las casillas (como ya hace
-`GeometriaHechizo.celdas` con la esfera) y punto. «Muro» es sencillamente X grande; «pilar», Y grande; «haz», Z grande;
-«muro alto», X e Y; «losa», X y Z; «cortina», Y y Z. El nombre solo se **deriva** al final (eje dominante) para elegir
+`GeometriaHechizo.celdas` con la esfera) y punto. «Muro» es X grande **con `barrera`** (21/10: sin barrera, ᛁ ya no es un muro sino un haz); «pilar», Y grande; «haz», ᛁ sin
+barrera ni flecha (se traza como recorrido, no como elipsoide: ver ESPEC §3b); «muro alto», barrera + X e Y; «losa», X y Z; «cortina», Y y Z. El nombre solo se **deriva** al final (eje dominante) para elegir
 animación, cast point y VFX:
 
 - Z dominante o la propiedad *viaja* → cast point **eje X** (mano al frente).
@@ -108,15 +113,15 @@ La receta se interpreta en un orden fijo y cada paso lee solo **números**:
 
 Ningún paso pregunta «¿hay rebote y repetición?». Ejemplos que salen sin escribirse:
 
-- **ᛁᛁ + agua** = muro de agua de 3 de ancho que cae y corre por el suelo (líquido).
-- **ᛁᛁ + tierra** = muro de tierra pisable.
+- **ᛁᛁ + agua** = (hasta el 20/10 un muro de agua; **desde el 21/10 es un rayo de agua**: un chorro de 4 m que moja el recorrido y empuja al que toca).
+- **ᛁᛁ + tierra** = (hasta el 20/10 un muro pisable; **desde el 21/10 un rayo de tierra**: una fila de pinchos que brotan en secuencia y golpean). El muro de tierra es **ᛜ + ᛁᛁ + tierra**.
 - **ᛁᛁ + ᛜ + agua** = muro de agua que además para flechas.
 - **ᛏᛏ + hielo** = pilar de hielo de 2 niveles que se puede escalar y se derrite.
 - **Z×3 + ᛇ + fuego** = lanza de fuego larga que viaja.
 - **Z×3 + ᛇ + ᚢ + rayo** = lanza eléctrica que rebota.
 - **ᚷ + viento** = onda que empuja y crece.
 - **ᚠᚠ + ᛇ + hielo** = tres bolas de hielo en abanico.
-- **ᛁ + Z×2 + agua** = una losa de agua: un charco grande delante.
+- **ᛁ + Z×2 + agua** = (antes una losa de agua) **desde el 21/10, un rayo de agua de 5 m** (Z×2 es ᛁ vertical: cualquier ᛁ suma al mismo haz). La losa/charco grande delante queda para ᛜ + ᛁ + ᛁ.
 
 ### 2.5 Equilibrio sin tablas
 
