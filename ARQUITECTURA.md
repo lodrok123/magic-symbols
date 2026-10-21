@@ -26,16 +26,41 @@ en `docs/PROPIETARIOS.md`.
 
 ## Estado
 
-Una sola rama, `main`, en **vista isométrica**. La prueba de septiembre
-(¿merece la pena el isométrico?) se respondió que sí y se consolidó.
+Una sola rama, `main`, en **3D** desde el 4/10/2026: Godot 4.7, física
+**Jolt** (`project.godot`), modelos `.glb` de Meshy y niveles hechos de
+piezas `.tscn`. La cámara es **ortogonal, fija a 60°**, y gira en pasos de
+90°. El cómo está en *Vista 3D*, *Animación* y *Arte*.
 
 | escena | qué es |
 |---|---|
-| `Mundo.tscn` | el mapa grande (40×34): aldea, prado, bosque, río, fuerte. **Escena principal** (`project.godot`) |
-| `TestJugabilidad.tscn` | el mapa de 23×23 con sus cuatro tareas: el nivel de referencia |
-| `Test2.tscn` | laboratorio de 40×40: una prueba por elemento (ver *Test 2*) |
-| `VfxLabMundo.tscn` / `VfxLab.tscn` | laboratorios de efectos (F9 pasa de uno a otro) |
-| `Blockout.tscn`, `IsoTest.tscn`, `ReactionLab.tscn` | escenas antiguas de prueba; siguen arrancando pero ya no se desarrollan |
+| `escenas/PruebaBosque.tscn` | **escena principal** (`project.godot`): el Bosque |
+| `escenas/PruebaBosque01.tscn`, `PruebaJugabilidadBosque*.tscn`, `PruebaNivelBosque.tscn` | variantes del Bosque 01 (nivel horneado en `mundo/datos_nivel/Nivel_Bosque_01.tscn`) |
+| `escenas/PruebaTest2.tscn`, `PruebaJugabilidad3D.tscn`, `PruebaNivelPruebas3D.tscn` | el laboratorio de elementos, el mapa de jugabilidad y el de una pieza de cada |
+| `escenas/PruebaTitan.tscn`, `PruebaTerraFina.tscn` | pruebas de escala y de terreno |
+| `laboratorios/*.tscn` | laboratorios: agua, fuego, hechizos, recetas, VFX, humanoides, catálogo de assets… |
+
+Todas las `Prueba*` son la misma maqueta (`presentacion/prueba_test2.gd`,
+clase `PruebaTest2`) con otro nivel.
+
+> **Ojo al leer el resto.** Las secciones *Vista 3D*, *Animación* y *Arte*
+> están al día (21/10). Las de lógica —*Las piezas del sistema* (salvo
+> `runes.gd`, `rune_data.gd`, `sigils.gd`, `spell_recipe.gd` y el
+> reconocedor, que siguen), *El mundo*, *Niveles y herencia*, *Test 2*,
+> *Partículas*, *Bloqueo físico* e *Interfaz*— todavía cuentan los scripts
+> de la era 2D (`spell.gd`, `neutral_block.gd`, `enemy.gd`, `nivel_base.gd`,
+> `block_fx.gd`, `Area2D`…), que **ya no están en el repo**. Las ideas
+> (reacciones por etiqueta, el contrato `on_spell_hit`, la receta que
+> emerge) siguen; los nombres de archivo y las medidas en píxeles, no. Su
+> equivalente 3D vive en `magia/` (`lanzador_3d.gd`, `hechizo_vivo.gd`),
+> `nucleo/hechizo.gd`, `mundo/` (`terreno_3d.gd`, `mundo_3d.gd`),
+> `objetos/` y `enemigos/`. Reescribirlas es tarea aparte.
+>
+> **Historia: era 2D (hasta el 4/10).** Hasta entonces el juego era
+> isométrico 2D en una sola rama: `Mundo.tscn` (40×34) como escena
+> principal, `TestJugabilidad.tscn` (23×23), `Test2.tscn` (40×40) y los
+> laboratorios `VfxLab*`, con losas de 128×64 y personajes en atlas de 8
+> direcciones. La prueba de septiembre había consolidado el isométrico; el
+> paso a 3D lo reemplazó (`docs/DECISIONES_CHATS.md` §2).
 
 ---
 
@@ -588,61 +613,70 @@ resiste agua y hielo.
 
 ---
 
-## Vista isométrica
+## Vista 3D
 
-### `iso_grid.gd` — la conversión
+### La casilla: 2,3 u
 
-Toda la vista isométrica se reduce a una función y su inversa; el resto
-del juego sigue pensando en **casillas**, que es como se piensan los
-puzles.
+El mundo es 3D, pero la lógica sigue pensando en **casillas**, que es como
+se piensan los puzles. Una casilla mide **`S = 2,3` u** de lado (la chibi
+mide ~1 u): la misma constante está en `presentacion/prueba_test2.gd`,
+`mundo/pieza_3d.gd`, `mundo/hornear_nivel.gd` y `mundo/terreno_3d.gd`. Un
+bloque de tierra mide **`ALTO = S × 0,45`** (≈ 1,04 u) y el agua queda 4 cm
+por debajo (`ALTO_AGUA = ALTO − 0,04`).
 
-La geometría **no es inventada**: viene del contrato de losa del pipeline
-(`tile_px = [128, 64]`, cara de arriba centrada en la fila **y = 33** del
-sprite). El juego dibuja casillas más pequeñas que la losa:
-`nivel_base.gd` encoge cada bloque con `SX = 116/128` y `SY = 55/64`, de
-ahí el rombo de **116×55**, el paso **(58, 27.5)** y la altura de nivel
-**55,5**. Los personajes se encogen con el mismo `SX`
-(`MsAtlas.ESCALA_MUNDO`), para que sigan siendo del tamaño correcto
-respecto al suelo.
+**`Terreno3D`** (`mundo/terreno_3d.gd`) responde a «¿qué hay en esta
+casilla?»: de qué casilla es un punto, si hay agua o hielo, a qué altura
+pisa quien está en ella, si se ven dos puntos. No conoce los hechizos.
 
-> Medir el sprite a ojo sale mal: en una losa el costado también es ancho,
-> así que la fila más ancha del dibujo no es el centro de la cara, es la
-> primera de varias. El dato fiable es el contrato (`CARA_Y = 33`), no el
-> recorte. Una pieza cuyo centro de cara no esté en y = 33 queda hundida o
-> flotando respecto a las losas vecinas sin que ningún `offset` global lo
-> arregle.
+> Los hechizos miden sus longitudes en **casillas** («metros-casilla»,
+> `nucleo/hechizo.gd`, `docs/ESPEC_HECHIZO.md` §0.1), no en unidades del
+> mundo.
 
-### Las tres trampas del isométrico
+### La cámara: ortogonal, fija a 60°, giros de 90°
 
-**1. `y_sort` no es opcional.** Sin ordenar por profundidad, el orden de
-dibujado es el orden del árbol y un bloque del fondo puede taparle la cara
-a uno de delante.
+`PruebaTest2._colocar_camara()`:
 
-**2. Apilar rompe el `y_sort` ingenuo.** Un bloque subido 55 px tiene
-*menos* Y, así que Godot lo dibuja **detrás** de la losa sobre la que se
-apoya — invisible. La solución es contraintuitiva: **el nodo se queda a
-ras de suelo** y la altura se le da solo al sprite. Así la profundidad que
-ve `y_sort` es la de su casilla.
+- **Proyección ortogonal** (`Camera3D.PROJECTION_ORTHOGONAL`). Sin
+  perspectiva, una casilla mide lo mismo en cualquier punto de la
+  pantalla.
+- **Inclinación bloqueada en 60°** (`INCLINACION`, medida desde la
+  vertical: la cámara mira 30° por debajo del horizonte), a 40 u del foco.
+  Pablo, 6/10: «de momento lockeamos en 60 grados, siguiendo al
+  personaje». Solo el zoom es libre (`size` 6 al empezar, mínimo 2).
+- **Sigue al jugador** con suavizado exponencial (`SEGUIMIENTO = 14`).
+- **Gira en pasos de 90°** con `Z`/`C` (`_giro_cam`), para ver lo que
+  tapa algo desde el otro lado. `jugador_3d.gd` gira la entrada de `WASD`
+  con ese mismo ángulo (`_giro_camara()`), así que «arriba» sigue siendo
+  arriba en pantalla.
 
-> Y el desempate dentro de la misma casilla **no** se hace con `z_index`:
-> `z_index` manda *sobre* `y_sort`, así que el cubo elevado se pintaría
-> por encima de todo, incluidos los bloques que tiene delante. Se hace con
-> una décima de píxel de empujón, que no mueve nada visible.
+### Profundidad, oclusión y colisión
 
-**3. Todo se ordena por donde toca el suelo.** Los bloques llevan su
-origen en el centro de la cara superior, pero un personaje lo lleva en
-mitad del cuerpo. Sin corregirlo, el jugador se ordena como si estuviera
-media figura más al fondo de donde pisa.
+- **El orden de dibujado lo resuelve el z-buffer.** Las trampas del
+  isométrico 2D (`y_sort`, desempates con `z_index`) ya no existen.
+- **Lo que tapa al jugador se vuelve translúcido** en un círculo de
+  pantalla centrado en él (`presentacion/ocluso_3d.gd`, `Ocluso3D`): es un
+  descarte con trama, sin mezcla alfa, así que no ordena nada ni rompe la
+  sombra.
+- **Física: Jolt** (`3d/physics_engine` en `project.godot`). Las piezas
+  que bloquean llevan un `StaticBody3D` en la **capa 11 «MUNDO»**
+  (`1 << 10`), con cascos medidos **sobre el contorno del modelo** en la
+  franja donde toca un cuerpo (`mundo/colision_pieza.gd`; ver *Arte*). Los
+  hechizos, las flechas y la línea de visión siguen por casillas.
+- **Aspecto de diorama:** profundidad de campo lejana, banda tilt-shift,
+  luz por zona y sonda de reflejos (`docs/ARTE.md` §10; diario 233).
 
-**Las colisiones son rombos, no rectángulos.** Dos casillas en diagonal
-comparten solo una esquina; con rectángulos se solapan y el jugador se
-engancha en bordes que visualmente no existen.
-
-> **Pendiente conocido**: las colisiones isométricas siguen siendo poco
-> realistas —el rombo es una aproximación y los cubos elevados no tienen
-> volumen de colisión de verdad—. Se afinará con niveles reales delante,
-> no antes: hacerlo ahora sería ajustar contra un mapa de prueba
-> desechable.
+> **Historia: era 2D (hasta el 4/10).** La vista era isométrica 2D y se
+> reducía a `iso_grid.gd`, una conversión casilla ↔ pantalla sacada del
+> contrato de losa del pipeline (`tile_px = [128, 64]`, cara de arriba en
+> y = 33). `nivel_base.gd` encogía cada losa a un rombo de 116×55 (paso
+> 58 × 27,5, nivel de 55,5 px) y los personajes con el mismo factor
+> (`MsAtlas.ESCALA_MUNDO`). Había tres trampas que costaron caras: sin
+> `y_sort` un bloque del fondo tapaba a uno de delante; un bloque apilado
+> se dibujaba detrás de su losa salvo que el nodo se quedara a ras de suelo
+> y solo subiera el sprite (y el desempate no podía ser `z_index`, que
+> manda sobre `y_sort`); y los personajes había que ordenarlos por los
+> pies, no por el centro. Las colisiones eran rombos, y los cubos elevados
+> no tenían volumen de verdad. Todo eso desapareció con el 3D.
 
 ---
 
@@ -723,96 +757,74 @@ añadir más elementos.
 
 ## Animación
 
-El personaje no se anima con código propio: **lee atlas que el pipeline
-exporta**, y cada atlas se describe a sí mismo en un `meta.json`. El
-contrato está en `export_godot/CONTRATO_GODOT.md`.
+Sin sprites ni atlas: cada personaje es **un modelo 3D vivo** que se anima
+con el `AnimationPlayer` de su propio GLB. Lo monta **`Pj3D`**
+(`jugador/pj_3d.gd`) para el héroe, los goblins, las bestias y los NPC.
 
-### Lo esencial del contrato
+### Cómo se carga un personaje
 
-- Un personaje es `export_godot/characters/<id>/` con `meta.json` y un
-  atlas por animación (`atlases/<clip>/<clip>_8dir.png` +
-  `_8dir_metadata.json`).
-- **8 filas = 8 direcciones, columnas = fotogramas.** `frame_px` (hoy
-  **192×240**) es el tamaño de cada celda; `ancla_suelo_px` dice dónde pisa
-  y `offset_visual_px` cuánto hay que desplazar el sprite para que ese
-  punto caiga en el nodo.
-- Cada clip declara `frames`, `fps` y `loop`. Un clip con `loop = false`
-  (golpe, muerte, lanzar) se reproduce una vez.
-- **La etiqueta de la dirección va "al revés" en el eje este-oeste**: el
-  pipeline renderiza cada fila con la etiqueta invertida y el `meta.json`
-  trae la tabla que lo corrige (`mapeo_direcciones_godot`: `E→W`, `SE→SW`,
-  `SW→SE`, `W→E`, `NW→NE`, `NE→NW`). `player.gd` ya calcula su etiqueta con
-  ese mismo volteo, así que para el héroe la etiqueta **es** la fila; para
-  el resto de actores lo hace `MsActor`.
+- `Pj3D.cargar(id)` carga **`res://arte/modelos/<id>.glb`**, lo apoya en
+  el suelo, le prepara los materiales, le pone equipo (`Equipo3D`) y
+  sombra, y arranca en `idle`. Si falta el GLB avisa y devuelve `false`.
+- **`MODELO_DE`**: variantes que comparten modelo. La elfa jugadora es
+  `woodland_wanderer` y carga `woodland_wanderer_suave.glb` (pesos de piel
+  suavizados en mangas y abrigo); `goblin_espadachin` usa el GLB de
+  `goblin_warrior_chibi`; el `loberno` usa `emberheart`.
+- **Se gira libremente** hacia donde se mueve (`mirar()`): ya no hay 8
+  filas ni 8 direcciones.
 
-### Las dos piezas que lo leen
+### Qué clip toca
 
-- **`MsAtlas`** (sin estado visible): `meta(id)`, `tiene(id, clip)`,
-  `fps()`, `en_bucle()`, `escala()`, `animacion(id, clip)` (devuelve
-  `{fila: [AtlasTexture…]}` y cachea, porque un atlas son varios megas) y
-  `frames_heroe()`, que monta el `SpriteFrames` que espera `player.gd`.
-- **`MsActor`** (un `Sprite2D`): reproduce atlas de 8 direcciones para
-  todo lo que no es el héroe (goblins, NPC). Se puede crear nuevo
-  (`MsActor.new().setup("goblin_warrior")`) o ponerlo **sobre un
-  `Sprite2D` ya existente** con `set_script()`, de modo que `enemy.gd` y
-  `archer.gd` sigan hablando con "su" `$Sprite2D` sin saber que ahora es
-  otro dibujo.
-
-`MsActor` decide qué clip toca según su `modo`: `"fijo"` (el que se le
-diga con `jugar()`), `"guerrero"` y `"arquero"` (los enemigos de
-patrulla, que miran variables de `enemy.gd` / `archer.gd`) y `"ia"`: el
-goblin con IA le dice qué hace con tres variables suyas, **`mirada`**,
-**`moviendo`** (0 quieto, 1 anda, 2 corre) y **`anim_orden`** (un clip
-puntual: ataque, golpe, tiro). Así la lógica del enemigo no conoce los
-nombres de los clips más que en `anim_orden`.
-
-**Estas firmas son un contrato entre contextos** (`PROPIETARIOS.md` §4):
-el Pipeline las posee, el Juego las consume, y no cambian sin aviso en el
-diario.
+- **Los clips se piden por rol, no por nombre.** `SINONIMOS` traduce cada
+  rol (`idle`, `walk`, `run`, `cast`, `hit`, `death`, `roll`, `swim`,
+  `drink`…) a los nombres que traen los GLB de Meshy/Mixamo, y
+  **`CLIPS_DE`** da las excepciones por personaje (el guerrero goblin usa
+  `slapreaction` como golpe porque su `HitReaction` le arrastra la
+  cadera; el arquero dispara con `archeryshot`).
+- **Un clip de lanzar por forma** (`ANIM_CAST`): proyectil, corro,
+  columna y muro tienen su gesto, todos elegidos porque se quedan en su
+  sitio (cadera < 0,3 alturas). Una forma sin clip usa `leer`.
+- **La máquina de estados es `ArbolAnimPj`**: es lo único que reproduce
+  clips; el `AnimationPlayer` solo se lee. Los enemigos usan el grafo
+  reducido (`GRAFO_REDUCIDO`: idle, andar, correr, atacar, lanzar,
+  golpeado, muerto).
 
 ### Lo que decide cómo se ve
 
-- **El tamaño sale del `meta.json`**, no del código: `escala =
-  escala_relativa × (192 / frame_px.x) × ESCALA_MUNDO`. Si un personaje
-  nuevo se exporta con otro `frame_px`, se dibuja bien sin tocar nada.
-- **La vertical se ve aplastada ~2:1**, y hay que deshacerlo antes de
-  medir un ángulo (`MsActor.DESAPLASTAR = 2.109`), o los personajes miran
-  mal en las diagonales.
-- **El golpe del héroe es corto a propósito**: no se usa el clip entero de
-  `hit_reaction` (12 fotogramas) sino el tramo central, fotogramas 2–5 a
-  20 fps (0,2 s). El clip entero dura un segundo y el personaje parecería
-  moverse a cámara lenta mientras ya le están pegando. `frames_heroe()`
-  tiene una tabla `clip → [animación, primer fotograma, último, fps]`
-  justo para estos recortes.
-- **La muerte espera a que acabe el clip**: `player.gd` no muestra "HAS
-  MUERTO" hasta que termina la caída. Mientras el pipeline no haya
-  procesado `shot_in_the_back_and_fall`, `MsAtlas._clip_muerte()` busca
-  `shot_in_the_back_and_fall` → `death` → `hit_reaction_to_waist`, **el
-  primero que exista**. Con el último (el actual), el clip entero se dobla
-  y **se vuelve a incorporar**: ver "Errores que costaron caros".
-- **Andar va a fps fijos.** El animador antiguo avanzaba el ciclo con la
-  distancia recorrida para que los pies no patinasen; el héroe nuevo es un
-  `AnimatedSprite2D` y anda a los fps del `meta.json`. Si la velocidad del
-  jugador y los fps del clip no cuadran, los pies patinan: el ajuste (el
-  `stride` de los hilos abiertos) está pendiente.
+- **Proporciones y postura sin volver a exportar.** `ProporcionChibi`
+  (`jugador/proporcion_chibi.gd`, un `SkeletonModifier3D`) cambia cabeza,
+  piernas y torso **después** de la animación, así que vale para todos los
+  clips. `POSTURAS` endereza a la elfa (los clips de Meshy la dejan
+  cabizbaja): la postura de `chibi_elf` la afinó Pablo el 5/10
+  (`docs/DECISIONES_CHATS.md` §4).
+- **Movimiento de raíz anulado donde estorba**: la voltereta y, en el
+  elemental, ataque, andar y golpe se quedan en su sitio (`_anular_raiz`),
+  porque es el Juego quien mueve al personaje; si no, al cambiar de clip
+  el modelo salta.
+- **La pisada va por distancia**: `jugador_3d.gd` suena un paso cada
+  0,85 u andando y 1,1 u corriendo (`DIST_PASO_*`), no por fotogramas.
 
-### `ActorAnimator` ya no anima a nadie
-
-El animador de la maga de 64×64 (`actor_animator.gd`) sigue en el repo
-porque `IsoTest` y los enemigos antiguos lo usan, pero **en los niveles
-nuevos solo hace de mensajero**: `nivel_base._crear_jugador()` cuelga un
-`ActorAnimator` sin hojas (`clips = {"cast": null}`) para que el
-`Spellcaster` pueda avisarle de "he empezado a lanzar" y `player.gd`
-reproduzca el clip del héroe al recibir `cast_requested`. **No lo borres
-sin cambiar antes ese aviso**: sin él, la maga lanza hechizos y no hace el
-gesto.
-
-`docs/ANIMACION.md` y `docs/PERSONAJE.md` describen ese animador antiguo
-(la maga sacada de vídeo) y son históricos.
+> **Historia: era 2D (hasta el 4/10).** Los personajes eran sprites. El
+> pipeline renderizaba cada GLB en Blender en **8 direcciones** y
+> exportaba atlas (`export_godot/characters/<id>/`, celdas de 192×240 y un
+> `meta.json` por personaje, con la etiqueta este-oeste invertida). Los
+> leían `MsAtlas` y `MsActor` (un `Sprite2D` para goblins y NPC, con modos
+> `fijo`, `guerrero`, `arquero` e `ia`); el héroe era un
+> `AnimatedSprite2D`, y antes aún la maga de 64×64 de `ActorAnimator`
+> (`docs/ANIMACION.md` y `docs/PERSONAJE.md` son de esa época). Había que
+> desaplastar la vertical ~2:1 para calcular ángulos, recortar clips a mano
+> (el golpe, fotogramas 2–5) y esperar a que el pipeline exportara cada
+> clip. Se abandonó porque el acabado de los personajes no se acercaba al
+> terreno y mantener las animaciones en sprites era inviable
+> (`docs/DECISIONES_CHATS.md` §2). Nada de eso está ya en el repo.
 
 ---
 
 ## Partículas — `block_fx.gd`
+
+> *Era 2D: `block_fx.gd` ya no está en el repo. Los efectos 3D viven en
+> `presentacion/vfx_*.gd` (`docs/ARTE.md` §9.1, §13). La idea de abajo
+> —que las cosas ocurran en el sitio correcto— sigue valiendo.*
 
 En isométrico el volumen es un engaño: son dibujos planos colocados en
 rombo. **Lo que sostiene el engaño no es el dibujo, es que las cosas
@@ -882,126 +894,92 @@ colisión en mitad del paso de física puede ser inestable.
 
 ## Arte
 
-La dirección de arte y los números están en `docs/ARTE.md` (§1 colores de
-elemento, §2 paletas de bioma: vigentes; §3–§6 describen el arte de
-septiembre) y el contrato con Godot en `export_godot/CONTRATO_GODOT.md`.
-Aquí solo se cuenta **cómo llega el arte al juego** y por qué.
+La dirección de arte y los números están en `docs/ARTE.md` (estilo y
+referencias al principio; §1 colores de elemento y §2 paletas de bioma;
+§9–§23, piezas, paleta cerrada y láminas de Meshy). Aquí solo se cuenta
+**cómo llega el arte al juego** y por qué.
 
 ### De dónde sale cada cosa
 
 | qué | cómo se hace | dónde queda | quién lo lee |
 |---|---|---|---|
-| Personajes y enemigos | GLB de Meshy → `pipeline/` (Blender) → 8 direcciones | `export_godot/characters/<id>/` | `MsAtlas` / `MsActor` |
-| Losas de terreno | 128×64, cara de arriba en y = 33 | `export_godot/terrain/bosque_01/sprites/blocks/` | `nivel_base._bloque()` |
-| Árboles y props | render del pipeline, ancla en el centro de la base | `…/sprites/trees/`, `…/sprites/props/` | `nivel_base` (`PROP_DATOS`) |
-| Piezas 2D sueltas | dibujadas a **2x**, se pintan a escala 0.5, ancla apuntada a mano en el código | `art/` (hielo, empujables, puesto, tótems, baldosa, placa, puente) | cada nivel |
-| Efectos de hechizo | tiras de 18 fotogramas de 128×128 | `art/fx/` | `RuneData` |
-| Interfaz | glifos y paneles | `art/ui/` | grimorio, HUD |
+| Personajes, enemigos y bestias | GLB de Meshy con esqueleto y clips (Mixamo/Meshy) | `arte/modelos/<id>.glb` | `Pj3D` (ver *Animación*) |
+| Equipo (arco, grimorios, armas) | GLB de Meshy | `arte/equipo/` | `Equipo3D` (cuelga de un hueso) |
+| Piezas de escenario | lámina de Meshy → `arte/meshy/recibir_assets.py` (separa, reduce, aprueba Pablo) | `arte/meshy/piezas/<id>.glb` | `Pieza3D` (medida en `Pieza3D.MEDIDA`) |
+| Piezas listas para el nivel | `herramientas/generador_piezas.gd` las hornea | `arte/piezas/<id>.tscn` | el editor y el horneado de niveles |
+| Niveles | `mundo/hornear_nivel.gd` (F9 en la maqueta) | `mundo/datos_nivel/Nivel_*.tscn` | `PruebaTest2` |
+| Suelo | texturas de Meshy pintadas por un shader | `arte/suelo_meshy/` | la maqueta |
+| Piezas de puzle, fuego, bosque, escritura | láminas de Meshy separadas por pieza | `arte/meshy/puzle/`, `fuego/`, `bosque/`, `escritura/` | `PiezaPuzle3D`, `PiezaFuego3D`, `PiezaBosque3D`, `PiezaEscritura3D` (`docs/ARTE.md` §9–§19) |
+| Efectos | partículas y mallas en código | `presentacion/vfx_*.gd`, `presentacion/vfx/` | hechizos y piezas |
+| Interfaz 2D (libro, bolsa, diario) | scripts de Python (Pillow) y láminas | `presentacion/ui/` | grimorio, HUD (`docs/ARTE.md` §11, §16) |
 
-**El pipeline es la única fuente de lo que pisa la rejilla.** Es lo que
-mantiene una sola luz y un solo lienzo en pantalla; ver "Piezas que aún no
-vienen del pipeline" para lo que todavía no cumple.
+### El camino de una pieza: Meshy → GLB → `.tscn`
 
-### Personajes
+1. **Meshy entrega láminas**: un solo mesh con 10–20 objetos y hasta 2,6
+   millones de triángulos. `recibir_assets.py` (`ver` → `lote` →
+   `instalar`) las parte en trozos, reduce cada pieza (8 000 triángulos por
+   defecto, 12 000 árboles y objetos grandes) y deja un lote en
+   `aprobacion3d/`: **nada llega a su sitio sin que Pablo lo vea**.
+2. **`Pieza3D`** (`mundo/pieza_3d.gd`) da a cada id su medida en la
+   casilla de 2,3 u y su origen (**centro de la base**, a ras de suelo).
+3. **`GeneradorPiezas`** (`herramientas/generador_piezas.gd`; en el
+   editor, `generar_piezas_editor.gd` con Ctrl+Shift+X) escribe
+   `arte/piezas/<id>.tscn`: un `Node3D` con el modelo y un `StaticBody3D`
+   en la capa «MUNDO», más los metadatos `bloquea`, `reactivo` e
+   `inflamable`. Hierba crecida y telaraña llevan un `Area3D` sin cuerpo.
+   **Regenera todas**: una pieza retocada a mano hay que renombrarla antes.
+4. **Colisión por contorno** (`mundo/colision_pieza.gd`, 20–21/10): no un
+   casco de todo el modelo (rellenaba el hueco de un arco o de una puerta)
+   ni una caja, sino cascos medidos en la franja de 0,12 a 1,6 u sobre el
+   suelo, partidos por trozos que no se tocan. Modos: `contorno` (lo
+   normal), `tronco` (árboles: solo el tronco; bajo la copa se pasa) y
+   `ninguna` (lo que se pisa).
+5. **El nivel se hornea** a un `.tscn` editable a partir del mapa de letras
+   (camino A, 6.10) y se retoca en el editor de Godot.
 
-El héroe, los goblins, los NPC (`master_elf`, `ranger_human`,
-`bookseller_woman`) y todo lo que se mueva sale del **pipeline de sprites
-isométricos**: un GLB (de Meshy) entra en `pipeline/inbox/<id>/` con su
-`asset.json`, `pipeline/PROCESAR.cmd` lo renderiza con Blender en 8
-direcciones, lo valida y deja un `REPORTE.md`, y
-`pipeline/EXPORTAR_GODOT.cmd <id>` lo copia a
-`export_godot/characters/<id>/` si el reporte empieza por `# APROBADO`. El
-juego lo lee con `MsAtlas`/`MsActor` sin tocar código.
+### Presupuesto
 
-- **Cambiar de personaje o de clip es exportar de nuevo**, no tocar
-  `player.gd` ni ningún nivel.
-- **El juego no puede pedir un clip que el pipeline no haya exportado.** Lo
-  que necesita el Juego se apunta en `docs/ASSETS_PENDIENTES.md` (sección
-  0, "Urgente") y mientras tanto usa un clip que exista. Es lo que hace
-  `MsAtlas._clip_muerte()` con la muerte.
-- **Los personajes del pipeline no están en la sesión en la nube**: allí
-  salen como cuadrados de color, así que su aspecto se revisa en el
-  ordenador.
-- Dos nombres de clip arrastran la errata del origen
-  (`mage_soell_cast_001/002`, con "spell" mal escrito). Se dejan:
-  cambiarlos rompe `MsAtlas` y obliga a reexportar.
-
-### El contrato de una losa
-
-- Lienzo **128×64** de rombo (`tile_px`), la **cara de arriba centrada en
-  y = 33**, costados hacia abajo. Un bloque suelto mide 128×102.
-- **Luz plana.** Una losa se repite sesenta veces; una sombra proyectada
-  marcada hace que se vea la repetición antes que el dibujo
-  (`docs/ARTE.md` §6).
-- Cualquier pieza que se apile sobre la rejilla (hielo, tierra creada,
-  empujables) debe traer **el mismo lienzo**, no uno propio: si cada
-  textura trae su cara en un sitio, cada script necesita una tabla de
-  desplazamientos, y el bloque deja de ignorar los píxeles.
-
-### Tamaño de textura: dos reglas, no una
-
-- **Efectos (`art/fx/`)**: ninguna textura pasa de ~1024–1280 px de lado.
-  Los fotogramas van en **rejilla de 6 columnas**, no en tira: una tira de
-  19 fotogramas de 128 px mide 2432 px y falló en tarjetas con tope de 2048
-  (`Texture dimensions exceed device maximum`).
-- **Atlas del pipeline**: miden hasta **3072×1920** (16 fotogramas de 192
-  px por fila) y declaran un tope de 4096 (`max_texture_size_px` en su
-  metadata). Funcionan en las tarjetas actuales, pero **no pasarían en una
-  con tope de 2048**: es el mismo fallo de la tira, con otro origen. Si
-  algún día hay que soportar una, la salida es partir por
-  `max_columns_per_part`, que el pipeline ya sabe hacer (`parts` en la
-  metadata; `MsAtlas.animacion()` ya recorre varias partes).
-
-### Piezas que aún no vienen del pipeline
-
-Hay dos "familias" más en pantalla además de la del pipeline, y conviene
-saberlo para no sorprenderse:
-
-1. **`art/` nuevo** (hielo, tierra creada, empujables, tótems, puesto,
-   baldosa, placa): pintado con luz direccional marcada, a 2x. No cumple el
-   contrato de losa y al lado de un bloque del pipeline se nota el cambio
-   de mano.
-2. **Duplicados**: fogata (`props/campfire.png` y `art/fogata_*.png`),
-   tierra (`blocks/dirt.png` y `art/earth.png`) e hierba (`blocks/grass.png`
-   y `art/grass*.png`).
-
-Se van sustituyendo por lo que más se ve (hielo → tierra creada →
-empujables → tótems → puesto), y cada sustitución **borra su duplicado de
-`art/`**, para que no vuelva a cargarse por error. La lista de lo que
-falta, con formato exacto, está en `docs/ASSETS_PENDIENTES.md`; el estado
-de cada medición, en `docs/QA_ARTE.md`.
-
-### Efectos (`art/fx/`)
-
-Fuego, agua, viento y tierra vienen de un pack de VFX muestreado a ~18
-fotogramas (el fuego, en tres intensidades: `tools/gen_fire_tiers.py`).
-Rayo, hielo y tiempo los genera `tools/gen_fx.py`. **La animación es un
-dato del elemento**, no del hechizo: `spell.gd` nunca pregunta "¿eres
-fuego?", solo "¿traes tira?".
+Medido el 21/10 en `arte/meshy/PRESUPUESTO.md`: todo está por encima del
+orientativo de EoW (enemigos ≈ 31 k triángulos, el tope de Meshy; piezas
+de 8–12 k), y el Bosque 01 suma ≈ 4,2 millones, el 63 % solo en
+`arbol_redondo` y `pino`. Las variantes `_2` de los árboles ahorran la
+mitad sin arte nuevo; decide Pablo. Equipo: 15 k como máximo
+(`docs/DECISIONES_CHATS.md` §4).
 
 ### Packs en bruto: `.gdignore`
 
-**Godot importa toda imagen que haya dentro del proyecto, la use el juego
-o no**, y `Spellbook/fire/strong/strongFire.png` mide **35 623 × 635 px**:
-ninguna tarjeta la acepta. De ahí la cascada de `Attempting to use an
-uninitialized RID`. Por eso los packs en bruto llevan un `.gdignore`, y
-también `pipeline/` y `pipeline_output/` (los GLB, renders y reportes
-intermedios): Godot solo debe ver `export_godot/`. Efecto secundario
-bueno: ~3000 archivos menos que importar.
+**Godot importa todo lo que haya dentro del proyecto, lo use el juego o
+no.** En la era 2D una imagen de un pack sin usar (35 623 × 635 px) tumbó
+el arranque con una cascada de `Attempting to use an uninitialized RID`.
+La regla sigue: las carpetas de trabajo que Godot no debe importar llevan
+`.gdignore` (p. ej. `arte/aprobacion/`).
+
+> **Historia: era 2D (hasta el 4/10).** El arte eran sprites. El
+> **pipeline de sprites isométricos** (`pipeline/`, Blender) renderizaba
+> cada GLB de Meshy en 8 direcciones y lo exportaba a `export_godot/`
+> (personajes en atlas que leían `MsAtlas`/`MsActor`, losas de 128×64 con
+> la cara de arriba en y = 33 y luz plana, árboles y props como render con
+> el ancla en la base). Convivía con piezas pintadas a 2x en `art/` (hielo,
+> empujables, tótems, puesto) que no cumplían el contrato de losa, y con
+> efectos en tiras de 128×128 en `art/fx/` (en rejilla de 6 columnas tras
+> fallar una tira de 2432 px en tarjetas con tope de 2048). `pipeline/`,
+> `export_godot/` y `art/` ya no están en el repo.
 
 ---
 
 ## Decisiones de diseño
 
-- **Vista isométrica** (consolidada en octubre). Revierte la decisión
-  anterior de quedarse en cenital. El motivo no fue estético: los cubos de
-  material mapean 1:1 con los bloques del juego, teselan sin huecos, y
-  **la altura por fin se dibuja de verdad**. El coste aceptado es que el
-  apaño de la elevación sigue ahí.
+- **3D con cámara fija** (4/10/2026). El isométrico 2D (consolidado a
+  principios de octubre, que a su vez había sustituido a la vista cenital)
+  se abandonó porque el acabado de los personajes no se acercaba al
+  terreno, se notaba el tono plastificado del render y las animaciones en
+  sprites eran inviables de mantener. La prueba 2,5D del 4/10 (chibi,
+  paleta pastel, Link's Awakening de referencia) se quedó: Jolt, `.glb`,
+  piezas `.tscn` y cámara ortogonal a 60°. La vuelta a 2D que se llegó a
+  planear no se hizo (`docs/DECISIONES_CHATS.md` §2).
 - **Se descartó la vista lateral tipo Noita** por una razón concreta: en
   lateral el agua tiene que acumularse y caer, lo que obliga a rediseñar
-  `water_block.gd` entero y con él la mitad de las reacciones. En
-  isométrico el agua sigue siendo una losa.
+  el agua entera y con ella la mitad de las reacciones.
 - **Las reacciones viven en el objeto que reacciona**, nunca en el
   elemento. El fuego no sabe que existe la hierba.
 - **Las combinaciones no se escriben, emergen.**
@@ -1010,22 +988,24 @@ bueno: ~3000 archivos menos que importar.
   los puzles salen de combinarlos, no de escribir una regla por sala.
 - **Los niveles cuelgan de un motor, no unos de otros.** Ver *Niveles y
   herencia*.
-- **El pipeline 3D sustituyó al arte de relleno.** Las 8 direcciones por
-  animación eran el coste que hacía casi inviable un personaje propio; con
-  un GLB y un renderizado en Blender, un clip nuevo son ~12 fotogramas × 8
-  filas **sin dibujarlos**. El coste aceptado: las animaciones vienen de
-  una librería (Meshy), no a medida; cada clip que falta (voltereta, nadar,
-  muerte del héroe) es una espera, no un dibujo; y hay que renderizar en el
-  ordenador de Pablo, no en la nube.
+- **Modelos de Meshy en vez de arte dibujado.** Un personaje es un GLB
+  con sus clips; un clip nuevo no cuesta dibujos ni renders. El coste
+  aceptado: las animaciones vienen de una librería (Meshy/Mixamo), no a
+  medida, y se corrigen en el juego (postura, proporciones, raíz anulada);
+  y los modelos pesan más que el presupuesto (`arte/meshy/PRESUPUESTO.md`).
+  *(En la era 2D esto mismo se hacía renderizando el GLB en 8 direcciones
+  en Blender; ver Historia en* Animación*.)*
 - **Dos contextos de trabajo, un archivo por dueño.** El Juego y el
-  Pipeline se encuentran solo a través de datos (`meta.json`, la API de
-  `MsAtlas`/`MsActor`, el contrato de losa). `docs/PROPIETARIOS.md`.
+  Pipeline se encuentran solo a través de datos y APIs (`Pj3D`, `Pieza3D`,
+  las piezas `.tscn`, `PiezaPuzle3D`). `docs/PROPIETARIOS.md`.
 
 ---
 
 ## Errores que costaron caros
 
-Los que volverían a morder:
+Los que volverían a morder. Las filas de sprites, atlas, losas y
+`Area2D` son de la era 2D: se guardan por la lección, no porque el código
+siga así.
 
 | error | señal | causa |
 |---|---|---|
@@ -1052,10 +1032,9 @@ Los que volverían a morder:
 
 ## Pendiente / próximos pasos naturales
 
-Hecho desde septiembre: consolidar la rama isométrica (solo queda `main`),
-separar el mapa único en escenas de nivel, animar a los enemigos (atlas
-del pipeline vía `MsActor`) y sonido (`audio/` + `sfx.gd`, más efectos
-sintetizados en `sonidos.gd`).
+Hecho desde septiembre: una sola rama (`main`), el paso a 3D (4/10),
+niveles horneados a `.tscn`, personajes con sus clips (`Pj3D`) y sonido
+(`audio/` + `sfx.gd`, más efectos sintetizados en `sonidos.gd`).
 
 Sigue pendiente (el plan con responsables está en `docs/PLAN_ARREGLOS.md`;
 lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
@@ -1064,19 +1043,17 @@ lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
   que solo ellos hagan.
 - **Grabar las plantillas** de `repeticion`, `amplificar`, `rebote`,
   `retardo`, `pulso`, `atraccion` y `espejo`.
-- **Colisiones isométricas de verdad**, con niveles reales delante.
+- **Reescribir para el 3D las secciones de lógica** de este documento
+  (ver el aviso de *Estado*).
 - **Renombrar `pilar` a `alcance`**, o retirarlo del código junto con
   `tiempo`.
 - **Bugs conocidos**: el jugador se salta el muro estando elevado; el
   arquero recibe daño de más del circuito tras morir (tarea 1.2 del plan).
 - **Consola limpia**: centralizar los `print()` en `PlayLog` o tras una
   constante `DEPURAR` (tarea 1.4).
-- **Arte pendiente**: la lista, con formato exacto, está en
-  `docs/ASSETS_PENDIENTES.md`; las mediciones que la sustentan, en
-  `docs/QA_ARTE.md`. Lo más urgente: el clip de muerte del héroe
-  (`shot_in_the_back_and_fall`) y los hielos con el lienzo de las losas.
-- **Validar los atlas al cargar** (`MsAtlas` contra `meta.json`; tarea
-  1.8 del plan).
+- **Arte pendiente**: `docs/ASSETS_PENDIENTES.md` y `docs/QA_ARTE.md`
+  (en parte de la era 2D); el presupuesto de triángulos por decidir, en
+  `arte/meshy/PRESUPUESTO.md`.
 - **Atribución CC-BY**: `tree_ghibli_01` la exige y no figura en ningún
   sitio; comprobar si el árbol se usa (ver README, créditos).
 - **Archivos pesados en `tools/`** (un `.exe` de 181 MB, vídeos y un zip):
