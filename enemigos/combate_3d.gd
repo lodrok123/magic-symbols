@@ -59,6 +59,7 @@ const DESTELLO_DANO: float = 0.10              ## destello del daño que no es g
 const RADIO_DETECCION: float = 5.75
 const RADIO_SOLTAR: float = 10.0
 const TIEMPO_PERDER: float = 3.5
+const PERIODO_CAMINO: float = 0.5                  ## D2: s entre dos recálculos de la ruta por casillas (también se recalcula si el objetivo cambia de casilla o el goblin se sale de ella). Barato, pero no hace falta cada fotograma
 const VEL_PERSEGUIR: float = 2.4                   ## entre andar (1,6) y correr (3,0) del jugador
 const VEL_PATRULLA: float = 1.0
 const DISTANCIA_PATRULLA: float = 2.0
@@ -114,7 +115,38 @@ const DANO_FLECHA: float = 12.0
 const VEL_FLECHA: float = 9.0
 const RADIO_IMPACTO_FLECHA: float = 0.75
 
+## --- EL FUEGO PASA POR CONTACTO (21/10, A2 de docs/PLAN_EOW.md; regla de Pablo) ---
+## Solo pasa de algo que ESTÁ ARDIENDO a algo INFLAMABLE que lo TOCA; no hay radio de calor. Aquí:
+##   · un enemigo con `quemando > 0` está ARDIENDO (`esta_ardiendo()`) y prende lo inflamable que toca: objetos (`Reactivo3D.toca_punto`) y otros enemigos;
+##   · todo enemigo es INFLAMABLE (`puede_prender()`) salvo mojado, congelado o muerto (como en `golpe`: fuego sobre mojado = vapor, no quema);
+##     lo que arde y pasa llama (`Reactivo3D.emite_fuego_por_contacto`: fogata, brasero, seto en llamas…) lo prende si lo toca;
+##   · la flecha del arquero es inflamable: sale ARDIENDO si cruza una llama (`_flecha_toca_fuego`) y, ardiendo, prende lo inflamable que toca y su impacto quema.
+## El contagio entre OBJETOS no es de aquí: es el «vecino de rejilla» de `Reactivo3D._contagiar`.
+const QUEMA_CONTACTO: float = 3.0               ## s de quemadura al prenderse por contacto (los 3 s de la runa de fuego; el elemental usa ELEMENTAL_QUEMA)
+const INTERVALO_CONTACTO_FUEGO: float = 0.2     ## s entre dos comprobaciones de contacto (no hace falta cada fotograma: el fuego no va a esa velocidad)
+const RADIO_CUERPO_ENEMIGO: float = 0.32        ## radio de la cápsula de un goblin (el del elemental se calcula de su altura)
+const RADIO_FLECHA_FUEGO: float = 0.15          ## lo que «toca» una flecha en vuelo
+const CONTACTO_ENTRE_ENEMIGOS: bool = true      ## un enemigo ardiendo prende al enemigo que toca (los goblins son inflamables). false = solo objetos y flechas
+const COLOR_FLECHA_ARDIENDO: Color = Color(1.0, 0.5, 0.15)
+## Una flecha ardiendo ha alcanzado a `objetivo` (el jugador): quien tenga mecánica de quemadura la escucha. El jugador no tiene aún (ver `quemar`).
+signal flecha_ardiente_impacta(objetivo: Node3D)
+
+## --- CONTRATO DE REACCIONES Y «CAE AL AGUA» (21/10, A3 de docs/PLAN_EOW.md) ---
+## Todo enemigo responde a las mismas siete reacciones (nombres fijos, los de `reacciones_soportadas()`); la prueba herramientas/prueba_contrato_enemigo.gd
+## recorre cada tipo y comprueba que lo que declara es lo que de verdad hace. Una reacción que un tipo NO tiene se declara ausente, no se finge.
+const REACCIONES: PackedStringArray = ["quemado", "mojado", "congelado", "electrocutado", "empujado", "aturdido", "cae_al_agua"]
+## Cae al agua: si tras un EMPUJE (o porque el suelo se le va: el hielo se derrite, el agua sube) su casilla es agua honda y no helada, se HUNDE: baja bajo la
+## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
+## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
+const AVISO_HUNDIDO: String = "hundido"
+const TIEMPO_HUNDIMIENTO: float = 1.0          ## s que tarda en desaparecer bajo la superficie
+const PROFUNDIDAD_EXTRA_HUNDIDO: float = 0.3   ## u que baja de más por debajo de la superficie (la cabeza también se pierde)
+const CLIP_AHOGARSE: String = "drown"          ## rol del clip «Drowning» (diario 231): se usa si el modelo lo trae Y el árbol de animación lo admite
+## Un enemigo se ha hundido en agua honda. Ya está marcado `muerto` y sin botín. `Estado.enemigo_muerto` también se emite (las misiones cuentan al caído).
+signal hundido(enemigo: Combate3D)
+
 var pj: Pj3D = null
+var escudo: Escudo3D = null             ## A5: componente opcional (`Escudo3D.equipar(combate)`); null = sin escudo, como todos los goblins de los niveles
 var mundo: Node3D = null
 var jugador: Jugador3D = null
 var lanz: Lanzador3D = null
@@ -149,14 +181,21 @@ var moviendo: int = 0                   ## 0 quieto, 1 anda, 2 corre
 var anim_orden: String = ""             ## animación puntual que se reproduce una vez
 var casa: Vector3 = Vector3.ZERO
 var muerto: bool = false
+var se_hundio: bool = false              ## murió ahogado (cae al agua), no por daño: sin botín
+var _punto_hundido: Vector3 = Vector3.ZERO   ## dónde se hundió (en la superficie), para el aviso y la animación
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 
 var _direccion: float = 1.0
+var _ruta: Array[Vector2i] = []         ## D2: ruta por casillas (Caminos3D) que sigue cuando no hay línea recta libre; vacía = va derecho
+var _ruta_meta: Vector2i = Vector2i(-9999, -9999)   ## casilla a la que se calculó
+var _t_ruta: float = 0.0                ## cuenta atrás hasta el próximo recálculo
+var rutas_calculadas: int = 0           ## cuántas veces pidió una ruta (para las pruebas: «con moderación»)
 var _carga: float = 0.0
 var _descanso: float = 0.0
 var _empuje: Vector3 = Vector3.ZERO
 var _tick_fuego: float = 0.0
+var _t_contacto_fuego: float = 0.0      ## cuenta atrás hasta la próxima comprobación de contacto con el fuego (A2)
 var _barra_t: float = 0.0
 var _vida_mostrada: float = 1.0
 var impactos_visuales: int = 0              ## cuántas veces pidió estrella + temblor al Vfx3D (para las pruebas)
@@ -286,6 +325,9 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 	var h: Hechizo = hechizo if hechizo != null else Hechizo.construir(rune_data, {})
 	if h == null:
 		return                                              # runa cinemática sin su Hechizo: no es un golpe del jugador
+	# A5: único punto de consulta del escudo. Si está y el disparo viene de frente, lo recibe él y el goblin no se entera (por la espalda o el lado, pasa).
+	if escudo != null and is_instance_valid(escudo) and escudo.para(direccion, h):
+		return
 	golpe(h, direccion)
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador          # un golpe te hace mirar a quien viene
@@ -302,6 +344,7 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
 	if suelo:
 		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE * peso)
 	_empuje += d.normalized() * v0
+	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
 
 
 ## =====================================================================================================
@@ -316,6 +359,19 @@ func multiplicador(elemento: String) -> float:
 	if elemento == resiste or (resiste == "agua" and elemento == "hielo"):
 		return MULT_RESISTE
 	return 1.0
+
+
+## Las reacciones de `REACCIONES` que ESTE enemigo tiene de verdad (leído de `golpe`, `_ia` y `_ajustar_al_suelo`, no supuesto):
+##   · quemado, congelado, electrocutado, empujado y cae_al_agua: todos (el elemental también; pesa: recibe el empuje × MULT_EMPUJE_ELEMENTAL).
+##   · mojado y aturdido: todos MENOS el elemental. El agua no lo moja: lo cura y lo agranda (`_agua_elemental`); y `golpe`/`_ia` ignoran el aturdimiento
+##     de un elemental (pesa demasiado). Decisión de diseño anterior a A3, que se respeta y se declara aquí.
+func reacciones_soportadas() -> PackedStringArray:
+	var r := PackedStringArray()
+	for nombre in REACCIONES:
+		if elemental and (nombre == "mojado" or nombre == "aturdido"):
+			continue
+		r.append(nombre)
+	return r
 
 
 func vel_mult() -> float:
@@ -341,6 +397,10 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		return
 	var base: float = hechizo.dano
 	var mult: float = multiplicador(el)
+	# A4: foto de los estados ANTES del golpe; al terminar el `match` se comparan y se avisa de cada cambio real (una vez por golpe, nunca por fotograma).
+	var ardia: bool = quemando > 0.0
+	var estaba_mojado: bool = mojado > 0.0
+	var estaba_congelado: bool = congelado > 0.0
 
 	match el:
 		"fuego":
@@ -367,6 +427,19 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 				_carga = 0.0
 		"tierra":
 			lento = hechizo.ralentiza
+
+	if el == "rayo":
+		_reaccionar("electrocutado")                # cada descarga que le llega es una reacción (no hay estado que dure)
+	if quemando > 0.0 and not ardia:
+		_reaccionar("prendido")
+	elif ardia and quemando <= 0.0:
+		_reaccionar("apagado_agua")                 # solo el agua y el hielo (quemando = 0 en el match) lo apagan; el viento no
+	if estaba_mojado and mojado <= 0.0:
+		_reaccionar("secado")                       # el fuego sobre mojado = vapor: lo seca
+	elif not estaba_mojado and mojado > 0.0:
+		_reaccionar("mojado")
+	if congelado > 0.0 and not estaba_congelado:
+		_reaccionar("congelado")
 
 	var dano: float = base * mult
 	if elemental and el == "fuego" and _potenciado:
@@ -399,7 +472,15 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		"mult": mult})
 
 
+## A4: avisa de una reacción con nombre (catálogo de Mundo3D.REACCIONES) en el centro del cuerpo. Qué se ve y suena lo decide el Pipeline.
+func _reaccionar(nombre: String, punto: Variant = null) -> void:
+	var p: Vector3 = (punto as Vector3) if punto != null else _pos_mundo() + Vector3(0.0, altura * 0.5, 0.0)
+	Mundo3D.avisar_reaccion(nombre, p, self)
+
+
 func _aturdir(segundos: float) -> void:
+	if stun_timer <= 0.0:
+		_reaccionar("aturdido")                    # solo al empezar: volver a aturdir a uno ya aturdido no es un cambio
 	stun_timer = segundos
 	_carga = 0.0
 
@@ -555,12 +636,17 @@ func _efectos(delta: float) -> void:
 	_destello = maxf(0.0, _destello - delta)
 	if quemando > 0.0:
 		quemando -= delta
+		if quemando <= 0.0:
+			_reaccionar("consumido")                # se le acabó el fuego solo: el Pipeline corta las llamas del cuerpo con `consumido`
 		_tick_fuego -= delta
 		if _tick_fuego <= 0.0:
 			_tick_fuego = 0.5
 			receive_damage(ELEM_IGNITE if elemental else 3.0 * (MULT_DEBIL if debil == "fuego" else 1.0))
 			if muerto:
 				return
+	_fuego_por_contacto(delta)
+	if muerto:
+		return
 	if envenenado > 0.0:
 		envenenado = maxf(0.0, envenenado - delta)
 		_tick_veneno -= delta
@@ -571,8 +657,14 @@ func _efectos(delta: float) -> void:
 				return
 		if envenenado <= 0.0:
 			_dps_veneno = 0.0
+	var estaba_mojado: bool = mojado > 0.0
+	var estaba_congelado: bool = congelado > 0.0
 	mojado = maxf(0.0, mojado - delta)
 	congelado = maxf(0.0, congelado - delta)
+	if estaba_mojado and mojado <= 0.0:
+		_reaccionar("secado")
+	if estaba_congelado and congelado <= 0.0:
+		_reaccionar("derretido")
 	lento = maxf(0.0, lento - delta)
 	_t_anim = maxf(0.0, _t_anim - delta)
 	_ataque = maxf(0.0, _ataque - delta)
@@ -581,10 +673,84 @@ func _efectos(delta: float) -> void:
 		_efectos_elemental(delta)
 
 
+## --- A2 · El fuego pasa por contacto ---
+
+## ¿Está ardiendo este enemigo? (quemadura activa). Es el «ardiendo» de la regla: el que prende lo inflamable que toca.
+func esta_ardiendo() -> bool:
+	return quemando > 0.0 and not muerto
+
+
+## ¿Es inflamable AHORA? Todo enemigo vivo lo es, salvo si está mojado (el agua lo protege: fuego sobre mojado = vapor) o congelado.
+func puede_prender() -> bool:
+	return not muerto and mojado <= 0.0 and congelado <= 0.0
+
+
+## Lo prende el contacto con una llama. Devuelve si prendió. No acorta una quemadura más larga (quedarse en la llama la mantiene).
+func prender_por_contacto(segundos: float = QUEMA_CONTACTO) -> bool:
+	if not puede_prender():
+		return false
+	var estaba: bool = quemando > 0.0
+	quemando = maxf(quemando, maxf(segundos, ELEMENTAL_QUEMA) if elemental else segundos)
+	if not estaba:
+		_reaccionar("prendido")
+		_destello = maxf(_destello, DESTELLO_DANO)
+		PlayLog.event("goblin_prende_por_contacto", {"nombre": nombre})
+	return true
+
+
+func _radio_cuerpo() -> float:
+	if _col != null and _col.shape is CapsuleShape3D:
+		return (_col.shape as CapsuleShape3D).radius
+	return RADIO_CUERPO_ENEMIGO
+
+
+func _pos_mundo() -> Vector3:
+	return global_position if is_inside_tree() else position
+
+
+## Cada INTERVALO_CONTACTO_FUEGO s: si arde, prende lo inflamable que toca; si no, mira si lo toca algo que arde. Todo por CONTACTO de cuerpos.
+func _fuego_por_contacto(delta: float) -> void:
+	_t_contacto_fuego -= delta
+	if _t_contacto_fuego > 0.0 or muerto or not is_inside_tree():
+		return
+	_t_contacto_fuego = INTERVALO_CONTACTO_FUEGO
+	var arde: bool = esta_ardiendo()
+	if not arde and not puede_prender():
+		return                                  # mojado o congelado y sin fuego encima: nada que hacer
+	var p: Vector3 = _pos_mundo()
+	var r: float = _radio_cuerpo()
+	for n in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+		if not is_instance_valid(n) or not (n is Reactivo3D):
+			continue
+		var o: Reactivo3D = n
+		if arde:
+			if o.can_burn() and o.toca_punto(p, r):      # can_burn ya excluye lo mojado y lo que no es inflamable
+				o.ignite(p)
+		elif o.emite_fuego_por_contacto() and o.toca_punto(p, r):
+			arde = prender_por_contacto()
+			break
+	if not CONTACTO_ENTRE_ENEMIGOS:
+		return
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n == self or not is_instance_valid(n) or not (n is Combate3D):
+			continue
+		var otro: Combate3D = n
+		if otro.muerto or absf(otro._pos_mundo().y - p.y) > maxf(altura, otro.altura):
+			continue
+		var d: Vector3 = otro._pos_mundo() - p
+		d.y = 0.0
+		if d.length() > r + otro._radio_cuerpo():
+			continue
+		if arde and not otro.esta_ardiendo():
+			otro.prender_por_contacto()
+		elif not arde and otro.esta_ardiendo():
+			arde = prender_por_contacto()
+
+
 func _ia(delta: float) -> void:
 	# Retroceso por golpes (decae solo)
 	if _empuje.length() > 0.1:
-		_mover_paso(_empuje * delta)
+		_mover_paso(_empuje * delta, true)          # empujado: SÍ puede acabar en el agua honda (y hundirse); andando por su cuenta, no
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(DECAIMIENTO_EMPUJE * delta, 0.0, 1.0))
 	if elemental:
 		stun_timer = 0.0
@@ -675,7 +841,7 @@ func _ia(delta: float) -> void:
 			elif d.length() > 0.3:
 				_carga = 0.0
 				moviendo = 2 if vel > 0.8 else 1
-				_mover_paso(d.normalized() * VEL_PERSEGUIR * vel * delta)
+				_mover_paso(_dir_hacia(meta, delta) * VEL_PERSEGUIR * vel * delta, false, true)
 			else:
 				moviendo = 0
 		"vuelve":
@@ -688,7 +854,7 @@ func _ia(delta: float) -> void:
 			else:
 				mirada = h.normalized()
 				moviendo = 1
-				if not _mover_paso(h.normalized() * VEL_PATRULLA * 1.5 * vel * delta):
+				if not _mover_paso(_dir_hacia(casa, delta) * VEL_PATRULLA * 1.5 * vel * delta, false, true):
 					estado = "patrulla"
 		_:
 			_patrullar(delta, vel)
@@ -733,7 +899,7 @@ func _ia_arquero(delta: float, vel: float) -> void:
 	if dist > ARQUERO_ALCANCE:
 		_carga = 0.0
 		moviendo = 2 if vel > 0.8 else 1
-		_mover_paso(mirada * VEL_PERSEGUIR * vel * delta)
+		_mover_paso(_dir_hacia(jugador.position, delta) * VEL_PERSEGUIR * vel * delta, false, true)
 	elif dist < ARQUERO_MIN:
 		_carga = 0.0
 		moviendo = 1
@@ -807,8 +973,9 @@ func _soltar_flecha() -> void:
 	flecha.look_at(destino, Vector3.UP)
 	var t: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
 	var tw: Tween = flecha.create_tween()
-	if lanz != null and not bloqueada:
-		tw.tween_method(_vuelo_flecha.bind(flecha, origen, destino), 0.0, 1.0, t)     # por tramos: así nota la burbuja del jugador
+	if not bloqueada:
+		# Por tramos: así nota la burbuja del jugador (si hay lanzador) y cualquier llama que cruce (A2). Sin lanzador antes volaba de golpe.
+		tw.tween_method(_vuelo_flecha.bind(flecha, origen, destino), 0.0, 1.0, t)
 	else:
 		tw.tween_property(flecha, "position", destino, t)
 	tw.tween_callback(_flecha_llega.bind(flecha, destino, bloqueada))
@@ -829,11 +996,56 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 	elif lanz != null and lanz.solidez_para(p, DANO_FLECHA):
 		flecha.set_meta("parada", true)            # R3: un volumen con solidez (propiedad de la receta V2) para la flecha y aguanta el golpe
 		flecha.queue_free()
+	else:
+		# A2: la flecha es inflamable. Cruzar una llama (fogata, brasero, algo ardiendo) la deja ardiendo; ardiendo, prende lo inflamable que toca.
+		if not flecha.has_meta("ardiendo") and _flecha_toca_fuego(p):
+			_encender_flecha(flecha)
+		if flecha.has_meta("ardiendo"):
+			_prender_en(p, RADIO_FLECHA_FUEGO)
+
+
+## ¿Toca la flecha, en `p`, algo que ESTÁ ARDIENDO y pasa la llama? Objetos (fogata/brasero encendidos, seto en llamas…) y otros enemigos ardiendo.
+func _flecha_toca_fuego(p: Vector3) -> bool:
+	if not is_inside_tree():
+		return false
+	for n in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+		if is_instance_valid(n) and n is Reactivo3D and (n as Reactivo3D).emite_fuego_por_contacto() and (n as Reactivo3D).toca_punto(p, RADIO_FLECHA_FUEGO):
+			return true
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n == self or not is_instance_valid(n) or not (n is Combate3D) or not (n as Combate3D).esta_ardiendo():
+			continue
+		var otro: Combate3D = n
+		var q: Vector3 = otro._pos_mundo()
+		if Vector2(p.x - q.x, p.z - q.z).length() <= otro._radio_cuerpo() + RADIO_FLECHA_FUEGO and p.y >= q.y and p.y <= q.y + otro.altura:
+			return true
+	return false
+
+
+## Deja la flecha ardiendo: lo dice la marca `ardiendo` (la leen `_flecha_llega` y las pruebas) y se ve naranja con brillo.
+func _encender_flecha(flecha: Node3D) -> void:
+	flecha.set_meta("ardiendo", true)
+	if flecha is MeshInstance3D and (flecha as MeshInstance3D).material_override is StandardMaterial3D:
+		var m: StandardMaterial3D = (flecha as MeshInstance3D).material_override
+		m.albedo_color = COLOR_FLECHA_ARDIENDO
+		m.emission_enabled = true
+		m.emission = COLOR_FLECHA_ARDIENDO
+		m.emission_energy_multiplier = 2.0
+
+
+## Prende lo inflamable (objetos) cuyo cuerpo toca el punto `p` con un radio `radio`. Lo usa la flecha ardiendo, en vuelo y al impactar.
+func _prender_en(p: Vector3, radio: float) -> void:
+	if not is_inside_tree():
+		return
+	for n in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+		if is_instance_valid(n) and n is Reactivo3D and (n as Reactivo3D).can_burn() and (n as Reactivo3D).toca_punto(p, radio):
+			(n as Reactivo3D).ignite(p)
 
 
 func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
+	var ardiendo: bool = false
 	if is_instance_valid(flecha):
 		var parada: bool = flecha.has_meta("parada")
+		ardiendo = flecha.has_meta("ardiendo")
 		flecha.queue_free()
 		if parada:
 			return
@@ -843,6 +1055,12 @@ func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 	var dz: float = jugador.position.z - destino.z
 	if Vector2(dx, dz).length() <= RADIO_IMPACTO_FLECHA and absf(jugador.position.y + 0.8 - destino.y) < Terreno3D.ALTO_NIVEL:
 		jugador.recibir_dano(DANO_FLECHA, position)
+		if ardiendo:
+			# A2: el impacto de una flecha ardiendo QUEMA. El jugador aún no tiene quemadura propia: si algún día define `quemar(segundos)`, se llama aquí.
+			if jugador.has_method("quemar"):
+				jugador.call("quemar", QUEMA_CONTACTO)
+			flecha_ardiente_impacta.emit(jugador)
+			_prender_en(destino, RADIO_FLECHA_FUEGO)
 
 
 func _conectar() -> void:
@@ -857,6 +1075,39 @@ func _dist(p: Vector3) -> float:
 	return Vector2(p.x - position.x, p.z - position.z).length()
 
 
+## D2: hacia dónde andar para llegar a `meta`. Si la línea recta está libre (la misma que usa para VER), va derecho como siempre. Si no (un muro, un río, un
+## escalón de dos niveles en medio), sigue la ruta por casillas de `Caminos3D`: la recalcula cada PERIODO_CAMINO s, o al cambiar de casilla la meta, o si se sale
+## de su ruta. Sin ruta (no hay camino, o es el elemental, que no cabe por los pasos de una casilla) devuelve la recta, que es lo que hacía antes.
+func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
+	var recto: Vector3 = meta - position
+	recto.y = 0.0
+	if recto.length() < 0.0001:
+		return Vector3.ZERO
+	recto = recto.normalized()
+	if elemental or (Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
+		_ruta.clear()
+		return recto
+	var c_ini: Vector2i = Terreno3D.celda_de(position)
+	var c_fin: Vector2i = Terreno3D.celda_de(meta)
+	_t_ruta -= delta
+	var pos_en_ruta: int = _ruta.find(c_ini)
+	# Sin ruta (no la hay) también espera al periodo: si no, la buscaría en cada fotograma.
+	if _t_ruta <= 0.0 or c_fin != _ruta_meta or (pos_en_ruta == -1 and not _ruta.is_empty()):
+		_ruta = Caminos3D.camino(c_ini, c_fin)
+		_ruta_meta = c_fin
+		_t_ruta = PERIODO_CAMINO
+		rutas_calculadas += 1
+		pos_en_ruta = 0
+	if _ruta.is_empty():
+		return recto
+	if pos_en_ruta == -1 or pos_en_ruta >= _ruta.size() - 1:
+		return recto                       # ya está en la última casilla: el tramo final es en recta
+	var sig: Vector3 = Terreno3D.centro_de(_ruta[pos_en_ruta + 1])
+	var d: Vector3 = sig - position
+	d.y = 0.0
+	return d.normalized() if d.length() > 0.0001 else recto
+
+
 ## ¿Ve al jugador? Distancia + línea de visión (árboles, muros y torres de tierra la cortan).
 func _ve(radio: float) -> bool:
 	if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
@@ -867,7 +1118,10 @@ func _ve(radio: float) -> bool:
 
 
 ## Un goblin no sube ni nada: casillas a nivel 0 y que no sean agua. Desliza por los ejes.
-func _mover_paso(paso: Vector3) -> bool:
+## `empujado` = el paso lo da un empuje (no sus piernas): entonces el agua honda deja de ser pared y lo que lo lleve dentro lo hunde (ver `_puede_estar`).
+## `por_ruta` (D2) = el paso sigue la ruta de `Caminos3D`: entonces puede cambiar de nivel (±1) hacia una casilla DE LA RUTA, que es lo que la ruta ya ha
+## decidido que se puede subir/bajar. Sin eso, el goblin seguiría sin poder escalar un escalón aunque el camino pasara por él.
+func _mover_paso(paso: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
 	if paso.length() < 0.0001:
 		return false
 	for v in [paso, Vector3(paso.x, 0.0, 0.0), Vector3(0.0, 0.0, paso.z)]:
@@ -875,17 +1129,21 @@ func _mover_paso(paso: Vector3) -> bool:
 		if vv.length() < 0.0001:
 			continue
 		var destino: Vector3 = position + vv
-		if _puede_estar(destino):
+		if _puede_estar(destino, empujado, por_ruta):
 			position.x = destino.x
 			position.z = destino.z
 			return true
 	return false
 
 
-func _puede_estar(p: Vector3) -> bool:
+func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
+	var c: Vector2i = Terreno3D.celda_de(p)
+	# A3: un cuerpo EMPUJADO entra en el agua honda no helada (no hay suelo que lo frene: por eso se hunde en `_ajustar_al_suelo`). Con sus piernas, nunca:
+	# por eso esta salida va antes de las comprobaciones de suelo y solo existe con `empujado`. Misma regla de agua que el jugador usa para nadar (`_es_agua_honda`).
+	if empujado and c != Terreno3D.celda_de(position) and _es_agua_honda(c):
+		return true
 	if elemental and not _cabe_con_cuerpo(p):
 		return false
-	var c: Vector2i = Terreno3D.celda_de(p)
 	# 20/10 (Pablo: colisiones cercanas al modelo y no a la cuadrícula): como el jugador, en una casilla bloqueada cuya forma real se conoce («parcial»: un barril,
 	# una roca, un arbusto) solo choca contra esa forma, no contra la casilla entera. Sin forma conocida (agua, muro, telaraña…) sigue siendo la casilla.
 	var parcial: bool = Terreno3D.es_parcial(c)
@@ -898,6 +1156,12 @@ func _puede_estar(p: Vector3) -> bool:
 	# Se mueve por SU nivel (el de la casilla donde está): a nivel 0 es lo de siempre; en una terraza (Terra Fina) recorre la
 	# terraza y puede bajar, pero no sube: pisable con `sube = false` y tope = su nivel.
 	var nivel: int = Terreno3D.altura_en(Terreno3D.celda_de(position))
+	# D2: siguiendo la ruta, una casilla de la ruta que está a ±1 nivel SÍ se pisa (misma regla de arista que usó el A*). La altura de los pies la pone
+	# `_ajustar_al_suelo` (sube de golpe con el bloque; baja a 6 u/s), por eso aquí no se exige el `y_pies` de abajo.
+	if por_ruta and not elemental and _ruta.has(c):
+		var nc: int = Terreno3D.altura_en(c)
+		if absi(nc - nivel) <= Caminos3D.SALTO_MAX and Terreno3D.pisable(c, nc, false, nc, false, parcial):
+			return true
 	if not Terreno3D.pisable(c, nivel, false, nivel, false, parcial):
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
@@ -922,10 +1186,22 @@ func _cabe_con_cuerpo(p: Vector3) -> bool:
 	return true
 
 
+## ¿Es agua HONDA para hundirse? La regla con la que el jugador nada (`Terreno3D.se_nada`: agua de verdad, no helada, y no el canal de ruinas que se vadea) más,
+## si hay simulación, que la profundidad llegue a UMBRAL_NADO (una cuenca con un charquito es `es_agua` pero no se nada). Un puente («b») nunca es agua.
+func _es_agua_honda(c: Vector2i) -> bool:
+	if not Terreno3D.en_mapa(c) or Terreno3D.letra_de(c) == "b" or not Terreno3D.se_nada(c):
+		return false
+	return Terreno3D.agua_sim == null or Terreno3D.agua_sim.se_nada_en(c)
+
+
 func _ajustar_al_suelo(delta: float) -> void:
 	var c: Vector2i = Terreno3D.celda_de(position)
 	if Terreno3D.es_agua(c):
-		# Se le fue el suelo (hielo derretido): vuelve a su puesto, sin daño
+		# A3: agua honda sin hielo bajo los pies (lo empujaron, el hielo se derritió, el agua subió): se hunde. El hielo sigue sosteniendo (con él `es_agua` es falso).
+		if _es_agua_honda(c):
+			_hundirse(c)
+			return
+		# Agua baja (no se nada): se le fue el suelo (hielo derretido): vuelve a su puesto, sin daño
 		position = Vector3(casa.x, Terreno3D.y_pies(Terreno3D.celda_de(casa)), casa.z)
 		estado = "patrulla"
 		objetivo = null
@@ -1425,10 +1701,23 @@ func _actualizar_barra_jefe(fr: float) -> void:
 ##  Muerte y botín
 ## =====================================================================================================
 
-func _morir() -> void:
+## Cae al agua honda en la casilla `c`: lo mismo que morir, pero ahogado (ver `_morir(true)`). Lo llama `_ajustar_al_suelo`.
+func _hundirse(c: Vector2i) -> void:
 	if muerto:
 		return
+	_punto_hundido = Vector3(position.x, Terreno3D.superficie_agua(c), position.z)
+	_empuje = Vector3.ZERO
+	_morir(true)
+
+
+## `ahogado`: muere en el agua (A3): sin botín, no cae tumbado sino que se hunde bajo la superficie, avisa a Mundo3D para las burbujas y emite `hundido`.
+func _morir(ahogado: bool = false) -> void:
+	if muerto:
+		return
+	if quemando > 0.0:
+		_reaccionar("apagado_agua" if ahogado else "consumido")     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
 	muerto = true
+	se_hundio = ahogado
 	collision_layer = 0
 	monitorable = false
 	remove_from_group("combate3d")
@@ -1446,19 +1735,63 @@ func _morir() -> void:
 	_cancelar_squash()
 	_destello_blanco(false)
 	_aplicar_tinte(tinte)
-	Jugador3D.una_vez(pj, "death")
+	var retraso_hundir: float = 0.0
+	if ahogado:
+		retraso_hundir = _animar_ahogo()
+	else:
+		Jugador3D.una_vez(pj, "death")
 	if not elemental:
 		Sfx3D.play(self, snd_muere)
 	var lista: Variant = mundo.get("_goblins")
 	if lista is Array:
 		(lista as Array).erase(pj)
-	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
+	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y], "ahogado": ahogado})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
+	if ahogado:
+		_hundir_modelo(retraso_hundir)
+		return
 	if oro > 0:
 		Botin3D.soltar(mundo, jugador, oro, position)
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
 	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(pj):
+			pj.queue_free()
+		queue_free())
+
+
+## Pone el clip «Drowning» si el modelo lo trae Y el árbol de animación lo admite (el grafo reducido de los enemigos hoy no: ver el encargo del informe). Si no, la pose de
+## muerte de siempre. Devuelve cuánto esperar antes de empezar a bajar: con el clip, hasta el 60 % (los brazos ya van arriba, pedido del Pipeline en el diario 231); sin él, 0.
+func _animar_ahogo() -> float:
+	if pj == null or not is_instance_valid(pj):
+		return 0.0
+	var dur: float = pj.duracion(CLIP_AHOGARSE)
+	if dur > 0.0:
+		pj.animacion_actual = ""
+		pj.jugar(CLIP_AHOGARSE, true)
+		if pj.animacion_actual == CLIP_AHOGARSE:
+			return dur * 0.6
+	Jugador3D.una_vez(pj, "death")
+	return 0.0
+
+
+## El hundimiento en sí: avisa a Mundo3D («hundido», en la superficie, para las burbujas), emite `hundido` y baja el modelo bajo el agua en TIEMPO_HUNDIMIENTO.
+## Se mueve el modelo y no este nodo: `_physics_process` ya no corre (muerto) y es el que copiaba la posición. Sin botín.
+func _hundir_modelo(espera: float) -> void:
+	texto("¡Hundido!", COLORES["agua"], 0.1)
+	if Mundo3D.actual != null:
+		Mundo3D.actual.avisar_impacto(_punto_hundido, AVISO_HUNDIDO, maxf(_radio_cuerpo(), 0.4) * 1.5)
+	_reaccionar("hundido", _punto_hundido)          # A4: el mismo hecho que el aviso `impacto` de arriba (conviven: los usan consumidores distintos)
+	hundido.emit(self)
+	if pj == null or not is_instance_valid(pj):
+		queue_free()
+		return
+	var y_fin: float = minf(_punto_hundido.y, pj.position.y) - altura - PROFUNDIDAD_EXTRA_HUNDIDO
+	var tw: Tween = create_tween()
+	if espera > 0.0:
+		tw.tween_interval(espera)
+	tw.tween_property(pj, "position:y", y_fin, TIEMPO_HUNDIMIENTO).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(pj):
 			pj.queue_free()

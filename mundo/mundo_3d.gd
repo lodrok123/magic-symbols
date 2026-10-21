@@ -18,6 +18,14 @@ extends Node3D
 
 signal casilla_cambio(c: Vector2i, que: String)
 signal impacto(punto: Vector3, elemento: String, radio: float)
+## A4: la lógica avisa de QUÉ ha pasado con un nombre del catálogo cerrado `REACCIONES`; qué se ve y qué suena lo decide la tabla del Pipeline
+## (`ReaccionesVfx3D`, PL2), no el Juego. `nodo` = quien reacciona (el Pipeline saca de él el tipo: goblin, flecha, seto...). `punto` en coordenadas de mundo.
+signal reaccion(nombre: String, punto: Vector3, nodo: Node)
+
+## CATÁLOGO CERRADO de reacciones (contrato con el Pipeline: `ReaccionesVfx3D.CATALOGO` tiene estos mismos nombres, en este orden).
+## Se avisa UNA vez por cambio real de estado, nunca por fotograma. «bloqueado» lo añadió el Pipeline para el escudo; lo emite `Escudo3D` (A5) cuando para un disparo de frente.
+const REACCIONES: PackedStringArray = ["prendido", "apagado_agua", "apagado_viento", "consumido", "mojado", "secado", "congelado", "derretido",
+	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado"]
 
 ## El mundo vivo (null si no hay). Estático para que los módulos sin nodo (Terreno3D) puedan avisarle.
 static var actual: Mundo3D = null
@@ -90,6 +98,26 @@ func letra(c: Vector2i) -> String:
 	return Terreno3D.letra_de(c)
 
 
+## B1 (21/10): la imagen del estado del suelo, un píxel por casilla (R quemada · G mojada · B helada · A segada). Es la que debe
+## leer el shader del suelo (encargo B2 al Pipeline) en vez de `_img_estado`. Siempre el mismo objeto; se actualiza sola al pedirla
+## si algo cambió. Estática: vale sin Mundo3D en el árbol (pruebas).
+static func textura_estados() -> ImageTexture:
+	var n: int = Terreno3D.lado_del_mapa()
+	if n > 0:
+		Terreno3D.estados.dimensionar(n)
+	return Terreno3D.estados.textura()
+
+
 ## La magia o un objeto avisa de un impacto para que la presentación pinte y suene. No decide qué se pinta.
 func avisar_impacto(punto: Vector3, elemento: String, radio: float = 0.0) -> void:
 	impacto.emit(punto, elemento, radio)
+
+
+## Avisa de una reacción con nombre (A4). Estática: la llaman Reactivo3D y Combate3D, que no saben si hay mundo; sin `Mundo3D.actual` (pruebas, escenas
+## sueltas) no hace nada. Un nombre fuera del catálogo se avisa con push_warning (para cazar erratas) y NO se emite: el catálogo es cerrado.
+static func avisar_reaccion(nombre: String, punto: Vector3, nodo: Node = null) -> void:
+	if not REACCIONES.has(nombre):
+		push_warning("Mundo3D.avisar_reaccion: «%s» no está en el catálogo de reacciones" % nombre)
+		return
+	if actual != null and is_instance_valid(actual):
+		actual.reaccion.emit(nombre, punto, nodo)

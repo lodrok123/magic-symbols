@@ -489,6 +489,38 @@ static func celda_solida(c: Vector2i, nivel: int) -> bool:
 	return altura_en(c) >= 1 + nivel
 
 
+## ---- Ocupación por casilla y altura (D1 de PLAN_EOW, 21/10) ----
+## Medido antes de escribir: había TRES formas de preguntar por lo sólido y ninguna para una forma entera. `celda_solida(c, nivel)`
+## (una casilla, para hechizos: lanzador_3d ×2, hechizo_vivo ×4), `pisable(c, …)` (quien camina: jugador, goblins, lanzador) y
+## `construir_tierra` (lanzador), que repite a mano agua + bloqueo + cornisa. «¿Cabe una forma de N casillas y M alturas aquí?»
+## (rasterizado de glifos de la Fase 8, bloque de tierra, camino de enemigos) no la contestaba nadie. Estas dos funciones lo hacen
+## SIN inventar reglas: `ocupado` es exactamente `celda_solida` (misma respuesta para los hechizos) y `cabe` la repite por casilla
+## y altura. No saben de actores (jugador, goblins): eso lo sigue mirando quien construye.
+## Simplificación que hereda de `celda_solida`: una pieza que bloquea (árbol, roca) ocupa TODAS las alturas de su casilla.
+
+## ¿Hay algo sólido en la casilla `c` a la altura `nivel` (0 = a ras del suelo, 1 = un bloque de tierra más arriba…)? Fuera del mapa,
+## sí. Cuenta: piezas que bloquean (no en el río «~»), hielo gordo y la tierra/cornisa que llegue a ese nivel.
+static func ocupado(c: Vector2i, nivel: int) -> bool:
+	return celda_solida(c, nivel)
+
+
+## ¿Cabe una forma que ocupa `celdas` y va de `nivel_desde` a `nivel_desde + alto - 1`? `sobre_agua = false` además la rechaza si
+## alguna casilla es agua sin helar (lo que pide el bloque de tierra: no se construye en el río).
+static func cabe(celdas: Array, nivel_desde: int, alto: int = 1, sobre_agua: bool = true) -> bool:
+	if celdas.is_empty() or alto < 1:
+		return false
+	for c in celdas:
+		var q: Vector2i = c
+		if not en_mapa(q):
+			return false
+		if not sobre_agua and es_agua(q) and not helada(q):
+			return false
+		for k in range(nivel_desde, nivel_desde + alto):
+			if ocupado(q, k):
+				return false
+	return true
+
+
 ## ---- Huellas: lo que ocupa DE VERDAD cada objeto que bloquea una casilla ----
 ## La rejilla bloquea casillas enteras (2,3 u) aunque el modelo sea un barril de 1 u o un puesto que ocupa casilla y media.
 ## Para el JUGADOR se afina: en una casilla bloqueada solo choca dentro del círculo de los objetos que la tocan (más el

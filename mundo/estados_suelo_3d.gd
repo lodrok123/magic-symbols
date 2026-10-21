@@ -4,8 +4,13 @@
 ## `mundo.get("_helada")` (8 sitios). Un dato, un dueño (ARQUITECTURA_MODULAR §5.1): el dueño es esta clase, y quien dibuje
 ## (la maqueta, el agua) pregunta aquí o escucha `Mundo3D.casilla_cambio`; no guarda su propia copia.
 ##
-## Qué NO hace (todavía): las textura de estado (`_img_estado`, con su caducidad de quemado/mojado) sigue siendo de la maqueta;
-## es dibujo. Esta clase guarda el HECHO (la casilla está helada), no su aspecto.
+## B1 (PLAN_EOW, 21/10): además del HECHO guarda su INTENSIDAD (0..1: cuánto está quemada una casilla mientras arde) y su
+## CADUCIDAD (segundos que le quedan; 0 = no caduca, que es lo de siempre), y da la imagen del estado: `textura()`, un píxel
+## por casilla con los mismos canales que la `_img_estado` de la maqueta (R quemada · G mojada · B helada · A segada). Así la
+## hierba, los VFX y las condiciones de puzle leen el MISMO dato. La maqueta todavía pinta su propia `_img_estado`: retirarla
+## es el encargo B2 al Pipeline (ver diario). El canal A de la maqueta es «pisado» (solo aspecto, caduca en 2 s); aquí es
+## «segada», que sí es un hecho: lo pisado no se guarda aquí porque avisaría a todo el juego a cada paso.
+## Las reglas de paso entre estados (dos aguas hielan, el calor funde el hielo…) están en una TABLA (`TRANSICIONES`), no en `if`.
 class_name EstadosSuelo3D
 extends RefCounted
 
@@ -25,19 +30,73 @@ const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": 
 ## Se emite SOLO cuando el estado cambia de verdad (poner lo que ya hay no avisa a nadie).
 signal cambio(c: Vector2i, estado: String, si: bool)
 
+## Canal de la textura de cada estado (el orden de `_img_estado` de la maqueta).
+const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
+
+## Transiciones por acción sobre UNA casilla. Se recorren en orden y gana la PRIMERA fila que encaja (como el `match` que
+## sustituyen, sacado de `_impacto_en_suelo` de la maqueta). Columnas:
+##   accion  lo que llega: «agua», «frio» (hielo) o «calor» (fuego)
+##   con     la casilla debe tener este estado ("" = da igual)
+##   sin     la casilla NO debe tener este estado ("" = da igual)
+##   quita / pone   estados que se quitan y se ponen
+##   efecto  lo que la presentación debería pintar (hoy solo «vapor»); `aplicar` lo devuelve, no lo pinta
+## Una regla nueva es una fila nueva; ningún estado sabe de los demás.
+const TRANSICIONES: Array = [
+	{"accion": "agua", "con": "helada", "sin": "", "quita": [], "pone": [], "efecto": ""},                     # ya helada: nada
+	{"accion": "agua", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": ["helada"], "efecto": ""},     # dos aguas hielan
+	{"accion": "agua", "con": "", "sin": "", "quita": [], "pone": ["mojada"], "efecto": ""},
+	{"accion": "frio", "con": "", "sin": "", "quita": ["mojada"], "pone": ["helada"], "efecto": ""},
+	{"accion": "calor", "con": "helada", "sin": "", "quita": ["helada"], "pone": ["mojada"], "efecto": ""},    # el hielo pasa a charco
+	{"accion": "calor", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": [], "efecto": "vapor"},       # el charco se seca
+]
+
+## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). Hoy ninguno caduca, igual que antes de B1:
+## son los números que Pablo puede ajustar para que, por ejemplo, el mojado se seque solo.
+const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "mojada": 0.0, "segada": 0.0}
+
 var _celdas: Dictionary = {}          ## estado -> Dictionary(Vector2i -> true)
+var _intensidad: Dictionary = {}      ## estado -> Dictionary(Vector2i -> float 0..1); sin entrada = 1
+var _queda: Dictionary = {}           ## estado -> Dictionary(Vector2i -> float s); solo las que caducan
+
+## Lado de la textura (casillas). 40 = el `_lado` de la maqueta; `dimensionar` lo cambia (Mundo3D le pasa el del mapa).
+var lado: int = 40
+var _img: Image = null
+var _tex: ImageTexture = null
+var _sucia: bool = true
 
 
 func tiene(c: Vector2i, estado: String) -> bool:
 	return (_celdas.get(estado, {}) as Dictionary).has(c)
 
 
-## Pone o quita un estado. Devuelve true si algo cambió.
-func poner(c: Vector2i, estado: String, si: bool) -> bool:
+## Pone o quita un estado. Devuelve true si algo cambió (el hecho; cambiar solo la intensidad o la duración no avisa).
+## `intensidad` (0..1) y `dura` (s; < 0 = la de `DURA`, 0 = no caduca) solo cuentan al poner. Los que ya llamaban con tres
+## argumentos siguen igual: intensidad 1 y sin caducidad.
+func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura: float = -1.0) -> bool:
 	if not TODOS.has(estado):
 		push_warning("EstadosSuelo3D: estado desconocido «%s»" % estado)
 		return false
 	var d: Dictionary = _celdas.get(estado, {})
+	var inten: Dictionary = _intensidad.get(estado, {})
+	var queda: Dictionary = _queda.get(estado, {})
+	if si:
+		var i: float = clampf(intensidad, 0.0, 1.0)
+		if not is_equal_approx(float(inten.get(c, 1.0)), i):
+			_sucia = true
+		if is_equal_approx(i, 1.0):
+			inten.erase(c)
+		else:
+			inten[c] = i
+		var t: float = float(DURA.get(estado, 0.0)) if dura < 0.0 else dura
+		if t > 0.0:
+			queda[c] = t
+		else:
+			queda.erase(c)
+	else:
+		inten.erase(c)
+		queda.erase(c)
+	_intensidad[estado] = inten
+	_queda[estado] = queda
 	if si == d.has(c):
 		return false
 	if si:
@@ -45,8 +104,94 @@ func poner(c: Vector2i, estado: String, si: bool) -> bool:
 	else:
 		d.erase(c)
 	_celdas[estado] = d
+	_sucia = true
 	cambio.emit(c, estado, si)
 	return true
+
+
+## Intensidad del estado en la casilla (0 si no lo tiene).
+func intensidad(c: Vector2i, estado: String) -> float:
+	if not tiene(c, estado):
+		return 0.0
+	return float((_intensidad.get(estado, {}) as Dictionary).get(c, 1.0))
+
+
+## Segundos que le quedan (0 = no caduca o no lo tiene).
+func queda(c: Vector2i, estado: String) -> float:
+	return float((_queda.get(estado, {}) as Dictionary).get(c, 0.0))
+
+
+## Pasa el tiempo: quita (y avisa) lo que caduca. Lo llama quien lleve el reloj del nivel (hoy nadie: nada caduca de serie).
+func avanzar(dt: float) -> void:
+	for estado in _queda.keys():
+		var q: Dictionary = _queda[estado]
+		var caducan: Array = []
+		for c in q.keys():
+			q[c] = float(q[c]) - dt
+			if float(q[c]) <= 0.0:
+				caducan.append(c)
+		for c in caducan:
+			poner(c, String(estado), false)
+
+
+## Aplica la acción («agua», «frio», «calor») a la casilla con la primera fila de `TRANSICIONES` que encaje.
+## Devuelve {"cambio": bool, "efecto": String}. No pinta nada: el efecto es para quien dibuja.
+func aplicar(c: Vector2i, accion: String) -> Dictionary:
+	for f in TRANSICIONES:
+		var fila: Dictionary = f
+		if String(fila["accion"]) != accion:
+			continue
+		if String(fila["con"]) != "" and not tiene(c, String(fila["con"])):
+			continue
+		if String(fila["sin"]) != "" and tiene(c, String(fila["sin"])):
+			continue
+		var algo: bool = false
+		for e in fila["quita"]:
+			algo = poner(c, String(e), false) or algo
+		for e in fila["pone"]:
+			algo = poner(c, String(e), true) or algo
+		return {"cambio": algo, "efecto": String(fila["efecto"])}
+	return {"cambio": false, "efecto": ""}
+
+
+## Cambia el lado de la textura (casillas). Rehace la imagen la próxima vez que se pida.
+func dimensionar(n: int) -> void:
+	if n > 0 and n != lado:
+		lado = n
+		_img = null
+		_sucia = true
+
+
+## La imagen del estado: `lado`×`lado` RGBA8, un píxel por casilla (R quemada · G mojada · B helada · A segada, cada uno con su
+## intensidad). Es SIEMPRE el mismo objeto: se rehace solo si algo cambió desde la última vez (`update`, no se recrea en GPU).
+func textura() -> ImageTexture:
+	if _img == null or _img.get_width() != lado:
+		_img = Image.create_empty(lado, lado, false, Image.FORMAT_RGBA8)
+		_tex = null
+		_sucia = true
+	if _sucia:
+		_img.fill(Color(0.0, 0.0, 0.0, 0.0))
+		for estado in CANAL.keys():
+			var k: int = int(CANAL[estado])
+			for c in celdas(String(estado)):
+				var p: Vector2i = c
+				if p.x < 0 or p.y < 0 or p.x >= lado or p.y >= lado:
+					continue
+				var col: Color = _img.get_pixelv(p)
+				col[k] = intensidad(p, String(estado))
+				_img.set_pixelv(p, col)
+		if _tex == null:
+			_tex = ImageTexture.create_from_image(_img)
+		else:
+			_tex.update(_img)
+		_sucia = false
+	return _tex
+
+
+## La misma imagen que sube `textura()`, al día (para leerla en CPU: pruebas, condiciones). No modificarla desde fuera.
+func imagen() -> Image:
+	textura()
+	return _img
 
 
 ## Las casillas con ese estado (copia: se puede recorrer mientras cambian).
@@ -61,3 +206,6 @@ func cuantas(estado: String) -> int:
 ## Empieza de cero (cambio de nivel). No emite `cambio`: quien recarga el nivel se redibuja entero.
 func limpiar() -> void:
 	_celdas.clear()
+	_intensidad.clear()
+	_queda.clear()
+	_sucia = true

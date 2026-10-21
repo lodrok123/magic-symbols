@@ -1,7 +1,24 @@
 class_name Reactivo3D
 extends Area3D
 
-## OBJETOS DEL TEST 2 QUE REACCIONAN A UN HECHIZO EN 3D (tarea 4.7). Dueño: Pipeline.
+## OBJETOS DEL TEST 2 QUE REACCIONAN A UN HECHIZO EN 3D (tarea 4.7). Dueño: JUEGO (`objetos/` es del Juego, docs/PROPIETARIOS.md §1).
+## El Pipeline solo lo COLOCA (PruebaTest2._reactivo: `preparar()` + `fx`/`celda`/`visual`) y pinta su visual; no decide cómo reacciona.
+##
+## 21/10 (A1 de docs/PLAN_EOW.md) · PAPELES. Lo que un objeto hace ante un hechizo ya no se decide por su `tipo` («es un seto») sino por
+## sus PAPELES («puede arder», «propaga la llama»…): `PAPELES_POR_TIPO` da los de cada tipo y `papeles` (`@export`) los retoca por pieza con
+## `+nombre` / `-nombre` (una variante = una diferencia de papeles: un seto con `-inflamable` no prende; una telaraña con `+mojable` se moja).
+## `COMBUSTIBLES` y `FUENTES` guardan solo NÚMEROS (segundos, escala…). El MONTAJE visual y la geometría (`_ready`, `_alto_cuerpo`,
+## `punto_activacion`, `nivel_altura`) siguen por `tipo`: dependen del modelo, no de lo que reacciona. Vocabulario y significado: ver PAPELES.
+##
+## 21/10 (A2 de docs/PLAN_EOW.md) · EL FUEGO PASA POR CONTACTO. Regla de Pablo: el fuego solo pasa de algo que ESTÁ ARDIENDO a algo INFLAMABLE
+## que lo TOCA; no hay radio de calor. Dos formas de «tocar», las dos documentadas aquí:
+##   · CUERPOS (enemigos y flechas): `toca_punto(p, radio)` mira si el punto está dentro de la caja de este objeto (+ el radio de quien toca).
+##     Lo usa `Combate3D` (un goblin ardiendo prende lo que pisa; lo que arde le prende a él; la flecha sale ardiendo si cruza una llama).
+##     `emite_fuego_por_contacto()` dice si este objeto, ahora, pasa la llama a lo que lo toca.
+##   · REJILLA (objetos entre sí): `_contagiar` (≤ 1,7 casillas cada 0,8 s) NO es un radio de calor: es el «vecino de rejilla». Las cajas de dos
+##     piezas de casillas distintas nunca se solapan (caja ≈ 0,9 casillas, hueco de 0,1 entre vecinas), así que el contacto entre piezas es,
+##     en la práctica, ser vecino de casilla (alcance de 1,7 casillas = vecinas y diagonales). Se queda como está; solo cambia cómo se llama.
+## Mojado sigue bloqueando en las dos formas (`can_burn` / `esta_mojado`).
 ##
 ## Un solo nodo con varios `tipo`, que implementa el contrato on_spell_hit de Lanzador3D (diario, 2026-10-06 00:50):
 ## es un Area3D en la capa CAPA_REACTIVO, decide por `rune_data.tags` y trae `spell_reacts`, `carried_element` y
@@ -73,6 +90,45 @@ const FUENTES: Dictionary = {
 	"fogata": [0.1, 0.8, 0.25, 0.6], "brasero": [1.25, 0.65, 0.12, 1.4],
 }
 const ALTO_TOTEM: float = 1.8
+## Números que se usan cuando una pieza gana `+inflamable` / `+fuente_fuego` sin tener fila propia arriba (los del seto y los de la fogata):
+## así dar un papel a una pieza nueva no revienta con una clave que falta.
+const COMBUSTIBLE_BASE: Array = [3.5, 1.0, 0.8, 1.3]
+const FUENTE_BASE: Array = [0.1, 0.8, 0.25, 0.6]
+
+## --- PAPELES (21/10, A1 del plan EoW) ---
+## Por qué: antes cada decisión era «¿es un seto? ¿es una fogata?» (`COMBUSTIBLES.has(tipo)`, `match tipo`). Para que una variante (un seto que no
+## arde, una telaraña que se moja) no pida tocar el código, cada objeto lleva una lista de PAPELES y el código pregunta por el papel, no por el
+## tipo. Lo que MIRA el código con cada uno (no lo que «parece»):
+const P_INFLAMABLE: String = "inflamable"          ## calor o rayo lo prenden; arde COMBUSTIBLES[tipo][0] s, se chamusca y se consume. Mojado no prende.
+const P_PROPAGA_LLAMA: String = "propaga_llama"    ## mientras arde contagia a lo inflamable de ≤ 1,7 casillas y el viento lleva su llama (≤ 3,6, en su cono)
+const P_APAGA: String = "apaga"                    ## el agua o el frío APAGAN su llama (arde → sano). Es el nombre del plan: léase «se deja apagar»
+const P_MOJABLE: String = "mojable"                ## el agua lo MOJA estando sano y no prende durante T_MOJADO s (el cortafuegos); por defecto nadie lo tiene
+const P_PESADO: String = "pesado"                  ## cuenta como peso para las placas: entra en el grupo GRUPO_PESO
+const P_CONDUCE: String = "conduce"                ## lleva la corriente (el cristal emisor). Solo se declara: aún no lo lee nada (lo usarán A2–A4)
+const P_CONGELABLE: String = "congelable"          ## el frío lo congela. Solo se declara: aún no lo lee nada (lo usará A3: agua helada)
+## Tres papeles MÁS que el plan no nombra pero sin los cuales seguiría un `match tipo` en pie (Pablo lo dirá si prefiere otros nombres):
+const P_FUENTE_FUEGO: String = "fuente_fuego"      ## fuego de mapa (fogata, brasero): el calor lo ENCIENDE, no se consume (FUENTES da los números); el rayo no lo toca
+const P_ACTIVABLE: String = "activable"            ## se activa UNA vez con su `elemento` (tótem: calor · agua · rayo) y se queda
+const P_RECIBE_AGUA: String = "recibe_agua"        ## el agua lo llena y brota (surtidor, tinaja)
+const PAPELES_VALIDOS: Array = [
+	P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_MOJABLE, P_PESADO, P_CONDUCE, P_CONGELABLE, P_FUENTE_FUEGO, P_ACTIVABLE, P_RECIBE_AGUA,
+]
+## tipo -> papeles de serie. `mojable` no está en ninguno: sin pedirlo, el agua no le hace nada a la leña sana (diario 100). Seto, tronco, telaraña,
+## puerta y torre de madera comparten papeles: lo que cambia entre ellos son solo los números de COMBUSTIBLES.
+const PAPELES_POR_TIPO: Dictionary = {
+	"seto": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"tronco": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"telarana": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"puerta_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"torre_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"fogata": [P_FUENTE_FUEGO, P_APAGA],
+	"brasero": [P_FUENTE_FUEGO, P_APAGA],
+	"totem": [P_ACTIVABLE],
+	"surtidor": [P_RECIBE_AGUA],
+	"emisor_rayo": [P_CONDUCE],
+	"puente": [],
+	"placa": [],
+}
 
 enum EstadoObj { SANO, ARDIENDO, CONSUMIDO }
 
@@ -110,7 +166,13 @@ var _rele_contagiado: bool = false
 ## Por qué 12 s y no los 8 de la hierba: medido en F4, un seto vecino sigue ardiendo y contagiando cada 0,8 s durante 3,5 s (más lo que tarde en
 ## prender él); con 8 s el seto mojado se secaba a mitad del incendio y prendía igual.
 const T_MOJADO: float = 12.0
-var mojable: bool = false
+## 21/10 (A1): `mojable` ya no es una variable suelta sino el papel `mojable`. Se mantiene como propiedad para no tocar a quien la pone
+## (Puzle3D: `seto … mojable=si`): leer = ¿tiene el papel?; escribir = añadir `+mojable` / `-mojable` a `papeles`.
+var mojable: bool:
+	get:
+		return tiene_papel(P_MOJABLE)
+	set(v):
+		_fijar_papel(P_MOJABLE, v)
 var _mojado_s: float = 0.0           ## s que le quedan empapado (se cuenta con el delta del juego, no con el reloj de pared)
 
 var _mats: Array = []              ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
@@ -125,6 +187,7 @@ var _tween: Tween = null
 var _disco: MeshInstance3D = null
 var _motas: Node3D = null
 var _plegado: bool = true
+var _forma_cuerpo: CollisionShape3D = null   ## la caja de acierto (la crea `_ready`); A2 la usa para saber qué cuerpos lo tocan
 
 
 ## Se llama una vez, con `visual` ya hijo (o sin él), antes de añadirlo al árbol.
@@ -134,6 +197,80 @@ func preparar(p_tipo: String, p_celda: Vector2i, p_elemento: String, p_fx: Vfx3D
 	elemento = p_elemento
 	fx = p_fx
 	visual = p_visual
+
+
+## --- Papeles: consulta ---
+
+## Retoques de ESTA pieza sobre los papeles de su tipo: `+nombre` añade, `-nombre` quita (sin signo = añade). Se aplican en orden, así que el
+## último gana. Ej.: `["-inflamable"]` = seto que no prende · `["+mojable"]` = telaraña que se moja · `["+pesado"]` = pieza que aplasta placas.
+## Un nombre que no está en PAPELES_VALIDOS se avisa y se ignora (una errata no debe pasar por buena en silencio).
+@export var papeles: PackedStringArray = PackedStringArray():
+	set(v):
+		papeles = v
+		_papeles_vale = false
+
+var _papeles_ok: Dictionary = {}          ## papel -> true: los EFECTIVOS (tipo + retoques); se recalculan si cambia `papeles` o `tipo`
+var _papeles_tipo: String = ""            ## el tipo para el que se calcularon (el Pipeline pone `tipo` en `preparar`, que va después del `new()`)
+var _papeles_vale: bool = false
+
+
+## ¿Tiene este papel? Es lo que el código pregunta en vez de «¿es de tal tipo?».
+func tiene_papel(papel: String) -> bool:
+	if not _papeles_vale or _papeles_tipo != tipo:
+		_recalcular_papeles()
+	return _papeles_ok.has(papel)
+
+
+## Los papeles efectivos, ordenados (para pruebas y para ver qué es una pieza).
+func papeles_efectivos() -> PackedStringArray:
+	if not _papeles_vale or _papeles_tipo != tipo:
+		_recalcular_papeles()
+	var res := PackedStringArray()
+	for k in _papeles_ok.keys():
+		res.append(String(k))
+	res.sort()
+	return res
+
+
+func _recalcular_papeles() -> void:
+	_papeles_ok.clear()
+	_papeles_tipo = tipo
+	_papeles_vale = true
+	for p in (PAPELES_POR_TIPO.get(tipo, []) as Array):
+		_papeles_ok[String(p)] = true
+	for t in papeles:
+		var ficha: String = t.strip_edges()
+		var signo: String = ficha.substr(0, 1)
+		var nombre: String = ficha.substr(1).strip_edges() if (signo == "+" or signo == "-") else ficha
+		if not PAPELES_VALIDOS.has(nombre):
+			push_warning("Reactivo3D «%s»: papel desconocido «%s» (válidos: %s)" % [tipo, ficha, ", ".join(PAPELES_VALIDOS)])
+			continue
+		if signo == "-":
+			_papeles_ok.erase(nombre)
+		else:
+			_papeles_ok[nombre] = true
+
+
+## Deja `papel` puesto (`si`) o quitado en esta pieza: borra sus retoques anteriores y añade uno solo si hace falta (si ya es de serie, ninguno).
+func _fijar_papel(papel: String, si: bool) -> void:
+	var nuevos := PackedStringArray()
+	for t in papeles:
+		var f: String = t.strip_edges()
+		if (f.substr(1).strip_edges() if (f.begins_with("+") or f.begins_with("-")) else f) != papel:
+			nuevos.append(t)
+	var de_serie: bool = (PAPELES_POR_TIPO.get(tipo, []) as Array).has(papel)
+	if si != de_serie:
+		nuevos.append(("+" if si else "-") + papel)
+	papeles = nuevos            # pasa por el setter: invalida la caché
+
+
+## Los números del combustible / de la fuente de ESTE objeto (sin fila propia: los de seto / fogata).
+func _num_combustible() -> Array:
+	return COMBUSTIBLES.get(tipo, COMBUSTIBLE_BASE) as Array
+
+
+func _num_fuente() -> Array:
+	return FUENTES.get(tipo, FUENTE_BASE) as Array
 
 
 func _ready() -> void:
@@ -153,14 +290,17 @@ func _ready() -> void:
 	if tipo == "emisor_rayo":          # el cristal: `tipo` del Reactivo es «emisor_rayo»; «roca_cristal» es el tipo del marcador, no este
 		forma.position += Vector3(0.0, 0.0, 0.0)      # después de _ajustar_cuerpo, que recoloca la caja y se comería el desvío
 	add_child(forma)
+	_forma_cuerpo = forma                       # A2: `toca_punto` mide contra esta caja
 	_recoger_materiales()
-	if COMBUSTIBLES.has(tipo):
+	if tiene_papel(P_INFLAMABLE):
 		add_to_group(GRUPO_ARDE)
-	match tipo:
+	if tiene_papel(P_PESADO):
+		add_to_group(GRUPO_PESO)            # lo que pesa lo detectan las placas (antes solo el bloque de tierra y el empujable)
+	if tiene_papel(P_FUENTE_FUEGO):
+		_montar_fuente()
+	match tipo:                              # el montaje visual sigue por tipo: depende del modelo, no de cómo reacciona
 		"totem":
 			_montar_totem()
-		"fogata", "brasero":
-			_montar_fuente()
 		"puente":
 			rotation.z = deg_to_rad(80.0)       # plegado: levantado contra la orilla
 		"placa":
@@ -278,30 +418,33 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> voi
 	var calor: bool = rune_data.tags.has("calor")
 	var rayo: bool = rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
 	var humedo: bool = rune_data.tags.has("agua") or rune_data.tags.has("frio")
-	if COMBUSTIBLES.has(tipo):
+	if tiene_papel(P_INFLAMABLE):
 		if calor or rayo:
 			ignite(Lanzador3D.ultimo_impacto)
-		elif humedo and estado == EstadoObj.ARDIENDO:
+		elif humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
 			_apagar()
-		elif mojable and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+		elif tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+			if _mojado_s <= 0.0:
+				_reaccionar("mojado")                  # solo si estaba seco: regar lo ya mojado solo alarga el tiempo, no es un cambio
 			_mojado_s = T_MOJADO
 			PiezaFuego3D.mojado(visual, true)       # capa húmeda del Pipeline (diario 109); se quita al secarse, en `_process`
 			set_process(true)
-		elif rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO:
+		elif rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
 			_contagiar(CONTAGIO_VIENTO, direccion)
 		return
-	match tipo:
-		"totem":
-			if not activo and _le_toca(rune_data):
-				_activar_totem()
-		"fogata", "brasero":
-			if calor and not is_lit:
-				_encender(true)
-			elif humedo and is_lit:
-				_apagar_fuente()
-		"surtidor":
-			if rune_data.tags.has("agua"):
-				brotar()
+	if tiene_papel(P_FUENTE_FUEGO):
+		if calor and not is_lit:
+			_encender(true)
+		elif humedo and is_lit and tiene_papel(P_APAGA):
+			_apagar_fuente()
+		return
+	if tiene_papel(P_ACTIVABLE):
+		if not activo and _le_toca(rune_data):
+			_activar_totem()
+		return
+	if tiene_papel(P_RECIBE_AGUA):
+		if rune_data.tags.has("agua"):
+			brotar()
 
 
 ## ¿Cambiaría algo este hechizo aquí? Si no, lo atraviesa.
@@ -311,21 +454,22 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bo
 	var calor: bool = rune_data.tags.has("calor")
 	var rayo: bool = rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
 	var humedo: bool = rune_data.tags.has("agua") or rune_data.tags.has("frio")
-	if COMBUSTIBLES.has(tipo):
+	if tiene_papel(P_INFLAMABLE):
 		if calor or rayo:
 			return estado == EstadoObj.SANO
-		if mojable and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+		if tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
 			return not esta_mojado()
-		return (humedo or rune_data.tags.has("viento")) and estado == EstadoObj.ARDIENDO
-	match tipo:
-		"totem":
-			return not activo and _le_toca(rune_data)
-		"fogata", "brasero":
-			if calor:
-				return not is_lit
-			return humedo and is_lit
-		"surtidor":
-			return rune_data.tags.has("agua")
+		var apaga: bool = humedo and tiene_papel(P_APAGA)
+		var lleva: bool = rune_data.tags.has("viento") and tiene_papel(P_PROPAGA_LLAMA)
+		return (apaga or lleva) and estado == EstadoObj.ARDIENDO
+	if tiene_papel(P_FUENTE_FUEGO):
+		if calor:
+			return not is_lit
+		return humedo and is_lit and tiene_papel(P_APAGA)
+	if tiene_papel(P_ACTIVABLE):
+		return not activo and _le_toca(rune_data)
+	if tiene_papel(P_RECIBE_AGUA):
+		return rune_data.tags.has("agua")
 	return false
 
 
@@ -359,7 +503,7 @@ func _le_toca(rune_data: RuneData) -> bool:
 ## --- Objetos que arden ---
 
 func can_burn() -> bool:
-	return COMBUSTIBLES.has(tipo) and estado == EstadoObj.SANO and not esta_mojado()
+	return tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not esta_mojado()
 
 
 ## ¿Está empapado (leña mojable regada hace menos de T_MOJADO s)? Mojado no prende, ni por hechizo ni por contagio.
@@ -372,9 +516,10 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 		return
 	estado = EstadoObj.ARDIENDO
 	is_lit = true
+	_reaccionar("prendido")
 	_t = 0.0
 	_t_contagio = 0.0
-	var d: Array = COMBUSTIBLES[tipo]
+	var d: Array = _num_combustible()
 	_llama = fx.llamas(global_position, float(d[1]), float(d[2]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
@@ -390,6 +535,7 @@ func _process(delta: float) -> void:
 		_mojado_s = maxf(0.0, _mojado_s - delta)
 		if _mojado_s <= 0.0:
 			PiezaFuego3D.mojado(visual, false)
+			_reaccionar("secado")
 	if rele_activo and is_lit:
 		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:
@@ -401,13 +547,20 @@ func _process(delta: float) -> void:
 	if _t_contagio >= INTERVALO_CONTAGIO:
 		_t_contagio = 0.0
 		_contagiar(CONTAGIO, Vector3.ZERO)
-	if _t >= float((COMBUSTIBLES[tipo] as Array)[0]):
+	if _t >= float(_num_combustible()[0]):
 		_consumir()
+
+
+## A4: avisa de una reacción con nombre (catálogo de Mundo3D.REACCIONES) en el centro de esta pieza. Qué se ve y suena lo decide el Pipeline.
+func _reaccionar(nombre: String) -> void:
+	var p: Vector3 = global_position if is_inside_tree() else position
+	Mundo3D.avisar_reaccion(nombre, p + Vector3(0.0, 0.5, 0.0), self)
 
 
 func _apagar() -> void:
 	estado = EstadoObj.SANO
 	is_lit = false
+	_reaccionar("apagado_agua")             # solo lo apaga el agua o el frío (`humedo` en on_spell_hit); el viento no apaga, lleva la llama
 	_quitar_fuego()
 	_ver_ardiendo(false)
 	_animar_k(0.0)
@@ -418,6 +571,7 @@ func _apagar() -> void:
 func _consumir() -> void:
 	estado = EstadoObj.CONSUMIDO
 	is_lit = false
+	_reaccionar("consumido")
 	_quitar_fuego()
 	fx.ceniza(global_position)
 	collision_layer = 0
@@ -456,8 +610,33 @@ func _quitar_fuego() -> void:
 	_luz = null
 
 
+## ¿Está esto ardiendo ahora? Un inflamable en llamas o una fogata / un brasero encendidos (A2). Es el «está ardiendo» de la regla de Pablo.
+func esta_ardiendo() -> bool:
+	return estado == EstadoObj.ARDIENDO or (tiene_papel(P_FUENTE_FUEGO) and is_lit)
+
+
+## ¿Pasa la llama, ahora, a lo inflamable que lo TOCA con el cuerpo? Arde Y (propaga la llama O es fuente de fuego). Lo que arde con
+## `-propaga_llama` se consume sin pasarla, igual que en `_contagiar`.
+func emite_fuego_por_contacto() -> bool:
+	return esta_ardiendo() and (tiene_papel(P_PROPAGA_LLAMA) or tiene_papel(P_FUENTE_FUEGO))
+
+
+## ¿Toca un cuerpo de radio `radio` situado en `p` (mundo) la caja de este objeto? Mide en horizontal con el radio de quien toca, y en vertical
+## con el alto de la caja (un cuerpo por encima o por debajo no la toca). Sin caja (aún no está en el árbol) no toca nada.
+func toca_punto(p: Vector3, radio: float = 0.0) -> bool:
+	if _forma_cuerpo == null or not is_instance_valid(_forma_cuerpo) or not (_forma_cuerpo.shape is BoxShape3D):
+		return false
+	var caja: Vector3 = (_forma_cuerpo.shape as BoxShape3D).size
+	var l: Vector3 = _forma_cuerpo.global_transform.affine_inverse() * p
+	return absf(l.x) <= caja.x * 0.5 + radio and absf(l.z) <= caja.z * 0.5 + radio and absf(l.y) <= caja.y * 0.5 + radio
+
+
 ## Contagia a los objetos que arden de alrededor (y a la hierba, vía `hierba_cerca`): `viento` ≠ 0 = solo en su cono.
+## A2: esto es el «vecino de rejilla» (ver la cabecera): el contacto entre PIEZAS de casillas vecinas. El contacto con CUERPOS (goblins, flechas)
+## va por `toca_punto` desde `Combate3D`.
 func _contagiar(radio: float, viento: Vector3) -> void:
+	if not tiene_papel(P_PROPAGA_LLAMA):      # lo que arde pero no propaga (`-propaga_llama`) se consume sin pasar la llama
+		return
 	for otro in get_tree().get_nodes_in_group(GRUPO_ARDE):
 		if otro == self or not is_instance_valid(otro) or not otro.has_method("can_burn") or not otro.can_burn():
 			continue
@@ -519,7 +698,9 @@ func _montar_fuente() -> void:
 
 func _encender(con_efectos: bool) -> void:
 	is_lit = true
-	var d: Array = FUENTES[tipo]
+	if con_efectos:
+		_reaccionar("prendido")             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
+	var d: Array = _num_fuente()
 	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1, 3.0, Vector3(0.0, float(d[0]) + 0.7, 0.0))
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
@@ -535,13 +716,15 @@ func _encender(con_efectos: bool) -> void:
 		set_process(true)
 
 
-func _apagar_fuente() -> void:
+## `motivo` = nombre de reacción con que se avisa: por defecto la apaga el agua o el frío; el relé y las reglas de Puzle3D la apagan sin elemento (consumido).
+func _apagar_fuente(motivo: String = "apagado_agua") -> void:
 	is_lit = false
+	_reaccionar(motivo)
 	_t_rele = 0.0
 	_quitar_fuego()
 	_pintar_tinte(1.0)
 	_pintar_emision(Color.BLACK, 0.0)
-	fx.ceniza(global_position + Vector3(0.0, float((FUENTES[tipo] as Array)[0]), 0.0))
+	fx.ceniza(global_position + Vector3(0.0, float(_num_fuente()[0]), 0.0))
 	activado.emit(tipo, "")
 	llama.emit(false)
 
@@ -568,19 +751,19 @@ func _avanzar_rele(delta: float) -> void:
 		if is_instance_valid(rele_siguiente) and not rele_siguiente.is_lit:
 			rele_siguiente.encender_llama()
 	if _t_rele >= rele_dura:
-		_apagar_fuente()
+		_apagar_fuente("consumido")
 
 
 ## Enciende la llama de una fogata o un brasero sin hechizo (lo usan el relé y las reglas de Puzle3D). No hace nada si ya arde.
 func encender_llama() -> void:
-	if (tipo == "fogata" or tipo == "brasero") and not is_lit:
+	if tiene_papel(P_FUENTE_FUEGO) and not is_lit:
 		_encender(true)
 
 
 ## Apaga la llama de una fogata o un brasero sin hechizo. No hace nada si ya está apagada.
 func apagar_llama() -> void:
-	if (tipo == "fogata" or tipo == "brasero") and is_lit:
-		_apagar_fuente()
+	if tiene_papel(P_FUENTE_FUEGO) and is_lit:
+		_apagar_fuente("consumido")
 
 
 ## --- 9.7 · Fuente eléctrica y surtidor (Bosque 1) ---

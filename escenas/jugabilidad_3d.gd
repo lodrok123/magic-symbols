@@ -473,6 +473,7 @@ func _process(delta: float) -> void:
 			_jug.puntos_inicio = m._centro_celda(c, m.ALTO)
 		_decir("Punto de guardado", 2.0)
 		Misiones.i().guardar()                 # el diario de misiones se guarda en los puntos de guardado
+		Flags.i().guardar()                    # C1 (21/10): y, al lado, lo que el mundo recuerda (cofres abiertos, salas resueltas)
 	elif not (m._guardados as Array).has(c):
 		_ultimo_guardado = Vector2i(-1, -1)
 	_recoger(pj)

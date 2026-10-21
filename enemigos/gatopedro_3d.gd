@@ -111,7 +111,7 @@ func _ia(delta: float) -> void:
 	_vel_real = 0.0
 	# Lo mismo que Combate3D: retroceso por golpes, aturdimiento, hielo e interrupción lo dejan quieto.
 	if _empuje.length() > 0.1:
-		_mover_paso(_empuje * delta)
+		_mover_paso(_empuje * delta, true)      # A3: empujado puede acabar en el agua honda y hundirse (andando por su cuenta, no)
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(7.0 * delta, 0.0, 1.0))
 	if stun_timer > 0.0:
 		stun_timer -= delta
