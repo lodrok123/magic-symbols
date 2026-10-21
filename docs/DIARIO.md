@@ -3758,3 +3758,20 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 - **Queda:** el HUD no enseña el tiempo ni el efecto del pigmento; la barra mide 240 px por fracción, así que con más máximo se ve igual de larga (lo pinta `presentacion/`, Pipeline); el pigmento activo no se guarda con la partida; no hay crafteo ni inventario de pigmentos.
 - **Fase 15 (PLAN_EOW) cerrada** en lo que es del Juego: A1–A5, B1, C1–C3, D1, D2 y E1. Del Pipeline queda B2 y enganchar `ReaccionesVfx3D` en la maqueta.
 ## 244 — Juego (21/10): **confirmado el reparto de la tinta de E1** — Pablo: se empieza con 100 y se gana +120 de jefes y +80 de secretos (tope 300). La interpretación «a confirmar» de la entrada 243 queda como decisión; sin cambios de código.
+
+## 245 — Juego (21/10): **validaciones del playtest y lote «look EoW»** — commits `fe903a8` `424525c` `aae17f6` `e28861b` `05083df` `c0610eb` `46e00ee` `030cab0` `ac6850c` `35cb21e`. Código de Sonnet, análisis y verificación de Opus.
+
+**Validado por Pablo y arreglado:**
+- **Ahogarse:** el agua engulle al goblin en 3,2 s (lo que dura «Drowning»), curva `t^2,2` con 2 rebotes de flotación (`HUNDIMIENTO_CURVA`, `HUNDIMIENTO_REBOTES`, `HUNDIMIENTO_REBOTE_ALTURA`); la señal sale al tocar el agua.
+- **Esqueleto de la hiena: rechazado** («las formas se estiran»): fuera `canouro_hiena.res`, `retargetear_hiena.gd` y su enganche en el lab del gato.
+- **Tronco-puente:** el largo sale del río (casillas de agua × 2,3 + 0,5 de apoyo por orilla), se estira solo a lo largo (×1,27 en el Bosque 01), las casillas bajo él pasan a «b» pisables a la altura del tronco (`Terreno3D.y_puentes`, `fijar_y_puente`; `es_agua` = false en «b» para rutas y goblins). Antes la punta se quedaba 0,42 u corta.
+- **«Líneas» del agua:** eran las 3 cintas de la burbuja, que desde el agua en arco se quedaban con la dirección de salida (hasta 82° de desvío). Ahora siguen la velocidad (≤ 12°); el fuego no cambia. Si Pablo aún ve líneas: captura de agua + flecha en el punto alto del arco.
+
+**Planes (Opus):** `docs/PLAN_RIGGING.md` (esqueleto maestro por familia, pesos desde un maniquí, clips compartidos sin raíz; la lección de la hiena; 4 decisiones de Pablo en §7) y `docs/PLAN_EOW_VISUAL.md` (por qué EoW no se ve cuadrado, inventario, plan V1–V8). Pablo eligió **probar en el laboratorio de playtest, no un nivel nuevo**, y **pedir los assets a Meshy**: `arte/meshy/PROMPTS_ELEMENTOS.md` (lámina de tierra, lámina de hielo con referencia de la compuerta de hielo, atlas 2D de viento).
+
+**Hecho del plan visual:**
+- **V1 + V2** (`ac6850c`, con F1–F3 de la entrada 233, que no tenían commit): `Posproceso3D` (SSAO solo Forward+, tonemap Filmic 0,8 elegido midiendo la paleta, viñeta, FXAA; tilt-shift y sonda encendidos de serie; `Posproceso3D.activo = false` lo apaga todo) y `LuzZona3D` (sol a 20° de la vertical, ambiente de dos colores, sombra ortogonal 35 u blur 1,6, zonas «agua» y «fuego»; «clasico» = la luz de antes). Coste ≈ +0,3–0,5 ms. Capturas en `docs/capturas/look_v1v2/`. A decidir: el tilt-shift desenfoca mucho arriba y abajo; el fondo liso sale más gris.
+- **Respuesta positiva** (`030cab0`): `Mundo3D.logro` + catálogo `LOGROS`, emitidos por las piezas de `Puzle3D` una vez por suceso (nunca al recargar); `Logros3D.TABLA` (sonido, motas, aro, luz, texto, hitstop 0,08 s y zoom al limpiar una sala); 4 campanas sintetizadas (`audio/gen_sfx_logros.py`, a afinar de oído). Enganchado solo en el lab de playtest.
+- **VFX de tierra y viento** (`35cb21e`): tierra = terrón facetado, cascotes que caen y se quedan, bloques que emergen (y el bloque pisable vestido); viento = cintas en espiral con hojas, remolino, tornado. Primitivas con los ids de los prompts: con los GLB se usan solos. Capturas en `docs/capturas/vfx_tierra_viento/`.
+
+**Regresión completa (101):** solo los 3 conocidos. **Encargos (Pipeline / maqueta):** enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta para todos los niveles; afinar los jingles; los sonidos de reacciones (PL2) siguen sin commit. **No visto en pantalla jugando:** nada de este lote salvo las capturas.

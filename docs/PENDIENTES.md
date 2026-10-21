@@ -95,3 +95,11 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 **Rutina**
 - [ ] Playtest de 20 minutos.
 - [ ] Medición de rendimiento semanal.
+
+## Lote del 21/10 tarde (diario 245)
+- [ ] Pablo: mirar las capturas de `docs/capturas/look_v1v2/` y decidir la fuerza del tilt-shift y el gris del fondo.
+- [ ] Pablo: las 4 decisiones de `docs/PLAN_RIGGING.md` §7 antes de empezar el rigging común.
+- [ ] Pablo: generar en Meshy lo de `arte/meshy/PROMPTS_ELEMENTOS.md` (tierra, hielo; atlas 2D de viento).
+- [ ] Afinar de oído los 4 jingles de logros (`Sfx.CATALOGO`, `audio/gen_sfx_logros.py`).
+- [ ] Enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta (todos los niveles), y un emisor de «nivel_completado».
+- [ ] Plan visual V3–V8 (`docs/PLAN_EOW_VISUAL.md`): bisel, estado del suelo sin casillas, personajes juguete, quemado/disolver, terrazas, presupuesto.
