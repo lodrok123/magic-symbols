@@ -54,8 +54,15 @@ const TORBELLINO_GIRO: float = 4.0
 const HOJA_TAM_MIN: float = 0.09           ## lado de una tarjeta de hoja (u)
 const HOJA_TAM_MAX: float = 0.26
 
+static var usar_atlas: bool = true         ## false = el atlas sencillo generado por código (el de antes de Meshy) y sin tarjetas de remolino: para comparar y para las pruebas
 static var _atlas: Texture2D = null
-static var _mat_hojas: Dictionary = {}     ## casilla (Vector2i) -> material de tarjeta
+static var _atlas_ph: Texture2D = null
+static var _mat_hojas: Dictionary = {}     ## (casilla, atlas real o no) -> material de tarjeta
+
+const REMOLINO_TARJETAS: int = 2           ## tarjetas de la fila 3 del atlas (remolinos blancos) en el remolino de impacto
+const TORBELLINO_TARJETAS: int = 3         ## y en el tornado / corro
+const TARJETA_REMOLINO_K: float = 2.6      ## una tarjeta de remolino es tantas veces más grande que una hoja
+const TARJETA_REMOLINO_MAX: float = 0.7
 
 
 ## Gira sobre su eje Y local (las cintas en espiral). Un nodo con _process en vez de un tween en bucle: muere con su padre.
@@ -159,15 +166,21 @@ static func _eje(padre: Node3D, dir: Vector3) -> Node3D:
 # Hojas y briznas: tarjetas 2D del atlas
 # ---------------------------------------------------------------------------------------------------------------------------------
 
-## El atlas de hojas: el PNG de `presentacion/vfx/` si existe; si no, un placeholder generado por código (se cachea).
+## El atlas de hojas: el PNG de `presentacion/vfx/` si existe (y `usar_atlas`); si no, un placeholder generado por código (se cachea).
 static func atlas() -> Texture2D:
-	if _atlas != null:
-		return _atlas
-	if ResourceLoader.exists(RUTA_ATLAS):
-		_atlas = load(RUTA_ATLAS) as Texture2D
-	if _atlas == null:
-		_atlas = _atlas_placeholder()
-	return _atlas
+	if usar_atlas:
+		if _atlas == null and ResourceLoader.exists(RUTA_ATLAS):
+			_atlas = load(RUTA_ATLAS) as Texture2D
+		if _atlas != null:
+			return _atlas
+	if _atlas_ph == null:
+		_atlas_ph = _atlas_placeholder()
+	return _atlas_ph
+
+
+## ¿Es el atlas de Meshy el que se está usando?
+static func atlas_real() -> bool:
+	return usar_atlas and atlas() == _atlas
 
 
 ## Placeholder sencillo con las mismas filas que el atlas real: hojas verdes, hojas otoñales, briznas y trazos de remolino. 128 px por casilla bastan.
@@ -211,14 +224,18 @@ static func _atlas_placeholder() -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-## Material de una tarjeta de la casilla (col, fila): billboard, sin luz, con alfa. Uno por casilla, compartido.
+## Material de una tarjeta de la casilla (col, fila): billboard, sin luz, con alfa. Uno por casilla, compartido. Hojas, hierbas y vilanos (filas 0–2) son
+## opacos en el cuerpo y suaves en el borde: pasada previa de profundidad (se ordenan bien con las cintas, que no escriben profundidad). Los remolinos
+## (fila 3) son blancos translúcidos: mezcla pura, sin profundidad.
 static func _material_hoja(col: int, fila: int) -> StandardMaterial3D:
-	var clave := Vector2i(col, fila)
+	var clave := Vector3i(col, fila, 1 if atlas_real() else 0)
 	if _mat_hojas.has(clave):
 		return _mat_hojas[clave]
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if fila >= 3 else BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+	if fila >= 3:
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	mat.albedo_texture = atlas()
@@ -228,26 +245,31 @@ static func _material_hoja(col: int, fila: int) -> StandardMaterial3D:
 	return mat
 
 
-## Una tarjeta de hoja o brizna (filas 0–2 del atlas) de lado `tam`.
-static func hoja(tam: float, n: int = 0) -> MeshInstance3D:
+## Una tarjeta de hoja o brizna (filas 0–2 del atlas) de lado `tam`; con `remolino` = true, un remolino blanco (fila 3).
+static func hoja(tam: float, n: int = 0, remolino: bool = false) -> MeshInstance3D:
 	var q := QuadMesh.new()
 	q.size = Vector2(tam, tam)
 	var mi := MeshInstance3D.new()
-	mi.name = "hoja_%d" % n
+	mi.name = ("remolino_%d" if remolino else "hoja_%d") % n
 	mi.mesh = q
-	mi.material_override = _material_hoja(randi() % CASILLAS, randi() % 3)
+	mi.material_override = _material_hoja(randi() % CASILLAS, 3 if remolino else randi() % 3)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return mi
 
 
-## `n` hojas colgadas de `rueda` sobre la hélice (a altura `sentido`·`largo`·s con el radio de la espiral ahí).
-static func _hojas_en(rueda: Node3D, n: int, largo: float, r_ini: float, r_fin: float, sentido: float, tam_ref: float) -> Array:
+## `n` hojas colgadas de `rueda` sobre la hélice (a altura `sentido`·`largo`·s con el radio de la espiral ahí); `n_remolinos` más son tarjetas de
+## remolino (fila 3 del atlas, solo con el atlas de Meshy).
+static func _hojas_en(rueda: Node3D, n: int, largo: float, r_ini: float, r_fin: float, sentido: float, tam_ref: float, n_remolinos: int = 0) -> Array:
 	var res: Array = []
-	for i in range(n):
+	if not atlas_real():
+		n_remolinos = 0
+	for i in range(n + n_remolinos):
+		var rem: bool = i >= n
 		var s: float = randf_range(0.15, 0.95)
 		var a: float = randf() * TAU
 		var r: float = lerpf(r_ini, r_fin, s) * randf_range(0.8, 1.3)
-		var h: MeshInstance3D = hoja(clampf(tam_ref * randf_range(0.7, 1.3), HOJA_TAM_MIN, HOJA_TAM_MAX), i)
+		var tam: float = clampf(tam_ref * randf_range(0.7, 1.3), HOJA_TAM_MIN, HOJA_TAM_MAX)
+		var h: MeshInstance3D = hoja(minf(tam * TARJETA_REMOLINO_K, TARJETA_REMOLINO_MAX) if rem else tam, i, rem)
 		h.position = Vector3(cos(a) * r, sentido * s * largo, sin(a) * r)
 		rueda.add_child(h)
 		res.append(h)
@@ -294,7 +316,7 @@ static func remolino(mundo: Node, pos: Vector3, esc: float, suelo: float = NAN) 
 	abre.scale = Vector3(0.4, 0.5, 0.4)
 	raiz.add_child(abre)
 	var rueda: Rueda = _cintas(abre, CINTAS_REMOLINO, alto, 0.25 * k, 0.55 * k, 1.6, 0.5 * k, 1.0, 11.0, mat)
-	var hojas: Array = _hojas_en(rueda, HOJAS_REMOLINO, alto, 0.25 * k, 0.55 * k, 1.0, 0.2 * k)
+	var hojas: Array = _hojas_en(rueda, HOJAS_REMOLINO, alto, 0.25 * k, 0.55 * k, 1.0, 0.2 * k, REMOLINO_TARJETAS)
 	var tw: Tween = raiz.create_tween().set_parallel(true)
 	tw.tween_property(abre, "scale", Vector3(REMOLINO_ABRE, 1.0, REMOLINO_ABRE), T_REMOLINO).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(rueda, "w", 4.0, T_REMOLINO)
@@ -319,7 +341,7 @@ static func torbellino(padre: Node3D, eje_dir: Vector3, r_u: float, alto_u: floa
 	var alto: float = maxf(alto_u, maxf(r_u * 2.5, 1.6))
 	var mat: StandardMaterial3D = material_cinta(0.0)
 	var rueda: Rueda = _cintas(eje, CINTAS_TORBELLINO, alto, r_u * 0.4, r_u * 1.25, 1.5, maxf(r_u * 0.9, 0.35), 1.0, TORBELLINO_GIRO, mat)
-	var hojas: Array = _hojas_en(rueda, HOJAS_TORBELLINO, alto, r_u * 0.4, r_u * 1.25, 1.0, r_u * 0.6)
+	var hojas: Array = _hojas_en(rueda, HOJAS_TORBELLINO, alto, r_u * 0.4, r_u * 1.25, 1.0, r_u * 0.6, TORBELLINO_TARJETAS)
 	VfxKit3D.particulas(eje, Vector3.ZERO, 16, 0.8, 0.1, 0.5, false, false, r_u, 0.0, Vector3.UP, 180.0)
 	var v: float = maxf(vida, T_FUNDIDO_ENTRADA + T_FUNDIDO_SALIDA + 0.1)
 	var tw: Tween = eje.create_tween()

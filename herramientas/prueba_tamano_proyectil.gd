@@ -46,6 +46,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 func _initialize() -> void:
 	await process_frame
+	VfxHielo.usar_modelos = false     # assets elementos: ANTES_CAJA["ice"] es la del hielo del kit (bola + cola); la esquirla de Meshy se mide en prueba_assets_elementos.gd
 	_montar()
 	print("--- ESCALA_PROYECTIL = %.2f · casilla = %.2f u" % [Hechizo.ESCALA_PROYECTIL, Terreno3D.casilla])
 	_hechizo()

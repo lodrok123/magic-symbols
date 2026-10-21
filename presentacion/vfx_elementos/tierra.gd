@@ -10,10 +10,11 @@ extends ElementoVfx
 ##   cascote_0..3         cascote del impacto (0,1–0,2 u, origen en su centro)            · lo usa el IMPACTO (3–5 que saltan y se quedan ~1,5 s)
 ##   bloque_tierra_0..2   bloque que emerge (0,9 × 1,0 × 0,9 u, origen en el centro de la BASE, cara de arriba plana) · muro, columna, barrera y el bloque pisable
 ##   pincho_tierra_0..1   estaca que sale del suelo (0,3 × 0,9 u, origen en la base)      · la «esfera» quieta de tierra
-## CÓMO ENGANCHAN LOS GLB DE MESHY (todavía no han llegado): `pieza(id)` busca, por este orden,
+## CÓMO ENGANCHAN LOS GLB DE MESHY (ya instalados en `arte/meshy/piezas/`, 22/10: terron_0..5, cascote_0..3, bloque_tierra_0..2, pincho_tierra_0..1): `pieza(id)` busca, por este orden,
 ##   1. una lámina `res://arte/meshy/piezas/elem_tierra.glb` con un nodo de malla llamado como el id (ya orientada, a escala y con el origen puesto, como la
 ##      lámina «puzle»), o
-##   2. un GLB suelto `res://arte/meshy/piezas/<id>.glb` (se escala a la medida de `MEDIDA` y se coloca en su origen),
+##   2. un GLB suelto `res://arte/meshy/piezas/<id>.glb` (se hornea una vez a la medida de `MEDIDA` y se coloca en su origen: `ModeloElemento`; el bloque
+##      se estira por eje a 0,9 × 1,0 × 0,9 —la cara de arriba pisable queda a 1,0 u—, los pinchos se ajustan por el alto, el resto por el lado mayor),
 ##   3. y si no hay ninguno, la PRIMITIVA facetada de este archivo. El Juego llama igual en los tres casos (mismo método que `PiezaPuzle3D` / `PiezaFuego3D`).
 ## `VfxTierra.usar_modelos = false` fuerza las primitivas; `VfxTierra.hay_modelo(id)` dice si hay modelo; `VfxTierra._modelos[id] = <Mesh>` fuerza uno (pruebas).
 ##
@@ -91,6 +92,7 @@ static var _modelos: Dictionary = {}       ## id -> Mesh o null (se mira el disc
 static var _prim: Dictionary = {}          ## id -> ArrayMesh (primitivas, una vez por id)
 static var _hoja: Dictionary = {}          ## nombre del nodo -> Mesh de la lámina `elem_tierra.glb` (null = no hay lámina)
 static var _hoja_leida: bool = false
+static var _horneado: Dictionary = {}       ## id -> true: su malla es un GLB suelto ya horneado a la medida (no hace falta escalarla)
 static var _mat_solido: StandardMaterial3D = null
 
 
@@ -186,8 +188,8 @@ static func pieza(id: String) -> MeshInstance3D:
 	if m != null:
 		mi.mesh = m
 		mi.set_meta("modelo", true)
-		if not _hoja.has(id):
-			# GLB suelto: se escala a la medida y se pone el origen donde toca (la lámina ya viene así).
+		if not _hoja.has(id) and not _horneado.has(id):
+			# Malla suelta sin hornear (solo pruebas que fuerzan una): se escala a la medida y se pone el origen donde toca (la lámina y el GLB horneado ya vienen así).
 			var caja: AABB = m.get_aabb()
 			var k: float = maxf(med.x, maxf(med.y, med.z)) / maxf(maxf(caja.size.x, maxf(caja.size.y, caja.size.z)), 0.0001)
 			mi.scale = Vector3.ONE * k
@@ -207,15 +209,12 @@ static func _modelo(id: String) -> Mesh:
 	_leer_hoja()
 	var m: Mesh = _hoja.get(id, null)
 	if m == null:
-		var ruta: String = "%s%s.glb" % [RUTA_MODELOS, id]
-		if ResourceLoader.exists(ruta):
-			var ps: PackedScene = load(ruta) as PackedScene
-			if ps != null:
-				var raiz: Node = ps.instantiate()
-				for n in raiz.find_children("*", "MeshInstance3D", true, false):
-					m = (n as MeshInstance3D).mesh
-					break
-				raiz.queue_free()
+		var suelto: Mesh = ModeloElemento.malla_glb(id)
+		if suelto != null:
+			# GLB suelto de Meshy: se hornea una vez a la medida del juego y con el origen que toca (ver ModeloElemento). `pieza` lo usa tal cual.
+			var ajuste: String = "caja" if id.begins_with("bloque_") else ("alto" if id.begins_with("pincho_") else "mayor")
+			m = ModeloElemento.hornear(suelto, MEDIDA.get(id, Vector3.ONE), ajuste, _origen_base(id))
+			_horneado[id] = true
 	_modelos[id] = m
 	return m
 

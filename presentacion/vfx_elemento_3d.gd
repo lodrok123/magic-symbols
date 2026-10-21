@@ -141,7 +141,7 @@ class Proyectil extends Seguidor:
 		if _avisado or (hv != null and is_instance_valid(hv) and bool(hv.get("activo"))):
 			return                       # ya hecho, o el HechizoVivo se va con el proyectil todavía vivo (fin de nivel): sin explosión
 		_avisado = true
-		if elemento == "tierra" or elemento == "viento":
+		if elemento == "tierra" or elemento == "viento" or (elemento == "hielo" and VfxHielo.activo()):      # assets elementos: el hielo con modelos también se rompe al chocar
 			_impacto_materia(hv)
 			return
 		if not FasesFuego3D.aplica(elemento):
@@ -180,6 +180,8 @@ class Proyectil extends Seguidor:
 		visible = false
 		if elemento == "tierra":
 			VfxTierra.impacto(mundo, pos, esc, _suelo_bajo(pos))
+		elif elemento == "hielo":
+			VfxHielo.impacto(mundo, pos, esc, _suelo_bajo(pos))      # assets elementos: racimo que brota y pinchos de escarcha
 		else:
 			VfxViento.remolino(mundo, pos, esc, _suelo_bajo(pos))
 
@@ -304,6 +306,9 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 
 ## Lo que se monta en un proyectil según el elemento (se llama con `VfxKit3D.elemento` ya puesto, vía `_con_elemento`).
 func _pieza_proyectil(el: String, seg: Node3D, d: Vector3, r_u: float, vel: float) -> void:
+	if el == "hielo" and VfxHielo.activo():      # assets elementos: la esquirla de Meshy (VfxHielo.usar_modelos = false vuelve a la bola del kit)
+		VfxHielo.proyectil(seg, d, r_u)
+		return
 	match el:
 		"tierra":
 			VfxTierra.proyectil(seg, d, r_u)       # un terrón facetado que rueda (21/10; antes cinco cajas que orbitaban)
@@ -323,6 +328,10 @@ func _pieza_volumen(el: String, raiz: Node3D, forma: String, pie: Vector3, d: Ve
 		return
 	if el == "viento":
 		VfxViento.torbellino(_nodo_en(raiz, pie), d if viaja else Vector3.UP, r_u, alto_u, maxf(vida, 1.0))
+		return
+	if el == "hielo" and VfxHielo.activo():      # assets elementos: racimos de hielo que brotan (barrera, pulso, esfera) con unos copos
+		VfxHielo.emerger(raiz, pie, r_u, alto_u, vida, forma, esc)
+		VfxKit3D.particulas(raiz, pie + Vector3(0.0, 0.15, 0.0), 12, 1.2, 0.1 * esc, 0.4, false, false, maxf(r_u, 0.5), -0.3, Vector3.UP, 90.0)
 		return
 	if forma == "pulso":
 		VfxKit3D.onda(raiz, pie + Vector3(0.0, 0.1, 0.0), r_u * 4.0, vida, esc)
@@ -364,7 +373,7 @@ func _tierra_cae(raiz: Node3D, pie: Vector3, r_u: float, alto_u: float, vida: fl
 ## viento— se queda. Se reconoce por el tipo de malla, sin tocar el kit: así un elemento nuevo que use `VfxKit3D.bola` cumple la regla sin hacer nada.
 func _recoger_cola(raiz: Node, el: String) -> Array:
 	var lista: Array = []
-	var mallas_cola: bool = el != "tierra" and el != "viento"
+	var mallas_cola: bool = el != "tierra" and el != "viento" and not (el == "hielo" and VfxHielo.activo())      # assets elementos: la esquirla es el cuerpo, no cola
 	for n in raiz.find_children("*", "", true, false):
 		if n is GPUParticles3D:
 			lista.append(n)

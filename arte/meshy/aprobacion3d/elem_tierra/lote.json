@@ -1,0 +1,267 @@
+{
+ "bloque_tierra_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1000,
+  "niveles": {
+   "1000": {
+    "archivo": "bloque_tierra_0.glb",
+    "tris": 708,
+    "kb": 1264
+   },
+   "500": {
+    "archivo": "bloque_tierra_0_500.glb",
+    "tris": 500,
+    "kb": 1250
+   },
+   "250": {
+    "archivo": "bloque_tierra_0_250.glb",
+    "tris": 250,
+    "kb": 1229
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 1.1
+ },
+ "terron_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_0.glb",
+    "tris": 246,
+    "kb": 923
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.5
+ },
+ "terron_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_1.glb",
+    "tris": 254,
+    "kb": 1010
+   },
+   "250": {
+    "archivo": "terron_1_250.glb",
+    "tris": 250,
+    "kb": 1010
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.8
+ },
+ "cascote_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 250,
+  "niveles": {
+   "250": {
+    "archivo": "cascote_0.glb",
+    "tris": 100,
+    "kb": 219
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.6
+ },
+ "bloque_tierra_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1000,
+  "niveles": {
+   "1000": {
+    "archivo": "bloque_tierra_1.glb",
+    "tris": 548,
+    "kb": 1249
+   },
+   "500": {
+    "archivo": "bloque_tierra_1_500.glb",
+    "tris": 500,
+    "kb": 1248
+   },
+   "250": {
+    "archivo": "bloque_tierra_1_250.glb",
+    "tris": 250,
+    "kb": 1228
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 1.7
+ },
+ "terron_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_2.glb",
+    "tris": 240,
+    "kb": 1024
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.7
+ },
+ "cascote_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 250,
+  "niveles": {
+   "250": {
+    "archivo": "cascote_1.glb",
+    "tris": 86,
+    "kb": 676
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.6
+ },
+ "bloque_tierra_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1000,
+  "niveles": {
+   "1000": {
+    "archivo": "bloque_tierra_2.glb",
+    "tris": 618,
+    "kb": 1254
+   },
+   "500": {
+    "archivo": "bloque_tierra_2_500.glb",
+    "tris": 500,
+    "kb": 1248
+   },
+   "250": {
+    "archivo": "bloque_tierra_2_250.glb",
+    "tris": 250,
+    "kb": 1229
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 1.6
+ },
+ "cascote_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 250,
+  "niveles": {
+   "250": {
+    "archivo": "cascote_2.glb",
+    "tris": 72,
+    "kb": 866
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.6
+ },
+ "cascote_3": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 250,
+  "niveles": {
+   "250": {
+    "archivo": "cascote_3.glb",
+    "tris": 96,
+    "kb": 392
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.6
+ },
+ "pincho_tierra_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "400": {
+    "archivo": "pincho_tierra_0.glb",
+    "tris": 316,
+    "kb": 1228
+   },
+   "250": {
+    "archivo": "pincho_tierra_0_250.glb",
+    "tris": 250,
+    "kb": 1226
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 1.1
+ },
+ "terron_5": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_5.glb",
+    "tris": 234,
+    "kb": 936
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.7
+ },
+ "pincho_tierra_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "400": {
+    "archivo": "pincho_tierra_1.glb",
+    "tris": 186,
+    "kb": 1081
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.8
+ },
+ "terron_3": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_3.glb",
+    "tris": 193,
+    "kb": 1114
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.7
+ },
+ "terron_4": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 500,
+  "niveles": {
+   "500": {
+    "archivo": "terron_4.glb",
+    "tris": 104,
+    "kb": 1141
+   }
+  },
+  "origen": "elem_tierra.glb",
+  "nota": "",
+  "seg": 0.8
+ }
+}

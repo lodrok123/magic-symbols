@@ -37,6 +37,9 @@ func _ok(cond: bool, texto: String) -> void:
 
 
 func _correr() -> void:
+	VfxTierra.usar_modelos = false        # assets elementos: esta prueba mide las PRIMITIVAS; los GLB de Meshy los mide prueba_assets_elementos.gd
+	VfxHielo.usar_modelos = false
+	VfxViento.usar_atlas = false
 	_mundo = Node3D.new()
 	root.add_child(_mundo)
 	_l = FalsoLanzador.new()
@@ -134,10 +137,13 @@ func _firma(m: ArrayMesh) -> String:
 # ---------------------------------------------------------------------------------------------------------------------
 func _modelos() -> void:
 	print("--- 2. con modelo se usa el modelo (GLB suelto o lámina de mentira); sin él, la primitiva")
+	VfxTierra.usar_modelos = true         # (modelos forzados a mano; los GLB reales se borran de la caché para que no estorben)
+	for id in VfxTierra.ids():
+		VfxTierra._modelos.erase(id)
 	var caja := BoxMesh.new()
 	caja.size = Vector3(2.0, 4.0, 2.0)          # un «GLB» de otra escala y de otro origen: se debe escalar a 0,38 de lado mayor y centrar
 	VfxTierra._modelos["terron_0"] = caja
-	VfxTierra._modelos.erase("terron_3")
+	VfxTierra._modelos["terron_3"] = null      # sin modelo (aunque haya GLB en disco)
 	_ok(VfxTierra.hay_modelo("terron_0") and not VfxTierra.hay_modelo("terron_3"), "hay_modelo: terron_0 sí (forzado), terron_3 no")
 	var m0: MeshInstance3D = VfxTierra.pieza("terron_0")
 	var med: Vector3 = VfxTierra.MEDIDA["terron_0"]
@@ -160,7 +166,7 @@ func _modelos() -> void:
 	var sin: MeshInstance3D = VfxTierra.pieza("terron_0")
 	_ok(sin.mesh != caja and not bool(sin.get_meta("modelo")) and not VfxTierra.hay_modelo("terron_0"), "usar_modelos = false fuerza las primitivas")
 	sin.free()
-	VfxTierra.usar_modelos = true
+	VfxTierra.usar_modelos = true         # (se enciende solo para este tramo: el modelo es el forzado)
 	# el proyectil de tierra, con el modelo forzado en todos los terrones, lo dibuja
 	for i in range(VfxTierra.N_TERRONES):
 		VfxTierra._modelos["terron_%d" % i] = caja
@@ -173,7 +179,9 @@ func _modelos() -> void:
 		VfxTierra._modelos.erase("terron_%d" % i)
 	VfxTierra._modelos.erase("terron_0")
 	VfxTierra._hoja.erase("cascote_1")
-	VfxTierra._modelos.erase("cascote_1")
+	for id in VfxTierra.ids():
+		VfxTierra._modelos.erase(id)
+	VfxTierra.usar_modelos = false
 
 
 # ---------------------------------------------------------------------------------------------------------------------

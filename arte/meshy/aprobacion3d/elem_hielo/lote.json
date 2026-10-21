@@ -1,0 +1,372 @@
+{
+ "esquirla_hielo": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 300,
+  "niveles": {
+   "2500": {
+    "archivo": "esquirla_hielo_2500.glb",
+    "tris": 2500,
+    "kb": 360
+   },
+   "1200": {
+    "archivo": "esquirla_hielo_1200.glb",
+    "tris": 1200,
+    "kb": 232
+   },
+   "700": {
+    "archivo": "esquirla_hielo_700.glb",
+    "tris": 700,
+    "kb": 183
+   },
+   "300": {
+    "archivo": "esquirla_hielo.glb",
+    "tris": 300,
+    "kb": 143
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 2.1
+ },
+ "racimo_hielo_p": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "2500": {
+    "archivo": "racimo_hielo_p_2500.glb",
+    "tris": 2500,
+    "kb": 371
+   },
+   "1200": {
+    "archivo": "racimo_hielo_p_1200.glb",
+    "tris": 1200,
+    "kb": 242
+   },
+   "700": {
+    "archivo": "racimo_hielo_p_700.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "400": {
+    "archivo": "racimo_hielo_p.glb",
+    "tris": 400,
+    "kb": 162
+   },
+   "300": {
+    "archivo": "racimo_hielo_p_300.glb",
+    "tris": 300,
+    "kb": 152
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 5.7
+ },
+ "racimo_hielo_m": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 700,
+  "niveles": {
+   "2500": {
+    "archivo": "racimo_hielo_m_2500.glb",
+    "tris": 2500,
+    "kb": 371
+   },
+   "1200": {
+    "archivo": "racimo_hielo_m_1200.glb",
+    "tris": 1200,
+    "kb": 242
+   },
+   "700": {
+    "archivo": "racimo_hielo_m.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "300": {
+    "archivo": "racimo_hielo_m_300.glb",
+    "tris": 300,
+    "kb": 152
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 10.0
+ },
+ "racimo_hielo_g": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1200,
+  "niveles": {
+   "2500": {
+    "archivo": "racimo_hielo_g_2500.glb",
+    "tris": 2500,
+    "kb": 371
+   },
+   "1200": {
+    "archivo": "racimo_hielo_g.glb",
+    "tris": 1200,
+    "kb": 242
+   },
+   "700": {
+    "archivo": "racimo_hielo_g_700.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "300": {
+    "archivo": "racimo_hielo_g_300.glb",
+    "tris": 300,
+    "kb": 152
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 11.6
+ },
+ "placa_hielo_rota": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 600,
+  "niveles": {
+   "2500": {
+    "archivo": "placa_hielo_rota_2500.glb",
+    "tris": 2500,
+    "kb": 371
+   },
+   "1200": {
+    "archivo": "placa_hielo_rota_1200.glb",
+    "tris": 1200,
+    "kb": 242
+   },
+   "700": {
+    "archivo": "placa_hielo_rota_700.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "600": {
+    "archivo": "placa_hielo_rota.glb",
+    "tris": 600,
+    "kb": 182
+   },
+   "300": {
+    "archivo": "placa_hielo_rota_300.glb",
+    "tris": 300,
+    "kb": 152
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 10.1
+ },
+ "placa_hielo_rota_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 150,
+  "niveles": {
+   "2500": {
+    "archivo": "placa_hielo_rota_0_2500.glb",
+    "tris": 2500,
+    "kb": 359
+   },
+   "1200": {
+    "archivo": "placa_hielo_rota_0_1200.glb",
+    "tris": 1200,
+    "kb": 241
+   },
+   "700": {
+    "archivo": "placa_hielo_rota_0_700.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "300": {
+    "archivo": "placa_hielo_rota_0_300.glb",
+    "tris": 300,
+    "kb": 152
+   },
+   "150": {
+    "archivo": "placa_hielo_rota_0.glb",
+    "tris": 150,
+    "kb": 137
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver",
+  "seg": 4.4
+ },
+ "placa_hielo_rota_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 150,
+  "niveles": {
+   "2500": {
+    "archivo": "placa_hielo_rota_1_2500.glb",
+    "tris": 2500,
+    "kb": 336
+   },
+   "1200": {
+    "archivo": "placa_hielo_rota_1_1200.glb",
+    "tris": 1200,
+    "kb": 211
+   },
+   "700": {
+    "archivo": "placa_hielo_rota_1_700.glb",
+    "tris": 700,
+    "kb": 162
+   },
+   "300": {
+    "archivo": "placa_hielo_rota_1_300.glb",
+    "tris": 300,
+    "kb": 96
+   },
+   "150": {
+    "archivo": "placa_hielo_rota_1.glb",
+    "tris": 150,
+    "kb": 81
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver",
+  "seg": 3.6
+ },
+ "placa_hielo_rota_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 150,
+  "niveles": {
+   "2500": {
+    "archivo": "placa_hielo_rota_2_2500.glb",
+    "tris": 2500,
+    "kb": 368
+   },
+   "1200": {
+    "archivo": "placa_hielo_rota_2_1200.glb",
+    "tris": 1200,
+    "kb": 234
+   },
+   "700": {
+    "archivo": "placa_hielo_rota_2_700.glb",
+    "tris": 700,
+    "kb": 184
+   },
+   "300": {
+    "archivo": "placa_hielo_rota_2_300.glb",
+    "tris": 300,
+    "kb": 144
+   },
+   "150": {
+    "archivo": "placa_hielo_rota_2.glb",
+    "tris": 150,
+    "kb": 137
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver",
+  "seg": 4.3
+ },
+ "placa_hielo_rota_3": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 150,
+  "niveles": {
+   "2500": {
+    "archivo": "placa_hielo_rota_3_2500.glb",
+    "tris": 2500,
+    "kb": 361
+   },
+   "1200": {
+    "archivo": "placa_hielo_rota_3_1200.glb",
+    "tris": 1200,
+    "kb": 241
+   },
+   "700": {
+    "archivo": "placa_hielo_rota_3_700.glb",
+    "tris": 700,
+    "kb": 192
+   },
+   "300": {
+    "archivo": "placa_hielo_rota_3_300.glb",
+    "tris": 300,
+    "kb": 152
+   },
+   "150": {
+    "archivo": "placa_hielo_rota_3.glb",
+    "tris": 150,
+    "kb": 137
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver",
+  "seg": 3.2
+ },
+ "pincho_escarcha_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 200,
+  "niveles": {
+   "2500": {
+    "archivo": "pincho_escarcha_0_2500.glb",
+    "tris": 2500,
+    "kb": 312
+   },
+   "1200": {
+    "archivo": "pincho_escarcha_0_1200.glb",
+    "tris": 1200,
+    "kb": 188
+   },
+   "700": {
+    "archivo": "pincho_escarcha_0_700.glb",
+    "tris": 700,
+    "kb": 138
+   },
+   "300": {
+    "archivo": "pincho_escarcha_0_300.glb",
+    "tris": 300,
+    "kb": 98
+   },
+   "200": {
+    "archivo": "pincho_escarcha_0.glb",
+    "tris": 200,
+    "kb": 89
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 3.4
+ },
+ "pincho_escarcha_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 150,
+  "niveles": {
+   "2500": {
+    "archivo": "pincho_escarcha_1_2500.glb",
+    "tris": 2500,
+    "kb": 228
+   },
+   "1200": {
+    "archivo": "pincho_escarcha_1_1200.glb",
+    "tris": 1200,
+    "kb": 126
+   },
+   "700": {
+    "archivo": "pincho_escarcha_1_700.glb",
+    "tris": 700,
+    "kb": 77
+   },
+   "300": {
+    "archivo": "pincho_escarcha_1_300.glb",
+    "tris": 300,
+    "kb": 38
+   },
+   "150": {
+    "archivo": "pincho_escarcha_1.glb",
+    "tris": 150,
+    "kb": 23
+   }
+  },
+  "origen": "elem_hielo.glb",
+  "nota": "",
+  "seg": 2.7
+ }
+}
