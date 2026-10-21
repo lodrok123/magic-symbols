@@ -168,6 +168,21 @@ uniform vec3 par_lame = vec3(0.5, 0.4, 0.25);                           // u de 
 uniform vec3 par_ruido = vec3(0.30, 0.25, 0.40);                        // u de desflecado del filo de cada pareja
 uniform float par_sombra = 0.18;                                        // lo que se oscurece el filo del que lame (0 = nada)
 uniform float invade_hierba = 1.0;                                      // matas de hierba sueltas sobre la tierra junto a la hierba (0 = ninguna)
+// joints: TIRAS DE TRANSICIÓN (PLAN_EOW_VISUAL §1.3). `joints_fuerza` = 0 las quita (queda el suelo de antes). La TABLA de pares (ancho, amplitud del
+// ruido, densidad, escala, tinte) vive en prueba_test2.gd (`JOINTS_PARES`) y llega por estos uniforms. Cada tira es una banda de MIGAS del suelo que
+// «lame» (su color, tinte incluido) tendida sobre el otro, con el filo cortado por ruido (no por casilla) y un borde algo más oscuro; las matas de
+// hierba (hierba→camino, hierba→piedra) reutilizan la máscara de `invade_hierba`. Va ANTES del estado: lo mojado, quemado o helado también pinta la tira.
+// `mapa_fuera` (R = 1 en agua, cauce seco y huecos) apaga las tiras junto a ellos: el agua y las orillas no llevan tira de suelo.
+uniform float joints_fuerza = 0.0;
+uniform sampler2D mapa_fuera : hint_default_black, filter_linear, repeat_disable;
+uniform vec4 joint_ct = vec4(0.55, 0.22, 0.9, 2.3);                     // camino→tierra: (ancho u, amplitud del ruido u, densidad 0-1, escala del grano)
+uniform vec4 joint_cp = vec4(0.50, 0.20, 0.85, 2.3);                    // camino→piedra
+uniform vec4 joint_tp = vec4(0.60, 0.25, 0.9, 2.3);                     // tierra→piedra
+uniform vec3 joint_tinte_ct : source_color = vec3(1.0, 1.0, 1.0);
+uniform vec3 joint_tinte_cp : source_color = vec3(1.0, 1.0, 1.0);
+uniform vec3 joint_tinte_tp : source_color = vec3(1.0, 1.0, 1.0);
+uniform vec3 joint_matas = vec3(0.7, 0.0, 0.8);                         // fuerza de las matas de hierba sobre camino, (tierra: ya lo hace invade_hierba), piedra
+uniform vec3 joint_matas_ancho = vec3(1.4, 0.0, 1.2);                   // y hasta dónde se adentran (u) sobre camino, tierra, piedra
 uniform vec3 color_ceniza : source_color = vec3(0.22, 0.20, 0.18);
 uniform float fuerza_ceniza = 0.0;     // 6.14: el suelo NO se ennegrece al quemarse (0 = nada; 1 = el antiguo suelo de ceniza)
 uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
@@ -229,7 +244,7 @@ vec3 muestra(sampler2D t, vec2 p, float mezcla) {
 // Una pareja de materiales. `k` selecciona los canales de `mapa` (+ el que lame, - el lamido): `d` = +1 dentro del que lame, -1 dentro del otro,
 // 0 en la frontera. De d y de su gradiente sale la distancia con signo `sd` (u; + = dentro del que lame) a la frontera, igual que el borde de hierba.
 // Devuelve el color de la pareja y, en `peso`, cuánto manda esa pareja en este punto (0 lejos de ella).
-vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, vec2 fino, out float peso) {
+vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, vec2 fino, out float peso, out float sd_o) {
 	float eb = 0.5 / lado;
 	vec4 m0 = texture(mapa, uvm);
 	float d = dot(m0, k);
@@ -241,7 +256,20 @@ vec3 pareja(vec3 c_lame, vec3 c_otro, vec4 k, float lame, float rug, vec2 uvm, v
 	vec3 col = mix(c_otro, c_lame, wl);
 	col *= 1.0 - par_sombra * (1.0 - smoothstep(0.0, 0.5, sd)) * step(0.0, sd);   // el filo del que lame, algo más oscuro
 	peso = smoothstep(0.5, 0.85, dot(m0, abs(k)));
+	sd_o = sd;
 	return col;
+}
+// joints: la tira de migas de una pareja. `sd` = distancia con signo de `pareja` (+ dentro del que lame): las migas caen en el lado del otro suelo
+// (sd < 0), densas en la frontera y cada vez más raras hasta `ancho` u; el ruido de `amp` u desplaza la frontera antes de cortar, y el grano son dos
+// octavas del campo de ruido. `rim` (0-1) = el borde de cada miga, para oscurecerlo un poco.
+float migas(float sd, vec4 p, vec2 c, out float rim) {
+	float n = texture(campo, c / lado * 3.1 + vec2(0.17, 0.43)).g;
+	float s2 = sd + (n - 0.5) * 2.0 * p.y;
+	float dens = (1.0 - smoothstep(0.0, p.x, -s2)) * step(s2, 0.0);
+	float g = smoothstep(0.2, 0.8, texture(campo, c / lado * p.w).r * 0.6 + texture(campo, c / lado * p.w * 2.6 + vec2(0.3, 0.7)).g * 0.4);
+	float m = dens * p.z - g;
+	rim = 1.0 - smoothstep(0.0, 0.12, m);
+	return smoothstep(0.0, 0.035, m);
 }
 void fragment() {
 	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -261,15 +289,30 @@ void fragment() {
 	float m = smoothstep(0.3, 0.7, r.b);
 	vec3 col = muestra(t_hierba, t, m) * w.r + muestra(t_camino, t, m) * w.g
 		+ muestra(t_tierra, t, m) * w.b + muestra(t_piedra, t, m) * w.a;
+	float apaga = 1.0 - smoothstep(0.05, 0.4, texture(mapa_fuera, uvm).r);   // joints: junto a agua, cauce o huecos no hay tira
 	if (par_fuerza > 0.0) {
 		vec3 cg = muestra(t_camino, t, m);
 		vec3 cb = muestra(t_tierra, t, m);
 		vec3 ca = muestra(t_piedra, t, m);
 		vec2 fino = texture(campo, c / lado * 3.7).rg;                           // ruido fino del filo (campo se repite)
 		float pw;
-		col = mix(col, pareja(cg, cb, vec4(0.0, 1.0, -1.0, 0.0), par_lame.x, par_ruido.x, uvm, fino, pw), pw * par_fuerza);
-		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw), pw * par_fuerza);
-		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw), pw * par_fuerza);
+		float sdp;
+		float rimj;
+		col = mix(col, pareja(cg, cb, vec4(0.0, 1.0, -1.0, 0.0), par_lame.x, par_ruido.x, uvm, fino, pw, sdp), pw * par_fuerza);
+		if (joints_fuerza > 0.0 && pw > 0.0) {      // joints camino→tierra: sobre la mezcla de la pareja, las migas del camino
+			float mk = migas(sdp, joint_ct, c, rimj) * pw * apaga * joints_fuerza;
+			col = mix(col, cg * joint_tinte_ct * (1.0 - 0.14 * rimj), mk);
+		}
+		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw, sdp), pw * par_fuerza);
+		if (joints_fuerza > 0.0 && pw > 0.0) {      // camino→piedra
+			float mk = migas(sdp, joint_cp, c, rimj) * pw * apaga * joints_fuerza;
+			col = mix(col, cg * joint_tinte_cp * (1.0 - 0.14 * rimj), mk);
+		}
+		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw, sdp), pw * par_fuerza);
+		if (joints_fuerza > 0.0 && pw > 0.0) {      // tierra→piedra
+			float mk = migas(sdp, joint_tp, c, rimj) * pw * apaga * joints_fuerza;
+			col = mix(col, cb * joint_tinte_tp * (1.0 - 0.14 * rimj), mk);
+		}
 	}
 	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
 	// De él salen la dirección (el gradiente) y la distancia con signo `sb` (u de mundo; + = hacia el otro suelo) a la línea R = 0,5. uvm ya
@@ -287,10 +330,16 @@ void fragment() {
 			float oscuro = (1.0 - smoothstep(0.0, 1.2 * borde_ancho, -sb)) * step(sb, 0.0);
 			col *= mix(1.0, borde_oscuro, oscuro * w.r * fb * borde_fuerza);
 			// La hierba invade la tierra: matas sueltas (manchas de ruido) en la tierra junto a la frontera, cada vez más raras.
-			if (invade_hierba > 0.0) {
+			if (invade_hierba > 0.0 || joints_fuerza > 0.0) {
 				float mata = smoothstep(0.58, 0.66, texture(campo, c / lado * 5.3).b + (texture(campo, c / lado * 9.1).g - 0.5) * 0.35);
 				float cerca = (1.0 - smoothstep(0.1, 1.5 * borde_ancho + 0.6, sb)) * step(0.0, sb);
 				col = mix(col, muestra(t_hierba, t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza);
+				// joints (hierba→camino, hierba→piedra): matas sueltas sobre el camino y entre las losas, con su propio alcance.
+				if (joints_fuerza > 0.0) {
+					float cj = (1.0 - smoothstep(0.1, max(dot(w.gba, joint_matas_ancho), 0.11), sb)) * step(0.0, sb);
+					float fj = (w.g * joint_matas.x + w.a * joint_matas.z) * apaga;
+					col = mix(col, muestra(t_hierba, t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza);
+				}
 			}
 			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
 			float vb = (sb + 0.65 * borde_ancho) / borde_ancho;
@@ -603,6 +652,9 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
 ## (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo; B2: lee el mismo estado oficial, solo cambia cómo se pinta).
 @export var estado_suelo_eow: bool = true
+## joints (PLAN_EOW_VISUAL §1.3, 22/10): TIRAS DE TRANSICIÓN entre suelos distintos, con el filo cortado por ruido (ver `JOINTS_PARES` y el bloque «joints» del shader
+## del suelo). Desmarcar = el suelo de antes (sin migas ni matas nuevas). Se pone antes de añadir la maqueta al árbol.
+@export var joints_suelo: bool = true
 const BORDE_LABIO_ANCHO: float = 0.2         ## u: lo que se adentra el labio en la cara de arriba y baja por la pared (0,15–0,25)
 const BORDE_LABIO_SOBRESALE: float = 0.05    ## u: lo que asoma sobre la arista viva (la tira va por fuera del bloque y la tapa)
 var _camara_dof: CameraAttributesPractical = null
@@ -1024,6 +1076,86 @@ func _junto_a_agua(c: Vector2i) -> bool:
 	return false
 
 
+## joints · TABLA DE PARES. Clave «a_b» con a < b en el orden hierba, camino, tierra, piedra. Medidas en u de mundo (1 casilla = 2,3 u).
+##   - parejas de MIGAS (camino→tierra, camino→piedra, tierra→piedra): «sobre» = el suelo cuyas migas caen sobre el otro (el que «lame» en `pareja`),
+##     «ancho» = hasta dónde llegan, «amp» = cuánto desplaza el ruido la frontera antes de cortar, «dens» = densidad en la frontera (0-1),
+##     «escala» = frecuencia del grano sobre el campo de ruido, «tinte» = lo que se multiplica el color de las migas.
+##   - parejas de MATAS de hierba (hierba→camino, hierba→piedra): «ancho» = hasta dónde se adentran, «fuerza» = su opacidad. Hierba→tierra ya tenía matas
+##     (`invade_hierba`, alcance 1,5 × `borde_ancho` + 0,6 u); se anota aquí para completar la tabla pero no cambia.
+##   - todas llevan además lo de antes: la franja de hojas de la hierba y el degradado «lame» de `pareja`.
+## Textura de borde: PROCEDURAL (migas = máscara de ruido del campo × la textura del suelo que lame; matas = la máscara de `invade_hierba` con la textura de
+## hierba). No hay asset: arte/meshy/PROMPTS_JOINTS.md propone uno para pedirlo si se quiere sustituir.
+const JOINTS_PARES: Dictionary = {
+	"camino_tierra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
+	"camino_piedra": {"sobre": "camino", "textura": "migas de arena", "ancho": 0.8, "amp": 0.3, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
+	"tierra_piedra": {"sobre": "tierra", "textura": "migas de tierra / grava", "ancho": 0.9, "amp": 0.35, "dens": 1.0, "escala": 2.3, "tinte": Color(1.0, 1.0, 1.0)},
+	"hierba_camino": {"sobre": "hierba", "textura": "matas de hierba", "ancho": 1.4, "fuerza": 0.7},
+	"hierba_piedra": {"sobre": "hierba", "textura": "matas de hierba entre las losas", "ancho": 1.2, "fuerza": 0.8},
+	"hierba_tierra": {"sobre": "hierba", "textura": "matas de hierba (invade_hierba)", "ancho": 1.0, "fuerza": 1.0},
+}
+const TIPOS_SUELO: Array = ["hierba", "camino", "tierra", "piedra"]
+
+
+## joints · ¿esta casilla es suelo llano que pinta el shader (y por tanto puede llevar tira)? No: sin pintar (« »), agua, cauce seco («c»; es un
+## hueco con su propio lecho) ni las casillas del borde sin letra.
+func _suelo_llano(c: Vector2i) -> bool:
+	if not _en_mapa(c):
+		return false
+	var l: String = _letra(c)
+	return l != " " and l != "c" and not _es_agua(l)
+
+
+## joints · tipo de suelo de la casilla tal como lo pinta el mapa (con la orilla de arena junto al agua), o -1 si no es suelo llano.
+func _tipo_joint(c: Vector2i) -> int:
+	if not _suelo_llano(c):
+		return -1
+	var t: int = _tipo_suelo(c)
+	if t == 0 and ORILLA_SIEMPRE and _junto_a_agua(c):
+		t = 1
+	return t
+
+
+## joints · las aristas entre casillas de suelo llano de tipos distintos (la lista que el shader pinta como tira; la usan las pruebas). Cada una:
+## {c, v (vecino a la derecha o abajo), par ("a_b" de JOINTS_PARES), a, b}. Con `joints_suelo = false` no hay ninguna.
+func joints_aristas() -> Array:
+	var res: Array = []
+	if not joints_suelo:
+		return res
+	for y in range(_lado):
+		for x in range(_lado):
+			var c := Vector2i(x, y)
+			var a: int = _tipo_joint(c)
+			if a < 0:
+				continue
+			for v in [Vector2i(1, 0), Vector2i(0, 1)]:
+				var b: int = _tipo_joint(c + (v as Vector2i))
+				if b < 0 or b == a:
+					continue
+				res.append({"c": c, "v": c + (v as Vector2i), "par": "%s_%s" % [TIPOS_SUELO[mini(a, b)], TIPOS_SUELO[maxi(a, b)]], "a": a, "b": b})
+	return res
+
+
+## joints · el mapa de «no es suelo llano» (R = 1 en agua, cauce seco y huecos) que apaga las tiras junto a ellos, y los uniforms de la tabla.
+func _aplicar_joints(mat: ShaderMaterial) -> void:
+	var fuera := Image.create_empty(_lado, _lado, false, Image.FORMAT_R8)
+	for y in range(_lado):
+		for x in range(_lado):
+			var l: String = _letra(Vector2i(x, y))
+			fuera.set_pixel(x, y, Color(1.0 if (l == " " or l == "c" or _es_agua(l)) else 0.0, 0.0, 0.0))
+	mat.set_shader_parameter("mapa_fuera", ImageTexture.create_from_image(fuera))
+	for par in ["camino_tierra", "camino_piedra", "tierra_piedra"]:
+		var d: Dictionary = JOINTS_PARES[par]
+		var suf: String = {"camino_tierra": "ct", "camino_piedra": "cp", "tierra_piedra": "tp"}[par]
+		mat.set_shader_parameter("joint_" + suf, Vector4(float(d["ancho"]), float(d["amp"]), float(d["dens"]), float(d["escala"])))
+		var tn: Color = d["tinte"]
+		mat.set_shader_parameter("joint_tinte_" + suf, Vector3(tn.r, tn.g, tn.b))
+	var mc: Dictionary = JOINTS_PARES["hierba_camino"]
+	var mp: Dictionary = JOINTS_PARES["hierba_piedra"]
+	mat.set_shader_parameter("joint_matas", Vector3(float(mc["fuerza"]), 0.0, float(mp["fuerza"])))
+	mat.set_shader_parameter("joint_matas_ancho", Vector3(float(mc["ancho"]), 0.0, float(mp["ancho"])))
+	mat.set_shader_parameter("joints_fuerza", 1.0 if joints_suelo else 0.0)
+
+
 func _construir_suelo() -> void:
 	# Mapa de tipos para el shader.
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
@@ -1076,6 +1208,7 @@ func _construir_suelo() -> void:
 	# El estado oficial del juego (R quemada · G mojada · B helada · A segada) y el interruptor. La textura se vuelve a pedir cada fotograma
 	# (`_subir_estado_juego`): es siempre el mismo objeto salvo que el mapa cambie de tamaño; entonces la reparte al suelo, al agua y a la hierba.
 	mat_suelo.set_shader_parameter("estado_eow", 1.0 if estado_suelo_eow else 0.0)
+	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
 
 	var mat_lado := _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
