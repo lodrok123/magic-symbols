@@ -1,0 +1,12 @@
+﻿== zoom6
+imagen completa: 746496 px | distintos 1.447 % | distintos >8/255 0.449 % | dif media 0.1356/255 | máx 201
+solo personaje:  12795 px | distintos 81.81 % | distintos >8/255 25.32 % | dif media 7.387/255 | máx 201
+
+== zoom2_jugadora
+imagen completa: 746496 px | distintos 6.219 % | distintos >8/255 1.037 % | dif media 0.3635/255 | máx 224
+solo personaje:  56510 px | distintos 81.60 % | distintos >8/255 13.20 % | dif media 4.505/255 | máx 224
+
+== zoom2_goblin
+imagen completa: 746496 px | distintos 7.937 % | distintos >8/255 1.102 % | dif media 0.3783/255 | máx 213
+solo personaje:  77517 px | distintos 75.53 % | distintos >8/255 10.13 % | dif media 3.334/255 | máx 213
+

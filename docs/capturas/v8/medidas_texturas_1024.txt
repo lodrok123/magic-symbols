@@ -1,0 +1,21 @@
+﻿MEM base (escena vacía) | 50.5 MB | 50.5 MB
+MEM alchemist_elf | +2.7 MB (monitor) | total 53.1 MB
+MEM canouro | +2.0 MB (monitor) | total 55.1 MB
+MEM canouro_anim | no carga
+MEM elemental_bosque | +2.7 MB (monitor) | total 57.8 MB
+MEM emberheart | +2.7 MB (monitor) | total 60.5 MB
+MEM emberstride | +2.7 MB (monitor) | total 63.2 MB
+MEM gato_guardabosques | +2.7 MB (monitor) | total 65.8 MB
+MEM goblin_archer_chibi | +5.3 MB (monitor) | total 71.2 MB
+MEM grandmaster | +2.7 MB (monitor) | total 73.9 MB
+MEM lince | +2.7 MB (monitor) | total 76.5 MB
+MEM lince_gato | +2.7 MB (monitor) | total 79.2 MB
+MEM loberno | +0.0 MB (monitor) | total 79.2 MB
+MEM woodland_wanderer | +8.7 MB (monitor) | total 87.9 MB
+MEM woodland_wanderer_suave | +0.0 MB (monitor) | total 87.9 MB
+MEM woodland_wanderer_v1 | +2.7 MB (monitor) | total 90.6 MB
+MEM TODOS (15 modelos) | +40.1 MB sobre la escena vacía | monitor 90.6 MB · rendering_info 90.6 MB
+CAPTURA zoom6 | 1152x648 | docs/capturas/v8/texturas_zoom6_1024.png
+CAPTURA zoom2_jugadora | 1152x648 | docs/capturas/v8/texturas_zoom2_jugadora_1024.png
+CAPTURA zoom2_goblin | 1152x648 | docs/capturas/v8/texturas_zoom2_goblin_1024.png
+MEM final con la fila de la captura | 73.9 MB | 73.9 MB · renderer forward_plus
