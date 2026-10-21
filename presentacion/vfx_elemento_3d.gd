@@ -81,6 +81,29 @@ class Proyectil extends Seguidor:
 	var _parado: bool = false
 	var _t_parado: float = 0.0
 	var _avisado: bool = false     ## ya se pidió el impacto / el fin (una sola vez)
+	## Cintas/conos de la cola que giran con la velocidad (solo un proyectil que CAE, `gravedad` > 0: el agua en arco). Se montan apuntando hacia atrás
+	## de la dirección de salida `dir_cintas`; si no giraran, al curvarse el vuelo se quedarían clavadas en esa dirección (63–82° desviadas a media
+	## caída, medido) y se leerían como rayas sueltas que no salen del movimiento. Sin gravedad la dirección no cambia y no se toca nada (el fuego).
+	var dir_cintas: Vector3 = Vector3.ZERO      ## ZERO = no giran
+	var _cintas: Array = []                      ## [MeshInstance3D, Transform3D de montaje]
+
+	## Guarda las mallas de la cola con su transformación de montaje y la dirección con que se montaron. Lo llama `_dibujar_proyectil` si el hechizo cae.
+	func seguir_direccion(d_montaje: Vector3) -> void:
+		dir_cintas = d_montaje.normalized()
+		_cintas.clear()
+		for n in cola:
+			if n is MeshInstance3D and is_instance_valid(n):
+				_cintas.append([n, (n as MeshInstance3D).transform])
+
+	## Gira las cintas (alrededor de la bola, que es el origen) lo que ha girado la velocidad desde el montaje.
+	func _girar_cintas(v: Vector3) -> void:
+		if dir_cintas == Vector3.ZERO or v.length() < 0.5:
+			return
+		var rot := Basis(Quaternion(dir_cintas, v.normalized()))
+		for par in _cintas:
+			var mi: MeshInstance3D = par[0] as MeshInstance3D
+			if mi != null and is_instance_valid(mi):
+				mi.transform = Transform3D(rot, Vector3.ZERO) * (par[1] as Transform3D)
 
 	func _process(delta: float) -> void:
 		super._process(delta)
@@ -90,6 +113,8 @@ class Proyectil extends Seguidor:
 			var k: float = clampf(_t / maxf(VfxElemento3D.PROYECTIL_CRECE_S, 0.01), 0.0, 1.0)
 			k = k * k * (3.0 - 2.0 * k)                      # suave al empezar y al llegar (smoothstep): se nota el «enfoque», no un salto
 			scale = Vector3.ONE * lerpf(escala_ini, 1.0, k)
+			if hv != null and is_instance_valid(hv) and bool(hv.get("activo")):
+				_girar_cintas(hv.get("v") as Vector3)
 			if hv != null and is_instance_valid(hv) and not bool(hv.get("activo")):
 				_parado = true
 				al_pararse(hv)
@@ -250,6 +275,8 @@ func _dibujar_proyectil(ref: WeakRef) -> void:
 	seg.tree_exited.connect(_menos_uno)
 	_con_elemento(el, _pieza_proyectil.bind(el, seg, d, r_u, vel))
 	seg.cola = _recoger_cola(seg, el)
+	if hv.h.gravedad > 0.0:
+		seg.seguir_direccion(d)      # el agua sale en arco: sus cintas siguen a la velocidad (el fuego, sin gravedad, no entra)
 	hv.tree_exiting.connect(seg.al_pararse.bind(hv), CONNECT_ONE_SHOT)      # antes de `_soltar_al_irse`: si el HechizoVivo se libera en el mismo cuadro en que se para, el impacto no se pierde
 	_soltar_al_irse(seg, hv, 0.35)
 
