@@ -100,7 +100,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] Pablo: mirar las capturas de `docs/capturas/look_v1v2/` y decidir la fuerza del tilt-shift y el gris del fondo.
 - [ ] Pablo: las 4 decisiones de `docs/PLAN_RIGGING.md` §7 antes de empezar el rigging común.
 - [ ] Afinar de oído los 4 jingles de logros (`Sfx.CATALOGO`, `audio/gen_sfx_logros.py`).
-- [ ] Enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta (todos los niveles), y un emisor de «nivel_completado».
+- [x] ~~Enganchar `Logros3D.conectar` y `ReaccionesVfx3D.conectar` en la maqueta (todos los niveles), y un emisor de «nivel_completado»~~ — hecho el 21/10 (`92cec87`). Titán y los niveles sin reglas no tienen fin: llamar a `Mundo3D.avisar_logro("nivel_completado", …)` cuando lo tengan.
 - [x] ~~Plan visual V3–V8~~ — hecho el 21/10 (diario 246).
 - [x] ~~Pablo: generar en Meshy tierra, hielo y el atlas de viento~~ — recibidos el 21/10 (diario 246).
 
