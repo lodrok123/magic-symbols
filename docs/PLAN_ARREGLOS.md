@@ -1684,7 +1684,7 @@ Detalle de cada tarea (qué, por qué, archivos, comprobación y prompt): `docs/
 - [x] **A4** `Mundo3D.reaccion` con el catálogo de `ReaccionesVfx3D` (diario 238).
 - [x] **A5** `Escudo3D` (cono frontal de 120°); al consumirse le quema la mano al goblin (diario 238, 239).
 - [x] **D2** `Caminos3D`, rutas por casillas con altura (diario 238).
-- [ ] **E1** tinta: máximo cerrado y pigmentos (decisión de Pablo del 21/10: tope 300, reparto 60/40 jefes/secretos; el pigmento es un aumento temporal sobre un sello: abarata su tinta o sube su daño).
+- [x] **E1** tinta: máximo cerrado y pigmentos (decisión de Pablo del 21/10: tope 300, reparto 60/40 jefes/secretos; el pigmento es un aumento temporal sobre un sello: abarata su tinta o sube su daño) (diario 243).
 
 ### Pipeline (encargos del Juego por el diario)
 
