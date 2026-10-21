@@ -15,6 +15,9 @@ var cantidad: float = 0.0                  ## agua: u³ (o u³/s si hay `duracio
 var duracion: float = 0.0                  ## s; 0 = instantánea (un impacto); > 0 = continua (un chorro que dura)
 var direccion: Vector3 = Vector3.ZERO      ## para viento y proyectiles
 var origen: Node = null                    ## solo para NO golpearse a sí mismo
+## ¿Deja huella en el ESTADO del suelo (mojada, helada, quemada)? Un impacto de verdad sí. Una acción que solo echa o quita agua de la
+## simulación (el charco de una burbuja que revienta) no: la maqueta no pinta nada en el suelo ahí y el estado no debe saber más que la imagen.
+var toca_suelo: bool = true
 
 
 static func nueva(p_elemento: String, p_punto: Vector3, p_radio: float = 0.0, p_cantidad: float = 0.0, p_duracion: float = 0.0) -> AccionElemental:

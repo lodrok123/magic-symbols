@@ -57,6 +57,11 @@ const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "
 var _celdas: Dictionary = {}          ## estado -> Dictionary(Vector2i -> true)
 var _intensidad: Dictionary = {}      ## estado -> Dictionary(Vector2i -> float 0..1); sin entrada = 1
 var _queda: Dictionary = {}           ## estado -> Dictionary(Vector2i -> float s); solo las que caducan
+## ESCARCHA (21/10): «helada» quiere decir dos cosas. Sobre AGUA es hielo que se pisa y resbala (`Terreno3D.hielo_fisico`: pisable, y_pies,
+## sobre_hielo, es_agua…). Sobre SUELO (dos aguas, un hielo) es solo el estado «helada» de la casilla, para las reglas de puzle y la imagen,
+## y NO cambia cómo se anda ni a qué altura se pisa. Esta lista dice qué casillas con «helada» son del segundo tipo; la llena `aplicar`
+## (que solo se usa en suelo) y la vacía quien deshiela o convierte la casilla en hielo de verdad (`Terreno3D.poner_helada`).
+var _escarcha: Dictionary = {}        ## Vector2i -> true
 
 ## Lado de la textura (casillas). 40 = el `_lado` de la maqueta; `dimensionar` lo cambia (Mundo3D le pasa el del mapa).
 var lado: int = 40
@@ -95,6 +100,8 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 	else:
 		inten.erase(c)
 		queda.erase(c)
+		if estado == HELADA:
+			_escarcha.erase(c)       # sin helada no hay escarcha que recordar
 	_intensidad[estado] = inten
 	_queda[estado] = queda
 	if si == d.has(c):
@@ -136,6 +143,7 @@ func avanzar(dt: float) -> void:
 
 ## Aplica la acción («agua», «frio», «calor») a la casilla con la primera fila de `TRANSICIONES` que encaje.
 ## Devuelve {"cambio": bool, "efecto": String}. No pinta nada: el efecto es para quien dibuja.
+## SOLO PARA SUELO (no agua): la «helada» que ponga es escarcha (ver `_escarcha`), no hielo que se pise.
 func aplicar(c: Vector2i, accion: String) -> Dictionary:
 	for f in TRANSICIONES:
 		var fila: Dictionary = f
@@ -146,12 +154,27 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 		if String(fila["sin"]) != "" and tiene(c, String(fila["sin"])):
 			continue
 		var algo: bool = false
+		var ya_helada: bool = tiene(c, HELADA)
 		for e in fila["quita"]:
 			algo = poner(c, String(e), false) or algo
 		for e in fila["pone"]:
+			# Se apunta ANTES de poner: `poner` avisa por señal y quien escuche (Caminos3D) ya debe ver que no es hielo de agua.
+			# Si la casilla ya estaba helada (hielo de una charca que congeló la simulación) sigue siendo hielo de verdad.
+			if String(e) == HELADA and not ya_helada:
+				_escarcha[c] = true
 			algo = poner(c, String(e), true) or algo
 		return {"cambio": algo, "efecto": String(fila["efecto"])}
 	return {"cambio": false, "efecto": ""}
+
+
+## ¿Es la «helada» de esta casilla solo la del suelo (escarcha) y no hielo sobre agua? Falso si la casilla no está helada.
+func es_escarcha(c: Vector2i) -> bool:
+	return _escarcha.has(c) and tiene(c, HELADA)
+
+
+## La casilla deja de contar como escarcha (pasa a ser hielo de verdad). No avisa: lo hace `Terreno3D.poner_helada`.
+func quitar_escarcha(c: Vector2i) -> bool:
+	return _escarcha.erase(c)
 
 
 ## Cambia el lado de la textura (casillas). Rehace la imagen la próxima vez que se pida.
@@ -208,4 +231,5 @@ func limpiar() -> void:
 	_celdas.clear()
 	_intensidad.clear()
 	_queda.clear()
+	_escarcha.clear()
 	_sucia = true

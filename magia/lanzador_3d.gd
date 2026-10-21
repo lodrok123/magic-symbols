@@ -221,8 +221,29 @@ static func configurar(p_mundo: Node3D) -> void:
 	Terreno3D.configurar(p_mundo)
 	Terreno3D.al_solidificar = soltar_presos
 	ReaccionesAgua3D.efecto = _efecto_mundo
+	ReaccionesSuelo3D.clasificar = _clase_de_casilla
+	ReaccionesSuelo3D.reiniciar()
 	mundo_s = p_mundo                    # espejo M1
 	agua_sim = null                      # espejo M1
+
+
+## De qué clase es una casilla para el ESTADO del suelo (ReaccionesSuelo3D): las mismas tres ramas que `PruebaTest2._al_impactar` (agua, hierba,
+## suelo no bloqueado), preguntándoselas a la maqueta para que las dos cosas decidan igual. «» = no recibe nada (bloqueada, o la maqueta está
+## precalentando shaders: entonces `_al_impactar` tampoco marca el suelo). Sin esos métodos (una maqueta de mentira en una prueba) tampoco recibe nada.
+static func _clase_de_casilla(c: Vector2i) -> String:
+	var m: Node3D = mundo_s
+	if m == null or not is_instance_valid(m) or not m.has_method("_es_agua") or not m.has_method("_es_hierba"):
+		return ""
+	if bool(m.get("_precalentando")):
+		return ""
+	if bool(m.call("_es_agua", m.call("_letra", c))):
+		return "agua"
+	if bool(m.call("_es_hierba", c)):
+		return "hierba"
+	var bl: Variant = m.get("_bloqueadas")
+	if bl is Dictionary and (bl as Dictionary).has(c):
+		return ""
+	return "suelo"
 
 
 ## --- Hechizos sobre el agua (Fase 11.4, 12/10) ---
@@ -933,6 +954,7 @@ func _process(delta: float) -> void:
 			Terreno3D._avisar(cb["c"], "agua")       # M2: lo mismo, para quien escuche a Mundo3D
 		procesar_cambios_hielo()             # 11.13: el hielo que se suelta solo al acabar su tiempo
 		vigilar_presos()                     # 11.15: grietas en la costra cuando al hielo le queda poco
+	ReaccionesSuelo3D.sincronizar_hierba(mundo)      # 21/10: «quemada» de la hierba que arde (y se quita si el agua la apaga)
 	super._process(delta)
 	if conjurando:
 		_t_conjuro += delta
@@ -2006,7 +2028,9 @@ static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) 
 	var nombre: String = String(r[0])
 	if nombre == "vapor" and Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(punto, "vapor", RADIO_BURBUJA)       # la maqueta pinta la bocanada (ver _al_impacto_mundo)
-	Mundo3D.aplicar_accion(AccionElemental.nueva(String(r[1]), punto))     # evapora el agua del punto / echa el charco
+	var accion := AccionElemental.nueva(String(r[1]), punto)
+	accion.toca_suelo = false      # solo agua de la simulación: la maqueta no pinta nada en el suelo ahí, y el estado no debe saber más que la imagen
+	Mundo3D.aplicar_accion(accion)     # evapora el agua del punto / echa el charco
 	return nombre
 
 
@@ -2201,7 +2225,9 @@ func _casilla_helada(c: Vector2i) -> bool:
 ## Cada impacto de hielo o de agua puede haber helado una casilla: si es así, se apunta cuándo se deshace.
 ## Va DESPUÉS del manejador de PruebaTest2 (se conecta más tarde), así que el estado ya está escrito.
 func al_impactar(elemento: String, punto: Vector3) -> void:
-	hechizo_sobre_agua(elemento, punto)      # 11.4: el agua de la simulación (la maqueta ya hizo lo del suelo)
+	# 11.4: el agua de la simulación Y (21/10) el estado del suelo (mojada, helada, quemada), con la misma regla que la maqueta acaba de pintar.
+	# `aplicar_accion` es el único punto: ningún hechizo escribe estados por su cuenta.
+	Mundo3D.aplicar_accion(AccionElemental.nueva(elemento, punto))
 	if elemento != "hielo" and elemento != "agua":
 		return
 	var c: Vector2i = celda_de(punto)
@@ -2224,6 +2250,7 @@ func _derretir(c: Vector2i, era_agua: bool) -> void:
 		bloquear_celda(c)
 	else:
 		mundo.call("_poner_canal", c, 1, 1.0)
+		ReaccionesSuelo3D.derretir(c)      # el estado del suelo hace lo mismo que la imagen: sin escarcha y mojada
 	if fx != null:
 		fx.vapor(centro_de(c, Terreno3D.alto_agua if era_agua else Terreno3D.alto_suelo))
 	PlayLog.event("hielo_deshecho", {"celda": [c.x, c.y]})

@@ -5,7 +5,8 @@
 ##   · `terreno`  → Terreno3D (casillas, alturas, bloqueos). Es la misma clase de estáticos; la instancia existe para poder
 ##                  escribir `mundo.terreno.celda_de(p)` como pide el contrato.
 ##   · `agua`     → la AguaSim3D del nivel (null si no hay). No es una copia: es `Terreno3D.agua_sim`.
-##   · `estados`  → EstadosSuelo3D: helada, electrificada, quemada, mojada. Dueño del dato.
+##   · `estados`  → EstadosSuelo3D: helada, electrificada, quemada, mojada. Dueño del dato. Los impactos de agua, hielo y fuego lo escriben
+##                  por `aplicar_accion` (ReaccionesSuelo3D) y la hierba que arde por `ReaccionesSuelo3D.sincronizar_hierba`.
 ##   · `casilla_cambio(c, que)`  que ∈ «agua», «hielo», «rayo», «fuego», «mojado», «siega», «bloqueo», «altura».
 ##   · `impacto(punto, elemento, radio)`  para VFX y sonido: DÓNDE y de QUÉ, nunca quién.
 ## Qué NO hace: no dibuja nada, no conoce hechizos (M3 le añadirá `aplicar(AccionElemental)`) ni crea la maqueta (M5).
@@ -56,11 +57,14 @@ func _estado_cambio(c: Vector2i, estado: String, _si: bool) -> void:
 	casilla_cambio.emit(c, String(EstadosSuelo3D.QUE.get(estado, estado)))
 
 
-## M3: el mundo recibe ACCIONES, no hechizos. Hoy reparte al agua (agua, fuego, hielo; ver ReaccionesAgua3D). Lo que hace el suelo
-## (quemado, mojado, hielo de la casilla) lo sigue haciendo la maqueta al impactar el VFX, hasta que pase a `estados`; los
-## `Reactivo3D` siguen recibiendo `on_spell_hit`. Estática para poder usarla sin un Mundo3D en el árbol (pruebas).
+## M3: el mundo recibe ACCIONES, no hechizos. Reparte al agua (agua, fuego, hielo; ver ReaccionesAgua3D) y al ESTADO del suelo (mojada,
+## helada, quemada; ver ReaccionesSuelo3D, 21/10) salvo que `a.toca_suelo` sea false. La maqueta sigue PINTANDO el suelo al impactar el VFX
+## (`_impacto_en_suelo`); aquí se guarda el hecho con la misma regla. Los `Reactivo3D` siguen recibiendo `on_spell_hit`. Estática para poder
+## usarla sin un Mundo3D en el árbol (pruebas).
 static func aplicar_accion(a: AccionElemental) -> void:
 	ReaccionesAgua3D.aplicar(a)
+	if a.toca_suelo:
+		ReaccionesSuelo3D.aplicar(a)
 
 
 func aplicar(a: AccionElemental) -> void:

@@ -11,7 +11,7 @@ extends "res://herramientas/escenario_base.gd"
 ##   · 3  sala 3 · escudo (A5): disparo de frente bloqueado, por la espalda y de lado pasa, el fuego lo prende y consume y después el de frente llega.
 ##   · 4  sala 4 · caminos (D2): sin helar no hay ruta; con una casilla helada la ruta rodea la pared, sube la terraza de 1 nivel (la de 2 no) y cruza el hielo; tecla X; tierra de 1 nivel no
 ##        es muro, de 2 niveles sí (la ruta cambia sola); el goblin de verdad recorre cada ruta. El olfato del lab (SALA4_OLFATO) y el hielo/tierra son lo que se mide aparte.
-##   · 5  sala 5 · suelo y condiciones (B1+C2): puerta A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`), dos aguas hielan, el puente de estados del lab.
+##   · 5  sala 5 · suelo y condiciones (B1+C2): puerta A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`), dos aguas hielan; el agua/hielo/fuego de verdad escriben mojada/helada/quemada SIN ayuda del lab (el puente de estados se retiró el 21/10).
 ##   · 6  sala 6 · sala cerrada (C3+C1): entrar la cierra, tres goblins (uno hundido con viento) la abren y aparece el cofre, E lo abre, M guarda, el lab se RECARGA como con R (partida nueva)
 ##        y F devuelve el cofre abierto y la sala sin cerrarse.
 ##   · 7  sala 7 · final integrado: vía limpia (escudo: bloqueado/prendido/consumido; arquero con flecha ardiendo; setos; hundido; el cofre aparece) y vía «quemando la hierba» (el cofre NO aparece).
@@ -98,7 +98,7 @@ func _base() -> void:
 	_ok("0.6 las piezas de la sala 1 se han montado desde el .txt", is_instance_valid(puzle.nodo("s1_brasero")) and is_instance_valid(puzle.nodo("s1_seto4")) and is_instance_valid(puzle.nodo("s1_brasero_arq")))
 	_ok("0.7 el jugador nace en la sala 1", lab.sala_actual() == 1, str(celda_jugador()))
 	_ok("0.8 hay un hook de preparación por sala", range(1, 8).all(func(n: int) -> bool: return lab.has_method("_preparar_sala_%d" % n)))
-	_ok("0.16 el lab declara sus 8 ayudas (SALAn_*) como activas, el HUD las cuenta y describe las 7 salas", lab.ajustes_activos().size() == 8 and lab.texto_hud().contains("AYUDAS DEL LAB activas: 8 de 8")
+	_ok("0.16 el lab declara sus 7 ayudas (SALAn_*) como activas (ya sin puente de estados), el HUD las cuenta y describe las 7 salas", lab.ajustes_activos().size() == 7 and lab.texto_hud().contains("AYUDAS DEL LAB activas: 7 de 7")
 		and lab.texto_hud().contains("6 sala cerrada") and lab.texto_hud().contains("7 final integrado"), str(lab.ajustes_activos()))
 
 
@@ -676,26 +676,22 @@ func _sala_5() -> void:
 	await avanzar_s(3.0)
 	_aviso("5.3f el fuego sobre suelo DESNUDO %s deja la casilla «quemada»" % str(desnudo), "sí" if _estado(desnudo, "quemada") else "NO (solo la hierba se quema)")
 	Terreno3D.estados.poner(f, "quemada", false)
-	# --- HALLAZGO: sin el puente del lab, el agua de verdad solo moja la imagen de la maqueta, no el dato de Terreno3D.estados que leen las reglas ---
-	lab.puente_estados_s5 = false
+	# --- Sin ayuda del lab (el puente de estados se retiró el 21/10): el agua de verdad moja la imagen de la maqueta Y el dato de Terreno3D.estados que leen las reglas ---
 	var suelta: Vector2i = Vector2i(1, 13)
 	var salio0: bool = await _disparo_a("agua", suelta)
 	var img: Image = maqueta.get("_img_estado") as Image
 	var en_imagen: bool = img != null and img.get_pixelv(suelta).g >= 0.5
-	_ok("5.3b SIN el puente (el juego tal cual) el agua de verdad moja la imagen de la maqueta pero Terreno3D.estados NO dice «mojada»: casilla(x,y).mojada nunca se cumpliría", salio0 and en_imagen and not _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
-	lab.puente_estados_s5 = true
-	await avanzar(3)
-	_ok("5.3c con el puente, esa misma casilla queda «mojada» en Terreno3D.estados", _estado(suelta, "mojada"))
-	maqueta.call("_poner_canal", suelta, 1, 0.0)
-	await avanzar(3)
-	_ok("5.3d y al secarse la imagen, también deja de estarlo", not _estado(suelta, "mojada"))
+	_ok("5.3b el agua de verdad moja la imagen de la maqueta Y Terreno3D.estados dice «mojada» (sin puente: casilla(x,y).mojada se cumple jugando)", salio0 and en_imagen and _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
+	_ok("5.3c la imagen y el estado coinciden: ni mojada ni helada de más", not _estado(suelta, "helada") and img.get_pixelv(suelta).b < 0.5)
+	await _disparo_a("fuego", suelta)
+	_ok("5.3d el fuego de verdad seca esa casilla: se borra de la imagen Y del estado a la vez", not _estado(suelta, "mojada") and img.get_pixelv(suelta).g < 0.5)
 	# --- PUERTA A: tres mojadas Y brasero apagado ---
 	await _pisar(Vector2i(1, 11))
 	_ok("5.4 placa A con 0 casillas mojadas y el brasero encendido: NO abre, la regla se ignora y el HUD dice por qué", not _abierta("puerta_a") and int(z.puzle("s5_abre_a")["ignoradas"]) == 1 and lab.texto_hud().contains("Puerta A NO abre"), lab.texto_hud())
 	var mojadas: Array = LabPlaytestEoW3D.SALA5_MOJAR
 	for c in mojadas:
 		var salio: bool = await _disparo_a("agua", c as Vector2i)
-		_ok("5.5 agua de verdad a %s: el disparo sale y deja la casilla «mojada» (Terreno3D.estados, con el puente del lab)" % str(c), salio and _estado(c as Vector2i, "mojada"))
+		_ok("5.5 agua de verdad a %s: el disparo sale y deja la casilla «mojada» (Terreno3D.estados, sin ayuda del lab)" % str(c), salio and _estado(c as Vector2i, "mojada"))
 	await _pisar(Vector2i(1, 11))
 	_ok("5.6 con las TRES mojadas pero el brasero ENCENDIDO: NO abre (el NO de la regla)", not _abierta("puerta_a") and int(z.puzle("s5_abre_a")["ignoradas"]) == 2 and lab.texto_hud().contains("brasero ENCENDIDO"))
 	# Apagar el brasero con agua de verdad (desde la entrada, a su lado) y ver cómo queda.
@@ -748,7 +744,7 @@ func _sala_5() -> void:
 	await _pisar(Vector2i(3, 11))
 	_ok("5.16 placa B sin nada: NO abre y el HUD lo dice", not _abierta("puerta_b") and int(z.puzle("s5_abre_b")["ignoradas"]) == 1 and lab.texto_hud().contains("Puerta B NO abre"))
 	var salio_h: bool = await _disparo_a("hielo", h)
-	_ok("5.17 el hielo de verdad sobre (2,14) deja la casilla «helada» (Terreno3D.estados, con el puente del lab)", salio_h and _estado(h, "helada"))
+	_ok("5.17 el hielo de verdad sobre (2,14) deja la casilla «helada» (Terreno3D.estados, sin ayuda del lab)", salio_h and _estado(h, "helada"))
 	await _pisar(Vector2i(3, 11))
 	_ok("5.19 placa B con el hielo en su sitio y el centro seco: la puerta B ABRE", _abierta("puerta_b") and int(z.puzle("s5_abre_b")["veces"]) == 1)
 	# --- PUERTAS C y D: la MISMA regla con plantilla ---
@@ -1008,8 +1004,7 @@ func _sala_7_quemando() -> void:
 		(g as Combate3D).quieto = true              # quietos: aquí lo que se mide es el fuego sobre la hierba, no la pelea
 		(g as Combate3D).position = (g as Combate3D).casa
 		(g as Combate3D).pj.position = (g as Combate3D).casa
-	# --- HALLAZGO del puente: sin él, la hierba quemada de verdad NO llega a Terreno3D.estados y la condición no la vería ---
-	lab.puente_estados_s5 = false
+	# --- Sin ayuda del lab (puente retirado el 21/10): la hierba quemada de verdad llega a Terreno3D.estados y la condición del cofre la ve ---
 	jugador.set("vida", 100.0)
 	var img: Image = maqueta.get("_img_estado") as Image
 	colocar_jugador(Vector2i(19, 14))
@@ -1020,10 +1015,9 @@ func _sala_7_quemando() -> void:
 		t_q += 0.5
 	await avanzar_s(0.5)
 	var en_imagen: bool = img != null and img.get_pixelv(h).r >= 0.5
-	_ok("7Q.3 SIN el puente (el juego tal cual) el fuego de verdad deja la hierba quemada en la imagen de la maqueta pero Terreno3D.estados NO dice «quemada»: la condición no la vería", salio and en_imagen and not _estado(h, "quemada"), "imagen %s (a los %.1f s) · estados %s" % [str(en_imagen), t_q, str(_estado(h, "quemada"))])
-	lab.puente_estados_s5 = true
+	_ok("7Q.3 el fuego de verdad deja la hierba quemada en la imagen de la maqueta Y Terreno3D.estados dice «quemada» (sin puente: la condición del cofre la ve)", salio and en_imagen and _estado(h, "quemada"), "imagen %s (a los %.1f s) · estados %s" % [str(en_imagen), t_q, str(_estado(h, "quemada"))])
 	await avanzar(3)
-	_ok("7Q.5 con el puente del lab esa casilla queda «quemada» en Terreno3D.estados y el HUD lo dice", _estado(h, "quemada") and lab.texto_hud().contains("QUEMADA"), lab.texto_hud())
+	_ok("7Q.5 esa casilla sigue «quemada» en Terreno3D.estados y el HUD lo dice", _estado(h, "quemada") and lab.texto_hud().contains("QUEMADA"), lab.texto_hud())
 	# --- Ahora se derrota a los tres: la sala se abre pero el cofre NO aparece ---
 	var apariciones: Array = [0]
 	cf.aparecido.connect(func() -> void: apariciones[0] += 1)

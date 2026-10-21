@@ -17,8 +17,8 @@ extends Node
 ## AJUSTES DEL LAB (lo que el juego tal cual no hace sin ayuda). Cada uno es una constante `SALAn_*` con su hallazgo documentado junto a ella; el valor NEUTRO es el juego tal cual
 ## y al arrancar el lab imprime en la consola los que están activos (`ajustes_activos()`, también en el HUD):
 ##   SALA1_LIBERAR_BRASERO_ARQUERO  false · SALA1_CORRIMIENTO_BRASERO  0.0 · SALA1_QUEMA_GOBLIN_S  0.0 (quemadura de 3 s) · SALA2_HELAR_FRANJA  false · SALA3_QUIETO  false ·
-##   SALA4_OLFATO  false · SALA5_BRASERO_ENCENDIDO  false · SALA5_PUENTE_ESTADOS  false (8 en total). La sala 7 reutiliza SALA1_LIBERAR_BRASERO_ARQUERO (el brasero de su arquero)
-##   y SALA5_PUENTE_ESTADOS (la hierba `quemada` del cofre) y no añade ninguno propio: el escudo con su IA de verdad basta. La sala 6 no necesita ningún ajuste.
+##   SALA4_OLFATO  false · SALA5_BRASERO_ENCENDIDO  false (7 en total; el 8.º, SALA5_PUENTE_ESTADOS, se retiró el 21/10 porque el juego ya guarda mojada/helada/quemada). La sala 7 reutiliza
+##   SALA1_LIBERAR_BRASERO_ARQUERO (el brasero de su arquero) y no añade ninguno propio: el escudo con su IA de verdad basta. La sala 6 no necesita ningún ajuste.
 ## R reinicia el lab y BORRA las flags de la memoria (partida nueva: así F, cargar, demuestra que el guardado recuerda cofre y sala).
 ##
 ## TECLAS (constantes de abajo; libres: no las usan la maqueta ni Jugador3D — F7 es diorama, F9 hornear, F10 capa de agua):
@@ -110,12 +110,9 @@ const SALA5_SECA: Vector2i = Vector2i(4, 14)
 const SALA5_PLACAS_AGUA: Array = [Vector2i(5, 11), Vector2i(7, 11)]                 ## puertas C y D (plantilla `$`): cada placa exige su PROPIA casilla mojada
 ## El brasero de la puerta A (`s5_br`, letra T) arranca ENCENDIDO: el mapa no sabe decir «brasero encendido» y apagado ya cumpliría la condición sin hacer nada.
 const SALA5_BRASERO_ENCENDIDO: bool = true
-## PUENTE DE ESTADOS (hallazgo, medido): los disparos de verdad (agua, hielo, fuego a una casilla de suelo) solo escriben la imagen de estado de la MAQUETA (`_img_estado`: R quemada ·
-## G mojada · B helada, `_impacto_en_suelo`); NADIE llama a `EstadosSuelo3D.aplicar` ni a `poner` con mojada/quemada (solo la electricidad y el hielo sobre AGUA escriben en
-## `Terreno3D.estados`), así que `si=casilla(x,y).mojada` no se cumple nunca jugando (B2 del Pipeline: que la maqueta lea/escriba el mismo dato). Mientras tanto el lab copia a
-## `Terreno3D.estados` los cambios de ESA imagen en las casillas de la sala 5 y de la sala 7 (solo cuando cambian, para no pisar lo que ponga otro; la 7 lo necesita para que el
-## cofre vea la hierba `quemada`: medido en el escenario, 7Q.3). false = el juego tal cual.
-const SALA5_PUENTE_ESTADOS: bool = true
+## (Retirado 21/10: el «puente de estados» —`SALA5_PUENTE_ESTADOS`, que copiaba la imagen de la maqueta a `Terreno3D.estados` en las salas 5 y 7— ya no hace falta. El juego escribe
+## mojada / helada / quemada solo: `Mundo3D.aplicar_accion` → `ReaccionesSuelo3D` al impactar y `ReaccionesSuelo3D.sincronizar_hierba` para la hierba que arde. El escenario exige ahora
+## que funcione sin ayuda: ver 5.3b y 7Q.3 de `escenario_playtest_eow`.)
 const REGLAS_SALA5: Dictionary = {"s5_abre_a": "A", "s5_abre_b": "B", "s5_abre_c": "C", "s5_abre_d": "D"}      ## las reglas `; puzle` del mapa y la letra de su puerta
 
 # --- Sala 6 · sala cerrada (C3 + C1) ---
@@ -190,8 +187,6 @@ var quema_goblin_s1: float = SALA1_QUEMA_GOBLIN_S   ## s de quemadura del guerre
 var _goblin_s4: Combate3D = null
 var olfato_s4: bool = SALA4_OLFATO             ## las pruebas pueden apagarlo (false = el juego tal cual: el goblin solo reacciona si te ve)
 var _vistas_s5: Dictionary = {}                ## regla de la sala 5 -> [ignoradas, veces] ya anunciadas en el HUD
-var puente_estados_s5: bool = SALA5_PUENTE_ESTADOS   ## las pruebas pueden apagarlo para enseñar el juego tal cual
-var _img_s5: Dictionary = {}                   ## casilla de la sala 5 -> Vector3i(quemada, mojada, helada) de la imagen de la maqueta la última vez que se miró
 
 
 func _ready() -> void:
@@ -452,32 +447,6 @@ func _marca_suelo_s5(c: Vector2i, estado: String, color: Color, texto: String, l
 	(sala(5)["marcas"] as Array).append({"celda": c, "estado": estado, "color": color, "mat": mat, "rot": rot, "texto": texto})
 
 
-## El puente de estados (ver SALA5_PUENTE_ESTADOS): copia a `Terreno3D.estados` lo que los disparos dejan en la imagen de la maqueta, casilla a casilla y solo si cambió.
-func _puente_estados_sala_5() -> void:
-	if not puente_estados_s5:
-		return
-	var img: Image = m.get("_img_estado") as Image
-	if img == null:
-		return
-	# Sala 5 (puertas por estado de casilla) y sala 7 (el cofre que no aparece si la hierba está `quemada`): las dos leen `casilla(x,y).estado`.
-	for r in [SALAS[4]["rect"] as Rect2i, SALAS[6]["rect"] as Rect2i]:
-		for y in range(r.position.y, r.end.y):
-			for x in range(r.position.x, r.end.x):
-				var c := Vector2i(x, y)
-				var p: Color = img.get_pixelv(c)
-				var nuevo := Vector3i(int(p.r >= 0.5), int(p.g >= 0.5), int(p.b >= 0.5))
-				var viejo: Vector3i = _img_s5.get(c, Vector3i.ZERO)
-				if nuevo == viejo:
-					continue
-				_img_s5[c] = nuevo
-				if nuevo.x != viejo.x:
-					Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, nuevo.x == 1)
-				if nuevo.y != viejo.y:
-					Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, nuevo.y == 1)
-				if nuevo.z != viejo.z:
-					Terreno3D.estados.poner(c, EstadosSuelo3D.HELADA, nuevo.z == 1)
-
-
 ## ¿Cumple la casilla lo que esa losa pide? (`seca` = sin agua encima.)
 func casilla_cumple(c: Vector2i, estado: String) -> bool:
 	if estado == "seca":
@@ -632,7 +601,7 @@ func _rotulo_suelo(c: Vector2i, texto: String, color: Color, alto: float) -> voi
 
 
 ## ¿Qué ajustes del lab están ACTIVOS ahora mismo? Cada uno es una ayuda sobre el juego tal cual (el valor neutro de cada constante SALAn_* lo apaga: ver la cabecera).
-## Las variables de instancia (`olfato_s4`, `puente_estados_s5`, `quema_goblin_s1`) cuentan con su valor actual, que las pruebas pueden haber cambiado.
+## Las variables de instancia (`olfato_s4`, `quema_goblin_s1`) cuentan con su valor actual, que las pruebas pueden haber cambiado.
 func ajustes_activos() -> Array:
 	var a: Array = []
 	if SALA1_LIBERAR_BRASERO_ARQUERO:
@@ -649,8 +618,6 @@ func ajustes_activos() -> Array:
 		a.append("SALA4_OLFATO (el goblin te huele a %.1f u)" % SALA4_OLFATO_RADIO)
 	if SALA5_BRASERO_ENCENDIDO:
 		a.append("SALA5_BRASERO_ENCENDIDO")
-	if puente_estados_s5:
-		a.append("SALA5_PUENTE_ESTADOS (salas 5 y 7: mojada/quemada/helada llegan a Terreno3D.estados)")
 	return a
 
 
@@ -807,7 +774,6 @@ func _process(delta: float) -> void:
 			_t_rutas = T_RUTAS
 			_dibujar_rutas()
 	_olfato_sala_4()
-	_puente_estados_sala_5()
 	_t_hud += delta
 	if _t_hud >= T_HUD:
 		_t_hud = 0.0
@@ -944,7 +910,7 @@ func texto_hud() -> String:
 		t += "  AVISO %s\n" % String(a)
 	var ayudas: Array = ajustes_activos()
 	t += "SALAS: 1 fuego (A2) · 2 agua (A3) · 3 escudo (A5) · 4 caminos (D2) · 5 suelo y condiciones (B1+C2) · 6 sala cerrada (C3+C1) · 7 final integrado\n"
-	t += "AYUDAS DEL LAB activas: %d de 8 (SALAn_* en lab_playtest_eow_3d.gd; la consola las lista)\n" % ayudas.size()
+	t += "AYUDAS DEL LAB activas: %d de 7 (SALAn_* en lab_playtest_eow_3d.gd; la consola las lista)\n" % ayudas.size()
 	t += "Shift+1–7 sala (o KP 1–7) · X rutas goblins (%s) · M guardar flags · F cargar flags · R reiniciar (borra las flags de memoria) · E abre el cofre" % ("SÍ" if _rutas_visibles else "no")
 	return t
 

@@ -31,14 +31,29 @@ static var al_solidificar: Callable = Callable()
 static var estados: EstadosSuelo3D = EstadosSuelo3D.new()
 
 
-## ¿Está helada la casilla? (agua helada: se pisa).
+## ¿Tiene la casilla el ESTADO «helada»? Es el dato que leen las reglas de puzle y la imagen del suelo. Vale tanto para el hielo sobre agua
+## (que se pisa) como para la escarcha del suelo (dos aguas, un hielo sobre tierra). Para saber si hay hielo en el que PISAR, resbalar o
+## que cubra el agua, preguntar a `hielo_fisico`.
 static func helada(c: Vector2i) -> bool:
 	return estados.tiene(c, EstadosSuelo3D.HELADA)
 
 
-## Hiela o deshiela una casilla. Avisa por Mundo3D.casilla_cambio («hielo») solo si cambió de verdad.
+## ¿Hay hielo de verdad en la casilla (agua helada que se pisa)? Es `helada` MENOS la escarcha del suelo, que no cambia cómo se anda ni a qué
+## altura se pisa (21/10: sin esta distinción, helar suelo con dos aguas lo habría hundido hasta la altura del agua y lo habría vuelto
+## «no agua» para el rayo). Todo lo físico (pisable, y_pies, sobre_hielo, cubre_hielo, es_agua, cabe) pregunta aquí.
+static func hielo_fisico(c: Vector2i) -> bool:
+	return estados.tiene(c, EstadosSuelo3D.HELADA) and not estados.es_escarcha(c)
+
+
+## Hiela o deshiela una casilla CON HIELO DE VERDAD (agua helada). Avisa por Mundo3D.casilla_cambio («hielo») solo si cambió algo.
+## Si la casilla ya estaba helada como escarcha de suelo y ahora la hiela el agua (una charca que congela), deja de ser escarcha: el estado
+## «helada» no cambia pero lo físico sí, así que se avisa a mano para que Caminos3D y la maqueta lo vean.
 static func poner_helada(c: Vector2i, si: bool) -> void:
-	estados.poner(c, EstadosSuelo3D.HELADA, si)
+	var era_escarcha: bool = si and estados.es_escarcha(c)
+	if era_escarcha:
+		estados.quitar_escarcha(c)
+	if not estados.poner(c, EstadosSuelo3D.HELADA, si) and era_escarcha:
+		estados.cambio.emit(c, EstadosSuelo3D.HELADA, true)
 
 
 ## Avisa a Mundo3D (si existe) de que algo de la casilla cambió.
@@ -219,12 +234,12 @@ static func activar_fuente_casillas() -> void:
 ## ¿Está el punto sobre agua helada? Quien camina por ahí resbala (Jugador3D).
 static func sobre_hielo(p: Vector3) -> bool:
 	var c: Vector2i = celda_de(p)
-	return en_mapa(c) and helada(c)
+	return en_mapa(c) and hielo_fisico(c)
 
 
 ## ¿El hielo de esta casilla es tan gordo que para proyectiles y miradas? (No para andar.)
 static func cubre_hielo(c: Vector2i) -> bool:
-	return agua_sim != null and en_mapa(c) and helada(c) \
+	return agua_sim != null and en_mapa(c) and hielo_fisico(c) \
 			and agua_sim.espesor_hielo(c) >= HIELO_COBERTURA
 
 
@@ -331,7 +346,7 @@ static func abre_hacia(c: Vector2i, v: Vector2i) -> bool:
 static func es_agua(c: Vector2i) -> bool:
 	if not hay_mundo():
 		return false
-	if helada(c):
+	if hielo_fisico(c):
 		return false
 	if agua_sim != null:
 		return agua_sim.es_agua_casilla(c)
@@ -437,7 +452,7 @@ static func y_pies(c: Vector2i) -> float:
 	if n > 0:
 		return alto_suelo + float(n) * ALTO_NIVEL
 	var l: String = letra_de(c)
-	var helada: bool = helada(c)
+	var helada: bool = hielo_fisico(c)      # la escarcha del suelo no baja los pies al nivel del agua
 	if helada and agua_sim != null:
 		var y_hielo: float = agua_sim.hielo_en_casilla(c)      # 11.13: se pisa a la altura del hielo, sea cual sea el nivel del agua
 		if y_hielo > -INF:
@@ -513,7 +528,7 @@ static func cabe(celdas: Array, nivel_desde: int, alto: int = 1, sobre_agua: boo
 		var q: Vector2i = c
 		if not en_mapa(q):
 			return false
-		if not sobre_agua and es_agua(q) and not helada(q):
+		if not sobre_agua and es_agua(q) and not hielo_fisico(q):
 			return false
 		for k in range(nivel_desde, nivel_desde + alto):
 			if ocupado(q, k):
@@ -583,7 +598,7 @@ static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: b
 		return false
 	var l: String = letra_de(c)
 	if l == "~":
-		if helada(c):
+		if hielo_fisico(c):
 			pass                                     # hielo: se pisa
 		else:
 			return nada                              # agua: solo nadando

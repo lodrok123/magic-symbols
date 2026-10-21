@@ -75,7 +75,7 @@ static func aplicar(a: AccionElemental) -> void:
 	_efecto("hielo_cambios", punto)
 	if a.elemento == "hielo":
 		# La maqueta heló la casilla ENTERA al impactar; la verdad es la simulación (≥ 5 de 9 trocitos): si no llega, se deshace.
-		if Terreno3D.helada(c) and not Terreno3D.agua_sim.casilla_helada(c) and Terreno3D.agua_sim.profundidad_casilla(c) > 0.05:
+		if Terreno3D.hielo_fisico(c) and not Terreno3D.agua_sim.casilla_helada(c) and Terreno3D.agua_sim.profundidad_casilla(c) > 0.05:
 			Terreno3D.poner_helada(c, false)
 			if Terreno3D.letra_de(c) == "~":
 				Terreno3D.bloquear_celda(c)
