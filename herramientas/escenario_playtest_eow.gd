@@ -9,6 +9,9 @@ extends "res://herramientas/escenario_base.gd"
 ##   · 1  sala 1 · fuego por contacto (A2): brasero → goblin → seto, cortafuegos mojado, flecha del arquero a través de una llama, reacciones en el HUD.
 ##   · 2  sala 2 · al agua (A3): viento real empuja a goblins de la orilla a la parte honda (se hunden: señal, HUD, «drown», sin botín) y a la franja helada (no); el perseguidor no se mete.
 ##   · 3  sala 3 · escudo (A5): disparo de frente bloqueado, por la espalda y de lado pasa, el fuego lo prende y consume y después el de frente llega.
+##   · 4  sala 4 · caminos (D2): sin helar no hay ruta; con una casilla helada la ruta rodea la pared, sube la terraza de 1 nivel (la de 2 no) y cruza el hielo; tecla X; tierra de 1 nivel no
+##        es muro, de 2 niveles sí (la ruta cambia sola); el goblin de verdad recorre cada ruta. El olfato del lab (SALA4_OLFATO) y el hielo/tierra son lo que se mide aparte.
+##   · 5  sala 5 · suelo y condiciones (B1+C2): puerta A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`), dos aguas hielan, el puente de estados del lab.
 ##   · D  el clip de ahogarse (`drown`) lo pide un goblin que se hunde (con el modelo de verdad cargado).
 
 const RUTA_LAB: String = "res://laboratorios/LabPlaytestEoW.tscn"
@@ -27,7 +30,9 @@ func _escenario() -> void:
 	await _sala_1()
 	await _sala_2()
 	await _sala_3()
-	# --- Aquí, una línea por sala cuando se rellene: `await _sala_4()` … `await _sala_7()` ---
+	await _sala_4()
+	await _sala_5()
+	# --- Aquí, una línea por sala cuando se rellene: `await _sala_6()` y `await _sala_7()` ---
 	await _ahogarse()
 
 
@@ -463,8 +468,298 @@ func _sala_3() -> void:
 	_aviso("3.14 con la IA de verdad el goblin se gira hacia un jugador que está a su espalda", "mirada·dirección al jugador = %.2f (1 = de cara) · estado %s" % [g.mirada.normalized().dot(d.normalized()), g.estado])
 	g.quieto = true
 
-# func _sala_4() -> void: …  (D2 caminos)
-# func _sala_5() -> void: …  (B1 + C2 suelo y condiciones)
+# ---------------------------------------------------------------------------------------------------------------------
+#  4 · caminos (D2)
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Devuelve al goblin a su casilla de partida, tranquilo (como recién nacido), para repetir una medida.
+func _reponer_goblin(g: Combate3D) -> void:
+	g.position = g.casa
+	g.pj.position = g.casa
+	g.objetivo = null
+	g.estado = "patrulla"
+	g.vista_perdida = 0.0
+	g.health = g.vida_max
+	g.quieto = false
+
+
+## Deja al jugador en `c`, suelta al goblin y espera hasta `max_s` s (o a que llegue a menos de `llega` u). Devuelve lo que ha hecho: casillas pisadas, mínima distancia,
+## cuándo llegó (-1 = no), si llegó a estar en el agua / hundido, la casilla más cercana a la meta que tocó y el estado final.
+func _recorrido(g: Combate3D, meta: Vector2i, max_s: float, llega: float = 2.6) -> Dictionary:
+	colocar_jugador(meta)
+	var res: Dictionary = {"celdas": {}, "minima": INF, "llego": -1.0, "agua": false, "niveles": {}, "estado": "", "golpes": 0}
+	var t: float = 0.0
+	while t < max_s:
+		if float(jugador.get("vida")) < 99.9:
+			res["golpes"] = int(res["golpes"]) + 1
+		jugador.set("vida", 100.0)
+		await avanzar_s(0.2)
+		t += 0.2
+		if not is_instance_valid(g) or g.muerto:
+			break
+		var c: Vector2i = Terreno3D.celda_de(g.global_position)
+		res["celdas"][c] = true
+		res["niveles"][Terreno3D.altura_en(c)] = true
+		res["agua"] = bool(res["agua"]) or g.se_hundio or Terreno3D.es_agua(c)
+		var d: float = Vector2(g.global_position.x - jugador.global_position.x, g.global_position.z - jugador.global_position.z).length()
+		res["minima"] = minf(float(res["minima"]), d)
+		if d < llega and float(res["llego"]) < 0.0:
+			res["llego"] = t
+			break
+	res["estado"] = g.estado if is_instance_valid(g) else "?"
+	return res
+
+
+func _sala_4() -> void:
+	var q: Dictionary = lab.sala(4)
+	var g: Combate3D = q["goblin"]
+	_ok("4.1 hay goblin (letra W del mapa) y las 2 casillas de terraza (una de 1 nivel, una de 2)", g != null and (q["terrazas"] as Array).size() == 2)
+	if g == null:
+		return
+	var t1c: Vector2i = Vector2i(26, 4)             # terraza de 1 nivel (hueco de la pared)
+	var t2c: Vector2i = Vector2i(30, 4)             # terraza de 2 niveles
+	var hielo_c: Vector2i = Vector2i(26, 5)         # la casilla del río bajo la terraza de 1 nivel
+	_ok("4.2 las terrazas tienen su altura: (26,4) 1 nivel, (30,4) 2 niveles", Terreno3D.altura_en(t1c) == 1 and Terreno3D.altura_en(t2c) == 2)
+	var pared: bool = true
+	var rio: bool = true
+	for x in [25, 27, 28, 29, 31]:
+		pared = pared and Terreno3D.bloqueada(Vector2i(x, 4))
+	for x in range(25, 32):
+		rio = rio and Terreno3D.es_agua(Vector2i(x, 5)) and not Terreno3D.helada(Vector2i(x, 5))
+	_ok("4.3 la pared (y=4, salvo las dos terrazas) bloquea y el río (25..31, 5) es agua sin helar", pared and rio, "pared %s río %s" % [str(pared), str(rio)])
+	var entrada: Vector2i = LabPlaytestEoW3D.SALAS[3]["entrada"]
+	var cg: Vector2i = Terreno3D.celda_de(g.casa)
+	colocar_jugador(entrada)
+	await avanzar(2)
+	var r0: Array[Vector2i] = Caminos3D.camino(cg, entrada)
+	_ok("4.4 la recta del goblin al jugador no es andable ni se ve (pared y río de por medio)", not Caminos3D.recta_andable(g.casa, jugador.global_position) and not Terreno3D.linea_libre(g.casa, jugador.global_position))
+	_ok("4.5 con el río SIN helar no hay ruta del goblin a la orilla sur (ni por el resto del mapa: la sala está cerrada por el oeste)", r0.is_empty(), str(r0))
+	# --- El goblin sin ruta posible: con olfato se pega a la pared y NO cruza ---
+	var sin: Dictionary = await _recorrido(g, entrada, 12.0)
+	_ok("4.6 sin helar, el goblin (enterado por el olfato) no cruza el río ni se hunde y no llega", float(sin["llego"]) < 0.0 and not bool(sin["agua"]) and not g.se_hundio and g.global_position.z < 5.0 * Terreno3D.casilla, str(sin["celdas"].keys()))
+	# --- El juego tal cual (sin olfato): detrás de la pared, a 4,6 u, no se entera de nada ---
+	_reponer_goblin(g)
+	lab.olfato_s4 = false
+	colocar_jugador(Vector2i(28, 5))
+	await avanzar_s(8.0)
+	var dist_pared: float = Vector2(g.global_position.x - jugador.global_position.x, g.global_position.z - jugador.global_position.z).length()
+	var ignora: bool = g.objetivo == null and g.estado == "patrulla"
+	lab.olfato_s4 = true
+	_aviso("4.7 sin olfato (el juego tal cual) el goblin que está a %.1f u tras la pared (su radio de visión es %.2f u)" % [dist_pared, Combate3D.RADIO_DETECCION], "no se entera (patrulla)" if ignora else "reacciona (estado %s)" % g.estado)
+	# --- Hielo: el disparo de verdad ---
+	_reponer_goblin(g)
+	colocar_jugador(Vector2i(hielo_c.x, 7))               # fuera del agua unos fotogramas (el jugador que nada no lanza)
+	await avanzar_s(1.0)
+	var salio: bool = lanzar_a_celda("hielo", ["flecha"], hielo_c, Vector2i(hielo_c.x, 7))
+	await avanzar_s(2.5)
+	var real: bool = Terreno3D.helada(hielo_c)
+	var cuantas: int = 0
+	for x in range(25, 32):
+		if Terreno3D.helada(Vector2i(x, 5)):
+			cuantas += 1
+	_ok("4.8 el disparo de HIELO al río sale", salio)
+	_aviso("4.9 el hielo de verdad hiela la casilla apuntada %s" % str(hielo_c), "%s; casillas heladas en el río: %d" % ["sí" if real else "NO (se hiela a mano con poner_helada)", cuantas])
+	if not real:
+		Terreno3D.poner_helada(hielo_c, true)
+	colocar_jugador(entrada)
+	var rh: Array[Vector2i] = Caminos3D.camino(cg, entrada)
+	var recto: int = absi(cg.y - entrada.y) + 1
+	_ok("4.10 con UNA casilla del río helada hay ruta, que pasa por el hielo", not rh.is_empty() and rh.has(hielo_c), "%d casillas" % rh.size())
+	_ok("4.11 la ruta rodea la pared: más larga que la recta y pasa por la terraza de 1 nivel, nunca por la de 2", rh.size() > recto + 3 and rh.has(t1c) and not rh.has(t2c), "%d casillas frente a %d en recta: %s" % [rh.size(), recto, str(rh)])
+	_ok("4.12 la terraza de 1 nivel se sube y la de 2 no (desde el suelo)", not Caminos3D.camino(cg, t1c).is_empty() and Caminos3D.camino(cg, t2c).is_empty())
+	# --- La tecla X dibuja esa ruta ---
+	_pulsar(LabPlaytestEoW3D.TECLA_RUTAS)
+	await avanzar(3)
+	var marcas: int = lab.marcas_de_ruta()
+	_ok("4.13 la tecla X dibuja la ruta del goblin (al menos sus casillas)", lab.rutas_visibles() and marcas >= rh.size(), "%d marcas, ruta de %d" % [marcas, rh.size()])
+	_pulsar(LabPlaytestEoW3D.TECLA_RUTAS)
+	await avanzar(2)
+	# --- El goblin de verdad, siguiendo la ruta: terraza, hielo y llega ---
+	Terreno3D.poner_helada(hielo_c, true)             # (el hielo de verdad caduca; así la medida no depende de cuánto dure)
+	_reponer_goblin(g)
+	var ida: Dictionary = await _recorrido(g, entrada, 60.0)
+	volcar("playtest_s4_ida", {"llego": ida["llego"], "minima": ida["minima"], "casillas": (ida["celdas"] as Dictionary).size(), "agua": ida["agua"]})
+	_ok("4.14 con el río helado el goblin RODEA la pared, sube la terraza (nivel 1), cruza por el hielo y llega al jugador", float(ida["llego"]) > 0.0 and (ida["celdas"] as Dictionary).has(t1c) and (ida["celdas"] as Dictionary).has(hielo_c) and (ida["niveles"] as Dictionary).has(1),
+		"llegó a los %.1f s; %d casillas; mínima %.1f u; niveles %s" % [float(ida["llego"]), (ida["celdas"] as Dictionary).size(), float(ida["minima"]), str((ida["niveles"] as Dictionary).keys())])
+	_ok("4.15 y no se hundió ni pisó agua sin helar", not bool(ida["agua"]) and not g.se_hundio)
+	# --- Terrazas con el jugador encima ---
+	_reponer_goblin(g)
+	var t1: Dictionary = await _recorrido(g, t1c, 15.0, 2.0)
+	_ok("4.16 con el jugador en la terraza de 1 nivel el goblin llega hasta él", float(t1["llego"]) > 0.0, "llegó a los %.1f s; mínima %.1f u; niveles %s" % [float(t1["llego"]), float(t1["minima"]), str((t1["niveles"] as Dictionary).keys())])
+	_reponer_goblin(g)
+	var t2: Dictionary = await _recorrido(g, t2c, 12.0, 0.1)
+	_ok("4.17 con el jugador en la terraza de 2 niveles el goblin NO la pisa (nunca está en el nivel 2)", not (t2["niveles"] as Dictionary).has(2), "mínima %.1f u; niveles %s" % [float(t2["minima"]), str((t2["niveles"] as Dictionary).keys())])
+	_aviso("4.17b el goblin al pie de la terraza de 2 niveles llega a %.1f u del jugador de arriba" % float(t2["minima"]), "le pega: %s (la distancia de ataque es en el plano XZ)" % ("SÍ" if int(t2["golpes"]) > 0 else "no"))
+	# --- Tierra: un bloque de 1 nivel NO es muro; uno de 2 sí ---
+	_reponer_goblin(g)
+	colocar_jugador(entrada)
+	Terreno3D.poner_helada(hielo_c, true)
+	await avanzar(2)
+	var muro: Vector2i = Vector2i(27, 6)             # entre el hielo y el jugador: por aquí baja la ruta (26,5) → (26,6) → (27,6) → (28,6)
+	var antes: Array[Vector2i] = Caminos3D.camino(cg, entrada)
+	_ok("4.18 con el hielo en (26,5) la ruta pasa por (27,6)", antes.has(muro), str(antes))
+	var l1: bool = lanzador.construir_tierra(muro)
+	var con1: Array[Vector2i] = Caminos3D.camino(cg, entrada)
+	_ok("4.19 un bloque de tierra de 1 nivel (el hechizo normal) NO cambia la ruta: se sube y se baja", l1 and Terreno3D.altura_en(muro) == 1 and con1 == antes, str(con1))
+	var mas: bool = lanzador.construir_tierra(muro)
+	_aviso("4.20 un segundo hechizo de tierra encima (MAX_TIERRA_APILADA = %d)" % Lanzador3D.MAX_TIERRA_APILADA, "apila: %s" % str(mas))
+	var l2: bool = lanzador.construir_tierra(muro, true, {"apilar": 2, "v2": true})
+	var con2: Array[Vector2i] = Caminos3D.camino(cg, entrada)
+	_ok("4.21 con la tierra a 2 niveles (como la materia V2) la ruta CAMBIA sola (sin avisar a nadie) y da un rodeo más largo", l2 and Terreno3D.altura_en(muro) == 2 and not con2.is_empty() and not con2.has(muro) and con2 != antes, "%d casillas: %s" % [con2.size(), str(con2)])
+	var rodeo: Dictionary = await _recorrido(g, entrada, 60.0)
+	_ok("4.22 y el goblin de verdad rodea el muro de tierra (nunca pisa su casilla) y llega", float(rodeo["llego"]) > 0.0 and not (rodeo["celdas"] as Dictionary).has(muro) and con2.size() > antes.size(), "llegó a los %.1f s; casillas %s" % [float(rodeo["llego"]), str((rodeo["celdas"] as Dictionary).keys())])
+	lab.olfato_s4 = true
+
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  5 · suelo y condiciones (B1 + C2)
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Pisa la placa de la casilla `placa` (el jugador se coloca encima, espera a la lectura de presencia y se va a la entrada para que se rearme).
+func _pisar(placa: Vector2i) -> void:
+	colocar_jugador(placa)
+	await avanzar_s(0.5)
+	colocar_jugador(Vector2i(4, 14))
+	await avanzar_s(0.5)
+
+
+func _estado(c: Vector2i, e: String) -> bool:
+	return Terreno3D.estados.tiene(c, e)
+
+
+## El impacto de un hechizo de `elemento` en el SUELO de la casilla `c`, como lo hacen los hechizos de área (Lanzador3D.marcar_celda → maqueta._al_impactar, una vez por
+## casilla). La flecha (lanzar_a_celda) vuela recta y en la prueba sin ventana no deja nada en el suelo —medido con agua y fuego—; el hielo sí, pero solo en la casilla de al lado.
+func _disparo_a(elemento: String, c: Vector2i) -> bool:
+	lanzador.marcar_celda(elemento, c)
+	await avanzar_s(0.4)
+	return true
+
+
+func _abierta(papel: String) -> bool:
+	return bool(lab.sala(5)[papel].get("abierta"))
+
+
+func _sala_5() -> void:
+	var q: Dictionary = lab.sala(5)
+	var z: Puzle3D = lab.puzle_nodo()
+	var br: Reactivo3D = q["brasero"]
+	_ok("5.1 están las 4 puertas, las 4 placas, los 4 cofres y el brasero (todo del mapa)", ["puerta_a", "puerta_b", "puerta_c", "puerta_d", "placa_a", "placa_b", "placa_c", "placa_d"].all(func(p): return q[p] != null)
+		and ["s5_ca", "s5_cb", "s5_cc", "s5_cd"].all(func(id): return z.nodo(id) != null) and br != null)
+	if br == null:
+		return
+	_ok("5.2 el brasero arranca ENCENDIDO (lo enciende el lab) y las cuatro puertas cerradas", _arde(br) and not _abierta("puerta_a") and not _abierta("puerta_b") and not _abierta("puerta_c") and not _abierta("puerta_d"))
+	_ok("5.3 ninguna de las casillas marcadas tiene estado de suelo al empezar", LabPlaytestEoW3D.SALA5_MOJAR.all(func(c): return not _estado(c, "mojada")) and not _estado(Vector2i(2, 14), "helada") and not _estado(Vector2i(6, 14), "quemada"))
+	colocar_jugador(Vector2i(4, 14))
+	jugador.set("vida", 100.0)
+	await avanzar_s(0.5)
+	# --- FUEGO (antes que el agua: un agua a menos de 2 casillas de la hierba la deja «mojada» 8 s de reloj de pared y no prende) ---
+	var f: Vector2i = LabPlaytestEoW3D.SALA5_FUEGO
+	var salio_f: bool = await _disparo_a("fuego", f)
+	var t_q: float = 0.0
+	while not _estado(f, "quemada") and t_q < 12.0:
+		await avanzar_s(0.5)
+		t_q += 0.5
+	_ok("5.3e el fuego sobre la HIERBA de (6,14) la deja «quemada» (hierba v del mapa; el círculo quemado crece mientras arde)", salio_f and _estado(f, "quemada"), "a los %.1f s" % t_q)
+	# En suelo desnudo el fuego no deja nada (solo seca el charco / funde el hielo): se mide con la casilla de al lado.
+	var desnudo: Vector2i = Vector2i(7, 14)
+	await _disparo_a("fuego", desnudo)
+	await avanzar_s(3.0)
+	_aviso("5.3f el fuego sobre suelo DESNUDO %s deja la casilla «quemada»" % str(desnudo), "sí" if _estado(desnudo, "quemada") else "NO (solo la hierba se quema)")
+	Terreno3D.estados.poner(f, "quemada", false)
+	# --- HALLAZGO: sin el puente del lab, el agua de verdad solo moja la imagen de la maqueta, no el dato de Terreno3D.estados que leen las reglas ---
+	lab.puente_estados_s5 = false
+	var suelta: Vector2i = Vector2i(1, 13)
+	var salio0: bool = await _disparo_a("agua", suelta)
+	var img: Image = maqueta.get("_img_estado") as Image
+	var en_imagen: bool = img != null and img.get_pixelv(suelta).g >= 0.5
+	_ok("5.3b SIN el puente (el juego tal cual) el agua de verdad moja la imagen de la maqueta pero Terreno3D.estados NO dice «mojada»: casilla(x,y).mojada nunca se cumpliría", salio0 and en_imagen and not _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
+	lab.puente_estados_s5 = true
+	await avanzar(3)
+	_ok("5.3c con el puente, esa misma casilla queda «mojada» en Terreno3D.estados", _estado(suelta, "mojada"))
+	maqueta.call("_poner_canal", suelta, 1, 0.0)
+	await avanzar(3)
+	_ok("5.3d y al secarse la imagen, también deja de estarlo", not _estado(suelta, "mojada"))
+	# --- PUERTA A: tres mojadas Y brasero apagado ---
+	await _pisar(Vector2i(1, 11))
+	_ok("5.4 placa A con 0 casillas mojadas y el brasero encendido: NO abre, la regla se ignora y el HUD dice por qué", not _abierta("puerta_a") and int(z.puzle("s5_abre_a")["ignoradas"]) == 1 and lab.texto_hud().contains("Puerta A NO abre"), lab.texto_hud())
+	var mojadas: Array = LabPlaytestEoW3D.SALA5_MOJAR
+	for c in mojadas:
+		var salio: bool = await _disparo_a("agua", c as Vector2i)
+		_ok("5.5 agua de verdad a %s: el disparo sale y deja la casilla «mojada» (Terreno3D.estados, con el puente del lab)" % str(c), salio and _estado(c as Vector2i, "mojada"))
+	await _pisar(Vector2i(1, 11))
+	_ok("5.6 con las TRES mojadas pero el brasero ENCENDIDO: NO abre (el NO de la regla)", not _abierta("puerta_a") and int(z.puzle("s5_abre_a")["ignoradas"]) == 2 and lab.texto_hud().contains("brasero ENCENDIDO"))
+	# Apagar el brasero con agua de verdad (desde la entrada, a su lado) y ver cómo queda.
+	var dos: Vector2i = Vector2i(2, 12)
+	var salio_br: bool = lanzar_a_celda("agua", ["flecha"], Vector2i(4, 15), Vector2i(4, 13))
+	await avanzar_s(2.0)
+	_aviso("5.7 agua de verdad al brasero (4,15) desde (4,13): sale %s y queda %s" % [str(salio_br), "apagado" if not _arde(br) else "ENCENDIDO"])
+	if _arde(br):
+		br.apagar_llama()
+	_ok("5.7b el brasero está apagado", not _arde(br))
+	for c in mojadas:
+		_ok("5.7c %s sigue mojada tras apagar el brasero (el agua del brasero no la seca)" % str(c), _estado(c as Vector2i, "mojada"))
+	await _pisar(Vector2i(1, 11))
+	_ok("5.8 tres mojadas Y brasero apagado: la puerta A ABRE", _abierta("puerta_a") and int(z.puzle("s5_abre_a")["veces"]) == 1 and lab.texto_hud().contains("Puerta A ABRE"), lab.texto_hud())
+	# Dos mojadas no bastan (cumple_expr directo, con la misma regla del mapa).
+	var expr_a: Array = z.puzle("s5_abre_a")["si_expr"]
+	Terreno3D.estados.poner(mojadas[1] as Vector2i, "mojada", false)
+	_ok("5.9 con DOS casillas mojadas la expresión de la puerta A no se cumple", not z.cumple_expr(expr_a))
+	Terreno3D.estados.poner(mojadas[1] as Vector2i, "mojada", true)
+	_ok("5.9b con las tres vuelve a cumplirse y con el brasero encendido otra vez no", z.cumple_expr(expr_a) and (func() -> bool:
+		br.encender_llama()
+		var r: bool = z.cumple_expr(expr_a)
+		br.apagar_llama()
+		return not r).call())
+	# Dos aguas hielan: la segunda deja la casilla helada y YA NO mojada.
+	await _disparo_a("agua", dos)
+	_ok("5.10 un segundo agua sobre una casilla mojada la HIELA y deja de estar mojada (B1: dos aguas hielan)", _estado(dos, "helada") and not _estado(dos, "mojada") and not z.cumple_expr(expr_a), "helada %s mojada %s" % [str(_estado(dos, "helada")), str(_estado(dos, "mojada"))])
+	# --- PUERTA B: O y NO ---
+	var expr_b: Array = z.puzle("s5_abre_b")["si_expr"]
+	var h: Vector2i = LabPlaytestEoW3D.SALA5_HIELO
+	var s: Vector2i = LabPlaytestEoW3D.SALA5_SECA
+	for c in [h, f, s]:
+		Terreno3D.estados.poner(c as Vector2i, "helada", false)
+		Terreno3D.estados.poner(c as Vector2i, "quemada", false)
+		Terreno3D.estados.poner(c as Vector2i, "mojada", false)
+	_ok("5.11 B: sin hielo ni fuego no se cumple", not z.cumple_expr(expr_b))
+	Terreno3D.estados.poner(h, "helada", true)
+	_ok("5.12 B: solo HIELO (con el centro seco) se cumple", z.cumple_expr(expr_b))
+	Terreno3D.estados.poner(h, "helada", false)
+	Terreno3D.estados.poner(f, "quemada", true)
+	_ok("5.13 B: solo FUEGO (con el centro seco) se cumple (la O)", z.cumple_expr(expr_b))
+	Terreno3D.estados.poner(s, "mojada", true)
+	_ok("5.14 B: fuego pero el centro MOJADO: NO se cumple (el NO)", not z.cumple_expr(expr_b))
+	Terreno3D.estados.poner(h, "helada", true)
+	_ok("5.15 B: hielo y fuego a la vez pero el centro mojado: tampoco", not z.cumple_expr(expr_b))
+	Terreno3D.estados.poner(s, "mojada", false)
+	Terreno3D.estados.poner(f, "quemada", false)
+	Terreno3D.estados.poner(h, "helada", false)
+	# La placa B de verdad con el hielo de verdad.
+	await _pisar(Vector2i(3, 11))
+	_ok("5.16 placa B sin nada: NO abre y el HUD lo dice", not _abierta("puerta_b") and int(z.puzle("s5_abre_b")["ignoradas"]) == 1 and lab.texto_hud().contains("Puerta B NO abre"))
+	var salio_h: bool = await _disparo_a("hielo", h)
+	_ok("5.17 el hielo de verdad sobre (2,14) deja la casilla «helada» (Terreno3D.estados, con el puente del lab)", salio_h and _estado(h, "helada"))
+	await _pisar(Vector2i(3, 11))
+	_ok("5.19 placa B con el hielo en su sitio y el centro seco: la puerta B ABRE", _abierta("puerta_b") and int(z.puzle("s5_abre_b")["veces"]) == 1)
+	# --- PUERTAS C y D: la MISMA regla con plantilla ---
+	var rc: Dictionary = z.puzle("s5_abre_c")
+	var rd: Dictionary = z.puzle("s5_abre_d")
+	_ok("5.20 C y D se escribieron con la MISMA regla `casilla($x,$y).mojada` y la plantilla puso la casilla de CADA placa", rc["si_expr"][0][0]["celda"] == Vector2i(5, 11) and rd["si_expr"][0][0]["celda"] == Vector2i(7, 11))
+	await _pisar(Vector2i(5, 11))
+	_ok("5.21 placa C con su casilla seca: NO abre", not _abierta("puerta_c") and int(rc["ignoradas"]) == 1)
+	var salio_c: bool = await _disparo_a("agua", Vector2i(5, 11))
+	_ok("5.22 agua de verdad sobre la casilla de la placa C (5,11) la deja mojada", salio_c and _estado(Vector2i(5, 11), "mojada"))
+	await _pisar(Vector2i(5, 11))
+	_ok("5.23 placa C con SU casilla mojada: la puerta C ABRE", _abierta("puerta_c") and int(rc["veces"]) == 1)
+	_ok("5.24 y la puerta D sigue cerrada (cada placa mira SU casilla: la de D está seca)", not _abierta("puerta_d"))
+	await _pisar(Vector2i(7, 11))
+	_ok("5.25 placa D con su casilla seca: NO abre (la de C mojada no le vale)", not _abierta("puerta_d") and int(rd["ignoradas"]) == 1)
+	# --- El HUD de la sala ---
+	lab.ir_a_sala(5)
+	await avanzar_s(0.5)
+	_ok("5.26 el HUD de la sala 5 enseña las cuatro puertas y qué falta", lab.texto_hud().contains("SALA 5") and lab.texto_hud().contains("A (3 mojadas Y brasero apagado)") and lab.texto_hud().contains("B (hielo O fuego"), lab.texto_hud())
+
 # func _sala_6() -> void: …  (C3 + C1 sala cerrada)
 # func _sala_7() -> void: …  (final integrado)
 

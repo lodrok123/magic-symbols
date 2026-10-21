@@ -12,8 +12,8 @@
 ;                                                         traves de un brasero encendido; un seto mojable de cortafuegos.
 ;   2 (1,0) AL AGUA (A3)                 x 9-15  y 1-7    HECHA. Charca honda con franja helada, tres goblins en la orilla para empujarlos con viento y un perseguidor al otro lado.
 ;   3 (2,0) ESCUDO (A5)                  x 17-23 y 1-7    HECHA. Goblin con Escudo3D quieto mirando a la entrada (de frente lo para todo, por la espalda pasa, el fuego lo consume).
-;   4 (3,0) CAMINOS (D2)                 x 25-31 y 1-7    VACIA: rutas de goblin con obstaculos, escalones y agua (tecla X dibuja la ruta).
-;   5 (0,1) SUELO Y CONDICIONES (B1+C2)  x 1-7   y 9-15   VACIA: casillas mojadas/heladas/quemadas y reglas `si=casilla(x,y).estado`.
+;   4 (3,0) CAMINOS (D2)                 x 25-31 y 1-7    HECHA. Pared, rio y dos terrazas (1 y 2 niveles) entre un goblin y el jugador (tecla X dibuja la ruta).
+;   5 (0,1) SUELO Y CONDICIONES (B1+C2)  x 1-7   y 9-15   HECHA. Cuatro puertas con placa: A (3 mojadas Y brasero apagado), B (O y NO con hielo/fuego), C y D (plantilla `$`).
 ;   6 (1,1) SALA CERRADA (C3+C1)         x 9-15  y 9-15   VACIA: cerrojo + vigia + cofre + flags (teclas M guardar y F cargar).
 ;   7 (2,1) FINAL INTEGRADO              x 17-23 y 9-15   VACIA: todo junto.
 ;   - (3,1) RESERVA                      x 25-31 y 9-15   libre.
@@ -48,25 +48,54 @@
 ; ---   otro W al norte (12,1) que ve al jugador al otro lado y lo rodea. Columnas x=9 y x=15 libres para rodear la charca. El jugador entra por (12,7).
 ; --- SALA 3 ESCUDO (A5): un goblin guerrero W en (20,3); el lab le cuelga el escudo (Escudo3D.equipar) y lo deja quieto mirando al sur, a la entrada (20,6). Sin muebles:
 ; ---   las 7 x 7 casillas libres para rodearlo.
-; --- SALA 4 CAMINOS (D2): vacia.
-; --- SALA 5 SUELO Y CONDICIONES (B1+C2): vacia.
+; --- SALA 4 CAMINOS (D2): rio `~` de lado a lado en y=5 (x 25-31), una pared `#` en y=4 con dos huecos (26,4) y (30,4) y el goblin guerrero W (28,3) al norte de ella.
+; ---   El jugador entra por la orilla sur. Los huecos de la pared son TERRAZAS: el oeste (26,4) de 1 nivel (se sube) y el este (30,4) de 2 (no se sube), asi que la unica
+; ---   ruta del goblin hasta la orilla sur es: oeste, terraza y UNA casilla del rio helada (la de debajo, (26,5), o cualquiera que enlace). La sala NO tiene letras de
+; ---   altura: las dos lineas `; altura x0 y0 x1 y1 niveles` de abajo las lee el lab (con TerraFina3D.leer_alturas), que las fija y dibuja (ver SALA4_* del lab).
+; ---   (25,4) y (31,4) son muro: asi el hueco oeste (24,4) de la sala 3 no da a la sala; sin eso el mapa tiene OTRA ruta larga (por las salas 3 y 7 hasta el hueco
+; ---   sur (28,8): 24 casillas) y el rio sin helar tambien «tendria ruta» (medido en el escenario).
+; altura 26 4 26 4 1
+; altura 30 4 30 4 2
+; --- SALA 5 SUELO Y CONDICIONES (B1+C2): la v de (6,14) es hierba (letra de la maqueta): es la unica casilla donde el fuego deja «quemada» (en suelo desnudo no deja nada).
+; ---   Fila de casillas marcadas y=12 (2,12) (4,12) (6,12) (las pinta el lab), brasero T (4,15) que el lab ENCIENDE y cuatro
+; ---   alcobas arriba (x=1,3,5,7 en y=9; las separan muros `#` en y=9), cada una con un cofre detras de una puerta en y=10 y una placa de presencia en y=11 delante.
+; ---   A (x=1): abre si las TRES casillas (2,12) (4,12) (6,12) estan mojadas Y el brasero esta apagado  -> si=a+b+c+!brasero.encendido
+; ---   B (x=3): O y NO: (hielo en (2,14) Y (4,14) seca) O (fuego en (6,14) Y (4,14) seca)             -> si=a+!b|c+!b
+; ---   C (x=5) y D (x=7): LA MISMA regla con plantilla `$` (cada placa exige su PROPIA casilla mojada) -> si=casilla($x,$y).mojada
+; pieza s5_br brasero 4 15
+; pieza s5_pa pulsador 1 11 modo=presencia
+; pieza s5_ua puerta 1 10
+; pieza s5_ca cofre 1 9
+; puzle s5_abre_a cuando=s5_pa.pulsado si=casilla(2,12).mojada+casilla(4,12).mojada+casilla(6,12).mojada+!s5_br.encendido hace=s5_ua.abrir
+; pieza s5_pb pulsador 3 11 modo=presencia
+; pieza s5_ub puerta 3 10
+; pieza s5_cb cofre 3 9
+; puzle s5_abre_b cuando=s5_pb.pulsado si=casilla(2,14).helada+!casilla(4,14).mojada|casilla(6,14).quemada+!casilla(4,14).mojada hace=s5_ub.abrir
+; pieza s5_pc pulsador 5 11 modo=presencia
+; pieza s5_uc puerta 5 10
+; pieza s5_cc cofre 5 9
+; puzle s5_abre_c cuando=s5_pc.pulsado si=casilla($x,$y).mojada hace=s5_uc.abrir
+; pieza s5_pd pulsador 7 11 modo=presencia
+; pieza s5_ud puerta 7 10
+; pieza s5_cd cofre 7 9
+; puzle s5_abre_d cuando=s5_pd.pulsado si=casilla($x,$y).mojada hace=s5_ud.abrir
 ; --- SALA 6 SALA CERRADA (C3+C1): vacia.
 ; --- SALA 7 FINAL INTEGRADO: vacia.
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...W...#.......#.......#
 #.......#.~~~~~.#.......#.......#
-#.TWzzzz#.~~~~~.#...W...#.......#
-#.........~~~~~.................#
-#.......#.W.W.W.#.......#.......#
+#.TWzzzz#.~~~~~.#...W...#...W...#
+#.........~~~~~..........#.###.##
+#.......#.W.W.W.#.......#~~~~~~~#
 #.S...T.#.......#.......#.......#
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
-#.......#.......#.......#.......#
+#.#.#.#.#.......#.......#.......#
 #.......#.......#.......#.......#
 #.......#.......#.......#.......#
 #...............................#
 #.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
+#.....v.#.......#.......#.......#
+#...T...#.......#.......#.......#
 #################################

@@ -8,7 +8,7 @@ extends Node
 ## `Puzle3D`; este nodo pone lo que un mapa no sabe decir: el enganche de los efectos, el HUD, las teclas, los carteles y lo que cada sala necesita
 ## al arrancar (encender el brasero del arquero, crear al arquero…).
 ##
-## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Hechas la 1, la 2 y la 3; las demás tienen su hook `_preparar_sala_N()`
+## LAS SALAS (columna, fila; casillas x 1–7 / 9–15 / 17–23 / 25–31, y 1–7 / 9–15). Hechas la 1, la 2, la 3, la 4 y la 5; las demás tienen su hook `_preparar_sala_N()`
 ## vacío y documentado para que cada tarea siguiente lo rellene SIN tocar el resto:
 ##   1 (0,0) FUEGO POR CONTACTO (A2) · 2 (1,0) AL AGUA (A3) · 3 (2,0) ESCUDO (A5) · 4 (3,0) CAMINOS (D2) · 5 (0,1) SUELO Y CONDICIONES (B1+C2) ·
 ##   6 (1,1) SALA CERRADA (C3+C1) · 7 (2,1) FINAL INTEGRADO · (3,1) reserva.
@@ -78,6 +78,37 @@ const SALA2_FRANJA_Y: Array = [2, 3, 4]               ## filas de la charca
 const SALA3_GOBLIN: Vector2i = Vector2i(20, 3)
 const SALA3_QUIETO: bool = true
 
+# --- Sala 4 · caminos (D2) ---
+## El mapa pone: un río `~` de lado a lado (y=5), una pared `#` (y=4) con dos huecos que son terrazas —(26,4) de 1 nivel, (30,4) de 2— y el goblin guerrero `W` al norte de ella
+## (28,3). Las terrazas las declara el mapa con líneas `; altura x0 y0 x1 y1 niveles` (la sala NO tiene letras de altura: esas líneas solo las lee `TerraFina3D`, el nodo de otro
+## nivel, así que el lab llama a su `TerraFina3D.leer_alturas` y las fija él con `Terreno3D.fijar_altura` + un cubo para verlas). El único paso de la pared es la terraza de 1
+## nivel (se sube; la de 2 no): para llegar al jugador de la orilla sur el goblin tiene que rodear, subir la terraza y cruzar el río por un tramo HELADO.
+## OLFATO (hallazgo, medido): `Combate3D` solo persigue —y por tanto solo usa la ruta de `Caminos3D`— mientras VE al jugador (`Terreno3D.linea_libre`) o lo ha visto hace menos
+## de TIEMPO_PERDER (3,5 s), y SE RINDE si se aleja más de RADIO_SOLTAR (10 u); una pared lo corta todo y el goblin se queda patrullando sin enterarse. Con `SALA4_OLFATO` el lab
+## mantiene al goblin «enterado» del jugador (objetivo, última posición y memoria al día) mientras el jugador esté en la sala a menos de `SALA4_OLFATO_RADIO` u: así ES la ruta lo
+## que lo trae. false = el juego tal cual (el goblin solo reacciona si te ve; con la pared de por medio no hay ruta que valga). Ojo: una ruta de rodeo que se aleje más de 10 u del
+## jugador hace que el goblin se rinda a medio camino (por eso el mapa es compacto: el rodeo no se separa más de 8,3 u).
+const SALA4_GOBLIN: Vector2i = Vector2i(28, 3)
+const SALA4_OLFATO: bool = true
+const SALA4_OLFATO_RADIO: float = 9.5                 ## u (RADIO_SOLTAR del goblin es 10: más allá se rinde aunque se le avise; desde su casilla a la entrada de la sala hay 9,2 u)
+const SALA4_COLOR_TERRAZA: Dictionary = {1: Color(0.42, 0.56, 0.30), 2: Color(0.52, 0.48, 0.42)}
+
+# --- Sala 5 · suelo y condiciones (B1 + C2) ---
+## Las casillas que cuentan (el mapa no las marca: son reglas `si=casilla(x,y).estado` de las líneas `; puzle s5_*`; aquí solo se PINTAN para verlas).
+const SALA5_MOJAR: Array = [Vector2i(2, 12), Vector2i(4, 12), Vector2i(6, 12)]     ## puerta A: las tres deben estar mojadas
+const SALA5_HIELO: Vector2i = Vector2i(2, 14)                                      ## puerta B: helada ...
+const SALA5_FUEGO: Vector2i = Vector2i(6, 14)                                      ## ... O quemada (es HIERBA, letra v del mapa: en suelo desnudo el fuego no deja «quemada»), y siempre con la del centro SECA (NO mojada)
+const SALA5_SECA: Vector2i = Vector2i(4, 14)
+const SALA5_PLACAS_AGUA: Array = [Vector2i(5, 11), Vector2i(7, 11)]                 ## puertas C y D (plantilla `$`): cada placa exige su PROPIA casilla mojada
+## El brasero de la puerta A (`s5_br`, letra T) arranca ENCENDIDO: el mapa no sabe decir «brasero encendido» y apagado ya cumpliría la condición sin hacer nada.
+const SALA5_BRASERO_ENCENDIDO: bool = true
+## PUENTE DE ESTADOS (hallazgo, medido): los disparos de verdad (agua, hielo, fuego a una casilla de suelo) solo escriben la imagen de estado de la MAQUETA (`_img_estado`: R quemada ·
+## G mojada · B helada, `_impacto_en_suelo`); NADIE llama a `EstadosSuelo3D.aplicar` ni a `poner` con mojada/quemada (solo la electricidad y el hielo sobre AGUA escriben en
+## `Terreno3D.estados`), así que `si=casilla(x,y).mojada` no se cumple nunca jugando (B2 del Pipeline: que la maqueta lea/escriba el mismo dato). Mientras tanto el lab copia a
+## `Terreno3D.estados` los cambios de ESA imagen en las casillas de la sala 5 (solo cuando cambian, para no pisar lo que ponga otro). false = el juego tal cual.
+const SALA5_PUENTE_ESTADOS: bool = true
+const REGLAS_SALA5: Dictionary = {"s5_abre_a": "A", "s5_abre_b": "B", "s5_abre_c": "C", "s5_abre_d": "D"}      ## las reglas `; puzle` del mapa y la letra de su puerta
+
 ## Las salas, en el orden de las teclas. `rect`: casillas (x, y, ancho, alto) · `entrada`: a dónde lleva la tecla · `cartel`: dónde se cuelga el texto.
 ## `ids`: papel → id de la pieza en el .txt (los que no existen en el mapa salen como aviso en el HUD, no tumban el lab).
 const SALAS: Array = [
@@ -91,11 +122,12 @@ const SALAS: Array = [
 		"texto": "3 · ESCUDO (A5)\nGoblin con escudo, quieto y mirando a la entrada. Dispara desde aquí (de frente): el escudo lo para («bloqueado»).\nRodéalo y dispara por la ESPALDA o de lado: pasa. FUEGO de frente: el escudo ARDE («prendido») y a los 3 s se consume\n(«consumido»); después el disparo de frente ya llega. AGUA apaga el escudo que arde; TIERRA lo desgasta hasta romperlo.",
 		"ids": {}},
 	{"nombre": "4 Caminos (D2)", "rect": Rect2i(25, 1, 7, 7), "entrada": Vector2i(28, 6), "cartel": Vector2i(28, 7),
-		"texto": "4 · CAMINOS (D2)\n(sala vacía: la rellena otra tarea)\nRutas de goblin con obstáculos, escalones y agua. Tecla X: dibuja la ruta.",
+		"texto": "4 · CAMINOS (D2)\nEl goblin del norte está tras una pared y un RÍO; tú, en la orilla sur. Pulsa X: dibuja la ruta de cada goblin.\nRío sin helar: no hay ruta (el goblin se queda pegado a la pared). HIELO (flecha) a la casilla del río bajo la terraza de 1 nivel (26,5):\nla ruta aparece, rodea la pared, sube la TERRAZA de 1 nivel (izquierda) y cruza el hielo. La de 2 niveles (derecha) no la sube. Tú cruzas nadando.\nTIERRA: un bloque de 1 nivel NO lo para (lo cruza); uno de 2 niveles sí lo rodea. El goblin te huele a menos de 9,5 u (SALA4_OLFATO).",
 		"ids": {}},
-	{"nombre": "5 Suelo y condiciones (B1+C2)", "rect": Rect2i(1, 9, 7, 7), "entrada": Vector2i(4, 14), "cartel": Vector2i(4, 15),
-		"texto": "5 · SUELO Y CONDICIONES (B1+C2)\n(sala vacía: la rellena otra tarea)\nCasillas mojadas, heladas o quemadas y reglas `si=casilla(x,y).estado`.",
-		"ids": {}},
+	{"nombre": "5 Suelo y condiciones (B1+C2)", "rect": Rect2i(1, 9, 7, 7), "entrada": Vector2i(4, 14), "cartel": Vector2i(4, 13),
+		"texto": "5 · SUELO Y CONDICIONES (B1+C2)\nPUERTA A (arriba a la izquierda, placa a sus pies): abre SOLO si las 3 losas CIAN (fila de en medio) están MOJADAS y el brasero (abajo) está APAGADO.\nAgua UNA vez a cada una (¡dos aguas hielan y deja de estar mojada!) y apaga el brasero. PUERTA B: hielo en la losa BLANCA O fuego en la NARANJA (hierba: arde ~4 s; si le cae agua a 2 casillas o menos no prende en 8 s),\ny la GRIS del centro SECA. PUERTAS C y D (placas de la derecha, la misma regla con `$`): la casilla de la PROPIA placa debe estar MOJADA antes de pisarla.\nCada placa que no abre dice por qué en el HUD.",
+		"ids": {"brasero": "s5_br", "placa_a": "s5_pa", "puerta_a": "s5_ua", "placa_b": "s5_pb", "puerta_b": "s5_ub", "placa_c": "s5_pc", "puerta_c": "s5_uc",
+			"placa_d": "s5_pd", "puerta_d": "s5_ud"}},
 	{"nombre": "6 Sala cerrada (C3+C1)", "rect": Rect2i(9, 9, 7, 7), "entrada": Vector2i(12, 14), "cartel": Vector2i(12, 15),
 		"texto": "6 · SALA CERRADA (C3+C1)\n(sala vacía: la rellena otra tarea)\nCerrojo + vigía + cofre + flags. M guarda las flags, F las carga.",
 		"ids": {}},
@@ -126,6 +158,11 @@ var _guerrero_s1: Combate3D = null
 var _arquero_s1: Combate3D = null
 var _sala_anterior: int = -1                   ## la sala del jugador en el fotograma anterior (para avisar a `_al_entrar_sala`)
 var quema_goblin_s1: float = SALA1_QUEMA_GOBLIN_S   ## s de quemadura del guerrero de la sala 1 al prenderse; las pruebas pueden cambiarlo (0 = la del juego)
+var _goblin_s4: Combate3D = null
+var olfato_s4: bool = SALA4_OLFATO             ## las pruebas pueden apagarlo (false = el juego tal cual: el goblin solo reacciona si te ve)
+var _vistas_s5: Dictionary = {}                ## regla de la sala 5 -> [ignoradas, veces] ya anunciadas en el HUD
+var puente_estados_s5: bool = SALA5_PUENTE_ESTADOS   ## las pruebas pueden apagarlo para enseñar el juego tal cual
+var _img_s5: Dictionary = {}                   ## casilla de la sala 5 -> Vector3i(quemada, mojada, helada) de la imagen de la maqueta la última vez que se miró
 
 
 func _ready() -> void:
@@ -282,16 +319,211 @@ func _preparar_sala_3() -> void:
 		g.pj.mirar(g.mirada, 1.0)
 
 
-## SALA 4 · CAMINOS (D2). HOOK VACÍO. Idea: muros/agua/escalones de por medio y un goblin que persigue; la tecla X (rutas) dibuja lo que calcula Caminos3D
-## desde cada goblin hasta el jugador. Piezas del .txt con prefijo `s4_`.
+## SALA 4 · CAMINOS (D2). El mapa pone el río, la pared y el goblin (W en SALA4_GOBLIN); aquí se fijan y dibujan las terrazas (líneas `; altura` del mapa) y se guarda al goblin.
+## La tecla X dibuja lo que calcula Caminos3D desde cada goblin hasta el jugador (con la pared y el río de por medio, un camino largo y con revueltas).
 func _preparar_sala_4() -> void:
-	pass
+	var q: Dictionary = sala(4)
+	q["terrazas"] = []
+	for r in TerraFina3D.leer_alturas(NIVEL_MAPA):
+		var primera: bool = true
+		for y in range(int(r[1]), int(r[3]) + 1):
+			for x in range(int(r[0]), int(r[2]) + 1):
+				var c := Vector2i(x, y)
+				Terreno3D.fijar_altura(c, int(r[4]))
+				(q["terrazas"] as Array).append(_dibujar_terraza(c, int(r[4]), "TERRAZA +%d (%s)" % [int(r[4]), "se sube" if int(r[4]) <= Caminos3D.SALTO_MAX else "NO se sube"] if primera else ""))
+				primera = false
+	_goblin_s4 = _combate_en(SALA4_GOBLIN)
+	q["goblin"] = _goblin_s4
+	if _goblin_s4 == null:
+		_avisos.append("sala 4: no hay goblin en %s (letra W del mapa)" % str(SALA4_GOBLIN))
+	if (q["terrazas"] as Array).is_empty():
+		_avisos.append("sala 4: el mapa no trae ninguna línea `; altura` (terrazas)")
 
 
-## SALA 5 · SUELO Y CONDICIONES (B1+C2). HOOK VACÍO. Idea: reglas `si=casilla(x,y).mojada|helada|quemada…` en el .txt (prefijo `s5_`) y, aquí, estados de
-## suelo de salida con `Terreno3D.estados.poner(c, "mojada", true)`. El HUD ya enseña los estados de la casilla del jugador.
+## Un cubo con la altura de `n` niveles sobre la casilla `c` (el dato de altura vive en Terreno3D; la maqueta no pinta las alturas fijas) y, si `texto` no está vacío, un rótulo.
+func _dibujar_terraza(c: Vector2i, n: int, texto: String) -> MeshInstance3D:
+	var caja := BoxMesh.new()
+	caja.size = Vector3(Terreno3D.casilla * 0.98, Terreno3D.ALTO_NIVEL * float(n), Terreno3D.casilla * 0.98)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = SALA4_COLOR_TERRAZA.get(n, Color(0.5, 0.5, 0.5))
+	mat.roughness = 1.0
+	caja.material = mat
+	var mi := MeshInstance3D.new()
+	mi.name = "Terraza_%d_%d" % [c.x, c.y]
+	mi.mesh = caja
+	mi.position = Terreno3D.centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * float(n) * 0.5)
+	(m.get("_props") as Node).add_child(mi)
+	if texto != "":
+		var rot := Label3D.new()
+		rot.text = texto
+		rot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		rot.font_size = 28
+		rot.outline_size = 8
+		rot.pixel_size = 0.006
+		rot.position = Vector3(0.0, Terreno3D.ALTO_NIVEL * float(n) * 0.5 + 1.2, 0.0)
+		mi.add_child(rot)
+	return mi
+
+
+## El goblin de la sala 4 no ve a través de la pared: ver SALA4_OLFATO. Lo llama `_process`.
+func _olfato_sala_4() -> void:
+	var g: Combate3D = _goblin_s4
+	if not olfato_s4 or g == null or not is_instance_valid(g) or g.muerto or _jug == null or sala_actual() != 4:
+		return
+	if Vector2(g.position.x - _jug.position.x, g.position.z - _jug.position.z).length() > SALA4_OLFATO_RADIO:
+		return
+	g.objetivo = _jug
+	g.vista_perdida = 0.0
+	g.ultima_pos = _jug.position
+
+
+## SALA 5 · SUELO Y CONDICIONES (B1+C2). Las puertas, placas, cofres, el brasero y las reglas `si=` están en el .txt (prefijo `s5_`); aquí se enciende el brasero y se PINTAN las
+## casillas que cuentan (losas de color: tenue = no cumple, fuerte = cumple) para poder jugarlo sin leer el mapa.
 func _preparar_sala_5() -> void:
-	pass
+	var q: Dictionary = sala(5)
+	q["marcas"] = []
+	var br: Variant = q.get("brasero")
+	if SALA5_BRASERO_ENCENDIDO and br != null and is_instance_valid(br):
+		(br as Reactivo3D).encender_llama()
+	for c in SALA5_MOJAR:
+		_marca_suelo_s5(c, "mojada", Color(0.15, 0.75, 1.0), "MOJAR")
+	_marca_suelo_s5(SALA5_HIELO, "helada", Color(0.95, 0.98, 1.0), "HIELO")
+	_marca_suelo_s5(SALA5_FUEGO, "quemada", Color(1.0, 0.5, 0.1), "FUEGO")
+	_marca_suelo_s5(SALA5_SECA, "seca", Color(0.55, 0.55, 0.55), "SECA")
+	for c in SALA5_PLACAS_AGUA:
+		_marca_suelo_s5(c, "mojada", Color(0.15, 0.75, 1.0), "MOJA ESTA", false)
+
+
+## Una losa de color sobre la casilla `c` (no estorba: es plana y sin colisión) y su rótulo. `estado` es lo que ha de tener la casilla para «cumplir» (`seca` = no estar mojada).
+func _marca_suelo_s5(c: Vector2i, estado: String, color: Color, texto: String, losa: bool = true) -> void:
+	var nodo := Node3D.new()
+	nodo.position = Terreno3D.centro_de(c, Terreno3D.y_pies(c) + 0.02)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(color, 0.3)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if losa:
+		var caja := BoxMesh.new()
+		caja.size = Vector3(Terreno3D.casilla * 0.84, 0.03, Terreno3D.casilla * 0.84)
+		var mi := MeshInstance3D.new()
+		mi.mesh = caja
+		mi.material_override = mat
+		nodo.add_child(mi)
+	var rot := Label3D.new()
+	rot.text = texto
+	rot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	rot.font_size = 24
+	rot.outline_size = 8
+	rot.pixel_size = 0.005
+	rot.modulate = color.lightened(0.3)
+	rot.position = Vector3(0.0, 0.7, 0.0)
+	nodo.add_child(rot)
+	(m.get("_props") as Node).add_child(nodo)
+	(sala(5)["marcas"] as Array).append({"celda": c, "estado": estado, "color": color, "mat": mat, "rot": rot, "texto": texto})
+
+
+## El puente de estados (ver SALA5_PUENTE_ESTADOS): copia a `Terreno3D.estados` lo que los disparos dejan en la imagen de la maqueta, casilla a casilla y solo si cambió.
+func _puente_estados_sala_5() -> void:
+	if not puente_estados_s5:
+		return
+	var img: Image = m.get("_img_estado") as Image
+	if img == null:
+		return
+	var r: Rect2i = SALAS[4]["rect"]
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			var c := Vector2i(x, y)
+			var p: Color = img.get_pixelv(c)
+			var nuevo := Vector3i(int(p.r >= 0.5), int(p.g >= 0.5), int(p.b >= 0.5))
+			var viejo: Vector3i = _img_s5.get(c, Vector3i.ZERO)
+			if nuevo == viejo:
+				continue
+			_img_s5[c] = nuevo
+			if nuevo.x != viejo.x:
+				Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, nuevo.x == 1)
+			if nuevo.y != viejo.y:
+				Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, nuevo.y == 1)
+			if nuevo.z != viejo.z:
+				Terreno3D.estados.poner(c, EstadosSuelo3D.HELADA, nuevo.z == 1)
+
+
+## ¿Cumple la casilla lo que esa losa pide? (`seca` = sin agua encima.)
+func casilla_cumple(c: Vector2i, estado: String) -> bool:
+	if estado == "seca":
+		return not Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA)
+	return Terreno3D.estados.tiene(c, estado)
+
+
+## Refresca la intensidad de las losas (cumple = fuerte) y avisa en el HUD cuando una placa de la sala 5 abre su puerta o NO abre (y por qué): las reglas se ignoran en silencio.
+func _vigilar_sala_5() -> void:
+	var q: Dictionary = sala(5)
+	for mk in (q.get("marcas", []) as Array):
+		var d: Dictionary = mk
+		var cumple: bool = casilla_cumple(d["celda"] as Vector2i, String(d["estado"]))
+		((d["mat"]) as StandardMaterial3D).albedo_color = Color(d["color"] as Color, 0.85 if cumple else 0.3)
+		((d["rot"]) as Label3D).text = "%s%s" % [d["texto"], " (ok)" if cumple else ""]
+	for nombre in REGLAS_SALA5:
+		var r: Dictionary = _puzle_nodo.puzle(nombre)
+		if r.is_empty():
+			continue
+		var antes: Array = _vistas_s5.get(nombre, [0, 0])
+		var ign: int = int(r["ignoradas"])
+		var veces: int = int(r["veces"])
+		if ign > int(antes[0]):
+			_decir("Puerta %s NO abre: %s" % [REGLAS_SALA5[nombre], _por_que_no_s5(String(nombre))])
+		elif veces > int(antes[1]):
+			_decir("Puerta %s ABRE" % REGLAS_SALA5[nombre])
+		_vistas_s5[nombre] = [ign, veces]
+
+
+## Qué falta para cada puerta, con los estados de AHORA (para el aviso y para el HUD de la sala).
+func _por_que_no_s5(regla: String) -> String:
+	var est: EstadosSuelo3D = Terreno3D.estados
+	match regla:
+		"s5_abre_a":
+			var n: int = 0
+			for c in SALA5_MOJAR:
+				if est.tiene(c as Vector2i, EstadosSuelo3D.MOJADA):
+					n += 1
+			var br: Variant = sala(5).get("brasero")
+			var arde: bool = br != null and is_instance_valid(br) and bool((br as Object).get("is_lit"))
+			return "mojadas %d/%d · brasero %s" % [n, SALA5_MOJAR.size(), "ENCENDIDO" if arde else "apagado"]
+		"s5_abre_b":
+			return "hielo %s · fuego %s · centro %s" % ["sí" if est.tiene(SALA5_HIELO, EstadosSuelo3D.HELADA) else "no", "sí" if est.tiene(SALA5_FUEGO, EstadosSuelo3D.QUEMADA) else "no",
+				"MOJADO" if est.tiene(SALA5_SECA, EstadosSuelo3D.MOJADA) else "seco"]
+		"s5_abre_c":
+			return "su casilla %s no está mojada" % str(SALA5_PLACAS_AGUA[0])
+		"s5_abre_d":
+			return "su casilla %s no está mojada" % str(SALA5_PLACAS_AGUA[1])
+	return ""
+
+
+## Líneas de HUD de la sala en la que está el jugador (4 y 5).
+func _texto_sala_4() -> String:
+	var g: Combate3D = _goblin_s4
+	if g == null or not is_instance_valid(g) or _jug == null:
+		return ""
+	var ruta: Array[Vector2i] = Caminos3D.camino(Terreno3D.celda_de(g.global_position), Terreno3D.celda_de(_jug.global_position))
+	var rio: int = 0
+	for x in range(25, 32):
+		if Terreno3D.helada(Vector2i(x, 5)):
+			rio += 1
+	return "SALA 4 · goblin %s · ruta a ti: %s · río helado: %d casillas · recta andable: %s · olfato %s\n" % [g.estado, "%d casillas" % ruta.size() if not ruta.is_empty() else "NO HAY",
+		rio, "sí" if Caminos3D.recta_andable(g.global_position, _jug.global_position) else "no", "SÍ" if olfato_s4 else "no"]
+
+
+func _texto_sala_5() -> String:
+	var t: String = "SALA 5 · A (3 mojadas Y brasero apagado): %s · %s\n" % [_estado_puerta_s5("puerta_a"), _por_que_no_s5("s5_abre_a")]
+	t += "  B (hielo O fuego, centro seco): %s · %s\n" % [_estado_puerta_s5("puerta_b"), _por_que_no_s5("s5_abre_b")]
+	t += "  C (su casilla mojada): %s · D (su casilla mojada): %s\n" % [_estado_puerta_s5("puerta_c"), _estado_puerta_s5("puerta_d")]
+	return t
+
+
+func _estado_puerta_s5(papel: String) -> String:
+	var p: Variant = sala(5).get(papel)
+	if p == null or not is_instance_valid(p):
+		return "?"
+	return "ABIERTA" if bool((p as Object).get("abierta")) else "cerrada"
 
 
 ## SALA 6 · SALA CERRADA (C3+C1). HOOK VACÍO. Idea: `vigia` + `cerrojo` + `cofre` en el .txt (prefijo `s6_`; ejemplo completo en la cabecera de escenas/puzle.gd)
@@ -450,9 +682,12 @@ func _process(delta: float) -> void:
 		if _t_rutas <= 0.0:
 			_t_rutas = T_RUTAS
 			_dibujar_rutas()
+	_olfato_sala_4()
+	_puente_estados_sala_5()
 	_t_hud += delta
 	if _t_hud >= T_HUD:
 		_t_hud = 0.0
+		_vigilar_sala_5()
 		_refrescar_hud()
 
 
@@ -573,6 +808,10 @@ func texto_hud() -> String:
 	t += "FLAGS (%d): %s\n" % [flags.size(), ", ".join(PackedStringArray(flags)) if not flags.is_empty() else "ninguna"]
 	if _jug != null:
 		t += _texto_casilla(Terreno3D.celda_de(_jug.global_position))
+	if n == 4:
+		t += _texto_sala_4()
+	elif n == 5:
+		t += _texto_sala_5()
 	if _t_mensaje > 0.0:
 		t += "  >> %s\n" % _mensaje
 	for a in _avisos:
