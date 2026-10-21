@@ -119,7 +119,7 @@ func poner(e: int, v: int, p: int, i: int) -> void:
 func hechizo(s: Array = []) -> Hechizo:
 	var q: Array = sel if s.is_empty() else s
 	var rune: RuneData = load("res://nucleo/%s_rune.tres" % String(ESTADOS[int(q[0])][1])) as RuneData
-	var h: Hechizo = Hechizo.construir(rune, {}, 1.0)
+	var h: Hechizo = Hechizo.construir(rune, {}, 1.0, rune.cinematico)       # 20/10 (entrada 211): la celda «campo» es la runa del tiempo, cinemática: se pide con permiso expreso
 	var vol: Array = VOLUMENES[int(q[1])]
 	var base: float = Sigils.RADIO_BASE_V2
 	var cambios: Dictionary = {"semiejes.x": base * float(vol[1]), "semiejes.y": base * float(vol[2]), "semiejes.z": base * float(vol[3]),
