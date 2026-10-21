@@ -25,6 +25,12 @@ const ANGULO_CONO_FRONTAL: float = 120.0
 const VIDA_ESCUDO: float = 60.0               ## daño que aguanta (los golpes no ardientes lo desgastan; al llegar a 0 se rompe)
 const T_CONSUMO: float = 3.0                  ## s que tarda en consumirse una vez prendido (la quemadura de la runa de fuego dura lo mismo)
 const T_MOJADO: float = 6.0                   ## s que un escudo mojado no prende
+## MANO QUEMADA (21/10, Pablo tras el playtest): cuando el escudo termina de arder, al goblin le quema la mano: lo suelta, se queda aturdido T_MANO_QUEMADA s
+## con el clip ROL_MANO_QUEMADA (si su GLB lo trae; si no, el de golpe) y el escudo se DESINTEGRA en T_DESINTEGRA s en vez de quedarse quemado en el brazo.
+## El goblin NO se prende por su propio escudo. El clip y el disolver bonito son del Pipeline (diario); aquí la malla quemada solo encoge hasta desaparecer.
+const T_MANO_QUEMADA: float = 1.2
+const T_DESINTEGRA: float = 0.8
+const ROL_MANO_QUEMADA: String = "mano_quemada"
 const DISTANCIA_MANO: float = 0.42            ## u por delante del centro del cuerpo
 const ALTURA_RELATIVA: float = 0.55           ## a qué fracción de la altura del goblin va el centro del disco
 const ID_ENTERO: String = "goblin_escudo_entero"
@@ -37,6 +43,8 @@ const PAPELES_DE_SERIE: Array = [PAPEL_INFLAMABLE, PAPEL_BLOQUEA]
 signal consumido(causa: String)
 ## Un disparo de frente chocó contra el escudo (haya hecho algo o no).
 signal bloqueado(punto: Vector3)
+## Se consumió ardiendo y le quemó la mano a `goblin` (para el Pipeline: chispas en la mano, el disolver del escudo).
+signal mano_quemada(goblin: Combate3D)
 
 var combate: Combate3D = null
 var tipo: String = "escudo"                    ## lo lee el Pipeline (`ReaccionesVfx3D.tipo_de`) para elegir las excepciones del escudo
@@ -47,9 +55,11 @@ var arde_t: float = 0.0                        ## s que le quedan de arder (> 0 
 var mojado_t: float = 0.0                      ## s que le quedan mojado
 var estado: String = "entero"                  ## entero · ardiendo · quemado (se consumió ardiendo) · roto (se consumió a golpes)
 var bloqueos: int = 0                          ## cuántos disparos ha parado (para las pruebas y el diario de partida)
+var desintegra_t: float = 0.0                  ## s que le quedan a la malla quemada antes de desaparecer (> 0 = desintegrándose)
 
 var _entero: PiezaFuego3D = null
 var _quemado: PiezaFuego3D = null
+var _escala_quemado: Vector3 = Vector3.ONE
 
 
 ## Le pone un escudo a `c` (o devuelve el que ya tiene). `con_modelo = false` fuerza las formas sencillas de PiezaFuego3D.
@@ -177,7 +187,7 @@ func _desgastar(cantidad: float) -> void:
 		_consumir("roto")
 
 
-## Se acaba: quemado (malla quemada, se queda en el brazo) o roto (desaparece). El goblin queda expuesto en ambos casos.
+## Se acaba: quemado (le quema la mano al goblin y la malla quemada se desintegra) o roto (desaparece). El goblin queda expuesto en ambos casos.
 func _consumir(causa: String) -> void:
 	if estado == "quemado" or estado == "roto":
 		return
@@ -188,9 +198,25 @@ func _consumir(causa: String) -> void:
 		_entero.visible = false
 	if _quemado != null:
 		_quemado.visible = causa == "quemado"
+		_escala_quemado = _quemado.scale
+	if causa == "quemado":
+		desintegra_t = T_DESINTEGRA
+		_quemar_mano()
 	_avisar("consumido")
 	consumido.emit(causa)
 	PlayLog.event("escudo_consumido", {"causa": causa})
+
+
+## El goblin suelta el escudo quemándose la mano: aturdido T_MANO_QUEMADA s con su clip (o el de golpe). No le prende fuego ni le quita vida.
+func _quemar_mano() -> void:
+	if combate == null or not is_instance_valid(combate) or combate.muerto:
+		return
+	combate.stun_timer = maxf(combate.stun_timer, T_MANO_QUEMADA)
+	var tiene_clip: bool = combate.pj != null and is_instance_valid(combate.pj) and combate.pj.duracion(ROL_MANO_QUEMADA) > 0.0
+	combate.anim_orden = ROL_MANO_QUEMADA if tiene_clip else "hit"
+	combate.texto("¡Se quema la mano!", Color(1.0, 0.55, 0.2), 0.3)
+	mano_quemada.emit(combate)
+	PlayLog.event("escudo_mano_quemada", {"clip": combate.anim_orden})
 
 
 func _physics_process(delta: float) -> void:
@@ -201,6 +227,11 @@ func _physics_process(delta: float) -> void:
 		return
 	_colocar()
 	mojado_t = maxf(0.0, mojado_t - delta)
+	if desintegra_t > 0.0:
+		desintegra_t = maxf(0.0, desintegra_t - delta)
+		if _quemado != null:
+			_quemado.scale = _escala_quemado * maxf(desintegra_t / T_DESINTEGRA, 0.001)
+			_quemado.visible = desintegra_t > 0.0
 	# A2: lo que el goblin lleva encima arde con él (el escudo es inflamable y lo toca). El agua lo protege igual que a cualquier madera.
 	if estado == "entero" and combate.esta_ardiendo():
 		prender()

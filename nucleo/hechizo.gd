@@ -12,7 +12,7 @@ extends RefCounted
 ##   5. derivados: forma, niveles, coste, recarga, cast point (no se tocan a mano)
 ## Un modificador es `{campo, op, valor, tope, desde}` (ver Sigils.GLIFOS). Un glifo o un elemento nuevo es solo datos.
 ##
-## UNIDADES (19/10, claude/ESPEC_HECHIZO.md §0.1): 1 casilla = 1 m. Todo lo que mide longitud va en METROS-CASILLA (semiejes, distancia_max, elevacion, altura_salida, radio_explosion, separacion…)
+## UNIDADES (19/10, docs/ESPEC_HECHIZO.md §0.1): 1 casilla = 1 m. Todo lo que mide longitud va en METROS-CASILLA (semiejes, distancia_max, elevacion, altura_salida, radio_explosion, separacion…)
 ## y las velocidades en m/s. La conversión a unidades del motor (× `Terreno3D.casilla`) se hace SOLO en `HechizoVivo`, al ejecutar.
 ##
 ## HC1 es REFACTORIZACIÓN: aún no lo lee nadie. Convive con `Sigils.aplicar_v2` + `RuneData` + `Receta3D`, y `prueba_hechizo` comprueba que da los mismos números.
@@ -25,7 +25,7 @@ const CAMPOS: Array = [
 	["semiejes", "forma"], ["grosor_min", "forma"], ["copias", "forma"], ["separacion", "forma"], ["dispersion", "forma"], ["crece", "forma"], ["escala_nace", "forma"], ["solidez", "forma"],
 	["velocidad", "movimiento"], ["aceleracion", "movimiento"], ["gravedad", "movimiento"], ["distancia_max", "movimiento"], ["elevacion", "movimiento"],
 	["persiste", "movimiento"], ["permanencia", "movimiento"], ["retardo", "movimiento"], ["intervalo", "movimiento"],
-	["altura_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
+	["altura_salida", "movimiento"], ["impulso_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
 	["dano", "combate"], ["dano_periodico", "combate"], ["potencia", "combate"], ["empuje", "combate"], ["fuerza_golpe", "combate"], ["perfora", "combate"], ["radio_explosion", "combate"], ["golpea_lanzador", "combate"],
 	["quema", "estados"], ["moja", "estados"], ["congela", "estados"], ["congela_mojado", "estados"], ["aturde", "estados"],
 	["ralentiza", "estados"], ["ralentiza_fuerza", "estados"], ["interrumpe", "estados"], ["veneno", "estados"], ["veneno_dps", "estados"], ["intensidad_estado", "estados"], ["deja", "estados"],
@@ -73,6 +73,7 @@ const EDITABLES: Dictionary = {
 	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
 	"velocidad": {"paso": 0.5, "min": 0.0, "max": 20.0}, "aceleracion": {"paso": 0.5, "min": -10.0, "max": 20.0}, "gravedad": {"paso": 0.1, "min": 0.0, "max": 3.0},
 	"distancia_max": {"paso": 0.5, "min": 0.0, "max": 8.0}, "elevacion": {"paso": 0.25, "min": 0.0, "max": 2.0}, "altura_salida": {"paso": 0.05, "min": 0.0, "max": 2.0},
+	"impulso_salida": {"paso": 0.1, "min": 0.0, "max": 5.0},
 	"persiste": {"paso": 0.5, "min": 0.0, "max": 25.0}, "permanencia": {"paso": 0.5, "min": 0.0, "max": 25.0}, "retardo": {"paso": 0.1, "min": 0.0, "max": 5.0}, "intervalo": {"paso": 0.05, "min": 0.05, "max": 2.0},
 	"rebotes": {"paso": 1.0, "min": 0.0, "max": 6.0}, "elasticidad": {"paso": 0.1, "min": 0.0, "max": 1.0},
 	"retorna": {"tipo": "bool"}, "en_punto": {"tipo": "bool"}, "busca": {"paso": 0.25, "min": 0.0, "max": 4.0},
@@ -119,6 +120,9 @@ var permanencia: float = 0.0           ## s EXTRA que se queda donde nace o dond
 var retardo: float = 0.0               ## s entre lanzar y nacer (glifo aparcado) · ESPEC §1.3
 var intervalo: float = 0.25            ## s entre pulsos de una zona · antes `TICK_ZONA_V2`
 var altura_salida: float = ALTURA_MANO_U / Terreno3D.casilla   ## m sobre el suelo desde donde sale un PROYECTIL (0,9 u de la mano ≈ 0,39 m). Los hechizos sin velocidad no la usan: nacen en su casilla · HC4
+## m/s HACIA ARRIBA con los que sale un PROYECTIL que cae (gravedad > 0): lo lanza en arco en vez de en horizontal. 21/10, Pablo: la flecha de agua caía a 1 casilla
+## (sale a 0,9 u y a 4 u/s con gravedad ×0,5: toca el suelo en 0,6 s); con 1,6 m/s (3,7 u/s) sube ~1,4 u y aterriza a ~3 casillas, su alcance. El agua lo trae en su .tres.
+var impulso_salida: float = 0.0
 var rebotes: int = 0                   ## cambios de dirección al chocar
 var elasticidad: float = 0.2           ## 0–1: velocidad que conserva al rebotar · ESPEC §1.4 (aún no la lee nadie)
 var retorna: bool = false              ## vuelve al lanzador al acabar · HC4

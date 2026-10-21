@@ -117,7 +117,7 @@ const RADIO_IMPACTO_FLECHA: float = 0.75
 
 ## --- EL FUEGO PASA POR CONTACTO (21/10, A2 de docs/PLAN_EOW.md; regla de Pablo) ---
 ## Solo pasa de algo que ESTÁ ARDIENDO a algo INFLAMABLE que lo TOCA; no hay radio de calor. Aquí:
-##   · un enemigo con `quemando > 0` está ARDIENDO (`esta_ardiendo()`) y prende lo inflamable que toca: objetos (`Reactivo3D.toca_punto`) y otros enemigos;
+##   · un enemigo con `quemando > 0` está ARDIENDO (`esta_ardiendo()`) y prende lo inflamable que toca: objetos (`Reactivo3D.toca_punto`); a otros enemigos solo si `CONTACTO_ENTRE_ENEMIGOS`;
 ##   · todo enemigo es INFLAMABLE (`puede_prender()`) salvo mojado, congelado o muerto (como en `golpe`: fuego sobre mojado = vapor, no quema);
 ##     lo que arde y pasa llama (`Reactivo3D.emite_fuego_por_contacto`: fogata, brasero, seto en llamas…) lo prende si lo toca;
 ##   · la flecha del arquero es inflamable: sale ARDIENDO si cruza una llama (`_flecha_toca_fuego`) y, ardiendo, prende lo inflamable que toca y su impacto quema.
@@ -126,7 +126,9 @@ const QUEMA_CONTACTO: float = 3.0               ## s de quemadura al prenderse p
 const INTERVALO_CONTACTO_FUEGO: float = 0.2     ## s entre dos comprobaciones de contacto (no hace falta cada fotograma: el fuego no va a esa velocidad)
 const RADIO_CUERPO_ENEMIGO: float = 0.32        ## radio de la cápsula de un goblin (el del elemental se calcula de su altura)
 const RADIO_FLECHA_FUEGO: float = 0.15          ## lo que «toca» una flecha en vuelo
-const CONTACTO_ENTRE_ENEMIGOS: bool = true      ## un enemigo ardiendo prende al enemigo que toca (los goblins son inflamables). false = solo objetos y flechas
+## Decisión de Pablo (21/10, tras el playtest): los enemigos NO se contagian el fuego entre ellos; se prenden por OTRO elemento (brasero, seto en llamas,
+## flecha ardiendo, hechizo). true = un enemigo ardiendo prende al enemigo que toca.
+const CONTACTO_ENTRE_ENEMIGOS: bool = false
 const COLOR_FLECHA_ARDIENDO: Color = Color(1.0, 0.5, 0.15)
 ## Una flecha ardiendo ha alcanzado a `objetivo` (el jugador): quien tenga mecánica de quemadura la escucha. El jugador no tiene aún (ver `quemar`).
 signal flecha_ardiente_impacta(objetivo: Node3D)

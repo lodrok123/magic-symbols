@@ -203,14 +203,19 @@ func _fuego() -> void:
 	v0 = g.health
 	_tiro(g, "earth", Vector3(0, 0, -1))
 	_ok("4 ardiendo todavía para disparos de frente", g.health == v0)
-	_pasos(e, Escudo3D.T_CONSUMO)
+	_pasos(e, Escudo3D.T_CONSUMO - 1.5 + 0.1)          # justo pasado T_CONSUMO (ya llevaba 1,5 s): así aún se ve la malla quemada desintegrándose
 	_ok("4 pasado T_CONSUMO se consume: «consumido» una vez y estado quemado", e.estado == "quemado" and _n("consumido", e) == 1, str(e.estado))
 	_ok("4 ya no está activo; la malla quemada sustituye a la entera", not e.esta_activo() and not e._entero.visible and e._quemado.visible)
+	# 21/10, Pablo: al consumirse ardiendo le quema la mano (aturdido, sin prenderse) y el escudo se desintegra
+	_ok("4 le quema la mano: el goblin queda aturdido y NO arde por su escudo", g.stun_timer > 0.0 and g.quemando <= 0.0, "stun %.2f · quemando %.2f" % [g.stun_timer, g.quemando])
+	_ok("4 la malla quemada se está desintegrando", e.desintegra_t > 0.0)
 	v0 = g.health
 	_tiro(g, "earth", Vector3(0, 0, -1))
 	_ok("4 y el disparo de frente SÍ llega al goblin", g.health < v0, str(v0 - g.health))
 	_ok("4 no hay más «bloqueado» tras consumirse", _n("bloqueado", e) == 3)
 	_pasos(e, 1.0)
+	_ok("4 consumido solo una vez aunque pasen fotogramas", _n("consumido", e) == 1)
+	_ok("4 pasado T_DESINTEGRA el escudo quemado ha desaparecido", not e._quemado.visible and e.desintegra_t == 0.0)
 
 
 ## El impacto de fuego que el escudo para deja su CAMPO DE LLAMAS (ZonaV2, plasma), y sus pulsos hieren por `receive_damage` sin pasar por `on_spell_hit`:
@@ -258,7 +263,6 @@ func _zona_de_llamas() -> void:
 	_ok("4z lo que viaja por la espalda del escudo sí hiere (solo cubre de frente)", h.health < vh, "vida %.1f → %.1f" % [vh, h.health])
 	z.queue_free()
 	l.queue_free()
-	_ok("4 consumido solo una vez aunque pasen fotogramas", _n("consumido", e) == 1)
 
 
 func _agua_y_rotura() -> void:

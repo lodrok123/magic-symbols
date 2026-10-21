@@ -221,6 +221,27 @@ func _movimiento() -> void:
 	var suelo: float = Terreno3D.y_pies(Terreno3D.celda_de(gv.p))
 	_ok("gravedad = 1: en 0,5 s cae ½·9,8·0,25 = 1,22 u (mide %.2f) y acaba en el suelo (motivo «%s», y %.2f ≈ %.2f)" % [caida, gv.motivo_fin, gv.p.y, suelo],
 		absf(caida - 1.225) < 0.15 and gv.motivo_fin == "suelo" and absf(gv.p.y - suelo) < 0.12)
+	# impulso_salida (21/10, Pablo): la flecha de agua sale en arco y llega a su alcance; sin impulso cae a ~1 casilla
+	for con_impulso in [true, false]:
+		_montar()
+		var pies_a: Vector3 = Lanzador3D.centro_de(SALIDA, Terreno3D.y_pies(SALIDA))
+		var cambios_a: Dictionary = {"velocidad": 4.0, "distancia_max": 3.0}
+		if not con_impulso:
+			cambios_a["impulso_salida"] = 0.0
+		var arco: HechizoVivo = HechizoVivo.crear(_hz("water", cambios_a), pies_a, Vector3.RIGHT, _l, null, {}, true)
+		var x_a: float = arco.p.x
+		var y_max: float = arco.p.y
+		var n_a: int = 0
+		while arco.activo and n_a < 600:
+			arco.paso(DT)
+			y_max = maxf(y_max, arco.p.y)
+			n_a += 1
+		var lejos: float = (arco.p.x - x_a) / cas
+		if con_impulso:
+			_ok("impulso_salida: el agua sale en arco (sube %.2f u) y aterriza a %.2f casillas de 3 (motivo «%s»)" % [y_max - pies_a.y, lejos, arco.motivo_fin],
+				y_max - pies_a.y > 1.8 and lejos > 2.6 and lejos <= 3.05)
+		else:
+			_ok("impulso_salida = 0: la misma agua cae a %.2f casillas (el fallo del playtest)" % lejos, lejos < 1.3 and arco.motivo_fin == "suelo")
 	var sin_g: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 6.0, "distancia_max": 3.0}), Vector2i(5, 12), Vector3.RIGHT, 3.0)
 	var ys: float = sin_g.p.y
 	_correr(sin_g)

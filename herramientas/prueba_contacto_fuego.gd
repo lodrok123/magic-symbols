@@ -185,8 +185,9 @@ func _goblin_prende_goblin() -> void:
 	_pasos(a, 20)
 	_pasos(b, 20)
 	_pasos(c, 20)
-	_ok("2c un goblin ardiendo prende al goblin que toca", b.esta_ardiendo())
-	_ok("2c y no al que está a 2 casillas", not c.esta_ardiendo())
+	# 21/10, Pablo: los enemigos no se contagian el fuego entre ellos (Combate3D.CONTACTO_ENTRE_ENEMIGOS = false); se prenden por otro elemento.
+	_ok("2c un goblin ardiendo NO prende al goblin que toca", not b.esta_ardiendo())
+	_ok("2c ni al que está a 2 casillas", not c.esta_ardiendo())
 
 
 func _caso_2_flecha() -> void:
