@@ -14,7 +14,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] Validar el clip «Drowning» de los dos goblins (DIARIO 231).
 - [ ] Aplicar el ajuste de proyecto que pide la entrada 233 (luz por zona / tilt-shift).
 - [ ] Números de la tinta (PLAN_EOW E1) y recetas de pigmentos por zona (tinta, paso 2).
-- [ ] Presupuesto de polígonos: 8–12k frente al de EoW; decimar o sustituir `arbol_redondo` y `pino` por sus `_2` (`arte/meshy/PRESUPUESTO.md`).
+- [x] ~~Presupuesto de polígonos~~ — V8 aplicado el 21/10 (`2bc0534`): `arbol_redondo_2` en el Bosque 01 y piezas de 12 k a 6 k; el pino queda.
 - [ ] Puente 0,41 u por debajo de las orillas: subirlo o dejarlo.
 - [ ] Tronco-puente: aceptar el estirado ×1,31 o reexportar a 3,4 con enredaderas.
 - [ ] Integrar el esqueleto en el canouro.
@@ -59,7 +59,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 **Encargos del plan EoW (diario 238)**
 - [x] B2 (21/10): el suelo, el agua y la hierba leen `Mundo3D.textura_estados()` y `_img_estado` se retiró de `prueba_test2.gd`. Lo «pisado» (hierba aplastada) quedó en `_tex_pisado` (R8 propia de la maqueta); el círculo quemado que crece mientras arde es el *avance visual* de `EstadosSuelo3D` (`poner_avance`/`avance`, no es un hecho).
-- [ ] Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel: sin eso las reacciones de A4 no se ven ni suenan. (El lab de playtest ya lo hace por su cuenta; falta en la maqueta para todos los niveles.)
+- [x] ~~Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel~~ — hecho el 21/10 (`92cec87`).
 - [ ] Burbujas del hundimiento al aviso `impacto(…, "hundido", …)` / reacción `hundido` (1,6 s de efecto frente a 1,0 s de hundimiento).
 - [ ] Escudo del goblin: ajuste visual en el brazo, efectos de `EXCEPCIONES["escudo"]` con el nodo real y escudo mojado visible.
 - [ ] Mano quemada (diario 239): clip `mano_quemada` del goblin (+ `"mano_quemada"` en `ArbolAnimPj.ESTADOS_REDUCIDO` y en `Pj3D.SINONIMOS`), disolver por celdas del escudo quemado en vez del encogido provisional, y chispas en la mano con la señal `Escudo3D.mano_quemada`.
@@ -110,7 +110,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [x] ~~Esquirla, placa rota y hojas de viento~~ — hecho el 21/10 (`5b1d368`): cometa en el proyectil de hielo (`VfxHielo.proyectil_esquirla` para volver), placa rota al perder el hielo una casilla, hojas 0,25–0,5 u. Falta verlo jugando.
 - [x] ~~Rayo = línea + elemento (forma «haz») en los seis elementos; muro solo con barrera~~ (`bc864ec`) — **aprobado por Pablo el 21/10**.
 - [x] ~~Viento con el atlas como máscara~~ (`71b754d`) — **validado por Pablo el 21/10**. Esquirla en la flecha, rayo de hielo y tierra legible en `b0e4ffb` — **validados por Pablo el 21/10**.
-- [ ] Forma de hechizo «rayo» en el camino actual (VfxElemento3D) para que `VfxHielo.rayo` se vea jugando; hoy solo lo dispara el chorro antiguo de recetas. **Regla de Pablo (21/10): el rayo es glifo `linea` (ᛁ) + elemento** (rayo de hielo = línea + hielo, y así con cada elemento; no confundir con el elemento «rayo» ᛊ). Chocaba con `linea` = «muro delante»: **decidido y hecho el 21/10: el muro pasa solo a `barrera`; `linea` + elemento = haz** (forma `haz`; `VfxElemento3D.haz`, `prueba_haz.gd`, ESPEC_HECHIZO §3b). Pablo valida cómo se ve cada rayo (`docs/capturas/haz/`).
+- [x] Forma de hechizo «rayo» en el camino actual (hecho y aprobado, `bc864ec`) (VfxElemento3D) para que `VfxHielo.rayo` se vea jugando; hoy solo lo dispara el chorro antiguo de recetas. **Regla de Pablo (21/10): el rayo es glifo `linea` (ᛁ) + elemento** (rayo de hielo = línea + hielo, y así con cada elemento; no confundir con el elemento «rayo» ᛊ). Chocaba con `linea` = «muro delante»: **decidido y hecho el 21/10: el muro pasa solo a `barrera`; `linea` + elemento = haz** (forma `haz`; `VfxElemento3D.haz`, `prueba_haz.gd`, ESPEC_HECHIZO §3b). Pablo valida cómo se ve cada rayo (`docs/capturas/haz/`).
 - [ ] Pablo: ¿roca a 2,5 k (`aprobacion3d/v8_piezas/`)? ¿`pino_2` con otro color para pasar también el pino?
 - [ ] Commitear (su sesión) los cambios ajenos de `Nivel_Bosque_01.tscn` y de `prueba_test2.gd` (colisión por contorno, F7).
 - [x] ~~Migrar los usos de `_img_estado` (hierba, agua, Lanzador, reacciones, lab) a `Mundo3D.textura_estados()` para poder retirarlo (cierra B2).~~ Hecho el 21/10.
