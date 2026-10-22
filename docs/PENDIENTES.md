@@ -108,6 +108,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [x] ~~Lotes de tierra y hielo y atlas de viento: instalar y enganchar en los VFX~~ — hecho y aprobado el 21/10 (diario 247).
 - [x] ~~Capturas de V3–V7 y decisión de V8~~ — revisado y aprobado por Pablo el 21/10 (diario 247).
 - [x] ~~Esquirla, placa rota y hojas de viento~~ — hecho el 21/10 (`5b1d368`): cometa en el proyectil de hielo (`VfxHielo.proyectil_esquirla` para volver), placa rota al perder el hielo una casilla, hojas 0,25–0,5 u. Falta verlo jugando.
+- [ ] **Revisar en el próximo playtest (Pablo, 22/10):** agua filtro con algas y rocas (`2f7bc26`, `0d7bad3`: densidad, verde neón de las algas, rocas azuladas, balanceo en movimiento) y goblins empujados y levantándose (`1bb0c1f`: altura del vuelo, 2,7 s fuera de combate, pies que resbalan, arco del arquero).
 - [x] ~~Tiras de transición entre suelos (joints) con la lámina pintada~~ (`e6d7e00`, `b3093ba`, `36b575c`) — **lámina v2 validada por Pablo el 22/10**. Queda: labio/falda para el borde del cauce seco (escalón de geometría).
 - [x] ~~Rayo = línea + elemento (forma «haz») en los seis elementos; muro solo con barrera~~ (`bc864ec`) — **aprobado por Pablo el 21/10**.
 - [x] ~~Viento con el atlas como máscara~~ (`71b754d`) — **validado por Pablo el 21/10**. Esquirla en la flecha, rayo de hielo y tierra legible en `b0e4ffb` — **validados por Pablo el 21/10**.
