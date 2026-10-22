@@ -204,6 +204,10 @@ func cargar(p_id: String) -> bool:
 	_preparar_materiales(_modelo)
 
 	var aps: Array[Node] = _modelo.find_children("*", "AnimationPlayer", true, false)
+	if aps.is_empty():
+		_ap = _poner_clips_de_familia(glb_de(id))
+		if _ap != null:
+			aps.append(_ap)
 	if not aps.is_empty():
 		_ap = aps[0] as AnimationPlayer
 		for nombre in _ap.get_animation_list():
@@ -238,6 +242,29 @@ func cargar(p_id: String) -> bool:
 		for a in avisos:
 			push_warning("Pj3D[%s]: %s" % [id, a])
 	return true
+
+
+## Modelos sin animaciones propias (elfo_base, de Tripo): se les monta un AnimationPlayer con los clips de su familia, traducidos a su esqueleto
+## (ClipsFamilia, PLAN_RIGGING §3.6). Devuelve null si el GLB no tiene familia o no se pudo.
+func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
+	if not ClipsFamilia.tiene_fuente(glb_id):
+		return null
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return null
+	var clips: Dictionary = ClipsFamilia.clips_para(glb_id, _modelo, sks[0] as Skeleton3D)
+	if clips.is_empty():
+		push_warning("Pj3D[%s]: no se pudieron traer los clips de la familia" % id)
+		return null
+	var ap := AnimationPlayer.new()
+	ap.name = "AnimationPlayer"
+	_modelo.add_child(ap)
+	ap.root_node = NodePath("..")
+	var lib := AnimationLibrary.new()
+	for nombre in clips.keys():
+		lib.add_animation(nombre, clips[nombre] as Animation)
+	ap.add_animation_library("", lib)
+	return ap
 
 
 ## Id del GLB que carga un personaje (el suyo, o el del que comparte modelo).

@@ -24,6 +24,8 @@ Conclusión: el problema no es «un rig malo», es que **no hay un esqueleto de 
 | **Bípedo** | Mixamo (nombres `mixamorig:*`), versión **ligera sin dedos** (≈ 28 huesos, la que ya llevan goblins y elemental) | elfa, goblins, NPC, elemental | ~28 (+ dedos opcionales si un clip los pide) |
 | **Cuadrúpedo** | «Wolf» (51 huesos, el del loberno/emberheart) | loberno, canouro, futuros animales | 51 |
 
+**22/10 · `elfo_base` = la malla base de los elfos** (`arte/modelos/elfo_base.glb`; Tripo, 19 678 tris, 0,98 u de alto, esqueleto Mixamo **completo de 65 huesos con dedos**, A-pose, sin animaciones). Los clips los toma de `chibi_elf` (mismos nombres de hueso, otra pose de reposo y otras proporciones) con `ClipsFamilia` (`jugador/clips_familia.gd`): retarget en código al cargar, sin tablas por personaje; es el adelanto de «Pj3D carga la biblioteca de su familia» (§3.6) para este modelo. Respaldo de los NPC elfos en `PruebaTest2` (`PJ_ALQUIMISTA`, `PJ_LIBRERA`). Las 4 decisiones de §7 siguen **pendientes**: `elfo_base` no las resuelve (el rig de 65 huesos con dedos es una variante más del bípedo ligero de 28, no el maestro).
+
 Cada maestro se guarda **una vez** en `arte/rigs/<familia>/`:
 - `maestro.blend` + `maestro.glb`: el esqueleto en **pose de reposo fija** (A-pose para el bípedo, de pie para el cuadrúpedo), mirando a +Z, Y arriba, a escala del juego (chibi ≈ 1 u de alto; goblin 0,85; casilla 2,3).
 - `maniqui.glb`: una malla neutra de esa familia **ya pesada y revisada** (hombros, caderas, codos, rodillas, cuello). Sirve de fuente para transferir pesos.

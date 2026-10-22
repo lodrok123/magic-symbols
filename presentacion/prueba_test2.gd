@@ -59,7 +59,7 @@ const LUZ_SOL: float = 1.0
 
 ## Personajes: id del pipeline (res://arte/modelos/<id>.glb) y su alto en pantalla. Si falta, el sustituto.
 const PJ_JUGADOR: Array = ["woodland_wanderer", "chibi_elf_v2", "chibi_elf", "chibi_test"]   # 12/10: la elfa de 100k (Meshy «Little Woodland Wanderer») es la jugadora; si falta, la chibi_elf de siempre
-const PJ_LIBRERA: Array = ["bookseller_chibi", "chibi_test"]
+const PJ_LIBRERA: Array = ["bookseller_chibi", "elfo_base", "chibi_test"]   # 22/10: elfo_base = el elfo básico de la familia (Tripo, clips de chibi_elf vía ClipsFamilia)
 const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
 ## Espadachín: el mismo modelo del guerrero con espada (Pj3D.MODELO_DE + Equipo3D.EQUIPO). Ocupa las "A" del
 ## mapa hasta que haya arquero en 3D.
@@ -68,12 +68,12 @@ const PJ_ESPADACHIN: Array = ["goblin_espadachin", "goblin_warrior_chibi"]
 const PJ_ELEMENTAL: Array = ["elemental_bosque"]
 ## Personajes nuevos (6/10): la alquimista de los mercados, el arquero y el guardabosques. Sus GLB aún no están en el repo
 ## (COPIAR_MODELOS.cmd los copia desde el pipeline): mientras falten, `_personaje` usa el siguiente de la lista.
-const PJ_ALQUIMISTA: Array = ["alchemist_elf", "bookseller_chibi", "chibi_test"]
+const PJ_ALQUIMISTA: Array = ["alchemist_elf", "elfo_base", "bookseller_chibi", "chibi_test"]   # 22/10: elfo_base, el elfo básico, antes que la librera
 const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_warrior_chibi"]
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85,
-	"alchemist_elf": 0.95, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
+	"alchemist_elf": 0.95, "elfo_base": 1.0, "goblin_archer_chibi": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
 	"loberno": 0.75,      # 13/10: lobo (Meshy). Mide 0,60 u de alto y 1,02 de largo; a 0,75 sus zancadas casan con VEL_PATRULLA (walk) y VEL_PERSEGUIR (Gallop)
 	"gato_guardabosques": 0.55,   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)

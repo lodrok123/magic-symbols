@@ -47,6 +47,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 ## Pipeline
 
+- [ ] `elfo_base` (22/10, Tripo, 65 huesos): el idle que le llega de `chibi_elf` lo deja cabizbajo y con los hombros caídos (como a la elfa antes de POSTURAS); ajustarlo con una postura propia o un idle nuevo. Ver `docs/capturas/elfo_base/` y PLAN_RIGGING §2.
 **Agua y suelo**
 - [ ] Triángulos vacíos en las esquinas del agua o la orilla.
 - [ ] `OSCURECER_SUELO`: igualar hierba y suelo (ARTE §10).
