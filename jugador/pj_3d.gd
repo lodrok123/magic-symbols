@@ -42,7 +42,12 @@ const SINONIMOS: Dictionary = {
 	# Clips de trabajo del goblin base (22/10, Pablo, Tripo): talar (golpear con un hacha que el modelo no lleva) y cavar. Acciones continuas de NPC.
 	"talar": ["chop"],
 	"cavar": ["dig"],
+	# Marimanta (23/10, Meshy): el clip de frotarse las manos tramando algo; el rol «pensar» de las NPC (mano libre en la barbilla en la ficha, que Meshy no trae).
+	"pensar": ["scheming", "pensar"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
+	# Goblin asesino (22/10): dos clips de Gribble que no son del juego base y que el Juego puede pedir por su rol (no los usa ninguna regla del árbol).
+	"guardia": ["guardia"],
+	"paso_lado": ["paso_lado"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
 	"wave": ["wave", "hello"],
 	"roll": ["roll_dodge_1", "roll_dodge", "rolldodge", "roll"],
@@ -77,6 +82,10 @@ const CLIPS_DE: Dictionary = {
 	"loberno": {"run": "gallop", "hit": "idle_hitreact1"},
 	# Lince cornudo (14/10, Meshy «Horned Lynx Pup» sobre el esqueleto Fox/Wolf): sustituye al gato de la mascota. Mismos nombres de clip que el loberno.
 	"lince": {"run": "gallop", "hit": "idle_hitreact1"},
+	# Goblin asesino (22/10): su ataque doble se construye por código (AtaqueDoble) y se llama «AtaqueDoble», sin «attack» en el nombre.
+	"goblin_asesino": {"attack": "ataquedoble"},
+	# Marimanta (23/10, Meshy «Crimson Goblin Duchess»): andar de anciana sin avance de cadera (el FBX trae también el que avanza) y hablar con la mano en la cadera.
+	"marimanta": {"walk": "elderly_shaky_walk_inplace", "talk": "talk_with_left_hand_on_hip"},
 }
 
 ## Roles a los que se quita el desplazamiento de la cadera al cargar (el Juego mueve al personaje): id -> [roles]. elfo_base: su walk (Tripo) avanza la cadera
@@ -85,6 +94,8 @@ const RAIZ_ANULADA: Dictionary = {
 	"elfo_base": ["walk"],
 	# goblin_base: su walk (Tripo) avanza la cadera ~1,2 alturas del modelo por ciclo; chop, dig, hablar e idle se quedan en su sitio.
 	"goblin_base": ["walk"],
+	# goblin_asesino: el andar agazapado (Crouch_Walk_with_Torch) avanza la cadera ~1,4 alturas de cadera por ciclo y los pasos de guardia ~1,1.
+	"goblin_asesino": ["walk", "guardia", "paso_lado", "run"],
 }
 
 ## Rol que se usa en su lugar cuando el personaje no tiene clip para el pedido: id -> {rol pedido: rol sustituto}. Solo para los ids listados.
@@ -235,6 +246,7 @@ func cargar(p_id: String) -> bool:
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 		_preparar_empujado()
 		_preparar_mano_quemada()
+		_preparar_ataque_doble()
 		_arbol = ArbolAnimPj.new()
 		_arbol.name = "ArbolAnim"
 		_ap.get_parent().add_child(_arbol)
@@ -1121,7 +1133,8 @@ const PASO_CORTO: Dictionary = {
 
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+## goblin_asesino: su andar agazapado avanza ~0,72 u/s a velocidad 1 (1,4 alturas de cadera por 1,1 s, en unidades del juego) y VEL_PATRULLA es 1,0: ×1,4 para que no patine.
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
@@ -1317,7 +1330,8 @@ const CLIP_FUENTE_LEVANTARSE: String = "Stand_Up1"
 const ANIM_EMPUJADO: String = "Empujado"
 const ANIM_LEVANTARSE: String = "Levantarse"
 ## Modelos (GLB) de goblin que admiten los dos clips (comparten esqueleto Mixamo de 28 huesos).
-const MODELOS_EMPUJABLES: Array = ["goblin_warrior_chibi", "goblin_archer_chibi"]
+## goblin_asesino (22/10): su esqueleto Mixamo tiene 65 huesos y otra pose de reposo; los dos clips se le traducen con ClipsFamilia (`_fuente_empuje`).
+const MODELOS_EMPUJABLES: Array = ["goblin_warrior_chibi", "goblin_archer_chibi", "goblin_asesino"]
 ## Cuánto de alto vuela la cadera respecto al clip original (1 = como en el clip: sube ~0,75 alturas del modelo, o sea lo mismo en proporción
 ## al goblin del juego, que es el modelo escalado). Se aplica a la subida medida desde la cadera de pie.
 const EMPUJADO_ESCALA_VUELO: float = 1.0
@@ -1327,6 +1341,8 @@ const LEVANTARSE_DESDE: float = 1.7
 const LEVANTARSE_HASTA: float = 6.4
 const LEVANTARSE_VEL: float = 4.0
 const EMPUJADO_FPS: float = 30.0
+## Alto (u, tal como viene) de los modelos de goblin de Meshy de los que salen los clips de empujado y levantarse.
+const ALTO_MODELO_GOBLIN_FUENTE: float = 1.7
 ## Suelo mínimo (altura del hueso más bajo, en unidades del modelo) del cuerpo tumbado: el de su pose de muerte, pero nunca por debajo de esto. El del arquero (Dead) queda ~0,08 más abajo
 ## que el del guerrero (Die) y al tumbarse el torso se hundía en el suelo (medido en capturas).
 const EMPUJADO_SUELO_MIN: float = -0.10
@@ -1362,6 +1378,16 @@ static func _animacion_fuente(ruta: String, nombre: String) -> Animation:
 			n.free()
 	_fuentes[k] = an
 	return an
+
+
+## El clip de empujado/levantarse para ESTE personaje: tal cual si comparte rig con los GLB de origen (los goblins de 28 huesos) o traducido a su esqueleto
+## con ClipsFamilia si es de otra familia de reposo (goblin_asesino). Null si no se puede.
+func _fuente_empuje(ruta: String, nombre: String) -> Animation:
+	if ClipsFamilia.tiene_fuente(glb_de(id)):
+		var sk: Skeleton3D = _esqueleto()
+		# El vuelo se escala con la relación de ALTURAS DE MODELO (no la de cadera: las piernas del asesino son más largas en proporción), para que suba lo mismo en proporción.
+		return ClipsFamilia.traducir_clip(glb_de(id), ruta, nombre, _modelo, sk, alto_modelo() / ALTO_MODELO_GOBLIN_FUENTE) if sk != null else null
+	return _animacion_fuente(ruta, nombre)
 
 
 ## Rotaciones por hueso de `an` en `t` (nombre de hueso -> Quaternion).
@@ -1414,8 +1440,8 @@ func _preparar_empujado() -> void:
 		return
 	var idle_n: String = _buscar_clip("idle")
 	var muerte_n: String = _buscar_clip("death")
-	var fly: Animation = _animacion_fuente(FUENTE_EMPUJADO, CLIP_FUENTE_EMPUJADO)
-	var up: Animation = _animacion_fuente(FUENTE_LEVANTARSE, CLIP_FUENTE_LEVANTARSE)
+	var fly: Animation = _fuente_empuje(FUENTE_EMPUJADO, CLIP_FUENTE_EMPUJADO)
+	var up: Animation = _fuente_empuje(FUENTE_LEVANTARSE, CLIP_FUENTE_LEVANTARSE)
 	if idle_n == "" or muerte_n == "" or fly == null or up == null or not _enganchar_sk_empuje():
 		push_warning("Pj3D[%s]: no se pudieron traer los clips de empujado y levantarse" % id)
 		return
@@ -1638,6 +1664,37 @@ func _preparar_mano_quemada() -> void:
 		lib = AnimationLibrary.new()
 		_ap.add_animation_library("", lib)
 	lib.add_animation(ANIM_MANO_QUEMADA, dest)
+
+
+## ===================================================================================================================================
+##  ATAQUE DOBLE (22/10): el goblin asesino corta con una daga en cada mano. El clip se construye por código (AtaqueDoble) sobre la guardia de su Idle y se llama
+##  «AtaqueDoble»; el rol `attack` lo encuentra por CLIPS_DE. Sus dos instantes de corte (fracción del clip) son AtaqueDoble.CORTES.
+## ===================================================================================================================================
+## Modelos con ataque doble construido por código.
+const MODELOS_ATAQUE_DOBLE: Array = ["goblin_asesino"]
+## Instantes (fracción de la duración con que se reproduce) en que sale cada golpe de un rol, para los personajes con VARIOS (Combate3D programa uno por corte).
+## Los demás usan `momento_golpe` (uno solo).
+const MOMENTOS_CORTE: Dictionary = {"goblin_asesino": {"attack": AtaqueDoble.CORTES}}
+
+
+func _preparar_ataque_doble() -> void:
+	if _ap == null or not MODELOS_ATAQUE_DOBLE.has(glb_de(id)) or _ap.has_animation(AtaqueDoble.NOMBRE_CLIP):
+		return
+	var idle_n: String = _buscar_clip("idle")
+	var sk: Skeleton3D = _esqueleto()
+	if idle_n == "" or sk == null:
+		return
+	var prefijo: String = String(_ap.get_node(_ap.root_node).get_path_to(sk)) + ":"
+	var lib: AnimationLibrary = _ap.get_animation_library("")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		_ap.add_animation_library("", lib)
+	lib.add_animation(AtaqueDoble.NOMBRE_CLIP, AtaqueDoble.construir(sk, _ap.get_animation(idle_n), prefijo))
+
+
+## Fracciones de la duración del clip del rol `nombre` en que sale cada golpe (una por corte). Vacío = un solo golpe (`momento_golpe`).
+func momentos_corte(nombre: String) -> Array:
+	return (MOMENTOS_CORTE.get(id, {}) as Dictionary).get(nombre, []) as Array
 
 
 ## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.

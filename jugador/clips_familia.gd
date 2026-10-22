@@ -11,10 +11,34 @@ extends RefCounted
 ## Es lo que hace el importador de Godot con BoneMap + Rest Fixer, pero sin tocar el GLB. Los huesos que la fuente no tiene (los dedos) siguen a su
 ## padre en su pose de reposo. La traslación de la cadera se reescala con la relación de alturas de cadera, y todo el clip se sube/baja la misma
 ## cantidad fija para que, con el Idle, el pie más bajo quede a la altura que tiene en el reposo (pies en el suelo).
+## Un modelo puede tomar clips de VARIOS GLB y con otros nombres (FUENTES: el goblin asesino usa Gribble para moverse y el goblin guerrero para las reacciones), y un
+## clip suelto de otro GLB se traduce con `traducir_clip` (el empujado y levantarse de Pj3D).
 
-## Modelo (id de GLB) -> GLB de la familia del que toma los clips. Solo para modelos que NO traen AnimationPlayer propio.
-const FUENTE_DE: Dictionary = {
-	"elfo_base": "res://arte/modelos/chibi_elf.glb",
+## Modelo (id de GLB) -> de dónde toma sus clips. Solo para modelos que NO traen AnimationPlayer propio. Cada fuente es un GLB de la familia (mismos
+## nombres de hueso Mixamo, aunque no la misma pose de reposo) con:
+##   · «ruta»: el GLB (con esqueleto y AnimationPlayer; la malla da igual y puede faltar: arte/meshy/solo_clips.py la quita);
+##   · «referencia»: el clip de la fuente con el que los pies de la fuente pisan el suelo del destino (el reposo de pie; por defecto «Idle»);
+##   · «clips»: {nombre en el destino: nombre en la fuente}. Vacío = todos los de la fuente con su propio nombre;
+##   · «centrar» (opcional): nombres de clip de la fuente cuya cadera se centra sobre el personaje (`_centrar_cadera`).
+## Si dos fuentes dan el mismo nombre de clip, gana la primera.
+const FUENTES: Dictionary = {
+	"elfo_base": [
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+	],
+	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
+	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
+	"goblin_asesino": [
+		{"ruta": "res://arte/meshy/gribble_clips.glb", "referencia": "Combat_Stance", "centrar": ["Combat_Stance"], "clips": {
+			"idle": "Combat_Stance",                              # guardia con las rodillas dobladas
+			"walk": "Crouch_Walk_with_Torch",                     # el andar agazapado hacia delante (lleva el brazo de la antorcha)
+			"run": "Running",
+			"paso_lado": "Cautious_Crouch_Walk_Right_inplace",    # agazapado, pero de LADO (no sirve para avanzar)
+			"guardia": "_01a165a5_cbee_74b5_b15b_32bb9f9f273a",   # sin nombre: pasos de boxeador con la guardia alta; avanza (no es un ataque)
+		}},
+		{"ruta": "res://arte/modelos/goblin_warrior_chibi.glb", "referencia": "Idle", "clips": {
+			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
+		}},
+	],
 }
 
 ## Muestreo de los clips traducidos (los de la fuente van a 30 fps).
@@ -23,16 +47,17 @@ const FPS_MUESTREO: float = 30.0
 const CADERA_MIN: float = 0.01
 ## Terminaciones de los huesos que cuentan como «suela» para apoyar los pies (el más bajo de ellos manda).
 const HUESOS_SUELA: PackedStringArray = ["Foot", "ToeBase", "Toe_End"]
-## Clip de la fuente con el que se mide la altura de los pies (el reposo de pie).
+## Clip de la fuente con el que se mide la altura de los pies si la fuente no dice otro (el reposo de pie).
 const CLIP_REFERENCIA: String = "Idle"
 ## Tolerancia (en grados) de la rotación del nodo del esqueleto respecto al modelo: por encima, el retarget asume que fuente y destino difieren y avisa.
 const GIRO_NODO_TOL: float = 1.0
 
-static var _cache: Dictionary = {}     ## ruta del GLB destino -> {nombre de clip: Animation}
+static var _cache: Dictionary = {}     ## id del GLB destino -> {nombre de clip: Animation}
+static var _cache_clip: Dictionary = {}    ## id|ruta|clip -> Animation traducida suelta (ver `traducir_clip`)
 
 
 static func tiene_fuente(glb_id: String) -> bool:
-	return FUENTE_DE.has(glb_id)
+	return FUENTES.has(glb_id)
 
 
 ## Los clips de la familia ya traducidos al esqueleto `sk_d` del modelo `modelo_d` (raíz de la escena del GLB `glb_id`). Las pistas llevan la ruta
@@ -41,35 +66,106 @@ static func clips_para(glb_id: String, modelo_d: Node3D, sk_d: Skeleton3D) -> Di
 	if _cache.has(glb_id):
 		return _cache[glb_id]
 	var res: Dictionary = {}
-	var ruta: String = String(FUENTE_DE.get(glb_id, ""))
+	for f in (FUENTES.get(glb_id, []) as Array):
+		_traer_de(f as Dictionary, modelo_d, sk_d, res)
+	if not res.is_empty():
+		_cache[glb_id] = res
+	return res
+
+
+## Un clip suelto de OTRO GLB de la familia (p. ej. el BeHit_FlyUp del empujado) traducido al esqueleto `sk_d`, o null. Sin la subida de pies de los clips
+## de `clips_para`: quien lo use (Pj3D._construir_clip) reescribe la cadera con sus propias alturas y solo toma de aquí la traslación RELATIVA y los giros.
+## `escala_cadera` > 0 sustituye la relación de alturas de cadera por esa escala (para vuelos y caídas, que deben ser del mismo tamaño RELATIVO al modelo entero).
+static func traducir_clip(glb_id: String, ruta: String, clip: String, modelo_d: Node3D, sk_d: Skeleton3D, escala_cadera: float = 0.0) -> Animation:
+	var clave: String = glb_id + "|" + ruta + "|" + clip
+	if _cache_clip.has(clave):
+		return _cache_clip[clave] as Animation
+	var res: Animation = null
+	var fuente: Node3D = _abrir(ruta)
+	if fuente != null:
+		var sks: Array[Node] = fuente.find_children("*", "Skeleton3D", true, false)
+		var aps: Array[Node] = fuente.find_children("*", "AnimationPlayer", true, false)
+		if not sks.is_empty() and not aps.is_empty() and (aps[0] as AnimationPlayer).has_animation(clip):
+			var c := _Ctx.new()
+			c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d)
+			if escala_cadera > 0.0:
+				c.escala_cadera = escala_cadera
+			res = (c.traducir((aps[0] as AnimationPlayer).get_animation(clip), String(modelo_d.get_path_to(sk_d)) + ":") as Array)[0]
+		fuente.free()
+	_cache_clip[clave] = res
+	return res
+
+
+static func _abrir(ruta: String) -> Node3D:
 	if ruta == "" or not ResourceLoader.exists(ruta):
-		return res
+		return null
 	var sc: PackedScene = load(ruta) as PackedScene
-	if sc == null:
-		return res
-	var fuente: Node3D = sc.instantiate() as Node3D
+	return sc.instantiate() as Node3D if sc != null else null
+
+
+## Traduce los clips de la fuente `f` (ver FUENTES) y los añade a `res` (sin pisar los que ya estén).
+static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Dictionary) -> void:
+	var fuente: Node3D = _abrir(String(f.get("ruta", "")))
+	if fuente == null:
+		return
 	var sks: Array[Node] = fuente.find_children("*", "Skeleton3D", true, false)
 	var aps: Array[Node] = fuente.find_children("*", "AnimationPlayer", true, false)
 	if sks.is_empty() or aps.is_empty():
 		fuente.free()
-		return res
-	var sk_s: Skeleton3D = sks[0] as Skeleton3D
+		return
 	var ap_s: AnimationPlayer = aps[0] as AnimationPlayer
 	var c := _Ctx.new()
-	c.preparar(fuente, sk_s, modelo_d, sk_d)
+	c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d)
 	var base: String = String(modelo_d.get_path_to(sk_d)) + ":"
-	# 1) la altura de los pies: con el Idle de la fuente, cuánto hay que subir/bajar la cadera destino.
+	# 1) la altura de los pies: con el clip de referencia de la fuente, cuánto hay que subir/bajar la cadera destino.
+	var referencia: String = String(f.get("referencia", CLIP_REFERENCIA))
 	var sube: float = 0.0
-	if ap_s.has_animation(CLIP_REFERENCIA):
+	if ap_s.has_animation(referencia):
 		c.sube = 0.0
-		var medido: Array = c.traducir(ap_s.get_animation(CLIP_REFERENCIA), base)
+		var medido: Array = c.traducir(ap_s.get_animation(referencia), base)
 		sube = c.suela_reposo - float(medido[1])
 	c.sube = sube
-	for nombre in ap_s.get_animation_list():
-		res[nombre] = (c.traducir(ap_s.get_animation(nombre), base) as Array)[0]
+	# 2) los clips pedidos (o todos, con su nombre)
+	var pedidos: Dictionary = (f.get("clips", {}) as Dictionary).duplicate()
+	if pedidos.is_empty():
+		for nombre in ap_s.get_animation_list():
+			pedidos[nombre] = nombre
+	for destino in pedidos.keys():
+		var origen: String = String(pedidos[destino])
+		if res.has(destino):
+			continue
+		if not ap_s.has_animation(origen):
+			push_warning("ClipsFamilia: la fuente %s no tiene el clip «%s»" % [f.get("ruta", ""), origen])
+			continue
+		var traducido: Animation = (c.traducir(ap_s.get_animation(origen), base) as Array)[0]
+		if (f.get("centrar", []) as Array).has(origen):
+			_centrar_cadera(traducido, sk_d)
+		res[destino] = traducido
 	fuente.free()
-	_cache[glb_id] = res
-	return res
+
+
+## Quita al clip `an` el desplazamiento medio de la cadera en el plano del suelo, para que quede centrado sobre el personaje (los clips «en el sitio» de Mixamo traen la
+## postura puesta a un lado: Combat_Stance de Gribble desplaza la cadera 0,34 de su alto de cadera). La altura no se toca.
+static func _centrar_cadera(an: Animation, sk_d: Skeleton3D) -> void:
+	var cadera: int = sk_d.find_bone("mixamorig_Hips")
+	if cadera < 0:
+		return
+	var reposo: Vector3 = sk_d.get_bone_rest(cadera).origin
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) != Animation.TYPE_POSITION_3D or not String(an.track_get_path(t)).ends_with("mixamorig_Hips"):
+			continue
+		var n: int = an.track_get_key_count(t)
+		if n == 0:
+			continue
+		var media := Vector2.ZERO
+		for k in range(n):
+			var v: Vector3 = an.track_get_key_value(t, k)
+			media += Vector2(v.x, v.z)
+		media /= float(n)
+		var corrige := Vector2(media.x - reposo.x, media.y - reposo.z)
+		for k in range(n):
+			var v2: Vector3 = an.track_get_key_value(t, k)
+			an.track_set_key_value(t, k, Vector3(v2.x - corrige.x, v2.y, v2.z - corrige.y))
 
 
 ## Estado del retarget entre una fuente y un destino.

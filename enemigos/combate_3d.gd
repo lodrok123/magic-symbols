@@ -288,6 +288,18 @@ static func invocar_elemental(p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lan
 	return equipar(modelo, p_mundo, p_jugador, p_lanz)
 
 
+## Crea un goblin asesino en `pos` (banco de pruebas: Alt+F11 en el Jugador3D; ningún nivel lo coloca todavía). Mismo comportamiento cuerpo a cuerpo que el guerrero.
+## Si falta su modelo sale un goblin guerrero. Devuelve null si no hay ninguno de los dos.
+static func invocar_asesino(p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D, pos: Vector3) -> Combate3D:
+	var modelo: Pj3D = p_mundo.call("_personaje", ["goblin_asesino", "goblin_warrior_chibi"], pos)
+	if modelo == null:
+		return null
+	var lista: Variant = p_mundo.get("_goblins")
+	if lista is Array:
+		(lista as Array).append(modelo)
+	return equipar(modelo, p_mundo, p_jugador, p_lanz)
+
+
 func _ready() -> void:
 	add_to_group("combate3d")
 	add_to_group("goblins")
@@ -308,6 +320,8 @@ func _ready() -> void:
 	arquero = pj != null and pj.id.begins_with("goblin_archer")
 	if arquero:
 		nombre = "Goblin arquero"
+	elif pj != null and pj.id.begins_with("goblin_asesino"):
+		nombre = "Goblin asesino"
 	_vida_mostrada = 1.0
 	_ultima_celda_ok()
 	# Materiales del modelo (cada copia tiene los suyos) y su color de partida
@@ -951,6 +965,15 @@ func _atacar(delta: float) -> void:
 			_iniciar_ataque(1.0, ELEM_MOMENTO_GOLPE, _golpe_elemental)
 			return
 		_descanso = DESCANSO_GOLPE
+		# Modelo con varios cortes en su ataque (goblin asesino: dos cortes cruzados, Pj3D.momentos_corte): un golpe por corte, cada uno con el daño del golpe del guerrero.
+		# La invulnerabilidad del jugador tras un golpe (Jugador3D.INVULNERABLE, 0,7 s) hace que el segundo corte solo cuente si el primero falló: ~el mismo daño por ataque.
+		var cortes: Array = pj.momentos_corte("attack") if pj != null else []
+		if cortes.size() >= 2:
+			_iniciar_ataque(VEL_ANIM_GUERRERO, float(cortes[0]), _conectar)
+			var total: float = _ataque
+			for k in range(1, cortes.size()):
+				get_tree().create_timer(total * float(cortes[k]), false).timeout.connect(_efecto_ataque.bind(_ataque_id, _conectar))
+			return
 		_iniciar_ataque(VEL_ANIM_GUERRERO, MOMENTO_GOLPE_GUERRERO, _conectar)
 
 

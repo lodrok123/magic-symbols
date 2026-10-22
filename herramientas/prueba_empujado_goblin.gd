@@ -12,7 +12,7 @@ extends SceneTree
 const DT: float = 1.0 / 30.0
 const S: float = 2.3
 const LADO: int = 14
-const IDS: Array = ["goblin_warrior_chibi", "goblin_archer_chibi"]
+const IDS: Array = ["goblin_warrior_chibi", "goblin_archer_chibi", "goblin_asesino"]     # el asesino (otro esqueleto): sus dos clips se traducen con ClipsFamilia
 
 var _mundo: Mundo3D = null
 var _jugador: Jugador3D = null
@@ -145,7 +145,9 @@ func _clips(id: String) -> void:
 	var yf: float = (an.track_get_key_value(t, an.track_get_key_count(t) - 1) as Vector3).y
 	var subida: float = ymax - y0
 	print("      %s · cadera del clip: y0 %.3f, máx %.3f (sube %.3f), final %.3f, x [%.4f, %.4f] z [%.4f, %.4f]" % [id, y0, ymax, subida, yf, xmin, xmax, zmin, zmax])
-	_ok("%s · la cadera sube ≈ 1,27 × EMPUJADO_ESCALA_VUELO" % id, absf(subida - 1.267 * Pj3D.EMPUJADO_ESCALA_VUELO) < 0.12)
+	# 1,267 es lo que sube en un goblin de 1,7 de alto; en el asesino (0,977) sube lo mismo EN PROPORCIÓN (× su alto / 1,7).
+	var k_alto: float = pj.alto_modelo() / Pj3D.ALTO_MODELO_GOBLIN_FUENTE
+	_ok("%s · la cadera sube ≈ 1,27 × EMPUJADO_ESCALA_VUELO (× alto/1,7 = %.2f)" % [id, k_alto], absf(subida - 1.267 * Pj3D.EMPUJADO_ESCALA_VUELO * k_alto) < 0.12 * k_alto)
 	_ok("%s · sin deriva horizontal en el clip" % id, xmax - xmin < 0.0001 and zmax - zmin < 0.0001)
 	_ok("%s · el final tumbado no se hunde (cadera ≥ −0,15 y sobre el suelo de su muerte)" % id, yf > -0.15 and yf < 0.35, "%.3f" % yf)
 	var an2: Animation = ap.get_animation("Levantarse")
@@ -206,7 +208,8 @@ func _vuelo(id: String) -> void:
 			anda = anda or g.moviendo != 0
 	print("      %s · vuela %.2f s (%d fotogramas), +%.3f de cadera (por unidad de modelo; ×%.2f escala = %.2f u en el juego), deriva horizontal máx %.3f, tardó %d fotogramas en total" % [
 		id, t_vuelo * DT, t_vuelo, max_y, g.pj.scale.y, max_y * g.pj.scale.y, max_drift, ticks])
-	_ok("%s · la cadera sube de verdad en el mundo (≈ lo escalado)" % id, absf(max_y - 1.267 * Pj3D.EMPUJADO_ESCALA_VUELO) < 0.2)
+	var k_alto_v: float = g.pj.alto_modelo() / Pj3D.ALTO_MODELO_GOBLIN_FUENTE
+	_ok("%s · la cadera sube de verdad en el mundo (≈ lo escalado)" % id, absf(max_y - 1.267 * Pj3D.EMPUJADO_ESCALA_VUELO * k_alto_v) < 0.2 * k_alto_v)
 	_ok("%s · sin deriva horizontal respecto a su nodo" % id, max_drift < 0.12)
 	_ok("%s · durante el vuelo el estado es «empujado»" % id, estado_ok)
 	_ok("%s · no ataca ni camina mientras vuela y se levanta" % id, not ataco and not anda)

@@ -11,15 +11,44 @@ extends RefCounted
 ## Medidas en unidades del modelo (el goblin chibi mide 1,7).
 
 const CARPETA: String = "res://arte/equipo/"
+## Piezas de equipo que viven junto al personaje en arte/modelos (baston_marimanta.glb): `pieza()` las busca aquí si no están en CARPETA.
+const CARPETA_MODELOS: String = "res://arte/modelos/"
+
+## Bastón de Marimanta (baston_marimanta.glb, Tripo: 0,98 de alto con el pie en el origen y la punta curva hacia +Y). Marimanta mide 1,7 como viene y 0,8 en el juego:
+## con BASTON_ESCALA 1,3 mide 1,27 (0,60 u en el juego, hasta el hombro de ella; más largo se le cruza por la cara al andar). Posición y giro, en el espacio del hueso de la mano derecha (en unidades del modelo),
+## calculados en idle para que el bastón quede VERTICAL con el pie en el suelo y la palma de ella (a 6 cm de la muñeca hacia los dedos, a ~0,88 del suelo) sobre el palo.
+const BASTON_ESCALA: float = 1.3
+const BASTON_POS: Vector3 = Vector3(-0.457, 0.615, -0.428)
+const BASTON_GIRO: Vector3 = Vector3(-46.3, 25.0, -163.8)
 
 ## Grimorio de la elfa: equipo/grimorio_<nivel>.glb (Meshy, horneados con meshy en el marco del de código).
 ## 1 botánico (marrón y verde) · 2 rúnico (azul y gris) · 3 legendario (rojo y oro). Cada uno trae su pluma.
 const NIVELES_GRIMORIO: Array = ["", "botánico", "rúnico", "legendario"]
 static var nivel_grimorio: int = 1
 
+## Dagas del goblin asesino (daga_goblin.glb: 0,5 de largo con el centro de la empuñadura en el origen y la hoja hacia +Y; hoja = 0,265). El asesino mide 0,977 y
+## en el juego 0,85, o sea ×0,87: con DAGA_ESCALA 1,3 la hoja mide ~0,30 u en el juego. Posición en el espacio del hueso de la mano (+Y hacia los dedos), giro en grados.
+## La izquierda va reflejada (escala X negativa).
+const DAGA_ESCALA: float = 1.3
+## Los giros salen de pedir que en cada corte del ataque doble (AtaqueDoble.CORTES) la hoja apunte hacia delante (a lo largo del brazo) con el filo curvo hacia el lado
+## al que barre (derecha en el primer corte, izquierda en el segundo): giro_mano_en_el_corte⁻¹ · giro(+90° en X). El hueso de la mano de Mixamo no apunta igual en las dos.
+const DAGA_POS_DERECHA: Vector3 = Vector3(0.0, 0.045, 0.0)
+const DAGA_GIRO_DERECHA: Vector3 = Vector3(0.5, -31.7, -3.0)
+const DAGA_POS_IZQUIERDA: Vector3 = Vector3(0.0, 0.045, 0.0)
+const DAGA_GIRO_IZQUIERDA: Vector3 = Vector3(0.5, -108.9, 3.0)
+
 ## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados, (opcional) multiplicador de escala por eje] en el espacio del hueso.
 ## Los huesos de mano de Mixamo apuntan con +Y hacia los dedos.
 const EQUIPO: Dictionary = {
+	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
+	"marimanta": [
+		["baston_marimanta", "RightHand", BASTON_POS, BASTON_GIRO, Vector3(BASTON_ESCALA, BASTON_ESCALA, BASTON_ESCALA)],
+	],
+	# Goblin asesino: la misma daga (arte/equipo/daga_goblin.glb) en las DOS manos, la izquierda reflejada. Medidas en DAGA_* (más abajo).
+	"goblin_asesino": [
+		["daga_goblin", "RightHand", DAGA_POS_DERECHA, DAGA_GIRO_DERECHA, Vector3(DAGA_ESCALA, DAGA_ESCALA, DAGA_ESCALA)],
+		["daga_goblin", "LeftHand", DAGA_POS_IZQUIERDA, DAGA_GIRO_IZQUIERDA, Vector3(-DAGA_ESCALA, DAGA_ESCALA, DAGA_ESCALA)],
+	],
 	"goblin_warrior_chibi": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
@@ -119,6 +148,8 @@ static func pieza(id: String) -> Node3D:
 		g.name = "grimorio"
 		return g
 	var ruta: String = CARPETA + id + ".glb"
+	if not ResourceLoader.exists(ruta):
+		ruta = CARPETA_MODELOS + id + ".glb"
 	if ResourceLoader.exists(ruta):
 		var ps: PackedScene = load(ruta) as PackedScene
 		if ps != null:

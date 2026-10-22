@@ -13,7 +13,7 @@ Para preparar otra arma de Meshy:
   - garrote / espada: mango en el origen y la hoja o cabeza hacia +Y.
   - escudo: centrado en el origen, con la cara hacia +Y.
   - medidas en unidades del goblin (mide 1,7): garrote de unos 0,45-0,6 y escudo de unos 0,4-0,5 de diámetro.
-Lo más fácil es dejar el GLB de Meshy en meshy\entrada\ y pedírselo a Claude.
+Lo más fácil es dejar el GLB de Meshy en meshy\entrada\ y pedírselo a Claude.
 Grimorios de la elfa (5 de octubre, noche), de los tres GLB de Meshy de grimorio\:
   - grimorio_1.glb  botanico (marron y verde)     - grimorio_2.glb  runico (azul y gris)
   - grimorio_3.glb  legendario (rojo y oro)
@@ -25,3 +25,7 @@ Arquero (6 de octubre), de Meshy_AI_Tribal_Bow_and_Arrow (una sola malla con arc
   - flecha.glb   centrada en el origen, punta hacia +Y, 0,6 de largo                             (4,0 k, 0,7 MB)
   Texturas a 1024. El arco va en la mano DERECHA del arquero (EQUIPO["goblin_archer_chibi"]); la flecha aún no se
   cuelga de nada: el Juego puede usarla de proyectil con Equipo3D.pieza("flecha").
+
+Goblin asesino (22 de octubre), de la daga de Tripo (124 568 triángulos) reducida con arte/meshy/reducir_daga.py:
+  - daga_goblin.glb  centro de la empuñadura en el origen, hoja hacia +Y, filo curvo hacia -X, 0,5 de largo (hoja 0,265)  (3,0 k triángulos, 0,4 MB)
+  Una sola malla para las dos manos: la izquierda es la misma con la escala X en negativo (EQUIPO["goblin_asesino"], constantes DAGA_* de equipo_3d.gd).

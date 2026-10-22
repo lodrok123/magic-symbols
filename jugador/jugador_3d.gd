@@ -540,7 +540,7 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
 	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
-	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio.
+	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio. Alt+F11: un goblin asesino.
 	# No F8: es el atajo del editor de Godot para DETENER el juego y la ventana se cerraba antes de llegar aquí.
 	var f8: bool = libre and Input.is_key_pressed(KEY_F11)
 	if f8 and not _f8_previa and lanz != null:
@@ -552,7 +552,10 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			if Input.is_key_pressed(KEY_SHIFT):
 				Gatopedro3D.invocar(mundo, self, lanz, destino)
 			else:
-				Combate3D.invocar_elemental(mundo, self, lanz, destino)
+				if Input.is_key_pressed(KEY_ALT):
+					Combate3D.invocar_asesino(mundo, self, lanz, destino)      # Alt+F11: goblin asesino (22/10)
+				else:
+					Combate3D.invocar_elemental(mundo, self, lanz, destino)
 		else:
 			lanz.avisar("No cabe un elemental ahí delante", Color(1, 0.7, 0.5))
 	_f8_previa = f8
