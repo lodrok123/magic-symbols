@@ -8,6 +8,8 @@ extends "res://herramientas/escenario_base.gd"
 ##   3  colisiones y datos del terreno idénticos con y sin el labio; ningún nodo de borde colisiona
 ##   4  abrir una `c` como cuenca y cerrarla: las aristas pasan de seco a orilla y vuelven, sin duplicar ni dejar nada colgando
 ##   5  coste en triángulos
+##   6  cauce profundo (22/10): guijarros (srgb, pequeños, 5 por casilla), profundidad visual (el lecho NO baja: se pisa a ras), oclusión en la tapa, pared más oscura, interruptor,
+##      colisiones y Terreno3D idénticos con y sin, abrir/cerrar cuenca y llenar_cauce siguen cuadrando
 
 const RUTA: String = "res://escenas/PruebaBosque01.tscn"
 const S: float = 2.3
@@ -28,6 +30,7 @@ func _escenario() -> void:
 	await _colisiones()
 	await _cuenca(cauce)
 	_coste()
+	await _profundo(cauce)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -142,7 +145,7 @@ func _aristas(esperadas: Array) -> void:
 	var alto_cauce: float = float(maqueta.get("ALTO_CAUCE"))
 	_ok("1.6 el labio va entre el lecho y 5 cm sobre el suelo", y_min >= alto_cauce - 0.001 and y_max <= alto + 0.06, "y %.3f..%.3f (lecho %.3f, suelo %.3f)" % [y_min, y_max, alto_cauce, alto])
 	var faldas: MeshInstance3D = _hijo(seco, "faldas")
-	_ok("1.7 la falda del lecho seco lleva el material del lecho", faldas != null and faldas.mesh.surface_get_material(0) == maqueta.get("_mat_lecho_cauce"))
+	_ok("1.7 la falda del lecho seco lleva el material de la pared del cauce (cauce profundo: el del lecho más oscuro)", faldas != null and faldas.mesh.surface_get_material(0) == maqueta.get("_mat_falda_cauce"))
 	_ok("1.8 el labio lleva el material del suelo (shader: estado y joints)", labio.mesh.surface_get_material(0) == maqueta.get("_mat_suelo"))
 	# Nada duplicado con las orillas de agua: ninguna arista de agua es suelo ↔ c.
 	var agua: BordePiedras3D = _nodo("_bordes")
@@ -262,3 +265,146 @@ func _coste() -> void:
 		if not h.is_queued_for_deletion():
 			nodos += 1
 	_ok("5.1 coste: %d aristas · labio %d + falda %d + %d cantos × %d = %d triángulos extra en %d nodos (no uno por casilla)" % [n, tri_labio, tri_falda, seco.n_piedras(), tri_canto, tri_labio + tri_falda + tri_piedras, nodos], nodos <= 3)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 6 · cauce profundo
+
+## Firma de lo que NO debe cambiar con el interruptor: datos del terreno, y para cada casilla c su altura de pies, bloqueo, cuenca y superficie.
+func _firma_terreno(cauce: Array) -> int:
+	var s: Array = [hash(Terreno3D.mapa), Terreno3D.alturas.hash(), Terreno3D.cauces_abiertos.hash()]
+	for c in cauce:
+		s.append([c, snappedf(Terreno3D.y_pies(c), 0.0001), Terreno3D.bloqueada(c), Terreno3D.es_cuenca(c), snappedf(Terreno3D.superficie_agua(c), 0.0001)])
+	return hash(s)
+
+
+func _lum(c: Color) -> float:
+	return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
+
+
+func _profundo(cauce: Array) -> void:
+	var alto: float = float(maqueta.get("ALTO"))
+	var alto_cauce: float = float(maqueta.get("ALTO_CAUCE"))
+	var n_c: int = cauce.size()
+	var por: int = int(maqueta.get("GUIJARROS_CAUCE"))
+	var r_min: float = float(maqueta.get("GUIJARRO_RADIO_MIN"))
+	var r_var: float = float(maqueta.get("GUIJARRO_RADIO_VAR"))
+	var largo: float = float(maqueta.get("GUIJARRO_ALARGADO"))
+	var gm: MultiMeshInstance3D = maqueta.get("_guijarros")
+	var mm: MultiMesh = gm.multimesh
+	var mat_g: StandardMaterial3D = (mm.mesh as SphereMesh).material
+	_ok("6.0 de serie cauce_profundo = true", bool(maqueta.get("cauce_profundo")))
+	# Guijarros
+	_ok("6.1 los guijarros llevan color de vértice en srgb (antes se leía como lineal y salía casi blanco)", mat_g.vertex_color_use_as_albedo and mat_g.vertex_color_is_srgb)
+	_ok("6.2 %d guijarros por casilla (antes 9): %d en total" % [por, n_c * por], por < 9 and mm.instance_count == n_c * por, "instancias %d" % mm.instance_count)
+	var datos: Dictionary = maqueta.get("_guijarros_cauce")
+	var r_max_visto: float = 0.0
+	var r_min_visto: float = INF
+	var fuera_rango: int = 0
+	for c in cauce:
+		for tf in (datos[c][1] as Array):
+			var sc: Vector3 = (tf as Transform3D).basis.get_scale()
+			var rr: float = sc.z
+			r_max_visto = maxf(r_max_visto, maxf(sc.x, sc.z))
+			r_min_visto = minf(r_min_visto, rr)
+			if rr < r_min - 0.0005 or rr > r_min + r_var + 0.0005 or absf(sc.x - rr * largo) > 0.001:
+				fuera_rango += 1
+	_ok("6.3 tamaño de grava: radio %.3f–%.3f u, el mayor semieje %.3f u (antes hasta %.2f)" % [r_min, r_min + r_var, r_max_visto, 0.243 * 1.4], fuera_rango == 0 and r_max_visto < 0.15, "%d fuera de rango" % fuera_rango)
+	# Profundidad visual: el lecho NO baja (se pisa a ras), pero la tapa lleva oclusión y la pared es más oscura.
+	_ok("6.4 el lecho sigue 0,1 u bajo el suelo (no se cambia la altura real: se pisa a ras)", absf(alto - alto_cauce - 0.1) < 1.0e-6, "%.3f" % (alto - alto_cauce))
+	var pisa_a_ras: bool = true
+	for c in cauce:
+		if absf(Terreno3D.y_pies(c) - Terreno3D.alto_suelo) > 1.0e-4:
+			pisa_a_ras = false
+	_ok("6.5 los pies en una c cerrada van a la altura del suelo (por eso el lecho no puede ser más hondo)", pisa_a_ras)
+	var tapas: Dictionary = maqueta.get("_tapas_cauce")
+	var con_oclusion: int = 0
+	var peor: float = 1.0
+	var centro_ok: bool = true
+	var tapa_y_ok: bool = true
+	for c in cauce:
+		var m: ArrayMesh = (tapas[c] as MeshInstance3D).mesh as ArrayMesh
+		if m.get_surface_count() != 2:
+			tapa_y_ok = false
+			continue
+		var arr: Array = m.surface_get_arrays(0)
+		var cols = arr[Mesh.ARRAY_COLOR]
+		if cols == null:
+			continue
+		con_oclusion += 1
+		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		for i in range(vs.size()):
+			peor = minf(peor, (cols[i] as Color).r)
+			if absf(vs[i].y - alto_cauce) > 1.0e-5:
+				tapa_y_ok = false
+			if absf(vs[i].x) < 0.05 and absf(vs[i].z) < 0.05 and (cols[i] as Color).r < 0.999 and _vecinos_pared(c) == 0:
+				centro_ok = false
+	_ok("6.6 todas las tapas llevan color de vértice (oclusión), a la altura del lecho de siempre", con_oclusion == n_c and tapa_y_ok, "%d/%d tapas" % [con_oclusion, n_c])
+	_ok("6.7 pegado a la pared el lecho se oscurece a ≈ %.2f de luz (mín visto %.2f)" % [1.0 - float(maqueta.get("OCLUSION_FUERZA")), peor], absf(peor - (1.0 - float(maqueta.get("OCLUSION_FUERZA")))) < 0.02, "%.3f" % peor)
+	_ok("6.8 una casilla sin pared vecina no se oscurece", centro_ok)
+	var lecho: StandardMaterial3D = maqueta.get("_mat_lecho_cauce")
+	var pared: StandardMaterial3D = maqueta.get("_mat_falda_cauce")
+	_ok("6.9 la pared interior (falda) es más oscura que el lecho", pared != lecho and _lum(pared.albedo_color) < _lum(lecho.albedo_color) * 0.8, "%.3f vs %.3f" % [_lum(pared.albedo_color), _lum(lecho.albedo_color)])
+	var seco: BordePiedras3D = _nodo("_bordes_cauce")
+	_ok("6.10 el labio del cauce proyecta sombra y su pie se ilumina como pared", seco.labio_proyecta_sombra and absf(seco.labio_pie_arriba - float(maqueta.get("PIE_LABIO_CAUCE"))) < 1.0e-6)
+	var lab: MeshInstance3D = _hijo(seco, "labio")
+	_ok("6.11 la malla del labio tiene sombra activada", lab != null and lab.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	# Interruptor: colisiones y terreno idénticos con y sin.
+	var firma_on: int = _firma_terreno(cauce)
+	var col_on: int = _contar_colisiones(maqueta)
+	var bordes_on: int = _total_bordes()
+	maqueta.set("cauce_profundo", false)
+	await avanzar(2)
+	var firma_off: int = _firma_terreno(cauce)
+	var col_off: int = _contar_colisiones(maqueta)
+	_ok("6.12 sin cauce_profundo: Terreno3D (mapa, alturas, y_pies, bloqueo, cuenca) idéntico", firma_on == firma_off)
+	_ok("6.13 sin cauce_profundo: las mismas colisiones (%d)" % col_on, col_on == col_off, "con %d, sin %d" % [col_on, col_off])
+	_ok("6.14 sin cauce_profundo: los 9 guijarros de antes, sin srgb, mismo tamaño de antes", mm.instance_count == n_c * 9 and not mat_g.vertex_color_is_srgb)
+	var datos_off: Dictionary = maqueta.get("_guijarros_cauce")
+	var r_max_off: float = 0.0
+	for c in cauce:
+		for tf in (datos_off[c][1] as Array):
+			r_max_off = maxf(r_max_off, (tf as Transform3D).basis.get_scale().x)
+	_ok("6.15 sin cauce_profundo: guijarros de hasta %.2f u (los de antes, 0,34)" % r_max_off, r_max_off > 0.3 and (datos_off[cauce[0]][1] as Array).size() == 9)
+	var cubo_plano: bool = true
+	for c in cauce:
+		if ((tapas[c] as MeshInstance3D).mesh as ArrayMesh) != (maqueta.get("_malla_lecho_plano") as ArrayMesh):
+			cubo_plano = false
+	_ok("6.16 sin cauce_profundo: la tapa es la lisa de antes (sin oclusión)", cubo_plano)
+	_ok("6.17 sin cauce_profundo: lecho y falda con el color de antes (sin oscurecer) y la falda con el material del lecho", (maqueta.get("_mat_lecho_cauce") as StandardMaterial3D).albedo_color.is_equal_approx(maqueta.get("_albedo_lecho_base")) and (_hijo(_nodo("_bordes_cauce"), "faldas") as MeshInstance3D).mesh.surface_get_material(0) == lecho)
+	_ok("6.18 sin cauce_profundo: el labio sin sombra y con el pie de antes", not _nodo("_bordes_cauce").labio_proyecta_sombra and absf(_nodo("_bordes_cauce").labio_pie_arriba - BordePiedras3D.LABIO_PIE_ARRIBA) < 1.0e-6 and _total_bordes() == bordes_on)
+	# Abrir/cerrar cuenca y llenar con el interruptor en cada posición.
+	var elegida: Vector2i = cauce[0]
+	for modo in [false, true]:
+		maqueta.set("cauce_profundo", modo)
+		await avanzar(2)
+		var tag: String = "con" if modo else "sin"
+		var tot: int = _total_bordes()
+		Terreno3D.cauces_abiertos[elegida] = true
+		await avanzar_s(0.5)
+		var pozos: Dictionary = maqueta.get("_pozos_cauce")
+		var estado: Dictionary = maqueta.get("_estado_pozo")
+		_ok("6.19 (%s) abrir la cuenca crea su pozo y la casilla se ve abierta" % tag, bool(estado.get(elegida, false)) and pozos.has(elegida) and (pozos[elegida] as Node3D).visible and not (tapas[elegida] as MeshInstance3D).visible)
+		_ok("6.20 (%s) bordes: seco + pozo suman lo de antes" % tag, _total_bordes() == tot)
+		Terreno3D.cauces_abiertos.erase(elegida)
+		await avanzar_s(0.5)
+		_ok("6.21 (%s) cerrarla devuelve el lecho seco (tapa visible, pozo oculto)" % tag, not bool(estado.get(elegida, true)) and (tapas[elegida] as MeshInstance3D).visible and not (pozos[elegida] as Node3D).visible)
+	_aviso("6.19 la POSICIÓN de los guijarros al abrir/cerrar no se lee en headless (el MultiMesh devuelve ceros sin GPU): se mira en las capturas con ventana")
+	maqueta.set("cauce_profundo", true)
+	await avanzar(2)
+	_ok("6.22 volver a true recupera la grava y las tapas nuevas", mm.instance_count == n_c * por and (((tapas[cauce[0]] as MeshInstance3D).mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR] != null))
+	# llenar_cauce: el agua arranca justo bajo el lecho (que no ha bajado) y acaba a ras del agua del río.
+	maqueta.call("llenar_cauce", [elegida])
+	var aguas: Dictionary = maqueta.get("_agua_cauce")
+	var mi: MeshInstance3D = aguas[elegida]
+	var alto_agua_m: float = float(maqueta.get("ALTO_AGUA"))
+	_ok("6.23 llenar_cauce: el agua arranca 2 cm bajo el lecho (y %.3f) y es visible" % (alto_cauce - 0.02), mi.visible and absf(mi.position.y + alto_agua_m - (alto_cauce - 0.02)) < 1.0e-4, "arranque %.4f" % (mi.position.y + alto_agua_m))
+	await avanzar_s(2.0)
+	_ok("6.24 llenar_cauce: acaba a la altura del agua (0) y la casilla pasa a «~»", absf(mi.position.y) < 0.002 and _l(elegida) == "~", "y %.4f, letra %s" % [mi.position.y, _l(elegida)])
+
+func _vecinos_pared(c: Vector2i) -> int:
+	var k: int = 0
+	for v in DIRS:
+		if maqueta.call("_pared_de_cauce", c + (v as Vector2i)):
+			k += 1
+	return k

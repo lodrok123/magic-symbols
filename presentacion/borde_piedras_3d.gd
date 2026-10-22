@@ -49,6 +49,12 @@ const ELEVA_ARRANQUE: float = 0.012
 ## Cuánto de «arriba» lleva la normal del pie del labio (0 = horizontal, como la pared; 1 = 45°). Menos oscuro el pie sin romper la lectura del remate.
 const LABIO_PIE_ARRIBA: float = 0.3
 
+## cauce profundo: cuánto de «arriba» lleva la normal del pie del labio (de serie, `LABIO_PIE_ARRIBA`). A 0 el pie se ilumina como la pared vertical que es: en el cauce seco
+## (pared de 10 cm, el labio la cubre entera) es lo único que se ve de ella y así se lee más oscura que el suelo.
+@export var labio_pie_arriba: float = LABIO_PIE_ARRIBA
+## cauce profundo: true = el labio proyecta sombra (de serie no: asoma 5 cm y la del bloque lo cubre). En el cauce seco su sombra cae sobre el lecho, que va 10 cm más abajo.
+@export var labio_proyecta_sombra: bool = false
+
 var _n_bordes: int = 0
 var _n_piedras: int = 0
 var _n_tris_labio: int = 0
@@ -167,7 +173,7 @@ func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
 			[pared + d * s + Vector3(0.0, y_alto + s, 0.0), (d + Vector3.UP).normalized(), Vector2(-d.x, -d.z) * s],
 			# La normal del pie se inclina un poco hacia arriba (no es la de la pared, que es horizontal): la pared tiene su propia luz y el pie del labio
 			# no debe quedar tan oscuro como ella (sale una banda sucia pegada a la tapa); la tira se lee como un remate, no como un trozo de pared.
-			[pared + d * s + Vector3(0.0, y_alto - baja, 0.0), (d + Vector3.UP * LABIO_PIE_ARRIBA).normalized(), Vector2(-d.x, -d.z) * (s + baja)]]
+			[pared + d * s + Vector3(0.0, y_alto - baja, 0.0), (d + Vector3.UP * labio_pie_arriba).normalized(), Vector2(-d.x, -d.z) * (s + baja)]]
 		var col: Color = b.get("color", Color(1.0, 1.0, 1.0)) as Color
 		for k in range(2):
 			var p: Array = perfil[k]
@@ -199,7 +205,8 @@ func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "labio"
 	mi.mesh = malla
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF      # asoma 5 cm: la sombra del bloque ya la cubre y no merece un caster
+	if not labio_proyecta_sombra:
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF      # asoma 5 cm: la sombra del bloque ya la cubre y no merece un caster
 	add_child(mi)
 
 

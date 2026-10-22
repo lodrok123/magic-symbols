@@ -1,6 +1,6 @@
 extends SceneTree
 ## CAPTURAS del labio del cauce seco («labio cauce», 22/10). NECESITA VENTANA (sin GPU no hay imagen).
-##   godot --path . --script res://herramientas/captura_labio_cauce.gd -- <antes|despues|cuenca> <carpeta>
+##   godot --path . --script res://herramientas/captura_labio_cauce.gd -- <antes|despues|cuenca|sinprof|profundo|sinprof_cuenca|profundo_cuenca|profundo_lleno> <carpeta>
 ## «antes» = `bisel_cauce = false`; «despues» = de serie; «cuenca» = de serie con una casilla `c` abierta como cuenca (Terreno3D.cauces_abiertos).
 ## Cuatro tomas: cámara del juego y de cerca, con decorado y solo suelo.
 const S: float = 2.3
@@ -23,6 +23,8 @@ func _correr() -> void:
 	var m: Node3D = (load("res://escenas/PruebaBosque01.tscn") as PackedScene).instantiate()
 	if modo == "antes":
 		m.set("bisel_cauce", false)
+	if modo.begins_with("sinprof"):
+		m.set("cauce_profundo", false)       # cauce profundo (22/10): «sinprof» = el cauce de antes; «profundo» = de serie; sufijo «_cuenca» o «_lleno» (llenar_cauce)
 	root.add_child(m)
 	for _i in 150:
 		await process_frame
@@ -48,9 +50,13 @@ func _correr() -> void:
 			mp = p
 			mejor = c
 	print("CAUCE %d casillas; encuadre en %s" % [cauce.size(), mejor])
-	if modo == "cuenca":
+	if modo.ends_with("cuenca"):
 		Terreno3D.cauces_abiertos[mejor] = true
 		for _i in 240:
+			await process_frame
+	if modo.ends_with("lleno"):
+		m.call("llenar_cauce")
+		for _i in 900:
 			await process_frame
 	m.set("_jugador", null)
 	for toma in [[6.0, false], [3.2, false], [6.0, true], [3.2, true]]:

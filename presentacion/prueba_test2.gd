@@ -741,6 +741,14 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## labio cauce (22/10): el mismo labio + falda + cantos en el borde del CAUCE SECO (casillas `c`): el suelo ya no termina plano y de arista viva contra el bloque hundido.
 ## Visual puro (sin colisión). Desmarcar (o `bisel_suelo = false`) = el escalón recto de antes. Cambiarlo en vivo: `reconstruir_bordes_cauce()`.
 @export var bisel_cauce: bool = true
+## cauce profundo (22/10, Pablo: «piedrecitas blancas que vienen del fondo» y «no veo sensación de profundidad»): el lecho seco sigue 0,1 u bajo el suelo (se PISA a ras: `Terreno3D.y_pies` de una `c`
+## cerrada es `alto_suelo`, así que un lecho más hondo dejaría al jugador flotando), pero se lee más hondo: oclusión falsa hacia las paredes, pared y falda más oscuras, labio con sombra y grava
+## pequeña de tonos del lecho (los guijarros de antes salían casi blancos y como pastillas). Desmarcar = el cauce de antes, tal cual. En vivo: se aplica solo (`aplicar_cauce_profundo`).
+@export var cauce_profundo: bool = true:
+	set(v):
+		cauce_profundo = v
+		if is_node_ready():
+			aplicar_cauce_profundo()
 ## 21/10 (V4 de PLAN_EOW_VISUAL): el ESTADO del suelo (mojado, quemado, helado) leído del estado del juego (`Mundo3D.textura_estados()`), con el borde
 ## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
 ## (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo; B2: lee el mismo estado oficial, solo cambia cómo se pinta).
@@ -910,8 +918,27 @@ var _de_archivo: bool = false
 ## encender_runa y electrificar_agua (abajo, «API del Bosque»).
 const ALTO_CAUCE: float = ALTO - 0.1          ## el lecho va 0,1 por debajo del suelo: se lee como zanja, y el agua lo tapa
 const ALTO_RUNAS: float = 3.1                 ## sobre el suelo: encima del dintel del arco
+## cauce profundo · constantes (cauce seco cerrado). Todo es visual: no toca colisión, `Terreno3D` ni la simulación de agua.
+const GUIJARROS_ANTES: int = 9                 ## sin `cauce_profundo`: los 9 de siempre
+const GUIJARROS_CAUCE: int = 5                 ## por casilla (antes 9): grava dispersa, no un tapiz de pastillas
+const GUIJARRO_RADIO_MIN: float = 0.045        ## u (antes 0,10–0,24): de grava, no de piedra
+const GUIJARRO_RADIO_VAR: float = 0.05         ## u que se suman al mínimo según el hash
+const GUIJARRO_ALARGADO: float = 1.3           ## largo/ancho (antes 1,4)
+const GUIJARRO_ALTO: float = 0.6               ## alto/ancho (antes 0,45: óvalos planos)
+const GUIJARRO_GRIS_MIN: float = 0.27          ## luminancia sRGB de los tonos tierra-gris (el lecho ronda 0,40: los guijarros más oscuros que él, nunca blancos)
+const GUIJARRO_GRIS_VAR: float = 0.12
+const GUIJARRO_TINTE: Color = Color(1.08, 0.96, 0.84)   ## multiplicador del gris: tierra parda, como el lecho
+const LECHO_CAUCE_OSCURO: float = 0.88         ## el lecho en conjunto, algo más oscuro que el suelo que lo rodea
+const OCLUSION_ANCHO: float = 0.9              ## u desde la pared hacia dentro en las que el lecho se oscurece (casilla de 2,3 u)
+const OCLUSION_FUERZA: float = 0.62            ## cuánto se oscurece pegado a la pared (0 = nada, 1 = negro)
+const OCLUSION_REJILLA: int = 8                ## divisiones por lado de la tapa del lecho (los colores de vértice interpolan en ellas)
+const PARED_CAUCE_OSCURA: float = 0.6          ## multiplicador de la falda del cauce (la pared interior): más oscura que el lecho
+const PIE_LABIO_CAUCE: float = 0.0             ## normal del pie del labio (ver `BordePiedras3D.labio_pie_arriba`): 0 = pared vertical, más oscura que el suelo
 var _guijarros: MultiMeshInstance3D = null
-## agua filtro: el material del lecho del río (LechoRio3D), el del suelo que sustituye, la malla del bloque (para cambiarle el material en vivo) y las casillas de agua (para rehacer guijarros y adornos).
+var _celdas_cauce: Array[Vector2i] = []        ## cauce profundo: las casillas `c` (para rehacer tapas y guijarros en vivo)
+var _mat_falda_cauce: StandardMaterial3D = null  ## cauce profundo: la falda (pared interior) del lecho seco, más oscura que el lecho
+var _albedo_lecho_base: Color = Color.WHITE
+var _malla_lecho_plano: ArrayMesh = null       ## la tapa lisa de antes (sin oclusión)## agua filtro: el material del lecho del río (LechoRio3D), el del suelo que sustituye, la malla del bloque (para cambiarle el material en vivo) y las casillas de agua (para rehacer guijarros y adornos).
 var _mat_lecho_agua: ShaderMaterial = null
 var _mat_suelo_lecho: Material = null
 var _malla_lecho_agua: ArrayMesh = null
@@ -1428,6 +1455,9 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	_pozos_cauce.clear()
 	_estado_pozo.clear()
 	_guijarros_cauce.clear()
+	_celdas_cauce = celdas.duplicate()
+	_guijarros = null
+	_malla_lecho_plano = null
 	if celdas.is_empty():
 		return
 	var mm := MultiMesh.new()
@@ -1443,22 +1473,8 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	mg.roughness = 0.9
 	bola.material = mg
 	mm.mesh = bola
-	mm.instance_count = celdas.size() * 9
 	var malla_agua: ArrayMesh = _malla_bloque(ALTO_AGUA, _mat_agua, mat_lado)
-	var i: int = 0
 	for c in celdas:
-		var base_guij: Array = []
-		for k in range(9):
-			var h: int = _hash(c.x, c.y, 40 + k)
-			var off := Vector3(float(h % 97) / 96.0 - 0.5, 0.0, float((h >> 7) % 97) / 96.0 - 0.5) * S * 0.85
-			var r: float = 0.1 + float((h >> 3) % 10) / 70.0
-			var tf_g := Transform3D(Basis(Vector3.UP, float(h % 360)).scaled(Vector3(r * 1.4, r * 0.45, r)), _centro_celda(c, ALTO_CAUCE) + off)
-			mm.set_instance_transform(i, tf_g)
-			base_guij.append(tf_g)
-			var gris: float = 0.32 + 0.16 * float((h >> 11) % 10) / 9.0
-			mm.set_instance_color(i, Color(gris * 1.05, gris, gris * 0.9))
-			i += 1
-		_guijarros_cauce[c] = [i - 9, base_guij]
 		var agua := MeshInstance3D.new()
 		agua.mesh = malla_agua
 		agua.position = _centro_celda(c, 0.0)
@@ -1469,12 +1485,15 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	var mat_lecho: StandardMaterial3D = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
 	mat_lecho.albedo_color = mat_lecho.albedo_color * Color(0.72, 0.66, 0.58)
 	# Un bloque por casilla (no un MultiMesh): cada uno se oculta cuando su casilla se abre y pasa a ser pozo.
+	_albedo_lecho_base = mat_lecho.albedo_color
+	mat_lecho.vertex_color_use_as_albedo = true      # cauce profundo: la oclusión va en el color de vértice (las mallas sin color lo dan blanco: no cambia nada)
 	_mat_lecho_cauce = mat_lecho
+	_mat_falda_cauce = mat_lecho.duplicate() as StandardMaterial3D
 	_mat_piedra_pozo = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
-	var malla_lecho: ArrayMesh = _malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado)
+	_malla_lecho_plano = _malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado)
 	for c in celdas:
 		var tapa := MeshInstance3D.new()
-		tapa.mesh = malla_lecho
+		tapa.mesh = _malla_lecho_plano
 		tapa.position = _centro_celda(c, 0.0)
 		add_child(tapa)
 		_tapas_cauce[c] = tapa
@@ -1482,6 +1501,103 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	_guijarros = MultiMeshInstance3D.new()
 	_guijarros.multimesh = mm
 	add_child(_guijarros)
+	aplicar_cauce_profundo()
+
+
+## cauce profundo · ¿esa casilla vecina de una `c` hace de pared (suelo, muro, terraza)? No lo son otra `c`, el agua ni el vacío.
+func _pared_de_cauce(n: Vector2i) -> bool:
+	var l: String = _letra(n)
+	return _en_mapa(n) and l != "c" and l != " " and not _es_agua(l)
+
+
+## cauce profundo · oclusión falsa: multiplicador de luz (1 = nada, menos = más oscuro) en el punto (x, z) local de la casilla `c`, según la distancia a sus lados con pared.
+func _oclusion_cauce(c: Vector2i, x: float, z: float) -> float:
+	var r: float = S * 0.5
+	var f: float = 1.0
+	for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		if not _pared_de_cauce(c + (v as Vector2i)):
+			continue
+		var d: float = r - (x * float((v as Vector2i).x) + z * float((v as Vector2i).y))
+		var t: float = clampf(1.0 - d / OCLUSION_ANCHO, 0.0, 1.0)
+		f = minf(f, 1.0 - OCLUSION_FUERZA * t * t)
+	return f
+
+
+## cauce profundo · la tapa del lecho de una casilla con la oclusión en el color de vértice (rejilla de OCLUSION_REJILLA²). Los costados son los de la malla lisa.
+func _malla_lecho_oscurecida(c: Vector2i) -> ArrayMesh:
+	var n: int = OCLUSION_REJILLA
+	var r: float = S * 0.5
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(_mat_lecho_cauce)
+	for iz in range(n):
+		for ix in range(n):
+			var x0: float = -r + S * float(ix) / float(n)
+			var x1: float = -r + S * float(ix + 1) / float(n)
+			var z0: float = -r + S * float(iz) / float(n)
+			var z1: float = -r + S * float(iz + 1) / float(n)
+			for p in [[x0, z0], [x1, z0], [x1, z1], [x0, z0], [x1, z1], [x0, z1]]:
+				var f: float = _oclusion_cauce(c, float(p[0]), float(p[1]))
+				st.set_color(Color(f, f, f))
+				st.set_normal(Vector3.UP)
+				st.set_uv(Vector2(float(p[0]), float(p[1])))
+				st.add_vertex(Vector3(float(p[0]), ALTO_CAUCE, float(p[1])))
+	var malla: ArrayMesh = st.commit()
+	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _malla_lecho_plano.surface_get_arrays(1))
+	malla.surface_set_material(1, _malla_lecho_plano.surface_get_material(1))
+	return malla
+
+
+## cauce profundo · aplica (o quita) la lectura de profundidad del cauce seco: color del lecho y de la pared, tapas con oclusión, grava nueva y bordes. Se llama sola al cambiar el interruptor.
+func aplicar_cauce_profundo() -> void:
+	if _tapas_cauce.is_empty() or _malla_lecho_plano == null or _mat_lecho_cauce == null:
+		return
+	var p: bool = cauce_profundo
+	_mat_lecho_cauce.albedo_color = _albedo_lecho_base * (Color(LECHO_CAUCE_OSCURO, LECHO_CAUCE_OSCURO, LECHO_CAUCE_OSCURO) if p else Color.WHITE)
+	_mat_falda_cauce.albedo_color = _albedo_lecho_base * (Color(PARED_CAUCE_OSCURA, PARED_CAUCE_OSCURA, PARED_CAUCE_OSCURA) if p else Color.WHITE)
+	for c in _tapas_cauce.keys():
+		(_tapas_cauce[c] as MeshInstance3D).mesh = _malla_lecho_oscurecida(c) if p else _malla_lecho_plano
+	_rellenar_guijarros()
+	reconstruir_bordes_cauce()
+
+
+## cauce profundo · los guijarros del lecho seco. Con `cauce_profundo`: pocos, pequeños, de tonos tierra-gris (srgb: el color se lee como lo escrito, no como lineal, que salía casi
+## blanco) y oscurecidos por la misma oclusión que el lecho. Sin él: los 9 de antes, sin tocar. Una casilla ya abierta a cuenca los lleva al fondo del pozo (`_mover_guijarros_cauce`).
+func _rellenar_guijarros() -> void:
+	if _guijarros == null:
+		return
+	var p: bool = cauce_profundo
+	var por: int = GUIJARROS_CAUCE if p else GUIJARROS_ANTES
+	var mm: MultiMesh = _guijarros.multimesh
+	((mm.mesh as SphereMesh).material as StandardMaterial3D).vertex_color_is_srgb = p
+	mm.instance_count = _celdas_cauce.size() * por
+	_guijarros_cauce.clear()
+	var i: int = 0
+	for c in _celdas_cauce:
+		var base_guij: Array = []
+		for k in range(por):
+			var h: int = _hash(c.x, c.y, 40 + k)
+			var off := Vector3(float(h % 97) / 96.0 - 0.5, 0.0, float((h >> 7) % 97) / 96.0 - 0.5) * S * 0.85
+			var r: float = (GUIJARRO_RADIO_MIN + GUIJARRO_RADIO_VAR * float((h >> 3) % 10) / 9.0) if p else (0.1 + float((h >> 3) % 10) / 70.0)
+			var largo: float = GUIJARRO_ALARGADO if p else 1.4
+			var alto: float = GUIJARRO_ALTO if p else 0.45
+			var giro := Basis(Vector3.UP, float(h % 360))
+			var forma: Basis = (giro * Basis.from_scale(Vector3(r * largo, r * alto, r))) if p else giro.scaled(Vector3(r * largo, r * alto, r))      # cauce profundo: el óvalo gira con su ángulo (antes todos miraban a lo mismo)
+			var tf_g := Transform3D(forma, _centro_celda(c, ALTO_CAUCE) + off)
+			mm.set_instance_transform(i, tf_g)
+			base_guij.append(tf_g)
+			if p:
+				var gris: float = GUIJARRO_GRIS_MIN + GUIJARRO_GRIS_VAR * float((h >> 11) % 10) / 9.0
+				var f: float = _oclusion_cauce(c, off.x, off.z)
+				mm.set_instance_color(i, Color(gris * GUIJARRO_TINTE.r * f, gris * GUIJARRO_TINTE.g * f, gris * GUIJARRO_TINTE.b * f))
+			else:
+				var gris2: float = 0.32 + 0.16 * float((h >> 11) % 10) / 9.0
+				mm.set_instance_color(i, Color(gris2 * 1.05, gris2, gris2 * 0.9))
+			i += 1
+		_guijarros_cauce[c] = [i - por, base_guij]
+	for c in _celdas_cauce:
+		if bool(_estado_pozo.get(c, false)):
+			_mover_guijarros_cauce(c, true)
 
 
 ## 13.9 · POZOS: cada 0,1 s mira qué casillas `c` están abiertas a la simulación (`Terreno3D.es_cuenca`). Abierta = pozo (PozoCauce3D, sin
@@ -1584,7 +1700,10 @@ func reconstruir_bordes_cauce() -> void:
 		_bordes_cauce_abierto.ancho_labio = BORDE_LABIO_ANCHO
 		_bordes_cauce_abierto.sobresale_labio = BORDE_LABIO_SOBRESALE
 		add_child(_bordes_cauce_abierto)
-	_bordes_cauce.construir(secos, S, _mat_lecho_cauce, _mat_suelo)
+	# cauce profundo: la pared interior (falda) más oscura que el lecho, el pie del labio como pared vertical y el labio con sombra sobre el lecho. Apagado = lo de antes.
+	_bordes_cauce.labio_pie_arriba = PIE_LABIO_CAUCE if cauce_profundo else BordePiedras3D.LABIO_PIE_ARRIBA
+	_bordes_cauce.labio_proyecta_sombra = cauce_profundo
+	_bordes_cauce.construir(secos, S, _mat_falda_cauce if (cauce_profundo and _mat_falda_cauce != null) else _mat_lecho_cauce, _mat_suelo)
 	_bordes_cauce_abierto.construir(abiertos, S, _mat_lado_suelo, _mat_suelo)
 
 
@@ -1595,7 +1714,7 @@ func _mover_guijarros_cauce(c: Vector2i, abierta: bool) -> void:
 	var datos: Array = _guijarros_cauce[c]
 	var mm: MultiMesh = _guijarros.multimesh
 	var dy: float = (Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + 0.02 - ALTO_CAUCE) if abierta else 0.0
-	for k in range(9):
+	for k in range((datos[1] as Array).size()):
 		var tf: Transform3D = (datos[1] as Array)[k]
 		tf.origin.y += dy
 		mm.set_instance_transform(int(datos[0]) + k, tf)
