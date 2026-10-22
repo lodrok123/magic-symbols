@@ -28,6 +28,10 @@ const SINONIMOS: Dictionary = {
 	"death": ["shot_and_fall_backward", "shot_in_the_back_and_fall", "death", "dead", "die"],
 	# Ahogarse (diario 231): el clip «Drowning» de los goblins. Sin esta entrada el rol solo se encontraba por el segundo barrido (`contains("drown")`).
 	"drown": ["drowning", "drown", "ahogarse"],
+	# Ser empujado y levantarse (22/10): los dos clips se traen de goblin_behit_flyup.glb y goblin_stand_up.glb (ver `_preparar_empujado`) con estos nombres.
+	# OJO: no llamarlos «…hit…» (el segundo barrido de `_buscar_clip` busca por «contains» y el rol `hit` se llevaría el empujado).
+	"empujado": ["empujado"],
+	"levantarse": ["levantarse"],
 	"talk": ["stand_talking", "talking"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
@@ -193,6 +197,7 @@ func cargar(p_id: String) -> bool:
 		_ap = aps[0] as AnimationPlayer
 		for nombre in _ap.get_animation_list():
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
+		_preparar_empujado()
 		_arbol = ArbolAnimPj.new()
 		_arbol.name = "ArbolAnim"
 		_ap.get_parent().add_child(_arbol)
@@ -1205,6 +1210,239 @@ func _muestrear_bucle(an: Animation, t: int, vals: Array, tiempo: float) -> Quat
 	return vals[0]
 
 
+## ===================================================================================================================================
+##  SER EMPUJADO Y LEVANTARSE (22/10): dos clips de otros GLB (Mixamo, los mismos 28 huesos con los mismos nombres que los goblins).
+##    · goblin_behit_flyup.glb · «BeHit_FlyUp», 1,5 s: sale despedido hacia atrás y acaba tumbado. Rol `empujado`.
+##    · goblin_stand_up.glb · «Stand_Up1», 8,27 s: se levanta del suelo. Se recorta al tramo útil y se acelera. Rol `levantarse`.
+##  No se duplica ningún archivo: al cargar un goblin se LEEN esos GLB (una vez por sesión, en `_fuentes`) y se vuelcan a la librería del AnimationPlayer
+##  del goblin como dos animaciones nuevas, «Empujado» y «Levantarse», ya remuestreadas a 30 fps. Qué se trae:
+##    · TODAS las pistas de ROTACIÓN (los clips solo traen rotación en los huesos + traslación en la cadera: ninguna otra traslación que descartar).
+##    · La traslación de la CADERA, reescrita: x/z fijas (en la posición de reposo de su Idle: el empuje horizontal lo pone el juego) y la y
+##      reescalada (ver `_construir_clip`).
+## ===================================================================================================================================
+const FUENTE_EMPUJADO: String = "res://arte/modelos/goblin_behit_flyup.glb"
+const FUENTE_LEVANTARSE: String = "res://arte/modelos/goblin_stand_up.glb"
+const CLIP_FUENTE_EMPUJADO: String = "BeHit_FlyUp"
+const CLIP_FUENTE_LEVANTARSE: String = "Stand_Up1"
+const ANIM_EMPUJADO: String = "Empujado"
+const ANIM_LEVANTARSE: String = "Levantarse"
+## Modelos (GLB) de goblin que admiten los dos clips (comparten esqueleto Mixamo de 28 huesos).
+const MODELOS_EMPUJABLES: Array = ["goblin_warrior_chibi", "goblin_archer_chibi"]
+## Cuánto de alto vuela la cadera respecto al clip original (1 = como en el clip: sube ~0,75 alturas del modelo, o sea lo mismo en proporción
+## al goblin del juego, que es el modelo escalado). Se aplica a la subida medida desde la cadera de pie.
+const EMPUJADO_ESCALA_VUELO: float = 1.0
+## Tramo útil de Stand_Up1 (s del clip original): de 0 a ~1,7 s está tumbado sin moverse y de ~6,4 s a 8,27 s ya está de pie quieto.
+## Se reproduce a LEVANTARSE_VEL × (4,7 s / 4 = ~1,2 s).
+const LEVANTARSE_DESDE: float = 1.7
+const LEVANTARSE_HASTA: float = 6.4
+const LEVANTARSE_VEL: float = 4.0
+const EMPUJADO_FPS: float = 30.0
+## Suelo mínimo (altura del hueso más bajo, en unidades del modelo) del cuerpo tumbado: el de su pose de muerte, pero nunca por debajo de esto. El del arquero (Dead) queda ~0,08 más abajo
+## que el del guerrero (Die) y al tumbarse el torso se hundía en el suelo (medido en capturas).
+const EMPUJADO_SUELO_MIN: float = -0.10
+
+static var _fuentes: Dictionary = {}              ## ruta+clip -> Animation leída del GLB origen (una vez por sesión)
+var _cadera_de_pie: Transform3D = Transform3D.IDENTITY   ## pose de la cadera en espacio de esqueleto con el Idle (referencia del escudo)
+var _poses_de_pie: Array = []                     ## pose de TODOS los huesos con el Idle (espacio de esqueleto)
+var _hueso_cadera: int = -1
+var _sk_empuje: Skeleton3D = null
+
+
+static func admite_empujado(p_id: String) -> bool:
+	return MODELOS_EMPUJABLES.has(glb_de(p_id))
+
+
+## ¿Trae este personaje los clips de empujado y levantarse (y su árbol los admite)?
+func tiene_empujado() -> bool:
+	return duracion("empujado") > 0.0 and duracion("levantarse") > 0.0
+
+
+static func _animacion_fuente(ruta: String, nombre: String) -> Animation:
+	var k: String = ruta + "|" + nombre
+	if _fuentes.has(k):
+		return _fuentes[k] as Animation
+	var an: Animation = null
+	if ResourceLoader.exists(ruta):
+		var sc: PackedScene = load(ruta) as PackedScene
+		if sc != null:
+			var n: Node = sc.instantiate()
+			var aps: Array[Node] = n.find_children("*", "AnimationPlayer", true, false)
+			if not aps.is_empty() and (aps[0] as AnimationPlayer).has_animation(nombre):
+				an = (aps[0] as AnimationPlayer).get_animation(nombre).duplicate() as Animation
+			n.free()
+	_fuentes[k] = an
+	return an
+
+
+## Rotaciones por hueso de `an` en `t` (nombre de hueso -> Quaternion).
+static func _rots_en(an: Animation, t: float) -> Dictionary:
+	var r: Dictionary = {}
+	for i in range(an.get_track_count()):
+		if an.track_get_type(i) == Animation.TYPE_ROTATION_3D:
+			r[String(an.track_get_path(i)).get_slice(":", 1)] = an.rotation_track_interpolate(i, t)
+	return r
+
+
+static func _pista_cadera(an: Animation) -> int:
+	for i in range(an.get_track_count()):
+		if an.track_get_type(i) == Animation.TYPE_POSITION_3D and String(an.track_get_path(i)).to_lower().ends_with("hips"):
+			return i
+	return -1
+
+
+## Cinemática directa: pose de cada hueso en espacio de esqueleto con las rotaciones `rots` (los huesos sin pista se quedan en reposo) y la cadera en `pos_cadera`.
+func _fk(rots: Dictionary, pos_cadera: Vector3) -> Array:
+	var n: int = _sk_empuje.get_bone_count()
+	var g: Array = []
+	g.resize(n)
+	for i in range(n):
+		var r: Transform3D = _sk_empuje.get_bone_rest(i)
+		var nom: String = _sk_empuje.get_bone_name(i)
+		var b: Basis = Basis(rots[nom] as Quaternion) if rots.has(nom) else r.basis
+		var o: Vector3 = pos_cadera if i == _hueso_cadera else r.origin
+		var loc := Transform3D(b, o)
+		var p: int = _sk_empuje.get_bone_parent(i)
+		g[i] = loc if p < 0 else (g[p] as Transform3D) * loc
+	return g
+
+
+## Lo más bajo que queda ningún hueso respecto a la cadera (<= 0 cuando está de pie; ~ −0,05 tumbado).
+func _bajo_cadera(rots: Dictionary) -> float:
+	var g: Array = _fk(rots, Vector3.ZERO)
+	var mn: float = 0.0
+	var h: float = (g[_hueso_cadera] as Transform3D).origin.y
+	for t in g:
+		mn = minf(mn, (t as Transform3D).origin.y - h)
+	return mn
+
+
+func _preparar_empujado() -> void:
+	if _ap == null or not admite_empujado(id):
+		return
+	if _ap.has_animation(ANIM_EMPUJADO) and _ap.has_animation(ANIM_LEVANTARSE):
+		_enganchar_sk_empuje()
+		return
+	var idle_n: String = _buscar_clip("idle")
+	var muerte_n: String = _buscar_clip("death")
+	var fly: Animation = _animacion_fuente(FUENTE_EMPUJADO, CLIP_FUENTE_EMPUJADO)
+	var up: Animation = _animacion_fuente(FUENTE_LEVANTARSE, CLIP_FUENTE_LEVANTARSE)
+	if idle_n == "" or muerte_n == "" or fly == null or up == null or not _enganchar_sk_empuje():
+		push_warning("Pj3D[%s]: no se pudieron traer los clips de empujado y levantarse" % id)
+		return
+	var idle: Animation = _ap.get_animation(idle_n)
+	var muerte: Animation = _ap.get_animation(muerte_n)
+	var t_i: int = _pista_cadera(idle)
+	var t_m: int = _pista_cadera(muerte)
+	var t_f: int = _pista_cadera(fly)
+	var t_u: int = _pista_cadera(up)
+	if t_i < 0 or t_m < 0 or t_f < 0 or t_u < 0:
+		return
+	# De pie: la cadera del Idle (su altura y su x/z). El suelo del cuerpo TUMBADO: lo más bajo que llega ningún hueso en la pose final de SU clip de
+	# muerte (la que ya se da por buena sobre el suelo): ningún hueso del empujado ni del levantarse baja de ahí.
+	var p_idle: Vector3 = idle.track_get_key_value(t_i, 0)
+	var rots_idle: Dictionary = _rots_en(idle, 0.0)
+	_poses_de_pie = _fk(rots_idle, p_idle)
+	_cadera_de_pie = _poses_de_pie[_hueso_cadera]
+	var rots_m: Dictionary = _rots_en(muerte, muerte.length)
+	var p_m: Vector3 = muerte.track_get_key_value(t_m, muerte.track_get_key_count(t_m) - 1)
+	var suelo: float = maxf(p_m.y + _bajo_cadera(rots_m), EMPUJADO_SUELO_MIN)
+	var xz := Vector2(p_idle.x, p_idle.z)
+	# Empujado: la cadera sale con el pie más bajo a la misma altura que el del Idle y sube EMPUJADO_ESCALA_VUELO × lo que sube en el clip.
+	var y_ini: float = p_idle.y + _bajo_cadera(rots_idle) - _bajo_cadera(_rots_en(fly, 0.0))
+	var r1: Array = _construir_clip(fly, t_f, 0.0, fly.length, 1.0, y_ini, EMPUJADO_ESCALA_VUELO, suelo, xz)
+	# Levantarse: empieza donde acabó el empujado y acaba con la cadera a la altura del Idle (la subida del clip, escalada para que case).
+	var y_u0: float = (up.position_track_interpolate(t_u, LEVANTARSE_DESDE)).y
+	var y_u1: float = (up.position_track_interpolate(t_u, LEVANTARSE_HASTA)).y
+	var k: float = (p_idle.y - float(r1[1])) / maxf(y_u1 - y_u0, 0.001)
+	var r2: Array = _construir_clip(up, t_u, LEVANTARSE_DESDE, LEVANTARSE_HASTA, LEVANTARSE_VEL, float(r1[1]), k, suelo, xz)
+	var lib: AnimationLibrary = _ap.get_animation_library("")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		_ap.add_animation_library("", lib)
+	lib.add_animation(ANIM_EMPUJADO, r1[0] as Animation)
+	lib.add_animation(ANIM_LEVANTARSE, r2[0] as Animation)
+
+
+func _enganchar_sk_empuje() -> bool:
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return false
+	_sk_empuje = sks[0] as Skeleton3D
+	_hueso_cadera = _sk_empuje.find_bone("mixamorig_Hips")
+	if _hueso_cadera < 0:
+		return false
+	if _cadera_de_pie == Transform3D.IDENTITY and _ap != null:
+		var idle_n: String = _buscar_clip("idle")
+		if idle_n != "":
+			var idle: Animation = _ap.get_animation(idle_n)
+			var t_i: int = _pista_cadera(idle)
+			if t_i >= 0:
+				_poses_de_pie = _fk(_rots_en(idle, 0.0), idle.track_get_key_value(t_i, 0))
+				_cadera_de_pie = _poses_de_pie[_hueso_cadera]
+	return true
+
+
+## Remuestrea `src` (tramo `desde`..`hasta`, `vel` veces más deprisa) a EMPUJADO_FPS con las pistas de rotación y la cadera reescrita:
+## x/z = `xz`; y = `y_ini + (y_clip(t) − y_clip(desde)) × k`, y nunca más baja de lo que deja un hueso por debajo de `suelo` (ni el cuerpo tumbado ni la cabeza
+## de camino al suelo se hunden). Devuelve [Animation, y de la cadera en el último fotograma].
+func _construir_clip(src: Animation, t_cad: int, desde: float, hasta: float, vel: float, y_ini: float, k: float, suelo: float, xz: Vector2) -> Array:
+	var dur: float = (hasta - desde) / vel
+	var n: int = maxi(int(ceil(dur * EMPUJADO_FPS)), 2)
+	var dest := Animation.new()
+	dest.length = dur
+	dest.loop_mode = Animation.LOOP_NONE
+	var prefijo: String = String(_ap.get_node(_ap.root_node).get_path_to(_sk_empuje)) + ":"
+	var pistas: Dictionary = {}                          # hueso -> índice de pista destino
+	var origen: Dictionary = {}                          # hueso -> índice de pista origen
+	for i in range(src.get_track_count()):
+		if src.track_get_type(i) != Animation.TYPE_ROTATION_3D:
+			continue
+		var nom: String = String(src.track_get_path(i)).get_slice(":", 1)
+		if _sk_empuje.find_bone(nom) < 0:
+			continue
+		var d: int = dest.add_track(Animation.TYPE_ROTATION_3D)
+		dest.track_set_path(d, NodePath(prefijo + nom))
+		pistas[nom] = d
+		origen[nom] = i
+	var t_pos: int = dest.add_track(Animation.TYPE_POSITION_3D)
+	dest.track_set_path(t_pos, NodePath(prefijo + _sk_empuje.get_bone_name(_hueso_cadera)))
+	var y0: float = src.position_track_interpolate(t_cad, desde).y
+	var y_fin: float = y_ini
+	for f in range(n + 1):
+		var u: float = dur * float(f) / float(n)
+		var ts: float = desde + (hasta - desde) * float(f) / float(n)
+		var rots: Dictionary = {}
+		for nom in pistas.keys():
+			var q: Quaternion = src.rotation_track_interpolate(int(origen[nom]), ts)
+			rots[nom] = q
+			dest.rotation_track_insert_key(int(pistas[nom]), u, q)
+		var y: float = y_ini + (src.position_track_interpolate(t_cad, ts).y - y0) * k
+		y = maxf(y, suelo - _bajo_cadera(rots))
+		dest.position_track_insert_key(t_pos, u, Vector3(xz.x, y, xz.y))
+		y_fin = y
+	return [dest, y_fin]
+
+
+## Transformadas MUNDIALES de la cadera: [actual, de pie]. Su cociente es cómo se ha movido el cuerpo (lo usa el escudo para ir con él mientras vuela).
+## Vacío si el personaje no tiene esqueleto.
+func cadera_mundo() -> Array:
+	if _sk_empuje == null or _hueso_cadera < 0 or not _sk_empuje.is_inside_tree():
+		return []
+	var w: Transform3D = _sk_empuje.global_transform
+	return [w * _sk_empuje.get_bone_global_pose(_hueso_cadera), w * _cadera_de_pie]
+
+
+## Lo mismo para cualquier hueso (p. ej. el antebrazo que lleva el escudo): [transformada mundial ahora, transformada mundial de pie]. Vacío si no existe.
+func hueso_mundo(hueso: String) -> Array:
+	if _sk_empuje == null or not _sk_empuje.is_inside_tree() or _poses_de_pie.is_empty():
+		return []
+	var h: int = _sk_empuje.find_bone(hueso)
+	if h < 0:
+		return []
+	var w: Transform3D = _sk_empuje.global_transform
+	return [w * _sk_empuje.get_bone_global_pose(h), w * (_poses_de_pie[h] as Transform3D)]
+
+
 ## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.
 func _anular_raiz(rol: String) -> void:
 	if _ap == null:
@@ -1488,6 +1726,11 @@ func lista_clips() -> PackedStringArray:
 	if _ap == null:
 		return PackedStringArray()
 	return _ap.get_animation_list()
+
+
+## El nombre del clip del GLB que usa el rol `rol` ("" si no hay). Para pruebas y laboratorios.
+func clip_de(rol: String) -> String:
+	return _buscar_clip(rol) if _ap != null else ""
 
 
 func _buscar_clip(nombre: String) -> String:

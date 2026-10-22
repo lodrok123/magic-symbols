@@ -255,6 +255,9 @@ func _physics_process(delta: float) -> void:
 			_consumir("quemado")
 
 
+const HUESOS_BRAZO: PackedStringArray = ["mixamorig_LeftForeArm", "mixamorig_RightForeArm", "mixamorig_LeftHand", "mixamorig_RightHand"]
+
+
 ## Lo pone delante del cuerpo, mirando hacia donde mira el goblin (el frente de la pieza es +Z).
 func _colocar() -> void:
 	if combate == null:
@@ -265,6 +268,22 @@ func _colocar() -> void:
 	m = m.normalized()
 	position = Vector3(0.0, combate.altura * ALTURA_RELATIVA, 0.0) + m * DISTANCIA_MANO
 	basis = Basis.looking_at(-m, Vector3.UP)
+	# Empujado (22/10): mientras vuela o se levanta, el escudo viaja con el cuerpo en vez de quedarse flotando donde estaba el brazo de pie. Se mueve con el HUESO DEL BRAZO
+	# más cercano a donde lo lleva de pie (antebrazo o mano) lo mismo que ese hueso se ha movido respecto a su postura de pie: `Rel = hueso_ahora × hueso_de_pie⁻¹`.
+	if combate.en_empujado() and combate.pj != null and is_instance_valid(combate.pj) and is_inside_tree():
+		var de_pie := Transform3D(basis, combate.global_position + position)
+		var cd: Array = []
+		var d_min: float = INF
+		for h in HUESOS_BRAZO:
+			var hm: Array = combate.pj.hueso_mundo(h)
+			if hm.size() == 2 and ((hm[1] as Transform3D).origin - de_pie.origin).length() < d_min:
+				d_min = ((hm[1] as Transform3D).origin - de_pie.origin).length()
+				cd = hm
+		if cd.size() == 2:
+			var rel: Transform3D = (cd[0] as Transform3D) * (cd[1] as Transform3D).affine_inverse()
+			var ahora: Transform3D = rel * de_pie
+			ahora.basis = ahora.basis.orthonormalized()
+			global_transform = ahora
 
 
 func _pos_mundo() -> Vector3:

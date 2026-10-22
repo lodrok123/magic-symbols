@@ -148,6 +148,14 @@ const HUNDIMIENTO_CURVA: float = 2.2           ## exponente de la bajada: 1 = li
 const HUNDIMIENTO_REBOTES: float = 2.0         ## nº de «sacudidas» de flotación (sube un poco, vuelve a bajar) durante la caída; 0 = sin rebotes
 const HUNDIMIENTO_REBOTE_ALTURA: float = 0.05  ## u que sube cada rebote al principio (se apaga hacia el final para no frenar el último tramo)
 const CLIP_AHOGARSE: String = "drown"          ## rol del clip «Drowning» (diario 231): se usa si el modelo lo trae Y el árbol de animación lo admite
+## Ser empujado (22/10, aprobado por Pablo): un empujón fuerte lanza al goblin por el aire con el clip «BeHit_FlyUp» (rol `empujado`, 1,5 s, acaba tumbado) y,
+## si sigue vivo, se levanta con «Stand_Up1» recortado (rol `levantarse`, ~1,2 s) y vuelve a Idle. Mientras dura (EMPUJADO + LEVANTARSE, ~2,7 s) no anda ni ataca.
+## Si muere o se hunde en mitad, se corta y pasa a muerte / hundirse como siempre. Solo los modelos que traen los dos clips (los goblins; `Pj3D.tiene_empujado`).
+static var EMPUJADO_ACTIVO: bool = true               ## interruptor: false = los goblins no reaccionan al empuje con animación (como antes)
+const EMPUJADO_V0_MIN: float = 1.0                    ## u/s de empuje inicial por debajo del cual NO se lanza (los soplos suaves del gas no lo tiran al suelo)
+const FASE_NINGUNA: int = 0
+const FASE_VOLANDO: int = 1                           ## clip `empujado`
+const FASE_LEVANTANDOSE: int = 2                      ## clip `levantarse`
 ## Un enemigo se ha hundido en agua honda. Ya está marcado `muerto` y sin botín. `Estado.enemigo_muerto` también se emite (las misiones cuentan al caído).
 signal hundido(enemigo: Combate3D)
 
@@ -200,6 +208,9 @@ var rutas_calculadas: int = 0           ## cuántas veces pidió una ruta (para 
 var _carga: float = 0.0
 var _descanso: float = 0.0
 var _empuje: Vector3 = Vector3.ZERO
+var _fase_empuje: int = FASE_NINGUNA     ## FASE_*: en qué parte del «ser empujado» está (0 = en nada)
+var _dir_previa: Vector3 = Vector3(0.0, 0.0, 1.0)   ## hacia dónde miraba el cuerpo antes del empujón
+var _t_fase_empuje: float = 0.0          ## s que le quedan a la fase actual
 var _tick_fuego: float = 0.0
 var _t_contacto_fuego: float = 0.0      ## cuenta atrás hasta la próxima comprobación de contacto con el fuego (A2)
 var _barra_t: float = 0.0
@@ -360,6 +371,33 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
 		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE * peso)
 	_empuje += d.normalized() * v0
 	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
+	_empezar_empujado(d, v0)
+
+
+## ¿Está volando o levantándose tras un empujón? (no anda ni ataca; el escudo va con el cuerpo)
+func en_empujado() -> bool:
+	return _fase_empuje != FASE_NINGUNA
+
+
+func fase_empuje() -> int:
+	return _fase_empuje
+
+
+## Arranca el vuelo si el empujón es fuerte, el modelo trae los clips y no estaba ya en ello (los empujones seguidos del gas no lo reinician).
+func _empezar_empujado(d: Vector3, v0: float) -> void:
+	if not EMPUJADO_ACTIVO or elemental or muerto or _fase_empuje != FASE_NINGUNA or v0 < EMPUJADO_V0_MIN:
+		return
+	if pj == null or not is_instance_valid(pj) or not pj.tiene_empujado():
+		return
+	_fase_empuje = FASE_VOLANDO
+	_t_fase_empuje = pj.duracion("empujado")
+	_cancelar_ataque()
+	_carga = 0.0
+	_dir_previa = Vector3(sin(pj.rotation.y), 0.0, cos(pj.rotation.y))     # hacia dónde miraba: al levantarse vuelve a mirar ahí (mirada, y con ella el cono del escudo, no se toca)
+	pj.mirar(-d, 1.0)             # el clip lo tira hacia atrás: de espaldas a donde va (de cara a quien lo empuja)
+	anim_orden = ""
+	pj.animacion_actual = ""      # que `jugar` no lo tome por «ya está puesto» si el último clip fue otro
+	PlayLog.event("goblin_empujado", {"nombre": nombre, "v0": snappedf(v0, 0.1)})
 
 
 ## =====================================================================================================
@@ -616,7 +654,7 @@ func _reaccion_visual(el: String) -> void:
 		_tw_squash = create_tween()
 		_tw_squash.tween_method(_poner_squash, SQUASH_ESCALA, Vector3.ONE, SQUASH_TIEMPO) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	if SALTO_ELEMENTOS.has(el):
+	if SALTO_ELEMENTOS.has(el) and _fase_empuje == FASE_NINGUNA:      # lanzado por el aire, el saltito de viento/tierra sobra
 		if _tw_salto != null and _tw_salto.is_valid():
 			_tw_salto.kill()
 		_tw_salto = create_tween()
@@ -686,6 +724,7 @@ func _efectos(delta: float) -> void:
 		_reaccionar("derretido")
 	lento = maxf(0.0, lento - delta)
 	_t_anim = maxf(0.0, _t_anim - delta)
+	_avanzar_empujado(delta)
 	_ataque = maxf(0.0, _ataque - delta)
 	_descanso = maxf(0.0, _descanso - delta)
 	if elemental:
@@ -774,6 +813,12 @@ func _ia(delta: float) -> void:
 	if elemental:
 		stun_timer = 0.0
 		interrupcion = 0.0
+	if _fase_empuje != FASE_NINGUNA:
+		# Volando o levantándose: ni anda, ni ataca, ni carga (el empuje horizontal de arriba sí sigue).
+		_cancelar_ataque()
+		_carga = 0.0
+		moviendo = 0
+		return
 	if stun_timer > 0.0:
 		stun_timer -= delta
 		_cancelar_ataque()
@@ -1232,7 +1277,33 @@ func _ajustar_al_suelo(delta: float) -> void:
 	position.y = move_toward(position.y, Terreno3D.y_pies(c), 6.0 * delta)
 
 
+## Pasa de volar a levantarse y de levantarse a nada cuando acaba cada clip (el tiempo se para mientras está congelado, como su animación).
+func _avanzar_empujado(delta: float) -> void:
+	if _fase_empuje == FASE_NINGUNA or congelado > 0.0:
+		return
+	_t_fase_empuje -= delta
+	if _t_fase_empuje > 0.0:
+		return
+	if _fase_empuje == FASE_VOLANDO:
+		_fase_empuje = FASE_LEVANTANDOSE
+		_t_fase_empuje = pj.duracion("levantarse") if pj != null and is_instance_valid(pj) else 0.0
+		pj.animacion_actual = ""
+	else:
+		_fase_empuje = FASE_NINGUNA
+		_t_fase_empuje = 0.0
+
+
 func _animar() -> void:
+	if _fase_empuje != FASE_NINGUNA:
+		anim_orden = ""                 # el "hit" de este mismo golpe no pisa el vuelo
+		if congelado > 0.0:
+			pj.set_velocidad_animacion(0.0)
+			return
+		pj.set_velocidad_animacion(1.0)
+		pj.jugar("empujado" if _fase_empuje == FASE_VOLANDO else "levantarse", true)
+		if _fase_empuje == FASE_LEVANTANDOSE:
+			pj.mirar(_dir_previa, 0.02)         # se gira poco a poco a su postura de antes mientras se incorpora
+		return
 	if anim_orden != "":
 		var orden: String = anim_orden
 		anim_orden = ""
@@ -1736,6 +1807,8 @@ func _morir(ahogado: bool = false) -> void:
 	if quemando > 0.0:
 		_reaccionar("apagado_agua" if ahogado else "consumido")     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
 	muerto = true
+	_fase_empuje = FASE_NINGUNA                       # muerto o hundido en pleno vuelo: no se levanta
+	_t_fase_empuje = 0.0
 	se_hundio = ahogado
 	if pj != null:
 		pj.apagar_sombra()      # V5: sin mancha en el suelo bajo un cuerpo caído o hundiéndose
