@@ -14,7 +14,7 @@ extends Node3D
 ##
 ## Uso (lo hace la maqueta tras `Jugador3D.montar`):   ConjuroVfx3D.conectar(lanzador, mundo)
 ## Mientras el Juego no ofrezca `conjuro_vfx_propio` (ver diario 107) el Lanzador sigue dibujando además su hilo y su esfera de prueba:
-## se ven las dos cosas a la vez, no es un fallo de este nodo.
+## se ven las dos cosas a la vez, no es un fallo de este nodo. 22/10: la esfera ya no (`Lanzador3D.forma_externa`, lo pone `conectar`); el hilo sí.
 ##
 ## 17/10 (T-CP3, cast points): la «forma» crece DONDE llega en `conjuro_fase` (el cast point: ya no siempre la mano) y se queda hasta el
 ## disparo. Su aspecto depende del ORIGEN del cast point (los tres de `docs/LAB_CASTPOINT.md` §2.1):
@@ -152,6 +152,8 @@ static func conectar(lanzador: Object, padre: Node) -> ConjuroVfx3D:
 	padre.add_child(c)
 	c._lanzador = lanzador
 	lanzador.connect("conjuro_fase", Callable(c, "_al_fase"))
+	if "forma_externa" in lanzador:
+		lanzador.set("forma_externa", true)     # 22/10: la forma la dibuja este nodo; sin la esfera lisa del Lanzador encima
 	return c
 
 

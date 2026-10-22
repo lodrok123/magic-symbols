@@ -203,6 +203,9 @@ var _cast_point: Dictionary = {}
 var sonidos_fase: Array = []             ## [{fase, pedido, suena, elemento}] de cada sonido pedido a Sfx por fase (para las pruebas; ver `_sonar_fase_v2`)
 var ultimo_castpoint: Dictionary = {}    ## la última medida al disparar con cast point (ver `_medir_cast_point`)
 var conjurando: bool = false             ## hay un conjuro en marcha (entre soltar y disparar)
+## 22/10 (Pablo: «la bola de la carga es toda roja»): true cuando `ConjuroVfx3D` dibuja la forma en la mano; entonces no se pone la esfera lisa de
+## prueba (`_forma_en_mano`), que desde que el proyectil mide la mitad (21/10) envolvía la bola de fuego y la del agua y las tapaba de un solo color.
+var forma_externa: bool = false
 var _t_conjuro: float = 0.0              ## segundos DE JUEGO (con time_scale y pausa) desde que se soltó: es lo que se anota como retardo
 var _page_hud: Control = null
 ## HC4: un hechizo pide un efecto visual por su NOMBRE (acción `vfx`, `estela` y `efecto_impacto`). Lo resuelve el Pipeline (VfxEstado3D / Vfx3D): mientras nadie escuche, no se ve nada.
@@ -1054,7 +1057,7 @@ func _conjurar(datos: Dictionary, origen: Vector3, dir: Vector3, tiempos: Array)
 	# 3. La forma se crece en la mano.
 	var mano: Vector3 = _pos_mano()
 	conjuro_fase.emit("forma", elemento, mano)
-	var esfera: MeshInstance3D = _forma_en_mano(mano, color, float(tiempos[2]))
+	var esfera: MeshInstance3D = null if forma_externa else _forma_en_mano(mano, color, float(tiempos[2]))
 	await get_tree().create_timer(float(tiempos[2]), false).timeout
 	if is_instance_valid(esfera):
 		esfera.queue_free()
@@ -1096,7 +1099,7 @@ func _conjurar_punto(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	await get_tree().create_timer(maxf(t_voluta, 0.001), false).timeout
 	var punto: Vector3 = _pos_cast_point()
 	conjuro_fase.emit("forma", elemento, punto)
-	var esfera: MeshInstance3D = _forma_en_mano(punto, color, t_forma)
+	var esfera: MeshInstance3D = null if forma_externa else _forma_en_mano(punto, color, t_forma)
 	# Espera al instante del clip (por fotograma). El respaldo por reloj evita quedarse esperando si el clip no avanza.
 	var espera: float = 0.0
 	var limite: float = t_forma + 0.6
