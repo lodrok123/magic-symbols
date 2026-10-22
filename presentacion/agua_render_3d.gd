@@ -861,6 +861,23 @@ func enlazar_lecho(m: ShaderMaterial) -> void:
 	_aplicar_lecho()
 
 
+## Adornos del lecho (algas): reciben el flow map de la corriente para balancearse hacia donde corre el agua (LechoRio3D.enlazar_flujo). Se vuelve a dar al rehacerse el flow map.
+var _adornos_lecho: Node3D = null
+
+
+func enlazar_adornos(raiz: Node3D) -> void:
+	_adornos_lecho = raiz
+	_aplicar_adornos()
+
+
+func _aplicar_adornos() -> void:
+	if _adornos_lecho == null or not is_instance_valid(_adornos_lecho) or _mat == null or sim == null:
+		return
+	var tex: Texture2D = _mat.get_shader_parameter("flujo") as Texture2D
+	if tex != null:
+		LechoRio3D.enlazar_flujo(_adornos_lecho, tex, sim.l)
+
+
 func _aplicar_lecho() -> void:
 	if _mat_lecho == null or _tex_b == null or sim == null:
 		return
@@ -1064,6 +1081,7 @@ func _montar_flujo() -> void:
 			img.set_pixel(x, y, Color(v.x, v.y, 0.0))
 	_mat.set_shader_parameter("flujo", ImageTexture.create_from_image(img))
 	_mat.set_shader_parameter("flujo_activo", 1.0)
+	_aplicar_adornos()
 
 
 ## Busca en la simulación los trocitos de BASE de una caída (agua con un vecino de agua bastante más alto) y avisa de los mayores (`caida_detectada`).

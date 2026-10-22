@@ -4,7 +4,7 @@ extends SceneTree
 ##   godot --path . --script res://herramientas/captura_agua_filtro.gd -- <lab|bosque> <carpeta> [solo_medir]
 ## Para cada vista saca las MISMAS capturas en dos estados y mide GPU / CPU de render / llamadas de dibujo: antes (agua_filtro = false) y filtro (el de serie). Además una con hielo (lab sala2_hielo).
 const S: float = 2.3
-const ESTADOS: Array = ["antes", "filtro"]
+const ESTADOS: Array = ["sin_adornos", "adornos"]       ## 22/10 adornos agua: la misma vista con el filtro sin y con algas/rocas (añade «antes» para ver también el agua estilizada)
 const VISTAS: Dictionary = {
 	"lab": {
 		"escena": "res://laboratorios/LabPlaytestEoW.tscn",
@@ -62,6 +62,12 @@ func _correr() -> void:
 				Terreno3D.agua_sim.helar_casilla(Vector2i(cx, cy), true)
 		for _i in 40:
 			await process_frame
+	# adornos agua (22/10): vistas centradas en los dos racimos más densos de algas y rocas (las del mapa quedan tapadas por árboles).
+	_m.set("agua_filtro", true)
+	_m.set("agua_adornos", true)
+	for _i in 30:
+		await process_frame
+	vistas.merge(_vistas_adornos(), true)
 	var impacto: String = String(VISTAS[cual]["impacto"])
 	if cual == "bosque" and not vistas.is_empty():
 		impacto = String(vistas.keys()[0])
@@ -97,7 +103,9 @@ func _correr() -> void:
 
 ## Aplica el estado: gua_filtro de la maqueta (cambia el sombreado, el bloque del lecho y los guijarros).
 func _estado(e: String) -> void:
-	_m.set("agua_filtro", e == "filtro")
+	# «antes» = agua estilizada; «filtro» = filtro sin adornos; «sin_adornos» / «adornos» = filtro con `agua_adornos` apagado / encendido (22/10, adornos agua).
+	_m.set("agua_filtro", e != "antes")
+	_m.set("agua_adornos", e == "adornos")
 	for _i in 40:
 		await process_frame
 
@@ -159,6 +167,45 @@ func _vistas_bosque() -> Dictionary:
 		res["%s_juego" % nombres[i]] = [float(mejor.x), float(mejor.y), 16.0]
 		res["%s_cerca" % nombres[i]] = [float(mejor.x), float(mejor.y), 5.0]
 		res["%s_cerquita" % nombres[i]] = [float(mejor.x), float(mejor.y), 2.8]
+	return res
+
+
+## Los dos racimos más densos de adornos (por número de piezas a menos de 3 u), separados al menos 8 u: vistas «racimoN_juego / cerca / cerquita» centradas en ellos.
+func _vistas_adornos() -> Dictionary:
+	var ad: Node3D = _m.get("_adornos_lecho") as Node3D
+	var res: Dictionary = {}
+	if ad == null:
+		return res
+	var piezas: Array = ad.get_meta("piezas")
+	var usados: Array = []
+	for k in range(2):
+		var mejor: Vector3 = Vector3.ZERO
+		var mejor_n: int = -1
+		for p in piezas:
+			var b: Vector3 = (p as Dictionary)["base"]
+			var lejos: bool = true
+			for u in usados:
+				if Vector2(b.x, b.z).distance_to(Vector2((u as Vector3).x, (u as Vector3).z)) < 8.0:
+					lejos = false
+			if not lejos:
+				continue
+			var n: int = 0
+			for q in piezas:
+				var c: Vector3 = (q as Dictionary)["base"]
+				if Vector2(b.x, b.z).distance_to(Vector2(c.x, c.z)) < 3.0:
+					n += 1
+			if n > mejor_n:
+				mejor_n = n
+				mejor = b
+		if mejor_n < 0:
+			break
+		usados.append(mejor)
+		print("racimo %d de adornos: %d piezas junto a (%.1f, %.1f)" % [k + 1, mejor_n, mejor.x, mejor.z])
+		var cx: float = mejor.x / S - 0.5
+		var cy: float = mejor.z / S - 0.5
+		res["racimo%d_juego" % (k + 1)] = [cx, cy, 14.0]
+		res["racimo%d_cerca" % (k + 1)] = [cx, cy, 4.0]
+		res["racimo%d_cerquita" % (k + 1)] = [cx, cy, 2.2]
 	return res
 
 

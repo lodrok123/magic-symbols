@@ -37,13 +37,30 @@ const GUIJARRO_BRILLO: float = 1.0
 const IDS_ALGAS: Array = ["alga_0", "alga_1", "alga_2", "alga_3"]
 const IDS_ROCAS: Array = ["roca_rio_0", "roca_rio_1", "roca_rio_2"]
 const CARPETAS_ASSETS: Array = ["res://arte/meshy/piezas/", "res://arte/suelo_meshy/"]
-## Alto objetivo de un alga y diámetro de una roca de río (u): el modelo se escala a esto sea cual sea su tamaño de exportación.
+## Alto objetivo de cada alga (u; las cuatro piezas no son igual de altas: la 2 es una mata baja y ancha) y diámetro de una roca de río (u): el modelo se escala a esto sea cual sea
+## su tamaño de exportación. ALGA_ALTO es el de una pieza que no esté en la tabla y el máximo absoluto.
 const ALGA_ALTO: float = 0.75
-const ROCA_DIAM: float = 0.9
+const ALGA_ALTOS: Dictionary = {"alga_0": 0.5, "alga_1": 0.75, "alga_2": 0.45, "alga_3": 0.75}
+const ROCA_DIAM: float = 0.8
+## Variación de tamaño por pieza (factor sobre el objetivo): algas 0,85–1,0 (nunca más altas que la tabla); rocas 0,75–1,25 (0,6–1,0 u de ancho).
+const ALGA_ESCALA_MIN: float = 0.85
+const ALGA_ESCALA_MAX: float = 1.0
+const ROCA_ESCALA_MIN: float = 0.75
+const ROCA_ESCALA_MAX: float = 1.25
+## Margen bajo la superficie (u): ningún adorno pasa de (profundidad del agua − margen) de alto; si no cabe, se escala hacia abajo. Las olas suben hasta ~0,1 u.
+const ADORNOS_MARGEN_SUPERFICIE: float = 0.15
+## Cuánto se entierra la base en el lecho (u) para que no se vea un hueco: algas / rocas.
+const ALGA_ENTIERRO: float = 0.01
+const ROCA_ENTIERRO: float = 0.03
 ## Probabilidad por casilla de agua profunda de llevar una mata de algas / una roca, y cuántas piezas por casilla como mucho. Semilla por casilla (reproducible).
-const ADORNOS_DENSIDAD_ALGAS: float = 0.30
-const ADORNOS_DENSIDAD_ROCAS: float = 0.14
-const ADORNOS_ALGAS_POR_CASILLA: int = 3
+const ADORNOS_DENSIDAD_ALGAS: float = 0.55      ## (0,30 antes: con la cámara del juego casi no se veían)
+const ADORNOS_DENSIDAD_ROCAS: float = 0.22      ## (0,14 antes)
+const ADORNOS_ALGAS_POR_CASILLA: int = 4
+## Balanceo de las algas (vertex shader; más arriba, más: crece con el cuadrado de la altura relativa del vértice). Todo en u de mundo en la punta.
+const ALGA_BALANCEO: float = 0.045        ## vaivén propio (también con el agua quieta)
+const ALGA_INCLINA: float = 0.10          ## cuánto se inclina la punta hacia donde corre el agua (por la fuerza del flow map, 0–1)
+const ALGA_VEL: float = 1.3               ## rad/s del vaivén
+const ALGA_FLUJO_MIN: float = 0.02        ## por debajo de esta fuerza de corriente se considera agua quieta (dirección al azar por mata)
 
 const CODIGO: String = """
 shader_type spatial;
@@ -135,8 +152,71 @@ void light() {
 }
 """
 
+## Adornos (algas y rocas): albedo del .glb con la misma luz que el lecho (opacos: se dibujan antes que el agua, así que el filtro turquesa los tiñe y la refracción los ve).
+## Algas: el vértice se desplaza en horizontal en proporción al cuadrado de su altura relativa en la malla (la base no se mueve), hacia donde corre el agua (flow map del agua:
+## `flujo`, RG = dirección × fuerza) más un vaivén propio con fase por mata; con agua quieta la dirección es al azar por mata.
+const CODIGO_ADORNO: String = """
+shader_type spatial;
+render_mode cull_disabled;
+
+uniform sampler2D t_albedo : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec3 tinte = vec3(1.0);
+uniform float brillo = 0.78;
+uniform float contraste = 1.2;
+uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+uniform float mece = 0.0;
+uniform float base_malla = 0.0;
+uniform float altura_malla = 0.4;
+uniform float balanceo = 0.045;
+uniform float inclina = 0.10;
+uniform float vel = 1.3;
+uniform float flujo_min = 0.02;
+uniform sampler2D flujo : filter_nearest, hint_default_black, repeat_disable;
+uniform float lado_trocito = 0.7667;
+uniform float usa_flujo = 0.0;
+
+void vertex() {
+	if (mece > 0.5) {
+		float h = clamp((VERTEX.y - base_malla) / max(altura_malla, 0.001), 0.0, 1.0);
+		vec3 o = MODEL_MATRIX[3].xyz;
+		float fase = fract(sin(dot(o.xz, vec2(12.9898, 78.233))) * 43758.5453) * 6.2831;
+		vec2 dir = vec2(cos(fase), sin(fase));
+		float fuerza = 0.0;
+		if (usa_flujo > 0.5) {
+			ivec2 s = textureSize(flujo, 0);
+			vec2 f = texelFetch(flujo, clamp(ivec2(floor(o.xz / lado_trocito)), ivec2(0), s - 1), 0).rg;
+			float l = length(f);
+			if (l > flujo_min) {
+				dir = f / l;
+				fuerza = min(l, 1.0);
+			}
+		}
+		float t = TIME * vel + fase;
+		vec2 d = dir * (inclina * fuerza + balanceo * sin(t)) + vec2(-dir.y, dir.x) * balanceo * 0.5 * sin(t * 0.73 + 1.7);
+		vec3 dw = vec3(d.x, 0.0, d.y) * h * h;
+		VERTEX += inverse(mat3(MODEL_MATRIX)) * dw;
+	}
+}
+
+void fragment() {
+	ALBEDO = texture(t_albedo, UV).rgb * tinte * brillo;
+	ROUGHNESS = 0.9;
+	SPECULAR = 0.1;
+}
+
+void light() {
+	if (LIGHT_IS_DIRECTIONAL) {
+		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
+		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+	} else {
+		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
+	}
+}
+"""
+
 static var _tex_procedural: ImageTexture = null
 static var _shader: Shader = null
+static var _shader_adorno: Shader = null
 
 
 ## ¿Existe la textura de lecho de Meshy? (si no, se usa la procedural)
@@ -260,22 +340,25 @@ static func modelos_disponibles() -> Array[String]:
 
 
 ## Esparce algas y rocas por las casillas de agua PROFUNDA. `casillas`: [{c: Vector2i, centro: Vector3 (en el centro de la casilla, a la Y del lecho), profunda: bool}].
-## `hash_fn(x, y, sal) -> int` da la semilla por casilla. Devuelve el nodo con los MultiMesh (null si no hay modelos o no tocó ninguna casilla) para que el llamador lo cuelgue;
-## El número de instancias queda en su meta `instancias`. Sin modelos no hace nada y no crea nodos.
-static func construir_adornos(casillas: Array, lado_casilla: float, hash_fn: Callable) -> Node3D:
+## `hash_fn(x, y, sal) -> int` da la semilla por casilla. `prof_agua` = profundidad del agua sobre el lecho (u): ninguna pieza pasa de `prof_agua − ADORNOS_MARGEN_SUPERFICIE` de alto.
+## `brillo` = el del suelo (OSCURECER_SUELO). Devuelve el nodo con los MultiMesh (null si no hay modelos o no tocó ninguna casilla) para que el llamador lo cuelgue; sin colisión ni
+## nada que toque Terreno3D/Caminos3D. Metas del nodo: `instancias`, `triangulos` (añadidos a la escena), `materiales` (los ShaderMaterial, para enlazar la corriente).
+static func construir_adornos(casillas: Array, lado_casilla: float, hash_fn: Callable, prof_agua: float = 0.9, brillo: float = 0.78) -> Node3D:
+	var tope: float = maxf(prof_agua - ADORNOS_MARGEN_SUPERFICIE, 0.05)
 	var algas: Array = []
 	var rocas: Array = []
 	for id in IDS_ALGAS:
-		var m: Dictionary = _modelo(String(id), ALGA_ALTO, true)
+		var m: Dictionary = _modelo(String(id), float(ALGA_ALTOS.get(id, ALGA_ALTO)), true, true, brillo)
 		if not m.is_empty():
 			algas.append(m)
 	for id in IDS_ROCAS:
-		var m: Dictionary = _modelo(String(id), ROCA_DIAM, false)
+		var m: Dictionary = _modelo(String(id), ROCA_DIAM, false, false, brillo)
 		if not m.is_empty():
 			rocas.append(m)
 	if algas.is_empty() and rocas.is_empty():
 		return null
-	var por_malla: Dictionary = {}       # (modelo, índice de malla) -> Array[Transform3D]
+	var por_malla: Dictionary = {}       # (modelo, índice de malla) -> {m, i, tfs}
+	var piezas: Array = []               # una por adorno (para medir: id, base, alto y ancho finales)
 	var total: int = 0
 	for cs in casillas:
 		var d: Dictionary = cs
@@ -283,23 +366,25 @@ static func construir_adornos(casillas: Array, lado_casilla: float, hash_fn: Cal
 			continue
 		var c: Vector2i = d["c"]
 		var centro: Vector3 = d["centro"]
-		var h0: int = int(hash_fn.call(c.x, c.y, 301))
+		var h0: int = absi(int(hash_fn.call(c.x, c.y, 301)))
 		if not algas.is_empty() and float(h0 % 1000) / 999.0 < ADORNOS_DENSIDAD_ALGAS:
 			var n: int = 1 + (h0 >> 10) % ADORNOS_ALGAS_POR_CASILLA
 			for k in range(n):
-				var h: int = int(hash_fn.call(c.x, c.y, 310 + k))
+				var h: int = absi(int(hash_fn.call(c.x, c.y, 310 + k)))
 				var m: Dictionary = algas[h % algas.size()]
-				_poner(por_malla, m, centro, lado_casilla, h, 0.8 + 0.4 * float((h >> 12) % 100) / 99.0)
+				_poner(por_malla, m, centro, lado_casilla, h, lerpf(ALGA_ESCALA_MIN, ALGA_ESCALA_MAX, float((h >> 12) % 100) / 99.0), tope, ALGA_ENTIERRO, piezas)
 				total += 1
-		var h1: int = int(hash_fn.call(c.x, c.y, 330))
+		var h1: int = absi(int(hash_fn.call(c.x, c.y, 330)))
 		if not rocas.is_empty() and float(h1 % 1000) / 999.0 < ADORNOS_DENSIDAD_ROCAS:
 			var m2: Dictionary = rocas[h1 % rocas.size()]
-			_poner(por_malla, m2, centro, lado_casilla, h1, 0.7 + 0.6 * float((h1 >> 12) % 100) / 99.0)
+			_poner(por_malla, m2, centro, lado_casilla, h1, lerpf(ROCA_ESCALA_MIN, ROCA_ESCALA_MAX, float((h1 >> 12) % 100) / 99.0), tope, ROCA_ENTIERRO, piezas)
 			total += 1
 	if total == 0:
 		return null
 	var raiz := Node3D.new()
 	raiz.name = "adornos_lecho_rio"
+	var tris: int = 0
+	var mats: Array = []
 	for clave in por_malla.keys():
 		var e: Dictionary = por_malla[clave]
 		var parte: Dictionary = ((e["m"] as Dictionary)["partes"] as Array)[int(e["i"])]
@@ -311,18 +396,46 @@ static func construir_adornos(casillas: Array, lado_casilla: float, hash_fn: Cal
 		for k in range(tfs.size()):
 			mm.set_instance_transform(k, (tfs[k] as Transform3D) * (parte["tf"] as Transform3D))
 		var mi := MultiMeshInstance3D.new()
+		mi.name = String(clave).replace("#", "_")
 		mi.multimesh = mm
+		mi.material_override = parte["mat"]
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(mi)
+		mats.append(parte["mat"])
+		tris += int(parte["tris"]) * tfs.size()
 	raiz.set_meta("instancias", total)
+	raiz.set_meta("triangulos", tris)
+	raiz.set_meta("materiales", mats)
+	raiz.set_meta("piezas", piezas)
 	return raiz
 
 
-static func _poner(por_malla: Dictionary, m: Dictionary, centro: Vector3, lado: float, h: int, escala: float) -> void:
+## Da a las algas la corriente del agua: `flujo` = la textura del flow map del agua (RG = dirección × fuerza por trocito) y `lado_trocito` su tamaño. Sin ella se balancean sin rumbo.
+static func enlazar_flujo(raiz: Node3D, flujo: Texture2D, lado_trocito: float) -> void:
+	if raiz == null or flujo == null or not raiz.has_meta("materiales"):
+		return
+	for m in raiz.get_meta("materiales"):
+		var sm: ShaderMaterial = m as ShaderMaterial
+		if sm != null:
+			sm.set_shader_parameter("flujo", flujo)
+			sm.set_shader_parameter("lado_trocito", lado_trocito)
+			sm.set_shader_parameter("usa_flujo", 1.0)
+
+
+## La pieza se apoya en el lecho (base en `centro.y`, enterrada `entierro`),
+## con giro al azar y la escala dada, reducida si su alto pasa de `tope`.
+static func _poner(por_malla: Dictionary, m: Dictionary, centro: Vector3, lado: float, h: int, escala: float, tope: float, entierro: float, piezas: Array) -> void:
 	var f2: float = float((h >> 3) % 1000) / 999.0
 	var f3: float = float((h >> 16) % 1000) / 999.0
-	var pos := Vector3(centro.x + (f2 - 0.5) * lado * 0.7, centro.y, centro.z + (f3 - 0.5) * lado * 0.7)
+	var pos := Vector3(centro.x + (f2 - 0.5) * lado * 0.7, centro.y - entierro, centro.z + (f3 - 0.5) * lado * 0.7)
 	var esc: float = float(m["escala"]) * escala
+	var alto: float = float(m["alto"]) * escala              # alto (u) de esta pieza una vez escalada
+	var ancho: float = float(m["ancho"]) * escala
+	if alto > tope:
+		esc *= tope / alto
+		ancho *= tope / alto
+		alto = tope
+	piezas.append({"id": m["id"], "base": pos, "alto": alto, "ancho": ancho, "escala": esc})
 	var tf := Transform3D(Basis(Vector3.UP, float(h % 628) / 100.0).scaled(Vector3(esc, esc, esc)), pos)
 	for i in range((m["partes"] as Array).size()):
 		var clave: String = "%s#%d" % [m["id"], i]
@@ -330,8 +443,10 @@ static func _poner(por_malla: Dictionary, m: Dictionary, centro: Vector3, lado: 
 			por_malla[clave] = {"m": m, "i": i, "tfs": []}
 		((por_malla[clave] as Dictionary)["tfs"] as Array).append(tf)
 
-## Carga un modelo y lo normaliza: partes [{malla, tf}], escala para que su alto (alto=true) o su mayor lado en planta (alto=false) valga `objetivo`, y su base apoyada en y=0.
-static func _modelo(id: String, objetivo: float, por_alto: bool) -> Dictionary:
+
+## Carga un modelo y lo normaliza: partes [{malla, tf, mat, tris}], escala para que su alto (por_alto) o su mayor lado en planta valga `objetivo`, y su base apoyada en y=0.
+## `mece`: las algas llevan el balanceo en el vertex shader (el cálculo usa la altura del vértice en la malla: `base_malla`, `altura_malla`).
+static func _modelo(id: String, objetivo: float, por_alto: bool, mece: bool, brillo: float) -> Dictionary:
 	var ruta: String = ruta_modelo(id)
 	if ruta == "":
 		return {}
@@ -351,7 +466,7 @@ static func _modelo(id: String, objetivo: float, por_alto: bool) -> Dictionary:
 			tf = tf * (n as Node3D).transform
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var mi: MeshInstance3D = n
-			partes.append({"malla": mi.mesh, "tf": tf})
+			partes.append({"malla": mi.mesh, "tf": tf, "mat": _material_adorno(mi.mesh, mece, brillo), "tris": floori(mi.mesh.get_faces().size() / 3.0)})
 			var a: AABB = tf * mi.mesh.get_aabb()
 			caja = a if primero else caja.merge(a)
 			primero = false
@@ -366,4 +481,33 @@ static func _modelo(id: String, objetivo: float, por_alto: bool) -> Dictionary:
 	var desp: Vector3 = -Vector3(caja.get_center().x, caja.position.y, caja.get_center().z)
 	for p in partes:
 		p["tf"] = Transform3D(Basis.IDENTITY, desp) * (p["tf"] as Transform3D)
-	return {"id": id, "partes": partes, "escala": escala}
+	return {"id": id, "partes": partes, "escala": escala, "alto": caja.size.y * escala, "ancho": maxf(caja.size.x, caja.size.z) * escala}
+
+
+## Material de un adorno: su textura de albedo (la del .glb), la luz de dibujo animado del lecho y, en las algas, el balanceo.
+static func _material_adorno(malla: Mesh, mece: bool, brillo: float) -> ShaderMaterial:
+	if _shader_adorno == null:
+		_shader_adorno = Shader.new()
+		_shader_adorno.code = CODIGO_ADORNO
+	var m := ShaderMaterial.new()
+	m.shader = _shader_adorno
+	var tex: Texture2D = null
+	var col := Color(1, 1, 1)
+	if malla.get_surface_count() > 0:
+		var b: BaseMaterial3D = malla.surface_get_material(0) as BaseMaterial3D
+		if b != null:
+			tex = b.albedo_texture
+			col = b.albedo_color
+	if tex != null:
+		m.set_shader_parameter("t_albedo", tex)
+	m.set_shader_parameter("tinte", Vector3(col.r, col.g, col.b))
+	m.set_shader_parameter("brillo", brillo)
+	var a: AABB = malla.get_aabb()
+	m.set_shader_parameter("base_malla", a.position.y)
+	m.set_shader_parameter("altura_malla", a.size.y)
+	m.set_shader_parameter("mece", 1.0 if mece else 0.0)
+	m.set_shader_parameter("balanceo", ALGA_BALANCEO)
+	m.set_shader_parameter("inclina", ALGA_INCLINA)
+	m.set_shader_parameter("vel", ALGA_VEL)
+	m.set_shader_parameter("flujo_min", ALGA_FLUJO_MIN)
+	return m

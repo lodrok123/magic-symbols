@@ -778,6 +778,13 @@ var _camara_dof: CameraAttributesPractical = null
 		agua_filtro = v
 		if is_node_ready():
 			aplicar_agua_filtro()
+## adornos agua (22/10): algas y rocas de río sobre el lecho (LechoRio3D.construir_adornos; MultiMesh, sin colisión, las algas se balancean con la corriente). Solo con `agua_filtro`: con el agua
+## estilizada (casi opaca en lo hondo) no se verían y solo costarían triángulos, y el agua de antes tiene que quedar exacta. Cambiarlo en vivo reconstruye el lecho (`aplicar_agua_filtro`).
+@export var agua_adornos: bool = true:
+	set(v):
+		agua_adornos = v
+		if is_node_ready():
+			aplicar_agua_filtro()
 var _env: Environment = null
 var _tilt: TiltShift3D = null
 var _sonda: ReflectionProbe = null
@@ -1892,11 +1899,13 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 	mi.multimesh = mm
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
-	if filtro:
-		# Algas y rocas de río (ids en LechoRio3D.IDS_ALGAS / IDS_ROCAS): solo si hay modelos en arte/meshy/piezas/ o arte/suelo_meshy/; si no, null y no se pone nada.
-		_adornos_lecho = LechoRio3D.construir_adornos(casillas_adorno, S, func(x: int, y: int, sal: int) -> int: return _hash(x, y, sal))
+	if filtro and agua_adornos:
+		# adornos agua: algas y rocas de río (ids en LechoRio3D.IDS_ALGAS / IDS_ROCAS): solo si hay modelos en arte/meshy/piezas/ o arte/suelo_meshy/; si no, null y no se pone nada.
+		_adornos_lecho = LechoRio3D.construir_adornos(casillas_adorno, S, func(x: int, y: int, sal: int) -> int: return _hash(x, y, sal), Lanzador3D.LECHO_AGUA, OSCURECER_SUELO)
 		if _adornos_lecho != null:
 			add_child(_adornos_lecho)
+			if _agua_render != null:
+				_agua_render.enlazar_adornos(_adornos_lecho)       # adornos agua: las algas siguen la corriente del flow map
 
 
 ## agua filtro (22/10): aplica el interruptor `agua_filtro` EN VIVO (también al montar): el sombreado del agua, el material del bloque del lecho, los guijarros y los adornos.
@@ -4955,6 +4964,8 @@ func _montar_agua_fisica() -> void:
 	_agua_render.agua_filtro = agua_filtro                 # agua filtro (22/10): el agua como filtro turquesa sobre el lecho real
 	if _mat_lecho_agua != null:
 		_agua_render.enlazar_lecho(_mat_lecho_agua)         # el lecho lee la profundidad del agua para sus cáusticas
+	if _adornos_lecho != null:
+		_agua_render.enlazar_adornos(_adornos_lecho)        # adornos agua: las algas siguen la corriente
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()

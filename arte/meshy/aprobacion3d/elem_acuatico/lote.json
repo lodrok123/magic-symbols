@@ -1,0 +1,212 @@
+{
+ "roca_rio_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1500,
+  "niveles": {
+   "1500": {
+    "archivo": "roca_rio_0.glb",
+    "tris": 1499,
+    "kb": 1006
+   },
+   "800": {
+    "archivo": "roca_rio_0_800.glb",
+    "tris": 799,
+    "kb": 970
+   },
+   "400": {
+    "archivo": "roca_rio_0_400.glb",
+    "tris": 399,
+    "kb": 932
+   },
+   "250": {
+    "archivo": "roca_rio_0_250.glb",
+    "tris": 250,
+    "kb": 918
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 1.3
+ },
+ "roca_rio_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1500,
+  "niveles": {
+   "1500": {
+    "archivo": "roca_rio_1.glb",
+    "tris": 1184,
+    "kb": 922
+   },
+   "800": {
+    "archivo": "roca_rio_1_800.glb",
+    "tris": 800,
+    "kb": 925
+   },
+   "400": {
+    "archivo": "roca_rio_1_400.glb",
+    "tris": 400,
+    "kb": 925
+   },
+   "250": {
+    "archivo": "roca_rio_1_250.glb",
+    "tris": 250,
+    "kb": 917
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 1.3
+ },
+ "roca_rio_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 1500,
+  "niveles": {
+   "1500": {
+    "archivo": "roca_rio_2.glb",
+    "tris": 1500,
+    "kb": 958
+   },
+   "800": {
+    "archivo": "roca_rio_2_800.glb",
+    "tris": 800,
+    "kb": 953
+   },
+   "400": {
+    "archivo": "roca_rio_2_400.glb",
+    "tris": 400,
+    "kb": 932
+   },
+   "250": {
+    "archivo": "roca_rio_2_250.glb",
+    "tris": 250,
+    "kb": 918
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 2.3
+ },
+ "alga_0": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "1500": {
+    "archivo": "alga_0_1500.glb",
+    "tris": 1500,
+    "kb": 906
+   },
+   "800": {
+    "archivo": "alga_0_800.glb",
+    "tris": 800,
+    "kb": 908
+   },
+   "400": {
+    "archivo": "alga_0.glb",
+    "tris": 400,
+    "kb": 931
+   },
+   "250": {
+    "archivo": "alga_0_250.glb",
+    "tris": 250,
+    "kb": 917
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 2.3
+ },
+ "alga_1": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "1500": {
+    "archivo": "alga_1_1500.glb",
+    "tris": 1500,
+    "kb": 955
+   },
+   "800": {
+    "archivo": "alga_1_800.glb",
+    "tris": 800,
+    "kb": 957
+   },
+   "400": {
+    "archivo": "alga_1.glb",
+    "tris": 400,
+    "kb": 931
+   },
+   "250": {
+    "archivo": "alga_1_250.glb",
+    "tris": 250,
+    "kb": 917
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 2.4
+ },
+ "alga_2": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "1500": {
+    "archivo": "alga_2_1500.glb",
+    "tris": 1500,
+    "kb": 972
+   },
+   "800": {
+    "archivo": "alga_2_800.glb",
+    "tris": 800,
+    "kb": 961
+   },
+   "400": {
+    "archivo": "alga_2.glb",
+    "tris": 400,
+    "kb": 932
+   },
+   "250": {
+    "archivo": "alga_2_250.glb",
+    "tris": 250,
+    "kb": 886
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 2.3
+ },
+ "alga_3": {
+  "estado": "procesado",
+  "directo": false,
+  "objetivo": 400,
+  "niveles": {
+   "1500": {
+    "archivo": "alga_3_1500.glb",
+    "tris": 1500,
+    "kb": 958
+   },
+   "800": {
+    "archivo": "alga_3_800.glb",
+    "tris": 800,
+    "kb": 952
+   },
+   "400": {
+    "archivo": "alga_3.glb",
+    "tris": 399,
+    "kb": 931
+   },
+   "250": {
+    "archivo": "alga_3_250.glb",
+    "tris": 250,
+    "kb": 917
+   }
+  },
+  "origen": "elem_acuatico.glb",
+  "nota": "",
+  "seg": 2.3
+ }
+}

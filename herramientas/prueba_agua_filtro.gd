@@ -82,6 +82,114 @@ func _estatico() -> void:
 		vacias.append({"c": Vector2i(i, 3), "centro": Vector3.ZERO, "profunda": false})
 	var sin_prof: Node3D = LechoRio3D.construir_adornos(vacias, 2.3, hash_fn)
 	_ok("A12 casillas de orilla (no profundas) no llevan adornos", sin_prof == null)
+	_adornos_estatico(casillas, hash_fn)
+
+
+## ADORNOS AGUA (22/10): con los modelos reales de arte/meshy/piezas/ (alga_0..3, roca_rio_0..2).
+func _adornos_estatico(casillas: Array, hash_fn: Callable) -> void:
+	var disp: Array[String] = LechoRio3D.modelos_disponibles()
+	_ok("A13 están instalados los 7 modelos (4 algas + 3 rocas): %s" % [disp], disp.size() == 7)
+	if disp.size() != 7:
+		return
+	var grande: Array = []
+	for j in range(4):
+		for i in range(30):
+			grande.append({"c": Vector2i(i, j), "centro": Vector3(float(i) * 2.3, -0.5, float(j) * 2.3), "profunda": true})
+	var prof: float = 0.9
+	var ad: Node3D = LechoRio3D.construir_adornos(grande, 2.3, hash_fn, prof, 0.78)
+	_ok("A14 se esparcen adornos en 120 casillas profundas", ad != null and int(ad.get_meta("instancias", 0)) > 20)
+	if ad == null:
+		return
+	var piezas: Array = ad.get_meta("piezas")
+	var n_algas: int = 0
+	var n_rocas: int = 0
+	var alga_min: float = 9.0
+	var alga_max: float = 0.0
+	var roca_min: float = 9.0
+	var roca_max: float = 0.0
+	var base_mal: int = 0
+	var techo_mal: int = 0
+	for p in piezas:
+		var d: Dictionary = p
+		var es_alga: bool = String(d["id"]).begins_with("alga")
+		var base: Vector3 = d["base"]
+		var fondo: float = LechoRio3D.ALGA_ENTIERRO if es_alga else LechoRio3D.ROCA_ENTIERRO
+		if absf(base.y - (-0.5 - fondo)) > 0.0005:
+			base_mal += 1
+		if base.y + float(d["alto"]) > -0.5 + prof - LechoRio3D.ADORNOS_MARGEN_SUPERFICIE + 0.0005:
+			techo_mal += 1
+		if es_alga:
+			n_algas += 1
+			alga_min = minf(alga_min, float(d["alto"]))
+			alga_max = maxf(alga_max, float(d["alto"]))
+		else:
+			n_rocas += 1
+			roca_min = minf(roca_min, float(d["ancho"]))
+			roca_max = maxf(roca_max, float(d["ancho"]))
+	print("   %d algas (alto %.2f–%.2f u) y %d rocas (ancho %.2f–%.2f u), %d instancias, %d triángulos, %d MultiMesh" % [n_algas, alga_min, alga_max, n_rocas, roca_min, roca_max,
+		int(ad.get_meta("instancias")), int(ad.get_meta("triangulos")), ad.get_child_count()])
+	_ok("A15 hay algas y rocas, y las instancias == piezas (%d)" % piezas.size(), n_algas > 0 and n_rocas > 0 and piezas.size() == int(ad.get_meta("instancias")))
+	_ok("A16 algas de %.2f a %.2f u de alto (0,38–0,75)" % [alga_min, alga_max], alga_min >= 0.37 and alga_max <= 0.7501)
+	_ok("A17 rocas de %.2f a %.2f u de ancho (0,6–1,0)" % [roca_min, roca_max], roca_min >= 0.599 and roca_max <= 1.001)
+	_ok("A18 todas apoyadas en el lecho: base en y_lecho − entierro (%d mal puestas)" % base_mal, base_mal == 0)
+	_ok("A19 ninguna pasa de profundidad − margen (%.2f u) bajo la superficie (%d se pasan)" % [prof - LechoRio3D.ADORNOS_MARGEN_SUPERFICIE, techo_mal], techo_mal == 0)
+	# Poca profundidad: se reducen en vez de atravesar la superficie.
+	var somero: Node3D = LechoRio3D.construir_adornos(grande, 2.3, hash_fn, 0.5, 0.78)
+	var techo_s: int = 0
+	var alto_s: float = 0.0
+	for p in (somero.get_meta("piezas") as Array):
+		alto_s = maxf(alto_s, float((p as Dictionary)["alto"]))
+		if (p as Dictionary)["base"].y + float((p as Dictionary)["alto"]) > -0.5 + 0.5 - LechoRio3D.ADORNOS_MARGEN_SUPERFICIE + 0.0005:
+			techo_s += 1
+	_ok("A20 con 0,5 u de agua, el más alto mide %.2f u (≤ 0,35) y ninguno se pasa (%d)" % [alto_s, techo_s], techo_s == 0 and alto_s <= 0.3501)
+	somero.free()
+	# MultiMesh por modelo y parte, no un nodo por adorno.
+	var solo_mm: bool = true
+	var con_colision: int = 0
+	var sin_material: int = 0
+	for h in ad.get_children():
+		if not (h is MultiMeshInstance3D):
+			solo_mm = false
+			continue
+		if (h as MultiMeshInstance3D).material_override == null:
+			sin_material += 1
+	var pila: Array = [ad]
+	while not pila.is_empty():
+		var nd: Node = pila.pop_back()
+		if nd is CollisionObject3D or nd is CollisionShape3D or nd is NavigationRegion3D:
+			con_colision += 1
+		pila.append_array(nd.get_children())
+	_ok("A21 MultiMesh por id: %d nodos para %d adornos (todos MultiMeshInstance3D con material propio)" % [ad.get_child_count(), piezas.size()], solo_mm and ad.get_child_count() <= 7 and ad.get_child_count() < piezas.size() / 4 and sin_material == 0)
+	_ok("A22 sin colisión ni navegación en los adornos", con_colision == 0)
+	# Algas con balanceo, rocas sin él; el balanceo va en el vertex shader con altura relativa.
+	var mats: Array = ad.get_meta("materiales")
+	var con_mece: int = 0
+	for m in mats:
+		if float((m as ShaderMaterial).get_shader_parameter("mece")) > 0.5:
+			con_mece += 1
+	var cod: String = (mats[0] as ShaderMaterial).shader.code
+	_ok("A23 balanceo en el vertex shader (%d materiales de alga, %d de roca) con la altura del vértice" % [con_mece, mats.size() - con_mece], cod.contains("void vertex()") and cod.contains("(VERTEX.y - base_malla)") and cod.contains("h * h") and con_mece > 0 and con_mece < mats.size())
+	_ok("A24 constantes del balanceo con nombre: vaivén %.3f u, inclinación %.2f u, %.1f rad/s" % [LechoRio3D.ALGA_BALANCEO, LechoRio3D.ALGA_INCLINA, LechoRio3D.ALGA_VEL],
+		LechoRio3D.ALGA_BALANCEO > 0.0 and LechoRio3D.ALGA_INCLINA > 0.0 and float((mats[0] as ShaderMaterial).get_shader_parameter("balanceo")) == LechoRio3D.ALGA_BALANCEO)
+	# Corriente: el flow map llega a los materiales.
+	var img := Image.create(4, 4, false, Image.FORMAT_RGF)
+	LechoRio3D.enlazar_flujo(ad, ImageTexture.create_from_image(img), 0.7667)
+	_ok("A25 enlazar_flujo da el flow map y activa usa_flujo en todas las piezas", float((mats[0] as ShaderMaterial).get_shader_parameter("usa_flujo")) == 1.0 and (mats[mats.size() - 1] as ShaderMaterial).get_shader_parameter("flujo") != null)
+	# Reproducible y a prueba de hash negativo.
+	var ad2: Node3D = LechoRio3D.construir_adornos(grande, 2.3, hash_fn, prof, 0.78)
+	var igual: bool = ad2 != null and (ad2.get_meta("piezas") as Array).size() == piezas.size()
+	if igual:
+		for i in range(piezas.size()):
+			if (piezas[i] as Dictionary)["base"] != ((ad2.get_meta("piezas") as Array)[i] as Dictionary)["base"]:
+				igual = false
+	_ok("A26 misma semilla = mismos adornos", igual)
+	var neg: Node3D = LechoRio3D.construir_adornos(grande, 2.3, func(x: int, y: int, sal: int) -> int: return -((x + 1) * 7919 + (y + 1) * 104729 + sal * 31), prof, 0.78)
+	_ok("A27 un hash negativo no rompe nada (%d instancias)" % [int(neg.get_meta("instancias", 0)) if neg != null else 0], neg != null)
+	ad.free()
+	if ad2 != null:
+		ad2.free()
+	if neg != null:
+		neg.free()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -140,6 +248,7 @@ func _escena(et: String) -> void:
 	var med_f: Array = _medida_guijarros()
 	_ok("%s14 hay guijarros (%d) y los pequeños no pasan de %.2f u" % [et, int(med_f[0]), LechoRio3D.GUIJARRO_ESCALA * 0.34 + 0.001], int(med_f[0]) > 0 and float(med_f[1]) <= LechoRio3D.GUIJARRO_ESCALA * 0.34 + 0.001)
 	_ok("%s15 sin assets de algas/rocas no hay adornos (%s)" % [et, LechoRio3D.modelos_disponibles()], not LechoRio3D.modelos_disponibles().is_empty() or maqueta.get("_adornos_lecho") == null)
+	var n_ad: int = await _adornos_escena(et, r)
 	# Interruptor: apagado = lo de antes.
 	maqueta.set("agua_filtro", false)
 	await avanzar(5)
@@ -151,6 +260,7 @@ func _escena(et: String) -> void:
 	var med_a: Array = _medida_guijarros()
 	_ok("%s22 …y los guijarros vuelven a los de antes (%d instancias, máx %.2f u; con filtro eran %d, máx %.2f u)" % [et, int(med_a[0]), float(med_a[1]), int(med_f[0]), float(med_f[1])],
 		int(med_a[0]) > int(med_f[0]) and float(med_a[1]) > float(med_f[1]) and float(med_a[2]) > float(med_f[2]))
+	_ok("%s22b …y sin filtro no hay adornos (se verían a través de un agua casi opaca y costarían triángulos): _adornos_lecho null y sin nodo" % et, maqueta.get("_adornos_lecho") == null and maqueta.get_node_or_null("adornos_lecho_rio") == null)
 	_ok("%s23 …y con el filtro apagado la prioridad sigue siendo la de la refracción" % et, m.render_priority == AguaRender3D.AGUA_PRIORIDAD)
 	r.agua_refraccion = false
 	await avanzar(2)
@@ -160,6 +270,8 @@ func _escena(et: String) -> void:
 	await avanzar(5)
 	_ok("%s25 …se vuelve a encender el filtro: material de cantos, guijarros pequeños, lecho falso 0" % et,
 		malla != null and malla.surface_get_material(0) == mat_lecho and is_equal_approx(float(m.get_shader_parameter("lecho")), 0.0) and int(_medida_guijarros()[0]) == int(med_f[0]))
+	var ad_vuelta: Node3D = maqueta.get("_adornos_lecho") as Node3D
+	_ok("%s25b …y vuelven los adornos (%d, los mismos que antes)" % [et, int(ad_vuelta.get_meta("instancias", 0)) if ad_vuelta != null else 0], ad_vuelta != null and int(ad_vuelta.get_meta("instancias", 0)) == n_ad)
 	r.agua_filtro = false
 	_ok("%s26 AguaRender3D.agua_filtro = false por sí solo también apaga el filtro del shader" % et, is_equal_approx(float(m.get_shader_parameter("filtro")), 0.0))
 	r.agua_filtro = true
@@ -167,3 +279,56 @@ func _escena(et: String) -> void:
 	var pared: ShaderMaterial = r.get("_mat_pared") as ShaderMaterial
 	_ok("%s28 las paredes laterales también van con filtro (casi transparentes)" % et, pared != null and is_equal_approx(float(pared.get_shader_parameter("filtro")), 1.0))
 	await avanzar(10)
+
+
+## ADORNOS AGUA en una escena con agua física: cargados, apoyados en el lecho, bajo la superficie, MultiMesh, sin colisión, interruptor `agua_adornos`. Devuelve las instancias.
+func _adornos_escena(et: String, r: AguaRender3D) -> int:
+	var ad: Node3D = maqueta.get("_adornos_lecho") as Node3D
+	_ok("%s16 agua_adornos encendido de serie y hay adornos con modelos reales" % et, maqueta.get("agua_adornos") == true and ad != null and ad.get_parent() == maqueta and ad.name == "adornos_lecho_rio")
+	if ad == null:
+		return 0
+	var n: int = int(ad.get_meta("instancias", 0))
+	var consts: Dictionary = (maqueta.get_script() as Script).get_script_constant_map()
+	var y_lecho: float = float(consts["ALTO_AGUA"]) - Lanzador3D.LECHO_AGUA
+	var piezas: Array = ad.get_meta("piezas")
+	var mal_base: int = 0
+	var mal_techo: int = 0
+	for p in piezas:
+		var d: Dictionary = p
+		var fondo: float = LechoRio3D.ALGA_ENTIERRO if String(d["id"]).begins_with("alga") else LechoRio3D.ROCA_ENTIERRO
+		var by: float = (d["base"] as Vector3).y
+		if absf(by - (y_lecho - fondo)) > 0.0005:
+			mal_base += 1
+		if by + float(d["alto"]) > float(consts["ALTO_AGUA"]) - LechoRio3D.ADORNOS_MARGEN_SUPERFICIE + 0.0005:
+			mal_techo += 1
+	print("   %s: %d adornos, %d triángulos añadidos, %d MultiMesh, lecho en y %.2f" % [et, n, int(ad.get_meta("triangulos")), ad.get_child_count(), y_lecho])
+	_ok("%s17 %d adornos con base en el lecho (y %.2f): %d mal apoyados; %d pasan del margen bajo la superficie" % [et, n, y_lecho, mal_base, mal_techo], n > 0 and mal_base == 0 and mal_techo == 0)
+	var solo_mm: bool = true
+	var colision: int = 0
+	var pila: Array = [ad]
+	while not pila.is_empty():
+		var nd: Node = pila.pop_back()
+		if nd is CollisionObject3D or nd is CollisionShape3D:
+			colision += 1
+		if nd != ad and not (nd is MultiMeshInstance3D):
+			solo_mm = false
+		pila.append_array(nd.get_children())
+	_ok("%s18 MultiMesh (%d nodos para %d adornos), sin colisión" % [et, ad.get_child_count(), n], solo_mm and colision == 0 and ad.get_child_count() <= 7 and ad.get_child_count() <= n)
+	var mats: Array = ad.get_meta("materiales")
+	var m_agua: ShaderMaterial = r.material_agua()
+	var hay_flujo: bool = m_agua != null and m_agua.get_shader_parameter("flujo") != null
+	var alga_flujo: bool = false
+	for m in mats:
+		if float((m as ShaderMaterial).get_shader_parameter("mece")) > 0.5:
+			alga_flujo = float((m as ShaderMaterial).get_shader_parameter("usa_flujo")) == 1.0
+	print("   %s: flow map del agua %s → algas con corriente: %s" % [et, "sí" if hay_flujo else "no", alga_flujo])
+	_ok("%s19 las algas reciben el flow map si el agua lo tiene (%s)" % [et, "lo tiene" if hay_flujo else "este mapa no tiene corriente propia"], alga_flujo == hay_flujo)
+	# Interruptor.
+	maqueta.set("agua_adornos", false)
+	await avanzar(3)
+	_ok("%s19b agua_adornos = false: sin adornos ni nodo, el resto del lecho sigue (guijarros %d)" % [et, int(_medida_guijarros()[0])], maqueta.get("_adornos_lecho") == null and maqueta.get_node_or_null("adornos_lecho_rio") == null and int(_medida_guijarros()[0]) > 0)
+	maqueta.set("agua_adornos", true)
+	await avanzar(3)
+	var otra: Node3D = maqueta.get("_adornos_lecho") as Node3D
+	_ok("%s19c agua_adornos = true: vuelven (%d, los mismos)" % [et, int(otra.get_meta("instancias", 0)) if otra != null else 0], otra != null and int(otra.get_meta("instancias", 0)) == n)
+	return n
