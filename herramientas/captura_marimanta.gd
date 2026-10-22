@@ -20,6 +20,16 @@ const CAMARA_PITCH: float = 6.0            ## grados de picado (suave: aquí se 
 const FOTOGRAMAS_ESPERA: int = 12
 
 
+var _prefijo: String = ""            ## segundo argumento: prefijo de los nombres de archivo (p. ej. «v2_»)
+var _solo_revision: bool = false     ## tercer argumento «revision»: sin la comparativa de escala
+
+
+## El bastón sigue a la mano en cada actualización del esqueleto; con el clip congelado se recoloca a mano, sin suavizar.
+func _apoyar(p: Pj3D) -> void:
+	for ap in p.find_children("Apoyo", "PiezaApoyada3D", true, false):
+		(ap as PiezaApoyada3D).actualizar(0.0, true)
+
+
 func _initialize() -> void:
 	_correr()
 
@@ -27,6 +37,8 @@ func _initialize() -> void:
 func _correr() -> void:
 	var a := OS.get_cmdline_user_args()
 	var carpeta: String = a[0] if a.size() > 0 else "res://docs/capturas/marimanta"
+	_prefijo = a[1] if a.size() > 1 else ""
+	_solo_revision = a.size() > 2 and a[2] == "revision"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(carpeta))
 	var raiz := Node3D.new()
 	root.add_child(raiz)
@@ -61,7 +73,8 @@ func _correr() -> void:
 	for _i in 8:
 		await process_frame
 	await _revision(raiz, cam, carpeta)
-	await _escala(raiz, cam, carpeta)
+	if not _solo_revision:
+		await _escala(raiz, cam, carpeta)
 	quit()
 
 
@@ -86,7 +99,9 @@ func _revision(raiz: Node3D, cam: Camera3D, carpeta: String) -> void:
 				_congelar(figuras[k] as Pj3D, rol, float(fracciones[k]))
 			for _i in FOTOGRAMAS_ESPERA:
 				await process_frame
-			await _foto(cam, Vector3(0, 0.45, 0), TAM_REVISION, "%s/%s_%s.png" % [carpeta, rol, v[0]])
+			for f4 in figuras:
+				_apoyar(f4 as Pj3D)
+			await _foto(cam, Vector3(0, 0.45, 0), TAM_REVISION, "%s/%s%s_%s.png" % [carpeta, _prefijo, rol, v[0]])
 			for f3 in figuras:
 				(f3 as Node).queue_free()
 			await process_frame

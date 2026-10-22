@@ -20,6 +20,10 @@ const CARPETA_MODELOS: String = "res://arte/modelos/"
 const BASTON_ESCALA: float = 1.3
 const BASTON_POS: Vector3 = Vector3(-0.457, 0.615, -0.428)
 const BASTON_GIRO: Vector3 = Vector3(-46.3, 25.0, -163.8)
+## Modo «apoyada en el suelo y vertical» (PiezaApoyada3D): el bastón no cuelga rígido de la mano, se planta en el suelo bajo la palma y sigue su proyección horizontal.
+## agarre_y: altura de la palma sobre el pie en unidades de la pieza (0,88 del modelo / 1,3 de escala); dist_min_cuerpo: u de juego que se separa del eje del cuerpo (para no
+## atravesar la túnica al andar); desplaz_adelante: u de juego extra hacia delante; lado: la mano derecha de un modelo que mira a +Z está en -X; giro: grados sobre su eje.
+const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 0.0, "dist_min_cuerpo": 0.15, "desplaz_adelante": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
 
 ## Grimorio de la elfa: equipo/grimorio_<nivel>.glb (Meshy, horneados con meshy en el marco del de código).
 ## 1 botánico (marrón y verde) · 2 rúnico (azul y gris) · 3 legendario (rojo y oro). Cada uno trae su pluma.
@@ -42,7 +46,7 @@ const DAGA_GIRO_IZQUIERDA: Vector3 = Vector3(0.5, -108.9, 3.0)
 const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
 	"marimanta": [
-		["baston_marimanta", "RightHand", BASTON_POS, BASTON_GIRO, Vector3(BASTON_ESCALA, BASTON_ESCALA, BASTON_ESCALA)],
+		["baston_marimanta", "RightHand", BASTON_POS, BASTON_GIRO, Vector3(BASTON_ESCALA, BASTON_ESCALA, BASTON_ESCALA), BASTON_APOYO],
 	],
 	# Goblin asesino: la misma daga (arte/equipo/daga_goblin.glb) en las DOS manos, la izquierda reflejada. Medidas en DAGA_* (más abajo).
 	"goblin_asesino": [
@@ -124,6 +128,12 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 			p.scale *= datos[4] as Vector3    # quinto dato opcional: multiplicador de escala por eje de la pieza
 		p.set_meta("equipo_id", String(datos[0]))     # para que quien lo necesite lo encuentre (Pj3D.poner_equipo_visible)
 		at.add_child(p)
+		if datos.size() > 5 and datos[5] is Dictionary:
+			# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
+			var apoyo := PiezaApoyada3D.new()
+			apoyo.name = "Apoyo"
+			at.add_child(apoyo)
+			apoyo.preparar(p, modelo, sk, hueso, datos[5] as Dictionary)
 		puestas.append(p)
 	return puestas
 

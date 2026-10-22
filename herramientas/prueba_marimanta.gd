@@ -26,9 +26,9 @@ const HUESOS_SUELA: PackedStringArray = ["Foot", "ToeBase", "Toe_End"]
 ## Bastón: pieza de Equipo3D colgada de la mano derecha. En idle, vertical (desvío máximo de la vertical, grados) y con el pie a menos de esto del suelo (fracción
 ## del alto del modelo); y sigue a la mano (la distancia mano-bastón no cambia más de esto, fracción del alto, entre dos instantes del andar).
 const PIEZA_BASTON: String = "baston_marimanta"
-const BASTON_VERTICAL_MAX_GRADOS: float = 8.0
-const BASTON_SUELO_TOL: float = 0.04
-const BASTON_SIGUE_MANO_TOL: float = 0.005
+const BASTON_SUELO_TOL_U: float = 0.02    ## u de juego: lo que puede separarse del suelo la punta de abajo
+const BASTON_LEJOS: float = 500.0         ## en el espacio del hueso: se suma al punto de agarre para simular la mano muy lejos
+const BASTON_MUESTRAS: int = 16          ## instantes de cada clip en los que se mide
 const BASTON_ALTO_MIN: float = 0.5        ## el bastón mide, en el juego, entre esta fracción y esta de la altura de ella
 const BASTON_ALTO_MAX: float = 1.0
 
@@ -119,27 +119,59 @@ func _initialize() -> void:
 	if baston != null:
 		var at: Node = baston.get_parent()
 		_ok(at is BoneAttachment3D and (at as BoneAttachment3D).bone_name.ends_with("RightHand"), "colgado de la mano derecha (%s)" % (at as BoneAttachment3D).bone_name)
-		var mano: int = sk.find_bone("mixamorig_RightHand")
-		var clip_i: String = p.clip_de("idle")
-		_suela_en(p, sk, ap, clip_i, 0.0)
-		await process_frame
-		var pie: Vector3 = p.to_local(baston.global_position)
-		var arriba: Vector3 = (baston.global_basis.y).normalized()
-		var vertical: float = rad_to_deg(arriba.angle_to(Vector3.UP))
-		_ok(vertical <= BASTON_VERTICAL_MAX_GRADOS, "idle: bastón vertical (%.1f° de la vertical, tope %.0f°)" % [vertical, BASTON_VERTICAL_MAX_GRADOS])
-		_ok(absf(pie.y - reposo) / alto <= BASTON_SUELO_TOL, "idle: el pie del bastón en el suelo (a %.3f del alto del suelo, tope %.2f)" % [(pie.y - reposo) / alto, BASTON_SUELO_TOL])
+		var apoyo: PiezaApoyada3D = at.get_node_or_null("Apoyo") as PiezaApoyada3D
+		_ok(apoyo != null, "el bastón va en modo apoyado en el suelo (PiezaApoyada3D, por datos de EQUIPO)")
 		var largo: float = _largo_baston(baston) * baston.global_basis.get_scale().y   # la escala global ya incluye la del personaje
 		_ok(largo >= ALTO_ESPERADO * BASTON_ALTO_MIN and largo <= ALTO_ESPERADO * BASTON_ALTO_MAX, "bastón de %.2f u en el juego (de %.2f a %.2f)" % [largo, ALTO_ESPERADO * BASTON_ALTO_MIN, ALTO_ESPERADO * BASTON_ALTO_MAX])
-		# Sigue a la mano: la posición del pie del bastón respecto a la mano es la misma en dos instantes distintos del andar.
-		var clip_w: String = p.clip_de("walk")
-		var largo_w: float = ap.get_animation(clip_w).length
-		var rel: Array = []
-		for f in [0.1, 0.6]:
-			_suela_en(p, sk, ap, clip_w, largo_w * f)
-			await process_frame
-			var m_glob: Transform3D = sk.global_transform * sk.get_bone_global_pose(mano)
-			rel.append(m_glob.affine_inverse() * baston.global_position)
-		_ok(((rel[0] as Vector3) - (rel[1] as Vector3)).length() / (alto * p.scale.y) <= BASTON_SIGUE_MANO_TOL, "el bastón sigue a la mano al andar (cambio %.4f)" % (((rel[0] as Vector3) - (rel[1] as Vector3)).length() / (alto * p.scale.y)))
+		# En cada clip, a lo largo del ciclo: vertical (≤ inclinación máxima), la punta de abajo en el suelo del personaje y, mientras la sostiene, cerca de la mano.
+		if apoyo != null:
+			var suelo_y: float = p.global_position.y
+			for r2 in ["idle", "walk", "talk", "pensar", "run"]:
+				var clip_r: String = p.clip_de(r2)
+				var largo_r: float = ap.get_animation(clip_r).length
+				var peor_incl: float = 0.0
+				var peor_suelo: float = 0.0
+				var peor_mano: float = 0.0
+				var sueltos: int = 0
+				for k2 in range(BASTON_MUESTRAS):
+					_suela_en(p, sk, ap, clip_r, largo_r * float(k2) / float(BASTON_MUESTRAS))
+					apoyo.actualizar(0.0, true)
+					peor_incl = maxf(peor_incl, rad_to_deg(baston.global_basis.y.normalized().angle_to(Vector3.UP)))
+					peor_suelo = maxf(peor_suelo, absf(baston.global_position.y - suelo_y))
+					if apoyo.suelta:
+						sueltos += 1
+					else:
+						peor_mano = maxf(peor_mano, apoyo.distancia_mano)
+				print("INFO  %s: inclinación máx %.1f°, punta a %.4f del suelo, mano a %.3f del palo, suelto en %d/%d muestras" % [r2, peor_incl, peor_suelo, peor_mano, sueltos, BASTON_MUESTRAS])
+				_ok(peor_incl <= PiezaApoyada3D.INCLINACION_MAX + 0.1, "%s: bastón vertical (%.1f°, tope %.0f°)" % [r2, peor_incl, PiezaApoyada3D.INCLINACION_MAX])
+				_ok(peor_suelo <= BASTON_SUELO_TOL_U, "%s: la punta de abajo en el suelo (a %.4f u, tope %.2f)" % [r2, peor_suelo, BASTON_SUELO_TOL_U])
+				_ok(peor_mano <= PiezaApoyada3D.DISTANCIA_SUELTA + 0.001, "%s: cerca de la mano mientras la sostiene (%.3f u, tope %.2f)" % [r2, peor_mano, PiezaApoyada3D.DISTANCIA_SUELTA])
+				if r2 == "idle":
+					_ok(sueltos == 0, "idle: lo sostiene siempre")
+			# Modo suelto: con la palma lejísimos (se simula alejando el punto de agarre) el bastón se queda plantado y vertical junto a ella, sin seguir a la mano.
+			_suela_en(p, sk, ap, p.clip_de("idle"), 0.0)
+			apoyo.actualizar(0.0, true)
+			var pie_antes: Vector3 = baston.global_position
+			var agarre_ok: Vector3 = apoyo.agarre_local
+			apoyo.agarre_local += Vector3(BASTON_LEJOS, 0.0, 0.0)
+			apoyo.actualizar(0.0, true)
+			_ok(apoyo.suelta, "con la mano lejos el bastón pasa a modo suelto")
+			_ok(baston.global_position.distance_to(pie_antes) <= 0.001 and rad_to_deg(baston.global_basis.y.normalized().angle_to(Vector3.UP)) <= 0.1, "suelto: plantado en su sitio y vertical (se movió %.4f u)" % baston.global_position.distance_to(pie_antes))
+			apoyo.agarre_local = agarre_ok
+			apoyo.actualizar(0.0, true)
+			_ok(not apoyo.suelta, "al volver la mano lo vuelve a agarrar")
+			# El bastón suelto o no sigue al personaje: si el personaje se mueve, el palo va con él.
+			p.global_position.x += 1.0
+			_suela_en(p, sk, ap, p.clip_de("idle"), 0.0)
+			apoyo.actualizar(0.0, true)
+			_ok(Vector2(baston.global_position.x - p.global_position.x, baston.global_position.z - p.global_position.z).length() <= 0.5, "si el personaje se mueve (otra x), el bastón va con él")
+			p.global_position.x -= 1.0
+			# En una terraza (el personaje 0,3 u más alto) el bastón se apoya en su suelo.
+			p.global_position.y += 0.3
+			_suela_en(p, sk, ap, p.clip_de("idle"), 0.0)
+			apoyo.actualizar(0.0, true)
+			_ok(absf(baston.global_position.y - p.global_position.y) <= BASTON_SUELO_TOL_U, "en una terraza, la punta apoya en la y del personaje (%.3f)" % (baston.global_position.y - p.global_position.y))
+			p.global_position.y -= 0.3
 	# Postura del idle: cabeza por encima del pecho (en espacio del modelo).
 	var an_i: Animation = ap.get_animation(p.clip_de("idle"))
 	var min_sobre: float = INF
