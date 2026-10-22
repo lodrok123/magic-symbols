@@ -13,6 +13,15 @@ const FOTOGRAMAS_ESPERA: int = 12
 const CAMARA_PITCH: float = 12.0           ## grados de picado (suave: aquí se mira la figura, no el juego)
 const TAM_COMPLETO: float = 1.7
 const TAM_CERCA: float = 0.8
+## Revisión de clips: [rol, fracciones del clip]. Los tumbados (muerte) llegan hasta el final; los cíclicos no repiten el primer fotograma.
+const REVISION: Array = [["idle", [0.0, 0.3, 0.6, 0.9]], ["walk", [0.0, 0.25, 0.5, 0.75]], ["talk", [0.0, 0.3, 0.6, 0.9]],
+	["saludo", [0.1, 0.3, 0.55, 0.85]], ["celebrar", [0.1, 0.3, 0.55, 0.85]]]
+const VISTAS_REVISION: Array = [["frente", 0.0], ["tres_cuartos", 40.0]]
+const SEPARACION_REVISION: float = 1.4
+const TAM_REVISION: float = 3.0
+const VENTANA_REVISION: Vector2i = Vector2i(1500, 700)
+const CAMARA_PITCH_REVISION: float = 6.0
+var camara_pitch: float = CAMARA_PITCH
 
 
 func _initialize() -> void:
@@ -64,6 +73,14 @@ func _correr() -> void:
 	cam.current = true
 	for i in 20:
 		await process_frame
+	var etiqueta: String = a[1] if a.size() > 1 else "despues"
+	var solo_revision: bool = a.size() > 2 and a[2] == "revision"
+	if solo_revision:
+		elfo.queue_free()
+		elfa.queue_free()
+		await _revision(raiz, cam, carpeta, etiqueta)
+		quit()
+		return
 	for pose in POSES:
 		for p in [elfo, elfa]:
 			await _poner_pose(p as Pj3D, String(pose[1]))
@@ -76,7 +93,50 @@ func _correr() -> void:
 			await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/%s_%s_comparativa.png" % [carpeta, pose[0], v[0]])
 			if pose[0] != "reposo" or v[0] == "frente":
 				await _foto(cam, elfo.position + Vector3(0, 0.62, 0), TAM_CERCA, "%s/%s_%s_elfo_cerca.png" % [carpeta, pose[0], v[0]])
+	await _revision(raiz, cam, carpeta, etiqueta)
 	quit()
+
+
+## REVISIÓN v2 (clips del elfo base): cada clip se congela en varias fracciones, una figura por fracción en fila, de frente y de lado.
+## Sale una imagen por clip y vista: `<carpeta>/v2_<etiqueta>_<rol>_<vista>.png` (etiqueta = «antes» / «despues»). Con «revision» como tercer argumento
+## solo se hace esto.
+func _revision(raiz: Node3D, cam: Camera3D, carpeta: String, etiqueta: String) -> void:
+	root.size = VENTANA_REVISION
+	for _i in 4:
+		await process_frame
+	for rev in REVISION:
+		var rol: String = String(rev[0])
+		var fracciones: Array = rev[1]
+		for v in VISTAS_REVISION:
+			var figuras: Array = []
+			for k in range(fracciones.size()):
+				var f := Pj3D.new()
+				raiz.add_child(f)
+				f.cargar("elfo_base")
+				f.set_alto(ALTO_JUEGO)
+				f.position = Vector3((float(k) - float(fracciones.size() - 1) * 0.5) * SEPARACION_REVISION, 0, 0)
+				f.rotation_degrees.y = float(v[1])
+				figuras.append(f)
+			for _i in 4:
+				await process_frame
+			for k in range(fracciones.size()):
+				var f2: Pj3D = figuras[k]
+				f2._arbol.active = false
+				var clip: String = f2.clip_de(rol)
+				f2._ap.active = true
+				f2._ap.play(clip)
+				var an: Animation = f2._ap.get_animation(clip)
+				f2._ap.seek(minf(an.length * float(fracciones[k]), an.length - 0.001), true)
+				f2._ap.pause()
+			for _i in FOTOGRAMAS_ESPERA:
+				await process_frame
+			var pitch_antes: float = camara_pitch
+			camara_pitch = CAMARA_PITCH_REVISION
+			await _foto(cam, Vector3(0, 0.5, 0), TAM_REVISION, "%s/v2_%s_%s_%s.png" % [carpeta, etiqueta, rol, v[0]])
+			camara_pitch = pitch_antes
+			for f3 in figuras:
+				(f3 as Node).queue_free()
+			await process_frame
 
 
 ## Congela al personaje en `rol` (en FRACCION_CLIP del ciclo) o, con rol vacío, en la pose de reposo del GLB sin clips.
@@ -100,7 +160,7 @@ func _poner_pose(p: Pj3D, rol: String) -> void:
 
 
 func _foto(cam: Camera3D, foco: Vector3, tam: float, ruta: String) -> void:
-	var dir := Vector3(0.0, -sin(deg_to_rad(CAMARA_PITCH)), -cos(deg_to_rad(CAMARA_PITCH)))   # mira hacia -Z desde +Z (los modelos miran a +Z), algo picado
+	var dir := Vector3(0.0, -sin(deg_to_rad(camara_pitch)), -cos(deg_to_rad(camara_pitch)))   # mira hacia -Z desde +Z (los modelos miran a +Z), algo picado
 	cam.size = tam
 	cam.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), foco - dir * 20.0)
 	for _i in 4:

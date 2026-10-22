@@ -34,7 +34,11 @@ const SINONIMOS: Dictionary = {
 	"levantarse": ["levantarse"],
 	# Mano quemada (22/10): el clip se construye por código sobre el Idle (`_preparar_mano_quemada`); sin «hit» ni «burn» en el nombre por el mismo motivo de arriba.
 	"mano_quemada": ["manoquemada"],
-	"talk": ["stand_talking", "talking"],
+	"talk": ["stand_talking", "talking", "hablar"],
+	# Clips propios del elfo (22/10, Pablo, Tripo): saludar (greet_02, una vez) y celebrar (cheer, una vez). Sin rol previo que encaje: `wave` es el
+	# saludo con la mano de la elfa (wave/hello) y no se mezcla con ellos.
+	"saludo": ["greet_02", "greet"],
+	"celebrar": ["cheer"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
 	"wave": ["wave", "hello"],
@@ -70,6 +74,17 @@ const CLIPS_DE: Dictionary = {
 	"loberno": {"run": "gallop", "hit": "idle_hitreact1"},
 	# Lince cornudo (14/10, Meshy «Horned Lynx Pup» sobre el esqueleto Fox/Wolf): sustituye al gato de la mascota. Mismos nombres de clip que el loberno.
 	"lince": {"run": "gallop", "hit": "idle_hitreact1"},
+}
+
+## Roles a los que se quita el desplazamiento de la cadera al cargar (el Juego mueve al personaje): id -> [roles]. elfo_base: su walk (Tripo) avanza la cadera
+## ~2,9 alturas de cadera por ciclo.
+const RAIZ_ANULADA: Dictionary = {
+	"elfo_base": ["walk"],
+}
+
+## Rol que se usa en su lugar cuando el personaje no tiene clip para el pedido: id -> {rol pedido: rol sustituto}. Solo para los ids listados.
+const ROL_SUSTITUTO: Dictionary = {
+	"elfo_base": {"run": "walk"},
 }
 
 ## Clips mínimos por tipo de personaje (la misma lista que docs/ASSETS_PENDIENTES.md §1).
@@ -230,6 +245,8 @@ func cargar(p_id: String) -> bool:
 	if id.begins_with("elemental"):
 		for rol in ["attack", "walk", "hit"]:
 			_anular_raiz(rol)
+	for rol in (RAIZ_ANULADA.get(id, []) as Array):
+		_anular_raiz(String(rol))
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
 	_crear_sombra()
@@ -1780,7 +1797,13 @@ const VEL_CLIP: Dictionary = {"roll": 2.0}
 
 
 func jugar(nombre: String, una_vez: bool = false, vel: float = 1.0) -> void:
-	if _arbol == null or nombre == animacion_actual:
+	if _arbol == null:
+		return
+	# Un personaje sin el clip pedido usa su sustituto (elfo_base no trae `run`: corre con `walk`).
+	var sustituto: String = String((ROL_SUSTITUTO.get(id, {}) as Dictionary).get(nombre, ""))
+	if sustituto != "" and _buscar_clip(nombre) == "":
+		nombre = sustituto
+	if nombre == animacion_actual:
 		return
 	_reproducir(nombre, una_vez, vel, MEZCLA_CLIPS)
 
