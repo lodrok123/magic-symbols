@@ -3,7 +3,7 @@ extends SceneTree
 ## (en --headless no hay GPU: ni se compila el shader ni hay imagen). Con Godot CERRADO (el editor de Pablo no puede estar abierto):
 ##   godot --path . --script res://herramientas/captura_v6_restos.gd -- <carpeta>      (por defecto res://docs/capturas/v6_restos)
 ## Salida: enredadera_brota, enredadera_ardiendo_1..3, enredadera_disolver, cofre_aparece_1..4 (+ una línea FOTO por toma con color medio y píxeles «brasa»).
-## NO EJECUTADO todavía en la sesión que lo escribió (había un Godot con ventana abierto): si falla, es de este script, no de los efectos.
+## Si salen fotos IDÉNTICAS y «Parameter "material" is null» es que la ventana no se dibujaba (minimizada/tapada): el script avisa con AVISO. Con ventana visible sale bien.
 
 class MundoFalso extends Node3D:
 	const S: float = 2.3
@@ -41,7 +41,7 @@ func _correr() -> void:
 	_cam_a(Vector3(0.0, 0.2, 0.0), 1.6)
 	e.brotar()
 	await _esperar(Enredadera3D.DURA_BROTE * 0.35)
-	_foto("enredadera_brota", "brotando (recorte del suelo)")
+	await _foto("enredadera_brota", "brotando (recorte del suelo)")
 	await _esperar(Enredadera3D.DURA_BROTE)
 	e.quemar()
 	var t0: float = _t()
@@ -52,13 +52,13 @@ func _correr() -> void:
 			obj = Enredadera3D.DURA_ARDER + Enredadera3D.DURA_QUEMADA * 0.9
 		while _t() - t0 < obj:
 			await process_frame
-		_foto("enredadera_ardiendo_%d" % i, "quemado %.2f fase %d" % [Ocluso3D.quemado_de(e._mat), e.fase])
+		await _foto("enredadera_ardiendo_%d" % i, "quemado %.2f fase %d" % [Ocluso3D.quemado_de(e._mat), e.fase])
 		i += 1
 	while is_instance_valid(e) and e.fase != Enredadera3D.Fase.DESHACIENDO:
 		await process_frame
 	await _esperar(Enredadera3D.DURA_DESHACER * 0.5)
 	if is_instance_valid(e):
-		_foto("enredadera_disolver", "disolver %.2f" % Ocluso3D.disolver_de(e._mat))
+		await _foto("enredadera_disolver", "disolver %.2f" % Ocluso3D.disolver_de(e._mat))
 	await _esperar(Enredadera3D.DURA_DESHACER)
 	await _frames(5)
 	# --- cofre apareciendo ---
@@ -75,7 +75,7 @@ func _correr() -> void:
 	for k in [0.12, 0.4, 0.7, 0.98]:
 		while _t() - t0 < Cofre3D.T_APARECE_DISOLVER * k:
 			await process_frame
-		_foto("cofre_aparece_%d" % i, "disolver %.2f" % c.disolver_v)
+		await _foto("cofre_aparece_%d" % i, "disolver %.2f" % c.disolver_v)
 		i += 1
 	quit()
 
@@ -140,8 +140,16 @@ func _cam_a(objetivo: Vector3, dist: float) -> void:
 	_cam.look_at(objetivo)
 
 
+var _hash_prev: int = 0
+
+
 func _foto(nombre: String, nota: String) -> void:
+	await RenderingServer.frame_post_draw           # la imagen es la del cuadro YA dibujado (sin esto puede ser la anterior)
 	var img: Image = root.get_viewport().get_texture().get_image()
+	var hsh: int = hash(img.get_data())
+	if hsh == _hash_prev:
+		print("AVISO: %s es IDENTICA a la foto anterior: la ventana no esta dibujando (minimizada/tapada) o nada ha cambiado" % nombre)
+	_hash_prev = hsh
 	img.save_png("%s/%s.png" % [_carpeta, nombre])
 	var w: int = img.get_width()
 	var h: int = img.get_height()

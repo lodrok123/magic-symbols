@@ -59,7 +59,7 @@ func _enredadera(variante: String, ancho: float) -> void:
 	while is_instance_valid(e) and (_t() - t0) < 9.0:
 		await process_frame
 		if is_instance_valid(e):
-			m.append([_t() - t0, e.fase, Ocluso3D.quemado_de(e._mat), Ocluso3D.disolver_de(e._mat), e.position.y])
+			m.append([_t() - t0, e.fase, Ocluso3D.quemado_de(e._mat), Ocluso3D.disolver_de(e._mat), e.position.y, _disolver_visible(e)])
 	_ok(et + "3. se borra sola al acabar", not is_instance_valid(e))
 	var q_fin_arder: float = -1.0
 	var q_antes_deshacer: float = 0.0
@@ -70,6 +70,8 @@ func _enredadera(variante: String, ancho: float) -> void:
 	var d_max: float = 0.0
 	var q_prev: float = 0.0
 	var d_prev: float = 0.0
+	var visible_ok: bool = true      # fix aparecer: la malla VISIBLE (no solo `_mat`) lleva el disolver al deshacerse
+	var visible_n: int = 0
 	var d_crece: bool = true
 	var cuando_quemada: float = -1.0
 	var mitad_q: float = -1.0
@@ -91,6 +93,10 @@ func _enredadera(variante: String, ancho: float) -> void:
 			if float(s[3]) < d_prev - 0.0001:
 				d_crece = false
 			d_prev = float(s[3])
+			if float(s[3]) > 0.0:
+				visible_n += 1
+				if absf(float(s[5]) - float(s[3])) > 0.0001:
+					visible_ok = false
 			d_max = maxf(d_max, float(s[3]))
 		if float(s[2]) < q_prev - 0.0001 and fase != Enredadera3D.Fase.DESHACIENDO:
 			crece = false
@@ -102,6 +108,7 @@ func _enredadera(variante: String, ancho: float) -> void:
 	_ok(et + "3. el tiempo hasta QUEMADA es el de antes (DURA_ARDER)", absf(cuando_quemada - Enredadera3D.DURA_ARDER) < 0.2, "%.2f s" % cuando_quemada)
 	_ok(et + "3. el disolver no se mueve hasta DESHACIENDO", not disolver_antes)
 	_ok(et + "3. DESHACIENDO: disolver común sube de 0 a ~1 sin saltos atrás", d_crece and d_max > 0.9, "max %.2f" % d_max)
+	_ok(et + "3. DESHACIENDO: el material de la malla VISIBLE tiene el mismo disolver > 0", visible_ok and visible_n > 5, "%d muestras" % visible_n)
 	_ok(et + "3. DESHACIENDO dura DURA_DESHACER", absf((t_des_fin - t_des_ini) - Enredadera3D.DURA_DESHACER) < 0.2, "%.2f s" % (t_des_fin - t_des_ini))
 	_ok(et + "3. se hunde un poco al deshacerse (como antes)", m.size() > 0 and float(m[m.size() - 1][4]) < y0 - 0.04, "y %.3f -> %.3f" % [y0, float(m[m.size() - 1][4])])
 	if variante == "bloqueo":
@@ -155,15 +162,19 @@ func _cofre() -> void:
 	var m: Array = []       # [t, disolver_v, disolver del material, escala.x, estado, abrir()]
 	var abrio_apareciendo: bool = false
 	var primera: bool = true
+	var mallas_cofre_ok: Array = []
 	while apar[0] == 0 and (_t() - t0) < 3.0:
 		if primera:
 			primera = false
 			abrio_apareciendo = c.abrir()
 		await process_frame
+		if m.size() % 5 == 2 and c.disolver_v > 0.05:
+			mallas_cofre_ok.append(_mallas_ok(pieza, c.disolver_v))
 		m.append([_t() - t0, c.disolver_v, Ocluso3D.disolver_de(c._mats_disolver[0]) if not c._mats_disolver.is_empty() else -1.0, asa.scale.x, c.estado_nombre()])
 	var dur: float = _t() - t0
 	_ok(et + "2. usa el material común en el cofre (varios materiales)", not c._mats_disolver.is_empty() and Ocluso3D.es_comun(c._mats_disolver[0]), "%d materiales" % c._mats_disolver.size())
 	_ok(et + "2. apareciendo no se puede abrir", not abrio_apareciendo and m.size() > 0 and m[0][4] == &"apareciendo")
+	_ok(et + "2b. cada malla del cofre real: visible, con material comun y el mismo disolver", mallas_cofre_ok.size() > 0 and not mallas_cofre_ok.has(false), "%d lecturas" % mallas_cofre_ok.size())
 	var ini: float = float(m[0][1])
 	var baja: bool = true
 	for i in range(1, m.size()):
@@ -177,12 +188,13 @@ func _cofre() -> void:
 	_ok(et + "3. disolver parte de ~1 (invisible) y baja sin saltos atrás", ini > 0.8 and baja, "ini %.2f" % ini)
 	_ok(et + "3. el material recibe el mismo valor", igual)
 	_ok(et + "3. dura T_APARECE_DISOLVER", absf(dur - Cofre3D.T_APARECE_DISOLVER) < 0.15, "%.2f s" % dur)
-	_ok(et + "3. termina en 0 (entero), cerrado y con UNA señal `aparecido`", c.disolver_v == 0.0 and Ocluso3D.disolver_de(c._mats_disolver[0]) == 0.0 and c.estado_nombre() == &"cerrado" and apar[0] == 1)
+	_ok(et + "3. termina en 0 (entero), cerrado y con UNA señal `aparecido", c.disolver_v == 0.0 and Ocluso3D.disolver_de(c._mats_disolver[0]) == 0.0 and c.estado_nombre() == &"cerrado" and apar[0] == 1)
 	var sin_pop: bool = true
 	for s in m:
 		if absf(float(s[3]) - esc0.x) > 0.0001:
 			sin_pop = false
 	_ok(et + "3. sin pop de escala (el tamaño no cambia al aparecer)", sin_pop)
+	_ok(et + "3. al acabar, todas las mallas visibles con disolver 0", _mallas_ok(pieza, 0.0))
 	_ok(et + "4. ahora sí se abre y llega a abierto", c.abrir())
 	await create_timer(1.3).timeout
 	_ok(et + "4. abierto", c.esta_abierto())
@@ -227,3 +239,28 @@ func _cofre_interruptores() -> void:
 	c2.ocultar()
 	c2.aparecer_ya()
 	_ok(et + "aparecer_ya(): cerrado de golpe, sin disolver", c2.estado_nombre() == &"cerrado" and c2.disolver_v == 0.0 and p2.visible)
+
+
+## fix aparecer: ¿cada malla visible de aiz pinta con el material común y ese material lleva disolver = v? (lo que ve la GPU, no la lista interna del controlador)
+func _mallas_ok(raiz: Node, v: float) -> bool:
+	var n: int = 0
+	for mi in raiz.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		if m.mesh == null or not m.is_visible_in_tree():
+			continue
+		for s in range(m.mesh.get_surface_count()):
+			var mat: Material = m.get_active_material(s)
+			n += 1
+			if not Ocluso3D.es_comun(mat) or absf(Ocluso3D.disolver_de(mat) - v) > 0.0001:
+				print("      malla sin disolver: " + str(m.name) + " s%d v=%.2f mat=%s" % [s, v, str(mat)])
+				return false
+	return n > 0
+
+
+## Disolver del material activo de la malla visible de la enredadera (-1 si no hay ninguna visible).
+func _disolver_visible(e: Enredadera3D) -> float:
+	for mi in [e._viva, e._quemada] + e._restos:
+		var m := mi as MeshInstance3D
+		if m != null and m.visible:
+			return Ocluso3D.disolver_de(m.get_active_material(0))
+	return -1.0
