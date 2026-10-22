@@ -134,6 +134,12 @@ func _cofres() -> void:
 			_aviso("7.4 la barrera ya estaba desbloqueada al empezar", "la comprobación del glifo no distingue; se mira la misión")
 		colocar_jugador((reglas.get("_celdas_cofre") as Array)[0] + Vector2i(-1, 0))
 		await avanzar(3)
+		# V6 restos: el cofre se materializa por celdas (Cofre3D.T_APARECE_DISOLVER) y no se puede abrir hasta acabar: pulsar E ahora no hace nada.
+		_tecla(KEY_E, true)
+		await avanzar(2)
+		_tecla(KEY_E, false)
+		_ok("7.3b E mientras el cofre aparece no lo abre", not bool((reglas.get("_entregado") as Array)[0]))
+		await avanzar_s(Cofre3D.T_APARECE_DISOLVER + 0.3)
 		_tecla(KEY_E, true)
 		await avanzar(2)
 		_tecla(KEY_E, false)

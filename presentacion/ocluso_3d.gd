@@ -1,4 +1,4 @@
-﻿class_name Ocluso3D
+class_name Ocluso3D
 extends RefCounted
 
 ## TRANSPARENCIA ALREDEDOR DEL JUGADOR (y recorte del toldo del puesto).
@@ -88,10 +88,12 @@ uniform float celda = 0.2;
 uniform float borde = 0.2;
 uniform vec4 disolver_color : source_color = vec4(1.0, 0.5, 0.12, 1.0);
 uniform float disolver_energia = 3.0;
+uniform float corte_y = -1000.0;        // V6 restos: por debajo de esta altura del MUNDO no se dibuja (la enredadera brota de la tierra). -1000 = sin efecto
 uniform vec2 caja_y = vec2(0.0, 0.0);   // y mínima y alto de la malla (espacio local): da la altura para que el fuego suba
 
 varying vec3 po;    // posición en el objeto, a escala de mundo (la celda no cambia si lo escalan)
 varying float vy;   // altura local
+varying float wy;   // altura en el MUNDO (solo para corte_y)
 
 float h31(vec3 p) {
 	p = fract(p * 0.1031);
@@ -141,9 +143,13 @@ vec3 voronoi(vec3 p) {
 void vertex() {
 	po = VERTEX * length(MODEL_MATRIX[0].xyz);
 	vy = VERTEX.y;
+	wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
 }
 
 void fragment() {
+	if (wy < corte_y) {
+		discard;
+	}
 	vec2 uv = UV * uv_escala.xy + uv_desp.xy;
 	vec4 a = texture(tex_albedo, uv) * color;
 	if (usa_vertex > 0.5) {
@@ -351,6 +357,12 @@ static func poner_caja(mat: Material, malla: Mesh) -> void:
 	if mat is ShaderMaterial and malla != null:
 		var c: AABB = malla.get_aabb()
 		(mat as ShaderMaterial).set_shader_parameter("caja_y", Vector2(c.position.y, c.size.y))
+
+
+## Altura del MUNDO por debajo de la cual no se dibuja nada (la enredadera que brota del suelo). -1000 = sin recorte.
+static func poner_corte_y(mat: Material, y: float) -> void:
+	if mat is ShaderMaterial:
+		(mat as ShaderMaterial).set_shader_parameter("corte_y", y)
 
 
 ## Pasa al material común TODAS las superficies de `nodo` (copias propias: el original no se toca, ni lo comparten otras piezas) y devuelve

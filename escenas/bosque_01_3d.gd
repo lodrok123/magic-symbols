@@ -611,8 +611,16 @@ func _aparecer_cofre(i: int) -> void:
 	nodo.name = "cofre_%02d" % (i + 1)
 	nodo.position = m.call("_centro_celda", c, float(m.get("ALTO")))
 	(m.get("_props") as Node).add_child(nodo)
-	nodo.scale = Vector3.ONE * 0.01
-	create_tween().tween_property(nodo, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# V6: aparece materializándose por celdas (Cofre3D.aparecer: disolver 1 → 0). No se puede abrir hasta que acaba (`abrir()` devuelve false mientras tanto:
+	# el jugador vuelve a pulsar E). Sin controlador (arte sin importar) o sin disolver, crece desde nada como antes.
+	var ctrl: Cofre3D = Cofre3D.en(nodo)
+	var materializa: bool = false
+	if ctrl != null and nodo.is_inside_tree():
+		ctrl.ocultar()
+		materializa = ctrl.aparecer()
+	if not materializa:
+		nodo.scale = Vector3.ONE * 0.01
+		create_tween().tween_property(nodo, "scale", Vector3.ONE, 0.6).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	m.call("_bloquear", c)
 	_cofres[i] = nodo
 

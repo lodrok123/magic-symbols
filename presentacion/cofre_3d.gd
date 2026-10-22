@@ -18,9 +18,22 @@ extends Node3D
 ##   c.abrir_ya()                     # al cargar una partida con el cofre ya abierto: pone la pose final sin animación ni efectos (no emite `abierto`)
 ##   c.cerrar()                       # lo deja cerrado sin animación (reiniciar el nivel)
 ## Señales: `abriendo` (la tapa empieza a girar: p. ej. el sonido) y `abierto`.
+##
+## ESTADOS PARA «COFRE QUE APARECE CUANDO SE CUMPLE UNA CONDICIÓN» (21/10, PLAN_EOW C3; el Juego decide CUÁNDO, esto solo lo dibuja). Cuatro estados:
+##   oculto → (aparecer) → cerrado → (abrir) → abierto        [`cerrar()` y `ocultar()` los deshacen sin animación]
+##   c.ocultar()                      # invisible y NO se puede abrir (abrir() devuelve false). Es el estado de partida de un cofre con `aparece_si=`
+##   c.aparecer() -> bool             # oculto → cerrado CON efecto (pop con rebote, destello dorado, motas); emite `aparecido` al acabar. false si no estaba oculto
+##   c.aparecer_ya()                  # oculto → cerrado sin efecto (cargar una partida donde la condición ya se cumplía)
+##   c.esta_oculto() -> bool
+##   c.estado_nombre() -> StringName  # &"oculto" | &"cerrado" | &"abierto" (mientras anima: &"apareciendo" / &"abriendo")
+##   c.poner_estado(&"oculto"|&"cerrado"|&"abierto")   # restaurar de golpe desde el guardado (la flag `abierto` manda sobre `aparece_si`)
+## OJO, la colisión y la interacción NO son de aquí: al ocultar solo se apaga `visible` de la pieza. Quien tenga el `StaticBody3D`/«Area» de pulsar E
+## (Juego) debe apagarlo mientras `esta_oculto()` y encenderlo con la señal `aparecido` (o mirar `esta_oculto()` antes de ofrecer «abrir»).
+## Señal nueva: `aparecido` (ya es cerrado y se puede abrir).
 
 signal abriendo
 signal abierto
+signal aparecido
 
 const CLIP_CERRADO: String = "cerrado"
 const CLIP_ABRIR: String = "abrir"
@@ -35,9 +48,21 @@ const SQUASH: Vector3 = Vector3(1.04, 0.93, 1.04)
 const TEMBLOR: float = 0.07                  ## fracción del ángulo de apertura que sube la tapa en cada temblor
 const COLOR_LUZ: Color = Color(1.0, 0.78, 0.3)
 
-enum Estado { CERRADO, ANTICIPANDO, ABRIENDO, ABIERTO }
+const T_APARECE: float = 0.55                ## s del «pop» de aparición
+const ESCALA_APARECE: float = 0.55           ## de qué tamaño (fracción) empieza a crecer
+
+## cofre disolver (V6 restos): el cofre se MATERIALIZA con el `disolver` común de Ocluso3D al revés (de 1 a 0: celdas que aparecen con su borde brillante) en lugar
+## del pop con escala. Mientras dura (APARECIENDO) NO se puede abrir (`abrir()` solo vale en CERRADO). Sin material común (Ocluso3D apagado o el modelo
+## no trae materiales convertibles, p. ej. un cofre sintético de prueba) se vuelve al pop de arriba.
+const T_APARECE_DISOLVER: float = 0.9        ## s de la materialización por celdas
+const CELDA_APARECE: float = 0.07            ## m; el cofre mide ~0,75: con la celda de serie (0,2) saldrían cuatro trozos
+static var aparecer_disolviendo: bool = true ## interruptor: false = el pop con escala de siempre
+
+## OCULTO y APARECIENDO van al final para no mover los valores que ya existían.
+enum Estado { CERRADO, ANTICIPANDO, ABRIENDO, ABIERTO, OCULTO, APARECIENDO }
 
 var _estado: int = Estado.CERRADO
+var _raiz: Node3D = null                     ## la pieza que se enciende/apaga (el padre al preparar)
 var _anim: AnimationPlayer = null
 var _cuerpo: Node3D = null
 var _tapa: Node3D = null
@@ -46,6 +71,9 @@ var _escala0: Vector3 = Vector3.ONE
 var _q_reposo: Quaternion = Quaternion.IDENTITY
 var _giro_abrir: Quaternion = Quaternion.IDENTITY     ## la rotación (en el espacio del padre de la tapa) que hace el clip al abrir
 var _luz: OmniLight3D = null
+var _mats_disolver: Array[ShaderMaterial] = []       ## cofre disolver: copias comunes de los materiales del cofre (se crean la primera vez que aparece)
+var _tw_disolver: Tween = null
+var disolver_v: float = 0.0                          ## cofre disolver: valor actual del `disolver` (1 = invisible … 0 = entero); para pruebas
 
 
 ## El controlador de `nodo` (lo crea y lo prepara la primera vez). Null si `nodo` no tiene cuerpo ni tapa del cofre.
@@ -75,6 +103,7 @@ func _ready() -> void:
 
 ## Busca en `raiz` el cuerpo, la tapa y el AnimationPlayer. false si no está la tapa (no hay nada que abrir).
 func preparar(raiz: Node) -> bool:
+	_raiz = raiz as Node3D
 	_cuerpo = raiz.find_child(NODO_CUERPO, true, false) as Node3D
 	_tapa = raiz.find_child(NODO_TAPA, true, false) as Node3D
 	if _tapa == null:
@@ -99,6 +128,97 @@ func preparar(raiz: Node) -> bool:
 
 func esta_abierto() -> bool:
 	return _estado == Estado.ABIERTO
+
+
+func esta_oculto() -> bool:
+	return _estado == Estado.OCULTO
+
+
+func estado_nombre() -> StringName:
+	match _estado:
+		Estado.OCULTO: return &"oculto"
+		Estado.APARECIENDO: return &"apareciendo"
+		Estado.ABIERTO: return &"abierto"
+		Estado.CERRADO: return &"cerrado"
+	return &"abriendo"      # ANTICIPANDO y ABRIENDO: para fuera es lo mismo
+
+
+## Lo deja invisible y sin poder abrirse, sin animación. Si estaba abierto o abriéndose, la pose se queda como esté (al reaparecer se parte de «cerrado»).
+func ocultar() -> void:
+	if _tapa == null:
+		return
+	cerrar()
+	_estado = Estado.OCULTO
+	if _raiz != null:
+		_raiz.visible = false
+
+
+## oculto → cerrado con efecto. false si no estaba oculto (idempotente: llamarlo dos veces no repite el efecto).
+func aparecer() -> bool:
+	if _estado != Estado.OCULTO or _tapa == null or not is_inside_tree():
+		return false
+	_estado = Estado.APARECIENDO
+	if _raiz != null:
+		_raiz.visible = true
+	var caja: AABB = _caja()
+	var centro: Vector3 = caja.position + caja.size * 0.5
+	var dur: float = T_APARECE                   # cofre disolver: duración de esta aparición (la del pop o la del disolver)
+	# 1) Pop: crece desde ESCALA_APARECE con un pequeño rebote (TRANS_BACK pasa de 1 y vuelve). Se parte del tamaño de reposo, no de 1, por si el nodo viene escalado.
+	if _empezar_disolver():                      # cofre disolver: materialización por celdas en lugar del pop
+		dur = T_APARECE_DISOLVER
+	elif _asa != null:
+		_asa.scale = _escala0 * ESCALA_APARECE
+		var ts: Tween = _asa.create_tween()
+		ts.tween_property(_asa, "scale", _escala0, T_APARECE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# 2) Destello dorado que sube y se apaga (misma luz y color que la anticipación, para que se lea como «lo mismo que se abre»).
+	var luz := OmniLight3D.new()
+	luz.light_color = COLOR_LUZ
+	luz.light_energy = 0.0
+	luz.omni_range = maxf(caja.size.x, caja.size.z) * 3.5
+	luz.shadow_enabled = false
+	luz.position = centro
+	add_child(luz)
+	var tl: Tween = luz.create_tween()
+	tl.tween_property(luz, "light_energy", 2.4, dur * 0.25)
+	tl.tween_property(luz, "light_energy", 0.0, dur * 1.2).set_trans(Tween.TRANS_SINE)
+	tl.tween_callback(luz.queue_free)
+	# 3) Motas doradas que salen hacia fuera (las de la anticipación entran; estas salen: el gesto es el contrario).
+	VfxKit3D.oro_motas(self, centro, 36, 0.8, 0.08, 1.8, false, false, maxf(caja.size.x, caja.size.z) * 0.4, Vector3.UP, 70.0)
+	var fin: Tween = create_tween()
+	fin.tween_interval(dur)
+	fin.tween_callback(_terminar_aparicion)
+	return true
+
+
+func _terminar_aparicion() -> void:
+	if _estado != Estado.APARECIENDO:        # alguien llamó a ocultar()/poner_estado() mientras animaba
+		return
+	_poner_disolver(0.0)                         # cofre disolver: entero (por si el tween no llegó exacto)
+	_estado = Estado.CERRADO
+	aparecido.emit()
+
+
+## oculto → cerrado sin efecto ni señal (cargar una partida). No hace nada si no estaba oculto.
+func aparecer_ya() -> void:
+	if _estado != Estado.OCULTO:
+		return
+	cerrar()
+	if _raiz != null:
+		_raiz.visible = true
+
+
+## Restaura de golpe un estado guardado. Nombre desconocido: no hace nada (mejor que adivinar).
+func poner_estado(nombre: StringName) -> void:
+	match nombre:
+		&"oculto": ocultar()
+		&"cerrado":
+			cerrar()
+			if _raiz != null:
+				_raiz.visible = true
+		&"abierto":
+			if _raiz != null:
+				_raiz.visible = true
+			abrir_ya()
 
 
 ## La rotación que hace el clip «abrir» sobre la tapa: la del último fotograma respecto a la del primero. Sirve para saber el eje de la bisagra
@@ -227,7 +347,10 @@ func _terminar() -> void:
 func abrir_ya() -> void:
 	if _tapa == null:
 		return
+	_parar_disolver()                            # cofre disolver
 	_estado = Estado.ABIERTO
+	if _raiz != null:
+		_raiz.visible = true
 	if _anim != null:
 		_anim.play(CLIP_ABRIR)
 		_anim.seek(_anim.get_animation(CLIP_ABRIR).length, true)
@@ -240,7 +363,10 @@ func abrir_ya() -> void:
 func cerrar() -> void:
 	if _tapa == null:
 		return
+	_parar_disolver()                            # cofre disolver
 	_estado = Estado.CERRADO
+	if _raiz != null:
+		_raiz.visible = true       # cerrado = visible; para esconderlo está ocultar()
 	if _anim != null:
 		_anim.stop()
 		if _anim.has_animation(CLIP_CERRADO):
@@ -250,3 +376,36 @@ func cerrar() -> void:
 	_tapa.quaternion = _q_reposo
 	if _asa != null:
 		_asa.scale = _escala0
+
+## --- cofre disolver (V6 restos) ---
+
+## Arranca la materialización por celdas (disolver 1 → 0 en T_APARECE_DISOLVER). false si no se puede (interruptor apagado, sin materiales convertibles):
+## quien llama usa entonces el pop con escala.
+func _empezar_disolver() -> bool:
+	if not aparecer_disolviendo or not Ocluso3D.usar_quemado_disolver or _raiz == null:
+		return false
+	if _mats_disolver.is_empty():
+		Ocluso3D.preparar()                      # idempotente
+		_mats_disolver = Ocluso3D.convertir_nodo(_raiz)
+		for m in _mats_disolver:
+			Ocluso3D.configurar_disolver(m, Ocluso3D.DISOLVER_COLOR, CELDA_APARECE)
+	if _mats_disolver.is_empty():
+		return false
+	_poner_disolver(1.0)
+	_tw_disolver = create_tween()
+	_tw_disolver.tween_method(_poner_disolver, 1.0, 0.0, T_APARECE_DISOLVER)
+	return true
+
+
+func _poner_disolver(v: float) -> void:
+	disolver_v = v
+	for m in _mats_disolver:
+		Ocluso3D.poner_disolver(m, v)
+
+
+## Corta la materialización (si la había) y deja el cofre entero.
+func _parar_disolver() -> void:
+	if _tw_disolver != null and _tw_disolver.is_valid():
+		_tw_disolver.kill()
+	_tw_disolver = null
+	_poner_disolver(0.0)

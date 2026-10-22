@@ -7,12 +7,12 @@ extends Node3D
 ##
 ## (La fase actual está en `fase`; el enum no se llama Estado porque ese nombre es el autoload del juego.)
 ## Ciclo de vida (lo pidió Pablo el 8/10):
-##   1. BROTANDO   sale de la tierra: sube desde debajo del suelo y no se ve nada por debajo de él (el shader recorta bajo `corte_y`).
+##   1. BROTANDO   sale de la tierra: sube desde debajo del suelo y no se ve nada por debajo de él (el shader común recorta bajo `corte_y`).
 ##   2. VIVA       la malla verde. Aquí se queda hasta que algo la quema.
-##   3. ARDIENDO   `quemar()`: SIGUE VERDE, sin alterarse, pero el fuego va generando focos nuevos (llamas sueltas sobre ella,
-##                 cada 0,4 s, hasta MAX_FOCOS). Cada foco nuevo emite `foco(punto)`: el Juego lo usa para prender lo que haya cerca.
-##   4. QUEMADA    cambia a la malla quemada (oscura, con brasas) y las llamas se reducen a una.
-##   5. DESHACIENDO se desintegra de arriba abajo con un borde de brasa y se hunde un poco; al acabar se borra sola (`deshecha`).
+##   3. ARDIENDO   `quemar()`: el fuego va generando focos nuevos (llamas sueltas sobre ella, cada 0,4 s, hasta MAX_FOCOS). Cada foco nuevo emite
+##                 `foco(punto)`: el Juego lo usa para prender lo que haya cerca. V6: el `quemado` común sube 0 → QUEMADO_AL_ARDER (carbón con frente de brasas).
+##   4. QUEMADA    cambia a la malla quemada (oscura, retorcida) y las llamas se reducen a una; `quemado` sigue hasta 1 (ceniza gris).
+##   5. DESHACIENDO V6: `disolver` por celdas con borde brillante (el mismo de seto y tronco) y se hunde un poco; al acabar se borra sola (`deshecha`).
 ##
 ## Por qué dos mallas y no un fundido de textura: Meshy las modeló distintas (la quemada tiene las raíces retorcidas y partidas);
 ## cambiar de malla se ve como «se ha quemado» y un tinte no lo conseguiría. El GLB trae las dos (`viva`, `quemada`) apoyadas en y = 0.
@@ -53,31 +53,11 @@ const DURA_ARDER: float = 2.2        ## verde y con focos, antes de quemarse del
 const DURA_QUEMADA: float = 1.6      ## quemada y quieta, antes de deshacerse
 const DURA_DESHACER: float = 1.7
 
-const CODIGO: String = """
-shader_type spatial;
-render_mode cull_disabled;
-uniform sampler2D t_albedo : source_color, filter_linear_mipmap, repeat_enable;
-uniform float corte_y = -1000.0;     // por debajo de esta altura del MUNDO no se dibuja (el suelo)
-uniform float disolver = 0.0;        // 0 = entera, 1 = deshecha
-uniform float alto = 0.3;
-varying vec3 lp;
-varying float wy;
-float hash(vec3 p) { p = fract(p * 0.3183 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-void vertex() { lp = VERTEX; wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y; }
-void fragment() {
-	if (wy < corte_y) discard;
-	vec3 a = texture(t_albedo, UV).rgb;
-	// se deshace de arriba abajo con ruido: n pequeño = se va antes
-	float n = hash(floor(lp * 38.0)) * 0.45 + (1.0 - clamp(lp.y / alto, 0.0, 1.0)) * 0.55;
-	float d = n - disolver * 1.1;
-	if (d < 0.0) discard;
-	float borde = smoothstep(0.07, 0.0, d) * step(0.001, disolver);
-	ALBEDO = a;
-	ROUGHNESS = 0.9;
-	EMISSION = vec3(1.0, 0.45, 0.08) * borde * 2.2;
-}
-"""
-
+## V6 (restos): ya no lleva shader propio. Usa el material común de `Ocluso3D` (presentacion/ocluso_3d.gd): `corte_y` (recorte del suelo al brotar),
+## `quemado` (carbón + frente de brasas + ceniza) y `disolver` (celdas Voronoi con borde brillante), igual que el seto y el tronco.
+const QUEMADO_AL_ARDER: float = 0.55      ## `quemado` al acabar ARDIENDO (carbón con brasas); de ahí sube a 1 (ceniza) durante QUEMADA
+const CELDA_DISOLVER: float = 0.08        ## m; la enredadera mide ~0,3 de alto: con la celda de serie (0,2) serían dos celdas
+const SIN_CORTE: float = -1000.0
 var fase: Fase = Fase.OCULTA
 var ancho: float = 1.3                ## ancho en el mundo (la malla mide 1,0 a escala 1)
 var _fx: Vfx3D = null
@@ -85,6 +65,7 @@ var _viva: MeshInstance3D = null
 var _quemada: MeshInstance3D = null
 var _mat: ShaderMaterial = null
 var _tw: Tween = null
+var _tw_q: Tween = null               ## el avance de `quemado`
 var _llamas: Array = []
 var _alto_real: float = 0.3
 var _restos: Array = []               ## MeshInstance3D de los restos (solo variante «bloqueo»): se ven al quemarse
@@ -130,14 +111,20 @@ func preparar(fx: Vfx3D = null, p_ancho: float = 1.3, variante: String = "") -> 
 	_viva = m.find_child("viva", true, false) as MeshInstance3D
 	_quemada = m.find_child("quemada", true, false) as MeshInstance3D
 	var base: BaseMaterial3D = _viva.mesh.surface_get_material(0) as BaseMaterial3D if _viva != null else null
-	_mat = ShaderMaterial.new()
-	var sh := Shader.new()
-	sh.code = CODIGO
-	_mat.shader = sh
-	if base != null:
-		_mat.set_shader_parameter("t_albedo", base.albedo_texture)
+	# Un único material común (como el de antes: la textura de la malla viva vale para las demás piezas del mismo atlas).
+	Ocluso3D.preparar()                   # idempotente: registra el parámetro global de la oclusión si nadie lo había hecho
+	var origen: StandardMaterial3D = (base.duplicate() as StandardMaterial3D) if base != null else StandardMaterial3D.new()
+	origen.cull_mode = BaseMaterial3D.CULL_DISABLED          # el shader de antes dibujaba las dos caras (hojas finas)
+	_mat = Ocluso3D.convertir(origen) as ShaderMaterial
+	if _mat == null:                      # transparente o sin sombreado: no es un material que se pueda convertir
+		push_warning("Enredadera3D: no se pudo pasar al material común; se usa uno liso")
+		_mat = Ocluso3D.convertir(StandardMaterial3D.new()) as ShaderMaterial
 	_alto_real = _viva.mesh.get_aabb().size.y if _viva != null else 0.3
-	_mat.set_shader_parameter("alto", maxf(_quemada.mesh.get_aabb().size.y, _alto_real) if _quemada != null else _alto_real)
+	var y0: float = _viva.mesh.get_aabb().position.y if _viva != null else 0.0
+	var alto_max: float = maxf(_quemada.mesh.get_aabb().size.y, _alto_real) if _quemada != null else _alto_real
+	_mat.set_shader_parameter("caja_y", Vector2(y0, alto_max))
+	_mat.set_shader_parameter("corte_y", SIN_CORTE)
+	Ocluso3D.configurar_disolver(_mat, Ocluso3D.DISOLVER_COLOR, CELDA_DISOLVER)
 	for n in [_viva, _quemada] + _restos:
 		if n != null:
 			(n as MeshInstance3D).material_override = _mat
@@ -152,12 +139,12 @@ func brotar() -> void:
 	_viva.visible = true
 	var hundida: float = HUNDIDA * ancho
 	(_viva.get_parent() as Node3D).position.y = -hundida
-	_mat.set_shader_parameter("corte_y", global_position.y - 0.005)
+	Ocluso3D.poner_corte_y(_mat, global_position.y - 0.005)
 	_tw = create_tween()
 	_tw.tween_property(_viva.get_parent(), "position:y", 0.0, DURA_BROTE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_tw.tween_callback(func() -> void:
 		fase = Fase.VIVA
-		_mat.set_shader_parameter("corte_y", -1000.0)
+		Ocluso3D.poner_corte_y(_mat, SIN_CORTE)
 		brotada.emit())
 
 
@@ -167,11 +154,14 @@ func quemar() -> void:
 		return
 	if _tw != null:
 		_tw.kill()
-	_mat.set_shader_parameter("corte_y", -1000.0)
+	Ocluso3D.poner_corte_y(_mat, SIN_CORTE)
 	(_viva.get_parent() as Node3D).position.y = 0.0
 	fase = Fase.ARDIENDO
 	ardiendo.emit()
 	_tw = create_tween()
+	# V6: mientras arde, el carbón con brasas avanza por la malla viva (0 → QUEMADO_AL_ARDER) en lugar de seguir verde.
+	if Ocluso3D.usar_quemado_disolver:
+		_animar_quemado(QUEMADO_AL_ARDER, DURA_ARDER, 0.0)
 	# 1) focos: uno al empezar y otro cada INTERVALO_FOCO, hasta MAX_FOCOS
 	for i in range(MAX_FOCOS):
 		_tw.tween_callback(_nuevo_foco)
@@ -195,8 +185,16 @@ func deshacer() -> void:
 		_mostrar(false)
 	fase = Fase.DESHACIENDO
 	_apagar_llamas()
+	if _tw_q != null:
+		_tw_q.kill()
 	_tw = create_tween()
-	_tw.tween_method(func(v: float) -> void: _mat.set_shader_parameter("disolver", v), 0.0, 1.0, DURA_DESHACER)
+	if Ocluso3D.usar_quemado_disolver:
+		# V6: el disolver por celdas común (el mismo del seto y el tronco), no el de arriba abajo propio de antes.
+		_tw.tween_method(func(v: float) -> void: Ocluso3D.poner_disolver(_mat, v), 0.0, 1.0, DURA_DESHACER)
+	else:
+		# Interruptor apagado: como el resto del decorado antes de V6, se aplasta.
+		var m: Node3D = _viva.get_parent() as Node3D
+		_tw.tween_property(m, "scale:y", m.scale.y * 0.05, DURA_DESHACER).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	_tw.parallel().tween_property(self, "position:y", position.y - 0.08, DURA_DESHACER)
 	_tw.tween_callback(func() -> void:
 		fase = Fase.DESHECHA
@@ -226,7 +224,17 @@ func _pasar_a_quemada() -> void:
 		var l: Node3D = _llamas.pop_front()
 		if _fx != null and is_instance_valid(_fx) and is_instance_valid(l):
 			_fx.apagar(l)
+	if Ocluso3D.usar_quemado_disolver:
+		_animar_quemado(1.0, DURA_QUEMADA, QUEMADO_AL_ARDER)       # de carbón con brasas a ceniza mientras está quieta
 	quemada.emit()
+
+
+## Lleva `quemado` (uniform común) de `desde` a `hasta` en `dur` s, en un tween aparte para que no estorbe a la secuencia de focos.
+func _animar_quemado(hasta: float, dur: float, desde: float) -> void:
+	if _tw_q != null:
+		_tw_q.kill()
+	_tw_q = create_tween()
+	_tw_q.tween_method(func(v: float) -> void: Ocluso3D.poner_quemado(_mat, v), desde, hasta, dur)
 
 
 func _mostrar(quemada_: bool) -> void:
