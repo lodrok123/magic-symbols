@@ -31,10 +31,6 @@ extends Node3D
 ## labio cauce: cuánto de «arriba» lleva la normal del extremo de la falda que toca la pared (0 = horizontal, como la pared, de serie; 1 = 45°). Con una pared de 10 cm (el cauce seco)
 ## la falda es una rampa más que una pared, y con la normal horizontal salía como una banda negra pegada al labio.
 @export_range(0.0, 1.0) var falda_arriba: float = 0.0
-## labio cauce: el orden de los vértices de la falda y del labio lo elegía la normal geométrica CCW hacia fuera, pero Godot da la cara FRONTAL a los triángulos en sentido HORARIO: con un material
-## de caras de atrás recortadas (StandardMaterial3D de serie) las dos tiras quedan invisibles; solo se ven con materiales de doble cara (el shader del suelo, el del lecho del cauce), y entonces
-## se iluminan con la normal dada la vuelta. `caras_frontales = true` las orienta bien. De serie false: no cambia lo que ya hay (orillas, escalones, borde del mapa) hasta que se decida.
-@export var caras_frontales: bool = false
 @export var piedra_min: float = 0.3                   ## diámetro menor de un canto (u)
 @export var piedra_max: float = 0.6                    ## y el mayor
 @export_range(1, 8) var piedras_por_borde: int = 3     ## cantos por cada lado de casilla (2,3 u): con 3 quedan huecos entre ellos
@@ -121,11 +117,11 @@ func _montar_faldas(bordes: Array, lado: float, material: Material) -> void:
 		# El suavizado: la normal en cada vértice es la de su extremo; el rasterizador la interpola por la tira.
 		var norm: Array[Vector3] = [n_arriba, n_arriba, n_abajo, n_abajo]
 		var pts: Array[Vector3] = [p0, p1, p2, p3]
-		# Orden de los triángulos con la cara visible hacia (d + arriba).
+		# Orden de los triángulos con la cara FRONTAL hacia (d + arriba). Godot da la cara frontal al sentido HORARIO visto desde fuera: la normal CCW (producto cruz) ha de mirar al lado contrario.
 		var orden: Array = [0, 2, 1, 0, 3, 2]
 		# Si el orden saliera hacia el otro lado (depende de la orientación de d) se invierte: se comprueba con la normal geométrica.
 		var geo: Vector3 = (pts[2] - pts[0]).cross(pts[1] - pts[0])
-		if (geo.dot(d + Vector3.UP) < 0.0) != caras_frontales:
+		if geo.dot(d + Vector3.UP) >= 0.0:
 			orden = [0, 1, 2, 0, 2, 3]
 		for k in orden:
 			st.set_normal(norm[k])
@@ -178,7 +174,7 @@ func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
 		for k in range(2):
 			var p: Array = perfil[k]
 			var q: Array = perfil[k + 1]
-			# Cuadrilátero p0 p1 q1 q0 (p a lo largo -a..+a); cada triángulo con la cara visible hacia (fuera + arriba).
+			# Cuadrilátero p0 p1 q1 q0 (p a lo largo -a..+a); cada triángulo con la cara FRONTAL (sentido horario en Godot) hacia (fuera + arriba).
 			var p0: Array = [(p[0] as Vector3) - a * l2, p[1], p[2]]
 			var p1: Array = [(p[0] as Vector3) + a * l2, p[1], p[2]]
 			var q0: Array = [(q[0] as Vector3) - a * l2, q[1], q[2]]
@@ -186,7 +182,7 @@ func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
 			var ref: Vector3 = d + Vector3.UP
 			for t in [[p0, p1, q1], [p0, q1, q0]]:
 				var geo: Vector3 = ((t[1][0] as Vector3) - (t[0][0] as Vector3)).cross((t[2][0] as Vector3) - (t[0][0] as Vector3))
-				var orden: Array = [0, 1, 2] if (geo.dot(ref) > 0.0) != caras_frontales else [0, 2, 1]
+				var orden: Array = [0, 1, 2] if geo.dot(ref) <= 0.0 else [0, 2, 1]
 				for i in orden:
 					var vtx: Array = t[i]
 					st.set_color(col)

@@ -1747,14 +1747,12 @@ func reconstruir_bordes_cauce() -> void:
 		_bordes_cauce.name = "BordesCauce"
 		_bordes_cauce.ancho_labio = BORDE_LABIO_ANCHO
 		_bordes_cauce.sobresale_labio = BORDE_LABIO_SOBRESALE
-		_bordes_cauce.caras_frontales = true     # (ver BordePiedras3D.caras_frontales)
 		_bordes_cauce.falda_arriba = 0.8         # pared de 10 cm: la falda es una rampa, no una pared (si no, banda oscura)
 		_bordes_cauce.piedras_por_borde = 2
 		_bordes_cauce.piedra_min = 0.25
 		_bordes_cauce.piedra_max = 0.45
 		add_child(_bordes_cauce)
 		_bordes_cauce_abierto = BordePiedras3D.new()
-		_bordes_cauce_abierto.caras_frontales = true
 		_bordes_cauce_abierto.name = "BordesCauceAbierto"
 		_bordes_cauce_abierto.ancho_labio = BORDE_LABIO_ANCHO
 		_bordes_cauce_abierto.sobresale_labio = BORDE_LABIO_SOBRESALE

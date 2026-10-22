@@ -19,6 +19,7 @@ var _colisiones_con: int = 0       ## cuerpos y formas de colisión de la maquet
 
 func _escenario() -> void:
 	await _labio_suelto()
+	_caras_frontales()
 	await cargar(RUTA_LAB)
 	if maqueta == null:
 		return
@@ -68,14 +69,9 @@ func _labio_suelto() -> void:
 	var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
 	var uv2: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV2]
 	_ok("1.3 12 vértices por borde en una sola malla sin índices (4 triángulos × 3)", vs.size() == 12 * bordes.size(), str(vs.size()))
-	# Cada triángulo mira hacia fuera y arriba: la normal geométrica con la normal de sus vértices.
-	var mal: int = 0
-	for i in range(0, vs.size(), 3):
-		var geo: Vector3 = (vs[i + 1] - vs[i]).cross(vs[i + 2] - vs[i])
-		var media: Vector3 = ns[i] + ns[i + 1] + ns[i + 2]
-		if geo.dot(media) <= 0.0:
-			mal += 1
-	_ok("1.4 todos los triángulos miran hacia fuera (la cara visible es la de las normales suavizadas)", mal == 0, "%d al revés" % mal)
+	# Cada triángulo mira hacia fuera y arriba: Godot da la cara FRONTAL al sentido HORARIO, así que la normal CCW (producto cruz) ha de ir CONTRA la normal de sus vértices.
+	var mal: int = _tris_al_reves(vs, ns)
+	_ok("1.4 todos los triángulos tienen la cara frontal (sentido horario de Godot) hacia fuera, del lado de las normales suavizadas", mal == 0, "%d al revés" % mal)
 	# Está dentro de la caja del borde: ni 5 cm por encima de lo previsto ni más abajo que el ancho del labio.
 	var y_min: float = INF
 	var y_max: float = -INF
@@ -230,3 +226,37 @@ func _apagado() -> void:
 	_ok("6.4 la misma maqueta con y sin labio tiene EXACTAMENTE las mismas colisiones (%d)" % _colisiones_con, sin == _colisiones_con, "con labio %d · sin %d" % [_colisiones_con, sin])
 	m.queue_free()
 	await avanzar(3)
+
+
+## Triángulos cuya cara frontal (Godot: sentido horario, o sea, contra la normal CCW del producto cruz) NO mira del lado de la media de las normales de sus vértices.
+func _tris_al_reves(vs: PackedVector3Array, ns: PackedVector3Array) -> int:
+	var mal: int = 0
+	for i in range(0, vs.size(), 3):
+		var geo: Vector3 = (vs[i + 1] - vs[i]).cross(vs[i + 2] - vs[i])
+		var media: Vector3 = ns[i] + ns[i + 1] + ns[i + 2]
+		if geo.dot(media) >= 0.0:
+			mal += 1
+	return mal
+
+
+## Falda y labio, en las cuatro direcciones y con falda_arriba / labio_pie_arriba variados: la cara frontal coincide con las normales.
+func _caras_frontales() -> void:
+	var mat := StandardMaterial3D.new()
+	var bordes: Array = []
+	for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		bordes.append(_borde(Vector2i(3, 3), v, 1.0, 0.0))
+		bordes.append(_borde(Vector2i(8, 8), v, 0.1, 0.0))
+	for variante in [[0.0, 0.3], [0.8, 0.0]]:
+		var b := BordePiedras3D.new()
+		root.add_child(b)
+		b.falda_arriba = variante[0]
+		b.labio_pie_arriba = variante[1]
+		b.construir(bordes, LADO, mat, mat)
+		for nombre in ["faldas", "labio"]:
+			var mi: MeshInstance3D = _hijo(b, nombre)
+			if mi == null:
+				_ok("1.4b hay malla «%s»" % nombre, false)
+				continue
+			var arr: Array = mi.mesh.surface_get_arrays(0)
+			var mal: int = _tris_al_reves(arr[Mesh.ARRAY_VERTEX], arr[Mesh.ARRAY_NORMAL])
+			_ok("1.4b «%s» (falda_arriba %.1f, pie %.1f): la normal geométrica (horaria) coincide en signo con la del vértice" % [nombre, variante[0], variante[1]], mal == 0, "%d al revés" % mal)
