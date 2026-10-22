@@ -278,6 +278,22 @@ func _escena(et: String) -> void:
 	_ok("%s27 …y lo enciende" % et, is_equal_approx(float(m.get_shader_parameter("filtro")), 1.0))
 	var pared: ShaderMaterial = r.get("_mat_pared") as ShaderMaterial
 	_ok("%s28 las paredes laterales también van con filtro (casi transparentes)" % et, pared != null and is_equal_approx(float(pared.get_shader_parameter("filtro")), 1.0))
+	# Banda oscura del borde (22/10): la columna de agua que tiñe es la de lo que se ve, no la vertical de la casilla.
+	_ok("%s29 FILTRO_TINTE_VISTO (%.1f) llega a la superficie y a las paredes" % [et, AguaRender3D.FILTRO_TINTE_VISTO], AguaRender3D.FILTRO_TINTE_VISTO > 0.0 and AguaRender3D.FILTRO_TINTE_VISTO <= 1.0
+		and is_equal_approx(float(m.get_shader_parameter("filtro_tinte_visto")), AguaRender3D.FILTRO_TINTE_VISTO) and is_equal_approx(float(pared.get_shader_parameter("filtro_tinte_visto")), AguaRender3D.FILTRO_TINTE_VISTO))
+	_ok("%s30 el shader de la superficie usa la profundidad vista (bajo) con tope en la de la casilla, solo con filtro" % et,
+		cod.contains("pf = mix(pf, min(pf, max(bajo, 0.0)), bueno * filtro_tinte_visto)") and cod.find("min(pf, max(bajo") > cod.find("if (filtro > 0.5) {\n\t\t\t// AGUA FILTRO"))
+	var cod_p: String = (pared.shader as Shader).code
+	_ok("%s31 las paredes del agua: alfa por la profundidad en cada punto de la cara (arriba transparente), solo con filtro" % et,
+		cod_p.contains("float p_aqui = mix(max(v_p, 0.0), max(v_p, 0.0) * (1.0 - v_t), filtro_tinte_visto)") and cod_p.contains("if (filtro > 0.5) {") and cod_p.find("p_aqui") > cod_p.find("if (filtro > 0.5) {"))
+	# Con el filtro apagado el sombreado estilizado no se toca: la rama de antes no menciona la profundidad vista.
+	var ini_else: int = cod.find("} else {\n\t\t\tALBEDO = ce * brillo * alfa_f;")
+	if ini_else < 0:
+		ini_else = cod.find("ALBEDO = ce * brillo * alfa_f;")
+	_ok("%s32 sin filtro: ALBEDO = ce·brillo·alfa y EMISSION = fondo·(1−alfa) intactos (el cambio no los toca)" % et, ini_else > 0 and cod.contains("EMISSION = fondo_r * (1.0 - alfa_f);") and not cod.substr(ini_else, 160).contains("bajo"))
+	pared.set_shader_parameter("filtro", 0.0)
+	_ok("%s33 paredes con filtro apagado: el alfa es el de siempre (la línea estilizada sigue antes del bloque del filtro)" % et, cod_p.find("ALPHA = clamp(mix(alfa_clara, alfa_rio, sqrt(hondo))") < cod_p.find("float p_aqui"))
+	pared.set_shader_parameter("filtro", 1.0)
 	await avanzar(10)
 
 

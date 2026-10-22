@@ -99,6 +99,10 @@ const FILTRO_ESPECULAR: float = 0.55
 const FILTRO_FRESNEL: float = 0.10
 ## Opacidad máxima de las paredes laterales con el filtro (en el borde del agua).
 const FILTRO_ALFA_PARED: float = 0.35
+## 22/10 (banda oscura del borde): con el filtro el agua se teñia con la profundidad VERTICAL de su casilla (~0,9 u) aunque lo que se ve junto a la orilla sea la pared del bloque a pocos cm bajo la lamina,
+## y salia una franja turquesa oscura (la pared de la orilla vista a traves del agua, teñida como si fuera el lecho). Ahora la columna que cuenta es la profundidad REAL de lo que se ve (Y de la lamina
+## menos Y del punto visto), con tope en la de la casilla: el lecho no cambia, la pared va de clara (arriba) a teñida (abajo). 1 = asi; 0 = como antes. Las paredes del agua igual (alfa por la altura bajo la lamina).
+const FILTRO_TINTE_VISTO: float = 1.0
 ## Fuerza del «lecho falso» (la red de Voronoi pintada en la superficie, 16/10): la de siempre, y 0 con el filtro (el lecho de verdad está debajo, ver LechoRio3D).
 const LECHO_FALSO: float = 0.5
 const LECHO_FALSO_FILTRO: float = 0.0
@@ -188,6 +192,7 @@ uniform float filtro_manchas = 0.3;
 uniform float filtro_crestas = 0.6;
 uniform float filtro_espec = 0.55;
 uniform float filtro_fresnel = 0.10;
+uniform float filtro_tinte_visto = 1.0;
 // 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
 uniform float ola3_altura = 0.0;
 uniform float ola3_k = 1.14;                  // 2π / longitud
@@ -612,6 +617,7 @@ void fragment() {
 			// AGUA FILTRO: lo que se ve es el fondo refractado × la transmitancia de Beer de la columna de agua (por canal: el rojo se absorbe antes → turquesa),
 			// y solo en lo hondo un poco de color propio (dispersión). La espuma, el menisco y el hielo van encima con su propia opacidad.
 			float pf = max(v_prof, 0.0);
+			pf = mix(pf, min(pf, max(bajo, 0.0)), bueno * filtro_tinte_visto);     // banda oscura: la columna es la de lo que se ve (la pared de la orilla queda poco bajo la lámina)
 			vec3 trans = exp(-filtro_k * filtro_dens * pf);
 			float scat = (1.0 - exp(-pf / filtro_prof_max)) * filtro_opacidad;
 			float a_x = clamp(max(max(espuma, men * 0.45), hielo), 0.0, 1.0);
@@ -670,6 +676,7 @@ uniform float filtro = 0.0;
 uniform vec3 filtro_hondo : source_color = vec3(0.06, 0.33, 0.38);
 uniform float filtro_prof_max = 1.8;
 uniform float filtro_alfa = 0.35;
+uniform float filtro_tinte_visto = 1.0;
 
 varying float v_t;
 varying float v_p;
@@ -689,7 +696,8 @@ void fragment() {
 	ALPHA = clamp(mix(alfa_clara, alfa_rio, sqrt(hondo)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
 	if (filtro > 0.5) {
 		ALBEDO = mix(filtro_hondo, color_espuma, filo * menisco) * brillo;
-		ALPHA = clamp(filtro_alfa * (1.0 - exp(-max(v_p, 0.0) / filtro_prof_max)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
+		float p_aqui = mix(max(v_p, 0.0), max(v_p, 0.0) * (1.0 - v_t), filtro_tinte_visto);     // profundidad bajo la lámina en ESTE punto de la cara (arriba 0, abajo la de la casilla)
+		ALPHA = clamp(filtro_alfa * (1.0 - exp(-p_aqui / filtro_prof_max)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
 	}
 	ROUGHNESS = 0.2;
 	SPECULAR = 0.4;
@@ -838,6 +846,7 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("filtro_crestas", FILTRO_CRESTAS)
 	_mat.set_shader_parameter("filtro_espec", FILTRO_ESPECULAR)
 	_mat.set_shader_parameter("filtro_fresnel", FILTRO_FRESNEL)
+	_mat.set_shader_parameter("filtro_tinte_visto", FILTRO_TINTE_VISTO)
 	_mat.set_shader_parameter("lecho", LECHO_FALSO_FILTRO if agua_filtro else LECHO_FALSO)
 	# Con refracción (o con filtro) el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
 	var lee_pantalla: bool = agua_refraccion or agua_filtro
@@ -848,6 +857,7 @@ func _aplicar_eow() -> void:
 		_mat_pared.set_shader_parameter("filtro_hondo", FILTRO_COLOR_HONDO)
 		_mat_pared.set_shader_parameter("filtro_prof_max", FILTRO_PROF_MAX)
 		_mat_pared.set_shader_parameter("filtro_alfa", FILTRO_ALFA_PARED)
+		_mat_pared.set_shader_parameter("filtro_tinte_visto", FILTRO_TINTE_VISTO)
 	_aplicar_lecho()
 
 
