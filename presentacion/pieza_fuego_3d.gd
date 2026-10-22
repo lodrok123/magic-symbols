@@ -662,13 +662,23 @@ func caer() -> void:
 static func mojado(nodo: Node, si: bool) -> void:
 	if nodo == null:
 		return
-	var capa: StandardMaterial3D = null
-	if si:
-		capa = StandardMaterial3D.new()
-		capa.albedo_color = Color(0.12, 0.2, 0.3, 0.38)
-		capa.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		capa.roughness = 0.15            # el brillo húmedo
-		capa.metallic_specular = 0.9
+	poner_capa(nodo, capa_mojada() if si else null)
+
+
+const ALFA_MOJADO: float = 0.38
+
+## La capa de «mojado»: azul-gris oscura, translúcida, con el brillo húmedo. `alfa` más alto = más oscura (el escudo del goblin la pide más fuerte, y la aclara al secarse).
+static func capa_mojada(alfa: float = ALFA_MOJADO) -> StandardMaterial3D:
+	var capa := StandardMaterial3D.new()
+	capa.albedo_color = Color(0.12, 0.2, 0.3, alfa)
+	capa.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	capa.roughness = 0.15            # el brillo húmedo
+	capa.metallic_specular = 0.9
+	return capa
+
+
+## Pone `capa` (o la quita con null) como `material_overlay` de todas las mallas de `nodo`.
+static func poner_capa(nodo: Node, capa: Material) -> void:
 	var lista: Array = nodo.find_children("*", "MeshInstance3D", true, false)
 	if nodo is MeshInstance3D:
 		lista.append(nodo)

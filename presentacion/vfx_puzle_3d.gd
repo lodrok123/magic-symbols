@@ -213,9 +213,13 @@ static func fogonazo(padre: Node3D, pos: Vector3, radio: float = 2.6) -> void:
 	polvo(padre, Vector3(pos.x, pos.y - 0.3, pos.z), radio * 0.5)
 
 
-## Burbujas que suben (bajo el chorro que llena el pozo, en una pila que hierve). Siempre continuas: devuelve el emisor.
-static func burbujas(padre: Node3D, pos: Vector3, radio: float = 0.4, continuo: bool = true) -> GPUParticles3D:
-	return _emisor(padre, pos, "burbuja", 9 if continuo else 5, 1.1, 0.12, 0.5,
+## Cuánto viven las burbujas (s) salvo que quien las pida diga otra cosa (`vida`): lo que tardan en subir a la superficie.
+const VIDA_BURBUJA: float = 1.1
+
+## Burbujas que suben (bajo el chorro que llena el pozo, en una pila que hierve; `continuo` = false: una tanda suelta). Devuelve el emisor.
+## `vida` (s) acorta lo que viven (el hundimiento las acaba a la vez que el cuerpo desaparece: `VfxReaccion3D.hundimiento`).
+static func burbujas(padre: Node3D, pos: Vector3, radio: float = 0.4, continuo: bool = true, vida: float = VIDA_BURBUJA) -> GPUParticles3D:
+	return _emisor(padre, pos, "burbuja", 9 if continuo else 5, vida, 0.12, 0.5,
 		{"color": Color(0.85, 0.95, 1.0, 0.75), "gravedad": 1.2, "abanico": 12.0, "continuo": continuo, "radio_emision": radio, "crece": true})
 
 

@@ -32,6 +32,8 @@ const SINONIMOS: Dictionary = {
 	# OJO: no llamarlos «…hit…» (el segundo barrido de `_buscar_clip` busca por «contains» y el rol `hit` se llevaría el empujado).
 	"empujado": ["empujado"],
 	"levantarse": ["levantarse"],
+	# Mano quemada (22/10): el clip se construye por código sobre el Idle (`_preparar_mano_quemada`); sin «hit» ni «burn» en el nombre por el mismo motivo de arriba.
+	"mano_quemada": ["manoquemada"],
 	"talk": ["stand_talking", "talking"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
@@ -182,6 +184,8 @@ var _sombra: MeshInstance3D = null
 var _caja_vacia: bool = true
 var _yaw: float = 0.0
 var _chispas: Node3D = null      ## BoneAttachment3D con las partículas de la mano mientras se lanza
+var _sk_ahora: Skeleton3D = null              ## caché de `hueso_ahora` (se pide cada fotograma)
+var _huesos_ahora: Dictionary = {}            ## nombre pedido -> índice de hueso
 
 
 func cargar(p_id: String) -> bool:
@@ -205,6 +209,7 @@ func cargar(p_id: String) -> bool:
 		for nombre in _ap.get_animation_list():
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 		_preparar_empujado()
+		_preparar_mano_quemada()
 		_arbol = ArbolAnimPj.new()
 		_arbol.name = "ArbolAnim"
 		_ap.get_parent().add_child(_arbol)
@@ -1476,6 +1481,113 @@ func hueso_mundo(hueso: String) -> Array:
 		return []
 	var w: Transform3D = _sk_empuje.global_transform
 	return [w * _sk_empuje.get_bone_global_pose(h), w * (_poses_de_pie[h] as Transform3D)]
+
+
+## Transformada MUNDIAL de `hueso` AHORA MISMO (la escala del modelo va dentro de su base), o null si no hay esqueleto o hueso. A diferencia de `hueso_mundo` no necesita
+## la pose de pie: sirve para colgarle algo a mano cada fotograma (el escudo del goblin). `hueso` = nombre completo o el final (`LeftForeArm`).
+func hueso_ahora(hueso: String) -> Variant:
+	if _sk_ahora == null or not is_instance_valid(_sk_ahora):
+		_sk_ahora = _esqueleto()
+		_huesos_ahora.clear()
+	var sk: Skeleton3D = _sk_ahora
+	if sk == null or not sk.is_inside_tree():
+		return null
+	if not _huesos_ahora.has(hueso):
+		var h0: int = sk.find_bone(hueso)
+		_huesos_ahora[hueso] = h0 if h0 >= 0 else Equipo3D._hueso(sk, hueso)
+	var h: int = int(_huesos_ahora[hueso])
+	if h < 0:
+		return null
+	return sk.global_transform * sk.get_bone_global_pose(h)
+
+
+## Muestra u oculta la pieza de equipo `pieza` (el id de `Equipo3D.EQUIPO`: «escudo», «garrote»…). Devuelve cuántas cambió. Lo usa el escudo del goblin (`Escudo3D`)
+## para que el de adorno del brazo no se duplique con el de verdad.
+func poner_equipo_visible(pieza: String, visible_: bool) -> int:
+	var n: int = 0
+	for p in _equipo:
+		if is_instance_valid(p) and String(p.get_meta("equipo_id", "")) == pieza:
+			p.visible = visible_
+			n += 1
+	return n
+
+
+## ===================================================================================================================================
+##  MANO QUEMADA (22/10): el clip del goblin que se sacude la mano del escudo cuando se le consume ardiendo (`Escudo3D._quemar_mano`, diario 239).
+##  NO hay ningún clip así en los GLB de goblins (ni en arte/meshy/: se miraron los nombres) y no se trae ninguno de fuera: se CONSTRUYE POR CÓDIGO sobre el
+##  Idle del propio goblin, como Empujado/Levantarse (misma librería, remuestreado a 30 fps): todas las pistas del Idle tal cual y, encima, la pose del brazo
+##  que lleva el escudo (se alza, se dobla el codo, la mano se agita) y un encogimiento del torso. Dura MANO_QUEMADA_DUR = `Escudo3D.T_MANO_QUEMADA`.
+## ===================================================================================================================================
+const ANIM_MANO_QUEMADA: String = "ManoQuemada"
+const MANO_QUEMADA_DUR: float = 1.2
+const MANO_QUEMADA_HZ: float = 9.0              ## sacudidas por segundo de la mano
+const MANO_QUEMADA_SUBE: float = 0.12           ## fracción del clip que tarda en llegar a la pose (el pinchazo de dolor es rápido)
+const MANO_QUEMADA_BAJA: float = 0.8            ## fracción del clip desde la que vuelve a la pose del Idle (el aturdimiento acaba en reposo)
+const MANO_QUEMADA_APAGA: float = 0.35          ## cuánto se apaga la sacudida a lo largo del clip (0 = igual, 1 = acaba quieta)
+## Hueso -> [eje local, grados de la POSTURA (se llega a ella y se mantiene), grados de la SACUDIDA (oscila con MANO_QUEMADA_HZ)].
+const MANO_QUEMADA_HUESOS: Dictionary = {
+	"mixamorig_LeftArm": [Vector3(0.0, 0.0, 1.0), 40.0, 8.0],
+	"mixamorig_LeftForeArm": [Vector3(1.0, 0.0, 0.0), -70.0, 10.0],
+	"mixamorig_LeftHand": [Vector3(0.0, 0.0, 1.0), 0.0, 50.0],
+	"mixamorig_Spine1": [Vector3(1.0, 0.0, 0.0), 18.0, 0.0],
+}
+
+
+## Cuánto de la pose (0..1) hay en el instante normalizado `u` (0..1): sube rápido, se mantiene y vuelve al final.
+static func envolvente_mano_quemada(u: float) -> float:
+	return smoothstep(0.0, MANO_QUEMADA_SUBE, u) * (1.0 - smoothstep(MANO_QUEMADA_BAJA, 1.0, u))
+
+
+## El giro (local, se multiplica por la derecha) que se le añade a `hueso` en el instante normalizado `u` del clip.
+static func giro_mano_quemada(hueso: String, u: float) -> Quaternion:
+	var d: Array = MANO_QUEMADA_HUESOS[hueso]
+	var e: float = envolvente_mano_quemada(u)
+	var sacudida: float = float(d[2]) * e * (1.0 - MANO_QUEMADA_APAGA * u) * sin(TAU * MANO_QUEMADA_HZ * MANO_QUEMADA_DUR * u)
+	return Quaternion((d[0] as Vector3).normalized(), deg_to_rad(float(d[1]) * e + sacudida))
+
+
+## ¿Trae este personaje el clip (construido o heredado de su GLB)?
+func tiene_mano_quemada() -> bool:
+	return duracion("mano_quemada") > 0.0
+
+
+func _preparar_mano_quemada() -> void:
+	if _ap == null or not admite_empujado(id) or _ap.has_animation(ANIM_MANO_QUEMADA):
+		return
+	var idle_n: String = _buscar_clip("idle")
+	var sk: Skeleton3D = _esqueleto()
+	if idle_n == "" or sk == null:
+		return
+	var idle: Animation = _ap.get_animation(idle_n)
+	var prefijo: String = String(_ap.get_node(_ap.root_node).get_path_to(sk)) + ":"
+	var dest := Animation.new()
+	dest.length = MANO_QUEMADA_DUR
+	dest.loop_mode = Animation.LOOP_NONE
+	var n: int = maxi(int(ceil(MANO_QUEMADA_DUR * EMPUJADO_FPS)), 2)
+	for i in range(idle.get_track_count()):
+		var tipo: int = idle.track_get_type(i)
+		if tipo != Animation.TYPE_ROTATION_3D and tipo != Animation.TYPE_POSITION_3D:
+			continue
+		var nom: String = String(idle.track_get_path(i)).get_slice(":", 1)
+		if sk.find_bone(nom) < 0:
+			continue
+		var d: int = dest.add_track(tipo)
+		dest.track_set_path(d, NodePath(prefijo + nom))
+		for f in range(n + 1):
+			var u: float = float(f) / float(n)
+			var ts: float = fposmod(MANO_QUEMADA_DUR * u, maxf(idle.length, 0.001))
+			if tipo == Animation.TYPE_ROTATION_3D:
+				var q: Quaternion = idle.rotation_track_interpolate(i, ts)
+				if MANO_QUEMADA_HUESOS.has(nom):
+					q = q * giro_mano_quemada(nom, u)
+				dest.rotation_track_insert_key(d, MANO_QUEMADA_DUR * u, q)
+			else:
+				dest.position_track_insert_key(d, MANO_QUEMADA_DUR * u, idle.position_track_interpolate(i, ts))
+	var lib: AnimationLibrary = _ap.get_animation_library("")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		_ap.add_animation_library("", lib)
+	lib.add_animation(ANIM_MANO_QUEMADA, dest)
 
 
 ## Quita al clip `rol` el desplazamiento horizontal de la cadera (el personaje rueda en el sitio y lo mueve el Juego). Idempotente.

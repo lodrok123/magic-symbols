@@ -197,6 +197,7 @@ var casa: Vector3 = Vector3.ZERO
 var muerto: bool = false
 var se_hundio: bool = false              ## murió ahogado (cae al agua), no por daño: sin botín
 var _punto_hundido: Vector3 = Vector3.ZERO   ## dónde se hundió (en la superficie), para el aviso y la animación
+var duracion_hundimiento: float = 0.0    ## s que dura el hundimiento real (el clip de ahogarse o TIEMPO_HUNDIMIENTO); 0 = aún no se ha hundido. Burbujas y sonido la copian
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 
@@ -1314,6 +1315,10 @@ func _animar() -> void:
 		elif orden == "attack":
 			pj.set_velocidad_animacion(_ataque_vel)
 			pj.jugar(orden, true)
+		elif orden == Escudo3D.ROL_MANO_QUEMADA:
+			pj.set_velocidad_animacion(1.0)
+			pj.jugar(orden, true)
+			_t_anim = maxf(_t_anim, pj.duracion(orden))        # sin esto el aturdimiento lo pasaría a reposo en el fotograma siguiente
 		else:
 			pj.set_velocidad_animacion(1.0)
 			pj.jugar(orden)
@@ -1889,6 +1894,7 @@ static func rebote_hundimiento(p: float) -> float:
 ## Se mueve el modelo y no este nodo: `_physics_process` ya no corre (muerto) y es el que copiaba la posición. Sin botín.
 func _hundir_modelo(duracion: float) -> void:
 	texto("¡Hundido!", COLORES["agua"], 0.1)
+	duracion_hundimiento = maxf(duracion, 0.1)         # lo lee el Pipeline (`ReaccionesVfx3D.dura_hundimiento`): burbujas y sonido duran lo que el cuerpo tarda en bajar
 	if Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(_punto_hundido, AVISO_HUNDIDO, maxf(_radio_cuerpo(), 0.4) * 1.5)
 	_reaccionar("hundido", _punto_hundido)          # A4: el mismo hecho que el aviso `impacto` de arriba (conviven: los usan consumidores distintos)

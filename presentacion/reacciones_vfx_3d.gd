@@ -73,6 +73,8 @@ const EXCEPCIONES: Dictionary = {
 	"telarana": {"consumido": {"vfx": "", "sfx": ""}},
 }
 
+const FUNDIDO_ACOTADO: float = 0.2     ## s de fundido con que se corta un sonido acotado al tiempo de su efecto
+
 ## Sonidos en bucle que están sonando por nodo (instancia → reproductor), para cortarlos al apagar.
 static var _bucles: Dictionary = {}
 static var _fx: Node3D = null
@@ -147,7 +149,7 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		"escarcha": VfxReaccion3D.escarcha(padre, punto, esc)
 		"derretir": VfxReaccion3D.derretir(padre, punto, esc)
 		"descarga": VfxReaccion3D.descarga(padre, punto, esc)
-		"hundimiento": VfxReaccion3D.hundimiento(padre, punto, esc)
+		"hundimiento": VfxReaccion3D.hundimiento(padre, punto, esc, dura_hundimiento(cuerpo))
 		"estrellas": VfxReaccion3D.estrellas(padre, punto, esc)
 		"empujon": VfxReaccion3D.empujon(padre, punto, Vector3.ZERO, esc)
 		"escudo_golpe": VfxReaccion3D.escudo_golpe(padre, punto, Vector3.UP, esc)
@@ -155,7 +157,10 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 	var sfx: String = String(fila.get("sfx", ""))
 	if sfx != "":
 		var origen: Node = cuerpo if cuerpo != null and cuerpo.is_inside_tree() else padre
-		if bool(fila.get("bucle", false)) and cuerpo != null:
+		if vfx == "hundimiento":
+			# Las burbujas suenan lo que dura el hundimiento real: el sonido se corta con un fundido justo cuando acaba el cuerpo de bajar.
+			_sonido_acotado(origen, sfx, dura_hundimiento(cuerpo), float(fila.get("tono", 1.0)))
+		elif bool(fila.get("bucle", false)) and cuerpo != null:
 			if not _bucles.has(cuerpo.get_instance_id()):
 				var p: Node = Sfx.bucle(origen, sfx, float(fila.get("tono", 1.0)))
 				if p != null:
@@ -164,6 +169,29 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		else:
 			Sfx.play(origen, sfx, float(fila.get("tono", 0.0)))
 	return fila
+
+
+## Lo que dura el hundimiento de `nodo` (s): la que él mismo anuncia en `duracion_hundimiento` (Combate3D: la del clip de ahogarse) o, si no dice nada,
+## la constante compartida `VfxReaccion3D.DURA_HUNDIMIENTO` (= `Combate3D.TIEMPO_HUNDIMIENTO`, lo que baja sin clip).
+static func dura_hundimiento(nodo: Object) -> float:
+	if nodo != null:
+		var d: Variant = nodo.get("duracion_hundimiento")
+		if d != null and float(d) > 0.0:
+			return float(d)
+	return VfxReaccion3D.DURA_HUNDIMIENTO
+
+
+## Suena `sfx` `dura` s y se corta con un fundido (FUNDIDO_ACOTADO) al acabar. Va como bucle (por si el sonido dura menos que el hundimiento, que se repite) y
+## se para solo. Devuelve el reproductor (null si no se pudo).
+static func _sonido_acotado(origen: Node, sfx: String, dura: float, tono: float = 1.0) -> Node:
+	var p: Node = Sfx.bucle(origen, sfx, tono if tono > 0.0 else 1.0)
+	if p == null or not origen.is_inside_tree():
+		return p
+	var fundido: float = minf(FUNDIDO_ACOTADO, dura * 0.5)
+	var tw: Tween = p.create_tween()                    # del propio reproductor: si se libera antes, el tween se va con él
+	tw.tween_interval(maxf(dura - fundido, 0.05))
+	tw.tween_callback(func() -> void: Sfx.parar(p, fundido))
+	return p
 
 
 ## Corta el sonido en bucle de `nodo` (si lo tenía).

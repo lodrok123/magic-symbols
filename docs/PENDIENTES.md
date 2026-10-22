@@ -60,9 +60,9 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 **Encargos del plan EoW (diario 238)**
 - [x] B2 (21/10): el suelo, el agua y la hierba leen `Mundo3D.textura_estados()` y `_img_estado` se retiró de `prueba_test2.gd`. Lo «pisado» (hierba aplastada) quedó en `_tex_pisado` (R8 propia de la maqueta); el círculo quemado que crece mientras arde es el *avance visual* de `EstadosSuelo3D` (`poner_avance`/`avance`, no es un hecho).
 - [x] ~~Enganchar `ReaccionesVfx3D.conectar(mundo, fx)` al montar el nivel~~ — hecho el 21/10 (`92cec87`).
-- [ ] Burbujas del hundimiento al aviso `impacto(…, "hundido", …)` / reacción `hundido` (1,6 s de efecto frente a 1,0 s de hundimiento).
-- [ ] Escudo del goblin: ajuste visual en el brazo, efectos de `EXCEPCIONES["escudo"]` con el nodo real y escudo mojado visible.
-- [ ] Mano quemada (diario 239): clip `mano_quemada` del goblin (+ `"mano_quemada"` en `ArbolAnimPj.ESTADOS_REDUCIDO` y en `Pj3D.SINONIMOS`), disolver por celdas del escudo quemado en vez del encogido provisional, y chispas en la mano con la señal `Escudo3D.mano_quemada`.
+- [x] Burbujas del hundimiento al aviso `impacto(…, "hundido", …)` / reacción `hundido` (1,6 s de efecto frente a 1,0 s de hundimiento). — hecho 22/10: duran lo que el hundimiento real (el clip, 3,2 s; no 1,0), `ReaccionesVfx3D.dura_hundimiento`.
+- [x] Escudo del goblin: ajuste visual en el brazo, efectos de `EXCEPCIONES["escudo"]` con el nodo real y escudo mojado visible. — hecho 22/10 (colgado de `LeftForeArm`, EXCEPCIONES probadas con el nodo real, escudo mojado con capa). Ver diario 248.
+- [x] Mano quemada (diario 239): clip `mano_quemada` del goblin (+ `"mano_quemada"` en `ArbolAnimPj.ESTADOS_REDUCIDO` y en `Pj3D.SINONIMOS`), disolver por celdas del escudo quemado en vez del encogido provisional, y chispas en la mano con la señal `Escudo3D.mano_quemada`. — hecho 22/10 (clip por código sobre el Idle, disolver por celdas ya existía, chispas en la mano). Ver diario 248.
 - [ ] Flecha de agua en arco (diario 239): comprobar que el VFX del líquido sigue la trayectoria nueva (`vfx_estado_3d.gd` calcula su propia caída con `gravedad`).
 - [ ] Opcional: llama visible en la flecha ardiendo (meta `ardiendo`), pista «E: abrir» en el cofre, losa propia de puerta de sala.
 

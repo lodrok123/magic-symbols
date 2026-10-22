@@ -29,11 +29,22 @@ const T_MOJADO: float = 6.0                   ## s que un escudo mojado no prend
 ## con el clip ROL_MANO_QUEMADA (si su GLB lo trae; si no, el de golpe) y el escudo se DESINTEGRA en T_DESINTEGRA s en vez de quedarse quemado en el brazo.
 ## El goblin NO se prende por su propio escudo. El clip es del Pipeline (diario); el disolver por celdas es V6 (`Ocluso3D`, uniform `disolver`): la malla quemada se deshace en T_DESINTEGRA s. Con
 ## `Ocluso3D.usar_quemado_disolver = false` (o sin material común) vuelve a encoger hasta desaparecer, como antes.
-const T_MANO_QUEMADA: float = 1.2
+const T_MANO_QUEMADA: float = Pj3D.MANO_QUEMADA_DUR      ## 1,2 s: lo que dura el clip `mano_quemada` (Pj3D.MANO_QUEMADA_DUR), para que acaben a la vez
 const T_DESINTEGRA: float = 0.8
 const ROL_MANO_QUEMADA: String = "mano_quemada"
-const DISTANCIA_MANO: float = 0.42            ## u por delante del centro del cuerpo
-const ALTURA_RELATIVA: float = 0.55           ## a qué fracción de la altura del goblin va el centro del disco
+const DISTANCIA_MANO: float = 0.42            ## (SIN esqueleto) u por delante del centro del cuerpo
+const ALTURA_RELATIVA: float = 0.55           ## (SIN esqueleto) a qué fracción de la altura del goblin va el centro del disco
+## EN EL BRAZO (22/10): con un goblin de verdad el escudo ya no flota delante del cuerpo: va colgado del antebrazo izquierdo (el hueso `LeftForeArm`, donde ya iba el
+## escudo de adorno de `Equipo3D`, que se oculta mientras el de verdad exista) y sigue cada fotograma la pose del clip. Medidas en unidades de juego, en el espacio del hueso
+## (el eje Y va del codo a la muñeca; Z sale hacia fuera del brazo): el disco queda sobre la cara exterior del antebrazo, apoyado y no clavado en él.
+const HUESO_ESCUDO: String = "LeftForeArm"
+const ESCALA_EN_BRAZO: float = 0.62           ## el disco de la pieza mide 0,55 u (más que el torso del goblin, 0,85 de alto): sobre el brazo se queda en ~0,34 u
+const POS_EN_BRAZO: Vector3 = Vector3(0.0, 0.07, 0.07)
+const GIRO_EN_BRAZO: Vector3 = Vector3(0.0, 0.0, 0.0)    ## grados (X, Y, Z) en el espacio del hueso
+const PIEZA_EQUIPO_ADORNO: String = "escudo"  ## el id de `Equipo3D.EQUIPO` que se oculta
+## ESCUDO MOJADO (22/10): una capa translúcida azul oscura con brillo húmedo (`PiezaFuego3D.capa_mojada`) mientras `mojado_t > 0`, que se aclara en los últimos T_SECADO s.
+const ALFA_ESCUDO_MOJADO: float = 0.55
+const T_SECADO: float = 1.5
 const ID_ENTERO: String = "goblin_escudo_entero"
 const ID_QUEMADO: String = "goblin_escudo_quemado"
 const PAPEL_INFLAMABLE: String = "inflamable"
@@ -61,6 +72,8 @@ var desintegra_t: float = 0.0                  ## s que le quedan a la malla que
 var _entero: PiezaFuego3D = null
 var _quemado: PiezaFuego3D = null
 var _escala_quemado: Vector3 = Vector3.ONE
+var en_brazo: bool = false                     ## true si va colgado del hueso del brazo (modelo con esqueleto); false = delante del cuerpo
+var _capa_mojada: StandardMaterial3D = null    ## la capa de «mojado» sobre la malla entera (null = seco)
 var _mats_quemado: Array[ShaderMaterial] = []  ## V6: materiales comunes de la malla quemada (su uniform `disolver` hace la desintegración)
 var disolver: float = 0.0                      ## V6: 0..1, cuánto lleva deshecho (lo lee la prueba; 0 si no se usa el disolver)
 
@@ -90,6 +103,11 @@ static func equipar(c: Combate3D, con_modelo: bool = true) -> Escudo3D:
 	c.escudo = e
 	c.add_child(e)
 	e._colocar()
+	if e.en_brazo and c.pj != null and is_instance_valid(c.pj):
+		c.pj.poner_equipo_visible(PIEZA_EQUIPO_ADORNO, false)     # el de adorno del brazo ya no hace falta (se vería doble)
+	e.mano_quemada.connect(func(g: Combate3D) -> void:            # las chispas de la mano: Pipeline (VfxReaccion3D), enganchadas a la señal de arriba
+		if g != null and is_instance_valid(g) and g.pj != null:
+			VfxReaccion3D.mano_quemada(g.pj, T_MANO_QUEMADA))
 	return e
 
 
@@ -149,6 +167,7 @@ func _recibir(h: Hechizo) -> void:
 			if mojado_t > 0.0:
 				mojado_t = 0.0                           # fuego sobre mojado = vapor: lo seca y no prende (como el goblin)
 				_avisar("secado")
+				_actualizar_mojado()
 			else:
 				prender()
 		"agua":
@@ -156,6 +175,7 @@ func _recibir(h: Hechizo) -> void:
 				_avisar("mojado")
 			mojado_t = T_MOJADO
 			apagar()
+			_actualizar_mojado()
 		"hielo":
 			apagar()
 		_:
@@ -235,6 +255,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_colocar()
 	mojado_t = maxf(0.0, mojado_t - delta)
+	_actualizar_mojado()
 	if desintegra_t > 0.0:
 		desintegra_t = maxf(0.0, desintegra_t - delta)
 		if _quemado != null:
@@ -255,12 +276,29 @@ func _physics_process(delta: float) -> void:
 			_consumir("quemado")
 
 
+## Colgado del brazo se recoloca también en cada fotograma de dibujo (el clip avanza ahí, no en la física): sin esto iría un fotograma por detrás de la mano.
+func _process(_delta: float) -> void:
+	if en_brazo and combate != null and is_instance_valid(combate) and not combate.muerto:
+		_colocar()
+
+
 const HUESOS_BRAZO: PackedStringArray = ["mixamorig_LeftForeArm", "mixamorig_RightForeArm", "mixamorig_LeftHand", "mixamorig_RightHand"]
 
 
 ## Lo pone delante del cuerpo, mirando hacia donde mira el goblin (el frente de la pieza es +Z).
 func _colocar() -> void:
 	if combate == null:
+		return
+	# Con un goblin de verdad (esqueleto en el árbol): colgado del antebrazo, siguiendo el clip.
+	var hueso: Variant = null
+	if combate.pj != null and is_instance_valid(combate.pj) and is_inside_tree():
+		hueso = combate.pj.hueso_ahora(HUESO_ESCUDO)
+	en_brazo = hueso != null
+	if en_brazo:
+		var tb: Transform3D = hueso
+		var b: Basis = tb.basis.orthonormalized()
+		var giro := Basis.from_euler(Vector3(deg_to_rad(GIRO_EN_BRAZO.x), deg_to_rad(GIRO_EN_BRAZO.y), deg_to_rad(GIRO_EN_BRAZO.z)))
+		global_transform = Transform3D(b * giro * Basis.from_scale(Vector3.ONE * ESCALA_EN_BRAZO), tb.origin + b * POS_EN_BRAZO)
 		return
 	var m := Vector3(combate.mirada.x, 0.0, combate.mirada.z)
 	if m.length() < 0.01:
@@ -284,6 +322,27 @@ func _colocar() -> void:
 			var ahora: Transform3D = rel * de_pie
 			ahora.basis = ahora.basis.orthonormalized()
 			global_transform = ahora
+
+
+## Dibuja el escudo MOJADO mientras `mojado_t > 0`: una capa translúcida (`material_overlay` de la malla entera, sin tocar sus materiales) con el brillo húmedo; en los
+## últimos T_SECADO s se aclara hasta quitarse. Se llama cada fotograma (y al recibir el agua, para que se vea ya).
+func _actualizar_mojado() -> void:
+	if _entero == null:
+		return
+	if mojado_t <= 0.0 or estado != "entero":
+		if _capa_mojada != null:
+			_capa_mojada = null
+			PiezaFuego3D.mojado(_entero, false)
+		return
+	if _capa_mojada == null:
+		_capa_mojada = PiezaFuego3D.capa_mojada(ALFA_ESCUDO_MOJADO)
+		PiezaFuego3D.poner_capa(_entero, _capa_mojada)
+	_capa_mojada.albedo_color.a = ALFA_ESCUDO_MOJADO * smoothstep(0.0, T_SECADO, mojado_t)
+
+
+## ¿Se ve el escudo mojado ahora? (pruebas y capturas)
+func se_ve_mojado() -> bool:
+	return _capa_mojada != null and _capa_mojada.albedo_color.a > 0.01
 
 
 func _pos_mundo() -> Vector3:

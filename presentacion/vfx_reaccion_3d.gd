@@ -18,6 +18,8 @@ extends RefCounted
 const NOMBRE_LLAMAS: String = "LlamasCuerpo"
 const COLOR_LLAMA: Color = Color(1.0, 0.62, 0.22, 0.95)
 const COLOR_MADERA: Color = Color(0.55, 0.36, 0.2, 1.0)
+const HUESO_MANO_QUEMADA: String = "LeftHand"      ## la mano del escudo (final del nombre del hueso, como en Equipo3D)
+const VIDA_RESTO_MANO_QUEMADA: float = 1.4         ## s que sigue ahí (sin emitir) lo que ya había salido, antes de quitar el attachment
 
 
 ## Alto de referencia de lo que arde: la `altura` del enemigo si la tiene; si no, 1.
@@ -195,26 +197,75 @@ static func descarga(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
 
 ## ---- Estados del cuerpo ----
 
-## Hundirse en el agua: la salpicadura del chapuzón, anillos que se abren uno tras otro y burbujas que suben mientras baja. `dura` s de burbujas.
+## Lo que dura el hundimiento (s) si quien lo avisa no dice otra cosa: la MISMA constante con la que `Combate3D` baja al enemigo bajo el agua cuando su
+## modelo no trae clip de ahogarse. Con clip, el enemigo anuncia su duración real (`duracion_hundimiento`, la del clip) y `ReaccionesVfx3D` se la pasa aquí.
+const DURA_HUNDIMIENTO: float = Combate3D.TIEMPO_HUNDIMIENTO
+const TANDAS_BURBUJAS: int = 7                  ## tandas de burbujas repartidas por todo el hundimiento
+const VIDA_BURBUJA_MIN: float = 0.3             ## lo menos que vive una tanda (s): la última, que sale cuando el cuerpo ya casi ha desaparecido
+const ANILLOS_HUNDIMIENTO: int = 4
+
+## Hundirse en el agua: la salpicadura del chapuzón, anillos que se abren uno tras otro y burbujas que suben mientras baja. Todo ocurre dentro de `dura` s
+## (lo que tarda el cuerpo en bajar): las tandas de burbujas salen repartidas desde el chapuzón hasta el final, y la última vive solo lo que queda, así
+## que la última burbuja llega a la superficie justo cuando el cuerpo ya está bajo el agua.
 ## Cuelga de `padre` (el mundo, NO del que se hunde: ese baja y se libera) y se libera solo.
-static func hundimiento(padre: Node3D, punto: Vector3, esc: float = 1.0, dura: float = 1.6) -> Node3D:
+static func hundimiento(padre: Node3D, punto: Vector3, esc: float = 1.0, dura: float = DURA_HUNDIMIENTO) -> Node3D:
+	dura = maxf(dura, 0.1)
 	var raiz := Node3D.new()
 	raiz.name = "Hundimiento"
 	raiz.position = punto
 	padre.add_child(raiz)
 	VfxPuzle3D.salpicadura(raiz, Vector3.ZERO, 1.5 * esc)
 	var tw: Tween = raiz.create_tween()
-	for k in range(4):                                          # anillos escalonados: el agua tarda en calmarse
+	for k in range(ANILLOS_HUNDIMIENTO):                        # anillos escalonados: el agua tarda en calmarse
 		var desfase: Vector2 = Vector2(randf_range(-0.25, 0.25), randf_range(-0.25, 0.25)) * esc
 		tw.tween_callback(VfxPuzle3D.anillo_caida.bind(raiz, Vector3(desfase.x, 0.0, desfase.y), (0.7 + 0.25 * k) * esc))
-		tw.tween_interval(dura / 5.0)
+		tw.tween_interval(dura / float(ANILLOS_HUNDIMIENTO + 1))
 	var b: Tween = raiz.create_tween()
-	for k in range(7):                                          # burbujas: una tanda cada ~0,2 s, desde el sitio donde se hunde
-		b.tween_interval(dura / 8.0)
-		b.tween_callback(VfxPuzle3D.burbujas.bind(raiz, Vector3(randf_range(-0.2, 0.2), -0.1, randf_range(-0.2, 0.2)) * esc, 0.3 * esc, false))
+	for k in range(TANDAS_BURBUJAS):                            # burbujas: una tanda cada dura/N, desde el sitio donde se hunde
+		var t: float = dura * float(k) / float(TANDAS_BURBUJAS)
+		var vida: float = clampf(dura - t, VIDA_BURBUJA_MIN, VfxPuzle3D.VIDA_BURBUJA)
+		if k > 0:
+			b.tween_interval(dura / float(TANDAS_BURBUJAS))
+		b.tween_callback(VfxPuzle3D.burbujas.bind(raiz, Vector3(randf_range(-0.2, 0.2), -0.1, randf_range(-0.2, 0.2)) * esc, 0.3 * esc, false, vida))
+	raiz.set_meta("dura", dura)                                 # (pruebas y capturas: lo que se le pidió)
 	if raiz.is_inside_tree():
-		raiz.get_tree().create_timer(dura + 2.2, false).timeout.connect(raiz.queue_free)
+		raiz.get_tree().create_timer(dura + VfxPuzle3D.VIDA_BURBUJA + 1.0, false).timeout.connect(raiz.queue_free)
 	return raiz
+
+
+## MANO QUEMADA (el escudo se consume ardiendo y le quema la mano al goblin): chispas y brasas que salen de la mano izquierda (la del escudo) durante `dura` s
+## y un hilo de humo. Cuelga de un BoneAttachment3D de la mano, así que sigue la sacudida del clip `mano_quemada`; se libera solo. Devuelve el attachment
+## (null si el modelo no tiene esqueleto o mano).
+static func mano_quemada(pj: Pj3D, dura: float = 1.2, esc: float = 1.0) -> Node3D:
+	if pj == null or not is_instance_valid(pj):
+		return null
+	var sk: Skeleton3D = pj._esqueleto()
+	var h: int = Equipo3D._hueso(sk, HUESO_MANO_QUEMADA) if sk != null else -1
+	if h < 0:
+		return null
+	var at := BoneAttachment3D.new()
+	at.name = "ChispasManoQuemada"
+	at.bone_name = sk.get_bone_name(h)
+	sk.add_child(at)
+	var pos: Vector3 = Vector3(0.0, 0.06, 0.0)                  # la palma: algo hacia los dedos (+Y del hueso de la mano)
+	var chispas: GPUParticles3D = VfxPuzle3D._emisor(at, pos, "chispa_electrica", 8, 0.45, 0.09 * esc, 1.8 * esc,
+		{"color": Color(1.0, 0.55, 0.15, 1.0), "aditivo": true, "hdr": 2.4, "gravedad": -5.0, "abanico": 160.0, "continuo": true, "radio_emision": 0.05 * esc})
+	var brasas: GPUParticles3D = VfxPuzle3D._emisor(at, pos, "brasa", 6, 0.7, 0.09 * esc, 0.8 * esc,
+		{"color": Color(1.0, 0.45, 0.12, 1.0), "aditivo": true, "hdr": 2.0, "gravedad": 1.5, "abanico": 90.0, "continuo": true, "radio_emision": 0.05 * esc})
+	var humo: GPUParticles3D = VfxPuzle3D._emisor(at, pos, "humo", 4, 1.0, 0.16 * esc, 0.3 * esc,
+		{"color": Color(0.25, 0.22, 0.2, 0.55), "gravedad": 0.8, "abanico": 30.0, "crece": true, "continuo": true, "radio_emision": 0.05 * esc})
+	at.set_meta("dura", dura)
+	at.set_meta("emisores", [chispas, brasas, humo])
+	if at.is_inside_tree():
+		# El tween cuelga del propio attachment: si el goblin se libera antes (muere, cambia de nivel) se va con él y no deja callbacks colgando.
+		var tw: Tween = at.create_tween()
+		tw.tween_interval(dura)
+		tw.tween_callback(func() -> void:
+			for e in [chispas, brasas, humo]:
+				(e as GPUParticles3D).emitting = false)
+		tw.tween_interval(VIDA_RESTO_MANO_QUEMADA)
+		tw.tween_callback(at.queue_free)
+	return at
 
 
 ## Aturdido: unas estrellitas amarillas que se abren sobre la cabeza (`punto` = la cabeza; `esc` = alto del que está aturdido).

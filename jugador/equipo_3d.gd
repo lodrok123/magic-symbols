@@ -93,6 +93,7 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 		p.scale = Vector3.ONE / maxf(escala, 0.0001)
 		if datos.size() > 4:
 			p.scale *= datos[4] as Vector3    # quinto dato opcional: multiplicador de escala por eje de la pieza
+		p.set_meta("equipo_id", String(datos[0]))     # para que quien lo necesite lo encuentre (Pj3D.poner_equipo_visible)
 		at.add_child(p)
 		puestas.append(p)
 	return puestas
