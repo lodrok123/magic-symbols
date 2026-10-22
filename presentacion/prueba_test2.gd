@@ -738,6 +738,9 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## 21/10 (V3 de PLAN_EOW_VISUAL): el LABIO redondeado de la arista de arriba de los bordes (orillas del agua, escalones de `Terreno3D.alturas`, borde del
 ## mapa y huecos del mapa): una tira de `BORDE_LABIO_ANCHO` u por encima del bloque (ver BordePiedras3D). Desmarcar = las aristas vivas de antes.
 @export var bisel_suelo: bool = true
+## labio cauce (22/10): el mismo labio + falda + cantos en el borde del CAUCE SECO (casillas `c`): el suelo ya no termina plano y de arista viva contra el bloque hundido.
+## Visual puro (sin colisión). Desmarcar (o `bisel_suelo = false`) = el escalón recto de antes. Cambiarlo en vivo: `reconstruir_bordes_cauce()`.
+@export var bisel_cauce: bool = true
 ## 21/10 (V4 de PLAN_EOW_VISUAL): el ESTADO del suelo (mojado, quemado, helado) leído del estado del juego (`Mundo3D.textura_estados()`), con el borde
 ## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
 ## (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo; B2: lee el mismo estado oficial, solo cambia cómo se pinta).
@@ -793,6 +796,8 @@ var _bordes: BordePiedras3D = null              ## orilla del agua
 var _rastrojo: Rastrojo3D = null                ## lo que queda de la hierba segada o quemada (14.2 · P3)
 var _bordes_terraza: BordePiedras3D = null      ## escalones de altura (Terreno3D.alturas, las pone el nivel después de montarse la maqueta)
 var _bordes_mapa: BordePiedras3D = null         ## V3: labio del borde del mapa (solo labio)
+var _bordes_cauce: BordePiedras3D = null        ## labio cauce: suelo ↔ lecho seco (`c` cerrada); falda con el material del lecho
+var _bordes_cauce_abierto: BordePiedras3D = null   ## labio cauce: suelo ↔ `c` abierta a cuenca (pozo); se trata como orilla de agua (falda con el material del costado)
 var _mat_labio_terraza: StandardMaterial3D = null   ## V3: el labio de las terrazas, de color de vértice como ellas
 var _mat_lado_suelo: Material = null
 var _hash_alturas: int = 0
@@ -1412,6 +1417,7 @@ func _construir_suelo() -> void:
 	_construir_lecho_rio(agua)
 	_construir_bordes_agua(mat_lado)
 	_construir_bisel_mapa()
+	reconstruir_bordes_cauce()      # labio cauce
 
 
 ## 9.7 · LECHO DEL CAUCE SECO: bloque hundido ALTO_CAUCE con la piedra del suelo oscurecida y parda (material propio) y
@@ -1523,12 +1529,63 @@ func _actualizar_pozos(delta: float) -> void:
 			t_s = 0.8
 		_t_sonido_pozo[c] = maxf(t_s, 0.0)
 	if cambio:
+		reconstruir_bordes_cauce()      # labio cauce: la casilla que se abre/cierra cambia de seco a orilla (o al revés)
 		for c in _pozos_cauce.keys():
 			var p: PozoCauce3D = _pozos_cauce[c]
 			for i in range(PozoCauce3D.LADOS.size()):
 				var n: Vector2i = (c as Vector2i) + PozoCauce3D.LADOS[i]
 				var sin_pared: bool = bool(_estado_pozo.get(n, false)) or _letra(n) == "~"
 				p.mostrar_lado(i, not sin_pared)
+
+
+## labio cauce · BORDE DEL CAUCE SECO. Una arista por cada lado de casilla entre suelo normal y `c` (nada entre `c` y `c`, ni hacia agua, muros o vacío).
+## Se reutiliza BordePiedras3D: labio V3 con el shader del suelo (`_mat_suelo`, así el estado y las tiras de joints siguen por encima de la arista), falda y cantos.
+##   · `c` CERRADA (lecho seco, 0,1 u por debajo del suelo): la pared mide 0,1, así que el labio (0,2) la cubre ENTERA y la falda (0,3) es en la práctica
+##     una rampa de 0,1 sobre el lecho; por eso la falda lleva el material del LECHO (`_mat_lecho_cauce`, que es el suelo que continúa), no el costado del suelo.
+##     Cantos más pequeños y escasos (2 por lado, 0,25–0,45 u): contra una zanja de 10 cm los de 0,6 u parecerían rocas.
+##   · `c` ABIERTA (pozo, `_estado_pozo`): pasa a ser ORILLA de agua, igual que una casilla de tierra junto a `~`: fondo en el del pozo, falda con el material del
+##     costado y cantos de serie. El labio no se tapa con el agua (está 0,04 por encima de ella) y sigue siendo la arista de arriba de la pared del pozo. Un nodo
+##     por estado y se rehacen los dos cuando una casilla cambia: nunca queda un borde seco flotando sobre un pozo ni uno de pozo sobre un lecho cerrado.
+##   · Sin duplicar las orillas de agua: `_construir_bordes_agua` solo mira suelo ↔ `~` y aquí solo suelo ↔ `c`; un pozo pegado a `~` no tiene arista (misma agua).
+## Una malla de labio y una de falda por estado, y un MultiMesh de cantos: no hay nodos por casilla. Sin colisión.
+func reconstruir_bordes_cauce() -> void:
+	var secos: Array = []
+	var abiertos: Array = []
+	if bisel_cauce and bisel_suelo and _mat_suelo != null and _mat_lado_suelo != null and not _tapas_cauce.is_empty():
+		var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+		var y_fondo_pozo: float = Terreno3D.alto_agua - Terreno3D.LECHO_AGUA
+		for cc in _tapas_cauce.keys():
+			var c: Vector2i = cc
+			var abierta: bool = bool(_estado_pozo.get(c, false))
+			for v in dirs:
+				var n: Vector2i = c + (v as Vector2i)
+				var l: String = _letra(n)
+				if _es_agua(l) or l == "#" or l == " " or l == "c" or not _en_mapa(n) or Terreno3D.altura_en(n) > 0:
+					continue
+				# La casilla ALTA es la de suelo (n) y el lado bajo queda hacia la `c`: dirección -v.
+				var b: Dictionary = {"c": n, "v": -(v as Vector2i), "y_alto": ALTO, "y_bajo": y_fondo_pozo if abierta else ALTO_CAUCE}
+				if not bordes_blandos:
+					b["solo_labio"] = true
+				(abiertos if abierta else secos).append(b)
+	if _bordes_cauce == null:
+		_bordes_cauce = BordePiedras3D.new()
+		_bordes_cauce.name = "BordesCauce"
+		_bordes_cauce.ancho_labio = BORDE_LABIO_ANCHO
+		_bordes_cauce.sobresale_labio = BORDE_LABIO_SOBRESALE
+		_bordes_cauce.caras_frontales = true     # (ver BordePiedras3D.caras_frontales)
+		_bordes_cauce.falda_arriba = 0.8         # pared de 10 cm: la falda es una rampa, no una pared (si no, banda oscura)
+		_bordes_cauce.piedras_por_borde = 2
+		_bordes_cauce.piedra_min = 0.25
+		_bordes_cauce.piedra_max = 0.45
+		add_child(_bordes_cauce)
+		_bordes_cauce_abierto = BordePiedras3D.new()
+		_bordes_cauce_abierto.caras_frontales = true
+		_bordes_cauce_abierto.name = "BordesCauceAbierto"
+		_bordes_cauce_abierto.ancho_labio = BORDE_LABIO_ANCHO
+		_bordes_cauce_abierto.sobresale_labio = BORDE_LABIO_SOBRESALE
+		add_child(_bordes_cauce_abierto)
+	_bordes_cauce.construir(secos, S, _mat_lecho_cauce, _mat_suelo)
+	_bordes_cauce_abierto.construir(abiertos, S, _mat_lado_suelo, _mat_suelo)
 
 
 ## Los 9 guijarros de una casilla: sobre el lecho (cerrada) o en el fondo del pozo (abierta).

@@ -28,7 +28,14 @@ extends Node3D
 ## El material del labio (opcional) es el de la TAPA de ese suelo: el shader del suelo en la maqueta, el de vértices en las terrazas.
 
 @export var ancho_falda: float = 0.3                   ## lo que se adentra la falda en el suelo bajo (y lo que sube por la pared)
-@export var piedra_min: float = 0.3                    ## diámetro menor de un canto (u)
+## labio cauce: cuánto de «arriba» lleva la normal del extremo de la falda que toca la pared (0 = horizontal, como la pared, de serie; 1 = 45°). Con una pared de 10 cm (el cauce seco)
+## la falda es una rampa más que una pared, y con la normal horizontal salía como una banda negra pegada al labio.
+@export_range(0.0, 1.0) var falda_arriba: float = 0.0
+## labio cauce: el orden de los vértices de la falda y del labio lo elegía la normal geométrica CCW hacia fuera, pero Godot da la cara FRONTAL a los triángulos en sentido HORARIO: con un material
+## de caras de atrás recortadas (StandardMaterial3D de serie) las dos tiras quedan invisibles; solo se ven con materiales de doble cara (el shader del suelo, el del lecho del cauce), y entonces
+## se iluminan con la normal dada la vuelta. `caras_frontales = true` las orienta bien. De serie false: no cambia lo que ya hay (orillas, escalones, borde del mapa) hasta que se decida.
+@export var caras_frontales: bool = false
+@export var piedra_min: float = 0.3                   ## diámetro menor de un canto (u)
 @export var piedra_max: float = 0.6                    ## y el mayor
 @export_range(1, 8) var piedras_por_borde: int = 3     ## cantos por cada lado de casilla (2,3 u): con 3 quedan huecos entre ellos
 @export_range(0.0, 1.0) var hundimiento: float = 0.3   ## parte del canto que queda bajo el labio (0 = apoyado, 0,5 = medio enterrado)
@@ -103,7 +110,7 @@ func _montar_faldas(bordes: Array, lado: float, material: Material) -> void:
 		var p1: Vector3 = centro + a * l2 + Vector3(0.0, y_bajo + caida, 0.0)
 		var p2: Vector3 = centro + a * l2 + d * ancho_falda + Vector3(0.0, y_bajo, 0.0)
 		var p3: Vector3 = centro - a * l2 + d * ancho_falda + Vector3(0.0, y_bajo, 0.0)
-		var n_arriba: Vector3 = d                # la pared mira hacia el lado bajo
+		var n_arriba: Vector3 = d if falda_arriba <= 0.0 else (d + Vector3.UP * falda_arriba).normalized()    # la pared mira hacia el lado bajo
 		var n_abajo := Vector3.UP
 		# El suavizado: la normal en cada vértice es la de su extremo; el rasterizador la interpola por la tira.
 		var norm: Array[Vector3] = [n_arriba, n_arriba, n_abajo, n_abajo]
@@ -112,7 +119,7 @@ func _montar_faldas(bordes: Array, lado: float, material: Material) -> void:
 		var orden: Array = [0, 2, 1, 0, 3, 2]
 		# Si el orden saliera hacia el otro lado (depende de la orientación de d) se invierte: se comprueba con la normal geométrica.
 		var geo: Vector3 = (pts[2] - pts[0]).cross(pts[1] - pts[0])
-		if geo.dot(d + Vector3.UP) < 0.0:
+		if (geo.dot(d + Vector3.UP) < 0.0) != caras_frontales:
 			orden = [0, 1, 2, 0, 2, 3]
 		for k in orden:
 			st.set_normal(norm[k])
@@ -173,7 +180,7 @@ func _montar_labio(bordes: Array, lado: float, material: Material) -> void:
 			var ref: Vector3 = d + Vector3.UP
 			for t in [[p0, p1, q1], [p0, q1, q0]]:
 				var geo: Vector3 = ((t[1][0] as Vector3) - (t[0][0] as Vector3)).cross((t[2][0] as Vector3) - (t[0][0] as Vector3))
-				var orden: Array = [0, 1, 2] if geo.dot(ref) > 0.0 else [0, 2, 1]
+				var orden: Array = [0, 1, 2] if (geo.dot(ref) > 0.0) != caras_frontales else [0, 2, 1]
 				for i in orden:
 					var vtx: Array = t[i]
 					st.set_color(col)
