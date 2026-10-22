@@ -101,6 +101,25 @@ func _foso() -> void:
 	if tr != null:
 		_ok("1.14 el tronco del estanque yace DENTRO del foso: su cara de arriba (%.2f) queda bajo el suelo (%.2f)" % [tr.position.y + TroncoEstanque3D.RADIO_MODELO, alto], tr.position.y + TroncoEstanque3D.RADIO_MODELO < alto - 0.1)
 		_ok("1.15 el tronco del estanque (en el fondo) BLOQUEA al jugador: su centro, a pies del fondo, es obstáculo; a pies sobre su cara de arriba o fuera de su largo, no", tr.bloquea(tr.position, fondo) and not tr.bloquea(tr.position, alto) and not tr.bloquea(tr.position + Vector3(TroncoEstanque3D.LARGO, 0.0, 0.0), fondo) and not tr.bloquea(tr.position + Vector3(0.0, 0.0, 1.0), fondo) and TroncoEstanque3D.bloquea_a(tr.position, fondo))
+		var cx: float = Terreno3D.centro_de(tr.celda, 0.0).x
+		var caja_f: AABB = _caja_tronco(tr)
+		_ok("1.16 en el fondo el tronco CABE en el foso: sus puntas no entran en las paredes (x %.2f..%.2f, paredes %.2f..%.2f)" % [caja_f.position.x, caja_f.end.x, cx - Terreno3D.casilla * 0.5, cx + Terreno3D.casilla * 0.5], caja_f.position.x >= cx - Terreno3D.casilla * 0.5 and caja_f.end.x <= cx + Terreno3D.casilla * 0.5)
+		_ok("1.17 …y no se encoge de más (el aire entre punta y pared es ≤ 0,1 u): largo %.2f" % caja_f.size.x, caja_f.size.x >= Terreno3D.casilla - 0.1)
+		_ok("1.18 el grosor del tronco no se toca al acortarlo (alto %.2f, ancho %.2f del modelo 0,65 × 0,79)" % [caja_f.size.y, caja_f.size.z], absf(caja_f.size.y - 0.654) < 0.02 and absf(caja_f.size.z - 0.79) < 0.1)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+## Caja del tronco en coordenadas del mundo, de los vértices reales de la malla (el eje largo del Bosque 01 es X).
+func _caja_tronco(tr: TroncoEstanque3D) -> AABB:
+	var mi: MeshInstance3D = tr.get_node("tronco") as MeshInstance3D
+	var lo := Vector3(INF, INF, INF)
+	var hi := Vector3(-INF, -INF, -INF)
+	for sidx in range(mi.mesh.get_surface_count()):
+		for v in mi.mesh.surface_get_arrays(sidx)[Mesh.ARRAY_VERTEX]:
+			var w: Vector3 = mi.global_transform * (v as Vector3)
+			lo = lo.min(w)
+			hi = hi.max(w)
+	return AABB(lo, hi - lo)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -357,6 +376,12 @@ func _agua() -> void:
 	var tr: TroncoEstanque3D = maqueta.get_node("Reglas").get("_tronco_estanque") as TroncoEstanque3D
 	if tr != null:
 		_ok("4.9 el tronco del estanque ha subido del fondo a ras con el agua", tr.abierto and absf(tr.position.y + TroncoEstanque3D.RADIO_MODELO - alto) < 0.12, "y %.3f abierto %s" % [tr.position.y, str(tr.abierto)])
+		var cx_a: float = Terreno3D.centro_de(tr.celda, 0.0).x
+		var caja_a: AABB = _caja_tronco(tr)
+		var mitad: float = Terreno3D.casilla * 0.5
+		_ok("4.9b arriba el tronco hace de puente: apoya en las dos orillas (sus puntas pasan ≥ 0,1 u de los labios: x %.2f..%.2f, labios %.2f y %.2f)" % [caja_a.position.x, caja_a.end.x, cx_a - mitad, cx_a + mitad], caja_a.position.x <= cx_a - mitad - 0.1 and caja_a.end.x >= cx_a + mitad + 0.1)
+		_ok("4.9c …y asoma sobre las orillas (su cara de arriba %.2f ≥ el suelo %.2f)" % [caja_a.end.y, alto], caja_a.end.y >= alto)
+		_ok("4.9d …con su largo entero (%.2f)" % caja_a.size.x, absf(caja_a.size.x - TroncoEstanque3D.LARGO) < 0.03)
 	# El foso con agua conserva su forma (sigue siendo foso aunque ya sea agua).
 	var pozos: Dictionary = maqueta.get("_pozos_cauce")
 	var n_vis: int = 0

@@ -20,6 +20,12 @@ const LARGO: float = 2.6                 ## u: cruza la casilla del cauce (2,3) 
 const PROF_ABRE: float = 0.45            ## u de agua en su casilla a la que ya flota a ras
 const VEL_SUBIDA: float = 1.2            ## u/s como mucho (suave aunque el agua suba de golpe)
 const COLOR_CORTEZA: Color = Color(0.36, 0.25, 0.16)
+## 22/10 (cauce hondo): el foso mide una casilla (2,3 u) de pared a pared y el tronco 2,6: tumbado en el fondo sus puntas atravesaban las paredes. Solución: abajo se ACORTA
+## a lo que cabe (casilla − 2 holguras; solo el eje largo, el grosor no se toca) y, al subir, se ESTIRA hasta su largo entero justo al llegar a los labios, que es donde ya
+## apoya en las dos orillas (con el cuerpo por encima del lecho de la orilla las puntas quedan metidas en la tierra, tapadas). Se estira según la altura real (no el tiempo), así
+## que sigue la subida suave del agua y se queda quieto si el agua se para.
+const HOLGURA_PARED: float = 0.04         ## u: aire entre cada punta y la pared del foso en el fondo
+const F_ESTIRA_INI: float = 0.8           ## fracción de la subida a la que empieza a estirarse (hasta 1,0, a ras, donde mide LARGO)
 
 var mundo: Variant = null
 var celda: Vector2i = Vector2i.ZERO
@@ -28,6 +34,7 @@ var _y_fondo: float = 0.0
 var _y_arriba: float = 0.0
 var _tronco: MeshInstance3D = null
 var _semieje: Vector3 = Vector3.RIGHT      ## dirección horizontal (unitaria) a lo largo de la cual yace
+var _largo: float = LARGO                  ## u: largo que mide ahora (entre `largo_fondo()` abajo y LARGO arriba)
 
 ## 22/10 (cauce hondo): con el cauce seco ahora se anda por el fondo, donde yace el tronco, y el jugador (que se mueve por casillas, sin físicas) lo
 ## ATRAVESABA: la malla le tapaba el cuerpo. Mientras no esté bierto, el tronco es un obstáculo: no se entra en su caja salvo que los pies
@@ -56,6 +63,7 @@ func preparar(p_mundo: Variant, p_celda: Vector2i, eje: Vector3 = Vector3.RIGHT)
 		_tronco.name = "tronco"
 		_tronco.rotation.y = atan2(-e.z, e.x)
 		add_child(_tronco)
+		_poner_largo(largo_fondo())
 		set_process(true)
 		return
 	var cil := CylinderMesh.new()
@@ -72,7 +80,31 @@ func preparar(p_mundo: Variant, p_celda: Vector2i, eje: Vector3 = Vector3.RIGHT)
 	# Un cilindro yace a lo largo de su Y local: se gira para que quede a lo largo de `eje`.
 	_tronco.basis = Basis(Vector3.UP.cross(e).normalized(), PI * 0.5) if absf(e.dot(Vector3.UP)) < 0.99 else Basis.IDENTITY
 	add_child(_tronco)
+	_poner_largo(largo_fondo())
 	set_process(true)
+
+
+## Largo que cabe en el foso seco (de pared a pared, con holgura), sin pasar del largo del modelo.
+static func largo_fondo() -> float:
+	return minf(LARGO, Terreno3D.casilla - 2.0 * HOLGURA_PARED)
+
+
+## Largo que toca a una altura `y` del centro: LARGO_FONDO hasta `F_ESTIRA_INI` de la subida y, de ahí a ras, crece suave hasta LARGO.
+func largo_a(y: float) -> float:
+	var recorrido: float = _y_arriba - _y_fondo
+	var f: float = clampf((y - _y_fondo) / recorrido, 0.0, 1.0) if recorrido > 0.001 else 1.0
+	return lerpf(largo_fondo(), LARGO, smoothstep(F_ESTIRA_INI, 1.0, f))
+
+
+## Fija el largo del tronco: el modelo se escala solo a lo largo (su +X local); el cilindro provisional cambia de altura (su eje).
+func _poner_largo(l: float) -> void:
+	_largo = l
+	if _tronco == null:
+		return
+	if _tronco.mesh is CylinderMesh:
+		(_tronco.mesh as CylinderMesh).height = l
+	else:
+		_tronco.scale = Vector3(l / LARGO, 1.0, 1.0)
 
 
 func _process(delta: float) -> void:
@@ -82,8 +114,10 @@ func _process(delta: float) -> void:
 	var t: float = clampf(prof / PROF_ABRE, 0.0, 1.0)
 	var y_obj: float = lerpf(_y_fondo, _y_arriba, t)
 	position.y = move_toward(position.y, y_obj, VEL_SUBIDA * delta)
+	_poner_largo(largo_a(position.y))
 	if not abierto and t >= 1.0 and absf(position.y - _y_arriba) < 0.05:
 		abierto = true
+		_poner_largo(LARGO)                # a ras ya apoya en las dos orillas con su largo entero (el resto del estirado es imperceptible)
 		Terreno3D.poner_letra(celda, "b")
 		if mundo != null:
 			mundo.call("_liberar", celda)
@@ -101,7 +135,7 @@ func bloquea(p: Vector3, y_pies: float) -> bool:
 	var d: Vector3 = Vector3(p.x - position.x, 0.0, p.z - position.z)
 	var a: float = d.dot(_semieje)
 	var l: float = absf(d.dot(Vector3.UP.cross(_semieje)))
-	return absf(a) <= LARGO * 0.5 and l <= r + MARGEN_JUGADOR
+	return absf(a) <= _largo * 0.5 and l <= r + MARGEN_JUGADOR
 
 
 ## Versión estática para quien no tiene el nodo (Jugador3D): false si no hay tronco.
