@@ -1,4 +1,4 @@
-class_name Pj3D
+﻿class_name Pj3D
 extends Node3D
 
 ## Un personaje del pipeline como modelo 3D vivo (la chibi, hero_v2...). Sin sprites ni atlas:
@@ -154,6 +154,11 @@ static var silueta_activa: bool = true             ## la silueta a través de lo
 static var silueta_enemigos: bool = false          ## lo mismo para los enemigos (apagado: con muchos goblins sería un enjambre de manchas)
 static var sombra_contacto_activa: bool = true     ## la mancha suave bajo los pies (SombraContacto3D)
 static var pbr_juguete_activo: bool = true         ## rugosidad media-alta en vez de 1,0 (sin ello no hay brillo de plástico)
+
+## V5 punto 5: shader de juguete (rampa de 3 tonos + matcap, sin PBR) en lugar del StandardMaterial3D. false = lo de antes. Constantes en MaterialPersonaje3D
+## (MATCAP_INTENSIDAD, SOMBRA_JUGUETE_COLOR, PISO_SOMBRA, BRILLO_LUZ). Hay que fijarlo ANTES de cargar() el personaje.
+static var material_juguete: bool = true
+var _juguete: Array = []                           ## [material de control, ShaderMaterial, último estado copiado] por superficie opaca
 
 const ROUGHNESS_JUGUETE: float = 0.72              ## media-alta: un brillo ancho y suave, no un espejo (metalness sigue en 0)
 const RIM_POTENCIA: float = 3.0                    ## cuánto se pega el brillo a la arista (más = más fino). 21/10 (Pablo): con 1,8 / 1,1 rodeaba al personaje como un halo
@@ -390,14 +395,40 @@ func _preparar_materiales(modelo: Node3D) -> void:
 						_rim_mat = MaterialPersonaje3D.rim(RIM_NPC, RIM_POTENCIA, RIM_INTENSIDAD)
 						_sil_mat = MaterialPersonaje3D.silueta(SILUETA_COLOR, 0.4)
 					copia.next_pass = _rim_mat
-				mi.set_surface_override_material(s, copia)
+				# Juguete (V5 punto 5): las superficies opacas se pintan con el shader de rampa + matcap; `copia` queda como material de control
+				# (Combate3D le escribe el tinte; sincronizar_juguete() lo pasa al shader). Las de alfa (pelo, hojas) conservan su StandardMaterial3D.
+				if material_juguete and copia.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED and copia.cull_mode != BaseMaterial3D.CULL_FRONT:
+					var sm: ShaderMaterial = MaterialPersonaje3D.juguete(copia)
+					sm.next_pass = copia.next_pass
+					_juguete.append([copia, sm, [copia.albedo_color, copia.emission_enabled, copia.emission, copia.emission_energy_multiplier, copia.shading_mode]])
+					mi.set_surface_override_material(s, sm)
+				else:
+					mi.set_surface_override_material(s, copia)
 				_materiales.append(copia)
+
+
+## Copia a los shaders de juguete lo que Combate3D (o set_modo_luz) escribió en los materiales de control. Solo toca los uniforms si algo cambió.
+func sincronizar_juguete() -> void:
+	for e in _juguete:
+		var base: StandardMaterial3D = e[0]
+		var estado: Array = e[2]
+		if base.albedo_color != estado[0] or base.emission_enabled != estado[1] or base.emission != estado[2] \
+				or base.emission_energy_multiplier != estado[3] or base.shading_mode != estado[4]:
+			MaterialPersonaje3D.copiar_estado(base, e[1])
+			e[2] = [base.albedo_color, base.emission_enabled, base.emission, base.emission_energy_multiplier, base.shading_mode]
+
+
+## Color de la sombra suave de los personajes de juguete (frío o cálido según la zona).
+func set_sombra_juguete(c: Color) -> void:
+	for e in _juguete:
+		(e[1] as ShaderMaterial).set_shader_parameter("sombra_color", Vector3(c.r, c.g, c.b))
 
 
 func set_modo_luz(m: int) -> void:
 	modo_luz = m
 	for mat in _materiales:
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED if m == 0 else BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	sincronizar_juguete()
 	# La luz plana es el modo «sin sombreado» del laboratorio: sin rim (un borde que brilla en un muñeco plano lo estropea). La silueta sigue.
 	if _rim_mat != null:
 		_rim_mat.set_shader_parameter("intensidad", _intensidad_rim())
@@ -658,6 +689,8 @@ func _brazo_libro_lado(lado: String) -> void:
 
 ## Cada fotograma: si hay un lanzamiento por cast point, congela el clip en el instante (si `sostener`) y al llegar a `fin`.
 func _process(delta: float) -> void:
+	if not _juguete.is_empty():
+		sincronizar_juguete()    # juguete: el tinte que Combate3D escribe en el material de control pasa al shader
 	if _cp.is_empty() or _arbol == null or not _arbol.listo():
 		return
 	# `posicion()` es relativa al recorte [a, b]; el instante, en segundos absolutos del clip como siempre. El congelado es la velocidad 0 del árbol:
