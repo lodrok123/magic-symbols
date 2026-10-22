@@ -122,6 +122,75 @@ static func ambiente_dos_colores(env: Environment, arriba: Color, abajo: Color, 
 	env.ambient_light_energy = energia
 
 
+## --- Agua EoW (22/10, PLAN_EOW_VISUAL §1.6): UNA SONDA POR SALA. ---
+## Qué es una «sala»: en los DATOS no hay una definición general (el `sala=` de un cerrojo de Puzle3D es el rectángulo que cierra las puertas, no una región del mapa, y un
+## nivel como el Bosque 01 no tiene salas). Lo único que hay son los laboratorios (LabPlaytestEoW3D, LabPuzlesAgua3D, LabPuzlesFuego3D), cuyas constantes `SALAS` traen cada una su
+## `rect` en casillas; ahora los tres lo ofrecen con `salas_rects()`. Si el nivel no tiene ese método (el Bosque 01, el Test 2…) se parte el mapa en bloques de `SONDA_BLOQUE`
+## × `SONDA_BLOQUE` casillas. En los dos casos solo se pone sonda donde la región contiene agua o hielo (el hielo es siempre agua helada: una casilla con agua).
+## Tamaño (en casillas) de los bloques cuando el nivel no tiene salas. Un río de 52 × 44 casillas da unas 6–8 sondas.
+const SONDA_BLOQUE: int = 12
+## Casillas que se añaden alrededor del agua (hasta el borde del mapa) para que la caja alcance orillas, árboles y rocas que se reflejan.
+const SONDA_MARGEN: int = 2
+## Alto (u) de la caja de cada sonda y altura (u) del punto desde el que se hornea.
+const SONDA_ALTO: float = 10.0
+const SONDA_Y: float = 3.0
+
+
+## Las cajas de las sondas, en casillas: una por región que contenga agua. `hay_agua(Vector2i) -> bool` dice si una casilla es agua; `regiones` son las salas
+## (Array de Rect2i) o vacío para usar bloques de `bloque` × `bloque`. Cada caja es el rectángulo mínimo que envuelve el agua de la región, ensanchado `margen` casillas y recortado al mapa
+## (`ancho` × `alto`). Devuelve Array de Rect2i; regiones sin agua no devuelven nada.
+static func cajas_sondas(hay_agua: Callable, ancho: int, alto: int, regiones: Array, bloque: int = SONDA_BLOQUE, margen: int = SONDA_MARGEN) -> Array:
+	var cajas: Array = []
+	var zonas: Array = []
+	var limites: Array = []        # hasta dónde puede llegar la caja de cada zona: una sala, su rectángulo; un bloque, el bloque con el margen (el agua del borde conserva su entorno)
+	if regiones.is_empty():
+		var b: int = maxi(bloque, 1)
+		for y0 in range(0, alto, b):
+			for x0 in range(0, ancho, b):
+				var rb := Rect2i(x0, y0, mini(b, ancho - x0), mini(b, alto - y0))
+				zonas.append(rb)
+				limites.append(rb.grow(margen))
+	else:
+		zonas = regiones
+		limites = regiones
+	for i in range(zonas.size()):
+		var r: Rect2i = zonas[i]
+		var lim: Rect2i = (limites[i] as Rect2i).intersection(Rect2i(0, 0, ancho, alto))
+		var minx: int = 1 << 30
+		var miny: int = 1 << 30
+		var maxx: int = -1
+		var maxy: int = -1
+		for y in range(maxi(r.position.y, 0), mini(r.end.y, alto)):
+			for x in range(maxi(r.position.x, 0), mini(r.end.x, ancho)):
+				if bool(hay_agua.call(Vector2i(x, y))):
+					minx = mini(minx, x)
+					miny = mini(miny, y)
+					maxx = maxi(maxx, x)
+					maxy = maxi(maxy, y)
+		if maxx < 0:
+			continue
+		var x0c: int = maxi(minx - margen, lim.position.x)
+		var y0c: int = maxi(miny - margen, lim.position.y)
+		var x1c: int = mini(maxx + margen + 1, lim.end.x)
+		var y1c: int = mini(maxy + margen + 1, lim.end.y)
+		cajas.append(Rect2i(x0c, y0c, x1c - x0c, y1c - y0c))
+	return cajas
+
+
+## Crea las sondas de `cajas` (casillas de lado `casilla` u), una por caja, horneadas una vez. Devuelve las sondas.
+static func sondas_por_cajas(padre: Node, cajas: Array, casilla: float, intensidad: float = 0.8) -> Array:
+	var sondas: Array = []
+	var n: int = 0
+	for c in cajas:
+		var r: Rect2i = c
+		var centro := Vector3((float(r.position.x) + float(r.size.x) * 0.5) * casilla, SONDA_Y, (float(r.position.y) + float(r.size.y) * 0.5) * casilla)
+		var s: ReflectionProbe = sonda_reflejos(padre, centro, Vector3(float(r.size.x) * casilla, SONDA_ALTO, float(r.size.y) * casilla), intensidad)
+		n += 1
+		s.name = "SondaReflejos_%d" % n
+		sondas.append(s)
+	return sondas
+
+
 ## F3: UNA sonda de reflejos para la sala (el agua y el hielo ya fijan ROUGHNESS y SPECULAR, así que la leen sin cambiar su shader).
 ## `UPDATE_ONCE`: se hornea al entrar y no vuelve a costar nada. `centro` y `tam` son del volumen que cubre (la sala entera, un poco más alta
 ## que lo más alto). La resolución NO es propiedad de la sonda: es el ajuste de proyecto `rendering/reflections/reflection_atlas/reflection_size`.

@@ -44,6 +44,41 @@ class_name AguaRender3D
 ## Debajo de esta profundidad (u) un trocito es lámina de suelo mojado, no agua que se vea como tal (contrato: ~0,05).
 @export var profundidad_minima: float = 0.05
 
+# --- 22/10 (agua EoW, PLAN_EOW_VISUAL §1.6 y §2 fila «Agua»): REFRACCIÓN y TERCERA ESCALA DE OLAS. Todo en constantes con nombre; el shader recibe estos números al enlazar. ---
+## Interruptor de la refracción (también `agua_refraccion` en la maqueta). Apagado = el agua de antes: mezcla por alfa sobre lo que ya hay dibujado, sin leer la pantalla.
+const REFRACCION: bool = true
+## Cuánto desplaza la inclinación de las olas al fondo, en u de mundo por unidad de inclinación y por u de profundidad (hasta `REFR_PROF_TOPE`). 0,9 u de agua con facetas de 0,3 de pendiente = ~0,16 u.
+const REFR_FUERZA: float = 0.8
+## Profundidad (u) a partir de la cual la refracción ya no crece (el río hondo no deforma el doble que el estanque).
+const REFR_PROF_TOPE: float = 0.6
+## Profundidad de agua (u) con la que la refracción llega entera: más cerca de la orilla se atenúa (no hay agua que doble nada y se verían fantasmas de tierra).
+const REFR_ORILLA: float = 0.30
+## Margen (u) con el que se descarta lo que está DELANTE del agua o por ENCIMA de su lámina (árboles, la chibi, el bloque de la orilla): pasan de 0 a 1 en este rango.
+const REFR_MARGEN: float = 0.05
+## Franja (fracción de pantalla) pegada al borde en la que la refracción se apaga: la textura de pantalla no tiene nada más allá y estiraría el último píxel.
+const REFR_BORDE: float = 0.04
+## Prioridad de dibujo del agua entre lo transparente: la primera, para que el fuego, los VFX y la hierba que se dibujan después queden ENCIMA (con refracción el agua deja de ser
+## una mezcla y tapa lo que se dibuje antes). Las paredes laterales, justo después.
+const AGUA_PRIORIDAD: int = -3
+const PARED_PRIORIDAD: int = -2
+## Tercera escala de olas: un oleaje AMPLIO y lento (las facetas de 0,75 u y el ruido fino de las ondas ya estaban) que inclina grupos enteros de facetas, con su propia dirección,
+## velocidad y amplitud. Se suma a la altura de las olas que las facetas leen en sus vértices, así que sigue siendo plano por facetas y viaja con la corriente como las demás.
+const OLA3_ACTIVA: bool = true
+const OLA3_ALTURA: float = 0.85        ## amplitud en las unidades de `ola_est` (la suma de las tres olas de siempre llega a ±1,1)
+const OLA3_LONGITUD: float = 5.5       ## u de cresta a cresta (las olas de siempre miden ~2,7-3,3 u)
+const OLA3_VEL: float = 0.55           ## rad/s
+const OLA3_RUMBO: float = 200.0        ## grados (en XZ) hacia donde avanza
+const OLA3_CRUCE: float = 68.0         ## grados que gira la segunda onda que se cruza con la primera (rompe las rayas)
+
+@export var agua_refraccion: bool = REFRACCION:
+	set(v):
+		agua_refraccion = v
+		_aplicar_eow()
+@export var olas_tercera_escala: bool = OLA3_ACTIVA:
+	set(v):
+		olas_tercera_escala = v
+		_aplicar_eow()
+
 const CODIGO: String = """
 shader_type spatial;
 render_mode cull_disabled, depth_draw_opaque;
@@ -91,6 +126,25 @@ uniform float vel_franja = 0.55;              // ciclos por segundo del flow map
 uniform float brillo = 1.0;
 uniform float contraste = 1.2;
 uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+
+// 22/10 (agua EoW) · REFRACCIÓN. Con `refraccion` = 1 el fondo que se ve a través del agua es la pantalla ya dibujada (lo opaco: el lecho de verdad y los
+// bloques bajo la lámina), desplazada por la inclinación de las olas. Para eso el agua pasa a ser «opaca» (ALPHA = 1) y su mezcla por alfa la hace ella misma:
+// ALBEDO = color × alfa y EMISSION = fondo × (1 − alfa). Con 0 es el agua de antes, sin leer la pantalla.
+uniform sampler2D pantalla : hint_screen_texture, repeat_disable, filter_linear;
+uniform sampler2D prof_escena : hint_depth_texture, repeat_disable, filter_nearest;
+uniform float refraccion = 0.0;
+uniform float refr_fuerza = 0.8;
+uniform float refr_prof_tope = 0.6;
+uniform float refr_orilla = 0.3;
+uniform float refr_margen = 0.05;
+uniform float refr_borde = 0.04;
+// 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
+uniform float ola3_altura = 0.0;
+uniform float ola3_k = 1.14;                  // 2π / longitud
+uniform float ola3_vel = 0.55;
+uniform vec2 ola3_dir = vec2(-0.94, -0.34);
+uniform vec2 ola3_dir2 = vec2(0.1, -0.99);
+varying float v_spec;                         // cuánto del brillo especular se ve: el alfa del agua con refracción (sin ella el alfa ya lo atenúa al mezclar), 1 sin ella
 
 // Ondas que reaccionan (11.8): textura de AguaOndas3D, R = altura (u). La pendiente y las crestas salen de ella. Sin ella, quedan a cero.
 uniform sampler2D ondas : filter_linear, hint_default_black, repeat_disable;
@@ -255,7 +309,10 @@ float ruido(vec2 p) {
 }
 
 float ola_est(vec2 p, float t) {
-	return sin(p.x * 1.9 + t * 1.1) * 0.5 + sin(p.y * 2.3 - t * 0.9) * 0.35 + sin((p.x + p.y) * 1.3 + t * 0.7) * 0.25;
+	float h = sin(p.x * 1.9 + t * 1.1) * 0.5 + sin(p.y * 2.3 - t * 0.9) * 0.35 + sin((p.x + p.y) * 1.3 + t * 0.7) * 0.25;
+	// Tercera escala (agua EoW): dos ondas largas que se cruzan, con su rumbo, velocidad y amplitud. Con ola3_altura = 0 no suma nada.
+	h += ola3_altura * (0.6 * sin(dot(p, ola3_dir) * ola3_k - t * ola3_vel) + 0.4 * sin(dot(p, ola3_dir2) * ola3_k * 0.8 - t * ola3_vel * 0.7 + 1.7));
+	return h;
 }
 
 // Normal plana del triángulo de la rejilla de olas en el que cae `p` (la misma rejilla girada y sesgada del agua estilizada
@@ -455,10 +512,39 @@ void fragment() {
 	NORMAL = normalize((VIEW_MATRIX * vec4(nm, 0.0)).xyz);
 	float fres = pow(1.0 - clamp(dot(VIEW, NORMAL), 0.0, 1.0), 4.0);
 	ce = mix(ce, vec3(0.88, 0.94, 1.0), fres * 0.25);
-	ALBEDO = ce * brillo;
-	ALPHA = clamp(alfa_agua, 0.0, 1.0);
+	float alfa_f = clamp(alfa_agua, 0.0, 1.0);
+	v_spec = 1.0;
+	if (refraccion > 0.5) {
+		// REFRACCIÓN (agua EoW). Cuánto se deforma el fondo: la INCLINACIÓN de la superficie respecto a la plana (en el espacio de la cámara), por la profundidad (con tope),
+		// y nada en la orilla (sin agua que doble) ni en el hielo (es sólido). El desplazamiento está en u de mundo y se pasa a pantalla con la proyección (ortogonal o no).
+		float amp = min(max(v_prof, 0.0), refr_prof_tope) * smoothstep(0.0, refr_orilla, prof_e) * (1.0 - hielo);
+		vec2 inc = (VIEW_MATRIX * vec4(nm, 0.0)).xy - (VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xy;
+		vec2 esc = vec2(PROJECTION_MATRIX[0][0], PROJECTION_MATRIX[1][1]) * 0.5;
+		if (PROJECTION_MATRIX[3][3] < 0.5) {
+			esc /= max(-VERTEX.z, 0.1);                      // en perspectiva el tamaño en pantalla baja con la distancia
+		}
+		vec2 uv_r = SCREEN_UV + vec2(inc.x, -inc.y) * refr_fuerza * amp * esc;
+		// Fantasmas: lo que hay en el punto desplazado solo se refracta si está DETRÁS del agua (más lejos que ella en la vista) y BAJO su lámina (Y de mundo menor). Si no
+		// (un árbol, la chibi, el bloque de la orilla, que quedan por encima o delante) se usa el píxel de siempre. Todo con rampa suave, sin saltos.
+		float borde_p = min(min(uv_r.x, 1.0 - uv_r.x), min(uv_r.y, 1.0 - uv_r.y));
+		float d_esc = texture(prof_escena, clamp(uv_r, vec2(0.0), vec2(1.0))).r;
+		vec4 vp = INV_PROJECTION_MATRIX * vec4(uv_r * 2.0 - 1.0, d_esc, 1.0);
+		vp.xyz /= vp.w;
+		float detras = (-vp.z) - (-VERTEX.z);                 // > 0: lo del punto desplazado está más lejos que esta superficie de agua
+		float bajo = pm.y - (INV_VIEW_MATRIX * vec4(vp.xyz, 1.0)).y;     // > 0: y bajo la lámina
+		float bueno = smoothstep(0.0, refr_margen, detras) * smoothstep(0.0, refr_margen, bajo) * smoothstep(0.0, refr_borde, borde_p);
+		vec2 uv_f = mix(SCREEN_UV, uv_r, bueno);
+		vec3 fondo_r = texture(pantalla, uv_f).rgb;
+		ALBEDO = ce * brillo * alfa_f;
+		EMISSION = fondo_r * (1.0 - alfa_f);
+		ALPHA = 1.0;
+		v_spec = alfa_f;
+	} else {
+		ALBEDO = ce * brillo;
+		ALPHA = alfa_f;
+	}
 	ROUGHNESS = rugosidad;
-	SPECULAR = 0.5;
+	SPECULAR = 0.5 * v_spec;
 }
 
 void light() {
@@ -469,7 +555,7 @@ void light() {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
 	vec3 h = normalize(VIEW + LIGHT);
-	SPECULAR_LIGHT += pow(max(dot(NORMAL, h), 0.0), 60.0) * 0.5 * LIGHT_COLOR * ATTENUATION;
+	SPECULAR_LIGHT += pow(max(dot(NORMAL, h), 0.0), 60.0) * 0.5 * LIGHT_COLOR * ATTENUATION * v_spec;
 }
 """
 
@@ -615,6 +701,7 @@ func enlazar(p_sim: AguaSim3D) -> void:
 	_mat.set_shader_parameter("minima", profundidad_minima)
 	_mat.set_shader_parameter("bajada_lamina", bajada_lamina)
 	_mat.set_shader_parameter("orilla_mov", orilla_mov)
+	_aplicar_eow()
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if proveedor_topes.is_valid() and _topes_casillas.is_empty():
 		var t: Variant = proveedor_topes.call()
@@ -624,6 +711,33 @@ func enlazar(p_sim: AguaSim3D) -> void:
 	_montar_paredes()
 	_montar_flujo()
 	_leer(true)
+
+
+## Agua EoW: vuelca al sombreado los interruptores y las constantes de la refracción y de la tercera escala de olas (y la prioridad de dibujo). Se llama al enlazar y
+## cada vez que cambia un interruptor; sin material todavía no hace nada.
+func _aplicar_eow() -> void:
+	if _mat == null:
+		return
+	_mat.set_shader_parameter("refraccion", 1.0 if agua_refraccion else 0.0)
+	_mat.set_shader_parameter("refr_fuerza", REFR_FUERZA)
+	_mat.set_shader_parameter("refr_prof_tope", REFR_PROF_TOPE)
+	_mat.set_shader_parameter("refr_orilla", REFR_ORILLA)
+	_mat.set_shader_parameter("refr_margen", REFR_MARGEN)
+	_mat.set_shader_parameter("refr_borde", REFR_BORDE)
+	_mat.set_shader_parameter("ola3_altura", OLA3_ALTURA if olas_tercera_escala else 0.0)
+	_mat.set_shader_parameter("ola3_k", TAU / OLA3_LONGITUD)
+	_mat.set_shader_parameter("ola3_vel", OLA3_VEL)
+	_mat.set_shader_parameter("ola3_dir", Vector2.from_angle(deg_to_rad(OLA3_RUMBO)))
+	_mat.set_shader_parameter("ola3_dir2", Vector2.from_angle(deg_to_rad(OLA3_RUMBO + OLA3_CRUCE)))
+	# Con refracción el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
+	_mat.render_priority = AGUA_PRIORIDAD if agua_refraccion else 0
+	if _mat_pared != null:
+		_mat_pared.render_priority = PARED_PRIORIDAD if agua_refraccion else 0
+
+
+## El material del agua (para las pruebas y los ajustes finos desde fuera).
+func material_agua() -> ShaderMaterial:
+	return _mat
 
 
 ## 13.9 (c): limita la Y a la que se DIBUJA el agua de cada casilla: `topes` = {Vector2i casilla: Y}. Se puede llamar antes o después de
@@ -967,6 +1081,7 @@ func _montar_paredes() -> void:
 		_mat_pared.shader = sh
 	_paredes.material_override = _mat_pared
 	_paredes.mesh = null
+	_aplicar_eow()                  # agua EoW: la prioridad de dibujo de las paredes
 
 
 ## 13.9 (a): rehace las caras verticales del agua. Por cada trocito CON agua y cada uno de sus 4 lados que da a un trocito seco, cerrado

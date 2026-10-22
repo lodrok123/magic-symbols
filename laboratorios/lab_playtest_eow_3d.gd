@@ -685,6 +685,14 @@ func sala(n: int) -> Dictionary:
 	return _salas[n - 1] if n >= 1 and n <= _salas.size() else {}
 
 
+## Agua EoW (22/10): los rectángulos de las siete salas, en casillas. La maqueta los usa para poner UNA sonda de reflejos por sala con agua (`LuzZona3D.cajas_sondas`).
+func salas_rects() -> Array:
+	var r: Array = []
+	for s in SALAS:
+		r.append(s["rect"])
+	return r
+
+
 func puzle_nodo() -> Puzle3D:
 	return _puzle_nodo
 

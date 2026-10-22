@@ -764,9 +764,17 @@ var _camara_dof: CameraAttributesPractical = null
 @export var tilt_shift: bool = Posproceso3D.TILT_SHIFT_DEFECTO
 ## Sonda de reflejos de la sala (el agua y el hielo reflejan lo que hay alrededor). V1 (21/10): ENCENDIDA de serie (`Posproceso3D.SONDA_DEFECTO`); Inicio la quita / la vuelve a hornear.
 @export var sonda_reflejos: bool = Posproceso3D.SONDA_DEFECTO
+## agua EoW (22/10): UNA sonda por sala con agua o hielo (en vez de una para todo el mapa). Sala = el rectángulo que ofrece el laboratorio (`salas_rects()`), o un bloque de
+## `LuzZona3D.SONDA_BLOQUE` × `LuzZona3D.SONDA_BLOQUE` casillas si el nivel no tiene salas; solo donde hay agua, con la caja ajustada al agua más `SONDA_MARGEN`. Desmarcar = la sonda única de antes.
+@export var sondas_por_sala: bool = true
+## agua EoW (22/10): la refracción del agua física (AguaRender3D; ver sus constantes REFR_*). Desmarcar = el agua de antes, que mezcla por alfa sin leer la pantalla.
+@export var agua_refraccion: bool = AguaRender3D.REFRACCION
+## agua EoW (22/10): la tercera escala de olas (AguaRender3D, constantes OLA3_*). Desmarcar = las olas de antes.
+@export var agua_olas_tercera: bool = AguaRender3D.OLA3_ACTIVA
 var _env: Environment = null
 var _tilt: TiltShift3D = null
 var _sonda: ReflectionProbe = null
+var _sondas: Array = []                         ## agua EoW: las sondas por sala (la primera es también `_sonda`)
 var _bordes: BordePiedras3D = null              ## orilla del agua
 var _rastrojo: Rastrojo3D = null                ## lo que queda de la hierba segada o quemada (14.2 · P3)
 var _bordes_terraza: BordePiedras3D = null      ## escalones de altura (Terreno3D.alturas, las pone el nivel después de montarse la maqueta)
@@ -1622,13 +1630,47 @@ func _montar_tilt_shift() -> void:
 
 ## F3: una sonda de reflejos que cubre el mapa entero (la sala), horneada una vez. Si ya hay una, se quita y se crea otra (así se vuelve a hornear).
 func _montar_sonda() -> void:
+	for s in _sondas:
+		if is_instance_valid(s):
+			(s as Node).queue_free()
+	_sondas.clear()
 	if _sonda != null:
 		_sonda.queue_free()
 		_sonda = null
 	if not sonda_reflejos or _lado <= 0:
 		return
+	if sondas_por_sala:       # agua EoW: una por sala (o bloque) con agua o hielo
+		_sondas = LuzZona3D.sondas_por_cajas(self, cajas_sondas(), S)
+		if not _sondas.is_empty():
+			_sonda = _sondas[0]
+		return
 	var centro: Vector3 = _centro_celda(Vector2i(_lado / 2, _lado / 2), 3.0)
 	_sonda = LuzZona3D.sonda_reflejos(self, centro, Vector3(_lado * S, 10.0, _lado * S))
+	_sondas = [_sonda]
+
+
+## agua EoW: las cajas (en casillas) de las sondas por sala. Las salas las ofrece el primer hijo con `salas_rects()` (los laboratorios); sin ellas, bloques de `SONDA_BLOQUE`.
+## Una casilla «tiene agua» si es `~`, `b` (puente sobre agua) o `c` (cauce seco que se llena); el hielo solo existe sobre agua, así que ya está contado.
+func cajas_sondas() -> Array:
+	var salas: Array = []
+	for h in get_children():
+		if h.has_method("salas_rects"):
+			salas = h.call("salas_rects")
+			break
+	var ancho: int = _lado
+	for fila in _mapa:
+		ancho = maxi(ancho, fila.length())
+	return LuzZona3D.cajas_sondas(_hay_agua_sonda, ancho, _lado, salas)
+
+
+func _hay_agua_sonda(c: Vector2i) -> bool:
+	var l: String = _letra(c)
+	return _es_agua(l) or l == "c"
+
+
+## agua EoW: las sondas que hay montadas ahora (para las pruebas).
+func sondas_montadas() -> Array:
+	return _sondas.filter(func(s) -> bool: return is_instance_valid(s))
 
 
 func _actualizar_diorama() -> void:
@@ -4848,6 +4890,8 @@ func _montar_agua_fisica() -> void:
 	_agua_render.proveedor_topes = _topes_agua_canal        # 13.9 (c): el agua del canal no sobresale de la piedra
 	_agua_render.proveedor_flujo = _flujo_rio               # 15/10 (diario 95): el río corre hacia su salida (si no, se lee como un lago)
 	_agua_render.caida_detectada.connect(_onda_de_caida)    # y donde el agua CAE se levantan anillos en la base
+	_agua_render.agua_refraccion = agua_refraccion          # agua EoW: refracción y tercera escala de olas (interruptores de la maqueta)
+	_agua_render.olas_tercera_escala = agua_olas_tercera
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()
