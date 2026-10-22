@@ -31,7 +31,8 @@ var _y_max: float = -1000.0                  ## la cota más alta que ha alcanza
 
 
 ## `piedra`: el material triplanar de piedra (se duplica para la pared y el bordillo); `mat_fondo`: el del lecho.
-func construir(p_lado: float, p_y_fondo: float, p_y_borde: float, piedra: StandardMaterial3D, mat_fondo: Material) -> void:
+## `fondo_malla` (cauce hondo, 22/10): el fondo ya hecho (con la oclusión en el color de vértice) en vez del cuadrado liso; sus vértices van en el espacio del nodo, a `y_fondo`.
+func construir(p_lado: float, p_y_fondo: float, p_y_borde: float, piedra: StandardMaterial3D, mat_fondo: Material, fondo_malla: Mesh = null) -> void:
 	lado = p_lado
 	y_fondo = p_y_fondo
 	y_borde = p_y_borde
@@ -43,7 +44,7 @@ func construir(p_lado: float, p_y_fondo: float, p_y_borde: float, piedra: Standa
 	_quad(st, Vector3(-r, y_fondo, -r), Vector3(r, y_fondo, -r), Vector3(r, y_fondo, r), Vector3(-r, y_fondo, r), Vector3.UP)
 	var fondo := MeshInstance3D.new()
 	fondo.name = "Fondo"
-	fondo.mesh = st.commit()
+	fondo.mesh = fondo_malla if fondo_malla != null else st.commit()
 	fondo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(fondo)
 	# Materiales de la pared (con color por vértice) y del bordillo.

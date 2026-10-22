@@ -42,6 +42,7 @@ func preparar(p_celda: Vector2i, p_abierta: bool = false, p_abre_con: String = "
 	cierra_con = p_cierra_con
 	vertical = p_vertical
 	position = Terreno3D.centro_de(celda, Terreno3D.alto_suelo)
+	Terreno3D.cauces_a_ras[celda] = true      # cauce hondo: la casilla de una compuerta no es foso (cerrada es un dique a ras)
 
 
 func _ready() -> void:

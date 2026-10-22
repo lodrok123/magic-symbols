@@ -749,6 +749,15 @@ const ESCALA_VFX_NUEVO: float = 0.6
 		cauce_profundo = v
 		if is_node_ready():
 			aplicar_cauce_profundo()
+## cauce hondo (22/10, Pablo: «que el jugador se caiga, y que tenga un desnivel; si no, no habrá sensación de profundidad»): el cauce seco es un FOSO de `Terreno3D.PROF_CAUCE` (0,94 u)
+## con el fondo donde ya lo ponía la simulación de agua. Se anda por el fondo, se entra cayendo y se sale trepando; el agua lo llena desde el fondo real. Desmarcar = el cauce de antes
+## (lecho a 0,1 u bajo el suelo, se pisa a ras). En vivo: se aplica solo. Ver `Terreno3D.cauce_hondo`.
+@export var cauce_hondo: bool = true:
+	set(v):
+		cauce_hondo = v
+		Terreno3D.fijar_cauce_hondo(v)
+		if is_node_ready():
+			aplicar_cauce_profundo()
 ## 21/10 (V4 de PLAN_EOW_VISUAL): el ESTADO del suelo (mojado, quemado, helado) leído del estado del juego (`Mundo3D.textura_estados()`), con el borde
 ## irregular por ruido (sin casillas), carbón y ceniza al quemarse, charco que refleja y escarcha con fresnel. Desmarcar = el shader de antes
 ## (bordes de casilla, quemado sin pintar, mojado y hielo sin reflejo; B2: lee el mismo estado oficial, solo cambia cómo se pinta).
@@ -933,7 +942,8 @@ const OCLUSION_ANCHO: float = 0.9              ## u desde la pared hacia dentro 
 const OCLUSION_FUERZA: float = 0.62            ## cuánto se oscurece pegado a la pared (0 = nada, 1 = negro)
 const OCLUSION_REJILLA: int = 8                ## divisiones por lado de la tapa del lecho (los colores de vértice interpolan en ellas)
 const PARED_CAUCE_OSCURA: float = 0.6          ## multiplicador de la falda del cauce (la pared interior): más oscura que el lecho
-const PIE_LABIO_CAUCE: float = 0.0             ## normal del pie del labio (ver `BordePiedras3D.labio_pie_arriba`): 0 = pared vertical, más oscura que el suelo
+const PARED_FOSO_OSCURA: float = 0.72          ## cauce hondo: multiplicador de la piedra de la pared del foso (más oscura que la del pozo de una cuenca)
+const PIE_LABIO_CAUCE: float = 0.0          ## normal del pie del labio (ver `BordePiedras3D.labio_pie_arriba`): 0 = pared vertical, más oscura que el suelo
 var _guijarros: MultiMeshInstance3D = null
 var _celdas_cauce: Array[Vector2i] = []        ## cauce profundo: las casillas `c` (para rehacer tapas y guijarros en vivo)
 var _mat_falda_cauce: StandardMaterial3D = null  ## cauce profundo: la falda (pared interior) del lecho seco, más oscura que el lecho
@@ -950,7 +960,9 @@ var _agua_cauce: Dictionary = {}             ## casilla `c` -> MeshInstance3D de
 ## ALTO_CAUCE. Cerrada se ve como siempre (el lecho seco del Bosque). `_actualizar_pozos` mira cada 0,1 s si alguna se abrió o se cerró.
 var _tapas_cauce: Dictionary = {}            ## casilla `c` -> MeshInstance3D del bloque del lecho seco (visible mientras NO es cuenca)
 var _pozos_cauce: Dictionary = {}            ## casilla `c` -> PozoCauce3D (se crea la primera vez que se abre: así lee el alto del agua ya configurado)
-var _estado_pozo: Dictionary = {}            ## casilla `c` -> bool: último estado visto (abierta = pozo)
+var _estado_pozo: Dictionary = {}            ## casilla `c` -> bool: último estado visto (abierta = pozo). Con `cauce_hondo` es siempre true: el foso se dibuja también seco
+var _estado_abierta: Dictionary = {}         ## cauce hondo: casilla `c` -> bool, último estado «con agua»: cuenca abierta a la simulación o ya pasada a «~» (borde de orilla; si no, borde de lecho seco)
+var _mat_piedra_pozo_hondo: StandardMaterial3D = null   ## cauce hondo: la piedra de la pared del foso, más oscura que la del pozo de una cuenca
 var _guijarros_cauce: Dictionary = {}        ## casilla `c` -> [índice del primer guijarro, Array de sus 9 transformadas con la tapa puesta]
 var _mat_lecho_cauce: StandardMaterial3D = null
 var _mat_piedra_pozo: StandardMaterial3D = null
@@ -1036,6 +1048,7 @@ func _ready() -> void:
 	# 13/10 (M5, paso 1): el terreno recibe el mapa UNA vez y contesta solo (letra, canal, lados abiertos…). `_bloqueadas`, `_celdas_canal`
 	# y `_giros` se comparten por referencia (aquí no se reasignan después); el mapa se COPIA: cambiar una letra ya es `Terreno3D.poner_letra`.
 	Terreno3D.cargar_datos(_mapa, _bloqueadas, _celdas_canal, _giros)
+	Terreno3D.fijar_cauce_hondo(cauce_hondo)      # cauce hondo: antes de construir el cauce (el setter no corre con el valor de serie)
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 
 	var entorno := WorldEnvironment.new()
@@ -1158,6 +1171,7 @@ func _ready() -> void:
 ## empezaría viendo el mapa y los bloqueos de este.
 func _exit_tree() -> void:
 	Terreno3D.olvidar_datos()
+	Terreno3D.fijar_cauce_hondo(false)      # cauce hondo: el interruptor es de esta maqueta; el siguiente nivel pone el suyo
 	Logros3D.restaurar_tiempo()      # enganche logros: salir en pleno hitstop no deja el juego a cámara lenta
 
 
@@ -1452,8 +1466,12 @@ func _construir_suelo() -> void:
 ## Por qué un bloque de agua por casilla y no un MultiMesh: el Juego puede llenar solo una parte (el agua avanza).
 func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	_tapas_cauce.clear()
+	for pz in _pozos_cauce.values():
+		if is_instance_valid(pz):
+			(pz as Node).queue_free()
 	_pozos_cauce.clear()
 	_estado_pozo.clear()
+	_estado_abierta.clear()
 	_guijarros_cauce.clear()
 	_celdas_cauce = celdas.duplicate()
 	_guijarros = null
@@ -1490,6 +1508,8 @@ func _construir_cauce(celdas: Array[Vector2i], mat_lado: Material) -> void:
 	_mat_lecho_cauce = mat_lecho
 	_mat_falda_cauce = mat_lecho.duplicate() as StandardMaterial3D
 	_mat_piedra_pozo = _mat_triplanar(SUELO + "stone_arriba.png", Color(0.5, 0.47, 0.42))
+	_mat_piedra_pozo_hondo = _mat_piedra_pozo.duplicate() as StandardMaterial3D
+	_mat_piedra_pozo_hondo.albedo_color = _mat_piedra_pozo.albedo_color * Color(PARED_FOSO_OSCURA, PARED_FOSO_OSCURA, PARED_FOSO_OSCURA)
 	_malla_lecho_plano = _malla_bloque(ALTO_CAUCE, mat_lecho, mat_lado)
 	for c in celdas:
 		var tapa := MeshInstance3D.new()
@@ -1525,6 +1545,14 @@ func _oclusion_cauce(c: Vector2i, x: float, z: float) -> float:
 
 ## cauce profundo · la tapa del lecho de una casilla con la oclusión en el color de vértice (rejilla de OCLUSION_REJILLA²). Los costados son los de la malla lisa.
 func _malla_lecho_oscurecida(c: Vector2i) -> ArrayMesh:
+	var malla: ArrayMesh = _malla_tapa_oscurecida(c, ALTO_CAUCE)
+	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _malla_lecho_plano.surface_get_arrays(1))
+	malla.surface_set_material(1, _malla_lecho_plano.surface_get_material(1))
+	return malla
+
+
+## cauce profundo · solo la TAPA con la oclusión en el color de vértice, a la altura `y` (el lecho de 10 cm, o el fondo del foso con `cauce_hondo`). Una superficie.
+func _malla_tapa_oscurecida(c: Vector2i, y: float) -> ArrayMesh:
 	var n: int = OCLUSION_REJILLA
 	var r: float = S * 0.5
 	var st := SurfaceTool.new()
@@ -1541,11 +1569,8 @@ func _malla_lecho_oscurecida(c: Vector2i) -> ArrayMesh:
 				st.set_color(Color(f, f, f))
 				st.set_normal(Vector3.UP)
 				st.set_uv(Vector2(float(p[0]), float(p[1])))
-				st.add_vertex(Vector3(float(p[0]), ALTO_CAUCE, float(p[1])))
-	var malla: ArrayMesh = st.commit()
-	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, _malla_lecho_plano.surface_get_arrays(1))
-	malla.surface_set_material(1, _malla_lecho_plano.surface_get_material(1))
-	return malla
+				st.add_vertex(Vector3(float(p[0]), y, float(p[1])))
+	return st.commit()
 
 
 ## cauce profundo · aplica (o quita) la lectura de profundidad del cauce seco: color del lecho y de la pared, tapas con oclusión, grava nueva y bordes. Se llama sola al cambiar el interruptor.
@@ -1557,8 +1582,18 @@ func aplicar_cauce_profundo() -> void:
 	_mat_falda_cauce.albedo_color = _albedo_lecho_base * (Color(PARED_CAUCE_OSCURA, PARED_CAUCE_OSCURA, PARED_CAUCE_OSCURA) if p else Color.WHITE)
 	for c in _tapas_cauce.keys():
 		(_tapas_cauce[c] as MeshInstance3D).mesh = _malla_lecho_oscurecida(c) if p else _malla_lecho_plano
+	# cauce hondo: los fosos se rehacen (fondo con oclusión o liso, pared más oscura, hondo o no) y `_sincronizar_pozos` los vuelve a poner donde toque.
+	for pz in _pozos_cauce.values():
+		if is_instance_valid(pz):
+			(pz as Node).queue_free()
+	_pozos_cauce.clear()
+	for c in _tapas_cauce.keys():
+		_estado_pozo[c] = false
+		_estado_abierta[c] = false
+		(_tapas_cauce[c] as MeshInstance3D).visible = true
 	_rellenar_guijarros()
-	reconstruir_bordes_cauce()
+	if not _sincronizar_pozos():
+		reconstruir_bordes_cauce()
 
 
 ## cauce profundo · los guijarros del lecho seco. Con `cauce_profundo`: pocos, pequeños, de tonos tierra-gris (srgb: el color se lee como lo escrito, no como lineal, que salía casi
@@ -1611,23 +1646,7 @@ func _actualizar_pozos(delta: float) -> void:
 	if _t_pozos < 0.1:
 		return
 	_t_pozos = 0.0
-	var cambio: bool = false
-	for c in _tapas_cauce.keys():
-		var abierta: bool = Terreno3D.es_cuenca(c)
-		if abierta == bool(_estado_pozo.get(c, false)):
-			continue
-		_estado_pozo[c] = abierta
-		cambio = true
-		(_tapas_cauce[c] as MeshInstance3D).visible = not abierta
-		if abierta and not _pozos_cauce.has(c):
-			var p := PozoCauce3D.new()
-			p.position = _centro_celda(c, 0.0)
-			add_child(p)
-			p.construir(S, Terreno3D.alto_agua - Terreno3D.LECHO_AGUA, Terreno3D.alto_suelo, _mat_piedra_pozo, _mat_lecho_cauce)
-			_pozos_cauce[c] = p
-		if _pozos_cauce.has(c):
-			(_pozos_cauce[c] as Node3D).visible = abierta
-		_mover_guijarros_cauce(c, abierta)
+	_sincronizar_pozos()
 	# 16/10 (diario 97): lo que se ve y se oye mientras el pozo se llena. La marca de humedad sube con el nivel y se queda al bajar; el
 	# sonido de llenado sube de tono con el nivel (de 0,7 a 1,6) y suena cada ~0,8 s mientras el agua sube.
 	for c in _pozos_cauce.keys():
@@ -1644,6 +1663,44 @@ func _actualizar_pozos(delta: float) -> void:
 			Sfx.llenado(pz, nivel)
 			t_s = 0.8
 		_t_sonido_pozo[c] = maxf(t_s, 0.0)
+
+
+## cauce hondo · ¿se dibuja la casilla `c` como foso (PozoCauce3D, sin tapa)? Una cuenca abierta a la simulación, o cualquier `c` del cauce con `cauce_hondo` (también cuando ya pasó a «~»:
+## el foso sigue siendo foso, ahora con agua). Y ¿con agua? Cuenca abierta, o letra de agua (`~`) / puente (`b`) en una casilla que fue `c`.
+func _hueco_de(c: Vector2i) -> bool:
+	return (Terreno3D.cauce_hondo and not Terreno3D.cauces_a_ras.has(c)) or Terreno3D.es_cuenca(c)
+
+
+func _con_agua_de(c: Vector2i) -> bool:
+	return Terreno3D.es_cuenca(c) or (Terreno3D.cauce_hondo and not Terreno3D.cauces_a_ras.has(c) and _es_agua(_letra(c)))
+
+
+## Pone al día lo que se dibuja de cada casilla `c` (tapa o foso, guijarros, bordes y paredes entre fosos vecinos) si su estado cambió desde la última vez. true = hubo cambios.
+func _sincronizar_pozos() -> bool:
+	var cambio: bool = false
+	for c in _tapas_cauce.keys():
+		var hueco: bool = _hueco_de(c)
+		var agua: bool = _con_agua_de(c)
+		if hueco == bool(_estado_pozo.get(c, false)) and agua == bool(_estado_abierta.get(c, false)):
+			continue
+		var cambio_hueco: bool = hueco != bool(_estado_pozo.get(c, false))
+		_estado_pozo[c] = hueco
+		_estado_abierta[c] = agua
+		cambio = true
+		(_tapas_cauce[c] as MeshInstance3D).visible = not hueco
+		if hueco and not _pozos_cauce.has(c):
+			var p := PozoCauce3D.new()
+			p.position = _centro_celda(c, 0.0)
+			add_child(p)
+			if Terreno3D.cauce_hondo:
+				p.construir(S, ALTO_AGUA - Terreno3D.LECHO_AGUA, ALTO, _mat_piedra_pozo_hondo, _mat_lecho_cauce, _malla_tapa_oscurecida(c, ALTO_AGUA - Terreno3D.LECHO_AGUA) if cauce_profundo else null)
+			else:
+				p.construir(S, ALTO_AGUA - Terreno3D.LECHO_AGUA, ALTO, _mat_piedra_pozo, _mat_lecho_cauce)
+			_pozos_cauce[c] = p
+		if _pozos_cauce.has(c):
+			(_pozos_cauce[c] as Node3D).visible = hueco
+		if cambio_hueco:
+			_mover_guijarros_cauce(c, hueco)
 	if cambio:
 		reconstruir_bordes_cauce()      # labio cauce: la casilla que se abre/cierra cambia de seco a orilla (o al revés)
 		for c in _pozos_cauce.keys():
@@ -1652,6 +1709,7 @@ func _actualizar_pozos(delta: float) -> void:
 				var n: Vector2i = (c as Vector2i) + PozoCauce3D.LADOS[i]
 				var sin_pared: bool = bool(_estado_pozo.get(n, false)) or _letra(n) == "~"
 				p.mostrar_lado(i, not sin_pared)
+	return cambio
 
 
 ## labio cauce · BORDE DEL CAUCE SECO. Una arista por cada lado de casilla entre suelo normal y `c` (nada entre `c` y `c`, ni hacia agua, muros o vacío).
@@ -1669,17 +1727,18 @@ func reconstruir_bordes_cauce() -> void:
 	var abiertos: Array = []
 	if bisel_cauce and bisel_suelo and _mat_suelo != null and _mat_lado_suelo != null and not _tapas_cauce.is_empty():
 		var dirs: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
-		var y_fondo_pozo: float = Terreno3D.alto_agua - Terreno3D.LECHO_AGUA
+		var y_fondo_pozo: float = ALTO_AGUA - Terreno3D.LECHO_AGUA
 		for cc in _tapas_cauce.keys():
 			var c: Vector2i = cc
-			var abierta: bool = bool(_estado_pozo.get(c, false))
+			var hueco: bool = bool(_estado_pozo.get(c, false))      # cauce hondo: el foso seco también baja hasta el fondo (borde de lecho, no de orilla)
+			var abierta: bool = bool(_estado_abierta.get(c, false))
 			for v in dirs:
 				var n: Vector2i = c + (v as Vector2i)
 				var l: String = _letra(n)
 				if _es_agua(l) or l == "#" or l == " " or l == "c" or not _en_mapa(n) or Terreno3D.altura_en(n) > 0:
 					continue
 				# La casilla ALTA es la de suelo (n) y el lado bajo queda hacia la `c`: dirección -v.
-				var b: Dictionary = {"c": n, "v": -(v as Vector2i), "y_alto": ALTO, "y_bajo": y_fondo_pozo if abierta else ALTO_CAUCE}
+				var b: Dictionary = {"c": n, "v": -(v as Vector2i), "y_alto": ALTO, "y_bajo": y_fondo_pozo if hueco else ALTO_CAUCE}
 				if not bordes_blandos:
 					b["solo_labio"] = true
 				(abiertos if abierta else secos).append(b)
@@ -1703,6 +1762,13 @@ func reconstruir_bordes_cauce() -> void:
 	# cauce profundo: la pared interior (falda) más oscura que el lecho, el pie del labio como pared vertical y el labio con sombra sobre el lecho. Apagado = lo de antes.
 	_bordes_cauce.labio_pie_arriba = PIE_LABIO_CAUCE if cauce_profundo else BordePiedras3D.LABIO_PIE_ARRIBA
 	_bordes_cauce.labio_proyecta_sombra = cauce_profundo
+	# cauce hondo: la pared mide 0,94 u (no 10 cm): falda de pared (normal horizontal) y cantos de serie; el foso con agua conserva el labio con sombra.
+	_bordes_cauce.falda_arriba = 0.0 if Terreno3D.cauce_hondo else 0.8
+	_bordes_cauce.piedras_por_borde = 3 if Terreno3D.cauce_hondo else 2
+	_bordes_cauce.piedra_min = 0.3 if Terreno3D.cauce_hondo else 0.25
+	_bordes_cauce.piedra_max = 0.6 if Terreno3D.cauce_hondo else 0.45
+	_bordes_cauce_abierto.labio_pie_arriba = PIE_LABIO_CAUCE if (cauce_profundo and Terreno3D.cauce_hondo) else BordePiedras3D.LABIO_PIE_ARRIBA
+	_bordes_cauce_abierto.labio_proyecta_sombra = cauce_profundo and Terreno3D.cauce_hondo
 	_bordes_cauce.construir(secos, S, _mat_falda_cauce if (cauce_profundo and _mat_falda_cauce != null) else _mat_lecho_cauce, _mat_suelo)
 	_bordes_cauce_abierto.construir(abiertos, S, _mat_lado_suelo, _mat_suelo)
 
@@ -1713,7 +1779,7 @@ func _mover_guijarros_cauce(c: Vector2i, abierta: bool) -> void:
 		return
 	var datos: Array = _guijarros_cauce[c]
 	var mm: MultiMesh = _guijarros.multimesh
-	var dy: float = (Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + 0.02 - ALTO_CAUCE) if abierta else 0.0
+	var dy: float = (ALTO_AGUA - Terreno3D.LECHO_AGUA + 0.02 - ALTO_CAUCE) if abierta else 0.0
 	for k in range((datos[1] as Array).size()):
 		var tf: Transform3D = (datos[1] as Array)[k]
 		tf.origin.y += dy
@@ -5000,16 +5066,40 @@ func encender_runa(elemento: String, si: bool = true) -> void:
 ## El surtidor ha echado agua: las casillas del cauce (todas si `celdas` va vacío, en orden de arriba abajo) se llenan una
 ## tras otra: el agua sube desde el lecho, salpica y la casilla pasa a ser agua (`~`: bloquea y conduce como el río).
 ## Los guijarros se hunden bajo el agua.
+## 22/10 (cauce hondo): el agua SUBE desde el fondo real del foso (`Terreno3D.fondo_cauce`), no desde 0,1 u bajo el suelo.
+##   · Con agua física (`agua_fisica` y simulación) el agua la dibuja AguaRender3D desde la simulación; el bloque opaco `_agua_cauce` NO se enseña (con él puesto a la vez salían los «bloques
+##     blancos»: el surtidor de Bosque3D llama aquí por cada casilla que pasa a «~» y el bloque de `_mat_agua` tapaba el agua de verdad dentro del pozo). Si la casilla aún no está abierta a la
+##     simulación (llamada directa: la vitrina, una prueba), se abre y se llena subiendo el nivel desde el fondo hasta `ALTO_AGUA`; la letra pasa a «~» cuando ya es agua (como hace el surtidor),
+##     no antes: así quien esté dentro sigue pisando el fondo hasta que el agua le llega.
+##   · Sin agua física: el bloque de agua sube desde el fondo.
 func llenar_cauce(celdas: Array = []) -> void:
 	var lista: Array = celdas if not celdas.is_empty() else _agua_cauce.keys()
 	var k: int = 0
+	var fisica: bool = agua_fisica and Terreno3D.agua_sim != null and not Engine.is_editor_hint()
+	var hondo: bool = Terreno3D.cauce_hondo
 	for v in lista:
 		var c: Vector2i = v
 		if not _agua_cauce.has(c) or (_agua_cauce[c] as MeshInstance3D).visible:
 			continue
 		var mi: MeshInstance3D = _agua_cauce[c]
+		if fisica:
+			if mi.has_meta("llenando"):
+				continue
+			mi.set_meta("llenando", true)
+			var sim: AguaSim3D = Terreno3D.agua_sim
+			var ya_abierta: bool = Terreno3D.cauces_abiertos.has(c)
+			if not ya_abierta:
+				Terreno3D.cauces_abiertos[c] = true
+				sim.solidificar_casilla(c, false)
+			var tw_f := create_tween()
+			tw_f.tween_interval(0.35 * float(k))
+			if not ya_abierta:
+				tw_f.tween_method(_subir_agua_cauce.bind(c), ALTO_AGUA - Terreno3D.LECHO_AGUA, ALTO_AGUA, 0.9).set_trans(Tween.TRANS_SINE)
+			tw_f.tween_callback(_cauce_a_agua.bind(c))
+			k += 1
+			continue
 		mi.visible = true
-		mi.position.y = ALTO_CAUCE - ALTO_AGUA - 0.02          # empieza justo bajo el lecho
+		mi.position.y = (Terreno3D.fondo_cauce() + 0.02 if hondo else ALTO_CAUCE) - ALTO_AGUA - (0.0 if hondo else 0.02)          # empieza justo bajo el lecho (cauce hondo: sobre el fondo del foso)
 		var tw := mi.create_tween()
 		tw.tween_interval(0.35 * float(k))                       # el agua baja hacia el río, no aparece de golpe
 		tw.tween_property(mi, "position:y", 0.0, 0.9).set_trans(Tween.TRANS_SINE)
@@ -5017,8 +5107,21 @@ func llenar_cauce(celdas: Array = []) -> void:
 		Terreno3D.poner_letra(c, "~")      # 13/10 (M5): ídem
 		_bloqueadas[c] = true
 		k += 1
-	if k > 0 and _guijarros != null:
+	if k > 0 and _guijarros != null and not hondo:
 		_guijarros.create_tween().tween_property(_guijarros, "position:y", -0.16, 0.9 + 0.35 * float(k))
+
+
+## llenar_cauce con agua física: sube el nivel de la casilla en la simulación (y = superficie).
+func _subir_agua_cauce(y: float, c: Vector2i) -> void:
+	if Terreno3D.agua_sim != null:
+		Terreno3D.agua_sim.llenar_casilla(c, y)
+
+
+## llenar_cauce con agua física: el agua ya llegó. La casilla pasa a «~» (bloquea y conduce como el río) y salpica.
+func _cauce_a_agua(c: Vector2i) -> void:
+	Terreno3D.poner_letra(c, "~")      # 13/10 (M5): ídem
+	_bloqueadas[c] = true
+	_fx.salpicadura(_centro_celda(c, ALTO_AGUA), 0.7)
 
 
 ## Nombre que pidió el Juego (diario 10/10 03:00, punto 4): dibuja el agua de las casillas `c` que acaban de pasar a `~`.

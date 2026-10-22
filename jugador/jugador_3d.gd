@@ -33,7 +33,8 @@ const MULT_NADO: float = 0.4
 ## mete dentro (el hielo que se derrite bajo los pies, el agua que sube) para que no quede atrapado. Para probar el nado o un nivel que lo quiera:
 ## `Jugador3D.nado_permitido = true`.
 static var nado_permitido: bool = false
-const HUNDIDO: float = 0.35                 ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
+const TASA_TREPAR: float = 3.5              ## u/s al salir trepando de un foso (cauce hondo / cuenca): 0,94 u en ~0,27 s
+const HUNDIDO: float = 0.35               ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 const INVULNERABLE: float = 0.7
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
@@ -92,6 +93,7 @@ var _t_aviso_tinta: float = 0.0              ## destello rojo de la barra cuando
 var _f7_previa: bool = false
 const TINTA_COMBATE: float = 6.0
 const Y_BARRAS: float = 80.0                 ## px desde arriba donde empiezan la barra de vida y la de tinta
+var _trepando: bool = false                  ## cauce hondo: está saliendo de un foso (sube a TASA_TREPAR hasta pisar el suelo)
 var caidas_al_agua: int = 0
 var saltos: int = 0
 var _t_roll: float = 0.0                     ## lo que queda de voltereta (0 = no ruedas)
@@ -640,8 +642,8 @@ func _puede_estar(p: Vector3) -> bool:
 		return Terreno3D.altura_en(c) == 0          # del agua solo se sale a suelo llano
 	var y_dest: float = Terreno3D.y_pies(c)
 	var tolerancia: float = TOLERANCIA_SUELO if en_suelo else TOLERANCIA_AIRE
-	if Terreno3D.es_cuenca(actual) and not Terreno3D.es_cuenca(c):
-		tolerancia += Terreno3D.LECHO_AGUA + (Terreno3D.alto_suelo - Terreno3D.alto_agua)   # 15/10: de una cuenca vacía se sale trepando el borde (un pozo de 1,3 u)
+	if Terreno3D.es_hueco_cauce(actual) and not Terreno3D.es_hueco_cauce(c):
+		tolerancia += Terreno3D.LECHO_AGUA + (Terreno3D.alto_suelo - Terreno3D.alto_agua)   # 15/10: de una cuenca vacía se sale trepando el borde (un pozo de 0,94 u). 22/10: igual del cauce hondo
 	return y_dest <= position.y + tolerancia
 
 
@@ -667,7 +669,12 @@ func _vertical(delta: float, salto: bool) -> void:
 			en_suelo = false                           # se acabó el suelo (bloque caducado): cae
 			vy = 0.0
 		else:
-			position.y = move_toward(position.y, suelo, 9.0 * delta)
+			# 22/10 (cauce hondo): salir de un foso es TREPAR (mide 0,94 u): más despacio que el escalón de menos de 0,55 u que se sube de un paso.
+			if suelo > position.y + TOLERANCIA_SUELO:
+				_trepando = true
+			elif suelo <= position.y + 0.01:
+				_trepando = false
+			position.y = move_toward(position.y, suelo, (TASA_TREPAR if _trepando else 9.0) * delta)
 			if salto and not _salto_antes and absf(position.y - suelo) < 0.05:
 				vy = VEL_SALTO
 				en_suelo = false

@@ -90,6 +90,40 @@ const HIELO_COBERTURA: float = 0.5
 const LECHO_AGUA: float = 0.9
 const FONDO_CANAL: float = 0.11        ## el fondo del cajón de Canal3D sobre el suelo: el agua de un canal de ruinas empieza ahí, no en el lecho del río
 
+## CAUCE HONDO (22/10, Pablo: «que el jugador se caiga, y que tenga un desnivel; si no, no habrá sensación de profundidad»). Con el interruptor encendido el cauce seco
+## (`c`) es un FOSO de verdad: su fondo está donde ya lo ponía la simulación de agua (`alto_agua − LECHO_AGUA`, el lecho del río), no a 0,1 u bajo el suelo. Se anda por
+## ese fondo (`y_pies`), se entra CAYENDO (gravedad de Jugador3D) y se sale trepando el borde (la misma regla que el pozo de una cuenca abierta). Apagado = el cauce de antes
+## (se pisa a ras de suelo; el fondo de la simulación queda 0,9 u más abajo, tapado por el bloque del lecho). Lo enciende la maqueta (`PruebaTest2.cauce_hondo`).
+static var cauce_hondo: bool = false
+## Casillas `c` que NO son foso aunque `cauce_hondo` esté encendido: las ocupa una pieza que se apoya en el suelo (la compuerta, `Compuerta3D.preparar`): cerrada es un dique a ras, y al
+## abrirse ya es cuenca (`es_cuenca`). Sin esto el hielo de los puzles de fuego (F5) quedaba 0,94 u por encima de los pies de quien lo apunta. `montar_agua_sim` la vacía.
+static var cauces_a_ras: Dictionary = {}
+## Profundidad del foso (u): del suelo al fondo. Con los valores de la maqueta (ALTO 1,035; ALTO_AGUA 0,995) son 0,94 u, el 91 % de un nivel de terraza (ALTO_NIVEL). La recalcula `configurar`.
+static var PROF_CAUCE: float = 2.3 * 0.45 - (2.3 * 0.45 * 0.6 - 0.9)
+
+
+## y del fondo del cauce hondo (= el fondo de la simulación para una `c`).
+static func fondo_cauce() -> float:
+	return alto_agua - LECHO_AGUA
+
+
+## Enciende o apaga el cauce hondo. Las rutas de los enemigos se rehacen (un foso no se rutea, un cauce a ras sí).
+static func fijar_cauce_hondo(si: bool) -> void:
+	if cauce_hondo == si:
+		return
+	cauce_hondo = si
+	Caminos3D.reiniciar()
+
+
+## ¿Es un cauce seco `c` con el interruptor del foso encendido? (la letra manda: al llenarse y pasar a «~» deja de serlo y se nada como en el río.)
+static func es_cauce_hondo(c: Vector2i) -> bool:
+	return cauce_hondo and hay_mundo() and letra_de(c) == "c" and not cauces_a_ras.has(c)
+
+
+## ¿El suelo de esta casilla es el fondo de un foso? Una cuenca abierta a la simulación o un cauce hondo (seco o con agua en curso, mientras siga siendo `c`).
+static func es_hueco_cauce(c: Vector2i) -> bool:
+	return es_cuenca(c) or es_cauce_hondo(c)
+
 ## =====================================================================================================
 ##  FUENTE DE SOLIDEZ (6.10, camino A: hornear el mapa a un .tscn)
 ##  Hoy la pregunta «¿está bloqueada esta casilla?» se contestaba leyendo `_bloqueadas` de PruebaTest2 en una docena de
@@ -150,10 +184,17 @@ class FuenteCasillas extends FuenteSolidez:
 ## (el motor no ve los cuerpos nuevos hasta entonces). Lo que cambia en juego (tierra, hielo) va en `extras`.
 class FuenteNodos extends FuenteSolidez:
 	const RADIO_CUERPO: float = 0.3
+	## 21/10: qué parte CENTRAL de la casilla ha de tocar una forma para que la casilla cuente como bloqueada ENTERA (la que ven
+	## hechizos, flechas, línea de visión, el BFS de las pruebas). Antes bastaba rozar el 90 % de la casilla: un pino de 1,59 de
+	## radio (cono medido sobre el modelo) metía 0,4 u en cada casilla vecina y las marcaba enteras → pasillos de una casilla
+	## «cerrados» (90 casillas por pino y 15 por arbol_redondo_2 en Bosque 01) aunque el jugador pasa de sobra por la forma real.
+	const FRACCION_CENTRO: float = 0.5
 	var mundo: Node3D = null
-	var celdas: Dictionary = {}                      ## Vector2i -> true (sacado de la colisión)
+	var celdas: Dictionary = {}                      ## Vector2i -> true: la forma TOCA la casilla (el jugador y los goblins chocan con la forma, no con la casilla)
+	var cubiertas: Dictionary = {}                   ## ...y de esas, las que cubre de verdad (su centro o la casilla de la pieza): bloqueadas enteras
 	var extras: Dictionary = {}                      ## bloqueos creados jugando
 	var _caja: BoxShape3D = BoxShape3D.new()
+	var _caja_centro: BoxShape3D = BoxShape3D.new()
 	var _bola: SphereShape3D = SphereShape3D.new()
 
 	func _init(p_mundo: Node3D) -> void:
@@ -162,6 +203,7 @@ class FuenteNodos extends FuenteSolidez:
 
 	func reconstruir() -> int:
 		celdas.clear()
+		cubiertas.clear()
 		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
 		var lado: int = int(mundo.get("_lado"))
 		var cas: float = Terreno3D.casilla
@@ -174,17 +216,35 @@ class FuenteNodos extends FuenteSolidez:
 				q.transform = Transform3D(Basis(), Terreno3D.centro_de(Vector2i(x, y), Terreno3D.alto_suelo + 2.0))
 				if not espacio.intersect_shape(q, 1).is_empty():
 					celdas[Vector2i(x, y)] = true
+		# De las casillas tocadas, las que la forma cubre por el centro: son las que cuentan como bloqueadas enteras.
+		_caja_centro.size = Vector3(cas * FRACCION_CENTRO, 4.0, cas * FRACCION_CENTRO)
+		var qc := PhysicsShapeQueryParameters3D.new()
+		qc.shape = _caja_centro
+		qc.collision_mask = Terreno3D.CAPA_SOLIDO
+		for c in celdas.keys():
+			qc.transform = Transform3D(Basis(), Terreno3D.centro_de(c, Terreno3D.alto_suelo + 2.0))
+			if not espacio.intersect_shape(qc, 1).is_empty():
+				cubiertas[c] = true
+		# La casilla donde está la pieza (su origen) cuenta siempre, aunque la forma quede descentrada (pieza arrastrada a un borde).
+		for n in mundo.get_tree().get_nodes_in_group("bloquea"):
+			var cuerpo: CollisionObject3D = n as CollisionObject3D
+			if cuerpo != null and (cuerpo.collision_layer & Terreno3D.CAPA_SOLIDO) != 0:
+				var co: Vector2i = Terreno3D.celda_de(cuerpo.global_position)
+				if celdas.has(co):
+					cubiertas[co] = true
 		return celdas.size()
 
 	func bloquea(c: Vector2i) -> bool:
-		return celdas.has(c) or extras.has(c)
+		return cubiertas.has(c) or extras.has(c)
 	func bloquear(c: Vector2i) -> void:
 		extras[c] = true
 	func liberar(c: Vector2i) -> void:
 		extras.erase(c)
 		celdas.erase(c)
+		cubiertas.erase(c)
 	func bloquear_completa(c: Vector2i) -> void:
 		celdas.erase(c)                              # ya no es «parcial»: sin forma que rozar, la casilla entera es pared
+		cubiertas.erase(c)
 		extras[c] = true
 	func es_parcial(c: Vector2i) -> bool:
 		return celdas.has(c)                         # la forma real manda: se roza lo que no es la pieza
@@ -278,6 +338,7 @@ static func cargar_datos(p_mapa: PackedStringArray, p_bloqueadas: Dictionary, p_
 ## Vuelve a preguntar a la maqueta (como antes de M5).
 static func olvidar_datos() -> void:
 	datos_propios = false
+	cauces_a_ras.clear()
 	mapa = []
 	bloqueadas = {}
 	celdas_canal = {}
@@ -351,6 +412,11 @@ static func es_agua(c: Vector2i) -> bool:
 		return false
 	if hielo_fisico(c):
 		return false
+	# Un puente («b»: losa o tronco-puente caído) se ANDA: no es agua para pisar, nadar, hundirse ni rutear, aunque la simulación siga viendo agua debajo (la
+	# letra cambió, la profundidad no). Sin esta salida el goblin que cruza el tronco lo mandaba `_ajustar_al_suelo` de vuelta a su puesto («se le fue el suelo»).
+	# Lo que el puente NO apaga es la corriente: bajo él el agua sigue conduciendo (ver `conduce`).
+	if letra_de(c) == "b":
+		return false
 	if agua_sim != null:
 		return agua_sim.es_agua_casilla(c)
 	return letra_de(c) == "~"
@@ -377,11 +443,6 @@ static func es_canal_ruinas(c: Vector2i) -> bool:
 
 
 ## Lados (Vector2i en 4 direcciones) por los que el canal de la casilla `c` deja pasar el agua: los que abre la pieza
-	# Un puente («b»: losa o tronco-puente caído) se ANDA: no es agua para pisar, nadar, hundirse ni rutear, aunque la simulación siga viendo agua debajo (la
-	# letra cambió, la profundidad no). Sin esta salida el goblin que cruza el tronco lo mandaba `_ajustar_al_suelo` de vuelta a su puesto («se le fue el suelo»).
-	# Lo que el puente NO apaga es la corriente: bajo él el agua sigue conduciendo (ver `conduce`).
-	if letra_de(c) == "b":
-		return false
 ## (`_abre_hacia` de la maqueta); sin ese método, los vecinos que también son canal.
 static func lados_de_canal(c: Vector2i) -> Array:
 	var r: Array = []
@@ -454,12 +515,19 @@ static func fijar_altura(c: Vector2i, niveles: int) -> void:
 	_avisar(c, "altura")
 
 
+## Un puente «b» que se pisa a otra altura que la losa (la cara de arriba de un tronco). Se pone ANTES de `poner_letra(c, "b")`.
+static func fijar_y_puente(c: Vector2i, y: float) -> void:
+	y_puentes[c] = y
+
+
 ## y de los pies de quien está en la casilla `c`: el suelo, más sus niveles; el agua y el puente, más bajo.
 static func y_pies(c: Vector2i) -> float:
 	var n: int = altura_en(c)
 	if n > 0:
 		return alto_suelo + float(n) * ALTO_NIVEL
 	var l: String = letra_de(c)
+	if l == "b" and y_puentes.has(c):
+		return float(y_puentes[c])
 	var helada: bool = hielo_fisico(c)      # la escarcha del suelo no baja los pies al nivel del agua
 	if helada and agua_sim != null:
 		var y_hielo: float = agua_sim.hielo_en_casilla(c)      # 11.13: se pisa a la altura del hielo, sea cual sea el nivel del agua
@@ -467,8 +535,8 @@ static func y_pies(c: Vector2i) -> float:
 			return y_hielo
 	if es_canal_ruinas(c):
 		return alto_suelo + FONDO_CANAL       # P3: el suelo de la pieza, con o sin agua. La lámina del canal no se nada: se vadea
-	if es_cuenca(c):
-		return alto_agua - LECHO_AGUA         # 15/10 (Pablo: «que se intuya profundidad»): el fondo del pozo; con agua, el jugador nada en su superficie
+	if es_hueco_cauce(c):
+		return alto_agua - LECHO_AGUA         # 15/10 (Pablo: «que se intuya profundidad»): el fondo del pozo; con agua, el jugador nada en su superficie. Cauce hondo (22/10): el mismo fondo, aún seco
 	if l == "b" or helada:
 		return alto_agua + 0.12
 	if l == "~":
@@ -482,24 +550,18 @@ static func conduce(c: Vector2i) -> bool:
 	var bajo_puente: bool = agua_sim != null and letra_de(c) == "b" and not hielo_fisico(c) and agua_sim.es_agua_casilla(c)
 	return es_agua(c) or bajo_puente or conductores.has(c)
 
-## Un puente «b» que se pisa a otra altura que la losa (la cara de arriba de un tronco). Se pone ANTES de `poner_letra(c, "b")`.
-static func fijar_y_puente(c: Vector2i, y: float) -> void:
-	y_puentes[c] = y
-
-
 
 ## ¿Es una CUENCA: un cauce seco `c` ya abierto a la simulación (un pozo de LECHO_AGUA de hondo que se llena y se vacía)? 15/10, lab de
 ## puzles de agua. Un `c` sin abrir sigue siendo «cauce seco» (se pisa a ras: es el lecho de piedras del Bosque hasta que el surtidor lo llena).
 static func es_cuenca(c: Vector2i) -> bool:
 	return hay_mundo() and letra_de(c) == "c" and cauces_abiertos.has(c)
 
-	if l == "b" and y_puentes.has(c):
-		return float(y_puentes[c])
 
 ## Y de la SUPERFICIE del agua en la casilla: lo que el jugador tiene que flotar. El río y el puente, `alto_agua`; una cuenca o un canal,
 ## lo que diga la simulación (suelo + profundidad en su centro). Sin agua, el suelo de la casilla (y_pies).
 static func superficie_agua(c: Vector2i) -> float:
-	if agua_sim != null and (es_cuenca(c) or es_canal_ruinas(c)):
+	# Un cauce abierto que ya pasó a «~» (el surtidor, `llenar_cauce`) sigue teniendo el nivel de la simulación: sube desde el fondo, no está «lleno» de golpe como el río.
+	if agua_sim != null and (es_hueco_cauce(c) or es_canal_ruinas(c) or cauces_abiertos.has(c)):
 		var p: float = agua_sim.profundidad_casilla(c)
 		if p > AguaSim3D.PROF_MIN:
 			return agua_sim.superficie_en(centro_de(c, 0.0))
@@ -663,8 +725,9 @@ static func configurar(p_mundo: Node3D) -> void:
 	alto_suelo = float(k.get("ALTO", alto_suelo))
 	ALTO_NIVEL = alto_suelo
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
+	PROF_CAUCE = alto_suelo - fondo_cauce()
 	alturas.clear()
 	permanentes.clear()
+	y_puentes.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	agua_sim = null
-	y_puentes.clear()

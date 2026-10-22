@@ -63,10 +63,14 @@ static func camino(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
 
 
 ## ¿Se puede estar de pie en esta casilla? (la regla de la IA para andar, sin empuje.)
+## 22/10 (cauce hondo): un foso (`Terreno3D.es_cauce_hondo`, 0,94 u de caída) NO se rutea: los goblins lo RODEAN, como el agua. Lo mismo que ya hacen en `_puede_estar`
+## (un salto de más de 0,6 u de suelo no se pisa de un paso); así no se tiran al foso en mitad de una persecución. Quien ya esté dentro (empujado) sale, que la casilla de
+## salida sí vale (ver `buscar`).
 static func transitable(c: Vector2i) -> bool:
 	return Terreno3D.en_mapa(c) \
 			and Terreno3D.pisable(c, 99, false, 99, false) \
-			and not Terreno3D.es_agua(c)
+			and not Terreno3D.es_agua(c) \
+			and not Terreno3D.es_cauce_hondo(c)
 
 
 ## ¿Se puede ANDAR en línea recta de `a` a `b`? (distinto de ver: el río o un escalón no cortan la vista pero sí el paso.) Recorre las casillas que atraviesa

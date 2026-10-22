@@ -20,6 +20,10 @@ func _escenario() -> void:
 	await cargar(RUTA)
 	if maqueta == null:
 		return
+	# Esta prueba mide el cauce de 0,1 u (el de antes de «cauce hondo», 22/10): el foso se prueba en escenario_cauce_hondo.gd. Con el interruptor apagado todo lo de abajo es lo de siempre.
+	maqueta.set("cauce_hondo", false)
+	await avanzar(3)
+	_ok("0 cauce_hondo apagado: el cauce se pisa a ras (y_pies = alto_suelo)", not Terreno3D.cauce_hondo)
 	var cauce: Array = _casillas_cauce()
 	_ok("0 el Bosque 01 tiene cauce seco", cauce.size() > 0, "%d casillas c" % cauce.size())
 	if cauce.is_empty():
@@ -394,13 +398,22 @@ func _profundo(cauce: Array) -> void:
 	await avanzar(2)
 	_ok("6.22 volver a true recupera la grava y las tapas nuevas", mm.instance_count == n_c * por and (((tapas[cauce[0]] as MeshInstance3D).mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR] != null))
 	# llenar_cauce: el agua arranca justo bajo el lecho (que no ha bajado) y acaba a ras del agua del río.
-	maqueta.call("llenar_cauce", [elegida])
+	# Sin agua física (22/10: antes era lo único que había): el bloque de agua arranca justo bajo el lecho y acaba a ras del agua del río.
 	var aguas: Dictionary = maqueta.get("_agua_cauce")
-	var mi: MeshInstance3D = aguas[elegida]
 	var alto_agua_m: float = float(maqueta.get("ALTO_AGUA"))
-	_ok("6.23 llenar_cauce: el agua arranca 2 cm bajo el lecho (y %.3f) y es visible" % (alto_cauce - 0.02), mi.visible and absf(mi.position.y + alto_agua_m - (alto_cauce - 0.02)) < 1.0e-4, "arranque %.4f" % (mi.position.y + alto_agua_m))
+	var otra: Vector2i = cauce[1]
+	maqueta.set("agua_fisica", false)
+	maqueta.call("llenar_cauce", [otra])
+	maqueta.set("agua_fisica", true)
+	var mo: MeshInstance3D = aguas[otra]
+	_ok("6.23 llenar_cauce (sin agua física): el agua arranca 2 cm bajo el lecho (y %.3f) y es visible" % (alto_cauce - 0.02), mo.visible and absf(mo.position.y + alto_agua_m - (alto_cauce - 0.02)) < 1.0e-4, "arranque %.4f" % (mo.position.y + alto_agua_m))
+	# Con agua física (el Bosque 01) el bloque opaco NO se enseña: lo dibuja AguaRender3D desde la simulación (cauce hondo, 22/10: «bloques blancos»).
+	maqueta.call("llenar_cauce", [elegida])
+	var mi: MeshInstance3D = aguas[elegida]
+	_ok("6.23b llenar_cauce (agua física): no se enseña el bloque opaco de agua", not mi.visible)
 	await avanzar_s(2.0)
-	_ok("6.24 llenar_cauce: acaba a la altura del agua (0) y la casilla pasa a «~»", absf(mi.position.y) < 0.002 and _l(elegida) == "~", "y %.4f, letra %s" % [mi.position.y, _l(elegida)])
+	_ok("6.24 llenar_cauce: acaba a la altura del agua (0) y la casilla pasa a «~»", absf(mo.position.y) < 0.002 and _l(otra) == "~", "y %.4f, letra %s" % [mo.position.y, _l(otra)])
+	_ok("6.24b llenar_cauce (agua física): la simulación tiene el agua (≥ UMBRAL_AGUA) y la casilla pasa a «~»", _l(elegida) == "~" and Terreno3D.agua_sim.profundidad_casilla(elegida) >= AguaSim3D.UMBRAL_AGUA, "prof %.3f, letra %s" % [Terreno3D.agua_sim.profundidad_casilla(elegida), _l(elegida)])
 
 func _vecinos_pared(c: Vector2i) -> int:
 	var k: int = 0
