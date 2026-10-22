@@ -1,4 +1,4 @@
-extends "res://herramientas/escenario_base.gd"
+﻿extends "res://herramientas/escenario_base.gd"
 ## CAPTURAS del CAUCE HONDO (22/10; Terreno3D.PROF_CAUCE 0,94, cauce_hondo). NECESITA VENTANA y Godot CERRADO (sin GPU no hay imagen).
 ##   godot --path . --script res://herramientas/captura_cauce_hondo.gd -- <carpeta>        (por defecto res://docs/capturas/cauce_hondo)
 ## Carga el Bosque 01 de verdad (PruebaBosque01.tscn: agua física, filtro, cámara del juego) y hace, por orden:
@@ -153,7 +153,7 @@ func _entra() -> void:
 	var fondo: float = Terreno3D.fondo_cauce()
 	_suelta_camara()
 	var S: float = Terreno3D.casilla
-	colocar_jugador(Vector2i(14, 13))
+	colocar_jugador(Vector2i(14, 16))      # fila 16: el tronco del estanque (16,14) bloquea el fondo más al norte (22/10)
 	await avanzar(40)
 	_w = await _empuje(KEY_W)
 	_d = await _empuje(KEY_D)
@@ -161,16 +161,16 @@ func _entra() -> void:
 	var fx := func() -> float: return jugador.position.x / S
 	var fz := func() -> float: return jugador.position.z / S
 	var y := func() -> float: return jugador.position.y
-	var ok1: bool = await _caminar(Vector2i(16, 13), [
+	var ok1: bool = await _caminar(Vector2i(16, 16), [
 		{"n": "entra_1_borde", "f": func() -> bool: return fx.call() >= 15.45 and y.call() >= alto - 0.02},
 		{"n": "entra_2_cayendo", "f": func() -> bool: return y.call() < alto - 0.3 and y.call() > fondo + 0.2},
 		{"n": "entra_3_fondo", "f": func() -> bool: return y.call() <= fondo + 0.04 and bool(jugador.get("en_suelo"))},
 	], 10.0)
-	var ok2: bool = await _caminar(Vector2i(16, 16), [
-		{"n": "entra_4_anda_fondo", "f": func() -> bool: return fz.call() >= 15.0},
+	var ok2: bool = await _caminar(Vector2i(16, 15), [
+		{"n": "entra_4_anda_fondo", "f": func() -> bool: return fz.call() <= 15.75},
 	], 10.0)
-	await _caminar(Vector2i(16, 13), [], 10.0)      # de vuelta a la fila 13: al este de la fila 16 hay un brasero que cierra el paso
-	var ok3: bool = await _caminar(Vector2i(18, 13), [
+	await _caminar(Vector2i(16, 16), [], 10.0)
+	var ok3: bool = await _caminar(Vector2i(18, 16), [
 		{"n": "entra_5_trepa", "f": func() -> bool: return fx.call() > 17.0 and y.call() > fondo + 0.25 and y.call() < alto - 0.15},
 		{"n": "entra_6_fuera", "f": func() -> bool: return y.call() >= alto - 0.03 and fx.call() > 17.15},
 	], 10.0)
@@ -257,3 +257,5 @@ func _agua() -> void:
 		await _foto("agua_t%02d_cerca" % seg)
 	var sim: AguaSim3D = Terreno3D.agua_sim
 	print("AGUA al final: profundidad (16,13) %.2f, (16,18) %.2f; abierta %s" % [sim.profundidad_casilla(Vector2i(16, 13)), sim.profundidad_casilla(Vector2i(16, 18)), str(Terreno3D.cauces_abiertos.has(Vector2i(16, 13)))])
+
+

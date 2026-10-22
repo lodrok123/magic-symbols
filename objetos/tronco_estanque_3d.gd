@@ -1,4 +1,4 @@
-class_name TroncoEstanque3D
+﻿class_name TroncoEstanque3D
 extends Node3D
 
 ## TRONCO DEL ESTANQUE (Juego, 16/10; Bosque 01, «V T» de la hoja). Yace en el fondo del estanque vacío. Cuando el agua lo llena, el tronco
@@ -27,6 +27,14 @@ var abierto: bool = false
 var _y_fondo: float = 0.0
 var _y_arriba: float = 0.0
 var _tronco: MeshInstance3D = null
+var _semieje: Vector3 = Vector3.RIGHT      ## dirección horizontal (unitaria) a lo largo de la cual yace
+
+## 22/10 (cauce hondo): con el cauce seco ahora se anda por el fondo, donde yace el tronco, y el jugador (que se mueve por casillas, sin físicas) lo
+## ATRAVESABA: la malla le tapaba el cuerpo. Mientras no esté bierto, el tronco es un obstáculo: no se entra en su caja salvo que los pies
+## estén por encima de su cara de arriba. Abierto, el paso va a ras del suelo (casilla ) y ya no estorba.
+const MARGEN_JUGADOR: float = 0.25          ## u: lo que se engorda su caja para el cuerpo del jugador
+const TOLERANCIA_TREPA: float = 0.1         ## u: pies a esta altura (o más) de la cara de arriba = lo pisa por encima
+static var activo: TroncoEstanque3D = null
 
 
 ## `eje`: a lo largo de qué dirección horizontal yace (por defecto, de oeste a este). Se coloca en el centro de `p_celda`.
@@ -40,6 +48,8 @@ func preparar(p_mundo: Variant, p_celda: Vector2i, eje: Vector3 = Vector3.RIGHT)
 	_y_arriba = Terreno3D.alto_suelo - r + 0.04              # su cara superior casi a ras del suelo de las orillas
 	position = Vector3(c.x, _y_fondo, c.z)
 	var e: Vector3 = Vector3(eje.x, 0.0, eje.z).normalized()
+	_semieje = e
+	activo = self
 	if modelo != null:
 		# El modelo yace a lo largo de +X: basta girarlo sobre Y para que quede a lo largo de `eje`.
 		_tronco = modelo
@@ -79,3 +89,22 @@ func _process(delta: float) -> void:
 			mundo.call("_liberar", celda)
 		paso_abierto.emit()
 		set_process(false)
+
+
+## ¿Choca con el tronco el jugador que está (o va a estar) en p (XZ) con los pies a y_pies? Solo si el tronco aún no está abierto.
+func bloquea(p: Vector3, y_pies: float) -> bool:
+	if abierto or not is_inside_tree():
+		return false
+	var r: float = RADIO_MODELO if (_tronco != null and not (_tronco.mesh is CylinderMesh)) else RADIO
+	if y_pies >= position.y + r - TOLERANCIA_TREPA:
+		return false
+	var d: Vector3 = Vector3(p.x - position.x, 0.0, p.z - position.z)
+	var a: float = d.dot(_semieje)
+	var l: float = absf(d.dot(Vector3.UP.cross(_semieje)))
+	return absf(a) <= LARGO * 0.5 and l <= r + MARGEN_JUGADOR
+
+
+## Versión estática para quien no tiene el nodo (Jugador3D): false si no hay tronco.
+static func bloquea_a(p: Vector3, y_pies: float) -> bool:
+	return activo != null and is_instance_valid(activo) and activo.bloquea(p, y_pies)
+

@@ -161,9 +161,11 @@ static var material_juguete: bool = true
 var _juguete: Array = []                           ## [material de control, ShaderMaterial, último estado copiado] por superficie opaca
 
 const ROUGHNESS_JUGUETE: float = 0.72              ## media-alta: un brillo ancho y suave, no un espejo (metalness sigue en 0)
-const RIM_POTENCIA: float = 3.0                    ## cuánto se pega el brillo a la arista (más = más fino). 21/10 (Pablo): con 1,8 / 1,1 rodeaba al personaje como un halo
-const RIM_INTENSIDAD: float = 0.5
+const RIM_POTENCIA: float = 7.0                    ## cuánto se pega el brillo a la arista (más = más fino). 21/10 (Pablo): con 1,8 / 1,1 rodeaba al personaje como un halo
+const RIM_INTENSIDAD: float = 0.6               ## 22/10: con potencia 3,0 y 0,5 el rim cubría casi media superficie (en una pose inclinada, capa y gorro enteros) y velaba al personaje de pálido en zonas oscuras (fondo del cauce); con 7,0 solo la arista. Ver RIM_COBERTURA_MAX
 static var rim_solo_jugadora: bool = true           ## 21/10 (Pablo): el rim solo en la jugadora; NPC y enemigos sin borde (el material sigue, a intensidad 0, por la silueta)
+const RIM_UMBRAL_VISIBLE: float = 0.08          ## brillo añadido por el rim a partir del cual se nota sobre el color del personaje
+const RIM_COBERTURA_MAX: float = 0.30           ## fracción máxima de la superficie (normales uniformes en el hemisferio visto) donde el rim supera ese umbral
 const RIM_JUGADORA: Color = Color(1.0, 0.72, 0.42)   ## cálido: la elfa es lo que el ojo debe encontrar primero
 const RIM_NPC: Color = Color(1.0, 0.86, 0.66)        ## cálido pálido, para que no compita con la jugadora
 const RIM_ENEMIGO: Color = Color(0.55, 0.72, 1.0)    ## frío por defecto; Combate3D lo cambia al color de su debilidad (set_rol_visual)
@@ -1853,3 +1855,5 @@ func _desplazamiento(clip: String) -> float:
 			mas = maxf(mas, Vector2(p.x - p0.x, p.z - p0.z).length())
 		return mas / alto
 	return 0.0
+
+

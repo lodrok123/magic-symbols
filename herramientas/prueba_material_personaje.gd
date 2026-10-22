@@ -1,4 +1,4 @@
-extends SceneTree
+﻿extends SceneTree
 ## PRUEBA DE V5 «personajes juguete» (docs/PLAN_EOW_VISUAL.md): rim de color, silueta a través de paredes y sombra de contacto en `Pj3D`. Sin ventana:
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_material_personaje.gd
 ## Lo que NO se puede comprobar sin ventana es cómo se VE (el fresnel y el descarte por profundidad de la silueta necesitan GPU): eso se mira en
@@ -71,6 +71,11 @@ func _tiene_silueta(p: Pj3D) -> bool:
 
 
 func _correr() -> void:
+	# 0 · el rim es una ARISTA, no un velo (22/10: con potencia 3,0 cubría casi media superficie y dejaba pálida a la jugadora en zonas oscuras).
+	# Con cámara ortogonal N·V es uniforme en el hemisferio visto: la fracción de superficie con rim visible es 1 − umbral^(1/potencia)... (c < 1 − (u/i)^(1/p)).
+	var u: float = Pj3D.RIM_UMBRAL_VISIBLE / Pj3D.RIM_INTENSIDAD
+	var cobertura: float = 1.0 - pow(u, 1.0 / Pj3D.RIM_POTENCIA)
+	_ok(cobertura <= Pj3D.RIM_COBERTURA_MAX, "el rim visible cubre ≤ %.0f %% de la superficie (cubre %.0f %%)" % [Pj3D.RIM_COBERTURA_MAX * 100.0, cobertura * 100.0])
 	# 1 · la jugadora: rim cálido, silueta, sombra
 	var jug: Pj3D = _pj("woodland_wanderer")
 	var r: Array = _rim_en(jug)
@@ -177,3 +182,4 @@ func _correr() -> void:
 	Pj3D.sombra_contacto_activa = true
 	Pj3D.silueta_activa = true
 	Pj3D.pbr_juguete_activo = true
+

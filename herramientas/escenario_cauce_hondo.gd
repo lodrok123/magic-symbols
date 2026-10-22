@@ -1,4 +1,4 @@
-extends "res://herramientas/escenario_base.gd"
+﻿extends "res://herramientas/escenario_base.gd"
 ## ESCENARIO «CAUCE HONDO» (22/10, decisión de Pablo: «que el jugador se caiga, y que tenga un desnivel; si no, no habrá sensación de profundidad»).
 ##     godot --headless --fixed-fps 30 --path . --script res://herramientas/escenario_cauce_hondo.gd
 ##
@@ -100,6 +100,7 @@ func _foso() -> void:
 	var tr: TroncoEstanque3D = maqueta.get_node("Reglas").get("_tronco_estanque") as TroncoEstanque3D
 	if tr != null:
 		_ok("1.14 el tronco del estanque yace DENTRO del foso: su cara de arriba (%.2f) queda bajo el suelo (%.2f)" % [tr.position.y + TroncoEstanque3D.RADIO_MODELO, alto], tr.position.y + TroncoEstanque3D.RADIO_MODELO < alto - 0.1)
+		_ok("1.15 el tronco del estanque (en el fondo) BLOQUEA al jugador: su centro, a pies del fondo, es obstáculo; a pies sobre su cara de arriba o fuera de su largo, no", tr.bloquea(tr.position, fondo) and not tr.bloquea(tr.position, alto) and not tr.bloquea(tr.position + Vector3(TroncoEstanque3D.LARGO, 0.0, 0.0), fondo) and not tr.bloquea(tr.position + Vector3(0.0, 0.0, 1.0), fondo) and TroncoEstanque3D.bloquea_a(tr.position, fondo))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -141,28 +142,33 @@ func _entrar_y_salir() -> void:
 	_ok("2.5 nunca atraviesa el fondo (y mín %.3f, fondo %.3f)" % [y_min, fondo], y_min >= fondo - 0.01)
 	var d_f: Array = muestreo.datos[_n() - 1]
 	_ok("2.6 se queda de pie en el fondo (y %.3f)" % float(d_f[2]), absf(float(d_f[2]) - fondo) < 0.03 and bool(d_f[4]) and not bool(d_f[5]))
-	# Andar por el fondo hasta (16,13), sin elevarse ni hundirse.
+	# Andar por el fondo hasta (16,15), sin elevarse ni hundirse. Más al norte yace el tronco del estanque (16,14): bloquea el fondo (22/10).
 	var i1: int = _n()
-	var llego2: bool = await mover_hacia(Vector2i(16, 13), 12.0, 0.25)
+	var llego2: bool = await mover_hacia(Vector2i(16, 15), 12.0, 0.25)
 	var ys: Array = muestreo.datos.slice(i1).map(func(d: Array) -> float: return float(d[2]))
 	var y_max_f: float = -INF
 	var y_min_f: float = INF
 	for y in ys:
 		y_max_f = maxf(y_max_f, y)
 		y_min_f = minf(y_min_f, y)
-	_ok("2.7 anda por el fondo de (16,16) a (16,13) (3 casillas) con los pies a la altura del lecho (%.3f..%.3f)" % [y_min_f, y_max_f], llego2 and y_max_f - fondo < 0.03 and y_min_f >= fondo - 0.01, "celda %s" % str(celda_jugador()))
-	# Salir: por el este, de (16,13) a (18,13), trepando el borde.
+	_ok("2.7 anda por el fondo de (16,16) a (16,15) con los pies a la altura del lecho (%.3f..%.3f)" % [y_min_f, y_max_f], llego2 and y_max_f - fondo < 0.03 and y_min_f >= fondo - 0.01, "celda %s" % str(celda_jugador()))
+	# El tronco del estanque (aún en el fondo) NO se atraviesa: empujar hacia el norte desde (16,15) no pasa de su casilla ni del fondo.
+	await mover_hacia(Vector2i(16, 13), 4.0, 0.25)
+	var tr_b: TroncoEstanque3D = maqueta.get_node("Reglas").get("_tronco_estanque") as TroncoEstanque3D
+	_ok("2.7b el tronco del estanque no se atraviesa por el fondo (z %.2f, tronco z %.2f)" % [jugador.position.z, tr_b.position.z], tr_b != null and jugador.position.z > tr_b.position.z + TroncoEstanque3D.RADIO_MODELO and absf(jugador.position.y - fondo) < 0.03)
+	await mover_hacia(Vector2i(16, 16), 6.0, 0.25)
+	# Salir: por el este, de (16,16) a (18,16), trepando el borde.
 	var i2: int = _n()
-	var llego3: bool = await mover_hacia(Vector2i(18, 13), 12.0, 0.25)
+	var llego3: bool = await mover_hacia(Vector2i(18, 16), 12.0, 0.25)
 	await avanzar_s(1.0)
 	var sal: Array = muestreo.datos.slice(i2)
 	var y_fin: float = float((sal[sal.size() - 1] as Array)[2])
-	_ok("2.8 sale por el borde este y queda de pie en el suelo (y %.3f)" % y_fin, llego3 and absf(y_fin - alto) < 0.03 and not Terreno3D.es_hueco_cauce(celda_jugador()), "celda %s" % str(celda_jugador()))
+	_ok("2.8 sale por el borde este (fila 16) y queda de pie en el suelo (y %.3f)" % y_fin, llego3 and absf(y_fin - alto) < 0.03 and not Terreno3D.es_hueco_cauce(celda_jugador()), "celda %s" % str(celda_jugador()))
 	# La trepada dura un rato (TASA_TREPAR) y la y sube de forma continua, sin saltos de más de 0,2 u por fotograma.
 	var salto_max: float = 0.0
 	var k_c: int = -1
 	for k in range(sal.size()):
-		if k_c < 0 and Terreno3D.celda_de(Vector3((sal[k] as Array)[1], 0.0, (sal[k] as Array)[3])) == Vector2i(16, 13) and float((sal[k] as Array)[1]) > 16.0 * S + S * 0.5 + 0.2:
+		if k_c < 0 and Terreno3D.celda_de(Vector3((sal[k] as Array)[1], 0.0, (sal[k] as Array)[3])) == Vector2i(16, 16) and float((sal[k] as Array)[1]) > 16.0 * S + S * 0.5 + 0.2:
 			k_c = k          # a partir de aquí el jugador ya sale del centro del foso hacia el este (antes, mover_hacia mide el empuje de las teclas y recoloca)
 	var k_salto: int = 0
 	for k in range(maxi(k_c, 1), sal.size()):
@@ -174,6 +180,7 @@ func _entrar_y_salir() -> void:
 	_ok("2.9 la trepada es continua (salto máximo %.3f u por fotograma < 0,2)" % salto_max, salto_max < 0.2)
 	# Salir saltando (Espacio) también vale; no se prueba aquí: la regla de trepar cubre el caso y el salto sólo añade altura.
 	# Ver que el jugador puede volver a bajar y salir por donde entró (sin quedarse atrapado).
+	await mover_hacia(Vector2i(18, 13), 8.0, 0.25)
 	var llego4: bool = await mover_hacia(Vector2i(14, 13), 15.0, 0.25)
 	_ok("2.10 ida y vuelta: cruza el foso hasta el otro lado (no queda atrapado)", llego4 and absf(jugador.position.y - alto) < 0.05, "celda %s y %.3f" % [str(celda_jugador()), jugador.position.y])
 
@@ -357,3 +364,7 @@ func _agua() -> void:
 		if pozos.has(q) and (pozos[q] as Node3D).visible:
 			n_vis += 1
 	_ok("4.10 con el agua, las 15 casillas siguen dibujadas como foso", n_vis == 15, "%d" % n_vis)
+
+
+
+

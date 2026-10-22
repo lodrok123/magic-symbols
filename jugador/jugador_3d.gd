@@ -1,4 +1,4 @@
-class_name Jugador3D
+﻿class_name Jugador3D
 extends Node3D
 
 ## EL JUGADOR DEL TEST 3 (4.3 jugador mínimo, 4.4 altura, 4.4b agua). Dueño: Juego.
@@ -626,6 +626,8 @@ func _mover_con_choque(paso: Vector3) -> void:
 
 ## ¿Cabe el jugador (de pie, a su altura actual) en esa posición?
 func _puede_estar(p: Vector3) -> bool:
+	if TroncoEstanque3D.bloquea_a(p, position.y) and not TroncoEstanque3D.bloquea_a(position, position.y):
+		return false                       # 22/10: el tronco del estanque (aún en el fondo del cauce) no se atraviesa
 	var c: Vector2i = Terreno3D.celda_de(p)
 	var actual: Vector2i = Terreno3D.celda_de(position)
 	var parcial: bool = Terreno3D.es_parcial(c)
@@ -840,3 +842,4 @@ func _pintar_tinta() -> void:
 	_hud_tinta_barra.color = col
 	var nota: String = {"normal": "", "recuperando": " · recuperando", "baja": " · baja", "sin_tinta": " · sin tinta"}[est]
 	_hud_tinta_texto.text = "Tinta %d/%d · %s%s" % [int(round(tinta.actual)), int(tinta.maxima), tinta.nombre_pigmento(), nota]
+
