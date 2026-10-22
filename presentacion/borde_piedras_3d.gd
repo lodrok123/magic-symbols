@@ -31,7 +31,9 @@ extends Node3D
 ## labio cauce: cuánto de «arriba» lleva la normal del extremo de la falda que toca la pared (0 = horizontal, como la pared, de serie; 1 = 45°). Con una pared de 10 cm (el cauce seco)
 ## la falda es una rampa más que una pared, y con la normal horizontal salía como una banda negra pegada al labio.
 @export_range(0.0, 1.0) var falda_arriba: float = 0.0
-@export var piedra_min: float = 0.3                   ## diámetro menor de un canto (u)
+## 22/10 (Pablo: «quita las piedras directamente»): los cantos del borde, fuera de serie. true = vuelven como antes.
+@export var con_piedras: bool = false
+@export var piedra_min: float = 0.3                  ## diámetro menor de un canto (u)
 @export var piedra_max: float = 0.6                    ## y el mayor
 @export_range(1, 8) var piedras_por_borde: int = 3     ## cantos por cada lado de casilla (2,3 u): con 3 quedan huecos entre ellos
 @export_range(0.0, 1.0) var hundimiento: float = 0.3   ## parte del canto que queda bajo el labio (0 = apoyado, 0,5 = medio enterrado)
@@ -69,7 +71,8 @@ func construir(bordes: Array, lado: float, material_falda: Material, material_la
 	var con_falda: Array = bordes.filter(func(b): return not bool(b.get("solo_labio", false)))
 	if not con_falda.is_empty():
 		_montar_faldas(con_falda, lado, material_falda)
-		_montar_piedras(con_falda, lado)
+		if con_piedras:
+			_montar_piedras(con_falda, lado)
 	if labio_activo and material_labio != null:
 		_montar_labio(bordes, lado, material_labio)
 
@@ -293,6 +296,7 @@ static func _malla_canto() -> ArrayMesh:
 	var malla: ArrayMesh = st.commit()
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
+	mat.vertex_color_is_srgb = true      # los colores son de la paleta (sRGB): sin esto salían lavados, casi blancos
 	mat.roughness = 0.95
 	malla.surface_set_material(0, mat)
 	return malla

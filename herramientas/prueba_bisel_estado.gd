@@ -57,6 +57,7 @@ func _labio_suelto() -> void:
 	var bordes: Array = [_borde(Vector2i(3, 3), Vector2i(1, 0), 1.0, 0.0), _borde(Vector2i(3, 3), Vector2i(0, 1), 1.0, 0.0),
 		_borde(Vector2i(4, 3), Vector2i(-1, 0), 1.0, 0.2), _borde(Vector2i(5, 5), Vector2i(0, -1), 1.0, 0.0)]
 	var b := BordePiedras3D.new()
+	b.con_piedras = true          # 22/10: de serie ya no hay cantos; aquí se prueba que siguen funcionando si se encienden
 	root.add_child(b)
 	b.construir(bordes, LADO, mat, mat)
 	_ok("1.1 el labio son 4 triángulos por borde", b.n_triangulos_labio() == 4 * bordes.size(), "%d triángulos para %d bordes" % [b.n_triangulos_labio(), bordes.size()])

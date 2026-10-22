@@ -59,6 +59,7 @@ func _paleta() -> void:
 
 func _bordes() -> void:
 	var b := BordePiedras3D.new()
+	b.con_piedras = true          # 22/10: de serie ya no hay cantos; aquí se prueba que siguen funcionando si se encienden
 	root.add_child(b)
 	var mat := StandardMaterial3D.new()
 	var lista: Array = [
@@ -144,7 +145,7 @@ func _maqueta() -> void:
 	for _i in 20:
 		await process_frame
 	var bordes: BordePiedras3D = m.get("_bordes")
-	_ok("M1 el Bosque monta los bordes blandos del río", bordes != null and bordes.n_bordes() > 0 and bordes.n_piedras() > 0,
+	_ok("M1 el Bosque monta los bordes blandos del río", bordes != null and bordes.n_bordes() > 0 and bordes.n_piedras() == 0,     # 22/10: sin cantos de serie
 		"bordes=%d piedras=%d" % [bordes.n_bordes() if bordes != null else -1, bordes.n_piedras() if bordes != null else -1])
 	_ok("M2 el Bosque monta el lecho del río con guijarros", m.get_node_or_null("lecho_rio") != null)
 	var dof: CameraAttributesPractical = m.get("_camara_dof")

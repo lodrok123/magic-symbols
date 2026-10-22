@@ -176,7 +176,7 @@ func _interruptores() -> void:
 	maqueta.set("bordes_blandos", true)
 	maqueta.call("reconstruir_bordes_cauce")
 	await avanzar(2)            # los hijos viejos se liberan al fotograma siguiente; mientras tanto el nuevo se llama «@MeshInstance3D@n»
-	_ok("2.5 de serie vuelve todo", _total_bordes() == n0 and seco.n_piedras() > 0 and _hijo(seco, "faldas") != null, "bordes %d/%d, cantos %d, faldas %s" % [_total_bordes(), n0, seco.n_piedras(), str(seco.get_children().map(func(h): return str(h.name) + ("(q)" if h.is_queued_for_deletion() else "")))])
+	_ok("2.5 de serie vuelve todo", _total_bordes() == n0 and seco.n_piedras() == 0 and _hijo(seco, "faldas") != null, "bordes %d/%d, cantos %d, faldas %s" % [_total_bordes(), n0, seco.n_piedras(), str(seco.get_children().map(func(h): return str(h.name) + ("(q)" if h.is_queued_for_deletion() else "")))])
 
 
 func _colisiones() -> void:
