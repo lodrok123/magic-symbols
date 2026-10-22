@@ -39,6 +39,15 @@ const TROZOS_CENTRO: Array = [Vector2(0.20, -0.01), Vector2(0.27, -0.12), Vector
 const N_PINCHOS: int = 2
 const N_TROZOS: int = 4
 
+## HIELO TEXTURA (material del hielo del juego)
+const HIELO_TILE_RECT: Rect2 = Rect2(258.0 / 2048.0, 1710.0 / 2048.0, 204.0 / 2048.0, 204.0 / 2048.0)   ## el panel de cristales de la compuerta dentro de la hoja de 2048 px de puzle_terrain
+const HIELO_TILE_U: float = 0.6            ## u de la pieza que cubre UNA repetición del panel (triplanar en coordenadas de objeto)
+const HIELO_MEZCLA_TRI: float = 0.7        ## cuánto manda el panel de la compuerta sobre la textura propia del GLB
+const HIELO_ALFA: float = 0.82             ## translucidez (la de la compuerta); el borde sube a HIELO_ALFA_BORDE
+const HIELO_ALFA_BORDE: float = 0.95
+const HIELO_LUZ: float = 0.2               ## luz propia fría (la de la compuerta)
+const RAYO_NUCLEO_ACLARA: float = 0.3      ## cuánto se aclara el corazón del haz hacia el blanco (con la textura del juego)
+const HIELO_EMISION: Color = Color(0.45, 0.8, 1.0)
 ## VUELO
 const ESQUIRLA_LARGO_K: float = 3.2        ## largo de la esquirla = r_u · esto (mínimo el de `MEDIDA`)
 const ESQUIRLA_GIRO: float = 3.0           ## rad/s sobre su eje
@@ -99,7 +108,10 @@ const PLACA_SEPARACION: float = 0.3        ## u que se aparta cada trozo del cen
 const PLACA_INCLINA: float = 0.3           ## rad máx. que se ladea cada trozo (antes 0,18)
 
 static var usar_modelos: bool = true
-## Proyectil de hielo con la esquirla de Meshy girando (DECISIÓN DE PABLO, 22/10, tras ver las capturas: «mejor que la bola»). true (por defecto): la esquirla.
+## hielo textura (22/10): el hielo de los hechizos usa el MISMO material que el hielo del juego: la textura de cristales de la hoja de la compuerta de hielo
+## (compuerta_hoja_hielo de puzle_terrain.glb, ARTE §12; el agua helada y el tapón usan la misma hoja), en triplanar sobre la pieza, mezclada con la textura de su
+## propio GLB, con el tono azul sin aclarar, translúcida (0,82) y luz fría suave, como PiezaPuzle3D._hielo_modelo. false = el blanco azulado translúcido de antes.
+static var textura_hielo_juego: bool = true## Proyectil de hielo con la esquirla de Meshy girando (DECISIÓN DE PABLO, 22/10, tras ver las capturas: «mejor que la bola»). true (por defecto): la esquirla.
 ## false: vuelve el cometa brillante del kit (`VfxKit3D.bola` con cola). Impacto, barrera, escarcha y reacción usan los modelos en los dos casos.
 static var proyectil_esquirla: bool = true
 static var _modelos: Dictionary = {}       ## id -> Mesh o null (modelo horneado; las pruebas pueden poner uno)
@@ -267,19 +279,53 @@ static func _como_array(p: PrimitiveMesh) -> ArrayMesh:
 static func material_modelo(m: Mesh) -> ShaderMaterial:
 	var src: Material = m.surface_get_material(0) if m != null and m.get_surface_count() > 0 else null
 	var tex: Texture2D = (src as StandardMaterial3D).albedo_texture if src is StandardMaterial3D else null
-	var clave: int = tex.get_instance_id() if tex != null else 0
+	var tj: Texture2D = tex_hielo_juego()      # hielo textura
+	var clave: int = (tex.get_instance_id() if tex != null else 0) * 2 + (1 if tj != null else 0)
 	if _mats.has(clave):
 		return _mats[clave]
 	var sm := ShaderMaterial.new()
 	sm.shader = _shader()
 	if tex != null:
 		sm.set_shader_parameter("tex", tex)
+	_params_hielo_juego(sm, tj, false)
 	_mats[clave] = sm
 	return sm
 
 
-static var _sh: Shader = null
+static var _tex_juego: Texture2D = null
 
+
+## La hoja de textura de la compuerta de hielo (puzle_terrain), o null si el interruptor 	extura_hielo_juego está apagado o no hay GLB. hielo textura
+static func tex_hielo_juego() -> Texture2D:
+	if not textura_hielo_juego:
+		return null
+	if _tex_juego == null:
+		var m: Mesh = PiezaPuzle3D.malla_modelo("compuerta_hoja_hielo")
+		var src: Material = m.surface_get_material(0) if m != null and m.get_surface_count() > 0 else null
+		if src is StandardMaterial3D:
+			_tex_juego = (src as StandardMaterial3D).albedo_texture
+	return _tex_juego
+
+
+## Pone en sm los parámetros del hielo del juego (o, con 	j null, los del blanco azulado de antes). haz = el cristal/núcleo del rayo los retoca después.
+static func _params_hielo_juego(sm: ShaderMaterial, tj: Texture2D, _haz: bool) -> void:
+	if tj == null:
+		sm.set_shader_parameter("mezcla_tri", 0.0)
+		return
+	sm.set_shader_parameter("tex_hielo", tj)
+	sm.set_shader_parameter("rect", Vector4(HIELO_TILE_RECT.position.x, HIELO_TILE_RECT.position.y, HIELO_TILE_RECT.size.x, HIELO_TILE_RECT.size.y))
+	sm.set_shader_parameter("tile_u", HIELO_TILE_U)
+	sm.set_shader_parameter("mezcla_tri", HIELO_MEZCLA_TRI)
+	sm.set_shader_parameter("tinte_mezcla", 0.0)
+	sm.set_shader_parameter("satura", 1.0)
+	sm.set_shader_parameter("aclara", 0.0)
+	sm.set_shader_parameter("alfa_centro", HIELO_ALFA)
+	sm.set_shader_parameter("alfa_borde", HIELO_ALFA_BORDE)
+	sm.set_shader_parameter("luz_propia", HIELO_LUZ)
+	sm.set_shader_parameter("emi", Vector3(HIELO_EMISION.r, HIELO_EMISION.g, HIELO_EMISION.b))
+
+
+static var _sh: Shader = null
 
 static func _shader() -> Shader:
 	if _sh == null:
@@ -288,23 +334,46 @@ static func _shader() -> Shader:
 shader_type spatial;
 render_mode blend_mix, depth_draw_opaque, cull_back;
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D tex_hielo : source_color, filter_linear_mipmap, repeat_enable;   // hoja de la compuerta de hielo
+uniform vec4 rect = vec4(0.126, 0.835, 0.0996, 0.0996);   // panel de cristales dentro de la hoja
+uniform float tile_u = 0.6;            // u de objeto por repetición del panel
+uniform float mezcla_tri = 0.0;        // 0 = solo la textura del GLB (hielo de antes); >0 mezcla el panel de la compuerta en triplanar
 uniform vec3 tinte : source_color = vec3(0.80, 0.92, 1.0);
+uniform vec3 emi = vec3(0.80, 0.92, 1.0);
+uniform float tinte_mezcla = 0.55;
 uniform float satura = 0.2;            // cuánto del azul saturado del GLB se conserva
 uniform float aclara = 0.5;            // cuánto se lleva hacia el blanco
 uniform float alfa_centro = 0.6;
 uniform float alfa_borde = 0.95;
 uniform float luz_propia = 0.12;
+varying vec3 opos;
+varying vec3 onor;
+vec3 panel(vec2 p) {
+	vec2 m = abs(mod(p, 2.0) - 1.0);   // espejo: sin costuras
+	return texture(tex_hielo, rect.xy + (m * 0.96 + 0.02) * rect.zw).rgb;
+}
+void vertex() {
+	opos = VERTEX;
+	onor = NORMAL;
+}
 void fragment() {
 	vec3 t = texture(tex, UV).rgb;
+	if (mezcla_tri > 0.0) {
+		vec3 w = pow(abs(normalize(onor)), vec3(4.0));
+		w /= (w.x + w.y + w.z);
+		vec3 p = opos / tile_u;
+		vec3 tri = panel(p.yz) * w.x + panel(p.xz) * w.y + panel(p.xy) * w.z;
+		t = mix(t, tri, mezcla_tri);
+	}
 	float l = dot(t, vec3(0.299, 0.587, 0.114));
 	vec3 c = mix(vec3(l), t, satura);
-	c = mix(c, tinte, 0.55);
+	c = mix(c, tinte, tinte_mezcla);
 	c = mix(c, vec3(1.0), aclara * (0.4 + 0.6 * l));
 	float f = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.5);
 	ALBEDO = c;
 	ROUGHNESS = 0.18;
 	SPECULAR = 0.5;
-	EMISSION = tinte * luz_propia + vec3(0.55, 0.82, 1.0) * f * 0.3;
+	EMISSION = emi * luz_propia + vec3(0.55, 0.82, 1.0) * f * 0.3;
 	ALPHA = mix(alfa_centro, alfa_borde, f);
 }
 """
@@ -360,18 +429,36 @@ static func material_haz(tex: Texture2D, largo: float, nucleo: bool) -> ShaderMa
 	sm.set_shader_parameter("repite", Vector2(1.0 if nucleo else float(RAYO_REPITE_X), maxf(largo / RAYO_TEXEL, 1.0) * (0.7 if nucleo else 1.0)))
 	sm.set_shader_parameter("scroll", RAYO_SCROLL_NUCLEO if nucleo else RAYO_SCROLL)
 	sm.set_shader_parameter("fade", 0.0)
+	var tj: Texture2D = tex_hielo_juego()      # hielo textura: el panel de la compuerta (espejado) en vez de la textura de la esquirla
+	if tj != null:
+		sm.set_shader_parameter("tex_hielo", tj)
+		sm.set_shader_parameter("rect", Vector4(HIELO_TILE_RECT.position.x, HIELO_TILE_RECT.position.y, HIELO_TILE_RECT.size.x, HIELO_TILE_RECT.size.y))
+		sm.set_shader_parameter("mezcla_tri", 1.0)
+		sm.set_shader_parameter("emi", Vector3(HIELO_EMISION.r, HIELO_EMISION.g, HIELO_EMISION.b))
 	if nucleo:
 		sm.set_shader_parameter("tinte", Vector3(0.92, 0.98, 1.0))
+		if tj == null:
+			sm.set_shader_parameter("emi", Vector3(0.92, 0.98, 1.0))
 		sm.set_shader_parameter("aclara", 0.8)
 		sm.set_shader_parameter("alfa_centro", 0.8)
 		sm.set_shader_parameter("alfa_borde", 0.95)
 		sm.set_shader_parameter("luz_propia", 0.35)
+		if tj != null:                                          # hielo textura: el corazón es el mismo hielo, solo más claro (no blanco puro)
+			sm.set_shader_parameter("satura", 1.0)
+			sm.set_shader_parameter("aclara", RAYO_NUCLEO_ACLARA)
+			sm.set_shader_parameter("tinte_mezcla", 0.0)
+			sm.set_shader_parameter("luz_propia", HIELO_LUZ * 1.5)
 	else:
 		sm.set_shader_parameter("aclara", RAYO_ACLARA)         # menos blanco que el modelo: que se lea la textura del cristal
 		sm.set_shader_parameter("satura", RAYO_SATURA)
 		sm.set_shader_parameter("alfa_centro", 0.5)
 		sm.set_shader_parameter("alfa_borde", 0.9)
-		sm.set_shader_parameter("luz_propia", 0.1)
+		sm.set_shader_parameter("luz_propia", HIELO_LUZ * 0.6 if tj != null else 0.1)
+		if tj != null:
+			sm.set_shader_parameter("satura", 1.0)
+			sm.set_shader_parameter("aclara", 0.0)
+			sm.set_shader_parameter("tinte_mezcla", 0.0)
+			sm.set_shader_parameter("alfa_centro", HIELO_ALFA * 0.7)
 	return sm
 
 
@@ -382,7 +469,7 @@ static func _shader_haz() -> Shader:
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 uniform sampler2D tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec3 tinte : source_color = vec3(0.80, 0.92, 1.0);
+uniform sampler2D tex_hielo : source_color, filter_linear_mipmap, repeat_enable;\nuniform vec4 rect = vec4(0.126, 0.835, 0.0996, 0.0996);\nuniform float mezcla_tri = 0.0;        // 1 = textura del panel de la compuerta (espejada) en vez de la de la esquirla\nuniform vec3 emi = vec3(0.80, 0.92, 1.0);\nuniform float tinte_mezcla = 0.55;\nuniform vec3 tinte : source_color = vec3(0.80, 0.92, 1.0);
 uniform vec2 repite = vec2(2.0, 4.0);  // repeticiones alrededor y a lo largo
 uniform float scroll = 1.1;            // repeticiones por segundo hacia la punta (el v del cilindro crece hacia la mano)
 uniform float satura = 0.2;
@@ -394,15 +481,19 @@ uniform float fade = 1.0;
 void fragment() {
 	vec2 uv = vec2(UV.x * repite.x, UV.y * repite.y + TIME * scroll);
 	vec3 t = texture(tex, uv).rgb;
+	if (mezcla_tri > 0.0) {
+		vec2 m = abs(mod(uv, 2.0) - 1.0);
+		t = texture(tex_hielo, rect.xy + (m * 0.96 + 0.02) * rect.zw).rgb;
+	}
 	float l = dot(t, vec3(0.299, 0.587, 0.114));
 	vec3 c = mix(vec3(l), t, satura);
-	c = mix(c, tinte, 0.55);
+	c = mix(c, tinte, tinte_mezcla);
 	c = mix(c, vec3(1.0), aclara * (0.4 + 0.6 * l));
 	float f = pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 2.5);
 	ALBEDO = c;
 	ROUGHNESS = 0.18;
 	SPECULAR = 0.5;
-	EMISSION = tinte * luz_propia + vec3(0.55, 0.82, 1.0) * f * 0.35;
+	EMISSION = emi * luz_propia + vec3(0.55, 0.82, 1.0) * f * 0.35;
 	ALPHA = mix(alfa_centro, alfa_borde, f) * fade;
 }
 """

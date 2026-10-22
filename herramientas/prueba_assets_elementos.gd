@@ -202,6 +202,25 @@ func _material() -> void:
 	_ok(origen is StandardMaterial3D and (origen as StandardMaterial3D).transparency == BaseMaterial3D.TRANSPARENCY_DISABLED and mat != origen, "el material del GLB (opaco) queda sustituido por el de hielo")
 	_ok(mat == VfxHielo.pieza("racimo_hielo_m").material_override, "el material se comparte entre instancias de la misma pieza")
 	mi.free()
+	# hielo textura: todas las piezas (y el haz) llevan la textura de la compuerta de hielo del juego; el interruptor lo devuelve al blanco azulado
+	print("--- 3b. hielo con la textura del hielo del juego")
+	VfxHielo.textura_hielo_juego = true
+	var tj: Texture2D = VfxHielo.tex_hielo_juego()
+	_ok(tj != null and tj.get_width() == 2048, "la hoja de la compuerta de hielo (puzle_terrain, 2048 px) está disponible")
+	for id in VfxHielo.ids():
+		var pz: MeshInstance3D = VfxHielo.pieza(id)
+		if bool(pz.get_meta("modelo")):
+			var sm := pz.material_override as ShaderMaterial
+			_okc("%s lleva la textura de hielo del juego" % id, sm != null and sm.get_shader_parameter("tex_hielo") == tj and float(sm.get_shader_parameter("mezcla_tri")) > 0.0)
+		pz.free()
+	var hz: ShaderMaterial = VfxHielo.material_haz(VfxHielo.textura_esquirla(), 3.0, false)
+	_ok(hz.get_shader_parameter("tex_hielo") == tj and float(hz.get_shader_parameter("mezcla_tri")) > 0.0, "el haz del rayo lleva la textura de hielo del juego")
+	VfxHielo.textura_hielo_juego = false
+	var pz2: MeshInstance3D = VfxHielo.pieza("racimo_hielo_m")
+	_ok(VfxHielo.tex_hielo_juego() == null and float((pz2.material_override as ShaderMaterial).get_shader_parameter("mezcla_tri")) == 0.0, "textura_hielo_juego = false: vuelve el blanco azulado de antes")
+	_ok(VfxHielo.material_haz(VfxHielo.textura_esquirla(), 3.0, false).get_shader_parameter("tex_hielo") == null, "...y el haz también")
+	pz2.free()
+	VfxHielo.textura_hielo_juego = true
 
 
 # ---------------------------------------------------------------------------------------------------------------------

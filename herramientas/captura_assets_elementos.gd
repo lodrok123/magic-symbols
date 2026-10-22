@@ -37,6 +37,7 @@ func _correr() -> void:
 	if a.size() > 2:
 		_solo = a[2]
 	var nuevo: bool = _modo != "antes"
+	VfxHielo.textura_hielo_juego = _modo != "antes_textura"      # hielo textura: «antes_textura» = los modelos con el blanco azulado de antes de poner la textura del hielo del juego
 	VfxTierra.usar_modelos = nuevo
 	VfxHielo.usar_modelos = nuevo
 	VfxViento.usar_atlas = nuevo
@@ -261,6 +262,24 @@ func _correr() -> void:
 		VfxHielo.placa_rota(_mundo, Vector3(0.0, 0.02, 0.0), 1.0)
 		await _esperar(0.75)
 		await _foto("hielo_placa_rota_" + _modo)
+		await _esperar(2.4)
+		_limpiar()
+
+	if nuevo and _quiero("hielo_comparar"):
+		# hielo textura: la compuerta de hielo del juego (PiezaPuzle3D) con barrera, racimos, impacto, esquirla y rayo de hielo al lado, cámara del juego
+		seed(3)
+		_camara_juego(Vector3(0.6, 0.6, 0.0))
+		var comp: PiezaPuzle3D = PiezaPuzle3D.crear("compuerta_hielo")
+		_mundo.add_child(comp)
+		comp.position = Vector3(-2.2, 0.0, 0.0)
+		VfxHielo.impacto(_mundo, Vector3(0.2, 1.0, 0.0), 1.5, 0.0)
+		VfxHielo.escarcha_modelos(_mundo, Vector3(1.8, 0.0, 0.5), 1.2, 0.0)
+		VfxHielo.rayo(_mundo, Vector3(-0.8, 1.4, -1.3), Vector3(2.6, 0.1, -1.3), 4.0, 1.0, 0.0)
+		await _esperar(0.9)
+		await _foto("hielo_comparar_compuerta_" + _modo)
+		_poner_camara(Vector3(-0.3, 1.8, 3.6), Vector3(-0.3, 0.7, 0.0))
+		await _esperar(0.2)
+		await _foto("hielo_comparar_cerca_" + _modo)
 		await _esperar(2.4)
 		_limpiar()
 
