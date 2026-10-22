@@ -39,6 +39,9 @@ const SINONIMOS: Dictionary = {
 	# saludo con la mano de la elfa (wave/hello) y no se mezcla con ellos.
 	"saludo": ["greet_02", "greet"],
 	"celebrar": ["cheer"],
+	# Clips de trabajo del goblin base (22/10, Pablo, Tripo): talar (golpear con un hacha que el modelo no lleva) y cavar. Acciones continuas de NPC.
+	"talar": ["chop"],
+	"cavar": ["dig"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
 	"leer": ["readandwrite", "reading", "read", "writing"],
 	"wave": ["wave", "hello"],
@@ -80,11 +83,14 @@ const CLIPS_DE: Dictionary = {
 ## ~2,9 alturas de cadera por ciclo.
 const RAIZ_ANULADA: Dictionary = {
 	"elfo_base": ["walk"],
+	# goblin_base: su walk (Tripo) avanza la cadera ~1,2 alturas del modelo por ciclo; chop, dig, hablar e idle se quedan en su sitio.
+	"goblin_base": ["walk"],
 }
 
 ## Rol que se usa en su lugar cuando el personaje no tiene clip para el pedido: id -> {rol pedido: rol sustituto}. Solo para los ids listados.
 const ROL_SUSTITUTO: Dictionary = {
 	"elfo_base": {"run": "walk"},
+	"goblin_base": {"run": "walk"},
 }
 
 ## Clips mínimos por tipo de personaje (la misma lista que docs/ASSETS_PENDIENTES.md §1).
@@ -1956,6 +1962,8 @@ func _buscar_clip(nombre: String) -> String:
 static func tipo_de(p_id: String) -> String:
 	if p_id.begins_with("goblin_archer"):
 		return "arquero"
+	if p_id == "goblin_base":
+		return "npc"   # goblin NPC (trabaja y habla), no enemigo: sin attack/hit/death
 	if p_id.begins_with("goblin"):
 		return "goblin"
 	if p_id.begins_with("elemental"):

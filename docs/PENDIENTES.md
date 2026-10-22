@@ -49,6 +49,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 - [x] `elfo_base` (22/10, Tripo, 65 huesos): idle cabizbajo prestado de `chibi_elf`. — resuelto 22/10: Pablo pasó el elfo con clips propios (idle, walk, hablar, greet_02, cheer); ya no toma nada de la elfa.
 - [ ] `elfo_base`: faltan clips de correr (ahora usa walk), cast, golpe, muerte, rodar, leer y nado; los pasará Pablo.
+- [ ] `goblin_base` (22/10, Tripo, 65 huesos; idle, walk, hablar, chop, dig): faltan clips de correr (ahora usa walk), golpe recibido, muerte y los que pida cada NPC goblin (cast, saludo...); aún no lo usa ningún NPC. Ver `docs/capturas/goblin_base/`.
 **Agua y suelo**
 - [ ] Triángulos vacíos en las esquinas del agua o la orilla.
 - [ ] `OSCURECER_SUELO`: igualar hierba y suelo (ARTE §10).

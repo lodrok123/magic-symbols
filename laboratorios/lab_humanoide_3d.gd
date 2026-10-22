@@ -20,7 +20,7 @@ extends Node3D
 
 ## Personajes humanoides y su alto en el juego (igual que ALTO_PJ de prueba_test2.gd, para que las velocidades sean las del juego).
 const PERSONAJES: Dictionary = {
-	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85,
+	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85, "goblin_base": 0.85,
 	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0}
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
 const COLOR_BRAZOS: Color = Color(0.35, 0.65, 1.0)
