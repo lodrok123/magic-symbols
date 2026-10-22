@@ -235,6 +235,13 @@ uniform float ruido = 0.45;
 uniform float dureza = 0.16;
 uniform float variacion = 0.07;
 uniform float brillo = 1.0;
+// albedos (22/10, `Albedos3D`, PLAN_EOW_VISUAL §1.2): por familia (x = K, y = VALOR): c' = (media + (c - media) * K) * VALOR, con la media de la propia textura
+// (mip alto). (1, 1) = como antes. Los pone `Albedos3D.aplicar_suelo` según el export `albedos_eow` de la maqueta.
+uniform vec2 alb_hierba = vec2(1.0);
+uniform vec2 alb_camino = vec2(1.0);
+uniform vec2 alb_tierra = vec2(1.0);
+uniform vec2 alb_piedra = vec2(1.0);
+uniform float alb_mip = 12.0;
 uniform float contraste = 2.5;                                          // rampa de luz: 1 = como el PBR · 4 = cel
 uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);      // lo que llega a la sombra: frío y pastel
 // Rugosidad: relieve fino por mapa de normales (ruido generado si no hay textura). Con la rampa de luz, los bultos
@@ -255,6 +262,15 @@ vec3 muestra(sampler2D t, vec2 p, float mezcla) {
 	vec2 q = mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * p * 0.73 + vec2(0.37, 0.11);
 	return mix(texture(t, p).rgb, texture(t, q).rgb, mezcla);
 }
+// albedos: la muestra de cada familia, con su compresión de contraste hacia la media de su textura y su ajuste de valor.
+vec3 alb_corr(sampler2D t, vec3 c, vec2 kv) {
+	vec3 med = textureLod(t, vec2(0.5), alb_mip).rgb;
+	return (med + (c - med) * kv.x) * kv.y;
+}
+vec3 mh(vec2 p, float mezcla) { return alb_corr(t_hierba, muestra(t_hierba, p, mezcla), alb_hierba); }
+vec3 mc(vec2 p, float mezcla) { return alb_corr(t_camino, muestra(t_camino, p, mezcla), alb_camino); }
+vec3 mt(vec2 p, float mezcla) { return alb_corr(t_tierra, muestra(t_tierra, p, mezcla), alb_tierra); }
+vec3 mp(vec2 p, float mezcla) { return alb_corr(t_piedra, muestra(t_piedra, p, mezcla), alb_piedra); }
 // Una pareja de materiales. `k` selecciona los canales de `mapa` (+ el que lame, - el lamido): `d` = +1 dentro del que lame, -1 dentro del otro,
 // 0 en la frontera. De d y de su gradiente sale la distancia con signo `sd` (u; + = dentro del que lame) a la frontera, igual que el borde de hierba.
 // Devuelve el color de la pareja y, en `peso`, cuánto manda esa pareja en este punto (0 lejos de ella).
@@ -286,10 +302,10 @@ vec3 lamina_tono(float fila, vec3 c) {
 	float sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 0.01);
 	float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
 	float losa = (fila == 1.0 || fila == 2.0 || fila == 4.0) ? 1.0 - smoothstep(0.34, 0.5, sat) : 0.0;
-	vec3 pie = textureLod(t_piedra, vec2(0.5), 11.0).rgb * clamp(lum / joints_piedra_ref, 0.3, 1.8);
+	vec3 pie = textureLod(t_piedra, vec2(0.5), 11.0).rgb * alb_piedra.y * clamp(lum / joints_piedra_ref, 0.3, 1.8);   // albedos: × el VALOR de la piedra
 	float calido = (1.0 - losa) * smoothstep(0.03, 0.1, c.r - c.g);          // arena / tierra (la hierba tiene g > r)
 	vec3 ref = fila == 2.0 ? vec3(0.35, 0.18, 0.10) : vec3(0.62, 0.38, 0.18);   // color medio lineal de la arena / tierra pintada
-	vec3 des = fila == 2.0 ? textureLod(t_tierra, vec2(0.5), 11.0).rgb : textureLod(t_camino, vec2(0.5), 11.0).rgb;
+	vec3 des = fila == 2.0 ? textureLod(t_tierra, vec2(0.5), 11.0).rgb * alb_tierra.y : textureLod(t_camino, vec2(0.5), 11.0).rgb * alb_camino.y;   // albedos: × su VALOR
 	vec3 mult = pow(des / ref, vec3(joints_afina));
 	return mix(mix(c, c * mult, calido), pie, losa * joints_afina);
 }
@@ -367,13 +383,13 @@ void fragment() {
 	w /= max(s, 0.0001);
 	vec2 t = pm.xz / tam_tex;
 	float m = smoothstep(0.3, 0.7, r.b);
-	vec3 col = muestra(t_hierba, t, m) * w.r + muestra(t_camino, t, m) * w.g
-		+ muestra(t_tierra, t, m) * w.b + muestra(t_piedra, t, m) * w.a;
+	vec3 col = mh(t, m) * w.r + mc(t, m) * w.g
+		+ mt(t, m) * w.b + mp(t, m) * w.a;
 	float apaga = 1.0 - smoothstep(0.05, 0.4, texture(mapa_fuera, uvm).r);   // joints: junto a agua, cauce o huecos no hay tira
 	if (par_fuerza > 0.0) {
-		vec3 cg = muestra(t_camino, t, m);
-		vec3 cb = muestra(t_tierra, t, m);
-		vec3 ca = muestra(t_piedra, t, m);
+		vec3 cg = mc(t, m);
+		vec3 cb = mt(t, m);
+		vec3 ca = mp(t, m);
 		vec2 fino = texture(campo, c / lado * 3.7).rg;                           // ruido fino del filo (campo se repite)
 		float pw;
 		float sdp;
@@ -414,12 +430,12 @@ void fragment() {
 			if (invade_hierba > 0.0 || joints_fuerza > 0.0) {
 				float mata = smoothstep(0.58, 0.66, texture(campo, c / lado * 5.3).b + (texture(campo, c / lado * 9.1).g - 0.5) * 0.35);
 				float cerca = (1.0 - smoothstep(0.1, 1.5 * borde_ancho + 0.6, sb)) * step(0.0, sb);
-				col = mix(col, muestra(t_hierba, t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza);
+				col = mix(col, mh(t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza);
 				// joints (hierba→camino, hierba→piedra): matas sueltas sobre el camino y entre las losas, con su propio alcance.
 				if (joints_fuerza > 0.0) {
 					float cj = (1.0 - smoothstep(0.1, max(dot(w.gba, joint_matas_ancho), 0.11), sb)) * step(0.0, sb);
 					float fj = (w.g * joint_matas.x + w.a * joint_matas.z) * apaga;
-					col = mix(col, muestra(t_hierba, t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza * (1.0 - joints_lamina));
+					col = mix(col, mh(t, m) * borde_tinte * 0.96, mata * cj * fj * fb * joints_fuerza * borde_fuerza * (1.0 - joints_lamina));
 				}
 			}
 			float cubre = 0.0;     // cuánto de este píxel lo cubre la lámina: las hojas de hierba_borde no la tapan donde hay lámina
@@ -729,6 +745,9 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## hacia el fondo, lo que da escala de maqueta y esconde el horizonte y el borde del mapa. Es `CameraAttributesPractical` (desenfoque lejano), así
 ## que SOLO existe en Forward+ y Mobile: en Compatibilidad no hace nada (se apaga solo). Se apaga a mano con F7 o desmarcando `diorama`.
 @export var diorama: bool = true
+## albedos (22/10, `Albedos3D`, PLAN_EOW_VISUAL §1.2 + pendiente OSCURECER_SUELO de ARTE.md §10): iguala el contraste y el valor de los albedos de la hierba, el suelo y las piezas
+## del decorado en los SHADERS (compresión hacia la media de cada textura + ajuste de valor por familia; constantes en `Albedos3D`). false = el aspecto de antes.
+@export var albedos_eow: bool = true
 ## Cuánto desenfoca: 0 = nada, 1 = el máximo razonable (`dof_blur_amount` 0,12); 0,5 es sutil.
 @export_range(0.0, 1.0) var diorama_fuerza: float = 0.5
 ## Qué parte de media pantalla (hacia el fondo) queda nítida antes de empezar a desenfocar. 0,6 = el 60 %.
@@ -1091,8 +1110,11 @@ func _ready() -> void:
 	ReaccionesVfx3D.conectar(_mundo, _efectos)
 	Logros3D.conectar(_mundo, _efectos)
 
+	Albedos3D.activo = albedos_eow          # albedos: antes de crear ningún material
 	if transparencia_jugador and decorado_por_lotes:
 		Ocluso3D.preparar()
+		Albedos3D.parchear_ocluso()         # albedos: la corrección de las piezas entra en el shader común (idempotente); el interruptor es el uniforme global
+		Albedos3D.poner_piezas(albedos_eow)
 	_cargar_bibliotecas()
 	_construir_suelo()
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
@@ -1399,6 +1421,7 @@ func _construir_suelo() -> void:
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
 	mat_suelo.set_shader_parameter("brillo", OSCURECER_SUELO)
+	Albedos3D.aplicar_suelo(mat_suelo, albedos_eow)       # albedos: compresión de contraste y valor por familia del suelo
 	mat_suelo.set_shader_parameter("contraste", _contraste)
 	mat_suelo.set_shader_parameter("normal_suelo", _normal_suelo())
 	mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
@@ -2287,6 +2310,7 @@ func _sembrar_hierba() -> void:
 	_hierba = Hierba3D.new()
 	_hierba.name = "Hierba"
 	_hierba.brillo = OSCURECER_SUELO
+	_hierba.albedos_eow = albedos_eow       # albedos
 	add_child(_hierba)
 	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba)
 	_hierba.set_estado(Mundo3D.textura_estados(), _tex_pisado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
@@ -2384,7 +2408,8 @@ func _mat_triplanar(ruta: String, color_si_falta: Color) -> StandardMaterial3D:
 	var t: Texture2D = _tex(ruta)
 	if t != null:
 		m.albedo_texture = t
-		m.albedo_color = Color(OSCURECER_SUELO, OSCURECER_SUELO, OSCURECER_SUELO)
+		var brillo_bloque: float = OSCURECER_SUELO * Albedos3D.valor_bloque(ruta, albedos_eow)      # albedos: el VALOR de su familia (el contraste no se puede tocar en un StandardMaterial3D)
+		m.albedo_color = Color(brillo_bloque, brillo_bloque, brillo_bloque)
 		m.uv1_triplanar = true
 		m.uv1_world_triplanar = true
 		m.uv1_scale = Vector3.ONE / (S * 2.0)

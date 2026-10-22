@@ -51,6 +51,7 @@ extends Node3D
 @export var radio_liberar: int = 4           ## ... y a partir de cuántos se liberan
 @export var bloques_por_fotograma: int = 2   ## como mucho, para repartir el coste al andar (bloques pequeños: 2 cuestan menos que 1 de los viejos)
 @export var brillo: float = 1.0              ## multiplica el color (la maqueta oscurece el suelo y la hierba igual)
+@export var albedos_eow: bool = true         ## albedos (22/10, `Albedos3D`): valor de las briznas y contraste/valor de las tarjetas igualados con el suelo; false = como antes (se pone antes de sembrar)
 
 const NOMBRES_MODO: Array = ["briznas", "tarjetas pintadas", "briznas + tarjetas"]
 
@@ -64,6 +65,7 @@ uniform vec3 base : source_color = vec3(0.58, 0.77, 0.45);
 uniform vec3 punta : source_color = vec3(0.76, 0.93, 0.63);
 uniform float viento = 1.0;
 uniform float brillo = 1.0;
+uniform vec2 alb_hierba = vec2(1.0);     // albedos: (K, VALOR) de Albedos3D; (1, 1) = como antes
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;     // estado oficial del suelo (Mundo3D.textura_estados()): aquí solo R quemado
 uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;     // R: hierba aplastada (solo aspecto; la escribe la maqueta, no es estado de juego)
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;    // R: 1 = hierba crecida (alta y tupida)
@@ -106,6 +108,8 @@ void fragment() {
 	// La normal se fija aquí (no en vertex) porque con cull_disabled la cara de atrás la invertiría.
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
 	vec3 c = mix(base, punta, smoothstep(0.0, 1.0, alto));
+	vec3 media_b = 0.5 * (base + punta);
+	c = (media_b + (c - media_b) * alb_hierba.x) * alb_hierba.y;     // albedos
 	c = mix(c, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: rastrojo pajizo, no negro
 	ALBEDO = c * tinte * brillo;
 	ROUGHNESS = 1.0;
@@ -121,6 +125,8 @@ render_mode cull_disabled, shadows_disabled;
 uniform sampler2D atlas : source_color, filter_linear_mipmap;
 uniform float viento = 1.0;
 uniform float brillo = 1.0;
+uniform vec2 alb_hierba = vec2(1.0);     // albedos: (K, VALOR) de Albedos3D; (1, 1) = como antes
+uniform vec3 alb_media = vec3(0.3);      // albedos: media lineal del atlas (por alfa), calculada al crear el material
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;
 uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;
@@ -158,7 +164,8 @@ void fragment() {
 	if (c.a < 0.5) {
 		discard;
 	}
-	ALBEDO = mix(c.rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7) * brillo;   // 6.14: pajizo, no negro
+	vec3 rgb = (alb_media + (c.rgb - alb_media) * alb_hierba.x) * alb_hierba.y;     // albedos: compresión hacia la media del atlas + valor
+	ALBEDO = mix(rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7) * brillo;   // 6.14: pajizo, no negro
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }
@@ -295,6 +302,7 @@ func _preparar() -> void:
 	_quad_flor.size = Vector2(1.0, 1.0)
 	_quad_flor.orientation = PlaneMesh.FACE_Y
 	_quad_flor.material = _mat_flor
+	Albedos3D.aplicar_hierba(_mat_matojo, _mat_tarjeta, (load(atlas_tarjetas) as Texture2D) if _mat_tarjeta != null else null, albedos_eow)
 
 
 ## Un bloque: briznas, tarjetas y flores de su rectángulo, con semilla propia (sale igual si se vuelve a crear).
