@@ -75,6 +75,7 @@ func _sombreado(et: String) -> void:
 	if r == null or r.material_agua() == null:
 		return
 	var m: ShaderMaterial = r.material_agua()
+	r.agua_filtro = false      # 22/10 (agua filtro): el filtro (por defecto encendido) tiene su prueba (prueba_agua_filtro.gd); aquí se mide la refracción y las olas como eran
 	var cod: String = m.shader.code
 	_ok("%s2 el shader lee la pantalla y la profundidad de la escena" % et, cod.contains("hint_screen_texture") and cod.contains("hint_depth_texture"))
 	_ok("%s3 el shader declara la tercera escala (ola3_altura, ola3_k, ola3_vel, ola3_dir, ola3_dir2)" % et,
@@ -107,6 +108,7 @@ func _sombreado(et: String) -> void:
 	_ok("%s11 …y vuelve" % et, is_equal_approx(float(m.get_shader_parameter("ola3_altura")), AguaRender3D.OLA3_ALTURA))
 	_ok("%s12 la maqueta lleva los interruptores agua_refraccion / agua_olas_tercera / sondas_por_sala" % et,
 		maqueta.get("agua_refraccion") == true and maqueta.get("agua_olas_tercera") == true and maqueta.get("sondas_por_sala") == true)
+	r.agua_filtro = true
 
 
 func _impacto(et: String) -> void:

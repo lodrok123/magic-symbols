@@ -771,6 +771,13 @@ var _camara_dof: CameraAttributesPractical = null
 @export var agua_refraccion: bool = AguaRender3D.REFRACCION
 ## agua EoW (22/10): la tercera escala de olas (AguaRender3D, constantes OLA3_*). Desmarcar = las olas de antes.
 @export var agua_olas_tercera: bool = AguaRender3D.OLA3_ACTIVA
+## agua filtro (22/10): el agua como FILTRO turquesa casi transparente sobre un fondo real (lecho de cantos con cáusticas, guijarros pequeños y desaturados, algas/rocas si hay modelos),
+## superficie casi limpia y espuma solo en la orilla (AguaRender3D, constantes FILTRO_*; LechoRio3D). Desmarcar = el agua estilizada de antes, exacta. Cambiarlo en vivo: `aplicar_agua_filtro()`.
+@export var agua_filtro: bool = AguaRender3D.FILTRO:
+	set(v):
+		agua_filtro = v
+		if is_node_ready():
+			aplicar_agua_filtro()
 var _env: Environment = null
 var _tilt: TiltShift3D = null
 var _sonda: ReflectionProbe = null
@@ -892,6 +899,13 @@ var _de_archivo: bool = false
 const ALTO_CAUCE: float = ALTO - 0.1          ## el lecho va 0,1 por debajo del suelo: se lee como zanja, y el agua lo tapa
 const ALTO_RUNAS: float = 3.1                 ## sobre el suelo: encima del dintel del arco
 var _guijarros: MultiMeshInstance3D = null
+## agua filtro: el material del lecho del río (LechoRio3D), el del suelo que sustituye, la malla del bloque (para cambiarle el material en vivo) y las casillas de agua (para rehacer guijarros y adornos).
+var _mat_lecho_agua: ShaderMaterial = null
+var _mat_suelo_lecho: Material = null
+var _malla_lecho_agua: ArrayMesh = null
+var _celdas_agua: Array[Transform3D] = []
+var _adornos_lecho: Node3D = null
+var _lecho_rio_medida: Dictionary = {}     ## {n, diam_max (de los guijarros pequeños), sat (media)}: para las pruebas (el MultiMesh no se puede leer sin GPU)
 var _agua_cauce: Dictionary = {}             ## casilla `c` -> MeshInstance3D de su agua (oculta hasta llenar_cauce)
 ## 13.9 (15/10, DIARIO 92): la casilla `c` ABIERTA a la simulación (`Terreno3D.es_cuenca`) es un POZO con fondo (PozoCauce3D), no el bloque macizo de
 ## ALTO_CAUCE. Cerrada se ve como siempre (el lecho seco del Bosque). `_actualizar_pozos` mira cada 0,1 s si alguna se abrió o se cerró.
@@ -1378,7 +1392,11 @@ func _construir_suelo() -> void:
 				tierra.append(t)
 	_multimalla(_malla_bloque(ALTO, mat_suelo, mat_lado), tierra)
 	if agua_fisica:
-		_multimalla(_malla_bloque(ALTO_AGUA - Lanzador3D.LECHO_AGUA, mat_suelo, mat_lado), agua)   # solo el lecho (el mismo de la simulación): el agua la dibuja AguaRender3D
+		# agua filtro: el bloque del lecho lleva su propio material (cantos + cáusticas) en vez del del suelo; `aplicar_agua_filtro` lo cambia en vivo con `surface_set_material`.
+		_mat_lecho_agua = LechoRio3D.crear_material(OSCURECER_SUELO)
+		_mat_suelo_lecho = mat_suelo
+		_malla_lecho_agua = _malla_bloque(ALTO_AGUA - Lanzador3D.LECHO_AGUA, _mat_lecho_agua if (agua_filtro and not Engine.is_editor_hint()) else mat_suelo, mat_lado)
+		_multimalla(_malla_lecho_agua, agua)   # solo el lecho (el mismo de la simulación): el agua la dibuja AguaRender3D
 	else:
 		_multimalla(_malla_bloque(ALTO_AGUA, _mat_agua, mat_lado), agua)
 	_construir_cauce(cauce, mat_lado)
@@ -1812,13 +1830,23 @@ func _vigilar_alturas(delta: float) -> void:
 func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 	if not agua_fisica or celdas.is_empty():
 		return
+	_celdas_agua = celdas
+	var filtro: bool = agua_filtro and not Engine.is_editor_hint()      # agua filtro: guijarros más pequeños, menos y desaturados; adornos si hay modelos
 	var y_lecho: float = ALTO_AGUA - Lanzador3D.LECHO_AGUA
 	var tfs: Array[Transform3D] = []
 	var cols: Array[Color] = []
+	var casillas_adorno: Array = []
+	var dmax: float = 0.0
 	for t in celdas:
 		var c := Vector2i(int(floorf(t.origin.x / S)), int(floorf(t.origin.z / S)))
 		if _letra(c) != "~":
 			continue          # bajo el puente (`b`) no se ve el agua ni el lecho: ahí no se esparcen guijarros
+		if filtro:
+			var junto_a_tierra: bool = false
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				if _letra(c + (d as Vector2i)) != "~":
+					junto_a_tierra = true
+			casillas_adorno.append({"c": c, "centro": Vector3(t.origin.x, y_lecho, t.origin.z), "profunda": not junto_a_tierra})
 		var n: int = 7 + (1 if _hash(c.x, c.y, 71) % 3 == 0 else 0)
 		for k in range(n):
 			var h: int = _hash(c.x, c.y, 80 + k)
@@ -1826,13 +1854,31 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 			var f2: float = float((h >> 10) % 1000) / 999.0
 			var f3: float = float((h >> 20) % 1000) / 999.0
 			var grande: bool = k == 7                # el canto grande de cada tercera casilla
+			if filtro and not grande and float(k) / 6.0 >= LechoRio3D.GUIJARRO_DENSIDAD:
+				continue                              # el filtro deja menos guijarros (se cuentan por k para que sea reproducible por casilla)
 			var diam: float = lerpf(0.5, 0.75, f1) if grande else lerpf(0.14, 0.34, f1)
+			if filtro:
+				diam *= LechoRio3D.GUIJARRO_ESCALA
+			if not grande:
+				dmax = maxf(dmax, diam)
 			var alto: float = diam * (0.55 if grande else 0.4)
 			var pos := Vector3(t.origin.x + (f2 - 0.5) * S * 0.78, y_lecho + alto * 0.3, t.origin.z + (f3 - 0.5) * S * 0.78)
 			tfs.append(Transform3D(Basis(Vector3.UP, float(h % 628) / 100.0).scaled(Vector3(diam, alto, diam * lerpf(0.75, 1.0, f2))), pos))
 			var col: Color = Paleta3D.PIEDRA_OSCURA.lerp(Paleta3D.PIEDRA, f3)
 			col = col.lerp(Paleta3D.TIERRA, 0.3 if f1 > 0.5 else 0.12)
-			cols.append(col)
+			cols.append(LechoRio3D.color_guijarro(col) if filtro else col)
+	var sat: float = 0.0
+	for i in range(tfs.size()):
+		sat += cols[i].s
+	_lecho_rio_medida = {"n": tfs.size(), "diam_max": dmax, "sat": sat / maxf(float(tfs.size()), 1.0)}
+	var previo: Node = get_node_or_null("lecho_rio")
+	if previo != null:
+		remove_child(previo)
+		previo.queue_free()
+	if _adornos_lecho != null and is_instance_valid(_adornos_lecho):
+		remove_child(_adornos_lecho)
+		_adornos_lecho.queue_free()
+	_adornos_lecho = null
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -1846,7 +1892,21 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 	mi.multimesh = mm
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
+	if filtro:
+		# Algas y rocas de río (ids en LechoRio3D.IDS_ALGAS / IDS_ROCAS): solo si hay modelos en arte/meshy/piezas/ o arte/suelo_meshy/; si no, null y no se pone nada.
+		_adornos_lecho = LechoRio3D.construir_adornos(casillas_adorno, S, func(x: int, y: int, sal: int) -> int: return _hash(x, y, sal))
+		if _adornos_lecho != null:
+			add_child(_adornos_lecho)
 
+
+## agua filtro (22/10): aplica el interruptor `agua_filtro` EN VIVO (también al montar): el sombreado del agua, el material del bloque del lecho, los guijarros y los adornos.
+func aplicar_agua_filtro() -> void:
+	if _agua_render != null:
+		_agua_render.agua_filtro = agua_filtro
+	if _malla_lecho_agua != null:
+		_malla_lecho_agua.surface_set_material(0, _mat_lecho_agua if (agua_filtro and not Engine.is_editor_hint()) else _mat_suelo_lecho)
+	if not _celdas_agua.is_empty():
+		_construir_lecho_rio(_celdas_agua)
 
 ## --- 6.16 HIELO: capa de pulido sobre el agua helada ---
 ## Placa translúcida y brillante, con grietas claras, y dos cristales en una esquina (como `cristal_hielo`). Se borra con la casilla.
@@ -4892,6 +4952,9 @@ func _montar_agua_fisica() -> void:
 	_agua_render.caida_detectada.connect(_onda_de_caida)    # y donde el agua CAE se levantan anillos en la base
 	_agua_render.agua_refraccion = agua_refraccion          # agua EoW: refracción y tercera escala de olas (interruptores de la maqueta)
 	_agua_render.olas_tercera_escala = agua_olas_tercera
+	_agua_render.agua_filtro = agua_filtro                 # agua filtro (22/10): el agua como filtro turquesa sobre el lecho real
+	if _mat_lecho_agua != null:
+		_agua_render.enlazar_lecho(_mat_lecho_agua)         # el lecho lee la profundidad del agua para sus cáusticas
 	add_child(_agua_render)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()

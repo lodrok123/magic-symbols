@@ -70,9 +70,46 @@ const OLA3_VEL: float = 0.55           ## rad/s
 const OLA3_RUMBO: float = 200.0        ## grados (en XZ) hacia donde avanza
 const OLA3_CRUCE: float = 68.0         ## grados que gira la segunda onda que se cruza con la primera (rompe las rayas)
 
+# --- 22/10 (agua filtro; referencia: un río de Echoes of Wisdom). El agua deja de ser una lámina azul con alfa y pasa a ser un FILTRO turquesa casi transparente sobre un fondo REAL
+# (el lecho de cantos, las rocas, las algas): color final = fondo refractado × transmitancia de Beer por profundidad, con un poco de `FILTRO_COLOR_HONDO` solo en lo hondo.
+# Superficie casi limpia (sin bandas de dos tonos, sin red de cáusticas, sin franjas), espuma solo en la orilla y donde la corriente rompe fuerte. El hielo no cambia.
+# Con `agua_filtro = false` el sombreado hace exactamente lo de antes. El filtro necesita leer la pantalla, así que usa el camino de la refracción aunque `agua_refraccion` esté apagado.
+const FILTRO: bool = true
+## Absorción por canal (R, G, B) por u de profundidad: el rojo se come enseguida y el azul casi nada, de ahí el turquesa. Con 0,9 u de agua pasa (0,18 · 0,67 · 0,76).
+const FILTRO_ABSORCION: Vector3 = Vector3(1.9, 0.45, 0.30)
+## Multiplica la absorción (más alto = el agua se oscurece y se tiñe antes).
+const FILTRO_DENSIDAD: float = 1.0
+## Color al que tiende el agua en lo muy hondo (la luz dispersada). Es un turquesa oscuro: el «albedo propio» del agua es solo este color por `FILTRO_OPACIDAD_HONDO`; nunca blanco lechoso.
+const FILTRO_COLOR_HONDO: Color = Color(0.06, 0.33, 0.38)
+## Profundidad (u) a la que lo hondo ya se ve casi del todo `FILTRO_COLOR_HONDO` (prof_max_visible): la dispersión crece como 1 − exp(−prof / esto).
+const FILTRO_PROF_MAX: float = 1.8
+## Cuánto cuenta la dispersión como máximo (0-1): lo justo para que lo muy hondo no se vea vacío; el resto es fondo real.
+const FILTRO_OPACIDAD_HONDO: float = 0.45
+## Contraste de las facetas con el filtro (era 0,2): casi nada, la superficie queda limpia.
+const FILTRO_CONTRASTE_FACETA: float = 0.0
+## Altura de la tercera escala de olas con el filtro (era OLA3_ALTURA): más suave.
+const FILTRO_OLA3_ALTURA: float = 0.35
+## Cuánto de la normal es la SUAVE (gradiente de las olas) en vez de las facetas planas: con facetas, el fondo refractado tendría saltos en cada arista.
+const FILTRO_SUAVIDAD: float = 0.9
+## Escala de las manchas de espuma del centro (1 = como antes) y de la espuma de crestas/impactos (la salpicadura de un golpe se sigue viendo).
+const FILTRO_MANCHAS: float = 0.3
+const FILTRO_CRESTAS: float = 0.6
+## Fuerza del brillo especular (el de antes era 1) y del reflejo de cielo en los rasantes.
+const FILTRO_ESPECULAR: float = 0.55
+const FILTRO_FRESNEL: float = 0.10
+## Opacidad máxima de las paredes laterales con el filtro (en el borde del agua).
+const FILTRO_ALFA_PARED: float = 0.35
+## Fuerza del «lecho falso» (la red de Voronoi pintada en la superficie, 16/10): la de siempre, y 0 con el filtro (el lecho de verdad está debajo, ver LechoRio3D).
+const LECHO_FALSO: float = 0.5
+const LECHO_FALSO_FILTRO: float = 0.0
+
 @export var agua_refraccion: bool = REFRACCION:
 	set(v):
 		agua_refraccion = v
+		_aplicar_eow()
+@export var agua_filtro: bool = FILTRO:
+	set(v):
+		agua_filtro = v
 		_aplicar_eow()
 @export var olas_tercera_escala: bool = OLA3_ACTIVA:
 	set(v):
@@ -138,6 +175,19 @@ uniform float refr_prof_tope = 0.6;
 uniform float refr_orilla = 0.3;
 uniform float refr_margen = 0.05;
 uniform float refr_borde = 0.04;
+// 22/10 (agua filtro) · ver FILTRO_* en GDScript. filtro = 0: nada de esto se usa.
+uniform float filtro = 0.0;
+uniform vec3 filtro_k = vec3(1.9, 0.45, 0.30);
+uniform float filtro_dens = 1.0;
+uniform vec3 filtro_hondo : source_color = vec3(0.06, 0.33, 0.38);
+uniform float filtro_prof_max = 1.8;
+uniform float filtro_opacidad = 0.45;
+uniform float filtro_contraste_faceta = 0.0;
+uniform float filtro_suavidad = 0.9;
+uniform float filtro_manchas = 0.3;
+uniform float filtro_crestas = 0.6;
+uniform float filtro_espec = 0.55;
+uniform float filtro_fresnel = 0.10;
 // 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
 uniform float ola3_altura = 0.0;
 uniform float ola3_k = 1.14;                  // 2π / longitud
@@ -356,6 +406,15 @@ vec3 celdas(vec2 p) {
 	return vec3(d1, d2 - d1, id);
 }
 
+// Normal SUAVE de las olas en `p` (agua filtro): gradiente de `ola_est` por diferencias finitas, a la misma escala que las facetas (altura_ola por u).
+vec3 normal_suave(vec2 p, float t) {
+	float e = 0.12;
+	float h0 = ola_est(p, t);
+	float gx = (ola_est(p + vec2(e, 0.0), t) - h0) / e;
+	float gz = (ola_est(p + vec2(0.0, e), t) - h0) / e;
+	return normalize(vec3(-gx * altura_ola, 1.0, -gz * altura_ola));
+}
+
 // Franjas alargadas en el sentido de la corriente: ruido estirado a lo largo de `dir`.
 float franja(vec2 uv, vec2 dir) {
 	vec2 per = vec2(-dir.y, dir.x);
@@ -399,6 +458,12 @@ void fragment() {
 	}
 	vec3 nm = normalize(mix(normal_faceta(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
 			normal_faceta(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));     // las olas viajan con la corriente
+	if (filtro > 0.5) {
+		// Agua filtro: la normal es casi toda la suave (sin aristas de faceta en el fondo refractado ni en el brillo).
+		vec3 ns = normalize(mix(normal_suave(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
+				normal_suave(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));
+		nm = normalize(mix(nm, ns, filtro_suavidad));
+	}
 	nm = normalize(nm + (gn - vec3(0.0, 1.0, 0.0)) * 2.0);
 	// Ondas que reaccionan: su pendiente se suma a la normal.
 	float cresta = 0.0;
@@ -421,7 +486,11 @@ void fragment() {
 	float hondo_b = floor(smoothstep(prof_clara, prof_color, v_prof) * bandas + 0.5) / bandas;   // y el color, con su propia rampa
 	vec3 ce = mix(color_somero_est, color_hondo_est, hondo_b);
 	float lf = clamp(dot(nm, normalize(vec3(0.45, 1.0, 0.3))), 0.0, 1.0);
-	ce *= 1.0 - contraste_faceta + contraste_faceta * 1.3 * smoothstep(0.7, 1.0, lf);
+	float cfa = filtro > 0.5 ? filtro_contraste_faceta : contraste_faceta;
+	ce *= 1.0 - cfa + cfa * 1.3 * smoothstep(0.7, 1.0, lf);
+	if (filtro > 0.5) {
+		ce = color_espuma;         // agua filtro: el color del agua lo pone el filtro; aquí solo queda la base de la espuma y del hielo
+	}
 
 	// Franjas que corren con la corriente (flow map de dos fases desfasadas medio ciclo y mezcladas).
 	vec2 uv = pm.xz / tam_franja;
@@ -436,7 +505,7 @@ void fragment() {
 	// en la dirección contraria a la mirada tanto más cuanto más profundo es el agua (paralaje). Sobre ese punto se pinta un fondo oscuro
 	// y la red de cáusticas (celdas de Voronoi); al mover la cámara el lecho se desliza respecto a la superficie y se lee como profundidad.
 	// Pesa más donde el agua es somera/translúcida (ahí se ve el fondo) y casi nada donde ya es opaca; el hielo no lo lleva.
-	if (lecho > 0.0 && hielo < 0.5) {
+	if (lecho > 0.0 && hielo < 0.5 && filtro < 0.5) {
 		vec3 vw = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 		vec2 pl = pm.xz - vw.xz / max(vw.y, 0.35) * v_prof * prof_lecho;
 		vec3 cl = celdas(pl / 0.9 + vec2(TIME * 0.03, -TIME * 0.02));
@@ -457,8 +526,12 @@ void fragment() {
 	// solo existen donde el agua «lleva algo»: corriente (`rompe`) u ondas (`cresta`). Sin eso el agua queda limpia. Se quita el anillo fino de
 	// antes (era un segundo escalón de 0,08 de ancho que dibujaba contornos duros).
 	float umbral_m = espuma_manchas - rompe * 0.3;
-	float manchas = smoothstep(umbral_m - 0.02, umbral_m + 0.10, suma) * clamp(rompe * 1.6 + cresta, 0.0, 1.0);
+	float cr_f = filtro > 0.5 ? filtro_crestas : 1.0;     // agua filtro: las crestas de un impacto se ven, pero menos
+	float manchas = smoothstep(umbral_m - 0.02, umbral_m + 0.10, suma) * clamp(rompe * 1.6 + cresta * cr_f, 0.0, 1.0);
 	manchas *= smoothstep(0.06, 0.2, v_prof);
+	if (filtro > 0.5) {
+		manchas *= filtro_manchas;     // agua filtro: sin manchas en el centro salvo donde la corriente rompe fuerte, y discretas
+	}
 	// Orilla: espuma nítida donde la profundidad (interpolada hasta el borde) es casi cero; se funde con el agua hacia dentro.
 	// 13.9 (d): el ruido del borde lo arrastra la corriente (el mismo flow map), y por dentro de la orilla va el menisco: una franja ancha y tenue.
 	float borde = ruido(pm.xz * 2.2 - dir * TIME * clamp(vel, 0.0, 2.0) * 0.5 + TIME * 0.2);
@@ -467,7 +540,7 @@ void fragment() {
 	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04);
 	linea *= linea;
 	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde);
-	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8)), 0.0, 1.0);
+	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8 * cr_f)), 0.0, 1.0);
 	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
 	// tiene un vecino mucho más alto) niebla de espuma que se agita; en el LABIO (el que tiene uno mucho más bajo) un filo de agua rápida.
 	float pend_s = 1.0 - clamp(gn.y, 0.0, 1.0);
@@ -514,7 +587,7 @@ void fragment() {
 	ce = mix(ce, vec3(0.88, 0.94, 1.0), fres * 0.25);
 	float alfa_f = clamp(alfa_agua, 0.0, 1.0);
 	v_spec = 1.0;
-	if (refraccion > 0.5) {
+	if (refraccion > 0.5 || filtro > 0.5) {
 		// REFRACCIÓN (agua EoW). Cuánto se deforma el fondo: la INCLINACIÓN de la superficie respecto a la plana (en el espacio de la cámara), por la profundidad (con tope),
 		// y nada en la orilla (sin agua que doble) ni en el hielo (es sólido). El desplazamiento está en u de mundo y se pasa a pantalla con la proyección (ortogonal o no).
 		float amp = min(max(v_prof, 0.0), refr_prof_tope) * smoothstep(0.0, refr_orilla, prof_e) * (1.0 - hielo);
@@ -535,10 +608,24 @@ void fragment() {
 		float bueno = smoothstep(0.0, refr_margen, detras) * smoothstep(0.0, refr_margen, bajo) * smoothstep(0.0, refr_borde, borde_p);
 		vec2 uv_f = mix(SCREEN_UV, uv_r, bueno);
 		vec3 fondo_r = texture(pantalla, uv_f).rgb;
+		if (filtro > 0.5) {
+			// AGUA FILTRO: lo que se ve es el fondo refractado × la transmitancia de Beer de la columna de agua (por canal: el rojo se absorbe antes → turquesa),
+			// y solo en lo hondo un poco de color propio (dispersión). La espuma, el menisco y el hielo van encima con su propia opacidad.
+			float pf = max(v_prof, 0.0);
+			vec3 trans = exp(-filtro_k * filtro_dens * pf);
+			float scat = (1.0 - exp(-pf / filtro_prof_max)) * filtro_opacidad;
+			float a_x = clamp(max(max(espuma, men * 0.45), hielo), 0.0, 1.0);
+			vec3 alb_f = filtro_hondo * scat + vec3(0.88, 0.94, 1.0) * fres * filtro_fresnel;
+			ALBEDO = mix(alb_f, ce * brillo, a_x);
+			EMISSION = fondo_r * trans * (1.0 - scat) * (1.0 - a_x);
+			ALPHA = 1.0;
+			v_spec = mix(filtro_espec, 1.0, hielo);
+		} else {
 		ALBEDO = ce * brillo * alfa_f;
 		EMISSION = fondo_r * (1.0 - alfa_f);
 		ALPHA = 1.0;
 		v_spec = alfa_f;
+		}
 	} else {
 		ALBEDO = ce * brillo;
 		ALPHA = alfa_f;
@@ -578,6 +665,11 @@ uniform float menisco = 0.55;
 uniform float brillo = 1.0;
 uniform float contraste = 1.2;
 uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+// 22/10 (agua filtro): paredes casi transparentes, del color de lo hondo, con el filo claro del menisco.
+uniform float filtro = 0.0;
+uniform vec3 filtro_hondo : source_color = vec3(0.06, 0.33, 0.38);
+uniform float filtro_prof_max = 1.8;
+uniform float filtro_alfa = 0.35;
 
 varying float v_t;
 varying float v_p;
@@ -595,6 +687,10 @@ void fragment() {
 	ce = mix(ce, color_espuma, filo * menisco);
 	ALBEDO = ce * brillo;
 	ALPHA = clamp(mix(alfa_clara, alfa_rio, sqrt(hondo)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
+	if (filtro > 0.5) {
+		ALBEDO = mix(filtro_hondo, color_espuma, filo * menisco) * brillo;
+		ALPHA = clamp(filtro_alfa * (1.0 - exp(-max(v_p, 0.0) / filtro_prof_max)) * (0.6 + 0.4 * v_t) + filo * 0.3, 0.0, 1.0);
+	}
 	ROUGHNESS = 0.2;
 	SPECULAR = 0.4;
 }
@@ -724,15 +820,53 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("refr_orilla", REFR_ORILLA)
 	_mat.set_shader_parameter("refr_margen", REFR_MARGEN)
 	_mat.set_shader_parameter("refr_borde", REFR_BORDE)
-	_mat.set_shader_parameter("ola3_altura", OLA3_ALTURA if olas_tercera_escala else 0.0)
+	_mat.set_shader_parameter("ola3_altura", (FILTRO_OLA3_ALTURA if agua_filtro else OLA3_ALTURA) if olas_tercera_escala else 0.0)
 	_mat.set_shader_parameter("ola3_k", TAU / OLA3_LONGITUD)
 	_mat.set_shader_parameter("ola3_vel", OLA3_VEL)
 	_mat.set_shader_parameter("ola3_dir", Vector2.from_angle(deg_to_rad(OLA3_RUMBO)))
 	_mat.set_shader_parameter("ola3_dir2", Vector2.from_angle(deg_to_rad(OLA3_RUMBO + OLA3_CRUCE)))
-	# Con refracción el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
-	_mat.render_priority = AGUA_PRIORIDAD if agua_refraccion else 0
+	# Agua filtro: el filtro, el lecho falso apagado y las constantes FILTRO_* (el sombreado lee la pantalla con filtro aunque la refracción esté apagada).
+	_mat.set_shader_parameter("filtro", 1.0 if agua_filtro else 0.0)
+	_mat.set_shader_parameter("filtro_k", FILTRO_ABSORCION)
+	_mat.set_shader_parameter("filtro_dens", FILTRO_DENSIDAD)
+	_mat.set_shader_parameter("filtro_hondo", FILTRO_COLOR_HONDO)
+	_mat.set_shader_parameter("filtro_prof_max", FILTRO_PROF_MAX)
+	_mat.set_shader_parameter("filtro_opacidad", FILTRO_OPACIDAD_HONDO)
+	_mat.set_shader_parameter("filtro_contraste_faceta", FILTRO_CONTRASTE_FACETA)
+	_mat.set_shader_parameter("filtro_suavidad", FILTRO_SUAVIDAD)
+	_mat.set_shader_parameter("filtro_manchas", FILTRO_MANCHAS)
+	_mat.set_shader_parameter("filtro_crestas", FILTRO_CRESTAS)
+	_mat.set_shader_parameter("filtro_espec", FILTRO_ESPECULAR)
+	_mat.set_shader_parameter("filtro_fresnel", FILTRO_FRESNEL)
+	_mat.set_shader_parameter("lecho", LECHO_FALSO_FILTRO if agua_filtro else LECHO_FALSO)
+	# Con refracción (o con filtro) el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
+	var lee_pantalla: bool = agua_refraccion or agua_filtro
+	_mat.render_priority = AGUA_PRIORIDAD if lee_pantalla else 0
 	if _mat_pared != null:
-		_mat_pared.render_priority = PARED_PRIORIDAD if agua_refraccion else 0
+		_mat_pared.render_priority = PARED_PRIORIDAD if lee_pantalla else 0
+		_mat_pared.set_shader_parameter("filtro", 1.0 if agua_filtro else 0.0)
+		_mat_pared.set_shader_parameter("filtro_hondo", FILTRO_COLOR_HONDO)
+		_mat_pared.set_shader_parameter("filtro_prof_max", FILTRO_PROF_MAX)
+		_mat_pared.set_shader_parameter("filtro_alfa", FILTRO_ALFA_PARED)
+	_aplicar_lecho()
+
+
+## Agua filtro: el material del LECHO de cantos (LechoRio3D) recibe aquí la textura de datos de la simulación (profundidad por trocito: las cáusticas son más fuertes con poco
+## fondo) y el tamaño del trocito. Se vuelve a dar cada vez que la textura se rehace (primera lectura).
+var _mat_lecho: ShaderMaterial = null
+
+
+func enlazar_lecho(m: ShaderMaterial) -> void:
+	_mat_lecho = m
+	_aplicar_lecho()
+
+
+func _aplicar_lecho() -> void:
+	if _mat_lecho == null or _tex_b == null or sim == null:
+		return
+	_mat_lecho.set_shader_parameter("datos", _tex_b)
+	_mat_lecho.set_shader_parameter("lado_trocito", sim.l)
+	_mat_lecho.set_shader_parameter("usa_datos", 1.0)
 
 
 ## El material del agua (para las pruebas y los ajustes finos desde fuera).
@@ -842,6 +976,7 @@ func _leer(primera: bool) -> void:
 	if _tex_b == null or primera or _tex_b.get_width() != img.get_width() or _tex_b.get_height() != img.get_height():
 		_tex_a = ImageTexture.create_from_image(img)
 		_tex_b = ImageTexture.create_from_image(img)
+		_aplicar_lecho()
 	else:
 		_tex_a.update(_img_b)
 		_tex_b.update(img)
