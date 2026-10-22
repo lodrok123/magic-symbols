@@ -2160,6 +2160,8 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 	var mi := MultiMeshInstance3D.new()
 	mi.name = "lecho_rio"
 	mi.multimesh = mm
+	if filtro:
+		mi.material_override = LechoRio3D.material_guijarro_filtro(mm.mesh.surface_get_material(0))      # los guijarros no quedan negros bajo el filtro turquesa
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 	if filtro and agua_adornos:

@@ -32,6 +32,8 @@ const GUIJARRO_ESCALA: float = 0.7
 const GUIJARRO_DENSIDAD: float = 0.6
 const GUIJARRO_COLOR_PROPIO: float = 0.45       ## 1 = el color de la paleta; 0 = gris del mismo brillo
 const GUIJARRO_BRILLO: float = 1.0
+## Realce (×) del albedo de los guijarros bajo el filtro: el agua se come el rojo y un gris medio quedaba casi negro (60,98,95 frente a 159,204,186 del lecho). Con 1,5 se leen como cantos del tono del lecho.
+const GUIJARRO_REALCE_FILTRO: float = 1.5
 
 ## --- Assets que pedirá Pablo a Meshy (ids). Se cargan de CARPETAS si existen; si no, no se esparce nada. ---
 const IDS_ALGAS: Array = ["alga_0", "alga_1", "alga_2", "alga_3"]
@@ -308,6 +310,15 @@ static func crear_material(brillo: float = 0.78) -> ShaderMaterial:
 	m.set_shader_parameter("caus_prof_poca", CAUS_PROF_POCA)
 	m.set_shader_parameter("caus_poca", CAUS_POCA)
 	return m
+
+
+## Material de los guijarros con el filtro: el de siempre (color de vértice sRGB) con el albedo realzado GUIJARRO_REALCE_FILTRO veces (ver la constante). El resto de colores no cambia.
+static func material_guijarro_filtro(base: Material) -> Material:
+	var b: StandardMaterial3D = base.duplicate() as StandardMaterial3D
+	if b == null:
+		return base
+	b.albedo_color = Color(GUIJARRO_REALCE_FILTRO, GUIJARRO_REALCE_FILTRO, GUIJARRO_REALCE_FILTRO, 1.0)
+	return b
 
 
 ## Color de un guijarro con el filtro: la paleta desaturada hacia su gris y un poco más oscuro.

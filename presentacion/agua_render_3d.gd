@@ -107,6 +107,25 @@ const FILTRO_TINTE_VISTO: float = 1.0
 const LECHO_FALSO: float = 0.5
 const LECHO_FALSO_FILTRO: float = 0.0
 
+## 22/10 (agua blanca al llenarse) · La espuma de orilla, el menisco y el ruido del borde van pegados al CONTORNO real del agua, no a «poca profundidad»: valen entero a menos
+## de ORILLA_DIST_0 (u) de él y nada a más de ORILLA_DIST_1 (el menisco, 1,5 veces). ORILLA_GRAD_MIN = gradiente mínimo de la profundidad (u/u) al estimar esa distancia.
+const ORILLA_DIST_0: float = 0.30
+const ORILLA_DIST_1: float = 0.70
+const ORILLA_GRAD_MIN: float = 0.05
+## Pendiente mínima del LECHO entre trocitos (u/u) para que una inclinación de la superficie cuente como caída (cortina, niebla de base, labio).
+const CAIDA_LECHO_MIN: float = 0.08
+
+## 22/10 (más movimiento, estilo Zelda Echoes of Wisdom: suave, no ruidoso) · Cuánto avanzan franjas, olas y espuma por ciclo del flow map y por u/s de corriente (a 1/VEL_FRANJA
+## ciclos por segundo, 0,55: con 1,8 viajan justo a la velocidad de la corriente; 2,0 un poco por encima, que es lo que se lee como «corre»).
+const AVANCE_FLUJO: float = 2.0
+## Velocidad (u/s) de las vetas de la cortina de una caída, y fuerza y velocidad relativa de su segunda capa de vetas.
+const VEL_CAIDA: float = 2.4
+const CAIDA_VETA2: float = 0.7
+const CAIDA_VETA2_VEL: float = 1.5
+## Opacidad máxima (0-1) de las franjas claras de la corriente con el agua filtro (el río se ve correr). 0 = como antes (sin franjas).
+const FILTRO_FRANJAS: float = 0.40
+const FILTRO_FRANJAS_UMBRAL: float = 0.54
+
 @export var agua_refraccion: bool = REFRACCION:
 	set(v):
 		agua_refraccion = v
@@ -143,11 +162,14 @@ uniform float menisco = 0.55;                 // fuerza de la franja clara de la
 uniform sampler2D flujo : filter_nearest, hint_default_black, repeat_disable;   // RG = dirección × tamaño (0-1) de la corriente propia del río, por trocito (`proveedor_flujo`)
 uniform float flujo_activo = 0.0;
 uniform float vel_rio = 0.9;                  // u/s que se suman a la corriente de la simulación en la dirección del flujo (0 = el río no corre solo)
-uniform float avance_flujo = 1.5;             // cuánto avanzan franjas, olas y espuma por ciclo y por u/s de corriente (antes 0,9: iban a la mitad)
+uniform float avance_flujo = 2.0;             // cuánto avanzan franjas, olas y espuma por ciclo y por u/s de corriente (0,9 → 1,5 → 2,0 el 22/10: con 1,5 iban al 82 % de la corriente; ver AVANCE_FLUJO)
 uniform float adveccion_olas = 1.0;           // 0 = las facetas y la espuma no viajan con la corriente
 uniform float caida_fuerza = 1.0;             // 0 = sin efecto de cascada
 uniform float caida_pend_min = 0.12;          // inclinación (1 − normal.y) a partir de la cual la superficie es una caída
-uniform float vel_caida = 1.6;                // velocidad (u/s) de las vetas de la cortina
+uniform float caida_veta2 = 0.7;              // 22/10: fuerza (0-1) de la segunda capa de vetas de la cortina (CAIDA_VETA2)
+uniform float caida_veta2_vel = 1.5;          // y su velocidad respecto a la primera (CAIDA_VETA2_VEL)
+uniform float caida_lecho_min = 0.08;        // 22/10: y pendiente del LECHO (u/u entre trocitos) a partir de la cual hay caída de verdad (si no, es el frente de una lámina que se llena)
+uniform float vel_caida = 2.4;                // velocidad (u/s) de las vetas de la cortina (1,6 → 2,4 el 22/10; ver VEL_CAIDA)
 uniform sampler2D topes : filter_nearest, hint_default_black, repeat_disable;   // 13.9 (c): Y máxima a la que se dibuja cada trocito (0 = sin tope)
 uniform float topes_activos = 0.0;
 uniform float bandas = 3.0;                   // escalones entre somero y hondo
@@ -161,6 +183,9 @@ uniform float prof_lecho = 0.9;               // cuánto se desplaza el lecho po
 uniform vec3 color_lecho : source_color = vec3(0.16, 0.38, 0.55);     // el fondo visto a través: más oscuro y frío que la arena
 uniform vec3 color_causticas : source_color = vec3(0.72, 0.93, 1.0);  // las redes de luz que dibuja el agua sobre el lecho
 uniform float transicion_orilla = 0.08;       // profundidad (u) en la que la espuma de la orilla se funde con el agua
+uniform float orilla_dist_0 = 0.30;           // 22/10: a menos de esta distancia (u) del contorno del agua la espuma y el ruido de borde valen entero…
+uniform float orilla_dist_1 = 0.70;           // …y a más de esta, nada (ver ORILLA_DIST_* en GDScript); el menisco usa 1,5 veces estas distancias
+uniform float orilla_grad_min = 0.05;         // gradiente mínimo de la profundidad (u/u) al calcular esa distancia: tope de la distancia en agua llana
 uniform float vel_espuma = 1.1;               // desde esta corriente (u/s) rompe en espuma
 uniform float tam_franja = 0.8;               // tamaño de las franjas de la corriente (u)
 uniform float vel_franja = 0.55;              // ciclos por segundo del flow map
@@ -193,6 +218,8 @@ uniform float filtro_crestas = 0.6;
 uniform float filtro_espec = 0.55;
 uniform float filtro_fresnel = 0.10;
 uniform float filtro_tinte_visto = 1.0;
+uniform float filtro_franjas_umbral = 0.54;   // 22/10: valor del ruido de franjas a partir del cual hay veta con el agua filtro (FILTRO_FRANJAS_UMBRAL)
+uniform float filtro_franjas = 0.40;        // 22/10: opacidad máxima (0-1) de las franjas de la corriente en el agua filtro (FILTRO_FRANJAS)
 // 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
 uniform float ola3_altura = 0.0;
 uniform float ola3_k = 1.14;                  // 2π / longitud
@@ -278,9 +305,20 @@ vec4 dato(ivec2 p) {
 	return mix(texelFetch(datos_a, p, 0), texelFetch(datos_b, p, 0), mezcla);
 }
 
-void vertex() {
+// 22/10 (esquinas) · Lo que el dibujo sabe de UN trocito de simulación. La malla del agua tiene un vértice por trocito Y UNO EXTRA en el centro de cada cuadrito
+// (abanico de 4 triángulos, ver `_construir_malla`): el de centro combina los cuatro trocitos de su alrededor con `combina_centro`.
+struct Troc {
+	float y;           // altura de la superficie en el vértice (con hielo, topes y la bajada de la lámina)
+	float prof;        // profundidad con signo: negativa en un trocito seco que adopta la de su vecino mojado (la orilla cae entre ambos)
+	vec2 corr;         // corriente (simulación + flow map del río)
+	float orilla;      // 1 = toca tierra (franja de orilla)
+	vec2 caida;        // (base, labio) de una caída, en pendiente del LECHO
+	float hielo;       // 0-1
+	float mojado;      // 1 = el trocito tiene agua de verdad (g >= minima), 0 = seco
+};
+
+Troc troc(ivec2 p) {
 	ivec2 s = textureSize(datos_a, 0);
-	ivec2 p = ivec2(floor(UV * vec2(s)));
 	vec4 d = dato(p);
 	float y = d.r;
 	float prof = d.g;
@@ -321,7 +359,9 @@ void vertex() {
 		for (int k = 0; k < 4; k++) {
 			vec4 n2 = dato(p + dir2[k]);
 			if (n2.g >= minima) {
-				float dy = (n2.r - d.r) / lado_trocito;
+				// 22/10: desnivel del LECHO (R - G = altura − profundidad), no de la superficie. Una lámina que se llena tiene escalones de superficie
+				// entre trocitos llenos y vacíos sobre un lecho llano, y eso no es una cascada (antes salía niebla blanca de base en todo el frente).
+				float dy = ((n2.r - n2.g) - (d.r - d.g)) / lado_trocito;
 				base_c = max(base_c, dy);
 				labio_c = max(labio_c, -dy);
 			} else {
@@ -329,9 +369,10 @@ void vertex() {
 			}
 		}
 	}
-	v_caida = vec2(base_c, labio_c);
+	float hf = 0.0;
 	if (hielo_activo > 0.5) {
-		y += alto_hielo * hielo_f(p);                  // el hielo sobresale un poco: se ve una losa, no una mancha
+		hf = hielo_f(p);
+		y += alto_hielo * hf;                          // el hielo sobresale un poco: se ve una losa, no una mancha
 	}
 	if (topes_activos > 0.5) {
 		float tp = texelFetch(topes, clamp(p, ivec2(0), s - 1), 0).r;
@@ -343,16 +384,55 @@ void vertex() {
 	// con el agua llena (prof > 2·bajada) la bajada es siempre `bajada_lamina`, igual en pozo, canal y estanque. Va al final, después
 	// de los topes y del hielo, para que todo lo que se dibuja baje a la vez. `_reconstruir_paredes` aplica la misma cuenta a la cima de la pared.
 	y -= min(bajada_lamina, 0.5 * abs(prof));
+	return Troc(y, prof, corr, orilla, vec2(base_c, labio_c), hf, d.g >= minima ? 1.0 : 0.0);
+}
+
+// Vértice de CENTRO de un cuadrito: combina sus cuatro trocitos. Si el cuadrito mezcla agua y seco, su profundidad es 0 (el contorno del agua pasa por el
+// centro: las esquinas, convexas o cóncavas, quedan cuadradas y sin el chaflán que dejaba un triángulo vacío según la diagonal); altura, corriente, orilla,
+// caída y hielo salen de los trocitos mojados. Si los cuatro son iguales (todos mojados o todos secos), es la media de los cuatro.
+Troc combina_centro(Troc a, Troc b, Troc c, Troc d) {
+	float n = a.mojado + b.mojado + c.mojado + d.mojado;
+	float w_a = n > 0.5 && n < 3.5 ? a.mojado : 1.0;           // en un cuadrito mixto solo cuentan los mojados; si no, los cuatro
+	float w_b = n > 0.5 && n < 3.5 ? b.mojado : 1.0;
+	float w_c = n > 0.5 && n < 3.5 ? c.mojado : 1.0;
+	float w_d = n > 0.5 && n < 3.5 ? d.mojado : 1.0;
+	float k = 1.0 / (w_a + w_b + w_c + w_d);
+	Troc r;
+	r.y = (a.y * w_a + b.y * w_b + c.y * w_c + d.y * w_d) * k;
+	r.corr = (a.corr * w_a + b.corr * w_b + c.corr * w_c + d.corr * w_d) * k;
+	r.caida = (a.caida * w_a + b.caida * w_b + c.caida * w_c + d.caida * w_d) * k;
+	r.hielo = (a.hielo * w_a + b.hielo * w_b + c.hielo * w_c + d.hielo * w_d) * k;
+	r.orilla = (a.orilla + b.orilla + c.orilla + d.orilla) * 0.25;     // la media de los cuatro: el vaivén del centro sigue al de sus esquinas (con el máximo salían facetas brillantes)
+	r.prof = (a.prof * w_a + b.prof * w_b + c.prof * w_c + d.prof * w_d) * k;
+	if (n > 0.5 && n < 3.5) {
+		r.prof = 0.0;
+		r.orilla = 1.0;
+	}
+	r.mojado = n > 0.5 ? 1.0 : 0.0;
+	return r;
+}
+
+void vertex() {
+	ivec2 s = textureSize(datos_a, 0);
+	Troc t;
+	// Los vértices de trocito caen en el centro de su texel (fract = 0,5); los de centro de cuadrito, en la esquina entre cuatro (fract ≈ 0 o ≈ 1).
+	bool centro = abs(fract(UV.x * float(s.x)) - 0.5) > 0.25;
+	if (centro) {
+		ivec2 p0 = ivec2(floor(UV * vec2(s) - 0.5));
+		t = combina_centro(troc(p0), troc(p0 + ivec2(1, 0)), troc(p0 + ivec2(0, 1)), troc(p0 + ivec2(1, 1)));
+	} else {
+		t = troc(ivec2(floor(UV * vec2(s))));
+	}
 	// 20/10 (b): vaivén tenue de la orilla. Dos senos de periodos distintos (3,7 s y 2,3 s) desfasados por posición, para que la orilla no respire
 	// entera a la vez. Amplitud total ≤ `orilla_mov`. Es un movimiento de la superficie, no de la simulación: no cambia profundidad ni corriente.
 	vec2 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	float oleaje = 0.55 * sin(TIME * 1.698 + dot(wp, vec2(1.3, 0.9))) + 0.45 * sin(TIME * 2.732 + dot(wp, vec2(-0.7, 1.6)));
-	oleaje *= orilla * (hielo_activo > 0.5 ? 1.0 - hielo_f(p) : 1.0);        // el hielo no se mece
-	y += orilla_mov * oleaje;
+	oleaje *= t.orilla * (hielo_activo > 0.5 ? 1.0 - t.hielo : 1.0);        // el hielo no se mece
+	VERTEX.y = t.y + orilla_mov * oleaje;
 	v_oleaje = oleaje;
-	VERTEX.y = y;
-	v_prof = prof;
-	v_corr = corr;
+	v_caida = t.caida;
+	v_prof = t.prof;
+	v_corr = t.corr;
 	v_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -430,11 +510,22 @@ float franja(vec2 uv, vec2 dir) {
 
 void fragment() {
 	vec3 pm = v_pos;
+	// 22/10 (agua blanca al llenarse): DISTANCIA (u) de este píxel al contorno del agua, ≈ profundidad / pendiente de la profundidad. La profundidad es lineal
+	// en cada triángulo, así que su gradiente en XZ sale de las derivadas de pantalla (se resuelve el sistema 2×2 con las de la posición). Una lámina somera
+	// y llana (que se llena) tiene gradiente casi 0 → distancia enorme → ni espuma ni menisco ni ruido de borde: eso solo va pegado al contorno real.
+	vec2 dpx = dFdx(pm.xz);
+	vec2 dpy = dFdy(pm.xz);
+	float det_p = dpx.x * dpy.y - dpx.y * dpy.x;
+	vec2 dvp = vec2(dFdx(v_prof), dFdy(v_prof));
+	vec2 grad_p = abs(det_p) > 1.0e-8 ? vec2(dvp.x * dpy.y - dvp.y * dpx.y, dpx.x * dvp.y - dvp.x * dpy.x) / det_p : vec2(0.0);
+	float dist_orilla = max(v_prof, 0.0) / max(length(grad_p), orilla_grad_min);
+	float cerca_orilla = 1.0 - smoothstep(orilla_dist_0, orilla_dist_1, dist_orilla);          // 1 junto al contorno, 0 a más de `orilla_dist_1`
+	float cerca_menisco = 1.0 - smoothstep(orilla_dist_0 * 1.5, orilla_dist_1 * 1.5, dist_orilla);
 	// 16/10 (Pablo: «ruido entre la textura de la orilla y el agua»): la profundidad se interpola entre vértices de 0,77 u y su línea de cero sale
 	// recta y en diagonales; se le suma un ruido de dos escalas (quieto, casi sin deriva: no debe parpadear) para que el borde sea irregular.
-	// El mismo `prof_e` rige el corte, la línea de espuma y el menisco, así que espuma y arena siguen el mismo contorno.
+	// El mismo `prof_e` rige el corte, la línea de espuma y el menisco, así que espuma y arena siguen el mismo contorno. 22/10: solo cerca del contorno.
 	float ruido_borde = ruido(pm.xz * 2.7 + vec2(TIME * 0.02, 0.0)) * 0.65 + ruido(pm.xz * 6.3 - 4.1) * 0.35;
-	float prof_e = v_prof + (ruido_borde - 0.5) * ruido_orilla * 2.0;
+	float prof_e = v_prof + (ruido_borde - 0.5) * ruido_orilla * 2.0 * cerca_orilla;
 	if (prof_e < 0.0) {
 		discard;                       // fuera del agua: el borde sigue la orilla de la simulación (con ruido)
 	}
@@ -502,7 +593,9 @@ void fragment() {
 	float efecto_flujo = smoothstep(0.04, 0.3, vel);
 	float fr = franja(uv - dir * avance * fase0 / tam_franja, dir) * peso0
 			+ franja(uv + 0.37 - dir * avance * fase1 / tam_franja, dir) * (1.0 - peso0);
-	float franjas = smoothstep(0.62, 0.70, fr) * efecto_flujo;
+	// 22/10: el cruce de las dos fases promedia dos ruidos y casi nunca pasa de 0,62; con el filtro el umbral baja (FILTRO_FRANJAS_UMBRAL) para que haya vetas.
+	float um_franja = filtro > 0.5 ? filtro_franjas_umbral : 0.62;
+	float franjas = smoothstep(um_franja, um_franja + 0.08, fr) * efecto_flujo;
 	ce = mix(ce, color_espuma, franjas * 0.32);
 
 	// LECHO (16/10, Pablo: «es translúcida y está bien, pero no hay sensación de profundidad»). No hay un fondo real bajo el agua (la
@@ -543,16 +636,20 @@ void fragment() {
 	// 20/10 (b): la franja de espuma respira con el vaivén (±30 % de su ancho a la amplitud por defecto); proporcional a `orilla_mov`.
 	float trans = transicion_orilla * (1.0 + 0.3 * v_oleaje * clamp(orilla_mov / 0.02, 0.0, 2.0));
 	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04);
-	linea *= linea;
-	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde);
+	linea *= linea * cerca_orilla;      // 22/10: la espuma de orilla solo junto al contorno (una lámina somera lejos de él no es espuma)
+	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde) * cerca_menisco;
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8 * cr_f)), 0.0, 1.0);
 	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
 	// tiene un vecino mucho más alto) niebla de espuma que se agita; en el LABIO (el que tiene uno mucho más bajo) un filo de agua rápida.
 	float pend_s = 1.0 - clamp(gn.y, 0.0, 1.0);
-	float caida = smoothstep(caida_pend_min, caida_pend_min + 0.3, pend_s) * caida_fuerza * (1.0 - hielo);
+	// 22/10: y solo si el LECHO baja de verdad ahí (v_caida es pendiente del lecho): el frente de una lámina que se llena inclina la superficie sin ser una cascada.
+	float lecho_cae = smoothstep(caida_lecho_min, caida_lecho_min + 0.2, max(v_caida.x, v_caida.y));
+	float caida = smoothstep(caida_pend_min, caida_pend_min + 0.3, pend_s) * lecho_cae * caida_fuerza * (1.0 - hielo);
 	vec2 dd = normalize(gn.xz + vec2(0.0001, 0.0));
 	float veta = ruido(vec2(dot(pm.xz, vec2(-dd.y, dd.x)) * 4.0, pm.y * 1.4 + TIME * vel_caida));
-	float cortina = smoothstep(0.50, 0.70, veta) * caida;
+	// 22/10 (movimiento): una segunda capa de vetas, más fina y más rápida, que baja desfasada: la cortina se lee como agua que cae y no como un patrón que parpadea.
+	float veta2 = ruido(vec2(dot(pm.xz, vec2(-dd.y, dd.x)) * 7.0 + 3.7, pm.y * 2.0 + TIME * vel_caida * caida_veta2_vel));
+	float cortina = max(smoothstep(0.50, 0.70, veta), smoothstep(0.56, 0.72, veta2) * caida_veta2) * caida;
 	float base_f = smoothstep(0.10, 0.50, v_caida.x) * caida_fuerza * (1.0 - hielo);
 	float labio_f = smoothstep(0.10, 0.50, v_caida.y) * caida_fuerza * (1.0 - hielo);
 	float niebla = base_f * (0.45 + 0.55 * ruido(pm.xz * 2.4 + vec2(0.0, -TIME * 1.1)));
@@ -620,7 +717,9 @@ void fragment() {
 			pf = mix(pf, min(pf, max(bajo, 0.0)), bueno * filtro_tinte_visto);     // banda oscura: la columna es la de lo que se ve (la pared de la orilla queda poco bajo la lámina)
 			vec3 trans = exp(-filtro_k * filtro_dens * pf);
 			float scat = (1.0 - exp(-pf / filtro_prof_max)) * filtro_opacidad;
-			float a_x = clamp(max(max(espuma, men * 0.45), hielo), 0.0, 1.0);
+			// 22/10 (movimiento): las franjas del flow map también se ven con el filtro (antes solo teñían `ce`, que aquí no se ve): vetas claras y suaves que corren con la corriente.
+			float a_franja = franjas * filtro_franjas * smoothstep(0.0, refr_orilla, prof_e) * (1.0 - hielo);
+			float a_x = clamp(max(max(max(espuma, men * 0.45), a_franja), hielo), 0.0, 1.0);
 			vec3 alb_f = filtro_hondo * scat + vec3(0.88, 0.94, 1.0) * fres * filtro_fresnel;
 			ALBEDO = mix(alb_f, ce * brillo, a_x);
 			EMISSION = fondo_r * trans * (1.0 - scat) * (1.0 - a_x);
@@ -789,7 +888,7 @@ var _hielo_origen_ok: bool = false
 var _ms_hielo: float = 0.0
 
 
-## Enlaza con la simulación y construye la malla (un vértice por centro de trocito). Se puede llamar otra vez al cambiar de nivel.
+## Enlaza con la simulación y construye la malla (un vértice por centro de trocito y otro en el centro de cada cuadrito). Se puede llamar otra vez al cambiar de nivel.
 func enlazar(p_sim: AguaSim3D) -> void:
 	sim = p_sim
 	if sim == null or sim.w <= 0:
@@ -848,6 +947,16 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("filtro_fresnel", FILTRO_FRESNEL)
 	_mat.set_shader_parameter("filtro_tinte_visto", FILTRO_TINTE_VISTO)
 	_mat.set_shader_parameter("lecho", LECHO_FALSO_FILTRO if agua_filtro else LECHO_FALSO)
+	_mat.set_shader_parameter("orilla_dist_0", ORILLA_DIST_0)
+	_mat.set_shader_parameter("orilla_dist_1", ORILLA_DIST_1)
+	_mat.set_shader_parameter("orilla_grad_min", ORILLA_GRAD_MIN)
+	_mat.set_shader_parameter("caida_lecho_min", CAIDA_LECHO_MIN)
+	_mat.set_shader_parameter("avance_flujo", AVANCE_FLUJO)
+	_mat.set_shader_parameter("vel_caida", VEL_CAIDA)
+	_mat.set_shader_parameter("caida_veta2", CAIDA_VETA2)
+	_mat.set_shader_parameter("caida_veta2_vel", CAIDA_VETA2_VEL)
+	_mat.set_shader_parameter("filtro_franjas", FILTRO_FRANJAS)
+	_mat.set_shader_parameter("filtro_franjas_umbral", FILTRO_FRANJAS_UMBRAL)
 	# Con refracción (o con filtro) el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
 	var lee_pantalla: bool = agua_refraccion or agua_filtro
 	_mat.render_priority = AGUA_PRIORIDAD if lee_pantalla else 0
@@ -1346,15 +1455,19 @@ func _construir_malla() -> void:
 	var l: float = sim.l
 	var verts := PackedVector3Array()
 	var uvs := PackedVector2Array()
-	verts.resize(w * h)
-	uvs.resize(w * h)
+	# Un vértice por trocito (w·h) y UNO EXTRA en el centro de cada cuadrito ((w-1)·(h-1)), a continuación de los otros. Sus UV caen en la esquina
+	# entre cuatro texels (el sombreado los reconoce por eso y combina los cuatro trocitos). Cuatro triángulos por cuadrito, en abanico: sin diagonal,
+	# así que el contorno del agua no depende de hacia dónde caiga (antes: chaflán y un triángulo vacío en las esquinas).
+	var n_trocitos: int = w * h
+	verts.resize(n_trocitos + (w - 1) * (h - 1))
+	uvs.resize(verts.size())
 	for y in range(h):
 		for x in range(w):
 			var i: int = y * w + x
 			verts[i] = Vector3((x + 0.5) * l, 0.0, (y + 0.5) * l)
 			uvs[i] = Vector2((x + 0.5) / float(w), (y + 0.5) / float(h))
 	var idx := PackedInt32Array()
-	idx.resize((w - 1) * (h - 1) * 6)
+	idx.resize((w - 1) * (h - 1) * 12)
 	var k: int = 0
 	for y in range(h - 1):
 		for x in range(w - 1):
@@ -1362,14 +1475,14 @@ func _construir_malla() -> void:
 			var b: int = a + 1
 			var c: int = a + w
 			var d: int = c + 1
-			# Diagonal que alterna (como un tablero) para que las facetas del borde no se alineen siempre igual.
-			if (x + y) % 2 == 0:
-				idx[k] = a; idx[k + 1] = c; idx[k + 2] = b
-				idx[k + 3] = b; idx[k + 4] = c; idx[k + 5] = d
-			else:
-				idx[k] = a; idx[k + 1] = c; idx[k + 2] = d
-				idx[k + 3] = a; idx[k + 4] = d; idx[k + 5] = b
-			k += 6
+			var m: int = n_trocitos + y * (w - 1) + x
+			verts[m] = Vector3((x + 1.0) * l, 0.0, (y + 1.0) * l)
+			uvs[m] = Vector2((x + 1.0) / float(w), (y + 1.0) / float(h))
+			idx[k] = a; idx[k + 1] = c; idx[k + 2] = m
+			idx[k + 3] = c; idx[k + 4] = d; idx[k + 5] = m
+			idx[k + 6] = d; idx[k + 7] = b; idx[k + 8] = m
+			idx[k + 9] = b; idx[k + 10] = a; idx[k + 11] = m
+			k += 12
 	var arr: Array = []
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts
