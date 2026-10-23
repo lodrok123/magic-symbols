@@ -31,7 +31,8 @@ en el tiempo. El pulso es lo segundo: cualquier volumen puede resonar. Por eso s
 - **Conflicto de nombre:** ᚷ ya es «pulso» en la v2 (`crece`: el volumen nace pequeño y crece). O se renombra ᚷ («crecer») o el
   glifo nuevo se llama «resonancia» o «eco». Lo decide Pablo (§10).
 
-**Mejoras épicas** (§7): suben las variables del glifo, no añaden glifos:
+**Mejoras épicas** (§7). *Superado por la decisión de Pablo del 23/10 (§10, punto 4): los épicos son ingredientes para mejorar al
+personaje (vida, tinta, pigmentos, ropa), no variables del glifo.* La propuesta original era subir las variables del glifo:
 - `resuena` +2 casillas;
 - **saltos**: cuántos cristales resonantes puede atravesar;
 - **fuerza**: los golpes de pulso que recibe un reactivo.
@@ -173,18 +174,49 @@ El sonido acompaña el ritmo: zumbido grave que sube, golpe al abrir y una nota 
   un anillo al nacer y uno al llegar a un receptor.
 - **Cámara cenital:** nada que se lea desde el techo (§4, estalactitas).
 
-## 10. Decisiones para Pablo
+## 10. Decisiones de Pablo (23/10)
 
-1. **Nombre y símbolo del glifo.** ¿Se renombra ᚷ («crecer») y el nuevo se queda «pulso», o el nuevo se llama «resonancia» o «eco»?
-   ¿Qué runa le toca?
-2. **¿Propiedad o geometría?** Se propone propiedad (§2): resuena cualquier volumen. La otra opción es una geometría «anillo» que se
-   expande, más vistosa pero que no combina con muro, haz y demás.
-3. **El aire:** ¿el pulso toca solo a 1 casilla sin conductor (§3), o se permite un radio pequeño libre para que el glifo sirva fuera
-   de las cuevas?
-4. **Mejoras épicas:** ¿suben variables de un glifo concreto (lo propuesto) o son un recurso común que se gasta en cualquier glifo?
-5. **El atajo:** ¿la salida de C6 pasa a pedir el pulso (lo propuesto) o se deja también el pulsador, para no encerrar a quien no
-   entienda el glifo a la primera?
-6. **¿El cofre legendario es un modelo nuevo** (Tripo) o el cofre grande actual con vetas y un material propio?
+1. **Nombre: «pulso».** El glifo nuevo se llama **pulso** y no «resonancia» ni «eco». Por tanto el ᚷ de hoy («pulso», `crece`) pasa a
+   llamarse **«crecer»** (solo el nombre: su parámetro y su runa no cambian). Runa propuesta para el pulso: **ᚱ** (raido, «camino,
+   ritmo»), que está libre desde el 17/10 (`GLIFOS_RECETA.md` §2.1). Falta que Pablo la confirme.
+2. **Propiedad**, no geometría: el pulso es algo que se le **transfiere** al hechizo (que resuene). Cualquier volumen puede resonar.
+3. **El aire:** sin conductor, el pulso toca **1 casilla**, como en §3. Para usarlo a distancia se combina con otra propiedad: **flecha +
+   pulso** lleva el pulso hasta donde choca. No se escribe como caso especial: sale del **momento de ejecución** (§10 bis).
+4. **Mejoras épicas = ingredientes para mejorar al personaje** (vida, tinta, pigmentos nuevos, quizá ropa), **no** variables de un
+   glifo. Cambia §2 («Mejoras épicas») y la fila «épico» de §7: el núcleo de eco y la geoda son ingredientes de mejora del personaje.
+5. **El atajo pide el pulso**, sin pulsador de reserva. Que una situación obligue a usar una habilidad está bien; lo que importa es que
+   se **entienda** qué hay que hacer (pared hueca que suena, vetas que llevan a ella, el aviso al coger el glifo).
+6. **Cofre legendario: modelo nuevo** (Tripo), más grande, con una **animación de la jugadora abriendo el cofre**, un **primer plano**
+   y un **destello de luz más fuerte** que el de §8. Pide un clip «abrir cofre» para la jugadora.
+
+## 10 bis. Momento de ejecución de las propiedades (propuesta de Pablo, 23/10)
+
+**La idea:** cada glifo de propiedad declara **cuándo actúa** en la vida del hechizo:
+
+| momento | cuándo | ejemplos |
+|---|---|---|
+| **al inicio** | al nacer el volumen, una vez | pulso sin flecha: resuena en el sitio donde nace |
+| **continuo** | mientras el volumen vive, cada cierto tiempo | pulso en un muro (barrera): late cada n s mientras dura |
+| **al final** | al chocar o al acabarse, una vez | flecha + pulso: el pulso sale donde choca la flecha |
+
+**Por qué encaja:** la receta v2 ya se interpreta en un orden fijo (`GLIFOS_RECETA.md` §2.4) y su paso 3 («vida») es justo una línea
+de tiempo: nace → crece → viaja → dura. El momento solo dice en qué punto de esa línea se engancha cada propiedad. Así el orden de los
+glifos queda definido por datos y no por el orden en que se dibujan en la página, y se evitan estados indeseados como un pulso que
+sale en la mano antes de que el hechizo exista, o dos efectos que se pisan en el mismo fotograma.
+
+**Cómo se propone hacerlo:**
+- **Un dato por glifo, con valor por defecto.** El momento es una variable más de la propiedad, en los datos del glifo, como el
+  parámetro, el «por glifo» y el tope. El jugador no lo elige a mano: sale de la receta.
+- **Regla por defecto para el pulso:** al final si el hechizo viaja (flecha); continuo si el volumen persiste (barrera o elemento
+  sólido); al inicio en el resto. Así flecha + pulso es «pulso a distancia» sin escribir el caso.
+- **Orden dentro de un mismo momento: fijo**, el de §2.4 (volumen, copias, vida, materia, daño). Nunca el orden de dibujo.
+- **Sin reentradas:** un efecto que nace en un momento no vuelve a disparar el mismo momento del hechizo que lo creó (un pulso al final
+  no provoca otro final).
+- **Sirve para las demás propiedades.** Rebote es «al final» que reinicia la vida, repetición es «al inicio», y los aparcados encajan
+  solos: retardo es «antes del inicio» y destello es «al final».
+
+**Riesgo:** el momento continuo multiplica efectos (un muro que late 8 s con pulso de rayo). Necesita un periodo mínimo con nombre y
+que cuente en el coste de tinta (§2.5: más propiedades activas = más caro).
 
 ## 11. Lo que hay que construir
 
