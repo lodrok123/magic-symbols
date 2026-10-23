@@ -1621,7 +1621,7 @@ lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
 - **El clip `Drowning` de los goblins no está en el repo**: ningún GLB lo
   trae, así que ni el guerrero ni el asesino tienen animación de
   ahogarse (`prueba_goblin_asesino` falla en el rol `drown`).
-- **Rediseñar el Bosque con la filosofía de EoW** (salas con un puzle,
+- **Rediseñar el Bosque con la filosofía de EoW** (`docs/PLAN_BOSQUE_EOW.md`, pendiente de que lo revise Pablo; salas con un puzle,
   un centro con alas por elemento, atajos, regiones con temperatura y
   rompibles con botín): las piezas para hacerlo ya existen en parte
   (`Zonas3D`, `Puzle3D`, muro, lava); faltan los rompibles, la temperatura
