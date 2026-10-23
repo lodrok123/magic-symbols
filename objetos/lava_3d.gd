@@ -241,6 +241,11 @@ func _process(delta: float) -> void:
 		_sucia = false
 
 
+## ¿Esta casilla es roca enfriada (todavía no ha vuelto a ser lava)? Lo lee Puzle3D en `casilla(x,y).roca` y el basalto de la Cueva.
+func es_roca(c: Vector2i) -> bool:
+	return _roca.has(c)
+
+
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:

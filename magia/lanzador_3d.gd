@@ -141,6 +141,9 @@ var _libro_lento: bool = false
 var _barrera_activa: Campo = null
 var _ts_libro: float = 1.0
 var _aviso: Label = null
+var _tw_aviso: Tween = null
+const AVISO_BORDE: Color = Color(0, 0, 0, 0.9)    ## contorno de siempre del aviso
+const AVISO_DURA: float = 1.4                     ## s que se queda el aviso antes de apagarse
 var _guia: Label = null
 
 ## --- Modo lanzar ---
@@ -580,7 +583,7 @@ func construir_interfaz() -> void:
 	_aviso = Label.new()
 	_aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_aviso.add_theme_font_size_override("font_size", 24)
-	_aviso.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_aviso.add_theme_color_override("font_outline_color", AVISO_BORDE)
 	_aviso.add_theme_constant_override("outline_size", 6)
 	_aviso.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_aviso.modulate.a = 0.0
@@ -605,15 +608,19 @@ func construir_interfaz() -> void:
 
 
 ## Aviso en pantalla (se apaga solo). Lo usan también Jugador3D y Combate3D.
-func avisar(texto: String, color: Color = Color(1, 0.9, 0.6)) -> void:
+## `borde`: color del contorno del texto (el de la calidad al coger un material: AvisoObjeto). `duracion`: segundos que se queda antes de apagarse.
+func avisar(texto: String, color: Color = Color(1, 0.9, 0.6), borde: Color = AVISO_BORDE, duracion: float = AVISO_DURA) -> void:
 	if _aviso == null:
 		return
 	_aviso.text = texto
 	_aviso.add_theme_color_override("font_color", color)
+	_aviso.add_theme_color_override("font_outline_color", borde)
 	_aviso.modulate.a = 1.0
-	var tw: Tween = _aviso.create_tween()
-	tw.tween_interval(1.4)
-	tw.tween_property(_aviso, "modulate:a", 0.0, 0.5)
+	if _tw_aviso != null and _tw_aviso.is_valid():
+		_tw_aviso.kill()                      # un aviso nuevo no hereda el apagado del anterior
+	_tw_aviso = _aviso.create_tween()
+	_tw_aviso.tween_interval(duracion)
+	_tw_aviso.tween_property(_aviso, "modulate:a", 0.0, 0.5)
 
 
 ## =====================================================================================================

@@ -84,6 +84,17 @@ def fx_hollin(d, ss):
 def fx_iman(d, ss):
     d.arc([76*ss, 10*ss, 112*ss, 46*ss], 180, 360, fill=(200, 60, 60, 255), width=7 * ss); cap(d, (78, 28), (78, 40), 3.5, (200, 60, 60, 255), ss); cap(d, (110, 28), (110, 40), 3.5, (210, 210, 220, 255), ss)
 
+def fx_eco(d, ss):
+    for r in (46, 56):
+        d.arc([(64 - r) * ss, (52 - r) * ss, (64 + r) * ss, (52 + r) * ss], 200, 250, fill=(150, 215, 255, 255), width=4 * ss)
+        d.arc([(64 - r) * ss, (52 - r) * ss, (64 + r) * ss, (52 + r) * ss], 290, 340, fill=(150, 215, 255, 255), width=4 * ss)
+def fx_epico(d, ss):
+    # destellos morados en cuatro puntas: la calidad épica (PLAN_PULSO_RESONANTE §7)
+    for q, r in (((24, 30), 11), ((104, 24), 8), ((100, 96), 10)):
+        d.polygon(p([(q[0], q[1] - r), (q[0] + r * 0.3, q[1] - r * 0.3), (q[0] + r, q[1]), (q[0] + r * 0.3, q[1] + r * 0.3),
+                     (q[0], q[1] + r), (q[0] - r * 0.3, q[1] + r * 0.3), (q[0] - r, q[1]), (q[0] - r * 0.3, q[1] - r * 0.3)], ss), fill=(178, 102, 255, 255))
+def fx_epico_eco(d, ss): fx_eco(d, ss); fx_epico(d, ss)
+
 # id → (forma, color de Objetos.DATOS, efecto)
 ICONOS = {
  "lavanda": ("flor", (0.7, 0.55, 0.95), None), "baya": ("baya", (0.85, 0.2, 0.35), None), "helecho": ("hoja", (0.35, 0.75, 0.4), None),
@@ -94,6 +105,11 @@ ICONOS = {
  "flor_chispa": ("flor", (1.0, 0.95, 0.4), fx_rayo), "petalos": ("petalos", (1.0, 0.75, 0.9), None), "flor_escarcha": ("flor", (0.7, 0.95, 1.0), fx_hielo),
  "raiz": ("raiz", (0.6, 0.45, 0.3), None), "raiz_cenizas": ("raiz", (0.3, 0.27, 0.27), fx_hollin), "raiz_hinchada": ("raiz", (0.5, 0.7, 0.9), fx_gotas),
  "raiz_magnetica": ("raiz", (0.8, 0.85, 1.0), fx_iman), "cristal_tierra": ("cristal", (0.7, 0.55, 0.3), None),
+ # Materiales de la Cueva (docs/MATERIALES_CUEVA.md): comunes sin efecto de calidad; los épicos, con destellos morados
+ "seta_resonante": ("seta", (0.6, 0.85, 1.0), fx_eco), "alga_cueva": ("hoja", (0.35, 0.7, 0.62), None), "alga_seca": ("hoja", (0.68, 0.6, 0.38), None),
+ "mineral_veta": ("piedra", (0.5, 0.58, 0.78), None), "esquirla_cristal": ("cristal", (0.78, 0.92, 1.0), None), "basalto": ("piedra", (0.36, 0.35, 0.38), None),
+ "colmillo_goblin": ("raiz", (0.92, 0.88, 0.74), None),
+ "nucleo_eco": ("cristal", (0.72, 0.42, 1.0), fx_epico_eco), "geoda_resonante": ("cristal", (0.62, 0.36, 0.95), fx_epico),
 }
 
 def dibujar(forma, c, fx):

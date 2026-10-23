@@ -45,12 +45,23 @@
 ; pieza seta_c2b seta 8 8
 ; --- C3 · Río de lava (vuelve a ser lava a los 10 s) ---
 ; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10
+; Materiales (docs/MATERIALES_CUEVA.md): el basalto SOLO está sobre la roca recién enfriada (casilla(x,y).roca) y desaparece si la lava vuelve; las setas son para empaparlas (agua).
+; pieza basalto_c3a basalto 13 3 coge_si=casilla(13,3).roca
+; pieza basalto_c3b basalto 14 6 coge_si=casilla(14,6).roca
+; pieza seta_c3a seta 11 3
+; pieza seta_c3b seta 11 6
 ; --- C4 · Sala cerrada: cofre con la llave ---
 ; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8
 ; pieza guardia vigia 19 1 de=19,1..25,8 flag=cueva.c4.limpia
 ; pieza cofre_llave cofre 22 5 aparece_si=flag.cueva.c4.limpia abierto=cueva.c4.llave
 ; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
+; Materiales: las algas del lecho solo se ven (y se cogen) con la charca HELADA; las setas de la orilla son para electrificarlas (rayo) y helarlas.
+; pieza alga_c5a alga 21 14 coge_si=casilla(21,14).helada
+; pieza alga_c5b alga 23 15 coge_si=casilla(23,15).helada
+; pieza alga_c5c alga 22 16 coge_si=casilla(22,16).helada
+; pieza seta_c5a seta 20 17
+; pieza seta_c5b seta 23 17
 ; pieza fuente emisor 24 12
 ; Cada descarga de la fuente suelta además un pulso de rayo (alcance 24) que corre por el AGUA y sigue por la veta que sale de la charca hasta C6, bajo la puerta.
 ; Si la charca se hiela, el agua deja de conducir y el pulso no llega.

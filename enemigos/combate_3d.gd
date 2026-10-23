@@ -1874,6 +1874,8 @@ func _morir(ahogado: bool = false) -> void:
 		return
 	if oro > 0:
 		Botin3D.soltar(mundo, jugador, oro, position)
+	if not elemental:
+		BotinGoblin.soltar(mundo, position)        # materiales (colmillo): docs/MATERIALES_CUEVA.md
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
 	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)

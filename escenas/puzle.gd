@@ -57,6 +57,8 @@ extends Node
 ##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s
 ##   seta       variante=roja|azul|marron (la que toque por casilla)  rebrota=<s> (0)   Recolectable3D (la Cueva): setas que se cogen con E y dan
 ##              un ingrediente; un elemento lanzado antes las transforma (Objetos.PLANTAS). Sin variante se intercalan por casilla
+##   alga, basalto   coge_si=<expresión de si=>  rebrota=<s> (0)                         Recolectable3D con CONDICIÓN (docs/MATERIALES_CUEVA.md): solo se ve y se coge mientras se cumple
+##              `coge_si` (alga: casilla(x,y).helada · basalto: casilla(x,y).roca). Si la condición se pierde, desaparece; si vuelve, reaparece (salvo si ya se cogió)
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
 ##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>  modelo=legendario|epico   CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
@@ -102,7 +104,8 @@ extends Node
 ##   Precedencia: Y antes que O, SIN paréntesis. `a+b|c` = (a Y b) O c;   `a|b+c` = a O (b Y c);   `!a+b` = (NO a) Y b.
 ##   Todo junto:  si=casilla(2,5).mojada+casilla(3,5).mojada+casilla(4,5).mojada+!br.encendido
 ##                ("abre si las tres casillas están mojadas y el brasero está apagado" — o `br.apagado`, que da igual)
-##   casilla(x,y).<estado>   estado = mojada | helada | quemada | electrificada | segada (EstadosSuelo3D, B1) | agua (Terreno3D.es_agua).
+##   casilla(x,y).<estado>   estado = mojada | helada | quemada | electrificada | segada (EstadosSuelo3D, B1) | agua (Terreno3D.es_agua) | roca (lava enfriada que aún
+##        no ha vuelto a ser lava: Lava3D.es_roca).
 ##        La coma de «casilla(3,4)» es de la casilla: SOLO «+» y «|» separan términos. Sin espacios. No hace falta que haya una pieza
 ##        en esa casilla. Se lee en el momento del disparo (si la casilla se moja DESPUÉS, la regla no se vuelve a evaluar sola: la
 ##        dispara su `cuando=`; para «cuando se moje la última» usa un pulsador/contador que dispare, o un `cuando` que ocurra después).
@@ -172,6 +175,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"puerta": "abierta", "totem": "activado", "tinaja": "agua_llega", "emisor": "descarga",
 	"brasero": "encendido", "contador": "todos", "cuerda": "rota", "seto": "consumido",
 	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada", "seta": "recogida",
+	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
@@ -196,6 +200,8 @@ const SENALES: Dictionary = {
 	"muro": {"roto": ["roto", 0, null]},
 	"lava": {"enfriada": ["enfriada", 1, null], "apagada": ["apagada", 0, null]},
 	"seta": {"recogida": ["recogido", 1, null]},
+	"alga": {"recogida": ["recogido", 1, null]},
+	"basalto": {"recogida": ["recogido", 1, null]},
 	"cristal": {"late": ["late", 1, null]},
 	"receptor": {"activado": ["activado", 0, null], "apagado": ["apagado", 0, null]},
 	"prisma": {"gira": ["gira", 1, null], "emite": ["emite", 1, null]},
@@ -219,6 +225,8 @@ const CONDICIONES: Dictionary = {
 	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
 	"seta": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"alga": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"basalto": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"receptor": {"activo": ["activo", true], "libre": ["activo", false]},
 	"pared_hueca": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 }
@@ -240,6 +248,8 @@ const ACCIONES: Dictionary = {
 	"muro": {"romper": 0},
 	"lava": {"enfriar": 0},
 	"seta": {"recoger": 0},
+	"alga": {"recoger": 0},
+	"basalto": {"recoger": 0},
 	"cristal": {"latir": 0},
 	"receptor": {"activar": 0, "apagar": 0},
 	"prisma": {"girar": 0},
@@ -270,6 +280,8 @@ const CLAVES: Dictionary = {
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f"},
+	"alga": {"coge_si": "expr", "rebrota": "f"},
+	"basalto": {"coge_si": "expr", "rebrota": "f"},
 	"cristal": {"cada": "f", "alcance": "f"},
 	"veta": {"celdas": "celdas"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
@@ -302,7 +314,7 @@ static var silencio_logros: bool = false
 static var _logro_en: Dictionary = {}                    ## nombre -> fotograma del último aviso
 ## C2: condición de casilla `casilla(x,y).<estado>`: los estados de EstadosSuelo3D (B1) y «agua» (Terreno3D.es_agua).
 const TERMINO_CASILLA: String = "casilla"
-const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua"]
+const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua", "roca"]
 ## Piezas que ya pone la maqueta por letra: la casilla de la pieza tiene que llevar esa letra.
 const LETRA_MAQUETA: Dictionary = {"tinaja": "u", "totem": "i", "emisor": "e", "brasero": "T", "seto": "z"}
 ## Piezas que necesitan la simulación de agua (`agua_fisica = true` en la escena).
@@ -1476,6 +1488,15 @@ func _crear(pz: Pieza) -> void:
 			se.preparar(pz.celda, String(pz.p.get("variante", "")), float(pz.p.get("rebrota", 0.0)), mundo as Node)
 			cont.add_child(se)
 			pz.nodo = se
+		"alga", "basalto":
+			# Materiales de la Cueva (docs/MATERIALES_CUEVA.md): un Recolectable3D que solo existe mientras se cumple `coge_si`.
+			var ma := Recolectable3D.new()
+			ma.name = pz.id
+			ma.coge_si = pz.exprs.get("coge_si", [])
+			ma.puzle = self
+			ma.preparar(pz.celda, "", float(pz.p.get("rebrota", 0.0)), mundo as Node, pz.tipo)
+			cont.add_child(ma)
+			pz.nodo = ma
 		"lava":
 			var lv := Lava3D.new()
 			lv.name = pz.id
@@ -1850,9 +1871,19 @@ func _cumple_termino(t: Dictionary) -> bool:
 			var c: Vector2i = t["celda"]
 			if String(t["estado"]) == "agua":
 				v = Terreno3D.es_agua(c)
+			elif String(t["estado"]) == "roca":
+				v = _roca_enfriada_en(c)       # lava enfriada que aún no ha vuelto a ser lava (Lava3D)
 			else:
 				v = Terreno3D.estados.tiene(c, String(t["estado"]))
 	return v != bool(t["neg"])
+
+
+## ¿Hay roca de lava enfriada en esa casilla? (`casilla(x,y).roca`). Mira las lavas montadas; false si ninguna la tiene.
+func _roca_enfriada_en(c: Vector2i) -> bool:
+	for pz in _piezas.values():
+		if (pz as Pieza).tipo == "lava" and is_instance_valid((pz as Pieza).nodo) and bool(((pz as Pieza).nodo as Lava3D).es_roca(c)):
+			return true
+	return false
 
 
 func _cumple(id: String, cond: String) -> bool:
