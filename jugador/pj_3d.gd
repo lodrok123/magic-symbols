@@ -207,7 +207,11 @@ const SILUETA_COLOR: Color = Color(1.0, 0.8, 0.5, 0.42)
 const SILUETA_SESGO_ALTURAS: float = 0.4           ## cuánto más cerca (en alturas del personaje) debe estar lo que lo tapa para dibujar la silueta
 const SOMBRA_DIAMETRO_ALTURAS: float = 0.7         ## diámetro de la mancha en alturas del modelo
 const SOMBRA_ALFA: float = 0.36
-const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test"]   ## prefijos de id que son la jugadora (rol «jugadora»)
+const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test", "jugadora_base"]   ## prefijos de id que son la jugadora (rol «jugadora»); jugadora_base (23/10) es la candidata a sustituirla
+## Ropa por piezas (Ropa3D) que lleva puesta un personaje al cargarlo: id -> [ids de prenda de arte/modelos/ropa.json]. Sin entrada, el modelo va como viene.
+const ROPA_POR_DEFECTO: Dictionary = {
+	"jugadora_base": ["tunica", "capa_capucha"],
+}
 
 var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta
 var _rim_mat: ShaderMaterial = null
@@ -267,6 +271,8 @@ func cargar(p_id: String) -> bool:
 		_anular_raiz(String(rol))
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
+	for prenda in (ROPA_POR_DEFECTO.get(id, []) as Array):
+		poner_ropa(String(prenda))
 	_crear_sombra()
 	set_rol_visual(_rol_por_defecto())
 	set_modo_luz(modo_luz)
@@ -305,6 +311,24 @@ func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
 ## Id del GLB que carga un personaje (el suyo, o el del que comparte modelo).
 static func glb_de(p_id: String) -> String:
 	return String(MODELO_DE.get(p_id, p_id))
+
+
+## Pone la prenda `prenda_id` (arte/modelos/ropa.json, ver Ropa3D) sobre el cuerpo: sigue el esqueleto y por tanto todas las animaciones. true si quedó puesta.
+## Solo para modelos con el esqueleto de jugadora_base (las prendas llevan sus nombres de hueso).
+func poner_ropa(prenda_id: String) -> bool:
+	if _modelo == null:
+		return false
+	return Ropa3D.poner(_modelo, prenda_id, _preparar_materiales) != null
+
+
+func quitar_ropa(prenda_id: String) -> void:
+	if _modelo != null:
+		Ropa3D.quitar(_modelo, prenda_id)
+
+
+## Ids de las prendas que lleva puestas.
+func ropa_puesta() -> Array[String]:
+	return Ropa3D.puestas(_modelo) if _modelo != null else ([] as Array[String])
 
 
 ## Quita y vuelve a poner el equipo (p. ej. tras cambiar Equipo3D.nivel_grimorio).

@@ -11,7 +11,7 @@ extends Node3D
 
 const BIBLIOTECAS: Array = ["res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb",
 	"res://arte/meshy/magia.glb"]
-const PERSONAJES: Array = ["chibi_elf_v2", "chibi_elf", "elfo_base", "bookseller_chibi", "goblin_warrior_chibi", "goblin_espadachin", "goblin_base", "marimanta","goblin_asesino", "chibi_test"]
+const PERSONAJES: Array = ["chibi_elf_v2", "chibi_elf", "elfo_base", "bookseller_chibi", "goblin_warrior_chibi", "goblin_espadachin", "goblin_base", "marimanta","goblin_asesino", "jugadora_base", "chibi_test"]
 ## Vista de piezas SUELTAS (tecla P): las `.glb` de meshy/piezas (las que gana la maqueta por id) y las de
 ## meshy/comparar (versiones a otra calidad, p. ej. `arbol_redondo_4k`, para verlas junto a la actual).
 const CARPETAS_SUELTAS: Array = ["res://arte/meshy/piezas/", "res://arte/meshy/comparar/"]

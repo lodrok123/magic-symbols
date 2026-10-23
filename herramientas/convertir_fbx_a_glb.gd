@@ -1,6 +1,7 @@
 extends SceneTree
 ## CONVIERTE un personaje FBX de Meshy (el riggeado + el FBX de animaciones fusionadas) a un único .glb, como el resto de personajes de arte/modelos.
-##   godot --headless --path . --script res://herramientas/convertir_fbx_a_glb.gd -- <fbx_personaje> <fbx_animaciones> <glb_salida> [<lado_texturas>]
+##   godot --headless --path . --script res://herramientas/convertir_fbx_a_glb.gd -- <fbx_personaje> <fbx_animaciones | -> <glb_salida> [<lado_texturas> [<base_png_texturas>]]
+##   («-» = sin clips; <base_png_texturas> = ruta sin sufijo de los PNG `_roughness.png` y `_metallic.png` si no están junto al FBX con su nombre.)
 ## Carga los dos FBX con FBXDocument (FBXState), le pasa al personaje TODOS los clips del segundo y exporta con GLTFDocument.
 ## Lo que arregla por el camino (Meshy exporta así):
 ##   - Los huesos del personaje se llaman `smartrig_*` y las pistas de los clips `mixamorig_*` (el prefijo que usa el proyecto): se renombran los huesos a `mixamorig_*`.
@@ -17,6 +18,8 @@ const SUFIJO_TEXTURA: String = "_texture_0"
 const SUFIJO_RUGOSIDAD: String = "_roughness.png"
 const SUFIJO_METALICO: String = "_metallic.png"
 const LADO_TEXTURAS: int = 1024
+## En lugar del FBX de animaciones: no llevar clips (el modelo toma los de su familia con ClipsFamilia).
+const SIN_CLIPS: String = "-"
 const CALIDAD_JPEG: float = 0.9
 
 
@@ -28,8 +31,9 @@ func _initialize() -> void:
 		return
 	var lado: int = int(a[3]) if a.size() > 3 else LADO_TEXTURAS
 	var raiz_p: Node = _cargar(a[0])
-	var raiz_a: Node = _cargar(a[1])
-	if raiz_p == null or raiz_a == null:
+	var sin_clips: bool = a[1] == SIN_CLIPS
+	var raiz_a: Node = null if sin_clips else _cargar(a[1])
+	if raiz_p == null or (raiz_a == null and not sin_clips):
 		quit(1)
 		return
 	var sk: Skeleton3D = _esqueleto(raiz_p)
@@ -40,13 +44,20 @@ func _initialize() -> void:
 		if n.begins_with(PREFIJO_VIEJO):
 			sk.set_bone_name(i, PREFIJO_NUEVO + n.substr(PREFIJO_VIEJO.length()))
 	_enderezar(sk, raiz_p.find_children("*", "MeshInstance3D", true, false))
-	var ap_a: AnimationPlayer = _reproductor(raiz_a)
+	# Sin clips (FBX de Mixamo exportado desde Blender, 23/10): se quita el AnimationPlayer del FBX (solo trae una pose «rest» de un fotograma)
+	# y los clips los pone Pj3D con ClipsFamilia al cargar, como a elfo_base.
+	var ap_viejo: AnimationPlayer = _reproductor(raiz_p)
+	if sin_clips and ap_viejo != null:
+		ap_viejo.get_parent().remove_child(ap_viejo)
+		ap_viejo.free()
+	var ap_a: AnimationPlayer = _reproductor(raiz_a) if not sin_clips else null
 	var ap_p := AnimationPlayer.new()
 	ap_p.name = "AnimationPlayer"
-	raiz_p.add_child(ap_p)
-	ap_p.owner = raiz_p
+	if not sin_clips:
+		raiz_p.add_child(ap_p)
+		ap_p.owner = raiz_p
 	var lib := AnimationLibrary.new()
-	for nombre in ap_a.get_animation_list():
+	for nombre in (ap_a.get_animation_list() if ap_a != null else PackedStringArray()):
 		var an: Animation = ap_a.get_animation(nombre).duplicate(true)
 		for i in an.get_track_count():
 			var ruta: String = str(an.track_get_path(i))
@@ -54,9 +65,10 @@ func _initialize() -> void:
 				an.track_set_path(i, NodePath(ruta_sk + ruta.substr((RAIZ_PISTAS_VIEJA + "Skeleton3D").length())))
 		lib.add_animation(nombre, an)
 		print("CLIP %s  %.2f s  pistas=%d" % [nombre, an.length, an.get_track_count()])
-	ap_p.add_animation_library("", lib)
+	if not sin_clips:
+		ap_p.add_animation_library("", lib)
 	for m in raiz_p.find_children("*", "MeshInstance3D", true, false):
-		_reducir_materiales(m as MeshInstance3D, lado, a[0].trim_suffix(SUFIJO_FBX_PERSONAJE) + SUFIJO_TEXTURA)
+		_reducir_materiales(m as MeshInstance3D, lado, (a[4] if a.size() > 4 else a[0].trim_suffix(SUFIJO_FBX_PERSONAJE) + SUFIJO_TEXTURA))
 	var doc := GLTFDocument.new()
 	doc.image_format = "JPEG"
 	doc.lossy_quality = CALIDAD_JPEG

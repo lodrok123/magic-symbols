@@ -1,0 +1,14 @@
+{
+	"capa_capucha": {
+		"nombre": "Capa corta con capucha",
+		"glb": "ropa_capa_capucha",
+		"capa": "exterior",
+		"oculta": ["pelo"]
+	},
+	"tunica": {
+		"nombre": "Túnica sin mangas",
+		"glb": "ropa_tunica",
+		"capa": "medio",
+		"oculta": ["chaleco", "cinturon"]
+	}
+}

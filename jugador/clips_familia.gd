@@ -25,6 +25,10 @@ const FUENTES: Dictionary = {
 	"elfo_base": [
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 	],
+	# Jugadora base (23/10, Meshy «Willow Fernstep» pasada a Mixamo, 65 huesos con dedos + headfront): los 22 clips de la elfa actual.
+	"jugadora_base": [
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
 	"goblin_asesino": [
