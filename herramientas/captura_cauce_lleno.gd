@@ -11,6 +11,8 @@ const INSTANTES_LLENADO: Array = [1.8, 2.6, 3.6, 5.0]
 const ESPERA_INICIAL_FRAMES: int = 150
 const ESPERA_LLENO_S: float = 14.0
 const FRAMES_ASENTAR: int = 25
+const FOTOGRAMAS_RIO: int = 3          ## fotogramas seguidos del río (el primero es rio_juego_/rio_cerca_ a secas)
+const SEPARACION_SEG: float = 0.4      ## segundos entre esos fotogramas
 const ESPERA_RIO_S: float = 10.0       ## s tras cargar antes de las fotos del río: la simulación tarda en asentarse (con 150 fotogramas el río aún tiene masas de espuma)
 
 var _m: Node3D = null
@@ -49,8 +51,19 @@ func _correr() -> void:
 	var cauce: Vector2i = _mejor_cauce()
 	# 1. El río, para comparar (todo visible, y de cerca sin decorado).
 	await _foto(carpeta, "rio_juego_%s" % etiqueta, rio, ZOOM_JUEGO)
+	# 24/10: dos fotogramas más del río, SEPARACION_SEG después uno de otro (la corriente tiene que verse avanzar).
+	for k in range(1, FOTOGRAMAS_RIO):
+		var t_k: int = Time.get_ticks_msec()
+		while float(Time.get_ticks_msec() - t_k) < SEPARACION_SEG * 1000.0:
+			await process_frame
+		await _foto(carpeta, "rio_juego_%s_f%d" % [etiqueta, k], rio, ZOOM_JUEGO, false)
 	_vista_cerca(false)
 	await _foto(carpeta, "rio_cerca_%s" % etiqueta, rio, ZOOM_CERCA)
+	for k in range(1, FOTOGRAMAS_RIO):
+		var t_c: int = Time.get_ticks_msec()
+		while float(Time.get_ticks_msec() - t_c) < SEPARACION_SEG * 1000.0:
+			await process_frame
+		await _foto(carpeta, "rio_cerca_%s_f%d" % [etiqueta, k], rio, ZOOM_CERCA, false)
 	# 2. El cauce seco (lecho a la vista) y su llenado.
 	await _foto(carpeta, "seco_cerca_%s" % etiqueta, cauce, ZOOM_CERCA)
 	_vista_cerca(true)

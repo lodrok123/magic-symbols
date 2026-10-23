@@ -123,8 +123,11 @@ const VEL_CAIDA: float = 2.4
 const CAIDA_VETA2: float = 0.7
 const CAIDA_VETA2_VEL: float = 1.5
 ## Opacidad máxima (0-1) de las franjas claras de la corriente con el agua filtro (el río se ve correr). 0 = como antes (sin franjas).
-const FILTRO_FRANJAS: float = 0.40
-const FILTRO_FRANJAS_UMBRAL: float = 0.54
+const FILTRO_FRANJAS: float = 0.20
+const FILTRO_FRANJAS_UMBRAL: float = 0.62
+## 24/10 (agua del río, Pablo: «manchas blancas verticales opacas»): vetas finas y translúcidas, no manchas. El tope baja de 0,40 a 0,20 (luz sumada), el umbral sube de 0,54 a 0,62 (solo las crestas
+## del ruido, ~un tercio de la superficie de antes) y la banda de borde (FILTRO_FRANJAS_BANDA, en valor de ruido) pasa de 0,08 a 0,20: el borde de la veta se funde con el agua en vez de cortar seco.
+const FILTRO_FRANJAS_BANDA: float = 0.20
 ## 23/10 (agua del cauce hondo lleno): las vetas son luz que se SUMA a lo que se ve (ya no una mezcla hacia el blanco, que saturaba), y `FILTRO_FRANJAS` es lo más que suman. Solo salen con una
 ## corriente de verdad: nada por debajo de FILTRO_FLUJO_0 (u/s; lo que deja una lámina que se llena o se agita, 0,1-0,5) y enteras a partir de FILTRO_FLUJO_1 (el río lleva 0,9 propios).
 ## Fuera del río (el cauce hondo lleno, el estanque, el lab, la Cueva) se aclara el fondo que se ve (× FILTRO_REALCE; 1 = nada) y se le suma un velo turquesa de `filtro_hondo` × FILTRO_VELO que crece con la profundidad.
@@ -225,8 +228,9 @@ uniform float filtro_crestas = 0.6;
 uniform float filtro_espec = 0.55;
 uniform float filtro_fresnel = 0.10;
 uniform float filtro_tinte_visto = 1.0;
-uniform float filtro_franjas_umbral = 0.54;   // 22/10: valor del ruido de franjas a partir del cual hay veta con el agua filtro (FILTRO_FRANJAS_UMBRAL)
-uniform float filtro_franjas = 0.40;        // 22/10: opacidad máxima (0-1) de las franjas de la corriente en el agua filtro (FILTRO_FRANJAS); 23/10: ahora es la luz que suma una veta (emisión)
+uniform float filtro_franjas_banda = 0.20;    // 24/10: ancho (valor de ruido) del borde de la veta con el agua filtro (FILTRO_FRANJAS_BANDA)
+uniform float filtro_franjas_umbral = 0.62;  // 22/10: valor del ruido de franjas a partir del cual hay veta con el agua filtro (FILTRO_FRANJAS_UMBRAL)
+uniform float filtro_franjas = 0.20;       // 22/10: opacidad máxima (0-1) de las franjas de la corriente en el agua filtro (FILTRO_FRANJAS); 23/10: ahora es la luz que suma una veta (emisión)
 uniform sampler2D cauce : filter_linear, hint_default_black, repeat_disable;   // 23/10: R = 1 en los trocitos de un cauce hondo abierto/lleno (`_montar_cauce`); 0 en el resto
 uniform float filtro_realce = 1.0;          // 23/10: cuánto se aclara el fondo que se ve a través del agua fuera del río (FILTRO_REALCE; 1 = nada)
 uniform float filtro_velo = 0.0;             // y el velo turquesa que se le suma, por profundidad (FILTRO_VELO)
@@ -626,12 +630,12 @@ void fragment() {
 	// trocito a otro) ya no las enciende, y salían parches pálidos con el borde del trocito. El río (0,9 u/s propios) las lleva enteras como antes.
 	// Solo el agua de un cauce hondo lleno (textura `cauce`, 1 en sus trocitos) usa las vetas nuevas; el río, el estanque, el lab y la Cueva conservan las de siempre.
 	float cauce_f = texture(cauce, pm.xz / (lado_trocito * vec2(textureSize(cauce, 0)))).r;
-	float efecto_flujo = filtro > 0.5 ? mix(smoothstep(0.04, 0.3, vel), smoothstep(filtro_flujo_0, filtro_flujo_1, vel), cauce_f) : smoothstep(0.04, 0.3, vel);
+	float efecto_flujo = filtro > 0.5 ? smoothstep(filtro_flujo_0, filtro_flujo_1, vel) : smoothstep(0.04, 0.3, vel);     // 24/10: la misma corriente de verdad en todo el agua filtro (el río incluido)
 	float fr = franja(uv - dir * avance * fase0 / tam_franja, dir) * peso0
 			+ franja(uv + 0.37 - dir * avance * fase1 / tam_franja, dir) * (1.0 - peso0);
 	// 22/10: el cruce de las dos fases promedia dos ruidos y casi nunca pasa de 0,62; con el filtro el umbral baja (FILTRO_FRANJAS_UMBRAL) para que haya vetas.
 	float um_franja = filtro > 0.5 ? filtro_franjas_umbral : 0.62;
-	float franjas = smoothstep(um_franja, um_franja + 0.08, fr) * efecto_flujo;
+	float franjas = smoothstep(um_franja, um_franja + (filtro > 0.5 ? filtro_franjas_banda : 0.08), fr) * efecto_flujo;
 	ce = mix(ce, color_espuma, franjas * 0.32);
 
 	// LECHO (16/10, Pablo: «es translúcida y está bien, pero no hay sensación de profundidad»). No hay un fondo real bajo el agua (la
@@ -757,13 +761,13 @@ void fragment() {
 			// 23/10: la veta ya no mezcla el ALBEDO hacia el blanco (iluminado por el sol y el ambiente salía blanco opaco con solo un 0,4 y tapaba el fondo en parches con borde de
 			// trocito); ahora SUMA luz a la emisión (el fondo se sigue viendo debajo) y no pasa del tope `filtro_franjas`.
 			float a_franja = franjas * filtro_franjas * smoothstep(0.0, refr_orilla, prof_e) * (1.0 - hielo);
-			float a_x = clamp(max(max(max(espuma, men * 0.45), a_franja * (1.0 - cauce_f)), hielo), 0.0, 1.0);      // fuera del cauce hondo, la veta mezclada de siempre
+			float a_x = clamp(max(max(max(espuma, men * 0.45), 0.0), hielo), 0.0, 1.0);      // 24/10: la veta ya no mezcla el albedo en ningún agua filtro (en el río salía en manchas blancas opacas): solo suma luz
 			vec3 alb_f = filtro_hondo * scat + vec3(0.88, 0.94, 1.0) * fres * filtro_fresnel;
 			ALBEDO = mix(alb_f, ce * brillo, a_x);
 			// 23/10 (cauce hondo lleno): un lecho de losas oscuras bajo 0,6-1 u de agua salía pizarra apagada (Beer sobre un fondo casi negro); fuera del río se aclara lo que se ve
 			// (`filtro_realce`) y se le suma un velo turquesa que crece con la profundidad (`filtro_velo`). Solo en el cauce hondo (cauce_f = 1): el resto queda como estaba.
 			vec3 visto = fondo_r * trans * mix(1.0, filtro_realce, cauce_f) + filtro_hondo * filtro_velo * cauce_f * (1.0 - exp(-pf / filtro_prof_max));
-			EMISSION = visto * (1.0 - scat) * (1.0 - a_x) + vec3(0.80, 0.95, 1.0) * a_franja * cauce_f * (1.0 - a_x);
+			EMISSION = visto * (1.0 - scat) * (1.0 - a_x) + vec3(0.80, 0.95, 1.0) * a_franja * (1.0 - a_x);
 			ALPHA = 1.0;
 			v_spec = mix(filtro_espec, 1.0, hielo);
 		} else {
@@ -998,6 +1002,7 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("caida_veta2_vel", CAIDA_VETA2_VEL)
 	_mat.set_shader_parameter("filtro_franjas", FILTRO_FRANJAS)
 	_mat.set_shader_parameter("filtro_franjas_umbral", FILTRO_FRANJAS_UMBRAL)
+	_mat.set_shader_parameter("filtro_franjas_banda", FILTRO_FRANJAS_BANDA)
 	_mat.set_shader_parameter("filtro_realce", FILTRO_REALCE)
 	_mat.set_shader_parameter("filtro_velo", FILTRO_VELO)
 	_mat.set_shader_parameter("filtro_flujo_0", FILTRO_FLUJO_0)
