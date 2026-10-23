@@ -708,6 +708,8 @@ void fragment() {
 @export var radio_transparencia: float = 1.9
 ## Bloque 1 EoW: cuánto se mecen árboles y arbustos (`VIENTO_DECORADO`; 0 = quietos). Necesita `transparencia_jugador` (es el mismo material).
 @export var viento_decorado: float = 1.0
+## Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D). Desmarcar = sin niebla.
+@export var niebla_fosos: bool = true
 ## Quita la parte delantera del toldo del puesto de mercado (desde la cámara tapaba al tendero).
 @export var recortar_toldo: bool = true
 ## Hierba de todo el mapa a la vez (el prerender 2D la necesita entera). Si no, solo alrededor de la chibi.
@@ -1191,6 +1193,11 @@ func _ready() -> void:
 	var lz: Lanzador3D = get_node_or_null("Lanzador3D") as Lanzador3D
 	if lz != null:
 		Realce3D.montar(lz, self)
+	# Bloque 3 EoW (23/10): luz y cámara por área, de las líneas «; zona» del mapa del nivel (Zonas3D). Sin esas líneas no cambia nada.
+	Zonas3D.montar(self)
+	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.
+	if niebla_fosos:
+		NieblaFoso3D.montar(self)
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()

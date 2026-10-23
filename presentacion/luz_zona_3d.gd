@@ -101,6 +101,66 @@ static func aplicar(env: Environment, sol: DirectionalLight3D, zona: String) -> 
 	return true
 
 
+## --- Bloque 3 EoW (23/10): PASAR DE UNA ZONA A OTRA sin salto (Zonas3D). ---
+## Los números de una zona que se pueden interpolar (los de la sombra no: se ponen al final del cambio). {} si la zona no existe.
+static func valores(zona: String) -> Dictionary:
+	if not ZONAS.has(zona):
+		return {}
+	var z: Dictionary = ZONAS[zona]
+	return {"sol_color": z["sol_color"], "sol_energia": float(z["sol_energia"]), "sol_pitch": float(z["sol_pitch"]), "sol_yaw": float(z["sol_yaw"]),
+		"ambiente_arriba": z["ambiente_arriba"], "ambiente_abajo": z["ambiente_abajo"], "ambiente_energia": float(z["ambiente_energia"])}
+
+
+## Mezcla de dos juegos de `valores` (`t` 0 = a, 1 = b).
+static func mezclar(a: Dictionary, b: Dictionary, t: float) -> Dictionary:
+	var r: Dictionary = {}
+	for k in b:
+		if not a.has(k):
+			r[k] = b[k]
+		elif b[k] is Color:
+			r[k] = (a[k] as Color).lerp(b[k] as Color, t)
+		elif k == "sol_yaw":
+			r[k] = rad_to_deg(lerp_angle(deg_to_rad(float(a[k])), deg_to_rad(float(b[k])), t))
+		else:
+			r[k] = lerpf(float(a[k]), float(b[k]), t)
+	return r
+
+
+## Pone unos `valores` (los de `valores()` o una mezcla) en el sol y el ambiente. Si el Environment ya tiene el cielo de dos colores, cambia sus
+## colores en el sitio (un Sky nuevo por fotograma volvería a calcular la radiancia cada vez).
+static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictionary) -> void:
+	if v.is_empty():
+		return
+	if sol != null:
+		sol.light_color = v["sol_color"]
+		sol.light_energy = float(v["sol_energia"])
+		sol.rotation_degrees = Vector3(float(v["sol_pitch"]), float(v["sol_yaw"]), 0.0)
+	if env == null:
+		return
+	var mat: ProceduralSkyMaterial = env.sky.sky_material as ProceduralSkyMaterial if env.sky != null else null
+	if mat == null:
+		ambiente_dos_colores(env, v["ambiente_arriba"], v["ambiente_abajo"], float(v["ambiente_energia"]))
+		return
+	var arriba: Color = v["ambiente_arriba"]
+	var abajo: Color = v["ambiente_abajo"]
+	var medio: Color = arriba.lerp(abajo, 0.5)
+	mat.sky_top_color = arriba
+	mat.sky_horizon_color = medio
+	mat.ground_horizon_color = medio
+	mat.ground_bottom_color = abajo
+	env.ambient_light_energy = float(v["ambiente_energia"])
+
+
+## La sombra de una zona (lo que no se interpola): al terminar el cambio.
+static func aplicar_sombra(sol: DirectionalLight3D, zona: String) -> void:
+	if sol == null or not ZONAS.has(zona):
+		return
+	var z: Dictionary = ZONAS[zona]
+	sol.directional_shadow_mode = int(z.get("sombra_modo", SOMBRA_MODO)) as DirectionalLight3D.ShadowMode
+	sol.directional_shadow_max_distance = float(z.get("sombra_distancia", SOMBRA_DISTANCIA))
+	sol.shadow_blur = float(z.get("sombra_blur", SOMBRA_BLUR))
+
+
 ## Ambiente de dos colores: `arriba` alumbra lo que mira al cielo y `abajo` lo que mira al suelo. El fondo del Environment NO cambia.
 static func ambiente_dos_colores(env: Environment, arriba: Color, abajo: Color, energia: float) -> void:
 	var mat := ProceduralSkyMaterial.new()

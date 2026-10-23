@@ -52,6 +52,8 @@ extends Node
 ##              ABIERTAS; se cierran cuando el jugador pisa una casilla de `sala` (y no está en la puerta). Se abren con la acción `abrir`
 ##              y ya no vuelven a cerrarse. `hasta=<flag>`: con esa flag puesta (al montar o después) ni se cierra ni se queda cerrado.
 ##              Sin `sala` solo cierra la acción `cerrar`. El rectángulo de `sala` NO debe incluir las `celdas` de las puertas
+##   lava       celdas=<lista> (la propia x,y)  vuelve=<s> (0)                       Lava3D (bloque 3 EoW): charco de lava que no se pisa y prende lo de al
+##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
 ##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>              CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
@@ -67,12 +69,12 @@ extends Node
 ##   brasero    encendido | apagado          contador   todos | no_todos            cuerda  rota
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
-##   muro       roto
+##   muro       roto                         lava     enfriada | apagada
 ## CONDICIONES (`si=<id>.<cond>`: la regla solo actúa si en ese momento se cumple):
 ##   compuerta/puerta  abierta | cerrada    nivel  alcanzado | perdido     nexo    conduce | corta    molino  girando | parado
 ##   barril  explotado | encendido | entero    pulsador  activo | libre
 ##   brasero apagado | encendido   contador  todos | no_todos   cuerda  rota | entera   seto  ardiendo
-##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero
+##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada
 ##
 ## CONDICIONES COMPUESTAS (C2, 21/10). `si=` es una EXPRESIÓN de términos:
 ##   término    <id>.<cond> (de arriba) | flag.<nombre> | casilla(x,y).<estado>
@@ -149,7 +151,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"pulsador": "pulsado", "compuerta": "abierta", "nivel": "alcanzado", "molino": "girando", "nexo": "conduce", "barril": "explota",
 	"puerta": "abierta", "totem": "activado", "tinaja": "agua_llega", "emisor": "descarga",
 	"brasero": "encendido", "contador": "todos", "cuerda": "rota", "seto": "consumido",
-	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto",
+	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -171,6 +173,7 @@ const SENALES: Dictionary = {
 	"cerrojo": {"cerrado": ["cambio", 1, true], "abierto": ["cambio", 1, false]},
 	"cofre": {"aparecido": ["aparecido", 0, null], "abierto": ["abierto", 0, null]},
 	"muro": {"roto": ["roto", 0, null]},
+	"lava": {"enfriada": ["enfriada", 1, null], "apagada": ["apagada", 0, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -188,6 +191,7 @@ const CONDICIONES: Dictionary = {
 	"cerrojo": {"cerrado": ["cerrado", true], "abierto": ["cerrado", false]},
 	"cofre": {"oculto": ["es_oculto", true], "cerrado": ["es_cerrado", true], "abierto": ["es_abierto", true]},
 	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
+	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -205,6 +209,7 @@ const ACCIONES: Dictionary = {
 	"cerrojo": {"abrir": 0, "cerrar": 0},
 	"cofre": {"abrir": 0, "aparecer": 0},
 	"muro": {"romper": 0},
+	"lava": {"enfriar": 0},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -228,6 +233,7 @@ const CLAVES: Dictionary = {
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
 	"cofre": {"aparece_si": "expr", "abierto": "flag"},
 	"muro": {"golpes": "f"},
+	"lava": {"celdas": "celdas", "vuelve": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -1341,6 +1347,12 @@ func _crear(pz: Pieza) -> void:
 			ba.preparar(pz.celda)
 			cont.add_child(ba)
 			pz.nodo = ba
+		"lava":
+			var lv := Lava3D.new()
+			lv.name = pz.id
+			lv.preparar(pz.p.get("celdas", [pz.celda]), float(pz.p.get("vuelve", 0.0)))
+			cont.add_child(lv)
+			pz.nodo = lv
 		"muro":
 			var mu := MuroAgrietado3D.new()
 			mu.name = pz.id
@@ -1743,6 +1755,9 @@ func _ejecutar(a: Dictionary) -> void:
 		"romper":
 			if nd != null:
 				nd.call("romper")
+		"enfriar":
+			if nd != null:
+				nd.call("enfriar_en", pz.celda)
 		"mojar":
 			if nd == null:
 				return
