@@ -74,7 +74,8 @@ otra vez. Ninguno sabe qué otros hay:
 | ᛜ barrera | `solidez` | ×1,5 | ×3 | el volumen bloquea proyectiles y aguanta golpes |
 | ᚠ repetición | `copias` | +1 | 4 | n volúmenes, repartidos a lo largo de X |
 | ᚢ rebote | `rebotes` | +1 | 3 | al chocar, cambia de dirección (necesita *viaja*; sin él, refleja proyectiles) |
-| ᚷ pulso | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño |
+| ᚷ crecer (hasta el 23/10 «pulso») | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño |
+| ᚱ pulso (23/10, por construir) | `resuena` (casillas) | +4 | 12 | el volumen suelta un pulso que recorre los conductores; actúa al inicio, continuo o al final según la receta (`PLAN_PULSO_RESONANTE.md` §2 y §10 bis) |
 | *aparcados* (17/10) | retardo, atracción, espejo, amplificar | — | — | se quedan fuera de la v2 hasta encontrarles uso |
 | *nuevos* ᚦ ᚨ ᛃ ᛉ ᛞ ᛈ | `perfora`, `marca`, `vuelve`, `guarda`, `destello`, `oculto` | — | — | ver la propuesta anterior |
 
@@ -119,7 +120,7 @@ Ningún paso pregunta «¿hay rebote y repetición?». Ejemplos que salen sin es
 - **ᛏᛏ + hielo** = pilar de hielo de 2 niveles que se puede escalar y se derrite.
 - **Z×3 + ᛇ + fuego** = lanza de fuego larga que viaja.
 - **Z×3 + ᛇ + ᚢ + rayo** = lanza eléctrica que rebota.
-- **ᚷ + viento** = onda que empuja y crece.
+- **ᚷ (crecer) + viento** = onda que empuja y crece.
 - **ᚠᚠ + ᛇ + hielo** = tres bolas de hielo en abanico.
 - **ᛁ + Z×2 + agua** = (antes una losa de agua) **desde el 21/10, un rayo de agua de 5 m** (Z×2 es ᛁ vertical: cualquier ᛁ suma al mismo haz). La losa/charco grande delante queda para ᛜ + ᛁ + ᛁ.
 

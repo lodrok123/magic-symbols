@@ -177,8 +177,8 @@ El sonido acompaña el ritmo: zumbido grave que sube, golpe al abrir y una nota 
 ## 10. Decisiones de Pablo (23/10)
 
 1. **Nombre: «pulso».** El glifo nuevo se llama **pulso** y no «resonancia» ni «eco». Por tanto el ᚷ de hoy («pulso», `crece`) pasa a
-   llamarse **«crecer»** (solo el nombre: su parámetro y su runa no cambian). Runa propuesta para el pulso: **ᚱ** (raido, «camino,
-   ritmo»), que está libre desde el 17/10 (`GLIFOS_RECETA.md` §2.1). Falta que Pablo la confirme.
+   llamarse **«crecer»** (solo el nombre: su parámetro y su runa no cambian). Runa del pulso: **ᚱ** (raido, «camino, ritmo»),
+   libre desde el 17/10 (`GLIFOS_RECETA.md` §2.1). Confirmada por Pablo el 23/10.
 2. **Propiedad**, no geometría: el pulso es algo que se le **transfiere** al hechizo (que resuene). Cualquier volumen puede resonar.
 3. **El aire:** sin conductor, el pulso toca **1 casilla**, como en §3. Para usarlo a distancia se combina con otra propiedad: **flecha +
    pulso** lleva el pulso hasta donde choca. No se escribe como caso especial: sale del **momento de ejecución** (§10 bis).
