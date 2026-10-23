@@ -179,8 +179,10 @@ static func _dueno(n: Node, raiz: Node) -> void:
 	for h in n.get_children():
 		h.owner = raiz
 		# 15/10: un modelo con animaciones (el cofre) se queda como INSTANCIA del .glb: si se vuelcan también sus hijos a la pieza, el AnimationPlayer
-		# se duplica y el guardado no anima (comprobado: current_animation_position se queda en 0). Los estáticos siguen como antes.
-		if h.scene_file_path != "" and h.find_child("AnimationPlayer", true, false) != null:
+		# se duplica y el guardado no anima (comprobado: current_animation_position se queda en 0).
+		# 23/10: lo mismo vale para TODA instancia del .glb, animada o no: con `owner = raiz` en sus hijos, el empaquetado escribía la instancia MÁS una copia
+		# horneada de su subárbol (la misma malla dos veces: 90 de las 141 piezas dibujaban el doble de triángulos). Una instancia no se recorre.
+		if h.scene_file_path != "":
 			continue
 		_dueno(h, raiz)
 
