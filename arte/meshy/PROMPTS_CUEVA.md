@@ -143,3 +143,112 @@ single object, centered, no base, no ground plane, no background, no outline, no
 
 **Total: 15 generaciones más la llave** (paredes 4, muro 1, boca 1, jarrones 2, puerta 2, decorado 3, texturas 2). Ninguna bloquea la Fase 1 del plan: la Cueva se puede montar ya con §A y §B y cambiar las
 piezas cuando lleguen, porque el plano de letras no cambia.
+
+---
+
+# Segunda tanda: lo que falta para cerrar el nivel (23/10, tras montar la Cueva)
+
+**Ya llegó y está instalado** (Tripo, 4 hojas): las paredes de cueva (C1), el muro agrietado (C2), la boca (C3), los jarrones (C4), la puerta
+con llave y la llave (C5), las estalagmitas y tres setas (C6) y las dos texturas de suelo (C7). Sobra `charco_cueva_borde` (la charca usa el
+agua de la simulación).
+
+**Lo que falta** sale de `docs/PLAN_PULSO_RESONANTE.md` (las piezas del pulso, el cofre legendario), de `docs/MATERIALES_CUEVA.md` (lo
+que se recoge del suelo) y de lo que sigue siendo provisional en las fotos (`docs/capturas/cueva`, `docs/capturas/cueva_agua`): la placa
+amarilla «PÍSAME», el cofre pequeño de C6 y la franja marrón de la pared de la charca.
+
+Se piden **en hojas de 4–6 piezas** como la primera tanda (una imagen con las piezas separadas sobre fondo liso → un GLB → `recibir_assets.py
+ver` / `lote --escalera` / `instalar`). Cada pieza lleva su id, que es el nombre con que el mapa la pide. Las mismas reglas de arriba:
+nada de brillo pintado (lo pone el motor), piezas enteras, sin texto, y el bloque [ESTILO] al final.
+
+## D1. Hoja «pulso» — las piezas de la mecánica (prioridad 1)
+
+Todas comparten material: **roca azul grisácea de la cueva con incrustaciones de cristal aguamarina APAGADO** (el brillo del pulso lo
+enciende el motor por emisión, así que el cristal debe ser claro y liso, sin reflejos pintados). Runas, solo grabadas y monocromas.
+
+#### `cristal_resonante` (600–1 200 tris) — emisor y repetidor
+> A resonant crystal on a rock base: one tall faceted aquamarine crystal with two smaller ones at its side, growing out of a low round
+> blue-grey rock, the crystal pale and matte with clean flat facets, a thin carved stone ring around its foot. 0.9 units wide, 1.6 tall.
+
+#### `prisma_orientable` (500–1 000 tris) — gira el pulso 90°
+> A rotating stone prism on a round pivot base: a triangular block of carved stone holding a clear aquamarine triangular crystal through
+> its middle, one face clearly marked as the front with a carved arrow groove, the base a low stone disc with a notch. 1.0 wide, 1.2 tall.
+
+#### `receptor_runico` (500–1 000 tris) — recibe el pulso
+> A rune receptor pillar: a short thick stone pedestal with a round concave crystal socket on top facing up, a single simple carved rune
+> on its front, moss at the foot, the socket crystal pale and matte. 0.8 wide, 1.1 tall.
+
+#### `bloque_enlace` (300–600 tris) — se empuja para cerrar una veta
+> A pushable cube of dark stone with thin pale crystal veins running across all its faces from edge to edge, chunky bevelled edges,
+> slightly worn corners. 1.0 by 1.0 by 1.0.
+
+#### `estatua_piedra` (1 000–2 000 tris) — el secreto de las estatuas (se repite tres veces)
+> A small guardian statue of a seated owl-like spirit carved in weathered blue-grey stone, wings folded, a round empty crystal socket
+> on its chest, moss on the head and the base, cute rounded proportions. 1.0 wide, 1.8 tall.
+
+#### `columna_agrietada` (500–1 000 tris) — reactivo que cae con el pulso
+> A thick cave column of stacked rough stone drums, slightly leaning, a few hairline cracks only (the big cracks are added in game),
+> thin pale crystal veins in the stone, mossy base. Plain matte stone, no glow. 1.0 wide, 2.6 tall.
+
+## D2. Hoja «recompensas» — cofres y placa (prioridad 1)
+
+Los cofres se piden con **la tapa como pieza aparte** (el cofre animado la abre; ver `arte/piezas/cofre.tscn`).
+
+#### `cofre_legendario` + `cofre_legendario_tapa` (1 500–3 000 tris) — el final de la mazmorra
+> A large ancient treasure chest of dark carved stone with gold trim and thick golden veins running across its sides like a circuit,
+> a big round rune medallion on the front, heavy clawed feet; **the domed lid is a separate piece**. Gold is matte metal, no glow.
+> 1.6 wide, 1.1 deep, 1.2 tall with the lid.
+
+#### `cofre_epico` + `cofre_epico_tapa` (800–1 600 tris) — los secretos
+> A medium treasure chest of grey stone blocks bound with dark iron, thin violet crystal inlays along the edges, a simple rune lock;
+> **the flat lid is a separate piece**. Matte, no glow. 1.1 wide, 0.8 deep, 0.9 tall with the lid.
+
+#### `placa_presion_cueva` (200–500 tris) — sustituye a la placa amarilla
+> A square stone pressure plate set slightly above the floor: one worn flat slab with a carved concentric ring and a small rune in the
+> middle, a thin gap all around it, moss in the gap. 1.8 by 1.8, 0.2 tall.
+
+## D3. Hoja «recolectables» — lo que se recoge del suelo (prioridad 2)
+
+#### `alga_cueva` (300–600 tris)
+> A clump of long ribbon-like cave algae lying flat, deep teal and green strands with paler tips, wet and soft, spreading from one
+> point. 0.8 wide, 0.2 tall.
+
+#### `basalto_suelto` (200–400 tris)
+> A loose chunk of cooled basalt: a dark charcoal rock with flat hexagonal-ish faces and thin cracks, a little ash on top, no glow.
+> 0.5 wide, 0.35 tall.
+
+#### `mineral_veta` (200–400 tris)
+> A small rough rock chunk with a thick pale aquamarine crystal vein running through it, matte, broken edges. 0.4 wide, 0.3 tall.
+
+#### `esquirla_cristal` (150–300 tris)
+> A small cluster of three sharp aquamarine crystal shards lying on the ground, clean flat facets, matte, no glow. 0.4 wide, 0.3 tall.
+
+#### `jarron_roto` (300–600 tris)
+> The broken remains of a round terracotta pot: the bottom half still standing with jagged edges and four curved shards scattered
+> around it, same painted band as the whole pot. 0.9 wide, 0.35 tall.
+
+## D4. Texturas (prioridad 2; método de `arte/suelo_meshy/PROMPTS_SUELO.md`)
+
+#### `veta_mineral.png` (1024, tileable, con su máscara)
+> Seamless tileable top-down texture of thin branching mineral veins on dark blue-grey rock: pale aquamarine veins with soft edges,
+> hand-painted, low contrast rock, no glow, no objects.
+
+Y aparte, la **máscara** de las mismas vetas en blanco sobre negro (`veta_mineral_mascara.png`): el pulso recorre la máscara encendiendo
+las vetas casilla a casilla, así que tienen que coincidir.
+
+#### `pared_foso_cueva.png` (1024, tileable en horizontal)
+> Seamless horizontally tileable side texture of a wet cave pit wall: stacked rounded blue-grey stones with dark gaps, damp darker band
+> near the bottom, a little moss on top, hand-painted, low contrast, no objects.
+
+Sustituye a la franja marrón (tierra del Bosque) que se ve en la pared de la charca y en el borde del mapa.
+
+## Total de la segunda tanda
+
+| hoja | piezas | prioridad |
+|---|---|---|
+| D1 pulso | 6 | 1 |
+| D2 recompensas | 3 (+2 tapas) | 1 |
+| D3 recolectables | 5 | 2 |
+| D4 texturas | 2 (+1 máscara) | 2 |
+
+**16 piezas en 4 hojas.** Mientras no lleguen, el plan del pulso se monta con primitivas (fase 1 de `PLAN_PULSO_RESONANTE.md` §12), así que
+ninguna bloquea el código.
