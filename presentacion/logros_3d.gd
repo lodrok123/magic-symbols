@@ -16,11 +16,12 @@ extends RefCounted
 ## mientras dura, se alarga sin perder el valor original. `restaurar_tiempo()` lo deja siempre como estaba (la prueba y quien salga de la escena lo pueden llamar).
 ## ZOOM: la cámara de la maqueta es ortogonal y se mueve sola cada fotograma; solo se anima su `size` (o el `fov` si fuera en perspectiva), sin tocar el código de la
 ## maqueta. Si el jugador cambia el zoom a mano justo durante el acercamiento, al terminar vuelve al valor de antes (son ~0,8 s).
+## RADIAL (bloque 2 EoW, 23/10): fuerza 0..1 del desenfoque radial con aberración que sale del punto del logro (`PulsoPantalla3D`); 0 = nada.
 ##
 ## ENGANCHE: `Logros3D.conectar(mundo3d, padre_fx)` al montar el nivel, como `ReaccionesVfx3D.conectar`. Sin Mundo3D (o sin la señal) no hay nada que enganchar y devuelve false.
 ## Un nombre que no esté en la tabla no hace nada (ni error).
 
-const CAMPOS: Array = ["sfx", "sfx2", "motas", "anillo", "luz", "color", "texto", "texto_dura", "hitstop", "zoom"]
+const CAMPOS: Array = ["sfx", "sfx2", "motas", "anillo", "luz", "color", "texto", "texto_dura", "hitstop", "zoom", "radial"]
 
 # --- Ajustes (constantes a la vista, para afinar escuchando y viendo) ---
 const ORO: Color = Color(1.0, 0.82, 0.35)
@@ -46,15 +47,15 @@ const TABLA: Dictionary = {
 	# Suave: un tono de «pista» y un pulso pequeño. Sin texto: no debe interrumpir.
 	"paso_puzle":       {"sfx": "logro_pista", "motas": 5, "anillo": 0.9, "color": CELESTE},
 	# Lo que más veces se verá: acierto claro pero breve.
-	"puzle_resuelto":   {"sfx": "logro_acierto", "motas": 22, "anillo": 1.9, "luz": 1.6, "color": ORO, "texto": "¡Puzle resuelto!", "texto_dura": 2.2},
+	"puzle_resuelto":   {"sfx": "logro_acierto", "motas": 22, "anillo": 1.9, "luz": 1.6, "color": ORO, "texto": "¡Puzle resuelto!", "texto_dura": 2.2, "radial": 0.2},
 	# Sala cerrada: pausa de impacto al caer el último enemigo y un pequeño acercamiento.
-	"sala_limpia":      {"sfx": "logro_acierto", "motas": 18, "anillo": 2.8, "luz": 1.2, "color": BLANCO_CALIDO, "texto": "Sala despejada", "texto_dura": 2.2, "hitstop": 0.08, "zoom": 0.10},
+	"sala_limpia":      {"sfx": "logro_acierto", "motas": 18, "anillo": 2.8, "luz": 1.2, "color": BLANCO_CALIDO, "texto": "Sala despejada", "texto_dura": 2.2, "hitstop": 0.08, "zoom": 0.10, "radial": 0.5},
 	"cofre_aparece":    {"sfx": "logro_brillo", "motas": 16, "anillo": 1.3, "luz": 1.2, "color": ORO},
-	"cofre_abierto":    {"sfx": "logro_fanfarria", "motas": 36, "anillo": 2.3, "luz": 2.2, "color": ORO, "texto": "¡Cofre abierto!", "texto_dura": 2.4},
+	"cofre_abierto":    {"sfx": "logro_fanfarria", "motas": 36, "anillo": 2.3, "luz": 2.2, "color": ORO, "texto": "¡Cofre abierto!", "texto_dura": 2.4, "radial": 0.3},
 	# Una puerta de sala que se abre: su sonido de siempre y un polvillo de luz; el texto lo da «sala_limpia», que ocurre en el mismo instante.
 	"puerta_abierta":   {"sfx": "puerta_abre", "motas": 8, "anillo": 1.5, "color": BLANCO_CALIDO},
 	# Lo emitirá el nivel (pedestal final); la fila ya está lista.
-	"nivel_completado": {"sfx": "logro_fanfarria", "sfx2": "logro_acierto", "motas": 64, "anillo": 4.2, "luz": 3.0, "color": ORO, "texto": "¡Nivel completado!", "texto_dura": 3.5, "hitstop": 0.10, "zoom": 0.15},
+	"nivel_completado": {"sfx": "logro_fanfarria", "sfx2": "logro_acierto", "motas": 64, "anillo": 4.2, "luz": 3.0, "color": ORO, "texto": "¡Nivel completado!", "texto_dura": 3.5, "hitstop": 0.10, "zoom": 0.15, "radial": 0.8},
 }
 
 static var _fx: Node3D = null
@@ -75,7 +76,7 @@ static var total: Dictionary = {}
 static func resolver(nombre: String) -> Dictionary:
 	if not TABLA.has(nombre):
 		return {}
-	var f: Dictionary = {"sfx": "", "sfx2": "", "motas": 0, "anillo": 0.0, "luz": 0.0, "color": ORO, "texto": "", "texto_dura": 2.0, "hitstop": 0.0, "zoom": 0.0}
+	var f: Dictionary = {"sfx": "", "sfx2": "", "motas": 0, "anillo": 0.0, "luz": 0.0, "color": ORO, "texto": "", "texto_dura": 2.0, "hitstop": 0.0, "zoom": 0.0, "radial": 0.0}
 	f.merge(TABLA[nombre], true)
 	return f
 
@@ -110,6 +111,7 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 	fila["hizo_texto"] = false
 	fila["hizo_hitstop"] = false
 	fila["hizo_zoom"] = false
+	fila["hizo_radial"] = false
 	if padre == null or not is_instance_valid(padre) or not padre.is_inside_tree():
 		return fila                                                     # sin árbol no hay dónde sonar ni dibujar: se devuelve la fila y ya
 	var color: Color = fila["color"]
@@ -136,6 +138,9 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		fila["hizo_hitstop"] = true
 	if float(fila["zoom"]) > 0.0:
 		fila["hizo_zoom"] = zoom(arbol, float(fila["zoom"]))
+	if float(fila["radial"]) > 0.0:
+		PulsoPantalla3D.lanzar_en(arbol, punto, float(fila["radial"]))       # bloque 2 EoW: desenfoque radial desde el punto del logro
+		fila["hizo_radial"] = true
 	return fila
 
 

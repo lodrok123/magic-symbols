@@ -1187,6 +1187,10 @@ func _ready() -> void:
 	var vfx_elemento: VfxElemento3D = VfxElemento3D.conectar(get_node_or_null("Lanzador3D"), self)
 	vfx_elemento.casilla = Terreno3D.casilla
 	vfx_estado.encendido = false
+	# Bloque 2 EoW (23/10): con el libro abierto o apuntando, lo que reaccionaría al hechizo se marca con un borde de luz (Realce3D).
+	var lz: Lanzador3D = get_node_or_null("Lanzador3D") as Lanzador3D
+	if lz != null:
+		Realce3D.montar(lz, self)
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()

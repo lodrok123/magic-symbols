@@ -153,6 +153,7 @@ func _explotar() -> void:
 		if is_instance_valid(n) and n != self and n is Node3D and (n as Node3D).global_position.distance_to(punto) <= RADIO and n.has_method("recibir_explosion"):
 			n.call("recibir_explosion", punto)
 	explota.emit(punto, RADIO)
+	PulsoPantalla3D.lanzar_en(get_tree(), punto, 0.6, 0.3)     # bloque 2 EoW: golpe de pantalla desde la explosión
 	# Un fogonazo sencillo: una esfera naranja que crece y se desvanece.
 	var fog := MeshInstance3D.new()
 	var esf := SphereMesh.new()
