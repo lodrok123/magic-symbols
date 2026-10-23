@@ -31,7 +31,7 @@ extends LabRecetas3D
 ##
 ## TECLAS (en F2 mandan las de F2; B es el barrido solo fuera de F2):
 ##   F1/F2/F3/F4 pestaña · C modo completo ↔ rápido (en F2 la C es de «fuente de clip») · Numpad + tinta infinita · Numpad − recarga · Numpad × goblin que ataca
-##   Numpad / cámara lateral · Espacio lanza · B barrido · Tab elemento · Numpad 1–8 glifos · Numpad 0 limpia · R recarga · L . , tiempo · G guarda · P imprime
+##   Numpad / cámara lateral · Espacio lanza · B barrido · Tab elemento · Numpad 1–9 y . glifos (el 10.º, ᚱ, en el Numpad .) · Numpad 0 limpia · R recarga · L . , tiempo · G guarda · P imprime
 ##   F6 interfaz completa ↔ compacta (era F4 hasta el 19/10) (la compacta es la de F1 por defecto; ver la sección «Interfaz COMPACTA» del final)
 
 const NIVEL_HECHIZOS: String = "LabHechizos"
@@ -41,6 +41,8 @@ const GOBLIN_ATACANTE: Vector2i = Vector2i(23, 12)
 const RUTA_GUARDADO: String = "user://lab_hechizos.json"
 const FASES_CONJURO: Array = ["runa", "voluta", "forma", "disparo"]
 const CAMARA_LATERAL_TAM: float = 7.0
+## Glifos que LabRecetas3D no alcanza con el Numpad (solo tiene KP_1..KP_8): tecla -> posición en `Sigils.GLIFOS_V2`. KP_9 = 9.º (ᛉ permanencia), KP_. = 10.º (ᚱ «pulso», 23/10).
+const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
 
 ## Constantes de Combate3D que enseña F3: nombre, paso de cada pulsación, mínimo, máximo. (SQUASH_ESCALA y SALTO_ELEMENTOS no son de un solo número:
 ## el aplastamiento se toca por la X/Z y la Y por separado abajo, y los elementos del salto no se editan aquí.)
@@ -642,8 +644,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		poner_nivel(Nivel.LANZAMIENTO if nivel == Nivel.BASES else Nivel.BASES)
 	elif receta_f1 and k.keycode == KEY_K:
 		comparar()
-	elif receta_f1 and k.keycode == KEY_KP_9 and Sigils.GLIFOS_V2.size() > 8:
-		sumar(String(Sigils.GLIFOS_V2.keys()[8]), -1 if k.shift_pressed else 1)             # el 9.º glifo (ᛉ permanencia): el Numpad solo tiene 8 teclas de 1 a 8 en LabRecetas3D
+	elif receta_f1 and TECLAS_GLIFO_EXTRA.has(k.keycode) and int(TECLAS_GLIFO_EXTRA[k.keycode]) < Sigils.GLIFOS_V2.size():
+		sumar(String(Sigils.GLIFOS_V2.keys()[int(TECLAS_GLIFO_EXTRA[k.keycode])]), -1 if k.shift_pressed else 1)   # los glifos 9.º y 10.º: LabRecetas3D solo tiene las teclas de 1 a 8
 	elif receta_f1 and k.keycode == KEY_BACKSPACE:
 		quitar_ultimo()                                                                        # antes restauraba la fila de la tabla: eso pasó a X
 	elif receta_f1 and k.keycode == KEY_DELETE:
@@ -820,7 +822,7 @@ func texto_hud() -> String:
 	match pestana:
 		Pestana.RECETA:
 			lineas.append(super.texto_hud())
-			lineas.append("Diseño: N Bases · Numpad 1-9 en orden · Retroceso quita · Supr vacía · Mayús+L límite · Ctrl+S guarda · Ctrl+1-9 relanza · K compara · X restaura · P exporta · G guarda todo")
+			lineas.append("Diseño: N Bases · Numpad 1-9 y . en orden · Retroceso quita · Supr vacía · Mayús+L límite · Ctrl+S guarda · Ctrl+1-9 relanza · K compara · X restaura · P exporta · G guarda todo")
 		Pestana.CAST_POINT:
 			lineas.append(String(f2.call("texto")) if f2 != null and f2.has_method("texto") else "(F2: el laboratorio de cast points no está cargado)")
 		Pestana.IMPACTO:
@@ -1378,7 +1380,7 @@ func _pintar_elipsoide(g: Dictionary, d: Vector3) -> void:
 ##  El lab deja de ser solo un sitio donde probar lanzamientos: sirve para diseñar glifos y valores.
 ##    N                     alterna el nivel de la tabla de F1: «Este lanzamiento» (cambios_hechizo; solo los siguientes lanzamientos) o «Bases»
 ##                          (la capa `CapaBases`: valores por defecto del Hechizo, modificadores de cada glifo y de cada elemento; en MEMORIA, nunca en res://)
-##    Numpad 1–9            añade el glifo al FINAL de la fila (Mayús+Numpad quita el último de ese glifo) · Retroceso quita el último · Supr vacía
+##    Numpad 1–9 y .        añade el glifo al FINAL de la fila (Mayús+Numpad quita el último de ese glifo) · Retroceso quita el último · Supr vacía
 ##    Mayús+L               quita/pone el límite de 6 glifos (Hechizo.MAX_GLIFOS)
 ##    Ctrl+S                guarda la receta actual (Ctrl+Mayús+S sobrescribe la última lanzada) · Ctrl+1…9 relanza la receta guardada
 ##    P / G                 imprime lo tocado (en «Bases», como texto listo para pegar) / guarda todo en user://lab_hechizos.json (se recarga al abrir)
@@ -1825,7 +1827,7 @@ func texto_diseno() -> String:
 	l.append(texto_orden())
 	if not limite_glifos:
 		l.append("⚠ LÍMITE DE GLIFOS DESACTIVADO (Mayús+L)")
-	l.append("Numpad 1-9 añade · Retroceso quita · Supr vacía · K compara · Ctrl+S guarda")
+	l.append("Numpad 1-9 y . añade · Retroceso quita · Supr vacía · K compara · Ctrl+S guarda")
 	if not recetas.is_empty():
 		l.append("Recetas:")
 		l.append(texto_recetas())

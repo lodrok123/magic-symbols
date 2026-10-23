@@ -21,7 +21,7 @@ const ATAQUE: float = 0.04               ## s que tarda en llegar al brillo plen
 const REPOSO: float = 0.55               ## cuánto de su valor (0..1) conserva la veta sin pulso
 const ALFA_REPOSO: float = 0.85
 const EMISION: float = 0.9              ## multiplicador de la emisión (máscara × color × energía × EMISION); con más se quema a blanco y el azul claro se pierde
-const EMISION_REPOSO: float = 0.10      ## brillo azul muy sutil de la veta sin pulso (la cueva iluminada en azul; el frente la lleva a 0,9 y la nueva luz no compite)
+const EMISION_REPOSO: float = 0.16      ## brillo azul sutil de la veta sin pulso (la cueva iluminada en azul; era 0,10; el frente la lleva a 0,9: sigue casi 6× por encima)
 const HILO: float = 1.0                 ## fuerza del hilo guía (0 = sin hilo)
 const HILO_REPOSO: float = 0.6           ## cuánto del hilo se ve sin pulso (1 = igual que con él)
 const HILO_ANCHO: float = 0.045          ## fracción de casilla

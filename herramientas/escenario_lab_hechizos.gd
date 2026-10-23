@@ -94,6 +94,23 @@ func _escenario() -> void:
 	_ok("2 Numpad 1 suma y Mayús+Numpad 1 resta", int(lab.contadores.get(String(glifos[0]), 0)) == 1, str(lab.contadores))
 	_tecla_lab(KEY_KP_0)
 	_ok("2 Numpad 0 limpia", lab.contadores.is_empty())
+	# 23/10: el panel muestra el nombre que ve el jugador (ᚷ «crecer», ᚱ «pulso»), no el id interno («pulso», «raido»); y ᚱ (el 10.º glifo) tiene su tecla del Numpad
+	var nombres_ok: bool = true
+	for g in glifos:
+		var fila: Node = (lab.get("_panel_cuentas") as Dictionary)[g].get_parent()
+		nombres_ok = nombres_ok and (fila.get_child(0) as Label).text == Sigils.nombre_visible(String(g))
+	_ok("2 cada fila del panel lleva el nombre visible del glifo (nombre_visible)", nombres_ok and Sigils.nombre_visible("pulso") == "crecer" and Sigils.nombre_visible("raido") == "pulso")
+	_tecla_lab(KEY_F1)
+	_tecla_lab(KEY_KP_PERIOD)
+	_tecla_lab(KEY_KP_9)
+	_ok("2 Numpad . suma el 10.º glifo (ᚱ raido) y Numpad 9 el 9.º (permanencia)", int(lab.contadores.get("raido", 0)) == 1 and int(lab.contadores.get(String(glifos[8]), 0)) == 1, str(lab.contadores))
+	_tecla_lab(KEY_KP_PERIOD, true)
+	_ok("2 Mayús+Numpad . lo resta", not lab.contadores.has("raido"), str(lab.contadores))
+	lab.sumar("pulso", 1)
+	lab.sumar("raido", 1)
+	var texto_glifos: String = String(lab.call("_glifos_texto"))
+	_ok("2 el texto de la receta dice «crecer×1 pulso×1» y no los ids internos", texto_glifos.contains("crecer×1") and texto_glifos.contains("pulso×1") and not texto_glifos.contains("raido"), texto_glifos)
+	_tecla_lab(KEY_KP_0)
 	lab.poner_elemento("water")
 	_tecla_lab(KEY_TAB)
 	_ok("2 Tab pasa al siguiente elemento (water → earth)", String(lab.elemento) == "earth", String(lab.elemento))

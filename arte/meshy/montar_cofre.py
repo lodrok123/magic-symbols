@@ -27,6 +27,19 @@ sys.path.insert(0, str(AQUI))
 import recibir_assets as ra  # noqa: E402
 
 BISAGRA_ATRAS = 1.0     # la bisagra va en el borde de atrás (menor z) de la tapa
+# 23/10 (arreglo de la tapa abierta): con la bisagra EXACTA en el filo de arriba del borde de atrás del cuerpo, al girar -105° el aro de la tapa quedaba apoyado solo por
+# una arista y, desde la cámara del juego (30° de picado), se veía una rendija con el aire entre el cuerpo y la tapa («flota»). Se baja el eje al interior del listón del
+# borde (el grueso del listón es de unas 0,03 u): la tapa abre pivotando sobre él y su aro queda pegado a la cara de atrás del cuerpo, que es lo que hace una bisagra de verdad.
+HUNDIR_BISAGRA = 0.03   # u (las del glb: el cofre mide ~0,55 de ancho) que se baja el eje de la tapa desde el borde de arriba del cuerpo
+# Y se adelanta hacia dentro del cuerpo otro tanto: al girar -105° el filo de atrás de la tapa describe un arco alrededor del eje; con el eje en z = borde de atrás el filo se
+# iba ~0,03 u hacia atrás (rendija de lado). Con 0,03 hacia delante el filo cae sobre la cara de atrás del cuerpo (medido con la cámara de lado).
+ADELANTAR_BISAGRA = 0.03
+# Interior liso: la malla de Tripo es una cáscara de DOBLE pared (paredes de fuera y de dentro, suelo y techo interiores), y las caras de dentro llevan UV estirados que
+# caen en trozos de atlas con cristales morados: es el «interior morado» (un panel de espejo morado dentro del aro de la tapa y dentro del cuerpo). Las caras que miran
+# hacia el centro de su pieza (coseno de su normal con el vector centro→cara menor que COS_INTERIOR) pasan a una segunda primitiva con un material liso oscuro-dorado.
+COS_INTERIOR = -0.2     # una cara es «de dentro» si su normal mira al centro de la pieza con un coseno menor que esto
+COLOR_INTERIOR = (0.055, 0.032, 0.011, 1.0)  # marrón dorado oscuro (el «oro viejo» del interior de un cofre). OJO: baseColorFactor es LINEAL; Godot lo enseña en sRGB (0,055 → ~0,26): con 0,14 salía un amarillo plano que no pega
+RUGOSIDAD_INTERIOR = 0.9
 
 
 def _reducir(h, caras, tris):
@@ -38,8 +51,20 @@ def _reducir(h, caras, tris):
     return pos, nor, uv, idx
 
 
+def _es_interior(pos, idx):
+    """Máscara por triángulo: True si la cara mira al centro de la pieza (es de la pared de dentro). Centro = el de la caja de la pieza."""
+    centro = (pos.min(0) + pos.max(0)) / 2
+    p0, p1, p2 = pos[idx[:, 0]], pos[idx[:, 1]], pos[idx[:, 2]]
+    cr = np.cross(p1 - p0, p2 - p0)
+    n = cr / np.maximum(np.linalg.norm(cr, axis=1), 1e-12)[:, None]
+    d = (p0 + p1 + p2) / 3 - centro
+    d = d / np.maximum(np.linalg.norm(d, axis=1), 1e-12)[:, None]
+    return np.sum(n * d, axis=1) < COS_INTERIOR
+
+
 def _glb(ruta, ident, mallas, nodos, base, normal):
-    """mallas: [(nombre, pos, nor, uv, idx)], nodos: [(nombre, indice_malla, traslacion|None)] hijos de la raíz `ident`."""
+    """mallas: [(nombre, pos, nor, uv, idx)], nodos: [(nombre, indice_malla, traslacion|None)] hijos de la raíz `ident`.
+    Cada malla se parte en dos primitivas que comparten vértices: las caras de fuera (material 0, con textura) y las de dentro (`_es_interior`, material 1, liso)."""
     trozos, vistas, accesores = [], [], []
 
     def anadir(data, target=None):
@@ -52,24 +77,34 @@ def _glb(ruta, ident, mallas, nodos, base, normal):
         vistas.append(v)
         return len(vistas) - 1
 
-    js_mallas = []
-    for nombre, pos, nor, uv, idx in mallas:
-        pos, nor, uv = pos.astype(np.float32), nor.astype(np.float32), uv.astype(np.float32)
+    def indices(idx):
         flat = idx.reshape(-1)
         t = np.uint16 if int(flat.max()) < 65535 else np.uint32
         flat = flat.astype(t)
-        a0 = len(accesores)
-        for arr, tipo in ((pos, "VEC3"), (nor, "VEC3"), (uv, "VEC2")):
-            a = {"bufferView": anadir(arr.tobytes(), 34962), "componentType": 5126, "count": len(arr), "type": tipo}
-            if arr is pos:
-                a["min"], a["max"] = pos.min(0).tolist(), pos.max(0).tolist()
-            accesores.append(a)
         accesores.append({"bufferView": anadir(flat.tobytes(), 34963), "componentType": 5123 if t == np.uint16 else 5125,
                           "count": int(len(flat)), "type": "SCALAR"})
-        js_mallas.append({"name": nombre, "primitives": [{"attributes": {"POSITION": a0, "NORMAL": a0 + 1, "TEXCOORD_0": a0 + 2},
-                                                          "indices": a0 + 3, "material": 0}]})
+        return len(accesores) - 1
+
+    js_mallas = []
+    for nombre, pos, nor, uv, idx in mallas:
+        pos32, nor32, uv32 = pos.astype(np.float32), nor.astype(np.float32), uv.astype(np.float32)
+        a0 = len(accesores)
+        for arr, tipo in ((pos32, "VEC3"), (nor32, "VEC3"), (uv32, "VEC2")):
+            a = {"bufferView": anadir(arr.tobytes(), 34962), "componentType": 5126, "count": len(arr), "type": tipo}
+            if arr is pos32:
+                a["min"], a["max"] = pos32.min(0).tolist(), pos32.max(0).tolist()
+            accesores.append(a)
+        atributos = {"POSITION": a0, "NORMAL": a0 + 1, "TEXCOORD_0": a0 + 2}
+        dentro = _es_interior(pos, idx)
+        prims = [{"attributes": atributos, "indices": indices(idx[~dentro]), "material": 0}]
+        if dentro.any():
+            prims.append({"attributes": atributos, "indices": indices(idx[dentro]), "material": 1})
+        print(f"  {nombre}: {int((~dentro).sum())} caras de fuera, {int(dentro.sum())} de dentro")
+        js_mallas.append({"name": nombre, "primitives": prims})
     pbr = {"metallicFactor": 0.0, "roughnessFactor": 0.85}
     material = {"name": ident, "doubleSided": True, "pbrMetallicRoughness": pbr}
+    material_forro = {"name": ident + "_interior", "doubleSided": True,
+                      "pbrMetallicRoughness": {"baseColorFactor": list(COLOR_INTERIOR), "metallicFactor": 0.0, "roughnessFactor": RUGOSIDAD_INTERIOR}}
     imagenes, texturas = [], []
     if base is not None:
         imagenes.append({"bufferView": anadir(ra._jpeg(base)), "mimeType": "image/jpeg"})
@@ -86,7 +121,7 @@ def _glb(ruta, ident, mallas, nodos, base, normal):
             n["translation"] = [float(x) for x in tr]
         js_nodos.append(n)
     j = {"asset": {"version": "2.0", "generator": "montar_cofre.py"}, "scene": 0, "scenes": [{"nodes": [0]}], "nodes": js_nodos,
-         "meshes": js_mallas, "accessors": accesores, "bufferViews": vistas, "materials": [material]}
+         "meshes": js_mallas, "accessors": accesores, "bufferViews": vistas, "materials": [material, material_forro]}
     if imagenes:
         j["images"], j["textures"] = imagenes, texturas
     binario = b"".join(trozos)
@@ -117,7 +152,7 @@ def main():
     # tapa: a la pose cerrada (su base sobre el borde del cuerpo, centrada en él) y la bisagra en su borde de atrás
     lo_t, hi_t = zt["lo"], zt["hi"]
     desplazo = np.array([(lo_c[0] + hi_c[0]) / 2 - (lo_t[0] + hi_t[0]) / 2, hi_c[1] - lo_t[1], 0.0])
-    bis_mundo = np.array([(lo_c[0] + hi_c[0]) / 2, hi_c[1], lo_t[2] if BISAGRA_ATRAS > 0 else hi_t[2]])
+    bis_mundo = np.array([(lo_c[0] + hi_c[0]) / 2, hi_c[1] - HUNDIR_BISAGRA, (lo_t[2] + ADELANTAR_BISAGRA) if BISAGRA_ATRAS > 0 else hi_t[2]])
     pt_cerrada = pt + desplazo
     pt_rel = pt_cerrada - bis_mundo
     tr_tapa = bis_mundo - origen

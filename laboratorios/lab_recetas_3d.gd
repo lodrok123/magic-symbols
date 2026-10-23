@@ -508,7 +508,7 @@ func _montar_panel() -> void:
 		var fila := HBoxContainer.new()
 		v.add_child(fila)
 		var et := Label.new()
-		et.text = String(nombre)
+		et.text = Sigils.nombre_visible(String(nombre))               # lo que ve el jugador: ᚷ «crecer», ᚱ «pulso» (el id interno es «pulso» / «raido»)
 		et.custom_minimum_size = Vector2(110.0, 0.0)
 		et.tooltip_text = "tope en %d glifos (el panel deja uno de más para ver la saturación)" % glifos_hasta_tope(String(nombre))
 		fila.add_child(et)
@@ -598,7 +598,7 @@ func _glifos_texto() -> String:
 	var partes: PackedStringArray = []
 	for nombre in Sigils.GLIFOS_V2:
 		if contadores.has(nombre):
-			partes.append("%s×%d" % [nombre, int(contadores[nombre])])
+			partes.append("%s×%d" % [Sigils.nombre_visible(String(nombre)), int(contadores[nombre])])
 	return " ".join(partes)
 
 

@@ -22,10 +22,12 @@ const RUGOSIDAD: float = 0.85
 ## (`ENERGIA_MAX` 3,0 y las luces de 1,3–1,6) y de los braseros. Las luces cuestan: como mucho `MAX_LUCES_REPOSO` a la vez en todo el mapa (la Cueva tiene seis salas), y las
 ## piezas las piden con `reservar_luz` / devuelven con `liberar_luz` (una pieza sin luz sigue brillando por emisión).
 const COLOR_REPOSO: Color = Color(0.62, 0.85, 1.0)   ## = Pulso3D.COLOR_BASE (#9ED9FF); se repite aquí para no depender del orden de carga
-const ENERGIA_REPOSO: float = 0.16                   ## emisión del cristal en reposo (el destello pleno es 3,0)
-const LUZ_REPOSO_ENERGIA: float = 0.5                ## energía de la luz azul de un cristal grande en reposo (la primera, 0,32, apenas se veía en las capturas: el suelo de la Cueva se lleva casi toda la luz)
-const LUZ_REPOSO_ALCANCE: float = 5.2                ## u
-const MAX_LUCES_REPOSO: int = 8                      ## tope de luces de reposo vivas a la vez
+## Subida (23/10, 2.ª vuelta; Pablo: «en el SUELO casi nada»): emisión 0,16 → 0,22, luz 0,5 → 0,8, alcance 5,2 → 6,5 y tope 8 → 10. El destello suma `ENERGIA_LUZ` (1,6) a la luz de
+## reposo, así que sigue en ~3× (la prueba exige ≥ 2,5×) y su emisión (3,0) sigue 14× por encima de la de reposo.
+const ENERGIA_REPOSO: float = 0.22                   ## emisión del cristal en reposo (el destello pleno es 3,0)
+const LUZ_REPOSO_ENERGIA: float = 0.8                ## energía de la luz azul de un cristal grande en reposo (0,32 y luego 0,5 apenas se veían en el suelo de la Cueva, que se lleva casi toda la luz)
+const LUZ_REPOSO_ALCANCE: float = 6.5                ## u
+const MAX_LUCES_REPOSO: int = 10                     ## tope de luces de reposo vivas a la vez
 static var _luces_reposo: int = 0
 
 const CODIGO: String = """
@@ -119,6 +121,61 @@ static func liberar_luz() -> void:
 
 static func luces_reservadas() -> int:
 	return _luces_reposo
+
+
+## LA MANCHA DE LUZ AZUL EN EL SUELO (23/10, 2.ª vuelta; Pablo: «en el SUELO casi nada»). Medido en las capturas, subir la luz de las piezas apenas cambia el suelo de la Cueva
+## (+4 de 255 en azul junto al cristal con luz 0,8): su material casi no responde a las luces puntuales. Así que cada pieza que brilla (cristal, receptor, prisma) pone en el suelo
+## a su pie una mancha radial de luz azul (aditiva, sin sombra ni coste de luz): `SUELO_ENERGIA_REPOSO` en reposo y hasta `+ SUELO_ENERGIA_DESTELLO` en el destello del pulso.
+const SUELO_RADIO: float = 2.6                       ## u de radio de la mancha (algo más de una casilla)
+const SUELO_ENERGIA_REPOSO: float = 0.2              ## multiplicador del azul en el centro de la mancha en reposo (el suelo ronda 0,12–0,22 por canal: 0,2 lo hace claramente azul)
+const SUELO_ENERGIA_DESTELLO: float = 1.0            ## lo que suma el destello pleno (5× el reposo)
+const SUELO_ALTO: float = 0.045                      ## u sobre el suelo (sobre la veta, 0,03; bajo las grietas de la pared hueca, 0,05)
+const CODIGO_SUELO: String = """
+shader_type spatial;
+render_mode blend_add, unshaded, depth_draw_never, cull_disabled;
+uniform vec3 color : source_color = vec3(0.62, 0.85, 1.0);
+uniform float energia = 0.2;
+void fragment() {
+	float d = length(UV - vec2(0.5)) * 2.0;
+	float cae = pow(1.0 - smoothstep(0.0, 1.0, d), 1.8);
+	ALBEDO = color * energia * cae;
+	ALPHA = 1.0;
+}
+"""
+static var _shader_suelo: Shader = null
+
+
+## Pone la mancha en el suelo bajo `padre` (su origen está en el suelo). null sin mundo (una prueba de lógica). Se actualiza con `pintar_suelo`.
+static func suelo_azul(padre: Node3D) -> MeshInstance3D:
+	if padre == null or not Terreno3D.hay_mundo():
+		return null
+	if _shader_suelo == null:
+		_shader_suelo = Shader.new()
+		_shader_suelo.code = CODIGO_SUELO
+	var q := QuadMesh.new()
+	q.orientation = PlaneMesh.FACE_Y
+	q.size = Vector2(SUELO_RADIO * 2.0, SUELO_RADIO * 2.0)
+	var m := ShaderMaterial.new()
+	m.shader = _shader_suelo
+	m.set_shader_parameter("color", COLOR_REPOSO)
+	m.set_shader_parameter("energia", SUELO_ENERGIA_REPOSO)
+	var mi := MeshInstance3D.new()
+	mi.name = "suelo_azul"
+	mi.mesh = q
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0.0, SUELO_ALTO, 0.0)
+	padre.add_child(mi)
+	return mi
+
+
+## `e` = 0 en reposo, 1 en el destello pleno (el mismo `e` con que la pieza pinta su luz).
+static func pintar_suelo(mi: MeshInstance3D, color: Color, e: float) -> void:
+	if mi == null:
+		return
+	var m: ShaderMaterial = mi.material_override as ShaderMaterial
+	m.set_shader_parameter("color", color)
+	m.set_shader_parameter("energia", SUELO_ENERGIA_REPOSO + SUELO_ENERGIA_DESTELLO * clampf(e, 0.0, 1.5))
 
 
 ## Pone color y energía de brillo en los materiales de `preparar`.

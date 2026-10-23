@@ -36,6 +36,7 @@ var _mats: Array[ShaderMaterial] = []
 var _mat_primitiva: StandardMaterial3D = null
 var _luz: OmniLight3D = null
 var _luz_reposo: bool = false           ## ¿tiene el cupo de luz azul de reposo?
+var _suelo: MeshInstance3D = null       ## la mancha de luz azul en el suelo a su pie (BrilloPulso3D.suelo_azul)
 
 
 func preparar(p_celda: Vector2i, p_elemento: String = "", p_flag: String = "", p_rearme: float = 0.0, mundo: Node = null) -> void:
@@ -88,6 +89,7 @@ func _dibujar() -> void:
 	_luz.position = Vector3(0.0, ALTO_LUZ, 0.0)
 	add_child(_luz)
 	_luz_reposo = BrilloPulso3D.reservar_luz()          # el cristal del receptor también alumbra tenue en azul mientras no está activo
+	_suelo = BrilloPulso3D.suelo_azul(self)
 
 
 func _exit_tree() -> void:
@@ -166,3 +168,4 @@ func _pintar() -> void:
 		_luz.light_energy = ENERGIA_LUZ * (e / ENERGIA_ACTIVO) if activo else (BrilloPulso3D.LUZ_REPOSO_ENERGIA if _luz_reposo else 0.0)
 		if _luz_reposo:
 			_luz.omni_range = maxf(ALCANCE_LUZ, BrilloPulso3D.LUZ_REPOSO_ALCANCE)
+	BrilloPulso3D.pintar_suelo(_suelo, c, _destello * _destello)           # reposo (azul) o activo (su color): la mancha solo sube de verdad en el destello de activarse

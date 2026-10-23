@@ -44,6 +44,7 @@ var _mat_puntero: StandardMaterial3D = null
 var _mats: Array[ShaderMaterial] = []
 var _luz: OmniLight3D = null
 var _luz_reposo: bool = false
+var _suelo: MeshInstance3D = null       ## la mancha de luz azul en el suelo a su pie (BrilloPulso3D.suelo_azul)
 var _color: Color = BrilloPulso3D.COLOR_REPOSO
 
 
@@ -128,6 +129,7 @@ func _dibujar() -> void:
 	_luz.position = Vector3(0.0, ALTO_LUZ, 0.0)
 	add_child(_luz)
 	_luz_reposo = BrilloPulso3D.reservar_luz()
+	_suelo = BrilloPulso3D.suelo_azul(self)
 	_pintar()
 
 
@@ -264,3 +266,4 @@ func _pintar() -> void:
 		_luz.light_energy = reposo + ENERGIA_LUZ * e
 		if _luz_reposo:
 			_luz.omni_range = maxf(ALCANCE_LUZ, BrilloPulso3D.LUZ_REPOSO_ALCANCE)
+	BrilloPulso3D.pintar_suelo(_suelo, BrilloPulso3D.COLOR_REPOSO.lerp(_color, e), e)

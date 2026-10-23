@@ -190,6 +190,7 @@ func _escenario() -> void:
 
 	await _brillo_azul(cristal, veta1)
 	await _prisma_y_pared(prisma, pared, receptor, fuente)
+	await _pared_reconocible(pared)
 	await _cofre(tesoro, receptor, prisma)
 	await _glifo_del_jugador(pared, receptor, prisma)
 
@@ -203,8 +204,11 @@ func _brillo_azul(cristal: CristalPulso3D, veta1: VetaPulso3D) -> void:
 	while (cristal.destello > 0.0 or cristal._enfriando > 0.0) and espera_reposo < 5.0:
 		espera_reposo += await avanzar_s(0.05)
 	await process_frame
-	_ok("5 las constantes del brillo azul son sutiles: reposo ≤ 8 % del destello, luz de reposo ≤ 0,5 y cupo de luces acotado",
-		BrilloPulso3D.ENERGIA_REPOSO <= BrilloPulso3D.ENERGIA_MAX * 0.08 and BrilloPulso3D.LUZ_REPOSO_ENERGIA <= 0.5 and BrilloPulso3D.MAX_LUCES_REPOSO <= 8)
+	_ok("5 las constantes del brillo azul son sutiles: reposo ≤ 8 % del destello, luz de reposo ≤ 0,9 y cupo de luces acotado (≤ 10)",
+		BrilloPulso3D.ENERGIA_REPOSO <= BrilloPulso3D.ENERGIA_MAX * 0.08 and BrilloPulso3D.LUZ_REPOSO_ENERGIA <= 0.9 and BrilloPulso3D.MAX_LUCES_REPOSO <= 10)
+	_ok("5 la luz de reposo es una fracción del destello: ≤ 40 % del pico de luz del cristal (reposo + ENERGIA_LUZ) y su emisión ≤ 10 % de la del pulso",
+		BrilloPulso3D.LUZ_REPOSO_ENERGIA <= 0.4 * (BrilloPulso3D.LUZ_REPOSO_ENERGIA + CristalPulso3D.ENERGIA_LUZ) and BrilloPulso3D.ENERGIA_REPOSO <= 0.1 * BrilloPulso3D.ENERGIA_MAX,
+		"%.2f de %.2f" % [BrilloPulso3D.LUZ_REPOSO_ENERGIA, BrilloPulso3D.LUZ_REPOSO_ENERGIA + CristalPulso3D.ENERGIA_LUZ])
 	_ok("5 el color de reposo es el azul claro del pulso base (#9ED9FF)", BrilloPulso3D.COLOR_REPOSO.is_equal_approx(Pulso3D.COLOR_BASE))
 	var mat_ok: bool = not cristal._mats.is_empty()
 	for m in cristal._mats:
@@ -213,9 +217,12 @@ func _brillo_azul(cristal: CristalPulso3D, veta1: VetaPulso3D) -> void:
 	_ok("5 el cristal tiene en reposo la emisión azul muy baja (energia_reposo = ENERGIA_REPOSO)", mat_ok)
 	_ok("5 en reposo el cristal tiene su luz azul tenue", cristal._luz_reposo and absf(cristal._luz.light_energy - BrilloPulso3D.LUZ_REPOSO_ENERGIA) < 0.01 and cristal._luz.light_color.is_equal_approx(BrilloPulso3D.COLOR_REPOSO),
 		"energía %.2f" % cristal._luz.light_energy)
+	var suelo_mat: ShaderMaterial = cristal._suelo.material_override as ShaderMaterial if cristal._suelo != null else null
+	_ok("5 el cristal pone en el SUELO a su pie una mancha de luz azul de reposo (SUELO_ENERGIA_REPOSO)", suelo_mat != null and absf(float(suelo_mat.get_shader_parameter("energia")) - BrilloPulso3D.SUELO_ENERGIA_REPOSO) < 1.0e-4)
 	cristal.latir("")
 	await process_frame
-	_ok("5 el destello del pulso queda MUY por encima del brillo de reposo (la luz × 3,5 o más, ya con el destello bajando un fotograma)", cristal._luz.light_energy >= BrilloPulso3D.LUZ_REPOSO_ENERGIA * 3.5, "energía %.2f" % cristal._luz.light_energy)
+	_ok("5 y en el destello la mancha del suelo sube a 3× o más el reposo", suelo_mat != null and float(suelo_mat.get_shader_parameter("energia")) >= 3.0 * BrilloPulso3D.SUELO_ENERGIA_REPOSO, "%.2f" % float(suelo_mat.get_shader_parameter("energia")) if suelo_mat != null else "sin mancha")
+	_ok("5 el destello del pulso queda MUY por encima del brillo de reposo (la luz × 2,5 o más, ya con el destello bajando un fotograma)", cristal._luz.light_energy >= BrilloPulso3D.LUZ_REPOSO_ENERGIA * 2.5, "energía %.2f" % cristal._luz.light_energy)
 	_ok("5 hay luces de reposo pero no más que el cupo", BrilloPulso3D.luces_reservadas() >= 2 and BrilloPulso3D.luces_reservadas() <= BrilloPulso3D.MAX_LUCES_REPOSO, "%d luces" % BrilloPulso3D.luces_reservadas())
 	var veta_ok: bool = false
 	for c in veta1._mats:
@@ -337,6 +344,7 @@ func _cofre(tesoro: Puzle3D.CofrePuzle, receptor: ReceptorPulso3D, prisma: Prism
 	_ok("8 el cofre pone la flag cueva.c6.glifo y queda abierto", Flags.i().tiene(FLAG_GLIFO) and tesoro.es_abierto)
 	_ok("8 ᚱ «pulso» queda desbloqueado en el libro (Repertoire)", Repertoire.sigil_active("raido") and Sigils.nombre_visible("raido") == "pulso" and Sigils.nombre_visible("pulso") == "crecer")
 	_ok("8 la secuencia deja puesta la flag de 'ya vista' (para poder saltarla la próxima vez)", Flags.i().tiene(SecuenciaCofreLegendario3D.FLAG_VISTA))
+	_tapa_abierta(tesoro)
 	# Segunda vez: se puede saltar, y acaba de golpe con el glifo ya dado.
 	var otra := SecuenciaCofreLegendario3D.new()
 	maqueta.add_child(otra)
@@ -350,6 +358,80 @@ func _cofre(tesoro: Puzle3D.CofrePuzle, receptor: ReceptorPulso3D, prisma: Prism
 	_ok("8 saltada, acaba en menos de 1 s con el glifo escrito y todo en su sitio", otra.hecha and ya_escrito[0] and reloj.t - t_salto < 1.0 and not bool(jugador.get("bloqueado"))
 		and absf(float(maqueta.get("_tam_camara")) - tam0) < 0.05, "%.2f s" % (reloj.t - t_salto))
 	await avanzar_s(1.2)
+
+
+## Arreglo de la pared hueca (23/10): en reposo no se camufla. Tiene sus grietas en el suelo (latido lento entre GRIETAS_MIN y GRIETAS_MAX), una luz azul tenue delante, y AVISA
+## una vez al acercarse a ALCANCE_AVISO casillas (grietas por encima del reposo y nota grave); el eco del pulso las enciende aún más; y al abrirse se apagan.
+func _pared_reconocible(pared: ParedHuecaPulso3D) -> void:
+	await avanzar_s(ParedHuecaPulso3D.T_ECO + 0.3)                 # que se acabe el eco del test anterior
+	_ok("7b la pared hueca tiene su suelo agrietado (el indicio) con el shader de grietas y una luz azul delante", pared._grietas != null and pared._mat_grietas != null and pared._luz != null)
+	if pared._grietas == null:
+		return
+	colocar_jugador(Vector2i(16, 13))                               # lejos: a más de ALCANCE_AVISO casillas
+	await avanzar_s(0.6)
+	var lejos: bool = Vector2(jugador.global_position.x - pared.global_position.x, jugador.global_position.z - pared.global_position.z).length() > Terreno3D.casilla * ParedHuecaPulso3D.ALCANCE_AVISO
+	var avisos0: int = pared.avisos
+	var b_min: float = 99.0
+	var b_max: float = -99.0
+	var luz_max: float = 0.0
+	var t0: float = reloj.t
+	while reloj.t - t0 < ParedHuecaPulso3D.T_LATIDO_GRIETAS:
+		await process_frame
+		var b: float = pared.brillo_grietas()
+		b_min = minf(b_min, b)
+		b_max = maxf(b_max, b)
+		luz_max = maxf(luz_max, pared._luz.light_energy)
+	_ok("7b el jugador estaba lejos y no hubo aviso", lejos and pared.avisos == avisos0)
+	_ok("7b en reposo las grietas LATEN despacio: suben y bajan entre %.2f y %.2f en un ciclo (%.1f s)" % [ParedHuecaPulso3D.GRIETAS_MIN, ParedHuecaPulso3D.GRIETAS_MAX, ParedHuecaPulso3D.T_LATIDO_GRIETAS],
+		b_min >= ParedHuecaPulso3D.GRIETAS_MIN - 0.02 and b_max <= ParedHuecaPulso3D.GRIETAS_MAX + 0.02 and b_max - b_min >= 0.8 * (ParedHuecaPulso3D.GRIETAS_MAX - ParedHuecaPulso3D.GRIETAS_MIN),
+		"%.2f..%.2f" % [b_min, b_max])
+	_ok("7b y se ven (brillo > 0 y la luz azul delante de la pared, tenue: no pasa de %.1f)" % ParedHuecaPulso3D.LUZ_GRIETAS, b_min > 0.0 and luz_max > 0.3 and luz_max <= ParedHuecaPulso3D.LUZ_GRIETAS + 0.01, "luz %.2f" % luz_max)
+	# Al acercarse a 2 casillas: aviso (grietas por encima del latido + nota grave), una vez.
+	colocar_jugador(CELDA_PARED + Vector2i(2, 0))
+	await avanzar_s(0.5)
+	_ok("7b al acercarse a %d casillas la pared AVISA una vez" % int(ParedHuecaPulso3D.ALCANCE_AVISO), pared.avisos == avisos0 + 1, "%d avisos" % (pared.avisos - avisos0))
+	_ok("7b y en el aviso las grietas brillan por encima de lo más alto del latido", pared.brillo_grietas() > ParedHuecaPulso3D.GRIETAS_MAX + 0.2, "%.2f" % pared.brillo_grietas())
+	await avanzar_s(ParedHuecaPulso3D.ENFRIAR_AVISO + ParedHuecaPulso3D.T_AVISO)
+	_ok("7b quedándose cerca no repite el aviso", pared.avisos == avisos0 + 1)
+	colocar_jugador(Vector2i(16, 13))
+	await avanzar_s(0.6)
+	colocar_jugador(CELDA_PARED + Vector2i(2, 0))
+	await avanzar_s(0.6)
+	_ok("7b yéndose y volviendo, avisa otra vez", pared.avisos == avisos0 + 2, "%d avisos" % (pared.avisos - avisos0))
+	# El eco del pulso las enciende más aún que el aviso.
+	await avanzar_s(ParedHuecaPulso3D.T_AVISO + 0.2)
+	pared.destello = 1.0
+	_ok("7b el eco de un pulso las enciende por encima del aviso y del latido", pared.brillo_grietas() >= ParedHuecaPulso3D.GRIETAS_MIN + 1.0 - 1.0e-4)
+	pared.destello = 0.0
+	colocar_jugador(Vector2i(16, 13))
+	await avanzar_s(0.5)
+
+
+## Arreglo de la tapa (23/10): abierta, queda PEGADA al cuerpo por detrás (eje en el interior del listón de atrás, no flotando) y su interior es liso oscuro-dorado, no el atlas.
+func _tapa_abierta(tesoro: Puzle3D.CofrePuzle) -> void:
+	var tapa: MeshInstance3D = tesoro.ctrl.get("_tapa") as MeshInstance3D
+	var cuerpo: MeshInstance3D = tesoro.ctrl.get("_cuerpo") as MeshInstance3D
+	_ok("8b el cofre legendario trae cuerpo y tapa como mallas", tapa != null and cuerpo != null)
+	if tapa == null or cuerpo == null:
+		return
+	var ab: AABB = cuerpo.global_transform * cuerpo.get_aabb()
+	var at: AABB = tapa.global_transform * tapa.get_aabb()
+	var eje: Vector3 = tapa.global_position                        ## la bisagra (el origen de la tapa)
+	var alto: float = ab.size.y
+	_ok("8b abierta, la bisagra está dentro del listón de atrás: bajo el borde de arriba del cuerpo y entre su cara de atrás y su centro",
+		eje.y < ab.end.y and eje.y > ab.end.y - alto * 0.35 and eje.z > ab.position.z and eje.z < ab.position.z + ab.size.z * 0.5,
+		"eje %s · cuerpo %s" % [eje, ab])
+	_ok("8b la tapa abierta queda detrás y encima, sin separarse: toca el cuerpo por detrás y sube más que él",
+		at.position.z < ab.position.z and at.end.z > ab.position.z and at.end.y > ab.end.y + alto * 0.5 and at.position.y < ab.end.y,
+		"tapa %s · cuerpo %s" % [at, ab])
+	_ok("8b y no se sale a los lados (su ancho cabe en el del cuerpo)", at.position.x >= ab.position.x - 0.02 * ab.size.x and at.end.x <= ab.end.x + 0.02 * ab.size.x)
+	var interior_liso: bool = true
+	for pieza in [tapa, cuerpo]:
+		var malla: Mesh = (pieza as MeshInstance3D).mesh
+		var mat: Material = (pieza as MeshInstance3D).get_active_material(1) if malla.get_surface_count() > 1 else null
+		var liso: bool = mat is BaseMaterial3D and (mat as BaseMaterial3D).albedo_texture == null and (mat as BaseMaterial3D).albedo_color.get_luminance() < 0.25
+		interior_liso = interior_liso and liso
+	_ok("8b el interior de la tapa y del cuerpo es un material liso oscuro (sin la textura del atlas, de ahí el morado)", interior_liso)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -454,6 +536,7 @@ func _glifo_del_jugador(pared: ParedHuecaPulso3D, receptor: ReceptorPulso3D, pri
 	_ok("9e la casilla de la salida queda libre y se pone la flag de la salida", not Terreno3D.bloqueada(CELDA_PARED) and Flags.i().tiene(FLAG_SALIDA))
 	await avanzar_s(ParedHuecaPulso3D.T_ABRIR + 0.3)
 	_ok("9e la roca acaba hundida (ya no se ve)", not pared.visible)
+	_ok("9e y sus grietas se apagan al abrirse (sin brillo ni aviso)", pared.brillo_grietas() == 0.0 and (pared._grietas == null or not pared._grietas.visible))
 	# f) lo que se lee del glifo
 	_ok("9f los datos de ᚱ: resuena +4 por glifo con tope 12 y los demás glifos conservan su momento (sin acción)", Hechizo.construir(fuego, {"raido": 2}).resuena == 8.0 and Hechizo.construir(fuego, {"raido": 9}).resuena == 12.0
 		and Hechizo.construir(fuego, {"flecha": 1}).acciones_en("continuo").is_empty() and Hechizo.construir(fuego, {"barrera": 1}).acciones_en("continuo").is_empty())

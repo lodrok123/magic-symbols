@@ -36,6 +36,7 @@ var _mats: Array[ShaderMaterial] = []
 var _mat_primitiva: StandardMaterial3D = null
 var _luz: OmniLight3D = null
 var _luz_reposo: bool = false           ## ¿tiene el cupo de luz azul de reposo?
+var _suelo: MeshInstance3D = null       ## la mancha de luz azul en el suelo a su pie (BrilloPulso3D.suelo_azul)
 
 
 func preparar(p_celda: Vector2i, p_cada: float = CADA_DEFECTO, p_alcance: int = Pulso3D.ALCANCE_DEFECTO, mundo: Node = null) -> void:
@@ -98,6 +99,7 @@ func _dibujar() -> void:
 		_luz.omni_range = maxf(ALCANCE_LUZ, BrilloPulso3D.LUZ_REPOSO_ALCANCE)
 	if _mat_primitiva != null:
 		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_REPOSO
+	_suelo = BrilloPulso3D.suelo_azul(self)
 
 
 func _exit_tree() -> void:
@@ -168,3 +170,4 @@ func _pintar() -> void:
 		var reposo: float = BrilloPulso3D.LUZ_REPOSO_ENERGIA if _luz_reposo else 0.0
 		_luz.light_color = BrilloPulso3D.COLOR_REPOSO.lerp(_color, e) if _luz_reposo else _color
 		_luz.light_energy = reposo + ENERGIA_LUZ * e
+	BrilloPulso3D.pintar_suelo(_suelo, BrilloPulso3D.COLOR_REPOSO.lerp(_color, e), e)

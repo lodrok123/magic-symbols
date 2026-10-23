@@ -297,6 +297,10 @@ pared hueca con pulso propio, estatuas) y una prueba de `Pulso3D` sola (alcance,
      **Falta el clip «abrir cofre» de la jugadora:** se usa `pick_up` (coger un objeto), ver `PENDIENTES.md`.
    - [x] **Cueva iluminada en azul** (encargo de Pablo): emisión de reposo muy baja del azul base en cristales, vetas, receptor y prisma (`BrilloPulso3D.ENERGIA_REPOSO`, `VetaPulso3D.EMISION_REPOSO`) y luces tenues sin sombras
      (`LUZ_REPOSO_ENERGIA` 0,5, `LUZ_REPOSO_ALCANCE`, tope `MAX_LUCES_REPOSO` = 8 vivas a la vez). El destello del pulso queda por encima (luces de 1,6 y emisión de 3,0).
+   - [x] **Arreglos de la Cueva (23/10, 2.ª vuelta; capturas en `docs/capturas/cueva_arreglos/`):** tapa de los cofres legendario y épico pegada al cuerpo y con interior liso
+     (`arte/meshy/montar_cofre.py`: `HUNDIR_BISAGRA`, `ADELANTAR_BISAGRA`, `COS_INTERIOR`, `COLOR_INTERIOR`); luz azul de reposo más alta con una MANCHA de luz azul en el suelo bajo
+     cristal, receptor y prisma (`BrilloPulso3D.suelo_azul`: las luces puntuales casi no mueven ese suelo); pared hueca reconocible con grietas azules que laten en el suelo a su pie
+     y aviso a 2 casillas (`ParedHuecaPulso3D`); laboratorios con el nombre visible de ᚷ/ᚱ y ᚱ en el Numpad `.`.
    - [ ] Sigue sin hacerse (fase 3): setas que maduran, estatuas, cofre épico, columnas agrietadas con `on_pulso`, bloque de enlace, sonido propio del pulso, y los otros 1–2 prismas de C5/C6.
 3. **Opcionales y calidades.** C2, C3, C4, setas que maduran, estatuas y cofre épico, colores por calidad.
 4. **Arte.** Tripo para las piezas de §11 y sustitución de las primitivas.
