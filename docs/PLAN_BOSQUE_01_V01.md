@@ -559,4 +559,26 @@ cambia el **plano** se toca en el `.tscn`, porque manda sobre el `.txt`. Las lí
 3. **Al volver de la Cueva vuelven solo los enemigos sueltos del exterior.** Lo resuelto se queda resuelto y las salas limpias (el
    campamento) no se repueblan.
 4. **La entrada y la salida van en el `Cueva.txt` de siempre**: una sola Cueva, enlazada con el Bosque 01 v01, que sigue funcionando sola
-   como banco de pruebas.
+   como banco de pruebas.5. **La barrera es un glifo obligatorio** y se gana con un **desafío propio que la enfatice** (Pablo, 24/10), igual que la Cueva hace
+   con el pulso: no basta con abrir el cofre_01; justo después hay un tramo que no se puede pasar sin levantar una barrera.
+
+### El desafío de la barrera (propuesta para construir con el mapa)
+
+**La idea:** como en la Cueva, el glifo se **ve** antes de tenerlo y se **usa** en cuanto se tiene. El cofre_01 de la tala (S1) pasa a
+legendario (secuencia de cofre con el glifo ᛜ barrera) y la salida de la tala hacia el resto del bosque es un **paso batido**:
+
+| tramo | qué pasa | por qué pide la barrera |
+|---|---|---|
+| **Antes del cofre** | desde la tala se ve el paso: dos arqueros goblin en una plataforma alta al otro lado del arroyo disparan a lo que cruce. Un tronco hueco a media pasarela muestra flechas clavadas | se ve el peligro y se ve que no se puede esquivar (pasarela de una casilla, sin cobertura) |
+| **El cofre** | secuencia legendaria: ᛜ barrera se escribe en el libro y el aviso dorado dice «Las flechas no atraviesan una barrera» | el glifo llega con su instrucción |
+| **El paso batido** | la pasarela de 6 casillas sobre el arroyo, a tiro de los arqueros. Una barrera delante (ᛜ + ᛁ, muro) para las flechas mientras se avanza; hay que levantarla dos veces (dura lo que dura) | primer uso obligatorio, como la pared hueca del pulso |
+| **Al otro lado** | los arqueros quedan a la vista: se les puede rodear o quemar su plataforma (fuego), y un cofre común con pociones | recompensa y vuelta al bosque abierto |
+
+**Variantes que enseñan la barrera combinada** (opcionales, más adelante en el mapa):
+- **Barrera + agua**: un muro de agua que para flechas de fuego del campamento.
+- **Barrera + tierra**: el muro de tierra pisable para subir a un saliente (ya existe: ᛜ + ᛁᛁ + tierra).
+- **Barrera + ᚱ**: un muro que late con pulso continuo y activa un receptor (pide el glifo de la Cueva: buen motivo para volver).
+
+**Lo que hace falta del motor:** que las flechas de los goblins arqueros choquen con la barrera (`solidez`, hoy la barrera ya «bloquea
+proyectiles»: comprobarlo con flechas enemigas, no solo con hechizos), una plataforma alta para los arqueros y que el cofre_01 use la
+secuencia legendaria con `glifo=` (como el de la Cueva).
