@@ -7,21 +7,33 @@ extends Node
 ## `_TopWater`, `_SideDark`…: docs/estudios/eow/EOW_2_NIVELES.md §1.4 y §7.10). Hasta ahora la maqueta ponía UNA zona para todo el nivel.
 ##
 ## DÓNDE SE DECLARAN. En el mapa del nivel (`mundo/datos_nivel/mapas/<nivel>.txt`), una línea por zona:
-##   ; zona <x0>,<y0>..<x1>,<y1> <luz> [zoom=<tamaño de cámara>] [tilt=si|no]
-## <luz> es un nombre de `LuzZona3D.ZONAS` (bosque, agua, fuego, ruinas, hielo, atardecer, clasico). Si dos zonas se pisan, manda la
+##   ; zona <x0>,<y0>..<x1>,<y1> <luz> [zoom=<tamaño de cámara>] [tilt=si|no] [mezcla=<s>] [nombre=<id>] [rotulo=<texto>]
+## <luz> es un nombre de `LuzZona3D.ZONAS` (bosque, agua, fuego, ruinas, hielo, atardecer, clasico, cueva, santuario). Si dos zonas se pisan, manda la
 ## ÚLTIMA declarada. Fuera de todas, la `zona_luz` de la escena. Desde código: `agregar(rect, luz, opciones)`.
 ##   · zoom: al entrar, la cámara va a ese tamaño; al salir de todas las zonas con zoom, vuelve al que tenía el jugador.
 ##   · tilt: enciende o apaga la banda de tilt-shift mientras se está dentro.
+##   · mezcla: segundos que tarda la luz en cambiar AL ENTRAR en esta zona (0 = de golpe). Sin ella, `T_CAMBIO` (1,5 s, como siempre). Como en EoW: un exterior
+##     entra despacio (5 s) y una sala deprisa (≤ 1 s). Al salir a la zona de la escena vale `T_CAMBIO`.
+##   · nombre: cómo se llama la zona (letras, cifras, «_»). La usan el botín de los rompibles (`Rompible3D.BOTIN_ZONA`) y el diario (`PlayLog.zona`).
+##     Sin ella, el nombre de la luz.
+##   · id= y titulo= son otros nombres de nombre= y rotulo= (los usa el diseño del Bosque 01 v01). botin=<fila>: la fila de `Rompible3D.BOTIN_ZONA` que usan los rompibles de la zona.
+##   · rotulo: texto que sale la PRIMERA vez que se entra (RotuloZona3D); las palabras van unidas con «_» (`rotulo=Bosque_de_la_Aurora`). «Ya visto» es la flag
+##     `<nivel>.rotulo.<nombre o x0_y0>_visto`: persiste con el resto de flags, así que no se repite ni al volver ni al recargar.
 ## Un mapa sin líneas `; zona` no cambia nada.
+## El diario: `PlayLog.zona` es el nombre de la zona donde está el jugador, y todo evento la lleva; al cruzar una zona sale el evento `zona` con `anterior` y `segundos`.
 
 signal zona_cambio(luz: String)
 
-const T_CAMBIO: float = 1.5             ## s que tarda la luz en pasar de una zona a otra
+const T_CAMBIO: float = 1.5             ## s que tarda la luz en pasar de una zona a otra (si la zona no dice `mezcla=`)
 const T_ZOOM: float = 1.0
+const T_MIN_MEZCLA: float = 0.0001      ## s: «de golpe» sin dividir por cero
 const RUTA_MAPA: String = "res://mundo/datos_nivel/mapas/%s.txt"
+const FLAG_ROTULO: String = "rotulo"    ## el trozo de en medio de `<nivel>.rotulo.<zona>_visto`
 
-var zonas: Array = []                   ## {rect: Rect2i, luz: String, zoom: float (0 = no toca), tilt: int (-1 no toca, 0 no, 1 sí)}
+var zonas: Array = []                   ## {rect: Rect2i, luz: String, zoom: float (0 = no toca), tilt: int (-1 no toca, 0 no, 1 sí), mezcla: float (s), nombre: String, rotulo: String ("" = ninguno)}
 var avisos: Array = []
+var nombre_actual: String = ""          ## el nombre de la zona donde está el jugador (la de la escena si no hay ninguna): lo mismo que `PlayLog.zona`
+var rotulos_mostrados: Array = []       ## los textos que ha sacado (las pruebas)
 var actual: Dictionary = {}             ## la zona en la que está el jugador ({} = ninguna: la de la escena)
 var _m: Node3D = null
 var _defecto: String = "bosque"
@@ -29,6 +41,9 @@ var _desde: Dictionary = {}
 var _hacia: Dictionary = {}
 var _hacia_luz: String = ""
 var _t: float = 1.0
+var _dur: float = T_CAMBIO              ## lo que dura el cambio de luz en curso
+var _desde_ms: int = 0                  ## cuándo entró en la zona de ahora (para el tiempo que se pasó en cada una)
+var _nivel: String = ""
 var _zoom_jugador: float = -1.0
 var _tilt_escena: bool = false
 var _tw_zoom: Tween = null
@@ -41,7 +56,8 @@ static func montar(maqueta: Node3D) -> Zonas3D:
 	z._m = maqueta
 	z._defecto = String(maqueta.get("zona_luz"))
 	z._tilt_escena = bool(maqueta.get("tilt_shift"))
-	z.leer(String(maqueta.get("nivel")))
+	z._nivel = String(maqueta.get("nivel"))
+	z.leer(z._nivel)
 	maqueta.add_child(z)
 	return z
 
@@ -75,18 +91,54 @@ func leer_texto(texto: String) -> void:
 			continue
 		var op: Dictionary = {}
 		for i in range(3, partes.size()):
-			var kv: PackedStringArray = partes[i].split("=")
+			var kv: PackedStringArray = partes[i].split("=", true, 1)
 			if kv.size() == 2:
 				op[kv[0]] = kv[1]
+		# Alias del diseño del Bosque 01 v01 (docs/PLAN_BOSQUE_01_V01.md): `id=` es `nombre=` y `titulo=` es `rotulo=`.
+		if op.has("id") and not op.has("nombre"):
+			op["nombre"] = op["id"]
+		if op.has("titulo") and not op.has("rotulo"):
+			op["rotulo"] = op["titulo"]
+		if op.has("mezcla") and (not String(op["mezcla"]).is_valid_float() or float(op["mezcla"]) < 0.0):
+			_avisar("línea %d: «%s» (mezcla=<segundos>, 0 o más; se usa %.1f)" % [n, linea, T_CAMBIO])
+			op.erase("mezcla")
+		if op.has("nombre") and not Puzle3D._id_valido(String(op["nombre"])):
+			_avisar("línea %d: «%s» (nombre=<letras, cifras y «_»>; se usa el de la luz)" % [n, linea])
+			op.erase("nombre")
 		agregar(rect, luz, op)
 
 
-## Añade una zona. `opciones`: zoom (número) y tilt (si/no), como en el mapa.
+## Añade una zona. `opciones`: zoom (número), tilt (si/no), mezcla (s), nombre y rotulo, como en el mapa.
 func agregar(rect: Rect2i, luz: String, opciones: Dictionary = {}) -> void:
 	var tilt: int = -1
 	if opciones.has("tilt"):
 		tilt = 1 if String(opciones["tilt"]) in ["si", "sí", "true", "1"] else 0
-	zonas.append({"rect": rect, "luz": luz, "zoom": float(opciones.get("zoom", 0.0)), "tilt": tilt})
+	zonas.append({"rect": rect, "luz": luz, "zoom": float(opciones.get("zoom", 0.0)), "tilt": tilt,
+		"mezcla": maxf(float(opciones.get("mezcla", T_CAMBIO)), 0.0), "nombre": String(opciones.get("nombre", luz)),
+		"rotulo": String(opciones.get("rotulo", "")).replace("_", " "), "botin": String(opciones.get("botin", ""))})
+
+
+## El nombre de la zona que manda en una casilla: su `nombre=` (o el de su luz) y, fuera de todas, la luz de la escena.
+func nombre_en(c: Vector2i) -> String:
+	var z: Dictionary = zona_en(c)
+	return String(z.get("nombre", z.get("luz", _defecto)))
+
+
+## La fila del botín que pide la zona de una casilla con su `botin=` ("" si no pide ninguna): ver Rompible3D.BOTIN_ZONA.
+func botin_en(c: Vector2i) -> String:
+	return String(zona_en(c).get("botin", ""))
+
+
+## La luz de la zona que manda en una casilla (la de la escena fuera de todas).
+func luz_en(c: Vector2i) -> String:
+	return String(zona_en(c).get("luz", _defecto))
+
+
+## La flag de «ya visto» del rótulo de una zona: `<nivel>.rotulo.<nombre o x0_y0>_visto`.
+func flag_rotulo(z: Dictionary) -> String:
+	var r: Rect2i = z["rect"]
+	var base: String = String(z["nombre"]) if String(z["nombre"]) != String(z["luz"]) else "%d_%d" % [r.position.x, r.position.y]
+	return "%s.%s.%s_visto" % [Rompible3D._limpio(_nivel), FLAG_ROTULO, Rompible3D._limpio(base)]
 
 
 ## La zona que manda en la casilla `c` ({} = ninguna). Si se pisan, la última declarada.
@@ -102,6 +154,24 @@ func _ready() -> void:
 	_hacia = LuzZona3D.valores(_defecto)
 	_desde = _hacia
 	_t = 1.0
+	_desde_ms = Time.get_ticks_msec()
+	nombre_actual = _defecto
+	PlayLog.zona = nombre_actual            # todo evento del diario lleva la zona (PlayLog.event); antes de entrar en ninguna, la de la escena
+
+
+## Salta ya a la luz de la zona donde está el jugador, sin mezcla (al llegar de otro nivel: la zona nueva no se funde desde la del nivel anterior). No saca el rótulo.
+func forzar() -> void:
+	if _m == null or not is_instance_valid(_m):
+		return
+	var pj: Node3D = _m.get("_jugador") as Node3D
+	if pj == null:
+		return
+	var z: Dictionary = zona_en(Terreno3D.celda_de(pj.position))
+	_entrar(z, true)
+	_t = 1.0
+	_desde = _hacia
+	LuzZona3D.aplicar_valores(_m.get("_env") as Environment, _m.get("_sol") as DirectionalLight3D, _hacia)
+	LuzZona3D.aplicar_sombra(_m.get("_sol") as DirectionalLight3D, _hacia_luz)
 
 
 func _process(delta: float) -> void:
@@ -114,24 +184,26 @@ func _process(delta: float) -> void:
 	if z != actual:
 		_entrar(z)
 	if _t < 1.0:
-		_t = minf(_t + delta / T_CAMBIO, 1.0)
+		_t = minf(_t + delta / maxf(_dur, T_MIN_MEZCLA), 1.0)
 		var s: float = smoothstep(0.0, 1.0, _t)
 		LuzZona3D.aplicar_valores(_m.get("_env") as Environment, _m.get("_sol") as DirectionalLight3D, LuzZona3D.mezclar(_desde, _hacia, s))
 		if _t >= 1.0:
 			LuzZona3D.aplicar_sombra(_m.get("_sol") as DirectionalLight3D, _hacia_luz)
 
 
-func _entrar(z: Dictionary) -> void:
+func _entrar(z: Dictionary, en_silencio: bool = false) -> void:
 	var antes: Dictionary = actual
 	actual = z
 	var luz: String = String(z.get("luz", _defecto))
 	if luz != _hacia_luz:
-		# Desde donde esté AHORA (a mitad de otro cambio, si lo hay), hacia la luz nueva.
+		# Desde donde esté AHORA (a mitad de otro cambio, si lo hay), hacia la luz nueva. Dura lo que diga la zona a la que se entra (`mezcla=`).
 		_desde = LuzZona3D.mezclar(_desde, _hacia, smoothstep(0.0, 1.0, _t))
 		_hacia = LuzZona3D.valores(luz)
 		_hacia_luz = luz
+		_dur = float(z.get("mezcla", T_CAMBIO))
 		_t = 0.0
 		zona_cambio.emit(luz)
+	_anotar_zona(z, en_silencio)
 	# Cámara: el zoom de la zona, o de vuelta al del jugador al salir de las zonas con zoom.
 	var zoom: float = float(z.get("zoom", 0.0))
 	var zoom_antes: float = float(antes.get("zoom", 0.0))
@@ -143,6 +215,26 @@ func _entrar(z: Dictionary) -> void:
 		_zoom_a(_zoom_jugador)
 	var tilt: int = int(z.get("tilt", -1))
 	_poner_tilt(_tilt_escena if tilt < 0 else tilt == 1)
+
+
+## El diario (`PlayLog.zona` y el evento `zona`) y el rótulo de la primera entrada. `en_silencio`: sin el evento `zona` (al llegar de otro nivel; el rótulo sí sale).
+func _anotar_zona(z: Dictionary, en_silencio: bool) -> void:
+	var nuevo: String = String(z.get("nombre", z.get("luz", _defecto)))
+	if nuevo != nombre_actual:
+		var ahora: int = Time.get_ticks_msec()
+		if not en_silencio:
+			PlayLog.event("zona", {"anterior": nombre_actual, "segundos": snappedf(float(ahora - _desde_ms) / 1000.0, 0.1), "luz": String(z.get("luz", _defecto))})
+		_desde_ms = ahora
+		nombre_actual = nuevo
+		PlayLog.zona = nuevo
+	var rotulo: String = String(z.get("rotulo", ""))
+	if rotulo != "":
+		var flag: String = flag_rotulo(z)
+		if Flags.nombre_valido(flag) and not Flags.i().tiene(flag):
+			Flags.i().poner(flag)
+			rotulos_mostrados.append(rotulo)
+			RotuloZona3D.mostrar(self, rotulo)
+			PlayLog.event("rotulo_zona", {"texto": rotulo, "flag": flag})
 
 
 func _zoom_a(tam: float) -> void:

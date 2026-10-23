@@ -305,7 +305,8 @@ func _recarga() -> void:
 	var ct2: ContadorReactivos3D = z2.nodo("ct") as ContadorReactivos3D
 	_ok("3 recargada: cofre ABIERTO, contador ya completo (3 braseros encendidos al montar)", cf2 != null and cf2.es_abierto and ct2 != null and ct2.completo, "")
 	_ok("3 recargar con todo ya hecho (sala limpia, cofre abierto, braseros encendidos) NO emite ningún logro", _vistos.is_empty(), str(_vistos))
-	g4.free()
+	if is_instance_valid(g4) and not g4.is_queued_for_deletion():       # el vigía retira a los enemigos de una sala ya limpia al montar (mapas abiertos, 23/10)
+		g4.free()
 	_desmontar(z2)
 	# Partida a medias: solo la sala limpia. El cofre nace cerrado y visible SIN «cofre_aparece».
 	Flags.nuevo()
@@ -331,7 +332,8 @@ func _recarga() -> void:
 	Flags.i().poner("prueba.l.limpia")                   # lo que haría Flags.cargar con el nivel montado
 	Puzle3D.silencio_logros = false
 	_ok("3 con `silencio_logros` la flag que llega abre el cerrojo SIN logro", cj4 != null and not cj4.cerrado and _vistos.is_empty(), str(_vistos))
-	g5.free()
+	if is_instance_valid(g5) and not g5.is_queued_for_deletion():
+		g5.free()
 	_desmontar(z4)
 	Flags.nuevo()
 	_vistos.clear()
@@ -344,7 +346,8 @@ func _recarga() -> void:
 	await _espera(0.5)
 	Flags.i().poner("prueba.l.limpia")                   # lo mismo SIN silencio: el cerrojo se abre de verdad y avisa
 	_ok("3 (control) sin `silencio_logros` esa misma apertura sí es «puerta_abierta»", cj5 != null and not cj5.cerrado and _vistos == ["puerta_abierta"], str(_vistos))
-	g6.free()
+	if is_instance_valid(g6) and not g6.is_queued_for_deletion():
+		g6.free()
 	_desmontar(z5)
 
 

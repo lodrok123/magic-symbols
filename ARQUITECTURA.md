@@ -1149,6 +1149,28 @@ clases:** cada nivel tiene su tabla `DIALOGOS` y su manejador de `E` (a
 el glifo barrera por 20 de oro. Los encargos los sustituye `Misiones`
 (ver *Interfaz*).
 
+### Mapas abiertos al estilo EoW (23/10)
+
+Piezas para los exteriores con regiones (`docs/PLAN_BOSQUE_EOW.md` §8). Todas se escriben en el mapa del nivel; la gramática exacta está en la
+cabecera de `escenas/puzle.gd` y la prueba es `herramientas/prueba_mapa_abierto.gd`.
+
+| pieza | línea de mapa | qué hace |
+|---|---|---|
+| **Rompibles** (`objetos/rompible_3d.gd`) | `; pieza <id> jarron\|caja <x> <y> [botin=oro\|pocion\|nada\|zona\|<objeto>] [cantidad=<n>] [alto=si] [pequena=si] [celdas=<lista>] [modelo=caja]` | Se rompe con un hechizo, un empujón de viento, una explosión o `golpear()`; deja 8 trozos de restos, libera la casilla y suelta el botín de **su zona** (`Rompible3D.BOTIN_ZONA`: oro por rango, poción, probabilidad de esquirla en las ruinas y la cueva). No reaparece: flag `<nivel>.rompible.<id>`, que sobrevive a cambiar de nivel. |
+| **Mezcla por zona** | `; zona … mezcla=<s> [id=\|nombre=] [titulo=\|rotulo=] [botin=<fila>]` | Segundos de la mezcla de luz AL ENTRAR en la zona (defecto 1,5 s; exterior 5, sala ≤ 1). |
+| **Rótulo de entrada** (`presentacion/rotulo_zona_3d.gd`) | `; zona … rotulo=La_Cueva` | Sale la primera vez; «ya visto» = flag `<nivel>.rotulo.<zona>_visto`. |
+| **Luces** | — | Presets `cueva` (casi a oscuras) y `santuario` (verdoso oscuro) en `LuzZona3D.ZONAS`. |
+| **Puerta con llave de verdad** | `; pieza <id> puerta <x> <y> llave=<flag> [gasta=si\|no] [abierto=<flag>]` | Solo se abre con la flag puesta y la jugadora delante (tocarla o E); sin llave avisa. `gasta=si` quita la flag. |
+| **Cofre con botín** | `; pieza <id> cofre … da=oro:30+seta_asada:2` | Al abrirse da ese botín una vez. |
+| **Salida / entrada** (`objetos/salida_nivel_3d.gd`, `nucleo/niveles.gd`) | `; pieza <id> salida <x> <y> a=<Nivel>:<entrada> [celdas=…] [modo=pisar\|usar]` · `; pieza <id> entrada <x> <y> [mira=n\|e\|s\|o]` | Fundido a negro, carga el otro nivel y aparece en la entrada con ese nombre mirando hacia dentro. `<Nivel>` se resuelve en `Niveles.ESCENAS`. Un nivel que no existe avisa y no rompe. |
+| **El diario con zona** | — | `PlayLog.zona` (la pone `Zonas3D`) va en todos los eventos; el cruce de zona es el evento `zona`. |
+
+**Qué viaja entre niveles.** `Estado`, `Flags`, `Misiones` y el repertorio son únicos y estáticos: oro, mochila, flags y glifos persisten solos. La vida se pasa
+a mano (`Niveles.vida_pendiente`). El nivel de destino se **recarga desde cero** (no se guarda en memoria porque `Terreno3D` y la simulación de agua son estáticos),
+así que **lo resuelto tiene que estar en flags**: las piezas de `Puzle3D` ya lo hacen (rompibles, vigía con `flag=`, cofre con `abierto=`, puerta con `abierto=`,
+cerrojo con `hasta=`) y una sala limpia NO se repuebla (el vigía retira a sus enemigos al montar si su flag está puesta). Lo que viva en variables de un script
+de nivel (tótems encendidos, puerta X, `_entregado` de los cofres) debe escribirse como flag y leerse al montar. Los enemigos sueltos fuera de toda sala vuelven.
+
 > **Historia: era 2D (hasta el 4/10).** El motor era `nivel_base.gd`
 > (~2 500 líneas, sin padre), y cada nivel heredaba de él y solo
 > sobrescribía funciones con valor por defecto vacío (`_mapa()`,

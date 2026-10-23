@@ -69,6 +69,11 @@ const ZONAS: Dictionary = {
 		"sol_color": Color(0.62, 0.70, 0.86), "sol_energia": 0.35, "sol_pitch": -78.0, "sol_yaw": 10.0,
 		"ambiente_arriba": Color(0.42, 0.48, 0.60), "ambiente_abajo": Color(0.26, 0.26, 0.30), "ambiente_energia": 0.45,
 	},
+	# Santuario (23/10, docs/PLAN_BOSQUE_EOW.md §3 sala 7): verdoso oscuro, para el elemental. Sol bajo y verde apagado, ambiente de musgo y sombra.
+	"santuario": {
+		"sol_color": Color(0.62, 0.86, 0.66), "sol_energia": 0.6, "sol_pitch": -66.0, "sol_yaw": 20.0,
+		"ambiente_arriba": Color(0.48, 0.66, 0.54), "ambiente_abajo": Color(0.22, 0.34, 0.26), "ambiente_energia": 0.5,
+	},
 	# Cueva / hielo: luz azul pálida, ambiente oscuro con rebote azul.
 	"hielo": {
 		"sol_color": Color(0.80, 0.90, 1.0), "sol_energia": 0.85, "sol_pitch": -70.0, "sol_yaw": 0.0,
@@ -77,7 +82,7 @@ const ZONAS: Dictionary = {
 }
 
 ## Orden fijo para recorrerlas con una tecla.
-const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva"]
+const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva", "santuario"]
 
 
 static func nombres() -> Array:

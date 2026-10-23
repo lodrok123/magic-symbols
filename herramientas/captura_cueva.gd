@@ -96,7 +96,14 @@ func _escenario() -> void:
 	if cofre != null:
 		cofre.call("abrir")
 		await avanzar_s(3.0)
-	_ok("3 C4/C6 al abrir el cofre (la llave) se abre la puerta de C6", puerta != null and bool(puerta.get("abierta")))
+	# La puerta pide la llave de verdad (23/10): con la flag puesta NO se abre sola; se abre al llegar a ella (aquí, tocándola desde C5).
+	_ok("3 C4/C6 con la llave pero lejos, la puerta de C6 sigue cerrada", puerta != null and not bool(puerta.get("abierta")))
+	colocar_jugador(Vector2i(19, 16))
+	await avanzar_s(0.3)
+	if puerta != null:
+		puerta.call("intentar", true)       # lo que hace la tecla E delante de la puerta
+	await avanzar_s(0.5)
+	_ok("3 C4/C6 al llegar a la puerta con la llave y pulsar E, se abre", puerta != null and bool(puerta.get("abierta")))
 	# Setas: una tal cual y otra tras fuego
 	var s1: Recolectable3D = _z.nodo("seta_c1a") as Recolectable3D
 	var s2: Recolectable3D = _z.nodo("seta_c1b") as Recolectable3D

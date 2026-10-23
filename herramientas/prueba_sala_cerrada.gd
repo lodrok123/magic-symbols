@@ -263,7 +263,10 @@ func _sala_completa() -> void:
 	_ok("6 no vuelve a aparecer cerrado ni con efecto", apariciones2[0] == 0 and not cf2.es_cerrado and not cf2.es_oculto)
 	_ok("6 su casilla sigue bloqueada (es un cofre)", Terreno3D.bloqueada(Vector2i(10, 7)))
 	_ok("6 la sala nace abierta y NO se cierra con el jugador dentro (aunque haya goblins)", not cj2.cerrado and v2.completo and not Terreno3D.bloqueada(Vector2i(4, 5)))
-	g4.free()
+	# 23/10 (mapas abiertos): con la sala ya limpia al montar, el vigía RETIRA a los enemigos de su sala (no se repueblan al volver de otro nivel).
+	_ok("6 los enemigos de la sala ya limpia no se repueblan: el vigía quita al que volvió", not is_instance_valid(g4) or g4.is_queued_for_deletion())
+	if is_instance_valid(g4) and not g4.is_queued_for_deletion():
+		g4.free()
 
 	# 6b. Partida a medias: solo la sala limpia (el cofre aún no se abrió)
 	_desmontar(z2)

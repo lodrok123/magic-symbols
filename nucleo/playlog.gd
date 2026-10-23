@@ -14,7 +14,11 @@ extends RefCounted
 ##   cast               una página lanzada: página, elemento, glifos, calidad
 ##   cast_bloqueado     se intentó lanzar con la página recargando
 ##   voltereta          el jugador rueda
-##   zona               cambio de zona (con el tiempo pasado en la anterior)
+##   zona               cambio de zona (con el tiempo pasado en la anterior); `zona` (el campo de TODO evento) es la zona donde está el jugador, la pone Zonas3D
+##   rotulo_zona        el rótulo de la primera entrada a una zona
+##   inicio_nivel       se cargó otro nivel por una salida (Niveles): el reloj y la partida siguen
+##   transicion         una salida usada: de dónde a dónde
+##   rompible_roto      un jarrón o una caja rota: zona, botín soltado
 ##   tiempo_por_zona    el resumen de segundos por zona (al morir, ganar o salir)
 ##   tarea              una tarea del nivel hecha
 ##   runas              runas nuevas conseguidas
@@ -42,11 +46,18 @@ static var _inicio_ms: int = 0
 static var _partida: int = 0
 
 
+## Lo pone `Niveles` justo antes de cargar otro nivel: el siguiente `nueva_partida` es el MISMO recorrido (sigue el reloj y la cuenta de partidas).
+static var viaje_en_curso: bool = false
+
 ## Llamar al arrancar el nivel.
 static func nueva_partida() -> void:
+	zona = ""
+	if viaje_en_curso:
+		viaje_en_curso = false
+		event("inicio_nivel")
+		return
 	_partida += 1
 	_inicio_ms = Time.get_ticks_msec()
-	zona = ""
 	event("inicio_partida")
 
 

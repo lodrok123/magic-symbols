@@ -23,12 +23,23 @@
 ; La lee PruebaTest2 (nivel = "Cueva", estilo = "cueva"): las paredes «#» salen del kit de cueva según sus vecinas (_pared_cueva).
 ; R = basalto (bajo la lava) · ~ = charca · e = fuente eléctrica · T = brasero · W = goblin · S = inicio.
 ; --- zonas (Zonas3D) ---
-; zona 1,11..8,18 cueva
-; zona 1,1..8,8 cueva
-; zona 10,1..17,8 fuego
-; zona 19,1..25,8 atardecer
-; zona 19,11..25,18 hielo
-; zona 10,11..17,18 ruinas
+; Mazmorra: la luz cambia deprisa al cruzar cada umbral (`mezcla=0.8`, ≤ 1 s como en EoW); C1 saca su rótulo la primera vez que se entra.
+; zona 1,11..8,18 cueva mezcla=0.8 rotulo=La_Cueva
+; zona 1,1..8,8 cueva mezcla=0.8
+; zona 10,1..17,8 fuego mezcla=0.8
+; zona 19,1..25,8 atardecer mezcla=0.8
+; zona 19,11..25,18 hielo mezcla=0.8
+; zona 10,11..17,18 ruinas mezcla=0.8
+; --- Conexión con el Bosque (23/10, transición entre niveles): se entra por `desde_bosque` (la casilla de inicio, mirando al interior) y se vuelve pisando la boca, justo debajo ---
+; La boca del Bosque 01 v01 se llama `boca_cueva`: si ese nivel aún no existe, pisar la salida avisa y no pasa nada.
+; pieza desde_bosque entrada 4 17
+; pieza a_bosque salida 3 18 celdas=3,18..5,18 a=Bosque_01_v01:boca_cueva
+; --- Jarrones (mapas abiertos, 23/10): el botín lo decide la zona (`cueva`: oro, y a veces una esquirla de cristal) ---
+; (contra la pared del fondo y no en la fila 18: el muro sur los tapa a la cámara)
+; pieza jarron_c1a jarron 1 13 botin=oro
+; pieza jarron_c1b jarron 8 14 botin=pocion
+; pieza jarron_c6a jarron 17 11 botin=oro
+; pieza jarron_c6b jarron 10 12 alto=si botin=oro
 ; --- C1 · Boca: los dos braseros abren el paso al norte ---
 ; pieza luces contador 4 13 de=2,12+7,12
 ; pieza paso_norte puerta 4 10 modelo=llave
@@ -51,7 +62,8 @@
 ; pieza seta_c3a seta 11 3
 ; pieza seta_c3b seta 11 6
 ; --- C4 · Sala cerrada: cofre con la llave ---
-; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8
+; `hasta=` : con la sala ya limpia (se volvió de otro nivel) ni se cierra ni se quedan los goblins (el vigía los retira al montar).
+; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8 hasta=cueva.c4.limpia
 ; pieza guardia vigia 19 1 de=19,1..25,8 flag=cueva.c4.limpia
 ; pieza cofre_llave cofre 22 5 aparece_si=flag.cueva.c4.limpia abierto=cueva.c4.llave
 ; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
@@ -69,8 +81,8 @@
 ; La veta de C5 cruza la puerta y acaba en el PRISMA de C6 (fase 2): él reemite el pulso por donde mira.
 ; pieza veta_c5 veta 19 16 celdas=19,16..16,16
 ; --- C6 · Tesoro: puerta con llave, cofre grande y salida que pide el pulso ---
-; pieza puerta_llave puerta 18 16 modelo=llave
-; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
+; La puerta pide la llave de verdad (23/10): la flag de C4 Y estar delante (tocarla o pulsar E). `gasta=no`: la llave es la flag del cofre y se queda; `abierto` recuerda que ya se abrió.
+; pieza puerta_llave puerta 18 16 modelo=llave llave=cueva.c4.llave gasta=no abierto=cueva.c6.puerta
 ; El prisma (15,16) mira al norte: lleva el pulso por la veta hasta el receptor de C6. Girado (golpe de hechizo o E) lo desvía al oeste, por la veta que va a la pared hueca de la salida.
 ; pieza prisma_c6 prisma 15 16 dir=n
 ; pieza veta_c6_norte veta 15 15 celdas=15,15..15,13
