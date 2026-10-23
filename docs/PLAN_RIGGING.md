@@ -72,6 +72,17 @@ Todo el paso 2–5 va en **un script de Blender** (`herramientas/rig/encajar_mae
 
 ## 7. Lo que tiene que decidir Pablo antes de empezar
 
+**Decidido por Pablo el 23/10:**
+1. **A-pose** para el bípedo maestro.
+2. **La protagonista, completa (≈ 65 huesos, con dedos)**: el cast con la pluma los necesita. El resto de la familia bípeda puede ir con
+   el ligero; elfo_base, goblin_base, el goblin asesino y Marimanta ya traen el completo.
+3. **Clips que falten:** primero IA (texto a animación de Meshy, como hasta ahora) y Cascadeur como alternativa para los que la IA no
+   saque bien (los que necesitan precisión: abrir el cofre sincronizado con la tapa, el corte con los brazos extendidos, el cast con la
+   pluma).
+4. **Encaje del maestro: aprobado** que lo haga el Pipeline con el script y capturas, y que Pablo lo valide.
+
+*(Texto original de las preguntas:)*
+
 1. **A-pose o T-pose** para el bípedo maestro (propuesta: **A-pose**, deforma mejor los hombros; Meshy la genera bien con referencia).
 2. **Bípedo ligero (≈ 28 huesos, sin dedos) o completo (≈ 65, con dedos).** Propuesta: ligero; dedos solo si el cast con la pluma lo exige (entonces una variante «con manos» del maestro, misma raíz).
 3. **Cascadeur** para los clips que falten (gratis para uso indie) o seguir con clips procedurales del Pipeline.
