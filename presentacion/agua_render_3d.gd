@@ -125,6 +125,13 @@ const CAIDA_VETA2_VEL: float = 1.5
 ## Opacidad máxima (0-1) de las franjas claras de la corriente con el agua filtro (el río se ve correr). 0 = como antes (sin franjas).
 const FILTRO_FRANJAS: float = 0.40
 const FILTRO_FRANJAS_UMBRAL: float = 0.54
+## 23/10 (agua del cauce hondo lleno): las vetas son luz que se SUMA a lo que se ve (ya no una mezcla hacia el blanco, que saturaba), y `FILTRO_FRANJAS` es lo más que suman. Solo salen con una
+## corriente de verdad: nada por debajo de FILTRO_FLUJO_0 (u/s; lo que deja una lámina que se llena o se agita, 0,1-0,5) y enteras a partir de FILTRO_FLUJO_1 (el río lleva 0,9 propios).
+## Fuera del río (el cauce hondo lleno, el estanque, el lab, la Cueva) se aclara el fondo que se ve (× FILTRO_REALCE; 1 = nada) y se le suma un velo turquesa de `filtro_hondo` × FILTRO_VELO que crece con la profundidad.
+const FILTRO_REALCE: float = 1.7
+const FILTRO_VELO: float = 0.5
+const FILTRO_FLUJO_0: float = 0.12
+const FILTRO_FLUJO_1: float = 0.70
 
 @export var agua_refraccion: bool = REFRACCION:
 	set(v):
@@ -219,7 +226,12 @@ uniform float filtro_espec = 0.55;
 uniform float filtro_fresnel = 0.10;
 uniform float filtro_tinte_visto = 1.0;
 uniform float filtro_franjas_umbral = 0.54;   // 22/10: valor del ruido de franjas a partir del cual hay veta con el agua filtro (FILTRO_FRANJAS_UMBRAL)
-uniform float filtro_franjas = 0.40;        // 22/10: opacidad máxima (0-1) de las franjas de la corriente en el agua filtro (FILTRO_FRANJAS)
+uniform float filtro_franjas = 0.40;        // 22/10: opacidad máxima (0-1) de las franjas de la corriente en el agua filtro (FILTRO_FRANJAS); 23/10: ahora es la luz que suma una veta (emisión)
+uniform sampler2D cauce : filter_linear, hint_default_black, repeat_disable;   // 23/10: R = 1 en los trocitos de un cauce hondo abierto/lleno (`_montar_cauce`); 0 en el resto
+uniform float filtro_realce = 1.0;          // 23/10: cuánto se aclara el fondo que se ve a través del agua fuera del río (FILTRO_REALCE; 1 = nada)
+uniform float filtro_velo = 0.0;             // y el velo turquesa que se le suma, por profundidad (FILTRO_VELO)
+uniform float filtro_flujo_0 = 0.12;        // 23/10: corriente (u/s) a la que empiezan las vetas con el agua filtro (FILTRO_FLUJO_0)…
+uniform float filtro_flujo_1 = 0.70;         // …y a la que llevan toda su fuerza (FILTRO_FLUJO_1)
 // 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
 uniform float ola3_altura = 0.0;
 uniform float ola3_k = 1.14;                  // 2π / longitud
@@ -256,6 +268,7 @@ varying float v_prof;
 varying vec2 v_corr;
 varying vec3 v_pos;
 varying float v_oleaje;                // -1..1: el vaivén de orilla de este vértice (0 lejos de tierra); el fragmento lo usa para ensanchar la espuma
+varying float v_pend;                  // 23/10: pendiente de la profundidad (u/u) de este vértice, suave entre vértices (antes salía de las derivadas de pantalla, constantes por triángulo: parches rectangulares)
 varying vec2 v_caida;                 // x = cuánto sube el vecino más alto (base de una caída), y = cuánto baja el más bajo (labio); en pendiente (u de altura / u de trocito)
 
 float hash(vec2 p) {
@@ -307,6 +320,8 @@ vec4 dato(ivec2 p) {
 
 // 22/10 (esquinas) · Lo que el dibujo sabe de UN trocito de simulación. La malla del agua tiene un vértice por trocito Y UNO EXTRA en el centro de cada cuadrito
 // (abanico de 4 triángulos, ver `_construir_malla`): el de centro combina los cuatro trocitos de su alrededor con `combina_centro`.
+const float MEDIA_DIAGONAL = 0.7071;      // media diagonal de un cuadrito en lados de trocito: lo que hay de un vértice mojado al centro de un cuadrito mixto (donde la profundidad es 0)
+
 struct Troc {
 	float y;           // altura de la superficie en el vértice (con hielo, topes y la bajada de la lámina)
 	float prof;        // profundidad con signo: negativa en un trocito seco que adopta la de su vecino mojado (la orilla cae entre ambos)
@@ -315,6 +330,7 @@ struct Troc {
 	vec2 caida;        // (base, labio) de una caída, en pendiente del LECHO
 	float hielo;       // 0-1
 	float mojado;      // 1 = el trocito tiene agua de verdad (g >= minima), 0 = seco
+	float pend;        // 23/10: pendiente de la profundidad con signo (u/u) hacia el vecino más distinto; un vecino seco cuenta como −prof (el contorno cae entre ambos)
 };
 
 Troc troc(ivec2 p) {
@@ -324,6 +340,7 @@ Troc troc(ivec2 p) {
 	float prof = d.g;
 	vec2 corr = d.ba;
 	float orilla = 0.0;                              // 1 = casilla de agua con algún vecino seco/tierra (la franja de orilla de 125)
+	float pend = 0.0;                                // 23/10: pendiente de la profundidad en este trocito (ver `Troc.pend`)
 	if (d.g < minima) {
 		// Trocito seco: baja el vértice a la altura del agua vecina (si no, la orilla de tierra más alta lo levantaría y
 		// el borde saldría torcido) y su profundidad pasa a NEGATIVA: así el borde del agua cae en medio, entre el último
@@ -344,6 +361,7 @@ Troc troc(ivec2 p) {
 			orilla = 1.0;              // 20/10: este vértice seco que adopta el agua vecina ES la orilla
 			y = hs;                    // 13.9: a ras del agua vecina (la pared vertical baja desde aquí; ver `_reconstruir_paredes`)
 			prof = -mejor;
+			pend = mejor / (MEDIA_DIAGONAL * lado_trocito);
 			corr = cs;
 		} else {
 			prof = -1.0;
@@ -351,6 +369,15 @@ Troc troc(ivec2 p) {
 	}
 	if (flujo_activo > 0.5 && prof > 0.0) {
 		corr += texelFetch(flujo, clamp(p, ivec2(0), s - 1), 0).rg * vel_rio;     // la corriente propia del río (cae a cero hacia las orillas)
+	}
+	if (d.g >= minima) {
+		// 23/10: pendiente de la profundidad hacia el vecino más distinto. Un vecino seco cuenta como el contorno a una media diagonal (el centro del cuadrito mixto tiene profundidad 0);
+		// así sale lo mismo que daba el gradiente del triángulo junto a una orilla recta, pero continuo entre triángulos.
+		ivec2 dir3[4] = ivec2[4](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+		for (int k = 0; k < 4; k++) {
+			vec4 n3 = dato(p + dir3[k]);
+			pend = max(pend, n3.g >= minima ? abs(n3.g - d.g) / lado_trocito : d.g / (MEDIA_DIAGONAL * lado_trocito));
+		}
 	}
 	float base_c = 0.0;
 	float labio_c = 0.0;
@@ -384,7 +411,7 @@ Troc troc(ivec2 p) {
 	// con el agua llena (prof > 2·bajada) la bajada es siempre `bajada_lamina`, igual en pozo, canal y estanque. Va al final, después
 	// de los topes y del hielo, para que todo lo que se dibuja baje a la vez. `_reconstruir_paredes` aplica la misma cuenta a la cima de la pared.
 	y -= min(bajada_lamina, 0.5 * abs(prof));
-	return Troc(y, prof, corr, orilla, vec2(base_c, labio_c), hf, d.g >= minima ? 1.0 : 0.0);
+	return Troc(y, prof, corr, orilla, vec2(base_c, labio_c), hf, d.g >= minima ? 1.0 : 0.0, pend);
 }
 
 // Vértice de CENTRO de un cuadrito: combina sus cuatro trocitos. Si el cuadrito mezcla agua y seco, su profundidad es 0 (el contorno del agua pasa por el
@@ -404,6 +431,7 @@ Troc combina_centro(Troc a, Troc b, Troc c, Troc d) {
 	r.hielo = (a.hielo * w_a + b.hielo * w_b + c.hielo * w_c + d.hielo * w_d) * k;
 	r.orilla = (a.orilla + b.orilla + c.orilla + d.orilla) * 0.25;     // la media de los cuatro: el vaivén del centro sigue al de sus esquinas (con el máximo salían facetas brillantes)
 	r.prof = (a.prof * w_a + b.prof * w_b + c.prof * w_c + d.prof * w_d) * k;
+	r.pend = (a.pend * w_a + b.pend * w_b + c.pend * w_c + d.pend * w_d) * k;
 	if (n > 0.5 && n < 3.5) {
 		r.prof = 0.0;
 		r.orilla = 1.0;
@@ -432,6 +460,7 @@ void vertex() {
 	v_oleaje = oleaje;
 	v_caida = t.caida;
 	v_prof = t.prof;
+	v_pend = t.pend;
 	v_corr = t.corr;
 	v_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
@@ -441,6 +470,13 @@ float ruido(vec2 p) {
 	vec2 f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// 24/10 · normalize que no revienta: con un vector casi nulo o no finito devuelve «arriba». Una normal NaN en el agua daba UVs de refracción NaN y el fondo salía del
+// píxel de una esquina de la pantalla (menta uniforme al llenarse el cauce, parches marrón claro del tamaño de un trocito en el río).
+vec3 norm_seguro(vec3 v) {
+	float l2 = dot(v, v);
+	return l2 > 1.0e-12 ? v * inversesqrt(l2) : vec3(0.0, 1.0, 0.0);
 }
 
 float ola_est(vec2 p, float t) {
@@ -463,7 +499,7 @@ vec3 normal_faceta(vec2 p, float t) {
 	vec3 v0 = vec3(b.x, ola_est(b * faceta, t) * altura_ola / faceta, b.y);
 	vec3 v1 = vec3(a1.x, ola_est(a1 * faceta, t) * altura_ola / faceta, a1.y);
 	vec3 v2 = vec3(a2.x, ola_est(a2 * faceta, t) * altura_ola / faceta, a2.y);
-	vec3 n = normalize(cross(v2 - v0, v1 - v0));
+	vec3 n = norm_seguro(cross(v2 - v0, v1 - v0));
 	return n.y < 0.0 ? -n : n;
 }
 
@@ -497,7 +533,7 @@ vec3 normal_suave(vec2 p, float t) {
 	float h0 = ola_est(p, t);
 	float gx = (ola_est(p + vec2(e, 0.0), t) - h0) / e;
 	float gz = (ola_est(p + vec2(0.0, e), t) - h0) / e;
-	return normalize(vec3(-gx * altura_ola, 1.0, -gz * altura_ola));
+	return norm_seguro(vec3(-gx * altura_ola, 1.0, -gz * altura_ola));
 }
 
 // Franjas alargadas en el sentido de la corriente: ruido estirado a lo largo de `dir`.
@@ -511,14 +547,10 @@ float franja(vec2 uv, vec2 dir) {
 void fragment() {
 	vec3 pm = v_pos;
 	// 22/10 (agua blanca al llenarse): DISTANCIA (u) de este píxel al contorno del agua, ≈ profundidad / pendiente de la profundidad. La profundidad es lineal
-	// en cada triángulo, así que su gradiente en XZ sale de las derivadas de pantalla (se resuelve el sistema 2×2 con las de la posición). Una lámina somera
-	// y llana (que se llena) tiene gradiente casi 0 → distancia enorme → ni espuma ni menisco ni ruido de borde: eso solo va pegado al contorno real.
-	vec2 dpx = dFdx(pm.xz);
-	vec2 dpy = dFdy(pm.xz);
-	float det_p = dpx.x * dpy.y - dpx.y * dpy.x;
-	vec2 dvp = vec2(dFdx(v_prof), dFdy(v_prof));
-	vec2 grad_p = abs(det_p) > 1.0e-8 ? vec2(dvp.x * dpy.y - dvp.y * dpx.y, dpx.x * dvp.y - dvp.x * dpy.x) / det_p : vec2(0.0);
-	float dist_orilla = max(v_prof, 0.0) / max(length(grad_p), orilla_grad_min);
+	// en cada triángulo. Una lámina somera y llana (que se llena) tiene gradiente casi 0 → distancia enorme → ni espuma ni menisco ni ruido de borde: eso solo va pegado al contorno real.
+	// 23/10: la pendiente sale de los VÉRTICES (`v_pend`, continua entre triángulos). Antes salía de las derivadas de pantalla, que son constantes por triángulo: el frente de una lámina que
+	// se llena (escalones de profundidad entre trocitos) daba un menisco y una espuma distintos en cada triángulo, y se veían parches rectangulares pálidos con el borde del trocito.
+	float dist_orilla = max(v_prof, 0.0) / max(v_pend, orilla_grad_min);
 	float cerca_orilla = 1.0 - smoothstep(orilla_dist_0, orilla_dist_1, dist_orilla);          // 1 junto al contorno, 0 a más de `orilla_dist_1`
 	float cerca_menisco = 1.0 - smoothstep(orilla_dist_0 * 1.5, orilla_dist_1 * 1.5, dist_orilla);
 	// 16/10 (Pablo: «ruido entre la textura de la orilla y el agua»): la profundidad se interpola entre vértices de 0,77 u y su línea de cero sale
@@ -548,19 +580,19 @@ void fragment() {
 	}
 
 	// Inclinación real de la superficie (una caída o una pendiente) + olas en facetas planas.
-	vec3 gn = normalize(cross(dFdx(pm), dFdy(pm)));
+	vec3 gn = norm_seguro(cross(dFdx(pm), dFdy(pm)));
 	if (gn.y < 0.0) {
 		gn = -gn;
 	}
-	vec3 nm = normalize(mix(normal_faceta(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
+	vec3 nm = norm_seguro(mix(normal_faceta(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
 			normal_faceta(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));     // las olas viajan con la corriente
 	if (filtro > 0.5) {
 		// Agua filtro: la normal es casi toda la suave (sin aristas de faceta en el fondo refractado ni en el brillo).
-		vec3 ns = normalize(mix(normal_suave(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
+		vec3 ns = norm_seguro(mix(normal_suave(pm.xz - dir * avance * fase1 * adveccion_olas, TIME),
 				normal_suave(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));
-		nm = normalize(mix(nm, ns, filtro_suavidad));
+		nm = norm_seguro(mix(nm, ns, filtro_suavidad));
 	}
-	nm = normalize(nm + (gn - vec3(0.0, 1.0, 0.0)) * 2.0);
+	nm = norm_seguro(nm + (gn - vec3(0.0, 1.0, 0.0)) * 2.0);
 	// Ondas que reaccionan: su pendiente se suma a la normal.
 	float cresta = 0.0;
 	if (ondas_fuerza > 0.0) {
@@ -572,7 +604,7 @@ void fragment() {
 			float dx = texture(ondas, uvo + vec2(px.x, 0.0)).r - texture(ondas, uvo - vec2(px.x, 0.0)).r;
 			float dz = texture(ondas, uvo + vec2(0.0, px.y)).r - texture(ondas, uvo - vec2(0.0, px.y)).r;
 			vec2 pend = vec2(dx, dz) / (2.0 * ondas_rect.z * px.x);
-			nm = normalize(nm + vec3(-pend.x, 0.0, -pend.y) * ondas_fuerza * (1.0 - hielo));   // el hielo no se ondula
+			nm = norm_seguro(nm + vec3(-pend.x, 0.0, -pend.y) * ondas_fuerza * (1.0 - hielo));   // el hielo no se ondula
 			cresta = clamp(abs(h0) * ondas_fuerza * 3.0 - 0.3, 0.0, 1.0) * (1.0 - hielo);
 		}
 	}
@@ -590,7 +622,11 @@ void fragment() {
 
 	// Franjas que corren con la corriente (flow map de dos fases desfasadas medio ciclo y mezcladas).
 	vec2 uv = pm.xz / tam_franja;
-	float efecto_flujo = smoothstep(0.04, 0.3, vel);
+	// 23/10: con el agua filtro las vetas piden una corriente de verdad (FILTRO_FLUJO_*): la que deja una simulación que se llena o se agita (0,1-0,5 u/s, a trompicones de un
+	// trocito a otro) ya no las enciende, y salían parches pálidos con el borde del trocito. El río (0,9 u/s propios) las lleva enteras como antes.
+	// Solo el agua de un cauce hondo lleno (textura `cauce`, 1 en sus trocitos) usa las vetas nuevas; el río, el estanque, el lab y la Cueva conservan las de siempre.
+	float cauce_f = texture(cauce, pm.xz / (lado_trocito * vec2(textureSize(cauce, 0)))).r;
+	float efecto_flujo = filtro > 0.5 ? mix(smoothstep(0.04, 0.3, vel), smoothstep(filtro_flujo_0, filtro_flujo_1, vel), cauce_f) : smoothstep(0.04, 0.3, vel);
 	float fr = franja(uv - dir * avance * fase0 / tam_franja, dir) * peso0
 			+ franja(uv + 0.37 - dir * avance * fase1 / tam_franja, dir) * (1.0 - peso0);
 	// 22/10: el cruce de las dos fases promedia dos ruidos y casi nunca pasa de 0,62; con el filtro el umbral baja (FILTRO_FRANJAS_UMBRAL) para que haya vetas.
@@ -718,11 +754,16 @@ void fragment() {
 			vec3 trans = exp(-filtro_k * filtro_dens * pf);
 			float scat = (1.0 - exp(-pf / filtro_prof_max)) * filtro_opacidad;
 			// 22/10 (movimiento): las franjas del flow map también se ven con el filtro (antes solo teñían `ce`, que aquí no se ve): vetas claras y suaves que corren con la corriente.
+			// 23/10: la veta ya no mezcla el ALBEDO hacia el blanco (iluminado por el sol y el ambiente salía blanco opaco con solo un 0,4 y tapaba el fondo en parches con borde de
+			// trocito); ahora SUMA luz a la emisión (el fondo se sigue viendo debajo) y no pasa del tope `filtro_franjas`.
 			float a_franja = franjas * filtro_franjas * smoothstep(0.0, refr_orilla, prof_e) * (1.0 - hielo);
-			float a_x = clamp(max(max(max(espuma, men * 0.45), a_franja), hielo), 0.0, 1.0);
+			float a_x = clamp(max(max(max(espuma, men * 0.45), a_franja * (1.0 - cauce_f)), hielo), 0.0, 1.0);      // fuera del cauce hondo, la veta mezclada de siempre
 			vec3 alb_f = filtro_hondo * scat + vec3(0.88, 0.94, 1.0) * fres * filtro_fresnel;
 			ALBEDO = mix(alb_f, ce * brillo, a_x);
-			EMISSION = fondo_r * trans * (1.0 - scat) * (1.0 - a_x);
+			// 23/10 (cauce hondo lleno): un lecho de losas oscuras bajo 0,6-1 u de agua salía pizarra apagada (Beer sobre un fondo casi negro); fuera del río se aclara lo que se ve
+			// (`filtro_realce`) y se le suma un velo turquesa que crece con la profundidad (`filtro_velo`). Solo en el cauce hondo (cauce_f = 1): el resto queda como estaba.
+			vec3 visto = fondo_r * trans * mix(1.0, filtro_realce, cauce_f) + filtro_hondo * filtro_velo * cauce_f * (1.0 - exp(-pf / filtro_prof_max));
+			EMISSION = visto * (1.0 - scat) * (1.0 - a_x) + vec3(0.80, 0.95, 1.0) * a_franja * cauce_f * (1.0 - a_x);
 			ALPHA = 1.0;
 			v_spec = mix(filtro_espec, 1.0, hielo);
 		} else {
@@ -957,6 +998,10 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("caida_veta2_vel", CAIDA_VETA2_VEL)
 	_mat.set_shader_parameter("filtro_franjas", FILTRO_FRANJAS)
 	_mat.set_shader_parameter("filtro_franjas_umbral", FILTRO_FRANJAS_UMBRAL)
+	_mat.set_shader_parameter("filtro_realce", FILTRO_REALCE)
+	_mat.set_shader_parameter("filtro_velo", FILTRO_VELO)
+	_mat.set_shader_parameter("filtro_flujo_0", FILTRO_FLUJO_0)
+	_mat.set_shader_parameter("filtro_flujo_1", FILTRO_FLUJO_1)
 	# Con refracción (o con filtro) el agua tapa lo que se dibuje antes: va la primera de lo transparente. Sin ella, la prioridad de siempre (0).
 	var lee_pantalla: bool = agua_refraccion or agua_filtro
 	_mat.render_priority = AGUA_PRIORIDAD if lee_pantalla else 0
@@ -1124,6 +1169,7 @@ func _leer(primera: bool) -> void:
 	var t1: int = Time.get_ticks_usec()
 	_leer_hielo(primera)
 	_ms_hielo = lerpf(_ms_hielo, float(Time.get_ticks_usec() - t1) / 1000.0, 0.2)
+	_actualizar_cauce()
 	_lecturas += 1
 	if _lecturas % 4 == 0:
 		_buscar_caidas()
@@ -1132,6 +1178,25 @@ func _leer(primera: bool) -> void:
 		_reconstruir_paredes()
 		_ms_paredes = lerpf(_ms_paredes, float(Time.get_ticks_usec() - t2) / 1000.0, 0.2)
 	_ms_lectura = lerpf(_ms_lectura, float(Time.get_ticks_usec() - t0) / 1000.0, 0.2)
+
+
+## 23/10 (agua del cauce hondo lleno) · Textura R8 por trocito con 1 en los trocitos de las casillas de cauce abiertas a la simulación (`Terreno3D.cauces_abiertos`, y se quedan ahí
+## cuando pasan a «~»): el sombreado (`cauce`) aclara el fondo que se ve a través de esa agua y usa las vetas de corriente nuevas. Se rehace solo si cambia el número de casillas abiertas.
+var _n_cauces: int = 0
+func _actualizar_cauce() -> void:
+	var n: int = Terreno3D.cauces_abiertos.size()
+	if n == _n_cauces or sim == null or _mat == null:
+		return
+	_n_cauces = n
+	var img := Image.create(sim.w, sim.h, false, Image.FORMAT_R8)
+	var por_casilla: float = sim.lado_casilla / sim.l          # trocitos por lado de casilla
+	for c in Terreno3D.cauces_abiertos.keys():
+		var v: Vector2i = c
+		for y in range(roundi(float(v.y) * por_casilla), roundi(float(v.y + 1) * por_casilla)):
+			for x in range(roundi(float(v.x) * por_casilla), roundi(float(v.x + 1) * por_casilla)):
+				if x >= 0 and y >= 0 and x < sim.w and y < sim.h:
+					img.set_pixel(x, y, Color(1.0, 0.0, 0.0))
+	_mat.set_shader_parameter("cauce", ImageTexture.create_from_image(img))
 
 
 ## Dirección de la corriente propia del río por casilla, desde el mapa: cada casilla de agua (`es_agua(c) -> bool`) fluye hacia la salida más cercana, que es el

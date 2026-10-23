@@ -12,7 +12,8 @@ extends Node3D
 const ALTURAS: Array = [0.22, 0.5]      ## u sobre el fondo del foso de cada lámina
 const ALFA: float = 0.2
 const COLOR: Color = Color(0.86, 0.9, 0.92)
-const CADA: float = 0.3                 ## s entre comprobaciones de agua
+const BORDE_FUNDIDO: float = 0.25       ## fracción del lado de la lámina (0-0,5) en la que su opacidad baja a 0 hacia el borde
+const CADA: float = 0.3               ## s entre comprobaciones de agua
 const VEL_FUNDIDO: float = 1.5          ## por segundo
 
 const CODIGO: String = """
@@ -21,6 +22,7 @@ render_mode unshaded, depth_draw_never, cull_disabled, shadows_disabled;
 uniform sampler2D profundidad : hint_depth_texture, filter_linear;
 uniform vec4 color : source_color = vec4(0.86, 0.9, 0.92, 1.0);
 uniform float alfa = 0.2;
+uniform float borde_fundido = 0.25;
 varying vec3 pw;
 varying float visible;
 
@@ -51,7 +53,11 @@ void fragment() {
 	v.xyz /= v.w;
 	float suave = clamp((VERTEX.z - v.z) / 0.35, 0.0, 1.0);     // en espacio de vista: la escena queda detrás (z más negativa)
 	ALBEDO = color.rgb;
-	ALPHA = alfa * smoothstep(0.4, 0.9, n) * suave * visible;     // en manchas: la mitad del foso, casi limpia
+	// 24/10: el borde de la lámina se funde a nada (BORDE_FUNDIDO): con el borde duro, cada casilla del foso seco enseñaba un rectángulo pálido (sobre el lecho pardo, «manchas marrón claro
+	// rectangulares»), con el canto recto donde la casilla de al lado ya se había llenado de agua.
+	vec2 borde = min(UV, 1.0 - UV);
+	float fundido = smoothstep(0.0, borde_fundido, min(borde.x, borde.y));
+	ALPHA = alfa * smoothstep(0.4, 0.9, n) * suave * visible * fundido;     // en manchas: la mitad del foso, casi limpia
 }
 """
 
@@ -90,6 +96,7 @@ func _ready() -> void:
 	mat.shader = sh
 	mat.set_shader_parameter("color", COLOR)
 	mat.set_shader_parameter("alfa", ALFA)
+	mat.set_shader_parameter("borde_fundido", BORDE_FUNDIDO)
 	q.material = mat
 	_mm = MultiMesh.new()
 	_mm.transform_format = MultiMesh.TRANSFORM_3D
