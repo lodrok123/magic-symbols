@@ -231,6 +231,10 @@ como paredes provisionales, suelo oscurecido, cofre grande, cristales que alumbr
 
 Ninguna de esas piezas bloquea la Fase 1: la Cueva se monta ya con lo que hay y se cambia el arte cuando llegue.
 
+**El tema de la Cueva** es el **pulso resonante** (`PLAN_PULSO_RESONANTE.md`). Cada sala gana un uso del pulso sobre lo que ya
+resuelve, y el cofre de C6 es el **legendario**: da el glifo, con su animación, y la salida pide usarlo. Allí se fijan también las
+tres calidades de recompensa: común, épica y legendaria.
+
 **Cómo se une al Bosque.**
 - **Fase 1:** escena propia, como un laboratorio, para probar el enfoque cerrado sin depender de nada.
 - **Fase 2:** la boca de la cueva en el Bosque, con transición de nivel (pieza nueva, §8).
