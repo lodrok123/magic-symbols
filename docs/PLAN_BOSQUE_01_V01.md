@@ -550,3 +550,13 @@ cambia el **plano** se toca en el `.tscn`, porque manda sobre el `.txt`. Las lí
    (tótems, campamento, cofres) se queda resuelto?
 4. **La entrada y la salida de la Cueva:** ¿se añaden las dos líneas al `Cueva.txt` de siempre (la `PruebaCueva` seguiría funcionando
    sola, porque sin entrada se aparece en la `S`) o se hace una `Cueva_v01`?
+
+## Decisiones de Pablo (24/10)
+
+1. **El nivel se hornea desde el `.txt` nuevo** (`Bosque_01_v01.txt`), no se copia el `.tscn`. Los retoques del `Nivel_Bosque_01.tscn` en las
+   zonas que no cambian se copian a mano después.
+2. **El cofre de la barrera pasa a legendario**: todo glifo sale de un cofre legendario, con su secuencia.
+3. **Al volver de la Cueva vuelven solo los enemigos sueltos del exterior.** Lo resuelto se queda resuelto y las salas limpias (el
+   campamento) no se repueblan.
+4. **La entrada y la salida van en el `Cueva.txt` de siempre**: una sola Cueva, enlazada con el Bosque 01 v01, que sigue funcionando sola
+   como banco de pruebas.
