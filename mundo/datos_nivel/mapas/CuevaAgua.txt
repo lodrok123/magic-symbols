@@ -1,0 +1,27 @@
+#################################
+#.......#.......#.......#.......#
+#.~~~~~.#.~~~~~.#.~~~~~.#.~~.~~.#
+#.~~~~~.#.~~~~~e#.~~~~~.#e~~.~~i#
+#.~~~~~.#.~~~~~.#.~~~~~.#.~~.~~.#
+#.......#.......#.......#.......#
+#..S............................#
+#.......#.......#.......#.......#
+#################################
+; Banco de pruebas del AGUA en la Cueva (23/10). Lo pendiente del agua con la luz, el suelo y las paredes de la Cueva, una sala por caso.
+; Lo lee PruebaTest2 (escenas/PruebaCuevaAgua.tscn: nivel = "CuevaAgua", estilo = "cueva", agua_corre = false) y lo juega
+; herramientas/escenario_cueva_agua.gd, que hace las fotos en docs/capturas/cueva_agua.
+; Salas (x): A 1–7 charca quieta (costuras de las cáusticas, banda de la pared del foso) · B 9–15 charca eléctrica (los cuadros
+;   amarillos de la descarga) · C 17–23 charca que se hiela y se funde · D 25–31 dos pozos y un NEXO en medio: mojarlo lleva la
+;   corriente de la fuente al tótem.
+; Letras: ~ charca · e fuente eléctrica · i tótem de rayo · S inicio.
+; --- zonas (Zonas3D) ---
+; zona 1,1..7,7 cueva
+; zona 9,1..15,7 cueva
+; zona 17,1..23,7 hielo
+; zona 25,1..31,7 cueva
+; --- B · charca eléctrica ---
+; pieza fuente_b emisor 15 3
+; --- D · nexo entre dos pozos ---
+; pieza fuente_d emisor 25 3
+; pieza nexo_d nexo 28 3
+; pieza totem_d totem 31 3

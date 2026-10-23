@@ -231,6 +231,25 @@ como paredes provisionales, suelo oscurecido, cofre grande, cristales que alumbr
 
 Ninguna de esas piezas bloquea la Fase 1: la Cueva se monta ya con lo que hay y se cambia el arte cuando llegue.
 
+**Estado (23/10).** La Fase 1 está montada en `escenas/PruebaCueva.tscn` y la recorre `herramientas/captura_cueva.gd` (0 fallos, fotos en
+`docs/capturas/cueva`):
+- **Paredes:** el kit de cueva elige pared, esquina o rincón según las vecinas.
+- **Suelos:** las dos texturas, roca de cueva y basalto.
+- **Setas:** recolectables (`Recolectable3D`, tres variantes intercaladas) que reaccionan a los hechizos.
+- **Muro agrietado:** con su modelo y grietas que crecen con cada golpe.
+- **Puertas:** con el marco y la hoja de piedra (`modelo=llave`).
+
+La charca de C5 es agua quieta: `agua_corre = false` en la escena, porque sin eso el agua corría como un río y sus franjas se veían
+como goteras blancas.
+
+**Lo que falta revisar del agua** tiene su banco de pruebas: `escenas/PruebaCuevaAgua.tscn` con `herramientas/escenario_cueva_agua.gd`
+(fotos en `docs/capturas/cueva_agua`), con charca quieta, eléctrica, helada y nexo. Quedan tres cosas por arreglar:
+- los cuadros amarillos opacos del agua electrificada;
+- las costuras rectas de las cáusticas;
+- la franja marrón del borde del mapa.
+
+**Los materiales** que se consiguen en la Cueva están en `MATERIALES_CUEVA.md`.
+
 **El tema de la Cueva** es el **pulso resonante** (`PLAN_PULSO_RESONANTE.md`). Cada sala gana un uso del pulso sobre lo que ya
 resuelve, y el cofre de C6 es el **legendario**: da el glifo, con su animación, y la salida pide usarlo. Allí se fijan también las
 tres calidades de recompensa: común, épica y legendaria.

@@ -1,0 +1,107 @@
+{
+ "cueva_pared": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 3000,
+  "niveles": {
+   "6000": {
+    "archivo": "cueva_pared_6000.glb",
+    "tris": 6000,
+    "kb": 640
+   },
+   "3000": {
+    "archivo": "cueva_pared.glb",
+    "tris": 3000,
+    "kb": 378
+   },
+   "1500": {
+    "archivo": "cueva_pared_1500.glb",
+    "tris": 1500,
+    "kb": 230
+   }
+  },
+  "origen": "muro_piedra.glb",
+  "nota": "pared de roca de una casilla (kit de cueva)",
+  "seg": 6.6
+ },
+ "cueva_esquina_ext": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 3000,
+  "niveles": {
+   "6000": {
+    "archivo": "cueva_esquina_ext_6000.glb",
+    "tris": 6000,
+    "kb": 660
+   },
+   "3000": {
+    "archivo": "cueva_esquina_ext.glb",
+    "tris": 3000,
+    "kb": 379
+   },
+   "1500": {
+    "archivo": "cueva_esquina_ext_1500.glb",
+    "tris": 1500,
+    "kb": 230
+   }
+  },
+  "origen": "muro_piedra.glb",
+  "nota": "esquina exterior",
+  "seg": 10.2
+ },
+ "cueva_pared_baja": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "6000": {
+    "archivo": "cueva_pared_baja_6000.glb",
+    "tris": 6000,
+    "kb": 610
+   },
+   "3000": {
+    "archivo": "cueva_pared_baja_3000.glb",
+    "tris": 3000,
+    "kb": 378
+   },
+   "1500": {
+    "archivo": "cueva_pared_baja.glb",
+    "tris": 1500,
+    "kb": 229
+   }
+  },
+  "origen": "muro_piedra.glb",
+  "nota": "pared baja / borde",
+  "seg": 7.7
+ },
+ "cueva_esquina_int": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 3500,
+  "niveles": {
+   "6000": {
+    "archivo": "cueva_esquina_int_6000.glb",
+    "tris": 6000,
+    "kb": 672
+   },
+   "3500": {
+    "archivo": "cueva_esquina_int.glb",
+    "tris": 3500,
+    "kb": 429
+   },
+   "3000": {
+    "archivo": "cueva_esquina_int_3000.glb",
+    "tris": 3000,
+    "kb": 379
+   },
+   "1500": {
+    "archivo": "cueva_esquina_int_1500.glb",
+    "tris": 1500,
+    "kb": 230
+   }
+  },
+  "origen": "muro_piedra.glb",
+  "nota": "esquina interior en L",
+  "seg": 10.6
+ }
+}

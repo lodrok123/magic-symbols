@@ -46,7 +46,7 @@ func _initialize() -> void:
 	mu.on_spell_hit(fuego)
 	_ok("1 el fuego no le hace nada", mu.recibidos == 0 and not mu.roto_ya)
 	mu.on_spell_hit(tierra)
-	_ok("1 un golpe de tierra lo agrieta pero no lo rompe", mu.recibidos == 1 and not mu.roto_ya and float(mu._mat.get_shader_parameter("grietas")) > MuroAgrietado3D.GRIETAS_INICIO)
+	_ok("1 un golpe de tierra lo agrieta pero no lo rompe", mu.recibidos == 1 and not mu.roto_ya and mu.grietas > MuroAgrietado3D.GRIETAS_INICIO)
 	mu.on_spell_hit(tierra)
 	_ok("1 el segundo golpe lo rompe y libera la casilla", mu.roto_ya and not Terreno3D.bloqueada(Vector2i(2, 4)) and mu.collision_layer == 0)
 	mu.on_spell_hit(tierra)

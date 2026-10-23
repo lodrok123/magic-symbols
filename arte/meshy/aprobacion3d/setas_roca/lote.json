@@ -1,0 +1,112 @@
+{
+ "setas_rojas": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "3000": {
+    "archivo": "setas_rojas_3000.glb",
+    "tris": 3000,
+    "kb": 393
+   },
+   "1500": {
+    "archivo": "setas_rojas.glb",
+    "tris": 1500,
+    "kb": 244
+   }
+  },
+  "origen": "setas_roca.glb",
+  "nota": "setas recolectables, variante roja",
+  "seg": 4.4
+ },
+ "setas_azules": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "3000": {
+    "archivo": "setas_azules_3000.glb",
+    "tris": 3000,
+    "kb": 393
+   },
+   "1500": {
+    "archivo": "setas_azules.glb",
+    "tris": 1500,
+    "kb": 244
+   }
+  },
+  "origen": "setas_roca.glb",
+  "nota": "setas recolectables, variante azul",
+  "seg": 4.4
+ },
+ "setas_marrones": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "3000": {
+    "archivo": "setas_marrones_3000.glb",
+    "tris": 3000,
+    "kb": 393
+   },
+   "1500": {
+    "archivo": "setas_marrones.glb",
+    "tris": 1500,
+    "kb": 244
+   }
+  },
+  "origen": "setas_roca.glb",
+  "nota": "setas recolectables, variante marrón",
+  "seg": 3.8
+ },
+ "estalagmitas_a": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2000,
+  "niveles": {
+   "3000": {
+    "archivo": "estalagmitas_a_3000.glb",
+    "tris": 3000,
+    "kb": 393
+   },
+   "2000": {
+    "archivo": "estalagmitas_a.glb",
+    "tris": 2000,
+    "kb": 294
+   },
+   "1500": {
+    "archivo": "estalagmitas_a_1500.glb",
+    "tris": 1500,
+    "kb": 244
+   }
+  },
+  "origen": "setas_roca.glb",
+  "nota": "estalagmitas de cueva",
+  "seg": 7.3
+ },
+ "estalagmitas_b": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2000,
+  "niveles": {
+   "3000": {
+    "archivo": "estalagmitas_b_3000.glb",
+    "tris": 3000,
+    "kb": 393
+   },
+   "2000": {
+    "archivo": "estalagmitas_b.glb",
+    "tris": 2000,
+    "kb": 294
+   },
+   "1500": {
+    "archivo": "estalagmitas_b_1500.glb",
+    "tris": 1500,
+    "kb": 244
+   }
+  },
+  "origen": "setas_roca.glb",
+  "nota": "estalagmitas de cueva, más altas",
+  "seg": 5.9
+ }
+}

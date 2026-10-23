@@ -69,6 +69,9 @@ const MEDIDA: Dictionary = {
 	"bloque_runa_roja": 0.8, "bloque_runa_naranja": 0.8, "bloque_runa_verde": 0.8, "bloque_runa_azul": 0.8, "bloque_runa_amarilla": 0.8, "bloque_runa_cian": 0.8,
 	"cartel_runa_roja": 1.2, "cartel_runa_naranja": 1.2, "cartel_runa_verde": 1.2, "cartel_runa_azul": 1.2, "cartel_runa_amarilla": 1.2, "cartel_runa_cian": 1.2,
 	"seta_quemada": 0.57, "tronco_resina": 0.8, "tronco_sin_resina": 0.8, "raiz_mundo": 0.7, "cristal_elemental": 0.6, "paja": 0.45,
+	# 23/10 · la Cueva (lo que se mide por alto; las paredes y la boca van por ancho, en MEDIDA_ANCHO). La jugadora mide ~1.
+	"jarron": 0.6, "jarron_alto": 0.95, "setas_rojas": 0.7, "setas_azules": 0.7, "setas_marrones": 0.65,
+	"estalagmitas_a": 1.5, "estalagmitas_b": 1.8, "puerta_llave_marco": 2.4, "puerta_llave_hoja": 2.1,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
@@ -76,6 +79,11 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 	# 15/10: las tres losas de runas (se pisan; la runa va encima por código: RunaLosa3D). Mismo ancho que la baldosa de guardado.
 	"losa_runas_llana": S * 0.85, "losa_runas_remaches": S * 0.85, "losa_runas_ovalo": S * 0.85,
 	"cofre": 0.65,   # 15/10: cofre_anim.glb mide 0,79 de ancho; a 0,65 queda de alto ~0,8 (como barril y caja)
+	# 23/10 · la Cueva (docs/PLAN_BOSQUE_EOW.md §6): el kit de paredes ocupa UNA casilla exacta de planta para que encaje en la rejilla;
+	# el muro agrietado un poco menos (deja ver la junta con la pared); la boca de la cueva, dos casillas.
+	# Algo más que una casilla (× 1,12): el modelo encaja por su lado MAYOR, así que el otro queda corto y entre dos paredes se abría un hueco.
+	"cueva_pared": S * 1.12, "cueva_esquina_ext": S * 1.12, "cueva_esquina_int": S * 1.12, "cueva_pared_baja": S * 1.12, "muro_ruina": S,
+	"muro_agrietado": S * 0.96, "boca_cueva": S * 2.0, "llave_pequena": 0.35,
 	"baldosa_guardado": S * 0.85,
 	# Canales de ruinas (enderezados en el GLB). Mismo factor de escala los dos (el codo mide 0,439 de ancho frente a 0,493 del recto).
 	# `canal_recto`: corre a lo largo de X, abierto por -X y +X (giro 90 = a lo largo de Z). `canal_codo`: abierto por -X y +Z,

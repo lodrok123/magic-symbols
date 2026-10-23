@@ -128,7 +128,7 @@ const T_CRECER: float = 0.6          ## s que tarda la hierba en brotar al regar
 const SIN_SOMBRA: Array = ["arbusto", "arbusto_flores", "arbusto_otono", "seto_seco", "piedras", "piedra", "setas",
 	"seta", "tocon", "cartel", "pasadero", "juncos", "matas", "flores", "caja_pequena", "baldosa_guardado", "pocion"]
 ## Bloque 4 EoW: piezas del decorado cuya sombra la proyecta una copia reducida (≈ 1/8 de triángulos, MallaReducida3D) y no la malla entera.
-const SOMBRA_REDUCIDA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2"]
+const SOMBRA_REDUCIDA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "cueva_pared", "cueva_esquina_ext", "cueva_esquina_int"]
 const FRACCION_SOMBRA: float = 0.125
 ## Bloque 1 EoW: piezas del decorado que se mecen con el viento y con cuánta fuerza (1 = árbol de copa redonda). El pino, más rígido.
 ## Solo en las piezas de los lotes (el decorado que no reacciona): un seto que arde lleva los materiales de Reactivo3D.
@@ -711,6 +711,9 @@ void fragment() {
 @export var radio_transparencia: float = 1.9
 ## Bloque 1 EoW: cuánto se mecen árboles y arbustos (`VIENTO_DECORADO`; 0 = quietos). Necesita `transparencia_jugador` (es el mismo material).
 @export var viento_decorado: float = 1.0
+## La Cueva (23/10): «bosque» (de serie: árboles en las paredes, hierba) o «cueva» (paredes de roca del kit de cueva según sus vecinas, suelo de
+## roca y basalto, estalagmitas). Ver `_pared_cueva`.
+@export var estilo: String = "bosque"
 ## Bloque 4 EoW: escala del render 3D (1 = nativa). Medido en una Intel UHD 620 (Bosque): 0,75 da ≈ +20 % de FPS; el HUD sigue nítido.
 @export_range(0.5, 1.0, 0.05) var escala_render: float = 1.0
 ## Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia reducida (`SOMBRA_REDUCIDA`). Desmarcar = la malla entera, como antes.
@@ -755,6 +758,9 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## defecto apagado hasta que Pablo lo apruebe. Encendido: las casillas de agua llevan solo su lecho (Lanzador3D.LECHO_AGUA bajo la superficie
 ## de antes, como en la simulación) y el canal de Canal3D no se monta. Sin simulación (Lanzador3D.agua_sim) no se dibuja agua.
 @export var agua_fisica: bool = false
+## 23/10 (Cueva): el agua del mapa corre hacia el sur como un río (`_flujo_rio`). Desmarcar donde el agua es una charca quieta: si no,
+## las franjas de la corriente se dibujan sobre agua parada (en la charca de la Cueva se veían como goteras blancas).
+@export var agua_corre: bool = true
 ## 12/10 (11.16): el kit de hechizos de esta escena. El Lanzador lo lee (`mundo.get("kit")`, 11.15) y, si no está vacío, lo usa en lugar del
 ## nombre del nivel: «pruebas» = todos los hechizos y glifos (con hielo) para iterar sin tocar el kit del nivel de verdad.
 @export var kit: String = ""
@@ -1095,6 +1101,10 @@ func _ready() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color(0.81, 0.91, 0.94)
+	if estilo == "cueva":
+		# Casi negro: lo que queda fuera del mapa o entre dos paredes es roca a oscuras, no cielo. Con el celeste de serie el agua lo
+		# reflejaba (manchas blancas en la charca) y se veía por los huecos entre las paredes.
+		env.background_color = Color(0.035, 0.04, 0.05)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.95, 0.94, 1.0)
 	env.ambient_light_energy = LUZ_AMBIENTE
@@ -1447,6 +1457,15 @@ func _construir_suelo() -> void:
 	if ResourceLoader.exists(SUELO + "hierba_borde.png"):
 		mat_suelo.set_shader_parameter("t_borde", load(SUELO + "hierba_borde.png") as Texture2D)
 		mat_suelo.set_shader_parameter("borde_fuerza", 1.0)
+	# La Cueva: todo el suelo es roca de cueva y el de tipo «piedra» (bajo la fuente, la tinaja, la lava…), basalto. Sin borde de hierba.
+	if estilo == "cueva" and ResourceLoader.exists(SUELO + "roca_cueva_arriba.png"):
+		var roca: Texture2D = _tex(SUELO + "roca_cueva_arriba.png")
+		for p in ["t_hierba", "t_camino", "t_tierra"]:
+			mat_suelo.set_shader_parameter(p, roca)
+		mat_suelo.set_shader_parameter("usa_normal_tierra", 0.0)
+		mat_suelo.set_shader_parameter("borde_fuerza", 0.0)
+		if ResourceLoader.exists(SUELO + "basalto_arriba.png"):
+			mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "basalto_arriba.png"))
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
@@ -3233,6 +3252,64 @@ func _danar_empujable_cercano() -> void:
 
 ## --- Lo que pide cada letra del plano ---
 
+## --- Estilo «cueva» (23/10, docs/PLAN_BOSQUE_EOW.md §6) ---
+## Cada casilla `#` mira cuáles de sus cuatro vecinas son suelo y elige pieza y giro (el frente del modelo, +Z local, hacia el suelo):
+##   una vecina                → pared de frente a ella
+##   dos vecinas en ángulo     → esquina EXTERIOR (la roca que asoma)
+##   dos vecinas opuestas      → pared (un tabique entre dos salas), de frente a una de ellas
+##   tres o cuatro             → esquina exterior (un pilar)
+##   ninguna, pero sí en diagonal → esquina INTERIOR, hacia esa diagonal
+##   ninguna                   → roca maciza: una pared con giro al azar, para que no quede un hueco que parezca paso
+## `GIRO_CUEVA` corrige hacia dónde mira cada modelo de Tripo (medido en las capturas de herramientas/captura_cueva.gd).
+const GIRO_CUEVA: Dictionary = {"cueva_pared": 0.0, "cueva_esquina_ext": 0.0, "cueva_esquina_int": 0.0}
+const DECOR_CUEVA: Array = ["estalagmitas_a", "estalagmitas_b", "rocas_pequenas", "estalagmitas_a", "piedras"]
+
+
+func _pared_cueva(c: Vector2i) -> void:
+	var dirs: Array = [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]     # sur (+Z), este (+X), norte, oeste
+	var giros: Array = [0.0, 90.0, 180.0, 270.0]                                              # el giro sobre Y que lleva +Z local a cada una
+	var libres: Array = []
+	for i in range(4):
+		if _suelo_de_cueva(c + (dirs[i] as Vector2i)):
+			libres.append(i)
+	var h: int = _hash(c.x, c.y, 41)
+	var id: String = "cueva_pared"
+	var giro: float = float(h % 4) * 90.0
+	match libres.size():
+		1:
+			giro = giros[libres[0]]
+		2:
+			var a: int = libres[0]
+			var b: int = libres[1]
+			if (a + 2) % 4 == b:
+				giro = giros[a if h % 2 == 0 else b]           # tabique: de frente a una de las dos salas
+			else:
+				id = "cueva_esquina_ext"
+				# Entre las dos vecinas: con (0, 1) = sur y este, la esquina mira a 45°; (3, 0) = oeste y sur da 315°.
+				giro = 45.0 + 90.0 * float(a if (a + 1) % 4 == b else b)
+		3, 4:
+			id = "cueva_esquina_ext"
+		0:
+			var diag: Array = [Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, -1), Vector2i(-1, 1)]
+			for i in range(4):
+				if _suelo_de_cueva(c + (diag[i] as Vector2i)):
+					id = "cueva_esquina_int"
+					giro = 45.0 + 90.0 * float(i)
+					break
+	_poner(id, c, ALTO, true, false, fposmod(giro + float(GIRO_CUEVA.get(id, 0.0)), 360.0))
+
+
+func _suelo_de_cueva(q: Vector2i) -> bool:
+	return _en_mapa(q) and _letra(q) != "#" and _letra(q) != " "
+
+
+func _junto_a_pared(c: Vector2i) -> bool:
+	for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]:
+		if _en_mapa(c + d) and _letra(c + d) == "#":
+			return true
+	return false
+
+
 func _colocar_letras() -> void:
 	# "matas" y "flores" de Meshy salieron mal (rocas de cristal y bolas): retiradas, las pone Hierba3D.
 	# "caja_cristal" también: los empujables son cubos (_colocar_empujables).
@@ -3249,7 +3326,9 @@ func _colocar_letras() -> void:
 				"#":
 					if not (_modo_escena or _modo_nivel) or x == 0 or y == 0 or x == _mapa[y].length() - 1 or y == _lado - 1:
 						_bloqueadas[c] = true      # en modo escena el borde sigue cerrado; el resto lo deciden las piezas del .tscn
-					if h % 6 == 0:
+					if estilo == "cueva":
+						_pared_cueva(c)
+					elif h % 6 == 0:
 						_poner("arbusto" if h % 2 == 0 else "roca_grande", c, ALTO, true)
 					else:
 						# Toda casilla de pared lleva un árbol: antes 1 de cada 4 quedaba sin modelo y era un hueco que parecía
@@ -3420,7 +3499,10 @@ func _colocar_letras() -> void:
 					else:
 						_poner("tinaja_ruina", c, ALTO, true, false, 0.0)
 				".":
-					if h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
+					if estilo == "cueva":
+						if h % 11 == 0 and _junto_a_pared(c):        # cueva: estalagmitas y rocas pegadas a la pared, no en medio del paso
+							_poner(String(DECOR_CUEVA[_hash(x, y, 5) % DECOR_CUEVA.size()]), c, ALTO, false)
+					elif h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
 						_poner(String(decor[_hash(x, y, 5) % decor.size()]), c, ALTO, false)
 
 	_en_marcador = false
@@ -4369,6 +4451,12 @@ func _destellos(p: Vector3, color: Color) -> void:
 
 ## Pétalos y hojas que caen despacio alrededor de la cámara.
 func _ambiente() -> void:
+	if estilo == "cueva":
+		# La cueva: motas de polvo que flotan despacio (no pétalos ni hojas, que caen de los árboles).
+		var p := _particulas(VFX + "polvo.png", Vector3.ZERO, 18, 9.0, Vector3(9, 1.2, 9), 0.08, 60.0, 0.06, false,
+			1, Vector3(0.04, 0.02, 0.03), 0.5)
+		p.name = "AmbienteCueva"
+		return
 	var a := _particulas(VFX + "petalo.png", Vector3.ZERO, 26, 7.0, Vector3(9, 0.5, 9), 0.25, 60.0, 0.22, false,
 		1, Vector3(0.15, -0.25, 0.05), 1.0)
 	a.name = "Ambiente1"
@@ -5310,7 +5398,8 @@ func _montar_agua_fisica() -> void:
 	# 13/10: la simulación de agua se lee de Terreno3D (capa mundo/), ya no por reflexión sobre el Lanzador (ARQUITECTURA_MODULAR §5.2).
 	_agua_render.proveedor = func() -> Variant: return Terreno3D.agua_sim
 	_agua_render.proveedor_topes = _topes_agua_canal        # 13.9 (c): el agua del canal no sobresale de la piedra
-	_agua_render.proveedor_flujo = _flujo_rio               # 15/10 (diario 95): el río corre hacia su salida (si no, se lee como un lago)
+	if agua_corre:
+		_agua_render.proveedor_flujo = _flujo_rio           # 15/10 (diario 95): el río corre hacia su salida (si no, se lee como un lago)
 	_agua_render.caida_detectada.connect(_onda_de_caida)    # y donde el agua CAE se levantan anillos en la base
 	_agua_render.agua_refraccion = agua_refraccion          # agua EoW: refracción y tercera escala de olas (interruptores de la maqueta)
 	_agua_render.olas_tercera_escala = agua_olas_tercera

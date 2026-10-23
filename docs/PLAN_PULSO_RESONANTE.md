@@ -142,6 +142,8 @@ Borrador, a validar con `Puzle3D` al montarlo:
 `Estado.agregar(objeto, n)` ya guarda los comunes. Los épicos necesitan un registro mínimo de **mejoras por glifo**, y el legendario
 reutiliza el desbloqueo de glifos del libro.
 
+La lista completa de materiales de la Cueva, sala a sala y con lo que hay que dar de alta, está en `MATERIALES_CUEVA.md`.
+
 ## 8. El cofre legendario y su animación
 
 **El cofre.** Más grande (unas 1,6 casillas), de piedra oscura con **vetas doradas** que forman parte del circuito de C6. Cuando el

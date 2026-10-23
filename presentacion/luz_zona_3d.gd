@@ -63,6 +63,12 @@ const ZONAS: Dictionary = {
 		"sol_color": Color(0.82, 0.95, 0.92), "sol_energia": 0.9, "sol_pitch": -62.0, "sol_yaw": 15.0,
 		"ambiente_arriba": Color(0.78, 0.90, 0.95), "ambiente_abajo": Color(0.60, 0.72, 0.58), "ambiente_energia": 0.6,
 	},
+	# Cueva (23/10, docs/PLAN_BOSQUE_EOW.md §6): casi a oscuras. Un sol frío y débil (la luz que entra por arriba) y un ambiente bajo y azulado;
+	# lo que de verdad alumbra son los braseros y los cristales, que con este fondo se notan.
+	"cueva": {
+		"sol_color": Color(0.62, 0.70, 0.86), "sol_energia": 0.35, "sol_pitch": -78.0, "sol_yaw": 10.0,
+		"ambiente_arriba": Color(0.42, 0.48, 0.60), "ambiente_abajo": Color(0.26, 0.26, 0.30), "ambiente_energia": 0.45,
+	},
 	# Cueva / hielo: luz azul pálida, ambiente oscuro con rebote azul.
 	"hielo": {
 		"sol_color": Color(0.80, 0.90, 1.0), "sol_energia": 0.85, "sol_pitch": -70.0, "sol_yaw": 0.0,
@@ -71,7 +77,7 @@ const ZONAS: Dictionary = {
 }
 
 ## Orden fijo para recorrerlas con una tecla.
-const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego"]
+const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva"]
 
 
 static func nombres() -> Array:

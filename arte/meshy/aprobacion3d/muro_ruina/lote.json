@@ -1,0 +1,97 @@
+{
+ "jarron": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "3000": {
+    "archivo": "jarron_3000.glb",
+    "tris": 3000,
+    "kb": 201
+   },
+   "1500": {
+    "archivo": "jarron_1500.glb",
+    "tris": 1500,
+    "kb": 173
+   },
+   "1200": {
+    "archivo": "jarron.glb",
+    "tris": 1200,
+    "kb": 148
+   }
+  },
+  "origen": "muro_ruina.glb",
+  "nota": "jarrón rompible",
+  "seg": 3.8
+ },
+ "muro_ruina": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 3000,
+  "niveles": {
+   "6000": {
+    "archivo": "muro_ruina_6000.glb",
+    "tris": 6000,
+    "kb": 672
+   },
+   "3000": {
+    "archivo": "muro_ruina.glb",
+    "tris": 3000,
+    "kb": 383
+   },
+   "1500": {
+    "archivo": "muro_ruina_1500.glb",
+    "tris": 1500,
+    "kb": 234
+   }
+  },
+  "origen": "muro_ruina.glb",
+  "nota": "muro de sillares de ruina",
+  "seg": 6.0
+ },
+ "jarron_alto": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "1500": {
+    "archivo": "jarron_alto_1500.glb",
+    "tris": 1500,
+    "kb": 163
+   },
+   "1200": {
+    "archivo": "jarron_alto.glb",
+    "tris": 1200,
+    "kb": 153
+   }
+  },
+  "origen": "muro_ruina.glb",
+  "nota": "ánfora rompible",
+  "seg": 2.0
+ },
+ "boca_cueva": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 6000,
+  "niveles": {
+   "6000": {
+    "archivo": "boca_cueva.glb",
+    "tris": 6000,
+    "kb": 682
+   },
+   "3000": {
+    "archivo": "boca_cueva_3000.glb",
+    "tris": 3000,
+    "kb": 383
+   },
+   "1500": {
+    "archivo": "boca_cueva_1500.glb",
+    "tris": 1500,
+    "kb": 233
+   }
+  },
+  "origen": "muro_ruina.glb",
+  "nota": "boca de la cueva (dos casillas)",
+  "seg": 11.3
+ }
+}

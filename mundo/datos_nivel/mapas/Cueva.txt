@@ -1,0 +1,61 @@
+###########################
+#........#...RR...#.......#
+#........#...RR...#.......#
+#........#...RR...#...W...#
+#............RR...........#
+#........#...RR...#.......#
+#........#...RR...#.....W.#
+#........#...RR...#.......#
+#........#...RR...#.......#
+####.#################.####
+####.#################.####
+#........#........#.......#
+#.T....T.#........#.....e.#
+#........#........#.~~~~~.#
+#........#........#.~~~~~.#
+#........#........#.~~~~~.#
+#...................~~~~~.#
+#...S....#........#.......#
+#........#........#.......#
+###########################
+###########################
+; La Cueva (23/10). Mazmorra pequeña del enfoque CERRADO: docs/PLAN_BOSQUE_EOW.md §6. 27 × 21; seis salas de 8 × 8 en dos filas.
+; La lee PruebaTest2 (nivel = "Cueva", estilo = "cueva"): las paredes «#» salen del kit de cueva según sus vecinas (_pared_cueva).
+; R = basalto (bajo la lava) · ~ = charca · e = fuente eléctrica · T = brasero · W = goblin · S = inicio.
+; --- zonas (Zonas3D) ---
+; zona 1,11..8,18 cueva
+; zona 1,1..8,8 cueva
+; zona 10,1..17,8 fuego
+; zona 19,1..25,8 atardecer
+; zona 19,11..25,18 hielo
+; zona 10,11..17,18 ruinas
+; --- C1 · Boca: los dos braseros abren el paso al norte ---
+; pieza luces contador 4 13 de=2,12+7,12
+; pieza paso_norte puerta 4 10 modelo=llave
+; puzle abre_norte cuando=luces.todos hace=paso_norte.abrir
+; pieza seta_c1a seta 1 15
+; pieza seta_c1b seta 1 16
+; pieza seta_c1c seta 2 16
+; --- C2 · Las grietas ---
+; pieza grieta muro 9 4 golpes=2
+; pieza seta_c2a seta 7 8
+; pieza seta_c2b seta 8 8
+; --- C3 · Río de lava (vuelve a ser lava a los 10 s) ---
+; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10
+; --- C4 · Sala cerrada: cofre con la llave ---
+; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8
+; pieza guardia vigia 19 1 de=19,1..25,8 flag=cueva.c4.limpia
+; pieza cofre_llave cofre 22 5 aparece_si=flag.cueva.c4.limpia abierto=cueva.c4.llave
+; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
+; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
+; pieza fuente emisor 24 12
+; --- C6 · Tesoro: puerta con llave, cofre grande y atajo a la boca ---
+; pieza puerta_llave puerta 18 16 modelo=llave
+; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
+; pieza tesoro cofre 13 13
+; pieza boton pulsador 10 16 modo=presencia
+; pieza atajo puerta 9 16 modelo=llave
+; puzle abre_atajo cuando=boton.pulsado hace=atajo.abrir
+; pieza seta_c6a seta 16 18
+; pieza seta_c6b seta 17 18
+; pieza seta_c6c seta 17 17

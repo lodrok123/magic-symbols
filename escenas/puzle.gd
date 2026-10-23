@@ -26,7 +26,8 @@ extends Node
 ##   molino     umbral=<u/s> (0.3)  vertical (si)                                     Molino3D
 ##   barril                                                                          Barril3D
 ##   nexo                                                                            NexoRayo3D (pila que conduce mojada)
-##   puerta                                                                          losa que bloquea su casilla hasta abrirse (PuertaPuzle)
+##   puerta     modelo=llave (losa)                                                  losa que bloquea su casilla hasta abrirse (PuertaPuzle). `modelo=llave`: el marco
+##                                                                                   de piedra y la hoja con herrajes (arte/piezas/puerta_llave_*), girados con la pared
 ##   emisor                                                                          EmisorRayo3D: la fuente eléctrica (letra «e»)
 ##   cuenca     celdas=<lista> (la propia x,y)  nivel=<u> (no llena)  fijo=<u>|si     abre casillas c o canal al agua; `nivel` las llena a esa
 ##                                                                                   profundidad; `fijo=<u>` mantiene ese nivel (un desagüe);
@@ -54,6 +55,8 @@ extends Node
 ##              Sin `sala` solo cierra la acción `cerrar`. El rectángulo de `sala` NO debe incluir las `celdas` de las puertas
 ##   lava       celdas=<lista> (la propia x,y)  vuelve=<s> (0)                       Lava3D (bloque 3 EoW): charco de lava que no se pisa y prende lo de al
 ##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s
+##   seta       variante=roja|azul|marron (la que toque por casilla)  rebrota=<s> (0)   Recolectable3D (la Cueva): setas que se cogen con E y dan
+##              un ingrediente; un elemento lanzado antes las transforma (Objetos.PLANTAS). Sin variante se intercalan por casilla
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
 ##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>              CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
@@ -69,12 +72,12 @@ extends Node
 ##   brasero    encendido | apagado          contador   todos | no_todos            cuerda  rota
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
-##   muro       roto                         lava     enfriada | apagada
+##   muro       roto                         lava     enfriada | apagada        seta     recogida
 ## CONDICIONES (`si=<id>.<cond>`: la regla solo actúa si en ese momento se cumple):
 ##   compuerta/puerta  abierta | cerrada    nivel  alcanzado | perdido     nexo    conduce | corta    molino  girando | parado
 ##   barril  explotado | encendido | entero    pulsador  activo | libre
 ##   brasero apagado | encendido   contador  todos | no_todos   cuerda  rota | entera   seto  ardiendo
-##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada
+##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada     seta  recogida | en_suelo
 ##
 ## CONDICIONES COMPUESTAS (C2, 21/10). `si=` es una EXPRESIÓN de términos:
 ##   término    <id>.<cond> (de arriba) | flag.<nombre> | casilla(x,y).<estado>
@@ -151,7 +154,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"pulsador": "pulsado", "compuerta": "abierta", "nivel": "alcanzado", "molino": "girando", "nexo": "conduce", "barril": "explota",
 	"puerta": "abierta", "totem": "activado", "tinaja": "agua_llega", "emisor": "descarga",
 	"brasero": "encendido", "contador": "todos", "cuerda": "rota", "seto": "consumido",
-	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada",
+	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada", "seta": "recogida",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -174,6 +177,7 @@ const SENALES: Dictionary = {
 	"cofre": {"aparecido": ["aparecido", 0, null], "abierto": ["abierto", 0, null]},
 	"muro": {"roto": ["roto", 0, null]},
 	"lava": {"enfriada": ["enfriada", 1, null], "apagada": ["apagada", 0, null]},
+	"seta": {"recogida": ["recogido", 1, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -192,6 +196,7 @@ const CONDICIONES: Dictionary = {
 	"cofre": {"oculto": ["es_oculto", true], "cerrado": ["es_cerrado", true], "abierto": ["es_abierto", true]},
 	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
+	"seta": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -210,6 +215,7 @@ const ACCIONES: Dictionary = {
 	"cofre": {"abrir": 0, "aparecer": 0},
 	"muro": {"romper": 0},
 	"lava": {"enfriar": 0},
+	"seta": {"recoger": 0},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -219,7 +225,7 @@ const CLAVES: Dictionary = {
 	"molino": {"umbral": "f", "vertical": "b"},
 	"barril": {},
 	"nexo": {},
-	"puerta": {},
+	"puerta": {"modelo": "s:llave"},
 	"emisor": {},
 	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas"},
@@ -234,6 +240,7 @@ const CLAVES: Dictionary = {
 	"cofre": {"aparece_si": "expr", "abierto": "flag"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
+	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -283,21 +290,31 @@ class PuertaPuzle extends Node3D:
 	signal cambio(abierta: bool)
 	var celda: Vector2i = Vector2i.ZERO
 	var abierta: bool = false
-	var _losa: MeshInstance3D = null
+	const ANCHO_MARCO: float = 0.78           ## dónde van las jambas, en medias casillas desde el centro (ajustado a ojo en la Cueva)
+	var _losa: Node3D = null
 	var _rotulo: Label3D = null
 	var _y0: float = 0.0
 
-	func preparar(c: Vector2i) -> void:
+	## `modelo` "llave" (23/10, la Cueva): marco y hoja de verdad en vez de la losa y sin rótulo. Necesita a la maqueta (`mundo._pieza`) o las
+	## escenas horneadas de arte/piezas; si no hay ninguna de las dos, queda la losa.
+	func preparar(c: Vector2i, modelo: String = "", mundo: Node = null) -> void:
 		celda = c
 		position = Terreno3D.centro_de(c, Terreno3D.alto_suelo)
 		Terreno3D.bloquear_celda(c)
-		_losa = MeshInstance3D.new()
+		# La puerta tapa el paso: si la pared sigue de norte a sur (paso de este a oeste), se gira 90°.
+		var pared_ns: bool = Terreno3D.letra_de(c + Vector2i(0, -1)) == "#" and Terreno3D.letra_de(c + Vector2i(0, 1)) == "#"
+		if pared_ns:
+			rotation.y = PI * 0.5
+		if modelo == "llave" and _poner_modelo(mundo):
+			return
+		var losa := MeshInstance3D.new()
+		_losa = losa
 		var b := BoxMesh.new()
 		b.size = Vector3(Terreno3D.casilla * 0.9, 2.2, 0.3)
-		_losa.mesh = b
+		losa.mesh = b
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.55, 0.36, 0.22)
-		_losa.material_override = mat
+		losa.material_override = mat
 		_y0 = 1.1
 		_losa.position = Vector3(0.0, _y0, 0.0)
 		add_child(_losa)
@@ -310,7 +327,37 @@ class PuertaPuzle extends Node3D:
 		add_child(_rotulo)
 		_pintar_rotulo()
 
+	## Marco (dos jambas: el modelo es media, la otra va en espejo) y hoja, que se hunde al abrir como la losa. Devuelve false si no hay modelos.
+	func _poner_modelo(mundo: Node) -> bool:
+		var jamba_a: Node3D = _cargar_pieza("puerta_llave_marco", mundo)
+		var jamba_b: Node3D = _cargar_pieza("puerta_llave_marco", mundo)
+		var hoja: Node3D = _cargar_pieza("puerta_llave_hoja", mundo)
+		if jamba_a == null or jamba_b == null or hoja == null:
+			return false
+		var media: float = Terreno3D.casilla * 0.5
+		jamba_a.position.x = -media * ANCHO_MARCO
+		jamba_b.position.x = media * ANCHO_MARCO
+		jamba_b.scale.x = -1.0
+		add_child(jamba_a)
+		add_child(jamba_b)
+		_losa = hoja
+		_y0 = 0.0
+		add_child(hoja)
+		return true
+
+	func _cargar_pieza(id: String, mundo: Node) -> Node3D:
+		if mundo != null and mundo.has_method("_pieza"):
+			var n: Node3D = mundo.call("_pieza", id) as Node3D
+			if n != null:
+				return n
+		var ruta: String = "res://arte/piezas/%s.tscn" % id
+		if ResourceLoader.exists(ruta):
+			return (load(ruta) as PackedScene).instantiate() as Node3D
+		return null
+
 	func _pintar_rotulo() -> void:
+		if _rotulo == null:
+			return
 		_rotulo.text = "PUERTA ABIERTA" if abierta else "PUERTA CERRADA"
 		_rotulo.modulate = Color(0.5, 1.0, 0.55) if abierta else Color(1.0, 0.6, 0.5)
 
@@ -1347,6 +1394,12 @@ func _crear(pz: Pieza) -> void:
 			ba.preparar(pz.celda)
 			cont.add_child(ba)
 			pz.nodo = ba
+		"seta":
+			var se := Recolectable3D.new()
+			se.name = pz.id
+			se.preparar(pz.celda, String(pz.p.get("variante", "")), float(pz.p.get("rebrota", 0.0)), mundo as Node)
+			cont.add_child(se)
+			pz.nodo = se
 		"lava":
 			var lv := Lava3D.new()
 			lv.name = pz.id
@@ -1356,7 +1409,7 @@ func _crear(pz: Pieza) -> void:
 		"muro":
 			var mu := MuroAgrietado3D.new()
 			mu.name = pz.id
-			mu.preparar(pz.celda, int(pz.p.get("golpes", 2)))
+			mu.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
 			cont.add_child(mu)
 			pz.nodo = mu
 		"nexo":
@@ -1368,7 +1421,7 @@ func _crear(pz: Pieza) -> void:
 		"puerta":
 			var pu := PuertaPuzle.new()
 			pu.name = pz.id
-			pu.preparar(pz.celda)
+			pu.preparar(pz.celda, String(pz.p.get("modelo", "")), mundo as Node)
 			cont.add_child(pu)
 			pz.nodo = pu
 		"emisor":
@@ -1758,6 +1811,9 @@ func _ejecutar(a: Dictionary) -> void:
 		"enfriar":
 			if nd != null:
 				nd.call("enfriar_en", pz.celda)
+		"recoger":
+			if nd != null:
+				nd.call("recoger")
 		"mojar":
 			if nd == null:
 				return

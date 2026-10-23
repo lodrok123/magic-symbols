@@ -1,0 +1,112 @@
+{
+ "muro_agrietado": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 3000,
+  "niveles": {
+   "6000": {
+    "archivo": "muro_agrietado_6000.glb",
+    "tris": 6000,
+    "kb": 721
+   },
+   "3000": {
+    "archivo": "muro_agrietado.glb",
+    "tris": 3000,
+    "kb": 422
+   },
+   "1500": {
+    "archivo": "muro_agrietado_1500.glb",
+    "tris": 1500,
+    "kb": 273
+   }
+  },
+  "origen": "arco_piedra.glb",
+  "nota": "bloque de sillares que se rompe (MuroAgrietado3D)",
+  "seg": 12.3
+ },
+ "puerta_llave_marco": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2500,
+  "niveles": {
+   "6000": {
+    "archivo": "puerta_llave_marco_6000.glb",
+    "tris": 6000,
+    "kb": 703
+   },
+   "3000": {
+    "archivo": "puerta_llave_marco_3000.glb",
+    "tris": 3000,
+    "kb": 411
+   },
+   "2500": {
+    "archivo": "puerta_llave_marco.glb",
+    "tris": 2500,
+    "kb": 372
+   },
+   "1500": {
+    "archivo": "puerta_llave_marco_1500.glb",
+    "tris": 1500,
+    "kb": 273
+   }
+  },
+  "origen": "arco_piedra.glb",
+  "nota": "marco de la puerta con llave",
+  "seg": 9.0
+ },
+ "llave_pequena": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 800,
+  "niveles": {
+   "3000": {
+    "archivo": "llave_pequena_3000.glb",
+    "tris": 3000,
+    "kb": 177
+   },
+   "1500": {
+    "archivo": "llave_pequena_1500.glb",
+    "tris": 1500,
+    "kb": 210
+   },
+   "800": {
+    "archivo": "llave_pequena.glb",
+    "tris": 800,
+    "kb": 167
+   }
+  },
+  "origen": "arco_piedra.glb",
+  "nota": "la llave",
+  "seg": 4.6
+ },
+ "puerta_llave_hoja": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2000,
+  "niveles": {
+   "6000": {
+    "archivo": "puerta_llave_hoja_6000.glb",
+    "tris": 6000,
+    "kb": 667
+   },
+   "3000": {
+    "archivo": "puerta_llave_hoja_3000.glb",
+    "tris": 3000,
+    "kb": 421
+   },
+   "2000": {
+    "archivo": "puerta_llave_hoja.glb",
+    "tris": 2000,
+    "kb": 323
+   },
+   "1500": {
+    "archivo": "puerta_llave_hoja_1500.glb",
+    "tris": 1500,
+    "kb": 273
+   }
+  },
+  "origen": "arco_piedra.glb",
+  "nota": "hoja con cerradura (baja al abrir)",
+  "seg": 9.8
+ }
+}
