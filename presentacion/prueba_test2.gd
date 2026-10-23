@@ -127,6 +127,9 @@ const T_CRECER: float = 0.6          ## s que tarda la hierba en brotar al regar
 ## Ids pequeños del decorado en lotes que NO proyectan sombra (Paso 4): solo árboles, bloques, puestos y personajes.
 const SIN_SOMBRA: Array = ["arbusto", "arbusto_flores", "arbusto_otono", "seto_seco", "piedras", "piedra", "setas",
 	"seta", "tocon", "cartel", "pasadero", "juncos", "matas", "flores", "caja_pequena", "baldosa_guardado", "pocion"]
+## Bloque 4 EoW: piezas del decorado cuya sombra la proyecta una copia reducida (≈ 1/8 de triángulos, MallaReducida3D) y no la malla entera.
+const SOMBRA_REDUCIDA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2"]
+const FRACCION_SOMBRA: float = 0.125
 ## Bloque 1 EoW: piezas del decorado que se mecen con el viento y con cuánta fuerza (1 = árbol de copa redonda). El pino, más rígido.
 ## Solo en las piezas de los lotes (el decorado que no reacciona): un seto que arde lleva los materiales de Reactivo3D.
 const VIENTO_DECORADO: Dictionary = {"arbol_redondo": 1.0, "arbol_redondo_2": 1.0, "pino": 0.6, "pino_2": 0.6,
@@ -708,6 +711,10 @@ void fragment() {
 @export var radio_transparencia: float = 1.9
 ## Bloque 1 EoW: cuánto se mecen árboles y arbustos (`VIENTO_DECORADO`; 0 = quietos). Necesita `transparencia_jugador` (es el mismo material).
 @export var viento_decorado: float = 1.0
+## Bloque 4 EoW: escala del render 3D (1 = nativa). Medido en una Intel UHD 620 (Bosque): 0,75 da ≈ +20 % de FPS; el HUD sigue nítido.
+@export_range(0.5, 1.0, 0.05) var escala_render: float = 1.0
+## Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia reducida (`SOMBRA_REDUCIDA`). Desmarcar = la malla entera, como antes.
+@export var sombra_reducida: bool = true
 ## Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D). Desmarcar = sin niebla.
 @export var niebla_fosos: bool = true
 ## Quita la parte delantera del toldo del puesto de mercado (desde la cámara tapaba al tendero).
@@ -1079,6 +1086,10 @@ func _ready() -> void:
 	Terreno3D.cargar_datos(_mapa, _bloqueadas, _celdas_canal, _giros)
 	Terreno3D.fijar_cauce_hondo(cauce_hondo)      # cauce hondo: antes de construir el cauce (el setter no corre con el valor de serie)
 	get_viewport().msaa_3d = Viewport.MSAA_4X
+	# Bloque 4 EoW: escala del render 3D (EoW dibuja a 1408 × 792 y reescala). Por debajo de 1, FSR reescala con nitidez; el HUD no se toca.
+	if escala_render < 0.999:
+		get_viewport().scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR
+		get_viewport().scaling_3d_scale = clampf(escala_render, 0.5, 1.0)
 
 	var entorno := WorldEnvironment.new()
 	var env := Environment.new()
@@ -3070,6 +3081,24 @@ func _construir_lotes() -> void:
 					mi.material_override = parte[2] as Material
 				_props.add_child(mi)
 				_n_lotes += 1
+				# Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia REDUCIDA (MallaReducida3D) que no se ve; el árbol de verdad ya no la
+				# proyecta. Medido en el Bosque: la pasada de sombra dibujaba ≈ 3,8 M de triángulos de 4,35 M por fotograma.
+				if sombra_reducida and SOMBRA_REDUCIDA.has(String(id)) and mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+					var reducida: Mesh = MallaReducida3D.reducir(mm.mesh, FRACCION_SOMBRA)
+					if reducida != mm.mesh:
+						var mms := MultiMesh.new()
+						mms.transform_format = MultiMesh.TRANSFORM_3D
+						mms.mesh = reducida
+						mms.instance_count = mm.instance_count
+						for i in range(mm.instance_count):
+							mms.set_instance_transform(i, mm.get_instance_transform(i))
+						var mis := MultiMeshInstance3D.new()
+						mis.name = mi.name + "_sombra"
+						mis.multimesh = mms
+						mis.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+						mis.material_override = mi.material_override
+						_props.add_child(mis)
+						mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_construir_sombras()
 
 
@@ -5056,7 +5085,7 @@ func _actualizar_hud() -> void:
 		int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0), _n_lotes]
 	if _hierba != null:
 		dibujo += " · hierba %d bloques / %d matojos" % [_hierba.numero_de_bloques(), _hierba.numero_de_matojos()]
-	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° (fija) | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nF1–F6 hechizos (fuego agua tierra viento rayo hielo) · T rampa de luz %.1f · B relieve · V grietas del empujable más cercano · estado: %d casillas, %.2f ms" % [
+	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° (fija) | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nRePág luz · AvPág tilt-shift · Inicio sonda · T rampa de luz %.1f · B relieve · V grietas del empujable más cercano · estado: %d casillas, %.2f ms" % [
 		int(Engine.get_frames_per_second()), int(_incl), "sí" if _sol.shadow_enabled else "no",
 		"sí" if _efectos.visible else "no", tipo_hierba, dibujo, aviso, _contraste, _hf.size() + _pisadas.size(), _ms_estado]
 	if _reglas != null:

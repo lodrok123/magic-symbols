@@ -1,0 +1,42 @@
+ESCENA res://escenas/PruebaBosque01.tscn · ventana (1152.0, 648.0) · Intel(R) UHD Graphics 620 · forward_plus
+
+escala | FPS medio | ms medio | ms p95 | llamadas | triángulos dibujados | objetos | VRAM texturas MB | VRAM búferes MB | VRAM total MB
+1.00 | 9.8 | 102.10 | 226.00 | 218 | 1617984 | 1589 | 332 | 53 | 496
+0.75 | 14.4 | 69.28 | 112.25 | 217 | 1617986 | 1588 | 294 | 49 | 453
+
+diagnóstico (escala 1) | FPS medio | ms medio | llamadas | triángulos dibujados
+tal cual | 10.3 | 96.67 | 218 | 1620482
+sin sombra del sol | 11.0 | 90.69 | 116 | 629671
+sin árboles ni pinos (150 lotes) | 4.7 | 212.05 | 182 | 582485
+árboles sin proyectar sombra | 7.0 | 142.78 | 187 | 1012367
+
+CENSO: 7889601 triángulos en la escena (se vean o no), 150 mallas distintas
+malla | triángulos | copias | total | % de la escena
+arbol_redondo_arbol_redondo | 12000 | 375 | 4500000 | 57.0
+pino_pino | 12000 | 75 | 900000 | 11.4
+arbusto_mesh | 2858 | 85 | 242930 | 3.1
+goblin_warrior_chibi.glb::ArrayMesh_su4ot | 31391 | 6 | 188346 | 2.4
+brasero.glb::ArrayMesh_gpmho | 12000 | 14 | 168000 | 2.1
+woodland_wanderer_suave.glb::ArrayMesh_6p5qi | 102635 | 1 | 102635 | 1.3
+AguaFisica | 96100 | 1 | 96100 | 1.2
+lote_arbol_redondo_1_0_sombra | 3000 | 18 | 54000 | 0.7
+lote_arbol_redondo_0_2_sombra | 3000 | 18 | 54000 | 0.7
+lote_arbol_redondo_0_0_sombra | 3000 | 17 | 51000 | 0.6
+lote_arbol_redondo_2_3_sombra | 3000 | 15 | 45000 | 0.6
+lote_arbol_redondo_4_5_sombra | 3000 | 15 | 45000 | 0.6
+lote_arbol_redondo_1_1_sombra | 3000 | 14 | 42000 | 0.5
+lote_arbol_redondo_0_1_sombra | 3000 | 14 | 42000 | 0.5
+lote_arbol_redondo_4_1_sombra | 3000 | 13 | 39000 | 0.5
+lote_arbol_redondo_3_4_sombra | 3000 | 13 | 39000 | 0.5
+lote_arbol_redondo_1_2_sombra | 3000 | 12 | 36000 | 0.5
+lote_arbol_redondo_1_3_sombra | 3000 | 12 | 36000 | 0.5
+totem_runico.glb::ArrayMesh_p4tat | 12000 | 3 | 36000 | 0.5
+lote_arbol_redondo_4_3_sombra | 3000 | 11 | 33000 | 0.4
+
+PERSONAJES (Pj3D)
+id | triángulos | huesos
+goblin_espadachin | 40227 | 28
+goblin_warrior_chibi | 42039 | 28
+elemental_bosque | 30384 | 28
+alchemist_elf | 31118 | 28
+woodland_wanderer | 116924 | 32
