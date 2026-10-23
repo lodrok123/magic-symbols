@@ -13,7 +13,8 @@ Wild (reacciones físicas entre elementos).
 
 > **Vocabulario.** **Sello = elemento** (fuego, agua…; se dibuja en el
 > núcleo). **Glifo = forma** (flecha, barrera…; se dibuja en un sector).
-> Así hablan el HUD, `progresion.gd` y los niveles. En el código antiguo la
+> Así hablan el HUD, el libro (`spellbook.gd`), el repertorio
+> (`repertoire.gd`) y los niveles. En el código antiguo la
 > forma se llama `sigil` (`Sigils`, `Repertoire.sigils`): es lo mismo que
 > glifo. Las versiones anteriores de este documento llamaban "sello" a la
 > forma; aquí ya no.
@@ -765,6 +766,15 @@ FINA ──agua──> CRECIDA
   mapa en llamas congeló una GPU integrada.
 - La hierba crecida **ya no bloquea**. Lo quemado se copia al estado
   `quemada` del suelo (`ReaccionesSuelo3D.sincronizar_hierba`).
+- **Mojada y con escarcha, solo aspecto** (bloque 1 EoW, 23/10): las
+  casillas de hierba no reciben el estado oficial (`ReaccionesSuelo3D`
+  solo actúa en las de clase «suelo»), así que `_apagar_area` avisa a
+  `Hierba3D` (`mojar` / `escarchar`), que guarda su propia textura de
+  aspecto y la seca sola: mojada 8 s, escarcha 20 s que al fundirse pasa a
+  mojada. El shader se queda con el mayor de esa textura y del estado
+  oficial, así que la hierba sobre casillas de suelo ya se ve mojada o
+  helada, y si algún día la hierba pasa a `EstadosSuelo3D`, se verá sin
+  tocar nada. Para el juego, la hierba helada sigue siendo «mojada 8 s».
 
 ### `Reactivo3D` y las piezas de `objetos/`
 
@@ -804,6 +814,14 @@ Las demás piezas tienen su propio script:
 | `TroncoEstanque3D` | sube con el agua; a 0,45 u de profundidad se vuelve puente |
 | `TroncoPuente3D` | con calor arde y cae cruzando el río |
 | `ContadorReactivos3D` | cuenta cuántos de una lista están encendidos |
+| `MuroAgrietado3D` | bloque de piedra que tapa su casilla; lo rompen `golpes` impactos de tierra (2 de serie) o una explosión. Las grietas son un shader que crece con cada golpe, y al romperse se deshace por celdas |
+| `Lava3D` | charco que no se pisa, alumbra y prende lo inflamable de al lado; agua o hielo lo enfrían en roca transitable (la casilla y sus 4 vecinas). Se entera de cualquier forma de hechizo por `Mundo3D.impacto`. Con `vuelve`, la roca se funde otra vez |
+
+Los dos últimos (bloques 2 y 3 de la revisión EoW, 23/10) solo se colocan
+desde un mapa, como las demás piezas de `Puzle3D`:
+`; pieza m muro x y golpes=n` y `; pieza l lava x y celdas=… vuelve=s`.
+Tienen sus señales (`roto`; `enfriada`, `apagada`), condiciones
+(`roto`/`entero`; `activa`/`apagada`) y acciones (`romper`; `enfriar`).
 
 > Del 2D no han pasado los **empujables** (se dibujan, sin mecánica), las
 > **plantas reactivas** que daban ingredientes (en 3D son decorado) ni el
@@ -962,6 +980,22 @@ pisa quien está en ella, si se ven dos puntos. No conoce los hechizos.
   hechizos, las flechas y la línea de visión siguen por casillas.
 - **Aspecto de diorama:** profundidad de campo lejana, banda tilt-shift,
   luz por zona y sonda de reflejos (`docs/ARTE.md` §10; diario 233).
+- **Viento en el decorado** (bloque 1 EoW): el material común
+  (`Ocluso3D`, uniform `viento`) mece árboles y arbustos: toda la mata se
+  balancea y las puntas aletean, el pie se queda quieto (el peso sale de
+  la altura dentro de la malla, `caja_y`) y cada copia lleva su fase. Qué
+  se mueve y cuánto lo dice `VIENTO_DECORADO` de la maqueta; el export
+  `viento_decorado` lo regula. Solo mueve lo que se ve: la colisión es
+  otro cuerpo.
+- **La sombra de los árboles la proyecta una copia reducida** (bloque 4
+  EoW): `MallaReducida3D` suelda los vértices por posición (Meshy entrega
+  triángulos sueltos) y toma un nivel de detalle del simplificador de
+  Godot; árboles y pinos se dibujan enteros pero sin proyectar sombra, y
+  una copia de ≈ 1/8 de triángulos que no se ve la proyecta
+  (`SOMBRA_REDUCIDA`, export `sombra_reducida`). La pasada de sombra
+  dibujaba todos los árboles del mapa: ver *Arte → Presupuesto*.
+- **Escala de render** (export `escala_render`, 1 de serie): por debajo
+  de 1, el 3D se dibuja más pequeño y se reescala con FSR; el HUD no.
 
 > **Historia: era 2D (hasta el 4/10).** La vista era isométrica 2D y se
 > reducía a `iso_grid.gd`, una conversión casilla ↔ pantalla sacada del
@@ -1010,7 +1044,9 @@ toma del primero de estos tres sitios que exista:
 2. **Un mapa en texto** `mundo/datos_nivel/mapas/<nivel>.txt`
    (`HorneadorNivel.leer_mapa`), con comentarios `; azar_suelo`,
    `; giro x y grados` y las líneas `; pieza` / `; puzle` que lee
-   `Puzle3D`. Así van Terra Fina y los laboratorios.
+   `Puzle3D`. Así van Terra Fina y los laboratorios. El mismo archivo
+   puede llevar **zonas** (`; zona x0,y0..x1,y1 <luz> [zoom=n]
+   [tilt=si|no]`, `Zonas3D`) aunque el plano salga de un `.tscn`.
 3. **Una constante en código:** `Jugabilidad3D.MAPA` (23×23),
    `NivelPruebas.MAPA` (16×16) y `DatosTest2.MAPA_TEST2` (40×40).
    `datos_test2.gd` es solo datos: sustituye al `preload` de `test_2.gd`,
@@ -1042,8 +1078,18 @@ sin repetir reglas de colocación. Si el archivo ya existe lo aparta como
 5. Cámara, precalentado de VFX tras un velo y
    **`Jugador3D.montar(self)`**: el jugador, el `Lanzador3D` con su
    interfaz, un `Combate3D` por goblin, el HUD y la pantalla de muerte.
-6. Los VFX de conjuro y de proyectil, y la solidez por colisión real.
+6. Los VFX de conjuro y de proyectil, el resaltado de lo que reacciona
+   (`Realce3D`), las zonas de luz y cámara del mapa (`Zonas3D`), la niebla
+   de los fosos (`NieblaFoso3D`) y la solidez por colisión real.
 7. `reglas.iniciar(self)`.
+
+**Zonas** (bloque 3 EoW). Como las regiones de EoW, cada rectángulo del
+mapa lleva una luz de `LuzZona3D.ZONAS` y, si se quiere, su zoom y su
+tilt-shift. Al cruzar, la luz se mezcla en 1,5 s (`LuzZona3D.mezclar` /
+`aplicar_valores`, que cambia los colores del cielo en el sitio en vez de
+crear uno nuevo por fotograma) y el zoom vuelve al del jugador al salir.
+Si dos zonas se pisan, manda la última; fuera de todas, la `zona_luz` de
+la escena. Hoy ningún mapa declara zonas.
 
 Las **reglas** se enganchan de dos maneras:
 
@@ -1223,7 +1269,11 @@ efecto del análisis de *Echoes of Wisdom*.
 | `VfxEstado3D` | el volumen según el estado de la materia | apagado de serie; F8 |
 | `ConjuroVfx3D` | la voluta y la forma en la mano | `conjuro_fase` |
 | `ReaccionesVfx3D` + `VfxReaccion3D` | una reacción con nombre → efecto y sonido, con excepciones por tipo (goblin, flecha, escudo…) | `Mundo3D.reaccion` |
-| `Logros3D` | la respuesta a un logro: sonido, motas, aro, rótulo, hitstop, zoom | `Mundo3D.logro` |
+| `Logros3D` | la respuesta a un logro: sonido, motas, aro, rótulo, hitstop, zoom y pulso radial (campo `radial`) | `Mundo3D.logro` |
+| `LuzTitila3D` | la luz de un fuego que titila: energía ±18 % y color hacia un rojo más hondo; respeta los cambios de energía de otros (tweens, la luz de calor) | cada fuego que dura, y `VfxKit3D.parpadeo` |
+| `PulsoPantalla3D` | desenfoque radial con aberración cromática que sale del punto del suceso y se apaga en décimas | `Logros3D` y la explosión del barril |
+| `Realce3D` | con el libro abierto o apuntando, un borde de luz (`material_overlay`) en lo que reaccionaría al hechizo preparado (`spell_reacts`); lo apuntado, más fuerte. No pisa otros overlays | el modo lanzar y el libro |
+| `NieblaFoso3D` | bruma baja en manchas en los cauces secos hondos, que se va cuando se llenan | la maqueta, si `niebla_fosos` |
 
 **Los estallidos cuelgan de `Vfx3D`, no del objeto.** La idea es la de
 la era 2D: muchos ocurren porque el objeto *desaparece*, y un hijo se va
@@ -1412,12 +1462,16 @@ referencias al principio; §1 colores de elemento y §2 paletas de bioma;
 
 ### Presupuesto
 
-Medido el 21/10 en `arte/meshy/PRESUPUESTO.md`: todo está por encima del
-orientativo de EoW (enemigos ≈ 31 k triángulos, el tope de Meshy; piezas
-de 8–12 k), y el Bosque 01 suma ≈ 4,2 millones, el 63 % solo en
-`arbol_redondo` y `pino`. Las variantes `_2` de los árboles ahorran la
-mitad sin arte nuevo; decide Pablo. Equipo: 15 k como máximo
-(`docs/DECISIONES_CHATS.md` §4).
+Medido el 23/10 (`arte/meshy/PRESUPUESTO.md`, `herramientas/medir_rendimiento.gd`,
+Intel UHD 620): todo está por encima del orientativo de EoW. Los árboles
+son el 61 % de la escena en el Bosque y el 68 % en el Bosque 01 (12 000
+triángulos × 227 y × 375 copias; EoW usa ~850), la jugadora tiene
+117 000 y los goblins unos 40 000. **El cuello de botella era la sombra
+del sol**: la cámara dibujaba ≈ 0,55 M de triángulos y la pasada de
+sombra todos los árboles del mapa, ≈ 4,35 M en total. Con la sombra
+reducida (*Vista 3D*) quedan 1,71 M (Bosque) y 1,62 M (Bosque 01), sin
+diferencia visible. Pendiente de Pablo: el árbol que se ve y los
+personajes. Equipo: 15 k como máximo (`docs/DECISIONES_CHATS.md` §4).
 
 ### Packs en bruto: `.gdignore`
 
@@ -1524,7 +1578,12 @@ niveles horneados a `.tscn`, personajes con sus clips (`Pj3D`) y sonido
 (`audio/` + `sfx.gd`, más efectos sintetizados en `sonidos.gd`). Después,
 la receta V2 y la clase `Hechizo` (17–21/10), la retirada de `pilar` y
 de `tiempo` como runas que traza el jugador, la atribución CC-BY del
-árbol en el README y los archivos pesados de `tools/` fuera de git.
+árbol en el README y los archivos pesados de `tools/` fuera de git. El
+23/10, los cuatro bloques de la revisión EoW: luz de fuego que titila,
+viento en el decorado y hierba mojada o con escarcha; resaltado de lo que
+reacciona, pulso radial y muro agrietado; zonas de luz y cámara, lava y
+niebla en los fosos; y la sombra reducida de los árboles con la escala de
+render (capturas en `docs/capturas/bloque*_eow/`).
 
 Sigue pendiente (el plan con responsables está en `docs/PLAN_ARREGLOS.md`;
 lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
@@ -1554,4 +1613,16 @@ lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
   constante `DEPURAR` (tarea 1.4).
 - **Arte pendiente**: `docs/ASSETS_PENDIENTES.md` y `docs/QA_ARTE.md`
   (en parte de la era 2D); el presupuesto de triángulos por decidir, en
-  `arte/meshy/PRESUPUESTO.md`.
+  `arte/meshy/PRESUPUESTO.md` (el árbol que se ve y los personajes).
+- **Validar jugando lo de la revisión EoW**: la fuerza del resaltado (hoy
+  más velo que contorno), el brillo de la lava, el modelo del muro
+  agrietado (es una caja con shader), la escarcha de la hierba y si
+  `escala_render` baja a 0,75 de serie.
+- **El clip `Drowning` de los goblins no está en el repo**: ningún GLB lo
+  trae, así que ni el guerrero ni el asesino tienen animación de
+  ahogarse (`prueba_goblin_asesino` falla en el rol `drown`).
+- **Rediseñar el Bosque con la filosofía de EoW** (salas con un puzle,
+  un centro con alas por elemento, atajos, regiones con temperatura y
+  rompibles con botín): las piezas para hacerlo ya existen en parte
+  (`Zonas3D`, `Puzle3D`, muro, lava); faltan los rompibles, la temperatura
+  por región y la mezcla configurable por zona.
