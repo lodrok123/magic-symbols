@@ -15,6 +15,7 @@ const CHARCA: Rect2i = Rect2i(20, 13, 5, 4)
 const MUESTRAS_TIRADA: int = 4000
 const MARGEN_TIRADA: float = 0.05
 const T_VUELVE_LAVA: float = 10.0
+const CONTRASTE_TEXTO_MIN: float = 7.0       ## razón de contraste WCAG mínima del texto contra el fondo del aviso (AAA), en el PEOR caso: fondo detrás blanco puro
 
 
 ## Lanzador falso: guarda lo que le piden avisar.
@@ -183,6 +184,24 @@ func _colmillo(z: Puzle3D) -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+## Luminancia relativa WCAG (sRGB lineal).
+func _lum(c: Color) -> float:
+	var f := func(v: float) -> float: return v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4)
+	return 0.2126 * float(f.call(c.r)) + 0.7152 * float(f.call(c.g)) + 0.0722 * float(f.call(c.b))
+
+
+## Contraste del color de texto de `etiqueta` contra `fondo` (con su alfa) puesto SOBRE BLANCO y SOBRE NEGRO: el peor de los dos debe pasar el umbral.
+func _contraste(nombre: String, etiqueta: Label, fondo: Color) -> void:
+	var texto: Color = etiqueta.get_theme_color("font_color")
+	var peor: float = 1.0e9
+	for detras in [Color.WHITE, Color.BLACK]:
+		var f: Color = Color(fondo.r, fondo.g, fondo.b, 1.0).lerp(detras, 1.0 - fondo.a)
+		var l1: float = _lum(texto)
+		var l2: float = _lum(f)
+		peor = minf(peor, (maxf(l1, l2) + 0.05) / (minf(l1, l2) + 0.05))
+	_ok("5 contraste del texto %s contra su fondo (peor caso %.1f, mínimo %.1f)" % [nombre, peor, CONTRASTE_TEXTO_MIN], peor >= CONTRASTE_TEXTO_MIN)
+
+
 func _avisos_calidad() -> void:
 	var l := FalsoLanzador.new()
 	var pj := Node3D.new()
@@ -206,9 +225,24 @@ func _avisos_calidad() -> void:
 	# El Lanzador3D de verdad pinta el borde y lo devuelve al negro con el siguiente aviso común.
 	var aviso: Label = lanzador.get("_aviso") as Label
 	AvisoObjeto.mostrar(lanzador, "geoda_resonante", 1)
-	_ok("5 Lanzador3D real: el aviso épico lleva el borde morado y el texto", aviso != null and aviso.text == "Geoda resonante (+1)"
-		and aviso.get_theme_color("font_outline_color").is_equal_approx(Objetos.color_calidad("geoda_resonante")))
+	var caja: StyleBoxFlat = aviso.get_theme_stylebox("normal") as StyleBoxFlat if aviso != null else null
+	var morado: Color = AvisoObjeto.color_borde(Objetos.color_calidad("geoda_resonante"))
+	_ok("5 Lanzador3D real: el aviso épico lleva el texto y un panel con el borde morado saturado y franjas laterales", aviso != null and aviso.text == "Geoda resonante (+1)"
+		and caja != null and caja.border_color.is_equal_approx(morado) and caja.border_color.s >= AvisoObjeto.BORDE_SATURACION_MIN - 0.001
+		and caja.border_width_left == AvisoObjeto.FRANJA_PX and caja.border_width_top == AvisoObjeto.BORDE_PX)
+	_ok("5 aviso épico: el texto es claro y su contorno oscuro (el color de calidad no va en el texto)", aviso.get_theme_color("font_color").is_equal_approx(AvisoObjeto.COLOR_TEXTO)
+		and aviso.get_theme_color("font_outline_color").get_luminance() < 0.1)
+	_contraste("épico", aviso, AvisoObjeto.FONDO_CALIDAD)
+	AvisoObjeto.mostrar_texto(lanzador, "Glifo de resonancia (+1)", Objetos.CALIDAD_LEGENDARIO)
+	caja = aviso.get_theme_stylebox("normal") as StyleBoxFlat
+	_ok("5 aviso legendario: panel con el borde dorado saturado y texto claro", caja != null and caja.border_color.is_equal_approx(AvisoObjeto.color_borde(Objetos.CALIDADES["legendario"]["color"]))
+		and aviso.get_theme_color("font_color").is_equal_approx(AvisoObjeto.COLOR_TEXTO))
+	_contraste("legendario", aviso, AvisoObjeto.FONDO_CALIDAD)
 	AvisoObjeto.mostrar(lanzador, "seta", 1)
-	_ok("5 Lanzador3D real: el siguiente aviso común vuelve al borde negro", aviso != null and aviso.text == "Seta (+1)" and aviso.get_theme_color("font_outline_color").is_equal_approx(Lanzador3D.AVISO_BORDE))
+	caja = aviso.get_theme_stylebox("normal") as StyleBoxFlat
+	_ok("5 Lanzador3D real: el siguiente aviso común vuelve al panel suave, sin borde de color ni franjas", aviso != null and aviso.text == "Seta (+1)" and caja != null
+		and caja.border_width_left == 0 and caja.bg_color.is_equal_approx(AvisoObjeto.FONDO_COMUN) and aviso.get_theme_color("font_outline_color").get_luminance() < 0.1)
+	_contraste("común", aviso, AvisoObjeto.FONDO_COMUN)
+	_ok("5 el panel del aviso se encoge al texto (no es una barra de lado a lado)", aviso.size.x < aviso.get_viewport_rect().size.x * 0.6 and aviso.size.x > 0.0, "%.0f px" % aviso.size.x)
 	l.queue_free()
 	pj.queue_free()

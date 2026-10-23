@@ -71,8 +71,7 @@ func _escenario() -> void:
 	_foto("5_aviso_epico_dura_mas")
 	await avanzar_s(3.5)
 	# --- Legendario (solo el color: el objeto es el glifo, que da la secuencia del cofre) ---
-	var col: Color = Objetos.CALIDADES["legendario"]["color"]
-	lanzador.avisar("Glifo de resonancia (+1)", col.lightened(AvisoObjeto.MAS_CLARO_TEXTO), col, float(Objetos.CALIDADES["legendario"]["aviso_s"]))
+	AvisoObjeto.mostrar_texto(lanzador, "Glifo de resonancia (+1)", Objetos.CALIDAD_LEGENDARIO)
 	await avanzar_s(0.3)
 	_foto("6_aviso_legendario_color")
 	await avanzar_s(5.0)

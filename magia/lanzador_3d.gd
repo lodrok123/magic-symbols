@@ -613,6 +613,7 @@ func avisar(texto: String, color: Color = Color(1, 0.9, 0.6), borde: Color = AVI
 	if _aviso == null:
 		return
 	_aviso.text = texto
+	AvisoObjeto.estilo_comun(_aviso)          # respaldo oscuro suave; el de calidad lo pone AvisoObjeto.mostrar_texto después de este aviso
 	_aviso.add_theme_color_override("font_color", color)
 	_aviso.add_theme_color_override("font_outline_color", borde)
 	_aviso.modulate.a = 1.0
