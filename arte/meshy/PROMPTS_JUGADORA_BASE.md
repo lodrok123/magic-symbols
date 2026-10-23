@@ -27,6 +27,18 @@ Todo lo que se queda siempre puesto va en la base, **ceñido al cuerpo**: nada q
 > tunic, no loose fabric, no book, no props. Full body, front view, symmetrical A-pose with arms 35 degrees away from the body, palms
 > down, fingers apart, legs slightly apart, plain light background, soft even lighting.
 
+**Versión corregida (23/10, tras la primera imagen):** la primera salió con ojos de chibi grandes y brillantes, unas 4,5 cabezas de
+alto y botas con puño ancho. Esta lo corrige; se pasa con la primera imagen como referencia de pose y ropa:
+
+> Same character, same A-pose and same outfit as the reference image, with three changes. 1) PROPORTIONS: chibi, about 3 heads tall,
+> big head, shorter body and short legs, like the reference elf girl from the game. 2) EYES: small gentle eyes, 25% smaller than the
+> reference, soft brown, no sparkles, no big highlights, calm friendly expression. 3) BOOTS: slim knee boots that hug the calves, the top
+> of the boot flush with the leg with no wide flared cuff, a single thin strap with a small buckle. Keep everything else tight-fitting:
+> cream long-sleeve fitted shirt tight to the wrists, dark brown laced vest, slim belt without pouches, dark green fitted leggings,
+> peach-orange short bob above the shoulders with the long pointed ears out. Empty hands, no props. Full body, front view, symmetrical
+> A-pose with arms 35 degrees away from the body, palms down, fingers apart, legs slightly apart, plain light background, soft even
+> lighting.
+
 **Si sale mal:**
 - **Ojos grandes:** *"eyes 25% smaller, no sparkles in the eyes"*.
 - **Ropa holgada o mangas anchas:** *"all clothing skin-tight, sleeves tight to the arms"*.
