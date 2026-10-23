@@ -10,8 +10,9 @@ extends Node
 ## la onda recorre las vetas · 1,4 sale el glifo · 2,6 destello y el glifo cae al libro · 3,2 se escribe · 4,5 vuelve todo y sale el aviso.
 ## SE PUEDE SALTAR a partir de la segunda vez que se ve (la flag global `FLAG_VISTA`): E, Espacio, Intro o Esc. Saltar lleva a mano al final (glifo desbloqueado, aviso, luz y cámara en su sitio).
 ##
-## LA ANIMACIÓN DE LA JUGADORA «abrir cofre» NO EXISTE (PLAN §10 punto 6 la pide al Pipeline): mientras no llegue se usa el clip más cercano que tenga, `pick_up` (coger un objeto),
-## y si no lo hay no se mueve de su sitio. Cuando exista el clip, basta cambiar `ROL_ANIMACION`.
+## LA ANIMACIÓN DE LA JUGADORA «abrir cofre» (24/10: clip `abrir_cofre` de Meshy, arte/meshy/clips_jugadora.py; antes se usaba `pick_up`): se inclina y baja las dos manos. Sus manos llegan
+## abajo a los `Pj3D.instante_clip("abrir_cofre")` = 1,4 s del clip; el clip se acelera (`VEL_ABRIR`) para que eso pase justo a `T_ONDA`, cuando la tapa empieza a girar. Se queda
+## agachada hasta `T_DESTELLO` (cae el glifo al libro) y entonces vuelve a idle. Si la jugadora no tiene el clip, no se mueve de su sitio.
 ##
 ## Es un Node suelto: lo crea y libera el CofrePuzle. Sin mundo, sin lanzador o sin cámara (pruebas) cada paso que lo necesita se salta, y la secuencia acaba igual.
 
@@ -19,7 +20,7 @@ signal glifo_escrito                 ## el glifo ya está en el libro (desbloque
 signal terminada
 
 const FLAG_VISTA: String = "global.cofre.legendario_visto"
-const ROL_ANIMACION: String = "pick_up"          ## la animación «abrir cofre» que falta: el clip más cercano
+const ROL_ANIMACION: String = "abrir_cofre"      ## el clip de la jugadora (rol de Pj3D.SINONIMOS)
 
 const T_LUZ: float = 0.4                         ## s: la luz empieza a bajar y se abre el cofre (el Cofre3D anticipa T_ANTICIPA antes de girar la tapa)
 const T_ONDA: float = 0.8                        ## s: se abre la tapa y la onda corre por las vetas
@@ -27,14 +28,17 @@ const T_GLIFO: float = 1.4                       ## s: sale el glifo
 const T_DESTELLO: float = 2.6                    ## s: destello y caída al libro
 const T_ESCRIBE: float = 3.2                     ## s: se escribe en la página
 const T_FIN: float = 4.5                         ## s: vuelve la luz, la cámara y el control
+const VEL_ABRIR_MAX: float = 2.0                 ## tope de la velocidad del clip de abrir (más deprisa se ve a trompicones)
 const T_SUBE_GLIFO: float = 1.2                  ## s que tarda el glifo en subir
 const T_CAE_GLIFO: float = 0.6                   ## s que tarda en caer al libro
 const T_ESCRITURA: float = 0.9                   ## s que tarda en escribirse el trazo
 const T_NOMBRE: float = 0.3                      ## s que tarda en aparecer su nombre (acaba a los 3,2 + 0,9 + 0,3 = 4,4 s: antes de que vuelva la luz)
 const T_ZOOM: float = 0.6                        ## s del acercamiento de cámara
 const T_LUZ_BAJA: float = 0.45
-const ALTO_ENCUADRE: float = 1.9                 ## u sobre el cofre a las que apunta el encuadre del primer plano (el glifo sube hasta ~3,5 u)
-const TAM_PRIMER_PLANO: float = 4.8             ## tamaño ortográfico de la cámara en el primer plano (PLAN §8 decía «hacia 4»: con 4 el cofre y el glifo que sube no caben entre las franjas)
+const ALTO_ENCUADRE: float = 1.5                 ## u sobre el cofre a las que apunta el encuadre del primer plano (el glifo sube hasta ~3,5 u). 24/10: 1,9 → 1,5 para que entre también la jugadora agachada
+const TAM_PRIMER_PLANO: float = 6.4             ## tamaño ortográfico de la cámara en el primer plano (PLAN §8 decía «hacia 4»: con 4 el cofre y el glifo que sube no caben entre las franjas). 24/10: 4,8 → 6,4: con 4,8 la jugadora (delante del cofre) quedaba fuera de plano y no se veía su animación de abrir
+const DIST_FRENTE: float = 1.0                   ## u del centro del cofre a las que se coloca la jugadora (si estaba más lejos; el cofre mide 1,6 de ancho y ella 1,0 de alto, y sus manos llegan ~0,15 u por delante)
+const T_ACERCARSE: float = 0.4                   ## s que tarda en acercarse al cofre
 const LUZ_ZONA_FRACCION: float = 0.4             ## la luz de la zona baja al 40 %
 const ALTURA_GLIFO: float = 1.0                  ## casillas que sube el glifo (el plan decía 1,5: con el primer plano a tamaño 4 el glifo se salía por arriba de la pantalla; 1 casilla = 2,3 u, y se ve entero)
 const TAM_GLIFO: float = 1.15                    ## u de lado del glifo
@@ -159,6 +163,7 @@ func _correr() -> void:
 	# 0,0 · control, cámara y franjas
 	fase = "control"
 	_bloquear(true)
+	_colocar_frente()
 	_pose_abrir()
 	_franjas(true)
 	_zoom_a(TAM_PRIMER_PLANO)
@@ -180,6 +185,7 @@ func _correr() -> void:
 	await _hasta(T_DESTELLO)
 	# 2,6 · destello y el glifo cae al libro
 	fase = "destello"
+	_levantar()
 	_destello()
 	await _hasta(T_ESCRIBE)
 	# 3,2 · se escribe en la página
@@ -229,7 +235,39 @@ func _pose_abrir() -> void:
 		_jugador.set("animacion_externa", true)       # el Jugador3D deja de elegir clip cada fotograma
 	if _pj != null and _pj.has_method("jugar") and _pj.has_method("clip_de") and String(_pj.call("clip_de", ROL_ANIMACION)) != "":
 		_pj.set("animacion_actual", "")
-		_pj.call("jugar", ROL_ANIMACION, true)
+		_pj.call("jugar", ROL_ANIMACION, true, velocidad_abrir())
+
+
+## Velocidad del clip de abrir para que las manos lleguen abajo (`Pj3D.instante_clip`) justo a `T_ONDA`, cuando la tapa empieza a girar. 1 si el rol no tiene instante medido.
+static func velocidad_abrir() -> float:
+	var instante: float = Pj3D.instante_clip(ROL_ANIMACION)
+	return clampf(instante / T_ONDA, 1.0, VEL_ABRIR_MAX) if instante > 0.0 else 1.0
+
+
+## La jugadora se incorpora: vuelve a idle (con la mezcla de siempre) sin esperar al final de la secuencia, que sigue sin ella.
+func _levantar() -> void:
+	if _pj != null and _pj.has_method("jugar") and not saltada:
+		_pj.set("animacion_actual", "")
+		_pj.call("jugar", "idle")
+
+
+## COLOCACIÓN: la jugadora puede haber pulsado E a 2,7 u del cofre; se desliza hasta `DIST_FRENTE` u de su centro (en línea recta desde donde estaba) y lo mira, para que sus manos
+## lleguen a él al agacharse. Si ya está más cerca no se mueve (solo se gira).
+func _colocar_frente() -> void:
+	if _jugador == null or cofre == null or not (_jugador is Node3D) or not cofre.is_inside_tree():
+		return
+	var j: Node3D = _jugador as Node3D
+	var d: Vector3 = j.global_position - cofre.global_position
+	d.y = 0.0
+	if d.length() < 0.01:
+		return
+	if d.length() > DIST_FRENTE:
+		var destino: Vector3 = cofre.global_position + d.normalized() * DIST_FRENTE
+		destino.y = j.global_position.y
+		var tw: Tween = create_tween()
+		tw.tween_property(j, "global_position", destino, 0.0 if saltada else T_ACERCARSE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if _jugador.has_method("mirar_hacia"):
+		_jugador.call("mirar_hacia", -d)
 
 
 func _fin_pose() -> void:

@@ -37,7 +37,8 @@ const SINONIMOS: Dictionary = {
 	"talk": ["stand_talking", "talking", "hablar"],
 	# Clips propios del elfo (22/10, Pablo, Tripo): saludar (greet_02, una vez) y celebrar (cheer, una vez). Sin rol previo que encaje: `wave` es el
 	# saludo con la mano de la elfa (wave/hello) y no se mezcla con ellos.
-	"saludo": ["greet_02", "greet"],
+	# 24/10: la jugadora trae también un «saludo» propio (Meshy, jugadora_clips.glb); va el último para que el elfo siga con su greet_02.
+	"saludo": ["greet_02", "greet", "saludo"],
 	"celebrar": ["cheer"],
 	# Clips de trabajo del goblin base (22/10, Pablo, Tripo): talar (golpear con un hacha que el modelo no lleva) y cavar. Acciones continuas de NPC.
 	"talar": ["chop"],
@@ -54,7 +55,17 @@ const SINONIMOS: Dictionary = {
 	"swim": ["swim_forward", "swimforward"],
 	"drink": ["standanddrink", "drink_potion"],
 	"pick_up": ["collectobject", "pick_up"],
+	# Clips nuevos de la jugadora (24/10, Meshy; ver ClipsFamilia.FUENTE_CLIPS_JUGADORA). Todos una vez salvo `empujar` (bucle, sin avance de cadera).
+	"abrir_cofre": ["abrir_cofre"],     # se inclina y baja las dos manos: el cofre legendario
+	"agacharse": ["agacharse"],         # se agacha con las manos juntas y se levanta: cofres pequeños y coger del suelo
+	"ofrecer": ["ofrecer"],             # de pie, adelanta la mano derecha con la palma abierta (hablar / dar algo; el `talk` de siempre no cambia)
+	"empujar": ["empujar"],             # empuja andando (mecánica de empuje del jugador, aún sin construir: Jugador3D.empujando)
 }
+
+## Segundo del clip (a velocidad 1) en que ocurre lo que el Juego sincroniza con él: en `abrir_cofre`, las manos llegan abajo, a la tapa (el clip recortado empieza 0,8 s después
+## que el de Meshy y las manos llegan a 2,2 s); en `agacharse`, el fondo de la agachada, con las manos a ras de lo que se coge (a 1,75 s). Medidos con la cinemática de los huesos
+## de las manos en el clip original (arte/meshy/clips_jugadora.py).
+const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75}
 
 ## Qué clip de lanzar va con cada forma de Vfx3D.FORMAS (la tabla `anim_cast` de DISENO_FUTURO §0b): el rol de
 ## SINONIMOS que se busca en el GLB. Elegidos mirando los clips de la elfa: proyectil = lanzamiento al frente
@@ -246,6 +257,7 @@ func cargar(p_id: String) -> bool:
 			aps.append(_ap)
 	if not aps.is_empty():
 		_ap = aps[0] as AnimationPlayer
+		_poner_clips_extra(_ap)
 		for nombre in _ap.get_animation_list():
 			_ap.get_animation(nombre).loop_mode = Animation.LOOP_LINEAR
 		_preparar_empujado()
@@ -306,6 +318,28 @@ func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
 		lib.add_animation(nombre, clips[nombre] as Animation)
 	ap.add_animation_library("", lib)
 	return ap
+
+
+## Modelos que traen sus propios clips y reciben otros de más (la elfa jugadora: abrir_cofre, agacharse, ofrecer, saludo, empujar; ClipsFamilia.EXTRAS), traducidos a su esqueleto.
+func _poner_clips_extra(ap: AnimationPlayer) -> void:
+	if not ClipsFamilia.tiene_extras(glb_de(id)):
+		return
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return
+	var clips: Dictionary = ClipsFamilia.extras_para(glb_de(id), _modelo, sks[0] as Skeleton3D, ap)
+	var lib: AnimationLibrary = ap.get_animation_library("")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		ap.add_animation_library("", lib)
+	for nombre in clips.keys():
+		if not lib.has_animation(nombre):
+			lib.add_animation(nombre, clips[nombre] as Animation)
+
+
+## El segundo del clip del rol `nombre` (a velocidad 1) en que ocurre lo que el Juego sincroniza (INSTANTE_CLIP); 0 si el rol no tiene.
+static func instante_clip(nombre: String) -> float:
+	return float(INSTANTE_CLIP.get(nombre, 0.0))
 
 
 ## Id del GLB que carga un personaje (el suyo, o el del que comparte modelo).

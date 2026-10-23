@@ -123,6 +123,11 @@ func _initialize() -> void:
 	for r in ["idle", "walk", "run", "cast", "hit"]:
 		var deriva: float = _deriva_cadera(p, sk, ap, p.clip_de(r)) / alto
 		_ok(deriva <= RAIZ_MAX, "%s (%s): deriva de raíz %.3f del alto (tope %.2f)" % [r, p.clip_de(r), deriva, RAIZ_MAX])
+	# Clips nuevos de la jugadora (24/10): abrir_cofre, agacharse, ofrecer, saludo, empujar (MedidasClipsJugadora).
+	MedidasClipsJugadora.comprobar(p, "jugadora_base", _ok)
+	_ok(absf(Pj3D.instante_clip("abrir_cofre") / SecuenciaCofreLegendario3D.velocidad_abrir() - SecuenciaCofreLegendario3D.T_ONDA) < 0.01,
+		"cofre legendario: las manos llegan abajo (%.2f s del clip a ×%.2f) justo cuando la tapa gira (T_ONDA %.2f s)" % [Pj3D.instante_clip("abrir_cofre"),
+		SecuenciaCofreLegendario3D.velocidad_abrir(), SecuenciaCofreLegendario3D.T_ONDA])
 	await _prueba_ropa(p, sk)
 	_acabar()
 

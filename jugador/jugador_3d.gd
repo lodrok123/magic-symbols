@@ -103,6 +103,10 @@ var _roll_cd: float = 0.0                    ## reutilización
 var _roll_previa: bool = false
 var _t_beber: float = 0.0
 var _beber_previa: bool = false
+var _t_gesto: float = 0.0                    ## lo que queda de un gesto (`gesto()`: agacharse, ofrecer, saludo...); 0 = no hay
+## true mientras el jugador EMPUJA algo (bloque de enlace, caja): al andar suena `empujar` en vez de `walk`/`run`. Aún no hay mecánica de empuje del jugador en el juego; quien la construya
+## solo tiene que poner esto a true mientras empuja y a false al soltar.
+var empujando: bool = false
 var _f8_previa: bool = false
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
@@ -186,7 +190,7 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 ## =====================================================================================================
 
 func puede_lanzar() -> bool:
-	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0
+	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0 and _t_gesto <= 0.0
 
 
 func bloquear(b: bool) -> void:
@@ -270,6 +274,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 		return                                   # la barrera cúpula lo ha parado (6.3)
 	if _t_beber > 0.0:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
+	_t_gesto = 0.0                              # un golpe corta el gesto (la animación de golpe lo sustituye)
 	vida = maxf(0.0, vida - cantidad)
 	_t_inv = INVULNERABLE
 	_t_sin_combate = 0.0
@@ -323,6 +328,7 @@ func posicion_punto_cast(origen: String, dir: Vector3) -> Vector3:
 func _morir() -> void:
 	_t_roll = 0.0
 	_t_beber = 0.0
+	_t_gesto = 0.0
 	muerto = true
 	nadando = false
 	_lanzando = false
@@ -397,6 +403,10 @@ func _process(delta: float) -> void:
 		_t_beber = maxf(0.0, _t_beber - delta)
 		if _t_beber <= 0.0:
 			_terminar_beber()
+	if _t_gesto > 0.0:
+		_t_gesto = maxf(0.0, _t_gesto - delta)
+		if _t_gesto <= 0.0:
+			pj.animacion_actual = ""              # el gesto acabó: el siguiente `_animar` vuelve a idle / andar
 	if _t_roll > 0.0:
 		_t_roll = maxf(0.0, _t_roll - delta)
 
@@ -429,8 +439,8 @@ func _process(delta: float) -> void:
 	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_camara()))
 	_gestionar_acciones(libre, mov)
 	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
-	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando:
-		mov = Vector3.ZERO           # el golpe te frena; beber y el clip de lanzar (6.2b) te dejan quieto hasta que acaban
+	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0:
+		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b) y los gestos (agacharse...) te dejan quieto hasta que acaban
 	var objetivo: Vector3 = mov * vel
 	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
 	if en_hielo:
@@ -532,7 +542,7 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
 	var q: bool = libre and Input.is_key_pressed(KEY_Q)
-	var ocupado: bool = _lanzando or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if ctrl and not _roll_previa and _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
 			and not ocupado and not nadando and en_suelo:
 		_iniciar_voltereta(mov)
@@ -585,7 +595,7 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 
 ## Beber desde la mochila (clic en la poción): mismas condiciones que la tecla Q. Devuelve si empezó a beber.
 func usar_pocion() -> bool:
-	var ocupado: bool = _lanzando or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
 			and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
@@ -598,6 +608,26 @@ func _iniciar_beber() -> void:
 	if pj.beber(T_BEBER) <= 0.0:                   # Pipeline: stand_drink recortado + poción en la mano
 		pj.jugar("drink", true)                    # sin clip: al menos que dure lo mismo
 	PlayLog.event("beber_inicio", {"pociones": Estado.i().cuenta("pocion")})
+
+
+## Un GESTO (24/10): el clip del rol (`agacharse`, `ofrecer`, `saludo`...: Pj3D.SINONIMOS) suena UNA vez a la velocidad `vel` y te deja quieto lo que dura; después vuelve idle.
+## Devuelve lo que dura (s) con esa velocidad, o 0 si no se pudo (muerto, nadando, en el aire, rodando, bebiendo, lanzando, con la animación llevada desde fuera o sin ese clip):
+## entonces no pasa nada y quien llama sigue como si el gesto no existiera.
+func gesto(rol: String, vel: float = 1.0) -> float:
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_beber > 0.0 or _t_roll > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var clip_dur: float = pj.duracion(rol)
+	if ocupado or muerto or nadando or not en_suelo or animacion_externa or clip_dur <= 0.0 or vel <= 0.0:
+		return 0.0
+	_t_gesto = clip_dur / vel
+	pj.animacion_actual = ""
+	pj.jugar(rol, true, vel)
+	PlayLog.event("gesto", {"rol": rol, "dur": snappedf(_t_gesto, 0.01)})
+	return _t_gesto
+
+
+## ¿Está haciendo un gesto ahora mismo?
+func en_gesto() -> bool:
+	return _t_gesto > 0.0
 
 
 func _terminar_beber() -> void:
@@ -720,8 +750,8 @@ var animacion_externa: bool = false
 func _animar(mov: Vector3, correr: bool) -> void:
 	if animacion_externa:
 		return
-	if _t_roll > 0.0 or _t_beber > 0.0:
-		return                                         # el clip de voltereta / beber ya está sonando
+	if _t_roll > 0.0 or _t_beber > 0.0 or _t_gesto > 0.0:
+		return                                         # el clip de voltereta / beber / gesto ya está sonando
 	if _t_lanzar > 0.0 or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar):
 		return
 	if nadando:
@@ -735,6 +765,8 @@ func _animar(mov: Vector3, correr: bool) -> void:
 		return                                         # en el aire se queda con la pose que tenía
 	if mov == Vector3.ZERO:
 		pj.jugar("idle")
+	elif empujando and pj.duracion("empujar") > 0.0:
+		pj.jugar("empujar")                            # empujando algo: el clip de empujar andando (bucle, sin avance)
 	else:
 		pj.jugar("run" if correr else "walk")
 

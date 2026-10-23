@@ -14,6 +14,28 @@ extends RefCounted
 ## Un modelo puede tomar clips de VARIOS GLB y con otros nombres (FUENTES: el goblin asesino usa Gribble para moverse y el goblin guerrero para las reacciones), y un
 ## clip suelto de otro GLB se traduce con `traducir_clip` (el empujado y levantarse de Pj3D).
 
+## CLIPS NUEVOS DE LA JUGADORA (24/10): los generó Pablo en Meshy con el esqueleto ligero de la elfa (28 huesos `mixamorig`) y arte/meshy/clips_jugadora.py los recorta y
+## renombra en arte/meshy/jugadora_clips.glb (solo esqueleto y clips). Los nombres de destino son los roles de Pj3D.SINONIMOS. «referencia»: el Saludo (de pie, con los pies
+## en el suelo) fija la altura de los pies, porque el GLB no trae Idle.
+##   abrir_cofre  se inclina y baja las dos manos (cofre legendario, SecuenciaCofreLegendario3D)   agacharse  se agacha con las manos juntas y se levanta (cofres pequeños, coger del suelo)
+##   ofrecer      de pie, adelanta la mano derecha con la palma abierta                             saludo     saluda con la mano
+##   empujar      empujando andando, en bucle y sin avance (un ciclo de paso)
+const RUTA_CLIPS_JUGADORA: String = "res://arte/meshy/jugadora_clips.glb"
+const FUENTE_CLIPS_JUGADORA: Dictionary = {
+	"ruta": RUTA_CLIPS_JUGADORA, "referencia": "Saludo", "clips": {
+		"abrir_cofre": "AbrirCofre", "agacharse": "Agacharse", "ofrecer": "Ofrecer", "saludo": "Saludo", "empujar": "Empujar",
+	},
+	# Las proporciones de cada elfa difieren (piernas, cadera) y en una agachada la cadera retargeteada hunde o levanta la suela unos centímetros: se corrige en cada fotograma.
+	"plantar": ["AbrirCofre", "Agacharse", "Ofrecer", "Saludo", "Empujar"]}
+
+## Modelos que SÍ traen AnimationPlayer propio (la elfa jugadora) y solo reciben clips de más: id de GLB -> fuentes (mismo formato que FUENTES). Nunca pisan un clip que ya tenga.
+const EXTRAS: Dictionary = {
+	"woodland_wanderer_suave": [FUENTE_CLIPS_JUGADORA],
+	"woodland_wanderer": [FUENTE_CLIPS_JUGADORA],
+	"chibi_elf": [FUENTE_CLIPS_JUGADORA],
+	"chibi_elf_v2": [FUENTE_CLIPS_JUGADORA],
+}
+
 ## Modelo (id de GLB) -> de dónde toma sus clips. Solo para modelos que NO traen AnimationPlayer propio. Cada fuente es un GLB de la familia (mismos
 ## nombres de hueso Mixamo, aunque no la misma pose de reposo) con:
 ##   · «ruta»: el GLB (con esqueleto y AnimationPlayer; la malla da igual y puede faltar: arte/meshy/solo_clips.py la quita);
@@ -28,6 +50,7 @@ const FUENTES: Dictionary = {
 	# Jugadora base (23/10, Meshy «Willow Fernstep» pasada a Mixamo, 65 huesos con dedos + headfront): los 22 clips de la elfa actual.
 	"jugadora_base": [
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+		FUENTE_CLIPS_JUGADORA,       # 24/10: abrir_cofre, agacharse, ofrecer, saludo y empujar (ver arriba)
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
@@ -62,6 +85,57 @@ static var _cache_clip: Dictionary = {}    ## id|ruta|clip -> Animation traducid
 
 static func tiene_fuente(glb_id: String) -> bool:
 	return FUENTES.has(glb_id)
+
+
+static func tiene_extras(glb_id: String) -> bool:
+	return EXTRAS.has(glb_id)
+
+
+## Los clips de más (EXTRAS) de un modelo que ya trae los suyos, traducidos a su esqueleto `sk_d`. Mismas reglas que `clips_para`, y los clips que la fuente marca como «plantar»
+## apoyan la suela más baja a la altura que tiene el Idle PROPIO del modelo (`ap`), no a la del reposo del esqueleto: la elfa jugadora pisa 2 % del alto por debajo de su reposo.
+static func extras_para(glb_id: String, modelo_d: Node3D, sk_d: Skeleton3D, ap: AnimationPlayer = null) -> Dictionary:
+	var clave: String = "extras|" + glb_id
+	if _cache.has(clave):
+		return _cache[clave]
+	var res: Dictionary = {}
+	var objetivo: float = NAN
+	if ap != null and ap.has_animation(CLIP_REFERENCIA):
+		objetivo = _suela_de_clip(sk_d, ap.get_animation(CLIP_REFERENCIA))
+	for f in (EXTRAS.get(glb_id, []) as Array):
+		var fuente: Dictionary = (f as Dictionary).duplicate()
+		if not is_nan(objetivo):
+			fuente["suela_objetivo"] = objetivo
+		_traer_de(fuente, modelo_d, sk_d, res)
+	if not res.is_empty():
+		_cache[clave] = res
+	return res
+
+
+## Altura (espacio del esqueleto) de la suela más baja de `sk` con el clip `an` en su primer fotograma. El clip es de ESTE esqueleto (sus pistas, sus huesos).
+static func _suela_de_clip(sk: Skeleton3D, an: Animation) -> float:
+	var cadera: int = sk.find_bone("mixamorig_Hips")
+	var rot: Dictionary = {}
+	var p_cad: Vector3 = sk.get_bone_rest(cadera).origin if cadera >= 0 else Vector3.ZERO
+	for t in range(an.get_track_count()):
+		var b: int = sk.find_bone(String(an.track_get_path(t)).get_slice(":", 1))
+		if b < 0 or an.track_get_key_count(t) == 0:
+			continue
+		if an.track_get_type(t) == Animation.TYPE_ROTATION_3D:
+			rot[b] = an.rotation_track_interpolate(t, 0.0)
+		elif an.track_get_type(t) == Animation.TYPE_POSITION_3D and b == cadera:
+			p_cad = an.position_track_interpolate(t, 0.0)
+	var g: Dictionary = {}
+	var minimo: float = INF
+	for i in _Ctx._orden(sk):
+		var q: Quaternion = rot.get(i, _Ctx._quat(sk.get_bone_rest(i).basis))
+		var loc := Transform3D(Basis(q), p_cad if i == cadera else sk.get_bone_rest(i).origin)
+		var p: int = sk.get_bone_parent(i)
+		g[i] = loc if p < 0 else (g[p] as Transform3D) * loc
+		for fin in HUESOS_SUELA:
+			if sk.get_bone_name(i).ends_with(fin):
+				minimo = minf(minimo, (g[i] as Transform3D).origin.y)
+				break
+	return minimo if minimo != INF else NAN
 
 
 ## Los clips de la familia ya traducidos al esqueleto `sk_d` del modelo `modelo_d` (raíz de la escena del GLB `glb_id`). Las pistas llevan la ruta
@@ -141,6 +215,8 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 		if not ap_s.has_animation(origen):
 			push_warning("ClipsFamilia: la fuente %s no tiene el clip «%s»" % [f.get("ruta", ""), origen])
 			continue
+		c.plantar = (f.get("plantar", []) as Array).has(origen)
+		c.suela_objetivo = float(f.get("suela_objetivo", NAN))
 		var traducido: Animation = (c.traducir(ap_s.get_animation(origen), base) as Array)[0]
 		if (f.get("centrar", []) as Array).has(origen):
 			_centrar_cadera(traducido, sk_d)
@@ -191,6 +267,8 @@ class _Ctx:
 	var suela_d: Array = []                       ## huesos destino que cuentan como suela
 	var suela_reposo: float = 0.0                 ## altura del hueso de suela más bajo con el esqueleto destino en reposo
 	var sube: float = 0.0                         ## cuánto se desplaza en vertical la cadera destino en todos los clips
+	var plantar: bool = false                     ## true = en CADA fotograma la cadera sube o baja lo justo para que la suela más baja quede a `suela_objetivo` (agachadas, empujar)
+	var suela_objetivo: float = NAN               ## altura de esa suela con `plantar` (NAN = la del reposo del esqueleto destino, `suela_reposo`)
 
 	func preparar(raiz_s: Node3D, p_sk_s: Skeleton3D, raiz_d: Node3D, p_sk_d: Skeleton3D) -> void:
 		sk_s = p_sk_s
@@ -297,6 +375,11 @@ class _Ctx:
 					pos[i] = (pos[p] as Vector3) + (rd.inverse() * (ga_d[p] as Quaternion)) * sk_d.get_bone_rest(i).origin
 				if suela_d.has(i):
 					suelo = minf(suelo, (pos[i] as Vector3).y)
+			if plantar and suelo != INF:
+				# Pies en el suelo en cada fotograma: toda la figura sube o baja lo que la suela más baja se aleja de su sitio.
+				var corrige: float = (suela_reposo if is_nan(suela_objetivo) else suela_objetivo) - suelo
+				p_cad.y += corrige
+				suelo += corrige
 			if t_pos >= 0:
 				dest.position_track_insert_key(t_pos, tiempo, p_cad)
 			suma_suela += (suelo if suelo != INF else 0.0) - sube

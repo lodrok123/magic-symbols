@@ -21,6 +21,8 @@ const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 const VISUAL_PLANTA: Dictionary = {"alga": "planta_agua", "basalto": "rocas_pequenas"}
 const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}   ## la roca suelta se lee mal a la altura de la cámara: se agranda
 const CADA_CONDICION: float = 0.2      ## s entre mirada y mirada a `coge_si`
+const GESTO_AGACHARSE: String = "agacharse"   ## rol de Pj3D (clip de Meshy, ClipsFamilia): la jugadora se agacha a cogerla
+const VEL_AGACHARSE: float = 1.8       ## el clip entero dura 3,5 s; a 1,8× las manos llegan al suelo a ~1 s y todo el gesto dura ~1,9 s
 
 var celda: Vector2i = Vector2i.ZERO
 var planta: String = "seta"             ## fila de `Objetos.PLANTAS`
@@ -38,6 +40,7 @@ var _visual: Node3D = null
 var _t: float = 0.0
 var _t_cond: float = 0.0
 var _rebrotando: bool = false
+var _cogiendo: bool = false             ## la jugadora ya se agacha a cogerla (otra E no lo repite)
 
 
 ## `p_variante` vacío = la que toque por casilla (intercaladas). `mundo` = la maqueta (pone el modelo con su escala de `Pieza3D.MEDIDA`).
@@ -162,7 +165,31 @@ func _unhandled_input(ev: InputEvent) -> void:
 	for o in get_tree().get_nodes_in_group("recolectable"):
 		if o != self and is_instance_valid(o) and not bool(o.get("recogido_ya")) and bool(o.get("disponible")) and _dist(pj, (o as Node3D).global_position) < mia:
 			return
+	_coger_agachando()
+
+
+## Con la tecla E la jugadora se AGACHA a cogerla (clip `agacharse`, 24/10) y la planta pasa a la mochila en el fondo de la agachada (Pj3D.instante_clip). Si no se puede agachar
+## (no hay jugadora, está ocupada o nadando) se coge ya, como antes. `recoger()` sigue siendo instantáneo: lo usan las pruebas y las reglas del mapa.
+func _coger_agachando() -> void:
+	if _cogiendo:
+		return
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
+	var j: Node = lanz.get("jugador") as Node if lanz != null else null
+	if j != null and is_instance_valid(j) and j.has_method("gesto") and float(j.call("gesto", GESTO_AGACHARSE, VEL_AGACHARSE)) > 0.0:
+		_cogiendo = true
+		var hacia: Vector3 = global_position - (j as Node3D).global_position
+		hacia.y = 0.0
+		if hacia.length() > 0.01 and j.has_method("mirar_hacia"):
+			j.call("mirar_hacia", hacia)
+		get_tree().create_timer(Pj3D.instante_clip(GESTO_AGACHARSE) / VEL_AGACHARSE, false).timeout.connect(_al_llegar_las_manos)
+		return
 	recoger()
+
+
+func _al_llegar_las_manos() -> void:
+	_cogiendo = false
+	if is_instance_valid(self) and is_inside_tree():
+		recoger()
 
 
 ## La coge (sin mirar distancias: también la usan las pruebas y las reglas). Devuelve false si la mochila está llena o no se cumple `coge_si`.

@@ -41,6 +41,8 @@ const NODO_CUERPO: String = "cofre_cuerpo"
 const NODO_TAPA: String = "cofre_tapa"
 
 const T_ANTICIPA: float = 0.4                ## s de anticipación antes de girar la tapa
+const GESTO_AGACHARSE: String = "agacharse"  ## rol de Pj3D que hace la jugadora al abrir un cofre pequeño (Jugador3D.gesto)
+const VEL_AGACHARSE: float = 1.8             ## a qué velocidad: el clip entero dura 3,5 s y esperar tanto para cada cofre cansaría; con 1,8 la tapa gira a los ~1 s
 const T_ABRIR_SIN_CLIP: float = 0.55
 const ANGULO_SIN_CLIP: float = 105.0         ## grados, solo si no hay clip
 const MARGEN_VFX: float = 0.35               ## s que la cubierta dorada se queda tras acabar el clip
@@ -266,11 +268,41 @@ func abrir() -> bool:
 	if _estado != Estado.CERRADO or _tapa == null or not is_inside_tree():
 		return false
 	_estado = Estado.ANTICIPANDO
+	var espera: float = _agachar_jugadora()
+	if espera > 0.0:
+		var t0: Tween = create_tween()
+		t0.tween_interval(espera)
+		t0.tween_callback(_empezar_anticipacion)
+	else:
+		_empezar_anticipacion()
+	return true
+
+
+## COFRES PEQUEÑOS (24/10): la jugadora se agacha (clip `agacharse`) y gira hacia el cofre; la anticipación y la tapa se retrasan lo justo para que la tapa gire cuando sus manos llegan
+## abajo (Pj3D.instante_clip). Devuelve lo que hay que esperar antes de anticipar (0 = sin gesto: no hay jugadora, está ocupada o ya la lleva otra animación, como la secuencia del
+## cofre legendario, que usa `abrir_cofre`).
+func _agachar_jugadora() -> float:
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
+	var j: Node = lanz.get("jugador") as Node if lanz != null else null
+	if j == null or not j.has_method("gesto") or not is_instance_valid(j):
+		return 0.0
+	var dur: float = float(j.call("gesto", GESTO_AGACHARSE, VEL_AGACHARSE))
+	if dur <= 0.0:
+		return 0.0
+	var hacia: Vector3 = global_position - (j as Node3D).global_position
+	hacia.y = 0.0
+	if hacia.length() > 0.01 and j.has_method("mirar_hacia"):
+		j.call("mirar_hacia", hacia)
+	return maxf(Pj3D.instante_clip(GESTO_AGACHARSE) / VEL_AGACHARSE - T_ANTICIPA, 0.0)
+
+
+func _empezar_anticipacion() -> void:
+	if _estado != Estado.ANTICIPANDO:        # alguien llamó a cerrar()/poner_estado() durante la espera del gesto
+		return
 	_anticipacion()
 	var tw: Tween = create_tween()
 	tw.tween_interval(T_ANTICIPA)
 	tw.tween_callback(_girar_tapa)
-	return true
 
 
 func _anticipacion() -> void:

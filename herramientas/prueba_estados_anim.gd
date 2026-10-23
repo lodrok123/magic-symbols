@@ -90,6 +90,12 @@ func _correr() -> void:
 	_ok(propios.is_empty(), "1 pj_3d.gd no llama a play/seek/speed_scale/pause del AnimationPlayer (solo el árbol)", ", ".join(propios))
 	_ok(not FileAccess.get_file_as_string("res://jugador/jugador_3d.gd").contains("ap.pause()"), "1 jugador_3d.gd tampoco pausa ningún AnimationPlayer")
 
+	# --- 1b · los clips nuevos de la jugadora (24/10; MedidasClipsJugadora): abrir_cofre, agacharse, ofrecer, saludo, empujar ---
+	var nueva: Pj3D = _nuevo("woodland_wanderer")
+	await process_frame
+	MedidasClipsJugadora.comprobar(nueva, "1b elfa jugadora", _ok)
+	nueva.queue_free()
+
 	# --- 2 · TODAS las transiciones ---
 	var roles: Array = []
 	for r in ROLES_HEROE:
