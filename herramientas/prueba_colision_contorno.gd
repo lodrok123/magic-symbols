@@ -4,6 +4,14 @@ extends SceneTree
 ## Comprueba lo que importa: que los arcos y puertas dejan el paso libre, que ningún casco sobresale del modelo, que las
 ## 43 piezas nuevas que bloquean traen cuerpo y que las que se pisan no lo traen.
 
+## Las 43 piezas del lote del Bosque (21/10), tal como quedaron en ULTIMAS_INSTALADAS.txt al instalarlas.
+const PIEZAS_NUEVAS: Array = ["abedul_amarillo", "arbol_viejo", "arbusto_bayas", "arbusto_flores", "bloque_hierba",
+	"bloque_runa_amarilla", "bloque_runa_azul", "bloque_runa_cian", "bloque_runa_naranja", "bloque_runa_roja", "bloque_runa_verde",
+	"cartel_runa_amarilla", "cartel_runa_azul", "cartel_runa_cian", "cartel_runa_naranja", "cartel_runa_roja", "cartel_runa_verde",
+	"cubo_hielo", "cuenco_piedra", "flores_amarillas", "flores_colores", "helecho_ancho", "hierba_espesa", "hojas_monton", "laja_piedra",
+	"nenufar", "nenufar_flor", "planta_agua", "planta_hojas", "planta_violeta", "raices_musgo", "raices_secas", "ramas_suelo", "roca_hueca",
+	"sauce", "setas_amarillas", "tocon_alto", "tocon_hueco", "tocon_roca", "tocon_seco", "tronco_enredadera", "tronco_seco", "valla_lianas"]
+
 var fallos: int = 0
 
 
@@ -47,12 +55,8 @@ func _init() -> void:
 		_ok(bool(f["cilindro"]) and int(f["cascos"]) == 1, "%s: cilindro de radio %.2f, alto %.2f" % [id, float(f.get("radio", 0.0)), float(f["alto"])])
 		_ok(float(f.get("radio", 0.0)) > 0.1 and float(f["alto"]) > 0.5, "%s: medida plausible" % id)
 	print("# las 43 nuevas")
-	var nuevas: PackedStringArray = PackedStringArray()
-	var ult := FileAccess.open("res://arte/meshy/ULTIMAS_INSTALADAS.txt", FileAccess.READ)
-	if ult != null:
-		for l in ult.get_as_text().split("\n"):
-			if l.strip_edges() != "":
-				nuevas.append(l.strip_edges())
+	# 23/10: la lista fija (antes se leía de arte/meshy/ULTIMAS_INSTALADAS.txt, que se sobrescribe en cada instalación: con la Cueva traía 5).
+	var nuevas: PackedStringArray = PackedStringArray(PIEZAS_NUEVAS)
 	_ok(nuevas.size() == 43, "la lista de nuevas tiene %d (43)" % nuevas.size())
 	var con_cuerpo: int = 0
 	var sin_cuerpo: int = 0
@@ -99,5 +103,5 @@ func _init() -> void:
 		for p in (n as PackedVector3Array):
 			mx1 = maxf(mx1, absf(p.x))
 	_ok(absf(mx - 2.0 * mx1) < 0.001, "formas_colision aplica la escala (%.3f = 2 × %.3f)" % [mx, mx1])
-	print("# resultado: %d fallos" % fallos)
+	print("FALLOS: %d" % fallos)      # el formato que reconoce tools/resumen_prueba.ps1 (antes «# resultado: N fallos» salía como SIN RESULTADO)
 	quit(1 if fallos > 0 else 0)

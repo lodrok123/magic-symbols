@@ -1,6 +1,6 @@
 # Pendientes abiertos
 
-Foto del 21/10/2026, sacada de los chats de claude.ai y cruzada con el DIARIO (hasta la entrada 236).
+Foto del 21/10/2026, sacada de los chats de claude.ai y cruzada con el DIARIO (hasta la entrada 236). Repasada el 23/10 con lo hecho el 22 y el 23.
 Cada tarea tiene **un dueño**. Al cerrarla, se tacha aquí y se apunta en el DIARIO.
 La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`; esto es el índice de lo que está vivo.
 
@@ -29,7 +29,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 **Pruebas**
 - [ ] Colisiones por contorno: `escenario_bosque_01_ramas` pasó de 0 a 4 fallos (no se llega a pie a los marcadores; las telarañas no liberan su casilla). Verificar si la entrada 230 lo resuelve.
-- [ ] Bajar a 0 los 46 fallos de `pruebas_resultado.txt` del 20/10. Los peores: agua_tinaja, bosque_01, agua_estanque, hielo, asistencia.
+- [x] ~~Bajar a 0 los 46 fallos de `pruebas_resultado.txt` del 20/10~~ — **23/10: batería completa en 0 fallos (127 pruebas, `tools/pruebas.cmd`)**. Los últimos: `prueba_colision_contorno` leía la lista de piezas de `ULTIMAS_INSTALADAS.txt` (ahora fija), y la batería no daba `--fixed-fps 30` a las pruebas que lo piden en su cabecera.
 
 **PLAN_EOW, rondas 1–4**
 - [x] ~~B1 estado de suelo con un solo dueño~~ · ~~C1 flags con nombre~~ · ~~D1 ocupación por casilla~~ · ~~A2 propagación por contacto~~ · ~~A3 reacciones de enemigo y hundirse~~ · ~~C2 condiciones y/o/no~~ · ~~C3 sala cerrada~~ · ~~A4 `Mundo3D.reaccion`~~ · ~~A5 escudo del goblin~~ · ~~D2 pathfinding~~ — hechas el 21/10, sin commit (diario 238).
@@ -50,16 +50,20 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [x] `elfo_base` (22/10, Tripo, 65 huesos): idle cabizbajo prestado de `chibi_elf`. — resuelto 22/10: Pablo pasó el elfo con clips propios (idle, walk, hablar, greet_02, cheer); ya no toma nada de la elfa.
 - [ ] `elfo_base`: faltan clips de correr (ahora usa walk), cast, golpe, muerte, rodar, leer y nado; los pasará Pablo.
 - [ ] `goblin_base` (22/10, Tripo, 65 huesos; idle, walk, hablar, chop, dig): faltan clips de correr (ahora usa walk), golpe recibido, muerte y los que pida cada NPC goblin (cast, saludo...); aún no lo usa ningún NPC. Ver `docs/capturas/goblin_base/`.
-- [ ] `marimanta` (23/10, Meshy, 66 huesos; el bastón va rígido a la mano derecha: vertical solo en idle, en talk/pensar/correr se balancea; su idle no es encorvado ni «pensar» lleva la mano a la barbilla): falta un bloqueo de vertical del bastón o clips con él en la mano, golpe, muerte; aún no la usa ningún NPC. Ver `docs/capturas/marimanta/`.
+- [x] `marimanta`: bastón vertical y apoyado en el suelo bajo la mano — hecho el 23/10 (`d6532ca2`, `PiezaApoyada3D`). Al andar y hablar queda delante del pecho porque el clip lleva la mano ahí; Pablo lo deja así.
+- [ ] `marimanta` (23/10, Meshy, 66 huesos): su idle no es encorvado y «pensar» se frota las manos en vez de llevar una a la barbilla; faltan golpe y muerte.
+- [ ] Ningún NPC usa todavía `elfo_base`, `goblin_base` ni `marimanta`, y el goblin asesino solo sale con Alt+F11: colocarlos en los niveles.
 **Agua y suelo**
-- [ ] Triángulos vacíos en las esquinas del agua o la orilla.
-- [ ] `OSCURECER_SUELO`: igualar hierba y suelo (ARTE §10).
+- [x] ~~Triángulos vacíos en las esquinas del agua o la orilla~~ — hecho el 22/10 (`2c45783`: vértice en el centro de cada cuadrito).
+- [x] ~~`OSCURECER_SUELO`: igualar hierba y suelo (ARTE §10)~~ — hecho el 22/10 con los albedos por familia (`edc7906`): suelo efectivo 0,70 en la hierba y 0,66 en el camino.
 - [ ] La tinaja deja de verter cuando el puzle se completa: comprobar.
-- [ ] Más sensación de movimiento en la caída y en el río.
+- [x] ~~Más sensación de movimiento en el río~~ — hecho el 22/10 (`2c45783`: franjas visibles en el agua filtro, AVANCE_FLUJO 2,0). Las caídas no se han visto: el Bosque 01 no tiene ninguna.
+- [ ] Agua del cauce hondo lleno: sale menta opaca y no deja ver las losas, con manchas pálidas rectangulares.
+- [ ] Guijarros del lecho bajo el filtro: aún queda alguno oscuro en las esquinas (×1,5 desde `2c45783`).
 
 **Hechizos**
-- [ ] Hielo con la textura del hielo renderizado en 3D.
-- [ ] Comprobar que la bola de fuego crece a la vista (DIARIO 226).
+- [x] ~~Hielo con la textura del hielo renderizado en 3D~~ — hecho el 22/10 (`283de21`: material de la compuerta de hielo).
+- [ ] Comprobar que la bola de fuego crece a la vista (DIARIO 226). La carga en la mano ya no la tapa la esfera lisa del Lanzador (`65507eb`).
 
 **Encargos del plan EoW (diario 238)**
 - [x] B2 (21/10): el suelo, el agua y la hierba leen `Mundo3D.textura_estados()` y `_img_estado` se retiró de `prueba_test2.gd`. Lo «pisado» (hierba aplastada) quedó en `_tex_pisado` (R8 propia de la maqueta); el círculo quemado que crece mientras arde es el *avance visual* de `EstadosSuelo3D` (`poner_avance`/`avance`, no es un hecho).
@@ -82,7 +86,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 **Documentos**
 - [x] ~~Pasar `PLAN_EOW.md` a `PLAN_ARREGLOS.md` como Fase 15~~ — hecho el 21/10 (con una entrada que apunta a la Fase 14, que sigue en `FASE14_PRESENTACION.md`).
 - [x] ~~Reescribir para el 3D las secciones de `ARQUITECTURA.md` (Arte, Animación, Vista isométrica) y la cabecera y §3–§8 de `ARTE.md` (ver `DECISIONES_CHATS.md` §2).~~ Hecho el 21/10 (diario 237).
-- [ ] Reescribir para el 3D las secciones de lógica de `ARQUITECTURA.md` (piezas del sistema, mundo, niveles, Test 2, partículas, bloqueo físico, interfaz): nombran scripts 2D que ya no existen (diario 237).
+- [x] ~~Reescribir para el 3D las secciones de lógica de `ARQUITECTURA.md`~~ — hecho el 23/10 (`94bb7318`, `06c42fa1`).
 - [ ] Resolver la contradicción del radio base: 0,10 frente a 0,25 de `ESPEC_HECHIZO.md`.
 
 **Organización**
@@ -120,4 +124,10 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] Pablo: ¿roca a 2,5 k (`aprobacion3d/v8_piezas/`)? ¿`pino_2` con otro color para pasar también el pino?
 - [ ] Commitear (su sesión) los cambios ajenos de `Nivel_Bosque_01.tscn` y de `prueba_test2.gd` (colisión por contorno, F7).
 - [x] ~~Migrar los usos de `_img_estado` (hierba, agua, Lanzador, reacciones, lab) a `Mundo3D.textura_estados()` para poder retirarlo (cierra B2).~~ Hecho el 21/10.
-- [ ] Enredadera con el `quemado`/`disolver` común (necesita `corte_y` en el shader común); cofre que aparece con `disolver`.
+- [x] ~~Enredadera con el `quemado`/`disolver` común; cofre que aparece con `disolver`~~ — hecho el 22/10 (`c3718a5`).
+- [ ] Pablo: ¿suavizar la franja blanca del labio del cauce seco (tras `881fc85`)?
+- [ ] Albedos de las piezas: la corrección se inyecta en `Ocluso3D` al arrancar (`Albedos3D.parchear_ocluso`); meterla en `ocluso_3d.gd` cuando su sesión lo suelte. Pablo: ¿más saturación en los acentos (`PIEZAS_SAT`)?
+
+## Lote del 22–23/10
+- [ ] **Revisar en el playtest:** rim nuevo de la jugadora; tronco del estanque que bloquea en el fondo seco; escudo del goblin en el brazo, mojado y mano quemada; burbujas al ahogarse; bordes sin cantos; goblin asesino (Alt+F11: ataque doble, dagas, andar agazapado).
+- [ ] Goblin asesino: los dedos abiertos asoman junto al mango de las dagas; el walk va ×1,4 sin medir si patina; el segundo corte solo cuenta si el primero falla (invulnerabilidad de 0,7 s).
