@@ -31,7 +31,7 @@ const COLISION: Dictionary = {
 	"roca_cristal": "convexa", "roca_grande": "convexa", "piedras": "convexa", "tocon": "convexa", "tronco": "convexa",
 	"valla": "convexa", "cartel": "convexa", "totem_runico": "convexa", "brasero": "convexa", "fogata": "convexa",
 	"puesto": "mesa", "puesto_mercado": "mesa", "dummy": "convexa", "caja_pequena": "convexa", "caja": "convexa",
-	"barril": "convexa", "cofre": "cuerpo", "pilar": "convexa",
+	"barril": "convexa", "cofre": "cuerpo", "cofre_legendario": "cuerpo", "cofre_epico": "cuerpo", "pilar": "convexa",
 	"seta_reactiva": "convexa", "flor_reactiva": "convexa", "raiz_reactiva": "convexa",
 	"puente": "trimesh", "pasadero": "trimesh",
 	# 10/10: tinaja y campamento goblin (los canales son suelo: se camina por encima, sin cuerpo).
@@ -50,7 +50,7 @@ const COLISION: Dictionary = {
 ## Bloquea por defecto (cada instancia del nivel puede cambiarlo con el metadato `bloquea`). Lo que no sale aquí no bloquea.
 const BLOQUEA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "arbusto", "arbusto_flores", "arbusto_otono",
 	"seto_seco", "roca_cristal", "roca_grande", "tocon", "tronco", "valla", "cartel", "totem_runico", "brasero", "fogata",
-	"puesto", "puesto_mercado", "dummy", "caja_pequena", "caja", "barril", "cofre", "pilar", "seta_reactiva", "flor_reactiva",
+	"puesto", "puesto_mercado", "dummy", "caja_pequena", "caja", "barril", "cofre", "cofre_legendario", "cofre_epico", "pilar", "seta_reactiva", "flor_reactiva",
 	"raiz_reactiva", "tinaja_ruina", "tienda_goblin", "torre_goblin", "puerta_goblin", "empalizada_goblin", "estandarte_goblin",
 	"campamento_tienda", "campamento_cazo", "campamento_rocas", "campamento_cofre", "roca_musgosa",
 	"tronco_musgoso", "troncos_apilados", "seta_quemada", "tronco_resina", "tronco_sin_resina"]
@@ -62,6 +62,9 @@ const INFLAMABLE: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2",
 	"seto_seco", "tronco", "tocon", "valla", "matas", "juncos", "cartel", "puesto", "puesto_mercado", "caja", "caja_pequena", "barril", "torre_goblin", "puerta_goblin"]
 ## Parte baja que cuenta como «tronco» y como «mesa»: fracción de la altura del modelo, y radio máximo del tronco.
 const TRONCO_ALTO_MAX: float = 1.9
+## 23/10: los cofres de la Cueva (hoja D2) traen `cofre_cuerpo` y `cofre_tapa` con la bisagra en el origen de la tapa (arte/meshy/montar_cofre.py):
+## llevan el controlador `Cofre3D` como el cofre de siempre.
+const COFRES_CUEVA: Array = ["cofre_legendario", "cofre_epico"]
 const TRONCO_RADIO_MAX: float = 0.45
 const MESA_FRACCION: float = 0.45
 
@@ -106,7 +109,7 @@ static func generar(id: String) -> bool:
 	vis.owner = raiz
 	_dueno(vis, raiz)
 	# 16/10: el cofre lleva su controlador puesto (el GLB sale con la tapa abierta y `Cofre3D` la deja cerrada al entrar en el árbol).
-	if id == "cofre":
+	if id == "cofre" or COFRES_CUEVA.has(id):
 		var ctrl := Cofre3D.new()
 		ctrl.name = "Cofre3D"
 		raiz.add_child(ctrl)

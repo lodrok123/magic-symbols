@@ -1,0 +1,14 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/receptor_runico.glb" id="1_awikh"]
+[node name="receptor_runico" type="Node3D" unique_id=930808910]
+metadata/id = "receptor_runico"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1655811289]
+
+[node name="receptor_runico2" type="Node3D" parent="modelo" unique_id=6883125 instance=ExtResource("1_awikh")]
+transform = Transform3D(3.7155783, 0, 0, 0, 3.7155783, 0, 0, 0, 3.7155783, 0, 0, 0)
+

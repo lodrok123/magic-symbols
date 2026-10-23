@@ -17,6 +17,10 @@ const TEST2 = preload("res://mundo/datos_nivel/datos_test2.gd")
 
 const S: float = 2.3                ## lado de una casilla en unidades (la chibi mide ~1)
 const ALTO: float = S * 0.45        ## alto de un bloque de tierra
+## 23/10: la pared de la Cueva (`pared_foso_cueva.png`, 1024 × 512) cubre 2 S de ancho; en vertical se estira ×2 (= su proporción 2:1) para que las piedras no salgan alargadas.
+const PARED_FOSO_ESCALA_V: float = 2.0
+## La textura sale muy oscura (valor medio ~0,25) y con la luz de la cueva la pared de la charca se perdía en negro: se multiplica el albedo del costado (HDR: Color admite > 1).
+const PARED_FOSO_BRILLO: float = 2.6
 ## 6.16: el agua llega CASI a ras del bloque de hierba (4 cm por debajo; antes 0,6 × ALTO y se veía un escalón de 40 cm). El Lanzador y el
 ## Jugador leen esta constante, así que el nivel lógico del agua sube con la imagen.
 const ALTO_AGUA: float = ALTO - 0.04
@@ -1482,7 +1486,15 @@ func _construir_suelo() -> void:
 	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
 
-	var mat_lado := _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
+	var mat_lado: StandardMaterial3D
+	if estilo == "cueva" and ResourceLoader.exists(SUELO + "pared_foso_cueva.png"):
+		# 23/10 (hoja D4): los costados (pared de la charca, borde del mapa, terrazas) son la pared de piedra mojada de la cueva, no la franja de tierra del Bosque.
+		# La textura es 2:1 y se repite en horizontal: se estira el eje Y del triplanar para que las piedras no salgan alargadas.
+		mat_lado = _mat_triplanar(SUELO + "pared_foso_cueva.png", Color(0.3, 0.33, 0.4))
+		mat_lado.uv1_scale = Vector3(1.0, PARED_FOSO_ESCALA_V, 1.0) / (S * 2.0)
+		mat_lado.albedo_color = mat_lado.albedo_color * PARED_FOSO_BRILLO
+	else:
+		mat_lado = _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
 	var sha := Shader.new()
 	sha.code = CODIGO_AGUA
 	_mat_agua = ShaderMaterial.new()

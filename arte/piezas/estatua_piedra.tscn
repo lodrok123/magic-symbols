@@ -1,0 +1,14 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/estatua_piedra.glb" id="1_icxkj"]
+[node name="estatua_piedra" type="Node3D" unique_id=1337266240]
+metadata/id = "estatua_piedra"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=38803705]
+
+[node name="estatua_piedra2" type="Node3D" parent="modelo" unique_id=756937981 instance=ExtResource("1_icxkj")]
+transform = Transform3D(4.661152, 0, 0, 0, 4.661152, 0, 0, 0, 4.661152, 0, 0, 0)
+

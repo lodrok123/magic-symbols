@@ -52,8 +52,8 @@
 ; --- C6 · Tesoro: puerta con llave, cofre grande y atajo a la boca ---
 ; pieza puerta_llave puerta 18 16 modelo=llave
 ; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
-; pieza tesoro cofre 13 13
-; pieza boton pulsador 10 16 modo=presencia
+; pieza tesoro cofre 13 13 modelo=legendario
+; pieza boton pulsador 10 16 modo=presencia modelo=cueva
 ; pieza atajo puerta 9 16 modelo=llave
 ; puzle abre_atajo cuando=boton.pulsado hace=atajo.abrir
 ; pieza seta_c6a seta 16 18

@@ -1,0 +1,14 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/prisma_orientable.glb" id="1_11ewq"]
+[node name="prisma_orientable" type="Node3D" unique_id=1818898219]
+metadata/id = "prisma_orientable"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=232362938]
+
+[node name="prisma_orientable2" type="Node3D" parent="modelo" unique_id=1610816003 instance=ExtResource("1_11ewq")]
+transform = Transform3D(3.6062665, 0, 0, 0, 3.6062665, 0, 0, 0, 3.6062665, 0, 0, 0)
+

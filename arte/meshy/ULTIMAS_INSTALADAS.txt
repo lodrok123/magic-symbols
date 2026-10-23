@@ -1,5 +1,1 @@
-setas_rojas
-setas_azules
-setas_marrones
-estalagmitas_a
-estalagmitas_b
+placa_presion_cueva

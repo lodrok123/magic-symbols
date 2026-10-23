@@ -241,6 +241,15 @@ las vetas casilla a casilla, así que tienen que coincidir.
 
 Sustituye a la franja marrón (tierra del Bosque) que se ve en la pared de la charca y en el borde del mapa.
 
+## Estado (23/10, tras recibir D1, D2 parcial y D4)
+
+Instalado: **D1 completa** (`cristal_resonante` 1 200 tris, `prisma_orientable` 1 000, `receptor_runico` 1 000, `bloque_enlace` 600, `estatua_piedra` 2 000,
+`columna_agrietada` 1 000), **D2** (`cofre_legendario` 1 800 + tapa 900, `cofre_epico` 900 + tapa 500, `placa_presion_cueva` 400) y **D4** (`veta_mineral`,
+`veta_mineral_mascara` y `pared_foso_cueva` en `arte/suelo_meshy/`). Los cofres llevan `cofre_cuerpo` y `cofre_tapa` con la bisagra en el origen de la tapa
+(`arte/meshy/montar_cofre.py`). Enganchado en la Cueva: la pared del foso y el borde del mapa (`pared_foso_cueva`), el `tesoro` (`modelo=legendario`) y la placa
+«PÍSAME» (`modelo=cueva`). **Pendiente**: el cristal salió turquesa saturado (se pidió aguamarina apagado): bajarle la saturación por material (Albedos3D/emisión
+del pulso) en la fase 1 del plan, sin regenerar. D3 sigue sin llegar.
+
 ## Total de la segunda tanda
 
 | hoja | piezas | prioridad |

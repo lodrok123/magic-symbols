@@ -1,0 +1,14 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/columna_agrietada.glb" id="1_4eb4s"]
+[node name="columna_agrietada" type="Node3D" unique_id=30660352]
+metadata/id = "columna_agrietada"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=317092830]
+
+[node name="columna_agrietada2" type="Node3D" parent="modelo" unique_id=1496219623 instance=ExtResource("1_4eb4s")]
+transform = Transform3D(6.606174, 0, 0, 0, 6.606174, 0, 0, 0, 6.606174, 0, 0, 0)
+

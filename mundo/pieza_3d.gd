@@ -72,6 +72,9 @@ const MEDIDA: Dictionary = {
 	# 23/10 · la Cueva (lo que se mide por alto; las paredes y la boca van por ancho, en MEDIDA_ANCHO). La jugadora mide ~1.
 	"jarron": 0.6, "jarron_alto": 0.95, "setas_rojas": 0.7, "setas_azules": 0.7, "setas_marrones": 0.65,
 	"estalagmitas_a": 1.5, "estalagmitas_b": 1.8, "puerta_llave_marco": 2.4, "puerta_llave_hoja": 2.1,
+	# 23/10 · hoja «pulso» (docs/PLAN_PULSO_RESONANTE.md §4; PROMPTS_CUEVA D1). Altura del prompt, salvo el cristal (1,6 → 1,5) y la estatua (1,8 → 1,7):
+	# el modelo sale más ancho que lo pedido (peana de rocas) y a la altura del prompt ocuparían 1,3 de planta. El bloque de enlace va por ancho (MEDIDA_ANCHO).
+	"cristal_resonante": 1.5, "prisma_orientable": 1.2, "receptor_runico": 1.1, "estatua_piedra": 1.7, "columna_agrietada": 2.5,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
@@ -84,6 +87,9 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 	# Algo más que una casilla (× 1,12): el modelo encaja por su lado MAYOR, así que el otro queda corto y entre dos paredes se abría un hueco.
 	"cueva_pared": S * 1.12, "cueva_esquina_ext": S * 1.12, "cueva_esquina_int": S * 1.12, "cueva_pared_baja": S * 1.12, "muro_ruina": S,
 	"muro_agrietado": S * 0.96, "boca_cueva": S * 2.0, "llave_pequena": 0.35,
+		# 23/10 · hoja «recompensas» (PROMPTS_CUEVA D2): por ancho del prompt (el alto sale de la proporción del modelo: 1,28 y 0,8). La placa, 1,8 × 1,8.
+		"cofre_legendario": 1.6, "cofre_epico": 1.1, "placa_presion_cueva": 1.8,
+		"bloque_enlace": 1.0,    # 23/10: pulso. El prompt pedía un cubo de 1,0; el modelo es una losa (1,0 × 0,7 × 1,0), así que se mide por ancho
 	"baldosa_guardado": S * 0.85,
 	# Canales de ruinas (enderezados en el GLB). Mismo factor de escala los dos (el codo mide 0,439 de ancho frente a 0,493 del recto).
 	# `canal_recto`: corre a lo largo de X, abierto por -X y +X (giro 90 = a lo largo de Z). `canal_codo`: abierto por -X y +Z,
@@ -104,7 +110,8 @@ const GIRO_MODELO: Dictionary = {"cristal_sanctuario": 0.0}
 
 const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10,
 	"losa_runas_llana": 0.08, "losa_runas_remaches": 0.08, "losa_runas_ovalo": 0.08,
-	"nenufar": 0.05, "nenufar_flor": 0.12, "laja_piedra": 0.10}       # 20/10: grosor de las piezas nuevas planas (diario 213; partida)
+	"nenufar": 0.05, "nenufar_flor": 0.12, "laja_piedra": 0.10,
+	"placa_presion_cueva": 0.2}       # 23/10: PROMPTS_CUEVA D2 (0,2 de alto; el modelo sale a 0,28 y se hunde el resto)       # 20/10: grosor de las piezas nuevas planas (diario 213; partida)
 
 
 func _ready() -> void:

@@ -24,17 +24,20 @@ const RADIO_BOTON: float = 0.42
 const ALTO_BOTON: float = 0.9
 const GROSOR_PLACA: float = 0.1
 const CADA: float = 0.1                    ## s entre dos lecturas de presencia
+const PLACA_CUEVA: String = "res://arte/piezas/placa_presion_cueva.tscn"   ## la losa con anillo y runa de la hoja D2 (1,8 × 1,8, 0,2 de alto)
+const HUNDIDO_PLACA: float = 0.04          ## cuánto baja la placa al pisarla
 
 var modo: String = "magia"
 var celda: Vector2i = Vector2i.ZERO
 var rearme: float = 0.0
 var cuerpos: Array = []                    ## Node3D extra que también pisan la placa (un tronco, un goblin…)
 var etiqueta: String = ""                  ## rótulo fijo sobre el pulsador (16/10, Pablo: «no entiendo el puzle»); "" = el del modo; "-" = ninguno
+var modelo: String = ""                    ## 23/10: «cueva» = la placa de piedra de la Cueva (PLACA_CUEVA) en vez de la losa ocre; solo en modo presencia
 var activo: bool = false                   ## pulsado y aún sin rearmar (o pisado)
 var veces: int = 0                         ## cuántas veces se ha disparado (para las pruebas)
 var _t_rearme: float = 0.0
 var _t_lectura: float = 0.0
-var _cuerpo: MeshInstance3D = null
+var _cuerpo: Node3D = null                 ## la losa o el botón (un MeshInstance3D) o, con `modelo`, la escena de la placa
 var _mat: StandardMaterial3D = null
 
 
@@ -77,15 +80,20 @@ func _ready() -> void:
 
 
 func _dibujar() -> void:
+	if modo == "presencia" and modelo == "cueva" and ResourceLoader.exists(PLACA_CUEVA):
+		_cuerpo = (load(PLACA_CUEVA) as PackedScene).instantiate() as Node3D
+		add_child(_cuerpo)
+		return
 	_mat = StandardMaterial3D.new()
 	_mat.albedo_color = COLOR[modo]
 	_mat.roughness = 0.6
-	_cuerpo = MeshInstance3D.new()
+	var cuerpo_malla := MeshInstance3D.new()
+	_cuerpo = cuerpo_malla
 	if modo == "presencia":
 		var losa := BoxMesh.new()
 		losa.size = Vector3(Terreno3D.casilla * 0.8, GROSOR_PLACA, Terreno3D.casilla * 0.8)
-		_cuerpo.mesh = losa
-		_cuerpo.position = Vector3(0.0, GROSOR_PLACA * 0.5, 0.0)
+		cuerpo_malla.mesh = losa
+		cuerpo_malla.position = Vector3(0.0, GROSOR_PLACA * 0.5, 0.0)
 	else:
 		var base := CylinderMesh.new()
 		base.top_radius = RADIO_BOTON * 1.3
@@ -102,10 +110,10 @@ func _dibujar() -> void:
 		boton.top_radius = RADIO_BOTON
 		boton.bottom_radius = RADIO_BOTON
 		boton.height = ALTO_BOTON * 0.45
-		_cuerpo.mesh = boton
-		_cuerpo.position = Vector3(0.0, ALTO_BOTON * 0.55 + ALTO_BOTON * 0.225, 0.0)
-	_cuerpo.material_override = _mat
-	add_child(_cuerpo)
+		cuerpo_malla.mesh = boton
+		cuerpo_malla.position = Vector3(0.0, ALTO_BOTON * 0.55 + ALTO_BOTON * 0.225, 0.0)
+	cuerpo_malla.material_override = _mat
+	add_child(cuerpo_malla)
 
 
 ## --- Contrato con los hechizos (magia y agua) ---
@@ -149,17 +157,18 @@ func _disparar(como: String) -> void:
 	veces += 1
 	_t_rearme = rearme
 	if _cuerpo != null:
-		_cuerpo.position.y -= 0.12 if modo != "presencia" else 0.04
-		_mat.emission_enabled = true
-		_mat.emission = COLOR[modo]
-		_mat.emission_energy_multiplier = 0.8
+		_cuerpo.position.y -= 0.12 if modo != "presencia" else HUNDIDO_PLACA
+		if _mat != null:
+			_mat.emission_enabled = true
+			_mat.emission = COLOR[modo]
+			_mat.emission_energy_multiplier = 0.8
 	_rotulo("PISADA" if modo == "presencia" else "¡CLIC!", Color(0.7, 1.0, 0.7))
 	pulsado.emit(como)
 
 
 ## Feedback de un golpe que no activa: el botón tiembla, se enciende gris un instante y dice por qué (rótulo que se desvanece).
 func _rechazar(motivo: String) -> void:
-	if _cuerpo == null or not is_inside_tree():
+	if _cuerpo == null or _mat == null or not is_inside_tree():
 		return
 	var tw: Tween = create_tween()
 	tw.tween_property(_cuerpo, "position:x", 0.05, 0.05).set_trans(Tween.TRANS_SINE)
@@ -193,8 +202,9 @@ func _rotulo(texto: String, color: Color) -> void:
 func _rearmar() -> void:
 	activo = false
 	if _cuerpo != null:
-		_cuerpo.position.y += 0.12 if modo != "presencia" else 0.04
-		_mat.emission_enabled = false
+		_cuerpo.position.y += 0.12 if modo != "presencia" else HUNDIDO_PLACA
+		if _mat != null:
+			_mat.emission_enabled = false
 	if modo == "presencia":
 		soltado.emit()
 

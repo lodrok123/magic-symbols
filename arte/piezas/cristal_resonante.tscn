@@ -1,0 +1,14 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/cristal_resonante.glb" id="1_18st3"]
+[node name="cristal_resonante" type="Node3D" unique_id=829224114]
+metadata/id = "cristal_resonante"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1592002693]
+
+[node name="cristal_resonante2" type="Node3D" parent="modelo" unique_id=1706737925 instance=ExtResource("1_18st3")]
+transform = Transform3D(4.2966266, 0, 0, 0, 4.2966266, 0, 0, 0, 4.2966266, 0, 0, 0)
+

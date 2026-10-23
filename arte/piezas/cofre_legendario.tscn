@@ -1,0 +1,28 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/cofre_legendario.glb" id="1_uaxjc"]
+[ext_resource type="Script" path="res://presentacion/cofre_3d.gd" id="4_m4mj2"]
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_oc2lp"]
+points = PackedVector3Array(0.592, 0.081, -0.504, 0.614, 0.529, -0.468, 0.725, 0.013, -0.495, 0.606, 0.001, -0.501, -0.612, 0.002, -0.503, -0.616, 0.529, -0.467, 0.527, 0.612, -0.42, 0.699, 0.605, -0.423, 0.711, 0.12, -0.486, -0.531, 0.61, -0.422, 0.765, 0.072, -0.444, 0.759, 0.017, -0.448, 0.783, 0.008, -0.341, 0.688, 0.003, -0.453, 0.731, 0.004, -0.381, 0.728, 0.003, -0.219, 0.8, 0.003, 0.331, 0.729, 0.001, 0.431, -0.8, 0, 0.339, -0.701, 0.002, -0.429, -0.769, 0.006, -0.465, -0.712, 0.006, -0.495, -0.757, 0.061, -0.485, -0.695, 0.605, -0.421, 0.551, 0.632, -0.403, 0.674, 0.634, -0.4, 0.68, 0.633, -0.258, 0.701, 0.607, -0.255, 0.748, 0.535, -0.334, -0.676, 0.634, -0.401, -0.552, 0.632, -0.403, 0.798, 0.048, -0.309, 0.794, 0.08, 0.339, 0.77, 0.042, 0.473, 0.742, 0.029, 0.493, 0.709, 0.006, 0.496, -0.617, 0.003, 0.501, -0.742, 0.008, 0.5, -0.762, 0.026, 0.467, -0.79, 0.111, 0.343, -0.75, 0.534, -0.334, -0.788, 0.022, -0.341, 0.673, 0.634, 0.408, -0.677, 0.634, 0.407, 0.681, 0.633, 0.264, 0.703, 0.605, 0.264, 0.749, 0.535, 0.34, -0.705, 0.604, -0.254, -0.682, 0.633, -0.259, 0.698, 0.603, 0.428, 0.613, 0.528, 0.473, 0.593, 0.071, 0.504, -0.691, 0.592, 0.431, -0.585, 0.121, 0.499, -0.616, 0.529, 0.472, -0.749, 0.535, 0.34, -0.705, 0.606, 0.263, -0.551, 0.633, 0.411, 0.549, 0.633, 0.41, 0.527, 0.609, 0.428, -0.706, 0.598, 0.345, -0.53, 0.609, 0.428)
+
+[node name="cofre_legendario" type="Node3D" unique_id=2063225265]
+metadata/id = "cofre_legendario"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=701660963]
+
+[node name="cofre_legendario2" type="Node3D" parent="modelo" unique_id=115081997 instance=ExtResource("1_uaxjc")]
+transform = Transform3D(2.9070454, 0, 0, 0, 2.9070454, 0, 0, 0, 2.9070454, -0.0016779797, 0.002414, -0.00038193792)
+
+[node name="Cofre3D" type="Node3D" parent="." unique_id=631380508]
+script = ExtResource("4_m4mj2")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1986747357]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=429656204]
+shape = SubResource("ConvexPolygonShape3D_oc2lp")

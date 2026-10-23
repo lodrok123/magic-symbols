@@ -20,7 +20,7 @@ extends Node
 ## (`celdas=4,10..4,12+1,12..2,12`). Booleanos: si | no (también true/false, 1/0).
 ##
 ## PIEZAS (tipo → claves, entre paréntesis el valor por defecto) y qué clase de `objetos/` es:
-##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)                     Pulsador3D: botón, pulsador de agua o placa
+##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
 ##   molino     umbral=<u/s> (0.3)  vertical (si)                                     Molino3D
@@ -59,7 +59,7 @@ extends Node
 ##              un ingrediente; un elemento lanzado antes las transforma (Objetos.PLANTAS). Sin variante se intercalan por casilla
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
-##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>              CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
+##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>  modelo=legendario|epico   CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
 ##              montar nace ABIERTO; si no, oculto hasta que `aparece_si` se cumpla (se reevalúa cada 0,2 s y al cambiar cualquier flag) y
 ##              entonces APARECE cerrado (con efecto; si ya se cumplía al montar, sin efecto). El jugador lo abre con E a ≤ 2,7 u; al acabar
 ##              de abrirse pone la flag `abierto`. Sin `aparece_si` nace cerrado
@@ -219,7 +219,7 @@ const ACCIONES: Dictionary = {
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
-	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f"},
+	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva"},
 	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
@@ -237,7 +237,7 @@ const CLAVES: Dictionary = {
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
-	"cofre": {"aparece_si": "expr", "abierto": "flag"},
+	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f"},
@@ -245,6 +245,8 @@ const CLAVES: Dictionary = {
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
 const ESCENA_COFRE: String = "res://arte/piezas/cofre.tscn"
+## 23/10: cofres de la Cueva (hoja D2). `modelo=legendario|epico` en un cofre usa su escena (misma API: cuerpo + tapa con la bisagra en el origen de la tapa).
+const ESCENAS_COFRE_CUEVA: Dictionary = {"legendario": "res://arte/piezas/cofre_legendario.tscn", "epico": "res://arte/piezas/cofre_epico.tscn"}
 const ALCANCE_COFRE: float = 2.7
 const CADA_LOGICA: float = 0.1
 const CADA_COFRE: float = 0.2
@@ -1366,6 +1368,7 @@ func _crear(pz: Pieza) -> void:
 		"pulsador":
 			var b := Pulsador3D.new()
 			b.name = pz.id
+			b.modelo = String(pz.p.get("modelo", ""))
 			b.preparar(pz.celda, String(pz.p.get("modo", "magia")), float(pz.p.get("rearme", 0.0)))
 			cont.add_child(b)
 			pz.nodo = b
@@ -1529,7 +1532,8 @@ func _crear(pz: Pieza) -> void:
 			var cf := CofrePuzle.new()
 			cf.name = pz.id
 			cont.add_child(cf)
-			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo, ESCENA_COFRE)
+			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo,
+				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)))
 			pz.nodo = cf
 
 
