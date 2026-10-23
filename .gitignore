@@ -64,4 +64,4 @@ videos/
 # 13/10: antes la excepción era poc_25d/; al reorganizar por capas, los .glb se quedaron fuera de Git y el pull los perdió.
 *.glb
 !arte/**/*.glb
-!presentacion/**/*.glb
+!presentacion/**/*.glbsalida*.txt
