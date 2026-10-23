@@ -1,10 +1,19 @@
-# Plan · El Bosque al estilo de Echoes of Wisdom
+# Plan · El Bosque y la Cueva al estilo de Echoes of Wisdom
 
 23/10/2026 · propuesta para que **Pablo la revise** antes de tocar el mapa. No cambia ningún archivo del juego.
 
 Fuentes: el estudio de niveles y tablas de EoW (`docs/estudios/eow/EOW_2_NIVELES.md` §1.4, §6, §7; `EOW_1_TABLAS.md` §3), el plan
 visual (`docs/PLAN_EOW_VISUAL.md` §5) y el nivel tal como lo carga el juego hoy (`mundo/datos_nivel/Nivel_Bosque.tscn`, 19 × 49).
 Coordenadas en casillas `(columna, fila)`, como las de `; pieza` y `; puzle`. **Regla de siempre: de EoW se toman las ideas, no los mapas.**
+
+**Dos enfoques, dos sitios.** EoW alterna un campo ABIERTO (regiones, libertad, recompensa por explorar) con mazmorras CERRADAS (salas,
+cierres, llaves, bucles). Para probar los dos sin mezclarlos:
+
+- **El Bosque, enfoque abierto** (§1–§5): se reordena como un exterior por regiones con algunas salas de puzle dentro.
+- **La Cueva, enfoque cerrado** (§6): una mazmorra pequeña nueva, de seis salas, con todo lo de una mazmorra de EoW (sala que se cierra,
+  cofre con llave, puerta con llave, atajo desde dentro).
+
+Con los dos se compara jugando qué funciona mejor con el sistema de hechizos (§7).
 
 ---
 
@@ -140,7 +149,116 @@ Mejor en el editor sobre `Nivel_Bosque.tscn`, porque hornear con F9 lo aparta y 
 **La lógica que hoy está en `bosque_3d.gd`** (tótems, puerta X, elemental, salida, tienda) puede quedarse donde está en una primera fase.
 Lo nuevo va en líneas `; puzle`. Pasar lo viejo a líneas es una segunda fase, cuando el diseño esté cerrado.
 
-## 6. Lo que falta construir
+## 6. La Cueva: una mazmorra pequeña (enfoque cerrado)
+
+**Por qué una cueva.** Es el entorno cerrado por excelencia: paredes por todas partes, poca luz, salas que se leen solas. Tiene el tamaño
+de las mazmorras pequeñas de EoW (S_Dungeon022: 6 salas; `EOW_2_NIVELES.md` §6) y **una mecánica por elemento**, así que también sirve
+para medir la identidad de cada uno (la pregunta del Test 2, ver `ARQUITECTURA.md`).
+
+**Mapa nuevo** `mundo/datos_nivel/mapas/Cueva.txt`, 27 × 21 casillas, con su escena `escenas/PruebaCueva.tscn` (la maqueta con
+`nivel = "Cueva"` y un nodo hijo *Puzles*, como el Bosque 01). Seis salas de 8 × 8 en dos filas, con paredes de una casilla y pasos de una:
+
+```
+     x: 1 ...... 8   9   10 ..... 17   18   19 ..... 25
+y  1  ┌── C2 ─────┐      ┌── C3 ─────┐       ┌── C4 ─────┐
+      │ GRIETAS   │ ▓▓▶  │ RÍO DE    │  ══▶  │ SALA      │
+      │ (tierra)  │(9,4) │ LAVA      │ (18,4)│ CERRADA   │
+y  8  └─────┬─────┘      │ (agua)    │       │ (combate, │
+            │ (4,9)      └───────────┘       │  llave)   │
+y 11  ┌── C1 ─────┐      ┌── C6 ─────┐       └─────┬─────┘
+      │ BOCA      │  ◀═  │ TESORO    │  ◀╬═        │ (22,9)
+      │ (fuego,   │(9,16)│ (cofre    │(18,16) ┌── C5 ─────┐
+      │  inicio)  │atajo │  grande)  │ puerta │ CHARCA    │
+y 18  └───────────┘      └───────────┘ c/llave│ ELÉCTRICA │
+                                              │ (hielo +  │
+                                              │  rayo)    │
+                                              └───────────┘
+```
+
+| sala | casillas | qué se resuelve | elemento | luz |
+|---|---|---|---|---|
+| **C1 · Boca** | x 1–8, y 11–18 | se entra a oscuras. Dos braseros apagados (2,12) y (7,12): con fuego dan luz y abren el paso al norte (4,9)–(4,10). Jarrones con oro (cuando existan los rompibles) | fuego (enseñar) | `cueva` (oscura) |
+| **C2 · Las grietas** | x 1–8, y 1–8 | el paso al este (9,4) es un **muro agrietado**: dos golpes de tierra. Es la sala que enseña la tierra | tierra | `cueva` |
+| **C3 · Río de lava** | x 10–17, y 1–8 | un río de lava en x 13–14 corta la sala de arriba abajo. Agua para enfriarlo y cruzar; la roca **vuelve a ser lava** a los 10 s (contrarreloj) | agua | `fuego` |
+| **C4 · Sala cerrada** | x 19–25, y 1–8 | al entrar se cierra (18,4). Dos goblins, uno con escudo (se rodea o se quema). Al caer el último se abre y aparece un **cofre con la llave** | combate | `atardecer` |
+| **C5 · Charca eléctrica** | x 19–25, y 11–18 | la fuente eléctrica (25,12) electrifica una charca que corta la sala (x 20–24, y 13–16). El agua no se cruza y electrocuta; **el hielo la vuelve suelo y corta la corriente** | hielo + rayo | `hielo` |
+| **C6 · Tesoro** | x 10–17, y 11–18 | la **puerta con llave** (18,16) se abre con la llave de C4. Cofre grande (13,13) con la recompensa (un glifo o un sello). Un pulsador de presencia (10,16) abre el **atajo** (9,16) de vuelta a la boca: se abre desde dentro | — | `ruinas` |
+
+**El recorrido** es un bucle: C1 → C2 (tierra) → C3 (agua) → C4 (combate, llave) → C5 (hielo) → C6 (tesoro) → atajo → C1.
+
+- Seis salas, un puzle cada una.
+- Dos enemigos, los dos en la sala cerrada.
+- Cada elemento tiene un sitio donde es la respuesta: fuego da luz, tierra rompe, agua enfría, hielo hace suelo y corta la corriente, y el
+  rayo es el peligro.
+
+**Las líneas del mapa** (validadas con `Puzle3D` y `Zonas3D`):
+
+```
+; zona 1,11..8,18 cueva
+; zona 1,1..8,8 cueva
+; zona 10,1..17,8 fuego
+; zona 19,1..25,8 atardecer
+; zona 19,11..25,18 hielo
+; zona 10,11..17,18 ruinas
+; pieza grieta muro 9 4 golpes=2
+; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10
+; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8
+; pieza guardia vigia 19 1 de=19,1..25,8 flag=cueva.c4.limpia
+; pieza cofre_llave cofre 22 5 aparece_si=flag.cueva.c4.limpia abierto=cueva.c4.llave
+; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
+; pieza puerta_llave puerta 18 16
+; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
+; pieza tesoro cofre 13 13
+; pieza boton pulsador 10 16 modo=presencia
+; pieza atajo puerta 9 16
+; puzle abre_atajo cuando=boton.pulsado hace=atajo.abrir
+```
+
+Las letras del plano:
+- `T` en los braseros (2,12) y (7,12);
+- `e` en la fuente (25,12) y `~` en la charca (con `agua_fisica = true` en la escena, por la charca);
+- `W` en los goblins de C4 (el del escudo, con `Escudo3D`);
+- `S` en la entrada (4,17).
+
+**El arte** está en `arte/meshy/PROMPTS_CUEVA.md`, separado en lo que se usa tal cual, lo que se adapta sin generar (rocas escaladas
+como paredes provisionales, suelo oscurecido, cofre grande, cristales que alumbran) y lo que hay que pedir a Meshy:
+- paredes modulares de cueva;
+- el muro agrietado;
+- la boca de la cueva;
+- jarrones rompibles;
+- la puerta con cerradura y la llave;
+- decorado de cueva y dos texturas de suelo.
+
+Ninguna de esas piezas bloquea la Fase 1: la Cueva se monta ya con lo que hay y se cambia el arte cuando llegue.
+
+**Cómo se une al Bosque.**
+- **Fase 1:** escena propia, como un laboratorio, para probar el enfoque cerrado sin depender de nada.
+- **Fase 2:** la boca de la cueva en el Bosque, con transición de nivel (pieza nueva, §8).
+- **Opción para Pablo:** que la cueva SEA «la vuelta» del Bosque (sala 8). Se entraría por el altar y se saldría junto a la puerta X, como
+  los «vacíos» del campo de EoW, que apuntan a una mazmorra. Así la mazmorra es a la vez el atajo.
+
+## 7. Abierto + cerrado: qué se prueba y cómo se compara
+
+| | Bosque (abierto) | Cueva (cerrado) |
+|---|---|---|
+| **qué manda** | el sitio: regiones con su luz, su botín y sus enemigos | la sala: un puzle, un cierre, una recompensa |
+| **orientación** | se ve lejos; se elige adónde ir | una salida visible por sala; el bucle guía |
+| **recompensa** | explorar: rompibles, rincones | resolver: cofre, llave, atajo |
+| **combate** | enemigos sueltos que se pueden evitar | una sala que se cierra hasta acabar |
+| **luz** | mezcla lenta (5 s) al cambiar de región | cambio rápido (≤ 1 s) al cruzar cada umbral |
+| **riesgo** | perderse o aburrirse en zonas vacías | sentirse en un pasillo de pruebas |
+
+**Qué medir en el playtest.** El `PlayLog` ya apunta los lanzamientos y los golpes; faltaría la sala o región en cada evento:
+
+- tiempo por sala o región, y cuántas veces se vuelve a una ya resuelta;
+- hechizos por elemento en cada sala: ¿el que se esperaba es el que se usa?;
+- intentos fallidos antes de resolver (hechizos que no hacen nada);
+- muertes y dónde;
+- lo que dice Pablo: dónde se aburre, dónde se pierde, qué recuerda al acabar.
+
+Con eso se decide cuánto de cada enfoque lleva el juego: si el Bosque necesita más cierres o si la Cueva necesita más libertad.
+
+## 8. Lo que falta construir
 
 | pieza | qué hace | tamaño |
 |---|---|---|
@@ -149,18 +267,25 @@ Lo nuevo va en líneas `; puzle`. Pasar lo viejo a líneas es una segunda fase, 
 | **Preset de luz `santuario`** | verdoso oscuro, para el elemental | una fila de `LuzZona3D.ZONAS` |
 | **Temperatura por zona** (opcional) | `temp=0..4`: en una zona fría el agua lanzada se hiela sola; en una caliente se evapora antes. Sin `if` por sala: la lee la reacción del agua | medio; toca reglas de juego |
 | **Entrada a zona una vez** (opcional) | un rótulo o diálogo la primera vez que se entra en una zona (`RegionEntryDemo` de EoW), con flag de «ya visto» | pequeño |
+| **Preset de luz `cueva`** | oscuro: sol casi apagado y ambiente bajo, para que los braseros iluminen de verdad | una fila de `LuzZona3D.ZONAS` |
+| **Puerta con llave** | hoy la regla abre la puerta en cuanto se abre el cofre. EoW pide llegar a la puerta con la llave: abrir solo si la flag está puesta y el jugador está delante | pequeño, en `Puzle3D` |
+| **Transición entre niveles** | una salida con nombre que carga otro nivel y aparece en una entrada con nombre (`SensorLevelOpen` + `TagAreaStart` de EoW). Hoy cada escena es independiente | medio |
+| **La sala en el `PlayLog`** | apuntar en cada evento la zona en la que está el jugador (`Zonas3D` ya lo sabe), para comparar los dos enfoques | pequeño |
 
-## 7. Decisiones para Pablo
+## 9. Decisiones para Pablo
 
 1. **¿Se abre la banda este** para la vuelta (sala 8), o el atajo baja por dentro del pasillo, con más paredes y menos espacio?
 2. **¿El cuello se cierra en combate** (sala cerrada) o se mantiene la puerta goblin que se quema? Se puede tener las dos: quemarla abre la entrada y los goblins la cierran detrás.
 3. **¿Dónde va la llave pequeña:** en el campamento (como aquí) o en el prado, junto a un rompible grande?
 4. **¿Temperatura por zona sí o no** en esta fase? Cambia reglas de juego y pide playtest.
-5. **Orden de los trabajos propuesto:**
-   1. zonas y mezcla por zona (visible enseguida, sin tocar el mapa);
-   2. rompibles;
-   3. sala cerrada del campamento con cofre y llave;
-   4. la vuelta (abrir la banda este, muro y lava);
-   5. pasar la lógica de `bosque_3d.gd` a líneas `; puzle`.
+5. **¿La Cueva es «la vuelta» del Bosque**, o un nivel aparte con su propia entrada (en el prado, por ejemplo)?
+6. **Orden de los trabajos propuesto:**
+   1. **la Cueva como escena propia** (§6): preset `cueva`, mapa y líneas; todas sus piezas existen salvo la puerta con llave;
+   2. zonas y mezcla por zona en el Bosque (visible enseguida, sin tocar el mapa);
+   3. rompibles (los usan los dos);
+   4. la sala en el `PlayLog` y **un playtest de los dos enfoques** (§7);
+   5. sala cerrada del campamento con cofre y llave;
+   6. la vuelta, o la transición a la Cueva si es la vuelta;
+   7. pasar la lógica de `bosque_3d.gd` a líneas `; puzle`.
 
    Cada paso con su captura y su escenario de prueba, como los laboratorios.
