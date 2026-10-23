@@ -279,8 +279,22 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
     return movidos
 
 
+def suave(t: float) -> float:
+    t = max(0.0, min(1.0, t))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def pesos_brazo(p: Vector, cfg: dict) -> float:
+    """Cuánto del peso de un vértice de la capa se pasa al brazo de su lado (0..`peso`): sube con la distancia lateral al eje (`x0`..`x1`, el hombro y lo que cuelga
+    de él) y baja a cero con la altura (a partir de `z_baja0` hasta `z_baja1`: la capucha y el cuello siguen a la cabeza y al torso)."""
+    lat = abs(p.x - float(cfg.get("eje_x", 0.003)))
+    t_lat = suave((lat - float(cfg["x0"])) / (float(cfg["x1"]) - float(cfg["x0"])))
+    t_alto = 1.0 - suave((p.z - float(cfg["z_baja0"])) / (float(cfg["z_baja1"]) - float(cfg["z_baja0"])))
+    return float(cfg["peso"]) * t_lat * t_alto
+
+
 def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree, verts_b: list, tris_b: list, ids: list, vecinos: list,
-                     atenuar_piernas: bool) -> list:
+                     atenuar_piernas: bool, brazo: dict = None) -> list:
     """Pesos por vértice de la prenda: [{hueso: peso}] (ya suavizados, recortados a 4 y normalizados)."""
     nombres = {g.index: g.name for g in base.vertex_groups}
     pesos_b = [{nombres[g.group]: g.weight for g in v.groups} for v in base.data.vertices]
@@ -325,6 +339,16 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
     res = []
     for v in o.data.vertices:
         d = dict(por_grupo[ids[v.index]])
+        if brazo is not None:
+            # La capa acompaña al brazo al levantarlo (no hace falta un movimiento realista): parte del peso pasa al brazo (y algo a la clavícula) de su lado, con
+            # gradiente; el resto se reparte como estaba. En reposo no se nota (todos los huesos están en su pose de enlace).
+            pv = o.matrix_world @ v.co
+            w_b = pesos_brazo(pv, brazo)
+            if w_b > 1e-4:
+                lado = "Left" if pv.x > float(brazo.get("eje_x", 0.003)) else "Right"
+                d = {k: x * (1.0 - w_b) for k, x in d.items()}
+                d["mixamorig_%sArm" % lado] = d.get("mixamorig_%sArm" % lado, 0.0) + w_b * (1.0 - float(brazo["parte_clavicula"]))
+                d["mixamorig_%sShoulder" % lado] = d.get("mixamorig_%sShoulder" % lado, 0.0) + w_b * float(brazo["parte_clavicula"])
         if atenuar_piernas:
             # La falda de la túnica no debe partirse con cada pierna: las piernas pesan menos cuanto más abajo de la cadera (el resto se lo lleva Hips).
             z = (o.matrix_world @ v.co).z
@@ -464,7 +488,7 @@ def main() -> None:
         informe(o, arbol, nombre)
         if nombre == "capa" and os.environ.get("ROPA_DEPURA"):
             perfil_cabeza(o, verts_b)
-        pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)))
+        pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"))
         d = exportar(o, pesos, base, carpeta, nombre)
         print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (nombre, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
         guardar_texturas(o, carpeta)

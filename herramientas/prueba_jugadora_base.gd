@@ -2,7 +2,7 @@ extends SceneTree
 ## PRUEBA de la jugadora base (arte/modelos/jugadora_base.glb: Meshy «Willow Fernstep» rigueada en Mixamo, 65 huesos con dedos + headfront, sin clips propios)
 ## y de su ropa por piezas (ropa_capa_capucha.glb y ropa_tunica.glb, Ropa3D): carga como Pj3D, mide lo que debe, trae los 22 clips de la elfa (chibi_elf, vía
 ## ClipsFamilia) y cada rol se resuelve igual que en la elfa; pies en el suelo y sin deriva de raíz; las prendas cargan, usan EL MISMO esqueleto y siguen al
-## hueso. Sin ventana:
+## hueso; la capa (~20 000 triángulos) acompaña al brazo; el cuerpo va partido en zonas y cada prenda apaga las suyas al ponerse (pelo, chaleco, cinturón). Sin ventana:
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_jugadora_base.gd
 ## Cómo se VE se mira en docs/capturas/jugadora_base/ (herramientas/captura_jugadora_base.gd).
 
@@ -35,7 +35,16 @@ const TUNICA_MUEVE_MIN: float = 0.1
 const ENLACE_TOL: float = 0.002
 const PESO_MAX_INFLUENCIAS: int = 4
 const TRIS_PRENDA_MIN: int = 7000
-const TRIS_PRENDA_MAX: int = 12000
+## La capa lleva ~20 000 triángulos (con menos, al diezmar una malla hueca salían vetas claras en la capucha) y la túnica ~9 000.
+const TRIS_PRENDA_MAX: Dictionary = {"tunica": 12000, "capa_capucha": 22000}
+## Zonas del cuerpo (Ropa3D, herramientas/partir_base_zonas.gd) y las que tapa cada prenda puesta.
+const ZONAS_CUERPO: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas"]
+const ZONAS_TAPADAS_TODAS: Array = ["pelo", "chaleco", "cinturon"]
+const ZONAS_TAPADAS_TUNICA: Array = ["chaleco", "cinturon"]
+## Capa y brazos: peso mínimo en el brazo de algún vértice del hombro de la capa, y cuánto se aparta (u del modelo) un vértice de la capa al levantar el brazo.
+const CAPA_PESO_BRAZO_MIN: float = 0.25
+const CAPA_BRAZO_ARRIBA_GRADOS: float = 125.0
+const CAPA_SE_APARTA_MIN: float = 0.05
 
 var _fallos: int = 0
 
@@ -131,7 +140,7 @@ func _prueba_ropa(p: Pj3D, sk: Skeleton3D) -> void:
 		_ok(mi.get_node(mi.skeleton) == sk, "%s: su `skeleton` es el esqueleto de la base" % id)
 		_ok(mi.get_parent() == sk, "%s: colgada del Skeleton3D de la base" % id)
 		var tris: int = _tris(mi.mesh)
-		_ok(tris >= TRIS_PRENDA_MIN and tris <= TRIS_PRENDA_MAX, "%s: %d triángulos (entre %d y %d)" % [id, tris, TRIS_PRENDA_MIN, TRIS_PRENDA_MAX])
+		_ok(tris >= TRIS_PRENDA_MIN and tris <= int(TRIS_PRENDA_MAX[id]), "%s: %d triángulos (entre %d y %d)" % [id, tris, TRIS_PRENDA_MIN, int(TRIS_PRENDA_MAX[id])])
 		var skin: Skin = mi.skin
 		_ok(skin != null, "%s: tiene Skin" % id)
 		var hueso_de: Array = _huesos_del_skin(skin, sk)
@@ -187,12 +196,82 @@ func _prueba_ropa(p: Pj3D, sk: Skeleton3D) -> void:
 			var tun2: Vector3 = _posicion(tunica, sk, int(v_tun[0]))
 			_ok((tun2 - tun0).length() * esc >= TUNICA_MUEVE_MIN, "un vértice de la túnica se mueve con la cadera (%.3f u del modelo)" % ((tun2 - tun0).length() * esc))
 			sk.reset_bone_poses()
+	# La capa acompaña al brazo: algún vértice del hombro pesa en el brazo y al levantarlo se aparta; en reposo, nada (comprobado arriba).
+	if capucha != null:
+		_prueba_capa_brazos(capucha, sk, esc)
 	# Quitar y volver a poner.
 	p.quitar_ropa("capa_capucha")
 	await process_frame
 	_ok(not p.ropa_puesta().has("capa_capucha") and p.ropa_puesta().has("tunica"), "quitar_ropa(capa_capucha) deja solo la túnica (%s)" % [p.ropa_puesta()])
 	_ok(p.poner_ropa("capa_capucha") and p.ropa_puesta().size() == 2, "poner_ropa(capa_capucha) la vuelve a poner (%s)" % [p.ropa_puesta()])
 	_ok(not p.poner_ropa("no_existe"), "una prenda que no existe no se pone")
+	_prueba_zonas(p)
+
+
+## Zonas ocultas: el cuerpo partido conserva todos los triángulos y cada prenda apaga lo suyo al ponerse y lo devuelve al quitarse.
+func _prueba_zonas(p: Pj3D) -> void:
+	var c: MeshInstance3D = Ropa3D.cuerpo(p)
+	_ok(c != null and c.mesh.get_surface_count() == ZONAS_CUERPO.size(), "el cuerpo vestido está partido en %d superficies (%d)" % [ZONAS_CUERPO.size(), c.mesh.get_surface_count() if c != null else 0])
+	if c == null:
+		return
+	var nombres: Array = []
+	var tris: int = 0
+	for s in c.mesh.get_surface_count():
+		nombres.append(c.mesh.surface_get_name(s))
+		tris += (c.mesh.surface_get_arrays(s)[Mesh.ARRAY_INDEX] as PackedInt32Array).size() / 3
+	_ok(nombres == ZONAS_CUERPO, "zonas del cuerpo: %s" % [nombres])
+	_ok(tris == int(c.mesh.get_meta("triangulos_origen", -1)), "la malla partida conserva los %d triángulos del cuerpo (%d)" % [int(c.mesh.get_meta("triangulos_origen", -1)), tris])
+	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TODAS), "con la túnica y la capa puestas se apagan %s (apagadas: %s)" % [ZONAS_TAPADAS_TODAS, Ropa3D.zonas_apagadas(p)])
+	p.quitar_ropa("capa_capucha")
+	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TUNICA), "sin la capa vuelve el pelo y solo la túnica tapa %s (apagadas: %s)" % [ZONAS_TAPADAS_TUNICA, Ropa3D.zonas_apagadas(p)])
+	p.quitar_ropa("tunica")
+	_ok(Ropa3D.zonas_apagadas(p).is_empty(), "sin prendas no se apaga ninguna zona (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
+	p.poner_ropa("capa_capucha")
+	_ok(_mismos(Ropa3D.zonas_apagadas(p), ["pelo"]), "solo la capa apaga el pelo (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
+	p.poner_ropa("tunica")
+	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TODAS), "volver a vestirse las apaga otra vez (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
+
+
+func _mismos(a: Array, b: Array) -> bool:
+	var x: Array = a.duplicate()
+	var y: Array = b.duplicate()
+	x.sort()
+	y.sort()
+	return x == y
+
+
+func _prueba_capa_brazos(capa: MeshInstance3D, sk: Skeleton3D, esc: float) -> void:
+	var arr: Array = capa.mesh.surface_get_arrays(0)
+	var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES]
+	var pesos: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS]
+	var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var por_vert: int = bones.size() / verts.size()
+	var hueso_de: Array = _huesos_del_skin(capa.skin, sk)
+	var brazo: int = sk.find_bone("mixamorig_LeftArm")
+	var con_peso: int = 0
+	var candidato: int = -1
+	var mejor: float = 0.0
+	for v in verts.size():
+		var w: float = 0.0
+		for k in por_vert:
+			if int(hueso_de[bones[v * por_vert + k]]) == brazo:
+				w += pesos[v * por_vert + k]
+		if w >= CAPA_PESO_BRAZO_MIN:
+			con_peso += 1
+		if w > mejor:
+			mejor = w
+			candidato = v
+	_ok(con_peso > 0, "la capa tiene %d vértices con al menos %.2f de peso en el brazo izquierdo (máx %.2f)" % [con_peso, CAPA_PESO_BRAZO_MIN, mejor])
+	if candidato < 0:
+		return
+	sk.reset_bone_poses()
+	var antes: Vector3 = _posicion(capa, sk, candidato)
+	var b: Quaternion = sk.get_bone_pose_rotation(brazo)
+	sk.set_bone_pose_rotation(brazo, b * Quaternion(Vector3.BACK, deg_to_rad(CAPA_BRAZO_ARRIBA_GRADOS)))
+	var despues: Vector3 = _posicion(capa, sk, candidato)
+	var mueve: float = (despues - antes).length() * esc
+	_ok(mueve >= CAPA_SE_APARTA_MIN, "al levantar el brazo %.0f° la capa se aparta %.3f u del modelo (mín %.2f)" % [CAPA_BRAZO_ARRIBA_GRADOS, mueve, CAPA_SE_APARTA_MIN])
+	sk.reset_bone_poses()
 
 
 func _acabar() -> void:

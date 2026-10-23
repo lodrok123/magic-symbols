@@ -1,7 +1,7 @@
 extends SceneTree
 ## CAPTURAS de la jugadora base (jugadora_base) sola y vestida (capa con capucha + túnica), en reposo, en las 6 poses de prueba de docs/PLAN_RIGGING.md §3,
 ## andando y corriendo, y junto a la jugadora actual (woodland_wanderer). NECESITA VENTANA:
-##   godot --path . --script res://herramientas/captura_jugadora_base.gd -- <carpeta> [<secciones separadas por coma: vistas,poses,marcha,comparar,cerca>]
+##   godot --path . --script res://herramientas/captura_jugadora_base.gd -- <carpeta> [<secciones separadas por coma: vistas,poses,marcha,comparar,cerca,v2> [<prefijo de los ficheros>]]
 ## Las poses de prueba giran los huesos en el espacio del modelo (+Z delante, +X la izquierda del personaje), sin clips: se ve cómo deforma el cuerpo y cómo
 ## sigue la ropa (si el brazo atraviesa la capa o la túnica las piernas). Las dos prendas van con el mismo esqueleto (Pj3D.poner_ropa).
 
@@ -28,6 +28,8 @@ const VISTAS: Array = [["frente", 0.0], ["tres_cuartos", 40.0], ["espalda", 180.
 
 var _carpeta: String = ""
 var _camara_pitch: float = CAMARA_PITCH
+## Prefijo del nombre de los ficheros (3.er argumento), p. ej. «v2_» o «v2_antes_».
+var _prefijo: String = ""
 
 
 func _initialize() -> void:
@@ -38,6 +40,7 @@ func _correr() -> void:
 	var a := OS.get_cmdline_user_args()
 	_carpeta = a[0] if a.size() > 0 else "res://docs/capturas/jugadora_base"
 	var secciones: PackedStringArray = (a[1] if a.size() > 1 else "vistas,poses,marcha,comparar,cerca").split(",")
+	_prefijo = a[2] if a.size() > 2 else ""
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_carpeta))
 	var raiz := Node3D.new()
 	root.add_child(raiz)
@@ -134,6 +137,8 @@ func _correr() -> void:
 			pj.rotation_degrees.y = float(v[1])
 			await _foto(cam, Vector3(0, 0.6, 0), TAM_CERCA * 1.3, "%s/cerca_codos_%s.png" % [_carpeta, v[0]])
 		pj.rotation_degrees.y = 0.0
+	if secciones.has("v2"):
+		await _captura_v2(pj, cam)
 	if secciones.has("comparar"):
 		pj.position = Vector3(-0.5, 0, 0)
 		_vestir(pj, true)
@@ -153,6 +158,41 @@ func _correr() -> void:
 				elfa.rotation_degrees.y = float(v[1])
 				await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO * 1.3, "%s/comparar_%s_%s.png" % [_carpeta, pose[0], v[0]])
 	quit()
+
+
+## Juego de capturas de la segunda pasada de ropa (docs/capturas/jugadora_base/v2_*): reposo desde cuatro lados, brazos a 90° (`brazos_horizontales`, el brazo
+## en reposo cuelga a unos 31° de la vertical y se giran 60°) y a 125°, cast, andar, primer plano de la capucha y la comparativa con woodland_wanderer.
+func _captura_v2(pj: Pj3D, cam: Camera3D) -> void:
+	_vestir(pj, true)
+	_pose_reposo(pj)
+	await _esperar()
+	for v in VISTAS:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/reposo_%s.png" % [_carpeta, v[0]])
+	pj.rotation_degrees.y = 0.0
+	for par in [["brazos_horizontales", "brazos90"], ["brazos_arriba", "brazos125"]]:
+		_pose_reposo(pj)
+		await process_frame
+		_aplicar_pose(pj, _pose(String(par[0])))
+		await _esperar()
+		for v in [VISTAS[0], VISTAS[1], VISTAS[3]]:
+			pj.rotation_degrees.y = float(v[1])
+			await _foto(cam, Vector3(0, 0.62, 0), TAM_COMPLETO * 0.8, "%s/%s_%s.png" % [_carpeta, par[1], v[0]])
+	pj.rotation_degrees.y = 0.0
+	await _clip_congelado(pj, "cast_proyectil", 0.5)
+	for v in [VISTAS[0], VISTAS[1], VISTAS[3]]:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/cast_%s.png" % [_carpeta, v[0]])
+	await _clip_congelado(pj, "walk", 0.25)
+	for v in [VISTAS[0], VISTAS[1], VISTAS[3]]:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/andar_%s.png" % [_carpeta, v[0]])
+	_pose_reposo(pj)
+	await _esperar()
+	for v in VISTAS:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.82, 0), TAM_CERCA, "%s/capucha_%s.png" % [_carpeta, v[0]])
+	pj.rotation_degrees.y = 0.0
 
 
 func _pose(nombre: String) -> Array:
@@ -238,5 +278,6 @@ func _foto(cam: Camera3D, foco: Vector3, tam: float, ruta: String) -> void:
 		await process_frame
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_viewport().get_texture().get_image()
+	ruta = ruta.get_base_dir() + "/" + _prefijo + ruta.get_file()
 	img.save_png(ProjectSettings.globalize_path(ruta))
 	print("captura ", ruta)
