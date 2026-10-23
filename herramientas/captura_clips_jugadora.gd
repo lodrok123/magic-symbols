@@ -18,7 +18,7 @@ const FRACCIONES: Array = [0.0, 0.33, 0.66, 0.99]
 const FRACCIONES_MARCHA: Array = [0.0, 0.25, 0.5, 0.75]
 const CLIPS: Array = ["abrir_cofre", "agacharse", "ofrecer", "saludo", "empujar"]
 const RUTA_CLIPS: String = "res://arte/meshy/jugadora_clips.glb"
-const PRENDAS: Array = ["tunica", "capa_capucha"]
+const PRENDAS: Array = ["tunica", "capa", "capucha"]
 ## (comparativa) clip de Meshy en el GLB nuevo (arte/meshy/clips_jugadora.py los renombra) -> rol de Pj3D con el que se compara el de siempre
 const MARCHA_MESHY: Dictionary = {"Correr": "run", "Andar": "walk"}
 

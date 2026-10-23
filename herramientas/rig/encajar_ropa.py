@@ -10,6 +10,8 @@ Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la
   4. le pasa los pesos de la base: para cada vértice, el punto más cercano de la superficie de la base y los pesos de ese triángulo (baricéntrico),
      suavizados sobre la malla soldada (las costuras de UV no dejan huecos), con las piernas atenuadas en la túnica para que la falda no se parta en dos,
      máximo 4 influencias, normalizados;
+  4b. si la prenda lleva `capucha` en la config (z del corte, `inclina`), la parte por esa altura en DOS prendas (`capa` abajo, `capucha` arriba); y con `brazo.borde`
+     (gradiente con nombre de la orla trasera) quita peso de brazo y suaviza más los pesos de ese borde para que no se estire en dientes al levantar los brazos;
   5. escribe `<salida>/<prenda>.json` (geometría en el espacio de la malla de la base, Y arriba, tal cual la espera Godot) y las texturas.
 La malla definitiva la monta Godot (`herramientas/montar_ropa_glb.gd`) sobre el esqueleto y el Skin de la base, para que sea EL MISMO esqueleto sin
 pasar por una reexportación de Blender (que reorienta huesos). Blender 5.x, modo fondo.
@@ -344,6 +346,9 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
             # gradiente; el resto se reparte como estaba. En reposo no se nota (todos los huesos están en su pose de enlace).
             pv = o.matrix_world @ v.co
             w_b = pesos_brazo(pv, brazo)
+            if "borde" in brazo:
+                # La orla trasera de la capa lleva menos brazo (gradiente con nombre): al levantarlo no se estira en dientes.
+                w_b *= 1.0 - float(brazo["borde"]["quita_brazo"]) * gradiente_borde_trasero(pv, brazo["borde"])
             if w_b > 1e-4:
                 lado = "Left" if pv.x > float(brazo.get("eje_x", 0.003)) else "Right"
                 d = {k: x * (1.0 - w_b) for k, x in d.items()}
@@ -369,8 +374,53 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
     return res
 
 
-def exportar(o: bpy.types.Object, pesos: list, base: bpy.types.Object, carpeta: str, nombre: str) -> dict:
-    """Vértices únicos por (vértice, UV, normal); posiciones en el espacio de la malla de la base (Blender Z arriba -> glTF Y arriba)."""
+def gradiente_borde_trasero(p: Vector, cfg: dict) -> float:
+    """0..1: cuánto es un punto de la capa borde inferior TRASERO (la orla de la espalda): 1 en el borde bajo y por detrás, 0 por encima de `z1` y hacia delante
+    (a partir de `y0` hacia atrás sube hasta `y1`). Con él se quita peso de brazo y se suavizan más los pesos para que la orla no se estire en dientes."""
+    t_bajo = 1.0 - suave((p.z - float(cfg["z0"])) / (float(cfg["z1"]) - float(cfg["z0"])))
+    t_atras = suave((p.y - float(cfg["y0"])) / (float(cfg["y1"]) - float(cfg["y0"])))
+    return t_bajo * t_atras
+
+
+def suavizar_borde_trasero(o: bpy.types.Object, pesos: list, ids: list, vecinos: list, cfg: dict) -> int:
+    """Pasadas extra de promedio de pesos con los vecinos soldados, mezcladas con el gradiente del borde trasero (fuera de él no tocan nada). Devuelve los pesos
+    nuevos y cuántos vértices tienen gradiente > 0."""
+    g_de = {}
+    for v in o.data.vertices:
+        g_de.setdefault(ids[v.index], v.index)
+    grad = {g: gradiente_borde_trasero(o.matrix_world @ o.data.vertices[i].co, cfg) for g, i in g_de.items()}
+    por_grupo = {g: dict(pesos[i]) for g, i in g_de.items()}
+    for _ in range(int(cfg["pasadas"])):
+        nuevo = {}
+        for g, d in por_grupo.items():
+            t = grad[g]
+            if t < 1e-4 or not vecinos[g]:
+                nuevo[g] = d
+                continue
+            suma = dict(d)
+            for h in vecinos[g]:
+                for hueso, pv in por_grupo[h].items():
+                    suma[hueso] = suma.get(hueso, 0.0) + pv
+            tot = len(vecinos[g]) + 1.0
+            nuevo[g] = {k: (1.0 - t) * d.get(k, 0.0) + t * suma.get(k, 0.0) / tot for k in set(d) | set(suma)}
+        por_grupo = nuevo
+    res = []
+    for v in o.data.vertices:
+        d = por_grupo[ids[v.index]]
+        top = sorted(d.items(), key=lambda kv: -kv[1])[:INFLUENCIAS]
+        tot = sum(w for _, w in top) or 1.0
+        res.append([(h, w / tot) for h, w in top])
+    return res, sum(1 for t in grad.values() if t > 1e-4)
+
+
+def altura_corte(p: Vector, cfg: dict) -> float:
+    """Altura (mundo) del corte entre la capa y la capucha en el punto `p`: `z` en el eje y `inclina` más por cada unidad que se avanza hacia delante (-Y)."""
+    return float(cfg["z"]) - float(cfg.get("inclina", 0.0)) * p.y
+
+
+def exportar(o: bpy.types.Object, pesos: list, base: bpy.types.Object, carpeta: str, nombre: str, filtro=None) -> dict:
+    """Vértices únicos por (vértice, UV, normal); posiciones en el espacio de la malla de la base (Blender Z arriba -> glTF Y arriba). `filtro(triángulo)` deja
+    elegir qué triángulos se escriben (para partir una prenda en dos)."""
     me = o.data
     me.calc_loop_triangles()
     inv = base.matrix_world.inverted()
@@ -380,6 +430,8 @@ def exportar(o: bpy.types.Object, pesos: list, base: bpy.types.Object, carpeta: 
     pos, nor, uvs, joints, weights, idx = [], [], [], [], [], []
     huesos = []
     for t in me.loop_triangles:
+        if filtro is not None and not filtro(t):
+            continue
         for lp in t.loops:
             vi = me.loops[lp].vertex_index
             n = normales[lp].vector
@@ -489,8 +541,22 @@ def main() -> None:
         if nombre == "capa" and os.environ.get("ROPA_DEPURA"):
             perfil_cabeza(o, verts_b)
         pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"))
-        d = exportar(o, pesos, base, carpeta, nombre)
-        print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (nombre, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
+        borde = (c.get("brazo") or {}).get("borde")
+        if borde is not None:
+            pesos, con_gradiente = suavizar_borde_trasero(o, pesos, ids, vecinos, borde)
+            print("BORDE %s: %d vértices con gradiente de orla trasera" % (nombre, con_gradiente))
+        corte = c.get("capucha")
+        if corte is None:
+            d = exportar(o, pesos, base, carpeta, nombre)
+            print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (nombre, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
+        else:
+            # Se parte en dos prendas por una altura (algo inclinada): lo de arriba es la capucha y lo de abajo la capa. Cada triángulo, por su centro.
+            def es_capucha(t) -> bool:
+                cen = sum((o.matrix_world @ o.data.vertices[i].co for i in t.vertices), Vector()) / 3.0
+                return cen.z > altura_corte(cen, corte)
+            for parte, filtro in (("capa", lambda t: not es_capucha(t)), (corte.get("nombre", "capucha"), es_capucha)):
+                d = exportar(o, pesos, base, carpeta, parte, filtro)
+                print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (parte, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
         guardar_texturas(o, carpeta)
 
 

@@ -5,7 +5,9 @@
 		"destino": [0.003, 0.085, 0.0],
 		"margen": 0.012,
 		"margen_casco": 0.012,
-		"brazo": {"x0": 0.10, "x1": 0.30, "peso": 0.6, "z_baja0": 1.10, "z_baja1": 1.22, "parte_clavicula": 0.3}
+		"capucha": {"nombre": "capucha", "z": 1.27, "inclina": 0.0},
+		"brazo": {"x0": 0.10, "x1": 0.30, "peso": 0.6, "z_baja0": 1.10, "z_baja1": 1.22, "parte_clavicula": 0.3,
+			"borde": {"z0": 0.98, "z1": 1.26, "y0": -0.20, "y1": 0.0, "quita_brazo": 0.9, "pasadas": 60}}
 	},
 	"tunica": {
 		"tris": 9000,

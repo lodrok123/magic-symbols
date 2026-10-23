@@ -1,7 +1,13 @@
 {
-	"capa_capucha": {
-		"nombre": "Capa corta con capucha",
-		"glb": "ropa_capa_capucha",
+	"capa": {
+		"nombre": "Capa corta",
+		"glb": "ropa_capa",
+		"capa": "exterior",
+		"oculta": []
+	},
+	"capucha": {
+		"nombre": "Capucha",
+		"glb": "ropa_capucha",
 		"capa": "exterior",
 		"oculta": ["pelo"]
 	},

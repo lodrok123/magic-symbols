@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tt87kfdkn710"
-path="res://.godot/imported/ropa_capa_capucha_ropa_orm.jpg-34ef91ce7ef90b3f8f315a049671619f.ctex"
+uid="uid://crfy52rqyrdw3"
+path="res://.godot/imported/ropa_capa_ropa_orm.jpg-7527e28a320b3bb75417ec9d63ea1eeb.ctex"
 metadata={
 "vram_texture": false
 }
@@ -13,8 +13,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://arte/modelos/ropa_capa_capucha_ropa_orm.jpg"
-dest_files=["res://.godot/imported/ropa_capa_capucha_ropa_orm.jpg-34ef91ce7ef90b3f8f315a049671619f.ctex"]
+source_file="res://arte/modelos/ropa_capa_ropa_orm.jpg"
+dest_files=["res://.godot/imported/ropa_capa_ropa_orm.jpg-7527e28a320b3bb75417ec9d63ea1eeb.ctex"]
 
 [params]
 

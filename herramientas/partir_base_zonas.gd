@@ -21,6 +21,10 @@ const OREJA_X_MIN: float = 0.29
 const OREJA_Z_MIN: float = 1.27
 const OREJA_Z_MAX: float = 1.40
 const OREJA_ATRAS_MAX: float = 0.12
+## Dentro de la caja de la oreja, el pelo (lo que no es piel) pasa a la zona `pelo` si está por detrás de esta distancia al plano de la cara (u del modelo, +atrás).
+const PELO_HEBRA_ATRAS_MIN: float = -0.06
+## ...y por debajo de esta altura (la caja de la oreja llega a OREJA_Z_MAX; las hebras que asomaban junto a ella subían algo más).
+const PELO_HEBRA_Z_MAX: float = 1.55
 ## Por debajo de esta altura el hueso «Leg» es bota (las botas llegan bajo la rodilla).
 const BOTA_Z_MAX: float = 0.43
 ## Color de la textura: piel y mangas = claras y poco saturadas; el resto del torso es la ropa pintada (cinturón si pesa en la cadera, chaleco si no).
@@ -127,6 +131,10 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 	var atras: float = -centro.z * ESCALA_MALLA
 	if h == "Head" or h == "Neck" or h == "headfront" or h.begins_with("HeadTop"):
 		var oreja: bool = absf(x) > OREJA_X_MIN and altura > OREJA_Z_MIN and altura < OREJA_Z_MAX and atras < OREJA_ATRAS_MAX
+		var junto_oreja: bool = absf(x) > OREJA_X_MIN and altura > OREJA_Z_MIN and altura < PELO_HEBRA_Z_MAX and atras < OREJA_ATRAS_MAX
+		if junto_oreja and not _es_piel(_color(img, uv[a], uv[b], uv[c])) and atras > PELO_HEBRA_ATRAS_MIN:
+			# En la caja de la oreja solo la oreja es piel: las hebras de pelo (color de pelo) que hay ahí son del pelo de atrás, y con la capucha asomaban sueltas junto a ella.
+			return ZONAS.find("pelo")
 		if atras > PELO_Y_MIN and not oreja and altura > 1.05:
 			return ZONAS.find("pelo")
 		return ZONAS.find("cabeza")
@@ -141,13 +149,17 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 		return ZONAS.find("brazos")
 	# Torso (Hips, Spine*) y la parte alta de los brazos, donde el chaleco llega a los hombros y a la sisa: por el color de la textura (la piel y las mangas
 	# son claras; el chaleco y el cinturón, de cuero marrón).
-	var col: Color = _color(img, uv[a], uv[b], uv[c])
+	if _es_piel(_color(img, uv[a], uv[b], uv[c])):
+		return ZONAS.find("brazos" if brazo else "torso")
+	return ZONAS.find("cinturon" if h == "Hips" else "chaleco")
+
+
+## Color claro y poco saturado: piel (o manga clara).
+func _es_piel(col: Color) -> bool:
 	var mx: float = maxf(col.r, maxf(col.g, col.b))
 	var mn: float = minf(col.r, minf(col.g, col.b))
 	var sat: float = (mx - mn) / maxf(mx, 0.001)
-	if mn > PIEL_MIN and sat < PIEL_SATURACION_MAX:
-		return ZONAS.find("brazos" if brazo else "torso")
-	return ZONAS.find("cinturon" if h == "Hips" else "chaleco")
+	return mn > PIEL_MIN and sat < PIEL_SATURACION_MAX
 
 
 func _color(img: Image, a: Vector2, b: Vector2, c: Vector2) -> Color:

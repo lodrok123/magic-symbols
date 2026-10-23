@@ -221,7 +221,7 @@ const SOMBRA_ALFA: float = 0.36
 const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test", "jugadora_base"]   ## prefijos de id que son la jugadora (rol «jugadora»); jugadora_base (23/10) es la candidata a sustituirla
 ## Ropa por piezas (Ropa3D) que lleva puesta un personaje al cargarlo: id -> [ids de prenda de arte/modelos/ropa.json]. Sin entrada, el modelo va como viene.
 const ROPA_POR_DEFECTO: Dictionary = {
-	"jugadora_base": ["tunica", "capa_capucha"],
+	"jugadora_base": ["tunica", "capa", "capucha"],
 }
 
 var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta

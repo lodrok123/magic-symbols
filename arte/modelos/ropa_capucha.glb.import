@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://isb66utatlmy"
-path="res://.godot/imported/ropa_capa_capucha.glb-9d877eb3315ecf88397b745ff1182935.scn"
+uid="uid://cfyk24itvbn8g"
+path="res://.godot/imported/ropa_capucha.glb-4074aebf6331bda9afb88877845996ed.scn"
 
 [deps]
 
-source_file="res://arte/modelos/ropa_capa_capucha.glb"
-dest_files=["res://.godot/imported/ropa_capa_capucha.glb-9d877eb3315ecf88397b745ff1182935.scn"]
+source_file="res://arte/modelos/ropa_capucha.glb"
+dest_files=["res://.godot/imported/ropa_capucha.glb-4074aebf6331bda9afb88877845996ed.scn"]
 
 [params]
 

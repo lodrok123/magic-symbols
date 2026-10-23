@@ -1,7 +1,7 @@
 extends SceneTree
 ## CAPTURAS de la jugadora base (jugadora_base) sola y vestida (capa con capucha + túnica), en reposo, en las 6 poses de prueba de docs/PLAN_RIGGING.md §3,
 ## andando y corriendo, y junto a la jugadora actual (woodland_wanderer). NECESITA VENTANA:
-##   godot --path . --script res://herramientas/captura_jugadora_base.gd -- <carpeta> [<secciones separadas por coma: vistas,poses,marcha,comparar,cerca,v2> [<prefijo de los ficheros>]]
+##   godot --path . --script res://herramientas/captura_jugadora_base.gd -- <carpeta> [<secciones separadas por coma: vistas,poses,marcha,comparar,cerca,v2,v3> [<prefijo de los ficheros>]]
 ## Las poses de prueba giran los huesos en el espacio del modelo (+Z delante, +X la izquierda del personaje), sin clips: se ve cómo deforma el cuerpo y cómo
 ## sigue la ropa (si el brazo atraviesa la capa o la túnica las piernas). Las dos prendas van con el mismo esqueleto (Pj3D.poner_ropa).
 
@@ -25,6 +25,11 @@ const POSES: Array = [
 	["codos_doblados", [["LeftForeArm", "x", -110.0], ["RightForeArm", "x", -110.0]], 0.0],
 ]
 const VISTAS: Array = [["frente", 0.0], ["tres_cuartos", 40.0], ["espalda", 180.0], ["lado", 90.0]]
+## Prendas de la jugadora vestida (ids de arte/modelos/ropa.json): la capa corta y la capucha van por separado.
+const PRENDAS: Array = ["tunica", "capa", "capucha"]
+## Primer plano de las orejas: foco (alto del juego = 1,0; las orejas están a 1,33 / 1,7) y tamaño de la vista.
+const FOCO_OREJAS: float = 0.78
+const TAM_OREJAS: float = 0.34
 
 var _carpeta: String = ""
 var _camara_pitch: float = CAMARA_PITCH
@@ -139,6 +144,8 @@ func _correr() -> void:
 		pj.rotation_degrees.y = 0.0
 	if secciones.has("v2"):
 		await _captura_v2(pj, cam)
+	if secciones.has("v3"):
+		await _captura_v3(pj, cam)
 	if secciones.has("comparar"):
 		pj.position = Vector3(-0.5, 0, 0)
 		_vestir(pj, true)
@@ -195,6 +202,45 @@ func _captura_v2(pj: Pj3D, cam: Camera3D) -> void:
 	pj.rotation_degrees.y = 0.0
 
 
+## Tercera pasada de ropa (docs/capturas/jugadora_base/v3_*): capa y capucha por separado. Con las dos puestas (reposo desde cuatro lados, brazos a 125° de espalda y
+## en 3/4, primer plano de las orejas) y con la capa sin capucha (el pelo vuelve).
+func _captura_v3(pj: Pj3D, cam: Camera3D) -> void:
+	_vestir(pj, true)
+	_pose_reposo(pj)
+	await _esperar()
+	for v in VISTAS:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/capa_capucha_%s.png" % [_carpeta, v[0]])
+	for v in VISTAS:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, FOCO_OREJAS, 0), TAM_OREJAS, "%s/orejas_capucha_%s.png" % [_carpeta, v[0]])
+	pj.quitar_ropa("capucha")
+	await _esperar()
+	for v in VISTAS:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/capa_sin_capucha_%s.png" % [_carpeta, v[0]])
+	for v in [VISTAS[0], VISTAS[3]]:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, FOCO_OREJAS, 0), TAM_OREJAS, "%s/orejas_sin_capucha_%s.png" % [_carpeta, v[0]])
+	pj.poner_ropa("capucha")
+	pj.quitar_ropa("capa")
+	await _esperar()
+	for v in [VISTAS[0], VISTAS[3]]:
+		pj.rotation_degrees.y = float(v[1])
+		await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/solo_capucha_%s.png" % [_carpeta, v[0]])
+	pj.poner_ropa("capa")
+	pj.rotation_degrees.y = 0.0
+	for pose in ["brazos_arriba"]:
+		_pose_reposo(pj)
+		await process_frame
+		_aplicar_pose(pj, _pose(pose))
+		await _esperar()
+		for v in [VISTAS[2], VISTAS[1], VISTAS[3], VISTAS[0]]:
+			pj.rotation_degrees.y = float(v[1])
+			await _foto(cam, Vector3(0, 0.62, 0), TAM_COMPLETO * 0.8, "%s/brazos125_%s.png" % [_carpeta, v[0]])
+	pj.rotation_degrees.y = 0.0
+
+
 func _pose(nombre: String) -> Array:
 	for p in POSES:
 		if String(p[0]) == nombre:
@@ -203,7 +249,7 @@ func _pose(nombre: String) -> Array:
 
 
 func _vestir(pj: Pj3D, si: bool) -> void:
-	for prenda in ["tunica", "capa_capucha"]:
+	for prenda in PRENDAS:
 		if si:
 			pj.poner_ropa(prenda)
 		else:
