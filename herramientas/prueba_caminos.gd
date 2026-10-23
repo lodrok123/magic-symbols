@@ -14,6 +14,13 @@ const S: float = 2.3
 const LADO: int = 14
 const L40: int = 40
 const LIMITE_US: float = 1000.0
+## Terreno fijo para comprobar que optimizar no cambia las rutas: 30x30 con muros, agua, alturas de 0 a 3 (con escalones de 2 que no se pasan) y 60 pares.
+const L30: int = 30
+const PARES_FIJOS: int = 60
+const SEMILLA_FIJA: int = 20241024
+## Resultado de las 60 rutas medido con el A* ANTERIOR a la optimización (huella del texto de todas las rutas y casillas totales). Si cambia, las rutas ya no son las mismas.
+const HUELLA_RUTAS_FIJAS: int = 3205963121
+const CASILLAS_RUTAS_FIJAS: int = 795
 
 var _mundo: Mundo3D = null
 var _jugador: Jugador3D = null
@@ -34,6 +41,8 @@ func _initialize() -> void:
 	_puente_hielo()
 	_alturas()
 	_sin_ruta()
+	_montar(L30)
+	_rutas_fijas()
 	_montar(L40)
 	_coste()
 	print("FALLOS: %d" % _fallos)
@@ -270,6 +279,43 @@ func _sin_ruta() -> void:
 	_quitar(g)
 	for y in range(1, LADO - 1):
 		Terreno3D.liberar_celda(Vector2i(6, y))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  5b. Las mismas rutas que antes de optimizar
+# ---------------------------------------------------------------------------------------------------------------------
+func _azar_fijo(estado: Array) -> int:
+	estado[0] = (int(estado[0]) * 1103515245 + 12345) & 0x7fffffff
+	return int(estado[0]) >> 4
+
+
+func _rutas_fijas() -> void:
+	var est: Array = [SEMILLA_FIJA]
+	for y in range(1, L30 - 1):
+		for x in range(1, L30 - 1):
+			var c := Vector2i(x, y)
+			var r: int = _azar_fijo(est) % 100
+			if r < 8:
+				Terreno3D.bloquear_celda(c)
+			elif r < 11:
+				_letra(c, "~")
+			elif r < 40:
+				Terreno3D.fijar_altura(c, 1 + (_azar_fijo(est) % 2) * (1 + (_azar_fijo(est) % 2)))
+	var huella: String = ""
+	var total: int = 0
+	var con_ruta: int = 0
+	var cc: Caminos3D = Caminos3D.compartido()
+	var propias0: int = cc.rutas_propias
+	for i in range(PARES_FIJOS):
+		var a := Vector2i(_azar_fijo(est) % (L30 - 2) + 1, _azar_fijo(est) % (L30 - 2) + 1)
+		var b := Vector2i(_azar_fijo(est) % (L30 - 2) + 1, _azar_fijo(est) % (L30 - 2) + 1)
+		var r: Array[Vector2i] = Caminos3D.camino(a, b)
+		huella += "%s>%s=%s;" % [str(a), str(b), str(r)]
+		total += r.size()
+		if not r.is_empty():
+			con_ruta += 1
+	print("AVISO rutas fijas: huella %d, casillas %d, con ruta %d/%d, A* propio %d" % [huella.hash(), total, con_ruta, PARES_FIJOS, cc.rutas_propias - propias0])
+	_ok("5b las %d rutas del terreno fijo son idénticas a las de antes de optimizar" % PARES_FIJOS, huella.hash() == HUELLA_RUTAS_FIJAS and total == CASILLAS_RUTAS_FIJAS, "huella %d casillas %d" % [huella.hash(), total])
 
 
 # ---------------------------------------------------------------------------------------------------------------------

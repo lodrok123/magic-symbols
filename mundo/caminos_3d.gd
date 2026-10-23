@@ -26,6 +26,8 @@ const AVISOS: PackedStringArray = ["bloqueo", "altura", "agua", "hielo", "letra"
 ## Diferencia máxima de nivel entre dos casillas vecinas por la que se puede pasar (como el jugador: sube/baja un escalón, no dos).
 const SALTO_MAX: int = 1
 const COSTE_DIAGONAL: float = 1.4142135
+## Tope del contador de versión de las marcas del A* propio (Int32); al llegar se vuelven a poner a cero.
+const VERSION_MAX: int = 2000000000
 
 static var _yo: Caminos3D = null
 
@@ -36,6 +38,17 @@ var _id_maqueta: int = 0               ## instance_id de Terreno3D.mundo_s cuand
 var reconstrucciones: int = 0          ## cuántas veces se ha reconstruido entera (para las pruebas)
 var refrescos: int = 0                 ## cuántas casillas se han refrescado por aviso (para las pruebas)
 var rutas_propias: int = 0             ## cuántas veces hizo falta el A* propio por una arista de altura
+
+# Espejo y memoria de trabajo del A* propio (se reutilizan entre búsquedas: nada se asigna por consulta).
+var _solida := PackedByteArray()       ## 1 = casilla no transitable (la misma verdad que el AStarGrid2D, sin pasar por él)
+var _nivel := PackedInt32Array()       ## niveles de tierra volcados de Terreno3D.alturas al empezar cada búsqueda propia
+var _g := PackedFloat32Array()
+var _padre := PackedInt32Array()
+var _marca := PackedInt32Array()       ## == _version si `_g` y `_padre` de la casilla valen en la búsqueda en curso
+var _cerrado := PackedInt32Array()     ## == _version si la casilla ya se cerró en la búsqueda en curso
+var _h_ids := PackedInt32Array()       ## montículo binario: ids y prioridades en paralelo
+var _h_pri := PackedFloat32Array()
+var _version: int = 0
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -128,6 +141,17 @@ func reconstruir() -> void:
 	if _lado <= 0:
 		_a = null
 		return
+	var celdas: int = _lado * _lado
+	_solida.resize(celdas)
+	_solida.fill(0)
+	_nivel.resize(celdas)
+	_g.resize(celdas)
+	_padre.resize(celdas)
+	_marca.resize(celdas)
+	_marca.fill(0)
+	_cerrado.resize(celdas)
+	_cerrado.fill(0)
+	_version = 0
 	var a := AStarGrid2D.new()
 	a.region = Rect2i(0, 0, _lado, _lado)
 	a.cell_size = Vector2.ONE
@@ -139,6 +163,7 @@ func reconstruir() -> void:
 		for x in range(_lado):
 			if not transitable(Vector2i(x, y)):
 				a.set_point_solid(Vector2i(x, y), true)
+				_solida[y * _lado + x] = 1
 	_a = a
 
 
@@ -151,6 +176,7 @@ func avisar_cambio(c: Vector2i) -> bool:
 	if _a.is_point_solid(c) == solida:
 		return false
 	_a.set_point_solid(c, solida)
+	_solida[c.y * _lado + c.x] = 1 if solida else 0
 	return true
 
 
@@ -170,62 +196,124 @@ func buscar(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
 		_a.set_point_solid(desde, true)
 	if p.is_empty():
 		return p
-	for i in range(p.size() - 1):
-		if not arista_ok(p[i], p[i + 1]):
-			rutas_propias += 1
-			return _buscar_con_alturas(desde, hasta)
+	if not _ruta_vale_con_alturas(p):
+		rutas_propias += 1
+		return _buscar_con_alturas(desde, hasta)
 	return p
+
+
+## ¿Vale la ruta del A* nativo con la regla de altura? Mismo criterio que `arista_ok` en cada paso, pero leyendo la solidez del espejo `_solida` (sin recorrer
+## Terreno3D por cada lado de diagonal). Sin ninguna altura de tierra en el mapa todo está a nivel 0: solo queda la esquina, que el A* nativo ya no corta.
+func _ruta_vale_con_alturas(p: Array[Vector2i]) -> bool:
+	if Terreno3D.alturas.is_empty():
+		return true
+	for i in range(p.size() - 1):
+		var a: Vector2i = p[i]
+		var b: Vector2i = p[i + 1]
+		var na: int = Terreno3D.altura_en(a)
+		var nb: int = Terreno3D.altura_en(b)
+		if absi(na - nb) > SALTO_MAX:
+			return false
+		if a.x != b.x and a.y != b.y:
+			var m1 := Vector2i(b.x, a.y)
+			var m2 := Vector2i(a.x, b.y)
+			if _solida[m1.y * _lado + m1.x] == 1 or _solida[m2.y * _lado + m2.x] == 1:
+				return false
+			var n1: int = Terreno3D.altura_en(m1)
+			var n2: int = Terreno3D.altura_en(m2)
+			if absi(na - n1) > SALTO_MAX or absi(n1 - nb) > SALTO_MAX or absi(na - n2) > SALTO_MAX or absi(n2 - nb) > SALTO_MAX:
+				return false
+	return true
 
 
 ## A* propio con la regla de altura en cada arista. Montón binario con ids lineales y/x; ~lado² nodos como mucho. Solo se llama si la ruta nativa
 ## pisó un escalón de 2+ niveles.
+## Optimizado (24/10, D2): sin asignar por búsqueda (g, padre y cerrado se reutilizan con una marca de versión en lugar de rellenarse), solidez desde el espejo
+## `_solida`, niveles volcados de `Terreno3D.alturas` a un array lineal (una lectura por casilla de tierra en vez de varias por arista) y bucle con enteros, sin Vector2i.
+## Mismo orden de vecinos, mismos costes (float32 en g y en el montón) y mismo desempate que antes: devuelve la MISMA ruta.
 func _buscar_con_alturas(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
 	var vacia: Array[Vector2i] = []
-	var n: int = _lado * _lado
-	var g := PackedFloat32Array()
-	g.resize(n)
-	g.fill(INF)
-	var padre := PackedInt32Array()
-	padre.resize(n)
-	padre.fill(-1)
-	var cerrado := PackedByteArray()
-	cerrado.resize(n)
-	var h_ids := PackedInt32Array()
-	var h_pri := PackedFloat32Array()
-	var i0: int = desde.y * _lado + desde.x
-	var i1: int = hasta.y * _lado + hasta.x
-	g[i0] = 0.0
-	_monton_poner(h_ids, h_pri, i0, _octil(desde, hasta))
-	while not h_ids.is_empty():
-		var u: int = _monton_sacar(h_ids, h_pri)
-		if cerrado[u] == 1:
+	var lado: int = _lado
+	var n: int = lado * lado
+	_version += 1
+	if _version >= VERSION_MAX:
+		_marca.fill(0)
+		_cerrado.fill(0)
+		_version = 1
+	var ver: int = _version
+	_nivel.fill(0)
+	for c: Vector2i in Terreno3D.alturas:
+		if c.x >= 0 and c.y >= 0 and c.x < lado and c.y < lado:
+			_nivel[c.y * lado + c.x] = int(Terreno3D.alturas[c])
+	_h_ids.resize(0)
+	_h_pri.resize(0)
+	var i0: int = desde.y * lado + desde.x
+	var i1: int = hasta.y * lado + hasta.x
+	var hx: int = hasta.x
+	var hy: int = hasta.y
+	_g[i0] = 0.0
+	_padre[i0] = -1
+	_marca[i0] = ver
+	_monton_poner(_h_ids, _h_pri, i0, _octil(desde, hasta))
+	while not _h_ids.is_empty():
+		var u: int = _monton_sacar(_h_ids, _h_pri)
+		if _cerrado[u] == ver:
 			continue
-		cerrado[u] = 1
+		_cerrado[u] = ver
 		if u == i1:
 			break
-		var cu := Vector2i(u % _lado, u / _lado)
+		var ux: int = u % lado
+		var uy: int = u / lado
+		var nu: int = _nivel[u]
+		var gu: float = _g[u]
 		for dy in range(-1, 2):
+			var vy: int = uy + dy
+			if vy < 0 or vy >= lado:
+				continue
 			for dx in range(-1, 2):
 				if dx == 0 and dy == 0:
 					continue
-				var cv := Vector2i(cu.x + dx, cu.y + dy)
-				if not _a.region.has_point(cv) or _a.is_point_solid(cv):
+				var vx: int = ux + dx
+				if vx < 0 or vx >= lado:
 					continue
-				if not arista_ok(cu, cv):
+				var v: int = vy * lado + vx
+				if _solida[v] == 1:
 					continue
-				var v: int = cv.y * _lado + cv.x
-				var ng: float = g[u] + (COSTE_DIAGONAL if dx != 0 and dy != 0 else 1.0)
-				if ng < g[v]:
-					g[v] = ng
-					padre[v] = u
-					_monton_poner(h_ids, h_pri, v, ng + _octil(cv, hasta))
-	if padre[i1] == -1:
+				var nv: int = _nivel[v]
+				if absi(nu - nv) > SALTO_MAX:
+					continue
+				var coste: float = 1.0
+				if dx != 0 and dy != 0:
+					# Diagonal: las dos casillas del lado también han de poder pasarse (no se rasca una esquina).
+					var m1: int = uy * lado + vx
+					var m2: int = vy * lado + ux
+					if _solida[m1] == 1 or _solida[m2] == 1:
+						continue
+					var n1: int = _nivel[m1]
+					var n2: int = _nivel[m2]
+					if absi(nu - n1) > SALTO_MAX or absi(n1 - nv) > SALTO_MAX or absi(nu - n2) > SALTO_MAX or absi(n2 - nv) > SALTO_MAX:
+						continue
+					coste = COSTE_DIAGONAL
+				var ng: float = gu + coste
+				if _marca[v] != ver or ng < _g[v]:
+					_marca[v] = ver
+					_g[v] = ng
+					_padre[v] = u
+					var ddx: int = absi(vx - hx)
+					var ddy: int = absi(vy - hy)
+					_monton_poner(_h_ids, _h_pri, v, ng + (float(maxi(ddx, ddy)) + (COSTE_DIAGONAL - 1.0) * float(mini(ddx, ddy))))
+	if _marca[i1] != ver or _padre[i1] == -1:
 		return vacia
-	var r: Array[Vector2i] = []
+	var ids: PackedInt32Array = PackedInt32Array()
 	var k: int = i1
 	while k != -1:
-		r.push_front(Vector2i(k % _lado, k / _lado))
-		k = padre[k]
+		ids.append(k)
+		k = _padre[k]
+	var r: Array[Vector2i] = []
+	r.resize(ids.size())
+	for j in range(ids.size()):
+		var idc: int = ids[ids.size() - 1 - j]
+		r[j] = Vector2i(idc % lado, idc / lado)
 	return r
 
 
