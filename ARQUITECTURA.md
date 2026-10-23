@@ -1512,6 +1512,7 @@ siga así.
 | Goblin con escudo que se derrite | pierde 10 de vida cada 0,25 s | los pulsos de una zona van directos a `receive_damage` y no pasan por el escudo. Arreglo: consultar `escudo_cubre` |
 | Media GPU congelada | el juego se para con un incendio grande | medio mapa de hierba en llamas, cada casilla con sus efectos. Arreglo: tope de 60 casillas ardiendo y 24 efectos |
 | Pasillos cerrados sin motivo | el jugador no pasa junto a un pino | la colisión real rozaba el 90 % de la casilla y la daba por bloqueada. Arreglo: contar solo el 50 % central |
+| La maqueta no carga | «Expected indented block after match pattern block» en `prueba_test2.gd` | al añadir RePág/AvPág/Inicio (21/10) se metieron entre `KEY_F1 … KEY_F6:` y su cuerpo, que acabó dentro de `KEY_HOME`. Arreglo (23/10): F1–F6 ya no lanzan VFX sueltos; los hechizos solo salen del libro |
 | Escalar un raster para que "llene" | el prop se ve borroso al lado de losas nítidas | `PROP_DATOS` amplía ×1,2–1,6 props que el pipeline entrega a 38–51 px de ancho. Ampliar un raster emborrona justo lo que está delante del jugador |
 
 ---
@@ -1541,10 +1542,6 @@ lo que es diseño nuevo, en `docs/DISENO_FUTURO.md`):
   de nivel y de privados (ver *Niveles*).
 - **Bugs conocidos**: el jugador se salta el muro estando elevado; el
   arquero recibe daño de más del circuito tras morir (tarea 1.2 del plan).
-- **Atajos F1–F6 de la maqueta**: en `PruebaTest2._unhandled_input` la
-  rama `KEY_F1, … KEY_F6:` se quedó sin cuerpo al añadir RePág/AvPág/Inicio
-  (21/10), y el `_lanzar` de F1–F6 acabó dentro de `KEY_HOME`. Comprobar
-  en Godot si el script carga.
 - **Restos que confunden**: el indicador de voltereta de `page_hud.gd`
   busca un método que ya no existe (y rotula «Espacio» en vez de `Ctrl`);
   el loberno hereda nombre y debilidades del guerrero; `Estado` no se

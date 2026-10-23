@@ -4716,18 +4716,6 @@ func _avanzar_estado(dt: float) -> void:
 		_pisadas.erase(c)
 
 
-## Lanza hacia donde mira la chibi, a 2,5 casillas (con tierra y rayo el efecto brota en el destino).
-func _lanzar(elemento: String) -> void:
-	var d := Vector3(sin(_jugador.rotation.y), 0.0, cos(_jugador.rotation.y))
-	_dir_hechizo = d
-	var destino: Vector3 = _jugador.position + d * S * 2.5
-	var c: Vector2i = _celda_de(destino)
-	destino.y = ALTO_AGUA if (_en_mapa(c) and _es_agua(_letra(c))) else ALTO
-	_jugador.jugar("cast")
-	_t_cast = 0.9
-	_fx.lanzar(elemento, _jugador.position + d * 0.3, destino)
-
-
 ## Tapa la pantalla un momento y lanza los seis elementos: compila shaders y carga texturas antes de jugar.
 ## Mientras dura, los impactos no marcan el suelo.
 func _precalentar(capa: CanvasLayer) -> void:
@@ -4786,25 +4774,23 @@ func _unhandled_input(ev: InputEvent) -> void:
 			# 14.2 (a): enciende/apaga el diorama (el desenfoque del fondo) para comparar capturas.
 			diorama = not diorama
 			print("Diorama (desenfoque del fondo): %s" % ("sí" if diorama else "no"))
-		KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6:
+		# F1–F6 ya no lanzan el VFX de cada elemento (23/10): los hechizos solo salen escribiendo en el libro. F1 es de la paleta de runas.
 		KEY_PAGEUP:
-			# F1: siguiente zona de luz (bosque → cenital → atardecer → ruinas → hielo). Solo cambia sol y ambiente.
+			# RePág: siguiente zona de luz (bosque → cenital → atardecer → ruinas → hielo). Solo cambia sol y ambiente.
 			zona_luz = LuzZona3D.siguiente(zona_luz)
 			LuzZona3D.aplicar(_env, _sol, zona_luz)
 			print("Zona de luz: %s" % zona_luz)
 		KEY_PAGEDOWN:
-			# F2: enciende/apaga la banda de tilt-shift.
+			# AvPág: enciende/apaga la banda de tilt-shift.
 			tilt_shift = not tilt_shift
 			if _tilt != null:
 				_tilt.encendido = tilt_shift
 			print("Tilt-shift: %s" % ("sí" if tilt_shift else "no"))
 		KEY_HOME:
-			# F3: crea / quita la sonda de reflejos (al crearla se hornea de nuevo con lo que haya ahora).
+			# Inicio: crea / quita la sonda de reflejos (al crearla se hornea de nuevo con lo que haya ahora).
 			sonda_reflejos = not sonda_reflejos
 			_montar_sonda()
 			print("Sonda de reflejos: %s" % ("sí" if sonda_reflejos else "no"))
-			if _jugador != null and _velo == null:
-				_lanzar(String(Vfx3D.ELEMENTOS[k.keycode - KEY_F1]))
 		KEY_T:
 			# Rampa de luz del suelo y del agua: 1 (como el PBR) · 2,5 · 4 (cel suave). Para comparar capturas.
 			_contraste = 1.0 if _contraste >= 4.0 else (2.5 if _contraste < 2.5 else 4.0)
