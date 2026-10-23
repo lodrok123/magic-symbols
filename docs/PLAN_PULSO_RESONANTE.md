@@ -28,6 +28,9 @@ en el tiempo. El pulso es lo segundo: cualquier volumen puede resonar. Por eso s
   (lo de hoy, con más alcance), uno de tierra agrieta lo que toca y uno de hielo congela el agua por la que pasa. Las combinaciones
   salen solas, como en el resto de la v2.
 - **Sin elemento** es un pulso puro: activa receptores y cristales, revela paredes huecas por el eco y no hace daño.
+- **El pulso base (decisión de Pablo, 23/10)** es ese pulso puro y tiene color propio: **azulado claro** (`Pulso3D.COLOR_BASE`,
+  ≈ `Color(0.62, 0.85, 1.0)`, #9ED9FF). Es el color con el que se encienden vetas, cristales y receptores cuando el pulso no lleva
+  elemento, el del pulso del escenario antes del cofre y el que se ve por defecto. Con elemento, el frente toma el color de su runa.
 - **Conflicto de nombre:** ᚷ ya es «pulso» en la v2 (`crece`: el volumen nace pequeño y crece). O se renombra ᚷ («crecer») o el
   glifo nuevo se llama «resonancia» o «eco». Lo decide Pablo (§10).
 
