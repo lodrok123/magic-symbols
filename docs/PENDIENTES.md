@@ -44,6 +44,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] 10.4 controles relativos a la cámara (sin marcar en PLAN_ARREGLOS).
 - [ ] Asistencia al trazo: los parciales al 60 % siguen por debajo del 80 %.
 - [ ] Glifos nuevos de MEJORAS_POTENCIA §6 (perforar, senda, marca…), solo si Pablo los aprueba.
+- [ ] **Pulso resonante** (`PLAN_PULSO_RESONANTE.md` §12): la FASE 1 (señal y lectura) está hecha el 23/10 (`Pulso3D`, `cristal`, `veta`, `receptor`, C1 y C5 → C6). Quedan la fase 2 (prismas, cofre legendario con animación, glifo ᚱ «pulso» y ᚷ → «crecer», pared hueca de salida), la 3 (C2–C4, setas, estatuas, cofre épico, reactivos con `on_pulso`), el sonido propio del pulso (hoy `sello_ok` a distintos tonos) y que en C5 la descarga amarilla de la fuente tapa el frente del pulso por el agua.
 
 ## Pipeline
 

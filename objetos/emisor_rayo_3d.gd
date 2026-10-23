@@ -55,23 +55,39 @@ func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
 ## estática y sin árbol para poder medirla sin escena. El origen es TIERRA (la fuente): la corriente entra por el agua que
 ## toca; si no toca ninguna, no hay corriente. Si `origen` fuese agua, entra también.
 static func agua_conectada(origen: Vector2i, es_agua: Callable) -> Array:
-	var visto: Dictionary = {}
+	return EmisorRayo3D.ola([origen], es_agua, LIMITE_BUSQUEDA).keys()
+
+
+## LA BÚSQUEDA, con distancia (23/10, FASE 1 del Pulso resonante: la comparte `Pulso3D`, no se duplica). Relleno por las 4 vecinas desde
+## `origenes` (casillas) por lo que `conduce` (Callable(Vector2i) -> bool) deja pasar, hasta `alcance` casillas. Devuelve {casilla: paso}:
+## 1 = vecina del origen, 2 = la siguiente… Las casillas de origen no cuentan como conductoras (paso 0 solo si conducen, o si `origen_siempre`:
+## el pulso nace SIEMPRE en su emisor), pero desde ellas se entra en lo que las toca: así la fuente (tierra) electrifica el agua de su orilla.
+## El orden del diccionario es el de la búsqueda (por anillos), que es el orden en que el frente de un pulso las alcanza.
+static func ola(origenes: Array, conduce: Callable, alcance: int, origen_siempre: bool = false) -> Dictionary:
+	var paso: Dictionary = {}                 # las que entran en el resultado
+	var dist: Dictionary = {}                 # las ya vistas (incluye el origen aunque no conduzca)
 	var cola: Array = []
-	var arranque: Array = [origen, origen + Vector2i(1, 0), origen + Vector2i(-1, 0), origen + Vector2i(0, 1), origen + Vector2i(0, -1)]
-	for c in arranque:
-		if bool(es_agua.call(c)) and not visto.has(c):
-			visto[c] = true
-			cola.append(c)
+	for o in origenes:
+		if dist.has(o):
+			continue
+		dist[o] = 0
+		cola.append(o)
+		if origen_siempre or bool(conduce.call(o)):
+			paso[o] = 0
 	var i: int = 0
 	while i < cola.size() and cola.size() < LIMITE_BUSQUEDA:
 		var c: Vector2i = cola[i]
 		i += 1
-		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			var v: Vector2i = c + d
-			if not visto.has(v) and bool(es_agua.call(v)):
-				visto[v] = true
+		var d: int = int(dist[c])
+		if d >= alcance:
+			continue
+		for dir in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var v: Vector2i = c + dir
+			if not dist.has(v) and bool(conduce.call(v)):
+				dist[v] = d + 1
+				paso[v] = d + 1
 				cola.append(v)
-	return cola
+	return paso
 
 
 ## ¿Toca `c` (o alguna de sus 8 vecinas) alguna casilla de `agua`? Para el tótem de la orilla: pegado al agua, en diagonal incluido.

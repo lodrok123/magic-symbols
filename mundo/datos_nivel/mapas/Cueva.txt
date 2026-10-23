@@ -36,6 +36,9 @@
 ; pieza seta_c1a seta 1 15
 ; pieza seta_c1b seta 1 16
 ; pieza seta_c1c seta 2 16
+; El pulso resonante, fase 1 (PLAN_PULSO_RESONANTE §5): un cristal late cada 3 s y su pulso recorre la veta hasta los braseros y las setas. No hay puzle: se VE.
+; pieza latido_c1 cristal 6 15 cada=3
+; pieza veta_c1 veta 5 15 celdas=5,15..2,15+2,14..2,13
 ; --- C2 · Las grietas ---
 ; pieza grieta muro 9 4 golpes=2
 ; pieza seta_c2a seta 7 8
@@ -49,10 +52,16 @@
 ; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
 ; pieza fuente emisor 24 12
+; Cada descarga de la fuente suelta además un pulso de rayo (alcance 24) que corre por el AGUA y sigue por la veta que sale de la charca hasta C6, bajo la puerta.
+; Si la charca se hiela, el agua deja de conducir y el pulso no llega.
+; puzle c5_pulso cuando=fuente.descarga hace=fuente.pulso(24)
+; pieza veta_c5 veta 19 16 celdas=19,16..15,16+15,15..15,13
 ; --- C6 · Tesoro: puerta con llave, cofre grande y atajo a la boca ---
 ; pieza puerta_llave puerta 18 16 modelo=llave
 ; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
 ; pieza tesoro cofre 13 13 modelo=legendario
+; El receptor de C6: la veta de C5 acaba junto a él. Fase 1: solo se enciende y pone la flag; abrir el cofre con él (y los prismas) es la fase 2.
+; pieza ante_cofre receptor 14 13 flag=cueva.c6.pulso
 ; pieza boton pulsador 10 16 modo=presencia modelo=cueva
 ; pieza atajo puerta 9 16 modelo=llave
 ; puzle abre_atajo cuando=boton.pulsado hace=atajo.abrir

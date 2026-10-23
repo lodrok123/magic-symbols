@@ -247,8 +247,8 @@ Instalado: **D1 completa** (`cristal_resonante` 1 200 tris, `prisma_orientable` 
 `columna_agrietada` 1 000), **D2** (`cofre_legendario` 1 800 + tapa 900, `cofre_epico` 900 + tapa 500, `placa_presion_cueva` 400) y **D4** (`veta_mineral`,
 `veta_mineral_mascara` y `pared_foso_cueva` en `arte/suelo_meshy/`). Los cofres llevan `cofre_cuerpo` y `cofre_tapa` con la bisagra en el origen de la tapa
 (`arte/meshy/montar_cofre.py`). Enganchado en la Cueva: la pared del foso y el borde del mapa (`pared_foso_cueva`), el `tesoro` (`modelo=legendario`) y la placa
-«PÍSAME» (`modelo=cueva`). **Pendiente**: el cristal salió turquesa saturado (se pidió aguamarina apagado): bajarle la saturación por material (Albedos3D/emisión
-del pulso) en la fase 1 del plan, sin regenerar. D3 sigue sin llegar.
+«PÍSAME» (`modelo=cueva`). **Hecho (23/10, fase 1 del pulso)**: el cristal salió turquesa saturado (se pidió aguamarina apagado) y se baja por material en `BrilloPulso3D`
+(`SAT_REPOSO`, `OSCURECER_REPOSO`: el cian del atlas se apaga en reposo y solo ahí suma la emisión del pulso), sin regenerar. D3 sigue sin llegar.
 
 ## Total de la segunda tanda
 

@@ -63,7 +63,14 @@ extends Node
 ##              montar nace ABIERTO; si no, oculto hasta que `aparece_si` se cumpla (se reevalúa cada 0,2 s y al cambiar cualquier flag) y
 ##              entonces APARECE cerrado (con efecto; si ya se cumplía al montar, sin efecto). El jugador lo abre con E a ≤ 2,7 u; al acabar
 ##              de abrirse pone la flag `abierto`. Sin `aparece_si` nace cerrado
+##   cristal    cada=<s> (3)  alcance=<casillas> (12)                                CristalPulso3D (el pulso resonante, PLAN_PULSO_RESONANTE §4): EMISOR. Late (suelta un Pulso3D desde su
+##              casilla) cada `cada` s (0 = solo al golpearlo) y cuando le da un hechizo (el pulso lleva su elemento). Modelo `cristal_resonante`. Bloquea su casilla
+##   veta       celdas=<lista> (la propia x,y)                                       VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
+##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso
+##   receptor   elemento=fuego|agua|hielo|rayo|tierra|viento (cualquiera)  flag=<nombre>  rearme=<s> (0)   ReceptorPulso3D: se ACTIVA al llegarle un pulso (de ese elemento, si lo
+##              pide) y se queda activo; pone `flag` con la forma de siempre (nivel.sala.hecho). `rearme` > 0: se apaga solo. Modelo `receptor_runico`. Bloquea su casilla
 ##
+
 ## SEÑALES (`cuando=<id>.<señal>`; sin señal vale la primera de cada fila):
 ##   pulsador   pulsado | soltado           compuerta  abierta | cerrada          nivel   alcanzado | perdido
 ##   molino     girando | parado            nexo       conduce | corta            barril  explota
@@ -73,11 +80,13 @@ extends Node
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
 ##   muro       roto                         lava     enfriada | apagada        seta     recogida
+##   cristal    late                         receptor activado | apagado
 ## CONDICIONES (`si=<id>.<cond>`: la regla solo actúa si en ese momento se cumple):
 ##   compuerta/puerta  abierta | cerrada    nivel  alcanzado | perdido     nexo    conduce | corta    molino  girando | parado
 ##   barril  explotado | encendido | entero    pulsador  activo | libre
 ##   brasero apagado | encendido   contador  todos | no_todos   cuerda  rota | entera   seto  ardiendo
 ##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada     seta  recogida | en_suelo
+##   receptor  activo | libre
 ##
 ## CONDICIONES COMPUESTAS (C2, 21/10). `si=` es una EXPRESIÓN de términos:
 ##   término    <id>.<cond> (de arriba) | flag.<nombre> | casilla(x,y).<estado>
@@ -114,6 +123,8 @@ extends Node
 ##   cuenca              helar(s)        (hiela sus casillas `s` segundos; sin argumento, AguaSim3D.DURA_HIELO)
 ##   brasero             encender | apagar        seto    encender (lo prende)        cuerda  quemar
 ##   cerrojo             abrir (definitivo) | cerrar                              cofre   abrir (como si el jugador pulsara E) | aparecer (lo fuerza)
+##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar
+##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
 ## `abrir_cauce` sin argumentos usa los de la pieza (manantial) o Surtidor3D.CAUDAL_TINAJA / VOL_TINAJA (tinaja).
 ##
 ## FLAGS (C1, 21/10): lo que el juego RECUERDA entre partidas (`nucleo/flags.gd`). «flag» es una palabra reservada: ninguna pieza se
@@ -155,6 +166,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"puerta": "abierta", "totem": "activado", "tinaja": "agua_llega", "emisor": "descarga",
 	"brasero": "encendido", "contador": "todos", "cuerda": "rota", "seto": "consumido",
 	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada", "seta": "recogida",
+	"cristal": "late", "receptor": "activado",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -178,6 +190,8 @@ const SENALES: Dictionary = {
 	"muro": {"roto": ["roto", 0, null]},
 	"lava": {"enfriada": ["enfriada", 1, null], "apagada": ["apagada", 0, null]},
 	"seta": {"recogida": ["recogido", 1, null]},
+	"cristal": {"late": ["late", 1, null]},
+	"receptor": {"activado": ["activado", 0, null], "apagado": ["apagado", 0, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -197,6 +211,7 @@ const CONDICIONES: Dictionary = {
 	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
 	"seta": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"receptor": {"activo": ["activo", true], "libre": ["activo", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -216,6 +231,9 @@ const ACCIONES: Dictionary = {
 	"muro": {"romper": 0},
 	"lava": {"enfriar": 0},
 	"seta": {"recoger": 0},
+	"cristal": {"latir": 0},
+	"receptor": {"activar": 0, "apagar": 0},
+	"emisor": {"pulso": 1},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -241,6 +259,9 @@ const CLAVES: Dictionary = {
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f"},
+	"cristal": {"cada": "f", "alcance": "f"},
+	"veta": {"celdas": "celdas"},
+	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -1535,6 +1556,24 @@ func _crear(pz: Pieza) -> void:
 			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo,
 				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)))
 			pz.nodo = cf
+		"cristal":
+			var cr := CristalPulso3D.new()
+			cr.name = pz.id
+			cr.preparar(pz.celda, float(pz.p.get("cada", CristalPulso3D.CADA_DEFECTO)), int(pz.p.get("alcance", Pulso3D.ALCANCE_DEFECTO)), mundo as Node)
+			cont.add_child(cr)
+			pz.nodo = cr
+		"veta":
+			var ve := VetaPulso3D.new()
+			ve.name = pz.id
+			ve.preparar(pz.p.get("celdas", [pz.celda]))
+			cont.add_child(ve)
+			pz.nodo = ve
+		"receptor":
+			var rc := ReceptorPulso3D.new()
+			rc.name = pz.id
+			rc.preparar(pz.celda, String(pz.p.get("elemento", "")), String(pz.p.get("flag", "")), float(pz.p.get("rearme", 0.0)), mundo as Node)
+			cont.add_child(rc)
+			pz.nodo = rc
 
 
 ## Avisa de un logro (ver arriba). `nodo` = la pieza que lo origina: de ella sale el punto (1 u por encima de su base) para destello y sonido.
@@ -1789,6 +1828,16 @@ func _ejecutar(a: Dictionary) -> void:
 		"aparecer":
 			if nd != null:
 				nd.call("aparecer")
+		"latir":
+			if nd != null:
+				nd.call("latir")
+		"activar":
+			if nd != null:
+				nd.call("activar")
+		"pulso":
+			# La fuente eléctrica suelta un pulso de rayo por el agua (y las vetas que la toquen). Alcance = el argumento o el de siempre.
+			if nd != null:
+				Pulso3D.emitir(_contenedor(), [pz.celda], "rayo", int(args[0]) if args.size() > 0 else Pulso3D.ALCANCE_DEFECTO, nd)
 		"alternar":
 			if nd != null:
 				var estaba_cerrada_a: bool = (pz.tipo == "compuerta" or pz.tipo == "puerta") and not bool(nd.get("abierta"))

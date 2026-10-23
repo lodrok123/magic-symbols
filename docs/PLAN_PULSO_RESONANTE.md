@@ -256,6 +256,26 @@ pared hueca con pulso propio, estatuas) y una prueba de `Pulso3D` sola (alcance,
 
 1. **Señal y lectura.** `Pulso3D`, `cristal`, `veta` y `receptor` con arte provisional (primitivas brillantes). C1 y el circuito
    C5 → C6 con un solo receptor. Basta para ver si el pulso se **lee**.
+   **HECHA el 23/10** (con los modelos de la hoja D1 ya instalados en vez de primitivas; las primitivas quedan de reserva si falta el modelo):
+   - [x] `Pulso3D` (`objetos/pulso_3d.gd`): nace en el emisor, avanza a `SEG_POR_CASILLA` = 0,08 s por las 4 vecinas que conducen, alcance en casillas,
+     1 casilla por el aire, sin reentradas, avisa con `on_pulso(pulso)` a los nodos del grupo `pulsable3d`. `COLOR_BASE` = #9ED9FF; con elemento, el color de su runa.
+     La búsqueda es la de la fuente eléctrica: `EmisorRayo3D.ola` (con distancia y alcance; `agua_conectada` ahora la usa). Conduce `Terreno3D.conduce` (agua, bajo
+     puente, nexo mojado) más las vetas. Se ve: anillo al nacer, losa que se apaga en el agua, veta que se enciende casilla a casilla; suena `sello_ok` (provisional).
+   - [x] `cristal` (`CristalPulso3D`): late cada `cada` s (3) o al golpearlo con un hechizo (pulso del elemento del hechizo). Modelo `cristal_resonante`.
+   - [x] `veta` (`VetaPulso3D`): losa por casilla con `veta_mineral.png` × máscara `veta_mineral_mascara.png`; el brillo es máscara × color del pulso por emisión.
+     Añade un **hilo guía** entre casillas vecinas (no sale de la textura: sin él la red de grietas al azar no se lee como camino).
+   - [x] `receptor` (`ReceptorPulso3D`): se activa con un pulso (del `elemento`, si lo pide), pone `flag=` (`nivel.sala.hecho`), `rearme=<s>`. Modelo `receptor_runico`.
+   - [x] Cristal turquesa: `BrilloPulso3D` cambia el material por uno propio que lee la misma textura, baja saturación y valor al cian en reposo (`SAT_REPOSO`, `OSCURECER_REPOSO`) y
+     pone la emisión del pulso solo ahí. Sin tocar `ocluso_3d.gd`.
+   - [x] Puzle3D: piezas `cristal`, `veta`, `receptor`; señales `late` y `activado`/`apagado`; condición `receptor.activo|libre`; acciones `cristal.latir`,
+     `receptor.activar|apagar` y `emisor.pulso(alcance)` (la fuente suelta un pulso de rayo por el agua).
+   - [x] Cueva: C1 con `latido_c1` (6,15) y `veta_c1` (6 casillas, hasta junto a los braseros y las setas); C5 → C6 con la regla `c5_pulso` (cada descarga de la fuente suelta
+     un pulso de rayo, alcance 24), `veta_c5` (8 casillas desde la orilla, bajo la puerta, hasta el receptor) y `ante_cofre` (14,13, flag `cueva.c6.pulso`).
+     **Diferencia con §5/§6:** no hay receptor sumergido ni relé: la propia fuente emite el pulso por el agua y la veta sale de la charca. El receptor es uno, en C6. Congelar la
+     charca corta el circuito (comprobado).
+   - [x] Pruebas: `prueba_pulso.gd` (señal sola), `escenario_cueva_pulso.gd` (C1 late, C5 → C6 llega, hielo corta) y `captura_pulso.gd` (con ventana, `docs/capturas/pulso_fase1/`).
+   - [ ] Lo que NO está en la fase 1 (va en las siguientes): prismas, bloque de enlace, basalto y puente de piedra como conductores, reactivos (`on_pulso` en columnas, setas,
+     estatuas), sonido propio, glifo del jugador.
 2. **Final.** Prismas, cofre legendario con su animación, glifo en la receta, pared hueca de salida.
 3. **Opcionales y calidades.** C2, C3, C4, setas que maduran, estatuas y cofre épico, colores por calidad.
 4. **Arte.** Tripo para las piezas de §11 y sustitución de las primitivas.
