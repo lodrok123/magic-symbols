@@ -22,7 +22,7 @@ const EPS: float = 0.0001
 ## Los campos, por grupos, en el orden en que los enseñará el laboratorio (HC5). [nombre, grupo].
 ## Los campos nuevos de la ESPEC (19/10) se han metido en los grupos de siempre para no tocar el orden del lab: tiempo → movimiento, física → materia.
 const CAMPOS: Array = [
-	["semiejes", "forma"], ["grosor_min", "forma"], ["copias", "forma"], ["separacion", "forma"], ["dispersion", "forma"], ["crece", "forma"], ["escala_nace", "forma"], ["solidez", "forma"],
+	["semiejes", "forma"], ["grosor_min", "forma"], ["copias", "forma"], ["separacion", "forma"], ["dispersion", "forma"], ["crece", "forma"], ["escala_nace", "forma"], ["solidez", "forma"], ["resuena", "forma"],
 	["velocidad", "movimiento"], ["aceleracion", "movimiento"], ["gravedad", "movimiento"], ["distancia_max", "movimiento"], ["elevacion", "movimiento"],
 	["persiste", "movimiento"], ["permanencia", "movimiento"], ["retardo", "movimiento"], ["intervalo", "movimiento"],
 	["altura_salida", "movimiento"], ["impulso_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
@@ -74,10 +74,12 @@ const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
 ## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
-const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz"]
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente"]
+## Las condiciones que puede pedir una regla `momento_si` de un glifo (Sigils.GLIFOS): la primera que se cumpla cambia el momento de ejecución.
+const CONDICIONES_MOMENTO: PackedStringArray = ["viaja", "persistente"]
 
 ## Qué propiedad de la receta (`Sigils.aplicar_v2(...)["props"]`) es cada campo. Cuenta como «propiedad usada» (encarece el hechizo) cuando algún glifo lo toca.
-const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece", "permanencia": "permanencia"}
+const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece", "resuena": "resuena", "permanencia": "permanencia"}
 
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
 ## (color, deja, estela, efecto_impacto, eventos: son nombres o listas, no números).
@@ -85,6 +87,7 @@ const EDITABLES: Dictionary = {
 	"semiejes.x": {"paso": 0.05, "min": 0.15, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.15, "max": 1.0}, "semiejes.z": {"paso": 0.05, "min": 0.15, "max": 3.0},
 	"grosor_min": {"paso": 0.05, "min": 0.05, "max": 0.5}, "separacion": {"paso": 0.25, "min": 0.0, "max": 3.0}, "dispersion": {"paso": 5.0, "min": 0.0, "max": 90.0},
 	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
+	"resuena": {"paso": 1.0, "min": 0.0, "max": 12.0},
 	"velocidad": {"paso": 0.5, "min": 0.0, "max": 20.0}, "aceleracion": {"paso": 0.5, "min": -10.0, "max": 20.0}, "gravedad": {"paso": 0.1, "min": 0.0, "max": 3.0},
 	"distancia_max": {"paso": 0.5, "min": 0.0, "max": 8.0}, "elevacion": {"paso": 0.25, "min": 0.0, "max": 2.0}, "altura_salida": {"paso": 0.05, "min": 0.0, "max": 2.0},
 	"impulso_salida": {"paso": 0.1, "min": 0.0, "max": 5.0},
@@ -129,6 +132,7 @@ var separacion: float = 0.5            ## m entre copias (hoy, el ancho de cada 
 var dispersion: float = 15.0           ## grados que se abre el abanico de copias (hoy no hay abanico) · ESPEC §1.6
 var crece: float = 0.0                 ## m/s de radio al nacer (ESPEC §1.3: antes «escala por segundo»; el cambio de significado lo aplica HechizoVivo en E2)
 var escala_nace: float = 0.3           ## fracción del tamaño con la que nace un volumen que crece · antes `ESCALA_NACE_V2`
+var resuena: float = 0.0               ## casillas de alcance del PULSO que suelta el volumen (ᚱ «pulso», +4 por glifo, tope 12); 0 = no resuena. Cuándo lo suelta: `momento_de("raido")` (PLAN_PULSO_RESONANTE §10 bis)
 var solidez: float = 0.0               ## 0 = no bloquea; con barrera, 1·1,5^n (diverge del doc, que dice 1: hoy «sin barrera» es la ausencia de la propiedad)
 
 # --- Movimiento ---
@@ -238,6 +242,11 @@ var se_repite: bool:
 var rebota: bool:
 	get:
 		return rebotes > 0
+## ¿El volumen SE QUEDA? (lo usa el momento de ejecución, PLAN_PULSO_RESONANTE §10 bis): no viaja y tiene solidez (barrera), permanencia (ᛉ) o un elemento sólido (tierra, hielo). Un haz
+## es instantáneo: no se queda.
+var persistente: bool:
+	get:
+		return not haz and not (viaja or velocidad > 0.0) and (solidez > 0.0 or permanencia > 0.0 or estado_materia == "solido")
 ## RAYO (21/10): ¿es un haz? = se dibujó alguna ᛁ (`linea_x`/`linea_z`) y no hay barrera (`solidez`) ni flecha (`distancia_max`). Ver `HAZ_*`. Sale de los glifos y de dos campos, así que si el laboratorio
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
@@ -429,7 +438,8 @@ func _derivar() -> void:
 	cast_point = CastPoints.variacion_de(forma)
 	var base: float = 4.0 / 3.0 * PI * pow(Sigils.RADIO_BASE_V2, 3.0)
 	var vol: float = 4.0 / 3.0 * PI * _glifos_x * _glifos_y * _glifos_z
-	coste = vol / base * (1.0 + Sigils.COSTE_PROP_V2 * float(propiedades_usadas().size()))
+	var props_usadas: Dictionary = propiedades_usadas()
+	coste = vol / base * (1.0 + Sigils.COSTE_PROP_V2 * float(props_usadas.size())) * Sigils.recargo_continuo(props_usadas)
 	coste_tinta = Tinta.coste_receta(coste)
 	recarga = Sigils.cooldown_v2(glifos)
 	for campo in DERIVADOS:
@@ -490,6 +500,49 @@ func geo() -> Dictionary:
 ## Cuántas ᛁ (`linea_x` + `linea_z`) lleva el hechizo.
 func glifos_linea() -> int:
 	return maxi(int(glifos.get("linea_x", 0)), 0) + maxi(int(glifos.get("linea_z", 0)), 0)
+
+
+## MOMENTO DE EJECUCIÓN de un glifo en ESTE hechizo (PLAN_PULSO_RESONANTE §10 bis; Sigils.GLIFOS[…]["momento"]): "inicio" | "continuo" | "final". Es un dato del glifo; si trae reglas
+## `momento_si` se aplica la primera que se cumpla (p. ej. ᚱ: «viaja» → final, «persistente» → continuo). Un glifo que no está en la tabla vale `Sigils.MOMENTO_DEFECTO`.
+func momento_de(glifo: String) -> String:
+	var d: Dictionary = Sigils.GLIFOS.get(glifo, {})
+	for regla in (d.get("momento_si", []) as Array):
+		if _cumple_momento(String((regla as Dictionary).get("cuando", ""))):
+			return String((regla as Dictionary).get("es", Sigils.MOMENTO_DEFECTO))
+	return String(d.get("momento", Sigils.MOMENTO_DEFECTO))
+
+
+func _cumple_momento(cuando: String) -> bool:
+	match cuando:
+		"viaja":
+			return viaja or velocidad > 0.0
+		"persistente":
+			return persistente
+	return false
+
+
+## Lo que HACEN los glifos del hechizo en un momento, en el ORDEN FIJO de GLIFOS_RECETA §2.4 (el `paso` de cada glifo y, a igualdad, el orden de la tabla `Sigils.GLIFOS`; nunca el orden
+## en que se dibujaron): [{glifo, accion, n (cuántos glifos), paso}]. Solo cuentan los glifos con `accion` (los demás ya hacen lo suyo dentro del ciclo de vida).
+func acciones_en(momento: String) -> Array:
+	var lista: Array = []
+	var orden: int = 0
+	for glifo in Sigils.GLIFOS:
+		orden += 1
+		if not glifos.has(glifo):
+			continue
+		var d: Dictionary = Sigils.GLIFOS[glifo]
+		if not d.has("accion") or momento_de(String(glifo)) != momento:
+			continue
+		lista.append({"glifo": String(glifo), "accion": String(d["accion"]), "n": int(glifos[glifo]), "paso": int(d.get("paso", Sigils.PASO_DEFECTO)), "orden": orden})
+	return ordenar_acciones(lista)
+
+
+## EL ORDEN FIJO de GLIFOS_RECETA §2.4: por `paso` (1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos) y, dentro del mismo paso, por `orden` (el de la tabla `Sigils.GLIFOS`).
+## Nunca por el orden en que se dibujaron los glifos. Devuelve la lista ordenada (la misma, in situ).
+static func ordenar_acciones(lista: Array) -> Array:
+	lista.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["paso"]) < int(b["paso"]) or (int(a["paso"]) == int(b["paso"]) and int(a["orden"]) < int(b["orden"])))
+	return lista
 
 
 ## La figura que dibuja el VFX de un elemento: «haz» (ᛁ), «barrera» (solidez), «proyectil» (viaja), «pulso» (crece) o «esfera». Es la que decide `VfxElemento3D`.

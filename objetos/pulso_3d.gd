@@ -80,6 +80,9 @@ var elemento: String = ""                ## "" = pulso base
 var color: Color = COLOR_BASE
 var alcance: int = ALCANCE_DEFECTO
 var emisor: Node = null                  ## el que lo soltó: no se avisa a sí mismo
+var del_jugador: bool = false            ## lo soltó un hechizo del jugador (ᚱ), no el escenario
+var linaje: Array = []                   ## los emisores intermedios (prismas) por los que ha pasado: no se repiten
+var _paso_actual: int = 0                ## el paso que se está disparando ahora (para el aviso `on_pulso`: un prisma calcula con él el alcance que queda)
 var alcanzadas: Dictionary = {}          ## casilla conductora -> paso (el origen, 0)
 var tocadas: Dictionary = {}             ## casilla vecina que NO conduce -> paso en que el frente la toca
 var avisados: Array = []                 ## los nodos que ya recibieron on_pulso (uno por pulso)
@@ -125,9 +128,14 @@ static func vecinas_tocadas(p_alcanzadas: Dictionary, p_alcance: int) -> Diction
 
 
 ## Suelta un pulso: crea el nodo bajo `contenedor` y arranca. `conduce` (Callable(Vector2i) -> bool) vacío = `conduce_pulso`.
-static func emitir(contenedor: Node, p_origenes: Array, p_elemento: String = "", p_alcance: int = ALCANCE_DEFECTO, p_emisor: Node = null, conduce: Callable = Callable()) -> Pulso3D:
+## `p_del_jugador` = lo soltó un hechizo del jugador (glifo ᚱ): lo distingue de los del escenario, y hay piezas (la pared hueca) que solo responden al propio. `p_linaje` = los
+## emisores intermedios por los que ya pasó (un prisma): ninguno vuelve a emitir este pulso, así dos prismas enfrentados no se lo pasan para siempre.
+static func emitir(contenedor: Node, p_origenes: Array, p_elemento: String = "", p_alcance: int = ALCANCE_DEFECTO, p_emisor: Node = null, conduce: Callable = Callable(),
+		p_del_jugador: bool = false, p_linaje: Array = []) -> Pulso3D:
 	var p := Pulso3D.new()
 	p.name = "Pulso"
+	p.del_jugador = p_del_jugador
+	p.linaje = p_linaje.duplicate()
 	p.preparar(p_origenes, p_elemento, p_alcance, p_emisor, conduce)
 	contenedor.add_child(p)
 	return p
@@ -204,13 +212,26 @@ func edad() -> float:
 	return _t
 
 
+## El paso del frente en este momento (dentro de un `on_pulso` es el paso en que tocó a ese nodo).
+func paso_actual() -> int:
+	return _paso_actual
+
+
+## Alcance que le queda al pulso en el paso actual (lo que puede seguir un prisma).
+func alcance_restante() -> int:
+	return maxi(alcance - _paso_actual, 0)
+
+
 func _disparar(p: int) -> void:
+	_paso_actual = p
 	var llegado: Node = null
 	for e in (_por_paso[p] as Array):
 		var c: Vector2i = e[0]
 		if bool(e[1]):
 			alcanzo.emit(c, p)
-			if dibujar and p > 0:               # el origen (el cristal, la fuente) lo marca el anillo; una losa plana debajo del emisor sobra
+			# El origen (el cristal, la fuente) lo marca el anillo: una losa plana debajo del emisor sobra. Pero si el origen es un conductor que no es el emisor (la casilla de la que
+			# sale un prisma, la veta sobre la que se lanza un pulso) se enciende como las demás.
+			if dibujar and (p > 0 or (conduce_pulso(c) and (emisor == null or emisor.get("celda") != c))):
 				_encender(c)
 		var n: Node = _avisar(c, p)
 		if n != null and llegado == null:

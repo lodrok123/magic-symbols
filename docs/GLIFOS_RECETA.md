@@ -48,7 +48,7 @@ Spellcaster, un solo tramo tras el rectificador) y su orientación sale exacta d
 ᛏ son tres tramos y nunca es una raya. La orientación se lee **respecto a la página, no al hueco** (en el libro del Bosque
 los huecos laterales están a 45° y una raya horizontal quedaría ambigua entre radial y tangencial): más horizontal que
 vertical → X, más vertical → Z, diagonal exacta → X. La línea queda **exenta del giro hacia el centro** (127): se pinta
-como se dibujó, con el mismo `linea.png` girado 90° para Z. Raido ᚱ queda libre.
+como se dibujó, con el mismo `linea.png` girado 90° para Z. Raido ᚱ quedó libre hasta el 23/10, que pasó a ser el glifo «pulso» (§2.2).
 
 Las formas **dejan de tener nombre en la lógica**: se rasteriza el elipsoide sobre las casillas (como ya hace
 `GeometriaHechizo.celdas` con la esfera) y punto. «Muro» es X grande **con `barrera`** (21/10: sin barrera, ᛁ ya no es un muro sino un haz); «pilar», Y grande; «haz», ᛁ sin
@@ -74,8 +74,8 @@ otra vez. Ninguno sabe qué otros hay:
 | ᛜ barrera | `solidez` | ×1,5 | ×3 | el volumen bloquea proyectiles y aguanta golpes |
 | ᚠ repetición | `copias` | +1 | 4 | n volúmenes, repartidos a lo largo de X |
 | ᚢ rebote | `rebotes` | +1 | 3 | al chocar, cambia de dirección (necesita *viaja*; sin él, refleja proyectiles) |
-| ᚷ crecer (hasta el 23/10 «pulso») | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño |
-| ᚱ pulso (23/10, por construir) | `resuena` (casillas) | +4 | 12 | el volumen suelta un pulso que recorre los conductores; actúa al inicio, continuo o al final según la receta (`PLAN_PULSO_RESONANTE.md` §2 y §10 bis) |
+| ᚷ crecer (hasta el 23/10 «pulso») | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño. Id `pulso`, momento *continuo* (sin acción) |
+| ᚱ pulso (**construido el 23/10**, id `raido`) | `resuena` (casillas) | +4 | 12 | el volumen suelta un `Pulso3D` que recorre los conductores con el elemento de la receta; actúa **al final** si viaja, **continuo** si el volumen se queda, **al inicio** en el resto (§2.4 bis; `PLAN_PULSO_RESONANTE.md` §2 y §10 bis) |
 | *aparcados* (17/10) | retardo, atracción, espejo, amplificar | — | — | se quedan fuera de la v2 hasta encontrarles uso |
 | *nuevos* ᚦ ᚨ ᛃ ᛉ ᛞ ᛈ | `perfora`, `marca`, `vuelve`, `guarda`, `destello`, `oculto` | — | — | ver la propuesta anterior |
 
@@ -123,6 +123,27 @@ Ningún paso pregunta «¿hay rebote y repetición?». Ejemplos que salen sin es
 - **ᚷ (crecer) + viento** = onda que empuja y crece.
 - **ᚠᚠ + ᛇ + hielo** = tres bolas de hielo en abanico.
 - **ᛁ + Z×2 + agua** = (antes una losa de agua) **desde el 21/10, un rayo de agua de 5 m** (Z×2 es ᛁ vertical: cualquier ᛁ suma al mismo haz). La losa/charco grande delante queda para ᛜ + ᛁ + ᛁ.
+
+### 2.4 bis Momento de ejecución (23/10, Pulso resonante fase 2)
+
+La línea de tiempo del paso 3 («nace → crece → viaja → dura») tiene tres puntos donde una propiedad puede **hacer algo**, y cada glifo declara en cuál. Es un **dato del glifo** (en `Sigils.GLIFOS`, como `por_glifo` y `tope`),
+no lo elige el jugador ni depende del orden en que dibujó los glifos:
+
+| clave | qué dice |
+|---|---|
+| `momento` | `"inicio"` (al nacer el volumen, una vez) · `"continuo"` (mientras vive, cada `PERIODO_MIN_CONTINUO_S` como mínimo) · `"final"` (al chocar o acabarse, una vez). Sin él, `MOMENTO_DEFECTO` = inicio |
+| `momento_si` | reglas `{cuando, es}` en orden: la primera cuyo `cuando` se cumple cambia el momento. `cuando` ∈ `Hechizo.CONDICIONES_MOMENTO`: `viaja` (es un proyectil) · `persistente` (el volumen se queda: solidez, permanencia o elemento sólido, y no es un haz) |
+| `paso` | el paso de §2.4 al que pertenece (1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos): ordena los glifos **dentro de un mismo momento** |
+| `accion` | lo que hace en su momento, del catálogo cerrado `HechizoVivo.ACCIONES_MOMENTO` (hoy `emitir_pulso`). Sin `accion` el glifo no dispara nada: su efecto ya va dentro del ciclo de vida |
+
+- **Orden fijo:** `Hechizo.acciones_en(momento)` devuelve las acciones por `paso` y, a igualdad, por el orden de la tabla (`Hechizo.ordenar_acciones`). El orden de dibujo no existe (la receta es un multiconjunto).
+- **Sin reentradas:** «inicio» y «final» disparan una vez por hechizo; mientras corren las acciones de un momento ningún otro momento del mismo hechizo puede dispararse (`HechizoVivo._en_momento`); un hijo de `crear_hijo` no repite los efectos de su padre.
+- **Continuo:** el primer disparo es al nacer; luego cada `max(intervalo, PERIODO_MIN_CONTINUO_S)` (1,5 s) hasta que acaba la vida, con tope `MAX_DISPAROS_CONTINUOS` (8). **Cuesta tinta** (§2.5): ×(1 + `COSTE_CONTINUO_V2`) = +25 % si la receta lleva ᚱ,
+  no viaja y tiene solidez o permanencia (`Sigils.recargo_continuo`, el mismo número en la receta y en el Hechizo). **Límite conocido:** el coste en tinta solo ve las propiedades de la receta, no el elemento; un ᚱ con un elemento sólido
+  (tierra, hielo) sin barrera también late, pero sin recargo.
+- **Lo que ya existía** conserva su comportamiento y declara el momento que ya tiene de hecho (solo descriptivo): flecha *continuo* (se desplaza mientras vive) · barrera *continuo* · repetición *inicio* · rebote *final* · ᚷ crecer *continuo* · permanencia *final*; los ejes, *inicio*.
+  Las propiedades aparcadas encajarán solas: retardo es «antes del inicio» y destello es «al final» (PLAN §10 bis).
+- **Ejemplos que salen sin escribirse:** ᚱ solo → pulso en el sitio donde nace; flecha + ᚱ → el pulso sale **donde choca la flecha**; barrera + ᚱ → el muro **late**; ᚱᚱ (alcance 8) + prisma → llega más lejos.
 
 ### 2.5 Equilibrio sin tablas
 

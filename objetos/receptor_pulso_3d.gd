@@ -35,6 +35,7 @@ var _color: Color = Pulso3D.COLOR_BASE
 var _mats: Array[ShaderMaterial] = []
 var _mat_primitiva: StandardMaterial3D = null
 var _luz: OmniLight3D = null
+var _luz_reposo: bool = false           ## ¿tiene el cupo de luz azul de reposo?
 
 
 func preparar(p_celda: Vector2i, p_elemento: String = "", p_flag: String = "", p_rearme: float = 0.0, mundo: Node = null) -> void:
@@ -86,6 +87,13 @@ func _dibujar() -> void:
 	_luz.shadow_enabled = false
 	_luz.position = Vector3(0.0, ALTO_LUZ, 0.0)
 	add_child(_luz)
+	_luz_reposo = BrilloPulso3D.reservar_luz()          # el cristal del receptor también alumbra tenue en azul mientras no está activo
+
+
+func _exit_tree() -> void:
+	if _luz_reposo:
+		_luz_reposo = false
+		BrilloPulso3D.liberar_luz()
 
 
 ## El aviso del pulso. Devuelve true si lo activó.
@@ -154,5 +162,7 @@ func _pintar() -> void:
 		_mat_primitiva.emission = c
 		_mat_primitiva.emission_energy_multiplier = e
 	if _luz != null:
-		_luz.light_color = c
-		_luz.light_energy = ENERGIA_LUZ * (e / ENERGIA_ACTIVO) if activo else 0.0
+		_luz.light_color = c if (activo or not _luz_reposo) else BrilloPulso3D.COLOR_REPOSO
+		_luz.light_energy = ENERGIA_LUZ * (e / ENERGIA_ACTIVO) if activo else (BrilloPulso3D.LUZ_REPOSO_ENERGIA if _luz_reposo else 0.0)
+		if _luz_reposo:
+			_luz.omni_range = maxf(ALCANCE_LUZ, BrilloPulso3D.LUZ_REPOSO_ALCANCE)

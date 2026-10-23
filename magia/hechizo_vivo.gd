@@ -100,6 +100,12 @@ var casillas: int = 0                      ## cuántas manifestaciones ocupó al
 var golpes_camino: Array = []              ## lo que tocó el último `camino`: [{obj, punto, dir, desde}] (los golpes se dan cuando llega el volumen)
 var _pendientes: int = 0                   ## eventos retardados por cumplir
 var _nacido: bool = false
+var _celdas_volumen: Array = []            ## las casillas que ocupa el volumen que NACE quieto (de ahí salen los efectos de momento «inicio», «continuo» y «final»)
+var momentos_vistos: Array = []            ## MOMENTO DE EJECUCIÓN: [{momento, glifo, accion, t}] en el orden en que se dispararon (las pruebas y el lab lo leen)
+var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este hechizo (glifo ᚱ)
+var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
+var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
+var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
 
 
 ## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
@@ -120,6 +126,7 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	nuevo._nacido = true
 	if nuevo.casillas > 0:
 		nuevo.disparar_evento("al_nacer", origen, dir)
+		nuevo._arrancar_momentos(origen, dir)
 		if not nuevo.proyectil and (hechizo.eventos.has("al_expirar")):
 			# §0.3: lo que viaja expira al llegar + `permanencia`; lo que nace quieto, a `persiste` + `permanencia`
 			var hasta: float = (Hechizo.HAZ_DURA_S if hechizo.haz else (nuevo._t_viaje if hechizo.viaja else maxf(hechizo.persiste, 0.0))) + hechizo.permanencia
@@ -173,6 +180,7 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 	var todas: Array = []
 	for ev in eventos:
 		todas.append_array(ev["celdas"] as Array)
+	_celdas_volumen = todas
 	var niveles: int = Lanzador3D.GeometriaV2.niveles(g)
 	# Lo que el VFX por estado (155) necesita y no podía adivinar: `persiste` ya multiplicado por la calidad, la altura del SUELO bajo el origen (el origen
 	# es la mano) y los eventos de tiempo del hechizo (copias, viaje, rebotes: {t, pos: Vector2 del mundo, dir: Vector2}), sin las casillas.
@@ -246,6 +254,7 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 			continue
 		vistas[c] = true
 		celdas.append(c)
+	_celdas_volumen = celdas
 	var suelo: float = Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y
 	var d3 := Vector3(d2.x, 0.0, d2.y)
 	var mano := Vector3(o2.x, suelo + (h.altura_salida + h.elevacion) * cas, o2.y) + d3 * HAZ_BOCA_U                # de donde sale: la altura de la mano de una flecha, un poco por delante
@@ -721,6 +730,92 @@ func disparar_evento(nombre: String, pos: Vector3, dir: Vector3, extra: Dictiona
 		_accion(a as Dictionary, pos, dir, extra)
 
 
+## =====================================================================================================
+##  MOMENTO DE EJECUCIÓN (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §10 bis, GLIFOS_RECETA §2.4 bis)
+## =====================================================================================================
+## Los glifos con `accion` (hoy ᚱ) hacen algo en el punto de la vida del hechizo que dice su dato `momento` (resuelto con `Hechizo.momento_de`):
+##   inicio    al nacer el volumen (`crear`), una vez
+##   continuo  mientras vive, cada `Sigils.PERIODO_MIN_CONTINUO_S` (o su `intervalo`, si es mayor), con tope `Sigils.MAX_DISPAROS_CONTINUOS`; el primero, al nacer
+##   final     al acabarse: un proyectil, al pararse (alcance, choque, suelo, golpe); lo que nace quieto, al acabar su vida (persiste + permanencia, o el tiempo del haz)
+## Dentro de un mismo momento las acciones salen en el orden fijo de `Hechizo.acciones_en` (el `paso` de cada glifo), no en el de dibujo. SIN REENTRADAS: «inicio» y «final» disparan
+## una vez por hechizo, y mientras corren las acciones de un momento (`_en_momento`) ningún otro momento de este hechizo puede dispararse. Un hijo (`crear_hijo`) no repite los efectos
+## de su padre. Los demás glifos (flecha, barrera, repetición, rebote, crecer, permanencia) no tienen `accion`: su `momento` describe lo que ya hacen dentro del ciclo de vida.
+const ACCIONES_MOMENTO: PackedStringArray = ["emitir_pulso"]     ## catálogo cerrado de lo que un glifo puede hacer en su momento
+
+
+## Programa los momentos «inicio», «continuo» y «final» de un hechizo que acaba de nacer (el proyectil solo programa «inicio» y «continuo»: su «final» lo dispara `_terminar`).
+func _arrancar_momentos(origen: Vector3, dir: Vector3) -> void:
+	if h.profundidad > 0 or h.glifos.is_empty():
+		return
+	var celdas: Array = _celdas_del_momento(origen)
+	if not h.acciones_en(Sigils.MOMENTO_INICIO).is_empty():
+		_momento(Sigils.MOMENTO_INICIO, celdas)
+	var continuas: Array = h.acciones_en(Sigils.MOMENTO_CONTINUO)
+	if not continuas.is_empty():
+		var vida: float = _vida_continua()
+		var periodo: float = maxf(h.intervalo, Sigils.PERIODO_MIN_CONTINUO_S)
+		var n: int = mini(1 + int(floorf(vida / periodo)), Sigils.MAX_DISPAROS_CONTINUOS)
+		for k in range(n):
+			if k == 0:
+				_momento(Sigils.MOMENTO_CONTINUO, celdas)
+			else:
+				_despues(float(k) * periodo, func() -> void: _momento(Sigils.MOMENTO_CONTINUO, _celdas_del_momento(origen)))
+	if not proyectil and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
+		var hasta: float = (Hechizo.HAZ_DURA_S if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0))) + h.permanencia
+		_despues(maxf(hasta, 0.0), func() -> void: _momento(Sigils.MOMENTO_FINAL, _celdas_del_momento(origen)))
+
+
+## Cuánto vive lo que nace quieto (s) para los disparos continuos: su `persiste` + `permanencia` (con el suelo de la solidez), sin pasar del límite global. Un proyectil vive lo que viaje.
+func _vida_continua() -> float:
+	var v: float = h.persiste + h.permanencia
+	if h.solidez > 0.0:
+		v = maxf(v, VIDA_MIN_SOLIDEZ_V2)
+	if proyectil:
+		v = maxf(_max_recorrido / maxf(h.velocidad * Terreno3D.casilla, 0.001), 0.0)
+	return clampf(v, 0.0, Hechizo.LIM_VIDA_S)
+
+
+## Las casillas de las que sale un efecto de momento: las del volumen que nació; un proyectil, las que ocupa donde está; sin ninguna, la del origen.
+func _celdas_del_momento(origen: Vector3) -> Array:
+	if proyectil:
+		return _celdas_en(p, v.normalized() if v.length() > 0.001 else Vector3.RIGHT)
+	if not _celdas_volumen.is_empty():
+		return _celdas_volumen
+	return [Terreno3D.celda_de(origen)]
+
+
+## Dispara las acciones de un momento (ver arriba). Devuelve cuántas hizo.
+func _momento(momento: String, celdas: Array) -> int:
+	if _en_momento or h.profundidad > 0:
+		return 0
+	if momento != Sigils.MOMENTO_CONTINUO:
+		if _momento_hecho.has(momento):
+			return 0
+		_momento_hecho[momento] = true
+	var hechas: int = 0
+	_en_momento = true
+	for a in h.acciones_en(momento):
+		if not ACCIONES_MOMENTO.has(String(a["accion"])):
+			continue                                          # los datos nunca rompen el juego
+		match String(a["accion"]):
+			"emitir_pulso":
+				if _soltar_pulso(celdas):
+					hechas += 1
+		momentos_vistos.append({"momento": momento, "glifo": String(a["glifo"]), "accion": String(a["accion"]), "t": reloj_vida})
+	_en_momento = false
+	return hechas
+
+
+## ᚱ: suelta un Pulso3D desde las casillas dadas, con el elemento de la receta (sin elemento, el azul claro del base) y `resuena` casillas de alcance. Es del jugador.
+func _soltar_pulso(celdas: Array) -> bool:
+	var alcance: int = int(roundf(h.resuena))
+	if alcance <= 0 or celdas.is_empty() or lanz == null or not lanz.is_inside_tree():
+		return false
+	var cont: Node = lanz.mundo if lanz.mundo != null else lanz
+	pulsos_soltados.append(Pulso3D.emitir(cont, celdas, elemento, alcance, null, Callable(), true))
+	return true
+
+
 ## El catálogo cerrado de acciones (Hechizo.ACCIONES). Una acción que no está en él se ignora: los datos nunca rompen el juego.
 func _accion(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> void:
 	match String(a.get("accion", "")):
@@ -823,6 +918,10 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3) -> int:
 
 func _physics_process(delta: float) -> void:
 	paso(delta)
+
+
+func _process(delta: float) -> void:
+	reloj_vida += delta
 
 
 ## Un paso de `dt` segundos: orienta (busca o vuelta), acelera, cae, avanza chocando con el mundo, golpea y comprueba si ha acabado. En este orden y sin más estado que el de arriba.
@@ -1072,7 +1171,11 @@ func _terminar(causa: String) -> void:
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
 	if causa != "retorno":
 		# el sitio del impacto es donde se para; si lo paró un golpe, donde está lo golpeado (un goblin en el agua se hiela con su casilla, no la de antes)
-		_aplicar_materia_en_el_sitio(_sitio_golpe if (causa == "golpe" and _sitio_golpe != Vector3.INF) else p, dir_fin)
+		var sitio: Vector3 = _sitio_golpe if (causa == "golpe" and _sitio_golpe != Vector3.INF) else p
+		_aplicar_materia_en_el_sitio(sitio, dir_fin)
+		# MOMENTO «final» (ᚱ + flecha = el pulso sale donde choca, sin caso especial): el volumen está donde se ha parado.
+		if h.profundidad == 0 and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
+			_momento(Sigils.MOMENTO_FINAL, _celdas_en(sitio, dir_fin))
 	var expirar: Callable = func() -> void:
 		quedandose = false
 		if causa != "golpe":

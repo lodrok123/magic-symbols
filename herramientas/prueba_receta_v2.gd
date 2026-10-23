@@ -188,7 +188,7 @@ func _combinaciones(nombres: Array) -> void:
 		_ok(vol >= Sigils.volumen_v2({"x": Sigils.RADIO_BASE_V2, "y": Sigils.RADIO_BASE_V2, "z": Sigils.RADIO_BASE_V2}) - 0.0001, "%s: volumen menor que la esfera base" % etiqueta)
 		_ok(coste >= 1.0 - 0.0001 and coste <= coste_max + 0.0001 and is_finite(coste), "%s: coste %.3f fuera de rango" % [etiqueta, coste])
 		_ok(Lanzador3D.GeometriaV2.niveles(g) >= 1 and Lanzador3D.GeometriaV2.niveles(g) <= 4, "%s: niveles %d" % [etiqueta, Lanzador3D.GeometriaV2.niveles(g)])
-		por_clave[str(c)] = {"c": c, "vol": vol, "coste": coste, "np": props.size(), "solida": props.has("solidez")}
+		por_clave[str(c)] = {"c": c, "vol": vol, "coste": coste, "np": props.size() * 10 + (1 if Sigils.recargo_continuo(props) > 1.0 else 0), "solida": props.has("solidez")}      # 23/10: con ᚱ continuo el coste lleva un recargo (COSTE_CONTINUO_V2): se compara dentro de cada grupo (nº de propiedades, con/sin recargo)
 		# nombre derivado
 		var viaja: bool = float(props.get("viaja", 0.0)) > 0.0
 		_ok(NOMBRES_OK.has(Lanzador3D.GeometriaV2.nombre_derivado(g, viaja)), "%s: nombre derivado inválido" % etiqueta)

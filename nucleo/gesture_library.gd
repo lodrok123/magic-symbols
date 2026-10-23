@@ -59,6 +59,7 @@ const SIGILS: PackedStringArray = [
 	"permanencia", # ᛉ algiz (19/10, Pablo): lo que sale se queda más tiempo. Hasta que Pablo grabe sus muestras con G no se reconoce
 	"linea",       # raya (ᛁ isa): con un elemento es un RAYO («haz», 21/10, Pablo); el muro es solo de `barrera`
 	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
+	"raido",       # ᚱ (23/10, Pablo): el glifo «pulso» nuevo (Sigils.nombre_visible); el volumen suelta un pulso que recorre los conductores. Se obtiene en el cofre legendario de la Cueva
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -84,9 +85,9 @@ const BIBLIA: Dictionary = {
 	"rebote":     {"futhark": "ᚢ", "nombre_runa": "uruz", "uso": "sello"},
 	"thurisaz":   {"futhark": "ᚦ", "nombre_runa": "thurisaz", "uso": "libre"},
 	"ansuz":      {"futhark": "ᚨ", "nombre_runa": "ansuz", "uso": "libre"},
-	"raido":      {"futhark": "ᚱ", "nombre_runa": "raido", "uso": "libre"},
+	"raido":      {"futhark": "ᚱ", "nombre_runa": "raido", "uso": "sello"},       # 23/10: antes «libre»; es el glifo «pulso» (parámetro `resuena`, PLAN_PULSO_RESONANTE)
 	"fuego":      {"futhark": "ᚲ", "nombre_runa": "kenaz", "uso": "elemento"},
-	"pulso":      {"futhark": "ᚷ", "nombre_runa": "gebo", "uso": "sello"},
+	"pulso":      {"futhark": "ᚷ", "nombre_runa": "gebo", "uso": "sello"},       # 23/10: el jugador lo ve como «crecer» (Sigils.NOMBRE_VISIBLE); el id y las muestras no cambian
 	"veneno":     {"futhark": "ᚹ", "nombre_runa": "wunjo", "uso": "enemigos"},
 	"hielo":      {"futhark": "ᚺ", "nombre_runa": "hagalaz", "uso": "elemento"},
 	"linea":      {"futhark": "ᛁ", "nombre_runa": "isa", "uso": "sello"},

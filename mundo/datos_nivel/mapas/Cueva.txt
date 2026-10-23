@@ -55,16 +55,21 @@
 ; Cada descarga de la fuente suelta además un pulso de rayo (alcance 24) que corre por el AGUA y sigue por la veta que sale de la charca hasta C6, bajo la puerta.
 ; Si la charca se hiela, el agua deja de conducir y el pulso no llega.
 ; puzle c5_pulso cuando=fuente.descarga hace=fuente.pulso(24)
-; pieza veta_c5 veta 19 16 celdas=19,16..15,16+15,15..15,13
-; --- C6 · Tesoro: puerta con llave, cofre grande y atajo a la boca ---
+; La veta de C5 cruza la puerta y acaba en el PRISMA de C6 (fase 2): él reemite el pulso por donde mira.
+; pieza veta_c5 veta 19 16 celdas=19,16..16,16
+; --- C6 · Tesoro: puerta con llave, cofre grande y salida que pide el pulso ---
 ; pieza puerta_llave puerta 18 16 modelo=llave
 ; puzle con_llave cuando=flag.cueva.c4.llave hace=puerta_llave.abrir
-; pieza tesoro cofre 13 13 modelo=legendario
-; El receptor de C6: la veta de C5 acaba junto a él. Fase 1: solo se enciende y pone la flag; abrir el cofre con él (y los prismas) es la fase 2.
+; El prisma (15,16) mira al norte: lleva el pulso por la veta hasta el receptor de C6. Girado (golpe de hechizo o E) lo desvía al oeste, por la veta que va a la pared hueca de la salida.
+; pieza prisma_c6 prisma 15 16 dir=n
+; pieza veta_c6_norte veta 15 15 celdas=15,15..15,13
+; pieza veta_c6_oeste veta 14 16 celdas=14,16..10,16
+; El receptor de C6: la veta del prisma acaba junto a él. Al activarse pone la flag que DESELLA el cofre legendario (abre_si): el cofre se abre con E, da el glifo ᚱ «pulso» (flag cueva.c6.glifo)
+; y lo desbloquea en el libro con la secuencia de PLAN_PULSO_RESONANTE §8.
 ; pieza ante_cofre receptor 14 13 flag=cueva.c6.pulso
-; pieza boton pulsador 10 16 modo=presencia modelo=cueva
-; pieza atajo puerta 9 16 modelo=llave
-; puzle abre_atajo cuando=boton.pulsado hace=atajo.abrir
+; pieza tesoro cofre 13 13 modelo=legendario abre_si=flag.cueva.c6.pulso abierto=cueva.c6.glifo glifo=raido
+; La salida de C6 (el atajo a la boca) es ahora una PARED HUECA: suena con cualquier pulso (la veta oeste lleva hasta ella) y solo se abre con el pulso del jugador (ᚱ). Sin pulsador de reserva.
+; pieza salida pared_hueca 9 16 flag=cueva.c6.salida
 ; pieza seta_c6a seta 16 18
 ; pieza seta_c6b seta 17 18
 ; pieza seta_c6c seta 17 17

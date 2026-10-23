@@ -124,7 +124,18 @@ const GLYPHS: Dictionary = {
 	"linea_z": preload("res://art/ui/glyphs/linea.png"),
 	# 19/10: ᛉ permanencia (el PNG ya existía en art/ui/glyphs): hace falta aquí para que el panel del laboratorio lo pinte.
 	"permanencia": preload("res://art/ui/glyphs/permanencia.png"),
+	# 23/10 (Pulso resonante, fase 2): ᚱ raido es el glifo «pulso» nuevo (el PNG ya existía en la lámina).
+	"raido": preload("res://art/ui/glyphs/raido.png"),
 }
+
+## NOMBRE QUE VE EL JUGADOR (23/10, decisión de Pablo): el id de un glifo es el de sus muestras grabadas (`GestureLibrary`), su PNG y las tablas, y NO se renombra. Lo que se
+## muestra (chuleta del libro, paleta, «se parece a…») pasa por aquí: el ᚷ de siempre (id `pulso`, parámetro `crece`) se ve como «crecer», y el ᚱ nuevo (id `raido`, parámetro
+## `resuena`) se ve como «pulso». Un id que no esté aquí se muestra tal cual.
+const NOMBRE_VISIBLE: Dictionary = {"pulso": "crecer", "raido": "pulso"}
+
+
+static func nombre_visible(id: String) -> String:
+	return String(NOMBRE_VISIBLE.get(id, id))
 
 ## --- LA BARRERA QUE AVANZA (barrera + flecha) ---
 ##
@@ -293,6 +304,31 @@ static func velocidad_flecha() -> float:
 
 
 const COSTE_PROP_V2: float = 0.25       ## cada propiedad distinta encarece un 25 %
+const PASO_RESUENA_V2: float = 4.0       ## casillas de alcance del pulso que suma cada ᚱ (PLAN_PULSO_RESONANTE §2)
+const TOPE_RESUENA_V2: float = 12.0      ## alcance máximo del pulso del jugador = `Pulso3D.ALCANCE_DEFECTO`
+
+## --- MOMENTO DE EJECUCIÓN de las propiedades (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §10 bis, GLIFOS_RECETA §2.4 bis) ---
+## Cada glifo declara CUÁNDO actúa en la vida del hechizo. Es un DATO del glifo (no lo elige el jugador ni depende del orden de dibujo):
+##   momento     "inicio" (al nacer el volumen, una vez) · "continuo" (mientras vive, cada `PERIODO_MIN_CONTINUO_S` como mínimo) · "final" (al chocar o acabarse, una vez)
+##   momento_si  (opcional) lista de reglas {cuando, es}: la primera cuyo `cuando` se cumple cambia el momento a `es`. `cuando` es uno de `Hechizo.CONDICIONES_MOMENTO`
+##               («viaja»: el hechizo es un proyectil; «persistente»: el volumen se queda, o sea barrera, sólido o permanencia). Si ninguna casa, vale `momento`.
+##   paso        el paso de GLIFOS_RECETA §2.4 al que pertenece (1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos): ordena los glifos DENTRO de un mismo momento
+##   accion      (opcional) lo que el glifo HACE en su momento: una del catálogo cerrado `HechizoVivo.ACCIONES_MOMENTO`. Sin `accion` el glifo no dispara nada en su momento (su efecto ya
+##               va dentro del ciclo de vida, como siempre): el `momento` de flecha, barrera, repetición, rebote, crecer y permanencia es la descripción de lo que ya hacen, sin cambiarlo.
+## SIN REENTRADAS: un efecto que nace en un momento no vuelve a disparar ese mismo momento del hechizo que lo creó (el pulso «al final» no provoca otro final).
+const MOMENTO_INICIO: String = "inicio"
+const MOMENTO_CONTINUO: String = "continuo"
+const MOMENTO_FINAL: String = "final"
+const MOMENTOS: PackedStringArray = ["inicio", "continuo", "final"]
+const MOMENTO_DEFECTO: String = "inicio"        ## un glifo sin `momento` (los de eje) actúa al nacer
+const PASO_DEFECTO: int = 1
+## Periodo MÍNIMO entre dos disparos de un efecto «continuo» (s): un muro que late 8 s con pulso de rayo no puede multiplicar efectos (PLAN §10 bis, «Riesgo»). Mayor que lo que tarda
+## en apagarse un pulso (`Pulso3D.T_COLA`) para que dos no se pisen.
+const PERIODO_MIN_CONTINUO_S: float = 1.5
+## Tope de disparos continuos de un mismo hechizo (aunque viva 25 s).
+const MAX_DISPAROS_CONTINUOS: int = 8
+## Lo que encarece un efecto continuo (PLAN §2.5: «más propiedades activas = más caro»): se suma a `COSTE_PROP_V2` por cada glifo con `accion` cuyo momento resuelto sea continuo.
+const COSTE_CONTINUO_V2: float = 0.25
 ## RAYO (21/10): con false, ᛁ `linea` vuelve a ser SOLO un eje del volumen (sin haz). Es un interruptor de PRUEBAS y de diseño (las pruebas del volumen genérico —`prueba_materia_v2`, que mide el
 ## sólido, el líquido, el plasma… sobre elipsoides estirados— lo apagan); el juego lo deja en true.
 static var HAZ_ACTIVO: bool = true
@@ -310,6 +346,8 @@ const GLIFOS_V2: Dictionary = {
 	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": 0.5, "tope": 1.5, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): +2 s por glifo de tiempo que se queda donde nace o donde para. Tope 25 s (el límite global cuenta además la `persiste`).
 	"permanencia": {"tipo": "prop", "param": "permanencia", "inicio": 0.0, "por_glifo": 2.0, "tope": 25.0, "modo": "suma", "repertorio": "permanencia", "cooldown": 1.5},
+	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2): +4 casillas de alcance por glifo, tope 12. El nombre que ve el jugador es «pulso»; el id es el de la runa (raido).
+	"raido": {"tipo": "prop", "param": "resuena", "inicio": 0.0, "por_glifo": PASO_RESUENA_V2, "tope": TOPE_RESUENA_V2, "modo": "suma", "repertorio": "raido", "cooldown": 2.0},
 }
 
 
@@ -326,23 +364,29 @@ const GLIFOS_V2: Dictionary = {
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
 ## GLIFOS_V2 se conserva MIENTRAS lo lean el laboratorio, la UI de ejes (Pipeline) y las pruebas; `prueba_hechizo` comprueba que las dos tablas dicen lo mismo.
 const GLIFOS: Dictionary = {
-	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"altura": {"repertorio": "altura", "cooldown": 2.0, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2}]},
+	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"altura": {"repertorio": "altura", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
-	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "modificadores": [
+	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
 		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0}]},
 	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). El 1.er glifo la hace nacer DONDE APUNTAS (en_punto); cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
-	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "modificadores": [
+	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "momento": "continuo", "paso": 4, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
 		{"campo": "en_punto", "op": "fija", "valor": true},
 		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},
-	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
-	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
-	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "modificadores": [{"campo": "crece", "op": "suma", "valor": 0.5, "tope": 1.5}]},
+	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
+	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
+	# ᚷ «crecer» (hasta el 23/10 se llamaba «pulso»; el id, el parámetro `crece` y el efecto no cambian: ver NOMBRE_VISIBLE). Crece mientras vive.
+	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": 0.5, "tope": 1.5}]},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): lo que hace que un hechizo SE QUEDE (defensas, piezas de puzle). +2 s por glifo; `Hechizo._limitar` recorta persiste + permanencia a 25 s.
-	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
+	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
+	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2 y §10 bis): el volumen suelta un `Pulso3D` de `resuena` casillas con el elemento de la receta.
+	# Cuándo: al FINAL si el hechizo viaja (flecha + pulso = pulso donde choca, sin caso especial); CONTINUO si el volumen se queda (barrera, sólido, permanencia); al INICIO en el resto.
+	"raido": {"repertorio": "raido", "cooldown": 2.0, "momento": "inicio", "paso": 5, "accion": "emitir_pulso",
+		"momento_si": [{"cuando": "viaja", "es": "final"}, {"cuando": "persistente", "es": "continuo"}],
+		"modificadores": [{"campo": "resuena", "op": "suma", "valor": PASO_RESUENA_V2, "tope": TOPE_RESUENA_V2}]},
 }
 
 
@@ -397,7 +441,15 @@ static func coste_v2(g: Dictionary, props: Dictionary) -> float:
 	var base: float = volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 	# Con barrera el volumen sube al de la circunferencia del jugador, pero eso NO encarece el hechizo: se cuenta lo que dieron los glifos.
 	var gc: Dictionary = {"x": g.get("x_glifos", g["x"]), "y": g["y"], "z": g.get("z_glifos", g["z"])}
-	return volumen_v2(gc) / base * (1.0 + COSTE_PROP_V2 * float(props.size()))
+	return volumen_v2(gc) / base * (1.0 + COSTE_PROP_V2 * float(props.size())) * recargo_continuo(props)
+
+
+## Recargo de tinta por tener un efecto CONTINUO (PLAN_PULSO_RESONANTE §10 bis y GLIFOS_RECETA §2.5): ×(1 + COSTE_CONTINUO_V2) si la receta lleva ᚱ (`resuena`) y su volumen se queda
+## sin viajar (barrera o permanencia). Se decide SOLO con las propiedades de la receta (es lo único que ve el coste en tinta, que no sabe el elemento); el momento de ejecución
+## real (`Hechizo.momento_de`) además cuenta como «se queda» a un elemento sólido: ahí el pulso también late, pero sin recargo (pendiente anotado en GLIFOS_RECETA).
+static func recargo_continuo(props: Dictionary) -> float:
+	var continuo: bool = props.has("resuena") and not props.has("viaja") and (props.has("solidez") or props.has("permanencia"))
+	return 1.0 + (COSTE_CONTINUO_V2 if continuo else 0.0)
 
 
 ## Recarga de una página V2: la mayor de sus glifos (+ STACK_COOLDOWN por glifo repetido), igual que hace hoy SpellRecipe.apply.

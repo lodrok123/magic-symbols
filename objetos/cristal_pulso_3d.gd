@@ -35,6 +35,7 @@ var _color: Color = Pulso3D.COLOR_BASE
 var _mats: Array[ShaderMaterial] = []
 var _mat_primitiva: StandardMaterial3D = null
 var _luz: OmniLight3D = null
+var _luz_reposo: bool = false           ## ¿tiene el cupo de luz azul de reposo?
 
 
 func preparar(p_celda: Vector2i, p_cada: float = CADA_DEFECTO, p_alcance: int = Pulso3D.ALCANCE_DEFECTO, mundo: Node = null) -> void:
@@ -90,6 +91,19 @@ func _dibujar() -> void:
 	_luz.shadow_enabled = false
 	_luz.position = Vector3(0.0, ALTO_LUZ, 0.0)
 	add_child(_luz)
+	_luz_reposo = BrilloPulso3D.reservar_luz()          # cristal grande: luz azul tenue en reposo (la Cueva se lee iluminada por ellos); sin cupo, solo brilla por emisión
+	if _luz_reposo:
+		_luz.light_color = BrilloPulso3D.COLOR_REPOSO
+		_luz.light_energy = BrilloPulso3D.LUZ_REPOSO_ENERGIA
+		_luz.omni_range = maxf(ALCANCE_LUZ, BrilloPulso3D.LUZ_REPOSO_ALCANCE)
+	if _mat_primitiva != null:
+		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_REPOSO
+
+
+func _exit_tree() -> void:
+	if _luz_reposo:
+		_luz_reposo = false
+		BrilloPulso3D.liberar_luz()
 
 
 ## --- Contrato con los hechizos ---
@@ -149,7 +163,8 @@ func _pintar() -> void:
 	BrilloPulso3D.poner(_mats, _color, BrilloPulso3D.ENERGIA_MAX * e)
 	if _mat_primitiva != null:
 		_mat_primitiva.emission = _color
-		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_MAX * e
+		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_MAX * e + BrilloPulso3D.ENERGIA_REPOSO
 	if _luz != null:
-		_luz.light_color = _color
-		_luz.light_energy = ENERGIA_LUZ * e
+		var reposo: float = BrilloPulso3D.LUZ_REPOSO_ENERGIA if _luz_reposo else 0.0
+		_luz.light_color = BrilloPulso3D.COLOR_REPOSO.lerp(_color, e) if _luz_reposo else _color
+		_luz.light_energy = reposo + ENERGIA_LUZ * e

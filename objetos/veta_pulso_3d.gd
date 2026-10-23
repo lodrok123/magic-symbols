@@ -21,7 +21,8 @@ const ATAQUE: float = 0.04               ## s que tarda en llegar al brillo plen
 const REPOSO: float = 0.55               ## cuánto de su valor (0..1) conserva la veta sin pulso
 const ALFA_REPOSO: float = 0.85
 const EMISION: float = 0.9              ## multiplicador de la emisión (máscara × color × energía × EMISION); con más se quema a blanco y el azul claro se pierde
-const HILO: float = 1.0                  ## fuerza del hilo guía (0 = sin hilo)
+const EMISION_REPOSO: float = 0.10      ## brillo azul muy sutil de la veta sin pulso (la cueva iluminada en azul; el frente la lleva a 0,9 y la nueva luz no compite)
+const HILO: float = 1.0                 ## fuerza del hilo guía (0 = sin hilo)
 const HILO_REPOSO: float = 0.6           ## cuánto del hilo se ve sin pulso (1 = igual que con él)
 const HILO_ANCHO: float = 0.045          ## fracción de casilla
 const DESVANECER: float = 0.18           ## fracción de casilla en la que una veta que acaba sin vecina se desvanece (no queda cortada a escuadra)
@@ -39,6 +40,8 @@ uniform float energia = 0.0;
 uniform float reposo = 0.55;
 uniform float alfa_reposo = 0.85;
 uniform float emision = 2.2;
+uniform vec3 color_reposo : source_color = vec3(0.62, 0.85, 1.0);
+uniform float emision_reposo = 0.0;
 uniform float hilo = 1.0;
 uniform float hilo_reposo = 0.6;
 uniform float hilo_ancho = 0.045;
@@ -77,7 +80,7 @@ void fragment() {
 	vec3 base = mix(col, vec3(0.45, 0.78, 0.9), clamp(h * (1.0 - m), 0.0, 1.0));
 	ALBEDO = base * reposo;
 	ROUGHNESS = 0.6;
-	EMISSION = color_pulso * v * energia * emision;
+	EMISSION = (color_pulso * energia * emision + color_reposo * emision_reposo) * v;
 	ALPHA = clamp(v, 0.0, 1.0) * mix(alfa_reposo, 1.0, clamp(energia, 0.0, 1.0));
 }
 """
@@ -131,6 +134,8 @@ func _dibujar() -> void:
 		m.set_shader_parameter("reposo", REPOSO)
 		m.set_shader_parameter("alfa_reposo", ALFA_REPOSO)
 		m.set_shader_parameter("emision", EMISION)
+		m.set_shader_parameter("color_reposo", BrilloPulso3D.COLOR_REPOSO)
+		m.set_shader_parameter("emision_reposo", EMISION_REPOSO)
 		m.set_shader_parameter("hilo", HILO)
 		m.set_shader_parameter("hilo_reposo", HILO_REPOSO)
 		m.set_shader_parameter("hilo_ancho", HILO_ANCHO)

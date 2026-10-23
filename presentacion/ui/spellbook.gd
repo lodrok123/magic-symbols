@@ -1303,7 +1303,7 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 
 	_draw_glyph(glyph, at, tam, ink, angle)
 	if con_rotulo:
-		_draw_centered_text(at + Vector2(0.0, caida), label,
+		_draw_centered_text(at + Vector2(0.0, caida), Sigils.nombre_visible(label),
 			Color(ink.r, ink.g, ink.b, 0.75))
 
 

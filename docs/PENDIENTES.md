@@ -44,7 +44,15 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] 10.4 controles relativos a la cámara (sin marcar en PLAN_ARREGLOS).
 - [ ] Asistencia al trazo: los parciales al 60 % siguen por debajo del 80 %.
 - [ ] Glifos nuevos de MEJORAS_POTENCIA §6 (perforar, senda, marca…), solo si Pablo los aprueba.
-- [ ] **Pulso resonante** (`PLAN_PULSO_RESONANTE.md` §12): la FASE 1 (señal y lectura) está hecha el 23/10 (`Pulso3D`, `cristal`, `veta`, `receptor`, C1 y C5 → C6). Quedan la fase 2 (prismas, cofre legendario con animación, glifo ᚱ «pulso» y ᚷ → «crecer», pared hueca de salida), la 3 (C2–C4, setas, estatuas, cofre épico, reactivos con `on_pulso`), el sonido propio del pulso (hoy `sello_ok` a distintos tonos) y que en C5 la descarga amarilla de la fuente tapa el frente del pulso por el agua.
+- [x] ~~**Pulso resonante, fase 2** (`PLAN_PULSO_RESONANTE.md` §12.2)~~ — hecha el 23/10: glifo ᚱ «pulso» (id `raido`) y ᚷ → «crecer», momento de ejecución (inicio / continuo / final) como mecanismo de la receta v2, prisma, pared hueca de salida, cofre legendario con su secuencia, Cueva iluminada en azul. Capturas en `docs/capturas/pulso_fase2/`.
+- [ ] **Pulso resonante, lo que queda:** la fase 3 (C2–C4, setas que maduran, estatuas, cofre épico, columnas con `on_pulso`, bloque de enlace, los otros 1–2 prismas de C5/C6), el sonido propio del pulso (hoy `sello_ok` a distintos tonos) y que en C5 la descarga amarilla de la fuente tapa el frente del pulso por el agua.
+- [ ] **Pipeline: clip «abrir cofre» de la jugadora** (PLAN_PULSO_RESONANTE §10 punto 6). No existe: la secuencia del cofre legendario usa `pick_up` (coger un objeto) y, desde el primer plano cenital, se lee como un bulto agachado. Cuando llegue el clip, cambiar `SecuenciaCofreLegendario3D.ROL_ANIMACION`.
+- [ ] **Pablo / Pipeline: la tapa del cofre legendario abierto** se ve flotando separada del cuerpo (captura `docs/capturas/pulso_fase2/cofre_9_despues.png`; su interior se ve con reflejos morados). Es del modelo/`Cofre3D` (fase 1), no de la secuencia: revisar la bisagra de `cofre_legendario`.
+- [ ] **Pablo: grabar las muestras de ᚱ** (`G` en el libro, id `raido`). Sin ellas el glifo se puede poner con la paleta (F1) pero no se reconoce dibujándolo; con ellas, la escritura del cofre podría dibujarse trazo a trazo (hoy es un barrido de arriba abajo).
+- [ ] **Coste en tinta del pulso continuo:** el recargo `COSTE_CONTINUO_V2` (+25 %) solo ve las propiedades de la receta (barrera o permanencia); un ᚱ con elemento sólido (tierra, hielo) sin barrera también late, pero sin recargo. Para cubrirlo, `Receta3D.coste_v2` tendría que conocer el elemento.
+- [ ] **La pared hueca de la Cueva se parece a cualquier otra pared** (es un `cueva_pared` con un resplandor azul tenue): se entiende por las vetas que llevan hasta ella, el eco y el aviso al coger el glifo. Si en el playtest no se entiende, darle un detalle propio (grieta, runa).
+- [ ] **Brillo azul de la Cueva:** el brillo de los cristales y las vetas se lee; la luz sobre el suelo es muy tenue (`BrilloPulso3D.LUZ_REPOSO_ENERGIA` 0,5). Subirla si Pablo la quiere más visible.
+- [ ] El laboratorio de recetas (`lab_recetas_3d.gd`) enseña los ids de los glifos tal cual (ᚷ sale como «pulso» y ᚱ como «raido»): pasarlos por `Sigils.nombre_visible`.
 
 ## Pipeline
 

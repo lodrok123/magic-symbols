@@ -17,6 +17,17 @@ const CIAN_MIN: float = 0.12            ## umbral del «es cristal»: (mín(verd
 const CIAN_MAX: float = 0.40
 const RUGOSIDAD: float = 0.85
 
+## LA CUEVA ILUMINADA EN AZUL (23/10, Pablo: «un brillo muy sutil a los cristales para que la cueva esté iluminada en azul»). En REPOSO el cristal lleva una emisión muy
+## baja del azul claro del pulso base (`COLOR_REPOSO`) y los cristales GRANDES, además, una luz pequeña y tenue sin sombras. Todo muy por debajo del destello del pulso
+## (`ENERGIA_MAX` 3,0 y las luces de 1,3–1,6) y de los braseros. Las luces cuestan: como mucho `MAX_LUCES_REPOSO` a la vez en todo el mapa (la Cueva tiene seis salas), y las
+## piezas las piden con `reservar_luz` / devuelven con `liberar_luz` (una pieza sin luz sigue brillando por emisión).
+const COLOR_REPOSO: Color = Color(0.62, 0.85, 1.0)   ## = Pulso3D.COLOR_BASE (#9ED9FF); se repite aquí para no depender del orden de carga
+const ENERGIA_REPOSO: float = 0.16                   ## emisión del cristal en reposo (el destello pleno es 3,0)
+const LUZ_REPOSO_ENERGIA: float = 0.5                ## energía de la luz azul de un cristal grande en reposo (la primera, 0,32, apenas se veía en las capturas: el suelo de la Cueva se lleva casi toda la luz)
+const LUZ_REPOSO_ALCANCE: float = 5.2                ## u
+const MAX_LUCES_REPOSO: int = 8                      ## tope de luces de reposo vivas a la vez
+static var _luces_reposo: int = 0
+
 const CODIGO: String = """
 shader_type spatial;
 uniform sampler2D t_albedo : source_color, filter_linear_mipmap, repeat_enable;
@@ -28,6 +39,8 @@ uniform float cian_min = 0.12;
 uniform float cian_max = 0.40;
 uniform vec3 color_pulso : source_color = vec3(0.62, 0.85, 1.0);
 uniform float energia = 0.0;
+uniform vec3 color_reposo : source_color = vec3(0.62, 0.85, 1.0);
+uniform float energia_reposo = 0.0;
 
 void fragment() {
 	vec4 t = texture(t_albedo, UV);
@@ -37,7 +50,7 @@ void fragment() {
 	ALBEDO = mix(t.rgb, apagado, cristal);
 	ROUGHNESS = rugosidad;
 	NORMAL_MAP = texture(t_normal, UV).rgb;
-	EMISSION = color_pulso * cristal * energia;
+	EMISSION = (color_pulso * energia + color_reposo * energia_reposo) * cristal;
 }
 """
 
@@ -85,9 +98,27 @@ static func preparar(nodo: Node) -> Array[ShaderMaterial]:
 			m.set_shader_parameter("oscurecer", OSCURECER_REPOSO)
 			m.set_shader_parameter("cian_min", CIAN_MIN)
 			m.set_shader_parameter("cian_max", CIAN_MAX)
+			m.set_shader_parameter("color_reposo", COLOR_REPOSO)
+			m.set_shader_parameter("energia_reposo", ENERGIA_REPOSO)
 			mi.set_surface_override_material(s, m)
 			res.append(m)
 	return res
+
+
+## ¿Cabe otra luz de reposo? Si sí, la reserva (quien la reserve debe llamar a `liberar_luz` al salir del árbol).
+static func reservar_luz() -> bool:
+	if _luces_reposo >= MAX_LUCES_REPOSO:
+		return false
+	_luces_reposo += 1
+	return true
+
+
+static func liberar_luz() -> void:
+	_luces_reposo = maxi(_luces_reposo - 1, 0)
+
+
+static func luces_reservadas() -> int:
+	return _luces_reposo
 
 
 ## Pone color y energía de brillo en los materiales de `preparar`.

@@ -7,6 +7,11 @@ extends SceneTree
 ##   · COLOR: sin elemento el pulso es `COLOR_BASE` (azulado claro, #9ED9FF); con elemento, el color de su runa (se comprueba contra `nucleo/*_rune.tres`);
 ##   · SIN REENTRADAS: una casilla se alcanza una vez aunque haya un anillo de conductores, un receptor entre dos casillas del frente recibe UN aviso, el emisor no se avisa a sí mismo;
 ##   · AVISO a lo que toca (receptor junto a la veta) en el paso que le corresponde, y el nodo se libera al terminar.
+## FASE 2 (23/10; PLAN §2 y §10 bis; GLIFOS_RECETA §2.2 y §2.4 bis), sin escena:
+##   · RECETA con ᚱ (id `raido`): `resuena` +4 por glifo con tope 12, es una propiedad que encarece, no cambia el volumen ni la forma, y el pulso del jugador usa el MISMO color/señal;
+##   · MOMENTO DE EJECUCIÓN: cada glifo lo declara como dato; ᚱ es final con flecha, continuo con barrera/permanencia/sólido, inicio en el resto (haz incluido); el orden dentro de un momento es
+##     el del dato (`paso`), nunca el de dibujo; la tabla es válida (momentos conocidos, pasos, acciones del catálogo); el recargo del continuo es el mismo en la receta y en el Hechizo;
+##   · ᚷ «crecer»: el nombre que ve el jugador cambia, y su id, runa, parámetro y efecto NO.
 ##   godot --headless --path . --script res://herramientas/prueba_pulso.gd
 
 ## Un receptor de mentira: tiene `celda` y `on_pulso`, y cuenta los avisos.
@@ -56,6 +61,9 @@ func _initialize() -> void:
 	_colores()
 	await _pulso_sin_reentradas()
 	await _pulso_avisa_y_acaba()
+	_receta_pulso()
+	_momento_de_ejecucion()
+	_crecer_y_nombres()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -243,3 +251,118 @@ func _pulso_avisa_y_acaba() -> void:
 	_ok("6 con alcance 4 el receptor del paso 6 no se entera (el alcance corta el pulso)", r2.avisos == 0)
 	r.queue_free()
 	r2.queue_free()
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  FASE 2 · la receta, el momento de ejecución y el nombre «crecer»
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _runa(archivo: String) -> RuneData:
+	return load("res://nucleo/%s_rune.tres" % archivo) as RuneData
+
+
+func _receta_pulso() -> void:
+	var fuego: RuneData = _runa("fire")
+	var base: Hechizo = Hechizo.construir(fuego, {})
+	var uno: Hechizo = Hechizo.construir(fuego, {"raido": 1})
+	var tres: Hechizo = Hechizo.construir(fuego, {"raido": 3})
+	var cuatro: Hechizo = Hechizo.construir(fuego, {"raido": 4})
+	_ok("7 ᚱ está dado de alta: tablas de Sigils (GLIFOS y GLIFOS_V2), reconocedor (SIGILS, RECORDABLE) y biblia (ᚱ sello)", Sigils.GLIFOS.has("raido") and Sigils.GLIFOS_V2.has("raido")
+		and GestureLibrary.SIGILS.has("raido") and GestureLibrary.RECORDABLE.has("raido") and String(GestureLibrary.BIBLIA["raido"]["uso"]) == "sello" and String(GestureLibrary.BIBLIA["raido"]["futhark"]) == "ᚱ")
+	_ok("7 sin glifos no resuena; con uno suma 4 casillas, con tres 12, y el tope es 12 (cuatro glifos = 12)", base.resuena == 0.0 and uno.resuena == 4.0 and tres.resuena == 12.0 and cuatro.resuena == 12.0,
+		"%s %s %s %s" % [base.resuena, uno.resuena, tres.resuena, cuatro.resuena])
+	_ok("7 los datos del glifo: +4 por glifo y tope 12 como constantes con nombre", Sigils.PASO_RESUENA_V2 == 4.0 and Sigils.TOPE_RESUENA_V2 == 12.0 and Sigils.TOPE_RESUENA_V2 == float(Pulso3D.ALCANCE_DEFECTO))
+	_ok("7 es una PROPIEDAD de la receta (`resuena`): la cuenta Sigils.aplicar_v2 y la del Hechizo, igual", Sigils.aplicar_v2({"raido": 2})["props"] == {"resuena": 8.0} and uno.propiedades_usadas() == {"resuena": 4.0}
+		and Hechizo.construir(fuego, {"raido": 2}).propiedades_usadas() == {"resuena": 8.0})
+	_ok("7 no cambia el volumen ni la forma (solo es una propiedad): mismos semiejes y figura que sin ᚱ", uno.semiejes == base.semiejes and uno.figura() == base.figura())
+	_ok("7 encarece (propiedad nueva: +25 %)", is_equal_approx(uno.coste, base.coste * (1.0 + Sigils.COSTE_PROP_V2)), "%.3f vs %.3f" % [uno.coste, base.coste])
+	_ok("7 el hechizo con ᚱ sigue la paridad de la receta (coste y tinta)", is_equal_approx(uno.coste, Sigils.coste_v2(Sigils.aplicar_v2({"raido": 1}), {"resuena": 4.0})))
+	# El pulso del jugador usa la misma señal: elemento de la receta, o el azul base si no hay.
+	var p_fuego := Pulso3D.new()
+	p_fuego.preparar([Vector2i(0, 0)], uno.elemento, int(uno.resuena), null, _f)
+	var p_nada := Pulso3D.new()
+	p_nada.preparar([Vector2i(0, 0)], "", int(uno.resuena), null, _f)
+	_ok("7 el pulso del jugador toma el elemento de la receta (fuego) y, sin elemento, el azul claro base", p_fuego.elemento == "fuego" and p_fuego.color == fuego.color and p_nada.color == Pulso3D.COLOR_BASE and not p_nada.del_jugador)
+	p_fuego.free()
+	p_nada.free()
+	# El desbloqueo: sin Repertoire no hay ᚱ (los niveles que no lo dan no lo enseñan)
+	Repertoire.reset_to_p0()
+	_ok("7 por defecto ᚱ NO está en el libro (Repertoire) y se desbloquea con unlock_sigil", not Repertoire.sigil_active("raido") and Repertoire.unlock_sigil("raido") and Repertoire.sigil_active("raido") and not Repertoire.unlock_sigil("raido"))
+	Repertoire.lock_sigil("raido")
+
+
+func _momento_de_ejecucion() -> void:
+	var fuego: RuneData = _runa("fire")
+	var tierra: RuneData = _runa("earth")
+	# La tabla es válida: cada glifo declara un momento conocido y un paso; los que tienen acción la piden del catálogo.
+	var tabla_ok: bool = true
+	var con_accion: Array = []
+	for g in Sigils.GLIFOS:
+		var d: Dictionary = Sigils.GLIFOS[g]
+		if not Sigils.MOMENTOS.has(String(d.get("momento", Sigils.MOMENTO_DEFECTO))) or int(d.get("paso", 0)) < 1 or int(d.get("paso", 0)) > 5:
+			tabla_ok = false
+		for regla in (d.get("momento_si", []) as Array):
+			if not Sigils.MOMENTOS.has(String(regla["es"])) or not Hechizo.CONDICIONES_MOMENTO.has(String(regla["cuando"])):
+				tabla_ok = false
+		if d.has("accion"):
+			con_accion.append(g)
+			if not HechizoVivo.ACCIONES_MOMENTO.has(String(d["accion"])):
+				tabla_ok = false
+	_ok("8 cada glifo declara su momento (inicio, continuo o final) y su paso de §2.4 como DATO, con reglas y acciones del catálogo cerrado", tabla_ok, str(con_accion))
+	_ok("8 solo ᚱ tiene acción hoy; flecha, barrera, repetición, rebote, crecer y permanencia conservan lo que hacen (sin acción)", con_accion == ["raido"])
+	# ᚱ: el momento sale de la receta, sin caso especial por pareja de glifos.
+	var casos: Array = [
+		["sin nada", fuego, {"raido": 1}, "inicio"],
+		["volumen más grande", fuego, {"raido": 1, "linea_x": 2}, "inicio"],
+		["flecha → final", fuego, {"raido": 1, "flecha": 1}, "final"],
+		["flecha + barrera → final (viaja)", fuego, {"raido": 1, "flecha": 1, "barrera": 1}, "final"],
+		["barrera → continuo", fuego, {"raido": 1, "barrera": 1}, "continuo"],
+		["permanencia → continuo", fuego, {"raido": 1, "permanencia": 1}, "continuo"],
+		["tierra (sólido) → continuo", tierra, {"raido": 1}, "continuo"],
+		["tierra + flecha → final", tierra, {"raido": 1, "flecha": 1}, "final"],
+		["haz (ᛁ + fuego) → inicio", fuego, {"raido": 1, "linea_z": 1}, "inicio"],
+		["crecer → inicio", fuego, {"raido": 1, "pulso": 1}, "inicio"],
+	]
+	for c in casos:
+		var h: Hechizo = Hechizo.construir(c[1] as RuneData, c[2] as Dictionary)
+		_ok("8 ᚱ %s" % c[0], h.momento_de("raido") == String(c[3]), "salió %s" % h.momento_de("raido"))
+	# Con el momento, `acciones_en` da lo que toca; los demás momentos quedan vacíos.
+	var hf: Hechizo = Hechizo.construir(fuego, {"raido": 1, "flecha": 1})
+	_ok("8 con flecha, las acciones del momento «final» son las de ᚱ y las de «inicio» y «continuo» están vacías", hf.acciones_en("final").size() == 1 and String(hf.acciones_en("final")[0]["glifo"]) == "raido"
+		and hf.acciones_en("inicio").is_empty() and hf.acciones_en("continuo").is_empty())
+	# El orden de dibujo no cuenta: la receta es un multiconjunto.
+	var ab: Hechizo = Hechizo.construir(fuego, {"raido": 2, "barrera": 1, "flecha": 0})
+	var ba: Hechizo = Hechizo.construir(fuego, {"barrera": 1, "raido": 2})
+	_ok("8 el orden de dibujo no cambia el momento ni las acciones", ab.momento_de("raido") == ba.momento_de("raido") and ab.acciones_en("continuo") == ba.acciones_en("continuo") and ab.resuena == ba.resuena)
+	# Orden fijo dentro de un momento: por `paso` y, a igualdad, por el orden de la tabla. Se comprueba con la misma función contra dos entradas inventadas.
+	var barajadas: Array = [{"glifo": "d", "paso": 5, "orden": 9}, {"glifo": "b", "paso": 2, "orden": 7}, {"glifo": "c", "paso": 3, "orden": 4}, {"glifo": "a2", "paso": 2, "orden": 8}, {"glifo": "a", "paso": 1, "orden": 1}]
+	var ordenadas: Array = Hechizo.ordenar_acciones(barajadas.duplicate()).map(func(a: Dictionary) -> String: return String(a["glifo"]))
+	var al_reves: Array = Hechizo.ordenar_acciones(barajadas.duplicate()).map(func(a: Dictionary) -> String: return String(a["glifo"]))
+	barajadas.reverse()
+	var otra_baraja: Array = Hechizo.ordenar_acciones(barajadas.duplicate()).map(func(a: Dictionary) -> String: return String(a["glifo"]))
+	_ok("8 el orden dentro de un momento es el fijo de §2.4 (por paso y, a igualdad, por la tabla), salga como salga la baraja", ordenadas == ["a", "b", "a2", "c", "d"] and otra_baraja == ordenadas and al_reves == ordenadas, str(ordenadas))
+	# El recargo del continuo: el mismo número en la receta (Sigils) y en el Hechizo.
+	var barrera: Hechizo = Hechizo.construir(fuego, {"barrera": 1})
+	var muro_pulso: Hechizo = Hechizo.construir(fuego, {"barrera": 1, "raido": 1})
+	var flecha_pulso: Hechizo = Hechizo.construir(fuego, {"flecha": 1, "raido": 1})
+	var flecha: Hechizo = Hechizo.construir(fuego, {"flecha": 1})
+	var vol_muro: float = barrera.coste / (1.0 + Sigils.COSTE_PROP_V2)            # el volumen en unidades de coste (la barrera ya lleva una propiedad)
+	var esperado_muro: float = vol_muro * (1.0 + 2.0 * Sigils.COSTE_PROP_V2) * (1.0 + Sigils.COSTE_CONTINUO_V2)
+	_ok("8 el pulso continuo (barrera + ᚱ) cuesta más: propiedad nueva Y recargo del continuo", is_equal_approx(muro_pulso.coste, esperado_muro) and muro_pulso.coste > vol_muro * (1.0 + 2.0 * Sigils.COSTE_PROP_V2), "%.3f vs %.3f" % [muro_pulso.coste, esperado_muro])
+	_ok("8 el pulso «al final» (flecha + ᚱ) NO lleva recargo de continuo", is_equal_approx(flecha_pulso.coste, flecha.coste / (1.0 + Sigils.COSTE_PROP_V2) * (1.0 + 2.0 * Sigils.COSTE_PROP_V2)))
+	_ok("8 el recargo es el mismo número en la receta (Sigils.coste_v2) y en el Hechizo", is_equal_approx(muro_pulso.coste, Sigils.coste_v2(Sigils.aplicar_v2({"barrera": 1, "raido": 1}), Sigils.aplicar_v2({"barrera": 1, "raido": 1})["props"])))
+	_ok("8 las constantes del continuo tienen nombre: periodo mínimo %.1f s (mayor que lo que tarda un pulso en apagarse, %.2f s) y tope de %d disparos" % [Sigils.PERIODO_MIN_CONTINUO_S, Pulso3D.T_COLA, Sigils.MAX_DISPAROS_CONTINUOS],
+		Sigils.PERIODO_MIN_CONTINUO_S > Pulso3D.T_COLA and Sigils.MAX_DISPAROS_CONTINUOS >= 2)
+
+
+func _crecer_y_nombres() -> void:
+	var fuego: RuneData = _runa("fire")
+	var c1: Hechizo = Hechizo.construir(fuego, {"pulso": 1})
+	var c3: Hechizo = Hechizo.construir(fuego, {"pulso": 3})
+	_ok("9 ᚷ «crecer» no cambia: id `pulso`, parámetro `crece` (+0,5 por glifo, tope 1,5), runa ᚷ, figura «pulso», sin pulso resonante",
+		Sigils.GLIFOS_V2["pulso"]["param"] == "crece" and c1.crece == 0.5 and c3.crece == 1.5 and Hechizo.construir(fuego, {"pulso": 4}).crece == 1.5 and c1.figura() == "pulso" and c1.resuena == 0.0
+		and String(GestureLibrary.BIBLIA["pulso"]["futhark"]) == "ᚷ" and c1.acciones_en("inicio").is_empty())
+	_ok("9 el jugador lo ve como «crecer» y al glifo nuevo como «pulso»", Sigils.nombre_visible("pulso") == "crecer" and Sigils.nombre_visible("raido") == "pulso" and Sigils.nombre_visible("flecha") == "flecha")
+	_ok("9 la chuleta del libro rotula ᚷ «crecer» y ᚱ «pulso» (EjesRecetaUi.EFECTO)", EjesRecetaUi.EFECTO["pulso"] == "crecer" and EjesRecetaUi.EFECTO["raido"] == "pulso")
+	_ok("9 los dos glifos tienen PNG propio en el libro", Sigils.GLYPHS.has("pulso") and Sigils.GLYPHS.has("raido") and Sigils.GLYPHS["pulso"] != Sigils.GLYPHS["raido"])
+	_ok("9 la onda de viento de siempre (recetas del lab: flecha + ᚷᚷ + ᛁᛁ) sigue construyéndose", Hechizo.construir(_runa("wind"), {"flecha": 1, "pulso": 2, "linea_z": 2}).crece == 1.0)

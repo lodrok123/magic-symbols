@@ -31,8 +31,7 @@ en el tiempo. El pulso es lo segundo: cualquier volumen puede resonar. Por eso s
 - **El pulso base (decisión de Pablo, 23/10)** es ese pulso puro y tiene color propio: **azulado claro** (`Pulso3D.COLOR_BASE`,
   ≈ `Color(0.62, 0.85, 1.0)`, #9ED9FF). Es el color con el que se encienden vetas, cristales y receptores cuando el pulso no lleva
   elemento, el del pulso del escenario antes del cofre y el que se ve por defecto. Con elemento, el frente toma el color de su runa.
-- **Conflicto de nombre:** ᚷ ya es «pulso» en la v2 (`crece`: el volumen nace pequeño y crece). O se renombra ᚷ («crecer») o el
-  glifo nuevo se llama «resonancia» o «eco». Lo decide Pablo (§10).
+- **Conflicto de nombre:** ᚷ ya era «pulso» en la v2 (`crece`: el volumen nace pequeño y crece). Resuelto por Pablo (§10, punto 1) y construido en la fase 2: ᚷ se ve como «crecer» y ᚱ como «pulso».
 
 **Mejoras épicas** (§7). *Superado por la decisión de Pablo del 23/10 (§10, punto 4): los épicos son ingredientes para mejorar al
 personaje (vida, tinta, pigmentos, ropa), no variables del glifo.* La propuesta original era subir las variables del glifo:
@@ -277,5 +276,27 @@ pared hueca con pulso propio, estatuas) y una prueba de `Pulso3D` sola (alcance,
    - [ ] Lo que NO está en la fase 1 (va en las siguientes): prismas, bloque de enlace, basalto y puente de piedra como conductores, reactivos (`on_pulso` en columnas, setas,
      estatuas), sonido propio, glifo del jugador.
 2. **Final.** Prismas, cofre legendario con su animación, glifo en la receta, pared hueca de salida.
+   **HECHA el 23/10** (`escenario_cueva_pulso.gd` y `prueba_pulso.gd` a 0; capturas con ventana en `docs/capturas/pulso_fase2/`):
+   - [x] **Glifo ᚱ «pulso»** (id `raido`, parámetro `resuena`, +4 casillas por glifo, tope 12 = `Pulso3D.ALCANCE_DEFECTO`): `Sigils.GLIFOS` / `GLIFOS_V2`, `GestureLibrary.SIGILS`, PNG `raido.png`, campo `Hechizo.resuena`
+     (propiedad que encarece +25 %). El pulso del jugador es la misma señal `Pulso3D.emitir` con el elemento de la receta (sin elemento, el azul claro base) y con el marcador `del_jugador`.
+   - [x] **ᚷ → «crecer»**: solo cambia lo que ve el jugador (`Sigils.NOMBRE_VISIBLE`: chuleta del libro, paleta, «se parece a…»). El id `pulso`, las muestras grabadas, el PNG, el parámetro `crece`, la runa y el efecto
+     quedan igual (las pruebas de crecer siguen verdes). **Diferencia con lo pedido:** el id interno de ᚱ no es `pulso` sino `raido` (`pulso` sigue siendo el id de ᚷ: renombrarlo rompería las muestras de Pablo y las pruebas).
+   - [x] **Momento de ejecución (§10 bis)** como mecanismo general de la receta v2 (detalle en `GLIFOS_RECETA.md` §2.4 bis): dato `momento` / `momento_si` / `paso` / `accion` por glifo en `Sigils.GLIFOS`,
+     `Hechizo.momento_de` y `Hechizo.acciones_en` (orden fijo), ejecución en `HechizoVivo` (`_arrancar_momentos`, `_momento`, `_terminar`). ᚱ: **final** si viaja, **continuo** si el volumen se queda (barrera, permanencia, sólido), **inicio**
+     en el resto (el haz incluido). Continuo: periodo mínimo `Sigils.PERIODO_MIN_CONTINUO_S` (1,5 s), tope `MAX_DISPAROS_CONTINUOS` (8), recargo de tinta `COSTE_CONTINUO_V2` (+25 %). Sin reentradas: inicio y final una vez, y un hijo (`crear_hijo`) no repite
+     los efectos de su padre. Flecha, barrera, repetición, rebote, crecer y permanencia llevan su `momento` como descripción, sin `accion`: no cambian lo que hacen.
+   - [x] **Prisma** (`PrismaPulso3D`, pieza `prisma`, `dir=n|e|s|o`): reemite el pulso por la casilla que mira (mismo elemento, mismo dueño, alcance restante; no vuelve por donde vino; `Pulso3D.linaje` impide que dos prismas se lo pasen para siempre).
+     Se gira 90° en sentido horario con un golpe de hechizo (cualquier elemento) o con E; un puntero luminoso en el suelo marca la salida. **En la Cueva hay UNO** (`prisma_c6`, 15,16): lleva el pulso de C5 al receptor (mirando al norte) o,
+     girado al oeste, por la veta que va a la pared hueca. No se han puesto 2–3 como decía §5 para no rehacer C6.
+   - [x] **Pared hueca** (`ParedHuecaPulso3D`, pieza `pared_hueca`, `flag=`): un trozo del kit `cueva_pared` que hace ECO con cualquier pulso (anillo, destello azul, dos notas graves) y SE ABRE solo con el pulso del jugador. Sustituye al atajo
+     (`atajo` + `boton`): sin pulsador de reserva. Vetas que llevan hasta ella (`veta_c6_oeste`) y aviso dorado al coger el glifo.
+   - [x] **Cofre legendario** (`SecuenciaCofreLegendario3D`, claves `abre_si=` y `glifo=` de la pieza `cofre`): sellado hasta que el receptor está activo; al abrirlo, control bloqueado, cámara en primer plano, luz de zona al 40 %,
+     tapa, onda dorada por las vetas, glifo con halo, destello blanco + desenfoque radial + pico de luz, caída a una página que se abre sola, escritura de arriba abajo con su nombre, desbloqueo (`Repertoire.unlock_sigil`, flag `cueva.c6.glifo`),
+     aviso dorado «Pared hueca: prueba el pulso». Saltable (E, Espacio, Intro o Esc) desde la segunda vez (flag global `global.cofre.legendario_visto`). **Diferencias con §8:** el glifo sube 1 casilla (no 1,5) y el primer plano es tamaño 4,8 (no 4)
+     con un desplazamiento del encuadre hacia el cofre, porque con 4 y 1,5 el glifo se salía de la pantalla; la escritura es un barrido de arriba abajo (el ᚱ aún no tiene muestras grabadas para dibujarlo trazo a trazo) y la página es un panel propio, no el libro real.
+     **Falta el clip «abrir cofre» de la jugadora:** se usa `pick_up` (coger un objeto), ver `PENDIENTES.md`.
+   - [x] **Cueva iluminada en azul** (encargo de Pablo): emisión de reposo muy baja del azul base en cristales, vetas, receptor y prisma (`BrilloPulso3D.ENERGIA_REPOSO`, `VetaPulso3D.EMISION_REPOSO`) y luces tenues sin sombras
+     (`LUZ_REPOSO_ENERGIA` 0,5, `LUZ_REPOSO_ALCANCE`, tope `MAX_LUCES_REPOSO` = 8 vivas a la vez). El destello del pulso queda por encima (luces de 1,6 y emisión de 3,0).
+   - [ ] Sigue sin hacerse (fase 3): setas que maduran, estatuas, cofre épico, columnas agrietadas con `on_pulso`, bloque de enlace, sonido propio del pulso, y los otros 1–2 prismas de C5/C6.
 3. **Opcionales y calidades.** C2, C3, C4, setas que maduran, estatuas y cofre épico, colores por calidad.
 4. **Arte.** Tripo para las piezas de §11 y sustitución de las primitivas.

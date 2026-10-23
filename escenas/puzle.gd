@@ -67,6 +67,12 @@ extends Node
 ##              casilla) cada `cada` s (0 = solo al golpearlo) y cuando le da un hechizo (el pulso lleva su elemento). Modelo `cristal_resonante`. Bloquea su casilla
 ##   veta       celdas=<lista> (la propia x,y)                                       VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso
+##   prisma     dir=n|e|s|o (n)                                                      PrismaPulso3D (fase 2): MODIFICADOR. Reemite el pulso que le llega por la casilla que mira (`dir`), con su
+##              elemento, su dueño y el alcance que le quedaba; se gira 90° (horario) con un golpe de hechizo o con E. Bloquea su casilla
+##   pared_hueca  flag=<nombre>                                                      ParedHuecaPulso3D (fase 2): REACTIVO. Suena hueca (eco) con cualquier pulso y SE ABRE solo con uno del
+##              JUGADOR (el glifo ᚱ). Bloquea su casilla mientras está cerrada; `flag` se pone al abrirse
+##   (cofre)    abre_si=<expr> (siempre)  glifo=<id del libro>                        `abre_si`: hasta que se cumpla el cofre está sellado (E avisa y no abre). `glifo=raido`: abrirlo da ese
+##              glifo con la SECUENCIA del cofre legendario (SecuenciaCofreLegendario3D) y lo desbloquea en el libro
 ##   receptor   elemento=fuego|agua|hielo|rayo|tierra|viento (cualquiera)  flag=<nombre>  rearme=<s> (0)   ReceptorPulso3D: se ACTIVA al llegarle un pulso (de ese elemento, si lo
 ##              pide) y se queda activo; pone `flag` con la forma de siempre (nivel.sala.hecho). `rearme` > 0: se apaga solo. Modelo `receptor_runico`. Bloquea su casilla
 ##
@@ -80,13 +86,13 @@ extends Node
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
 ##   muro       roto                         lava     enfriada | apagada        seta     recogida
-##   cristal    late                         receptor activado | apagado
+##   cristal    late                         receptor activado | apagado   prisma gira | emite   pared_hueca abierta | eco
 ## CONDICIONES (`si=<id>.<cond>`: la regla solo actúa si en ese momento se cumple):
 ##   compuerta/puerta  abierta | cerrada    nivel  alcanzado | perdido     nexo    conduce | corta    molino  girando | parado
 ##   barril  explotado | encendido | entero    pulsador  activo | libre
 ##   brasero apagado | encendido   contador  todos | no_todos   cuerda  rota | entera   seto  ardiendo
 ##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada     seta  recogida | en_suelo
-##   receptor  activo | libre
+##   receptor  activo | libre     pared_hueca  abierta | cerrada
 ##
 ## CONDICIONES COMPUESTAS (C2, 21/10). `si=` es una EXPRESIÓN de términos:
 ##   término    <id>.<cond> (de arriba) | flag.<nombre> | casilla(x,y).<estado>
@@ -123,7 +129,7 @@ extends Node
 ##   cuenca              helar(s)        (hiela sus casillas `s` segundos; sin argumento, AguaSim3D.DURA_HIELO)
 ##   brasero             encender | apagar        seto    encender (lo prende)        cuerda  quemar
 ##   cerrojo             abrir (definitivo) | cerrar                              cofre   abrir (como si el jugador pulsara E) | aparecer (lo fuerza)
-##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar
+##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar     prisma  girar     pared_hueca  abrir
 ##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
 ## `abrir_cauce` sin argumentos usa los de la pieza (manantial) o Surtidor3D.CAUDAL_TINAJA / VOL_TINAJA (tinaja).
 ##
@@ -166,7 +172,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"puerta": "abierta", "totem": "activado", "tinaja": "agua_llega", "emisor": "descarga",
 	"brasero": "encendido", "contador": "todos", "cuerda": "rota", "seto": "consumido",
 	"vigia": "todos_derrotados", "cerrojo": "cerrado", "cofre": "abierto", "muro": "roto", "lava": "apagada", "seta": "recogida",
-	"cristal": "late", "receptor": "activado",
+	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -192,6 +198,8 @@ const SENALES: Dictionary = {
 	"seta": {"recogida": ["recogido", 1, null]},
 	"cristal": {"late": ["late", 1, null]},
 	"receptor": {"activado": ["activado", 0, null], "apagado": ["apagado", 0, null]},
+	"prisma": {"gira": ["gira", 1, null], "emite": ["emite", 1, null]},
+	"pared_hueca": {"abierta": ["abierto", 0, null], "eco": ["eco", 1, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -212,6 +220,7 @@ const CONDICIONES: Dictionary = {
 	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
 	"seta": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"receptor": {"activo": ["activo", true], "libre": ["activo", false]},
+	"pared_hueca": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -233,6 +242,8 @@ const ACCIONES: Dictionary = {
 	"seta": {"recoger": 0},
 	"cristal": {"latir": 0},
 	"receptor": {"activar": 0, "apagar": 0},
+	"prisma": {"girar": 0},
+	"pared_hueca": {"abrir": 0},
 	"emisor": {"pulso": 1},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
@@ -255,13 +266,15 @@ const CLAVES: Dictionary = {
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
-	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico"},
+	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f"},
 	"cristal": {"cada": "f", "alcance": "f"},
 	"veta": {"celdas": "celdas"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
+	"prisma": {"dir": "s:n|e|s|o"},
+	"pared_hueca": {"flag": "flag"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -269,6 +282,7 @@ const ESCENA_COFRE: String = "res://arte/piezas/cofre.tscn"
 ## 23/10: cofres de la Cueva (hoja D2). `modelo=legendario|epico` en un cofre usa su escena (misma API: cuerpo + tapa con la bisagra en el origen de la tapa).
 const ESCENAS_COFRE_CUEVA: Dictionary = {"legendario": "res://arte/piezas/cofre_legendario.tscn", "epico": "res://arte/piezas/cofre_epico.tscn"}
 const ALCANCE_COFRE: float = 2.7
+const TXT_COFRE_SELLADO: String = "El cofre está sellado: sus vetas están apagadas"
 const CADA_LOGICA: float = 0.1
 const CADA_COFRE: float = 0.2
 const T_VIGIA_SIN_ENEMIGOS: float = 3.0
@@ -548,6 +562,9 @@ class CofrePuzle extends Node3D:
 	signal abierto
 	var celda: Vector2i = Vector2i.ZERO
 	var expr: Array = []                         ## aparece_si= (vacío = siempre)
+	var expr_abre: Array = []                    ## abre_si= (vacío = siempre): mientras no se cumpla el cofre está SELLADO (se ve, pero E avisa y no lo abre). PLAN_PULSO_RESONANTE §8
+	var glifo: String = ""                       ## glifo= (id del libro): abrirlo da ese glifo con la secuencia del cofre legendario (SecuenciaCofreLegendario3D)
+	var secuencia: SecuenciaCofreLegendario3D = null
 	var flag_abierto: String = ""
 	var puzle: Variant = null                    ## el Puzle3D que sabe evaluar la expresión
 	var mundo: Variant = null
@@ -563,9 +580,11 @@ class CofrePuzle extends Node3D:
 	var _bloqueada: bool = false
 	var _t: float = 0.0
 
-	func preparar(p_celda: Vector2i, p_expr: Array, p_flag: String, p_puzle: Variant, p_mundo: Variant, escena: String) -> void:
+	func preparar(p_celda: Vector2i, p_expr: Array, p_flag: String, p_puzle: Variant, p_mundo: Variant, escena: String, p_abre_si: Array = [], p_glifo: String = "") -> void:
 		celda = p_celda
 		expr = p_expr
+		expr_abre = p_abre_si
+		glifo = p_glifo
 		flag_abierto = p_flag
 		puzle = p_puzle
 		mundo = p_mundo
@@ -584,6 +603,8 @@ class CofrePuzle extends Node3D:
 		iniciado = true
 		if flag_abierto != "" and Flags.i().tiene(flag_abierto):
 			_poner_estado("abierto")
+			if glifo != "":
+				Repertoire.unlock_sigil(glifo)       # partida cargada: el glifo que dio este cofre ya es tuyo
 		elif expr.is_empty() or bool(puzle.call("cumple_expr", expr)):
 			_poner_estado("cerrado")             # ya se cumplía al montar: sin efecto de aparición
 		Flags.i().flag_cambio.connect(_al_cambiar_flag)
@@ -641,6 +662,19 @@ class CofrePuzle extends Node3D:
 	func abrir() -> bool:
 		if not es_cerrado or _abriendo:
 			return false
+		if not sellado_cumplido():
+			return false
+		if glifo != "" and ctrl != null:
+			# El cofre que da un glifo: lo abre la secuencia (cámara, luz, tapa, glifo, libro). Ella llama a `Cofre3D.abrir` a su hora.
+			if StringName(ctrl.call("estado_nombre")) != &"cerrado":
+				return false
+			_abriendo = true
+			ctrl.connect("abierto", _al_abrirse, CONNECT_ONE_SHOT)
+			secuencia = SecuenciaCofreLegendario3D.new()
+			secuencia.name = "Secuencia"
+			add_child(secuencia)
+			secuencia.iniciar(self, ctrl, mundo, glifo)
+			return true
 		if ctrl == null:
 			_al_abrirse()
 			return true
@@ -650,13 +684,18 @@ class CofrePuzle extends Node3D:
 		ctrl.connect("abierto", _al_abrirse, CONNECT_ONE_SHOT)
 		return true
 
+	## ¿Se cumple `abre_si`? (vacío = sí).
+	func sellado_cumplido() -> bool:
+		return expr_abre.is_empty() or puzle == null or bool(puzle.call("cumple_expr", expr_abre))
+
 	func _al_abrirse() -> void:
 		_abriendo = false
 		es_cerrado = false
 		es_abierto = true                         # antes de poner la flag: su aviso no debe tomarse por una carga de partida
 		if flag_abierto != "":
 			Flags.i().poner(flag_abierto)
-		Puzle3D._logro("cofre_abierto", self)
+		if glifo == "":
+			Puzle3D._logro("cofre_abierto", self)     # el cofre que da un glifo lleva su propio aviso dorado (la secuencia): el rótulo de siempre taparía el primer plano
 		abierto.emit()
 
 	func _process(delta: float) -> void:
@@ -677,7 +716,16 @@ class CofrePuzle extends Node3D:
 			return
 		var d: Vector3 = j.global_position - global_position
 		d.y = 0.0
-		if d.length() <= ALCANCE_COFRE and abrir():
+		if d.length() > ALCANCE_COFRE:
+			return
+		if not sellado_cumplido():
+			# Sellado: se ve pero no se abre. El aviso dice que algo tiene que despertarlo (el receptor y el pulso, PLAN §8).
+			var lz: Node = get_tree().get_first_node_in_group("spellcaster")
+			if lz != null and lz.has_method("avisar"):
+				lz.call("avisar", TXT_COFRE_SELLADO, Color(0.7, 0.85, 1.0))
+			get_viewport().set_input_as_handled()
+			return
+		if abrir():
 			get_viewport().set_input_as_handled()
 
 
@@ -957,6 +1005,10 @@ static func _valor(tipo: String, t: String) -> Array:
 		return [true, t, ""]
 	if tipo == "expr":
 		return [true, t, ""]                    # el texto; se lee como expresión cuando ya están todas las piezas (ver parsear)
+	if tipo == "glifo":
+		if not GestureLibrary.SIGILS.has(t):
+			return [false, null, "tiene que ser un glifo del libro (GestureLibrary.SIGILS: flecha, barrera, raido…)"]
+		return [true, t, ""]
 	if tipo == "id":
 		if not _id_valido(t):
 			return [false, null, "tiene que ser el id de otra pieza (letras, cifras y «_»)"]
@@ -1554,7 +1606,7 @@ func _crear(pz: Pieza) -> void:
 			cf.name = pz.id
 			cont.add_child(cf)
 			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo,
-				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)))
+				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)), pz.exprs.get("abre_si", []), String(pz.p.get("glifo", "")))
 			pz.nodo = cf
 		"cristal":
 			var cr := CristalPulso3D.new()
@@ -1574,6 +1626,18 @@ func _crear(pz: Pieza) -> void:
 			rc.preparar(pz.celda, String(pz.p.get("elemento", "")), String(pz.p.get("flag", "")), float(pz.p.get("rearme", 0.0)), mundo as Node)
 			cont.add_child(rc)
 			pz.nodo = rc
+		"prisma":
+			var pr := PrismaPulso3D.new()
+			pr.name = pz.id
+			pr.preparar(pz.celda, String(pz.p.get("dir", PrismaPulso3D.DIR_DEFECTO)), mundo as Node)
+			cont.add_child(pr)
+			pz.nodo = pr
+		"pared_hueca":
+			var ph := ParedHuecaPulso3D.new()
+			ph.name = pz.id
+			ph.preparar(pz.celda, String(pz.p.get("flag", "")), mundo as Node)
+			cont.add_child(ph)
+			pz.nodo = ph
 
 
 ## Avisa de un logro (ver arriba). `nodo` = la pieza que lo origina: de ella sale el punto (1 u por encima de su base) para destello y sonido.
@@ -1831,6 +1895,9 @@ func _ejecutar(a: Dictionary) -> void:
 		"latir":
 			if nd != null:
 				nd.call("latir")
+		"girar":
+			if nd != null:
+				nd.call("girar")
 		"activar":
 			if nd != null:
 				nd.call("activar")

@@ -43,15 +43,15 @@ func _correr() -> void:
 	var lienzo := Lienzo.new()
 	lienzo.size = Vector2(200, 120)
 	root.add_child(lienzo)
-	for n in ["linea", "levitacion", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso"]:
+	for n in ["linea", "levitacion", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso", "raido"]:      # 23/10: ᚱ «pulso» (id raido) ya es una propiedad de la receta
 		var g: Texture2D = _glifos.get(n, _glifos["levitacion"])
 		lienzo.accion = func(c: Control) -> bool: return EjesRecetaUi.dibujar_casilla(c, n, g, Vector2(100, 60), 54.0, EjesRecetaUi.TINTA, true, {})
 		lienzo.queue_redraw()
 		await process_frame
 		await process_frame
 		_ok(bool(lienzo.resultado), "dibujar_casilla trata «%s»" % n)
-	for n in ["raido", "amplificar", "retardo", "espejo", "pilar", "fuego"]:
-		lienzo.accion = func(c: Control) -> bool: return EjesRecetaUi.dibujar_casilla(c, n, _glifos["raido"], Vector2(100, 60), 54.0, EjesRecetaUi.TINTA, true, {})
+	for n in ["ansuz", "amplificar", "retardo", "espejo", "pilar", "fuego"]:
+		lienzo.accion = func(c: Control) -> bool: return EjesRecetaUi.dibujar_casilla(c, n, _glifos["levitacion"], Vector2(100, 60), 54.0, EjesRecetaUi.TINTA, true, {})
 		lienzo.queue_redraw()
 		await process_frame
 		await process_frame

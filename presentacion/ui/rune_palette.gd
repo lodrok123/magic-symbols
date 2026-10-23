@@ -92,7 +92,7 @@ func _construir() -> void:
 	for nombre in GestureLibrary.SIGILS:
 		if not Repertoire.sigil_active(nombre):
 			continue
-		var b := _boton(String(nombre).capitalize())
+		var b := _boton(Sigils.nombre_visible(String(nombre)).capitalize())
 		var icono: Texture2D = Sigils.GLYPHS.get(nombre)
 		if icono != null:
 			b.icon = icono
@@ -142,7 +142,7 @@ func _refrescar() -> void:
 	var partes: Array = []
 	for c in _caster.components():
 		for g in c["sigils"]:
-			partes.append(String(g).capitalize())
+			partes.append(Sigils.nombre_visible(String(g)).capitalize())
 	_resumen.text = "Pág. %d: %s + %s  (%d/%d)" % [
 		_caster.page + 1,
 		datos.display_name if datos != null else "—",

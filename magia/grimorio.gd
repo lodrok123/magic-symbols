@@ -345,7 +345,7 @@ func _reconocer_glifo(strokes: Array, sector: Vector2) -> Dictionary:
 
 ## Nombre de un gesto para enseñarlo; vacío si no hay ninguno.
 func _nombre_visible(nombre: String) -> String:
-	return nombre if nombre != "" else "?"
+	return Sigils.nombre_visible(nombre) if nombre != "" else "?"
 
 
 ## ¿Es el gesto una simple raya?
