@@ -297,6 +297,20 @@ Con eso se decide cuánto de cada enfoque lleva el juego: si el Bosque necesita 
 
 ## 9. Decisiones para Pablo
 
+**Decidido por Pablo el 23/10:**
+1. **La banda este y la vuelta:** en vez de reabrir el pasillo de hoy, se hace un **mapa nuevo, «Bosque 01 v01»**, que aplique la forma
+   abierta de EoW (regiones, zonas con su luz, rompibles, exterior y salas de puzle dentro). El Bosque 01 y el Bosque de hoy se quedan como
+   están para comparar.
+2. **El cuello del campamento: las dos cosas.** Quemar la puerta goblin abre la entrada, y al entrar los goblins la cierran detrás (sala
+   cerrada) hasta que cae el último.
+3. **La llave pequeña: en el campamento**, en el cofre que aparece al limpiar la sala cerrada.
+4. **Temperatura por zona: no por ahora.**
+5. **La Cueva es una sección secundaria del Bosque:** no es «la vuelta» ni un nivel aparte. Se entra por una boca en el Bosque 01 v01 y se
+   sale al mismo sitio (transición de nivel con entrada y salida con nombre, §8). Es opcional para la misión del Bosque: su recompensa es
+   el glifo ᚱ.
+
+*(Preguntas originales:)*
+
 1. **¿Se abre la banda este** para la vuelta (sala 8), o el atajo baja por dentro del pasillo, con más paredes y menos espacio?
 2. **¿El cuello se cierra en combate** (sala cerrada) o se mantiene la puerta goblin que se quema? Se puede tener las dos: quemarla abre la entrada y los goblins la cierran detrás.
 3. **¿Dónde va la llave pequeña:** en el campamento (como aquí) o en el prado, junto a un rompible grande?
