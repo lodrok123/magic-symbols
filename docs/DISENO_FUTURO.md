@@ -399,6 +399,13 @@ hechizo: el bloque ya sabe su estado y ya tiene `$Visual`. `wet_ground` y
 Crear una lista de ingredientes para que se puedan usar en mejorar el protagonista de distintas formas (mas glifos, mas sellos, mas vida, etc..). Estos ingredientes se 
 usaran en recetas para crear esas mejoras..
 
+**Decidido por Pablo (24/10):**
+- **Vida, tinta y pigmentos dependen de recetas.** Las mejoras del personaje no se compran ni se encuentran hechas: se fabrican con
+  ingredientes (comunes y épicos de `MATERIALES_CUEVA.md` y los que se añadan por zona) siguiendo una receta.
+- **La ropa no sale de recetas:** se consigue ya hecha en cofres o como recompensa de misiones (se equipa con `Ropa3D`, ver
+  `PROMPTS_JUGADORA_BASE.md`).
+- **Los glifos tampoco:** salen de cofres legendarios (`PLAN_PULSO_RESONANTE.md` §7).
+
 ## 8. Lo que ya estaba en la lista de "pendiente" y sigue siendo futuro (P2)
 
 - **Rueda hidráulica**: primer objeto que reaccione a `vapor`. El gancho

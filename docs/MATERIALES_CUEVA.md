@@ -153,3 +153,6 @@ C1, C2 y C6 ya tenían sus setas.
   - roca de basalto suelta;
   - cristal resonante (está en la lista del plan del pulso);
   - jarrón roto (ya hay `jarron` y `jarron_alto`; falta la versión rota).
+
+
+**Decisión de Pablo (24/10):** los épicos y los comunes son **ingredientes de recetas**. Con recetas se fabrican las mejoras de vida, tinta y pigmentos (DISENO_FUTURO.md §7). La ropa no sale de recetas: llega ya hecha en cofres o misiones.

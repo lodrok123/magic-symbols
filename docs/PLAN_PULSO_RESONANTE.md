@@ -184,7 +184,7 @@ El sonido acompaña el ritmo: zumbido grave que sube, golpe al abrir y una nota 
 2. **Propiedad**, no geometría: el pulso es algo que se le **transfiere** al hechizo (que resuene). Cualquier volumen puede resonar.
 3. **El aire:** sin conductor, el pulso toca **1 casilla**, como en §3. Para usarlo a distancia se combina con otra propiedad: **flecha +
    pulso** lleva el pulso hasta donde choca. No se escribe como caso especial: sale del **momento de ejecución** (§10 bis).
-4. **Mejoras épicas = ingredientes para mejorar al personaje** (vida, tinta, pigmentos nuevos, quizá ropa), **no** variables de un
+4. **Mejoras épicas = ingredientes para mejorar al personaje** (vida, tinta, pigmentos nuevos; 24/10: **por recetas**, y la ropa no: sale ya hecha de cofres y misiones), **no** variables de un
    glifo. Cambia §2 («Mejoras épicas») y la fila «épico» de §7: el núcleo de eco y la geoda son ingredientes de mejora del personaje.
 5. **El atajo pide el pulso**, sin pulsador de reserva. Que una situación obligue a usar una habilidad está bien; lo que importa es que
    se **entienda** qué hay que hacer (pared hueca que suena, vetas que llevan a ella, el aviso al coger el glifo).
