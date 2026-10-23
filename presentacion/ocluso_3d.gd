@@ -90,6 +90,7 @@ uniform vec4 disolver_color : source_color = vec4(1.0, 0.5, 0.12, 1.0);
 uniform float disolver_energia = 3.0;
 uniform float corte_y = -1000.0;        // V6 restos: por debajo de esta altura del MUNDO no se dibuja (la enredadera brota de la tierra). -1000 = sin efecto
 uniform vec2 caja_y = vec2(0.0, 0.0);   // y mínima y alto de la malla (espacio local): da la altura para que el fuego suba
+uniform float viento = 0.0;             // bloque 1 EoW: árboles y arbustos se mecen (0 = quieto). Necesita caja_y para saber qué es copa y qué es pie
 
 varying vec3 po;    // posición en el objeto, a escala de mundo (la celda no cambia si lo escalan)
 varying float vy;   // altura local
@@ -144,6 +145,22 @@ void vertex() {
 	po = VERTEX * length(MODEL_MATRIX[0].xyz);
 	vy = VERTEX.y;
 	wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
+	// VIENTO (como la vegetación de EoW: toda la mata se balancea y las puntas aletean). El peso sale de la altura dentro de la malla: el pie
+	// no se mueve y la copa sí. Se mide en metros del mundo (sirve igual con piezas escaladas) y la fase sale de la posición de la copia, para
+	// que dos árboles vecinos no se muevan a la vez. Va después de po/vy/wy: el quemado y el disolver no «bailan» con la copa.
+	if (viento > 0.0 && caja_y.y > 0.0001) {
+		float h = clamp((VERTEX.y - caja_y.x) / caja_y.y, 0.0, 1.0);
+		vec3 base_w = MODEL_MATRIX[3].xyz;
+		float fase = base_w.x * 0.31 + base_w.z * 0.47;
+		float balanceo = sin(TIME * 1.3 + fase) * 0.7 + sin(TIME * 2.1 + fase * 1.9) * 0.3;
+		float aleteo = sin(TIME * 5.7 + dot(VERTEX, vec3(4.1, 3.3, 3.7)) + fase);
+		float esc = length(MODEL_MATRIX[0].xyz);
+		float alto_m = caja_y.y * esc;
+		vec3 dir = vec3(0.8, 0.0, 0.6);
+		vec3 lado = vec3(-0.6, 0.0, 0.8);
+		vec3 desp = (dir * balanceo * 0.035 * h * h + lado * aleteo * 0.012 * h) * alto_m * viento;
+		VERTEX += (transpose(mat3(MODEL_MATRIX)) * desp) / max(esc * esc, 0.0001);
+	}
 }
 
 void fragment() {
@@ -357,6 +374,14 @@ static func poner_caja(mat: Material, malla: Mesh) -> void:
 	if mat is ShaderMaterial and malla != null:
 		var c: AABB = malla.get_aabb()
 		(mat as ShaderMaterial).set_shader_parameter("caja_y", Vector2(c.position.y, c.size.y))
+
+
+## Bloque 1 EoW: la pieza se mece con el viento (`fuerza` 0 = quieta, 1 = árbol). Pone también la caja de la malla, que da la altura
+## (el pie quieto, la copa moviéndose). Solo mueve lo que se VE: la colisión es otro cuerpo y no se entera.
+static func poner_viento(mat: Material, fuerza: float, malla: Mesh) -> void:
+	if mat is ShaderMaterial and es_comun(mat):
+		poner_caja(mat, malla)
+		(mat as ShaderMaterial).set_shader_parameter("viento", fuerza)
 
 
 ## Altura del MUNDO por debajo de la cual no se dibuja nada (la enredadera que brota del suelo). -1000 = sin recorte.

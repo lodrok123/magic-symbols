@@ -457,11 +457,10 @@ static func _param(tw: Tween, mat: ShaderMaterial, nombre: String, desde: float,
 
 
 ## Luz anaranjada que parpadea (energía ±25 % a ritmo irregular). Se queda hasta que se borra el nodo.
+## La luz titila (energía y color, `LuzTitila3D`). Antes era un tween en bucle de 4 pasos al azar: se notaba el patrón repetido cada
+## ~0,35 s y, como fijaba la energía de partida, pisaba cualquier cambio posterior de la luz.
 static func parpadeo(luz: OmniLight3D) -> void:
-	var e: float = luz.light_energy
-	var tw := luz.create_tween().set_loops()
-	for i in range(4):
-		tw.tween_property(luz, "light_energy", e * randf_range(0.75, 1.2), randf_range(0.05, 0.12))
+	LuzTitila3D.aplicar(luz)
 
 
 static func _luz(padre: Node3D, pos: Vector3, energia: float, rango: float, color: Color = Color(0, 0, 0, 0)) -> OmniLight3D:

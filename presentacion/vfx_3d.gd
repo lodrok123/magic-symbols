@@ -141,6 +141,7 @@ func llamas(suelo: Vector3, esc: float, radio: float, lenguas: int = 0) -> Node3
 			l.omni_range = 2.6 * escala
 			l.position = Vector3(0.0, 0.8, 0.0)
 			raiz.add_child(l)
+			LuzTitila3D.aplicar(l)
 			l.tree_exited.connect(func() -> void: _luces_activas -= 1)
 	return raiz
 
@@ -316,6 +317,7 @@ func fuego_pared(celdas: Array, centros: Array, eje: Vector3, casilla: float = 2
 			luz.omni_range = 4.0
 			luz.shadow_enabled = false
 			raiz.add_child(luz)
+			LuzTitila3D.aplicar(luz)
 	var b := _particulas("brasa", 10 * n, 1.4, 1.3, 0.12, true, COLOR["fuego"], Vector3(0.0, -0.3, 0.0))
 	_caja_emision(b, casilla * 0.5, Vector3.ZERO)
 	var pm: ParticleProcessMaterial = b.process_material as ParticleProcessMaterial

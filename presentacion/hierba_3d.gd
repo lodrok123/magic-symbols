@@ -69,6 +69,7 @@ uniform vec2 alb_hierba = vec2(1.0);     // albedos: (K, VALOR) de Albedos3D; (1
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;     // estado oficial del suelo (Mundo3D.textura_estados()): aquí solo R quemado
 uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;     // R: hierba aplastada (solo aspecto; la escribe la maqueta, no es estado de juego)
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;    // R: 1 = hierba crecida (alta y tupida)
+uniform sampler2D humedad : hint_default_black, filter_linear, repeat_disable;    // R mojada · G escarcha (solo aspecto, `Hierba3D.mojar/escarchar`)
 uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform vec3 posicion_jugador = vec3(-1000.0, 0.0, -1000.0);
@@ -76,6 +77,8 @@ uniform float radio_pisar = 0.7;
 varying float alto;
 varying vec3 tinte;
 varying float quemado;
+varying float mojado;
+varying float escarcha;
 void vertex() {
 	alto = UV.y;
 	tinte = INSTANCE_CUSTOM.rgb;
@@ -83,12 +86,18 @@ void vertex() {
 	vec2 uv_e = origen.xz / (celda * lado);
 	vec4 e = texture(estado, uv_e);
 	quemado = e.r;
-	// Quemada: se queda en un cuarto de alto. Crecida (el agua la hace brotar): el doble de alta.
+	// Mojada y escarcha: lo que pinta la maqueta o, cuando llegue, el estado oficial (G mojada, B helada): manda el mayor.
+	vec2 hu = texture(humedad, uv_e).rg;
+	mojado = max(hu.r, e.g);
+	escarcha = max(hu.g, e.b);
+	// Quemada: se queda en un cuarto de alto. Crecida (el agua la hace brotar): el doble de alta. Mojada: algo lacia.
 	float cre = texture(crecida, uv_e).r;
-	VERTEX.y *= mix(1.0, 0.12, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.7, cre);   // 6.14: quemada = rastrojo muy corto
+	VERTEX.y *= mix(1.0, 0.12, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.7, cre) * mix(1.0, 0.85, mojado);   // 6.14: quemada = rastrojo muy corto
 	vec3 mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float t = TIME * 1.7 + mundo.x * 0.55 + mundo.z * 0.35;
-	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto;
+	// Mojada pesa y se mueve menos; con escarcha está tiesa.
+	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
+	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * rigidez;
 	float inv_x = 1.0 / max(length(MODEL_MATRIX[0].xyz), 0.001);
 	float inv_z = 1.0 / max(length(MODEL_MATRIX[2].xyz), 0.001);
 	VERTEX.x += empuje * 0.05 * inv_x;
@@ -100,7 +109,7 @@ void vertex() {
 	// Se aparta de la chibi en radial.
 	vec2 d = origen.xz - posicion_jugador.xz;
 	float cerca = 1.0 - smoothstep(0.0, radio_pisar, length(d));
-	vec2 apartar = normalize(d + vec2(0.001, 0.0)) * cerca * alto * alto * 0.3;
+	vec2 apartar = normalize(d + vec2(0.001, 0.0)) * cerca * alto * alto * 0.3 * (1.0 - 0.7 * escarcha);
 	VERTEX.x += apartar.x * inv_x;
 	VERTEX.z += apartar.y * inv_z;
 }
@@ -111,9 +120,11 @@ void fragment() {
 	vec3 media_b = 0.5 * (base + punta);
 	c = (media_b + (c - media_b) * alb_hierba.x) * alb_hierba.y;     // albedos
 	c = mix(c, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: rastrojo pajizo, no negro
+	c *= mix(1.0, 0.6, mojado);                                                   // mojada: más oscura (EoW: −30 a −40 %)
+	c = mix(c, vec3(0.80, 0.88, 0.94), escarcha * mix(0.2, 0.6, alto));          // escarcha: blanco azulado, más en las puntas (sin llegar a nieve)
 	ALBEDO = c * tinte * brillo;
-	ROUGHNESS = 1.0;
-	SPECULAR = 0.0;
+	ROUGHNESS = mix(1.0, 0.45, max(mojado, escarcha * 0.8));
+	SPECULAR = max(mojado * 0.35, escarcha * 0.4);                              // un brillo: mojada y escarcha reflejan algo de luz
 }
 """
 
@@ -130,31 +141,40 @@ uniform vec3 alb_media = vec3(0.3);      // albedos: media lineal del atlas (por
 uniform sampler2D estado : hint_default_black, filter_linear, repeat_disable;
 uniform sampler2D pisado : hint_default_black, filter_linear, repeat_disable;
 uniform sampler2D crecida : hint_default_black, filter_linear, repeat_disable;
+uniform sampler2D humedad : hint_default_black, filter_linear, repeat_disable;    // R mojada · G escarcha (solo aspecto)
 uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform vec3 posicion_jugador = vec3(-1000.0, 0.0, -1000.0);
 uniform float radio_pisar = 0.7;
 varying vec3 tinte;
 varying float quemado;
+varying float mojado;
+varying float escarcha;
+varying float alto_v;
 void vertex() {
 	tinte = INSTANCE_CUSTOM.rgb;
 	float fila = floor(INSTANCE_CUSTOM.a * 3.99);
 	float alto = 1.0 - UV.y;
+	alto_v = alto;
 	UV = (UV + vec2(mod(fila, 2.0), floor(fila / 2.0))) * 0.5;
 	vec3 origen = MODEL_MATRIX[3].xyz;
 	vec2 uv_e = origen.xz / (celda * lado);
 	vec4 e = texture(estado, uv_e);
 	quemado = e.r;
+	vec2 hu = texture(humedad, uv_e).rg;
+	mojado = max(hu.r, e.g);
+	escarcha = max(hu.g, e.b);
 	float cre = texture(crecida, uv_e).r;
-	float escala_y = mix(1.0, 0.1, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre);   // 6.14
+	float escala_y = mix(1.0, 0.1, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre) * mix(1.0, 0.85, mojado);   // 6.14
 	vec2 d = origen.xz - posicion_jugador.xz;
-	float cerca = 1.0 - smoothstep(0.0, radio_pisar, length(d));
+	float cerca = (1.0 - smoothstep(0.0, radio_pisar, length(d))) * (1.0 - 0.7 * escarcha);     // con escarcha apenas se aparta
 	float tumbar = (texture(pisado, uv_e).r + cerca) * alto * alto * 0.25;
 	float esc = length(MODEL_MATRIX[0].xyz);
 	vec3 der = normalize(INV_VIEW_MATRIX[0].xyz);
 	vec3 arr = normalize(INV_VIEW_MATRIX[1].xyz);
 	float t = TIME * 1.7 + origen.x * 0.55 + origen.z * 0.35;
-	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * 0.12;
+	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
+	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * 0.12 * rigidez;
 	vec3 mundo = origen + (der * (VERTEX.x + empuje + tumbar) + arr * VERTEX.y * escala_y) * esc;
 	VERTEX = (inverse(MODEL_MATRIX) * vec4(mundo, 1.0)).xyz;
 }
@@ -165,9 +185,12 @@ void fragment() {
 		discard;
 	}
 	vec3 rgb = (alb_media + (c.rgb - alb_media) * alb_hierba.x) * alb_hierba.y;     // albedos: compresión hacia la media del atlas + valor
-	ALBEDO = mix(rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7) * brillo;   // 6.14: pajizo, no negro
-	ROUGHNESS = 1.0;
-	SPECULAR = 0.0;
+	vec3 col = mix(rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: pajizo, no negro
+	col *= mix(1.0, 0.6, mojado);                                                // mojada: más oscura
+	col = mix(col, vec3(0.80, 0.88, 0.94), escarcha * mix(0.2, 0.6, alto_v));    // escarcha: más en las puntas (sin llegar a nieve)
+	ALBEDO = col * brillo;
+	ROUGHNESS = mix(1.0, 0.45, max(mojado, escarcha * 0.8));
+	SPECULAR = max(mojado * 0.35, escarcha * 0.4);
 }
 """
 
@@ -198,6 +221,16 @@ var _mat_flor: ShaderMaterial = null
 var _img_crecida: Image = null
 var _tex_crecida: ImageTexture = null
 var _crecida_sucia: bool = false
+## Bloque 1 EoW: hierba MOJADA y con ESCARCHA (solo aspecto). Las casillas de hierba no reciben el estado oficial del suelo (ReaccionesSuelo3D
+## solo actúa en las de clase «suelo»), así que la maqueta avisa aquí al regarla o helarla. RG8, una casilla por píxel; se seca sola.
+## El shader se queda con el mayor de esto y del estado oficial (G mojada, B helada): si algún día la hierba pasa a EstadosSuelo3D, ya se ve.
+const MOJADA_S: float = 8.0          ## s que se ve mojada del todo (= `PruebaTest2.T_MOJADA_MS`, lo que tarda en poder prender otra vez)
+const ESCARCHA_S: float = 20.0       ## s con escarcha (= `Lanzador3D.DURACION_HIELO` del suelo); al fundirse queda mojada
+const FUNDIDO_S: float = 2.5         ## s que tarda en desvanecerse al acabar
+var _img_humedad: Image = null
+var _tex_humedad: ImageTexture = null
+var _humedad: Dictionary = {}        ## Vector2i -> [mojada_hasta, escarcha_hasta, intensidad] (en segundos de `_reloj`)
+var _reloj: float = 0.0
 var _malla: ArrayMesh = null
 var _quad_tarjeta: QuadMesh = null
 var _quad_flor: QuadMesh = null
@@ -420,11 +453,15 @@ func set_estado(tex: Texture2D, pisado: Texture2D, celda: float, lado: float) ->
 	_img_crecida = Image.create_empty(int(lado), int(lado), false, Image.FORMAT_R8)
 	_img_crecida.fill(Color(0.0, 0.0, 0.0, 1.0))
 	_tex_crecida = ImageTexture.create_from_image(_img_crecida)
+	_img_humedad = Image.create_empty(int(lado), int(lado), false, Image.FORMAT_RG8)
+	_tex_humedad = ImageTexture.create_from_image(_img_humedad)
+	_humedad.clear()
 	for m in [_mat_matojo, _mat_tarjeta]:
 		if m != null:
 			m.set_shader_parameter("estado", tex)
 			m.set_shader_parameter("pisado", pisado)
 			m.set_shader_parameter("crecida", _tex_crecida)
+			m.set_shader_parameter("humedad", _tex_humedad)
 			m.set_shader_parameter("celda", celda)
 			m.set_shader_parameter("lado", lado)
 
@@ -455,6 +492,49 @@ func subir_crecida() -> void:
 	if _crecida_sucia and _tex_crecida != null:
 		_tex_crecida.update(_img_crecida)
 		_crecida_sucia = false
+
+
+## La hierba de la casilla `c` se ve mojada `MOJADA_S` s (`intensidad` 0..1: los bordes del área regada, menos).
+func mojar(c: Vector2i, intensidad: float = 1.0) -> void:
+	var h: Array = _humedad.get(c, [0.0, 0.0, 0.0])
+	h[0] = maxf(float(h[0]), _reloj + MOJADA_S)
+	h[2] = maxf(float(h[2]), intensidad)
+	_humedad[c] = h
+
+
+## La hierba de la casilla `c` se ve con escarcha `ESCARCHA_S` s; al fundirse queda mojada.
+func escarchar(c: Vector2i, intensidad: float = 1.0) -> void:
+	var h: Array = _humedad.get(c, [0.0, 0.0, 0.0])
+	h[1] = maxf(float(h[1]), _reloj + ESCARCHA_S)
+	h[2] = maxf(float(h[2]), intensidad)
+	_humedad[c] = h
+
+
+## Seca la hierba con el tiempo y sube la textura (una vez por fotograma, desde la maqueta). Sin casillas húmedas no cuesta nada.
+func avanzar_humedad(dt: float) -> void:
+	_reloj += dt
+	if _humedad.is_empty() or _img_humedad == null:
+		return
+	var secas: Array[Vector2i] = []
+	for c in _humedad:
+		var h: Array = _humedad[c]
+		var fin_escarcha: float = float(h[1])
+		# La escarcha que se funde deja la casilla mojada (como el suelo: helada → mojada). Lo mojado entra mientras la escarcha se desvanece,
+		# para que no haya salto.
+		if fin_escarcha > 0.0 and _reloj >= fin_escarcha - FUNDIDO_S:
+			h[0] = maxf(float(h[0]), fin_escarcha + MOJADA_S)
+			if _reloj >= fin_escarcha:
+				h[1] = 0.0
+		var k: float = float(h[2])
+		var mojada: float = clampf((float(h[0]) - _reloj) / FUNDIDO_S, 0.0, 1.0) * k
+		var escarcha: float = clampf((float(h[1]) - _reloj) / FUNDIDO_S, 0.0, 1.0) * k
+		if c.x >= 0 and c.y >= 0 and c.x < _img_humedad.get_width() and c.y < _img_humedad.get_height():
+			_img_humedad.set_pixel(c.x, c.y, Color(mojada, escarcha, 0.0, 1.0))
+		if mojada <= 0.0 and escarcha <= 0.0:
+			secas.append(c)
+	for c in secas:
+		_humedad.erase(c)
+	_tex_humedad.update(_img_humedad)
 
 
 func set_viento(v: float) -> void:

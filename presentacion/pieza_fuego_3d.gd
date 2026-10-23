@@ -555,6 +555,7 @@ func _luz_calor() -> void:
 		_luz.shadow_enabled = false
 		_luz.position = Vector3(0.0, 1.0, 0.0)
 		add_child(_luz)
+		LuzTitila3D.aplicar(_luz, 0.5)     # brasa: titila menos que una llama
 	_luz.light_energy = calor * 1.3
 
 

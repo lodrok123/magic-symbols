@@ -210,6 +210,7 @@ func arder() -> void:
 	_luz.omni_range = 3.0
 	_luz.position = (ANILLA_MODELO + Vector3(0.0, -0.7, 0.0)) if _modelo else Vector3(0.28, ALTO * 0.5, 0.0)
 	add_child(_luz)
+	LuzTitila3D.aplicar(_luz)
 	set_process(true)
 	ardiendo_cambio.emit(true)
 

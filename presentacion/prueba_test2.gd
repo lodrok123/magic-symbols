@@ -127,6 +127,10 @@ const T_CRECER: float = 0.6          ## s que tarda la hierba en brotar al regar
 ## Ids pequeños del decorado en lotes que NO proyectan sombra (Paso 4): solo árboles, bloques, puestos y personajes.
 const SIN_SOMBRA: Array = ["arbusto", "arbusto_flores", "arbusto_otono", "seto_seco", "piedras", "piedra", "setas",
 	"seta", "tocon", "cartel", "pasadero", "juncos", "matas", "flores", "caja_pequena", "baldosa_guardado", "pocion"]
+## Bloque 1 EoW: piezas del decorado que se mecen con el viento y con cuánta fuerza (1 = árbol de copa redonda). El pino, más rígido.
+## Solo en las piezas de los lotes (el decorado que no reacciona): un seto que arde lleva los materiales de Reactivo3D.
+const VIENTO_DECORADO: Dictionary = {"arbol_redondo": 1.0, "arbol_redondo_2": 1.0, "pino": 0.6, "pino_2": 0.6,
+	"arbusto": 1.0, "arbusto_flores": 1.0, "arbusto_otono": 1.0}
 ## Rejillas de prueba del tamaño de textura (Paso 4): px que ocupa en pantalla un metro a 1080p con el zoom inicial.
 const PX_POR_UNIDAD_1080: float = 1080.0 / ZOOM_INICIAL
 
@@ -702,6 +706,8 @@ void fragment() {
 ## vuelve translúcido en ese círculo. Solo afecta al decorado en lotes y a los objetos reactivos (Ocluso3D).
 @export var transparencia_jugador: bool = true
 @export var radio_transparencia: float = 1.9
+## Bloque 1 EoW: cuánto se mecen árboles y arbustos (`VIENTO_DECORADO`; 0 = quietos). Necesita `transparencia_jugador` (es el mismo material).
+@export var viento_decorado: float = 1.0
 ## Quita la parte delantera del toldo del puesto de mercado (desde la cámara tapaba al tendero).
 @export var recortar_toldo: bool = true
 ## Hierba de todo el mapa a la vez (el prerender 2D la necesita entera). Si no, solo alrededor de la chibi.
@@ -2987,6 +2993,12 @@ func _plantilla(id: String) -> Array:
 			malla = Ocluso3D.malla_con_hueco(malla)
 			if parte[2] != null:
 				parte[2] = Ocluso3D.convertir(parte[2] as Material)
+			if viento_decorado > 0.0 and VIENTO_DECORADO.has(id):
+				var fuerza: float = float(VIENTO_DECORADO[id]) * viento_decorado
+				for i in range(malla.get_surface_count()):
+					Ocluso3D.poner_viento(malla.surface_get_material(i), fuerza, malla)
+				if parte[2] != null:
+					Ocluso3D.poner_viento(parte[2] as Material, fuerza, malla)
 		parte[0] = malla
 	_plantillas[id] = res
 	return res
@@ -4303,7 +4315,7 @@ func _particulas(ruta: String, p: Vector3, cantidad: int, vida: float, caja: Vec
 ## Fuego: llamas 3D, brasas y humo (Vfx3D.fuego_fijo), con luz cálida. `barrera` = muro de llamas que ocupa la casilla.
 func _fuego(p: Vector3, barrera: bool, escala: float = 1.0, eje: Vector3 = Vector3.RIGHT) -> void:
 	_fx.fuego_fijo(p, barrera, escala, eje, S)
-	_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.6 if barrera else 1.1, 4.0 if barrera else 3.0)
+	LuzTitila3D.aplicar(_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.6 if barrera else 1.1, 4.0 if barrera else 3.0))
 
 
 func _esporas(p: Vector3) -> void:
@@ -4331,7 +4343,7 @@ func _ambiente() -> void:
 	pm2.angular_velocity_max = 45.0
 
 
-func _luz(p: Vector3, color: Color, energia: float, rango: float) -> void:
+func _luz(p: Vector3, color: Color, energia: float, rango: float) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.position = p
 	l.light_color = color
@@ -4339,6 +4351,7 @@ func _luz(p: Vector3, color: Color, energia: float, rango: float) -> void:
 	l.omni_range = rango
 	l.shadow_enabled = false
 	_efectos.add_child(l)
+	return l
 
 
 ## Un círculo rúnico plano (pieza 3D de Formas3D) tumbado en el suelo, que gira despacio. `_ruta` ya no se usa (era el sprite).
@@ -4438,7 +4451,7 @@ func _al_impactar(elemento: String, punto: Vector3) -> void:
 	if not _en_mapa(c):
 		return
 	if elemento == "agua" or elemento == "hielo":
-		_apagar_area(c, punto)
+		_apagar_area(c, punto, elemento == "hielo")
 	if _es_agua(_letra(c)):
 		_impacto_en_agua(elemento, c)
 	elif _es_hierba(c):
@@ -4588,7 +4601,8 @@ func _poner_fase(c: Vector2i, fase: int) -> void:
 
 ## Apagada o regada tras arder: FINA otra vez, sin rastro.
 ## El agua (y el hielo) apagan todo lo que arde alrededor del impacto y dejan la hierba mojada unos segundos.
-func _apagar_area(c: Vector2i, punto: Vector3) -> void:
+## Bloque 1 EoW: además se VE: el agua la moja y el hielo le pone escarcha (`Hierba3D`, solo aspecto), con menos fuerza hacia el borde.
+func _apagar_area(c: Vector2i, punto: Vector3, con_hielo: bool = false) -> void:
 	var ahora: int = Time.get_ticks_msec() + T_MOJADA_MS
 	for y in range(c.y - RADIO_APAGAR, c.y + RADIO_APAGAR + 1):
 		for x in range(c.x - RADIO_APAGAR, c.x + RADIO_APAGAR + 1):
@@ -4596,6 +4610,12 @@ func _apagar_area(c: Vector2i, punto: Vector3) -> void:
 			if not _en_mapa(q) or not _es_hierba(q):
 				continue
 			_mojada[q] = ahora
+			if _hierba != null:
+				var k: float = 1.0 - 0.6 * float(maxi(absi(x - c.x), absi(y - c.y))) / float(maxi(RADIO_APAGAR, 1))
+				if con_hielo:
+					_hierba.escarchar(q, k)
+				else:
+					_hierba.mojar(q, k)
 			if _hf.has(q):
 				var f: int = int((_hf[q] as Dictionary)["fase"])
 				if f == Fase.PRENDIENDO or f == Fase.ARDIENDO or f == Fase.CENIZAS:
@@ -4947,6 +4967,7 @@ func _process(delta: float) -> void:
 	_subir_estado_juego()
 	if _hierba != null:
 		_hierba.subir_crecida()
+		_hierba.avanzar_humedad(delta)
 		if _jugador != null:
 			_hierba.set_posicion_jugador(_jugador.position)
 	if _velo != null:
