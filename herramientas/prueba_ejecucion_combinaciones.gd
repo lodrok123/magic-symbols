@@ -376,6 +376,8 @@ func _reglas_nuevas(runes: Dictionary) -> void:
 	await _solidez_y_proyectil(runes)
 	# --- A4 · ᚷ en m/s de radio ---
 	await _crece_en_metros(runes)
+	# --- A5 · cada flecha SUCESIVA suma impulso_salida ---
+	await _impulso_por_flecha(runes)
 
 
 ## A2 (auditoría D-2): con gravedad 1 y sin `impulso_salida`, la flecha de tierra y de hielo caía al suelo a 0,70 casillas de las 2 de su alcance. Ahora lleva el impulso del agua adaptado a su gravedad.
@@ -449,6 +451,32 @@ func _solidez_y_proyectil(runes: Dictionary) -> void:
 	_ok("A3 barrera + flecha + ᚠ: las 2 copias llegan a su alcance sin chocar con el muro que la primera levantó (motivos %s, %d solideces)" % [str(hermanos.map(func(x: Variant) -> String: return (x as HechizoVivo).motivo_fin)), _l._solideces_v2.size()],
 		todos_alcance and _l._solideces_v2.size() == 2 and vbf.casillas == 2)
 	await _limpiar({"vivos": hermanos})
+
+
+## A5 (24/10, decisión de Pablo): cada glifo de flecha SUCESIVO suma `Sigils.IMPULSO_POR_FLECHA_V2` m/s de impulso_salida. Sin eso el alcance subía +1 m por flecha pero el arco no
+## y las flechas ×2/×3 de tierra, hielo y agua caían antes del 80 %. Aquí se afirman los números por glifo y que ×1, ×2 y ×3 llegan a ≥ 80 % en llano (fuego: sin gravedad, ignora el impulso).
+func _impulso_por_flecha(runes: Dictionary) -> void:
+	var cas: float = Terreno3D.casilla
+	var paso: float = Sigils.IMPULSO_POR_FLECHA_V2
+	_ok("A5 el paso por flecha sucesiva es 0,7 m/s (%.2f)" % paso, is_equal_approx(paso, 0.7))
+	for elemento in ["earth", "ice", "water", "fire"]:
+		var rune: RuneData = runes[elemento]
+		var base: float = Hechizo.construir(rune, {}, 1.0).impulso_salida
+		for n in [1, 2, 3]:
+			var esperado: float = base + paso * float(n - 1)
+			var h: Hechizo = Hechizo.construir(rune, {"flecha": n}, 1.0)
+			_ok("A5 %s flecha×%d: impulso_salida %.2f = .tres %.2f + 0,7·%d" % [elemento, n, h.impulso_salida, base, n - 1], absf(h.impulso_salida - esperado) < 0.001)
+			if elemento == "fire":
+				# sin gravedad HechizoVivo no aplica el impulso: la flecha va recta, sin subir
+				_ok("A5 fire flecha×%d: gravedad %.1f (el impulso no se aplica)" % [n, h.gravedad], h.gravedad == 0.0)
+				continue
+			_montar()
+			var v: HechizoVivo = HechizoVivo.crear(h, _origen_de(h), Vector3.RIGHT, _l, null, {}, true)
+			_correr([v])
+			var rec: float = v.recorrido / cas
+			var obstaculo: bool = v.motivo_fin == "muro" or v.motivo_fin == "golpe"
+			_ok("A5 %s flecha×%d: recorre %.2f de %.0f casillas (≥ 80 %%, motivo «%s»)" % [elemento, n, rec, h.distancia_max, v.motivo_fin], obstaculo or rec >= UMBRAL_ALCANCE * h.distancia_max)
+			await _limpiar({"vivos": _vivos()})
 
 
 ## ᚷ: m/s de radio.

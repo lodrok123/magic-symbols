@@ -3854,3 +3854,12 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 - **Dónde verlo:** F5 (arranca `escenas/PruebaBosque01_v01.tscn` con la jugadora vestida), o las cuatro `docs/capturas/jugadora_base/vestida_*.png`. La prueba: `godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_ropa_capa.gd`. Para regenerar las prendas: `blender -b -P herramientas/rig/encajar_ropa.py -- <vestido.glb> arte/modelos/jugadora_base.glb <carpeta> herramientas/rig/ropa_jugadora_base.json` y luego `montar_ropa_glb.gd -- <carpeta> capa arte/modelos/ropa_capa.glb capa` (ídem capucha).
 
 — Pipeline
+
+## 253 — Juego (24/10): **cada glifo de flecha sucesivo suma 0,7 m/s de `impulso_salida`** — `nucleo/sigils.gd` (`IMPULSO_POR_FLECHA_V2`, modificador nuevo en `GLIFOS["flecha"]` con `salta: 1`), `herramientas/prueba_ejecucion_combinaciones.gd` (A5), `herramientas/escenario_lab_hechizos.gd` (la página de la flecha ahora lista 3 modificadores), ESPEC_HECHIZO §3 y ARQUITECTURA. Decisión de Pablo. Sin commit
+
+- **Regla:** el 1.er glifo de flecha no suma; cada uno sucesivo añade 0,7 m/s al impulso que fija el .tres (fija y luego suma). Solo actúa con gravedad > 0 (HechizoVivo lo ignora si no): fuego queda igual aunque su campo suba (0 / 0,7 / 1,4).
+- **Por qué:** el alcance subía +1 m por flecha y el arco no; tierra/hielo ×2-×3 y agua ×3 caían antes del 80 % (entrada 251). Mínimos medidos: tierra/hielo 2,5 / 2,9 / 3,9; agua 1,4 (×2) y 2,0 (×3).
+- **Números:** flecha ×1 / ×2 / ×3 = tierra y hielo 2,5 / 3,2 / 3,9 · agua 1,6 / 2,3 / 3,0. Recorrido en llano: tierra y hielo 2,00 / 2,75 de 3 / 3,30 de 4 casillas; agua 2,00 / 3,01 / 4,00.
+- **Pruebas a 0:** prueba_hechizo, prueba_hechizo_vivo, prueba_ejecucion_combinaciones (con A5 nueva: impulsos por glifo y ≥ 80 % de tierra, hielo y agua ×1-×3; 0 flechas caídas antes de tiempo en los 1230 hechizos ejecutados), prueba_barrido_hechizos, prueba_receta_v2, prueba_tamano_proyectil, prueba_cast_points (30 fps), escenario_lab_hechizos (30 fps; tras cambiar su comprobación 14 de 2 a 3 modificadores, que fallaba por la fila nueva).
+
+— Juego

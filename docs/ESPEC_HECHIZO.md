@@ -203,7 +203,7 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 | ᛁ horizontal | `semieje_x` +0,25 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛁ vertical | `semieje_z` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛏ | `semieje_y` +0,30 (tope 1,0) |
-| ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) |
+| ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) · `impulso_salida` +0,7 m/s por glifo sucesivo (`Sigils.IMPULSO_POR_FLECHA_V2`, 24/10: así el arco crece con el alcance; solo actúa con gravedad > 0, fuego no cambia) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
 | ᚠ repetición | `copias` +1 (tope 4) |
 | ᚢ rebote | `rebotes` +1 (tope 3) |
