@@ -1,0 +1,378 @@
+extends SceneTree
+## BARRIDO DE AUDITORÍA (scratchpad, no es del repo). Dos partes:
+##  A) CONSTRUIR: todas las combinaciones multiconjunto de 0..MAX_GLIFOS (6) glifos de Sigils.GLIFOS × 6 elementos jugables.
+##  B) EJECUTAR: todas las de 0..3 glifos (el máximo que admite el libro «bosque»: 3 huecos, 1 glifo por hueco) × 6 elementos,
+##     con HechizoVivo.crear en un mundo falso (como prueba_materia_v2), y se mide qué rama corre y qué campos se notan.
+
+class MundoFalso extends Node3D:
+	var _lado: int = 20
+	var _helada: Dictionary = {}
+	var _bloqueadas: Dictionary = {}
+	var _mapa: PackedStringArray = []
+	var marcas: Array = []
+	func _letra(c: Vector2i) -> String:
+		return String(_mapa[c.y][c.x])
+	func _al_impactar(elemento: String, punto: Vector3) -> void:
+		marcas.append([elemento, Terreno3D.celda_de(punto)])
+
+const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]
+const LADO: int = 20
+const ORIGEN_C: Vector2i = Vector2i(6, 10)
+const DT: float = 1.0 / 60.0
+const MAX_EJEC: int = 3
+const FIGURAS: Array = ["esfera", "haz", "barrera", "proyectil", "pulso"]
+const FORMAS: Array = ["x_mano", "alto", "abajo"]
+## glifos que el jugador puede DIBUJAR hoy (muestras en gesture_library.tres y activos en el kit «pruebas» del Bosque 01 v01)
+const DIBUJABLES: Array = ["linea_x", "linea_z", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso"]
+
+var _m: MundoFalso = null
+var _l: Lanzador3D = null
+var _jug: Jugador3D = null
+var _senales: Array = []
+var fallos_a: Dictionary = {}     # tipo -> n
+var ejemplos_a: Dictionary = {}   # tipo -> [ejemplos]
+
+
+func _anota(tipo: String, ej: String) -> void:
+	fallos_a[tipo] = int(fallos_a.get(tipo, 0)) + 1
+	var l: Array = ejemplos_a.get(tipo, [])
+	if l.size() < 4:
+		l.append(ej)
+	ejemplos_a[tipo] = l
+
+
+func _generar(nombres: Array, restante: int, desde: int, actual: Array, salida: Array) -> void:
+	salida.append(actual.duplicate())
+	if restante == 0:
+		return
+	for i in range(desde, nombres.size()):
+		actual.append(nombres[i])
+		_generar(nombres, restante - 1, i, actual, salida)
+		actual.pop_back()
+
+
+func _contadores(combo: Array) -> Dictionary:
+	var c: Dictionary = {}
+	for n in combo:
+		c[n] = int(c.get(n, 0)) + 1
+	return c
+
+
+func _iguales(a: Variant, b: Variant) -> bool:
+	if a is float and b is float:
+		return absf(float(a) - float(b)) < 0.0001 or (is_nan(float(a)) and is_nan(float(b)))
+	if a is Array and b is Array:
+		if (a as Array).size() != (b as Array).size():
+			return false
+		for i in range((a as Array).size()):
+			if not _iguales(a[i], b[i]):
+				return false
+		return true
+	if a is Dictionary and b is Dictionary:
+		if (a as Dictionary).size() != (b as Dictionary).size():
+			return false
+		for k in a:
+			if not (b as Dictionary).has(k) or not _iguales(a[k], b[k]):
+				return false
+		return true
+	return a == b
+
+
+func _initialize() -> void:
+	await process_frame
+	var runes: Dictionary = {}
+	for e in ELEMENTOS:
+		runes[e] = load("res://nucleo/%s_rune.tres" % e)
+	var glifos: Array = Sigils.GLIFOS.keys()
+	print("GLIFOS (%d): %s" % [glifos.size(), str(glifos)])
+	print("Hechizo.MAX_GLIFOS = %d · Tinta.MAXIMA = %.0f · Tinta.COSTE_BASE_V2 = %.0f · casilla = %.3f" % [Hechizo.MAX_GLIFOS, Tinta.MAXIMA, Tinta.COSTE_BASE_V2, Terreno3D.casilla])
+	_parte_a(runes, glifos)
+	await _parte_b(runes, glifos)
+	# tiempo: cinemática
+	var t: RuneData = load("res://nucleo/time_rune.tres")
+	print("tiempo sin permiso -> %s ; con permiso -> %s" % [str(Hechizo.construir(t, {}) == null), str(Hechizo.construir(t, {}, 1.0, true) != null)])
+	quit(0)
+
+
+# =====================================================================================================
+func _parte_a(runes: Dictionary, glifos: Array) -> void:
+	var combos: Array = []
+	_generar(glifos, Hechizo.MAX_GLIFOS, 0, [], combos)
+	print("\n=== PARTE A: construir · %d multiconjuntos de 0..%d glifos × %d elementos = %d hechizos" % [combos.size(), Hechizo.MAX_GLIFOS, ELEMENTOS.size(), combos.size() * ELEMENTOS.size()])
+	var por_figura: Dictionary = {}
+	var por_forma: Dictionary = {}
+	var por_elemento_figura: Dictionary = {}
+	var raras: Dictionary = {}
+	var total: int = 0
+	var coste_tope: int = 0
+	var coste_tope_juego: int = 0
+	var rechazo_altura: int = 0
+	var rechazo_altura_juego: int = 0
+	var juego_total: int = 0
+	var juego_figura: Dictionary = {}
+	var desacuerdo_receta: int = 0
+	var momentos: Dictionary = {}
+	for combo in combos:
+		var c: Dictionary = _contadores(combo)
+		var en_juego: bool = combo.size() <= MAX_EJEC
+		for g in combo:
+			if not DIBUJABLES.has(g):
+				en_juego = false
+		for e in ELEMENTOS:
+			total += 1
+			var et: String = "%s %s" % [e, str(combo)]
+			var h: Hechizo = Hechizo.construir(runes[e], c, 1.0)
+			if h == null:
+				_anota("null", et)
+				continue
+			# límites §1.9
+			if h.semieje_x > Hechizo.LIM_SEMIEJE_HORIZONTAL + 1e-6 or h.semieje_z > Hechizo.LIM_SEMIEJE_HORIZONTAL + 1e-6 or h.semieje_y > Hechizo.LIM_SEMIEJE_ALTO + 1e-6:
+				_anota("limite_semieje", et)
+			if h.semieje_x < h.grosor_min - 1e-6 or h.semieje_y < h.grosor_min - 1e-6 or h.semieje_z < h.grosor_min - 1e-6:
+				_anota("bajo_grosor_min", et)
+			if h.elevacion > Hechizo.LIM_ELEVACION + 1e-6 or h.distancia_max > Hechizo.LIM_DISTANCIA + 1e-6:
+				_anota("limite_elev_dist", et)
+			if h.persiste + h.permanencia > Hechizo.LIM_VIDA_S + 1e-6:
+				_anota("limite_vida", et)
+			if h.copias < 1 or h.copias > Hechizo.LIM_COPIAS:
+				_anota("limite_copias", et)
+			if h.elevacion + 2.0 * h.semieje_y > 2.0 + 1e-6:
+				_anota("altura_total>2", et)
+			var fig: String = h.figura()
+			if not FIGURAS.has(fig):
+				_anota("figura_desconocida", et + " " + fig)
+			if not FORMAS.has(h.forma):
+				_anota("forma_desconocida", et + " " + h.forma)
+			if is_nan(h.coste_tinta) or is_inf(h.coste_tinta) or h.coste_tinta > Tinta.MAXIMA + 1e-6:
+				_anota("coste_invalido", et)
+			if h.recarga <= 0.0:
+				_anota("recarga<=0", et)
+			if h.niveles > 2:
+				_anota("niveles>2", et)
+			if h.alcance_haz > Hechizo.LIM_DISTANCIA + 1e-6:
+				_anota("alcance_haz>lim", et)
+			if h.coste_tinta >= Tinta.MAXIMA - 1e-6:
+				coste_tope += 1
+				if en_juego:
+					coste_tope_juego += 1
+			var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(h.geo(), runes[e])
+			if aviso != "":
+				rechazo_altura += 1
+				if en_juego:
+					rechazo_altura_juego += 1
+			# copiar / con({}) reproducen los números
+			var d0: Dictionary = h.a_diccionario()
+			var d1: Dictionary = h.copiar().a_diccionario()
+			var d2: Dictionary = h.copiar().con({}).a_diccionario()
+			d0.erase("origen"); d1.erase("origen"); d2.erase("origen")
+			if not _iguales(d0, d1):
+				_anota("copiar_difiere", et)
+			if not _iguales(d0, d2):
+				var dif: Array = []
+				for k in d0:
+					if not _iguales(d0[k], d2.get(k)):
+						dif.append(k)
+				_anota("con_vacio_difiere", et + " " + str(dif))
+			# el camino del libro (Receta3D: coste, tinta, recarga, forma) dice lo mismo que el Hechizo
+			var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
+			for gl in combo:
+				r.apply(String(gl))
+			if not is_equal_approx(Tinta.coste_receta(r.coste_v2()), h.coste_tinta) or not is_equal_approx(r.cooldown, h.recarga) or r.forma() != h.forma:
+				desacuerdo_receta += 1
+				_anota("receta_vs_hechizo", et)
+			# momento de ejecución del ᚱ
+			if c.has("raido"):
+				var mom: String = h.momento_de("raido")
+				momentos["%s/%s" % [fig, mom]] = int(momentos.get("%s/%s" % [fig, mom], 0)) + 1
+			# contadores
+			por_figura[fig] = int(por_figura.get(fig, 0)) + 1
+			por_forma[h.forma] = int(por_forma.get(h.forma, 0)) + 1
+			var k_ef: String = "%s/%s" % [e, fig]
+			por_elemento_figura[k_ef] = int(por_elemento_figura.get(k_ef, 0)) + 1
+			if en_juego:
+				juego_total += 1
+				juego_figura[fig] = int(juego_figura.get(fig, 0)) + 1
+			# raras
+			if h.haz and h.copias > 1:
+				_rara(raras, "haz con copias (repetición no hace nada en un haz)", et)
+			if h.haz and h.crece > 0.0:
+				_rara(raras, "haz con crece (ᚷ no hace nada en un haz)", et)
+			if h.haz and h.rebotes > 0:
+				_rara(raras, "haz con rebotes (ᚢ no hace nada en un haz)", et)
+			if h.velocidad > 0.0 and h.copias > 1:
+				_rara(raras, "proyectil con copias (HechizoVivo lanza UN proyectil)", et)
+			if h.velocidad > 0.0 and h.crece > 0.0:
+				_rara(raras, "proyectil con crece (no crece en vuelo)", et)
+			if h.velocidad > 0.0 and h.solidez > 0.0:
+				_rara(raras, "barrera + flecha: figura() = «%s» pero se ejecuta como PROYECTIL (velocidad > 0)" % fig, et)
+			if h.solidez > 0.0 and h.rebotes > 0 and h.velocidad <= 0.0:
+				_rara(raras, "barrera + rebote quieta: SolidezV2 refleja", et)
+			if aviso != "":
+				_rara(raras, "sólido de 2 niveles: construir() lo da por bueno y cast_page/HechizoVivo lo rechazan (MAX_NIVELES_SUBIBLES = 1)", et)
+			if h.coste_tinta >= Tinta.MAXIMA - 1e-6:
+				_rara(raras, "coste en el tope (%.0f de tinta)" % Tinta.MAXIMA, et)
+			if h.recarga <= 0.0:
+				_rara(raras, "recarga 0 (sin glifos)", et)
+			if h.permanencia > 0.0 and h.persiste + h.permanencia >= Hechizo.LIM_VIDA_S - 1e-6:
+				_rara(raras, "vida recortada a 25 s", et)
+			if c.has("raido") and h.momento_de("raido") == "continuo" and Sigils.recargo_continuo(h.propiedades_usadas()) <= 1.0:
+				_rara(raras, "ᚱ continuo SIN recargo de tinta (sólido sin barrera ni permanencia)", et)
+	print("hechizos construidos: %d" % total)
+	print("FALLOS por tipo: %s" % str(fallos_a))
+	for t in ejemplos_a:
+		print("  %s: %s" % [t, str(ejemplos_a[t])])
+	print("por figura: %s" % str(por_figura))
+	print("por forma: %s" % str(por_forma))
+	print("por elemento/figura: %s" % str(por_elemento_figura))
+	print("coste en el tope: %d (de ellas lanzables desde el libro: %d)" % [coste_tope, coste_tope_juego])
+	print("rechazo por altura (sólido > 1 nivel): %d (desde el libro: %d)" % [rechazo_altura, rechazo_altura_juego])
+	print("desacuerdos Receta3D vs Hechizo (tinta/recarga/forma): %d" % desacuerdo_receta)
+	print("lanzables desde el libro (≤3 glifos dibujables): %d · por figura %s" % [juego_total, str(juego_figura)])
+	print("momento de ᚱ por figura: %s" % str(momentos))
+	print("RARAS:")
+	for k in raras:
+		print("  [%d] %s · p. ej. %s" % [int((raras[k] as Dictionary)["n"]), k, str((raras[k] as Dictionary)["ej"])])
+
+
+func _rara(raras: Dictionary, clave: String, et: String) -> void:
+	var d: Dictionary = raras.get(clave, {"n": 0, "ej": []})
+	d["n"] = int(d["n"]) + 1
+	if (d["ej"] as Array).size() < 2:
+		(d["ej"] as Array).append(et)
+	raras[clave] = d
+
+
+# =====================================================================================================
+func _montar() -> void:
+	for n in [_l, _m, _jug]:
+		if n != null and is_instance_valid(n):
+			n.free()
+	Terreno3D.alturas.clear()
+	Terreno3D.conductores.clear()
+	var filas: PackedStringArray = []
+	for y in range(LADO):
+		var f: String = ""
+		for x in range(LADO):
+			f += "#" if (x == 0 or y == 0 or x == LADO - 1 or y == LADO - 1) else "."
+		filas.append(f)
+	_m = MundoFalso.new()
+	_m._mapa = filas
+	root.add_child(_m)
+	Lanzador3D.configurar(_m)
+	for y in range(LADO):
+		for x in range(LADO):
+			if filas[y][x] == "#":
+				_m._bloqueadas[Vector2i(x, y)] = true
+	_jug = Jugador3D.new()
+	root.add_child(_jug)
+	_jug.position = Lanzador3D.centro_de(Vector2i(2, 2), 1.0)
+	_l = Lanzador3D.new()
+	_l.mundo = _m
+	_l.jugador = _jug
+	root.add_child(_l)
+	Lanzador3D.montar_agua_sim()
+	_senales.clear()
+	_l.hechizo_v2.connect(func(estado: String, el: String, g: Dictionary, o: Vector3, d: Vector3, props: Dictionary) -> void: _senales.append([estado, el, g, o, d, props]))
+
+
+func _parte_b(runes: Dictionary, glifos: Array) -> void:
+	var combos: Array = []
+	_generar(glifos, MAX_EJEC, 0, [], combos)
+	print("\n=== PARTE B: ejecutar · %d multiconjuntos de 0..%d glifos × %d elementos" % [combos.size(), MAX_EJEC, ELEMENTOS.size()])
+	var ramas: Dictionary = {}
+	var rechazados: Dictionary = {}
+	var sin_efecto: Dictionary = {}
+	var ejecutados: int = 0
+	var copias_perdidas: int = 0
+	var crece_perdido: int = 0
+	var rebote_proy_ok: int = 0
+	var rebote_proy_total: int = 0
+	var pulso_ok: int = 0
+	var pulso_total: int = 0
+	var solidez_ok: int = 0
+	var solidez_total: int = 0
+	var momentos: Dictionary = {}
+	var fines: Dictionary = {}
+	var t0: int = Time.get_ticks_msec()
+	for combo in combos:
+		var c: Dictionary = _contadores(combo)
+		for e in ELEMENTOS:
+			var et: String = "%s %s" % [e, str(combo)]
+			var h: Hechizo = Hechizo.construir(runes[e], c, 1.0)
+			_montar()
+			var antes_sol: int = _l._solideces_v2.size()
+			var origen: Vector3 = Lanzador3D.centro_de(ORIGEN_C, 0.0)
+			# como en el juego: barrera (en_punto) nace en el punto apuntado; aquí, 2 casillas delante (dentro del anillo de 3)
+			if h.en_punto:
+				origen = Lanzador3D.centro_de(ORIGEN_C + Vector2i(2, 0), 0.0)
+			var v: HechizoVivo = HechizoVivo.crear(h, origen, Vector3.RIGHT, _l, null, {}, true)
+			ejecutados += 1
+			var rama: String = "haz" if h.haz else ("proyectil" if h.velocidad > 0.0 else ("volumen_viaja" if h.viaja else "volumen_quieto"))
+			var hv_hermanos: int = 0
+			for n in _l.get_children():
+				if n is HechizoVivo:
+					hv_hermanos += 1
+			if v.proyectil:
+				var pasos: int = 0
+				while v.activo and pasos < 3000:
+					v.paso(DT)
+					pasos += 1
+				fines[v.motivo_fin] = int(fines.get(v.motivo_fin, 0)) + 1
+				if h.rebotes > 0:
+					rebote_proy_total += 1
+					if v.rebotes_usados > 0:
+						rebote_proy_ok += 1
+			var k: String = "%s/%s" % [rama, h.estado_materia]
+			ramas[k] = int(ramas.get(k, 0)) + 1
+			if v.casillas <= 0:
+				rechazados[k] = int(rechazados.get(k, 0)) + 1
+				if rechazados.size() < 40:
+					pass
+			var sitios: int = 0
+			if not _senales.is_empty():
+				var evs: Array = (_senales[0][2] as Dictionary).get("eventos", [])
+				var pos_t0: Dictionary = {}
+				for ev in evs:
+					if float((ev as Dictionary)["t"]) <= h.retardo + 0.001:
+						pos_t0[str((ev as Dictionary)["pos"])] = true
+				sitios = pos_t0.size()
+			if h.copias > 1:
+				var copias_vistas: int = hv_hermanos if v.proyectil else sitios
+				if copias_vistas < h.copias:
+					copias_perdidas += 1
+					_anota("B_copias_no_ejecutadas/%s" % rama, et + " copias=%d vistas=%d" % [h.copias, copias_vistas])
+			if h.crece > 0.0:
+				var fases: int = 0
+				if not _senales.is_empty():
+					fases = ((_senales[0][2] as Dictionary).get("eventos", []) as Array).size()
+				if v.proyectil or h.haz or fases <= 1:
+					crece_perdido += 1
+					_anota("B_crece_no_ejecutado/%s" % rama, et)
+			if h.resuena > 0.0:
+				pulso_total += 1
+				var mom: String = h.momento_de("raido")
+				# los «continuo» y «final» de lo que nace quieto van por temporizador; aquí solo se mira lo inmediato
+				if not v.pulsos_soltados.is_empty():
+					pulso_ok += 1
+				momentos["%s/%s/%s" % [rama, mom, "soltado" if not v.pulsos_soltados.is_empty() else "pendiente"]] = int(momentos.get("%s/%s/%s" % [rama, mom, "soltado" if not v.pulsos_soltados.is_empty() else "pendiente"], 0)) + 1
+			if h.solidez > 0.0:
+				solidez_total += 1
+				if _l._solideces_v2.size() > antes_sol:
+					solidez_ok += 1
+				else:
+					_anota("B_solidez_sin_SolidezV2/%s/%s" % [rama, h.estado_materia], et)
+			if v.casillas <= 0:
+				_anota("B_rechazado/%s" % k, et)
+			if is_instance_valid(v) and not v.is_queued_for_deletion():
+				v.queue_free()
+			await process_frame
+	print("ejecutados: %d en %d ms" % [ejecutados, Time.get_ticks_msec() - t0])
+	print("ramas (rama/estado): %s" % str(ramas))
+	print("rechazados (casillas = 0) por rama/estado: %s" % str(rechazados))
+	print("proyectiles: motivo de fin %s · con rebotes que rebotaron %d/%d" % [str(fines), rebote_proy_ok, rebote_proy_total])
+	print("copias NO ejecutadas: %d · crece NO ejecutado: %d" % [copias_perdidas, crece_perdido])
+	print("solidez -> SolidezV2 creada al nacer: %d/%d" % [solidez_ok, solidez_total])
+	print("ᚱ pulso soltado al instante: %d/%d · %s" % [pulso_ok, pulso_total, str(momentos)])
+	for t in fallos_a:
+		if String(t).begins_with("B_"):
+			print("  %s [%d]: %s" % [t, int(fallos_a[t]), str(ejemplos_a[t])])
