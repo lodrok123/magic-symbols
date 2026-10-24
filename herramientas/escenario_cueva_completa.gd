@@ -449,6 +449,26 @@ func _c4() -> void:
 	cris_a.late.disconnect(capta)
 	_ok("5 C4: el pulso por la veta ATURDE al goblin que la pisa (%.1f s de sentido perdido)" % float(g.get("stun_timer")), aturdidos.has(g) and (float(g.get("stun_timer")) > 0.5 or tope > 0.0), "stun %.2f" % float(g.get("stun_timer")))
 	g.quieto = false
+	# Las estalagmitas resonantes (24/10): el pulso hace VIBRAR a la que toca; al 2.º pulso CAE como `estalagmita_rota` y aturde y daña al goblin de la casilla donde cae. La jugadora no recibe daño.
+	var est_a: EstalagmitaPulso3D = _z.nodo("est_c4a") as EstalagmitaPulso3D
+	_ok("5 C4: las tres estalagmitas resonantes están, en pie y sin bloquear casilla", est_a != null and _z.nodo("est_c4b") is EstalagmitaPulso3D and _z.nodo("est_c4c") is EstalagmitaPulso3D and not Terreno3D.bloqueada(Vector2i(23, 3)) and not est_a.caida_ya)
+	var vida_jugadora: float = float(jugador.get("vida"))
+	var celda_cae: Vector2i = Vector2i(23, 4)                        # el pulso llega por la veta de arriba (23,2): se cae hacia el sur
+	g.quieto = true
+	g.position = Terreno3D.centro_de(celda_cae, Terreno3D.y_pies(celda_cae))
+	g.pj.position = g.position
+	g.casa = g.position
+	var salud_g: float = float(g.get("health"))
+	# El golpe de fuego al cristal de la pared (20,2) de arriba ya mandó UN pulso por la veta (22..24,2): la estalagmita (23,3), vecina de la veta, ha vibrado con él.
+	_ok("5 C4: el 1.er pulso (el del cristal, por la veta de al lado) hace VIBRAR a la estalagmita: la tocó 1 vez, no cae y no golpea a nadie", est_a.pulsos_recibidos == 1 and not est_a.caida_ya and not est_a.cayendo and est_a.golpeados.is_empty(), "pulsos %d" % est_a.pulsos_recibidos)
+	Pulso3D.emitir(maqueta, [Vector2i(23, 2)], "", 4)
+	await avanzar_s(EstalagmitaPulso3D.T_CAER + 1.0)
+	_ok("5 C4: el 2.º pulso la TIRA hacia el sur (opuesta a la veta de la que vino) y queda `estalagmita_rota` en (23,4); el escombro no bloquea", est_a.caida_ya and est_a.dir_caida == "s" and est_a.celda_caida() == celda_cae
+		and est_a.get_node_or_null("rota") != null and not Terreno3D.bloqueada(celda_cae), "dir %s · pulsos %d" % [est_a.dir_caida, est_a.pulsos_recibidos])
+	_ok("5 C4: al caer ATURDE y DAÑA al goblin que estaba en la casilla donde cae", est_a.golpeados.has(g) and float(g.get("stun_timer")) > 0.5 and float(g.get("health")) < salud_g - 0.5, "stun %.1f · vida %.0f → %.0f" % [float(g.get("stun_timer")), salud_g, float(g.get("health"))])
+	_ok("5 C4: la jugadora no recibe daño de la caída", float(jugador.get("vida")) >= vida_jugadora - 0.01, "%.0f → %.0f" % [vida_jugadora, float(jugador.get("vida"))])
+	_ok("5 C4: la caída se recuerda (flag cueva.c4.estalagmita_a)", Flags.i().tiene("cueva.c4.estalagmita_a"))
+	g.quieto = false
 	# La pelea: se acerca uno a ALCANCE_FLECHA_CAS casillas (la flecha llega a ~3: de más lejos no los alcanza ni ellos se enteran) y flechas de fuego a quien esté más cerca; sin tinta se espera.
 	var t_inicio: float = reloj.t
 	var lanzados: int = 0

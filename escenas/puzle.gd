@@ -79,6 +79,9 @@ extends Node
 ##              sentido, ese tiempo, a quien pisa la veta cuando pasa el frente (C4); `mineral=si` la hace reactivo de tierra: un hechizo de tierra suelta un `mineral_veta` (una vez)
 ##   columna    golpes=<n> (2)  cae=n|e|s|o (s)                                      MuroAgrietado3D como COLUMNA (fase 3, C2): modelo `columna_agrietada`; la rompen los PULSOS (cada uno la agrieta, al
 ##              `golpes`-ésimo CAE hacia `cae`, deja su casilla libre y se deshace); la tierra y los hechizos no le hacen nada. Bloquea su casilla mientras está en pie
+##   estalagmita  cae=n|e|s|o (la opuesta de por donde llegó el pulso)  flag=<nombre>    EstalagmitaPulso3D (24/10, C4): REACTIVO del pulso. El 1.er pulso que la toca (por su casilla o la de la veta de al lado) la hace vibrar;
+##              el 2.º la tira hacia `cae`: aturde 3 s y daña 25 a los Combate3D de la casilla donde cae (a la jugadora no) y queda `estalagmita_rota`, un escombro bajo que NO bloquea. Con `flag`
+##              se acuerda de que cayó (la pone al caer; si ya está puesta nace caída). Señal `cae`; condición `caida`|`en_pie`. No bloquea su casilla (adorno que se rodea)
 ##   estatuas   celdas=<lista>  secuencia=<e1,e2,…>  flag=<nombre>                  EstatuasPulso3D (fase 3, secreto de C1): una estatua de piedra por casilla de `celdas`; piden pulsos de ESOS elementos, EN ESE
 ##              ORDEN (las dos listas, igual de largas: `secuencia=fuego,hielo,fuego`); un fallo las apaga todas; al acabar ponen `flag`. Cada una lleva a sus pies el color del elemento que pide
 ##   prisma     dir=n|e|s|o (n)                                                      PrismaPulso3D (fase 2): MODIFICADOR. Reemite el pulso que le llega por la casilla que mira (`dir`), con su
@@ -208,7 +211,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
-	"columna": "cae", "estatuas": "completa",
+	"columna": "cae", "estatuas": "completa", "estalagmita": "cae",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -242,6 +245,7 @@ const SENALES: Dictionary = {
 	"caja": {"roto": ["roto", 0, null]},
 	"salida": {"usada": ["usada", 1, null]},
 	"columna": {"cae": ["roto", 0, null]},
+	"estalagmita": {"cae": ["cae", 0, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 }
 const CONDICIONES: Dictionary = {
@@ -269,6 +273,7 @@ const CONDICIONES: Dictionary = {
 	"jarron": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"caja": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"columna": {"caida": ["roto_ya", true], "en_pie": ["roto_ya", false]},
+	"estalagmita": {"caida": ["caida_ya", true], "en_pie": ["caida_ya", false]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
@@ -331,6 +336,7 @@ const CLAVES: Dictionary = {
 	"cristal": {"cada": "f", "alcance": "f"},
 	"veta": {"celdas": "celdas", "enlaces": "celdas", "aturde": "f", "mineral": "b"},
 	"columna": {"golpes": "f", "cae": "s:n|e|s|o"},
+	"estalagmita": {"cae": "s:n|e|s|o", "flag": "flag"},
 	"estatuas": {"celdas": "celdas", "secuencia": "secuencia", "flag": "flag"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
@@ -1985,6 +1991,12 @@ func _crear(pz: Pieza) -> void:
 			co.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
 			cont.add_child(co)
 			pz.nodo = co
+		"estalagmita":
+			var eg := EstalagmitaPulso3D.new()
+			eg.name = pz.id
+			eg.preparar(pz.celda, String(pz.p.get("cae", "")), String(pz.p.get("flag", "")), mundo as Node)
+			cont.add_child(eg)
+			pz.nodo = eg
 		"estatuas":
 			if not pz.p.has("celdas") or not pz.p.has("secuencia") or (pz.p["celdas"] as Array).size() != (pz.p["secuencia"] as Array).size():
 				_avisar_pieza(pz, "las estatuas necesitan «celdas=<casillas>» y «secuencia=<elementos>» con el mismo número de cada (una estatua por casilla)")
@@ -2137,7 +2149,26 @@ func _colocar_pieza(id: String, cont: Node, nombre: String, pos: Vector3, giro: 
 	n.rotation.y = deg_to_rad(giro)
 	n.scale = escala
 	cont.add_child(n)
+	if id in ["pilar_cascada", "pilar_cascada_ancho", "musgo_colgante"]:
+		_apagar_verde(n)
 	return n
+
+
+## El musgo de estas piezas sale verde brillante, fuera de la paleta azul de la Cueva: se multiplica el albedo de sus materiales por un tinte azulado (rojo y verde abajo, azul casi igual), así el
+## verde pasa a verde-azulado oscuro y la piedra azul apenas cambia. Por material (copia propia de cada superficie), como el apagado del cristal (`BrilloPulso3D`), no con una luz.
+const TINTE_MUSGO: Color = Color(0.48, 0.70, 0.95)
+
+func _apagar_verde(n: Node3D) -> void:
+	for h in n.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = h as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var m: Material = mi.get_active_material(s)
+			if m is StandardMaterial3D:
+				var copia: StandardMaterial3D = (m as StandardMaterial3D).duplicate() as StandardMaterial3D
+				copia.albedo_color = copia.albedo_color * TINTE_MUSGO
+				mi.set_surface_override_material(s, copia)
 
 
 ## La lámina de agua de la tapa de una terraza (`_levantar_terraza`). Sin luz (unshaded) como la cortina: la Cueva está casi a oscuras y el agua tiene que leerse. El flujo va hacia +Z (el sur, el labio).
@@ -2148,6 +2179,7 @@ render_mode unshaded, cull_disabled, blend_mix;
 uniform vec3 color_hondo : source_color = vec3(0.12, 0.50, 0.85);     // los de la cortina de AguaRender3D (CODIGO_CORTINA): sin cambio de tono en la unión
 uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
 uniform float velocidad = 0.9;
+uniform float delantal = 0.0;       // 1 = es el delantal vertical: se desvanece de arriba (UV.y 0) a abajo (UV.y 1)
 
 varying vec3 v_pos;
 
@@ -2185,7 +2217,7 @@ void fragment() {
 	// 2.ª pasada: una lámina FINA, no un bloque azul: donde no hay veta se ve la roca del canal; las vetas (y los rizos) son agua. Se aclara hacia el labio (v_pos.z lo da la malla: UV.y 1 = sur).
 	// 5.ª pasada: hacia el final la lámina se funde (alfa → alfa de la cortina de debajo, que es ~0,34 + vetas) en vez de sumarse a ella: sin franja clara en la unión.
 	// Primero se probó fundirla, pero entonces arriba quedaba más transparente que la cortina y el cambio de tono se veía igual: ahora tiene el MISMO alfa que la cortina (0,34 + 0,5 × veta), sin fundido.
-	ALPHA = clamp(0.34 + veta * 0.50 + rizo * 0.08, 0.0, 0.9);
+	ALPHA = clamp(0.34 + veta * 0.50 + rizo * 0.08, 0.0, 0.9) * mix(1.0, 1.0 - UV.y, delantal);     // el delantal se desvanece hacia abajo mientras la cortina aparece (cruce, no suma)
 }
 """
 
@@ -2308,6 +2340,7 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		if n.get_script() != null and String((n.get_script() as Script).resource_path).ends_with("agua_render_3d.gd"):
 			n.call("ajustar", "caida_descarte", 0.0)
 			n.call("ajustar_cortina", "labio_fuerza", 0.0)      # 5.ª pasada: sin el aclarado del labio, la cortina sigue a la lámina de la cornisa sin franja clara
+			n.call("ajustar_cortina", "fundido_arriba", 0.06)   # 6.ª: y sin borde superior: la cortina aparece en el 6 % de arriba (≈ 0,12 u) mientras el delantal de la lámina se apaga: un cruce, no una suma
 	var tercio: float = s / 3.0
 	var n_col: int = (x1 - x0 + 1) * 3
 	var lip_z: float = esq.z + fondo + 0.03
@@ -2388,10 +2421,13 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var delantal := MeshInstance3D.new()
 		delantal.name = "%s_delantal_%d" % [nombre, i_c]
 		var qd := QuadMesh.new()
-		qd.size = Vector2(an, 0.09)
+		qd.size = Vector2(an, 0.12)
 		delantal.mesh = qd
-		delantal.position = Vector3(xc, y_tope + 0.03 - 0.045, lip_z + 0.055)
-		delantal.material_override = m_film
+		delantal.position = Vector3(xc, y_tope + 0.03 - 0.06, lip_z + 0.055)
+		var m_delantal := ShaderMaterial.new()
+		m_delantal.shader = sh_film
+		m_delantal.set_shader_parameter("delantal", 1.0)
+		delantal.material_override = m_delantal
 		delantal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cont.add_child(delantal)
 		# La ESPUMA al pie: una franja blanca opaca y burbujeante pegada a la cortina, con aros que se abren por el pozo, y un surtidor de salpicaduras.

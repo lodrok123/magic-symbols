@@ -140,10 +140,11 @@
 ; pieza veta_c4a veta 21 2 celdas=21,2..24,2+24,3..24,4 aturde=3
 ; pieza cris_c4b cristal 24 7 cada=0
 ; pieza veta_c4b veta 23 7 celdas=23,7..20,7+20,6..20,4 aturde=3 mineral=si
-; 24/10 (tercera tanda): estalagmitas resonantes junto a las vetas, de ADORNO por ahora (vibrar con el pulso y caer como `estalagmita_rota` aún no está hecho: docs/PENDIENTES.md).
-; pieza est_c4a decorado 23 3 modelo=estalagmita_resonante escala=1.0
-; pieza est_c4b decorado 21 4 modelo=estalagmita_resonante giro=70 escala=0.85
-; pieza est_c4c decorado 23 6 modelo=estalagmita_resonante giro=140 escala=1.1
+; 24/10: tres estalagmitas resonantes junto a las vetas, REACTIVAS al pulso (EstalagmitaPulso3D): el 1.er pulso que las toca las hace vibrar y el 2.º las tira, alejándose de la veta; al caer aturden
+; (3 s) y dañan (25) a los goblins de la casilla donde caen, y queda `estalagmita_rota` (escombro bajo, no bloquea). La flag recuerda que cayeron.
+; pieza est_c4a estalagmita 23 3 flag=cueva.c4.estalagmita_a
+; pieza est_c4b estalagmita 21 4 flag=cueva.c4.estalagmita_b
+; pieza est_c4c estalagmita 23 6 flag=cueva.c4.estalagmita_c
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
 ; Materiales: las algas del lecho solo se ven (y se cogen) con la charca HELADA; las setas de la orilla son para electrificarlas (rayo) y helarlas.
 ; pieza alga_c5a alga 21 14 coge_si=casilla(21,14).helada
