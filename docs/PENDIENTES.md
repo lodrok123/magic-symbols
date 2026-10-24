@@ -144,3 +144,10 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 ## Lote del 22–23/10
 - [ ] **Revisar en el playtest:** rim nuevo de la jugadora; tronco del estanque que bloquea en el fondo seco; escudo del goblin en el brazo, mojado y mano quemada; burbujas al ahogarse; bordes sin cantos; goblin asesino (Alt+F11: ataque doble, dagas, andar agazapado).
 - [ ] Goblin asesino: los dedos abiertos asoman junto al mango de las dagas; el walk va ×1,4 sin medir si patina; el segundo corte solo cuenta si el primero falla (invulnerabilidad de 0,7 s).
+## Lote del 24/10
+- [ ] **Coste de tinta con la base 0,10** (Pablo: «más tarde»): se mide contra la esfera de 0,10 y un muro de 3 casillas o un pilar de 2
+  niveles llegan al tope de 100. Propuesta: medir contra una esfera de referencia de 0,15 (muro ≈ 41, pilar ≈ 30). Diario 249.
+- [ ] Una columna de TIERRA de 2 niveles no se lanza (`Jugador3D.MAX_NIVELES_SUBIBLES` = 1) y el fuego no se dibuja más alto con ᛏ: decidir.
+- [ ] Desafío de la barrera del Bosque 01 v01: hoy se puede cruzar sin barrera perdiendo 0–24 de vida; decidir cómo hacerlo obligatorio.
+- [ ] Bosque 01 v01: modelo de la boca de la Cueva (hoy una losa) y recorrerlo entero a mano.
+- [ ] Recetas (vida, tinta, pigmentos) con su base de datos: para más adelante (Pablo, 24/10).
