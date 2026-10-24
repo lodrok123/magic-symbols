@@ -261,3 +261,30 @@ Instalado: **D1 completa** (`cristal_resonante` 1 200 tris, `prisma_orientable` 
 
 **16 piezas en 4 hojas.** Mientras no lleguen, el plan del pulso se monta con primitivas (fase 1 de `PLAN_PULSO_RESONANTE.md` §12), así que
 ninguna bloquea el código.
+
+## E. Pilar de la cascada de C2 (24/10, Pablo: «prompt de Meshy para un pilar de roca de cueva con musgo para la cascada»)
+
+Sustituye a las cajas de piedra que hoy separan las cortinas (`Puzle3D._levantar_terraza`, `pilares=si`; ver
+`docs/capturas/cueva_cascada/c2_cascada_terraza_v2.png`). Referencia: los pilares de roca con musgo entre cortinas del vídeo de EoW
+(`hoja.png` del 24/10). Se repite **tres veces** (dos flancos y el centro), así que va girado o escalado un poco en cada sitio.
+
+**Qué espera el motor:**
+- **Planta estrecha y alta:** ocupa un tercio de casilla de ancho (**≈ 0,8 u**), **≈ 3,1 u de alto** (1,6 de cornisa + 1,5 que asoma por
+  encima) y **≈ 1,6 u de fondo** (se mete en la pared norte). Origen en el centro de la base, frente hacia +Z (hacia la cámara).
+- **Caras laterales casi lisas y verticales:** por los dos lados le cae una cortina de agua pegada. Si abomban mucho, el agua las
+  atraviesa o deja huecos. El relieve redondeado va en el **frente** y en la **cabeza**.
+- **Piedra de la cueva**, la misma familia que `pared_foso_cueva` y la `columna_agrietada`: azul grisácea, húmeda y más oscura abajo,
+  donde salpica el agua. La cabeza va cubierta de **musgo verde** con una mata de helecho pequeña, y como mucho dos o tres florecillas
+  amarillo mantequilla, como en el vídeo. **Sin brillo pintado ni agua pintada**: el agua y la espuma las pone el motor.
+- **Presupuesto:** 600–1 200 triángulos; se ve de cerca y está repetido tres veces.
+
+#### `pilar_cascada` (600–1 200 tris) — separa las cortinas de la cascada
+> A tall narrow cave rock pillar standing between two waterfalls: a chunky stack of rounded blue-grey stones fused into one column,
+> flat almost vertical left and right sides, a rounded bulging front face with soft cracks, the lower third darker and damp, a thick
+> cap of soft green moss spilling over the top edge with a small fern tuft and two or three tiny butter-yellow flowers, no water,
+> no glow. 0.8 units wide, 3.1 tall, 1.6 deep.
+> + [ESTILO]
+
+Si Meshy lo saca demasiado ancho o con laterales abombados, pide *Image to 3D* con una vista frontal y otra lateral generadas antes
+con el mismo texto. Al bajar: `meshy\entrada\pilar_cascada.glb` → `INTEGRAR_PIEZAS.cmd`. Después, en `_levantar_terraza` se cambia la
+`BoxMesh` del pilar (y su cabeza de musgo) por la pieza `pilar_cascada`.
