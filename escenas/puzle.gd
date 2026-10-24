@@ -2320,9 +2320,12 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var film := MeshInstance3D.new()
 		film.name = "%s_agua_%d" % [nombre, i_c]
 		var pl := PlaneMesh.new()
-		pl.size = Vector2(an, fondo)
+		# 4.ª pasada (Pablo: «¿qué es la línea negra entre la cascada?»): la lámina acababa en el borde de la roca (lip_z − 0,06) y la cortina vertical empieza en lip_z: entre las dos asomaba la
+		# roca oscura del canto de la cornisa. La lámina llega ahora hasta pasado el plano de la cortina (+0,04) y las dos se solapan.
+		var largo_film: float = (lip_z + 0.22) - esq.z
+		pl.size = Vector2(an, largo_film)
 		film.mesh = pl
-		film.position = Vector3(xc, y_tope + 0.03, esq.z + fondo * 0.5)
+		film.position = Vector3(xc, y_tope + 0.03, esq.z + largo_film * 0.5)
 		var m_film := ShaderMaterial.new()
 		m_film.shader = sh_film
 		film.material_override = m_film
