@@ -159,6 +159,18 @@ func _escenario() -> void:
 	for id in CastPoints.ORDEN:
 		await _lanzar_variacion(String(id), fases, pos_fases)
 
+	# --- E2 · el PROYECTIL nace en la mano (24/10, Pablo: «que los proyectiles salgan de la mano real de la jugadora»), no a 0,9 u sobre el centro de los pies ---
+	var bala: Hechizo = Hechizo.construir(load("res://nucleo/fire_rune.tres") as RuneData, {}).con({"velocidad": 5.0 / Terreno3D.casilla, "distancia_max": 2.0})
+	lanzador._cast_point = {}                            # sin cast point en curso (el de la última variación, «abajo», está en el suelo): la mano que lanza
+	var mano_e2: Vector3 = lanzador._pos_cast_point()
+	lanzador.desplaza_mano = lanzador._salida_de_mano(bala, jugador.position)
+	var vivo_e2: HechizoVivo = HechizoVivo.crear(bala, jugador.position, Vector3.RIGHT, lanzador, null, {}, true)
+	lanzador.desplaza_mano = Vector3.ZERO
+	_ok("E2 el proyectil nace en la mano (≤ 0,15 u) y no a la altura fija de 0,9 u", vivo_e2 != null and vivo_e2.p.distance_to(mano_e2) <= 0.15 and mano_e2.y - jugador.global_position.y > 0.2,
+		"nace en %s, mano en %s (altura sobre los pies %.2f u)" % [vivo_e2.p if vivo_e2 != null else Vector3.ZERO, mano_e2, mano_e2.y - jugador.global_position.y])
+	if vivo_e2 != null and is_instance_valid(vivo_e2):
+		vivo_e2.queue_free()
+
 	# --- F · sin cast point: como siempre ---
 	CastPoints.POR_NOMBRE = {}
 	fases.clear()

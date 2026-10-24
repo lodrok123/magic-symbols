@@ -901,6 +901,8 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3) -> int:
 	# Sale a `altura_salida` sobre el suelo de su casilla (el origen que llega es el de los pies del jugador: sin esto, un proyectil con gravedad nace ya en el suelo).
 	var c0: Vector2i = Terreno3D.celda_de(origen)
 	p = Vector3(origen.x, (Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y) + (h.altura_salida + h.elevacion) * Terreno3D.casilla, origen.z)
+	if lanz != null and lanz.get("desplaza_mano") is Vector3:
+		p += lanz.get("desplaza_mano") as Vector3          # 24/10: sale de la mano de la jugadora (Lanzador3D._salida_de_mano), no del centro de sus pies
 	var d: Vector3 = dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
 	v = d * h.velocidad * Terreno3D.casilla                    # el Hechizo habla en m/s; aquí se pasa a u/s (ESPEC §0.1)
 	if h.gravedad > 0.0 and h.impulso_salida > 0.0:
