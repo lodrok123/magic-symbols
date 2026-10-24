@@ -411,7 +411,7 @@ func _comprar_barrera() -> void:
 		_decir("Guardabosques: «%s»" % (TEXTO_SIN_ORO % (PRECIO_BARRERA - e.oro)), 4.0)
 		return
 	if e.gastar_oro(PRECIO_BARRERA):
-		Repertoire.unlock_sigil("barrera")
+		Repertoire.conseguir_sigil("barrera")         # se escribe en la página derecha del libro al abrirlo
 		_barrera_comprada = true
 		_decir("Glifo barrera comprado (-%d oro)" % PRECIO_BARRERA, 5.0)
 		PlayLog.event("compra", {"objeto": "barrera", "precio": PRECIO_BARRERA, "oro": e.oro})

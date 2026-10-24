@@ -18,6 +18,8 @@ const LADO_TEX: int = 64                  ## lado de la textura generada (px)
 const MARGEN_NUEVE: float = 20.0          ## margen del nine-patch: las esquinas (radio + brillo) no se estiran
 const INSET: float = 3.0                  ## aire entre el borde de la textura y el filo, para que quepa el brillo exterior
 const RADIO_PX: float = 14.0              ## radio de las esquinas del marco (px de textura)
+const PREFIJO_GLIFO: String = "glifo:"    ## un `Icono` con id «glifo:<nombre>» dibuja la runa (Sigils.GLYPHS) en vez de un objeto de DATOS
+const TINTA_GLIFO: Color = Color(1.0, 0.86, 0.45)   ## la runa del icono, en oro claro sobre la placa oscura
 const PERIODO_LATIDO_S: float = 2.4       ## épico: lo que tarda el borde en latir una vez
 const LATIDO_ALFA_MIN: float = 0.08
 const LATIDO_ALFA_MAX: float = 0.30
@@ -250,6 +252,11 @@ class Icono extends Control:
 		placa.set_corner_radius_all(int(MarcoCalidad.RADIO_PX) - 2)
 		placa.anti_aliasing = true
 		placa.draw(get_canvas_item(), r.grow(-MarcoCalidad.INSET))
-		if id != "":
+		if id.begins_with(MarcoCalidad.PREFIJO_GLIFO):
+			var runa: Texture2D = Sigils.GLYPHS.get(id.substr(MarcoCalidad.PREFIJO_GLIFO.length())) as Texture2D
+			if runa != null:
+				var lado: float = size.x * (1.0 - MARGEN_ICONO)
+				draw_texture_rect(runa, Rect2((size - Vector2(lado, lado)) * 0.5, Vector2(lado, lado)), false, MarcoCalidad.TINTA_GLIFO)
+		elif id != "":
 			Objetos.dibujar(self, id, size * 0.5, size.x * (0.5 - MARGEN_ICONO) + 2.0)
 		MarcoCalidad.dibujar(self, r, calidad)

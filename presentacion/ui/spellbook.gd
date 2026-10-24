@@ -525,6 +525,7 @@ func _open() -> void:
 	# El árbol se congela: enemigos, temporizadores, incendios. Este nodo
 	# sigue vivo porque tiene process_mode = ALWAYS (puesto en la escena).
 	get_tree().paused = true
+	_empezar_escrituras()
 	queue_redraw()
 
 
@@ -682,6 +683,11 @@ func _process(delta: float) -> void:
 			_asist_reloj = 0.0
 			_asist_sucio = false
 			_actualizar_asistencia()
+
+	if is_open and not _escribiendo.is_empty():
+		_avanzar_escrituras(delta)
+	if is_open:
+		_empezar_escrituras()          # un glifo conseguido con el libro ya abierto (pruebas, capturas) se escribe igual
 
 	if _limpio_t >= 0.0:
 		_limpio_t += delta
@@ -1289,6 +1295,11 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 			return
 		at = _on_page(ley[slot])
 
+	# 24/10: un glifo recién conseguido se está escribiendo en su casilla (ver `_escribiendo`); al acabar sigue el dibujo de siempre.
+	if not sello and _escribiendo.has(label):
+		if _draw_escritura(label, glyph, at, tam, ink):
+			return
+
 	# 18/10 (diario 156, Pipeline): ᛁ, ᛏ/altura y las cinco propiedades enseñan lo que hacen (ejes y rótulos) y cuántas lleva la página abierta.
 	# Para cualquier otro glifo `dibujar_casilla` devuelve false sin pintar y sigue el dibujo de siempre.
 	if not sello and EjesRecetaUi.dibujar_casilla(self, label, glyph, at, tam, ink, known, _usos_pagina()):
@@ -1305,6 +1316,71 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 	if con_rotulo:
 		_draw_centered_text(at + Vector2(0.0, caida), Sigils.nombre_visible(label),
 			Color(ink.r, ink.g, ink.b, 0.75))
+
+
+## GLIFOS QUE SE ESCRIBEN EN LA PÁGINA DERECHA (24/10, Pablo): lo que se consigue jugando (`Repertoire.conseguir_sigil`) se escribe en su casilla
+## de la chuleta la primera vez que el libro está abierto: de arriba abajo con un frente dorado (el mismo gesto que la página del cofre legendario),
+## un halo que se apaga y su nombre al final. Así la página derecha recuerda los glifos que has ido consiguiendo. Clave: nombre del glifo;
+## valor: s desde que empezó (negativo = aún espera su turno).
+var _escribiendo: Dictionary = {}
+
+const ESCRITURA_RETARDO: float = 0.35      ## s desde que se abre el libro hasta que empieza a escribirse el primero
+const ESCRITURA_ESCALON: float = 0.6       ## s entre un glifo y el siguiente si hay varios
+const ESCRITURA_TRAZO: float = 1.0         ## s que tarda el trazo de arriba abajo
+const ESCRITURA_NOMBRE: float = 0.35       ## s con el halo a pleno tras el trazo (el nombre ya sale, con la casilla de siempre)
+const ESCRITURA_HALO: float = 0.6          ## s que tarda en apagarse el halo al acabar
+const ESCRITURA_FRENTE: float = 0.08       ## fracción del alto del glifo que ocupa el frente dorado
+const ESCRITURA_ORO: Color = Color(1.0, 0.78, 0.26)
+
+
+## Recoge lo que haya por escribir y lo pone en cola. Devuelve cuántos empezó (las pruebas).
+func _empezar_escrituras() -> int:
+	var nuevos: PackedStringArray = Repertoire.tomar_por_escribir()
+	var en_cola: int = _escribiendo.size()
+	for i in nuevos.size():
+		if _escribiendo.has(nuevos[i]):
+			continue
+		_escribiendo[nuevos[i]] = -ESCRITURA_RETARDO - ESCRITURA_ESCALON * float(en_cola + i)
+	return nuevos.size()
+
+
+func _duracion_escritura() -> float:
+	return ESCRITURA_TRAZO + ESCRITURA_NOMBRE + ESCRITURA_HALO
+
+
+func _avanzar_escrituras(delta: float) -> void:
+	for nombre in _escribiendo.keys():
+		_escribiendo[nombre] = float(_escribiendo[nombre]) + delta
+		if float(_escribiendo[nombre]) >= _duracion_escritura():
+			_escribiendo.erase(nombre)
+	queue_redraw()
+
+
+## Una casilla a medio escribir. Antes de su turno no se pinta nada (la casilla está vacía, como antes de conseguirlo). Devuelve true si ya la
+## ha pintado entera; false = el trazo ya acabó y solo queda el halo: la casilla se pinta como siempre encima (con su nombre y su letra de siempre).
+func _draw_escritura(nombre: String, glyph: Texture2D, at: Vector2, tam: float, ink: Color) -> bool:
+	var t: float = float(_escribiendo.get(nombre, 0.0))
+	if t < 0.0:
+		return true
+	var p: float = clampf(t / ESCRITURA_TRAZO, 0.0, 1.0)
+	# El halo: crece mientras se escribe y se apaga al acabar.
+	var halo: float = p if t < ESCRITURA_TRAZO + ESCRITURA_NOMBRE else 1.0 - clampf((t - ESCRITURA_TRAZO - ESCRITURA_NOMBRE) / ESCRITURA_HALO, 0.0, 1.0)
+	if halo > 0.0:
+		draw_circle(at, tam * 0.78, Color(ESCRITURA_ORO, 0.18 * halo))
+		draw_arc(at, tam * 0.78, 0.0, TAU, 48, Color(ESCRITURA_ORO, 0.55 * halo), _u(2.0), true)
+	if p >= 1.0:
+		return false
+	var ts: Vector2 = glyph.get_size()
+	var arriba: Vector2 = at - Vector2(tam, tam) * 0.5
+	# Lo ya escrito, en tinta.
+	if p > 0.0:
+		draw_texture_rect_region(glyph, Rect2(arriba, Vector2(tam, tam * p)), Rect2(Vector2.ZERO, Vector2(ts.x, ts.y * p)), ink)
+	# El frente: la franja de debajo del trazo, en dorado.
+	var f0: float = maxf(p - ESCRITURA_FRENTE, 0.0)
+	if p > f0:
+		draw_texture_rect_region(glyph, Rect2(arriba + Vector2(0.0, tam * f0), Vector2(tam, tam * (p - f0))),
+			Rect2(Vector2(0.0, ts.y * f0), Vector2(ts.x, ts.y * (p - f0))), ESCRITURA_ORO)
+	return true
 
 
 ## EL ARO YA NO SE DIBUJA CON TEXTURA, y no es un recorte de trabajo: la

@@ -125,6 +125,30 @@ static func unlock_sigil(sigil_name: String) -> bool:
 	return true
 
 
+## GLIFOS POR ESCRIBIR EN EL LIBRO (24/10, Pablo): un glifo que se CONSIGUE jugando (cofre, tienda, NPC) se anota aquí, y la próxima vez que
+## el libro está abierto se ESCRIBE en su casilla de la página derecha (Spellbook), que así recuerda lo que has ido consiguiendo. Lo que
+## activa un nivel al empezar o una partida cargada (`set_active`, `unlock_sigil` a secas) no se anota: ya estaba ahí.
+static var _por_escribir: PackedStringArray = PackedStringArray()
+
+
+## Desbloquea y, si era nuevo, lo deja pendiente de escribirse en el libro. Devuelve true si ERA NUEVO (como `unlock_sigil`).
+static func conseguir_sigil(sigil_name: String) -> bool:
+	var nuevo: bool = unlock_sigil(sigil_name)
+	if nuevo and not _por_escribir.has(sigil_name):
+		_por_escribir.append(sigil_name)
+	return nuevo
+
+
+## Lo que el libro tiene por escribir, y lo vacía (lo llama Spellbook al abrirse). Lo que ya no está activo (un nivel nuevo lo quitó) se descarta.
+static func tomar_por_escribir() -> PackedStringArray:
+	var lista := PackedStringArray()
+	for s in _por_escribir:
+		if _sigils.has(s):
+			lista.append(s)
+	_por_escribir = PackedStringArray()
+	return lista
+
+
 static func lock_element(gesture_name: String) -> void:
 	var i: int = _elements.find(gesture_name)
 	if i >= 0:

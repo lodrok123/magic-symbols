@@ -658,7 +658,7 @@ func _al_abrir_cofre(i: int) -> void:
 	_entregado[i] = true
 	if i == 0:
 		Misiones.i().objetivo_hecho(MISION, OBJ_COFRE_1)
-		if Repertoire.unlock_sigil("barrera"):
+		if Repertoire.conseguir_sigil("barrera"):     # se escribe en la página derecha del libro al abrirlo
 			_decir("Glifo de barrera conseguido: ya puedes dibujarlo.", 6.0)
 		else:
 			_decir("El cofre está vacío: la barrera ya era tuya.", 4.0)

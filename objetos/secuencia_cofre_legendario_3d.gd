@@ -61,7 +61,7 @@ const CAPA_BLANCO: int = 70
 const PAGINA_TAM: Vector2 = Vector2(380.0, 250.0)
 const PAGINA_ABAJO: float = 40.0                 ## px de la página al borde de abajo
 const GLIFO_PAGINA: float = 110.0                ## px del glifo escrito
-const TXT_AVISO_GLIFO: String = "Glifo nuevo: %s"
+const TXT_AVISO_GLIFO: String = "Glifo nuevo: %s · anotado en tu libro"
 const TXT_AVISO_PISTA: String = "Pared hueca: prueba el pulso"
 ## 24/10 (Bosque 01 v01): la pista de dónde se usa cada glifo (el segundo aviso dorado). Un glifo sin fila usa TXT_AVISO_PISTA.
 const PISTAS: Dictionary = {"barrera": "Las flechas no atraviesan una barrera"}
@@ -590,7 +590,7 @@ func _desbloquear() -> void:
 		return
 	escrito = true
 	if glifo != "":
-		Repertoire.unlock_sigil(glifo)               # el libro de verdad ya lo enseña en la chuleta
+		Repertoire.conseguir_sigil(glifo)            # el libro de verdad lo ESCRIBE en la página derecha la próxima vez que se abre
 	if cofre != null and cofre.is_inside_tree() and Terreno3D.hay_mundo():
 		Sfx.play(cofre, Pulso3D.SFX_PULSO, 1.8)       # la nota limpia al escribirse (provisional: sello_ok agudo)
 	glifo_escrito.emit()
@@ -628,7 +628,7 @@ func _cerrar() -> void:
 	_bloquear(false)
 	Flags.i().poner(FLAG_VISTA)
 	# El aviso dorado: primero el glifo, después la pista de dónde usarlo.
-	_aviso(TXT_AVISO_GLIFO % Sigils.nombre_visible(glifo))
+	_aviso(TXT_AVISO_GLIFO % Sigils.nombre_visible(glifo), true)
 	get_tree().create_timer(T_AVISO_PISTA, false).timeout.connect(_aviso.bind(String(PISTAS.get(glifo, TXT_AVISO_PISTA))))
 	activa = false
 	hecha = true
@@ -636,9 +636,13 @@ func _cerrar() -> void:
 	get_tree().create_timer(T_AVISO_PISTA + 1.0, false).timeout.connect(_liberar_tras_cerrar)      # 24/10: tras el segundo aviso (con 1,0 s el nodo moría antes de que saliera la pista)
 
 
-func _aviso(texto: String) -> void:
+func _aviso(texto: String, con_glifo: bool = false) -> void:
 	if _lanz != null and is_instance_valid(_lanz) and _lanz.has_method("avisar"):
-		_lanz.call("avisar", texto, COLOR_ORO)
+		if con_glifo and glifo != "":
+			# 24/10: el aviso legendario con la runa en su marco (MarcoCalidad.Icono acepta «glifo:<id>»).
+			AvisoObjeto.mostrar_texto(_lanz, texto, Objetos.CALIDAD_LEGENDARIO, MarcoCalidad.PREFIJO_GLIFO + glifo)
+		else:
+			_lanz.call("avisar", texto, COLOR_ORO)
 
 
 func _liberar_tras_cerrar() -> void:
