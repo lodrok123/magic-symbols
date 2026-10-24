@@ -6,7 +6,7 @@ Es el paso de Blender de PLAN_RIGGING §3 (pasos 2-3), para la ropa en piezas ap
 Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la capa y la túnica):
   1. la reduce con Decimate (colapso) a ~`tris` triángulos, conservando UV y el cierre de las costuras;
   2. la escala y coloca sobre la base en A-pose (`config`: escala, desplazamiento y qué punto se alinea con qué punto de la base; o `perfil` por alturas, con
-     escala X/Y por separado y desplazamiento Y por nudo; `sube_delante` sube el borde delantero);
+     escala X / Y delante / Y detrás y desplazamiento Y por nudo; `nivela_borde` baja la parte delantera para que el borde quede a una altura);
   3. la separa de la piel donde quedaba dentro de la base (empuja a `margen` por la normal, con el desplazamiento suavizado; las orejas no empujan;
      `normal_suave`, `profundidad_max` y `pasadas_piel` lo afinan para la capa);
   4. le pasa los pesos de la base: para cada vértice, el punto más cercano de la superficie de la base y los pesos de ese triángulo (baricéntrico),
@@ -104,9 +104,9 @@ def interpolar(nudos: list, z: float, col: int) -> float:
 def colocar_con_perfil(o: bpy.types.Object, cfg: dict) -> None:
     """Colocación por alturas: `perfil` = [[z de la prenda, z en el mundo, escala en X/Y]...]. La capucha de Tripo tiene proporciones de adulto y la cabeza de la
     jugadora es enorme: la parte de la capucha se estira más (en Z y en X/Y) que la de la capa sobre los hombros. El centro en X/Y de la prenda va a `destino`[0:2].
-    La escala de un nudo puede ser un número (la misma en X y en Y) o [escala X, escala Y]: la capa tiene que ser ancha de lado (los brazos en A-pose) y
-    poco honda (el torso es estrecho). Un 4.º valor opcional desplaza en Y del mundo (Blender: +Y atrás) esa altura de la prenda (centrar la capa sobre el torso,
-    adelantar la cima de la capucha hacia la cabeza); si un nudo no lo lleva vale 0."""
+    La escala de un nudo puede ser un número (la misma en X y en Y), [escala X, escala Y] o [escala X, escala Y delante, escala Y detrás]: la capa tiene que
+    ser ancha de lado (los brazos en A-pose), separarse del pecho por delante y no colgar lejos de la espalda. Un 4.º valor opcional desplaza en Y del mundo
+    (Blender: +Y atrás) esa altura de la prenda (centrar la capa sobre el brazo, adelantar la cima de la capucha hacia la cabeza); si no lo lleva vale 0."""
     perfil = [nudo_perfil(n) for n in cfg["perfil"]]
     xs = [v.co.x for v in o.data.vertices]
     ys = [v.co.y for v in o.data.vertices]
@@ -114,27 +114,45 @@ def colocar_con_perfil(o: bpy.types.Object, cfg: dict) -> None:
     dx, dy = float(cfg["destino"][0]), float(cfg["destino"][1])
     for v in o.data.vertices:
         z = v.co.z
-        v.co = Vector(((v.co.x - cx) * interpolar(perfil, z, 2) + dx, (v.co.y - cy) * interpolar(perfil, z, 3) + dy + interpolar(perfil, z, 4),
-                       interpolar(perfil, z, 1)))
+        sy = interpolar(perfil, z, 3 if v.co.y < cy else 4)
+        v.co = Vector(((v.co.x - cx) * interpolar(perfil, z, 2) + dx, (v.co.y - cy) * sy + dy + interpolar(perfil, z, 5), interpolar(perfil, z, 1)))
 
 
-def subir_delante(o: bpy.types.Object, cfg: dict) -> None:
-    """Sube `dz` el borde DELANTERO de la capa (Blender: -Y delante), con gradiente: de lado (y > `y0`) nada, delante (y < `y1`) todo, y menos cuanto más alto
-    hasta `z_hasta`, donde ya no se mueve. La capelina termina en el codo de lado y detrás, y delante queda por encima de por donde cruzan los antebrazos
-    (lanzar, correr); si no, el antebrazo atravesaba el pecho de la capa."""
-    z_min = min(v.co.z for v in o.data.vertices)
+def nivelar_borde(o: bpy.types.Object, cfg: dict) -> None:
+    """Deja el borde de la capa a la altura `z` en todo el contorno. El borde de Tripo va inclinado (detrás 0,017, de lado 0,05, delante 0,09): sin esto la
+    capelina acababa en el codo detrás y en el hombro delante, y el concept la quiere al codo en todo el contorno. Por `sectores` de ángulo alrededor del eje
+    vertical de la parte baja se mide el punto más bajo y se baja lo que sobra, interpolando entre los centros de los sectores (el borde no hace escalones);
+    entero en el borde y nada desde `z_hasta` (gradiente lineal entre medias)."""
+    n = int(cfg["sectores"])
+    z_obj, z1 = float(cfg["z"]), float(cfg["z_hasta"])
+    bajos = [v.co for v in o.data.vertices if v.co.z < z1]
+    cx = (min(p.x for p in bajos) + max(p.x for p in bajos)) * 0.5
+    cy = (min(p.y for p in bajos) + max(p.y for p in bajos)) * 0.5
+
+    def angulo(p: Vector) -> float:
+        return (math.atan2(p.x - cx, p.y - cy) + math.pi) / (2.0 * math.pi) * n
+    minimo = [z1] * n
+    for p in bajos:
+        s = int(angulo(p)) % n
+        minimo[s] = min(minimo[s], p.z)
     for v in o.data.vertices:
-        if v.co.z >= float(cfg["z_hasta"]):
+        if v.co.z >= z1:
             continue
-        t_delante = suave((float(cfg["y0"]) - v.co.y) / (float(cfg["y0"]) - float(cfg["y1"])))
-        t_alto = 1.0 - (v.co.z - z_min) / (float(cfg["z_hasta"]) - z_min)
-        v.co.z += float(cfg["dz"]) * t_delante * t_alto
+        a = angulo(v.co) - 0.5
+        s0 = int(math.floor(a))
+        f = a - s0
+        borde = minimo[s0 % n] * (1.0 - f) + minimo[(s0 + 1) % n] * f
+        sobra = max(0.0, borde - z_obj)
+        t = (z1 - v.co.z) / max(z1 - borde, 1e-6)
+        v.co.z -= sobra * max(0.0, min(1.0, t))
 
 
 def nudo_perfil(n: list) -> list:
-    """[z prenda, z mundo, escala | [escala X, escala Y], (desplazamiento Y)] -> [z prenda, z mundo, escala X, escala Y, desplazamiento Y]."""
+    """[z prenda, z mundo, escala | [X, Y] | [X, Y delante, Y detrás], (desplazamiento Y)] -> [z prenda, z mundo, X, Y delante, Y detrás, desplazamiento Y]."""
     esc = n[2] if isinstance(n[2], list) else [n[2], n[2]]
-    return [float(n[0]), float(n[1]), float(esc[0]), float(esc[1]), float(n[3]) if len(n) > 3 else 0.0]
+    if len(esc) == 2:
+        esc = [esc[0], esc[1], esc[1]]
+    return [float(n[0]), float(n[1]), float(esc[0]), float(esc[1]), float(esc[2]), float(n[3]) if len(n) > 3 else 0.0]
 
 
 def colocar(o: bpy.types.Object, cfg: dict) -> None:
@@ -608,8 +626,8 @@ def main() -> None:
         o = separar_prenda(vestido, nombre, derecha)
         reducir(o, int(c["tris"]))
         colocar(o, c)
-        if "sube_delante" in c:
-            subir_delante(o, c["sube_delante"])
+        if "nivela_borde" in c:
+            nivelar_borde(o, c["nivela_borde"])
         ids, vecinos = adyacencia_soldada(o)
         # El casco se mide solo con los vértices de la cabeza y el pelo (peso de Head): por encima de HULL_Z_MIN también están los hombros y los brazos.
         g_cabeza = base.vertex_groups["mixamorig_Head"].index
