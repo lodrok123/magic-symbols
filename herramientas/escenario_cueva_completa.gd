@@ -293,7 +293,7 @@ func _c2() -> void:
 		sin_pieza = sin_pieza and Puzle3D.piedras_ocultas.has(c)
 	_ok("3 C2: el canal de la cascada (1..3, 4..5) sigue siendo canal `-` para el agua y su PIEZA DE RUINAS (el «puente») no se dibuja en ninguna de sus casillas", todo_canal and sin_pieza, "canal %s · sin pieza %s" % [str(todo_canal), str(sin_pieza)])
 	var terraza: Node = (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4")
-	_ok("3 C2: el canal está sobre una TERRAZA de roca (bloque con tapa de agua, casillas bloqueadas, fondo 1 u más alto)", terraza != null and (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4_agua") != null and Terreno3D.bloqueada(Vector2i(2, 4)) and absf(Terreno3D.fondo_canal_en(Vector2i(2, 4)) - (Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + 1.0)) < 0.01,
+	_ok("3 C2: el canal está sobre una TERRAZA de roca con pilares entre dos cortinas (láminas de agua, pilares, espuma al pie; casillas bloqueadas, fondo 1,4 u más alto)", terraza != null and (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4_agua_1") != null and (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4_pilar_1") != null and (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4_espuma_0") != null and Terreno3D.bloqueada(Vector2i(2, 4)) and absf(Terreno3D.fondo_canal_en(Vector2i(2, 4)) - (Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + 1.4)) < 0.01,
 		"fondo (2,4) %.2f" % Terreno3D.fondo_canal_en(Vector2i(2, 4)))
 	var pozo: float = 0.0
 	for y in range(6, 8):

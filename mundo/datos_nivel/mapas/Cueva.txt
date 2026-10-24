@@ -97,12 +97,14 @@
 ; giro 3 5 90
 ; pieza pozo_c2 cuenca 1 6 celdas=1,6..3,7
 ; (el desagüe son las 6 casillas del pozo: fijas a 0,3 de hondo se llevan todo lo que cae y la charca no rebosa sobre el suelo de la sala)
-; pieza desague_c2 cuenca 1 6 celdas=1,6..3,7 fijo=0.3
+; (2.ª pasada: el pozo se mantiene a 0,85 de hondo, casi a ras de suelo (0,95 < 1,03): la cortina llega entera hasta el agua, sin cruzar el borde oscuro del foso. Se puede nadar)
+; pieza desague_c2 cuenca 1 6 celdas=1,6..3,7 fijo=0.85
 ; (`bloque=`: las 6 casillas forman UNA lámina ancha de agua, no tres carriles de un tercio de casilla cada uno; `terraza=1`: el canal está sobre un bloque de roca de 1 u, como la
 ; cornisa de la que cae la cortina del vídeo: el agua cae ~1,7 u en vez de 1 y se ve desde la cámara)
-; pieza manantial_c2a manantial 1 4 caudal=1.0 celdas=1,4..1,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
-; pieza manantial_c2b manantial 2 4 caudal=1.0 celdas=2,4..2,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
-; pieza manantial_c2c manantial 3 4 caudal=1.0 celdas=3,4..3,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
+; (2.ª pasada: `terraza=1.4` sube la cornisa; `pilares=si`: tres pilares de roca con musgo (flancos y centro) y DOS cortinas de una casilla entre ellos; `espuma=0.85`: la superficie del pozo, para la espuma al pie)
+; pieza manantial_c2a manantial 1 4 caudal=1.0 celdas=1,4..1,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1.4 pilares=si espuma=0.85
+; pieza manantial_c2b manantial 2 4 caudal=1.0 celdas=2,4..2,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1.4 pilares=si espuma=0.85
+; pieza manantial_c2c manantial 3 4 caudal=1.0 celdas=3,4..3,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1.4 pilares=si espuma=0.85
 ; (la lámina de arriba es poco honda: el agua del filtro casi no se ve en poco fondo, así que la terraza lleva su propia tapa de agua dibujada; ver `Puzle3D._levantar_terraza`)
 ; --- C3 · Río de lava (vuelve a ser lava a los 10 s) ---
 ; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10

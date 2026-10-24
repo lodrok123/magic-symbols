@@ -103,6 +103,7 @@ var _img_eventos_vacia: bool = false
 var _tex_caida: ImageTexture = null
 var _img_hielo: Image = null
 var _estrechos: Dictionary = {}         ## Vector2i -> Array de Vector2i: casillas «estrechas» (canal) y los lados que abren; ver abrir_solo
+var _formas: Dictionary = {}            ## Vector2i -> Array de Vector2i: los trocitos (sx, sy) que quedan abiertos en una casilla de forma libre; ver abrir_trocitos
 var _suelo_de: Callable
 var _pared_de: Callable
 
@@ -136,6 +137,7 @@ func configurar(p_ancho: int, p_alto: int, p_sub: int, p_lado: float, suelo_y: C
 	_hielo_sucias.clear()
 	_hielo_vivo = false
 	_estrechos.clear()
+	_formas.clear()
 	_rampas.clear()
 	fijo.resize(n)
 	fijo.fill(-INF)
@@ -207,9 +209,21 @@ func abrir_solo(c: Vector2i, lados: Array, aplicar: bool = true) -> void:
 		_aplicar_estrecho(c)
 
 
+## 24/10 (cascada de C2 con pilares): como `abrir_solo` pero eligiendo QUÉ trocitos (sx, sy; 0..sub-1) quedan abiertos, no «el central y los de los lados». Así una casilla puede abrir sus
+## tercios de los extremos y cerrar el del medio (un pilar de roca entre dos cortinas). Los demás se cierran; `aplicar = false` solo recuerda la forma (ver `abrir_solo`).
+func abrir_trocitos(c: Vector2i, trocitos: Array, aplicar: bool = true) -> void:
+	if not _dentro_casilla(c):
+		return
+	_estrechos[c] = []
+	_formas[c] = trocitos.duplicate()
+	if aplicar:
+		_aplicar_estrecho(c)
+
+
 ## Vuelve a ser una casilla normal (los 9 trocitos según su pared).
 func quitar_estrecho(c: Vector2i) -> void:
 	_estrechos.erase(c)
+	_formas.erase(c)
 	refrescar_casilla(c)
 
 
@@ -217,7 +231,12 @@ func _aplicar_estrecho(c: Vector2i) -> void:
 	var lados: Array = _estrechos.get(c, [])
 	var m: int = sub / 2
 	var abiertos := {}
-	abiertos[Vector2i(m, m)] = true
+	if _formas.has(c):
+		for q in (_formas[c] as Array):
+			abiertos[q] = true
+		lados = []
+	else:
+		abiertos[Vector2i(m, m)] = true
 	for d in lados:
 		var q: Vector2i = Vector2i(m, m) + (d as Vector2i)
 		if q.x >= 0 and q.y >= 0 and q.x < sub and q.y < sub:

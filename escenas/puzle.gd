@@ -310,7 +310,7 @@ const CLAVES: Dictionary = {
 	"puerta": {"modelo": "s:llave", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
 	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
-	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f"},
+	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
 	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f"},
@@ -1856,8 +1856,11 @@ func _crear(pz: Pieza) -> void:
 				_ocultar_piedra_canal(celdas, cont)
 			if pz.p.has("bloque"):
 				if float(pz.p.get("terraza", 0.0)) > 0.0:
-					_levantar_terraza(pz.p["bloque"] as Array, float(pz.p["terraza"]), cont)
-				_forma_ancha(pz.p["bloque"] as Array)
+					_levantar_terraza(pz.p["bloque"] as Array, float(pz.p["terraza"]), cont, bool(pz.p.get("pilares", false)), float(pz.p.get("espuma", 0.0)))
+				if bool(pz.p.get("pilares", false)):
+					_forma_cortinas(pz.p["bloque"] as Array)
+				else:
+					_forma_ancha(pz.p["bloque"] as Array)
 			if bool(pz.p.get("inicia", true)):
 				_abrir_cauce(pz, [])
 		"tinaja":
@@ -2141,9 +2144,74 @@ void fragment() {
 	float veta = clamp(max(f1, f2 * 0.8), 0.0, 1.0);
 	// Rizos finos que cruzan la corriente.
 	float rizo = smoothstep(0.64, 0.9, ruido(vec2(v_pos.x * 1.4 + TIME * 0.2, v_pos.z * 1.6 - TIME * velocidad * 0.5)));
-	vec3 col = mix(color_hondo, color_claro, clamp(veta * 0.55 + rizo * 0.18, 0.0, 1.0));
+	vec3 col = mix(color_hondo, color_claro, clamp(veta * 0.75 + rizo * 0.25, 0.0, 1.0));
 	ALBEDO = col;
-	ALPHA = 0.93;
+	// 2.ª pasada: una lámina FINA, no un bloque azul: donde no hay veta se ve la roca del canal; las vetas (y los rizos) son agua. Se aclara hacia el labio (v_pos.z lo da la malla: UV.y 1 = sur).
+	ALPHA = clamp(0.20 + veta * 0.55 + rizo * 0.15 + UV.y * UV.y * 0.25, 0.0, 0.92);
+}
+"""
+
+const PILAR_SOBRE_TERRAZA: float = 1.5       ## cuánto sobresale un pilar por encima del fondo del canal (u)
+const PILAR_LARGO: float = 1.5               ## cuánto se mete un pilar hacia el norte desde el labio de la cornisa (u)
+const ESPUMA_LARGO: float = 1.3             ## hasta dónde llega la franja de espuma por el pozo, desde la cortina (u)
+
+## La espuma al pie de una cortina (`_levantar_terraza`): una franja blanca OPACA pegada a la caída, hecha de burbujas que respiran, y aros que se abren por el pozo. UV.x a lo ancho, UV.y = 0 en la cortina y 1 al fondo.
+const CODIGO_ESPUMA_PIE: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
+
+varying vec3 v_pos;
+
+void vertex() {
+	v_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+const float HASH_CUANTO = 256.0;
+float hash(vec2 p) {
+	uvec2 q = uvec2(ivec2(floor(p * HASH_CUANTO + 0.5)));
+	uint h = q.x * 1597334673u ^ q.y * 3812015801u;
+	h = (h ^ (h >> 16u)) * 2246822519u;
+	h = (h ^ (h >> 13u)) * 3266489917u;
+	h = h ^ (h >> 16u);
+	return float(h >> 8u) * (1.0 / 16777216.0);
+}
+
+// x = distancia al borde de la burbuja más cercana, y = su id.
+vec2 voronoi(vec2 p) {
+	vec2 ip = floor(p);
+	vec2 fp = fract(p);
+	float d1 = 8.0;
+	float id = 0.0;
+	for (int j = -1; j <= 1; j++) {
+		for (int i = -1; i <= 1; i++) {
+			vec2 g = vec2(float(i), float(j));
+			vec2 o = vec2(hash(ip + g), hash(ip + g + 7.7));
+			o = 0.5 + 0.45 * sin(TIME * (0.8 + o * 1.4) + 6.2831 * o);
+			float d = length(g + o - fp);
+			if (d < d1) {
+				d1 = d;
+				id = hash(ip + g + 3.1);
+			}
+		}
+	}
+	return vec2(d1, id);
+}
+
+void fragment() {
+	float d = UV.y;
+	float lateral = smoothstep(0.0, 0.10, UV.x) * smoothstep(1.0, 0.90, UV.x);
+	// Franja sólida junto a la caída y burbujas que se ralean hacia fuera.
+	vec2 v = voronoi(v_pos.xz * 4.2);
+	float burbuja = 1.0 - smoothstep(0.20, 0.34, v.x);
+	float solida = 1.0 - smoothstep(0.10, 0.34, d + (v.y - 0.5) * 0.18);
+	float ralo = (1.0 - smoothstep(0.25, 1.0, d)) * (0.35 + 0.65 * v.y);
+	float espuma = clamp(solida + burbuja * ralo * 1.4, 0.0, 1.0);
+	// Aros que salen de la caída y se abren por el pozo.
+	float r = fract(d * 2.2 - TIME * 0.45);
+	float aro = smoothstep(0.0, 0.05, r) * (1.0 - smoothstep(0.05, 0.14, r)) * (1.0 - smoothstep(0.1, 0.9, d));
+	float a = clamp(espuma + aro * 0.55, 0.0, 1.0) * lateral;
+	ALBEDO = mix(vec3(0.78, 0.92, 1.0), vec3(1.0), espuma);
+	ALPHA = a * (1.0 - smoothstep(0.82, 1.0, d));
 }
 """
 
@@ -2151,7 +2219,7 @@ void fragment() {
 ## 24/10: sube el fondo del canal de las casillas del `bloque` `alto` u sobre el suelo y pone debajo un bloque de roca de cueva (la pared del foso, la misma piedra mojada que los costados de
 ## las charcas): una TERRAZA con el agua encima. Así la cascada cae `alto` u más al pozo y se ve desde la cámara (con un solo escalón de suelo a pozo, 1 u, la cortina medía una franja).
 ## Las casillas se bloquean (no se pisan: el fondo del canal queda a la altura de un nivel) y la simulación relee su suelo. Se hace UNA vez por bloque (hay un manantial por carril).
-func _levantar_terraza(bloque: Array, alto: float, cont: Node) -> void:
+func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = false, nivel_pozo: float = 0.0) -> void:
 	var nombre: String = "terraza_%d_%d" % [(bloque[0] as Vector2i).x, (bloque[0] as Vector2i).y]
 	if cont.has_node(nombre):
 		return
@@ -2191,21 +2259,126 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node) -> void:
 		mat.albedo_color = Color(0.3, 0.33, 0.4)
 	bloque_roca.material_override = mat
 	cont.add_child(bloque_roca)
-	# La tapa: una lámina de agua que corre hacia el labio (sur). El agua del filtro es casi transparente en poco fondo (alfa ∝ profundidad) y sobre la roca no se leería como agua; esta
-	# lámina va justo por encima de la cara de arriba, con vetas de corriente (ruido alargado en la dirección del flujo) y el brillo de la cortina de abajo, para que arriba y abajo sean la misma agua.
-	var tapa := MeshInstance3D.new()
-	tapa.name = nombre + "_agua"
-	var plano := PlaneMesh.new()
-	plano.size = Vector2(ancho, fondo)
-	tapa.mesh = plano
-	tapa.position = bloque_roca.position + Vector3(0.0, (y_tope - y_base) * 0.5 + 0.03, 0.0)
-	var sh := Shader.new()
-	sh.code = CODIGO_TAPA_TERRAZA
-	var mat_agua := ShaderMaterial.new()
-	mat_agua.shader = sh
-	tapa.material_override = mat_agua
-	tapa.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	cont.add_child(tapa)
+	# Segunda pasada (24/10, Pablo: «varias cortinas entre pilares de roca, espuma blanca fuerte al pie, sin el bloque azul plano de arriba»). Con `pilares`, cada tercio de casilla cuyo número de
+	# columna es múltiplo de 4 es un PILAR (ver `_forma_cortinas`: la simulación lo cierra) y las columnas entre dos pilares son una CORTINA de una casilla. Arriba ya no hay una tapa azul opaca: cada
+	# cortina trae una lámina fina de agua (casi transparente donde no hay veta, así se ve la roca del canal) con vetas que corren hacia el labio.
+	var tercio: float = s / 3.0
+	var n_col: int = (x1 - x0 + 1) * 3
+	var lip_z: float = esq.z + fondo + 0.03
+	var y_agua_pozo: float = Terreno3D.fondo_cauce() + nivel_pozo + 0.02
+	var sh_film := Shader.new()
+	sh_film.code = CODIGO_TAPA_TERRAZA
+	var sh_espuma := Shader.new()
+	sh_espuma.code = CODIGO_ESPUMA_PIE
+	var mat_roca: Material = mat
+	var cortinas: Array = []                        # [x_ini, ancho] de cada cortina, en x de mundo
+	if pilares:
+		var k: int = 0
+		while k < n_col:
+			if k % 4 == 0:
+				var pilar := MeshInstance3D.new()
+				pilar.name = "%s_pilar_%d" % [nombre, k / 4]
+				var cp := BoxMesh.new()
+				var alto_pilar: float = (y_tope - y_base) + PILAR_SOBRE_TERRAZA
+				var largo_pilar: float = PILAR_LARGO + 0.12
+				cp.size = Vector3(tercio, alto_pilar, largo_pilar)
+				pilar.mesh = cp
+				pilar.material_override = mat_roca
+				pilar.position = Vector3(esq.x + (float(k) + 0.5) * tercio, y_base + alto_pilar * 0.5, lip_z - 0.03 + 0.12 - largo_pilar * 0.5)
+				cont.add_child(pilar)
+				# Musgo en la cabeza del pilar: la misma piedra, teñida de verde apagado (con la luz azul de la cueva se queda en un verde-azulado oscuro: no rompe la paleta, pero se lee).
+				var musgo := MeshInstance3D.new()
+				musgo.name = pilar.name + "_musgo"
+				var cm := BoxMesh.new()
+				cm.size = Vector3(tercio + 0.12, 0.22, largo_pilar + 0.10)
+				musgo.mesh = cm
+				var mm: StandardMaterial3D = (mat_roca as StandardMaterial3D).duplicate() as StandardMaterial3D
+				mm.albedo_color = Color(mm.albedo_color.r * 0.50, mm.albedo_color.g * 1.00, mm.albedo_color.b * 0.62)
+				musgo.material_override = mm
+				musgo.position = pilar.position + Vector3(0.0, alto_pilar * 0.5 + 0.06, 0.0)
+				cont.add_child(musgo)
+				k += 1
+			else:
+				var k0: int = k
+				while k < n_col and k % 4 != 0:
+					k += 1
+				cortinas.append([esq.x + float(k0) * tercio, float(k - k0) * tercio])
+	else:
+		cortinas.append([esq.x, ancho])
+	var i_c: int = 0
+	for ct in cortinas:
+		var x_ini: float = ct[0]
+		var an: float = ct[1]
+		var xc: float = x_ini + an * 0.5
+		var film := MeshInstance3D.new()
+		film.name = "%s_agua_%d" % [nombre, i_c]
+		var pl := PlaneMesh.new()
+		pl.size = Vector2(an, fondo)
+		film.mesh = pl
+		film.position = Vector3(xc, y_tope + 0.03, esq.z + fondo * 0.5)
+		var m_film := ShaderMaterial.new()
+		m_film.shader = sh_film
+		film.material_override = m_film
+		film.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cont.add_child(film)
+		# La ESPUMA al pie: una franja blanca opaca y burbujeante pegada a la cortina, con aros que se abren por el pozo, y un surtidor de salpicaduras.
+		var esp := MeshInstance3D.new()
+		esp.name = "%s_espuma_%d" % [nombre, i_c]
+		var pe := PlaneMesh.new()
+		pe.size = Vector2(an + 0.5, ESPUMA_LARGO)
+		esp.mesh = pe
+		esp.position = Vector3(xc, y_agua_pozo, lip_z + ESPUMA_LARGO * 0.5 - 0.05)
+		var m_esp := ShaderMaterial.new()
+		m_esp.shader = sh_espuma
+		m_esp.render_priority = 2
+		esp.material_override = m_esp
+		esp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cont.add_child(esp)
+		var chorro := CPUParticles3D.new()
+		chorro.name = "%s_salpicaduras_%d" % [nombre, i_c]
+		chorro.position = Vector3(xc, y_agua_pozo + 0.05, lip_z + 0.15)
+		chorro.amount = 36
+		chorro.lifetime = 0.9
+		chorro.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		chorro.emission_box_extents = Vector3(an * 0.45, 0.04, 0.12)
+		chorro.direction = Vector3(0.0, 1.0, 0.7)
+		chorro.spread = 32.0
+		chorro.initial_velocity_min = 1.8
+		chorro.initial_velocity_max = 3.4
+		chorro.gravity = Vector3(0.0, -9.0, 0.0)
+		chorro.scale_amount_min = 0.5
+		chorro.scale_amount_max = 1.5
+		var esf := SphereMesh.new()
+		esf.radius = 0.07
+		esf.height = 0.14
+		esf.radial_segments = 8
+		esf.rings = 4
+		var m_gota := StandardMaterial3D.new()
+		m_gota.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m_gota.albedo_color = Color(0.92, 0.98, 1.0)
+		esf.material = m_gota
+		chorro.mesh = esf
+		chorro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cont.add_child(chorro)
+		i_c += 1
+
+
+## Segunda pasada (24/10): como `_forma_ancha` pero con PILARES. En el ancho del `bloque` (3 trocitos por casilla) quedan cerrados los trocitos cuya columna es múltiplo de 4 (columna 0 = el
+## primer tercio de la primera casilla): con 3 casillas son 9 columnas, pilares en 0, 4 y 8 y dos cortinas de una casilla (columnas 1-3 y 5-7). La profundidad (norte-sur) queda toda abierta.
+func _forma_cortinas(bloque: Array) -> void:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	if sim == null or bloque.is_empty():
+		return
+	var x0: int = 9999
+	for c in bloque:
+		x0 = mini(x0, (c as Vector2i).x)
+	for c in bloque:
+		var abiertos: Array = []
+		for sx in range(3):
+			if (((c as Vector2i).x - x0) * 3 + sx) % 4 != 0:
+				for sy in range(3):
+					abiertos.append(Vector2i(sx, sy))
+		sim.abrir_trocitos(c as Vector2i, abiertos, false)
 
 
 ## 24/10: un canal de ruinas es ESTRECHO para la simulación (un carril central de un tercio de casilla: el cajón de la pieza), y una cortina de un tercio de casilla no se ve

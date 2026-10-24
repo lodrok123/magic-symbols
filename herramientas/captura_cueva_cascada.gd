@@ -40,7 +40,7 @@ func _escenario() -> void:
 
 
 func _c2() -> void:
-	colocar_jugador(Vector2i(4, 7))
+	colocar_jugador(Vector2i(4, 6))
 	await avanzar_s(T_CASCADA_S)
 	print("camara: tam %s · posicion %s · jugador %s" % [str(_cam.size), str(_cam.global_position), str(jugador.position)])
 	await _foto("c2_juego_%s" % _et)
