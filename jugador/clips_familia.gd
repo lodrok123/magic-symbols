@@ -28,6 +28,14 @@ const FUENTE_CLIPS_JUGADORA: Dictionary = {
 	# Las proporciones de cada elfa difieren (piernas, cadera) y en una agachada la cadera retargeteada hunde o levanta la suela unos centímetros: se corrige en cada fotograma.
 	"plantar": ["AbrirCofre", "Agacharse", "Ofrecer", "Saludo", "Empujar"]}
 
+## Los tres casts a UNA mano del Pipeline (diario 150: CastOneHandFront / Up / Ground, la otra mano sujeta el libro) viven en woodland_wanderer_suave.glb. La jugadora nueva (jugadora_base)
+## los toma de ahí traducidos a su esqueleto (los tres sirven también de pose de referencia del brazo del libro, BrazoLibro3D). Los nombres se conservan: son los de Pj3D.SINONIMOS.
+const RUTA_UNA_MANO: String = "res://arte/modelos/woodland_wanderer_suave.glb"
+const FUENTE_UNA_MANO: Dictionary = {
+	"ruta": RUTA_UNA_MANO, "referencia": "Idle", "clips": {
+		"CastOneHandFront": "CastOneHandFront", "CastOneHandUp": "CastOneHandUp", "CastOneHandGround": "CastOneHandGround",
+	}}
+
 ## Modelos que SÍ traen AnimationPlayer propio (la elfa jugadora) y solo reciben clips de más: id de GLB -> fuentes (mismo formato que FUENTES). Nunca pisan un clip que ya tenga.
 const EXTRAS: Dictionary = {
 	"woodland_wanderer_suave": [FUENTE_CLIPS_JUGADORA],
@@ -51,6 +59,7 @@ const FUENTES: Dictionary = {
 	"jugadora_base": [
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 		FUENTE_CLIPS_JUGADORA,       # 24/10: abrir_cofre, agacharse, ofrecer, saludo y empujar (ver arriba)
+		FUENTE_UNA_MANO,             # 24/10: los tres casts a una mano (CastOneHandFront / Up / Ground)
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.

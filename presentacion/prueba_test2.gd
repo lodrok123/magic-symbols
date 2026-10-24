@@ -62,7 +62,7 @@ const LUZ_AMBIENTE: float = 0.6
 const LUZ_SOL: float = 1.0
 
 ## Personajes: id del pipeline (res://arte/modelos/<id>.glb) y su alto en pantalla. Si falta, el sustituto.
-const PJ_JUGADOR: Array = ["woodland_wanderer", "chibi_elf_v2", "chibi_elf", "chibi_test"]   # 12/10: la elfa de 100k (Meshy «Little Woodland Wanderer») es la jugadora; si falta, la chibi_elf de siempre
+const PJ_JUGADOR: Array = ["jugadora_base", "woodland_wanderer", "chibi_elf_v2", "chibi_elf", "chibi_test"]   # 24/10: la jugadora nueva (jugadora_base, Mixamo + ropa por piezas) sustituye a la elfa de 100k (woodland_wanderer, 12/10), que queda de respaldo si falla la carga
 const PJ_LIBRERA: Array = ["bookseller_chibi", "elfo_base", "chibi_test"]   # 22/10: elfo_base = el elfo básico de la familia (Tripo, clips de chibi_elf vía ClipsFamilia)
 const PJ_GOBLIN: Array = ["goblin_warrior_chibi", "goblin_warrior"]
 ## Espadachín: el mismo modelo del guerrero con espada (Pj3D.MODELO_DE + Equipo3D.EQUIPO). Ocupa las "A" del
@@ -78,7 +78,7 @@ const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_w
 const PJ_ASESINO: Array = ["goblin_asesino", "goblin_espadachin", "goblin_warrior_chibi"]
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
-	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85, "jugadora_base": 1.0,      # 23/10: la candidata a jugadora (base + ropa por piezas); aún no la usa ninguna escena
+	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85, "jugadora_base": 1.0,      # 24/10: la jugadora (base + ropa por piezas), primera de PJ_JUGADOR
 	"alchemist_elf": 0.95, "elfo_base": 1.0, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
 	"loberno": 0.75,      # 13/10: lobo (Meshy). Mide 0,60 u de alto y 1,02 de largo; a 0,75 sus zancadas casan con VEL_PATRULLA (walk) y VEL_PERSEGUIR (Gallop)

@@ -41,6 +41,10 @@ const DAGA_GIRO_DERECHA: Vector3 = Vector3(0.5, -31.7, -3.0)
 const DAGA_POS_IZQUIERDA: Vector3 = Vector3(0.0, 0.045, 0.0)
 const DAGA_GIRO_IZQUIERDA: Vector3 = Vector3(0.5, -108.9, 3.0)
 
+## Grimorio de la jugadora nueva, en el espacio del hueso Hips (unidades del modelo, 1,7 de alto): +Y arriba (inclinado 7,5° hacia atrás), +Z delante.
+const GRIMORIO_JUGADORA_POS: Vector3 = Vector3(0.0, -0.08, -0.21)
+const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
+
 ## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados, (opcional) multiplicador de escala por eje] en el espacio del hueso.
 ## Los huesos de mano de Mixamo apuntan con +Y hacia los dedos.
 const EQUIPO: Dictionary = {
@@ -71,6 +75,12 @@ const EQUIPO: Dictionary = {
 	# La elfa jugadora (woodland_wanderer): mismo punto que la chibi_elf; su esqueleto Mixamo tiene el mismo espacio de Hips.
 	"woodland_wanderer": [
 		["grimorio", "Hips", Vector3(0.0, 0.06, -0.20), Vector3(6.0, 180.0, 0.0)],
+	],
+	# La jugadora nueva (jugadora_base, 24/10): el mismo sitio del mundo que en la elfa vieja (cadera, a la espalda). Su Hips no está inclinado como el de la elfa (eje Y a 7,5° del
+	# vertical contra 26°), así que el punto y el giro salen de pasar a su espacio la posición y la orientación que tenía el libro en el de la elfa (medido con
+	# herramientas/medidas_jugadora_integrada.gd; ver GRIMORIO_JUGADORA_*).
+	"jugadora_base": [
+		["grimorio", "Hips", GRIMORIO_JUGADORA_POS, GRIMORIO_JUGADORA_GIRO],
 	],
 	"chibi_test": [
 		["grimorio", "Hips", Vector3(0.36, 0.02, -0.06), Vector3(0.0, 90.0, -8.0)],

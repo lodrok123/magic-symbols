@@ -698,9 +698,10 @@ func _lanzar_punto(id: String, elemento: String) -> float:
 	var lado: String = CastPoints.mano_libro(id) if not una_mano else "izquierda"
 	# El libro en la mano que corresponde (si ya estaba en la otra, pasa a esta).
 	libro_en_manos(true, 0.3, lado, true)           # lanzando: el libro está «en_mano_cerrado»
-	# El brazo del libro quieto (solo con el clip original: el de una mano ya trae el brazo del libro en su sitio).
+	# El brazo del libro quieto (solo con el clip original: el de una mano ya trae el brazo del libro en su sitio, salvo en los esqueletos con pose a mano, POSE_LIBRO_BRAZO:
+	# allí el clip a una mano viene traducido de otro reposo y deja la palma de lado, y el modificador sigue puesto).
 	_brazo_libro_lado(lado)
-	_brazo_libro_peso(CastPoints.peso_brazo if CastPoints.brazo_activo and not una_mano else 0.0)
+	_brazo_libro_peso(CastPoints.peso_brazo if CastPoints.brazo_activo and (not una_mano or POSE_LIBRO_BRAZO.has(self.id)) else 0.0)   # (`id` es el del punto de cast: el del personaje, con self)
 	# El clip recortado [a, b] es un estado propio del árbol (sin bucle: al llegar a `b` se queda en ese fotograma).
 	_arbol.vel_global = 1.0
 	_arbol.pedir("lanzar_" + id, clip, {"desde": a, "hasta": b, "bucle": Animation.LOOP_NONE, "vel": vel, "mezcla": MEZCLA_CLIPS})
@@ -782,6 +783,17 @@ func _brazo_libro() -> BrazoLibro3D:
 		return null
 	# La pose «libro recogido con la palma arriba» sale de CastOneHandFront (el Pipeline la hizo con la mano izquierda sujetando el libro, diario 150);
 	# si el GLB no la trae, de Readandwrite (la lectura, con el libro más vertical).
+	if POSE_LIBRO_BRAZO.has(id):
+		# Pose a mano (ver POSE_LIBRO_BRAZO): el reposo de este esqueleto no casa con los clips traducidos, así que no se saca de ninguno.
+		var mg := BrazoLibro3D.new()
+		mg.name = "BrazoLibro"
+		mg.influence = 0.0
+		sk.add_child(mg)
+		if not mg.preparar_giros(POSE_LIBRO_BRAZO[id] as Dictionary):
+			mg.queue_free()
+			return null
+		_brazo = mg
+		return _brazo
 	var clip: String = _buscar_clip("cast_mano_frente")
 	var t_ref: float = BrazoLibro3D.T_REF_UNA_MANO
 	if clip == "":
@@ -871,6 +883,18 @@ func _poner_chispas(elemento: String, mano: String = "derecha") -> void:
 ## z = ancho medio. Antes: (0, 0,10, 0,05) y giro (90, 0, 0): el libro de canto, con la normal a lo largo de los dedos (lo ajustó la pose de Readandwrite, que lo
 ## sostiene casi vertical, leyendo). En la derecha el rig es el espejo: x → −x y los giros en Y y Z cambian de signo (`_libro_pose`).
 var libro_mano: Array = [Vector3(0.10, 0.08, -0.01), Vector3(0.0, 90.0, 0.0)]    ## posición y giro respecto a la mano izquierda
+
+## Pose del brazo del libro hecha a mano para los esqueletos cuyo reposo no casa con los clips traducidos (BrazoLibro3D.preparar_giros): id -> {Shoulder|Arm|ForeArm|Hand: grados (x, y, z)}.
+## Jugadora nueva (24/10): reposo en A (el brazo cuelga a 31° de la vertical, palma hacia el muslo). Brazo vertical y algo adelantado, antebrazo al frente a ~95° del brazo, y la palma arriba
+## (giro sobre el eje delante del antebrazo y de la mano); CastOneHandFront traducido a su esqueleto deja los dedos hacia arriba, con el libro junto a la cara.
+const POSE_LIBRO_BRAZO: Dictionary = {
+	"jugadora_base": {
+		"Shoulder": Vector3(0.0, 0.0, 0.0),
+		"Arm": Vector3(-10.0, 0.0, -31.0),
+		"ForeArm": Vector3(-90.0, 0.0, -60.0),
+		"Hand": Vector3(0.0, 0.0, -30.0),
+	},
+}
 var _libro: Node3D = null
 
 ## A2 · EL LIBRO ES UNA MÁQUINA DE ESTADOS, no tres tweens sueltos (ya se mataron entre sí una vez: el libro «cosido» a la mano). Cuatro estados:
@@ -2085,7 +2109,7 @@ static func tipo_de(p_id: String) -> String:
 		return "elemental"
 	if p_id.begins_with("lober") or p_id == "lince":
 		return "bestia"
-	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero") or p_id.begins_with("woodland_wanderer"):
+	if p_id.begins_with("chibi_elf") or p_id == "chibi_test" or p_id.begins_with("hero") or p_id.begins_with("woodland_wanderer") or p_id == "jugadora_base":
 		return "heroe"
 	return "npc"
 

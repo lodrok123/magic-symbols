@@ -59,6 +59,53 @@ func preparar(clip: Animation, t: float = T_REF_POR_DEFECTO) -> bool:
 	return true
 
 
+## Como `preparar`, pero la pose no sale de un clip sino de unos giros a mano sobre el reposo del esqueleto: `giros` = {parte de la cadera (Shoulder, Arm, ForeArm, Hand): grados (x, y, z)}.
+## Cada giro es GLOBAL (ejes del esqueleto: +X la izquierda del personaje, +Y arriba, +Z delante), se aplica en orden X, Y, Z sobre la pose que hereda del hueso padre y se vuelve a
+## pasar a local. Sirve para un esqueleto cuyo reposo difiere del de los clips que se tradujeron (la jugadora nueva, jugadora_base, cuyo reposo en A hace que CastOneHandFront
+## traducido deje la mano con los dedos hacia arriba y no con la palma hacia arriba) o que no trae esos clips.
+func preparar_giros(giros: Dictionary) -> bool:
+	var sk: Skeleton3D = _sk()
+	preparado = false
+	if sk == null:
+		return false
+	for l in ["izquierda", "derecha"]:
+		var lado_hueso: String = "Left" if l == "izquierda" else "Right"
+		var idx := PackedInt32Array()
+		for parte in CADENA:
+			var h: int = _hueso(sk, lado_hueso + parte)
+			if h < 0:
+				return false
+			idx.append(h)
+		_huesos[l] = idx
+	var izq: Array = []
+	var idx_i: PackedInt32Array = _huesos["izquierda"]
+	var padre_global: Basis = _global_reposo(sk, sk.get_bone_parent(idx_i[0]))
+	for k in range(idx_i.size()):
+		var h2: int = idx_i[k]
+		var g: Vector3 = giros.get(CADENA[k], Vector3.ZERO)
+		var r: Basis = Basis.from_euler(Vector3(deg_to_rad(g.x), 0.0, 0.0)) if g.x != 0.0 else Basis.IDENTITY
+		r = Basis(Vector3.UP, deg_to_rad(g.y)) * r if g.y != 0.0 else r
+		r = Basis(Vector3.BACK, deg_to_rad(g.z)) * r if g.z != 0.0 else r
+		var local_reposo: Basis = sk.get_bone_rest(h2).basis.orthonormalized()
+		var local: Basis = padre_global.inverse() * r * padre_global * local_reposo
+		var q: Quaternion = local.orthonormalized().get_rotation_quaternion()
+		izq.append(q)
+		padre_global = padre_global * local.orthonormalized()
+	var der: Array = []
+	for q in izq:
+		var qq: Quaternion = q
+		der.append(Quaternion(qq.x, -qq.y, -qq.z, qq.w))
+	_pose["izquierda"] = izq
+	_pose["derecha"] = der
+	preparado = true
+	return true
+
+
+## Orientación global (espacio del esqueleto) del hueso `i` en reposo; identidad si no existe.
+static func _global_reposo(sk: Skeleton3D, i: int) -> Basis:
+	return sk.get_bone_global_rest(i).basis.orthonormalized() if i >= 0 else Basis.IDENTITY
+
+
 ## El esqueleto es el padre (`get_skeleton()` solo vale cuando el árbol ya ha procesado un fotograma).
 func _sk() -> Skeleton3D:
 	return get_parent() as Skeleton3D

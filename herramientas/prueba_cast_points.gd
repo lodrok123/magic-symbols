@@ -111,10 +111,18 @@ func _escenario() -> void:
 	await avanzar_s(0.7)
 
 	# --- D · el brazo del libro ---
-	var sin_mod: float = await _rango_mano_libro("x_empuje", 0.0)
-	var con_mod: float = await _rango_mano_libro("x_empuje", CastPoints.peso_brazo)
-	_ok("D con el modificador el libro apenas se mueve respecto al torso (< 0,03 u)", con_mod < 0.03, "%.3f u" % con_mod)
-	_ok("D sin él se mueve de verdad (> 3× más y > 0,1 u)", sin_mod > con_mod * 3.0 and sin_mod > 0.1, "sin %.3f · con %.3f" % [sin_mod, con_mod])
+	# Dos variaciones con el libro en la izquierda: x_empuje (la mano del libro casi no se mueve: la de la jugadora nueva solo recorre 0,100 u) y alto_cielo (brazos arriba: se movería muchísimo).
+	# Con el modificador, la mano se queda quieta: < 0,03 u, o lo que deja pasar el peso (la parte 1 − peso del movimiento del clip, que con peso 0,9 es el 10 %) con un margen del 3 %.
+	var hay_movimiento: bool = false
+	var detalle: String = ""
+	for id_d in ["x_empuje", "alto_cielo"]:
+		var sin_mod: float = await _rango_mano_libro(String(id_d), 0.0)
+		var con_mod: float = await _rango_mano_libro(String(id_d), CastPoints.peso_brazo)
+		_ok("D %s: con el modificador el libro apenas se mueve respecto al torso (< 0,03 u o ≤ %.0f %% de lo que se movería)" % [id_d, (1.0 - CastPoints.peso_brazo + 0.03) * 100.0],
+			con_mod < 0.03 or con_mod <= sin_mod * (1.0 - CastPoints.peso_brazo + 0.03), "sin %.3f · con %.3f u" % [sin_mod, con_mod])
+		hay_movimiento = hay_movimiento or (sin_mod > con_mod * 3.0 and sin_mod > 0.1)
+		detalle += "%s: sin %.3f · con %.3f  " % [id_d, sin_mod, con_mod]
+	_ok("D sin el modificador el libro se mueve de verdad en alguna variación (> 3× más y > 0,1 u)", hay_movimiento, detalle)
 	var b: BrazoLibro3D = pj._brazo
 	_ok("D el modificador existe, está preparado y cuelga del esqueleto", b != null and b.preparado and b.get_parent() is Skeleton3D)
 	var sk: Skeleton3D = pj._esqueleto()
@@ -128,12 +136,11 @@ func _escenario() -> void:
 		_mantener_lanzando(true)
 		pj.pose_fija("cast_corro", 1.2)               # (A1: el árbol es lo único que reproduce; la pose conocida se pide con pose_fija)
 		await avanzar(3)
-		var inv: Transform3D = torso.global_transform.affine_inverse()
 		if lado == "izquierda":
-			dif_espejo = (inv * hi.global_position).x
+			dif_espejo = _en_torso(torso, hi.global_position).x
 			_ok("D el brazo izquierdo queda en la pose del libro (hacia el lado izquierdo del torso, x > 0)", dif_espejo > 0.02, "%.3f" % dif_espejo)
 		else:
-			var xd: float = (inv * hd.global_position).x
+			var xd: float = _en_torso(torso, hd.global_position).x
 			_ok("D el derecho queda en el ESPEJO del izquierdo (|x| igual, signo contrario: error < 0,03 u)", absf(xd + dif_espejo) < 0.03, "izq %.3f · der %.3f" % [dif_espejo, xd])
 	b.influence = 0.0
 	_mantener_lanzando(false)
@@ -179,7 +186,10 @@ func _escenario() -> void:
 	fases.clear()
 	lanzador.lanzar_ahora(f1, jugador.position, Vector3.RIGHT, true)
 	_ok("G con la fuente «una mano» se usa CastOneHandFront", pj.cast_activo() and String(pj._cp["clip"]) == "CastOneHandFront", str(pj._cp.get("clip", "")))
-	_ok("G el libro va a la izquierda (la derecha lanza) y el modificador del brazo se apaga", pj._libro_lado == "izquierda" and (pj._brazo == null or pj._brazo.influence == 0.0))
+	# Con un esqueleto de pose a mano (la jugadora nueva) el clip a una mano viene traducido de otro reposo y el brazo del libro SIGUE puesto; con el resto (clips propios) se apaga.
+	var con_pose_a_mano: bool = Pj3D.POSE_LIBRO_BRAZO.has(pj.id)
+	_ok("G el libro va a la izquierda (la derecha lanza) y el modificador del brazo %s" % ("sigue puesto (pose a mano de %s)" % pj.id if con_pose_a_mano else "se apaga"),
+		pj._libro_lado == "izquierda" and ((pj._brazo != null and pj._brazo.influence > 0.0) if con_pose_a_mano else (pj._brazo == null or pj._brazo.influence == 0.0)))
 	tf = 0.0
 	while lanzador.conjurando and tf < 3.0:
 		tf += await avanzar_s(0.05)
@@ -270,6 +280,13 @@ func _nombres(fases: Array) -> Array:
 	return r
 
 
+## Un punto del mundo en el espacio del torso, en unidades del MODELO (la elfa vieja trae el esqueleto a escala 1 y la jugadora nueva a 100: el ancla del torso lleva esa escala, así
+## que solo se usa su posición y su giro, y se divide por la escala del personaje).
+func _en_torso(torso: Node3D, p_mundo: Vector3) -> Vector3:
+	var t := Transform3D(torso.global_transform.basis.orthonormalized(), torso.global_transform.origin)
+	return (t.affine_inverse() * p_mundo) / maxf(pj.scale.y, 0.0001)
+
+
 func _atar(sk: Skeleton3D, hueso: String) -> BoneAttachment3D:
 	var a := BoneAttachment3D.new()
 	a.bone_name = hueso
@@ -317,7 +334,7 @@ func _rango_mano_libro(id: String, peso: float) -> float:
 		await process_frame
 		if pj._libro != null and is_instance_valid(pj._libro):
 			# En el espacio del TORSO: el libro sigue al tronco cuando se inclina (natural); lo que importa es que el brazo no lo mueva por su cuenta.
-			var p: Vector3 = torso.global_transform.affine_inverse() * (pj._libro as Node3D).global_position
+			var p: Vector3 = _en_torso(torso, (pj._libro as Node3D).global_position)
 			mx = mx.max(p)
 			mn = mn.min(p)
 	torso.queue_free()

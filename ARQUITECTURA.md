@@ -1181,6 +1181,10 @@ El primer nivel hecho con todo lo anterior (`docs/PLAN_BOSQUE_01_V01.md`). Mapa 
 - **Lo resuelto va en flags** y el script lo lee al montar (tótems, puerta X, quemados `bosque01v1.quemado.c<x>_<y>`, tronco-puente, misión derivada). Las piezas de `Puzle3D` se recuerdan con la pareja `cuando=<pieza>.<señal> hace=flag.poner(x)` + `cuando=flag.x hace=<pieza>.<acción>`: una regla `cuando=flag.…` salta ahora también UNA vez al montar si la flag ya estaba puesta.
 - **`Combate3D.fijo`**: arquero de puesto (no persigue, dispara hasta 20 u con línea libre, ráfaga ×1,6 y apuntando con adelanto). Dos de ellos baten el paso de la tala.
 - **NPC y asesino** salen de marcadores de datos (`npc`, `asesino`); la rutina de cada NPC es una función de las reglas del nivel.
+- **Es el nivel de arranque (24/10).** `project.godot` → `run/main_scene` es `escenas/PruebaBosque01_v01.tscn` (antes `PruebaBosque.tscn`, el Bosque de la maqueta, que sigue en `escenas/` y
+  en `Niveles.ESCENAS` solo como escena de pruebas). No hay menú ni selector de niveles: F5 entra directo al Bosque 01 v01 con la jugadora nueva. De ahí se llega a la **Cueva** por la boca (`boca_salida`
+  en (46,18) → `Cueva:desde_bosque`) y se vuelve por `a_bosque` (3,18) → `Bosque_01_v01:boca_cueva`; las dos están en `Niveles.ESCENAS` (`Bosque_01`, `Cueva`, `Bosque_01_v01`). El glifo ᚱ (pulso) se
+  consigue en la Cueva (flag `cueva.c6.glifo`, que Marimanta y la misión opcional «La Cueva» leen). Para volver a abrir otra escena a mano: abrirla en el editor (F6) o cambiar `main_scene`.
 
 > **Historia: era 2D (hasta el 4/10).** El motor era `nivel_base.gd`
 > (~2 500 líneas, sin padre), y cada nivel heredaba de él y solo
@@ -1232,10 +1236,13 @@ con el `AnimationPlayer` de su propio GLB. Lo monta **`Pj3D`**
 - `Pj3D.cargar(id)` carga **`res://arte/modelos/<id>.glb`**, lo apoya en
   el suelo, le prepara los materiales, le pone equipo (`Equipo3D`) y
   sombra, y arranca en `idle`. Si falta el GLB avisa y devuelve `false`.
-- **`MODELO_DE`**: variantes que comparten modelo. La elfa jugadora es
-  `woodland_wanderer` y carga `woodland_wanderer_suave.glb` (pesos de piel
-  suavizados en mangas y abrigo); `goblin_espadachin` usa el GLB de
+- **`MODELO_DE`**: variantes que comparten modelo. `woodland_wanderer`
+  (la elfa de antes, hoy solo de respaldo) carga `woodland_wanderer_suave.glb`
+  (pesos de piel suavizados en mangas y abrigo); `goblin_espadachin` usa el GLB de
   `goblin_warrior_chibi`; el `loberno` usa `emberheart`.
+- **La jugadora (24/10) es `jugadora_base`**: `PruebaTest2.PJ_JUGADOR` la prueba la
+  primera y, si su GLB falla, cae a `woodland_wanderer`, `chibi_elf_v2`, `chibi_elf`.
+  Ver «La jugadora nueva» más abajo.
 - **Se gira libremente** hacia donde se mueve (`mirar()`): ya no hay 8
   filas ni 8 direcciones.
 
@@ -1269,6 +1276,35 @@ con el `AnimationPlayer` de su propio GLB. Lo monta **`Pj3D`**
   el modelo salta.
 - **La pisada va por distancia**: `jugador_3d.gd` suena un paso cada
   0,85 u andando y 1,1 u corriendo (`DIST_PASO_*`), no por fotogramas.
+
+### La jugadora nueva (`jugadora_base`, 24/10)
+
+Desde el 24/10 la protagonista de **todas las escenas que montan `PruebaTest2`** (los niveles, `LabHechizos3D`, los laboratorios de puzles…) es
+**`jugadora_base`** (`arte/modelos/jugadora_base.glb`: Meshy «Willow Fernstep» pasada a Mixamo, 66 huesos con dedos, 1,0 u en el juego) y no
+`woodland_wanderer`. El cambio es una línea: `PruebaTest2.PJ_JUGADOR` la prueba la primera y deja de respaldo `woodland_wanderer`, `chibi_elf_v2`,
+`chibi_elf` (si su GLB falta o no carga, sale la siguiente). `woodland_wanderer` sigue en `arte/modelos/` y en sus tablas (`MODELO_DE`,
+`FACTOR_ZANCADA`, `CORRECCION_POSTURA`, `Equipo3D.EQUIPO`); esas correcciones eran solo suyas y **no se aplican a la nueva** (no hay entrada para ella).
+
+- **Ropa por piezas.** Al cargar lleva `tunica`, `capa` y `capucha` (`Pj3D.ROPA_POR_DEFECTO`, `Ropa3D`, `arte/modelos/ropa.json`); cada prenda sigue el esqueleto del
+  cuerpo y apaga las zonas que tapa. El cuerpo se parte en zonas la primera vez que se pone una prenda.
+- **Clips.** No trae clips propios: `ClipsFamilia.FUENTES["jugadora_base"]` le traduce a su esqueleto (retarget por giro global) los 22 de `chibi_elf`, los cinco nuevos de
+  `arte/meshy/jugadora_clips.glb` (`abrir_cofre`, `agacharse`, `ofrecer`, `saludo`, `empujar`) y los tres casts a una mano (`CastOneHandFront/Up/Ground`) de
+  `woodland_wanderer_suave.glb`. Los roles sin clip son los mismos que en la elfa vieja (`drown`, `walk_back`, `wave`…).
+- **El libro (grimorio).**
+  - *Colgado:* `Equipo3D.EQUIPO["jugadora_base"]` lo pone en el hueso `Hips` (`GRIMORIO_JUGADORA_POS/GIRO`). Su `Hips` está casi vertical (el eje Y a 7,5° del vertical contra los 26° de la
+    elfa), así que el punto y el giro salen de pasar a su espacio la posición y la orientación del libro de la elfa (`herramientas/medidas_jugadora_integrada.gd`).
+  - *En la mano:* `Pj3D.libro_mano` (posición/giro respecto a la mano izquierda, medido en el hueso de la mano) sirve tal cual: los dos esqueletos son Mixamo y la palma es el eje +X del hueso
+    en los dos (`herramientas/medidas_mano_libro.gd`).
+  - *El brazo del libro:* `BrazoLibro3D` sacaba la pose del clip `CastOneHandFront`; traducido al reposo en A de la nueva deja la palma de lado y el libro junto a la cara. Los esqueletos de
+    `Pj3D.POSE_LIBRO_BRAZO` usan en su lugar una pose HECHA A MANO (`BrazoLibro3D.preparar_giros`: giros globales sobre el reposo; brazo vertical, antebrazo al frente, palma arriba) que
+    también se aplica con la fuente de clip «una mano» (`CastPoints.usar_una_mano`).
+- **Cast points y mano.** `CastPoints` y el origen del hechizo (`Pj3D.posicion_mano`, `posicion_punto`) se calculan sobre el hueso real de la mano, así que siguen a la nueva sin tocar nada.
+  **`Hechizo.ALTURA_MANO_U` (0,9 u) NO sale de la mano**: es la altura de salida de un proyectil que se fijó «de siempre» y que las pruebas (`prueba_hechizo`, `prueba_hechizo_vivo`) fijan; ni la
+  mano de la elfa vieja ni la de la nueva están ahí en el instante del cast (medido: la mano libre a 0,52 u con la elfa vieja y a 0,40 u con la nueva en `cast_proyectil`; en reposo 0,42 y 0,33 u).
+  Se deja como está a la espera de decisión (ver DIARIO).
+- **Rim, silueta, sombra.** `Pj3D.IDS_JUGADORA` ya incluía `jugadora_base` (rol visual «jugadora»: rim cálido, silueta a través de lo que la tapa); `tipo_de` la trata como «heroe»
+  (clips mínimos). `NADO_CADERA` y `_colocar_nado` se calculan con el Idle propio, sin cambios.
+- **Mundo.** Nada del mundo dependía del modelo: el radio de colisión del jugador, la cámara y el alto en pantalla (`ALTO_PJ["jugadora_base"] = 1.0`, igual que la elfa vieja) no cambian. No hay retrato en el HUD.
 
 > **Historia: era 2D (hasta el 4/10).** Los personajes eran sprites. El
 > pipeline renderizaba cada GLB en Blender en **8 direcciones** y
