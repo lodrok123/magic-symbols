@@ -290,7 +290,10 @@ func _prueba_capa_brazos(capa: MeshInstance3D, sk: Skeleton3D, esc: float) -> vo
 		if w > mejor:
 			mejor = w
 			candidato = v
-	_ok(con_peso > 0, "la capa tiene %d vértices con al menos %.2f de peso en el brazo izquierdo (máx %.2f)" % [con_peso, CAPA_PESO_BRAZO_MIN, mejor])
+	# 24/10 (Pablo: «los pesos de la capa no están bien»): la regla se invierte. Antes se exigía que la capa llevara peso de brazo para acompañarlo al levantarlo;
+	# medido, ese peso (47–68 % en la franja de los hombros) la arrugaba al andar contra las cadenas de los muelles. Ahora NINGÚN vértice de la capa pesa en el
+	# brazo (CapaMuelles3D.HUESOS_BRAZO → Spine2): de apartarla del brazo se encargan los choques del péndulo (prueba_ropa_capa).
+	_ok(con_peso == 0 and mejor < 0.01, "la capa no lleva peso en el brazo izquierdo: %d vértices con ≥ %.2f (máx %.4f)" % [con_peso, CAPA_PESO_BRAZO_MIN, mejor])
 	if candidato < 0:
 		return
 	sk.reset_bone_poses()
@@ -299,7 +302,7 @@ func _prueba_capa_brazos(capa: MeshInstance3D, sk: Skeleton3D, esc: float) -> vo
 	sk.set_bone_pose_rotation(brazo, b * Quaternion(Vector3.BACK, deg_to_rad(CAPA_BRAZO_ARRIBA_GRADOS)))
 	var despues: Vector3 = _posicion(capa, sk, candidato)
 	var mueve: float = (despues - antes).length() * esc
-	_ok(mueve >= CAPA_SE_APARTA_MIN, "al levantar el brazo %.0f° la capa se aparta %.3f u del modelo (mín %.2f)" % [CAPA_BRAZO_ARRIBA_GRADOS, mueve, CAPA_SE_APARTA_MIN])
+	_ok(mueve < CAPA_SE_APARTA_MIN, "al levantar el brazo %.0f° (sin el péndulo) la capa NO se mueve con él: %.3f u (máx %.2f)" % [CAPA_BRAZO_ARRIBA_GRADOS, mueve, CAPA_SE_APARTA_MIN])
 	sk.reset_bone_poses()
 
 

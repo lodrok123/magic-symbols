@@ -54,7 +54,7 @@ func _initialize() -> void:
 	var pe: Array = d["weights"]
 	var idx: Array = d["idx"]
 	if a.size() > 4 and a[4] == MUELLES:
-		_muelles(sk, skin, enlace_de, al_enlace, pos, jn, pe)
+		_muelles(sk, skin, enlace_de, al_enlace, pos, jn, pe, idx)
 	var st := SurfaceTool.new()
 	st.set_skin_weight_count(SurfaceTool.SKIN_4_WEIGHTS)
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -114,7 +114,9 @@ func _initialize() -> void:
 ## Capa con muelles (CapaMuelles3D): añade al esqueleto que se exporta las cadenas `capa_<sector>_1/2/3` (hijas de Spine2, en reposo sobre la malla), mete sus
 ## binds en el Skin (por nombre: en el juego Ropa3D copia los huesos al esqueleto del cuerpo antes de colgar la malla) y pasa a ellas el peso de la mitad baja
 ## de la capa (`CapaMuelles3D.pesos_cadena`): el borde, casi entero en `_2`. Reescribe `al_enlace`, `jn` y `pe` (4 influencias, normalizadas).
-func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Array, pos: Array, jn: Array, pe: Array) -> void:
+## 24/10 (segunda versión, ver CapaMuelles3D «REPARTO DE PESOS»): antes de repartir, todo el peso de hombros, brazos, antebrazos y manos que traía Blender pasa a
+## Spine2 (en TODA la capa, no solo abajo), y al final se suavizan los pesos con los vecinos (`idx`, soldados por posición) SUAVIZADO_PASADAS veces.
+func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Array, pos: Array, jn: Array, pe: Array, idx: Array) -> void:
 	var escala: float = (sk.get_parent() as Node3D).scale.y
 	var b_padre: int = int(enlace_de[CapaMuelles3D.HUESO_PADRE])
 	var malla_a_esqueleto: Transform3D = sk.get_bone_global_rest(sk.find_bone(CapaMuelles3D.HUESO_PADRE)) * skin.get_bind_pose(b_padre)
@@ -140,24 +142,77 @@ func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Arra
 	for p in pts:
 		borde = minf(borde, p.y)
 	var centro: Vector2 = CapaMuelles3D._centro(pts, borde)
+	var nombre_de_bind: Dictionary = {}
+	for n in enlace_de:
+		nombre_de_bind[int(enlace_de[n])] = String(n)
+	var bind_cuerpo: int = int(enlace_de[CapaMuelles3D.HUESO_CUERPO_CAPA])
+	# 1. pesos por vértice como diccionario {bind: peso}: los de Blender con los brazos pasados a Spine2, mezclados con las cadenas
+	var pesos: Array = []
 	var hechos: int = 0
+	var quitado_brazo: float = 0.0
 	for i in verts.size():
-		var r: Dictionary = CapaMuelles3D.pesos_cadena(pts[i], centro, borde)
-		var parte: float = float(r["parte"])
-		if parte <= 0.0:
-			# los índices siguen siendo los del json: se pasan a índices de enlace aquí también
-			var js: Array = []
-			for k in 4:
-				js.append(int(al_enlace[int(jn[i][k])]))
-			jn[i] = js
-			continue
 		var w: Dictionary = {}
 		for k in 4:
 			var bind: int = int(al_enlace[int(jn[i][k])])
-			w[bind] = float(w.get(bind, 0.0)) + float(pe[i][k]) * (1.0 - parte)
-		for nombre in (r["pesos"] as Dictionary):
-			var bind: int = int(enlace_de[nombre])
-			w[bind] = float(w.get(bind, 0.0)) + float(r["pesos"][nombre])
+			var v: float = float(pe[i][k])
+			if v <= 0.0:
+				continue
+			if CapaMuelles3D.es_hueso_brazo(String(nombre_de_bind.get(bind, ""))):
+				quitado_brazo += v
+				bind = bind_cuerpo
+			w[bind] = float(w.get(bind, 0.0)) + v
+		var r: Dictionary = CapaMuelles3D.pesos_cadena(pts[i], centro, borde)
+		var parte: float = float(r["parte"])
+		if parte > 0.0:
+			for bind in w:
+				w[bind] = float(w[bind]) * (1.0 - parte)
+			for nombre in (r["pesos"] as Dictionary):
+				var bind: int = int(enlace_de[nombre])
+				w[bind] = float(w.get(bind, 0.0)) + float(r["pesos"][nombre])
+			hechos += 1
+		pesos.append(w)
+	# 2. suavizado con los vecinos (vértices soldados por posición, aristas de los triángulos)
+	var grupo_pos: Dictionary = {}
+	var id_de: PackedInt32Array = PackedInt32Array()
+	id_de.resize(verts.size())
+	for i in verts.size():
+		var key: Vector3i = Vector3i((verts[i] * 1e5).round())
+		if not grupo_pos.has(key):
+			grupo_pos[key] = i
+		id_de[i] = int(grupo_pos[key])
+	var vecinos: Dictionary = {}
+	for t in range(0, idx.size(), 3):
+		for e in 3:
+			var a: int = id_de[int(idx[t + e])]
+			var c: int = id_de[int(idx[t + (e + 1) % 3])]
+			if a == c:
+				continue
+			if not vecinos.has(a):
+				vecinos[a] = {}
+			if not vecinos.has(c):
+				vecinos[c] = {}
+			vecinos[a][c] = true
+			vecinos[c][a] = true
+	for _pasada in CapaMuelles3D.SUAVIZADO_PASADAS:
+		var nuevo: Dictionary = {}
+		for g in vecinos:
+			var media: Dictionary = {}
+			var n: int = 0
+			for h in vecinos[g]:
+				for bind in pesos[h]:
+					media[bind] = float(media.get(bind, 0.0)) + float(pesos[h][bind])
+				n += 1
+			var w: Dictionary = {}
+			for bind in pesos[g]:
+				w[bind] = float(pesos[g][bind]) * (1.0 - CapaMuelles3D.SUAVIZADO_MEZCLA)
+			for bind in media:
+				w[bind] = float(w.get(bind, 0.0)) + float(media[bind]) / maxf(n, 1) * CapaMuelles3D.SUAVIZADO_MEZCLA
+			nuevo[g] = w
+		for g in nuevo:
+			pesos[g] = nuevo[g]
+	# 3. a 4 influencias, normalizadas; los vértices soldados comparten los pesos de su grupo
+	for i in verts.size():
+		var w: Dictionary = pesos[id_de[i]]
 		var orden: Array = w.keys()
 		orden.sort_custom(func(x, y): return float(w[x]) > float(w[y]))
 		var js2: Array = []
@@ -171,12 +226,11 @@ func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Arra
 			ws[k] = float(ws[k]) / maxf(tot, 1e-9)
 		jn[i] = js2
 		pe[i] = ws
-		hechos += 1
 	# a partir de aquí jn lleva índices de enlace directamente
 	al_enlace.clear()
 	for b in skin.get_bind_count():
 		al_enlace.append(b)
-	print("MUELLES %d huesos de capa, %d vértices con peso en las cadenas (borde %.3f)" % [globales.size(), hechos, borde])
+	print("MUELLES %d huesos de capa, %d vértices con peso en las cadenas (borde %.3f), peso de brazo pasado a Spine2: %.0f" % [globales.size(), hechos, borde, quitado_brazo])
 
 
 func _textura(ruta: String) -> Texture2D:
