@@ -33,8 +33,18 @@ const ABANICO: float = 18.0
 const ALTO_RAIZ: float = 1.06
 const ALTO_MEDIO: float = 0.97
 const BANDA: float = 0.02
-## Pesos: por encima de PESO_DESDE la capa sigue como estaba (torso, brazos, cuello); hacia abajo pasa a la cadena de su sector hasta el 100 % en el borde.
+## Pesos: por encima de PESO_DESDE la capa sigue como estaba (torso, cuello, cabeza); hacia abajo pasa a la cadena de su sector hasta el 100 % en el borde.
 const PESO_DESDE: float = 1.10
+## REPARTO DE PESOS (24/10, segunda versión; Pablo: «los pesos de la capa no están bien»). Medido en la primera versión: en la franja de los hombros (y 0,99–1,11)
+## el 47–68 % del peso iba a hombro, brazo y antebrazo (lo copió Blender de la superficie más cercana del cuerpo) y justo debajo pasaba a las cadenas: 4 670 aristas
+## con un salto de peso > 0,5 entre vecinos a 1 cm. Al andar, el brazo tiraba de la franja alta y la cadena de la baja: la capa se arrugaba en el hombro.
+## Ahora: (1) ningún hueso de brazo pesa en la capa: lo que Blender dio a hombro, brazo, antebrazo y mano pasa a Spine2 (la capa cuelga del torso; de apartarla
+## del brazo se encargan los choques del péndulo); (2) la mezcla entre los dos sectores vecinos es suave (smoothstep del ángulo, no lineal);
+## (3) tras repartir, SUAVIZADO_PASADAS pasadas de promedio con los vértices vecinos (soldados por posición), como hacía Blender con sus pesos.
+const HUESOS_BRAZO: PackedStringArray = ["Shoulder", "Arm", "ForeArm", "Hand"]
+const HUESO_CUERPO_CAPA: String = "mixamorig_Spine2"
+const SUAVIZADO_PASADAS: int = 4
+const SUAVIZADO_MEZCLA: float = 0.5
 ## Simulación, en u del modelo y segundos. RIGIDEZ: aceleración hacia el sitio por unidad de separación (1/s²; con GRAVEDAD, la capa quieta cuelga
 ## GRAVEDAD/RIGIDEZ por debajo de su reposo). ARRASTRE: amortiguación de la velocidad (1/s). RADIO_HUESO: grosor de la tela que se suma a cada choque.
 const RIGIDEZ: float = 150.0
@@ -123,36 +133,46 @@ static func _media(pts: PackedVector3Array, centro: Vector2, ang: float, y0: flo
 
 
 ## Pesos de un vértice (u del modelo `p`) hacia las cadenas: {nombre de hueso: peso}, ya multiplicados por la parte que pasa a la cadena; `parte` (0..1) es esa
-## parte (lo que se quita a los pesos que traía). Mezcla los dos sectores vecinos por ángulo y `_1`/`_2` por altura.
+## parte (lo que se quita a los pesos que traía). Mezcla los sectores por ángulo con un abanico suave de ANCHO_MEZCLA grados y `_1`/`_2` por altura.
 static func pesos_cadena(p: Vector3, centro: Vector2, borde: float) -> Dictionary:
 	var parte: float = clampf((PESO_DESDE - p.y) / (PESO_DESDE - borde), 0.0, 1.0)
 	parte = parte * parte * (3.0 - 2.0 * parte)
 	if parte <= 0.0:
 		return {"parte": 0.0, "pesos": {}}
 	var a: float = angulo(p, centro)
-	var orden: Array = SECTORES.keys()
-	orden.sort_custom(func(x, y): return float(SECTORES[x]) < float(SECTORES[y]))
-	var izq: String = orden[orden.size() - 1]
-	var der: String = orden[0]
-	var f: float = 0.0
-	for i in orden.size():
-		var s0: String = orden[i]
-		var s1: String = orden[(i + 1) % orden.size()]
-		var a0: float = float(SECTORES[s0])
-		var tramo: float = fposmod(float(SECTORES[s1]) - a0, 360.0)
-		var dentro: float = fposmod(a - a0, 360.0)
-		if dentro <= tramo:
-			izq = s0
-			der = s1
-			f = dentro / tramo
-			break
+	# los DOS sectores más cercanos en ángulo, con mezcla suave entre ellos (smoothstep del ángulo). Solo dos a propósito: con tres o cuatro (probado con un abanico
+	# de 70°) salen 6–8 huesos de cadena por vértice, el Skin solo guarda 4, y al recortar se perdía hasta un 40 % del peso de la cadena y Spine2 se inflaba
+	# a saltos entre vecinos (1 512 aristas con salto > 0,5). Con dos sectores son 4 huesos de cadena como mucho, más Spine2.
+	var por_sector: Dictionary = {}
+	var total: float = 0.0
+	var cerca: Array = SECTORES.keys()
+	cerca.sort_custom(func(x, y): return absf(angle_difference(deg_to_rad(a), deg_to_rad(float(SECTORES[x])))) < absf(angle_difference(deg_to_rad(a), deg_to_rad(float(SECTORES[y])))))
+	var s0: String = cerca[0]
+	var s1: String = cerca[1]
+	var d0: float = absf(rad_to_deg(angle_difference(deg_to_rad(a), deg_to_rad(float(SECTORES[s0])))))
+	var d1: float = absf(rad_to_deg(angle_difference(deg_to_rad(a), deg_to_rad(float(SECTORES[s1])))))
+	var f: float = d0 / maxf(d0 + d1, 1e-6)        # 0 = justo en s0, 0,5 = a medio camino
+	f = f * f * (3.0 - 2.0 * f)
+	por_sector[s0] = 1.0 - f
+	por_sector[s1] = f
+	total = 1.0
 	var u: float = clampf((ALTO_RAIZ - p.y) / (ALTO_RAIZ - borde), 0.0, 1.0)
 	var res: Dictionary = {}
-	for par in [[izq, 1.0 - f], [der, f]]:
-		var n: Array = nombres(String(par[0]))
-		res[n[0]] = float(res.get(n[0], 0.0)) + parte * float(par[1]) * (1.0 - u)
-		res[n[1]] = float(res.get(n[1], 0.0)) + parte * float(par[1]) * u
+	for s in por_sector:
+		var n: Array = nombres(String(s))
+		var w: float = float(por_sector[s]) / maxf(total, 1e-9)
+		res[n[0]] = float(res.get(n[0], 0.0)) + parte * w * (1.0 - u)
+		res[n[1]] = float(res.get(n[1], 0.0)) + parte * w * u
 	return {"parte": parte, "pesos": res}
+
+
+## ¿Es un hueso de brazo (hombro, brazo, antebrazo o mano, de cualquier lado)? Su peso en la capa pasa a HUESO_CUERPO_CAPA.
+static func es_hueso_brazo(nombre: String) -> bool:
+	var n: String = nombre.replace("mixamorig_", "").trim_prefix("Left").trim_prefix("Right")
+	for h in HUESOS_BRAZO:
+		if n == h:
+			return true
+	return false
 
 
 ## Copia a `destino` los huesos de `origen` que empiezan por PREFIJO y `destino` no tiene (mismo nombre, padre por nombre, mismo reposo). Devuelve cuántos.

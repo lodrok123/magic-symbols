@@ -171,6 +171,17 @@ const POSTURAS: Dictionary = {
 	"jugadora_base": [POSTURA_JB_CABEZA, 0.0, 0.0, 0.0, POSTURA_JB_RODILLAS, 0.0, 0.0],
 }
 
+## MANO RELAJADA (24/10, Pablo: «tampoco está bien la postura de las manos al andar»). jugadora_base tiene 66 huesos con dedos (Mixamo), pero sus clips vienen de
+## chibi_elf (28 huesos, una sola pista de dedo), así que en TODOS los clips los dedos se quedan en el reposo de Mixamo: la mano abierta y plana con los dedos
+## separados. Al cargar se cierra cada falange unos grados sobre su eje local +X (medido con cinemática directa: 40° sobre +X acercan la punta del índice al pulgar
+## y a la muñeca; −X la alejan), girando el REPOSO del hueso, que es lo que un clip sin pista para ese hueso deja puesto. id -> [grados por falange de índice,
+## corazón, anular y meñique (falanges 1–3), grados por falange del pulgar (2–3)]. El pulgar se cierra menos: si no, cruza la palma. Las puntas (4) no se tocan.
+const MANO_RELAJADA: Dictionary = {
+	"jugadora_base": [22.0, 8.0],
+}
+const DEDOS: PackedStringArray = ["Index", "Middle", "Ring", "Pinky"]
+const EJE_CIERRE_DEDO: Vector3 = Vector3.RIGHT
+
 ## Variantes que comparten GLB: el id del personaje -> el modelo que carga. El equipo (Equipo3D.EQUIPO),
 ## la altura y la postura se buscan por el id del personaje, así que una variante solo cambia lo que lleva.
 const MODELO_DE: Dictionary = {
@@ -262,6 +273,7 @@ func cargar(p_id: String) -> bool:
 	add_child(_modelo)
 	_apoyar_en_el_suelo(_modelo)
 	_preparar_materiales(_modelo)
+	_relajar_manos()     # antes de traducir los clips: ClipsFamilia lee el reposo de los dedos (no tienen pista) y así los deja en todos los clips
 
 	var aps: Array[Node] = _modelo.find_children("*", "AnimationPlayer", true, false)
 	if aps.is_empty():
@@ -406,6 +418,36 @@ func _crear_proporcion() -> void:
 	set_proporcion(float(p[0]), float(p[1]), float(p[2]))
 	var q: Array = POSTURAS.get(id, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	set_postura(float(q[0]), float(q[1]), float(q[2]), float(q[3]), float(q[4]), float(q[5]), float(q[6]))
+
+
+## Cierra los dedos del reposo según MANO_RELAJADA (ver ahí). Devuelve cuántas falanges ha girado (0 si el personaje no está en la tabla o no tiene dedos).
+func _relajar_manos() -> int:
+	if not MANO_RELAJADA.has(id) or _modelo == null:
+		return 0
+	var grados: Array = MANO_RELAJADA[id]
+	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
+	if sks.is_empty():
+		return 0
+	var sk: Skeleton3D = sks[0] as Skeleton3D
+	var n: int = 0
+	for lado in ["Left", "Right"]:
+		for dedo in DEDOS:
+			for f in [1, 2, 3]:
+				n += _cerrar_falange(sk, "mixamorig_%sHand%s%d" % [lado, dedo, f], float(grados[0]))
+		for f in [2, 3]:
+			n += _cerrar_falange(sk, "mixamorig_%sHandThumb%d" % [lado, f], float(grados[1]))
+	return n
+
+
+static func _cerrar_falange(sk: Skeleton3D, nombre: String, grados: float) -> int:
+	var i: int = sk.find_bone(nombre)
+	if i < 0 or absf(grados) < 0.01:
+		return 0
+	var t: Transform3D = sk.get_bone_rest(i)
+	t.basis = t.basis * Basis(Quaternion(EJE_CIERRE_DEDO, deg_to_rad(grados)))
+	sk.set_bone_rest(i, t)
+	sk.reset_bone_pose(i)
+	return 1
 
 
 ## Cambia las proporciones en vivo; la altura (set_alto) se recalcula con ellas.

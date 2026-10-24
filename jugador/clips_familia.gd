@@ -99,7 +99,9 @@ const GIRO_NODO_TOL: float = 1.0
 ## reposo es el de la malla y ya quedan a ≤5° de los de chibi_elf), y el pie y la mano conservan su reposo. Los clips de otros destinos (goblins, elfo_base,
 ## EXTRAS de la elfa) no cambian.
 const ALINEAR_REPOSO: Dictionary = {
-	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm"],
+	# 24/10 (Pablo: «la postura de las manos al andar»): también la muñeca («Hand»: el tramo muñeca → primera falange, si la fuente tiene un hijo con el mismo
+	# nombre; si no, queda como estaba). Los dedos no se alinean: no tienen pista en la fuente y su reposo lo cierra Pj3D.MANO_RELAJADA.
+	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm", "Hand"],
 }
 ## false = retarget de antes sin alinear (para medir el antes y el después en las pruebas; hay que vaciar la caché con `vaciar_cache()`).
 static var alinear_activo: bool = true
