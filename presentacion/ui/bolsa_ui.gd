@@ -71,6 +71,13 @@ var _oro: Label
 var _tween: Tween = null
 
 static var _cache_tex: Dictionary = {}
+## Solo para pruebas y capturas: id -> calidad que se usa en vez de la de `Objetos` (no hay legendarios en DATOS todavía).
+static var calidad_prueba: Dictionary = {}
+
+
+## Calidad con la que se enmarca el objeto `id` en la mochila.
+static func calidad_de(id: String) -> String:
+	return String(calidad_prueba[id]) if calidad_prueba.has(id) else Objetos.calidad(id)
 
 
 ## El arte de `poc_25d/ui/<nombre>.png` si existe, o null (entonces se dibuja en código).
@@ -227,9 +234,12 @@ class Hueco extends Control:
 	var al_pasar: Callable
 	var _encima: bool = false
 	var tam: float = BolsaUI.TAM
+	var calidad: String = Objetos.CALIDAD_COMUN       ## la del objeto del hueco: decide el marco (MarcoCalidad)
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(tam, tam)
+		calidad = BolsaUI.calidad_de(id) if id != "" else Objetos.CALIDAD_COMUN
+		set_process(id != "" and not bloqueado and MarcoCalidad.anima(calidad))       # el brillo de épico y legendario se anima; el común no gasta redibujados
 		mouse_entered.connect(func():
 			_encima = true
 			queue_redraw()
@@ -257,6 +267,8 @@ class Hueco extends Control:
 					BolsaUI.discontinuo(self, BolsaUI.camino(r.grow(-1.5), rad), BolsaUI.LINEA, 2.0, 6.0, 4.0)
 		if bloqueado or id == "":
 			return
+		# El marco de la calidad del objeto, encima del hueco (común sobrio, épico morado, legendario dorado con destello).
+		MarcoCalidad.dibujar(self, r, calidad)
 		# Arte propio del objeto (poc_25d/ui/objeto_<id>.png) si existe; si no, el dibujo en código de Objetos.
 		var icono: Texture2D = BolsaUI.tex("objeto_" + id)
 		if icono != null:
@@ -269,12 +281,15 @@ class Hueco extends Control:
 		if elegido:
 			draw_polyline(BolsaUI.camino(r.grow(-0.5), clampf(size.x * 0.14, 5.0, 10.0)), BolsaUI.COLOR_ELEGIDO, 3.0, true)
 		if cantidad >= 1:
-			var f: Font = ThemeDB.fallback_font
+			var f: Font = TemaInterfaz.fuente()
 			var cuerpo: int = maxi(13, int(size.x * 0.3))
 			var pos := Vector2(0.0, size.y - 6.0)
 			# Tinta oscura con halo de pergamino: se lee sobre el icono sea del color que sea.
 			draw_string_outline(f, pos, str(cantidad), HORIZONTAL_ALIGNMENT_RIGHT, size.x - 6.0, cuerpo, 5, BolsaUI.PERGAMINO)
 			draw_string(f, pos, str(cantidad), HORIZONTAL_ALIGNMENT_RIGHT, size.x - 6.0, cuerpo, BolsaUI.TINTA)
+
+	func _process(_delta: float) -> void:
+		queue_redraw()
 
 	func _gui_input(event: InputEvent) -> void:
 		var m := event as InputEventMouseButton
@@ -348,7 +363,7 @@ class Solapa extends Control:
 			draw_rect(hb, BolsaUI.HEBILLA)
 			draw_rect(hb, BolsaUI.CUERO_SOMBRA, false, 1.5)
 			draw_rect(Rect2(hb.position + Vector2(5.0, 3.0), Vector2(4.0, 6.0)), BolsaUI.CUERO_SOMBRA)
-		var f: Font = ThemeDB.fallback_font
+		var f: Font = TemaInterfaz.fuente()
 		draw_string(f, Vector2(0.0, h * 0.5 + 6.0), texto, HORIZONTAL_ALIGNMENT_CENTER, w, 22, BolsaUI.TINTA)
 
 
@@ -405,6 +420,7 @@ static func _etiqueta(tam_fuente: int) -> Label:
 	var l := Label.new()
 	l.add_theme_font_size_override("font_size", tam_fuente)
 	l.add_theme_color_override("font_color", TINTA)
+	l.add_theme_constant_override("outline_size", 0)         # el tema pone contorno oscuro a las etiquetas; sobre pergamino la tinta se lee sola
 	return l
 
 
@@ -429,6 +445,7 @@ func _ready() -> void:
 
 	# La mochila abierta: _marco (se anima) -> _panel (cuero) + botón de cerrar.
 	_marco = Control.new()
+	_marco.theme = TemaInterfaz.tema()        # fuente, tooltips y paneles comunes de la interfaz (tema_interfaz.gd); los colores propios del cuero se quedan
 	_marco.visible = false
 	_marco.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_marco)
@@ -467,7 +484,7 @@ func _ready() -> void:
 	fila.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	caja.add_child(fila)
 	var pista := _etiqueta(13)
-	pista.add_theme_color_override("font_color", Color(TINTA, 0.8))
+	pista.add_theme_color_override("font_color", TINTA)         # antes al 80 %: bajaba el contraste sobre el pergamino
 	pista.text = "[I / Esc] cerrar   [↑↓←→] elegir   [Enter] beber"
 	pista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	pista.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -655,7 +672,9 @@ func _pintar_nombre() -> void:
 	var e: Estado = Estado.i()
 	var h: Hueco = hueco(_sel)
 	if h != null and h.id != "":
-		_info.text = "%s\n%s" % [Objetos.nombre(h.id), String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
+		var cal: String = MarcoCalidad.normalizar(h.calidad)
+		var rareza: String = "" if cal == Objetos.CALIDAD_COMUN else "  ·  " + String((Objetos.CALIDADES[cal] as Dictionary)["nombre"])
+		_info.text = "%s%s\n%s" % [Objetos.nombre(h.id), rareza, String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
 	else:
 		_info.text = "%d/%d huecos" % [e.huecos_usados(), e.capacidad]
 
