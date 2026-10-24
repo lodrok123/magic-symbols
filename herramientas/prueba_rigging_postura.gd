@@ -91,7 +91,10 @@ func _correr() -> void:
 				ok(dc <= COLUMNA_TOL, "B %s %s: columna lumbar %+.1f pecho %+.1f línea %+.1f contra %+.1f %+.1f %+.1f de la fuente (diferencia máx. %.1f, tope %.0f)" % [et, k2,
 					fd["lumbar"], fd["pecho"], fd["linea"], fs["lumbar"], fs["pecho"], fs["linea"], dc, COLUMNA_TOL])
 				if rol == "idle":
-					ok(maxf(fd["rod_l"], fd["rod_r"]) <= RODILLA_IDLE_MAX, "B %s %s: rodillas %.1f/%.1f° (tope %.0f)" % [et, k2, fd["rod_l"], fd["rod_r"], RODILLA_IDLE_MAX])
+					# 25/10: la rodilla final se compara con la de la FUENTE con su postura (± RODILLA_TOL), no con un tope absoluto: chibi_elf en idle flexiona 12–16°, y
+					# exigir ≤ 10° obligaba a estirar 22° de más, lo que giraba la espinilla y adelantaba el tobillo 4 cm (Pablo: «los pies están muy adelantados»).
+					var dr2: float = maxf(absf(float(fd["rod_l"]) - float(fs["rod_l"])), absf(float(fd["rod_r"]) - float(fs["rod_r"])))
+					ok(dr2 <= RODILLA_TOL, "B %s %s: rodillas %.1f/%.1f° contra %.1f/%.1f° de la fuente (diferencia %.1f, tope %.0f)" % [et, k2, fd["rod_l"], fd["rod_r"], fs["rod_l"], fs["rod_r"], dr2, RODILLA_TOL])
 					ok(absf(fd["cabeza"]) <= CABEZA_IDLE_MAX, "B %s %s: cabeza a %+.1f° de la vertical (tope ±%.0f; la fuente, %+.1f)" % [et, k2, fd["cabeza"], CABEZA_IDLE_MAX, fs["cabeza"]])
 					ok(absf(fd["linea"]) <= LINEA_IDLE_MAX, "B %s %s: línea cadera→cabeza a %+.1f° de la vertical (tope ±%.0f)" % [et, k2, fd["linea"], LINEA_IDLE_MAX])
 		# C · pies en el suelo

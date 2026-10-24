@@ -330,16 +330,23 @@ func _prueba_muelles(p: Pj3D, sk: Skeleton3D, muelles: CapaMuelles3D, malla_capa
 	var desvio: float = 0.0
 	await sk.skeleton_updated
 	var en_idle: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
-	# el idle mueve los brazos: se compara con el idle sin muelles en el mismo instante
+	# 25/10: con COLGAR la capa ya no vuelve a la campana del encaje (ese es el cambio pedido), así que «su sitio» es donde se asienta colgando: se exige que
+	# tras asentarse esté QUIETA (entre IDLE_ASENTAR s y medio segundo más se mueve < REPOSO_TOL respecto a Spine2), no que coincida con la pose sin muelles.
+	# con el clip PARADO: el idle mueve los brazos y el borde los acompaña, y eso no es «no asentarse»
 	var t_clip: float = p._ap.current_animation_position
+	p._ap.pause()
+	for i in int(0.5 * FPS):
+		await process_frame
+	await sk.skeleton_updated
+	var mas_tarde: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+	for i in en_idle.size():
+		desvio = maxf(desvio, (en_idle[i] - mas_tarde[i]).length())
+	_ok(desvio <= REPOSO_TOL, "(f-iii) tras %.0f s de idle el borde está asentado: con el clip parado, en el medio segundo siguiente se mueve como mucho %.4f (máx %.2f)" % [IDLE_ASENTAR, desvio, REPOSO_TOL])
 	muelles.active = false
+	p._ap.play(p.clip_de("idle"))
 	p._ap.seek(t_clip, true)
 	await sk.skeleton_updated
-	var sin_muelles: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
 	var t_sin: float = await _ms_por_fotograma(MEDIR_FOTOGRAMAS)
-	for i in en_idle.size():
-		desvio = maxf(desvio, (en_idle[i] - sin_muelles[i]).length())
-	_ok(desvio <= REPOSO_TOL, "(f-iii) tras %.0f s de idle el borde está a %.4f de su sitio sin muelles (máx %.2f)" % [IDLE_ASENTAR, desvio, REPOSO_TOL])
 	print("INFO  coste: %.3f ms por fotograma con los muelles y %.3f sin ellos (diferencia %.3f ms)" % [t_con, t_sin, t_con - t_sin])
 	muelles.active = true
 

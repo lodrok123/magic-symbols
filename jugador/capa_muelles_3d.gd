@@ -51,6 +51,11 @@ const RIGIDEZ: float = 150.0
 const ARRASTRE: float = 10.0
 const GRAVEDAD: float = 0.6
 const RADIO_HUESO: float = 0.015
+## CUELGA (25/10, Pablo: «la capa sigue yendo hacia arriba»). Medido: con el muelle hacia el reposo de la capa ENCAJADA (la campana del encaje: los lados a 23 cm
+## del eje y el borde de atrás 2 cm más alto que el de delante) la simulación la movía 1 mm; lo que se veía «hacia arriba» era esa campana. Ahora el sitio al que
+## tira el muelle es una mezcla entre ese reposo y la VERTICAL bajo la raíz de la cadena (colgar del hombro con el largo de la cadena): COLGAR = 1 cuelga del todo,
+## 0 = la campana de antes. De apartarla del cuerpo y de los brazos se encargan los choques; la gravedad del péndulo sigue sumando.
+const COLGAR: float = 0.85
 ## Si una partícula queda a más de esto de su sitio (un salto de cámara, un teletransporte), se vuelve a poner en él.
 const SALTO_MAX: float = 0.5
 ## Pasadas de largos + choques por fotograma.
@@ -59,9 +64,11 @@ const PASADAS: int = 1
 const RADIO_BRAZO: float = 0.06
 const RADIO_ANTEBRAZO: float = 0.055
 const RADIO_MANO: float = 0.06
-const RADIO_TORSO: float = 0.11
-const RADIO_CADERA: float = 0.12
-const RADIO_MUSLO: float = 0.075
+## 25/10: con la capa colgando (COLGAR) el paño ENTRE dos cadenas (a 45°) queda a cos(22,5°) ≈ 0,92 del radio de las cadenas: para que no se meta en el
+## cuerpo, los radios de torso y cadera llevan esa holgura (0,11 → 0,12 y 0,12 → 0,14; medido: con los de antes el borde entraba 3,6 cm en idle).
+const RADIO_TORSO: float = 0.12
+const RADIO_CADERA: float = 0.14
+const RADIO_MUSLO: float = 0.085
 ## Puntos de cada tramo de la cadena que se chocan (fracciones del tramo; la partícula es el 1,0): la tela entre partículas tampoco atraviesa el brazo.
 const PUNTOS_TRAMO: Array = [0.5, 1.0]
 const LADOS: Array = ["Left", "Right"]
@@ -247,6 +254,11 @@ func _process_modification_with_delta(delta: float) -> void:
 		var raiz: Vector3 = a_mundo * g1.origin
 		var sitio: Array = [a_mundo * g2.origin, a_mundo * g3.origin]
 		var largos: Array = [(sitio[0] - raiz).length(), (sitio[1] - sitio[0]).length()]
+		# colgar: el sitio se acerca a la vertical bajo la raíz (ver COLGAR), conservando los largos
+		var colgado0: Vector3 = raiz + Vector3.DOWN * largos[0]
+		var colgado1: Vector3 = colgado0 + Vector3.DOWN * largos[1]
+		sitio[0] = (sitio[0] as Vector3).lerp(colgado0, COLGAR)
+		sitio[1] = (sitio[1] as Vector3).lerp(colgado1, COLGAR)
 		if _reiniciar or _pos[ci] == null or ((_pos[ci] as Array)[1] - sitio[1]).length() > SALTO_MAX * k:
 			_pos[ci] = [sitio[0], sitio[1]]
 			_vel[ci] = [Vector3.ZERO, Vector3.ZERO]
