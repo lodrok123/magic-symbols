@@ -44,7 +44,8 @@ const TIEMPO_LANZAR: float = 0.3           ## Engine.time_scale mientras se apun
 const TIEMPO_LIBRO: float = 0.3             ## Engine.time_scale con el libro abierto: ya no pausa, los goblins siguen (5.2)
 const RALENTIZADO: float = TIEMPO_LANZAR
 const ALCANCE_ORIGEN: float = 3.0           ## casillas: radio del anillo que se dibuja al apuntar (el hechizo NO nace ahí: 5.1)
-const ARRASTRE_MINIMO: float = 0.45         ## casillas: menos que esto es un clic, no un arrastre
+const TOLERANCIA_ALCANCE_U: float = 0.05    ## u: holgura al comparar el origen con el borde del anillo (el origen vivo se recorta justo en el borde)
+const ARRASTRE_MINIMO: float = 0.45        ## casillas: menos que esto es un clic, no un arrastre
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
 
 ## --- Lo que sale ---
@@ -817,8 +818,7 @@ func lanzar_pagina_ya(indice: int, origen: Vector3, dir: Vector3, con_conjuro: b
 	var datos: Dictionary = _preparado
 	_salir_modo(true)
 	_preparado = {}
-	lanzar_ahora(datos, origen, dir, con_conjuro)
-	return true
+	return lanzar_ahora(datos, origen, dir, con_conjuro)
 
 
 func _entrar_modo_lanzar() -> void:
@@ -988,6 +988,13 @@ func _soltar() -> void:
 	var origen: Vector3 = _origen_fijo if _fijado else _origen_vivo
 	var dir: Vector3 = _direccion_actual()
 	var datos: Dictionary = _preparado
+	# Un sólido quieto que no cabe donde apuntas se avisa y se SIGUE apuntando (sin salir del modo, sin cobrar): el jugador reapunta o cancela.
+	if not datos.is_empty():
+		var motivo: String = rechazo_de_construccion(datos, origen)
+		if motivo != "":
+			_avisar_sin_construir(motivo)
+			_fijado = false
+			return
 	_salir_modo(not datos.is_empty())
 	_preparado = {}
 	if datos.is_empty():
@@ -995,9 +1002,23 @@ func _soltar() -> void:
 	lanzar_ahora(datos, origen, dir, true)
 
 
+## El aviso de «ahí no se puede construir» (también en `feedback_text`, que es lo que leen las pruebas y los escenarios).
+func _avisar_sin_construir(motivo: String) -> void:
+	var texto: String = "Ahí no se puede construir: %s" % motivo
+	feedback_text = texto
+	avisar(texto)
+	Sfx.play(self, "sello_no")
+	PlayLog.event("cast_rechazado_construccion", {"motivo": motivo})
+
+
 ## Lo que pasa al soltar: animación, cobro, recarga y (tras el conjuro, si lo hay) el disparo. Público para las pruebas.
 ## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
-func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> void:
+## Devuelve false si un sólido quieto no cabe donde nace (aviso y NADA se cobra: ni tinta ni recarga); true si se lanzó.
+func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> bool:
+	var motivo_no: String = rechazo_de_construccion(datos, origen)
+	if motivo_no != "":
+		_avisar_sin_construir(motivo_no)
+		return false
 	var receta: Receta3D = datos["receta"]
 	var rune: RuneData = datos["rune"]
 	var indice: int = int(datos["indice"])
@@ -1027,6 +1048,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		_conjurar(datos, origen, dir, tiempos)    # sin clip de cast point: el reloj de RETARDO_CONJURO, como antes
 	else:
 		_disparar(datos, origen, dir, 0.0)
+	return true
 
 
 ## Los tres tiempos [runa, voluta, forma] de un elemento, ya con `conjuro_escala`.
@@ -2076,24 +2098,64 @@ static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) 
 	return nombre
 
 
+## ¿Se puede construir un bloque (tierra, hielo) de `niveles` de alto en la casilla `c`? "" = sí; si no, el MOTIVO en una frase corta para el aviso. Es la regla que usa `construir_tierra`
+## (fuera del mapa, agua o puente, bloqueada, cornisa permanente, encima de la jugadora o de un enemigo) más el tope de altura que se sube (`Jugador3D.MAX_NIVELES_SUBIBLES`), sacada aquí
+## para poder preguntarla EN SECO antes de cobrar (`rechazo_de_construccion`): sin esto, un sólido que no cabía se rechazaba en silencio con la tinta y la recarga ya gastadas.
+## `sobre_agua`: el hielo hiela el agua que cubre (marcar_celda) y por eso sí cabe sobre ella; la tierra no.
+func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false) -> String:
+	if not en_mapa(c):
+		return "fuera del mapa"
+	# El agua de un río está «bloqueada» por sí misma: el hielo que la hiela no se rechaza por eso (hielo quieto sobre agua = helarla, como antes), la tierra sí.
+	var hiela_agua: bool = sobre_agua and es_agua(c)
+	if not sobre_agua:
+		if es_agua(c):
+			return "es agua"
+		var l: String = letra_de(c)
+		if l == "~" or l == "b":
+			return "es agua o puente"
+	if bloqueada(c) and not hiela_agua:
+		return "la casilla está ocupada"
+	if Terreno3D.permanentes.has(c):
+		return "hay una cornisa"
+	if jugador != null and bool(jugador.call("ocupa", c)):
+		return "estás encima"
+	for g in get_tree().get_nodes_in_group("combate3d"):
+		if is_instance_valid(g) and celda_de((g as Node3D).position) == c:
+			return "hay un enemigo"
+	if niveles > Jugador3D.MAX_NIVELES_SUBIBLES:
+		return "demasiada altura"
+	return ""
+
+
+## ¿El sólido quieto que se va a lanzar (`datos` de `cast_page`) puede construirse donde nace (`origen`)? "" = sí (o no es un sólido quieto: no hay nada que mirar); si no, el motivo.
+## Se pregunta ANTES de cobrar tinta y recarga. Mira la casilla apuntada (la que el rasterizado incluye siempre) y que no esté más lejos del anillo de alcance (`ALCANCE_ORIGEN`).
+func rechazo_de_construccion(datos: Dictionary, origen: Vector3) -> String:
+	var receta: Receta3D = datos.get("receta")
+	var rune: RuneData = datos.get("rune")
+	if receta == null or rune == null or jugador == null:
+		return ""
+	var h: Hechizo = receta.hechizo(rune)
+	if h == null or not h.solido_quieto:
+		return ""
+	# Una barrera (solidez > 0) protege con su SolidezV2 aunque el bloque de tierra de debajo no quepa (el muro que nace en tu propia casilla y te cubre: escenario_bosque_01_v01 4.6): se lanza como siempre.
+	if h.solidez > 0.0:
+		return ""
+	if h.en_punto:
+		var lejos: Vector3 = origen - (jugador as Node3D).position
+		lejos.y = 0.0
+		if lejos.length() > ALCANCE_ORIGEN * Terreno3D.casilla + TOLERANCIA_ALCANCE_U:
+			return "queda fuera de tu alcance"
+	return puede_construir_en(celda_de(origen), h.niveles, rune.deja == "helado")
+
+
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
 ## MAX_NIVELES_TIERRA vivos a la vez (el más viejo se deshace antes). No se construye sobre agua, sobre algo
 ## sólido ni encima de alguien.
 ## `opc` (R2, solo lo pasa la materia V2; vacío = como siempre): resta (s que dura), color, apilar (bloques máx. en la casilla), v2 (no cuenta para
 ## el tope FIFO de MAX_NIVELES_TIERRA: un volumen entero no debe borrar la tierra que ya había).
 func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -> bool:
-	if not en_mapa(c) or es_agua(c):
+	if puede_construir_en(c) != "":
 		return false
-	var l: String = letra_de(c)
-	if l == "~" or l == "b":
-		return false
-	if bloqueada(c) or Terreno3D.permanentes.has(c):
-		return false
-	if jugador != null and bool(jugador.call("ocupa", c)):
-		return false
-	for g in get_tree().get_nodes_in_group("combate3d"):
-		if is_instance_valid(g) and celda_de((g as Node3D).position) == c:
-			return false
 	var entrada: Dictionary = {}
 	for b in _bloques:
 		if (b["celda"] as Vector2i) == c:

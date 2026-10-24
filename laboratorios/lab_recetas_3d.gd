@@ -24,6 +24,7 @@ extends Node
 const NIVEL_MAPA: String = "LabRecetas"
 const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       # 20/10: sin «time» (cinemática, no se lanza)
 const NOMBRE_ELEMENTO: Dictionary = {"fire": "fuego", "water": "agua", "earth": "tierra", "ice": "hielo", "lightning": "rayo", "wind": "viento"}
+const CASILLAS_APUNTADAS_LAB: float = 3.0     ## casillas por delante de la jugadora a las que «apunta» el laboratorio (no tiene ratón) lo que nace donde apuntas (`en_punto`)
 const PERIODO_BARRIDO: float = 2.0
 const VENTANA_S: float = 0.8                  ## segundos de juego que se vigila una receta lanzada
 const UMBRAL_MS: float = 16.0                 ## un fotograma a 60 fps
@@ -197,12 +198,21 @@ func lanzar() -> Dictionary:
 	return _lanzar(receta(), contadores.duplicate(), elemento, direccion())
 
 
+## De dónde nace lo que se lanza: de la jugadora, salvo lo que nace donde apuntas (`en_punto`: la barrera y todo sólido quieto, ESPEC §1.2), que el laboratorio, sin ratón,
+## pone `CASILLAS_APUNTADAS_LAB` por delante de ella. Sin esto un bloque de tierra nacería en la casilla de la jugadora y `construir_tierra` lo rechazaría («encima del jugador»).
+func origen_de(r: Lanzador3D.Receta3D, rune: RuneData, dir: Vector3) -> Vector3:
+	var hz: Hechizo = r.hechizo(rune)
+	if hz != null and hz.en_punto:
+		return _jug.position + dir * Terreno3D.casilla * minf(CASILLAS_APUNTADAS_LAB, Lanzador3D.ALCANCE_ORIGEN)
+	return _jug.position
+
+
 func _lanzar(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, dir: Vector3) -> Dictionary:
 	var rune: RuneData = load("res://nucleo/%s_rune.tres" % elem) as RuneData
 	var g: Dictionary = r.geo()
 	_jug.mirar_hacia(dir)
 	_jug.call("lanzar_clip", Objetos.elemento_de(rune), r.forma_vfx())
-	var origen: Vector3 = _jug.position
+	var origen: Vector3 = origen_de(r, rune, dir)
 	var nodos0: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	_lanzado_celdas = []
 	var t0: int = Time.get_ticks_usec()
