@@ -116,6 +116,8 @@ func _initialize() -> void:
 ## de la capa (`CapaMuelles3D.pesos_cadena`): el borde, casi entero en `_2`. Reescribe `al_enlace`, `jn` y `pe` (4 influencias, normalizadas).
 ## 24/10 (segunda versión, ver CapaMuelles3D «REPARTO DE PESOS»): antes de repartir, todo el peso de hombros, brazos, antebrazos y manos que traía Blender pasa a
 ## Spine2 (en TODA la capa, no solo abajo), y al final se suavizan los pesos con los vecinos (`idx`, soldados por posición) SUAVIZADO_PASADAS veces.
+## 25/10 (ver CapaMuelles3D «SIN CABEZA» y «NUCA»): antes de las cadenas se hornea la cabeza encogida y se pega la nuca (reescribe también `pos`), y la capa no
+## lleva peso de Head: lo de Head y Neck pasa a Spine2, salvo el anillo del cierre (algo de Neck).
 func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Array, pos: Array, jn: Array, pe: Array, idx: Array) -> void:
 	var escala: float = (sk.get_parent() as Node3D).scale.y
 	var b_padre: int = int(enlace_de[CapaMuelles3D.HUESO_PADRE])
@@ -123,6 +125,26 @@ func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Arra
 	var verts := PackedVector3Array()
 	for p in pos:
 		verts.append(Vector3(p[0], p[1], p[2]))
+	# 0. 25/10 (CapaMuelles3D «SIN CABEZA» y «NUCA»): ANTES de calcular las cadenas, la forma de la parte alta: la cabeza encogida de Pj3D.PROPORCIONES
+	# horneada con el peso de Head de Blender y la nuca pegada a la espalda (lo mismo que herramientas/repesar_capa.gd sobre una capa ya montada)
+	var nombre_base: Dictionary = {}
+	for n in enlace_de:
+		nombre_base[int(enlace_de[n])] = String(n)
+	var cuello: Vector3 = sk.get_bone_global_rest(sk.find_bone(CapaMuelles3D.HUESO_CUELLO)).origin * escala
+	var cabeza: Vector3 = sk.get_bone_global_rest(sk.find_bone("mixamorig_Head")).origin * escala
+	var escala_cabeza: float = float((Pj3D.PROPORCIONES.get("jugadora_base", [1.0]) as Array)[0])
+	var forma := PackedVector3Array()
+	for i in verts.size():
+		var h: float = 0.0
+		for k in 4:
+			var nb: String = String(nombre_base.get(int(al_enlace[int(jn[i][k])]), ""))
+			if CapaMuelles3D.es_hueso_cabeza(nb) and nb != CapaMuelles3D.HUESO_CUELLO:
+				h += float(pe[i][k])
+		forma.append(CapaMuelles3D.encoger_con_cabeza(malla_a_esqueleto * verts[i] * escala, h, cabeza, escala_cabeza))
+	forma = CapaMuelles3D.ajustar_nuca(forma, Vector2(cuello.x, cuello.z))
+	for i in verts.size():
+		verts[i] = malla_a_esqueleto.affine_inverse() * (forma[i] / escala)
+		pos[i] = [verts[i].x, verts[i].y, verts[i].z]
 	var globales: Dictionary = {}
 	for c in CapaMuelles3D.cadenas(sk, verts, malla_a_esqueleto, escala):
 		var j: int = sk.get_bone_count()
@@ -161,6 +183,14 @@ func _muelles(sk: Skeleton3D, skin: Skin, enlace_de: Dictionary, al_enlace: Arra
 				quitado_brazo += v
 				bind = bind_cuerpo
 			w[bind] = float(w.get(bind, 0.0)) + v
+		# sin cabeza: Head (y Neck) a Spine2, salvo el anillo del cierre, que lleva algo de Neck (CapaMuelles3D.pesos_sin_cabeza)
+		var por_nombre: Dictionary = {}
+		for bind in w:
+			por_nombre[String(nombre_de_bind[bind])] = w[bind]
+		por_nombre = CapaMuelles3D.pesos_sin_cabeza(por_nombre, pts[i], cuello)
+		w = {}
+		for n in por_nombre:
+			w[int(enlace_de[n])] = por_nombre[n]
 		var r: Dictionary = CapaMuelles3D.pesos_cadena(pts[i], centro, borde)
 		var parte: float = float(r["parte"])
 		if parte > 0.0:

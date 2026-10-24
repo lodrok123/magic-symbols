@@ -13,7 +13,8 @@
 ## docs/PLAN_RIGGING.md §3 (las de captura_jugadora_base.gd) y en 3 fotogramas de cada clip de RODAJE, con los clips reales del personaje (Pj3D), el borde de la
 ## capa no atraviesa ningún antebrazo (distancia con signo a la piel del antebrazo puesta en la pose), con los muelles de la capa apagados (en reposo);
 ## (f) con los muelles (CapaMuelles3D) en marcha y los clips reproduciéndose: el borde no entra más de 5 mm en el cuerpo, se mece al correr y vuelve a su sitio
-## en idle, y el coste por fotograma. Cuesta ~40 s sin ventana.
+## en idle, y el coste por fotograma; (g) la capa no pesa en la cabeza (ningún vértice bajo el cuello con más de HEAD_MAX_BAJO_CUELLO en Head), su parte alta no
+## se mueve al girar la cabeza y, en idle y andando, no se despega del torso más de LEJOS_TORSO_MAX (el ala de la nuca). Cuesta ~40 s sin ventana.
 
 const CAPTURA := preload("res://herramientas/captura_jugadora_base.gd")
 const GLB_CAPA: String = "res://arte/modelos/ropa_capa.glb"
@@ -67,8 +68,19 @@ const MECE_MIN: float = 0.01
 const IDLE_ASENTAR: float = 2.0
 const REPOSO_TOL: float = 0.01
 const MEDIR_FOTOGRAMAS: int = 60
+## (g) la capa sin cabeza (CapaMuelles3D «SIN CABEZA»): giro de cabeza con que se mira que la parte alta no se estire, lo más que puede moverse, y lo más lejos
+## que puede quedar del torso (segmento Spine1–Neck) un vértice de la nuca en idle y andando. Medido el 25/10: antes 0,40 en idle y walk (el ala), después 0,30.
+const GIRO_CABEZA: float = 50.0
+## La nuca: por encima de PESO_DESDE y a más de NUCA_ANGULO grados de delante alrededor del eje del cuello (los lados son la campana de los hombros).
+const NUCA_ANGULO: float = 135.0
+const ESTIRA_MAX: float = 0.002
+const LEJOS_TORSO_MAX: float = 0.34
 
 var _fallos: int = 0
+## (e) la cabeza como en el juego (ver `_preparar_cabeza`).
+var _cabeza: Vector3 = Vector3.ZERO
+var _escala_cabeza: float = 1.0
+var _xf_cabeza: Array = []
 ## Triángulos del cuerpo (u del modelo): vértices, normales de los vértices (hacia fuera), zona; y la rejilla celda -> índices de triángulo.
 var _rejilla: Dictionary = {}
 var _ta := PackedVector3Array()
@@ -102,6 +114,9 @@ func _initialize() -> void:
 	var esc: float = (sk_b.get_parent() as Node3D).scale.y
 	var capa: PackedVector3Array = _vertices(GLB_CAPA, esc)
 	var capucha: PackedVector3Array = _vertices(GLB_CAPUCHA, esc)
+	_cabeza = sk_b.get_bone_global_rest(sk_b.find_bone("mixamorig_Head")).origin * esc
+	_escala_cabeza = float((Pj3D.PROPORCIONES.get("jugadora_base", [1.0]) as Array)[0])
+	_preparar_cabeza(base, sk_b)
 	var zonas: ArrayMesh = load(ZONAS) as ArrayMesh
 	var cuerpo := PackedVector3Array()
 	for s in zonas.get_surface_count():
@@ -140,25 +155,31 @@ func _initialize() -> void:
 	_ok(nuca >= CAPUCHA_NUCA_Z_MIN, "(d) la capucha llega por detrás a z %.3f (mín %.2f)" % [nuca, CAPUCHA_NUCA_Z_MIN])
 	# (e) en reposo, nada dentro del cuerpo
 	var t0: int = Time.get_ticks_msec()
-	# Sin el pelo (lo apaga la capucha): es lo que se ve con el traje completo. Cuenta.
+	# Sin el pelo (lo apaga la capucha): es lo que se ve con el traje completo. Cuenta. La capucha va entera a Head: encoge con la cabeza (ver `_cabeza_del_juego`).
+	var capucha_juego := PackedVector3Array()
+	for v in capucha:
+		capucha_juego.append(_cabeza + (v - _cabeza) * _escala_cabeza)
 	_montar_rejilla(zonas, esc, [ZONA_PELO])
 	_voxelizar()
-	for par in [["capa", capa], ["capucha", capucha]]:
+	for par in [["capa", capa], ["capucha", capucha_juego]]:
 		var r: Dictionary = _dentro(par[1] as PackedVector3Array)
 		_ok(int(r["hondo"]) + int(r["piel"]) == 0, "(e) %s en reposo: %d vértices dentro del cuerpo sin el pelo (%d en vóxeles cerrados, %d bajo la piel; distancia con signo mínima junto a la piel %.4f; %d junto a las orejas, fuera de la cuenta)" % [
 			par[0], int(r["hondo"]) + int(r["piel"]), int(r["hondo"]), int(r["piel"]), float(r["minima"]), int(r["orejas"])])
 		if int(r["hondo"]) + int(r["piel"]) > 0:
-			print("INFO  %s: vértices dentro por altura (bandas de %.2f): %s; por la zona más cercana: %s" % [par[0], BANDA_INFORME, r["por_altura"], r["por_zona"]])
+			print("INFO  %s: vértices dentro por altura (bandas de %.2f): %s; por ángulo: %s; por la zona más cercana: %s" % [par[0], BANDA_INFORME, r["por_altura"],
+				r["por_angulo"], r["por_zona"]])
 	# Con el pelo: el volumen cerrado del pelo y la cabeza, y el lado de dentro de las tiras. Solo aviso (el pelo son tiras dobles y la capucha lo apaga).
 	_montar_rejilla(zonas, esc, [])
 	_voxelizar()
-	for par in [["capa", capa], ["capucha", capucha]]:
+	for par in [["capa", capa], ["capucha", capucha_juego]]:
 		var r: Dictionary = _dentro(par[1] as PackedVector3Array)
 		print("INFO  %s con el pelo: %d vértices en vóxeles cerrados (por altura %s) y %d por el lado de dentro de una tira de pelo (aviso, no cuenta)" % [par[0],
 			int(r["hondo"]), r["por_altura"], int(r["pelo"])])
 	print("INFO  vóxeles y distancias con signo en %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	base.free()
-	await _prueba_antebrazos()
+	# `-- forma`: solo la forma en reposo (a–e), sin el personaje vestido ni los clips (para iterar rápido sobre la malla)
+	if not OS.get_cmdline_user_args().has("forma"):
+		await _prueba_antebrazos()
 	_acabar()
 
 
@@ -282,6 +303,39 @@ func _prueba_muelles(p: Pj3D, sk: Skeleton3D, muelles: CapaMuelles3D, malla_capa
 	muelles.active = false
 	sk.force_update_all_bone_transforms()
 	var reposo: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+	# (g) 25/10 (Pablo: «Los pesos están mal… ni idle ni walking»; CapaMuelles3D «SIN CABEZA»): la capa no pesa en la cabeza, no se estira al girarla y su parte
+	# alta (por encima de PESO_DESDE: cuello, nuca y hombros) no se despega del torso andando ni en idle (antes hacía un ala en la nuca a 40 cm del cuello)
+	var cab: int = sk.find_bone("mixamorig_Head")
+	var y_cuello: float = sk.get_bone_global_rest(sk.find_bone("mixamorig_Neck")).origin.y * esc
+	var z_cuello: float = sk.get_bone_global_rest(sk.find_bone("mixamorig_Neck")).origin.z * esc
+	var alta := PackedInt32Array()
+	var nuca := PackedInt32Array()
+	var head_max: float = 0.0
+	var head_bajo: int = 0
+	for v in (malla_capa["v"] as PackedVector3Array).size():
+		var y: float = (malla_capa["v"] as PackedVector3Array)[v].y * esc
+		var h: float = _peso_en(malla_capa, v, cab)
+		head_max = maxf(head_max, h)
+		if y < y_cuello and h > CapaMuelles3D.HEAD_MAX_BAJO_CUELLO:
+			head_bajo += 1
+		if y >= CapaMuelles3D.PESO_DESDE:
+			alta.append(v)
+			var q: Vector3 = (malla_capa["v"] as PackedVector3Array)[v] * esc
+			if absf(rad_to_deg(atan2(q.x, q.z - z_cuello))) >= NUCA_ANGULO:
+				nuca.append(v)
+	_ok(head_bajo == 0, "(g-i) ningún vértice de la capa bajo el cuello (y < %.3f) pesa más de %.2f en Head: %d (máximo en toda la capa %.4f)" % [y_cuello,
+		CapaMuelles3D.HEAD_MAX_BAJO_CUELLO, head_bajo, head_max])
+	var alta0: PackedVector3Array = _posados(sk, malla_capa, alta, esc)
+	var giro0: Quaternion = sk.get_bone_pose_rotation(cab)
+	sk.set_bone_pose_rotation(cab, giro0 * Quaternion(Vector3.UP, deg_to_rad(GIRO_CABEZA)))
+	var alta1: PackedVector3Array = _posados(sk, malla_capa, alta, esc)
+	sk.set_bone_pose_rotation(cab, giro0)
+	var estira: float = 0.0
+	for i in alta0.size():
+		estira = maxf(estira, (alta1[i] - alta0[i]).length())
+	_ok(estira <= ESTIRA_MAX, "(g-ii) al girar la cabeza %.0f° (sin muelles) la parte alta de la capa se mueve como mucho %.4f (máx %.3f)" % [GIRO_CABEZA, estira, ESTIRA_MAX])
+	print("INFO  (g) reposo: la parte alta de la capa llega a %.3f del torso (Spine1–Neck) y la nuca a %.3f" % [
+		_lejos_del_torso(sk, malla_capa, alta, esc), _lejos_del_torso(sk, malla_capa, nuca, esc)])
 	muelles.active = true
 	for rol in CLIPS_MUELLES:
 		var clip: String = p.clip_de(String(rol))
@@ -298,12 +352,14 @@ func _prueba_muelles(p: Pj3D, sk: Skeleton3D, muelles: CapaMuelles3D, malla_capa
 		var donde: String = ""
 		var mece: float = 0.0
 		var anterior := PackedVector3Array()
+		var lejos: float = 0.0
 		for k in MUESTRAS_CLIP:
 			var hasta: int = int(float(fotos) * float(k + 1) / float(MUESTRAS_CLIP + 1))
 			while int(p._ap.current_animation_position * FPS) < hasta and p._ap.is_playing():
 				await process_frame
 			# los modificadores del esqueleto solo valen durante su actualización: se mide al emitir skeleton_updated
 			await sk.skeleton_updated
+			lejos = maxf(lejos, _lejos_del_torso(sk, malla_capa, nuca, esc))
 			var pen: float = _penetracion(sk, zonas, malla_capa, hem, esc)
 			if pen > peor_pen:
 				peor_pen = pen
@@ -317,6 +373,11 @@ func _prueba_muelles(p: Pj3D, sk: Skeleton3D, muelles: CapaMuelles3D, malla_capa
 			anterior = ahora
 		_ok(peor_pen <= PENETRACION_MAX, "(f-i) %s (%s), %d fotogramas: el borde entra como mucho %.4f en el cuerpo y los brazos (máx %.3f)%s" % [rol, clip, MUESTRAS_CLIP,
 			peor_pen, PENETRACION_MAX, ": " + donde if peor_pen > PENETRACION_MAX else ""])
+		if rol in ["idle", "walk"]:
+			_ok(lejos <= LEJOS_TORSO_MAX, "(g-iii) %s: la nuca de la capa (por encima de %.2f, a más de %.0f° de delante) llega como mucho a %.3f del torso (Spine1–Neck) (máx %.2f)" % [
+				rol, CapaMuelles3D.PESO_DESDE, NUCA_ANGULO, lejos, LEJOS_TORSO_MAX])
+		else:
+			print("INFO  (g) %s: la nuca de la capa llega a %.3f del torso" % [rol, lejos])
 		if rol == "run":
 			_ok(mece >= MECE_MIN, "(f-ii) al correr el borde se mece respecto a Spine2: %.4f de media entre fotogramas (mín %.2f)" % [mece, MECE_MIN])
 	# (iii) idle un rato y comparar con el reposo
@@ -366,6 +427,25 @@ func _borde_en_spine2(sk: Skeleton3D, spine2: int, malla_capa: Dictionary, hem: 
 	for v in hem:
 		res.append((inv * _posar(malla_capa, xf, v)) * esc)
 	return res
+
+
+## (g) Posiciones (u del modelo) de los vértices `ids` de la capa con el esqueleto como esté.
+func _posados(sk: Skeleton3D, m: Dictionary, ids: PackedInt32Array, esc: float) -> PackedVector3Array:
+	var xf: Array = _transformadas(m, sk)
+	var res := PackedVector3Array()
+	for v in ids:
+		res.append(_posar(m, xf, v) * esc)
+	return res
+
+
+## (g) Lo más lejos (u del modelo) que queda un vértice de `ids` del segmento Spine1–Neck puesto en la pose.
+func _lejos_del_torso(sk: Skeleton3D, m: Dictionary, ids: PackedInt32Array, esc: float) -> float:
+	var a: Vector3 = sk.get_bone_global_pose(sk.find_bone("mixamorig_Spine1")).origin * esc
+	var b: Vector3 = sk.get_bone_global_pose(sk.find_bone("mixamorig_Neck")).origin * esc
+	var peor: float = 0.0
+	for q in _posados(sk, m, ids, esc):
+		peor = maxf(peor, (q - Geometry3D.get_closest_point_to_segment(q, a, b)).length())
+	return peor
 
 
 ## Lo más que entra un vértice del borde en el cuerpo puesto en la pose (distancia con signo negativa a menos de RADIO_ANTEBRAZO_MAX de la piel).
@@ -566,6 +646,29 @@ func _preparar_busqueda() -> void:
 	_sello = 0
 
 
+## 25/10: la cabeza como en el juego. Pj3D.PROPORCIONES encoge la cabeza de jugadora_base (ProporcionChibi escala el hueso Head) y la capucha encoge con ella;
+## la capa, desde el 25/10, ya viene hecha para esa cabeza (CapaMuelles3D «SIN CABEZA»). Para mirar (e) como se ve en el juego, el cuerpo se pone con piel por
+## software con el hueso Head escalado (`_xf_cabeza`: las transformaciones de enlace del Skin del cuerpo con esa escala) y la capucha (toda en Head) se encoge
+## igual alrededor de Head.
+func _preparar_cabeza(base: Node, sk_b: Skeleton3D) -> void:
+	var mi: MeshInstance3D = base.find_children("*", "MeshInstance3D", true, false)[0]
+	# a mano: fuera del árbol la escala de la pose no llega a get_bone_global_pose. Head y todo lo que cuelga de él, escalados alrededor del origen de Head.
+	var cab: int = sk_b.find_bone("mixamorig_Head")
+	var o: Vector3 = sk_b.get_bone_global_rest(cab).origin
+	var s: Transform3D = Transform3D(Basis.from_scale(Vector3.ONE * _escala_cabeza), o - o * _escala_cabeza)
+	_xf_cabeza.clear()
+	for h in _huesos_del_skin(mi.skin, sk_b):
+		var xf: Transform3D = sk_b.get_bone_global_rest(int(h)) * mi.skin.get_bind_pose(_xf_cabeza.size())
+		var en_cabeza: bool = false
+		var j: int = int(h)
+		while j >= 0:
+			if j == cab:
+				en_cabeza = true
+				break
+			j = sk_b.get_bone_parent(j)
+		_xf_cabeza.append(s * xf if en_cabeza else xf)
+
+
 ## Los triángulos del cuerpo por zonas (u del modelo), sin las zonas de `sin`.
 func _montar_rejilla(zonas: ArrayMesh, esc: float, sin: Array) -> void:
 	_limpiar_triangulos()
@@ -577,8 +680,23 @@ func _montar_rejilla(zonas: ArrayMesh, esc: float, sin: Array) -> void:
 		var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
 		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
 		var zona: String = String(zonas.surface_get_name(s))
+		var ps := PackedVector3Array()
+		var bones: PackedInt32Array = arr[Mesh.ARRAY_BONES] if arr[Mesh.ARRAY_BONES] != null else PackedInt32Array()
+		var pesos: PackedFloat32Array = arr[Mesh.ARRAY_WEIGHTS] if arr[Mesh.ARRAY_WEIGHTS] != null else PackedFloat32Array()
+		var por: int = bones.size() / maxi(vs.size(), 1)
+		for i in vs.size():
+			if _xf_cabeza.is_empty() or por == 0:
+				ps.append(vs[i] * esc)
+				continue
+			# piel por software con la cabeza encogida (ver `_cabeza_del_juego`)
+			var q := Vector3.ZERO
+			for k in por:
+				var w: float = pesos[i * por + k]
+				if w > 0.0:
+					q += ((_xf_cabeza[bones[i * por + k]] as Transform3D) * vs[i]) * w
+			ps.append(q * esc)
 		for t in range(0, idx.size(), 3):
-			_anadir_triangulo(vs[idx[t]] * esc, vs[idx[t + 1]] * esc, vs[idx[t + 2]] * esc, ns[idx[t]], ns[idx[t + 1]], ns[idx[t + 2]], zona)
+			_anadir_triangulo(ps[idx[t]], ps[idx[t + 1]], ps[idx[t + 2]], ns[idx[t]], ns[idx[t + 1]], ns[idx[t + 2]], zona)
 	_preparar_busqueda()
 	print("INFO  cuerpo%s: %d triángulos" % ["" if sin.is_empty() else " sin %s" % [sin], _ta.size()])
 
@@ -661,7 +779,7 @@ func _celda(p: Vector3) -> Vector3i:
 ## {hondo: en vóxeles cerrados, piel: junto a la superficie con distancia con signo negativa (triángulo que no es pelo), pelo: lo mismo junto al pelo (aviso),
 ## orejas: junto a las orejas (no cuentan), minima: distancia con signo mínima junto a la piel, por_altura: {banda: vértices dentro}}.
 func _dentro(pts: PackedVector3Array) -> Dictionary:
-	var r: Dictionary = {"hondo": 0, "piel": 0, "pelo": 0, "orejas": 0, "minima": INF, "por_altura": {}, "por_zona": {}}
+	var r: Dictionary = {"hondo": 0, "piel": 0, "pelo": 0, "orejas": 0, "minima": INF, "por_altura": {}, "por_zona": {}, "por_angulo": {}}
 	for p in pts:
 		var k: int = _indice_voxel(p)
 		if k < 0 or _vox[k] == 2:
@@ -688,6 +806,9 @@ func _dentro(pts: PackedVector3Array) -> Dictionary:
 			(r["por_zona"] as Dictionary)[_tzona[int(c[1])]] = int((r["por_zona"] as Dictionary).get(_tzona[int(c[1])], 0)) + 1
 			var banda: float = snappedf(floorf(p.y / BANDA_INFORME) * BANDA_INFORME, 0.01)
 			(r["por_altura"] as Dictionary)[banda] = int((r["por_altura"] as Dictionary).get(banda, 0)) + 1
+			# 25/10: y por ángulo alrededor del eje de Head (0 = delante, 90 = izquierda, ±180 = detrás), de 45 en 45
+			var ang: int = int(snappedf(rad_to_deg(atan2(p.x - _cabeza.x, p.z - _cabeza.z)), 45.0))
+			(r["por_angulo"] as Dictionary)[ang] = int((r["por_angulo"] as Dictionary).get(ang, 0)) + 1
 	return r
 
 

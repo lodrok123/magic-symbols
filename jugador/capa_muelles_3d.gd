@@ -45,6 +45,39 @@ const HUESOS_BRAZO: PackedStringArray = ["Shoulder", "Arm", "ForeArm", "Hand"]
 const HUESO_CUERPO_CAPA: String = "mixamorig_Spine2"
 const SUAVIZADO_PASADAS: int = 4
 const SUAVIZADO_MEZCLA: float = 0.5
+## SIN CABEZA (25/10; Pablo, con un vídeo del laboratorio: «Revisa la capa. Los pesos están mal. No funciona en ninguna animación, ni idle ni walking»). Medido
+## (herramientas/pesos_capa.gd): la parte alta de la capa (y 1,10–1,31, la que rodea por fuera el bajo de la capucha y cae por la nuca hasta 38 cm detrás del
+## cuello) llevaba el peso de la CABEZA que le copió Blender del cuerpo: 37 % en cuello y nuca, 59 % en los hombros, 99 % por encima de 1,22 y 460 vértices bajo
+## el cuello con hasta 0,27 en Head. Al inclinar la cabeza (idle, andar) su borde de arriba se iba con ella y el de abajo se quedaba con Spine2: la nuca se
+## estiraba en un ala hacia atrás. Ahora la capa NO pesa en la cabeza: lo que Blender dio a Head (y a Neck) pasa a HUESO_CUERPO_CAPA (Spine2), y solo el anillo
+## del cierre, pegado al cuello (a menos de CUELLO_RADIO de su eje, por encima de la base del cuello), lleva hasta CUELLO_PESO_MAX de Neck, con un fundido
+## suave (`parte_cuello`). Lo aplican `herramientas/repesar_capa.gd` (sobre el ropa_capa.glb ya montado) y `montar_ropa_glb.gd` (al montarla desde Blender).
+## Y la FORMA: el ala no salía solo del peso. Desde el 24/10 `Pj3D.PROPORCIONES["jugadora_base"]` encoge la cabeza a 0,80 (ProporcionChibi escala el hueso
+## Head) y la capucha encoge con ella, pero la parte alta de la capa estaba hecha para la capucha a 1,0: lo que antes tapaba la capucha (la nuca de la capa
+## hasta 1,31 y 38 cm detrás del cuello) quedaba al aire como un ala, y con el peso en Head se estiraba. Al quitar la cabeza se HORNEA esa escala en la
+## geometría: cada vértice se lleva a donde lo dejaba la cabeza encogida con su peso de Head de Blender (`encoger_con_cabeza`), así la capa en reposo queda
+## donde la dejaba la cabeza encogida, pero pegada al torso. Si cambia la proporción de la cabeza hay que repesar desde la capa con los pesos de Blender.
+## NUCA: aun así la espalda de la capa seguía hecha para envolver el pelo (que la capucha apaga) y la capucha a 1,0: por detrás, a la altura del cuello, la
+## capa quedaba a 40–43 cm del eje del cuello y la espalda del cuerpo a 6 cm (medido por sectores): una joroba. `ajustar_nuca` la pega: por encima de NUCA_DESDE,
+## en cada altura y ángulo, el radio de fuera de la capa se limita a una rampa que va del que tiene a NUCA_DESDE al de NUCA_ARRIBA a la altura NUCA_HASTA (bajo
+## el borde de la capucha encogida), encogiendo hacia el eje del cuello todos los vértices de esa altura y ángulo por igual (la tela conserva su grosor relativo).
+const NUCA_DESDE: float = 1.00
+const NUCA_HASTA: float = 1.24
+const NUCA_ARRIBA: float = 0.22
+const NUCA_SECTORES: int = 24
+const NUCA_PASO: float = 0.01
+## Solo por DETRÁS: la rampa pesa 0 hasta NUCA_ANG_DESDE grados desde delante y entera desde NUCA_ANG_PLENO (fundido suave). Medido: aplicada en todo el contorno
+## (primera prueba) metía los lados (±90°, que ya caían bien sobre los hombros) 8 mm en la mandíbula de la cabeza encogida (prueba_ropa_capa (e)).
+const NUCA_ANG_DESDE: float = 110.0
+const NUCA_ANG_PLENO: float = 165.0
+const HUESOS_CABEZA: PackedStringArray = ["Head", "HeadTop_End", "headfront", "Neck"]
+const HUESO_CUELLO: String = "mixamorig_Neck"
+const CUELLO_RADIO: float = 0.08
+const CUELLO_FUNDIDO: float = 0.04
+const CUELLO_BAJO: float = 0.04
+const CUELLO_PESO_MAX: float = 0.5
+## Ningún vértice de la capa por debajo del cuello (Neck) puede llevar más de esto de peso en Head (prueba_ropa_capa, herramientas/pesos_capa.gd).
+const HEAD_MAX_BAJO_CUELLO: float = 0.02
 ## Simulación, en u del modelo y segundos. RIGIDEZ: aceleración hacia el sitio por unidad de separación (1/s²; con GRAVEDAD, la capa quieta cuelga
 ## GRAVEDAD/RIGIDEZ por debajo de su reposo). ARRASTRE: amortiguación de la velocidad (1/s). RADIO_HUESO: grosor de la tela que se suma a cada choque.
 const RIGIDEZ: float = 150.0
@@ -180,6 +213,110 @@ static func es_hueso_brazo(nombre: String) -> bool:
 		if n == h:
 			return true
 	return false
+
+
+## ¿Es un hueso de cabeza o cuello (Head, su punta, el `headfront` de Meshy o Neck)? Su peso en la capa pasa a HUESO_CUERPO_CAPA (ver SIN CABEZA).
+static func es_hueso_cabeza(nombre: String) -> bool:
+	return HUESOS_CABEZA.has(nombre.replace("mixamorig_", ""))
+
+
+## Parte del peso de cuerpo de un vértice de la capa (u del modelo `p`) que va a Neck: hasta CUELLO_PESO_MAX en el anillo del cierre (a menos de CUELLO_RADIO del
+## eje vertical del cuello y por encima de la base del cuello menos CUELLO_BAJO), 0 fuera, con fundidos suaves. `cuello` = Neck en reposo (u del modelo).
+static func parte_cuello(p: Vector3, cuello: Vector3) -> float:
+	var r: float = Vector2(p.x - cuello.x, p.z - cuello.z).length()
+	var f_r: float = 1.0 - smoothstep(CUELLO_RADIO, CUELLO_RADIO + CUELLO_FUNDIDO, r)
+	var f_y: float = smoothstep(cuello.y - CUELLO_BAJO, cuello.y, p.y)
+	return CUELLO_PESO_MAX * f_r * f_y
+
+
+## Posición (u del modelo) de un vértice de la capa `p` con peso de cabeza `h` (lo que Blender dio a HUESOS_CABEZA menos Neck) cuando la cabeza está escalada
+## `escala` alrededor de `cabeza` (Head en reposo, u del modelo): la que le daba la piel con ese peso. Ver SIN CABEZA.
+## Probado y descartado (prueba_ropa_capa (e) con la cabeza encogida): con el peso tal cual quedan 6 vértices de los lados (y 1,15–1,20, junto a la mandíbula)
+## hasta 8 mm dentro de la cabeza; sin hornear esa franja (solo por encima de 1,18) salen 54, y con el peso ×1,5, 14.
+static func encoger_con_cabeza(p: Vector3, h: float, cabeza: Vector3, escala: float) -> Vector3:
+	return p.lerp(cabeza + (p - cabeza) * escala, clampf(h, 0.0, 1.0))
+
+
+## Pega la nuca de la capa (ver NUCA): `pts` en u del modelo, `eje` = X/Z del cuello (Neck en reposo). Devuelve los puntos nuevos. Idempotente: sobre una capa ya
+## pegada el radio no pasa de la rampa y no cambia nada.
+static func ajustar_nuca(pts: PackedVector3Array, eje: Vector2) -> PackedVector3Array:
+	var y_max: float = NUCA_DESDE
+	for p in pts:
+		y_max = maxf(y_max, p.y)
+	var filas: int = int(ceil((y_max - NUCA_DESDE) / NUCA_PASO)) + 1
+	var paso_ang: float = TAU / NUCA_SECTORES
+	# radio de fuera por fila (altura) y sector (ángulo), contando los vecinos (±1,5 filas, ±1 sector)
+	var r_max: Array = []
+	for f in filas:
+		var fila: Array = []
+		fila.resize(NUCA_SECTORES)
+		fila.fill(0.0)
+		r_max.append(fila)
+	for p in pts:
+		if p.y < NUCA_DESDE - NUCA_PASO * 1.5:
+			continue
+		var d := Vector2(p.x, p.z) - eje
+		var fy: float = (p.y - NUCA_DESDE) / NUCA_PASO
+		var s0: int = int(round(fposmod(atan2(d.x, d.y), TAU) / paso_ang))
+		for f in range(maxi(0, int(floor(fy - 1.5))), mini(filas, int(ceil(fy + 1.5)) + 1)):
+			if absf(f - fy) > 1.5:
+				continue
+			for k in [-1, 0, 1]:
+				var s: int = posmod(s0 + k, NUCA_SECTORES)
+				r_max[f][s] = maxf(float(r_max[f][s]), d.length())
+	# factor de encogimiento por fila y sector: la rampa desde el radio de la fila de NUCA_DESDE hasta NUCA_ARRIBA en NUCA_HASTA
+	var fac: Array = []
+	for f in filas:
+		var y: float = NUCA_DESDE + f * NUCA_PASO
+		var t: float = clampf((y - NUCA_DESDE) / (NUCA_HASTA - NUCA_DESDE), 0.0, 1.0)
+		var fila: Array = []
+		for s in NUCA_SECTORES:
+			var r0: float = float(r_max[0][s])
+			var r: float = float(r_max[f][s])
+			var lim: float = lerpf(r0 if r0 > 0.0 else NUCA_ARRIBA, NUCA_ARRIBA, t)
+			var detras: float = smoothstep(NUCA_ANG_DESDE, NUCA_ANG_PLENO, absf(angle_difference(0.0, s * paso_ang)) * 180.0 / PI)
+			fila.append(1.0 if r <= lim or r <= 0.0 else lerpf(1.0, lim / r, detras))
+		fac.append(fila)
+	# una pasada de suavizado por ángulo (que no queden escalones entre sectores)
+	for f in filas:
+		var viejo: Array = (fac[f] as Array).duplicate()
+		for s in NUCA_SECTORES:
+			fac[f][s] = minf(float(viejo[s]), (float(viejo[posmod(s - 1, NUCA_SECTORES)]) + 2.0 * float(viejo[s]) + float(viejo[(s + 1) % NUCA_SECTORES])) * 0.25)
+	var res := PackedVector3Array()
+	res.resize(pts.size())
+	for i in pts.size():
+		var p: Vector3 = pts[i]
+		if p.y <= NUCA_DESDE:
+			res[i] = p
+			continue
+		var d := Vector2(p.x, p.z) - eje
+		var fy: float = clampf((p.y - NUCA_DESDE) / NUCA_PASO, 0.0, filas - 1.0)
+		var fs: float = fposmod(atan2(d.x, d.y), TAU) / paso_ang
+		var f0: int = int(floor(fy))
+		var f1: int = mini(f0 + 1, filas - 1)
+		var s0: int = int(floor(fs)) % NUCA_SECTORES
+		var s1: int = (s0 + 1) % NUCA_SECTORES
+		var ty: float = fy - f0
+		var ts: float = fs - floor(fs)
+		var k: float = lerpf(lerpf(float(fac[f0][s0]), float(fac[f0][s1]), ts), lerpf(float(fac[f1][s0]), float(fac[f1][s1]), ts), ty)
+		var d2: Vector2 = eje + d * k
+		res[i] = Vector3(d2.x, p.y, d2.y)
+	return res
+
+
+## Pesos de cuerpo de un vértice de la capa sin cabeza: `w` = {nombre de hueso: peso}; lo de HUESOS_CABEZA pasa a HUESO_CUERPO_CAPA y de ahí `parte_cuello` a
+## HUESO_CUELLO. Las cadenas `capa_*` y el resto no se tocan. Devuelve un diccionario nuevo (sin normalizar: la suma no cambia).
+static func pesos_sin_cabeza(w: Dictionary, p: Vector3, cuello: Vector3) -> Dictionary:
+	var res: Dictionary = {}
+	for n in w:
+		var destino: String = HUESO_CUERPO_CAPA if es_hueso_cabeza(String(n)) else String(n)
+		res[destino] = float(res.get(destino, 0.0)) + float(w[n])
+	var torso: float = float(res.get(HUESO_CUERPO_CAPA, 0.0))
+	var al_cuello: float = torso * parte_cuello(p, cuello)
+	if al_cuello > 0.0:
+		res[HUESO_CUERPO_CAPA] = torso - al_cuello
+		res[HUESO_CUELLO] = al_cuello
+	return res
 
 
 ## Copia a `destino` los huesos de `origen` que empiezan por PREFIJO y `destino` no tiene (mismo nombre, padre por nombre, mismo reposo). Devuelve cuántos.
