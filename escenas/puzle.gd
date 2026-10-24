@@ -2153,7 +2153,9 @@ void fragment() {
 
 const PILAR_SOBRE_TERRAZA: float = 1.5       ## cuánto sobresale un pilar por encima del fondo del canal (u)
 const PILAR_LARGO: float = 1.5               ## cuánto se mete un pilar hacia el norte desde el labio de la cornisa (u)
-const ESPUMA_LARGO: float = 1.3             ## hasta dónde llega la franja de espuma por el pozo, desde la cortina (u)
+const ESPUMA_ATRAS: float = 0.45             ## cuánto se mete la espuma bajo el labio (hacia la roca), para tapar el borde claro de la superficie del pozo (la «pastilla»)
+const ESPUMA_SOBRE: float = 0.12            ## y cuánto sube sobre la superficie del pozo
+const ESPUMA_LARGO: float = 1.3            ## hasta dónde llega la franja de espuma por el pozo, desde la cortina (u)
 
 ## La espuma al pie de una cortina (`_levantar_terraza`): una franja blanca OPACA pegada a la caída, hecha de burbujas que respiran, y aros que se abren por el pozo. UV.x a lo ancho, UV.y = 0 en la cortina y 1 al fondo.
 const CODIGO_ESPUMA_PIE: String = """
@@ -2262,6 +2264,11 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 	# Segunda pasada (24/10, Pablo: «varias cortinas entre pilares de roca, espuma blanca fuerte al pie, sin el bloque azul plano de arriba»). Con `pilares`, cada tercio de casilla cuyo número de
 	# columna es múltiplo de 4 es un PILAR (ver `_forma_cortinas`: la simulación lo cierra) y las columnas entre dos pilares son una CORTINA de una casilla. Arriba ya no hay una tapa azul opaca: cada
 	# cortina trae una lámina fina de agua (casi transparente donde no hay veta, así se ve la roca del canal) con vetas que corren hacia el labio.
+	# La «pastilla» clara sobre la espuma (3.ª pasada): es el borde de la superficie inclinada de la caída que el renderizador de agua deja pasar (descarta solo lo que cae ≥ 0,45) cuando la
+	# cortina es tan alta; en esta terraza se descarta todo lo que tenga algo de caída (> 0: la «pastilla» es una superficie casi plana, apenas inclinada, que `caida` valora poco), y solo en esta instancia del renderizador (los ríos y cascadas del Bosque conservan el 0,45).
+	for n in (mundo as Node).find_children("*", "MeshInstance3D", true, false):
+		if n.get_script() != null and String((n.get_script() as Script).resource_path).ends_with("agua_render_3d.gd"):
+			n.call("ajustar", "caida_descarte", 0.0)
 	var tercio: float = s / 3.0
 	var n_col: int = (x1 - x0 + 1) * 3
 	var lip_z: float = esq.z + fondo + 0.03
@@ -2325,9 +2332,9 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var esp := MeshInstance3D.new()
 		esp.name = "%s_espuma_%d" % [nombre, i_c]
 		var pe := PlaneMesh.new()
-		pe.size = Vector2(an + 0.5, ESPUMA_LARGO)
+		pe.size = Vector2(an + 0.5, ESPUMA_LARGO + ESPUMA_ATRAS)
 		esp.mesh = pe
-		esp.position = Vector3(xc, y_agua_pozo, lip_z + ESPUMA_LARGO * 0.5 - 0.05)
+		esp.position = Vector3(xc, y_agua_pozo + ESPUMA_SOBRE, lip_z + ESPUMA_LARGO * 0.5 - ESPUMA_ATRAS * 0.5)
 		var m_esp := ShaderMaterial.new()
 		m_esp.shader = sh_espuma
 		m_esp.render_priority = 2

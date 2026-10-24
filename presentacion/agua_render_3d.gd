@@ -230,7 +230,8 @@ uniform float vel_rio = 0.9;                  // u/s que se suman a la corriente
 uniform float avance_flujo = 2.0;             // cuánto avanzan franjas, olas y espuma por ciclo y por u/s de corriente (0,9 → 1,5 → 2,0 el 22/10: con 1,5 iban al 82 % de la corriente; ver AVANCE_FLUJO)
 uniform float adveccion_olas = 1.0;           // 0 = las facetas y la espuma no viajan con la corriente
 uniform float caida_fuerza = 1.0;             // 0 = sin efecto de cascada
-uniform float caida_pend_min = 0.12;          // inclinación (1 − normal.y) a partir de la cual la superficie es una caída
+uniform float caida_descarte = 0.45;          // 24/10: caída (0-1) a partir de la cual no se dibuja la superficie inclinada si hay lámina de cortina; la Cueva (Puzle3D, terraza) lo baja para no dejar la «pastilla» clara del borde
+uniform float caida_pend_min = 0.12;        // inclinación (1 − normal.y) a partir de la cual la superficie es una caída
 uniform float caida_veta2 = 0.7;              // 22/10: fuerza (0-1) de la segunda capa de vetas de la cortina (CAIDA_VETA2)
 uniform float caida_veta2_vel = 1.5;          // y su velocidad respecto a la primera (CAIDA_VETA2_VEL)
 uniform float caida_lecho_min = 0.08;        // 22/10: y pendiente del LECHO (u/u entre trocitos) a partir de la cual hay caída de verdad (si no, es el frente de una lámina que se llena)
@@ -871,7 +872,7 @@ void fragment() {
 	// 22/10: y solo si el LECHO baja de verdad ahí (v_caida es pendiente del lecho): el frente de una lámina que se llena inclina la superficie sin ser una cascada.
 	float lecho_cae = smoothstep(caida_lecho_min, caida_lecho_min + 0.2, max(v_caida.x, v_caida.y));
 	float caida = smoothstep(caida_pend_min, caida_pend_min + 0.3, pend_s) * lecho_cae * caida_fuerza * (1.0 - hielo);
-	if (filtro > 0.5 && cortina_geom > 0.5 && caida > CAIDA_DESCARTE) {
+	if (filtro > 0.5 && cortina_geom > 0.5 && caida > caida_descarte) {
 		discard;       // 24/10: con lámina vertical de cortina (CODIGO_CORTINA) la superficie muy inclinada de la caída no se dibuja: salía como un cristal pálido delante de la cortina
 	}
 	vec2 dd = normalize(gn.xz + vec2(0.0001, 0.0));
@@ -1394,8 +1395,12 @@ func fuente_ondas(textura: Texture2D, origen_xz: Vector2, lado: float, fuerza: f
 	_mat.set_shader_parameter("ondas_fuerza", fuerza)
 
 
+var _ajustes_pendientes: Dictionary = {}
+
 ## Cambia un parámetro del sombreado (colores, bandas, espuma…).
 func ajustar(nombre: String, valor: Variant) -> void:
+	if _mat == null:
+		_ajustes_pendientes[nombre] = valor          # 24/10: aún no hay material (se pide antes de enlazar la simulación): se aplica en cuanto exista (`_process`)
 	if _mat != null:
 		_mat.set_shader_parameter(nombre, valor)
 	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "prof_color", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste", "sombra_tinte"]:
@@ -1438,6 +1443,11 @@ func _process(delta: float) -> void:
 			enlazar(s)
 	if sim == null or _mat == null:
 		return
+	if not _ajustes_pendientes.is_empty():
+		var pend: Dictionary = _ajustes_pendientes
+		_ajustes_pendientes = {}
+		for k in pend:
+			ajustar(String(k), pend[k])
 	_reloj += delta
 	_mat.set_shader_parameter("reloj", _reloj)
 	_mat.set_shader_parameter("hielo_activo", 1.0 if _reloj < _hielo_vivo_hasta else 0.0)
