@@ -3,7 +3,8 @@
 		"nombre": "Capa corta",
 		"glb": "ropa_capa",
 		"capa": "exterior",
-		"oculta": []
+		"oculta": [],
+		"muelles": true
 	},
 	"capucha": {
 		"nombre": "Capucha",

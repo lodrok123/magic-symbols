@@ -1,4 +1,4 @@
-extends SceneTree
+﻿extends SceneTree
 ## PRUEBA de la forma de la capa y la capucha de la jugadora base (arte/modelos/ropa_capa.glb, ropa_capucha.glb; salen de herramientas/rig/encajar_ropa.py con
 ## herramientas/rig/ropa_jugadora_base.json y herramientas/montar_ropa_glb.gd). El concept y arte/meshy/PROMPTS_JUGADORA_BASE.md §2a piden una capelina que cubre
 ## hombros y brazos, TERMINA EN EL CODO y abre hacia abajo, y una capucha pegada a la cabeza. Sin ventana:
@@ -11,7 +11,9 @@ extends SceneTree
 ## (normal interpolada de los vértices) es negativa. Las orejas atraviesan la capucha a propósito (OREJA_X / OREJA_Z de encajar_ropa.py). Con el pelo (vóxeles del
 ## cuerpo entero y el lado de dentro de las tiras) solo se informa: el pelo son tiras dobles y el signo de su normal no dice dentro o fuera; y en las poses de
 ## docs/PLAN_RIGGING.md §3 (las de captura_jugadora_base.gd) y en 3 fotogramas de cada clip de RODAJE, con los clips reales del personaje (Pj3D), el borde de la
-## capa no atraviesa ningún antebrazo (distancia con signo a la piel del antebrazo puesta en la pose). Cuesta ~10 s sin ventana.
+## capa no atraviesa ningún antebrazo (distancia con signo a la piel del antebrazo puesta en la pose), con los muelles de la capa apagados (en reposo);
+## (f) con los muelles (CapaMuelles3D) en marcha y los clips reproduciéndose: el borde no entra más de 5 mm en el cuerpo, se mece al correr y vuelve a su sitio
+## en idle, y el coste por fotograma. Cuesta ~40 s sin ventana.
 
 const CAPTURA := preload("res://herramientas/captura_jugadora_base.gd")
 const GLB_CAPA: String = "res://arte/modelos/ropa_capa.glb"
@@ -20,7 +22,8 @@ const GLB_BASE: String = "res://arte/modelos/jugadora_base.glb"
 const ZONAS: String = "res://arte/modelos/jugadora_base_zonas.res"
 ## (a) el borde de la capa, a la altura del codo (LeftForeArm a 0,896) en TODO el contorno: en cada uno de los 8 sectores de ángulo (el centro es el de la banda
 ## de BANDA_CENTRO por encima del punto más bajo).
-const BORDE_MIN: float = 0.87
+## Abajo, 0,86: con la cámara del juego el borde tiene que quedar sobre el cinturón (Hips a 0,867) sin taparlo (Pablo, 24/10).
+const BORDE_MIN: float = 0.86
 const BORDE_MAX: float = 0.91
 const SECTORES: Array = ["delante", "delante-izquierda", "izquierda", "detrás-izquierda", "detrás", "detrás-derecha", "derecha", "delante-derecha"]
 const BANDA_CENTRO: float = 0.06
@@ -54,6 +57,16 @@ const LADOS: Array = ["Left", "Right"]
 const POSES_PLAN: Array = ["brazos_arriba", "sentadilla", "zancada", "giro_cintura", "cabeza_izquierda", "cabeza_derecha"]
 const RODAJE: Array = ["cast_proyectil", "idle", "walk", "run"]
 const FOTOGRAMAS: Array = [0.2, 0.5, 0.8]
+## (f) muelles de la capa (CapaMuelles3D) con los clips reproduciéndose a FPS.
+const CLIPS_MUELLES: Array = ["idle", "walk", "run", "cast_proyectil", "roll"]
+const MUESTRAS_CLIP: int = 5
+const FPS: float = 30.0
+const ZONAS_CHOQUE: Array = ["torso", "chaleco", "cinturon", "brazos", "piernas"]
+const PENETRACION_MAX: float = 0.005
+const MECE_MIN: float = 0.01
+const IDLE_ASENTAR: float = 2.0
+const REPOSO_TOL: float = 0.01
+const MEDIR_FOTOGRAMAS: int = 60
 
 var _fallos: int = 0
 ## Triángulos del cuerpo (u del modelo): vértices, normales de los vértices (hacia fuera), zona; y la rejilla celda -> índices de triángulo.
@@ -67,6 +80,8 @@ var _nc := PackedVector3Array()
 var _tzona := PackedStringArray()
 var _visto := PackedInt32Array()
 var _sello: int = 0
+## (f) dónde está el vértice que más entra en el cuerpo (para el mensaje).
+var _peor_donde: String = ""
 ## Vóxeles del cuerpo: 0 cerrado (dentro), 1 superficie, 2 fuera.
 var _vox := PackedByteArray()
 var _vox_origen := Vector3.ZERO
@@ -161,6 +176,11 @@ func _prueba_antebrazos() -> void:
 	var esc: float = (sk.get_parent() as Node3D).scale.y
 	var capa: MeshInstance3D = Ropa3D.puesta(p, "capa")
 	var cuerpo: MeshInstance3D = Ropa3D.cuerpo(p)
+	var muelles: CapaMuelles3D = Ropa3D.muelles(p, "capa")
+	_ok(muelles != null, "la capa lleva su simulador de muelles (CapaMuelles3D)")
+	# (e) es la capa con el muelle en reposo (las cadenas en su pose de enlace): el simulador se apaga y se enciende para (f).
+	if muelles != null:
+		muelles.active = false
 	_quieto(p, sk)
 	var casos: Array = [["reposo"]]
 	for pose in CAPTURA.POSES:
@@ -242,7 +262,146 @@ func _prueba_antebrazos() -> void:
 		_ok(dentro == 0, "(e) %s: el borde de la capa no entra en los antebrazos (%d vértices dentro; distancia con signo mínima a su piel %s%s)" % [nombre, dentro,
 			"%.3f" % peor if peor < INF else "> %.2f" % RADIO_ANTEBRAZO_MAX, ", el vértice está en reposo en %s" % (verts[peor_v] * esc) if dentro > 0 else ""])
 	print("INFO  %d poses y fotogramas en %.1f s" % [casos.size(), (Time.get_ticks_msec() - t0) / 1000.0])
+	if muelles != null:
+		await _prueba_muelles(p, sk, muelles, malla_capa, hem, cuerpo, esc)
 	p.queue_free()
+
+
+## (f) con los muelles en marcha y los clips reproduciéndose de verdad (fotogramas a 30 por segundo): (i) el borde no entra más de PENETRACION_MAX en el cuerpo
+## (sin cabeza, pelo ni botas: brazos, torso, chaleco, cinturón y piernas); (ii) al correr el borde se mece respecto a Spine2 al menos MECE_MIN entre
+## fotogramas mirados; (iii) tras IDLE_ASENTAR s de idle vuelve a ±REPOSO_TOL del reposo. Y el coste del simulador por fotograma.
+func _prueba_muelles(p: Pj3D, sk: Skeleton3D, muelles: CapaMuelles3D, malla_capa: Dictionary, hem: PackedInt32Array, cuerpo: MeshInstance3D, esc: float) -> void:
+	var zonas: Array = []
+	for s in cuerpo.mesh.get_surface_count():
+		if ZONAS_CHOQUE.has(String(cuerpo.mesh.surface_get_name(s))):
+			var mz: Dictionary = _malla_con_piel(cuerpo, sk, s)
+			mz["zona"] = String(cuerpo.mesh.surface_get_name(s))
+			zonas.append(mz)
+	var spine2: int = sk.find_bone("mixamorig_Spine2")
+	_quieto(p, sk)
+	muelles.active = false
+	sk.force_update_all_bone_transforms()
+	var reposo: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+	muelles.active = true
+	for rol in CLIPS_MUELLES:
+		var clip: String = p.clip_de(String(rol))
+		if clip == "":
+			_ok(false, "(f) el rol %s tiene clip" % rol)
+			continue
+		_quieto(p, sk)
+		muelles.reset()
+		p._ap.active = true
+		p._ap.play(clip)
+		var largo: float = p._ap.get_animation(clip).length
+		var fotos: int = maxi(1, int(largo * FPS))
+		var peor_pen: float = 0.0
+		var donde: String = ""
+		var mece: float = 0.0
+		var anterior := PackedVector3Array()
+		for k in MUESTRAS_CLIP:
+			var hasta: int = int(float(fotos) * float(k + 1) / float(MUESTRAS_CLIP + 1))
+			while int(p._ap.current_animation_position * FPS) < hasta and p._ap.is_playing():
+				await process_frame
+			# los modificadores del esqueleto solo valen durante su actualización: se mide al emitir skeleton_updated
+			await sk.skeleton_updated
+			var pen: float = _penetracion(sk, zonas, malla_capa, hem, esc)
+			if pen > peor_pen:
+				peor_pen = pen
+				donde = "%s, al %d %%" % [_peor_donde, int(100.0 * float(k + 1) / float(MUESTRAS_CLIP + 1))]
+			var ahora: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+			if not anterior.is_empty():
+				var media: float = 0.0
+				for i in ahora.size():
+					media += (ahora[i] - anterior[i]).length()
+				mece = maxf(mece, media / ahora.size())
+			anterior = ahora
+		_ok(peor_pen <= PENETRACION_MAX, "(f-i) %s (%s), %d fotogramas: el borde entra como mucho %.4f en el cuerpo y los brazos (máx %.3f)%s" % [rol, clip, MUESTRAS_CLIP,
+			peor_pen, PENETRACION_MAX, ": " + donde if peor_pen > PENETRACION_MAX else ""])
+		if rol == "run":
+			_ok(mece >= MECE_MIN, "(f-ii) al correr el borde se mece respecto a Spine2: %.4f de media entre fotogramas (mín %.2f)" % [mece, MECE_MIN])
+	# (iii) idle un rato y comparar con el reposo
+	_quieto(p, sk)
+	muelles.reset()
+	p._ap.active = true
+	p._ap.play(p.clip_de("idle"))
+	for i in int(IDLE_ASENTAR * FPS):
+		await process_frame
+	var t_con: float = await _ms_por_fotograma(MEDIR_FOTOGRAMAS)
+	var desvio: float = 0.0
+	await sk.skeleton_updated
+	var en_idle: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+	# el idle mueve los brazos: se compara con el idle sin muelles en el mismo instante
+	var t_clip: float = p._ap.current_animation_position
+	muelles.active = false
+	p._ap.seek(t_clip, true)
+	await sk.skeleton_updated
+	var sin_muelles: PackedVector3Array = _borde_en_spine2(sk, spine2, malla_capa, hem, esc)
+	var t_sin: float = await _ms_por_fotograma(MEDIR_FOTOGRAMAS)
+	for i in en_idle.size():
+		desvio = maxf(desvio, (en_idle[i] - sin_muelles[i]).length())
+	_ok(desvio <= REPOSO_TOL, "(f-iii) tras %.0f s de idle el borde está a %.4f de su sitio sin muelles (máx %.2f)" % [IDLE_ASENTAR, desvio, REPOSO_TOL])
+	print("INFO  coste: %.3f ms por fotograma con los muelles y %.3f sin ellos (diferencia %.3f ms)" % [t_con, t_sin, t_con - t_sin])
+	muelles.active = true
+
+
+func _ms_por_fotograma(n: int) -> float:
+	var t0: int = Time.get_ticks_usec()
+	for i in n:
+		await process_frame
+	return float(Time.get_ticks_usec() - t0) / 1000.0 / n
+
+
+## Posiciones (u del modelo) de los vértices del borde en el espacio de Spine2.
+func _borde_en_spine2(sk: Skeleton3D, spine2: int, malla_capa: Dictionary, hem: PackedInt32Array, esc: float) -> PackedVector3Array:
+	var inv: Transform3D = sk.get_bone_global_pose(spine2).affine_inverse()
+	var xf: Array = _transformadas(malla_capa, sk)
+	var res := PackedVector3Array()
+	for v in hem:
+		res.append((inv * _posar(malla_capa, xf, v)) * esc)
+	return res
+
+
+## Lo más que entra un vértice del borde en el cuerpo puesto en la pose (distancia con signo negativa a menos de RADIO_ANTEBRAZO_MAX de la piel).
+func _penetracion(sk: Skeleton3D, zonas: Array, malla_capa: Dictionary, hem: PackedInt32Array, esc: float) -> float:
+	var xf_capa: Array = _transformadas(malla_capa, sk)
+	var pts := PackedVector3Array()
+	var lo := Vector3.INF
+	var hi := -Vector3.INF
+	for v in hem:
+		var q: Vector3 = _posar(malla_capa, xf_capa, v) * esc
+		pts.append(q)
+		lo = lo.min(q)
+		hi = hi.max(q)
+	lo -= Vector3.ONE * RADIO_ANTEBRAZO_MAX
+	hi += Vector3.ONE * RADIO_ANTEBRAZO_MAX
+	_limpiar_triangulos()
+	for m in zonas:
+		var xf: Array = _transformadas(m, sk)
+		var vs: PackedVector3Array = m["v"]
+		var puesto := PackedVector3Array()
+		puesto.resize(vs.size())
+		var cerca := PackedByteArray()
+		cerca.resize(vs.size())
+		for i in vs.size():
+			puesto[i] = _posar(m, xf, i) * esc
+			cerca[i] = 1 if (puesto[i].x >= lo.x and puesto[i].y >= lo.y and puesto[i].z >= lo.z and puesto[i].x <= hi.x and puesto[i].y <= hi.y and puesto[i].z <= hi.z) else 0
+		var idx: PackedInt32Array = m["i"]
+		for t in range(0, idx.size(), 3):
+			if cerca[idx[t]] == 0 and cerca[idx[t + 1]] == 0 and cerca[idx[t + 2]] == 0:
+				continue
+			_anadir_triangulo(puesto[idx[t]], puesto[idx[t + 1]], puesto[idx[t + 2]], _posar_normal(m, xf, idx[t]), _posar_normal(m, xf, idx[t + 1]),
+				_posar_normal(m, xf, idx[t + 2]), String(m["zona"]))
+	_preparar_busqueda()
+	var peor: float = 0.0
+	for i in pts.size():
+		var r: Array = _mas_cercano(pts[i], RADIO_ANTEBRAZO_MAX)
+		if int(r[1]) < 0:
+			continue
+		var s: float = (pts[i] - (r[0] as Vector3)).dot(_normal_en(int(r[1]), r[0]))
+		if -s > peor:
+			peor = -s
+			_peor_donde = "vértice %d (reposo %s) en %s" % [hem[i], (malla_capa["v"] as PackedVector3Array)[hem[i]] * esc, _tzona[int(r[1])]]
+	return peor
 
 
 ## Reposo del esqueleto sin árbol ni clips (como captura_jugadora_base.gd).

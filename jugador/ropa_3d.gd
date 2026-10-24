@@ -1,4 +1,4 @@
-class_name Ropa3D
+﻿class_name Ropa3D
 extends RefCounted
 
 ## ROPA POR PIEZAS sobre un personaje con el esqueleto de `jugadora_base` (arte/meshy/PROMPTS_JUGADORA_BASE.md, docs/PLAN_RIGGING.md).
@@ -6,6 +6,10 @@ extends RefCounted
 ## pasa `herramientas/rig/encajar_ropa.py`). Aquí se saca su MeshInstance3D del .glb y se cuelga del Skeleton3D del personaje con `skeleton = ".."`: sigue los
 ## mismos huesos y por tanto TODAS las animaciones, sin código por prenda. Qué prendas existen sale de `arte/modelos/ropa.json` (id -> datos); equipar una más
 ## es añadir su .glb y una línea al json.
+## Muelles: una prenda puede traer en su .glb huesos de más (las cadenas `capa_*` de la capa, ver CapaMuelles3D). `poner` los copia al esqueleto del cuerpo antes
+## de colgar la malla (su Skin los busca por nombre) y, si la prenda lleva `"muelles": true` en el json, cuelga del esqueleto un CapaMuelles3D que los mueve. Al
+## quitar la prenda se quita el simulador; los huesos se quedan (sin peso de nadie, no se ven). La túnica, la capucha y los demás personajes no traen huesos de
+## más y no cambian.
 ##
 ## Zonas: cada prenda dice en `oculta` qué zonas del cuerpo tapa (cabeza, pelo, torso, chaleco, cinturon, brazos, piernas, botas). El cuerpo de jugadora_base es una
 ## sola malla en el .glb; al poner la primera prenda se cambia por `jugadora_base_zonas.res` (herramientas/partir_base_zonas.gd: mismos vértices y pesos, una
@@ -17,6 +21,8 @@ const CARPETA_MODELOS: String = "res://arte/modelos/"
 const RUTA_ZONAS: String = "res://arte/modelos/jugadora_base_zonas.res"
 ## Prefijo del nombre del nodo de cada prenda puesta (el id va detrás).
 const PREFIJO_NODO: String = "Ropa_"
+## Nombre del simulador de muelles de una prenda con `"muelles": true` (la capa: CapaMuelles3D), colgado del Skeleton3D.
+const PREFIJO_MUELLES: String = "Muelles_"
 ## Metadato de la malla del cuerpo: el material con que se dibuja cada superficie de zona cuando no está oculta.
 const META_MATERIAL_ZONAS: String = "ropa_material_zonas"
 const SHADER_OCULTO: String = "shader_type spatial;\nrender_mode unshaded, cull_disabled;\nvoid vertex() {\n\tPOSITION = vec4(2.0, 2.0, 2.0, 1.0);\n}\n"
@@ -67,6 +73,10 @@ static func poner(modelo: Node3D, id: String, preparar: Callable = Callable()) -
 		escena.free()
 		return null
 	var mi: MeshInstance3D = mallas[0] as MeshInstance3D
+	# Huesos propios de la prenda (las cadenas de muelles de la capa): se copian al esqueleto del cuerpo antes de colgar la malla, que los busca por nombre.
+	var sks_prenda: Array[Node] = escena.find_children("*", "Skeleton3D", true, false)
+	if not sks_prenda.is_empty():
+		CapaMuelles3D.anadir_huesos(sk, sks_prenda[0] as Skeleton3D)
 	mi.get_parent().remove_child(mi)
 	escena.free()
 	mi.name = PREFIJO_NODO + id
@@ -80,8 +90,20 @@ static func poner(modelo: Node3D, id: String, preparar: Callable = Callable()) -
 	sk.add_child(mi)
 	mi.skeleton = NodePath("..")
 	mi.transform = Transform3D.IDENTITY
+	if bool((prendas()[id] as Dictionary).get("muelles", false)):
+		var muelles := CapaMuelles3D.new()
+		muelles.name = PREFIJO_MUELLES + id
+		sk.add_child(muelles)
+		muelles.preparar(sk)
 	actualizar_zonas(modelo)
 	return mi
+
+
+## El simulador de muelles de la prenda `id` si está puesto, o null.
+static func muelles(modelo: Node3D, id: String) -> CapaMuelles3D:
+	for n in modelo.find_children(PREFIJO_MUELLES + id, "SkeletonModifier3D", true, false):
+		return n as CapaMuelles3D
+	return null
 
 
 ## Quita la prenda `id` (no hace nada si no está puesta).
@@ -90,6 +112,10 @@ static func quitar(modelo: Node3D, id: String) -> void:
 	if mi != null:
 		mi.get_parent().remove_child(mi)
 		mi.queue_free()
+		var m: CapaMuelles3D = muelles(modelo, id)
+		if m != null:
+			m.get_parent().remove_child(m)
+			m.queue_free()
 		actualizar_zonas(modelo)
 
 

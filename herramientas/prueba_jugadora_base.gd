@@ -1,4 +1,4 @@
-extends SceneTree
+﻿extends SceneTree
 ## PRUEBA de la jugadora base (arte/modelos/jugadora_base.glb: Meshy «Willow Fernstep» rigueada en Mixamo, 65 huesos con dedos + headfront, sin clips propios)
 ## y de su ropa por piezas (ropa_capa.glb, ropa_capucha.glb y ropa_tunica.glb, Ropa3D): carga como Pj3D, mide lo que debe, trae los 22 clips de la elfa (chibi_elf, vía
 ## ClipsFamilia) y cada rol se resuelve igual que en la elfa; pies en el suelo y sin deriva de raíz; las prendas cargan, usan EL MISMO esqueleto y siguen al
@@ -10,6 +10,7 @@ const ID: String = "jugadora_base"
 const ALTO_ESPERADO: float = 1.0          ## u de juego (el de ALTO_PJ en PruebaTest2)
 const TOL_ALTO: float = 0.05              ## ±5 %
 const HUESOS: int = 66                    ## los 65 de Mixamo con dedos + `headfront` (el de Meshy)
+const HUESOS_CAPA: int = 24               ## 8 cadenas de 3 huesos de los muelles de la capa (CapaMuelles3D)
 const HUESOS_DEDOS_MIN: int = 30          ## dedos de las dos manos (Mixamo: 15 por mano; aquí 16 con el cuarto hueso de cada pulgar y dedo)
 const CLIPS_ELFA: Array = ["Anim01a0e90d", "ChargedGroundSlam", "ChargedSpellCast001", "ChargedSpellCast002", "CollectObject", "Dead", "FacePunchReaction", "Idle",
 	"Idle002", "MageSoellCast001", "MageSoellCast002", "MageSoellCast003", "OpenDoor", "Readandwrite", "RollDodge", "Running", "StandAndDrink", "StandTalkingAngry",
@@ -75,7 +76,13 @@ func _initialize() -> void:
 	_ok(not sks.is_empty() and (sks[0] as Skeleton3D).find_bone("mixamorig_Hips") >= 0, "esqueleto con huesos mixamorig")
 	var sk: Skeleton3D = sks[0] as Skeleton3D
 	_ok(sks.size() == 1, "un único esqueleto en el personaje vestido (%d)" % sks.size())
-	_ok(sk.get_bone_count() == HUESOS, "%d huesos (%d)" % [HUESOS, sk.get_bone_count()])
+	# La capa trae sus cadenas de muelles (CapaMuelles3D, `capa_*`), que Ropa3D añade al esqueleto al ponerla: se cuentan aparte.
+	var de_capa: int = 0
+	for i in sk.get_bone_count():
+		if sk.get_bone_name(i).begins_with(CapaMuelles3D.PREFIJO):
+			de_capa += 1
+	_ok(sk.get_bone_count() - de_capa == HUESOS, "%d huesos de la base (%d)" % [HUESOS, sk.get_bone_count() - de_capa])
+	_ok(de_capa == HUESOS_CAPA, "%d huesos de los muelles de la capa (%d)" % [HUESOS_CAPA, de_capa])
 	var dedos: int = 0
 	for i in sk.get_bone_count():
 		if sk.get_bone_name(i).contains("Hand") and sk.get_bone_name(i) != "mixamorig_LeftHand" and sk.get_bone_name(i) != "mixamorig_RightHand":
