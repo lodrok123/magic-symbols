@@ -1,10 +1,10 @@
 {
 	"capa": {
 		"tris": 20000,
-		"perfil": [[0.017, 0.885, [2.3, 1.72, 0.72], -0.13], [0.115, 1.01, [1.4, 1.66, 0.68], -0.15], [0.22, 1.16, 1.58], [0.42, 1.62, [1.75, 1.25], -0.07], [0.47, 1.70, [1.2, 0.85], -0.075], [0.564, 1.725, [0.5, 0.25], -0.12]],
+		"perfil": [[0.017, 0.872, [2.3, 1.72, 0.72], -0.13], [0.115, 1.01, [1.4, 1.66, 0.68], -0.15], [0.22, 1.16, 1.58], [0.42, 1.62, [1.75, 1.25], -0.07], [0.47, 1.70, [1.2, 0.85], -0.075], [0.564, 1.725, [0.5, 0.25], -0.12]],
 		"_nudos_perfil": [
 			"Cada nudo: [z de la prenda de Tripo, z en el mundo, escala X/Y | [X, Y] | [X, Y delante, Y detrás], desplazamiento Y (Blender, +atrás)]; entre nudos, lineal.",
-			"0.017 -> 0.885: el borde, al codo (0,896); `nivela_borde` baja los costados y la delantera a la misma altura. Campana: X ×2,3 (borde de 0,84 de ancho; los brazos miden 0,50), Y ×1,72 delante (el pecho de la capa queda ~5,6 cm separado del torso) y ×0,72 detrás, centrado en la profundidad del brazo (-0,13).",
+			"0.017 -> 0.872: el borde, entre el cinturón (Hips 0,867) y el codo (0,896): con la cámara del juego a 0,885 se leía por encima del cinturón; `nivela_borde` baja los costados y la delantera a la misma altura. Campana: X ×2,3 (borde de 0,84 de ancho; los brazos miden 0,50), Y ×1,72 delante (el pecho de la capa queda ~5,6 cm separado del torso) y ×0,72 detrás, centrado en la profundidad del brazo (-0,13).",
 			"0.115 -> 1.01: la banda más ancha de Tripo, sobre el hombro (1,046): ×1,4 en X, ×1,66 delante y ×0,68 detrás (-0,15).",
 			"0.22 -> 1.16: el cuello de la prenda, como estaba (×1,58).",
 			"0.42 -> 1.62: las paredes de la capucha junto a lo más ancho del pelo: ×1,75 de lado (el forro no entra en el pelo), ×1,25 de fondo y adelantada (-0,07): la nuca no pasa de 0,334.",
@@ -17,7 +17,7 @@
 		"profundidad_max": 0.06,
 		"pasadas_piel": 8,
 		"_notas": "margen: separación de la piel (1,6 cm). normal_suave: el signo de dentro/fuera con la normal interpolada (en la punta del codo la de la cara engañaba). profundidad_max: por debajo de la cabeza, un punto a más de 6 cm de la piel no cuenta como dentro (los pliegues arrastraban la orla). pasadas_piel: repasos solo por la piel tras el casco. nivela_borde: el borde de Tripo va inclinado (delante 7 cm más alto que detrás); por sectores de ángulo se baja hasta z, con gradiente hasta z_hasta, y queda al codo en todo el contorno. cabeza: por debajo de z0 el peso de Head pasa a Spine2 (la capa giraba con la cabeza). brazo: peso 0,9 desde |x| 0,03 hasta 0,22 (el tercio lateral y delantero del borde acompaña al brazo).",
-		"nivela_borde": {"z": 0.885, "z_hasta": 1.12, "sectores": 48},
+		"nivela_borde": {"z": 0.872, "z_hasta": 1.12, "sectores": 48},
 		"margen_casco": 0.012,
 		"cabeza": {"huesos": ["mixamorig_Head"], "a": "mixamorig_Spine2", "z0": 1.10, "z1": 1.22},
 		"capucha": {"nombre": "capucha", "z": 1.27, "inclina": 0.0},
