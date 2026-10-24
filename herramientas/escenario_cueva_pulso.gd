@@ -20,6 +20,7 @@ const VETA_C1: Array = [Vector2i(5, 15), Vector2i(4, 15), Vector2i(3, 15), Vecto
 const VETA_C5: Array = [Vector2i(19, 16), Vector2i(18, 16), Vector2i(17, 16), Vector2i(16, 16)]
 const VETA_C6_NORTE: Array = [Vector2i(15, 15), Vector2i(15, 14), Vector2i(15, 13)]
 const VETA_C6_OESTE: Array = [Vector2i(14, 16), Vector2i(13, 16), Vector2i(12, 16), Vector2i(11, 16), Vector2i(10, 16)]
+const VETAS_FASE3: int = 24             ## casillas de veta que añade la fase 3: pads de C1 (3), C2 (3 + 3 del filón), C3 (2), C4 (6 + 7)
 const CHARCA: Rect2i = Rect2i(20, 13, 5, 4)
 const FLAG_RECEPTOR: String = "cueva.c6.pulso"
 const FLAG_GLIFO: String = "cueva.c6.glifo"
@@ -83,7 +84,7 @@ func _escenario() -> void:
 	for c in esperadas:
 		if not Pulso3D.vetas.has(c):
 			todas_vetas = false
-	_ok("1 las casillas de las vetas conducen el pulso (Pulso3D.vetas)", todas_vetas and Pulso3D.vetas.size() == esperadas.size(), "%d casillas" % Pulso3D.vetas.size())
+	_ok("1 las casillas de las vetas conducen el pulso (Pulso3D.vetas; más las %d de las vetas de la fase 3: C1 pads, C2, C3 y C4)" % VETAS_FASE3, todas_vetas and Pulso3D.vetas.size() == esperadas.size() + VETAS_FASE3, "%d casillas" % Pulso3D.vetas.size())
 	_ok("1 el cristal, el receptor, el prisma y la pared hueca bloquean su casilla", Terreno3D.bloqueada(Vector2i(6, 15)) and Terreno3D.bloqueada(CELDA_RECEPTOR)
 		and Terreno3D.bloqueada(CELDA_PRISMA) and Terreno3D.bloqueada(CELDA_PARED))
 	_ok("1 el receptor nace sin flag (con Flags.nuevo(); si ya estuviera activado es que ya pasó una descarga de la fuente durante la carga)", not receptor.activo or Flags.i().tiene(FLAG_RECEPTOR))

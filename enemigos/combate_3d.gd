@@ -559,6 +559,13 @@ func _aturdir(segundos: float) -> void:
 	_carga = 0.0
 
 
+## Fase 3 del pulso (C4): el frente de un pulso que corre por una veta con `aturde` deja sin sentido a quien la pisa (lo llama `Pulso3D._aturdir_en`). Sin daño.
+func aturdir_pulso(segundos: float) -> void:
+	if muerto:
+		return
+	_aturdir(segundos)
+
+
 func _arco_cercano(dano: float) -> void:
 	var mejor: Combate3D = null
 	var dmin: float = 4.5

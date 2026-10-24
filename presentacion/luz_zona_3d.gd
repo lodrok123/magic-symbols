@@ -65,9 +65,33 @@ const ZONAS: Dictionary = {
 	},
 	# Cueva (23/10, docs/PLAN_BOSQUE_EOW.md §6): casi a oscuras. Un sol frío y débil (la luz que entra por arriba) y un ambiente bajo y azulado;
 	# lo que de verdad alumbra son los braseros y los cristales, que con este fondo se notan.
+	# 24/10 (fase 3 del Pulso, «brillo azul de la Cueva»): la sala se lee ILUMINADA EN AZUL y no solo junto a las piezas que brillan. Antes sol (0,62, 0,70, 0,86) y ambiente (0,42, 0,48, 0,60) /
+	# (0,26, 0,26, 0,30) a 0,45: casi gris. Ahora el azul manda en los tres colores (el sol y el cielo azul de cristal, el rebote del suelo azul marino) y el ambiente sube a 0,55 (sigue por debajo
+	# del bosque, 0,6, que es lo que mira `prueba_mapa_abierto`). El destello del pulso y los braseros siguen por encima: la luz de reposo es ambiente, no punto.
 	"cueva": {
-		"sol_color": Color(0.62, 0.70, 0.86), "sol_energia": 0.35, "sol_pitch": -78.0, "sol_yaw": 10.0,
-		"ambiente_arriba": Color(0.42, 0.48, 0.60), "ambiente_abajo": Color(0.26, 0.26, 0.30), "ambiente_energia": 0.45,
+		"sol_color": Color(0.42, 0.60, 1.0), "sol_energia": 0.38, "sol_pitch": -78.0, "sol_yaw": 10.0,
+		"ambiente_arriba": Color(0.30, 0.50, 0.96), "ambiente_abajo": Color(0.18, 0.28, 0.62), "ambiente_energia": 0.55,
+	},
+	# Las salas de la Cueva con su carácter pero la MISMA base azul (antes usaban `fuego`, `atardecer`, `hielo` y `ruinas`, que son del Bosque y rompían el azul: C3 naranja, C4 naranja, C6 verde).
+	# C3 · río de lava: sol cálido y tenue sobre un ambiente azul con rebote malva.
+	"cueva_lava": {
+		"sol_color": Color(0.95, 0.62, 0.42), "sol_energia": 0.4, "sol_pitch": -76.0, "sol_yaw": 35.0,
+		"ambiente_arriba": Color(0.34, 0.46, 0.84), "ambiente_abajo": Color(0.32, 0.24, 0.42), "ambiente_energia": 0.52,
+	},
+	# C4 · la sala de los goblins: azul violáceo, frío y algo más cerrado.
+	"cueva_goblin": {
+		"sol_color": Color(0.66, 0.54, 0.98), "sol_energia": 0.4, "sol_pitch": -78.0, "sol_yaw": 40.0,
+		"ambiente_arriba": Color(0.36, 0.44, 0.84), "ambiente_abajo": Color(0.26, 0.22, 0.50), "ambiente_energia": 0.52,
+	},
+	# C5 · la charca eléctrica: el azul más claro y cian de todas.
+	"cueva_hielo": {
+		"sol_color": Color(0.52, 0.80, 1.0), "sol_energia": 0.4, "sol_pitch": -76.0, "sol_yaw": 0.0,
+		"ambiente_arriba": Color(0.38, 0.62, 0.98), "ambiente_abajo": Color(0.22, 0.38, 0.66), "ambiente_energia": 0.56,
+	},
+	# C6 · el santuario del glifo: azul profundo con un toque verde de musgo antiguo.
+	"cueva_ruinas": {
+		"sol_color": Color(0.56, 0.86, 0.90), "sol_energia": 0.4, "sol_pitch": -72.0, "sol_yaw": 15.0,
+		"ambiente_arriba": Color(0.32, 0.54, 0.84), "ambiente_abajo": Color(0.20, 0.32, 0.50), "ambiente_energia": 0.54,
 	},
 	# Santuario (23/10, docs/PLAN_BOSQUE_EOW.md §3 sala 7): verdoso oscuro, para el elemental. Sol bajo y verde apagado, ambiente de musgo y sombra.
 	"santuario": {
@@ -82,7 +106,7 @@ const ZONAS: Dictionary = {
 }
 
 ## Orden fijo para recorrerlas con una tecla.
-const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva", "santuario"]
+const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva", "santuario", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas"]
 
 
 static func nombres() -> Array:

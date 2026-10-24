@@ -15,7 +15,7 @@ extends Node3D
 ## (`T_LATIDO_GRIETAS`), y una luz azul baja delante de ella que las acompaña. Y un aviso al acercarse a `ALCANCE_AVISO` casillas: las grietas se encienden `T_AVISO` s y suena una
 ## nota grave («aquí suena hueco»), una vez por acercamiento. No dice qué hacer: solo que esa roca no es como las demás.
 ##
-## Se coloca con `; pieza <id> pared_hueca <x> <y> [flag=<nombre>]` (escenas/puzle.gd).
+## Se coloca con `; pieza <id> pared_hueca <x> <y> [flag=<nombre>] [mira=n|e|s|o]` (escenas/puzle.gd). `mira` (24/10): la sala hacia la que mira cuando hay sala a los dos lados.
 
 signal eco(pulso: Pulso3D)
 signal abierto
@@ -84,9 +84,11 @@ void fragment() {
 static var _shader_grietas: Shader = null
 
 const _DIRS: Array = [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]   ## sur, este, norte, oeste (en (x, z))
+const MIRAS: Dictionary = {"n": Vector2i(0, -1), "e": Vector2i(1, 0), "s": Vector2i(0, 1), "o": Vector2i(-1, 0)}
 
 var celda: Vector2i = Vector2i.ZERO
 var flag: String = ""
+var mira: String = ""                     ## hacia qué sala mira (n|e|s|o): el lado donde van las grietas y la luz. Vacío = el primer vecino que no es roca (sur, este, norte, oeste)
 var abierta: bool = false
 var ecos: int = 0                         ## cuántos pulsos le han arrancado un eco (las pruebas)
 var destello: float = 0.0
@@ -110,10 +112,11 @@ var _jug: Node3D = null
 var avisos: int = 0                       ## cuántas veces ha avisado (las pruebas)
 
 
-func preparar(p_celda: Vector2i, p_flag: String = "", mundo: Node = null) -> void:
+func preparar(p_celda: Vector2i, p_flag: String = "", mundo: Node = null, p_mira: String = "") -> void:
 	celda = p_celda
 	flag = p_flag
 	_mundo = mundo
+	mira = p_mira
 	position = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda)) if Terreno3D.hay_mundo() else Terreno3D.centro_de(celda)
 	_y0 = position.y
 
@@ -201,6 +204,8 @@ func _dibujar_grietas(sala: Vector2i) -> void:
 
 ## La dirección (x, z) hacia la sala a la que mira la pared: la primera casilla vecina que no es roca, en el orden sur, este, norte, oeste.
 func _dir_sala() -> Vector2i:
+	if MIRAS.has(mira):
+		return MIRAS[mira] as Vector2i                 # fase 3 (C1): la pared de la salida del secreto tiene sala a los dos lados; `mira=` dice cuál es la que importa
 	for d in _DIRS:
 		var l: String = Terreno3D.letra_de(celda + (d as Vector2i))
 		if l != "#" and l != " ":

@@ -239,7 +239,7 @@ func _mezcla() -> void:
 	colocar_jugador(Vector2i(4, 14))
 	await avanzar_s(1.2)
 	var cueva: Color = LuzZona3D.ZONAS["cueva"]["sol_color"]
-	var fuego: Color = LuzZona3D.ZONAS["fuego"]["sol_color"]
+	var fuego: Color = LuzZona3D.ZONAS["cueva_lava"]["sol_color"]       # C3 (24/10): su luz es `cueva_lava`, la variante azul de la Cueva (antes `fuego`, naranja)
 	_ok("4 en C1 la luz es la de la cueva", _dist_color(_sol_color(), cueva) < 0.02)
 	_ok("4 las zonas de la Cueva mezclan en 0,8 s (≤ 1 s)", absf(float(_zonas.zona_en(Vector2i(11, 4))["mezcla"]) - 0.8) < 0.001)
 	colocar_jugador(Vector2i(11, 4))

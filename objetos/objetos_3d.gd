@@ -141,6 +141,9 @@ var celda: Vector2i = Vector2i.ZERO
 var fx: Vfx3D = null
 var visual: Node3D = null
 var start_lit: bool = false          ## fogata: nace encendida
+## 24/10 (Cueva, fase 3): cuánto más luz da la llama de una fuente de fuego (brasero, fogata) que la de siempre. Lo pone el mapa (`; pieza … brasero luz=<x>`): en la Cueva, casi a oscuras, el brasero tiene
+## que alumbrar de verdad. Multiplica la energía y abre un poco el alcance (la mitad de lo que sube).
+var mult_luz: float = 1.0
 ## Lo que el nivel hace para que el fuego de un objeto prenda la hierba: (posicion: Vector3, radio: float, viento: Vector3).
 var hierba_cerca: Callable = Callable()
 
@@ -302,6 +305,7 @@ func _ready() -> void:
 	if tiene_papel(P_PESADO):
 		add_to_group(GRUPO_PESO)            # lo que pesa lo detectan las placas (antes solo el bloque de tierra y el empujable)
 	if tiene_papel(P_FUENTE_FUEGO):
+		add_to_group(Pulso3D.GRUPO_PULSABLE)    # fase 3 del Pulso: un pulso de FUEGO que llega al brasero lo enciende (`on_pulso`)
 		_montar_fuente()
 	match tipo:                              # el montaje visual sigue por tipo: depende del modelo, no de cómo reacciona
 		"totem":
@@ -476,6 +480,15 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bo
 	if tiene_papel(P_RECIBE_AGUA):
 		return rune_data.tags.has("agua")
 	return false
+
+
+## FASE 3 DEL PULSO (PLAN_PULSO_RESONANTE §4: «un brasero ya es un receptor de fuego»): el frente de un pulso de FUEGO que toca una fuente de fuego (brasero, fogata) la enciende, como si
+## le hubiera dado un hechizo de fuego. Con otro elemento (o sin él) no hace nada. Devuelve true si la encendió.
+func on_pulso(pulso: Pulso3D) -> bool:
+	if pulso == null or pulso.elemento != "fuego" or not tiene_papel(P_FUENTE_FUEGO) or is_lit:
+		return false
+	_encender(true)
+	return true
 
 
 ## Lo que el viento puede llevarse: una llama si arde.
@@ -721,7 +734,7 @@ func _encender(con_efectos: bool) -> void:
 		_reaccionar("prendido")             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
 	var d: Array = _num_fuente()
 	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
-	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1, 3.0, Vector3(0.0, float(d[0]) + 0.7, 0.0))
+	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1 * mult_luz, 3.0 * (1.0 + (mult_luz - 1.0) * 0.5), Vector3(0.0, float(d[0]) + 0.7, 0.0))
 	LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_pintar_tinte(0.0)

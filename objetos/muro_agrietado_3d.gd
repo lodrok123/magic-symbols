@@ -14,13 +14,22 @@ extends Area3D
 ## material común (que sabe deshacerse por celdas) y las grietas van en una CAPA encima (`material_overlay`, `CODIGO_CAPA`). Sin el modelo,
 ## la caja con el shader de arriba, como antes.
 ##
-## Se coloca desde un mapa con `; pieza <id> muro <x> <y> [golpes=<n>]` (escenas/puzle.gd) o con `preparar` desde código.
+## COLUMNA AGRIETADA (24/10, fase 3 del Pulso; PLAN_PULSO_RESONANTE §4, «la columna es el mismo código con otro modelo»). `como_columna(cae)` convierte la pieza en una COLUMNA: el modelo
+## `columna_agrietada`, y en vez de la tierra la rompen los PULSOS (grupo `Pulso3D.GRUPO_PULSABLE`, `on_pulso`): cada pulso que la toca la agrieta más y al `golpes`-ésimo CAE, tumbándose
+## hacia `cae` (n|e|s|o), levanta polvo, libera su casilla (abre un paso: la que tapa un nicho) y se deshace. Los hechizos no le hacen nada (la tierra tampoco).
+##
+## Se coloca desde un mapa con `; pieza <id> muro <x> <y> [golpes=<n>]` o `; pieza <id> columna <x> <y> [golpes=<n>] [cae=n|e|s|o]` (escenas/puzle.gd) o con `preparar` desde código.
 
 signal roto
 
 const ALTO: float = 1.6
 const GRIETAS_INICIO: float = 0.3       ## las que tiene sin tocar
 const T_DESHACER: float = 0.7
+const MODELO_MURO: String = "muro_agrietado"
+const MODELO_COLUMNA: String = "columna_agrietada"
+const T_CAER: float = 0.75              ## s que tarda la columna en tumbarse
+const DIRS_CAIDA: Dictionary = {"n": Vector3(0.0, 0.0, -1.0), "e": Vector3(1.0, 0.0, 0.0), "s": Vector3(0.0, 0.0, 1.0), "o": Vector3(-1.0, 0.0, 0.0)}
+const ESPERA_DESHACER: float = 0.6      ## s que la columna caída se queda en el suelo antes de deshacerse
 
 const CODIGO: String = """
 shader_type spatial;
@@ -178,6 +187,11 @@ var _mat: ShaderMaterial = null         ## la caja (sin modelo)
 var _capa: ShaderMaterial = null        ## las grietas encima del modelo
 var _mats_modelo: Array[ShaderMaterial] = []
 var _mundo: Node = null
+var modelo_id: String = MODELO_MURO     ## la pieza de `arte/piezas` que se dibuja
+var por_pulso: bool = false             ## ¿la rompen los pulsos (columna) en vez de la tierra (muro)?
+var cae: String = "s"                   ## columna: hacia dónde se tumba (n|e|s|o)
+var pulsos_recibidos: int = 0           ## columna: pulsos que la han golpeado (las pruebas)
+var cayendo: bool = false               ## columna: está tumbándose
 
 
 ## `mundo` = la maqueta (da el modelo con su escala de `Pieza3D.MEDIDA_ANCHO`); sin ella se carga `arte/piezas/muro_agrietado.tscn`.
@@ -189,12 +203,22 @@ func preparar(p_celda: Vector2i, p_golpes: int = 2, mundo: Node = null) -> void:
 	Terreno3D.bloquear_celda(celda)
 
 
+## Lo convierte en una COLUMNA que rompen los pulsos (ver arriba). Se llama antes de añadirlo al árbol.
+func como_columna(p_cae: String = "s") -> void:
+	modelo_id = MODELO_COLUMNA
+	por_pulso = true
+	cae = p_cae if DIRS_CAIDA.has(p_cae) else "s"
+
+
 func _ready() -> void:
 	monitoring = false
 	monitorable = true
 	collision_mask = 0
 	collision_layer = Lanzador3D.CAPA_REACTIVO
-	add_to_group("explosionable")
+	if por_pulso:
+		add_to_group(Pulso3D.GRUPO_PULSABLE)
+	else:
+		add_to_group("explosionable")
 	var ancho: float = Terreno3D.casilla * 0.96
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
@@ -224,9 +248,9 @@ func _ready() -> void:
 func _poner_modelo() -> bool:
 	var n: Node3D = null
 	if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
-		n = _mundo.call("_pieza", "muro_agrietado") as Node3D
-	if n == null and ResourceLoader.exists("res://arte/piezas/muro_agrietado.tscn"):
-		var escena: PackedScene = load("res://arte/piezas/muro_agrietado.tscn") as PackedScene
+		n = _mundo.call("_pieza", modelo_id) as Node3D
+	if n == null and ResourceLoader.exists("res://arte/piezas/%s.tscn" % modelo_id):
+		var escena: PackedScene = load("res://arte/piezas/%s.tscn" % modelo_id) as PackedScene
 		n = escena.instantiate() as Node3D if escena != null else null
 	if n == null:
 		return false
@@ -264,7 +288,7 @@ func _poner_disolver(v: float) -> void:
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if rune_data == null or roto_ya or not rune_data.tags.has("tierra"):
+	if por_pulso or rune_data == null or roto_ya or not rune_data.tags.has("tierra"):
 		return
 	recibidos += 1
 	if recibidos >= golpes:
@@ -274,7 +298,20 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> vo
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and not roto_ya and rune_data.tags.has("tierra")
+	return not por_pulso and rune_data != null and not roto_ya and rune_data.tags.has("tierra")
+
+
+## Contrato con el pulso (solo la columna): cada frente que la toca la agrieta más; al `golpes`-ésimo cae. Devuelve true si la hizo caer.
+func on_pulso(pulso: Pulso3D) -> bool:
+	if not por_pulso or roto_ya or pulso == null:
+		return false
+	pulsos_recibidos += 1
+	recibidos += 1
+	if recibidos >= golpes:
+		romper()
+		return true
+	_agrietar(float(recibidos) / float(golpes))
+	return false
 
 
 func carried_element() -> RuneData:
@@ -299,6 +336,10 @@ func romper() -> void:
 	collision_layer = 0                     # el nodo se queda (los puzles lo consultan), pero ya no se golpea
 	remove_from_group("explosionable")
 	Terreno3D.liberar_celda(celda)
+	if por_pulso and _cuerpo != null:
+		_caer()
+		roto.emit()
+		return
 	Sfx.play(self, "derrumbe")
 	if get_parent() is Node3D:
 		VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 1.1)
@@ -310,6 +351,33 @@ func romper() -> void:
 	tw.tween_method(_poner_disolver, 0.0, 1.0, T_DESHACER).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: _cuerpo.visible = false)
 	roto.emit()
+
+
+## La columna se TUMBA hacia `cae` (gira sobre su base, acelerando), al llegar al suelo suena el derrumbe y sube el polvo, y un rato después se deshace por celdas.
+func _caer() -> void:
+	cayendo = true
+	_poner_grietas(1.0)
+	var dir: Vector3 = DIRS_CAIDA[cae]
+	var eje: Vector3 = Vector3.UP.cross(dir)
+	var base: Basis = _cuerpo.basis
+	var tw: Tween = create_tween()
+	tw.tween_method(func(a: float) -> void: _cuerpo.basis = Basis(eje, a) * base, 0.0, PI * 0.5, T_CAER).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_aterrizar)
+	tw.tween_interval(ESPERA_DESHACER)
+	if _capa != null:
+		tw.tween_callback(func() -> void:
+			for g in _cuerpo.find_children("*", "GeometryInstance3D", true, false):
+				(g as GeometryInstance3D).material_overlay = null)      # la capa no se deshace con las celdas
+	tw.tween_method(_poner_disolver, 0.0, 1.0, T_DESHACER).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func() -> void: _cuerpo.visible = false)
+
+
+func _aterrizar() -> void:
+	cayendo = false
+	Sfx.play(self, "derrumbe")
+	if get_parent() is Node3D:
+		var donde: Vector3 = global_position + DIRS_CAIDA[cae] * (Terreno3D.casilla * 0.9) + Vector3(0.0, 0.1, 0.0)
+		VfxPuzle3D.polvo(get_parent() as Node3D, donde, 1.4)
 
 
 ## Abre más grietas (`fraccion` 0..1 de los golpes que lleva) y tiembla un instante.

@@ -107,6 +107,7 @@ var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este he
 var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
+var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
 
 
 ## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
@@ -125,6 +126,8 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	else:
 		nuevo.casillas = nuevo._materializar(origen, dir)
 	nuevo._nacido = true
+	if nuevo.casillas == 0 and not nuevo.proyectil and hechizo.resuena > 0.0 and not nuevo._rechazado:
+		nuevo._pulso_sin_volumen(origen)
 	if nuevo.casillas > 0:
 		nuevo.disparar_evento("al_nacer", origen, dir)
 		nuevo._arrancar_momentos(origen, dir)
@@ -170,6 +173,7 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, h.fuente)
 	if aviso != "":
 		PlayLog.event("cast_rechazado_altura", {"elemento": elemento, "y_tope": int(g["y_tope"])})
+		_rechazado = true
 		return 0
 	var props: Dictionary = g["props"]
 	var d2 := Vector2(dir.x, dir.z)
@@ -765,6 +769,17 @@ func _arrancar_momentos(origen: Vector3, dir: Vector3) -> void:
 	if not proyectil and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
 		var hasta: float = (Hechizo.HAZ_DURA_S if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0))) + h.permanencia
 		_despues(maxf(hasta, 0.0), func() -> void: _momento(Sigils.MOMENTO_FINAL, _celdas_del_momento(origen)))
+
+
+## ᚱ con una materia SÓLIDA (hielo, tierra) y el volumen bajo los pies de quien lanza (24/10, fase 3): el bloque no se puede levantar donde está la jugadora (`casillas` = 0), pero el glifo no
+## tiene por qué quedarse mudo: el pulso sale UNA vez desde esas casillas, sea cual sea su momento (el periodo del continuo no tiene sentido sin un volumen que dure). Sin esto, ᚱ + hielo
+## no hacía nada si no se le añadía una flecha, y las estatuas de C1 (que piden hielo) no se podían hacer con el glifo solo.
+func _pulso_sin_volumen(origen: Vector3) -> void:
+	var celdas: Array = _celdas_del_momento(origen)
+	for momento in [Sigils.MOMENTO_INICIO, Sigils.MOMENTO_CONTINUO, Sigils.MOMENTO_FINAL]:
+		if not h.acciones_en(momento).is_empty():
+			_momento(momento, celdas)
+			return
 
 
 ## Cuánto vive lo que nace quieto (s) para los disparos continuos: su `persiste` + `permanencia` (con el suelo de la solidez), sin pasar del límite global. Un proyectil vive lo que viaje.

@@ -10,7 +10,12 @@ extends Area3D
 ## que un corro de setas no sea el mismo modelo repetido. No bloquea el paso.
 ##
 ## `rebrota` > 0: a los `rebrota` s vuelve a salir, otra vez sin transformar. 0 = se coge una vez.
-## Se coloca desde un mapa con `; pieza <id> seta <x> <y> [variante=roja|azul|marron] [rebrota=<s>]` (escenas/puzle.gd).
+##
+## SETA RESONANTE (24/10, fase 3 del Pulso; PLAN_PULSO_RESONANTE §4 «setas que maduran», docs/MATERIALES_CUEVA.md). Con `madura=si` la seta está en el grupo de lo que responde a un pulso
+## (`Pulso3D.GRUPO_PULSABLE`): cada pulso que la toca la hace BRILLAR un instante (una luz azul suave y unas motas) y, si aún no estaba transformada por un elemento, la MADURA: pasa a dar
+## `seta_resonante` (ingrediente común de más valor) y se queda con su tinte azul claro. Un hechizo de elemento ya no la transforma después (ya no es la seta base) ni el pulso, si antes
+## la tocó un elemento (la seta asada se queda asada).
+## Se coloca desde un mapa con `; pieza <id> seta <x> <y> [variante=roja|azul|marron] [rebrota=<s>] [madura=si]` (escenas/puzle.gd).
 
 signal recogido(objeto: String)
 
@@ -21,6 +26,10 @@ const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 const VISUAL_PLANTA: Dictionary = {"alga": "planta_agua", "basalto": "rocas_pequenas"}
 const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}   ## la roca suelta se lee mal a la altura de la cámara: se agranda
 const CADA_CONDICION: float = 0.2      ## s entre mirada y mirada a `coge_si`
+const OBJETO_MADURO: String = "seta_resonante"   ## lo que da la seta madurada por un pulso
+const T_BRILLO_PULSO: float = 0.9      ## s que dura el brillo de la seta cuando le llega un pulso
+const LUZ_PULSO: float = 1.1           ## energía de su luz en lo más alto del brillo
+const LUZ_PULSO_ALCANCE: float = 3.0   ## u
 const GESTO_AGACHARSE: String = "agacharse"   ## rol de Pj3D (clip de Meshy, ClipsFamilia): la jugadora se agacha a cogerla
 const VEL_AGACHARSE: float = 1.8       ## el clip entero dura 3,5 s; a 1,8× las manos llegan al suelo a ~1 s y todo el gesto dura ~1,9 s
 
@@ -34,6 +43,10 @@ var recogido_ya: bool = false
 ## el alga aparece atrapada en el hielo y el basalto, sobre la roca recién enfriada; si la condición se pierde (el hielo se funde, la lava vuelve) desaparece.
 var coge_si: Array = []
 var puzle: Object = null                ## el Puzle3D que sabe evaluar `coge_si` (cumple_expr)
+var madura: bool = false                ## `madura=si`: responde a un pulso (brilla y, sin transformar, pasa a seta resonante)
+var maduraciones: int = 0               ## pulsos que la han hecho madurar (las pruebas)
+var pulsos_recibidos: int = 0           ## pulsos que la han tocado (las pruebas)
+var brillo: float = 0.0                 ## 1 al llegar un pulso, baja a 0 en T_BRILLO_PULSO
 var disponible: bool = true
 var _mundo: Node = null
 var _visual: Node3D = null
@@ -41,6 +54,7 @@ var _t: float = 0.0
 var _t_cond: float = 0.0
 var _rebrotando: bool = false
 var _cogiendo: bool = false             ## la jugadora ya se agacha a cogerla (otra E no lo repite)
+var _luz: OmniLight3D = null            ## la luz azul de cuando le llega un pulso (se crea la primera vez)
 
 
 ## `p_variante` vacío = la que toque por casilla (intercaladas). `mundo` = la maqueta (pone el modelo con su escala de `Pieza3D.MEDIDA`).
@@ -60,6 +74,8 @@ func _ready() -> void:
 	collision_mask = 0
 	collision_layer = Lanzador3D.CAPA_REACTIVO
 	add_to_group("recolectable")
+	if madura:
+		add_to_group(Pulso3D.GRUPO_PULSABLE)
 	var forma := CollisionShape3D.new()
 	var esfera := SphereShape3D.new()
 	esfera.radius = 0.45
@@ -143,6 +159,42 @@ func nivel_altura() -> int:
 	return 0
 
 
+## --- Contrato con el pulso (solo con `madura=si`) ---
+
+## Le llega el frente de un pulso (`Pulso3D._avisar`): brilla y, si sigue siendo la seta base, madura a seta resonante. Devuelve true si maduró.
+func on_pulso(pulso: Pulso3D) -> bool:
+	if not madura or recogido_ya or not disponible or pulso == null:
+		return false
+	pulsos_recibidos += 1
+	var maduro_ahora: bool = false
+	if objeto == String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta)):
+		maduro_ahora = true
+		maduraciones += 1
+		objeto = OBJETO_MADURO
+		if _visual != null:
+			Paleta3D.tintar(_visual, Objetos.color(OBJETO_MADURO))
+	if is_inside_tree():
+		if get_parent() is Node3D:
+			VfxCalidad3D.motas(get_parent() as Node3D, global_position + Vector3(0.0, 0.45, 0.0), Pulso3D.COLOR_BASE, 14 if maduro_ahora else 6, 0.9, 0.07, 1.0, 0.2)
+		Sfx.play(self, Pulso3D.SFX_PULSO, 1.25 if maduro_ahora else 1.05)
+	_encender_brillo()
+	return maduro_ahora
+
+
+func _encender_brillo() -> void:
+	brillo = 1.0
+	if _luz == null:
+		_luz = OmniLight3D.new()
+		_luz.name = "luz_pulso"
+		_luz.light_color = Pulso3D.COLOR_BASE
+		_luz.omni_range = LUZ_PULSO_ALCANCE
+		_luz.shadow_enabled = false
+		_luz.position = Vector3(0.0, 0.6, 0.0)
+		add_child(_luz)
+	_luz.light_energy = LUZ_PULSO
+	set_process(true)
+
+
 func _tabla() -> Dictionary:
 	return (Objetos.PLANTAS.get(planta, {}) as Dictionary).get("tabla", {})
 
@@ -216,6 +268,12 @@ func recoger() -> bool:
 
 
 func _process(delta: float) -> void:
+	if brillo > 0.0:
+		brillo = maxf(brillo - delta / T_BRILLO_PULSO, 0.0)
+		if _luz != null:
+			_luz.light_energy = LUZ_PULSO * brillo * brillo
+		if brillo <= 0.0 and coge_si.is_empty() and not _rebrotando:
+			set_process(false)
 	if not coge_si.is_empty():
 		_t_cond += delta
 		if _t_cond >= CADA_CONDICION:

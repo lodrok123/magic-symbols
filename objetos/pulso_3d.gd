@@ -26,6 +26,7 @@ extends Node3D
 
 signal alcanzo(celda: Vector2i, paso: int)               ## el frente llega a una casilla que conduce (también el origen, paso 0)
 signal toco(nodo: Node, celda: Vector2i, paso: int)      ## el frente avisa a un nodo (receptor, reactivo)
+signal aturdio(enemigo: Node)                            ## el frente aturde a un enemigo que pisa una veta con `aturde` (fase 3, C4)
 signal terminado
 
 const SEG_POR_CASILLA: float = 0.08      ## s que tarda el frente en pasar de una casilla a la siguiente (PLAN §3)
@@ -73,6 +74,9 @@ void fragment() {
 
 ## Las vetas que hay en el mapa (casilla -> VetaPulso3D): solo el pulso las cuenta como conductor. Cada veta se apunta y se borra ella misma.
 static var vetas: Dictionary = {}
+## Los HUECOS DE ENLACE (fase 3, C2): casillas de una veta cortada que solo conducen mientras haya algo sólido encima (un bloque de tierra de un hechizo: `Terreno3D.altura_en`
+## ≥ 1). Casilla -> VetaPulso3D que la dibuja. Es el «bloque de enlace» de PLAN_PULSO_RESONANTE §4: un hechizo de tierra tiende el puente que la veta no tiene.
+static var enlaces: Dictionary = {}
 static var _shader_anillo: Shader = null
 
 var origenes: Array = []                 ## Vector2i de salida (el emisor)
@@ -99,7 +103,12 @@ var _acabado: bool = false
 
 ## ¿Conduce el pulso por esta casilla? La corriente de siempre (agua, nexo mojado…) o una veta.
 static func conduce_pulso(c: Vector2i) -> bool:
-	return Terreno3D.en_mapa(c) and (Terreno3D.conduce(c) or vetas.has(c))
+	return Terreno3D.en_mapa(c) and (Terreno3D.conduce(c) or vetas.has(c) or enlace_tendido(c))
+
+
+## ¿Es un hueco de enlace con su bloque puesto? (la tierra levantada encima lo vuelve conductor)
+static func enlace_tendido(c: Vector2i) -> bool:
+	return enlaces.has(c) and Terreno3D.altura_en(c) >= 1
 
 
 ## El color de un elemento («» o desconocido = el base).
@@ -229,6 +238,7 @@ func _disparar(p: int) -> void:
 		var c: Vector2i = e[0]
 		if bool(e[1]):
 			alcanzo.emit(c, p)
+			_aturdir_en(c)
 			# El origen (el cristal, la fuente) lo marca el anillo: una losa plana debajo del emisor sobra. Pero si el origen es un conductor que no es el emisor (la casilla de la que
 			# sale un prisma, la veta sobre la que se lanza un pulso) se enciende como las demás.
 			if dibujar and (p > 0 or (conduce_pulso(c) and (emisor == null or emisor.get("celda") != c))):
@@ -238,6 +248,21 @@ func _disparar(p: int) -> void:
 			llegado = n
 	if llegado != null and dibujar:
 		_sonar(TONO_LLEGA, llegado)              # el tono sube al llegar a algo que responde
+
+
+## Fase 3 (C4): una veta con `aturde` > 0 deja sin sentido, `aturde` s, al enemigo que esté EN esa casilla cuando el frente la alcanza (el pulso viaja por el suelo: lo que pisa la veta lo
+## nota). Lo que viene del suelo no lo para el escudo: no pasa por `on_spell_hit`.
+func _aturdir_en(c: Vector2i) -> void:
+	var vt: Variant = vetas.get(c, null)
+	if vt == null or not is_instance_valid(vt) or get_tree() == null:
+		return
+	var s: float = float((vt as Object).get("aturde"))
+	if s <= 0.0:
+		return
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if is_instance_valid(n) and n is Node3D and not bool(n.get("muerto")) and Terreno3D.celda_de((n as Node3D).global_position) == c and (n as Object).has_method("aturdir_pulso"):
+			(n as Object).call("aturdir_pulso", s)
+			aturdio.emit(n)
 
 
 ## Avisa a los pulsables de la casilla `c`. Devuelve el primero que respondió (null si ninguno): de él sale el tono de llegada.
@@ -273,6 +298,8 @@ func _sonar(tono: float, origen: Node) -> void:
 ## Una casilla conductora se ilumina: una veta lo hace ella misma (con su máscara); el agua y lo demás reciben una losa que se apaga.
 func _encender(c: Vector2i) -> void:
 	var v: Variant = vetas.get(c, null)
+	if v == null:
+		v = enlaces.get(c, null)                  # un hueco de enlace con su bloque puesto se enciende como una veta
 	if v != null and is_instance_valid(v):
 		(v as Object).call("encender", c, color)
 		return

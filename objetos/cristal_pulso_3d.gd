@@ -28,6 +28,9 @@ var alcance: int = Pulso3D.ALCANCE_DEFECTO
 var latidos: int = 0                    ## cuántos pulsos ha soltado (las pruebas)
 var destello: float = 0.0               ## 1 en el latido, baja a 0
 var ultimo: Pulso3D = null              ## el último pulso que soltó
+var nivel: String = ""                  ## el nivel (para la flag de la esquirla)
+var golpes_recibidos: int = 0           ## golpes de hechizo que lo hicieron latir
+var esquirla_dada: bool = false         ## ya soltó su esquirla (también con la flag puesta al montar)
 var _mundo: Node = null
 var _t: float = FASE_INICIAL
 var _enfriando: float = 0.0
@@ -60,6 +63,7 @@ func _ready() -> void:
 	forma.position = Vector3(0.0, ALTO_CUERPO * 0.5, 0.0)
 	add_child(forma)
 	_dibujar()
+	esquirla_dada = nivel != "" and Flags.i().tiene(flag_esquirla())
 	set_process(true)
 
 
@@ -111,7 +115,26 @@ func _exit_tree() -> void:
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	latir(Objetos.elemento_de(rune_data))
+	if latir(Objetos.elemento_de(rune_data)) != null:
+		_contar_golpe()
+
+
+## Fase 3 (docs/MATERIALES_CUEVA.md): el cristal resonante suelta una ESQUIRLA a los 2 golpes de hechizo (`Objetos.mineral_de("cristal_resonante", "golpe")`), una vez por cristal. Cuentan
+## los golpes que lo hacen latir (los que caen en su enfriamiento no).
+func _contar_golpe() -> void:
+	golpes_recibidos += 1
+	var hace_falta: int = int((Objetos.MINERALES.get("cristal_resonante", {}) as Dictionary).get("golpes", 2))
+	if esquirla_dada or golpes_recibidos < hace_falta:
+		return
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+	if MineralPulso.dar(lanz, Objetos.mineral_de("cristal_resonante", "golpe"), self) != "":
+		esquirla_dada = true
+		Flags.i().poner(flag_esquirla())
+
+
+## La flag de la esquirla: `<nivel>.mineral.<id>` (como la de la veta y la de los rompibles).
+func flag_esquirla() -> String:
+	return "%s.mineral.%s" % [Rompible3D._limpio(nivel), Rompible3D._limpio(String(name))]
 
 
 func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:

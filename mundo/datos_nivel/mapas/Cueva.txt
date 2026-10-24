@@ -1,12 +1,12 @@
 ###########################
-#........#...RR...#.......#
-#........#...RR...#.......#
-#........#...RR...#...W...#
+#...#....#...RR.#.#.......#
+#........#...RR.#.#.......#
+####.....#...RR...#...W...#
 #............RR...........#
-#........#...RR...#.......#
-#........#...RR...#.....W.#
-#........#...RR...#.......#
-#........#...RR...#.......#
+#.-......#...RR...#.......#
+#.-......#...RR...#.....W.#
+#cc......#...RR...#.......#
+#cc......#...RR...#.......#
 ####.#################.####
 ####.#################.####
 #........#........#.......#
@@ -17,19 +17,26 @@
 #...................~~~~~.#
 #...S....#........#.......#
 #........#........#.......#
+#######.###################
+#####.....#################
+#####.....#################
+#####.....#################
+#####.....#################
 ###########################
-###########################
-; La Cueva (23/10). Mazmorra pequeña del enfoque CERRADO: docs/PLAN_BOSQUE_EOW.md §6. 27 × 21; seis salas de 8 × 8 en dos filas.
+; La Cueva (23/10). Mazmorra pequeña del enfoque CERRADO: docs/PLAN_BOSQUE_EOW.md §6. 27 × 25; seis salas de 8 × 8 en dos filas y, bajo C1, el nicho de las estatuas (24/10).
 ; La lee PruebaTest2 (nivel = "Cueva", estilo = "cueva"): las paredes «#» salen del kit de cueva según sus vecinas (_pared_cueva).
-; R = basalto (bajo la lava) · ~ = charca · e = fuente eléctrica · T = brasero · W = goblin · S = inicio.
+; R = basalto (bajo la lava) · ~ = charca · e = fuente eléctrica · T = brasero · W = goblin · S = inicio · - = canal (C2, la cascada) · c = pozo (C2, la charca de la cascada).
 ; --- zonas (Zonas3D) ---
 ; Mazmorra: la luz cambia deprisa al cruzar cada umbral (`mezcla=0.8`, ≤ 1 s como en EoW); C1 saca su rótulo la primera vez que se entra.
-; zona 1,11..8,18 cueva mezcla=0.8 rotulo=La_Cueva
+; 24/10: todas las salas llevan la MISMA base azul (la Cueva iluminada en azul); cada una conserva su carácter en las variantes `cueva_*` de LuzZona3D (antes usaban `fuego`, `atardecer`, `hielo` y `ruinas`).
+; (la zona de C1 llega hasta la fila 23: incluye el nicho de las estatuas, bajo la pared sur)
+; zona 1,11..9,23 cueva mezcla=0.8 rotulo=La_Cueva
 ; zona 1,1..8,8 cueva mezcla=0.8
-; zona 10,1..17,8 fuego mezcla=0.8
-; zona 19,1..25,8 atardecer mezcla=0.8
-; zona 19,11..25,18 hielo mezcla=0.8
-; zona 10,11..17,18 ruinas mezcla=0.8
+; (`nombre=` conserva el nombre de siempre de cada sala —fuego, atardecer, hielo, ruinas—: es el que usan el diario y el botín de los jarrones, aunque su luz sea la variante azul)
+; zona 10,1..17,8 cueva_lava mezcla=0.8 nombre=fuego
+; zona 19,1..25,8 cueva_goblin mezcla=0.8 nombre=atardecer
+; zona 19,11..25,18 cueva_hielo mezcla=0.8 nombre=hielo
+; zona 10,11..17,18 cueva_ruinas mezcla=0.8 nombre=ruinas
 ; --- Conexión con el Bosque (23/10, transición entre niveles): se entra por `desde_bosque` (la casilla de inicio, mirando al interior) y se vuelve pisando la boca, justo debajo ---
 ; La boca del Bosque 01 v01 se llama `boca_cueva`: si ese nivel aún no existe, pisar la salida avisa y no pasa nada.
 ; pieza desde_bosque entrada 4 17
@@ -41,19 +48,49 @@
 ; pieza jarron_c6a jarron 17 11 botin=oro
 ; pieza jarron_c6b jarron 10 12 alto=si botin=oro
 ; --- C1 · Boca: los dos braseros abren el paso al norte ---
+; 24/10: `luz=2.4`: en la Cueva, casi a oscuras, la llama de un brasero tiene que alumbrar de verdad (cálida, por encima del azul de reposo).
+; pieza br_c1a brasero 2 12 luz=2.4
+; pieza br_c1b brasero 7 12 luz=2.4
 ; pieza luces contador 4 13 de=2,12+7,12
 ; pieza paso_norte puerta 4 10 modelo=llave
 ; puzle abre_norte cuando=luces.todos hace=paso_norte.abrir
-; pieza seta_c1a seta 1 15
-; pieza seta_c1b seta 1 16
-; pieza seta_c1c seta 2 16
+; Las setas de C1 MADURAN con el pulso (fase 3): la veta del cristal las toca y cada latido las hace brillar; la que no haya tocado un elemento pasa a dar `seta_resonante`.
+; pieza seta_c1a seta 1 15 madura=si
+; pieza seta_c1b seta 1 14 madura=si
+; pieza seta_c1c seta 2 16 madura=si
 ; El pulso resonante, fase 1 (PLAN_PULSO_RESONANTE §5): un cristal late cada 3 s y su pulso recorre la veta hasta los braseros y las setas. No hay puzle: se VE.
+; Fase 3: un hechizo de FUEGO sobre el cristal manda un pulso de fuego que llega al brasero del fondo de la veta (2,12) y lo enciende; el cristal da una esquirla a los 2 golpes.
 ; pieza latido_c1 cristal 6 15 cada=3
 ; pieza veta_c1 veta 5 15 celdas=5,15..2,15+2,14..2,13
+; --- C1 · El secreto de las estatuas (fase 3, PLAN_PULSO_RESONANTE §5): bajo la pared sur, una PARED HUECA que solo abre el pulso del jugador (ᚱ). Dentro, tres estatuas piden fuego, hielo, fuego ---
+; (con el pulso del escenario la pared solo hace eco; el nicho está bajo C1 para que se llegue tras el atajo de C6, que sale justo en C1)
+; pieza hueca_c1 pared_hueca 7 19 flag=cueva.c1.nicho mira=n
+; Tres losas de veta a los pies de las estatuas: se ve dónde ponerse. Cada pulso, desde su losa, solo toca a SU estatua (están a dos casillas una de otra).
+; pieza pad_c1a veta 5 22
+; pieza pad_c1b veta 7 22
+; pieza pad_c1c veta 9 22
+; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,hielo,fuego flag=cueva.c1.estatuas
+; El cofre ÉPICO aparece al cumplir la secuencia y da el núcleo de eco (docs/MATERIALES_CUEVA.md): echa una columna de luz morada mientras está cerrado.
+; pieza cofre_epico cofre 8 21 modelo=epico aparece_si=flag.cueva.c1.estatuas abierto=cueva.c1.epico da=nucleo_eco:1
 ; --- C2 · Las grietas ---
 ; pieza grieta muro 9 4 golpes=2
 ; pieza seta_c2a seta 7 8
 ; pieza seta_c2b seta 8 8
+; Fase 3 (PLAN_PULSO_RESONANTE §5): un cristal late cada 4 s y su veta se CORTA en (4,3). Un hechizo de TIERRA levanta un bloque ahí y el bloque hace de ENLACE: el pulso pasa y toca la COLUMNA
+; AGRIETADA (4,2) que tapa un nicho; dos pulsos la tumban y dejan el paso al cofre (poción y oro). La veta de arriba a la derecha (7,1..7,3) suelta un mineral con un hechizo de tierra.
+; (las paredes (1..3,3) y (4,1) cierran el nicho (1..3,1..2): la columna es su única entrada)
+; pieza latido_c2 cristal 7 4 cada=4
+; pieza veta_c2 veta 6 4 celdas=6,4..4,4 enlaces=4,3
+; pieza filon_c2 veta 7 3 celdas=7,3..7,1 mineral=si
+; pieza columna_c2 columna 4 2 golpes=2 cae=e
+; pieza cofre_c2 cofre 1 1 abierto=cueva.c2.cofre da=pocion:1+oro:15
+; La CASCADA de C2 (fase 3): un manantial en un canal de piedra, a ras de suelo, cae a un pozo 1 u más bajo (la charca) y se queda a ~0,4 de hondo gracias a un desagüe. Todo escrito con letras:
+; el canal `-` (giro 90: norte-sur), el pozo `c` y las piezas manantial y cuenca.
+; giro 2 5 90
+; giro 2 6 90
+; pieza pozo_c2 cuenca 1 7 celdas=1,7..2,8
+; pieza desague_c2 cuenca 1 8 fijo=0.4
+; pieza manantial_c2 manantial 2 5 caudal=0.5 celdas=2,5..2,6 rampa=no
 ; --- C3 · Río de lava (vuelve a ser lava a los 10 s) ---
 ; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10
 ; Materiales (docs/MATERIALES_CUEVA.md): el basalto SOLO está sobre la roca recién enfriada (casilla(x,y).roca) y desaparece si la lava vuelve; las setas son para empaparlas (agua).
@@ -61,12 +98,30 @@
 ; pieza basalto_c3b basalto 14 6 coge_si=casilla(14,6).roca
 ; pieza seta_c3a seta 11 3
 ; pieza seta_c3b seta 11 6
+; Fase 3 (PLAN_PULSO_RESONANTE §5): la lava NO conduce el pulso, pero el BASALTO enfriado sí, mientras dura. Un cristal (11,5) late a un lado del río y su veta (12,5) llega a la orilla; al otro lado
+; otra veta (15,5) lleva al receptor (16,5). Enfriar la lava de la fila 5 (agua) tiende el puente de roca y el pulso cruza; el receptor baja la reja del rincón (17,3) y deja ver el cofre común.
+; Contrarreloj doble: la roca vuelve a ser lava a los 10 s y el pulso solo cruza mientras dura.
+; (las paredes (16,1) y (16,2) cierran el rincón (17,1..2))
+; pieza latido_c3 cristal 11 5 cada=3
+; pieza veta_c3_oeste veta 12 5
+; pieza veta_c3_este veta 15 5
+; pieza receptor_c3 receptor 16 5 flag=cueva.c3.pulso
+; pieza reja_c3 puerta 17 3
+; pieza cofre_c3 cofre 17 1 abierto=cueva.c3.cofre da=oro:25+mineral_veta:1
+; puzle abre_reja cuando=receptor_c3.activado hace=reja_c3.abrir
 ; --- C4 · Sala cerrada: cofre con la llave ---
 ; `hasta=` : con la sala ya limpia (se volvió de otro nivel) ni se cierra ni se quedan los goblins (el vigía los retira al montar).
 ; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8 hasta=cueva.c4.limpia
 ; pieza guardia vigia 19 1 de=19,1..25,8 flag=cueva.c4.limpia
 ; pieza cofre_llave cofre 22 5 aparece_si=flag.cueva.c4.limpia abierto=cueva.c4.llave
 ; puzle abre_c4 cuando=guardia.todos_derrotados hace=entrada_c4.abrir
+; Fase 3 (PLAN_PULSO_RESONANTE §5): dos cristales resonantes (golpéalos con cualquier hechizo) mandan un pulso por las vetas del suelo que ATURDE `aturde=` s a quien las pisa (un goblin encima
+; de la veta queda sin sentido; el pulso viaja por el suelo y no lo para el escudo). Ayuda en el combate, no obliga: los goblins se derrotan igual a flechazos. Dos golpes dan una esquirla;
+; la veta del fondo suelta un mineral con tierra (docs/MATERIALES_CUEVA.md, C4).
+; pieza cris_c4a cristal 20 2 cada=0
+; pieza veta_c4a veta 21 2 celdas=21,2..24,2+24,3..24,4 aturde=3
+; pieza cris_c4b cristal 24 7 cada=0
+; pieza veta_c4b veta 23 7 celdas=23,7..20,7+20,6..20,4 aturde=3 mineral=si
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
 ; Materiales: las algas del lecho solo se ven (y se cogen) con la charca HELADA; las setas de la orilla son para electrificarlas (rayo) y helarlas.
 ; pieza alga_c5a alga 21 14 coge_si=casilla(21,14).helada
@@ -88,7 +143,7 @@
 ; pieza veta_c6_norte veta 15 15 celdas=15,15..15,13
 ; pieza veta_c6_oeste veta 14 16 celdas=14,16..10,16
 ; El receptor de C6: la veta del prisma acaba junto a él. Al activarse pone la flag que DESELLA el cofre legendario (abre_si): el cofre se abre con E, da el glifo ᚱ «pulso» (flag cueva.c6.glifo)
-; y lo desbloquea en el libro con la secuencia de PLAN_PULSO_RESONANTE §8.
+; y lo desbloquea en el libro con la secuencia de PLAN_PULSO_RESONANTE §8. Mientras está cerrado echa una columna de luz dorada (VfxCalidad3D), visible desde la puerta.
 ; pieza ante_cofre receptor 14 13 flag=cueva.c6.pulso
 ; pieza tesoro cofre 13 13 modelo=legendario abre_si=flag.cueva.c6.pulso abierto=cueva.c6.glifo glifo=raido
 ; La salida de C6 (el atajo a la boca) es ahora una PARED HUECA: suena con cualquier pulso (la veta oeste lleva hasta ella) y solo se abre con el pulso del jugador (ᚱ). Sin pulsador de reserva.

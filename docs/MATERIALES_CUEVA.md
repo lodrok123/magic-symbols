@@ -131,10 +131,17 @@ En una sola pasada, sin glifo, salen unos **10 comunes distintos**. Al volver co
 
 C1, C2 y C6 ya tenían sus setas.
 
+### Hecho el 24/10 (fase 3 del pulso, Cueva jugable)
+
+- `seta_resonante`: las tres setas de C1 junto a la veta del cristal (`madura=si`) maduran con el pulso y se cogen como seta resonante.
+- `esquirla_cristal`: un cristal resonante golpeado dos veces (C1, C4) la da a la bolsa (`CristalPulso3D`, una vez por cristal); los jarrones de la Cueva ya la daban por zona.
+- `mineral_veta`: tierra sobre una veta con `mineral=si` (filón de C2, veta de C4) y el cofre de C3; una vez por veta (flag `<nivel>.mineral.<id>`).
+- `nucleo_eco`: cofre ÉPICO tras las estatuas de C1 (`cueva.c1.estatuas`); `Objetos.mineral_de` ya se llama.
+- Cofres comunes de C2 (poción y 15 de oro) y C3 (25 de oro y un mineral).
+
 ### Pendiente (fase 3 del pulso y siguientes)
 
-- `seta_resonante` (la seta madura con el pulso, C1), `mineral_veta` (veta + tierra, C2 y C4), `esquirla_cristal` (cristal resonante a
-  golpes, C1 y C4; jarrón roto): faltan los reactivos de pulso y el jarrón roto; llamar a `Objetos.mineral_de`.
+- (hechos el 24/10, ver arriba) `seta_resonante`, `mineral_veta`, `esquirla_cristal`.
 - Los dos épicos: el cofre épico tras las estatuas de C1 y la pared hueca de C3 (fase 3), y qué mejora al personaje da cada uno.
 - El oro de los jarrones de C1 y C6 y la llave en la bolsa (`cueva.c4.llave` sigue siendo solo una flag).
 - Arte 3D propio del alga, el basalto suelto y el cristal resonante (hoy piezas del decorado teñidas).

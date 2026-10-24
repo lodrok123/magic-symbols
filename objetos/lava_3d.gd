@@ -219,6 +219,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	for c in _roca:
+		Terreno3D.conductores.erase(c)
 	if Mundo3D.actual != null and Mundo3D.actual.impacto.is_connected(_al_impacto):
 		Mundo3D.actual.impacto.disconnect(_al_impacto)
 
@@ -302,6 +304,7 @@ func _al_impacto(punto: Vector3, elemento: String, radio: float) -> void:
 func _enfriar(c: Vector2i) -> void:
 	_lava.erase(c)
 	_roca[c] = T_ENFRIAR
+	Terreno3D.conductores[c] = true         # fase 3 del Pulso (C3): la lava no conduce, pero el BASALTO enfriado sí, mientras dura (PLAN_PULSO_RESONANTE §5)
 	_pixel(c)
 	Terreno3D.liberar_celda(c)
 	if _formas.has(c):
@@ -315,6 +318,7 @@ func _enfriar(c: Vector2i) -> void:
 
 func _fundir(c: Vector2i) -> void:
 	_roca.erase(c)
+	Terreno3D.conductores.erase(c)          # vuelve a ser lava: deja de conducir
 	_lava[c] = true
 	is_lit = true
 	_pixel(c)

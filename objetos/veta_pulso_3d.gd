@@ -11,7 +11,12 @@ extends Node3D
 ## HILO GUÍA: la textura es una red de grietas al azar que no recorre una casilla de un lado a otro, y un camino de 5 losas no se leería como camino. Cada losa dibuja además un
 ## HILO fino del centro hacia cada lado con una veta vecina (de esta pieza o de otra). Es un añadido de esta fase, no sale de la textura: se quita con `HILO = 0`.
 ##
-## Se coloca desde un mapa con `; pieza <id> veta <x> <y> celdas=<lista>` (escenas/puzle.gd). `x y` es una referencia (se suele poner la primera casilla).
+## FASE 3 (24/10; PLAN_PULSO_RESONANTE §5 y §12.3). Tres añadidos, todos opcionales y por clave del mapa:
+##   `enlaces=<lista>`  HUECOS de la veta (C2): casillas que se dibujan apagadas y solo conducen mientras haya un bloque de tierra encima (`Pulso3D.enlaces`, «bloque de enlace»).
+##   `aturde=<s>`       el frente deja sin sentido `s` s al enemigo que pisa la veta (C4; `Pulso3D._aturdir_en`).
+##   `mineral=si`       la veta es un REACTIVO de tierra: un hechizo de tierra suelta un trozo (`Objetos.mineral_de("veta", "tierra")` = mineral_veta), una vez por veta (flag `<nivel>.mineral.<id>`).
+##
+## Se coloca desde un mapa con `; pieza <id> veta <x> <y> celdas=<lista> [enlaces=<lista>] [aturde=<s>] [mineral=si]` (escenas/puzle.gd). `x y` es una referencia (se suele poner la primera casilla).
 
 const RUTA_VETA: String = "res://arte/suelo_meshy/veta_mineral.png"
 const RUTA_MASCARA: String = "res://arte/suelo_meshy/veta_mineral_mascara.png"
@@ -87,20 +92,42 @@ void fragment() {
 
 static var _shader: Shader = null
 
+## Un hueco de enlace sin bloque: la losa se ve rota (casi transparente) para que se lea «aquí falta un trozo».
+const ALFA_HUECO: float = 0.3
+const EMISION_HUECO: float = 0.05
+## El mineral que suelta la veta con tierra (fase 3): cuántos golpes de tierra hacen falta lo dice `Objetos.MINERALES`.
+const CADA_MINERAL: float = 0.2          ## s entre dos miradas a si hay tierra sobre la veta
+const RUNA_TIERRA: String = "res://nucleo/earth_rune.tres"
+
 var celdas: Array = []                   ## Vector2i: las casillas de esta veta
+var enlaces: Array = []                  ## Vector2i: los huecos (solo conducen con un bloque de tierra encima)
+var aturde: float = 0.0                  ## s que aturde a quien pisa la veta cuando pasa el frente
+var mineral: bool = false                ## ¿suelta un trozo con un hechizo de tierra?
+var nivel: String = ""                   ## el nivel (para la flag del trozo)
+var trozo_dado: bool = false             ## ya soltó su trozo (también con la flag puesta al montar)
+var golpes_tierra: int = 0
 var _losas: Dictionary = {}              ## casilla -> MeshInstance3D
 var _mats: Dictionary = {}               ## casilla -> ShaderMaterial
 var _vivas: Dictionary = {}              ## casilla -> [edad, color]: las que el frente ha tocado hace poco
+var _t_mineral: float = 0.0
 
 
-func preparar(p_celdas: Array) -> void:
+func preparar(p_celdas: Array, p_enlaces: Array = [], p_aturde: float = 0.0, p_mineral: bool = false, p_nivel: String = "") -> void:
 	celdas = p_celdas
+	enlaces = p_enlaces
+	aturde = maxf(p_aturde, 0.0)
+	mineral = p_mineral
+	nivel = p_nivel
 
 
 func _ready() -> void:
 	for c in celdas:
 		Pulso3D.vetas[c] = self
+	for c in enlaces:
+		Pulso3D.enlaces[c] = self
 	_dibujar()
+	if mineral:
+		trozo_dado = Flags.i().tiene(flag_mineral())
 	call_deferred("_refrescar_hilos")        # ya están todas las piezas del mapa: se ven las vetas vecinas de otras piezas
 	set_process(true)
 
@@ -109,6 +136,46 @@ func _exit_tree() -> void:
 	for c in celdas:
 		if Pulso3D.vetas.get(c, null) == self:
 			Pulso3D.vetas.erase(c)
+	for c in enlaces:
+		if Pulso3D.enlaces.get(c, null) == self:
+			Pulso3D.enlaces.erase(c)
+
+
+## La flag del trozo: `<nivel>.mineral.<id>` (como la de los rompibles).
+func flag_mineral() -> String:
+	return "%s.mineral.%s" % [Rompible3D._limpio(nivel), Rompible3D._limpio(String(name))]
+
+
+## Cada CADA_MINERAL s mira si hay tierra levantada sobre alguna casilla de la veta (el bloque que deja un hechizo de tierra al caer encima): esa es la forma de «tierra a una veta». No usa un reactivo de
+## colisión: uno a ras de suelo no lo alcanza una flecha que sale de la mano (la altura de salida cambia) y uno alto detiene los flechazos que la cruzan (HechizoVivo cuenta el golpe aunque no reaccione).
+func _mirar_tierra(delta: float) -> void:
+	_t_mineral -= delta
+	if _t_mineral > 0.0 or trozo_dado:
+		return
+	_t_mineral = CADA_MINERAL
+	for c in celdas:
+		if Terreno3D.altura_en(c as Vector2i) >= 1:
+			picar(load(RUNA_TIERRA) as RuneData)
+			return
+
+
+## Un hechizo de tierra pica la veta. Devuelve el material que soltó ("" si no soltó nada).
+func picar(rune: RuneData) -> String:
+	if rune == null or not rune.tags.has("tierra") or trozo_dado:
+		return ""
+	golpes_tierra += 1
+	var da: String = Objetos.mineral_de("veta", "tierra")
+	var hace_falta: int = int((Objetos.MINERALES.get("veta", {}) as Dictionary).get("golpes", 1))
+	if da == "" or golpes_tierra < hace_falta:
+		return ""
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+	var id: String = MineralPulso.dar(lanz, da, self)
+	if id != "":
+		trozo_dado = true
+		Flags.i().poner(flag_mineral())
+	return id
+
+
 
 
 func _dibujar() -> void:
@@ -122,7 +189,8 @@ func _dibujar() -> void:
 	var q := QuadMesh.new()
 	q.orientation = PlaneMesh.FACE_Y
 	q.size = Vector2(Terreno3D.casilla, Terreno3D.casilla)
-	for c in celdas:
+	for c in celdas + enlaces:
+		var hueco: bool = enlaces.has(c)
 		var m := ShaderMaterial.new()
 		m.shader = _shader
 		if t_veta != null:
@@ -132,10 +200,10 @@ func _dibujar() -> void:
 		m.set_shader_parameter("tam_tex", TAM_TEX)
 		m.set_shader_parameter("lado", Terreno3D.casilla)
 		m.set_shader_parameter("reposo", REPOSO)
-		m.set_shader_parameter("alfa_reposo", ALFA_REPOSO)
+		m.set_shader_parameter("alfa_reposo", ALFA_HUECO if hueco else ALFA_REPOSO)
 		m.set_shader_parameter("emision", EMISION)
 		m.set_shader_parameter("color_reposo", BrilloPulso3D.COLOR_REPOSO)
-		m.set_shader_parameter("emision_reposo", EMISION_REPOSO)
+		m.set_shader_parameter("emision_reposo", EMISION_HUECO if hueco else EMISION_REPOSO)
 		m.set_shader_parameter("hilo", HILO)
 		m.set_shader_parameter("hilo_reposo", HILO_REPOSO)
 		m.set_shader_parameter("hilo_ancho", HILO_ANCHO)
@@ -159,16 +227,21 @@ func _refrescar_hilos() -> void:
 	for c in _mats:
 		var v := Vector4(0.0, 0.0, 0.0, 0.0)
 		var cc: Vector2i = c
-		v.x = 1.0 if Pulso3D.vetas.has(cc + Vector2i(0, -1)) else 0.0
-		v.y = 1.0 if Pulso3D.vetas.has(cc + Vector2i(1, 0)) else 0.0
-		v.z = 1.0 if Pulso3D.vetas.has(cc + Vector2i(0, 1)) else 0.0
-		v.w = 1.0 if Pulso3D.vetas.has(cc + Vector2i(-1, 0)) else 0.0
+		v.x = 1.0 if _hay_veta(cc + Vector2i(0, -1)) else 0.0
+		v.y = 1.0 if _hay_veta(cc + Vector2i(1, 0)) else 0.0
+		v.z = 1.0 if _hay_veta(cc + Vector2i(0, 1)) else 0.0
+		v.w = 1.0 if _hay_veta(cc + Vector2i(-1, 0)) else 0.0
 		(_mats[c] as ShaderMaterial).set_shader_parameter("conex", v)
+
+
+## ¿Hay veta (o hueco de enlace, que la continúa) en esa casilla? Para dibujar los hilos entre vecinas.
+func _hay_veta(c: Vector2i) -> bool:
+	return Pulso3D.vetas.has(c) or Pulso3D.enlaces.has(c)
 
 
 ## El frente llega a la casilla `c`: se enciende con el color del pulso y se apaga detrás.
 func encender(c: Vector2i, color: Color) -> void:
-	if not celdas.has(c):
+	if not celdas.has(c) and not enlaces.has(c):
 		return
 	_vivas[c] = [0.0, color]
 	_poner(c, 0.0, color)
@@ -188,6 +261,19 @@ func color_en(c: Vector2i) -> Color:
 	return Pulso3D.COLOR_BASE
 
 
+## Los huecos de enlace: con el bloque de tierra puesto la losa se sube a su cara de arriba (`y_pies` cuenta la tierra levantada) y se ve entera, para que se vea pasar el frente; sin él, a ras y rota.
+func _seguir_enlaces() -> void:
+	for c in enlaces:
+		var losa: Node3D = _losas.get(c, null)
+		if losa == null:
+			continue
+		var tendido: bool = Pulso3D.enlace_tendido(c)
+		losa.global_position = Terreno3D.centro_de(c as Vector2i, Terreno3D.y_pies(c as Vector2i) + ALTO_SOBRE_SUELO)
+		var m: ShaderMaterial = _mats[c] as ShaderMaterial
+		m.set_shader_parameter("alfa_reposo", ALFA_REPOSO if tendido else ALFA_HUECO)
+		m.set_shader_parameter("emision_reposo", EMISION_REPOSO if tendido else EMISION_HUECO)
+
+
 ## 0 → 1 en ATAQUE s y de 1 → 0 en T_BRILLO s.
 static func _curva(edad: float) -> float:
 	if edad < ATAQUE:
@@ -204,6 +290,9 @@ func _poner(c: Vector2i, edad: float, color: Color) -> void:
 
 
 func _process(delta: float) -> void:
+	_seguir_enlaces()
+	if mineral:
+		_mirar_tierra(delta)
 	for c in _vivas.keys():
 		var e: Array = _vivas[c]
 		e[0] = float(e[0]) + delta
