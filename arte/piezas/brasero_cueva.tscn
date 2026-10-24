@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/brasero_cueva.glb" id="1_sneu6"]
+
+[node name="brasero_cueva" type="Node3D" unique_id=1209643695]
+metadata/id = "brasero_cueva"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1221735672]
+
+[node name="brasero_cueva2" type="Node3D" parent="modelo" unique_id=959588660 instance=ExtResource("1_sneu6")]
+transform = Transform3D(8.69434, 0, 0, 0, 8.69434, 0, 0, 0, 8.69434, 0, 0, 0)

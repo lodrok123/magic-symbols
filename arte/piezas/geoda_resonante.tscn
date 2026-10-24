@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/geoda_resonante.glb" id="1_4x5yf"]
+
+[node name="geoda_resonante" type="Node3D" unique_id=33267546]
+metadata/id = "geoda_resonante"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=956907509]
+
+[node name="geoda_resonante2" type="Node3D" parent="modelo" unique_id=762851327 instance=ExtResource("1_4x5yf")]
+transform = Transform3D(5.645311, 0, 0, 0, 5.645311, 0, 0, 0, 5.645311, 0, 0, 0)

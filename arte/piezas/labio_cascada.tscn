@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/labio_cascada.glb" id="1_xcuyv"]
+
+[node name="labio_cascada" type="Node3D" unique_id=906313248]
+metadata/id = "labio_cascada"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=2137590275]
+
+[node name="labio_cascada2" type="Node3D" parent="modelo" unique_id=1628933850 instance=ExtResource("1_xcuyv")]
+transform = Transform3D(9.2381935, 0, 0, 0, 9.2381935, 0, 0, 0, 9.2381935, 0, 0, 0)

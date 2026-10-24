@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/musgo_colgante.glb" id="1_q0gcx"]
+
+[node name="musgo_colgante" type="Node3D" unique_id=1107892958]
+metadata/id = "musgo_colgante"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=2036648647]
+
+[node name="musgo_colgante2" type="Node3D" parent="modelo" unique_id=1985835655 instance=ExtResource("1_q0gcx")]
+transform = Transform3D(4.1563106, 0, 0, 0, 4.1563106, 0, 0, 0, 4.1563106, 0, 0, 0)

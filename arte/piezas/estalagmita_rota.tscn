@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/estalagmita_rota.glb" id="1_x1dxu"]
+
+[node name="estalagmita_rota" type="Node3D" unique_id=2107854104]
+metadata/id = "estalagmita_rota"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=395930063]
+
+[node name="estalagmita_rota2" type="Node3D" parent="modelo" unique_id=2104752580 instance=ExtResource("1_x1dxu")]
+transform = Transform3D(6.4503937, 0, 0, 0, 6.4503937, 0, 0, 0, 6.4503937, 0, 0, 0)

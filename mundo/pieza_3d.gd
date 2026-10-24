@@ -75,6 +75,10 @@ const MEDIDA: Dictionary = {
 	# 23/10 · hoja «pulso» (docs/PLAN_PULSO_RESONANTE.md §4; PROMPTS_CUEVA D1). Altura del prompt, salvo el cristal (1,6 → 1,5) y la estatua (1,8 → 1,7):
 	# el modelo sale más ancho que lo pedido (peana de rocas) y a la altura del prompt ocuparían 1,3 de planta. El bloque de enlace va por ancho (MEDIDA_ANCHO).
 	"cristal_resonante": 1.5, "prisma_orientable": 1.2, "receptor_runico": 1.1, "estatua_piedra": 1.7, "columna_agrietada": 2.5,
+	# 24/10 · tercera tanda (arte/meshy/PROMPTS_TERCERA_TANDA.md, hoja «ruinas_piedra»): alto del prompt. El labio de la cascada va por ancho.
+	"pilar_cascada": 3.1, "pilar_cascada_ancho": 3.1, "rocas_salpicadura": 0.6, "musgo_colgante": 0.9, "helechos_cueva": 0.6,
+	"geoda_resonante": 1.0, "estalagmita_resonante": 1.8, "estalagmita_rota": 0.7, "brasero_cueva": 0.9,
+	"alga_cueva": 0.5, "basalto_suelto": 0.35, "esquirla_cristal": 0.3, "jarron_roto": 0.35,     # el alga salió de pie (se pidió tumbada): 0,5 de alto
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
@@ -87,6 +91,7 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 	# Algo más que una casilla (× 1,12): el modelo encaja por su lado MAYOR, así que el otro queda corto y entre dos paredes se abría un hueco.
 	"cueva_pared": S * 1.12, "cueva_esquina_ext": S * 1.12, "cueva_esquina_int": S * 1.12, "cueva_pared_baja": S * 1.12, "muro_ruina": S,
 	"muro_agrietado": S * 0.96, "boca_cueva": S * 2.0, "llave_pequena": 0.35,
+	"labio_cascada": S,      # 24/10: el borde de la cornisa de la cascada, una casilla de largo
 		# 23/10 · hoja «recompensas» (PROMPTS_CUEVA D2): por ancho del prompt (el alto sale de la proporción del modelo: 1,28 y 0,8). La placa, 1,8 × 1,8.
 		"cofre_legendario": 1.6, "cofre_epico": 1.1, "placa_presion_cueva": 1.8,
 		"bloque_enlace": 1.0,    # 23/10: pulso. El prompt pedía un cubo de 1,0; el modelo es una losa (1,0 × 0,7 × 1,0), así que se mide por ancho

@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/pilar_cascada.glb" id="1_dni0i"]
+
+[node name="pilar_cascada" type="Node3D" unique_id=544230233]
+metadata/id = "pilar_cascada"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1143947634]
+
+[node name="pilar_cascada2" type="Node3D" parent="modelo" unique_id=575817959 instance=ExtResource("1_dni0i")]
+transform = Transform3D(8.831055, 0, 0, 0, 8.831055, 0, 0, 0, 8.831055, 0, 0, 0)

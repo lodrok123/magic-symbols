@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/jarron_roto.glb" id="1_cayus"]
+
+[node name="jarron_roto" type="Node3D" unique_id=2137623901]
+metadata/id = "jarron_roto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=764568633]
+
+[node name="jarron_roto2" type="Node3D" parent="modelo" unique_id=1051255664 instance=ExtResource("1_cayus")]
+transform = Transform3D(4.5090623, 0, 0, 0, 4.5090623, 0, 0, 0, 4.5090623, 0, 0, 0)

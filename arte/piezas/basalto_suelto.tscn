@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/basalto_suelto.glb" id="1_6uptv"]
+
+[node name="basalto_suelto" type="Node3D" unique_id=310355986]
+metadata/id = "basalto_suelto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=2127463217]
+
+[node name="basalto_suelto2" type="Node3D" parent="modelo" unique_id=50062671 instance=ExtResource("1_6uptv")]
+transform = Transform3D(5.475674, 0, 0, 0, 5.475674, 0, 0, 0, 5.475674, 0, 0, 0)

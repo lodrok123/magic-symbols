@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/rocas_salpicadura.glb" id="1_elnie"]
+
+[node name="rocas_salpicadura" type="Node3D" unique_id=1636937690]
+metadata/id = "rocas_salpicadura"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=898242328]
+
+[node name="rocas_salpicadura2" type="Node3D" parent="modelo" unique_id=693311991 instance=ExtResource("1_elnie")]
+transform = Transform3D(6.230398, 0, 0, 0, 6.230398, 0, 0, 0, 6.230398, 0, 0, 0)

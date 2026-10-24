@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/alga_cueva.glb" id="1_0gp3e"]
+
+[node name="alga_cueva" type="Node3D" unique_id=1661975970]
+metadata/id = "alga_cueva"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1825799332]
+
+[node name="alga_cueva2" type="Node3D" parent="modelo" unique_id=1272907969 instance=ExtResource("1_0gp3e")]
+transform = Transform3D(3.374439, 0, 0, 0, 3.374439, 0, 0, 0, 3.374439, 0, 0, 0)

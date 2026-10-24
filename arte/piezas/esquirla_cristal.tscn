@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/esquirla_cristal.glb" id="1_lfibt"]
+
+[node name="esquirla_cristal" type="Node3D" unique_id=2049261370]
+metadata/id = "esquirla_cristal"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=115535695]
+
+[node name="esquirla_cristal2" type="Node3D" parent="modelo" unique_id=514336467 instance=ExtResource("1_lfibt")]
+transform = Transform3D(3.5463204, 0, 0, 0, 3.5463204, 0, 0, 0, 3.5463204, 0, 0, 0)
