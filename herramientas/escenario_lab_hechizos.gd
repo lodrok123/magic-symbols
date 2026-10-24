@@ -10,9 +10,9 @@ const RUTA_LAB: String = "res://laboratorios/LabHechizos3D.tscn"
 const SEMIEJE_TIERRA_LAB: float = 0.7      ## semieje en X y Z del bloque de tierra de la prueba 10 (con la base 0,25 y paso 0,15 eran 3 glifos de cada, el límite del lab)
 
 
-## Los glifos de un eje que hacen falta para llegar a `semieje` casillas con la base y el paso de hoy.
-func _glifos_hasta(semieje: float) -> int:
-	return ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)
+## Los glifos de un eje que hacen falta para llegar a `semieje` casillas con la base y el paso de ESE eje (`Sigils.PASO_ANCHO_V2`, `PASO_FONDO_V2` o `PASO_ALTURA_V2`).
+func _glifos_hasta(semieje: float, paso: float) -> int:
+	return ceili((semieje - Sigils.RADIO_BASE_V2) / paso - 0.0001)
 
 var lab: Node = null
 
@@ -83,7 +83,18 @@ func _escenario() -> void:
 	lab.limpiar()
 	lab.sumar("linea_z", 1)
 	lab.sumar("linea_z", 1)
-	_ok("2 sumar dos linea_z da z = base + 2 pasos (%.2f)" % (Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_EJE_V2), is_equal_approx(float(lab.receta().geo()["z"]), Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_EJE_V2), str(lab.receta().geo()["z"]))
+	_ok("2 sumar dos linea_z da z = base + 2 pasos de fondo (%.2f)" % (Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_FONDO_V2), is_equal_approx(float(lab.receta().geo()["z"]), Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_FONDO_V2), str(lab.receta().geo()["z"]))
+	lab.limpiar()
+	for _i in range(Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2):
+		lab.sumar("altura", 1)
+	_ok("2 3 ᛏ (dentro del límite de 6 glifos del lab) = 2 niveles", int(lab.contadores.get("altura", 0)) == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and Lanzador3D.GeometriaV2.niveles(lab.receta().geo()) == 2, str(lab.contadores))
+	lab.limpiar()
+	lab.sumar("barrera", 1)
+	for _i in range(Sigils.GLIFOS_ANCHO_MURO_3_V2):
+		lab.sumar("linea_x", 1)
+	var muro_g: Dictionary = lab.receta().geo()
+	_ok("2 ᛜ + 4 ᛁ (5 glifos, dentro del límite del lab) = muro de 3 casillas de ancho", int(lab.contadores.get("linea_x", 0)) == Sigils.GLIFOS_ANCHO_MURO_3_V2 and Lanzador3D.GeometriaV2.celdas(muro_g, Vector2(0.5, 0.5) * Terreno3D.casilla, Vector2.RIGHT, Terreno3D.casilla).size() == 3, str(lab.contadores))
+	lab.limpiar()
 	lab.limite_glifos = false                              # 19/10: con el límite de 6 glifos no se llegaría al tope de ᛁ (19): aquí se mide el tope de cada glifo, no el límite
 	for _i in range(lab.glifos_hasta_tope("linea_z") + 3):
 		lab.sumar("linea_z", 1)
@@ -130,7 +141,7 @@ func _escenario() -> void:
 	_ok("3 el HUD enseña el coste (relativo y en tinta)", hud.contains("Coste") and hud.contains("de tinta"), hud.get_slice("\n", 2))
 	_ok("3 el HUD enseña el nombre derivado", hud.contains("Nombre derivado: x_mano"), hud.get_slice("\n", 3))
 	_ok("3 el HUD enseña el estado de la materia", hud.contains("Estado: "), hud.get_slice("\n", 4))
-	_ok("3 el HUD enseña los semiejes del elipsoide", hud.contains("Elipsoide") and hud.contains("z %.2f" % (Sigils.RADIO_BASE_V2 + Sigils.PASO_EJE_V2)), hud.get_slice("\n", 1))
+	_ok("3 el HUD enseña los semiejes del elipsoide", hud.contains("Elipsoide") and hud.contains("z %.2f" % (Sigils.RADIO_BASE_V2 + Sigils.PASO_FONDO_V2)), hud.get_slice("\n", 1))
 	var alambre: ImmediateMesh = (lab.get("_alambre") as MeshInstance3D).mesh as ImmediateMesh
 	var casillas: ImmediateMesh = (lab.get("_casillas") as MeshInstance3D).mesh as ImmediateMesh
 	_ok("3 el elipsoide está dibujado (alambre) y las casillas también", alambre.get_surface_count() == 1 and casillas.get_surface_count() == 1)
@@ -161,10 +172,8 @@ func _escenario() -> void:
 	# Un sólido demasiado alto se rechaza y queda anotado como rara.
 	lab.limpiar()
 	lab.poner_elemento("earth")
-	lab.limite_glifos = false                # 24/10: con base 0,10 los 2 niveles (y ≥ 0,75) piden 7 glifos, más que el límite de 6
-	for _i in range(_glifos_hasta(0.75)):    # 2 niveles (el tope de altura es 1,0): más de los que se pueden pisar
+	for _i in range(_glifos_hasta(0.75, Sigils.PASO_ALTURA_V2)):    # 2 niveles (el tope de altura es 1,0): más de los que se pueden pisar; 24/10: son 3 y caben en el límite de 6 del lab
 		lab.sumar("altura", 1)
-	lab.limite_glifos = true
 	var n_raras: int = (lab.raras as Array).size()
 	var f2: Dictionary = lab.lanzar()
 	await avanzar_s(1.2)
@@ -389,8 +398,9 @@ func _escenario() -> void:
 	lab.limpiar()
 	lab.poner_elemento("earth")
 	lab.limite_glifos = false                  # 24/10: con base 0,10 hacen falta más glifos que el límite de 6 para llegar al mismo bloque de tierra que antes
-	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB)):
+	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB, Sigils.PASO_ANCHO_V2)):
 		lab.sumar("linea_x", 1)
+	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB, Sigils.PASO_FONDO_V2)):
 		lab.sumar("linea_z", 1)
 	lab.limite_glifos = true
 	colocar_jugador(Vector2i(4, 8))

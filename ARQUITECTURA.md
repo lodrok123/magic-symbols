@@ -161,10 +161,12 @@ Un glifo **nunca decide qué es el hechizo**: eso lo pone el elemento. Desde
 la receta V2 (17/10, `docs/GLIFOS_RECETA.md`) hay dos familias:
 
 - **Glifos de geometría: dibujan la forma.** Sin ninguno, un hechizo es
-  una esfera de 0,25 m de semieje (`Sigils.RADIO_BASE_V2`; en los
+  una esfera de 0,10 m de semieje (`Sigils.RADIO_BASE_V2`; en los
   hechizos 1 m = 1 casilla). Cada glifo de eje estira un semieje del
-  elipsoide 0,15 m (`PASO_EJE_V2`), con tope de 3 m en horizontal y 1 m en
-  altura.
+  elipsoide con el paso de SU eje: ᛁ ancho 0,25 m (`PASO_ANCHO_V2`),
+  ᛁ fondo 0,10 m (`PASO_FONDO_V2`) y ᛏ altura 0,30 m (`PASO_ALTURA_V2`),
+  con tope de 3 m en horizontal y 1 m en altura (3 ᛏ = 2 niveles; ᛜ + 4 ᛁ =
+  muro de 3 casillas).
 - **Glifos de propiedad: dan una propiedad o mejoran una variable** de la
   clase `Hechizo` (velocidad, solidez, copias, rebotes…), siempre con
   tope.

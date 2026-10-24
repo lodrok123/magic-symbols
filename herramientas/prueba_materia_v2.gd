@@ -291,9 +291,11 @@ func _extras() -> void:
 	_montar()
 	# Un bloque de tierra grande: semieje 2,05 en X y en Z (antes eran 12 + 12 glifos con base 0,25 y paso 0,15); los glifos salen de la base y del paso actuales
 	var glifos_tierra: Array = []
-	var n_eje: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)
-	for _k in range(n_eje):
+	var n_ancho: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_ANCHO_V2 - 0.0001)
+	var n_fondo: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_FONDO_V2 - 0.0001)
+	for _k in range(n_ancho):
 		glifos_tierra.append("linea_x")
+	for _k in range(n_fondo):
 		glifos_tierra.append("linea_z")
 	var cuenta_v2: int = _l._materializar(_receta(glifos_tierra), load("res://nucleo/earth_rune.tres"), _origen(), Vector3.RIGHT)
 	_ok("tierra V2 no cuenta para el FIFO de MAX_NIVELES_TIERRA (%d bloques V2, %d en el tope)" % [cuenta_v2, _l.bloques_de_tierra()], cuenta_v2 > Lanzador3D.MAX_NIVELES_TIERRA and _l.bloques_de_tierra() == 0)

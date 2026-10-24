@@ -53,9 +53,9 @@ Columnas: **campo** (nombre en el código) · **unidad** · **base** (sin elemen
 
 | campo | unidad | base | quién lo cambia | hoy |
 |---|---|---|---|---|
-| `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: +0,10/glifo, tope 3,0 | ≠ base 0,15 → 0,25 → 0,10 |
-| `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: +0,10/glifo, tope 3,0 | ≠ base |
-| `semieje_y` (alto) | m | 0,10 | ᛏ: +0,10/glifo, tope 1,0 (2 niveles: hacen falta 7 glifos, 2·y ≥ 1,5) | ≠ base y tope 2,0 → 1,0 |
+| `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: **+0,25/glifo** (`PASO_ANCHO_V2`), tope 3,0 (ᛜ + 4 ᛁ = semieje 1,10 = muro de 3 casillas) | ≠ base 0,15 → 0,25 → 0,10 · paso 0,15 → 0,10 → 0,25 |
+| `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: +0,10/glifo (`PASO_FONDO_V2`), tope 3,0 | ≠ base |
+| `semieje_y` (alto) | m | 0,10 | ᛏ: **+0,30/glifo** (`PASO_ALTURA_V2`), tope 1,0 (2 niveles con **3 glifos**: 0,10 + 3·0,30 = 1,0; 1 ᛏ = 0,40 y 2 ᛏ = 0,70 siguen en 1 nivel) | ≠ base y tope 2,0 → 1,0 · paso 0,15 → 0,10 → 0,30 |
 | `grosor_min` | m | 0,10 (= la base; 24/10: antes 0,15) | — | + (ningún semieje baja de aquí: un muro fino no desaparece) |
 | `volumen`, `superficie`, `niveles` | m³, m², nº | derivados | — | `niveles` = ; los otros + |
 
@@ -200,9 +200,9 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 
 | glifo | campos que toca |
 |---|---|
-| ᛁ horizontal | `semieje_x` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛁ horizontal | `semieje_x` +0,25 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛁ vertical | `semieje_z` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛏ | `semieje_y` +0,10 (tope 1,0) |
+| ᛏ | `semieje_y` +0,30 (tope 1,0) |
 | ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
 | ᚠ repetición | `copias` +1 (tope 4) |

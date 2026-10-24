@@ -34,14 +34,16 @@ qué espacio ocupa              qué hace con él en el tiempo           de qué
 
 ### 2.1 Volumen: tres ejes
 
-Sin glifos: **esfera de radio r** (0,5 casilla: una casilla de diámetro). Cada glifo de eje suma en su eje; el volumen
+Sin glifos: **esfera de radio r** (0,10 casilla desde el 24/10; ver ESPEC_HECHIZO §1). Cada glifo de eje suma en su eje; el volumen
 es un **elipsoide** con semiejes (X, Y, Z), orientado a la mirada (Z = hacia delante, X = de lado, Y = arriba).
 
 | eje | glifo | cada glifo añade | tope |
 |---|---|---|---|
-| X · horizontal | ᛁ línea dibujada **horizontal** | +1 casilla de ancho | ×6 (3 casillas a cada lado) |
-| Z · profundidad | ᛁ línea dibujada **vertical** | +1,5 casillas hacia delante | 6 casillas |
-| Y · altura | ᛏ (antes levitación) | +1 nivel | `MAX_NIVELES_SUBIBLES` si se puede pisar |
+| X · horizontal | ᛁ línea dibujada **horizontal** | +0,25 de semieje (`PASO_ANCHO_V2`, 24/10): ᛜ + 4 ᛁ = muro de 3 casillas | semieje 3,0 (6 casillas de ancho) |
+| Z · profundidad | ᛁ línea dibujada **vertical** | +0,10 de semieje (`PASO_FONDO_V2`) | semieje 3,0 (6 casillas) |
+| Y · altura | ᛏ (antes levitación) | +0,30 de semieje (`PASO_ALTURA_V2`): 3 ᛏ = 2 niveles | semieje 1,0 (2 niveles; `MAX_NIVELES_SUBIBLES` si se puede pisar) |
+
+(Valores del 24/10, decisión de Pablo: base 0,10 y un paso por eje para que con pocos glifos se llegue a 2 niveles y a un muro de 3 casillas. Los costes de §2.5 salen del volumen y por tanto de estos pasos.)
 
 **Línea rotada (decidido 17/10, 21:39).** No choca con altura: la raya sola no pasa por el $P (atajo de raya del
 Spellcaster, un solo tramo tras el rectificador) y su orientación sale exacta de las 8 direcciones del rectificador;

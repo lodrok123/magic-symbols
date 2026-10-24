@@ -97,15 +97,24 @@ func _topes_y_casos() -> void:
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
 	g = Sigils.aplicar_v2({"linea_x": 4})
-	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_EJE_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos (cada glifo suma PASO_EJE_V2 a RADIO_BASE_V2)")
+	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_ANCHO_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos de ancho (PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
 	g = Sigils.aplicar_v2({"linea_z": 2})
-	_ok(_casi(g["z"], rb + 2.0 * Sigils.PASO_EJE_V2) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2 pasos")
+	_ok(_casi(g["z"], rb + 2.0 * Sigils.PASO_FONDO_V2) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2 pasos de fondo (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
 	g = Sigils.aplicar_v2({"altura": 4})
-	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: base 0,10 y +0,10 → 7; con 0,25 y +0,15 eran 4)
-	var n_dos_niveles: int = ceili((0.75 - rb) / Sigils.PASO_EJE_V2 - 0.0001)
+	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: PASO_ALTURA_V2 0,30 → 3; con +0,10 eran 7; con 0,25 y +0,15, 4)
+	var n_dos_niveles: int = ceili((0.75 - rb) / Sigils.PASO_ALTURA_V2 - 0.0001)
 	g = Sigils.aplicar_v2({"altura": n_dos_niveles})
 	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1,
 		"altura ×%d → 2 niveles (con uno menos, o con uno solo, se queda en 1)" % n_dos_niveles)
+	# Decisión de Pablo 24/10: con pocos glifos se llega a 2 niveles (3 ᛏ, el tope) y a un muro de 3 casillas (ᛜ + 4 ᛁ).
+	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), Sigils.TOPE_EJE_ALTURA_V2), "3 ᛏ = 2 niveles y justo el tope de altura (%.2f)" % Sigils.TOPE_EJE_ALTURA_V2)
+	var cas_g: float = Terreno3D.casilla
+	var centro_g := Vector2(0.5, 0.5) * cas_g
+	var muro_n: Callable = func(n_i: int) -> int:
+		return Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"barrera": 1, "linea_x": n_i}), centro_g, Vector2.DOWN, cas_g).size()
+	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 4 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 5,
+		"ᛜ + 4 ᛁ = muro de 3 casillas (con 3 ᛁ, 1; con 8, 5): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)])
+	_ok(_casi(float(Sigils.aplicar_v2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
 	g = Sigils.aplicar_v2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
 	_ok(_casi(Sigils.RADIO_BARRERA_U, Lanzador3D.RADIO_BURBUJA), "RADIO_BARRERA_U coincide con Lanzador3D.RADIO_BURBUJA")
@@ -336,10 +345,10 @@ func _receta(glifos: Array, calidad: float = 1.0) -> Lanzador3D.Receta3D:
 	return r
 
 
-## Los glifos ᛁ (ancho) que hacen falta para llegar a `semieje` casillas con la base y el paso de hoy (antes de 24/10 eran 8 para 1,45).
+## Los glifos ᛁ (ancho) que hacen falta para llegar a `semieje` casillas con la base y el paso de ancho de hoy (antes de 24/10 eran 8 para 1,45).
 func _ejes_x(semieje: float) -> Array:
 	var r: Array = []
-	for _k in range(ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)):
+	for _k in range(ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_ANCHO_V2 - 0.0001)):
 		r.append("linea_x")
 	return r
 

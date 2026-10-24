@@ -97,7 +97,7 @@ func _escenario() -> void:
 		var g: Dictionary = Sigils.aplicar_v2(cont)
 		var dim: Vector3 = EjesRecetaUi.dimensiones(g)
 		var rb: float = Sigils.RADIO_BASE_V2
-		_ok("7 el cubo del núcleo sale de esos contadores (ᛁ ancho ×2, ᛁ fondo ×1, altura ×1: cada glifo suma PASO_EJE_V2 a RADIO_BASE_V2)", is_equal_approx(dim.x, 2.0 * (rb + 2.0 * Sigils.PASO_EJE_V2)) and is_equal_approx(dim.y, 2.0 * (rb + Sigils.PASO_EJE_V2)) and is_equal_approx(dim.z, 2.0 * (rb + Sigils.PASO_EJE_V2)), str(dim))
+		_ok("7 el cubo del núcleo sale de esos contadores (ᛁ ancho ×2, ᛁ fondo ×1, altura ×1: cada glifo suma el paso de su eje a RADIO_BASE_V2)", is_equal_approx(dim.x, 2.0 * (rb + 2.0 * Sigils.PASO_ANCHO_V2)) and is_equal_approx(dim.y, 2.0 * (rb + Sigils.PASO_ALTURA_V2)) and is_equal_approx(dim.z, 2.0 * (rb + Sigils.PASO_FONDO_V2)), str(dim))
 		_ok("7 el libro conoce las dos lecturas de ᛁ (mismo PNG, se gira al pintar)", Sigils.GLYPHS.has("linea_x") and Sigils.GLYPHS.has("linea_z") and Sigils.GLYPHS["linea_x"] == Sigils.GLYPHS["linea"])
 		_ok("7 ᛁ ancho se pinta a 90° y ᛁ fondo a 0° (exentas del giro hacia el centro)", EjesRecetaUi.exenta_del_giro("linea_x") and is_equal_approx(EjesRecetaUi.giro_linea("linea_x"), PI * 0.5) and is_equal_approx(EjesRecetaUi.giro_linea("linea_z"), 0.0))
 		# Se abre y se repinta con la página cargada: si la chuleta, el sello o el cubo fallaran, saldría un error de script y el escenario no acaba en 0.

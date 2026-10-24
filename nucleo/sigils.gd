@@ -280,7 +280,7 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##  RECETA V2 (17/10, Pablo; docs/GLIFOS_RECETA.md): volumen por ejes + propiedades aditivas
 ## =====================================================================================================
 ##
-## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,10 m). Cada glifo de EJE agranda un semieje del elipsoide;
+## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,10 m). Cada glifo de EJE agranda un semieje del elipsoide (ancho PASO_ANCHO_V2, fondo PASO_FONDO_V2, altura PASO_ALTURA_V2);
 ## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. Esta tabla es lo ÚNICO que sabe qué hace cada glifo: `aplicar_v2`
 ## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR siguen
 ## sirviendo al camino actual (V2 está detrás de `Receta3D.V2`).
@@ -293,9 +293,17 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##   repertorio nombre del glifo en el Repertoire/libro (linea_x y linea_z son dos lecturas del mismo ᛁ)
 ##   cooldown   recarga de la página, la MISMA que le da hoy `FORM` (V2 no toca la recarga)
 const RADIO_BASE_V2: float = 0.10         ## semieje base en metros-casilla (24/10, decisión de Pablo «base 0,10 y cada glifo suma 0,10»: antes 0,25 desde el 19/10 y 0,15 antes; la esfera base mide 0,2 m de ancho)
-const PASO_EJE_V2: float = 0.10           ## m que suma CADA glifo de eje a su semieje (24/10: igual que la base; del 19 al 24/10 fue 0,15). Siguen siendo dos números por si se vuelven a separar
 const TOPE_EJE_HORIZONTAL_V2: float = 3.0  ## semieje máximo en X y Z (§1.9: 6 m de ancho o fondo total)
 const TOPE_EJE_ALTURA_V2: float = 1.0      ## semieje máximo en Y (§1.9: 2 niveles; antes 2,0)
+## Paso POR EJE (24/10, Pablo: «deja la base en 0,10 pero ajusta el paso de altura y ancho para que con pocos glifos se llegue a 2 niveles y a un muro de 3 casillas»).
+## Antes del 24/10 había un solo paso (0,15 del 19/10 al 24/10, luego 0,10 igual que la base) y 2 niveles pedían 7 ᛏ y un muro de 3 casillas 14 ᛁ.
+const GLIFOS_ALTURA_DOS_NIVELES_V2: int = 3   ## cuántos ᛏ llevan la altura al tope de 2 niveles (RADIO_BASE_V2 + 3 · PASO_ALTURA_V2 = TOPE_EJE_ALTURA_V2)
+const PASO_ALTURA_V2: float = 0.30         ## m que suma CADA ᛏ al semieje Y: (1,0 − 0,10) / 3. 1 ᛏ = 0,40 · 2 ᛏ = 0,70 (siguen en 1 nivel) · 3 ᛏ = 1,00 (2 niveles, el tope)
+const GLIFOS_ANCHO_MURO_3_V2: int = 4         ## cuántos ᛁ horizontales hacen un muro (ᛜ + ᛁ) de 3 casillas de ancho
+const PASO_ANCHO_V2: float = 0.25          ## m que suma CADA ᛁ horizontal al semieje X. Una casilla vecina cuenta si su centro cae dentro del elipsoide: a ±1 casilla pide semieje ≥ 1,0 y la 5.ª casilla (±2) ≥ 2,0, así que
+											## 3 casillas = semieje en [1,0 ; 2,0). 0,10 + 4 · 0,25 = 1,10 (3 casillas, 0,10 de holgura) y con 3 ᛁ (0,85) queda en 1. Con 8 ᛁ (2,10) salen 5 casillas
+const PASO_FONDO_V2: float = 0.10          ## m que suma CADA ᛁ vertical al semieje Z (el fondo). No cambia con el ancho a propósito: el haz no depende de él (alcance por nº de ᛁ, `Hechizo.HAZ_*`) y en un proyectil
+											## (ᛇ + ᛁ) cada ᛁ de más lo alarga, no lo ensancha: con 0,25 la «lanza» volvería al tamaño que Pablo quiso reducir con la base 0,10
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
 const VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U: float = 4.0   ## u/s: la velocidad de la flecha de ayer (decisión de Pablo, 19/10: la misma). En metros sale de dividirla por la casilla: `velocidad_flecha()`
 ## m/s de una flecha = 4 u/s / casilla (≈ 1,7 con casilla 2,3). Es una función y no una const porque depende de `Terreno3D.casilla`; la tabla `GLIFOS` la pide con «@velocidad_flecha».
@@ -334,10 +342,10 @@ const COSTE_CONTINUO_V2: float = 0.25
 static var HAZ_ACTIVO: bool = true
 const GLIFOS_V2: Dictionary = {
 	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
-	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma PASO_EJE_V2 (0,15). 24/10 (Pablo): base 0,10 y +0,10 por glifo. Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
-	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
+	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma 0,15. 24/10 (Pablo): base 0,10 y un paso POR EJE: ancho 0,25, fondo 0,10, altura 0,30. Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
+	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ANCHO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_FONDO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
 	# Propiedades.
 	"flecha": {"tipo": "prop", "param": "viaja", "inicio": 1.0, "por_glifo": 1.0, "tope": 6.0, "modo": "suma", "repertorio": "flecha", "cooldown": 1.0},
 	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
@@ -364,9 +372,9 @@ const GLIFOS_V2: Dictionary = {
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
 ## GLIFOS_V2 se conserva MIENTRAS lo lean el laboratorio, la UI de ejes (Pipeline) y las pruebas; `prueba_hechizo` comprueba que las dos tablas dicen lo mismo.
 const GLIFOS: Dictionary = {
-	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"altura": {"repertorio": "altura", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2}]},
+	"linea_x": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma", "valor": PASO_ANCHO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"linea_z": {"repertorio": "linea", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma", "valor": PASO_FONDO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"altura": {"repertorio": "altura", "cooldown": 2.0, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
 	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},

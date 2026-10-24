@@ -21,17 +21,22 @@ func _initialize() -> void:
 	_ok("1 esfera base: 1 casilla", G.celdas(Sigils.aplicar_v2({}), origen, Vector2.RIGHT, cas).size() == 1)
 	var f: Dictionary = G.evaluar({"flecha": 1})
 	_ok("2 la flecha viaja 2 casillas (1.er glifo) y no agranda el volumen", is_equal_approx(float(f["props"]["viaja"]), 2.0) and is_equal_approx(G.volumen(f), G.volumen(G.evaluar({}))))
-	# 3. Cada línea vertical (Z) suma PASO_EJE_V2 de semieje (24/10: base 0,10 y paso 0,10), es decir 2 × paso casillas más de largo; tope 6.
+	# 3. Cada línea vertical (Z) suma PASO_FONDO_V2 de semieje (24/10: base 0,10 y paso 0,10), es decir 2 × paso casillas más de largo; tope 6.
 	for n in [1, 2, 3, 4]:
 		var g: Dictionary = G.evaluar({"linea_z": n})
 		var largo: float = 2.0 * float(g["z"])
-		var esperado: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_EJE_V2 * float(n)), 6.0)
+		var esperado: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_FONDO_V2 * float(n)), 6.0)
 		_ok("3 linea_z ×%d: largo %.2f casillas" % [n, esperado], is_equal_approx(largo, esperado), str(largo))
-	# 4. Cada línea horizontal (X) suma también PASO_EJE_V2 de semieje; tope 6.
+	# 4. Cada línea horizontal (X) suma PASO_ANCHO_V2 de semieje; tope 6.
 	for n in [1, 2, 3, 4]:
 		var g: Dictionary = G.evaluar({"linea_x": n})
-		var ancho: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_EJE_V2 * float(n)), 6.0)
+		var ancho: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_ANCHO_V2 * float(n)), 6.0)
 		_ok("4 linea_x ×%d: ancho %.2f casillas" % [n, ancho], is_equal_approx(2.0 * float(g["x"]), ancho))
+	# 4 bis. Decisión de Pablo 24/10: ᛜ + 4 ᛁ horizontales = muro de 3 casillas de ancho (origen en el centro de una casilla, mirando a un eje; en diagonal el muro de 0,10 de fondo no alcanza centros vecinos); 3 ᛏ = 2 niveles.
+	for dir in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+		var muro: Array = G.celdas(G.evaluar({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2}), origen, dir, cas)
+		_ok("4 bis ᛜ + %d ᛁ mirando a %s: %d casillas" % [Sigils.GLIFOS_ANCHO_MURO_3_V2, str(dir), muro.size()], muro.size() == 3)
+	_ok("4 bis 3 ᛏ = 2 niveles; 2 ᛏ = 1", G.niveles(G.evaluar({"altura": Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2})) == 2 and G.niveles(G.evaluar({"altura": Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 - 1})) == 1)
 	# 5. El «haz» (antes chorro) es ahora Z grande: solo toca casillas por delante de la mano, en una fila.
 	var haz: Array = G.celdas(G.evaluar({"linea_z": 13}), origen, Vector2.RIGHT, cas)
 	var filas: Dictionary = {}
