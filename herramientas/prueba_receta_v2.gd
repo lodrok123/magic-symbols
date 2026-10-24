@@ -420,14 +420,16 @@ func _ciclo_de_vida() -> void:
 
 	# --- 2. nace en la mano y crece ---
 	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola es ahora un rayo (prueba_haz.gd); aquí se mide el volumen estirado que crece, que sigue existiendo (barrera o laboratorio)
-	var sin_crecer: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x"], "fire")
-	var final_: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
+	# 24/10 (D-7): `crece` pasó de «escala por segundo» a «m/s de radio»: el tiempo de crecer = semieje × (1 − escala_nace) / crece. Con 9 ᛁ (semieje 2,35) eran 3,3 s y la zona de la mano (fuego,
+	# 3 s de vida) se apagaba antes de que naciera la última tanda; con 4 ᛁ (semieje 1,10, 3 casillas) son 1,54 s y la prueba sigue midiendo lo mismo: nace pequeño y acaba entero.
+	var sin_crecer: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x"], "fire")
+	var final_: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
 	_ok(final_.size() == sin_crecer.size(), "crece: al acabar de crecer ocupa lo mismo que sin crecer (%d y %d casillas)" % [final_.size(), sin_crecer.size()])
 	var inicial: int = 0
 	for z in _l._zonas_v2:
 		inicial += (z as Lanzador3D.ZonaV2).celdas.size()
 	_ok(inicial < final_.size() and inicial >= 1, "crece: al nacer ocupa menos que al final (%d de %d) y siempre incluye la casilla de la mano" % [inicial, final_.size()])
-	await _esperar(1.6)
+	await _esperar(HechizoVivo.tiempo_de_crecer(0.5, 0.3, Sigils.RADIO_BASE_V2 + 4.0 * Sigils.PASO_ANCHO_V2) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
 	var al_final: int = 0
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()
