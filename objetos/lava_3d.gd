@@ -11,7 +11,8 @@ extends Area3D
 ##     y enciende un barril que tenga al lado.
 ##   · Agua o hielo que caigan en una casilla de lava la enfrían, y también a sus cuatro vecinas de lava: pasan a ROCA (se pisa), sueltan vapor
 ##     y emiten `enfriada(celda)`; cuando ya no queda lava, `apagada`. Se entera de cualquier forma de hechizo: escucha el impacto del mundo
-##     (`Mundo3D.impacto`, lo que cae en el suelo) y además es un Area3D de reactivos (`on_spell_hit`, lo que la golpea en vuelo).
+##     (`Mundo3D.impacto`, lo que cae en el suelo) y además es un Area3D de reactivos (`on_spell_hit`, lo que la golpea en vuelo). 24/10: y también el AGUA de la simulación
+##     que le llega (la flecha de agua real se para en el borde de la lava y deja el agua en la orilla): ver CADA_AGUA.
 ##   · `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s (un puzle contrarreloj). 0 = se queda roca.
 ##
 ## EL ASPECTO lo da un plano con un shader propio (sin texturas): lava que fluye con ruido, placas de costra oscura que derivan despacio con
@@ -30,6 +31,13 @@ const SOBRE_SUELO: float = 0.06         ## u por encima del suelo (un decal: el 
 const SUBDIV: int = 4                   ## subdivisiones del plano por casilla (para que la superficie ondule)
 const LUZ_CADA: int = 3                 ## una luz por cada 3 × 3 casillas, como mucho 4
 const LUZ_COLOR: Color = Color(1.0, 0.45, 0.15)
+## 24/10 (Pablo: «que la flecha de agua enfríe la lava»). REGLA DEL AGUA REAL: la flecha de agua de verdad (agua + flecha, con su gravedad) vuela hasta la lava y SE PARA en su borde (la casilla
+## de lava es sólida), y el hechizo vivo deja el agua en la SIMULACIÓN en la casilla de la orilla (las casillas de lava bloqueadas no admiten agua de hechizo), que se extiende hacia la lava. Ni hay
+## impacto con nombre (`Mundo3D.impacto`) ni toca el plano de la lava (vuela por encima). Por eso la lava MIRA LA SIMULACIÓN cada CADA_AGUA s: si hay agua de verdad (≥ AGUA_MIN u de hondo medio
+## en una casilla suya, ≥ AGUA_MIN_ORILLA en una pegada a ella, que no sea lava) se enfría esa casilla y sus vecinas de lava, igual que con hielo. Vale con cualquier agua (hechizo, manantial, cascada).
+const CADA_AGUA: float = 0.2
+const AGUA_MIN: float = 0.008
+const AGUA_MIN_ORILLA: float = 0.02
 
 const CODIGO: String = """
 shader_type spatial;
@@ -140,6 +148,7 @@ var _img: Image = null
 var _tex: ImageTexture = null
 var _formas: Dictionary = {}            ## Vector2i -> CollisionShape3D
 var _t_fuego: float = 0.0
+var _t_agua: float = 0.0
 var _sucia: bool = false
 
 
@@ -230,6 +239,12 @@ func _process(delta: float) -> void:
 	if _t_fuego >= CADA_FUEGO and not _lava.is_empty():
 		_t_fuego = 0.0
 		_prender_vecinos()
+	_t_agua += delta
+	if _t_agua >= CADA_AGUA and not _lava.is_empty():
+		_t_agua = 0.0
+		var mojada: Vector2i = _casilla_mojada()
+		if mojada != Vector2i(-9999, -9999):
+			enfriar_en(mojada)
 	var vuelven: Array[Vector2i] = []
 	for c in _roca.keys():
 		_roca[c] = float(_roca[c]) - delta
@@ -336,6 +351,21 @@ func _pixel(c: Vector2i) -> void:
 	# B = parte del charco (lava o roca): fuera del charco no se dibuja nada.
 	_img.set_pixel(x, y, Color(1.0 if _lava.has(c) else 0.0, calor, 1.0))
 	_sucia = true
+
+
+## Una casilla de lava a la que le ha llegado agua de la simulación (la propia con ≥ AGUA_MIN, o una vecina que no sea lava con ≥ AGUA_MIN_ORILLA), o (-9999, -9999). Ver CADA_AGUA.
+func _casilla_mojada() -> Vector2i:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	if sim == null:
+		return Vector2i(-9999, -9999)
+	for c in _lava:
+		if sim.profundidad_casilla(c) >= AGUA_MIN:
+			return c
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var q: Vector2i = c + d
+			if not _lava.has(q) and Terreno3D.en_mapa(q) and sim.profundidad_casilla(q) >= AGUA_MIN_ORILLA:
+				return c
+	return Vector2i(-9999, -9999)
 
 
 func _mas_cercana(c: Vector2i) -> Vector2i:

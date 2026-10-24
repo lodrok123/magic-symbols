@@ -89,6 +89,15 @@ const HIELO_COBERTURA: float = 0.5
 ## UMBRAL_NADO (0,55) para que se nade, como hasta ahora.
 const LECHO_AGUA: float = 0.9
 const FONDO_CANAL: float = 0.11        ## el fondo del cajón de Canal3D sobre el suelo: el agua de un canal de ruinas empieza ahí, no en el lecho del río
+## 24/10 (cascada de la Cueva, C2): canales de ruinas SOBRE UNA TERRAZA de roca. Casilla -> cuántas u sube el fondo del canal por encima del de siempre (`alto_suelo + FONDO_CANAL`).
+## Lo declara la pieza `manantial` con `terraza=` (Puzle3D) y dibuja el bloque de roca; así la caída al pozo mide lo que la cortina de EoW y no una sola casilla de desnivel (la tierra
+## levantada es presa para la simulación, así que no se puede hacer con `fijar_altura`). Se vacía al montar la simulación de agua de cada nivel.
+static var elevacion_canal: Dictionary = {}
+
+
+## y del fondo del cajón de un canal de ruinas en `c` (con su terraza, si la tiene).
+static func fondo_canal_en(c: Vector2i) -> float:
+	return alto_suelo + FONDO_CANAL + float(elevacion_canal.get(c, 0.0))
 
 ## CAUCE HONDO (22/10, Pablo: «que el jugador se caiga, y que tenga un desnivel; si no, no habrá sensación de profundidad»). Con el interruptor encendido el cauce seco
 ## (`c`) es un FOSO de verdad: su fondo está donde ya lo ponía la simulación de agua (`alto_agua − LECHO_AGUA`, el lecho del río), no a 0,1 u bajo el suelo. Se anda por
@@ -461,6 +470,7 @@ static func lados_de_canal(c: Vector2i) -> Array:
 static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 	agua_sim = null
 	cauces_abiertos.clear()
+	elevacion_canal.clear()
 	conductores.clear()
 	if not hay_mundo() or lado_del_mapa() == 0:
 		return null
@@ -469,7 +479,7 @@ static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 	var suelo := func(c: Vector2i) -> float:
 		var l: String = letra_de(c)
 		if es_canal_ruinas(c):
-			return alto_suelo + FONDO_CANAL       # el cajón de piedra: el agua llega a la altura de la pieza y se ve
+			return fondo_canal_en(c)              # el cajón de piedra: el agua llega a la altura de la pieza y se ve (más arriba si el canal está sobre una terraza)
 		if l == "~" or es_cauce_seco(c):
 			return alto_agua - LECHO_AGUA
 		return alto_suelo + float(altura_en(c)) * ALTO_NIVEL
@@ -534,7 +544,7 @@ static func y_pies(c: Vector2i) -> float:
 		if y_hielo > -INF:
 			return y_hielo
 	if es_canal_ruinas(c):
-		return alto_suelo + FONDO_CANAL       # P3: el suelo de la pieza, con o sin agua. La lámina del canal no se nada: se vadea
+		return fondo_canal_en(c)              # P3: el suelo de la pieza, con o sin agua. La lámina del canal no se nada: se vadea
 	if es_hueco_cauce(c):
 		return alto_agua - LECHO_AGUA         # 15/10 (Pablo: «que se intuya profundidad»): el fondo del pozo; con agua, el jugador nada en su superficie. Cauce hondo (22/10): el mismo fondo, aún seco
 	if l == "b" or helada:

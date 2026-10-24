@@ -2,11 +2,11 @@
 #...#....#...RR.#.#.......#
 #........#...RR.#.#.......#
 ####.....#...RR...#...W...#
-#............RR...........#
-#.-......#...RR...#.......#
-#.-......#...RR...#.....W.#
-#cc......#...RR...#.......#
-#cc......#...RR...#.......#
+#---.........RR...........#
+#---.....#...RR...#.......#
+#ccc.....#...RR...#.....W.#
+#ccc.....#...RR...#.......#
+#........#...RR...#.......#
 ####.#################.####
 ####.#################.####
 #........#........#.......#
@@ -84,13 +84,26 @@
 ; pieza filon_c2 veta 7 3 celdas=7,3..7,1 mineral=si
 ; pieza columna_c2 columna 4 2 golpes=2 cae=e
 ; pieza cofre_c2 cofre 1 1 abierto=cueva.c2.cofre da=pocion:1+oro:15
-; La CASCADA de C2 (fase 3): un manantial en un canal de piedra, a ras de suelo, cae a un pozo 1 u más bajo (la charca) y se queda a ~0,4 de hondo gracias a un desagüe. Todo escrito con letras:
-; el canal `-` (giro 90: norte-sur), el pozo `c` y las piezas manantial y cuenca.
+; La CASCADA de C2 (fase 3): tres manantiales salen de la pared norte del hueco (1..3,3) por tres canales `-` a ras de suelo y caen juntos a un pozo 1 u más bajo (la charca) y se quedan a ~0,4 de
+; hondo gracias a un desagüe. Todo escrito con letras: el canal `-` (giro 90: norte-sur), el pozo `c` y las piezas manantial y cuenca.
+; 24/10 (Pablo: «que se vea como la del vídeo, sin el puente de ruinas»): (1) `sin_piedra=si`: la losa de ruinas del canal NO se dibuja (se leía como un puente); el agua corre igual por su cajón,
+; saliendo de la pared. (2) Antes la caída estaba pegada al muro sur (fila 9), que a la cámara le tapa un pozo 1 u más hondo: ahora cae contra la pared del norte, con el pozo EN FRENTE (al sur) y la
+; fila 8 libre. (3) Tres carriles (x 1..3) = una cortina de 3 casillas de ancho, como la de EoW (antes, una sola casilla).
+; giro 1 4 90
+; giro 2 4 90
+; giro 3 4 90
+; giro 1 5 90
 ; giro 2 5 90
-; giro 2 6 90
-; pieza pozo_c2 cuenca 1 7 celdas=1,7..2,8
-; pieza desague_c2 cuenca 1 8 fijo=0.4
-; pieza manantial_c2 manantial 2 5 caudal=0.5 celdas=2,5..2,6 rampa=no
+; giro 3 5 90
+; pieza pozo_c2 cuenca 1 6 celdas=1,6..3,7
+; (el desagüe son las 6 casillas del pozo: fijas a 0,3 de hondo se llevan todo lo que cae y la charca no rebosa sobre el suelo de la sala)
+; pieza desague_c2 cuenca 1 6 celdas=1,6..3,7 fijo=0.3
+; (`bloque=`: las 6 casillas forman UNA lámina ancha de agua, no tres carriles de un tercio de casilla cada uno; `terraza=1`: el canal está sobre un bloque de roca de 1 u, como la
+; cornisa de la que cae la cortina del vídeo: el agua cae ~1,7 u en vez de 1 y se ve desde la cámara)
+; pieza manantial_c2a manantial 1 4 caudal=1.0 celdas=1,4..1,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
+; pieza manantial_c2b manantial 2 4 caudal=1.0 celdas=2,4..2,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
+; pieza manantial_c2c manantial 3 4 caudal=1.0 celdas=3,4..3,5 rampa=no sin_piedra=si bloque=1,4..3,5 terraza=1
+; (la lámina de arriba es poco honda: el agua del filtro casi no se ve en poco fondo, así que la terraza lleva su propia tapa de agua dibujada; ver `Puzle3D._levantar_terraza`)
 ; --- C3 · Río de lava (vuelve a ser lava a los 10 s) ---
 ; pieza rio lava 13 1 celdas=13,1..14,8 vuelve=10
 ; Materiales (docs/MATERIALES_CUEVA.md): el basalto SOLO está sobre la roca recién enfriada (casilla(x,y).roca) y desaparece si la lava vuelve; las setas son para empaparlas (agua).

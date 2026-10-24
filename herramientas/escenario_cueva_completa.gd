@@ -5,14 +5,14 @@ extends "res://herramientas/escenario_base.gd"
 ## fuente) y el del jugador (ᚱ) corren solos. La única ayuda del arnés: la vida del jugador se repone en la pelea de C4 (los goblins pegan de verdad y esto no prueba el combate).
 ##
 ## Con `kit = "pruebas"` (el de PruebaCueva y el del Bosque 01 v01) se entra con TODOS los elementos y los glifos del libro salvo ᚱ: no hace falta dar nada. Lo obligatorio pide fuego (C1, C4), tierra
-## (C2) y hielo (C3, enfriar la lava); el hielo también lo piden las estatuas del secreto, que es opcional.
+## (C2) y agua (C3, enfriar la lava con la flecha de agua REAL, 24/10); el hielo también lo piden las estatuas del secreto, que es opcional.
 ##
 ## 1 · Montaje: la Cueva (27 × 25) sin avisos; los reactivos de la fase 3 y la cascada de C2 están montados.
 ## 2 · C1: el cristal late, las setas ENCENDIDAS por la veta maduran y se cogen como seta resonante; un hechizo de fuego sobre el cristal manda un pulso de FUEGO que enciende el brasero del fondo
 ##     de la veta; dos golpes dan una esquirla de cristal; el otro brasero, a flechazos; la puerta del norte se abre; los braseros alumbran con luz cálida.
-## 3 · C2: la cascada (el agua cae del canal al pozo y lo llena); un bloque de tierra tiende el ENLACE de la veta cortada y el pulso tumba la COLUMNA; el nicho da el cofre común; la veta suelta un
+## 3 · C2: la cascada (24/10: tres canales sobre una terraza de roca, sin la pieza de ruinas; la cortina de 3 casillas cae al pozo y lo llena); un bloque de tierra tiende el ENLACE de la veta cortada y el pulso tumba la COLUMNA; el nicho da el cofre común; la veta suelta un
 ##     mineral con tierra; el muro agrietado cae con dos golpes de tierra.
-## 4 · C3: enfriar la lava (hielo: ver el comentario del paso) tiende el puente de basalto: el pulso cruza, el receptor sube la reja del rincón y el cofre común se abre; se cruza el río sobre la roca.
+## 4 · C3: enfriar la lava (flecha de agua real: ver el comentario del paso) tiende el puente de basalto: el pulso cruza, el receptor sube la reja del rincón y el cofre común se abre; se cruza el río sobre la roca.
 ## 5 · C4: la sala se cierra, el pulso de un cristal ATURDE al goblin que pisa la veta, se derrota a los dos goblins, aparece el cofre de la llave y se abre; esquirla y mineral.
 ## 6 · C5: se rodea la charca a pie; la fuente suelta su pulso; la puerta se abre con la llave.
 ## 7 · C6: el pulso llega al receptor por el prisma, el cofre legendario (con su columna de luz dorada) se abre y da ᚱ; con ᚱ se abre la pared hueca de la salida.
@@ -282,11 +282,32 @@ func _c2() -> void:
 		return
 	_ok("3 C2: se cruza la puerta de C1 a pie y se entra en C2 (zona de luz `cueva`)", celda_jugador().y <= 8)
 	# La cascada.
+	# 24/10 (Pablo: «que se vea como la del vídeo, sin el puente de ruinas»): tres canales `-` (1..3, 4..5) echan agua a ras de una terraza de roca contra la pared norte y caen JUNTOS (una cortina de 3
+	# casillas) a un pozo de seis casillas (1..3, 6..7). El canal sigue siendo canal para el agua, pero su pieza de ruinas (la losa con barandillas: el «puente») ya no se dibuja.
 	var sim: AguaSim3D = Terreno3D.agua_sim
-	var pozo: float = sim.profundidad_casilla(Vector2i(1, 7)) + sim.profundidad_casilla(Vector2i(2, 7)) + sim.profundidad_casilla(Vector2i(1, 8)) + sim.profundidad_casilla(Vector2i(2, 8))
-	_ok("3 C2: la CASCADA corre: el canal (2,5)-(2,6) echa agua, cae al pozo y lo llena (profundidad total %.2f)" % pozo, pozo > 0.8 and sim.hay_cascada_en_casilla(Vector2i(2, 6)) and Terreno3D.es_agua(Vector2i(2, 7)), "cascada en (2,6): %s" % str(sim.hay_cascada_en_casilla(Vector2i(2, 6))))
-	_ok("3 C2: el agua del pozo se mantiene baja (desagüe: no se desborda sobre el suelo de la sala)", sim.profundidad_casilla(Vector2i(3, 7)) < 0.1 and sim.profundidad_casilla(Vector2i(2, 7)) < 0.8,
-		"(3,7) %.2f · (2,7) %.2f" % [sim.profundidad_casilla(Vector2i(3, 7)), sim.profundidad_casilla(Vector2i(2, 7))])
+	var canales: Array = [Vector2i(1, 4), Vector2i(2, 4), Vector2i(3, 4), Vector2i(1, 5), Vector2i(2, 5), Vector2i(3, 5)]
+	var todo_canal: bool = true
+	var sin_pieza: bool = true
+	for c in canales:
+		todo_canal = todo_canal and Terreno3D.letra_de(c as Vector2i) == "-" and Terreno3D.es_canal_ruinas(c as Vector2i)
+		sin_pieza = sin_pieza and Puzle3D.piedras_ocultas.has(c)
+	_ok("3 C2: el canal de la cascada (1..3, 4..5) sigue siendo canal `-` para el agua y su PIEZA DE RUINAS (el «puente») no se dibuja en ninguna de sus casillas", todo_canal and sin_pieza, "canal %s · sin pieza %s" % [str(todo_canal), str(sin_pieza)])
+	var terraza: Node = (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4")
+	_ok("3 C2: el canal está sobre una TERRAZA de roca (bloque con tapa de agua, casillas bloqueadas, fondo 1 u más alto)", terraza != null and (maqueta.get("_props") as Node).get_node_or_null("terraza_1_4_agua") != null and Terreno3D.bloqueada(Vector2i(2, 4)) and absf(Terreno3D.fondo_canal_en(Vector2i(2, 4)) - (Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL + 1.0)) < 0.01,
+		"fondo (2,4) %.2f" % Terreno3D.fondo_canal_en(Vector2i(2, 4)))
+	var pozo: float = 0.0
+	for y in range(6, 8):
+		for x in range(1, 4):
+			pozo += sim.profundidad_casilla(Vector2i(x, y))
+	var lip_cascada: int = 0
+	for x in range(1, 4):
+		if sim.hay_cascada_en_casilla(Vector2i(x, 5)):
+			lip_cascada += 1
+	_ok("3 C2: la CASCADA corre: los tres canales echan agua, caen al pozo (3 casillas de cortina) y lo llenan (profundidad total %.2f)" % pozo, pozo > 1.2 and lip_cascada == 3 and Terreno3D.es_agua(Vector2i(2, 6)), "cortina en %d de 3 casillas del labio (x 1..3, y 5)" % lip_cascada)
+	var hueco: float = 0.0
+	for c in [Vector2i(4, 5), Vector2i(4, 6), Vector2i(4, 7), Vector2i(4, 4), Vector2i(2, 8)]:
+		hueco = maxf(hueco, sim.profundidad_casilla(c as Vector2i))
+	_ok("3 C2: el agua queda donde debe (desagüe del pozo y laterales cerrados): ni una gota sobre el suelo de la sala junto a la cascada", hueco < 0.05, "máx. en las casillas de al lado %.3f" % hueco)
 	# El enlace: la veta está cortada; el pulso no pasa y la columna sigue en pie.
 	await _esperar(func() -> bool: return cristal.latidos >= 2, 10.0)
 	_ok("3 C2: con la veta cortada el pulso del cristal NO toca la columna (en pie, sin pulsos)", columna.pulsos_recibidos == 0 and not columna.roto_ya and not Pulso3D.enlace_tendido(Vector2i(4, 3)))
@@ -357,11 +378,14 @@ func _c3() -> void:
 	_ok("4 C3: la lava bloquea el río y NO conduce el pulso: el receptor está apagado y la reja cerrada", Terreno3D.bloqueada(Vector2i(13, 5)) and not Pulso3D.conduce_pulso(Vector2i(13, 5)) and not receptor.activo and not reja.abierta)
 	await _esperar(func() -> bool: return cristal.latidos >= 2, 8.0)
 	_ok("4 C3: el cristal late a este lado del río y el pulso muere en la orilla (la lava no conduce)", cristal.latidos >= 2 and not receptor.activo)
-	# Frío a la lava: la roca enfriada conduce. HIELO + flecha (Lava3D enfría con agua o hielo, pero la flecha de AGUA real no llega a tocarla: sale en un arco que pasa por encima de la losa de la lava y no
-	# deja agua en la simulación; el hielo cae a ras y sí. Ver docs/PENDIENTES.md): se tira desde la orilla, pegado a la lava.
-	_ok("4 C3: hielo + flecha hacia la lava (13,5) desde la orilla sale", await _apuntar("hielo", ["flecha"], Vector2i(13, 5)))
-	await _esperar(func() -> bool: return lava.es_roca(Vector2i(13, 5)) and lava.es_roca(Vector2i(14, 5)), 4.0)
-	_ok("4 C3: el hielo enfría la fila 5 en ROCA (13,5) y (14,5): se pisa y CONDUCE (basalto enfriado)", lava.es_roca(Vector2i(13, 5)) and lava.es_roca(Vector2i(14, 5)) and Pulso3D.conduce_pulso(Vector2i(13, 5)) and not Terreno3D.bloqueada(Vector2i(13, 5)))
+	# Frío a la lava: la roca enfriada conduce. 24/10: con la flecha de AGUA REAL (`_lanzar_real`: agua + flecha CON su gravedad, como en el juego; no la «plana» de `lanzar`). La flecha vuela hasta el borde
+	# de la lava (casilla sólida), se para ahí y deja el agua en la orilla de la simulación; la lava mira la simulación y se enfría (regla en `Lava3D.CADA_AGUA`). Se tira desde la orilla, pegado a la lava.
+	var sin_agua: bool = Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 5)) < 0.005 and not lava.es_roca(Vector2i(13, 5))
+	_ok("4 C3: antes de tirar no hay agua en la orilla (12,5) y la lava sigue siendo lava", sin_agua, "agua %.3f" % Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 5)))
+	_ok("4 C3: agua + flecha REAL hacia la lava (13,5) desde la orilla sale", await _lanzar_real("agua", ["flecha"], Vector3(1.0, 0.0, 0.0)))
+	await _esperar(func() -> bool: return lava.es_roca(Vector2i(13, 5)) and lava.es_roca(Vector2i(14, 5)), 6.0)
+	_ok("4 C3: la flecha de agua enfría la fila 5 en ROCA (13,5) y (14,5): se pisa y CONDUCE (basalto enfriado)", lava.es_roca(Vector2i(13, 5)) and lava.es_roca(Vector2i(14, 5)) and Pulso3D.conduce_pulso(Vector2i(13, 5)) and not Terreno3D.bloqueada(Vector2i(13, 5)),
+		"roca (13,5) %s · (14,5) %s · agua orilla %.3f" % [str(lava.es_roca(Vector2i(13, 5))), str(lava.es_roca(Vector2i(14, 5))), Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 5))])
 	# Cruzar sobre la roca (10 s de margen) mientras el pulso la atraviesa.
 	if not await _ruta("4 C3", [Vector2i(13, 5), Vector2i(14, 5), Vector2i(15, 4)]):
 		return

@@ -34,7 +34,8 @@ extends Node
 ##                                                                                   `fijo=si` lo mantiene en `nivel`
 ##   manantial  caudal=<u³/s> (0.5)  volumen=<u³> (0 = infinito)  rampa (si)  inicia (si)  celdas=<lista>
 ##              En x,y echa agua. `rampa=si`: arranque suave de ReaccionesAgua3D.ARRANQUE_CAUCE (abre también las `celdas`; x,y va la primera);
-##              `rampa=no`: echa el caudal de golpe. `inicia=no`: espera a la acción `abrir_cauce`.
+##              `rampa=no`: echa el caudal de golpe. `inicia=no`: espera a la acción `abrir_cauce`. `sin_piedra=si` (24/10): no dibuja la pieza de canal de ruinas de
+##              sus `celdas` (el agua corre igual por el canal, a ras de suelo: la cascada de la Cueva, sin «puente»)
 ##   tinaja     canal=<lista>                                                         la tinaja de la MAQUETA (letra «u»), solo se enlaza por casilla;
 ##                                                                                   `canal` es el cauce que llena (la primera casilla recibe el agua)
 ##   totem                                                                           el tótem de la MAQUETA (letra «i»), enlazado por casilla
@@ -55,7 +56,8 @@ extends Node
 ##              y ya no vuelven a cerrarse. `hasta=<flag>`: con esa flag puesta (al montar o después) ni se cierra ni se queda cerrado.
 ##              Sin `sala` solo cierra la acción `cerrar`. El rectángulo de `sala` NO debe incluir las `celdas` de las puertas
 ##   lava       celdas=<lista> (la propia x,y)  vuelve=<s> (0)                       Lava3D (bloque 3 EoW): charco de lava que no se pisa y prende lo de al
-##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s
+##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s. El agua cuenta aunque sea la
+##              flecha de agua REAL (la que se para en el borde de la lava y deja agua en la orilla de la simulación): `Lava3D.CADA_AGUA`
 ##   seta       variante=roja|azul|marron (la que toque por casilla)  rebrota=<s> (0)  madura=si (no)   Recolectable3D (la Cueva): setas que se cogen con E y dan
 ##              un ingrediente; un elemento lanzado antes las transforma (Objetos.PLANTAS). Sin variante se intercalan por casilla.
 ##              `madura=si` (24/10): un PULSO que la toca la hace brillar y la MADURA a `seta_resonante` (si aún no la había transformado un elemento)
@@ -308,7 +310,7 @@ const CLAVES: Dictionary = {
 	"puerta": {"modelo": "s:llave", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
 	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
-	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas"},
+	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
 	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f"},
@@ -1850,6 +1852,12 @@ func _crear(pz: Pieza) -> void:
 					for c in celdas:
 						Terreno3D.agua_sim.fijar_nivel(c as Vector2i, _fondo(c as Vector2i) + prof)
 		"manantial":
+			if bool(pz.p.get("sin_piedra", false)):
+				_ocultar_piedra_canal(celdas, cont)
+			if pz.p.has("bloque"):
+				if float(pz.p.get("terraza", 0.0)) > 0.0:
+					_levantar_terraza(pz.p["bloque"] as Array, float(pz.p["terraza"]), cont)
+				_forma_ancha(pz.p["bloque"] as Array)
 			if bool(pz.p.get("inicia", true)):
 				_abrir_cauce(pz, [])
 		"tinaja":
@@ -2053,8 +2061,175 @@ func _reactivo(tipo: String, c: Vector2i) -> Reactivo3D:
 ## Profundidad 0 de una casilla de agua: el fondo del cajón de un canal de ruinas, o el lecho de un cauce «c».
 func _fondo(c: Vector2i) -> float:
 	if Terreno3D.es_canal_ruinas(c):
-		return Terreno3D.alto_suelo + Terreno3D.FONDO_CANAL
+		return Terreno3D.fondo_canal_en(c)
 	return Terreno3D.alto_agua - Terreno3D.LECHO_AGUA
+
+
+## 24/10 (Pablo: «la cascada de C2 sin el puente de ruinas»): el canal `-` de la Cueva sigue siendo canal para la simulación (el agua corre por su cajón y cae al
+## pozo), pero su PIEZA de ruinas (la losa con barandillas de musgo, que en la cueva se leía como un puente) no se dibuja en `celdas`: el agua corre a ras de suelo,
+## saliendo de la pared. Las piezas van por lotes (un MultiMesh por trozo del mapa): se anula la copia de esa casilla (escala 0) sin tocar las demás.
+## Se apunta en `piedras_ocultas` (casilla -> true) para que las pruebas lo vean sin leer el MultiMesh (sin GPU no se puede).
+static var piedras_ocultas: Dictionary = {}
+
+func _ocultar_piedra_canal(celdas: Array, cont: Node) -> void:
+	var lotes: Variant = (mundo as Object).get("_lotes") if mundo is Object else null
+	var lado_bloque: float = float((mundo as Object).get("BLOQUE_LOTE")) if mundo is Object and (mundo as Object).get("BLOQUE_LOTE") != null else Terreno3D.casilla * 7.0
+	if not (lotes is Dictionary):
+		return
+	for c in celdas:
+		piedras_ocultas[c] = true
+	for id in ["canal_recto", "canal_codo"]:
+		if not (lotes as Dictionary).has(id):
+			continue
+		for n in cont.get_children():
+			var nombre: String = String(n.name)
+			if not (n is MultiMeshInstance3D) or not nombre.begins_with("lote_%s_" % id):
+				continue
+			var k: PackedStringArray = nombre.trim_prefix("lote_%s_" % id).trim_suffix("_sombra").split("_")
+			if k.size() != 2:
+				continue
+			# Las copias del trozo, en el orden en que `_construir_lotes` las puso (el mismo que el de las instancias del MultiMesh).
+			var copias: Array = []
+			for t in ((lotes as Dictionary)[id] as Array):
+				var o: Vector3 = (t as Transform3D).origin
+				if floori(o.x / lado_bloque) == int(k[0]) and floori(o.z / lado_bloque) == int(k[1]):
+					copias.append(t)
+			var mm: MultiMesh = (n as MultiMeshInstance3D).multimesh
+			for i in range(mini(copias.size(), mm.instance_count)):
+				var o2: Vector3 = (copias[i] as Transform3D).origin
+				if celdas.has(Terreno3D.celda_de(o2)):
+					mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), o2))
+
+
+## La lámina de agua de la tapa de una terraza (`_levantar_terraza`). Sin luz (unshaded) como la cortina: la Cueva está casi a oscuras y el agua tiene que leerse. El flujo va hacia +Z (el sur, el labio).
+const CODIGO_TAPA_TERRAZA: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix;
+
+uniform vec3 color_hondo : source_color = vec3(0.06, 0.30, 0.62);
+uniform vec3 color_claro : source_color = vec3(0.60, 0.88, 1.0);
+uniform float velocidad = 0.9;
+
+varying vec3 v_pos;
+
+void vertex() {
+	v_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+// El mismo hash entero que la cortina de AguaRender3D: el de `sin` pierde precisión en la GPU y sale a cuadros.
+const float HASH_CUANTO = 256.0;
+float hash(vec2 p) {
+	uvec2 q = uvec2(ivec2(floor(p * HASH_CUANTO + 0.5)));
+	uint h = q.x * 1597334673u ^ q.y * 3812015801u;
+	h = (h ^ (h >> 16u)) * 2246822519u;
+	h = (h ^ (h >> 13u)) * 3266489917u;
+	h = h ^ (h >> 16u);
+	return float(h >> 8u) * (1.0 / 16777216.0);
+}
+
+float ruido(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void fragment() {
+	// Vetas alargadas a lo largo del flujo: poco frecuentes en Z (estiradas), más en X.
+	float f1 = smoothstep(0.58, 0.80, ruido(vec2(v_pos.x * 4.2, v_pos.z * 0.30 - TIME * velocidad)));
+	float f2 = smoothstep(0.62, 0.82, ruido(vec2(v_pos.x * 8.0 + 4.1, v_pos.z * 0.55 - TIME * velocidad * 1.6)));
+	float veta = clamp(max(f1, f2 * 0.8), 0.0, 1.0);
+	// Rizos finos que cruzan la corriente.
+	float rizo = smoothstep(0.64, 0.9, ruido(vec2(v_pos.x * 1.4 + TIME * 0.2, v_pos.z * 1.6 - TIME * velocidad * 0.5)));
+	vec3 col = mix(color_hondo, color_claro, clamp(veta * 0.55 + rizo * 0.18, 0.0, 1.0));
+	ALBEDO = col;
+	ALPHA = 0.93;
+}
+"""
+
+
+## 24/10: sube el fondo del canal de las casillas del `bloque` `alto` u sobre el suelo y pone debajo un bloque de roca de cueva (la pared del foso, la misma piedra mojada que los costados de
+## las charcas): una TERRAZA con el agua encima. Así la cascada cae `alto` u más al pozo y se ve desde la cámara (con un solo escalón de suelo a pozo, 1 u, la cortina medía una franja).
+## Las casillas se bloquean (no se pisan: el fondo del canal queda a la altura de un nivel) y la simulación relee su suelo. Se hace UNA vez por bloque (hay un manantial por carril).
+func _levantar_terraza(bloque: Array, alto: float, cont: Node) -> void:
+	var nombre: String = "terraza_%d_%d" % [(bloque[0] as Vector2i).x, (bloque[0] as Vector2i).y]
+	if cont.has_node(nombre):
+		return
+	var x0: int = 9999
+	var y0: int = 9999
+	var x1: int = -9999
+	var y1: int = -9999
+	for c in bloque:
+		x0 = mini(x0, (c as Vector2i).x)
+		y0 = mini(y0, (c as Vector2i).y)
+		x1 = maxi(x1, (c as Vector2i).x)
+		y1 = maxi(y1, (c as Vector2i).y)
+		Terreno3D.elevacion_canal[c] = alto
+		Terreno3D.bloquear_celda(c as Vector2i)
+		if Terreno3D.agua_sim != null:
+			Terreno3D.agua_sim.refrescar_casilla(c as Vector2i)
+	var s: float = Terreno3D.casilla
+	var esq: Vector3 = Terreno3D.centro_de(Vector2i(x0, y0), 0.0) - Vector3(s * 0.5, 0.0, s * 0.5)
+	var ancho: float = float(x1 - x0 + 1) * s
+	var fondo: float = float(y1 - y0 + 1) * s - 0.03          # 3 cm menos al sur: la cortina cae por delante de la cara de roca, no dentro
+	var y_base: float = Terreno3D.alto_suelo - 0.1
+	var y_tope: float = Terreno3D.alto_suelo + alto + Terreno3D.FONDO_CANAL - 0.02     # un pelo bajo el fondo del canal: la lámina de agua se apoya en la roca
+	var caja := BoxMesh.new()
+	caja.size = Vector3(ancho, y_tope - y_base, fondo)
+	var bloque_roca := MeshInstance3D.new()
+	bloque_roca.name = nombre
+	bloque_roca.mesh = caja
+	bloque_roca.position = esq + Vector3(ancho * 0.5, (y_base + y_tope) * 0.5, fondo * 0.5)
+	var mat: StandardMaterial3D = null
+	if mundo is Object and (mundo as Object).has_method("_mat_triplanar"):
+		mat = (mundo as Object).call("_mat_triplanar", "res://arte/suelo_meshy/pared_foso_cueva.png", Color(0.3, 0.33, 0.4)) as StandardMaterial3D
+	if mat != null:
+		mat.uv1_scale = Vector3(1.0, 2.0, 1.0) / (s * 2.0)          # la textura es 2:1: se estira en vertical para que las piedras no salgan alargadas (como el costado de las charcas)
+		mat.albedo_color = mat.albedo_color * 2.6                    # y se aclara: con la luz de la cueva se perdía en negro
+	else:
+		mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(0.3, 0.33, 0.4)
+	bloque_roca.material_override = mat
+	cont.add_child(bloque_roca)
+	# La tapa: una lámina de agua que corre hacia el labio (sur). El agua del filtro es casi transparente en poco fondo (alfa ∝ profundidad) y sobre la roca no se leería como agua; esta
+	# lámina va justo por encima de la cara de arriba, con vetas de corriente (ruido alargado en la dirección del flujo) y el brillo de la cortina de abajo, para que arriba y abajo sean la misma agua.
+	var tapa := MeshInstance3D.new()
+	tapa.name = nombre + "_agua"
+	var plano := PlaneMesh.new()
+	plano.size = Vector2(ancho, fondo)
+	tapa.mesh = plano
+	tapa.position = bloque_roca.position + Vector3(0.0, (y_tope - y_base) * 0.5 + 0.03, 0.0)
+	var sh := Shader.new()
+	sh.code = CODIGO_TAPA_TERRAZA
+	var mat_agua := ShaderMaterial.new()
+	mat_agua.shader = sh
+	tapa.material_override = mat_agua
+	tapa.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cont.add_child(tapa)
+
+
+## 24/10: un canal de ruinas es ESTRECHO para la simulación (un carril central de un tercio de casilla: el cajón de la pieza), y una cortina de un tercio de casilla no se ve
+## desde la cámara. Aquí las casillas del `bloque` forman UNA lámina ancha: cada una abre sus 9 trocitos salvo por el lado donde linda con suelo pisable (ahí queda cerrado el tercio del
+## borde: el agua no se sale a la sala). Se abre a su vecina del bloque, al muro de detrás (norte: ahí nace) y a una cuenca `c` (sur: la caída).
+func _forma_ancha(bloque: Array) -> void:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	if sim == null:
+		return
+	for c in bloque:
+		var abre: Dictionary = {}
+		for d in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(1, 0), Vector2i(-1, 0)]:
+			var n: Vector2i = (c as Vector2i) + (d as Vector2i)
+			var letra: String = Terreno3D.letra_de(n)
+			abre[d] = bloque.has(n) or (d == Vector2i(0, -1) and letra == "#") or (d == Vector2i(0, 1) and letra == "c")
+		var lados: Array = []
+		for d in abre:
+			if abre[d]:
+				lados.append(d)
+		for dx in [-1, 1]:
+			for dy in [-1, 1]:
+				if abre[Vector2i(dx, 0)] and abre[Vector2i(0, dy)]:
+					lados.append(Vector2i(dx, dy))
+		sim.abrir_solo(c as Vector2i, lados, false)
 
 
 func _abrir_celdas(celdas: Array) -> void:
