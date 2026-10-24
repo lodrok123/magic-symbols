@@ -1088,6 +1088,7 @@ uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
 uniform float alfa_base = 0.34;             // opacidad de la lámina sin vetas (deja ver lo de detrás)
 uniform float alfa_veta = 0.50;             // y lo que suben las vetas
 uniform float alfa_labio = 0.35;            // y el labio superior
+uniform float labio_fuerza = 1.0;           // 24/10: 0 = sin aclarado del labio (la cascada de la Cueva, para que la cortina siga a la lámina de la cornisa sin franja clara)
 uniform float vel_caida = 2.4;
 uniform float veta2_fuerza = 0.7;
 uniform float veta2_vel = 1.5;
@@ -1125,7 +1126,7 @@ void fragment() {
 	float v2 = smoothstep(0.62, 0.80, ruido(vec2(a * 12.0 + 3.7, y * 0.65 + TIME * vel_caida * veta2_vel))) * veta2_fuerza;
 	float v3 = smoothstep(0.56, 0.80, ruido(vec2(a * 3.5 + 11.3, y * 0.28 + TIME * vel_caida * veta3_vel))) * veta3_fuerza;
 	float vetas = clamp(max(v1, max(v2, v3)) * 0.75 + (v1 + v2 + v3) * 0.15, 0.0, 1.0);
-	float labio = smoothstep(0.78, 1.0, t);
+	float labio = smoothstep(0.78, 1.0, t) * labio_fuerza;
 	float pie = smoothstep(0.0, 0.10, t);
 	vec3 col = mix(color_hondo, color_claro, clamp(vetas * 0.9 + labio * 0.6 + t * 0.10, 0.0, 1.0));
 	ALBEDO = col;
@@ -1396,6 +1397,13 @@ func fuente_ondas(textura: Texture2D, origen_xz: Vector2, lado: float, fuerza: f
 
 
 var _ajustes_pendientes: Dictionary = {}
+var _ajustes_cortina: Dictionary = {}
+
+## Como `ajustar` pero para el material de la CORTINA (se crea la primera vez que hay una caída): se guarda y se aplica al crearlo o ya.
+func ajustar_cortina(nombre: String, valor: Variant) -> void:
+	_ajustes_cortina[nombre] = valor
+	if _mat_cortina != null:
+		_mat_cortina.set_shader_parameter(nombre, valor)
 
 ## Cambia un parámetro del sombreado (colores, bandas, espuma…).
 func ajustar(nombre: String, valor: Variant) -> void:
@@ -1736,6 +1744,8 @@ func _poner_cortinas(caras: Array) -> void:
 		_mat_cortina.set_shader_parameter("alfa_base", CORTINA_ALFA_BASE)
 		_mat_cortina.set_shader_parameter("alfa_veta", CORTINA_ALFA_VETA)
 		_mat_cortina.set_shader_parameter("alfa_labio", CORTINA_ALFA_LABIO)
+		for k in _ajustes_cortina:
+			_mat_cortina.set_shader_parameter(String(k), _ajustes_cortina[k])
 		_cortinas.material_override = _mat_cortina
 		add_child(_cortinas)
 	_cortinas.mesh = malla

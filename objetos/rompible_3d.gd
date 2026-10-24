@@ -51,7 +51,7 @@ const PERFIL_DEFECTO: Dictionary = {"nada": 0.5, "oro": 0.4, "pocion": 0.1}
 
 ## Modelo de cada tipo: pieza normal y pieza alternativa (`alto=si` en el jarrón, `pequena=si` en la caja), y de qué color son los trozos.
 const MODELOS: Dictionary = {
-	"jarron": {"normal": "jarron", "otra": "jarron_alto", "trozo": Color(0.62, 0.38, 0.24), "alto_hit": 0.9, "alto_otra": 1.3},
+	"jarron": {"normal": "jarron", "otra": "jarron_alto", "trozo": Color(0.62, 0.38, 0.24), "alto_hit": 0.9, "alto_otra": 1.3, "restos": "jarron_roto"},
 	"caja": {"normal": "caja", "otra": "caja_pequena", "trozo": Color(0.55, 0.40, 0.22), "alto_hit": 0.8, "alto_otra": 0.6},
 }
 const RADIO_HIT: float = 0.5
@@ -256,6 +256,19 @@ func _trozos(volar: bool) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%s%d%d" % [String(name), celda.x, celda.y])      # los mismos restos cada vez que nace roto
 	var color: Color = MODELOS[tipo]["trozo"]
+	# 24/10 (tercera tanda): los restos del jarrón son una pieza (`jarron_roto`: la base y los cascos en el suelo), además de los trozos que saltan. Cuelga de este nodo y no de `_restos`
+	# (`n_restos` cuenta solo los trozos). Un tipo sin pieza de restos (la caja) sigue como siempre.
+	var id_restos: String = String((MODELOS[tipo] as Dictionary).get("restos", ""))
+	if id_restos != "":
+		var pieza: Node3D = null
+		if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
+			pieza = _mundo.call("_pieza", id_restos) as Node3D
+		if pieza == null and ResourceLoader.exists("res://arte/piezas/%s.tscn" % id_restos):
+			pieza = (load("res://arte/piezas/%s.tscn" % id_restos) as PackedScene).instantiate() as Node3D
+		if pieza != null:
+			pieza.name = "restos_modelo"
+			pieza.rotation.y = rng.randf() * TAU
+			add_child(pieza)
 	for i in range(N_TROZOS):
 		var t := MeshInstance3D.new()
 		var b := BoxMesh.new()

@@ -23,7 +23,9 @@ const ALCANCE: float = 2.0              ## u: a cuánto hay que estar para coger
 const VARIANTES: Dictionary = {"roja": "setas_rojas", "azul": "setas_azules", "marron": "setas_marrones"}
 const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 ## Las plantas que no son setas usan una pieza del decorado que ya existe (sin arte nuevo) teñida con el color de su objeto.
-const VISUAL_PLANTA: Dictionary = {"alga": "planta_agua", "basalto": "rocas_pequenas"}
+## 24/10 (tercera tanda): `alga_cueva` y `basalto_suelto` ya son piezas propias (antes `planta_agua` y `rocas_pequenas` teñidas con el color del objeto): llevan su color pintado y no se tiñen.
+const VISUAL_PLANTA: Dictionary = {"alga": "alga_cueva", "basalto": "basalto_suelto"}
+const VISUAL_PROVISIONAL: Array = []        ## las plantas cuyo modelo es un préstamo teñido (hoy ninguna)
 const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}   ## la roca suelta se lee mal a la altura de la cámara: se agranda
 const CADA_CONDICION: float = 0.2      ## s entre mirada y mirada a `coge_si`
 const OBJETO_MADURO: String = "seta_resonante"   ## lo que da la seta madurada por un pulso
@@ -104,7 +106,8 @@ func _poner_visual() -> void:
 	add_child(n)
 	_visual = n
 	if VISUAL_PLANTA.has(planta):
-		Paleta3D.tintar(n, Objetos.color(objeto))
+		if VISUAL_PROVISIONAL.has(planta):
+			Paleta3D.tintar(n, Objetos.color(objeto))
 		n.scale *= float(ESCALA_VISUAL.get(planta, 1.0))
 	n.visible = disponible and not recogido_ya
 

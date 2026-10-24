@@ -49,8 +49,9 @@
 ; pieza jarron_c6b jarron 10 12 alto=si botin=oro
 ; --- C1 · Boca: los dos braseros abren el paso al norte ---
 ; 24/10: `luz=2.4`: en la Cueva, casi a oscuras, la llama de un brasero tiene que alumbrar de verdad (cálida, por encima del azul de reposo).
-; pieza br_c1a brasero 2 12 luz=2.4
-; pieza br_c1b brasero 7 12 luz=2.4
+; 24/10 (tercera tanda): `modelo=cueva` pone el brasero de la Cueva (`brasero_cueva`) en vez del del Bosque; sigue siendo el mismo reactivo.
+; pieza br_c1a brasero 2 12 luz=2.4 modelo=cueva
+; pieza br_c1b brasero 7 12 luz=2.4 modelo=cueva
 ; pieza luces contador 4 13 de=2,12+7,12
 ; pieza paso_norte puerta 4 10 modelo=llave
 ; puzle abre_norte cuando=luces.todos hace=paso_norte.abrir
@@ -123,6 +124,8 @@
 ; pieza receptor_c3 receptor 16 5 flag=cueva.c3.pulso
 ; pieza reja_c3 puerta 17 3
 ; pieza cofre_c3 cofre 17 1 abierto=cueva.c3.cofre da=oro:25+mineral_veta:1
+; 24/10 (tercera tanda): la geoda resonante de C3. La PARED HUECA de C3 que la guarda aún no está definida (docs/MATERIALES_CUEVA.md), así que va de ADORNO en la orilla oeste del río, junto a la lava (docs/PENDIENTES.md).
+; pieza geoda_c3 decorado 12 2 modelo=geoda_resonante escala=1.2
 ; puzle abre_reja cuando=receptor_c3.activado hace=reja_c3.abrir
 ; --- C4 · Sala cerrada: cofre con la llave ---
 ; `hasta=` : con la sala ya limpia (se volvió de otro nivel) ni se cierra ni se quedan los goblins (el vigía los retira al montar).
@@ -137,6 +140,10 @@
 ; pieza veta_c4a veta 21 2 celdas=21,2..24,2+24,3..24,4 aturde=3
 ; pieza cris_c4b cristal 24 7 cada=0
 ; pieza veta_c4b veta 23 7 celdas=23,7..20,7+20,6..20,4 aturde=3 mineral=si
+; 24/10 (tercera tanda): estalagmitas resonantes junto a las vetas, de ADORNO por ahora (vibrar con el pulso y caer como `estalagmita_rota` aún no está hecho: docs/PENDIENTES.md).
+; pieza est_c4a decorado 23 3 modelo=estalagmita_resonante escala=1.0
+; pieza est_c4b decorado 21 4 modelo=estalagmita_resonante giro=70 escala=0.85
+; pieza est_c4c decorado 23 6 modelo=estalagmita_resonante giro=140 escala=1.1
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
 ; Materiales: las algas del lecho solo se ven (y se cogen) con la charca HELADA; las setas de la orilla son para electrificarlas (rayo) y helarlas.
 ; pieza alga_c5a alga 21 14 coge_si=casilla(21,14).helada

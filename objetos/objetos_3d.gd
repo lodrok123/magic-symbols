@@ -144,6 +144,7 @@ var start_lit: bool = false          ## fogata: nace encendida
 ## 24/10 (Cueva, fase 3): cuánto más luz da la llama de una fuente de fuego (brasero, fogata) que la de siempre. Lo pone el mapa (`; pieza … brasero luz=<x>`): en la Cueva, casi a oscuras, el brasero tiene
 ## que alumbrar de verdad. Multiplica la energía y abre un poco el alcance (la mitad de lo que sube).
 var mult_luz: float = 1.0
+var datos_fuente: Array = []            ## 24/10: [alto de las llamas, escala, radio, alto del cuerpo] propios de este brasero (si el modelo no mide lo de siempre); vacío = la fila de FUENTES
 ## Lo que el nivel hace para que el fuego de un objeto prenda la hierba: (posicion: Vector3, radio: float, viento: Vector3).
 var hierba_cerca: Callable = Callable()
 
@@ -278,7 +279,37 @@ func _num_combustible() -> Array:
 
 
 func _num_fuente() -> Array:
+	if not datos_fuente.is_empty():
+		return datos_fuente
 	return FUENTES.get(tipo, FUENTE_BASE) as Array
+
+
+## 24/10 (tercera tanda: el brasero de la Cueva, `brasero_cueva`). Cambia SOLO el modelo de un reactivo ya montado: el visual nuevo (hijo, con su transform de `PruebaTest2._pieza`) sustituye
+## al viejo, se recogen otra vez sus materiales (para el tinte de apagado y el de arder) y, si el modelo es más bajo o más alto, `datos` = [alto de las llamas, escala, radio, alto del cuerpo]
+## (como una fila de FUENTES) mueve la llama, la luz y la caja de acierto. Sigue siendo el mismo reactivo: papeles, luz, pulso de fuego, relés y flags no se tocan.
+func cambiar_visual(nuevo: Node3D, datos: Array = []) -> void:
+	if nuevo == null:
+		return
+	if visual != null and is_instance_valid(visual):
+		if visual.get_parent() == self:
+			remove_child(visual)
+		visual.queue_free()
+	_mats.clear()
+	_sprites.clear()
+	add_child(nuevo)
+	move_child(nuevo, 0)
+	visual = nuevo
+	_recoger_materiales()
+	if datos.size() >= 4:
+		datos_fuente = datos
+		if _forma_cuerpo != null and _forma_cuerpo.shape is BoxShape3D:
+			var caja: BoxShape3D = _forma_cuerpo.shape as BoxShape3D
+			caja.size.y = float(datos[3])
+			_forma_cuerpo.position.y = caja.size.y * 0.5
+			_ajustar_cuerpo(caja, _forma_cuerpo)
+		if is_lit and _luz != null and is_instance_valid(_luz):
+			_luz.position.y = float(datos[0]) + 0.7
+	_pintar_tinte(0.0 if is_lit else 1.0)
 
 
 func _ready() -> void:
@@ -323,6 +354,8 @@ func _ready() -> void:
 
 
 func _alto_cuerpo() -> float:
+	if not datos_fuente.is_empty() and FUENTES.has(tipo):
+		return float(datos_fuente[3])
 	if COMBUSTIBLES.has(tipo):
 		return float((COMBUSTIBLES[tipo] as Array)[3])
 	if FUENTES.has(tipo):

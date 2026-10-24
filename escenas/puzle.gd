@@ -39,7 +39,9 @@ extends Node
 ##   tinaja     canal=<lista>                                                         la tinaja de la MAQUETA (letra «u»), solo se enlaza por casilla;
 ##                                                                                   `canal` es el cauce que llena (la primera casilla recibe el agua)
 ##   totem                                                                           el tótem de la MAQUETA (letra «i»), enlazado por casilla
-##   brasero    rele=<id> espera=<s> (1.5) dura=<s> (6)  luz=<x> (1)                  el brasero de la MAQUETA (letra «T»), enlazado por casilla. Sin claves es
+##   decorado   modelo=<pieza> (obligatoria)  giro=<grados> (0)  escala=<x> (1)         24/10: una pieza de ADORNO sin mecánica en su casilla (geoda_resonante, estalagmita_resonante…). No bloquea
+##   brasero    modelo=cueva (24/10): el modelo `brasero_cueva` en vez del del Bosque (mismo reactivo; `Reactivo3D.cambiar_visual`)
+##   brasero    rele=<id> espera=<s> (1.5) dura=<s> (6)  luz=<x> (1)               el brasero de la MAQUETA (letra «T»), enlazado por casilla. Sin claves es
 ##                                                                                   el de siempre. Con `rele` (el id de OTRO brasero), al encenderse enciende a ése
 ##                                                                                   `espera` s después y él se apaga a los `dura` s; `dura` sin `rele` = se apaga solo.
 ##                                                                                   `luz=<x>` (24/10): la llama alumbra x veces más (en la Cueva, `luz=2.2`). Un pulso de FUEGO lo enciende
@@ -313,7 +315,8 @@ const CLAVES: Dictionary = {
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
-	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f"},
+	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva"},
+	"decorado": {"modelo": "s:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante", "giro": "f", "escala": "f"},
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f"},
 	"cuerda": {"sostiene": "id"},
@@ -1882,6 +1885,15 @@ func _crear(pz: Pieza) -> void:
 				_avisar_pieza(pz, "no hay brasero de la maqueta en %s (letra «T»)" % pz.celda)
 				return
 			br.mult_luz = maxf(float(pz.p.get("luz", 1.0)), 0.1)
+			if String(pz.p.get("modelo", "")) == "cueva":
+				# 24/10 (tercera tanda): el brasero de la Cueva (`brasero_cueva`, 0,9 de alto) en vez del del Bosque (1,4). Solo cambia el modelo: sigue siendo el mismo Reactivo3D, con su luz, su
+				# pulso de fuego y su caja de acierto; la llama y la luz bajan a la altura del cuenco nuevo.
+				var raiz_b: Node3D = (mundo as Object).call("_pieza", "brasero_cueva") as Node3D if mundo is Object and (mundo as Object).has_method("_pieza") else null
+				if raiz_b != null and raiz_b.get_child_count() > 0:
+					var modelo_b: Node3D = raiz_b.get_child(0) as Node3D
+					raiz_b.remove_child(modelo_b)
+					raiz_b.free()
+					br.cambiar_visual(modelo_b, [0.80, 0.55, 0.12, 0.95])
 			pz.nodo = br
 		"seto":
 			var se: Reactivo3D = _reactivo("seto", pz.celda)
@@ -1994,6 +2006,14 @@ func _crear(pz: Pieza) -> void:
 			pr.preparar(pz.celda, String(pz.p.get("dir", PrismaPulso3D.DIR_DEFECTO)), mundo as Node)
 			cont.add_child(pr)
 			pz.nodo = pr
+		"decorado":
+			# 24/10 (tercera tanda): una pieza de adorno sin mecánica (la geoda de C3, las estalagmitas de C4…): solo el modelo, en su casilla, a ras de suelo. No bloquea.
+			var dec: Node3D = _colocar_pieza(String(pz.p["modelo"]) if pz.p.has("modelo") else "", cont, pz.id,
+				Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02), float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
+			if dec == null:
+				_avisar_pieza(pz, "decorado necesita «modelo=<pieza>» y que la pieza exista")
+				return
+			pz.nodo = dec
 		"pared_hueca":
 			var ph := ParedHuecaPulso3D.new()
 			ph.name = pz.id
@@ -2104,13 +2124,29 @@ func _ocultar_piedra_canal(celdas: Array, cont: Node) -> void:
 					mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3.ZERO), o2))
 
 
+## 24/10 (tercera tanda): pone una pieza del decorado (la que da `PruebaTest2._pieza`: ya a su MEDIDA, con la base en y = 0 y centrada en x/z) en `pos`, girada `giro` grados y con la escala
+## `escala` (por eje: se ajusta a un alto, un ancho o un fondo). null si no hay maqueta o falta la pieza.
+func _colocar_pieza(id: String, cont: Node, nombre: String, pos: Vector3, giro: float, escala: Vector3) -> Node3D:
+	if not (mundo is Object) or not (mundo as Object).has_method("_pieza"):
+		return null
+	var n: Node3D = (mundo as Object).call("_pieza", id) as Node3D
+	if n == null:
+		return null
+	n.name = nombre
+	n.position = pos
+	n.rotation.y = deg_to_rad(giro)
+	n.scale = escala
+	cont.add_child(n)
+	return n
+
+
 ## La lámina de agua de la tapa de una terraza (`_levantar_terraza`). Sin luz (unshaded) como la cortina: la Cueva está casi a oscuras y el agua tiene que leerse. El flujo va hacia +Z (el sur, el labio).
 const CODIGO_TAPA_TERRAZA: String = """
 shader_type spatial;
 render_mode unshaded, cull_disabled, blend_mix;
 
-uniform vec3 color_hondo : source_color = vec3(0.06, 0.30, 0.62);
-uniform vec3 color_claro : source_color = vec3(0.60, 0.88, 1.0);
+uniform vec3 color_hondo : source_color = vec3(0.12, 0.50, 0.85);     // los de la cortina de AguaRender3D (CODIGO_CORTINA): sin cambio de tono en la unión
+uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
 uniform float velocidad = 0.9;
 
 varying vec3 v_pos;
@@ -2147,7 +2183,9 @@ void fragment() {
 	vec3 col = mix(color_hondo, color_claro, clamp(veta * 0.75 + rizo * 0.25, 0.0, 1.0));
 	ALBEDO = col;
 	// 2.ª pasada: una lámina FINA, no un bloque azul: donde no hay veta se ve la roca del canal; las vetas (y los rizos) son agua. Se aclara hacia el labio (v_pos.z lo da la malla: UV.y 1 = sur).
-	ALPHA = clamp(0.20 + veta * 0.55 + rizo * 0.15 + UV.y * UV.y * 0.25, 0.0, 0.92);
+	// 5.ª pasada: hacia el final la lámina se funde (alfa → alfa de la cortina de debajo, que es ~0,34 + vetas) en vez de sumarse a ella: sin franja clara en la unión.
+	// Primero se probó fundirla, pero entonces arriba quedaba más transparente que la cortina y el cambio de tono se veía igual: ahora tiene el MISMO alfa que la cortina (0,34 + 0,5 × veta), sin fundido.
+	ALPHA = clamp(0.34 + veta * 0.50 + rizo * 0.08, 0.0, 0.9);
 }
 """
 
@@ -2269,6 +2307,7 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 	for n in (mundo as Node).find_children("*", "MeshInstance3D", true, false):
 		if n.get_script() != null and String((n.get_script() as Script).resource_path).ends_with("agua_render_3d.gd"):
 			n.call("ajustar", "caida_descarte", 0.0)
+			n.call("ajustar_cortina", "labio_fuerza", 0.0)      # 5.ª pasada: sin el aclarado del labio, la cortina sigue a la lámina de la cornisa sin franja clara
 	var tercio: float = s / 3.0
 	var n_col: int = (x1 - x0 + 1) * 3
 	var lip_z: float = esq.z + fondo + 0.03
@@ -2283,27 +2322,41 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var k: int = 0
 		while k < n_col:
 			if k % 4 == 0:
-				var pilar := MeshInstance3D.new()
-				pilar.name = "%s_pilar_%d" % [nombre, k / 4]
-				var cp := BoxMesh.new()
-				var alto_pilar: float = (y_tope - y_base) + PILAR_SOBRE_TERRAZA
-				var largo_pilar: float = PILAR_LARGO + 0.12
-				cp.size = Vector3(tercio, alto_pilar, largo_pilar)
-				pilar.mesh = cp
-				pilar.material_override = mat_roca
-				pilar.position = Vector3(esq.x + (float(k) + 0.5) * tercio, y_base + alto_pilar * 0.5, lip_z - 0.03 + 0.12 - largo_pilar * 0.5)
-				cont.add_child(pilar)
-				# Musgo en la cabeza del pilar: la misma piedra, teñida de verde apagado (con la luz azul de la cueva se queda en un verde-azulado oscuro: no rompe la paleta, pero se lee).
-				var musgo := MeshInstance3D.new()
-				musgo.name = pilar.name + "_musgo"
-				var cm := BoxMesh.new()
-				cm.size = Vector3(tercio + 0.12, 0.22, largo_pilar + 0.10)
-				musgo.mesh = cm
-				var mm: StandardMaterial3D = (mat_roca as StandardMaterial3D).duplicate() as StandardMaterial3D
-				mm.albedo_color = Color(mm.albedo_color.r * 0.50, mm.albedo_color.g * 1.00, mm.albedo_color.b * 0.62)
-				musgo.material_override = mm
-				musgo.position = pilar.position + Vector3(0.0, alto_pilar * 0.5 + 0.06, 0.0)
-				cont.add_child(musgo)
+				# Pilares: las piezas de la tercera tanda (hoja F1; antes eran cajas). `pilar_cascada` en el centro (se escala a una columna de agua, 0,77 u) y `pilar_cascada_ancho` en los flancos
+				# (1,15 u: la mitad pegada a la cortina, el resto asoma hacia la pared del canal o hacia la sala). Cada una con un giro y una escala algo distintos para que no se repitan.
+				var flanco_o: bool = k == 0
+				var flanco_e: bool = k == n_col - 1
+				var id_p: String = "pilar_cascada_ancho" if (flanco_o or flanco_e) else "pilar_cascada"
+				var ancho_p: float = 1.15 if (flanco_o or flanco_e) else tercio * 1.08
+				var nat_x: float = 1.749 if (flanco_o or flanco_e) else 1.049        # medidas del modelo ya a su MEDIDA (diag de 24/10)
+				var nat_z: float = 2.051 if (flanco_o or flanco_e) else 1.343
+				var largo_p: float = 1.65
+				var cx: float = esq.x + (float(k) + 0.5) * tercio
+				if flanco_o:
+					cx = esq.x + tercio - ancho_p * 0.5
+				elif flanco_e:
+					cx = esq.x + ancho - tercio + ancho_p * 0.5
+				var vari: float = float((k * 37) % 7 - 3) * 0.012
+				var pilar: Node3D = _colocar_pieza(id_p, cont, "%s_pilar_%d" % [nombre, k / 4],
+					Vector3(cx, y_base, lip_z + 0.09 - largo_p * 0.5), float((k * 53) % 9 - 4), Vector3(ancho_p / nat_x, 1.0 + vari, largo_p / nat_z))
+				if pilar == null:
+					# Sin la pieza (otra biblioteca, pruebas sin maqueta): la caja de siempre.
+					var cajap := MeshInstance3D.new()
+					cajap.name = "%s_pilar_%d" % [nombre, k / 4]
+					var cp := BoxMesh.new()
+					var alto_pilar: float = (y_tope - y_base) + PILAR_SOBRE_TERRAZA
+					cp.size = Vector3(tercio, alto_pilar, largo_p)
+					cajap.mesh = cp
+					cajap.material_override = mat_roca
+					cajap.position = Vector3(esq.x + (float(k) + 0.5) * tercio, y_base + alto_pilar * 0.5, lip_z + 0.09 - largo_p * 0.5)
+					cont.add_child(cajap)
+				else:
+					# El musgo que cuelga por delante de la cabeza del pilar (`musgo_colgante`), sin tapar el agua: queda en la cara frontal del pilar, por encima de la cortina.
+					_colocar_pieza("musgo_colgante", cont, "%s_musgo_%d" % [nombre, k / 4], Vector3(cx, y_base + 3.1 - 0.80, lip_z + 0.10), float((k * 29) % 11 - 5),
+						Vector3(minf(ancho_p, 0.95) / 0.7526, 1.0, 0.45))
+					# Las rocas que asoman del agua al pie de cada pilar (`rocas_salpicadura`): en el pozo, a ~1 u de la caída, fuera del grueso de la espuma.
+					_colocar_pieza("rocas_salpicadura", cont, "%s_rocas_%d" % [nombre, k / 4], Vector3(cx + float((k * 13) % 5 - 2) * 0.08, y_agua_pozo - 0.30, lip_z + 1.0 + float(k % 3) * 0.12),
+						float((k * 71) % 360), Vector3.ONE * (0.9 + float((k * 17) % 5) * 0.06))
 				k += 1
 			else:
 				var k0: int = k
@@ -2322,7 +2375,7 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var pl := PlaneMesh.new()
 		# 4.ª pasada (Pablo: «¿qué es la línea negra entre la cascada?»): la lámina acababa en el borde de la roca (lip_z − 0,06) y la cortina vertical empieza en lip_z: entre las dos asomaba la
 		# roca oscura del canto de la cornisa. La lámina llega ahora hasta pasado el plano de la cortina (+0,04) y las dos se solapan.
-		var largo_film: float = (lip_z + 0.22) - esq.z
+		var largo_film: float = (lip_z + 0.06) - esq.z
 		pl.size = Vector2(an, largo_film)
 		film.mesh = pl
 		film.position = Vector3(xc, y_tope + 0.03, esq.z + largo_film * 0.5)
@@ -2331,6 +2384,16 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		film.material_override = m_film
 		film.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cont.add_child(film)
+		# Un delantal vertical de la misma agua (0,16 u) que cae por el canto de la roca justo bajo el labio: tapa la grieta oscura del canto, que se veía como un hilo negro en la unión.
+		var delantal := MeshInstance3D.new()
+		delantal.name = "%s_delantal_%d" % [nombre, i_c]
+		var qd := QuadMesh.new()
+		qd.size = Vector2(an, 0.09)
+		delantal.mesh = qd
+		delantal.position = Vector3(xc, y_tope + 0.03 - 0.045, lip_z + 0.055)
+		delantal.material_override = m_film
+		delantal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cont.add_child(delantal)
 		# La ESPUMA al pie: una franja blanca opaca y burbujeante pegada a la cortina, con aros que se abren por el pozo, y un surtidor de salpicaduras.
 		var esp := MeshInstance3D.new()
 		esp.name = "%s_espuma_%d" % [nombre, i_c]
@@ -2370,7 +2433,15 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		chorro.mesh = esf
 		chorro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cont.add_child(chorro)
+		# El borde de la cornisa por donde rebosa el agua (`labio_cascada`, una casilla de largo): una losa baja pegada al canto, con su cara de arriba justo por debajo de la lámina de agua
+		# (que pasa por encima) y su frente a ras del plano de la cortina: no tapa el agua, solo le da una piedra gastada debajo.
+		_colocar_pieza("labio_cascada", cont, "%s_labio_%d" % [nombre, i_c], Vector3(xc, y_tope + 0.012 - 0.34, lip_z - 0.02 - 0.28), float(i_c) * 180.0,
+			Vector3(an / 2.3, 0.34, 0.56 / 2.194))
 		i_c += 1
+	# Los helechos (`helechos_cueva`) en los bordes del pozo: uno en el borde este (junto al suelo de la sala) y otro en el sur, sobre el suelo, y nunca dentro del agua.
+	var y_suelo: float = Terreno3D.alto_suelo - 0.02
+	_colocar_pieza("helechos_cueva", cont, "%s_helecho_0" % nombre, Vector3(esq.x + ancho + 0.28, y_suelo, lip_z + 0.9), 20.0, Vector3.ONE * 1.1)
+	_colocar_pieza("helechos_cueva", cont, "%s_helecho_1" % nombre, Vector3(esq.x + ancho * 0.3, y_suelo, lip_z + 2.0 * s + 0.35), 200.0, Vector3.ONE * 0.9)
 
 
 ## Segunda pasada (24/10): como `_forma_ancha` pero con PILARES. En el ancho del `bloque` (3 trocitos por casilla) quedan cerrados los trocitos cuya columna es múltiplo de 4 (columna 0 = el
