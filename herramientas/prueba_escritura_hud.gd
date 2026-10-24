@@ -68,8 +68,9 @@ func _pngs() -> void:
 	var sin_icono: Array = []
 	var vacios: Array = []
 	for id in Objetos.DATOS.keys():
-		if id == "oro" or id == "pocion":
-			continue            # la moneda y el frasco ya tienen arte de Pablo (mochila_moneda.png, objeto_pocion.png)
+		if id == "oro" or id == "pocion" or ["tonico_tinta", "balsamo_protector", "infusion_brezo"].has(id):
+			continue            # 24/10: los tres consumibles nuevos del HUD se dibujan en código (Objetos.dibujar) hasta que el Pipeline haga su PNG 128 × 128
+			#           # la moneda y el frasco ya tienen arte de Pablo (mochila_moneda.png, objeto_pocion.png)
 		var im: Image = _img("objeto_%s.png" % id)
 		if im == null:
 			sin_icono.append(id)

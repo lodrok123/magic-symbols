@@ -82,14 +82,10 @@ var _ultima: Vector3 = Vector3.ZERO
 var _salto_antes: bool = false
 var _vel_andar: float = 1.6
 var _vel_correr: float = 3.0
-var _hud_barra: ColorRect = null
-var _hud_marco: ColorRect = null
 var _hud_texto: Label = null
-var _hud_tinta_marco: ColorRect = null
-var _hud_tinta_barra: ColorRect = null
-var _hud_tinta_texto: Label = null
+## 24/10: la vida, los frascos y la barra de tinta y el consumible equipado (Q/R) los pinta y gestiona `HudEoW` (presentacion/ui/hud_eow.gd); antes eran aquí dos barras de ColorRect.
+var hud_eow: HudEoW = null
 var _t_sin_combate: float = 99.0             ## s desde el último golpe recibido: con menos de TINTA_COMBATE s la tinta se recupera más despacio
-var _t_aviso_tinta: float = 0.0              ## destello rojo de la barra cuando falta tinta
 var _f7_previa: bool = false
 const TINTA_COMBATE: float = 6.0
 const Y_BARRAS: float = 80.0                 ## px desde arriba donde empiezan la barra de vida y la de tinta
@@ -272,6 +268,8 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 		return
 	if lanz != null and lanz.absorber_golpe(cantidad, desde):
 		return                                   # la barrera cúpula lo ha parado (6.3)
+	if hud_eow != null and hud_eow.consumibles.absorber(cantidad):
+		return                                   # 24/10: el Bálsamo protector se come el golpe (y se acaba)
 	if _t_beber > 0.0:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
 	_t_gesto = 0.0                              # un golpe corta el gesto (la animación de golpe lo sustituye)
@@ -389,7 +387,6 @@ func _process(delta: float) -> void:
 	_t_golpe = maxf(0.0, _t_golpe - delta)
 	_t_inv = maxf(0.0, _t_inv - delta)
 	_t_sin_combate += delta
-	_t_aviso_tinta = maxf(0.0, _t_aviso_tinta - delta)
 	tinta.actualizar(delta, _t_sin_combate < TINTA_COMBATE)
 	# F7: cambia de pigmento (comando de prueba hasta que haya recetas y mochila de pigmentos). F8 no: es "detener" en el editor de Godot.
 	var f7: bool = Input.is_key_pressed(KEY_F7)
@@ -538,17 +535,14 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 
 
 ## Intenta el paso entero y, si no cabe, cada eje por separado (para deslizar por las paredes).
-## 6.6 y 6.7: Ctrl = voltereta, Q = beber. Se disparan al PULSAR (no mientras se mantiene).
+## 6.6: Ctrl = voltereta. Se dispara al PULSAR (no mientras se mantiene). (Q ya no bebe aquí: desde el 24/10 Q usa el consumible equipado, en `HudEoW`,
+## que para la poción llama a `usar_pocion()` de más abajo.)
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
-	var q: bool = libre and Input.is_key_pressed(KEY_Q)
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if ctrl and not _roll_previa and _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
 			and not ocupado and not nadando and en_suelo:
 		_iniciar_voltereta(mov)
-	if q and not _beber_previa and _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando \
-			and en_suelo and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
-		_iniciar_beber()
 	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
 	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio. Alt+F11: un goblin asesino.
 	# No F8: es el atajo del editor de Godot para DETENER el juego y la ventana se cerraba antes de llegar aquí.
@@ -570,7 +564,6 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			lanz.avisar("No cabe un elemental ahí delante", Color(1, 0.7, 0.5))
 	_f8_previa = f8
 	_roll_previa = ctrl
-	_beber_previa = q
 
 
 ## Giro actual de la cámara de la maqueta en grados (0 si el mundo no gira la cámara).
@@ -593,7 +586,7 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
 
 
-## Beber desde la mochila (clic en la poción): mismas condiciones que la tecla Q. Devuelve si empezó a beber.
+## Beber una poción (la usa `Consumibles` cuando Q tiene la poción equipada). Devuelve si empezó a beber.
 func usar_pocion() -> bool:
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
@@ -788,25 +781,12 @@ func _construir_hud() -> void:
 	var capa := CanvasLayer.new()
 	capa.layer = 9
 	add_child(capa)
-	_hud_marco = ColorRect.new()
-	_hud_marco.color = Color(0, 0, 0, 0.7)
-	_hud_marco.size = Vector2(244, 20)
-	_hud_marco.position = Vector2(14, 0)
-	_hud_marco.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	capa.add_child(_hud_marco)
-	# Arriba a la izquierda (15/10, Pablo). Empieza en y = 80 y no en 8 porque la maqueta (Pipeline) pinta ahí su texto de depuración
-	# (FPS, atajos, avisos: ~3 líneas) y taparía las barras; si algún día ese texto se mueve, basta bajar `Y_BARRAS`.
-	_hud_marco.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	_hud_marco.offset_left = 14.0
-	_hud_marco.offset_top = Y_BARRAS
-	_hud_marco.offset_right = 258.0
-	_hud_marco.offset_bottom = Y_BARRAS + 20.0
-	_hud_barra = ColorRect.new()
-	_hud_barra.color = Color(0.35, 0.85, 0.4)
-	_hud_barra.position = Vector2(2, 2)
-	_hud_barra.size = Vector2(240, 16)
-	_hud_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_marco.add_child(_hud_barra)
+	# La vida, los frascos de tinta + su barra y el consumible equipado los pinta `HudEoW` (24/10). Arriba a la izquierda (15/10, Pablo), desde `Y_BARRAS`: 80 y no 8
+	# porque la maqueta (Pipeline) pinta ahí su texto de depuración (FPS, atajos, avisos: ~3 líneas) y taparía las barras; si algún día ese texto se mueve, basta bajar `Y_BARRAS`.
+	hud_eow = HudEoW.new()
+	hud_eow.name = "HudEoW"
+	hud_eow.jugador = self
+	add_child(hud_eow)
 	_hud_texto = Label.new()
 	_hud_texto.add_theme_font_size_override("font_size", 14)
 	_hud_texto.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -818,37 +798,11 @@ func _construir_hud() -> void:
 	_hud_texto.offset_top = -50.0
 	_hud_texto.offset_right = 560.0
 	_hud_texto.offset_bottom = -8.0
-	# LA TINTA, justo debajo de la vida: más fina (12 px contra 20) para que se lea "primero la vida, luego la tinta".
-	_hud_tinta_marco = ColorRect.new()
-	_hud_tinta_marco.color = Color(0, 0, 0, 0.7)
-	_hud_tinta_marco.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	capa.add_child(_hud_tinta_marco)
-	_hud_tinta_marco.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	_hud_tinta_marco.offset_left = 14.0
-	_hud_tinta_marco.offset_top = Y_BARRAS + 24.0
-	_hud_tinta_marco.offset_right = 258.0
-	_hud_tinta_marco.offset_bottom = Y_BARRAS + 38.0
-	_hud_tinta_barra = ColorRect.new()
-	_hud_tinta_barra.position = Vector2(2, 2)
-	_hud_tinta_barra.size = Vector2(240, 10)
-	_hud_tinta_barra.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_tinta_marco.add_child(_hud_tinta_barra)
-	_hud_tinta_texto = Label.new()
-	_hud_tinta_texto.add_theme_font_size_override("font_size", 10)
-	_hud_tinta_texto.add_theme_color_override("font_outline_color", Color.BLACK)
-	_hud_tinta_texto.add_theme_constant_override("outline_size", 4)
-	_hud_tinta_texto.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_tinta_texto.position = Vector2(6, -3)
-	_hud_tinta_marco.add_child(_hud_tinta_texto)
-	tinta.insuficiente.connect(func(_f: String, _c: float, _h: float) -> void: _t_aviso_tinta = 0.35)
 
 
 func _actualizar_hud() -> void:
-	if _hud_barra == null:
+	if _hud_texto == null:
 		return
-	var fr: float = clampf(vida / maxf(Estado.i().vida_max, 1.0), 0.0, 1.0)
-	_hud_barra.size.x = 240.0 * fr
-	_hud_barra.color = Color(0.35, 0.85, 0.4) if fr > 0.5 else (Color(1.0, 0.8, 0.25) if fr > 0.25 else Color(1.0, 0.3, 0.25))
 	var extra: String = ""
 	if nadando:
 		extra = " · nadando"
@@ -856,25 +810,6 @@ func _actualizar_hud() -> void:
 		extra = " · en el aire"
 	elif nivel_actual() > 0:
 		extra = " · nivel %d" % nivel_actual()
-	_pintar_tinta()
-	_hud_texto.text = "Vida %d/%d · oro %d%s\nT libro · 1/2/3 lanzar página · Espacio saltar · F12 medición" % [
+	_hud_texto.text = "Vida %d/%d · oro %d%s\nT libro · 1/2/3 lanzar página · Q usar consumible · R cambiar · I menú · Espacio saltar · F12 medición" % [
 		int(vida), int(Estado.i().vida_max), Estado.i().oro, extra]
-
-
-## La barra de tinta: el color es el del pigmento; "baja" la pone roja, "sin tinta" la vacía en gris y un intento sin tinta la destella.
-func _pintar_tinta() -> void:
-	if _hud_tinta_barra == null:
-		return
-	_hud_tinta_barra.size.x = 240.0 * tinta.fraccion()
-	var est: String = tinta.estado()
-	var col: Color = tinta.color()
-	if est == "baja":
-		col = Color(1.0, 0.3, 0.25)
-	elif est == "sin_tinta":
-		col = Color(0.5, 0.5, 0.55)
-	if _t_aviso_tinta > 0.0:
-		col = col.lerp(Color(1.0, 0.15, 0.1), 0.7)
-	_hud_tinta_barra.color = col
-	var nota: String = {"normal": "", "recuperando": " · recuperando", "baja": " · baja", "sin_tinta": " · sin tinta"}[est]
-	_hud_tinta_texto.text = "Tinta %d/%d · %s%s" % [int(round(tinta.actual)), int(tinta.maxima), tinta.nombre_pigmento(), nota]
 

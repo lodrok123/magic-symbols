@@ -130,12 +130,14 @@ var mundo: Node3D = null
 var fx: Vfx3D = null
 var jugador: Node3D = null              ## Jugador3D
 var tinta: Tinta = null                  ## la tinta del jugador (15/10). null = los hechizos no cuestan nada (pruebas y laboratorios)
+var desplaza_mano: Vector3 = Vector3.ZERO   ## 24/10: mientras se dispara, de la casilla de origen a la mano (x, z); el proyectil nace ahí (`_salida_de_mano`)
 var camara: Camera3D = null
 var altura: int = 0                     ## nivel del hechizo que pregunta a una barrera (bloquea_proyectiles lo lee)
 
 var capa_ui: CanvasLayer = null
-var mochila: BolsaUI = null            ## la mochila (I): en 3D la monta el lanzador, como el libro
-var diario: DiarioMisiones = null        ## el diario de misiones (J)
+var menu: MenuPestanas = null           ## el menú con pestañas (I Inventario, J Misiones): en 3D lo monta el lanzador, como el libro
+var mochila: BolsaUI = null             ## (heredado) la bolsa antigua: ya no se monta, queda null (la sustituye `menu`)
+var diario: DiarioMisiones = null       ## (heredado) el diario suelto: ya no se monta, queda null (vive dentro de `menu`)
 var libro: Control = null
 var _libro_lento: bool = false
 var _barrera_activa: Campo = null
@@ -564,13 +566,10 @@ func construir_interfaz() -> void:
 		paleta.set_script(load("res://presentacion/ui/rune_palette.gd"))
 		capa_ui.add_child(paleta)
 
-	# La mochila (I) también en 3D: antes solo la montaba nivel_base (2D). Pausa el árbol; el lanzador es ALWAYS.
-	mochila = BolsaUI.new()
-	capa_ui.add_child(mochila)
-
-	# El diario de misiones (J) y su línea en el HUD (Fase 14.3). Pausa como la mochila; solo lee de `Misiones`.
-	diario = DiarioMisiones.new()
-	capa_ui.add_child(diario)
+	# 24/10: el MENÚ CON PESTAÑAS (I = Inventario, J = Misiones) sustituye a la mochila-bolsa (`BolsaUI`, ya no se monta) y al diario suelto (`DiarioMisiones`,
+	# del que el menú reutiliza la lista y la ficha). Pausa el árbol; el lanzador es ALWAYS. La línea de la misión seguida sigue en el HUD.
+	menu = MenuPestanas.new()
+	capa_ui.add_child(menu)
 	capa_ui.add_child(MisionHud.new())
 
 	libro = Control.new()
@@ -1178,7 +1177,9 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	var hechizo: Hechizo = receta.hechizo(rune)
 	if tinta != null and hechizo != null:
 		hechizo.dano *= tinta.mult_dano(elemento)         # E1: pigmento de daño del elemento (único sitio; 1 si no toca). Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
+	desplaza_mano = Vector3.ZERO
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}
@@ -1192,6 +1193,25 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	lanzado.emit(elemento, forma, n)
+
+
+## 24/10 (Pablo: «que los proyectiles salgan de la mano real de la jugadora»): con un personaje con esqueleto, el proyectil nace EN LA MANO (el cast point de la
+## variación en curso, o la mano que lanza si no hay) y no a `Hechizo.ALTURA_MANO_U` (0,9 u) sobre los pies, que no era la altura de ninguna mano (la de la
+## jugadora está a ~0,40 u en el instante del cast). Cambia `altura_salida` (la altura de la mano sobre el suelo de su casilla: HechizoVivo suma ahí `elevacion`)
+## y devuelve cuánto se aparta la mano de `origen` en el plano: `desplaza_mano`, que solo aplica el PROYECTIL al nacer (HechizoVivo._iniciar_proyectil); el
+## volumen y sus casillas siguen saliendo de `origen`, para que la mano no cambie de casilla un hechizo. Sin esqueleto (laboratorios, pruebas) no cambia nada;
+## y si el laboratorio sobrescribe `altura_salida` (`cambios`), manda él.
+func _salida_de_mano(hechizo: Hechizo, origen: Vector3) -> Vector3:
+	if hechizo == null or hechizo.velocidad <= 0.0 or jugador == null or not (jugador.get("pj") is Node3D):
+		return Vector3.ZERO
+	if String(_cast_point.get("origen", "mano_libre")) == "suelo_delante":
+		return Vector3.ZERO                               # ese cast point está en el suelo: un proyectil que naciera ahí chocaría al salir; sale como siempre
+	var mano: Vector3 = _pos_cast_point()
+	var c: Vector2i = celda_de(mano)
+	if not Terreno3D.en_mapa(c):
+		return Vector3.ZERO
+	hechizo.altura_salida = maxf(mano.y - Terreno3D.y_pies(c), 0.0) / Terreno3D.casilla
+	return Vector3(mano.x - origen.x, 0.0, mano.z - origen.z)
 
 
 ## La mano que lanza (la derecha: la de las motas del lanzamiento). Sin esqueleto (laboratorios) se aproxima.

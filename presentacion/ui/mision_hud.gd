@@ -5,7 +5,7 @@ extends Label
 ## tinta. No decide nada: lee `Misiones.i().linea_hud()` y se redibuja cuando el diario avisa (`mision_cambio` / `seguida_cambio`).
 ## Si `Misiones.nuevo()` sustituye la instancia (un nivel nuevo), se vuelve a enganchar sola. Sin misión seguida no se ve.
 
-const POS: Vector2 = Vector2(14.0, 122.0)     ## bajo la barra de tinta (Jugador3D.Y_BARRAS 80 + 24..38)
+const POS: Vector2 = Vector2(14.0, 176.0)     ## bajo vida y frascos+tinta (HudEoW: Jugador3D.Y_BARRAS 80 + ~92 px de HUD; antes 122, bajo las dos barras finas)
 
 var _m: Misiones = null
 

@@ -82,6 +82,22 @@ func _on_cambio(_id: String) -> void:
 	_repintar()
 
 
+## 24/10 (menú de pestañas, `MenuPestanas`): monta la lista y la ficha DENTRO de otro contenedor (la pestaña Misiones) ocupando `area`, sin abrir este
+## diario ni su panel ni pausar nada. Este nodo NO tiene que estar en el árbol (ni lo escucha la tecla J): quien lo monta lo guarda, le pasa las flechas
+## (`mover`, `alternar_seguida`) y lo libera al cerrarse. Las clases `Lista` y `Ficha` son las de siempre.
+func montar_en(contenedor: Control, area: Vector2) -> void:
+	_lista = Lista.new()
+	_lista.diario = self
+	_lista.size = Vector2(ANCHO_LISTA, area.y)
+	contenedor.add_child(_lista)
+	_ficha = Ficha.new()
+	_ficha.diario = self
+	_ficha.position = Vector2(ANCHO_LISTA + 28.0, 0.0)
+	_ficha.size = Vector2(area.x - ANCHO_LISTA - 28.0, area.y)
+	contenedor.add_child(_ficha)
+	_enganchar()
+
+
 func _repintar() -> void:
 	var ids: Array = _m.lista_para_diario()
 	if not ids.has(seleccionada):

@@ -339,9 +339,11 @@ func _escenario() -> void:
 	_ok("8 Numpad + pasa a tinta real", not lab.tinta_infinita)
 	if lanzador.tinta != null:
 		lanzador.tinta.actual = 0.0
+		lanzador.tinta.frascos = 0               # 24/10: con frasco de reserva la barra vacía se rellena y SÍ lanza; aquí se mide el rechazo sin reserva
 		var f_t: Dictionary = lab.lanzar()
 		_ok("8 con tinta real y sin tinta NO lanza («sin_tinta») y no sale ninguna fase", String(f_t.get("rechazo", "")) == "sin_tinta" and not lanzador.conjurando, str(f_t.get("rechazo", "")))
 		lanzador.tinta.actual = lanzador.tinta.maxima
+		lanzador.tinta.frascos = Tinta.FRASCOS_MAX
 	_tecla_lab(KEY_KP_ADD)
 	_ok("8 Numpad + vuelve a tinta infinita", lab.tinta_infinita)
 	_tecla_lab(KEY_KP_SUBTRACT)

@@ -26,8 +26,19 @@ extends RefCounted
 ## DÓNDE SE APLICA (un sitio cada uno): la rebaja, en `coste_efectivo` (lo usan `puede_pagar` y `gastar`; el Lanzador solo pasa el elemento);
 ## el daño, en `Lanzador3D._disparar` (multiplica `Hechizo.dano` con `mult_dano`) y, como todo lo que daña lee ese campo, llega igual al golpe, al
 ## área y al escudo.
+##
+## FRASCOS DE RESERVA (24/10, decisión de Pablo; referencia «Cargas y recarga» de Echoes of Wisdom): la barra es la tinta que gastas al lanzar y
+## se regenera despacio, como siempre; ADEMÁS hay `FRASCOS_MAX` (3) frascos de reserva y se empieza con `FRASCOS_INICIALES` (3) llenos. Regla:
+##   · si un gasto NO LLEGA con la barra (`actual` < coste) y queda un frasco lleno, se vacía UN frasco, la barra se rellena de golpe hasta `maxima`
+##     y entonces se cobra el hechizo (el lanzamiento sale en vez de negarse). `puede_pagar` ya cuenta con el frasco, así que el Lanzador no cambia;
+##   · si un gasto que SÍ llegaba deja la barra exactamente en 0 y queda un frasco, el frasco la rellena también (la barra nunca se queda vacía con reserva);
+##   · un hechizo que costaría más que la barra entera (`coste` > `maxima`) no se paga ni con frasco: no se gasta ningún frasco en balde.
+## Los frascos vacíos NO se recargan solos: se recargan con un consumible (el Tónico de tinta llama a `recargar_frasco`) o con `rellenar()`
+## (fuentes, descanso, reaparecer: llena la barra Y los frascos). `rellenar_barra()` llena solo la barra. Los frascos viajan con la partida
+## (`Estado.frascos_tinta`), así que cambiar de nivel no los repone gratis.
 
 signal cambiada                               ## cualquier cambio de cantidad, de máximo o de pigmento (para repintar)
+signal frasco_gastado                         ## un frasco lleno se ha vaciado para rellenar la barra (el HUD lo anima y avisa)
 signal insuficiente(forma: String, coste: float, hay: float)
 signal pigmento_acabado(id: String)           ## el pigmento temporal se ha agotado (ya ha vuelto el base)
 
@@ -48,6 +59,8 @@ const REGEN: float = 3.0                      ## tinta/s fuera de combate: llena
 const REGEN_COMBATE: float = 1.0              ## con enemigos encima, a un tercio
 const ESPERA_TRAS_GASTAR: float = 1.2         ## s sin recuperar justo después de lanzar (si no, el coste real sería menor)
 const UMBRAL_BAJA: float = 0.25               ## por debajo se pinta en rojo ("baja tinta")
+const FRASCOS_MAX: int = 3                    ## huecos de frasco de reserva
+const FRASCOS_INICIALES: int = 3              ## frascos llenos con los que empieza la partida
 
 ## Coste por forma de `Receta3D.forma()` (+ las formas de la geometría). Lo que no esté aquí cuesta `COSTE_DEFECTO`.
 ## Valores de partida de la lámina del concepto; están aquí para equilibrarlos sin tocar código.
@@ -78,7 +91,8 @@ const PIGMENTO_BASE: String = "azul_arcano"
 var actual: float = MAXIMA_INICIAL
 var maxima: float = MAXIMA_INICIAL
 var pigmento: String = PIGMENTO_BASE
-var partida: Estado = null                     ## de dónde salen los jefes/secretos ganados; null = el de la partida (`Estado.i()`). Las pruebas inyectan uno propio
+var frascos: int = FRASCOS_INICIALES            ## frascos de reserva llenos (0..FRASCOS_MAX); lo cambian `gastar`, `recargar_frasco` y `rellenar`
+var partida: Estado = null                    ## de dónde salen los jefes/secretos ganados; null = el de la partida (`Estado.i()`). Las pruebas inyectan uno propio
 var _espera: float = 0.0
 var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento activo (0 con el base)
 
@@ -86,6 +100,7 @@ var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento act
 func _init() -> void:
 	maxima = maxima_calculada()
 	actual = maxima
+	frascos = clampi(Estado.i().frascos_tinta, 0, FRASCOS_MAX)       # los frascos viajan con la partida (otra sala, reaparecer sin descanso)
 
 
 func _est() -> Estado:
@@ -206,20 +221,56 @@ func tiempo_pigmento() -> float:
 
 ## `coste` >= 0 manda sobre la tabla de formas (receta V2: lo calcula `coste_receta`); -1 = el de siempre, por forma.
 ## `elemento` (opcional) deja que un pigmento de rebaja de ese elemento abarate el coste (ver `coste_efectivo`).
+## Cuenta con los frascos: si la barra no llega pero hay un frasco lleno y el coste cabe en una barra entera, SE PUEDE pagar (`gastar` lo hará).
 func puede_pagar(forma: String, coste: float = -1.0, elemento: String = "") -> bool:
-	return actual + 1e-4 >= coste_efectivo(coste if coste >= 0.0 else coste_de(forma), elemento)
+	var c: float = coste_efectivo(coste if coste >= 0.0 else coste_de(forma), elemento)
+	return actual + 1e-4 >= c or (frascos > 0 and c <= maxima + 1e-4)
 
 
-## Descuenta el coste de la forma. Si no alcanza, NO descuenta nada (no hay lanzamientos a medias) y avisa por `insuficiente`.
+## Descuenta el coste de la forma. Si no alcanza ni con un frasco, NO descuenta nada (no hay lanzamientos a medias) y avisa por `insuficiente`.
+## Con frasco: si la barra no llega, se vacía un frasco y la barra vuelve a `maxima` ANTES de cobrar; si tras cobrar la barra queda en 0 y queda
+## otro frasco, ese también la rellena (ver «FRASCOS DE RESERVA» arriba).
 func gastar(forma: String, coste: float = -1.0, elemento: String = "") -> bool:
 	var c: float = coste_efectivo(coste if coste >= 0.0 else coste_de(forma), elemento)
 	if actual + 1e-4 < c:
-		insuficiente.emit(forma, c, actual)
-		return false
+		if frascos > 0 and c <= maxima + 1e-4:
+			_vaciar_frasco()
+		else:
+			insuficiente.emit(forma, c, actual)
+			return false
 	actual = maxf(0.0, actual - c)
+	if actual <= 1e-4 and frascos > 0:
+		_vaciar_frasco()
 	_espera = ESPERA_TRAS_GASTAR
 	cambiada.emit()
 	return true
+
+
+## Un frasco lleno se vacía y la barra se rellena entera (la barra pasa a `maxima`).
+func _vaciar_frasco() -> void:
+	frascos -= 1
+	actual = maxima
+	_guardar_frascos()
+	frasco_gastado.emit()
+	cambiada.emit()
+
+
+func _guardar_frascos() -> void:
+	_est().frascos_tinta = frascos
+
+
+func frascos_vacios() -> int:
+	return FRASCOS_MAX - frascos
+
+
+## Recarga `n` frascos vacíos (lo hace el Tónico de tinta con 1). Devuelve cuántos recargó de verdad (0 si ya estaban todos llenos).
+func recargar_frasco(n: int = 1) -> int:
+	var antes: int = frascos
+	frascos = clampi(frascos + n, 0, FRASCOS_MAX)
+	if frascos != antes:
+		_guardar_frascos()
+		cambiada.emit()
+	return frascos - antes
 
 
 func recuperar(cantidad: float) -> void:
@@ -229,8 +280,15 @@ func recuperar(cantidad: float) -> void:
 		cambiada.emit()
 
 
+## Solo la barra (no toca los frascos).
+func rellenar_barra() -> void:
+	recuperar(maxima)
+
+
+## Fuente, descanso o reaparecer: la barra Y los frascos, llenos.
 func rellenar() -> void:
 	recuperar(maxima)
+	recargar_frasco(FRASCOS_MAX)
 
 
 ## Regeneración natural. `en_combate` la frena a un tercio.

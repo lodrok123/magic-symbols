@@ -8,15 +8,28 @@ extends RefCounted
 ## (electrificar una seta, quemar una flor...). La tabla REACCIONES dice qué sale de cada
 ## cruce; no hay sistema de cocina, solo el objeto en la mochila para usarlo en recetas.
 
-## forma: "frasco", "seta", "flor", "raiz", "cristal", "moneda"
+## forma: "frasco", "seta", "flor", "raiz", "cristal", "moneda", "tonico", "tarro", "infusion"
+## Campos opcionales (24/10, menú de pestañas estilo Echoes of Wisdom): `usos` = lista de frases del panel «Usos conocidos» del Inventario (sin ella, el panel
+## dice que aún no se le conoce ningún uso); `efecto` = los números de un consumible (los lee `Consumibles`, ÚNICO sitio donde viven).
 const DATOS: Dictionary = {
 	"oro": {"nombre": "Oro", "desc": "Moneda de oro", "color": Color(1.0, 0.85, 0.3), "forma": "moneda"},
-	"pocion": {"nombre": "Poción de vida", "desc": "Cura vida (Q para usar)", "color": Color(1.0, 0.35, 0.3), "forma": "frasco"},
+	"pocion": {"nombre": "Poción de vida", "desc": "Cura vida. Equípala y usa Q", "color": Color(1.0, 0.35, 0.3), "forma": "frasco",
+		"usos": ["Cura 40 de vida al beberla (1,5 s quieto)", "Se interrumpe si te golpean"], "efecto": {"cura": 40.0}},
+	# Los otros tres consumibles del HUD (Q usa el equipado, R cambia). Números en `efecto`; el texto de `desc` los repite: si cambias uno, cambia el otro.
+	"tonico_tinta": {"nombre": "Tónico de tinta", "desc": "Recarga un frasco de tinta vacío", "color": Color(0.30, 0.55, 1.0), "forma": "tonico",
+		"usos": ["Recarga 1 frasco de reserva de tinta", "Solo sirve si falta algún frasco"], "efecto": {"frascos": 1}},
+	"balsamo_protector": {"nombre": "Bálsamo protector", "desc": "Absorbe el próximo golpe durante 20 s", "color": Color(0.95, 0.74, 0.28), "forma": "tarro",
+		"usos": ["Absorbe por completo el próximo golpe", "Dura 20 s; si nadie te pega, se pierde"], "efecto": {"dura": 20.0}},
+	"infusion_brezo": {"nombre": "Infusión de brezo", "desc": "Regenera 3 de vida por segundo durante 12 s", "color": Color(0.66, 0.42, 0.86), "forma": "infusion",
+		"usos": ["Regenera 3 de vida por segundo durante 12 s", "Un golpe no corta el efecto"], "efecto": {"dura": 12.0, "tasa": 3.0}},
 
 	# Cosas del decorado con lógica: se recogen del escenario con E (ver recolectable.gd)
-	"lavanda": {"nombre": "Lavanda", "desc": "Huele a calma. Ingrediente", "color": Color(0.7, 0.55, 0.95), "forma": "flor"},
-	"baya": {"nombre": "Bayas", "desc": "Dulces y rojas. Ingrediente", "color": Color(0.85, 0.2, 0.35), "forma": "baya"},
-	"helecho": {"nombre": "Helecho", "desc": "Hojas frescas. Ingrediente", "color": Color(0.35, 0.75, 0.4), "forma": "hoja"},
+	"lavanda": {"nombre": "Lavanda", "desc": "Huele a calma. Ingrediente", "color": Color(0.7, 0.55, 0.95), "forma": "flor",
+		"usos": ["Ingrediente de síntesis (próximamente)", "Calma a las criaturas del bosque"]},
+	"baya": {"nombre": "Bayas", "desc": "Dulces y rojas. Ingrediente", "color": Color(0.85, 0.2, 0.35), "forma": "baya",
+		"usos": ["Ingrediente de síntesis (próximamente)"]},
+	"helecho": {"nombre": "Helecho", "desc": "Hojas frescas. Ingrediente", "color": Color(0.35, 0.75, 0.4), "forma": "hoja",
+		"usos": ["Ingrediente de síntesis (próximamente)", "Base de la Infusión de brezo"]},
 	"piedra": {"nombre": "Piedra", "desc": "Una piedra del camino. Ingrediente", "color": Color(0.62, 0.62, 0.66), "forma": "piedra"},
 	"flor_silvestre": {"nombre": "Flor silvestre", "desc": "Crece por todo el prado. Ingrediente", "color": Color(1.0, 0.9, 0.4), "forma": "flor"},
 
@@ -49,7 +62,8 @@ const DATOS: Dictionary = {
 	"basalto": {"nombre": "Basalto", "desc": "Roca de lava enfriada. Ingrediente", "color": Color(0.36, 0.35, 0.38), "forma": "piedra"},
 	"colmillo_goblin": {"nombre": "Colmillo de goblin", "desc": "Amarillento y astillado. Ingrediente", "color": Color(0.92, 0.88, 0.74), "forma": "raiz"},
 	# Épicos: ingredientes para mejorar al PERSONAJE (vida, tinta, pigmentos, ropa), no variables de un glifo (PLAN_PULSO_RESONANTE §10.4).
-	"nucleo_eco": {"nombre": "Núcleo de eco", "desc": "Late dentro como un segundo corazón. Mejora al personaje", "color": Color(0.72, 0.42, 1.0), "forma": "cristal", "calidad": "epico"},
+	"nucleo_eco": {"nombre": "Núcleo de eco", "desc": "Late dentro como un segundo corazón. Mejora al personaje", "color": Color(0.72, 0.42, 1.0), "forma": "cristal", "calidad": "epico",
+		"usos": ["Mejora al personaje (vida o tinta)", "Material épico: no se vende"]},
 	"geoda_resonante": {"nombre": "Geoda resonante", "desc": "Hueca y cantarina. Mejora al personaje", "color": Color(0.62, 0.36, 0.95), "forma": "cristal", "calidad": "epico"},
 }
 
@@ -96,7 +110,9 @@ const ETIQUETAS: Array = ["rayo", "fuego", "hielo", "agua", "viento", "tierra"]
 const CATEGORIAS: Array = ["componentes", "pociones", "clave"]
 const CLAVE: PackedStringArray = ["llave", "llave_goblin", "perla", "aletas"]
 ## Objetos que curan: la bolsa les pone un corazón rojo (como Echoes of Wisdom).
-const CURAN: PackedStringArray = ["pocion"]
+const CURAN: PackedStringArray = ["pocion", "infusion_brezo"]
+## Los consumibles del HUD, en el orden en que R los recorre. Q usa el equipado (ver `Consumibles`). Van en la categoría de pociones.
+const CONSUMIBLES: PackedStringArray = ["pocion", "tonico_tinta", "balsamo_protector", "infusion_brezo"]
 
 
 static func existe(id: String) -> bool:
@@ -133,7 +149,7 @@ static func mineral_de(reactivo: String, via: String) -> String:
 
 
 static func categoria(id: String) -> String:
-	if CURAN.has(id):
+	if CURAN.has(id) or CONSUMIBLES.has(id):
 		return "pociones"
 	if CLAVE.has(id):
 		return "clave"
@@ -145,7 +161,25 @@ static func cura(id: String) -> bool:
 
 
 static func es_ingrediente(id: String) -> bool:
-	return id != "oro" and id != "pocion"
+	return id != "oro" and not CONSUMIBLES.has(id)
+
+
+static func es_consumible(id: String) -> bool:
+	return CONSUMIBLES.has(id)
+
+
+## «Usos conocidos» de un objeto (frases para el panel de detalle del Inventario); vacío si aún no se le conoce ninguno.
+static func usos(id: String) -> Array:
+	return (DATOS.get(id, {}) as Dictionary).get("usos", [])
+
+
+## Los números del efecto de un consumible ({} si no tiene): `Consumibles` los lee de aquí.
+static func efecto(id: String) -> Dictionary:
+	return (DATOS.get(id, {}) as Dictionary).get("efecto", {})
+
+
+static func descripcion(id: String) -> String:
+	return String((DATOS.get(id, {}) as Dictionary).get("desc", ""))
 
 
 ## Qué elemento (nombre de sello) lleva una runa, mirando sus etiquetas.
@@ -178,6 +212,30 @@ static func dibujar(c: CanvasItem, id: String, p: Vector2, r: float) -> void:
 			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.8, oscuro)
 			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.64, col)
 			c.draw_rect(Rect2(p + Vector2(-r * 0.22, -r * 0.95), Vector2(r * 0.44, r * 0.6)), Color(0.8, 0.75, 0.65))
+		"tonico":
+			# Frasco de cuello alto con tapón y una gota clara dentro (la tinta).
+			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.8, oscuro)
+			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.64, col)
+			c.draw_rect(Rect2(p + Vector2(-r * 0.2, -r * 0.95), Vector2(r * 0.4, r * 0.7)), Color(0.8, 0.75, 0.65))
+			c.draw_rect(Rect2(p + Vector2(-r * 0.28, -r * 1.08), Vector2(r * 0.56, r * 0.2)), Color(0.55, 0.38, 0.22))
+			c.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -r * 0.05), p + Vector2(r * 0.2, r * 0.3), p + Vector2(0, r * 0.5), p + Vector2(-r * 0.2, r * 0.3)]), Color(1, 1, 1, 0.85))
+		"tarro":
+			# Tarro ancho de bálsamo con tapa de cuero y una cinta.
+			c.draw_rect(Rect2(p + Vector2(-r * 0.8, -r * 0.35), Vector2(r * 1.6, r * 1.2)), oscuro)
+			c.draw_rect(Rect2(p + Vector2(-r * 0.68, -r * 0.25), Vector2(r * 1.36, r * 1.0)), col)
+			c.draw_rect(Rect2(p + Vector2(-r * 0.9, -r * 0.7), Vector2(r * 1.8, r * 0.4)), Color(0.5, 0.32, 0.18))
+			c.draw_rect(Rect2(p + Vector2(-r * 0.68, r * 0.1), Vector2(r * 1.36, r * 0.22)), Color(0.55, 0.32, 0.22))
+			c.draw_circle(p + Vector2(-r * 0.35, -r * 0.05), r * 0.1, Color(1, 1, 1, 0.7))
+		"infusion":
+			# Frasco redondo con una ramita de brezo dentro.
+			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.8, oscuro)
+			c.draw_circle(p + Vector2(0, r * 0.25), r * 0.64, col)
+			c.draw_rect(Rect2(p + Vector2(-r * 0.22, -r * 0.95), Vector2(r * 0.44, r * 0.6)), Color(0.8, 0.75, 0.65))
+			c.draw_line(p + Vector2(0, r * 0.75), p + Vector2(0, -r * 0.1), Color(0.35, 0.75, 0.4), maxf(1.5, r * 0.14), true)
+			for k in range(3):
+				var yy: float = r * (0.5 - 0.22 * float(k))
+				c.draw_circle(p + Vector2(-r * 0.2, yy), r * 0.1, Color(0.95, 0.8, 1.0))
+				c.draw_circle(p + Vector2(r * 0.2, yy - r * 0.1), r * 0.1, Color(0.95, 0.8, 1.0))
 		"seta":
 			c.draw_rect(Rect2(p + Vector2(-r * 0.2, -r * 0.1), Vector2(r * 0.4, r * 0.8)), Color(0.93, 0.9, 0.82))
 			c.draw_circle(p + Vector2(0, -r * 0.1), r * 0.8, oscuro)

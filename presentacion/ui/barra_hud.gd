@@ -5,8 +5,7 @@ extends Control
 ## y el rótulo ENCIMA con contorno oscuro (así se lee aunque el relleno sea verde claro). Pieza suelta y barata de montar:
 ##     var b := BarraHud.new(); capa.add_child(b); b.configurar("Vida", Color(0.35, 0.85, 0.4), 0.8)
 ##     b.poner_fraccion(0.5)     # cada vez que cambie
-## Hoy el HUD de vida y tinta lo pinta `jugador/jugador_3d.gd` con ColorRect (otra zona del código): cambiarlo a esta barra son unas líneas allí
-## (crear dos BarraHud en vez de los dos ColorRect y llamar a `poner_fraccion`/`configurar`). Esta pieza no decide nada del juego.
+## Desde el 24/10 la usa `HudEoW` (vida y tinta en pantalla, con los frascos y el consumible equipado). Esta pieza no decide nada del juego.
 
 const ANCHO_PX: float = 244.0
 const ALTO_PX: float = 14.0
@@ -42,6 +41,25 @@ func configurar(p_rotulo: String, p_color: Color, p_fraccion: float) -> void:
 func poner_fraccion(f: float) -> void:
 	fraccion = clampf(f, 0.0, 1.0)
 	set_process(true)
+
+
+## 24/10 (HUD estilo Echoes of Wisdom, `HudEoW`): cambiar rótulo, color o ancho sin reiniciar la animación de la barra. Solo redibujan si algo cambió.
+func poner_rotulo(p_rotulo: String) -> void:
+	if p_rotulo != rotulo:
+		rotulo = p_rotulo
+		queue_redraw()
+
+
+func poner_color(p_color: Color) -> void:
+	if not p_color.is_equal_approx(color):
+		color = p_color
+		queue_redraw()
+
+
+func poner_ancho(ancho: float) -> void:
+	custom_minimum_size.x = ancho
+	size.x = ancho
+	queue_redraw()
 
 
 func _process(delta: float) -> void:

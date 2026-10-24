@@ -29,6 +29,7 @@ func _initialize() -> void:
 	_ok("6 pasada la espera recupera ~REGEN por segundo", absf(t.actual - (90.0 + Tinta.REGEN)) < 0.1, "%.2f" % t.actual)
 	var u := Tinta.new()
 	u.actual = 20.0
+	u.frascos = 0                     # 24/10: con frasco de reserva un gasto que no llega lo rellena (ver prueba_hud_eow); estas comprobaciones miden la barra SIN reserva
 	var avisos: Array = []
 	u.insuficiente.connect(func(f: String, c: float, h: float) -> void: avisos.append([f, c, h]))
 	_ok("7 sin tinta bastante NO gasta nada y avisa", not u.gastar("corro") and is_equal_approx(u.actual, 20.0) and avisos.size() == 1)
@@ -106,6 +107,7 @@ func _e1_pigmentos() -> void:
 	var u := Tinta.new()
 	u.partida = Estado.new()
 	u.actual = 10.0
+	u.frascos = 0                                        # sin reserva (24/10): se mide la barra sola
 	u.activar_pigmento("ocre_tumulo")
 	_ok("E1.15 con 10 de tinta paga un hechizo de 20 de tierra (cuesta 10) pero no uno de fuego", u.puede_pagar("x", 20.0, "tierra") and not u.puede_pagar("x", 20.0, "fuego"))
 	_ok("E1.16 la regla del 1/3: una rebaja exagerada (×0,1) se queda en 1/3", is_equal_approx(Tinta.rebajar(30.0, 0.1), 10.0) and is_equal_approx(Tinta.rebajar(30.0, 0.0), 10.0) and is_equal_approx(Tinta.rebajar(30.0, 0.5), 15.0))
