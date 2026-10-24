@@ -645,7 +645,7 @@ func _escenario() -> void:
 	for i14 in range(filas14.size()):
 		if String(filas14[i14]["campo"]) == "distancia_max":
 			i_dist = i14
-	_ok("14 la página de la flecha lista sus modificadores (campo, op, valor, tope, desde, salta)", filas14.size() == 2 and i_dist >= 0 and filas14[i_dist]["op"] == "suma" and is_equal_approx(float(filas14[i_dist]["tope"]), 6.0) and is_equal_approx(float(filas14[i_dist]["desde"]), 1.0), str(filas14))
+	_ok("14 la página de la flecha lista sus modificadores (campo, op, valor, tope, desde, salta)", filas14.size() == 3 and i_dist >= 0 and filas14[i_dist]["op"] == "suma" and is_equal_approx(float(filas14[i_dist]["tope"]), 6.0) and is_equal_approx(float(filas14[i_dist]["desde"]), 1.0), str(filas14))
 	_ok("14 el texto de la página enseña esas columnas", lab.texto_tabla().contains("distancia_max") and lab.texto_tabla().contains("tope") and lab.texto_tabla().contains("salta") and lab.texto_tabla().contains("desde"))
 	lab.bases_sel = i_dist
 	_tecla_lab(KEY_RIGHT)

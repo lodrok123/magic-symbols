@@ -175,7 +175,7 @@ la receta V2 (17/10, `docs/GLIFOS_RECETA.md`) hay dos familias:
 |---|---|---|---|
 | ᛁ isa | `linea` | geometría | `semiejes.x` o `semiejes.z` +0,15 (tope 3), según se trace en horizontal o en vertical en la página (`linea_x` / `linea_z`). Sin barrera ni flecha, el hechizo es un **haz** |
 | `⊥` | `altura` (`levitacion`, ᛏ, es su alias) | geometría | `semiejes.y` +0,15 (tope 1) |
-| ᛇ eihwaz | `flecha` | propiedad | `velocidad` = 4 u/s (≈ 1,74 m/s); `distancia_max` 2 m y +1 por cada flecha más (tope 6) |
+| ᛇ eihwaz | `flecha` | propiedad | `velocidad` = 4 u/s (≈ 1,74 m/s); `distancia_max` 2 m y +1 por cada flecha más (tope 6); cada flecha más suma también 0,7 m/s de `impulso_salida` (solo con gravedad > 0) para que el arco crezca con el alcance |
 | círculo cerrado | `barrera` | propiedad | `solidez` 1 × 1,5ⁿ (tope 3); `en_punto` (nace donde apuntas, a 3 casillas como mucho); +1 s de `permanencia` por cada barrera **sucesiva** |
 | ᚠ fehu | `repeticion` | propiedad | `copias` +1 (tope 4) |
 | ᚢ uruz | `rebote` | propiedad | `rebotes` +1 (tope 3) |
