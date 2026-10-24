@@ -122,6 +122,61 @@ const AVANCE_FLUJO: float = 2.0
 const VEL_CAIDA: float = 2.4
 const CAIDA_VETA2: float = 0.7
 const CAIDA_VETA2_VEL: float = 1.5
+## 24/10 (CASCADA estilo Zelda: Echoes of Wisdom; referencias de Pablo) · Con el agua filtro la cortina de una caída es una cortina azul TRANSLÚCIDA con vetas verticales brillantes en tres capas
+## (fuerza y velocidad relativa a VEL_CAIDA de la tercera, ancha y lenta). Las vetas suman luz (CORTINA_LUZ); solo una parte es espuma opaca (CORTINA_OPACIDAD), así se ve lo de detrás.
+## CORTINA_VELO = velo azul de la cortina; CORTINA_LABIO = luz del labio superior (el borde de arriba, más claro).
+const CAIDA_VETA3: float = 0.55
+const CAIDA_VETA3_VEL: float = 0.8
+const CORTINA_OPACIDAD: float = 0.38
+const CORTINA_LUZ: float = 0.60
+const CORTINA_VELO: float = 0.30
+const CORTINA_LABIO: float = 0.55
+## PIE de la caída: un «pie» es el trocito de la charca que tiene un vecino de agua al menos PIE_SALTO_MIN u más alto (de ahí cae). Se guardan los PIES_MAX de mayor salto (el sombreado declara
+## `pies[16]`: si cambia esta constante, cambia allí) a PIE_DESPLAZA lados de trocito del centro hacia fuera de la caída; PIE_SALTO_REF = salto (u) que da fuerza 1; PIE_FASE_MAX = desfase
+## máximo (0-1 de ciclo) entre pies para que no pulsen todos a la vez.
+const PIES_MAX: int = 16
+const PIE_SALTO_MIN: float = 0.35
+const PIE_SALTO_REF: float = 1.0
+const PIE_DESPLAZA: float = 0.45
+const PIE_FASE_MAX: float = 0.18
+## Desnivel mínimo del LECHO (u) entre la base y el trocito alto para que haya pie y lámina de cortina (el frente de una lámina que se llena no cuenta).
+const PIE_DESNIVEL_MIN: float = 0.30
+## Lámina de cortina: cuánto se adelanta (u) hacia la charca desde el plano entre trocitos (para no pelear con la cara de la piedra), prioridad de dibujo (detrás del agua = después de ella,
+## AGUA_PRIORIDAD) y opacidades (base, vetas, labio) de la lámina; el resto lo dicen CAIDA_VETA*/VEL_CAIDA.
+const CORTINA_SEPARA: float = 0.03
+const CORTINA_PRIORIDAD: int = 0
+## Lo que se hunde (u) la lámina bajo la superficie de la charca, para que no quede un hueco de piedra entre su pie y la espuma.
+const CORTINA_HUNDE: float = 0.25
+const CORTINA_ALFA_BASE: float = 0.34
+const CORTINA_ALFA_VETA: float = 0.50
+const CORTINA_ALFA_LABIO: float = 0.35
+## Espuma por celdas del pie (radio y tamaño de celda en u, respiración en rad/s, opacidad máxima) y ondas concéntricas (ciclos/s, radio máximo en u, ancho de cresta en u, luz).
+## ONDAS_PIE_N = crestas simultáneas por pie (el sombreado lo repite en su `ONDAS_PIE_N`).
+const PIE_ESPUMA_RADIO: float = 0.65
+const PIE_ESPUMA_CELDA: float = 0.40
+const PIE_ESPUMA_RESP: float = 1.6
+const PIE_ESPUMA_FUERZA: float = 0.85
+const ONDA_PIE_VEL: float = 0.45
+const ONDA_PIE_RMAX: float = 1.8
+const ONDA_PIE_ANCHO: float = 0.10
+const ONDA_PIE_LUZ: float = 0.9
+const ONDAS_PIE_N: int = 3
+## GOTAS que saltan en el pie (un único GPUParticles3D con emisión por puntos, los pies): tope de partículas, vida (s), velocidad inicial (u/s) mínima y máxima, apertura (grados) y tamaño (u).
+const GOTAS_MAX: int = 40
+const GOTAS_VIDA: float = 0.85
+const GOTAS_VEL_MIN: float = 1.3
+const GOTAS_VEL_MAX: float = 2.7
+const GOTAS_ABANICO: float = 38.0
+const GOTAS_TAM_MIN: float = 0.09
+const GOTAS_TAM_MAX: float = 0.16
+const GOTAS_GRAVEDAD: float = 9.0
+## BORDES (24/10): la línea clara de la orilla ondula (ORILLA_LINEA_RUIDO en profundidad u, ORILLA_LINEA_ESCALA ciclos/u) y el fondo que se ve lleva manchas oscuras orgánicas y lentas
+## (SOMBRA_ORG_FUERZA 0-1 de oscurecimiento, SOMBRA_ORG_ESCALA ciclos/u, SOMBRA_ORG_VEL ciclos/s).
+const ORILLA_LINEA_RUIDO: float = 0.06
+const ORILLA_LINEA_ESCALA: float = 1.7
+const SOMBRA_ORG_FUERZA: float = 0.85
+const SOMBRA_ORG_ESCALA: float = 0.75
+const SOMBRA_ORG_VEL: float = 0.05
 ## Opacidad máxima (0-1) de las franjas claras de la corriente con el agua filtro (el río se ve correr). 0 = como antes (sin franjas).
 const FILTRO_FRANJAS: float = 0.20
 const FILTRO_FRANJAS_UMBRAL: float = 0.62
@@ -180,6 +235,30 @@ uniform float caida_veta2 = 0.7;              // 22/10: fuerza (0-1) de la segun
 uniform float caida_veta2_vel = 1.5;          // y su velocidad respecto a la primera (CAIDA_VETA2_VEL)
 uniform float caida_lecho_min = 0.08;        // 22/10: y pendiente del LECHO (u/u entre trocitos) a partir de la cual hay caída de verdad (si no, es el frente de una lámina que se llena)
 uniform float vel_caida = 2.4;                // velocidad (u/s) de las vetas de la cortina (1,6 → 2,4 el 22/10; ver VEL_CAIDA)
+// 24/10 (cascada y bordes estilo Echoes of Wisdom). Constantes con su explicación en GDScript (CAIDA_VETA3…, CORTINA_*, PIE_*, ONDA_PIE_*, ORILLA_LINEA_*, SOMBRA_ORG_*).
+uniform float caida_veta3 = 0.55;             // fuerza de la tercera capa de vetas (ancha y lenta) de la cortina
+uniform float caida_veta3_vel = 0.8;          // y su velocidad respecto a vel_caida
+uniform float cortina_opacidad = 0.38;        // espuma blanca OPACA máxima de las vetas de la cortina con el agua filtro (el resto es luz que deja ver lo de detrás)
+uniform float cortina_luz = 0.60;             // luz que SUMAN las vetas de la cortina
+uniform float cortina_velo = 0.30;            // velo azul translúcido de la cortina
+uniform float cortina_labio = 0.55;           // luz del labio superior de la caída
+uniform float cortina_geom = 0.0;             // 1 = hay láminas verticales de cortina (CODIGO_CORTINA): la superficie inclinada no dibuja las suyas
+uniform int pies_n = 0;                       // pies de caída detectados (ver `_buscar_caidas`)
+uniform vec4 pies[16];                        // por pie: x, z (mundo), y de la charca, salto (u)
+uniform vec4 pies_dir[16];                    // por pie: dirección (xz) hacia el agua de la charca (alejándose de la caída), fuerza 0-1, fase 0-1
+uniform float pie_espuma_radio = 0.65;        // radio (u) del anillo de espuma alrededor de un pie
+uniform float pie_espuma_celda = 0.40;        // tamaño (u) de las celdas de esa espuma
+uniform float pie_espuma_resp = 1.6;          // rad/s a los que respira la espuma
+uniform float pie_espuma_fuerza = 0.85;       // opacidad máxima de la espuma del pie
+uniform float onda_pie_vel = 0.45;            // ciclos por segundo de las ondas concéntricas
+uniform float onda_pie_rmax = 1.8;            // radio (u) al que se desvanecen
+uniform float onda_pie_ancho = 0.10;          // ancho (u) de una cresta al nacer (crece con el radio)
+uniform float onda_pie_luz = 0.9;            // luz que suma una cresta
+uniform float orilla_linea_ruido = 0.06;      // irregularidad (profundidad, u) de la línea clara de la orilla; 0 = recta
+uniform float orilla_linea_escala = 1.7;      // y su escala (ciclos por u)
+uniform float sombra_org_fuerza = 0.85;       // cuánto oscurecen las manchas orgánicas el fondo que se ve a través del agua (0 = nada)
+uniform float sombra_org_escala = 0.75;       // su escala (ciclos por u)
+uniform float sombra_org_vel = 0.05;          // y lo despacio que se mueven (ciclos por segundo)
 uniform sampler2D topes : filter_nearest, hint_default_black, repeat_disable;   // 13.9 (c): Y máxima a la que se dibuja cada trocito (0 = sin tope)
 uniform float topes_activos = 0.0;
 uniform float bandas = 3.0;                   // escalones entre somero y hondo
@@ -610,6 +689,45 @@ float franja(vec2 uv, vec2 dir) {
 	return mix(franja_eje(uv, vec2(cos(a0), sin(a0))), franja_eje(uv, vec2(cos(a1), sin(a1))), t);
 }
 
+// 24/10 (cascada EoW) · Efectos del PIE de las caídas en un punto del mundo: x = espuma por celdas redondeadas que respira (anillo blanco de manchas), y = ondas concéntricas que
+// se abren desde el pie y se desvanecen. Solo hacia el agua de la charca (la espuma sube un poco por la parte baja de la cortina; las ondas no). Sin pies no cuesta nada.
+const float CAIDA_DESCARTE = 0.45;  // caída (0-1) a partir de la cual no se dibuja la superficie inclinada si hay lámina de cortina
+const int ONDAS_PIE_N = 3;         // crestas a la vez por pie, escalonadas en fase (ver ONDAS_PIE_N en GDScript)
+vec2 efectos_pie(vec2 xz) {
+	float espuma_m = 0.0;
+	float ondas_m = 0.0;
+	for (int i = 0; i < pies_n; i++) {
+		vec4 p = pies[i];
+		vec4 pd = pies_dir[i];
+		vec2 d = xz - p.xy;
+		float r = length(d);
+		if (r > onda_pie_rmax + 0.6) {
+			continue;
+		}
+		float lado = dot(d, pd.xy);                                   // > 0: hacia el agua de la charca
+		float r_ir = r + (ruido(xz * 3.3 + vec2(TIME * 0.15, 0.0)) - 0.5) * 0.30;     // borde de la espuma irregular
+		float m = (1.0 - smoothstep(pie_espuma_radio * 0.45, pie_espuma_radio, r_ir)) * smoothstep(-0.55, -0.1, lado) * pd.z;
+		m *= 0.88 + 0.12 * sin(TIME * pie_espuma_resp + pd.w * 6.2832);   // respira, cada pie con su fase
+		espuma_m = max(espuma_m, m);
+		float hacia = smoothstep(-0.15, 0.25, lado / max(r, 0.001));
+		for (int k = 0; k < ONDAS_PIE_N; k++) {
+			float f = fract(TIME * onda_pie_vel + float(k) / float(ONDAS_PIE_N) + pd.w);
+			float rad = mix(0.25, onda_pie_rmax, f);
+			float ancho = onda_pie_ancho * (0.7 + 0.8 * f);
+			float q = (r_ir - rad) / ancho;
+			ondas_m = max(ondas_m, exp(-q * q) * (1.0 - f) * (1.0 - f) * smoothstep(0.0, 0.08, f) * pd.z * hacia);
+		}
+	}
+	float espuma = 0.0;
+	if (espuma_m > 0.01) {
+		// Celdas (Voronoi) que se mueven: cerca del pie todo es espuma; hacia fuera solo quedan manchas redondeadas, cada una con su pulso.
+		vec3 c = celdas(xz / pie_espuma_celda + vec2(TIME * 0.10, -TIME * 0.06));
+		float puntaje = espuma_m * 1.25 + (0.5 - c.x) * 1.1 + sin(TIME * pie_espuma_resp + c.z * 6.2832) * 0.10 - 0.62;
+		espuma = smoothstep(0.0, 0.18, puntaje);
+	}
+	return vec2(espuma, ondas_m);
+}
+
 void fragment() {
 	vec3 pm = v_pos;
 	// 22/10 (agua blanca al llenarse): DISTANCIA (u) de este píxel al contorno del agua, ≈ profundidad / pendiente de la profundidad. La profundidad es lineal
@@ -741,7 +859,9 @@ void fragment() {
 	float borde = ruido(pm.xz * 2.2 - dir * TIME * clamp(vel, 0.0, 2.0) * 0.5 + TIME * 0.2);
 	// 20/10 (b): la franja de espuma respira con el vaivén (±30 % de su ancho a la amplitud por defecto); proporcional a `orilla_mov`.
 	float trans = transicion_orilla * (1.0 + 0.3 * v_oleaje * clamp(orilla_mov / 0.02, 0.0, 2.0));
-	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04);
+	// 24/10 (bordes EoW) · la línea clara de la orilla ondula despacio (ruido de baja frecuencia en el valor de la profundidad): sigue el contorno pero no es una recta de regla.
+	float ondula_linea = (ruido(pm.xz * orilla_linea_escala + vec2(TIME * 0.03, -TIME * 0.02)) - 0.5) * orilla_linea_ruido;
+	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04 + ondula_linea);
 	linea *= linea * cerca_orilla;      // 22/10: la espuma de orilla solo junto al contorno (una lámina somera lejos de él no es espuma)
 	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde) * cerca_menisco;
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8 * cr_f)), 0.0, 1.0);
@@ -751,15 +871,39 @@ void fragment() {
 	// 22/10: y solo si el LECHO baja de verdad ahí (v_caida es pendiente del lecho): el frente de una lámina que se llena inclina la superficie sin ser una cascada.
 	float lecho_cae = smoothstep(caida_lecho_min, caida_lecho_min + 0.2, max(v_caida.x, v_caida.y));
 	float caida = smoothstep(caida_pend_min, caida_pend_min + 0.3, pend_s) * lecho_cae * caida_fuerza * (1.0 - hielo);
+	if (filtro > 0.5 && cortina_geom > 0.5 && caida > CAIDA_DESCARTE) {
+		discard;       // 24/10: con lámina vertical de cortina (CODIGO_CORTINA) la superficie muy inclinada de la caída no se dibuja: salía como un cristal pálido delante de la cortina
+	}
 	vec2 dd = normalize(gn.xz + vec2(0.0001, 0.0));
-	float veta = ruido(vec2(dot(pm.xz, vec2(-dd.y, dd.x)) * 4.0, pm.y * 1.4 + TIME * vel_caida));
+	float a_traves = dot(pm.xz, vec2(-dd.y, dd.x));       // coordenada a lo ancho de la cortina (las vetas son verticales: corren por pm.y)
+	float veta = ruido(vec2(a_traves * 4.0, pm.y * 1.4 + TIME * vel_caida));
 	// 22/10 (movimiento): una segunda capa de vetas, más fina y más rápida, que baja desfasada: la cortina se lee como agua que cae y no como un patrón que parpadea.
-	float veta2 = ruido(vec2(dot(pm.xz, vec2(-dd.y, dd.x)) * 7.0 + 3.7, pm.y * 2.0 + TIME * vel_caida * caida_veta2_vel));
+	float veta2 = ruido(vec2(a_traves * 7.0 + 3.7, pm.y * 2.0 + TIME * vel_caida * caida_veta2_vel));
 	float cortina = max(smoothstep(0.50, 0.70, veta), smoothstep(0.56, 0.72, veta2) * caida_veta2) * caida;
 	float base_f = smoothstep(0.10, 0.50, v_caida.x) * caida_fuerza * (1.0 - hielo);
 	float labio_f = smoothstep(0.10, 0.50, v_caida.y) * caida_fuerza * (1.0 - hielo);
 	float niebla = base_f * (0.45 + 0.55 * ruido(pm.xz * 2.4 + vec2(0.0, -TIME * 1.1)));
-	espuma = clamp(max(espuma, max(cortina * 0.85, max(niebla * 0.9, labio_f * 0.45))), 0.0, 1.0);
+	vec3 luz_fx = vec3(0.0);        // 24/10: luz que se SUMA a la emisión del agua filtro (cortina, labio, ondas del pie); `(1 - a_x)` la apaga bajo la espuma opaca
+	float ondas_pie = 0.0;
+	if (filtro > 0.5) {
+		// CASCADA EoW (24/10): una cortina translúcida azul con vetas verticales brillantes en TRES capas que bajan a velocidades distintas (la ancha y lenta, la de siempre y la fina y
+		// rápida), un labio superior más claro y el agua de detrás visible. Las vetas SUMAN luz (`cortina_luz`); solo una parte es espuma opaca (`cortina_opacidad`).
+		float veta3 = ruido(vec2(a_traves * 2.4 + 11.3, pm.y * 0.8 + TIME * vel_caida * caida_veta3_vel));
+		float v1 = smoothstep(0.50, 0.70, veta);
+		float v2 = smoothstep(0.56, 0.72, veta2) * caida_veta2;
+		float v3 = smoothstep(0.50, 0.74, veta3) * caida_veta3;
+		// Con lámina de cortina (`cortina_geom`, ver CODIGO_CORTINA) la cortina de la superficie inclinada se apaga: la lámina vertical es la que se ve.
+		float caida_s = caida * (1.0 - cortina_geom);
+		float vetas = clamp(max(v1, max(v2, v3)) * 0.75 + (v1 + v2 + v3) * 0.15, 0.0, 1.0) * caida_s;
+		luz_fx += vec3(0.80, 0.95, 1.0) * vetas * cortina_luz + vec3(0.22, 0.55, 0.85) * caida_s * cortina_velo + vec3(0.88, 0.97, 1.0) * labio_f * cortina_labio;
+		// La espuma del PIE (celdas redondeadas que respiran) y las ondas concéntricas; en la cortina misma no hay ondas.
+		vec2 fx_pie = efectos_pie(pm.xz);
+		ondas_pie = fx_pie.y * (1.0 - caida) * (1.0 - hielo);
+		luz_fx += vec3(0.85, 0.97, 1.0) * ondas_pie * onda_pie_luz;
+		espuma = clamp(max(max(espuma, vetas * cortina_opacidad), max(max(niebla * 0.35, labio_f * 0.25) * (1.0 - cortina_geom), fx_pie.x * pie_espuma_fuerza * (1.0 - hielo))), 0.0, 1.0);
+	} else {
+		espuma = clamp(max(espuma, max(cortina * 0.85, max(niebla * 0.9, labio_f * 0.45))), 0.0, 1.0);
+	}
 	ce = mix(ce, color_espuma, espuma);
 	ce = mix(ce, color_espuma, men * 0.45);
 
@@ -833,7 +977,15 @@ void fragment() {
 			// 23/10 (cauce hondo lleno): un lecho de losas oscuras bajo 0,6-1 u de agua salía pizarra apagada (Beer sobre un fondo casi negro); fuera del río se aclara lo que se ve
 			// (`filtro_realce`) y se le suma un velo turquesa que crece con la profundidad (`filtro_velo`). Solo en el cauce hondo (cauce_f = 1): el resto queda como estaba.
 			vec3 visto = fondo_r * trans * mix(1.0, filtro_realce, cauce_f) + filtro_hondo * filtro_velo * cauce_f * (1.0 - exp(-pf / filtro_prof_max));
-			EMISSION = visto * (1.0 - scat) * (1.0 - a_x) + vec3(0.80, 0.95, 1.0) * a_franja * (1.0 - a_x);
+			// 24/10 (bordes EoW) · manchas oscuras ORGÁNICAS y redondeadas que se mueven despacio por el fondo que se ve (como sombras de ondas sobre el lecho): dos ruidos de escala
+			// distinta con el dominio deformado por otro, para que no sigan las casillas. Más marcadas con algo de agua; la espuma y la cortina (a_x) las tapan.
+			vec2 qo = pm.xz * sombra_org_escala;
+			vec2 deforma = vec2(ruido(qo * 1.7 + TIME * vec2(0.05, 0.03)), ruido(qo * 1.7 + 7.7 - TIME * vec2(0.04, 0.06))) - 0.5;
+			float of1 = ruido(qo + deforma * 1.6 + TIME * vec2(sombra_org_vel, -sombra_org_vel * 0.7));
+			float of2 = ruido(qo * 2.3 + deforma * 2.0 + 3.1 - TIME * vec2(sombra_org_vel * 0.8, sombra_org_vel));
+			float mancha_o = smoothstep(0.45, 0.56, of1 * 0.7 + of2 * 0.3) * smoothstep(0.08, 0.45, v_prof) * (1.0 - hielo);
+			visto = mix(visto, visto * vec3(0.22, 0.46, 0.58), mancha_o * sombra_org_fuerza);
+			EMISSION = visto * (1.0 - scat) * (1.0 - a_x) + vec3(0.80, 0.95, 1.0) * a_franja * (1.0 - a_x) + luz_fx * (1.0 - a_x);
 			ALPHA = 1.0;
 			v_spec = mix(filtro_espec, 1.0, hielo);
 		} else {
@@ -920,6 +1072,63 @@ void light() {
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
+}
+"""
+
+## 24/10 (cascada EoW) · La CORTINA de una caída: una lámina vertical translúcida (una por cada cara de caída, ver `_actualizar_pies`) delante de la piedra, con el agua de detrás visible.
+## UV.x = coordenada a lo ancho (u de mundo, continua entre láminas contiguas), UV.y = altura relativa en la lámina (0 pie, 1 labio). Tres capas de vetas verticales que bajan a distinta
+## velocidad (las de VEL_CAIDA, CAIDA_VETA2_VEL y CAIDA_VETA3_VEL), el labio de arriba más claro y la base que se funde con la espuma del pie.
+const CODIGO_CORTINA: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
+
+uniform vec3 color_hondo : source_color = vec3(0.12, 0.50, 0.85);
+uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
+uniform float alfa_base = 0.34;             // opacidad de la lámina sin vetas (deja ver lo de detrás)
+uniform float alfa_veta = 0.50;             // y lo que suben las vetas
+uniform float alfa_labio = 0.35;            // y el labio superior
+uniform float vel_caida = 2.4;
+uniform float veta2_fuerza = 0.7;
+uniform float veta2_vel = 1.5;
+uniform float veta3_fuerza = 0.55;
+uniform float veta3_vel = 0.8;
+
+varying vec3 v_pos;
+
+void vertex() {
+	v_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+const float HASH_CUANTO = 256.0;
+float hash(vec2 p) {
+	uvec2 q = uvec2(ivec2(floor(p * HASH_CUANTO + 0.5)));
+	uint h = q.x * 1597334673u ^ q.y * 3812015801u;
+	h = (h ^ (h >> 16u)) * 2246822519u;
+	h = (h ^ (h >> 13u)) * 3266489917u;
+	h = h ^ (h >> 16u);
+	return float(h >> 8u) * (1.0 / 16777216.0);
+}
+
+float ruido(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void fragment() {
+	float a = UV.x;
+	float t = UV.y;
+	float y = v_pos.y;
+	float v1 = smoothstep(0.58, 0.78, ruido(vec2(a * 7.0, y * 0.40 + TIME * vel_caida)));
+	float v2 = smoothstep(0.62, 0.80, ruido(vec2(a * 12.0 + 3.7, y * 0.65 + TIME * vel_caida * veta2_vel))) * veta2_fuerza;
+	float v3 = smoothstep(0.56, 0.80, ruido(vec2(a * 3.5 + 11.3, y * 0.28 + TIME * vel_caida * veta3_vel))) * veta3_fuerza;
+	float vetas = clamp(max(v1, max(v2, v3)) * 0.75 + (v1 + v2 + v3) * 0.15, 0.0, 1.0);
+	float labio = smoothstep(0.78, 1.0, t);
+	float pie = smoothstep(0.0, 0.10, t);
+	vec3 col = mix(color_hondo, color_claro, clamp(vetas * 0.9 + labio * 0.6 + t * 0.10, 0.0, 1.0));
+	ALBEDO = col;
+	ALPHA = clamp(alfa_base + vetas * alfa_veta + labio * alfa_labio, 0.0, 1.0) * pie;
 }
 """
 
@@ -1066,6 +1275,25 @@ func _aplicar_eow() -> void:
 	_mat.set_shader_parameter("vel_caida", VEL_CAIDA)
 	_mat.set_shader_parameter("caida_veta2", CAIDA_VETA2)
 	_mat.set_shader_parameter("caida_veta2_vel", CAIDA_VETA2_VEL)
+	_mat.set_shader_parameter("caida_veta3", CAIDA_VETA3)
+	_mat.set_shader_parameter("caida_veta3_vel", CAIDA_VETA3_VEL)
+	_mat.set_shader_parameter("cortina_opacidad", CORTINA_OPACIDAD)
+	_mat.set_shader_parameter("cortina_luz", CORTINA_LUZ)
+	_mat.set_shader_parameter("cortina_velo", CORTINA_VELO)
+	_mat.set_shader_parameter("cortina_labio", CORTINA_LABIO)
+	_mat.set_shader_parameter("pie_espuma_radio", PIE_ESPUMA_RADIO)
+	_mat.set_shader_parameter("pie_espuma_celda", PIE_ESPUMA_CELDA)
+	_mat.set_shader_parameter("pie_espuma_resp", PIE_ESPUMA_RESP)
+	_mat.set_shader_parameter("pie_espuma_fuerza", PIE_ESPUMA_FUERZA)
+	_mat.set_shader_parameter("onda_pie_vel", ONDA_PIE_VEL)
+	_mat.set_shader_parameter("onda_pie_rmax", ONDA_PIE_RMAX)
+	_mat.set_shader_parameter("onda_pie_ancho", ONDA_PIE_ANCHO)
+	_mat.set_shader_parameter("onda_pie_luz", ONDA_PIE_LUZ)
+	_mat.set_shader_parameter("orilla_linea_ruido", ORILLA_LINEA_RUIDO)
+	_mat.set_shader_parameter("orilla_linea_escala", ORILLA_LINEA_ESCALA)
+	_mat.set_shader_parameter("sombra_org_fuerza", SOMBRA_ORG_FUERZA)
+	_mat.set_shader_parameter("sombra_org_escala", SOMBRA_ORG_ESCALA)
+	_mat.set_shader_parameter("sombra_org_vel", SOMBRA_ORG_VEL)
 	_mat.set_shader_parameter("filtro_franjas", FILTRO_FRANJAS)
 	_mat.set_shader_parameter("filtro_franjas_umbral", FILTRO_FRANJAS_UMBRAL)
 	_mat.set_shader_parameter("filtro_franjas_banda", FILTRO_FRANJAS_BANDA)
@@ -1341,7 +1569,7 @@ func _montar_flujo() -> void:
 
 ## Busca en la simulación los trocitos de BASE de una caída (agua con un vecino de agua bastante más alto) y avisa de los mayores (`caida_detectada`).
 func _buscar_caidas() -> void:
-	if sim == null or not caida_detectada.has_connections():
+	if sim == null:
 		return
 	var w: int = sim.w
 	var h: int = sim.h
@@ -1362,16 +1590,214 @@ func _buscar_caidas() -> void:
 				continue
 			var sup: float = suelo[i] + prof[i]
 			var mejor: float = 0.0
+			var k_mejor: int = 0
+			var desnivel: float = 0.0
+			var sup_alta: float = sup
 			for k in range(4):
 				var j: int = vec[i * 4 + k]
 				if j < 0 or cerrado[j] == 1 or prof[j] < minima:
 					continue
-				mejor = maxf(mejor, suelo[j] + prof[j] - sup)
+				var salto: float = suelo[j] + prof[j] - sup
+				if salto > mejor:
+					mejor = salto
+					k_mejor = k
+					desnivel = suelo[j] - suelo[i]
+					sup_alta = suelo[j] + prof[j]
 			if mejor >= SALTO_CAIDA:
-				cand.append([mejor, Vector3((float(x) + 0.5) * sim.l, sup, (float(y) + 0.5) * sim.l)])
-	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
-	for k in range(mini(cand.size(), MAX_CAIDAS)):
-		caida_detectada.emit(global_transform * (cand[k][1] as Vector3) if is_inside_tree() else (cand[k][1] as Vector3), float(cand[k][0]))
+				cand.append([mejor, Vector3((float(x) + 0.5) * sim.l, sup, (float(y) + 0.5) * sim.l), k_mejor, desnivel, sup_alta])
+	# Mayor salto primero; a igual salto, por posición (el orden no cambia entre lecturas: los pies no parpadean cuando hay más de PIES_MAX).
+	cand.sort_custom(func(a: Array, b: Array) -> bool:
+		if not is_equal_approx(float(a[0]), float(b[0])):
+			return float(a[0]) > float(b[0])
+		var pa: Vector3 = a[1]
+		var pb: Vector3 = b[1]
+		return pa.x < pb.x if not is_equal_approx(pa.x, pb.x) else pa.z < pb.z)
+	if caida_detectada.has_connections():
+		for k in range(mini(cand.size(), MAX_CAIDAS)):
+			caida_detectada.emit(global_transform * (cand[k][1] as Vector3) if is_inside_tree() else (cand[k][1] as Vector3), float(cand[k][0]))
+	_actualizar_pies(cand)
+
+
+## Los vecinos de una casilla en el orden de `sim.vecinos`: izquierda (-x), derecha (+x), arriba (-z), abajo (+z).
+const DIRS_VECINOS: Array[Vector2] = [Vector2(-1.0, 0.0), Vector2(1.0, 0.0), Vector2(0.0, -1.0), Vector2(0.0, 1.0)]
+var _pies_cpu := PackedVector4Array()       ## los pies que lleva el sombreado: x, z (mundo), y, salto
+var _gotas: GPUParticles3D = null
+var _gotas_pm: ParticleProcessMaterial = null
+var _gotas_firma: int = 0
+var _cortinas: MeshInstance3D = null          ## las láminas verticales de las cortinas (una malla)
+var _mat_cortina: ShaderMaterial = null
+## Las gotas que saltan en el pie de las caídas se pueden apagar (si otro sistema ya las pone).
+@export var gotas_caida: bool = true
+
+
+## Pies de caída (ver PIES_MAX): del candidato de cada base saca su posición (hacia fuera de la caída), la dirección hacia la charca, la fuerza por el salto y una fase por posición; lo
+## sube al sombreado (`pies`, `pies_dir`) solo si cambió, y mueve el emisor de gotas a esos puntos.
+func _actualizar_pies(cand: Array) -> void:
+	if _mat == null:
+		return
+	var pies := PackedVector4Array()
+	var dirs := PackedVector4Array()
+	var locales := PackedVector3Array()
+	var caras: Array = []           # por pie: [centro de la base, dirección hacia el trocito alto, y de la charca, y del labio] en coordenadas de este nodo
+	for c in cand:
+		if pies.size() >= PIES_MAX or float(c[0]) < PIE_SALTO_MIN:
+			break
+		if float(c[3]) < PIE_DESNIVEL_MIN:
+			continue                # el frente de una lámina que se llena (el lecho no baja ahí) no es una cascada
+		var salto: float = c[0]
+		var lejos: Vector2 = -DIRS_VECINOS[int(c[2])]            # de la base, hacia fuera de la caída (el vecino alto queda al otro lado)
+		var local: Vector3 = (c[1] as Vector3) + Vector3(lejos.x, 0.0, lejos.y) * (PIE_DESPLAZA * sim.l)
+		var mundo: Vector3 = global_transform * local if is_inside_tree() else local
+		var dir_m: Vector3 = global_transform.basis * Vector3(lejos.x, 0.0, lejos.y) if is_inside_tree() else Vector3(lejos.x, 0.0, lejos.y)
+		var dir_xz := Vector2(dir_m.x, dir_m.z).normalized()
+		var fase: float = fposmod(sin(local.x * 12.9898 + local.z * 78.233) * 43758.5453, 1.0) * PIE_FASE_MAX
+		pies.append(Vector4(mundo.x, mundo.z, mundo.y, salto))
+		dirs.append(Vector4(dir_xz.x, dir_xz.y, clampf(salto / PIE_SALTO_REF, 0.35, 1.0), fase))
+		locales.append(local)
+		caras.append([c[1], -lejos, float((c[1] as Vector3).y), float(c[4])])
+	var firma: int = hash(pies)
+	if firma == _gotas_firma and (_gotas != null or pies.is_empty()):
+		return
+	_gotas_firma = firma
+	_pies_cpu = pies
+	var n: int = pies.size()
+	while pies.size() < PIES_MAX:
+		pies.append(Vector4.ZERO)
+		dirs.append(Vector4.ZERO)
+	_mat.set_shader_parameter("pies_n", n)
+	_mat.set_shader_parameter("pies", pies)
+	_mat.set_shader_parameter("pies_dir", dirs)
+	_mat.set_shader_parameter("cortina_geom", 1.0 if n > 0 and agua_filtro else 0.0)
+	_poner_cortinas(caras)
+	_poner_gotas(locales)
+
+
+## Láminas verticales de cortina (una por pie, CODIGO_CORTINA): el plano entre el trocito de la charca y el alto, de la altura de la charca a la del labio, un poco hacia la charca para
+## no pelearse con la cara de la piedra. Una sola malla (una llamada de dibujo); se rehace solo cuando cambian los pies.
+func _poner_cortinas(caras: Array) -> void:
+	if caras.is_empty() or not agua_filtro:
+		if _cortinas != null:
+			_cortinas.visible = false
+		return
+	var vs := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var idx := PackedInt32Array()
+	for cara in caras:
+		var base: Vector3 = cara[0]
+		var hacia: Vector2 = cara[1]                       # del trocito de la charca hacia el alto
+		var paralelo := Vector2(-hacia.y, hacia.x)
+		var centro := Vector2(base.x, base.z) + hacia * (0.5 * sim.l) - hacia * CORTINA_SEPARA
+		var a: Vector2 = centro - paralelo * (0.5 * sim.l)
+		var b: Vector2 = centro + paralelo * (0.5 * sim.l)
+		var y0: float = float(cara[2]) - bajada_lamina - CORTINA_HUNDE          # la lámina de agua se dibuja `bajada_lamina` por debajo de la superficie de la simulación
+		var y1: float = float(cara[3]) - bajada_lamina
+		var u0: float = a.dot(paralelo)
+		var u1: float = b.dot(paralelo)
+		var n0: int = vs.size()
+		vs.append(Vector3(a.x, y0, a.y))
+		vs.append(Vector3(b.x, y0, b.y))
+		vs.append(Vector3(b.x, y1, b.y))
+		vs.append(Vector3(a.x, y1, a.y))
+		uvs.append(Vector2(u0, 0.0))
+		uvs.append(Vector2(u1, 0.0))
+		uvs.append(Vector2(u1, 1.0))
+		uvs.append(Vector2(u0, 1.0))
+		idx.append_array(PackedInt32Array([n0, n0 + 1, n0 + 2, n0, n0 + 2, n0 + 3]))
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vs
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var malla := ArrayMesh.new()
+	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if _cortinas == null:
+		_cortinas = MeshInstance3D.new()
+		_cortinas.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var sh := Shader.new()
+		sh.code = CODIGO_CORTINA
+		_mat_cortina = ShaderMaterial.new()
+		_mat_cortina.shader = sh
+		_mat_cortina.render_priority = CORTINA_PRIORIDAD
+		_mat_cortina.set_shader_parameter("vel_caida", VEL_CAIDA)
+		_mat_cortina.set_shader_parameter("veta2_fuerza", CAIDA_VETA2)
+		_mat_cortina.set_shader_parameter("veta2_vel", CAIDA_VETA2_VEL)
+		_mat_cortina.set_shader_parameter("veta3_fuerza", CAIDA_VETA3)
+		_mat_cortina.set_shader_parameter("veta3_vel", CAIDA_VETA3_VEL)
+		_mat_cortina.set_shader_parameter("alfa_base", CORTINA_ALFA_BASE)
+		_mat_cortina.set_shader_parameter("alfa_veta", CORTINA_ALFA_VETA)
+		_mat_cortina.set_shader_parameter("alfa_labio", CORTINA_ALFA_LABIO)
+		_cortinas.material_override = _mat_cortina
+		add_child(_cortinas)
+	_cortinas.mesh = malla
+	_cortinas.visible = true
+
+
+## Mueve las gotas a los pies (puntos en coordenadas de este nodo). Sin pies o con `gotas_caida` apagado, no emiten.
+func _poner_gotas(locales: PackedVector3Array) -> void:
+	if locales.is_empty() or not gotas_caida:
+		if _gotas != null:
+			_gotas.emitting = false
+		return
+	if _gotas == null:
+		_gotas = _crear_gotas()
+		add_child(_gotas)
+	var img := Image.create(PIES_MAX, 1, false, Image.FORMAT_RGBF)
+	for i in range(locales.size()):
+		img.set_pixel(i, 0, Color(locales[i].x, locales[i].y, locales[i].z))
+	var tex := ImageTexture.create_from_image(img)
+	_gotas_pm.emission_point_texture = tex
+	_gotas_pm.emission_point_count = locales.size()
+	_gotas.visibility_aabb = AABB(Vector3(-1.0, -4.0, -1.0), Vector3(float(sim.w) * sim.l + 2.0, 12.0, float(sim.h) * sim.l + 2.0))
+	_gotas.emitting = true
+
+
+## Un único emisor de gotas para todas las caídas: GOTAS_MAX partículas como mucho, discos con borde claro (burbujas) que saltan hacia arriba y caen.
+func _crear_gotas() -> GPUParticles3D:
+	var gp := GPUParticles3D.new()
+	gp.amount = GOTAS_MAX
+	gp.lifetime = GOTAS_VIDA
+	gp.local_coords = false
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var pm := ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINTS
+	pm.direction = Vector3.UP
+	pm.spread = GOTAS_ABANICO
+	pm.initial_velocity_min = GOTAS_VEL_MIN
+	pm.initial_velocity_max = GOTAS_VEL_MAX
+	pm.gravity = Vector3(0.0, -GOTAS_GRAVEDAD, 0.0)
+	pm.scale_min = GOTAS_TAM_MIN
+	pm.scale_max = GOTAS_TAM_MAX
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array([0.0, 0.7, 1.0])
+	g.colors = PackedColorArray([Color(0.92, 0.98, 1.0, 0.9), Color(0.85, 0.96, 1.0, 0.75), Color(0.85, 0.96, 1.0, 0.0)])
+	var gt := GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	gp.process_material = pm
+	_gotas_pm = pm
+	var tg := Gradient.new()               # disco con borde claro y centro casi transparente: una burbuja
+	tg.offsets = PackedFloat32Array([0.0, 0.55, 0.82, 0.95, 1.0])
+	tg.colors = PackedColorArray([Color(1, 1, 1, 0.25), Color(1, 1, 1, 0.3), Color(1, 1, 1, 1.0), Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.0)])
+	var tex := GradientTexture2D.new()
+	tex.gradient = tg
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 32
+	tex.height = 32
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	sm.billboard_keep_scale = true
+	sm.vertex_color_use_as_albedo = true
+	sm.albedo_texture = tex
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	q.material = sm
+	gp.draw_pass_1 = q
+	return gp
 
 
 ## Hielo (11.14): lee `imagen_hielo()` y guarda por trocito CUÁNDO empezó a helarse y CUÁNDO a soltarse (en el reloj propio), para que el
