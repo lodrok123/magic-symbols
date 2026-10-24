@@ -1,0 +1,92 @@
+MEDIDAS POR CLIP (peores saltos de giro entre claves consecutivas de un hueso, en grados: nuevo = jugadora_base tras ClipsFamilia; fuente = el clip original)
+
+abrir_cofre  (2.80 s)
+  nuevo : LeftLeg 91°@cierre, LeftUpLeg 88°@cierre, RightForeArm 77°@cierre, RightLeg 73°@cierre, LeftForeArm 69°@cierre
+  fuente: LeftLeg 91°@cierre, LeftUpLeg 88°@cierre, RightForeArm 77°@cierre, RightLeg 73°@cierre, LeftForeArm 69°@cierre
+agacharse  (3.50 s)
+  nuevo : LeftLeg 17°@cierre, RightHand 14°@cierre, RightLeg 13°@cierre, RightUpLeg 13°@cierre, LeftUpLeg 10°@cierre
+  fuente: LeftLeg 17°@cierre, RightForeArm 14°@6, RightHand 14°@cierre, RightLeg 13°@cierre, RightUpLeg 13°@cierre
+Anim01a0e90d  (2.50 s)
+  nuevo : Head 16°@cierre, LeftForeArm 15°@cierre, Neck 12°@cierre, RightForeArm 11°@cierre, RightHand 7°@cierre
+  fuente: Head 16°@cierre, LeftForeArm 15°@cierre, RightForeArm 13°@6, Neck 12°@cierre, RightHand 10°@4
+CastOneHandFront  (1.10 s)
+  nuevo : RightForeArm 136°@10, RightHand 100°@10, RightShoulder 46°@10, RightArm 37°@cierre, LeftLeg 27°@cierre
+  fuente: RightForeArm 136°@10, RightHand 100°@9, RightShoulder 46°@10, RightArm 37°@cierre, LeftLeg 27°@cierre
+CastOneHandGround  (1.20 s)
+  nuevo : RightHand 40°@12, RightForeArm 35°@13, LeftLeg 33°@cierre, RightShoulder 32°@cierre, RightLeg 32°@cierre
+  fuente: RightHand 40°@11, RightForeArm 35°@13, LeftLeg 33°@cierre, RightShoulder 32°@cierre, RightLeg 32°@cierre
+CastOneHandUp  (1.30 s)
+  nuevo : RightHand 85°@cierre, RightForeArm 69°@cierre, RightArm 64°@cierre, RightShoulder 41°@cierre, LeftForeArm 8°@cierre
+  fuente: RightHand 85°@cierre, RightForeArm 69°@cierre, RightArm 64°@cierre, RightShoulder 41°@cierre, LeftForeArm 8°@cierre
+ChargedGroundSlam  (3.00 s)
+  nuevo : LeftForeArm 34°@49, RightForeArm 20°@50, RightArm 18°@9, RightHand 16°@50, Hips 13°@5
+  fuente: LeftForeArm 34°@49, RightForeArm 20°@44, RightLeg 20°@39, RightArm 18°@9, RightHand 16°@50
+ChargedSpellCast001  (4.33 s)
+  nuevo : RightForeArm 29°@26, RightHand 25°@26, LeftArm 23°@29, RightArm 21°@56, LeftForeArm 20°@25
+  fuente: RightForeArm 29°@26, RightHand 25°@26, LeftArm 24°@50, LeftForeArm 23°@19, RightArm 21°@56
+ChargedSpellCast002  (2.71 s)
+  nuevo : RightForeArm 27°@19, LeftForeArm 22°@19, RightArm 21°@51, LeftArm 19°@15, RightHand 18°@49
+  fuente: RightForeArm 27°@19, LeftForeArm 22°@19, RightFoot 21°@52, RightArm 21°@50, RightHand 20°@11
+CollectObject  (6.00 s)
+  nuevo : RightHand 20°@93, RightArm 13°@94, LeftHand 9°@113, LeftArm 7°@23, RightLeg 7°@20
+  fuente: RightHand 20°@90, LeftArm 14°@23, RightUpLeg 14°@14, RightLeg 14°@30, RightArm 13°@89
+Dead  (3.00 s)
+  nuevo : RightArm 117°@cierre, LeftArm 107°@cierre, Hips 99°@cierre, RightUpLeg 93°@cierre, RightHand 93°@cierre
+  fuente: RightArm 117°@cierre, LeftArm 107°@cierre, Hips 99°@cierre, RightUpLeg 93°@cierre, RightHand 93°@cierre
+empujar  (1.63 s)
+  nuevo : LeftFoot 21°@cierre, LeftUpLeg 12°@cierre, LeftArm 10°@cierre, RightLeg 10°@3, RightUpLeg 10°@cierre
+  fuente: LeftFoot 21°@cierre, LeftUpLeg 12°@cierre, LeftArm 10°@cierre, RightLeg 10°@3, RightUpLeg 10°@cierre
+FacePunchReaction  (4.50 s)
+  nuevo : RightUpLeg 18°@67, LeftArm 17°@70, RightArm 16°@66, Hips 16°@67, LeftUpLeg 15°@65
+  fuente: LeftArm 28°@21, RightUpLeg 18°@22, RightArm 16°@21, Hips 16°@23, LeftUpLeg 15°@21
+Idle  (1.88 s)
+  nuevo : Head 1°@32, RightHand 1°@19, RightArm 1°@2, LeftArm 1°@40, RightForeArm 1°@25
+  fuente: RightHand 3°@15, Head 2°@6, LeftHand 1°@33, RightArm 1°@2, LeftArm 1°@36
+Idle002  (3.00 s)
+  nuevo : LeftHand 5°@25, LeftFoot 4°@25, RightHand 3°@10, RightUpLeg 3°@60, RightForeArm 3°@4
+  fuente: LeftUpLeg 12°@46, LeftHand 10°@24, LeftFoot 7°@23, RightHand 5°@3, RightForeArm 5°@28
+MageSoellCast001  (3.33 s)
+  nuevo : LeftForeArm 35°@28, RightForeArm 35°@28, RightArm 26°@29, LeftArm 25°@26, LeftHand 21°@80
+  fuente: LeftForeArm 35°@28, RightForeArm 35°@28, RightArm 27°@7, LeftArm 25°@25, LeftHand 21°@79
+MageSoellCast002  (2.21 s)
+  nuevo : RightForeArm 24°@14, RightArm 23°@10, LeftForeArm 14°@35, RightHand 13°@7, Hips 13°@11
+  fuente: RightForeArm 24°@14, RightArm 23°@10, LeftArm 18°@10, RightToeBase 18°@32, LeftForeArm 14°@35
+MageSoellCast003  (2.29 s)
+  nuevo : RightHand 23°@14, RightForeArm 14°@8, LeftFoot 14°@15, RightShoulder 12°@18, RightArm 10°@14
+  fuente: RightHand 23°@14, RightForeArm 14°@8, LeftFoot 14°@14, LeftLeg 13°@13, RightArm 13°@15
+ofrecer  (2.97 s)
+  nuevo : RightHand 19°@cierre, RightArm 10°@cierre, RightForeArm 9°@cierre, RightShoulder 8°@cierre, LeftLeg 4°@cierre
+  fuente: RightHand 19°@cierre, RightArm 14°@26, RightForeArm 10°@28, RightShoulder 8°@cierre, LeftLeg 4°@cierre
+OpenDoor  (5.21 s)
+  nuevo : RightHand 8°@10, RightForeArm 6°@55, RightArm 5°@55, RightShoulder 4°@55, LeftHand 3°@29
+  fuente: RightHand 12°@109, RightArm 9°@15, LeftFoot 8°@19, RightForeArm 6°@54, RightFoot 5°@20
+Readandwrite  (2.50 s)
+  nuevo : Head 16°@cierre, LeftForeArm 15°@cierre, Neck 12°@cierre, RightForeArm 11°@cierre, RightHand 7°@cierre
+  fuente: Head 16°@cierre, LeftForeArm 15°@cierre, RightForeArm 13°@6, Neck 12°@cierre, RightHand 10°@4
+RollDodge  (1.83 s)
+  nuevo : LeftLeg 52°@cierre, Neck 50°@cierre, Head 48°@cierre, RightLeg 42°@cierre, RightUpLeg 34°@cierre
+  fuente: LeftLeg 52°@cierre, Neck 50°@cierre, Head 48°@cierre, RightLeg 42°@cierre, RightUpLeg 34°@cierre
+Running  (0.67 s)
+  nuevo : RightFoot 34°@15, RightLeg 31°@15, LeftLeg 27°@1, RightHand 21°@0, RightUpLeg 21°@6
+  fuente: RightLeg 57°@11, RightFoot 34°@15, LeftLeg 27°@1, RightHand 21°@0, RightUpLeg 21°@6
+saludo  (2.00 s)
+  nuevo : RightHand 24°@11, RightArm 23°@6, RightForeArm 20°@8, LeftUpLeg 14°@19, LeftHand 13°@12
+  fuente: RightArm 24°@24, RightHand 24°@11, RightForeArm 20°@8, RightUpLeg 19°@44, LeftUpLeg 14°@18
+StandAndDrink  (8.88 s)
+  nuevo : LeftArm 3°@148, LeftHand 2°@86, LeftForeArm 2°@68, Head 1°@75, RightArm 1°@169
+  fuente: LeftArm 15°@105, LeftForeArm 7°@84, LeftHand 7°@70, RightHand 3°@194, RightLeg 2°@80
+StandTalkingAngry  (20.83 s)
+  nuevo : LeftHand 24°@354, RightArm 22°@369, RightForeArm 22°@235, RightHand 20°@426, LeftForeArm 20°@304
+  fuente: LeftHand 24°@348, RightHand 23°@401, RightArm 22°@353, RightForeArm 22°@216, LeftArm 20°@205
+SwimForward  (4.50 s)
+  nuevo : LeftFoot 43°@cierre, RightHand 7°@109, LeftForeArm 6°@99, LeftArm 6°@64, RightForeArm 6°@79
+  fuente: LeftFoot 43°@cierre, LeftArm 29°@35, LeftForeArm 19°@35, RightArm 16°@94, LeftLeg 12°@95
+SwimmingToEdge  (5.00 s)
+  nuevo : LeftLeg 72°@cierre, LeftArm 71°@cierre, RightLeg 49°@cierre, RightArm 49°@cierre, LeftForeArm 39°@cierre
+  fuente: LeftLeg 72°@cierre, LeftArm 71°@cierre, RightLeg 49°@cierre, RightArm 49°@cierre, LeftForeArm 39°@cierre
+Walk002  (1.17 s)
+  nuevo : Hips 90°@cierre, LeftLeg 12°@27, LeftFoot 11°@24, RightToeBase 11°@10, LeftToeBase 10°@25
+  fuente: Hips 90°@cierre, LeftFoot 12°@5, LeftLeg 12°@27, LeftToeBase 11°@16, RightToeBase 11°@10
+Walking  (1.04 s)
+  nuevo : LeftLeg 18°@24, RightLeg 18°@10, RightFoot 12°@9, LeftToeBase 11°@25, LeftFoot 10°@24
+  fuente: LeftLeg 18°@24, RightLeg 18°@10, RightFoot 12°@9, LeftToeBase 11°@24, LeftArm 11°@15

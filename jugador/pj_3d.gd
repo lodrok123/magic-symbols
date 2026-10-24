@@ -146,6 +146,11 @@ static var _validados: Dictionary = {}
 ## La elfa nueva (chibi_elf desde el 5 de octubre, hecha a partir de la librera) ya viene bien: sin corrección.
 const PROPORCIONES: Dictionary = {
 	"chibi_test": [0.76, 1.4, 1.1],
+	# 24/10 (Pablo: «veo la cabeza excesivamente desproporcionada… no me gustan las proporciones, busca las de los otros personajes»): la cabeza de jugadora_base a 0,80. Sin tocar piernas ni torso.
+	# Medido con herramientas/medidas_cabezas.gd (mismo método para todos): a 1,0 la cabeza (sin capucha) era 2,65 alturas y 2,87 veces el ancho de los hombros; a 0,80 es 3,12 alturas y 2,30
+	# veces los hombros (bookseller_chibi 2,32, alchemist_elf 2,12; chibi_elf 2,90 con sus trenzas). Con la capucha, que va entera al hueso Head y encoge con ella, 2,70 alturas (antes 2,29).
+	# El personaje sigue midiendo 1,0 (set_alto): el cuerpo crece ~6 %. Se mira y se cambia en laboratorios/LabJugadora3D.tscn (-/+).
+	"jugadora_base": [0.80, 1.0, 1.0],
 }
 
 ## Postura por personaje: [cabeza, cuello, columna, brazos, rodillas, pies, pelvis] en grados (ver ProporcionChibi). Los clips de Meshy
