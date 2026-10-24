@@ -2178,8 +2178,17 @@ render_mode unshaded, cull_disabled, blend_mix;
 
 uniform vec3 color_hondo : source_color = vec3(0.12, 0.50, 0.85);     // los de la cortina de AguaRender3D (CODIGO_CORTINA): sin cambio de tono en la unión
 uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
-uniform float velocidad = 0.9;
-uniform float delantal = 0.0;       // 1 = es el delantal vertical: se desvanece de arriba (UV.y 0) a abajo (UV.y 1)
+uniform float vel_caida = 2.4;       // los valores de AguaRender3D (VEL_CAIDA, CAIDA_VETA2…), para que casen con la cortina
+uniform float veta2_fuerza = 0.7;
+uniform float veta2_vel = 1.5;
+uniform float veta3_fuerza = 0.55;
+uniform float veta3_vel = 0.8;
+uniform float alfa_base = 0.34;
+uniform float alfa_veta = 0.50;
+uniform float y_labio = 0.0;         // y del mundo del labio y z (hacia el sur) donde empieza la cortina: la lámina sigue el dibujo de la cortina por detrás de ellos
+uniform float z_labio = 0.0;
+uniform float alto_delantal = 0.10;
+uniform float delantal = 0.0;     // 1 = es el delantal vertical: se desvanece de arriba (UV.y 0) a abajo (UV.y 1)
 
 varying vec3 v_pos;
 
@@ -2206,22 +2215,39 @@ float ruido(vec2 p) {
 }
 
 void fragment() {
-	// Vetas alargadas a lo largo del flujo: poco frecuentes en Z (estiradas), más en X.
-	float f1 = smoothstep(0.58, 0.80, ruido(vec2(v_pos.x * 4.2, v_pos.z * 0.30 - TIME * velocidad)));
-	float f2 = smoothstep(0.62, 0.82, ruido(vec2(v_pos.x * 8.0 + 4.1, v_pos.z * 0.55 - TIME * velocidad * 1.6)));
-	float veta = clamp(max(f1, f2 * 0.8), 0.0, 1.0);
-	// Rizos finos que cruzan la corriente.
-	float rizo = smoothstep(0.64, 0.9, ruido(vec2(v_pos.x * 1.4 + TIME * 0.2, v_pos.z * 1.6 - TIME * velocidad * 0.5)));
-	vec3 col = mix(color_hondo, color_claro, clamp(veta * 0.75 + rizo * 0.25, 0.0, 1.0));
-	ALBEDO = col;
-	// 2.ª pasada: una lámina FINA, no un bloque azul: donde no hay veta se ve la roca del canal; las vetas (y los rizos) son agua. Se aclara hacia el labio (v_pos.z lo da la malla: UV.y 1 = sur).
-	// 5.ª pasada: hacia el final la lámina se funde (alfa → alfa de la cortina de debajo, que es ~0,34 + vetas) en vez de sumarse a ella: sin franja clara en la unión.
-	// Primero se probó fundirla, pero entonces arriba quedaba más transparente que la cortina y el cambio de tono se veía igual: ahora tiene el MISMO alfa que la cortina (0,34 + 0,5 × veta), sin fundido.
-	ALPHA = clamp(0.34 + veta * 0.50 + rizo * 0.08, 0.0, 0.9) * mix(1.0, 1.0 - UV.y, delantal);     // el delantal se desvanece hacia abajo mientras la cortina aparece (cruce, no suma)
+	// 7.ª pasada (Pablo: «las vetas se cortan a media altura»): ESTA lámina es la MISMA agua que la cortina del renderizador (CODIGO_CORTINA de AguaRender3D), con su misma fórmula, sus mismos
+	// ruidos, velocidades, colores y alfas. La cortina usa el eje horizontal `a` (x del mundo aquí: la cascada corre de norte a sur) y la y del mundo, que baja con el tiempo; aquí la y
+	// equivalente es la del labio más lo que falta para llegar a él (z_labio − z): el agua que viene por la cornisa es la que luego cae, y el dibujo sigue sin saltos por el labio.
+	float a = v_pos.x;
+	float y = delantal > 0.5 ? v_pos.y : y_labio + (z_labio - v_pos.z);
+	float v1 = smoothstep(0.58, 0.78, ruido(vec2(a * 7.0, y * 0.40 + TIME * vel_caida)));
+	float v2 = smoothstep(0.62, 0.80, ruido(vec2(a * 12.0 + 3.7, y * 0.65 + TIME * vel_caida * veta2_vel))) * veta2_fuerza;
+	float v3 = smoothstep(0.56, 0.80, ruido(vec2(a * 3.5 + 11.3, y * 0.28 + TIME * vel_caida * veta3_vel))) * veta3_fuerza;
+	float vetas = clamp(max(v1, max(v2, v3)) * 0.75 + (v1 + v2 + v3) * 0.15, 0.0, 1.0);
+	ALBEDO = mix(color_hondo, color_claro, clamp(vetas * 0.9 + 0.10, 0.0, 1.0));            // 0,10 = el `t * 0,10` de la cortina en lo más alto (t = 1; sin aclarado del labio en la Cueva)
+	float alfa = clamp(alfa_base + vetas * alfa_veta, 0.0, 1.0);
+	if (delantal > 0.5) {
+		// El delantal se apaga hacia abajo (u de 0 a 1 en `alto_delantal` u bajo el labio) mientras la cortina aparece: a1 = 1 − (1−A)^(1−u); la cortina pone a2 = 1 − (1−A)^u y entre las dos suman A justo.
+		float u = clamp((y_labio - v_pos.y) / alto_delantal, 0.0, 1.0);
+		alfa = 1.0 - pow(1.0 - min(alfa, 0.98), max(1.0 - u, 0.0001));
+	}
+	ALPHA = alfa;
 }
 """
 
-const PILAR_SOBRE_TERRAZA: float = 1.5       ## cuánto sobresale un pilar por encima del fondo del canal (u)
+## Opacidad de la cortina de la Cueva (la del renderizador, `CORTINA_ALFA_BASE` 0,34 y `CORTINA_ALFA_VETA` 0,50 en el Bosque) y de la lámina de la cornisa: bastante más opaca, para que a través
+## del agua no se vea la junta entre la roca de la terraza y la pared del pozo. Máx. 1,0 en las vetas.
+const ALTO_DELANTAL: float = 0.10        ## alto del delantal de la lámina bajo el labio = tramo en el que la cortina del renderizador aparece (se cruzan)
+const ALFA_BASE_CUEVA: float = 0.62
+const ALFA_VETA_CUEVA: float = 0.38
+
+func _params_agua_cortina(m: ShaderMaterial, y_labio: float, z_labio: float) -> void:
+	m.set_shader_parameter("alfa_base", ALFA_BASE_CUEVA)
+	m.set_shader_parameter("alfa_veta", ALFA_VETA_CUEVA)
+	m.set_shader_parameter("y_labio", y_labio)
+	m.set_shader_parameter("z_labio", z_labio)
+
+const PILAR_SOBRE_TERRAZA: float = 1.5      ## cuánto sobresale un pilar por encima del fondo del canal (u)
 const PILAR_LARGO: float = 1.5               ## cuánto se mete un pilar hacia el norte desde el labio de la cornisa (u)
 const ESPUMA_ATRAS: float = 0.45             ## cuánto se mete la espuma bajo el labio (hacia la roca), para tapar el borde claro de la superficie del pozo (la «pastilla»)
 const ESPUMA_SOBRE: float = 0.12            ## y cuánto sube sobre la superficie del pozo
@@ -2340,7 +2366,10 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		if n.get_script() != null and String((n.get_script() as Script).resource_path).ends_with("agua_render_3d.gd"):
 			n.call("ajustar", "caida_descarte", 0.0)
 			n.call("ajustar_cortina", "labio_fuerza", 0.0)      # 5.ª pasada: sin el aclarado del labio, la cortina sigue a la lámina de la cornisa sin franja clara
-			n.call("ajustar_cortina", "fundido_arriba", 0.06)   # 6.ª: y sin borde superior: la cortina aparece en el 6 % de arriba (≈ 0,12 u) mientras el delantal de la lámina se apaga: un cruce, no una suma
+			n.call("ajustar_cortina", "alfa_base", ALFA_BASE_CUEVA)      # 7.ª: más opaca (se veía la junta entre la roca de la terraza y la pared del pozo a través del agua); la lámina de la cornisa usa la misma
+			n.call("ajustar_cortina", "alfa_veta", ALFA_VETA_CUEVA)
+			n.call("ajustar_cortina", "fundido_alto", ALTO_DELANTAL)
+			n.call("ajustar_cortina", "fundido_y", y_tope + 0.03)   # 6.ª: y sin borde superior: la cortina aparece en el 6 % de arriba (≈ 0,12 u) mientras el delantal de la lámina se apaga: un cruce, no una suma
 	var tercio: float = s / 3.0
 	var n_col: int = (x1 - x0 + 1) * 3
 	var lip_z: float = esq.z + fondo + 0.03
@@ -2408,12 +2437,14 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var pl := PlaneMesh.new()
 		# 4.ª pasada (Pablo: «¿qué es la línea negra entre la cascada?»): la lámina acababa en el borde de la roca (lip_z − 0,06) y la cortina vertical empieza en lip_z: entre las dos asomaba la
 		# roca oscura del canto de la cornisa. La lámina llega ahora hasta pasado el plano de la cortina (+0,04) y las dos se solapan.
-		var largo_film: float = (lip_z + 0.06) - esq.z
+		var largo_film: float = (lip_z + 0.055) - esq.z           # hasta donde cuelga el delantal (lip_z + 0,055): sin hueco ni solape
 		pl.size = Vector2(an, largo_film)
 		film.mesh = pl
 		film.position = Vector3(xc, y_tope + 0.03, esq.z + largo_film * 0.5)
 		var m_film := ShaderMaterial.new()
 		m_film.shader = sh_film
+		for mm in [m_film]:
+			_params_agua_cortina(mm as ShaderMaterial, y_tope + 0.03, lip_z + 0.055)
 		film.material_override = m_film
 		film.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		cont.add_child(film)
@@ -2421,11 +2452,12 @@ func _levantar_terraza(bloque: Array, alto: float, cont: Node, pilares: bool = f
 		var delantal := MeshInstance3D.new()
 		delantal.name = "%s_delantal_%d" % [nombre, i_c]
 		var qd := QuadMesh.new()
-		qd.size = Vector2(an, 0.12)
+		qd.size = Vector2(an, ALTO_DELANTAL)
 		delantal.mesh = qd
-		delantal.position = Vector3(xc, y_tope + 0.03 - 0.06, lip_z + 0.055)
+		delantal.position = Vector3(xc, y_tope + 0.03 - ALTO_DELANTAL * 0.5, lip_z + 0.055)
 		var m_delantal := ShaderMaterial.new()
 		m_delantal.shader = sh_film
+		_params_agua_cortina(m_delantal, y_tope + 0.03, lip_z + 0.055)
 		m_delantal.set_shader_parameter("delantal", 1.0)
 		delantal.material_override = m_delantal
 		delantal.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

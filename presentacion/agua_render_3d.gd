@@ -1088,7 +1088,8 @@ uniform vec3 color_claro : source_color = vec3(0.78, 0.95, 1.0);
 uniform float alfa_base = 0.34;             // opacidad de la lámina sin vetas (deja ver lo de detrás)
 uniform float alfa_veta = 0.50;             // y lo que suben las vetas
 uniform float alfa_labio = 0.35;            // y el labio superior
-uniform float fundido_arriba = 0.0;         // 24/10: fracción de la altura, desde arriba, en la que la cortina se funde hasta 0 (0 = borde duro de siempre). La Cueva lo usa para fundirla con la lámina de la cornisa sin franja
+uniform float fundido_alto = 0.0;           // 24/10: altura (u) bajo `fundido_y` en la que la cortina APARECE, de 0 a su opacidad (0 = borde duro de siempre). La Cueva lo usa para cruzarla con el delantal de la lámina de la cornisa, sin franja
+uniform float fundido_y = 0.0;              // y del mundo de lo más alto de la cortina para ese fundido
 uniform float labio_fuerza = 1.0;          // 24/10: 0 = sin aclarado del labio (la cascada de la Cueva, para que la cortina siga a la lámina de la cornisa sin franja clara)
 uniform float vel_caida = 2.4;
 uniform float veta2_fuerza = 0.7;
@@ -1131,8 +1132,13 @@ void fragment() {
 	float pie = smoothstep(0.0, 0.10, t);
 	vec3 col = mix(color_hondo, color_claro, clamp(vetas * 0.9 + labio * 0.6 + t * 0.10, 0.0, 1.0));
 	ALBEDO = col;
-	float arriba = fundido_arriba > 0.0 ? clamp((1.0 - t) / fundido_arriba, 0.0, 1.0) : 1.0;
-	ALPHA = clamp(alfa_base + vetas * alfa_veta + labio * alfa_labio, 0.0, 1.0) * pie * arriba;
+	float alfa = clamp(alfa_base + vetas * alfa_veta + labio * alfa_labio, 0.0, 1.0);
+	if (fundido_alto > 0.0) {
+		// Cruce con otra lámina por encima que se apaga hacia abajo: con alfa a1 = 1 − (1−A)^(1−u) arriba y a2 = 1 − (1−A)^u aquí, (1−a1)(1−a2) = 1−A: la suma de las dos es exactamente A, sin franja clara ni oscura.
+		float u = clamp((fundido_y - v_pos.y) / fundido_alto, 0.0, 1.0);
+		alfa = 1.0 - pow(1.0 - min(alfa, 0.98), max(u, 0.0001));
+	}
+	ALPHA = alfa * pie;
 }
 """
 
