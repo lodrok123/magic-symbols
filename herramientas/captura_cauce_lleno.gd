@@ -45,6 +45,12 @@ func _correr() -> void:
 		var mat: ShaderMaterial = (_m.get("_agua_render") as AguaRender3D).material_agua()
 		for par in String(a[2]).split(","):
 			var kv: PackedStringArray = par.split("=")
+			if kv[0] == "sin_paredes":
+				# Diagnóstico: oculta la malla de paredes laterales del agua (¿los rectángulos del llenado son caras de pared?).
+				var pm: Variant = (_m.get("_agua_render") as AguaRender3D).get("_paredes")
+				if pm is MeshInstance3D:
+					(pm as MeshInstance3D).visible = float(kv[1]) < 0.5
+				continue
 			mat.set_shader_parameter(kv[0], float(kv[1]))
 	_m.set("_jugador", null)
 	var rio: Vector2i = _centro_rio()

@@ -235,7 +235,7 @@ uniform sampler2D cauce : filter_linear, hint_default_black, repeat_disable;   /
 uniform float filtro_realce = 1.0;          // 23/10: cuánto se aclara el fondo que se ve a través del agua fuera del río (FILTRO_REALCE; 1 = nada)
 uniform float filtro_velo = 0.0;             // y el velo turquesa que se le suma, por profundidad (FILTRO_VELO)
 uniform float filtro_flujo_0 = 0.12;        // 23/10: corriente (u/s) a la que empiezan las vetas con el agua filtro (FILTRO_FLUJO_0)…
-uniform float filtro_flujo_1 = 0.70;         // …y a la que llevan toda su fuerza (FILTRO_FLUJO_1)
+uniform float filtro_flujo_1 = 0.70;       // …y a la que llevan toda su fuerza (FILTRO_FLUJO_1)
 // 22/10 (agua EoW) · TERCERA ESCALA DE OLAS (ver OLA3_* en GDScript). ola3_altura = 0 la apaga.
 uniform float ola3_altura = 0.0;
 uniform float ola3_k = 1.14;                  // 2π / longitud
@@ -273,12 +273,22 @@ varying vec2 v_corr;
 varying vec3 v_pos;
 varying float v_oleaje;                // -1..1: el vaivén de orilla de este vértice (0 lejos de tierra); el fragmento lo usa para ensanchar la espuma
 varying float v_pend;                  // 23/10: pendiente de la profundidad (u/u) de este vértice, suave entre vértices (antes salía de las derivadas de pantalla, constantes por triángulo: parches rectangulares)
-varying vec2 v_caida;                 // x = cuánto sube el vecino más alto (base de una caída), y = cuánto baja el más bajo (labio); en pendiente (u de altura / u de trocito)
+const float PEND_NORMAL_MAX = 0.30;       // 24/10: pendiente (u/u) a la que la normal suave de la lámina satura (por debajo se queda igual; ver `g_lim` en el fragmento)
+varying vec2 v_grad;                 // 24/10: pendiente de la altura de la superficie (dy/dx, dy/dz) de este vértice; continua entre triángulos (la normal por derivadas de pantalla es plana por triángulo)
+varying vec2 v_caida;                // x = cuánto sube el vecino más alto (base de una caída), y = cuánto baja el más bajo (labio); en pendiente (u de altura / u de trocito)
 
+// 24/10 (cortes rectos en las vetas) · El hash de antes (fract(p·(123,34; 456,21)), p += dot(p, p+45,32), fract(p.x·p.y)) amplifica cualquier error de redondeo de 1e-4 en un valor
+// del todo distinto, y el mismo vértice de la rejilla del ruido salía distinto según el trozo de código que lo evaluaba (la GPU reordena las sumas y multiplicaciones): el ruido
+// tenía saltos de hasta 0,5 en líneas rectas de la rejilla (hasta `ruido(pm.xz * 0,5)` pelado los tenía), que eran los «cortes rectos» de las vetas. Ahora el hash es entero: la
+// posición se cuantiza a 1/HASH_CUANTO (a prueba de errores de un ulp) y se mezcla con multiplicaciones y xor desplazados. Mismo rango (0-1) y mismo uso.
+const float HASH_CUANTO = 256.0;
 float hash(vec2 p) {
-	p = fract(p * vec2(123.34, 456.21));
-	p += dot(p, p + 45.32);
-	return fract(p.x * p.y);
+	uvec2 q = uvec2(ivec2(floor(p * HASH_CUANTO + 0.5)));
+	uint h = q.x * 1597334673u ^ q.y * 3812015801u;
+	h = (h ^ (h >> 16u)) * 2246822519u;
+	h = (h ^ (h >> 13u)) * 3266489917u;
+	h = h ^ (h >> 16u);
+	return float(h >> 8u) * (1.0 / 16777216.0);
 }
 
 // Cuánto hielo hay en un trocito ahora (0-1): crece desde su segundo de inicio y se deshace desde el de fin, cada uno con un retraso propio.
@@ -444,17 +454,55 @@ Troc combina_centro(Troc a, Troc b, Troc c, Troc d) {
 	return r;
 }
 
+// 24/10 (cortes por trocito) · Corriente (simulación + flow map del río) en un punto del mundo, CONTINUA: bilineal entre los cuatro trocitos de alrededor con pesos suavizados
+// (3t²−2t³, pendiente cero en cada centro: sin quiebros al cruzar de un trocito a otro). Solo cuentan los trocitos con agua (un seco no arrastra la corriente a cero);
+// si ninguno de los cuatro tiene, se usa la de los vértices (`respaldo`). Antes la corriente del fragmento era la interpolada entre vértices, lineal por triángulo: con la
+// dirección de un trocito a otro distinta, las vetas y la espuma cambiaban de golpe en el borde del trocito.
+vec2 corriente_suave(vec2 xz, vec2 respaldo) {
+	vec2 tp = xz / lado_trocito - 0.5;
+	ivec2 i0 = ivec2(floor(tp));
+	vec2 f = fract(tp);
+	f = f * f * (3.0 - 2.0 * f);
+	ivec2 s = textureSize(datos_a, 0);
+	vec2 suma = vec2(0.0);
+	float peso = 0.0;
+	for (int k = 0; k < 4; k++) {
+		ivec2 o = ivec2(k % 2, k / 2);
+		ivec2 p = i0 + o;
+		float w = (o.x == 1 ? f.x : 1.0 - f.x) * (o.y == 1 ? f.y : 1.0 - f.y);
+		vec4 d = dato(p);
+		if (d.g >= minima) {
+			vec2 c = d.ba;
+			if (flujo_activo > 0.5) {
+				c += texelFetch(flujo, clamp(p, ivec2(0), s - 1), 0).rg * vel_rio;
+			}
+			suma += c * w;
+			peso += w;
+		}
+	}
+	return peso > 0.0001 ? suma / peso : respaldo;
+}
+
 void vertex() {
 	ivec2 s = textureSize(datos_a, 0);
 	Troc t;
 	// Los vértices de trocito caen en el centro de su texel (fract = 0,5); los de centro de cuadrito, en la esquina entre cuatro (fract ≈ 0 o ≈ 1).
 	bool centro = abs(fract(UV.x * float(s.x)) - 0.5) > 0.25;
+	vec2 pend_y;           // 24/10: pendiente de la altura (dy/dx, dy/dz) en este vértice por diferencias centradas: la normal suave del fragmento (`v_grad`)
 	if (centro) {
 		ivec2 p0 = ivec2(floor(UV * vec2(s) - 0.5));
-		t = combina_centro(troc(p0), troc(p0 + ivec2(1, 0)), troc(p0 + ivec2(0, 1)), troc(p0 + ivec2(1, 1)));
+		Troc c00 = troc(p0);
+		Troc c10 = troc(p0 + ivec2(1, 0));
+		Troc c01 = troc(p0 + ivec2(0, 1));
+		Troc c11 = troc(p0 + ivec2(1, 1));
+		t = combina_centro(c00, c10, c01, c11);
+		pend_y = vec2((c10.y + c11.y) - (c00.y + c01.y), (c01.y + c11.y) - (c00.y + c10.y)) / (2.0 * lado_trocito);
 	} else {
-		t = troc(ivec2(floor(UV * vec2(s))));
+		ivec2 p1 = ivec2(floor(UV * vec2(s)));
+		t = troc(p1);
+		pend_y = vec2(troc(p1 + ivec2(1, 0)).y - troc(p1 - ivec2(1, 0)).y, troc(p1 + ivec2(0, 1)).y - troc(p1 - ivec2(0, 1)).y) / (2.0 * lado_trocito);
 	}
+	v_grad = pend_y;
 	// 20/10 (b): vaivén tenue de la orilla. Dos senos de periodos distintos (3,7 s y 2,3 s) desfasados por posición, para que la orilla no respire
 	// entera a la vez. Amplitud total ≤ `orilla_mov`. Es un movimiento de la superficie, no de la simulación: no cambia profundidad ni corriente.
 	vec2 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
@@ -541,11 +589,25 @@ vec3 normal_suave(vec2 p, float t) {
 }
 
 // Franjas alargadas en el sentido de la corriente: ruido estirado a lo largo de `dir`.
-float franja(vec2 uv, vec2 dir) {
+float franja_eje(vec2 uv, vec2 dir) {
 	vec2 per = vec2(-dir.y, dir.x);
 	float a = dot(uv, dir);
 	float b = dot(uv, per);
 	return ruido(vec2(a * 0.45, b * 3.2));
+}
+
+// 24/10 (cortes por trocito) · El ruido se gira hacia `dir` respecto al ORIGEN del mundo: un cambio de 1° en la dirección mueve el patrón (distancia al origen / tam_franja) × 3,2 × 0,017
+// celdas, decenas de metros más allá, y entre un trocito y otro la veta cortaba en seco. Ahora el ruido se calcula en FRANJA_EJES orientaciones fijas y se mezcla entre las dos más
+// cercanas a la dirección (con una rampa que deja un ángulo casi puro): el patrón cambia de forma continua con la corriente y no se amplifica con la distancia.
+const float FRANJA_EJES = 16.0;
+const vec2 FRANJA_MEZCLA = vec2(0.3, 0.7);
+float franja(vec2 uv, vec2 dir) {
+	float k = atan(dir.y, dir.x) * (FRANJA_EJES / TAU);
+	float k0 = floor(k);
+	float t = smoothstep(FRANJA_MEZCLA.x, FRANJA_MEZCLA.y, k - k0);
+	float a0 = k0 * (TAU / FRANJA_EJES);
+	float a1 = a0 + TAU / FRANJA_EJES;
+	return mix(franja_eje(uv, vec2(cos(a0), sin(a0))), franja_eje(uv, vec2(cos(a1), sin(a1))), t);
 }
 
 void fragment() {
@@ -565,7 +627,7 @@ void fragment() {
 	if (prof_e < 0.0) {
 		discard;                       // fuera del agua: el borde sigue la orilla de la simulación (con ruido)
 	}
-	vec2 corr = v_corr;
+	vec2 corr = corriente_suave(pm.xz, v_corr);
 	float vel = length(corr);
 	// Flow map de dos fases (franjas, facetas y espuma): desfasadas medio ciclo y mezcladas, así nada «salta» al reiniciarse.
 	vec2 dir = vel > 0.001 ? corr / vel : vec2(1.0, 0.0);
@@ -596,7 +658,11 @@ void fragment() {
 				normal_suave(pm.xz - dir * avance * fase0 * adveccion_olas, TIME), peso0));
 		nm = norm_seguro(mix(nm, ns, filtro_suavidad));
 	}
-	nm = norm_seguro(nm + (gn - vec3(0.0, 1.0, 0.0)) * 2.0);
+	// 24/10: lo que inclina la normal de las olas es la pendiente SUAVE de los vértices, no la `gn` de derivadas de pantalla (plana por triángulo): con las alturas de la lámina
+	// escalonadas al llenarse, cada triángulo salía con su fresnel, su refracción y su brillo y se veían rectángulos y diagonales pálidos. `gn` se queda para la cascada y el hielo.
+	vec2 g_lim = v_grad * inversesqrt(1.0 + dot(v_grad, v_grad) / (PEND_NORMAL_MAX * PEND_NORMAL_MAX));     // sin tope, el frente de una lámina que se llena (escalones de 0,3-1 u entre trocitos) inclina la normal casi a 45° y sale blanco por fresnel y refracción
+	vec3 gn_suave = norm_seguro(vec3(-g_lim.x, 1.0, -g_lim.y));
+	nm = norm_seguro(nm + (gn_suave - vec3(0.0, 1.0, 0.0)) * 2.0);
 	// Ondas que reaccionan: su pendiente se suma a la normal.
 	float cresta = 0.0;
 	if (ondas_fuerza > 0.0) {
