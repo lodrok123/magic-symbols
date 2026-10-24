@@ -157,7 +157,10 @@ const PROPORCIONES: Dictionary = {
 ## dejan a la elfa cabizbaja y con los hombros encogidos (se ve de lado); esto la yergue sin volver a renderizar.
 ## Se afina en vivo en PruebaTest2 con , . (cabeza; Shift: brazos) y U I (rodillas; Shift: pies) y Y O (pelvis); el valor bueno se apunta aquí.
 const POSTURA_JB_CABEZA: float = -3.0      ## jugadora_base (ver su fila): grados de cabeza hacia atrás (negativo en este eje). Vale para TODOS los clips: más de −3 la hace mirar arriba al andar y al correr
-const POSTURA_JB_RODILLAS: float = 22.0    ## jugadora_base: grados que se estiran las rodillas
+## jugadora_base: grados que se estiran las rodillas. 25/10 (Pablo: «los pies están muy adelantados»): con 22 el tobillo quedaba 4 cm (de 1 de alto) por
+## delante del de chibi_elf y la rodilla a 174–177° (la fuente, 164–168°): estirar la rodilla gira la espinilla y adelanta el pie. Medido con el pie ya alineado
+## (ClipsFamilia.ALINEAR_REPOSO «Foot»): 0 → tobillo 4 cm por DETRÁS y rodilla 152–156°; 11 → tobillo +0,059/−0,012 y rodilla 163/167°, clavado sobre la fuente.
+const POSTURA_JB_RODILLAS: float = 11.0
 const POSTURAS: Dictionary = {
 	# Afinado por Pablo el 5/10 mirando de lado y de frente (la cabeza va en negativo: el eje X local del hueso
 	# apunta al revés de lo que se supuso; en cuello y columna no).

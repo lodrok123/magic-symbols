@@ -101,7 +101,9 @@ const GIRO_NODO_TOL: float = 1.0
 const ALINEAR_REPOSO: Dictionary = {
 	# 24/10 (Pablo: «la postura de las manos al andar»): también la muñeca («Hand»: el tramo muñeca → primera falange, si la fuente tiene un hijo con el mismo
 	# nombre; si no, queda como estaba). Los dedos no se alinean: no tienen pista en la fuente y su reposo lo cierra Pj3D.MANO_RELAJADA.
-	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm", "Hand"],
+	# 25/10 (Pablo: «los pies están girados»): también el pie («Foot»: tramo tobillo → base de los dedos). Sin alinearlo, el pie izquierdo apuntaba 11,5° hacia
+	# DENTRO en idle y el derecho 1,4°, cuando la fuente los lleva hacia fuera; el tramo alineado copia la orientación del pie de la fuente.
+	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm", "Hand", "Foot"],
 }
 ## false = retarget de antes sin alinear (para medir el antes y el después en las pruebas; hay que vaciar la caché con `vaciar_cache()`).
 static var alinear_activo: bool = true
