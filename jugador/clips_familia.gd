@@ -88,12 +88,39 @@ const CLIP_REFERENCIA: String = "Idle"
 ## Tolerancia (en grados) de la rotación del nodo del esqueleto respecto al modelo: por encima, el retarget asume que fuente y destino difieren y avisa.
 const GIRO_NODO_TOL: float = 1.0
 
+## ALINEAR EL REPOSO (24/10, Pipeline, diario 255; el «Rest Fixer» de PLAN_RIGGING §4): id del GLB destino -> huesos (nombre sin «mixamorig_» ni lado) cuyo TRAMO
+## (de su articulación a la del hijo) se alinea con el de la fuente antes de copiar el movimiento. Sin alinear, el retarget copia el giro de cada hueso
+## RESPECTO A SU REPOSO, así que una diferencia de reposo pasa entera al destino: chibi_elf tiene en reposo la rodilla doblada hacia ATRÁS (muslo −10,7°,
+## espinilla +22°, 31° de ángulo) y sus clips la llevan hacia delante (idle: muslo +12,7°, espinilla −13,8°); jugadora_base tiene la pierna recta en
+## reposo (6,6°), así que heredaba esos 31° de más: rodillas a 63–69° en idle y la cadera 8 cm más baja (medido en
+## herramientas/prueba_rigging_postura.gd). Lo mismo los brazos: su reposo en A (31° de la vertical) frente al de la fuente (40°) los dejaba pegados al cuerpo y
+## adelantados (idle: 4° de apertura y 8° hacia delante; chibi_elf, 12° y 0°). Alineado, el tramo del destino apunta adonde apunta el de la fuente (el giro
+## sobre su propio eje sigue siendo el de antes). Solo los huesos listados: la columna, el cuello y la cabeza de jugadora_base van mejor sin alinear (su
+## reposo es el de la malla y ya quedan a ≤5° de los de chibi_elf), y el pie y la mano conservan su reposo. Los clips de otros destinos (goblins, elfo_base,
+## EXTRAS de la elfa) no cambian.
+const ALINEAR_REPOSO: Dictionary = {
+	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm"],
+}
+## false = retarget de antes sin alinear (para medir el antes y el después en las pruebas; hay que vaciar la caché con `vaciar_cache()`).
+static var alinear_activo: bool = true
+
 static var _cache: Dictionary = {}     ## id del GLB destino -> {nombre de clip: Animation}
 static var _cache_clip: Dictionary = {}    ## id|ruta|clip -> Animation traducida suelta (ver `traducir_clip`)
 
 
 static func tiene_fuente(glb_id: String) -> bool:
 	return FUENTES.has(glb_id)
+
+
+## Olvida los clips ya traducidos (las pruebas que comparan con y sin `alinear_activo`). Los Pj3D ya cargados conservan los suyos.
+static func vaciar_cache() -> void:
+	_cache.clear()
+	_cache_clip.clear()
+
+
+## Los huesos que se alinean al reposo de la fuente en el destino `glb_id` (ALINEAR_REPOSO), o ninguno.
+static func alinear_de(glb_id: String) -> Array:
+	return (ALINEAR_REPOSO.get(glb_id, []) as Array) if alinear_activo else []
 
 
 static func tiene_extras(glb_id: String) -> bool:
@@ -114,7 +141,7 @@ static func extras_para(glb_id: String, modelo_d: Node3D, sk_d: Skeleton3D, ap: 
 		var fuente: Dictionary = (f as Dictionary).duplicate()
 		if not is_nan(objetivo):
 			fuente["suela_objetivo"] = objetivo
-		_traer_de(fuente, modelo_d, sk_d, res)
+		_traer_de(fuente, modelo_d, sk_d, res, alinear_de(glb_id))
 	if not res.is_empty():
 		_cache[clave] = res
 	return res
@@ -154,7 +181,7 @@ static func clips_para(glb_id: String, modelo_d: Node3D, sk_d: Skeleton3D) -> Di
 		return _cache[glb_id]
 	var res: Dictionary = {}
 	for f in (FUENTES.get(glb_id, []) as Array):
-		_traer_de(f as Dictionary, modelo_d, sk_d, res)
+		_traer_de(f as Dictionary, modelo_d, sk_d, res, alinear_de(glb_id))
 	if not res.is_empty():
 		_cache[glb_id] = res
 	return res
@@ -174,7 +201,7 @@ static func traducir_clip(glb_id: String, ruta: String, clip: String, modelo_d: 
 		var aps: Array[Node] = fuente.find_children("*", "AnimationPlayer", true, false)
 		if not sks.is_empty() and not aps.is_empty() and (aps[0] as AnimationPlayer).has_animation(clip):
 			var c := _Ctx.new()
-			c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d)
+			c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d, alinear_de(glb_id))
 			if escala_cadera > 0.0:
 				c.escala_cadera = escala_cadera
 			res = (c.traducir((aps[0] as AnimationPlayer).get_animation(clip), String(modelo_d.get_path_to(sk_d)) + ":") as Array)[0]
@@ -190,8 +217,8 @@ static func _abrir(ruta: String) -> Node3D:
 	return sc.instantiate() as Node3D if sc != null else null
 
 
-## Traduce los clips de la fuente `f` (ver FUENTES) y los añade a `res` (sin pisar los que ya estén).
-static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Dictionary) -> void:
+## Traduce los clips de la fuente `f` (ver FUENTES) y los añade a `res` (sin pisar los que ya estén). `alinear`: ver ALINEAR_REPOSO.
+static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Dictionary, alinear: Array = []) -> void:
 	var fuente: Node3D = _abrir(String(f.get("ruta", "")))
 	if fuente == null:
 		return
@@ -202,7 +229,7 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 		return
 	var ap_s: AnimationPlayer = aps[0] as AnimationPlayer
 	var c := _Ctx.new()
-	c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d)
+	c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d, alinear)
 	var base: String = String(modelo_d.get_path_to(sk_d)) + ":"
 	# 1) la altura de los pies: con el clip de referencia de la fuente, cuánto hay que subir/bajar la cadera destino.
 	var referencia: String = String(f.get("referencia", CLIP_REFERENCIA))
@@ -278,8 +305,9 @@ class _Ctx:
 	var sube: float = 0.0                         ## cuánto se desplaza en vertical la cadera destino en todos los clips
 	var plantar: bool = false                     ## true = en CADA fotograma la cadera sube o baja lo justo para que la suela más baja quede a `suela_objetivo` (agachadas, empujar)
 	var suela_objetivo: float = NAN               ## altura de esa suela con `plantar` (NAN = la del reposo del esqueleto destino, `suela_reposo`)
+	var alin: Array = []                          ## hueso destino -> giro (espacio de la raíz) que lleva su tramo de reposo al de la fuente (identidad = sin alinear)
 
-	func preparar(raiz_s: Node3D, p_sk_s: Skeleton3D, raiz_d: Node3D, p_sk_d: Skeleton3D) -> void:
+	func preparar(raiz_s: Node3D, p_sk_s: Skeleton3D, raiz_d: Node3D, p_sk_d: Skeleton3D, alinear: Array = []) -> void:
 		sk_s = p_sk_s
 		sk_d = p_sk_d
 		rs = _giro_a_raiz(sk_s, raiz_s)
@@ -302,6 +330,11 @@ class _Ctx:
 					min_y = minf(min_y, sk_d.get_bone_global_rest(i).origin.y)
 					break
 		suela_reposo = min_y if min_y != INF else 0.0
+		alin.resize(sk_d.get_bone_count())
+		alin.fill(Quaternion.IDENTITY)
+		for i in range(sk_d.get_bone_count()):
+			if int(mapa[i]) >= 0 and _se_alinea(sk_d.get_bone_name(i), alinear):
+				alin[i] = _giro_alinear(i, int(mapa[i]))
 		cadera_s = sk_s.find_bone("mixamorig_Hips")
 		cadera_d = sk_d.find_bone("mixamorig_Hips")
 		if cadera_s >= 0 and cadera_d >= 0:
@@ -371,7 +404,7 @@ class _Ctx:
 				var p: int = sk_d.get_bone_parent(i)
 				var j: int = int(mapa[i])
 				if j >= 0:
-					ga_d[i] = ((ga_s[j] as Quaternion) * (gr_s[j] as Quaternion).inverse()) * (gr_d[i] as Quaternion)
+					ga_d[i] = ((ga_s[j] as Quaternion) * (gr_s[j] as Quaternion).inverse()) * (alin[i] as Quaternion) * (gr_d[i] as Quaternion)
 				else:
 					ga_d[i] = (rd if p < 0 else ga_d[p] as Quaternion) * (rl_d[i] as Quaternion)
 				var padre_q: Quaternion = rd if p < 0 else ga_d[p] as Quaternion
@@ -396,6 +429,28 @@ class _Ctx:
 
 	static func _quat(b: Basis) -> Quaternion:
 		return b.orthonormalized().get_rotation_quaternion()
+
+	## ¿El hueso `nombre` está en la lista `alinear` (nombres sin prefijo ni lado: «UpLeg» vale para mixamorig_LeftUpLeg y mixamorig_RightUpLeg)?
+	static func _se_alinea(nombre: String, alinear: Array) -> bool:
+		for a in alinear:
+			for pre in ["_", ":", "Left", "Right"]:
+				if nombre.ends_with(pre + String(a)):
+					return true
+		return false
+
+	## Giro mínimo (espacio de la raíz) que lleva el tramo de reposo del hueso destino `i` (de su articulación a la de su hijo) al del hueso fuente `j`
+	## (al hijo del mismo nombre). Identidad si el hueso no tiene un hijo común a los dos esqueletos.
+	func _giro_alinear(i: int, j: int) -> Quaternion:
+		for h in sk_d.get_bone_children(i):
+			var hs: int = sk_s.find_bone(sk_d.get_bone_name(h))
+			if hs < 0 or sk_s.get_bone_parent(hs) != j:
+				continue
+			var dir_d: Vector3 = rd * (sk_d.get_bone_global_rest(h).origin - sk_d.get_bone_global_rest(i).origin)
+			var dir_s: Vector3 = rs * (sk_s.get_bone_global_rest(hs).origin - sk_s.get_bone_global_rest(j).origin)
+			if dir_d.length() < CADERA_MIN * 0.01 or dir_s.length() < CADERA_MIN * 0.01:
+				return Quaternion.IDENTITY
+			return Quaternion(dir_d.normalized(), dir_s.normalized())
+		return Quaternion.IDENTITY
 
 	## Rotación del nodo `n` respecto a la raíz `raiz` (producto de las rotaciones de los nodos intermedios).
 	static func _giro_a_raiz(n: Node3D, raiz: Node3D) -> Quaternion:

@@ -156,11 +156,19 @@ const PROPORCIONES: Dictionary = {
 ## Postura por personaje: [cabeza, cuello, columna, brazos, rodillas, pies, pelvis] en grados (ver ProporcionChibi). Los clips de Meshy
 ## dejan a la elfa cabizbaja y con los hombros encogidos (se ve de lado); esto la yergue sin volver a renderizar.
 ## Se afina en vivo en PruebaTest2 con , . (cabeza; Shift: brazos) y U I (rodillas; Shift: pies) y Y O (pelvis); el valor bueno se apunta aquí.
+const POSTURA_JB_CABEZA: float = -3.0      ## jugadora_base (ver su fila): grados de cabeza hacia atrás (negativo en este eje). Vale para TODOS los clips: más de −3 la hace mirar arriba al andar y al correr
+const POSTURA_JB_RODILLAS: float = 22.0    ## jugadora_base: grados que se estiran las rodillas
 const POSTURAS: Dictionary = {
 	# Afinado por Pablo el 5/10 mirando de lado y de frente (la cabeza va en negativo: el eje X local del hueso
 	# apunta al revés de lo que se supuso; en cuello y columna no).
 	"chibi_elf": [-4.0, 8.0, 6.0, 24.0, 12.0, 0.0, -14.0],
 	"chibi_elf_v2": [-4.0, 8.0, 6.0, 24.0, 12.0, 0.0, -14.0],
+	# 24/10 (Pipeline, diario 255; Pablo: «aparece encorvada»): sus clips son los de chibi_elf, que en idle doblan la rodilla 27–31° y cabecean hacia
+	# abajo (la elfa lo arreglaba con su fila de arriba). Medido con herramientas/prueba_rigging_postura.gd tras alinear piernas y brazos al reposo de la
+	# fuente (ClipsFamilia.ALINEAR_REPOSO): rodillas 22 → idle 3–9° de flexión (antes 63–69°) (los pies bajan ~0,9 cm: ProporcionChibi no recoloca la cadera);
+	# cabeza −3 (aquí también va en negativo) → la cabeza a +0,5…+7,4° (media +2,8°) en idle, en vez de +3,5…+10,4°; andando −6,6…−8,6° y corriendo −14…−16°
+	# (la cabeza de su reposo ya va 10° más atrás que la de chibi_elf: por eso no se corrige más). La columna ya queda a ≤5° de la de chibi_elf: 0.
+	"jugadora_base": [POSTURA_JB_CABEZA, 0.0, 0.0, 0.0, POSTURA_JB_RODILLAS, 0.0, 0.0],
 }
 
 ## Variantes que comparten GLB: el id del personaje -> el modelo que carga. El equipo (Equipo3D.EQUIPO),
