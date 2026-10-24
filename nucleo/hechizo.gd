@@ -74,7 +74,14 @@ const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
 ## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
-const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente"]
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente", "solido_quieto"]
+## 24/10 (decisión de Pablo): un SÓLIDO QUIETO (tierra o hielo que no es haz ni viaja) nace donde apuntas (`en_punto`) y no en la casilla de quien lo lanza. Medido con
+## `escenario_libro_combinaciones`: 36 recetas de tierra/hielo con solo ᛏ, ᚢ o ᚱ nacían en la casilla de la jugadora, `Lanzador3D.construir_tierra` las rechazaba («encima del jugador»)
+## sin ningún aviso y la tinta y la recarga ya estaban cobradas. Un bloque no puede nacer ahí, así que nace en el punto apuntado dentro del anillo de alcance, como la barrera
+## (ESPEC §1.2; es lo que hacía el antiguo glifo pilar). `false` devuelve el comportamiento anterior.
+const SOLIDO_QUIETO_EN_PUNTO: bool = true
+## Etiqueta con la que `origen["en_punto"]` dice que lo puso esta regla y no un glifo ni el laboratorio.
+const ORIGEN_EN_PUNTO_SOLIDO: String = "derivado:solido"
 ## Las condiciones que puede pedir una regla `momento_si` de un glifo (Sigils.GLIFOS): la primera que se cumpla cambia el momento de ejecución.
 const CONDICIONES_MOMENTO: PackedStringArray = ["viaja", "persistente"]
 
@@ -247,6 +254,10 @@ var rebota: bool:
 var persistente: bool:
 	get:
 		return not haz and not (viaja or velocidad > 0.0) and (solidez > 0.0 or permanencia > 0.0 or estado_materia == "solido")
+## ¿Es un sólido (tierra, hielo) que se queda quieto donde nace? (ni haz, ni flecha, ni velocidad). Lo que decide `SOLIDO_QUIETO_EN_PUNTO`.
+var solido_quieto: bool:
+	get:
+		return estado_materia == "solido" and not haz and not (viaja or velocidad > 0.0)
 ## RAYO (21/10): ¿es un haz? = se dibujó alguna ᛁ (`linea_x`/`linea_z`) y no hay barrera (`solidez`) ni flecha (`distancia_max`). Ver `HAZ_*`. Sale de los glifos y de dos campos, así que si el laboratorio
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
@@ -444,6 +455,14 @@ func _derivar() -> void:
 	recarga = Sigils.cooldown_v2(glifos)
 	for campo in DERIVADOS:
 		origen[campo] = "derivado"
+	# Un sólido quieto nace donde apuntas. Lo que ya puso un glifo (la barrera) o el laboratorio se respeta; si el laboratorio lo hace viajar después, se retira lo que puso esta regla.
+	if SOLIDO_QUIETO_EN_PUNTO and String(origen.get("en_punto", "")) != "lab":
+		if solido_quieto and not en_punto:
+			en_punto = true
+			origen["en_punto"] = ORIGEN_EN_PUNTO_SOLIDO
+		elif not solido_quieto and String(origen.get("en_punto", "")) == ORIGEN_EN_PUNTO_SOLIDO:
+			en_punto = false
+			origen.erase("en_punto")
 
 
 ## Superficie aproximada de un elipsoide (fórmula de Knud Thomsen, error < 1,1 %).

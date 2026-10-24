@@ -209,6 +209,14 @@ func _lanzar_completo(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, di
 		for _i in range(int(cont.get(nombre, 0))):
 			glifos_n.append(String(nombre))
 	var datos: Dictionary = {"indice": 0, "receta": r, "rune": rune, "calidad": 1.0, "glifos": glifos_n, "elemento_nombre": String(NOMBRE_ELEMENTO.get(elem, elem))}
+	var origen: Vector3 = origen_de(r, rune, dir)
+	# Un sólido quieto que no cabe donde nace no se lanza ni se cobra (el aviso lo da el Lanzador); aquí queda anotado como rechazo.
+	var no_cabe: String = _l.rechazo_de_construccion(datos, origen)
+	if no_cabe != "":
+		ficha["rechazo"] = "no_cabe"
+		ficha["motivo_construccion"] = no_cabe
+		_l.lanzar_ahora(datos, origen, dir, true)      # solo para que dé el aviso: devuelve false sin cobrar
+		return ficha
 	fases_vistas.clear()
 	_t_conjuro_ini = _t_juego
 	_t_disparo_us = 0
@@ -216,7 +224,6 @@ func _lanzar_completo(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, di
 	var nodos0: int = int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))
 	conjuros += 1
 	lanzadas += 1
-	var origen: Vector3 = _jug.position
 	_l.lanzar_ahora(datos, origen, dir, true)
 	if not recarga_activa:
 		_l.cooldown_left[0] = 0.0

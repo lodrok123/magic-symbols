@@ -108,3 +108,86 @@ func _escenario() -> void:
 	_ok("4 …y la tinta se cobra UNA vez, la de la receta (%.2f gastada, %.2f esperada)" % [antes - despues, esperado], jugador.tinta != null and absf((antes - despues) - esperado) <= TOL_TINTA)
 	_ok("4 …y la recarga de la página se pone UNA vez (%.2f s)" % lanzador.cooldown_left[0], absf(lanzador.cooldown_left[0] - receta_f2.cooldown) < 0.01)
 	await _limpiar()
+
+	# --- 5 · un sólido quieto (tierra + ᛏ) nace donde apuntas, y si no cabe se avisa y NO se cobra (24/10, decisión de Pablo) ---
+	# Antes nacía en la casilla de la jugadora, `construir_tierra` lo rechazaba («encima del jugador») sin avisar y la tinta y la recarga ya estaban cobradas.
+	await _limpiar()
+	_deshacer_tierra()
+	var celda_libre: Vector2i = DESDE + Vector2i(CASILLAS_AL_PUNTO, 0)
+	_ok("5 la casilla apuntada (%s) está libre para construir (si no, la prueba no mide nada)" % str(celda_libre), lanzador.puede_construir_en(celda_libre) == "", lanzador.puede_construir_en(celda_libre))
+	var datos_t: Dictionary = _datos(["altura"], "earth")
+	var receta_t: Lanzador3D.Receta3D = datos_t["receta"]
+	var hz_t: Hechizo = receta_t.hechizo(datos_t["rune"] as RuneData)
+	_ok("5 tierra + ᛏ es un sólido quieto y nace en el punto (en_punto, origen «%s»)" % String(hz_t.origen.get("en_punto", "")), hz_t.solido_quieto and hz_t.en_punto)
+	var tinta_antes: float = jugador.tinta.actual
+	var salio_t: bool = lanzador.lanzar_ahora(datos_t, punto, Vector3.RIGHT, false)
+	var recarga_t: float = lanzador.cooldown_left[0]         # justo al lanzar: después baja con el tiempo
+	await avanzar_s(0.5)
+	var tinta_t: float = tinta_antes - jugador.tinta.actual
+	var esperado_t: float = Tinta.coste_receta(receta_t.coste_v2())
+	_ok("5 apuntando a una casilla libre sale (lanzar_ahora devuelve true)", salio_t)
+	_ok("5 …y construye AHÍ: altura %d en %s, y nada en la casilla de la jugadora (altura %d)" % [Terreno3D.altura_en(celda_libre), str(celda_libre), Terreno3D.altura_en(Terreno3D.celda_de(pies))],
+		Terreno3D.altura_en(celda_libre) >= 1 and Terreno3D.altura_en(Terreno3D.celda_de(pies)) == 0)
+	_ok("5 …y cobra la tinta UNA vez (%.2f gastada, %.2f esperada)" % [tinta_t, esperado_t], absf(tinta_t - esperado_t) <= TOL_TINTA and esperado_t > 0.0)
+	_ok("5 …y pone la recarga (%.2f s)" % recarga_t, absf(recarga_t - receta_t.cooldown) < 0.01)
+
+	# 5b · a una casilla de agua: aviso y nada cobrado
+	await _limpiar()
+	_deshacer_tierra()
+	var agua: Vector2i = _casilla_de_agua_con_orilla()
+	_ok("5b hay en el mapa una casilla de agua con orilla libre a 2 casillas (si no, la prueba no mide nada)", agua != Vector2i(-1, -1))
+	if agua != Vector2i(-1, -1):
+		var orilla: Vector2i = agua - Vector2i(CASILLAS_AL_PUNTO, 0)
+		colocar_jugador(orilla)
+		await avanzar(5)
+		await _limpiar()
+		var punto_agua: Vector3 = Terreno3D.centro_de(agua, Terreno3D.y_pies(agua))
+		var tinta_a: float = jugador.tinta.actual
+		lanzador.feedback_text = ""
+		var salio_a: bool = lanzador.lanzar_ahora(_datos(["altura"], "earth"), punto_agua, Vector3.RIGHT, false)
+		await avanzar_s(0.3)
+		_ok("5b tierra + ᛏ apuntando al agua (%s): no sale (lanzar_ahora devuelve false)" % str(agua), not salio_a)
+		_ok("5b …con el aviso «Ahí no se puede construir: …» (fue «%s»)" % lanzador.feedback_text, lanzador.feedback_text.begins_with("Ahí no se puede construir"))
+		_ok("5b …sin gastar tinta (%.3f) ni poner recarga (%.2f)" % [tinta_a - jugador.tinta.actual, lanzador.cooldown_left[0]], absf(tinta_a - jugador.tinta.actual) < 0.0001 and lanzador.cooldown_left[0] == 0.0)
+		_ok("5b …y no nace nada (ni hechizo vivo ni bloque)", _vivos().is_empty() and lanzador.bloques_de_tierra() == 0)
+		# el hielo SÍ cabe sobre el agua (la hiela): el mismo punto no se le rechaza
+		_ok("5b el hielo quieto sobre el agua NO se rechaza (hiela el agua)", lanzador.rechazo_de_construccion(_datos(["altura"], "ice"), punto_agua) == "", lanzador.rechazo_de_construccion(_datos(["altura"], "ice"), punto_agua))
+		colocar_jugador(DESDE)
+		await avanzar(5)
+
+	# 5c · fuera del anillo de alcance: aviso y nada cobrado
+	await _limpiar()
+	_deshacer_tierra()
+	var lejos: Vector3 = pies + Vector3.RIGHT * Terreno3D.casilla * (ALCANCE_ANILLO_CASILLAS + 2.0)
+	var tinta_l: float = jugador.tinta.actual
+	lanzador.feedback_text = ""
+	var salio_l: bool = lanzador.lanzar_ahora(_datos(["altura"], "earth"), lejos, Vector3.RIGHT, false)
+	await avanzar_s(0.3)
+	_ok("5c tierra + ᛏ apuntando fuera del anillo (%.0f casillas): no sale, avisa («%s») y no cobra (%.3f)" % [ALCANCE_ANILLO_CASILLAS + 2.0, lanzador.feedback_text, tinta_l - jugador.tinta.actual],
+		not salio_l and lanzador.feedback_text.begins_with("Ahí no se puede construir") and absf(tinta_l - jugador.tinta.actual) < 0.0001 and lanzador.cooldown_left[0] == 0.0)
+
+	# 5d · apuntando a la propia casilla de la jugadora (lo que antes pasaba en silencio con la tinta ya cobrada)
+	await _limpiar()
+	var tinta_p: float = jugador.tinta.actual
+	var salio_p: bool = lanzador.lanzar_ahora(_datos(["altura"], "earth"), pies, Vector3.RIGHT, false)
+	_ok("5d tierra + ᛏ en la casilla de la jugadora: no sale, avisa y no cobra (aviso «%s»)" % lanzador.feedback_text, not salio_p and lanzador.feedback_text.contains("estás encima") and absf(tinta_p - jugador.tinta.actual) < 0.0001)
+	_deshacer_tierra()
+	await _limpiar()
+
+
+## Deshace la tierra que dejó una prueba (el Lanzador la guarda 25 s) y la altura que dejó en el mapa.
+func _deshacer_tierra() -> void:
+	for b in lanzador._bloques.duplicate():
+		lanzador._deshacer_bloque(b)
+
+
+## Una casilla de agua cuya casilla a 2 hacia la izquierda es suelo libre (para colocar a la jugadora a 2 casillas del agua, dentro del anillo). (-1, -1) si no hay.
+func _casilla_de_agua_con_orilla() -> Vector2i:
+	for z in range(Terreno3D.mapa.size()):
+		for x in range(2, Terreno3D.mapa[z].length()):
+			var a := Vector2i(x, z)
+			var o := Vector2i(x - CASILLAS_AL_PUNTO, z)
+			var m := Vector2i(x - 1, z)
+			if Terreno3D.es_agua(a) and Terreno3D.letra_de(a) != "b" and not Terreno3D.es_agua(o) and not Terreno3D.es_agua(m) and not Terreno3D.bloqueada(o) and not Terreno3D.bloqueada(m) and lanzador.puede_construir_en(o) == "" and Terreno3D.altura_en(o) == 0:
+				return a
+	return Vector2i(-1, -1)

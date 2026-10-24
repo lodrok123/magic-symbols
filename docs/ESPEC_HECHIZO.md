@@ -72,7 +72,7 @@ inicial. Hay **dos** ejes horizontales (ancho X y fondo Z), así que «longitud�
 | `gravedad` | factor | **1,0** | × estado (§2) | ≠ base 0 → 1; solo afecta a lo que se desplaza |
 | `elevacion` | m | 0 | — (glifo futuro «flota») | + (hoy `altura_salida` 0,9 u solo para proyectiles) |
 | `rebotes` | nº | 0 | rebote: +1, tope 3 | = |
-| `retorna`, `busca`, `en_punto` | — | false / 0 / false | barrera: `en_punto` | = |
+| `retorna`, `busca`, `en_punto` | — | false / 0 / false | barrera: `en_punto`; además todo SÓLIDO QUIETO (tierra o hielo que ni es haz ni viaja) nace `en_punto` (`Hechizo.SOLIDO_QUIETO_EN_PUNTO`, 24/10): un bloque no puede nacer en la casilla de quien lo lanza (`construir_tierra` lo rechazaba en silencio), así que nace en el punto apuntado dentro del anillo de alcance, y si ahí no cabe (agua, bloqueo, cornisa, enemigo, fuera de alcance) el Lanzador avisa «Ahí no se puede construir: …» ANTES de cobrar tinta y recarga | = |
 
 - **Un solo modelo de desplazamiento.** Hoy hay dos: el volumen que «viaja» por tandas a `VEL_VIAJA_V2` = 8
   casillas/s fijas, y el proyectil con `velocidad`. Pasan a ser uno: todo lo que tenga `distancia_max` > 0 se

@@ -33,6 +33,8 @@ const TOPE_FALLOS_MOSTRADOS: int = 40            ## no se imprimen más de estos
 const R_VACIA: String = "página sin glifos"
 const R_ALTURA: String = "altura de sólido de más de 2 niveles"
 const R_TINTA: String = "tinta insuficiente"
+const R_NO_CABE: String = "construcción imposible, sin cobrar"      ## aviso «Ahí no se puede construir» de un sólido quieto: sin gastar tinta ni recarga (24/10)
+const AVISO_NO_CABE: String = "Ahí no se puede construir"
 
 var _zonas: Array = []                           ## Array de Rect2i (esquina + tamaño) en casillas
 var _zona_actual: int = 0
@@ -70,7 +72,7 @@ func _escenario() -> void:
 
 	# --- El barrido ---
 	var salen: int = 0
-	var rechazos: Dictionary = {R_VACIA: 0, R_ALTURA: 0, R_TINTA: 0}
+	var rechazos: Dictionary = {R_VACIA: 0, R_ALTURA: 0, R_TINTA: 0, R_NO_CABE: 0}
 	var falladas: int = 0
 	var cuantas: int = 0
 	var vivos_al_plazo: int = 0
@@ -106,6 +108,7 @@ func _escenario() -> void:
 	print("    rechazadas · %-34s: %d" % [R_VACIA, int(rechazos[R_VACIA])])
 	print("    rechazadas · %-34s: %d" % [R_ALTURA, int(rechazos[R_ALTURA])])
 	print("    rechazadas · %-34s: %d" % [R_TINTA, int(rechazos[R_TINTA])])
+	print("    rechazadas · %-34s: %d" % [R_NO_CABE, int(rechazos[R_NO_CABE])])
 	print("    falladas (rechazo raro o nada nace): %d" % falladas)
 	print("    hechizos aún vivos al agotar T_ESPERA (%.1f s): %d · tiempo simulado máximo esperado %.2f s" % [T_ESPERA, vivos_al_plazo, peor_espera])
 	print("    tiempo de pared del barrido: %.1f s (total del escenario %.1f s)" % [t_total, float(Time.get_ticks_msec() - t0) / 1000.0])
@@ -113,7 +116,9 @@ func _escenario() -> void:
 	_ok("5 ninguna receta falla (cada una sale o se rechaza con un aviso conocido)", falladas == 0, "%d falladas" % falladas)
 	_ok("5b las páginas vacías son rechazadas por «sin glifos» (una por elemento)", int(rechazos[R_VACIA]) == ELEMENTOS.size(), str(rechazos[R_VACIA]))
 	_ok("5c con la tinta llena ninguna receta se rechaza por tinta", int(rechazos[R_TINTA]) == 0, "%d (114 de las 990 cuestan la barra entera: debería alcanzar)" % int(rechazos[R_TINTA]))
-	_ok("5d salieron todas las demás (990 − vacías − altura)", salen + int(rechazos[R_VACIA]) + int(rechazos[R_ALTURA]) + int(rechazos[R_TINTA]) + falladas == cuantas)
+	_ok("5d salieron todas las demás (990 − vacías − altura − sin cabida)", salen + int(rechazos[R_VACIA]) + int(rechazos[R_ALTURA]) + int(rechazos[R_TINTA]) + int(rechazos[R_NO_CABE]) + falladas == cuantas)
+	if int(rechazos[R_NO_CABE]) > 0:
+		_aviso("8 hay %d recetas de sólido quieto que no caben en la casilla apuntada (aviso conocido «%s»; no cobraron tinta ni recarga)" % [int(rechazos[R_NO_CABE]), AVISO_NO_CABE])
 	if int(rechazos[R_ALTURA]) > 0:
 		_aviso("7 hay %d recetas de sólido (tierra/hielo) rechazadas por altura de más de 2 niveles (aviso conocido; el jugador las compone y no salen)" % int(rechazos[R_ALTURA]))
 
@@ -346,7 +351,7 @@ func _lanzar_receta(elemento: String, glifos: Array) -> Dictionary:
 	lanzador.feedback_text = ""
 	_lanzados.clear()
 	_ultimo_g = {}
-	# De dónde nace: en el juego TODO nace en la jugadora salvo lo que pide `en_punto` (la barrera: nace donde apuntas, sin pasar de
+	# De dónde nace: en el juego TODO nace en la jugadora salvo lo que pide `en_punto` (la barrera y, desde el 24/10, todo sólido quieto de tierra o hielo: nace donde apuntas, sin pasar de
 	# ALCANCE_ORIGEN casillas). Si aquí se lanzara la barrera de tierra en la casilla de la propia jugadora, `construir_tierra` la rechazaría
 	# (la casilla está ocupada) y se daría por fallo algo que en el juego no pasa apuntando a otro lado.
 	var origen: Vector3 = jugador.position
@@ -365,6 +370,12 @@ func _lanzar_receta(elemento: String, glifos: Array) -> Dictionary:
 			return {"res": R_VACIA, "info": "", "vivo_al_plazo": false, "espera": 0.0}
 		if aviso_esperado != "" and fb == aviso_esperado:
 			return {"res": R_ALTURA, "info": "", "vivo_al_plazo": false, "espera": 0.0}
+		if fb.begins_with(AVISO_NO_CABE):
+			# Rechazo con aviso ANTES de cobrar: la tinta sigue llena y la página no está en recarga. Si cobró, es un fallo, no un rechazo.
+			var cobro: bool = (tinta != null and tinta.actual < tinta.maxima - 0.001) or float(lanzador.cooldown_left[0]) > 0.0
+			if cobro:
+				return {"res": "FALLO", "info": "rechazó con «%s» pero cobró tinta o recarga" % fb, "vivo_al_plazo": false, "espera": 0.0}
+			return {"res": R_NO_CABE, "info": fb, "vivo_al_plazo": false, "espera": 0.0}
 		if fb.begins_with("Tinta insuficiente"):
 			return {"res": R_TINTA, "info": fb, "vivo_al_plazo": false, "espera": 0.0}
 		return {"res": "FALLO", "info": "rechazada sin motivo conocido: «%s» (aviso de altura esperado: «%s»)" % [fb, aviso_esperado], "vivo_al_plazo": false, "espera": 0.0}
