@@ -130,7 +130,7 @@ var grosor_min: float = 0.10           ## m: ningún semieje baja de aquí (un m
 var copias: int = 1                    ## n volúmenes repartidos en X
 var separacion: float = 0.5            ## m entre copias (hoy, el ancho de cada copia) · ESPEC §1.6
 var dispersion: float = 15.0           ## grados que se abre el abanico de copias (hoy no hay abanico) · ESPEC §1.6
-var crece: float = 0.0                 ## m/s de radio al nacer (ESPEC §1.3: antes «escala por segundo»; el cambio de significado lo aplica HechizoVivo en E2)
+var crece: float = 0.0                 ## m/s de radio al nacer (ESPEC §1.3: antes «escala por segundo»; HechizoVivo lo aplica así desde el 24/10: tiempo = (semieje − semieje × escala_nace) / crece)
 var escala_nace: float = 0.3           ## fracción del tamaño con la que nace un volumen que crece · antes `ESCALA_NACE_V2`
 var resuena: float = 0.0               ## casillas de alcance del PULSO que suelta el volumen (ᚱ «pulso», +4 por glifo, tope 12); 0 = no resuena. Cuándo lo suelta: `momento_de("raido")` (PLAN_PULSO_RESONANTE §10 bis)
 var solidez: float = 0.0               ## 0 = no bloquea; con barrera, 1·1,5^n (diverge del doc, que dice 1: hoy «sin barrera» es la ausencia de la propiedad)

@@ -1204,6 +1204,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 func _salida_de_mano(hechizo: Hechizo, origen: Vector3) -> Vector3:
 	if hechizo == null or hechizo.velocidad <= 0.0 or jugador == null or not (jugador.get("pj") is Node3D):
 		return Vector3.ZERO
+	if hechizo.en_punto:
+		return Vector3.ZERO                               # 24/10 (D-5): lo que se apunta (barrera + flecha) nace EN EL PUNTO apuntado, no en la mano ni a su altura (ESPEC §1.2)
 	if String(_cast_point.get("origen", "mano_libre")) == "suelo_delante":
 		return Vector3.ZERO                               # ese cast point está en el suelo: un proyectil que naciera ahí chocaría al salir; sale como siempre
 	var mano: Vector3 = _pos_cast_point()
@@ -1650,21 +1652,23 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 
 
 ## ¿Hay una barrera VIVA (de las nuestras: corro, muro) en este punto, a un nivel que la salta o no?
-func _barrera_en(p: Vector3, nivel: int) -> bool:
+## `excepto` (24/10): el linaje de un HechizoVivo que pregunta desde dentro (el proyectil, D-6): se salta las solideces de SU propio lanzamiento para no chocar con el muro que él mismo levanta.
+## `trazar` no pasa nada: ve todas, como siempre.
+func _barrera_en(p: Vector3, nivel: int, excepto: Object = null) -> bool:
 	for c in _campos:
 		if is_instance_valid(c) and (c as Campo).bloquea_a(p, nivel):
 			return true
 	var propia: Vector2i = celda_de((jugador as Node3D).position) if jugador != null else Vector2i(-99999, -99999)
 	for s in _solideces_v2:
-		if is_instance_valid(s) and (s as SolidezV2).bloquea_a(p, nivel, propia):
+		if is_instance_valid(s) and not (excepto != null and (s as SolidezV2).linaje == excepto) and (s as SolidezV2).bloquea_a(p, nivel, propia):
 			return true
 	return false
 
 
-## ¿El volumen con solidez que hay en este punto devuelve los proyectiles? (rebote sin desplazamiento, R3)
-func _solidez_refleja_en(p: Vector3) -> bool:
+## ¿El volumen con solidez que hay en este punto devuelve los proyectiles? (rebote sin desplazamiento, R3) `excepto`: ver `_barrera_en`.
+func _solidez_refleja_en(p: Vector3, excepto: Object = null) -> bool:
 	for s in _solideces_v2:
-		if is_instance_valid(s) and (s as SolidezV2).refleja and (s as SolidezV2).contiene(p):
+		if is_instance_valid(s) and not (excepto != null and (s as SolidezV2).linaje == excepto) and (s as SolidezV2).refleja and (s as SolidezV2).contiene(p):
 			return true
 	return false
 
@@ -2876,6 +2880,7 @@ class SolidezV2 extends Node3D:
 	var aguante: float = 30.0
 	var refleja: bool = false
 	var elemento: String = ""
+	var linaje: Object = null            ## el lanzamiento (HechizoVivo.Linaje) que la levantó: sus propios proyectiles no chocan con ella (null = de nadie: la ven todos)
 
 	## ¿Está este punto dentro de alguna casilla del volumen?
 	func contiene(p: Vector3) -> bool:
