@@ -5,11 +5,13 @@ Es el paso de Blender de PLAN_RIGGING §3 (pasos 2-3), para la ropa en piezas ap
 
 Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la capa y la túnica):
   1. la reduce con Decimate (colapso) a ~`tris` triángulos, conservando UV y el cierre de las costuras;
-  2. la escala y coloca sobre la base en A-pose (`config`: escala, desplazamiento y qué punto se alinea con qué punto de la base);
-  3. la separa de la piel donde quedaba dentro de la base (empuja a `margen` por la normal, con el desplazamiento suavizado; las orejas no empujan);
+  2. la escala y coloca sobre la base en A-pose (`config`: escala, desplazamiento y qué punto se alinea con qué punto de la base; o `perfil` por alturas, con
+     escala X / Y delante / Y detrás y desplazamiento Y por nudo; `nivela_borde` baja la parte delantera para que el borde quede a una altura);
+  3. la separa de la piel donde quedaba dentro de la base (empuja a `margen` por la normal, con el desplazamiento suavizado; las orejas no empujan;
+     `normal_suave`, `profundidad_max` y `pasadas_piel` lo afinan para la capa);
   4. le pasa los pesos de la base: para cada vértice, el punto más cercano de la superficie de la base y los pesos de ese triángulo (baricéntrico),
      suavizados sobre la malla soldada (las costuras de UV no dejan huecos), con las piernas atenuadas en la túnica para que la falda no se parta en dos,
-     máximo 4 influencias, normalizados;
+     máximo 4 influencias, normalizados (con `cabeza`, por debajo de una altura el peso de la cabeza pasa al torso);
   4b. si la prenda lleva `capucha` en la config (z del corte, `inclina`), la parte por esa altura en DOS prendas (`capa` abajo, `capucha` arriba); y con `brazo.borde`
      (gradiente con nombre de la orla trasera) quita peso de brazo y suaviza más los pesos de ese borde para que no se estire en dientes al levantar los brazos;
   5. escribe `<salida>/<prenda>.json` (geometría en el espacio de la malla de la base, Y arriba, tal cual la espera Godot) y las texturas.
@@ -44,6 +46,7 @@ FRENTE_LIBRE: float = 55.0      # grados a cada lado de la cara en los que la ca
 FRENTE_RAMPA: float = 100.0
 HULL_ANGULOS: int = 48
 HULL_PASO_Z: float = 0.03
+BANDA_INFORME: float = 0.05     # alto de las bandas en que el informe (con ROPA_DEPURA) cuenta los vértices que quedan dentro
 
 
 def importar(ruta: str) -> list:
@@ -100,15 +103,56 @@ def interpolar(nudos: list, z: float, col: int) -> float:
 
 def colocar_con_perfil(o: bpy.types.Object, cfg: dict) -> None:
     """Colocación por alturas: `perfil` = [[z de la prenda, z en el mundo, escala en X/Y]...]. La capucha de Tripo tiene proporciones de adulto y la cabeza de la
-    jugadora es enorme: la parte de la capucha se estira más (en Z y en X/Y) que la de la capa sobre los hombros. El centro en X/Y de la prenda va a `destino`[0:2]."""
-    perfil = cfg["perfil"]
+    jugadora es enorme: la parte de la capucha se estira más (en Z y en X/Y) que la de la capa sobre los hombros. El centro en X/Y de la prenda va a `destino`[0:2].
+    La escala de un nudo puede ser un número (la misma en X y en Y), [escala X, escala Y] o [escala X, escala Y delante, escala Y detrás]: la capa tiene que
+    ser ancha de lado (los brazos en A-pose), separarse del pecho por delante y no colgar lejos de la espalda. Un 4.º valor opcional desplaza en Y del mundo
+    (Blender: +Y atrás) esa altura de la prenda (centrar la capa sobre el brazo, adelantar la cima de la capucha hacia la cabeza); si no lo lleva vale 0."""
+    perfil = [nudo_perfil(n) for n in cfg["perfil"]]
     xs = [v.co.x for v in o.data.vertices]
     ys = [v.co.y for v in o.data.vertices]
     cx, cy = (min(xs) + max(xs)) * 0.5, (min(ys) + max(ys)) * 0.5
     dx, dy = float(cfg["destino"][0]), float(cfg["destino"][1])
     for v in o.data.vertices:
-        s = interpolar(perfil, v.co.z, 2)
-        v.co = Vector(((v.co.x - cx) * s + dx, (v.co.y - cy) * s + dy, interpolar(perfil, v.co.z, 1)))
+        z = v.co.z
+        sy = interpolar(perfil, z, 3 if v.co.y < cy else 4)
+        v.co = Vector(((v.co.x - cx) * interpolar(perfil, z, 2) + dx, (v.co.y - cy) * sy + dy + interpolar(perfil, z, 5), interpolar(perfil, z, 1)))
+
+
+def nivelar_borde(o: bpy.types.Object, cfg: dict) -> None:
+    """Deja el borde de la capa a la altura `z` en todo el contorno. El borde de Tripo va inclinado (detrás 0,017, de lado 0,05, delante 0,09): sin esto la
+    capelina acababa en el codo detrás y en el hombro delante, y el concept la quiere al codo en todo el contorno. Por `sectores` de ángulo alrededor del eje
+    vertical de la parte baja se mide el punto más bajo y se baja lo que sobra, interpolando entre los centros de los sectores (el borde no hace escalones);
+    entero en el borde y nada desde `z_hasta` (gradiente lineal entre medias)."""
+    n = int(cfg["sectores"])
+    z_obj, z1 = float(cfg["z"]), float(cfg["z_hasta"])
+    bajos = [v.co for v in o.data.vertices if v.co.z < z1]
+    cx = (min(p.x for p in bajos) + max(p.x for p in bajos)) * 0.5
+    cy = (min(p.y for p in bajos) + max(p.y for p in bajos)) * 0.5
+
+    def angulo(p: Vector) -> float:
+        return (math.atan2(p.x - cx, p.y - cy) + math.pi) / (2.0 * math.pi) * n
+    minimo = [z1] * n
+    for p in bajos:
+        s = int(angulo(p)) % n
+        minimo[s] = min(minimo[s], p.z)
+    for v in o.data.vertices:
+        if v.co.z >= z1:
+            continue
+        a = angulo(v.co) - 0.5
+        s0 = int(math.floor(a))
+        f = a - s0
+        borde = minimo[s0 % n] * (1.0 - f) + minimo[(s0 + 1) % n] * f
+        sobra = max(0.0, borde - z_obj)
+        t = (z1 - v.co.z) / max(z1 - borde, 1e-6)
+        v.co.z -= sobra * max(0.0, min(1.0, t))
+
+
+def nudo_perfil(n: list) -> list:
+    """[z prenda, z mundo, escala | [X, Y] | [X, Y delante, Y detrás], (desplazamiento Y)] -> [z prenda, z mundo, X, Y delante, Y detrás, desplazamiento Y]."""
+    esc = n[2] if isinstance(n[2], list) else [n[2], n[2]]
+    if len(esc) == 2:
+        esc = [esc[0], esc[1], esc[1]]
+    return [float(n[0]), float(n[1]), float(esc[0]), float(esc[1]), float(esc[2]), float(n[3]) if len(n) > 3 else 0.0]
 
 
 def colocar(o: bpy.types.Object, cfg: dict) -> None:
@@ -140,6 +184,42 @@ def arbol_base(base: bpy.types.Object) -> BVHTree:
     me.calc_loop_triangles()
     tris = [tuple(t.vertices) for t in me.loop_triangles]
     return BVHTree.FromPolygons(verts, tris, all_triangles=True), verts, tris
+
+
+class NormalSuave:
+    """Normal de la base en un punto de su superficie interpolando las normales de los vértices del triángulo (baricéntricas). La normal de la cara que da
+    `find_nearest` falla en las esquinas convexas (la punta del codo en A-pose): si el punto más cercano cae en una arista o un vértice, la cara elegida puede
+    mirar hacia otro lado y un punto de la capa a 8 cm del codo salía «dentro» y se arrastraba hasta él. La interpolada mira hacia fuera también ahí.
+    Se activa con `normal_suave` en la config de la prenda (la túnica sigue con la de la cara, como se hizo)."""
+
+    def __init__(self, base: bpy.types.Object, verts: list, tris: list):
+        dg = bpy.context.evaluated_depsgraph_get()
+        me = base.evaluated_get(dg).to_mesh()
+        me.calc_loop_triangles()
+        rot = base.matrix_world.to_3x3().inverted().transposed()
+        # Las normales de las esquinas (las del glTF, las mismas que usa Godot), por triángulo y en el orden de `arbol_base`.
+        esquinas = me.corner_normals
+        self.normales = [tuple((rot @ esquinas[lp].vector).normalized() for lp in t.loops) for t in me.loop_triangles]
+        self.verts = verts
+        self.tris = tris
+
+    def en(self, loc: Vector, ti: int) -> Vector:
+        a, b, c = self.tris[ti]
+        ws = baricentricas(loc, self.verts[a], self.verts[b], self.verts[c])
+        na, nb, nc = self.normales[ti]
+        n = na * ws[0] + nb * ws[1] + nc * ws[2]
+        return n.normalized() if n.length > 1e-9 else na
+
+
+def baricentricas(p: Vector, pa: Vector, pb: Vector, pc: Vector) -> tuple:
+    v0, v1, v2 = pb - pa, pc - pa, p - pa
+    d00, d01, d11, d20, d21 = v0.dot(v0), v0.dot(v1), v1.dot(v1), v2.dot(v0), v2.dot(v1)
+    den = d00 * d11 - d01 * d01
+    if abs(den) < 1e-14:
+        return (1.0, 0.0, 0.0)
+    y = (d11 * d20 - d01 * d21) / den
+    z = (d00 * d21 - d01 * d20) / den
+    return (1.0 - y - z, y, z)
 
 
 def adyacencia_soldada(o: bpy.types.Object) -> tuple:
@@ -242,7 +322,11 @@ class CampoFactor:
 
 
 def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: list, vecinos: list, casco: CascoCabeza = None,
-                    margen_casco: float = 0.0) -> int:
+                    margen_casco: float = 0.0, suave: NormalSuave = None, profundidad_max: float = math.inf,
+                    suavizado: int = SUAVIZADO_EMPUJE) -> int:
+    """Empuja fuera de la base los vértices que quedan dentro o a menos de `margen` (por la normal del punto más cercano). Solo cuenta como dentro un punto a
+    menos de `profundidad_max` de la superficie (por debajo de la cabeza, HULL_Z_MIN; arriba manda el casco): más lejos, el signo de la normal de un pliegue (la
+    raja de las nalgas, la punta del codo) no dice nada y un vértice de la orla a 15 cm se arrastraba hasta allí. `suavizado`: pasadas sobre el desplazamiento."""
     campo = CampoFactor(o, casco, margen_casco) if casco is not None else None
     desp = {}
     for v in o.data.vertices:
@@ -250,9 +334,12 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
         if g in desp:
             continue
         p = o.matrix_world @ v.co
-        loc, nor, _, dist = arbol.find_nearest(p)
+        loc, nor, ti, dist = arbol.find_nearest(p)
+        if suave is not None and loc is not None:
+            nor = suave.en(loc, ti)
         d_piel = Vector()
-        if loc is not None and not (abs(loc.x) > OREJA_X and loc.z > OREJA_Z) and (p - loc).dot(nor) < margen:
+        if loc is not None and not (abs(loc.x) > OREJA_X and loc.z > OREJA_Z) and (p - loc).dot(nor) < margen \
+                and (dist <= profundidad_max or p.z > HULL_Z_MIN):
             d_piel = loc + nor * margen - p
         if casco is not None and p.z > HULL_Z_MIN:
             # Un único factor radial por (ángulo, altura), el mismo para el forro y la capa de fuera: conserva el grosor y la forma de la capucha.
@@ -263,7 +350,7 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
             desp[g] = d_casco * w + d_piel * (1.0 - w)
             continue
         desp[g] = d_piel
-    for _ in range(SUAVIZADO_EMPUJE):
+    for _ in range(suavizado):
         nuevo = {}
         for g, d in desp.items():
             if vecinos[g]:
@@ -296,7 +383,7 @@ def pesos_brazo(p: Vector, cfg: dict) -> float:
 
 
 def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree, verts_b: list, tris_b: list, ids: list, vecinos: list,
-                     atenuar_piernas: bool, brazo: dict = None) -> list:
+                     atenuar_piernas: bool, brazo: dict = None, cabeza: dict = None) -> list:
     """Pesos por vértice de la prenda: [{hueso: peso}] (ya suavizados, recortados a 4 y normalizados)."""
     nombres = {g.index: g.name for g in base.vertex_groups}
     pesos_b = [{nombres[g.group]: g.weight for g in v.groups} for v in base.data.vertices]
@@ -308,17 +395,7 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
         p = o.matrix_world @ v.co
         loc, nor, ti, dist = arbol.find_nearest(p)
         a, b, c = tris_b[ti]
-        pa, pb, pc = verts_b[a], verts_b[b], verts_b[c]
-        # baricéntricas del punto más cercano
-        v0, v1, v2 = pb - pa, pc - pa, loc - pa
-        d00, d01, d11, d20, d21 = v0.dot(v0), v0.dot(v1), v1.dot(v1), v2.dot(v0), v2.dot(v1)
-        den = d00 * d11 - d01 * d01
-        if abs(den) < 1e-14:
-            ws = (1.0, 0.0, 0.0)
-        else:
-            y = (d11 * d20 - d01 * d21) / den
-            z = (d00 * d21 - d01 * d20) / den
-            ws = (1.0 - y - z, y, z)
+        ws = baricentricas(loc, verts_b[a], verts_b[b], verts_b[c])   # del punto más cercano
         acum = {}
         for w, i in zip(ws, (a, b, c)):
             for hueso, pv in pesos_b[i].items():
@@ -341,6 +418,17 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
     res = []
     for v in o.data.vertices:
         d = dict(por_grupo[ids[v.index]])
+        if cabeza is not None:
+            # Bajo la cabeza enorme de la jugadora lo más cercano a los hombros de la capa es el pelo: sin esto la capa se llevaba peso de Head hasta el borde y
+            # giraba con la cabeza. Por debajo de `z0` ese peso pasa a `a` (el torso), con gradiente hasta `z1` (el cuello de la capa sigue a la cabeza).
+            quita = 1.0 - suave(((o.matrix_world @ v.co).z - float(cabeza["z0"])) / (float(cabeza["z1"]) - float(cabeza["z0"])))
+            movido = 0.0
+            for hueso in cabeza["huesos"]:
+                if hueso in d:
+                    movido += d[hueso] * quita
+                    d[hueso] *= 1.0 - quita
+            if movido > 0.0:
+                d[cabeza["a"]] = d.get(cabeza["a"], 0.0) + movido
         if brazo is not None:
             # La capa acompaña al brazo al levantarlo (no hace falta un movimiento realista): parte del peso pasa al brazo (y algo a la clavícula) de su lado, con
             # gradiente; el resto se reparte como estaba. En reposo no se nota (todos los huesos están en su pose de enlace).
@@ -487,19 +575,27 @@ def perfil_cabeza(o: bpy.types.Object, verts_b: list) -> None:
               *(("%.3f %.3f" % c[:2], "%.3f %.3f" % c[2:]) if (c := caja(pr)) else ("-", "-"))))
 
 
-def informe(o: bpy.types.Object, arbol: BVHTree, nombre: str) -> None:
-    """Cuántos vértices quedan dentro de la base (distancia con signo < 0) y la mínima distancia."""
+def informe(o: bpy.types.Object, arbol: BVHTree, nombre: str, suave: NormalSuave = None, profundidad_max: float = math.inf) -> None:
+    """Cuántos vértices quedan dentro de la base (distancia con signo < 0, con el mismo criterio que sacar_de_la_piel) y la mínima distancia (con ROPA_DEPURA,
+    también por bandas de altura)."""
     dentro, total, peor = 0, 0, 1e9
+    por_altura = {}
     for v in o.data.vertices:
         p = o.matrix_world @ v.co
-        loc, nor, _, dist = arbol.find_nearest(p)
+        loc, nor, ti, dist = arbol.find_nearest(p)
         if abs(loc.x) > OREJA_X and loc.z > OREJA_Z:
             continue
-        s = (p - loc).dot(nor)
+        if suave is not None:
+            nor = suave.en(loc, ti)
+        s = (p - loc).dot(nor) if dist <= profundidad_max or p.z > HULL_Z_MIN else dist
         total += 1
         peor = min(peor, s)
         if s < 0.0:
             dentro += 1
+            banda = round(math.floor(p.z / BANDA_INFORME) * BANDA_INFORME, 2)
+            por_altura[banda] = por_altura.get(banda, 0) + 1
+    if os.environ.get("ROPA_DEPURA"):
+        print("DENTRO %s por altura (bandas de %.2f): %s" % (nombre, BANDA_INFORME, sorted(por_altura.items())))
     ws = puntos_mundo(o)
     print("INFORME %s: tris=%d vértices=%d dentro_de_la_base=%d/%d distancia_mínima_con_signo=%.4f caja_min=%s caja_max=%s" % (
         nombre, sum(len(p.vertices) - 2 for p in o.data.polygons), len(o.data.vertices), dentro, total, peor,
@@ -530,17 +626,28 @@ def main() -> None:
         o = separar_prenda(vestido, nombre, derecha)
         reducir(o, int(c["tris"]))
         colocar(o, c)
+        if "nivela_borde" in c:
+            nivelar_borde(o, c["nivela_borde"])
         ids, vecinos = adyacencia_soldada(o)
         # El casco se mide solo con los vértices de la cabeza y el pelo (peso de Head): por encima de HULL_Z_MIN también están los hombros y los brazos.
         g_cabeza = base.vertex_groups["mixamorig_Head"].index
         verts_cabeza = [verts_b[v.index] for v in base.data.vertices if any(g.group == g_cabeza and g.weight > 0.5 for g in v.groups)]
         casco = CascoCabeza(verts_cabeza) if "margen_casco" in c else None
-        movidos = sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, casco, float(c.get("margen_casco", 0.0)))
+        suave = NormalSuave(base, verts_b, tris_b) if c.get("normal_suave", False) else None
+        profundidad = float(c.get("profundidad_max", math.inf))
+        movidos = sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, casco, float(c.get("margen_casco", 0.0)), suave, profundidad)
+        # Con `pasadas_piel` > 1 se repasa solo la piel (sin el casco, que volvería a ensanchar la capucha): el suavizado del desplazamiento mezcla direcciones y
+        # deja vértices a pocos milímetros bajo la piel (el cuello de la capa, que abraza el de la jugadora). La última pasada va sin suavizar (cada vértice por
+        # su normal). Con 8 pasadas, los vértices dentro de la base bajan de 607 a 25 (informe).
+        extra = int(c.get("pasadas_piel", 1)) - 1
+        for i in range(extra):
+            sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, None, 0.0, suave, profundidad, 0 if i == extra - 1 else SUAVIZADO_EMPUJE)
         print("PRENDA %s: %d vértices empujados fuera de la piel" % (nombre, movidos))
-        informe(o, arbol, nombre)
+        informe(o, arbol, nombre, suave, profundidad)
         if nombre == "capa" and os.environ.get("ROPA_DEPURA"):
             perfil_cabeza(o, verts_b)
-        pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"))
+        pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"),
+                                 c.get("cabeza"))
         borde = (c.get("brazo") or {}).get("borde")
         if borde is not None:
             pesos, con_gradiente = suavizar_borde_trasero(o, pesos, ids, vecinos, borde)

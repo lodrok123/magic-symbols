@@ -164,7 +164,11 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 		and h.semieje_x >= h.grosor_min and h.semieje_y >= h.grosor_min and h.semieje_z >= h.grosor_min, "%s: supera un límite de la ESPEC §1.9" % et)
 	# los campos nuevos (HC4) siguen en su defecto
 	var vel_esperada: float = Sigils.velocidad_flecha() if int(c.get("flecha", 0)) > 0 else 0.0     # la flecha pone la velocidad; sin flecha, 0
-	_ok(h.en_punto == (int(c.get("barrera", 0)) > 0), "%s: en_punto solo con barrera" % et)
+	# en_punto: la barrera (glifo) o, desde el 24/10, un sólido quieto (tierra/hielo que ni es haz ni flecha: no puede nacer en la casilla de quien lo lanza)
+	var lineas_c: int = int(c.get("linea_x", 0)) + int(c.get("linea_z", 0))
+	var haz_c: bool = lineas_c > 0 and int(c.get("barrera", 0)) == 0 and int(c.get("flecha", 0)) == 0
+	var solido_quieto_c: bool = h.estado_materia == "solido" and int(c.get("flecha", 0)) == 0 and not haz_c
+	_ok(h.en_punto == (int(c.get("barrera", 0)) > 0 or solido_quieto_c), "%s: en_punto solo con barrera o con un sólido quieto" % et)
 	_ok(h.velocidad == vel_esperada and h.aceleracion == 0.0 and not h.retorna and h.busca == 0.0 and h.perfora == 0 and h.radio_explosion == 0.0 \
 		and not h.golpea_lanzador and h.veneno == 0.0 and h.choca_con == 0 and h.estela == "" and h.efecto_impacto == "", "%s: un campo de HC4 se movió de su defecto" % et)
 	# los campos que el elemento toca (ESPEC §2) valen lo que dice su .tres (sin glifos que los muevan: ninguno toca estos)
@@ -249,6 +253,18 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	var barrera3: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 3, "linea_x": 2})
 	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, 2.0 * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_ANCHO_V2), "barrera ×3: permanencia +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
 	_ok(not Hechizo.construir(runes["earth"], {"linea_x": 2}).en_punto, "sin barrera: no nace en el punto")
+	# 24/10: un SÓLIDO QUIETO (tierra/hielo con solo ᛏ, ᚢ o ᚱ) nace donde apuntas; una flecha, un haz o un elemento que no es sólido, no
+	for elem in ["earth", "ice"]:
+		for g in [{"altura": 1}, {"rebote": 1}, {"raido": 1}, {"pulso": 1}]:
+			var q: Hechizo = Hechizo.construir(runes[elem], g)
+			_ok(q.solido_quieto and q.en_punto and String(q.origen.get("en_punto", "")) == Hechizo.ORIGEN_EN_PUNTO_SOLIDO, "%s %s: sólido quieto → en_punto (origen «derivado:solido», fue «%s»)" % [elem, str(g), String(q.origen.get("en_punto", ""))])
+		_ok(not Hechizo.construir(runes[elem], {"flecha": 1}).en_punto, "%s + flecha: viaja, no nace en el punto" % elem)
+	_ok(not Hechizo.construir(runes["fire"], {"altura": 1}).en_punto and not Hechizo.construir(runes["water"], {"altura": 1}).en_punto, "fuego y agua quietos (no sólidos): no nacen en el punto")
+	_ok(String(Hechizo.construir(runes["earth"], {"barrera": 1}).origen.get("en_punto", "")) == "glifo:barrera", "la barrera de tierra conserva su origen «glifo:barrera»")
+	var lab_off: Hechizo = Hechizo.construir(runes["earth"], {"altura": 1}).con({"en_punto": false})
+	_ok(not lab_off.en_punto, "el laboratorio puede apagar en_punto de un sólido quieto (la regla respeta el origen «lab»)")
+	var lab_viaja: Hechizo = Hechizo.construir(runes["earth"], {"altura": 1}).con({"distancia_max": 3.0})
+	_ok(not lab_viaja.en_punto and not lab_viaja.origen.has("en_punto"), "si el laboratorio lo hace viajar, deja de ser en_punto (se retira lo que puso la regla)")
 	# la flecha: 1.er glifo = velocidad 4 y 2 casillas; cada sucesivo +1 casilla y la velocidad NO cambia
 	for k in range(1, 6):
 		var fl: Hechizo = Hechizo.construir(runes["earth"], {"flecha": k})

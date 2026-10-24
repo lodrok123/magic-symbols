@@ -312,7 +312,11 @@ static func velocidad_flecha() -> float:
 
 
 const COSTE_PROP_V2: float = 0.25       ## cada propiedad distinta encarece un 25 %
-const PASO_RESUENA_V2: float = 4.0       ## casillas de alcance del pulso que suma cada ᚱ (PLAN_PULSO_RESONANTE §2)
+## m/s hacia arriba que suma cada glifo de flecha SUCESIVO (salta 1) a `impulso_salida` (24/10, decisión de Pablo). Por qué: cada flecha suma +1 m de alcance pero el arco no
+## crecía, y tierra/hielo con 2-3 flechas y agua con 3 caían antes del 80 % del alcance. Con 0,7 el impulso pasa el mínimo medido (tierra/hielo 3,2 y 3,9; agua 2,3 y 3,0).
+## Solo actúa con gravedad > 0 (HechizoVivo ignora el impulso si no hay gravedad: fuego no cambia).
+const IMPULSO_POR_FLECHA_V2: float = 0.7
+const PASO_RESUENA_V2: float = 4.0      ## casillas de alcance del pulso que suma cada ᚱ (PLAN_PULSO_RESONANTE §2)
 const TOPE_RESUENA_V2: float = 12.0      ## alcance máximo del pulso del jugador = `Pulso3D.ALCANCE_DEFECTO`
 
 ## --- MOMENTO DE EJECUCIÓN de las propiedades (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §10 bis, GLIFOS_RECETA §2.4 bis) ---
@@ -378,7 +382,8 @@ const GLIFOS: Dictionary = {
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
 	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
-		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0}]},
+		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0},
+			{"campo": "impulso_salida", "op": "suma", "valor": IMPULSO_POR_FLECHA_V2, "salta": 1}]},
 	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). El 1.er glifo la hace nacer DONDE APUNTAS (en_punto); cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
 	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "momento": "continuo", "paso": 4, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},

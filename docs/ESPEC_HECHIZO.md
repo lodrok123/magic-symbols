@@ -72,7 +72,7 @@ inicial. Hay **dos** ejes horizontales (ancho X y fondo Z), así que «longitud�
 | `gravedad` | factor | **1,0** | × estado (§2) | ≠ base 0 → 1; solo afecta a lo que se desplaza |
 | `elevacion` | m | 0 | — (glifo futuro «flota») | + (hoy `altura_salida` 0,9 u solo para proyectiles) |
 | `rebotes` | nº | 0 | rebote: +1, tope 3 | = |
-| `retorna`, `busca`, `en_punto` | — | false / 0 / false | barrera: `en_punto` | = |
+| `retorna`, `busca`, `en_punto` | — | false / 0 / false | barrera: `en_punto`; además todo SÓLIDO QUIETO (tierra o hielo que ni es haz ni viaja) nace `en_punto` (`Hechizo.SOLIDO_QUIETO_EN_PUNTO`, 24/10): un bloque no puede nacer en la casilla de quien lo lanza (`construir_tierra` lo rechazaba en silencio), así que nace en el punto apuntado dentro del anillo de alcance, y si ahí no cabe (agua, bloqueo, cornisa, enemigo, fuera de alcance) el Lanzador avisa «Ahí no se puede construir: …» ANTES de cobrar tinta y recarga | = |
 
 - **Un solo modelo de desplazamiento.** Hoy hay dos: el volumen que «viaja» por tandas a `VEL_VIAJA_V2` = 8
   casillas/s fijas, y el proyectil con `velocidad`. Pasan a ser uno: todo lo que tenga `distancia_max` > 0 se
@@ -203,7 +203,7 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 | ᛁ horizontal | `semieje_x` +0,25 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛁ vertical | `semieje_z` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛏ | `semieje_y` +0,30 (tope 1,0) |
-| ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) |
+| ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) · `impulso_salida` +0,7 m/s por glifo sucesivo (`Sigils.IMPULSO_POR_FLECHA_V2`, 24/10: así el arco crece con el alcance; solo actúa con gravedad > 0, fuego no cambia) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
 | ᚠ repetición | `copias` +1 (tope 4) |
 | ᚢ rebote | `rebotes` +1 (tope 3) |

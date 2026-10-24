@@ -12,6 +12,17 @@ extends Node3D
 ##
 ## Nace en el origen del cast point, se desplaza, rebota y persiste (`eventos`), y cada tanda de casillas se llena según el estado de la materia
 ## (`MATERIA_V2`). Cuando se han cumplido todos sus eventos retardados, se borra solo: lo que deja en el mundo (ZonaV2, SolidezV2, tierra, agua) tiene su propia vida.
+##
+## CUATRO REGLAS NUEVAS (24/10, decisión de Pablo tras la auditoría docs/ANALISIS_DIRECCION_24-10/05_auditoria_hechizo.md, D-1, D-6 y D-7):
+##   · ᚠ en el PROYECTIL: con `copias` > 1 salen `copias` proyectiles (un HechizoVivo hermano cada uno), abiertos en abanico de `dispersion` grados EN TOTAL y separados `separacion` m
+##     de lado. Antes salía UNO solo y el glifo cobraba tinta y recarga sin hacer nada. La tinta y la recarga se cobran una vez (en `lanzar_ahora`); cada copia cobra el mismo golpe.
+##     Con las copias de un VOLUMEN quieto en número PAR, los centros caían justo en el borde entre dos casillas y se rasterizaban en la misma (ᚠ×1 daba 1 casilla en vez de 2): ahora el
+##     reparto se desplaza medio paso (ver `eventos_de`).
+##   · El PROYECTIL se para en una `SolidezV2` de otro hechizo igual que `Lanzador3D.trazar`: gasta un rebote si le quedan, y si la solidez refleja (barrera + rebote) se refleja una vez.
+##     Nunca choca con la solidez de su propio lanzamiento (`linaje`): sin eso la flecha de «barrera + flecha» se autodestruiría contra el muro que ella misma levanta.
+##   · ᚷ `crece` va en m/s DE RADIO (ESPEC §1.3), no en escala por segundo: el volumen nace a `escala_nace` × sus semiejes y crece hasta el 100 % en
+##     (semieje − semieje × escala_nace) / crece segundos (`tiempo_crecimiento`). Mientras crece rasteriza casillas nuevas cada vez que su radio cruza una (antes solo había 8 fases fijas).
+##     El proyectil con `crece` crece en vuelo (su radio de acierto `_radio_u` sube a `crece` m/s hasta el de `semiejes_vuelo`).
 
 ## --- MATERIA V2 (R2, 17/10; docs/GLIFOS_RECETA.md §2.3-2.4): lo que llena el volumen lo decide el estado de la materia, UNA vez por estado ---
 const T_LLENADO_V2: float = 1.0             ## líquido: s que tarda en echar el agua de su volumen
@@ -35,7 +46,8 @@ const PULSO_V2: Dictionary = {"plasma": "pulso_plasma", "gas": "pulso_gas", "cam
 ##   4. rebota `rebotes` veces (es el rebote de `trazar`); sin desplazamiento, el volumen refleja los proyectiles que le llegan
 ##   5. VIDA: si viaja desaparece al llegar o chocar y se queda `permanencia` s; si nace quieto dura `persiste` + `permanencia` (la `persiste` del elemento NO cuenta al viajar)
 ##   6. `solidez` por encima de cualquier estado: SolidezV2 bloquea proyectiles y aguanta golpes
-const MAX_FASES_CRECE_V2: int = 8          ## tope de fases de crecimiento (cada una dura al menos un `intervalo`)
+const MUESTRAS_CRECE_V2: int = 24          ## 24/10: en cuántos pasos iguales se muestrea el crecimiento de un volumen para ver cuándo su radio cruza una casilla (antes: 8 fases de al menos un `intervalo`)
+const PASO_CRECE_MIN_S: float = 0.05       ## s: paso mínimo entre dos muestras del crecimiento (un crecimiento muy corto no se parte en trozos más pequeños que unos fotogramas)
 const SEPARACION_COPIAS_MIN_CASILLAS: float = 1.0   ## casillas de centro a centro entre dos copias como mínimo (una copia por casilla: la casilla es lo que se rasteriza)
 const MAX_EVENTOS_V2: int = 64            ## tope de apariciones (copias × fases × posiciones) por hechizo
 ## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
@@ -84,7 +96,11 @@ var manual: bool = false                   ## true = no avanza solo (las pruebas
 var _max_recorrido: float = 0.0
 var quedandose: bool = false              ## true mientras dura su `permanencia` (ya se paró o llegó, y todavía no desaparece)
 var _t_viaje: float = 0.0                  ## s hasta que el volumen que viaja llega o choca (0 = no viaja)
-var _radio_u: float = 0.0
+var _radio_u: float = 0.0                  ## radio con que el proyectil acierta AHORA (u); con `crece` sube en vuelo hasta `_radio_pleno_u`
+var _radio_pleno_u: float = 0.0            ## el radio de acierto entero del proyectil (u): el de `semiejes_vuelo`
+var _crece_u: float = 0.0                  ## u/s a los que crece el radio de acierto del proyectil (`crece` m/s × casilla; 0 = no crece)
+var tiempo_crecimiento: float = 0.0        ## s que tarda en llegar a su tamaño entero lo que `crece` (volumen o proyectil); 0 = no crece (las pruebas y el lab lo leen)
+var _reflejado: bool = false               ## el proyectil ya fue devuelto una vez por una SolidezV2 con rebote (como `trazar`: un trazo se refleja una vez)
 var _viaja_sig: Array = []                 ## para cada acción de al_viajar, el recorrido en que le toca
 var _estela_sig: float = 0.0
 var _golpeo_lanzador: bool = false
@@ -112,7 +128,9 @@ var _rechazado: bool = false              ## el hechizo se rechazó entero (altu
 
 ## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
 ## `linaje` y `ya_golpeados` los pasa `crear_hijo` (los límites son del lanzamiento entero y un hijo no repite el golpe de su padre); `a_mano` = no avanza solo (pruebas).
-static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lanzador3D, linaje_: Linaje = null, ya_golpeados: Dictionary = {}, a_mano: bool = false) -> HechizoVivo:
+## `copia` (24/10): qué proyectil de los `copias` del hechizo es éste. El que llama pasa 0 y `crear` lanza los demás (hermanos con el mismo linaje); solo el hechizo lanzado (profundidad 0)
+## se multiplica, un hijo de `crear_hijo` no (ya lleva su propio abanico). `casillas` del devuelto suma las de todos los hermanos.
+static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lanzador3D, linaje_: Linaje = null, ya_golpeados: Dictionary = {}, a_mano: bool = false, copia: int = 0) -> HechizoVivo:
 	var nuevo: HechizoVivo = preparar(hechizo, lanzador)
 	nuevo.linaje = linaje_ if linaje_ != null else Linaje.new()
 	nuevo.linaje.vivos += 1
@@ -121,8 +139,10 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	nuevo.manual = a_mano
 	lanzador.add_child(nuevo)
 	nuevo.set_physics_process(not a_mano)
+	var n_proyectiles: int = copias_de_proyectil(hechizo)
 	if hechizo.velocidad > 0.0:
-		nuevo.casillas = nuevo._iniciar_proyectil(origen, dir)
+		var salida: Dictionary = salida_de_copia(hechizo, copia, n_proyectiles, dir)
+		nuevo.casillas = nuevo._iniciar_proyectil(origen, salida["dir"], salida["desvio"])
 	else:
 		nuevo.casillas = nuevo._materializar(origen, dir)
 	nuevo._nacido = true
@@ -136,7 +156,32 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 			var hasta: float = (Hechizo.HAZ_DURA_S if hechizo.haz else (nuevo._t_viaje if hechizo.viaja else maxf(hechizo.persiste, 0.0))) + hechizo.permanencia
 			nuevo._despues(hasta, func() -> void: nuevo.disparar_evento("al_expirar", origen, dir))
 	nuevo._revisar_fin()
+	if copia == 0:
+		for i in range(1, n_proyectiles):
+			if nuevo.linaje.vivos >= Hechizo.MAX_VIVOS:
+				break                                                    # el tope de hechizos vivos es del lanzamiento entero (las copias también cuentan)
+			var hermano: HechizoVivo = crear(hechizo, origen, dir, lanzador, nuevo.linaje, ya_golpeados, a_mano, i)
+			nuevo.casillas += hermano.casillas
 	return nuevo
+
+
+## Cuántos proyectiles salen de un hechizo: sus `copias` si es un PROYECTIL lanzado (velocidad > 0, profundidad 0), y 1 en cualquier otro caso (un volumen se reparte en `eventos_de`; un hijo no se multiplica).
+static func copias_de_proyectil(hechizo: Hechizo) -> int:
+	if hechizo.velocidad <= 0.0 or hechizo.profundidad > 0:
+		return 1
+	return maxi(hechizo.copias, 1)
+
+
+## Dirección y desvío de la copia `i` de `n` de un proyectil: el abanico abre `dispersion` grados EN TOTAL (de −d/2 a +d/2 repartidos a partes iguales; una sola copia va recta) y las copias se
+## separan `separacion` m de lado, centradas en la mano. Devuelve {dir: Vector3 horizontal-con-su-inclinación, desvio: Vector3 en u que se suma a la salida}.
+static func salida_de_copia(hechizo: Hechizo, i: int, n: int, dir: Vector3) -> Dictionary:
+	var d0: Vector3 = dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
+	if n <= 1:
+		return {"dir": d0, "desvio": Vector3.ZERO}
+	var grados: float = lerpf(-hechizo.dispersion * 0.5, hechizo.dispersion * 0.5, float(i) / float(n - 1))
+	var lado: Vector3 = d0.cross(Vector3.UP).normalized()
+	var desvio: Vector3 = lado * ((float(i) - float(n - 1) * 0.5) * hechizo.separacion * Terreno3D.casilla)
+	return {"dir": d0.rotated(Vector3.UP, deg_to_rad(grados)), "desvio": desvio}
 
 
 func _exit_tree() -> void:
@@ -362,7 +407,7 @@ func _contacto(ctx: Dictionary) -> void:
 ## Las tandas de casillas de TODO el hechizo, en orden de tiempo: [{t, celdas, pos: Vector2, dir: Vector2}]. Las casillas de cada tanda son las
 ## NUEVAS (las que no estaban ya en una anterior): un volumen que crece o viaja deja su rastro sin repetir casillas.
 ##   1. copias   n volúmenes repartidos a lo largo de X (perpendicular a la mirada), separados lo que mide cada uno de ancho
-##   2. nace     en la mano, quieto; si `crece`, empieza a `escala_nace` en planta y crece `crece` por segundo hasta el 100 %
+##   2. nace     en la mano, quieto; si `crece`, empieza a `escala_nace` en planta y su radio crece `crece` m/s hasta el 100 % (`tiempo_de_crecer`)
 ##   3. viaja    `distancia_max` m desde ahí (a `velocidad`, 8 m/s si es 0), parando donde para `trazar`; 4. rebota `rebotes` veces (el rebote de `trazar`)
 func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
 	var props: Dictionary = geo["props"]
@@ -375,11 +420,17 @@ func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
 	# de centro a centro: lo que mide cada copia + el hueco entre ellas, pero nunca menos de una casilla (24/10: con la base 0,10 la esfera base mide 0,2 y dos copias caían en la misma casilla)
 	var separacion: float = maxf(2.0 * float(geo["x"]) + h.separacion, SEPARACION_COPIAS_MIN_CASILLAS) * cas
 	var vel: float = _velocidad_viaje()                                      # m/s = casillas/s
-	var fases: Array = fases_crece(crece, h.escala_nace, h.intervalo)
+	var semieje_crece: float = maxf(float(geo["x"]), float(geo["z"]))        # el radio que manda el tiempo de crecimiento: el mayor de la planta (la altura nace entera)
+	var fases: Array = fases_crece(crece, h.escala_nace, h.intervalo, semieje_crece)
+	tiempo_crecimiento = tiempo_de_crecer(crece, h.escala_nace, semieje_crece)
 	var ya: Dictionary = {}
 	var eventos: Array = []
+	# Con un número PAR de copias el reparto simétrico (−0,5, +0,5 pasos…) pone sus centros justo en el borde entre dos casillas, y el redondeo de coma flotante los mete a veces en la misma:
+	# ᚠ×1 daba 1 casilla en vez de 2 y ᚠ×3 daba 3 en vez de 4 (auditoría D-1). El centro del reparto se corre medio paso (la primera copia, o la mitad de ellas, queda en la mano y el resto
+	# a un paso entero): cada centro cae a un número entero de pasos de la mano, nunca en un borde. Con un número impar el reparto es el simétrico de siempre.
+	var mitad_copias: int = floori(float(copias - 1) * 0.5)
 	for i in range(copias):
-		var o: Vector2 = origen + perp * ((float(i) - float(copias - 1) * 0.5) * separacion)
+		var o: Vector2 = origen + perp * (float(i - mitad_copias) * separacion)
 		var di: Vector2 = d.rotated(deg_to_rad((float(i) - float(copias - 1) * 0.5) * h.dispersion))   # abanico: cada copia mira `dispersion` grados más allá que la anterior
 		for f in fases:
 			_evento(eventos, ya, geo, float(f["s"]), o, di, h.retardo + float(f["t"]))
@@ -403,16 +454,27 @@ func _velocidad_viaje() -> float:
 	return h.velocidad if h.velocidad > 0.0 else Hechizo.VELOCIDAD_VIAJE_DEFECTO
 
 
-## Fases de crecimiento en planta: [{t, s}] con s de `escala_nace` a 1. Sin `crece`: una sola fase al 100 % en t = 0. Cada fase dura al menos un `intervalo`.
-static func fases_crece(crece: float, escala_nace: float, intervalo: float) -> Array:
+## Cuánto tarda (s) en llegar a su tamaño entero lo que crece `crece` m/s de RADIO (ESPEC §1.3) desde `escala_nace` × `semieje` hasta `semieje` m: (semieje − semieje × escala_nace) / crece.
+## Antes (hasta el 24/10) `crece` era una fracción de escala por segundo: (1 − escala_nace) / crece, igual para un volumen de 0,2 m que para uno de 3 m. Sin `crece`: 0.
+static func tiempo_de_crecer(crece: float, escala_nace: float, semieje: float) -> float:
+	if crece <= 0.0:
+		return 0.0
+	return maxf(semieje - semieje * escala_nace, 0.0) / crece
+
+
+## Fases de crecimiento en planta: [{t, s}] con s de `escala_nace` a 1, repartidas en MUESTRAS_CRECE_V2 pasos iguales del tiempo de crecimiento (el radio crece LINEAL a `crece` m/s). Sin `crece`: una sola
+## fase al 100 % en t = 0. `semieje` es el radio entero en m (el mayor de la planta): con 1 m es el tiempo «de referencia». `eventos_de` solo guarda las fases en que el volumen gana una casilla
+## nueva (las que no cambian nada no dejan tanda), así que muestrear fino no llena de eventos: es lo que hace que el volumen vuelva a rasterizar justo cuando su radio cruza una casilla.
+## (`_intervalo` ya no limita las fases: se conserva solo para no romper a quien llama con tres argumentos.)
+static func fases_crece(crece: float, escala_nace: float, _intervalo: float, semieje: float = 1.0) -> Array:
 	if crece <= 0.0:
 		return [{"t": 0.0, "s": 1.0}]
 	var fases: Array = []
-	var total: float = (1.0 - escala_nace) / crece
-	var paso: float = maxf(intervalo, total / float(MAX_FASES_CRECE_V2))
+	var total: float = tiempo_de_crecer(crece, escala_nace, semieje)
+	var paso: float = maxf(total / float(MUESTRAS_CRECE_V2), PASO_CRECE_MIN_S)
 	var t: float = 0.0
 	while t < total - 0.001:
-		fases.append({"t": t, "s": minf(1.0, escala_nace + crece * t)})
+		fases.append({"t": t, "s": minf(1.0, escala_nace + (1.0 - escala_nace) * t / maxf(total, 0.0001))})
 		t += paso
 	fases.append({"t": total, "s": 1.0})
 	return fases
@@ -700,6 +762,7 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> void:
 	s.aguante = h.resistencia
 	s.refleja = refleja
 	s.elemento = String(ctx["elemento"])
+	s.linaje = linaje                                       # de quién es: los proyectiles de este mismo lanzamiento no chocan con ella (ver `_avanzar`)
 	var l: Lanzador3D = lanz                               # (ver _abrir_zona: el callback sobrevive a este nodo)
 	l.mundo.add_child(s)
 	l._solideces_v2.append(s)
@@ -910,20 +973,30 @@ func _estado_suelo(estado_: String, radio: float, pos: Vector3) -> void:
 ##  El proyectil
 ## ---------------------------------------------------------------------------------------------------
 
-func _iniciar_proyectil(origen: Vector3, dir: Vector3) -> int:
+## `desvio` (u): cuánto se aparta de la mano esta copia del abanico (ver `salida_de_copia`); cero para un proyectil solo.
+func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3.ZERO) -> int:
 	proyectil = true
 	activo = true
 	# Sale a `altura_salida` sobre el suelo de su casilla (el origen que llega es el de los pies del jugador: sin esto, un proyectil con gravedad nace ya en el suelo).
 	var c0: Vector2i = Terreno3D.celda_de(origen)
 	p = Vector3(origen.x, (Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y) + (h.altura_salida + h.elevacion) * Terreno3D.casilla, origen.z)
-	if lanz != null and lanz.get("desplaza_mano") is Vector3:
-		p += lanz.get("desplaza_mano") as Vector3          # 24/10: sale de la mano de la jugadora (Lanzador3D._salida_de_mano), no del centro de sus pies
+	# 24/10: sale de la mano de la jugadora (Lanzador3D._salida_de_mano), no del centro de sus pies. Un hechizo `en_punto` NO: nace donde apunta (ESPEC §1.2) y sumarle el desplazamiento de
+	# la mano lo sacaba de la mano en vez del punto (auditoría D-5, «barrera + flecha»).
+	if lanz != null and not h.en_punto and lanz.get("desplaza_mano") is Vector3:
+		p += lanz.get("desplaza_mano") as Vector3
+	p += desvio
 	var d: Vector3 = dir.normalized() if dir.length() > 0.001 else Vector3.RIGHT
 	v = d * h.velocidad * Terreno3D.casilla                    # el Hechizo habla en m/s; aquí se pasa a u/s (ESPEC §0.1)
 	if h.gravedad > 0.0 and h.impulso_salida > 0.0:
 		v.y += h.impulso_salida * Terreno3D.casilla               # sale en arco (el agua): sin gravedad no se aplica, o subiría para siempre
 	_max_recorrido = (h.distancia_max if h.distancia_max > 0.0 else Hechizo.LIM_DISTANCIA) * Terreno3D.casilla     # sin alcance, el tope de seguridad: nada vuela para siempre
-	_radio_u = maxf(h.semiejes_vuelo.x, h.semiejes_vuelo.z) * Terreno3D.casilla       # con qué radio acierta EN VUELO (Hechizo.ESCALA_PROYECTIL); la explosión y las zonas no lo usan
+	_radio_pleno_u = maxf(h.semiejes_vuelo.x, h.semiejes_vuelo.z) * Terreno3D.casilla       # con qué radio acierta EN VUELO (Hechizo.ESCALA_PROYECTIL); la explosión y las zonas no lo usan
+	_radio_u = _radio_pleno_u
+	if h.crece > 0.0:
+		# 24/10 (D-7): `crece` es m/s de radio. El proyectil nace a `escala_nace` de su radio y crece en vuelo; el VFX y el golpe leen `_radio_u`, que sube cada paso (ver `paso`).
+		_radio_u = _radio_pleno_u * h.escala_nace
+		_crece_u = h.crece * Terreno3D.casilla
+		tiempo_crecimiento = tiempo_de_crecer(h.crece, h.escala_nace, _radio_pleno_u / Terreno3D.casilla)
 	_viaja_sig = []
 	for a in (h.eventos.get("al_viajar", []) as Array):
 		_viaja_sig.append(maxf(float((a as Dictionary).get("cada", 1.0)), 0.1) * Terreno3D.casilla)
@@ -948,6 +1021,8 @@ func paso(dt: float) -> void:
 	if not activo or dt <= 0.0:
 		return
 	edad += dt
+	if _radio_u < _radio_pleno_u:                                          # `crece` en vuelo: el radio de acierto sube a `crece` m/s hasta el entero
+		_radio_u = minf(_radio_pleno_u, _radio_u + _crece_u * dt)
 	# 1. hacia dónde: la vuelta apunta al lanzador; `busca` gira hacia el objetivo más cercano del cono
 	if volviendo:
 		var j: Vector3 = _pos_lanzador()
@@ -1004,6 +1079,20 @@ func _avanzar(dt: float) -> bool:
 	_p_previa = p
 	var nuevo: Vector3 = p + v * dt
 	if _choca_mundo():
+		# 24/10 (D-6): el volumen con SOLIDEZ de otro hechizo (muro, barrera) para al proyectil igual que a `trazar` (`_barrera_en`, la misma consulta, no una copia): gasta un rebote si le quedan y, si
+		# la solidez refleja (barrera + rebote), se devuelve UNA vez. Nunca la de su propio lanzamiento (`linaje`): la flecha de «barrera + flecha» levanta su muro al pararse y sus hermanas vuelan junto a él.
+		if lanz != null and lanz._barrera_en(nuevo, 0, linaje):
+			var devuelve: bool = lanz._solidez_refleja_en(nuevo, linaje) and not _reflejado
+			if rebotes_usados < h.rebotes or devuelve:
+				v.x = -v.x
+				v.z = -v.z
+				if rebotes_usados < h.rebotes:
+					_rebotar()
+				else:
+					_reflejado = true
+				return true
+			_terminar_o_volver("muro")
+			return false
 		var sol_x: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(nuevo.x, p.y, p.z)), 0)
 		var sol_z: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(p.x, p.y, nuevo.z)), 0)
 		var sol_n: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(nuevo), 0)
