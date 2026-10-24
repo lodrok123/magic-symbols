@@ -4,7 +4,7 @@ extends SceneTree
 ## hombros y brazos, TERMINA EN EL CODO y abre hacia abajo, y una capucha pegada a la cabeza. Sin ventana:
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_ropa_capa.gd
 ## Todas las medidas en unidades del modelo (la coronilla a 1,70; las mallas y el esqueleto del .glb van en centésimas: se multiplican por la escala de la armadura).
-## (a) borde inferior de la capa a la altura del codo; (b) el borde, más ancho que los brazos a esa altura; (c) la capa abre hacia abajo (más ancha en el borde que
+## (a) el borde de la capa a la altura del codo en los 8 sectores de ángulo (delante, lados y detrás); (b) el borde, más ancho que los brazos a esa altura; (c) la capa abre hacia abajo (más ancha en el borde que
 ## a la altura del hueso Neck); (d) la capucha no sobresale por encima ni por detrás de la cabeza;
 ## (e) en reposo ningún vértice de la capa ni de la capucha queda dentro del cuerpo SIN EL PELO (la zona `pelo` de Ropa3D, que la capucha apaga): el cuerpo se pasa
 ## a vóxeles y se rellena desde fuera; un vértice en un vóxel cerrado está dentro, y uno junto a la superficie si su distancia con signo al triángulo más cercano
@@ -18,12 +18,14 @@ const GLB_CAPA: String = "res://arte/modelos/ropa_capa.glb"
 const GLB_CAPUCHA: String = "res://arte/modelos/ropa_capucha.glb"
 const GLB_BASE: String = "res://arte/modelos/jugadora_base.glb"
 const ZONAS: String = "res://arte/modelos/jugadora_base_zonas.res"
-## (a) el borde inferior de la capa, a la altura del codo (LeftForeArm a 0,896).
-const BORDE_MIN: float = 0.86
-const BORDE_MAX: float = 0.92
-## (b) el borde va inclinado como en la capa de Tripo (detrás a 0,87, de lado a 0,90-0,93, delante más alto): la banda del borde son los 6 cm por encima del punto
-## más bajo, lo que tarda en llegar de la espalda a los costados.
-const BANDA_BORDE: float = 0.06
+## (a) el borde de la capa, a la altura del codo (LeftForeArm a 0,896) en TODO el contorno: en cada uno de los 8 sectores de ángulo (el centro es el de la banda
+## de BANDA_CENTRO por encima del punto más bajo).
+const BORDE_MIN: float = 0.87
+const BORDE_MAX: float = 0.91
+const SECTORES: Array = ["delante", "delante-izquierda", "izquierda", "detrás-izquierda", "detrás", "detrás-derecha", "derecha", "delante-derecha"]
+const BANDA_CENTRO: float = 0.06
+## (b) la banda del borde son los 4 cm por encima del punto más bajo (lo que va de un sector a otro).
+const BANDA_BORDE: float = 0.04
 const HOLGURA_BRAZOS: float = 0.02
 ## (c) la anchura a la altura del cuello se mide en ±1 cm alrededor del hueso Neck.
 const MEDIA_BANDA_CUELLO: float = 0.01
@@ -94,12 +96,15 @@ func _initialize() -> void:
 	if capa.is_empty() or capucha.is_empty() or cuerpo.is_empty():
 		_acabar()
 		return
-	# (a) borde inferior
+	# (a) el borde, a la altura del codo en todo el contorno: el punto más bajo de la capa en cada sector de ángulo alrededor del centro del borde
 	var borde: float = INF
 	for v in capa:
 		borde = minf(borde, v.y)
-	_ok(borde >= BORDE_MIN and borde <= BORDE_MAX, "(a) borde inferior de la capa a %.3f (entre %.2f y %.2f; codo a %.3f)" % [borde, BORDE_MIN, BORDE_MAX,
-		(sk_b.get_bone_global_rest(sk_b.find_bone("mixamorig_LeftForeArm")).origin * esc).y])
+	var codo: float = (sk_b.get_bone_global_rest(sk_b.find_bone("mixamorig_LeftForeArm")).origin * esc).y
+	var alturas: Array = _borde_por_sector(capa, borde)
+	for s in SECTORES.size():
+		_ok(float(alturas[s]) >= BORDE_MIN and float(alturas[s]) <= BORDE_MAX, "(a) borde de la capa %s a %.3f (entre %.2f y %.2f; codo a %.3f)" % [SECTORES[s],
+			float(alturas[s]), BORDE_MIN, BORDE_MAX, codo])
 	# (b) borde frente a los brazos
 	var ancho_borde: float = _ancho(capa, borde, borde + BANDA_BORDE)
 	var ancho_brazos: float = _ancho(cuerpo, borde, borde + BANDA_BORDE)
@@ -321,6 +326,26 @@ func _vertices(ruta: String, esc: float) -> PackedVector3Array:
 			for v in (m.surface_get_arrays(s)[Mesh.ARRAY_VERTEX] as PackedVector3Array):
 				res.append(v * esc)
 	n.free()
+	return res
+
+
+## Altura del borde en cada sector de SECTORES (el vértice más bajo de la capa en ese ángulo), alrededor del centro en X/Z de la banda del borde.
+func _borde_por_sector(pts: PackedVector3Array, borde: float) -> Array:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in pts:
+		if p.y <= borde + BANDA_CENTRO:
+			lo = lo.min(Vector2(p.x, p.z))
+			hi = hi.max(Vector2(p.x, p.z))
+	var centro: Vector2 = (lo + hi) * 0.5
+	var res: Array = []
+	res.resize(SECTORES.size())
+	res.fill(INF)
+	for p in pts:
+		# 0 = delante (+Z), creciendo hacia la izquierda del personaje (+X)
+		var ang: float = fposmod(atan2(p.x - centro.x, p.z - centro.y) + PI / SECTORES.size(), TAU)
+		var s: int = int(ang / TAU * SECTORES.size()) % SECTORES.size()
+		res[s] = minf(float(res[s]), p.y)
 	return res
 
 
