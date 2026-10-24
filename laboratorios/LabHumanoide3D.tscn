@@ -4,3 +4,4 @@
 
 [node name="LabHumanoide3D" type="Node3D"]
 script = ExtResource("1")
+personaje_inicial = "jugadora_base"

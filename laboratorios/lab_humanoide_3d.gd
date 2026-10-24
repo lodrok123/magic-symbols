@@ -1,4 +1,5 @@
 extends Node3D
+#
 
 ## LABORATORIO ESTÁNDAR DE HUMANOIDES (11/10, Pablo: «un laboratorio estándar para los personajes: uno para humanoides y otro para animales»).
 ## Sale de LabGrandmaster3D y de LabGato3D, pero sirve para cualquier personaje con esqueleto Mixamo (todos los humanoides del juego:
@@ -15,8 +16,15 @@ extends Node3D
 ## sujeta un libro cerrado al pecho (caja opcional). Mide cadera, fotograma de máxima extensión y recorrido de la mano del libro, y dibuja la traza de la mano.
 ## No modifica ningún archivo: el panel escribe los números; pásaselos a Claude (van a Pj3D.CORRECCION_POSTURA / futuros factores).
 ##
-## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
-## Abrir: poc_25d/LabHumanoide3D.tscn y F6 (o LabGrandmaster3D.tscn, que arranca con el grandmaster).
+## COMO EL JUEGO (24/10, Pablo: «pásamelo al lab humanoide para revisar»; diario 256): el GLB de `jugadora_base` NO trae clips, ropa, postura ni muelles de la capa (los
+## pone Pj3D.cargar), así que cargado a pelo salía en T-pose, desnuda y sin animar. La casilla «COMO EL JUEGO (Pj3D)» monta el personaje por la MISMA ruta que el juego
+## (Pj3D.cargar + set_alto: clips de ClipsFamilia, ropa por defecto, postura, ProporcionChibi, CapaMuelles3D, material de juguete) y toma de él su esqueleto y su
+## reproductor, así que todo el panel funciona igual. Va encendida de serie en los ids cuyo GLB se completa con ClipsFamilia.FUENTES (jugadora_base, elfo_base, goblin_asesino) o no trae
+## reproductor; apagada en el resto (lo que ya se usaba no cambia). En ese modo el «giro fijo por hueso» arranca en cero y va ENCIMA de la postura del juego.
+## R quita/pone la ropa por defecto; 5 = cámara del juego (ortográfica, tamaño 6, picado 30°).
+##
+## Teclas: 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · 5 cámara del juego · R ropa · Espacio pausa · S esqueleto · rueda = zoom · arrastrar = orbitar
+## Abrir: laboratorios/LabHumanoide3D.tscn y F6 (arranca con jugadora_base; LabGrandmaster3D.tscn arranca con el grandmaster).
 
 ## Personajes humanoides y su alto en el juego (igual que ALTO_PJ de prueba_test2.gd, para que las velocidades sean las del juego).
 const PERSONAJES: Dictionary = {
@@ -46,9 +54,23 @@ const COLOR_MAXIMO: Color = Color(1.0, 0.2, 0.9)
 const LIBRO_TAM: Vector3 = Vector3(0.04, 0.19, 0.14)
 const LIBRO_POS: Vector3 = Vector3(0.04, 0.09, 0.0)
 
+## Cámara del juego (igual que laboratorios/lab_jugadora_3d.gd y PruebaTest2): ortográfica, tamaño 6, picado 30°, foco al 85 % del alto del personaje.
+const TAM_CAMARA_JUEGO: float = 6.0
+const ELEVACION_JUEGO: float = 30.0
+const CENTRO_JUEGO: float = 0.85
+const DIST_CAMARA_JUEGO: float = 40.0      ## a qué distancia del foco se pone la cámara ortográfica (solo ha de dejar al personaje delante del plano cercano)
+const ANCHO_PANEL: float = 376.0           ## px que tapa el panel de la izquierda (offset_right de _montar_interfaz)
+const H_OFFSET_PERSPECTIVA: float = -0.7   ## desplaza la vista a la derecha para que el panel no tape al personaje
+
 @export var personaje_inicial: String = "chibi_elf"
 
 var _id: String = ""
+## Clave de _est y _orig: el id y el modo. Los mismos clips de un id (chibi_elf) pueden estar ya corregidos por Pj3D (modo juego) o tal cual del GLB: sus «originales»
+## y sus giros son distintos, y si compartieran clave los del GLB se aplicarían encima de los del juego (o al revés).
+var _ky: String = ""
+var _juego: bool = false            ## el personaje se monta con Pj3D (como el juego) y no a pelo desde el GLB
+var _pj: Pj3D = null                ## el Pj3D del personaje en modo juego (null en modo GLB)
+var _roles_clip: Dictionary = {}    ## clip -> Array[String] de roles de Pj3D que lo usan (solo en modo juego)
 var _modelo: Node3D = null
 var _sk: Skeleton3D = null
 var _ap: AnimationPlayer = null
@@ -87,9 +109,15 @@ var _chk_clip: CheckBox = null
 var _txt: TextEdit = null
 var _opt_clip: OptionButton = null
 var _opt_pj: OptionButton = null
+var _chk_juego: CheckBox = null
+var _chk_ropa: CheckBox = null
+var _tit_giro: Label = null
+var _cam_juego: bool = false
+var _tam_juego: float = TAM_CAMARA_JUEGO
 var _ocupado: bool = false
 ## Comparación (12/10): un segundo personaje al lado, con el mismo clip y el mismo fotograma, solo para mirar (no se edita).
 var _id2: String = ""
+var _pj2: Pj3D = null
 var _modelo2: Node3D = null
 var _ap2: AnimationPlayer = null
 var _opt_cmp: OptionButton = null
@@ -150,49 +178,82 @@ func _montar_escena() -> void:
 
 
 ## Carga el GLB del personaje, lo escala a su alto del juego y le pone los pies en y = 0 (como Pj3D._apoyar_en_el_suelo).
-func _elegir_personaje(id: String) -> void:
+## `juego`: -1 = el modo de serie de ese id (ver _modo_juego_de_serie), 0 = GLB a pelo, 1 = como el juego (Pj3D).
+func _elegir_personaje(id: String, juego: int = -1) -> void:
 	if _modelo != null:
 		_modelo.queue_free()
 		_modelo = null
+	_pj = null
+	_roles_clip = {}
 	_id = id
 	_alto = float(PERSONAJES[id])
 	var ruta: String = "res://arte/modelos/%s.glb" % Pj3D.glb_de(id)   # glb_de: igual que el juego (woodland_wanderer = la versión suavizada)
 	if not ResourceLoader.exists(ruta):
 		push_warning("LabHumanoide3D: falta " + ruta)
 		return
-	_modelo = (load(ruta) as PackedScene).instantiate() as Node3D
-	add_child(_modelo)
-	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
-	var aps: Array[Node] = _modelo.find_children("*", "AnimationPlayer", true, false)
+	_juego = _modo_juego_de_serie(id) if juego < 0 else juego == 1
+	_ky = id + ("#juego" if _juego else "")
+	if _chk_juego != null:
+		_chk_juego.set_pressed_no_signal(_juego)
+	var sks: Array[Node] = []
+	var aps: Array[Node] = []
+	if _juego:
+		# La MISMA ruta que el juego (PruebaTest2._personaje y LabJugadora3D): cargar() pone clips de familia, postura, proporción, ropa y rim; set_alto lo escala y los pies
+		# ya quedan en y = 0 (_apoyar_en_el_suelo). Por eso aquí NO se vuelve a escalar ni a recolocar por la caja (se escalaría dos veces).
+		_pj = Pj3D.new()
+		add_child(_pj)
+		if not _pj.cargar(id) or _pj._ap == null:
+			push_warning("LabHumanoide3D: Pj3D no pudo montar a " + id)
+			_pj.queue_free()
+			_pj = null
+			return
+		_pj.set_alto(_alto)
+		_modelo = _pj
+		_sin_arbol(_pj)
+		sks = _pj.find_children("*", "Skeleton3D", true, false)
+		aps = [_pj._ap]
+		for rol in Pj3D.SINONIMOS.keys():
+			var c: String = _pj.clip_de(String(rol))
+			if c != "":
+				if not _roles_clip.has(c):
+					_roles_clip[c] = []
+				(_roles_clip[c] as Array).append(String(rol))
+	else:
+		_modelo = (load(ruta) as PackedScene).instantiate() as Node3D
+		add_child(_modelo)
+		sks = _modelo.find_children("*", "Skeleton3D", true, false)
+		aps = _modelo.find_children("*", "AnimationPlayer", true, false)
 	if sks.is_empty() or aps.is_empty():
-		push_warning("LabHumanoide3D: el GLB no trae esqueleto o animaciones")
+		push_warning("LabHumanoide3D: el GLB no trae esqueleto o animaciones (¿se ha apagado «como el juego» en un modelo cuyos clips pone ClipsFamilia?)")
 		return
 	_sk = sks[0] as Skeleton3D
 	_ap = aps[0] as AnimationPlayer
 	for n in _ap.get_animation_list():
 		_ap.get_animation(n).loop_mode = Animation.LOOP_LINEAR
-	var caja := AABB()
-	var primera: bool = true
-	for m in _modelo.find_children("*", "MeshInstance3D", true, false):
-		var mi: MeshInstance3D = m as MeshInstance3D
-		var a: AABB = (_modelo.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
-		caja = a if primera else caja.merge(a)
-		primera = false
-	if not primera and caja.size.y > 0.0001:
-		var k: float = _alto / caja.size.y
-		_modelo.scale = Vector3.ONE * k
-		_modelo.position = Vector3(-(caja.position.x + caja.size.x * 0.5) * k, -caja.position.y * k, -(caja.position.z + caja.size.z * 0.5) * k)
+	if not _juego:
+		var caja := AABB()
+		var primera: bool = true
+		for m in _modelo.find_children("*", "MeshInstance3D", true, false):
+			var mi: MeshInstance3D = m as MeshInstance3D
+			var a: AABB = (_modelo.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+			caja = a if primera else caja.merge(a)
+			primera = false
+		if not primera and caja.size.y > 0.0001:
+			var k: float = _alto / caja.size.y
+			_modelo.scale = Vector3.ONE * k
+			_modelo.position = Vector3(-(caja.position.x + caja.size.x * 0.5) * k, -caja.position.y * k, -(caja.position.z + caja.size.z * 0.5) * k)
 	_foco = Vector3(0.0, _alto * 0.5, 0.0)
 	_dist = _alto * 2.6 + 0.8
 	_deducir_grupos()
 	_buscar_pies()
-	if not _est.has(id):
-		_est[id] = {"todos": {}, "clip": {}, "fac": {}}
-		# Arranca con la corrección que ya está en el juego, para seguir ajustando desde ahí.
-		if Pj3D.CORRECCION_POSTURA.has(id):
+	if not _est.has(_ky):
+		_est[_ky] = {"todos": {}, "clip": {}, "fac": {}}
+		# Modo GLB: arranca con la corrección que ya está en el juego, para seguir ajustando desde ahí. Modo juego: Pj3D ya la ha aplicado a los clips
+		# (_corregir_postura, POSTURAS, ALINEAR_REPOSO), así que el panel arranca en cero y va encima; sumarla otra vez la aplicaría dos veces.
+		if not _juego and Pj3D.CORRECCION_POSTURA.has(id):
 			var gs: Dictionary = Pj3D.CORRECCION_POSTURA[id]
 			for h in gs.keys():
-				(_est[id]["todos"] as Dictionary)[h] = gs[h]
+				(_est[_ky]["todos"] as Dictionary)[h] = gs[h]
 	_sel = ""
 	_ocupado = true
 	_sl_vel.value = 1.0
@@ -201,7 +262,24 @@ func _elegir_personaje(id: String) -> void:
 	_reiniciar_medida()
 	_rellenar_interfaz_personaje()
 	var inicial: String = "walking" if _ap.has_animation("walking") else ("Walking" if _ap.has_animation("Walking") else String(_ap.get_animation_list()[0]))
+	if _juego and _pj.clip_de("idle") != "":
+		inicial = _pj.clip_de("idle")        # lo primero que se mira de la jugadora es su postura quieta
 	_elegir_clip(inicial)
+
+
+## Modo de serie: «como el juego» donde el GLB solo no sirve (sus clips los pone ClipsFamilia: jugadora_base, elfo_base, goblin_asesino) y apagado en el resto, para no
+## cambiar lo que ya se usaba (los GLB con reproductor propio se ven como siempre).
+func _modo_juego_de_serie(id: String) -> bool:
+	return ClipsFamilia.tiene_fuente(Pj3D.glb_de(id))
+
+
+## El Pj3D manda sobre el reproductor con su árbol de animación (ArbolAnimPj); el laboratorio lleva el clip a mano (play, speed_scale, seek), así que el árbol se apaga
+## y el reproductor se enciende. Sin esto el árbol pisa el clip elegido en cuanto Pj3D.jugar("idle") lo arranca.
+func _sin_arbol(pj: Pj3D) -> void:
+	if pj._arbol != null:
+		pj._arbol.active = false
+	if pj._ap != null:
+		pj._ap.active = true
 
 
 ## Piernas = todo lo que cuelga de un UpLeg; brazos = todo lo que cuelga de un Shoulder; el resto, «resto». Vale para huesos extra
@@ -262,6 +340,20 @@ func _montar_interfaz() -> void:
 		_opt_pj.add_item(String(id))
 	_opt_pj.item_selected.connect(func(i: int) -> void: _elegir_personaje(_opt_pj.get_item_text(i)))
 	caja.add_child(_opt_pj)
+	# Sin foco de teclado: Espacio y R los lleva _unhandled_input (con foco, la casilla los gastaría al pulsar).
+	_chk_juego = CheckBox.new()
+	_chk_juego.text = "COMO EL JUEGO (Pj3D): clips, ropa, postura, capa"
+	_chk_juego.focus_mode = Control.FOCUS_NONE
+	_chk_juego.toggled.connect(func(on: bool) -> void: _elegir_personaje(_id, 1 if on else 0))
+	caja.add_child(_chk_juego)
+	_chk_ropa = CheckBox.new()
+	_chk_ropa.text = "Ropa por defecto puesta (R)"
+	_chk_ropa.focus_mode = Control.FOCUS_NONE
+	_chk_ropa.button_pressed = true
+	_chk_ropa.toggled.connect(func(on: bool) -> void:
+		if not _ocupado:
+			poner_ropa(on))
+	caja.add_child(_chk_ropa)
 	var l_cmp := Label.new()
 	l_cmp.text = "Comparar con (a la derecha, mismo clip y fotograma):"
 	caja.add_child(l_cmp)
@@ -272,7 +364,7 @@ func _montar_interfaz() -> void:
 	_opt_cmp.item_selected.connect(func(i: int) -> void: _elegir_comparacion("" if i == 0 else _opt_cmp.get_item_text(i)))
 	caja.add_child(_opt_cmp)
 	_opt_clip = OptionButton.new()
-	_opt_clip.item_selected.connect(func(i: int) -> void: _elegir_clip(_opt_clip.get_item_text(i)))
+	_opt_clip.item_selected.connect(func(i: int) -> void: _elegir_clip(String(_opt_clip.get_item_metadata(i))))   # el texto lleva los roles; el nombre del clip va en la metadata
 	caja.add_child(_opt_clip)
 
 	_sl_vel = _slider(caja, "velocidad clip", 0.1, 3.0, 1.0, "vel")
@@ -311,7 +403,7 @@ func _montar_interfaz() -> void:
 			_etiqueta("f_" + clave, v)
 			if _ocupado or _clip == "":
 				return
-			var fc: Dictionary = _est[_id]["fac"]
+			var fc: Dictionary = _est[_ky]["fac"]
 			if not fc.has(_clip):
 				fc[_clip] = {}
 			if is_equal_approx(v, 1.0):
@@ -351,7 +443,8 @@ func _montar_interfaz() -> void:
 		if _sel != "":
 			_elegir_hueso(_sel))
 	caja.add_child(_chk_clip)
-	caja.add_child(_titulo("Hueso (clic en la lista) + giro fijo en grados"))
+	_tit_giro = _titulo("Hueso (clic en la lista) + giro fijo en grados")
+	caja.add_child(_tit_giro)
 	_lista = ItemList.new()
 	_lista.custom_minimum_size = Vector2(0.0, 170.0)
 	_lista.item_selected.connect(func(i: int) -> void: _elegir_hueso(String(_lista.get_item_metadata(i))))
@@ -382,9 +475,9 @@ func _montar_interfaz() -> void:
 	b_rest.text = "Reiniciar hueso"
 	b_rest.pressed.connect(func() -> void:
 		if _sel != "":
-			(_est[_id]["todos"] as Dictionary).erase(_sel)
-			for c in (_est[_id]["clip"] as Dictionary).keys():
-				((_est[_id]["clip"] as Dictionary)[c] as Dictionary).erase(_sel)
+			(_est[_ky]["todos"] as Dictionary).erase(_sel)
+			for c in (_est[_ky]["clip"] as Dictionary).keys():
+				((_est[_ky]["clip"] as Dictionary)[c] as Dictionary).erase(_sel)
 			_elegir_hueso(_sel)
 			_aplicar()
 			_refrescar_texto())
@@ -392,9 +485,9 @@ func _montar_interfaz() -> void:
 	var b_todo := Button.new()
 	b_todo.text = "Reiniciar todo (este personaje)"
 	b_todo.pressed.connect(func() -> void:
-		_est[_id] = {"todos": {}, "clip": {}, "fac": {}}
+		_est[_ky] = {"todos": {}, "clip": {}, "fac": {}}
 		for c in _ap.get_animation_list():
-			_orig.erase(_id + "|" + String(c))   # no hace falta: las originales se conservan; se recalcula desde ellas
+			_orig.erase(_ky + "|" + String(c))   # no hace falta: las originales se conservan; se recalcula desde ellas
 		_elegir_clip(_clip)
 		if _sel != "":
 			_elegir_hueso(_sel))
@@ -433,7 +526,7 @@ func _montar_interfaz() -> void:
 	caja.add_child(b_cop)
 
 	var ayuda := Label.new()
-	ayuda.text = "1 lateral · 2 frente · 3 arriba · 4 3/4 · rueda zoom · arrastrar orbita"
+	ayuda.text = "1 lateral · 2 frente · 3 arriba · 4 3/4 · 5 cámara del juego · R ropa · S esqueleto · Espacio pausa · rueda zoom · arrastrar orbita"
 	ayuda.anchor_top = 1.0
 	ayuda.anchor_bottom = 1.0
 	ayuda.offset_top = -28.0
@@ -446,8 +539,21 @@ func _rellenar_interfaz_personaje() -> void:
 		if _opt_pj.get_item_text(i) == _id:
 			_opt_pj.select(i)
 	_opt_clip.clear()
-	for n in _ap.get_animation_list():
-		_opt_clip.add_item(String(n))
+	var nombres: Array = Array(_ap.get_animation_list())
+	if _juego:
+		nombres.sort_custom(func(a: Variant, b: Variant) -> bool: return String(a).naturalnocasecmp_to(String(b)) < 0)
+	for n in nombres:
+		# En modo juego, entre paréntesis el ROL de Pj3D que usa el clip (como LabJugadora3D): el nombre del clip es el de la elfa de la que se traduce, no el del rol.
+		var roles: Array = _roles_clip.get(String(n), [])
+		_opt_clip.add_item(String(n) + ("  (%s)" % ", ".join(PackedStringArray(roles)) if not roles.is_empty() else ""))
+		_opt_clip.set_item_metadata(_opt_clip.item_count - 1, String(n))
+	if _tit_giro != null:
+		_tit_giro.text = "Giro fijo por hueso, ENCIMA de la postura del juego (parte de 0)" if _juego else "Hueso (clic en la lista) + giro fijo en grados"
+	if _chk_ropa != null:
+		_ocupado = true
+		_chk_ropa.disabled = _pj == null
+		_chk_ropa.button_pressed = _pj != null and not _pj.ropa_puesta().is_empty()
+		_ocupado = false
 	_lista.clear()
 	for b in range(_sk.get_bone_count()):
 		var nombre: String = _sk.get_bone_name(b)
@@ -499,11 +605,11 @@ func _etiqueta(clave: String, v: float) -> void:
 
 func _dic_giro(crear: bool) -> Dictionary:
 	if _chk_clip != null and _chk_clip.button_pressed:
-		var dc: Dictionary = _est[_id]["clip"]
+		var dc: Dictionary = _est[_ky]["clip"]
 		if crear and not dc.has(_clip):
 			dc[_clip] = {}
 		return dc.get(_clip, {})
-	return _est[_id]["todos"]
+	return _est[_ky]["todos"]
 
 
 # ---------- comparación ----------
@@ -513,6 +619,7 @@ func _elegir_comparacion(id2: String) -> void:
 		_modelo2.queue_free()
 		_modelo2 = null
 		_ap2 = null
+		_pj2 = null
 	_id2 = id2
 	if id2 == "":
 		_foco.x = 0.0
@@ -521,6 +628,28 @@ func _elegir_comparacion(id2: String) -> void:
 	if not ResourceLoader.exists(ruta):
 		push_warning("LabHumanoide3D: falta " + ruta)
 		return
+	var alto2: float = float(PERSONAJES[id2])
+	if _modo_juego_de_serie(id2):
+		# Como el principal en modo juego: los que dependen de ClipsFamilia no traen clips en el GLB. Pj3D ya lo escala y apoya; aquí solo se aparta a la derecha.
+		_pj2 = Pj3D.new()
+		add_child(_pj2)
+		if not _pj2.cargar(id2) or _pj2._ap == null:
+			push_warning("LabHumanoide3D: Pj3D no pudo montar a " + id2)
+			_pj2.queue_free()
+			_pj2 = null
+			return
+		_pj2.set_alto(alto2)
+		_sin_arbol(_pj2)
+		_modelo2 = _pj2
+		_ap2 = _pj2._ap
+		for n in _ap2.get_animation_list():
+			_ap2.get_animation(n).loop_mode = Animation.LOOP_LINEAR
+		var sep_j: float = 0.9 * maxf(_alto, alto2)
+		_pj2.position = Vector3(sep_j, 0.0, 0.0)
+		_foco.x = sep_j * 0.5
+		_dist = maxf(_alto, alto2) * 3.2 + 0.8
+		_poner_clip_comparacion()
+		return
 	_modelo2 = (load(ruta) as PackedScene).instantiate() as Node3D
 	add_child(_modelo2)
 	var aps: Array[Node] = _modelo2.find_children("*", "AnimationPlayer", true, false)
@@ -528,7 +657,6 @@ func _elegir_comparacion(id2: String) -> void:
 		_ap2 = aps[0] as AnimationPlayer
 		for n in _ap2.get_animation_list():
 			_ap2.get_animation(n).loop_mode = Animation.LOOP_LINEAR
-	var alto2: float = float(PERSONAJES[id2])
 	var caja := AABB()
 	var primera: bool = true
 	for m in _modelo2.find_children("*", "MeshInstance3D", true, false):
@@ -572,12 +700,12 @@ func _elegir_clip(nombre: String) -> void:
 		return
 	_clip = nombre
 	for i in range(_opt_clip.item_count):
-		if _opt_clip.get_item_text(i) == nombre:
+		if String(_opt_clip.get_item_metadata(i)) == nombre:
 			_opt_clip.select(i)
 	_guardar_originales(nombre)
 	_ap.play(nombre)
 	_ocupado = true
-	var fc: Dictionary = (_est[_id]["fac"] as Dictionary).get(nombre, {})
+	var fc: Dictionary = (_est[_ky]["fac"] as Dictionary).get(nombre, {})
 	for g in GRUPOS:
 		var v: float = float(fc.get(g[0], 1.0))
 		(_sl_fac[g[0]] as HSlider).value = v
@@ -595,7 +723,7 @@ func _elegir_clip(nombre: String) -> void:
 
 ## Guarda las claves originales de rotación del clip una sola vez: las del recurso se reescriben en cada cambio.
 func _guardar_originales(clip: String) -> void:
-	var llave: String = _id + "|" + clip
+	var llave: String = _ky + "|" + clip
 	if _orig.has(llave):
 		return
 	var an: Animation = _ap.get_animation(clip)
@@ -611,8 +739,8 @@ func _guardar_originales(clip: String) -> void:
 
 
 func _giro_efectivo(clip: String, hueso: String) -> Vector3:
-	var g: Vector3 = (_est[_id]["todos"] as Dictionary).get(hueso, Vector3.ZERO)
-	var dc: Dictionary = _est[_id]["clip"]
+	var g: Vector3 = (_est[_ky]["todos"] as Dictionary).get(hueso, Vector3.ZERO)
+	var dc: Dictionary = _est[_ky]["clip"]
 	if dc.has(clip):
 		g += (dc[clip] as Dictionary).get(hueso, Vector3.ZERO)
 	return g
@@ -620,12 +748,12 @@ func _giro_efectivo(clip: String, hueso: String) -> Vector3:
 
 ## Recalcula las claves del clip actual desde las originales: q = giro · media.slerp(q_original, factor del grupo).
 func _aplicar() -> void:
-	var llave: String = _id + "|" + _clip
+	var llave: String = _ky + "|" + _clip
 	if _clip == "" or not _orig.has(llave):
 		return
 	var an: Animation = _ap.get_animation(_clip)
 	var d: Dictionary = _orig[llave]
-	var fc: Dictionary = (_est[_id]["fac"] as Dictionary).get(_clip, {})
+	var fc: Dictionary = (_est[_ky]["fac"] as Dictionary).get(_clip, {})
 	for t in d.keys():
 		var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
 		var gv: Vector3 = _giro_efectivo(_clip, hueso)
@@ -952,12 +1080,44 @@ func _process(delta: float) -> void:
 
 
 func _colocar_camara() -> void:
+	if _cam_juego:
+		# La del juego (PruebaTest2._colocar_camara): ortográfica, mira hacia -Z picada ELEVACION_JUEGO°; el personaje (que mira a +Z) queda de cara.
+		_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		_cam.size = _tam_juego
+		var e: float = deg_to_rad(ELEVACION_JUEGO)
+		var d_j: Vector3 = -Vector3(0.0, sin(e), cos(e))
+		var foco_j := Vector3(_foco.x, _alto * CENTRO_JUEGO, 0.0)
+		_cam.transform = Transform3D(Basis.looking_at(d_j, Vector3.UP), foco_j - d_j * DIST_CAMARA_JUEGO)
+		# El panel tapa la izquierda: en ortográfica h_offset va en unidades de mundo, que son tam/alto_px por píxel.
+		_cam.h_offset = -ANCHO_PANEL * 0.5 * _tam_juego / maxf(get_viewport().get_visible_rect().size.y, 1.0)
+		return
+	_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	_cam.h_offset = H_OFFSET_PERSPECTIVA
 	var dir := Vector3(sin(_yaw) * cos(_pitch), sin(_pitch), cos(_yaw) * cos(_pitch))
 	_cam.position = _foco + dir * _dist
 	_cam.look_at(_foco, Vector3.UP if absf(_pitch) < 1.5 else Vector3.FORWARD)
 
 
+## Quita o pone la ropa por defecto del personaje (Pj3D.ROPA_POR_DEFECTO; las tres prendas de jugadora_base). Solo en modo juego: el GLB a pelo no lleva ropa.
+func poner_ropa(on: bool) -> void:
+	if _pj == null:
+		return
+	for prenda in (Pj3D.ROPA_POR_DEFECTO.get(_id, []) as Array):
+		if on:
+			_pj.poner_ropa(String(prenda))
+		else:
+			_pj.quitar_ropa(String(prenda))
+	if _chk_ropa != null:
+		_ocupado = true
+		_chk_ropa.button_pressed = on
+		_ocupado = false
+
+
 func _camara_preset(i: int) -> void:
+	_cam_juego = i == 4
+	if _cam_juego:
+		_tam_juego = TAM_CAMARA_JUEGO
+		return
 	match i:
 		0:
 			_yaw = PI * 0.5
@@ -1002,13 +1162,16 @@ func _dibujar_esqueleto() -> void:
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseMotion and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		_cam_juego = false          # orbitar saca de la cámara del juego (que es fija)
 		_yaw -= ev.relative.x * 0.01
 		_pitch = clampf(_pitch + ev.relative.y * 0.01, -0.2, 1.5)
 	elif ev is InputEventMouseButton and ev.pressed:
 		if ev.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_dist = maxf(_dist * 0.9, 1.0)
+			_tam_juego = maxf(_tam_juego * 0.9, 0.8)
 		elif ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_dist = minf(_dist * 1.1, 10.0)
+			_tam_juego = minf(_tam_juego * 1.1, 20.0)
 	elif ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
 			KEY_1:
@@ -1019,6 +1182,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_camara_preset(2)
 			KEY_4:
 				_camara_preset(3)
+			KEY_5:
+				_camara_preset(4)
+			KEY_R:
+				if _pj != null:
+					poner_ropa(_pj.ropa_puesta().is_empty())
 			KEY_SPACE:
 				_chk_pausa.button_pressed = not _chk_pausa.button_pressed
 			KEY_S:
