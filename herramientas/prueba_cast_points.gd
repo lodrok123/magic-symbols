@@ -160,7 +160,7 @@ func _escenario() -> void:
 		await _lanzar_variacion(String(id), fases, pos_fases)
 
 	# --- E2 · el PROYECTIL nace en la mano (24/10, Pablo: «que los proyectiles salgan de la mano real de la jugadora»), no a 0,9 u sobre el centro de los pies ---
-	var bala: Hechizo = Hechizo.construir(load("res://nucleo/fire_rune.tres") as RuneData, {}).con({"velocidad": 5.0 / Terreno3D.casilla, "distancia_max": 2.0})
+	var bala: Hechizo = Hechizo.construir(load("res://nucleo/fire_rune.tres") as RuneData, {}).con({"velocidad": 5.0 / Terreno3D.casilla, "distancia_max": 2.0, "gravedad": 0.0})
 	lanzador._cast_point = {}                            # sin cast point en curso (el de la última variación, «abajo», está en el suelo): la mano que lanza
 	var mano_e2: Vector3 = lanzador._pos_cast_point()
 	lanzador.desplaza_mano = lanzador._salida_de_mano(bala, jugador.position)
@@ -170,6 +170,13 @@ func _escenario() -> void:
 		"nace en %s, mano en %s (altura sobre los pies %.2f u)" % [vivo_e2.p if vivo_e2 != null else Vector3.ZERO, mano_e2, mano_e2.y - jugador.global_position.y])
 	if vivo_e2 != null and is_instance_valid(vivo_e2):
 		vivo_e2.queue_free()
+	# E2b · una flecha de TIERRA con gravedad (la del enlace y el muro de C2) sale COMO SIEMPRE: su arco está pensado desde 0,9 u sobre los pies, y desde la mano
+	# (~0,5 u) chocaba con el borde de la casilla a 0,5 casillas en vez de caer a 0,7 (medido el 24/10).
+	var tierra: Hechizo = Hechizo.construir(load("res://nucleo/earth_rune.tres") as RuneData, {"flecha": 1})
+	var altura0: float = tierra.altura_salida
+	var desp_t: Vector3 = lanzador._salida_de_mano(tierra, jugador.position)
+	_ok("E2b la flecha de tierra con gravedad no toma la mano: ni altura ni punto", tierra.gravedad > 0.0 and desp_t == Vector3.ZERO and is_equal_approx(tierra.altura_salida, altura0),
+		"gravedad %.2f · desplaza %s · altura %.3f m (antes %.3f)" % [tierra.gravedad, desp_t, tierra.altura_salida, altura0])
 
 	# --- F · sin cast point: como siempre ---
 	CastPoints.POR_NOMBRE = {}

@@ -1210,7 +1210,14 @@ func _salida_de_mano(hechizo: Hechizo, origen: Vector3) -> Vector3:
 	var c: Vector2i = celda_de(mano)
 	if not Terreno3D.en_mapa(c):
 		return Vector3.ZERO
+	# Con gravedad (la flecha de tierra, el agua en arco) sale como siempre: su alcance está pensado desde 0,9 u sobre los pies, y saliendo de la mano la
+	# flecha de tierra chocaba con el borde de la casilla a 0,5 casillas en vez de caer a 0,7 (prueba_cast_points E2b, 24/10): ni con la altura de diseño
+	# valía apartarla en el plano. La Cueva (enlace y muro de C2) depende de ese arco.
+	if hechizo.gravedad > 0.0:
+		return Vector3.ZERO
 	hechizo.altura_salida = maxf(mano.y - Terreno3D.y_pies(c), 0.0) / Terreno3D.casilla
+	if c != celda_de(origen):
+		return Vector3.ZERO                               # la mano asoma a otra casilla (junto a un muro): solo la altura, el punto se queda en la suya
 	return Vector3(mano.x - origen.x, 0.0, mano.z - origen.z)
 
 
