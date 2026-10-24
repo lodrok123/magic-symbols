@@ -201,6 +201,18 @@ func caer() -> void:
 	tw.tween_callback(_al_caer)
 
 
+## Cae YA: sin fuego ni animación, con el tronco ya tumbado (volver de otro nivel con el tronco caído: lo resuelto se queda resuelto). Emite `caido` como siempre.
+func caer_ya() -> void:
+	if cayo:
+		return
+	cayo = true
+	_forma.set_deferred("disabled", true)
+	var eje: Vector3 = Vector3.UP.cross(direccion).normalized()
+	_pivote.basis = Basis(eje, PI * 0.5) * Basis.from_scale(Vector3(1.0, escala_largo, 1.0))
+	_pivote.position = direccion * desliza + Vector3(0.0, _lev, 0.0)
+	_al_caer()
+
+
 func _apagar_llama(fx: Vfx3D) -> void:
 	if fx != null and is_instance_valid(fx) and _llama != null and is_instance_valid(_llama):
 		fx.apagar(_llama)

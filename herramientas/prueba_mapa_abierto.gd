@@ -373,13 +373,14 @@ func _salida_entrada() -> void:
 	var entrada_n: Node = _z.nodo("desde_bosque")
 	var salida_n: SalidaNivel3D = _z.nodo("a_bosque") as SalidaNivel3D
 	_ok("8 la Cueva tiene la entrada `desde_bosque` (4,17) y la salida `a_bosque` hacia Bosque_01_v01:boca_cueva", entrada_n != null and salida_n != null and salida_n.destino == "Bosque_01_v01:boca_cueva" and salida_n.celdas.size() == 3)
-	_ok("8 la tabla de niveles tiene Bosque_01, Cueva y Bosque_01_v01; el último aún no tiene escena", Niveles.ESCENAS.has("Bosque_01") and Niveles.existe("Cueva") and Niveles.ESCENAS.has("Bosque_01_v01") and not Niveles.existe("Bosque_01_v01"))
+	_ok("8 la tabla de niveles tiene Bosque_01, Cueva y Bosque_01_v01 (24/10: ya con su escena)", Niveles.ESCENAS.has("Bosque_01") and Niveles.existe("Cueva") and Niveles.ESCENAS.has("Bosque_01_v01") and Niveles.existe("Bosque_01_v01"))
 	var ent: SalidaNivel3D.EntradaNivel3D = entrada_n as SalidaNivel3D.EntradaNivel3D
 	var dir: Vector3 = ent.direccion_mirada() if ent != null else Vector3.ZERO
 	var norte: Vector3 = Terreno3D.centro_de(CELDA_ENTRADA + Vector2i(0, -1), 0.0) - Terreno3D.centro_de(CELDA_ENTRADA, 0.0)
 	norte.y = 0.0
 	_ok("8 sin `mira`, la entrada mira hacia dentro (al norte: allí hay suelo y al sur una pared)", ent != null and ent.dir_celda() == Vector2i(0, -1) and dir.dot(norte.normalized()) > 0.95)
-	# Nivel que no existe todavía: avisa y no rompe.
+	# Nivel que no existe todavía: avisa y no rompe. (24/10: el Bosque 01 v01 ya existe; la boca de la Cueva apunta, solo en esta prueba, a un nivel que no está en la tabla.)
+	salida_n.destino = "Bosque_99:boca_cueva"
 	colocar_jugador(Vector2i(4, 16))
 	await avanzar_s(0.4)
 	_ok("8 la salida nace armada si la jugadora no está encima (4,16 no es salida)", salida_n.armada and salida_n.veces == 0)

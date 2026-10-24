@@ -155,7 +155,8 @@ extends Node
 ##
 ## FLAGS (C1, 21/10): lo que el juego RECUERDA entre partidas (`nucleo/flags.gd`). «flag» es una palabra reservada: ninguna pieza se
 ## puede llamar así. El nombre de la flag es `<nivel>.<sala>.<hecho>` (minúsculas, cifras y «_»; ej. `bosque1.s3.placa_norte`).
-##   señal      cuando=flag.<nombre>           salta cuando la flag se PONE (pasa a verdadera; también al cargar una partida que la trae)
+##   señal      cuando=flag.<nombre>           salta cuando la flag se PONE (pasa a verdadera; también al cargar una partida que la trae) y UNA vez al montar el nivel si ya estaba puesta
+##                                             (volver de otra escena: lo resuelto se recuerda con la pareja `cuando=<pieza>.<señal> hace=flag.poner(x)` + `cuando=flag.x hace=<pieza>.<acción>`)
 ##   condición  si=flag.<nombre>               se cumple si la flag está puesta
 ##   acciones   hace=flag.poner(<nombre>) | flag.quitar(<nombre>)
 ## Ejemplo (dos piezas enlazadas solo por una flag): «; puzle marca cuando=b.pulsado hace=flag.poner(bosque1.s3.placa)» y
@@ -931,8 +932,9 @@ var _piezas: Dictionary = {}                     ## id -> Pieza
 var _orden: Array = []                           ## las piezas en el orden del .txt
 var _reglas: Array = []                          ## Dictionary: {nombre, cuando_id, senal, si_id, si_cond, acciones, n, veces, ignoradas}
 var _hielos: Dictionary = {}                     ## Vector2i -> s que le quedan a un hielo puesto por una regla
+var _flags_al_montar: Array = []                 ## reglas `cuando=flag.…` cuya flag ya estaba puesta al montar: saltan una vez al acabar `iniciar`
 var _iniciado: bool = false
-var listo: bool = false                          ## `iniciar` terminó: todas las piezas montadas y las reglas conectadas (Niveles espera a esto antes de colocar a la jugadora en una entrada)
+var listo: bool = false                         ## `iniciar` terminó: todas las piezas montadas y las reglas conectadas (Niveles espera a esto antes de colocar a la jugadora en una entrada)
 var _hud: Label = null
 
 
@@ -974,6 +976,9 @@ func iniciar(p_mundo: Variant, p_nivel: String = "", p_texto: String = "") -> vo
 	_conectar()
 	set_process(true)
 	listo = true
+	for rf in _flags_al_montar:
+		_disparar(rf as Dictionary)
+	_flags_al_montar.clear()
 
 
 func _leer_archivo(p_nivel: String) -> String:
@@ -2055,6 +2060,9 @@ func _conectar() -> void:
 			Flags.i().flag_cambio.connect(func(nf: String, v: Variant) -> void:
 				if nf == nombre and v != null and not (v is bool and v == false):
 					_disparar(regla_f))
+			# 24/10 (volver de otro nivel): con la flag YA puesta al montar la regla salta una vez (la «recordada»: la puerta que se abrió sigue abierta). Se dispara al final de `iniciar`.
+			if Flags.i().tiene(nombre):
+				_flags_al_montar.append(regla_f)
 			continue
 		var fuente: Pieza = _piezas.get(rr["cuando_id"], null)
 		if fuente == null or not is_instance_valid(fuente.nodo):

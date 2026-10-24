@@ -1171,6 +1171,15 @@ así que **lo resuelto tiene que estar en flags**: las piezas de `Puzle3D` ya lo
 cerrojo con `hasta=`) y una sala limpia NO se repuebla (el vigía retira a sus enemigos al montar si su flag está puesta). Lo que viva en variables de un script
 de nivel (tótems encendidos, puerta X, `_entregado` de los cofres) debe escribirse como flag y leerse al montar. Los enemigos sueltos fuera de toda sala vuelven.
 
+### Bosque 01 v01 (24/10)
+
+El primer nivel hecho con todo lo anterior (`docs/PLAN_BOSQUE_01_V01.md`). Mapa `mapas/Bosque_01_v01.txt`, reglas `escenas/bosque_01_v01_3d.gd`, escena `PruebaBosque01_v01.tscn` (`arqueros = true`: las `A` son arqueros de verdad), prueba `herramientas/escenario_bosque_01_v01.gd`, capturas `herramientas/captura_bosque_01_v01.gd`.
+
+- **Se hornea desde el `.txt`** (`herramientas/hornear_bosque_01_v01.gd`): hornea como F9 y copia después los retoques del `Nivel_Bosque_01.tscn` (que solo lee) en las casillas que no cambian. El `.txt` lleva tres líneas nuevas para `HorneadorNivel.leer_extras`: `; nombre x y <n>` (nombre del marcador de letra: el contrato con las reglas), `; marcador <grupo> <tipo|-> x y [giro=] [nombre=]` (datos: `tronco_puente`, `loberno`, `npc`, `asesino`…) y `; decorado <pieza> x y`.
+- **Lo resuelto va en flags** y el script lo lee al montar (tótems, puerta X, quemados `bosque01v1.quemado.c<x>_<y>`, tronco-puente, misión derivada). Las piezas de `Puzle3D` se recuerdan con la pareja `cuando=<pieza>.<señal> hace=flag.poner(x)` + `cuando=flag.x hace=<pieza>.<acción>`: una regla `cuando=flag.…` salta ahora también UNA vez al montar si la flag ya estaba puesta.
+- **`Combate3D.fijo`**: arquero de puesto (no persigue, dispara hasta 20 u con línea libre, ráfaga ×1,6 y apuntando con adelanto). Dos de ellos baten el paso de la tala.
+- **NPC y asesino** salen de marcadores de datos (`npc`, `asesino`); la rutina de cada NPC es una función de las reglas del nivel.
+
 > **Historia: era 2D (hasta el 4/10).** El motor era `nivel_base.gd`
 > (~2 500 líneas, sin padre), y cada nivel heredaba de él y solo
 > sobrescribía funciones con valor por defecto vacío (`_mapa()`,

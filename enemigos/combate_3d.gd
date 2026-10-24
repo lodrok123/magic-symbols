@@ -111,6 +111,9 @@ const ARQUERO_ALCANCE: float = 6.5
 const ARQUERO_MIN: float = 2.4
 const PREPARAR_FLECHA: float = 0.9
 const DESCANSO_FLECHA: float = 2.2
+const ARQUERO_FIJO_ALCANCE: float = 20.0        ## u: un arquero de puesto (`fijo`) dispara hasta aquí (≈ 8,7 casillas), con línea libre
+const ARQUERO_FIJO_RAFAGA: float = 1.6          ## × la velocidad de la animación de disparo de un arquero de puesto (ciclo ≈ 3,4 s en vez de ≈ 4,9): bate el paso, no lo vigila
+const SUAVIZADO_VEL_JUGADOR: float = 0.3        ## cuánto pesa cada fotograma en la velocidad estimada del jugador (para apuntar con adelanto)
 const DANO_FLECHA: float = 12.0
 const VEL_FLECHA: float = 9.0
 const RADIO_IMPACTO_FLECHA: float = 0.75
@@ -200,6 +203,9 @@ var _punto_hundido: Vector3 = Vector3.ZERO   ## dónde se hundió (en la superfi
 var duracion_hundimiento: float = 0.0    ## s que dura el hundimiento real (el clip de ahogarse o TIEMPO_HUNDIMIENTO); 0 = aún no se ha hundido. Burbujas y sonido la copian
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
+var fijo: bool = false                  ## 24/10 (paso batido del Bosque 01 v01): arquero DE PUESTO. No persigue, no retrocede ni patrulla: dispara desde su sitio a quien entre en ARQUERO_FIJO_ALCANCE con línea libre, apuntando con adelanto (la flecha tarda ~1,5 s: sin él solo acierta al que está parado)
+var _pos_jug_prev: Vector3 = Vector3.ZERO
+var _vel_jug: Vector3 = Vector3.ZERO    ## velocidad del jugador estimada por el arquero de puesto (u/s)
 
 var _direccion: float = 1.0
 var _ruta: Array[Vector2i] = []         ## D2: ruta por casillas (Caminos3D) que sigue cuando no hay línea recta libre; vacía = va derecho
@@ -870,6 +876,9 @@ func _ia(delta: float) -> void:
 			_en_rango = false
 		else:
 			return
+	if fijo and arquero:
+		_ia_arquero_fijo(delta)
+		return
 	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0)
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
@@ -1007,6 +1016,47 @@ func _ia_arquero(delta: float, vel: float) -> void:
 			_iniciar_ataque(VEL_ANIM_ARQUERO, pj.momento_golpe("attack"), _soltar_flecha)
 
 
+## Arquero de puesto (`fijo`): se queda donde está, mira al jugador mientras lo ve (hasta ARQUERO_FIJO_ALCANCE, con línea libre) y dispara con el mismo ritmo que el
+## arquero normal. Si lo pierde de vista deja de cargar y espera.
+func _ia_arquero_fijo(delta: float) -> void:
+	moviendo = 0
+	var d: Vector3 = jugador.position - position if jugador != null and is_instance_valid(jugador) else Vector3.ZERO
+	d.y = 0.0
+	var ve: bool = jugador != null and is_instance_valid(jugador) and not jugador.muerto and d.length() <= ARQUERO_FIJO_ALCANCE \
+		and Terreno3D.linea_libre(position, jugador.position)
+	if jugador != null and is_instance_valid(jugador):
+		var v: Vector3 = (jugador.position - _pos_jug_prev) / maxf(delta, 0.0001)
+		_vel_jug = _vel_jug.lerp(v, SUAVIZADO_VEL_JUGADOR) if objetivo != null else Vector3.ZERO
+		_pos_jug_prev = jugador.position
+	if not ve:
+		objetivo = null
+		_carga = 0.0
+		return
+	if objetivo == null:
+		flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0), "!", Color(1, 0.85, 0.2))
+		Sfx3D.play(self, snd_alerta)
+		PlayLog.event("goblin_ve_al_jugador", {"distancia": snappedf(d.length(), 0.1), "fijo": true})
+	objetivo = jugador
+	if d.length() > 0.05:
+		mirada = d.normalized()
+	if _descanso > 0.0:
+		_carga = 0.0
+		return
+	_carga += delta
+	if _carga >= PREPARAR_FLECHA:
+		_carga = 0.0
+		_descanso = DESCANSO_FLECHA
+		_iniciar_ataque(VEL_ANIM_ARQUERO * ARQUERO_FIJO_RAFAGA, pj.momento_golpe("attack"), _soltar_flecha)
+
+
+## Hacia dónde apuntar para acertar a quien se mueve: donde estará cuando llegue la flecha, a la velocidad que se le ha visto (una pasada de refinamiento: la distancia cambia al adelantarse).
+func _con_adelanto(origen: Vector3, destino: Vector3) -> Vector3:
+	var avance := Vector3(_vel_jug.x, 0.0, _vel_jug.z)
+	var t: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
+	t = maxf(origen.distance_to(destino + avance * t) / VEL_FLECHA, 0.1)
+	return destino + avance * t
+
+
 ## Lanza la animación de ataque entera y programa el golpe/la flecha en su momento. Hasta que acaba no se mueve.
 func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	var dur: float = pj.duracion("attack")
@@ -1047,6 +1097,8 @@ func _soltar_flecha() -> void:
 		return
 	var origen: Vector3 = position + Vector3(0.0, altura * 0.65, 0.0)
 	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
+	if fijo:
+		destino = _con_adelanto(origen, destino)
 	var bloqueada: bool = not Terreno3D.linea_libre(position, jugador.position)
 	var flecha := MeshInstance3D.new()
 	var caja := BoxMesh.new()

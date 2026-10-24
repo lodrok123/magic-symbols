@@ -1,0 +1,238 @@
+; Bosque_01_v01 (24/10): el Bosque 01 con la forma abierta de EoW. docs/PLAN_BOSQUE_01_V01.md (y sus «Decisiones de Pablo»). 52 × 44 casillas, las mismas que Bosque_01.
+; SE HORNEA DESDE ESTE ARCHIVO (herramientas/hornear_bosque_01_v01.gd) a mundo/datos_nivel/Nivel_Bosque_01_v01.tscn. Las líneas `; nombre`, `; marcador` y `; decorado` de abajo las lee HorneadorNivel.leer_extras.
+; Letras: marcador_3d.gd y hornear_nivel.gd. `t` tienda goblin, `x` empalizada, `V` estandarte y `U` arco son decorado; `#` es relleno de decorado (árboles, matorral, rocas) que no se pisa. `R` = piedra.
+; Reglas del nivel: escenas/bosque_01_v01_3d.gd (nodo «Reglas» de escenas/PruebaBosque01_v01.tscn). Los cofres, las salas cerradas, las paredes que suenan, los rompibles y la Cueva son piezas de Puzle3D (líneas `pieza`/`puzle`).
+; --- Lo que cambia respecto a Bosque_01 (decisiones de diseño de esta versión) ---
+;   · Solo queda UN guerrero en la linde (2,5): el cofre_01 (la barrera) es LEGENDARIO (glifo ᛜ con su secuencia) y aparece al caer él.
+;   · La barrera es OBLIGATORIA: la tala (x 7-10) solo sale por la PASARELA del sur (8,6)..(8,11), batida por dos arqueros de puesto en (8,12)/(8,13). La salida este de la tala ((9,3) hacia el claro) se cierra con pared;
+;     si no, se saldría quemando la telaraña y la barrera no haría falta. Una sola telaraña en el sendero del este (30,8): su compañera (31,8) pasa a pared.
+;   · Campamento goblin cerrado en x 35-46 (cuello 32..34, fila 5), nicho del eco, hondonada con la boca de la Cueva, pasillo del atajo (fila 24) y escondite (x 13-16).
+;   · Sin Z: todos los cofres son piezas (`; pieza … cofre`), así lo que se abre y lo que aparece vive en flags y sobrevive a ir a la Cueva y volver.
+; azar_suelo 1 50 10
+; giro 21 15 90
+; giro 46 18 90
+############################     ###############
+#...##~#ggt##..............#     ##x.........t.#
+#...##~#g.t##..........A...########x.....V.....#
+##..##~#g.###ggggggWggggggggggg.###x..W....Ao..#
+##g.##~gg..##.................g.###x...........#
+#.W...~.gg###..............###g.gy.gggggFg.....#
+#.g.##~gR## ################ #g.###x...........#
+##g.##~#R#        ###        #gg###x...........#
+#.g###~#R#     ####j#        #r####x....W...W..#
+#.g###~#R###   #g#TT##       #gg###xtt.........#
+##g.##~#Rgg#####ccccc####### #g.###x...........#
+#gg.##~#R.......cT...#.....# #g.################
+##r###~#A.......c....#.....###g.########...#####
+#g..#~~#A.......c..T.#.....#..g...######...#####
+#g..##.#o.s.....c....#..g..#..g...#######.######
+##gg##..........c....X.ggG.#..g...#............#
+#ggg##g##.......cT...#.ggg.#.vvvv.#............#
+#ggg##g##....#..c..T.#.ggg.#.vvvv.#........RRRR#
+#.gg##.##.s..#..c....#..g..#.vvvv..........RRRU#
+#.gg##.##....Q..cj...#.....#..g...#........RRRR#
+#.#g##.##..g..##c....#.....#g.g...#............#
+#gSg##q###.g######.#########g.g...#............#
+######## #.g######vv#      ###g.###............#
+         #.g#,,,,#vv##########g.###............#
+         #.g#,,,,#vv.........gg.################
+         #.g#,,,,#j###########g.#
+         #.g#,,,,#v#         #g.#
+         #.g#,,,,###         #g.#
+   #######.g##.###############g.################
+   #.......g..................g................#
+   #ggggggggggggggggggWgggggggggggggggg........#
+   #....g......gg.......g..........g...ggg.gg..#
+   #####g.#####.g##################g.######.g#######
+   #....g....#..g......gg....##....g...g##g.g..-...#
+   #.T..g..T.#..g............##....g....##ggg..-...#
+   #....g....#..g............##.T.TgT.T.##ggg..-...#
+   #....g....#..g..zzzz......##....g....##gggg.-...#
+   #.T..g..T.#...............##....g....##gggg.-...#
+   #....g....#...............##....g....##.gg..-...#
+   #####.##################g#######g######..g..-...#
+      #...#              #.gg#   #.gg#   ###.#######
+      #...#              #..g#   #..g#    #...#
+      #####              #####   #####    #...#
+                                          #####
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NOMBRES de los marcadores de letra (contrato con escenas/bosque_01_v01_3d.gd: las reglas los leen por nombre) y MARCADORES de datos (tronco-puente, lobernos, NPC, asesino).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; nombre 2 21 inicio_01
+; nombre 2 5 guerrero_01
+; nombre 19 3 guerrero_03
+; nombre 22 30 guerrero_04
+; nombre 38 3 guerrero_05
+; nombre 40 8 guerrero_06
+; nombre 44 8 guerrero_07
+; nombre 23 2 arquero_01
+; nombre 43 3 arquero_03
+; nombre 8 12 arquero_paso_01
+; nombre 8 13 arquero_paso_02
+; nombre 25 15 elemental_01
+; nombre 21 15 puerta_01
+; nombre 13 19 alquimista_01
+; nombre 18 25 totem_fuego_01
+; nombre 19 8 totem_fuego_02
+; nombre 17 19 totem_fuego_03
+; nombre 18 9 brasero_01
+; nombre 19 9 brasero_02
+; nombre 19 13 antorcha_01
+; nombre 17 16 antorcha_02
+; nombre 17 11 antorcha_03
+; nombre 19 17 antorcha_04
+; nombre 33 5 puerta_goblin_01
+; nombre 44 3 torre_01
+; nombre 8 14 torre_paso_01
+; nombre 40 5 fogata_01
+; nombre 2 12 telarana_01
+; nombre 30 8 telarana_02
+; marcador tronco_puente - 7 5 giro=180 nombre=tronco_puente_01
+; marcador tronco_estanque - 16 14 nombre=tronco_estanque_01
+; marcador loberno - 9 18 nombre=loberno_01
+; marcador loberno - 30 15 nombre=loberno_03
+; marcador asesino - 31 17 nombre=asesino_01
+; marcador npc goblin_base 9 1 nombre=npc_goblin_01
+; marcador npc elfo_base 18 14 nombre=npc_elfo_01
+; marcador npc marimanta 44 21 nombre=npc_marimanta_01
+; decorado tocon 8 1
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; ZONAS (Zonas3D): luz, mezcla (5 s fuera, ≤ 1 s las salas), nombre (id=), rótulo la primera vez (titulo=) y fila del botín de los rompibles (botin=). Si se pisan, manda la última: las grandes primero.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; zona 1,1..11,21 bosque mezcla=5 id=linde titulo=La_linde_del_arroyo botin=bosque
+; zona 12,1..31,5 bosque mezcla=5 id=claro_norte titulo=El_claro_del_norte botin=bosque
+; zona 28,6..33,28 atardecer mezcla=5 id=hierba_alta titulo=La_hierba_alta botin=bosque
+; zona 20,24..28,24 atardecer mezcla=5 id=hierba_alta
+; zona 9,10..20,21 agua mezcla=5 id=prado titulo=El_prado_del_estanque botin=bosque
+; zona 3,28..47,32 bosque mezcla=5 id=explanada titulo=La_explanada botin=bosque
+; zona 9,22..12,27 bosque mezcla=5 id=explanada
+; zona 34,15..46,23 ruinas mezcla=5 id=hondonada titulo=La_boca_de_la_cueva botin=ruinas
+; zona 15,7..20,9 fuego mezcla=1 id=nicho_antorchas
+; zona 18,22..19,26 fuego mezcla=1 id=nicho_hierba
+; zona 22,11..26,20 santuario mezcla=1 id=santuario titulo=El_santuario
+; zona 32,1..46,10 fuego mezcla=1 id=campamento titulo=El_campamento_goblin botin=campamento
+; zona 40,12..42,13 cueva mezcla=1 id=nicho_eco
+; zona 13,22..16,27 ruinas mezcla=1 id=escondite
+; zona 4,33..12,42 fuego mezcla=1 id=camara_a
+; zona 14,33..28,42 fuego mezcla=1 id=camara_b
+; zona 31,33..39,42 fuego mezcla=1 id=camara_c
+; zona 42,33..50,42 agua mezcla=1 id=camara_d
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; R1 · LINDE Y TALA. El guerrero (2,5) abre el cofre legendario de la barrera (10,4), en la tala. La tala solo sale por la PASARELA (8,6)..(8,11): dos arqueros de puesto la baten desde (8,12)/(8,13),
+; y la torre goblin de detrás (8,14) arde y prende al que tiene pegado. Hay que levantar una barrera (ᛜ + ᛁ) delante para que las flechas no lleguen.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza guardia_linde vigia 2 5 de=1,1..5,21 flag=bosque01v1.linde.limpia
+; pieza cofre_01 cofre 10 4 modelo=legendario aparece_si=flag.bosque01v1.linde.limpia abierto=bosque01v1.linde.cofre glifo=barrera
+; pieza guardia_paso vigia 8 12 de=8,12..8,13 flag=bosque01v1.paso.limpio
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; R2 · EL PRADO. ESTANQUE: la losa PONE la flag y la flag abre el cauce (así vuelve a abrirse al regresar de la Cueva). El manantial es FINITO (volumen 50 u³ ≈ 15 casillas a 0,6 de hondo).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza losa_estanque pulsador 16 9 modo=presencia
+; pieza estanque manantial 20 10 celdas=16,10..20,10+16,11..16,20 caudal=1.5 volumen=50 inicia=no
+; puzle losa_marca cuando=losa_estanque.pulsado hace=flag.poner(bosque01v1.estanque.abierto)
+; puzle losa_sube_agua cuando=flag.bosque01v1.estanque.abierto hace=estanque.abrir_cauce
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; R3 · EL CLARO DEL NORTE: la patrulla (guerrero + arquero) da el cofre_03.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza guardia_claro vigia 19 3 de=13,1..26,5 flag=bosque01v1.claro.limpio
+; pieza cofre_03 cofre 25 1 aparece_si=flag.bosque01v1.claro.limpio abierto=bosque01v1.claro.cofre da=oro:40+pocion:1
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; S4 · EL SANTUARIO: el elemental (vigía) da el cofre épico final, que cierra la demo.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza guardia_santuario vigia 25 15 de=22,11..26,20 flag=bosque01v1.santuario.limpio
+; pieza cofre_02 cofre 26 15 modelo=epico aparece_si=flag.bosque01v1.santuario.limpio abierto=bosque01v1.santuario.cofre da=nucleo_eco:1
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; S5 · CAMPAMENTO GOBLIN (sala cerrada). La puerta goblin «y» (33,5) arde; el cerrojo va en la casilla de DENTRO (34,5): nace abierto y se cierra al entrar. Con la sala limpia (flag) nace abierto y sin goblins.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza cuello cerrojo 34 5 celdas=34,5 sala=35,1..46,10 hasta=bosque01v1.campamento.limpio
+; pieza guardia vigia 35 1 de=35,1..46,10 flag=bosque01v1.campamento.limpio
+; puzle abre_cuello cuando=guardia.todos_derrotados hace=cuello.abrir
+; pieza cofre_llave cofre 41 5 aparece_si=flag.bosque01v1.campamento.limpio abierto=bosque01v1.campamento.llave da=oro:15
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; S3 · NICHO DE LA HIERBA (TF_1): la puerta con llave de verdad y un atajo que se abre desde dentro (el pulsador PONE la flag y la flag abre la puerta: vuelve abierta al regresar de la Cueva).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza puerta_tf1 puerta 18 21 modelo=llave llave=bosque01v1.campamento.llave abierto=bosque01v1.tf1.puerta
+; pieza boton_atajo pulsador 19 23 modo=presencia
+; pieza atajo_tf1 puerta 20 24
+; puzle atajo_marca cuando=boton_atajo.pulsado hace=flag.poner(bosque01v1.tf1.atajo)
+; puzle atajo_abre cuando=flag.bosque01v1.tf1.atajo hace=atajo_tf1.abrir
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; R5 · HONDONADA: la boca de la Cueva (46,18) y la pared que suena H1 (41,14). El cristal late cada 4 s y su pulso recorre la veta hasta la pared, que suena pero solo se abre con el pulso del JUGADOR (ᚱ).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza latido_h1 cristal 39 16 cada=4
+; pieza veta_h1 veta 40 16 celdas=40,16..41,16+41,15
+; pieza eco_h1 pared_hueca 41 14 flag=bosque01v1.hondonada.eco
+; pieza cofre_eco cofre 41 12 modelo=epico abierto=bosque01v1.hondonada.cofre da=geoda_resonante:1
+; La boca: la Cueva guarda su salida en `a_bosque` (Bosque_01_v01:boca_cueva) y entra por `desde_bosque`. Aquí se llega a la entrada `boca_cueva` (45,18, mirando al oeste) y se sale pisando (46,18).
+; pieza boca_salida salida 46 18 a=Cueva:desde_bosque
+; pieza boca_cueva entrada 45 18 mira=o
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; R6 · EXPLANADA: la segunda pared que suena H2 (14,28) y el escondite (x 13-16, filas 23-27).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza latido_h2 cristal 13 29 cada=4
+; pieza veta_h2 veta 14 29
+; pieza eco_h2 pared_hueca 14 28 flag=bosque01v1.explanada.eco
+; pieza cofre_escondite cofre 14 24 abierto=bosque01v1.escondite.cofre da=oro:30+seta_asada:2
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; ROMPIBLES (30): el botín lo reparte el perfil de la zona donde está cada casilla (`botin=zona`). No reaparecen (flag `<nivel>.rompible.<id>`).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza jarrones_linde jarron 3 14 celdas=3,14+1,9+3,2+1,18 botin=zona
+; pieza cajas_tala jarron 7 6 celdas=7,6+9,5 modelo=caja botin=zona
+; pieza jarrones_prado jarron 9 12 celdas=9,12+15,17+12,20+20,11+20,20 botin=zona
+; pieza jarrones_claro jarron 14 1 celdas=14,1+14,5+26,5 botin=zona
+; pieza jarrones_hierba jarron 28 13 celdas=28,13+33,13+33,20 botin=zona
+; pieza jarrones_hondonada jarron 36 15 celdas=36,15+46,15+36,23+46,23 botin=zona
+; pieza jarrones_campamento jarron 36 2 celdas=36,2+36,3+46,9 botin=zona
+; pieza jarrones_explanada jarron 4 29 celdas=4,29+27,29+46,31 botin=zona
+; pieza jarrones_escondite jarron 13 23 celdas=13,23+16,23+16,26 botin=zona
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; CÁMARA A · F1 «cuatro antorchas»: los cuatro braseros (T) se encienden con la flecha de fuego; con 4/4 se abre la puerta de la trastienda (cofre_04). Lo resuelto va en flags (la puerta y el cofre).
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza a_b1 brasero 5 34
+; pieza a_b2 brasero 11 34
+; pieza a_b3 brasero 5 37
+; pieza a_b4 brasero 11 37
+; pieza a_cont contador 8 35 de=5,34+11,34+5,37+11,37
+; pieza a_puerta puerta 8 39
+; puzle a_marca cuando=a_cont.todos hace=flag.poner(bosque01v1.camara_a.puerta)
+; puzle a_abre cuando=flag.bosque01v1.camara_a.puerta hace=a_puerta.abrir
+; pieza cofre_04 cofre 8 41 aparece_si=flag.bosque01v1.camara_a.puerta abierto=bosque01v1.camara_a.cofre da=oro:30+pocion:2
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; CÁMARA B · F4 «contrafuego»: cuatro setos secos (z) en fila y un barril al final. Una flecha de fuego al primer seto y el fuego corre por la fila, enciende el barril y su explosión abre la puerta de la
+; trastienda (cofre_05). El jugador dispara desde la entrada, a más de 8 u del barril.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza b_barril barril 23 36
+; pieza b_puerta puerta 27 39
+; puzle b_marca cuando=b_barril.explota hace=flag.poner(bosque01v1.camara_b.puerta)
+; puzle b_abre cuando=flag.bosque01v1.camara_b.puerta hace=b_puerta.abrir
+; pieza cofre_05 cofre 27 41 aparece_si=flag.bosque01v1.camara_b.puerta abierto=bosque01v1.camara_b.cofre da=oro:60+seta_asada:2
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; CÁMARA C · F2 «relé de braseros»: encender el primero (A) enciende el siguiente 1,5 s después, y cada uno se apaga a los 6 s. La puerta de la trastienda (cofre_06) se abre cuando A y D arden A LA VEZ
+; (de +4,5 s a +6 s de lanzar la flecha a A) y se queda abierta.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza c_a brasero 32 35 rele=c_b
+; pieza c_b brasero 34 35 rele=c_c
+; pieza c_c brasero 36 35 rele=c_d
+; pieza c_d brasero 38 35 dura=6
+; pieza c_cont contador 35 36 de=32,35+38,35
+; pieza c_puerta puerta 35 39
+; puzle c_marca cuando=c_cont.todos hace=flag.poner(bosque01v1.camara_c.puerta)
+; puzle c_abre cuando=flag.bosque01v1.camara_c.puerta hace=c_puerta.abrir
+; pieza cofre_06 cofre 35 41 aparece_si=flag.bosque01v1.camara_c.puerta abierto=bosque01v1.camara_c.cofre da=oro:45+flor_ardiente:2+pocion:1
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; CÁMARA D · F3 «quema la cuerda»: un arroyo de canal (47,33..39) parte la sala; una compuerta LEVANTADA (abierta) lo deja correr y la cuerda de al lado la sostiene. Una flecha de fuego a la cuerda (arde 1 s y se rompe)
+; hace caer la compuerta: se corta el agua y el vado (47,36) baja de 0,25 -> se abre la puerta de la trastienda (cofre_07). El arroyo está en la mitad este: el jugador no lo cruza, dispara por encima.
+; Lo resuelto es la CUERDA rota (flag): al volver se vuelve a quemar sola y el resto (compuerta, vado, puerta) sigue por su cuenta, igual que la primera vez.
+; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza d_arroyo manantial 47 33 celdas=47,33..47,39 caudal=1.5 volumen=0
+; pieza d_desague cuenca 47 39 fijo=0.02
+; pieza d_compuerta compuerta 47 34 abierta=si vertical=no estrecha=no
+; pieza d_cuerda cuerda 46 34 sostiene=d_compuerta
+; pieza d_nivel nivel 47 36 objetivo=0.25 invertido=si
+; pieza d_puerta puerta 44 40
+; puzle d_abre cuando=d_nivel.alcanzado hace=d_puerta.abrir
+; puzle d_cierra cuando=d_nivel.perdido hace=d_puerta.cerrar
+; puzle d_marca cuando=d_cuerda.rota hace=flag.poner(bosque01v1.camara_d.cuerda)
+; puzle d_cuerda_vuelve cuando=flag.bosque01v1.camara_d.cuerda hace=d_cuerda.quemar
+; pieza cofre_07 cofre 44 42 aparece_si=d_puerta.abierta+d_cuerda.rota abierto=bosque01v1.camara_d.cofre da=oro:70+raiz_cenizas:2+pocion:1
+; --- (d_cierra existe solo por el arranque: el manantial tarda ~18 s en llegar y hasta entonces el vado está a 0 («bajo») y la puerta abierta. Tras romper la cuerda el agua no vuelve nunca: la puerta ya no se cierra)

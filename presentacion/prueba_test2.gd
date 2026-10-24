@@ -765,6 +765,9 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## 23/10 (Cueva): el agua del mapa corre hacia el sur como un río (`_flujo_rio`). Desmarcar donde el agua es una charca quieta: si no,
 ## las franjas de la corriente se dibujan sobre agua parada (en la charca de la Cueva se veían como goteras blancas).
 @export var agua_corre: bool = true
+## 24/10 (Bosque 01 v01): las `A` del mapa son goblins ARQUEROS de verdad (flechas) aunque el nivel no lleve las reglas por nombre `bosque`. Sin esto, un nivel con sus reglas como nodo hijo
+## (Bosque 01) ponía en cada `A` un espadachín cuerpo a cuerpo.
+@export var arqueros: bool = false
 ## 12/10 (11.16): el kit de hechizos de esta escena. El Lanzador lo lee (`mundo.get("kit")`, 11.15) y, si no está vacío, lo usa en lugar del
 ## nombre del nivel: «pruebas» = todos los hechizos y glifos (con hielo) para iterar sin tocar el kit del nivel de verdad.
 @export var kit: String = ""
@@ -3428,7 +3431,7 @@ func _colocar_letras() -> void:
 				"A", "W":
 					var quien: Array = PJ_GOBLIN
 					if l == "A":
-						quien = PJ_ARQUERO if _reglas != null else PJ_ESPADACHIN
+						quien = PJ_ARQUERO if (_reglas != null or arqueros) else PJ_ESPADACHIN
 					var g: Pj3D = _personaje(quien, _pos_marca(c, ALTO))
 					if g != null:
 						_goblins.append(g)

@@ -63,6 +63,8 @@ const PAGINA_ABAJO: float = 40.0                 ## px de la página al borde de
 const GLIFO_PAGINA: float = 110.0                ## px del glifo escrito
 const TXT_AVISO_GLIFO: String = "Glifo nuevo: %s"
 const TXT_AVISO_PISTA: String = "Pared hueca: prueba el pulso"
+## 24/10 (Bosque 01 v01): la pista de dónde se usa cada glifo (el segundo aviso dorado). Un glifo sin fila usa TXT_AVISO_PISTA.
+const PISTAS: Dictionary = {"barrera": "Las flechas no atraviesan una barrera"}
 const T_AVISO_PISTA: float = 1.6                 ## s entre el primer aviso y el segundo
 
 const CODIGO_ESCRITURA: String = """
@@ -627,11 +629,11 @@ func _cerrar() -> void:
 	Flags.i().poner(FLAG_VISTA)
 	# El aviso dorado: primero el glifo, después la pista de dónde usarlo.
 	_aviso(TXT_AVISO_GLIFO % Sigils.nombre_visible(glifo))
-	get_tree().create_timer(T_AVISO_PISTA, false).timeout.connect(_aviso.bind(TXT_AVISO_PISTA))
+	get_tree().create_timer(T_AVISO_PISTA, false).timeout.connect(_aviso.bind(String(PISTAS.get(glifo, TXT_AVISO_PISTA))))
 	activa = false
 	hecha = true
 	terminada.emit()
-	get_tree().create_timer(1.0, false).timeout.connect(_liberar_tras_cerrar)
+	get_tree().create_timer(T_AVISO_PISTA + 1.0, false).timeout.connect(_liberar_tras_cerrar)      # 24/10: tras el segundo aviso (con 1,0 s el nodo moría antes de que saliera la pista)
 
 
 func _aviso(texto: String) -> void:

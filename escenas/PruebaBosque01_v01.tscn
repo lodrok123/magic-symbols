@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://chcoctbeeesis" path="res://presentacion/prueba_test2.gd" id="1_poc"]
+[ext_resource type="Script" path="res://escenas/bosque_01_v01_3d.gd" id="2_b01"]
+[ext_resource type="Script" path="res://escenas/puzle.gd" id="3_pz"]
+
+[node name="PruebaBosque01_v01" type="Node3D"]
+script = ExtResource("1_poc")
+fuego_nuevo = true
+nivel = "Bosque_01_v01"
+agua_fisica = true
+arqueros = true
+kit = "pruebas"
+zona_luz = "bosque"
+
+[node name="Reglas" type="Node" parent="."]
+script = ExtResource("2_b01")
+
+[node name="Puzles" type="Node" parent="."]
+script = ExtResource("3_pz")

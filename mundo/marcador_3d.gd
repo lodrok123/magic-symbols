@@ -17,7 +17,7 @@ extends Node3D
 ## a lo largo de X; codo: con giro 0 abre al oeste y al sur, 90 → sur y este…) y `lleno` dice si la casilla empieza con agua (vacía por
 ## defecto: se llena sola cuando la tinaja vierte). Los canales conectados a la casilla de delante de la tinaja forman UN canal.
 ## Si está vacía, el marcador es de DATOS y manda `grupo`:
-## «recogible» (tipo: pocion | oro) o «empujable» (tipo: tierra | hielo).
+## «recogible» (tipo: pocion | oro), «empujable» (tipo: tierra | hielo), «tronco_puente», «tronco_estanque», «loberno», «npc» (tipo: goblin_base | elfo_base | marimanta) o «asesino».
 
 @export var letra: String = "":
 	set(v):
@@ -97,6 +97,10 @@ const DATOS: Dictionary = {
 	"tronco_puente": {"rotulo": "TRONCO-PUENTE (cae hacia +X local)", "color": Color(0.5, 0.35, 0.2)},
 	"tronco_estanque": {"rotulo": "TRONCO DEL ESTANQUE (sube con el agua)", "color": Color(0.4, 0.3, 0.2)},
 	"loberno": {"rotulo": "LOBERNO", "color": Color(0.8, 0.4, 0.2)},
+	# 24/10 (Bosque 01 v01): NPC con rutina y el goblin asesino, colocados desde el mapa (`; marcador npc <tipo> x y`, `; marcador asesino - x y`). `tipo` del npc: goblin_base | elfo_base | marimanta.
+	# Los crea el script del nivel (escenas/bosque_01_v01_3d.gd) leyendo `_marcas` de la maqueta; el nombre del marcador es el contrato (`npc_goblin_01`, `asesino_01`…).
+	"npc": {"rotulo": "NPC CON RUTINA", "color": Color(0.9, 0.8, 0.4)},
+	"asesino": {"rotulo": "GOBLIN ASESINO", "color": Color(0.9, 0.3, 0.2)},
 }
 
 var _visual: Node3D = null

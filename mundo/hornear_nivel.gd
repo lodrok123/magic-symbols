@@ -91,6 +91,52 @@ static func leer_mapa(nivel: String, tam: Array = [], giros: Dictionary = {}) ->
 	return filas
 
 
+## 24/10 (Bosque 01 v01): lo que el .txt del nivel aporta al horneado ADEMÁS de las letras, para poder regenerar el .tscn entero desde el mapa (antes los marcadores de datos y los nombres
+## solo vivían en el .tscn editado a mano). Tres líneas, todas dentro de un comentario `;`:
+##   ; nombre <x> <y> <nombre>                                            el marcador de esa casilla se llama así en el .tscn (las reglas del nivel los leen POR NOMBRE)
+##   ; marcador <grupo> <tipo|-> <x> <y> [giro=<grados>] [nombre=<n>]     un marcador de DATOS sin letra (tronco_puente, loberno, npc, asesino…)
+##   ; decorado <pieza> <x> <y> [giro=<grados>]                           una pieza de arte/piezas/ puesta en esa casilla (un tocón, un cartel…); bloquea lo que diga la pieza
+## Devuelve {nombres: {Vector2i: String}, marcadores: [{grupo, tipo, c, giro (rad), nombre}], decorados: [{id, c, giro (rad)}]}.
+static func leer_extras(nivel: String) -> Dictionary:
+	var res: Dictionary = {"nombres": {}, "marcadores": [], "decorados": []}
+	var r: String = ruta_mapa(nivel)
+	if r == "":
+		return res
+	var f := FileAccess.open(r, FileAccess.READ)
+	if f == null:
+		return res
+	for linea in f.get_as_text().split("\n"):
+		var l: String = String(linea).replace("\r", "").strip_edges()
+		if not l.begins_with(";"):
+			continue
+		var p: PackedStringArray = l.substr(1).strip_edges().split(" ", false)
+		if p.size() == 0:
+			continue
+		match p[0]:
+			"nombre":
+				if p.size() >= 4 and p[1].is_valid_int() and p[2].is_valid_int():
+					(res["nombres"] as Dictionary)[Vector2i(p[1].to_int(), p[2].to_int())] = p[3]
+			"marcador":
+				if p.size() >= 5 and p[3].is_valid_int() and p[4].is_valid_int():
+					var m: Dictionary = {"grupo": p[1], "tipo": "" if p[2] == "-" else p[2], "c": Vector2i(p[3].to_int(), p[4].to_int()), "giro": 0.0, "nombre": ""}
+					for i in range(5, p.size()):
+						var kv: PackedStringArray = p[i].split("=", true, 1)
+						if kv.size() == 2 and kv[0] == "giro":
+							m["giro"] = deg_to_rad(kv[1].to_float())
+						elif kv.size() == 2 and kv[0] == "nombre":
+							m["nombre"] = kv[1]
+					(res["marcadores"] as Array).append(m)
+			"decorado":
+				if p.size() >= 4 and p[2].is_valid_int() and p[3].is_valid_int():
+					var d: Dictionary = {"id": p[1], "c": Vector2i(p[2].to_int(), p[3].to_int()), "giro": 0.0}
+					for i in range(4, p.size()):
+						var kv2: PackedStringArray = p[i].split("=", true, 1)
+						if kv2.size() == 2 and kv2[0] == "giro":
+							d["giro"] = deg_to_rad(kv2[1].to_float())
+					(res["decorados"] as Array).append(d)
+	return res
+
+
 ## 9.6 · Reparte al azar el suelo `.` de las filas `desde`..`hasta`: manchas de tierra (`g`) y de hierba corta (`,`) con forma
 ## de mancha (ruido de valor, no casillas sueltas), y el resto suelo. NUNCA hierba alta (`v`): arde y cambiaría los puzles del
 ## fuego. Siempre sale igual para la misma semilla (hornear dos veces da el mismo nivel).
@@ -329,6 +375,21 @@ static func hornear(datos: Dictionary) -> String:
 		n_piezas += 1
 	for id in sin_escena:
 		push_warning("Hornear: no hay piezas/%s.tscn (¿falta ejecutar el generador de piezas?): %d sin colocar." % [id, int(sin_escena[id])])
+	# 24/10: lo que pide el propio .txt (`; decorado`, `; marcador`, `; nombre`: ver leer_extras).
+	var del_txt: Dictionary = leer_extras(nivel)
+	for dd in (del_txt["decorados"] as Array):
+		var dec: Dictionary = dd
+		var dc: Vector2i = dec["c"]
+		var did: String = String(dec["id"])
+		if not ResourceLoader.exists(PIEZAS + did + ".tscn"):
+			push_warning("Hornear: `; decorado %s`: no hay piezas/%s.tscn" % [did, did])
+			continue
+		var dnodo: Node3D = (load(PIEZAS + did + ".tscn") as PackedScene).instantiate() as Node3D
+		dnodo.name = "%s_%d_%d" % [did, dc.x, dc.y]
+		dnodo.transform = Transform3D(Basis(Vector3.UP, float(dec["giro"])), Vector3((float(dc.x) + 0.5) * S, ALTO, (float(dc.y) + 0.5) * S))
+		piezas.add_child(dnodo)
+		dnodo.owner = raiz
+		n_piezas += 1
 
 	# --- Marcadores ---
 	var marc := Node3D.new()
@@ -365,6 +426,9 @@ static func hornear(datos: Dictionary) -> String:
 			continue
 		lista.append({"letra": String(ed.get("letra", "")), "grupo": String(ed.get("grupo", "")), "tipo": String(ed.get("tipo", "")),
 			"c": cc, "giro": float(giro_marcador.get(cc, float(ed.get("giro", 0.0))))})
+	for mt in (del_txt["marcadores"] as Array):
+		var mtd: Dictionary = mt
+		lista.append({"letra": "", "grupo": String(mtd["grupo"]), "tipo": String(mtd["tipo"]), "c": mtd["c"], "giro": float(mtd["giro"]), "nombre": String(mtd["nombre"])})
 	for m in lista:
 		var md: Dictionary = m
 		var cm: Vector2i = md["c"]
@@ -373,6 +437,10 @@ static func hornear(datos: Dictionary) -> String:
 		var kk: int = int(cuenta.get(etiqueta, 0))
 		cuenta[etiqueta] = kk + 1
 		mk.name = "%s_%d_%d" % [etiqueta, cm.x, cm.y]
+		if String(md.get("nombre", "")) != "":
+			mk.name = String(md["nombre"])
+		elif String(md["letra"]) != "" and (del_txt["nombres"] as Dictionary).has(cm):
+			mk.name = String((del_txt["nombres"] as Dictionary)[cm])      # `; nombre x y <nombre>`: el contrato con las reglas del nivel
 		mk.letra = String(md["letra"])
 		mk.grupo = String(md["grupo"])
 		mk.tipo = String(md["tipo"])
