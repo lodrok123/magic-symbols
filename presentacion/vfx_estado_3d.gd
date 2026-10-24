@@ -42,6 +42,10 @@ extends Node
 
 const MAX_LUCES: int = 2
 const MAX_PARTICULAS: int = 400
+## Semieje mínimo con el que se DIBUJA un volumen, en casillas (24/10: derivan de la base 0,10, ya no son números sueltos que la recortaban). Un volumen quieto no baja
+## de la esfera base; un proyectil, de la esfera base ya reducida a ESCALA_PROYECTIL: su dibujo tiene que casar con el radio con el que golpea (`HechizoVivo._radio_u`).
+const PISO_QUIETO_CAS: float = Sigils.RADIO_BASE_V2
+const PISO_PROYECTIL_CAS: float = Sigils.RADIO_BASE_V2 * Hechizo.ESCALA_PROYECTIL
 ## Densidad visual de plasma y gas (1 = la de antes). Con 1 las llamas se sumaban hasta saturar a blanco y tapaban el contorno
 ## del volumen; con menos partículas, más pequeñas y más transparentes se lee la silueta (el elipsoide que da el tamaño).
 const DENSIDAD: float = 0.4
@@ -370,7 +374,7 @@ func _eventos_de_props(g: Dictionary, origen: Vector3, d2: Vector2, props: Dicti
 	var copias: int = clampi(int(props.get("copias", 1.0)), 1, MAX_CARRILES)
 	var viaja: float = float(props.get("viaja", 0.0))
 	# ESPEC §1.6: de centro a centro = 2·semieje + `separacion` (m), y cada copia gira `dispersion` grados respecto a la anterior. Sin ellos (señal vieja), 2·x o 1 casilla.
-	var sep: float = (2.0 * float(g["x"]) + float(g["separacion"])) * casilla if g.has("separacion") else maxf(2.0 * float(g.get("x", 0.5)), 1.0) * casilla
+	var sep: float = maxf(2.0 * float(g["x"]) + float(g["separacion"]), HechizoVivo.SEPARACION_COPIAS_MIN_CASILLAS) * casilla if g.has("separacion") else maxf(2.0 * float(g.get("x", 0.5)), 1.0) * casilla
 	var abanico: float = float(g.get("dispersion", 0.0))
 	var vel: float = float(g["velocidad"]) if float(g.get("velocidad", 0.0)) > 0.0 else VEL_VIAJE
 	var perp: Vector2 = d2.orthogonal()
@@ -487,8 +491,8 @@ class EfectoHechizo:
 		rng.seed = hash("%s%s%s" % [estado, elemento, str(g.get("x", 0))]) + int(Time.get_ticks_usec() % 100000)
 		col = COLORES.get(elemento, COLOR_RESERVA)
 		var c: float = cfg.casilla
-		# Un volumen quieto no baja de 0,25 casilla para verse; un proyectil, de 0,1: su dibujo tiene que casar con el radio con el que golpea (`_radio_u`).
-		var piso: float = 0.1 if proyectil else 0.25
+		# Un volumen quieto no baja de la esfera base (PISO_QUIETO_CAS); un proyectil, de la base reducida (PISO_PROYECTIL_CAS): su dibujo casa con el radio con el que golpea (`_radio_u`).
+		var piso: float = PISO_PROYECTIL_CAS if proyectil else PISO_QUIETO_CAS
 		semi = Vector3(maxf(float(g.get("x", 0.5)), piso) * c, maxf(float(g.get("y", 0.5)), piso) * c, maxf(float(g.get("z", 0.5)), piso) * c)
 		_d_act = (pista[0] as Dictionary)["d"]
 		_t_pista = float((pista.back() as Dictionary)["t"])

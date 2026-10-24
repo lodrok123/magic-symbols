@@ -53,10 +53,10 @@ Columnas: **campo** (nombre en el código) · **unidad** · **base** (sin elemen
 
 | campo | unidad | base | quién lo cambia | hoy |
 |---|---|---|---|---|
-| `semieje_x` (ancho) | m | **0,25** (radio) | ᛁ horizontal: +0,15/glifo, tope 3,0 | ≠ base 0,15 → 0,25 |
-| `semieje_z` (fondo) | m | 0,25 | ᛁ vertical: +0,15/glifo, tope 3,0 | ≠ base |
-| `semieje_y` (alto) | m | 0,25 | ᛏ: +0,15/glifo, tope 1,0 (2 niveles) | ≠ base y tope 2,0 → 1,0 |
-| `grosor_min` | m | 0,15 | — | + (ningún semieje baja de aquí: un muro fino no desaparece) |
+| `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: +0,10/glifo, tope 3,0 | ≠ base 0,15 → 0,25 → 0,10 |
+| `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: +0,10/glifo, tope 3,0 | ≠ base |
+| `semieje_y` (alto) | m | 0,10 | ᛏ: +0,10/glifo, tope 1,0 (2 niveles: hacen falta 7 glifos, 2·y ≥ 1,5) | ≠ base y tope 2,0 → 1,0 |
+| `grosor_min` | m | 0,10 (= la base; 24/10: antes 0,15) | — | + (ningún semieje baja de aquí: un muro fino no desaparece) |
 | `volumen`, `superficie`, `niveles` | m³, m², nº | derivados | — | `niveles` = ; los otros + |
 
 **Decidido:** `radio`, `longitud` y `altura` de la tabla de Pablo son los tres semiejes con el radio como valor
@@ -200,9 +200,9 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 
 | glifo | campos que toca |
 |---|---|
-| ᛁ horizontal | `semieje_x` +0,15 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛁ vertical | `semieje_z` +0,15 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛏ | `semieje_y` +0,15 (tope 1,0) |
+| ᛁ horizontal | `semieje_x` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛁ vertical | `semieje_z` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛏ | `semieje_y` +0,10 (tope 1,0) |
 | ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
 | ᚠ repetición | `copias` +1 (tope 4) |
@@ -251,7 +251,7 @@ Contexto Juego. Lee docs/ESPEC_HECHIZO.md (proyecto) entero y las entradas 166�
    - Sigils.VELOCIDAD_FLECHA_U pasa a VELOCIDAD_FLECHA = 4.0 / Terreno3D.casilla m/s (≈ 1,7): la MISMA velocidad que hoy en pantalla (decisión de Pablo). Como depende de casilla, que sea una función o se calcule al construir, no una const;
    - campo nuevo `permanencia` (s, base 0); el modificador «+1 s por glifo sucesivo» de la barrera pasa de persiste a permanencia.
 2. Campos nuevos de §1 con sus bases: grosor_min, elevacion, retardo, intervalo, escala_nace, densidad, elasticidad, dano_periodico, potencia, intensidad_estado, temperatura, humedad, conductividad, separacion, dispersion.
-   Bases que cambian: semiejes 0,25 (Sigils.RADIO_BASE_V2), gravedad 1, dano 1.
+   Bases que cambian: semiejes 0,10 (Sigils.RADIO_BASE_V2; 0,25 del 19 al 24/10), gravedad 1, dano 1. El agua de un hechizo líquido NO sale del volumen a secas: `Sigils.volumen_agua_v2` = `VOLUMEN_AGUA_BASE_V2` (la esfera de radio 0,25) × volumen / volumen de la esfera base, para que una esfera sin glifos eche lo de siempre. Copias: separación de centro a centro ≥ `HechizoVivo.SEPARACION_COPIAS_MIN_CASILLAS` (1 casilla).
    Derivados: volumen, superficie, masa, resistencia, y los estados de §1.7 (viaja, flota, anclado, protege, se_expande, se_repite, rebota) como funciones de solo lectura.
 3. Límites de §1.9 aplicados al final de construir() y de con() (el lab tampoco puede saltárselos).
 4. Los .tres reciben los modificadores de §2 (gravedad, densidad, temperatura, humedad, conductividad); los valores marcados «=» no cambian.
@@ -294,7 +294,7 @@ Prueba en prueba_hechizo. Pablo graba las muestras con G. Diario. Sin commit.
 Contexto Pipeline. Lee docs/ESPEC_HECHIZO.md y las entradas del Juego E1/E2 en el diario.
 - VfxEstado3D: el volumen nace a `elevacion` sobre el suelo; las copias se colocan con `separacion` y `dispersion` (llegan en la señal); el volumen que viaja ahora va a `velocidad` (no a 8 casillas/s fijas), se para donde choca y DESAPARECE al llegar o chocar, salvo que traiga `permanencia` > 0, que es lo que se queda en el sitio (regla nueva §0.3: la `persiste` del elemento solo cuenta para lo que nace quieto); la caída de un hechizo con gravedad < 1 (líquido ×0,5) se dibuja más lenta.
 - La señal hechizo_v2 llevará `permanencia` (y la vida total): úsala en lugar de persiste para lo que viaja.
-- La esfera base pasa de 0,3 a 0,5 m de diámetro (semieje 0,25): revisa que los VFX que escalaban con el volumen no queden pequeños o enormes.
+- La esfera base pasó de 0,3 a 0,5 m de diámetro (semieje 0,25) y el 24/10 baja a 0,2 m (semieje 0,10): revisa que los VFX que escalaban con el volumen no queden pequeños o enormes.
 - La interfaz compacta del lab (entradas 173–181) enseña los campos nuevos que difieran de su base, en la lista de variables ≠ 0.
 - PNG del glifo ᛉ algiz (Permanencia) para el libro (art/ui/glyphs/permanencia.png), con el mismo estilo que los de la lámina de runas, cuando el Juego lo pida (E3).
 prueba_vfx_v2 a 0 y una captura del lab con una flecha que viaja y persiste. Diario. Sin commit.

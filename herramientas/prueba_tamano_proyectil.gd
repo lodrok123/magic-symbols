@@ -30,6 +30,10 @@ const SALIDA: Vector2i = Vector2i(5, 8)
 const ELEMENTOS: Array = ["fire", "water", "earth", "lightning", "ice", "wind"]
 ## Medido ANTES del cambio (ESCALA_PROYECTIL = 1.0, glifo flecha sin más): dimensión mayor de la caja de las mallas del dibujo del proyectil (u) en VfxElemento3D.
 const ANTES_CAJA: Dictionary = {"fire": 4.39875, "water": 2.01079, "earth": 1.24853, "lightning": 4.18745, "ice": 4.18745, "wind": 3.04805}
+## ... con la base de entonces (0,25). Con otra base las cajas lineales escalan con `RADIO_BASE_V2 / BASE_DE_ANTES_CAJA` (fuego, agua, rayo; tierra y viento tienen partes de tamaño fijo y se comparan con margen).
+const BASE_DE_ANTES_CAJA: float = 0.25
+## La base que decidió Pablo el 24/10 (ejes con base 0,10 y +0,10 por glifo).
+const BASE_DECIDIDA: float = 0.10
 
 var _fallos: int = 0
 var _m: MundoFalso = null
@@ -117,7 +121,7 @@ func _hechizo() -> void:
 	var quieto: Hechizo = Hechizo.construir(_rune("fire"), {})
 	_ok("esfera sin flecha (quieta): escala_vuelo 1 y semiejes_vuelo = semiejes", quieto.velocidad == 0.0 and quieto.escala_vuelo == 1.0 and quieto.semiejes_vuelo == quieto.semiejes)
 	_ok("la forma de la flecha sigue siendo «%s» y su coste %.3f sale de los glifos (no de la escala)" % [_flecha("fire").forma, _flecha("fire").coste], _flecha("fire").forma == "x_mano" and absf(_flecha("fire").coste - 1.0 * (1.0 + Sigils.COSTE_PROP_V2)) < 1e-6)
-	_ok("sin cambiar RADIO_BASE_V2: sigue en 0,25 m-casilla (≈ %.2f u de radio sin escalar, %.2f u escalado)" % [Sigils.RADIO_BASE_V2 * cas, Sigils.RADIO_BASE_V2 * cas * Hechizo.ESCALA_PROYECTIL], absf(Sigils.RADIO_BASE_V2 - 0.25) < 1e-9)
+	_ok("RADIO_BASE_V2 = %.2f m-casilla (decisión de Pablo 24/10; ≈ %.2f u de radio sin escalar, %.2f u escalado)" % [BASE_DECIDIDA, Sigils.RADIO_BASE_V2 * cas, Sigils.RADIO_BASE_V2 * cas * Hechizo.ESCALA_PROYECTIL], absf(Sigils.RADIO_BASE_V2 - BASE_DECIDIDA) < 1e-9)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -191,7 +195,12 @@ func _visual() -> void:
 				var largo_e: float = maxf(Sigils.RADIO_BASE_V2 * cas * Hechizo.ESCALA_PROYECTIL * VfxHielo.ESQUIRLA_LARGO_K, (VfxHielo.MEDIDA["esquirla_hielo"] as Vector3).z)
 				_ok("ice: la esquirla mide %.3f u (r_u × %.1f = %.3f; el cometa de antes medía %.3f)" % [caja, VfxHielo.ESQUIRLA_LARGO_K, largo_e, antes * Hechizo.ESCALA_PROYECTIL], absf(caja - largo_e) < 0.06)
 			elif antes > 0.0:
-				_ok("%s: el dibujo mide ×%.3f de lo de antes (esperado ×%.2f)" % [el, caja / antes, Hechizo.ESCALA_PROYECTIL], absf(caja - antes * Hechizo.ESCALA_PROYECTIL) < (0.2 if el in ["earth", "wind"] else 0.03) * antes + 0.005)         # tierra (terrones al azar) y viento (anillos que se animan) cambian ±10-15 % de caja según el fotograma; el resto es exacto
+				var lineal: float = antes * Hechizo.ESCALA_PROYECTIL * Sigils.RADIO_BASE_V2 / BASE_DE_ANTES_CAJA        # lo que mediría si todo el dibujo escalara con el radio
+				if el in ["earth", "wind"]:
+					# tierra (terrones al azar) y viento (cintas y hojas que se animan) tienen partes de tamaño fijo y cambian de caja según el fotograma: nunca más pequeña que el 80 % de lo lineal ni mayor que lo de antes ya escalado
+					_ok("%s: el dibujo mide %.3f u (lineal %.3f; de antes escalado %.3f)" % [el, caja, lineal, antes * Hechizo.ESCALA_PROYECTIL], caja >= lineal * 0.8 and caja <= antes * Hechizo.ESCALA_PROYECTIL)
+				else:
+					_ok("%s: el dibujo mide ×%.3f de lo de antes (esperado ×%.3f = escala × base nueva / base de entonces)" % [el, caja / antes, lineal / antes], absf(caja - lineal) < 0.03 * lineal + 0.005)
 			var esc_antes: float = clampf(Sigils.RADIO_BASE_V2 * cas / 0.45, VfxElemento3D.ESCALA_VOL_MIN, VfxElemento3D.ESCALA_VOL_MAX)
 			_ok("%s: el impacto (Proyectil.esc = %.3f) no se encoge (era %.3f)" % [el, seg.esc, esc_antes], absf(seg.esc - esc_antes) < 1e-6)
 		# VfxEstado3D (el otro dibujo del proyectil): `semi` es el semieje en u
@@ -201,8 +210,8 @@ func _visual() -> void:
 				ef = c
 		if ef != null:
 			var semi: Vector3 = (ef as VfxEstado3D.EfectoHechizo).semi
-			var piso: float = 0.1 * cas
-			var esperado: float = maxf(Sigils.RADIO_BASE_V2 * Hechizo.ESCALA_PROYECTIL, 0.1) * cas
+			var piso: float = VfxEstado3D.PISO_PROYECTIL_CAS * cas
+			var esperado: float = maxf(Sigils.RADIO_BASE_V2 * Hechizo.ESCALA_PROYECTIL, VfxEstado3D.PISO_PROYECTIL_CAS) * cas
 			_ok("%s: VfxEstado3D dibuja con semieje %.3f u (antes %.3f; piso %.2f)" % [el, semi.x, Sigils.RADIO_BASE_V2 * cas, piso], absf(semi.x - esperado) < 1e-4)
 		v.queue_free()
 	print("     (para fijar ANTES_CAJA con ESCALA_PROYECTIL = 1.0): %s" % str(medidas))

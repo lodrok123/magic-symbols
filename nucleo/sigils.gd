@@ -280,7 +280,7 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##  RECETA V2 (17/10, Pablo; docs/GLIFOS_RECETA.md): volumen por ejes + propiedades aditivas
 ## =====================================================================================================
 ##
-## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,25 m). Cada glifo de EJE agranda un semieje del elipsoide;
+## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,10 m). Cada glifo de EJE agranda un semieje del elipsoide;
 ## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. Esta tabla es lo ÚNICO que sabe qué hace cada glifo: `aplicar_v2`
 ## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR siguen
 ## sirviendo al camino actual (V2 está detrás de `Receta3D.V2`).
@@ -292,8 +292,8 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##   tope       el valor no pasa de aquí (en casillas de SEMIEJE para los ejes)
 ##   repertorio nombre del glifo en el Repertoire/libro (linea_x y linea_z son dos lecturas del mismo ᛁ)
 ##   cooldown   recarga de la página, la MISMA que le da hoy `FORM` (V2 no toca la recarga)
-const RADIO_BASE_V2: float = 0.25         ## semieje base en metros-casilla (19/10, ESPEC_HECHIZO §1.1: antes 0,15; la esfera base mide 0,5 m de ancho)
-const PASO_EJE_V2: float = 0.15           ## m que suma CADA glifo de eje a su semieje (antes sumaba lo mismo que el radio base; ahora son dos números)
+const RADIO_BASE_V2: float = 0.10         ## semieje base en metros-casilla (24/10, decisión de Pablo «base 0,10 y cada glifo suma 0,10»: antes 0,25 desde el 19/10 y 0,15 antes; la esfera base mide 0,2 m de ancho)
+const PASO_EJE_V2: float = 0.10           ## m que suma CADA glifo de eje a su semieje (24/10: igual que la base; del 19 al 24/10 fue 0,15). Siguen siendo dos números por si se vuelven a separar
 const TOPE_EJE_HORIZONTAL_V2: float = 3.0  ## semieje máximo en X y Z (§1.9: 6 m de ancho o fondo total)
 const TOPE_EJE_ALTURA_V2: float = 1.0      ## semieje máximo en Y (§1.9: 2 niveles; antes 2,0)
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
@@ -334,7 +334,7 @@ const COSTE_CONTINUO_V2: float = 0.25
 static var HAZ_ACTIVO: bool = true
 const GLIFOS_V2: Dictionary = {
 	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
-	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma PASO_EJE_V2 (0,15). Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
+	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma PASO_EJE_V2 (0,15). 24/10 (Pablo): base 0,10 y +0,10 por glifo. Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
 	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
 	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
 	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_EJE_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
@@ -433,6 +433,17 @@ static func glifo_v2(sigil_name: String) -> String:
 ## Volumen del elipsoide en casillas cúbicas. Lo usa el coste y `Lanzador3D.GeometriaV2.volumen`.
 static func volumen_v2(g: Dictionary) -> float:
 	return 4.0 / 3.0 * PI * float(g["x"]) * float(g["y"]) * float(g["z"])
+
+
+## Agua de un hechizo líquido, en casillas cúbicas, para la esfera sin glifos: el volumen de la esfera de radio 0,25 (la base de hasta el 24/10). Al bajar la base a 0,10 el volumen del
+## elipsoide cayó ×15,6 y el agua de un hechizo dejaba de formar charco (la simulación de agua no recoge cantidades tan pequeñas), así que el agua NO sale del volumen a secas:
+## es la del hechizo sin glifos más lo que crece el elipsoide en proporción (`volumen_agua_v2`). Una esfera sin glifos echa lo mismo de siempre.
+const VOLUMEN_AGUA_BASE_V2: float = 4.0 / 3.0 * PI * 0.25 * 0.25 * 0.25
+
+
+## Agua (casillas³) que echa un hechizo líquido de geometría `g`: VOLUMEN_AGUA_BASE_V2 × (volumen del elipsoide / volumen de la esfera base).
+static func volumen_agua_v2(g: Dictionary) -> float:
+	return VOLUMEN_AGUA_BASE_V2 * volumen_v2(g) / volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 
 
 ## Coste en tinta (solo el número, relativo: la esfera base sin propiedades vale 1): crece con el volumen y con el nº de

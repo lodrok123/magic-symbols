@@ -26,6 +26,7 @@ class ReactivoFalso extends Node3D:
 
 const DT: float = 1.0 / 60.0
 const LADO: int = 16
+const SEMIEJE_TIERRA_GRANDE: float = 2.05       ## casillas de semieje en X y Z del bloque grande de tierra (el que antes hacían 12 + 12 glifos)
 const ORIGEN_C: Vector2i = Vector2i(5, 8)        ## casilla de la mano
 const RECETAS: Dictionary = {
 	"esfera": [], "X×6": ["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x"], "Y×8": ["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"], "Z×6": ["linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z"],
@@ -170,7 +171,7 @@ func _caso(estado: String, nombre: String) -> void:
 	if estado == "liquido":
 		var esp_caida: float = minf(0.4 + 0.07 * float(g["y"]), 0.8)
 		_ok("%s: t_caida = %.2f s (0,4 + 0,07·semieje_y, máx. 0,8)" % [et, esp_caida], is_equal_approx(float(sg.get("t_caida", -1.0)), esp_caida))
-		_ok("%s: el agua NO entra antes de la caída" % et, Terreno3D.agua_sim != null and Terreno3D.agua_sim.volumen_total() < 0.01 * Sigils.volumen_v2(g) * pow(Terreno3D.casilla, 3.0))
+		_ok("%s: el agua NO entra antes de la caída" % et, Terreno3D.agua_sim != null and Terreno3D.agua_sim.volumen_total() < 0.01 * Sigils.volumen_agua_v2(g) * pow(Terreno3D.casilla, 3.0))
 		await create_timer(esp_caida + 0.08).timeout
 	match estado:
 		"solido":
@@ -186,13 +187,13 @@ func _caso(estado: String, nombre: String) -> void:
 			_ok("%s: dura `persiste` (%.0f s) y luego no queda nada" % [et, rune.persiste], Terreno3D.alturas.is_empty())
 		"liquido":
 			var sim: AguaSim3D = Terreno3D.agua_sim
-			var esperado: float = Sigils.volumen_v2(g) * pow(Terreno3D.casilla, 3.0)
+			var esperado: float = Sigils.volumen_agua_v2(g) * pow(Terreno3D.casilla, 3.0)
 			for _i in range(int((HechizoVivo.T_LLENADO_V2 + 0.1) / DT)):
 				sim.paso(DT)
 			var got: float = sim.volumen_total()
 			# A 1,1 s los manantiales ya han echado su parte y se han apagado solos (limitar_fuente). Lo que falta hasta el 100 % no es agua sin echar: es la
 			# lámina fina que la propia simulación absorbe mientras el agua se esparce (ABSORBE), de ahí el margen del 10 % por abajo.
-			_ok("%s: agua añadida %.2f u³ ≈ volumen del elipsoide %.2f u³ (entre el 75 y el 101 %%: con volúmenes pequeños la lámina que absorbe la simulación pesa más)" % [et, got, esperado], got >= 0.75 * esperado and got <= 1.01 * esperado)
+			_ok("%s: agua añadida %.2f u³ ≈ agua del hechizo (volumen_agua_v2) %.2f u³ (entre el 75 y el 101 %%: con volúmenes pequeños la lámina que absorbe la simulación pesa más)" % [et, got, esperado], got >= 0.75 * esperado and got <= 1.01 * esperado)
 			var apagadas: bool = true
 			for c in celdas_esperadas:
 				apagadas = apagadas and sim.caudal_en(c as Vector2i) == 0.0 and sim.volumen_restante(c as Vector2i) == INF
@@ -288,7 +289,13 @@ func _extras() -> void:
 	var ok_t: bool = _l.construir_tierra(Vector2i(6, 6)) and _l.bloques_de_tierra() == 1
 	_ok("construir_tierra de siempre (1 bloque, cuenta para el tope)", ok_t)
 	_montar()
-	var cuenta_v2: int = _l._materializar(_receta(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z", "linea_z"]), load("res://nucleo/earth_rune.tres"), _origen(), Vector3.RIGHT)
+	# Un bloque de tierra grande: semieje 2,05 en X y en Z (antes eran 12 + 12 glifos con base 0,25 y paso 0,15); los glifos salen de la base y del paso actuales
+	var glifos_tierra: Array = []
+	var n_eje: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)
+	for _k in range(n_eje):
+		glifos_tierra.append("linea_x")
+		glifos_tierra.append("linea_z")
+	var cuenta_v2: int = _l._materializar(_receta(glifos_tierra), load("res://nucleo/earth_rune.tres"), _origen(), Vector3.RIGHT)
 	_ok("tierra V2 no cuenta para el FIFO de MAX_NIVELES_TIERRA (%d bloques V2, %d en el tope)" % [cuenta_v2, _l.bloques_de_tierra()], cuenta_v2 > Lanzador3D.MAX_NIVELES_TIERRA and _l.bloques_de_tierra() == 0)
 
 

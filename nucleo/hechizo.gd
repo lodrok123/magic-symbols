@@ -84,7 +84,7 @@ const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez"
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
 ## (color, deja, estela, efecto_impacto, eventos: son nombres o listas, no números).
 const EDITABLES: Dictionary = {
-	"semiejes.x": {"paso": 0.05, "min": 0.15, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.15, "max": 1.0}, "semiejes.z": {"paso": 0.05, "min": 0.15, "max": 3.0},
+	"semiejes.x": {"paso": 0.05, "min": 0.10, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.10, "max": 1.0}, "semiejes.z": {"paso": 0.05, "min": 0.10, "max": 3.0},
 	"grosor_min": {"paso": 0.05, "min": 0.05, "max": 0.5}, "separacion": {"paso": 0.25, "min": 0.0, "max": 3.0}, "dispersion": {"paso": 5.0, "min": 0.0, "max": 90.0},
 	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
 	"resuena": {"paso": 1.0, "min": 0.0, "max": 12.0},
@@ -126,7 +126,7 @@ var escala_vuelo: float:
 var semiejes_vuelo: Vector3:
 	get:
 		return semiejes * escala_vuelo
-var grosor_min: float = 0.15           ## m: ningún semieje baja de aquí (un muro fino no desaparece) · ESPEC §1.1
+var grosor_min: float = 0.10           ## m: ningún semieje baja de aquí (un muro fino no desaparece) · ESPEC §1.1 · 24/10: = RADIO_BASE_V2 (con 0,15 recortaba la base nueva)
 var copias: int = 1                    ## n volúmenes repartidos en X
 var separacion: float = 0.5            ## m entre copias (hoy, el ancho de cada copia) · ESPEC §1.6
 var dispersion: float = 15.0           ## grados que se abre el abanico de copias (hoy no hay abanico) · ESPEC §1.6

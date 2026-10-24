@@ -29,9 +29,9 @@ const HAZ_ESC_MAX: float = 2.0
 ## Tamaño del dibujo respecto al hechizo (20/10, entrada 215). Antes eran `clampf` escondidos en el código y los cambios de tamaño (glifos de eje, tabla F1 del lab)
 ## dejaban de verse: la bola del proyectil se paraba en radio 0,9 u (semieje ≈ 0,39 m) y los volúmenes en ×3. Ahora el radio dibujado = el semieje (la caja de golpe) hasta el límite
 ## global de 3 m; estos topes solo protegen de un valor absurdo. Son `static var` para poder tocarlos desde una prueba o el lab.
-static var FACTOR_BOLA_MIN: float = 0.5      ## f = radio_u / 0,3 (la bola del kit mide 0,3·f)
+static var FACTOR_BOLA_MIN: float = 0.3      ## f = radio_u / 0,3 (la bola del kit mide 0,3·f) · 24/10: de 0,5 a 0,3 para no inflar la flecha de base 0,10 (0,115 u de radio = f 0,38)
 static var FACTOR_BOLA_MAX: float = 24.0     ## 24 · 0,3 = 7,2 u > 3 m · 2,3 = 6,9 u (el semieje máximo)
-static var ESCALA_VOL_MIN: float = 0.6       ## `esc` de los volúmenes (impacto, onda, cúpula): radio_u / 0,45
+static var ESCALA_VOL_MIN: float = 0.4       ## `esc` de los volúmenes (impacto, onda, cúpula): radio_u / 0,45 · 24/10: de 0,6 a 0,4 (la esfera base de 0,23 u da 0,51)
 static var ESCALA_VOL_MAX: float = 8.0
 ## Un proyectil que nace NO aparece a tamaño completo: empieza pequeño y llega a su tamaño real (enfoque sutil).
 static var PROYECTIL_ESCALA_INICIAL: float = 0.2     ## fracción del tamaño real al nacer
@@ -278,8 +278,8 @@ func _en_hechizo(estado: String, elemento: String, g: Dictionary, origen: Vector
 	_volumenes_n += 1
 	var raiz := _raiz_para(hv)
 	var el: String = _nombre_elemento(elemento)
-	var r_u: float = maxf(float(g.get("x", 0.25)), float(g.get("z", 0.25))) * casilla
-	var alto_u: float = float(g.get("y", 0.25)) * casilla
+	var r_u: float = maxf(float(g.get("x", Sigils.RADIO_BASE_V2)), float(g.get("z", Sigils.RADIO_BASE_V2))) * casilla
+	var alto_u: float = float(g.get("y", Sigils.RADIO_BASE_V2)) * casilla
 	var vida: float = clampf(maxf(float(g.get("vida_total", 0.0)), float(g.get("persiste", 0.0))), VIDA_MIN, VIDA_MAX)
 	var evs: Array = g.get("eventos", []) as Array
 	var sitios: Array = []

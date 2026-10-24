@@ -7,6 +7,12 @@ extends "res://herramientas/escenario_base.gd"
 ## Lo que el barrido anota como «rara» se imprime como AVISO (es información para Pablo, no un fallo).
 
 const RUTA_LAB: String = "res://laboratorios/LabHechizos3D.tscn"
+const SEMIEJE_TIERRA_LAB: float = 0.7      ## semieje en X y Z del bloque de tierra de la prueba 10 (con la base 0,25 y paso 0,15 eran 3 glifos de cada, el límite del lab)
+
+
+## Los glifos de un eje que hacen falta para llegar a `semieje` casillas con la base y el paso de hoy.
+func _glifos_hasta(semieje: float) -> int:
+	return ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)
 
 var lab: Node = null
 
@@ -79,7 +85,7 @@ func _escenario() -> void:
 	lab.sumar("linea_z", 1)
 	_ok("2 sumar dos linea_z da z = base + 2 pasos (%.2f)" % (Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_EJE_V2), is_equal_approx(float(lab.receta().geo()["z"]), Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_EJE_V2), str(lab.receta().geo()["z"]))
 	lab.limite_glifos = false                              # 19/10: con el límite de 6 glifos no se llegaría al tope de ᛁ (19): aquí se mide el tope de cada glifo, no el límite
-	for _i in range(20):
+	for _i in range(lab.glifos_hasta_tope("linea_z") + 3):
 		lab.sumar("linea_z", 1)
 	lab.limite_glifos = true
 	_ok("2 el contador se para en tope + 1", int(lab.contadores["linea_z"]) == lab.glifos_hasta_tope("linea_z") + 1, "%d" % int(lab.contadores["linea_z"]))
@@ -155,8 +161,10 @@ func _escenario() -> void:
 	# Un sólido demasiado alto se rechaza y queda anotado como rara.
 	lab.limpiar()
 	lab.poner_elemento("earth")
-	for _i in range(8):                      # y = 0,15 · 9 = 1,35 → 3 niveles (más de los 1 que se pueden pisar)
+	lab.limite_glifos = false                # 24/10: con base 0,10 los 2 niveles (y ≥ 0,75) piden 7 glifos, más que el límite de 6
+	for _i in range(_glifos_hasta(0.75)):    # 2 niveles (el tope de altura es 1,0): más de los que se pueden pisar
 		lab.sumar("altura", 1)
+	lab.limite_glifos = true
 	var n_raras: int = (lab.raras as Array).size()
 	var f2: Dictionary = lab.lanzar()
 	await avanzar_s(1.2)
@@ -380,9 +388,11 @@ func _escenario() -> void:
 	var vol0: float = sim.volumen_total() if sim != null else 0.0
 	lab.limpiar()
 	lab.poner_elemento("earth")
-	for _i in range(8):
+	lab.limite_glifos = false                  # 24/10: con base 0,10 hacen falta más glifos que el límite de 6 para llegar al mismo bloque de tierra que antes
+	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB)):
 		lab.sumar("linea_x", 1)
 		lab.sumar("linea_z", 1)
+	lab.limite_glifos = true
 	colocar_jugador(Vector2i(4, 8))
 	jugador.call("mirar_hacia", Vector3.RIGHT)
 	lab.lanzar()

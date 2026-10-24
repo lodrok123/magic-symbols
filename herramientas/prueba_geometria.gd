@@ -21,7 +21,7 @@ func _initialize() -> void:
 	_ok("1 esfera base: 1 casilla", G.celdas(Sigils.aplicar_v2({}), origen, Vector2.RIGHT, cas).size() == 1)
 	var f: Dictionary = G.evaluar({"flecha": 1})
 	_ok("2 la flecha viaja 2 casillas (1.er glifo) y no agranda el volumen", is_equal_approx(float(f["props"]["viaja"]), 2.0) and is_equal_approx(G.volumen(f), G.volumen(G.evaluar({}))))
-	# 3. Cada línea vertical (Z) suma PASO_EJE_V2 (0,15) de semieje (19/10: base 0,25), es decir 2 × 0,15 casillas más de largo; tope 6.
+	# 3. Cada línea vertical (Z) suma PASO_EJE_V2 de semieje (24/10: base 0,10 y paso 0,10), es decir 2 × paso casillas más de largo; tope 6.
 	for n in [1, 2, 3, 4]:
 		var g: Dictionary = G.evaluar({"linea_z": n})
 		var largo: float = 2.0 * float(g["z"])

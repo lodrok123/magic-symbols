@@ -31,6 +31,7 @@ class ReactivoFalso extends Node3D:
 
 const LADO: int = 16
 const ORIGEN_C: Vector2i = Vector2i(5, 8)        ## casilla de la mano en las pruebas del ciclo de vida
+const SEMIEJE_MURO_ANCHO: float = 1.45           ## semieje X del muro de 3 casillas de ancho de las pruebas (8 glifos con la base 0,25 y paso 0,15)
 
 const MAX_GLIFOS: int = 4
 const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       # 20/10: seis; «time» es cinemática
@@ -96,11 +97,15 @@ func _topes_y_casos() -> void:
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
 	g = Sigils.aplicar_v2({"linea_x": 4})
-	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_EJE_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos (19/10: base 0,25 y cada glifo suma 0,15)")
+	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_EJE_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos (cada glifo suma PASO_EJE_V2 a RADIO_BASE_V2)")
 	g = Sigils.aplicar_v2({"linea_z": 2})
 	_ok(_casi(g["z"], rb + 2.0 * Sigils.PASO_EJE_V2) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2 pasos")
 	g = Sigils.aplicar_v2({"altura": 4})
-	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1, "altura ×4 → 2 niveles (con uno solo se queda en 1)")
+	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: base 0,10 y +0,10 → 7; con 0,25 y +0,15 eran 4)
+	var n_dos_niveles: int = ceili((0.75 - rb) / Sigils.PASO_EJE_V2 - 0.0001)
+	g = Sigils.aplicar_v2({"altura": n_dos_niveles})
+	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1,
+		"altura ×%d → 2 niveles (con uno menos, o con uno solo, se queda en 1)" % n_dos_niveles)
 	g = Sigils.aplicar_v2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
 	_ok(_casi(Sigils.RADIO_BARRERA_U, Lanzador3D.RADIO_BURBUJA), "RADIO_BARRERA_U coincide con Lanzador3D.RADIO_BURBUJA")
@@ -331,6 +336,14 @@ func _receta(glifos: Array, calidad: float = 1.0) -> Lanzador3D.Receta3D:
 	return r
 
 
+## Los glifos ᛁ (ancho) que hacen falta para llegar a `semieje` casillas con la base y el paso de hoy (antes de 24/10 eran 8 para 1,45).
+func _ejes_x(semieje: float) -> Array:
+	var r: Array = []
+	for _k in range(ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_EJE_V2 - 0.0001)):
+		r.append("linea_x")
+	return r
+
+
 func _origen() -> Vector3:
 	return Lanzador3D.centro_de(ORIGEN_C, 0.0)
 
@@ -527,7 +540,7 @@ func _ciclo_de_vida() -> void:
 		_ok(not s.bloquea_a(Lanzador3D.centro_de(Vector2i(2, 2), 0.5), 0, propia), "solidez · %s: no bloquea fuera del volumen" % e)
 	# bloquea el trazo del jugador y aguanta golpes ajenos hasta romperse
 	_montar()
-	_l._materializar(_receta(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "barrera"]), _rune("water"), _origen(), Vector3.RIGHT)
+	_l._materializar(_receta(_ejes_x(SEMIEJE_MURO_ANCHO) + ["barrera"]), _rune("water"), _origen(), Vector3.RIGHT)
 	_ok(_l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(0, 1), 0.5), 0), "solidez: _barrera_en ve el volumen (bloquea el trazo del jugador)")
 	var s2: Lanzador3D.SolidezV2 = _l._solideces_v2[0]
 	var punto: Vector3 = Lanzador3D.centro_de(ORIGEN_C, 0.5)
@@ -549,8 +562,8 @@ func _ciclo_de_vida() -> void:
 	# lanza de fuego que viaja y rebota, abanico de bolas de hielo, muro de agua que para flechas: sin tocar el código
 	var abanico: Array = _lanzar0(["repeticion", "repeticion", "flecha"], "ice")
 	_ok(_filas(abanico).size() >= 3 and _max_x(abanico) == 7, "ᚠᚠ + ᛇ + hielo: tres bolas en abanico que viajan (filas %s, x hasta %d)" % [_filas(abanico), _max_x(abanico)])
-	var muro_agua: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "linea_x", "barrera"], "water")
-	_ok(_filas(muro_agua).size() == 3 and not _l._solideces_v2.is_empty(), "ᛁ×8 + ᛜ + agua: muro de agua de 3 de ancho que además bloquea")
+	var muro_agua: Array = _lanzar(_ejes_x(SEMIEJE_MURO_ANCHO) + ["barrera"], "water")
+	_ok(_filas(muro_agua).size() == 3 and not _l._solideces_v2.is_empty(), "ᛁ×%d + ᛜ + agua: muro de agua de 3 de ancho que además bloquea" % _ejes_x(SEMIEJE_MURO_ANCHO).size())
 
 	# --- Tinta y PlayLog ---
 	_ok(is_equal_approx(Tinta.coste_receta(1.0), Tinta.COSTE_BASE_V2) and Tinta.coste_receta(1000.0) == Tinta.MAXIMA, "tinta: la esfera base cuesta %.0f y el techo es la barra" % Tinta.COSTE_BASE_V2)

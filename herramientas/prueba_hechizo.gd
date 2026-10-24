@@ -311,17 +311,19 @@ func _cinematica() -> void:
 	g.free()
 
 
-# --- E1 (19/10, claude/ESPEC_HECHIZO.md): bases, derivados, límites y elementos ---
+# --- E1 (19/10, docs/ESPEC_HECHIZO.md): bases, derivados, límites y elementos ---
 func _espec_e1(runes: Dictionary) -> void:
 	var vacio: Hechizo = Hechizo.construir(null, {})
-	_ok(_casi(Sigils.RADIO_BASE_V2, 0.25) and _casi(vacio.semieje_x, 0.25) and _casi(vacio.semieje_y, 0.25) and _casi(vacio.semieje_z, 0.25), "base: semiejes 0,25")
-	_ok(vacio.gravedad == 1.0 and vacio.dano == 1.0 and _casi(vacio.grosor_min, 0.15) and _casi(vacio.escala_nace, 0.3) and _casi(vacio.intervalo, 0.25), "bases: gravedad 1, daño 1, grosor_min 0,15, escala_nace 0,3, intervalo 0,25")
+	# 24/10 (diario 249): base 0,10 y +0,10 por glifo de eje; las cifras salen de las constantes.
+	var base: float = Sigils.RADIO_BASE_V2
+	_ok(_casi(base, 0.10) and _casi(vacio.semieje_x, base) and _casi(vacio.semieje_y, base) and _casi(vacio.semieje_z, base), "base: semiejes %.2f" % base)
+	_ok(vacio.gravedad == 1.0 and vacio.dano == 1.0 and _casi(vacio.grosor_min, base) and _casi(vacio.escala_nace, 0.3) and _casi(vacio.intervalo, 0.25), "bases: gravedad 1, daño 1, grosor_min = base, escala_nace 0,3, intervalo 0,25")
 	_ok(vacio.densidad == 1.0 and vacio.elasticidad == 0.2 and vacio.potencia == 1.0 and vacio.intensidad_estado == 1.0 and vacio.separacion == 0.5 and vacio.dispersion == 15.0, "bases: densidad 1, elasticidad 0,2, potencia 1, intensidad 1, separación 0,5, dispersión 15")
 	_ok(vacio.elevacion == 0.0 and vacio.permanencia == 0.0 and vacio.retardo == 0.0 and vacio.dano_periodico == 0.0 and vacio.temperatura == 0.0 and vacio.humedad == 0.0 and vacio.conductividad == 0.0, "bases: el resto en 0")
 	_ok(_casi(vacio.altura_salida, Hechizo.ALTURA_MANO_U / Terreno3D.casilla), "altura_salida en metros: la mano (0,9 u) ÷ casilla = %.3f m" % vacio.altura_salida)
-	# un eje: cada glifo suma 0,15 m y topa en 3 (X, Z) y en 1 (Y)
+	# un eje: cada glifo suma PASO_EJE_V2 y topa en 3 (X, Z) y en 1 (Y)
 	var x3: Hechizo = Hechizo.construir(null, {"linea_x": 3})
-	_ok(_casi(x3.semieje_x, 0.25 + 3.0 * 0.15), "linea_x ×3: 0,25 + 3 · 0,15 (%.2f)" % x3.semieje_x)
+	_ok(_casi(x3.semieje_x, base + 3.0 * Sigils.PASO_EJE_V2), "linea_x ×3: base + 3 · paso (%.2f)" % x3.semieje_x)
 	_ok(_casi(Hechizo.construir(null, {"linea_x": 99}).semieje_x, 3.0) and _casi(Hechizo.construir(null, {"altura": 99}).semieje_y, 1.0), "topes: X 3,0 y Y 1,0")
 	# derivados
 	var h: Hechizo = Hechizo.construir(runes["earth"], {"linea_x": 2, "barrera": 3, "repeticion": 2, "pulso": 1, "rebote": 1, "flecha": 1})
@@ -329,7 +331,7 @@ func _espec_e1(runes: Dictionary) -> void:
 	_ok(_casi(h.volumen, v) and _casi(h.masa, h.densidad * v) and h.densidad == 2.0, "derivados: volumen y masa = densidad × volumen")
 	_ok(_casi(h.resistencia, 30.0 * h.solidez) and h.superficie > 0.0, "derivados: resistencia = 30 × solidez y superficie > 0")
 	var esfera: Hechizo = Hechizo.construir(null, {})
-	_ok(absf(esfera.superficie - 4.0 * PI * 0.25 * 0.25) < 0.01, "superficie de la esfera base ≈ 4πr² (%.4f)" % esfera.superficie)
+	_ok(absf(esfera.superficie - 4.0 * PI * base * base) < 0.01,"superficie de la esfera base ≈ 4πr² (%.4f)" % esfera.superficie)
 	_ok(h.viaja and h.anclado and h.protege and h.se_expande and h.se_repite and h.rebota and not h.flota, "estados de activación (viaja, anclado, protege, se_expande, se_repite, rebota; no flota)")
 	_ok(not esfera.viaja and not esfera.anclado and not esfera.protege and not esfera.se_expande and not esfera.se_repite and not esfera.rebota and not esfera.flota, "sin glifos no hay ningún estado activo")
 	_ok(h.copiar().con({"elevacion": 1.0}).flota, "elevacion > 0 → flota")

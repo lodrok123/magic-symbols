@@ -36,7 +36,8 @@ const PULSO_V2: Dictionary = {"plasma": "pulso_plasma", "gas": "pulso_gas", "cam
 ##   5. VIDA: si viaja desaparece al llegar o chocar y se queda `permanencia` s; si nace quieto dura `persiste` + `permanencia` (la `persiste` del elemento NO cuenta al viajar)
 ##   6. `solidez` por encima de cualquier estado: SolidezV2 bloquea proyectiles y aguanta golpes
 const MAX_FASES_CRECE_V2: int = 8          ## tope de fases de crecimiento (cada una dura al menos un `intervalo`)
-const MAX_EVENTOS_V2: int = 64             ## tope de apariciones (copias × fases × posiciones) por hechizo
+const SEPARACION_COPIAS_MIN_CASILLAS: float = 1.0   ## casillas de centro a centro entre dos copias como mínimo (una copia por casilla: la casilla es lo que se rasteriza)
+const MAX_EVENTOS_V2: int = 64            ## tope de apariciones (copias × fases × posiciones) por hechizo
 ## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
 ## reactivos y enemigos que haya dentro, igual que lo hacía la flecha de siempre (`_golpear`: on_spell_hit, hielo que apresa, agua que moja…).
 const CONTACTO_V2: PackedStringArray = ["solido", "liquido", "campo"]
@@ -367,7 +368,8 @@ func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
 	var viaja: float = float(props.get("viaja", 0.0))
 	var rebotes: int = int(props.get("rebotes", 0.0))
 	var perp: Vector2 = d.orthogonal()
-	var separacion: float = (2.0 * float(geo["x"]) + h.separacion) * cas        # de centro a centro: lo que mide cada copia + el hueco entre ellas
+	# de centro a centro: lo que mide cada copia + el hueco entre ellas, pero nunca menos de una casilla (24/10: con la base 0,10 la esfera base mide 0,2 y dos copias caían en la misma casilla)
+	var separacion: float = maxf(2.0 * float(geo["x"]) + h.separacion, SEPARACION_COPIAS_MIN_CASILLAS) * cas
 	var vel: float = _velocidad_viaje()                                      # m/s = casillas/s
 	var fases: Array = fases_crece(crece, h.escala_nace, h.intervalo)
 	var ya: Dictionary = {}
@@ -500,7 +502,7 @@ func _materia_solido(ctx: Dictionary) -> int:
 	return puestos
 
 
-## LÍQUIDO: agua en la simulación con el volumen del elipsoide (casillas³ × casilla³ = u³), repartido a partes iguales entre las casillas libres. Cada
+## LÍQUIDO: agua en la simulación proporcional al volumen del elipsoide (`Sigils.volumen_agua_v2`, casillas³ × casilla³ = u³), repartido a partes iguales entre las casillas libres. Cada
 ## casilla echa su parte en T_LLENADO_V2 s y se apaga sola (fuente_en + limitar_fuente). Si la casilla ya tenía un manantial (un río, un surtidor) NO se
 ## pisa: ahí el agua se añade de golpe (anadir). El agua no se apila: los niveles no cuentan (el volumen ya los lleva), y H4 sigue: nada sobre tierra.
 func _materia_liquido(ctx: Dictionary) -> int:
@@ -513,7 +515,7 @@ func _materia_liquido(ctx: Dictionary) -> int:
 			libres.append(c)
 	if libres.is_empty():
 		return 0
-	var total: float = Sigils.volumen_v2(ctx["g"]) * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
+	var total: float = Sigils.volumen_agua_v2(ctx["g"]) * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
 	var parte: float = total / float(libres.size())
 	# El agua entra en la simulación cuando la masa del VFX por estado ha caído (t_caida); la solidez, si hay, protege desde el principio.
 	var echar: Callable = func() -> void:
