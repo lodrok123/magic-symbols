@@ -166,7 +166,10 @@ func _mirar(c: Vector2i, tam: float, espera: float) -> void:
 
 
 func _foto(nombre: String) -> void:
-	root.get_viewport().get_texture().get_image().save_png(_dir.path_join(nombre + ".png"))
+	var img: Image = root.get_viewport().get_texture().get_image()
+	if img == null:                       # headless: no hay textura de viewport, las fotos solo se hacen con ventana
+		return
+	img.save_png(_dir.path_join(nombre + ".png"))
 	print("foto " + nombre)
 
 

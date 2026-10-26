@@ -116,10 +116,12 @@ func _correr() -> void:
 			for rol in VEL_JUEGO:
 				var ciclo: Dictionary = m["ciclo"][rol]
 				var flota: float = float(ciclo["suela_min"]) - r
+				# La velocidad del clip en juego es la del clip × el multiplicador de la tabla (Pj3D.VEL_CLIP_PJ): ese es el ajuste anti-patinaje por personaje.
+				var factor_clip: float = float(Pj3D.VEL_CLIP_PJ.get(e[0], {}).get(rol, 1.0))
 				var msg2: String = "C %s %s: la suela más baja del ciclo queda a %+.3f del reposo (tope +%.3f)" % [e[0], rol, flota, SUELA_FLOTA_CICLO_MAX]
 				var msg3: String = "D %s %s: el pie de apoyo va hacia atrás a %.2f u/s y el juego avanza a %.2f (razón %.2f, de %d fotogramas de apoyo; entre %.2f y %.2f)" % [
-					e[0], rol, ciclo["vel_pie"], VEL_JUEGO[rol], float(ciclo["vel_pie"]) / float(VEL_JUEGO[rol]), ciclo["apoyos"], ZANCADA_MIN, ZANCADA_MAX]
-				var razon: float = float(ciclo["vel_pie"]) / float(VEL_JUEGO[rol])
+					e[0], rol, float(ciclo["vel_pie"]) * factor_clip, VEL_JUEGO[rol], float(ciclo["vel_pie"]) * factor_clip / float(VEL_JUEGO[rol]), ciclo["apoyos"], ZANCADA_MIN, ZANCADA_MAX]
+				var razon: float = float(ciclo["vel_pie"]) * factor_clip / float(VEL_JUEGO[rol])
 				# Otra cuenta, sin depender de qué fotogramas son de apoyo: el pie recorre `recorrido` hacia atrás en medio ciclo como mínimo.
 				print("INFO  %s %s: clip de %.2f s, el pie recorre %.3f u de delante atrás; para no patinar a %.1f u/s el clip tendría que ir a ×%.2f (VEL_CLIP_PJ)" % [e[0], rol,
 					ciclo["largo"], ciclo["recorrido"], VEL_JUEGO[rol], float(VEL_JUEGO[rol]) / maxf(float(ciclo["vel_pie"]), 0.001)])

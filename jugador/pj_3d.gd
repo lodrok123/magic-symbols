@@ -1274,7 +1274,7 @@ const PASO_CORTO: Dictionary = {
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
 ## goblin_asesino: su andar agazapado avanza ~0,72 u/s a velocidad 1 (1,4 alturas de cadera por 1,1 s, en unidades del juego) y VEL_PATRULLA es 1,0: ×1,4 para que no patine.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
