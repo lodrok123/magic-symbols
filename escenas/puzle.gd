@@ -78,7 +78,12 @@ extends Node
 ##              Fase 3 (24/10): `enlaces` = HUECOS de la veta (C2), casillas que solo conducen con un bloque de tierra encima (hechizo de tierra: el «bloque de enlace»); `aturde=<s>` deja sin
 ##              sentido, ese tiempo, a quien pisa la veta cuando pasa el frente (C4); `mineral=si` la hace reactivo de tierra: un hechizo de tierra suelta un `mineral_veta` (una vez)
 ##   columna    golpes=<n> (2)  cae=n|e|s|o (s)                                      MuroAgrietado3D como COLUMNA (fase 3, C2): modelo `columna_agrietada`; la rompen los PULSOS (cada uno la agrieta, al
-##              `golpes`-ésimo CAE hacia `cae`, deja su casilla libre y se deshace); la tierra y los hechizos no le hacen nada. Bloquea su casilla mientras está en pie
+##              `golpes`-ésimo CAE hacia `cae`, deja su casilla libre y se deshace); la tierra y los hechizos no le hacen nada. Bloquea su casilla mientras está en pie.
+##              26/10: también la tumba una EXPLOSIÓN (`geoda`). `puente=<id de una lava>  largo=<casillas>  flag=<nombre>`: columna-PUENTE (C3): al caer se estira `largo` casillas hacia `cae`, NO se deshace y
+##              cubre para siempre las casillas de esa lava que quedan bajo ella (se pisan y conducen el pulso); con `flag` se acuerda de que cayó (nace ya tendida). La lava tiene que estar ANTES en el archivo
+##   geoda      flag=<nombre>  escala=<x> (1)  cerca=<casillas> (0)                                       GeodaPulso3D (26/10, Cueva): REACTIVO del pulso. El 1.er pulso que la toca (por su casilla o la de la veta de al lado) la CARGA 0,9 s y EXPLOTA una vez: a
+##              2,8 u avisa a todo lo `explosionable` (columnas, jarrones, cajas, barriles…) y daña 30 y aturde 2 s a los Combate3D (a la jugadora no). Después desaparece; con `flag` se acuerda.
+##              `cerca=<n>`: solo reacciona si la jugadora está a n casillas o menos (la demostración de C1 espera a que la veas). Señal `explota`; condición `explotada`|`intacta`. No bloquea su casilla
 ##   estalagmita  cae=n|e|s|o (la opuesta de por donde llegó el pulso)  flag=<nombre>    EstalagmitaPulso3D (24/10, C4): REACTIVO del pulso. El 1.er pulso que la toca (por su casilla o la de la veta de al lado) la hace vibrar;
 ##              el 2.º la tira hacia `cae`: aturde 3 s y daña 25 a los Combate3D de la casilla donde cae (a la jugadora no) y queda `estalagmita_rota`, un escombro bajo que NO bloquea. Con `flag`
 ##              se acuerda de que cayó (la pone al caer; si ya está puesta nace caída). Señal `cae`; condición `caida`|`en_pie`. No bloquea su casilla (adorno que se rodea)
@@ -211,7 +216,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
-	"columna": "cae", "estatuas": "completa", "estalagmita": "cae",
+	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -246,6 +251,7 @@ const SENALES: Dictionary = {
 	"salida": {"usada": ["usada", 1, null]},
 	"columna": {"cae": ["roto", 0, null]},
 	"estalagmita": {"cae": ["cae", 0, null]},
+	"geoda": {"explota": ["explota", 2, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 }
 const CONDICIONES: Dictionary = {
@@ -274,6 +280,7 @@ const CONDICIONES: Dictionary = {
 	"caja": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
 	"columna": {"caida": ["roto_ya", true], "en_pie": ["roto_ya", false]},
 	"estalagmita": {"caida": ["caida_ya", true], "en_pie": ["caida_ya", false]},
+	"geoda": {"explotada": ["explotada", true], "intacta": ["explotada", false]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
@@ -335,8 +342,9 @@ const CLAVES: Dictionary = {
 	"basalto": {"coge_si": "expr", "rebrota": "f"},
 	"cristal": {"cada": "f", "alcance": "f"},
 	"veta": {"celdas": "celdas", "enlaces": "celdas", "aturde": "f", "mineral": "b"},
-	"columna": {"golpes": "f", "cae": "s:n|e|s|o"},
+	"columna": {"golpes": "f", "cae": "s:n|e|s|o", "puente": "id", "largo": "f", "flag": "flag"},
 	"estalagmita": {"cae": "s:n|e|s|o", "flag": "flag"},
+	"geoda": {"flag": "flag", "escala": "f", "cerca": "f"},
 	"estatuas": {"celdas": "celdas", "secuencia": "secuencia", "flag": "flag"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
@@ -1988,6 +1996,14 @@ func _crear(pz: Pieza) -> void:
 			var co := MuroAgrietado3D.new()
 			co.name = pz.id
 			co.como_columna(String(pz.p.get("cae", "s")))
+			if pz.p.has("puente"):
+				var lava_p: Lava3D = nodo(String(pz.p["puente"])) as Lava3D
+				if lava_p == null:
+					_avisar_pieza(pz, "la columna-puente necesita «puente=<id de una lava>» definida ANTES en el archivo (no hay lava «%s»)" % String(pz.p["puente"]))
+					return
+				co.como_puente(lava_p, float(pz.p.get("largo", 2.0)), String(pz.p.get("flag", "")))
+			elif pz.p.has("flag"):
+				co.flag = String(pz.p["flag"])
 			co.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
 			cont.add_child(co)
 			pz.nodo = co
@@ -1997,6 +2013,12 @@ func _crear(pz: Pieza) -> void:
 			eg.preparar(pz.celda, String(pz.p.get("cae", "")), String(pz.p.get("flag", "")), mundo as Node)
 			cont.add_child(eg)
 			pz.nodo = eg
+		"geoda":
+			var ge := GeodaPulso3D.new()
+			ge.name = pz.id
+			ge.preparar(pz.celda, String(pz.p.get("flag", "")), float(pz.p.get("escala", 1.0)), mundo as Node, float(pz.p.get("cerca", 0.0)))
+			cont.add_child(ge)
+			pz.nodo = ge
 		"estatuas":
 			if not pz.p.has("celdas") or not pz.p.has("secuencia") or (pz.p["celdas"] as Array).size() != (pz.p["secuencia"] as Array).size():
 				_avisar_pieza(pz, "las estatuas necesitan «celdas=<casillas>» y «secuencia=<elementos>» con el mismo número de cada (una estatua por casilla)")

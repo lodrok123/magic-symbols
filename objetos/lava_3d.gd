@@ -143,6 +143,7 @@ var vuelve: float = 0.0
 var is_lit: bool = false                ## queda lava (como el `is_lit` de Reactivo3D: lo leen Puzle3D y el contador)
 var _lava: Dictionary = {}              ## Vector2i -> true mientras es lava
 var _roca: Dictionary = {}              ## Vector2i -> s que le quedan de calor (y, con `vuelve`, para volver a ser lava)
+var _puente: Dictionary = {}            ## Vector2i -> true: casillas cubiertas por un PUENTE permanente (una columna caída): no vuelven a ser lava
 var _rect: Rect2i = Rect2i()
 var _img: Image = null
 var _tex: ImageTexture = null
@@ -217,6 +218,7 @@ func _ready() -> void:
 		var caja := BoxShape3D.new()
 		caja.size = Vector3(s, 0.4, s)
 		f.shape = caja
+		f.disabled = _puente.has(c)         # un puente tendido antes de montar la lava (nivel recargado con la columna ya caída) no es lava
 		f.position = Vector3((float(c.x) + 0.5) * s, y + 0.2, (float(c.y) + 0.5) * s)
 		add_child(f)
 		_formas[c] = f
@@ -229,6 +231,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	for c in _roca:
+		Terreno3D.conductores.erase(c)
+	for c in _puente:
 		Terreno3D.conductores.erase(c)
 	if Mundo3D.actual != null and Mundo3D.actual.impacto.is_connected(_al_impacto):
 		Mundo3D.actual.impacto.disconnect(_al_impacto)
@@ -261,6 +265,31 @@ func _process(delta: float) -> void:
 ## ¿Esta casilla es roca enfriada (todavía no ha vuelto a ser lava)? Lo lee Puzle3D en `casilla(x,y).roca` y el basalto de la Cueva.
 func es_roca(c: Vector2i) -> bool:
 	return _roca.has(c)
+
+
+## ¿Esta casilla está cubierta por un puente permanente (`tender_puente`)?
+func es_puente(c: Vector2i) -> bool:
+	return _puente.has(c)
+
+
+## PUENTE (26/10, C3): una columna caída cubre la casilla `c` de lava (o de roca enfriada) para siempre. A diferencia de enfriarla, la casilla no vuelve a ser lava
+## (`vuelve` no la toca), se pisa y CONDUCE el pulso (puente de piedra, PLAN_PULSO_RESONANTE §5). No cuenta como `roca` (`es_roca`), así que el basalto de al lado no se
+## puede coger sobre ella. Devuelve false si `c` no es una casilla de este charco. Cuando ya no queda lava emite `apagada`, como al enfriar la última.
+func tender_puente(c: Vector2i) -> bool:
+	if not _lava.has(c) and not _roca.has(c):
+		return false
+	_lava.erase(c)
+	_roca.erase(c)
+	_puente[c] = true
+	Terreno3D.conductores[c] = true
+	_pixel(c)
+	Terreno3D.liberar_celda(c)
+	if _formas.has(c):
+		(_formas[c] as CollisionShape3D).disabled = true
+	if _lava.is_empty() and _roca.is_empty():
+		is_lit = false
+		apagada.emit()
+	return true
 
 
 ## --- Contrato con los hechizos ---

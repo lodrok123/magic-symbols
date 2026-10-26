@@ -43,7 +43,7 @@
 ; pieza a_bosque salida 3 18 celdas=3,18..5,18 a=Bosque_01_v01:boca_cueva
 ; --- Jarrones (mapas abiertos, 23/10): el botín lo decide la zona (`cueva`: oro, y a veces una esquirla de cristal) ---
 ; (contra la pared del fondo y no en la fila 18: el muro sur los tapa a la cámara)
-; pieza jarron_c1a jarron 1 13 botin=oro
+; pieza jarron_c1a jarron 1 12 botin=oro
 ; pieza jarron_c1b jarron 8 14 botin=pocion
 ; pieza jarron_c6a jarron 17 11 botin=oro
 ; pieza jarron_c6b jarron 10 12 alto=si botin=oro
@@ -63,6 +63,8 @@
 ; Fase 3: un hechizo de FUEGO sobre el cristal manda un pulso de fuego que llega al brasero del fondo de la veta (2,12) y lo enciende; el cristal da una esquirla a los 2 golpes.
 ; pieza latido_c1 cristal 6 15 cada=3
 ; pieza veta_c1 veta 5 15 celdas=5,15..2,15+2,14..2,13
+; 26/10 (Pablo: «una demostración anterior»): la GEODA EXPLOSIVA de C1. El final de la veta (2,13) la toca: el primer latido del cristal con la jugadora a 3 casillas o menos (`cerca=3`, para que se vea) la carga y EXPLOTA, rompiendo el jarrón de al lado (jarron_c1a, 1,12). Es la lección de C3: un pulso en una geoda es una explosión que tumba lo que tiene cerca.
+; pieza geoda_c1 geoda 1 13 flag=cueva.c1.geoda escala=1.2 cerca=3
 ; --- C1 · El secreto de las estatuas (fase 3, PLAN_PULSO_RESONANTE §5): bajo la pared sur, una PARED HUECA que solo abre el pulso del jugador (ᚱ). Dentro, tres estatuas piden fuego, hielo, fuego ---
 ; (con el pulso del escenario la pared solo hace eco; el nicho está bajo C1 para que se llegue tras el atajo de C6, que sale justo en C1)
 ; pieza hueca_c1 pared_hueca 7 19 flag=cueva.c1.nicho mira=n
@@ -124,8 +126,12 @@
 ; pieza receptor_c3 receptor 16 5 flag=cueva.c3.pulso
 ; pieza reja_c3 puerta 17 3
 ; pieza cofre_c3 cofre 17 1 abierto=cueva.c3.cofre da=oro:25+mineral_veta:1
-; 24/10 (tercera tanda): la geoda resonante de C3. La PARED HUECA de C3 que la guarda aún no está definida (docs/MATERIALES_CUEVA.md), así que va de ADORNO en la orilla oeste del río, junto a la lava (docs/PENDIENTES.md).
-; pieza geoda_c3 decorado 12 2 modelo=geoda_resonante escala=1.2
+; 26/10 (Pablo: «que la lava siga y una columna haga de puente»): la GEODA de C3 ya no es de adorno. Un cristal de la orilla oeste (10,1) solo late cuando se le golpea con un hechizo (`cada=0`); su veta (10,2) lleva el pulso a la geoda (11,2), que EXPLOTA y tumba la COLUMNA (12,2) hacia el este. La columna se estira, cae sobre las dos casillas de lava de la fila 2 y se queda de PUENTE permanente (la lava sigue ahí en el resto del río y el basalto/agua de la otra solución sigue valiendo). `golpes=99`: solo la explosión la tumba, no los pulsos.
+; (la columna no queda pegada a ninguna veta: si lo estuviera, los latidos del cristal de la fila 5 la agrietarían una y otra vez)
+; pieza cristal_geoda cristal 10 1 cada=0
+; pieza veta_geoda veta 10 2
+; pieza geoda_c3 geoda 11 2 flag=cueva.c3.geoda escala=1.2
+; pieza puente_c3 columna 12 2 golpes=99 cae=e puente=rio largo=2 flag=cueva.c3.puente
 ; puzle abre_reja cuando=receptor_c3.activado hace=reja_c3.abrir
 ; --- C4 · Sala cerrada: cofre con la llave ---
 ; `hasta=` : con la sala ya limpia (se volvió de otro nivel) ni se cierra ni se quedan los goblins (el vigía los retira al montar).

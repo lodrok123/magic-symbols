@@ -30,6 +30,9 @@ const MODELO_COLUMNA: String = "columna_agrietada"
 const T_CAER: float = 0.75              ## s que tarda la columna en tumbarse
 const DIRS_CAIDA: Dictionary = {"n": Vector3(0.0, 0.0, -1.0), "e": Vector3(1.0, 0.0, 0.0), "s": Vector3(0.0, 0.0, 1.0), "o": Vector3(-1.0, 0.0, 0.0)}
 const ESPERA_DESHACER: float = 0.6      ## s que la columna caída se queda en el suelo antes de deshacerse
+const ALTO_COLUMNA: float = 2.5         ## u: lo que mide la columna en pie (Pieza3D.MEDIDA["columna_agrietada"]); base del estirado de la columna-puente
+const SOLAPE_ORILLA: float = 0.35       ## u que la columna-puente se apoya sobre la orilla de enfrente
+const HUNDIR_PUENTE: float = 0.1        ## u que se hunde la columna-puente tendida: poco, o el fuste (más fino que la base) queda por debajo de la superficie de la lava y solo asoma la base
 
 const CODIGO: String = """
 shader_type spatial;
@@ -192,6 +195,10 @@ var por_pulso: bool = false             ## ¿la rompen los pulsos (columna) en v
 var cae: String = "s"                   ## columna: hacia dónde se tumba (n|e|s|o)
 var pulsos_recibidos: int = 0           ## columna: pulsos que la han golpeado (las pruebas)
 var cayendo: bool = false               ## columna: está tumbándose
+var puente: Lava3D = null               ## columna-PUENTE (C3): la lava sobre la que se tumba; al caer cubre sus casillas para siempre (`Lava3D.tender_puente`)
+var largo_puente: float = 0.0           ## columna-PUENTE: casillas que alcanza al caer (se estira mientras se tumba para llegar a la otra orilla)
+var flag: String = ""                   ## columna: se acuerda de que cayó (la pone al caer; con ella ya puesta nace caída y, si es puente, ya tendida)
+var cubiertas: Array[Vector2i] = []     ## columna-PUENTE: las casillas de lava que cubrió (las pruebas)
 
 
 ## `mundo` = la maqueta (da el modelo con su escala de `Pieza3D.MEDIDA_ANCHO`); sin ella se carga `arte/piezas/muro_agrietado.tscn`.
@@ -210,6 +217,14 @@ func como_columna(p_cae: String = "s") -> void:
 	cae = p_cae if DIRS_CAIDA.has(p_cae) else "s"
 
 
+## 26/10 (C3, Pablo: «la lava sigue y una columna hace de puente»): la columna, al caer hacia `cae`, se estira hasta `p_largo` casillas y CUBRE para siempre las casillas de `p_lava` que
+## quedan bajo ella (`Lava3D.tender_puente`): se pisan y conducen el pulso. Con `p_flag` se acuerda de que cayó (nace ya tendida). Se llama antes de añadirlo al árbol.
+func como_puente(p_lava: Lava3D, p_largo: float, p_flag: String = "") -> void:
+	puente = p_lava
+	largo_puente = maxf(p_largo, 1.0)
+	flag = p_flag
+
+
 func _ready() -> void:
 	monitoring = false
 	monitorable = true
@@ -217,8 +232,11 @@ func _ready() -> void:
 	collision_layer = Lanzador3D.CAPA_REACTIVO
 	if por_pulso:
 		add_to_group(Pulso3D.GRUPO_PULSABLE)
+		add_to_group("explosionable")        # 26/10: la geoda explosiva (GeodaPulso3D) también la tumba
 	else:
 		add_to_group("explosionable")
+	if por_pulso and flag != "" and Flags.i().tiene(flag):
+		_nacer_caida.call_deferred()
 	var ancho: float = Terreno3D.casilla * 0.96
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
@@ -357,12 +375,17 @@ func romper() -> void:
 func _caer() -> void:
 	cayendo = true
 	_poner_grietas(1.0)
+	if flag != "" and not Flags.i().tiene(flag):
+		Flags.i().poner(flag)
 	var dir: Vector3 = DIRS_CAIDA[cae]
 	var eje: Vector3 = Vector3.UP.cross(dir)
 	var base: Basis = _cuerpo.basis
+	var k: float = _estirado()
 	var tw: Tween = create_tween()
-	tw.tween_method(func(a: float) -> void: _cuerpo.basis = Basis(eje, a) * base, 0.0, PI * 0.5, T_CAER).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_method(func(a: float) -> void: _cuerpo.basis = Basis(eje, a) * base * Basis.from_scale(Vector3(1.0, lerpf(1.0, k, a / (PI * 0.5)), 1.0)), 0.0, PI * 0.5, T_CAER).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(_aterrizar)
+	if puente != null:
+		return                              # la columna-puente se queda tendida: no se deshace
 	tw.tween_interval(ESPERA_DESHACER)
 	if _capa != null:
 		tw.tween_callback(func() -> void:
@@ -378,6 +401,48 @@ func _aterrizar() -> void:
 	if get_parent() is Node3D:
 		var donde: Vector3 = global_position + DIRS_CAIDA[cae] * (Terreno3D.casilla * 0.9) + Vector3(0.0, 0.1, 0.0)
 		VfxPuzle3D.polvo(get_parent() as Node3D, donde, 1.4)
+	if puente != null:
+		_tender()
+		var tw: Tween = create_tween()
+		tw.tween_property(_cuerpo, "position:y", _cuerpo.position.y - HUNDIR_PUENTE, 0.25)      # se hunde en la roca: el viga queda a ras, no un muro por el que se atraviesa
+
+
+## Factor en que se estira la columna-puente a lo largo de su eje para llegar de su casilla a la orilla de enfrente (1 si no es puente): hasta el borde lejano de la última casilla
+## de lava más `SOLAPE_ORILLA` u sobre la orilla.
+func _estirado() -> float:
+	if puente == null:
+		return 1.0
+	return ((largo_puente + 0.5) * Terreno3D.casilla + SOLAPE_ORILLA) / ALTO_COLUMNA
+
+
+## Cubre de lava (puente permanente) las `largo_puente` casillas que quedan bajo la columna caída, hacia `cae`.
+func _tender() -> void:
+	var d: Vector3 = DIRS_CAIDA[cae]
+	var paso := Vector2i(int(d.x), int(d.z))
+	cubiertas.clear()
+	for i in range(1, int(ceil(largo_puente)) + 1):
+		var c: Vector2i = celda + paso * i
+		if puente.tender_puente(c):
+			cubiertas.append(c)
+
+
+## Con la flag de la caída ya puesta (se volvió al nivel): nace ya caída. Un puente nace ya tendido; una columna normal ya se deshizo, así que no se ve.
+func _nacer_caida() -> void:
+	if roto_ya or _cuerpo == null:
+		return
+	roto_ya = true
+	collision_layer = 0
+	remove_from_group("explosionable")
+	remove_from_group(Pulso3D.GRUPO_PULSABLE)
+	Terreno3D.liberar_celda(celda)
+	if puente == null:
+		_cuerpo.visible = false
+		return
+	var dir: Vector3 = DIRS_CAIDA[cae]
+	_poner_grietas(1.0)
+	_cuerpo.basis = Basis(Vector3.UP.cross(dir), PI * 0.5) * _cuerpo.basis * Basis.from_scale(Vector3(1.0, _estirado(), 1.0))
+	_cuerpo.position.y -= HUNDIR_PUENTE
+	_tender()
 
 
 ## Abre más grietas (`fraccion` 0..1 de los golpes que lleva) y tiembla un instante.
