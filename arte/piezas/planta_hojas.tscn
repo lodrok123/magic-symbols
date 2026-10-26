@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/planta_hojas.glb" id="1_ceolt"]
+
+[node name="planta_hojas" type="Node3D" unique_id=497553003]
+metadata/id = "planta_hojas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=701754685]
+
+[node name="planta_hojas2" type="Node3D" parent="modelo" unique_id=1169938799 instance=ExtResource("1_ceolt")]
+transform = Transform3D(4.7204485, 0, 0, 0, 4.7204485, 0, 0, 0, 4.7204485, 0, 0, 0)

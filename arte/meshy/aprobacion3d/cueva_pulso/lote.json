@@ -1,0 +1,217 @@
+{
+ "bloque_enlace": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 600,
+  "niveles": {
+   "2000": {
+    "archivo": "bloque_enlace_2000.glb",
+    "tris": 2000,
+    "kb": 275
+   },
+   "1500": {
+    "archivo": "bloque_enlace_1500.glb",
+    "tris": 1500,
+    "kb": 227
+   },
+   "1000": {
+    "archivo": "bloque_enlace_1000.glb",
+    "tris": 1000,
+    "kb": 178
+   },
+   "600": {
+    "archivo": "bloque_enlace.glb",
+    "tris": 600,
+    "kb": 138
+   },
+   "400": {
+    "archivo": "bloque_enlace_400.glb",
+    "tris": 400,
+    "kb": 118
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 1.7
+ },
+ "cristal_resonante": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "2000": {
+    "archivo": "cristal_resonante_2000.glb",
+    "tris": 2000,
+    "kb": 314
+   },
+   "1500": {
+    "archivo": "cristal_resonante_1500.glb",
+    "tris": 1500,
+    "kb": 268
+   },
+   "1200": {
+    "archivo": "cristal_resonante.glb",
+    "tris": 1200,
+    "kb": 239
+   },
+   "1000": {
+    "archivo": "cristal_resonante_1000.glb",
+    "tris": 1000,
+    "kb": 219
+   },
+   "600": {
+    "archivo": "cristal_resonante_600.glb",
+    "tris": 600,
+    "kb": 179
+   },
+   "400": {
+    "archivo": "cristal_resonante_400.glb",
+    "tris": 400,
+    "kb": 159
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 2.5
+ },
+ "estatua_piedra": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2000,
+  "niveles": {
+   "2000": {
+    "archivo": "estatua_piedra.glb",
+    "tris": 2000,
+    "kb": 319
+   },
+   "1500": {
+    "archivo": "estatua_piedra_1500.glb",
+    "tris": 1500,
+    "kb": 269
+   },
+   "1000": {
+    "archivo": "estatua_piedra_1000.glb",
+    "tris": 1000,
+    "kb": 219
+   },
+   "600": {
+    "archivo": "estatua_piedra_600.glb",
+    "tris": 600,
+    "kb": 179
+   },
+   "400": {
+    "archivo": "estatua_piedra_400.glb",
+    "tris": 400,
+    "kb": 159
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 3.8
+ },
+ "prisma_orientable": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1000,
+  "niveles": {
+   "2000": {
+    "archivo": "prisma_orientable_2000.glb",
+    "tris": 2000,
+    "kb": 312
+   },
+   "1500": {
+    "archivo": "prisma_orientable_1500.glb",
+    "tris": 1500,
+    "kb": 264
+   },
+   "1000": {
+    "archivo": "prisma_orientable.glb",
+    "tris": 1000,
+    "kb": 215
+   },
+   "600": {
+    "archivo": "prisma_orientable_600.glb",
+    "tris": 600,
+    "kb": 175
+   },
+   "400": {
+    "archivo": "prisma_orientable_400.glb",
+    "tris": 400,
+    "kb": 154
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 3.3
+ },
+ "columna_agrietada": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1000,
+  "niveles": {
+   "2000": {
+    "archivo": "columna_agrietada_2000.glb",
+    "tris": 2000,
+    "kb": 317
+   },
+   "1500": {
+    "archivo": "columna_agrietada_1500.glb",
+    "tris": 1500,
+    "kb": 269
+   },
+   "1000": {
+    "archivo": "columna_agrietada.glb",
+    "tris": 1000,
+    "kb": 219
+   },
+   "600": {
+    "archivo": "columna_agrietada_600.glb",
+    "tris": 600,
+    "kb": 179
+   },
+   "400": {
+    "archivo": "columna_agrietada_400.glb",
+    "tris": 400,
+    "kb": 159
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 3.4
+ },
+ "receptor_runico": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1000,
+  "niveles": {
+   "2000": {
+    "archivo": "receptor_runico_2000.glb",
+    "tris": 2000,
+    "kb": 312
+   },
+   "1500": {
+    "archivo": "receptor_runico_1500.glb",
+    "tris": 1500,
+    "kb": 267
+   },
+   "1000": {
+    "archivo": "receptor_runico.glb",
+    "tris": 1000,
+    "kb": 219
+   },
+   "600": {
+    "archivo": "receptor_runico_600.glb",
+    "tris": 600,
+    "kb": 179
+   },
+   "400": {
+    "archivo": "receptor_runico_400.glb",
+    "tris": 400,
+    "kb": 152
+   }
+  },
+  "origen": "cueva_pulso.glb",
+  "nota": "",
+  "seg": 2.9
+ }
+}

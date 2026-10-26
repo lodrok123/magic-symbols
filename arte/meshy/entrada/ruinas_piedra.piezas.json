@@ -1,0 +1,16 @@
+{
+ "p0": {"trozos": [0], "id": "pilar_cascada", "tris": 2500, "directo": true, "nota": "F1: el estrecho, entre cortinas"},
+ "p1": {"trozos": [1], "id": "geoda_resonante", "tris": 2500, "directo": true, "nota": "F2: geoda de la pared hueca de C3"},
+ "p2": {"trozos": [2], "id": "pilar_cascada_ancho", "tris": 2500, "directo": true, "nota": "F1: el de los flancos"},
+ "p3": {"trozos": [3], "id": "estalagmita_resonante", "tris": 1200, "directo": true, "nota": "F2: vibra con el pulso en C4"},
+ "p4": {"trozos": [4], "id": "labio_cascada", "tris": 1500, "directo": true, "nota": "F1: borde de la cornisa"},
+ "p5": {"trozos": [5, 6], "id": "estalagmita_rota", "tris": 1200, "directo": true, "nota": "F2: el tocón (#5) y la punta tumbada (#6) juntos"},
+ "p7": {"trozos": [7], "id": "brasero_cueva", "tris": 1200, "directo": true, "nota": "F2"},
+ "p8": {"trozos": [8], "id": "rocas_salpicadura", "tris": 1200, "directo": true, "nota": "F1: al pie de la caída"},
+ "p9": {"trozos": [9], "id": "alga_cueva", "tris": 800, "directo": true, "nota": "D3: sale de pie, no tumbada como pedía el prompt"},
+ "p10": {"trozos": [10], "id": "musgo_colgante", "tris": 1500, "directo": true, "nota": "F1"},
+ "p11": {"trozos": [11], "id": "basalto_suelto", "tris": 400, "directo": true, "nota": "D3: sale gris, no carbón"},
+ "p12": {"trozos": [12], "id": "esquirla_cristal", "tris": 400, "directo": true, "nota": "D3"},
+ "p13": {"trozos": [13], "id": "helechos_cueva", "tris": 2500, "directo": true, "nota": "F1"},
+ "p14": {"trozos": [14], "id": "jarron_roto", "tris": 800, "directo": true, "nota": "D3"}
+}

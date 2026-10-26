@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/hierba_espesa.glb" id="1_egrgc"]
+
+[node name="hierba_espesa" type="Node3D" unique_id=1033460180]
+metadata/id = "hierba_espesa"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=538804848]
+
+[node name="hierba_espesa2" type="Node3D" parent="modelo" unique_id=1222822542 instance=ExtResource("1_egrgc")]
+transform = Transform3D(5.71454, 0, 0, 0, 5.71454, 0, 0, 0, 5.71454, 0, 0, 0)

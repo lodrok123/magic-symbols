@@ -1,0 +1,734 @@
+[gd_scene format=3 uid="uid://cg5b7ndulye4w"]
+
+[ext_resource type="MeshLibrary" uid="uid://byabxgkhdvwh3" path="res://mundo/datos_nivel/suelo_tipos.tres" id="1_lib"]
+[ext_resource type="Script" uid="uid://cy3502rx2dcsj" path="res://mundo/marcador_3d.gd" id="99_mk"]
+[ext_resource type="PackedScene" path="res://arte/piezas/abedul_amarillo.tscn" id="p2_abedul_amarillo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbol_viejo.tscn" id="p3_arbol_viejo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sauce.tscn" id="p4_sauce"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon_alto.tscn" id="p5_tocon_alto"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon_hueco.tscn" id="p6_tocon_hueco"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon_roca.tscn" id="p7_tocon_roca"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon_seco.tscn" id="p8_tocon_seco"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tronco_enredadera.tscn" id="p9_tronco_enredadera"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tronco_seco.tscn" id="p10_tronco_seco"]
+[ext_resource type="PackedScene" path="res://arte/piezas/roca_hueca.tscn" id="p11_roca_hueca"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cuenco_piedra.tscn" id="p12_cuenco_piedra"]
+[ext_resource type="PackedScene" path="res://arte/piezas/laja_piedra.tscn" id="p13_laja_piedra"]
+[ext_resource type="PackedScene" path="res://arte/piezas/valla_lianas.tscn" id="p14_valla_lianas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto_bayas.tscn" id="p15_arbusto_bayas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto_flores.tscn" id="p16_arbusto_flores"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_hierba.tscn" id="p17_bloque_hierba"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cubo_hielo.tscn" id="p18_cubo_hielo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/nenufar.tscn" id="p19_nenufar"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_roja.tscn" id="p20_bloque_runa_roja"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_naranja.tscn" id="p21_bloque_runa_naranja"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_amarilla.tscn" id="p22_bloque_runa_amarilla"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_verde.tscn" id="p23_bloque_runa_verde"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_azul.tscn" id="p24_bloque_runa_azul"]
+[ext_resource type="PackedScene" path="res://arte/piezas/bloque_runa_cian.tscn" id="p25_bloque_runa_cian"]
+[ext_resource type="PackedScene" path="res://arte/piezas/ramas_suelo.tscn" id="p26_ramas_suelo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/raices_musgo.tscn" id="p27_raices_musgo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/raices_secas.tscn" id="p28_raices_secas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_roja.tscn" id="p29_cartel_runa_roja"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_naranja.tscn" id="p30_cartel_runa_naranja"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_amarilla.tscn" id="p31_cartel_runa_amarilla"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_verde.tscn" id="p32_cartel_runa_verde"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_azul.tscn" id="p33_cartel_runa_azul"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel_runa_cian.tscn" id="p34_cartel_runa_cian"]
+[ext_resource type="PackedScene" path="res://arte/piezas/hojas_monton.tscn" id="p35_hojas_monton"]
+[ext_resource type="PackedScene" path="res://arte/piezas/setas_amarillas.tscn" id="p36_setas_amarillas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/planta_agua.tscn" id="p37_planta_agua"]
+[ext_resource type="PackedScene" path="res://arte/piezas/flores_amarillas.tscn" id="p38_flores_amarillas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/flores_colores.tscn" id="p39_flores_colores"]
+[ext_resource type="PackedScene" path="res://arte/piezas/helecho_ancho.tscn" id="p40_helecho_ancho"]
+[ext_resource type="PackedScene" path="res://arte/piezas/hierba_espesa.tscn" id="p41_hierba_espesa"]
+[ext_resource type="PackedScene" path="res://arte/piezas/planta_hojas.tscn" id="p42_planta_hojas"]
+[ext_resource type="PackedScene" path="res://arte/piezas/planta_violeta.tscn" id="p43_planta_violeta"]
+[ext_resource type="PackedScene" path="res://arte/piezas/nenufar_flor.tscn" id="p44_nenufar_flor"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arco_ruina.tscn" id="p45_arco_ruina"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arco_puerta.tscn" id="p46_arco_puerta"]
+[ext_resource type="PackedScene" uid="uid://bgjtetgpgabks" path="res://arte/piezas/puerta_goblin.tscn" id="p47_puerta_goblin"]
+[ext_resource type="PackedScene" uid="uid://g7nxu2eg83p6" path="res://arte/piezas/empalizada_goblin.tscn" id="p48_empalizada_goblin"]
+[ext_resource type="PackedScene" uid="uid://btgascy127oog" path="res://arte/piezas/torre_goblin.tscn" id="p49_torre_goblin"]
+[ext_resource type="PackedScene" uid="uid://51doaqrwasfi" path="res://arte/piezas/puesto_mercado.tscn" id="p50_puesto_mercado"]
+[ext_resource type="PackedScene" path="res://arte/piezas/pino.tscn" id="p51_pino"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbol_redondo.tscn" id="p52_arbol_redondo"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tronco_musgoso.tscn" id="p53_tronco_musgoso"]
+
+[node name="Nivel_Piezas_Nuevas" type="Node3D" unique_id=397376567]
+metadata/lado = 30
+metadata/nombre = "Piezas_Nuevas"
+metadata/origen = "banco_piezas_nuevas"
+metadata/horneado = "2026-10-21T08:00:00"
+
+[node name="Suelo" type="GridMap" parent="." unique_id=1793117633]
+mesh_library = ExtResource("1_lib")
+cell_size = Vector3(2.3, 1.035, 2.3)
+cell_center_y = false
+data = {
+"cells": PackedInt32Array(0, 0, 5, 1, 0, 5, 2, 0, 5, 3, 0, 5, 4, 0, 5, 5, 0, 5, 6, 0, 5, 7, 0, 5, 8, 0, 5, 9, 0, 5, 10, 0, 5, 11, 0, 5, 12, 0, 5, 13, 0, 5, 14, 0, 5, 15, 0, 5, 16, 0, 5, 17, 0, 5, 18, 0, 5, 19, 0, 5, 20, 0, 5, 21, 0, 5, 22, 0, 5, 23, 0, 5, 24, 0, 5, 25, 0, 5, 26, 0, 5, 27, 0, 5, 28, 0, 5, 29, 0, 5, 0, 1, 5, 1, 1, 5, 2, 1, 5, 3, 1, 5, 4, 1, 5, 5, 1, 5, 6, 1, 5, 7, 1, 5, 8, 1, 5, 9, 1, 5, 10, 1, 5, 11, 1, 5, 12, 1, 5, 13, 1, 5, 14, 1, 5, 15, 1, 5, 16, 1, 5, 17, 1, 5, 18, 1, 5, 19, 1, 5, 20, 1, 5, 21, 1, 5, 22, 1, 5, 23, 1, 5, 24, 1, 5, 25, 1, 5, 26, 1, 5, 27, 1, 5, 28, 1, 5, 29, 1, 5, 0, 2, 5, 1, 2, 5, 2, 2, 5, 3, 2, 5, 4, 2, 5, 5, 2, 5, 6, 2, 5, 7, 2, 5, 8, 2, 5, 9, 2, 5, 10, 2, 5, 11, 2, 5, 12, 2, 5, 13, 2, 5, 14, 2, 5, 15, 2, 5, 16, 2, 5, 17, 2, 5, 18, 2, 5, 19, 2, 5, 20, 2, 5, 21, 2, 5, 22, 2, 5, 23, 2, 5, 24, 2, 5, 25, 2, 5, 26, 2, 5, 27, 2, 5, 28, 2, 5, 29, 2, 5, 0, 3, 5, 1, 3, 5, 2, 3, 5, 3, 3, 5, 4, 3, 5, 5, 3, 5, 6, 3, 5, 7, 3, 5, 8, 3, 5, 9, 3, 5, 10, 3, 5, 11, 3, 5, 12, 3, 5, 13, 3, 5, 14, 3, 5, 15, 3, 5, 16, 3, 5, 17, 3, 5, 18, 3, 5, 19, 3, 5, 20, 3, 5, 21, 3, 5, 22, 3, 5, 23, 3, 5, 24, 3, 5, 25, 3, 5, 26, 3, 5, 27, 3, 5, 28, 3, 5, 29, 3, 5, 0, 4, 5, 1, 4, 5, 2, 4, 5, 3, 4, 5, 4, 4, 5, 5, 4, 5, 6, 4, 5, 7, 4, 5, 8, 4, 5, 9, 4, 5, 10, 4, 5, 11, 4, 5, 12, 4, 5, 13, 4, 5, 14, 4, 5, 15, 4, 5, 16, 4, 5, 17, 4, 5, 18, 4, 5, 19, 4, 5, 20, 4, 5, 21, 4, 5, 22, 4, 5, 23, 4, 5, 24, 4, 5, 25, 4, 5, 26, 4, 5, 27, 4, 5, 28, 4, 5, 29, 4, 5, 0, 5, 5, 1, 5, 5, 2, 5, 5, 3, 5, 5, 4, 5, 5, 5, 5, 5, 6, 5, 5, 7, 5, 5, 8, 5, 5, 9, 5, 5, 10, 5, 5, 11, 5, 5, 12, 5, 5, 13, 5, 5, 14, 5, 5, 15, 5, 5, 16, 5, 5, 17, 5, 5, 18, 5, 5, 19, 5, 5, 20, 5, 5, 21, 5, 5, 22, 5, 5, 23, 5, 5, 24, 5, 5, 25, 5, 5, 26, 5, 5, 27, 5, 5, 28, 5, 5, 29, 5, 5, 0, 6, 5, 1, 6, 5, 2, 6, 5, 3, 6, 5, 4, 6, 5, 5, 6, 5, 6, 6, 5, 7, 6, 5, 8, 6, 5, 9, 6, 5, 10, 6, 5, 11, 6, 5, 12, 6, 5, 13, 6, 5, 14, 6, 5, 15, 6, 5, 16, 6, 5, 17, 6, 5, 18, 6, 5, 19, 6, 5, 20, 6, 5, 21, 6, 5, 22, 6, 5, 23, 6, 5, 24, 6, 5, 25, 6, 5, 26, 6, 5, 27, 6, 5, 28, 6, 5, 29, 6, 5, 0, 7, 5, 1, 7, 5, 2, 7, 5, 3, 7, 5, 4, 7, 5, 5, 7, 5, 6, 7, 5, 7, 7, 5, 8, 7, 5, 9, 7, 5, 10, 7, 5, 11, 7, 5, 12, 7, 5, 13, 7, 5, 14, 7, 5, 15, 7, 5, 16, 7, 5, 17, 7, 5, 18, 7, 5, 19, 7, 5, 20, 7, 5, 21, 7, 5, 22, 7, 5, 23, 7, 5, 24, 7, 5, 25, 7, 5, 26, 7, 5, 27, 7, 5, 28, 7, 5, 29, 7, 5, 0, 8, 5, 1, 8, 5, 2, 8, 5, 3, 8, 5, 4, 8, 5, 5, 8, 5, 6, 8, 5, 7, 8, 5, 8, 8, 5, 9, 8, 5, 10, 8, 5, 11, 8, 5, 12, 8, 5, 13, 8, 5, 14, 8, 5, 15, 8, 5, 16, 8, 5, 17, 8, 5, 18, 8, 5, 19, 8, 5, 20, 8, 5, 21, 8, 5, 22, 8, 5, 23, 8, 5, 24, 8, 5, 25, 8, 5, 26, 8, 5, 27, 8, 5, 28, 8, 5, 29, 8, 5, 0, 9, 5, 1, 9, 5, 2, 9, 5, 3, 9, 5, 4, 9, 5, 5, 9, 5, 6, 9, 5, 7, 9, 5, 8, 9, 5, 9, 9, 5, 10, 9, 5, 11, 9, 5, 12, 9, 5, 13, 9, 5, 14, 9, 5, 15, 9, 5, 16, 9, 5, 17, 9, 5, 18, 9, 5, 19, 9, 5, 20, 9, 5, 21, 9, 5, 22, 9, 5, 23, 9, 5, 24, 9, 5, 25, 9, 5, 26, 9, 5, 27, 9, 5, 28, 9, 5, 29, 9, 5, 0, 10, 5, 1, 10, 5, 2, 10, 5, 3, 10, 5, 4, 10, 5, 5, 10, 5, 6, 10, 5, 7, 10, 5, 8, 10, 5, 9, 10, 5, 10, 10, 5, 11, 10, 5, 12, 10, 5, 13, 10, 5, 14, 10, 5, 15, 10, 5, 16, 10, 5, 17, 10, 5, 18, 10, 5, 19, 10, 5, 20, 10, 5, 21, 10, 5, 22, 10, 5, 23, 10, 5, 24, 10, 5, 25, 10, 5, 26, 10, 5, 27, 10, 5, 28, 10, 5, 29, 10, 5, 0, 11, 5, 1, 11, 5, 2, 11, 5, 3, 11, 5, 4, 11, 5, 5, 11, 5, 6, 11, 5, 7, 11, 5, 8, 11, 5, 9, 11, 5, 10, 11, 5, 11, 11, 5, 12, 11, 5, 13, 11, 5, 14, 11, 5, 15, 11, 5, 16, 11, 5, 17, 11, 5, 18, 11, 5, 19, 11, 5, 20, 11, 5, 21, 11, 5, 22, 11, 5, 23, 11, 5, 24, 11, 5, 25, 11, 5, 26, 11, 5, 27, 11, 5, 28, 11, 5, 29, 11, 5, 0, 12, 5, 1, 12, 5, 2, 12, 5, 3, 12, 5, 4, 12, 5, 5, 12, 5, 6, 12, 5, 7, 12, 5, 8, 12, 5, 9, 12, 5, 10, 12, 5, 11, 12, 5, 12, 12, 5, 13, 12, 5, 14, 12, 5, 15, 12, 5, 16, 12, 5, 17, 12, 5, 18, 12, 5, 19, 12, 5, 20, 12, 5, 21, 12, 5, 22, 12, 5, 23, 12, 5, 24, 12, 5, 25, 12, 5, 26, 12, 5, 27, 12, 5, 28, 12, 5, 29, 12, 5, 0, 13, 5, 1, 13, 5, 2, 13, 5, 3, 13, 5, 4, 13, 5, 5, 13, 5, 6, 13, 5, 7, 13, 5, 8, 13, 5, 9, 13, 5, 10, 13, 5, 11, 13, 5, 12, 13, 5, 13, 13, 5, 14, 13, 5, 15, 13, 5, 16, 13, 5, 17, 13, 5, 18, 13, 5, 19, 13, 5, 20, 13, 5, 21, 13, 5, 22, 13, 5, 23, 13, 5, 24, 13, 5, 25, 13, 5, 26, 13, 5, 27, 13, 5, 28, 13, 5, 29, 13, 5, 0, 14, 5, 1, 14, 5, 2, 14, 5, 3, 14, 5, 4, 14, 5, 5, 14, 5, 6, 14, 5, 7, 14, 5, 8, 14, 5, 9, 14, 5, 10, 14, 5, 11, 14, 5, 12, 14, 5, 13, 14, 5, 14, 14, 5, 15, 14, 5, 16, 14, 5, 17, 14, 5, 18, 14, 5, 19, 14, 5, 20, 14, 5, 21, 14, 5, 22, 14, 5, 23, 14, 5, 24, 14, 5, 25, 14, 5, 26, 14, 5, 27, 14, 5, 28, 14, 5, 29, 14, 5, 0, 15, 5, 1, 15, 5, 2, 15, 5, 3, 15, 5, 4, 15, 5, 5, 15, 5, 6, 15, 5, 7, 15, 5, 8, 15, 5, 9, 15, 5, 10, 15, 5, 11, 15, 5, 12, 15, 5, 13, 15, 5, 14, 15, 5, 15, 15, 5, 16, 15, 5, 17, 15, 5, 18, 15, 5, 19, 15, 5, 20, 15, 5, 21, 15, 5, 22, 15, 5, 23, 15, 5, 24, 15, 5, 25, 15, 5, 26, 15, 5, 27, 15, 5, 28, 15, 5, 29, 15, 5, 0, 16, 5, 1, 16, 5, 2, 16, 5, 3, 16, 5, 4, 16, 5, 5, 16, 5, 6, 16, 5, 7, 16, 5, 8, 16, 5, 9, 16, 5, 10, 16, 5, 11, 16, 5, 12, 16, 5, 13, 16, 5, 14, 16, 5, 15, 16, 5, 16, 16, 5, 17, 16, 5, 18, 16, 5, 19, 16, 5, 20, 16, 5, 21, 16, 5, 22, 16, 5, 23, 16, 5, 24, 16, 5, 25, 16, 5, 26, 16, 5, 27, 16, 5, 28, 16, 5, 29, 16, 5, 0, 17, 5, 1, 17, 5, 2, 17, 5, 3, 17, 5, 4, 17, 5, 5, 17, 5, 6, 17, 5, 7, 17, 5, 8, 17, 5, 9, 17, 5, 10, 17, 5, 11, 17, 5, 12, 17, 5, 13, 17, 5, 14, 17, 5, 15, 17, 5, 16, 17, 5, 17, 17, 5, 18, 17, 5, 19, 17, 5, 20, 17, 5, 21, 17, 5, 22, 17, 5, 23, 17, 5, 24, 17, 5, 25, 17, 5, 26, 17, 5, 27, 17, 5, 28, 17, 5, 29, 17, 5, 0, 18, 5, 1, 18, 5, 2, 18, 5, 3, 18, 5, 4, 18, 5, 5, 18, 5, 6, 18, 5, 7, 18, 5, 8, 18, 5, 9, 18, 5, 10, 18, 5, 11, 18, 5, 12, 18, 5, 13, 18, 5, 14, 18, 5, 15, 18, 5, 16, 18, 5, 17, 18, 5, 18, 18, 5, 19, 18, 5, 20, 18, 5, 21, 18, 5, 22, 18, 5, 23, 18, 5, 24, 18, 5, 25, 18, 5, 26, 18, 5, 27, 18, 5, 28, 18, 5, 29, 18, 5, 0, 19, 5, 1, 19, 5, 2, 19, 5, 3, 19, 5, 4, 19, 5, 5, 19, 5, 6, 19, 5, 7, 19, 5, 8, 19, 5, 9, 19, 5, 10, 19, 5, 11, 19, 5, 12, 19, 5, 13, 19, 5, 14, 19, 5, 15, 19, 5, 16, 19, 5, 17, 19, 5, 18, 19, 5, 19, 19, 5, 20, 19, 5, 21, 19, 5, 22, 19, 5, 23, 19, 5, 24, 19, 5, 25, 19, 5, 26, 19, 5, 27, 19, 5, 28, 19, 5, 29, 19, 5)
+}
+
+[node name="Piezas" type="Node3D" parent="." unique_id=712874312]
+
+[node name="abedul_amarillo_2_2" parent="Piezas" unique_id=1037433797 instance=ExtResource("p2_abedul_amarillo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 5.75)
+
+[node name="arbol_viejo_5_2" parent="Piezas" unique_id=1163764336 instance=ExtResource("p3_arbol_viejo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 5.75)
+
+[node name="sauce_8_2" parent="Piezas" unique_id=2102666275 instance=ExtResource("p4_sauce")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 5.75)
+
+[node name="tocon_alto_11_2" parent="Piezas" unique_id=1443596533 instance=ExtResource("p5_tocon_alto")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 5.75)
+
+[node name="tocon_hueco_14_2" parent="Piezas" unique_id=1276783666 instance=ExtResource("p6_tocon_hueco")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 5.75)
+
+[node name="tocon_roca_17_2" parent="Piezas" unique_id=1597360517 instance=ExtResource("p7_tocon_roca")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 5.75)
+
+[node name="tocon_seco_20_2" parent="Piezas" unique_id=409898174 instance=ExtResource("p8_tocon_seco")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 5.75)
+
+[node name="tronco_enredadera_23_2" parent="Piezas" unique_id=373183049 instance=ExtResource("p9_tronco_enredadera")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.005, 5.75)
+
+[node name="tronco_seco_26_2" parent="Piezas" unique_id=270255773 instance=ExtResource("p10_tronco_seco")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.005, 5.75)
+
+[node name="roca_hueca_2_5" parent="Piezas" unique_id=1466355827 instance=ExtResource("p11_roca_hueca")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 12.65)
+
+[node name="cuenco_piedra_5_5" parent="Piezas" unique_id=1822714980 instance=ExtResource("p12_cuenco_piedra")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 12.65)
+
+[node name="laja_piedra_8_5" parent="Piezas" unique_id=990412141 instance=ExtResource("p13_laja_piedra")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 12.65)
+
+[node name="valla_lianas_11_5" parent="Piezas" unique_id=554568311 instance=ExtResource("p14_valla_lianas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 12.65)
+
+[node name="arbusto_bayas_14_5" parent="Piezas" unique_id=232529415 instance=ExtResource("p15_arbusto_bayas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 12.65)
+
+[node name="arbusto_flores_17_5" parent="Piezas" unique_id=537283836 instance=ExtResource("p16_arbusto_flores")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 12.65)
+
+[node name="bloque_hierba_20_5" parent="Piezas" unique_id=1229607651 instance=ExtResource("p17_bloque_hierba")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 12.65)
+
+[node name="cubo_hielo_23_5" parent="Piezas" unique_id=1734295795 instance=ExtResource("p18_cubo_hielo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.005, 12.65)
+
+[node name="nenufar_26_5" parent="Piezas" unique_id=1087878107 instance=ExtResource("p19_nenufar")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.005, 12.65)
+
+[node name="bloque_runa_roja_2_8" parent="Piezas" unique_id=1701286599 instance=ExtResource("p20_bloque_runa_roja")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 19.55)
+
+[node name="bloque_runa_naranja_5_8" parent="Piezas" unique_id=1767153412 instance=ExtResource("p21_bloque_runa_naranja")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 19.55)
+
+[node name="bloque_runa_amarilla_8_8" parent="Piezas" unique_id=1559264110 instance=ExtResource("p22_bloque_runa_amarilla")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 19.55)
+
+[node name="bloque_runa_verde_11_8" parent="Piezas" unique_id=1616790240 instance=ExtResource("p23_bloque_runa_verde")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 19.55)
+
+[node name="bloque_runa_azul_14_8" parent="Piezas" unique_id=1793998894 instance=ExtResource("p24_bloque_runa_azul")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 19.55)
+
+[node name="bloque_runa_cian_17_8" parent="Piezas" unique_id=1309041789 instance=ExtResource("p25_bloque_runa_cian")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 19.55)
+
+[node name="ramas_suelo_20_8" parent="Piezas" unique_id=737952665 instance=ExtResource("p26_ramas_suelo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 19.55)
+
+[node name="raices_musgo_23_8" parent="Piezas" unique_id=388763492 instance=ExtResource("p27_raices_musgo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.005, 19.55)
+
+[node name="raices_secas_26_8" parent="Piezas" unique_id=92545761 instance=ExtResource("p28_raices_secas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.005, 19.55)
+
+[node name="cartel_runa_roja_2_11" parent="Piezas" unique_id=254215296 instance=ExtResource("p29_cartel_runa_roja")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 26.45)
+
+[node name="cartel_runa_naranja_5_11" parent="Piezas" unique_id=1747758606 instance=ExtResource("p30_cartel_runa_naranja")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 26.45)
+
+[node name="cartel_runa_amarilla_8_11" parent="Piezas" unique_id=361707044 instance=ExtResource("p31_cartel_runa_amarilla")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 26.45)
+
+[node name="cartel_runa_verde_11_11" parent="Piezas" unique_id=572662705 instance=ExtResource("p32_cartel_runa_verde")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 26.45)
+
+[node name="cartel_runa_azul_14_11" parent="Piezas" unique_id=1725439111 instance=ExtResource("p33_cartel_runa_azul")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 26.45)
+
+[node name="cartel_runa_cian_17_11" parent="Piezas" unique_id=526314703 instance=ExtResource("p34_cartel_runa_cian")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 26.45)
+
+[node name="hojas_monton_20_11" parent="Piezas" unique_id=1472574992 instance=ExtResource("p35_hojas_monton")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 26.45)
+
+[node name="setas_amarillas_23_11" parent="Piezas" unique_id=1112122090 instance=ExtResource("p36_setas_amarillas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.005, 26.45)
+
+[node name="planta_agua_26_11" parent="Piezas" unique_id=1461290296 instance=ExtResource("p37_planta_agua")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.005, 26.45)
+
+[node name="flores_amarillas_2_14" parent="Piezas" unique_id=1168008473 instance=ExtResource("p38_flores_amarillas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 33.35)
+
+[node name="flores_colores_5_14" parent="Piezas" unique_id=1249908085 instance=ExtResource("p39_flores_colores")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 33.35)
+
+[node name="helecho_ancho_8_14" parent="Piezas" unique_id=774176491 instance=ExtResource("p40_helecho_ancho")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 33.35)
+
+[node name="hierba_espesa_11_14" parent="Piezas" unique_id=2072953987 instance=ExtResource("p41_hierba_espesa")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 33.35)
+
+[node name="planta_hojas_14_14" parent="Piezas" unique_id=1288542737 instance=ExtResource("p42_planta_hojas")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 33.35)
+
+[node name="planta_violeta_17_14" parent="Piezas" unique_id=1492367664 instance=ExtResource("p43_planta_violeta")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 33.35)
+
+[node name="nenufar_flor_20_14" parent="Piezas" unique_id=1131440709 instance=ExtResource("p44_nenufar_flor")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 33.35)
+
+[node name="arco_ruina_2_17" parent="Piezas" unique_id=612532224 instance=ExtResource("p45_arco_ruina")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.005, 40.25)
+
+[node name="arco_puerta_5_17" parent="Piezas" unique_id=284665930 instance=ExtResource("p46_arco_puerta")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.005, 40.25)
+
+[node name="puerta_goblin_8_17" parent="Piezas" unique_id=1753036047 instance=ExtResource("p47_puerta_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.005, 40.25)
+
+[node name="empalizada_goblin_11_17" parent="Piezas" unique_id=91992760 instance=ExtResource("p48_empalizada_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.005, 40.25)
+
+[node name="torre_goblin_14_17" parent="Piezas" unique_id=48223209 instance=ExtResource("p49_torre_goblin")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.005, 40.25)
+
+[node name="puesto_mercado_17_17" parent="Piezas" unique_id=905442431 instance=ExtResource("p50_puesto_mercado")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.005, 40.25)
+
+[node name="pino_20_17" parent="Piezas" unique_id=247562585 instance=ExtResource("p51_pino")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.005, 40.25)
+
+[node name="arbol_redondo_23_17" parent="Piezas" unique_id=831129615 instance=ExtResource("p52_arbol_redondo")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.005, 40.25)
+
+[node name="tronco_musgoso_26_17" parent="Piezas" unique_id=155603068 instance=ExtResource("p53_tronco_musgoso")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.005, 40.25)
+
+[node name="Marcadores" type="Node3D" parent="." unique_id=456514973]
+
+[node name="S_0_0" type="Node3D" parent="Marcadores" unique_id=8038960 groups=["inicio_jugador", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.15, 1.035, 1.15)
+script = ExtResource("99_mk")
+letra = "S"
+
+[node name="Rotulos" type="Node3D" parent="." unique_id=508851062]
+
+[node name="rotulo_abedul_amarillo" type="Label3D" parent="Rotulos" unique_id=45084350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "abedul
+amarillo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arbol_viejo" type="Label3D" parent="Rotulos" unique_id=1228928064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arbol_viejo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_sauce" type="Label3D" parent="Rotulos" unique_id=893613571]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "sauce"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tocon_alto" type="Label3D" parent="Rotulos" unique_id=1989698202]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tocon_alto"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tocon_hueco" type="Label3D" parent="Rotulos" unique_id=661162852]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tocon_hueco"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tocon_roca" type="Label3D" parent="Rotulos" unique_id=700153195]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tocon_roca"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tocon_seco" type="Label3D" parent="Rotulos" unique_id=1047081391]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tocon_seco"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tronco_enredadera" type="Label3D" parent="Rotulos" unique_id=72053101]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tronco
+enredadera"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tronco_seco" type="Label3D" parent="Rotulos" unique_id=1262292935]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.185, 7.43)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tronco_seco"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_roca_hueca" type="Label3D" parent="Rotulos" unique_id=1031722597]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "roca_hueca"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cuenco_piedra" type="Label3D" parent="Rotulos" unique_id=877541152]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cuenco
+piedra"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_laja_piedra" type="Label3D" parent="Rotulos" unique_id=823574657]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "laja_piedra"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_valla_lianas" type="Label3D" parent="Rotulos" unique_id=2001607670]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "valla_lianas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arbusto_bayas" type="Label3D" parent="Rotulos" unique_id=2134219378]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arbusto
+bayas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arbusto_flores" type="Label3D" parent="Rotulos" unique_id=319805360]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arbusto
+flores"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_hierba" type="Label3D" parent="Rotulos" unique_id=1491831243]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+hierba"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cubo_hielo" type="Label3D" parent="Rotulos" unique_id=1990449107]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cubo_hielo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_nenufar" type="Label3D" parent="Rotulos" unique_id=993149637]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.185, 14.33)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "nenufar"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_roja" type="Label3D" parent="Rotulos" unique_id=1133140290]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_roja"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_naranja" type="Label3D" parent="Rotulos" unique_id=2139803077]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_naranja"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_amarilla" type="Label3D" parent="Rotulos" unique_id=752732890]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_amarilla"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_verde" type="Label3D" parent="Rotulos" unique_id=2008452411]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_verde"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_azul" type="Label3D" parent="Rotulos" unique_id=1721972377]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_azul"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_bloque_runa_cian" type="Label3D" parent="Rotulos" unique_id=1563278487]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "bloque
+runa_cian"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_ramas_suelo" type="Label3D" parent="Rotulos" unique_id=810850179]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "ramas_suelo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_raices_musgo" type="Label3D" parent="Rotulos" unique_id=1896162818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "raices_musgo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_raices_secas" type="Label3D" parent="Rotulos" unique_id=115998154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.185, 21.23)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "raices_secas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_roja" type="Label3D" parent="Rotulos" unique_id=1251950968]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_roja"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_naranja" type="Label3D" parent="Rotulos" unique_id=1938610743]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_naranja"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_amarilla" type="Label3D" parent="Rotulos" unique_id=1900011489]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_amarilla"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_verde" type="Label3D" parent="Rotulos" unique_id=1809188215]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_verde"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_azul" type="Label3D" parent="Rotulos" unique_id=1408892037]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_azul"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_cartel_runa_cian" type="Label3D" parent="Rotulos" unique_id=462305868]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "cartel
+runa_cian"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_hojas_monton" type="Label3D" parent="Rotulos" unique_id=1375114530]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "hojas_monton"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_setas_amarillas" type="Label3D" parent="Rotulos" unique_id=2076903393]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "setas
+amarillas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_planta_agua" type="Label3D" parent="Rotulos" unique_id=62733475]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.185, 28.13)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "planta_agua"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_flores_amarillas" type="Label3D" parent="Rotulos" unique_id=450305270]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "flores
+amarillas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_flores_colores" type="Label3D" parent="Rotulos" unique_id=919294128]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "flores
+colores"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_helecho_ancho" type="Label3D" parent="Rotulos" unique_id=658025020]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "helecho
+ancho"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_hierba_espesa" type="Label3D" parent="Rotulos" unique_id=1784830088]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "hierba
+espesa"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_planta_hojas" type="Label3D" parent="Rotulos" unique_id=1000936043]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "planta_hojas"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_planta_violeta" type="Label3D" parent="Rotulos" unique_id=1829842433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "planta
+violeta"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_nenufar_flor" type="Label3D" parent="Rotulos" unique_id=1162431571]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 35.03)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "nenufar_flor"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arco_ruina" type="Label3D" parent="Rotulos" unique_id=1176735032]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arco_ruina"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arco_puerta" type="Label3D" parent="Rotulos" unique_id=214579962]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arco_puerta"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_puerta_goblin" type="Label3D" parent="Rotulos" unique_id=1047258621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 19.55, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "puerta
+goblin"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_empalizada_goblin" type="Label3D" parent="Rotulos" unique_id=1867720977]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26.45, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "empalizada
+goblin"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_torre_goblin" type="Label3D" parent="Rotulos" unique_id=874367131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "torre_goblin"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_puesto_mercado" type="Label3D" parent="Rotulos" unique_id=723794185]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40.25, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "puesto
+mercado"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_pino" type="Label3D" parent="Rotulos" unique_id=745063396]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "pino"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_arbol_redondo" type="Label3D" parent="Rotulos" unique_id=477781661]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 54.05, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "arbol
+redondo"
+font_size = 48
+outline_size = 10
+
+[node name="rotulo_tronco_musgoso" type="Label3D" parent="Rotulos" unique_id=957393736]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.185, 41.93)
+pixel_size = 0.004
+billboard = 1
+no_depth_test = true
+text = "tronco
+musgoso"
+font_size = 48
+outline_size = 10

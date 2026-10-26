@@ -12,7 +12,8 @@ Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la
   4. le pasa los pesos de la base: para cada vértice, el punto más cercano de la superficie de la base y los pesos de ese triángulo (baricéntrico),
      suavizados sobre la malla soldada (las costuras de UV no dejan huecos), con las piernas atenuadas en la túnica para que la falda no se parta en dos,
      máximo 4 influencias, normalizados (con `cabeza`, por debajo de una altura el peso de la cabeza pasa al torso);
-  4b. si la prenda lleva `capucha` en la config (z del corte, `inclina`), la parte por esa altura en DOS prendas (`capa` abajo, `capucha` arriba); y con `brazo.borde`
+  4b. si la prenda lleva `capucha` en la config (z del corte, `inclina`), la parte por esa altura en DOS prendas (`capa` abajo, `capucha` arriba; con `banda`, por
+     un plano y con la capa metida esa franja bajo la capucha: `partir_con_solape`); y con `brazo.borde`
      (gradiente con nombre de la orla trasera) quita peso de brazo y suaviza más los pesos de ese borde para que no se estire en dientes al levantar los brazos;
   5. escribe `<salida>/<prenda>.json` (geometría en el espacio de la malla de la base, Y arriba, tal cual la espera Godot) y las texturas.
 La malla definitiva la monta Godot (`herramientas/montar_ropa_glb.gd`) sobre el esqueleto y el Skin de la base, para que sea EL MISMO esqueleto sin
@@ -506,6 +507,82 @@ def altura_corte(p: Vector, cfg: dict) -> float:
     return float(cfg["z"]) - float(cfg.get("inclina", 0.0)) * p.y
 
 
+def partir_con_solape(o: bpy.types.Object, pesos: list, corte: dict) -> list:
+    """Parte la prenda en capucha y capa con un corte LIMPIO y con SOLAPE (26/10, Pablo: «hay una textura rota ahí», junto a la cara y detrás de la oreja).
+    Antes cada triángulo iba entero a una pieza por la altura de su centro: el borde quedaba en dientes, las dos piezas solo se tocaban en esos dientes y, como la
+    capucha va con Head y la capa con Spine2 (y con la cabeza encogida a 0,80 encima), al andar y al correr se abrían rendijas por las que se veía el cuello.
+    Ahora: la capucha se corta con `bisect_plane` por el plano de `altura_corte` (borde recto, los triángulos partidos y con UV y pesos interpolados); la capa se
+    corta igual pero `banda` más arriba, y esa franja de más se mete por debajo de la capucha: cada vértice se hunde `hundir` hacia atrás de su propia cara (la
+    de fuera hacia dentro y el forro hacia fuera: queda entre las dos capas de la tela de la capucha), con una rampa de `rampa` que acaba en el corte. En
+    reposo no se ve (la tapa la capucha); cuando la cabeza se mueve, lo que asoma por debajo del borde de la capucha es la capa y no el cuello.
+    Los pesos viajan como grupos de vértices para que bmesh los interpole en los vértices nuevos. Devuelve [(nombre, objeto, pesos)]."""
+    for h in sorted({h for vp in pesos for h, _ in vp}):
+        o.vertex_groups.new(name=h)
+    for v in o.data.vertices:
+        for h, w in pesos[v.index]:
+            o.vertex_groups[h].add([v.index], w, 'REPLACE')
+    inv = o.matrix_world.inverted()
+    z0 = float(corte["z"])
+    normal = (inv.to_3x3() @ Vector((0.0, float(corte.get("inclina", 0.0)), 1.0))).normalized()
+    res = []
+    for parte, subir, es_capa in ((corte.get("nombre", "capucha"), 0.0, False), ("capa", float(corte["banda"]), True)):
+        copia = o.copy()
+        copia.data = o.data.copy()
+        copia.name = "%s_%s" % (o.name, parte)
+        bpy.context.scene.collection.objects.link(copia)
+        bm = bmesh.new()
+        bm.from_mesh(copia.data)
+        # clear_outer quita lo que queda del lado de la normal (arriba): la capa se queda con lo de abajo; la capucha, con lo de arriba.
+        bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-6, plane_co=inv @ Vector((0.0, 0.0, z0 + subir)),
+                               plane_no=normal, clear_outer=es_capa, clear_inner=not es_capa)
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+        bm.to_mesh(copia.data)
+        bm.free()
+        if es_capa:
+            print("BANDA %s: %d vértices metidos bajo la capucha" % (parte, meter_banda(copia, corte)))
+        res.append((parte, copia, pesos_de_grupos(copia)))
+    return res
+
+
+def meter_banda(o: bpy.types.Object, corte: dict) -> int:
+    """Hunde la franja de la capa que pasa del corte hacia atrás de su cara (normal soldada por posición): `hundir` entero desde el corte hacia arriba y nada a
+    `rampa` por debajo de él (suave). Devuelve cuántos vértices se movieron."""
+    ids, _ = adyacencia_soldada(o)
+    normales = {}
+    for v in o.data.vertices:
+        normales[ids[v.index]] = normales.get(ids[v.index], Vector()) + v.normal
+    rot = o.matrix_world.to_3x3()
+    inv = o.matrix_world.inverted()
+    hundir, rampa = float(corte["hundir"]), float(corte["rampa"])
+    movidos = 0
+    for v in o.data.vertices:
+        p = o.matrix_world @ v.co
+        t = suave((p.z - (altura_corte(p, corte) - rampa)) / rampa)
+        n = normales[ids[v.index]]
+        if t <= 0.0 or n.length < 1e-9:
+            continue
+        v.co = inv @ (p - (rot @ n).normalized() * hundir * t)
+        movidos += 1
+    return movidos
+
+
+def pesos_de_grupos(o: bpy.types.Object) -> list:
+    """Pesos por vértice desde los grupos de vértices: [(hueso, peso)], los INFLUENCIAS mayores, normalizados (el formato de `pesos_desde_base`)."""
+    nombres = {g.index: g.name for g in o.vertex_groups}
+    res = []
+    sin_peso = 0
+    for v in o.data.vertices:
+        top = sorted(((nombres[g.group], g.weight) for g in v.groups if g.weight > 0.0), key=lambda kv: -kv[1])[:INFLUENCIAS]
+        tot = sum(w for _, w in top)
+        if tot < 1e-9:
+            sin_peso += 1
+            top, tot = [("mixamorig_Head", 1.0)], 1.0
+        res.append([(h, w / tot) for h, w in top])
+    if sin_peso:
+        print("AVISO %s: %d vértices sin peso tras el corte (a Head)" % (o.name, sin_peso))
+    return res
+
+
 def exportar(o: bpy.types.Object, pesos: list, base: bpy.types.Object, carpeta: str, nombre: str, filtro=None) -> dict:
     """Vértices únicos por (vértice, UV, normal); posiciones en el espacio de la malla de la base (Blender Z arriba -> glTF Y arriba). `filtro(triángulo)` deja
     elegir qué triángulos se escriben (para partir una prenda en dos)."""
@@ -656,13 +733,18 @@ def main() -> None:
         if corte is None:
             d = exportar(o, pesos, base, carpeta, nombre)
             print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (nombre, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
-        else:
+        elif "banda" not in corte:
             # Se parte en dos prendas por una altura (algo inclinada): lo de arriba es la capucha y lo de abajo la capa. Cada triángulo, por su centro.
             def es_capucha(t) -> bool:
                 cen = sum((o.matrix_world @ o.data.vertices[i].co for i in t.vertices), Vector()) / 3.0
                 return cen.z > altura_corte(cen, corte)
             for parte, filtro in (("capa", lambda t: not es_capucha(t)), (corte.get("nombre", "capucha"), es_capucha)):
                 d = exportar(o, pesos, base, carpeta, parte, filtro)
+                print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (parte, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
+        else:
+            # 26/10: corte limpio y con solape (ver `partir_con_solape`).
+            for parte, malla, pesos_parte in partir_con_solape(o, pesos, corte):
+                d = exportar(malla, pesos_parte, base, carpeta, parte)
                 print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (parte, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
         guardar_texturas(o, carpeta)
 

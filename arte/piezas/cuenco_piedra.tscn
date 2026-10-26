@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/cuenco_piedra.glb" id="1_d3sw2"]
+
+[node name="cuenco_piedra" type="Node3D" unique_id=780148514]
+metadata/id = "cuenco_piedra"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1097388425]
+
+[node name="cuenco_piedra2" type="Node3D" parent="modelo" unique_id=1104764724 instance=ExtResource("1_d3sw2")]
+transform = Transform3D(4.5830045, 0, 0, 0, 4.5830045, 0, 0, 0, 4.5830045, 0, 0, 0)
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=583881611]
+collision_layer = 1024
+collision_mask = 0

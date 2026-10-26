@@ -1,0 +1,112 @@
+archivo	categoria	tris	imagenes	lado_max	Mpixeles	huesos	clips	KB	veredicto
+equipo/arco.glb	equipo	9874	3	1024	3.15	0	0	928	tris x6.6
+equipo/armas_goblin.glb	equipo	13996	2	2048	8.39	0	0	6264	tris x9.3, tex 2048
+equipo/daga.glb	equipo	3350	2	1024	2.10	0	0	598	tris x2.2
+equipo/escudo.glb	equipo	5484	2	1024	2.10	0	0	687	tris x3.7
+equipo/flecha.glb	equipo	3982	3	1024	3.15	0	0	720	tris x2.7
+equipo/garrote.glb	equipo	5162	2	1024	2.10	0	0	672	tris x3.4
+equipo/grimorio_1.glb	equipo	14287	3	1024	3.15	0	0	1128	tris x9.5
+equipo/grimorio_2.glb	equipo	14804	3	1024	3.15	0	0	1143	tris x9.9
+equipo/grimorio_3.glb	equipo	15470	3	1024	3.15	0	0	1117	tris x10.3
+meshy/piezas/abedul_amarillo.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/arbol_redondo.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/arbol_viejo.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/arbusto.glb	pieza	2858	3	2048	12.58	0	0	856	tris x1.9, tex 2048
+meshy/piezas/arbusto_bayas.glb	pieza	8000	2	512	0.52	0	0	885	tris x5.3
+meshy/piezas/arbusto_flores.glb	pieza	8000	2	1024	2.10	0	0	1358	tris x5.3
+meshy/piezas/arbusto_otono.glb	pieza	8000	2	512	0.52	0	0	914	tris x5.3
+meshy/piezas/arco_puerta.glb	pieza	12000	2	512	0.52	0	0	1294	tris x8.0
+meshy/piezas/arco_ruina.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/baldosa_guardado.glb	pieza	8000	2	510	0.49	0	0	879	tris x5.3
+meshy/piezas/barril.glb	pieza	8000	2	335	0.12	0	0	744	tris x5.3
+meshy/piezas/bloque_hierba.glb	pieza	8000	2	510	0.52	0	0	881	tris x5.3
+meshy/piezas/bloque_runa_amarilla.glb	pieza	8000	2	512	0.52	0	0	890	tris x5.3
+meshy/piezas/bloque_runa_azul.glb	pieza	8000	2	512	0.52	0	0	882	tris x5.3
+meshy/piezas/bloque_runa_cian.glb	pieza	8000	2	460	0.36	0	0	852	tris x5.3
+meshy/piezas/bloque_runa_naranja.glb	pieza	8000	2	483	0.41	0	0	864	tris x5.3
+meshy/piezas/bloque_runa_roja.glb	pieza	8000	2	353	0.23	0	0	830	tris x5.3
+meshy/piezas/bloque_runa_verde.glb	pieza	8000	2	460	0.40	0	0	860	tris x5.3
+meshy/piezas/bosque_crafting.glb	pieza	15341	3	2048	12.58	0	0	8727	tris x10.2, tex 2048
+meshy/piezas/bosque_flora.glb	pieza	10267	3	2048	12.58	0	0	7902	tris x6.8, tex 2048
+meshy/piezas/bosque_tile.glb	pieza	14682	3	2048	12.58	0	0	8266	tris x9.8, tex 2048
+meshy/piezas/brasero.glb	pieza	12000	2	512	0.52	0	0	1283	tris x8.0
+meshy/piezas/caja.glb	pieza	8000	2	284	0.11	0	0	797	tris x5.3
+meshy/piezas/campamento.glb	pieza	14209	2	2048	8.39	0	0	5987	tris x9.5, tex 2048
+meshy/piezas/campamento_goblin.glb	pieza	15108	2	2048	5.24	0	0	2205	tris x10.1, tex 2048
+meshy/piezas/canas.glb	pieza	8000	2	512	0.52	0	0	894	tris x5.3
+meshy/piezas/cartel.glb	pieza	8000	2	512	0.51	0	0	903	tris x5.3
+meshy/piezas/cartel_runa_amarilla.glb	pieza	8000	2	512	0.52	0	0	892	tris x5.3
+meshy/piezas/cartel_runa_azul.glb	pieza	8000	2	512	0.52	0	0	892	tris x5.3
+meshy/piezas/cartel_runa_cian.glb	pieza	8000	2	512	0.52	0	0	893	tris x5.3
+meshy/piezas/cartel_runa_naranja.glb	pieza	8000	2	512	0.52	0	0	893	tris x5.3
+meshy/piezas/cartel_runa_roja.glb	pieza	8000	2	512	0.52	0	0	893	tris x5.3
+meshy/piezas/cartel_runa_verde.glb	pieza	8000	2	512	0.52	0	0	893	tris x5.3
+meshy/piezas/cofre.glb	pieza	4956	3	2048	12.58	0	2	6913	tris x3.3, tex 2048
+meshy/piezas/cristal_sanctuario.glb	pieza	13765	3	2048	12.58	0	0	8743	tris x9.2, tex 2048
+meshy/piezas/cubo_hielo.glb	pieza	8000	2	228	0.07	0	0	637	tris x5.3
+meshy/piezas/cuenco_piedra.glb	pieza	8000	2	1023	2.08	0	0	897	tris x5.3
+meshy/piezas/flores_amarillas.glb	pieza	8000	2	512	0.52	0	0	887	tris x5.3
+meshy/piezas/flores_colores.glb	pieza	8000	2	512	0.50	0	0	862	tris x5.3
+meshy/piezas/fogata.glb	pieza	8000	2	508	0.51	0	0	887	tris x5.3
+meshy/piezas/helecho.glb	pieza	8000	2	1024	2.10	0	0	1358	tris x5.3
+meshy/piezas/helecho_ancho.glb	pieza	8000	2	512	0.52	0	0	890	tris x5.3
+meshy/piezas/hierba_alta.glb	pieza	8000	2	512	0.52	0	0	887	tris x5.3
+meshy/piezas/hierba_espesa.glb	pieza	8000	2	512	0.52	0	0	882	tris x5.3
+meshy/piezas/hojas_caidas.glb	pieza	8000	2	512	0.52	0	0	887	tris x5.3
+meshy/piezas/hojas_monton.glb	pieza	8000	2	1024	2.10	0	0	1357	tris x5.3
+meshy/piezas/juncos.glb	pieza	8000	2	1024	2.10	0	0	1358	tris x5.3
+meshy/piezas/laja_piedra.glb	pieza	8000	2	334	0.17	0	0	799	tris x5.3
+meshy/piezas/lamina_1.glb	pieza	15555	3	2048	12.58	0	0	6685	tris x10.4, tex 2048
+meshy/piezas/nenufar.glb	pieza	7786	2	1024	1.94	0	0	696	tris x5.2
+meshy/piezas/nenufar_flor.glb	pieza	8000	2	508	0.48	0	0	465	tris x5.3
+meshy/piezas/pasadero.glb	pieza	8000	2	414	0.30	0	0	789	tris x5.3
+meshy/piezas/pino.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/planta_agua.glb	pieza	8000	2	512	0.52	0	0	818	tris x5.3
+meshy/piezas/planta_hojas.glb	pieza	8000	2	512	0.52	0	0	914	tris x5.3
+meshy/piezas/planta_violeta.glb	pieza	8000	2	512	0.52	0	0	889	tris x5.3
+meshy/piezas/praderas.glb	pieza	12166	3	2048	12.58	0	0	7492	tris x8.1, tex 2048
+meshy/piezas/puente_runico.glb	pieza	2145	2	2048	8.39	0	0	5937	tris x1.4, tex 2048
+meshy/piezas/puesto.glb	pieza	12000	2	512	0.52	0	0	1294	tris x8.0
+meshy/piezas/raices_musgo.glb	pieza	8000	2	1024	2.10	0	0	1355	tris x5.3
+meshy/piezas/raices_secas.glb	pieza	8000	2	1024	2.10	0	0	1163	tris x5.3
+meshy/piezas/ramas_suelo.glb	pieza	8000	2	1018	2.07	0	0	1127	tris x5.3
+meshy/piezas/roca_hueca.glb	pieza	12000	2	1024	2.10	0	0	1290	tris x8.0
+meshy/piezas/roca_musgosa.glb	pieza	12000	2	512	0.52	0	0	1285	tris x8.0
+meshy/piezas/rocas_pequenas.glb	pieza	8000	2	463	0.42	0	0	862	tris x5.3
+meshy/piezas/ruinas_agua.glb	pieza	14355	2	2048	5.24	0	0	1996	tris x9.6, tex 2048
+meshy/piezas/sauce.glb	pieza	12000	2	512	0.52	0	0	1313	tris x8.0
+meshy/piezas/setas.glb	pieza	8000	2	1023	2.08	0	0	1349	tris x5.3
+meshy/piezas/setas_amarillas.glb	pieza	8000	2	512	0.52	0	0	882	tris x5.3
+meshy/piezas/seto_seco.glb	pieza	8000	2	1024	2.10	0	0	1357	tris x5.3
+meshy/piezas/tocon.glb	pieza	8000	2	512	0.50	0	0	902	tris x5.3
+meshy/piezas/tocon_alto.glb	pieza	12000	2	1024	2.10	0	0	1750	tris x8.0
+meshy/piezas/tocon_hueco.glb	pieza	8000	2	1024	2.10	0	0	1356	tris x5.3
+meshy/piezas/tocon_roca.glb	pieza	8000	2	1024	2.10	0	0	1358	tris x5.3
+meshy/piezas/tocon_seco.glb	pieza	8000	2	1024	2.10	0	0	1161	tris x5.3
+meshy/piezas/totem_runico.glb	pieza	12000	2	512	0.52	0	0	1293	tris x8.0
+meshy/piezas/tronco.glb	pieza	12000	2	1024	2.10	0	0	1756	tris x8.0
+meshy/piezas/tronco_enredadera.glb	pieza	12000	2	1024	2.10	0	0	1562	tris x8.0
+meshy/piezas/tronco_musgoso.glb	pieza	12000	2	1024	2.10	0	0	1562	tris x8.0
+meshy/piezas/tronco_seco.glb	pieza	11999	2	1024	2.10	0	0	1561	tris x8.0
+meshy/piezas/troncos_apilados.glb	pieza	12000	2	1024	2.05	0	0	1737	tris x8.0
+meshy/piezas/valla.glb	pieza	12000	2	1024	2.10	0	0	1752	tris x8.0
+meshy/piezas/valla_lianas.glb	pieza	12000	2	1024	2.10	0	0	1562	tris x8.0
+modelos/alchemist_elf.glb	personaje	31116	3	2048	12.58	28	5	8019	tris x3.1, tex 2048
+modelos/bookseller_chibi.glb	personaje	31424	3	1024	3.15	28	5	2309	tris x3.1
+modelos/canouro.glb	enemigo	31438	2	2048	8.39	51	13	9097	tris x7.9, tex 2048
+modelos/canouro_anim.glb	enemigo	31438	2	2048	8.39	51	12	9035	tris x7.9, tex 2048
+modelos/chibi_elf.glb	personaje	31158	3	1024	3.15	28	22	3698	tris x3.1
+modelos/elemental_bosque.glb	enemigo	30382	3	2048	6.29	28	7	4004	tris x7.6, tex 2048
+modelos/emberheart.glb	personaje	30368	3	2048	12.58	51	17	14314	tris x3.0, tex 2048
+modelos/emberstride.glb	personaje	31172	3	2048	12.58	51	12	12310	tris x3.1, tex 2048
+modelos/gato_guardabosques.glb	enemigo	31461	3	2048	12.58	48	2	9444	tris x7.9, tex 2048
+modelos/goblin_archer_chibi.glb	enemigo	31373	3	2048	12.58	28	9	8751	tris x7.8, tex 2048
+modelos/goblin_warrior_chibi.glb	enemigo	31391	3	1024	3.15	28	12	2433	tris x7.8
+modelos/grandmaster.glb	personaje	30829	3	2048	12.58	73	7	13791	tris x3.1, tex 2048
+modelos/lince.glb	enemigo	31415	3	2048	12.58	51	12	11542	tris x7.9, tex 2048
+modelos/lince_gato.glb	enemigo	31414	3	2048	12.58	27	1	9709	tris x7.9, tex 2048
+modelos/loberno.glb	enemigo	31548	2	2048	8.39	51	12	11862	tris x7.9, tex 2048
+modelos/ranger_human.glb	personaje	31434	3	1024	3.15	66	2	7572	tris x3.1
+modelos/woodland_wanderer.glb	personaje	102635	3	2048	12.58	32	22	10553	tris x10.3, tex 2048
+modelos/woodland_wanderer_suave.glb	personaje	102635	3	2048	12.58	32	25	10688	tris x10.3, tex 2048
+modelos/woodland_wanderer_v1.glb	personaje	30992	3	2048	12.58	66	22	8557	tris x3.1, tex 2048

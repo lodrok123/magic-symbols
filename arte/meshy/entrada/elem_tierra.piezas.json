@@ -1,0 +1,178 @@
+{
+    "bloque_tierra_0":  {
+                            "trozos":  [
+                                           0,
+                                           1,
+                                           3,
+                                           4,
+                                           5,
+                                           6,
+                                           7,
+                                           8,
+                                           9,
+                                           10,
+                                           12,
+                                           13
+                                       ],
+                            "id":  "bloque_tierra_0",
+                            "tris":  1000,
+                            "directo":  false,
+                            "nota":  ""
+                        },
+    "terron_0":  {
+                     "trozos":  [
+                                    2
+                                ],
+                     "id":  "terron_0",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 },
+    "terron_1":  {
+                     "trozos":  [
+                                    11
+                                ],
+                     "id":  "terron_1",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 },
+    "cascote_0":  {
+                      "trozos":  [
+                                     14
+                                 ],
+                      "id":  "cascote_0",
+                      "tris":  250,
+                      "directo":  false,
+                      "nota":  ""
+                  },
+    "bloque_tierra_1":  {
+                            "trozos":  [
+                                           15,
+                                           16,
+                                           18,
+                                           19,
+                                           20,
+                                           22
+                                       ],
+                            "id":  "bloque_tierra_1",
+                            "tris":  1000,
+                            "directo":  false,
+                            "nota":  ""
+                        },
+    "terron_2":  {
+                     "trozos":  [
+                                    17
+                                ],
+                     "id":  "terron_2",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 },
+    "cascote_1":  {
+                      "trozos":  [
+                                     21
+                                 ],
+                      "id":  "cascote_1",
+                      "tris":  250,
+                      "directo":  false,
+                      "nota":  ""
+                  },
+    "bloque_tierra_2":  {
+                            "trozos":  [
+                                           24,
+                                           25,
+                                           26,
+                                           27,
+                                           29,
+                                           30,
+                                           31,
+                                           32,
+                                           33,
+                                           34,
+                                           35
+                                       ],
+                            "id":  "bloque_tierra_2",
+                            "tris":  1000,
+                            "directo":  false,
+                            "nota":  ""
+                        },
+    "cascote_2":  {
+                      "trozos":  [
+                                     28
+                                 ],
+                      "id":  "cascote_2",
+                      "tris":  250,
+                      "directo":  false,
+                      "nota":  ""
+                  },
+    "cascote_3":  {
+                      "trozos":  [
+                                     37
+                                 ],
+                      "id":  "cascote_3",
+                      "tris":  250,
+                      "directo":  false,
+                      "nota":  ""
+                  },
+    "pincho_tierra_0":  {
+                            "trozos":  [
+                                           38,
+                                           39,
+                                           40,
+                                           41,
+                                           42,
+                                           43,
+                                           44,
+                                           45,
+                                           46,
+                                           47
+                                       ],
+                            "id":  "pincho_tierra_0",
+                            "tris":  400,
+                            "directo":  false,
+                            "nota":  ""
+                        },
+    "terron_5":  {
+                     "trozos":  [
+                                    48,
+                                    49
+                                ],
+                     "id":  "terron_5",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 },
+    "pincho_tierra_1":  {
+                            "trozos":  [
+                                           50,
+                                           51,
+                                           52,
+                                           53,
+                                           54,
+                                           55
+                                       ],
+                            "id":  "pincho_tierra_1",
+                            "tris":  400,
+                            "directo":  false,
+                            "nota":  ""
+                        },
+    "terron_3":  {
+                     "trozos":  [
+                                    23
+                                ],
+                     "id":  "terron_3",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 },
+    "terron_4":  {
+                     "trozos":  [
+                                    36
+                                ],
+                     "id":  "terron_4",
+                     "tris":  500,
+                     "directo":  false,
+                     "nota":  ""
+                 }
+}

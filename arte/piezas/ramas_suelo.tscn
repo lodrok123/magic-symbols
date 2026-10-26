@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/ramas_suelo.glb" id="1_fyej8"]
+
+[node name="ramas_suelo" type="Node3D" unique_id=855990774]
+metadata/id = "ramas_suelo"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=614159180]
+
+[node name="ramas_suelo2" type="Node3D" parent="modelo" unique_id=243283709 instance=ExtResource("1_fyej8")]
+transform = Transform3D(4.859869, 0, 0, 0, 4.859869, 0, 0, 0, 4.859869, 0, 0, 0)

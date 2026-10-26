@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/flores_colores.glb" id="1_cpdfu"]
+
+[node name="flores_colores" type="Node3D" unique_id=804480877]
+metadata/id = "flores_colores"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=502655990]
+
+[node name="flores_colores2" type="Node3D" parent="modelo" unique_id=877553555 instance=ExtResource("1_cpdfu")]
+transform = Transform3D(6.491182, 0, 0, 0, 6.491182, 0, 0, 0, 6.491182, 0, 0, 0)

@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/nenufar.glb" id="1_7l6su"]
+
+[node name="nenufar" type="Node3D" unique_id=748074295]
+metadata/id = "nenufar"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1919954914]
+
+[node name="nenufar2" type="Node3D" parent="modelo" unique_id=804898606 instance=ExtResource("1_7l6su")]
+transform = Transform3D(4.316615, 0, 0, 0, 4.316615, 0, 0, 0, 4.316615, 0, -0.009815369, 0)

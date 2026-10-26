@@ -20,7 +20,8 @@
 		"nivela_borde": {"z": 0.872, "z_hasta": 1.12, "sectores": 48},
 		"margen_casco": 0.012,
 		"cabeza": {"huesos": ["mixamorig_Head"], "a": "mixamorig_Spine2", "z0": 1.10, "z1": 1.22},
-		"capucha": {"nombre": "capucha", "z": 1.22, "inclina": 0.0},
+		"capucha": {"nombre": "capucha", "z": 1.22, "inclina": 0.0, "banda": 0.04, "hundir": 0.004, "rampa": 0.015,
+			"_notas": "26/10 (Pablo: «hay una textura rota ahí»): el corte es un plano (borde recto, antes en dientes por triángulos) y la capa sigue `banda` (4 cm) por encima, hundida `hundir` (4 mm) detrás de su cara con una rampa de `rampa` bajo el corte: queda metida bajo el borde de la capucha y es lo que asoma cuando la cabeza se mueve, no el cuello."},
 		"brazo": {"x0": 0.03, "x1": 0.22, "peso": 0.9, "z_baja0": 1.10, "z_baja1": 1.22, "parte_clavicula": 0.3,
 			"borde": {"z0": 0.87, "z1": 1.10, "y0": -0.20, "y1": 0.0, "quita_brazo": 0.9, "pasadas": 60}}
 	},

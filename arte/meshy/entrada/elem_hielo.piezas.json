@@ -1,0 +1,104 @@
+{
+    "esquirla_hielo":  {
+                           "trozos":  [
+                                          0
+                                      ],
+                           "id":  "esquirla_hielo",
+                           "tris":  300,
+                           "directo":  false,
+                           "nota":  ""
+                       },
+    "racimo_hielo_p":  {
+                           "trozos":  [
+                                          1
+                                      ],
+                           "id":  "racimo_hielo_p",
+                           "tris":  400,
+                           "directo":  false,
+                           "nota":  ""
+                       },
+    "racimo_hielo_m":  {
+                           "trozos":  [
+                                          2
+                                      ],
+                           "id":  "racimo_hielo_m",
+                           "tris":  700,
+                           "directo":  false,
+                           "nota":  ""
+                       },
+    "racimo_hielo_g":  {
+                           "trozos":  [
+                                          3
+                                      ],
+                           "id":  "racimo_hielo_g",
+                           "tris":  1200,
+                           "directo":  false,
+                           "nota":  ""
+                       },
+    "placa_hielo_rota":  {
+                             "trozos":  [
+                                            4,
+                                            5,
+                                            6,
+                                            7
+                                        ],
+                             "id":  "placa_hielo_rota",
+                             "tris":  600,
+                             "directo":  false,
+                             "nota":  ""
+                         },
+    "placa_hielo_rota_0":  {
+                               "trozos":  [
+                                              4
+                                          ],
+                               "id":  "placa_hielo_rota_0",
+                               "tris":  150,
+                               "directo":  false,
+                               "nota":  "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver"
+                           },
+    "placa_hielo_rota_1":  {
+                               "trozos":  [
+                                              5
+                                          ],
+                               "id":  "placa_hielo_rota_1",
+                               "tris":  150,
+                               "directo":  false,
+                               "nota":  "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver"
+                           },
+    "placa_hielo_rota_2":  {
+                               "trozos":  [
+                                              6
+                                          ],
+                               "id":  "placa_hielo_rota_2",
+                               "tris":  150,
+                               "directo":  false,
+                               "nota":  "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver"
+                           },
+    "placa_hielo_rota_3":  {
+                               "trozos":  [
+                                              7
+                                          ],
+                               "id":  "placa_hielo_rota_3",
+                               "tris":  150,
+                               "directo":  false,
+                               "nota":  "trozo de la placa; su sitio dentro de placa_hielo_rota sale de la caja de ver"
+                           },
+    "pincho_escarcha_0":  {
+                              "trozos":  [
+                                             8
+                                         ],
+                              "id":  "pincho_escarcha_0",
+                              "tris":  200,
+                              "directo":  false,
+                              "nota":  ""
+                          },
+    "pincho_escarcha_1":  {
+                              "trozos":  [
+                                             9
+                                         ],
+                              "id":  "pincho_escarcha_1",
+                              "tris":  150,
+                              "directo":  false,
+                              "nota":  ""
+                          }
+}

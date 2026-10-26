@@ -1,0 +1,47 @@
+{
+    "p0":  {
+               "trozos":  [
+                              0
+                          ],
+               "id":  "placa_presion_cueva",
+               "tris":  400,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p1":  {
+               "trozos":  [
+                              1
+                          ],
+               "id":  "",
+               "tris":  8000,
+               "directo":  false,
+               "nota":  ""
+           },
+    "p2":  {
+               "trozos":  [
+                              2
+                          ],
+               "id":  "",
+               "tris":  8000,
+               "directo":  false,
+               "nota":  ""
+           },
+    "p3":  {
+               "trozos":  [
+                              3
+                          ],
+               "id":  "",
+               "tris":  8000,
+               "directo":  false,
+               "nota":  ""
+           },
+    "p4":  {
+               "trozos":  [
+                              4
+                          ],
+               "id":  "",
+               "tris":  8000,
+               "directo":  false,
+               "nota":  ""
+           }
+}

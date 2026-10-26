@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/planta_agua.glb" id="1_1un4d"]
+
+[node name="planta_agua" type="Node3D" unique_id=1350699214]
+metadata/id = "planta_agua"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1528032656]
+
+[node name="planta_agua2" type="Node3D" parent="modelo" unique_id=1638032820 instance=ExtResource("1_1un4d")]
+transform = Transform3D(6.4474025, 0, 0, 0, 6.4474025, 0, 0, 0, 6.4474025, 0, 0, 0)

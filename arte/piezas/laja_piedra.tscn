@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/laja_piedra.glb" id="1_tpeub"]
+
+[node name="laja_piedra" type="Node3D" unique_id=983775726]
+metadata/id = "laja_piedra"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=959770094]
+
+[node name="laja_piedra2" type="Node3D" parent="modelo" unique_id=586874930 instance=ExtResource("1_tpeub")]
+transform = Transform3D(8.256875, 0, 0, 0, 8.256875, 0, 0, 0, 8.256875, 0, -0.26949692, 0)
