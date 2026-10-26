@@ -3723,18 +3723,23 @@ func _poner_colision(id_pedido: String, t: Transform3D) -> void:
 	cuerpo.add_to_group("bloquea")
 	cuerpo.position = t.origin
 	cuerpo.rotation.y = t.basis.orthonormalized().get_euler().y
-	var forma := CollisionShape3D.new()
-	if bool(f["cilindro"]):
-		var cil := CylinderShape3D.new()
-		cil.radius = float(f["radio"]) * k
-		cil.height = float(f["alto"]) * k
-		forma.shape = cil
-	else:
-		var caja := BoxShape3D.new()
-		caja.size = (f["tam"] as Vector3) * k
-		forma.shape = caja
-	forma.position = (f["centro"] as Vector3) * k
-	cuerpo.add_child(forma)
+	# 21/10 (diario 227): los cascos medidos sobre el contorno del modelo, uno por trozo (un arco = dos pilares y el paso libre). Una caja que envolvía los dos pilares tapaba el paso.
+	for cs in Pieza3D.formas_colision(id_pedido, k):
+		cuerpo.add_child(cs)
+	if cuerpo.get_child_count() == 0:
+		# Sin cascos (pieza más baja que `ColisionPieza.ALTO_MIN_SOLIDO` pero marcada como que bloquea): la caja/cilindro de siempre.
+		var forma := CollisionShape3D.new()
+		if bool(f["cilindro"]):
+			var cil := CylinderShape3D.new()
+			cil.radius = float(f["radio"]) * k
+			cil.height = float(f["alto"]) * k
+			forma.shape = cil
+		else:
+			var caja := BoxShape3D.new()
+			caja.size = (f["tam"] as Vector3) * k
+			forma.shape = caja
+		forma.position = (f["centro"] as Vector3) * k
+		cuerpo.add_child(forma)
 	_solidos.add_child(cuerpo)
 
 

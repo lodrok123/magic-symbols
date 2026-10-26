@@ -118,6 +118,20 @@ const CATALOGO: Dictionary = {
 	"x_mano_impacto": {"f": ["x_mano_impacto.wav"], "db": -6.0, "tono": 0.06},
 	"alto_impacto":   {"f": ["alto_impacto.wav"],   "db": -6.0, "tono": 0.06},
 	"abajo_impacto":  {"f": ["abajo_impacto.wav"],  "db": -5.0, "tono": 0.06},
+
+	# --- Reacciones del mundo (21/10, Pipeline; audio/gen_sfx_reacciones.py; PL2 de PLAN_EOW). Los elige `ReaccionesVfx3D` por el nombre de la reacción
+	# (`Mundo3D.reaccion`); el Juego no los llama. «arde_bucle» se pide con `Sfx.bucle` (suena mientras algo arde). Primera versión sintetizada: SE AFINA ESCUCHANDO.
+	"siseo_apagado":    {"f": ["siseo_apagado.wav"],    "db": -9.0,  "tono": 0.08},
+	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
+	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "db": -8.0,  "tono": 0.05},
+	"arde_bucle":       {"f": ["arde_bucle.wav"],       "db": -15.0, "tono": 0.0},
+	"escudo_golpe":     {"f": ["escudo_golpe.wav"],     "db": -8.0,  "tono": 0.10},
+	"escudo_roto":      {"f": ["escudo_roto.wav"],      "db": -6.0,  "tono": 0.06},
+	"aturdido":         {"f": ["aturdido.wav"],         "db": -11.0, "tono": 0.05},
+	"empujado":         {"f": ["empujado.wav"],         "db": -11.0, "tono": 0.10},
+	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
+	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
+
 	# --- Respuesta positiva al jugador (21/10, Juego; audio/gen_sfx_logros.py; PLAN_EOW_VISUAL §4). Los elige `Logros3D.TABLA` por el nombre del logro
 	# (`Mundo3D.logro`). Campanas sintetizadas, tono casi fijo (son música: un do-mi-sol desafinado al azar suena a error). SE AFINA ESCUCHANDO.
 	"logro_pista":     {"f": ["logro_pista.wav"],     "db": -14.0, "tono": 0.01},

@@ -18,7 +18,8 @@ extends RefCounted
 const CARPETA: String = "res://arte/piezas/"
 const CAPA_MUNDO: int = 1 << 10          ## capa 11 «MUNDO» (= Lanzador3D.CAPA_SOLIDO)
 
-## Cómo se hace la colisión de cada pieza:
+## Cómo se hace la colisión de cada pieza (21/10: las convexas/troncos/mesas de esta tabla ya NO se hornean como un casco único: ver `_tipo` y `ColisionPieza.MODO`; esta tabla
+## solo decide hoy el cofre, el puente y el pasadero, y es la referencia del tipo antiguo de cada pieza):
 ##   "tronco"  → convexa solo con la parte baja y estrecha del modelo (el tronco, no la copa: se pasa por debajo)
 ##   "mesa"    → convexa solo con la parte baja (la mesa del puesto, sin el toldo)
 ##   "convexa" → casco convexo de todo el modelo (roca, tocón, caja…)
@@ -62,11 +63,12 @@ const INFLAMABLE: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2",
 	"seto_seco", "tronco", "tocon", "valla", "matas", "juncos", "cartel", "puesto", "puesto_mercado", "caja", "caja_pequena", "barril", "torre_goblin", "puerta_goblin"]
 ## Parte baja que cuenta como «tronco» y como «mesa»: fracción de la altura del modelo, y radio máximo del tronco.
 const TRONCO_ALTO_MAX: float = 1.9
+const TRONCO_RADIO_MAX: float = 0.45
+const MESA_FRACCION: float = 0.45
+
 ## 23/10: los cofres de la Cueva (hoja D2) traen `cofre_cuerpo` y `cofre_tapa` con la bisagra en el origen de la tapa (arte/meshy/montar_cofre.py):
 ## llevan el controlador `Cofre3D` como el cofre de siempre.
 const COFRES_CUEVA: Array = ["cofre_legendario", "cofre_epico"]
-const TRONCO_RADIO_MAX: float = 0.45
-const MESA_FRACCION: float = 0.45
 
 ## Zonas sin cuerpo (hierba crecida y telaraña): id → tamaño de la zona (la casilla entera).
 const ZONAS: Dictionary = {"hierba_crecida": Vector3(2.3, 1.2, 2.3), "telarana": Vector3(2.3, 1.2, 2.3)}
@@ -101,7 +103,7 @@ static func generar(id: String) -> bool:
 	var raiz := Node3D.new()
 	raiz.name = id
 	raiz.set_meta("id", id)
-	raiz.set_meta("bloquea", BLOQUEA.has(id))
+	raiz.set_meta("bloquea", BLOQUEA.has(id))        # (más abajo se le suma «tiene un cuerpo medido sobre el contorno»)
 	raiz.set_meta("reactivo", REACTIVO.has(id))
 	raiz.set_meta("inflamable", INFLAMABLE.has(id))
 	vis.name = "modelo"
@@ -114,7 +116,7 @@ static func generar(id: String) -> bool:
 		ctrl.name = "Cofre3D"
 		raiz.add_child(ctrl)
 		ctrl.owner = raiz
-	var tipo: String = String(COLISION.get(id, "ninguna"))
+	var tipo: String = _tipo(id)
 	if tipo != "ninguna":
 		var cuerpo := StaticBody3D.new()
 		cuerpo.name = "cuerpo"
@@ -123,6 +125,8 @@ static func generar(id: String) -> bool:
 		raiz.add_child(cuerpo)
 		cuerpo.owner = raiz
 		var formas: Array = _formas(vis, tipo, id)
+		if _usa_contorno(tipo) and not formas.is_empty():
+			raiz.set_meta("bloquea", true)               # 21/10: lo que tiene cuerpo medido bloquea (las 43 nuevas salen de `ColisionPieza.MODO`, sin una segunda tabla)
 		var i: int = 0
 		for f in formas:
 			var cs := CollisionShape3D.new()
@@ -134,6 +138,20 @@ static func generar(id: String) -> bool:
 		if formas.is_empty():
 			push_warning("GeneradorPiezas: '%s' no ha producido colisión (%s)." % [id, tipo])
 	return _guardar(raiz, id)
+
+
+## Tipo de colisión de la pieza. 21/10 (diario 227, Juego): lo que dice `ColisionPieza.MODO` (cascos medidos sobre el CONTORNO del modelo en la franja por la que pasa el
+## personaje) manda sobre `COLISION`, salvo el cofre («cuerpo», animado) y el puente/pasadero («trimesh»), que siguen como estaban. Devuelve "contorno", "tronco",
+## "cuerpo", "trimesh" o "ninguna". Antes: un solo casco convexo de TODO el modelo, que rellenaba el hueco de los arcos y las puertas (6,3 m² de muro invisible medidos).
+static func _tipo(id: String) -> String:
+	var viejo: String = String(COLISION.get(id, "ninguna"))
+	if viejo == "cuerpo" or viejo == "trimesh":
+		return viejo
+	return ColisionPieza.modo(id)
+
+
+static func _usa_contorno(tipo: String) -> bool:
+	return tipo == "contorno" or tipo == "tronco" or tipo == "tronco_bajo"
 
 
 static func _generar_zona(id: String) -> bool:
@@ -210,6 +228,11 @@ static func _formas(vis: Node3D, tipo: String, id: String) -> Array:
 		if base != null:
 			mallas = mallas.filter(func(par: Array) -> bool: return par[0] == base or base.is_ancestor_of(par[0] as Node))
 		tipo = "convexa"
+	if _usa_contorno(tipo):
+		# Cascos medidos sobre el contorno (uno por trozo: dos pilares de un arco = dos cascos, el hueco queda libre). `vis` ya está a escala y con la base en y = 0.
+		for nube in ColisionPieza.cascos(vis, tipo):
+			res.append(_casco(nube as PackedVector3Array))
+		return res
 	if tipo == "trimesh":
 		for par in mallas:
 			var m: Mesh = (par[0] as MeshInstance3D).mesh

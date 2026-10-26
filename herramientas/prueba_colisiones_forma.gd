@@ -5,6 +5,8 @@ extends SceneTree
 ##      sin forma conocida siguen bloqueados por la casilla.
 ##   2. La caja de acierto de un Reactivo3D se ajusta a su visual (antes: 0,9 casillas = 2,07 u para todo lo que no fuera uno de siete tipos) y solo se encoge.
 ##   3. Las excepciones (placa, puente, surtidor) conservan su caja de siempre.
+##   4. (21/10) FuenteNodos: una forma ancha (el pino de 1,59) que solo ROZA una casilla vecina la deja `parcial` (el jugador choca con la forma)
+##      pero NO bloqueada entera (hechizos, flechas, línea de visión, BFS); su propia casilla sí. `liberar` limpia las dos capas.
 class MundoFalso extends Node3D:
 	var _lado: int = 20
 	var _helada: Dictionary = {}
@@ -43,6 +45,7 @@ func _initialize() -> void:
 	_goblins_y_huellas()
 	await _cajas_de_acierto()
 	_f10()
+	await _forma_ancha()
 	print("RESULTADO colisiones_forma · FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -161,6 +164,37 @@ func _f10() -> void:
 	Terreno3D.huellas.clear()
 	_mundo._bloqueadas.erase(celda)
 	_mundo._bloqueadas.erase(otra)
+
+
+func _forma_ancha() -> void:
+	var cas: float = Terreno3D.casilla
+	var c := Vector2i(10, 10)
+	var vecina := Vector2i(11, 10)
+	var cuerpo := StaticBody3D.new()
+	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
+	var forma := CollisionShape3D.new()
+	var cil := CylinderShape3D.new()
+	cil.radius = cas * 0.65                          # roza la vecina (su caja del 90 % empieza a 0,55 casillas) sin llegar a su centro (0,75)
+	cil.height = 2.0
+	forma.shape = cil
+	cuerpo.add_child(forma)
+	root.add_child(cuerpo)
+	cuerpo.global_position = Terreno3D.centro_de(c, Terreno3D.alto_suelo + 1.0)
+	cuerpo.add_to_group("bloquea")
+	await physics_frame
+	await physics_frame
+	var antes = Terreno3D.fuente
+	var f := Terreno3D.FuenteNodos.new(_mundo)
+	f.reconstruir()
+	_ok(f.es_parcial(c) and f.es_parcial(vecina), "forma ancha: la casilla propia y la vecina rozada son «parciales» (el jugador choca con la forma)")
+	_ok(f.bloquea(c), "forma ancha: su propia casilla está bloqueada entera")
+	_ok(not f.bloquea(vecina), "forma ancha: la vecina que solo roza NO se bloquea entera (antes: pasillos cerrados para hechizos y BFS)")
+	f.liberar(c)
+	_ok(not f.bloquea(c) and not f.cubiertas.has(c) and not f.es_parcial(c), "liberar() limpia las dos capas (celdas y cubiertas)")
+	f.bloquear_completa(vecina)
+	_ok(f.bloquea(vecina) and not f.es_parcial(vecina), "bloquear_completa() bloquea entera y deja de ser parcial")
+	Terreno3D.fuente = antes
+	cuerpo.queue_free()
 
 
 class EnvF10 extends MundoFalso:
