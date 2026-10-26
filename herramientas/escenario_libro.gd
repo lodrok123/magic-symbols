@@ -68,11 +68,14 @@ func _escenario() -> void:
 	var tinta: Tinta = jugador.tinta
 	_ok("5 el Lanzador y el jugador comparten la misma tinta", lanzador.tinta == tinta)
 	tinta.actual = 5.0
+	var frascos0: int = tinta.frascos
+	tinta.frascos = 0                      # 24/10: la partida empieza con 3 frascos de reserva, que pagan la flecha; sin ellos, 5 de tinta no alcanza
 	var sin: int = eventos("cast_sin_tinta").size()
 	lanzador.cast_page(0)
 	_ok("5 con 5 de tinta una flecha (10) no entra en el modo de apuntar", not lanzador.modo_lanzar)
 	_ok("5 no se gasta nada", is_equal_approx(tinta.actual, 5.0), "%.2f" % tinta.actual)
 	_ok("5 y el diario anota «cast_sin_tinta»", eventos("cast_sin_tinta").size() == sin + 1)
+	tinta.frascos = frascos0
 	tinta.actual = 100.0
 	_ok("6 con la tinta llena la flecha sale", lanzador.lanzar_pagina_ya(0, jugador.position, Vector3.RIGHT))
 	# R3: la tinta sale de las medidas (Tinta.coste_receta: 10 × coste_v2). Una flecha es la esfera base con UNA propiedad: 10 × 1,25 = 12,5 (antes, 10 por la forma «proyectil»).

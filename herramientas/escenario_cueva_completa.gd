@@ -612,7 +612,7 @@ func _vuelta_c1() -> void:
 	# Primero un fallo: hielo sobre la estatua que pide fuego.
 	var falla: Array = [0]
 	est.falla.connect(func() -> void: falla[0] += 1)
-	_ok("8 C1: ᚱ + HIELO desde la losa de la 1.ª estatua (pide fuego) sale", await _apuntar("hielo", ["raido"], Vector2i(5, 21)))
+	_ok("8 C1: ᚱ + HIELO desde la losa de la 1.ª estatua (pide fuego) sale", await _apuntar("hielo", ["raido", "flecha"], Vector2i(5, 21)))
 	await avanzar_s(0.8)
 	_ok("8 C1: es un FALLO: la secuencia se reinicia (paso 0) y las estatuas se apagan", falla[0] == 1 and est.fallos == 1 and est.paso == 0 and not est.estatua(0).encendida)
 	await _sin_pulsos_en_vuelo()
@@ -623,7 +623,7 @@ func _vuelta_c1() -> void:
 	await _sin_pulsos_en_vuelo()
 	if not await _ruta("8 C1", [Vector2i(6, 22), [Vector2i(7, 22), TOL_EXACTA]]):
 		return
-	_ok("8 C1: ᚱ + hielo sobre la 2.ª estatua sale", await _apuntar("hielo", ["raido"], Vector2i(7, 21)))
+	_ok("8 C1: ᚱ + hielo sobre la 2.ª estatua sale", await _apuntar("hielo", ["raido", "flecha"], Vector2i(7, 21)))
 	await avanzar_s(0.8)
 	_ok("8 C1: la 2.ª estatua se enciende (hielo)", est.paso == 2 and est.estatua(1).encendida and est.estatua(0).encendida)
 	await _sin_pulsos_en_vuelo()
