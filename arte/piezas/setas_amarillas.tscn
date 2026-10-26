@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/setas_amarillas.glb" id="1_vvenn"]
+
+[node name="setas_amarillas" type="Node3D" unique_id=1625875892]
+metadata/id = "setas_amarillas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=509378737]
+
+[node name="setas_amarillas2" type="Node3D" parent="modelo" unique_id=1283082912 instance=ExtResource("1_vvenn")]
+transform = Transform3D(6.019157, 0, 0, 0, 6.019157, 0, 0, 0, 6.019157, 0, 0, 0)

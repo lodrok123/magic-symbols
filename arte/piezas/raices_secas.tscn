@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/raices_secas.glb" id="1_ibany"]
+
+[node name="raices_secas" type="Node3D" unique_id=206342051]
+metadata/id = "raices_secas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=12916052]
+
+[node name="raices_secas2" type="Node3D" parent="modelo" unique_id=1281732422 instance=ExtResource("1_ibany")]
+transform = Transform3D(4.7322946, 0, 0, 0, 4.7322946, 0, 0, 0, 4.7322946, 0, 0, 0)

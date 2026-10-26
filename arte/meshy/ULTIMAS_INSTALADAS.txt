@@ -1,1 +1,14 @@
-placa_presion_cueva
+pilar_cascada
+geoda_resonante
+pilar_cascada_ancho
+estalagmita_resonante
+labio_cascada
+estalagmita_rota
+brasero_cueva
+rocas_salpicadura
+alga_cueva
+musgo_colgante
+basalto_suelto
+esquirla_cristal
+helechos_cueva
+jarron_roto

@@ -4,23 +4,23 @@
 [ext_resource type="PackedScene" path="res://arte/piezas/arbol_redondo_2.tscn" id="2_arbol_redondo"]
 [ext_resource type="PackedScene" path="res://arte/piezas/arbol_redondo_2.tscn" id="3_arbol_redondo_2"]
 [ext_resource type="PackedScene" uid="uid://c3ma7drn2eitt" path="res://arte/piezas/arbusto.tscn" id="4_arbusto"]
-[ext_resource type="PackedScene" uid="uid://jk7twy1ot7io" path="res://arte/piezas/arbusto_flores.tscn" id="5_arbusto_flores"]
-[ext_resource type="PackedScene" uid="uid://nad35vomyflh" path="res://arte/piezas/arbusto_otono.tscn" id="6_arbusto_otono"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto_flores.tscn" id="5_arbusto_flores"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto_otono.tscn" id="6_arbusto_otono"]
 [ext_resource type="PackedScene" path="res://arte/piezas/canas.tscn" id="10_canas"]
-[ext_resource type="PackedScene" uid="uid://dl5fi28hm08ts" path="res://arte/piezas/cartel.tscn" id="11_cartel"]
+[ext_resource type="PackedScene" path="res://arte/piezas/cartel.tscn" id="11_cartel"]
 [ext_resource type="PackedScene" path="res://arte/piezas/flores_blancas.tscn" id="12_flores_blancas"]
 [ext_resource type="PackedScene" path="res://arte/piezas/helecho.tscn" id="13_helecho"]
 [ext_resource type="PackedScene" path="res://arte/piezas/hojas_caidas.tscn" id="14_hojas_caidas"]
-[ext_resource type="PackedScene" uid="uid://dege8bcuksysn" path="res://arte/piezas/juncos.tscn" id="15_juncos"]
+[ext_resource type="PackedScene" path="res://arte/piezas/juncos.tscn" id="15_juncos"]
 [ext_resource type="PackedScene" uid="uid://wkbucrmijwem" path="res://arte/piezas/matas.tscn" id="16_matas"]
 [ext_resource type="PackedScene" uid="uid://7slhuw6u432k" path="res://arte/piezas/piedras.tscn" id="18_piedras"]
-[ext_resource type="PackedScene" uid="uid://b8j2o3bu1hie8" path="res://arte/piezas/pino.tscn" id="19_pino"]
+[ext_resource type="PackedScene" path="res://arte/piezas/pino.tscn" id="19_pino"]
 [ext_resource type="PackedScene" path="res://arte/piezas/pino_2.tscn" id="20_pino_2"]
 [ext_resource type="PackedScene" uid="uid://d4fuu72gh5hub" path="res://arte/piezas/roca_grande.tscn" id="21_roca_grande"]
 [ext_resource type="PackedScene" path="res://arte/piezas/roca_musgosa.tscn" id="22_roca_musgosa"]
 [ext_resource type="PackedScene" path="res://arte/piezas/rocas_pequenas.tscn" id="23_rocas_pequenas"]
 [ext_resource type="PackedScene" uid="uid://s32x5xr5cthi" path="res://arte/piezas/tienda_goblin.tscn" id="25_tienda_goblin"]
-[ext_resource type="PackedScene" uid="uid://ym2k86atqoq0" path="res://arte/piezas/tocon.tscn" id="26_tocon"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon.tscn" id="26_tocon"]
 [ext_resource type="PackedScene" path="res://arte/piezas/tronco_musgoso.tscn" id="27_tronco_musgoso"]
 [ext_resource type="PackedScene" path="res://arte/piezas/troncos_apilados.tscn" id="28_troncos_apilados"]
 [ext_resource type="Script" uid="uid://cy3502rx2dcsj" path="res://mundo/marcador_3d.gd" id="99_mk"]
@@ -45,7 +45,7 @@ data = {
 transform = Transform3D(-0.5844943, 0, -0.8722766, 0, 1.05, 0, 0.8722766, 0, -0.5844943, 23.7447, 1.005, 3.684748)
 
 [node name="tienda_goblin_10_2" parent="Piezas" unique_id=880735321 instance=ExtResource("25_tienda_goblin")]
-transform = Transform3D(0.6727911, 0, 0.806134, 0, 1.05, 0, -0.806134, 0, 0.6727911, 24.21886, 1.005, 5.655123)
+transform = Transform3D(0.6727911, 0, 0.806134, 0, 1.05, 0, -0.806134, 0, 0.6727911, 19.733274, 1.005, 3.5777588)
 
 [node name="arbusto_flores_15_3" parent="Piezas" unique_id=830504638 instance=ExtResource("5_arbusto_flores")]
 transform = Transform3D(-0.9084538, 0, -0.4355945, 0, 1.007487, 0, 0.4355945, 0, -0.9084538, 35.80762, 1.005, 7.921794)
@@ -1746,7 +1746,7 @@ script = ExtResource("99_mk")
 letra = "W"
 
 [node name="cofre_01" type="Node3D" parent="Marcadores" unique_id=1206537400 groups=["cofre", "marcador"]]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.035, 10.35)
+transform = Transform3D(-0.050305095, 0, -0.9987339, 0, 1, 0, 0.9987339, 0, -0.050305095, 24.15, 1.035, 10.35)
 script = ExtResource("99_mk")
 letra = "Z"
 

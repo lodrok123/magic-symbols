@@ -1,0 +1,1619 @@
+[gd_scene format=3]
+
+[ext_resource type="MeshLibrary" path="res://mundo/datos_nivel/suelo_tipos.tres" id="1_xj4wp"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto.tscn" id="2_uqh5c"]
+[ext_resource type="PackedScene" path="res://arte/piezas/setas.tscn" id="3_7ptuu"]
+[ext_resource type="PackedScene" path="res://arte/piezas/juncos.tscn" id="4_5c2ww"]
+[ext_resource type="PackedScene" path="res://arte/piezas/piedras.tscn" id="5_lvs11"]
+[ext_resource type="PackedScene" path="res://arte/piezas/tocon.tscn" id="6_oc75c"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbusto_flores.tscn" id="7_p7ehe"]
+[ext_resource type="PackedScene" path="res://arte/piezas/pino.tscn" id="8_hu8ve"]
+[ext_resource type="PackedScene" path="res://arte/piezas/arbol_redondo.tscn" id="9_prl46"]
+[ext_resource type="Script" path="res://mundo/marcador_3d.gd" id="10_6bmlm"]
+
+[node name="Nivel_PlaytestEoW" type="Node3D" unique_id=965102148]
+metadata/lado = 33
+metadata/nombre = "PlaytestEoW"
+metadata/origen = "letras"
+metadata/horneado = "2026-10-21T14:00:33"
+
+[node name="Suelo" type="GridMap" parent="." unique_id=878973890]
+mesh_library = ExtResource("1_xj4wp")
+cell_size = Vector3(2.3, 1.035, 2.3)
+cell_center_y = false
+data = {
+"cells": PackedInt32Array(0, 0, 0, 1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0, 5, 0, 0, 6, 0, 0, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0, 14, 0, 0, 15, 0, 0, 16, 0, 0, 17, 0, 0, 18, 0, 0, 19, 0, 0, 20, 0, 0, 21, 0, 0, 22, 0, 0, 23, 0, 0, 24, 0, 0, 25, 0, 0, 26, 0, 0, 27, 0, 0, 28, 0, 0, 29, 0, 0, 30, 0, 0, 31, 0, 0, 32, 0, 0, 0, 1, 0, 1, 1, 0, 2, 1, 0, 3, 1, 0, 4, 1, 0, 5, 1, 0, 6, 1, 0, 7, 1, 0, 8, 1, 0, 9, 1, 0, 10, 1, 0, 11, 1, 0, 12, 1, 0, 13, 1, 0, 14, 1, 0, 15, 1, 0, 16, 1, 0, 17, 1, 0, 18, 1, 0, 19, 1, 0, 20, 1, 0, 21, 1, 0, 22, 1, 0, 23, 1, 0, 24, 1, 0, 25, 1, 0, 26, 1, 0, 27, 1, 0, 28, 1, 0, 29, 1, 0, 30, 1, 0, 31, 1, 0, 32, 1, 0, 0, 2, 0, 1, 2, 0, 2, 2, 0, 3, 2, 0, 4, 2, 0, 5, 2, 0, 6, 2, 0, 7, 2, 0, 8, 2, 0, 9, 2, 0, 10, 2, 1, 11, 2, 1, 12, 2, 1, 13, 2, 1, 14, 2, 1, 15, 2, 0, 16, 2, 0, 17, 2, 0, 18, 2, 0, 19, 2, 0, 20, 2, 0, 21, 2, 0, 22, 2, 0, 23, 2, 0, 24, 2, 0, 25, 2, 0, 26, 2, 0, 27, 2, 0, 28, 2, 0, 29, 2, 0, 30, 2, 0, 31, 2, 0, 32, 2, 0, 0, 3, 0, 1, 3, 0, 2, 3, 0, 3, 3, 0, 4, 3, 0, 5, 3, 0, 6, 3, 0, 7, 3, 0, 8, 3, 0, 9, 3, 0, 10, 3, 1, 11, 3, 1, 12, 3, 1, 13, 3, 1, 14, 3, 1, 15, 3, 0, 16, 3, 0, 17, 3, 0, 18, 3, 0, 19, 3, 0, 20, 3, 0, 21, 3, 0, 22, 3, 0, 23, 3, 0, 24, 3, 0, 25, 3, 0, 26, 3, 0, 27, 3, 0, 28, 3, 0, 29, 3, 0, 30, 3, 0, 31, 3, 0, 32, 3, 0, 0, 4, 0, 1, 4, 0, 2, 4, 0, 3, 4, 0, 4, 4, 0, 5, 4, 0, 6, 4, 0, 7, 4, 0, 8, 4, 0, 9, 4, 0, 10, 4, 1, 11, 4, 1, 12, 4, 1, 13, 4, 1, 14, 4, 1, 15, 4, 0, 16, 4, 0, 17, 4, 0, 18, 4, 0, 19, 4, 0, 20, 4, 0, 21, 4, 0, 22, 4, 0, 23, 4, 0, 24, 4, 0, 25, 4, 0, 26, 4, 0, 27, 4, 0, 28, 4, 0, 29, 4, 0, 30, 4, 0, 31, 4, 0, 32, 4, 0, 0, 5, 0, 1, 5, 0, 2, 5, 0, 3, 5, 0, 4, 5, 0, 5, 5, 0, 6, 5, 0, 7, 5, 0, 8, 5, 0, 9, 5, 0, 10, 5, 0, 11, 5, 0, 12, 5, 0, 13, 5, 0, 14, 5, 0, 15, 5, 0, 16, 5, 0, 17, 5, 0, 18, 5, 0, 19, 5, 0, 20, 5, 0, 21, 5, 0, 22, 5, 0, 23, 5, 0, 24, 5, 0, 25, 5, 1, 26, 5, 1, 27, 5, 1, 28, 5, 1, 29, 5, 1, 30, 5, 1, 31, 5, 1, 32, 5, 0, 0, 6, 0, 1, 6, 0, 2, 6, 0, 3, 6, 0, 4, 6, 0, 5, 6, 0, 6, 6, 0, 7, 6, 0, 8, 6, 0, 9, 6, 0, 10, 6, 0, 11, 6, 0, 12, 6, 0, 13, 6, 0, 14, 6, 0, 15, 6, 0, 16, 6, 0, 17, 6, 0, 18, 6, 0, 19, 6, 0, 20, 6, 0, 21, 6, 0, 22, 6, 0, 23, 6, 0, 24, 6, 0, 25, 6, 0, 26, 6, 0, 27, 6, 0, 28, 6, 0, 29, 6, 0, 30, 6, 0, 31, 6, 0, 32, 6, 0, 0, 7, 0, 1, 7, 0, 2, 7, 0, 3, 7, 0, 4, 7, 0, 5, 7, 0, 6, 7, 0, 7, 7, 0, 8, 7, 0, 9, 7, 0, 10, 7, 0, 11, 7, 0, 12, 7, 0, 13, 7, 0, 14, 7, 0, 15, 7, 0, 16, 7, 0, 17, 7, 0, 18, 7, 0, 19, 7, 0, 20, 7, 0, 21, 7, 0, 22, 7, 0, 23, 7, 0, 24, 7, 0, 25, 7, 0, 26, 7, 0, 27, 7, 0, 28, 7, 0, 29, 7, 0, 30, 7, 0, 31, 7, 0, 32, 7, 0, 0, 8, 0, 1, 8, 0, 2, 8, 0, 3, 8, 0, 4, 8, 0, 5, 8, 0, 6, 8, 0, 7, 8, 0, 8, 8, 0, 9, 8, 0, 10, 8, 0, 11, 8, 0, 12, 8, 0, 13, 8, 0, 14, 8, 0, 15, 8, 0, 16, 8, 0, 17, 8, 0, 18, 8, 0, 19, 8, 0, 20, 8, 0, 21, 8, 0, 22, 8, 0, 23, 8, 0, 24, 8, 0, 25, 8, 0, 26, 8, 0, 27, 8, 0, 28, 8, 0, 29, 8, 0, 30, 8, 0, 31, 8, 0, 32, 8, 0, 0, 9, 0, 1, 9, 0, 2, 9, 0, 3, 9, 0, 4, 9, 0, 5, 9, 0, 6, 9, 0, 7, 9, 0, 8, 9, 0, 9, 9, 0, 10, 9, 0, 11, 9, 0, 12, 9, 0, 13, 9, 0, 14, 9, 0, 15, 9, 0, 16, 9, 0, 17, 9, 0, 18, 9, 0, 19, 9, 0, 20, 9, 0, 21, 9, 0, 22, 9, 0, 23, 9, 0, 24, 9, 0, 25, 9, 0, 26, 9, 0, 27, 9, 0, 28, 9, 0, 29, 9, 0, 30, 9, 0, 31, 9, 0, 32, 9, 0, 0, 10, 0, 1, 10, 0, 2, 10, 0, 3, 10, 0, 4, 10, 0, 5, 10, 0, 6, 10, 0, 7, 10, 0, 8, 10, 0, 9, 10, 0, 10, 10, 0, 11, 10, 0, 12, 10, 0, 13, 10, 0, 14, 10, 0, 15, 10, 0, 16, 10, 0, 17, 10, 0, 18, 10, 0, 19, 10, 0, 20, 10, 0, 21, 10, 0, 22, 10, 0, 23, 10, 0, 24, 10, 0, 25, 10, 0, 26, 10, 0, 27, 10, 0, 28, 10, 0, 29, 10, 0, 30, 10, 0, 31, 10, 0, 32, 10, 0, 0, 11, 0, 1, 11, 0, 2, 11, 0, 3, 11, 0, 4, 11, 0, 5, 11, 0, 6, 11, 0, 7, 11, 0, 8, 11, 0, 9, 11, 0, 10, 11, 0, 11, 11, 0, 12, 11, 0, 13, 11, 0, 14, 11, 0, 15, 11, 0, 16, 11, 0, 17, 11, 0, 18, 11, 0, 19, 11, 0, 20, 11, 0, 21, 11, 0, 22, 11, 0, 23, 11, 0, 24, 11, 0, 25, 11, 0, 26, 11, 0, 27, 11, 0, 28, 11, 0, 29, 11, 0, 30, 11, 0, 31, 11, 0, 32, 11, 0, 0, 12, 0, 1, 12, 0, 2, 12, 0, 3, 12, 0, 4, 12, 0, 5, 12, 0, 6, 12, 0, 7, 12, 0, 8, 12, 0, 9, 12, 0, 10, 12, 0, 11, 12, 0, 12, 12, 0, 13, 12, 0, 14, 12, 0, 15, 12, 0, 16, 12, 0, 17, 12, 0, 18, 12, 0, 19, 12, 0, 20, 12, 0, 21, 12, 0, 22, 12, 0, 23, 12, 0, 24, 12, 0, 25, 12, 0, 26, 12, 0, 27, 12, 0, 28, 12, 0, 29, 12, 0, 30, 12, 0, 31, 12, 0, 32, 12, 0, 0, 13, 0, 1, 13, 0, 2, 13, 0, 3, 13, 0, 4, 13, 0, 5, 13, 0, 6, 13, 0, 7, 13, 0, 8, 13, 0, 9, 13, 0, 10, 13, 0, 11, 13, 0, 12, 13, 0, 13, 13, 0, 14, 13, 0, 15, 13, 0, 16, 13, 0, 17, 13, 0, 18, 13, 0, 19, 13, 0, 20, 13, 0, 21, 13, 0, 22, 13, 0, 23, 13, 0, 24, 13, 0, 25, 13, 0, 26, 13, 0, 27, 13, 0, 28, 13, 0, 29, 13, 0, 30, 13, 0, 31, 13, 0, 32, 13, 0, 0, 14, 0, 1, 14, 0, 2, 14, 0, 3, 14, 0, 4, 14, 0, 5, 14, 0, 6, 14, 4, 7, 14, 0, 8, 14, 0, 9, 14, 0, 10, 14, 0, 11, 14, 0, 12, 14, 0, 13, 14, 0, 14, 14, 0, 15, 14, 0, 16, 14, 0, 17, 14, 0, 18, 14, 0, 19, 14, 0, 20, 14, 0, 21, 14, 0, 22, 14, 0, 23, 14, 0, 24, 14, 0, 25, 14, 0, 26, 14, 0, 27, 14, 0, 28, 14, 0, 29, 14, 0, 30, 14, 0, 31, 14, 0, 32, 14, 0, 0, 15, 0, 1, 15, 0, 2, 15, 0, 3, 15, 0, 4, 15, 0, 5, 15, 0, 6, 15, 0, 7, 15, 0, 8, 15, 0, 9, 15, 0, 10, 15, 0, 11, 15, 0, 12, 15, 0, 13, 15, 0, 14, 15, 0, 15, 15, 0, 16, 15, 0, 17, 15, 0, 18, 15, 0, 19, 15, 0, 20, 15, 0, 21, 15, 0, 22, 15, 0, 23, 15, 0, 24, 15, 0, 25, 15, 0, 26, 15, 0, 27, 15, 0, 28, 15, 0, 29, 15, 0, 30, 15, 0, 31, 15, 0, 32, 15, 0, 0, 16, 0, 1, 16, 0, 2, 16, 0, 3, 16, 0, 4, 16, 0, 5, 16, 0, 6, 16, 0, 7, 16, 0, 8, 16, 0, 9, 16, 0, 10, 16, 0, 11, 16, 0, 12, 16, 0, 13, 16, 0, 14, 16, 0, 15, 16, 0, 16, 16, 0, 17, 16, 0, 18, 16, 0, 19, 16, 0, 20, 16, 0, 21, 16, 0, 22, 16, 0, 23, 16, 0, 24, 16, 0, 25, 16, 0, 26, 16, 0, 27, 16, 0, 28, 16, 0, 29, 16, 0, 30, 16, 0, 31, 16, 0, 32, 16, 0)
+}
+
+[node name="Piezas" type="Node3D" parent="." unique_id=434162255]
+
+[node name="arbusto_1_1" type="Node3D" parent="Piezas" unique_id=493393277 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-1.0271958, 0, 0.16269182, 0, 1.04, 0, -0.16269182, 0, -1.0271958, 3.749, 1.005, 3.542)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_18_1" type="Node3D" parent="Piezas" unique_id=1602751152 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.8487049, 0, 0.49000007, 0, 0.98, 0, -0.49000007, 0, -0.8487049, 42.3775, 1.005, 3.1395001)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="juncos_14_2" type="Node3D" parent="Piezas" unique_id=978871704 instance=ExtResource("4_5c2ww")]
+transform = Transform3D(-0.83529145, 0, -0.652601, 0, 1.06, 0, 0.652601, 0, -0.83529145, 33.142998, 0.965, 5.5545)
+metadata/id = "juncos"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_17_2" type="Node3D" parent="Piezas" unique_id=224911704 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.76210237, 0, -0.43999997, 0, 0.88, 0, 0.43999997, 0, -0.76210237, 40.181, 1.005, 5.428)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_18_2" type="Node3D" parent="Piezas" unique_id=126944030 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.91716903, 0, 0.5510907, 0, 1.07, 0, -0.5510907, 0, -0.91716903, 42.32, 1.005, 5.474)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_17_3" type="Node3D" parent="Piezas" unique_id=1795000686 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.58389246, 0, 0.67169154, 0, 0.89, 0, -0.67169154, 0, -0.58389246, 40.5835, 1.005, 7.7970004)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_19_3" type="Node3D" parent="Piezas" unique_id=703761716 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.87364817, 0, 0.16982001, 0, 0.89, 0, -0.16982001, 0, 0.87364817, 44.85, 1.005, 8.061501)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_6_4" type="Node3D" parent="Piezas" unique_id=356900163 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-1.0260805, 0, -0.08977048, 0, 1.03, 0, 0.08977048, 0, -1.0260805, 14.938499, 1.005, 10.58)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_19_4" type="Node3D" parent="Piezas" unique_id=1185228739 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.91496015, 0, -0.09616636, 0, 0.92, 0, 0.09616636, 0, 0.91496015, 44.976498, 1.005, 10.0625)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_20_4" type="Node3D" parent="Piezas" unique_id=282673687 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.8376595, 0, -0.3555653, 0, 0.91, 0, 0.3555653, 0, -0.8376595, 46.9775, 1.005, 10.1315)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="setas_21_4" type="Node3D" parent="Piezas" unique_id=1152242775 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.5352186, 0, -0.8565285, 0, 1.01, 0, 0.8565285, 0, -0.5352186, 49.7375, 1.005, 10.396)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_23_4" type="Node3D" parent="Piezas" unique_id=83656447 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.8274113, 0, 0.6464445, 0, 1.05, 0, -0.6464445, 0, -0.8274113, 53.7625, 1.005, 10.58)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_4_5" type="Node3D" parent="Piezas" unique_id=1168177813 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.6620711, 0, -0.78902584, 0, 1.03, 0, 0.78902584, 0, -0.6620711, 10.373, 1.005, 12.719)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_5_5" type="Node3D" parent="Piezas" unique_id=238433764 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.018150445, 0, 1.0398415, 0, 1.04, 0, -1.0398415, 0, -0.018150445, 12.903, 1.005, 12.695999)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_9_5" type="Node3D" parent="Piezas" unique_id=524834497 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-1.0758903, 0, 0.094128095, 0, 1.08, 0, -0.094128095, 0, -1.0758903, 21.781, 1.005, 12.512)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_18_5" type="Node3D" parent="Piezas" unique_id=1834756375 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.49097568, 0, 1.0066494, 0, 1.12, 0, -1.0066494, 0, 0.49097568, 42.3775, 1.005, 12.535)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="setas_1_6" type="Node3D" parent="Piezas" unique_id=1374189102 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.7025872, 0, 0.780302, 0, 1.05, 0, -0.780302, 0, -0.7025872, 3.335, 1.005, 14.95)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_17_6" type="Node3D" parent="Piezas" unique_id=87117480 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.14056501, 0, -1.0001707, 0, 1.01, 0, 1.0001707, 0, 0.14056501, 40.02, 1.005, 15.2605)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="tocon_27_6" type="Node3D" parent="Piezas" unique_id=534539740 instance=ExtResource("6_oc75c")]
+transform = Transform3D(1.0199022, 0, 0.41206723, 0, 1.1, 0, -0.41206723, 0, 1.0199022, 63.2155, 1.005, 15.030499)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_31_6" type="Node3D" parent="Piezas" unique_id=868709358 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.35587627, 0, 0.8808247, 0, 0.95, 0, -0.8808247, 0, -0.35587627, 72.68, 1.005, 15.2835)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_10_7" type="Node3D" parent="Piezas" unique_id=805734119 instance=ExtResource("5_lvs11")]
+transform = Transform3D(-0.99860924, 0, 0.32446787, 0, 1.05, 0, -0.32446787, 0, -0.99860924, 24.403, 1.005, 17.5835)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="tocon_13_7" type="Node3D" parent="Piezas" unique_id=420746645 instance=ExtResource("6_oc75c")]
+transform = Transform3D(1.0589808, 0, 0.36463633, 0, 1.12, 0, -0.36463633, 0, 1.0589808, 31.372, 1.005, 17.3995)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_flores_20_7" type="Node3D" parent="Piezas" unique_id=97421791 instance=ExtResource("7_p7ehe")]
+transform = Transform3D(-0.57172436, 0, 0.7587037, 0, 0.95, 0, -0.7587037, 0, -0.57172436, 47.391502, 1.005, 17.2155)
+metadata/id = "arbusto_flores"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_31_7" type="Node3D" parent="Piezas" unique_id=59371185 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.7752349, 0, 0.7229182, 0, 1.06, 0, -0.7229182, 0, 0.7752349, 72.15099, 1.005, 17.2845)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="piedras_4_8" type="Node3D" parent="Piezas" unique_id=1119023193 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.8866768, 0, 0.20470546, 0, 0.91, 0, -0.20470546, 0, 0.8866768, 10.442, 1.005, 19.7685)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_18_9" type="Node3D" parent="Piezas" unique_id=1014275295 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.8803328, 0, 0.18712053, 0, 0.9, 0, -0.18712053, 0, 0.8803328, 42.871998, 1.005, 21.62)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_13_10" type="Node3D" parent="Piezas" unique_id=887165993 instance=ExtResource("5_lvs11")]
+transform = Transform3D(-0.7092097, 0, 0.55409527, 0, 0.9, 0, -0.55409527, 0, -0.7092097, 31.314499, 1.005, 23.9545)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="tocon_28_10" type="Node3D" parent="Piezas" unique_id=2081578202 instance=ExtResource("6_oc75c")]
+transform = Transform3D(-0.98411375, 0, -0.22720055, 0, 1.01, 0, 0.22720055, 0, -0.98411375, 65.2165, 1.005, 24.241999)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_flores_1_11" type="Node3D" parent="Piezas" unique_id=2060496351 instance=ExtResource("7_p7ehe")]
+transform = Transform3D(-0.39453462, 0, 0.8861391, 0, 0.97, 0, -0.8861391, 0, -0.39453462, 3.3695002, 1.005, 26.622501)
+metadata/id = "arbusto_flores"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_6_11" type="Node3D" parent="Piezas" unique_id=1957890238 instance=ExtResource("5_lvs11")]
+transform = Transform3D(-0.7571776, 0, -0.78408045, 0, 1.09, 0, 0.78408045, 0, -0.7571776, 15.0075, 1.005, 26.4845)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_13_11" type="Node3D" parent="Piezas" unique_id=1742196189 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.15487018, 0, -0.97781146, 0, 0.99, 0, 0.97781146, 0, -0.15487018, 30.808498, 1.005, 26.6685)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_17_11" type="Node3D" parent="Piezas" unique_id=1331938281 instance=ExtResource("5_lvs11")]
+transform = Transform3D(-0.8866768, 0, -0.20470546, 0, 0.91, 0, 0.20470546, 0, -0.8866768, 40.112, 1.005, 26.657001)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="tocon_21_11" type="Node3D" parent="Piezas" unique_id=1451647203 instance=ExtResource("6_oc75c")]
+transform = Transform3D(0.17520668, 0, -1.106211, 0, 1.12, 0, 1.106211, 0, 0.17520668, 49.151, 1.005, 26.438501)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_26_11" type="Node3D" parent="Piezas" unique_id=1407189433 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-1.014352, 0, -0.17885767, 0, 1.03, 0, 0.17885767, 0, -1.014352, 61.1455, 1.005, 26.139502)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_30_11" type="Node3D" parent="Piezas" unique_id=743590940 instance=ExtResource("5_lvs11")]
+transform = Transform3D(-0.8487049, 0, -0.48999998, 0, 0.98, 0, 0.48999998, 0, -0.8487049, 69.8625, 1.005, 26.634)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="piedras_1_12" type="Node3D" parent="Piezas" unique_id=1008431046 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.903586, 0, 0.25909913, 0, 0.94, 0, -0.25909913, 0, 0.903586, 3.3695002, 1.005, 28.8075)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="setas_12_12" type="Node3D" parent="Piezas" unique_id=755397390 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.84286624, 0, 0.39303505, 0, 0.93, 0, -0.39303505, 0, -0.84286624, 28.5545, 1.005, 28.4625)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="piedras_15_12" type="Node3D" parent="Piezas" unique_id=361912727 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.8352914, 0, 0.6526012, 0, 1.06, 0, -0.6526012, 0, 0.8352914, 35.65, 1.005, 28.497)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_30_12" type="Node3D" parent="Piezas" unique_id=908760845 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.89329153, 0, -0.10968251, 0, 0.9, 0, 0.10968251, 0, -0.89329153, 70.414505, 1.005, 29.003)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="tocon_5_13" type="Node3D" parent="Piezas" unique_id=1892578869 instance=ExtResource("6_oc75c")]
+transform = Transform3D(-0.26658362, 0, 0.99490356, 0, 1.03, 0, -0.99490356, 0, -0.26658362, 12.5925, 1.005, 30.9695)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="piedras_9_13" type="Node3D" parent="Piezas" unique_id=997919107 instance=ExtResource("5_lvs11")]
+transform = Transform3D(0.75480354, 0, -0.49017504, 0, 0.9, 0, 0.49017504, 0, 0.75480354, 22.0685, 1.005, 31.0385)
+metadata/id = "piedras"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="tocon_19_13" type="Node3D" parent="Piezas" unique_id=1108622151 instance=ExtResource("6_oc75c")]
+transform = Transform3D(0.75480354, 0, -0.49017504, 0, 0.9, 0, 0.49017504, 0, 0.75480354, 45.1145, 1.005, 30.992498)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_21_13" type="Node3D" parent="Piezas" unique_id=508377301 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.22776076, 0, 0.8500147, 0, 0.88, 0, -0.8500147, 0, -0.22776076, 49.312, 1.005, 31.348999)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="arbusto_27_13" type="Node3D" parent="Piezas" unique_id=8971238 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.9709236, 0, 0.37270266, 0, 1.04, 0, -0.37270266, 0, 0.9709236, 63.1235, 1.005, 30.9005)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_2_14" type="Node3D" parent="Piezas" unique_id=768650855 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.9398568, 0, 0.016405262, 0, 0.94, 0, -0.016405262, 0, 0.9398568, 5.5775, 1.005, 33.028)
+metadata/id = "arbusto"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="tocon_29_14" type="Node3D" parent="Piezas" unique_id=1655857559 instance=ExtResource("6_oc75c")]
+transform = Transform3D(0.70258725, 0, -0.7803019, 0, 1.05, 0, 0.7803019, 0, 0.70258725, 67.9075, 1.005, 33.4535)
+metadata/id = "tocon"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="setas_10_15" type="Node3D" parent="Piezas" unique_id=545681474 instance=ExtResource("3_7ptuu")]
+transform = Transform3D(-0.8251974, 0, 0.5995409, 0, 1.02, 0, -0.5995409, 0, -0.8251974, 24.0005, 1.005, 35.949)
+metadata/id = "setas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="Borde" type="Node3D" parent="." unique_id=2059859142]
+
+[node name="pino_0_0" type="Node3D" parent="Borde" unique_id=937972217 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.44713837, 0, -0.91677, 0, 1.02, 0, 0.91677, 0, -0.44713837, 0.88549995, 1.005, 1.426)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_1_0" type="Node3D" parent="Borde" unique_id=1185568533 instance=ExtResource("9_prl46")]
+transform = Transform3D(1.1093239, 0, -0.038738556, 0, 1.11, 0, 0.038738556, 0, 1.1093239, 3.6455, 1.005, 1.3685)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_2_0" type="Node3D" parent="Borde" unique_id=560258677 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.71877193, 0, -0.54163355, 0, 0.9, 0, 0.54163355, 0, -0.71877193, 5.5545, 1.005, 1.3685)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_3_0" type="Node3D" parent="Borde" unique_id=543321731 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.17017518, 0, -0.9651117, 0, 0.98, 0, 0.9651117, 0, -0.17017518, 7.8545003, 1.005, 1.449)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_4_0" type="Node3D" parent="Borde" unique_id=1468279126 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.60952026, 0, 0.90365094, 0, 1.09, 0, -0.90365094, 0, 0.60952026, 10.269501, 1.005, 1.2075)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_5_0" type="Node3D" parent="Borde" unique_id=176846071 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.86219907, 0, 0.58156055, 0, 1.04, 0, -0.58156055, 0, -0.86219907, 12.65, 1.005, 1.288)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_6_0" type="Node3D" parent="Borde" unique_id=1784417426 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.5446391, 0, -0.83867055, 0, 1, 0, 0.83867055, 0, -0.5446391, 15.1915, 1.005, 1.0925)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_7_0" type="Node3D" parent="Borde" unique_id=707277015 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.4649999, 0, -0.80540365, 0, 0.93, 0, 0.80540365, 0, -0.4649999, 16.9625, 1.005, 1.058)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_8_0" type="Node3D" parent="Borde" unique_id=770257931 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.92089874, 0, -0.33517995, 0, 0.98, 0, 0.33517995, 0, 0.92089874, 19.6995, 1.005, 1.472)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_9_0" type="Node3D" parent="Borde" unique_id=1613268990 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.75717765, 0, 0.7840804, 0, 1.09, 0, -0.7840804, 0, 0.75717765, 21.505001, 1.005, 1.219)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_10_0" type="Node3D" parent="Borde" unique_id=584220697 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.84286624, 0, 0.393035, 0, 0.93, 0, -0.393035, 0, 0.84286624, 24.196, 1.005, 1.012)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_11_0" type="Node3D" parent="Borde" unique_id=1145087749 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.8635632, 0, 0.21531045, 0, 0.89, 0, -0.21531045, 0, -0.8635632, 26.220001, 1.005, 0.83949995)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_12_0" type="Node3D" parent="Borde" unique_id=1646313204 instance=ExtResource("9_prl46")]
+transform = Transform3D(1.0614983, 0, -0.32453266, 0, 1.11, 0, 0.32453266, 0, 1.0614983, 28.7615, 1.005, 1.0695)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_13_0" type="Node3D" parent="Borde" unique_id=36847647 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.36938173, 0, -1.014868, 0, 1.08, 0, 1.014868, 0, 0.36938173, 31.325998, 1.005, 1.288)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_14_0" type="Node3D" parent="Borde" unique_id=2141372424 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.41416582, 0, -0.8881817, 0, 0.98, 0, 0.8881817, 0, -0.41416582, 33.671997, 1.005, 1.15)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_15_0" type="Node3D" parent="Borde" unique_id=25269716 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.55360097, 0, 0.8207472, 0, 0.99, 0, -0.8207472, 0, 0.55360097, 35.535, 1.005, 1.3685)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_16_0" type="Node3D" parent="Borde" unique_id=558637229 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.5149999, 0, 0.89200616, 0, 1.03, 0, -0.89200616, 0, 0.5149999, 38.2375, 1.005, 1.4375)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_17_0" type="Node3D" parent="Borde" unique_id=1603924839 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.89009655, 0, 0.3596222, 0, 0.96, 0, -0.3596222, 0, -0.89009655, 39.9395, 1.005, 1.1385)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_18_0" type="Node3D" parent="Borde" unique_id=349449883 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.76271456, 0, -0.5144575, 0, 0.92, 0, 0.5144575, 0, -0.76271456, 42.2855, 1.005, 1.449)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_19_0" type="Node3D" parent="Borde" unique_id=174071460 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9804869, 0, 0.2811501, 0, 1.02, 0, -0.2811501, 0, -0.9804869, 44.711998, 1.005, 1.173)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_20_0" type="Node3D" parent="Borde" unique_id=775457476 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.9957647, 0, -0.4433428, 0, 1.09, 0, 0.4433428, 0, 0.9957647, 46.828003, 1.005, 0.95449996)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_21_0" type="Node3D" parent="Borde" unique_id=831876367 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9411869, 0, -0.23466416, 0, 0.97, 0, 0.23466416, 0, -0.9411869, 49.7605, 1.005, 0.86249995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_22_0" type="Node3D" parent="Borde" unique_id=642057737 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.80823165, 0, 0.6544933, 0, 1.04, 0, -0.6544933, 0, -0.80823165, 52.049, 1.005, 0.81649995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_23_0" type="Node3D" parent="Borde" unique_id=344219205 instance=ExtResource("9_prl46")]
+transform = Transform3D(1.049684, 0, 0.14752348, 0, 1.06, 0, -0.14752348, 0, 1.049684, 53.8315, 1.005, 1.2535)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_0" type="Node3D" parent="Borde" unique_id=1988399292 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9225376, 0, 0.599103, 0, 1.1, 0, -0.599103, 0, -0.9225376, 56.465, 1.005, 1.2305)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_25_0" type="Node3D" parent="Borde" unique_id=1412798485 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.03838941, 0, 1.09933, 0, 1.1, 0, -1.09933, 0, -0.03838941, 58.328003, 1.005, 1.4375)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_26_0" type="Node3D" parent="Borde" unique_id=86029989 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.34835798, 0, -1.0117049, 0, 1.07, 0, 1.0117049, 0, 0.34835798, 60.766003, 1.005, 0.87399995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_27_0" type="Node3D" parent="Borde" unique_id=716485356 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.91775894, 0, 0.064175956, 0, 0.92, 0, -0.064175956, 0, 0.91775894, 63.1235, 1.005, 0.86249995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_28_0" type="Node3D" parent="Borde" unique_id=2098283709 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.5907837, 0, 0.8437266, 0, 1.03, 0, -0.8437266, 0, 0.5907837, 65.5155, 1.005, 1.4605)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_29_0" type="Node3D" parent="Borde" unique_id=559291160 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.19959544, 0, -0.93902165, 0, 0.96, 0, 0.93902165, 0, -0.19959544, 67.942, 1.005, 0.94299996)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_30_0" type="Node3D" parent="Borde" unique_id=1318738622 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.0568266, 0, -0.16738479, 0, 1.07, 0, 0.16738479, 0, -1.0568266, 70.265, 1.005, 1.2535)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_31_0" type="Node3D" parent="Borde" unique_id=875618357 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.89011437, 0, 0.18919957, 0, 0.91, 0, -0.18919957, 0, -0.89011437, 72.21999, 1.005, 1.0465)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_0" type="Node3D" parent="Borde" unique_id=1171348800 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.15174142, 0, 0.95805776, 0, 0.97, 0, -0.95805776, 0, -0.15174142, 74.5315, 1.005, 1.15)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_0_1" type="Node3D" parent="Borde" unique_id=245740151 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-1.0635924, 0, -0.18754008, 0, 1.08, 0, 0.18754008, 0, -1.0635924, 1.311, 1.005, 3.3925002)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_8_1" type="Node3D" parent="Borde" unique_id=650418584 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.9094457, 0, -0.031758636, 0, 0.91, 0, 0.031758636, 0, 0.9094457, 19.55, 1.005, 3.7145)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_16_1" type="Node3D" parent="Borde" unique_id=748210977 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.4769275, 0, -0.76324314, 0, 0.9, 0, 0.76324314, 0, 0.4769275, 37.881, 1.005, 3.611)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_1" type="Node3D" parent="Borde" unique_id=262853724 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.16149282, 0, 0.9158712, 0, 0.93, 0, -0.9158712, 0, -0.16149282, 56.510998, 1.005, 3.105)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_1" type="Node3D" parent="Borde" unique_id=710195195 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.93592435, 0, 0.49763983, 0, 1.06, 0, -0.49763983, 0, 0.93592435, 75.0375, 1.005, 3.1165001)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_2" type="Node3D" parent="Borde" unique_id=408823552 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.903217, 0, 0.11090105, 0, 0.91, 0, -0.11090105, 0, -0.903217, 0.88549995, 1.005, 5.4625)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_2" type="Node3D" parent="Borde" unique_id=559816285 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.0519352, 0, -0.32160896, 0, 1.1, 0, 0.32160896, 0, -1.0519352, 19.4695, 1.005, 6.0835)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_16_2" type="Node3D" parent="Borde" unique_id=93679907 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(1.0081198, 0, 0.327558, 0, 1.06, 0, -0.327558, 0, 1.0081198, 37.72, 1.005, 5.4855)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_2" type="Node3D" parent="Borde" unique_id=1596281279 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.16269189, 0, -1.0271958, 0, 1.04, 0, 1.0271958, 0, -0.16269189, 56.6145, 1.005, 6.026)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_2" type="Node3D" parent="Borde" unique_id=1037431918 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.43371168, 0, -1.0217603, 0, 1.11, 0, 1.0217603, 0, 0.43371168, 74.635, 1.005, 5.635)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_3" type="Node3D" parent="Borde" unique_id=219111932 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.43520826, 0, -0.97749364, 0, 1.07, 0, 0.97749364, 0, 0.43520826, 0.88549995, 1.005, 8.349)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_8_3" type="Node3D" parent="Borde" unique_id=1482609470 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.034899462, 0, 0.99939084, 0, 1, 0, -0.99939084, 0, -0.034899462, 19.803, 1.005, 7.7050004)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_3" type="Node3D" parent="Borde" unique_id=326353437 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.8851245, 0, 0.09303033, 0, 0.89, 0, -0.09303033, 0, 0.8851245, 37.651, 1.005, 8.165)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_3" type="Node3D" parent="Borde" unique_id=1095884555 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.45554507, 0, -1.0231708, 0, 1.12, 0, 1.0231708, 0, 0.45554507, 56.545498, 1.005, 8.1765)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_32_3" type="Node3D" parent="Borde" unique_id=2129791004 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.29665634, 0, 0.9130142, 0, 0.96, 0, -0.9130142, 0, -0.29665634, 74.8305, 1.005, 8.0845)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_4" type="Node3D" parent="Borde" unique_id=1433763093 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.77841157, 0, 0.4314805, 0, 0.89, 0, -0.4314805, 0, -0.77841157, 0.82799995, 1.005, 10.269501)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_25_4" type="Node3D" parent="Borde" unique_id=831102802 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(1.0001707, 0, 0.14056483, 0, 1.01, 0, -0.14056483, 0, 1.0001707, 58.788002, 1.005, 10.2465)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_27_4" type="Node3D" parent="Borde" unique_id=948347369 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.21830703, 0, -1.0270549, 0, 1.05, 0, 1.0270549, 0, 0.21830703, 63.1695, 1.005, 10.603001)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_28_4" type="Node3D" parent="Borde" unique_id=178568685 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.8843608, 0, 0.25358638, 0, 0.92, 0, -0.25358638, 0, -0.8843608, 65.676506, 1.005, 10.35)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_29_4" type="Node3D" parent="Borde" unique_id=922002979 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.66883034, 0, -0.60221756, 0, 0.9, 0, 0.60221756, 0, -0.66883034, 67.619995, 1.005, 10.0395)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_31_4" type="Node3D" parent="Borde" unique_id=782679127 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.80092686, 0, 0.5819074, 0, 0.99, 0, -0.5819074, 0, 0.80092686, 72.288994, 1.005, 10.5685005)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_32_4" type="Node3D" parent="Borde" unique_id=709772061 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-1.0857439, 0, 0.2307819, 0, 1.11, 0, -0.2307819, 0, -1.0857439, 74.6695, 1.005, 10.327001)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_5" type="Node3D" parent="Borde" unique_id=1003645981 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.39333692, 0, 0.973543, 0, 1.05, 0, -0.973543, 0, -0.39333692, 1.2995, 1.005, 12.4085)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_5" type="Node3D" parent="Borde" unique_id=911686653 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8413776, 0, -0.6112968, 0, 1.04, 0, 0.6112968, 0, -0.8413776, 19.8835, 1.005, 12.3165)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_5" type="Node3D" parent="Borde" unique_id=1152422385 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.88294756, 0, 0.46947157, 0, 1, 0, -0.46947157, 0, -0.88294756, 38.0535, 1.005, 12.454499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_24_5" type="Node3D" parent="Borde" unique_id=1720970439 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.9594152, 0, 0.033503473, 0, 0.96, 0, -0.033503473, 0, -0.9594152, 56.671997, 1.005, 12.396999)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_5" type="Node3D" parent="Borde" unique_id=2032882533 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.49097568, 0, 1.0066494, 0, 1.12, 0, -1.0066494, 0, 0.49097568, 74.9225, 1.005, 12.995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_0_6" type="Node3D" parent="Borde" unique_id=1910091527 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.6942105, 0, -0.82732815, 0, 1.08, 0, 0.82732815, 0, -0.6942105, 1.1385, 1.005, 15.271999)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_6" type="Node3D" parent="Borde" unique_id=552748251 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.16269186, 0, 1.0271958, 0, 1.04, 0, -1.0271958, 0, 0.16269186, 19.4235, 1.005, 15.2835)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_6" type="Node3D" parent="Borde" unique_id=1182206664 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.3655351, 0, -0.9522521, 0, 1.02, 0, 0.9522521, 0, -0.3655351, 37.651, 1.005, 14.9615)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_24_6" type="Node3D" parent="Borde" unique_id=847805355 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(1.0635924, 0, -0.18753982, 0, 1.08, 0, 0.18753982, 0, 1.0635924, 56.649, 1.005, 14.938499)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_6" type="Node3D" parent="Borde" unique_id=2129524093 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.7885939, 0, -0.47383508, 0, 0.92, 0, 0.47383508, 0, 0.7885939, 74.52, 1.005, 14.812)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_0_7" type="Node3D" parent="Borde" unique_id=1601748345 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.33991867, 0, 1.0461622, 0, 1.1, 0, -1.0461622, 0, 0.33991867, 1.081, 1.005, 16.905)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_7" type="Node3D" parent="Borde" unique_id=1856605075 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.28115013, 0, 0.9804869, 0, 1.02, 0, -0.9804869, 0, 0.28115013, 19.803, 1.005, 17.5835)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_7" type="Node3D" parent="Borde" unique_id=1517589284 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.20791148, 0, -0.9781476, 0, 1, 0, 0.9781476, 0, 0.20791148, 38.2605, 1.005, 17.5835)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_7" type="Node3D" parent="Borde" unique_id=1591483832 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.7999267, 0, 0.3901503, 0, 0.89, 0, -0.3901503, 0, 0.7999267, 56.234997, 1.005, 17.0545)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_32_7" type="Node3D" parent="Borde" unique_id=758354470 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.7481133, 0, 0.7224448, 0, 1.04, 0, -0.7224448, 0, -0.7481133, 74.635, 1.005, 17.4685)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_8" type="Node3D" parent="Borde" unique_id=51868028 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.79268885, 0, -0.64190686, 0, 1.02, 0, 0.64190686, 0, -0.79268885, 1.357, 1.005, 19.894999)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_1_8" type="Node3D" parent="Borde" unique_id=24489749 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.45554507, 0, -1.0231708, 0, 1.12, 0, 1.0231708, 0, 0.45554507, 3.795, 1.005, 19.492498)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_2_8" type="Node3D" parent="Borde" unique_id=1975518582 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.93349695, 0, 0.4352968, 0, 1.03, 0, -0.4352968, 0, 0.93349695, 6.003, 1.005, 19.8375)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_3_8" type="Node3D" parent="Borde" unique_id=645725251 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-1.0144123, 0, 0.10661906, 0, 1.02, 0, -0.10661906, 0, -1.0144123, 7.7165003, 1.005, 19.734)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_5_8" type="Node3D" parent="Borde" unique_id=1576275731 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.72244465, 0, -0.7481134, 0, 1.04, 0, 0.7481134, 0, -0.72244465, 12.42, 1.005, 19.814499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_6_8" type="Node3D" parent="Borde" unique_id=313970827 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.12796259, 0, -1.0421735, 0, 1.05, 0, 1.0421735, 0, 0.12796259, 14.8005, 1.005, 19.860498)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_7_8" type="Node3D" parent="Borde" unique_id=231766613 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.17885767, 0, 1.014352, 0, 1.03, 0, -1.014352, 0, 0.17885767, 17.0315, 1.005, 19.734)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_8_8" type="Node3D" parent="Borde" unique_id=1182732779 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.93592435, 0, 0.49763983, 0, 1.06, 0, -0.49763983, 0, 0.93592435, 19.7225, 1.005, 19.3315)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_9_8" type="Node3D" parent="Borde" unique_id=2023136874 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.71708983, 0, 0.560252, 0, 0.91, 0, -0.560252, 0, 0.71708983, 21.8615, 1.005, 19.5845)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_10_8" type="Node3D" parent="Borde" unique_id=794861427 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.12525593, 0, -0.89124125, 0, 0.9, 0, 0.89124125, 0, -0.12525593, 23.828, 1.005, 19.4235)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_11_8" type="Node3D" parent="Borde" unique_id=582204451 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.66883034, 0, -0.60221756, 0, 0.9, 0, 0.60221756, 0, -0.66883034, 26.358002, 1.005, 19.734)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_13_8" type="Node3D" parent="Borde" unique_id=748151261 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.11393608, 0, 1.084029, 0, 1.09, 0, -1.084029, 0, -0.11393608, 31.05, 1.005, 19.32)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_14_8" type="Node3D" parent="Borde" unique_id=1698726922 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.1017262, 0, 0.1352749, 0, 1.11, 0, -0.1352749, 0, -1.1017262, 33.2465, 1.005, 19.377499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_15_8" type="Node3D" parent="Borde" unique_id=308911871 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.8487048, 0, -0.4900002, 0, 0.98, 0, 0.4900002, 0, 0.8487048, 35.7535, 1.005, 19.55)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_8" type="Node3D" parent="Borde" unique_id=874606535 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.92842704, 0, 0.14704838, 0, 0.94, 0, -0.14704838, 0, -0.92842704, 38.272, 1.005, 19.526999)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_17_8" type="Node3D" parent="Borde" unique_id=82637009 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.56171453, 0, -0.89893085, 0, 1.06, 0, 0.89893085, 0, -0.56171453, 40.1005, 1.005, 19.389)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_18_8" type="Node3D" parent="Borde" unique_id=131393570 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.36938176, 0, 1.014868, 0, 1.08, 0, -1.014868, 0, -0.36938176, 42.3545, 1.005, 19.779999)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_19_8" type="Node3D" parent="Borde" unique_id=363371783 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.64068586, 0, 0.88182855, 0, 1.09, 0, -0.88182855, 0, -0.64068586, 44.769497, 1.005, 19.411999)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_21_8" type="Node3D" parent="Borde" unique_id=206559853 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.5231287, 0, -0.72002524, 0, 0.89, 0, 0.72002524, 0, 0.5231287, 49.657, 1.005, 19.32)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_22_8" type="Node3D" parent="Borde" unique_id=1146012927 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.6888183, 0, 0.73866725, 0, 1.01, 0, -0.73866725, 0, -0.6888183, 51.4165, 1.005, 19.860498)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_23_8" type="Node3D" parent="Borde" unique_id=806471439 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.3121073, 0, -0.96056706, 0, 1.01, 0, 0.96056706, 0, 0.3121073, 54.0615, 1.005, 19.872)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_8" type="Node3D" parent="Borde" unique_id=1750263592 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.0198447, 0, 0.017801506, 0, 1.02, 0, -0.017801506, 0, -1.0198447, 56.039497, 1.005, 19.641998)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_25_8" type="Node3D" parent="Borde" unique_id=934312569 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.98, 0, -8.567432e-08, 0, 0.98, 0, 8.567432e-08, 0, -0.98, 58.7765, 1.005, 19.894999)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_26_8" type="Node3D" parent="Borde" unique_id=1120737715 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.39463845, 0, 0.9297099, 0, 1.01, 0, -0.9297099, 0, -0.39463845, 60.9845, 1.005, 19.561499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_27_8" type="Node3D" parent="Borde" unique_id=235935030 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.8034823, 0, 0.42721915, 0, 0.91, 0, -0.42721915, 0, 0.8034823, 63.2845, 1.005, 19.803)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_29_8" type="Node3D" parent="Borde" unique_id=1869013856 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.1391731, 0, 0.99026805, 0, 1, 0, -0.99026805, 0, 0.1391731, 68.0915, 1.005, 19.411999)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_30_8" type="Node3D" parent="Borde" unique_id=748773618 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8881817, 0, -0.4141659, 0, 0.98, 0, 0.4141659, 0, -0.8881817, 69.9545, 1.005, 19.641998)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_31_8" type="Node3D" parent="Borde" unique_id=2124982015 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.2515988, 0, -1.0091075, 0, 1.04, 0, 1.0091075, 0, -0.2515988, 72.7605, 1.005, 19.2395)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_8" type="Node3D" parent="Borde" unique_id=1060928578 instance=ExtResource("9_prl46")]
+transform = Transform3D(1.0699736, 0, 0.20798181, 0, 1.09, 0, -0.20798181, 0, 1.0699736, 74.5315, 1.005, 19.641998)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_9" type="Node3D" parent="Borde" unique_id=1813824346 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.6022176, 0, 0.66883034, 0, 0.9, 0, -0.66883034, 0, -0.6022176, 1.0005, 1.005, 21.9305)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_2_9" type="Node3D" parent="Borde" unique_id=1179760190 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.79589087, 0, 0.6218181, 0, 1.01, 0, -0.6218181, 0, 0.79589087, 5.8995, 1.005, 21.758001)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_4_9" type="Node3D" parent="Borde" unique_id=425647049 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.7427349, 0, 0.8248908, 0, 1.11, 0, -0.8248908, 0, 0.7427349, 10.074, 1.005, 21.6085)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_6_9" type="Node3D" parent="Borde" unique_id=166203003 instance=ExtResource("9_prl46")]
+transform = Transform3D(-3.8466023e-08, 0, 0.88, 0, 0.88, 0, -0.88, 0, -3.8466023e-08, 14.9615, 1.005, 21.666)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_9" type="Node3D" parent="Borde" unique_id=732014748 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.17017524, 0, 0.9651116, 0, 0.98, 0, -0.9651116, 0, -0.17017524, 19.8375, 1.005, 21.5165)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_9" type="Node3D" parent="Borde" unique_id=1328784772 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.036644433, 0, 1.0493604, 0, 1.05, 0, -1.0493604, 0, -0.036644433, 38.019, 1.005, 21.597)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_24_9" type="Node3D" parent="Borde" unique_id=149287487 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.9494213, 0, -0.033154417, 0, 0.95, 0, 0.033154417, 0, -0.9494213, 56.626, 1.005, 21.7695)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_32_9" type="Node3D" parent="Borde" unique_id=187788884 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.9035037, 0, -0.29356608, 0, 0.95, 0, 0.29356608, 0, 0.9035037, 74.635, 1.005, 21.6085)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_0_10" type="Node3D" parent="Borde" unique_id=534791498 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.9646862, 0, -0.10139279, 0, 0.97, 0, 0.10139279, 0, 0.9646862, 1.0465, 1.005, 24.425999)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_10" type="Node3D" parent="Borde" unique_id=1216170798 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.8999166, 0, -0.45853043, 0, 1.01, 0, 0.45853043, 0, 0.8999166, 19.262499, 1.005, 23.977499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_10" type="Node3D" parent="Borde" unique_id=327268478 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.9264611, 0, 0.08105484, 0, 0.93, 0, -0.08105484, 0, 0.9264611, 37.961502, 1.005, 24.219)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_10" type="Node3D" parent="Borde" unique_id=820361575 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.19844139, 0, 1.0208923, 0, 1.04, 0, -1.0208923, 0, -0.19844139, 56.3155, 1.005, 24.357)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_10" type="Node3D" parent="Borde" unique_id=1689166643 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9665301, 0, 0.41026768, 0, 1.05, 0, -0.41026768, 0, -0.9665301, 74.819, 1.005, 24.2995)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_11" type="Node3D" parent="Borde" unique_id=1015260313 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.12525593, 0, -0.89124125, 0, 0.9, 0, 0.89124125, 0, -0.12525593, 1.3225, 1.005, 26.1625)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_11" type="Node3D" parent="Borde" unique_id=1085059204 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.445998, 0, 0.8388002, 0, 0.95, 0, -0.8388002, 0, 0.445998, 19.2165, 1.005, 26.369501)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_11" type="Node3D" parent="Borde" unique_id=1476000793 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.49763983, 0, 0.93592435, 0, 1.06, 0, -0.93592435, 0, -0.49763983, 37.812, 1.005, 26.588001)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_11" type="Node3D" parent="Borde" unique_id=739108402 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8456183, 0, -0.5703768, 0, 1.02, 0, 0.5703768, 0, -0.8456183, 56.303997, 1.005, 26.7605)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_11" type="Node3D" parent="Borde" unique_id=1804616829 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.75649035, 0, 0.591035, 0, 0.96, 0, -0.591035, 0, 0.75649035, 74.428, 1.005, 26.5765)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_0_12" type="Node3D" parent="Borde" unique_id=408322165 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(1.08, 0, 0, 0, 1.08, 0, 0, 0, 1.08, 1.426, 1.005, 28.6925)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_12" type="Node3D" parent="Borde" unique_id=590212879 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.48122993, 0, 0.9444669, 0, 1.06, 0, -0.9444669, 0, 0.48122993, 74.6005, 1.005, 28.819)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_13" type="Node3D" parent="Borde" unique_id=2069716595 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.17017527, 0, 0.9651116, 0, 0.98, 0, -0.9651116, 0, 0.17017527, 1.449, 1.005, 31.061499)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_13" type="Node3D" parent="Borde" unique_id=555422607 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.6772277, 0, -0.8668118, 0, 1.1, 0, 0.8668118, 0, -0.6772277, 19.366, 1.005, 30.808498)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_16_13" type="Node3D" parent="Borde" unique_id=855655694 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.903651, 0, 0.6095202, 0, 1.09, 0, -0.6095202, 0, -0.903651, 37.789, 1.005, 30.992498)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_13" type="Node3D" parent="Borde" unique_id=1489073057 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.67582184, 0, 0.7505763, 0, 1.01, 0, -0.7505763, 0, 0.67582184, 56.419, 1.005, 31.188)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_32_13" type="Node3D" parent="Borde" unique_id=706377851 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.30871388, 0, 1.0766131, 0, 1.12, 0, -1.0766131, 0, 0.30871388, 74.9225, 1.005, 31.1535)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_14" type="Node3D" parent="Borde" unique_id=1767744732 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.903217, 0, -0.110901184, 0, 0.91, 0, 0.110901184, 0, 0.903217, 1.1615, 1.005, 33.372997)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_14" type="Node3D" parent="Borde" unique_id=581920687 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.83145225, 0, -0.499587, 0, 0.97, 0, 0.499587, 0, 0.83145225, 19.814499, 1.005, 33.142998)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_14" type="Node3D" parent="Borde" unique_id=637105437 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9890172, 0, 0.50392956, 0, 1.11, 0, -0.50392956, 0, -0.9890172, 37.6395, 1.005, 33.327)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_24_14" type="Node3D" parent="Borde" unique_id=2129476670 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.89009655, 0, 0.3596222, 0, 0.96, 0, -0.3596222, 0, -0.89009655, 56.2925, 1.005, 33.0165)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_14" type="Node3D" parent="Borde" unique_id=1720170569 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.903217, 0, -0.110901184, 0, 0.91, 0, 0.110901184, 0, 0.903217, 74.7155, 1.005, 33.2465)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_15" type="Node3D" parent="Borde" unique_id=849174668 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.874692, 0, -0.6833841, 0, 1.11, 0, 0.6833841, 0, -0.874692, 1.265, 1.005, 35.592503)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_15" type="Node3D" parent="Borde" unique_id=380175583 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.8870703, 0, 0.5983364, 0, 1.07, 0, -0.5983364, 0, 0.8870703, 19.8375, 1.005, 35.558002)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_15" type="Node3D" parent="Borde" unique_id=1523420858 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.82489073, 0, 0.742735, 0, 1.11, 0, -0.742735, 0, -0.82489073, 37.9845, 1.005, 35.627003)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_15" type="Node3D" parent="Borde" unique_id=1752421535 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.3351797, 0, -0.9208988, 0, 0.98, 0, 0.9208988, 0, 0.3351797, 56.2235, 1.005, 35.949)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_32_15" type="Node3D" parent="Borde" unique_id=1605828093 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.4649999, 0, -0.80540365, 0, 0.93, 0, 0.80540365, 0, -0.4649999, 74.5085, 1.005, 35.857002)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_0_16" type="Node3D" parent="Borde" unique_id=1540259992 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9778115, 0, 0.15487011, 0, 0.99, 0, -0.15487011, 0, -0.9778115, 0.94299996, 1.005, 37.8925)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_1_16" type="Node3D" parent="Borde" unique_id=1952035233 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.80092686, 0, 0.5819074, 0, 0.99, 0, -0.5819074, 0, 0.80092686, 3.266, 1.005, 38.1915)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_2_16" type="Node3D" parent="Borde" unique_id=1123975021 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.903217, 0, -0.110901184, 0, 0.91, 0, 0.110901184, 0, 0.903217, 5.4855, 1.005, 37.628002)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_3_16" type="Node3D" parent="Borde" unique_id=1343109289 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9506573, 0, -0.13360618, 0, 0.96, 0, 0.13360618, 0, -0.9506573, 8.234, 1.005, 37.8465)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_4_16" type="Node3D" parent="Borde" unique_id=162385771 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.47383487, 0, -0.78859407, 0, 0.92, 0, 0.78859407, 0, -0.47383487, 10.2465, 1.005, 37.628002)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_5_16" type="Node3D" parent="Borde" unique_id=904526906 instance=ExtResource("9_prl46")]
+transform = Transform3D(1.0576224, 0, -0.26369473, 0, 1.09, 0, 0.26369473, 0, 1.0576224, 12.4775, 1.005, 38.203)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_6_16" type="Node3D" parent="Borde" unique_id=2038489848 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.97968554, 0, 0.47782457, 0, 1.09, 0, -0.47782457, 0, 0.97968554, 14.743, 1.005, 38.111)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_7_16" type="Node3D" parent="Borde" unique_id=910132965 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.0374666, 0, 0.07254673, 0, 1.04, 0, -0.07254673, 0, -1.0374666, 17.0315, 1.005, 37.697002)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_8_16" type="Node3D" parent="Borde" unique_id=809429825 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8500147, 0, -0.22776078, 0, 0.88, 0, 0.22776078, 0, -0.8500147, 19.7685, 1.005, 37.72)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_9_16" type="Node3D" parent="Borde" unique_id=1870754977 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.6620711, 0, -0.78902584, 0, 1.03, 0, 0.78902584, 0, -0.6620711, 21.942, 1.005, 38.2145)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_10_16" type="Node3D" parent="Borde" unique_id=1052954531 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.31580117, 0, -0.917153, 0, 0.97, 0, 0.917153, 0, 0.31580117, 24.334, 1.005, 37.6855)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_11_16" type="Node3D" parent="Borde" unique_id=1007447187 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.6299318, 0, -0.7507236, 0, 0.98, 0, 0.7507236, 0, 0.6299318, 26.749, 1.005, 37.766003)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_12_16" type="Node3D" parent="Borde" unique_id=825527796 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(-0.44000006, 0, 0.76210237, 0, 0.88, 0, -0.76210237, 0, -0.44000006, 28.451, 1.005, 37.904)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_13_16" type="Node3D" parent="Borde" unique_id=1000813415 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.82074726, 0, 0.5536009, 0, 0.99, 0, -0.5536009, 0, -0.82074726, 31.3835, 1.005, 37.8235)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_14_16" type="Node3D" parent="Borde" unique_id=151083177 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.43129107, 0, 0.8464561, 0, 0.95, 0, -0.8464561, 0, -0.43129107, 33.2465, 1.005, 38.2145)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_15_16" type="Node3D" parent="Borde" unique_id=406747690 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.5400001, 0, 0.93530744, 0, 1.08, 0, -0.93530744, 0, -0.5400001, 35.811, 1.005, 37.743)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_16_16" type="Node3D" parent="Borde" unique_id=2140675686 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8376595, 0, -0.3555653, 0, 0.91, 0, 0.3555653, 0, -0.8376595, 37.7775, 1.005, 37.731503)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_17_16" type="Node3D" parent="Borde" unique_id=906611996 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.9651116, 0, -0.17017527, 0, 0.98, 0, 0.17017527, 0, -0.9651116, 40.5375, 1.005, 37.731503)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="pino_18_16" type="Node3D" parent="Borde" unique_id=926785700 instance=ExtResource("8_hu8ve")]
+transform = Transform3D(0.91587126, 0, -0.16149262, 0, 0.93, 0, 0.16149262, 0, 0.91587126, 42.7225, 1.005, 38.099503)
+metadata/id = "pino"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_19_16" type="Node3D" parent="Borde" unique_id=62549961 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.59954095, 0, 0.82519734, 0, 1.02, 0, -0.82519734, 0, 0.59954095, 44.872997, 1.005, 38.111)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_20_16" type="Node3D" parent="Borde" unique_id=1803374385 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.6018151, 0, 0.7986355, 0, 1, 0, -0.7986355, 0, -0.6018151, 46.954502, 1.005, 37.881)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_21_16" type="Node3D" parent="Borde" unique_id=220710814 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.7431448, 0, 0.6691306, 0, 1, 0, -0.6691306, 0, 0.7431448, 49.795002, 1.005, 38.203)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_22_16" type="Node3D" parent="Borde" unique_id=627332271 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.1017262, 0, 0.1352749, 0, 1.11, 0, -0.1352749, 0, -1.1017262, 52.072, 1.005, 38.042)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_23_16" type="Node3D" parent="Borde" unique_id=256554048 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.17017527, 0, 0.9651116, 0, 0.98, 0, -0.9651116, 0, 0.17017527, 53.751, 1.005, 37.731503)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_24_16" type="Node3D" parent="Borde" unique_id=1185059690 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.41416597, 0, 0.8881816, 0, 0.98, 0, -0.8881816, 0, -0.41416597, 56.568497, 1.005, 38.249)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_25_16" type="Node3D" parent="Borde" unique_id=313648771 instance=ExtResource("9_prl46")]
+transform = Transform3D(-1.1138645, 0, 0.11707191, 0, 1.12, 0, -0.11707191, 0, -1.1138645, 58.673, 1.005, 38.019)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_26_16" type="Node3D" parent="Borde" unique_id=2127200271 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.67169154, 0, 0.5838925, 0, 0.89, 0, -0.5838925, 0, 0.67169154, 61.099503, 1.005, 38.203)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_27_16" type="Node3D" parent="Borde" unique_id=2102432958 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(-0.92852205, 0, -0.6262961, 0, 1.12, 0, 0.6262961, 0, -0.92852205, 63.4685, 1.005, 37.789)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_28_16" type="Node3D" parent="Borde" unique_id=1580714791 instance=ExtResource("9_prl46")]
+transform = Transform3D(0.891454, 0, 0.5356396, 0, 1.04, 0, -0.5356396, 0, 0.891454, 65.3085, 1.005, 38.019)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_29_16" type="Node3D" parent="Borde" unique_id=1482504134 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.41206875, 0, -0.84486645, 0, 0.94, 0, 0.84486645, 0, 0.41206875, 67.688995, 1.005, 37.6855)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_30_16" type="Node3D" parent="Borde" unique_id=1848522283 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.8744796, 0, 0.3711946, 0, 0.95, 0, -0.3711946, 0, -0.8744796, 70.242004, 1.005, 37.6395)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbusto_31_16" type="Node3D" parent="Borde" unique_id=1855340795 instance=ExtResource("2_uqh5c")]
+transform = Transform3D(0.18712032, 0, -0.8803328, 0, 0.9, 0, 0.8803328, 0, 0.18712032, 72.323494, 1.005, 37.72)
+metadata/id = "arbusto"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="arbol_redondo_32_16" type="Node3D" parent="Borde" unique_id=1766248724 instance=ExtResource("9_prl46")]
+transform = Transform3D(-0.049719315, 0, -0.94869804, 0, 0.95, 0, 0.94869804, 0, -0.049719315, 74.934, 1.005, 38.1455)
+metadata/id = "arbol_redondo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+
+[node name="Marcadores" type="Node3D" parent="." unique_id=326566727]
+
+[node name="W_12_1" type="Node3D" parent="Marcadores" unique_id=1980778746 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.75, 1.035, 3.45)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="T_2_3" type="Node3D" parent="Marcadores" unique_id=2024300560 groups=["marcador", "reactivo"]]
+transform = Transform3D(-0.99939084, 0, -0.03489945, 0, 1, 0, 0.03489945, 0, -0.99939084, 5.75, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "T"
+tipo = "brasero"
+
+[node name="W_3_3" type="Node3D" parent="Marcadores" unique_id=798897768 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.05, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="z_4_3" type="Node3D" parent="Marcadores" unique_id=242468757 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.35, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "z"
+tipo = "seto"
+
+[node name="z_5_3" type="Node3D" parent="Marcadores" unique_id=1623848444 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12.65, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "z"
+tipo = "seto"
+
+[node name="z_6_3" type="Node3D" parent="Marcadores" unique_id=432366410 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.95, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "z"
+tipo = "seto"
+
+[node name="z_7_3" type="Node3D" parent="Marcadores" unique_id=1436636522 groups=["marcador", "reactivo"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17.25, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "z"
+tipo = "seto"
+
+[node name="W_20_3" type="Node3D" parent="Marcadores" unique_id=139857369 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="W_28_3" type="Node3D" parent="Marcadores" unique_id=1881251431 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.55, 1.035, 8.05)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="W_10_5" type="Node3D" parent="Marcadores" unique_id=1529324995 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 24.15, 1.035, 12.65)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="W_12_5" type="Node3D" parent="Marcadores" unique_id=1896425849 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.75, 1.035, 12.65)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="W_14_5" type="Node3D" parent="Marcadores" unique_id=958837570 groups=["goblin", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.35, 1.035, 12.65)
+script = ExtResource("10_6bmlm")
+letra = "W"
+tipo = "guerrero"
+
+[node name="S_2_6" type="Node3D" parent="Marcadores" unique_id=1154073374 groups=["inicio_jugador", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 1.035, 14.95)
+script = ExtResource("10_6bmlm")
+letra = "S"
+
+[node name="T_6_6" type="Node3D" parent="Marcadores" unique_id=21736730 groups=["marcador", "reactivo"]]
+transform = Transform3D(0.22495104, 0, 0.97437006, 0, 1, 0, -0.97437006, 0, 0.22495104, 14.95, 1.035, 14.95)
+script = ExtResource("10_6bmlm")
+letra = "T"
+tipo = "brasero"
+
+[node name="T_4_15" type="Node3D" parent="Marcadores" unique_id=1562585580 groups=["marcador", "reactivo"]]
+transform = Transform3D(-0.84804803, 0, -0.5299193, 0, 1, 0, 0.5299193, 0, -0.84804803, 10.35, 1.035, 35.65)
+script = ExtResource("10_6bmlm")
+letra = "T"
+tipo = "brasero"

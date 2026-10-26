@@ -1,0 +1,222 @@
+{
+ "pilar_cascada": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2500,
+  "niveles": {
+   "2500": {
+    "archivo": "pilar_cascada.glb",
+    "tris": 2500,
+    "kb": 328
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1: el estrecho, entre cortinas",
+  "seg": 0.9
+ },
+ "geoda_resonante": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2500,
+  "niveles": {
+   "2500": {
+    "archivo": "geoda_resonante.glb",
+    "tris": 2500,
+    "kb": 173
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F2: geoda de la pared hueca de C3",
+  "seg": 0.7
+ },
+ "pilar_cascada_ancho": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2500,
+  "niveles": {
+   "6000": {
+    "archivo": "pilar_cascada_ancho_6000.glb",
+    "tris": 6000,
+    "kb": 542
+   },
+   "2500": {
+    "archivo": "pilar_cascada_ancho.glb",
+    "tris": 2500,
+    "kb": 366
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1: el de los flancos",
+  "seg": 1.8
+ },
+ "estalagmita_resonante": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "1200": {
+    "archivo": "estalagmita_resonante.glb",
+    "tris": 1172,
+    "kb": 133
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F2: vibra con el pulso en C4",
+  "seg": 0.6
+ },
+ "labio_cascada": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "1500": {
+    "archivo": "labio_cascada.glb",
+    "tris": 1500,
+    "kb": 242
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1: borde de la cornisa",
+  "seg": 0.6
+ },
+ "estalagmita_rota": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "1200": {
+    "archivo": "estalagmita_rota.glb",
+    "tris": 1200,
+    "kb": 175
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F2: el tocón (#5) y la punta tumbada (#6) juntos",
+  "seg": 0.6
+ },
+ "brasero_cueva": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "1200": {
+    "archivo": "brasero_cueva.glb",
+    "tris": 1200,
+    "kb": 144
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F2",
+  "seg": 0.6
+ },
+ "rocas_salpicadura": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1200,
+  "niveles": {
+   "1200": {
+    "archivo": "rocas_salpicadura.glb",
+    "tris": 1200,
+    "kb": 163
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1: al pie de la caída",
+  "seg": 0.6
+ },
+ "alga_cueva": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 800,
+  "niveles": {
+   "800": {
+    "archivo": "alga_cueva.glb",
+    "tris": 800,
+    "kb": 194
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "D3: sale de pie, no tumbada como pedía el prompt",
+  "seg": 0.6
+ },
+ "musgo_colgante": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 1500,
+  "niveles": {
+   "2500": {
+    "archivo": "musgo_colgante_2500.glb",
+    "tris": 2499,
+    "kb": 338
+   },
+   "1500": {
+    "archivo": "musgo_colgante.glb",
+    "tris": 1500,
+    "kb": 273
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1",
+  "seg": 1.1
+ },
+ "basalto_suelto": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 400,
+  "niveles": {
+   "400": {
+    "archivo": "basalto_suelto.glb",
+    "tris": 170,
+    "kb": 79
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "D3: sale gris, no carbón",
+  "seg": 0.5
+ },
+ "esquirla_cristal": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 400,
+  "niveles": {
+   "400": {
+    "archivo": "esquirla_cristal.glb",
+    "tris": 208,
+    "kb": 114
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "D3",
+  "seg": 0.5
+ },
+ "helechos_cueva": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 2500,
+  "niveles": {
+   "2500": {
+    "archivo": "helechos_cueva.glb",
+    "tris": 2500,
+    "kb": 348
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "F1",
+  "seg": 0.8
+ },
+ "jarron_roto": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 800,
+  "niveles": {
+   "800": {
+    "archivo": "jarron_roto.glb",
+    "tris": 668,
+    "kb": 75
+   }
+  },
+  "origen": "ruinas_piedra.glb",
+  "nota": "D3",
+  "seg": 0.5
+ }
+}

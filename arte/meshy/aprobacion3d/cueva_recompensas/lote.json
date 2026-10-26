@@ -1,0 +1,32 @@
+{
+ "placa_presion_cueva": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 400,
+  "niveles": {
+   "1000": {
+    "archivo": "placa_presion_cueva_1000.glb",
+    "tris": 1000,
+    "kb": 234
+   },
+   "600": {
+    "archivo": "placa_presion_cueva_600.glb",
+    "tris": 600,
+    "kb": 196
+   },
+   "400": {
+    "archivo": "placa_presion_cueva.glb",
+    "tris": 400,
+    "kb": 176
+   },
+   "250": {
+    "archivo": "placa_presion_cueva_250.glb",
+    "tris": 250,
+    "kb": 161
+   }
+  },
+  "origen": "cueva_recompensas.glb",
+  "nota": "",
+  "seg": 1.0
+ }
+}

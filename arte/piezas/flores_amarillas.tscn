@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/flores_amarillas.glb" id="1_hkh78"]
+
+[node name="flores_amarillas" type="Node3D" unique_id=1831228064]
+metadata/id = "flores_amarillas"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1839708676]
+
+[node name="flores_amarillas2" type="Node3D" parent="modelo" unique_id=1646154962 instance=ExtResource("1_hkh78")]
+transform = Transform3D(6.7855015, 0, 0, 0, 6.7855015, 0, 0, 0, 6.7855015, 0, 0, 0)

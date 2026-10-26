@@ -1,0 +1,1432 @@
+Godot: C:\Users\paranda\DOCUME~1\MAGIC-~1\tools\GODOT_~1.EXE
+
+===== prueba_accion.gd =====
+FALLOS: 0
+
+===== prueba_activacion.gd =====
+FALLOS: 0
+
+===== prueba_agua_hechizos.gd =====
+FALLOS: 0
+
+===== prueba_agua_sim.gd =====
+FALLOS: 0
+
+===== prueba_asistencia.gd =====
+  FALLO  parciales al 60 %: candidata correcta ≥ 80 % (37.5%)
+  FALLO  asistencia 0,5: candidata agua a medio trazo (salió '', confianza 0.00)
+  FALLO  hay guía fantasma
+  FALLO  el trazo que se ve va imantado
+  FALLO  sin giro de sector `sin_giro` no cambia nada
+SCRIPT ERROR: Invalid access to property or key 'tiempo' on a base object of type 'Dictionary'.
+SCRIPT ERROR: Invalid access to property or key 'tiempo' on a base object of type 'Dictionary'.
+ERROR: 5 resources still in use at exit (run with --verbose for details).
+FALLOS: 5
+
+===== prueba_barra_vida.gd =====
+FALLOS: 0
+
+===== prueba_barrera.gd =====
+FALLOS: 0
+
+===== prueba_bolsa.gd =====
+FALLOS: 0
+
+===== prueba_canal_tinaja.gd =====
+FALLOS: 0
+
+===== prueba_cast_points.gd =====
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: 107 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_cauce.gd =====
+ERROR: 27 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_cofre_cerrado.gd =====
+FALLOS: 0
+
+===== prueba_conjuro_vfx.gd =====
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  ok  conectar devuelve el nodo
+  ok  sin señal conjuro_fase no conecta
+  ok  fuego: nace la voluta
+  ok  fuego: sale del libro
+  FALLA fuego: llega a la mano (0.770)
+  ok  fuego: hay forma en la mano
+  ok  fuego: tras el disparo no queda forma
+  ok  agua: nace la voluta
+  ok  agua: sale del libro
+  ok  agua: llega a la mano (0.000)
+  ok  agua: hay forma en la mano
+  ok  agua: tras el disparo no queda forma
+  ok  viento: nace la voluta
+  ok  viento: sale del libro
+  ok  viento: llega a la mano (0.000)
+  ok  viento: hay forma en la mano
+  ok  viento: tras el disparo no queda forma
+  ok  rayo: nace la voluta
+  ok  rayo: sale del libro
+  ok  rayo: llega a la mano (0.000)
+  ok  rayo: hay forma en la mano
+  ok  rayo: tras el disparo no queda forma
+  ok  hielo: nace la voluta
+  ok  hielo: sale del libro
+  ok  hielo: llega a la mano (0.000)
+  ok  hielo: hay forma en la mano
+  ok  hielo: tras el disparo no queda forma
+  ok  tierra: nace la voluta
+  ok  tierra: sale del libro
+  ok  tierra: llega a la mano (0.000)
+  ok  tierra: hay forma en la mano
+  ok  tierra: tras el disparo no queda forma
+  ok  tiempo: nace la voluta
+  ok  tiempo: sale del libro
+  ok  tiempo: llega a la mano (0.000)
+  ok  tiempo: hay forma en la mano
+  ok  tiempo: tras el disparo no queda forma
+  ok  inventado: nace la voluta
+  ok  inventado: sale del libro
+  ok  inventado: llega a la mano (0.000)
+  ok  inventado: hay forma en la mano
+  ok  inventado: tras el disparo no queda forma
+  ok  al cabo de un segundo no queda ningún nodo (0)
+-- orígenes de cast point
+  ok  mano_libre/fuego: hay forma
+  ok  mano_libre/fuego: nace en el cast point
+  ok  mano_libre/fuego: origen dibujado = mano_libre
+  FALLA mano_libre/fuego: orbe con chispas que convergen
+  ok  mano_libre/fuego: la forma dura hasta el disparo
+  ok  mano_libre/fuego: tras el disparo no hay forma pendiente
+  ok  mano_libre/fuego: destello y onda en el cast point
+  ok  mano_libre/fuego: a los 0,6 s no queda ningún nodo (0)
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/agua: hay forma
+  ok  mano_libre/agua: nace en el cast point
+  ok  mano_libre/agua: origen dibujado = mano_libre
+  FALLA mano_libre/agua: orbe con chispas que convergen
+  ok  mano_libre/agua: la forma dura hasta el disparo
+  ok  mano_libre/agua: tras el disparo no hay forma pendiente
+  ok  mano_libre/agua: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/agua: a los 0,6 s no queda ningún nodo (0)
+  ok  mano_libre/viento: hay forma
+  ok  mano_libre/viento: nace en el cast point
+  ok  mano_libre/viento: origen dibujado = mano_libre
+  FALLA mano_libre/viento: orbe con chispas que convergen
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/viento: la forma dura hasta el disparo
+  ok  mano_libre/viento: tras el disparo no hay forma pendiente
+  ok  mano_libre/viento: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/viento: a los 0,6 s no queda ningún nodo (0)
+  ok  mano_libre/rayo: hay forma
+  ok  mano_libre/rayo: nace en el cast point
+  ok  mano_libre/rayo: origen dibujado = mano_libre
+  FALLA mano_libre/rayo: orbe con chispas que convergen
+  ok  mano_libre/rayo: la forma dura hasta el disparo
+  ok  mano_libre/rayo: tras el disparo no hay forma pendiente
+  ok  mano_libre/rayo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/rayo: a los 0,6 s no queda ningún nodo (0)
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/hielo: hay forma
+  ok  mano_libre/hielo: nace en el cast point
+  ok  mano_libre/hielo: origen dibujado = mano_libre
+  FALLA mano_libre/hielo: orbe con chispas que convergen
+  ok  mano_libre/hielo: la forma dura hasta el disparo
+  ok  mano_libre/hielo: tras el disparo no hay forma pendiente
+  ok  mano_libre/hielo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/hielo: a los 0,6 s no queda ningún nodo (0)
+  ok  mano_libre/tierra: hay forma
+  ok  mano_libre/tierra: nace en el cast point
+  ok  mano_libre/tierra: origen dibujado = mano_libre
+  FALLA mano_libre/tierra: orbe con chispas que convergen
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/tierra: la forma dura hasta el disparo
+  ok  mano_libre/tierra: tras el disparo no hay forma pendiente
+  ok  mano_libre/tierra: destello y onda en el cast point
+  ok  mano_libre/tierra: a los 0,6 s no queda ningún nodo (0)
+  ok  mano_libre/tiempo: hay forma
+  ok  mano_libre/tiempo: nace en el cast point
+  ok  mano_libre/tiempo: origen dibujado = mano_libre
+  FALLA mano_libre/tiempo: orbe con chispas que convergen
+  ok  mano_libre/tiempo: la forma dura hasta el disparo
+  ok  mano_libre/tiempo: tras el disparo no hay forma pendiente
+  ok  mano_libre/tiempo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/tiempo: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/fuego: hay forma
+  ok  manos_alto/fuego: nace en el cast point
+  ok  manos_alto/fuego: origen dibujado = manos_alto
+  ok  manos_alto/fuego: columna de luz sobre las manos
+  ok  manos_alto/fuego: círculo en el suelo delante, en el destino
+  ok  manos_alto/fuego: la forma dura hasta el disparo
+  ok  manos_alto/fuego: tras el disparo no hay forma pendiente
+  ok  manos_alto/fuego: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/fuego: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/agua: hay forma
+  ok  manos_alto/agua: nace en el cast point
+  ok  manos_alto/agua: origen dibujado = manos_alto
+  ok  manos_alto/agua: columna de luz sobre las manos
+  ok  manos_alto/agua: círculo en el suelo delante, en el destino
+  ok  manos_alto/agua: la forma dura hasta el disparo
+  ok  manos_alto/agua: tras el disparo no hay forma pendiente
+  ok  manos_alto/agua: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/agua: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/viento: hay forma
+  ok  manos_alto/viento: nace en el cast point
+  ok  manos_alto/viento: origen dibujado = manos_alto
+  ok  manos_alto/viento: columna de luz sobre las manos
+  ok  manos_alto/viento: círculo en el suelo delante, en el destino
+  ok  manos_alto/viento: la forma dura hasta el disparo
+  ok  manos_alto/viento: tras el disparo no hay forma pendiente
+  ok  manos_alto/viento: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/viento: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/rayo: hay forma
+  ok  manos_alto/rayo: nace en el cast point
+  ok  manos_alto/rayo: origen dibujado = manos_alto
+  ok  manos_alto/rayo: columna de luz sobre las manos
+  ok  manos_alto/rayo: círculo en el suelo delante, en el destino
+  ok  manos_alto/rayo: la forma dura hasta el disparo
+  ok  manos_alto/rayo: tras el disparo no hay forma pendiente
+  ok  manos_alto/rayo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/rayo: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/hielo: hay forma
+  ok  manos_alto/hielo: nace en el cast point
+  ok  manos_alto/hielo: origen dibujado = manos_alto
+  ok  manos_alto/hielo: columna de luz sobre las manos
+  ok  manos_alto/hielo: círculo en el suelo delante, en el destino
+  ok  manos_alto/hielo: la forma dura hasta el disparo
+  ok  manos_alto/hielo: tras el disparo no hay forma pendiente
+  ok  manos_alto/hielo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/hielo: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/tierra: hay forma
+  ok  manos_alto/tierra: nace en el cast point
+  ok  manos_alto/tierra: origen dibujado = manos_alto
+  ok  manos_alto/tierra: columna de luz sobre las manos
+  ok  manos_alto/tierra: círculo en el suelo delante, en el destino
+  ok  manos_alto/tierra: la forma dura hasta el disparo
+  ok  manos_alto/tierra: tras el disparo no hay forma pendiente
+  ok  manos_alto/tierra: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/tierra: a los 0,6 s no queda ningún nodo (0)
+  ok  manos_alto/tiempo: hay forma
+  ok  manos_alto/tiempo: nace en el cast point
+  ok  manos_alto/tiempo: origen dibujado = manos_alto
+  ok  manos_alto/tiempo: columna de luz sobre las manos
+  ok  manos_alto/tiempo: círculo en el suelo delante, en el destino
+  ok  manos_alto/tiempo: la forma dura hasta el disparo
+  ok  manos_alto/tiempo: tras el disparo no hay forma pendiente
+  ok  manos_alto/tiempo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  manos_alto/tiempo: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/fuego: hay forma
+  ok  suelo_delante/fuego: nace en el cast point
+  ok  suelo_delante/fuego: origen dibujado = suelo_delante
+  ok  suelo_delante/fuego: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/fuego: la forma dura hasta el disparo
+  ok  suelo_delante/fuego: tras el disparo no hay forma pendiente
+  ok  suelo_delante/fuego: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/fuego: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/agua: hay forma
+  ok  suelo_delante/agua: nace en el cast point
+  ok  suelo_delante/agua: origen dibujado = suelo_delante
+  ok  suelo_delante/agua: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/agua: la forma dura hasta el disparo
+  ok  suelo_delante/agua: tras el disparo no hay forma pendiente
+  ok  suelo_delante/agua: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/agua: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/viento: hay forma
+  ok  suelo_delante/viento: nace en el cast point
+  ok  suelo_delante/viento: origen dibujado = suelo_delante
+  ok  suelo_delante/viento: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/viento: la forma dura hasta el disparo
+  ok  suelo_delante/viento: tras el disparo no hay forma pendiente
+  ok  suelo_delante/viento: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/viento: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/rayo: hay forma
+  ok  suelo_delante/rayo: nace en el cast point
+  ok  suelo_delante/rayo: origen dibujado = suelo_delante
+  ok  suelo_delante/rayo: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/rayo: la forma dura hasta el disparo
+  ok  suelo_delante/rayo: tras el disparo no hay forma pendiente
+  ok  suelo_delante/rayo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/rayo: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/hielo: hay forma
+  ok  suelo_delante/hielo: nace en el cast point
+  ok  suelo_delante/hielo: origen dibujado = suelo_delante
+  ok  suelo_delante/hielo: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/hielo: la forma dura hasta el disparo
+  ok  suelo_delante/hielo: tras el disparo no hay forma pendiente
+  ok  suelo_delante/hielo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/hielo: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/tierra: hay forma
+  ok  suelo_delante/tierra: nace en el cast point
+  ok  suelo_delante/tierra: origen dibujado = suelo_delante
+  ok  suelo_delante/tierra: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/tierra: la forma dura hasta el disparo
+  ok  suelo_delante/tierra: tras el disparo no hay forma pendiente
+  ok  suelo_delante/tierra: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/tierra: a los 0,6 s no queda ningún nodo (0)
+  ok  suelo_delante/tiempo: hay forma
+  ok  suelo_delante/tiempo: nace en el cast point
+  ok  suelo_delante/tiempo: origen dibujado = suelo_delante
+  ok  suelo_delante/tiempo: círculo rúnico en el suelo del cast point
+  ok  suelo_delante/tiempo: la forma dura hasta el disparo
+  ok  suelo_delante/tiempo: tras el disparo no hay forma pendiente
+  ok  suelo_delante/tiempo: destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  suelo_delante/tiempo: a los 0,6 s no queda ningún nodo (0)
+-- casos límite
+  ok  mano_libre/fuego (origen inventado): hay forma
+  ok  mano_libre/fuego (origen inventado): nace en el cast point
+  ok  mano_libre/fuego (origen inventado): origen dibujado = mano_libre
+  FALLA mano_libre/fuego (origen inventado): orbe con chispas que convergen
+  ok  mano_libre/fuego (origen inventado): la forma dura hasta el disparo
+  ok  mano_libre/fuego (origen inventado): tras el disparo no hay forma pendiente
+  ok  mano_libre/fuego (origen inventado): destello y onda en el cast point
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  mano_libre/fuego (origen inventado): a los 0,6 s no queda ningún nodo (0)
+  ok  sin origen_conjuro: forma en la mano, como siempre
+  ok  sin origen_conjuro: nada vivo tras el disparo
+  ok  un conjuro sin disparo se retira en la runa siguiente
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+-- Vfx3D.temblor y golpe_estrella
+  ok  temblor: tras sacudidas encadenadas la cámara vuelve a su sitio (-0.5500, 0.1000)
+  ok  golpe_estrella: nace la estrella
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+   at: call (modules/gdscript/gdscript_lambda_callable.cpp:110)
+  ok  golpe_estrella: no queda nada a los 0,8 s (0 de 0)
+FALLOS 9
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+
+===== prueba_datos_test2.gd =====
+FALLOS: 0
+
+===== prueba_ejes_receta_ui.gd =====
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+(sin ventana: se salta la comprobación de píxeles; usa xvfb)
+OK: 0 fallos
+
+===== prueba_enredadera_bloqueo.gd =====
+ERROR: Condition "!is_inside_tree()" is true. Returning: Transform3D()
+FALLOS: 0
+
+===== prueba_escritura_hud.gd =====
+FALLO R4 cada mata queda dentro de su casilla y sobre el suelo  
+FALLO R6 el quemado es más oscuro que el cortado  cortado 0.00 quemado 0.00
+ERROR: 364 resources still in use at exit (run with --verbose for details).
+FALLOS: 2
+
+===== prueba_flotador.gd =====
+FALLOS: 0
+
+===== prueba_fuego.gd =====
+FALLOS: 0
+
+===== prueba_fuente_finita.gd =====
+FALLOS: 0
+
+===== prueba_gatopedro.gd =====
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_geometria.gd =====
+FALLOS: 0
+
+===== prueba_golpe.gd =====
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+FALLOS: golpe:
+
+===== prueba_grimorio.gd =====
+ERROR: 26 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_hechizo.gd =====
+FALLOS: combinaciones
+
+===== prueba_hechizo_vivo.gd =====
+FALLOS: 0
+
+===== prueba_hielo.gd =====
+FALLOS: 0
+
+===== prueba_kit.gd =====
+FALLOS: 0
+
+===== prueba_lab_fuego_modelos.gd =====
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_lab_troncos.gd =====
+FALLOS: 0
+
+===== prueba_libro_bosque.gd =====
+ERROR: 4 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_mano_libro.gd =====
+FALLOS: 0
+
+===== prueba_mano_pluma_3d.gd =====
+ERROR: Parameter "t" is null.
+SCRIPT ERROR: Cannot call method 'get_width' on a null value.
+ERROR: Parameter "t" is null.
+SCRIPT ERROR: Cannot call method 'get_pixel' on a null value.
+ERROR: Parameter "t" is null.
+SCRIPT ERROR: Cannot call method 'get_pixel' on a null value.
+FALLOS: 0
+
+===== prueba_materia_v2.gd =====
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_misiones.gd =====
+ERROR: 4 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_mundo.gd =====
+FALLOS: 0
+
+===== prueba_nado_desactivado.gd =====
+ERROR: 272 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_piezas_bosque.gd =====
+ERROR: 68 resources still in use at exit (run with --verbose for details).
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  ok  hay 28 piezas
+  ok  una pieza que no existe da null
+  ok  tronco_puente_pie existe
+  ok  tronco_puente_pie mide (1.43, 2.6, 1.58) ≈ (1.43, 2.6, 1.58)
+  ok  tronco_puente_pie: apoyada en y = 0 (0.000)
+  ok  tronco_puente_pie: centrada en la base
+  ok  tronco_puente_caido existe
+  ok  tronco_puente_caido mide (2.6, 0.56, 0.51) ≈ (2.6, 0.56, 0.5)
+  ok  tronco caído: el pie en el origen y tumbado hacia +X
+  ok  bloqueo_enredaderas existe
+  ok  bloqueo_enredaderas mide (2.2, 1.08, 1.09) ≈ (2.2, 1.08, 1.09)
+  ok  bloqueo_enredaderas: apoyada en y = 0 (0.000)
+  ok  bloqueo_enredaderas: centrada en la base
+  ok  bloqueo_enredaderas_quemado existe
+  ok  bloqueo_enredaderas_quemado mide (1.83, 0.66, 1.02) ≈ (1.83, 0.66, 1.02)
+  ok  bloqueo_enredaderas_quemado: apoyada en y = 0 (0.000)
+  ok  bloqueo_enredaderas_quemado: centrada en la base
+  ok  enredadera_quemada_a existe
+  ok  enredadera_quemada_a mide (0.6, 0.22, 0.62) ≈ (0.6, 0.22, 0.62)
+  ok  enredadera_quemada_a: apoyada en y = 0 (0.000)
+  ok  enredadera_quemada_a: centrada en la base
+  ok  enredadera_quemada_b existe
+  ok  enredadera_quemada_b mide (0.5, 0.3, 0.57) ≈ (0.5, 0.3, 0.56)
+  ok  enredadera_quemada_b: apoyada en y = 0 (0.000)
+  ok  enredadera_quemada_b: centrada en la base
+  ok  ceniza_enredadera existe
+  ok  ceniza_enredadera mide (0.9, 0.1, 1.03) ≈ (0.9, 0.1, 1.03)
+  ok  ceniza_enredadera: apoyada en y = 0 (0.000)
+  ok  ceniza_enredadera: centrada en la base
+  ok  tronco_estanque existe
+  ok  tronco_estanque mide (2.6, 0.65, 0.78) ≈ (2.6, 0.654, 0.785)
+  ok  tronco_estanque: el origen en el centro del eje
+  ok  juncos_a existe
+  ok  juncos_a mide (0.8, 0.55, 0.82) ≈ (0.8, 0.553, 0.818)
+  ok  juncos_a: apoyada en y = 0 (0.000)
+  ok  juncos_a: centrada en la base
+  ok  juncos_b existe
+  ok  juncos_b mide (0.8, 0.44, 0.58) ≈ (0.8, 0.44, 0.585)
+  ok  juncos_b: apoyada en y = 0 (-0.000)
+  ok  juncos_b: centrada en la base
+  ok  tocon_musgo existe
+  ok  tocon_musgo mide (0.9, 0.45, 0.67) ≈ (0.9, 0.45, 0.671)
+  ok  tocon_musgo: apoyada en y = 0 (-0.000)
+  ok  tocon_musgo: centrada en la base
+  ok  setas_grupo existe
+  ok  setas_grupo mide (0.5, 0.3, 0.31) ≈ (0.5, 0.298, 0.309)
+  ok  setas_grupo: apoyada en y = 0 (-0.000)
+  ok  setas_grupo: centrada en la base
+  ok  roca_musgo_g existe
+  ok  roca_musgo_g mide (1.2, 0.8, 0.94) ≈ (1.2, 0.801, 0.938)
+  ok  roca_musgo_g: apoyada en y = 0 (0.000)
+  ok  roca_musgo_g: centrada en la base
+  ok  roca_musgo_m existe
+  ok  roca_musgo_m mide (0.7, 0.44, 0.83) ≈ (0.7, 0.438, 0.831)
+  ok  roca_musgo_m: apoyada en y = 0 (0.000)
+  ok  roca_musgo_m: centrada en la base
+  ok  roca_musgo_p existe
+  ok  roca_musgo_p mide (0.35, 0.16, 0.35) ≈ (0.35, 0.164, 0.353)
+  ok  roca_musgo_p: apoyada en y = 0 (0.000)
+  ok  roca_musgo_p: centrada en la base
+  ok  nenufar_a existe
+  ok  nenufar_a mide (0.56, 0.26, 0.7) ≈ (0.558, 0.264, 0.7)
+  ok  nenufar_a: apoyada en y = 0 (-0.000)
+  ok  nenufar_a: centrada en la base
+  ok  nenufar_b existe
+  ok  nenufar_b mide (0.46, 0.1, 0.5) ≈ (0.457, 0.099, 0.5)
+  ok  nenufar_b: apoyada en y = 0 (-0.000)
+  ok  nenufar_b: centrada en la base
+  ok  arbusto_hojas existe
+  ok  arbusto_hojas mide (1.2, 0.68, 1.16) ≈ (1.2, 0.679, 1.161)
+  ok  arbusto_hojas: apoyada en y = 0 (-0.000)
+  ok  arbusto_hojas: centrada en la base
+  ok  arbusto_frutos existe
+  ok  arbusto_frutos mide (1.4, 0.86, 1.31) ≈ (1.4, 0.858, 1.313)
+  ok  arbusto_frutos: apoyada en y = 0 (0.000)
+  ok  arbusto_frutos: centrada en la base
+  ok  raiz_grande existe
+  ok  raiz_grande mide (1.4, 0.72, 1.45) ≈ (1.4, 0.72, 1.449)
+  ok  raiz_grande: apoyada en y = 0 (-0.000)
+  ok  raiz_grande: centrada en la base
+  ok  hojas_monton existe
+  ok  hojas_monton mide (0.7, 0.19, 0.9) ≈ (0.702, 0.189, 0.9)
+  ok  hojas_monton: apoyada en y = 0 (0.000)
+  ok  hojas_monton: centrada en la base
+  ok  tronco_hueco existe
+  ok  tronco_hueco mide (0.89, 1.1, 1.01) ≈ (0.892, 1.1, 1.006)
+  ok  tronco_hueco: apoyada en y = 0 (-0.000)
+  ok  tronco_hueco: centrada en la base
+  ok  valla_tramo existe
+  ok  valla_tramo mide (2.0, 0.93, 1.55) ≈ (2.0, 0.931, 1.551)
+  ok  valla_tramo: apoyada en y = 0 (0.000)
+  ok  valla_tramo: centrada en la base
+  ok  troncos_apilados existe
+  ok  troncos_apilados mide (1.0, 0.54, 1.0) ≈ (1.0, 0.538, 0.997)
+  ok  troncos_apilados: apoyada en y = 0 (-0.000)
+  ok  troncos_apilados: centrada en la base
+  ok  cartel_bosque existe
+  ok  cartel_bosque mide (0.93, 1.6, 1.15) ≈ (0.929, 1.6, 1.151)
+  ok  cartel_bosque: apoyada en y = 0 (-0.000)
+  ok  cartel_bosque: centrada en la base
+  ok  hojas_suelo_a existe
+  ok  hojas_suelo_a mide (0.56, 0.05, 0.74) ≈ (0.557, 0.05, 0.738)
+  ok  hojas_suelo_a: apoyada en y = 0 (0.000)
+  ok  hojas_suelo_a: centrada en la base
+  ok  hojas_suelo_b existe
+  ok  hojas_suelo_b mide (0.52, 0.06, 0.68) ≈ (0.524, 0.055, 0.678)
+  ok  hojas_suelo_b: apoyada en y = 0 (-0.000)
+  ok  hojas_suelo_b: centrada en la base
+  ok  hojas_suelo_c existe
+  ok  hojas_suelo_c mide (0.62, 0.06, 0.57) ≈ (0.615, 0.056, 0.572)
+  ok  hojas_suelo_c: apoyada en y = 0 (0.000)
+  ok  hojas_suelo_c: centrada en la base
+  ok  el bloqueo quemado no es más ancho que el vivo (0.83)
+FALLOS 0
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storageERROR: 3 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 56 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 9 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 28 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 105 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 68 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
+
+===== prueba_piezas_fuego.gd =====
+ERROR: 7 resources still in use at exit (run with --verbose for details).
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  ok  hay 17 piezas (17)
+WARNING: PiezaFuego3D: no conozco la pieza «no_existe»
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] crear (res://presentacion/pieza_fuego_3d.gd:97)
+       [1] _initialize (res://herramientas/prueba_piezas_fuego.gd:52)
+  ok  una pieza que no existe da null
+  ok  cuerda_poste: modelo de Meshy
+  ok  cuerda_poste: lado mayor 1.90 ≈ 1.90
+  ok  cuerda_poste: origen en la base (y mín 0.00)
+  ok  cuerda_tensa: modelo de Meshy
+  ok  cuerda_tensa: lado mayor 1.30 ≈ 1.30
+  ok  cuerda_tensa: cuelga del origen (-1.30..0.00)
+  ok  cuerda_cabo: modelo de Meshy
+  ok  cuerda_cabo: lado mayor 0.35 ≈ 0.35
+  ok  cuerda_cabo: cuelga del origen (-0.35..0.00)
+  ok  cuerda_caida: modelo de Meshy
+  ok  cuerda_caida: lado mayor 1.10 ≈ 1.10
+  ok  cuerda_caida: origen en la base (y mín 0.00)
+  ok  contador_placa: modelo de Meshy
+  ok  contador_placa: lado mayor 1.60 ≈ 1.60
+  ok  contador_placa: origen en la base (y mín 0.00)
+  ok  leno: modelo de Meshy
+  ok  leno: lado mayor 0.50 ≈ 0.50
+  ok  leno: origen en la base (y mín 0.00)
+  ok  fogata_apagada: modelo de Meshy
+  ok  fogata_apagada: lado mayor 1.42 ≈ 1.40
+  ok  fogata_apagada: origen en la base (y mín 0.00)
+  ok  fogata_lenos: modelo de Meshy
+  ok  fogata_lenos: lado mayor 1.09 ≈ 0.90
+  ok  fogata_lenos: origen en la base (y mín 0.00)
+  ok  caldera_cuerpo: modelo de Meshy
+  ok  caldera_cuerpo: lado mayor 1.20 ≈ 1.20
+  ok  caldera_cuerpo: origen en la base (y mín 0.00)
+  ok  caldera_hogar: modelo de Meshy
+  ok  caldera_hogar: lado mayor 1.94 ≈ 1.80
+  ok  caldera_hogar: origen en la base (y mín 0.00)
+  ok  caldera_medidor: modelo de Meshy
+  ok  caldera_medidor: lado mayor 1.40 ≈ 1.40
+  ok  caldera_medidor: origen en la base (y mín 0.00)
+  ok  caldera_indice: modelo de Meshy
+  ok  caldera_indice: lado mayor 0.14 ≈ 0.14
+  ok  caldera_indice: origen en la base (y mín -0.02)
+  ok  antorcha_pared: modelo de Meshy
+  ok  antorcha_pared: lado mayor 0.90 ≈ 0.90
+  ok  antorcha_pared: origen en la base (y mín 0.00)
+  ok  antorcha_pie: modelo de Meshy
+  ok  antorcha_pie: lado mayor 1.60 ≈ 1.60
+  ok  antorcha_pie: origen en la base (y mín 0.00)
+  ok  baldosa_falsa: modelo de Meshy
+  ok  baldosa_falsa: lado mayor 2.08 ≈ 2.00
+  ok  baldosa_falsa: origen en la base (y mín 0.00)
+  ok  goblin_escudo_entero: modelo de Meshy
+  ok  goblin_escudo_entero: lado mayor 0.55 ≈ 0.55
+  ok  goblin_escudo_entero: origen en el centro del disco
+  ok  goblin_escudo_quemado: modelo de Meshy
+  ok  goblin_escudo_quemado: lado mayor 0.55 ≈ 0.55
+  ok  goblin_escudo_quemado: origen en el centro del disco
+  ok  cuerda_poste: primitivas
+  ok  cuerda_poste: lado mayor 1.91 ≈ 1.90
+  ok  cuerda_poste: origen en la base (y mín -0.01)
+  ok  cuerda_tensa: primitivas
+  ok  cuerda_tensa: lado mayor 1.41 ≈ 1.30
+  ok  cuerda_tensa: cuelga del origen (-1.34..0.07)
+  ok  cuerda_cabo: primitivas
+  ok  cuerda_cabo: lado mayor 0.39 ≈ 0.35
+  ok  cuerda_cabo: cuelga del origen (-0.32..0.07)
+  ok  cuerda_caida: primitivas
+  ok  cuerda_caida: lado mayor 1.34 ≈ 1.10
+  ok  cuerda_caida: origen en la base (y mín -0.02)
+  ok  contador_placa: primitivas
+  ok  contador_placa: lado mayor 1.68 ≈ 1.60
+  ok  contador_placa: origen en la base (y mín 0.00)
+  ok  leno: primitivas
+  ok  leno: lado mayor 0.51 ≈ 0.50
+  ok  leno: origen en la base (y mín 0.00)
+  ok  fogata_apagada: primitivas
+  ok  fogata_apagada: lado mayor 1.43 ≈ 1.40
+  ok  fogata_apagada: origen en la base (y mín -0.02)
+  ok  fogata_lenos: primitivas
+  ok  fogata_lenos: lado mayor 0.97 ≈ 0.90
+  ok  fogata_lenos: origen en la base (y mín -0.06)
+  ok  caldera_cuerpo: primitivas
+  ok  caldera_cuerpo: lado mayor 1.44 ≈ 1.20
+  ok  caldera_cuerpo: origen en la base (y mín 0.00)
+  ok  caldera_hogar: primitivas
+  ok  caldera_hogar: lado mayor 2.00 ≈ 1.80
+  ok  caldera_hogar: origen en la base (y mín 0.00)
+  ok  caldera_medidor: primitivas
+  ok  caldera_medidor: lado mayor 1.48 ≈ 1.40
+  ok  caldera_medidor: origen en la base (y mín 0.00)
+  ok  caldera_indice: primitivas
+  ok  caldera_indice: lado mayor 0.17 ≈ 0.14
+  ok  caldera_indice: origen en la base (y mín -0.07)
+  ok  antorcha_pared: primitivas
+  ok  antorcha_pared: lado mayor 0.81 ≈ 0.90
+  ok  antorcha_pared: origen en la base (y mín 0.10)
+  ok  antorcha_pie: primitivas
+  ok  antorcha_pie: lado mayor 1.69 ≈ 1.60
+  ok  antorcha_pie: origen en la base (y mín 0.00)
+  ok  baldosa_falsa: primitivas
+  ok  baldosa_falsa: lado mayor 2.00 ≈ 2.00
+  ok  baldosa_falsa: origen en la base (y mín 0.00)
+  ok  goblin_escudo_entero: primitivas
+  ok  goblin_escudo_entero: lado mayor 0.58 ≈ 0.55
+  ok  goblin_escudo_entero: origen en el centro del disco
+  ok  goblin_escudo_quemado: primitivas
+  ok  goblin_escudo_quemado: lado mayor 0.60 ≈ 0.55
+  ok  goblin_escudo_quemado: origen en el centro del disco
+  ok  caldera caliente: emisión y luz
+  ok  caldera al rojo: más roja y brillante (modelo)
+  ok  caldera fría: sin emisión ni luz
+  ok  medidor frío: sin relleno
+  ok  medidor al rojo: relleno entero
+  ok  escudo ardiendo: brasa en las tablas
+  ok  escudo entero: sin brasa
+  ok  escudo quemado existe
+  ok  contador 2/4: dos gemas encendidas (2)
+  ok  contador 0/4: ninguna
+  ok  fogata (modelo): con leña se ve
+  ok  fogata (modelo): sin leña se esconde
+  ok  fogata (primitivas): un solo leño
+  ok  baldosa falsa cae y se esconde
+  ok  antorcha encendida: llama
+  ok  antorcha apagada: sin llama
+  ok  mojado: capa puesta
+  ok  mojado: capa quitada
+  ok  usar_modelos = false fuerza primitivas
+FALLOS 0
+ERROR: 4 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 2 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 5 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 3 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 4 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 23 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 7 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
+
+===== prueba_piezas_puzle_modelos.gd =====
+FALLOS: 0
+
+===== prueba_pieza_escritura.gd =====
+ERROR: 22 resources still in use at exit (run with --verbose for details).
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+  ok  una pieza que no existe da null
+  ok  pluma existe
+  ok  pluma mide (0.214, 0.7, 0.045) ≈ (0.214, 0.7, 0.045)
+  ok  mano_apuntando existe
+  ok  mano_apuntando mide (0.386, 0.5, 0.544) ≈ (0.386, 0.5, 0.544)
+  ok  manga_mano existe
+  ok  manga_mano mide (0.485, 0.533, 0.582) ≈ (0.485, 0.533, 0.582)
+  ok  mano_agarre existe
+  ok  mano_agarre mide (0.269, 0.228, 0.5) ≈ (0.269, 0.228, 0.5)
+  ok  manga_agarre existe
+  ok  manga_agarre mide (0.287, 0.292, 0.255) ≈ (0.287, 0.292, 0.255)
+  ok  pluma: la punta del plumín en el origen (y mínima = 0) y de pie
+  ok  mano: la punta del índice en el origen (y mínima = 0)
+  ok  manga: empieza por encima de la punta y termina más arriba que la mano (mismo origen)
+  ok  mano_agarre: el origen (centro del pellizco) queda dentro de la mano, entre los dedos y la muñeca
+  ok  pluma_en_agarre: la base es una rotación limpia (det = 1)
+  ok  pluma_en_agarre: el plumín asoma por delante (+Z) y por debajo (−Y) del pellizco
+  ok  pluma_en_agarre: la pluma sube hacia el dorso de la mano
+FALLOS 0
+ERROR: 3 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 10 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 9 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 5 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 36 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 22 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
+
+===== prueba_presentacion.gd =====
+FALLO B4 cada canto mide entre 0,3 y 0,6 u y está en el labio de arriba  
+ERROR: 529 resources still in use at exit (run with --verbose for details).
+FALLOS: 1
+
+===== prueba_puzle.gd =====
+FALLOS: 0
+
+===== prueba_reaccion_enemigos.gd =====
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+Diario de la prueba: C:/Users/paranda/AppData/Roaming/Godot/app_userdata/Magic_Symbols/playtest_logs/run_2026-10-19T16-31-50.jsonl
+rayo   antes 0.192 u  ahora 0.792 u (0.34 casillas)  x4.12  suelo 0.805  hitstop 0.06s  salto 0.00 u  escala_y_min 1.00
+hielo  antes 0.141 u  ahora 0.792 u (0.34 casillas)  x5.61  suelo 0.805  hitstop 0.06s  salto 0.00 u  escala_y_min 0.84
+fuego  antes 0.244 u  ahora 0.792 u (0.34 casillas)  x3.24  suelo 0.805  hitstop 0.06s  salto 0.00 u  escala_y_min 0.84
+agua   antes 0.294 u  ahora 0.792 u (0.34 casillas)  x2.69  suelo 0.805  hitstop 0.09s  salto 0.00 u  escala_y_min 0.84
+tierra antes 1.116 u  ahora 2.245 u (0.98 casillas)  x2.01  suelo 0.805  hitstop 0.06s  salto 0.25 u  escala_y_min 0.85
+viento antes 1.321 u  ahora 2.657 u (1.16 casillas)  x2.01  suelo 0.805  hitstop 0.00s  salto 0.25 u  escala_y_min 0.84
+pormenores: hitstop 0.06  interrupcion 0.60  destello 0.20  escala (1.25, 0.8, 1.25)
+RESULTADO reaccion_enemigos: 0 fallos
+WARNING: 22 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
+
+===== prueba_receta_v2.gd =====
+ERROR: 8 resources still in use at exit (run with --verbose for details).
+FALLOS: receta_v2:
+
+===== prueba_segada.gd =====
+FALLOS: 0
+
+===== prueba_terra_fina.gd =====
+ERROR: 2 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== prueba_terreno.gd =====
+FALLOS: 0
+
+===== prueba_tinta.gd =====
+FALLOS: 0
+
+===== prueba_titan.gd =====
+FALLOS: 0
+
+===== prueba_trazo_recto.gd =====
+FALLOS: 0
+
+===== prueba_vfx_v2.gd =====
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+SIN RESULTADO: la prueba no llego al final. Salida completa:
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+peor caso medido: 1 luces, 183 partículas
+(sin ventana: el servidor de render ficticio no guarda las transformaciones de los MultiMesh; la comprobación de escala se salta, usa xvfb)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+FALLO: un proyectil se dibuja y cuelga de su HechizoVivo (1)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+FALLO: otro proyectil, otro dibujo (2)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+FALLO: solido: el proyectil no tiene dibujo
+FALLO: liquido: el proyectil no tiene dibujo
+FALLO: plasma: el proyectil no tiene dibujo
+FALLO: energia: el proyectil no tiene dibujo
+FALLO: gas: el proyectil no tiene dibujo
+FALLO: campo: el proyectil no tiene dibujo
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Cannot call method 'get_tree' on a null value.
+   at: HechizoVivo._golpear_celdas (res://magia/hechizo_vivo.gd:871)
+   GDScript backtrace (most recent call first):
+       [0] _golpear_celdas (res://magia/hechizo_vivo.gd:871)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:816)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+SCRIPT ERROR: Invalid access to property or key 'mundo' on a base object of type 'Nil'.
+   at: HechizoVivo._golpes_areas (res://magia/hechizo_vivo.gd:840)
+   GDScript backtrace (most recent call first):
+       [0] _golpes_areas (res://magia/hechizo_vivo.gd:840)
+       [1] _avanzar (res://magia/hechizo_vivo.gd:819)
+       [2] paso (res://magia/hechizo_vivo.gd:764)
+       [3] _physics_process (res://magia/hechizo_vivo.gd:739)
+FALLO: el proyectil se dibuja
+FALLO: 9 fallos
+
+===== escenario_agua_estanque.gd =====
+FALLO 3 se forma un charco: alguna casilla llega a tener agua (> 0)  pico 0.0000 u en (-1, -1) a los -1.0 s
+FALLO 3 el charco está en la casilla apuntada o pegado a ella  (-1, -1) (objetivo (6, 24))
+FALLO 4 el suelo está mojado donde más agua hay  
+FALLO 5 el charco se absorbe (la zona se queda sin lámina)  a los -1.0 s
+FALLO 6 la casilla se seca a los SECA_EN (20 s) de quedarse sin agua  sin agua a los -1.0 s, seca a los -1.0 s (diferencia 0.0 s)
+ERROR: 109 resources still in use at exit (run with --verbose for details).
+FALLOS: 5
+
+===== escenario_agua_tinaja.gd =====
+FALLO 4 el diario tiene `golpe_objeto` con objeto «surtidor»  0 golpes
+FALLO 4 y el golpe REACCIONA (reacciona = true)  
+FALLO 5 la tinaja avisó `agua_llega`  a los -1.00 s de lanzar
+FALLO 6 la casilla 1 del canal (2, 26) llega a ≥ 0.25 u en algún momento de los 32 s  máx 0.000
+FALLO 6 la casilla 2 del canal (2, 27) llega a ≥ 0.25 u en algún momento de los 32 s  máx 0.000
+FALLO 7 a los 20 s de `agua_llega` las dos primeras casillas ya han pasado de 0.25 u  0.000 / 0.000 / 0.000
+FALLO 8 y el volumen total solo crece lo que cabe en el canal (142.83 → 142.83 u³)  
+ERROR: 107 resources still in use at exit (run with --verbose for details).
+FALLOS: 7
+
+===== escenario_agua_tinaja_mapa.gd =====
+FALLOS: 0
+
+===== escenario_agua_vertices.gd =====
+ERROR: 105 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_barrera.gd =====
+ERROR: 107 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_bosque_01.gd =====
+FALLO 2.3 cuatro guerreros (2 del cofre 1, 1 de la patrulla, 1 de la explanada), dos arqueros y siete cofres  W=3 A=2 Z=7
+FALLO 2.5 cuatro telarañas (M8, F17 y las dos del sendero del este), raíz, dos setas y cuatro setos; el estanque conserva sus 15 casillas c  c=15
+FALLO 2.7 la regla ve los dos goblins del cofre 1 y los tres de la patrulla  goblins 1 patrulla 3
+FALLO 8.2 la primera conversación da UNA poción (muestra gratis)  0 → 0
+FALLO 8.3 la segunda no da otra  
+FALLO 11.2 usan el modelo emberheart.glb (Pablo, 17/10) y la regla no los cuenta como goblins del cofre 1  
+ERROR: 266 resources still in use at exit (run with --verbose for details).
+FALLOS: 6
+
+===== escenario_bosque_01_ramas.gd =====
+FALLO 2.1 todos los marcadores esperados existen con su nombre tipo_NN  faltan ["guerrero_02"] de 57
+FALLO T.3 telarana_03 arde y libera la casilla  -1.0 s
+FALLO T.3 telarana_04 arde y libera la casilla  -1.0 s
+FALLO W camino del este (con las telarañas ya quemadas): a pie, sin atascos  terminó en (-1, -1)
+ERROR: 289 resources still in use at exit (run with --verbose for details).
+FALLOS: 4
+
+===== escenario_conjuro.gd =====
+ERROR: 109 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_hielo.gd =====
+FALLO 4 la casilla del estanque se hiela  
+FALLO 4 ya no es agua para el juego y se pisa (pisable)  
+FALLO 5 el goblin queda PRESO en el hielo (preso_hielo)  
+FALLO 5 y congelado > 0  0.0 s
+FALLO 6 a falta de 3 s el hielo sigue y el goblin sigue preso  
+ERROR: 107 resources still in use at exit (run with --verbose for details).
+FALLOS: 5
+
+===== escenario_hornear.gd =====
+ERROR: 469 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_lab_hechizos.gd =====
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: 118 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_lab_recetas.gd =====
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: 119 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_libro.gd =====
+ERROR: 108 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_muerte.gd =====
+ERROR: 107 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_puzles_agua.gd =====
+ERROR: 106 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_puzles_fuego.gd =====
+ERROR: 126 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_puzles_fuego_botones.gd =====
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: Lambda capture at index 0 was freed. Passed "null" instead.
+ERROR: 126 resources still in use at exit (run with --verbose for details).
+FALLOS: 0
+
+===== escenario_telarana.gd =====
+FALLO 3 el diario dice que el fuego golpeó una «telarana»  0 golpes
+FALLO 3 y la telaraña reaccionó  
+FALLO 4 la casilla (4,33) ya no está bloqueada  
+FALLO 4 se puede pisar  
+ERROR: 121 resources still in use at exit (run with --verbose for details).
+FALLOS: 4
+
+================ TOTAL DE FALLOS: 46 ================
+Presione una tecla para continuar . . . 

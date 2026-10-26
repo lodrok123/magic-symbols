@@ -1,0 +1,56 @@
+{
+    "p0":  {
+               "trozos":  [
+                              0
+                          ],
+               "id":  "bloque_enlace",
+               "tris":  600,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p1":  {
+               "trozos":  [
+                              1
+                          ],
+               "id":  "cristal_resonante",
+               "tris":  1200,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p2":  {
+               "trozos":  [
+                              2
+                          ],
+               "id":  "estatua_piedra",
+               "tris":  2000,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p3":  {
+               "trozos":  [
+                              3
+                          ],
+               "id":  "prisma_orientable",
+               "tris":  1000,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p4":  {
+               "trozos":  [
+                              4
+                          ],
+               "id":  "columna_agrietada",
+               "tris":  1000,
+               "directo":  true,
+               "nota":  ""
+           },
+    "p5":  {
+               "trozos":  [
+                              5
+                          ],
+               "id":  "receptor_runico",
+               "tris":  1000,
+               "directo":  true,
+               "nota":  ""
+           }
+}

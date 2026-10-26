@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/hojas_monton.glb" id="1_23lid"]
+
+[node name="hojas_monton" type="Node3D" unique_id=743782389]
+metadata/id = "hojas_monton"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=546357235]
+
+[node name="hojas_monton2" type="Node3D" parent="modelo" unique_id=767025607 instance=ExtResource("1_23lid")]
+transform = Transform3D(2.8397832, 0, 0, 0, 2.8397832, 0, 0, 0, 2.8397832, 0, 0, 0)

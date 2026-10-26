@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/planta_violeta.glb" id="1_hfhge"]
+
+[node name="planta_violeta" type="Node3D" unique_id=1650342828]
+metadata/id = "planta_violeta"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=549814610]
+
+[node name="planta_violeta2" type="Node3D" parent="modelo" unique_id=1923914724 instance=ExtResource("1_hfhge")]
+transform = Transform3D(6.131923, 0, 0, 0, 6.131923, 0, 0, 0, 6.131923, 0, 0, 0)
