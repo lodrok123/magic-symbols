@@ -89,6 +89,7 @@ const CATALOGO: Dictionary = {
 	# "sí" y "no" sin que nadie lo explique.
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
+	"pulso_resonante": {"f": ["pulso_resonante.wav"], "db": -10.0, "tono": 0.02},      # 26/10: sonido propio del pulso (audio/gen_sfx_pulso.py); lo usan Pulso3D y todo lo que responde
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
 
 	# --- Piezas de puzle (16/10, Pipeline; audio/gen_sfx_puzles.py). Las llama PiezaPuzle3D al cambiar de estado; el Juego puede llamarlas

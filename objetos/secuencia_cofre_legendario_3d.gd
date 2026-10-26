@@ -593,7 +593,7 @@ func _desbloquear() -> void:
 		Repertoire.conseguir_sigil(glifo)            # el libro de verdad lo ESCRIBE en la página derecha la próxima vez que se abre
 		Flags.i().poner(Puzle3D.FLAG_GLIFO_GANADO + glifo)      # y se recuerda entre niveles: cada nivel reaplica su progresión al montarse (ver Puzle3D._restaurar_glifos)
 	if cofre != null and cofre.is_inside_tree() and Terreno3D.hay_mundo():
-		Sfx.play(cofre, Pulso3D.SFX_PULSO, 1.8)       # la nota limpia al escribirse (provisional: sello_ok agudo)
+		Sfx.play(cofre, Pulso3D.SFX_PULSO, 1.8)       # la nota limpia al escribirse (pulso_resonante agudo)
 	glifo_escrito.emit()
 
 

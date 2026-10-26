@@ -21,7 +21,7 @@ extends Node3D
 ## un anillo de veta no da vueltas), cada nodo recibe el aviso una sola vez por pulso, y recibir un pulso no emite otro (§10 bis).
 ##
 ## SE VE Y SE OYE (§3, §9): un anillo en el suelo al nacer, cada conductor se ilumina al pasar el frente y se apaga detrás (`T_BRILLO`), y un tono que SUBE al llegar a
-## algo que responde. No hay sonido propio del pulso todavía: se usa `sello_ok` de `Sfx` a distintos tonos (constantes TONO_*); el gancho es `_sonar`, y bastará cambiar
+## algo que responde. El sonido es `pulso_resonante` de `Sfx` (`audio/gen_sfx_pulso.py`) a distintos tonos (constantes TONO_*); el gancho es `_sonar`, y bastará cambiar
 ## el nombre cuando exista el sonido propio.
 
 signal alcanzo(celda: Vector2i, paso: int)               ## el frente llega a una casilla que conduce (también el origen, paso 0)
@@ -44,8 +44,8 @@ const COLORES: Dictionary = {
 	"fuego": Color(0.95, 0.33, 0.12), "agua": Color(0.16, 0.62, 0.98), "hielo": Color(0.37, 0.81, 0.96), "rayo": Color(0.95, 0.78, 0.24),
 	"tierra": Color(0.78, 0.53, 0.35), "viento": Color(0.56, 0.83, 0.42), "tiempo": Color(0.72, 0.58, 0.98),
 }
-## Sonido provisional (ver arriba): nombre del catálogo de `Sfx` y tono. Nace más grave y llega más agudo; cada elemento lo desplaza un poco.
-const SFX_PULSO: String = "sello_ok"
+## Sonido propio del pulso (`audio/gen_sfx_pulso.py`): nombre del catálogo de `Sfx` y tono. Nace más grave y llega más agudo; cada elemento lo desplaza un poco.
+const SFX_PULSO: String = "pulso_resonante"
 const TONO_NACE: float = 0.7
 const TONO_LLEGA: float = 1.5
 const TONO_ELEMENTO: Dictionary = {"fuego": 0.8, "agua": 0.9, "hielo": 1.1, "rayo": 1.25, "tierra": 0.7, "viento": 1.15, "tiempo": 0.95}
