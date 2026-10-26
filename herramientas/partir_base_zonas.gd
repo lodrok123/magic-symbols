@@ -22,9 +22,12 @@ const OREJA_Z_MIN: float = 1.27
 const OREJA_Z_MAX: float = 1.40
 const OREJA_ATRAS_MAX: float = 0.12
 ## Dentro de la caja de la oreja, el pelo (lo que no es piel) pasa a la zona `pelo` si está por detrás de esta distancia al plano de la cara (u del modelo, +atrás).
-const PELO_HEBRA_ATRAS_MIN: float = -0.06
+const PELO_HEBRA_ATRAS_MIN: float = -0.20
 ## ...y por debajo de esta altura (la caja de la oreja llega a OREJA_Z_MAX; las hebras que asomaban junto a ella subían algo más).
 const PELO_HEBRA_Z_MAX: float = 1.55
+## Las hebras de pelo que cuelgan junto al cuello (por debajo y por dentro de la caja de la oreja) asomaban bajo la capucha: la caja de las hebras es más grande.
+const HEBRA_X_MIN: float = 0.18
+const HEBRA_Z_MIN: float = 1.10
 ## Por debajo de esta altura el hueso «Leg» es bota (las botas llegan bajo la rodilla).
 const BOTA_Z_MAX: float = 0.43
 ## Color de la textura: piel y mangas = claras y poco saturadas; el resto del torso es la ropa pintada (cinturón si pesa en la cadera, chaleco si no).
@@ -131,11 +134,14 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 	var atras: float = -centro.z * ESCALA_MALLA
 	if h == "Head" or h == "Neck" or h == "headfront" or h.begins_with("HeadTop"):
 		var oreja: bool = absf(x) > OREJA_X_MIN and altura > OREJA_Z_MIN and altura < OREJA_Z_MAX and atras < OREJA_ATRAS_MAX
-		var junto_oreja: bool = absf(x) > OREJA_X_MIN and altura > OREJA_Z_MIN and altura < PELO_HEBRA_Z_MAX and atras < OREJA_ATRAS_MAX
+		var junto_oreja: bool = absf(x) > HEBRA_X_MIN and altura > HEBRA_Z_MIN and altura < PELO_HEBRA_Z_MAX and atras < OREJA_ATRAS_MAX
 		if junto_oreja and not _es_piel(_color(img, uv[a], uv[b], uv[c])) and atras > PELO_HEBRA_ATRAS_MIN:
 			# En la caja de la oreja solo la oreja es piel: las hebras de pelo (color de pelo) que hay ahí son del pelo de atrás, y con la capucha asomaban sueltas junto a ella.
 			return ZONAS.find("pelo")
-		if atras > PELO_Y_MIN and not oreja and altura > 1.05:
+		if oreja:
+			# La capucha también tapa las orejas (se asomaban por la pared lateral): van a `pelo`, que solo se apaga con la capucha puesta.
+			return ZONAS.find("pelo")
+		if atras > PELO_Y_MIN and altura > 1.05:
 			return ZONAS.find("pelo")
 		return ZONAS.find("cabeza")
 	if h == "Foot" or h.ends_with("Foot") or h.contains("Toe"):
