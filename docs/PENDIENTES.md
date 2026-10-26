@@ -52,10 +52,10 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [x] **Franja clara de la cascada de C2 quitada** (24/10): la cortina se funde por arriba (`fundido_arriba`, uniform de `AguaRender3D` solo para la Cueva) mientras el delantal de la lámina de la cornisa se apaga hacia abajo (cruce, no suma). Queda, como mucho, una línea de 1 px.
 - [ ] **Materiales de la Cueva, lo que queda:** (24/10: `seta_resonante`, `mineral_veta`, `esquirla_cristal`, el cofre épico de las estatuas de C1 y el jarrón ya están hechos) la pared hueca de C3 con la geoda, la mejora concreta del personaje que da cada épico (vida, tinta, pigmentos, ropa), la llave en la bolsa, y arte 3D propio de alga, basalto suelto y cristal resonante.
 - [ ] **El colmillo de goblin va directo a la bolsa** (con aviso y texto flotante), no cae al suelo. Si Pablo lo quiere recogible, hace falta una pieza de botín de objeto (hoy solo las monedas lo son).
-- [ ] **`escenario_cueva_pulso.gd` falla 2-3 comprobaciones ajenas a los materiales** (23/10, al acabar este trabajo): las constantes del brillo azul (`BrilloPulso3D`: reposo, luz y destello) y el material liso del interior del cofre legendario. Lo tocan los agentes de la luz y los cofres; revisar cuando terminen.
+- [x] ~~**`escenario_cueva_pulso.gd` falla 2-3 comprobaciones ajenas a los materiales** (23/10, al acabar este trabajo): las constantes del brillo azul (`BrilloPulso3D`: reposo, luz y destello) y el material liso del interior del cofre legendario. Lo tocan los agentes de la luz y los cofres; revisar cuando terminen.~~ — comprobado el 26/10: `FALLOS: 0`.
 - [ ] **Pulso resonante, lo que queda:** (la fase 3 está hecha el 24/10) los otros 1–2 prismas de C5/C6, las estalagmitas que vibran de C4, la columna que hace PUENTE (hoy solo abre paso), el sonido propio del pulso (hoy `sello_ok` a distintos tonos) y que en C5 la descarga amarilla de la fuente tapa el frente del pulso por el agua.
 - [ ] **Pipeline: clip «abrir cofre» de la jugadora** (PLAN_PULSO_RESONANTE §10 punto 6). No existe: la secuencia del cofre legendario usa `pick_up` (coger un objeto) y, desde el primer plano cenital, se lee como un bulto agachado. Cuando llegue el clip, cambiar `SecuenciaCofreLegendario3D.ROL_ANIMACION`.
-- [ ] **Pablo / Pipeline: la tapa del cofre legendario abierto** se ve flotando separada del cuerpo (captura `docs/capturas/pulso_fase2/cofre_9_despues.png`; su interior se ve con reflejos morados). Es del modelo/`Cofre3D` (fase 1), no de la secuencia: revisar la bisagra de `cofre_legendario`.
+- [x] ~~**Pablo / Pipeline: la tapa del cofre legendario abierto** se ve flotando separada del cuerpo (captura `docs/capturas/pulso_fase2/cofre_9_despues.png`; su interior se ve con reflejos morados). Es del modelo/`Cofre3D` (fase 1), no de la secuencia: revisar la bisagra de `cofre_legendario`.~~ — comprobado el 26/10 con `captura_cofre_abrir.gd`: la tapa abierta queda pegada al fondo del cofre, sin gap.
 - [ ] **Pablo: grabar las muestras de ᚱ** (`G` en el libro, id `raido`). Sin ellas el glifo se puede poner con la paleta (F1) pero no se reconoce dibujándolo; con ellas, la escritura del cofre podría dibujarse trazo a trazo (hoy es un barrido de arriba abajo).
 - [ ] **Coste en tinta del pulso continuo:** el recargo `COSTE_CONTINUO_V2` (+25 %) solo ve las propiedades de la receta (barrera o permanencia); un ᚱ con elemento sólido (tierra, hielo) sin barrera también late, pero sin recargo. Para cubrirlo, `Receta3D.coste_v2` tendría que conocer el elemento.
 - [ ] **La pared hueca de la Cueva se parece a cualquier otra pared** (es un `cueva_pared` con un resplandor azul tenue): se entiende por las vetas que llevan hasta ella, el eco y el aviso al coger el glifo. Si en el playtest no se entiende, darle un detalle propio (grieta, runa).
@@ -112,8 +112,8 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] Conectar ConsumoFuego3D.
 
 **Limpieza del repo**
-- [ ] Meter `tools/godot_local.txt`, `salida*.txt` y `pruebas_resultado.txt` en `.gitignore`.
-- [ ] Quitar el archivo `main)` de la raíz.
+- [x] ~~Meter `tools/godot_local.txt`, `salida*.txt` y `pruebas_resultado.txt` en `.gitignore`.~~ — hecho el 26/10 (`.gitignore` corregido y archivos fuera del índice).
+- [x] ~~Quitar el archivo `main)` de la raíz.~~ — ya no existe (26/10).
 - [ ] Archivar los `.cmd` de OneDrive.
 - [ ] Arreglar la fila mal formada «Shaders del suelo» en `PROPIETARIOS.md` y subir esa versión al Project de claude.ai.
 

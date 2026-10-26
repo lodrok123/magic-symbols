@@ -64,4 +64,9 @@ videos/
 # 13/10: antes la excepción era poc_25d/; al reorganizar por capas, los .glb se quedaron fuera de Git y el pull los perdió.
 *.glb
 !arte/**/*.glb
-!presentacion/**/*.glbsalida*.txt
+!presentacion/**/*.glb
+
+# Salidas de pruebas y rutas locales de cada PC (no se suben).
+salida*.txt
+pruebas_resultado.txt
+tools/godot_local.txt
