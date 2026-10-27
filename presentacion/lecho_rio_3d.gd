@@ -99,13 +99,15 @@ float hash(vec2 p) {
 }
 
 // Distancia a la arista de Voronoi (F2 - F1) con centros que se mueven despacio: bordes blandos, red de luz.
+// 27/10: se buscan las 5 × 5 celdas de alrededor. Con 3 × 3 el SEGUNDO centro más cercano a veces quedaba fuera y la red se cortaba en
+// rectas a lo largo de los bordes de celda (las «costuras» del fondo de las charcas).
 float arista(vec2 p, float t) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
 	float d1 = 9.0;
 	float d2 = 9.0;
-	for (int y = -1; y <= 1; y++) {
-		for (int x = -1; x <= 1; x++) {
+	for (int y = -2; y <= 2; y++) {
+		for (int x = -2; x <= 2; x++) {
 			vec2 g = vec2(float(x), float(y));
 			vec2 o = vec2(hash(i + g), hash(i + g + 17.3));
 			o = 0.5 + 0.38 * sin(t * (0.6 + o) + 6.2831 * o);
@@ -130,10 +132,19 @@ void fragment() {
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.1;
 	// Cáusticas: dos redes que se cruzan y se mueven en sentidos distintos; suma suave (no líneas duras), más fuertes donde hay poco agua.
+	// 27/10: la profundidad BILINEAL entre los cuatro trocitos de alrededor (antes la del trocito, a secas: la fuerza de las cáusticas
+	// saltaba en cada borde de trocito y se veían costuras rectas en el fondo de las charcas).
 	float prof = 0.9;
 	if (usa_datos > 0.5) {
 		ivec2 s = textureSize(datos, 0);
-		prof = texelFetch(datos, clamp(ivec2(floor(xz / lado_trocito)), ivec2(0), s - 1), 0).g;
+		vec2 tp = xz / lado_trocito - 0.5;
+		ivec2 i0 = ivec2(floor(tp));
+		vec2 fr = fract(tp);
+		float p00 = texelFetch(datos, clamp(i0, ivec2(0), s - 1), 0).g;
+		float p10 = texelFetch(datos, clamp(i0 + ivec2(1, 0), ivec2(0), s - 1), 0).g;
+		float p01 = texelFetch(datos, clamp(i0 + ivec2(0, 1), ivec2(0), s - 1), 0).g;
+		float p11 = texelFetch(datos, clamp(i0 + ivec2(1, 1), ivec2(0), s - 1), 0).g;
+		prof = mix(mix(p00, p10, fr.x), mix(p01, p11, fr.x), fr.y);
 	}
 	float hay = smoothstep(0.03, 0.14, prof);
 	float t = TIME * caus_vel * 6.0;
@@ -215,6 +226,90 @@ void light() {
 	}
 }
 """
+
+## CÁUSTICAS SOBRE LO SUMERGIDO (27/10; idea de los documentos de Mario y de la recreación del agua de Zelda: la luz del agua se proyecta
+## desde arriba sobre TODO lo que está debajo, no solo sobre el fondo). Una capa de superposición (`material_overlay`) que SUMA la misma red
+## de luz del lecho (mismos parámetros y el mismo tiempo, así la red sigue de la piedra al fondo sin corte) a cualquier malla bajo el agua:
+## guijarros, algas y rocas del lecho, y quien quiera ponérsela (un goblin que nada). Más fuerte en las caras que miran arriba (la luz
+## llega de arriba) y nada por encima de la lámina (`agua_y`, con un fundido de CAUS_SUMERGIDO_FUNDIDO u).
+const CAUS_SUMERGIDO: float = 0.9            ## fuerza respecto a la del fondo (las piedras están más cerca de la superficie)
+const CAUS_SUMERGIDO_FUNDIDO: float = 0.15
+const CODIGO_CAUS_CAPA: String = """
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled;
+
+uniform float causticas = 0.22;
+uniform float caus_escala = 1.25;
+uniform float caus_vel = 0.07;
+uniform vec3 caus_color : source_color = vec3(0.70, 0.96, 1.0);
+uniform float agua_y = 0.62;
+uniform float fundido = 0.15;
+varying vec3 wp;
+varying vec3 wn;
+
+float hash(vec2 p) {
+	p = fract(p * vec2(123.34, 456.21));
+	p += dot(p, p + 45.32);
+	return fract(p.x * p.y);
+}
+
+// La misma red que el fondo (LechoRio3D.CODIGO, `arista`): F2 − F1 de un Voronoi de centros que se mueven, 5 × 5 celdas.
+float arista(vec2 p, float t) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	float d1 = 9.0;
+	float d2 = 9.0;
+	for (int y = -2; y <= 2; y++) {
+		for (int x = -2; x <= 2; x++) {
+			vec2 g = vec2(float(x), float(y));
+			vec2 o = vec2(hash(i + g), hash(i + g + 17.3));
+			o = 0.5 + 0.38 * sin(t * (0.6 + o) + 6.2831 * o);
+			float d = length(g + o - f);
+			if (d < d1) {
+				d2 = d1;
+				d1 = d;
+			} else if (d < d2) {
+				d2 = d;
+			}
+		}
+	}
+	return d2 - d1;
+}
+
+void vertex() {
+	wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	wn = normalize(mat3(MODEL_MATRIX) * NORMAL);
+}
+
+void fragment() {
+	float bajo = smoothstep(0.0, fundido, agua_y - wp.y);
+	float arriba = 0.35 + 0.65 * clamp(wn.y, 0.0, 1.0);
+	vec2 xz = wp.xz;
+	float t = TIME * caus_vel * 6.0;
+	float a1 = 1.0 - smoothstep(0.0, 0.32, arista(xz / caus_escala + vec2(t * 0.15, -t * 0.1), t));
+	float a2 = 1.0 - smoothstep(0.0, 0.32, arista(xz / (caus_escala * 0.73) + vec2(-t * 0.12, t * 0.17) + 3.7, t * 1.3 + 1.7));
+	float c = smoothstep(0.2, 1.3, a1 + a2 * 0.85);
+	ALBEDO = caus_color * c * causticas * bajo * arriba;
+}
+"""
+static var _mat_caus_capa: ShaderMaterial = null
+
+
+## La capa de cáusticas para lo sumergido (compartida: un solo material para todo). `agua_y` = la altura de la lámina del agua.
+static func capa_causticas(agua_y: float) -> ShaderMaterial:
+	if _mat_caus_capa == null:
+		var sh := Shader.new()
+		sh.code = CODIGO_CAUS_CAPA
+		_mat_caus_capa = ShaderMaterial.new()
+		_mat_caus_capa.shader = sh
+		_mat_caus_capa.set_shader_parameter("causticas", CAUS_FUERZA * CAUS_SUMERGIDO)
+		_mat_caus_capa.set_shader_parameter("caus_escala", CAUS_ESCALA)
+		_mat_caus_capa.set_shader_parameter("caus_vel", CAUS_VEL)
+		_mat_caus_capa.set_shader_parameter("caus_color", CAUS_COLOR)
+		_mat_caus_capa.set_shader_parameter("fundido", CAUS_SUMERGIDO_FUNDIDO)
+	_mat_caus_capa.set_shader_parameter("agua_y", agua_y)
+	return _mat_caus_capa
+
 
 static var _tex_procedural: ImageTexture = null
 static var _shader: Shader = null
@@ -410,6 +505,7 @@ static func construir_adornos(casillas: Array, lado_casilla: float, hash_fn: Cal
 		mi.name = String(clave).replace("#", "_")
 		mi.multimesh = mm
 		mi.material_override = parte["mat"]
+		mi.material_overlay = capa_causticas(Terreno3D.alto_agua)     # 27/10: la luz del agua también sobre algas y rocas
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		raiz.add_child(mi)
 		mats.append(parte["mat"])

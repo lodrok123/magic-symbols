@@ -23,13 +23,18 @@ const ALCANCE: float = 22.0              ## más allá no se oye (u; la casilla 
 ## nombre -> archivos (se elige uno al azar, sin repetir el anterior), db, variación de tono (±) y `base` de tono.
 ## Los db están ESTIMADOS (no medidos en el juego): suben o bajan aquí, en un solo sitio.
 const CATALOGO: Dictionary = {
-	"paso_hierba": {"f": ["paso_hierba_0.ogg", "paso_hierba_1.ogg", "paso_hierba_2.ogg", "paso_hierba_3.ogg"],
-		"db": -4.0, "tono": 0.08, "unidad": 3.0, "alcance": 14.0},
-	"paso_roca": {"f": ["paso_roca_0.ogg", "paso_roca_1.ogg", "paso_roca_2.ogg", "paso_roca_3.ogg"],
-		"db": -5.0, "tono": 0.08, "unidad": 3.0, "alcance": 14.0},
-	# Camino y tierra: las pisadas grabadas de Kenney (las de siempre), que no son ni hierba ni piedra.
-	"paso_tierra": {"f": ["paso_0.ogg", "paso_1.ogg", "paso_2.ogg", "paso_3.ogg", "paso_4.ogg", "paso_5.ogg"],
-		"db": -14.0, "tono": 0.08, "unidad": 3.0, "alcance": 14.0},
+	# 27/10 (Pablo: «el sonido es muy fuerte, hay que buscar un sonido sutil»): pisadas SUAVES sintetizadas (tools/gen_pasos_suaves.py): un
+	# toque grave y amortiguado con un roce leve del suelo, sin agudos, seis por suelo. Las de antes (paso_hierba_*, paso_roca_*, y las de
+	# Kenney paso_0..5 en la tierra) siguen en audio/ por si se quieren comparar.
+	"paso_hierba": {"f": ["paso_suave_hierba_0.wav", "paso_suave_hierba_1.wav", "paso_suave_hierba_2.wav", "paso_suave_hierba_3.wav",
+			"paso_suave_hierba_4.wav", "paso_suave_hierba_5.wav"],
+		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
+	"paso_roca": {"f": ["paso_suave_roca_0.wav", "paso_suave_roca_1.wav", "paso_suave_roca_2.wav", "paso_suave_roca_3.wav",
+			"paso_suave_roca_4.wav", "paso_suave_roca_5.wav"],
+		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
+	"paso_tierra": {"f": ["paso_suave_tierra_0.wav", "paso_suave_tierra_1.wav", "paso_suave_tierra_2.wav", "paso_suave_tierra_3.wav",
+			"paso_suave_tierra_4.wav", "paso_suave_tierra_5.wav"],
+		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
 	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"],
 		"db": -6.0, "tono": 0.10},
 	# Al morir: los mismos gritos, más graves y más cortos de oído (tono 0,8) para que no se confunda con el aviso.

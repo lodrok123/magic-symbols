@@ -642,8 +642,9 @@ vec3 celdas(vec2 p) {
 	float d1 = 9.0;
 	float d2 = 9.0;
 	float id = 0.0;
-	for (int y = -1; y <= 1; y++) {
-		for (int x = -1; x <= 1; x++) {
+	// 27/10: 5 × 5 celdas (con 3 × 3 el segundo centro a veces quedaba fuera y la red se cortaba en rectas en los bordes de celda).
+	for (int y = -2; y <= 2; y++) {
+		for (int x = -2; x <= 2; x++) {
 			vec2 g = vec2(float(x), float(y));
 			vec2 o = vec2(hash(i + g), hash(i + g + 17.3));
 			float d = length(g + o * 0.85 + 0.075 - f);

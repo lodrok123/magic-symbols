@@ -136,7 +136,9 @@ func _hierba() -> void:
 	await avanzar(3)
 	var r_img: float = _px(h).r
 	_ok("3.4 el agua apaga la hierba quemada: la imagen se borra y el estado «quemada» se quita con ella", r_img < 0.5 and not _e(h, "quemada"), "imagen R %.2f · quemada %s" % [r_img, str(_e(h, "quemada"))])
-	_ok("3.5 y la hierba mojada por el agua NO deja «mojada» en el estado (la maqueta no pinta G en hierba: lo suyo es un reloj aparte)", not _e(h, "mojada") and _px(h).g < 0.5)
+	# 27/10: el agua sobre hierba SÍ deja «mojada» para las reglas, el tiempo que la hierba se ve mojada y no prende (ReaccionesSuelo3D.HIERBA_MOJADA_S).
+	_ok("3.5 y la hierba mojada por el agua deja «mojada» en el estado, con la duración de la hierba", _e(h, "mojada") and absf(Terreno3D.estados.queda(h, "mojada") - ReaccionesSuelo3D.HIERBA_MOJADA_S) < 1.5,
+		"queda %.1f s" % Terreno3D.estados.queda(h, "mojada"))
 
 
 # ---------------------------------------------------------------------------------------------------------------------

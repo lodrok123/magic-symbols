@@ -59,6 +59,11 @@ Los `_loop` llevan la costura ya cruzada, pero Godot necesita que el
 `paso_hierba` y `paso_roca` son por superficie; `paso_0..5` (Kenney) quedan
 como paso genérico.
 
+**Pisadas suaves (27/10):** `paso_suave_hierba_0..5`, `paso_suave_tierra_0..5` y
+`paso_suave_roca_0..5` (.wav) las genera `tools/gen_pasos_suaves.py`, también
+sintetizadas y sin licencia. Son las que suenan ahora al andar (`Sfx3D.CATALOGO`);
+las de antes siguen aquí para comparar.
+
 ## Cómo cambiar uno
 
 Copiar el archivo nuevo en `audio/` y tocar su línea en `CATALOGO`

@@ -186,3 +186,13 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] En la Cueva el mojado se lee poco: el tinte del mojado es azulado (`tinte_mojado`) y la luz de la Cueva ya es azul. Si se quiere que se vea, un tinte más oscuro o más brillo especular solo con `estilo = "cueva"`.
 - [ ] Sigue aparte la hierba mojada (`Hierba3D.MOJADA_S` 8 s y `_mojada` de la maqueta): el agua sobre hierba no deja «mojada» oficial (cambio 6 del informe).
 - [ ] La columna `al_caducar` del cambio 1 no se ha hecho: ningún estado la necesita todavía (el hielo de suelo ya deja la casilla mojada por `ReaccionesSuelo3D.derretir`).
+
+## Agua y Cueva (27/10)
+- [x] **Agua electrificada sin cuadros amarillos** (`EmisorRayo3D.CODIGO_AGUA`): vetas finas que saltan a tirones, en coordenadas del mundo (siguen de una casilla a otra), que SUMAN luz y no tapan el frente del pulso; se funden en los lados que dan a agua sin corriente; destello al soltar y se apagan a lo largo de la descarga.
+- [x] **Costuras rectas de las cáusticas:** el Voronoi de la red de luz buscaba 3 × 3 celdas y el segundo centro a veces quedaba fuera; ahora 5 × 5 (`LechoRio3D.arista`, `AguaRender3D.celdas`). La fuerza de las cáusticas lee la profundidad bilineal, no por trocito.
+- [x] **Franja marrón del borde del mapa:** ya no sale desde la pared de piedra de la Cueva del 23/10 (`pared_foso_cueva`); comprobado en las fotos de hoy.
+- [x] **Mojado en la Cueva:** oscurece casi sin color y brilla más (`MOJADO_CUEVA_*` en `prueba_test2.gd`): la franja mojada queda un tercio más oscura que la roca seca.
+- [x] **Hierba mojada oficial:** el agua sobre hierba deja «mojada» 8 s (`ReaccionesSuelo3D.HIERBA_MOJADA_S`, lo que la hierba se ve mojada y no prende), sin la tabla de transiciones.
+- [x] **Cáusticas sobre lo sumergido** (`LechoRio3D.capa_causticas`): una capa de superposición con la misma red de luz para guijarros, algas y rocas del lecho; sirve para cualquier malla bajo el agua (un goblin que nada, más adelante).
+- [x] **Pisadas suaves:** `tools/gen_pasos_suaves.py` (toque grave amortiguado, sin agudos, seis por suelo) y −12 dB en `Sfx3D.CATALOGO`. Falta oírlas jugando y ajustar el volumen de oído.
+- [ ] Romper con plantillas y fundir la base de las piezas: propuesta en `docs/PLAN_ROMPIBLES_Y_BASES.md`, con decisiones abiertas.

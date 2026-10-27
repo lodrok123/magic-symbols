@@ -112,6 +112,7 @@ func _process(delta: float) -> void:
 		return
 	_t -= delta
 	if _activa:
+		_fuerza_descarga()
 		_t_dano -= delta
 		if _t_dano <= 0.0:
 			_t_dano = TICK_DANO
@@ -182,30 +183,98 @@ func _golpear() -> void:
 			_chispas += 1
 
 
-## Una losa amarilla por casilla electrificada, sobre el agua (un solo MultiMesh: son decenas de casillas).
+## EL AGUA ELECTRIFICADA (27/10). Antes era una losa amarilla semitransparente por casilla: se leían cuadros y tapaban el frente del pulso
+## que viaja por el agua (C5 de la Cueva). Ahora cada casilla lleva un cuadro del tamaño exacto de la casilla con un sombreado en coordenadas
+## del MUNDO (las vetas siguen de una casilla a la vecina sin costura), que SUMA luz (no tapa lo de debajo): vetas finas que saltan a
+## tirones, un velo tenue y un fundido en los lados que dan a agua sin corriente (INSTANCE_CUSTOM: qué vecinas están electrificadas).
+## La fuerza la lleva `_process`: destello al soltar y se apaga a lo largo de la descarga.
+const CODIGO_AGUA: String = """
+shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled;
+uniform vec3 color : source_color = vec3(1.0, 0.92, 0.4);
+uniform float fuerza = 1.0;
+uniform float lado = 2.3;
+varying vec3 wp;
+varying vec4 vecinas;
+
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float ruido(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+void vertex() {
+	wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vecinas = INSTANCE_CUSTOM;
+}
+
+void fragment() {
+	vec2 p = wp.xz;
+	float t = floor(TIME * 14.0);                      // a tirones, como un chispazo, no un deslizar suave
+	float n1 = ruido(p * 1.1 + vec2(t * 0.37, t * 0.21));
+	float n2 = ruido(p * 2.6 + vec2(-t * 0.29, t * 0.43) + 7.0);
+	float v1 = 1.0 - smoothstep(0.0, 0.035, abs(n1 - 0.5));
+	float v2 = 1.0 - smoothstep(0.0, 0.025, abs(n2 - 0.5));
+	float venas = max(v1, v2 * 0.6);
+	float velo = 0.10 + 0.05 * ruido(p * 0.7 + t * 0.05);
+	// Fundido en los lados que dan a agua sin corriente (x = oeste, y = este, z = norte, w = sur; 1 = la vecina también lleva corriente).
+	vec2 f = fract(p / lado);
+	float borde = 0.22;
+	float fade = 1.0;
+	fade *= mix(smoothstep(0.0, borde, f.x), 1.0, vecinas.x);
+	fade *= mix(smoothstep(0.0, borde, 1.0 - f.x), 1.0, vecinas.y);
+	fade *= mix(smoothstep(0.0, borde, f.y), 1.0, vecinas.z);
+	fade *= mix(smoothstep(0.0, borde, 1.0 - f.y), 1.0, vecinas.w);
+	ALBEDO = color * (venas * 1.4 + velo) * fade * fuerza;
+}
+"""
+const DESTELLO_S: float = 0.25        ## s del destello al soltar (fuerza 1), luego baja hasta FUERZA_FIN al final de la descarga
+const FUERZA_FIN: float = 0.35
+
+var _mat_agua: ShaderMaterial = null
+
+
 func _pintar() -> void:
 	if _malla == null:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(COLOR, 0.55)
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.emission_enabled = true
-		mat.emission = COLOR
-		mat.emission_energy_multiplier = 1.2
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var sh := Shader.new()
+		sh.code = CODIGO_AGUA
+		_mat_agua = ShaderMaterial.new()
+		_mat_agua.shader = sh
+		_mat_agua.set_shader_parameter("color", COLOR)
+		_mat_agua.set_shader_parameter("lado", Terreno3D.casilla)
 		var q := QuadMesh.new()
 		q.orientation = PlaneMesh.FACE_Y
-		q.size = Vector2(Terreno3D.casilla * 0.92, Terreno3D.casilla * 0.92)
-		q.material = mat
+		q.size = Vector2(Terreno3D.casilla, Terreno3D.casilla)      # entera: los cuadros vecinos se tocan y el dibujo sigue sin costura
+		q.material = _mat_agua
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_custom_data = true
 		mm.mesh = q
 		_malla = MultiMeshInstance3D.new()
 		_malla.multimesh = mm
 		_malla.top_level = true               # sus transformaciones son del mundo, no de la fuente
 		_malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_malla)
+	var dentro: Dictionary = {}
+	for c in electrificada:
+		dentro[c] = true
 	var mm2: MultiMesh = _malla.multimesh
 	mm2.instance_count = electrificada.size()
 	for i in range(electrificada.size()):
-		mm2.set_instance_transform(i, Transform3D(Basis(), Terreno3D.centro_de(electrificada[i], Terreno3D.alto_agua + 0.06)))
+		var c: Vector2i = electrificada[i]
+		mm2.set_instance_transform(i, Transform3D(Basis(), Terreno3D.centro_de(c, Terreno3D.alto_agua + 0.06)))
+		mm2.set_instance_custom_data(i, Color(1.0 if dentro.has(c + Vector2i(-1, 0)) else 0.0, 1.0 if dentro.has(c + Vector2i(1, 0)) else 0.0,
+				1.0 if dentro.has(c + Vector2i(0, -1)) else 0.0, 1.0 if dentro.has(c + Vector2i(0, 1)) else 0.0))
+	_mat_agua.set_shader_parameter("fuerza", 1.0)
 	_malla.visible = true
+
+
+## Destello al soltar y luego se apaga poco a poco hasta el final de la descarga.
+func _fuerza_descarga() -> void:
+	if _mat_agua == null:
+		return
+	var pasado: float = DURACION - _t
+	var f: float = 1.0 if pasado < DESTELLO_S else lerpf(1.0, FUERZA_FIN, clampf((pasado - DESTELLO_S) / maxf(DURACION - DESTELLO_S, 0.01), 0.0, 1.0))
+	_mat_agua.set_shader_parameter("fuerza", f)

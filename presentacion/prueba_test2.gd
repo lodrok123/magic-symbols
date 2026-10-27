@@ -21,6 +21,10 @@ const ALTO: float = S * 0.45        ## alto de un bloque de tierra
 const PARED_FOSO_ESCALA_V: float = 2.0
 ## La textura sale muy oscura (valor medio ~0,25) y con la luz de la cueva la pared de la charca se perdía en negro: se multiplica el albedo del costado (HDR: Color admite > 1).
 const PARED_FOSO_BRILLO: float = 2.6
+## 27/10: el mojado en la Cueva (ver `_construir_suelo`, estilo «cueva»): oscurece casi sin color, más brillo especular y menos rugoso.
+const MOJADO_CUEVA_TINTE: Vector3 = Vector3(0.38, 0.4, 0.44)
+const MOJADO_CUEVA_ESPEC: float = 1.0
+const MOJADO_CUEVA_RUG: float = 0.12
 ## 6.16: el agua llega CASI a ras del bloque de hierba (4 cm por debajo; antes 0,6 × ALTO y se veía un escalón de 40 cm). El Lanzador y el
 ## Jugador leen esta constante, así que el nivel lógico del agua sube con la imagen.
 const ALTO_AGUA: float = ALTO - 0.04
@@ -1473,6 +1477,11 @@ func _construir_suelo() -> void:
 		mat_suelo.set_shader_parameter("borde_fuerza", 0.0)
 		if ResourceLoader.exists(SUELO + "basalto_arriba.png"):
 			mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "basalto_arriba.png"))
+		# 27/10: el tinte del mojado de siempre es azulado y con la luz azul de la Cueva no se leía. Aquí el mojado OSCURECE (casi neutro) y
+		# brilla más: la roca mojada se distingue por oscura y lustrosa, no por el color.
+		mat_suelo.set_shader_parameter("tinte_mojado", MOJADO_CUEVA_TINTE)
+		mat_suelo.set_shader_parameter("espec_mojado", MOJADO_CUEVA_ESPEC)
+		mat_suelo.set_shader_parameter("rug_mojado", MOJADO_CUEVA_RUG)
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
@@ -2226,6 +2235,7 @@ func _construir_lecho_rio(celdas: Array[Transform3D]) -> void:
 	mi.multimesh = mm
 	if filtro:
 		mi.material_override = LechoRio3D.material_guijarro_filtro(mm.mesh.surface_get_material(0))      # los guijarros no quedan negros bajo el filtro turquesa
+		mi.material_overlay = LechoRio3D.capa_causticas(Terreno3D.alto_agua)      # 27/10: la red de luz del fondo sigue sobre los guijarros
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 	if filtro and agua_adornos:

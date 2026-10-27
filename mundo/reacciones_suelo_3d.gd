@@ -27,6 +27,8 @@ const FASE_CENIZAS: int = 4
 ## El shader del suelo pinta «quemado» cuando el canal R pasa de 0,5 (`smoothstep(0.5 - dureza, 0.5 + dureza, e.r)`): la hierba cuenta como
 ## quemada exactamente desde que se VE quemada, ni antes ni después.
 const UMBRAL_QUEMADA: float = 0.5
+## 27/10: s que una casilla de HIERBA queda «mojada» tras el agua (= `Hierba3D.MOJADA_S` y `PruebaTest2.T_MOJADA_MS`: lo que la hierba se ve mojada y tarda en poder prender).
+const HIERBA_MOJADA_S: float = 8.0
 
 ## Callable(c: Vector2i) -> String: «agua» | «hierba» | «suelo» | «» (no recibe nada). Lo pone Lanzador3D.configurar.
 static var clasificar: Callable = Callable()
@@ -62,7 +64,14 @@ static func aplicar(a: AccionElemental) -> Dictionary:
 	# H4 (DISENO_FUTURO §0b): agua y hielo solo existen a nivel 0; en altura el hechizo golpea el bloque, no el suelo de debajo. El fuego sí llega.
 	if accion != "calor" and Terreno3D.altura_en(c) >= 1:
 		return {}
-	if clase_de(c) != "suelo":
+	var clase: String = clase_de(c)
+	if clase == "hierba" and accion == "agua":
+		# 27/10: el agua sobre HIERBA también deja la casilla «mojada» para las reglas (`casilla(x,y).mojada`). Solo eso: la hierba no entra en
+		# la tabla de transiciones (el fuego de la hierba es del autómata de la maqueta y su escarcha de Hierba3D), y dura lo mismo que la
+		# hierba se ve mojada y no prende (HIERBA_MOJADA_S), no los 20 s del suelo desnudo.
+		var cambio: bool = Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, true, 1.0, HIERBA_MOJADA_S)
+		return {"cambio": cambio, "efecto": ""}
+	if clase != "suelo":
 		return {}
 	return Terreno3D.estados.aplicar(c, accion)
 
