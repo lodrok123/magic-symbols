@@ -1,125 +1,137 @@
-# La Gruta Batida — el nivel de la barrera
+# La Gruta Batida — la mazmorra que enseña ᛜ antes de darlo
 
-27/10/2026 · contexto JUEGO · **propuesta construida, lista para playtest**.
+27/10/2026 · contexto JUEGO · **rediseño propuesto, sin construir**.
 
-- **Mapa (editable):** `mundo/datos_nivel/mapas/GrutaBatida.txt`
-- **Escena:** `escenas/PruebaGrutaBatida.tscn` (nivel `GrutaBatida` en `Niveles.ESCENAS`, kit `barrera`)
-- **Autoplay:** `herramientas/escenario_gruta_batida.gd` (84 comprobaciones, 0 fallos, ~3,5 min de juego)
-
-Es una cueva nueva de seis salas (25 × 19) cuyo tema es **ᛜ barrera**. No usa cristales ni nada del pulso. El arte es el kit genérico de cueva: paredes, `placa_presion_cueva`, `brasero_cueva`, puertas de llave, jarrones, estalagmitas, rocas, musgo, helechos y raíces. Al final hay un cofre legendario que da **ᛉ permanencia**, «la barrera que dura», que se usa en la salida.
+- **Por qué se rehace:** el primer diseño daba ᛜ desde la entrada, y en esta parte de la historia la jugadora todavía no lo tiene (Pablo, 27/10). Ese diseño no se tira. Queda guardado para una mazmorra posterior que da ᛉ: `docs/GRUTA_PERMANENCIA.md`, con la copia de su mapa en `mapas/GrutaPermanencia.txt`.
+- **Hasta que se construya esto,** `PruebaGrutaBatida.tscn` y su autoplay siguen jugando la versión antigua.
 
 ---
 
-## 1. La idea
+## 1. La regla: como la Cueva Resonante con el pulso
 
-El ᛜ hace dos cosas que ningún otro glifo hace:
+En la Cueva Resonante el pulso se ve desde la primera sala sin que la jugadora pueda lanzarlo:
+- los cristales laten solos;
+- golpeados, llevan el elemento del golpe por las vetas.
 
-1. **nace donde apuntas** (hasta 3 casillas), también detrás de una reja que para las flechas;
-2. **es sólido**: para proyectiles y pesa.
+Cuando el cofre da ᚱ, la jugadora ya sabe qué hace y lo usa enseguida en la pared hueca.
 
-Lo que hace al llegar lo decide el elemento. Es la misma pregunta que los ecos de EoW, «¿qué pongo y dónde?», pero con una sola herramienta. Así que el nivel no enseña «la barrera» en general: enseña **cuatro usos** y los combina.
+**Aquí, lo mismo con ᛜ.** La gruta está llena de **guardianes**: tótems antiguos con ᛜ tallado que levantan barreras en una marca del suelo. Durante cinco salas la jugadora:
+- ve barreras nacer lejos, pesar, parar flechas y helar el agua;
+- descubre que el elemento lo pone su golpe;
+- comprueba que duran poco.
 
-Para que cada puzle se lea como «¿dónde levanto la barrera, y de qué?», el kit `barrera` (`Lanzador3D.KITS`) deja solo **fuego, tierra y hielo** y **flecha, barrera y línea**. Sin agua, viento ni rayo no hay soluciones de otra familia que tapen la lección.
+Todo eso sin poder hacerlo ella. El cofre del santuario da **ᛜ**, y la salida pide levantar una barrera **donde no hay ningún guardián**.
 
-## 2. Los átomos (medidos, no supuestos)
+**Lo que la jugadora lleva:** fuego, tierra y hielo con ᚠ flecha, sin ᛜ. Es la misma página de la Gruta antigua, quitando la barrera. La línea (ᛁ) queda pendiente de decidir (§6).
 
-Antes de diseñar pasé una sonda por cada combinación, en una sala de prueba que ya he borrado. Esto es lo que hay en el motor hoy:
+## 2. El átomo nuevo: el guardián
 
-| átomo | receta | qué hace | medida |
+| átomo | pieza del mapa | qué hace | equivale en la Cueva a |
 |---|---|---|---|
-| **B1 · Escudo** | tierra o hielo + ᛜ (+ ᛁ) | para las flechas de los arqueros (`Lanzador3D.solidez_para`) | 0 de daño en 8 s, frente a 12 sin ella |
-| **B2 · Peso a distancia** | tierra + ᛜ | el bloque nace en el punto apuntado (también tras una reja) y **pisa una placa** | aguanta **8,4 s**; con ᛜᛜ 9,3 s, con ᛉ 10,4 s, con ᛉᛉ **12,3 s** |
-| **B3 · Fuego a distancia** | fuego + ᛜ | nace tras la reja y **enciende el brasero** al que una flecha no llega | al momento |
-| **B4 · Puente** | hielo + ᛜ | hiela el agua donde se apunta: **se pisa** durante 20 s | 1 casilla por barrera |
-| **B5 · Puente + escudo** | hielo + ᛜ + ᛁ | las dos cosas a la vez | cruzar G5: 0 de daño |
-| **T · Tiempo** | ᛉ | +2 s a lo que dura la barrera | la jugadora anda a ~0,7 casillas/s |
+| **G1 · guardián que late** | `guardian cada=6 elemento=tierra en=x,y` | levanta su barrera sola cada n s, en su marca | E1 cristal que late |
+| **G2 · guardián dormido** | `guardian cada=0 en=x,y` | levanta la barrera **del elemento de la flecha que lo golpea** | E2 cristal teñido |
+| **M · la marca** | parte del guardián (`en=`, una o varias casillas) | una losa rúnica en el suelo, a ≤ 3 casillas del guardián. Puede estar **tras una reja** o **sobre el agua** | la veta: dice adónde va |
 
-**Lo que no funciona hoy (descartado del diseño):**
-- agua + ᛜ no activa un pulsador de agua (`pulsador modo=agua`);
-- agua + ᛜ no apaga un muro de fuego `B`;
-- el hielo sobre suelo no bloquea (es escarcha);
-- con fuego + ᛜ como escudo, la jugadora recibió un flechazo en 6 s (queda sin concluir).
+**Lo que lo hace legible:**
+- **Es la barrera del jugador, la misma.** El guardián no tiene una barrera propia: llama al Lanzador con la receta `elemento + ᛜ`, con la misma figura, el mismo sonido y los mismos 8,4 s. Así, cuando la jugadora lance la suya, la reconoce al instante.
+- **La runa ᛜ del tótem se ilumina** del color del elemento al disparar. Un trazo dorado corre del tótem a la marca y deja ver que la barrera nace donde se apunta, no donde está quien la lanza.
+- **Arte:** `totem_runico` para el guardián y `losa_runas_ovalo` para la marca. Las dos piezas ya existen.
 
-## 3. La curva, sala a sala
+## 3. Los usos de la barrera, y quién los enseña
+
+Son los mismos cuatro usos que medía la Gruta antigua (sus números, en `GRUTA_PERMANENCIA.md` §2). La diferencia es quién los hace.
+
+| uso | antes (con ᛜ) | ahora (sin ᛜ) |
+|---|---|---|
+| **peso a distancia** (tierra) | la jugadora sobre una placa | un guardián sobre la placa |
+| **fuego a distancia** | la jugadora tras una reja | un guardián golpeado con fuego, con la marca tras la reja |
+| **escudo** (tierra o hielo) | la jugadora frente a los arqueros | un guardián que levanta un muro **a ritmo**, y se cruza a su sombra |
+| **puente** (hielo) | la jugadora sobre el agua | un guardián golpeado con hielo, con sus marcas sobre el agua |
+| **dura poco** | la placa que se suelta | igual: lo que levanta un guardián se deshace a los 8,4 s |
+
+## 4. La curva, sala a sala
+
+Se usa **la misma geometría** de la Gruta antigua (25 × 19, seis salas, las mismas paredes y aguas). Solo cambian las piezas.
 
 `P` presentar · `D` desarrollar · `C` combinar · `o` opcional.
 
 | | G1 Boca | G2 Rejas | G3 Galería | G4 Charca | G5 Paso batido | G6 Santuario |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|
-| placa que se suelta | **P** | D | | | | C (atajo) |
-| B2 peso a distancia | **P** | **D** (tras reja) | | | | C (atajo) |
-| B3 fuego a distancia | | **P** | | | | **C** ×2 |
-| B1 escudo | | | **P** | | **C** | C |
-| B4 puente de hielo | | | o (cofre de la cornisa) | **P** | **C** | **C** |
-| T ᛉ permanencia | | | | | | **premio → primer uso** |
+| guardián que late | **P** | | **P** (escudo) | | C | |
+| guardián dormido (el elemento del golpe) | | **P** ×2 | | **D** (hielo) | **C** | **C** |
+| peso a distancia | **P** | **D** | | | | primer uso de ᛜ |
+| fuego a distancia | | **P** | | | | **C** |
+| escudo | | | **P** | | **C** | |
+| puente | | | o (al volver con ᛜ) | **P** | **C** | **C** |
+| ᛜ en tu mano | | | | | | **premio → primer uso** |
 
-### G1 · La Boca — *presentar la placa y lo poco que dura*
-Pisar la placa abre la puerta del norte, pero al bajarse se cierra antes de llegar. Tierra + ᛜ sobre la placa la mantiene pisada ~8 s: lo justo. **Se aprende:** la barrera pesa y no dura.
+### G1 · La Boca — *presentar: algo levanta piedra lejos, y pesa*
+- **Se ve sin hacer nada:** un guardián de tierra late cada 6 s. Su runa se enciende, el trazo corre hasta la marca y nace un bloque **sobre la placa** del norte. La puerta se abre y, a los 8,4 s, el bloque se deshace y la puerta se cierra.
+- **Paso obligado:** cruzar mientras dura. La puerta está a ≤ 5 casillas andando de donde se ve nacer el bloque: da tiempo si se sale enseguida.
+- **Se aprende:** la barrera nace lejos de quien la lanza, pesa y no dura.
 
-### G2 · Las rejas — *desarrollar el peso y presentar el fuego a distancia*
-Una placa y un brasero, cada uno tras su reja.
-- La flecha de fuego se para en la reja: **fuego + ᛜ** nace al otro lado y enciende el brasero.
-- **Tierra + ᛜ** pisa la placa que no se puede pisar.
-
-La puerta pide las dos cosas a la vez y se cierra cuando la placa se suelta.
+### G2 · Las rejas — *presentar: el elemento lo pone el golpe*
+Es la sala de la captura. **La idea de las rejas se queda,** pero ahora las rejas tapan la **marca**, no la mano de la jugadora:
+- Dos guardianes **dormidos** en la sala, a la vista. La marca de uno está tras la reja del **brasero** y la del otro tras la reja de la **placa**.
+- Una flecha de fuego directa al brasero se para en la reja.
+- **Flecha de fuego al guardián:** la barrera de fuego nace tras la reja y enciende el brasero.
+- **Flecha de tierra al otro guardián:** el bloque pisa la placa.
+- La puerta del este pide las dos cosas a la vez, como antes, así que hay que encender primero el brasero y dejar la placa para el final. Es la lección «el pulso lleva el elemento del golpe» de C1, ahora con la barrera.
+- **Las rejas tienen que dejar ver** el brasero y la placa: modelo de barrotes y sin el rótulo «PUERTA CERRADA». Es el fallo de la captura del 27/10 y aquí es obligatorio arreglarlo, porque la marca tras la reja es justo lo que hay que ver.
 
 ### G3 · La galería — *presentar el escudo*
-Un arquero de puesto, al otro lado del agua y fuera del alcance de las flechas de la jugadora, bate el paso: 12 de daño en 7 s a quien se queda quieta. Tras una tierra + ᛜ + ᛁ, nada. Se puede cruzar aguantando, porque es la presentación. En la cornisa del arquero hay un cofre para quien vuelva sabiendo hacer puentes.
+- Un arquero de puesto bate el paso desde el otro lado del agua.
+- Un guardián **que late** levanta un muro de tierra cada 6 s entre el arquero y el camino. Las flechas se clavan en él.
+- **Paso obligado:** avanzar a su sombra, de muro en muro. Hay dos marcas en fila, de modo que el camino se cruza en dos tramos.
+- **Opcional, al volver:** el cofre de la cornisa del arquero, al otro lado del agua, sin ningún guardián que haga el puente. Se alcanza con hielo + ᛜ propio, igual que las estatuas de C1 piden ᚱ.
 
-### G4 · La charca — *presentar el puente*
-El agua corta la sala y nadie dispara. Hielo + ᛜ donde apuntas hiela la casilla y se pisa; son dos casillas, así que hacen falta dos barreras.
+### G4 · La charca — *desarrollar: el mismo guardián, otro elemento*
+- El agua corta la sala y nadie dispara.
+- Un guardián dormido tiene **dos marcas sobre el agua**, una por casilla. **Flecha de hielo:** hiela las dos y se cruza durante 20 s.
+- Una flecha de tierra levanta dos bloques que se hunden en el agua (si el motor lo hace hoy; se mide con la sonda, §6). La de fuego se apaga sin más. Lo que se aprende: no todo elemento sirve en cada sitio.
 
 ### G5 · El paso batido — *combinar escudo y puente*
-Un río de dos filas con dos arqueros de puesto en la otra orilla (12 de daño en 6 s si se espera en la orilla). **Hielo + ᛜ + ᛁ es a la vez puente y escudo**: se cruza sin daño, y en su orilla se les tumba a flechazos.
+- El río de dos filas, con dos arqueros en la otra orilla.
+- Un guardián dormido pone el **puente** cuando se le golpea con hielo.
+- Un guardián que late levanta un **muro** cada 6 s, entre los arqueros y el puente.
+- Hay que golpear el hielo **justo después** de un muro y cruzar a su sombra. Si se hace al revés, se cruza bajo las flechas: se puede, con daño.
 
-### G6 · El santuario — *combinar los cuatro*
-- Se cruza el agua sobre hielo bajo dos arqueros en las esquinas, que se tumban al llegar o se aguantan tras un escudo.
-- Desde la orilla norte, **fuego + ᛜ tras cada reja** enciende los dos braseros, y se abre la puerta del cofre.
-- El cofre legendario da **ᛉ** con su secuencia y su pista dorada: «ᛉ junto a la barrera: dura más».
+### G6 · El santuario — *combinar los cuatro, y el premio*
+- Se cruza el agua con el puente de un guardián dormido, bajo los dos arqueros de las esquinas.
+- En la orilla norte, **un solo guardián dormido con dos marcas**, cada una tras una de las rejas de los braseros. Una flecha de fuego enciende los dos a la vez y se abre la puerta del cofre. Es la versión «combinada» de G2.
+- **El cofre legendario da ᛜ** con su secuencia y su pista dorada: «ᛜ: levanta tú la barrera, donde apuntes».
 
-**Primer uso de ᛉ, la salida:** el atajo a G1 solo se abre mientras su placa está pisada.
-- **Sin ᛉ**, andando, la barrera se deshace antes de llegar y la puerta se cierra delante. El autoplay lo comprueba: se cierra a los 8,3 s.
-- **Con ᛉ ᛉ** da tiempo: se cruza a los 9,7 s de abrirse.
+**Primer uso de ᛜ, la salida:** el atajo a G1 se abre mientras su placa está pisada. Junto a la placa hay una marca **sin guardián**: la losa rúnica sola, con el tótem roto en el suelo. La única forma de pisarla desde donde se llega es **tierra + ᛜ**, lanzado por la jugadora. La puerta del atajo queda a ≤ 5 casillas andando, porque aquí no hay ᛉ.
 
-## 4. Claridad
+## 5. Claridad: lo que el autoplay comprobará que no pasa
 
-Como en la Cueva Resonante, cada sala comprueba también **lo que no debe pasar** (`[legible]`, 10 comprobaciones):
-- G1: bajarse de la placa cierra la puerta.
-- G2: la flecha no pasa la reja; con solo el brasero no se abre.
-- G3 y G5: sin escudo, las flechas aciertan.
-- G4: el agua no se pisa.
-- G6: la flecha no pasa la reja; sin ᛉ el atajo se cierra delante.
+- G1: sin el latido, la puerta no se abre; al deshacerse el bloque, se cierra.
+- G2: la flecha de fuego directa no pasa la reja; con el brasero solo, la puerta no se abre; una flecha de tierra al guardián del brasero **no** lo enciende.
+- G3 y G5: sin el muro, las flechas aciertan.
+- G4: el agua no se pisa sin el puente; la flecha de fuego al guardián no hace puente.
+- G6: el atajo no se abre sin ᛜ (con flecha de tierra a la marca vacía tampoco).
+- **En ninguna sala antes del cofre hay ᛜ en el libro** (kit sin barrera).
 
-**Lo que el autoplay no puede juzgar, para el playtest:**
-- Si se entiende sin texto que **la barrera atraviesa la reja**. Cada sala tiene su rótulo («Las rejas», «La galería»…), pero ninguno lo dice. Si no se entiende, la pista podría ir en el rótulo de G2: «Lo que no alcanza la flecha, lo alcanza la barrera».
-- Si las rejas (`puerta` sin modelo, una losa) dejan ver la placa y el brasero de detrás.
-- **Corriendo** (Shift) el atajo probablemente se cruza sin ᛉ. Andando no. Lo dejo así a propósito: es un atajo para quien lo descubra, no una trampa.
-- El escudo de G3 no es obligatorio (se aguanta el daño). Hacerlo obligatorio pediría más arqueros o una tarea larga bajo fuego. Es la misma pregunta que tiene abierta el paso batido del Bosque 01 v01.
+## 6. Por decidir y por medir
 
-## 5. Cambios de motor (pequeños y genéricos)
+**Decisiones:**
+- **La línea (ᛁ)** en la página. Sin ᛜ no tiene un uso claro aquí. Propuesta: fuera del kit, y que un guardián de G5 la **muestre** (su marca es una fila de tres casillas, «barrera ancha»), pero que no la dé.
+- **El Bosque** vende hoy la barrera (guardabosques, 20 de oro, progresión `bosque`). Si la Gruta va antes y da ᛜ, el guardabosques tiene que vender otra cosa.
+- **¿Ves ᛜ en el libro antes de tenerlo?** Como la Cueva con ᚱ: el hueco del glifo sale vacío hasta el cofre. Propuesta: sí, en gris, con la silueta del ᛜ.
+
+**Por medir con una sonda antes de construir** (como en el primer diseño, que lo midió todo):
+- si una **flecha de hielo directa** al agua ya hiela una casilla. Si lo hace, G4 y G5 se resuelven sin el guardián, y habría que ensanchar el agua o hacer que corra;
+- si una **flecha de tierra** sobre la placa la pisa por sí sola. Si es así, la placa de G2 tiene que quedar fuera del alcance de la flecha, tras la reja, y no solo lejos;
+- cuánto tarda en cruzarse andando cada tramo de G3 y G5 con muros de 8,4 s.
+
+## 7. Cambios de motor
 
 | cambio | dónde | por qué |
 |---|---|---|
-| `vigia … puesto=si` | `Puzle3D.VigiaPuzle` | los arqueros de la sala son **de puesto** (`Combate3D.fijo`) desde el mapa; antes solo lo hacía el script del Bosque 01 v01 |
-| la placa (`pulsador modo=presencia`) nota lo que **pesa** (grupo `peso`) | `Pulsador3D._alguien_encima` | el bloque de tierra ya estaba en el grupo `peso` «para que lo noten las placas», pero `Pulsador3D` solo miraba a la jugadora y a `cuerpos` |
-| kit `barrera` | `Lanzador3D.KITS` | §1 |
-| pista dorada de ᛉ | `SecuenciaCofreLegendario3D.PISTAS` | el segundo aviso del cofre dice dónde se usa |
+| pieza `guardian` (`cada=`, `elemento=`, `en=`) | nuevo `objetos/guardian_barrera_3d.gd` y su entrada en `escenas/puzle.gd` | el átomo nuevo. Al golpearlo, o al latir, pide al Lanzador la barrera `elemento + ᛜ` en cada casilla de `en=` |
+| barrera **lanzada desde fuera** del jugador | `Lanzador3D`: una función pública para levantar un campo con una receta en un punto | hoy la barrera solo nace de un hechizo de la jugadora |
+| reja **que deja ver** | modelo de barrotes para `puerta` sin `modelo=llave`, sin rótulo | G2 y G6 dependen de ver la marca tras la reja |
+| kit `gruta` | `Lanzador3D.PROGRESIONES`: fuego, tierra, hielo y solo flecha | sin ᛜ hasta el cofre |
+| cofre que da ᛜ | `SecuenciaCofreLegendario3D` + su pista | el premio |
 
-## 6. Cómo editar
-
-Es la misma gramática de `escenas/puzle.gd` que la Cueva. Lo propio de este nivel:
-- **Una puerta que se abre mientras algo pesa:** `cuando=<placa>.pulsado hace=<puerta>.abrir` + `cuando=<placa>.soltado hace=<puerta>.cerrar`.
-- **Una puerta que pide dos cosas a la vez:** una regla por cada orden, con `si=` (las de G2).
-- **Distancias:** la barrera nace a **≤ 3 casillas** de la jugadora. Una placa o un brasero tras una reja tiene que poder apuntarse desde una casilla pisable a 3 o menos. Una puerta temporizada tiene que estar a menos de ~5,5 casillas andando (8,4 s) del sitio desde el que se lanza, o a más si se quiere obligar a usar ᛉ (~8,5 casillas con ᛉᛉ).
-- **Arqueros:** la letra `A` (la escena lleva `arqueros = true`) y una pieza `vigia de=<sus casillas> puesto=si`. Las flechas de la jugadora llegan a ~2,8 casillas: a más distancia, al otro lado del agua, solo queda el escudo.
-
-```bash
-tools/Godot_v4.7.2-stable_win64.exe --headless --fixed-fps 30 --path . --script res://herramientas/escenario_gruta_batida.gd
-```
-
-## 7. Para el playtest
-
-- Abre `escenas/PruebaGrutaBatida.tscn` (F6).
-- **ᛉ no tiene muestras grabadas** (`PENDIENTES.md`, «Gestos de ᛁ y de ᛉ»): tras el cofre, el glifo está en el libro pero no se reconoce dibujándolo. Para el atajo, ponlo con la paleta (F1) o grábalo con `G`.
-- La salida al Bosque (3..5,17) apunta a `Bosque_01_v01:boca_cueva`, como la Cueva. El Bosque todavía no lleva a la Gruta.
-- El autoplay se salta la recarga de las páginas, igual que el de la Cueva. Jugando hay 3 páginas, y la barrera tarda 3 s en recargar.
+El mapa, la escena y el autoplay se rehacen sobre los de la versión antigua, que ya está guardada aparte.
