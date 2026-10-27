@@ -85,7 +85,7 @@
 ; pieza latido_c2 cristal 7 4 cada=4
 ; pieza veta_c2 veta 6 4 celdas=6,4..4,4 enlaces=4,3
 ; pieza filon_c2 veta 7 3 celdas=7,3..7,1 mineral=si
-; pieza columna_c2 columna 4 2 golpes=2 cae=e
+; pieza columna_c2 columna 4 2 golpes=2 cae=e flag=cueva.c2.columna
 ; pieza cofre_c2 cofre 1 1 abierto=cueva.c2.cofre da=pocion:1+oro:15
 ; La CASCADA de C2 (fase 3): tres manantiales salen de la pared norte del hueco (1..3,3) por tres canales `-` a ras de suelo y caen juntos a un pozo 1 u más bajo (la charca) y se quedan a ~0,4 de
 ; hondo gracias a un desagüe. Todo escrito con letras: el canal `-` (giro 90: norte-sur), el pozo `c` y las piezas manantial y cuenca.
@@ -132,7 +132,8 @@
 ; pieza veta_geoda veta 10 2
 ; pieza geoda_c3 geoda 11 2 flag=cueva.c3.geoda escala=1.2
 ; pieza puente_c3 columna 12 2 golpes=99 cae=e puente=rio largo=2 flag=cueva.c3.puente
-; puzle abre_reja cuando=receptor_c3.activado hace=reja_c3.abrir
+; (27/10: la regla escucha la FLAG del receptor: tras volver de otro nivel el receptor nace activo antes de engancharse las reglas y la reja no se abría nunca)
+; puzle abre_reja cuando=flag.cueva.c3.pulso hace=reja_c3.abrir
 ; --- C4 · Sala cerrada: cofre con la llave ---
 ; `hasta=` : con la sala ya limpia (se volvió de otro nivel) ni se cierra ni se quedan los goblins (el vigía los retira al montar).
 ; pieza entrada_c4 cerrojo 18 4 celdas=18,4 sala=19,1..25,8 hasta=cueva.c4.limpia
@@ -148,9 +149,9 @@
 ; pieza veta_c4b veta 23 7 celdas=23,7..20,7+20,6..20,4 aturde=3 mineral=si
 ; 24/10: tres estalagmitas resonantes junto a las vetas, REACTIVAS al pulso (EstalagmitaPulso3D): el 1.er pulso que las toca las hace vibrar y el 2.º las tira, alejándose de la veta; al caer aturden
 ; (3 s) y dañan (25) a los goblins de la casilla donde caen, y queda `estalagmita_rota` (escombro bajo, no bloquea). La flag recuerda que cayeron.
-; pieza est_c4a estalagmita 23 3 flag=cueva.c4.estalagmita_a
-; pieza est_c4b estalagmita 21 4 flag=cueva.c4.estalagmita_b
-; pieza est_c4c estalagmita 23 6 flag=cueva.c4.estalagmita_c
+; pieza est_c4a estalagmita 23 3 cae=s flag=cueva.c4.estalagmita_a
+; pieza est_c4b estalagmita 21 4 cae=e flag=cueva.c4.estalagmita_b
+; pieza est_c4c estalagmita 23 6 cae=n flag=cueva.c4.estalagmita_c
 ; --- C5 · Charca eléctrica: el hielo la vuelve suelo y corta la corriente ---
 ; Materiales: las algas del lecho solo se ven (y se cogen) con la charca HELADA; las setas de la orilla son para electrificarlas (rayo) y helarlas.
 ; pieza alga_c5a alga 21 14 coge_si=casilla(21,14).helada

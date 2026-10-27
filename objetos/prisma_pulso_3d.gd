@@ -231,12 +231,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 func on_pulso(pulso: Pulso3D) -> Pulso3D:
 	if pulso == null or pulso.linaje.has(self) or not is_inside_tree():
 		return null
+	# 27/10: la casilla de salida ya está un paso más allá del prisma: se le resta ese paso (antes cada prisma sumaba una casilla de alcance y reemitía con el pulso agotado).
+	var queda: int = pulso.alcance_restante() - 1
+	if queda < 0:
+		return null
 	var padre: Pulso3D = pulso
 	var f: Callable = func(c: Vector2i) -> bool: return Pulso3D.conduce_pulso(c) and not padre.alcanzadas.has(c)
 	var linaje: Array = pulso.linaje.duplicate()
 	linaje.append(self)
 	var cont: Node = pulso.get_parent() if pulso.get_parent() != null else self
-	ultimo = Pulso3D.emitir(cont, [casilla_salida()], pulso.elemento, pulso.alcance_restante(), self, f, pulso.del_jugador, linaje)
+	ultimo = Pulso3D.emitir(cont, [casilla_salida()], pulso.elemento, queda, self, f, pulso.del_jugador, linaje)
 	emisiones += 1
 	destello = 1.0
 	_color = pulso.color

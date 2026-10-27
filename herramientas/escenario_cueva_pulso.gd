@@ -459,8 +459,8 @@ func _glifo_del_jugador(pared: ParedHuecaPulso3D, receptor: ReceptorPulso3D, pri
 		and pulso_a.color == fuego.color and vivo.momentos_vistos.size() == 1)
 	_ok("9a alcance 8 casillas desde donde lanza", pulso_a != null and pulso_a.alcance == 8)
 	await avanzar_s(1.5)
-	_ok("9a el pulso del jugador pasó por el prisma (sigue siendo del jugador y de fuego, con el alcance que quedaba) y activó el receptor",
-		prisma.emisiones == prisma0 + 1 and salida_a.size() == 1 and salida_a[0]["propio"] and salida_a[0]["elemento"] == "fuego" and salida_a[0]["alcance"] == 6 and receptor.activo, str(salida_a))
+	_ok("9a el pulso del jugador pasó por el prisma (sigue siendo del jugador y de fuego, con el alcance que quedaba menos la casilla de salida: 8 − 2 − 1 = 5, 27/10) y activó el receptor",
+		prisma.emisiones == prisma0 + 1 and salida_a.size() == 1 and salida_a[0]["propio"] and salida_a[0]["elemento"] == "fuego" and salida_a[0]["alcance"] == 5 and receptor.activo, str(salida_a))
 	prisma.emite.disconnect(conexion_a)
 	await avanzar_s(Pulso3D.T_COLA)
 

@@ -1,0 +1,43 @@
+id	nombre	categoria	calidad	zona	fuente	de	via	condicion	etiquetas	potencia	rebrota_s	pila	estado
+seta	Seta	hongo	comun	todas	recoger	-	-	-	vital	1	0	20	hay
+seta_asada	Seta asada	hongo	comun	todas	reaccion	seta	fuego	-	vital,calor	2	0	20	hay
+seta_humeda	Seta empapada	hongo	comun	todas	reaccion	seta	agua	-	vital,agua	2	0	20	hay
+seta_helada	Seta helada	hongo	comun	todas	reaccion	seta	hielo	-	vital,frio	2	0	20	hay
+seta_electrificada	Seta electrificada	hongo	comun	todas	reaccion	seta	rayo	-	vital,electrico	2	0	20	hay
+esporas	Esporas	hongo	comun	todas	reaccion	seta	viento	-	viento	2	0	20	hay
+seta_resonante	Seta resonante	hongo	comun	cueva	pulso	seta	pulso	madura=si	vital,resonante	2	0	20	hay
+esporas_luminosas	Esporas luminosas	hongo	comun	cueva	reaccion	seta_resonante	viento	-	resonante,viento,tinta	3	0	20	nuevo
+seta_cristalizada	Seta cristalizada	hongo	comun	cueva	reaccion	seta_resonante	hielo	-	resonante,frio	3	0	20	nuevo
+flor_luna	Flor de luna	planta	comun	bosque	recoger	-	-	-	vital,tinta	1	0	20	hay
+flor_ardiente	Flor ardiente	planta	comun	bosque	reaccion	flor_luna	fuego	-	tinta,calor	2	0	20	hay
+flor_rocio	Flor de rocío	planta	comun	bosque	reaccion	flor_luna	agua	-	tinta,agua	2	0	20	hay
+flor_chispa	Flor cargada	planta	comun	bosque	reaccion	flor_luna	rayo	-	tinta,electrico	2	0	20	hay
+flor_escarcha	Flor de escarcha	planta	comun	bosque	reaccion	flor_luna	hielo	-	tinta,frio	2	0	20	hay
+petalos	Pétalos al viento	planta	comun	bosque	reaccion	flor_luna	viento	-	tinta,viento	2	0	20	hay
+lavanda	Lavanda	planta	comun	bosque	recoger	-	-	-	vital,viento	1	0	20	hay
+baya	Bayas	planta	comun	bosque	recoger	-	-	-	vital	1	0	20	hay
+helecho	Helecho	planta	comun	bosque	recoger	-	-	-	vital	1	0	20	hay
+flor_silvestre	Flor silvestre	planta	comun	bosque	recoger	-	-	-	tinta	1	0	20	hay
+alga_cueva	Alga de cueva	planta	comun	cueva	recoger	-	-	casilla(x,y).helada	agua,vital	2	0	20	hay
+alga_seca	Alga seca	planta	comun	cueva	reaccion	alga_cueva	fuego	-	calor,tierra	2	0	20	hay
+alga_cargada	Alga cargada	planta	comun	cueva	reaccion	alga_cueva	rayo	-	electrico,agua	3	0	20	nuevo
+musgo_cueva	Musgo de cueva	planta	comun	cueva	recoger	-	-	-	agua,vital,tinta	1	0	20	nuevo
+helecho_cueva	Helecho de cueva	planta	comun	cueva	recoger	-	-	-	vital	1	0	20	nuevo
+raiz	Raíz	planta	comun	bosque	recoger	-	-	-	tierra,vital	1	0	20	hay
+raiz_cenizas	Raíz carbonizada	planta	comun	bosque	reaccion	raiz	fuego	-	tierra,calor	2	0	20	hay
+raiz_hinchada	Raíz hinchada	planta	comun	bosque	reaccion	raiz	agua	-	tierra,agua	2	0	20	hay
+raiz_magnetica	Raíz magnética	planta	comun	bosque	reaccion	raiz	rayo	-	tierra,electrico	2	0	20	hay
+cristal_tierra	Cristal de tierra	mineral	comun	bosque	reaccion	raiz	tierra	-	tierra	3	0	20	hay
+piedra	Piedra	mineral	comun	todas	recoger	-	-	-	tierra	1	0	20	hay
+mineral_veta	Mineral de veta	mineral	comun	cueva	golpe	veta	tierra	mineral=si	tierra,resonante	2	0	20	hay
+esquirla_cristal	Esquirla de cristal	mineral	comun	cueva	golpe	cristal	golpes:2	-	resonante	2	0	20	hay
+basalto	Basalto	mineral	comun	cueva	recoger	-	-	casilla(x,y).roca	tierra,calor	2	0	20	hay
+obsidiana	Obsidiana	mineral	comun	cueva	reaccion	lava	hielo	-	tierra,frio,calor	3	0	20	nuevo
+polvo_cristal	Polvo de cristal	mineral	comun	cueva	golpe	esquirla_cristal	tierra	-	resonante,tinta	3	0	20	nuevo
+cristal_cargado	Cristal cargado	mineral	comun	cueva	reaccion	esquirla_cristal	rayo	-	resonante,electrico	3	0	20	nuevo
+ceniza_geoda	Polvo de geoda	mineral	comun	cueva	romper	geoda	pulso	-	resonante,tierra	2	0	20	nuevo
+colmillo_goblin	Colmillo de goblin	animal	comun	todas	enemigo	goblin	-	-	tierra	2	0	20	hay
+jiron_escudo	Jirón de escudo	animal	comun	todas	enemigo	goblin_escudo	fuego	-	calor,tierra	2	0	20	nuevo
+nucleo_eco	Núcleo de eco	mineral	epico	cueva	cofre	-	-	cueva.c1.estatuas	resonante,raro	5	0	5	hay
+geoda_resonante	Geoda resonante	mineral	epico	cueva	cofre	-	-	-	resonante,tierra,raro	4	0	5	hay
+llave	Llave de la Cueva	clave	comun	cueva	cofre	-	-	-	-	0	0	1	nuevo

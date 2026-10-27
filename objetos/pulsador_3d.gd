@@ -230,6 +230,11 @@ func _alguien_encima() -> bool:
 	for n in cuerpos:
 		if is_instance_valid(n) and Terreno3D.celda_de((n as Node3D).global_position) == celda:
 			return true
+	# 27/10: lo que PESA (el bloque de tierra de un hechizo, grupo «peso») también la pisa: la barrera de tierra puesta a distancia sujeta una placa.
+	if is_inside_tree():
+		for n in get_tree().get_nodes_in_group("peso"):
+			if n is Node3D and is_instance_valid(n) and Terreno3D.celda_de((n as Node3D).global_position) == celda:
+				return true
 	for grupo in ["spellcaster", "player"]:
 		var lanz: Node = get_tree().get_first_node_in_group(grupo)
 		if lanz != null and lanz.get("jugador") != null:

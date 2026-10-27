@@ -39,7 +39,8 @@ extends Node
 ##   tinaja     canal=<lista>                                                         la tinaja de la MAQUETA (letra «u»), solo se enlaza por casilla;
 ##                                                                                   `canal` es el cauce que llena (la primera casilla recibe el agua)
 ##   totem                                                                           el tótem de la MAQUETA (letra «i»), enlazado por casilla
-##   decorado   modelo=<pieza> (obligatoria)  giro=<grados> (0)  escala=<x> (1)         24/10: una pieza de ADORNO sin mecánica en su casilla (geoda_resonante, estalagmita_resonante…). No bloquea
+##   decorado   modelo=<pieza> (obligatoria)  giro=<grados> (0)  escala=<x> (1)         24/10: una pieza de ADORNO sin mecánica en su casilla (geoda_resonante, estalagmita_resonante…). No bloquea.
+##              27/10: también estalagmitas_a|b, cueva_pared_baja, boca_cueva, llave_pequena, bloque_enlace, roca_musgosa, raices_musgo, rocas_salpicadura, helechos_cueva, musgo_colgante
 ##   brasero    modelo=cueva (24/10): el modelo `brasero_cueva` en vez del del Bosque (mismo reactivo; `Reactivo3D.cambiar_visual`)
 ##   brasero    rele=<id> espera=<s> (1.5) dura=<s> (6)  luz=<x> (1)               el brasero de la MAQUETA (letra «T»), enlazado por casilla. Sin claves es
 ##                                                                                   el de siempre. Con `rele` (el id de OTRO brasero), al encenderse enciende a ése
@@ -50,7 +51,8 @@ extends Node
 ##   contador   de=<lista de casillas>  minimo=<n> (todos)                           ContadorReactivos3D: cuenta lo que arde (`is_lit`) en esas casillas (braseros,
 ##                                                                                   fogatas, setos…); rótulo «ENCENDIDAS n/m» sobre su casilla
 ##   cuerda     sostiene=<id>                                                        Cuerda3D: arde 1 s y se rompe; lo que sostiene (una compuerta o un puente) cae
-##   vigia      de=<lista de casillas> (obligatoria)  flag=<nombre>                  VigiaPuzle (C3): vigila a los Combate3D cuya casilla de PARTIDA (`casa`) está en `de`
+##   vigia      de=<lista de casillas> (obligatoria)  flag=<nombre>  puesto=si (no, 27/10: sus arqueros son DE PUESTO, Combate3D.fijo: baten desde donde nacen sin perseguir)
+##                              VigiaPuzle (C3): vigila a los Combate3D cuya casilla de PARTIDA (`casa`) está en `de`
 ##              (un rectángulo `x0,y0..x1,y1` es "la zona"). Cuando han caído todos (muertos o hundidos) emite `todos_derrotados` y, si hay
 ##              `flag`, la pone. Mientras no haya encontrado ninguno no se da por cumplido (una lista que no casa con nadie avisa)
 ##   cerrojo    celdas=<lista> (obligatoria)  sala=<lista>  hasta=<flag>             CerrojoPuzle (C3): puertas de sala (PuertaPuzle, una por casilla de `celdas`). Nacen
@@ -328,11 +330,12 @@ const CLAVES: Dictionary = {
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
 	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva"},
-	"decorado": {"modelo": "s:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante", "giro": "f", "escala": "f"},
+	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
+	"decorado": {"modelo": "s:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f"},
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f"},
 	"cuerda": {"sostiene": "id"},
-	"vigia": {"de": "celdas", "flag": "flag"},
+	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
 	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da"},
 	"muro": {"golpes": "f"},
@@ -610,6 +613,7 @@ class VigiaPuzle extends Node:
 	var flag: String = ""
 	var completo: bool = false
 	var vistos: Array = []                       ## los Combate3D que vigila
+	var puesto: bool = false                     ## 27/10: sus ARQUEROS son de puesto (`Combate3D.fijo`): no persiguen, baten desde donde nacen
 	var _t: float = 0.0
 	var _t_sin: float = 0.0
 	var _avisado: bool = false
@@ -679,6 +683,8 @@ class VigiaPuzle extends Node:
 			for n in get_tree().get_nodes_in_group(grupo):
 				if n is Combate3D and not vistos.has(n) and de.has(Terreno3D.celda_de((n as Combate3D).casa)):
 					vistos.append(n)
+					if puesto and (n as Combate3D).arquero:
+						(n as Combate3D).fijo = true
 
 
 ## C3 · CERROJO: las puertas de una sala. Nacen abiertas; se cierran cuando el jugador entra en `sala` y se abren con `abrir` (definitivo: no
@@ -1956,6 +1962,7 @@ func _crear(pz: Pieza) -> void:
 			var vg := VigiaPuzle.new()
 			vg.name = pz.id
 			vg.preparar(pz.p["de"], String(pz.p.get("flag", "")))
+			vg.puesto = bool(pz.p.get("puesto", false))
 			vg.aviso.connect(_avisar)
 			cont.add_child(vg)
 			if vg.completo:
@@ -1989,6 +1996,10 @@ func _crear(pz: Pieza) -> void:
 		"veta":
 			var ve := VetaPulso3D.new()
 			ve.name = pz.id
+			# 27/10: un hueco que también está en `celdas` es veta normal y conduce sin bloque: el puzle del enlace queda resuelto solo.
+			for c in pz.p.get("enlaces", []):
+				if (pz.p.get("celdas", [pz.celda]) as Array).has(c):
+					_avisar_pieza(pz, "la casilla %s está en «celdas» y en «enlaces»: conduciría sin bloque de tierra" % str(c))
 			ve.preparar(pz.p.get("celdas", [pz.celda]), pz.p.get("enlaces", []), float(pz.p.get("aturde", 0.0)), bool(pz.p.get("mineral", false)), nivel)
 			cont.add_child(ve)
 			pz.nodo = ve

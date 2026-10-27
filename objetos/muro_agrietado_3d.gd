@@ -321,7 +321,8 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bo
 
 ## Contrato con el pulso (solo la columna): cada frente que la toca la agrieta más; al `golpes`-ésimo cae. Devuelve true si la hizo caer.
 func on_pulso(pulso: Pulso3D) -> bool:
-	if not por_pulso or roto_ya or pulso == null:
+	# 27/10: la columna-PUENTE solo la tumba una explosión (geoda): los pulsos que la tocan no la agrietan ni hacen ruido (antes sonaba y temblaba con cada latido)
+	if not por_pulso or roto_ya or pulso == null or puente != null:
 		return false
 	pulsos_recibidos += 1
 	recibidos += 1

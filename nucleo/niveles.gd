@@ -19,6 +19,8 @@ extends RefCounted
 const ESCENAS: Dictionary = {
 	"Bosque_01": "res://escenas/PruebaBosque01.tscn",
 	"Cueva": "res://escenas/PruebaCueva.tscn",
+	"CuevaResonante": "res://escenas/PruebaCuevaResonante.tscn",      # 27/10: la Cueva rediseñada como mazmorra EoW (docs/CUEVA_RESONANTE.md)
+	"GrutaBatida": "res://escenas/PruebaGrutaBatida.tscn",            # 27/10: el nivel de la barrera (docs/GRUTA_BATIDA.md)
 	"Bosque_01_v01": "res://escenas/PruebaBosque01_v01.tscn",     # el mapa lo diseña otro agente (docs/PLAN_BOSQUE_01_V01.md): hasta que exista la escena, la salida avisa
 }
 const T_FUNDIDO: float = 0.35

@@ -106,6 +106,10 @@ const PROGRESIONES: Dictionary = {
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
+	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
+	# El cofre del final da ᛉ permanencia (la barrera que dura).
+	"barrera": {"sellos": ["fuego", "tierra", "hielo"], "glifos": ["flecha", "barrera", "linea"],
+		"paginas": 3, "glifos_por_pagina": 4, "libro": "bosque"},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad

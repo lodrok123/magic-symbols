@@ -64,7 +64,7 @@ const GLIFO_PAGINA: float = 110.0                ## px del glifo escrito
 const TXT_AVISO_GLIFO: String = "Glifo nuevo: %s · anotado en tu libro"
 const TXT_AVISO_PISTA: String = "Pared hueca: prueba el pulso"
 ## 24/10 (Bosque 01 v01): la pista de dónde se usa cada glifo (el segundo aviso dorado). Un glifo sin fila usa TXT_AVISO_PISTA.
-const PISTAS: Dictionary = {"barrera": "Las flechas no atraviesan una barrera"}
+const PISTAS: Dictionary = {"barrera": "Las flechas no atraviesan una barrera", "permanencia": "ᛉ junto a la barrera: dura más (+2 s por glifo)"}
 const T_AVISO_PISTA: float = 1.6                 ## s entre el primer aviso y el segundo
 
 const CODIGO_ESCRITURA: String = """
