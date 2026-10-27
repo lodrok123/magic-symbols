@@ -20,9 +20,9 @@ func _initialize() -> void:
 	e.cambio.connect(func(c: Vector2i, est: String, si: bool) -> void: visto.append([c, est, si]))
 	var c := Vector2i(3, 4)
 
-	# 1. Poner y leer: lo de antes sigue igual (tres argumentos, intensidad 1, no caduca).
+	# 1. Poner y leer: tres argumentos, intensidad 1 y la caducidad de `DURA` (27/10: el mojado se seca a los 20 s; antes no caducaba nada).
 	_ok("1 poner con tres argumentos funciona como antes", e.poner(c, "mojada", true) and e.tiene(c, "mojada"))
-	_ok("1 intensidad por defecto 1 y sin caducidad", is_equal_approx(e.intensidad(c, "mojada"), 1.0) and e.queda(c, "mojada") == 0.0)
+	_ok("1 intensidad por defecto 1 y la caducidad de DURA", is_equal_approx(e.intensidad(c, "mojada"), 1.0) and is_equal_approx(e.queda(c, "mojada"), float(EstadosSuelo3D.DURA["mojada"])))
 	_ok("1 sin el estado, intensidad 0", e.intensidad(c, "quemada") == 0.0)
 
 	# 2. Intensidad: cambiarla no es un cambio de hecho (no avisa), pero sí cambia la textura.
@@ -81,6 +81,7 @@ func _initialize() -> void:
 	e.poner(Vector2i(9, 1), "helada", true)
 	e.poner(Vector2i(0, 15), "segada", true)
 	e.poner(Vector2i(20, 20), "mojada", true)        # fuera de la textura: no revienta
+	e.avanzar(float(EstadosSuelo3D.SUBE["mojada"]))  # 27/10: lo mojado tarda SUBE s en verse entero (empapa)
 	var tex: ImageTexture = e.textura()
 	var img: Image = tex.get_image()
 	_ok("6 la textura mide lado × lado", img.get_width() == 16 and img.get_height() == 16, "%dx%d" % [img.get_width(), img.get_height()])

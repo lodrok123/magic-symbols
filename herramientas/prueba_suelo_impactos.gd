@@ -51,7 +51,7 @@ func _px(c: Vector2i) -> Color:
 ## Un impacto de verdad en el suelo de la casilla (Lanzador3D.marcar_celda → maqueta._al_impactar + al_impactar). Las dos cosas ocurren en el mismo fotograma.
 func _impacto(elemento: String, c: Vector2i) -> void:
 	lanzador.marcar_celda(elemento, c)
-	await avanzar_s(0.3)
+	await avanzar_s(0.3 + float(EstadosSuelo3D.SUBE["mojada"]))     # 27/10: lo mojado tarda SUBE s en verse entero en la imagen
 
 
 ## ¿La imagen de la maqueta y el estado dicen lo mismo de esta casilla de SUELO? (G = mojada, B = helada.)

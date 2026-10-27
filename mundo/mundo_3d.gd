@@ -63,6 +63,12 @@ func _exit_tree() -> void:
 		actual = null
 
 
+## EL RELOJ DE LOS ESTADOS DEL SUELO (27/10, lote 3, cambio 1): uno solo, el del mundo vivo. Antes `avanzar` solo lo llamaban las pruebas
+## y nada caducaba; ahora el mojado se seca (`EstadosSuelo3D.DURA`). En pausa no corre (es un `_process` de nodo normal).
+func _process(delta: float) -> void:
+	estados.avanzar(delta)
+
+
 func _estado_cambio(c: Vector2i, estado: String, _si: bool) -> void:
 	casilla_cambio.emit(c, String(EstadosSuelo3D.QUE.get(estado, estado)))
 

@@ -591,6 +591,65 @@ func casilla_mojada(c: Vector2i) -> bool:
 	return false
 
 
+## SUELO MOJADO PARA EL DIBUJO (27/10). El suelo lo pedía desde el 12/10 (`PruebaTest2._actualizar_suelo_mojado`, 8 veces por segundo) y esta
+## función no existía, así que el suelo que moja el agua nunca se veía. R8, un texel por trocito, 0..1:
+##   · donde HAY o HUBO agua: lo que le falta para secarse (`mojado`, SECA_EN s), entero hasta que queda MOJADO_SECA_FRAC de SECA_EN y luego
+##     baja: el charco que se absorbe deja el suelo oscuro y se va aclarando (DK Bananza: el suelo se oscurece con el agua y se seca).
+##   · la ORILLA: el suelo junto a agua que se ve (más que PROF_CHARCO) queda húmedo en una franja de dos trocitos, ORILLA_1 en el primero
+##     y ORILLA_2 en el segundo. Solo aspecto: no cuenta para `casilla_mojada` ni para ningún estado. Solo los trocitos de agua del BORDE
+##     (con algún vecino sin agua) mojan alrededor: el interior de un río no hace falta mirarlo.
+## Es siempre el mismo ImageTexture (se actualiza, no se recrea).
+const MOJADO_SECA_FRAC: float = 0.45
+const ORILLA_1: float = 0.75
+const ORILLA_2: float = 0.3
+var _img_mojado: Image = null
+var _tex_mojado: ImageTexture = null
+var _bytes_mojado := PackedByteArray()
+
+
+func textura_mojado() -> ImageTexture:
+	var n: int = w * h
+	if n <= 0:
+		return null
+	if _bytes_mojado.size() != n:
+		_bytes_mojado.resize(n)
+	_bytes_mojado.fill(0)
+	var seca_plena: float = SECA_EN * MOJADO_SECA_FRAC
+	var o1: int = int(ORILLA_1 * 255.0)
+	var o2: int = int(ORILLA_2 * 255.0)
+	# Solo la caja donde hay agua o suelo mojado (`_x0.._x1`, la del paso): fuera de ella todo está seco. La orilla sale hasta 2 trocitos
+	# fuera, pero la escriben los trocitos de dentro.
+	for y in range(maxi(_y0, 0), mini(_y1, h - 1) + 1):
+		for x in range(maxi(_x0, 0), mini(_x1, w - 1) + 1):
+			var i: int = y * w + x
+			if mojado[i] > 0.0:
+				_bytes_mojado[i] = maxi(_bytes_mojado[i], int(clampf(mojado[i] / seca_plena, 0.0, 1.0) * 255.0))
+			if prof[i] <= PROF_CHARCO:
+				continue
+			if x > 0 and x < w - 1 and y > 0 and y < h - 1 and prof[i - 1] > PROF_CHARCO and prof[i + 1] > PROF_CHARCO 					and prof[i - w] > PROF_CHARCO and prof[i + w] > PROF_CHARCO:
+				continue                         # agua por los cuatro lados: no es borde
+			# Agua que se ve: humedece los trocitos de alrededor (1.ª corona ORILLA_1, 2.ª ORILLA_2), sin pisar lo que ya esté más mojado.
+			for dy in range(-2, 3):
+				var yy: int = y + dy
+				if yy < 0 or yy >= h:
+					continue
+				for dx in range(-2, 3):
+					var xx: int = x + dx
+					if xx < 0 or xx >= w or (dx == 0 and dy == 0):
+						continue
+					var j: int = yy * w + xx
+					var v: int = o1 if maxi(absi(dx), absi(dy)) == 1 else o2
+					if _bytes_mojado[j] < v:
+						_bytes_mojado[j] = v
+	if _img_mojado == null or _img_mojado.get_width() != w or _img_mojado.get_height() != h:
+		_img_mojado = Image.create_from_data(w, h, false, Image.FORMAT_R8, _bytes_mojado)
+		_tex_mojado = ImageTexture.create_from_image(_img_mojado)
+	else:
+		_img_mojado.set_data(w, h, false, Image.FORMAT_R8, _bytes_mojado)
+		_tex_mojado.update(_img_mojado)
+	return _tex_mojado
+
+
 ## La caja (en trocitos) donde hay agua, fuentes, hielo o suelo mojado: lo que recorre el paso. Vacía (sin área) si no hay nada. Para quien
 ## dibuja (13.9: las paredes del agua solo se rehacen aquí) o mide sin recorrer toda la rejilla.
 func caja_trabajo() -> Rect2i:

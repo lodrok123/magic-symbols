@@ -177,3 +177,12 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] **Pablo: playtest de la Gruta Batida.** ¿Se entiende sin texto que la barrera atraviesa la reja? ¿Se ven la placa y el brasero tras las rejas (losas)?
 - [ ] Decidir si el escudo de G3 debe ser obligatorio (hoy se aguanta el daño) y si el atajo de G6 debe pedir ᛉ también corriendo.
 - [ ] Barreras que no hacen lo esperado (sonda del 27/10): agua + ᛜ no activa un `pulsador modo=agua` ni apaga un muro de fuego `B`; fuego + ᛜ como escudo dejó pasar un flechazo (sin concluir).
+
+## Humedad y reloj de estados (27/10; lote 3 del informe de dirección, cambio 1, e idea de DK Bananza)
+- [x] **Un solo reloj de estados:** `Mundo3D._process` llama a `EstadosSuelo3D.avanzar`; antes solo lo llamaban las pruebas y nada caducaba. `DURA` de «mojada» = 20 s (lo mismo que `AguaSim3D.SECA_EN`); helada, electricidad, quemada y segada siguen sin caducar (la helada de suelo tiene su reloj en `Lanzador3D`).
+- [x] **La humedad se ve como un valor 0–1:** el hecho «mojada» sigue siendo sí/no para las reglas (dos aguas hielan mientras dura), pero la imagen pinta `intensidad_vista`: sube en 0,8 s al mojarse (`SUBE`) y se aclara en los últimos 8 s (`SECADO`).
+- [x] **`AguaSim3D.textura_mojado()` existe:** el suelo la pedía desde el 12/10 y no estaba, así que el suelo que moja el agua nunca se veía. Pinta lo que el agua dejó mojado (se seca en 20 s) y una **franja de orilla** húmeda de dos trocitos junto a toda el agua visible (solo aspecto). Cuesta ~1,5 ms (8 veces por segundo; solo recorre la caja con agua).
+- Prueba `herramientas/prueba_humedad.gd` (0 fallos); fotos `herramientas/captura_humedad.gd` → `docs/capturas/humedad/` (cueva y bosque).
+- [ ] En la Cueva el mojado se lee poco: el tinte del mojado es azulado (`tinte_mojado`) y la luz de la Cueva ya es azul. Si se quiere que se vea, un tinte más oscuro o más brillo especular solo con `estilo = "cueva"`.
+- [ ] Sigue aparte la hierba mojada (`Hierba3D.MOJADA_S` 8 s y `_mojada` de la maqueta): el agua sobre hierba no deja «mojada» oficial (cambio 6 del informe).
+- [ ] La columna `al_caducar` del cambio 1 no se ha hecho: ningún estado la necesita todavía (el hielo de suelo ya deja la casilla mojada por `ReaccionesSuelo3D.derretir`).

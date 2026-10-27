@@ -50,13 +50,22 @@ const TRANSICIONES: Array = [
 	{"accion": "calor", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": [], "efecto": "vapor"},       # el charco se seca
 ]
 
-## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). Hoy ninguno caduca, igual que antes de B1:
-## son los números que Pablo puede ajustar para que, por ejemplo, el mojado se seque solo.
-const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "mojada": 0.0, "segada": 0.0}
+## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). El reloj es `Mundo3D._process` → `avanzar`.
+## 27/10 (lote 3, cambio 1): el MOJADO se seca solo a los 20 s, lo mismo que el suelo que moja la simulación (`AguaSim3D.SECA_EN`).
+## La helada de suelo sigue con su reloj de `Lanzador3D` (se deshiela y deja la casilla mojada), la electricidad la quita el emisor
+## y lo quemado y lo segado se quedan.
+const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "mojada": 20.0, "segada": 0.0}
+
+## HUMEDAD QUE SE VE (27/10, idea de DK Bananza: «el suelo que toca el agua se oscurece poco a poco»). Solo aspecto: el hecho «mojada»
+## es sí/no y dura lo de `DURA`; lo que pinta la imagen sube en SUBE s al mojarse (el agua empapa) y baja en los últimos SECADO s
+## (se seca). Un estado sin fila aquí se pinta con su intensidad tal cual, como siempre.
+const SUBE: Dictionary = {"mojada": 0.8}
+const SECADO: Dictionary = {"mojada": 8.0}
 
 var _celdas: Dictionary = {}          ## estado -> Dictionary(Vector2i -> true)
 var _intensidad: Dictionary = {}      ## estado -> Dictionary(Vector2i -> float 0..1); sin entrada = 1
 var _queda: Dictionary = {}           ## estado -> Dictionary(Vector2i -> float s); solo las que caducan
+var _edad: Dictionary = {}            ## estado -> Dictionary(Vector2i -> float s desde que se puso); solo los estados con SUBE
 ## ESCARCHA (21/10): «helada» quiere decir dos cosas. Sobre AGUA es hielo que se pisa y resbala (`Terreno3D.hielo_fisico`: pisable, y_pies,
 ## sobre_hielo, es_agua…). Sobre SUELO (dos aguas, un hielo) es solo el estado «helada» de la casilla, para las reglas de puzle y la imagen,
 ## y NO cambia cómo se anda ni a qué altura se pisa. Esta lista dice qué casillas con «helada» son del segundo tipo; la llena `aplicar`
@@ -113,8 +122,13 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 		return false
 	if si:
 		d[c] = true
+		if SUBE.has(estado):
+			var ed: Dictionary = _edad.get(estado, {})
+			ed[c] = 0.0                  # recién mojada: empieza a empapar (volver a mojar una casilla mojada no la aclara)
+			_edad[estado] = ed
 	else:
 		d.erase(c)
+		(_edad.get(estado, {}) as Dictionary).erase(c)
 	_celdas[estado] = d
 	_sucia = true
 	cambio.emit(c, estado, si)
@@ -126,6 +140,23 @@ func intensidad(c: Vector2i, estado: String) -> float:
 	if not tiene(c, estado):
 		return 0.0
 	return float((_intensidad.get(estado, {}) as Dictionary).get(c, 1.0))
+
+
+## Lo que se PINTA del estado en la casilla (0..1): la intensidad por lo que ha empapado (SUBE) y por lo que le falta para secarse (SECADO).
+## Solo aspecto; para las reglas vale `tiene` / `intensidad`.
+func intensidad_vista(c: Vector2i, estado: String) -> float:
+	var i: float = intensidad(c, estado)
+	if i <= 0.0:
+		return 0.0
+	if SUBE.has(estado):
+		var ed: Variant = (_edad.get(estado, {}) as Dictionary).get(c)
+		if ed != null:
+			i *= smoothstep(0.0, float(SUBE[estado]), float(ed))
+	if SECADO.has(estado):
+		var q: float = queda(c, estado)
+		if q > 0.0:
+			i *= smoothstep(0.0, float(SECADO[estado]), q)
+	return i
 
 
 ## Avance visual de un estado en la casilla (0..1; 0 = ninguno). Ver `_avance`: solo aspecto, no es el hecho.
@@ -154,15 +185,30 @@ func queda(c: Vector2i, estado: String) -> float:
 	return float((_queda.get(estado, {}) as Dictionary).get(c, 0.0))
 
 
-## Pasa el tiempo: quita (y avisa) lo que caduca. Lo llama quien lleve el reloj del nivel (hoy nadie: nada caduca de serie).
+## Pasa el tiempo: quita (y avisa) lo que caduca y deja la imagen por rehacer si algo se está empapando o secando. El reloj del nivel es
+## `Mundo3D._process` (27/10); las pruebas sin mundo la llaman a mano.
 func avanzar(dt: float) -> void:
+	for estado in _edad.keys():
+		var ed: Dictionary = _edad[estado]
+		var tope: float = float(SUBE.get(estado, 0.0))
+		var listas: Array = []
+		for c in ed.keys():
+			ed[c] = float(ed[c]) + dt
+			_sucia = true
+			if float(ed[c]) >= tope:
+				listas.append(c)             # ya empapó del todo: no hace falta seguir contando
+		for c in listas:
+			ed.erase(c)
 	for estado in _queda.keys():
 		var q: Dictionary = _queda[estado]
+		var secado: float = float(SECADO.get(estado, 0.0))
 		var caducan: Array = []
 		for c in q.keys():
 			q[c] = float(q[c]) - dt
 			if float(q[c]) <= 0.0:
 				caducan.append(c)
+			elif float(q[c]) < secado:
+				_sucia = true                # se está secando: la imagen cambia
 		for c in caducan:
 			poner(c, String(estado), false)
 
@@ -209,10 +255,8 @@ func dimensionar(n: int) -> void:
 		lado = n
 		_img = null
 		_sucia = true
-
-
-## La imagen del estado: `lado`×`lado` RGBA8, un píxel por casilla (R quemada · G mojada · B helada · A segada, cada uno con su
-## intensidad). Es SIEMPRE el mismo objeto: se rehace solo si algo cambió desde la última vez (`update`, no se recrea en GPU).
+## La imagen del estado: `lado`×`lado` RGBA8, un píxel por casilla (R quemada · G mojada · B helada · A segada, cada uno con lo que se ve:
+## `intensidad_vista`). Es SIEMPRE el mismo objeto: se rehace solo si algo cambió desde la última vez (`update`, no se recrea en GPU).
 func textura() -> ImageTexture:
 	if _img == null or _img.get_width() != lado:
 		_img = Image.create_empty(lado, lado, false, Image.FORMAT_RGBA8)
@@ -227,7 +271,7 @@ func textura() -> ImageTexture:
 				if p.x < 0 or p.y < 0 or p.x >= lado or p.y >= lado:
 					continue
 				var col: Color = _img.get_pixelv(p)
-				col[k] = intensidad(p, String(estado))
+				col[k] = intensidad_vista(p, String(estado))
 				_img.set_pixelv(p, col)
 		for estado in _avance.keys():
 			var k2: int = int(CANAL[estado])
@@ -267,6 +311,7 @@ func limpiar() -> void:
 	_celdas.clear()
 	_intensidad.clear()
 	_queda.clear()
+	_edad.clear()
 	_escarcha.clear()
 	_avance.clear()
 	_sucia = true

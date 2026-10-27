@@ -684,6 +684,7 @@ func _sala_5() -> void:
 	# --- Sin ayuda del lab (el puente de estados se retiró el 21/10): el agua de verdad moja la imagen de la maqueta Y el dato de Terreno3D.estados que leen las reglas ---
 	var suelta: Vector2i = Vector2i(1, 13)
 	var salio0: bool = await _disparo_a("agua", suelta)
+	await avanzar_s(float(EstadosSuelo3D.SUBE["mojada"]))     # 27/10: lo mojado tarda SUBE s en verse entero en la imagen (empapa)
 	var img: Image = Terreno3D.estados.imagen()      # B2: la imagen que dibuja el suelo es la del estado oficial (la maqueta ya no tiene otra)
 	var en_imagen: bool = img != null and img.get_pixelv(suelta).g >= 0.5
 	_ok("5.3b el agua de verdad moja la imagen que dibuja el suelo Y Terreno3D.estados dice «mojada» (sin puente: casilla(x,y).mojada se cumple jugando)", salio0 and en_imagen and _estado(suelta, "mojada"), "imagen %s · estados %s" % [str(en_imagen), str(_estado(suelta, "mojada"))])
