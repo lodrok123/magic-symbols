@@ -1191,6 +1191,9 @@ func _draw_legend() -> void:
 	var ley_sellos: Array = _libro().get("leyenda_sellos", [])
 	var separa: bool = not ley_sellos.is_empty()
 	var limite: int = ley_sellos.size() if separa else LEGEND_SLOTS
+	if separa:
+		limite = casillas_abiertas(true)
+		_draw_legend_cerradas()
 
 	for gesture_name in GestureLibrary.ELEMENTS:
 		# Lo que no está activo NO SE ENSEÑA, ni siquiera en marca de agua:
@@ -1215,7 +1218,7 @@ func _draw_legend() -> void:
 
 	if separa:
 		slot = 0
-		limite = (_libro().get("leyenda", []) as Array).size()
+		limite = casillas_abiertas(false)
 	for gesture_name in GestureLibrary.SIGILS:
 		if not Repertoire.sigil_active(gesture_name):
 			continue
@@ -1228,6 +1231,26 @@ func _draw_legend() -> void:
 		_draw_legend_slot(slot, glyph, gesture_name, INK,
 			library.sample_count(gesture_name) > 0)
 		slot += 1
+
+
+## CAPACIDAD DEL LIBRO EN LA PÁGINA DERECHA (27/10, Pablo): el primer libro admite 4 elementos y 6 glifos (Repertoire.max_elementos /
+## max_glifos). Las casillas de la lámina que pasan de la capacidad se ven CERRADAS: un velo de tinta tenue encima, sin arte nuevo. Con
+## capacidad 0 (bancos de pruebas) están abiertas todas las de la lámina.
+const VELO_CERRADA: Color = Color(0.24, 0.19, 0.16, 0.30)
+
+## Cuántas casillas de la página derecha están abiertas: de elementos (`sellos` = true) o de glifos. Solo en láminas que los separan.
+func casillas_abiertas(sellos: bool) -> int:
+	var en_lamina: int = (_libro().get("leyenda_sellos" if sellos else "leyenda", []) as Array).size()
+	var cap: int = Repertoire.max_elementos if sellos else Repertoire.max_glifos
+	return en_lamina if cap <= 0 else mini(cap, en_lamina)
+
+
+func _draw_legend_cerradas() -> void:
+	for sellos in [true, false]:
+		var ley: Array = _libro().get("leyenda_sellos" if sellos else "leyenda", [])
+		var tam: float = _lam(float(_libro().get("sello_tam" if sellos else "glifo_tam", 46.0 if sellos else 54.0)))
+		for i in range(casillas_abiertas(sellos), ley.size()):
+			draw_circle(_on_page(ley[i]), tam * (0.62 if sellos else 0.78), VELO_CERRADA)
 
 
 ## Un glifo todavía sin muestras se queda en marca de agua.

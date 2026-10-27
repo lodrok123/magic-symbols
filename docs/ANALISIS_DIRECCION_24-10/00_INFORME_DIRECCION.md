@@ -284,8 +284,8 @@ Para que la misión principal de cada zona dé algo más que el sello sin romper
 
 ## 8. Decisiones que necesita Pablo
 
-1. **Kit real de arranque** (§7.1): ¿fuego + agua + tierra con flecha, o solo fuego + flecha? Condiciona la Cueva y el desafío de la barrera.
-2. **Huecos de glifo**: ¿3 al empezar y uno más por zona (propuesta), o 6 desde el principio?
+1. **Kit real de arranque** (§7.1): ¿fuego + agua + tierra con flecha, o solo fuego + flecha? Condiciona la Cueva y el desafío de la barrera. — **27/10, Pablo:** el primer libro tiene sitio para 4 elementos y 6 glifos (capacidad que se llena jugando); la mazmorra de la barrera (Gruta Batida) es obligatoria por historia antes del Bosque. Ver PENDIENTES, «Libro y progresión».
+2. **Huecos de glifo**: ¿3 al empezar y uno más por zona (propuesta), o 6 desde el principio? — **27/10, Pablo:** los 3 huecos del círculo se quedan; lo que crece es la página derecha (4 elementos y 6 glifos en el primer libro, más en un libro posterior).
 3. **Sello de la Torre del Agua**: hielo (propuesta) o agua.
 4. **Borrar la barrera-burbuja antigua** (~490 líneas de `Lanzador3D`) y `spellcaster.gd`.
 5. **Las tres escenas sin referencia** (`PruebaJugabilidadBosque*`, `PruebaNivelBosque`): ¿se abren a mano?

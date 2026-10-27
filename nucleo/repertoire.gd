@@ -57,6 +57,15 @@ static var max_pages: int = 0
 static var libro: String = ""
 
 
+## CAPACIDAD DEL LIBRO (27/10, Pablo): cuántos ELEMENTOS y cuántos GLIFOS distintos caben en la página derecha del libro que llevas.
+## El primer libro de la historia admite 4 elementos y 6 glifos: se empieza con menos y se ganan jugando hasta llenarlo; más adelante
+## llega un libro nuevo con más sitio. 0 = sin límite (los bancos de pruebas). Lo fija la progresión ANTES de `set_active`. Es un tope
+## de lo que se CONOCE, no de lo que cabe en una página al lanzar (eso es `max_sigils_per_page`, los huecos del círculo).
+static var max_elementos: int = 0
+static var max_glifos: int = 0
+static var _avisado_lleno: Dictionary = {}       ## "elementos" / "glifos" -> ya se avisó una vez de que el libro está lleno
+
+
 static func pages_available(total: int) -> int:
 	return total if max_pages <= 0 else clampi(max_pages, 1, total)
 
@@ -111,6 +120,9 @@ static func unlock_element(gesture_name: String) -> bool:
 		return false
 	if _elements.has(gesture_name):
 		return false
+	if max_elementos > 0 and _elements.size() >= max_elementos:
+		_avisar_lleno("elementos", gesture_name, max_elementos)
+		return false
 	_elements.append(gesture_name)
 	return true
 
@@ -121,8 +133,35 @@ static func unlock_sigil(sigil_name: String) -> bool:
 		return false
 	if _sigils.has(sigil_name):
 		return false
+	if max_glifos > 0 and _sigils.size() >= max_glifos:
+		_avisar_lleno("glifos", sigil_name, max_glifos)
+		return false
 	_sigils.append(sigil_name)
 	return true
+
+
+## ¿Cabe uno más? (para quien quiera avisar al jugador antes de dar algo).
+static func cabe_elemento() -> bool:
+	return max_elementos <= 0 or _elements.size() < max_elementos
+
+
+static func cabe_glifo() -> bool:
+	return max_glifos <= 0 or _sigils.size() < max_glifos
+
+
+## Un nivel que da más de lo que cabe está mal diseñado para este libro: se dice UNA vez por consola (no se calla, como una errata).
+static func _avisar_lleno(que: String, nombre: String, tope: int) -> void:
+	if _avisado_lleno.has(que):
+		return
+	_avisado_lleno[que] = true
+	push_warning("Repertoire: el libro está lleno (%d %s); '%s' no entra." % [tope, que, nombre])
+
+
+## Fija la capacidad del libro (0 = sin límite) y olvida los avisos de libro lleno. Lo llama la progresión antes de `set_active`.
+static func fijar_capacidad(elementos: int, glifos: int) -> void:
+	max_elementos = maxi(elementos, 0)
+	max_glifos = maxi(glifos, 0)
+	_avisado_lleno.clear()
 
 
 ## GLIFOS POR ESCRIBIR EN EL LIBRO (24/10, Pablo): un glifo que se CONSIGUE jugando (cofre, tienda, NPC) se anota aquí, y la próxima vez que
@@ -162,8 +201,9 @@ static func lock_sigil(sigil_name: String) -> void:
 
 
 ## Todo lo que existe, incluidas las runas retiradas del test. Solo para
-## probar: no es el juego del micronivel.
+## probar: no es el juego del micronivel. Quita la capacidad del libro (si no, la paleta de pruebas se quedaría en 4 y 6).
 static func activate_all() -> void:
+	fijar_capacidad(0, 0)
 	set_active(GestureLibrary.ELEMENTS, GestureLibrary.SIGILS)
 
 

@@ -92,15 +92,18 @@ const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 ## `Repertoire` ya hace que el libro solo enseñe lo activo; aquí se decide QUÉ está activo, y cuántas páginas (libros) hay y
 ## cuántos glifos caben en una. «todo» es el banco de pruebas de siempre (Test 3). La clave se elige con el nombre del nivel
 ## (`mundo.nivel`); si no hay una con ese nombre vale «todo». Para probar un nivel concreto sin tocar el mundo: PROGRESION_FORZADA.
+## `capacidad` = [elementos, glifos] que caben en la página derecha del libro (Repertoire.max_elementos / max_glifos); sin ella, sin límite.
+## El primer libro de la historia (27/10, Pablo): 4 elementos y 6 glifos, que se van ganando jugando. Un libro posterior traerá más.
+const CAPACIDAD_PRIMER_LIBRO: Array = [4, 6]
 const PROGRESIONES: Dictionary = {
 	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
-	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque"},
+	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Bosque 1 (Fase 9, 9.9, Pablo 10/10): se empieza con FUEGO + FLECHA y una página (un hueco de sello, dos de glifo). El
 	# sello de AGUA se recoge detrás de la telaraña (Bosque3D, zona `a`) y la BARRERA se compra al guardabosques por 20 de oro.
-	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque"},
+	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
 	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
@@ -109,7 +112,7 @@ const PROGRESIONES: Dictionary = {
 	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
 	# El cofre del final da ᛉ permanencia (la barrera que dura).
 	"barrera": {"sellos": ["fuego", "tierra", "hielo"], "glifos": ["flecha", "barrera", "linea"],
-		"paginas": 3, "glifos_por_pagina": 4, "libro": "bosque"},
+		"paginas": 3, "glifos_por_pagina": 4, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
@@ -540,6 +543,8 @@ static func aplicar_progresion(nombre: String) -> String:
 	Repertoire.max_sigils_per_page = int(p["glifos_por_pagina"])
 	Repertoire.max_pages = int(p["paginas"])
 	Repertoire.libro = String(p.get("libro", ""))
+	var cap: Array = p.get("capacidad", [0, 0])
+	Repertoire.fijar_capacidad(int(cap[0]), int(cap[1]))
 	Repertoire.set_active(PackedStringArray(p["sellos"]), PackedStringArray(p["glifos"]))
 	return clave
 
