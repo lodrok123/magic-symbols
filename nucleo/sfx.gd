@@ -49,15 +49,16 @@ const CATALOGO: Dictionary = {
 	# --- Elementos (sintetizados). Los busca for_element por etiqueta.
 	"fuego":   {"f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
 	"agua":    {"f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
-	"hielo":   {"f": ["elem_hielo.wav"],   "db": -9.0,  "tono": 0.08},
-	"rayo":    {"f": ["elem_rayo.wav"],    "db": -6.0,  "tono": 0.07},
+	# 27/10: hielo y rayo GRABADOS (OpenGameArt, CC0: «Ice spells» de bart y «Electricity Game Sound Pack» de faxcorp; audio/LICENCIAS.md).
+	"hielo":   {"f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
+	"rayo":    {"f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"viento":  {"f": ["elem_viento.wav"],  "db": -11.0, "tono": 0.12},
 	"tierra":  {"f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
 	"tiempo":  {"f": ["elem_tiempo.wav"],  "db": -10.0, "tono": 0.05},
 
 	# --- Magia del mundo (sintetizados).
 	"prender":  {"f": ["prender.wav"],  "db": -9.0,  "tono": 0.12},
-	"congelar": {"f": ["congelar.wav"], "db": -10.0, "tono": 0.08},
+	"congelar": {"f": ["oga_congelar_0.wav", "oga_congelar_1.wav"], "db": -6.0, "tono": 0.06},
 	"chispa":   {"f": ["chispa.wav"],   "db": -12.0, "tono": 0.14},
 	"derrumbe": {"f": ["derrumbe.wav"], "db": -7.0,  "tono": 0.10},
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
@@ -89,6 +90,13 @@ const CATALOGO: Dictionary = {
 	# "sí" y "no" sin que nadie lo explique.
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
+	# 27/10: la CONJURACIÓN suena arcana, sea cual sea el elemento (OpenGameArt, CC0: «Magic Spell SFX» de JaggedStone). Lo toca el Lanzador al
+	# empezar cada conjuro, debajo del sonido del elemento (`Lanzador3D._sonar_fase_v2`, fase «carga»).
+	"conjuro_arcano": {"f": ["oga_conjuro_arcano_0.ogg", "oga_conjuro_arcano_1.ogg", "oga_conjuro_arcano_2.ogg", "oga_conjuro_arcano_3.ogg",
+			"oga_conjuro_arcano_4.ogg", "oga_conjuro_arcano_5.ogg", "oga_conjuro_arcano_6.ogg"], "db": -13.0, "tono": 0.04},
+	# 27/10: la DESCARGA de la fuente eléctrica (EmisorRayo3D): un chasquazo al soltar y chisporroteo mientras dura (antes no sonaba).
+	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
+	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
 	"pulso_resonante": {"f": ["pulso_resonante.wav"], "db": -10.0, "tono": 0.02},      # 26/10: sonido propio del pulso (audio/gen_sfx_pulso.py); lo usan Pulso3D y todo lo que responde
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
 
@@ -125,7 +133,7 @@ const CATALOGO: Dictionary = {
 	"siseo_apagado":    {"f": ["siseo_apagado.wav"],    "db": -9.0,  "tono": 0.08},
 	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
 	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "db": -8.0,  "tono": 0.05},
-	"arde_bucle":       {"f": ["arde_bucle.wav"],       "db": -15.0, "tono": 0.0},
+	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
 	"escudo_golpe":     {"f": ["escudo_golpe.wav"],     "db": -8.0,  "tono": 0.10},
 	"escudo_roto":      {"f": ["escudo_roto.wav"],      "db": -6.0,  "tono": 0.06},
 	"aturdido":         {"f": ["aturdido.wav"],         "db": -11.0, "tono": 0.05},

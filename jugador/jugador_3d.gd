@@ -485,6 +485,10 @@ func _sonar_pasos(recorrido: float, correr: bool) -> void:
 	var tipo: int = 0
 	if mundo.has_method("_tipo_suelo"):
 		tipo = int(mundo.call("_tipo_suelo", Terreno3D.celda_de(position)))
+	# 27/10: sobre un puente (letra «b», tablones) suena a madera.
+	if Terreno3D.letra_de(Terreno3D.celda_de(position)) == "b":
+		Sfx3D.play(self, "paso_madera")
+		return
 	Sfx3D.play(self, "paso_roca" if tipo == 3 else ("paso_hierba" if tipo == 0 else "paso_tierra"))
 
 

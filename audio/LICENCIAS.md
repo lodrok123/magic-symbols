@@ -74,3 +74,21 @@ archivo hay detrás ni en qué formato.
 
 `fuego|agua|hielo|rayo|viento|tierra|tiempo` + `_carga` y `x_mano_impacto`, `alto_impacto`, `abajo_impacto`: **sintetizados** con
 `audio/gen_sfx_hechizos.py` (numpy, sin dependencias; semilla fija, así que se regeneran idénticos). Sin licencia externa.
+
+## Grabados de OpenGameArt, CC0 (27/10)
+
+Todos con licencia **CC0** (dominio público: sin obligación de citar; se cita igual por orden). Se descargaron
+el 27/10/2026 y se renombraron con el prefijo `oga_`. Los usan `Sfx.CATALOGO` y `Sfx3D` (comprobado en
+`herramientas/prueba_sonidos_grabados.gd`).
+
+| archivo en audio/ | original | autor · página |
+|---|---|---|
+| `oga_agua_corriendo_loop.ogg` | `water_flowing.ogg` de `sfx_loops.zip` | rubberduck · https://opengameart.org/content/30-cc0-sfx-loops |
+| `oga_paso_hojas_0..1.ogg`, `oga_paso_barro_0.ogg`, `oga_paso_grava_0.ogg`, `oga_paso_piedra_0.ogg`, `oga_paso_madera_0..2.ogg` | `leaves01..02`, `mud02`, `gravel`, `stone01`, `wood01..03` (.ogg) | kdd · https://opengameart.org/content/different-steps-on-wood-stone-leaves-gravel-and-mud |
+| `oga_fuego_crepita_loop.wav` | `fire-1.wav` | AntumDeluge · https://opengameart.org/content/fire-crackling |
+| `oga_conjuro_arcano_0..6.ogg` | `magical_1..7.ogg` | JaggedStone · https://opengameart.org/content/magic-spell-sfx |
+| `oga_relampago_0.wav`, `oga_relampago_1.wav`, `oga_descarga_chasquidos.wav` | `hit.wav`, `groundhit.wav`, `snaploop.wav` | faxcorp · https://opengameart.org/node/150369 (Electricity Game Sound Pack) |
+| `oga_congelar_0.wav`, `oga_congelar_1.wav` | `coldsnap.wav`, `ice.wav` de `icespells.zip` | bart · https://opengameart.org/content/ice-spells |
+
+Los sintetizados a los que sustituyen (`agua_loop`, `fuego_loop`, `elem_hielo`, `elem_rayo`, `congelar`, `arde_bucle`
+y las pisadas `paso_*`) siguen en esta carpeta por si se quiere volver atrás: basta con cambiar el nombre en el catálogo.

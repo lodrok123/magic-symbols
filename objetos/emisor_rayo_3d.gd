@@ -41,6 +41,7 @@ var _t_dano: float = 0.0
 var _chispas: int = 0
 var _malla: MultiMeshInstance3D = null
 var _jug: Node = null
+var _sonido: Node = null              ## el chisporroteo de la descarga (Sfx.bucle), mientras dura
 
 
 func preparar(p_mundo: Variant, p_celda: Vector2i) -> void:
@@ -134,6 +135,9 @@ func _soltar() -> void:
 		return
 	_activa = true
 	_t_dano = 0.0
+	# 27/10: la descarga SUENA: un chasquazo al soltar y chisporroteo mientras dura (se corta en `_apagar`).
+	Sfx.play(self, "descarga_electrica")
+	_sonido = Sfx.bucle(self, "chasquidos_electricos")
 	_pintar()
 	_activar_totems()
 	descarga.emit(electrificada)
@@ -141,6 +145,8 @@ func _soltar() -> void:
 
 func _apagar() -> void:
 	_activa = false
+	Sfx.parar(_sonido)
+	_sonido = null
 	electrificada = []
 	_t = PERIODO
 	if _malla != null:

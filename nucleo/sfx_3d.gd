@@ -23,18 +23,15 @@ const ALCANCE: float = 22.0              ## más allá no se oye (u; la casilla 
 ## nombre -> archivos (se elige uno al azar, sin repetir el anterior), db, variación de tono (±) y `base` de tono.
 ## Los db están ESTIMADOS (no medidos en el juego): suben o bajan aquí, en un solo sitio.
 const CATALOGO: Dictionary = {
-	# 27/10 (Pablo: «el sonido es muy fuerte, hay que buscar un sonido sutil»): pisadas SUAVES sintetizadas (tools/gen_pasos_suaves.py): un
-	# toque grave y amortiguado con un roce leve del suelo, sin agudos, seis por suelo. Las de antes (paso_hierba_*, paso_roca_*, y las de
-	# Kenney paso_0..5 en la tierra) siguen en audio/ por si se quieren comparar.
-	"paso_hierba": {"f": ["paso_suave_hierba_0.wav", "paso_suave_hierba_1.wav", "paso_suave_hierba_2.wav", "paso_suave_hierba_3.wav",
-			"paso_suave_hierba_4.wav", "paso_suave_hierba_5.wav"],
-		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
-	"paso_roca": {"f": ["paso_suave_roca_0.wav", "paso_suave_roca_1.wav", "paso_suave_roca_2.wav", "paso_suave_roca_3.wav",
-			"paso_suave_roca_4.wav", "paso_suave_roca_5.wav"],
-		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
-	"paso_tierra": {"f": ["paso_suave_tierra_0.wav", "paso_suave_tierra_1.wav", "paso_suave_tierra_2.wav", "paso_suave_tierra_3.wav",
-			"paso_suave_tierra_4.wav", "paso_suave_tierra_5.wav"],
-		"db": -12.0, "tono": 0.06, "unidad": 3.0, "alcance": 10.0},
+	# 27/10: PISADAS GRABADAS (OpenGameArt, CC0, «Different steps on wood, stone, leaves, gravel and mud» de kdd; ver audio/LICENCIAS.md): hojas
+	# en la hierba, barro y grava en la tierra, piedra y grava en la roca y madera en los puentes. Pocas tomas por suelo: la variación la pone el
+	# tono (±10 %). Volumen bajo a propósito (Pablo: «muy fuerte, un sonido sutil»): se ajusta de oído aquí. Las sintetizadas suaves
+	# (paso_suave_*, tools/gen_pasos_suaves.py) siguen en audio/ por si se prefieren.
+	"paso_hierba": {"f": ["oga_paso_hojas_0.ogg", "oga_paso_hojas_1.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
+	"paso_tierra": {"f": ["oga_paso_barro_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
+	"paso_roca": {"f": ["oga_paso_piedra_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
+	"paso_madera": {"f": ["oga_paso_madera_0.ogg", "oga_paso_madera_1.ogg", "oga_paso_madera_2.ogg"], "db": -16.0, "tono": 0.08,
+		"unidad": 3.0, "alcance": 10.0},
 	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"],
 		"db": -6.0, "tono": 0.10},
 	# Al morir: los mismos gritos, más graves y más cortos de oído (tono 0,8) para que no se confunda con el aviso.
@@ -48,8 +45,10 @@ const CATALOGO: Dictionary = {
 
 ## Bucles: nombre -> archivo, db, y las distancias (más cerrado que los sonidos sueltos: son muchos a la vez).
 const AMBIENTES: Dictionary = {
-	"fuego": {"f": "fuego_loop.ogg", "db": -8.0, "unidad": 2.0, "alcance": 13.0, "alto": 0.5},
-	"agua": {"f": "agua_loop.ogg", "db": -8.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
+	# 27/10: fuego y agua GRABADOS (OpenGameArt, CC0: «Fire Crackling» de AntumDeluge y el «flowing water» de «30 CC0 SFX loops» de rubberduck).
+	# Los sintetizados de antes (fuego_loop, agua_loop) siguen en audio/.
+	"fuego": {"f": "oga_fuego_crepita_loop.wav", "db": -6.0, "unidad": 2.0, "alcance": 13.0, "alto": 0.5},
+	"agua": {"f": "oga_agua_corriendo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
 	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
 }
@@ -113,7 +112,14 @@ static func bucle(nombre: String) -> AudioStream:
 	if base == null:
 		return null
 	var s: AudioStream = base.duplicate() as AudioStream
-	s.set("loop", true)
+	if s is AudioStreamWAV:
+		# 27/10: un .wav no tiene `loop` (eso es del .ogg): se activa el bucle hacia delante sobre todo el audio, como `Sfx.bucle`.
+		var w: AudioStreamWAV = s as AudioStreamWAV
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_begin = 0
+		w.loop_end = w.data.size() / (2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1) / (2 if w.stereo else 1)
+	else:
+		s.set("loop", true)
 	return s
 
 

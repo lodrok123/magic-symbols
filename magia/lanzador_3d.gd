@@ -1909,6 +1909,9 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 
 # =============================== CICLO DE VIDA V2 (R3) ===============================
 
+## 27/10: el sonido arcano que acompaña a TODO conjuro al empezar (Sfx.CATALOGO; grabado, CC0).
+const SFX_CONJURO: String = "conjuro_arcano"
+
 ## SONIDO POR FASE (MEJORAS_POTENCIA §1): «<elemento>_carga» al empezar el conjuro, «<elemento>_disparo» al salir y «<nombre derivado>_impacto» al
 ## materializarse. Si el nombre no está en `Sfx.CATALOGO`, cae en el sonido del elemento de siempre (elem_*): así suena hoy y mejora solo cuando el Pipeline dé de alta
 ## los nuevos. Cada fase pide su sonido UNA vez (queda anotado en `sonidos_fase` para las pruebas). `Sfx` es del Pipeline: aquí solo se llama.
@@ -1918,6 +1921,8 @@ func _sonar_fase_v2(fase: String, elemento: String, derivado: String = "", en: V
 	sonidos_fase.append({"fase": fase, "pedido": nombre, "suena": real, "elemento": elemento})
 	if Sfx.CATALOGO.has(real):
 		Sfx.play(self, real, 0.85 if fase == "carga" and real == elemento else 0.0)
+	if fase == "carga" and Sfx.CATALOGO.has(SFX_CONJURO):
+		Sfx.play(self, SFX_CONJURO)          # 27/10: la capa arcana común a todo conjuro, debajo del sonido del elemento
 
 
 ## PlayLog `receta_v2`: lo que se ha lanzado, en números (dimensiones, propiedades, estado, coste), para equilibrar sin adivinar.
