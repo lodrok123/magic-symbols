@@ -122,6 +122,8 @@ func _colgar(en: Node) -> void:
 		en.add_child(self)
 	_construir()
 	_colocar()
+	if Sensacion3D.ACTIVA and is_inside_tree():
+		Sfx.play(self, "aviso_ataque")             # gamefeel (28/10): el aviso también se oye
 
 
 func _construir() -> void:

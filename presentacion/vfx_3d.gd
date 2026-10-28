@@ -2383,6 +2383,28 @@ func golpe_estrella(p: Vector3, elemento: String, esc: float = 1.0, dura: float 
 	_luz(p, c, 2.2, 2.2, dura * 1.5)
 
 
+## Gamefeel (28/10, Juego): un chorro de piezas que sale del punto de impacto HACIA DONDE IBA el golpe (`dir`, en el plano; un poco hacia arriba), en un cono de ±35°,
+## del color del elemento (blanco sin elemento: el golpe cuerpo a cuerpo). Corto y rápido: dice de dónde vino el golpe.
+func golpe_direccional(p: Vector3, dir: Vector3, elemento: String, esc: float = 1.0) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length() < 0.01:
+		return
+	d = d.normalized()
+	var c: Color = COLOR.get(elemento, Color(0.95, 0.95, 0.92))
+	var gp := _particulas("destello", int(8 * esc), 0.28, 6.5 * esc, 0.09 * esc, true, c.lerp(Color.WHITE, 0.25), Vector3(0.0, -6.0, 0.0))
+	gp.one_shot = true
+	gp.explosiveness = 0.95
+	var pm: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+	pm.direction = (d + Vector3(0.0, 0.35, 0.0)).normalized()
+	pm.spread = 35.0
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = 0.08 * escala
+	gp.position = p
+	add_child(gp)
+	gp.emitting = true
+	_despues(0.6, gp.queue_free)
+
+
 ## Deja de emitir y borra el nodo cuando sus partículas se han apagado.
 func _soltar(n: Variant) -> void:
 	if n == null or not is_instance_valid(n):

@@ -22,6 +22,20 @@ var _destello_hasta: int = 0
 var _destello_dur: float = 0.25
 
 
+## 28/10 (gamefeel, `Sensacion3D.no_puedes`): la página que NO se puede lanzar (recarga, tinta, ahora no) tiembla de lado y se rodea de rojo un instante.
+var _temblor_i: int = -1
+var _temblor_hasta: int = 0
+var _temblor_dur: float = 0.3
+const TEMBLOR_PX: float = 4.0
+const ROJO_NO: Color = Color(1.0, 0.3, 0.25)
+
+
+func temblar(indice: int, dur: float = 0.3) -> void:
+	_temblor_i = indice
+	_temblor_dur = maxf(dur, 0.05)
+	_temblor_hasta = Time.get_ticks_msec() + int(_temblor_dur * 1000.0)
+
+
 func destello(indice: int, dur: float = 0.25) -> void:
 	_destello_i = indice
 	_destello_dur = maxf(dur, 0.05)
@@ -47,6 +61,10 @@ func _draw() -> void:
 
 	for i in range(total):
 		var centro := Vector2(x0 + float(i) * SEPARACION, y)
+		var k_no: float = 0.0
+		if i == _temblor_i:
+			k_no = clampf(float(_temblor_hasta - Time.get_ticks_msec()) / 1000.0 / _temblor_dur, 0.0, 1.0)
+			centro.x += sin(float(Time.get_ticks_msec()) * 0.09) * TEMBLOR_PX * k_no
 		var activa: bool = i == caster.page
 		var radio: float = RADIO * (1.15 if activa else 1.0)
 
@@ -67,6 +85,8 @@ func _draw() -> void:
 
 		draw_arc(centro, radio, 0.0, TAU, 24, TINTA if activa else TINTA_SUAVE,
 			2.5 if activa else 1.5, true)
+		if k_no > 0.0:
+			draw_arc(centro, radio + 2.0, 0.0, TAU, 24, Color(ROJO_NO, k_no), 3.0, true)
 		if i == _destello_i:
 			var queda: float = float(_destello_hasta - Time.get_ticks_msec()) / 1000.0
 			if queda > 0.0:

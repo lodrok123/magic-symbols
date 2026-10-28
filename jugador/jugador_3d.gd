@@ -131,6 +131,10 @@ signal golpe_cuerpo_dado(resumen: Dictionary)
 ## 28/10 · C4: rodó a tiempo bajo un aviso (C3) y ganó el tiempo bruja (`TiempoBruja`). `aviso` es el AvisoAtaque3D esquivado.
 signal esquiva_perfecta(aviso: AvisoAtaque3D)
 var esquivas_perfectas: int = 0
+## Gamefeel (28/10, `Sensacion3D`): s que le quedan congelada (el hitstop compartido de sus golpes y el de recibir uno) y la voltereta pulsada cuando aún no podía rodar.
+var _t_hitstop: float = 0.0
+var _roll_guardado: float = 0.0
+var _roll_guardado_mov: Vector3 = Vector3.ZERO
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
 ## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
@@ -215,6 +219,18 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 ## =====================================================================================================
 
 ## C4: en el tiempo bruja se puede lanzar aunque aún esté rodando (lanzar corta la voltereta: `apuntar_en_marcha`, `bloquear`).
+## Gamefeel (28/10): la congela `t` s (no se acorta si ya lo estaba más). Lo piden `Combate3D` (hitstop compartido de sus golpes) y `Sensacion3D.dano_recibido`.
+func hitstop(t: float) -> void:
+	if t > _t_hitstop and not muerto:
+		_t_hitstop = t
+
+
+## Gamefeel (28/10): ¿no puede lanzar solo por algo que acaba enseguida (rueda, golpea, encaja un golpe, el clip de lanzar)? Entonces `Lanzador3D` guarda la tecla de página
+## un momento en vez de negarla.
+func ocupada_un_momento() -> bool:
+	return not muerto and (_t_roll > 0.0 or _t_pegar > 0.0 or _t_golpe > 0.0 or _lanzando or _t_hitstop > 0.0)
+
+
 func puede_lanzar() -> bool:
 	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and (_t_roll <= 0.0 or TiempoBruja.activa()) and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
 
@@ -333,6 +349,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	else:
 		pj.animacion_actual = ""
 		pj.jugar("hit")
+		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel: viñeta roja, temblor y un hitstop corto
 
 
 func curar(cantidad: float) -> void:
@@ -427,6 +444,11 @@ func _process(delta: float) -> void:
 	TiempoBruja.actualizar(lanz, delta)
 	var comp: float = TiempoBruja.compensacion()
 	delta *= comp
+	if _t_hitstop > 0.0:
+		# Gamefeel: congelada un instante (su golpe ha conectado, o le han dado): ni se mueve ni se anima.
+		_t_hitstop = maxf(0.0, _t_hitstop - delta)
+		pj.set_vel_tiempo(0.0)
+		return
 	pj.set_vel_tiempo(comp)
 	if pj.position.distance_to(_ultima) > 0.05:
 		position = pj.position              # lo han movido desde fuera (ir_a)
@@ -683,9 +705,20 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
-	if ctrl and not _roll_previa and _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
-			and not ocupado and not nadando and en_suelo:
-		_iniciar_voltereta(mov)
+	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo
+	if ctrl and not _roll_previa:
+		if puede_rodar:
+			_iniciar_voltereta(mov)
+		else:
+			# Gamefeel (28/10): pulsada mientras aún rueda, golpea o lanza (o con la recarga a punto de acabar), se guarda Lanzador3D.BUFFER_PULSACION s reales.
+			_roll_guardado = Lanzador3D.BUFFER_PULSACION
+			_roll_guardado_mov = mov
+	elif _roll_guardado > 0.0:
+		_roll_guardado = maxf(0.0, _roll_guardado - get_process_delta_time() / maxf(Engine.time_scale, 0.05))
+		if puede_rodar and libre:
+			_roll_guardado = 0.0
+			PlayLog.event("pulsacion_guardada", {"accion": "voltereta"})
+			_iniciar_voltereta(mov if mov != Vector3.ZERO else _roll_guardado_mov)
 	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
 	var tecla_golpe: bool = libre and Input.is_key_pressed(KEY_F)
 	if tecla_golpe and not _pegar_previa:

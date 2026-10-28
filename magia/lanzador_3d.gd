@@ -178,6 +178,11 @@ var _apuntado: Apuntado3D = null              ## 28/10: el recorrido real, las r
 var cursor_puesto: String = ""                 ## 28/10: el cursor de apuntar que está puesto («color|cruz»; vacío = el del sistema). Se cambia solo cuando cambia
 var _vista_reaccion: PrevisionReaccion3D = null   ## A3: los rótulos, anillos y cuadros de la reacción prevista (vive lo que el modo de lanzar)
 var _ts_antes: float = 1.0
+## Gamefeel (28/10): la tecla de página pulsada cuando aún no se puede (rodando, golpeando) se guarda este rato y entra al poder.
+const BUFFER_PULSACION: float = 0.15
+var _buffer_pagina: int = -1
+var _buffer_t: float = 0.0
+var _buffer_soltada: bool = false
 var _rapido: bool = false                      ## A1: el modo de apuntar actual es el de mantener 1/2/3 (no bloquea a la jugadora, se lanza al soltar la tecla)
 var _pagina_rapida: int = -1                   ## A1: índice de la página (0–2) cuya tecla se mantiene
 ## A1: «lanzamiento inteligente» (ajuste del jugador): pulsar 1/2/3 lanza al instante hacia el ratón, sin indicador. Vive con las demás opciones del jugador en `Estado`
@@ -789,6 +794,7 @@ func _preparar_pagina(indice: int) -> bool:
 	if jugador != null and not bool(jugador.call("puede_lanzar")):
 		_feedback("Ahora no puedes lanzar")
 		Sfx.play(self, "sello_no")
+		Sensacion3D.no_puedes(self, indice)
 		return false
 
 	var ficha: Dictionary = pages[indice]
@@ -805,6 +811,7 @@ func _preparar_pagina(indice: int) -> bool:
 		return false
 	if cooldown_left[indice] > 0.0:
 		Sfx.play(self, "sello_no")
+		Sensacion3D.no_puedes(self, indice)
 		_feedback("Recargando (%.1f s)" % cooldown_left[indice])
 		PlayLog.event("cast_bloqueado", {"pagina": indice + 1, "queda": snappedf(cooldown_left[indice], 0.1)})
 		return false
@@ -835,6 +842,7 @@ func _preparar_pagina(indice: int) -> bool:
 	var aviso_v2: String = GeometriaV2.aviso_materia(receta.geo(), element_data)
 	if aviso_v2 != "":
 		Sfx.play(self, "sello_no")
+		Sensacion3D.no_puedes(self, indice)
 		_feedback(aviso_v2)
 		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(receta.geo()["y_tope"]), "glifos": (fusion["sigils"] as Array).duplicate()})
 		return false
@@ -850,6 +858,7 @@ func _preparar_pagina(indice: int) -> bool:
 		coste_tinta = tinta.coste_efectivo(coste_tinta, Objetos.elemento_de(element_data))     # E1: la rebaja del pigmento (la aplica Tinta, aquí solo se le dice el elemento)
 	if tinta != null and not tinta.puede_pagar(receta.forma(), coste_tinta):
 		Sfx.play(self, "sello_no")
+		Sensacion3D.no_puedes(self, indice)
 		_feedback("Tinta insuficiente (%d / %d)" % [int(ceil(tinta.actual)), int(ceil(coste_tinta))])
 		PlayLog.event("cast_sin_tinta", {"pagina": indice + 1, "forma": receta.forma(), "coste": snappedf(coste_tinta, 0.1), "hay": snappedf(tinta.actual, 0.1)})
 		return false
@@ -868,6 +877,12 @@ func _preparar_pagina(indice: int) -> bool:
 func pulsar_pagina(indice: int) -> void:
 	if modo_lanzar and _rapido:
 		return                                   # ya hay una página en la mano: la otra tecla se ignora hasta soltar o cancelar
+	# Gamefeel (28/10): pulsada mientras rueda, golpea o encaja un golpe, se GUARDA `BUFFER_PULSACION` s y entra en cuanto puede (si suelta antes, lanza al entrar).
+	if jugador != null and not bool(jugador.call("puede_lanzar")) and jugador.has_method("ocupada_un_momento") and bool(jugador.call("ocupada_un_momento")):
+		_buffer_pagina = indice
+		_buffer_t = BUFFER_PULSACION
+		_buffer_soltada = false
+		return
 	if not _preparar_pagina(indice):
 		return
 	if lanzamiento_inteligente:
@@ -876,8 +891,30 @@ func pulsar_pagina(indice: int) -> void:
 	_entrar_modo_lanzar(true, indice)
 
 
+## La pulsación guardada: en cuanto la jugadora puede, entra (y si ya la soltó, lanza); pasados BUFFER_PULSACION s, se niega como siempre.
+func _atender_buffer(delta: float) -> void:
+	if _buffer_pagina < 0:
+		return
+	var p: int = _buffer_pagina
+	if jugador != null and bool(jugador.call("puede_lanzar")):
+		var soltada: bool = _buffer_soltada
+		_buffer_pagina = -1
+		PlayLog.event("pulsacion_guardada", {"pagina": p + 1, "espera": snappedf(BUFFER_PULSACION - _buffer_t, 0.01)})
+		pulsar_pagina(p)
+		if soltada:
+			soltar_pagina(p)
+		return
+	_buffer_t -= delta / maxf(Engine.time_scale, 0.05)       # s reales: la ventana no se alarga en cámara lenta
+	if _buffer_t <= 0.0:
+		_buffer_pagina = -1
+		_preparar_pagina(p)                                  # se niega con su aviso de siempre («Ahora no puedes lanzar»)
+
+
 ## Suelta la tecla de página: si es la que está apuntando en modo rápido, lanza. Si el modo ya se canceló (clic derecho, Esc, tinta…) o es otra página, no hace nada.
 func soltar_pagina(indice: int) -> void:
+	if indice == _buffer_pagina:
+		_buffer_soltada = true                   # se soltó mientras esperaba: al entrar, lanza en el acto (un toque corto)
+		return
 	if not (modo_lanzar and _rapido and indice == _pagina_rapida):
 		return
 	_actualizar_raton_rapido()
@@ -1088,6 +1125,7 @@ func _process(delta: float) -> void:
 		_fin_libro_lento()                   # cerrado por otro camino (sin lanzar)
 	if get_tree().paused:
 		return                               # pausa real (muerte, victoria): nada se mueve
+	_atender_buffer(delta)
 	if Terreno3D.agua_sim != null:
 		Terreno3D.agua_sim.paso(delta)                 # avanza en pasos fijos por dentro; con el libro abierto va más lento, como todo
 		for cb in Terreno3D.agua_sim.cambios():
@@ -1139,6 +1177,7 @@ func _avisar_sin_construir(motivo: String) -> void:
 	feedback_text = texto
 	avisar(texto)
 	Sfx.play(self, "sello_no")
+	Sensacion3D.no_puedes(self, int(_preparado.get("indice", _pagina_rapida)))
 	PlayLog.event("cast_rechazado_construccion", {"motivo": motivo})
 
 
@@ -1332,6 +1371,7 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	desplaza_mano = Vector3.ZERO
+	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)))   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}

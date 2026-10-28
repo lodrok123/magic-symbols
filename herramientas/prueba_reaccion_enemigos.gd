@@ -70,7 +70,7 @@ func _initialize() -> void:
 			g.push(Vector3(1, 0, 0), Lanzador3D.FUERZA_EMPUJE)
 		if g.congelado < 5.0:
 			g.congelado = 99.0
-		# Hitstop: durante HITSTOP no se mueve ni un milímetro (4 fotogramas = 0,067 s > 0,06 s; con débil, 0,09 s = 5,4 fotogramas)
+		# Hitstop: durante el hitstop (proporcional al daño desde el 28/10: de 0,04 a 0,10 s) no se mueve ni un milímetro
 		# El viento no hace daño: sin daño no hay hitstop (se congela solo un golpe que daña), pero sí aplastamiento y salto.
 		var espera: float = g._hitstop
 		var n_cong: int = int(floor(espera / DT)) - 1
@@ -100,8 +100,12 @@ func _initialize() -> void:
 	# Pormenores con un goblin quieto: hitstop débil/normal, hit siempre, interrupción 0,6, destello 0,20, squash, salto
 	var rune_f: RuneData = load("res://nucleo/fire_rune.tres")
 	var g2: Combate3D = _nuevo()
+	var vida_antes: float = g2.health
 	g2.golpe(Hechizo.construir(rune_f, {}), Vector3(1, 0, 0))
-	_ok(absf(g2._hitstop - Combate3D.HITSTOP) < 0.001 or absf(g2._hitstop - Combate3D.HITSTOP_DEBIL) < 0.001, "hitstop no es 0,06 ni 0,09 (%.3f)" % g2._hitstop)
+	# 28/10 (gamefeel): el hitstop es proporcional al daño (Sensacion3D.hitstop_de), entre HITSTOP y HITSTOP_DEBIL.
+	var esperado: float = Sensacion3D.hitstop_de(vida_antes - g2.health, false)
+	_ok(absf(g2._hitstop - esperado) < 0.001 and g2._hitstop >= Combate3D.HITSTOP - 0.001 and g2._hitstop <= Combate3D.HITSTOP_DEBIL + 0.001,
+		"hitstop no es el proporcional al daño (%.3f, esperado %.3f)" % [g2._hitstop, esperado])
 	_ok(g2.interrupcion >= Combate3D.INTERRUPCION_GOLPE - 0.001, "interrupcion < 0,6 (%.2f)" % g2.interrupcion)
 	_ok(absf(g2._destello - Combate3D.DESTELLO_GOLPE) < 0.001, "destello != 0,20 (%.3f)" % g2._destello)
 	_ok(g2.pj.scale.x > 1.2 and g2.pj.scale.y < 0.85, "aplastamiento no aplicado (%s)" % g2.pj.scale)

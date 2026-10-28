@@ -3981,3 +3981,16 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 - **Queda (Pablo):** jugar `PruebaSalaLimo.tscn` y decidir lo de PENDIENTES (daño del golpe que tiñe, debilidad del limo teñido, su elemento en el ataque, dividirse/bloque, vida; el arco de cerca; la duración del aviso del arquero; si el hechizo lanzado en el tiempo bruja debe ir a velocidad normal).
 
 — Juego
+
+## 264 — Juego (28/10): **gamefeel, lote 1: que lanzar y golpear se sienta** (Pablo: «quiero mejorar el gamefeel lanzando los hechizos, también vs enemigos» → «haz lote 1») — `presentacion/sensacion_3d.gd` (nuevo, `Sensacion3D`), `audio/gen_sfx_sensacion.py` y `audio/lanzar_salida.wav`, `no_puedes.wav`, `aviso_ataque.wav` (nuevos), `nucleo/sfx.gd` (catálogo), `magia/lanzador_3d.gd`, `jugador/jugador_3d.gd`, `enemigos/combate_3d.gd`, `enemigos/aviso_ataque_3d.gd`, `presentacion/vfx_3d.gd` (`golpe_direccional`), `presentacion/ui/page_hud.gd` (`temblar`), pruebas `prueba_sensacion` (nueva) y `prueba_reaccion_enemigos` (el hitstop ya no es fijo). Sin commit.
+- **Al lanzar (`Sensacion3D.disparo`, desde `Lanzador3D._disparar`):** retroceso de la jugadora contra la dirección (1,1 u/s, ~0,15 u; no en lo que nace donde se apunta, la barrera), golpe de zoom de la cámara (−2,5 % y vuelve en 0,12 s, sin acumularse), estrella y luz en la mano del color del elemento, y la salida común `lanzar_salida` bajo el sonido del elemento.
+- **Al no poder (`Sensacion3D.no_puedes`, en cada negativa: ahora no, recarga, altura, tinta, no cabe):** golpe seco `no_puedes`, la página tiembla con un aro rojo en el HUD y el cursor parpadea en rojo con X.
+- **Pulsación guardada (0,15 s reales):** 1/2/3 pulsada mientras rueda, golpea, encaja un golpe o lanza se guarda y entra al poder (si se soltó, lanza); pasado el rato se niega como siempre. Ctrl pulsado mientras golpea o lanza rueda al acabar.
+- **Contra enemigos:** hitstop proporcional al daño (`Combate3D.HITSTOP` 0,04 → `HITSTOP_DEBIL` 0,10 a 40 de daño o con su debilidad) y compartido (la jugadora el 60 %, `Jugador3D.hitstop`); números con «pop» (nacen ×1,7 y encogen con rebote), del color del elemento, ×1,45 y con «!» si es su debilidad; el daño continuo (quemadura, veneno, pulsos de zona) se suma en un número; partículas en la dirección del golpe (también el golpe F, en blanco).
+- **Aviso (C3):** el enemigo se encoge al empezar (`ANTICIPA_ESCALA`) y suena `aviso_ataque`.
+- **Daño recibido (`Sensacion3D.dano_recibido`):** viñeta roja de 0,22 s, temblor 0,35 y hitstop de 0,05 s.
+- **Medido:** `prueba_sensacion` 35 / 0. Regresión de 35 pruebas a 0 salvo `prueba_mapa_abierto` (su fallo de antes). `prueba_lanzamiento_rapido` cazó que el retroceso alejaba 0,06 u la barrera del anillo de alcance: por eso lo que nace donde se apunta no retrocede.
+- **Sonidos:** sintetizados en Python puro (no hay `numpy` instalado); primera versión, a afinar de oído.
+- **Queda (Pablo):** afinar los números en el playtest (todo `static var`) y decidir el lote 2 (en PENDIENTES).
+
+— Juego

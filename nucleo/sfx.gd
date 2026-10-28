@@ -138,6 +138,10 @@ const CATALOGO: Dictionary = {
 	"escudo_roto":      {"f": ["escudo_roto.wav"],      "db": -6.0,  "tono": 0.06},
 	"aturdido":         {"f": ["aturdido.wav"],         "db": -11.0, "tono": 0.05},
 	"empujado":         {"f": ["empujado.wav"],         "db": -11.0, "tono": 0.10},
+	# 28/10 (Juego, gamefeel lote 1; audio/gen_sfx_sensacion.py): la salida común de todo hechizo, el «no puedes» seco y el aviso de ataque de un enemigo (C3).
+	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
+	"no_puedes":        {"f": ["no_puedes.wav"],        "db": -8.0,  "tono": 0.05},
+	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 

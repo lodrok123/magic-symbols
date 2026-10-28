@@ -43,11 +43,14 @@ static var MULT_EMPUJE_ELEMENTAL: float = 0.3  ## el elemental pesa: recibe este
 static var DECAIMIENTO_EMPUJE: float = 7.0     ## `lerp(empuje, 0, 7·dt)` por fotograma: el recorrido es v0 / 7 (de ahí la v0 mínima del suelo)
 static var TEMBLOR_GOLPE: float = 0.25         ## intensidad (0–1) del temblor de cámara al golpear a un enemigo (Vfx3D.temblor)
 static var TEMBLOR_DEBIL: float = 0.5          ## ... y si el elemento es su punto débil
-static var HITSTOP: float = 0.06               ## s que se congela ESE enemigo al recibir un golpe con daño (IA, animación y empuje; el mundo no)
-static var HITSTOP_DEBIL: float = 0.09         ## ídem si el golpe es de su elemento débil
+## 28/10 (gamefeel, `Sensacion3D.hitstop_de`): el hitstop es PROPORCIONAL al daño, de HITSTOP (golpe flojo) a HITSTOP_DEBIL (Sensacion3D.DANO_HITSTOP_MAX de daño o más, o su debilidad),
+## y la jugadora se congela también una fracción (Sensacion3D.HITSTOP_COMPARTIDO). Antes era fijo: 0,06 y 0,09.
+static var HITSTOP: float = 0.04               ## s que se congela ESE enemigo con el golpe más flojo (IA, animación y empuje; el mundo no)
+static var HITSTOP_DEBIL: float = 0.10         ## el máximo: un golpe grande o de su elemento débil
 static var DESTELLO_GOLPE: float = 0.20        ## s de blanco puro tras un golpe (antes 0,10 y tinte ×2,2, que dejaba ver la textura)
 static var SQUASH_ESCALA: Vector3 = Vector3(1.25, 0.8, 1.25)   ## aplastamiento del modelo al golpe: vuelve a 1 en SQUASH_TIEMPO con TRANS_BACK
 static var SQUASH_TIEMPO: float = 0.15
+static var ANTICIPA_ESCALA: Vector3 = Vector3(1.12, 0.86, 1.12)   ## gamefeel: cómo se encoge al empezar el aviso de su ataque (C3)
 static var SALTO_ALTO: float = 0.25            ## u: salto SOLO visual (el cuerpo no se mueve) con los elementos de SALTO_ELEMENTOS
 static var SALTO_TIEMPO: float = 0.3           ## s que dura (sube y baja)
 static var SALTO_ELEMENTOS: Array = ["viento", "tierra"]
@@ -242,6 +245,15 @@ var _salto_y: float = 0.0               ## u de salto visual sobre el suelo (sol
 const RETARDO_PERDIDA: float = 0.35     ## s que el trozo perdido espera antes de encogerse
 const DESTELLO_BARRA: float = 0.14      ## s que el relleno de la barra se queda blanco tras un golpe
 var _barra_destello: float = 0.0
+## Gamefeel (28/10): cómo se pinta el próximo número de daño. Un GOLPE (hechizo, golpe F) sale con «pop», del color del elemento y más grande si es su debilidad; el daño
+## CONTINUO (quemadura, veneno, pulsos de una zona) se SUMA en un solo número mientras siga llegando (VENTANA_SUMA_MS).
+const VENTANA_SUMA_MS: int = 600
+var _num_golpe: bool = false
+var _num_elemento: String = ""
+var _num_debil: bool = false
+var _num_continuo: Label3D = null
+var _suma_continua: float = 0.0
+var _t_suma_ms: int = -100000
 var _perdida_espera: float = 0.0
 var _t_anim: float = 0.0
 var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
@@ -414,9 +426,16 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		push(d, f, true)
 	if not parado and dano > 0.0:
 		r["dano"] = dano
+		_num_golpe = true
+		_num_elemento = ""
+		_num_debil = false
 		receive_damage(dano)
+		_num_golpe = false
+		var hs: float = Sensacion3D.hitstop_de(dano, false)
+		_hitstop_compartido(hs)
 		if not muerto:
-			_iniciar_hitstop(HITSTOP)
+			_iniciar_hitstop(hs)
+		_impacto_visual("", false, d)
 	_destello = maxf(_destello, DESTELLO_GOLPE)
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador                                  # un golpe te hace mirar a quien viene
@@ -689,14 +708,20 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if bool(dec["aturde"]):
 		_aturdir(hechizo.aturde)
 	if dano > 0.0:
+		_num_golpe = true
+		_num_elemento = el
+		_num_debil = mult > 1.0
 		receive_damage(dano)
+		_num_golpe = false
+		var hs: float = Sensacion3D.hitstop_de(dano, mult > 1.0)
+		_hitstop_compartido(hs)
 		if not muerto:
 			interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
-			_iniciar_hitstop(HITSTOP_DEBIL if mult > 1.0 else HITSTOP)
+			_iniciar_hitstop(hs)
 	_destello = maxf(_destello, DESTELLO_GOLPE)
 	if not muerto:
 		_reaccion_visual(el)
-	_impacto_visual(el, mult > 1.0)
+	_impacto_visual(el, mult > 1.0, d)
 	PlayLog.event("golpe_goblin", {"elemento": el, "dano": snappedf(dano, 0.1), "vida": snappedf(health, 0.1),
 		"mult": mult})
 
@@ -744,7 +769,7 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 	_destello = maxf(_destello, DESTELLO_DANO)
 	_barra_destello = DESTELLO_BARRA
 	_perdida_espera = RETARDO_PERDIDA
-	texto(str(int(round(cantidad))), Color(1, 0.95, 0.85))
+	_numero(cantidad)
 	if health > 0.0 and not elemental:      # el elemental no tiene clip `hit`. 17/10: también aturdido (antes se saltaba y el rayo no se notaba)
 		anim_orden = "hit"
 		interrupcion = maxf(interrupcion, INTERRUPCION_DANO)
@@ -752,14 +777,47 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 		_morir()
 
 
+## Gamefeel (28/10): el número de daño. Golpe: con «pop», del color de su elemento y más grande (con «!») si es su debilidad. Continuo: se suma al anterior si llega dentro de
+## VENTANA_SUMA_MS (la quemadura de 3 s sale como un número que va subiendo, no como seis).
+func _numero(cantidad: float) -> void:
+	var p: Vector3 = position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0)
+	if _num_golpe:
+		var col: Color = Color(1, 0.95, 0.85)
+		if _num_elemento != "" and COLORES.has(_num_elemento):
+			col = (COLORES[_num_elemento] as Color).lerp(Color.WHITE, 0.3)
+		flotante(mundo, p, str(int(round(cantidad))) + ("!" if _num_debil else ""), col, 1.45 if _num_debil else 1.0)
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if _num_continuo != null and is_instance_valid(_num_continuo) and ahora - _t_suma_ms < VENTANA_SUMA_MS:
+		_suma_continua += cantidad
+		_num_continuo.queue_free()
+	else:
+		_suma_continua = cantidad
+	_t_suma_ms = ahora
+	var col_c: Color = Color(0.85, 0.85, 0.85)
+	if _num_elemento == "fuego":
+		col_c = COLORES["fuego"]
+	elif _num_elemento == "veneno":
+		col_c = Color(0.55, 0.9, 0.35)
+	_num_continuo = flotante(mundo, p, str(int(round(_suma_continua))), col_c, 0.8)
+	_num_elemento = ""
+
+
+## Gamefeel: la jugadora también se congela un instante cuando su golpe conecta (una fracción del hitstop del enemigo).
+func _hitstop_compartido(hs: float) -> void:
+	if Sensacion3D.ACTIVA and jugador != null and is_instance_valid(jugador) and jugador.has_method("hitstop"):
+		jugador.hitstop(hs * Sensacion3D.HITSTOP_COMPARTIDO)
+
+
 func texto(txt: String, color: Color, extra_alto: float = 0.0) -> void:
 	Combate3D.flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA + extra_alto, 0), txt, color)
 
 
-## Número o aviso que sube y se desvanece. Estático: lo usan también Jugador3D y Lanzador3D.
-static func flotante(en: Node, pos: Vector3, txt: String, color: Color) -> void:
+## Número o aviso que sube y se desvanece. Estático: lo usan también Jugador3D y Lanzador3D. Gamefeel (28/10): nace grande y encoge con rebote («pop») hasta `escala`;
+## devuelve el Label3D (para sumarle daño continuo) o null.
+static func flotante(en: Node, pos: Vector3, txt: String, color: Color, escala: float = 1.0) -> Label3D:
 	if en == null or not en.is_inside_tree():
-		return
+		return null
 	var l := Label3D.new()
 	l.text = txt
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -775,7 +833,10 @@ static func flotante(en: Node, pos: Vector3, txt: String, color: Color) -> void:
 	var tw: Tween = l.create_tween().set_parallel(true)
 	tw.tween_property(l, "position:y", pos.y + 0.7, 0.9)
 	tw.tween_property(l, "modulate:a", 0.0, 0.9).set_delay(0.35)
+	l.scale = Vector3.ONE * escala * 1.7
+	tw.tween_property(l, "scale", Vector3.ONE * escala, 0.14).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.chain().tween_callback(l.queue_free)
+	return l
 
 
 ## =====================================================================================================
@@ -847,9 +908,14 @@ func _reaccion_visual(el: String) -> void:
 
 ## Estrella de impacto del elemento sobre el enemigo y un temblor de cámara: más fuerte si es su punto débil (T-CP2 / MEJORAS_POTENCIA §2). Sin `_fx` en el mundo
 ## (escenarios sin ventana) no hace nada.
-func _impacto_visual(el: String, debil: bool) -> void:
+## Gamefeel (28/10): y un chorro de partículas en la DIRECCIÓN del golpe (`dir`; el golpe F, sin elemento, solo eso y en blanco).
+func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> void:
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
-	if not (fx is Vfx3D) or not is_inside_tree() or not Vfx3D.ELEMENTOS.has(el):
+	if not (fx is Vfx3D) or not is_inside_tree():
+		return
+	if Sensacion3D.ACTIVA and Vector2(dir.x, dir.z).length() > 0.01:
+		(fx as Vfx3D).golpe_direccional(global_position + Vector3(0.0, 0.55, 0.0), dir, el, 1.4 if debil else 1.0)
+	if not Vfx3D.ELEMENTOS.has(el):
 		return
 	(fx as Vfx3D).golpe_estrella(global_position + Vector3(0.0, 0.6, 0.0), el, 1.5 if debil else 1.0)
 	(fx as Vfx3D).temblor(TEMBLOR_DEBIL if debil else TEMBLOR_GOLPE)
@@ -881,6 +947,7 @@ func _efectos(delta: float) -> void:
 		_tick_fuego -= delta
 		if _tick_fuego <= 0.0:
 			_tick_fuego = 0.5
+			_num_elemento = "fuego"
 			receive_damage(ELEM_IGNITE if elemental else 3.0 * (MULT_DEBIL if debil == "fuego" else 1.0))
 			if muerto:
 				return
@@ -892,6 +959,7 @@ func _efectos(delta: float) -> void:
 		_tick_veneno -= delta
 		if _tick_veneno <= 0.0:
 			_tick_veneno = TICK_VENENO
+			_num_elemento = "veneno"
 			receive_damage(_dps_veneno * TICK_VENENO)
 			if muerto:
 				return
@@ -1270,6 +1338,17 @@ func _avisar_ataque(efecto: Callable, t_golpe: float) -> void:
 	else:
 		_aviso = AvisoAtaque3D.circulo(mundo, position, RANGO_ATAQUE + 0.5, t_golpe, self)
 	avisos_dados += 1
+	_anticipar()
+
+
+## Gamefeel (28/10): al empezar el aviso el cuerpo se ENCOGE un instante (coge impulso) y vuelve: el aviso se lee también en el enemigo, no solo en el suelo.
+func _anticipar() -> void:
+	if not Sensacion3D.ACTIVA or elemental or pj == null or not is_instance_valid(pj):
+		return
+	_cancelar_squash()
+	_tw_squash = create_tween()
+	_tw_squash.tween_method(_poner_squash, Vector3.ONE, ANTICIPA_ESCALA, 0.12).set_ease(Tween.EASE_OUT)
+	_tw_squash.tween_method(_poner_squash, ANTICIPA_ESCALA, Vector3.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _quitar_aviso() -> void:
