@@ -751,6 +751,16 @@ func libro_abierto() -> bool:
 	return libro != null and bool(libro.get("is_open"))
 
 
+## C4 (28/10): la escala de tiempo que pide el lanzamiento AHORA (apuntando: la del modo; con el libro abierto: TIEMPO_LIBRO; si no, 1). La usa `TiempoBruja` al acabar,
+## para devolver el tiempo que tocaba y no un 1 que sacaría al apuntado de su cámara lenta.
+func escala_de_tiempo() -> float:
+	if modo_lanzar:
+		return TIEMPO_PAGINA if _rapido else RALENTIZADO
+	if _libro_lento:
+		return TIEMPO_LIBRO
+	return 1.0
+
+
 ## 8.8: ¿se puede lanzar una receta con estos glifos? Devuelve "" si sí, o el aviso. Pensado para que el libro avise ANTES de
 ## cerrarlo (spellbook.gd es de Pablo: la llamada la pone él; mientras, `cast_page` ya se niega con este mismo aviso).
 static func aviso_receta(glifos: Array, rune: RuneData = null) -> String:
@@ -918,6 +928,12 @@ func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 	_ts_antes = Engine.time_scale
 	var tiempo: float = TIEMPO_PAGINA if rapido else RALENTIZADO
 	Engine.time_scale = tiempo
+	if TiempoBruja.activa():
+		# C4: dentro del tiempo bruja manda él (0,3) y ella ya va compensada: el clip de apuntar va a su paso, sin la compensación propia del modo. Al acabar se vuelve a
+		# `escala_de_tiempo()`; y al salir del modo, a 1.
+		_ts_antes = 1.0
+		Engine.time_scale = TiempoBruja.ESCALA
+		tiempo = 1.0
 	var rune: RuneData = _preparado["rune"]
 	var forma: String = (_preparado["receta"] as Receta3D).forma()
 	if jugador != null:
@@ -944,7 +960,7 @@ func _salir_modo(lanzando: bool = false) -> void:
 	_rapido = false
 	_pagina_rapida = -1
 	_fijado = false
-	Engine.time_scale = 1.0 if _ts_antes <= 0.0 else _ts_antes
+	Engine.time_scale = TiempoBruja.ESCALA if TiempoBruja.activa() else (1.0 if _ts_antes <= 0.0 else _ts_antes)
 	if _guia != null:
 		_guia.visible = false
 	for m in [_marca_origen, _marca_flecha, _marca_alcance]:

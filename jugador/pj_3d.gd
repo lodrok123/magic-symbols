@@ -2143,6 +2143,12 @@ func set_velocidad_animacion(v: float) -> void:
 		_arbol.vel_global = v
 
 
+## C4: factor del tiempo bruja (ver `ArbolAnimPj.vel_tiempo`).
+func set_vel_tiempo(v: float) -> void:
+	if _arbol != null:
+		_arbol.vel_tiempo = v
+
+
 ## La velocidad de animación puesta con `set_velocidad_animacion` (1 si no hay árbol).
 func velocidad_animacion() -> float:
 	return _arbol.vel_global if _arbol != null else 1.0

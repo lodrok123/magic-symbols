@@ -86,6 +86,9 @@ extends Node
 ##              ni bloquea (el sitio de la barrera de la jugadora). Señal `levanta`; acción `levantar`. Bloquea su casilla
 ##   puente     celdas=<lista> (la propia x,y)                                       PuenteReactivo3D (28/10): losas rúnicas plegadas bajo el agua de `celdas`; con la acción `tender` (o la `cuerda`
 ##              que lo sostiene, al quemarse) suben una a una y cada casilla se vuelve un puente que se pisa. Señal `tendido`; condición `tendido`|`plegado`
+##   limo       elemento=fuego|agua|hielo|rayo|tierra|viento (sin teñir)  grande=si (no)   Limo3D (E1, 28/10): el limo elemental. Persigue a brincos y salta encima (15; 30 de grande),
+##              se tiñe del primer elemento que le llega (hechizo o casilla), con su elemento otra vez crece y, grande, su elemento lo cura. Es un Combate3D: el vigía lo cuenta
+##              (su casilla de partida es la de la pieza). No bloquea su casilla
 ##   (puerta)   modelo=reja                                                          28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
@@ -379,6 +382,7 @@ const CLAVES: Dictionary = {
 	"entrada": {"mira": "s:n|e|s|o"},
 	"guardian": {"en": "celdas", "cada": "f", "elemento": "s:fuego|agua|hielo|tierra|rayo|viento", "cerca": "f", "roto": "b"},
 	"puente": {"celdas": "celdas"},
+	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -2071,6 +2075,12 @@ func _crear(pz: Pieza) -> void:
 			gu.preparar(pz.celda, pz.p["en"], float(pz.p.get("cada", 0.0)), String(pz.p.get("elemento", "fuego")), float(pz.p.get("cerca", 0.0)), bool(pz.p.get("roto", false)), mundo as Node)
 			cont.add_child(gu)
 			pz.nodo = gu
+		"limo":
+			# E1 (28/10): el limo se cuelga del MUNDO (como los Combate3D de los goblins), no del decorado: su cuerpo es hermano suyo y se mueve por el nivel.
+			var cel_l: Vector2i = pz.celda
+			var li: Limo3D = Limo3D.crear(mundo as Node3D, Terreno3D.centro_de(cel_l, Terreno3D.y_pies(cel_l)), String(pz.p.get("elemento", "")), bool(pz.p.get("grande", false)))
+			li.name = pz.id
+			pz.nodo = li
 		"puente":
 			# 28/10 (Gruta Batida): las losas rúnicas de PuenteReactivo3D sobre el agua de `celdas`, plegadas hasta `tender` (una regla o la cuerda que lo sostiene).
 			# Cada losa que sube vuelve su casilla un puente «b» que se pisa.

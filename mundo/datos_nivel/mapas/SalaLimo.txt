@@ -1,0 +1,26 @@
+#################
+#.S.............#
+#...............#
+#...............#
+#..........~~~..#
+#..........~~~..#
+#...............#
+#################
+; ======================================================================================================================================================
+;  LA SALA DEL LIMO (28/10/2026). Banco de pruebas del LIMO ELEMENTAL (E1, enemigos/limo_3d.gd; reglas en docs/PROPUESTA_COMBATE.md §4): una sola sala con tres limos y una
+;  charca honda. Kit `pruebas` (todos los elementos), para probar a mano las reglas:
+;    · el limo de la izquierda (6,2) nace SIN TEÑIR: el primer elemento que le llega lo tiñe (no le hace daño);
+;    · el del centro (13,2) ya es de FUEGO: otro fuego lo hace GRANDE (salta un 30 % más y pega 30 en vez de 15); grande, el fuego solo lo cura;
+;    · el de la derecha (14,6) es un GRANDE de AGUA: el agua lo cura; cualquier otro elemento, el golpe F o empujarlo a la charca (11..13, 4..5) lo vencen.
+;  Antes de saltar encima, cada limo marca en rojo dónde va a caer (C3); rodar (Ctrl) en el último instante abre el tiempo bruja (C4).
+;  Vencidos los tres, aparece el cofre (2,6). Lo comprueba herramientas/escenario_sala_limo.gd.
+; ======================================================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio
+;
+; zona 1,1..15,6 cueva mezcla=0.8 rotulo=El_limo
+;
+; pieza limo_neutro limo 6 2
+; pieza limo_fuego limo 13 2 elemento=fuego
+; pieza limo_grande limo 14 6 elemento=agua grande=si
+; pieza vigia_limos vigia 8 3 de=5,1..15,6 flag=salalimo.sala.limpia
+; pieza cofre_limo cofre 2 6 aparece_si=flag.salalimo.sala.limpia abierto=salalimo.sala.cofre da=oro:30

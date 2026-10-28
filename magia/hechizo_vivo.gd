@@ -773,6 +773,9 @@ static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 			# consulta el escudo ardiendo no protegía de su propio campo de llamas (el goblin perdía 10 cada 0,25 s). Si el escudo cubre de frente, no hay daño.
 			if e.has_method("escudo_cubre") and bool(e.call("escudo_cubre", d)):
 				continue
+			# E1 (28/10): el limo teñido de ESTE elemento no se quema en su propia llama (si ya es grande, le cura).
+			if e.has_method("absorbe_pulso") and bool(e.call("absorbe_pulso", z.elemento, z.dano_periodico * z.intervalo)):
+				continue
 			e.call("receive_damage", z.dano_periodico * z.intervalo)
 		else:
 			z.tocados[e.get_instance_id()] = true

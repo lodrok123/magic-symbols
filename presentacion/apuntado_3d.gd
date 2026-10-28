@@ -38,6 +38,11 @@ const TAM_CURSOR: int = 48                             ## px del cursor (la punt
 ## Qué textura viva lleva el fantasma de cada elemento (`CODIGO_FANTASMA`, uniform `tipo`).
 const TIPO_FANTASMA: Dictionary = {"fuego": 0, "agua": 1, "hielo": 2, "rayo": 3, "viento": 4, "tierra": 5}
 const MAX_FANTASMAS: int = 8
+## A4 · TRAYECTORIAS (28/10): las copias de ᚠ (repetición) van con este alfa sobre el del proyectil principal (el del centro del abanico), y cada REBOTE lleva un rombo donde
+## la línea se quiebra: un cambio de rumbo de más de ANGULO_REBOTE grados en el plano.
+const TENUE_COPIAS: float = 0.42
+const ANGULO_REBOTE: float = 25.0
+const LADO_ROMBO_REBOTE: float = 0.32       ## u
 
 const CODIGO_FANTASMA: String = """
 shader_type spatial;
@@ -145,6 +150,7 @@ render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabl
 uniform vec4 color : source_color = vec4(1.0);
 uniform bool sombra = false;
 uniform float largo = 1.0;
+uniform float tenue = 1.0;                                  // A4: las copias de ᚠ se dibujan más tenues que el proyectil principal
 void fragment() {
 	float y = abs(UV.y - 0.5) * 2.0;                       // 0 en el centro, 1 en el borde
 	float u = UV.x;                                         // u recorridas desde el origen
@@ -162,7 +168,7 @@ void fragment() {
 		float borde = smoothstep(0.82, 0.9, y) * (1.0 - smoothstep(0.95, 1.0, y));
 		float pulso = 0.85 + 0.15 * sin(TIME * 4.0);
 		ALBEDO = mix(color.rgb, color.rgb * 0.15, borde);
-		ALPHA = max(max(lleno, base), borde * 0.6) * entrada * pulso;
+		ALPHA = max(max(lleno, base), borde * 0.6) * entrada * pulso * tenue;
 	}
 }
 """
@@ -174,6 +180,8 @@ static var _sh_fantasma: Shader = null
 
 ## Para las pruebas: lo dibujado en el último `mostrar`.
 var caminos_dibujados: Array = []          ## [PackedVector3Array]
+var principal_dibujado: int = -1           ## A4: qué camino de `caminos_dibujados` va entero (el del centro del abanico); los demás, tenues (-1 = ninguno)
+var rebotes_dibujados: Array[Vector3] = [] ## A4: dónde se dibujó cada rombo de rebote (el punto del quiebre)
 var reticulas: Array[Vector3] = []         ## dónde quedó cada retícula (en el suelo)
 var motivo_visible: String = ""
 
@@ -181,6 +189,9 @@ var _cintas: MeshInstance3D = null
 var _sombras: MeshInstance3D = null
 var _mat_cinta: ShaderMaterial = null
 var _mat_sombra: ShaderMaterial = null
+var _cintas_tenues: MeshInstance3D = null
+var _mat_tenue: ShaderMaterial = null
+var _rombos: Array[MeshInstance3D] = []
 var _discos: Array[MeshInstance3D] = []
 var _rotulo: Label3D = null
 var _fantasmas: Array[MeshInstance3D] = []
@@ -285,6 +296,10 @@ func _ready() -> void:
 	_mat_sombra.set_shader_parameter("sombra", true)
 	_cintas = _malla(_mat_cinta)
 	_sombras = _malla(_mat_sombra)
+	_mat_tenue = ShaderMaterial.new()
+	_mat_tenue.shader = _shader("cinta")
+	_mat_tenue.set_shader_parameter("tenue", TENUE_COPIAS)
+	_cintas_tenues = _malla(_mat_tenue)
 	_rotulo = Label3D.new()
 	_rotulo.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_rotulo.no_depth_test = true
@@ -312,8 +327,11 @@ func _malla(m: ShaderMaterial) -> MeshInstance3D:
 func mostrar(recorrido: Dictionary, origen: Vector3, dir: Vector3, largo: float, color: Color, motivo: String = "", desde: Vector3 = Vector3.INF) -> void:
 	caminos_dibujados.clear()
 	reticulas.clear()
+	rebotes_dibujados.clear()
+	principal_dibujado = -1
 	var col: Color = COLOR_NO if motivo != "" else color
 	_mat_cinta.set_shader_parameter("color", col)
+	_mat_tenue.set_shader_parameter("color", col)
 	var caminos: Array = recorrido.get("caminos", [])
 	if motivo == "":
 		for c in caminos:
@@ -328,17 +346,28 @@ func mostrar(recorrido: Dictionary, origen: Vector3, dir: Vector3, largo: float,
 			caminos_dibujados.append(PackedVector3Array([a, b]))
 	var largo_max: float = 0.0
 	var im: ImmediateMesh = _cintas.mesh as ImmediateMesh
+	var tm: ImmediateMesh = _cintas_tenues.mesh as ImmediateMesh
 	var sm: ImmediateMesh = _sombras.mesh as ImmediateMesh
 	im.clear_surfaces()
+	tm.clear_surfaces()
 	sm.clear_surfaces()
 	var con_sombra: bool = false
-	for c in caminos_dibujados:
-		largo_max = maxf(largo_max, _cinta(im, c, false))
+	# A4: con varias copias (ᚠ) el proyectil «de verdad» es el del centro del abanico (`HechizoVivo.salida_de_copia` las abre de izquierda a derecha); las demás, tenues.
+	if not caminos_dibujados.is_empty():
+		principal_dibujado = (caminos_dibujados.size() - 1) / 2
+	for k in range(caminos_dibujados.size()):
+		var c: PackedVector3Array = caminos_dibujados[k]
+		largo_max = maxf(largo_max, _cinta(im if k == principal_dibujado else tm, c, false))
 		if _vuela_alto(c):
 			_cinta(sm, _a_ras(c), true)
 			con_sombra = true
+		if motivo == "":
+			for q in quiebres(c):
+				rebotes_dibujados.append(q)
 	_mat_cinta.set_shader_parameter("largo", largo_max)
+	_mat_tenue.set_shader_parameter("largo", largo_max)
 	_mat_sombra.set_shader_parameter("largo", largo_max)
+	_pintar_rombos(col)
 	_sombras.visible = con_sombra
 	# retículas: donde se para cada proyectil (si vuela); si no se puede lanzar, una sola en el origen, con X
 	var puntos: Array = []
@@ -366,6 +395,46 @@ func mostrar(recorrido: Dictionary, origen: Vector3, dir: Vector3, largo: float,
 	if motivo != "":
 		_rotulo.text = motivo
 		_rotulo.global_position = Vector3(origen.x, _y_suelo(origen) + 0.9, origen.z)
+
+
+## A4: los puntos donde el camino se QUIEBRA (un rebote): el rumbo en el plano cambia más de ANGULO_REBOTE grados entre el tramo que llega y el que sale. El arco de una caída no
+## cuenta (cambia la altura, no el rumbo). Los tramos de menos de 1 cm se saltan.
+static func quiebres(pts: PackedVector3Array) -> Array[Vector3]:
+	var r: Array[Vector3] = []
+	var prev_dir: Vector2 = Vector2.ZERO
+	var prev_p: Vector3 = Vector3.INF
+	for k in range(pts.size()):
+		if prev_p == Vector3.INF:
+			prev_p = pts[k]
+			continue
+		var d2 := Vector2(pts[k].x - prev_p.x, pts[k].z - prev_p.z)
+		if d2.length() < 0.01:
+			continue
+		d2 = d2.normalized()
+		if prev_dir != Vector2.ZERO and absf(rad_to_deg(prev_dir.angle_to(d2))) > ANGULO_REBOTE:
+			r.append(prev_p)
+		prev_dir = d2
+		prev_p = pts[k]
+	return r
+
+
+## Un rombo plano (una casilla girada 45°, con contorno) en cada rebote.
+func _pintar_rombos(col: Color) -> void:
+	while _rombos.size() < rebotes_dibujados.size():
+		var d: MeshInstance3D = disco(LADO_ROMBO_REBOTE * 2.0, col, 0.09, 0.0, false)
+		var pm: PlaneMesh = d.mesh as PlaneMesh
+		((pm.material as ShaderMaterial)).set_shader_parameter("marcas", true)
+		add_child(d)
+		_rombos.append(d)
+	for k in range(_rombos.size()):
+		var m: MeshInstance3D = _rombos[k]
+		m.visible = k < rebotes_dibujados.size()
+		if not m.visible:
+			continue
+		pintar_disco(m, col)
+		var q: Vector3 = rebotes_dibujados[k]
+		m.global_position = Vector3(q.x, maxf(q.y, _y_suelo(q)) + 0.05, q.z)
+		m.rotation.y = PI * 0.25
 
 
 ## Los fantasmas: una cúpula por casilla que ocuparía cada volumen (`volumen.celdas`, las mismas en las que actúa), a ras de su suelo. Un haz no deja fantasma: ya se ve su recta.

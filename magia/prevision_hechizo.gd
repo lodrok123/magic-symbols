@@ -15,7 +15,7 @@ extends RefCounted
 ##               `Lava3D.celdas_enfriables` / `celda_de_impacto` (cada una la llama su `on_spell_hit`). `Rompible3D` y las piezas sin tabla propia se nombran «rompe» / «activa».
 ##
 ## CADA ENTRADA:  {que: «enemigo»|«suelo»|«pieza», nodo: Node o null, celda: Vector2i, reaccion: String, mult: float, extra: Dictionary}
-##   reaccion  la principal. Enemigo: bloquea · hunde · electrocuta · congela · prende · moja · seca (vapor) · apaga · aturde · empuja · ralentiza · golpe.
+##   reaccion  la principal. Enemigo: bloquea · crece · cura · tine (el limo, E1) · hunde · electrocuta · congela · prende · moja · seca (vapor) · apaga · aturde · empuja · ralentiza · golpe.
 ##             Suelo: hiela · moja · seca · derrite · evapora · prende · arde · brota · apaga · abanica.   Pieza: enciende · apaga · prende · moja · aviva · activa · brota · mueve · agrieta · rompe · enfria.
 ##   mult      2,0 debilidad · 0,5 resistencia · 1,0 (en piezas y suelo, siempre 1,0)
 ##   extra     enemigo: {reacciones: [String] (todas, en orden de importancia), dano, cubierto, escudo (la reacción del escudo si lo para), hundira, destino: Vector3 (adónde llegaría empujado),
@@ -29,7 +29,7 @@ extends RefCounted
 ## Un proyectil con `retorna` se prevé solo en la ida.
 
 ## Prioridad de las reacciones de un enemigo para elegir la principal (la primera que aparece).
-const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "hunde", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe"]
+const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "crece", "cura", "tine", "hunde", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe"]
 ## Qué aviso de `Combate3D.decidir_golpe` (catálogo de Mundo3D.REACCIONES) es qué reacción del indicador.
 const DE_AVISO: Dictionary = {"electrocutado": "electrocuta", "prendido": "prende", "apagado_agua": "apaga", "secado": "seca", "mojado": "moja", "congelado": "congela"}
 ## Un empujón menor que esto (casillas) no cuenta como «empuja» para el indicador (todo golpe con daño empuja un poco: EMPUJE_MIN_CASILLAS).
@@ -217,6 +217,8 @@ static func _enemigo(g: Combate3D, h: Hechizo, rune: RuneData, dir: Vector3, pun
 	var empuja: bool = not empuje.is_empty() and float(empuje["recorrido"]) >= EMPUJE_VISIBLE_CASILLAS * cas
 	if bool(pg["cubierto"]):
 		lista.append("bloquea")
+	elif String(pg.get("absorbe", "")) != "":
+		lista.append(String(pg["absorbe"]))              # E1: el limo absorbe el elemento (tiñe · crece · cura): nada más le pasa
 	else:
 		for aviso in pg["avisos"]:
 			var n: String = String(DE_AVISO.get(String(aviso), ""))

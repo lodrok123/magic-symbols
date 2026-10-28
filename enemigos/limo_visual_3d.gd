@@ -165,6 +165,9 @@ var _destello: float = 0.0                       ## el núcleo destella al absor
 var _g: float = 0.0                              ## 0..1: cuánto «grande» se ve (cejas, ojos, núcleo, respiración)
 var _cejas: Array[MeshInstance3D] = []
 var _sep_hijos: float = 0.9
+var _salto_dist: float = CASILLA                 ## E1 (28/10): u que avanza el salto en curso (el limo de combate la recorta contra las paredes)
+var _salto_alto: float = 1.0                     ## × ALTO_SALTO
+var _salto_prep: float = T_PREPARA               ## s agachado antes de saltar (la acometida se agacha más: es su aviso)
 var _rng := RandomNumberGenerator.new()
 
 
@@ -412,15 +415,34 @@ func esta_congelado() -> bool:
 
 
 ## Salto de una casilla (2,3 u) hacia `dir` (en el plano horizontal): se aplasta, se estira en el aire y se aplasta al caer.
-func saltar(dir: Vector3) -> void:
+## E1 (28/10): `distancia` (u), `alto` (× ALTO_SALTO) y `prepara` (s agachado) para el limo de combate: el grande salta un 30 % más y la acometida se agacha más rato.
+func saltar(dir: Vector3, distancia: float = CASILLA, alto: float = 1.0, prepara: float = T_PREPARA) -> void:
 	if _estado == "salto":
 		return
 	dir.y = 0.0
 	_dir = dir.normalized() if dir.length() > 0.001 else Vector3.FORWARD
 	_origen = position
+	_salto_dist = maxf(distancia, 0.0)
+	_salto_alto = alto
+	_salto_prep = maxf(prepara, 0.01)
 	_estado = "salto"
 	_te = 0.0
 	en_salto = true
+
+
+## E1: s desde que empieza el salto hasta que toca el suelo (agacharse + vuelo).
+func t_hasta_caer() -> float:
+	return _salto_prep + T_AIRE
+
+
+## E1: corta el salto donde esté (lo han golpeado, congelado o empujado): vuelve al suelo en su sitio, sin la caída.
+func cancelar_salto() -> void:
+	if _estado != "salto":
+		return
+	position.y = _origen.y
+	_estado = "golpe"
+	_te = 0.0
+	en_salto = false
 
 
 func golpe() -> void:
@@ -555,21 +577,22 @@ func _animar_tamano(delta: float) -> void:
 
 
 func _animar_salto() -> void:
-	if _te < T_PREPARA:
-		var k: float = _te / T_PREPARA
+	if _te < _salto_prep:
+		var k: float = _te / _salto_prep
 		_sq = lerpf(1.0, lerpf(0.62, 0.55, _g), k * k)
-	elif _te < T_PREPARA + T_AIRE:
-		var u: float = (_te - T_PREPARA) / T_AIRE
-		var h: float = ALTO_SALTO * lerpf(1.0, 0.6, _g) * 4.0 * u * (1.0 - u)
-		position = _origen + _dir * CASILLA * u + Vector3(0.0, h, 0.0)
+		_temblor = 0.35 * k if _salto_prep > T_PREPARA * 1.5 else 0.0          # la acometida tiembla mientras se agacha: va a saltar fuerte
+	elif _te < _salto_prep + T_AIRE:
+		var u: float = (_te - _salto_prep) / T_AIRE
+		var h: float = ALTO_SALTO * _salto_alto * lerpf(1.0, 0.6, _g) * 4.0 * u * (1.0 - u)
+		position = _origen + _dir * _salto_dist * u + Vector3(0.0, h, 0.0)
 		_sq = lerpf(0.62, 1.32, u / 0.25) if u < 0.25 else lerpf(1.32, 0.92, (u - 0.25) / 0.75)
-	elif _te < T_PREPARA + T_AIRE + T_CAE:
-		var k2: float = (_te - T_PREPARA - T_AIRE) / T_CAE
-		position = _origen + _dir * CASILLA
+	elif _te < _salto_prep + T_AIRE + T_CAE:
+		var k2: float = (_te - _salto_prep - T_AIRE) / T_CAE
+		position = _origen + _dir * _salto_dist
 		_sq = 1.0 - lerpf(0.4, 0.55, _g) * exp(-4.0 * k2) * cos(k2 * TAU * 0.9)
 		_temblor = lerpf(0.25, 0.6, _g) * (1.0 - k2)
 	else:
-		position = _origen + _dir * CASILLA
+		position = _origen + _dir * _salto_dist
 		_sq = 1.0
 		_estado = "reposo"
 		en_salto = false

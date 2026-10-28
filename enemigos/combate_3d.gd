@@ -53,6 +53,8 @@ static var SALTO_TIEMPO: float = 0.3           ## s que dura (sube y baja)
 static var SALTO_ELEMENTOS: Array = ["viento", "tierra"]
 static var INTERRUPCION_GOLPE: float = 0.6     ## s sin atacar tras un golpe con daño (antes 0,3). El resto del daño sigue con INTERRUPCION_DANO
 static var INTERRUPCION_DANO: float = 0.3      ## s que da cualquier otro daño (quemadura, arco del rayo): con 0,6 una quemadura no le dejaría atacar nunca
+## C3 (28/10): los ataques marcan antes en el suelo la zona que van a golpear (`AvisoAtaque3D`). `static var` para poder apagarlo desde un laboratorio.
+static var AVISAR_ATAQUES: bool = true
 const DESTELLO_DANO: float = 0.10              ## destello del daño que no es golpe (quemadura): el de siempre, para que no parpadee en blanco
 
 ## --- IA (px del 2D pasados a unidades: 300 px ≈ 2,5 casillas, §4.3 del plan) ---
@@ -258,6 +260,8 @@ var _jefe_perdida: ColorRect = null
 var _golpe_pendiente: bool = false   ## hay un ataque cuerpo a cuerpo cuyo golpe aún no ha salido (se puede cancelar)
 var _en_rango: bool = false          ## histéresis: ya está en rango de golpe
 var _ataque_id: int = 0        ## cambia al cancelar el ataque: los golpes/flechas pendientes se descartan
+var _aviso: AvisoAtaque3D = null        ## C3: el aviso en el suelo del ataque en curso (null si no hay o si ya lo soltó: la flecha en vuelo lleva el suyo)
+var avisos_dados: int = 0               ## C3: cuántos avisos ha sacado (para las pruebas)
 var _materiales: Array = []
 var _bases: Array = []
 var _barra_fondo: MeshInstance3D = null
@@ -1222,6 +1226,10 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 		dur = T_ANIM_ATAQUE
 		vel_anim = 1.0
 		momento = 0.3
+	# C3: entre el aviso y el golpe pasan al menos AvisoAtaque3D.T_MIN s. Si el clip golpea antes (un modelo sin clip de ataque: 0,24 s), se reproduce más despacio.
+	# La flecha no lo necesita: a lo que tarda en soltarla se suma el vuelo.
+	if AVISAR_ATAQUES and efecto != _soltar_flecha and dur / vel_anim * momento < AvisoAtaque3D.T_MIN:
+		vel_anim = dur * momento / AvisoAtaque3D.T_MIN
 	var total: float = dur / vel_anim
 	_ataque = total
 	_t_anim = total
@@ -1230,6 +1238,7 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	_ataque_id += 1
 	_golpe_pendiente = true
 	get_tree().create_timer(total * momento, false).timeout.connect(_efecto_ataque.bind(_ataque_id, efecto))
+	_avisar_ataque(efecto, total * momento)
 	PlayLog.event("goblin_ataca", {"duracion": snappedf(total, 0.01), "efecto_en": snappedf(total * momento, 0.01)})
 
 
@@ -1237,10 +1246,42 @@ func _efecto_ataque(id: int, efecto: Callable) -> void:
 	if id == _ataque_id:
 		_golpe_pendiente = false
 		efecto.call()
+		_aviso = null                     # el aviso acaba solo en su instante (o lo fijó la flecha y vuela con ella): cancelar el ataque ya no lo toca
+
+
+## C3: saca el aviso del ataque que empieza, con la MISMA zona que comprueba su golpe y el mismo tiempo (`t_golpe` s hasta el golpe):
+##   · guerrero y asesino (`_conectar`): un círculo de radio RANGO_ATAQUE + 0,5 alrededor de él;
+##   · elemental (`_golpe_elemental`): el rectángulo del puñetazo, delante de él (ELEM_ALCANCE_GOLPE × ELEM_ANCHO_GOLPE a cada lado, desde 0,3 por detrás);
+##   · arquero (`_soltar_flecha`): un círculo de RADIO_IMPACTO_FLECHA que sigue a la jugadora mientras tensa y se queda donde suelta (`_soltar_flecha` lo fija con el vuelo).
+## El asesino da dos cortes: el aviso marca el primero (el segundo solo cuenta si el primero falla).
+func _avisar_ataque(efecto: Callable, t_golpe: float) -> void:
+	_quitar_aviso()
+	if not AVISAR_ATAQUES or mundo == null or not is_inside_tree():
+		return
+	if efecto == _soltar_flecha:
+		if jugador == null or not is_instance_valid(jugador):
+			return
+		var t_vuelo: float = maxf(position.distance_to(jugador.position) / VEL_FLECHA, 0.1)
+		_aviso = AvisoAtaque3D.circulo(mundo, jugador.position, RADIO_IMPACTO_FLECHA, t_golpe + t_vuelo, self)
+		_aviso.seguir(jugador)
+	elif efecto == _golpe_elemental:
+		var k: float = _k_ref()
+		_aviso = AvisoAtaque3D.rectangulo(mundo, position, mirada, ELEM_ALCANCE_GOLPE * k, ELEM_ANCHO_GOLPE * k, t_golpe, self, 0.3)
+	else:
+		_aviso = AvisoAtaque3D.circulo(mundo, position, RANGO_ATAQUE + 0.5, t_golpe, self)
+	avisos_dados += 1
+
+
+func _quitar_aviso() -> void:
+	if _aviso != null and is_instance_valid(_aviso):
+		_aviso.cancelar()
+	_aviso = null
 
 
 ## Golpe, parálisis, hielo o muerte: la animación se corta y el golpe/flecha pendiente ya no sale.
 func _cancelar_ataque() -> void:
+	if _golpe_pendiente:
+		_quitar_aviso()
 	if _ataque > 0.0:
 		_ataque = 0.0
 		_t_anim = 0.0
@@ -1258,6 +1299,12 @@ func _soltar_flecha() -> void:
 	if fijo:
 		destino = _con_adelanto(origen, destino)
 	var bloqueada: bool = not Terreno3D.linea_libre(position, jugador.position)
+	var t_vuelo: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
+	if _aviso != null and is_instance_valid(_aviso):
+		if bloqueada:
+			_aviso.cancelar()                                   # no va a llegar: que no avise de un golpe que no existe
+		else:
+			_aviso.fijar(Vector3(destino.x, jugador.position.y, destino.z), t_vuelo)     # C3: cae donde la suelta, cuando llega
 	var flecha := MeshInstance3D.new()
 	var caja := BoxMesh.new()
 	caja.size = Vector3(0.05, 0.05, 0.6)
@@ -1269,7 +1316,7 @@ func _soltar_flecha() -> void:
 	mundo.add_child(flecha)
 	flecha.position = origen
 	flecha.look_at(destino, Vector3.UP)
-	var t: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
+	var t: float = t_vuelo
 	var tw: Tween = flecha.create_tween()
 	if not bloqueada:
 		# Por tramos: así nota la burbuja del jugador (si hay lanzador) y cualquier llama que cruce (A2). Sin lanzador antes volaba de golpe.
@@ -2049,6 +2096,7 @@ func _hundirse(c: Vector2i) -> void:
 func _morir(ahogado: bool = false) -> void:
 	if muerto:
 		return
+	_quitar_aviso()
 	if quemando > 0.0:
 		_reaccionar("apagado_agua" if ahogado else "consumido")     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
 	muerto = true

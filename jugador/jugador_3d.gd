@@ -128,6 +128,9 @@ var _pegar_hecho: bool = true
 var _pegar_dir: Vector3 = Vector3(0, 0, 1)
 var ultimo_golpe_cuerpo: Dictionary = {}     ## el resumen del último golpe (GolpeCuerpo.impactar); lo lee la prueba
 signal golpe_cuerpo_dado(resumen: Dictionary)
+## 28/10 · C4: rodó a tiempo bajo un aviso (C3) y ganó el tiempo bruja (`TiempoBruja`). `aviso` es el AvisoAtaque3D esquivado.
+signal esquiva_perfecta(aviso: AvisoAtaque3D)
+var esquivas_perfectas: int = 0
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
 ## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
@@ -211,13 +214,16 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 ##  Lo que pregunta Lanzador3D
 ## =====================================================================================================
 
+## C4: en el tiempo bruja se puede lanzar aunque aún esté rodando (lanzar corta la voltereta: `apuntar_en_marcha`, `bloquear`).
 func puede_lanzar() -> bool:
-	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
+	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and (_t_roll <= 0.0 or TiempoBruja.activa()) and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
 
 
 func bloquear(b: bool) -> void:
 	bloqueado = b
 	_empuje = Vector3.ZERO
+	if b:
+		_t_roll = 0.0                             # C4: apuntar en el tiempo bruja corta la voltereta
 
 
 ## 27/10 · A1 (lanzamiento rápido): `true` mientras se mantiene 1/2/3. NO bloquea: la jugadora anda con WASD a paso normal, pero sin correr, saltar ni rodar, y no gira hacia donde camina sino hacia donde apunta
@@ -227,6 +233,8 @@ var apuntando_rapido: bool = false
 
 func apuntar_en_marcha(b: bool) -> void:
 	apuntando_rapido = b
+	if b:
+		_t_roll = 0.0                             # C4: apuntar en el tiempo bruja corta la voltereta
 
 
 ## Entra en el modo apuntar: la elfa pone el clip de lanzar de la forma y las motas del elemento en la mano (Pj3D.lanzar,
@@ -360,6 +368,7 @@ func posicion_punto_cast(origen: String, dir: Vector3) -> Vector3:
 
 
 func _morir() -> void:
+	TiempoBruja.terminar(lanz)
 	_t_roll = 0.0
 	_t_pegar = 0.0
 	_t_beber = 0.0
@@ -414,6 +423,11 @@ static func una_vez(pj_: Pj3D, nombre: String) -> void:
 func _process(delta: float) -> void:
 	if mundo == null or pj == null or not is_instance_valid(pj):
 		return
+	# C4: en el tiempo bruja el mundo va a 0,3 y ella a su paso: su reloj y su animación se dividen por la escala.
+	TiempoBruja.actualizar(lanz, delta)
+	var comp: float = TiempoBruja.compensacion()
+	delta *= comp
+	pj.set_vel_tiempo(comp)
 	if pj.position.distance_to(_ultima) > 0.05:
 		position = pj.position              # lo han movido desde fuera (ir_a)
 		vy = 0.0
@@ -718,6 +732,22 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	pj.mirar(_roll_dir, 1.0)
 	pj.rodar()                                     # 6.12: roll sin desplazamiento de cadera (lo movemos nosotros)
 	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
+	_esquiva_con_premio()
+
+
+## C4: si rueda en los últimos AvisoAtaque3D.VENTANA_ESQUIVA s de un aviso que la cubre, gana el tiempo bruja: el mundo a 0,3 durante 0,6 s de juego, ella a su paso,
+## invulnerable mientras dura y con una página a mano (`puede_lanzar` deja lanzar aunque aún ruede). A destiempo no pasa nada más que la voltereta.
+func _esquiva_con_premio() -> void:
+	var av: AvisoAtaque3D = AvisoAtaque3D.esquiva_a_tiempo(get_tree(), position)
+	if av == null:
+		return
+	TiempoBruja.activar()
+	esquivas_perfectas += 1
+	_t_inv = maxf(_t_inv, TiempoBruja.DURA / TiempoBruja.ESCALA)        # s reales (su reloj va compensado)
+	Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), "¡Esquiva!", Color(0.8, 0.7, 1.0))
+	Sfx3D.play(self, "sello_ok")
+	PlayLog.event("esquiva_perfecta", {"queda": snappedf(av.queda(), 0.01), "veces": esquivas_perfectas})
+	esquiva_perfecta.emit(av)
 
 
 ## Beber una poción (la usa `Consumibles` cuando Q tiene la poción equipada). Devuelve si empezó a beber.

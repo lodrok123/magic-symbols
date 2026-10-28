@@ -46,6 +46,14 @@ var vel_global: float = 1.0:
 	set(v):
 		vel_global = v
 		_aplicar_escala()
+## C4 (28/10): factor del tiempo bruja (1 / Engine.time_scale mientras dura; 1 si no): la jugadora se anima a su paso aunque el mundo vaya lento. Se multiplica con `vel_global`
+## sin pisarla (la ponen el hitstop, el apuntado y el congelado).
+var vel_tiempo: float = 1.0:
+	set(v):
+		if is_equal_approx(v, vel_tiempo):
+			return
+		vel_tiempo = v
+		_aplicar_escala()
 var retenido: bool = false:
 	set(v):
 		retenido = v
@@ -221,7 +229,7 @@ func _viajar(destino: String, mezcla: float, reiniciar: bool) -> void:
 
 func _aplicar_escala() -> void:
 	if tree_root != null:
-		set("parameters/TS/scale", 0.0 if retenido else vel_estado * vel_global)
+		set("parameters/TS/scale", 0.0 if retenido else vel_estado * vel_global * vel_tiempo)
 
 
 func _anotar(de: String, a: String, ok: bool, motivo: String) -> void:

@@ -6,7 +6,8 @@ extends Node3D
 ## Pinta, mientras se apunta (libro o lanzamiento rápido), lo que `PrevisionHechizo.prever_rapido` dice que pasaría al soltar. NO decide nada: solo dibuja la lista que le pasa
 ## `Lanzador3D._pintar_previsualizacion` cada fotograma (`mostrar`). Tres familias, cada una con su forma para que no se confundan con las cajas del hechizo (A1, color del elemento):
 ##   · ENEMIGO  un rótulo sobre la cabeza con la reacción principal y su multiplicador («Congela ×2», «Prende ½»), una segunda línea si hay otra reacción que importa, y un anillo
-##              en el suelo del color de la reacción. Si lo empuja: un disco en su destino unido por una línea; si acaba en el agua, el disco es azul y dice «¡Hunde!».
+##              en el suelo del color de la reacción. Si lo empuja (A4, 28/10): una FLECHA en el suelo hasta su destino y allí su silueta translúcida (el fantasma); si acaba en el
+##              agua honda, la flecha y el fantasma son azules y encima dice «Se hunde».
 ##   · SUELO    un cuadro plano del color de la reacción en cada casilla que cambia, y un rótulo pequeño por reacción (en la primera casilla de ese grupo).
 ##   · PIEZA    un anillo alrededor de la pieza y un rótulo encima («Enciende», «Rompe»…). Un bloque que se mueve lleva disco en su destino; la lava, un cuadro en cada casilla que enfría.
 ## Un hechizo que no reacciona con nada no pinta nada. Los nodos se reutilizan entre fotogramas (pozas por tipo): no se crea nada mientras la lista no crezca.
@@ -14,6 +15,9 @@ extends Node3D
 ## reacción -> [texto, color]. Las tres familias comparten nombres («moja», «prende»…) con el mismo color, para que se lea igual en un enemigo y en el suelo.
 const ESTILO: Dictionary = {
 	"bloquea": ["Bloquea", Color(0.72, 0.72, 0.76)],
+	"tine": ["Lo absorbe", Color(0.85, 0.75, 1.0)],          # E1: el limo sin teñir se tiñe del elemento (no le hace daño)
+	"crece": ["¡Crece!", Color(1.0, 0.3, 0.25)],              # E1: el limo recibe su elemento: pasa a grande
+	"cura": ["Lo cura", Color(0.45, 1.0, 0.5)],               # E1: el limo grande recibe su elemento
 	"hunde": ["¡Hunde!", Color(0.35, 0.6, 1.0)],
 	"electrocuta": ["Electrocuta", Color(1.0, 0.92, 0.3)],
 	"congela": ["Congela", Color(0.55, 0.95, 1.0)],
@@ -52,7 +56,9 @@ var _rotulos: Array[Label3D] = []
 var _anillos: Array[MeshInstance3D] = []
 var _cuadros: Array[MeshInstance3D] = []
 var _lineas: Array[MeshInstance3D] = []
-var _usados: Dictionary = {"rotulo": 0, "anillo": 0, "cuadro": 0, "linea": 0}
+var _puntas: Array[MeshInstance3D] = []
+var _fantasmas: Array[MeshInstance3D] = []
+var _usados: Dictionary = {"rotulo": 0, "anillo": 0, "cuadro": 0, "linea": 0, "punta": 0, "fantasma": 0}
 
 
 ## Pinta la lista de `PrevisionHechizo.prever` (o `prever_rapido`). Vacía = no se ve nada.
@@ -123,11 +129,17 @@ func _enemigo(e: Dictionary) -> void:
 	_rotulo(cabeza, linea1 if segunda == "" else "%s\n%s" % [linea1, segunda], COLOR_DEBIL if mult > 1.01 and principal != "bloquea" else col, 1.0)
 	_anillo(g.global_position, 0.42 * Terreno3D.casilla, col)
 	var destino: Vector3 = extra.get("destino", g.global_position)
+	var flecha: bool = false
 	if (lista.has("empuja") or lista.has("hunde")) and destino.distance_to(g.global_position) > 0.25 * Terreno3D.casilla:
-		var col_d: Color = _color("hunde") if bool(extra.get("hundira", false)) else _color("empuja")
-		_linea(g.global_position, destino, col_d)
-		_anillo(destino, 0.22 * Terreno3D.casilla, col_d)
-	pintado.append({"que": "enemigo", "reaccion": principal, "texto": linea1, "segunda": segunda, "celda": e["celda"], "nodo": g, "destino": destino})
+		# A4 (28/10): la FLECHA FANTASMA del empuje: una flecha en el suelo hasta donde acaba y, allí, la silueta translúcida del enemigo. Si acaba en agua honda, azul y «Se hunde» encima.
+		var hunde: bool = bool(extra.get("hundira", false))
+		var col_d: Color = _color("hunde") if hunde else _color("empuja")
+		_flecha(g.global_position, destino, col_d)
+		_fantasma(destino, alto, col_d)
+		if hunde:
+			_rotulo(Vector3(destino.x, _y_suelo(destino), destino.z) + Vector3(0, alto + 0.35, 0), "Se hunde", col_d, 0.8)
+		flecha = true
+	pintado.append({"que": "enemigo", "reaccion": principal, "texto": linea1, "segunda": segunda, "celda": e["celda"], "nodo": g, "destino": destino, "flecha": flecha})
 
 
 func _pieza(e: Dictionary) -> void:
@@ -193,6 +205,32 @@ func _linea(a: Vector3, b: Vector3, col: Color) -> void:
 	mi.rotation = Vector3(0, atan2(d.x, d.z), 0)
 
 
+## A4: flecha plana en el suelo de `a` a `b`: el asta (una línea) y la punta (un triángulo) que toca `b`.
+func _flecha(a: Vector3, b: Vector3, col: Color) -> void:
+	var d := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	if d.length() < 0.01:
+		return
+	var u: Vector3 = d.normalized()
+	var largo_punta: float = minf(0.45, d.length() * 0.5)
+	_linea(a, b - u * largo_punta * 0.8, col)
+	var mi: MeshInstance3D = _de_poza("punta") as MeshInstance3D
+	((mi.mesh as CylinderMesh).material as StandardMaterial3D).albedo_color = Color(col, 0.9)
+	var x: Vector3 = u.cross(Vector3.UP)
+	mi.basis = Basis(x, u * (largo_punta / 0.4), Vector3.UP * 0.2)       # el cono de 3 caras (alto 0,4) tumbado y aplastado: un triángulo que apunta a `b`
+	var pb: Vector3 = Vector3(b.x, _y_suelo(b) + 0.09, b.z) - u * largo_punta * 0.5
+	mi.global_position = pb
+
+
+## A4: la silueta del enemigo donde acabaría (una cápsula translúcida de su alto).
+func _fantasma(pos: Vector3, alto: float, col: Color) -> void:
+	var mi: MeshInstance3D = _de_poza("fantasma") as MeshInstance3D
+	var c: CapsuleMesh = mi.mesh as CapsuleMesh
+	c.height = maxf(alto, 0.6)
+	c.radius = clampf(alto * 0.3, 0.2, 0.5)
+	(c.material as StandardMaterial3D).albedo_color = Color(col, 0.32)
+	mi.global_position = Vector3(pos.x, _y_suelo(pos) + c.height * 0.5, pos.z)
+
+
 func _de_poza(tipo: String) -> Node3D:
 	var poza: Array = _poza(tipo)
 	var i: int = int(_usados[tipo])
@@ -215,6 +253,10 @@ func _poza(tipo: String) -> Array:
 			return _anillos
 		"cuadro":
 			return _cuadros
+		"punta":
+			return _puntas
+		"fantasma":
+			return _fantasmas
 	return _lineas
 
 
@@ -247,6 +289,22 @@ func _crear(tipo: String) -> Node3D:
 			var p := PlaneMesh.new()
 			p.material = m
 			mi.mesh = p
+		"punta":
+			var cono := CylinderMesh.new()
+			cono.top_radius = 0.0
+			cono.bottom_radius = 0.24
+			cono.height = 0.4
+			cono.radial_segments = 3
+			cono.rings = 1
+			cono.material = m
+			mi.mesh = cono
+		"fantasma":
+			m.no_depth_test = false                       # la silueta se tapa con lo que tenga delante, como un cuerpo
+			var cap := CapsuleMesh.new()
+			cap.radial_segments = 16
+			cap.rings = 4
+			cap.material = m
+			mi.mesh = cap
 		_:
 			var b := BoxMesh.new()
 			b.material = m

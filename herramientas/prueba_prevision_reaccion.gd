@@ -177,12 +177,13 @@ func _caso_hunde() -> void:
 		var dest: Vector3 = e["extra"]["destino"]
 		_ok("5 el disco del destino está donde la previsión dice que acaba", (p["destino"] as Vector3).is_equal_approx(dest), "%s · %s" % [p["destino"], dest])
 		_ok("5 el destino cae en el agua", Terreno3D.es_agua(Terreno3D.celda_de(dest)), str(Terreno3D.celda_de(dest)))
+		# A4 (28/10): el disco del destino es ahora la silueta del enemigo (el fantasma), con la flecha (asta y punta) hasta ella.
 		var cerca: bool = false
-		for a in v._anillos:
-			if a.visible and Vector2(a.global_position.x - dest.x, a.global_position.z - dest.z).length() < 0.05:
+		for f in v._fantasmas:
+			if f.visible and Vector2(f.global_position.x - dest.x, f.global_position.z - dest.z).length() < 0.05:
 				cerca = true
-				_ok("5 el disco del destino es del color de «hunde»", ((a.mesh as TorusMesh).material as StandardMaterial3D).albedo_color.is_equal_approx(Color(PrevisionReaccion3D._color("hunde"), 0.9)))
-		_ok("5 hay un disco en el destino y una línea hasta él", cerca and _visibles(v._lineas) == 1)
+				_ok("5 la silueta del destino es del color de «hunde»", ((f.mesh as CapsuleMesh).material as StandardMaterial3D).albedo_color.is_equal_approx(Color(PrevisionReaccion3D._color("hunde"), 0.32)))
+		_ok("5 hay una silueta en el destino y una flecha hasta ella", cerca and _visibles(v._lineas) == 1 and _visibles(v._puntas) == 1)
 	await _soltar_sin_lanzar()
 	_limpiar()
 	await avanzar(3)
