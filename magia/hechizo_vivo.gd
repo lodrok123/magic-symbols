@@ -755,7 +755,12 @@ static func pulsar(metodo: String, lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -
 ## PULSO DE PLASMA: el golpe entero a quien entra (los reactivos arden una vez); a los que siguen dentro, un trozo del daño.
 static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 	var d: Vector3 = z.dir
-	for obj in nodos_en(lanzador, "reactivo3d", z.celdas):
+	# 28/10 (Gruta Batida): también lo inflamable que no es Reactivo3D (la cuerda que sostiene un puente, un barril): la llama que nace encima lo prende.
+	var objetos: Array = nodos_en(lanzador, "reactivo3d", z.celdas)
+	for obj in nodos_en(lanzador, Reactivo3D.GRUPO_ARDE, z.celdas):
+		if not objetos.has(obj) and obj.has_method("on_spell_hit"):
+			objetos.append(obj)
+	for obj in objetos:
 		if z.tocados.has(obj.get_instance_id()):
 			continue
 		z.tocados[obj.get_instance_id()] = true
@@ -1415,8 +1420,12 @@ func _terminar(causa: String) -> void:
 ## permanencia: lo que dura lo decide la materia. Dura `persiste` + `permanencia` (como lo que nace quieto: el bloque de tierra vive su `persiste`; el fuego, su zona). La
 ## `permanencia` además deja el cuerpo del proyectil colgado ese tiempo (`quedandose`, en `_terminar`). Antes de parar ya fue golpeando reactivos y enemigos (`_golpes_del_paso`):
 ## a quien ya recibió el golpe NO se le repite (`tocados` parte de `golpeados`). Sin lanzador o sin mundo (pruebas del VFX) se salta, en vez de fallar.
+## 28/10 (Pablo): la flecha de TIERRA solo golpea (pedrada + retroceso, en vuelo): sin ᛉ ni ᛜ no levanta bloque al pararse (ESPEC §0.3). Con `permanencia` o `solidez` > 0 sí.
 func _aplicar_materia_en_el_sitio(pos: Vector3, dir: Vector3) -> void:
 	if lanz == null or lanz.mundo == null or not lanz.is_inside_tree() or not MATERIA_V2.has(estado):
+		return
+	var props: Dictionary = g["props"]
+	if elemento == "tierra" and h.permanencia <= 0.0 and float(props.get("solidez", 0.0)) <= 0.0:
 		return
 	var celdas: Array = _celdas_en(pos, dir)
 	if celdas.is_empty():
@@ -1425,7 +1434,6 @@ func _aplicar_materia_en_el_sitio(pos: Vector3, dir: Vector3) -> void:
 	var vida: float = h.persiste + h.permanencia if (h.persiste + h.permanencia) > 0.0 else -1.0       # -1 = cada materia usa la suya de siempre
 	var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas, "niveles": niveles, "vida": vida,
 		"origen": pos, "dir": dir, "estado": estado, "fraccion": 1.0, "tocados": golpeados.duplicate(), "golpes": [], "impacto": true}
-	var props: Dictionary = g["props"]
 	_vivir(ctx, float(props.get("solidez", 0.0)), false)
 
 

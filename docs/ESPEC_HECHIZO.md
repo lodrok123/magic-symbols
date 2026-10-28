@@ -33,6 +33,13 @@ reacciones va después; aquí solo quedan sus campos con valores por defecto.
 
    La vida natural del elemento **no** cuenta: una flecha de fuego sin Permanencia no se queda ardiendo.
 
+   **Estado en el código (28/10).** La regla de impacto (DIARIO 191) hace que un proyectil, al pararse, deje su
+   materia una vez en el sitio (`HechizoVivo._aplicar_materia_en_el_sitio`). Por decisión de Pablo, **la flecha de
+   tierra ya cumple esta regla**: solo golpea (pedrada y retroceso en vuelo) y **sin ᛉ ni ᛜ no levanta bloque**; con
+   Permanencia o barrera (solidez) sí. Para levantar tierra en un sitio se lanza lo que nace donde apuntas (tierra + barrera).
+   **Sigue abierto:** la flecha de fuego aún deja una zona de llamas de 3 s, el agua su charco y el hielo hiela
+   (auditoría del 24/10, `ANALISIS_DIRECCION_24-10/05_auditoria_hechizo.md`).
+
    **Si no viaja:** nace y vive `persiste` + `permanencia`.
 
    **Cambia la regla de la entrada 182** («acaba por el alcance o por `persiste`, lo que llegue antes»). Ejemplo:

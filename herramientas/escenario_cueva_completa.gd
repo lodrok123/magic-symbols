@@ -30,7 +30,6 @@ const FLAG_EPICO: String = "cueva.c1.epico"
 const VIDA_MAX: float = 100.0
 const T_GOBLINS_MAX_S: float = 80.0              ## tope para derrotar a los dos goblins de C4
 const T_ESPERA_PULSO_MAX_S: float = 20.0         ## tope para que un pulso del escenario llegue (la fuente descarga cada pocos segundos)
-const T_BLOQUE_TIERRA_MAX_S: float = 32.0        ## un bloque de tierra dura Lanzador3D.DURACION_TIERRA (25 s)
 const ALCANCE_FLECHA_CAS: float = 2.8             ## casillas a las que llega una flecha de fuego (medido: de 3 casillas no alcanza el cristal de la pared)
 const T_TINTA_MAX_S: float = 8.0                  ## lo que se espera a que vuelva la tinta para lanzar
 const TOL_ANDAR: float = 0.3                    ## casillas de margen al llegar a un tramo de la ruta (apuntar bien pide estar cerca del centro)
@@ -152,6 +151,28 @@ func _lanzar_real(elemento: String, glifos: Array, dir: Vector3) -> bool:
 			lanzador.place_sigil(String(g))
 		lanzador.cooldown_left[0] = 0.0
 		if lanzador.lanzar_pagina_ya(0, jugador.position, Vector3(dir.x, 0.0, dir.z).normalized()):
+			return true
+		t += await avanzar_s(0.5)
+	return false
+
+
+## 28/10: lo que NACE donde se apunta (tierra + barrera), con el origen en la casilla `objetivo` recortado al alcance (`Lanzador3D.ALCANCE_ORIGEN`), como el indicador del juego.
+## Es como se levanta tierra en un sitio desde que la flecha de tierra ya no deja bloque al pararse (sin ᛉ solo golpea; ESPEC §0.3). Espera a tener tinta como `_apuntar`.
+func _lanzar_en_punto(elemento: String, glifos: Array, objetivo: Vector2i) -> bool:
+	var t: float = 0.0
+	while t <= T_TINTA_MAX_S:
+		var yo: Vector3 = jugador.position
+		var meta: Vector3 = Terreno3D.centro_de(objetivo, 0.0)
+		var hacia: Vector3 = Vector3(meta.x - yo.x, 0.0, meta.z - yo.z)
+		var tope: float = Lanzador3D.ALCANCE_ORIGEN * Terreno3D.casilla
+		var origen: Vector3 = yo + (hacia if hacia.length() <= tope else hacia.normalized() * tope)
+		lanzador.select_page(0)
+		lanzador.clear_sequence()
+		lanzador.place_element(elemento)
+		for g in glifos:
+			lanzador.place_sigil(String(g))
+		lanzador.cooldown_left[0] = 0.0
+		if lanzador.lanzar_pagina_ya(0, origen, hacia.normalized()):
 			return true
 		t += await avanzar_s(0.5)
 	return false
@@ -321,12 +342,20 @@ func _c2() -> void:
 		intentos += 1
 		if intentos > 1:
 			await _ruta("3 C2", [[Vector2i(4, 5), TOL_EXACTA]])
-		_ok("3 C2: tierra + flecha hacia el norte desde (4,5) sale (el bloque cae a dos casillas: el hueco (4,3)), intento %d" % intentos, lanzar("tierra", ["flecha"], Vector3(0.0, 0.0, -1.0)))
+		_ok("3 C2: tierra + barrera (nace donde apuntas) sobre el hueco (4,3) desde (4,5) sale, intento %d" % intentos, await _lanzar_en_punto("tierra", ["barrera"], Vector2i(4, 3)))
 		await _esperar(func() -> bool: return Terreno3D.altura_en(Vector2i(4, 3)) >= 1, 6.0)
 	_ok("3 C2: el bloque de tierra se levanta en el hueco (4,3) y la veta se completa: el hueco CONDUCE", Terreno3D.altura_en(Vector2i(4, 3)) >= 1 and Pulso3D.enlace_tendido(Vector2i(4, 3)) and Pulso3D.conduce_pulso(Vector2i(4, 3)),
 		"altura %d" % Terreno3D.altura_en(Vector2i(4, 3)))
-	await _esperar(func() -> bool: return columna.roto_ya, 12.0)
-	_ok("3 C2: el pulso cruza el enlace, toca la COLUMNA (golpes %d) y la tumba: cae y deja la casilla libre" % columna.golpes, columna.roto_ya and columna.pulsos_recibidos >= 2 and not Terreno3D.bloqueada(Vector2i(4, 2)), "pulsos %d" % columna.pulsos_recibidos)
+	# La tierra vive 8 s (`persiste`) y el cristal late cada 4 s: según el momento del latido en que nace el bloque, por el enlace pasan uno o dos pulsos. La columna guarda la
+	# grieta, así que si el bloque se deshace con ella en pie se vuelve a levantar, como haría quien juega (hasta 2 veces más).
+	var relevos: int = 0
+	await _esperar(func() -> bool: return columna.roto_ya or Terreno3D.altura_en(Vector2i(4, 3)) == 0, 12.0)
+	while not columna.roto_ya and relevos < 2:
+		relevos += 1
+		await _lanzar_en_punto("tierra", ["barrera"], Vector2i(4, 3))
+		await _esperar(func() -> bool: return Terreno3D.altura_en(Vector2i(4, 3)) >= 1, 3.0)
+		await _esperar(func() -> bool: return columna.roto_ya or Terreno3D.altura_en(Vector2i(4, 3)) == 0, 12.0)
+	_ok("3 C2: el pulso cruza el enlace, toca la COLUMNA (golpes %d) y la tumba: cae y deja la casilla libre" % columna.golpes, columna.roto_ya and columna.pulsos_recibidos >= 2 and not Terreno3D.bloqueada(Vector2i(4, 2)), "pulsos %d · bloques de relevo %d" % [columna.pulsos_recibidos, relevos])
 	await avanzar_s(MuroAgrietado3D.T_CAER + 0.5)
 	_ok("3 C2: la columna terminó de caer (hacia el este) y el polvo ya subió", not columna.cayendo)
 	# El nicho.
@@ -338,15 +367,15 @@ func _c2() -> void:
 	await _esperar(func() -> bool: return cofre.es_abierto, 5.0)
 	_ok("3 C2: con E se abre el cofre del nicho y da una poción y 15 de oro", cofre.es_abierto and Estado.i().cuenta("pocion") == pociones0 + 1 and Estado.i().oro == oro0 + 15 and Flags.i().tiene("cueva.c2.cofre"),
 		"pociones %d · oro %d" % [Estado.i().cuenta("pocion"), Estado.i().oro])
-	# El filón: tierra a la veta, un trozo (mineral de veta). Se tira desde (5,2) hacia el este, a ras de la veta (7,2).
+	# El filón: tierra a la veta, un trozo (mineral de veta). Desde (5,2), tierra que nace encima de la veta (7,2).
 	if not await _ruta("3 C2", [Vector2i(4, 2), [Vector2i(5, 2), TOL_EXACTA]]):
 		return
-	_ok("3 C2: tierra + flecha hacia el filón sale (el bloque cae sobre la veta (7,2))", lanzar("tierra", ["flecha"], Vector3(1.0, 0.0, 0.0)))
+	_ok("3 C2: tierra + barrera sobre el filón (7,2) sale (el bloque se levanta encima de la veta)", await _lanzar_en_punto("tierra", ["barrera"], Vector2i(7, 2)))
 	await _esperar(func() -> bool: return filon.trozo_dado, 4.0)
 	_ok("3 C2: un hechizo de tierra pica la veta y suelta un MINERAL DE VETA (una vez, flag %s)" % filon.flag_mineral(), filon.trozo_dado and Estado.i().cuenta("mineral_veta") == 1 and Flags.i().tiene(filon.flag_mineral()), "mineral_veta %d" % Estado.i().cuenta("mineral_veta"))
 	# Segunda vez: no da más.
 	await avanzar_s(1.0)
-	lanzar("tierra", ["flecha"], Vector3(1.0, 0.0, 0.0))
+	await _lanzar_en_punto("tierra", ["barrera"], Vector2i(7, 2))
 	await avanzar_s(1.5)
 	_ok("3 C2: la veta ya picada no suelta un segundo trozo", Estado.i().cuenta("mineral_veta") == 1)
 	# El muro agrietado de la salida a C3: dos golpes de tierra desde (8,4).
@@ -357,9 +386,9 @@ func _c2() -> void:
 	_ok("3 C2: el 2.º golpe sale", lanzar("tierra", ["flecha"], Vector3(1.0, 0.0, 0.0)))
 	await _esperar(func() -> bool: return grieta.roto_ya, 4.0)
 	_ok("3 C2: el muro agrietado cae a los dos golpes y deja libre el paso a C3", grieta.roto_ya and not Terreno3D.bloqueada(Vector2i(9, 4)), "golpes %d" % grieta.recibidos)
-	# El segundo flechazo de tierra, al caer el muro, levanta su propio bloque en el hueco (el hechizo termina donde estaba la pared): se pisa saltándolo o, como aquí, esperando a que se deshaga.
-	var t_bloque: float = await _esperar(func() -> bool: return Terreno3D.altura_en(Vector2i(9, 4)) == 0 and Terreno3D.altura_en(Vector2i(10, 4)) == 0, T_BLOQUE_TIERRA_MAX_S)
-	_ok("3 C2: el bloque de tierra del último golpe se deshace solo y el paso queda del todo libre", Terreno3D.altura_en(Vector2i(9, 4)) == 0 and Terreno3D.altura_en(Vector2i(10, 4)) == 0, "esperé %.1f s" % t_bloque)
+	# 28/10: la flecha de tierra ya no levanta bloque al pararse (sin ᛉ solo golpea; ESPEC §0.3): al caer el muro el paso queda libre en el acto.
+	await avanzar_s(0.5)
+	_ok("3 C2: el último flechazo NO deja bloque de tierra en el hueco: el paso queda del todo libre", Terreno3D.altura_en(Vector2i(9, 4)) == 0 and Terreno3D.altura_en(Vector2i(10, 4)) == 0, "alturas %d / %d" % [Terreno3D.altura_en(Vector2i(9, 4)), Terreno3D.altura_en(Vector2i(10, 4))])
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -507,7 +536,7 @@ func _c4() -> void:
 	colocar_jugador(Vector2i(23, 7))
 	await avanzar_s(0.4)
 	var min0: int = Estado.i().cuenta("mineral_veta")
-	_ok("5 C4: tierra + flecha a la veta de la sala (21,7) sale", lanzar("tierra", ["flecha"], Vector3(-1.0, 0.0, 0.0)))
+	_ok("5 C4: tierra + barrera sobre la veta de la sala (21,7) sale", await _lanzar_en_punto("tierra", ["barrera"], Vector2i(21, 7)))
 	await _esperar(func() -> bool: return veta_b.trozo_dado, 4.0)
 	_ok("5 C4: la veta suelta su mineral con la tierra (mineral_veta +1)", veta_b.trozo_dado and Estado.i().cuenta("mineral_veta") == min0 + 1)
 	# El cofre de la llave.

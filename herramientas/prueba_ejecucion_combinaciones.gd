@@ -381,7 +381,7 @@ func _reglas_nuevas(runes: Dictionary) -> void:
 
 
 ## A2 (auditoría D-2): con gravedad 1 y sin `impulso_salida`, la flecha de tierra y de hielo caía al suelo a 0,70 casillas de las 2 de su alcance. Ahora lleva el impulso del agua adaptado a su gravedad.
-## Se mide con la mano a la altura de los pies del esqueleto (0,2 u), a la de la jugadora (0,4 u) y a la de siempre (0,9 u). La tierra tiene que seguir levantando su bloque donde cae y el hielo helando.
+## Se mide con la mano a la altura de los pies del esqueleto (0,2 u), a la de la jugadora (0,4 u) y a la de siempre (0,9 u). La tierra ya NO levanta bloque donde cae (28/10: solo golpea sin ᛉ ni ᛜ) y el hielo sigue helando.
 func _flechas_de_tierra_y_hielo(runes: Dictionary) -> void:
 	var cas: float = Terreno3D.casilla
 	for elemento in ["earth", "ice"]:
@@ -398,7 +398,7 @@ func _flechas_de_tierra_y_hielo(runes: Dictionary) -> void:
 			var fin: Vector2i = Terreno3D.celda_de(v.p)
 			if mano_u == Hechizo.ALTURA_MANO_U:
 				if elemento == "earth":
-					_ok("A2 earth: …y construye su bloque donde cae (la casilla %s sube a altura %d)" % [str(fin), Lanzador3D.altura_en(fin)], Lanzador3D.altura_en(fin) >= 1)
+					_ok("A2 earth: …y al caer NO levanta bloque: sin ᛉ ni ᛜ la flecha de tierra solo golpea (28/10, ESPEC §0.3; la casilla %s queda a altura %d)" % [str(fin), Lanzador3D.altura_en(fin)], Lanzador3D.altura_en(fin) == 0)
 				else:
 					var helado: bool = false
 					for marca in _m.marcas:

@@ -12,7 +12,7 @@ estilo = "cueva"
 zona_luz = "cueva"
 agua_fisica = true
 agua_corre = false
-kit = "barrera"
+kit = "gruta"
 
 [node name="Puzles" type="Node" parent="."]
 script = ExtResource("2_pz")

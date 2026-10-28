@@ -80,6 +80,13 @@ extends Node
 ##              de abrirse pone la flag `abierto`. Sin `aparece_si` nace cerrado
 ##   cristal    cada=<s> (3)  alcance=<casillas> (12)                                CristalPulso3D (el pulso resonante, PLAN_PULSO_RESONANTE §4): EMISOR. Late (suelta un Pulso3D desde su
 ##              casilla) cada `cada` s (0 = solo al golpearlo) y cuando le da un hechizo (el pulso lleva su elemento). Modelo `cristal_resonante`. Bloquea su casilla
+##   guardian   en=<lista> (obligatoria)  cada=<s> (0)  elemento=fuego|… (fuego)  cerca=<casillas> (0)  roto=si (no)   GuardianBarrera3D (28/10, Gruta Batida): un tótem que levanta
+##              LA BARRERA (la receta elemento + ᛜ de la jugadora) en cada casilla de `en` (sus marcas, a cualquier distancia: tras una reja, al otro lado del agua). `cada` > 0: late solo
+##              (con `cerca` > 0, solo con la jugadora a esas casillas o menos); `cada` = 0: dormido, lo despierta un hechizo (y la barrera lleva su elemento). `roto=si`: caído, no hace nada
+##              ni bloquea (el sitio de la barrera de la jugadora). Señal `levanta`; acción `levantar`. Bloquea su casilla
+##   puente     celdas=<lista> (la propia x,y)                                       PuenteReactivo3D (28/10): losas rúnicas plegadas bajo el agua de `celdas`; con la acción `tender` (o la `cuerda`
+##              que lo sostiene, al quemarse) suben una a una y cada casilla se vuelve un puente que se pisa. Señal `tendido`; condición `tendido`|`plegado`
+##   (puerta)   modelo=reja                                                          28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
 ##              Fase 3 (24/10): `enlaces` = HUECOS de la veta (C2), casillas que solo conducen con un bloque de tierra encima (hechizo de tierra: el «bloque de enlace»); `aturde=<s>` deja sin
@@ -224,6 +231,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido",
+	"guardian": "levanta", "puente": "tendido",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -261,6 +269,8 @@ const SENALES: Dictionary = {
 	"geoda": {"explota": ["explota", 2, null]},
 	"bloque": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
+	"guardian": {"levanta": ["levanta", 1, null]},
+	"puente": {"tendido": ["completo", 0, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -291,6 +301,7 @@ const CONDICIONES: Dictionary = {
 	"geoda": {"explotada": ["explotada", true], "intacta": ["explotada", false]},
 	"bloque": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
+	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -321,6 +332,8 @@ const ACCIONES: Dictionary = {
 	"caja": {"romper": 0},
 	"salida": {"usar": 0},
 	"columna": {"romper": 0},
+	"guardian": {"levantar": 0},
+	"puente": {"tender": 0},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -330,7 +343,7 @@ const CLAVES: Dictionary = {
 	"molino": {"umbral": "f", "vertical": "b"},
 	"barril": {},
 	"nexo": {},
-	"puerta": {"modelo": "s:llave", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
+	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
 	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
@@ -364,6 +377,8 @@ const CLAVES: Dictionary = {
 	"caja": {"botin": "botin", "cantidad": "f", "pequena": "b", "celdas": "celdas"},
 	"salida": {"a": "destino", "escena": "nombre", "entrada": "nombre", "modelo": "nombre", "celdas": "celdas", "modo": "s:pisar|usar", "marca": "b"},
 	"entrada": {"mira": "s:n|e|s|o"},
+	"guardian": {"en": "celdas", "cada": "f", "elemento": "s:fuego|agua|hielo|tierra|rayo|viento", "cerca": "f", "roto": "b"},
+	"puente": {"celdas": "celdas"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -533,6 +548,9 @@ class PuertaPuzle extends Node3D:
 			rotation.y = PI * 0.5
 		if modelo == "llave" and _poner_modelo(mundo):
 			return
+		if modelo == "reja":
+			_poner_reja()
+			return
 		var losa := MeshInstance3D.new()
 		_losa = losa
 		var b := BoxMesh.new()
@@ -570,6 +588,41 @@ class PuertaPuzle extends Node3D:
 		_y0 = 0.0
 		add_child(hoja)
 		return true
+
+	## 28/10 (Gruta Batida, `modelo=reja`): REJA de barrotes de hierro que DEJA VER lo que hay detrás (un brasero, una cuerda, la marca de un guardián) y sin rótulo.
+	## Tapa la casilla igual que la losa (para a la jugadora y a las flechas, que se paran en ella) y se hunde al abrir.
+	func _poner_reja() -> void:
+		var reja := Node3D.new()
+		reja.name = "reja"
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.16, 0.15, 0.14)
+		mat.metallic = 0.7
+		mat.roughness = 0.45
+		var ancho: float = Terreno3D.casilla * 0.92
+		var alto: float = 2.1
+		var n_barrotes: int = 7
+		for i in range(n_barrotes):
+			var b := MeshInstance3D.new()
+			var cil := CylinderMesh.new()
+			cil.top_radius = 0.035
+			cil.bottom_radius = 0.035
+			cil.height = alto
+			cil.radial_segments = 8
+			b.mesh = cil
+			b.material_override = mat
+			b.position = Vector3(-ancho * 0.5 + ancho * (float(i) + 0.5) / float(n_barrotes), alto * 0.5, 0.0)
+			reja.add_child(b)
+		for y in [0.25, alto - 0.12]:
+			var t := MeshInstance3D.new()
+			var caja := BoxMesh.new()
+			caja.size = Vector3(ancho, 0.09, 0.09)
+			t.mesh = caja
+			t.material_override = mat
+			t.position = Vector3(0.0, y, 0.0)
+			reja.add_child(t)
+		_losa = reja
+		_y0 = 0.0
+		add_child(reja)
 
 	func _cargar_pieza(id: String, mundo: Node) -> Node3D:
 		if mundo != null and mundo.has_method("_pieza"):
@@ -1830,6 +1883,8 @@ func _crear(pz: Pieza) -> void:
 			var pu := PuertaPuzle.new()
 			pu.name = pz.id
 			pu.preparar(pz.celda, String(pz.p.get("modelo", "")), mundo as Node)
+			if pz.p.has("giro"):
+				pu.rotation.y = deg_to_rad(float(pz.p["giro"]))        # 28/10: girarla a mano (una reja entre dos casillas libres)
 			cont.add_child(pu)
 			var abierto_flag: String = String(pz.p.get("abierto", pz.p.get("flag", "")))        # `flag=` es otro nombre de `abierto=`
 			if pz.p.has("llave"):
@@ -2007,6 +2062,31 @@ func _crear(pz: Pieza) -> void:
 			cr.preparar(pz.celda, float(pz.p.get("cada", CristalPulso3D.CADA_DEFECTO)), int(pz.p.get("alcance", Pulso3D.ALCANCE_DEFECTO)), mundo as Node)
 			cont.add_child(cr)
 			pz.nodo = cr
+		"guardian":
+			if not pz.p.has("en"):
+				_avisar_pieza(pz, "el guardián necesita «en=<casillas>» (sus marcas: dónde levanta la barrera)")
+				return
+			var gu := GuardianBarrera3D.new()
+			gu.name = pz.id
+			gu.preparar(pz.celda, pz.p["en"], float(pz.p.get("cada", 0.0)), String(pz.p.get("elemento", "fuego")), float(pz.p.get("cerca", 0.0)), bool(pz.p.get("roto", false)), mundo as Node)
+			cont.add_child(gu)
+			pz.nodo = gu
+		"puente":
+			# 28/10 (Gruta Batida): las losas rúnicas de PuenteReactivo3D sobre el agua de `celdas`, plegadas hasta `tender` (una regla o la cuerda que lo sostiene).
+			# Cada losa que sube vuelve su casilla un puente «b» que se pisa.
+			var celdas_p: Array = pz.p.get("celdas", [pz.celda])
+			var centros_p: Array = []
+			for c in celdas_p:
+				centros_p.append(Terreno3D.centro_de(c as Vector2i, Terreno3D.alto_agua))
+			var pr := PuenteReactivo3D.new()
+			pr.name = pz.id
+			cont.add_child(pr)
+			var fx_p: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+			pr.preparar(celdas_p, centros_p, Terreno3D.alto_agua + 0.12, Terreno3D.alto_agua, fx_p as Vfx3D, Vfx3D.COLOR.get("fuego", Color(1.0, 0.6, 0.2)))
+			pr.losa_lista.connect(func(c: Vector2i) -> void:
+				Terreno3D.poner_letra(c, "b")
+				Terreno3D.liberar_celda(c))
+			pz.nodo = pr
 		"veta":
 			var ve := VetaPulso3D.new()
 			ve.name = pz.id
@@ -2803,6 +2883,12 @@ func _ejecutar(a: Dictionary) -> void:
 		"latir":
 			if nd != null:
 				nd.call("latir")
+		"tender":
+			if nd != null:
+				nd.call("tender")
+		"levantar":
+			if nd != null:
+				nd.call("levantar")
 		"girar":
 			if nd != null:
 				nd.call("girar")

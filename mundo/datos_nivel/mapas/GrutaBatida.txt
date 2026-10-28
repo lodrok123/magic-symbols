@@ -1,5 +1,5 @@
 #########################
-##T###.##.......#.......#
+##T###T##.......#.......#
 ##.###.##.......#.......#
 #.......................#
 #.......#.......#.......#
@@ -9,26 +9,23 @@
 #.......#...A...#.......#
 #.......#.......#.......#
 ####.###############.####
-#.......#A#T.T#A#.......#
+#......T#T#T.T#A#.......#
 #.......#.#...#.#.......#
-#.......#.......#~~~~~~~#
+#...............#~~~~~~~#
 #.......#~~~~~~~#~~~~~~~#
 #...S...#~~~~~~~#.......#
-#.......................#
+#.......#...............#
 #.......#.......#.A...A.#
 #########################
 ; ======================================================================================================================================================
-;  LA GRUTA BATIDA (27/10/2026). El nivel de la BARRERA (ᛜ), como mazmorra de EoW: cada sala PRESENTA un uso de la barrera, la siguiente lo DESARROLLA y el santuario
-;  los COMBINA. Diseño y matriz de átomos: docs/GRUTA_BATIDA.md. Autoplay de principio a fin: herramientas/escenario_gruta_batida.gd.
-;  Kit `barrera` (Lanzador3D.KITS): fuego, tierra y hielo; flecha, barrera y línea. El cofre del santuario da ᛉ permanencia (la barrera que dura).
-;  Sin cristales ni nada del pulso: kit de paredes de cueva, placas de piedra (`placa_presion_cueva`), braseros de cueva, puertas, jarrones y adorno.
-;  Los cuatro usos de la barrera (medidos el 27/10 con una sonda, ya retirada; los números están en docs/GRUTA_BATIDA.md §2):
-;    · ESCUDO: tierra o hielo + ᛜ paran las flechas de los arqueros (0 de daño en 8 s frente a 12 sin ella);
-;    · PESO A DISTANCIA: tierra + ᛜ nace donde apuntas (≤ 3 casillas, también tras una reja) y PISA una placa ~8,4 s (+2 s por cada ᛉ);
-;    · FUEGO A DISTANCIA: fuego + ᛜ nace tras la reja y enciende el brasero que una flecha no alcanza;
-;    · PUENTE: hielo + ᛜ sobre el agua la hiela 20 s y se pisa.
+;  LA GRUTA BATIDA (28/10/2026, versión SOLO FUEGO). La mazmorra que enseña la BARRERA (ᛜ) antes de darla: la jugadora lleva solo FUEGO + FLECHA (kit `gruta`).
+;  Los GUARDIANES (tótems con ᛜ tallado) levantan la barrera de fuego en sus MARCAS (losas rúnicas), y así se ve, sala a sala, lo que hace: nace donde se marca
+;  (también tras una reja o al otro lado del agua), prende lo que la flecha no alcanza y arde bajo los pies de quien está encima. El cofre del santuario da ᛜ
+;  y la salida pide levantarla UNA MISMA, junto a un tótem roto. Diseño: docs/GRUTA_BATIDA.md. Autoplay: herramientas/escenario_gruta_batida.gd.
+;  Medido el 28/10 (sonda): la flecha de fuego vuela 2 casillas y se para en una reja sin encender lo de detrás; la barrera de fuego nace hasta 3 casillas
+;  más allá de la jugadora (o en la marca de un tótem, a cualquier distancia), atraviesa la reja y enciende el brasero; dura ~3 s.
 ; ======================================================================================================================================================
-; Plano: G2 · G3 · G4 arriba (filas 1..9), G1 · G6 · G5 abajo (filas 11..17). Recorrido: G1 → G2 → G3 → G4 → G5 → G6 → atajo a G1.
+; Plano: G2 · G3 · G4 arriba (filas 1..9), G1 · G6 · G5 abajo (filas 11..17). Recorrido: G1 → G2 → G3 → G4 → G5 → G6 → atajo a G1 (8,13) → salida.
 ; # pared (kit de cueva) · . suelo · ~ agua (no se pisa) · T brasero · A arquero · S inicio
 ;
 ; --- zonas: la luz azul de la Cueva, una variante por sala; cada sala saca su rótulo la primera vez ---
@@ -43,78 +40,105 @@
 ; pieza a_bosque salida 3 17 celdas=3,17..5,17 a=Bosque_01_v01:boca_cueva
 ;
 ; ======================================================================================================================================================
-;  G1 · LA BOCA — PRESENTAR la placa que pesa y la barrera que dura poco.
-;  Pisar la placa abre la puerta del norte, pero al bajarse se cierra antes de llegar. La barrera de TIERRA sobre la placa la mantiene pisada ~8 s: lo justo para pasar.
+;  G1 · LA BOCA — PRESENTAR: algo levanta fuego LEJOS, donde marca, y tras una reja. Sin hacer nada: el tótem late (cuando la jugadora está cerca), el hilo de luz
+;  corre hasta su marca, nace la barrera de fuego tras la reja y el brasero se enciende: la puerta del norte se abre. La flecha de la jugadora al brasero se para en la reja.
 ; ======================================================================================================================================================
-; pieza placa_g1 pulsador 6 12 modo=presencia modelo=cueva
+; pieza totem_g1 guardian 5 13 en=7,11 cada=5 cerca=4
+; pieza reja_g1a puerta 6 11 modelo=reja giro=90
+; pieza reja_g1b puerta 7 12 modelo=reja
+; pieza br_g1 brasero 7 11 luz=2.4 modelo=cueva
 ; pieza puerta_g1 puerta 4 10 modelo=llave
-; puzle abre_g1 cuando=placa_g1.pulsado hace=puerta_g1.abrir
-; puzle cierra_g1 cuando=placa_g1.soltado hace=puerta_g1.cerrar
+; puzle marca_g1 cuando=br_g1.encendido hace=flag.poner(gruta.g1.fuego)
+; puzle abre_g1 cuando=flag.gruta.g1.fuego hace=puerta_g1.abrir
 ; pieza jarron_g1a jarron 1 11 botin=oro
 ; pieza jarron_g1b jarron 7 17 botin=pocion
 ;
 ; ======================================================================================================================================================
-;  G2 · LAS REJAS — DESARROLLAR el peso (la placa está tras una reja: no se pisa) y PRESENTAR el fuego a distancia (un brasero tras otra reja: una flecha no llega).
-;  La barrera NACE DONDE APUNTAS, también al otro lado de la reja. La puerta del este se abre con el brasero encendido Y la placa pisada (y se cierra al soltarse la placa).
+;  G2 · LAS REJAS — PRESENTAR el tótem DORMIDO: lo despierta un golpe. Dos braseros, cada uno tras su reja (la flecha se para en ella); delante, dos tótems dormidos con
+;  la marca tras cada reja. Una flecha a cada tótem enciende su brasero. Con los dos encendidos se abre la puerta del este.
 ; ======================================================================================================================================================
-; pieza br_g2 brasero 2 1 luz=2.4 modelo=cueva
-; pieza reja_g2a puerta 2 2
-; pieza placa_g2 pulsador 6 1 modo=presencia modelo=cueva
-; pieza reja_g2b puerta 6 2
+; pieza br_g2a brasero 2 1 luz=2.4 modelo=cueva
+; pieza br_g2b brasero 6 1 luz=2.4 modelo=cueva
+; pieza reja_g2a puerta 2 2 modelo=reja
+; pieza reja_g2b puerta 6 2 modelo=reja
+; pieza totem_g2a guardian 2 5 en=2,1
+; pieza totem_g2b guardian 6 5 en=6,1
+; pieza fuegos_g2 contador 4 4 de=2,1+6,1
 ; pieza puerta_g2 puerta 8 3 modelo=llave
-; puzle abre_g2a cuando=placa_g2.pulsado si=br_g2.encendido hace=puerta_g2.abrir
-; puzle abre_g2b cuando=br_g2.encendido si=placa_g2.activo hace=puerta_g2.abrir
-; puzle cierra_g2 cuando=placa_g2.soltado hace=puerta_g2.cerrar
+; puzle marca_g2 cuando=fuegos_g2.todos hace=flag.poner(gruta.g2.fuegos)
+; puzle abre_g2 cuando=flag.gruta.g2.fuegos hace=puerta_g2.abrir
 ; pieza jarron_g2 jarron 1 9 botin=oro
 ;
 ; ======================================================================================================================================================
-;  G3 · LA GALERÍA — PRESENTAR el escudo. Un arquero de puesto, al otro lado del agua (fuera del alcance de las flechas de la jugadora), bate el paso de oeste a este.
-;  Se puede cruzar aguantando, pero una barrera delante (tierra + ᛜ, mejor con ᛁ) para todas sus flechas. En la cornisa del arquero, un cofre para quien vuelva con el hielo.
+;  G3 · LA GALERÍA — PRESENTAR la TRAMPA: el fuego nace BAJO LOS PIES de quien está en la marca. Un arquero de puesto, al otro lado del agua (fuera del alcance de la
+;  flecha), bate el paso. La marca del tótem dormido está en su cornisa: cada golpe al tótem le prende fuego debajo. Caído el arquero, se abre la puerta del este.
 ; ======================================================================================================================================================
+; pieza totem_g3 guardian 10 2 en=12,8
 ; pieza arquero_g3 vigia 12 8 de=12,8 puesto=si flag=gruta.g3.arquero
-; pieza cofre_g3 cofre 14 9 abierto=gruta.g3.cofre da=pocion:1+oro:10
+; pieza puerta_g3 puerta 16 3 modelo=llave
+; puzle abre_g3 cuando=flag.gruta.g3.arquero hace=puerta_g3.abrir
 ;
 ; ======================================================================================================================================================
-;  G4 · LA CHARCA — PRESENTAR el puente de hielo, sin nadie que dispare. El agua corta la sala: hielo + ᛜ donde apuntas la hiela 20 s y se pisa (dos casillas de agua: dos barreras).
+;  G4 · LA CHARCA — PRESENTAR: lo que la flecha NO ALCANZA. El agua corta la sala; en la otra orilla, a 3 casillas, una cuerda sostiene un puente plegado. La flecha
+;  (2 casillas) cae al agua antes de llegar; el tótem dormido tiene su marca en la cuerda: arde, se rompe y el puente sube.
 ; ======================================================================================================================================================
+; pieza totem_g4 guardian 22 3 en=21,7
+; pieza puente_g4 puente 20 5 celdas=20,5+20,6
+; pieza cuerda_g4 cuerda 21 7 sostiene=puente_g4
+; puzle marca_g4 cuando=puente_g4.tendido hace=flag.poner(gruta.g4.puente)
+; puzle tiende_g4 cuando=flag.gruta.g4.puente hace=puente_g4.tender
 ; pieza jarron_g4 jarron 23 9 botin=oro
 ;
 ; ======================================================================================================================================================
-;  G5 · EL PASO BATIDO — COMBINAR escudo y puente: el río (filas 13..14) se cruza sobre hielo mientras dos arqueros de puesto disparan desde la otra orilla.
-;  Al otro lado se les puede tumbar a flechazos de fuego (vigía con flag: no vuelven).
+;  G5 · EL PASO BATIDO — COMBINAR la trampa y el puente: el río (filas 13..14) bajo dos arqueros de puesto en la otra orilla. Un tótem tiene la marca en la cuerda
+;  del puente (a 3 casillas: la flecha no llega); otro, las marcas bajo los dos arqueros. Se puede cruzar bajo las flechas o quemarlos antes.
 ; ======================================================================================================================================================
+; pieza totem_g5a guardian 22 12 en=21,15
+; pieza totem_g5b guardian 18 12 en=18,17+22,17
+; pieza puente_g5 puente 20 13 celdas=20,13+20,14
+; pieza cuerda_g5 cuerda 21 15 sostiene=puente_g5
 ; pieza arqueros_g5 vigia 18 17 de=18,17+22,17 puesto=si flag=gruta.g5.arqueros
+; puzle marca_g5 cuando=puente_g5.tendido hace=flag.poner(gruta.g5.puente)
+; puzle tiende_g5 cuando=flag.gruta.g5.puente hace=puente_g5.tender
 ;
 ; ======================================================================================================================================================
-;  G6 · EL SANTUARIO — COMBINAR los cuatro. El cofre (12,11) está tras una puerta que abren los DOS braseros, cada uno tras su reja (fuego + ᛜ donde apuntas, a 2 casillas: desde la orilla norte).
-;  Para llegar a la orilla norte hay que cruzar el agua (hielo + ᛜ) bajo dos arqueros de puesto en las esquinas (escudo, o tumbarlos al llegar).
-;  La salida es el ATAJO a G1 (8,16): una puerta que solo se abre mientras su placa (15,17) está pisada. Andando, una barrera normal (~8,4 s) se deshace antes de llegar:
-;  con ᛉ ᛉ (~12,3 s) da tiempo. Es el primer uso del glifo del cofre. (Corriendo se llega sin ᛉ: queda como atajo para quien lo descubra.)
+;  G6 · EL SANTUARIO — COMBINAR, y el PREMIO. Se cruza el agua con el puente de un tótem (su marca en la cuerda de la orilla norte, a 3 casillas). En la orilla norte,
+;  UN tótem dormido con DOS marcas, una tras cada reja de los braseros: un golpe enciende los dos y se abre la puerta del cofre. Un arquero de puesto en la esquina.
+;  El cofre legendario da ᛜ. LA SALIDA: el atajo a G1 (8,13) se abre con el brasero de la otra esquina, tras su reja; a su pie, una marca SIN tótem (el tótem está roto
+;  en el suelo). La flecha no pasa la reja: hay que levantar la barrera de fuego UNA MISMA (fuego + ᛜ). Es el primer uso del glifo.
 ; ======================================================================================================================================================
-; pieza arqueros_g6 vigia 9 11 de=9,11+15,11 puesto=si flag=gruta.g6.arqueros
+; pieza totem_g6a guardian 14 17 en=13,13
+; pieza puente_g6 puente 12 14 celdas=12,15+12,14
+; pieza cuerda_g6 cuerda 13 13 sostiene=puente_g6
+; puzle marca_g6p cuando=puente_g6.tendido hace=flag.poner(gruta.g6.puente)
+; puzle tiende_g6 cuando=flag.gruta.g6.puente hace=puente_g6.tender
+; pieza arquero_g6 vigia 15 11 de=15,11 puesto=si flag=gruta.g6.arquero
 ; pieza br_g6a brasero 11 11 luz=2.4 modelo=cueva
 ; pieza br_g6b brasero 13 11 luz=2.4 modelo=cueva
-; pieza reja_g6a puerta 11 12
-; pieza reja_g6b puerta 13 12
+; pieza reja_g6a puerta 11 12 modelo=reja
+; pieza reja_g6b puerta 13 12 modelo=reja
+; pieza totem_g6b guardian 14 13 en=11,11+13,11
 ; pieza fuegos_g6 contador 12 13 de=11,11+13,11
 ; pieza puerta_g6 puerta 12 12 modelo=llave
 ; puzle marca_g6 cuando=fuegos_g6.todos hace=flag.poner(gruta.g6.fuegos)
 ; puzle abre_g6 cuando=flag.gruta.g6.fuegos hace=puerta_g6.abrir
-; pieza tesoro cofre 12 11 modelo=legendario abierto=gruta.g6.glifo glifo=permanencia
-; El atajo: la placa del rincón y la puerta a G1.
-; pieza placa_atajo pulsador 15 17 modo=presencia modelo=cueva
-; pieza atajo puerta 8 16 modelo=llave
-; puzle abre_atajo cuando=placa_atajo.pulsado hace=atajo.abrir
-; puzle cierra_atajo cuando=placa_atajo.soltado hace=atajo.cerrar
+; pieza tesoro cofre 12 11 modelo=legendario abierto=gruta.g6.glifo glifo=barrera
+; El atajo: el brasero de la esquina, su reja, el tótem roto con su marca, y la puerta a G1.
+; pieza br_atajo brasero 9 11 luz=2.4 modelo=cueva
+; pieza reja_atajo puerta 9 12 modelo=reja
+; pieza totem_roto guardian 10 13 en=9,11 roto=si
+; pieza atajo puerta 8 13 modelo=llave
+; puzle marca_atajo cuando=br_atajo.encendido hace=flag.poner(gruta.g6.atajo)
+; puzle abre_atajo cuando=flag.gruta.g6.atajo hace=atajo.abrir
 ;
 ; ======================================================================================================================================================
-;  ADORNO (sin mecánica, no bloquea): kit genérico de cueva. Nunca sobre una placa, una reja, una puerta o el sitio desde el que se lanza.
+;  ADORNO (sin mecánica, no bloquea): kit genérico de cueva. Nunca sobre una placa, una reja, una puerta, una marca o el sitio desde el que se lanza.
 ; ======================================================================================================================================================
 ; pieza adorno_g1 decorado 1 16 modelo=roca_musgosa escala=0.8
 ; pieza adorno_g2 decorado 4 8 modelo=estalagmitas_a
 ; pieza adorno_g3a decorado 9 9 modelo=rocas_salpicadura
 ; pieza adorno_g3b decorado 15 1 modelo=musgo_colgante
-; pieza adorno_g4a decorado 17 7 modelo=helechos_cueva
+; pieza adorno_g4a decorado 17 8 modelo=helechos_cueva
 ; pieza adorno_g4b decorado 23 4 modelo=rocas_salpicadura giro=90
 ; pieza adorno_g5 decorado 17 11 modelo=estalagmitas_b
 ; pieza adorno_g6 decorado 9 17 modelo=raices_musgo
