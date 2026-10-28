@@ -431,7 +431,10 @@ func _combate() -> void:
 	var f0: int = Engine.get_process_frames()
 	g._atacar(DT)
 	var total: float = g._ataque
-	_ok(absf(total - modelo.duracion("attack")) < 0.01, "el ataque dura lo que el clip (%.2f s)" % total)
+	# 28/10: el clip dura 1,0 s a velocidad 1, pero el goblin lo anima a ×RITMO_GOBLIN (0,8): tarda 1,25 s. Antes del ritmo la aserción comparaba con el clip pelado y fallaba por otro motivo
+	# (el primer corte cae a 0,36 s y C3 alarga el ataque hasta que el aviso dure T_MIN: 1,11 s). Contrato real: lo que dura el clip al ritmo, o lo que pide el aviso si es más.
+	var esperado: float = maxf(modelo.duracion("attack") / g.ritmo(), AvisoAtaque3D.T_MIN / float(Pj3D.MOMENTOS_CORTE["goblin_asesino"]["attack"][0]))
+	_ok(absf(total - esperado) < 0.01, "el ataque dura lo que el clip al ritmo del goblin (%.2f s, esperado %.2f)" % [total, esperado])
 	var cortes: Array = modelo.momentos_corte("attack")
 	for _i in range(int(ceil(total * 30.0)) + 6):
 		await process_frame

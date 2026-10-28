@@ -216,7 +216,8 @@ func _vuelo(id: String) -> void:
 	_ok("%s · la duración total es empujado + levantarse (±4 fotogramas)" % id, absi(ticks - int(round((1.5 + g.pj.duracion("levantarse")) * 30.0))) <= 4, "%d" % ticks)
 	_ok("%s · ya no está empujado" % id, not g.en_empujado())
 	g.quieto = true                      # (si no, se iría a por la jugadora, que está al lado)
-	for _i in range(6):
+	# 28/10: 10 fotogramas y no 6: el idle de un goblin va a ×RITMO_GOBLIN (0,8) y la mezcla con la pose del levantarse (que va sin ritmo) tarda ~1 fotograma más en acabar.
+	for _i in range(10):
 		_paso(g)
 	var c2: Vector3 = _cadera(g)
 	_ok("%s · vuelve a Idle" % id, g.pj.estado_anim() == "idle", g.pj.estado_anim())
