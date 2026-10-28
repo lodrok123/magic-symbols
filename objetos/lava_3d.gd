@@ -263,6 +263,11 @@ func _process(delta: float) -> void:
 		_sucia = false
 
 
+## ¿Esta casilla es lava AHORA (no roca enfriada)? Lo pregunta el gólem de piedra (`Golem3D`) al resbalar: la lava lo mata.
+func es_lava(c: Vector2i) -> bool:
+	return _lava.has(c)
+
+
 ## ¿Esta casilla es roca enfriada (todavía no ha vuelto a ser lava)? Lo lee Puzle3D en `casilla(x,y).roca` y el basalto de la Cueva.
 func es_roca(c: Vector2i) -> bool:
 	return _roca.has(c)

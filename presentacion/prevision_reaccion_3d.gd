@@ -19,6 +19,11 @@ const ESTILO: Dictionary = {
 	"crece": ["¡Crece!", Color(1.0, 0.3, 0.25)],              # E1: el limo recibe su elemento: pasa a grande
 	"cura": ["Lo cura", Color(0.45, 1.0, 0.5)],               # E1: el limo grande recibe su elemento
 	"hunde": ["¡Hunde!", Color(0.35, 0.6, 1.0)],
+	"piedra": ["Piedra", Color(0.72, 0.72, 0.76)],            # E3: el gólem de pie y armado no recibe daño
+	"inmune": ["Ni se inmuta", Color(0.72, 0.72, 0.76)],      # E3: el viento no mueve al gólem (sin hielo)
+	"nucleo": ["Núcleo", Color(1.0, 0.62, 0.22)],             # E3: el núcleo expuesto (o tumbado) recibe ×1,5
+	"resbala": ["Resbala", Color(0.55, 0.95, 1.0)],           # E3: el viento sobre hielo lo hace deslizarse
+	"lava": ["¡Lava!", Color(1.0, 0.4, 0.15)],                # E3: acaba en la lava
 	"electrocuta": ["Electrocuta", Color(1.0, 0.92, 0.3)],
 	"congela": ["Congela", Color(0.55, 0.95, 1.0)],
 	"prende": ["Prende", Color(1.0, 0.55, 0.2)],
@@ -130,14 +135,17 @@ func _enemigo(e: Dictionary) -> void:
 	_anillo(g.global_position, 0.42 * Terreno3D.casilla, col)
 	var destino: Vector3 = extra.get("destino", g.global_position)
 	var flecha: bool = false
-	if (lista.has("empuja") or lista.has("hunde")) and destino.distance_to(g.global_position) > 0.25 * Terreno3D.casilla:
+	if (lista.has("empuja") or lista.has("hunde") or lista.has("resbala") or lista.has("lava")) and destino.distance_to(g.global_position) > 0.25 * Terreno3D.casilla:
 		# A4 (28/10): la FLECHA FANTASMA del empuje: una flecha en el suelo hasta donde acaba y, allí, la silueta translúcida del enemigo. Si acaba en agua honda, azul y «Se hunde» encima.
 		var hunde: bool = bool(extra.get("hundira", false))
-		var col_d: Color = _color("hunde") if hunde else _color("empuja")
+		var lava: bool = bool(extra.get("lava", false))
+		var col_d: Color = _color("hunde") if hunde else (_color("lava") if lava else _color("empuja"))
 		_flecha(g.global_position, destino, col_d)
 		_fantasma(destino, alto, col_d)
 		if hunde:
 			_rotulo(Vector3(destino.x, _y_suelo(destino), destino.z) + Vector3(0, alto + 0.35, 0), "Se hunde", col_d, 0.8)
+		elif lava:
+			_rotulo(Vector3(destino.x, _y_suelo(destino), destino.z) + Vector3(0, alto + 0.35, 0), "¡Lava!", col_d, 0.8)
 		flecha = true
 	pintado.append({"que": "enemigo", "reaccion": principal, "texto": linea1, "segunda": segunda, "celda": e["celda"], "nodo": g, "destino": destino, "flecha": flecha})
 
@@ -331,7 +339,9 @@ static func _color(reaccion: String) -> Color:
 
 static func _sufijo(mult: float) -> String:
 	if mult > 1.01:
-		return " ×2"
+		return " ×1,5" if mult < 1.9 else " ×2"           # ×1,5 = el núcleo del gólem (E3)
+	if mult < 0.01:
+		return ""                                          # ×0: el rótulo ya lo dice («Piedra»)
 	if mult < 0.99:
 		return " ½"
 	return ""

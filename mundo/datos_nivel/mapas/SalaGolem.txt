@@ -1,0 +1,25 @@
+#################
+#...............#
+#.S.............#
+#........~~~....#
+#..~~~~~~~~~....#
+#........~~~....#
+#...............#
+#...............#
+#################
+; ======================================================================================================================================================
+;  LA SALA DEL GÓLEM (28/10/2026). Banco de pruebas del GÓLEM DE PIEDRA (E3, enemigos/golem_3d.gd; reglas en docs/PROPUESTA_COMBATE.md §4): una sala con un gólem, una FRANJA DE
+;  AGUA que se puede helar (3..8, 4) y, al final, una charca honda (9..11, 3..5). Kit `pruebas` (todos los elementos), para probar a mano las reglas:
+;    · el gólem (13,6) persigue lento. De pie, NADA le hace daño (flecha, fuego, rayo, golpe F): «Piedra». Cuando va a pegar marca un rectángulo rojo delante (C3); rodar (Ctrl) en el
+;      último instante abre el tiempo bruja (C4). Tras el golpe queda de rodillas con el NÚCLEO brillando: ahí todo le hace ×1,5 (también el golpe F);
+;    · la franja: un hechizo de HIELO sobre el agua la hiela. Un gólem sobre el hielo al que le llega VIENTO resbala hasta pararse (cae de espaldas: núcleo a la vista 3 s) o, si el
+;      hielo acaba en la charca, se hunde (y da +20 de tinta). Sin hielo, el viento: «Ni se inmuta». Atraerlo a la franja: ponerse al otro lado del hielo y esperar a que cruce.
+;  Vencido, aparece el cofre (2,7). Lo comprueba herramientas/escenario_sala_golem.gd.
+; ======================================================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio
+;
+; zona 1,1..15,7 cueva mezcla=0.8 rotulo=El_golem
+;
+; pieza golem_a golem 13 6
+; pieza vigia_golem vigia 8 6 de=1,1..15,7 flag=salagolem.sala.limpia
+; pieza cofre_golem cofre 2 7 aparece_si=flag.salagolem.sala.limpia abierto=salagolem.sala.cofre da=oro:40

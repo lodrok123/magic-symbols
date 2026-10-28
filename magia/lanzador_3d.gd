@@ -356,7 +356,7 @@ static func atrapar(punto: Vector3, radio: float, segundos: float) -> void:
 		if is_instance_valid(f) and _dentro_del_hielo((f as Node3D).global_position, punto, radio):
 			f.call("congelar")
 	for g in arbol.get_nodes_in_group("combate3d"):
-		if is_instance_valid(g) and _dentro_del_hielo((g as Node3D).global_position, punto, radio):
+		if is_instance_valid(g) and g.get("inmune_hielo") != true and _dentro_del_hielo((g as Node3D).global_position, punto, radio):   # E3: el gólem de piedra no queda preso
 			g.set("congelado", maxf(float(g.get("congelado")), segundos))
 			g.set_meta("preso_hielo", true)
 			if not _presos.has(g):

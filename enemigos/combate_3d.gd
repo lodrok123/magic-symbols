@@ -207,9 +207,9 @@ var se_hundio: bool = false              ## murió ahogado (cae al agua), no por
 var _punto_hundido: Vector3 = Vector3.ZERO   ## dónde se hundió (en la superficie), para el aviso y la animación
 var duracion_hundimiento: float = 0.0    ## s que dura el hundimiento real (el clip de ahogarse o TIEMPO_HUNDIMIENTO); 0 = aún no se ha hundido. Burbujas y sonido la copian
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
-## C1 (28/10): false = el golpe cuerpo a cuerpo de la jugadora (`GolpeCuerpo`) le hace daño pero NO lo mueve (por masa). TODO: el gólem de piedra, cuando exista como enemigo, lo pone a false
-## (hoy solo hay modelo y animaciones: jugador/animaciones_golem.gd); ningún enemigo actual lo usa.
+## C1 (28/10): false = el golpe cuerpo a cuerpo de la jugadora (`GolpeCuerpo`) le hace daño pero NO lo mueve (por masa). Lo pone a false el gólem de piedra (`Golem3D`, E3, 28/10).
 var empujable_golpe: bool = true
+var botin_goblin: bool = true           ## E3 (28/10): false = al morir no suelta los materiales del goblin (`BotinGoblin`: el colmillo); el gólem no los tiene
 var premia_tinta: bool = true           ## C2 (28/10): false = muñeco o diana que no da tinta por reacción (`Tinta.premiar_reaccion`)
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 var fijo: bool = false                  ## 24/10 (paso batido del Bosque 01 v01): arquero DE PUESTO. No persigue, no retrocede ni patrulla: dispara desde su sitio a quien entre en ARQUERO_FIJO_ALCANCE con línea libre, apuntando con adelanto (la flecha tarda ~1,5 s: sin él solo acierta al que está parado)
@@ -402,7 +402,7 @@ func escudo_cubre(direccion: Vector3) -> bool:
 
 ## 28/10 · C1 (golpe cuerpo a cuerpo de la jugadora, `GolpeCuerpo`): daño plano `dano` (sin debilidades ni elementos) y un empujón FUERTE `fuerza` en `dir` por el `push` de siempre, así que si acaba en agua
 ## honda se hunde y da tinta por C2. Interrumpe el ataque que tuviera en curso. Con un escudo ACTIVO de frente (entero o ardiendo; `Escudo3D.esta_activo` ya excluye el quemado o roto) el golpe se para en él:
-## sin daño y con `factor_escudo` del empuje; con el escudo quemado o roto, lo tumba como a cualquiera. Un enemigo con `empujable_golpe` false (el gólem, cuando exista como enemigo) recibe el daño pero NO se mueve.
+## sin daño y con `factor_escudo` del empuje; con el escudo quemado o roto, lo tumba como a cualquiera. Un enemigo con `empujable_golpe` false (el gólem, `Golem3D`) recibe el daño pero NO se mueve.
 ## Devuelve {escudo: bool, dano: float, v0: float}.
 func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escudo: float = 0.5) -> Dictionary:
 	var r: Dictionary = {"escudo": false, "dano": 0.0, "v0": 0.0}
@@ -2218,8 +2218,8 @@ func _morir(ahogado: bool = false) -> void:
 		return
 	if oro > 0:
 		Botin3D.soltar(mundo, jugador, oro, position)
-	if not elemental:
-		BotinGoblin.soltar(mundo, position)        # materiales (colmillo): docs/MATERIALES_CUEVA.md
+	if not elemental and botin_goblin:
+		BotinGoblin.soltar(mundo, position)       # materiales (colmillo): docs/MATERIALES_CUEVA.md
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
 	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)

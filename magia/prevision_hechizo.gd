@@ -15,7 +15,7 @@ extends RefCounted
 ##               `Lava3D.celdas_enfriables` / `celda_de_impacto` (cada una la llama su `on_spell_hit`). `Rompible3D` y las piezas sin tabla propia se nombran «rompe» / «activa».
 ##
 ## CADA ENTRADA:  {que: «enemigo»|«suelo»|«pieza», nodo: Node o null, celda: Vector2i, reaccion: String, mult: float, extra: Dictionary}
-##   reaccion  la principal. Enemigo: bloquea · crece · cura · tine (el limo, E1) · hunde · electrocuta · congela · prende · moja · seca (vapor) · apaga · aturde · empuja · ralentiza · golpe.
+##   reaccion  la principal. Enemigo: bloquea · crece · cura · tine (el limo, E1) · piedra · nucleo · resbala · lava · inmune (el gólem, E3) · hunde · electrocuta · congela · prende · moja · seca (vapor) · apaga · aturde · empuja · ralentiza · golpe.
 ##             Suelo: hiela · moja · seca · derrite · evapora · prende · arde · brota · apaga · abanica.   Pieza: enciende · apaga · prende · moja · aviva · activa · brota · mueve · agrieta · rompe · enfria.
 ##   mult      2,0 debilidad · 0,5 resistencia · 1,0 (en piezas y suelo, siempre 1,0)
 ##   extra     enemigo: {reacciones: [String] (todas, en orden de importancia), dano, cubierto, escudo (la reacción del escudo si lo para), hundira, destino: Vector3 (adónde llegaría empujado),
@@ -29,7 +29,7 @@ extends RefCounted
 ## Un proyectil con `retorna` se prevé solo en la ida.
 
 ## Prioridad de las reacciones de un enemigo para elegir la principal (la primera que aparece).
-const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "crece", "cura", "tine", "hunde", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe"]
+const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "crece", "cura", "tine", "hunde", "lava", "resbala", "nucleo", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe", "piedra", "inmune"]
 ## Qué aviso de `Combate3D.decidir_golpe` (catálogo de Mundo3D.REACCIONES) es qué reacción del indicador.
 const DE_AVISO: Dictionary = {"electrocutado": "electrocuta", "prendido": "prende", "apagado_agua": "apaga", "secado": "seca", "mojado": "moja", "congelado": "congela"}
 ## Un empujón menor que esto (casillas) no cuenta como «empuja» para el indicador (todo golpe con daño empuja un poco: EMPUJE_MIN_CASILLAS).
@@ -215,8 +215,12 @@ static func _enemigo(g: Combate3D, h: Hechizo, rune: RuneData, dir: Vector3, pun
 	var empuje: Dictionary = pg["empuje"] as Dictionary
 	var hunde: bool = bool(pg["cae_al_agua"])
 	var empuja: bool = not empuje.is_empty() and float(empuje["recorrido"]) >= EMPUJE_VISIBLE_CASILLAS * cas
+	var propias: Array = pg.get("reacciones_propias", [])    # E3: el gólem las decide él (piedra, núcleo, resbala, lava, inmune)
 	if bool(pg["cubierto"]):
 		lista.append("bloquea")
+	elif not propias.is_empty():
+		for p in propias:
+			lista.append(String(p))
 	elif String(pg.get("absorbe", "")) != "":
 		lista.append(String(pg["absorbe"]))              # E1: el limo absorbe el elemento (tiñe · crece · cura): nada más le pasa
 	else:
@@ -228,17 +232,19 @@ static func _enemigo(g: Combate3D, h: Hechizo, rune: RuneData, dir: Vector3, pun
 			lista.append("aturde")
 		if float(pg["lento"]) > 0.0:
 			lista.append("ralentiza")
-	if hunde:
+	if not propias.is_empty():
+		pass                                             # lo que empuja o hunde ya va en sus reacciones propias
+	elif hunde:
 		lista.append("hunde")
 	elif empuja:
 		lista.append("empuja")
-	if float(pg["dano"]) > 0.0 and not bool(pg["cubierto"]):
+	if float(pg["dano"]) > 0.0 and not bool(pg["cubierto"]) and propias.is_empty():
 		lista.append("golpe")                            # el daño suelto (sin ningún estado) también es lo que le pasa
 	if lista.is_empty():
 		return {}                                        # nada que enseñar (un viento que no lo mueve, un golpe sin daño ni estado)
 	lista.sort_custom(func(a: String, b: String) -> bool: return PRIORIDAD_ENEMIGO.find(a) < PRIORIDAD_ENEMIGO.find(b))
 	var extra: Dictionary = {"reacciones": lista, "dano": float(pg["dano"]), "cubierto": bool(pg["cubierto"]), "escudo": String(pg["escudo"]),
-		"hundira": hunde, "golpes": 1, "empuje_u": float(empuje.get("recorrido", 0.0)), "destino": (empuje["destino"] as Vector3) if not empuje.is_empty() else g.position}
+		"hundira": hunde, "lava": bool(pg.get("cae_en_lava", false)), "golpes": 1, "empuje_u": float(empuje.get("recorrido", 0.0)), "destino": (empuje["destino"] as Vector3) if not empuje.is_empty() else g.position}
 	return {"que": "enemigo", "nodo": g, "celda": Terreno3D.celda_de(g.position), "reaccion": String(lista[0]),
 		"mult": 1.0 if bool(pg["cubierto"]) else float(pg["mult"]), "extra": extra}
 

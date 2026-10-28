@@ -89,6 +89,9 @@ extends Node
 ##   limo       elemento=fuego|agua|hielo|rayo|tierra|viento (sin teñir)  grande=si (no)   Limo3D (E1, 28/10): el limo elemental. Persigue a brincos y salta encima (15; 30 de grande),
 ##              se tiñe del primer elemento que le llega (hechizo o casilla), con su elemento otra vez crece y, grande, su elemento lo cura. Es un Combate3D: el vigía lo cuenta
 ##              (su casilla de partida es la de la pieza). No bloquea su casilla
+##   golem      quieto=si (no)                                                      Golem3D (E3, 28/10): el gólem de piedra. De pie nada le hace daño; persigue lento y golpea con aviso (30 y empuje); tras el
+##              golpe queda de rodillas con el núcleo a la vista (×1,5 de daño). El viento sobre una casilla helada lo hace resbalar (tumbado = núcleo a la vista; al agua honda o la
+##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
 ##   (puerta)   modelo=reja                                                          28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
@@ -383,6 +386,7 @@ const CLAVES: Dictionary = {
 	"guardian": {"en": "celdas", "cada": "f", "elemento": "s:fuego|agua|hielo|tierra|rayo|viento", "cerca": "f", "roto": "b"},
 	"puente": {"celdas": "celdas"},
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
+	"golem": {"quieto": "b"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -2081,6 +2085,16 @@ func _crear(pz: Pieza) -> void:
 			var li: Limo3D = Limo3D.crear(mundo as Node3D, Terreno3D.centro_de(cel_l, Terreno3D.y_pies(cel_l)), String(pz.p.get("elemento", "")), bool(pz.p.get("grande", false)))
 			li.name = pz.id
 			pz.nodo = li
+		"golem":
+			# E3 (28/10): como el limo, el gólem se cuelga del MUNDO (su modelo Pj3D es hermano suyo). Si falta el modelo, avisa y no sale.
+			var cel_g: Vector2i = pz.celda
+			var go: Golem3D = Golem3D.invocar_golem(mundo as Node3D, Terreno3D.centro_de(cel_g, Terreno3D.y_pies(cel_g)))
+			if go == null:
+				_avisar_pieza(pz, "el gólem no tiene modelo (golem_piedra_rig.glb)")
+				return
+			go.quieto = bool(pz.p.get("quieto", false))
+			go.name = pz.id
+			pz.nodo = go
 		"puente":
 			# 28/10 (Gruta Batida): las losas rúnicas de PuenteReactivo3D sobre el agua de `celdas`, plegadas hasta `tender` (una regla o la cuerda que lo sostiene).
 			# Cada losa que sube vuelve su casilla un puente «b» que se pisa.
