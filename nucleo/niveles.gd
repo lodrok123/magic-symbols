@@ -21,6 +21,7 @@ const ESCENAS: Dictionary = {
 	"Cueva": "res://escenas/PruebaCueva.tscn",
 	"CuevaResonante": "res://escenas/PruebaCuevaResonante.tscn",      # 27/10: la Cueva rediseñada como mazmorra EoW (docs/CUEVA_RESONANTE.md)
 	"GrutaBatida": "res://escenas/PruebaGrutaBatida.tscn",            # 27/10: el nivel de la barrera (docs/GRUTA_BATIDA.md)
+	"SalaEmpuje": "res://escenas/PruebaSalaEmpuje.tscn",            # 27/10: la sala de los bloques empujables (docs/EMPUJAR_BLOQUES.md)
 	"Bosque_01_v01": "res://escenas/PruebaBosque01_v01.tscn",     # el mapa lo diseña otro agente (docs/PLAN_BOSQUE_01_V01.md): hasta que exista la escena, la salida avisa
 }
 const T_FUNDIDO: float = 0.35

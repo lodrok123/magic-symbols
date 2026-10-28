@@ -1,0 +1,82 @@
+#################################
+#.......#################.#~#####
+#.S.....#.......##......#..~#####
+#..######..##########.###..~#####
+#.......#.......#...#.#.#..~....#
+#..######.......#...#.#.#..~#####
+#...................#.#....~#####
+#.......#.......#.......#..~#####
+#################################
+; ======================================================================================================================================================
+;  LA SALA DEL EMPUJE (27/10/2026). Cuatro salas pequeñas que enseñan a EMPUJAR BLOQUES (BloqueEmpujable3D): presentar, desarrollar, desarrollar con otro átomo y combinar.
+;  Cómo funciona, medidas y cómo editarla: docs/EMPUJAR_BLOQUES.md. La juega de principio a fin (empujando de verdad) herramientas/escenario_sala_empuje.gd.
+;  Kit `pruebas` (todo el repertorio): ningún bloque necesita más que andar contra él, la tierra con barrera y el viento.
+;  Regla de oro del diseño: cada bloque vive en una PISTA de una casilla de ancho cerrada por paredes (se empuja desde un solo lado), para que no se pueda arrinconar en una esquina.
+;  El único bloque que puede acabar mal (el hielo, que se pasa de la placa y llega a la pared) se deshace a los 3 s y vuelve a formarse en su casilla.
+; ======================================================================================================================================================
+; # pared · . suelo · ~ agua (no se pisa) · S inicio
+; E1 (x 1..7) · E2 (x 9..15) · E3 (x 17..23) · E4 (x 25..31); las puertas de paso están en (8,6), (16,6) y (24,6)
+;
+; --- zonas: la luz azul de la Cueva, una variante por sala; cada una saca su rótulo la primera vez ---
+; zona 1,1..7,7 cueva mezcla=0.8 rotulo=El_bloque
+; zona 9,1..15,7 cueva_hielo mezcla=0.8 rotulo=El_hielo
+; zona 17,1..23,7 cueva mezcla=0.8 rotulo=La_veta
+; zona 25,1..31,7 cueva_ruinas mezcla=0.8 rotulo=La_otra_orilla
+;
+; pieza desde_bosque entrada 2 2 mira=s
+;
+; ======================================================================================================================================================
+;  E1 · EL BLOQUE — PRESENTAR. Un bloque de piedra al principio de una pista de una casilla (3..7, 4); la placa está al fondo (7,4), a 5 casillas de donde se empuja: la barrera de tierra no llega.
+;  Andar contra el bloque (0,35 s) lo empuja una casilla; sobre la placa abre la puerta del sur (8,6) y la deja abierta mientras esté encima. En la esquina (7,7) hay otro contra las paredes: no cede.
+; ======================================================================================================================================================
+; pieza bloque_e1 bloque 3 4 material=piedra
+; pieza placa_e1 pulsador 7 4 modo=presencia modelo=cueva
+; pieza puerta_e1 puerta 8 6 modelo=llave
+; puzle abre_e1 cuando=placa_e1.pulsado hace=puerta_e1.abrir
+; puzle cierra_e1 cuando=placa_e1.soltado hace=puerta_e1.cerrar
+; pieza bloque_fijo_e1 bloque 7 7 material=piedra
+; pieza jarron_e1 jarron 1 7 botin=oro
+;
+; ======================================================================================================================================================
+;  E2 · EL HIELO — DESARROLLAR. El bloque de hielo (11,2) resbala por la pista (11..15, 2) hasta la pared (15,2) y la placa (12,2) queda a una casilla del principio: sin nada que lo pare, pasa de largo
+;  y no abre. Una barrera de TIERRA (tierra + ᛜ) justo detrás de la placa, en (13,2), lo para encima. Se lanza desde (10,2), donde también se empuja (la pista se cierra por el este y por abajo).
+;  Si se pasa de la placa y llega a la pared, ya no se puede mover: a los 3 s se deshace y vuelve a formarse en (11,2).
+; ======================================================================================================================================================
+; pieza bloque_e2 bloque 11 2 material=hielo
+; pieza placa_e2 pulsador 12 2 modo=presencia modelo=cueva
+; pieza puerta_e2 puerta 16 6 modelo=llave
+; puzle abre_e2 cuando=placa_e2.pulsado hace=puerta_e2.abrir
+; puzle cierra_e2 cuando=placa_e2.soltado hace=puerta_e2.cerrar
+; pieza jarron_e2 jarron 15 7 botin=pocion
+;
+; ======================================================================================================================================================
+;  E3 · LA VETA — DESARROLLAR con el pulso. El cristal (18,2) late cada 4 s; su veta (19..22, 2) tiene un HUECO en (21,2) que solo conduce con algo pesado encima. Al otro lado, el receptor (23,2) abre la reja
+;  del este (24,6). La veta está en una cámara cerrada; el bloque de piedra (21,6) sube por una pista de una casilla (21,3..6) y el hueco queda a 5 casillas de donde se empuja (no hay barrera que llegue).
+; ======================================================================================================================================================
+; pieza latido_e3 cristal 18 2 cada=4
+; pieza veta_e3 veta 19 2 celdas=19,2..20,2+22,2 enlaces=21,2
+; pieza receptor_e3 receptor 23 2 flag=empuje.e3.pulso
+; pieza reja_e3 puerta 24 6 modelo=llave
+; puzle abre_e3 cuando=flag.empuje.e3.pulso hace=reja_e3.abrir
+; pieza bloque_e3 bloque 21 6 material=piedra
+; pieza jarron_e3 jarron 17 4 botin=oro
+;
+; ======================================================================================================================================================
+;  E4 · LA OTRA ORILLA — COMBINAR el hielo y el viento. El agua (27) parte la sala y no se pisa. Al otro lado, una pista de una casilla (28..31, 4) con un bloque de HIELO (28,4) y, al fondo, una placa (31,4). No se llega
+;  andando: el VIENTO (viento + flecha, que vuela 2 casillas) desde (26,4) cruza el agua, golpea el bloque y el hielo resbala solo hasta el fondo, sobre la placa, que abre la reja del cofre (25,2). (Con hielo + ᛜ sobre el agua se
+;  puede tender un puente y empujarlo a mano: es la misma idea.) La pista es un callejón: el bloque solo puede ir hacia el fondo.
+; ======================================================================================================================================================
+; pieza bloque_e4 bloque 28 4 material=hielo
+; pieza placa_e4 pulsador 31 4 modo=presencia modelo=cueva
+; pieza reja_e4 puerta 25 2 modelo=llave
+; pieza cofre_e4 cofre 25 1 abierto=empuje.e4.cofre da=oro:50
+; puzle abre_e4 cuando=placa_e4.pulsado hace=reja_e4.abrir
+; puzle cierra_e4 cuando=placa_e4.soltado hace=reja_e4.cerrar
+;
+; ======================================================================================================================================================
+;  ADORNO (sin mecánica, no bloquea): nunca sobre una placa, una reja, una puerta, una pista o el sitio desde el que se lanza.
+; ======================================================================================================================================================
+; pieza adorno_e1 decorado 6 1 modelo=roca_musgosa escala=0.8
+; pieza adorno_e2 decorado 9 7 modelo=estalagmitas_a
+; pieza adorno_e3 decorado 19 7 modelo=rocas_salpicadura
+; pieza adorno_e4 decorado 26 7 modelo=helechos_cueva

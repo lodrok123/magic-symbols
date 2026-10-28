@@ -106,9 +106,9 @@ static func conduce_pulso(c: Vector2i) -> bool:
 	return Terreno3D.en_mapa(c) and (Terreno3D.conduce(c) or vetas.has(c) or enlace_tendido(c))
 
 
-## ¿Es un hueco de enlace con su bloque puesto? (la tierra levantada encima lo vuelve conductor)
+## ¿Es un hueco de enlace con su bloque puesto? (la tierra levantada encima lo vuelve conductor; 27/10: también un BLOQUE DE PIEDRA empujado encima, `BloqueEmpujable3D`; el de hielo no)
 static func enlace_tendido(c: Vector2i) -> bool:
-	return enlaces.has(c) and Terreno3D.altura_en(c) >= 1
+	return enlaces.has(c) and (Terreno3D.altura_en(c) >= 1 or BloqueEmpujable3D.piedra_en(c))
 
 
 ## El color de un elemento («» o desconocido = el base).

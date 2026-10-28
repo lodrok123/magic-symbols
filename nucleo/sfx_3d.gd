@@ -51,6 +51,8 @@ const AMBIENTES: Dictionary = {
 	"agua": {"f": "oga_agua_corriendo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
 	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
+	# 28/10: el arrastre del bloque de piedra al empujarlo (BloqueEmpujable3D): no hay un arrastre grabado, así que el «rodar» sintetizado en bucle, bajo.
+	"arrastre": {"f": "rodar.wav", "db": -17.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
 }
 
 static var _flujos: Dictionary = {}       ## archivo -> AudioStream (solo los que cargaron)

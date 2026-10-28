@@ -69,6 +69,11 @@ extends Node
 ##              `coge_si` (alga: casilla(x,y).helada · basalto: casilla(x,y).roca). Si la condición se pierde, desaparece; si vuelve, reaparece (salvo si ya se cogió)
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
+##   bloque     material=piedra|hielo (piedra)                                      BloqueEmpujable3D (27/10, docs/EMPUJAR_BLOQUES.md): bloque que la jugadora EMPUJA andando contra él (0,35 s apretando) o que el VIENTO se lleva. Bloquea
+##              su casilla (jugadora, enemigos, flechas), pesa (pisa las placas) y no se guarda: al recargar vuelve a su casilla. `piedra`: una casilla por empujón (0,45 s); sobre el HUECO de una
+##              veta (`enlaces=`) lo TIENDE y el pulso cruza. `hielo`: un empujón y resbala hasta que la siguiente casilla no esté libre (pared, otro bloque, una barrera de tierra, un enemigo).
+##              Si queda atascado sin remedio (sin ningún movimiento posible y sin servir de nada) se deshace a los 3 s y vuelve a formarse en su casilla del mapa.
+##              Señales `movido` (al acabar cada movimiento completo; la casilla) y `reaparece`; condiciones `quieto`|`en_marcha`. Usa una `placa` (pulsador modo=presencia) para saber si está encima
 ##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>  modelo=legendario|epico   CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
 ##              montar nace ABIERTO; si no, oculto hasta que `aparece_si` se cumpla (se reevalúa cada 0,2 s y al cambiar cualquier flag) y
 ##              entonces APARECE cerrado (con efecto; si ya se cumplía al montar, sin efecto). El jugador lo abre con E a ≤ 2,7 u; al acabar
@@ -218,7 +223,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
-	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota",
+	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -254,6 +259,7 @@ const SENALES: Dictionary = {
 	"columna": {"cae": ["roto", 0, null]},
 	"estalagmita": {"cae": ["cae", 0, null]},
 	"geoda": {"explota": ["explota", 2, null]},
+	"bloque": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 }
 const CONDICIONES: Dictionary = {
@@ -283,6 +289,7 @@ const CONDICIONES: Dictionary = {
 	"columna": {"caida": ["roto_ya", true], "en_pie": ["roto_ya", false]},
 	"estalagmita": {"caida": ["caida_ya", true], "en_pie": ["caida_ya", false]},
 	"geoda": {"explotada": ["explotada", true], "intacta": ["explotada", false]},
+	"bloque": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
@@ -348,6 +355,7 @@ const CLAVES: Dictionary = {
 	"columna": {"golpes": "f", "cae": "s:n|e|s|o", "puente": "id", "largo": "f", "flag": "flag"},
 	"estalagmita": {"cae": "s:n|e|s|o", "flag": "flag"},
 	"geoda": {"flag": "flag", "escala": "f", "cerca": "f"},
+	"bloque": {"material": "s:piedra|hielo"},
 	"estatuas": {"celdas": "celdas", "secuencia": "secuencia", "flag": "flag"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
@@ -1806,6 +1814,12 @@ func _crear(pz: Pieza) -> void:
 			mu.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
 			cont.add_child(mu)
 			pz.nodo = mu
+		"bloque":
+			var bq := BloqueEmpujable3D.new()
+			bq.name = pz.id
+			bq.preparar(pz.celda, String(pz.p.get("material", "piedra")), mundo as Node)
+			cont.add_child(bq)
+			pz.nodo = bq
 		"nexo":
 			var nx := NexoRayo3D.new()
 			nx.name = pz.id
