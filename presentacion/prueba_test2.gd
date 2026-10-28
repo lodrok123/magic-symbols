@@ -85,6 +85,7 @@ const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chi
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85, "jugadora_base": 1.0,      # 24/10: la jugadora (base + ropa por piezas), primera de PJ_JUGADOR
 	"alchemist_elf": 0.95, "elfo_base": 1.0, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
+	"golem_piedra": 1.7,         # 28/10: el gólem de piedra (cuerpo riggeado), el doble de alto que un goblin
 	"loberno": 0.75,      # 13/10: lobo (Meshy). Mide 0,60 u de alto y 1,02 de largo; a 0,75 sus zancadas casan con VEL_PATRULLA (walk) y VEL_PERSEGUIR (Gallop)
 	"gato_guardabosques": 0.55,   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)
 	"lince": 0.65}      # 14/10: la mascota que sustituye al gato; su alto incluye cola y cuerno (el lomo queda a ~0,33)
@@ -4704,22 +4705,52 @@ func _al_impacto_mundo(punto: Vector3, elemento: String, _radio: float) -> void:
 
 ## Hierba (§1.2, §4.2). Sin entrada en _hf = FINA.
 func _impacto_en_hierba(elemento: String, c: Vector2i) -> void:
+	match prever_hierba(elemento, c):
+		"prende":
+			_poner_fase(c, Fase.PRENDIENDO)
+		"arde":
+			_poner_fase(c, Fase.ARDIENDO)
+		"brota":
+			_hf[c] = {"fase": Fase.CRECIDA, "t": 0.0, "v": 0.0, "fx": null}     # brota (y pasa a bloquear)
+		"apaga":
+			_apagar(c)                                                          # FINA, R = 0 (rebrota)
+		"abanica":
+			_abanicar(c)
+
+
+## 28/10 · A2 (previsión): qué le haría este elemento a la hierba de la casilla `c`, sin tocarla: «prende» (fuego sobre hierba que no está mojada ni ardiendo, con hueco para otra
+## llama), «arde» (rayo), «brota» (agua o hielo sobre hierba corta), «apaga» (agua o hielo sobre la que arde), «abanica» (el viento aviva la que arde) o «» (nada). Es la regla de
+## `_impacto_en_hierba`, que la ejecuta; la previsión del indicador (`ReaccionesSuelo3D.prever`) la consulta por aquí.
+func prever_hierba(elemento: String, c: Vector2i) -> String:
 	var f: int = int((_hf[c] as Dictionary)["fase"]) if _hf.has(c) else 0
 	match elemento:
 		"fuego":
-			if f == 0 or f == Fase.CRECIDA:
-				_poner_fase(c, Fase.PRENDIENDO)
+			if (f == 0 or f == Fase.CRECIDA) and _puede_prender(c):
+				return "prende"
 		"rayo":
 			if f == 0 or f == Fase.CRECIDA or f == Fase.PRENDIENDO:
-				_poner_fase(c, Fase.ARDIENDO)
+				return "arde"
 		"agua", "hielo":
 			if f == 0:
-				_hf[c] = {"fase": Fase.CRECIDA, "t": 0.0, "v": 0.0, "fx": null}     # brota (y pasa a bloquear)
-			elif f == Fase.PRENDIENDO or f == Fase.ARDIENDO or f == Fase.CENIZAS:
-				_apagar(c)                                                          # FINA, R = 0 (rebrota)
+				return "brota"
+			if f == Fase.PRENDIENDO or f == Fase.ARDIENDO or f == Fase.CENIZAS:
+				return "apaga"
 		"viento":
 			if f == Fase.ARDIENDO:
-				_abanicar(c)
+				return "abanica"
+	return ""
+
+
+## ¿Puede empezar a prender la hierba de `c`? No si ya hay MAX_ARDIENDO casillas encendidas (una GPU integrada no lo aguanta) ni si está mojada (si no, el fuego vecino la reenciende al instante).
+func _puede_prender(c: Vector2i) -> bool:
+	var ardiendo: int = 0
+	for k in _hf:
+		var fk: int = int((_hf[k] as Dictionary)["fase"])
+		if fk == Fase.PRENDIENDO or fk == Fase.ARDIENDO:
+			ardiendo += 1
+	if ardiendo >= MAX_ARDIENDO:
+		return false
+	return int(_mojada.get(c, 0)) <= Time.get_ticks_msec()
 
 
 func _quitar_fx(c: Vector2i) -> void:
@@ -4734,19 +4765,15 @@ func _poner_fase(c: Vector2i, fase: int) -> void:
 	var viejo: Dictionary = _hf.get(c, {})
 	# Tope: una GPU integrada no aguanta medio mapa en llamas (el 6/10 se congeló). Más allá de MAX_ARDIENDO casillas encendidas a la
 	# vez no se propaga más; más allá de MAX_FX_HIERBA siguen ardiendo (quemado en el suelo) pero sin partículas.
-	var ardiendo: int = 0
 	var con_fx: int = 0
 	for k in _hf:
 		var dk: Dictionary = _hf[k]
 		var fk: int = int(dk["fase"])
 		if fk == Fase.PRENDIENDO or fk == Fase.ARDIENDO:
-			ardiendo += 1
 			if dk.get("fx") != null:
 				con_fx += 1
-	if fase == Fase.PRENDIENDO and ardiendo >= MAX_ARDIENDO:
-		return
-	if fase == Fase.PRENDIENDO and int(_mojada.get(c, 0)) > Time.get_ticks_msec():
-		return                                  # mojada: no prende (si no, el fuego vecino la reenciende al instante)
+	if fase == Fase.PRENDIENDO and not _puede_prender(c):
+		return                                  # ya hay MAX_ARDIENDO encendidas, o está mojada (si no, el fuego vecino la reenciende al instante)
 	_quitar_fx(c)
 	var d: Dictionary = {"fase": fase, "t": 0.0, "v": 0.0, "frente": float(viejo.get("frente", 0.0)),
 		"contagia": bool(viejo.get("contagia", true)), "fx": null}

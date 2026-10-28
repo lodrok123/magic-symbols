@@ -41,6 +41,13 @@ const DAGA_GIRO_DERECHA: Vector3 = Vector3(0.5, -31.7, -3.0)
 const DAGA_POS_IZQUIERDA: Vector3 = Vector3(0.0, 0.045, 0.0)
 const DAGA_GIRO_IZQUIERDA: Vector3 = Vector3(0.5, -108.9, 3.0)
 
+## Núcleo del gólem de piedra (nucleo_golem.glb, 0,259 de alto con su jaula, centrado en su centro) en el hueco del pecho del cuerpo (golem_piedra_rig.glb, 0,704 de alto). Medido en el cuerpo
+## centrado: centro del hueco (-0,006, 0,429, 0,09), radio de la abertura 0,053; escala = 0,85 × diámetro de la abertura / 0,259 (un poco hundido). Colgado de Spine2, cuyo reposo
+## gira 37,6° sobre X: posición y giro = reposo⁻¹ × (centro del hueco). Se calcula con herramientas/captura_rig_golem.gd (misma cuenta).
+const NUCLEO_GOLEM_ESCALA: float = 0.3479
+const NUCLEO_GOLEM_POS: Vector3 = Vector3(-0.006, 0.034, 0.1145)
+const NUCLEO_GOLEM_GIRO: Vector3 = Vector3(-37.6, 0.0, 0.0)
+
 ## Grimorio de la jugadora nueva, en el espacio del hueso Hips (unidades del modelo, 1,7 de alto): +Y arriba (inclinado 7,5° hacia atrás), +Z delante.
 const GRIMORIO_JUGADORA_POS: Vector3 = Vector3(0.0, -0.08, -0.21)
 const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
@@ -51,6 +58,10 @@ const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
 	"marimanta": [
 		["baston_marimanta", "RightHand", BASTON_POS, BASTON_GIRO, Vector3(BASTON_ESCALA, BASTON_ESCALA, BASTON_ESCALA), BASTON_APOYO],
+	],
+	# Gólem de piedra (28/10): el núcleo (nucleo_golem.glb, pieza aparte para que brille o se apague) en el hueco del pecho, colgado de Spine2. Medidas en NUCLEO_GOLEM_*.
+	"golem_piedra": [
+		["nucleo_golem", "Spine2", NUCLEO_GOLEM_POS, NUCLEO_GOLEM_GIRO, Vector3(NUCLEO_GOLEM_ESCALA, NUCLEO_GOLEM_ESCALA, NUCLEO_GOLEM_ESCALA)],
 	],
 	# Goblin asesino: la misma daga (arte/equipo/daga_goblin.glb) en las DOS manos, la izquierda reflejada. Medidas en DAGA_* (más abajo).
 	"goblin_asesino": [
