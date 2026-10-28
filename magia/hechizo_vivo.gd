@@ -202,7 +202,7 @@ func _exit_tree() -> void:
 ## NO cubre (se anota en la previsión): los eventos del hechizo (hijos, explosión en área `radio_explosion`, `al_golpear`…), los pulsos periódicos de las zonas, el empuje del gas a los enemigos ni los momentos
 ## de los glifos (el pulso de ᚱ). Un proyectil con `retorna` se prevé solo en la ida.
 static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir: Vector3) -> Dictionary:
-	var res: Dictionary = {"golpes": [], "suelo": [], "fines": [], "causas": [], "rebotes": 0}
+	var res: Dictionary = {"golpes": [], "suelo": [], "fines": [], "causas": [], "rebotes": 0, "caminos": [], "volumenes": []}     # caminos (28/10, apuntado): los puntos del vuelo de cada copia, para dibujarlo
 	if hechizo == null or lanzador == null or lanzador.mundo == null or not lanzador.is_inside_tree():
 		return res
 	var copias: int = copias_de_proyectil(hechizo)
@@ -220,18 +220,26 @@ static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir:
 		if hechizo.velocidad > 0.0:
 			var salida: Dictionary = salida_de_copia(hechizo, i, copias, dir)
 			v._iniciar_proyectil(origen, salida["dir"], salida["desvio"])
+			var camino: PackedVector3Array = [v.p]
 			var pasos: int = 0
 			while v.activo and not v.volviendo and pasos < PASOS_MAX_SECO:
 				v.paso(PASO_SECO_S)
 				pasos += 1
+				camino.append(v.p)
 			if v.activo and v.prevision["fin"] == Vector3.INF:
 				v.prevision["fin"] = v.p                                # volvía (`retorna`) o no acabó: se queda donde llegó la ida
 				v.prevision["causa"] = "retorna" if v.volviendo else "tiempo"
+			if v.prevision["fin"] != Vector3.INF and camino[camino.size() - 1] != v.prevision["fin"]:
+				camino.append(v.prevision["fin"])
+			(res["caminos"] as Array).append(camino)
 		elif hechizo.haz:
 			v._materializar_haz(origen, dir)
+			if v.prevision.has("haz"):
+				(res["caminos"] as Array).append(v.prevision["haz"])
 		else:
 			v._materializar(origen, dir)
 		(res["golpes"] as Array).append_array(v.prevision["golpes"] as Array)
+		(res["volumenes"] as Array).append_array(v.prevision.get("volumenes", []) as Array)
 		(res["suelo"] as Array).append_array(v.prevision["suelo"] as Array)
 		if v.prevision["fin"] != Vector3.INF:
 			(res["fines"] as Array).append(v.prevision["fin"])
@@ -303,6 +311,11 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 	if not seco:
 		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, props)
+	else:
+		# 28/10 (apuntado): lo que se anunciaría al dibujo, para el FANTASMA del indicador (`Apuntado3D`); no cambia lo que hace
+		if not prevision.has("volumenes"):
+			prevision["volumenes"] = []
+		(prevision["volumenes"] as Array).append({"estado": estado, "elemento": elemento, "volumen": volumen, "origen": origen, "dir": dir, "props": props})
 	var copias: float = float(props.get("copias", 1.0))
 	var solidez: float = float(props.get("solidez", 0.0))
 	var refleja: bool = float(props.get("rebotes", 0.0)) > 0.0 and float(props.get("viaja", 0.0)) <= 0.0
@@ -363,6 +376,8 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	var mano := Vector3(o2.x, suelo + (h.altura_salida + h.elevacion) * cas, o2.y) + d3 * HAZ_BOCA_U                # de donde sale: la altura de la mano de una flecha, un poco por delante
 	var punta := Vector3(fin2.x, suelo + HAZ_PUNTA_Y_U, fin2.y)                                                          # y acaba a ras del suelo, como el lanzallamas de siempre
 	var vida_vfx: float = Hechizo.HAZ_DURA_S + h.permanencia
+	if seco:
+		prevision["haz"] = PackedVector3Array([mano, punta])       # 28/10 (apuntado): por dónde va el haz, para dibujarlo; no cambia lo que hace
 	var volumen: Dictionary = {"x": g["x"], "y": g["y"], "z": g["z"], "celdas": celdas, "niveles": 1, "persiste": 0.0, "suelo": suelo,
 		"eventos": [{"t": 0.0, "pos": o2, "dir": d2}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": vida_vfx,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,

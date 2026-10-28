@@ -47,6 +47,7 @@ const ALCANCE_ORIGEN: float = 3.0           ## casillas: radio del anillo que se
 const TOLERANCIA_ALCANCE_U: float = 0.05    ## u: holgura al comparar el origen con el borde del anillo (el origen vivo se recorta justo en el borde)
 const ARRASTRE_MINIMO: float = 0.45        ## casillas: menos que esto es un clic, no un arrastre
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
+const PREVER_REACCIONES: bool = true         ## 28/10 · A3: pintar en el indicador lo que el hechizo haría al soltar (PrevisionReaccion3D, con PrevisionHechizo.prever_rapido)
 const TIEMPO_PAGINA: float = 0.7            ## 27/10 · A1: Engine.time_scale en el lanzamiento RÁPIDO (mantener 1/2/3). Más suave que el 0,3 del libro porque aquí te mueves; Pablo lo afina en el playtest
 
 ## --- Lo que sale ---
@@ -170,6 +171,9 @@ var _marca_flecha: MeshInstance3D = null
 var _marca_alcance: MeshInstance3D = null
 var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
 var _prev_color: Color = Color.WHITE
+var _apuntado: Apuntado3D = null              ## 28/10: el recorrido real, las retículas y el motivo de «no se puede» del indicador (vive lo que el modo de lanzar)
+var cursor_puesto: String = ""                 ## 28/10: el cursor de apuntar que está puesto («color|cruz»; vacío = el del sistema). Se cambia solo cuando cambia
+var _vista_reaccion: PrevisionReaccion3D = null   ## A3: los rótulos, anillos y cuadros de la reacción prevista (vive lo que el modo de lanzar)
 var _ts_antes: float = 1.0
 var _rapido: bool = false                      ## A1: el modo de apuntar actual es el de mantener 1/2/3 (no bloquea a la jugadora, se lanza al soltar la tecla)
 var _pagina_rapida: int = -1                   ## A1: índice de la página (0–2) cuya tecla se mantiene
@@ -946,6 +950,13 @@ func _salir_modo(lanzando: bool = false) -> void:
 	_marca_origen = null
 	_marca_flecha = null
 	_marca_alcance = null
+	if _vista_reaccion != null and is_instance_valid(_vista_reaccion):
+		_vista_reaccion.queue_free()
+	_vista_reaccion = null
+	if _apuntado != null and is_instance_valid(_apuntado):
+		_apuntado.queue_free()
+	_apuntado = null
+	_poner_cursor(Color.WHITE, false, false)
 	for m in _prev_casillas:
 		if is_instance_valid(m):
 			(m as Node).queue_free()
@@ -1426,39 +1437,38 @@ func _forma_en_mano(pos: Vector3, color: Color, dura: float) -> MeshInstance3D:
 ## --- Marcadores del modo lanzar ---
 
 func _crear_marcadores(color: Color) -> void:
-	_prev_color = color
-	_marca_origen = _anillo(0.22 * Terreno3D.casilla, 0.34 * Terreno3D.casilla, color)
-	_marca_alcance = _anillo(ALCANCE_ORIGEN * Terreno3D.casilla - 0.09, ALCANCE_ORIGEN * Terreno3D.casilla, Color(color, 0.55))
-	var flecha := BoxMesh.new()
-	flecha.size = Vector3(0.12, 0.05, 1.0)
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = Color(color, 0.9)
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	flecha.material = m
-	_marca_flecha = MeshInstance3D.new()
-	_marca_flecha.mesh = flecha
-	_marca_flecha.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# 28/10 (aspecto del apuntado): los colores y materiales salen de `Apuntado3D` (más vivos que la runa y con contorno oscuro: la tierra parda no se veía sobre la tierra).
+	_prev_color = Apuntado3D.color_de(Objetos.elemento_de(_preparado.get("rune") as RuneData) if _preparado.has("rune") else "", color)
+	_marca_origen = Apuntado3D.disco(0.5 * Terreno3D.casilla, _prev_color, 0.09)
+	mundo.add_child(_marca_origen)
+	_marca_alcance = Apuntado3D.disco(2.0 * ALCANCE_ORIGEN * Terreno3D.casilla, Color(_prev_color, 0.6), 0.06, 64.0, false, false, 0.02)
+	mundo.add_child(_marca_alcance)
+	_marca_flecha = MeshInstance3D.new()          # se queda (lo miran las pruebas de A1), pero la flecha la dibuja ya `Apuntado3D` siguiendo el vuelo real
+	_marca_flecha.visible = false
 	mundo.add_child(_marca_flecha)
+	if _apuntado == null:
+		_apuntado = Apuntado3D.new()
+		mundo.add_child(_apuntado)
+	_poner_cursor(_prev_color, false)
+	if PREVER_REACCIONES and _vista_reaccion == null:
+		_vista_reaccion = PrevisionReaccion3D.new()
+		mundo.add_child(_vista_reaccion)
 
 
-func _anillo(r_int: float, r_ext: float, color: Color) -> MeshInstance3D:
-	var t := TorusMesh.new()
-	t.inner_radius = r_int
-	t.outer_radius = r_ext
-	t.rings = 32
-	t.ring_segments = 4
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.albedo_color = color
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	t.material = m
-	var mi := MeshInstance3D.new()
-	mi.mesh = t
-	mi.scale = Vector3(1.0, 0.05, 1.0)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mundo.add_child(mi)
-	return mi
+## 28/10: el cursor del ratón mientras se apunta es una retícula del color del elemento (roja con X si no se lanzaría), la misma que la del suelo (`Apuntado3D.imagen_cursor`).
+## `puesto` false = vuelve el del sistema. Solo se toca el cursor cuando cambia (crear la imagen cuesta); sin ventana (headless) se apunta el estado y no se toca nada.
+func _poner_cursor(color: Color, cruz: bool, puesto: bool = true) -> void:
+	var clave: String = ("%s|%s" % [color.to_html(), cruz]) if puesto else ""
+	if clave == cursor_puesto:
+		return
+	cursor_puesto = clave
+	if DisplayServer.get_name() == "headless":
+		return
+	if puesto:
+		var c: int = Apuntado3D.TAM_CURSOR / 2
+		Input.set_custom_mouse_cursor(Apuntado3D.imagen_cursor(color, cruz), Input.CURSOR_ARROW, Vector2(c, c))
+	else:
+		Input.set_custom_mouse_cursor(null)
 
 
 func _pintar_marcadores() -> void:
@@ -1466,43 +1476,45 @@ func _pintar_marcadores() -> void:
 		return
 	var yo: Vector3 = (jugador as Node3D).position
 	var o: Vector3 = _origen_fijo if _fijado else _origen_vivo
-	_marca_origen.position = o + Vector3(0, 0.08, 0)
-	_marca_alcance.position = yo + Vector3(0, 0.06, 0)
+	_marca_origen.position = Vector3(o.x, y_pies(celda_de(o)) + 0.1, o.z)
+	_marca_alcance.position = Vector3(yo.x, y_pies(celda_de(yo)) + 0.07, yo.z)
 	var d: Vector3 = _direccion_actual()
 	var largo: float = 1.1 * Terreno3D.casilla
 	_marca_flecha.position = o + d * largo * 0.5 + Vector3(0, 0.1, 0)
-	_marca_flecha.scale = Vector3(1, 1, largo)
-	_marca_flecha.rotation = Vector3(0, atan2(d.x, d.z), 0)
 	_pintar_previsualizacion(o, d)
 
 
 ## 8.8 / R3: las casillas que ocupará el hechizo y su altura, calculadas con la MISMA geometría con la que se lanza (así lo que se ve es lo
-## que sale). La flecha del marcador mide lo que se desplaza (`viaja`), o lo que sale de la mano si no viaja. Rojo = no se lanzaría con este elemento.
+## que sale). Rojo = no se lanzaría con este elemento.
+## 28/10 (aspecto del apuntado): un proyectil ya no enseña la caja de su cuerpo bajo la jugadora (no es donde cae), sino su RECORRIDO real y una retícula donde se para
+## (`Apuntado3D`, con el vuelo en seco de `PrevisionHechizo`); lo que no vuela (barrera, haz) enseña sus casillas como un fantasma de su alto real y una cinta recta.
+## El anillo de alcance solo sale si el hechizo nace donde apuntas (es lo único a lo que limita). Un sólido que no cabe sale en rojo con su motivo, antes de soltar.
 func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	var receta: Receta3D = _preparado.get("receta") as Receta3D
 	if receta == null:
 		return
 	var g: Dictionary = receta.geo()
-	var largo_flecha: float = 1.1 * Terreno3D.casilla
 	var viaja: float = float((g["props"] as Dictionary).get("viaja", 0.0))
-	if viaja > 0.0:
-		largo_flecha = viaja * Terreno3D.casilla
-		_marca_flecha.position = origen + dir * largo_flecha * 0.5 + Vector3(0, 0.1, 0)
-		_marca_flecha.scale = Vector3(1, 1, largo_flecha)
+	var largo_flecha: float = viaja * Terreno3D.casilla          # lo que se desplaza lo que no vuela como proyectil (0 = nace y se queda)
 	var valido: bool = GeometriaV2.aviso_materia(g, _preparado.get("rune") as RuneData) == ""
-	var cs: Array = GeometriaV2.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla)
+	var alto: float = Terreno3D.ALTO_NIVEL * float(GeometriaV2.niveles(g) - 1)
+	var motivo: String = ""
+	if valido and (alto > 0.0 or bool(_preparado.get("en_punto", false))):
+		motivo = rechazo_de_construccion(_preparado, origen)
+	var prevision: Array = PrevisionHechizo.prever_rapido(self, _preparado, origen, dir) if valido and motivo == "" else []
+	var recorrido: Dictionary = PrevisionHechizo.ultimo_recorrido if valido and motivo == "" else {}
+	var vuela: bool = not (recorrido.get("caminos", []) as Array).is_empty()
+	_marca_alcance.visible = bool(_preparado.get("en_punto", false))
+	var cs: Array = [] if vuela else GeometriaV2.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla)
+	var no_vale: bool = not valido or motivo != ""
 	while _prev_casillas.size() < cs.size():
 		var mi := MeshInstance3D.new()
 		var caja := BoxMesh.new()
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		caja.material = m
 		mi.mesh = caja
+		mi.material_override = Apuntado3D.material_casilla(_prev_color)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		mundo.add_child(mi)
 		_prev_casillas.append(mi)
-	var alto: float = Terreno3D.ALTO_NIVEL * float(GeometriaV2.niveles(g) - 1)
 	for i in range(_prev_casillas.size()):
 		var mi: MeshInstance3D = _prev_casillas[i]
 		mi.visible = i < cs.size()
@@ -1510,9 +1522,21 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 			continue
 		var c: Vector2i = cs[i]
 		var h: float = 0.06 + alto
-		(mi.mesh as BoxMesh).size = Vector3(Terreno3D.casilla * 0.9, h, Terreno3D.casilla * 0.9)
-		((mi.mesh as BoxMesh).material as StandardMaterial3D).albedo_color = Color(_prev_color, 0.30) if valido else Color(1, 0.2, 0.2, 0.35)
+		var tam := Vector3(Terreno3D.casilla * 0.9, h, Terreno3D.casilla * 0.9)
+		(mi.mesh as BoxMesh).size = tam
+		mi.set_instance_shader_parameter("tam", tam)
+		var mat: ShaderMaterial = mi.material_override as ShaderMaterial
+		mat.set_shader_parameter("color", Apuntado3D.COLOR_NO if no_vale else _prev_color)
+		mat.set_shader_parameter("invalido", no_vale)
 		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
+	Apuntado3D.pintar_disco(_marca_origen, Apuntado3D.COLOR_NO if no_vale else _prev_color)
+	_poner_cursor(Apuntado3D.COLOR_NO if no_vale else _prev_color, no_vale)
+	if _apuntado != null and is_instance_valid(_apuntado):
+		_apuntado.mostrar(recorrido, origen, dir, largo_flecha, _prev_color, motivo if motivo != "" else ("" if valido else "Demasiado alto: no se podría pisar"),
+			(jugador as Node3D).position if bool(_preparado.get("en_punto", false)) else Vector3.INF)
+	# A3: lo que pasaría al soltar AQUÍ (el mismo origen y la misma dirección que `_soltar` pasa a `lanzar_ahora`). Un hechizo que no se lanzaría no prevé nada.
+	if _vista_reaccion != null and is_instance_valid(_vista_reaccion):
+		_vista_reaccion.mostrar(prevision)
 
 
 

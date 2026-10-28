@@ -141,7 +141,7 @@ func _escenario() -> void:
 	_ok("2 mantener 1 entra en el modo de lanzar RÁPIDO", lanzador.modo_lanzar and lanzador._rapido)
 	_ok("2 el tiempo va a TIEMPO_PAGINA (0,7)", absf(Engine.time_scale - 0.7) < 0.01, "time_scale %.3f" % Engine.time_scale)
 	_ok("2 la jugadora NO está bloqueada", not bool(jugador.get("bloqueado")))
-	_ok("2 hay previsualización de casillas", lanzador._prev_casillas.size() > 0 and (lanzador._prev_casillas[0] as MeshInstance3D).visible)
+	_ok("2 hay previsualización (una flecha enseña su recorrido real desde el 28/10, no la caja de su cuerpo)", _celdas_previa().size() > 0)
 	_ok("2 la guía dice «Suelta [1] para lanzar…»", lanzador._guia != null and lanzador._guia.visible and lanzador._guia.text.begins_with("Suelta [1] para lanzar"), lanzador._guia.text if lanzador._guia != null else "")
 	_ok("2 todavía no se ha cobrado nada ni salido nada", is_equal_approx(_tinta(), tinta0) and _disparos.is_empty())
 	_ok("2 el punto vivo sigue al ratón", lanzador._punto_vivo.distance_to(Vector3(objetivo.x, lanzador._punto_vivo.y, objetivo.z)) < 0.1, str(lanzador._punto_vivo))
@@ -258,10 +258,7 @@ func _escenario() -> void:
 	_apuntar_a(_punto(este, 2.0))
 	_tecla(KEY_1, true)
 	await avanzar(3)
-	var casillas0: Array = []
-	for m in lanzador._prev_casillas:
-		if (m as MeshInstance3D).visible:
-			casillas0.append(Terreno3D.celda_de((m as MeshInstance3D).position))
+	var casillas0: Array = _celdas_previa()
 	_tecla(KEY_W, true)
 	var seguido: bool = true
 	var max_desfase: float = 0.0
@@ -280,10 +277,7 @@ func _escenario() -> void:
 	_ok("9 el marcador de origen y el anillo de alcance están en ella",
 		Vector2(lanzador._marca_origen.position.x - jugador.position.x, lanzador._marca_origen.position.z - jugador.position.z).length() < 0.05
 		and Vector2(lanzador._marca_alcance.position.x - jugador.position.x, lanzador._marca_alcance.position.z - jugador.position.z).length() < 0.05)
-	var casillas1: Array = []
-	for m in lanzador._prev_casillas:
-		if (m as MeshInstance3D).visible:
-			casillas1.append(Terreno3D.celda_de((m as MeshInstance3D).position))
+	var casillas1: Array = _celdas_previa()
 	casillas0.sort()
 	casillas1.sort()
 	_ok("9 la previsualización se movió con ella (%s → %s)" % [casillas0, casillas1], casillas0 != casillas1 and casillas1.size() > 0)
@@ -408,3 +402,18 @@ func _escenario() -> void:
 	_ok("14 y no deja ningún modo puesto", not lanzador.modo_lanzar and absf(Engine.time_scale - 1.0) < 0.01)
 
 	print("COMPROBACIONES: %d" % _comprobaciones)
+
+
+## Las casillas de la previsualización: las cajas de lo que no vuela y, si vuela, las del recorrido dibujado (`Apuntado3D.caminos_dibujados`, desde el 28/10).
+func _celdas_previa() -> Array:
+	var r: Array = []
+	for m in lanzador._prev_casillas:
+		if (m as MeshInstance3D).visible:
+			r.append(Terreno3D.celda_de((m as MeshInstance3D).position))
+	if lanzador._apuntado != null and is_instance_valid(lanzador._apuntado):
+		for c in lanzador._apuntado.caminos_dibujados:
+			for q in (c as PackedVector3Array):
+				var cq: Vector2i = Terreno3D.celda_de(q)
+				if not r.has(cq):
+					r.append(cq)
+	return r

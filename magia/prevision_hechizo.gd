@@ -44,6 +44,11 @@ static var _cache_hechizo: Hechizo = null
 static var _rapida_clave: Array = []
 static var _rapida_ms: int = -1000000
 static var _rapida_res: Array[Dictionary] = []
+## 28/10 (apuntado): el recorrido de la última previsión, para DIBUJARLO (no es una reacción): {caminos: [PackedVector3Array] (uno por copia de proyectil; vacío si no vuela),
+## fines: [Vector3] (dónde se para cada uno o dónde nace lo que no vuela), causas: [String], volumenes: [{estado, elemento, volumen, origen, dir, props}] (lo que se anunciaría
+## al dibujo con `hechizo_v2`: el fantasma del indicador)}. Lo lee el indicador (`TrayectoApuntado3D`) justo después de `prever_rapido`.
+static var ultimo_recorrido: Dictionary = {}
+static var _rapida_recorrido: Dictionary = {}
 
 
 ## La previsión. `datos` es lo que prepara el lanzador (`Lanzador3D._preparado`: receta, rune, indice…). `origen` y `dir` son los que se pasarían a `lanzar_ahora`.
@@ -52,6 +57,7 @@ static func prever(lanzador: Lanzador3D, datos: Dictionary, origen: Vector3, dir
 	if lanzador == null or datos.is_empty() or not datos.has("receta") or not datos.has("rune") or not lanzador.is_inside_tree():
 		return res
 	var h: Hechizo = _hechizo(lanzador, datos)
+	ultimo_recorrido = {}
 	if h == null:
 		return res
 	if h.solido_quieto and lanzador.rechazo_de_construccion(datos, origen) != "":
@@ -59,6 +65,7 @@ static func prever(lanzador: Lanzador3D, datos: Dictionary, origen: Vector3, dir
 	var rune: RuneData = datos["rune"]
 	var cas: float = Terreno3D.casilla
 	var vivo: Dictionary = HechizoVivo.prever(h, lanzador, origen, dir)
+	ultimo_recorrido = {"caminos": vivo.get("caminos", []), "fines": vivo["fines"], "causas": vivo["causas"], "volumenes": vivo.get("volumenes", [])}
 
 	# 1 · A quién llega el golpe (una entrada por objeto; si le llega varias veces, `golpes` lo cuenta).
 	var vistos: Dictionary = {}
@@ -125,8 +132,10 @@ static func prever_rapido(lanzador: Lanzador3D, datos: Dictionary, origen: Vecto
 		snappedf(dir.x, 0.02), snappedf(dir.z, 0.02), lanzador.cambios_hechizo.hash()]
 	var ahora: int = Time.get_ticks_msec()
 	if clave == _rapida_clave and ahora - _rapida_ms < edad_max_ms:
+		ultimo_recorrido = _rapida_recorrido
 		return _rapida_res
 	_rapida_res = prever(lanzador, datos, origen, dir)
+	_rapida_recorrido = ultimo_recorrido
 	_rapida_clave = clave
 	_rapida_ms = ahora
 	return _rapida_res
@@ -155,6 +164,8 @@ static func olvidar() -> void:
 	_rapida_clave = []
 	_rapida_ms = -1000000
 	_rapida_res = []
+	_rapida_recorrido = {}
+	ultimo_recorrido = {}
 
 
 static func _hay_suelo(res: Array[Dictionary], c: Vector2i, reaccion: String) -> bool:
