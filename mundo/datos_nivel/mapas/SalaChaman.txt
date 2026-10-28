@@ -1,0 +1,26 @@
+#####################
+#...................#
+#.S.................#
+#...................#
+#.............W.....#
+#...................#
+#.............W.....#
+#...................#
+#...................#
+#####################
+; ======================================================================================================================================================
+;  LA SALA DEL CHAMÁN (28/10/2026). Banco de pruebas del CHAMÁN GOBLIN (E2, enemigos/chaman_3d.gd; reglas en docs/PROPUESTA_COMBATE.md §4): una sala llana con un chamán al fondo y dos
+;  guerreros goblin (W) delante de él. Kit `pruebas` (todos los elementos), para probar a mano las reglas:
+;    · el chamán (17,3) ESCUDA PRIMERO: va detrás de sus guerreros, traza con el bastón un ROMBO dentro de un sello circular en el suelo (se ve dibujarse: es su aviso), lo clava y una
+;      onda verde da a cada guerrero un escudo de naturaleza (absorbe 25; el FUEGO lo quema de un golpe). Un golpe mientras traza rompe la runa (y espera 8 s para volver a intentarlo);
+;    · con todos escudados se mantiene a 5..7 u de ti (retrocede si te acercas) y te tira BOLAS DE VENENO con aviso en el suelo (6 de daño + veneno 3/s durante 3 s). Rodar en la ventana
+;      del aviso abre el tiempo bruja.
+;  Vencidos todos, aparece el cofre (2,7). Lo comprueba herramientas/prueba_chaman_combate.gd.
+; ======================================================================================================================================================
+; # pared · . suelo · S inicio · W goblin guerrero
+;
+; zona 1,1..19,7 cueva mezcla=0.8 rotulo=El_chaman
+;
+; pieza chaman_a chaman 17 3
+; pieza vigia_chaman vigia 8 4 de=1,1..19,7 flag=salachaman.sala.limpia
+; pieza cofre_chaman cofre 2 7 aparece_si=flag.salachaman.sala.limpia abierto=salachaman.sala.cofre da=oro:30

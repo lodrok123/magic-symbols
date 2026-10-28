@@ -11,6 +11,10 @@ extends Node
 ## último sitio donde estaba, en coordenadas del personaje (se mueve con él pero no con el brazo), hasta que la mano vuelve a menos de DISTANCIA_AGARRA (histéresis).
 ## Es mejor que estirarlo o inclinarlo: en «pensar» (manos frotándose) o corriendo el palo sigue plantado y no se le cruza por la cara.
 ## Se activa por datos: sexto dato de la entrada de Equipo3D.EQUIPO, un Dictionary con las claves K_* de abajo.
+##
+## MODO AGARRADO (28/10, bastón del chamán): `agarrar(true)` hace que la pieza deje de plantarse y siga a la mano RÍGIDA con su transformación de agarre (la que trae colgada del hueso: la
+## de la entrada de EQUIPO), para los clips en que el palo se usa (trazar una runa con la punta rozando el suelo, clavarlo). El paso de un modo al otro se mezcla en `mezcla` s (posición y giro
+## interpolados) para que el bastón no salte del suelo a la mano. `agarrar(false)` lo vuelve a plantar. `agarrado` dice si está en ese modo (o yendo hacia él).
 
 ## Claves del Dictionary de datos.
 const K_AGARRE_Y: String = "agarre_y"                    ## altura de la palma sobre el pie, en unidades de la pieza (sin su escala)
@@ -52,6 +56,10 @@ var _yaw: float = 0.0
 var _arrancado: bool = false
 var _largo_local: float = 0.0
 var _escala_local: float = 1.0
+var agarrado: bool = false                      ## true = modo agarrado (sigue a la mano rígido), ver `agarrar`
+var peso_agarre: float = 0.0                    ## 0 = plantado en el suelo, 1 = agarrado; entre medias, mezclando
+var _mezcla: float = 0.12                       ## s que dura el paso entre los dos modos
+var _transform_mano: Transform3D = Transform3D.IDENTITY   ## la transformación de la pieza en el espacio del hueso (la de EQUIPO)
 
 
 ## Prepara la pieza ya colgada del BoneAttachment (con su `transform` en el espacio del hueso) y se engancha al esqueleto. `datos` = las claves K_*.
@@ -66,11 +74,20 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 	z_max = float(datos.get(K_Z_MAX, INF))
 	dist_min_cuerpo = float(datos.get(K_DIST_MIN_CUERPO, 0.0))
 	desplaz_adelante = float(datos.get(K_DESPLAZ_ADELANTE, 0.0))
+	_transform_mano = pieza.transform
 	agarre_local = pieza.transform * Vector3(0.0, float(datos.get(K_AGARRE_Y, 0.0)), 0.0)
 	_largo_local = _largo_malla(pieza)
 	_escala_local = pieza.scale.y
 	pieza.top_level = true
 	esqueleto.skeleton_updated.connect(_al_actualizar_esqueleto)
+
+
+## Pasa al modo agarrado (`si` = true: la pieza sigue rígida a la mano) o al plantado (false). `mezcla` = s de la transición (0 = de golpe).
+func agarrar(si: bool, mezcla: float = 0.12) -> void:
+	agarrado = si
+	_mezcla = maxf(mezcla, 0.0)
+	if _mezcla <= 0.0:
+		peso_agarre = 1.0 if si else 0.0
 
 
 ## Escala de la pieza en el mundo: la del hueso (esqueleto y personaje) por la suya propia.
@@ -132,4 +149,21 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var dir_h: Vector3 = giro_pers * al_mano
 	if tilt > 0.0001 and dir_h.length() > 0.0001:
 		base = Basis(Vector3.UP.cross(dir_h.normalized()).normalized(), tilt) * base      # rota la vertical hacia la mano
-	pieza.global_transform = Transform3D(base * Basis.from_scale(Vector3.ONE * _escala_mundo()), raiz + giro_pers * _pie_local)
+	var plantada := Transform3D(base * Basis.from_scale(Vector3.ONE * _escala_mundo()), raiz + giro_pers * _pie_local)
+	# El peso del modo agarrado sube o baja hacia su objetivo (en pruebas `fijar` salta directo).
+	var objetivo_peso: float = 1.0 if agarrado else 0.0
+	if fijar or _mezcla <= 0.0:
+		peso_agarre = objetivo_peso
+	else:
+		peso_agarre = move_toward(peso_agarre, objetivo_peso, delta / _mezcla)
+	if peso_agarre <= 0.0:
+		pieza.global_transform = plantada
+		return
+	var en_mano: Transform3D = esqueleto.global_transform * esqueleto.get_bone_global_pose(hueso) * _transform_mano
+	if peso_agarre >= 1.0:
+		pieza.global_transform = en_mano
+		return
+	var u: float = peso_agarre * peso_agarre * (3.0 - 2.0 * peso_agarre)
+	var q: Quaternion = plantada.basis.get_rotation_quaternion().slerp(en_mano.basis.get_rotation_quaternion(), u)
+	var sc: Vector3 = plantada.basis.get_scale().lerp(en_mano.basis.get_scale(), u)
+	pieza.global_transform = Transform3D(Basis(q) * Basis.from_scale(sc), plantada.origin.lerp(en_mano.origin, u))

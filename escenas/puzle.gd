@@ -92,6 +92,8 @@ extends Node
 ##   golem      quieto=si (no)                                                      Golem3D (E3, 28/10): el gólem de piedra. De pie nada le hace daño; persigue lento y golpea con aviso (30 y empuje); tras el
 ##              golpe queda de rodillas con el núcleo a la vista (×1,5 de daño). El viento sobre una casilla helada lo hace resbalar (tumbado = núcleo a la vista; al agua honda o la
 ##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
+##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
+##              naturaleza a los goblins cercanos; el fuego lo quema) y luego se mantiene lejos tirando bolas de veneno. Si le pegan trazando, la runa se rompe. Es un Combate3D: el vigía lo cuenta
 ##   (puerta)   modelo=reja                                                          28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
@@ -387,6 +389,7 @@ const CLAVES: Dictionary = {
 	"puente": {"celdas": "celdas"},
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
 	"golem": {"quieto": "b"},
+	"chaman": {"quieto": "b"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -2095,6 +2098,16 @@ func _crear(pz: Pieza) -> void:
 			go.quieto = bool(pz.p.get("quieto", false))
 			go.name = pz.id
 			pz.nodo = go
+		"chaman":
+			# E2 (28/10): el chamán goblin, colgado del MUNDO como el gólem. Escuda a los goblins que tenga cerca y tira bolas de veneno desde lejos.
+			var cel_c: Vector2i = pz.celda
+			var ch: Chaman3D = Chaman3D.invocar_chaman(mundo as Node3D, Terreno3D.centro_de(cel_c, Terreno3D.y_pies(cel_c)))
+			if ch == null:
+				_avisar_pieza(pz, "el chamán no tiene modelo (goblin_chaman_rig.glb)")
+				return
+			ch.quieto = bool(pz.p.get("quieto", false))
+			ch.name = pz.id
+			pz.nodo = ch
 		"puente":
 			# 28/10 (Gruta Batida): las losas rúnicas de PuenteReactivo3D sobre el agua de `celdas`, plegadas hasta `tender` (una regla o la cuerda que lo sostiene).
 			# Cada losa que sube vuelve su casilla un puente «b» que se pisa.

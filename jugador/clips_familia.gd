@@ -61,6 +61,14 @@ const FUENTES: Dictionary = {
 		FUENTE_CLIPS_JUGADORA,       # 24/10: abrir_cofre, agacharse, ofrecer, saludo y empujar (ver arriba)
 		FUENTE_UNA_MANO,             # 24/10: los tres casts a una mano (CastOneHandFront / Up / Ground)
 	],
+	# Chamán goblin (28/10): el esqueleto de Marimanta (66 huesos con las MISMAS bases de hueso: tools/autorig_chaman.py) y sus 7 clips (idle, andar de anciana, hablar, tramar, correr); las reacciones
+	# (hit, death, ahogarse), del goblin guerrero como las del asesino. `trazar` y `clavar` los genera AnimacionesChaman. Con `{}` se traen todos los de Marimanta con su nombre.
+	"goblin_chaman_rig": [
+		{"ruta": "res://arte/modelos/marimanta.glb", "referencia": "Idle_02", "clips": {}},
+		{"ruta": "res://arte/modelos/goblin_warrior_chibi.glb", "referencia": "Idle", "clips": {
+			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
+		}},
+	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
 	"goblin_asesino": [

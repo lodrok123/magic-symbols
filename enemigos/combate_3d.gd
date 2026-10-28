@@ -71,7 +71,22 @@ const DISTANCIA_PATRULLA: float = 2.0
 const RANGO_ATAQUE: float = 1.2
 const HISTERESIS_RANGO: float = 1.2              ## empieza a pegar a `rango`, deja de esperar al pasar de rango*1,2 (evita parpadear entre atacar y perseguir)
 const MARGEN_CANCELAR: float = 1.4               ## si el jugador se va más allá de rango*1,4 ANTES de que salga el golpe, se cancela el ataque
-const ELEM_ZANCADA_WALK: float = 3.5             ## metros que avanza el elemental en un ciclo de `walk` a velocidad 1 (ESTIMADO, afinar a ojo)
+## 28/10 · RITMO DE LA FAMILIA GOBLIN (guerrero, arquero —también el de puesto—, asesino y chamán; no el elemental, el limo ni el gólem). Pedido de Pablo tras probar el chamán:
+## «todo está muy acelerado, baja un 20 % animaciones y movimientos». UN SOLO MANDO para sus animaciones: `Pj3D.ritmo` multiplica todos sus clips (salvo los
+## que van con la física o el mundo: empujado, levantarse, ahogo). El AVANCE no lo lleva: lo fija PASO_GOBLIN (29/10, «más pausado»). Lo cronometrado contra un clip (golpe, flecha, aviso, ritual, bola) divide su duración entre este número.
+static var RITMO_GOBLIN: float = 0.8
+## u de juego que avanza el cuerpo por ciclo de `walk` / `run` con el clip a velocidad 1 (sin root motion), medidas con herramientas/medidas_zancada_goblin.gd (pie apoyado, esqueleto
+## escalado). Con ellas el clip va a vel_real · duración / zancada y los pies no patinan (`_animar`). Un modelo que no esté aquí usa el del guerrero.
+const ZANCADA_GOBLIN: Dictionary = {
+	"goblin_warrior_chibi": {"walk": 0.467, "run": 0.756},
+	"goblin_archer_chibi": {"walk": 0.494, "run": 0.786},
+	"goblin_asesino": {"walk": 0.540, "run": 0.854},
+	"goblin_chaman": {"walk": 0.431, "run": 0.656},     # 29/10: su `walk` es el «Walking» de Marimanta (el de anciana: 0,2 u/ciclo, no servía para moverse)
+}
+const PASO_GOBLIN: float = 1.1                   ## 29/10: velocidad a la que se mueven los clips de andar/correr de un goblin (×1,1 de su clip); de ahí sale su avance (`v_base`)
+const CLIP_ANDAR_MIN: float = 0.5
+const CLIP_ANDAR_MAX: float = 2.5
+const ELEM_ZANCADA_WALK: float = 3.5            ## metros que avanza el elemental en un ciclo de `walk` a velocidad 1 (ESTIMADO, afinar a ojo)
 const PREPARAR_GOLPE: float = 0.6
 const DESCANSO_GOLPE: float = 1.6
 const DANO_GOLPE: float = 20.0
@@ -168,6 +183,8 @@ const FASE_LEVANTANDOSE: int = 2                      ## clip `levantarse`
 signal hundido(enemigo: Combate3D)
 
 var pj: Pj3D = null
+## 28/10 (E2): el escudo de NATURALEZA que le pone el chamán (EscudoNaturaleza3D): absorbe daño por todos lados y el fuego lo quema de un golpe. null = sin él.
+var escudo_natural: EscudoNaturaleza3D = null
 var escudo: Escudo3D = null             ## A5: componente opcional (`Escudo3D.equipar(combate)`); null = sin escudo, como todos los goblins de los niveles
 var mundo: Node3D = null
 var jugador: Jugador3D = null
@@ -259,6 +276,8 @@ var _t_anim: float = 0.0
 var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
 var _ataque_vel: float = 1.0
 var elemental: bool = false             ## el elemental de bosque (comportamiento propio)
+var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
+var _v_avance: float = 0.0              ## 28/10: u/s a los que avanza ahora mismo (ya con ritmo y estados): de ahí sale la velocidad del clip de andar sin patinar
 var _potenciado: bool = false           ## el agua lo ha agrandado ahora mismo
 var _ya_crecio: bool = false            ## el agua solo lo agranda UNA vez
 var _alto_base: float = 1.7
@@ -334,6 +353,9 @@ func _ready() -> void:
 	monitoring = false
 	monitorable = true
 	elemental = pj != null and pj.id == ID_ELEMENTAL
+	es_goblin = pj != null and pj.id.begins_with("goblin")
+	if es_goblin:
+		pj.ritmo = RITMO_GOBLIN
 	var forma := CapsuleShape3D.new()
 	forma.radius = 0.7 * altura / ELEM_ALTO_REF if elemental else 0.32
 	forma.height = maxf(altura, 0.7)
@@ -590,6 +612,35 @@ func reacciones_soportadas() -> PackedStringArray:
 	return r
 
 
+## 29/10 · PASO DE LOS GOBLINS (Pablo eligió «más pausado»): el AVANCE de un goblin es el que hace que su clip de andar o correr vaya a ×PASO_GOBLIN con su zancada medida: v = PASO_GOBLIN · zancada / duración del clip,
+## por modelo y por clip (guerrero: andar ≈ 0,49 u/s, correr ≈ 1,25). `v_base("walk")` es lo que antes era VEL_PATRULLA y `v_base("run")` lo que era VEL_PERSEGUIR; los demás enemigos (elemental…) siguen con esas dos constantes.
+## El ritmo (RITMO_GOBLIN) ya no entra en el avance: queda para el resto de los clips (idle, ataque, lanzar…).
+func v_base(clip: String) -> float:
+	if es_goblin and pj != null and is_instance_valid(pj):
+		var d: float = pj.duracion(clip)
+		var z: float = zancada_goblin(clip)
+		if d > 0.0 and z > 0.0:
+			return PASO_GOBLIN * z / d
+	return VEL_PERSEGUIR if clip == "run" else VEL_PATRULLA
+
+
+## u por ciclo medidos del clip `clip` ("walk" o "run") de este goblin (los del guerrero si el modelo no está en la tabla); 0 si no es goblin.
+func zancada_goblin(clip: String) -> float:
+	if not es_goblin or pj == null:
+		return 0.0
+	return float((ZANCADA_GOBLIN.get(pj.id, ZANCADA_GOBLIN["goblin_warrior_chibi"]) as Dictionary).get(clip, 0.0))
+
+
+## Velocidad (u/s) por encima de la cual un goblin usa `run` aunque su estado sea «andando»: la media geométrica entre su andar y su correr (mojado persigue a 0,75 · v_correr y sigue con `run`).
+func umbral_correr() -> float:
+	return sqrt(v_base("walk") * v_base("run"))
+
+
+## 28/10: el ritmo de este enemigo (RITMO_GOBLIN si es de la familia goblin; 1 el elemental, el limo, el gólem y el resto).
+func ritmo() -> float:
+	return RITMO_GOBLIN if es_goblin else 1.0
+
+
 func vel_mult() -> float:
 	if congelado > 0.0:
 		return 0.0
@@ -764,6 +815,10 @@ func _arco_cercano(dano: float) -> void:
 func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 	if health <= 0.0:
 		return
+	if escudo_natural != null and is_instance_valid(escudo_natural) and escudo_natural.activo():
+		cantidad = escudo_natural.absorber(cantidad, _num_elemento)     # E2: el escudo de naturaleza se come el daño (el fuego lo quema)
+		if cantidad <= 0.0:
+			return
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
 	_destello = maxf(_destello, DESTELLO_DANO)
@@ -1159,7 +1214,8 @@ func _ia(delta: float) -> void:
 			elif d.length() > 0.3:
 				_carga = 0.0
 				moviendo = 2 if vel > 0.8 else 1
-				_mover_paso(_dir_hacia(meta, delta) * VEL_PERSEGUIR * vel * delta, false, true)
+				_v_avance = v_base("run") * vel
+				_mover_paso(_dir_hacia(meta, delta) * _v_avance * delta, false, true)
 			else:
 				moviendo = 0
 		"vuelve":
@@ -1172,7 +1228,8 @@ func _ia(delta: float) -> void:
 			else:
 				mirada = h.normalized()
 				moviendo = 1
-				if not _mover_paso(_dir_hacia(casa, delta) * VEL_PATRULLA * 1.5 * vel * delta, false, true):
+				_v_avance = v_base("walk") * (1.0 if es_goblin else 1.5) * vel
+				if not _mover_paso(_dir_hacia(casa, delta) * _v_avance * delta, false, true):
 					estado = "patrulla"
 		_:
 			_patrullar(delta, vel)
@@ -1182,7 +1239,8 @@ func _patrullar(delta: float, vel: float) -> void:
 	_carga = 0.0
 	moviendo = 1
 	mirada = Vector3(_direccion, 0.0, 0.0)
-	var paso := Vector3(_direccion * VEL_PATRULLA * vel * delta, 0.0, 0.0)
+	_v_avance = v_base("walk") * vel
+	var paso := Vector3(_direccion * _v_avance * delta, 0.0, 0.0)
 	var movido: bool = _mover_paso(paso)
 	if not movido or absf(position.x - casa.x) >= DISTANCIA_PATRULLA:
 		_direccion *= -1.0
@@ -1226,11 +1284,13 @@ func _ia_arquero(delta: float, vel: float) -> void:
 	if dist > ARQUERO_ALCANCE:
 		_carga = 0.0
 		moviendo = 2 if vel > 0.8 else 1
-		_mover_paso(_dir_hacia(jugador.position, delta) * VEL_PERSEGUIR * vel * delta, false, true)
+		_v_avance = v_base("run") * vel
+		_mover_paso(_dir_hacia(jugador.position, delta) * _v_avance * delta, false, true)
 	elif dist < ARQUERO_MIN:
 		_carga = 0.0
 		moviendo = 1
-		if not _mover_paso(-mirada * VEL_PATRULLA * 1.6 * vel * delta):
+		_v_avance = (v_base("run") if es_goblin else VEL_PATRULLA * 1.6) * vel
+		if not _mover_paso(-mirada * _v_avance * delta):
 			moviendo = 0
 			if dist <= RANGO_ATAQUE:
 				_atacar(delta)      # acorralado: pega con el arco
@@ -1296,9 +1356,11 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 		momento = 0.3
 	# C3: entre el aviso y el golpe pasan al menos AvisoAtaque3D.T_MIN s. Si el clip golpea antes (un modelo sin clip de ataque: 0,24 s), se reproduce más despacio.
 	# La flecha no lo necesita: a lo que tarda en soltarla se suma el vuelo.
-	if AVISAR_ATAQUES and efecto != _soltar_flecha and dur / vel_anim * momento < AvisoAtaque3D.T_MIN:
-		vel_anim = dur * momento / AvisoAtaque3D.T_MIN
-	var total: float = dur / vel_anim
+	# 28/10: el clip se reproduce a vel_anim × ritmo (Pj3D.ritmo): lo que tarda de verdad es dur / (vel_anim · ritmo). `_ataque_vel` guarda solo vel_anim: el ritmo lo pone Pj3D.
+	var r: float = ritmo()
+	if AVISAR_ATAQUES and efecto != _soltar_flecha and dur / (vel_anim * r) * momento < AvisoAtaque3D.T_MIN:
+		vel_anim = dur * momento / (AvisoAtaque3D.T_MIN * r)
+	var total: float = dur / (vel_anim * r)
 	_ataque = total
 	_t_anim = total
 	_ataque_vel = vel_anim
@@ -1661,12 +1723,13 @@ func _avanzar_empujado(delta: float) -> void:
 
 
 func _animar() -> void:
+	pj.ritmo = ritmo()          # un solo punto: Pj3D multiplica por él todos los clips que no pidan lo contrario
 	if _fase_empuje != FASE_NINGUNA:
 		anim_orden = ""                 # el "hit" de este mismo golpe no pisa el vuelo
 		if congelado > 0.0:
 			pj.set_velocidad_animacion(0.0)
 			return
-		pj.set_velocidad_animacion(1.0)
+		pj.set_velocidad_animacion(1.0, false)          # el vuelo va con la física del empuje: sin ritmo
 		pj.jugar("empujado" if _fase_empuje == FASE_VOLANDO else "levantarse", true)
 		if _fase_empuje == FASE_LEVANTANDOSE:
 			pj.mirar(_dir_previa, 0.02)         # se gira poco a poco a su postura de antes mientras se incorpora
@@ -1684,12 +1747,12 @@ func _animar() -> void:
 		elif orden == Escudo3D.ROL_MANO_QUEMADA:
 			pj.set_velocidad_animacion(1.0)
 			pj.jugar(orden, true)
-			_t_anim = maxf(_t_anim, pj.duracion(orden))        # sin esto el aturdimiento lo pasaría a reposo en el fotograma siguiente
+			_t_anim = maxf(_t_anim, pj.duracion(orden) / ritmo())        # sin esto el aturdimiento lo pasaría a reposo en el fotograma siguiente
 		else:
 			pj.set_velocidad_animacion(1.0)
 			pj.jugar(orden)
 		if orden == "hit":
-			_t_anim = maxf(_t_anim, 0.35)
+			_t_anim = maxf(_t_anim, 0.35 / ritmo())
 	if _t_anim > 0.0:
 		return
 	if congelado > 0.0:
@@ -1707,13 +1770,19 @@ func _animar() -> void:
 		if dur > 0.0:
 			var vel_real: float = VEL_PERSEGUIR * ELEM_VEL * vel_mult()
 			pj.set_velocidad_animacion(clampf(vel_real * dur / ELEM_ZANCADA_WALK, 0.5, 2.5))
+	var clip_andar: String = "run" if moviendo == 2 else "walk"
+	if es_goblin and moviendo > 0:
+		# 28/10 · sin patinar: el clip va a lo que pide el suelo (u/s reales, con ritmo y estados) · duración / zancada medida (ZANCADA_GOBLIN). Sin ritmo extra: ya va incluido en `_v_avance`.
+		clip_andar = "run" if _v_avance > umbral_correr() else "walk"
+		var dur_c: float = pj.duracion(clip_andar)
+		var zanc: float = zancada_goblin(clip_andar)
+		if dur_c > 0.0 and zanc > 0.0:
+			pj.set_velocidad_animacion(clampf(_v_avance * dur_c / zanc, CLIP_ANDAR_MIN, CLIP_ANDAR_MAX), false)
 	match moviendo:
 		0:
 			pj.jugar("idle")
-		1:
-			pj.jugar("walk")
-		2:
-			pj.jugar("run")
+		_:
+			pj.jugar(clip_andar)
 	if mirada.length() > 0.01 and (moviendo > 0 or estado == "persigue"):
 		pj.mirar(mirada, 0.05)
 
@@ -2238,6 +2307,7 @@ func _animar_ahogo() -> float:
 	var dur: float = pj.duracion(CLIP_AHOGARSE)
 	if dur > 0.0:
 		pj.animacion_actual = ""
+		pj.set_velocidad_animacion(1.0, false)            # el hundimiento dura lo que el clip (así lo cuenta `dur`): sin ritmo
 		pj.jugar(CLIP_AHOGARSE, true)
 		if pj.animacion_actual == CLIP_AHOGARSE:
 			return dur

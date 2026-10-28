@@ -25,6 +25,18 @@ const BASTON_GIRO: Vector3 = Vector3(-46.3, 25.0, -163.8)
 ## atravesar la túnica al andar); desplaz_adelante: u de juego extra hacia delante; lado: la mano derecha de un modelo que mira a +Z está en -X; giro: grados sobre su eje.
 const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 0.0, "dist_min_cuerpo": 0.15, "desplaz_adelante": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
 
+## Bastón del chamán goblin (28/10): baston_chaman_equipo.glb = baston_chaman.glb (Meshy, 1,0 de alto, origen en el centro) con el ORBE aparte (tools/separar_orbe_baston.py), envuelto por BastonChaman3D con la
+## PUNTA en el origen y el palo hacia +Y. Mide 0,84 en las unidades del modelo (0,95 de alto): 0,75 u en el juego, hasta el pecho del chamán de pie y alcanza el suelo delante de él. Va en la mano DERECHA (la de arriba).
+## Posición y giro en el espacio del hueso `RightHand` (medido con el reposo del rig, Mixamo: +Y hacia los dedos, +Z hacia el pulgar, la palma mira a -X en la derecha): el palo discurre por el eje +Z de la mano
+## (su +Y = +Z del hueso; giro X 90°) y pasa por el centro de la palma, a 0,035 de la muñeca hacia los dedos y 0,012 hacia el lado al que mira la palma (-X); `BASTON_CHAMAN_AGARRE` = a qué altura sobre la punta
+## está la mano (en unidades del modelo). Agarrado (PiezaApoyada3D.agarrar) la punta cae a esa distancia de la palma a lo largo del palo; plantado (idle y andar) sigue a la mano como el bastón de Marimanta.
+const BASTON_CHAMAN_ID: String = "baston_chaman_equipo"
+const BASTON_CHAMAN_ESCALA: float = 0.84
+const BASTON_CHAMAN_AGARRE: float = 0.60
+const BASTON_CHAMAN_POS: Vector3 = Vector3(-0.012, 0.035, -BASTON_CHAMAN_AGARRE)
+const BASTON_CHAMAN_GIRO: Vector3 = Vector3(90.0, 0.0, 0.0)
+const BASTON_CHAMAN_APOYO: Dictionary = {"agarre_y": BASTON_CHAMAN_AGARRE / BASTON_CHAMAN_ESCALA, "giro": 0.0, "dist_min_cuerpo": 0.10, "desplaz_adelante": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
+
 ## Grimorio de la elfa: equipo/grimorio_<nivel>.glb (Meshy, horneados con meshy en el marco del de código).
 ## 1 botánico (marrón y verde) · 2 rúnico (azul y gris) · 3 legendario (rojo y oro). Cada uno trae su pluma.
 const NIVELES_GRIMORIO: Array = ["", "botánico", "rúnico", "legendario"]
@@ -58,6 +70,10 @@ const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
 	"marimanta": [
 		["baston_marimanta", "RightHand", BASTON_POS, BASTON_GIRO, Vector3(BASTON_ESCALA, BASTON_ESCALA, BASTON_ESCALA), BASTON_APOYO],
+	],
+	# Chamán goblin (28/10): el bastón con el orbe aparte (BastonChaman3D) en la mano DERECHA, plantado y vertical al andar y quieto; en el ataque se agarra (Pj3D.agarrar_baston). Medidas en BASTON_CHAMAN_*.
+	"goblin_chaman": [
+		[BASTON_CHAMAN_ID, "RightHand", BASTON_CHAMAN_POS, BASTON_CHAMAN_GIRO, Vector3(BASTON_CHAMAN_ESCALA, BASTON_CHAMAN_ESCALA, BASTON_CHAMAN_ESCALA), BASTON_CHAMAN_APOYO],
 	],
 	# Gólem de piedra (28/10): el núcleo (nucleo_golem.glb, pieza aparte para que brille o se apague) en el hueco del pecho, colgado de Spine2. Medidas en NUCLEO_GOLEM_*.
 	"golem_piedra": [
@@ -178,6 +194,8 @@ static func pieza(id: String) -> Node3D:
 		var g: Node3D = (load(CARPETA + "grimorio_%d.glb" % nivel_grimorio) as PackedScene).instantiate() as Node3D
 		g.name = "grimorio"
 		return g
+	if id == BASTON_CHAMAN_ID:
+		return BastonChaman3D.crear()
 	var ruta: String = CARPETA + id + ".glb"
 	if not ResourceLoader.exists(ruta):
 		ruta = CARPETA_MODELOS + id + ".glb"

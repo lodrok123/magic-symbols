@@ -36,6 +36,7 @@ static var nado_permitido: bool = false
 const TASA_TREPAR: float = 3.5              ## u/s al salir trepando de un foso (cauce hondo / cuenca): 0,94 u en ~0,27 s
 const HUNDIDO: float = 0.35               ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 const INVULNERABLE: float = 0.7
+const TICK_VENENO: float = 0.5               ## s entre dos pulsos del veneno (envenenar)
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
@@ -84,6 +85,9 @@ var _t_lanzar: float = 0.0
 var _lanzando: bool = false
 var _t_golpe: float = 0.0
 var _t_inv: float = 0.0
+var _veneno_t: float = 0.0                       ## s que le quedan de veneno (envenenar)
+var _veneno_dps: float = 0.0
+var _veneno_tick: float = 0.0
 var _t_muerte: float = 0.0
 var _ultima: Vector3 = Vector3.ZERO
 var _salto_antes: bool = false
@@ -322,6 +326,15 @@ func nivel_actual() -> int:
 ##  Vida
 ## =====================================================================================================
 
+## VENENO (28/10, E2: la bola del chamán): `dps` de daño por segundo durante `segundos`, en pulsos de TICK_VENENO s, sin la invulnerabilidad ni el empuje de un golpe (se queda el más fuerte).
+func envenenar(dps: float, segundos: float) -> void:
+	if muerto:
+		return
+	_veneno_dps = maxf(_veneno_dps if _veneno_t > 0.0 else 0.0, dps)
+	_veneno_t = maxf(_veneno_t, segundos)
+	_veneno_tick = minf(_veneno_tick, TICK_VENENO) if _veneno_tick > 0.0 else TICK_VENENO
+
+
 func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
 		return
@@ -459,6 +472,16 @@ func _process(delta: float) -> void:
 		pj.soltar_lanzar()                  # quita las motas y vuelve a idle
 	_t_golpe = maxf(0.0, _t_golpe - delta)
 	_t_inv = maxf(0.0, _t_inv - delta)
+	if _veneno_t > 0.0 and not muerto:
+		_veneno_t -= delta
+		_veneno_tick -= delta
+		if _veneno_tick <= 0.0:
+			_veneno_tick = TICK_VENENO
+			vida = maxf(0.0, vida - _veneno_dps * TICK_VENENO)
+			Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(ceil(_veneno_dps * TICK_VENENO))), Color(0.55, 0.9, 0.35), 0.8)
+			vida_cambiada.emit(vida, Estado.i().vida_max)
+			if vida <= 0.0:
+				_morir()
 	_t_sin_combate += delta
 	tinta.actualizar(delta, _t_sin_combate < TINTA_COMBATE)
 	# F7: cambia de pigmento (comando de prueba hasta que haya recetas y mochila de pigmentos). F8 no: es "detener" en el editor de Godot.

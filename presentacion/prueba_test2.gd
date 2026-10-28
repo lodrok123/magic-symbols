@@ -85,6 +85,7 @@ const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chi
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85, "jugadora_base": 1.0,      # 24/10: la jugadora (base + ropa por piezas), primera de PJ_JUGADOR
 	"alchemist_elf": 0.95, "elfo_base": 1.0, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "ranger_human": 1.1,      # 10/10: el guardabosques (Meshy «Wolfwood Ranger») es un adulto: algo más alto que la elfa
 	"elemental_bosque": 2.5,      # elite lento: el doble de alto que un goblin (0,85)
+	"goblin_chaman": 0.85,       # 28/10: el chamán goblin (esqueleto de Marimanta + bastón), como los otros goblins
 	"golem_piedra": 1.7,         # 28/10: el gólem de piedra (cuerpo riggeado), el doble de alto que un goblin
 	"loberno": 0.75,      # 13/10: lobo (Meshy). Mide 0,60 u de alto y 1,02 de largo; a 0,75 sus zancadas casan con VEL_PATRULLA (walk) y VEL_PERSEGUIR (Gallop)
 	"gato_guardabosques": 0.55,   # 11/10: la mascota del guardabosques; su alto incluye la cola levantada (el lomo queda a ~0,35)

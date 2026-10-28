@@ -31,7 +31,7 @@ const GRAFO_REDUCIDO: String = "reducido"
 ## Los estados que existen en el grafo reducido de los enemigos (A2). `lanzar*` = cualquier subestado de lanzar.
 ## `drown` (21/10, diario 231 + 238): el clip «Drowning» de los goblins. Lo pide `Combate3D._animar_ahogo` al hundirse; sin esta entrada el grafo reducido lo
 ## rechazaba (`motivo_prohibida`) y el goblin caía con la pose de muerte de siempre. El estado se llama como el rol (`Pj3D.estado_de("drown")` = «drown»).
-const ESTADOS_REDUCIDO: PackedStringArray = ["idle", "andar", "correr", "atacar", "lanzar", "golpeado", "muerto", "drown", "empujado", "levantarse", "mano_quemada", "expuesto", "resbalar"]
+const ESTADOS_REDUCIDO: PackedStringArray = ["idle", "andar", "correr", "atacar", "lanzar", "golpeado", "muerto", "drown", "empujado", "levantarse", "mano_quemada", "expuesto", "resbalar", "trazar", "clavar"]
 ## `expuesto` y `resbalar` (28/10, E3): los clips del gólem de piedra (de rodillas con el núcleo a la vista; cae de espaldas sobre el hielo); los pide `Golem3D`.
 ## `mano_quemada` (22/10): el goblin se sacude la mano del escudo que se le acaba de consumir ardiendo (`Escudo3D._quemar_mano`; clip hecho por código en `Pj3D._preparar_mano_quemada`).
 ## `empujado` y `levantarse` (22/10): ser despedido por un empuje (BeHit_FlyUp) y volver a ponerse de pie (Stand_Up1); los pide `Combate3D` (ver `Pj3D._preparar_empujado`).

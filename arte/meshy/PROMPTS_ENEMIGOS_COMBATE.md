@@ -81,13 +81,20 @@ Son los enemigos E1–E3 de `docs/PROPUESTA_COMBATE.md` §4. Pablo pidió el cha
 ### Animaciones que hacen falta
 | Rol | Qué | Notas |
 |---|---|---|
-| `idle` | de pie, apoyado en el bastón, mueve los dedos | |
-| `walk` | andar tranquilo, el bastón golpea el suelo | se queda atrás de los guerreros |
-| `trazar` (bucle) | **27/10:** inclinado hacia delante, con las dos manos en el bastón y la punta rozando el suelo, barre de un lado a otro como si escribiera en la tierra | en bucle; el juego dibuja la runa en el suelo y gira al chamán, así que basta con el gesto de rascar el suelo |
-| `clavar` | alza el bastón con las dos manos y lo clava en el centro de la runa | el juego activa la runa al clavarlo |
-| `hit` | golpe recibido | |
-| `death` | muerte | que acabe tumbado en el suelo, el sombrero puede caerse |
-| `empujado` / `levantarse` / `drown` | | si el esqueleto es Mixamo, sirven los de los goblins |
+**28/10: el chamán YA ESTÁ RIGGEADO Y ANIMADO, sin pedir nada más a Meshy.** `arte/modelos/goblin_chaman_rig.glb` = su malla con el esqueleto de Marimanta (66 huesos, `tools/autorig_chaman.py`); sus clips vienen de Marimanta y del goblin guerrero (por `ClipsFamilia`) y los de ataque se generan por código (`jugador/animaciones_chaman.gd`, con IK de brazos y piernas):
+
+| Rol | De dónde sale | Notas |
+|---|---|---|
+| `idle` | Marimanta `Idle_02` | el bastón va plantado en el suelo bajo su mano derecha (`PiezaApoyada3D`) |
+| `walk` | Marimanta `Elderly_Shaky_Walk_inplace` | apoyado en el palo; se queda atrás de los guerreros |
+| `talk`, `pensar`, `run` | Marimanta | |
+| `trazar` (bucle, 2,5 s) | **generado** | inclinado 50°, las dos manos en el bastón (agarrado a la derecha), la punta a ras de suelo dibuja el sello y el rombo (`TrazosRitual`) delante de él |
+| `clavar` (1,0 s) | **generado** | alza el bastón (tan alto como llegan sus brazos cortos) y lo clava en el centro; `INSTANTE_CLAVAR` = 0,62 s |
+| `lanzar` (1,1 s) | **generado** | echa el bastón atrás y lo lanza hacia delante; la bola de veneno sale a los 0,55 s (`INSTANTE_LANZAR`) |
+| `hit`, `death`, `drown` | goblin guerrero | `SlapReaction`, `Die`, `Drowning` |
+| `empujado` / `levantarse` | `Pj3D._preparar_empujado` | |
+
+(Los clips que se habían pedido a Meshy — `trazar` y `clavar` — ya no hacen falta.)
 
 ---
 

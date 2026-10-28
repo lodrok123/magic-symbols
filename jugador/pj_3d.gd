@@ -46,6 +46,10 @@ const SINONIMOS: Dictionary = {
 	# Marimanta (23/10, Meshy): el clip de frotarse las manos tramando algo; el rol «pensar» de las NPC (mano libre en la barbilla en la ficha, que Meshy no trae).
 	"pensar": ["scheming", "pensar"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
+	# Chamán goblin (28/10): clips generados por AnimacionesChaman. `trazar` = barre el suelo con la punta del bastón (bucle, dos mitades); `clavar` = alza el bastón y lo clava en el centro de la runa.
+	"trazar": ["trazar"],
+	"clavar": ["clavar"],
+	"lanzar": ["lanzar"],         # el gesto de lanzar la bola de veneno con el bastón (AnimacionesChaman)
 	# Gólem de piedra (28/10): clips generados por AnimacionesGolem. `expuesto`: cae de rodillas con el núcleo a la vista y se levanta; `resbalar`: cae de espaldas (queda tumbado; `levantarse` lo incorpora).
 	"expuesto": ["expuesto"],
 	"resbalar": ["resbalar"],
@@ -70,7 +74,8 @@ const SINONIMOS: Dictionary = {
 ## de las manos en el clip original (arte/meshy/clips_jugadora.py).
 const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75}
 ## Lo mismo por MODELO (id del personaje -> rol -> segundo del clip a velocidad 1): el gólem de piedra golpea el suelo con el puño a los AnimacionesGolem.INSTANTE_GOLPE s de `attack` (medido con herramientas/prueba_golem_anim.gd) y queda de rodillas a T_EXPUESTO_ABAJO s de `expuesto`.
-const INSTANTE_CLIP_MODELO: Dictionary = {"golem_piedra": {"attack": AnimacionesGolem.INSTANTE_GOLPE, "expuesto": AnimacionesGolem.T_EXPUESTO_ABAJO}}
+const INSTANTE_CLIP_MODELO: Dictionary = {"golem_piedra": {"attack": AnimacionesGolem.INSTANTE_GOLPE, "expuesto": AnimacionesGolem.T_EXPUESTO_ABAJO},
+	"goblin_chaman": {"clavar": AnimacionesChaman.INSTANTE_CLAVAR, "lanzar": AnimacionesChaman.INSTANTE_LANZAR}}   # el chamán clava el bastón en el suelo a los INSTANTE_CLAVAR s de `clavar`
 
 ## Qué clip de lanzar va con cada forma de Vfx3D.FORMAS (la tabla `anim_cast` de DISENO_FUTURO §0b): el rol de
 ## SINONIMOS que se busca en el GLB. Elegidos mirando los clips de la elfa: proyectil = lanzamiento al frente
@@ -102,6 +107,8 @@ const CLIPS_DE: Dictionary = {
 	"goblin_asesino": {"attack": "ataquedoble"},
 	# Marimanta (23/10, Meshy «Crimson Goblin Duchess»): andar de anciana sin avance de cadera (el FBX trae también el que avanza) y hablar con la mano en la cadera.
 	"marimanta": {"walk": "elderly_shaky_walk_inplace", "talk": "talk_with_left_hand_on_hip"},
+	# Chamán goblin (28/10): los clips de Marimanta (ver ClipsFamilia.FUENTES["goblin_chaman_rig"]). Con el bastón apoyado en el suelo el andar de anciana (apoya el peso en el palo) es el que mejor le queda.
+	"goblin_chaman": {"talk": "talk_with_left_hand_on_hip"},       # 29/10: el walk NO es el de anciana (0,2 u por ciclo, no sirve para moverse): se resuelve al «Walking» normal de Marimanta (mismo esqueleto, sin retarget)
 }
 
 ## Roles a los que se quita el desplazamiento de la cadera al cargar (el Juego mueve al personaje): id -> [roles]. elfo_base: su walk (Tripo) avanza la cadera
@@ -130,6 +137,8 @@ const MINIMOS: Dictionary = {
 	"elemental": ["idle", "walk", "run", "attack", "cast", "hit", "death"],
 	# Gólem de piedra (28/10): lento y pesado, sin correr ni conjurar; tiene `expuesto`, `resbalar` y `levantarse`.
 	"golem": ["idle", "walk", "attack", "hit", "death", "expuesto", "resbalar", "levantarse"],
+	# Chamán goblin (28/10): no ataca cuerpo a cuerpo; su ataque es la runa (trazar y clavar).
+	"chaman": ["idle", "walk", "hit", "death", "trazar", "clavar", "lanzar"],
 	# Bestia de cuatro patas (loberno): sin cast ni talk.
 	"bestia": ["idle", "walk", "run", "attack", "hit", "death"],
 }
@@ -198,6 +207,8 @@ const MODELO_DE: Dictionary = {
 	"goblin_espadachin": "goblin_warrior_chibi",
 	# Gólem de piedra (28/10): el cuerpo riggeado (tools/autorig_golem.py); el núcleo es una pieza aparte (Equipo3D.EQUIPO["golem_piedra"]).
 	"golem_piedra": "golem_piedra_rig",
+	# Chamán goblin (28/10): el cuerpo riggeado con el esqueleto de Marimanta (tools/autorig_chaman.py); el bastón es una pieza aparte (Equipo3D.EQUIPO["goblin_chaman"]).
+	"goblin_chaman": "goblin_chaman_rig",
 	# La elfa jugadora: el id conserva los ajustes (FACTOR_ZANCADA, CORRECCION_POSTURA) y el GLB es la versión con los
 	# pesos de piel suavizados en mangas y abrigo (woodland_wanderer.glb queda como original, sin suavizar).
 	"woodland_wanderer": "woodland_wanderer_suave",
@@ -341,7 +352,14 @@ func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
 	if sks.is_empty():
 		return null
 	var clips: Dictionary = {}
-	if glb_id == AnimacionesGolem.GLB:
+	if glb_id == AnimacionesChaman.GLB:
+		# Chamán goblin: los clips de Marimanta y del goblin guerrero traducidos a su esqueleto (ClipsFamilia) y los dos del ritual, generados por código.
+		var sk_c: Skeleton3D = sks[0] as Skeleton3D
+		clips = ClipsFamilia.clips_para(glb_id, _modelo, sk_c).duplicate()
+		var propios: Dictionary = AnimacionesChaman.construir(sk_c, String(_modelo.get_path_to(sk_c)) + ":")
+		for nombre in propios:
+			clips[nombre] = propios[nombre]
+	elif glb_id == AnimacionesGolem.GLB:
 		# Gólem de piedra: todos sus clips (golpe con los dos puños incluido) se generan por código; no hay familia de la que traerlos.
 		var sk_g: Skeleton3D = sks[0] as Skeleton3D
 		clips = AnimacionesGolem.construir(sk_g, String(_modelo.get_path_to(sk_g)) + ":")
@@ -410,6 +428,30 @@ func quitar_ropa(prenda_id: String) -> void:
 ## Ids de las prendas que lleva puestas.
 func ropa_puesta() -> Array[String]:
 	return Ropa3D.puestas(_modelo) if _modelo != null else ([] as Array[String])
+
+
+## Chamán: el bastón (la pieza de Equipo3D con PiezaApoyada3D) agarrado a la mano (`true`, mientras dura trazar/clavar/lanzar) o plantado en el suelo (`false`, idle y andar). null si no lleva.
+func agarrar_baston(si: bool, mezcla: float = 0.15) -> void:
+	for p in _equipo:
+		if is_instance_valid(p) and p.get_parent() != null:
+			var ap: Node = p.get_parent().get_node_or_null("Apoyo")
+			if ap is PiezaApoyada3D:
+				(ap as PiezaApoyada3D).agarrar(si, mezcla)
+
+
+## El bastón del chamán (BastonChaman3D) o null.
+func baston() -> BastonChaman3D:
+	for p in _equipo:
+		if is_instance_valid(p) and p is BastonChaman3D:
+			return p as BastonChaman3D
+	return null
+
+
+## Tiñe el orbe del bastón (ver BastonChaman3D.teñir); no hace nada si no lleva.
+func teñir_baston(color: Color, energia: float = 0.0) -> void:
+	var b: BastonChaman3D = baston()
+	if b != null:
+		b.teñir(color, energia)
 
 
 ## Quita y vuelve a poner el equipo (p. ej. tras cambiar Equipo3D.nivel_grimorio).
@@ -1292,8 +1334,8 @@ const PASO_CORTO: Dictionary = {
 
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
-## goblin_asesino: su andar agazapado avanza ~0,72 u/s a velocidad 1 (1,4 alturas de cadera por 1,1 s, en unidades del juego) y VEL_PATRULLA es 1,0: ×1,4 para que no patine.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}, "golem_piedra": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+## goblin_asesino: (28/10) ya no lleva factor aquí: el clip de andar de los goblins va a la velocidad que pide el suelo (Combate3D.ZANCADA_GOBLIN), sin patinar.
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "golem_piedra": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
@@ -1490,7 +1532,7 @@ const ANIM_EMPUJADO: String = "Empujado"
 const ANIM_LEVANTARSE: String = "Levantarse"
 ## Modelos (GLB) de goblin que admiten los dos clips (comparten esqueleto Mixamo de 28 huesos).
 ## goblin_asesino (22/10): su esqueleto Mixamo tiene 65 huesos y otra pose de reposo; los dos clips se le traducen con ClipsFamilia (`_fuente_empuje`).
-const MODELOS_EMPUJABLES: Array = ["goblin_warrior_chibi", "goblin_archer_chibi", "goblin_asesino"]
+const MODELOS_EMPUJABLES: Array = ["goblin_warrior_chibi", "goblin_archer_chibi", "goblin_asesino", "goblin_chaman_rig"]
 ## Cuánto de alto vuela la cadera respecto al clip original (1 = como en el clip: sube ~0,75 alturas del modelo, o sea lo mismo en proporción
 ## al goblin del juego, que es el modelo escalado). Se aplica a la subida medida desde la cadera de pie.
 const EMPUJADO_ESCALA_VUELO: float = 1.0
@@ -2136,11 +2178,17 @@ func momento_golpe(nombre: String) -> float:
 	return float((MOMENTO_GOLPE.get(id, {}) as Dictionary).get(nombre, 0.5))
 
 
+## 28/10 · RITMO del personaje (Combate3D lo pone: 0,8 a los goblins, pedido de Pablo): multiplica TODAS sus animaciones, menos las que piden `con_ritmo = false`.
+## Es el único punto donde el ritmo entra en las animaciones: lo que se cronometra contra un clip (el golpe, la flecha, el ritual) divide su duración entre `ritmo`.
+var ritmo: float = 1.0
+
+
 ## Velocidad de las animaciones (1 = normal). Sirve para que la elfa siga animada a velocidad normal
 ## cuando el mundo va a cámara lenta (grimorio abierto): se le pasa 1 / Engine.time_scale.
-func set_velocidad_animacion(v: float) -> void:
+## `con_ritmo = false` para lo que va con la física o el mundo (empujado, ahogo) o ya trae la velocidad exacta que pide el suelo (andar sin patinar): ahí NO se multiplica por `ritmo`.
+func set_velocidad_animacion(v: float, con_ritmo: bool = true) -> void:
 	if _arbol != null:
-		_arbol.vel_global = v
+		_arbol.vel_global = v * (ritmo if con_ritmo else 1.0)
 
 
 ## C4: factor del tiempo bruja (ver `ArbolAnimPj.vel_tiempo`).
@@ -2214,6 +2262,8 @@ func _buscar_clip(nombre: String) -> String:
 static func tipo_de(p_id: String) -> String:
 	if p_id.begins_with("golem"):
 		return "golem"
+	if p_id == "goblin_chaman":
+		return "chaman"
 	if p_id.begins_with("goblin_archer"):
 		return "arquero"
 	if p_id == "goblin_base":
