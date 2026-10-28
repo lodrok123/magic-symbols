@@ -217,14 +217,8 @@ func avanzar(dt: float) -> void:
 ## Devuelve {"cambio": bool, "efecto": String}. No pinta nada: el efecto es para quien dibuja.
 ## SOLO PARA SUELO (no agua): la «helada» que ponga es escarcha (ver `_escarcha`), no hielo que se pise.
 func aplicar(c: Vector2i, accion: String) -> Dictionary:
-	for f in TRANSICIONES:
-		var fila: Dictionary = f
-		if String(fila["accion"]) != accion:
-			continue
-		if String(fila["con"]) != "" and not tiene(c, String(fila["con"])):
-			continue
-		if String(fila["sin"]) != "" and tiene(c, String(fila["sin"])):
-			continue
+	var fila: Dictionary = fila_para(c, accion)
+	if not fila.is_empty():
 		var algo: bool = false
 		var ya_helada: bool = tiene(c, HELADA)
 		for e in fila["quita"]:
@@ -237,6 +231,21 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 			algo = poner(c, String(e), true) or algo
 		return {"cambio": algo, "efecto": String(fila["efecto"])}
 	return {"cambio": false, "efecto": ""}
+
+
+## 28/10 · A2 (previsión): la fila de `TRANSICIONES` que `aplicar` usaría con esta acción en esta casilla ({} si ninguna encaja), sin tocar nada. `aplicar` la ejecuta; la previsión
+## la lee (`ReaccionesSuelo3D.prever`): una sola regla.
+func fila_para(c: Vector2i, accion: String) -> Dictionary:
+	for f in TRANSICIONES:
+		var fila: Dictionary = f
+		if String(fila["accion"]) != accion:
+			continue
+		if String(fila["con"]) != "" and not tiene(c, String(fila["con"])):
+			continue
+		if String(fila["sin"]) != "" and tiene(c, String(fila["sin"])):
+			continue
+		return fila
+	return {}
 
 
 ## ¿Es la «helada» de esta casilla solo la del suelo (escarcha) y no hielo sobre agua? Falso si la casilla no está helada.

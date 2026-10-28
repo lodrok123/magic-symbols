@@ -46,6 +46,9 @@ const SINONIMOS: Dictionary = {
 	# Marimanta (23/10, Meshy): el clip de frotarse las manos tramando algo; el rol «pensar» de las NPC (mano libre en la barbilla en la ficha, que Meshy no trae).
 	"pensar": ["scheming", "pensar"],
 	"attack": ["leftslash", "slash", "attack", "punch"],
+	# Gólem de piedra (28/10): clips generados por AnimacionesGolem. `expuesto`: cae de rodillas con el núcleo a la vista y se levanta; `resbalar`: cae de espaldas (queda tumbado; `levantarse` lo incorpora).
+	"expuesto": ["expuesto"],
+	"resbalar": ["resbalar"],
 	# Goblin asesino (22/10): dos clips de Gribble que no son del juego base y que el Juego puede pedir por su rol (no los usa ninguna regla del árbol).
 	"guardia": ["guardia"],
 	"paso_lado": ["paso_lado"],
@@ -66,6 +69,8 @@ const SINONIMOS: Dictionary = {
 ## que el de Meshy y las manos llegan a 2,2 s); en `agacharse`, el fondo de la agachada, con las manos a ras de lo que se coge (a 1,75 s). Medidos con la cinemática de los huesos
 ## de las manos en el clip original (arte/meshy/clips_jugadora.py).
 const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75}
+## Lo mismo por MODELO (id del personaje -> rol -> segundo del clip a velocidad 1): el gólem de piedra golpea el suelo con el puño a los AnimacionesGolem.INSTANTE_GOLPE s de `attack` (medido con herramientas/prueba_golem_anim.gd) y queda de rodillas a T_EXPUESTO_ABAJO s de `expuesto`.
+const INSTANTE_CLIP_MODELO: Dictionary = {"golem_piedra": {"attack": AnimacionesGolem.INSTANTE_GOLPE, "expuesto": AnimacionesGolem.T_EXPUESTO_ABAJO}}
 
 ## Qué clip de lanzar va con cada forma de Vfx3D.FORMAS (la tabla `anim_cast` de DISENO_FUTURO §0b): el rol de
 ## SINONIMOS que se busca en el GLB. Elegidos mirando los clips de la elfa: proyectil = lanzamiento al frente
@@ -123,6 +128,8 @@ const MINIMOS: Dictionary = {
 	"npc": ["idle", "walk", "talk"],
 	# Elemental de bosque (Meshy «Verdant Guardian»): es un jefe lento. Su `hit` es el de fuego (ver CLIPS_DE). Tiene `cast` (el hechizo de las enredaderas) y `run`.
 	"elemental": ["idle", "walk", "run", "attack", "cast", "hit", "death"],
+	# Gólem de piedra (28/10): lento y pesado, sin correr ni conjurar; tiene `expuesto`, `resbalar` y `levantarse`.
+	"golem": ["idle", "walk", "attack", "hit", "death", "expuesto", "resbalar", "levantarse"],
 	# Bestia de cuatro patas (loberno): sin cast ni talk.
 	"bestia": ["idle", "walk", "run", "attack", "hit", "death"],
 }
@@ -189,6 +196,8 @@ const EJE_CIERRE_DEDO: Vector3 = Vector3.RIGHT
 ## la altura y la postura se buscan por el id del personaje, así que una variante solo cambia lo que lleva.
 const MODELO_DE: Dictionary = {
 	"goblin_espadachin": "goblin_warrior_chibi",
+	# Gólem de piedra (28/10): el cuerpo riggeado (tools/autorig_golem.py); el núcleo es una pieza aparte (Equipo3D.EQUIPO["golem_piedra"]).
+	"golem_piedra": "golem_piedra_rig",
 	# La elfa jugadora: el id conserva los ajustes (FACTOR_ZANCADA, CORRECCION_POSTURA) y el GLB es la versión con los
 	# pesos de piel suavizados en mangas y abrigo (woodland_wanderer.glb queda como original, sin suavizar).
 	"woodland_wanderer": "woodland_wanderer_suave",
@@ -328,12 +337,18 @@ func cargar(p_id: String) -> bool:
 ## Modelos sin animaciones propias (elfo_base, de Tripo): se les monta un AnimationPlayer con los clips de su familia, traducidos a su esqueleto
 ## (ClipsFamilia, PLAN_RIGGING §3.6). Devuelve null si el GLB no tiene familia o no se pudo.
 func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
-	if not ClipsFamilia.tiene_fuente(glb_id):
-		return null
 	var sks: Array[Node] = _modelo.find_children("*", "Skeleton3D", true, false)
 	if sks.is_empty():
 		return null
-	var clips: Dictionary = ClipsFamilia.clips_para(glb_id, _modelo, sks[0] as Skeleton3D)
+	var clips: Dictionary = {}
+	if glb_id == AnimacionesGolem.GLB:
+		# Gólem de piedra: todos sus clips (golpe con los dos puños incluido) se generan por código; no hay familia de la que traerlos.
+		var sk_g: Skeleton3D = sks[0] as Skeleton3D
+		clips = AnimacionesGolem.construir(sk_g, String(_modelo.get_path_to(sk_g)) + ":")
+	else:
+		if not ClipsFamilia.tiene_fuente(glb_id):
+			return null
+		clips = ClipsFamilia.clips_para(glb_id, _modelo, sks[0] as Skeleton3D)
 	if clips.is_empty():
 		push_warning("Pj3D[%s]: no se pudieron traer los clips de la familia" % id)
 		return null
@@ -366,6 +381,10 @@ func _poner_clips_extra(ap: AnimationPlayer) -> void:
 
 
 ## El segundo del clip del rol `nombre` (a velocidad 1) en que ocurre lo que el Juego sincroniza (INSTANTE_CLIP); 0 si el rol no tiene.
+static func instante_clip_de(p_id: String, nombre: String) -> float:
+	return float((INSTANTE_CLIP_MODELO.get(p_id, {}) as Dictionary).get(nombre, INSTANTE_CLIP.get(nombre, 0.0)))
+
+
 static func instante_clip(nombre: String) -> float:
 	return float(INSTANTE_CLIP.get(nombre, 0.0))
 
@@ -1274,7 +1293,7 @@ const PASO_CORTO: Dictionary = {
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
 ## goblin_asesino: su andar agazapado avanza ~0,72 u/s a velocidad 1 (1,4 alturas de cadera por 1,1 s, en unidades del juego) y VEL_PATRULLA es 1,0: ×1,4 para que no patine.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "goblin_asesino": {"walk": 1.4}, "golem_piedra": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
@@ -1906,6 +1925,36 @@ const BEBER_HASTA: float = 6.0
 var _bebiendo: bool = false
 
 
+## 28/10 · C1 (golpe cuerpo a cuerpo, tecla F): la jugadora NO tiene clip de golpe propio (su rol `attack` se resuelve a «FacePunchReaction», que es un golpe RECIBIDO). Se usa el empuje a dos manos que ya
+## tiene (`cast_empuje` = MageSoellCast001, el de la variación x_empuje de los cast points): el tramo en que echa las manos hacia delante, acelerado para durar `dur`. Segundos del clip a velocidad 1
+## (medidos con docs/capturas/golpe/): arranca con las manos recogidas, las extiende en `GOLPE_INSTANTE` y vuelve a recogerlas. Pedir un clip propio: docs/PENDIENTES.md, sección «Pablo».
+const GOLPE_ROL: String = "cast_empuje"
+const GOLPE_DESDE: float = 0.7
+const GOLPE_HASTA: float = 1.8
+const GOLPE_INSTANTE: float = 1.3
+
+
+## Cuánto tarda en llegar al instante del impacto un golpe de duración total `dur` (s).
+static func golpe_retardo(dur: float) -> float:
+	return (GOLPE_INSTANTE - GOLPE_DESDE) / ((GOLPE_HASTA - GOLPE_DESDE) / maxf(dur, 0.05))
+
+
+## Pone el clip del golpe (una vez, en `dur` s). Devuelve false si el personaje no tiene el clip o el árbol lo prohíbe.
+func golpear_cuerpo(dur: float) -> bool:
+	if _arbol == null:
+		return false
+	var clip: String = _buscar_clip(GOLPE_ROL)
+	if clip == "":
+		return false
+	var largo: float = _ap.get_animation(clip).length
+	var vel: float = (GOLPE_HASTA - GOLPE_DESDE) / maxf(dur, 0.05)
+	_arbol.vel_global = 1.0
+	if not _arbol.pedir("golpe_cuerpo", clip, {"desde": GOLPE_DESDE, "hasta": minf(GOLPE_HASTA, largo), "bucle": Animation.LOOP_NONE, "vel": vel, "mezcla": 0.06, "reiniciar": true}):
+		return false
+	animacion_actual = "golpe_cuerpo"
+	return true
+
+
 func beber(dur: float = 1.5) -> float:
 	if _arbol == null or _bebiendo:
 		return 0.0
@@ -2157,6 +2206,8 @@ func _buscar_clip(nombre: String) -> String:
 
 ## Tipo de personaje para la lista mínima de clips: heroe, goblin, arquero o npc.
 static func tipo_de(p_id: String) -> String:
+	if p_id.begins_with("golem"):
+		return "golem"
 	if p_id.begins_with("goblin_archer"):
 		return "arquero"
 	if p_id == "goblin_base":

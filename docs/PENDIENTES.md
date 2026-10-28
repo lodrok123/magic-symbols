@@ -11,6 +11,8 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [ ] Re-hornear las piezas viejas con la colisión por contorno (DIARIO 228–229).
 
 **Decidir o validar**
+- [ ] Clip de GOLPE propio de la jugadora (Meshy): un empujón corto con las dos manos y zancada, o un golpe con el libro o el bastón, ~0,5 s y con empuje. Hoy el golpe F (C1) usa `cast_empuje` recortado, que se lee como un gesto de magia con poco brazo; su rol `attack` apunta a `FacePunchReaction`, un golpe RECIBIDO.
+- [ ] Probar la tecla F (golpe cuerpo a cuerpo, C1) en el playtest: alcance de 1 casilla, empuje de ~2,2 casillas, daño 5 y reutilización de 0,8 s son valores de partida.
 - [ ] Validar el clip «Drowning» de los dos goblins (DIARIO 231).
 - [ ] Aplicar el ajuste de proyecto que pide la entrada 233 (luz por zona / tilt-shift).
 - [ ] Números de la tinta (PLAN_EOW E1) y recetas de pigmentos por zona (tinta, paso 2).
@@ -202,3 +204,31 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 - [x] **Cáusticas sobre lo sumergido** (`LechoRio3D.capa_causticas`): una capa de superposición con la misma red de luz para guijarros, algas y rocas del lecho; sirve para cualquier malla bajo el agua (un goblin que nada, más adelante).
 - [x] **Pisadas suaves:** `tools/gen_pasos_suaves.py` (toque grave amortiguado, sin agudos, seis por suelo) y −12 dB en `Sfx3D.CATALOGO`. Falta oírlas jugando y ajustar el volumen de oído.
 - [ ] Romper con plantillas y fundir la base de las piezas: propuesta en `docs/PLAN_ROMPIBLES_Y_BASES.md`, con decisiones abiertas.
+
+## Empujar bloques (27/10) — docs/EMPUJAR_BLOQUES.md
+- [x] **Pieza `bloque`** (`BloqueEmpujable3D`, `material=piedra|hielo`): bloquea su casilla, pesa (placas), la piedra avanza una casilla por empujón y tiende los huecos de veta (`Pulso3D.enlace_tendido`), el hielo resbala hasta que algo lo para, el viento lo empuja, no se guarda su posición (al recargar vuelve a su casilla). Gramática en la cabecera de `escenas/puzle.gd`.
+- [x] **Empujar desde `Jugador3D`** (`_gestionar_empuje`): 0,35 s apretando contra un bloque pegado; `empujando` es true mientras empuja (también atascada) y suena el clip `empujar`.
+- [x] **Sala del Empuje** (`SalaEmpuje`, 4 salas: el bloque, el hielo, la veta, la otra orilla) y su autoplay `escenario_sala_empuje.gd` (71 comprobaciones, 0 fallos, sin teletransportes ni bloques movidos por código).
+- [x] Un bloque que queda sin salida (el hielo que llega a la pared sin placa) se deshace a los 3 s y reaparece en su casilla: decisión fuera del brief, para que no haya atascos sin remedio.
+- [ ] **Oír y ver:** los sonidos son claves existentes (`rodar`, `clavar`, `derrumbe`) y el hielo es un cubo translúcido sin textura; faltan un arrastre de piedra y un deslizar de hielo propios, y una textura de hielo en `arte/suelo_meshy`. Probado solo en headless: falta jugarlo en pantalla para el tacto (¿0,35 s?, ¿0,45 s por casilla?, ¿el bloque de piedra ensanchado se ve bien?).
+- [ ] La flecha de viento (y la de fuego) vuela solo 2 casillas (`distancia_max`): el viento a distancia de E4 cabe justo. Decidir si el viento debe llegar más lejos.
+- [ ] El bloque no empuja a los enemigos ni se deja empujar por ellos, y la jugadora que pisa hielo resbala junto a él sin interacción: sin diseñar.
+- [ ] Los otros niveles no usan bloques todavía (el Bosque sigue con los cubos solo visuales de `prueba_test2._colocar_empujables`).
+- [x] **Empujar con peso (28/10, Pablo):** la piedra va a 1,0 u/s con arranque de 0,4 s y frenado de 0,3 s solo al final, y encadena casillas mientras se sigue apretando; la jugadora va acoplada al bloque; el clip `empujar` va lento al cargar y proporcional a la velocidad al empujar; el hielo arranca pesado media casilla y luego resbala a ~0,25 s por casilla. Autoplay: 80 comprobaciones.
+- [ ] **Afinar de oído y de vista:** `VEL_EMPUJE`, `T_ARRANQUE`, `T_FRENADO` (BloqueEmpujable3D) y `ZANCADA_EMPUJAR` (Jugador3D, estimada: comprobar con `prueba_rigging_postura` que los pies del clip `empujar` no patinan).
+- [ ] **Sonido del arrastre:** no hay un arrastre de piedra grabado; el bucle es `rodar.wav` (sintetizado) a −17 dB (`Sfx3D.AMBIENTES["arrastre"]`). **Polvo a ras de suelo:** no existe un efecto pequeño continuo (`VfxPuzle3D.polvo` es la nube del derrumbe); no se ha inventado ninguno. Falta uno para la base del bloque en marcha.
+
+## Combate: apuntado, objetos y enemigos (27/10) — docs/PROPUESTA_COMBATE.md §7
+- [ ] **Fase 1 · Apuntado:** ~~A1 lanzamiento rápido~~ **hecho 27/10** (mantener 1/2/3, soltar lanza, andar mientras se apunta, `prueba_lanzamiento_rapido`; **`TIEMPO_PAGINA` = 0,7 por afinar en el playtest de Pablo**; el «lanzamiento inteligente» se activa desde la paleta F1, aún sin pantalla de ajustes) · ~~A2 reacción «en seco»~~ **hecho 28/10** (`PrevisionHechizo.prever` / `prever_rapido` en `magia/prevision_hechizo.gd`: enemigos, suelo y piezas con las mismas reglas que el impacto, sin aplicar nada; ~1 ms una flecha; `prueba_prevision_hechizo`, 170 comprobaciones; no cubre eventos del hechizo, pulsos de zona ni combos en cadena: ver `PROPUESTA_COMBATE.md` §7) · A3 previsualizar la reacción (consume `PrevisionHechizo`) · A4 trayectorias (rebote, viento, hundido) · A5 imán (más adelante).
+- [ ] **Fase 2 · Combate:** ~~C1 golpe cuerpo a cuerpo~~ **[hecho 28/10: tecla F, 5 de daño, ≥ 2 casillas de empuje, sin tinta, 0,8 s de reutilización; clip provisional (el empuje a dos manos de los cast points, la jugadora no tiene golpe propio: pedido arriba); `prueba_golpe_cuerpo`, 61 comprobaciones]** · C2 +20 de tinta por reacción (una vez por enemigo y tipo) **[hecho 28/10: hundido, electrocutado, congelado, mano quemada y apagado]** · C3 ataques avisados · C4 esquiva con premio (tiempo bruja 0,6 s).
+- [ ] **Fase 3 · Enemigos:** E1 limo elemental · E2 chamán goblin · E3 gólem de piedra · E4 el resto de §4.
+  - [ ] **E1: aspecto del limo hecho por código (prototipo, 27/10):** `enemigos/limo_visual_3d.gd` (`LimoVisual3D`: gelatina translúcida con shader, núcleo que late, cara, burbujas; `cargar(elemento)`, `saltar`, `golpe`, `dividir`, `congelar`), escena F6 `escenas/PruebaLimo.tscn`, fotos `herramientas/captura_limo.gd` (con ventana) en `docs/capturas/limo/`, prueba `herramientas/prueba_limo_visual.gd` (0 fallos). **Variante GRANDE (27/10):** el mismo elemento otra vez hace crecer (0,6 → 1,0 → 1,6; `crecer()`, señal `crecio`); el grande lleva cejas, núcleo mayor y tinte más fuerte; `dividir()` baja un escalón. **Falta:** que Pablo lo apruebe en pantalla; la boca es una «o» (no un arco fruncido); el cubo de hielo tiene el borde inferior algo irregular; sin IA, sin daño ni `Combate3D`, sin sonidos; los hijos de `dividir()` son nodos hermanos sin lógica; no está en ninguna escena de juego; decidir si se sustituye por un modelo de Meshy (`arte/meshy/PROMPTS_ENEMIGOS_COMBATE.md` §1).
+- [ ] **Fase 4 · Objetos:** O1 rueda de 8 objetos · O2 frascos arrojables (aceite, agua, escarcha, chispa) · O3 señuelo · O4 trampas · O5 síntesis.
+- [ ] **Fase 5 · Herramientas permanentes (una por mazmorra):** H1 elegir la primera (propuesta: gancho de raíz) · H2 construirla.
+- [ ] **Pablo:**
+  - teclas del golpe (F) y de la rueda (Tab);
+  - modelos del limo, el chamán y el gólem;
+  - iconos de la rueda y, si hace falta, el clip de golpe;
+  - sonidos;
+  - playtests al final de cada fase;
+  - validar RECOGIBLES_DB §6.

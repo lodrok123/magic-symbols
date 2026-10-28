@@ -33,6 +33,9 @@ const HIERBA_MOJADA_S: float = 8.0
 ## Callable(c: Vector2i) -> String: «agua» | «hierba» | «suelo» | «» (no recibe nada). Lo pone Lanzador3D.configurar.
 static var clasificar: Callable = Callable()
 
+## 28/10 · A2: Callable(elemento: String, c: Vector2i) -> String con lo que ese elemento le haría a la HIERBA de la casilla (la regla de la maqueta, `prever_hierba`). Lo pone Lanzador3D.configurar.
+static var prever_hierba: Callable = Callable()
+
 ## Casillas cuyo «quemada» puso `sincronizar_hierba` (solo esas puede quitar: lo que ponga otro no lo toca).
 static var _hierba_mia: Dictionary = {}
 
@@ -74,6 +77,64 @@ static func aplicar(a: AccionElemental) -> Dictionary:
 	if clase != "suelo":
 		return {}
 	return Terreno3D.estados.aplicar(c, accion)
+
+
+## 28/10 · A2 (previsión): qué le haría un impacto de `elemento` a la casilla `c`, SIN aplicar nada. Devuelve {} si no pasaría nada, o {reaccion, extra}:
+##   hierba  prende · arde · brota · apaga · abanica (`prever_hierba` de la maqueta)    suelo  hiela · moja · seca · derrite (la fila de `EstadosSuelo3D.TRANSICIONES` que `aplicar` usaría)
+##   agua    hiela (el hielo sobre agua con fondo) · derrite (el fuego sobre agua helada) · evapora (el fuego sobre agua)
+## Son las mismas reglas que `aplicar` y la simulación del agua (`ReaccionesAgua3D`); lo que no cambia el suelo (rayo, tierra, viento) no devuelve nada.
+## `solo_hierba`: el impacto del VFX de un proyectil que se para (el agua no marca casillas) solo alcanza a la hierba de la maqueta (`_al_impactar`), no escribe estados del suelo.
+static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> Dictionary:
+	if not Terreno3D.en_mapa(c):
+		return {}
+	var accion: String = String(ACCION_DE.get(elemento, ""))
+	var clase: String = clase_de(c)
+	if solo_hierba and clase != "hierba":
+		return {}                                           # el impacto que dibuja el VFX (un proyectil que se para) solo llega a la hierba de la maqueta; los estados los escribe `marcar_celda`
+	if clase == "hierba":
+		if prever_hierba.is_valid():
+			var r: String = String(prever_hierba.call(elemento, c))
+			if r != "":
+				return {"reaccion": r, "extra": {"clase": "hierba"}}
+		if accion == "agua" and not Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA):
+			return {"reaccion": "moja", "extra": {"clase": "hierba"}}
+		return {}
+	if accion == "":
+		return {}
+	if accion != "calor" and Terreno3D.altura_en(c) >= 1:
+		return {}                                           # H4: agua y hielo solo a nivel 0
+	if clase == "agua":
+		var sim: AguaSim3D = Terreno3D.agua_sim
+		var honda: bool = sim != null and sim.profundidad_casilla(c) > 0.05
+		match elemento:
+			"hielo":
+				if honda and not Terreno3D.helada(c):
+					return {"reaccion": "hiela", "extra": {"clase": "agua"}}
+			"fuego":
+				if Terreno3D.helada(c):
+					return {"reaccion": "derrite", "extra": {"clase": "agua"}}
+				if honda:
+					return {"reaccion": "evapora", "extra": {"clase": "agua"}}
+		return {}
+	if clase != "suelo":
+		return {}
+	var fila: Dictionary = Terreno3D.estados.fila_para(c, accion)
+	if fila.is_empty():
+		return {}
+	var pone: Array = fila["pone"]
+	var quita: Array = fila["quita"]
+	var nombre: String = ""
+	if pone.has(EstadosSuelo3D.HELADA) and not Terreno3D.estados.tiene(c, EstadosSuelo3D.HELADA):
+		nombre = "hiela"
+	elif pone.has(EstadosSuelo3D.MOJADA) and not quita.has(EstadosSuelo3D.HELADA):
+		nombre = "moja" if not Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA) else ""
+	elif quita.has(EstadosSuelo3D.HELADA) and pone.has(EstadosSuelo3D.MOJADA):
+		nombre = "derrite"
+	elif quita.has(EstadosSuelo3D.MOJADA) and pone.is_empty():
+		nombre = "seca"
+	if nombre == "":
+		return {}
+	return {"reaccion": nombre, "extra": {"clase": "suelo", "efecto": String(fila["efecto"])}}
 
 
 ## El hielo de una casilla de SUELO caduca (20 s, `Lanzador3D._derretir`): la maqueta quita el canal «helado» y deja la casilla mojada, y el

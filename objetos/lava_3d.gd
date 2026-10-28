@@ -185,6 +185,7 @@ func _ready() -> void:
 	monitorable = true
 	collision_mask = 0
 	collision_layer = Lanzador3D.CAPA_REACTIVO
+	add_to_group("lava3d")                  # A2: la previsión del indicador las encuentra por aquí
 	if celdas.is_empty():
 		return
 	var s: float = Terreno3D.casilla
@@ -317,11 +318,8 @@ func nivel_altura() -> int:
 func enfriar_en(c: Vector2i) -> void:
 	if _lava.is_empty():
 		return
-	var centro: Vector2i = c if _lava.has(c) else _mas_cercana(c)
-	for d in [Vector2i.ZERO, Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		var q: Vector2i = centro + d
-		if _lava.has(q):
-			_enfriar(q)
+	for q in celdas_enfriables(c):
+		_enfriar(q as Vector2i)
 	if _lava.is_empty():
 		is_lit = false
 		apagada.emit()
@@ -334,15 +332,37 @@ func _enfria(tags: Array) -> bool:
 
 
 func _al_impacto(punto: Vector3, elemento: String, radio: float) -> void:
+	var c2: Vector2i = celda_de_impacto(punto, elemento, radio)
+	if c2 != Vector2i(-9999, -9999):
+		enfriar_en(c2)
+
+
+## 28/10 · A2 (previsión): la casilla de lava que un impacto de `elemento` en `punto` (con `radio` u) enfriaría, o (-9999, -9999) si ninguna. Es la regla de `_al_impacto`, que la ejecuta;
+## la previsión del indicador (`PrevisionHechizo`) la consulta por aquí.
+func celda_de_impacto(punto: Vector3, elemento: String, radio: float) -> Vector2i:
 	if elemento != "agua" and elemento != "hielo":
-		return
+		return Vector2i(-9999, -9999)
 	var c: Vector2i = Terreno3D.celda_de(punto)
 	var c2: Vector2i = _mas_cercana(c)
 	if c2 == Vector2i(-9999, -9999):
-		return
+		return c2
 	var d: Vector2 = Vector2(c2 - c)
 	if d.length() <= 1.0 + radio / maxf(Terreno3D.casilla, 0.001):
-		enfriar_en(c2)
+		return c2
+	return Vector2i(-9999, -9999)
+
+
+## 28/10 · A2: las casillas que `enfriar_en(c)` enfriaría (la de `c`, o la de lava más cercana si `c` no lo es, y sus cuatro vecinas de lava). Sin enfriar nada.
+func celdas_enfriables(c: Vector2i) -> Array:
+	var r: Array = []
+	if _lava.is_empty():
+		return r
+	var centro: Vector2i = c if _lava.has(c) else _mas_cercana(c)
+	for d in [Vector2i.ZERO, Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var q: Vector2i = centro + d
+		if _lava.has(q):
+			r.append(q)
+	return r
 
 
 func _enfriar(c: Vector2i) -> void:

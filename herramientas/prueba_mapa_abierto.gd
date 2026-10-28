@@ -152,7 +152,7 @@ func _rompibles() -> void:
 	_ok("3 los cuatro jarrones del mapa están montados", j_a != null and j_b != null and j_c != null and j_d != null)
 	if j_a == null or j_b == null or j_c == null or j_d == null:
 		return
-	_ok("3 un jarrón entero tapa su casilla, está en el grupo `rompible` y reacciona a un hechizo", Terreno3D.bloqueada(Vector2i(1, 13)) and j_a.is_in_group("rompible") and j_a.spell_reacts(fuego) and not j_a.roto_ya)
+	_ok("3 un jarrón entero tapa su casilla, está en el grupo `rompible` y reacciona a un hechizo", Terreno3D.bloqueada(Vector2i(1, 12)) and j_a.is_in_group("rompible") and j_a.spell_reacts(fuego) and not j_a.roto_ya)
 	_ok("3 el modelo se ve (el jarrón de verdad, o la caja de reserva)", j_a.get_node_or_null("modelo") != null and (j_a.get_node("modelo") as Node3D).visible)
 	# Tabla por zona, sin azar.
 	_ok("3 tabla por zona: bosque 3..8 de oro, ruinas 6..14, cueva 5..12; fila de defecto si la zona no existe", Rompible3D.oro_de("bosque", 0.0) == 3 and Rompible3D.oro_de("bosque", 0.99999) == 8
@@ -447,7 +447,7 @@ func _salida_entrada() -> void:
 	var ja: Rompible3D = z2.nodo("jarron_c1b") as Rompible3D if z2 != null else null
 	var jn: Rompible3D = z2.nodo("jarron_c1a") as Rompible3D if z2 != null else null
 	_ok("8 en la escena nueva los jarrones que ya se rompieron nacen rotos (solo restos), sin botín", ja != null and ja.roto_ya and ja.soltado.is_empty() and ja.n_restos() == Rompible3D.N_TROZOS and not Terreno3D.bloqueada(Vector2i(8, 14)))
-	_ok("8 y el que no se rompió sigue entero", jn != null and not jn.roto_ya and Terreno3D.bloqueada(Vector2i(1, 13)))
+	_ok("8 y el que no se rompió sigue entero", jn != null and not jn.roto_ya and Terreno3D.bloqueada(Vector2i(1, 12)))
 	var pu2: Puzle3D.PuertaPuzle = z2.nodo("puerta_llave") as Puzle3D.PuertaPuzle if z2 != null else null
 	_ok("8 la puerta de C6 que se abrió sigue abierta (`abierto=cueva.c6.puerta`)", pu2 != null and pu2.abierta and not Terreno3D.bloqueada(Vector2i(18, 16)))
 	await avanzar_s(0.5)

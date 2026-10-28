@@ -50,6 +50,13 @@ const HIELO_ACEL: float = 3.0                ## u/s² con las teclas puestas (an
 const HIELO_FRENO: float = 0.9               ## u/s² sin teclas: cuesta frenar (de 1,6 u/s patinas ~1,4 u)
 const HIELO_GIRO: float = 0.35               ## el giro de la mirada va a esta fracción de lo normal
 
+## --- 27/10 Empujar bloques (docs/EMPUJAR_BLOQUES.md) ---
+const T_EMPUJAR: float = 0.35                ## s apretando contra un bloque pegado antes de que ceda
+const EMPUJE_CARDINAL: float = 0.8           ## componente mínima (de la dirección normalizada) para contar como «hacia una cara»: la diagonal (0,71) no empuja
+const EMPUJE_PEGADA: float = 0.3             ## × casilla: lo que hay que haberse adelantado desde el centro de su casilla hacia el bloque (a ≤ 0,7 · S de su centro)
+const VEL_CLIP_CARGA: float = 0.4           ## velocidad del clip `empujar` mientras carga los T_EMPUJAR s sin moverse (se lee el esfuerzo)
+const ZANCADA_EMPUJAR: float = 0.9          ## u/s de suelo por cada 1,0 de velocidad del clip `empujar` (ESTIMADO, afinar a ojo; como walk x1,6 = 1,6 u/s en commit 93fd42f7): la velocidad del clip = la real del bloque / esto
+
 signal murio
 signal reaparecio
 signal nado_cambiado(nadando: bool)
@@ -100,10 +107,27 @@ var _roll_previa: bool = false
 var _t_beber: float = 0.0
 var _beber_previa: bool = false
 var _t_gesto: float = 0.0                    ## lo que queda de un gesto (`gesto()`: agacharse, ofrecer, saludo...); 0 = no hay
-## true mientras el jugador EMPUJA algo (bloque de enlace, caja): al andar suena `empujar` en vez de `walk`/`run`. Aún no hay mecánica de empuje del jugador en el juego; quien la construya
-## solo tiene que poner esto a true mientras empuja y a false al soltar.
+## true mientras el jugador EMPUJA un bloque (`BloqueEmpujable3D`, 27/10): al andar suena el clip `empujar` (bucle, sin avance) en vez de `walk`/`run`. Lo calcula `_gestionar_empuje` cada fotograma: es true
+## mientras anda con dirección cardinal contra un bloque pegado a ella (aunque no se mueva: así se lee «está atascado») y mientras va ACOPLADA a él moviéndose (su posición la marca el bloque); false al soltar,
+## al alejarse o si nada/lanza/rueda/hace un gesto. A los `T_EMPUJAR` s de empujar llama a `bloque.empujar(dir)`.
 var empujando: bool = false
+var _t_empuje: float = 0.0                   ## s que lleva apretando contra el bloque
+var _bloque_empuje: Node = null              ## el bloque que empuja (o que acaba de soltar y aún resbala)
+var _dir_empuje: Vector2i = Vector2i.ZERO
+var _acoplada: bool = false                 ## el bloque que empuja se mueve y su posición manda la de ella
+var _dist_empuje: float = 0.0                ## u entre ella y el centro del bloque al acoplarse (se mantiene)
+var _lat_empuje: float = 0.0                 ## su coordenada lateral al acoplarse (la entrada lateral se ignora)
+var _vel_clip_empuje: float = 1.0            ## velocidad del clip `empujar` (la pone `_gestionar_empuje`, la usa `_animar`)
 var _f8_previa: bool = false
+## 28/10 · C1 GOLPE CUERPO A CUERPO (tecla F, `GolpeCuerpo`): lo que queda del golpe (0 = no hay), la reutilización, la tecla de antes, el retardo hasta el impacto y si ya salió. `_t_golpe` NO es esto: es el golpe RECIBIDO.
+var _t_pegar: float = 0.0
+var _pegar_cd: float = 0.0
+var _pegar_previa: bool = false
+var _pegar_retardo: float = 0.0
+var _pegar_hecho: bool = true
+var _pegar_dir: Vector3 = Vector3(0, 0, 1)
+var ultimo_golpe_cuerpo: Dictionary = {}     ## el resumen del último golpe (GolpeCuerpo.impactar); lo lee la prueba
+signal golpe_cuerpo_dado(resumen: Dictionary)
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 
 ## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
@@ -174,6 +198,8 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 			Gatopedro3D.equipar_gatopedro(g as Pj3D, p_mundo, j, l)      # el lince enemigo huye en vez de atacar
 		else:
 			Combate3D.equipar(g as Pj3D, p_mundo, j, l)
+	# C2 (28/10): las reacciones de combo contra enemigos devuelven tinta (`TintaReaccion`, cuelga del Mundo3D de la maqueta)
+	TintaReaccion.conectar(p_mundo.get("_mundo") as Mundo3D, j.tinta)
 	j._construir_hud()
 	j.pantalla_muerte = PantallaMuerte.new()
 	j.pantalla_muerte.name = "PantallaMuerte"
@@ -186,12 +212,21 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 ## =====================================================================================================
 
 func puede_lanzar() -> bool:
-	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0 and _t_gesto <= 0.0
+	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and _t_roll <= 0.0 and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
 
 
 func bloquear(b: bool) -> void:
 	bloqueado = b
 	_empuje = Vector3.ZERO
+
+
+## 27/10 · A1 (lanzamiento rápido): `true` mientras se mantiene 1/2/3. NO bloquea: la jugadora anda con WASD a paso normal, pero sin correr, saltar ni rodar, y no gira hacia donde camina sino hacia donde apunta
+## (lo hace `Lanzador3D` con `mirar_hacia` cada fotograma): anda «de lado» con el clip de andar. Quieta se queda en la pose de apuntar. Lo pone y quita `Lanzador3D`.
+var apuntando_rapido: bool = false
+
+
+func apuntar_en_marcha(b: bool) -> void:
+	apuntando_rapido = b
 
 
 ## Entra en el modo apuntar: la elfa pone el clip de lanzar de la forma y las motas del elemento en la mano (Pj3D.lanzar,
@@ -273,6 +308,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if _t_beber > 0.0:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
 	_t_gesto = 0.0                              # un golpe corta el gesto (la animación de golpe lo sustituye)
+	_t_pegar = 0.0                              # y el golpe cuerpo a cuerpo que estuviera dándose (si no había salido, no sale)
 	vida = maxf(0.0, vida - cantidad)
 	_t_inv = INVULNERABLE
 	_t_sin_combate = 0.0
@@ -325,6 +361,7 @@ func posicion_punto_cast(origen: String, dir: Vector3) -> Vector3:
 
 func _morir() -> void:
 	_t_roll = 0.0
+	_t_pegar = 0.0
 	_t_beber = 0.0
 	_t_gesto = 0.0
 	muerto = true
@@ -396,6 +433,13 @@ func _process(delta: float) -> void:
 			lanz.avisar("Pigmento: %s" % tinta.nombre_pigmento(), tinta.color())
 	_f7_previa = f7
 	_roll_cd = maxf(0.0, _roll_cd - delta)
+	_pegar_cd = maxf(0.0, _pegar_cd - delta)
+	if _t_pegar > 0.0:
+		_t_pegar = maxf(0.0, _t_pegar - delta)
+		if not _pegar_hecho and (_t_pegar <= GolpeCuerpo.DUR - _pegar_retardo or _t_pegar <= 0.0):
+			_impactar_golpe()
+		if _t_pegar <= 0.0:
+			pj.animacion_actual = ""              # el golpe acabó: el siguiente `_animar` vuelve a idle / andar
 	if _t_beber > 0.0:
 		_t_beber = maxf(0.0, _t_beber - delta)
 		if _t_beber <= 0.0:
@@ -409,6 +453,8 @@ func _process(delta: float) -> void:
 
 	if muerto:
 		_t_muerte -= delta
+		empujando = false
+		_acoplada = false
 		if _t_muerte <= 0.0:
 			reaparecer()
 		_sincronizar()
@@ -427,8 +473,8 @@ func _process(delta: float) -> void:
 			entrada.y -= 1.0
 		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
 			entrada.y += 1.0
-	var correr: bool = libre and Input.is_key_pressed(KEY_SHIFT)
-	var salto: bool = libre and salto_activo and Input.is_key_pressed(KEY_SPACE)
+	var correr: bool = libre and not apuntando_rapido and Input.is_key_pressed(KEY_SHIFT)     # A1: apuntando de pie-andando no se corre ni se salta
+	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_key_pressed(KEY_SPACE)
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
@@ -436,7 +482,7 @@ func _process(delta: float) -> void:
 	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_camara()))
 	_gestionar_acciones(libre, mov)
 	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
-	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0:
+	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0 or _t_pegar > 0.0:
 		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b) y los gestos (agacharse...) te dejan quieto hasta que acaban
 	var objetivo: Vector3 = mov * vel
 	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
@@ -448,19 +494,24 @@ func _process(delta: float) -> void:
 	if _t_roll > 0.0:
 		mov = Vector3.ZERO
 		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
+	var acoplada: bool = _gestionar_empuje(delta, mov)
+	if acoplada:
+		paso = Vector3.ZERO                       # la posición la marca el bloque (ya puesta): no se anda
+		mov = Vector3(float(_dir_empuje.x), 0.0, float(_dir_empuje.y))      # solo para mirar y animar hacia donde empuja
 	_empuje = _empuje.lerp(Vector3.ZERO, clampf(7.0 * delta, 0.0, 1.0))
 	if paso.length() > 0.0001:
 		var antes: Vector3 = position
 		_mover_con_choque(paso)
-		if mov != Vector3.ZERO:
+		if mov != Vector3.ZERO and not acoplada:
 			_sonar_pasos(position.distance_to(antes), correr)
 		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
 			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
 		if en_hielo and position.distance_to(antes) < paso.length() * 0.25:
 			_vel_hielo = Vector3.ZERO               # choca contra algo: se para (si no, seguiría empujando la pared)
 	if mov != Vector3.ZERO:
-		_mirada = mov
-		pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
+		if not apuntando_rapido:                       # A1: apuntando, la mirada la manda el Lanzador (hacia el ratón), no el rumbo
+			_mirada = mov
+			pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
 		if mundo.has_method("marcar_pisado") and not nadando:
 			mundo.call("marcar_pisado", Terreno3D.celda_de(position), 0.35)
 
@@ -469,6 +520,80 @@ func _process(delta: float) -> void:
 	_actualizar_sonido(delta)
 	_sincronizar()
 	_actualizar_hud()
+
+
+## 27/10 · EMPUJAR BLOQUES (28/10: con PESO). Con `mov` (ya en coordenadas del mundo: es el vector de las teclas girado con la cámara) hacia una cara (componente dominante ≥ `EMPUJE_CARDINAL`), en suelo y sin
+## nadar, lanzar, rodar ni hacer un gesto, si la casilla vecina en esa dirección tiene un bloque (grupo `empujable`) y ella está pegada a él (adelantada ≥ `EMPUJE_PEGADA` · casilla desde el centro de la
+## suya), cuenta el tiempo apretando (el clip `empujar` va lento, `VEL_CLIP_CARGA`, para que se lea el esfuerzo); a los `T_EMPUJAR` s llama a `bloque.empujar(dir, true)`. `empujando` queda true mientras
+## empuja (haya cedido o no: un bloque atascado se lee como «no puedo»). Si el bloque se mueve, ella queda ACOPLADA: su posición la marca el bloque (detrás de su cara, a la distancia a la que estaba pegada,
+## con su posición lateral de entonces) y no su velocidad de andar; mientras siga apretando hacia donde va el bloque le avisa (`sostener`) para que ENCADENE casillas; al soltar, el bloque acaba la
+## casilla frenando y ella se para con él. El hielo solo la lleva media casilla. Devuelve true si está acoplada este fotograma (entonces `_process` no la mueve).
+func _gestionar_empuje(delta: float, mov: Vector3) -> bool:
+	var dir: Vector2i = Vector2i.ZERO
+	var libre_de_accion: bool = en_suelo and not nadando and _t_roll <= 0.0 and not _lanzando and _t_gesto <= 0.0 and _t_beber <= 0.0 and _t_golpe <= 0.0 and _t_pegar <= 0.0 \
+			and not (lanz != null and lanz.modo_lanzar)
+	if libre_de_accion and mov != Vector3.ZERO:
+		var m := Vector2(mov.x, mov.z)
+		if absf(m.x) >= EMPUJE_CARDINAL * m.length():
+			dir = Vector2i(1 if m.x > 0.0 else -1, 0)
+		elif absf(m.y) >= EMPUJE_CARDINAL * m.length():
+			dir = Vector2i(0, 1 if m.y > 0.0 else -1)
+	# Acoplada a un bloque en marcha: lo manda él.
+	if _acoplada:
+		var b: Node = _bloque_empuje
+		if b == null or not is_instance_valid(b) or not libre_de_accion or not bool(b.get("moviendo")) or not bool(b.get("acoplado")):
+			_acoplada = false
+		else:
+			var bp: Vector3 = (b as Node3D).global_position
+			if _dir_empuje.x != 0:
+				position.x = bp.x - float(_dir_empuje.x) * _dist_empuje
+				position.z = _lat_empuje
+			else:
+				position.z = bp.z - float(_dir_empuje.y) * _dist_empuje
+				position.x = _lat_empuje
+			if dir == _dir_empuje:
+				b.call("sostener", dir)
+			empujando = true
+			_vel_clip_empuje = clampf(float(b.get("vel")) / ZANCADA_EMPUJAR, VEL_CLIP_CARGA, 2.5)
+			_vel_hielo = Vector3.ZERO
+			return true
+	var bloque: Node = null
+	if dir != Vector2i.ZERO:
+		var yo: Vector2i = Terreno3D.celda_de(position)
+		var vecina: Vector2i = yo + dir
+		for n in get_tree().get_nodes_in_group("empujable"):
+			if is_instance_valid(n) and n.get("celda") == vecina:
+				bloque = n
+				break
+		if bloque != null:
+			var centro: Vector3 = Terreno3D.centro_de(yo)
+			var adelantada: float = (position.x - centro.x) * float(dir.x) + (position.z - centro.z) * float(dir.y)
+			if adelantada < EMPUJE_PEGADA * Terreno3D.casilla:
+				bloque = null                    # aún no está pegada a él
+	if bloque != null:
+		empujando = true
+		_vel_clip_empuje = VEL_CLIP_CARGA
+		if bloque != _bloque_empuje or dir != _dir_empuje:
+			_bloque_empuje = bloque
+			_dir_empuje = dir
+			_t_empuje = 0.0
+		if bool(bloque.get("moviendo")):
+			_t_empuje = 0.0                      # ya se mueve (el viento, o resbala): hasta que pare no se cuenta
+		else:
+			_t_empuje += delta
+			if _t_empuje >= T_EMPUJAR:
+				_t_empuje = 0.0
+				if bool(bloque.call("empujar", dir, true)):          # si no puede moverse devuelve false y ella se queda empujando (atascado)
+					var bp2: Vector3 = (bloque as Node3D).global_position
+					_dist_empuje = (bp2.x - position.x) * float(dir.x) + (bp2.z - position.z) * float(dir.y)
+					_lat_empuje = position.z if dir.x != 0 else position.x
+					_acoplada = true
+		return false
+	empujando = false
+	_t_empuje = 0.0
+	_bloque_empuje = null
+	_dir_empuje = Vector2i.ZERO
+	return false
 
 
 ## Un paso cada `DIST_PASO_*` unidades recorridas (no cada X segundos: así el ritmo sigue a la velocidad real, también si choca contra
@@ -543,10 +668,15 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 ## que para la poción llama a `usar_pocion()` de más abajo.)
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
-	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if ctrl and not _roll_previa and _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
 			and not ocupado and not nadando and en_suelo:
 		_iniciar_voltereta(mov)
+	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
+	var tecla_golpe: bool = libre and Input.is_key_pressed(KEY_F)
+	if tecla_golpe and not _pegar_previa:
+		_iniciar_golpe_cuerpo()                  # (comprueba `puede_golpear_cuerpo`)
+	_pegar_previa = tecla_golpe
 	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
 	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio. Alt+F11: un goblin asesino.
 	# No F8: es el atajo del editor de Godot para DETENER el juego y la ventana se cerraba antes de llegar aquí.
@@ -592,7 +722,7 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 
 ## Beber una poción (la usa `Consumibles` cuando Q tiene la poción equipada). Devuelve si empezó a beber.
 func usar_pocion() -> bool:
-	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
 			and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
 		_iniciar_beber()
@@ -611,7 +741,7 @@ func _iniciar_beber() -> void:
 ## Devuelve lo que dura (s) con esa velocidad, o 0 si no se pudo (muerto, nadando, en el aire, rodando, bebiendo, lanzando, con la animación llevada desde fuera o sin ese clip):
 ## entonces no pasa nada y quien llama sigue como si el gesto no existiera.
 func gesto(rol: String, vel: float = 1.0) -> float:
-	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_beber > 0.0 or _t_roll > 0.0 or _t_gesto > 0.0 or (lanz != null and lanz.modo_lanzar)
+	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_beber > 0.0 or _t_roll > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	var clip_dur: float = pj.duracion(rol)
 	if ocupado or muerto or nadando or not en_suelo or animacion_externa or clip_dur <= 0.0 or vel <= 0.0:
 		return 0.0
@@ -747,8 +877,14 @@ var animacion_externa: bool = false
 func _animar(mov: Vector3, correr: bool) -> void:
 	if animacion_externa:
 		return
-	if _t_roll > 0.0 or _t_beber > 0.0 or _t_gesto > 0.0:
+	if _t_roll > 0.0 or _t_beber > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0:
 		return                                         # el clip de voltereta / beber / gesto ya está sonando
+	if apuntando_rapido and _t_lanzar <= 0.0 and _t_golpe <= 0.0 and lanz != null and lanz.modo_lanzar and not nadando and en_suelo:
+		# A1: apuntando con 1/2/3 pulsada. Quieta: la pose de apuntar (libro en las manos); andando: el clip de andar (la mirada ya la lleva el Lanzador hacia el ratón). `jugar` no reinicia el clip que ya suena.
+		# Andando el clip sigue el ritmo del mundo (a `TIEMPO_PAGINA` los pies no patinan); quieta la pose va a velocidad normal, como en `apuntar_lanzar`.
+		pj.set_velocidad_animacion(1.0 if mov != Vector3.ZERO else 1.0 / maxf(Engine.time_scale, 0.1))
+		pj.jugar("walk" if mov != Vector3.ZERO else "leer")
+		return
 	if _t_lanzar > 0.0 or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar):
 		return
 	if nadando:
@@ -764,6 +900,7 @@ func _animar(mov: Vector3, correr: bool) -> void:
 		pj.jugar("idle")
 	elif empujando and pj.duracion("empujar") > 0.0:
 		pj.jugar("empujar")                            # empujando algo: el clip de empujar andando (bucle, sin avance)
+		pj.set_velocidad_animacion(_vel_clip_empuje)    # 28/10: lento mientras carga, proporcional a lo que avanza el bloque después (sin patinar)
 	else:
 		pj.jugar("run" if correr else "walk")
 
@@ -814,6 +951,52 @@ func _actualizar_hud() -> void:
 		extra = " · en el aire"
 	elif nivel_actual() > 0:
 		extra = " · nivel %d" % nivel_actual()
-	_hud_texto.text = "Vida %d/%d · oro %d%s\nT libro · 1/2/3 lanzar página · Q usar consumible · R cambiar · I menú · Espacio saltar · F12 medición" % [
+	_hud_texto.text = "Vida %d/%d · oro %d%s\nT libro · mantén 1/2/3 para apuntar, suelta para lanzar · F golpe · Q usar consumible · R cambiar · I menú · Espacio saltar · F12 medición" % [
 		int(vida), int(Estado.i().vida_max), Estado.i().oro, extra]
 
+
+
+## =====================================================================================================
+##  28/10 · C1 · Golpe cuerpo a cuerpo (F)
+## =====================================================================================================
+
+## ¿Puede dar un golpe ahora mismo? En suelo, sin nadar, rodar, beber, lanzar, apuntar (A1), gesto ni empujar un bloque, y con la reutilización (`GolpeCuerpo.CD`) cumplida.
+func puede_golpear_cuerpo() -> bool:
+	return not muerto and not nadando and en_suelo and not animacion_externa and _t_pegar <= 0.0 and _pegar_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
+		and _t_gesto <= 0.0 and _t_golpe <= 0.0 and not _lanzando and not apuntando_rapido and not empujando and not _acoplada \
+		and not (lanz != null and lanz.modo_lanzar) and mundo != null and mundo.get("_velo") == null
+
+
+## ¿Está dando un golpe cuerpo a cuerpo ahora mismo?
+func golpeando() -> bool:
+	return _t_pegar > 0.0
+
+
+## Empieza el golpe: se queda quieta hacia donde mira, suena el clip y a los `retardo` s sale el impacto (`_impactar_golpe`). No cuesta tinta. Devuelve false si no puede.
+func _iniciar_golpe_cuerpo() -> bool:
+	if not puede_golpear_cuerpo():
+		return false
+	_t_pegar = GolpeCuerpo.DUR
+	_pegar_cd = GolpeCuerpo.CD
+	_pegar_hecho = false
+	_pegar_retardo = Pj3D.golpe_retardo(GolpeCuerpo.DUR)
+	_pegar_dir = Vector3(_mirada.x, 0.0, _mirada.z)
+	if _pegar_dir.length() < 0.01:
+		_pegar_dir = Vector3(0, 0, 1)
+	_pegar_dir = _pegar_dir.normalized()
+	_vel_hielo = Vector3.ZERO
+	pj.mirar(_pegar_dir, 1.0)
+	pj.animacion_actual = ""
+	var con_clip: bool = pj.golpear_cuerpo(GolpeCuerpo.DUR)
+	PlayLog.event("golpe_inicio", {"dir": [snappedf(_pegar_dir.x, 0.01), snappedf(_pegar_dir.z, 0.01)], "clip": con_clip, "retardo": snappedf(_pegar_retardo, 0.01)})
+	return true
+
+
+## El instante del impacto: aplica el golpe a lo que haya en el cono (`GolpeCuerpo.impactar`) y lo apunta en el diario.
+func _impactar_golpe() -> void:
+	_pegar_hecho = true
+	var r: Dictionary = GolpeCuerpo.impactar(self, _pegar_dir)
+	ultimo_golpe_cuerpo = r
+	PlayLog.event("golpe", {"enemigos": r["enemigos"], "escudos": r["escudos"], "rompibles": r["rompibles"], "bloques": r["bloques"], "movidos": r["movidos"],
+		"celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
+	golpe_cuerpo_dado.emit(r)

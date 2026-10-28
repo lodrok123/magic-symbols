@@ -19,6 +19,8 @@ const ANCHO_FRASCOS_PX: float = 96.0
 const LADO_CIRCULO_PX: float = 120.0
 const MARGEN_CIRCULO_PX: float = 14.0
 const T_AVISO_TINTA_S: float = 0.35
+const T_FLOTA_S: float = 1.3                    ## s que dura el «+20» flotando junto a la barra de tinta
+const T_SUBE_PX: float = 16.0                  ## px que sube mientras se desvanece
 const COLOR_VIDA_ALTA: Color = Color(0.35, 0.85, 0.4)
 const COLOR_VIDA_MEDIA: Color = Color(1.0, 0.8, 0.25)
 const COLOR_VIDA_BAJA: Color = Color(1.0, 0.3, 0.25)
@@ -73,6 +75,7 @@ func _ready() -> void:
 	if t != null:
 		t.frasco_gastado.connect(_al_gastar_frasco)
 		t.insuficiente.connect(func(_f: String, _c: float, _h: float) -> void: _t_aviso = T_AVISO_TINTA_S)
+		t.reaccion_premiada.connect(_al_premiar_reaccion)
 	consumibles.al_cambiar_mochila()          # equipa el primero que haya (con la mochila como esté al montar)
 	actualizar()
 
@@ -121,6 +124,28 @@ func actualizar() -> void:
 		texto += " · %s %d s" % [t.nombre_pigmento(), int(ceil(t.tiempo_pigmento()))]
 	_tinta.poner_rotulo(texto)
 	_frascos.poner(t.frascos, Tinta.FRASCOS_MAX, t.color())
+
+
+## C2 (28/10): «¡Hundido! +20» junto a la barra de tinta: sube unos píxeles y se desvanece (sutil, ~1,3 s) con un tintineo suave.
+func _al_premiar_reaccion(tipo: String, cantidad: float) -> void:
+	if _tinta == null or not is_instance_valid(_tinta):
+		return
+	var l := Label.new()
+	l.text = "%s +%d" % [String(Tinta.REACCIONES_PREMIADAS.get(tipo, tipo)), int(round(cantidad))]
+	l.add_theme_font_size_override("font_size", 13)
+	l.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	l.add_theme_color_override("font_outline_color", Color.BLACK)
+	l.add_theme_constant_override("outline_size", 4)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.position = _tinta.position + Vector2(_tinta.size.x + 8.0, -6.0)
+	_tinta.get_parent().add_child(l)
+	var tw: Tween = l.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(l, "position:y", l.position.y - T_SUBE_PX, T_FLOTA_S)
+	tw.tween_property(l, "modulate:a", 0.0, T_FLOTA_S).set_delay(T_FLOTA_S * 0.4)
+	tw.chain().tween_callback(l.queue_free)
+	if jugador is Node3D:
+		Sfx.play(jugador as Node3D, "logro_pista")
 
 
 func _al_gastar_frasco() -> void:

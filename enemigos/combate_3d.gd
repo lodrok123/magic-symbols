@@ -202,6 +202,10 @@ var se_hundio: bool = false              ## murió ahogado (cae al agua), no por
 var _punto_hundido: Vector3 = Vector3.ZERO   ## dónde se hundió (en la superficie), para el aviso y la animación
 var duracion_hundimiento: float = 0.0    ## s que dura el hundimiento real (el clip de ahogarse o TIEMPO_HUNDIMIENTO); 0 = aún no se ha hundido. Burbujas y sonido la copian
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
+## C1 (28/10): false = el golpe cuerpo a cuerpo de la jugadora (`GolpeCuerpo`) le hace daño pero NO lo mueve (por masa). TODO: el gólem de piedra, cuando exista como enemigo, lo pone a false
+## (hoy solo hay modelo y animaciones: jugador/animaciones_golem.gd); ningún enemigo actual lo usa.
+var empujable_golpe: bool = true
+var premia_tinta: bool = true           ## C2 (28/10): false = muñeco o diana que no da tinta por reacción (`Tinta.premiar_reaccion`)
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 var fijo: bool = false                  ## 24/10 (paso batido del Bosque 01 v01): arquero DE PUESTO. No persigue, no retrocede ni patrulla: dispara desde su sitio a quien entre en ARQUERO_FIJO_ALCANCE con línea libre, apuntando con adelanto (la flecha tarda ~1,5 s: sin él solo acierta al que está parado)
 var _pos_jug_prev: Vector3 = Vector3.ZERO
@@ -380,19 +384,134 @@ func escudo_cubre(direccion: Vector3) -> bool:
 	return escudo != null and is_instance_valid(escudo) and escudo.esta_activo() and escudo.es_de_frente(direccion)
 
 
+## 28/10 · C1 (golpe cuerpo a cuerpo de la jugadora, `GolpeCuerpo`): daño plano `dano` (sin debilidades ni elementos) y un empujón FUERTE `fuerza` en `dir` por el `push` de siempre, así que si acaba en agua
+## honda se hunde y da tinta por C2. Interrumpe el ataque que tuviera en curso. Con un escudo ACTIVO de frente (entero o ardiendo; `Escudo3D.esta_activo` ya excluye el quemado o roto) el golpe se para en él:
+## sin daño y con `factor_escudo` del empuje; con el escudo quemado o roto, lo tumba como a cualquiera. Un enemigo con `empujable_golpe` false (el gólem, cuando exista como enemigo) recibe el daño pero NO se mueve.
+## Devuelve {escudo: bool, dano: float, v0: float}.
+func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escudo: float = 0.5) -> Dictionary:
+	var r: Dictionary = {"escudo": false, "dano": 0.0, "v0": 0.0}
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if muerto or d.length() < 0.01:
+		return r
+	d = d.normalized()
+	var parado: bool = escudo != null and is_instance_valid(escudo) and escudo.esta_activo() and escudo.es_de_frente(d)
+	if parado:
+		r["escudo"] = true
+		escudo.bloqueos += 1
+		escudo.bloqueado.emit(global_position + Vector3(0.0, altura * 0.5, 0.0))
+		texto("Bloqueado", Color(0.75, 0.8, 0.9), 0.28)
+	# Se interrumpe aunque no llegue a volar: el golpe le corta el ataque y la carga (como un hechizo con daño).
+	_cancelar_ataque()
+	_carga = 0.0
+	interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
+	if empujable_golpe:
+		var f: float = fuerza * (factor_escudo if parado else 1.0)
+		r["v0"] = v0_de_empuje(f, true)
+		push(d, f, true)
+	if not parado and dano > 0.0:
+		r["dano"] = dano
+		receive_damage(dano)
+		if not muerto:
+			_iniciar_hitstop(HITSTOP)
+	_destello = maxf(_destello, DESTELLO_GOLPE)
+	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
+		objetivo = jugador                                  # un golpe te hace mirar a quien viene
+	PlayLog.event("golpe_cuerpo_recibido", {"nombre": nombre, "dano": snappedf(float(r["dano"]), 0.1), "vida": snappedf(health, 0.1), "escudo": parado,
+		"v0": snappedf(float(r["v0"]), 0.1)})
+	return r
+
+
 ## `suelo` = es un golpe con daño: no recorre menos de EMPUJE_MIN_CASILLAS casillas (v0 mínima = casillas × tamaño × DECAIMIENTO, porque el
 ## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El elemental recibe MULT_EMPUJE_ELEMENTAL también en el suelo (si no, pegaría igual que un goblin).
 func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() < 0.01 or muerto:
 		return
+	var v0: float = v0_de_empuje(fuerza, suelo)
+	_empuje += d.normalized() * v0
+	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
+	_empezar_empujado(d, v0)
+
+
+## 28/10 · A2: la velocidad inicial (u/s) de un empujón de `fuerza`; `suelo` = es un golpe con daño (no recorre menos de EMPUJE_MIN_CASILLAS). Lo usan `push` y la previsión.
+func v0_de_empuje(fuerza: float, suelo: bool = false) -> float:
 	var peso: float = MULT_EMPUJE_ELEMENTAL if elemental else 1.0
 	var v0: float = fuerza * MULT_EMPUJE * ESCALA_EMPUJE * peso
 	if suelo:
 		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE * peso)
-	_empuje += d.normalized() * v0
-	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
-	_empezar_empujado(d, v0)
+	return v0
+
+
+## 28/10 · A2: adónde llegaría este enemigo con los empujones `empujes` (Vector3 = dirección × v0, los que sumaría `push` a `_empuje`), SIN moverlo. Repite el bucle de `_ia`
+## (`_mover_paso` con `empujado = true`, y el lerp de DECAIMIENTO_EMPUJE) con la misma `_puede_estar` (que mira desde la posición simulada), a pasos de `dt`. Si el cuerpo entra en
+## agua honda, `_ajustar_al_suelo` lo hundiría en ese mismo fotograma: ahí se para y `hundira` es true. Devuelve {destino: Vector3, recorrido: float (u), hundira: bool, celda_agua}.
+func prever_empuje(empujes: Array, dt: float = 1.0 / 60.0) -> Dictionary:
+	var e := Vector3.ZERO
+	for v in empujes:
+		e += v as Vector3
+	var pos: Vector3 = position
+	var res: Dictionary = {"destino": pos, "recorrido": 0.0, "hundira": false, "celda_agua": Vector2i(-9999, -9999)}
+	var c_ini: Vector2i = Terreno3D.celda_de(pos)
+	var recorrido: float = 0.0
+	var n: int = 0
+	while e.length() > 0.1 and n < 600:
+		n += 1
+		var paso: Vector3 = e * dt
+		for v in [paso, Vector3(paso.x, 0.0, 0.0), Vector3(0.0, 0.0, paso.z)]:
+			var vv: Vector3 = v
+			if vv.length() < 0.0001:
+				continue
+			var destino: Vector3 = pos + vv
+			if _puede_estar_desde(pos, destino, true, false):
+				pos.x = destino.x
+				pos.z = destino.z
+				recorrido += Vector2(vv.x, vv.z).length()
+				break
+		var c: Vector2i = Terreno3D.celda_de(pos)
+		if c != c_ini and Terreno3D.es_agua(c) and _es_agua_honda(c):
+			res["hundira"] = true                      # `_ajustar_al_suelo` lo hunde en el mismo fotograma en que pisa el agua honda
+			res["celda_agua"] = c
+			break
+		e = e.lerp(Vector3.ZERO, clampf(DECAIMIENTO_EMPUJE * dt, 0.0, 1.0))
+	res["destino"] = pos
+	res["recorrido"] = recorrido
+	return res
+
+
+## 28/10 · A2: qué le pasaría a este enemigo si este hechizo le diera AHORA (misma regla que `on_spell_hit` → `golpe`), sin aplicar nada. `dir` = hacia dónde viaja el golpe;
+## `empuje_previo` = empuje que `Lanzador3D._golpear` aplica ANTES del golpe (viento, atracción): {dir, fuerza} o {}. Devuelve:
+##   cubierto   el escudo de frente lo para: entonces `escudo` lleva su reacción (`Escudo3D.reaccion_a`) y el goblin no recibe nada de lo demás (salvo el empuje previo, que no pasa por el escudo)
+##   + todo lo de `decidir_golpe` (mult, dano, mojado/quemando/congelado nuevos, avisos…)
+##   empujes    [{v0, dir}] los empujones que recibiría (el previo y el del golpe);  empuje  el resultado de `prever_empuje` con todos juntos ({} si no hay)
+##   cae_al_agua  true si el empuje lo mete en agua honda
+func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}) -> Dictionary:
+	var r: Dictionary = {"cubierto": false, "escudo": "", "muerto": muerto, "curado": false, "mult": 1.0, "dano": 0.0, "avisos": [], "empujes": [], "empuje": {}, "cae_al_agua": false,
+		"aturde": false, "vapor": false, "arco": false}
+	if muerto or hechizo == null:
+		return r
+	var empujes: Array = []
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if not empuje_previo.is_empty():
+		var dp: Vector3 = empuje_previo["dir"]
+		var vp: float = v0_de_empuje(float(empuje_previo["fuerza"]), false)
+		empujes.append({"v0": vp, "dir": dp.normalized()})
+	if escudo != null and is_instance_valid(escudo) and escudo.cubre(dir, hechizo):
+		r["cubierto"] = true
+		r["escudo"] = escudo.reaccion_a(hechizo)
+	else:
+		var dec: Dictionary = decidir_golpe(hechizo)
+		for k in dec:
+			r[k] = dec[k]
+		if not bool(dec["curado"]) and d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:
+			empujes.append({"v0": v0_de_empuje(hechizo.fuerza_golpe, float(dec["dano"]) > 0.0), "dir": d.normalized()})
+	r["empujes"] = empujes
+	if not empujes.is_empty():
+		var vs: Array = []
+		for em in empujes:
+			vs.append((em["dir"] as Vector3) * float(em["v0"]))
+		r["empuje"] = prever_empuje(vs)
+		r["cae_al_agua"] = bool((r["empuje"] as Dictionary)["hundira"])
+	return r
 
 
 ## ¿Está volando o levantándose tras un empujón? (no anda ni ataca; el escudo va con el cuerpo)
@@ -459,63 +578,95 @@ func vel_mult() -> float:
 	return m
 
 
+## 28/10 · A2 (previsión): la DECISIÓN del golpe, sin aplicar nada (ni estado, ni señales, ni texto). Es la única fuente de verdad: `golpe` aplica lo que devuelve esto y
+## `prever_golpe` (la previsión del indicador) lo enseña. Devuelve:
+##   curado     true = elemental con agua: lo cura y lo agranda (`_agua_elemental`), no recibe nada más
+##   mult       debilidad ×2 / resistencia ×0,5 / 1        base  daño antes del multiplicador (el rayo sobre mojado ×1,5, el hielo sobre mojado +15)      dano  base × mult
+##   mojado, quemando, congelado   cómo quedan esos contadores    lento   -1 = no cambia      interrumpe   -1 = no cambia (el viento la fija; el elemental no)
+##   vapor      fuego sobre mojado       arco   el rayo sobre mojado salta al más cercano
+##   avisos     las reacciones de `Mundo3D.REACCIONES` que saltarían, EN ORDEN (electrocutado, prendido, apagado_agua, secado, mojado, congelado)
+##   aturde     true si el golpe lo aturde (no al elemental)        veneno  true si le deja veneno
+func decidir_golpe(hechizo: Hechizo) -> Dictionary:
+	var el: String = hechizo.elemento
+	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "dano": 0.0,
+		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
+		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental}
+	if elemental and el == "agua":
+		r["curado"] = true
+		return r
+	match el:
+		"fuego":
+			if mojado > 0.0:
+				r["mojado"] = 0.0
+				r["vapor"] = true
+			else:
+				r["quemando"] = maxf(hechizo.quema, ELEMENTAL_QUEMA) if elemental else hechizo.quema       # el elemental queda ardiendo un poco más: «ignite»
+		"agua":
+			r["mojado"] = hechizo.moja
+			r["quemando"] = 0.0
+		"rayo":
+			if mojado > 0.0:
+				r["base"] = float(r["base"]) * 1.5
+				r["arco"] = true
+		"hielo":
+			r["congelado"] = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
+			if mojado > 0.0:
+				r["base"] = float(r["base"]) + 15.0
+			r["quemando"] = 0.0
+		"viento":
+			if not elemental:                 # pesa demasiado: el viento no le corta el ataque
+				r["interrumpe"] = hechizo.interrumpe
+		"tierra":
+			r["lento"] = hechizo.ralentiza
+	var avisos: Array = r["avisos"]
+	if el == "rayo":
+		avisos.append("electrocutado")                # cada descarga que le llega es una reacción (no hay estado que dure)
+	var ardia: bool = quemando > 0.0
+	if float(r["quemando"]) > 0.0 and not ardia:
+		avisos.append("prendido")
+	elif ardia and float(r["quemando"]) <= 0.0:
+		avisos.append("apagado_agua")                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
+	var estaba_mojado: bool = mojado > 0.0
+	if estaba_mojado and float(r["mojado"]) <= 0.0:
+		avisos.append("secado")                       # el fuego sobre mojado = vapor: lo seca
+	elif not estaba_mojado and float(r["mojado"]) > 0.0:
+		avisos.append("mojado")
+	if float(r["congelado"]) > 0.0 and not (congelado > 0.0):
+		avisos.append("congelado")
+	r["dano"] = float(r["base"]) * float(r["mult"])
+	return r
+
+
 ## HC3 (18/10): el golpe lee del `Hechizo` (daño, fuerza, quema, moja, congela, aturde, ralentiza, interrumpe), ya no de tablas escritas aquí. Lo que SE QUEDA aquí son las reglas
 ## de interacción que dependen del estado del ENEMIGO (vapor si está mojado y recibe fuego, el rayo ×1,5 y el arco si está mojado, el hielo más largo si está mojado,
-## el elemental curado por el agua y que arde más): son del que recibe, no del hechizo.
+## el elemental curado por el agua y que arde más): son del que recibe, no del hechizo. A2: esas reglas viven en `decidir_golpe`; esto las APLICA.
 func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if muerto or hechizo == null:
 		return
 	var el: String = hechizo.elemento
-	if elemental and el == "agua":
+	var dec: Dictionary = decidir_golpe(hechizo)
+	if bool(dec["curado"]):
 		_agua_elemental()                # lo cura y lo agranda UNA vez; ni mojado ni barrera de agua que lo proteja
 		return
-	var base: float = hechizo.dano
-	var mult: float = multiplicador(el)
-	# A4: foto de los estados ANTES del golpe; al terminar el `match` se comparan y se avisa de cada cambio real (una vez por golpe, nunca por fotograma).
-	var ardia: bool = quemando > 0.0
-	var estaba_mojado: bool = mojado > 0.0
-	var estaba_congelado: bool = congelado > 0.0
+	var base: float = float(dec["base"])
+	var mult: float = float(dec["mult"])
 
-	match el:
-		"fuego":
-			if mojado > 0.0:
-				mojado = 0.0
-				texto("¡Vapor!", Color(0.85, 0.9, 1.0))
-			else:
-				quemando = maxf(hechizo.quema, ELEMENTAL_QUEMA) if elemental else hechizo.quema       # el elemental queda ardiendo un poco más: «ignite»
-		"agua":
-			mojado = hechizo.moja
-			quemando = 0.0
-		"rayo":
-			if mojado > 0.0:
-				base *= 1.5
-				_arco_cercano(base * 0.5)
-		"hielo":
-			congelado = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
-			if mojado > 0.0:
-				base += 15.0
-			quemando = 0.0
-		"viento":
-			if not elemental:                 # pesa demasiado: el viento no le corta el ataque
-				interrupcion = hechizo.interrumpe
-				_carga = 0.0
-		"tierra":
-			lento = hechizo.ralentiza
+	mojado = float(dec["mojado"])
+	quemando = float(dec["quemando"])
+	congelado = float(dec["congelado"])
+	if float(dec["lento"]) >= 0.0:
+		lento = float(dec["lento"])
+	if float(dec["interrumpe"]) >= 0.0:
+		interrupcion = float(dec["interrumpe"])
+		_carga = 0.0
+	if bool(dec["vapor"]):
+		texto("¡Vapor!", Color(0.85, 0.9, 1.0))
+	if bool(dec["arco"]):
+		_arco_cercano(base * 0.5)
+	for aviso in dec["avisos"]:
+		_reaccionar(String(aviso))       # A4: una vez por golpe, nunca por fotograma
 
-	if el == "rayo":
-		_reaccionar("electrocutado")                # cada descarga que le llega es una reacción (no hay estado que dure)
-	if quemando > 0.0 and not ardia:
-		_reaccionar("prendido")
-	elif ardia and quemando <= 0.0:
-		_reaccionar("apagado_agua")                 # solo el agua y el hielo (quemando = 0 en el match) lo apagan; el viento no
-	if estaba_mojado and mojado <= 0.0:
-		_reaccionar("secado")                       # el fuego sobre mojado = vapor: lo seca
-	elif not estaba_mojado and mojado > 0.0:
-		_reaccionar("mojado")
-	if congelado > 0.0 and not estaba_congelado:
-		_reaccionar("congelado")
-
-	var dano: float = base * mult
+	var dano: float = float(dec["dano"])
 	if elemental and el == "fuego" and _potenciado:
 		_encoger()                             # el fuego le quita lo que le dio el agua
 	if mult > 1.0:
@@ -523,7 +674,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	elif mult < 1.0 and base > 0.0:
 		texto("Resiste", Color(0.7, 0.7, 0.7), 0.28)
 
-	if hechizo.veneno > 0.0 and not elemental:           # el veneno no hace nada a un elemental (no tiene carne); se queda el más largo / fuerte
+	if bool(dec["veneno"]):           # el veneno no hace nada a un elemental (no tiene carne); se queda el más largo / fuerte
 		if envenenado <= 0.0:
 			texto("Veneno", Color(0.55, 0.9, 0.35), 0.28)
 		envenenado = maxf(envenenado, hechizo.veneno)
@@ -531,7 +682,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:      # el empuje del viento (y la atracción) lo da Lanzador3D por push(): su fuerza_golpe es 0
 		push(d, hechizo.fuerza_golpe, dano > 0.0)
-	if hechizo.aturde > 0.0 and not elemental:
+	if bool(dec["aturde"]):
 		_aturdir(hechizo.aturde)
 	if dano > 0.0:
 		receive_damage(dano)
@@ -1284,25 +1435,30 @@ func _mover_paso(paso: Vector3, empujado: bool = false, por_ruta: bool = false) 
 
 
 func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
+	return _puede_estar_desde(position, p, empujado, por_ruta)
+
+
+## 28/10 · A2: `_puede_estar` mirando desde una posición cualquiera `desde` (la del cuerpo, o la simulada de `prever_empuje`): una sola regla para el paso real y la previsión.
+func _puede_estar_desde(desde: Vector3, p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
 	var c: Vector2i = Terreno3D.celda_de(p)
 	# A3: un cuerpo EMPUJADO entra en el agua honda no helada (no hay suelo que lo frene: por eso se hunde en `_ajustar_al_suelo`). Con sus piernas, nunca:
 	# por eso esta salida va antes de las comprobaciones de suelo y solo existe con `empujado`. Misma regla de agua que el jugador usa para nadar (`_es_agua_honda`).
-	if empujado and c != Terreno3D.celda_de(position) and _es_agua_honda(c):
+	if empujado and c != Terreno3D.celda_de(desde) and _es_agua_honda(c):
 		return true
-	if elemental and not _cabe_con_cuerpo(p):
+	if elemental and not _cabe_con_cuerpo(p, desde):
 		return false
 	# 20/10 (Pablo: colisiones cercanas al modelo y no a la cuadrícula): como el jugador, en una casilla bloqueada cuya forma real se conoce («parcial»: un barril,
 	# una roca, un arbusto) solo choca contra esa forma, no contra la casilla entera. Sin forma conocida (agua, muro, telaraña…) sigue siendo la casilla.
 	var parcial: bool = Terreno3D.es_parcial(c)
-	if c == Terreno3D.celda_de(position):
-		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, position):
+	if c == Terreno3D.celda_de(desde):
+		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, desde):
 			return false
 		return Terreno3D.en_mapa(c)
 	if parcial and Terreno3D.choca_huella(c, p):
 		return false
 	# Se mueve por SU nivel (el de la casilla donde está): a nivel 0 es lo de siempre; en una terraza (Terra Fina) recorre la
 	# terraza y puede bajar, pero no sube: pisable con `sube = false` y tope = su nivel.
-	var nivel: int = Terreno3D.altura_en(Terreno3D.celda_de(position))
+	var nivel: int = Terreno3D.altura_en(Terreno3D.celda_de(desde))
 	# D2: siguiendo la ruta, una casilla de la ruta que está a ±1 nivel SÍ se pisa (misma regla de arista que usó el A*). La altura de los pies la pone
 	# `_ajustar_al_suelo` (sube de golpe con el bloque; baja a 6 u/s), por eso aquí no se exige el `y_pies` de abajo.
 	if por_ruta and not elemental and _ruta.has(c):
@@ -1312,7 +1468,7 @@ func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) ->
 	if not Terreno3D.pisable(c, nivel, false, nivel, false, parcial):
 		return false
 	# Un escalón (del puente al suelo) se sube; un bloque no.
-	return absf(Terreno3D.y_pies(c) - position.y) <= 0.6
+	return absf(Terreno3D.y_pies(c) - desde.y) <= 0.6
 
 
 ## 9.13: el elemental mide 2,5 u de alto y su cuerpo (cápsula) tiene un radio de ~1 u, casi media casilla (la casilla mide 2,3).
@@ -1322,11 +1478,13 @@ func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) ->
 ## metido (un nivel que lo coloca pegado a una pared), se le deja salir: solo se rechaza ENTRAR en una casilla bloqueada.
 ## Solo el elemental: los goblins miden 0,32 de radio y no tenían el problema. Efecto de diseño: con 2,06 u de cuerpo, un hueco
 ## de una casilla (2,3) como la puerta de la sala solo lo cruza si va centrado; en la práctica se queda en su sala.
-func _cabe_con_cuerpo(p: Vector3) -> bool:
+func _cabe_con_cuerpo(p: Vector3, desde: Vector3 = Vector3.INF) -> bool:
+	if desde == Vector3.INF:
+		desde = position
 	var r: float = 0.7 * altura / ELEM_ALTO_REF
 	for o in [Vector3(r, 0.0, 0.0), Vector3(-r, 0.0, 0.0), Vector3(0.0, 0.0, r), Vector3(0.0, 0.0, -r)]:
 		var nueva: Vector2i = Terreno3D.celda_de(p + o)
-		if nueva == Terreno3D.celda_de(position + o):
+		if nueva == Terreno3D.celda_de(desde + o):
 			continue                                   # no cambia de casilla por ese lado: nada que comprobar
 		if not Terreno3D.pisable(nueva, 0, false, 0, false):
 			return false

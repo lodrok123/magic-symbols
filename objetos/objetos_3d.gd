@@ -454,38 +454,60 @@ func punto_activacion() -> Vector3:
 				return to_global(av.get_center())
 	return to_global(Vector3(0.0, _alto_cuerpo() * 0.5, 0.0))
 
-func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
+## 28/10 · A2 (previsión): QUÉ le haría este hechizo a esta pieza AHORA, sin tocarla: «prende», «apaga» (el agua o el frío a lo que arde, o a un fuego de mapa encendido), «moja» (el agua a la
+## leña mojable), «aviva» (el viento lleva la llama de lo que arde), «enciende» (calor a un brasero o fogata apagados), «activa» (un tótem con su elemento), «brota» (el agua a un surtidor) o
+## «» (nada: o no le toca, o no puede, como prender lo que ya está mojado o ardiendo). `on_spell_hit` APLICA lo que dice esto; la previsión del indicador lo enseña.
+func reaccion_a(rune_data: RuneData) -> String:
 	if rune_data == null:
-		return
+		return ""
 	var calor: bool = rune_data.tags.has("calor")
 	var rayo: bool = rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
 	var humedo: bool = rune_data.tags.has("agua") or rune_data.tags.has("frio")
 	if tiene_papel(P_INFLAMABLE):
 		if calor or rayo:
+			return "prende" if can_burn() else ""
+		if humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
+			return "apaga"
+		if tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+			return "moja"
+		if rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
+			return "aviva"
+		return ""
+	if tiene_papel(P_FUENTE_FUEGO):
+		if calor and not is_lit:
+			return "enciende"
+		if humedo and is_lit and tiene_papel(P_APAGA):
+			return "apaga"
+		return ""
+	if tiene_papel(P_ACTIVABLE):
+		return "activa" if (not activo and _le_toca(rune_data)) else ""
+	if tiene_papel(P_RECIBE_AGUA):
+		return "brota" if rune_data.tags.has("agua") else ""
+	return ""
+
+
+func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
+	match reaccion_a(rune_data):
+		"prende":
 			ignite(Lanzador3D.ultimo_impacto)
-		elif humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
-			_apagar()
-		elif tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+		"apaga":
+			if tiene_papel(P_INFLAMABLE):
+				_apagar()
+			else:
+				_apagar_fuente()
+		"moja":
 			if _mojado_s <= 0.0:
 				_reaccionar("mojado")                  # solo si estaba seco: regar lo ya mojado solo alarga el tiempo, no es un cambio
 			_mojado_s = T_MOJADO
 			PiezaFuego3D.mojado(visual, true)       # capa húmeda del Pipeline (diario 109); se quita al secarse, en `_process`
 			set_process(true)
-		elif rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
+		"aviva":
 			_contagiar(CONTAGIO_VIENTO, direccion)
-		return
-	if tiene_papel(P_FUENTE_FUEGO):
-		if calor and not is_lit:
+		"enciende":
 			_encender(true)
-		elif humedo and is_lit and tiene_papel(P_APAGA):
-			_apagar_fuente()
-		return
-	if tiene_papel(P_ACTIVABLE):
-		if not activo and _le_toca(rune_data):
+		"activa":
 			_activar_totem()
-		return
-	if tiene_papel(P_RECIBE_AGUA):
-		if rune_data.tags.has("agua"):
+		"brota":
 			brotar()
 
 

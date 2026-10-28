@@ -121,7 +121,15 @@ func _construir() -> void:
 
 	_resumen = _etiqueta("")
 	_cuerpo.add_child(_resumen)
-	_cuerpo.add_child(_etiqueta("Lanza con 1 / 2 / 3"))
+	# A1 (27/10): el lanzamiento inteligente (pulsar 1/2/3 lanza al instante hacia el ratón, sin indicador). Apagado: mantener enseña el indicador y soltar lanza.
+	var inteligente := CheckBox.new()
+	inteligente.text = "Lanzamiento inteligente (pulsar = lanzar)"
+	inteligente.focus_mode = Control.FOCUS_NONE
+	inteligente.add_theme_font_size_override("font_size", 13)
+	inteligente.button_pressed = bool(_caster.lanzamiento_inteligente)
+	inteligente.toggled.connect(func(v: bool): _caster.lanzamiento_inteligente = v)
+	_cuerpo.add_child(inteligente)
+	_cuerpo.add_child(_etiqueta("Mantén 1 / 2 / 3 para apuntar, suelta para lanzar"))
 
 	# A la esquina de abajo a la izquierda, ya con su tamaño.
 	reset_size()

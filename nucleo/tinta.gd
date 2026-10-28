@@ -41,6 +41,7 @@ signal cambiada                               ## cualquier cambio de cantidad, d
 signal frasco_gastado                         ## un frasco lleno se ha vaciado para rellenar la barra (el HUD lo anima y avisa)
 signal insuficiente(forma: String, coste: float, hay: float)
 signal pigmento_acabado(id: String)           ## el pigmento temporal se ha agotado (ya ha vuelto el base)
+signal reaccion_premiada(tipo: String, cantidad: float)   ## una reacción de combo ha dado tinta (el HUD pinta el «+20» y el nombre)
 
 ## --- Tinta máxima: total cerrado (todo ajustable) ---
 const MAXIMA_INICIAL: float = 100.0           ## la barra con la que empieza la partida
@@ -61,6 +62,14 @@ const ESPERA_TRAS_GASTAR: float = 1.2         ## s sin recuperar justo después 
 const UMBRAL_BAJA: float = 0.25               ## por debajo se pinta en rojo ("baja tinta")
 const FRASCOS_MAX: int = 3                    ## huecos de frasco de reserva
 const FRASCOS_INICIALES: int = 3              ## frascos llenos con los que empieza la partida
+
+## TINTA POR REACCIÓN (C2, 28/10, decisión de Pablo): +20 de tinta cada vez que provocas un COMBO contra un enemigo (lo bastante para no ignorarlo, poco para
+## farmear). Solo cuentan las reacciones que piden pensar (`REACCIONES_PREMIADAS`: tipo -> rótulo del HUD); el daño simple, el quemado normal o el empujón
+## suelto NO. Tope anti-farming: una vez por ENEMIGO y por TIPO (se anota en el propio enemigo, así sobrevive a recrear la tinta). Los muñecos y dianas
+## (`premia_tinta` = false o grupo «muneco») no dan nada. Solo sube la BARRA hasta `maxima`; no toca los frascos. Ver `premiar_reaccion`.
+const TINTA_POR_REACCION: float = 20.0
+const REACCIONES_PREMIADAS: Dictionary = {"hundido": "¡Hundido!", "electrocutado": "¡Electrocutado!", "congelado": "¡Congelado!",
+	"mano_quemada": "¡Mano quemada!", "apagado": "¡Apagado!"}
 
 ## Coste por forma de `Receta3D.forma()` (+ las formas de la geometría). Lo que no esté aquí cuesta `COSTE_DEFECTO`.
 ## Valores de partida de la lámina del concepto; están aquí para equilibrarlos sin tocar código.
@@ -328,3 +337,29 @@ func siguiente_pigmento() -> String:
 	var i: int = ids.find(pigmento)
 	poner_pigmento(String(ids[(i + 1) % ids.size()]))
 	return pigmento
+
+
+## C2 (28/10): premia con `TINTA_POR_REACCION` una reacción de combo `tipo` (clave de `REACCIONES_PREMIADAS`) provocada en `enemigo`. Devuelve la tinta que ha
+## subido de verdad (0 si no cuenta). Es el ÚNICO sitio por donde entra esta tinta. No cuenta si: el tipo no está en la lista, el enemigo no es válido o es un
+## muñeco/diana (`premia_tinta` false, o en el grupo «muneco»), o ya dio ese tipo (marca `tinta_reaccion_<tipo>` en el enemigo). Con la barra ya llena no
+## se gasta el premio (no se marca): queda disponible para la próxima vez. Nunca pasa de `maxima`.
+func premiar_reaccion(enemigo: Object, tipo: String) -> float:
+	if not REACCIONES_PREMIADAS.has(tipo) or enemigo == null or not is_instance_valid(enemigo):
+		return 0.0
+	if enemigo is Node and (enemigo as Node).is_in_group("muneco"):
+		return 0.0
+	if enemigo.get("premia_tinta") == false:
+		return 0.0
+	var marca: String = "tinta_reaccion_" + tipo
+	if enemigo.has_meta(marca) or actual >= maxima - 1e-4:
+		return 0.0
+	var antes: float = actual
+	recuperar(TINTA_POR_REACCION)
+	var ganada: float = actual - antes
+	if ganada <= 0.0:
+		return 0.0
+	enemigo.set_meta(marca, true)
+	reaccion_premiada.emit(tipo, ganada)
+	PlayLog.event("tinta_reaccion", {"tipo": tipo, "enemigo": String(enemigo.get("nombre")) if enemigo.get("nombre") != null else str(enemigo.name),
+		"tinta": snappedf(ganada, 0.1)})
+	return ganada

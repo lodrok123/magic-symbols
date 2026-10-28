@@ -305,8 +305,15 @@ func _poner_disolver(v: float) -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+## 28/10 · A2 (previsión): qué le haría este hechizo AHORA, sin tocarlo: «rompe» (el golpe que falta), «agrieta» (otro golpe de tierra, pero aún no cae) o «» (no le toca). `on_spell_hit` aplica esto.
+func reaccion_a(rune_data: RuneData) -> String:
 	if por_pulso or rune_data == null or roto_ya or not rune_data.tags.has("tierra"):
+		return ""
+	return "rompe" if recibidos + 1 >= golpes else "agrieta"
+
+
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+	if reaccion_a(rune_data) == "":
 		return
 	recibidos += 1
 	if recibidos >= golpes:

@@ -47,6 +47,7 @@ const ALCANCE_ORIGEN: float = 3.0           ## casillas: radio del anillo que se
 const TOLERANCIA_ALCANCE_U: float = 0.05    ## u: holgura al comparar el origen con el borde del anillo (el origen vivo se recorta justo en el borde)
 const ARRASTRE_MINIMO: float = 0.45        ## casillas: menos que esto es un clic, no un arrastre
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
+const TIEMPO_PAGINA: float = 0.7            ## 27/10 · A1: Engine.time_scale en el lanzamiento RÁPIDO (mantener 1/2/3). Más suave que el 0,3 del libro porque aquí te mueves; Pablo lo afina en el playtest
 
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
@@ -170,6 +171,15 @@ var _marca_alcance: MeshInstance3D = null
 var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
 var _prev_color: Color = Color.WHITE
 var _ts_antes: float = 1.0
+var _rapido: bool = false                      ## A1: el modo de apuntar actual es el de mantener 1/2/3 (no bloquea a la jugadora, se lanza al soltar la tecla)
+var _pagina_rapida: int = -1                   ## A1: índice de la página (0–2) cuya tecla se mantiene
+## A1: «lanzamiento inteligente» (ajuste del jugador): pulsar 1/2/3 lanza al instante hacia el ratón, sin indicador. Vive con las demás opciones del jugador en `Estado`
+## (`asistencia`, `trazo_recto`); aún no hay pantalla de ajustes ni guardado, así que se cambia desde la paleta F1 o por código. El día que haya menú de opciones, engancharlo ahí.
+var lanzamiento_inteligente: bool:
+	get:
+		return Estado.i().lanzamiento_inteligente
+	set(v):
+		Estado.i().lanzamiento_inteligente = v
 
 ## --- Lo vivo ---
 var _campos: Array = []                 ## Campo: muros, corros, ondas, tierra...
@@ -215,6 +225,7 @@ var conjuro_escala: float = 1.0
 var _cast_point: Dictionary = {}
 var sonidos_fase: Array = []             ## [{fase, pedido, suena, elemento}] de cada sonido pedido a Sfx por fase (para las pruebas; ver `_sonar_fase_v2`)
 var ultimo_castpoint: Dictionary = {}    ## la última medida al disparar con cast point (ver `_medir_cast_point`)
+var ultimo_disparo: Dictionary = {}       ## el último hechizo que salió: {pagina, origen, dir} (donde nace y hacia dónde; lo leen las pruebas del lanzamiento rápido, A1)
 var conjurando: bool = false             ## hay un conjuro en marcha (entre soltar y disparar)
 ## 22/10 (Pablo: «la bola de la carga es toda roja»): true cuando `ConjuroVfx3D` dibuja la forma en la mano; entonces no se pone la esfera lisa de
 ## prueba (`_forma_en_mano`), que desde que el proyectil mide la mitad (21/10) envolvía la bola de fuego y la del agua y las tapaba de un solo color.
@@ -238,6 +249,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	Terreno3D.al_solidificar = soltar_presos
 	ReaccionesAgua3D.efecto = _efecto_mundo
 	ReaccionesSuelo3D.clasificar = _clase_de_casilla
+	ReaccionesSuelo3D.prever_hierba = _prever_hierba
 	ReaccionesSuelo3D.reiniciar()
 	mundo_s = p_mundo                    # espejo M1
 	agua_sim = null                      # espejo M1
@@ -260,6 +272,14 @@ static func _clase_de_casilla(c: Vector2i) -> String:
 	if bl is Dictionary and (bl as Dictionary).has(c):
 		return ""
 	return "suelo"
+
+
+## 28/10 · A2: lo que ese elemento le haría a la hierba de `c`, preguntándoselo a la maqueta (que es quien tiene el autómata). «» si no hay maqueta o no sabe.
+static func _prever_hierba(elemento: String, c: Vector2i) -> String:
+	var m: Node3D = mundo_s
+	if m == null or not is_instance_valid(m) or not m.has_method("prever_hierba"):
+		return ""
+	return String(m.call("prever_hierba", elemento, c))
 
 
 ## --- Hechizos sobre el agua (Fase 11.4, 12/10) ---
@@ -735,33 +755,42 @@ static func aviso_receta(glifos: Array, rune: RuneData = null) -> String:
 	return ""
 
 
+## El modo de siempre (libro / pruebas / mando): valida la página y entra en el modo de apuntar BLOQUEANDO a la jugadora a `RALENTIZADO`. Es lo que llaman los
+## escenarios y `lanzar_pagina_ya`. Las teclas 1/2/3 con el libro cerrado NO pasan por aquí: usan `pulsar_pagina` / `soltar_pagina` (A1, lanzamiento rápido).
 func cast_page(indice: int) -> void:
+	if _preparar_pagina(indice):
+		_entrar_modo_lanzar()
+
+
+## Todas las comprobaciones de `cast_page` (recarga, tinta, altura, glifos sin uso…) y, si pasan, deja la página lista en `_preparado`. Devuelve false si se negó
+## (con su aviso). No toca el tiempo ni la jugadora: de ahí cuelgan los dos modos, el de siempre (`cast_page`) y el rápido (`pulsar_pagina`).
+func _preparar_pagina(indice: int) -> bool:
 	if indice < 0 or indice >= Repertoire.pages_available(PAGES):
-		return
+		return false
 	if modo_lanzar:
 		_cancelar_modo()
 	if jugador != null and not bool(jugador.call("puede_lanzar")):
 		_feedback("Ahora no puedes lanzar")
 		Sfx.play(self, "sello_no")
-		return
+		return false
 
 	var ficha: Dictionary = pages[indice]
 	var element_data: RuneData = rune_database.get(ficha["element"])
 	var componentes: Array = ficha["components"]
 	if element_data == null:
 		_feedback("La página %d no tiene elemento" % (indice + 1))
-		return
+		return false
 	if not Repertoire.element_active(_gesture_name_of(ficha["element"])):
 		_feedback("Ese elemento ya no está activo")
-		return
+		return false
 	if componentes.is_empty():
 		_feedback("A la página %d le falta algún glifo" % (indice + 1))
-		return
+		return false
 	if cooldown_left[indice] > 0.0:
 		Sfx.play(self, "sello_no")
 		_feedback("Recargando (%.1f s)" % cooldown_left[indice])
 		PlayLog.event("cast_bloqueado", {"pagina": indice + 1, "queda": snappedf(cooldown_left[indice], 0.1)})
-		return
+		return false
 
 	# UNA RECETA POR PÁGINA: los glifos de todos los sectores se funden en un solo hechizo.
 	var fusion: Dictionary = {"sigils": [], "quality": []}
@@ -771,7 +800,7 @@ func cast_page(indice: int) -> void:
 	for s in fusion["sigils"]:
 		if not Repertoire.sigil_active(Sigils.repertorio_de(s)):
 			_feedback("Un glifo de la página ya no está activo")
-			return
+			return false
 
 	var calidad: float = float(ficha.get("element_q", 1.0))
 	for q in fusion["quality"]:
@@ -791,7 +820,7 @@ func cast_page(indice: int) -> void:
 		Sfx.play(self, "sello_no")
 		_feedback(aviso_v2)
 		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(receta.geo()["y_tope"]), "glifos": (fusion["sigils"] as Array).duplicate()})
-		return
+		return false
 	# R3: los glifos aparcados (retardo, atracción, espejo, amplificar) no rompen nada: se dibujan, se avisa y no hacen nada.
 	if not receta.ignorados.is_empty():
 		_feedback("Aún sin uso: %s" % ", ".join(receta.ignorados))
@@ -806,13 +835,55 @@ func cast_page(indice: int) -> void:
 		Sfx.play(self, "sello_no")
 		_feedback("Tinta insuficiente (%d / %d)" % [int(ceil(tinta.actual)), int(ceil(coste_tinta))])
 		PlayLog.event("cast_sin_tinta", {"pagina": indice + 1, "forma": receta.forma(), "coste": snappedf(coste_tinta, 0.1), "hay": snappedf(tinta.actual, 0.1)})
-		return
+		return false
 
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
 		"glifos": (fusion["sigils"] as Array).duplicate(),
 		"elemento_nombre": _gesture_name_of(ficha["element"]),
 		"en_punto": receta.hechizo(element_data).en_punto}      # 18/10: «nace donde apuntas» (cast on point); lo pide un glifo (la barrera)
-	_entrar_modo_lanzar()
+	return true
+
+
+## 27/10 · A1 LANZAMIENTO RÁPIDO (docs/PROPUESTA_COMBATE.md §1.1). Las teclas 1/2/3 con el libro cerrado: al PULSAR la página entra en un modo de apuntar corto (`TIEMPO_PAGINA`,
+## sin bloquear a la jugadora: anda mientras apunta) con los mismos marcadores y la misma previsualización de siempre, pegados al ratón; al SOLTAR esa misma tecla (`soltar_pagina`)
+## lanza hacia donde está el ratón; clic derecho o Esc cancelan sin cobrar y soltar después ya no hace nada. Un toque corto lanza igual. Mientras dura, otra página se ignora.
+## Con `lanzamiento_inteligente` pulsar lanza al instante hacia el ratón, sin indicador. Si la página no se puede lanzar (recarga, tinta…) avisa y no entra en nada.
+func pulsar_pagina(indice: int) -> void:
+	if modo_lanzar and _rapido:
+		return                                   # ya hay una página en la mano: la otra tecla se ignora hasta soltar o cancelar
+	if not _preparar_pagina(indice):
+		return
+	if lanzamiento_inteligente:
+		_lanzar_al_instante()
+		return
+	_entrar_modo_lanzar(true, indice)
+
+
+## Suelta la tecla de página: si es la que está apuntando en modo rápido, lanza. Si el modo ya se canceló (clic derecho, Esc, tinta…) o es otra página, no hace nada.
+func soltar_pagina(indice: int) -> void:
+	if not (modo_lanzar and _rapido and indice == _pagina_rapida):
+		return
+	_actualizar_raton_rapido()
+	_soltar()
+
+
+## El lanzamiento inteligente: sin modo ni indicador, de la jugadora hacia el ratón (o del punto del ratón recortado, si el hechizo nace donde apuntas), con el conjuro de siempre.
+func _lanzar_al_instante() -> void:
+	_fijado = false
+	_actualizar_raton_rapido()
+	var origen: Vector3 = _origen_vivo
+	var dir: Vector3 = _direccion_actual()
+	var datos: Dictionary = _preparado
+	_preparado = {}
+	if lanzar_ahora(datos, origen, dir, true):
+		PlayLog.event("lanzamiento_inteligente", {"pagina": int(datos["indice"]) + 1})
+
+
+## Lee el ratón AHORA y recalcula origen y puntero. En el modo rápido se hace cada fotograma: la jugadora se mueve aunque el ratón esté quieto.
+func _actualizar_raton_rapido() -> void:
+	var vp: Viewport = get_viewport()
+	if vp != null and jugador != null:
+		_actualizar_puntero(vp.get_mouse_position())
 
 
 ## 15/10 (Fase 13.10, escenarios) · Lanza la página SIN el modo de apuntar: lo que hacen `cast_page` y luego soltar el botón, pero con
@@ -830,28 +901,41 @@ func lanzar_pagina_ya(indice: int, origen: Vector3, dir: Vector3, con_conjuro: b
 	return lanzar_ahora(datos, origen, dir, con_conjuro)
 
 
-func _entrar_modo_lanzar() -> void:
+## `rapido` (A1): el modo de las teclas 1/2/3 — tiempo a `TIEMPO_PAGINA`, la jugadora NO se bloquea (anda a paso normal) y se lanza al soltar la tecla de `pagina`.
+func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 	modo_lanzar = true
+	_rapido = rapido
+	_pagina_rapida = pagina
 	_fijado = false
 	_ms_modo = Time.get_ticks_msec()
 	_ts_antes = Engine.time_scale
-	Engine.time_scale = RALENTIZADO
+	var tiempo: float = TIEMPO_PAGINA if rapido else RALENTIZADO
+	Engine.time_scale = tiempo
 	var rune: RuneData = _preparado["rune"]
 	var forma: String = (_preparado["receta"] as Receta3D).forma()
 	if jugador != null:
-		jugador.call("bloquear", true)
-		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), RALENTIZADO)
+		if rapido:
+			jugador.call("apuntar_en_marcha", true)
+		else:
+			jugador.call("bloquear", true)
+		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), tiempo)
 	_crear_marcadores(rune.color)
+	if rapido:
+		_actualizar_raton_rapido()                # ya desde el primer fotograma: un toque corto lanza hacia el ratón de ahora
 	if _guia != null:
-		_guia.text = "Apunta con el ratón · arrastra para dirigir · suelta para lanzar · clic derecho o Esc cancela"
+		_guia.text = ("Suelta [%d] para lanzar · clic derecho o Esc cancela" % (pagina + 1)) if rapido \
+			else "Apunta con el ratón · arrastra para dirigir · suelta para lanzar · clic derecho o Esc cancela"
 		_guia.visible = true
 	modo_cambiado.emit(true)
-	PlayLog.event("modo_lanzar", {"pagina": int(_preparado["indice"]) + 1, "forma": forma})
+	PlayLog.event("modo_lanzar", {"pagina": int(_preparado["indice"]) + 1, "forma": forma, "rapido": rapido})
 
 
 ## `lanzando` true = se sale para LANZAR (el libro se queda en la mano hasta que acabe el lanzamiento, T-CP1); false = se cancela (el libro vuelve al cinto).
 func _salir_modo(lanzando: bool = false) -> void:
+	var era_rapido: bool = _rapido
 	modo_lanzar = false
+	_rapido = false
+	_pagina_rapida = -1
 	_fijado = false
 	Engine.time_scale = 1.0 if _ts_antes <= 0.0 else _ts_antes
 	if _guia != null:
@@ -867,7 +951,10 @@ func _salir_modo(lanzando: bool = false) -> void:
 			(m as Node).queue_free()
 	_prev_casillas.clear()
 	if jugador != null:
-		jugador.call("bloquear", false)
+		if era_rapido:
+			jugador.call("apuntar_en_marcha", false)      # A1: no se la bloqueó al entrar, así que no se «desbloquea» (otra cosa pudo bloquearla entretanto)
+		else:
+			jugador.call("bloquear", false)
 		jugador.call("terminar_apuntar", lanzando)
 	modo_cambiado.emit(false)
 
@@ -891,7 +978,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			_cancelar_modo()
 			get_viewport().set_input_as_handled()
-		elif mb.button_index == MOUSE_BUTTON_LEFT:
+		elif mb.button_index == MOUSE_BUTTON_LEFT and not _rapido:       # A1: en el modo rápido el clic izquierdo no fija origen ni arrastra: apunta el ratón y suelta la tecla
 			if mb.pressed:
 				_actualizar_puntero(mb.position)
 				_fijado = true
@@ -900,7 +987,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_actualizar_puntero(mb.position)
 				_soltar()
 			get_viewport().set_input_as_handled()
-	elif ev is InputEventMouseMotion:
+	elif ev is InputEventMouseMotion and not _rapido:       # en el modo rápido el ratón se lee cada fotograma (`_actualizar_raton_rapido`)
 		_actualizar_puntero((ev as InputEventMouseMotion).position)
 
 
@@ -988,6 +1075,8 @@ func _process(delta: float) -> void:
 			avisar("Lanzamiento cancelado")
 			_cancelar_modo()
 			return
+		if _rapido:
+			_actualizar_raton_rapido()      # A1: ella se mueve aunque el ratón esté quieto: origen y previsualización se recalculan cada fotograma
 		_pintar_marcadores()
 		if jugador != null:
 			jugador.call("mirar_hacia", _direccion_actual())
@@ -1002,7 +1091,10 @@ func _soltar() -> void:
 		var motivo: String = rechazo_de_construccion(datos, origen)
 		if motivo != "":
 			_avisar_sin_construir(motivo)
-			_fijado = false
+			if _rapido:
+				_cancelar_modo()          # A1: la tecla sigue pulsada, pero no se sigue apuntando: se cancela (no cobra) y soltarla luego no hace nada
+			else:
+				_fijado = false
 			return
 	_salir_modo(not datos.is_empty())
 	_preparado = {}
@@ -1203,11 +1295,10 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	var indice: int = int(datos["indice"])
 	var elemento: String = Objetos.elemento_de(rune)
 	var forma: String = receta.forma()
+	ultimo_disparo = {"pagina": indice + 1, "origen": origen, "dir": dir}
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
 	_sonar_fase_v2("disparo", elemento)
-	var hechizo: Hechizo = receta.hechizo(rune)
-	if tinta != null and hechizo != null:
-		hechizo.dano *= tinta.mult_dano(elemento)         # E1: pigmento de daño del elemento (único sitio; 1 si no toca). Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+	var hechizo: Hechizo = hechizo_de(datos)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	desplaza_mano = Vector3.ZERO
@@ -1224,6 +1315,17 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	lanzado.emit(elemento, forma, n)
+
+
+## 28/10 · A2: el `Hechizo` que sale de una página preparada (`datos` de `_preparar_pagina`), tal cual lo lanza `_disparar` — con el pigmento de daño (E1) —, y con los `cambios_hechizo` del
+## laboratorio encima (lo que añade `lanzar_hechizo`). Lo usan `_disparar` y la previsión (`PrevisionHechizo`), para que prevean EXACTAMENTE lo que sale. Devuelve null si la runa no se lanza.
+func hechizo_de(datos: Dictionary) -> Hechizo:
+	var receta: Receta3D = datos["receta"]
+	var rune: RuneData = datos["rune"]
+	var hechizo: Hechizo = receta.hechizo(rune)
+	if tinta != null and hechizo != null:
+		hechizo.dano *= tinta.mult_dano(Objetos.elemento_de(rune))         # E1: pigmento de daño del elemento (único sitio; 1 si no toca). Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+	return hechizo
 
 
 ## 24/10 (Pablo: «que los proyectiles salgan de la mano real de la jugadora»): con un personaje con esqueleto, el proyectil nace EN LA MANO (el cast point de la
@@ -1745,20 +1847,9 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	var activable: bool = obj.has_method("punto_activacion")
 	if activable:
 		punto = obj.call("punto_activacion")
-	var es_viento: bool = rune.tags.has("viento")
-	if (es_viento or atrae) and obj.has_method("push"):
-		if atrae:
-			var hacia: Vector3 = desde - (obj as Node3D).global_position
-			hacia.y = 0.0
-			if hacia.length() > 0.01:
-				obj.call("push", hacia.normalized(), FUERZA_EMPUJE * (1.0 if es_viento else 0.7))
-		else:
-			var emp: Vector3 = dir
-			if emp.length() < 0.01:
-				emp = (obj as Node3D).global_position - punto
-				emp.y = 0.0
-				emp = emp.normalized()
-			obj.call("push", emp, FUERZA_EMPUJE)
+	var empuje: Dictionary = empuje_de_golpe(obj, rune, dir, punto, atrae, desde)
+	if not empuje.is_empty():
+		obj.call("push", empuje["dir"], empuje["fuerza"])
 	if not obj.has_method("on_spell_hit"):
 		return false
 	var reacciona: bool = true
@@ -1778,6 +1869,26 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	ultimo_impacto = Vector3.INF
 	ultimo_nivel = 0
 	return reacciona
+
+
+## 28/10 · A2 (previsión): el empuje que `_golpear` da a `obj` ANTES de su `on_spell_hit` (el viento empuja, la atracción tira), sin darlo: {dir, fuerza} o {} si no empuja. Es la decisión
+## que `_golpear` ejecuta con `push`, extraída para que la previsión del indicador (`PrevisionHechizo`) y el golpe real no puedan divergir.
+static func empuje_de_golpe(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, atrae: bool, desde: Vector3) -> Dictionary:
+	var es_viento: bool = rune.tags.has("viento")
+	if not ((es_viento or atrae) and obj.has_method("push")):
+		return {}
+	if atrae:
+		var hacia: Vector3 = desde - (obj as Node3D).global_position
+		hacia.y = 0.0
+		if hacia.length() > 0.01:
+			return {"dir": hacia.normalized(), "fuerza": FUERZA_EMPUJE * (1.0 if es_viento else 0.7)}
+		return {}
+	var emp: Vector3 = dir
+	if emp.length() < 0.01:
+		emp = (obj as Node3D).global_position - punto
+		emp.y = 0.0
+		emp = emp.normalized()
+	return {"dir": emp, "fuerza": FUERZA_EMPUJE}
 
 
 ## Nombre legible de un objeto golpeado para el registro: su `tipo` si lo tiene (Reactivo3D), si no su clase o su nombre.

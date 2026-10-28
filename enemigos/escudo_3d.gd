@@ -145,10 +145,30 @@ func es_de_frente(direccion: Vector3) -> bool:
 
 ## EL ÚNICO PUNTO DE CONSULTA de Combate3D: ¿para este disparo? Si responde true, el escudo YA lo ha recibido (su `on_spell_hit`) y el goblin no debe aplicarlo.
 func para(direccion: Vector3, hechizo: Hechizo) -> bool:
-	if hechizo == null or not esta_activo() or not es_de_frente(direccion):
+	if not cubre(direccion, hechizo):
 		return false
 	_recibir(hechizo)
 	return true
+
+
+## 28/10 · A2 (previsión): la DECISIÓN de `para`, sin recibir nada: ¿pararía este disparo? Es lo que `para` consulta antes de actuar, así que predicción y golpe real no divergen.
+func cubre(direccion: Vector3, hechizo: Hechizo) -> bool:
+	return hechizo != null and esta_activo() and es_de_frente(direccion)
+
+
+## 28/10 · A2: qué le pasaría al ESCUDO con este hechizo (lo que decide `_recibir`, sin tocarlo): «prende», «seca» (fuego sobre mojado), «moja», «apaga» (hielo, o agua sobre uno que arde)
+## o «desgasta» (cualquier otro). Cadena vacía = nada. `_recibir` usa esta misma tabla.
+func reaccion_a(hechizo: Hechizo) -> String:
+	match hechizo.elemento:
+		"fuego":
+			if mojado_t > 0.0:
+				return "seca"
+			return "prende" if (estado == "entero" and tiene_papel(PAPEL_INFLAMABLE)) else ""
+		"agua":
+			return "apaga" if esta_ardiendo() else "moja"
+		"hielo":
+			return "apaga" if esta_ardiendo() else ""
+	return "desgasta"
 
 
 ## El contrato de los reactivos, para quien golpee al escudo directamente (sin pasar por el cono): el golpe es del escudo, no del goblin.
@@ -162,9 +182,10 @@ func _recibir(h: Hechizo) -> void:
 	bloqueos += 1
 	_avisar("bloqueado")
 	bloqueado.emit(_pos_mundo())
+	var r: String = reaccion_a(h)                        # A2: la decisión del fuego es de `reaccion_a`, la misma que consulta la previsión
 	match h.elemento:
 		"fuego":
-			if mojado_t > 0.0:
+			if r == "seca":
 				mojado_t = 0.0                           # fuego sobre mojado = vapor: lo seca y no prende (como el goblin)
 				_avisar("secado")
 				_actualizar_mojado()

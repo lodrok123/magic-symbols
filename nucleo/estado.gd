@@ -40,6 +40,8 @@ var asistencia: float = 0.5
 ## TRAZO RECTO (Fase 14.4, 16/10): lo dibujado se convierte en tramos rectos en las ocho direcciones del compás (GestureRectify), y
 ## eso es lo que se ve, se reconoce y se graba. Sin rejilla: solo se corrigen las direcciones. `false` = trazo libre, como antes.
 var trazo_recto: bool = true
+## LANZAMIENTO INTELIGENTE (27/10, A1): `true` = pulsar 1/2/3 lanza al instante hacia el ratón, sin indicador. `false` = mantener la tecla enseña el indicador y soltar lanza. Opción del jugador; la lee `Lanzador3D`.
+var lanzamiento_inteligente: bool = false
 
 
 static func i() -> Estado:

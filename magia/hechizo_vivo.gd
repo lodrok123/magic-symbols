@@ -50,6 +50,8 @@ const MUESTRAS_CRECE_V2: int = 24          ## 24/10: en cuántos pasos iguales s
 const PASO_CRECE_MIN_S: float = 0.05       ## s: paso mínimo entre dos muestras del crecimiento (un crecimiento muy corto no se parte en trozos más pequeños que unos fotogramas)
 const SEPARACION_COPIAS_MIN_CASILLAS: float = 1.0   ## casillas de centro a centro entre dos copias como mínimo (una copia por casilla: la casilla es lo que se rasteriza)
 const MAX_EVENTOS_V2: int = 64            ## tope de apariciones (copias × fases × posiciones) por hechizo
+const PASO_SECO_S: float = 1.0 / 20.0          ## 28/10 · A2: paso de la simulación en seco. Más grueso que el de la física (1/60) para que sea barata (se llama cada fotograma al apuntar): el rayo de `_golpes_areas` cubre todo el tramo, así que no se salta nada; el arco cambia unos milímetros
+const PASOS_MAX_SECO: int = 100             ## A2: tope de pasos de un proyectil en seco (5 s de vuelo): lo que no ha parado a tiempo se da por llegado
 ## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
 ## reactivos y enemigos que haya dentro, igual que lo hacía la flecha de siempre (`_golpear`: on_spell_hit, hielo que apresa, agua que moja…).
 const CONTACTO_V2: PackedStringArray = ["solido", "liquido", "campo"]
@@ -124,6 +126,8 @@ var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y 
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
 var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
+var seco: bool = false                     ## 28/10 · A2: modo «en seco» (`HechizoVivo.prever`): corre las MISMAS reglas pero no aplica nada: los golpes y las marcas de suelo se anotan en `prevision` en vez de darse
+var prevision: Dictionary = {}             ## A2: lo que haría el hechizo en seco: {golpes: [{obj, dir, punto, desde}], suelo: [{elemento, celda}], fin: Vector3 (INF = no se detuvo), causa: String, rebotes: int}
 
 
 ## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
@@ -190,6 +194,53 @@ func _exit_tree() -> void:
 		_contado = false
 
 
+## 28/10 · A2 (previsión del indicador, docs/PROPUESTA_COMBATE.md §7). Corre el hechizo EN SECO: las mismas reglas que al lanzarlo de verdad (el vuelo del proyectil con su gravedad, sus choques y su
+## alcance; el camino de lo que viaja; las casillas de un volumen; el haz) pero sin aplicar nada — no suena, no emite señales, no levanta tierra ni echa agua, no crea zonas ni solideces, no golpea. En
+## vez de golpear, ANOTA a quién habría golpeado (`_golpear`) y qué casillas de suelo habría marcado (`_marcar`). Devuelve:
+##   golpes  [{obj, dir, punto, desde}] en el orden en que llegarían    suelo  [{elemento, celda}]    fines  [Vector3] dónde se detiene cada proyectil (vacío si no hay proyectil)
+##   causas  [String] por qué se detuvo (golpe · muro · suelo · alcance · tiempo · frenado)    rebotes  cuántos rebotes dio en total
+## NO cubre (se anota en la previsión): los eventos del hechizo (hijos, explosión en área `radio_explosion`, `al_golpear`…), los pulsos periódicos de las zonas, el empuje del gas a los enemigos ni los momentos
+## de los glifos (el pulso de ᚱ). Un proyectil con `retorna` se prevé solo en la ida.
+static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir: Vector3) -> Dictionary:
+	var res: Dictionary = {"golpes": [], "suelo": [], "fines": [], "causas": [], "rebotes": 0}
+	if hechizo == null or lanzador == null or lanzador.mundo == null or not lanzador.is_inside_tree():
+		return res
+	var copias: int = copias_de_proyectil(hechizo)
+	for i in range(copias if hechizo.velocidad > 0.0 else 1):
+		var v := HechizoVivo.new()
+		v.lanz = lanzador
+		v.h = hechizo
+		v.g = hechizo.geo()
+		v.elemento = hechizo.elemento
+		v.estado = hechizo.estado_materia if MATERIA_V2.has(hechizo.estado_materia) else ESTADO_RESERVA_V2
+		v.data = hechizo.fuente
+		v.seco = true
+		v.prevision = {"golpes": [], "suelo": [], "fin": Vector3.INF, "causa": "", "rebotes": 0}
+		v.linaje = Linaje.new()
+		if hechizo.velocidad > 0.0:
+			var salida: Dictionary = salida_de_copia(hechizo, i, copias, dir)
+			v._iniciar_proyectil(origen, salida["dir"], salida["desvio"])
+			var pasos: int = 0
+			while v.activo and not v.volviendo and pasos < PASOS_MAX_SECO:
+				v.paso(PASO_SECO_S)
+				pasos += 1
+			if v.activo and v.prevision["fin"] == Vector3.INF:
+				v.prevision["fin"] = v.p                                # volvía (`retorna`) o no acabó: se queda donde llegó la ida
+				v.prevision["causa"] = "retorna" if v.volviendo else "tiempo"
+		elif hechizo.haz:
+			v._materializar_haz(origen, dir)
+		else:
+			v._materializar(origen, dir)
+		(res["golpes"] as Array).append_array(v.prevision["golpes"] as Array)
+		(res["suelo"] as Array).append_array(v.prevision["suelo"] as Array)
+		if v.prevision["fin"] != Vector3.INF:
+			(res["fines"] as Array).append(v.prevision["fin"])
+			(res["causas"] as Array).append(String(v.prevision["causa"]))
+		res["rebotes"] = int(res["rebotes"]) + int(v.prevision["rebotes"])
+		v.free()
+	return res
+
+
 ## Un HechizoVivo montado pero sin nacer ni colgar del árbol: lo que `crear` usa y lo que las pruebas piden para mirar `eventos` o `camino` sin lanzar.
 static func preparar(hechizo: Hechizo, lanzador: Lanzador3D) -> HechizoVivo:
 	var v := HechizoVivo.new()
@@ -217,7 +268,8 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 		return _materializar_haz(origen, dir)             # RAYO (21/10): ᛁ + elemento. No es un volumen que se rasteriza: es un recorrido
 	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, h.fuente)
 	if aviso != "":
-		PlayLog.event("cast_rechazado_altura", {"elemento": elemento, "y_tope": int(g["y_tope"])})
+		if not seco:
+			PlayLog.event("cast_rechazado_altura", {"elemento": elemento, "y_tope": int(g["y_tope"])})
 		_rechazado = true
 		return 0
 	var props: Dictionary = g["props"]
@@ -248,8 +300,9 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 		"persiste": data.persiste, "suelo": suelo, "eventos": eventos_vfx, "t_caida": t_caida,
 		"viaja": viaja, "velocidad": _velocidad_viaje(), "permanencia": h.permanencia, "vida_total": vida_total,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad}
-	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
-	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, props)
+	if not seco:
+		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, props)
 	var copias: float = float(props.get("copias", 1.0))
 	var solidez: float = float(props.get("solidez", 0.0))
 	var refleja: bool = float(props.get("rebotes", 0.0)) > 0.0 and float(props.get("viaja", 0.0)) <= 0.0
@@ -270,7 +323,7 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 			"dir": dir3, "estado": estado, "fraccion": copias * float(celdas_ev.size()) / float(maxi(todas.size(), 1)),
 			"tocados": tocados, "golpes": ev.get("golpes", [])}
 		var t: float = float(ev["t"])
-		if t <= 0.001:
+		if t <= 0.001 or seco:           # en seco no se espera: todas las tandas, de golpe (lo que ocupará el hechizo en total)
 			cuenta += _vivir(ctx, solidez, refleja)
 		else:
 			cuenta += celdas_ev.size()
@@ -314,13 +367,14 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 		"eventos": [{"t": 0.0, "pos": o2, "dir": d2}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": vida_vfx,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,
 		"haz": {"desde": mano, "hasta": punta, "ancho": Hechizo.HAZ_ANCHO * cas, "alcance": h.alcance_haz, "largo": largo}}
-	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
-	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
+	if not seco:
+		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
 	var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas, "niveles": 1, "vida": vida_vfx, "origen": origen, "dir": d3, "estado": estado,
 		"fraccion": 1.0, "tocados": {}, "golpes": golpes_camino.duplicate()}
 	_golpes_del_camino(ctx)
 	_materia_haz(ctx)
-	if is_inside_tree():
+	if is_inside_tree() and not seco:
 		_despues(vida_vfx, func() -> void: pass)         # el HechizoVivo vive lo que se ve el haz: el dibujo cuelga de él y, si se va antes, se apaga a los 0,5 s (VfxElemento3D._soltar)
 	return maxi(celdas.size(), 1)
 
@@ -336,7 +390,7 @@ func _materia_haz(ctx: Dictionary) -> int:
 	var rune: RuneData = ctx["data"]
 	if rune != null and rune.deja != "":
 		for c in celdas:
-			lanz.marcar_celda(String(ctx["elemento"]), c as Vector2i)
+			_marcar(String(ctx["elemento"]), c as Vector2i)
 	_contacto(ctx)
 	return celdas.size()
 
@@ -373,6 +427,8 @@ func _vivir(ctx: Dictionary, solidez: float, refleja: bool) -> int:
 		return 0
 	if CONTACTO_V2.has(String(ctx["estado"])):
 		_contacto(ctx)
+	if seco:
+		return _materia_seca(ctx)
 	var n: int = int(call(String(MATERIA_V2[String(ctx["estado"])]), ctx))
 	if solidez > 0.0:
 		_solidez(ctx, solidez, refleja)
@@ -391,12 +447,12 @@ func _golpes_del_camino(ctx: Dictionary) -> void:
 
 
 ## Golpe de contacto de los estados que no lo dan en su materia: a cada reactivo y enemigo de las casillas, una vez por hechizo.
-func _contacto(ctx: Dictionary) -> void:
+func _contacto(ctx: Dictionary, grupos: Array = ["reactivo3d", "combate3d"]) -> void:
 	var tocados: Dictionary = ctx["tocados"]
 	var celdas: Dictionary = {}
 	for c in ctx["celdas"]:
 		celdas[c] = true
-	for grupo in ["reactivo3d", "combate3d"]:
+	for grupo in grupos:
 		for obj in nodos_en(lanz, grupo, celdas):
 			if tocados.has(obj.get_instance_id()) or obj.get("muerto") == true:
 				continue
@@ -555,7 +611,7 @@ func _materia_solido(ctx: Dictionary) -> int:
 	for c in ctx["celdas"]:
 		var cc: Vector2i = c
 		if rune.deja != "":
-			lanz.marcar_celda(String(ctx["elemento"]), cc)
+			_marcar(String(ctx["elemento"]), cc)
 		if rune.pisable:
 			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"])}
 			for _k in range(int(ctx["niveles"])):
@@ -636,7 +692,7 @@ func _abrir_zona(ctx: Dictionary) -> int:
 	for c in ctx["celdas"]:
 		z.celdas[c] = true
 		if rune.deja != "":
-			lanz.marcar_celda(z.elemento, c as Vector2i)    # el estado de suelo (quemado…) se marca al nacer, una vez por casilla
+			_marcar(z.elemento, c as Vector2i)    # el estado de suelo (quemado…) se marca al nacer, una vez por casilla
 	var l: Lanzador3D = lanz                               # el callback no puede capturar `self` (este nodo se borra al acabar sus eventos) ni el lanzador (puede morir antes que la zona)
 	l.mundo.add_child(z)
 	l._zonas_v2.append(z)
@@ -746,7 +802,7 @@ func _descarga(ctx: Dictionary, area: Dictionary) -> int:
 			_golpear(obj, d, (obj as Node3D).global_position, ctx["origen"])
 	if rune.deja != "":
 		for c in ctx["celdas"]:
-			lanz.marcar_celda(String(ctx["elemento"]), c as Vector2i)
+			_marcar(String(ctx["elemento"]), c as Vector2i)
 	return (ctx["celdas"] as Array).size()
 
 
@@ -775,8 +831,39 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> void:
 
 ## El golpe del hechizo a un objeto: lo da el lanzador (con ESTE Hechizo, así un enemigo recibe sus campos) y después saltan `al_golpear` y, si lo mata, `al_matar`.
 func _golpear(obj: Node, dir: Vector3, punto: Vector3, desde: Vector3) -> void:
+	if seco:
+		(prevision["golpes"] as Array).append({"obj": obj, "dir": dir, "punto": punto, "desde": desde})
+		return
 	lanz._golpear(obj, data, dir, punto, 0, false, desde, h)
 	_tras_golpe(obj, punto, dir)
+
+
+## 28/10 · A2: marcar el suelo de una casilla con el estado de un elemento (`Lanzador3D.marcar_celda`); en seco solo se anota.
+func _marcar(elemento_: String, c: Vector2i) -> void:
+	if seco:
+		(prevision["suelo"] as Array).append({"elemento": elemento_, "celda": c})
+		return
+	lanz.marcar_celda(elemento_, c)
+
+
+## 28/10 · A2: lo que haría la MATERIA del hechizo en una tanda de casillas, en seco: la energía descarga (agua y conductores incluidos); la zona de plasma golpea a quien esté dentro en su primer pulso;
+## la de gas, solo a los reactivos (el empuje a los enemigos no es un golpe); y todo lo que deja un estado de suelo (`deja`) lo marca, salvo el líquido (que no marca casillas: echa agua a la simulación).
+## No levanta tierra, no echa agua a la simulación, no crea zonas ni solideces.
+func _materia_seca(ctx: Dictionary) -> int:
+	var rune: RuneData = ctx["data"]
+	match String(ctx["estado"]):
+		"energia":
+			return _descarga(ctx, {})                       # ya marca `deja` y golpea
+		"plasma":
+			_contacto(ctx)
+		"gas":
+			_contacto(ctx, ["reactivo3d"])
+		"liquido":
+			return (ctx["celdas"] as Array).size()         # el agua no marca casillas: va a la simulación del agua (`_materia_liquido`), que aquí no se corre
+	if rune != null and rune.deja != "":
+		for c in ctx["celdas"]:
+			_marcar(String(ctx["elemento"]), c as Vector2i)
+	return (ctx["celdas"] as Array).size()
 
 
 func _tras_golpe(obj: Node, punto: Vector3, dir: Vector3) -> void:
@@ -966,7 +1053,7 @@ func _estado_suelo(estado_: String, radio: float, pos: Vector3) -> void:
 	for dx in range(-r, r + 1):
 		for dy in range(-r, r + 1):
 			if Vector2(dx, dy).length() <= radio + 0.001:
-				lanz.marcar_celda(estado_, c0 + Vector2i(dx, dy))
+				_marcar(estado_, c0 + Vector2i(dx, dy))
 
 
 ## ---------------------------------------------------------------------------------------------------
@@ -1002,6 +1089,8 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3
 		_viaja_sig.append(maxf(float((a as Dictionary).get("cada", 1.0)), 0.1) * Terreno3D.casilla)
 	if is_inside_tree():
 		global_position = p
+	if seco:
+		return 1
 	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 	if h.estela != "":
 		lanz.vfx_hechizo.emit(h.estela, p, elemento)
@@ -1175,6 +1264,9 @@ func _golpear_celdas(celdas: Array) -> void:
 
 func _rebotar() -> void:
 	rebotes_usados += 1
+	if seco:
+		prevision["rebotes"] = int(prevision.get("rebotes", 0)) + 1
+		return                                         # `al_rebotar` son acciones (hijos, sonidos): en seco no
 	disparar_evento("al_rebotar", p, v.normalized())
 
 
@@ -1229,7 +1321,7 @@ func _golpes_del_paso() -> void:
 					_sitio_golpe = (obj as Node3D).global_position
 					_terminar_o_volver("golpe")
 					return
-	if lanz != null and h.golpea_lanzador and not volviendo and not _golpeo_lanzador and edad > SEGURIDAD_S and lanz.jugador != null and is_instance_valid(lanz.jugador):
+	if lanz != null and not seco and h.golpea_lanzador and not volviendo and not _golpeo_lanzador and edad > SEGURIDAD_S and lanz.jugador != null and is_instance_valid(lanz.jugador):
 		var al_j: Vector3 = _pos_lanzador() - p
 		al_j.y = 0.0
 		if al_j.length() <= _radio_u + RADIO_ENEMIGO_U and lanz.jugador.has_method("recibir_dano"):
@@ -1240,6 +1332,8 @@ func _golpes_del_paso() -> void:
 
 ## Estela y `al_viajar`: lo que toca según lo recorrido.
 func _rastro() -> void:
+	if seco:
+		return                                         # estela y `al_viajar` son efectos: en seco no
 	if h.estela != "" and recorrido + (PASO_ESTELA_U if recorrido == 0.0 else 0.0) >= _estela_sig:
 		_estela_sig = recorrido + PASO_ESTELA_U
 		lanz.vfx_hechizo.emit(h.estela, p, elemento)
@@ -1281,6 +1375,10 @@ func _terminar(causa: String) -> void:
 		# el sitio del impacto es donde se para; si lo paró un golpe, donde está lo golpeado (un goblin en el agua se hiela con su casilla, no la de antes)
 		var sitio: Vector3 = _sitio_golpe if (causa == "golpe" and _sitio_golpe != Vector3.INF) else p
 		_aplicar_materia_en_el_sitio(sitio, dir_fin)
+		if seco:
+			prevision["fin"] = sitio
+			prevision["causa"] = causa
+			return                                      # momentos y `al_expirar` son efectos: en seco no
 		# MOMENTO «final» (ᚱ + flecha = el pulso sale donde choca, sin caso especial): el volumen está donde se ha parado.
 		if h.profundidad == 0 and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
 			_momento(Sigils.MOMENTO_FINAL, _celdas_en(sitio, dir_fin))

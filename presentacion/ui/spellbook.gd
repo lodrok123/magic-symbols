@@ -387,12 +387,17 @@ func _input(event: InputEvent) -> void:
 	# pararlo. Viven aquí y no en el jugador porque el libro ya es el
 	# dueño de todo lo que tiene que ver con hechizos, y repartirlo entre
 	# dos nodos obligaría a mantener dos sitios de acuerdo.
+	# 27/10 · A1 LANZAMIENTO RÁPIDO: PULSAR la tecla entra en el modo de apuntar (`pulsar_pagina`) y SOLTARLA lanza (`soltar_pagina`); pulsar y soltar enseguida
+	# lanza igual hacia el ratón. Con el «lanzamiento inteligente» pulsar ya lanza. El modo del libro (clic, arrastre, suelta) sigue en `cast_page`.
 	if not is_open:
-		if event is InputEventKey and event.pressed and not event.echo \
+		if event is InputEventKey and not event.echo \
 				and event.keycode >= KEY_1 and event.keycode <= KEY_3:
 			var caster := _spellcaster()
 			if caster:
-				caster.cast_page(event.keycode - KEY_1)
+				if event.pressed:
+					caster.pulsar_pagina(event.keycode - KEY_1)
+				else:
+					caster.soltar_pagina(event.keycode - KEY_1)
 			get_viewport().set_input_as_handled()
 		return
 
