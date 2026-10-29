@@ -299,10 +299,10 @@ const TOPE_EJE_ALTURA_V2: float = 1.0      ## semieje máximo en Y (§1.9: 2 niv
 ## Antes del 24/10 había un solo paso (0,15 del 19/10 al 24/10, luego 0,10 igual que la base) y 2 niveles pedían 7 ᛏ y un muro de 3 casillas 14 ᛁ.
 const GLIFOS_ALTURA_DOS_NIVELES_V2: int = 3   ## cuántos ᛏ llevan la altura al tope de 2 niveles (RADIO_BASE_V2 + 3 · PASO_ALTURA_V2 = TOPE_EJE_ALTURA_V2)
 const PASO_ALTURA_V2: float = 0.30         ## m que suma CADA ᛏ al semieje Y: (1,0 − 0,10) / 3. 1 ᛏ = 0,40 · 2 ᛏ = 0,70 (siguen en 1 nivel) · 3 ᛏ = 1,00 (2 niveles, el tope)
-const GLIFOS_ANCHO_MURO_3_V2: int = 4         ## cuántos ᛁ horizontales hacen un muro (ᛜ + ᛁ) de 3 casillas de ancho
-const PASO_ANCHO_V2: float = 0.25          ## m que suma CADA ᛁ horizontal al semieje X. Una casilla vecina cuenta si su centro cae dentro del elipsoide: a ±1 casilla pide semieje ≥ 1,0 y la 5.ª casilla (±2) ≥ 2,0, así que
+const GLIFOS_ANCHO_MURO_3_V2: int = 2         ## cuántos ᛁ horizontales hacen un muro (ᛜ + ᛁ) de 3 casillas de ancho (29/10: 0,10 + 2 · 0,5 = 1,10; con el paso de 0,25 eran 4)
+const PASO_ANCHO_V2: float = 0.5           ## 29/10 (Pablo, laboratorio de geometrías: «aumenta todos los valores de x y z»): cada ᛁ suma una casilla entera de ancho (0,5 a cada lado). Antes 0,25. m que suma CADA ᛁ horizontal al semieje X. Una casilla vecina cuenta si su centro cae dentro del elipsoide: a ±1 casilla pide semieje ≥ 1,0 y la 5.ª casilla (±2) ≥ 2,0, así que
 											## 3 casillas = semieje en [1,0 ; 2,0). 0,10 + 4 · 0,25 = 1,10 (3 casillas, 0,10 de holgura) y con 3 ᛁ (0,85) queda en 1. Con 8 ᛁ (2,10) salen 5 casillas
-const PASO_FONDO_V2: float = 0.10          ## m que suma CADA ᛁ vertical al semieje Z (el fondo). No cambia con el ancho a propósito: el haz no depende de él (alcance por nº de ᛁ, `Hechizo.HAZ_*`) y en un proyectil
+const PASO_FONDO_V2: float = 0.5           ## 29/10 (Pablo): igual que el ancho, una casilla por ᛁ; antes 0,10 (lo de abajo es el porqué de entonces). m que suma CADA ᛁ vertical al semieje Z (el fondo). No cambia con el ancho a propósito: el haz no depende de él (alcance por nº de ᛁ, `Hechizo.HAZ_*`) y en un proyectil
 											## (ᛇ + ᛁ) cada ᛁ de más lo alarga, no lo ensancha: con 0,25 la «lanza» volvería al tamaño que Pablo quiso reducir con la base 0,10
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
 const VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U: float = 4.0   ## u/s: la velocidad de la flecha de ayer (decisión de Pablo, 19/10: la misma). En metros sale de dividirla por la casilla: `velocidad_flecha()`

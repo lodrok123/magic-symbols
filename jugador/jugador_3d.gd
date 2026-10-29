@@ -135,6 +135,7 @@ signal golpe_cuerpo_dado(resumen: Dictionary)
 ## 28/10 · C4: rodó a tiempo bajo un aviso (C3) y ganó el tiempo bruja (`TiempoBruja`). `aviso` es el AvisoAtaque3D esquivado.
 signal esquiva_perfecta(aviso: AvisoAtaque3D)
 var esquivas_perfectas: int = 0
+var _director: Node = null                 ## Sensacion3D.DirectorSensacion (lote 3)
 ## Gamefeel (28/10, `Sensacion3D`): s que le quedan congelada (el hitstop compartido de sus golpes y el de recibir uno) y la voltereta pulsada cuando aún no podía rodar.
 var _t_hitstop: float = 0.0
 var _roll_guardado: float = 0.0
@@ -455,6 +456,8 @@ static func una_vez(pj_: Pj3D, nombre: String) -> void:
 func _process(delta: float) -> void:
 	if mundo == null or pj == null or not is_instance_valid(pj):
 		return
+	if _director == null or not is_instance_valid(_director):
+		_director = Sensacion3D.director(self)      # gamefeel lote 3: flechas de avisos fuera de pantalla y música de combate
 	# C4: en el tiempo bruja el mundo va a 0,3 y ella a su paso: su reloj y su animación se dividen por la escala.
 	TiempoBruja.actualizar(lanz, delta)
 	var comp: float = TiempoBruja.compensacion()

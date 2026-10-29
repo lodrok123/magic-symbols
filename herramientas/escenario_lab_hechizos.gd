@@ -412,7 +412,7 @@ func _escenario() -> void:
 	var bloques_antes: int = lanzador._bloques.size()
 	lab.limpiar()
 	lab.poner_elemento("water")
-	for _i in range(6):
+	for _i in range(2):                        # 29/10: con los pasos de 0,5, 2 + 2 ᛁ (semiejes 1,1) es el tamaño que antes daban 6 + 6
 		lab.sumar("linea_z", 1)
 		lab.sumar("linea_x", 1)
 	lab.lanzar()

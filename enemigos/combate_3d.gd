@@ -257,6 +257,8 @@ var _destello: float = 0.0
 var _flash_blanco: bool = false         ## el destello está pintado ahora mismo (emisión blanca en los materiales)
 var _emision_previa: Array = []         ## [enabled, color, energía] de cada material antes del destello, para devolverlo igual
 var _hitstop: float = 0.0               ## s que le quedan congelado por el último golpe
+var respingo: Vector3 = Vector3.ZERO    ## gamefeel lote 3: desplazamiento del MODELO (no del nodo) del tirón al recibir un golpe; vuelve solo a cero
+var _tw_respingo: Tween = null
 var _squash: Vector3 = Vector3.ONE      ## factor de aplastamiento aplicado ahora mismo a pj.scale (se compone con otras escalas)
 var _tw_squash: Tween = null
 var _tw_salto: Tween = null
@@ -942,7 +944,7 @@ func _physics_process(delta: float) -> void:
 		# dentro de _ia). Sí corren el destello y el dibujo, que son justo lo que hace que el golpe se vea.
 		_hitstop -= delta
 		_destello = maxf(0.0, _destello - delta)
-		pj.position = position + Vector3(0.0, _salto_y, 0.0)
+		pj.position = position + Vector3(0.0, _salto_y, 0.0) + respingo
 		_dibujar_estado(delta)
 		if _hitstop <= 0.0:
 			_fin_hitstop()
@@ -955,7 +957,7 @@ func _physics_process(delta: float) -> void:
 		# y lo pisaría, y `pj.position` pelearía con el tween que lo hunde. Muerto, esta pasada se acaba aquí.
 		return
 	_animar()
-	pj.position = position + Vector3(0.0, _salto_y, 0.0)
+	pj.position = position + Vector3(0.0, _salto_y, 0.0) + respingo
 	_dibujar_estado(delta)
 
 
@@ -1001,6 +1003,8 @@ func _reaccion_visual(el: String) -> void:
 ## (escenarios sin ventana) no hace nada.
 ## Gamefeel (28/10): y un chorro de partículas en la DIRECCIÓN del golpe (`dir`; el golpe F, sin elemento, solo eso y en blanco).
 func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> void:
+	if not muerto:
+		_respingar(dir)
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
 	if not (fx is Vfx3D) or not is_inside_tree():
 		return
@@ -1011,6 +1015,27 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	(fx as Vfx3D).golpe_estrella(global_position + Vector3(0.0, 0.6, 0.0), el, 1.5 if debil else 1.0)
 	(fx as Vfx3D).temblor(TEMBLOR_DEBIL if debil else TEMBLOR_GOLPE)
 	impactos_visuales += 1
+
+
+## Gamefeel lote 3: el modelo da un tirón hacia donde va el golpe (o lejos de la jugadora si el golpe no trae dirección) y vuelve. Corre aunque esté en
+## hitstop (el tween es del nodo, no de su IA): es justo lo que se ve mientras está congelado. El nodo, la colisión y el aviso no se mueven.
+func _respingar(dir: Vector3) -> void:
+	if not Sensacion3D.ACTIVA or not is_inside_tree() or Sensacion3D.RESPINGO <= 0.0:
+		return
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length() < 0.01 and jugador != null and is_instance_valid(jugador):
+		d = position - jugador.position
+		d.y = 0.0
+	if d.length() < 0.01:
+		return
+	var f: float = Sensacion3D.RESPINGO * (0.6 if elemental else 1.0)
+	if _tw_respingo != null and _tw_respingo.is_valid():
+		_tw_respingo.kill()
+	Sensacion3D.cuenta["respingo"] = int(Sensacion3D.cuenta["respingo"]) + 1
+	var t: float = maxf(Sensacion3D.T_RESPINGO, 0.02)
+	_tw_respingo = create_tween()
+	_tw_respingo.tween_property(self, "respingo", d.normalized() * f, t * 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tw_respingo.tween_property(self, "respingo", Vector3.ZERO, t * 0.75).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## Aplica un factor de aplastamiento RELATIVO al anterior (escala × nuevo / viejo), así se compone con cualquier otra escala de pj.

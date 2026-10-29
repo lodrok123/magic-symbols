@@ -262,7 +262,7 @@ var solido_quieto: bool:
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
 	get:
-		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0
+		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and estado_materia != "solido"     # 29/10: la tierra y el hielo con ᛁ son un bloque ancho o largo, no un chorro (el haz no construye)
 ## Alcance del haz en m (0 si no es haz).
 var alcance_haz: float:
 	get:
@@ -453,7 +453,7 @@ func _escribir(campo: String, valor: Variant) -> void:
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
-	forma = "x_mano" if haz else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
+	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0)) else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
 	niveles = maxi(1, roundi(2.0 * semieje_y))
 	cast_point = CastPoints.variacion_de(forma)
 	var base: float = 4.0 / 3.0 * PI * pow(Sigils.RADIO_BASE_V2, 3.0)

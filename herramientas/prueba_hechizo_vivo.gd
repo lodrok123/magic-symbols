@@ -567,7 +567,8 @@ func _en_punto_y_areas() -> void:
 	_ok("en_punto: lejos, se queda en el borde del anillo (%.2f u)" % ((_l._origen_vivo - yo).length()), absf((_l._origen_vivo - yo).length() - Lanzador3D.ALCANCE_ORIGEN * cas) < 0.001 and _l._origen_vivo.z == yo.z)
 	# el hechizo de una barrera lo pide; el de una línea, no (cast_page lo lee de Hechizo.en_punto)
 	var rune: RuneData = load("res://nucleo/earth_rune.tres")
-	_ok("en_punto: lo pide el glifo de barrera", Hechizo.construir(rune, {"barrera": 1}).en_punto and not Hechizo.construir(rune, {"linea_x": 2}).en_punto)
+	# 29/10: una tierra con ᛁ ya no es haz sino un sólido quieto, que nace donde apuntas; la línea que NO lo pide se mira con fuego.
+	_ok("en_punto: lo pide el glifo de barrera", Hechizo.construir(rune, {"barrera": 1}).en_punto and not Hechizo.construir(load("res://nucleo/fire_rune.tres"), {"linea_x": 2}).en_punto)
 
 
 # --- E1 (19/10): el Hechizo habla en metros-casilla y m/s; HechizoVivo convierte a u con la casilla ---

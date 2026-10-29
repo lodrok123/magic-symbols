@@ -112,8 +112,8 @@ func _topes_y_casos() -> void:
 	var centro_g := Vector2(0.5, 0.5) * cas_g
 	var muro_n: Callable = func(n_i: int) -> int:
 		return Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"barrera": 1, "linea_x": n_i}), centro_g, Vector2.DOWN, cas_g).size()
-	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 4 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 5,
-		"ᛜ + 4 ᛁ = muro de 3 casillas (con 3 ᛁ, 1; con 8, 5): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)])
+	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 2 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 5,
+		"ᛜ + 2 ᛁ = muro de 3 casillas (con 1 ᛁ, 1; con 4, 5): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)])
 	_ok(_casi(float(Sigils.aplicar_v2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
 	g = Sigils.aplicar_v2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
@@ -422,14 +422,15 @@ func _ciclo_de_vida() -> void:
 	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola es ahora un rayo (prueba_haz.gd); aquí se mide el volumen estirado que crece, que sigue existiendo (barrera o laboratorio)
 	# 24/10 (D-7): `crece` pasó de «escala por segundo» a «m/s de radio»: el tiempo de crecer = semieje × (1 − escala_nace) / crece. Con 9 ᛁ (semieje 2,35) eran 3,3 s y la zona de la mano (fuego,
 	# 3 s de vida) se apagaba antes de que naciera la última tanda; con 4 ᛁ (semieje 1,10, 3 casillas) son 1,54 s y la prueba sigue midiendo lo mismo: nace pequeño y acaba entero.
-	var sin_crecer: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x"], "fire")
-	var final_: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
+	# 29/10: con el paso de ancho de 0,5 el mismo semieje 1,10 son 2 ᛁ (GLIFOS_ANCHO_MURO_3_V2).
+	var sin_crecer: Array = _lanzar(["linea_x", "linea_x"], "fire")
+	var final_: Array = _lanzar(["linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
 	_ok(final_.size() == sin_crecer.size(), "crece: al acabar de crecer ocupa lo mismo que sin crecer (%d y %d casillas)" % [final_.size(), sin_crecer.size()])
 	var inicial: int = 0
 	for z in _l._zonas_v2:
 		inicial += (z as Lanzador3D.ZonaV2).celdas.size()
 	_ok(inicial < final_.size() and inicial >= 1, "crece: al nacer ocupa menos que al final (%d de %d) y siempre incluye la casilla de la mano" % [inicial, final_.size()])
-	await _esperar(HechizoVivo.tiempo_de_crecer(0.5, 0.3, Sigils.RADIO_BASE_V2 + 4.0 * Sigils.PASO_ANCHO_V2) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
+	await _esperar(HechizoVivo.tiempo_de_crecer(0.5, 0.3, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_ANCHO_V2) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
 	var al_final: int = 0
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()

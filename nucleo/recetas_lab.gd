@@ -18,7 +18,7 @@ static func por_defecto() -> Array:
 	return [
 		nueva("bola de fuego", ["flecha", "linea_x", "linea_z", "altura"], "fire"),
 		nueva("flecha triple de hielo", ["flecha", "repeticion", "repeticion"], "ice"),
-		nueva("muro de tierra", ["barrera", "linea_x", "linea_x", "linea_x", "linea_x", "altura"], "earth"),        # 24/10: ᛜ + 4 ᛁ = muro de 3 casillas (PASO_ANCHO_V2) y 1 ᛏ = el de 1 nivel; son los 6 glifos del lab
+		nueva("muro de tierra", ["barrera", "linea_x", "linea_x", "altura"], "earth"),        # 29/10: ᛜ + 2 ᛁ = muro de 3 casillas (PASO_ANCHO_V2 0,5; el 24/10 eran 4 ᛁ) y 1 ᛏ = el de 1 nivel
 		nueva("barrera de agua", ["barrera", "linea_x", "linea_x", "permanencia"], "water"),
 		nueva("pilar de rayo", ["altura", "altura", "altura", "permanencia", "permanencia"], "lightning"),
 		nueva("onda de viento", ["flecha", "pulso", "pulso", "linea_z", "linea_z"], "wind"),

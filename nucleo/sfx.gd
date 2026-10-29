@@ -145,6 +145,9 @@ const CATALOGO: Dictionary = {
 	"tiempo_tic":       {"f": ["tiempo_tic.wav"],       "db": -10.0, "tono": 0.0},
 	"reaccion_grande":  {"f": ["reaccion_grande.wav"],  "db": -7.0,  "tono": 0.04},
 	"moneda":           {"f": ["moneda.wav"],           "db": -14.0, "tono": 0.08},
+	# 29/10 (gamefeel lote 3): la capa de combate (en bucle; la pone Sensacion3D.DirectorSensacion con su propio volumen) y el remate al limpiar la sala.
+	"combate_loop":     {"f": ["combate_loop.wav"],     "db": -17.0, "tono": 0.0},
+	"sala_limpia":      {"f": ["sala_limpia.wav"],      "db": -9.0,  "tono": 0.0},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 
@@ -227,6 +230,21 @@ static func play(origen: Node, nombre: String, tono: float = 0.0) -> void:
 	p.call("play")
 
 
+## El flujo de `nombre` listo para sonar en bucle (un WAV importado trae el bucle apagado: se duplica y se activa sobre todo el audio). null si no está.
+static func flujo_en_bucle(nombre: String) -> AudioStream:
+	if not CATALOGO.has(nombre):
+		return null
+	var flujo: AudioStream = load(CARPETA + String((CATALOGO[nombre]["f"] as Array)[0]))
+	if flujo is AudioStreamWAV:
+		var w: AudioStreamWAV = (flujo as AudioStreamWAV).duplicate() as AudioStreamWAV
+		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		w.loop_begin = 0
+		var muestras: int = w.data.size() / (2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1) / (2 if w.stereo else 1)
+		w.loop_end = muestras
+		flujo = w
+	return flujo
+
+
 ## Sonido en BUCLE que dura mientras alguien lo mantenga (la carga de un hechizo: suena mientras se apunta y se corta al disparar). Devuelve el reproductor
 ## para que quien lo pide le cambie el tono (`pitch_scale`) o el volumen con el tiempo y lo pare con `Sfx.parar`; null si no hay sonido o no hay árbol.
 ## Va a la raíz de la escena, como `play`, y NO se pausa con el grimorio por lo mismo. Un `AudioStreamWAV` importado trae el bucle apagado: se duplica
@@ -235,16 +253,9 @@ static func bucle(origen: Node, nombre: String, tono: float = 1.0) -> Node:
 	if not CATALOGO.has(nombre) or origen == null or not origen.is_inside_tree():
 		return null
 	var cfg: Dictionary = CATALOGO[nombre]
-	var flujo: AudioStream = load(CARPETA + String((cfg["f"] as Array)[0]))
+	var flujo: AudioStream = flujo_en_bucle(nombre)
 	if flujo == null:
 		return null
-	if flujo is AudioStreamWAV:
-		var w: AudioStreamWAV = (flujo as AudioStreamWAV).duplicate() as AudioStreamWAV
-		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		w.loop_begin = 0
-		var muestras: int = w.data.size() / (2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1) / (2 if w.stereo else 1)
-		w.loop_end = muestras
-		flujo = w
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
 	p.set("volume_db", float(cfg["db"]))

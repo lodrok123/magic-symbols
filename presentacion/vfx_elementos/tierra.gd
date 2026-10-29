@@ -618,8 +618,8 @@ static func _polvillo(padre: Node3D, pos: Vector3, esc: float) -> void:
 
 ## GANCHO del bloque pisable del Lanzador (`Lanzador3D.construir_tierra`): viste el Area3D `bloque` (origen en el centro de la caja `tam`) con 4 trozos
 ## `bloque_tierra` que llenan la casilla y suben, desfasados, desde dentro del suelo. La caja y la colisión no se tocan: el Lanzador solo oculta su
-## BoxMesh. `pos_suelo` = punto del suelo bajo el bloque (para el polvo). Devuelve los trozos.
-static func vestir_bloque(bloque: Node3D, tam: Vector3, pos_suelo: Vector3) -> Array:
+## BoxMesh. `pos_suelo` = punto del suelo bajo el bloque (para el polvo). `desplaza` (29/10): el corrimiento del perfil del volumen (`HechizoVivo.perfil_solido`). Devuelve los trozos.
+static func vestir_bloque(bloque: Node3D, tam: Vector3, pos_suelo: Vector3, desplaza: Vector3 = Vector3.ZERO) -> Array:
 	var res: Array = []
 	var sx: float = tam.x * 0.5 / BLOQUE_ANCHO
 	var sz: float = tam.z * 0.5 / BLOQUE_ANCHO
@@ -629,10 +629,10 @@ static func vestir_bloque(bloque: Node3D, tam: Vector3, pos_suelo: Vector3) -> A
 			var m: MeshInstance3D = pieza("bloque_tierra_%d" % (randi() % N_BLOQUES))
 			m.name = "bloque_tierra_%d_%d" % [ix, iz]
 			m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-			var y_fin: float = -tam.y * 0.5
+			var y_fin: float = -tam.y * 0.5 + desplaza.y
 			var y_ini: float = y_fin - tam.y * 0.5
 			m.scale = Vector3(sx, sy, sz)
-			m.position = Vector3((float(ix) - 0.5) * tam.x * 0.5, y_ini, (float(iz) - 0.5) * tam.z * 0.5)
+			m.position = Vector3((float(ix) - 0.5) * tam.x * 0.5 + desplaza.x, y_ini, (float(iz) - 0.5) * tam.z * 0.5 + desplaza.z)
 			m.rotation.y = float(randi() % 4) * PI * 0.5 + randf_range(-0.08, 0.08)
 			bloque.add_child(m)
 			var tw: Tween = m.create_tween()

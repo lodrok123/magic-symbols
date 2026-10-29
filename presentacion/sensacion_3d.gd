@@ -77,9 +77,21 @@ static var HITSTOP_MUNDO: float = 0.12         ## s que se congelan todos (enemi
 static var ESCALA_ROTULO: float = 1.8
 static var TEMBLOR_REACCION: float = 0.4
 static var ZOOM_REACCION: float = 0.04
+## Lote 3 (29/10). Respingo: el MODELO del enemigo da un tirón hacia donde va el golpe y vuelve (el destello blanco y el aplastamiento ya estaban).
+static var RESPINGO: float = 0.16               ## u del tirón (el elemental, el 60 %)
+static var T_RESPINGO: float = 0.16             ## s: un cuarto en ir, el resto en volver con rebote
+## Avisos fuera de pantalla: una flecha en el borde hacia el enemigo que marca un ataque y no se ve.
+static var MARGEN_FLECHA: float = 34.0          ## px desde el borde de la pantalla
+static var TAM_FLECHA: float = 20.0             ## px; crece hasta ×1,5 en la ventana de la esquiva
+static var RADIO_FLECHA: float = 16.0           ## u: avisos de enemigos más lejos de ella no se señalan
+## Música de combate: una capa de percusión y bajo que entra cuando algún enemigo la persigue cerca y sale al acabar; si acaba porque han caído todos, «sala_limpia».
+static var DB_MUSICA: float = -17.0
+static var T_SUBE_MUSICA: float = 1.2           ## s reales en entrar
+static var T_BAJA_MUSICA: float = 2.5           ## s reales en salir
+static var T_SIGUE_COMBATE: float = 2.5         ## s reales sin nadie persiguiéndola antes de dar el combate por acabado
 
 ## Para las pruebas: cuántas veces se pidió cada cosa.
-static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0}
+static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0, "respingo": 0, "flecha": 0, "combate": 0, "sala_limpia": 0}
 
 const CODIGO_VINETA: String = """
 shader_type canvas_item;
@@ -347,6 +359,166 @@ static func reaccion_grande(e: Node3D, texto: String, color: Color, pos: Vector3
 ## s reales de un fotograma de `delta` (el _process va escalado por Engine.time_scale).
 static func delta_real(delta: float) -> float:
 	return delta / maxf(Engine.time_scale, 0.01)
+
+
+## Lote 3: monta (una vez) el director de la jugadora `j`: flechas de los avisos fuera de pantalla y música de combate. Lo llama `Jugador3D._process`.
+static func director(j: Node3D) -> Node:
+	if j == null or not j.is_inside_tree():
+		return null
+	var d: Node = j.get_node_or_null("DirectorSensacion")
+	if d == null:
+		d = DirectorSensacion.new()
+		d.name = "DirectorSensacion"
+		d.set("jugadora", j)
+		j.add_child(d)
+	return d
+
+
+## Los enemigos vivos que la persiguen (tienen objetivo) a menos de RADIO_SALA. El Gatopedro no cuenta: no ataca, huye.
+static func enemigos_en_combate(j: Node3D) -> Array:
+	var r: Array = []
+	if j == null or not j.is_inside_tree():
+		return r
+	for n in j.get_tree().get_nodes_in_group("combate3d"):
+		var e: Combate3D = n as Combate3D
+		if e == null or not is_instance_valid(e) or e.muerto or e.quieto or e is Gatopedro3D or e.objetivo == null:
+			continue
+		if e.global_position.distance_to(j.global_position) <= RADIO_SALA:
+			r.append(e)
+	return r
+
+
+## Flechas y música (lote 3). Vive colgado de la jugadora; no se pausa con el libro.
+class DirectorSensacion extends Node:
+	var jugadora: Node3D = null
+	var en_combate: bool = false
+	var volumen: float = 0.0                 ## 0..1 de la música
+	var flechas: int = 0                     ## cuántas flechas dibujó la última pasada (pruebas)
+	var _t_sin: float = 0.0
+	var _vistos: Array = []                  ## enemigos que han estado en este combate
+	var _musica: AudioStreamPlayer = null
+	var _capa: CanvasLayer = null
+	var _lienzo: Control = null
+	var _t: float = 0.0
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		_capa = CanvasLayer.new()
+		_capa.layer = 4
+		_capa.name = "FlechasAviso"
+		_lienzo = Control.new()
+		_lienzo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_lienzo.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_lienzo.draw.connect(_dibujar)
+		_capa.add_child(_lienzo)
+		add_child(_capa)
+
+	func _process(delta: float) -> void:
+		var dr: float = Sensacion3D.delta_real(delta)
+		_t += dr
+		if _lienzo != null:
+			_lienzo.queue_redraw()
+		_musica_paso(dr)
+
+	# --- música ---
+	func _musica_paso(dr: float) -> void:
+		var ahora: Array = Sensacion3D.enemigos_en_combate(jugadora) if Sensacion3D.ACTIVA else []
+		if not ahora.is_empty():
+			_t_sin = 0.0
+			for e in ahora:
+				if not _vistos.has(e):
+					_vistos.append(e)
+			if not en_combate:
+				en_combate = true
+				Sensacion3D.cuenta["combate"] = int(Sensacion3D.cuenta["combate"]) + 1
+				PlayLog.event("combate_empieza", {"enemigos": ahora.size()})
+		elif en_combate:
+			_t_sin += dr
+			var todos_caidos: bool = _vistos.all(func(e): return not is_instance_valid(e) or (e as Combate3D).muerto)
+			if todos_caidos or _t_sin >= Sensacion3D.T_SIGUE_COMBATE:
+				en_combate = false
+				if todos_caidos and not _vistos.is_empty():
+					Sensacion3D.cuenta["sala_limpia"] = int(Sensacion3D.cuenta["sala_limpia"]) + 1
+					Sfx.play(jugadora, "sala_limpia")
+				PlayLog.event("combate_acaba", {"limpia": todos_caidos})
+				_vistos.clear()
+		var meta: float = 1.0 if en_combate else 0.0
+		var t: float = Sensacion3D.T_SUBE_MUSICA if en_combate else Sensacion3D.T_BAJA_MUSICA
+		volumen = move_toward(volumen, meta, dr / maxf(t, 0.01))
+		if volumen > 0.0 and _musica == null:
+			var flujo: AudioStream = Sfx.flujo_en_bucle("combate_loop")
+			if flujo == null:
+				return
+			_musica = AudioStreamPlayer.new()
+			_musica.name = "MusicaCombate"
+			_musica.stream = flujo
+			_musica.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(_musica)
+			_musica.play()
+		if _musica != null:
+			_musica.volume_db = Sensacion3D.DB_MUSICA + linear_to_db(maxf(volumen, 0.0001))
+			if volumen <= 0.0:
+				_musica.queue_free()
+				_musica = null
+
+	# --- flechas ---
+	func _dibujar() -> void:
+		flechas = 0
+		if not Sensacion3D.ACTIVA or jugadora == null or not is_instance_valid(jugadora) or not jugadora.is_inside_tree():
+			return
+		var cam: Camera3D = get_viewport().get_camera_3d()
+		if cam == null:
+			return
+		var tam: Vector2 = _lienzo.size
+		var m: float = Sensacion3D.MARGEN_FLECHA
+		var dentro := Rect2(Vector2(m, m), tam - Vector2(m, m) * 2.0)
+		for n in get_tree().get_nodes_in_group(AvisoAtaque3D.GRUPO):
+			var a: AvisoAtaque3D = n as AvisoAtaque3D
+			if a == null or not is_instance_valid(a) or a.cancelado or a.t >= a.t_impacto:
+				continue
+			var punta: Variant = Sensacion3D.punta_flecha(cam, tam, dentro, a, jugadora.global_position)
+			if punta == null:
+				continue
+			var p: Vector2 = punta
+			var dir: Vector2 = (p - tam * 0.5).normalized()
+			var en_ventana: bool = a.queda() <= AvisoAtaque3D.VENTANA_ESQUIVA
+			var f: float = Sensacion3D.TAM_FLECHA * (1.5 if en_ventana else 1.0 + 0.5 * clampf(a.t / maxf(a.t_impacto, 0.01), 0.0, 1.0))
+			var col: Color = AvisoAtaque3D.COLOR
+			if en_ventana:
+				col = col.lerp(AvisoAtaque3D.COLOR_VENTANA, 0.6 + 0.4 * sin(_t * 40.0))
+			var lado := Vector2(-dir.y, dir.x)
+			var base: Vector2 = p - dir * f * 1.3
+			_lienzo.draw_colored_polygon(PackedVector2Array([p + dir * 3.0, base + lado * (f + 3.0), base - lado * (f + 3.0)]), Color(0, 0, 0, 0.55))
+			_lienzo.draw_colored_polygon(PackedVector2Array([p, base + lado * f, base - lado * f]), col)
+			flechas += 1
+			Sensacion3D.cuenta["flecha"] = int(Sensacion3D.cuenta["flecha"]) + 1
+
+	func _exit_tree() -> void:
+		if _musica != null and is_instance_valid(_musica):
+			_musica.stop()
+
+
+## Dónde va la punta de la flecha del aviso `a` en una pantalla de `tam` (dentro del rectángulo `dentro`), o null si no lleva flecha: su enemigo se
+## ve, o está a más de RADIO_FLECHA de ella (`desde`). Se apunta al ENEMIGO (el dueño), no al centro del aviso: es él quien no se ve.
+static func punta_flecha(cam: Camera3D, tam: Vector2, dentro: Rect2, a: AvisoAtaque3D, desde: Vector3) -> Variant:
+	var p: Vector3 = (a.dueno as Node3D).global_position if a.dueno is Node3D and is_instance_valid(a.dueno) else a.centro
+	if p.distance_to(desde) > RADIO_FLECHA:
+		return null
+	var detras: bool = cam.is_position_behind(p)
+	var s: Vector2 = cam.unproject_position(p)
+	if not detras and Rect2(Vector2.ZERO, tam).has_point(s):
+		return null                          # se ve: basta el aviso del suelo
+	var c: Vector2 = tam * 0.5
+	var dir: Vector2 = (s - c) * (-1.0 if detras else 1.0)
+	if dir.length() < 0.001:
+		return null
+	dir = dir.normalized()
+	var k: float = INF
+	if absf(dir.x) > 0.0001:
+		k = minf(k, ((dentro.end.x if dir.x > 0.0 else dentro.position.x) - c.x) / dir.x)
+	if absf(dir.y) > 0.0001:
+		k = minf(k, ((dentro.end.y if dir.y > 0.0 else dentro.position.y) - c.y) / dir.y)
+	return c + dir * k
 
 
 ## La cámara lenta del último enemigo: un nodo que vive lo que dura y se va.

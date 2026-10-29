@@ -577,8 +577,8 @@ func _caso_suelo(oeste: Vector3) -> void:
 	await avanzar_s(0.5)
 	_ok("18c agua (proyectil) al suelo: no se prevé «moja» y de verdad no cambia ninguna casilla a mojada", _entrada_r(prev, "suelo", "moja").is_empty() and _con_estado(EstadosSuelo3D.MOJADA) == mojadas0,
 		"%s · reales %s" % [_resumen(prev), str(_con_estado(EstadosSuelo3D.MOJADA))])
-	# --- el haz de agua y el de hielo SÍ marcan cada casilla del recorrido: lo previsto es lo que cambia ---
-	for el in ["agua", "hielo"]:
+	# --- el haz de agua SÍ marca cada casilla del recorrido: lo previsto es lo que cambia (29/10: el hielo con ᛁ ya no es haz, es un sólido) ---
+	for el in ["agua"]:
 		var est: String = EstadosSuelo3D.MOJADA if el == "agua" else EstadosSuelo3D.HELADA
 		var jh := Vector2i(13 if el == "agua" else 12, 29 if el == "agua" else 28)
 		datos = _preparar(jh, el, ["linea_z"])

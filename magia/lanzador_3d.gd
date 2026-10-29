@@ -2396,13 +2396,15 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	cs.shape = forma
 	bloque.add_child(cs)
 	var caja := BoxMesh.new()
-	caja.size = Vector3(Terreno3D.casilla * 0.94, Terreno3D.ALTO_NIVEL, Terreno3D.casilla * 0.94)
+	caja.size = Vector3(Terreno3D.casilla * 0.94, Terreno3D.ALTO_NIVEL, Terreno3D.casilla * 0.94) * (opc.get("escala", Vector3.ONE) as Vector3)   # 29/10: el perfil del volumen (HechizoVivo.perfil_solido); solo el dibujo
+	var desplaza: Vector3 = opc.get("desplaza", Vector3.ZERO)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = opc.get("color", Color(0.5, 0.37, 0.24))
 	mat.roughness = 1.0
 	caja.material = mat
 	var mi := MeshInstance3D.new()
 	mi.mesh = caja
+	mi.position = desplaza
 	var facetado: bool = dibujar and VfxTierra.vestir_bloques       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja
 	mi.visible = dibujar and not facetado   # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
@@ -2410,7 +2412,7 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	bloque.position = centro - Vector3(0, Terreno3D.ALTO_NIVEL * 0.6, 0)
 	mundo.add_child(bloque)
 	if facetado:
-		VfxTierra.vestir_bloque(bloque, caja.size, Vector3(centro.x, centro.y - Terreno3D.ALTO_NIVEL * 0.5, centro.z))      # solo dibujo: la colisión de arriba no cambia
+		VfxTierra.vestir_bloque(bloque, caja.size, Vector3(centro.x, centro.y - Terreno3D.ALTO_NIVEL * 0.5, centro.z), desplaza)      # solo dibujo: la colisión de arriba no cambia
 	(entrada["nodos"] as Array).append(bloque)
 	var tw: Tween = bloque.create_tween()
 	tw.tween_property(bloque, "position", centro, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

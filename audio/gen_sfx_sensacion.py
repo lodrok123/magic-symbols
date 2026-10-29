@@ -8,6 +8,10 @@ LOTE 2 (29/10; se generan después de los del lote 1 con el mismo azar, así aqu
   · tiempo_tic      el «tic» de reloj de la esquiva perfecta (con tono 0,75 en Sfx.play es el «toc» del final)
   · reaccion_grande golpe grave con brillo que sube: vapor, descarga, congelado, hundido…
   · moneda          «ting» corto y brillante al recoger el oro
+LOTE 3 (29/10; después de los anteriores, que salen iguales):
+  · combate_loop    capa de combate en BUCLE (4 compases a 110 ppm, la menor): tambor grave, tom, sonajero y un bajo pulsado; empieza y acaba en silencio
+                    de golpe para que el bucle no se note (lo pone en bucle Sfx.flujo_en_bucle)
+  · sala_limpia     remate al caer el último del combate: golpe de tambor y arpegio que sube (la-do-mi-la)
 PRIMERA VERSIÓN SINTETIZADA: se afina escuchando."""
 import math, os, random, struct, wave
 
@@ -145,6 +149,86 @@ def moneda():
     guardar("moneda.wav", x, 0.09)
 
 
+def combate_loop():
+    """4 compases de 4/4 a 110 ppm. Todo se suma en una lista y cada golpe se escribe con su envolvente; lo que se sale del final se
+    vuelve a sumar al principio (así el bucle no corta colas)."""
+    ppm = 110.0
+    negra = 60.0 / ppm
+    n = muestras(negra * 16)
+    x = [0.0] * n
+
+    def poner(t0, sonido):
+        i0 = int(t0 * SR)
+        for k, v in enumerate(sonido):
+            x[(i0 + k) % n] += v
+
+    def tambor(fr0, fr1, d, cae, vol):
+        out = []
+        fase = 0.0
+        for i in range(muestras(d)):
+            tt = i / SR
+            fase += 2 * math.pi * (fr1 + (fr0 - fr1) * math.exp(-cae * tt)) / SR
+            out.append(math.sin(fase) * min(1.0, tt / 0.002) * math.exp(-7.0 * tt) * vol)
+        return out
+
+    def sonajero(vol):
+        r = pasaaltos(ruido(0.06), 5000.0)
+        return [v * math.exp(-60.0 * (i / SR)) * vol for i, v in enumerate(r)]
+
+    def bajo(fr, d, vol):
+        out = []
+        for i in range(muestras(d)):
+            tt = i / SR
+            e = min(1.0, tt / 0.004) * math.exp(-9.0 * tt)
+            v = math.sin(2 * math.pi * fr * tt) + 0.35 * math.sin(2 * math.pi * fr * 2 * tt) + 0.15 * math.sin(2 * math.pi * fr * 3 * tt)
+            out.append(v * e * vol)
+        return out
+
+    grave = tambor(95.0, 48.0, 0.5, 18.0, 1.0)
+    tom = tambor(180.0, 120.0, 0.25, 25.0, 0.45)
+    # Tambor grave: 1, «y» del 2, 3 (y en el 4.º compás un redoble al final).
+    for c in range(4):
+        t_c = c * 4 * negra
+        for b in (0.0, 1.5, 2.0):
+            poner(t_c + b * negra, grave)
+        for b in (1.0, 3.0):
+            poner(t_c + b * negra, tom)
+        if c == 3:
+            for b in (3.25, 3.5, 3.75):
+                poner(t_c + b * negra, tom)
+    # Sonajero en corcheas, el contratiempo más fuerte.
+    for i in range(32):
+        poner(i * negra * 0.5, sonajero(0.22 if i % 2 else 0.12))
+    # Bajo: la la do la · la la mi sol (en corcheas, notas de 0,22 s).
+    la, do, mi, sol = 55.0, 65.41, 82.41, 98.0
+    figura = [la, la, la, do, la, la, mi, sol]
+    for c in range(4):
+        for i, fr in enumerate(figura):
+            if c % 2 == 1 and i == 7:
+                fr = mi
+            poner((c * 4 + i * 0.5) * negra, bajo(fr, 0.22, 0.5))
+    # La guardar normal funde 4 ms al principio y al final, que en un bucle no hace falta pero tampoco se oye.
+    guardar("combate_loop.wav", x, 0.10)
+
+
+def sala_limpia():
+    """Un golpe de tambor y un arpegio de campana que sube: se acabó."""
+    d = 1.3
+    x = [0.0] * muestras(d)
+    fase = 0.0
+    for i in range(muestras(0.6)):
+        tt = i / SR
+        fase += 2 * math.pi * (110.0 * math.exp(-15.0 * tt) + 50.0) / SR
+        x[i] += math.sin(fase) * math.exp(-6.0 * tt) * 0.8
+    for k, fr in enumerate((440.0, 523.25, 659.25, 880.0)):
+        i0 = muestras(0.04 + 0.09 * k)
+        for i in range(muestras(d) - i0):
+            u = i / SR
+            e = min(1.0, u / 0.004) * math.exp(-3.5 * u) * (0.3 if k < 3 else 0.42)
+            x[i0 + i] += (math.sin(2 * math.pi * fr * u) + 0.3 * math.sin(2 * math.pi * fr * 2.01 * u)) * e
+    guardar("sala_limpia.wav", x, 0.12)
+
+
 if __name__ == "__main__":
     lanzar_salida()
     no_puedes()
@@ -152,3 +236,5 @@ if __name__ == "__main__":
     tiempo_tic()
     reaccion_grande()
     moneda()
+    combate_loop()
+    sala_limpia()

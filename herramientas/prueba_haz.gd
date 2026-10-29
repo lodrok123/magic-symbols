@@ -29,6 +29,8 @@ class JugadorFalso extends Jugador3D:
 const LADO: int = 20
 const SALIDA: Vector2i = Vector2i(5, 8)
 const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "tierra": "earth", "viento": "wind", "rayo": "lightning", "hielo": "ice"}
+## 29/10 (Pablo, laboratorio de geometrías): la tierra y el hielo con ᛁ ya NO son haz: son un sólido ancho o largo (un haz no construye). Las secciones del haz los saltan.
+const SOLIDOS: PackedStringArray = ["tierra", "hielo"]
 
 var _fallos: int = 0
 var _m: MundoFalso = null
@@ -126,8 +128,11 @@ func _forma() -> void:
 	for el in ELEMENTOS:
 		for g in ["linea_x", "linea_z"]:
 			var h: Hechizo = _hz(el, {g: 1})
+			if SOLIDOS.has(el):
+				_ok("1 %s + %s NO es haz: es un sólido quieto que nace donde apuntas (con la mano al frente, «%s»)" % [el, g, h.forma], not h.haz and h.solido_quieto and h.en_punto and h.forma == "x_mano")
+				continue
 			_ok("1 %s + %s = haz (figura «%s», cast point de mano al frente «%s»)" % [el, g, h.figura(), h.forma], h.haz and h.figura() == "haz" and h.forma == "x_mano" and not h.protege and not h.viaja)
-	_ok("1 ᛁ en horizontal y en vertical suman al mismo haz (sin importar el orden)", _hz("hielo", {"linea_x": 1, "linea_z": 1}).haz and _hz("hielo", {"linea_z": 2}).alcance_haz == _hz("hielo", {"linea_x": 2}).alcance_haz)
+	_ok("1 ᛁ en horizontal y en vertical suman al mismo haz (sin importar el orden)", _hz("agua", {"linea_x": 1, "linea_z": 1}).haz and _hz("agua", {"linea_z": 2}).alcance_haz == _hz("agua", {"linea_x": 2}).alcance_haz)
 	var b: Hechizo = _hz("tierra", {"barrera": 1, "linea_x": 2})
 	_ok("1 barrera + linea NO es haz: sigue siendo el muro (figura «%s», solidez %.2f)" % [b.figura(), b.solidez], not b.haz and b.figura() == "barrera" and b.protege)
 	var f: Hechizo = _hz("fuego", {"flecha": 1, "linea_x": 2})
@@ -153,6 +158,8 @@ func _alcance() -> void:
 
 func _afecta() -> void:
 	for el in ELEMENTOS:
+		if SOLIDOS.has(el):
+			continue
 		_montar()
 		var rune: RuneData = _runas[el]
 		var e1: Combate3D = _enemigo(Vector2i(8, 8))
@@ -236,6 +243,9 @@ func _barrera_y_linea() -> void:
 		var bloq_antes: int = _m._bloqueadas.size()
 		var alt_antes: int = Terreno3D.alturas.size()
 		_lanzar(_hz(el, {"linea_x": 2, "linea_z": 1}))
+		if SOLIDOS.has(el):
+			_ok("5 linea sola (%s) NO crea muro de solidez, pero SÍ su bloque (es un sólido, no un haz)" % el, _l._solideces_v2.is_empty() and Terreno3D.alturas.size() > alt_antes)
+			continue
 		_ok("5 linea sola (%s) NO crea muro: sin SolidezV2, sin casillas bloqueadas ni tierra" % el, _l._solideces_v2.is_empty() and _m._bloqueadas.size() == bloq_antes and Terreno3D.alturas.size() == alt_antes)
 	# un proyectil ajeno atraviesa el haz (no es un muro)
 	_montar()
@@ -247,6 +257,8 @@ func _barrera_y_linea() -> void:
 
 func _dibujo() -> void:
 	for el in ELEMENTOS:
+		if SOLIDOS.has(el):
+			continue
 		_montar()
 		var ve: VfxElemento3D = VfxElemento3D.conectar(_l, _m)
 		_lanzar(_hz(el, {"linea_x": 2}))
@@ -259,11 +271,11 @@ func _dibujo() -> void:
 	# el dibujo no se apaga a los 0,5 s (el HechizoVivo, de donde cuelga, vive lo que se ve el haz) y desaparece al acabar
 	_montar()
 	VfxElemento3D.conectar(_l, _m)
-	_lanzar(_hz("hielo", {"linea_x": 1}))
+	_lanzar(_hz("agua", {"linea_x": 1}))
 	await create_timer(0.7).timeout
-	_ok("6 a los 0,7 s el haz sigue dibujado (HAZ_DURA_S = %.1f s)" % Hechizo.HAZ_DURA_S, _l.find_child("Haz_hielo", true, false) != null)
+	_ok("6 a los 0,7 s el haz sigue dibujado (HAZ_DURA_S = %.1f s)" % Hechizo.HAZ_DURA_S, _l.find_child("Haz_agua", true, false) != null)
 	await create_timer(2.2).timeout
-	_ok("6 …y a los 2,9 s ya se ha liberado", _l.find_child("Haz_hielo", true, false) == null and _m.find_child("Haz_hielo", true, false) == null)
+	_ok("6 …y a los 2,9 s ya se ha liberado", _l.find_child("Haz_agua", true, false) == null and _m.find_child("Haz_agua", true, false) == null)
 	# la forma es "haz" y no la de otros volúmenes
 	_montar()
 	var ve2: VfxElemento3D = VfxElemento3D.conectar(_l, _m)

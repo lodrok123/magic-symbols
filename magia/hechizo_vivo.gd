@@ -111,6 +111,7 @@ var _viaja_sig: Array = []                 ## para cada acción de al_viajar, el
 var _estela_sig: float = 0.0
 var _golpeo_lanzador: bool = false
 var _sitio_golpe: Vector3 = Vector3.INF         ## dónde estaba lo que lo paró de un golpe (el sitio de su impacto); INF = no lo paró un golpe
+var _contacto_celdas: Array = []                 ## 29/10: las casillas que tocó al pararse (pared, barrera, objeto, enemigo o suelo): de ahí sale su momento «final» (el pulso ᚱ); vacío = no tocó nada
 var _contado: bool = false
 
 var lanz: Lanzador3D = null                ## quien lo conjuró: presta trazar, golpear, marcar suelo, construir tierra y los registros
@@ -633,6 +634,7 @@ func _materia_solido(ctx: Dictionary) -> int:
 			_marcar(String(ctx["elemento"]), cc)
 		if rune.pisable:
 			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"])}
+			opc.merge(perfil_solido(cc, ctx))
 			for _k in range(int(ctx["niveles"])):
 				if lanz.construir_tierra(cc, true, opc):
 					puestos += 1
@@ -641,6 +643,35 @@ func _materia_solido(ctx: Dictionary) -> int:
 			lanz._despues(persiste, Lanzador3D.liberar_celda.bind(cc))      # la casilla se libera aunque este nodo ya no exista
 			puestos += int(ctx["niveles"])
 	return puestos
+
+
+## 29/10 (Pablo, laboratorio de geometrías: «con el sólido crea formas que se parezcan a la geometría»): el DIBUJO de cada bloque sigue el perfil del elipsoide.
+## Las casillas del centro, enteras; las del borde, más estrechas (hasta PERFIL_BORDE_XZ) y desplazadas hacia dentro, y un poco más bajas (PERFIL_BORDE_Y), así un
+## muro ancho sale curvo y una losa larga, redondeada. La colisión y la altura que se pisa no cambian (la casilla sigue entera). Un volumen de una casilla no cambia.
+const PERFIL_BORDE_XZ: float = 0.7
+const PERFIL_BORDE_Y: float = 0.85
+
+## {"escala": Vector3, "desplaza": Vector3} del bloque de la casilla `c` dentro del volumen de `ctx` (centro `origen`, dirección `dir`, semiejes `g` en casillas).
+static func perfil_solido(c: Vector2i, ctx: Dictionary) -> Dictionary:
+	var cas: float = Terreno3D.casilla
+	var o: Vector3 = ctx["origen"]
+	var d3: Vector3 = ctx["dir"]
+	var d := Vector2(d3.x, d3.z)
+	d = d.normalized() if d.length() > 0.001 else Vector2.RIGHT
+	var g: Dictionary = ctx["g"]
+	var sx: float = maxf(float(g["x"]), 0.5)
+	var sz: float = maxf(float(g["z"]), 0.5)
+	var rel: Vector2 = (Vector2((float(c.x) + 0.5) * cas, (float(c.y) + 0.5) * cas) - Vector2(o.x, o.z)) / cas
+	var lz: float = rel.dot(d)
+	var lx: float = rel.dot(d.orthogonal())
+	var r2: float = (lx * lx) / (sx * sx) + (lz * lz) / (sz * sz)
+	if r2 <= 0.0001 or (sx <= 0.5 and sz <= 0.5):
+		return {}
+	var k: float = sqrt(clampf(1.0 - r2, 0.0, 1.0))            # 1 en el centro, 0 en el borde del elipsoide
+	var exz: float = lerpf(PERFIL_BORDE_XZ, 1.0, k)
+	var ey: float = lerpf(PERFIL_BORDE_Y, 1.0, k)
+	var hacia_centro: Vector2 = -rel.normalized() * cas * (1.0 - exz) * 0.5 * 0.94
+	return {"escala": Vector3(exz, ey, exz), "desplaza": Vector3(hacia_centro.x, -Terreno3D.ALTO_NIVEL * (1.0 - ey) * 0.5, hacia_centro.y)}
 
 
 ## LÍQUIDO: agua en la simulación proporcional al volumen del elipsoide (`Sigils.volumen_agua_v2`, casillas³ × casilla³ = u³), repartido a partes iguales entre las casillas libres. Cada
@@ -1219,6 +1250,7 @@ func _avanzar(dt: float) -> bool:
 				else:
 					_reflejado = true
 				return true
+			_contacto_celdas = [Lanzador3D.celda_de(nuevo)]
 			_terminar_o_volver("muro")
 			return false
 		var sol_x: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(nuevo.x, p.y, p.z)), 0)
@@ -1238,6 +1270,10 @@ func _avanzar(dt: float) -> bool:
 				Lanzador3D.celda_de(Vector3(p.x, p.y, nuevo.z)) if sol_z else Vector2i(-9999, -9999),
 				Lanzador3D.celda_de(nuevo) if sol_n else Vector2i(-9999, -9999)])
 			_golpes_areas(p, p + v.normalized() * Terreno3D.casilla * 1.05)         # lo que hay DENTRO de la casilla sólida (un pulsador, una antorcha…)
+			_contacto_celdas = []
+			for cs in [[sol_x, Vector3(nuevo.x, p.y, p.z)], [sol_z, Vector3(p.x, p.y, nuevo.z)], [sol_n, nuevo]]:
+				if bool(cs[0]) and not _contacto_celdas.has(Lanzador3D.celda_de(cs[1] as Vector3)):
+					_contacto_celdas.append(Lanzador3D.celda_de(cs[1] as Vector3))
 			_terminar_o_volver("muro")
 			return false
 		var c: Vector2i = Lanzador3D.celda_de(nuevo)
@@ -1248,6 +1284,7 @@ func _avanzar(dt: float) -> bool:
 				p = nuevo
 				_rebotar()
 				return true
+			_contacto_celdas = [c]
 			_terminar_o_volver("suelo")
 			return false
 	# El alcance se mide en el SUELO (lo que marca el anillo de casillas): un arco (`impulso_salida`) recorre más en 3D y, contado así, se acababa en el aire.
@@ -1273,6 +1310,8 @@ func _golpes_areas(desde: Vector3, hasta: Vector3) -> void:
 		if not is_instance_valid(obj) or golpeados.has(obj.get_instance_id()):
 			continue
 		if obj.has_method("bloquea_proyectiles") and bool(obj.call("bloquea_proyectiles", lanz)):
+			if obj is Node3D:
+				_contacto_celdas = [Lanzador3D.celda_de((obj as Node3D).global_position)]
 			_terminar_o_volver("muro")
 			return
 		if not obj.has_method("on_spell_hit") or obj.get("muerto") == true:
@@ -1282,6 +1321,7 @@ func _golpes_areas(desde: Vector3, hasta: Vector3) -> void:
 		_golpear(obj, v.normalized(), (obj as Node3D).global_position, p)
 		if not volviendo and golpes_dados > h.perfora:
 			_sitio_golpe = (obj as Node3D).global_position
+			_contacto_celdas = [Lanzador3D.celda_de(_sitio_golpe)]
 			_terminar_o_volver("golpe")
 			return
 
@@ -1358,6 +1398,7 @@ func _golpes_del_paso() -> void:
 				_golpear(obj, v.normalized(), (obj as Node3D).global_position, p)
 				if not volviendo and golpes_dados > h.perfora:
 					_sitio_golpe = (obj as Node3D).global_position
+					_contacto_celdas = [Lanzador3D.celda_de(_sitio_golpe)]
 					_terminar_o_volver("golpe")
 					return
 	if lanz != null and not seco and h.golpea_lanzador and not volviendo and not _golpeo_lanzador and edad > SEGURIDAD_S and lanz.jugador != null and is_instance_valid(lanz.jugador):
@@ -1396,11 +1437,24 @@ func _fin_de_ida(causa: String) -> void:
 		golpes_dados = 0
 		recorrido = 0.0
 		_sitio_golpe = Vector3.INF
+		_contacto_celdas = []
 		edad = 0.0
 		if v.length() < VEL_MIN_PROYECTIL:
 			v = Vector3.RIGHT * maxf(h.velocidad * Terreno3D.casilla, VEL_MIN_PROYECTIL)
 		return
 	_terminar(causa)
+
+
+## Las casillas de donde sale el momento «final» de un proyectil que se ha parado en `sitio`: la superficie que tocó (`_contacto_celdas`) y la casilla en la que
+## está; si no tocó nada (llegó a su alcance), las de su volumen (`_celdas_en`).
+func celdas_de_contacto(sitio: Vector3, dir_fin: Vector3) -> Array:
+	if _contacto_celdas.is_empty():
+		return _celdas_en(sitio, dir_fin)
+	var r: Array = _contacto_celdas.duplicate()
+	var aqui: Vector2i = Terreno3D.celda_de(sitio)
+	if not r.has(aqui) and Terreno3D.en_mapa(aqui):
+		r.append(aqui)
+	return r
 
 
 ## Acaba el proyectil. `al_expirar` salta salvo que lo haya parado un golpe (ese ya tuvo su `al_golpear`).
@@ -1418,9 +1472,10 @@ func _terminar(causa: String) -> void:
 			prevision["fin"] = sitio
 			prevision["causa"] = causa
 			return                                      # momentos y `al_expirar` son efectos: en seco no
-		# MOMENTO «final» (ᚱ + flecha = el pulso sale donde choca, sin caso especial): el volumen está donde se ha parado.
+		# MOMENTO «final» (ᚱ + flecha = el pulso sale donde choca, sin caso especial). 29/10 (Pablo): si se paró CONTRA algo (pared, barrera, objeto, enemigo, suelo), sale
+		# de la SUPERFICIE DE CONTACTO (la casilla tocada más la de delante, donde está), no de todo el volumen; así entra en la veta o el agua que ha tocado. Si llegó a su alcance sin tocar nada, del volumen.
 		if h.profundidad == 0 and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
-			_momento(Sigils.MOMENTO_FINAL, _celdas_en(sitio, dir_fin))
+			_momento(Sigils.MOMENTO_FINAL, celdas_de_contacto(sitio, dir_fin))
 	var expirar: Callable = func() -> void:
 		quedandose = false
 		if causa != "golpe":
