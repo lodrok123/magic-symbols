@@ -341,7 +341,7 @@ func _nucleo_golpeado() -> void:
 	if _nucleo_avisado:
 		return
 	_nucleo_avisado = true
-	texto("¡Núcleo!", COLOR_NUCLEO, 0.28)
+	texto_grande("¡Núcleo!", COLOR_NUCLEO, 0.28)
 
 
 ## Ni arde, ni se aturde, ni se asusta del aturdimiento de las vetas.
@@ -434,7 +434,7 @@ func _empezar_resbalar(direccion: Vector3) -> void:
 	_t_estado = 0.0
 	moviendo = 0
 	resbalones += 1
-	texto("¡Resbala!", Color(0.55, 0.95, 1.0), 0.28)
+	texto_grande("¡Resbala!", Color(0.55, 0.95, 1.0), 0.28)
 	_poner_clip("idle", false)
 	PlayLog.event("golem_resbala", {"dir": [_res_dir.x, _res_dir.z], "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y]})
 
@@ -756,9 +756,11 @@ func _impacto_golpe() -> void:
 				jugador.push(fuera.normalized() if fuera.length() > 0.05 else _dir_ataque, EMPUJE_GOLPE)
 				golpes_dados += 1
 	Sfx3D.play(self, "derrumbe")
-	var fx: Variant = mundo.get("_fx") if mundo != null else null
-	if fx is Vfx3D:
-		(fx as Vfx3D).temblor(0.35)
+	var suelo := Vector3(_pos_ataque0.x, position.y, _pos_ataque0.z) + _dir_ataque * (ZONA_DESDE + ZONA_LARGO * 0.4)
+	if not Sensacion3D.mazazo(self, suelo, _dir_ataque):    # gamefeel: polvo bajo los puños y temblor suave
+		var fx: Variant = mundo.get("_fx") if mundo != null else null
+		if fx is Vfx3D:
+			(fx as Vfx3D).temblor(0.35)
 	PlayLog.event("golem_golpe", {"acierta": dentro, "dano": DANO if dentro else 0.0})
 	_exponer()
 

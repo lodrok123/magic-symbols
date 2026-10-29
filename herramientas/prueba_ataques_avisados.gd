@@ -333,14 +333,15 @@ func _caso_esquiva_a_tiempo() -> void:
 
 
 func _caso_esquiva_a_destiempo() -> void:
-	var r: Array = await _hasta_ventana(0.45)
+	var antes: float = AvisoAtaque3D.VENTANA_ESQUIVA + 0.2
+	var r: Array = await _hasta_ventana(antes)
 	if r.is_empty():
 		_ok("7 a destiempo: hubo aviso", false)
 		return
 	var j: Jugador3D = jugador as Jugador3D
 	var veces: int = TiempoBruja.veces
 	j._iniciar_voltereta(Vector3(0, 0, 1))
-	_ok("7 a destiempo: rodar con 0,45 s por delante no da nada", not TiempoBruja.activa() and TiempoBruja.veces == veces and is_equal_approx(Engine.time_scale, 1.0))
+	_ok("7 a destiempo: rodar con %.2f s por delante no da nada" % antes, not TiempoBruja.activa() and TiempoBruja.veces == veces and is_equal_approx(Engine.time_scale, 1.0))
 	_limpiar()
 	await avanzar(3)
 

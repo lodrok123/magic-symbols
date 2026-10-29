@@ -98,6 +98,10 @@ var manual: bool = false                   ## true = no avanza solo (las pruebas
 var _max_recorrido: float = 0.0
 var quedandose: bool = false              ## true mientras dura su `permanencia` (ya se paró o llegó, y todavía no desaparece)
 var _t_viaje: float = 0.0                  ## s hasta que el volumen que viaja llega o choca (0 = no viaja)
+## Gamefeel lote 2 (29/10): el ARRANQUE (Sensacion3D.factor_arranque). Solo en la ida del primer tramo de un proyectil que se mueve, y solo en el vuelo de verdad
+## (`_physics_process`): `paso` con su dt (las pruebas y la previsión) no lo nota. El dibujo lee `factor_arranque` para estirarse.
+var t_arranque: float = 0.0                ## s de juego desde que salió (deja de contar al acabar el arranque)
+var factor_arranque: float = 1.0           ## el factor de velocidad de este fotograma (1 = su velocidad)
 var _radio_u: float = 0.0                  ## radio con que el proyectil acierta AHORA (u); con `crece` sube en vuelo hasta `_radio_pleno_u`
 var _radio_pleno_u: float = 0.0            ## el radio de acierto entero del proyectil (u): el de `semiejes_vuelo`
 var _crece_u: float = 0.0                  ## u/s a los que crece el radio de acierto del proyectil (`crece` m/s × casilla; 0 = no crece)
@@ -1122,7 +1126,18 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3
 
 
 func _physics_process(delta: float) -> void:
-	paso(delta)
+	paso(delta * _arranque(delta))
+
+
+## El factor de este fotograma (en el punto medio del paso, para que lo recorrido cuadre) y avanza el reloj del arranque.
+func _arranque(delta: float) -> float:
+	if volviendo or not activo or t_arranque >= Sensacion3D.T_ARRANQUE or v.length() < 0.01:
+		t_arranque = maxf(t_arranque, Sensacion3D.T_ARRANQUE) if v.length() >= 0.01 else t_arranque
+		factor_arranque = 1.0
+		return 1.0
+	factor_arranque = Sensacion3D.factor_arranque(t_arranque + delta * 0.5)
+	t_arranque += delta
+	return factor_arranque
 
 
 func _process(delta: float) -> void:

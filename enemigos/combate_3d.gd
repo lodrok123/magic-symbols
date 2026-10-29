@@ -480,6 +480,8 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
 	var v0: float = v0_de_empuje(fuerza, suelo)
 	_empuje += d.normalized() * v0
 	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
+	if v0 >= EMPUJADO_V0_MIN:
+		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE)     # gamefeel lote 2: los pies levantan polvo al salir despedido
 	_empezar_empujado(d, v0)
 
 
@@ -588,6 +590,11 @@ func _empezar_empujado(d: Vector3, v0: float) -> void:
 	anim_orden = ""
 	pj.animacion_actual = ""      # que `jugar` no lo tome por «ya está puesto» si el último clip fue otro
 	PlayLog.event("goblin_empujado", {"nombre": nombre, "v0": snappedf(v0, 0.1)})
+	# Gamefeel lote 2: el polvo de la caída, hacia la mitad del clip de vuelo (cuando el cuerpo da en el suelo). Con hitstop o congelado el clip se para, el polvo no espera.
+	if Sensacion3D.ACTIVA and is_inside_tree():
+		var tw: Tween = create_tween()                 # un tween del nodo: si se libera antes, se va con él
+		tw.tween_interval(maxf(_t_fase_empuje * 0.5, 0.05))
+		tw.tween_callback(_polvo_caida)
 
 
 ## =====================================================================================================
@@ -730,6 +737,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		return
 	var el: String = hechizo.elemento
 	var dec: Dictionary = decidir_golpe(hechizo)
+	var estaba_mojado: bool = mojado > 0.0
 	if bool(dec["curado"]):
 		_agua_elemental()                # lo cura y lo agranda UNA vez; ni mojado ni barrera de agua que lo proteja
 		return
@@ -745,9 +753,12 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		interrupcion = float(dec["interrumpe"])
 		_carga = 0.0
 	if bool(dec["vapor"]):
-		texto("¡Vapor!", Color(0.85, 0.9, 1.0))
+		texto_grande("¡Vapor!", Color(0.85, 0.9, 1.0))
 	if bool(dec["arco"]):
+		texto_grande("¡Descarga!", COLORES["rayo"])
 		_arco_cercano(base * 0.5)
+	elif el == "hielo" and estaba_mojado and congelado > 0.0:
+		texto_grande("¡Congelado!", COLORES.get("hielo", Color(0.6, 0.9, 1.0)))
 	for aviso in dec["avisos"]:
 		_reaccionar(String(aviso))       # A4: una vez por golpe, nunca por fotograma
 
@@ -877,6 +888,20 @@ func _hitstop_compartido(hs: float) -> void:
 
 func texto(txt: String, color: Color, extra_alto: float = 0.0) -> void:
 	Combate3D.flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA + extra_alto, 0), txt, color)
+
+
+## Gamefeel lote 2: el polvo de la caída del vuelo del empujón (no si se hundió: ahí salpica el agua).
+func _polvo_caida() -> void:
+	if not se_hundio:
+		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_CAIDA)
+
+
+## Gamefeel lote 2: una REACCIÓN GRANDE (vapor, descarga, congelado sobre mojado, hundido…): rótulo grande, hitstop del mundo, temblor y su sonido
+## (`Sensacion3D.reaccion_grande`). Con la sensación apagada, el texto pequeño de siempre.
+func texto_grande(txt: String, color: Color, extra_alto: float = 0.0) -> void:
+	var p: Vector3 = position + Vector3(0, altura + ALTO_BARRA_EXTRA + extra_alto + 0.15, 0)
+	if not Sensacion3D.reaccion_grande(self, txt, color, p):
+		texto(txt, color, extra_alto)
 
 
 ## Número o aviso que sube y se desvanece. Estático: lo usan también Jugador3D y Lanzador3D. Gamefeel (28/10): nace grande y encoge con rebote («pop») hasta `escala`;
@@ -2294,6 +2319,7 @@ func _morir(ahogado: bool = false) -> void:
 		(lista as Array).erase(pj)
 	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y], "ahogado": ahogado})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
+	Sensacion3D.muerte(self)                          # gamefeel lote 2: temblor y, si era el último de la sala, cámara lenta
 	if ahogado:
 		_hundir_modelo(dur_hundir)
 		return
@@ -2344,7 +2370,7 @@ static func rebote_hundimiento(p: float) -> float:
 ## baja el modelo bajo el agua durante `duracion` s con la curva de arriba. El nodo no se libera hasta que acaba.
 ## Se mueve el modelo y no este nodo: `_physics_process` ya no corre (muerto) y es el que copiaba la posición. Sin botín.
 func _hundir_modelo(duracion: float) -> void:
-	texto("¡Hundido!", COLORES["agua"], 0.1)
+	texto_grande("¡Hundido!", COLORES["agua"], 0.1)
 	duracion_hundimiento = maxf(duracion, 0.1)         # lo lee el Pipeline (`ReaccionesVfx3D.dura_hundimiento`): burbujas y sonido duran lo que el cuerpo tarda en bajar
 	if Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(_punto_hundido, AVISO_HUNDIDO, maxf(_radio_cuerpo(), 0.4) * 1.5)
@@ -2367,13 +2393,27 @@ func _hundir_modelo(duracion: float) -> void:
 		queue_free())
 
 
-## Moneda de oro que se recoge al pasar cerca.
+## Moneda de oro que se recoge al pasar cerca. Gamefeel lote 2: al soltarse SALTA desde el cuerpo hasta su sitio (un arco con un botecito) y, ya en el suelo, si ella
+## pasa a menos de RADIO_IMAN se IMANTA: vuela hacia ella acelerando y se recoge al llegar, con su «ting». Con `Sensacion3D.ACTIVA` = false, como antes: aparece en su sitio
+## y se coge a menos de RADIO_COGER.
 class Botin3D extends MeshInstance3D:
+	const T_SALTO: float = 0.42          ## s del arco desde el cuerpo hasta donde se queda
+	const ALTO_SALTO: float = 0.9        ## u que sube el arco
+	const RADIO_IMAN: float = 2.4        ## u (en el plano) a las que empieza a ir hacia ella
+	const ACEL_IMAN: float = 40.0        ## u/s² con que acelera hacia ella
+	const VEL_IMAN_MAX: float = 14.0
+	const RADIO_COGER: float = 1.1       ## u a las que se coge sin imán (el de siempre)
+	const RADIO_LLEGA: float = 0.45      ## u a las que se coge cuando viene imantada
 	var jugador: Jugador3D = null
 	var cantidad: int = 10
+	var imantada: bool = false
 	var _t: float = 0.0
 	var _base_y: float = 0.0
 	var _vivo: bool = true
+	var _t_salto: float = -1.0           ## < 0 = ya en su sitio
+	var _desde: Vector3 = Vector3.ZERO
+	var _hasta: Vector3 = Vector3.ZERO
+	var _vel: float = 0.0
 
 	static func soltar(p_mundo: Node3D, p_jugador: Jugador3D, p_cantidad: int, pos: Vector3) -> Botin3D:
 		var b := Botin3D.new()
@@ -2394,22 +2434,65 @@ class Botin3D extends MeshInstance3D:
 		esfera.material = m
 		b.mesh = esfera
 		b.name = "Oro"
-		b.position = pos + Vector3(randf_range(-0.4, 0.4), 0.3, randf_range(0.2, 0.6))
+		b._hasta = pos + Vector3(randf_range(-0.4, 0.4), 0.3, randf_range(0.2, 0.6))
 		b._base_y = pos.y + 0.3
+		if Sensacion3D.ACTIVA:
+			b._desde = pos + Vector3(0.0, 0.6, 0.0)
+			b._t_salto = 0.0
+			b.position = b._desde
+		else:
+			b.position = b._hasta
 		p_mundo.add_child(b)
 		return b
+
+	## ¿Está todavía saltando hacia su sitio? (las pruebas lo leen)
+	func saltando() -> bool:
+		return _t_salto >= 0.0
 
 	func _process(delta: float) -> void:
 		if not _vivo:
 			return
 		_t += delta
+		rotate_y(delta * (2.0 if not imantada else 9.0))
+		if _t_salto >= 0.0:
+			_t_salto += delta
+			var u: float = clampf(_t_salto / T_SALTO, 0.0, 1.0)
+			var plano: Vector3 = _desde.lerp(_hasta, u)
+			var arco: float = 4.0 * ALTO_SALTO * u * (1.0 - u)
+			var bote: float = absf(sin(clampf((_t_salto - T_SALTO) / 0.18, 0.0, 1.0) * PI)) * 0.12
+			position = Vector3(plano.x, lerpf(_desde.y, _base_y, u) + arco + bote, plano.z)
+			if _t_salto >= T_SALTO + 0.18 or (_t_salto >= T_SALTO and _cerca_para_iman()):     # si ella ya está cerca, no espera al bote
+				_t_salto = -1.0
+				_t = 0.0
+			return
+		if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
+			position.y = _base_y + sin(_t * 3.0) * 0.06
+			return
+		var hacia: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0) - position
+		var d: float = Vector2(hacia.x, hacia.z).length()
+		var misma_altura: bool = absf(jugador.position.y - _base_y) < 1.4
+		if Sensacion3D.ACTIVA and misma_altura and (imantada or d < RADIO_IMAN):
+			imantada = true
+			_vel = minf(VEL_IMAN_MAX, _vel + ACEL_IMAN * delta)
+			var paso: float = minf(_vel * delta, hacia.length())
+			position += hacia.normalized() * paso
+			if hacia.length() - paso <= RADIO_LLEGA:
+				_coger()
+			return
 		position.y = _base_y + sin(_t * 3.0) * 0.06
-		rotate_y(delta * 2.0)
-		if jugador != null and is_instance_valid(jugador) and not jugador.muerto:
-			var d: float = Vector2(jugador.position.x - position.x, jugador.position.z - position.z).length()
-			if d < 1.1 and absf(jugador.position.y - _base_y) < 1.4:
-				_vivo = false
-				Estado.i().dar_oro(cantidad)
-				Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d oro" % cantidad, Color(1, 0.9, 0.4))
-				PlayLog.event("oro", {"cantidad": cantidad, "total": Estado.i().oro})
-				queue_free()
+		if d < RADIO_COGER and misma_altura:
+			_coger()
+
+	func _cerca_para_iman() -> bool:
+		if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
+			return false
+		return Vector2(jugador.position.x - position.x, jugador.position.z - position.z).length() < RADIO_IMAN and absf(jugador.position.y - _base_y) < 1.4
+
+	func _coger() -> void:
+		_vivo = false
+		Estado.i().dar_oro(cantidad)
+		Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d oro" % cantidad, Color(1, 0.9, 0.4))
+		if Sensacion3D.ACTIVA:
+			Sfx.play(self, "moneda")
+		PlayLog.event("oro", {"cantidad": cantidad, "total": Estado.i().oro})
+		queue_free()

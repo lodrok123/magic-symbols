@@ -218,7 +218,7 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			grande = true
 			cuerpo.cargar(el)                                   # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
 			_al_crecer()
-			texto("¡Crece!", col, 0.25)
+			texto_grande("¡Crece!", col, 0.25)
 			crecio.emit(LimoVisual3D.TAMANO_GRANDE)
 		"cura":
 			var antes: float = health
@@ -496,6 +496,7 @@ func _seguir_accion(delta: float) -> void:
 
 ## Cae: si ella está dentro del círculo del aviso, 15 (30 de grande) y el retroceso leve hacia fuera.
 func _aterrizar_golpe() -> void:
+	Sensacion3D.polvo(mundo, _punto_golpe, Sensacion3D.POLVO_CAIDA * (1.3 if grande else 1.0))     # gamefeel lote 2: el golpe contra el suelo levanta polvo
 	if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		return
 	var rel: Vector3 = jugador.position - _punto_golpe
@@ -553,6 +554,7 @@ func _morir(ahogado: bool = false) -> void:
 			(n as Node3D).visible = false
 	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y], "ahogado": ahogado})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
+	Sensacion3D.muerte(self)                                 # gamefeel lote 2
 	var c: LimoVisual3D = cuerpo
 	if c != null and is_instance_valid(c):
 		c.cancelar_salto()

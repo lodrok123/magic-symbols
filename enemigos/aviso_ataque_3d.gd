@@ -18,7 +18,7 @@ extends Node3D
 
 const GRUPO: String = "aviso_ataque3d"
 const T_MIN: float = 0.4                     ## s mínimos entre que sale el aviso y el golpe (el contrato de C3: si el ataque es más rápido, lo alarga quien ataca)
-const VENTANA_ESQUIVA: float = 0.25          ## s antes del impacto en que rodar da premio (C4; la propuesta dice «~0,2 s»: 0,25 con el redondeo de los fotogramas)
+const VENTANA_ESQUIVA: float = 0.6           ## s antes del impacto en que rodar da premio (C4). Era 0,25 (la propuesta decía «~0,2 s»); 29/10: en el playtest de Pablo las volteretas de reacción caían a 0,45–0,66 s del golpe y ninguna daba premio
 const T_DESTELLO: float = 0.12               ## s que se ve el destello del impacto antes de borrarse
 const ALTO_SUELO: float = 0.06               ## u sobre los pies, para no pelearse con el suelo
 const COLOR: Color = Color(1.0, 0.22, 0.16)

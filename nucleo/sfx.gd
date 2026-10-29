@@ -142,6 +142,9 @@ const CATALOGO: Dictionary = {
 	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
 	"no_puedes":        {"f": ["no_puedes.wav"],        "db": -8.0,  "tono": 0.05},
 	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
+	"tiempo_tic":       {"f": ["tiempo_tic.wav"],       "db": -10.0, "tono": 0.0},
+	"reaccion_grande":  {"f": ["reaccion_grande.wav"],  "db": -7.0,  "tono": 0.04},
+	"moneda":           {"f": ["moneda.wav"],           "db": -14.0, "tono": 0.08},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 

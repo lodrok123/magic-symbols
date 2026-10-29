@@ -378,6 +378,8 @@ func push(direccion: Vector3, fuerza: float) -> void:
 		return
 	var f: float = fuerza * 0.0036 if fuerza > 100.0 else fuerza
 	_empuje += d.normalized() * f
+	if f >= Sensacion3D.EMPUJE_POLVO_JUGADORA and en_suelo and not nadando:
+		Sensacion3D.polvo(mundo, position, Sensacion3D.POLVO_EMPUJE)       # gamefeel lote 2
 
 
 ## T-CP1: cómo va el clip del cast point (0 en el recorte de inicio, 1 en el de fin; -1 si no hay), lo que tarda en llegar a su instante y dónde nace el hechizo.
@@ -802,6 +804,7 @@ func _esquiva_con_premio() -> void:
 	_t_inv = maxf(_t_inv, TiempoBruja.DURA / TiempoBruja.ESCALA)        # s reales (su reloj va compensado)
 	Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), "¡Esquiva!", Color(0.8, 0.7, 1.0))
 	Sfx3D.play(self, "sello_ok")
+	Sensacion3D.esquiva_perfecta(self)             # gamefeel lote 2: filtro violeta, estela de copias y tic-tac
 	PlayLog.event("esquiva_perfecta", {"queda": snappedf(av.queda(), 0.01), "veces": esquivas_perfectas})
 	esquiva_perfecta.emit(av)
 
@@ -931,6 +934,8 @@ func _vertical(delta: float, salto: bool) -> void:
 		vy -= GRAVEDAD * delta
 		position.y += vy * delta
 		if position.y <= suelo and vy <= 0.0:
+			if vy <= -Sensacion3D.VY_POLVO_CAIDA and not agua:
+				Sensacion3D.polvo(mundo, Vector3(position.x, suelo, position.z), Sensacion3D.POLVO_CAIDA)     # gamefeel lote 2: cae de alto
 			position.y = suelo
 			vy = 0.0
 			en_suelo = true
@@ -994,8 +999,8 @@ func _animar(mov: Vector3, correr: bool) -> void:
 func _sincronizar() -> void:
 	pj.position = position
 	_ultima = position
-	if _t_inv > 0.0 and not muerto and _t_roll <= 0.0:
-		pj.visible = int(_t_inv * 14.0) % 2 == 0       # parpadea mientras es invulnerable
+	if _t_inv > 0.0 and not muerto and _t_roll <= 0.0 and not TiempoBruja.activa():
+		pj.visible = int(_t_inv * 14.0) % 2 == 0       # parpadea mientras es invulnerable (en el tiempo bruja no: taparía las copias y parecería daño)
 	else:
 		pj.visible = true
 

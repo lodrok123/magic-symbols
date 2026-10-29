@@ -9,6 +9,17 @@ extends RefCounted
 ##   · al NO PODER lanzar (`no_puedes`, lo llama `Lanzador3D` en cada negativa): un golpe seco, la página tiembla en roja en el HUD y el cursor parpadea en rojo;
 ##   · el HITSTOP de un golpe a un enemigo, proporcional al daño (`hitstop_de`) y COMPARTIDO: la jugadora se congela también una fracción (`Jugador3D.hitstop`);
 ##   · al RECIBIR daño la jugadora (`dano_recibido`): viñeta roja, temblor y un hitstop corto.
+## LOTE 2 (29/10, Pablo: «implementa lote 2»):
+##   · ARRANQUE del proyectil (`factor_arranque`, lo usa `HechizoVivo._physics_process`): sale rápido y frena hasta su velocidad; al acabar el arranque ha recorrido lo MISMO que
+##     sin él (la curva suma cero), así que alcance, trayectoria y llegada a lo lejos no cambian. El dibujo se estira en la dirección del vuelo mientras va rápido (`estiron`)
+##     y suelta una estela corta de su color (`VfxElemento3D.Proyectil`);
+##   · POLVO al ser empujado y al caer (`polvo`): goblins empujados y su caída del vuelo, el limo al aterrizar, la jugadora empujada o al caer de alto;
+##   · ESQUIVA PERFECTA vistosa (`esquiva_perfecta`, la llama `Jugador3D._esquiva_con_premio`): la pantalla se desatura y se tiñe de violeta mientras dura el tiempo bruja,
+##     ella deja una estela de copias violetas y suena un «tic» de reloj (y un «toc» al acabar);
+##   · MUERTE con peso (`muerte`, la llama `_morir` de cada enemigo): temblor; si era el último de la sala, cámara lenta y golpe de zoom. El oro salta al caer y se imanta
+##     hacia ella (`Combate3D.Botin3D`);
+##   · REACCIONES grandes con su momento (`reaccion_grande`): vapor, descarga, congelado sobre mojado, hundido, el limo que crece, el núcleo del gólem, el gólem que
+##     resbala: hitstop del MUNDO (todos los enemigos y ella), rótulo grande, temblor y sonido propio.
 ## Nada de esto cambia reglas (daño, empuje del juego, tiempos de recarga): solo cómo se ve, se oye y se nota. `ACTIVA` = false lo apaga todo.
 
 static var ACTIVA: bool = true
@@ -30,8 +41,45 @@ static var ALFA_VINETA: float = 0.5
 static var TEMBLOR_DANO: float = 0.35          ## intensidad de `Vfx3D.temblor` (0..1)
 static var HITSTOP_DANO: float = 0.05          ## s que se congela ella al recibir un golpe
 
+# --- LOTE 2 · arranque del proyectil ---
+static var ARRANQUE: float = 0.7               ## sale a (1 + ARRANQUE) × su velocidad, aguanta rápido ~0,1 s, frena a ~0,65× y vuelve a la suya…
+static var T_ARRANQUE: float = 0.4             ## …en este tiempo (s de juego); 0 = sin arranque
+static var ESTIRON: float = 0.5                ## en la salida el dibujo mide (1 + ESTIRON) en la dirección del vuelo (y adelgaza); al frenar, un poco achatado
+static var T_ESTELA: float = 0.025             ## s entre bola y bola de la estela (solo mientras va más rápido que su velocidad)
+static var T_ESTELA_VIVE: float = 0.16
+# --- LOTE 2 · polvo ---
+static var POLVO_EMPUJE: float = 0.45          ## radio (u) del polvo a los pies al salir empujado
+static var POLVO_CAIDA: float = 0.75           ## radio al caer del vuelo del empujón / al aterrizar el limo
+static var EMPUJE_POLVO_JUGADORA: float = 2.0  ## u/s de empujón a la jugadora a partir de los que levanta polvo
+static var VY_POLVO_CAIDA: float = 4.5         ## u/s de caída a partir de los que levanta polvo al tocar suelo
+# --- LOTE 2 · esquiva perfecta ---
+static var COLOR_BRUJA: Color = Color(0.62, 0.42, 1.0)
+static var FUERZA_BRUJA: float = 0.8           ## cuánto desatura y tiñe la pantalla (0..1)
+static var T_ENTRA_BRUJA: float = 0.08         ## s reales que tarda en entrar el filtro (y en irse al acabar)
+static var T_COPIAS: float = 0.1               ## s reales entre copia y copia de la estela (29/10: eran 0,06 × 5 y se apilaban encima de ella en el primer 0,3 s)
+static var N_COPIAS: int = 16                  ## como mucho, durante todo el tiempo bruja
+static var MUEVE_COPIA: float = 0.25           ## u que tiene que haberse movido desde la última copia (quieta no deja copias apiladas)
+static var T_COPIA_VIVE: float = 0.5           ## s reales que tarda una copia en desvanecerse
+static var ALFA_COPIA: float = 0.6
+static var T_TIC: float = 0.5                  ## s reales entre «tic» y «tic» mientras dura
+# --- LOTE 2 · muerte ---
+static var TEMBLOR_MUERTE: float = 0.22
+## 29/10 (Pablo, sala del gólem): el mazazo del gólem levanta polvo bajo cada puño y uno mayor en el centro, y la cámara tiembla suave.
+static var POLVO_GOLEM: float = 0.9             ## radio del polvo de cada puño (el del centro, ×1,6)
+static var TEMBLOR_GOLEM: float = 0.3           ## temblor del mazazo (sin Sensacion: 0,35 fijo, como antes)
+static var RADIO_SALA: float = 16.0            ## u: los enemigos vivos a menos de esto de la jugadora son «de la sala»
+static var CAMARA_LENTA: float = 0.3           ## Engine.time_scale al caer el último…
+static var T_CAMARA_LENTA: float = 0.45        ## …durante estos s reales…
+static var T_VUELTA_LENTA: float = 0.25        ## …y vuelve a 1 en estos
+static var ZOOM_ULTIMO: float = 0.06
+# --- LOTE 2 · reacciones grandes ---
+static var HITSTOP_MUNDO: float = 0.12         ## s que se congelan todos (enemigos y ella) con una reacción grande
+static var ESCALA_ROTULO: float = 1.8
+static var TEMBLOR_REACCION: float = 0.4
+static var ZOOM_REACCION: float = 0.04
+
 ## Para las pruebas: cuántas veces se pidió cada cosa.
-static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0}
+static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0}
 
 const CODIGO_VINETA: String = """
 shader_type canvas_item;
@@ -160,3 +208,302 @@ static func _vineta(j: Node3D, fuerza: float) -> void:
 	var tw: Tween = capa.create_tween()
 	capa.set_meta("tw", tw)
 	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("fuerza", v), ALFA_VINETA * fuerza, 0.0, T_VINETA).set_ease(Tween.EASE_IN)
+
+
+## =====================================================================================================
+##  LOTE 2
+## =====================================================================================================
+
+## Arranque: el factor de velocidad del proyectil a los `t` s de salir. 1 + ARRANQUE·g(u), u = t / T_ARRANQUE, con g(u) = (1 − u)²·(1 + 2u − 15u²): vale 1 al salir, se
+## mantiene alto el primer quinto, baja a ≈ −½ (frena) y llega a 0 sin saltos (g(1) = g'(1) = 0). Su integral en [0, 1] es 0 (⅓ + 2/12 − 15/30): al acabar el arranque
+## el proyectil ha recorrido lo mismo que sin él.
+static func factor_arranque(t: float) -> float:
+	if not ACTIVA or ARRANQUE <= 0.0 or T_ARRANQUE <= 0.0 or t < 0.0 or t >= T_ARRANQUE:
+		return 1.0
+	var u: float = t / T_ARRANQUE
+	return 1.0 + ARRANQUE * (1.0 - u) * (1.0 - u) * (1.0 + 2.0 * u - 15.0 * u * u)
+
+
+## Cuánto se estira el dibujo con ese factor de arranque: 1 + ESTIRON en la salida, algo menos de 1 (achatado) al frenar, 1 a su velocidad.
+static func estiron(factor: float) -> float:
+	if ARRANQUE <= 0.0:
+		return 1.0
+	return maxf(0.5, 1.0 + ESTIRON * (factor - 1.0) / ARRANQUE)
+
+
+## La base que estira `s` veces en la dirección `d` y adelgaza 1/√s en las otras dos (el volumen no cambia), por `escala` uniforme.
+static func base_estirada(d: Vector3, s: float, escala: float) -> Basis:
+	if d.length() < 0.001 or absf(s - 1.0) < 0.001:
+		return Basis.IDENTITY.scaled(Vector3.ONE * escala)
+	var n: Vector3 = d.normalized()
+	var lado: float = 1.0 / sqrt(s)
+	var cols: Array = []
+	for e in [Vector3.RIGHT, Vector3.UP, Vector3.BACK]:
+		cols.append(((e as Vector3) * lado + n * (s - lado) * n.dot(e as Vector3)) * escala)
+	return Basis(cols[0], cols[1], cols[2])
+
+
+## Polvo a ras de suelo en `pos` (los pies) de radio `radio`. No en el agua (ahí no hay polvo: salpica otra cosa).
+static func polvo(en: Node, pos: Vector3, radio: float) -> void:
+	if not ACTIVA or radio <= 0.0 or not (en is Node3D) or not en.is_inside_tree():
+		return
+	var c: Vector2i = Terreno3D.celda_de(pos)
+	if Terreno3D.en_mapa(c) and Terreno3D.se_nada(c):
+		return
+	cuenta["polvo"] = int(cuenta["polvo"]) + 1
+	VfxPuzle3D.polvo(en as Node3D, pos + Vector3(0.0, 0.05, 0.0), radio)
+
+
+## El mazazo del gólem llega al suelo en `centro` (dirección del golpe `dir`): polvo bajo los dos puños y en medio, y temblor suave. Devuelve false si está apagado.
+static func mazazo(en: Node3D, centro: Vector3, dir: Vector3) -> bool:
+	if not ACTIVA or en == null or not en.is_inside_tree():
+		return false
+	var lado := Vector3(-dir.z, 0.0, dir.x).normalized() * 0.5
+	polvo(en, centro, POLVO_GOLEM * 1.6)
+	polvo(en, centro + lado, POLVO_GOLEM)
+	polvo(en, centro - lado, POLVO_GOLEM)
+	var mundo: Variant = en.get("mundo")
+	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+	if fx is Vfx3D and is_instance_valid(fx):
+		(fx as Vfx3D).temblor(TEMBLOR_GOLEM)
+	return true
+
+
+## Esquiva perfecta: filtro violeta y desaturado de pantalla, estela de copias y tic-tac mientras dure el tiempo bruja. `j` es el Jugador3D (su `pj` es el modelo).
+static func esquiva_perfecta(j: Node3D) -> void:
+	if not ACTIVA or j == null or not j.is_inside_tree():
+		return
+	cuenta["esquiva"] = int(cuenta["esquiva"]) + 1
+	var viejo: Node = j.get_node_or_null("EfectoBruja")
+	if viejo != null:
+		viejo.name = "EfectoBrujaViejo"
+		viejo.queue_free()
+	var ef := EfectoBruja.new()
+	ef.name = "EfectoBruja"
+	ef.jugadora = j
+	j.add_child(ef)
+
+
+## Un enemigo cae. Temblor siempre; si no queda ningún enemigo vivo «de la sala» (a menos de RADIO_SALA de la jugadora), además cámara lenta y golpe de zoom.
+## Devuelve true si era el último.
+static func muerte(e: Node3D) -> bool:
+	if not ACTIVA or e == null or not e.is_inside_tree():
+		return false
+	cuenta["muerte"] = int(cuenta["muerte"]) + 1
+	var mundo: Variant = e.get("mundo")
+	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+	if fx is Vfx3D and is_instance_valid(fx):
+		(fx as Vfx3D).temblor(TEMBLOR_MUERTE)
+	var j: Variant = e.get("jugador")
+	if not (j is Node3D) or not is_instance_valid(j):
+		return false
+	var pj_pos: Vector3 = (j as Node3D).global_position
+	if pj_pos.distance_to(e.global_position) > RADIO_SALA:
+		return false                       # cayó lejos de ella (otra sala, un charco que lo ahogó solo): no es «su» último
+	for n in e.get_tree().get_nodes_in_group("combate3d"):
+		if n == e or not is_instance_valid(n) or bool((n as Object).get("muerto")):
+			continue
+		if (n as Node3D).global_position.distance_to(pj_pos) <= RADIO_SALA:
+			return false
+	cuenta["ultimo"] = int(cuenta["ultimo"]) + 1
+	camara_lenta(e)
+	golpe_zoom(e.get_viewport(), ZOOM_ULTIMO, T_CAMARA_LENTA + T_VUELTA_LENTA)
+	return true
+
+
+## Cámara lenta del final: pone Engine.time_scale a CAMARA_LENTA solo si estaba a 1 (el libro, el lanzamiento rápido o el tiempo bruja mandan sobre ella) y lo devuelve a 1
+## solo si nadie lo ha tocado mientras.
+static func camara_lenta(en: Node) -> void:
+	if en == null or not en.is_inside_tree() or not is_equal_approx(Engine.time_scale, 1.0):
+		return
+	var cl := CamaraLenta.new()
+	cl.name = "CamaraLenta"
+	en.get_tree().root.add_child(cl)
+
+
+## Una reacción grande en `e` (vapor, descarga, congelado, hundido…): rótulo grande `texto` en `pos`, hitstop del mundo, temblor, zoom y su sonido.
+## Devuelve false si está apagado (quien llama pone entonces su texto pequeño de siempre).
+static func reaccion_grande(e: Node3D, texto: String, color: Color, pos: Vector3) -> bool:
+	if not ACTIVA or e == null or not e.is_inside_tree():
+		return false
+	cuenta["reaccion"] = int(cuenta["reaccion"]) + 1
+	var mundo: Variant = e.get("mundo")
+	var en: Node = mundo as Node if mundo is Node else e.get_parent()
+	Combate3D.flotante(en, pos, texto, color, ESCALA_ROTULO)
+	Sfx.play(e, "reaccion_grande")
+	for n in e.get_tree().get_nodes_in_group("combate3d"):
+		if is_instance_valid(n) and not bool((n as Object).get("muerto")) and (n as Object).has_method("_iniciar_hitstop"):
+			(n as Object).call("_iniciar_hitstop", HITSTOP_MUNDO)
+	var j: Variant = e.get("jugador")
+	if j is Node3D and is_instance_valid(j) and (j as Object).has_method("hitstop"):
+		(j as Object).call("hitstop", HITSTOP_MUNDO)
+	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+	if fx is Vfx3D and is_instance_valid(fx):
+		(fx as Vfx3D).temblor(TEMBLOR_REACCION)
+	golpe_zoom(e.get_viewport(), ZOOM_REACCION, 0.18)
+	return true
+
+
+## s reales de un fotograma de `delta` (el _process va escalado por Engine.time_scale).
+static func delta_real(delta: float) -> float:
+	return delta / maxf(Engine.time_scale, 0.01)
+
+
+## La cámara lenta del último enemigo: un nodo que vive lo que dura y se va.
+class CamaraLenta extends Node:
+	var _t: float = 0.0
+	var _puesto: float = 1.0
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		_puesto = Sensacion3D.CAMARA_LENTA
+		Engine.time_scale = _puesto
+
+	func _process(delta: float) -> void:
+		if not is_equal_approx(Engine.time_scale, _puesto):
+			_puesto = 1.0
+			queue_free()                   # otro (el libro, el tiempo bruja) ha tomado el tiempo: es suyo, no se toca
+			return
+		_t += Sensacion3D.delta_real(delta)
+		var fin: float = Sensacion3D.T_CAMARA_LENTA + Sensacion3D.T_VUELTA_LENTA
+		if _t >= fin:
+			Engine.time_scale = 1.0
+			_puesto = 1.0
+			queue_free()
+			return
+		var k: float = clampf((_t - Sensacion3D.T_CAMARA_LENTA) / maxf(Sensacion3D.T_VUELTA_LENTA, 0.01), 0.0, 1.0)
+		_puesto = lerpf(Sensacion3D.CAMARA_LENTA, 1.0, k * k)
+		Engine.time_scale = _puesto
+
+	func _exit_tree() -> void:
+		if _puesto < 1.0 and is_equal_approx(Engine.time_scale, _puesto):
+			Engine.time_scale = 1.0
+
+
+## El momento de la esquiva perfecta: filtro de pantalla, copias y tic-tac. Cuelga de la jugadora y se borra al acabar el tiempo bruja (con su salida).
+class EfectoBruja extends Node:
+	const CODIGO: String = """
+shader_type canvas_item;
+uniform sampler2D pantalla : hint_screen_texture, filter_linear_mipmap;
+uniform float fuerza = 0.0;
+uniform vec4 tinte : source_color = vec4(0.62, 0.42, 1.0, 1.0);
+void fragment() {
+	vec3 c = texture(pantalla, SCREEN_UV).rgb;
+	float l = dot(c, vec3(0.299, 0.587, 0.114));
+	vec3 g = mix(c, vec3(l), 0.85 * fuerza);
+	g = mix(g, g * tinte.rgb * 1.5, 0.5 * fuerza);
+	vec2 q = SCREEN_UV * 2.0 - 1.0;
+	float borde = smoothstep(0.6, 1.4, length(q));
+	g = mix(g, tinte.rgb * 0.35, borde * 0.6 * fuerza);
+	COLOR = vec4(g, 1.0);
+}
+"""
+	static var _sh: Shader = null
+
+	var jugadora: Node3D = null
+	var copias: int = 0
+	var tics: int = 0
+	var fuerza: float = 0.0
+	var _t_copia: float = 0.0
+	var _pos_copia: Vector3 = Vector3.INF
+	var _t_tic: float = 0.0
+	var _saliendo: bool = false
+	var _mat: ShaderMaterial = null
+	var _capa: CanvasLayer = null
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		if _sh == null:
+			_sh = Shader.new()
+			_sh.code = CODIGO
+		_capa = CanvasLayer.new()
+		_capa.layer = -5                   # por debajo del HUD: el libro y la vida no se tiñen
+		_capa.name = "FiltroBruja"
+		var r := ColorRect.new()
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		r.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_mat = ShaderMaterial.new()
+		_mat.shader = _sh
+		_mat.set_shader_parameter("tinte", Sensacion3D.COLOR_BRUJA)
+		_mat.set_shader_parameter("fuerza", 0.0)
+		r.material = _mat
+		_capa.add_child(r)
+		add_child(_capa)
+		_tic(1.0)
+		_copia()
+
+	func _process(delta: float) -> void:
+		var dr: float = Sensacion3D.delta_real(delta)
+		if not TiempoBruja.activa() and not _saliendo:
+			_saliendo = true
+			_tic(0.75)                       # «toc»: más grave, el tiempo vuelve
+		var entra: float = maxf(Sensacion3D.T_ENTRA_BRUJA, 0.01)
+		if _saliendo:
+			fuerza = maxf(0.0, fuerza - dr / entra)
+		else:
+			fuerza = minf(1.0, fuerza + dr / entra)
+		_mat.set_shader_parameter("fuerza", fuerza * Sensacion3D.FUERZA_BRUJA)
+		if not _saliendo:
+			_t_copia += dr
+			if _t_copia >= Sensacion3D.T_COPIAS and copias < Sensacion3D.N_COPIAS and jugadora != null and is_instance_valid(jugadora) 					and jugadora.global_position.distance_to(_pos_copia) >= Sensacion3D.MUEVE_COPIA:
+				_t_copia = 0.0
+				_copia()
+			_t_tic += dr
+			if _t_tic >= Sensacion3D.T_TIC:
+				_t_tic = 0.0
+				_tic(1.0)
+		elif fuerza <= 0.0:
+			queue_free()
+
+	func _tic(tono: float) -> void:
+		tics += 1
+		Sensacion3D.cuenta["tic"] = int(Sensacion3D.cuenta["tic"]) + 1
+		if jugadora != null and is_instance_valid(jugadora):
+			Sfx.play(jugadora, "tiempo_tic", tono)
+
+	## Una copia violeta de la pose de ahora: cada malla con esqueleto del modelo se «hornea» en su pose y se deja quieta, desvaneciéndose.
+	func _copia() -> void:
+		if jugadora == null or not is_instance_valid(jugadora) or not jugadora.is_inside_tree():
+			return
+		var modelo: Variant = jugadora.get("pj")
+		var raiz: Node3D = modelo as Node3D if modelo is Node3D else jugadora
+		var padre: Node = jugadora.get_parent()
+		if padre == null:
+			return
+		copias += 1
+		_pos_copia = jugadora.global_position
+		Sensacion3D.cuenta["copias"] = int(Sensacion3D.cuenta["copias"]) + 1
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		mat.albedo_color = Color(Sensacion3D.COLOR_BRUJA, Sensacion3D.ALFA_COPIA)
+		var copia := Node3D.new()
+		copia.name = "CopiaBruja"
+		padre.add_child(copia)
+		for mi in raiz.find_children("*", "MeshInstance3D", true, false):
+			var m: MeshInstance3D = mi as MeshInstance3D
+			if m == null or not m.is_visible_in_tree() or m.mesh == null:
+				continue
+			if m.mesh is PlaneMesh or m.mesh is QuadMesh or m.mesh.get_aabb().size.y * m.global_transform.basis.get_scale().y < 0.02:
+				continue                     # planos del suelo (sombra, anillo): en violeta salen como un cuadrado
+			var malla: Mesh = m.mesh
+			if m.skin != null and m.get_skin_reference() != null and m.get_skin_reference().get_skeleton().is_valid():
+				var horneada: ArrayMesh = m.bake_mesh_from_current_skeleton_pose()
+				if horneada != null:
+					malla = horneada
+			var c := MeshInstance3D.new()
+			c.mesh = malla
+			c.material_override = mat
+			c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			copia.add_child(c)
+			c.global_transform = m.global_transform
+		var tw: Tween = copia.create_tween()
+		tw.set_ignore_time_scale(true)
+		tw.tween_property(mat, "albedo_color:a", 0.0, Sensacion3D.T_COPIA_VIVE)
+		tw.tween_callback(copia.queue_free)
+
+	func _exit_tree() -> void:
+		if _capa != null and is_instance_valid(_capa):
+			_capa.queue_free()

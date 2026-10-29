@@ -119,9 +119,11 @@ class Proyectil extends Seguidor:
 			_t += delta
 			var k: float = clampf(_t / maxf(VfxElemento3D.PROYECTIL_CRECE_S, 0.01), 0.0, 1.0)
 			k = k * k * (3.0 - 2.0 * k)                      # suave al empezar y al llegar (smoothstep): se nota el «enfoque», no un salto
-			scale = Vector3.ONE * lerpf(escala_ini, 1.0, k)
+			var esc_ahora: float = lerpf(escala_ini, 1.0, k)
+			scale = Vector3.ONE * esc_ahora
 			if hv != null and is_instance_valid(hv) and bool(hv.get("activo")):
 				_girar_cintas(hv.get("v") as Vector3)
+				_arranque(hv, esc_ahora, delta)
 			if hv != null and is_instance_valid(hv) and not bool(hv.get("activo")):
 				_parado = true
 				al_pararse(hv)
@@ -137,6 +139,44 @@ class Proyectil extends Seguidor:
 				elif n is Node3D:
 					(n as Node3D).scale = Vector3.ONE * (1.0 - f)
 					(n as Node3D).visible = f < 1.0
+
+	## Gamefeel lote 2 (Sensacion3D): mientras el HechizoVivo va con arranque, el dibujo se estira en la dirección del vuelo (achatado al frenar) y, mientras va más
+	## rápido que su velocidad, suelta bolitas de su color que se apagan: la estela de la salida.
+	var estiron_ahora: float = 1.0       ## (la prueba lo lee)
+	var _t_estela: float = 0.0
+	func _arranque(hv: Object, esc_ahora: float, delta: float) -> void:
+		var f: float = float(hv.get("factor_arranque")) if hv.get("factor_arranque") != null else 1.0
+		estiron_ahora = Sensacion3D.estiron(f) if Sensacion3D.ACTIVA else 1.0
+		if absf(estiron_ahora - 1.0) > 0.001:
+			basis = Sensacion3D.base_estirada(hv.get("v") as Vector3, estiron_ahora, esc_ahora)
+		if f <= 1.0 or mundo == null or not is_instance_valid(mundo) or not is_inside_tree():
+			return
+		_t_estela += delta
+		if _t_estela < Sensacion3D.T_ESTELA:
+			return
+		_t_estela = 0.0
+		Sensacion3D.cuenta["estela"] = int(Sensacion3D.cuenta["estela"]) + 1
+		var bola := MeshInstance3D.new()
+		var esf := SphereMesh.new()
+		esf.radius = 0.11 * esc
+		esf.height = 0.22 * esc
+		esf.radial_segments = 8
+		esf.rings = 4
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_color = Color(Combate3D.COLORES.get(elemento, Color.WHITE) as Color, 0.55)
+		esf.material = m
+		bola.mesh = esf
+		bola.name = "EstelaArranque"
+		bola.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mundo.add_child(bola)
+		bola.global_position = global_position
+		var tw: Tween = bola.create_tween()
+		tw.tween_property(m, "albedo_color:a", 0.0, Sensacion3D.T_ESTELA_VIVE)
+		tw.parallel().tween_property(bola, "scale", Vector3.ONE * 0.3, Sensacion3D.T_ESTELA_VIVE)
+		tw.tween_callback(bola.queue_free)
 
 	## ¿Está parado? (la prueba lo lee)
 	func parado() -> bool:
