@@ -23,7 +23,7 @@ func _initialize() -> void:
 	c._construir_barra()
 	_paso(c, 0.1)
 	_ok("1 con la vida llena la barra no se ve", not c._barra_fondo.visible and not c._barra_vida.visible and not c._barra_perdida.visible)
-	c.receive_damage(30.0)
+	c.receive_damage(15.0)             # 29/10 (DANO_Y_TINTA): la vida máxima es 50, 15 = el 30 % que la prueba usaba con 100
 	_paso(c, DT)
 	_ok("2 tras el golpe la barra aparece", c._barra_fondo.visible and c._barra_vida.visible)
 	var col: Color = (c._barra_vida.material_override as StandardMaterial3D).albedo_color

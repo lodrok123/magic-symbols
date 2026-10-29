@@ -221,7 +221,7 @@ func _lanzar(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, dir: Vector
 	lanzadas += 1
 	ultimo = {"glifos": cont.duplicate(), "elemento": elem, "dir": dir, "n": n, "ms": ms, "estado": rune.estado,
 		"celdas": _lanzado_celdas.size(), "nodos_pico": 0, "motivos": [], "aviso": Lanzador3D.GeometriaV2.aviso_materia(g, rune),
-		"nombre": String(g["nombre"]), "coste": r.coste_v2()}
+		"nombre": String(g["nombre"]), "coste": r.tamano_relativo()}
 	_obs = {"ficha": ultimo, "nodos0": nodos0, "t": 0.0, "ultimo_us": Time.get_ticks_usec(), "frame_max_ms": 0.0}
 	return ultimo
 
@@ -577,12 +577,12 @@ func texto_hud() -> String:
 	var g: Dictionary = r.geo()
 	var rune: RuneData = runa()
 	var props: Dictionary = g["props"]
-	var rel: float = r.coste_v2()
+	var rel: float = r.tamano_relativo()
 	var cas: int = Lanzador3D.GeometriaV2.celdas(g, Vector2(_jug.position.x, _jug.position.z), Vector2(direccion().x, direccion().z), Terreno3D.casilla).size()
 	var lineas: PackedStringArray = []
 	lineas.append("RECETA %s · %s" % [NOMBRE_ELEMENTO[elemento], _glifos_texto()])
 	lineas.append("Elipsoide (semiejes, casillas): x %.2f · y %.2f · z %.2f   → %d casillas, %d nivel(es)" % [float(g["x"]), float(g["y"]), float(g["z"]), cas, Lanzador3D.GeometriaV2.niveles(g)])
-	lineas.append("Coste: %.2f (relativo) → %.1f de tinta   ·   recarga %.1f s" % [rel, Tinta.coste_receta(rel), r.cooldown])
+	lineas.append("Coste: %.1f de tinta (potencia %s, %d glifos)   ·   tamaño relativo %.2f   ·   recarga %.1f s" % [r.coste_tinta(), Dano.nombre_nivel(r.n_glifos()), r.n_glifos(), rel, r.cooldown])
 	lineas.append("Nombre derivado: %s  (vfx: %s)" % [String(g["nombre"]), r.forma_vfx()])
 	lineas.append("Estado: %s%s" % [rune.estado, ("   ·   ⚠ " + Lanzador3D.GeometriaV2.aviso_materia(g, rune)) if Lanzador3D.GeometriaV2.aviso_materia(g, rune) != "" else ""])
 	lineas.append("Propiedades: %s" % (str(props) if not props.is_empty() else "ninguna"))

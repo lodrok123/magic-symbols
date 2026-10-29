@@ -207,7 +207,8 @@ func _e1_dano() -> void:
 	var r_con: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
 	var e_con: Array = _golpe_real(lanz, mundo, "earth", "tierra")
 	_ok("E1.26 carmesí: el Hechizo de fuego sale con el daño ×1,5", absf(float(f_con[1]) - float(sin["fuego"][1]) * 1.5) < 0.01, "%.2f vs %.2f" % [f_con[1], sin["fuego"][1]])
-	_ok("E1.27 carmesí: el golpe REAL a un goblin quita ×1,5", absf(float(f_con[0]) - float(sin["fuego"][0]) * 1.5) < 0.05, "%.2f vs %.2f" % [f_con[0], sin["fuego"][0]])
+	# 29/10, DANO_Y_TINTA: el pigmento multiplica el daño BASE del Hechizo (B·E) y la defensa del goblin (2) se resta DESPUÉS, así que lo que quita el golpe real ya no es «×1,5 del de antes»: es Dano.aplicar(daño del Hechizo con pigmento, R, DEF). El goblin resiste el fuego (×0,75).
+	_ok("E1.27 carmesí: el golpe REAL a un goblin quita lo que dice Dano.aplicar con el daño ×1,5", absf(float(f_con[0]) - Dano.aplicar(float(f_con[1]), 1.0, 1.0, Combate3D.MULT_RESISTE, Dano.DEF_GOBLIN)) < 0.05 and float(f_con[0]) > float(sin["fuego"][0]), "%.2f vs %.2f" % [f_con[0], sin["fuego"][0]])
 	_ok("E1.28 carmesí: rayo y tierra NO cambian", absf(float(r_con[0]) - float(sin["rayo"][0])) < 0.01 and absf(float(e_con[0]) - float(sin["tierra"][0])) < 0.01)
 	t.activar_pigmento("ocre_tumulo")                     # rebaja: no toca el daño
 	var f_reb: Array = _golpe_real(lanz, mundo, "fire", "fuego")
@@ -216,7 +217,7 @@ func _e1_dano() -> void:
 	t.activar_pigmento("ambar_volcanico")                 # rayo ×1,5
 	var r_amb: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
 	var f_amb: Array = _golpe_real(lanz, mundo, "fire", "fuego")
-	_ok("E1.30 ámbar: rayo ×1,5 y el fuego vuelve a lo normal", absf(float(r_amb[0]) - float(sin["rayo"][0]) * 1.5) < 0.05 and absf(float(f_amb[0]) - float(sin["fuego"][0])) < 0.01, "%.2f vs %.2f" % [r_amb[0], sin["rayo"][0]])
+	_ok("E1.30 ámbar: rayo ×1,5 (en el daño del Hechizo; la defensa se resta después, 29/10) y el fuego vuelve a lo normal", absf(float(r_amb[0]) - Dano.aplicar(float(r_amb[1]), 1.0, 1.0, 1.0, Dano.DEF_GOBLIN)) < 0.05 and absf(float(r_amb[1]) - float(sin["rayo"][1]) * 1.5) < 0.01 and absf(float(f_amb[0]) - float(sin["fuego"][0])) < 0.01, "%.2f vs %.2f" % [r_amb[0], sin["rayo"][0]])
 	_avanza(t, Tinta.PIGMENTO_DURA + 1.0, false)
 	var r_fin: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
 	_ok("E1.31 al acabar el pigmento, el daño vuelve al base", absf(float(r_fin[0]) - float(sin["rayo"][0])) < 0.01)

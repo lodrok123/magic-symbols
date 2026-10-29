@@ -3,6 +3,7 @@ extends SceneTree
 ## (daño, empuje, quema, moja, congela, aturde, ralentiza, interrumpe), no de tablas escritas a mano. Sin ventana: `--headless --fixed-fps 60`.
 ## `ANTES` es la tabla MEDIDA con el código previo a HC3 (el golpe por `on_spell_hit(rune, dir)`, que es el contrato y no cambia): tres montajes por elemento
 ## (goblin normal, goblin ya mojado, elemental). La prueba exige los mismos números después del cambio.
+## 29/10 (DANO_Y_TINTA): la columna `dano` es ahora la de la fórmula (hechizo sin glifos = ligera, goblin DEF 2, débil al agua y resiste al fuego: p. ej. fuego 13,2 × 0,75 − 2 = 7,9; agua 9,6 × 1,5 − 2 = 12,4; rayo sobre mojado 55 × 1,5 − 2 = 80,5). El resto de columnas sigue siendo lo medido en HC3.
 class MundoFalso extends Node3D:
 	var _lado: int = 20
 	var _helada: Dictionary = {}
@@ -49,6 +50,8 @@ func _nuevo(montaje: String) -> Combate3D:
 	var g: Combate3D = Combate3D.equipar(modelo, _mundo, j, null)
 	g.set_physics_process(false)
 	g.altura = 0.85
+	g.health = 1000.0                   # 29/10 (DANO_Y_TINTA): con 50 de vida el rayo sobre mojado (80,5) quedaba cortado por la vida; aquí se mide el daño, no la muerte
+	g.vida_max = 1000.0
 	if montaje == "mojado":
 		g.mojado = 3.0
 	elif montaje == "elemental":
@@ -91,22 +94,22 @@ func _initialize() -> void:
 
 ## Medida con el código ANTERIOR a HC3 (18/10).
 const ANTES: Dictionary = {
-	"fuego/normal": { "dano": 25.0, "mojado": 0.0, "quemando": 3.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"fuego/mojado": { "dano": 25.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"fuego/elemental": { "dano": 25.0, "mojado": 0.0, "quemando": 5.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
-	"agua/normal": { "dano": 80.0, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"agua/mojado": { "dano": 80.0, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"fuego/normal": { "dano": 7.9, "mojado": 0.0, "quemando": 3.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"fuego/mojado": { "dano": 7.9, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"fuego/elemental": { "dano": 7.9, "mojado": 0.0, "quemando": 5.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
+	"agua/normal": { "dano": 12.4, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"agua/mojado": { "dano": 12.4, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"agua/elemental": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 0.0 },
-	"tierra/normal": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
-	"tierra/mojado": { "dano": 18.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
-	"tierra/elemental": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 4.7 },
-	"hielo/normal": { "dano": 20.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"hielo/mojado": { "dano": 35.0, "mojado": 3.0, "quemando": 0.0, "congelado": 2.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"hielo/elemental": { "dano": 20.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
-	"rayo/normal": { "dano": 55.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
-	"rayo/mojado": { "dano": 82.5, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
-	"rayo/elemental": { "dano": 55.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
-	"viento/normal": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
-	"viento/mojado": { "dano": 0.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
-	"viento/elemental": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 0.0 },
+	"tierra/normal": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
+	"tierra/mojado": { "dano": 11.8, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
+	"tierra/elemental": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 4.7 },
+	"hielo/normal": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"hielo/mojado": { "dano": 33.0, "mojado": 3.0, "quemando": 0.0, "congelado": 2.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"hielo/elemental": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
+	"rayo/normal": { "dano": 53.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
+	"rayo/mojado": { "dano": 80.5, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
+	"rayo/elemental": { "dano": 53.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
+	"viento/normal": { "dano": 7.6, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
+	"viento/mojado": { "dano": 7.6, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
+	"viento/elemental": { "dano": 7.6, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 0.0 },
 }

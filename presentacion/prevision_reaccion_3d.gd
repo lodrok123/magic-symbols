@@ -5,7 +5,7 @@ extends Node3D
 ##
 ## Pinta, mientras se apunta (libro o lanzamiento rápido), lo que `PrevisionHechizo.prever_rapido` dice que pasaría al soltar. NO decide nada: solo dibuja la lista que le pasa
 ## `Lanzador3D._pintar_previsualizacion` cada fotograma (`mostrar`). Tres familias, cada una con su forma para que no se confundan con las cajas del hechizo (A1, color del elemento):
-##   · ENEMIGO  un rótulo sobre la cabeza con la reacción principal y su multiplicador («Congela ×2», «Prende ½»), una segunda línea si hay otra reacción que importa, y un anillo
+##   · ENEMIGO  un rótulo sobre la cabeza con la reacción principal y su multiplicador («Congela ×1,5», «Prende ×0,75»), una segunda línea si hay otra reacción que importa, y un anillo
 ##              en el suelo del color de la reacción. Si lo empuja (A4, 28/10): una FLECHA en el suelo hasta su destino y allí su silueta translúcida (el fantasma); si acaba en el
 ##              agua honda, la flecha y el fantasma son azules y encima dice «Se hunde».
 ##   · SUELO    un cuadro plano del color de la reacción en cada casilla que cambia, y un rótulo pequeño por reacción (en la primera casilla de ese grupo).
@@ -48,7 +48,7 @@ const ESTILO: Dictionary = {
 	"rompe": ["Rompe", Color(0.9, 0.6, 0.4)],
 	"enfria": ["Enfría", Color(0.62, 0.68, 0.78)],
 }
-const COLOR_DEBIL: Color = Color(1.0, 0.35, 0.25)       ## «×2»
+const COLOR_DEBIL: Color = Color(1.0, 0.35, 0.25)       ## «×1,5» (débil, 29/10)
 const ALTO_ROTULO: float = 0.5                           ## por encima de los pies + altura: justo sobre la barra de vida (Combate3D: altura + 0,28); más alto, en la vista isométrica cae sobre el enemigo de detrás
 const ALTO_ROTULO_PIEZA: float = 1.3
 const LADO_SUELO: float = 0.62                           ## lado del cuadro de suelo, en casillas (las cajas del hechizo son de 0,9: este queda dentro y se distingue)
@@ -339,9 +339,11 @@ static func _color(reaccion: String) -> Color:
 
 static func _sufijo(mult: float) -> String:
 	if mult > 1.01:
-		return " ×1,5" if mult < 1.9 else " ×2"           # ×1,5 = el núcleo del gólem (E3)
+		return " ×1,5" if mult < 1.9 else " ×2"           # ×1,5 = débil (29/10, DANO_Y_TINTA: antes ×2) y el núcleo del gólem (E3)
 	if mult < 0.01:
 		return ""                                          # ×0: el rótulo ya lo dice («Piedra»)
+	if absf(mult - Dano.MULT_RESISTE) < 0.01:
+		return " ×0,75"                                    # resiste (29/10, DANO_Y_TINTA: antes ½)
 	if mult < 0.99:
 		return " ½"
 	return ""

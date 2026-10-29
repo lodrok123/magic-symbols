@@ -101,6 +101,7 @@ static func equipar(c: Combate3D, con_modelo: bool = true) -> Escudo3D:
 		for m in e._mats_quemado:
 			Ocluso3D.configurar_disolver(m, Ocluso3D.DISOLVER_COLOR, Ocluso3D.DISOLVER_CELDA_ESCUDO)
 	c.escudo = e
+	c.defensa = maxf(c.defensa, Dano.DEF_ESCUDO)          # 29/10 (DANO_Y_TINTA): el guerrero con escudo lleva defensa 5 (el resto de goblins, 2)
 	c.add_child(e)
 	e._colocar()
 	if e.en_brazo and c.pj != null and is_instance_valid(c.pj):

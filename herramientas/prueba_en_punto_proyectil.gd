@@ -99,7 +99,7 @@ func _escenario() -> void:
 	await _limpiar()
 	var datos_f2: Dictionary = _datos(["flecha", "repeticion"], "fire")
 	var receta_f2: Lanzador3D.Receta3D = datos_f2["receta"]
-	var esperado: float = Tinta.coste_receta(receta_f2.coste_v2())
+	var esperado: float = receta_f2.coste_tinta()
 	var antes: float = jugador.tinta.actual if jugador.tinta != null else -1.0
 	lanzador.lanzar_ahora(datos_f2, pies, Vector3.RIGHT, false)
 	var despues: float = jugador.tinta.actual if jugador.tinta != null else -1.0
@@ -124,7 +124,7 @@ func _escenario() -> void:
 	var recarga_t: float = lanzador.cooldown_left[0]         # justo al lanzar: después baja con el tiempo
 	await avanzar_s(0.5)
 	var tinta_t: float = tinta_antes - jugador.tinta.actual
-	var esperado_t: float = Tinta.coste_receta(receta_t.coste_v2())
+	var esperado_t: float = receta_t.coste_tinta()
 	_ok("5 apuntando a una casilla libre sale (lanzar_ahora devuelve true)", salio_t)
 	_ok("5 …y construye AHÍ: altura %d en %s, y nada en la casilla de la jugadora (altura %d)" % [Terreno3D.altura_en(celda_libre), str(celda_libre), Terreno3D.altura_en(Terreno3D.celda_de(pies))],
 		Terreno3D.altura_en(celda_libre) >= 1 and Terreno3D.altura_en(Terreno3D.celda_de(pies)) == 0)

@@ -138,7 +138,7 @@ func _escenario() -> void:
 	lab.sumar("linea_z", 1)
 	lab.sumar("flecha", 1)
 	var hud: String = lab.texto_hud()
-	_ok("3 el HUD enseña el coste (relativo y en tinta)", hud.contains("Coste") and hud.contains("de tinta"), hud.get_slice("\n", 2))
+	_ok("3 el HUD enseña el coste (en tinta, por potencia, 29/10)", hud.contains("Coste") and hud.contains("de tinta"), hud.get_slice("\n", 2))
 	_ok("3 el HUD enseña el nombre derivado", hud.contains("Nombre derivado: x_mano"), hud.get_slice("\n", 3))
 	_ok("3 el HUD enseña el estado de la materia", hud.contains("Estado: "), hud.get_slice("\n", 4))
 	_ok("3 el HUD enseña los semiejes del elipsoide", hud.contains("Elipsoide") and hud.contains("z %.2f" % (Sigils.RADIO_BASE_V2 + Sigils.PASO_FONDO_V2)), hud.get_slice("\n", 1))

@@ -51,7 +51,7 @@ func _escenario() -> void:
 		var e: Dictionary = rv.back()
 		var props: Dictionary = e.get("propiedades", {})
 		rv_ok = String(e.get("estado", "")) == "plasma" and String(e.get("nombre", "")) == "x_mano" and is_equal_approx(float(props.get("viaja", 0.0)), 2.0) \
-			and float(e.get("x", 0.0)) > 0.0 and float(e.get("coste_relativo", 0.0)) >= 1.0 and float(e.get("coste_tinta", 0.0)) >= Tinta.COSTE_BASE_V2
+			and float(e.get("x", 0.0)) > 0.0 and float(e.get("coste_relativo", 0.0)) >= 1.0 and float(e.get("coste_tinta", 0.0)) >= Dano.tinta(0)
 	_ok("3 el diario anota `receta_v2` con dimensiones, propiedades (viaja 2: una flecha), estado (plasma) y coste", rv_ok, str(rv.back()) if not rv.is_empty() else "sin eventos")
 
 	# --- Recarga ---
@@ -78,8 +78,8 @@ func _escenario() -> void:
 	tinta.frascos = frascos0
 	tinta.actual = 100.0
 	_ok("6 con la tinta llena la flecha sale", lanzador.lanzar_pagina_ya(0, jugador.position, Vector3.RIGHT))
-	# R3: la tinta sale de las medidas (Tinta.coste_receta: 10 × coste_v2). Una flecha es la esfera base con UNA propiedad: 10 × 1,25 = 12,5 (antes, 10 por la forma «proyectil»).
-	_ok("6 y cuesta 12,5", tinta.actual > 87.0 and tinta.actual < 88.0, "%.2f" % tinta.actual)
+	# 29/10 (DANO_Y_TINTA): la tinta sale de la potencia: una flecha sola es 1 glifo = ligera = 8 (antes, por volumen: 10 × 1,25 = 12,5).
+	_ok("6 y cuesta 8", tinta.actual > 91.0 and tinta.actual < 93.0, "%.2f" % tinta.actual)
 
 	# --- El libro enseña los ejes (diario 156, 18/10): contadores de la página, ᛁ girada, cubo X·Y·Z y chuleta ---
 	await avanzar_s(lanzador.cooldown_total[0] + 0.5)

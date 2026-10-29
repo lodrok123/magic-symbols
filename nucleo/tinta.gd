@@ -156,13 +156,8 @@ func _ganar(id: String, tope: int) -> bool:
 	return true
 
 
-## R3 (17/10): con la receta V2 el coste ya no sale de una forma con nombre sino de las medidas (`Sigils.coste_v2`: la esfera base vale 1,
-## crece con el volumen y con el nº de propiedades). Aquí se pasa a tinta: la esfera base cuesta lo que un `punto` (10) y el techo es la barra.
-const COSTE_BASE_V2: float = 10.0
-
-
-static func coste_receta(coste_relativo: float) -> float:
-	return clampf(COSTE_BASE_V2 * coste_relativo, COSTE_BASE_V2, MAXIMA)
+## 29/10 (DANO_Y_TINTA): el coste de un hechizo YA NO sale del volumen (antes `coste_receta`, 10 × tamaño relativo, con `COSTE_BASE_V2`): sale de su POTENCIA, en `Dano.tinta`
+## (ligera 8 · media 18 · alta 34, × (1 + recargos de glifos especiales)). Aquí solo se cobra: `puede_pagar` y `gastar` reciben ese coste y `coste_efectivo` le aplica la rebaja del pigmento.
 
 
 ## Cuánto cuesta una forma de hechizo.

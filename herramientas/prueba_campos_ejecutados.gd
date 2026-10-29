@@ -31,10 +31,10 @@ const DT: float = 1.0 / 60.0
 const MAX_PASOS: int = 1500
 const V_LENTA: float = 2.0                      ## m/s de las flechas de estas pruebas (la de verdad es 1,74): da tiempo a ver el efecto de cada campo
 
+## 29/10 (DANO_Y_TINTA): `potencia` ya NO está aquí: es la G de `Dano` y `Combate3D.decidir_golpe` la multiplica (con 1,0 hoy, pero cambiarla cambia el daño).
 ## Campos que NO producen ninguna diferencia observable en HechizoVivo ni en Combate3D, con el motivo (la auditoría los llama «solo dato» y «sombra del RuneData»). La prueba comprueba
 ## que de verdad no se notan: si alguno empieza a leerse, tiene que SALIR de esta lista. El valor de `CAMBIO_SOLO_DATO` es el que se prueba.
 const CAMPOS_SOLO_DATO: Dictionary = {
-	"potencia": "SOLO DATO: GLIFOS_RECETA §2.4 paso 5 dice «daño × potencia» y nadie lo aplica (Combate3D.golpe lee `dano` a secas)",
 	"intensidad_estado": "SOLO DATO: ESPEC §1.5 «× todas las duraciones de estado»; ninguna duración la multiplica",
 	"elasticidad": "SOLO DATO: el rebote invierte la velocidad entera (HechizoVivo._avanzar); no conserva una fracción",
 	"ralentiza_fuerza": "SOLO DATO: Combate3D.vel_mult usa un 0,6 fijo (casualmente 1 − 0,4 de la tierra); el campo no se lee",
@@ -49,7 +49,7 @@ const CAMPOS_SOLO_DATO: Dictionary = {
 }
 ## El valor ≠ defecto con que se prueba cada campo de arriba.
 const CAMBIO_SOLO_DATO: Dictionary = {
-	"potencia": 3.0, "intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0, "temperatura": 1.0, "humedad": 1.0, "conductividad": 1.0,
+	"intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0, "temperatura": 1.0, "humedad": 1.0, "conductividad": 1.0,
 	"empuje": 0.9, "deja": "helado", "pisable": false, "color": Color(0.1, 0.9, 0.3),
 }
 
@@ -83,6 +83,7 @@ const FILAS: Dictionary = {
 	"busca": {"esc": "proy", "elem": "fire", "base": {"velocidad": V_LENTA, "distancia_max": 5.0, "gravedad": 0.0}, "val": {"busca": 1.0}, "mundo": {"enemigo": Vector2i(3, 1)}},
 	"en_punto": {"esc": "proy", "elem": "fire", "base": {"velocidad": V_LENTA, "distancia_max": 3.0, "gravedad": 0.0}, "val": {"en_punto": true}, "mundo": {"desplaza_mano": Vector3(1.0, 0.0, 1.0)}},
 	"dano": {"esc": "golpe", "elem": "fire", "val": {"dano": 77.0}},
+	"potencia": {"esc": "golpe", "elem": "fire", "val": {"potencia": 3.0}},       # 29/10: G de `Dano` (daño × potencia); antes era solo dato
 	"dano_periodico": {"esc": "vol", "elem": "fire", "val": {"dano_periodico": 30.0}, "mundo": {"enemigo": Vector2i(0, 0)}},
 	"fuerza_golpe": {"esc": "golpe", "elem": "fire", "val": {"fuerza_golpe": 1500.0}},
 	"perfora": {"esc": "proy", "elem": "fire", "base": {"velocidad": V_LENTA, "distancia_max": 5.0, "gravedad": 0.0}, "val": {"perfora": 1}, "mundo": {"enemigo": Vector2i(2, 0), "enemigo2": Vector2i(3, 0)}},

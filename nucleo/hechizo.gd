@@ -113,7 +113,7 @@ const EDITABLES: Dictionary = {
 	"choca_con": {"paso": 1.0, "min": 0.0, "max": 3.0},
 }
 ## Los derivados que enseña la tabla (no se tocan: salen de lo demás).
-const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "recarga", "volumen", "superficie", "masa", "resistencia",
+const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "n_glifos", "nivel_potencia", "recarga", "volumen", "superficie", "masa", "resistencia",
 	"flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz"]
 
 # --- Forma y volumen ---
@@ -163,9 +163,9 @@ var en_punto: bool = false            ## nace donde apunta el cursor (dentro del
 var busca: float = 0.0                 ## fuerza de giro hacia un objetivo (0 = recto) · HC4
 
 # --- Daño y combate ---
-var dano: float = 1.0                  ## daño base (hoy RuneData.damage × potencia 1; el daño no depende de la calidad). Base 1 (ESPEC §1.5)
+var dano: float = 1.0                  ## daño base B × E. 29/10 (DANO_Y_TINTA): fuego, agua, tierra y viento lo ponen `construir` desde la potencia (`Dano.base_elemental`); hielo y rayo (aparcados) conservan RuneData.damage. No depende de la calidad
 var dano_periodico: float = 0.0        ## puntos/s de una zona de plasma · antes `FRAC_DANO_ZONA_V2` (20 % del daño por pulso)
-var potencia: float = 1.0              ## factor del daño (glifo amplificar, aparcado) · ESPEC §1.5
+var potencia: float = 1.0              ## G de `Dano`: factor del daño por glifos con efecto propio sobre el impacto (glifo amplificar, aparcado) · ESPEC §1.5. Hoy 1,0; NO es el nivel de potencia (ese es `nivel_potencia`)
 var empuje: float = 0.0                ## 0..1: cuánto empuja un campo de gas (la zona) y qué fracción de la fuerza máxima es
 var fuerza_golpe: float = 400.0        ## fuerza con que empuja a un enemigo al golpearlo, ANTES de MULT_EMPUJE y del suelo de Combate3D (0 = no empuja: el viento lo empuja el Lanzador). 400 = la de siempre para lo que no tiene valor propio
 var perfora: int = 0                   ## enemigos que atraviesa antes de pararse · HC4
@@ -273,8 +273,10 @@ var forma: String = "x_mano"           ## nombre derivado: x_mano | alto | abajo
 var cast_point: String = ""            ## id de la variación de CastPoints para esa forma
 var niveles: int = 1
 var viaja: bool = false
-var coste: float = 1.0                 ## relativo: la esfera base sin propiedades vale 1
-var coste_tinta: float = 0.0
+var coste: float = 1.0                 ## tamaño relativo (la esfera base sin propiedades vale 1). 29/10: ya NO es la tinta; solo informa del volumen (lab, pruebas)
+var coste_tinta: float = 0.0           ## 29/10 (DANO_Y_TINTA): T_base(potencia) × (1 + recargos), ANTES de la rebaja del pigmento. Lo calcula `Dano.tinta`
+var n_glifos: int = 0                  ## 29/10: glifos de la receta (los conocidos; el elemento no cuenta). De aquí sale la potencia
+var nivel_potencia: int = 0            ## 29/10: Dano.LIGERA / MEDIA / ALTA según `n_glifos`
 var recarga: float = 0.0
 
 ## De dónde viene el valor de cada campo (HC5): "defecto" · "elemento" · "glifo:<nombre>" · "calidad". Los componentes de semiejes llevan «semiejes.x».
@@ -319,6 +321,13 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 			mod["de"] = "glifo:%s" % nombre
 			lista.append(mod)
 	h._aplicar(lista, "glifo", true)
+	# 29/10 (DANO_Y_TINTA): el daño base de fuego, agua, tierra y viento sale de la potencia (nº de glifos) y del elemento; hielo y rayo conservan el suyo.
+	if Dano.tiene_tabla(h.elemento):
+		var n_g: int = 0
+		for k in h.glifos:
+			n_g += maxi(int(h.glifos[k]), 0)
+		h.dano = Dano.base_elemental(n_g, h.elemento)
+		h.origen["dano"] = "potencia"
 	# la calidad del trazo solo alarga lo que dura: la vida natural y la permanencia
 	if h.persiste > 0.0:
 		h.persiste *= Sigils.quality_factor(h.calidad)
@@ -451,7 +460,11 @@ func _derivar() -> void:
 	var vol: float = 4.0 / 3.0 * PI * _glifos_x * _glifos_y * _glifos_z
 	var props_usadas: Dictionary = propiedades_usadas()
 	coste = vol / base * (1.0 + Sigils.COSTE_PROP_V2 * float(props_usadas.size())) * Sigils.recargo_continuo(props_usadas)
-	coste_tinta = Tinta.coste_receta(coste)
+	n_glifos = 0
+	for k in glifos:
+		n_glifos += maxi(int(glifos[k]), 0)
+	nivel_potencia = Dano.nivel(n_glifos)
+	coste_tinta = Dano.tinta(n_glifos, Sigils.recargos_tinta(props_usadas))       # 29/10: la tinta sale de la potencia, no del volumen
 	recarga = Sigils.cooldown_v2(glifos)
 	for campo in DERIVADOS:
 		origen[campo] = "derivado"

@@ -160,7 +160,7 @@ func _comprobar(rune: RuneData, elemento: String, combo: Array, c: Dictionary, r
 	if not _iguales(d0, d2):
 		_anota("con({}) = a_diccionario()", et + " " + str(_diferencias(d0, d2)))
 	# --- el camino del libro dice lo mismo ---
-	if not is_equal_approx(Tinta.coste_receta(r.coste_v2()), h.coste_tinta):
+	if not is_equal_approx(r.coste_tinta(), h.coste_tinta):
 		_anota("Receta3D = Hechizo en tinta", et)
 	if not is_equal_approx(r.cooldown, h.recarga):
 		_anota("Receta3D = Hechizo en recarga", et)

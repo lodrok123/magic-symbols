@@ -67,7 +67,7 @@ func _escenario() -> void:
 	# --- La flecha directa no hace daño ---
 	for el in ["fuego", "rayo", "tierra"]:
 		await _disparar(Vector2i(11, 6), el, Vector3(1, 0, 0), 1.4)
-	_ok("2 la flecha directa (fuego, rayo, tierra) no le hace daño: vida %.0f de 120" % a.health, is_equal_approx(a.health, 120.0) and a.g_estado == "armado")
+	_ok("2 la flecha directa (fuego, rayo, tierra) no le hace daño: vida %.0f de %d" % [a.health, int(Golem3D.VIDA)], is_equal_approx(a.health, Golem3D.VIDA) and a.g_estado == "armado")
 
 	# --- FORMA 2 · hielo + viento hasta hundirlo ---
 	await _disparar(Vector2i(1, 4), "hielo", Vector3(1, 0, 0), 2.0)

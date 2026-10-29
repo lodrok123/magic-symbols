@@ -113,17 +113,17 @@ func _vida() -> void:
 	# Una flecha de fuego y se queda mirando cómo arde hasta que se apaga: vivo.
 	var e: Array = _escena(5, 5, 15, 15)
 	var g: Gatopedro3D = e[0]
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
-	_ok("1 una flecha de fuego quita lo que dice fire_rune.tres (%.0f)" % fuego.damage, absf((g.vida_max - g.health) - fuego.damage) < 0.5, "vida %.1f de %.0f" % [g.health, g.vida_max])
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
+	_ok("1 un hechizo de fuego MEDIO (2 glifos; 29/10, DANO_Y_TINTA) quita %.1f" % Dano.base_elemental(2, "fuego"), absf((g.vida_max - g.health) - Dano.base_elemental(2, "fuego")) < 0.5, "vida %.1f de %.0f" % [g.health, g.vida_max])
 	_avanzar(g, 6.0)
 	_ok("1 una flecha + TODA su quemadura no lo mata", not g.muerto and g.health > 0.0, "vida %.1f" % g.health)
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
 	_ok("1 la segunda flecha de fuego lo tumba", g.muerto and g.health <= 0.0, "vida %.1f" % g.health)
 	# Dos flechas seguidas, sin esperar a la quemadura: cae igual.
 	e = _escena(5, 5, 15, 15)
 	g = e[0]
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
 	_ok("1 dos flechas seguidas lo tumban", g.muerto)
 	# Sin debilidad ni resistencia: el fuego no se multiplica.
 	e = _escena(5, 5, 15, 15)
@@ -141,8 +141,8 @@ func _vida() -> void:
 	Estado.i().enemigo_muerto.connect(anotar)
 	e = _escena(5, 5, 15, 15)
 	g = e[0]
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
-	g.golpe(Hechizo.construir(fuego, {}), Vector3.ZERO)
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
+	g.golpe(Hechizo.construir(fuego, {"flecha": 2}), Vector3.ZERO)
 	_ok("1 al caer emite enemigo_muerto(«Gatopedro»)", avisado == ["Gatopedro"], str(avisado))
 	Estado.i().enemigo_muerto.disconnect(anotar)       # Estado es estático: si no, la función sobrevive a la prueba
 
@@ -297,5 +297,5 @@ func _vuelta() -> void:
 
 func _goblins_igual() -> void:
 	var c := Combate3D.new()
-	_ok("9 los goblins siguen con sus sonidos y su rombo de siempre", c.snd_alerta == "goblin_grito" and c.snd_muere == "goblin_muere" and c.debil == "agua" and c.resiste == "fuego" and c.vida_max == 100.0)
+	_ok("9 los goblins siguen con sus sonidos y su rombo de siempre", c.snd_alerta == "goblin_grito" and c.snd_muere == "goblin_muere" and c.debil == "agua" and c.resiste == "fuego" and c.vida_max == Combate3D.VIDA_MAXIMA)
 	c.free()

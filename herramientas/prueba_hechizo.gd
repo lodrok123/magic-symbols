@@ -142,7 +142,10 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	var perm_base: float = float(maxi(int(c.get("barrera", 0)) - 1, 0)) + float(props.get("permanencia", 0.0))      # la barrera suma 1 s por glifo sucesivo y ᛉ 2 s por glifo
 	var perm: float = perm_base * (Sigils.quality_factor(calidad) if perm_base > 0.0 else 1.0)
 	_ok(_casi(h.permanencia, perm), "%s: permanencia %.3f ≠ %.3f" % [et, h.permanencia, perm])
-	_ok(_casi(h.dano, rune.damage + (18.0 if h.elemento == "tierra" else 0.0)) and _casi(h.empuje, rune.empuje) and h.estado_materia == rune.estado and h.pisable == rune.pisable and h.deja == rune.deja, "%s: daño, empuje, estado, pisable o deja" % et)
+	var n_g: int = 0
+	for k in c:
+		n_g += int(c[k])
+	_ok(_casi(h.dano, Dano.base_elemental(n_g, h.elemento, rune.damage)) and _casi(h.empuje, rune.empuje) and h.estado_materia == rune.estado and h.pisable == rune.pisable and h.deja == rune.deja, "%s: daño, empuje, estado, pisable o deja" % et)
 	_ok(h.color == rune.color and h.etiquetas == rune.tags and h.elemento == Objetos.elemento_de(rune), "%s: color, etiquetas o elemento" % et)
 	# derivados contra Receta3D y GeometriaV2
 	var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
@@ -155,8 +158,8 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	_ok(h.forma == r.forma() and h.forma == Lanzador3D.GeometriaV2.nombre_derivado(g, viaja), "%s: forma %s ≠ %s" % [et, h.forma, r.forma()])
 	_ok(h.cast_point == CastPoints.variacion_de(r.forma()), "%s: cast point" % et)
 	_ok(h.niveles == Lanzador3D.GeometriaV2.niveles(g), "%s: niveles %d ≠ %d" % [et, h.niveles, Lanzador3D.GeometriaV2.niveles(g)])
-	_ok(_casi(h.coste, r.coste_v2()) and _casi(h.coste, Sigils.coste_v2(g, props)), "%s: coste %.4f ≠ %.4f" % [et, h.coste, r.coste_v2()])
-	_ok(_casi(h.coste_tinta, Tinta.coste_receta(r.coste_v2())), "%s: coste en tinta" % et)
+	_ok(_casi(h.coste, r.tamano_relativo()) and _casi(h.coste, Sigils.coste_v2(g, props)), "%s: tamaño relativo %.4f ≠ %.4f" % [et, h.coste, r.tamano_relativo()])
+	_ok(_casi(h.coste_tinta, r.coste_tinta()) and _casi(h.coste_tinta, Dano.tinta(r.n_glifos(), Sigils.recargos_tinta(props))), "%s: coste en tinta (29/10: por potencia, no por volumen)" % et)
 	_ok(_casi(h.recarga, r.cooldown), "%s: recarga %.3f ≠ %.3f" % [et, h.recarga, r.cooldown])
 	# los límites globales de la ESPEC §1.9 no los supera NINGUNA combinación (ni con 4 glifos de cualquier tipo)
 	_ok(h.semieje_x <= Hechizo.LIM_SEMIEJE_HORIZONTAL + EPS_L and h.semieje_z <= Hechizo.LIM_SEMIEJE_HORIZONTAL + EPS_L and h.semieje_y <= Hechizo.LIM_SEMIEJE_ALTO + EPS_L \
@@ -204,15 +207,16 @@ func _modificadores_del_tres(runes: Dictionary) -> void:
 	copia.modificadores = fuego.modificadores.duplicate()    # la quema y la fuerza de siempre; encima (un campo, un modificador), lo que prueba esta función
 	copia.modificadores.merge({"dano": {"op": "suma", "valor": 5.0}, "quema": {"op": "fija", "valor": 4.0}, "empuje": {"op": "multiplica", "valor": 10.0, "tope": 1.0}, "velocidad": {"op": "fija", "valor": 7.0}, "persiste": {"op": "multiplica", "valor": 2.0}}, true)
 	var h: Hechizo = Hechizo.construir(copia, {})
-	_ok(_casi(h.dano, fuego.damage + 5.0), "modificadores: dano +5 (%.1f)" % h.dano)
+	# 29/10 (DANO_Y_TINTA): el daño de fuego/agua/tierra/viento sale de la potencia (nº de glifos) y pisa al modificador `dano` del .tres; los demás modificadores siguen valiendo.
+	_ok(_casi(h.dano, Dano.base_elemental(0, "fuego")), "modificadores: el daño del fuego lo fija la potencia (ligera 13,2), no el .tres (%.1f)" % h.dano)
 	_ok(_casi(h.quema, 4.0) and _casi(h.fuerza_golpe, 500.0), "modificadores: quema fija 4 y la fuerza de siempre (%.1f, %.0f)" % [h.quema, h.fuerza_golpe])
 	_ok(_casi(h.empuje, 1.0), "modificadores: empuje ×10 con tope 1 (%.2f)" % h.empuje)
 	_ok(_casi(h.velocidad, 7.0), "modificadores: velocidad fija 7")
 	_ok(_casi(h.persiste, fuego.persiste * 2.0), "modificadores: persiste ×2 (%.2f)" % h.persiste)
-	_ok(String(h.origen["dano"]) == "elemento" and String(h.origen["quema"]) == "elemento", "modificadores: el origen es el elemento")
+	_ok(String(h.origen["dano"]) == "potencia" and String(h.origen["quema"]) == "elemento", "modificadores: el origen del daño es la potencia (29/10) y el de la quema, el elemento")
 	_ok(fuego.modificadores.size() == 8 and _casi(fuego.damage, 50.0), "el recurso compartido no se toca")
 	var hf: Hechizo = Hechizo.construir(fuego, {})
-	_ok(_casi(hf.dano_periodico * hf.intervalo, hf.dano * 0.2), "fuego: dano_periodico × intervalo = el 20 %% del daño por pulso de siempre (%.1f)" % (hf.dano_periodico * hf.intervalo))
+	_ok(_casi(hf.dano_periodico * hf.intervalo, 10.0), "fuego: dano_periodico × intervalo = 10 por pulso, el de siempre (29/10: ya NO es el 20 %% del daño, que bajó; ver docs/DANO_Y_TINTA.md §8) (%.1f)" % (hf.dano_periodico * hf.intervalo))
 	# ᛉ Permanencia (E3): +2 s por glifo; el límite global recorta persiste + permanencia a 25 s
 	var perm1: Hechizo = Hechizo.construir(fuego, {"permanencia": 1})
 	var perm3: Hechizo = Hechizo.construir(fuego, {"permanencia": 3})
@@ -286,7 +290,7 @@ func _tabla_hc5(runes: Dictionary) -> void:
 			claves_ok = claves_ok and (f as Dictionary).has(k)
 	_ok(claves_ok, "tabla: cada fila trae campo, grupo, valor, defecto, origen, tipo_origen, difiere y editable")
 	_ok(por.has("semiejes.x") and por.has("semiejes.y") and por.has("semiejes.z") and not por.has("semiejes"), "tabla: semiejes sale en x, y, z")
-	_ok(String(por["dano"]["tipo_origen"]) == "elemento" and bool(por["dano"]["difiere"]) and _casi(float(por["dano"]["valor"]), h.dano), "tabla: el daño viene del elemento y difiere del defecto")
+	_ok(String(por["dano"]["tipo_origen"]) == "potencia" and bool(por["dano"]["difiere"]) and _casi(float(por["dano"]["valor"]), h.dano), "tabla: el daño viene de la potencia (29/10) y difiere del defecto")
 	_ok(String(por["semiejes.x"]["origen"]) == "glifo:linea_x" and bool(por["semiejes.x"]["difiere"]) and not bool(por["semiejes.y"]["difiere"]), "tabla: semiejes.x viene del glifo linea_x; y no difiere")
 	_ok(String(por["persiste"]["tipo_origen"]) == "calidad", "tabla: persiste viene de la calidad del trazo (%s)" % por["persiste"]["origen"])
 	_ok(String(por["velocidad"]["tipo_origen"]) == "defecto" and not bool(por["velocidad"]["difiere"]) and bool(por["velocidad"]["editable"]), "tabla: un campo sin tocar es «defecto», no difiere y se puede tocar")

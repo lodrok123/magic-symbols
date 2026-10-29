@@ -145,7 +145,7 @@ func _caso_pieza() -> void:
 	if a == null:
 		return
 	_ok("0 es un Combate3D del grupo de enemigos (vigía, previsión, tinta)", a is Combate3D and a.is_in_group("combate3d"))
-	_ok("0 120 de vida, 40 de oro, no empujable por el golpe F, sin colmillo", is_equal_approx(a.health, 120.0) and a.oro == 40 and not a.empujable_golpe and not a.botin_goblin)
+	_ok("0 70 de vida (29/10: antes 120), defensa 10, 40 de oro, no empujable por el golpe F, sin colmillo", is_equal_approx(a.health, 70.0) and a.oro == 40 and not a.empujable_golpe and not a.botin_goblin)
 	_ok("0 nace armado y el núcleo (pieza de Equipo3D) está montado", a.g_estado == "armado" and a._nucleo_mats.size() >= 1, str(a._nucleo_mats.size()))
 	# Se queda para las pruebas de vigía de la escena; el resto crea sus propios gólems.
 	a.quieto = true
@@ -170,14 +170,14 @@ func _caso_piedra() -> void:
 	for el in ["fuego", "agua", "hielo", "rayo", "tierra"]:
 		var e: Dictionary = await _flecha(g, el, Vector2i(8, 6), este, 1.6)
 		_ok("1 %s: la previsión dice «Piedra» con mult 0" % el, String(e.get("reaccion", "")) == "piedra" and is_zero_approx(float(e.get("mult", -1.0))), str(e.get("reaccion", "")))
-		_ok("1 %s: ni un punto de daño ni estados ni empuje" % el, is_equal_approx(g.health, 120.0) and g.quemando <= 0.0 and g.mojado <= 0.0 and g.congelado <= 0.0 and g.stun_timer <= 0.0
+		_ok("1 %s: ni un punto de daño ni estados ni empuje" % el, is_equal_approx(g.health, Golem3D.VIDA) and g.quemando <= 0.0 and g.mojado <= 0.0 and g.congelado <= 0.0 and g.stun_timer <= 0.0
 			and _mov(g, p0) < 0.01 and g.g_estado == "armado", "vida %.1f · quemando %.1f · mojado %.1f · congelado %.1f · mueve %.3f" % [g.health, g.quemando, g.mojado, g.congelado, _mov(g, p0)])
 	await avanzar_s(3.0)                                        # que se apague lo que haya dejado el fuego en el suelo
-	_ok("1 y sigue sin arder tras el fuego del suelo", is_equal_approx(g.health, 120.0) and g.quemando <= 0.0)
+	_ok("1 y sigue sin arder tras el fuego del suelo", is_equal_approx(g.health, Golem3D.VIDA) and g.quemando <= 0.0)
 	var dec: Dictionary = g.decidir_golpe(PrevisionHechizo._hechizo(lanzador, _preparar(Vector2i(10, 6), "fuego", ["flecha"])))
 	_ok("1 `decidir_golpe` lo devuelve con mult 0 y sin estados", is_zero_approx(float(dec["mult"])) and is_zero_approx(float(dec["dano"])) and float(dec["quemando"]) <= 0.0 and not bool(dec["aturde"]) and not bool(dec["veneno"]))
 	g.receive_damage(50.0)
-	_ok("1 el daño directo (pulso de zona, estalagmita…) tampoco pasa", is_equal_approx(g.health, 120.0))
+	_ok("1 el daño directo (pulso de zona, estalagmita…) tampoco pasa", is_equal_approx(g.health, Golem3D.VIDA))
 	g.prender_por_contacto()
 	_ok("1 y lo que arde y lo toca no lo prende", g.quemando <= 0.0 and not g.puede_prender())
 	_limpiar()
@@ -190,7 +190,7 @@ func _caso_golpe_f() -> void:
 	await avanzar(3)
 	var p0: Vector3 = g.position
 	var r: Dictionary = g.recibir_golpe_cuerpo(Vector3(1, 0, 0), 5.0, 5000.0)
-	_ok("2 golpe F de pie: 0 de daño y sin empuje", is_zero_approx(float(r["dano"])) and is_zero_approx(float(r["v0"])) and is_equal_approx(g.health, 120.0) and _mov(g, p0) < 0.01)
+	_ok("2 golpe F de pie: 0 de daño y sin empuje", is_zero_approx(float(r["dano"])) and is_zero_approx(float(r["v0"])) and is_equal_approx(g.health, Golem3D.VIDA) and _mov(g, p0) < 0.01)
 	await avanzar_s(1.0)
 	_ok("2 y no se mueve después", _mov(g, p0) < 0.01 and g._empuje.length() < 0.01)
 	_limpiar()
@@ -204,7 +204,7 @@ func _caso_viento_sin_hielo() -> void:
 	var p0: Vector3 = g.position
 	var e: Dictionary = await _flecha(g, "viento", Vector2i(8, 6), Vector3(-1, 0, 0), 1.5)
 	_ok("3 viento sin hielo: la previsión dice «Ni se inmuta»", String(e.get("reaccion", "")) == "inmune", str(e.get("reaccion", "")))
-	_ok("3 viento sin hielo: no se mueve ni se inmuta (armado)", _mov(g, p0) < 0.01 and g.g_estado == "armado" and g.resbalones == 0 and is_equal_approx(g.health, 120.0))
+	_ok("3 viento sin hielo: no se mueve ni se inmuta (armado)", _mov(g, p0) < 0.01 and g.g_estado == "armado" and g.resbalones == 0 and is_equal_approx(g.health, Golem3D.VIDA))
 	_ok("3 y la previsión usa el texto «%s»" % PrevisionReaccion3D._texto("inmune"), PrevisionReaccion3D._texto("inmune") == "Ni se inmuta")
 	_limpiar()
 	await avanzar(3)
@@ -245,7 +245,7 @@ func _caso_resbala_y_tumba() -> void:
 	_ok("4 se desliza en la dirección del viento y se queda en el ÚLTIMO hielo (celda %s)" % str(Terreno3D.celda_de(g.position)), Terreno3D.celda_de(g.position) == Vector2i(3, 4) and g.position.x < x0 - 2.0)
 	_ok("4 la previsión acertó el destino (%.2f u de diferencia)" % g.position.distance_to(destino_prev), g.position.distance_to(destino_prev) < 0.35)
 	_ok("4 queda a RADIO_TOPE del borde de la casilla, no dentro del suelo no helado", g.position.x > 3.0 * Terreno3D.casilla + 0.3)
-	_ok("4 sin daño: resbalar no hiere", is_equal_approx(g.health, 120.0))
+	_ok("4 sin daño: resbalar no hiere", is_equal_approx(g.health, Golem3D.VIDA))
 	# Tumbado: núcleo a la vista.
 	var tum0: float = reloj.t
 	await avanzar_s(0.5)
@@ -259,7 +259,7 @@ func _caso_resbala_y_tumba() -> void:
 	var antes: float = g.health
 	_lanzar(d2, Vector3(-1, 0, 0))
 	await avanzar_s(1.4)
-	_ok("4 tumbado: la flecha de tierra hace ×1,5 (%.1f de %.1f)" % [antes - g.health, h.dano], absf((antes - g.health) - h.dano * 1.5) < 0.6 and g.health < antes)
+	_ok("4 tumbado: la flecha de tierra hace ×1,5 y resta la defensa 10 (29/10) (%.1f de %.1f)" % [antes - g.health, h.dano], absf((antes - g.health) - Dano.aplicar(h.dano, 1.0, 1.0, 1.5, Dano.DEF_GOLEM)) < 0.6 and g.health < antes)
 	_ok("4 y no lo mueve ni le pone estados", g.quemando <= 0.0)
 	var rotulos: int = _rotulos("¡Núcleo!")
 	_ok("4 «¡Núcleo!» salió (una vez en la ventana)", rotulos >= 1, str(rotulos))
@@ -539,7 +539,7 @@ func _caso_nucleo() -> void:
 	var p0: Vector3 = g.position
 	var antes_f: float = g.health
 	var r: Dictionary = g.recibir_golpe_cuerpo(Vector3(1, 0, 0), 5.0, 5000.0)
-	_ok("10 el golpe F le hace 5 × 1,5 = 7,5 y NO lo mueve", is_equal_approx(float(r["dano"]), 7.5) and is_equal_approx(antes_f - g.health, 7.5) and _mov(g, p0) < 0.01)
+	_ok("10 el golpe F le hace 5 × 1,5 = 7,5 − defensa 10 → el suelo, 1,5 (29/10), y NO lo mueve", is_equal_approx(float(r["dano"]), 1.5) and is_equal_approx(antes_f - g.health, 1.5) and _mov(g, p0) < 0.01)
 	# Con una flecha de verdad: sin debilidades (agua ×1: el hechizo × 1,5), y el rayo no tiene el ×1,5 del mojado.
 	for el in ["agua", "rayo"]:
 		var d: Dictionary = _preparar(Vector2i(10, 6), el, ["flecha"])
@@ -548,7 +548,7 @@ func _caso_nucleo() -> void:
 		var vida: float = g.health
 		_lanzar(d, Vector3(1, 0, 0))
 		await avanzar_s(1.2)
-		_ok("10 flecha de %s: ×1,5 sin debilidades (%.1f de %.1f) y «Núcleo ×1,5»" % [el, vida - g.health, h.dano], absf((vida - g.health) - h.dano * 1.5) < 0.6 and String(e.get("reaccion", "")) == "nucleo" and is_equal_approx(float(e.get("mult", 0.0)), 1.5))
+		_ok("10 flecha de %s: ×1,5 sin debilidades y −10 de defensa (29/10) (%.1f de %.1f) y «Núcleo ×1,5»" % [el, vida - g.health, h.dano], absf((vida - g.health) - Dano.aplicar(h.dano, 1.0, 1.0, 1.5, Dano.DEF_GOLEM)) < 0.6 and String(e.get("reaccion", "")) == "nucleo" and is_equal_approx(float(e.get("mult", 0.0)), 1.5))
 	# Pasada la ventana: otra vez 0.
 	while g._t_estado < arriba + 0.15:
 		await process_frame

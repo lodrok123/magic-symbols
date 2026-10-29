@@ -22,7 +22,7 @@ signal ritual_completado
 signal bola_lanzada(bola: BolaVeneno3D)
 
 const ID: String = "goblin_chaman"
-const VIDA: float = 50.0
+const VIDA: float = 30.0                    ## 29/10 (DANO_Y_TINTA): 50 → 30
 const ORO_CHAMAN: int = 15
 ## 29/10: sus velocidades ya no son constantes: andar = v_base("walk") y retroceso = v_base("run") (clip ×1,1 con su zancada: ver Combate3D.PASO_GOBLIN)
 const ALIADOS_CASILLAS: float = 4.0             ## busca escudar a los aliados a esta distancia de él
@@ -81,6 +81,7 @@ static func invocar_chaman(p_mundo: Node3D, pos: Vector3, p_jugador: Jugador3D =
 func _ready() -> void:
 	nombre = "Chamán goblin"
 	vida_max = VIDA
+	defensa = Dano.DEF_CHAMAN                 # 29/10 (DANO_Y_TINTA): 0
 	oro = ORO_CHAMAN
 	debil = ""
 	resiste = ""

@@ -206,7 +206,8 @@ func _escenario() -> void:
 		"retardo %.2f" % retardo)
 	_ok("1 el goblin se aleja ≥ 2 casillas", recorrido >= 2.0 * casilla, "%.2f u = %.2f casillas (previsto %.2f)" % [recorrido, recorrido / casilla, float(prev["recorrido"])])
 	_ok("1 y a favor del golpe (este)", g1.position.x > _pos_celda(_celda_a(ESTE, 1)).x + 2.0 * casilla - 0.05 and absf(g1.position.z - _pos_celda(_celda_a(ESTE, 1)).z) < 0.3)
-	_ok("1 recibe 5 de daño (100 → 95), sin debilidades", is_equal_approx(g1.health, 95.0), "%.2f" % g1.health)
+	# 29/10, DANO_Y_TINTA: el golpe F (5) pasa por la defensa: goblin DEF 2 → 3; con escudo equipado DEF 5 → suelo del 20 % = 1.
+	_ok("1 recibe 3 de daño (5 − DEF 2; 100 → 97), sin debilidades", is_equal_approx(g1.health, 97.0), "%.2f" % g1.health)
 	_ok("1 pasa por la reacción «empujado» de siempre (vuela y se levanta)", g1.en_empujado() or g1.fase_empuje() != Combate3D.FASE_NINGUNA or g1.pj.estado_anim() == "empujado" or g1.pj.estado_anim() == "levantarse"
 		or g1.pj.estado_anim() == "idle", "estado %s" % g1.pj.estado_anim())
 	_ok("1 la tinta no baja (no gasta)", _tinta() >= tinta_uno - 0.001, "%.2f → %.2f" % [tinta_uno, _tinta()])
@@ -279,13 +280,13 @@ func _escenario() -> void:
 	var esc_q: Escudo3D = Escudo3D.equipar(g_q, false)
 	esc_q.estado = "quemado"
 	var q_u: float = await _golpear_y_medir(g_q)
-	_ok("4 con el escudo QUEMADO no protege: daño 5 y empuje completo", is_equal_approx(g_q.health, 95.0) and q_u >= 2.0 * casilla, "%.2f hp, %.2f u" % [g_q.health, q_u])
+	_ok("4 con el escudo QUEMADO no protege: daño 1 (5 con DEF 5 → suelo) y empuje completo", is_equal_approx(g_q.health, 99.0) and q_u >= 2.0 * casilla, "%.2f hp, %.2f u" % [g_q.health, q_u])
 	_quitar(g_q)
 	await avanzar_s(0.9)
 	var g_esp: Combate3D = _goblin(_pos_celda(_celda_a(ESTE, 1)), ESTE)       # de espaldas a ella: el escudo no lo cubre
 	Escudo3D.equipar(g_esp, false)
 	var esp_u: float = await _golpear_y_medir(g_esp)
-	_ok("4 con el escudo A LA ESPALDA no protege: daño 5 y empuje completo", is_equal_approx(g_esp.health, 95.0) and esp_u >= 2.0 * casilla, "%.2f hp, %.2f u" % [g_esp.health, esp_u])
+	_ok("4 con el escudo A LA ESPALDA no protege: daño 1 (DEF 5 → suelo) y empuje completo", is_equal_approx(g_esp.health, 99.0) and esp_u >= 2.0 * casilla, "%.2f hp, %.2f u" % [g_esp.health, esp_u])
 	_quitar(g_esp)
 	await avanzar_s(0.9)
 
@@ -304,7 +305,7 @@ func _escenario() -> void:
 	var g_masa: Combate3D = _goblin(_pos_celda(_celda_a(ESTE, 1)), OESTE)
 	g_masa.empujable_golpe = false
 	var masa_u: float = await _golpear_y_medir(g_masa)
-	_ok("6 con `empujable_golpe` = false no se mueve, pero recibe el daño", masa_u < 0.05 and is_equal_approx(g_masa.health, 95.0), "%.3f u, %.1f hp" % [masa_u, g_masa.health])
+	_ok("6 con `empujable_golpe` = false no se mueve, pero recibe el daño", masa_u < 0.05 and is_equal_approx(g_masa.health, 97.0), "%.3f u, %.1f hp" % [masa_u, g_masa.health])
 	_quitar(g_masa)
 	await avanzar_s(0.9)
 
@@ -368,7 +369,7 @@ func _escenario() -> void:
 	_golpes.clear()
 	await _pulsar()
 	await avanzar_s(0.7)
-	_ok("9 y de nuevo golpea (y el goblin de delante lo recibe)", _golpes.size() == 1 and int(_golpes[0]["r"]["enemigos"]) == 1 and is_equal_approx(g_b.health, 95.0), str(_golpes))
+	_ok("9 y de nuevo golpea (y el goblin de delante lo recibe)", _golpes.size() == 1 and int(_golpes[0]["r"]["enemigos"]) == 1 and is_equal_approx(g_b.health, 97.0), str(_golpes))
 	_quitar(g_b)
 	await avanzar_s(0.9)
 

@@ -29,7 +29,7 @@ signal expuesto(estaba_tumbado: bool)         ## el núcleo queda a la vista (tr
 signal resbalo(celdas: int)                   ## se ha parado tras resbalar (sin caer al agua ni a la lava)
 
 const ID: String = "golem_piedra"
-const VIDA: float = 120.0
+const VIDA: float = 70.0                    ## 29/10 (DANO_Y_TINTA): 120 → 70
 const ORO_GOLEM: int = 40
 const VEL: float = 0.9                        ## u/s al perseguir (un goblin 2,4)
 const RANGO: float = 1.9                      ## u, centro a centro: a esto empieza el golpe
@@ -102,6 +102,7 @@ static func invocar_golem(p_mundo: Node3D, pos: Vector3, p_jugador: Jugador3D = 
 func _ready() -> void:
 	nombre = "Gólem de piedra"
 	vida_max = VIDA
+	defensa = Dano.DEF_GOLEM                  # 29/10 (DANO_Y_TINTA): 10 — solo los hechizos potentes lo hieren de verdad
 	oro = ORO_GOLEM
 	debil = ""
 	resiste = ""
@@ -220,15 +221,18 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	r["avisos"] = []
 	r["aturde"] = false
 	r["veneno"] = false
-	r["base"] = hechizo.dano
+	r["base"] = hechizo.dano * hechizo.potencia
 	if vulnerable() and hechizo.dano > 0.0:
 		r["mult"] = MULT_NUCLEO
-		r["dano"] = hechizo.dano * MULT_NUCLEO
+		r["bruto"] = Dano.bruto(hechizo.dano, hechizo.potencia, 1.0, MULT_NUCLEO)
+		r["dano"] = Dano.aplicar(hechizo.dano, hechizo.potencia, 1.0, MULT_NUCLEO, defensa)       # 29/10: R = MULT_NUCLEO y la defensa (10)
 	elif vulnerable():
 		r["mult"] = 1.0
+		r["bruto"] = 0.0
 		r["dano"] = 0.0
 	else:
 		r["mult"] = 0.0
+		r["bruto"] = 0.0
 		r["dano"] = 0.0
 	return r
 
@@ -292,7 +296,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, _fuerza: float, _factor_esc
 	var d := Vector3(dir.x, 0.0, dir.z)
 	d = d.normalized() if d.length() > 0.01 else Vector3.ZERO
 	if vulnerable() and dano > 0.0:
-		var real: float = dano * MULT_NUCLEO
+		var real: float = Dano.tras_defensa(dano * MULT_NUCLEO, defensa)     # 29/10: el golpe F también pasa por la defensa (5 × 1,5 − 10 → suelo 1,5)
 		r["dano"] = real
 		_nucleo_golpeado()
 		_num_golpe = true

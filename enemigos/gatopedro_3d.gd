@@ -11,16 +11,16 @@ extends Combate3D
 ##   - Si estás muy cerca (DIST_SIN_PARADA) o acaba de recibir un golpe, no se para: huye sin pausas y algo más rápido.
 ##   - No se aleja más de RADIO_CASA de su sitio: rodea en vez de irse del tutorial. Si pierde de vista al jugador, vuelve a casa.
 ##
-## Definición de enemigo (Pablo): «debe caer con 2 flechas de fuego». El fuego de la página hace 50 de daño (fire_rune.tres; 17/10, antes 40) y deja
-## ardiendo 3 s (3 de daño cada 0,5 s = hasta 18 más). Con VIDA = 85: una flecha + toda la quemadura = 68 -> sobrevive; dos flechas
-## = 100 -> cae (margen de 17 y de 15 a cada lado, como antes: 12 y 10). (Con otro elemento la cuenta es la del resto de enemigos: sin debilidad ni resistencia, 1,0 × el daño del hechizo.)
+## Definición de enemigo (Pablo): «debe caer con 2 flechas de fuego». 29/10 (DANO_Y_TINTA): ahora son 2 hechizos de fuego MEDIOS (2-3 glifos, 26,4 cada uno: `Dano`); el fuego deja
+## ardiendo 3 s (3 de daño cada 0,5 s = hasta 18 más). Con VIDA = 45: uno + toda la quemadura = 44,4 -> sobrevive (margen 0,6); dos = 52,8 -> cae. (Con otro elemento la cuenta es la del resto de enemigos: sin debilidad ni resistencia.)
+## Antes: VIDA 85 con el fuego a 50. Sin defensa (0).
 ## Si se cambia el daño del fuego o la quemadura, hay que revisar VIDA: lo comprueba herramientas/prueba_gatopedro.gd.
 ##
 ## Todo lo medible está en constantes. Las marcadas ESTIMADO no se han visto en el juego: afinar a ojo.
 
 const ID_MODELO: String = "lince"
 const NOMBRE_OFICIAL: String = "Gatopedro"
-const VIDA: float = 85.0                  ## ver arriba: 2 flechas de fuego (100) lo tumban, 1 flecha + quemadura (68) no
+const VIDA: float = 45.0                    ## 29/10 (DANO_Y_TINTA): 85 → 45. Una flecha de fuego MEDIA (26,4) + toda la quemadura (18) = 44,4: no lo tumba; dos flechas (52,8), sí
 const ORO_GATOPEDRO: int = 15
 const VEL_HUIDA: float = 2.6              ## u/s corriendo (ESTIMADO): entre andar (1,6) y correr (3,0) del jugador
 const MULT_SUSTO: float = 1.3             ## × la velocidad mientras está asustado por un golpe
@@ -60,6 +60,7 @@ static func equipar_gatopedro(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3
 	# Antes de add_child: `_ready` de Combate3D copia vida_max a health y construye la barra con estos valores.
 	c.nombre = NOMBRE_OFICIAL
 	c.vida_max = VIDA
+	c.defensa = 0.0                          # 29/10 (DANO_Y_TINTA): sin defensa (un gato)
 	c.debil = ""
 	c.resiste = ""
 	c.tinte = Color.WHITE

@@ -776,7 +776,8 @@ static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 			# E1 (28/10): el limo teñido de ESTE elemento no se quema en su propia llama (si ya es grande, le cura).
 			if e.has_method("absorbe_pulso") and bool(e.call("absorbe_pulso", z.elemento, z.dano_periodico * z.intervalo)):
 				continue
-			e.call("receive_damage", z.dano_periodico * z.intervalo)
+			var r_pulso: float = float(e.call("multiplicador", z.elemento)) if e.has_method("multiplicador") else 1.0       # 29/10 (DANO_Y_TINTA): el daño continuo pasa por R, no por la defensa
+			e.call("receive_damage", Dano.continuo(z.dano_periodico * z.intervalo, r_pulso))
 		else:
 			z.tocados[e.get_instance_id()] = true
 			lanzador._golpear(e, z.rune, d, (e as Node3D).global_position, 0, false, z.origen)

@@ -22,7 +22,7 @@ signal crecio(tamano: float)
 signal curado(cantidad: float)
 
 const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo", "tierra", "viento"]
-const VIDA: float = 60.0
+const VIDA: float = 30.0                    ## 29/10 (DANO_Y_TINTA): 60 → 30
 const DANO: float = 15.0
 const MULT_DANO_GRANDE: float = 2.0
 const MULT_SALTO_GRANDE: float = 1.3          ## el grande salta un 30 % más lejos y más alto (brinco y acometida)
@@ -80,6 +80,7 @@ func _ready() -> void:
 	resiste = ""
 	oro = ORO_LIMO
 	vida_max = VIDA
+	defensa = Dano.DEF_LIMO                   # 29/10 (DANO_Y_TINTA): 0
 	health = VIDA
 	tinte = Color.WHITE
 	snd_alerta = ""

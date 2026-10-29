@@ -325,7 +325,7 @@ func _golpes() -> void:
 	var vd: float = d.health
 	_correr(_lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 8.0, "dano": 40.0})))
 	var mult: float = d.multiplicador("fuego")
-	_ok("el golpe del proyectil lee el daño DEL HECHIZO (40 × %.1f del goblin al fuego, no el del .tres): vida %.0f → %.1f" % [mult, vd, d.health], absf((vd - d.health) - 40.0 * mult) < 0.6)
+	_ok("el golpe del proyectil lee el daño DEL HECHIZO (40 × %.2f del goblin al fuego − defensa 2, no el del .tres; 29/10): vida %.0f → %.1f" % [mult, vd, d.health], absf((vd - d.health) - Dano.aplicar(40.0, 1.0, 1.0, mult, d.defensa)) < 0.6)
 	# reactivos: reciben el golpe como siempre
 	_montar()
 	var re := ReactivoFalso.new()
@@ -365,7 +365,7 @@ func _golpes() -> void:
 		_correr(v)
 		var mult2: float = a.multiplicador("fuego")
 		_ok("%s: explota al golpear — el directo recibe golpe + explosión (%.0f), el cercano %.0f, el lejano nada, y el reactivo cercano arde (%d)" % ["radio_explosion" if modo == "campo" else "danar_area", va - a.health, vc - cerca.health, rp.golpes],
-			absf((va - a.health) - 20.0 * mult2) < 1.0 and absf((vc - cerca.health) - 10.0 * mult2) < 1.0 and lejos.health == vl and rp.golpes >= 1)
+			absf((va - a.health) - 2.0 * Dano.aplicar(10.0, 1.0, 1.0, mult2, a.defensa)) < 1.0 and absf((vc - cerca.health) - Dano.aplicar(10.0, 1.0, 1.0, mult2, cerca.defensa)) < 1.0 and lejos.health == vl and rp.golpes >= 1)       # 29/10: cada golpe pasa por R y por la defensa
 	# al_matar
 	_montar()
 	var debil: Combate3D = _enemigo(Vector2i(8, 8), 1.0)

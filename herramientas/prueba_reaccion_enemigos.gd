@@ -49,6 +49,8 @@ func _nuevo() -> Combate3D:
 	var g: Combate3D = Combate3D.equipar(modelo, _mundo, j, null)
 	g.set_physics_process(false)
 	g.altura = 0.85
+	g.health = 100000.0                 # 29/10 (DANO_Y_TINTA): con 50 de vida el rayo (55) lo mataba; esta prueba mide empuje y ritmo, no daño
+	g.vida_max = 100000.0
 	return g
 
 func _paso(g: Combate3D) -> void:
@@ -122,7 +124,8 @@ func _initialize() -> void:
 	_ok(g2.pj.scale.is_equal_approx(Vector3.ONE), "el aplastamiento no vuelve a 1 (%s)" % g2.pj.scale)
 	_ok(is_zero_approx(g2._salto_y), "el salto no termina (%.3f)" % g2._salto_y)
 	var g4: Combate3D = _nuevo()
-	g4.golpe(Hechizo.construir(load("res://nucleo/wind_rune.tres"), {}), Vector3(1, 0, 0))
+	# 29/10 (DANO_Y_TINTA): el viento ya hace daño (9,6 de una ligera); el caso «sin daño» se fabrica con dano = 0, que es lo que importa al hitstop.
+	g4.golpe(Hechizo.construir(load("res://nucleo/wind_rune.tres"), {}).con({"dano": 0.0}), Vector3(1, 0, 0))
 	_ok(g4._hitstop == 0.0, "el viento (sin daño) no debería congelar (%.2f)" % g4._hitstop)
 	print("RESULTADO reaccion_enemigos: %d fallos" % _fallos)
 	quit(1 if _fallos > 0 else 0)

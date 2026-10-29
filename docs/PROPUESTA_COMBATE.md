@@ -138,6 +138,7 @@ La misma regla que las salas: **cada enemigo plantea una pregunta**. Se presenta
 - **Objetos:** una **rueda de 8 objetos** jugable (§3). Sustituye a las «dos ranuras rápidas».
 - **Herramientas permanentes:** **sí, una por mazmorra**, como base del diseño. Cada una hace mejores ciertas formas de jugar.
 - **Tinta por reacción:** **+20 de tinta** por reacción, el coste de dos flechas. Es suficiente para no ignorarlo y poco para hacer farming.
+- **Daño y tinta por potencia (29/10, decisión de Pablo):** el daño de un hechizo y su coste en tinta salen del nº de glifos (ligera / media / alta), con defensa plana en los enemigos y vidas a la mitad. Ver [DANO_Y_TINTA.md](DANO_Y_TINTA.md). Con ello, los +20 de tinta por reacción valen ahora 2,5 ligeras o algo más de 1 media.
 
 ## 7. Tareas
 

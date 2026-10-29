@@ -62,7 +62,7 @@ func _escenario() -> void:
 		return
 	var gs: Array = _guerreros()
 	_ok("0 hay dos guerreros goblin con combate", gs.size() == 2, "(%d)" % gs.size())
-	_ok("0 vida baja (50)", is_equal_approx(_ch.health, 50.0) and is_equal_approx(Chaman3D.VIDA, 50.0))
+	_ok("0 vida baja (30; 29/10, DANO_Y_TINTA: antes 50), sin defensa", is_equal_approx(_ch.health, 30.0) and is_equal_approx(Chaman3D.VIDA, 30.0) and _ch.defensa == 0.0)
 	_ok("0 CD del ritual ≈ 8 s", is_equal_approx(Chaman3D.CD_RITUAL, 8.0))
 	_ok("0 el chamán lleva el bastón con el orbe aparte", _ch.pj.baston() != null and _ch.pj.baston().orbe != null)
 	for g in gs:

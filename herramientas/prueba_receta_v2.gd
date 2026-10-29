@@ -213,7 +213,7 @@ func _combinaciones(nombres: Array) -> void:
 		_ok(r.usa_geo() and r.ignorados.is_empty(), "%s: Receta3D V2 no usa la geometría" % etiqueta)
 		_ok(String(r.forma()) == Lanzador3D.GeometriaV2.nombre_derivado(g, viaja), "%s: forma() ≠ nombre derivado" % etiqueta)
 		_ok(r.cooldown > 0.0 or combo.is_empty(), "%s: recarga" % etiqueta)
-		_ok(absf(r.coste_v2() - coste) < 0.0001, "%s: coste_v2() de la receta ≠ Sigils.coste_v2" % etiqueta)
+		_ok(absf(r.tamano_relativo() - coste) < 0.0001, "%s: tamano_relativo() de la receta ≠ Sigils.coste_v2" % etiqueta)
 		var man: Array = r.manifestaciones()
 		_ok(man.size() >= 1 and man.size() <= Sigils.MAX_MANIFESTATIONS, "%s: %d manifestaciones" % [etiqueta, man.size()])
 		_ok(r.vida() > 0.0, "%s: vida" % etiqueta)
@@ -577,11 +577,11 @@ func _ciclo_de_vida() -> void:
 	_ok(_filas(muro_agua).size() == 3 and not _l._solideces_v2.is_empty(), "ᛁ×%d + ᛜ + agua: muro de agua de 3 de ancho que además bloquea" % _ejes_x(SEMIEJE_MURO_ANCHO).size())
 
 	# --- Tinta y PlayLog ---
-	_ok(is_equal_approx(Tinta.coste_receta(1.0), Tinta.COSTE_BASE_V2) and Tinta.coste_receta(1000.0) == Tinta.MAXIMA, "tinta: la esfera base cuesta %.0f y el techo es la barra" % Tinta.COSTE_BASE_V2)
+	_ok(Dano.tinta(0) == 8.0 and Dano.tinta(2) == 18.0 and Dano.tinta(4) == 34.0, "tinta (29/10, DANO_Y_TINTA): ligera 8 · media 18 · alta 34, ya no por volumen")
 	var t := Tinta.new()
 	_ok(t.puede_pagar("x_mano", 30.0) and t.gastar("x_mano", 30.0) and is_equal_approx(t.actual, 70.0), "tinta: gastar con coste explícito descuenta ese coste")
 	var cara: Lanzador3D.Receta3D = _receta(["linea_x", "linea_x", "altura", "flecha"])
-	_ok(Tinta.coste_receta(cara.coste_v2()) > Tinta.coste_receta(_receta([]).coste_v2()), "tinta: más volumen y más propiedades, más tinta")
+	_ok(cara.coste_tinta() > _receta([]).coste_tinta(), "tinta: más glifos (potencia), más tinta")
 	_montar()
 	_l._registrar_receta_v2(cara.hechizo(_rune("fire")), {"indice": 0}, 5)
 	_ok(true, "PlayLog receta_v2: se registra sin error")

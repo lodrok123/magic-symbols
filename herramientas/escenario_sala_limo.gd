@@ -58,6 +58,7 @@ func _escenario() -> void:
 	_ok("2 el fuego tiñe al neutro", neutro.elemento == "fuego")
 	var n: int = 0
 	while is_instance_valid(neutro) and not neutro.muerto and n < 12:
+		neutro.position = _pos(Vector2i(5, 2))              # 29/10 (DANO_Y_TINTA): con 30 de vida y 9,6 por flecha ligera cada golpe lo empuja; se recoloca para el siguiente
 		await _lanzar_a(neutro, "agua", Vector2i(7, 2), Vector3(-1, 0, 0))
 		n += 1
 	_ok("2 el agua lo vence (%d flechas)" % n, not is_instance_valid(neutro) or neutro.muerto)
@@ -65,6 +66,7 @@ func _escenario() -> void:
 	fuego.position = _pos(Vector2i(9, 2))
 	n = 0
 	while is_instance_valid(fuego) and not fuego.muerto and n < 12:
+		fuego.position = _pos(Vector2i(9, 2))
 		await _lanzar_a(fuego, "agua", Vector2i(11, 2), Vector3(-1, 0, 0))
 		n += 1
 	_ok("3 el agua vence al de fuego (%d flechas)" % n, not is_instance_valid(fuego) or fuego.muerto)

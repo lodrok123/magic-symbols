@@ -179,10 +179,10 @@ func _lanzar(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, dir: Vector
 func _lanzar_completo(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, dir: Vector3) -> Dictionary:
 	var rune: RuneData = load("res://nucleo/%s_rune.tres" % elem) as RuneData
 	var g: Dictionary = r.geo()
-	var coste: float = Tinta.coste_receta(r.coste_v2())
+	var coste: float = r.coste_tinta()
 	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, rune)
 	var ficha: Dictionary = {"glifos": cont.duplicate(), "elemento": elem, "dir": dir, "n": 0, "ms": 0.0, "estado": rune.estado, "celdas": 0,
-		"nodos_pico": 0, "motivos": [], "aviso": aviso, "nombre": String(g["nombre"]), "coste": r.coste_v2(), "completo": true, "rechazo": ""}
+		"nodos_pico": 0, "motivos": [], "aviso": aviso, "nombre": String(g["nombre"]), "coste": r.tamano_relativo(), "completo": true, "rechazo": ""}
 	ultimo = ficha
 	if _l.conjurando:
 		ficha["rechazo"] = "conjurando"
@@ -193,7 +193,7 @@ func _lanzar_completo(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, di
 	elif _l.tinta != null and not _l.tinta.puede_pagar(r.forma(), coste):
 		ficha["rechazo"] = "sin_tinta"
 		PlayLog.event("receta_rara", {"glifos": cont, "elemento": elem, "estado": rune.estado, "nombre": ficha["nombre"], "motivos": ["sin_tinta"],
-			"ms": 0.0, "casillas": 0, "nodos_pico": 0, "coste": snappedf(r.coste_v2(), 0.01), "semilla": semilla if barrido else 0, "ronda": rondas,
+			"ms": 0.0, "casillas": 0, "nodos_pico": 0, "coste": snappedf(r.tamano_relativo(), 0.01), "semilla": semilla if barrido else 0, "ronda": rondas,
 			"frame_max_ms": 0.0})
 		return ficha
 	if not recarga_activa:

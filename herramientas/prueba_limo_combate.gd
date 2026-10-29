@@ -114,7 +114,7 @@ func _escenario() -> void:
 func _caso_elementos() -> void:
 	var l: Limo3D = _limo(Vector2i(10, FILA))
 	await avanzar(3)
-	_ok("1 nace sin teñir, normal y con 60 de vida", l.elemento == "" and not l.grande and is_equal_approx(l.health, Limo3D.VIDA) and l.cuerpo != null)
+	_ok("1 nace sin teñir, normal y con su vida máxima (30)", l.elemento == "" and not l.grande and is_equal_approx(l.health, Limo3D.VIDA) and l.cuerpo != null)
 	_ok("1 es un Combate3D del grupo de enemigos (vigía, previsión, tinta)", l is Combate3D and l.is_in_group("combate3d"))
 	await _flecha(l, "fuego", "tine", "2 fuego sin teñir")
 	_ok("2 el fuego lo tiñe de fuego", l.elemento == "fuego" and l.cuerpo.elemento == "fuego", l.elemento)
@@ -126,11 +126,15 @@ func _caso_elementos() -> void:
 	_ok("3 grande pega el doble (30)", is_equal_approx(l.dano_golpe(), 30.0), str(l.dano_golpe()))
 	_ok("3 grande salta un 30 % más lejos", is_equal_approx(l.alcance_acometida(), alcance0 * 1.3), "%.2f → %.2f" % [alcance0, l.alcance_acometida()])
 	_ok("3 y es más alto (la barra sube con él)", l.altura > LimoVisual3D.ALTO * 1.5)
+	# 29/10 (DANO_Y_TINTA): el rayo (55) mata de un golpe a un limo de 30; para medir que «le hace daño» se le da más vida un momento.
+	l.vida_max = 200.0
+	l.health = 200.0
 	await _flecha(l, "rayo", "", "4 rayo")
-	_ok("4 otro elemento (rayo) le hace daño", _vida_min < Limo3D.VIDA - 1.0, "vida mínima %.1f" % _vida_min)
+	_ok("4 otro elemento (rayo) le hace daño", _vida_min < 199.0, "vida mínima %.1f" % _vida_min)
+	l.vida_max = Limo3D.VIDA
 	_ok("4 y no cambia su tinte", l.elemento == "fuego")
 	await avanzar_s(3.0)                               # que se apaguen las llamas de su flecha (sobre ellas, grande, se cura solo)
-	l.health = 30.0
+	l.health = 10.0
 	var herido: float = l.health
 	await _flecha(l, "fuego", "cura", "5 fuego al grande")
 	_ok("5 grande, su elemento solo lo CURA (al menos CURA_MIN)", l.health >= herido + Limo3D.CURA_MIN - 0.01 and _vida_min >= herido - 0.01 and l.grande, "%.1f → %.1f" % [herido, l.health])
@@ -159,7 +163,7 @@ func _caso_suelo() -> void:
 	l.position = _pos(mojada2)
 	await avanzar_s(0.5)
 	_ok("6 salir y volver a ENTRAR en su elemento lo hace crecer", l.grande)
-	var h0: float = 40.0
+	var h0: float = 15.0                                # 29/10 (DANO_Y_TINTA): su vida máxima es 30 (antes 60 y el test partía de 40)
 	l.health = h0
 	await avanzar_s(2.0)
 	_ok("6 grande y sobre su elemento, se cura poco a poco (%.1f → %.1f)" % [h0, l.health], l.health > h0 + 5.0)

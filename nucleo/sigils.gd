@@ -459,8 +459,8 @@ static func volumen_agua_v2(g: Dictionary) -> float:
 	return VOLUMEN_AGUA_BASE_V2 * volumen_v2(g) / volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 
 
-## Coste en tinta (solo el número, relativo: la esfera base sin propiedades vale 1): crece con el volumen y con el nº de
-## propiedades distintas, ∝ volumen × (1 + COSTE_PROP_V2 × nº). La RECARGA no cambia: sigue siendo la de `cooldown_v2`.
+## Tamaño RELATIVO del hechizo (la esfera base sin propiedades vale 1): crece con el volumen y con el nº de propiedades distintas, ∝ volumen × (1 + COSTE_PROP_V2 × nº).
+## 29/10 (DANO_Y_TINTA): YA NO es lo que cuesta en tinta (eso es `Dano.tinta`, por potencia); queda como medida de tamaño para el laboratorio y las pruebas. La RECARGA no cambia: `cooldown_v2`.
 static func coste_v2(g: Dictionary, props: Dictionary) -> float:
 	var base: float = volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 	# Con barrera el volumen sube al de la circunferencia del jugador, pero eso NO encarece el hechizo: se cuenta lo que dieron los glifos.
@@ -474,6 +474,11 @@ static func coste_v2(g: Dictionary, props: Dictionary) -> float:
 static func recargo_continuo(props: Dictionary) -> float:
 	var continuo: bool = props.has("resuena") and not props.has("viaja") and (props.has("solidez") or props.has("permanencia"))
 	return 1.0 + (COSTE_CONTINUO_V2 if continuo else 0.0)
+
+
+## 29/10 (DANO_Y_TINTA): la suma de RECARGOS de tinta de glifos especiales (hoy solo el continuo: `COSTE_CONTINUO_V2`), que `Dano.tinta` aplica como T_base × (1 + Σ). Misma condición que `recargo_continuo`.
+static func recargos_tinta(props: Dictionary) -> float:
+	return recargo_continuo(props) - 1.0
 
 
 ## Recarga de una página V2: la mayor de sus glifos (+ STACK_COOLDOWN por glifo repetido), igual que hace hoy SpellRecipe.apply.

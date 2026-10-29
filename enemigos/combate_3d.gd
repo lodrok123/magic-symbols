@@ -29,8 +29,9 @@ const COLORES: Dictionary = {
 ## HC3: el daño extra de la tierra (+18), la fuerza del golpe por elemento y las duraciones de estado ya no están aquí: salen de los `modificadores` de cada *_rune.tres.
 const TICK_VENENO: float = 0.5               ## s entre dos pulsos del veneno (HC4)
 const ELEMENTAL_QUEMA: float = 5.0             ## el elemental arde más que un goblin (los que no son elementales usan la `quema` del hechizo)
-const MULT_DEBIL: float = 2.0
-const MULT_RESISTE: float = 0.5
+## 29/10 (DANO_Y_TINTA): débil ×1,5 y resiste ×0,75 (antes ×2 y ×0,5); los valores viven en `Dano` (único sitio del cálculo).
+const MULT_DEBIL: float = Dano.MULT_DEBIL
+const MULT_RESISTE: float = Dano.MULT_RESISTE
 const TIEMPO_BARRA: float = 4.0
 const ESCALA_EMPUJE: float = 2.3 / 64.0 * 0.1      ## 2D: dir * fuerza * 0.1 px/s; aquí en u/s
 
@@ -95,13 +96,13 @@ const T_ANIM_ATAQUE: float = 0.8              ## solo si el modelo no tiene clip
 const VEL_ANIM_GUERRERO: float = 1.0
 const VEL_ANIM_ARQUERO: float = 1.25
 const MOMENTO_GOLPE_GUERRERO: float = 0.19    ## fracción del clip LeftSlash en que cae el golpe (~0,6 s de 3,2)
-const VIDA_MAXIMA: float = 100.0
+const VIDA_MAXIMA: float = 50.0               ## 29/10 (DANO_Y_TINTA): 100 → 50, el daño bajó a ~la mitad
 const ORO_BOTIN: int = 10
 const ALTO_BARRA_EXTRA: float = 0.28
 
 ## --- ELEMENTAL DE BOSQUE (8/10): élite lento que pega con el puño, conjura enredaderas vinculadas y se cura con agua ---
 const ID_ELEMENTAL: String = "elemental_bosque"
-const ELEM_VIDA: float = 1000.0
+const ELEM_VIDA: float = 500.0              ## 29/10 (DANO_Y_TINTA): 1000 → 500
 const ELEM_VEL: float = 0.7                    ## × la velocidad de un goblin
 const ELEM_DANO_GOLPE: float = 45.0
 const ELEM_ALTO_REF: float = 1.7              ## altura para la que se midieron rango, golpe, cápsula y brotes; todo escala con altura/esto
@@ -192,6 +193,9 @@ var lanz: Lanzador3D = null
 
 var health: float = VIDA_MAXIMA
 var vida_max: float = VIDA_MAXIMA
+## 29/10 (DANO_Y_TINTA): DEFENSA plana del enemigo: `Dano.tras_defensa` la resta de cada golpe (con el suelo del 20 %). 2 = goblin (arquero, asesino, guerrero); 5 = el que lleva escudo
+## (`Escudo3D.equipar`); 6 = elemental; 10 = gólem; 0 = limo, chamán, gatopedro. NO afecta al daño continuo (quemadura, veneno, pulsos).
+@export var defensa: float = Dano.DEF_GOBLIN
 var debil: String = "agua"
 var resiste: String = "fuego"
 var nombre: String = "Goblin guerrero"
@@ -447,6 +451,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		r["v0"] = v0_de_empuje(f, true)
 		push(d, f, true)
 	if not parado and dano > 0.0:
+		dano = Dano.tras_defensa(dano, defensa)         # 29/10 (DANO_Y_TINTA): el golpe F también pasa por la defensa y su suelo (F = 5: goblin 2 → 3 · escudo 5 → 1)
 		r["dano"] = dano
 		_num_golpe = true
 		_num_elemento = ""
@@ -655,14 +660,17 @@ func vel_mult() -> float:
 ## 28/10 · A2 (previsión): la DECISIÓN del golpe, sin aplicar nada (ni estado, ni señales, ni texto). Es la única fuente de verdad: `golpe` aplica lo que devuelve esto y
 ## `prever_golpe` (la previsión del indicador) lo enseña. Devuelve:
 ##   curado     true = elemental con agua: lo cura y lo agranda (`_agua_elemental`), no recibe nada más
-##   mult       debilidad ×2 / resistencia ×0,5 / 1        base  daño antes del multiplicador (el rayo sobre mojado ×1,5, el hielo sobre mojado +15)      dano  base × mult
+##   mult       R: debilidad ×1,5 / resistencia ×0,75 / 1        base  B·E·G·X (+ la suma de la reacción) ANTES de R y de la defensa (el rayo sobre mojado X = ×1,5, el hielo sobre mojado suma 15)
+##   bruto      D = base × R, antes de la defensa        dano  D_final = máx(SUELO_DEF · D, D − defensa) (`Dano.aplicar`: el ÚNICO punto del cálculo)       defensa   la de este enemigo
 ##   mojado, quemando, congelado   cómo quedan esos contadores    lento   -1 = no cambia      interrumpe   -1 = no cambia (el viento la fija; el elemental no)
 ##   vapor      fuego sobre mojado       arco   el rayo sobre mojado salta al más cercano
 ##   avisos     las reacciones de `Mundo3D.REACCIONES` que saltarían, EN ORDEN (electrocutado, prendido, apagado_agua, secado, mojado, congelado)
 ##   aturde     true si el golpe lo aturde (no al elemental)        veneno  true si le deja veneno
 func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var el: String = hechizo.elemento
-	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "dano": 0.0,
+	var x: float = 1.0               # X: la reacción (rayo sobre mojado)
+	var suma_x: float = 0.0          # lo que SUMA la reacción (hielo sobre mojado)
+	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "bruto": 0.0, "defensa": defensa, "dano": 0.0,
 		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental}
 	if elemental and el == "agua":
@@ -680,12 +688,12 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 			r["quemando"] = 0.0
 		"rayo":
 			if mojado > 0.0:
-				r["base"] = float(r["base"]) * 1.5
+				x = Dano.X_RAYO_MOJADO
 				r["arco"] = true
 		"hielo":
 			r["congelado"] = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
 			if mojado > 0.0:
-				r["base"] = float(r["base"]) + 15.0
+				suma_x = Dano.SUMA_HIELO_MOJADO
 			r["quemando"] = 0.0
 		"viento":
 			if not elemental:                 # pesa demasiado: el viento no le corta el ataque
@@ -707,7 +715,10 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		avisos.append("mojado")
 	if float(r["congelado"]) > 0.0 and not (congelado > 0.0):
 		avisos.append("congelado")
-	r["dano"] = float(r["base"]) * float(r["mult"])
+	# 29/10 (DANO_Y_TINTA): D = (B·E · G · X + suma) × R y después la defensa: UN solo punto de cálculo (`Dano`). `hechizo.dano` ya es B·E (con el pigmento); G = `hechizo.potencia`.
+	r["base"] = hechizo.dano * hechizo.potencia * x + suma_x
+	r["bruto"] = Dano.bruto(hechizo.dano, hechizo.potencia, x, float(r["mult"]), suma_x)
+	r["dano"] = Dano.aplicar(hechizo.dano, hechizo.potencia, x, float(r["mult"]), defensa, suma_x)
 	return r
 
 
@@ -1936,6 +1947,7 @@ func _quad(color: Color, prioridad: int, alto: float) -> MeshInstance3D:
 
 func _preparar_elemental() -> void:
 	vida_max = ELEM_VIDA
+	defensa = Dano.DEF_ELEMENTAL
 	health = ELEM_VIDA
 	nombre = "Elemental del bosque"
 	debil = "fuego"

@@ -853,7 +853,7 @@ func _preparar_pagina(indice: int) -> bool:
 
 	# TINTA (15/10): se comprueba aquí, antes de apuntar, para no ralentizar el tiempo y luego negarte el lanzamiento. Se COBRA al soltar
 	# (`lanzar_ahora`): si cancelas el apuntado no pierdes nada.
-	var coste_tinta: float = Tinta.coste_receta(receta.coste_v2())
+	var coste_tinta: float = receta.coste_tinta()      # 29/10 (DANO_Y_TINTA): por potencia (nº de glifos), no por volumen
 	if tinta != null:
 		coste_tinta = tinta.coste_efectivo(coste_tinta, Objetos.elemento_de(element_data))     # E1: la rebaja del pigmento (la aplica Tinta, aquí solo se le dice el elemento)
 	if tinta != null and not tinta.puede_pagar(receta.forma(), coste_tinta):
@@ -1205,7 +1205,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}
 
 	if tinta != null:
-		tinta.gastar(forma, Tinta.coste_receta(receta.coste_v2()), elemento)       # E1: con el elemento, para la rebaja del pigmento
+		tinta.gastar(forma, receta.coste_tinta(), elemento)       # E1: con el elemento, para la rebaja del pigmento
 
 	# Recarga y coste al SOLTAR: durante el conjuro la página ya no se puede volver a lanzar.
 	cooldown_total[indice] = receta.cooldown
@@ -2736,8 +2736,20 @@ class Receta3D extends SpellRecipe:
 		h.ignorados.append_array(ignorados)
 		return h
 
-	## Coste en tinta de la receta (número relativo; ver Sigils.coste_v2): la esfera base vale 1.
-	func coste_v2() -> float:
+	## 29/10 (DANO_Y_TINTA): glifos de la receta que el juego conoce (los aparcados e ignorados no cuentan). De aquí sale la potencia.
+	func n_glifos() -> int:
+		var n: int = 0
+		for k in contadores:
+			if Sigils.GLIFOS_V2.has(String(k)):
+				n += maxi(int(contadores[k]), 0)
+		return n
+
+	## Coste en tinta ANTES de la rebaja del pigmento: T_base(potencia) × (1 + recargos), el mismo cálculo que `Hechizo.coste_tinta` (`Dano.tinta`).
+	func coste_tinta() -> float:
+		return Dano.tinta(n_glifos(), Sigils.recargos_tinta(geo()["props"]))
+
+	## Tamaño relativo (la esfera base vale 1; ver Sigils.coste_v2). Ya NO es lo que cuesta en tinta: lo usan el laboratorio y las pruebas.
+	func tamano_relativo() -> float:
 		var g: Dictionary = geo()
 		return Sigils.coste_v2(g, g["props"])
 
