@@ -53,7 +53,7 @@ func _escenario() -> void:
 	# --- 2 · modificadores ---
 	_tecla_lab(KEY_BACKSPACE)
 	await avanzar(3)
-	var glifos: Array = Sigils.GLIFOS_V2.keys()
+	var glifos: Array = Sigils.GLIFOS.keys()
 	var i_rep: int = glifos.find("repeticion")
 	_tecla_lab(LabGeometrias3D.TECLAS_MODIFICADOR[i_rep])
 	_tecla_lab(LabGeometrias3D.TECLAS_MODIFICADOR[i_rep])

@@ -34,10 +34,18 @@ const CAMPOS: Array = [
 	["eventos", "eventos"],
 ]
 
-## Los eventos que dispara un hechizo vivo (HC4, §2.3) y el catálogo CERRADO de acciones que puede llevar cada uno. Todo lo demás es datos: añadir un efecto
+## Los eventos que dispara un hechizo vivo (HC4, §2.3; H2, 29/10) y el catálogo CERRADO de acciones que puede llevar cada uno. Todo lo demás es datos: añadir un efecto
 ## nuevo a un glifo es una línea en su lista de modificadores (`op: "anade"` sobre `eventos.<nombre>`), nunca código por combinación.
-const EVENTOS: PackedStringArray = ["al_nacer", "al_golpear", "al_matar", "al_expirar", "al_rebotar", "al_viajar"]
-const ACCIONES: PackedStringArray = ["danar_area", "crear_hijo", "estado_suelo", "sonido", "vfx"]
+## El «final» del hechizo son TRES eventos, y un hechizo dispara como mucho UNO por tramo (`HechizoVivo._terminar`):
+##   al_impactar   un proyectil se paró por GOLPE (`motivo_fin` = golpe); salta después del `al_golpear` del objeto que lo paró
+##   al_detenerse  un proyectil se paró SIN golpear: muro, suelo, alcance, tiempo, frenado o retorno
+##   al_expirar    EXTINCIÓN: acaba la vida de lo que nace quieto (persiste + permanencia, o el haz). Un proyectil ya no lo dispara al pararse
+## Todas las acciones de un evento se ordenan con `ordenar_acciones` (paso y orden de tabla del glifo que las puso, ver `_aplicar`); el `emitir_pulso` de ᚱ es una acción más del catálogo.
+const EVENTOS: PackedStringArray = ["al_nacer", "al_golpear", "al_matar", "al_impactar", "al_detenerse", "al_expirar", "al_rebotar", "al_viajar"]
+const ACCIONES: PackedStringArray = ["danar_area", "crear_hijo", "estado_suelo", "sonido", "vfx", "emitir_pulso"]
+## Los tres eventos de final y el valor fino de `Sigils.GLIFOS[…]["momento"]` que corresponde a cada uno.
+const EVENTOS_FINAL: PackedStringArray = ["al_impactar", "al_detenerse", "al_expirar"]
+const MOMENTO_DE_FINAL: Dictionary = {"al_impactar": "impacto", "al_detenerse": "detencion", "al_expirar": "extincion"}
 ## `choca_con` es una máscara de bits; 0 = «la de siempre» = mundo + enemigos.
 const CHOCA_MUNDO: int = 1
 const CHOCA_ENEMIGOS: int = 2
@@ -113,7 +121,7 @@ const EDITABLES: Dictionary = {
 	"choca_con": {"paso": 1.0, "min": 0.0, "max": 3.0},
 }
 ## Los derivados que enseña la tabla (no se tocan: salen de lo demás).
-const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "n_glifos", "nivel_potencia", "recarga", "volumen", "superficie", "masa", "resistencia",
+const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja", "coste", "coste_tinta", "n_glifos", "nivel_potencia", "n_glifos_dano", "nivel_dano", "recarga", "volumen", "superficie", "masa", "resistencia",
 	"flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz"]
 
 # --- Forma y volumen ---
@@ -276,7 +284,9 @@ var viaja: bool = false
 var coste: float = 1.0                 ## tamaño relativo (la esfera base sin propiedades vale 1). 29/10: ya NO es la tinta; solo informa del volumen (lab, pruebas)
 var coste_tinta: float = 0.0           ## 29/10 (DANO_Y_TINTA): T_base(potencia) × (1 + recargos), ANTES de la rebaja del pigmento. Lo calcula `Dano.tinta`
 var n_glifos: int = 0                  ## 29/10: glifos de la receta (los conocidos; el elemento no cuenta). De aquí sale la potencia
-var nivel_potencia: int = 0            ## 29/10: Dano.LIGERA / MEDIA / ALTA según `n_glifos`
+var nivel_potencia: int = 0            ## 29/10: Dano.LIGERA / MEDIA / ALTA según `n_glifos` (la potencia de la TINTA)
+var n_glifos_dano: int = 0             ## H3: glifos OFENSIVOS (los que tienen `Sigils.cuenta_dano`: sin ᛁ ni ᛏ). De aquí sale el daño base
+var nivel_dano: int = 0                ## H3: Dano.LIGERA / MEDIA / ALTA según `n_glifos_dano` (cortes 1-2 · 3-4 · 5-6)
 var recarga: float = 0.0
 
 ## De dónde viene el valor de cada campo (HC5): "defecto" · "elemento" · "glifo:<nombre>" · "calidad". Los componentes de semiejes llevan «semiejes.x».
@@ -284,10 +294,15 @@ var origen: Dictionary = {}
 var _tocados: Dictionary = {}          ## campos que algún glifo ha tocado (para `desde` y para contar propiedades)
 
 
+## Cuántas veces se ha llamado a `construir` (H1 del PLAN_SISTEMA_HECHIZOS, 29/10). Solo lo leen las pruebas: un lanzamiento del libro construye UNA vez (`_preparar_pagina`) y la previsión, ninguna.
+static var construidos: int = 0
+
+
 ## Construye el hechizo de un elemento con unos glifos. `glifos` = nombre V2 -> cuántas veces (los nombres con alias, como «levitacion», se resuelven).
 ## `permitir_cinematico` (20/10): una runa cinemática (la del tiempo; `RuneData.cinematico`) solo se construye si quien llama lo pide con `true`, y solo lo hace una
 ## cinemática o un evento de guion; el libro y los laboratorios no lo pasan nunca. Sin él devuelve null (y avisa), no un hechizo «sin elemento» que pasaría por bueno.
 static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0, permitir_cinematico: bool = false) -> Hechizo:
+	construidos += 1
 	if elemento_rune != null and elemento_rune.cinematico and not permitir_cinematico:
 		push_warning("Hechizo.construir: «%s» es una runa cinemática (no la lanza el jugador); pide permitir_cinematico = true si es un evento de guion." % elemento_rune.display_name)
 		return null
@@ -323,10 +338,7 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 	h._aplicar(lista, "glifo", true)
 	# 29/10 (DANO_Y_TINTA): el daño base de fuego, agua, tierra y viento sale de la potencia (nº de glifos) y del elemento; hielo y rayo conservan el suyo.
 	if Dano.tiene_tabla(h.elemento):
-		var n_g: int = 0
-		for k in h.glifos:
-			n_g += maxi(int(h.glifos[k]), 0)
-		h.dano = Dano.base_elemental(n_g, h.elemento)
+		h.dano = Dano.base_elemental(h._contar_glifos_dano(), h.elemento)
 		h.origen["dano"] = "potencia"
 	# la calidad del trazo solo alarga lo que dura: la vida natural y la permanencia
 	if h.persiste > 0.0:
@@ -397,8 +409,12 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 		if String(m["op"]) == "anade":
 			var nombre_ev: String = String(m["campo"]).trim_prefix("eventos.")
 			var acciones: Array = eventos.get(nombre_ev, []) as Array
+			var glifo_de: String = String(m.get("de", "")).trim_prefix("glifo:") if String(m.get("de", "")).begins_with("glifo:") else ""
 			for _k in range(int(m.get("n", 1))):
-				acciones.append((m["valor"] as Dictionary).duplicate(true))
+				var a: Dictionary = (m["valor"] as Dictionary).duplicate(true)
+				a["paso"] = int(Sigils.GLIFOS.get(glifo_de, {}).get("paso", Sigils.PASO_DEFECTO))       # H2: el orden fijo de §2.4 también para los eventos
+				a["orden"] = _orden_de_glifo(glifo_de)
+				acciones.append(a)
 			eventos[nombre_ev] = acciones
 			origen["eventos"] = String(m.get("de", etiqueta))
 			if marca_tocados:
@@ -450,6 +466,15 @@ func _escribir(campo: String, valor: Variant) -> void:
 		set(campo, valor)
 
 
+## H3: los glifos de la receta que suman al daño (`Sigils.cuenta_dano`).
+func _contar_glifos_dano() -> int:
+	var n: int = 0
+	for k in glifos:
+		if Sigils.cuenta_dano(String(k)):
+			n += maxi(int(glifos[k]), 0)
+	return n
+
+
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
@@ -464,7 +489,9 @@ func _derivar() -> void:
 	for k in glifos:
 		n_glifos += maxi(int(glifos[k]), 0)
 	nivel_potencia = Dano.nivel(n_glifos)
-	coste_tinta = Dano.tinta(n_glifos, Sigils.recargos_tinta(props_usadas))       # 29/10: la tinta sale de la potencia, no del volumen
+	n_glifos_dano = _contar_glifos_dano()
+	nivel_dano = Dano.nivel_dano(n_glifos_dano)
+	coste_tinta = Dano.tinta_de(self)       # 29/10 + H4: la tinta sale del hechizo construido (potencia + aportes de glifos + recargos), no del volumen
 	recarga = Sigils.cooldown_v2(glifos)
 	for campo in DERIVADOS:
 		origen[campo] = "derivado"
@@ -514,9 +541,9 @@ func propiedades_usadas() -> Dictionary:
 		if campo == "permanencia":
 			# Solo cuenta (y encarece) la parte del glifo ᛉ: el segundo en adelante de la barrera también suma permanencia, pero eso es tiempo extra, no una propiedad nueva.
 			var n: int = int(glifos.get("permanencia", 0))
-			if n > 0 and Sigils.GLIFOS_V2.has("permanencia"):
-				var d: Dictionary = Sigils.GLIFOS_V2["permanencia"]
-				salida["permanencia"] = minf(float(d["inicio"]) + float(d["por_glifo"]) * float(n), float(d["tope"]))
+			if n > 0 and Sigils.GLIFOS.has("permanencia"):
+				var m: Dictionary = (Sigils.GLIFOS["permanencia"]["modificadores"] as Array)[0]       # H1: de la tabla GLIFOS (suma `valor` por glifo, con `tope`; parte de 0)
+				salida["permanencia"] = minf(float(m["valor"]) * float(n), float(m["tope"]))
 		elif _tocados.has(campo):
 			salida[PROPIEDAD_DE[campo]] = float(_leer(String(campo)))
 	return salida
@@ -556,6 +583,17 @@ func _cumple_momento(cuando: String) -> bool:
 ## Lo que HACEN los glifos del hechizo en un momento, en el ORDEN FIJO de GLIFOS_RECETA §2.4 (el `paso` de cada glifo y, a igualdad, el orden de la tabla `Sigils.GLIFOS`; nunca el orden
 ## en que se dibujaron): [{glifo, accion, n (cuántos glifos), paso}]. Solo cuentan los glifos con `accion` (los demás ya hacen lo suyo dentro del ciclo de vida).
 func acciones_en(momento: String) -> Array:
+	return _acciones_de([momento])
+
+
+## H2: las acciones de glifo que salen en el final de un tramo que acaba por `causa`: las de momento «final» (los tres finales) más las del momento fino que toca
+## («impacto» si `causa` = golpe, «extincion» si `causa` = «extincion», «detencion» en cualquier otro caso: muro, suelo, alcance, tiempo, frenado, retorno). Mismo orden que `acciones_en`.
+func acciones_en_fin(causa: String) -> Array:
+	var fino: String = "extincion" if causa == "extincion" else ("impacto" if causa == "golpe" else "detencion")
+	return _acciones_de([Sigils.MOMENTO_FINAL, fino])
+
+
+func _acciones_de(momentos: Array) -> Array:
 	var lista: Array = []
 	var orden: int = 0
 	for glifo in Sigils.GLIFOS:
@@ -563,17 +601,31 @@ func acciones_en(momento: String) -> Array:
 		if not glifos.has(glifo):
 			continue
 		var d: Dictionary = Sigils.GLIFOS[glifo]
-		if not d.has("accion") or momento_de(String(glifo)) != momento:
+		if not d.has("accion") or not momentos.has(momento_de(String(glifo))):
 			continue
 		lista.append({"glifo": String(glifo), "accion": String(d["accion"]), "n": int(glifos[glifo]), "paso": int(d.get("paso", Sigils.PASO_DEFECTO)), "orden": orden})
 	return ordenar_acciones(lista)
+
+
+## El lugar de un glifo en la tabla `Sigils.GLIFOS` (1…); 0 si no es de la tabla (acciones del laboratorio, del elemento o de `radio_explosion`).
+static func _orden_de_glifo(glifo: String) -> int:
+	var orden: int = 0
+	for g in Sigils.GLIFOS:
+		orden += 1
+		if String(g) == glifo:
+			return orden
+	return 0
 
 
 ## EL ORDEN FIJO de GLIFOS_RECETA §2.4: por `paso` (1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos) y, dentro del mismo paso, por `orden` (el de la tabla `Sigils.GLIFOS`).
 ## Nunca por el orden en que se dibujaron los glifos. Devuelve la lista ordenada (la misma, in situ).
 static func ordenar_acciones(lista: Array) -> Array:
 	lista.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return int(a["paso"]) < int(b["paso"]) or (int(a["paso"]) == int(b["paso"]) and int(a["orden"]) < int(b["orden"])))
+		if int(a["paso"]) != int(b["paso"]):
+			return int(a["paso"]) < int(b["paso"])
+		if int(a["orden"]) != int(b["orden"]):
+			return int(a["orden"]) < int(b["orden"])
+		return int(a.get("i", 0)) < int(b.get("i", 0)))        # `i` = posición en la lista (el sort de Godot no es estable): a igualdad, el orden en que se añadieron
 	return lista
 
 
@@ -695,6 +747,172 @@ func a_diccionario() -> Dictionary:
 	return d
 
 
+## H7 (29/10, PLAN_SISTEMA_HECHIZOS §3): lo que el libro enseña de un hechizo SIN lanzarlo. Datos puros: la potencia y el nivel de daño con su nombre, y los números tal cual (la tinta es `coste_tinta`,
+## antes de la rebaja del pigmento: lo que Tinta rebaja se le dice a `Lanzador3D.tinta_prevista`).
+func resumen() -> Dictionary:
+	return {"potencia": String(Dano.NOMBRES[nivel_potencia]), "nivel_dano": String(Dano.NOMBRES[nivel_dano]), "dano": dano, "tinta": coste_tinta, "recarga": recarga, "forma": forma,
+		"en_punto": en_punto, "haz": haz, "n_glifos": n_glifos, "n_glifos_dano": n_glifos_dano}
+
+
+## Campos que `diferencia` no compara: son el «por qué» (origen, glifos) o un derivado de otro campo ya comparado (`semiejes_glifos`).
+const DIF_SALTAR: PackedStringArray = ["origen", "glifos", "semiejes_glifos"]
+## Derivados que `texto_cambio` no nombra: repiten (volumen, masa…) o no le dicen nada a quien dibuja (cast_point, niveles). Siguen en `diferencia`.
+const DIF_SIN_FRASE: PackedStringArray = ["coste", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "persistente", "solido_quieto",
+	"cast_point", "niveles", "viaja", "alcance_haz", "n_glifos", "n_glifos_dano", "forma", "haz", "persiste"]
+
+
+## La tabla plana que compara `diferencia`: `a_diccionario()` con los semiejes en tres campos («semiejes.x»…) para poder decir «+1 casilla de ancho».
+func _comparable() -> Dictionary:
+	var d: Dictionary = a_diccionario()
+	d.erase("semiejes")
+	d["semiejes.x"] = semieje_x
+	d["semiejes.y"] = semieje_y
+	d["semiejes.z"] = semieje_z
+	for c in DIF_SALTAR:
+		d.erase(c)
+	return d
+
+
+## H7: los campos que cambian entre `anterior` y este hechizo: [{campo, antes, despues, glifo}]. `glifo` es el id del glifo que lo puso (el `origen` «glifo:<nombre>» del campo en este hechizo o,
+## si ya no lo tiene este —un glifo quitado—, en el anterior), o "" si es un derivado, el elemento o el daño por potencia. Orden: el de la tabla (CAMPOS) y después los derivados.
+func diferencia(anterior: Hechizo) -> Array:
+	var salida: Array = []
+	if anterior == null:
+		return salida
+	var nuevo: Dictionary = _comparable()
+	var viejo: Dictionary = anterior._comparable()
+	for campo in nuevo:
+		var a: Variant = viejo.get(campo)
+		var b: Variant = nuevo[campo]
+		var igual: bool
+		if (a is float or a is int) and (b is float or b is int):
+			igual = is_equal_approx(float(a), float(b))
+		else:
+			igual = a == b
+		if igual:
+			continue
+		var glifo: String = ""
+		for o in [origen, anterior.origen]:
+			var etiqueta: String = String((o as Dictionary).get(campo, ""))
+			if etiqueta.begins_with("glifo:"):
+				glifo = etiqueta.trim_prefix("glifo:")
+				break
+			if etiqueta == "calidad":
+				glifo = _glifo_del_campo(campo)      # la calidad solo estira lo que ya puso un glifo (permanencia, persiste): el glifo sigue siendo el dueño
+				if glifo != "":
+					break
+		salida.append({"campo": campo, "antes": a, "despues": b, "glifo": glifo})
+	return salida
+
+
+## El glifo de la receta cuya tabla toca `campo` (el primero por orden de tabla); "" si ninguno.
+func _glifo_del_campo(campo: String) -> String:
+	for g in Sigils.GLIFOS:
+		if not glifos.has(g):
+			continue
+		for m in (Sigils.GLIFOS[g].get("modificadores", []) as Array):
+			if String((m as Dictionary).get("campo", "")) == campo:
+				return String(g)
+	return ""
+
+
+## «2» o «2,5»: un número con coma decimal y sin ceros de más.
+static func texto_numero(v: float, decimales: int = 1) -> String:
+	if absf(v - roundf(v)) < 0.05:
+		return str(int(roundf(v)))
+	return (("%." + str(decimales) + "f") % v).replace(".", ",")
+
+
+## «2,0»: segundos con un decimal fijo y coma (la recarga).
+static func texto_segundos(v: float) -> String:
+	return ("%.1f" % v).replace(".", ",")
+
+
+static func _con_signo(v: float) -> String:
+	return ("+" if v > 0.0 else "−") + texto_numero(absf(v))
+
+
+static func _casillas(v: float, que: String) -> String:
+	var n: float = absf(v)
+	return "%s %s de %s" % [_con_signo(v), "casilla" if absf(n - 1.0) < 0.05 else "casillas", que]
+
+
+## Las frases de una diferencia, una por campo que merece frase: [{texto, numerico}]. `numerico` = es un número del resumen (daño, tinta, recarga, niveles) y no lo que hizo el glifo; el libro las pone en
+## líneas distintas. Los campos de glifo salen primero y en el orden de `diferencia`.
+static func frases_cambio(dif: Array) -> Array:
+	var propias: Array = []
+	var numeros: Array = []
+	for d in dif:
+		var campo: String = String(d["campo"])
+		if DIF_SIN_FRASE.has(campo):
+			continue
+		var a: Variant = d["antes"]
+		var b: Variant = d["despues"]
+		var texto: String = ""
+		var numerico: bool = false
+		var delta: float = (float(b) - float(a)) if ((a is float or a is int) and (b is float or b is int)) else 0.0
+		match campo:
+			"semiejes.x":
+				texto = _casillas(delta * 2.0, "ancho")
+			"semiejes.y":
+				texto = _casillas(delta * 2.0, "alto")
+			"semiejes.z":
+				texto = _casillas(delta * 2.0, "fondo")
+			"distancia_max":
+				texto = "%s m de alcance" % _con_signo(delta)
+			"permanencia":
+				texto = "%s s de permanencia" % _con_signo(delta)
+			"copias":
+				texto = "%s %s" % [_con_signo(delta), "copia" if absf(delta) < 1.5 else "copias"]
+			"dano":
+				texto = "daño %s → %s" % [texto_numero(float(a)), texto_numero(float(b))]
+				numerico = true
+			"coste_tinta":
+				texto = "tinta %s → %s" % [texto_numero(float(a)), texto_numero(float(b))]
+				numerico = true
+			"recarga":
+				texto = "recarga %s → %s s" % [texto_segundos(float(a)), texto_segundos(float(b))]
+				numerico = true
+			"nivel_potencia":
+				texto = "potencia %s → %s" % [Dano.NOMBRES[clampi(int(a), 0, 2)], Dano.NOMBRES[clampi(int(b), 0, 2)]]
+				numerico = true
+			"nivel_dano":
+				texto = "nivel de daño %s → %s" % [Dano.NOMBRES[clampi(int(a), 0, 2)], Dano.NOMBRES[clampi(int(b), 0, 2)]]
+				numerico = true
+			"en_punto":
+				texto = "nace donde apuntas" if bool(b) else "ya no nace donde apuntas"
+			"solidez":
+				texto = "bloquea el paso" if float(b) > float(a) else "ya no bloquea"
+			"crece":
+				texto = "se expande %s m/s" % texto_numero(float(b))
+			"eventos":
+				texto = "efectos %d → %d" % [_acciones_en(a as Dictionary), _acciones_en(b as Dictionary)]
+			_:
+				if (a is float or a is int) and (b is float or b is int):
+					texto = "%s: %s → %s" % [campo, texto_numero(float(a), 2), texto_numero(float(b), 2)]
+				elif a is bool and b is bool:
+					texto = "%s: %s → %s" % [campo, "sí" if a else "no", "sí" if b else "no"]
+				else:
+					texto = "%s: %s → %s" % [campo, str(a), str(b)]
+		(numeros if numerico else propias).append({"texto": texto, "numerico": numerico})
+	return propias + numeros
+
+
+static func _acciones_en(eventos_: Dictionary) -> int:
+	var n: int = 0
+	for e in eventos_:
+		n += (eventos_[e] as Array).size()
+	return n
+
+
+## H7: la diferencia en una frase corta por campo («+1 casilla de ancho · daño 13 → 26 · tinta 8 → 18»); "" si nada que contar.
+static func texto_cambio(dif: Array) -> String:
+	var trozos: PackedStringArray = PackedStringArray()
+	for f in frases_cambio(dif):
+		trozos.append(String((f as Dictionary)["texto"]))
+	return " · ".join(trozos)
+
+
 static func _plano(v: Variant) -> Variant:
 	if v is Vector3:
 		return [(v as Vector3).x, (v as Vector3).y, (v as Vector3).z]
@@ -724,5 +942,6 @@ func describir() -> String:
 		var v: Variant = get(campo)
 		if v != defecto(campo):
 			lineas.append("  %s = %s  (%s)" % [campo, str(v), String(origen.get(campo, origen.get(campo + ".x", "defecto")))])
+	lineas.append("  potencia: %d glifos (tinta, %s) · %d ofensivos (daño %s)" % [n_glifos, Dano.NOMBRES[nivel_potencia], n_glifos_dano, Dano.NOMBRES[nivel_dano]])
 	lineas.append("  coste %.2f (%.1f tinta) · recarga %.2f s · niveles %d · cast point '%s'" % [coste, coste_tinta, recarga, niveles, cast_point])
 	return "\n".join(lineas)

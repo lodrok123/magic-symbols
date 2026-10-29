@@ -68,6 +68,10 @@ func _pngs() -> void:
 	var sin_icono: Array = []
 	var vacios: Array = []
 	for id in Objetos.DATOS.keys():
+		# F0 (29/10): el catálogo ya trae los objetos NUEVOS de objetos.tsv (estado `nuevo`) y 7 `hay` que nunca tuvieron icono (llaves, ropa, glifo);
+		# su PNG lo hace el Pipeline en F5 (PLAN_BASE_DATOS §7), así que aquí solo se exigen los 36 que ya lo tenían.
+		if String(BD.objeto(String(id)).get("estado", "")) == "nuevo" or ["llave_goblin", "perla", "aletas", "capa", "capucha", "tunica", "glifo_resonancia"].has(id):
+			continue
 		if id == "oro" or id == "pocion" or ["tonico_tinta", "balsamo_protector", "infusion_brezo"].has(id):
 			continue            # 24/10: los tres consumibles nuevos del HUD se dibujan en código (Objetos.dibujar) hasta que el Pipeline haga su PNG 128 × 128
 			#           # la moneda y el frasco ya tienen arte de Pablo (mochila_moneda.png, objeto_pocion.png)

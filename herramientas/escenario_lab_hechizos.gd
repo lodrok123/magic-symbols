@@ -78,8 +78,8 @@ func _escenario() -> void:
 	await avanzar_s(0.5)
 
 	# --- Contadores y glifos ---
-	var glifos: Array = Sigils.GLIFOS_V2.keys()
-	_ok("2 el panel tiene un contador por glifo de GLIFOS_V2", (lab.get("_panel_cuentas") as Dictionary).size() == glifos.size() and glifos.size() == 10, str(glifos))        # 19/10: + permanencia (ᛉ) · 23/10: + raido (ᚱ «pulso»)
+	var glifos: Array = Sigils.GLIFOS.keys()
+	_ok("2 el panel tiene un contador por glifo de GLIFOS", (lab.get("_panel_cuentas") as Dictionary).size() == glifos.size() and glifos.size() == 10, str(glifos))        # 19/10: + permanencia (ᛉ) · 23/10: + raido (ᚱ «pulso»)
 	lab.limpiar()
 	lab.sumar("linea_z", 1)
 	lab.sumar("linea_z", 1)
@@ -736,7 +736,7 @@ func _escenario() -> void:
 	lab.limpiar()
 	for k14 in [KEY_KP_4, KEY_KP_5, KEY_KP_1, KEY_KP_8]:
 		_tecla_lab(k14)
-	var ks: Array = Sigils.GLIFOS_V2.keys()
+	var ks: Array = Sigils.GLIFOS.keys()
 	_ok("14 Numpad 1–8 añade al FINAL, en orden (%s)" % str(lab.orden), lab.orden == [ks[3], ks[4], ks[0], ks[7]], str(lab.orden))
 	_ok("14 y el multiconjunto sale de esa fila", lab.contadores == {ks[3]: 1, ks[4]: 1, ks[0]: 1, ks[7]: 1}, str(lab.contadores))
 	_tecla_lab(KEY_KP_9)
@@ -776,7 +776,7 @@ func _escenario() -> void:
 	var todas_ok14: bool = true
 	for r14b in lab.recetas:
 		for g14 in (r14b["glifos"] as Array):
-			todas_ok14 = todas_ok14 and Sigils.GLIFOS_V2.has(String(g14))
+			todas_ok14 = todas_ok14 and Sigils.GLIFOS.has(String(g14))
 		todas_ok14 = todas_ok14 and (r14b["glifos"] as Array).size() <= Hechizo.MAX_GLIFOS and lab.ELEMENTOS.has(String(r14b["elemento"]))
 	_ok("14 todas usan glifos y elementos que existen y caben en 6", todas_ok14)
 	_ok("14 la lista visible trae sus nombres y el atajo (Ctrl+1…)", lab.texto_diseno().contains("Ctrl+1  bola de fuego") and lab.texto_diseno().contains("onda de viento"))

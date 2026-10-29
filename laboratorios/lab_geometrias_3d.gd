@@ -12,7 +12,7 @@ extends Node
 ## Lo que nace donde apuntas (la barrera, `en_punto`) sale CASILLAS_APUNTADAS por delante del principio del carril.
 ## Se lanza con `Lanzador3D.lanzar_receta`: no gasta tinta ni espera recarga.
 ## TECLAS (las de la maqueta siguen: WASD, +/- zoom…):
-##   Espacio lanza los ocho · Tab siguiente elemento · Numpad 1–9 y «.» suman un modificador (con Mayús, restan; el orden es el de Sigils.GLIFOS_V2)
+##   Espacio lanza los ocho · Tab siguiente elemento · Numpad 1–9 y «.» suman un modificador (con Mayús, restan; el orden es el de Sigils.GLIFOS)
 ##   Numpad 0 quita los modificadores · Numpad Intro repite solo cada T_AUTO s · Retroceso borra lo que queda en la sala · L/./, cámara lenta y paso a paso
 
 const NIVEL_MAPA: String = "LabGeometrias"
@@ -106,7 +106,7 @@ func glifos_de(i: int) -> Dictionary:
 func receta_de(i: int) -> Lanzador3D.Receta3D:
 	var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 	var g: Dictionary = glifos_de(i)
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		for _k in range(int(g.get(nombre, 0))):
 			r.apply(String(nombre))
 	return r
@@ -123,7 +123,7 @@ func inicio_de(i: int) -> Vector3:
 
 
 func sumar(glifo: String, delta: int) -> void:
-	if not Sigils.GLIFOS_V2.has(glifo):
+	if not Sigils.GLIFOS.has(glifo):
 		return
 	var n: int = clampi(int(modificadores.get(glifo, 0)) + delta, 0, LabRecetas3D.glifos_hasta_tope(glifo) + 1)
 	if n == 0:
@@ -247,7 +247,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo:
 		return
 	var atendida: bool = true
-	var glifos: Array = Sigils.GLIFOS_V2.keys()
+	var glifos: Array = Sigils.GLIFOS.keys()
 	var i: int = TECLAS_MODIFICADOR.find(k.keycode)
 	if k.keycode == KEY_SPACE:
 		lanzar_todos()
@@ -312,7 +312,7 @@ func _montar_panel() -> void:
 	var titulo := Label.new()
 	titulo.text = "GEOMETRÍAS · modificadores"
 	v.add_child(titulo)
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		var fila := HBoxContainer.new()
 		v.add_child(fila)
 		var et := Label.new()

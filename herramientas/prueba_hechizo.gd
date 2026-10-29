@@ -144,7 +144,8 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	_ok(_casi(h.permanencia, perm), "%s: permanencia %.3f ≠ %.3f" % [et, h.permanencia, perm])
 	var n_g: int = 0
 	for k in c:
-		n_g += int(c[k])
+		if Sigils.cuenta_dano(String(k)):         # H3: ᛁ y ᛏ no suman al daño
+			n_g += int(c[k])
 	_ok(_casi(h.dano, Dano.base_elemental(n_g, h.elemento, rune.damage)) and _casi(h.empuje, rune.empuje) and h.estado_materia == rune.estado and h.pisable == rune.pisable and h.deja == rune.deja, "%s: daño, empuje, estado, pisable o deja" % et)
 	_ok(h.color == rune.color and h.etiquetas == rune.tags and h.elemento == Objetos.elemento_de(rune), "%s: color, etiquetas o elemento" % et)
 	# derivados contra Receta3D y GeometriaV2
@@ -159,7 +160,7 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	_ok(h.cast_point == CastPoints.variacion_de(r.forma()), "%s: cast point" % et)
 	_ok(h.niveles == Lanzador3D.GeometriaV2.niveles(g), "%s: niveles %d ≠ %d" % [et, h.niveles, Lanzador3D.GeometriaV2.niveles(g)])
 	_ok(_casi(h.coste, r.tamano_relativo()) and _casi(h.coste, Sigils.coste_v2(g, props)), "%s: tamaño relativo %.4f ≠ %.4f" % [et, h.coste, r.tamano_relativo()])
-	_ok(_casi(h.coste_tinta, r.coste_tinta()) and _casi(h.coste_tinta, Dano.tinta(r.n_glifos(), Sigils.recargos_tinta(props))), "%s: coste en tinta (29/10: por potencia, no por volumen)" % et)
+	_ok(_casi(h.coste_tinta, r.coste_tinta()) and _casi(h.coste_tinta, Dano.tinta_de(h)), "%s: coste en tinta (29/10: por potencia, no por volumen)" % et)
 	_ok(_casi(h.recarga, r.cooldown), "%s: recarga %.3f ≠ %.3f" % [et, h.recarga, r.cooldown])
 	# los límites globales de la ESPEC §1.9 no los supera NINGUNA combinación (ni con 4 glifos de cualquier tipo)
 	_ok(h.semieje_x <= Hechizo.LIM_SEMIEJE_HORIZONTAL + EPS_L and h.semieje_z <= Hechizo.LIM_SEMIEJE_HORIZONTAL + EPS_L and h.semieje_y <= Hechizo.LIM_SEMIEJE_ALTO + EPS_L \

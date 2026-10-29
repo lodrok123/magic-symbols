@@ -185,6 +185,81 @@ func _feedback(texto: String, segundos: float = 1.4) -> void:
 	feedback_until = Time.get_ticks_msec() + int(segundos * 1000.0)
 
 
+## --- H7 (29/10, PLAN_SISTEMA_HECHIZOS §3): LO QUE EL LIBRO SABE DE LA PÁGINA SIN LANZARLA ---
+##
+## Cada vez que cambia la composición de una página (trazo aceptado, deshacer, vaciar, otro elemento, cambiar de página) se construye su `Hechizo` con la MISMA fusión de sectores y calidad que el
+## lanzamiento (`Lanzador3D.receta_de_ficha`) y se guarda, por página: el `resumen()`, la `diferencia()` con el estado anterior de ESA página (lo que aportó el último glifo), su frase y los avisos
+## (los mismos textos de `_preparar_pagina`: `Lanzador3D.avisos_de`). Si la ficha no cambió desde la última vez no se construye nada: dibujar el libro cada fotograma sale gratis.
+var _resumenes: Array = [{}, {}, {}]
+
+
+## Lo que el libro enseña de la página `indice` (-1 = la activa): {clave, hechizo, rune, elemento, resumen, tinta_prevista, diferencia, frases, texto, glifos, avisos, notas, vacia}.
+func resumen_pagina(indice: int = -1) -> Dictionary:
+	var i: int = page if indice < 0 else indice
+	if i < 0 or i >= PAGES or i >= pages.size():
+		return {}
+	_actualizar_resumen(i)
+	return _resumenes[i]
+
+
+func _clave_ficha(ficha: Dictionary) -> String:
+	return "%s|%s|%s" % [str(ficha["element"]), str(ficha.get("element_q", 1.0)), str(ficha["components"])]
+
+
+func _actualizar_resumen(i: int) -> void:
+	if i < 0 or i >= PAGES or i >= pages.size():
+		return
+	var ficha: Dictionary = pages[i]
+	var clave: String = _clave_ficha(ficha)
+	var previo: Dictionary = _resumenes[i]
+	var rune: RuneData = rune_database.get(ficha["element"])
+	var t: Tinta = get("tinta") as Tinta         # solo el lanzador del juego tiene tinta
+	var sello: String = "" if t == null else "%d|%d|%s" % [int(ceil(t.actual)), t.frascos, t.pigmento]
+	if not previo.is_empty() and String(previo["clave"]) == clave:
+		if String(previo["sello"]) != sello and previo["hechizo"] != null:
+			# La página es la misma pero ha cambiado la tinta (se gasta, se recupera, otro pigmento): solo se rehacen la tinta prevista y los avisos. La diferencia con el glifo anterior se conserva.
+			previo["sello"] = sello
+			previo["tinta_prevista"] = Lanzador3D.tinta_prevista(previo["hechizo"], rune, t)
+			previo["avisos"] = _avisos_de_pagina(i, ficha, rune, previo["hechizo"], previo["ignorados"], t)
+		return
+	var montada: Dictionary = Lanzador3D.receta_de_ficha(ficha, rune, t)
+	var h: Hechizo = montada["hechizo"]
+	var elemento: String = Objetos.elemento_de(rune)
+	var vacia: bool = rune == null and (ficha["components"] as Array).is_empty()
+	var anterior: Hechizo = previo.get("hechizo") as Hechizo
+	if anterior == null:
+		anterior = Lanzador3D.receta_de_ficha({"element": Runes.Type.NONE, "element_q": 1.0, "components": []}, null)["hechizo"]
+	var cambio_elemento: bool = String(previo.get("elemento", "")) != elemento
+	var dif: Array = [] if (h == null or cambio_elemento) else h.diferencia(anterior)
+	var frases: Array = Hechizo.frases_cambio(dif)
+	var texto: String = Hechizo.texto_cambio(dif)
+	if cambio_elemento and rune != null:
+		texto = "Elemento: %s" % rune.display_name
+	var glifos: Array = []
+	for d in dif:
+		var g: String = String((d as Dictionary)["glifo"])
+		if g != "" and not glifos.has(g):
+			glifos.append(g)
+	var ignorados: PackedStringArray = (montada["receta"] as RefCounted).get("ignorados")
+	var avisos: Array[String] = _avisos_de_pagina(i, ficha, rune, h, ignorados, t)
+	_resumenes[i] = {"clave": clave, "sello": sello, "ignorados": ignorados, "hechizo": h, "rune": rune, "elemento": elemento, "resumen": h.resumen() if h != null else {},
+		"tinta_prevista": Lanzador3D.tinta_prevista(h, rune, t) if h != null else 0.0, "diferencia": dif, "frases": frases, "texto": texto, "glifos": glifos,
+		"avisos": avisos, "notas": Lanzador3D.notas_de(h), "vacia": vacia}
+
+
+## Los avisos de una página: lo que falta (elemento, glifos; con el texto de `cast_page`) y los de `Lanzador3D.avisos_de` (altura, sin uso, tinta). Una página sin nada dibujado no avisa de nada.
+func _avisos_de_pagina(i: int, ficha: Dictionary, rune: RuneData, h: Hechizo, ignorados: PackedStringArray, t: Tinta) -> Array[String]:
+	var avisos: Array[String] = []
+	if rune == null and (ficha["components"] as Array).is_empty():
+		return avisos
+	if rune == null:
+		avisos.append("Sin elemento")
+	elif (ficha["components"] as Array).is_empty():
+		avisos.append("A la página %d le falta algún glifo" % (i + 1))
+	avisos.append_array(Lanzador3D.avisos_de(h, rune, ignorados, t))
+	return avisos
+
+
 ## --- Interfaz pública, la que usa el grimorio ---
 
 ## Recibe un trazo ya capturado y el SECTOR del círculo donde se dibujó,
@@ -403,6 +478,7 @@ func _add_element(strokes: Array) -> void:
 	PlayLog.event("trazo", {"tipo": "elemento", "nombre": gesture_name,
 		"calidad": snappedf(_calidad_elemento, 0.01)})
 	print("Elemento: ", rune_database[rune].display_name)
+	_actualizar_resumen(page)
 
 
 ## El nombre del gesto de un elemento (la clave de Repertoire) a partir
@@ -486,6 +562,7 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	undo_history.append({"kind": "sigil", "direction": sector})
 	print("Sello '", sigil_name, "' hacia ", sector,
 		"  ->  ", component["sigils"])
+	_actualizar_resumen(page)
 
 
 ## --- PONER RUNAS DIRECTAMENTE (pruebas) ---
@@ -505,6 +582,7 @@ func place_element(gesture_name: String) -> void:
 	current_element = GESTURE_TO_RUNE[gesture_name]
 	pages[page]["element_q"] = 1.0
 	print("Elemento (paleta): ", gesture_name)
+	_actualizar_resumen(page)
 
 
 ## Sin ratón, todos los glifos puestos así van al mismo sector (la derecha). Con el ratón
@@ -624,6 +702,7 @@ func undo_last() -> void:
 			if component["sigils"].is_empty():
 				current_components.erase(component)
 			print("Deshecho un sello.")
+	_actualizar_resumen(page)
 
 
 ## Vacía LA PÁGINA ACTIVA, no las tres. Borrar las otras dos por
@@ -635,6 +714,7 @@ func clear_sequence() -> void:
 	current_components.clear()
 	undo_history.clear()
 	stroke_points.clear()
+	_actualizar_resumen(page)
 
 
 ## --- Pasar página ---
@@ -644,6 +724,7 @@ func select_page(indice: int) -> void:
 		return
 	page = indice
 	stroke_points.clear()
+	_actualizar_resumen(page)
 
 
 ## ¿Tiene esta página algo dibujado? Lo usa el libro para pintar las

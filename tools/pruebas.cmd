@@ -36,6 +36,7 @@ rem 19/10: el recuento lo hace tools\resumen_prueba.ps1 (acepta FALLOS: N / FALL
 rem descarta el ruido de fugas de Godot, cuenta aparte los "Lambda capture ... was freed" como AVISOS y saca una tabla prueba / fallos / avisos / veredicto).
 rem Uso:   tools\pruebas.cmd                    todas
 rem        tools\pruebas.cmd solo golpe hechizo  solo las que contengan alguno de esos trozos de nombre (golpe, hechizo_vivo, prueba_hechizo...)
+rem        tools\pruebas.cmd solo hechizos      ALIAS (29/10, H0 del PLAN_SISTEMA_HECHIZOS): las 18 pruebas del sistema de hechizos, por nombre exacto (ver $suiteHechizos en resumen_prueba.ps1)
 set "PATRON="
 set "ARGS=%*"
 if /i "%~1"=="solo" set "PATRON=!ARGS:~5!"

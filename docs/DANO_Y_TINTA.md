@@ -2,23 +2,50 @@
 
 29/10/2026 · decisión de Pablo (con correcciones de Opus aceptadas) · **construido**. Todo el cálculo vive en `nucleo/dano.gd` (`class_name Dano`); prueba: `herramientas/prueba_dano_tinta.gd`.
 
-Antes el daño de un hechizo era el de su runa (fuego 50, agua 40, tierra 0 + 18…) y la tinta salía del **volumen** (10 × tamaño relativo × propiedades). Ahora los dos salen de la **potencia**: cuántos glifos lleva la receta.
+Antes el daño de un hechizo era el de su runa (fuego 50, agua 40, tierra 0 + 18…) y la tinta salía del **volumen** (10 × tamaño relativo × propiedades). Ahora salen de cuántos glifos lleva la receta: la **tinta** del nº TOTAL de glifos (potencia) y el **daño** del nº de glifos OFENSIVOS (H3, 29/10: los de geometría ᛁ y ᛏ no suman daño).
 
 ---
 
 ## 1. Potencia
 
-**Potencia = nº de glifos de la receta** (los que el juego conoce; el elemento no cuenta y los glifos aparcados —retardo, atracción, espejo, amplificar— tampoco).
+Hay **dos recuentos** de glifos (el elemento no cuenta y los glifos aparcados —retardo, atracción, espejo, amplificar— tampoco):
 
-| Glifos | Potencia |
+- **Potencia de la TINTA = nº TOTAL de glifos** (`Hechizo.n_glifos`, `nivel_potencia`). Una ᛁ o una ᛏ cuestan tinta.
+
+| Glifos (total) | Potencia (tinta) |
 |---|---|
 | 0–1 | ligera |
 | 2–3 | media |
 | ≥ 4 | alta (el libro admite 6: `Hechizo.MAX_GLIFOS`) |
 
-Constantes: `Dano.GLIFOS_MEDIA = 2`, `Dano.GLIFOS_ALTA = 4`.
+Constantes: `Dano.GLIFOS_MEDIA = 2`, `Dano.GLIFOS_ALTA = 4` (`Dano.nivel`, `Dano.tinta`).
 
-| Potencia | Daño base B | Tinta base T_base |
+- **Nivel de DAÑO = nº de glifos OFENSIVOS** (`Hechizo.n_glifos_dano`, `nivel_dano`): los glifos con `Sigils.cuenta_dano` (todos salvo ᛁ `linea_x`, ᛁ `linea_z` y ᛏ `altura`, que llevan `"cuenta_dano": false`). Así «ᛁ×6» no es la combinación óptima: cuesta la tinta de una alta y daña como una ligera. La repetición ᚠ sí cuenta (ya duplica el daño por sí misma).
+
+| Glifos ofensivos | Nivel de daño |
+|---|---|
+| 0–2 | ligera |
+| 3–4 | media |
+| 5–6 | alta |
+
+Constantes: `Dano.GLIFOS_MEDIA_DANO = 3`, `Dano.GLIFOS_ALTA_DANO = 5` (`Dano.nivel_dano`, `nombre_nivel_dano`, `base_dano`, `base_elemental`).
+
+Ejemplos (fuego; tinta antes de la rebaja del pigmento):
+
+| Receta | Glifos (total) → tinta | Ofensivos → daño |
+|---|---|---|
+| fuego solo | 0 → ligera, 8 | 0 → ligera, 13,2 |
+| fuego + ᛁ | 1 → ligera, 8 | 0 → ligera, 13,2 |
+| fuego + ᛁᛁ / ᛁᛁᛁ | 2–3 → media, 18 | 0 → ligera, 13,2 |
+| flecha + rebote | 2 → media, 18 | 2 → ligera, 13,2 |
+| flecha + rebote + ᚱ | 3 → media, 18 | 3 → media, 26,4 |
+| flecha + rebote + ᚱ + ᚠ | 4 → alta, 34 | 4 → media, 26,4 |
+| flecha + rebote + ᚱ + ᚠ + permanencia | 5 → alta, 34 | 5 → alta, 44 |
+| flecha + ᛁ + ᛁ + ᛏ | 4 → alta, 34 | 1 → ligera, 13,2 |
+
+Hielo y rayo (aparcados) conservan su daño de siempre con cualquier geometría.
+
+| Nivel | Daño base B (nivel de daño) | Tinta base T_base (potencia) |
 |---|---|---|
 | Ligera | 12 | 8 |
 | Media | 24 | 18 |
@@ -65,20 +92,45 @@ Se acabó `MULT_DEBIL` 2,0 / `MULT_RESISTE` 0,5: ahora **×1,5 / ×0,75** (`Dano
 ### Tinta
 
 ```
-T = T_base(potencia) × ( 1 + Σ recargos )
+T       = T_base(potencia) + Σ aporte_glifo
+T_final = T × ( 1 + recargo_instancias + recargo_periodico )
 ```
 
-Los recargos son SOLO de glifos especiales que ya encarecían: hoy el **efecto continuo ᚱ** (`Sigils.COSTE_CONTINUO_V2` = 0,25, cuando la receta lleva ᚱ y su volumen se queda: barrera o permanencia). La repetición no tiene recargo propio (antes solo encarecía por contar como «propiedad» del cálculo por volumen, que desaparece). El nº de glifos entra **solo** por T_base: **sin doble conteo**. La rebaja del pigmento (`Tinta.coste_efectivo`, regla del 1/3) se aplica encima, como siempre.
+Sale del **`Hechizo` construido**: `Dano.tinta_de(h)` (lo que cobra el juego: `Hechizo.coste_tinta`, `Receta3D.coste_tinta()`) y `Dano.desglose_tinta(h)` → `{base, aportes: {glifo: x}, instancias, periodico, total}` para el laboratorio y las pruebas. Las dos aceptan `ajustes` (solo pruebas) para probar números sin tocar las constantes del juego. `Dano.tinta(n_glifos, recargos)` queda como la base. La rebaja del pigmento (`Tinta.coste_efectivo`, regla del 1/3) se aplica encima, fuera de aquí.
 
-| Receta | Tinta |
+| Término | De dónde sale | Hoy |
+|---|---|---|
+| `T_base` | nº de glifos → potencia: 0–1 ligera **8** · 2–3 media **18** · ≥ 4 alta **34** | igual |
+| `aporte_glifo` | dato `"tinta": {"por_glifo": x, "tope": t}` en cada entrada de `Sigils.GLIFOS`: `mín(x · n, t)` (sin clave, 0) | 0 en los 10 glifos |
+| `recargo_instancias` | `Dano.K_COPIA` × (copias − 1) + `Dano.K_HIJO` × hijos previstos (suma de `cuantos` de las acciones `crear_hijo` de todos los eventos) | 0 y 0 |
+| `recargo_periodico` | **+0,25** (`Sigils.COSTE_CONTINUO_V2`) si ᚱ y el volumen se queda sin viajar (`Dano.es_continuo`) · más `Dano.K_PERIODICO` si `dano_periodico > 0` o `veneno > 0` | 0,25 como siempre; K_PERIODICO 0 |
+
+El nº de glifos sigue entrando **solo** por `T_base` (sin doble conteo): el aporte de un glifo es un precio propio de ese glifo, no un segundo conteo, y vale 0 hasta que Pablo lo ponga.
+
+**Cuándo es «continuo» (`Dano.CONTINUO_POR_HECHIZO`).** Hoy (`false`) es la condición de siempre, por las propiedades de la receta: ᚱ + no viaja + (barrera o permanencia). Con `true` se decidiría con `Hechizo.persistente`, que cierra PENDIENTES (tierra/hielo + ᚱ sin barrera también laten y no pagaban), pero **cambia el golden**: tierra/hielo + ᚱ sin barrera suben (+25 %: p. ej. ᛁᛁ + ᚱ, 18 → 22,5) y ᛁᛁ + ᛉ + ᚱ (un haz, no se queda) baja (42,5 → 34). Se deja a `false` por la regla «el golden no se regenera»; **decisión para Pablo** (la prueba cubre las dos).
+
+| Receta (constantes del juego, todo a 0) | Tinta |
 |---|---|
-| ligera (0–1 glifos) | 8 |
-| media (2–3) | 18 |
-| alta (≥ 4) | 34 |
-| media con ᚱ continuo (p. ej. barrera + ᚱ) | 18 × 1,25 = 22,5 |
-| alta con ᚱ continuo | 34 × 1,25 = 42,5 |
+| esfera · flecha | 8 |
+| ᚠᚠ + flecha (3 glifos, 3 copias) | 18 |
+| barrera + ᚱ · permanencia + ᚱ | 18 × 1,25 = 22,5 |
+| barrera ×2 + ᚱ ×2 (alta) | 34 × 1,25 = 42,5 |
+| flecha + ᚱ (viaja: sin recargo) | 18 |
+| tierra + ᛁᛁ + ᚱ (sin barrera) | 18 (con `CONTINUO_POR_HECHIZO`: 22,5) |
+| fuego (ya hiere por tics: `dano_periodico` 40) | 8 |
 
-La barra sigue en 100 (`Tinta.MAXIMA_INICIAL`) y +20 por reacción (`Tinta.TINTA_POR_REACCION`). El **coste por volumen ya no existe**: `Tinta.coste_receta` y `COSTE_BASE_V2` se han borrado; `Sigils.coste_v2` / `Hechizo.coste` / `Receta3D.tamano_relativo()` quedan solo como medida de TAMAÑO para el laboratorio y las pruebas (no cobran nada).
+**Propuesta de números para Pablo** (nada de esto está aplicado; los topes de los glifos ya están escritos en `Sigils.GLIFOS`):
+
+| Glifo | `por_glifo` propuesto | Glifo | `por_glifo` propuesto |
+|---|---|---|---|
+| flecha | 2 | permanencia | 3 |
+| barrera | 4 | raido (ᚱ) | 4 |
+| repetición | 3 | ejes (ᛁ, altura) | 0 |
+| rebote | 2 | pulso (crecer) | 2 |
+
+`K_COPIA`, `K_HIJO` y `K_PERIODICO`: sin propuesta fija; ojo con `K_PERIODICO`, porque **el fuego ya hiere por tics de serie** (`dano_periodico` 40): con 0,1 todo hechizo de fuego costaría ×1,1. Si se quiere solo para zonas añadidas por glifos, habrá que decidir qué cuenta. Cuando se pongan números, el golden se regenera a propósito y se anota.
+
+La barra sigue en 100 (`Tinta.MAXIMA_INICIAL`) y +20 por reacción (`Tinta.TINTA_POR_REACCION`). El **coste por volumen ya no existe**: `Tinta.coste_receta` y `COSTE_BASE_V2` se han borrado; `Sigils.coste_v2` / `Hechizo.coste` / `Receta3D.tamano_relativo()` quedan solo como medida de TAMAÑO para el laboratorio y las pruebas (no cobran nada). `Sigils.recargos_tinta` se ha retirado.
 
 ---
 
@@ -98,7 +150,9 @@ La barra sigue en 100 (`Tinta.MAXIMA_INICIAL`) y +20 por reacción (`Tinta.TINTA
 
 ### Golpes para matar (R = 1; el gólem, con el núcleo expuesto: R = 1,5 y DEF 10)
 
-| Enemigo | Elemento | Ligera | Media | Alta |
+H3 (29/10): las columnas son el nivel de DAÑO, o sea los glifos **ofensivos** (ᛁ y ᛏ no cuentan). Los números por nivel no cambian (B y E son los mismos); cambia cuántos glifos hacen falta: **ligera = 0–2 ofensivos** (antes 0–1 glifos), **media = 3–4** (antes 2–3), **alta = 5–6** (antes ≥ 4). Con 0, 1 o 2 ofensivos se mata igual (ligera); la tinta se paga aparte por el total de glifos.
+
+| Enemigo | Elemento | Ligera (0–2 ofensivos) | Media (3–4) | Alta (5–6) |
 |---|---|---|---|---|
 | **Goblin** (50, DEF 2) | fuego | 11,2 → **5** | 24,4 → **3** | 42 → **2** |
 | | agua / viento | 7,6 → 7 | 17,2 → 3 | 30 → 2 |
@@ -118,7 +172,7 @@ La barra sigue en 100 (`Tinta.MAXIMA_INICIAL`) y +20 por reacción (`Tinta.TINTA
 
 **Aviso sobre la cuenta de «2 fuegos medios»:** un goblin (50) con DEF 2 recibe 24,4 de un fuego medio: **dos dejan 1,2 de vida** (48,8) y la quemadura lo remata; sin quemadura son 3. Los 5 ligeros sí lo matan (56). Si se quiere que dos medios lo maten a secas, la vida del goblin debería ser 48 o menos.
 
-Cuánto cuesta matar (tinta por goblin de 50, DEF 2, fuego): 5 ligeros = 40 · 3 medios = 54 · 2 altos = 68. Los ligeros son más baratos pero necesitan más tiempo y más recargas; la potencia alta mata antes (menos recarga y menos exposición).
+Cuánto cuesta matar (tinta por goblin de 50, DEF 2, fuego): 5 ligeros = 40 · 3 medios = 54 · 2 altos = 68 (con glifos ofensivos puros; cada ᛁ o ᛏ de más sube la tinta —la potencia por el total— sin subir el daño). Los ligeros son más baratos pero necesitan más tiempo y más recargas; la potencia alta mata antes (menos recarga y menos exposición).
 
 ---
 
@@ -154,7 +208,7 @@ Por tanto **G = 1** hoy. El gancho está listo: `Combate3D.decidir_golpe` ya mul
 |---|---|
 | Tablas, fórmulas, cortes, tinta, DEF por tipo (el único punto del cálculo) | `nucleo/dano.gd` |
 | Daño base B × E de un hechizo (`Hechizo.dano`), `n_glifos`, `nivel_potencia`, `coste_tinta` | `nucleo/hechizo.gd` (`construir`, `_derivar`) |
-| Recargo de tinta continuo | `Sigils.recargos_tinta` (`nucleo/sigils.gd`) |
+| Tinta (base, aportes, recargos) | `Dano.tinta_de` / `Dano.desglose_tinta` (`nucleo/dano.gd`); aportes en `Sigils.GLIFOS[...]["tinta"]` |
 | Tinta antes de construir el Hechizo (comprobar y cobrar) | `Lanzador3D.Receta3D.coste_tinta()` / `n_glifos()` (`magia/lanzador_3d.gd`, `_preparar_pagina` y `lanzar_ahora`) |
 | Pigmento de daño (×1,5) | `Lanzador3D.hechizo_de`: multiplica `Hechizo.dano` (B × E) antes de G, X, R y DEF |
 | La decisión del golpe: G, X, suma, R, DEF | `Combate3D.decidir_golpe` (+ `golpe` la aplica, `prever_golpe` la enseña) |

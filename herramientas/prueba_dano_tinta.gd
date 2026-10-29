@@ -4,6 +4,7 @@ extends "res://herramientas/escenario_base.gd"
 ##   · R (débil ×1,5, resiste ×0,75, gólem de pie 0, núcleo ×1,5), X (rayo y hielo sobre mojado) y G (gancho),
 ##   · la defensa con su suelo (incluido daño < DEF) y que el daño continuo no la pasa,
 ##   · la tinta por potencia, con y sin ᚱ continuo, sin doble conteo,
+##   · H4: la tinta desde el Hechizo (`Dano.tinta_de` / `desglose_tinta`): tabla receta → tinta exacta con las constantes del juego (todas a 0) y con constantes de PRUEBA (`ajustes`),
 ##   · que hielo y rayo conservan su daño base,
 ##   · que `Hechizo`, `Receta3D` y `Combate3D.decidir_golpe` dan los mismos números que `Dano`, y que la previsión (`PrevisionHechizo.prever`) dice lo MISMO que el golpe real contra un goblin.
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_dano_tinta.gd
@@ -43,6 +44,7 @@ func _escenario() -> void:
 	_pura_cortes()
 	_pura_formula()
 	_pura_tinta()
+	_pura_tinta_h4()
 	_pura_hechizo()
 	_pura_enemigos()
 	Flags.nuevo()
@@ -64,12 +66,12 @@ func _escenario() -> void:
 
 func _pura_tabla() -> void:
 	var tabla: Dictionary = {"fuego": E_FUEGO, "agua": E_AGUA, "tierra": E_TIERRA, "viento": E_VIENTO}
-	var glifos_de_nivel: Array = [1, 2, 4]            # un glifo es ligera, dos media, cuatro alta
+	var glifos_de_nivel: Array = [1, 3, 5]            # H3: glifos OFENSIVOS: 1-2 ligera, 3-4 media, 5-6 alta
 	for el in tabla:
 		for i in range(3):
 			var esperado: float = float((tabla[el] as Array)[i])
 			_ok("1 tabla %s %s = %.1f" % [el, Dano.NOMBRES[i], esperado], _c(Dano.base_elemental(int(glifos_de_nivel[i]), el), esperado), str(Dano.base_elemental(int(glifos_de_nivel[i]), el)))
-	_ok("1 B: ligera 12 · media 24 · alta 40", Dano.base(1) == 12.0 and Dano.base(2) == 24.0 and Dano.base(4) == 40.0)
+	_ok("1 B: ligera 12 · media 24 · alta 40", Dano.base_dano(1) == 12.0 and Dano.base_dano(3) == 24.0 and Dano.base_dano(5) == 40.0)
 	_ok("1 E: fuego 1,10 · agua 0,80 · tierra 1,15 · viento 0,80", Dano.mult_elemento("fuego") == 1.10 and Dano.mult_elemento("agua") == 0.80 and Dano.mult_elemento("tierra") == 1.15 and Dano.mult_elemento("viento") == 0.80)
 	_ok("1 hielo y rayo no tienen tabla (aparcados)", not Dano.tiene_tabla("hielo") and not Dano.tiene_tabla("rayo") and Dano.tiene_tabla("fuego"))
 
@@ -79,6 +81,12 @@ func _pura_cortes() -> void:
 	for n in range(7):
 		_ok("2 corte: %d glifos → %s" % [n, Dano.NOMBRES[int(esperado[n])]], Dano.nivel(n) == int(esperado[n]))
 	_ok("2 el libro admite 6 glifos y 6 es alta", Hechizo.MAX_GLIFOS == 6 and Dano.nivel(Hechizo.MAX_GLIFOS) == Dano.ALTA)
+	# H3: los cortes del DAÑO (recuento ofensivo): 0-2 ligera · 3-4 media · 5-6 alta
+	var esperado_dano: Array = [0, 0, 0, 1, 1, 2, 2]
+	for n in range(7):
+		_ok("2 corte de daño: %d glifos ofensivos → %s" % [n, Dano.NOMBRES[int(esperado_dano[n])]], Dano.nivel_dano(n) == int(esperado_dano[n]) and Dano.nombre_nivel_dano(n) == Dano.NOMBRES[int(esperado_dano[n])])
+	_ok("2 GLIFOS_MEDIA_DANO = 3 · GLIFOS_ALTA_DANO = 5 y los de la tinta siguen en 2 y 4", Dano.GLIFOS_MEDIA_DANO == 3 and Dano.GLIFOS_ALTA_DANO == 5 and Dano.GLIFOS_MEDIA == 2 and Dano.GLIFOS_ALTA == 4)
+	_ok("2 cuenta_dano: ᛁ (linea_x, linea_z) y ᛏ (altura) no; el resto sí", not Sigils.cuenta_dano("linea_x") and not Sigils.cuenta_dano("linea_z") and not Sigils.cuenta_dano("altura") and Sigils.cuenta_dano("flecha") and Sigils.cuenta_dano("repeticion") and Sigils.cuenta_dano("permanencia"))
 	# el nivel que sale del Hechizo y de la Receta3D es el mismo y cuenta glifos, no el elemento
 	var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 	for g in ["flecha", "barrera", "linea_x"]:
@@ -86,6 +94,7 @@ func _pura_cortes() -> void:
 	_ok("2 la receta cuenta 3 glifos (media)", r.n_glifos() == 3 and Dano.nivel(r.n_glifos()) == Dano.MEDIA)
 	var h: Hechizo = r.hechizo(_rune("fuego"))
 	_ok("2 el Hechizo cuenta lo mismo que la receta (n_glifos %d, nivel %d)" % [h.n_glifos, h.nivel_potencia], h.n_glifos == 3 and h.nivel_potencia == Dano.MEDIA)
+	_ok("2 flecha + barrera + ᛁ: 3 glifos (tinta media) pero 2 ofensivos (daño ligera)", h.n_glifos_dano == 2 and h.nivel_dano == Dano.LIGERA and _c(h.dano, 13.2))
 	var r0 := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 	_ok("2 sin glifos: 0 glifos, ligera", r0.n_glifos() == 0 and Dano.nivel(0) == Dano.LIGERA)
 	r0.apply("amplificar")       # aparcado: la receta no lo cuenta
@@ -97,15 +106,15 @@ func _pura_cortes() -> void:
 func _pura_formula() -> void:
 	# R, X, G
 	_ok("3 débil ×1,5 y resiste ×0,75 (Dano y Combate3D)", Dano.MULT_DEBIL == 1.5 and Dano.MULT_RESISTE == 0.75 and Combate3D.MULT_DEBIL == 1.5 and Combate3D.MULT_RESISTE == 0.75)
-	_ok("3 fuego media (26,4) débil sin defensa = 39,6", _c(Dano.calcular(2, "fuego", 1.0, 1.0, 1.5, 0.0), 39.6))
-	_ok("3 fuego media resiste sin defensa = 19,8", _c(Dano.calcular(2, "fuego", 1.0, 1.0, 0.75, 0.0), 19.8))
-	_ok("3 G multiplica (G = 2: 52,8)", _c(Dano.calcular(2, "fuego", 2.0, 1.0, 1.0, 0.0), 52.8))
-	_ok("3 X multiplica (X = 1,5: 39,6)", _c(Dano.calcular(2, "fuego", 1.0, 1.5, 1.0, 0.0), 39.6))
-	_ok("3 la suma de la reacción entra ANTES de R: (26,4 + 15) × 1,5 = 62,1", _c(Dano.calcular(2, "fuego", 1.0, 1.0, 1.5, 0.0, -1.0, 15.0), 62.1))
+	_ok("3 fuego media (26,4) débil sin defensa = 39,6", _c(Dano.calcular(3, "fuego", 1.0, 1.0, 1.5, 0.0), 39.6))
+	_ok("3 fuego media resiste sin defensa = 19,8", _c(Dano.calcular(3, "fuego", 1.0, 1.0, 0.75, 0.0), 19.8))
+	_ok("3 G multiplica (G = 2: 52,8)", _c(Dano.calcular(3, "fuego", 2.0, 1.0, 1.0, 0.0), 52.8))
+	_ok("3 X multiplica (X = 1,5: 39,6)", _c(Dano.calcular(3, "fuego", 1.0, 1.5, 1.0, 0.0), 39.6))
+	_ok("3 la suma de la reacción entra ANTES de R: (26,4 + 15) × 1,5 = 62,1", _c(Dano.calcular(3, "fuego", 1.0, 1.0, 1.5, 0.0, -1.0, 15.0), 62.1))
 	_ok("3 R = 0 (gólem de pie): daño 0 aunque la defensa sea 0", Dano.calcular(4, "tierra", 1.0, 1.0, 0.0, 0.0) == 0.0)
-	_ok("3 núcleo expuesto ×1,5 y defensa 10: fuego media 26,4 × 1,5 − 10 = 29,6", _c(Dano.calcular(2, "fuego", 1.0, 1.0, 1.5, 10.0), 29.6))
+	_ok("3 núcleo expuesto ×1,5 y defensa 10: fuego media 26,4 × 1,5 − 10 = 29,6", _c(Dano.calcular(3, "fuego", 1.0, 1.0, 1.5, 10.0), 29.6))
 	# defensa y su suelo
-	_ok("3 defensa: 26,4 − 2 = 24,4", _c(Dano.calcular(2, "fuego", 1.0, 1.0, 1.0, 2.0), 24.4))
+	_ok("3 defensa: 26,4 − 2 = 24,4", _c(Dano.calcular(3, "fuego", 1.0, 1.0, 1.0, 2.0), 24.4))
 	_ok("3 defensa mayor que el daño: queda el suelo (13,2 con DEF 20 → 2,64)", _c(Dano.calcular(1, "fuego", 1.0, 1.0, 1.0, 20.0), 2.64))
 	_ok("3 el suelo no sube un daño que la defensa deja por encima (13,2 − 2 = 11,2 > 2,64)", _c(Dano.calcular(1, "fuego", 1.0, 1.0, 1.0, 2.0), 11.2))
 	_ok("3 SUELO_DEF = 0,2", Dano.SUELO_DEF == 0.2)
@@ -157,10 +166,87 @@ func _pura_tinta() -> void:
 	_ok("4 ya no hay coste por volumen en Tinta", not ("coste_receta" in Tinta.new().get_method_list().map(func(m): return m["name"])))
 
 
+# --- 4 bis · H4: la tinta sale del Hechizo ----------------------------------------------------------------------------
+
+func _tinta(elem: String, cont: Dictionary, ajustes: Dictionary = {}) -> float:
+	return Dano.tinta_de(Hechizo.construir(_rune(elem), cont), ajustes)
+
+
+func _pura_tinta_h4() -> void:
+	# lo que entrega el juego: aportes, K_* a 0 y la condición de siempre para el continuo
+	var aportes_a_cero: bool = true
+	for k in Sigils.GLIFOS:
+		var t: Dictionary = (Sigils.GLIFOS[k] as Dictionary).get("tinta", {})
+		if t.is_empty() or float(t.get("por_glifo", -1.0)) != 0.0:
+			aportes_a_cero = false
+	_ok("4b los 10 glifos llevan «tinta» con por_glifo = 0", aportes_a_cero and Sigils.GLIFOS.size() == 10)
+	_ok("4b K_COPIA, K_HIJO y K_PERIODICO valen 0 y el continuo se decide como siempre", Dano.K_COPIA == 0.0 and Dano.K_HIJO == 0.0 and Dano.K_PERIODICO == 0.0 and not Dano.CONTINUO_POR_HECHIZO)
+	# tabla con las constantes del juego (todo a 0): receta -> tinta
+	var tabla: Array = [
+		["esfera (fuego)", "fuego", {}, 8.0],
+		["flecha", "fuego", {"flecha": 1}, 8.0],
+		["ᚠᚠ + flecha (3 glifos, 3 copias)", "fuego", {"repeticion": 2, "flecha": 1}, 18.0],
+		["barrera + ᚱ", "agua", {"barrera": 1, "raido": 1}, 22.5],
+		["permanencia + ᚱ", "agua", {"permanencia": 1, "raido": 1}, 22.5],
+		["tierra + ᚱ sin barrera (3 glifos)", "tierra", {"linea_x": 2, "raido": 1}, 18.0],
+		["flecha + ᚱ (viaja: sin recargo)", "fuego", {"flecha": 1, "raido": 1}, 18.0],
+		["barrera ×2 + ᚱ ×2 (alta)", "agua", {"barrera": 2, "raido": 2}, 42.5],
+	]
+	for fila in tabla:
+		var t: float = _tinta(String(fila[1]), fila[2])
+		_ok("4b tabla (juego) %s = %.1f" % [fila[0], float(fila[3])], _c(t, float(fila[3])), str(t))
+	var zona: Hechizo = _hechizo("fuego", 0)
+	zona.dano_periodico = 5.0
+	_ok("4b fuego con zona (dano_periodico 5) cuesta 8 con K_PERIODICO = 0", _c(Dano.tinta_de(zona), 8.0))
+	_ok("4b Hechizo.coste_tinta = Dano.tinta_de (barrera + ᚱ)", _c(Hechizo.construir(_rune("agua"), {"barrera": 1, "raido": 1}).coste_tinta, 22.5))
+	# la misma tabla con constantes de PRUEBA (nunca las del juego)
+	var aportes: Dictionary = {
+		"flecha": {"por_glifo": 2.0, "tope": 8.0}, "barrera": {"por_glifo": 4.0, "tope": 12.0}, "repeticion": {"por_glifo": 3.0, "tope": 9.0},
+		"raido": {"por_glifo": 4.0, "tope": 12.0}, "permanencia": {"por_glifo": 3.0, "tope": 9.0}}
+	var aj: Dictionary = {"aportes": aportes}
+	_ok("4b aporte: flecha ×1 = 8 + 2 = 10", _c(_tinta("fuego", {"flecha": 1}, aj), 10.0), str(_tinta("fuego", {"flecha": 1}, aj)))
+	_ok("4b aporte con tope: 5 flechas = 34 + mín(10, 8) = 42", _c(_tinta("fuego", {"flecha": 5}, aj), 42.0))
+	_ok("4b aporte: ᚠᚠ + flecha = 18 + 6 + 2 = 26 (sin K_COPIA)", _c(_tinta("fuego", {"repeticion": 2, "flecha": 1}, aj), 26.0))
+	_ok("4b un glifo sin dato (ᛁ, ejes) no suma", _c(_tinta("fuego", {"linea_x": 2}, aj), 18.0))
+	var aj_c: Dictionary = {"k_copia": 1.0}
+	_ok("4b K_COPIA = 1: ᚠᚠ + flecha (3 copias) = 18 × (1 + 2) = 54", _c(_tinta("fuego", {"repeticion": 2, "flecha": 1}, aj_c), 54.0))
+	_ok("4b K_COPIA no cobra la 1.ª copia: la flecha sola sigue en 8", _c(_tinta("fuego", {"flecha": 1}, aj_c), 8.0))
+	var hijos: Hechizo = _hechizo("fuego", 0)
+	hijos.eventos = {"al_nacer": [{"accion": "crear_hijo", "cuantos": 3}], "al_impactar": [{"accion": "sonido"}, {"accion": "crear_hijo", "cuantos": 1}]}
+	_ok("4b hijos previstos = suma de «cuantos» de todos los eventos (4)", Dano.hijos_previstos(hijos) == 4)
+	_ok("4b K_HIJO = 0,5 con 4 hijos: 8 × (1 + 2) = 24 · con el juego, 8", _c(Dano.tinta_de(hijos, {"k_hijo": 0.5}), 24.0) and _c(Dano.tinta_de(hijos), 8.0))
+	var aj_p: Dictionary = {"k_periodico": 0.1}
+	_ok("4b K_PERIODICO = 0,1: fuego con zona = 8 × 1,1 = 8,8", _c(Dano.tinta_de(zona, aj_p), 8.8), str(Dano.tinta_de(zona, aj_p)))
+	var veneno: Hechizo = _hechizo("agua", 0)
+	veneno.veneno = 4.0
+	_ok("4b K_PERIODICO también cobra el veneno (agua + veneno 8,8) y no cobra si no hiere por tics (agua 8)", _c(Dano.tinta_de(veneno, aj_p), 8.8) and _c(Dano.tinta_de(_hechizo("agua", 0), aj_p), 8.0))
+	_ok("4b el fuego YA hiere por tics de serie (dano_periodico %.0f): con K_PERIODICO = 0,1 cualquier fuego costaría ×1,1" % _hechizo("fuego", 0).dano_periodico, _hechizo("fuego", 0).dano_periodico > 0.0 and _c(Dano.tinta_de(_hechizo("fuego", 0), aj_p), 8.8))
+	_ok("4b K_PERIODICO se SUMA al continuo de ᚱ: barrera + ᚱ con zona = 18 × 1,35 = 24,3", _c(_tinta_zona("agua", {"barrera": 1, "raido": 1}, aj_p), 24.3), str(_tinta_zona("agua", {"barrera": 1, "raido": 1}, aj_p)))
+	_ok("4b el continuo de ᚱ sigue en 22,5 con K_PERIODICO si no hay tics", _c(_tinta("agua", {"barrera": 1, "raido": 1}, aj_p), 22.5))
+	# todo junto: (T_base + Σ aportes) × (1 + instancias + periodico)
+	var junto: Hechizo = Hechizo.construir(_rune("agua"), {"barrera": 1, "raido": 1})
+	junto.veneno = 3.0
+	var d: Dictionary = Dano.desglose_tinta(junto, {"aportes": aportes, "k_periodico": 0.1})
+	_ok("4b desglose: base 18 · barrera 4 · raido 4 · instancias 0 · periódico 0,35 · total 26 × 1,35 = 35,1", _c(float(d["base"]), 18.0) and _c(float((d["aportes"] as Dictionary)["barrera"]), 4.0) and _c(float((d["aportes"] as Dictionary)["raido"]), 4.0) and _c(float(d["instancias"]), 0.0) and _c(float(d["periodico"]), 0.35) and _c(float(d["total"]), 35.1), str(d))
+	_ok("4b desglose sin ajustes = la tinta del juego (22,5 y total = tinta_de)", _c(float(Dano.desglose_tinta(junto)["total"]), Dano.tinta_de(junto)) and (Dano.desglose_tinta(junto)["aportes"] as Dictionary).is_empty())
+	# la decisión pendiente: continuo por Hechizo.persistente (tierra/hielo sin barrera cuestan el recargo; el haz con permanencia no)
+	var por_h: Dictionary = {"continuo_por_hechizo": true}
+	_ok("4b [CONTINUO_POR_HECHIZO] tierra + ᚱ sin barrera: 18 → 22,5 (cierra PENDIENTES 62)", _c(_tinta("tierra", {"linea_x": 2, "raido": 1}, por_h), 22.5) and _c(_tinta("hielo", {"linea_x": 2, "raido": 1}, por_h), 22.5))
+	_ok("4b [CONTINUO_POR_HECHIZO] barrera + ᚱ y permanencia + ᚱ siguen en 22,5 y flecha + ᚱ en 18", _c(_tinta("agua", {"barrera": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("agua", {"permanencia": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("fuego", {"flecha": 1, "raido": 1}, por_h), 18.0))
+	_ok("4b [CONTINUO_POR_HECHIZO] ᛁᛁ + permanencia + ᚱ (un haz, no se queda): 34 → 34 sin recargo", _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}, por_h), 34.0) and _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}), 42.5))
+
+
+## Como `_tinta`, con una zona que hiere por tics (`dano_periodico`) puesta a mano.
+func _tinta_zona(elem: String, cont: Dictionary, ajustes: Dictionary) -> float:
+	var h: Hechizo = Hechizo.construir(_rune(elem), cont)
+	h.dano_periodico = 5.0
+	return Dano.tinta_de(h, ajustes)
+
+
 # --- 5 · el Hechizo ---------------------------------------------------------------------------------------------------
 
 func _pura_hechizo() -> void:
-	var glifos_de_nivel: Array = [1, 2, 4]
+	var glifos_de_nivel: Array = [1, 3, 5]
 	var fallos: int = 0
 	for el in ["fuego", "agua", "tierra", "viento"]:
 		for i in range(3):
@@ -173,8 +259,45 @@ func _pura_hechizo() -> void:
 	_ok("5 la tierra ya no suma +18 por su cuenta (ligera 13,8)", _c(_hechizo("tierra", 1).dano, 13.8))
 	var h_lab: Hechizo = _hechizo("fuego", 2).con({"dano": 100.0})
 	_ok("5 el laboratorio sigue pudiendo fijar el daño (con({dano}) = 100)", _c(h_lab.dano, 100.0))
-	var h_c: Hechizo = _hechizo("agua", 4).copiar()
-	_ok("5 copiar() conserva daño, glifos y tinta", _c(h_c.dano, 32.0) and h_c.n_glifos == 4 and _c(h_c.coste_tinta, 34.0))
+	var h_c: Hechizo = _hechizo("agua", 5).copiar()
+	_ok("5 copiar() conserva daño, glifos y tinta", _c(h_c.dano, 32.0) and h_c.n_glifos == 5 and h_c.n_glifos_dano == 5 and h_c.nivel_dano == Dano.ALTA and _c(h_c.coste_tinta, 34.0))
+	_pura_geometria_y_ofensivos()
+
+
+# --- 5 bis · H3: geometría y glifos ofensivos --------------------------------------------------------------------------
+
+func _pura_geometria_y_ofensivos() -> void:
+	var solo: Hechizo = Hechizo.construir(_rune("fuego"), {})
+	var con1: Hechizo = Hechizo.construir(_rune("fuego"), {"linea_x": 1})
+	var con2: Hechizo = Hechizo.construir(_rune("fuego"), {"linea_x": 2})
+	var con3: Hechizo = Hechizo.construir(_rune("fuego"), {"linea_x": 3})
+	_ok("5b fuego solo: ligera 13,2 · 8 de tinta", _c(solo.dano, 13.2) and solo.nivel_dano == Dano.LIGERA and _c(solo.coste_tinta, 8.0))
+	_ok("5b fuego + ᛁ: el mismo daño (13,2), 0 ofensivos", _c(con1.dano, solo.dano) and con1.n_glifos_dano == 0 and con1.n_glifos == 1 and _c(con1.coste_tinta, 8.0))
+	_ok("5b fuego + ᛁᛁ: el mismo daño y tinta media (18)", _c(con2.dano, solo.dano) and con2.n_glifos == 2 and _c(con2.coste_tinta, 18.0), "%s / %s" % [con2.dano, con2.coste_tinta])
+	_ok("5b fuego + ᛁᛁᛁ: el mismo daño y MÁS tinta que el fuego solo (18 > 8)", _c(con3.dano, solo.dano) and con3.n_glifos_dano == 0 and con3.nivel_dano == Dano.LIGERA and _c(con3.coste_tinta, 18.0) and con3.coste_tinta > solo.coste_tinta)
+	var mezcla: Hechizo = Hechizo.construir(_rune("fuego"), {"linea_z": 1, "altura": 1})
+	_ok("5b ᛁ en Z y ᛏ tampoco dan daño", mezcla.n_glifos_dano == 0 and _c(mezcla.dano, 13.2))
+	# escalones por glifos ofensivos: flecha + rebote = 2 · + ᚱ = 3 · + ᚠ = 4 · + permanencia = 5
+	var escala: Array = [
+		[{"flecha": 1, "rebote": 1}, 2, Dano.LIGERA, 13.2],
+		[{"flecha": 1, "rebote": 1, "raido": 1}, 3, Dano.MEDIA, 26.4],
+		[{"flecha": 1, "rebote": 1, "raido": 1, "repeticion": 1}, 4, Dano.MEDIA, 26.4],
+		[{"flecha": 1, "rebote": 1, "raido": 1, "repeticion": 1, "permanencia": 1}, 5, Dano.ALTA, 44.0],
+	]
+	for fila in escala:
+		var h: Hechizo = Hechizo.construir(_rune("fuego"), fila[0])
+		_ok("5b %d ofensivos → %s, fuego %.1f" % [int(fila[1]), Dano.NOMBRES[int(fila[2])], float(fila[3])], h.n_glifos_dano == int(fila[1]) and h.nivel_dano == int(fila[2]) and _c(h.dano, float(fila[3])), "%d / %d / %s" % [h.n_glifos_dano, h.nivel_dano, h.dano])
+	# la tinta sigue siendo la del nº total: flecha + ᛁ + ᛁ + ᛏ = 4 glifos → alta (34), pero 1 ofensivo → ligera
+	var cara: Hechizo = Hechizo.construir(_rune("fuego"), {"flecha": 1, "linea_x": 2, "altura": 1})
+	_ok("5b flecha + ᛁ + ᛁ + ᛏ: daño ligera (13,2) con tinta alta (34)", cara.n_glifos == 4 and cara.nivel_potencia == Dano.ALTA and cara.n_glifos_dano == 1 and cara.nivel_dano == Dano.LIGERA and _c(cara.dano, 13.2) and _c(cara.coste_tinta, 34.0), "%d %d %s %s" % [cara.n_glifos, cara.n_glifos_dano, cara.dano, cara.coste_tinta])
+	# derivados visibles: tabla(), a_diccionario(), describir()
+	_ok("5b n_glifos_dano y nivel_dano son derivados (a_diccionario, describir)", Hechizo.DERIVADOS.has("n_glifos_dano") and Hechizo.DERIVADOS.has("nivel_dano") and cara.a_diccionario().has("n_glifos_dano") and cara.describir().contains("ofensivos"))
+	var en_tabla: bool = false
+	for f in cara.tabla():
+		if String((f as Dictionary)["campo"]) == "nivel_dano":
+			en_tabla = true
+	_ok("5b nivel_dano sale en la tabla del laboratorio", en_tabla)
+	_ok("5b hielo y rayo no cambian con ᛁ (20 y 55)", _c(Hechizo.construir(_rune("hielo"), {"linea_x": 3}).dano, 20.0) and _c(Hechizo.construir(_rune("rayo"), {"linea_x": 3}).dano, 55.0))
 
 
 # --- 6 · los enemigos -------------------------------------------------------------------------------------------------
@@ -186,7 +309,7 @@ func _pura_enemigos() -> void:
 	_ok("6 DEF: goblin 2 (atributo exportable)", g.defensa == 2.0 and Dano.DEF_GOBLIN == 2.0)
 	_ok("6 DEF: limo 0 · chamán 0 · escudo 5 · elemental 6 · gólem 10", Dano.DEF_LIMO == 0.0 and Dano.DEF_CHAMAN == 0.0 and Dano.DEF_ESCUDO == 5.0 and Dano.DEF_ELEMENTAL == 6.0 and Dano.DEF_GOLEM == 10.0)
 	_ok("6 vidas: goblin 50 · limo 30 · chamán 30 · gólem 70 · elemental 500 · gatopedro 45", Combate3D.VIDA_MAXIMA == 50.0 and Limo3D.VIDA == 30.0 and Chaman3D.VIDA == 30.0 and Golem3D.VIDA == 70.0 and Combate3D.ELEM_VIDA == 500.0 and Gatopedro3D.VIDA == 45.0)
-	var h: Hechizo = _hechizo("fuego", 2)
+	var h: Hechizo = _hechizo("fuego", 3)
 	var d: Dictionary = g.decidir_golpe(h)
 	_ok("6 fuego media a goblin normal: 26,4 − 2 = 24,4 (dano %.2f)" % float(d["dano"]), _c(float(d["dano"]), 24.4) and _c(float(d["bruto"]), 26.4) and float(d["mult"]) == 1.0)
 	g.debil = "fuego"
@@ -257,7 +380,7 @@ func _preparar(c: Vector2i, elemento: String, glifos: Array) -> Dictionary:
 
 func _previsto_igual_a_real() -> void:
 	var oeste := Vector3(-1, 0, 0)
-	# agua (sin quemadura ni zona que hiera después) con 2 glifos: media = 19,2; goblin DEF 2 → 17,2
+	# agua (sin quemadura ni zona que hiera después) con flecha + ᛁ: 2 glifos de tinta (media, 18) pero 1 ofensivo (ligera) = 9,6; goblin DEF 2 → 7,6
 	var g: Combate3D = _goblin(Vector2i(9, 31))
 	g.health = 50.0
 	g.vida_max = 50.0
@@ -266,20 +389,20 @@ func _previsto_igual_a_real() -> void:
 	if datos.is_empty():
 		return
 	var h: Hechizo = lanzador.hechizo_de(datos)
-	_ok("7 el Hechizo de la página es de potencia media (2 glifos) y tiene 19,2", h != null and h.nivel_potencia == Dano.MEDIA and _c(h.dano, 19.2))
+	_ok("7 el Hechizo de la página (flecha + ᛁ) es de tinta media (2 glifos) y de daño ligera (1 ofensivo): 9,6", h != null and h.nivel_potencia == Dano.MEDIA and h.nivel_dano == Dano.LIGERA and h.n_glifos_dano == 1 and _c(h.dano, 9.6))
 	var prev: Array[Dictionary] = PrevisionHechizo.prever(lanzador, datos, jugador.position, oeste)
 	var previsto: float = -1.0
 	for e in prev:
 		if String(e["que"]) == "enemigo" and e["nodo"] == g:
 			previsto = float((e["extra"] as Dictionary)["dano"])
-	_ok("7 la previsión del indicador da 17,2 contra el goblin (agua media − DEF 2): %.2f" % previsto, _c(previsto, 17.2))
+	_ok("7 la previsión del indicador da 7,6 contra el goblin (agua ligera − DEF 2, con una ᛁ en la receta): %.2f" % previsto, _c(previsto, 7.6))
 	var dec: Dictionary = g.decidir_golpe(h)
-	_ok("7 la previsión = decidir_golpe = Dano.calcular (%.2f)" % float(dec["dano"]), _c(previsto, float(dec["dano"])) and _c(previsto, Dano.calcular(2, "agua", 1.0, 1.0, 1.0, 2.0)))
+	_ok("7 la previsión = decidir_golpe = Dano.calcular (%.2f)" % float(dec["dano"]), _c(previsto, float(dec["dano"])) and _c(previsto, Dano.calcular(1, "agua", 1.0, 1.0, 1.0, 2.0)))
 	var tinta0: float = lanzador.tinta.actual
 	var salio: bool = lanzador.lanzar_ahora(datos, jugador.position, oeste)
 	var gastada: float = tinta0 - lanzador.tinta.actual
 	_ok("7 el hechizo sale", salio)
-	_ok("7 cuesta 18 de tinta (media): gastó %.2f" % gastada, _c(gastada, 18.0))
+	_ok("7 cuesta 18 de tinta (media por 2 glifos: la ᛁ cuesta aunque no dañe): gastó %.2f" % gastada, _c(gastada, 18.0))
 	await avanzar_s(2.2)
 	var recibido: float = 50.0 - g.health
 	_ok("7 el golpe real quita lo previsto (%.2f vs %.2f)" % [recibido, previsto], _c(recibido, previsto))

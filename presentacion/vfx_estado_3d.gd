@@ -52,7 +52,7 @@ const DENSIDAD: float = 0.4
 ## MODO PLANO (elemento de prueba del laboratorio, «agua sin VFX»): con `plano = true` TODO volumen se dibuja solo como un elipsoide translúcido azul, sin llamas, motas,
 ## chispas ni luces, para ver el tamaño y el contorno sin nada encima. Lo pone el lab (Pablo: «no distingo nada en el fuego»); en el juego se queda en false.
 static var plano: bool = false
-const MAX_CARRILES: int = 4                ## copias máximas (Sigils.GLIFOS_V2.repeticion.tope)
+const MAX_CARRILES: int = 4                ## copias máximas (Sigils.GLIFOS.repeticion.tope)
 const VEL_VIAJE: float = 8.0               ## RESPALDO (lanzador de mentira, sin `velocidad` en la señal): casillas/s del volumen que viaja. Con el Hechizo real manda `g["velocidad"]` (ESPEC §1.2)
 const ESCALA_NACE: float = 0.3             ## fracción en planta con la que nace un volumen que crece (Lanzador3D.ESCALA_NACE_V2)
 const MAX_PROYECTILES: int = 8            ## dibujos de proyectil a la vez (Hechizo.MAX_VIVOS = 32 hijos incluidos serían 32 × 280 partículas); el resto vuela sin dibujo

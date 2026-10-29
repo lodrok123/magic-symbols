@@ -41,7 +41,7 @@ const GOBLIN_ATACANTE: Vector2i = Vector2i(23, 12)
 const RUTA_GUARDADO: String = "user://lab_hechizos.json"
 const FASES_CONJURO: Array = ["runa", "voluta", "forma", "disparo"]
 const CAMARA_LATERAL_TAM: float = 7.0
-## Glifos que LabRecetas3D no alcanza con el Numpad (solo tiene KP_1..KP_8): tecla -> posición en `Sigils.GLIFOS_V2`. KP_9 = 9.º (ᛉ permanencia), KP_. = 10.º (ᚱ «pulso», 23/10).
+## Glifos que LabRecetas3D no alcanza con el Numpad (solo tiene KP_1..KP_8): tecla -> posición en `Sigils.GLIFOS`. KP_9 = 9.º (ᛉ permanencia), KP_. = 10.º (ᚱ «pulso», 23/10).
 const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
 
 ## Constantes de Combate3D que enseña F3: nombre, paso de cada pulsación, mínimo, máximo. (SQUASH_ESCALA y SALTO_ELEMENTOS no son de un solo número:
@@ -225,7 +225,7 @@ func _lanzar_completo(r: Lanzador3D.Receta3D, cont: Dictionary, elem: String, di
 		ficha["rechazo"] = "rechazada"
 		return ficha
 	var glifos_n: Array = []
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		for _i in range(int(cont.get(nombre, 0))):
 			glifos_n.append(String(nombre))
 	var datos: Dictionary = {"indice": 0, "receta": r, "rune": rune, "calidad": 1.0, "glifos": glifos_n, "elemento_nombre": String(NOMBRE_ELEMENTO.get(elem, elem))}
@@ -681,8 +681,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		poner_nivel(Nivel.LANZAMIENTO if nivel == Nivel.BASES else Nivel.BASES)
 	elif receta_f1 and k.keycode == KEY_K:
 		comparar()
-	elif receta_f1 and TECLAS_GLIFO_EXTRA.has(k.keycode) and int(TECLAS_GLIFO_EXTRA[k.keycode]) < Sigils.GLIFOS_V2.size():
-		sumar(String(Sigils.GLIFOS_V2.keys()[int(TECLAS_GLIFO_EXTRA[k.keycode])]), -1 if k.shift_pressed else 1)   # los glifos 9.º y 10.º: LabRecetas3D solo tiene las teclas de 1 a 8
+	elif receta_f1 and TECLAS_GLIFO_EXTRA.has(k.keycode) and int(TECLAS_GLIFO_EXTRA[k.keycode]) < Sigils.GLIFOS.size():
+		sumar(String(Sigils.GLIFOS.keys()[int(TECLAS_GLIFO_EXTRA[k.keycode])]), -1 if k.shift_pressed else 1)   # los glifos 9.º y 10.º: LabRecetas3D solo tiene las teclas de 1 a 8
 	elif receta_f1 and k.keycode == KEY_BACKSPACE:
 		quitar_ultimo()                                                                        # antes restauraba la fila de la tabla: eso pasó a X
 	elif receta_f1 and k.keycode == KEY_DELETE:
@@ -952,7 +952,7 @@ func registro_lineas() -> PackedStringArray:
 	var l: PackedStringArray = []
 	l.append("Sello: %s" % (NOMBRE_PRUEBA if VfxEstado3D.plano else NOMBRE_ELEMENTO.get(elemento, elemento)))
 	var glifos: PackedStringArray = []
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		if int(contadores.get(nombre, 0)) > 0:
 			glifos.append("%s ×%d" % [nombre, int(contadores[nombre])])
 	if glifos.is_empty():
@@ -1035,7 +1035,7 @@ func _aplicar_ui() -> void:
 ## Las variables que se enseñan a la izquierda, en orden: las fijadas, luego los glifos con contador y luego lo tocado en la tabla (los semiejes, a la derecha, no).
 func activas_lista() -> Array:
 	var r: Array = activas.duplicate()
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		var clave: String = "glifo:%s" % nombre
 		if int(contadores.get(nombre, 0)) > 0 and not r.has(clave):
 			r.append(clave)
@@ -1215,7 +1215,7 @@ func _montar_ui_compacta() -> void:
 	_desplegable.add_theme_font_size_override("font_size", 13)
 	_desplegable.add_item("Más variables…")
 	_desplegable.add_separator("Glifos")
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		_desplegable.add_item(String(nombre))
 		_desplegable.set_item_metadata(_desplegable.item_count - 1, "glifo:%s" % nombre)
 	var grupo: String = ""
@@ -1433,7 +1433,7 @@ const TECLAS_DIGITO: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, K
 static var cargar_al_abrir: bool = true
 
 var nivel: int = Nivel.LANZAMIENTO
-var orden: Array = []                          ## los glifos EN ORDEN, como en el libro (nombres de GLIFOS_V2). `contadores` (el multiconjunto) sale de aquí.
+var orden: Array = []                          ## los glifos EN ORDEN, como en el libro (nombres de GLIFOS). `contadores` (el multiconjunto) sale de aquí.
 var limite_glifos: bool = true                 ## Mayús+L lo apaga
 var recetas: Array = []                        ## las recetas con nombre (RecetasLab)
 var receta_sel: int = -1                       ## la última receta lanzada o guardada (la que sobrescribe Ctrl+Mayús+S)
@@ -1450,7 +1450,7 @@ var _lbl_diseno: Label = null
 ## Suma `delta` veces el glifo AL FINAL de la fila (o quita, si es negativo, la última aparición de ese glifo). Respeta el tope de cada glifo (+1 para ver la saturación) y
 ## `Hechizo.MAX_GLIFOS` mientras el límite esté puesto. Sustituye a LabRecetas3D.sumar para que el orden se guarde.
 func sumar(glifo: String, delta: int) -> void:
-	if not Sigils.GLIFOS_V2.has(glifo):
+	if not Sigils.GLIFOS.has(glifo):
 		return
 	if delta > 0:
 		for _i in range(delta):
@@ -1485,7 +1485,7 @@ func quitar_ultimo() -> void:
 func poner_orden(lista: Array) -> void:
 	orden.clear()
 	for g in lista:
-		if Sigils.GLIFOS_V2.has(String(g)) and not (limite_glifos and orden.size() >= Hechizo.MAX_GLIFOS):
+		if Sigils.GLIFOS.has(String(g)) and not (limite_glifos and orden.size() >= Hechizo.MAX_GLIFOS):
 			orden.append(String(g))
 	_sincronizar_orden()
 

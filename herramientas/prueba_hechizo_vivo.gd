@@ -167,7 +167,7 @@ func _campos_hechizo() -> void:
 	var e: Hechizo = Hechizo.construir(r, {})
 	_ok("HC4 un modificador «anade» sobre eventos.<nombre> deja la acción en el Hechizo (y su origen)",
 		(e.eventos.get("al_golpear", []) as Array).size() == 1 and String(e.origen.get("eventos", "")) == "elemento" and (e.a_diccionario()["eventos"] as Dictionary).has("al_golpear"))
-	_ok("HC4 el catálogo es cerrado: 6 eventos y 5 acciones", Hechizo.EVENTOS.size() == 6 and Hechizo.ACCIONES.size() == 5 and Hechizo.MAX_PROFUNDIDAD == 2 and Hechizo.MAX_VIVOS == 32)
+	_ok("HC4 + H2 el catálogo es cerrado: 8 eventos (los 3 finales: al_impactar, al_detenerse, al_expirar) y 6 acciones (emitir_pulso incluida)", Hechizo.EVENTOS.size() == 8 and Hechizo.ACCIONES.size() == 6 and Hechizo.MAX_PROFUNDIDAD == 2 and Hechizo.MAX_VIVOS == 32)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -250,7 +250,7 @@ func _movimiento() -> void:
 	_montar()
 	var r0: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 12.0, "distancia_max": 6.0}), Vector2i(16, 8))
 	_correr(r0)
-	_ok("rebotes = 0: la pared lo para (motivo «muro») y salta al_expirar", r0.motivo_fin == "muro" and _eventos_de(r0, "al_rebotar") == 0)
+	_ok("rebotes = 0: la pared lo para (motivo «muro») y salta al_detenerse", r0.motivo_fin == "muro" and _eventos_de(r0, "al_rebotar") == 0)
 	_montar()
 	var r1: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 12.0, "distancia_max": 6.0, "rebotes": 1, "eventos": {"al_rebotar": [{"accion": "vfx", "nombre": "chispa"}]}}), Vector2i(16, 8))
 	for _i in range(40):
@@ -445,19 +445,19 @@ func _eventos() -> void:
 	var antes: bool = _vfx.is_empty()
 	await create_timer(0.6).timeout
 	_ok("al_expirar (sin velocidad): salta cuando acaba `persiste` (no antes), una sola vez, y el nodo se borra después (válido = %s)" % str(is_instance_valid(x)), antes and _vfx.size() == 1 and _vfx[0][0] == "fin" and not is_instance_valid(x))
-	# al_expirar en un proyectil + estado_suelo
+	# al_detenerse en un proyectil (alcance) + estado_suelo
 	_montar()
-	var cuando: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 3.0, "eventos": {"al_expirar": [{"accion": "estado_suelo", "estado": "fuego", "radio": 1.0}]}}))
+	var cuando: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 3.0, "eventos": {"al_detenerse": [{"accion": "estado_suelo", "estado": "fuego", "radio": 1.0}]}}))
 	_correr(cuando)
 	var celdas: Dictionary = {}
 	for mc in _m.marcas:
 		celdas[mc[1]] = mc[0]
-	_ok("al_expirar + estado_suelo (radio 1): marca la casilla del final y sus 4 vecinas (%d marcas)" % celdas.size(), celdas.size() == 5 and _eventos_de(cuando, "al_expirar") == 1 and String(celdas.values()[0]) == "fuego")
+	_ok("al_detenerse + estado_suelo (radio 1): marca la casilla del final y sus 4 vecinas (%d marcas) y al_expirar ya no salta en un proyectil" % celdas.size(), celdas.size() == 5 and _eventos_de(cuando, "al_detenerse") == 1 and _eventos_de(cuando, "al_expirar") == 0 and String(celdas.values()[0]) == "fuego")
 	_montar()
 	var gol: Combate3D = _enemigo(Vector2i(8, 8))
-	var vg: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 8.0, "eventos": {"al_expirar": [{"accion": "vfx", "nombre": "no_debe_salir"}]}}))
+	var vg: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 8.0, "eventos": {"al_detenerse": [{"accion": "vfx", "nombre": "no_debe_salir"}]}}))
 	_correr(vg)
-	_ok("al_expirar: NO salta si lo para un golpe (ese ya tuvo su al_golpear)", gol.health < 100.0 and vg.motivo_fin == "golpe" and _vfx.is_empty())
+	_ok("al_detenerse: NO salta si lo para un golpe (ese ya tuvo su al_golpear y su al_impactar)", gol.health < 100.0 and vg.motivo_fin == "golpe" and _vfx.is_empty())
 	# al_viajar: cada N casillas
 	_montar()
 	var vi: HechizoVivo = _lanzar(_hz("fire", {"velocidad": 10.0, "distancia_max": 4.0, "eventos": {"al_viajar": [{"accion": "estado_suelo", "estado": "fuego", "cada": 1.0}]}}))

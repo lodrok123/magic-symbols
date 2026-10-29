@@ -95,7 +95,17 @@ Set-Location (Join-Path $PSScriptRoot '..')
 $Patron = @($Patron | ForEach-Object { $_ -split '[,; ]+' } | Where-Object { $_ -ne '' })      # desde el .cmd llega todo en un solo texto
 $todas = @(Get-ChildItem -LiteralPath 'herramientas' -Filter 'prueba_*.gd' | Sort-Object Name) +
          @(Get-ChildItem -LiteralPath 'herramientas' -Filter 'escenario_*.gd' | Where-Object { $_.Name -ne 'escenario_base.gd' } | Sort-Object Name)
-if ($Patron.Count -gt 0) {
+# 29/10 (H0 del PLAN_SISTEMA_HECHIZOS): alias de suite. `solo hechizos` = la lista nombrada de las pruebas del sistema de hechizos (nombres completos, coincidencia exacta de BaseName).
+$suiteHechizos = @('prueba_hechizo', 'prueba_hechizo_golden', 'prueba_eventos_hechizo', 'prueba_hechizo_vivo', 'prueba_ejecucion_combinaciones', 'prueba_dano_tinta', 'prueba_campos_ejecutados',
+    'prueba_barrido_hechizos', 'prueba_materia_v2', 'prueba_receta_v2', 'prueba_haz', 'prueba_pulso', 'prueba_reacciones', 'prueba_colisiones_forma', 'prueba_prevision_hechizo', 'prueba_tinta',
+    'prueba_en_punto_proyectil', 'prueba_trayectorias')
+if ($Patron.Count -eq 1 -and $Patron[0] -eq 'hechizos') {
+    $todas = @($todas | Where-Object { $suiteHechizos -contains $_.BaseName })
+    if ($todas.Count -eq 0) { Write-Output 'Ninguna prueba de la suite hechizos'; exit 2 }
+    Write-Output ("Suite hechizos (" + $todas.Count + " de " + $suiteHechizos.Count + "): " + (($todas | ForEach-Object { $_.BaseName }) -join ', '))
+    $Patron = @()
+}
+elseif ($Patron.Count -gt 0) {
     $todas = @($todas | Where-Object { $n = $_.BaseName; ($Patron | Where-Object { $_ -ne '' -and $n -like "*$_*" }).Count -gt 0 })
     if ($todas.Count -eq 0) { Write-Output ("Ninguna prueba casa con: " + ($Patron -join ', ')); exit 2 }
     Write-Output ("Subconjunto (" + $todas.Count + "): " + (($todas | ForEach-Object { $_.BaseName }) -join ', '))

@@ -13,7 +13,7 @@ extends Node
 ## TECLAS (la maqueta tiene las suyas; las de este lab se atienden antes y no llegan a ella):
 ##   Espacio lanza hacia donde mira el jugador (aquí NO salta: Jugador3D.salto_activo = false) · B barrido · Tab siguiente elemento
 ##   Numpad 1–8 suman un glifo (con Mayús, restan) · Numpad 0 limpia · R recarga · L cámara lenta · . paso a paso · , sigue (TiempoLab3D)
-##   y el panel de la derecha hace lo mismo con el ratón (un contador +/− por glifo de Sigils.GLIFOS_V2 y el selector de elemento).
+##   y el panel de la derecha hace lo mismo con el ratón (un contador +/− por glifo de Sigils.GLIFOS y el selector de elemento).
 ##   (Los dígitos 1–3 son del libro, que lanza páginas, y F1–F6 de la maqueta: por eso el teclado numérico.)
 ## BARRIDO (B): cada PERIODO_BARRIDO s elige una receta al azar (glifos, elemento, casilla de salida y dirección), la lanza y la vigila VENTANA_S s.
 ##   Anota en PlayLog `receta_rara` si NO HIZO NADA VISIBLE (no salió ninguna casilla, o durante la ventana no apareció ni un nodo nuevo en el árbol:
@@ -132,18 +132,12 @@ func quietar_goblins() -> int:
 
 ## Cuántos glifos de este tipo hacen falta para llegar al tope de su propiedad (más no cambia nada). El panel deja uno de más, para ver la saturación.
 static func glifos_hasta_tope(nombre: String) -> int:
-	var d: Dictionary = Sigils.GLIFOS_V2[nombre]
-	var inicio: float = float(d["inicio"])
-	var tope: float = float(d["tope"])
-	var por: float = float(d["por_glifo"])
-	if String(d.get("modo", "suma")) == "multiplica":
-		return maxi(1, ceili(log(tope / inicio) / log(por) - 0.000001))
-	return maxi(1, ceili((tope - inicio) / por - 0.000001))
+	return Sigils.glifos_hasta_tope(nombre)
 
 
 func receta_de(cont: Dictionary) -> Lanzador3D.Receta3D:
 	var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		for _i in range(int(cont.get(nombre, 0))):
 			r.apply(String(nombre))
 	return r
@@ -158,7 +152,7 @@ func runa() -> RuneData:
 
 
 func sumar(glifo: String, delta: int) -> void:
-	if not Sigils.GLIFOS_V2.has(glifo):
+	if not Sigils.GLIFOS.has(glifo):
 		return
 	var n: int = clampi(int(contadores.get(glifo, 0)) + delta, 0, glifos_hasta_tope(glifo) + 1)
 	if n == 0:
@@ -290,7 +284,7 @@ func parar_barrido() -> void:
 func receta_al_azar() -> Dictionary:
 	var cont: Dictionary = {}
 	var total: int = 0
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		if _rng.randf() >= PROB_GLIFO_BARRIDO:
 			continue
 		var n: int = mini(_rng.randi_range(1, glifos_hasta_tope(String(nombre)) + 1), MAX_GLIFOS_BARRIDO - total)
@@ -365,7 +359,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var atendida: bool = true
 	var numpad: Array = [KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8]
-	var glifos: Array = Sigils.GLIFOS_V2.keys()
+	var glifos: Array = Sigils.GLIFOS.keys()
 	if k.keycode == KEY_SPACE:
 		lanzar()
 	elif k.keycode == KEY_B:
@@ -514,7 +508,7 @@ func _montar_panel() -> void:
 	var titulo := Label.new()
 	titulo.text = "RECETA V2 · glifos"
 	v.add_child(titulo)
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		var fila := HBoxContainer.new()
 		v.add_child(fila)
 		var et := Label.new()
@@ -582,7 +576,7 @@ func texto_hud() -> String:
 	var lineas: PackedStringArray = []
 	lineas.append("RECETA %s · %s" % [NOMBRE_ELEMENTO[elemento], _glifos_texto()])
 	lineas.append("Elipsoide (semiejes, casillas): x %.2f · y %.2f · z %.2f   → %d casillas, %d nivel(es)" % [float(g["x"]), float(g["y"]), float(g["z"]), cas, Lanzador3D.GeometriaV2.niveles(g)])
-	lineas.append("Coste: %.1f de tinta (potencia %s, %d glifos)   ·   tamaño relativo %.2f   ·   recarga %.1f s" % [r.coste_tinta(), Dano.nombre_nivel(r.n_glifos()), r.n_glifos(), rel, r.cooldown])
+	lineas.append("Coste: %.1f de tinta (potencia %s, %d glifos)   ·   daño %s (%d ofensivos)   ·   tamaño relativo %.2f   ·   recarga %.1f s" % [r.coste_tinta(), Dano.nombre_nivel(r.n_glifos()), r.n_glifos(), Dano.nombre_nivel_dano(r.n_glifos_dano()), r.n_glifos_dano(), rel, r.cooldown])
 	lineas.append("Nombre derivado: %s  (vfx: %s)" % [String(g["nombre"]), r.forma_vfx()])
 	lineas.append("Estado: %s%s" % [rune.estado, ("   ·   ⚠ " + Lanzador3D.GeometriaV2.aviso_materia(g, rune)) if Lanzador3D.GeometriaV2.aviso_materia(g, rune) != "" else ""])
 	lineas.append("Propiedades: %s" % (str(props) if not props.is_empty() else "ninguna"))
@@ -606,7 +600,7 @@ func _glifos_texto() -> String:
 	if contadores.is_empty():
 		return "sin glifos (esfera base)"
 	var partes: PackedStringArray = []
-	for nombre in Sigils.GLIFOS_V2:
+	for nombre in Sigils.GLIFOS:
 		if contadores.has(nombre):
 			partes.append("%s×%d" % [Sigils.nombre_visible(String(nombre)), int(contadores[nombre])])
 	return " ".join(partes)

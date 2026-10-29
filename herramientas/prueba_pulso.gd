@@ -306,7 +306,7 @@ func _momento_de_ejecucion() -> void:
 				tabla_ok = false
 		if d.has("accion"):
 			con_accion.append(g)
-			if not HechizoVivo.ACCIONES_MOMENTO.has(String(d["accion"])):
+			if not Hechizo.ACCIONES.has(String(d["accion"])):
 				tabla_ok = false
 	_ok("8 cada glifo declara su momento (inicio, continuo o final) y su paso de §2.4 como DATO, con reglas y acciones del catálogo cerrado", tabla_ok, str(con_accion))
 	_ok("8 solo ᚱ tiene acción hoy; flecha, barrera, repetición, rebote, crecer y permanencia conservan lo que hacen (sin acción)", con_accion == ["raido"])

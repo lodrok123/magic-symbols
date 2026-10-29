@@ -31,9 +31,14 @@ var ultimo: Pulso3D = null              ## el último pulso que soltó
 var nivel: String = ""                  ## el nivel (para la flag de la esquirla)
 var golpes_recibidos: int = 0           ## golpes de hechizo que lo hicieron latir
 var esquirla_dada: bool = false         ## ya soltó su esquirla (también con la flag puesta al montar)
+const T_CARGADO: float = 20.0            ## F1 (29/10): s que el cristal sigue cargado tras un hechizo de rayo
+const OBJETO_CARGADO: String = "cristal_cargado"   ## lo que suelta en vez de la esquirla mientras está cargado
+var cargado_s: float = 0.0               ## s que le quedan cargado (> 0 = la siguiente esquirla es `cristal_cargado`)
+var esquirla_objeto: String = ""         ## lo que soltó de verdad ("" = aún nada; las pruebas lo leen)
 var _mundo: Node = null
 var _t: float = FASE_INICIAL
 var _enfriando: float = 0.0
+var _enfriando_por_reloj: bool = false   ## el enfriamiento lo puso el latido automático (no un golpe): un hechizo no espera a que acabe
 var _color: Color = Pulso3D.COLOR_BASE
 var _mats: Array[ShaderMaterial] = []
 var _mat_primitiva: StandardMaterial3D = null
@@ -115,6 +120,10 @@ func _exit_tree() -> void:
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+	if _enfriando_por_reloj:
+		_enfriando = 0.0                 # el latido automático que acaba de salir no se come el golpe (el elemento del hechizo manda)
+	if Objetos.elemento_de(rune_data) == "rayo":
+		cargado_s = T_CARGADO            # F1: el rayo lo CARGA; mientras dure, la esquirla que suelte es `cristal_cargado`
 	if latir(Objetos.elemento_de(rune_data)) != null:
 		_contar_golpe()
 
@@ -127,8 +136,11 @@ func _contar_golpe() -> void:
 	if esquirla_dada or golpes_recibidos < hace_falta:
 		return
 	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
-	if MineralPulso.dar(lanz, Objetos.mineral_de("cristal_resonante", "golpe"), self) != "":
+	var que: String = OBJETO_CARGADO if cargado_s > 0.0 else Objetos.mineral_de("cristal_resonante", "golpe")
+	if MineralPulso.dar(lanz, que, self) != "":
 		esquirla_dada = true
+		esquirla_objeto = que
+		cargado_s = 0.0
 		Flags.i().poner(flag_esquirla())
 
 
@@ -156,10 +168,11 @@ func punto_activacion() -> Vector3:
 ## --- Latir ---
 
 ## Suelta un pulso (del `elemento`, «» = base). Devuelve el pulso, o null si está en `ENFRIAR`.
-func latir(elemento: String = "") -> Pulso3D:
+func latir(elemento: String = "", por_reloj: bool = false) -> Pulso3D:
 	if _enfriando > 0.0:
 		return null
 	_enfriando = ENFRIAR
+	_enfriando_por_reloj = por_reloj
 	_t = cada if cada > 0.0 else 0.0
 	latidos += 1
 	destello = 1.0
@@ -172,12 +185,14 @@ func latir(elemento: String = "") -> Pulso3D:
 
 
 func _process(delta: float) -> void:
+	if cargado_s > 0.0:
+		cargado_s = maxf(cargado_s - delta, 0.0)
 	if _enfriando > 0.0:
 		_enfriando = maxf(_enfriando - delta, 0.0)
 	if cada > 0.0:
 		_t -= delta
 		if _t <= 0.0:
-			latir("")
+			latir("", true)
 	if destello > 0.0:
 		destello = maxf(destello - delta / T_DESTELLO, 0.0)
 		_pintar()

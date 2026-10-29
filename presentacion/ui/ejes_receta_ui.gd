@@ -26,9 +26,9 @@ const PAPEL: Color = Color(0.96, 0.90, 0.78)
 ## `linea.png` mira hacia arriba (vertical): X (horizontal) = girada un cuarto de vuelta; Z (profundidad) = como viene.
 const GIRO_LINEA: Dictionary = {"linea_x": PI * 0.5, "linea_z": 0.0}
 
-## Lo que hace cada propiedad, en una palabra (es el parámetro de la receta, `Sigils.GLIFOS_V2[...]["param"]`, dicho en llano).
+## Lo que hace cada propiedad, en una palabra (es el parámetro de la receta, `Sigils.GLIFOS[...]["modificadores"][..]["campo"]`, dicho en llano).
 const EFECTO: Dictionary = {"flecha": "viaja", "barrera": "solidez", "repeticion": "copias", "rebote": "rebotes", "pulso": "crecer", "raido": "pulso"}   # 23/10: ᚷ (id `pulso`) se ve como «crecer» y ᚱ (id `raido`) como «pulso» (Sigils.NOMBRE_VISIBLE)
-## Lo más grande que puede medir un hechizo en casillas (X, Y, Z): 2 × los topes de `Sigils.GLIFOS_V2` (3, 2, 3). Sirve para escalar el cubo.
+## Lo más grande que puede medir un hechizo en casillas (X, Y, Z): 2 × los topes de `Sigils.GLIFOS` (3, 2, 3). Sirve para escalar el cubo.
 const MAX_CASILLAS: Vector3 = Vector3(6.0, 4.0, 6.0)
 
 

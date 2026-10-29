@@ -128,6 +128,8 @@ var _celdas_volumen: Array = []            ## las casillas que ocupa el volumen 
 var momentos_vistos: Array = []            ## MOMENTO DE EJECUCIÓN: [{momento, glifo, accion, t}] en el orden en que se dispararon (las pruebas y el lab lo leen)
 var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este hechizo (glifo ᚱ)
 var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
+var finales_vistos: Array = []             ## H2: los eventos de final (`Hechizo.EVENTOS_FINAL`) que SALTARON, tengan o no acciones: un tramo termina en exactamente uno (las pruebas lo leen)
+var _final_hecho: bool = false             ## H2: ya saltó uno de los tres finales: ningún hechizo dispara dos (la ida de un `retorna` no cuenta: solo acaba el tramo de vuelta)
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
 var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
@@ -160,10 +162,7 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	if nuevo.casillas > 0:
 		nuevo.disparar_evento("al_nacer", origen, dir)
 		nuevo._arrancar_momentos(origen, dir)
-		if not nuevo.proyectil and (hechizo.eventos.has("al_expirar")):
-			# §0.3: lo que viaja expira al llegar + `permanencia`; lo que nace quieto, a `persiste` + `permanencia`
-			var hasta: float = (Hechizo.HAZ_DURA_S if hechizo.haz else (nuevo._t_viaje if hechizo.viaja else maxf(hechizo.persiste, 0.0))) + hechizo.permanencia
-			nuevo._despues(hasta, func() -> void: nuevo.disparar_evento("al_expirar", origen, dir))
+		nuevo._programar_extincion(origen, dir)
 	nuevo._revisar_fin()
 	if copia == 0:
 		for i in range(1, n_proyectiles):
@@ -933,9 +932,10 @@ func _tras_golpe(obj: Node, punto: Vector3, dir: Vector3) -> void:
 		disparar_evento("al_matar", punto, dir, {"obj": obj})
 
 
-## Dispara un evento del Hechizo: sus acciones, en orden. `radio_explosion` > 0 añade a `al_golpear` una explosión de ese radio con el daño del hechizo.
+## Dispara un evento del Hechizo: sus acciones, en el orden fijo de `Hechizo.ordenar_acciones` (paso y orden de tabla del glifo que las puso; las que no vienen de un glifo,
+## paso 1 y orden 0, van primero y entre sí en el orden de la lista). `radio_explosion` > 0 añade DESPUÉS de todas a `al_golpear` una explosión de ese radio con el daño del hechizo.
 func disparar_evento(nombre: String, pos: Vector3, dir: Vector3, extra: Dictionary = {}) -> void:
-	var acciones: Array = (h.eventos.get(nombre, []) as Array).duplicate()
+	var acciones: Array = _ordenadas(h.eventos.get(nombre, []) as Array)
 	if nombre == "al_golpear" and h.radio_explosion > 0.0:
 		acciones.append({"accion": "danar_area", "radio": h.radio_explosion, "dano": h.dano})
 	if acciones.is_empty():
@@ -945,20 +945,61 @@ func disparar_evento(nombre: String, pos: Vector3, dir: Vector3, extra: Dictiona
 		_accion(a as Dictionary, pos, dir, extra)
 
 
+## Copia de una lista de acciones de un evento en el orden fijo. Una acción sin `paso` ni `orden` (la que se escribió a mano o la puso el laboratorio) vale `Sigils.PASO_DEFECTO` y orden 0.
+func _ordenadas(lista: Array) -> Array:
+	var r: Array = []
+	for i in range(lista.size()):
+		var a: Dictionary = (lista[i] as Dictionary).duplicate()
+		a["paso"] = int(a.get("paso", Sigils.PASO_DEFECTO))
+		a["orden"] = int(a.get("orden", 0))
+		a["i"] = i
+		r.append(a)
+	return Hechizo.ordenar_acciones(r)
+
+
+## El FINAL de un tramo: salta UNO de los tres eventos (`Hechizo.EVENTOS_FINAL`) y, antes que él, el momento «final» de los glifos con las casillas dadas (vacías = sin momento).
+## `causa` = `motivo_fin` del proyectil, o «extincion» si acaba la vida de lo que nace quieto. Un segundo final del mismo hechizo se ignora (`_final_hecho`).
+func _disparar_final(evento: String, causa: String, pos: Vector3, dir: Vector3, celdas: Array) -> void:
+	if _final_hecho:
+		return
+	_final_hecho = true
+	finales_vistos.append(evento)
+	if h.profundidad == 0 and not celdas.is_empty() and not h.acciones_en_fin(causa).is_empty():
+		_momento(Sigils.MOMENTO_FINAL, celdas, causa)
+	disparar_evento(evento, pos, dir)
+
+
+## Lo que NACE QUIETO se extingue al acabar su vida (`persiste` + `permanencia`, o lo que dura el haz o el viaje del volumen): ahí saltan `al_expirar` y el momento «final» de los glifos
+## (los de momento «final» o «extincion»), con las casillas del volumen. Un proyectil no pasa por aquí: su final lo dispara `_terminar`.
+func _programar_extincion(origen: Vector3, dir: Vector3) -> void:
+	if proyectil:
+		return
+	var momento: bool = h.profundidad == 0 and not h.glifos.is_empty() and not h.acciones_en_fin("extincion").is_empty()
+	if not momento and not h.eventos.has("al_expirar"):
+		return
+	# §0.3: lo que viaja expira al llegar + `permanencia`; lo que nace quieto, a `persiste` + `permanencia`
+	var hasta: float = (Hechizo.HAZ_DURA_S if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0))) + h.permanencia
+	_despues(maxf(hasta, 0.0), func() -> void: _disparar_final("al_expirar", "extincion", origen, dir, _celdas_del_momento(origen) if momento else []))
+
+
 ## =====================================================================================================
 ##  MOMENTO DE EJECUCIÓN (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §10 bis, GLIFOS_RECETA §2.4 bis)
 ## =====================================================================================================
 ## Los glifos con `accion` (hoy ᚱ) hacen algo en el punto de la vida del hechizo que dice su dato `momento` (resuelto con `Hechizo.momento_de`):
 ##   inicio    al nacer el volumen (`crear`), una vez
 ##   continuo  mientras vive, cada `Sigils.PERIODO_MIN_CONTINUO_S` (o su `intervalo`, si es mayor), con tope `Sigils.MAX_DISPAROS_CONTINUOS`; el primero, al nacer
-##   final     al acabarse: un proyectil, al pararse (alcance, choque, suelo, golpe); lo que nace quieto, al acabar su vida (persiste + permanencia, o el tiempo del haz)
-## Dentro de un mismo momento las acciones salen en el orden fijo de `Hechizo.acciones_en` (el `paso` de cada glifo), no en el de dibujo. SIN REENTRADAS: «inicio» y «final» disparan
-## una vez por hechizo, y mientras corren las acciones de un momento (`_en_momento`) ningún otro momento de este hechizo puede dispararse. Un hijo (`crear_hijo`) no repite los efectos
-## de su padre. Los demás glifos (flecha, barrera, repetición, rebote, crecer, permanencia) no tienen `accion`: su `momento` describe lo que ya hacen dentro del ciclo de vida.
-const ACCIONES_MOMENTO: PackedStringArray = ["emitir_pulso"]     ## catálogo cerrado de lo que un glifo puede hacer en su momento
+##   final     al acabarse: un proyectil, al pararse (alcance, choque, suelo, golpe); lo que nace quieto, al acabar su vida (persiste + permanencia, o el tiempo del haz).
+##             H2 (29/10): el final son TRES eventos (`al_impactar`: lo paró un golpe · `al_detenerse`: se paró sin golpear · `al_expirar`: se extingue lo que nace quieto) y un hechizo dispara UNO por
+##             tramo (`_disparar_final`). Un glifo con `momento` «final» actúa en los tres; con «impacto», «detencion» o «extincion», solo en el suyo (`Hechizo.acciones_en_fin`).
+##             En la ida y vuelta de `retorna` solo cuenta el final de la VUELTA: al acabar la ida el proyectil da la vuelta (`_fin_de_ida`) y no dispara nada; el de la vuelta (motivo «retorno» al recogerse,
+##             o el que sea si choca) es el único, sin momento «final» si es «retorno» (el pulso no sale al volver a la mano).
+## UN SOLO DESPACHADOR Y UN SOLO CATÁLOGO: `_momento` no tiene catálogo propio, llama a `_accion` con {accion, celdas} y `Hechizo.ACCIONES` (que incluye `emitir_pulso`) es el único. Un solo orden:
+## las acciones de un momento salen en el de `Hechizo.acciones_en` / `acciones_en_fin` (el `paso` de cada glifo y la tabla), y las de un evento en el de `Hechizo.ordenar_acciones` (`_ordenadas`), no en el de dibujo.
+## SIN REENTRADAS: «inicio» y «final» disparan una vez por hechizo, y mientras corren las acciones de un momento (`_en_momento`) ningún otro momento de este hechizo puede dispararse. Un hijo (`crear_hijo`)
+## no repite los efectos de su padre. Los demás glifos (flecha, barrera, repetición, rebote, crecer, permanencia) no tienen `accion`: su `momento` describe lo que ya hacen dentro del ciclo de vida.
 
 
-## Programa los momentos «inicio», «continuo» y «final» de un hechizo que acaba de nacer (el proyectil solo programa «inicio» y «continuo»: su «final» lo dispara `_terminar`).
+## Programa los momentos «inicio», «continuo» y «final» de un hechizo que acaba de nacer (el «final» no: lo dispara `_terminar` en un proyectil y `_programar_extincion` en lo que nace quieto).
 func _arrancar_momentos(origen: Vector3, dir: Vector3) -> void:
 	if h.profundidad > 0 or h.glifos.is_empty():
 		return
@@ -975,9 +1016,6 @@ func _arrancar_momentos(origen: Vector3, dir: Vector3) -> void:
 				_momento(Sigils.MOMENTO_CONTINUO, celdas)
 			else:
 				_despues(float(k) * periodo, func() -> void: _momento(Sigils.MOMENTO_CONTINUO, _celdas_del_momento(origen)))
-	if not proyectil and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
-		var hasta: float = (Hechizo.HAZ_DURA_S if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0))) + h.permanencia
-		_despues(maxf(hasta, 0.0), func() -> void: _momento(Sigils.MOMENTO_FINAL, _celdas_del_momento(origen)))
 
 
 ## ᚱ con una materia SÓLIDA (hielo, tierra) y el volumen bajo los pies de quien lanza (24/10, fase 3): el bloque no se puede levantar donde está la jugadora (`casillas` = 0), pero el glifo no
@@ -986,7 +1024,7 @@ func _arrancar_momentos(origen: Vector3, dir: Vector3) -> void:
 func _pulso_sin_volumen(origen: Vector3) -> void:
 	var celdas: Array = _celdas_del_momento(origen)
 	for momento in [Sigils.MOMENTO_INICIO, Sigils.MOMENTO_CONTINUO, Sigils.MOMENTO_FINAL]:
-		if not h.acciones_en(momento).is_empty():
+		if not _acciones_del(momento, "extincion").is_empty():
 			_momento(momento, celdas)
 			return
 
@@ -1010,8 +1048,13 @@ func _celdas_del_momento(origen: Vector3) -> Array:
 	return [Terreno3D.celda_de(origen)]
 
 
-## Dispara las acciones de un momento (ver arriba). Devuelve cuántas hizo.
-func _momento(momento: String, celdas: Array) -> int:
+## Las acciones de glifo de un momento: «final» incluye las del momento fino de `causa` (`Hechizo.acciones_en_fin`).
+func _acciones_del(momento: String, causa: String) -> Array:
+	return h.acciones_en_fin(causa) if momento == Sigils.MOMENTO_FINAL else h.acciones_en(momento)
+
+
+## Dispara las acciones de un momento (ver arriba) por el despachador único `_accion`. Devuelve cuántas hizo. `causa` solo importa en «final» (por defecto, la extinción).
+func _momento(momento: String, celdas: Array, causa: String = "extincion") -> int:
 	if _en_momento or h.profundidad > 0:
 		return 0
 	if momento != Sigils.MOMENTO_CONTINUO:
@@ -1020,13 +1063,11 @@ func _momento(momento: String, celdas: Array) -> int:
 		_momento_hecho[momento] = true
 	var hechas: int = 0
 	_en_momento = true
-	for a in h.acciones_en(momento):
-		if not ACCIONES_MOMENTO.has(String(a["accion"])):
+	for a in _acciones_del(momento, causa):
+		if not Hechizo.ACCIONES.has(String(a["accion"])):
 			continue                                          # los datos nunca rompen el juego
-		match String(a["accion"]):
-			"emitir_pulso":
-				if _soltar_pulso(celdas):
-					hechas += 1
+		if _accion({"accion": String(a["accion"])}, p, Vector3.RIGHT, {"celdas": celdas}):
+			hechas += 1
 		momentos_vistos.append({"momento": momento, "glifo": String(a["glifo"]), "accion": String(a["accion"]), "t": reloj_vida})
 	_en_momento = false
 	return hechas
@@ -1042,8 +1083,9 @@ func _soltar_pulso(celdas: Array) -> bool:
 	return true
 
 
-## El catálogo cerrado de acciones (Hechizo.ACCIONES). Una acción que no está en él se ignora: los datos nunca rompen el juego.
-func _accion(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> void:
+## El despachador único y el catálogo cerrado de acciones (`Hechizo.ACCIONES`), para los eventos y para los momentos de los glifos. Una acción que no está en él se ignora: los datos nunca rompen el juego.
+## Devuelve si hizo algo (solo `emitir_pulso` puede no hacerlo: sin alcance, sin casillas o sin mundo).
+func _accion(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> bool:
 	match String(a.get("accion", "")):
 		"danar_area":
 			_danar_area(float(a.get("radio", 1.0)), float(a.get("dano", h.dano)), pos, dir)
@@ -1055,6 +1097,11 @@ func _accion(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> vo
 			lanz._sonar_fase_v2(String(a.get("nombre", "impacto")), elemento, "", pos)
 		"vfx":
 			lanz.vfx_hechizo.emit(String(a.get("nombre", "")), pos, elemento)
+		"emitir_pulso":
+			return _soltar_pulso(extra["celdas"] as Array if extra.has("celdas") else _celdas_del_momento(pos))
+		_:
+			return false
+	return true
 
 
 ## Daño en área: a cada enemigo y reactivo a menos de `radio` casillas de `pos` le llega el golpe del elemento con ese `dano` (estados y empuje radial incluidos);
@@ -1457,7 +1504,9 @@ func celdas_de_contacto(sitio: Vector3, dir_fin: Vector3) -> Array:
 	return r
 
 
-## Acaba el proyectil. `al_expirar` salta salvo que lo haya parado un golpe (ese ya tuvo su `al_golpear`).
+## Acaba el proyectil (H2): salta UNO de los tres finales según la causa: `al_impactar` si lo paró un golpe (después del `al_golpear` de lo que golpeó) y `al_detenerse` en cualquier otra
+## (muro, suelo, alcance, tiempo, frenado, retorno). `al_expirar` es la extinción de lo que nace quieto: un proyectil ya no lo dispara. Con cualquiera de los dos, el momento «final» de los
+## glifos sale UNA vez (el de «retorno» no: el pulso no sale al recoger el proyectil).
 func _terminar(causa: String) -> void:
 	if not activo:
 		return
@@ -1466,6 +1515,7 @@ func _terminar(causa: String) -> void:
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
 	if (causa == "muro" or causa == "suelo") and not seco and lanz != null:
 		Sensacion3D.impacto_mundo(lanz, p, dir_fin, h.elemento, _radio_u, causa)      # gamefeel lote 4: parar contra el mundo se nota
+	var celdas_final: Array = []
 	if causa != "retorno":
 		# el sitio del impacto es donde se para; si lo paró un golpe, donde está lo golpeado (un goblin en el agua se hiela con su casilla, no la de antes)
 		var sitio: Vector3 = _sitio_golpe if (causa == "golpe" and _sitio_golpe != Vector3.INF) else p
@@ -1473,15 +1523,13 @@ func _terminar(causa: String) -> void:
 		if seco:
 			prevision["fin"] = sitio
 			prevision["causa"] = causa
-			return                                      # momentos y `al_expirar` son efectos: en seco no
+			return                                      # momentos y finales son efectos: en seco no
 		# MOMENTO «final» (ᚱ + flecha = el pulso sale donde choca, sin caso especial). 29/10 (Pablo): si se paró CONTRA algo (pared, barrera, objeto, enemigo, suelo), sale
 		# de la SUPERFICIE DE CONTACTO (la casilla tocada más la de delante, donde está), no de todo el volumen; así entra en la veta o el agua que ha tocado. Si llegó a su alcance sin tocar nada, del volumen.
-		if h.profundidad == 0 and not h.acciones_en(Sigils.MOMENTO_FINAL).is_empty():
-			_momento(Sigils.MOMENTO_FINAL, celdas_de_contacto(sitio, dir_fin))
+		celdas_final = celdas_de_contacto(sitio, dir_fin)
+	_disparar_final("al_impactar" if causa == "golpe" else "al_detenerse", causa, p, dir_fin, celdas_final)
 	var expirar: Callable = func() -> void:
 		quedandose = false
-		if causa != "golpe":
-			disparar_evento("al_expirar", p, dir_fin)
 	# §0.3: donde se para (llega, choca o golpea) se queda `permanencia` s y luego desaparece; sin permanencia, desaparece ya. La vuelta de un `retorna` no se queda.
 	if h.permanencia > 0.0 and causa != "retorno":
 		quedandose = true

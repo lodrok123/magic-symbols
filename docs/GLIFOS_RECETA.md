@@ -133,12 +133,28 @@ no lo elige el jugador ni depende del orden en que dibujó los glifos:
 
 | clave | qué dice |
 |---|---|
-| `momento` | `"inicio"` (al nacer el volumen, una vez) · `"continuo"` (mientras vive, cada `PERIODO_MIN_CONTINUO_S` como mínimo) · `"final"` (al chocar o acabarse, una vez). Sin él, `MOMENTO_DEFECTO` = inicio |
+| `momento` | `"inicio"` (al nacer el volumen, una vez) · `"continuo"` (mientras vive, cada `PERIODO_MIN_CONTINUO_S` como mínimo) · `"final"` (al chocar o acabarse, una vez). Sin él, `MOMENTO_DEFECTO` = inicio. «final» admite además tres valores finos, ver «Los tres finales» |
 | `momento_si` | reglas `{cuando, es}` en orden: la primera cuyo `cuando` se cumple cambia el momento. `cuando` ∈ `Hechizo.CONDICIONES_MOMENTO`: `viaja` (es un proyectil) · `persistente` (el volumen se queda: solidez, permanencia o elemento sólido, y no es un haz) |
 | `paso` | el paso de §2.4 al que pertenece (1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos): ordena los glifos **dentro de un mismo momento** |
-| `accion` | lo que hace en su momento, del catálogo cerrado `HechizoVivo.ACCIONES_MOMENTO` (hoy `emitir_pulso`). Sin `accion` el glifo no dispara nada: su efecto ya va dentro del ciclo de vida |
+| `accion` | lo que hace en su momento, del catálogo cerrado `Hechizo.ACCIONES` (el mismo de los eventos; hoy `emitir_pulso`). Sin `accion` el glifo no dispara nada: su efecto ya va dentro del ciclo de vida |
 
 - **Orden fijo:** `Hechizo.acciones_en(momento)` devuelve las acciones por `paso` y, a igualdad, por el orden de la tabla (`Hechizo.ordenar_acciones`). El orden de dibujo no existe (la receta es un multiconjunto).
+- **Un despachador, un catálogo, un orden (H2, 29/10):** los momentos de los glifos y los eventos de `Hechizo.eventos` pasan por el mismo `HechizoVivo._accion` y el mismo catálogo `Hechizo.ACCIONES`
+  (`danar_area`, `crear_hijo`, `estado_suelo`, `sonido`, `vfx`, `emitir_pulso`; una acción desconocida se ignora). Las acciones de un evento se ordenan con `Hechizo.ordenar_acciones`: cada acción añadida por un
+  glifo (`op: "anade"`) guarda el `paso` y el `orden` de tabla de ese glifo; las que no vienen de un glifo (laboratorio, elemento) valen paso 1 y orden 0, y a igualdad manda el orden en que se añadieron. La
+  explosión de `radio_explosion` se añade después de todas. (`al_viajar`, que es periódico, conserva el orden de su lista.)
+- **Los tres finales (H2):** el «final» del hechizo son tres eventos y un hechizo dispara UNO por tramo (`HechizoVivo._disparar_final`; `finales_vistos`):
+
+  | evento | cuándo | `momento` fino del glifo |
+  |---|---|---|
+  | `al_impactar` | un proyectil se para por **golpe** (`motivo_fin` = golpe); salta después del `al_golpear` del objeto | `"impacto"` |
+  | `al_detenerse` | un proyectil se para **sin golpear**: muro, suelo, alcance, tiempo, frenado o retorno | `"detencion"` |
+  | `al_expirar` | **extinción**: acaba la vida de lo que nace quieto (persiste + permanencia, o el haz). Un proyectil ya no lo dispara | `"extincion"` |
+
+  Un glifo con `momento: "final"` actúa en los tres (ᚱ no cambia); uno con un valor fino, solo en el suyo (`Hechizo.acciones_en_fin(causa)` resuelve fino + grueso; `acciones_en("final")` sigue devolviendo solo los
+  de «final»). El momento «final» de los glifos sale UNA vez, justo antes del evento, con `celdas_de_contacto` (proyectil) o las casillas del volumen (extinción); con `motivo_fin` = «retorno» no sale (el pulso no
+  sale al recoger el proyectil). `al_impactar` y `al_detenerse` saltan en el instante de pararse (antes `al_expirar` esperaba la `permanencia`). **Retorna:** la ida y la vuelta son dos tramos pero el final de la
+  ida no dispara nada (el proyectil da la vuelta en `_fin_de_ida`); solo cuenta el de la vuelta, así que sigue habiendo un único final por hechizo.
 - **Sin reentradas:** «inicio» y «final» disparan una vez por hechizo; mientras corren las acciones de un momento ningún otro momento del mismo hechizo puede dispararse (`HechizoVivo._en_momento`); un hijo de `crear_hijo` no repite los efectos de su padre.
 - **Continuo:** el primer disparo es al nacer; luego cada `max(intervalo, PERIODO_MIN_CONTINUO_S)` (1,5 s) hasta que acaba la vida, con tope `MAX_DISPAROS_CONTINUOS` (8). **Cuesta tinta** (§2.5): ×(1 + `COSTE_CONTINUO_V2`) = +25 % si la receta lleva ᚱ,
   no viaja y tiene solidez o permanencia (`Sigils.recargo_continuo`, el mismo número en la receta y en el Hechizo). **Límite conocido:** el coste en tinta solo ve las propiedades de la receta, no el elemento; un ᚱ con un elemento sólido

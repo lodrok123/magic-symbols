@@ -146,7 +146,7 @@ Y dominante → `alto`; plano y quieto → `abajo`; esfera → `x_mano`. Un haz 
 | `momento` | `inicio` (al nacer, una vez) · `continuo` (mientras vive) · `final` (al chocar o acabarse, una vez); sin él, `inicio` |
 | `momento_si` | reglas `{cuando, es}`; `cuando` ∈ `viaja` (es proyectil) · `persistente` (no es haz, no viaja y tiene solidez, permanencia o es sólido) |
 | `paso` | ordena dentro de un momento: 1 volumen · 2 copias · 3 vida · 4 materia · 5 daño y efectos (a igualdad, el orden de la tabla) |
-| `accion` | del catálogo cerrado `HechizoVivo.ACCIONES_MOMENTO` (hoy solo `emitir_pulso`). Sin acción, el momento es descriptivo |
+| `accion` | del catálogo cerrado `Hechizo.ACCIONES` (hoy `emitir_pulso`). Sin acción, el momento es descriptivo |
 
 - Continuo: primer disparo al nacer, luego cada máx(`intervalo`, 1,5 s `PERIODO_MIN_CONTINUO_S`), tope 8 disparos.
 - Sin reentradas: un efecto de un momento no vuelve a disparar ese momento; un hijo no repite los efectos del padre.

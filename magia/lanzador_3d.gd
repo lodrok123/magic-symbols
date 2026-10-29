@@ -766,6 +766,76 @@ func escala_de_tiempo() -> float:
 	return 1.0
 
 
+## H7 (29/10, PLAN_SISTEMA_HECHIZOS §3): la receta de una ficha de página (`{element, element_q, components}`) montada como la monta el lanzamiento: los glifos de todos los sectores fundidos, la calidad
+## (la peor de las del elemento y las de los glifos) y el `Hechizo` resultante, con el pigmento de daño si se da `tinta_`. SIN elemento (`rune` null) el hechizo se construye igual (coste, forma y recarga
+## no dependen de la runa). Devuelve {receta, rune, calidad, glifos (los nombres, fundidos), hechizo (null si la runa no se puede lanzar)}. Lo usan `_preparar_pagina` y el libro (`Grimorio._actualizar_resumen`).
+static func receta_de_ficha(ficha: Dictionary, rune: RuneData, tinta_: Tinta = null) -> Dictionary:
+	var glifos: Array = []
+	var calidades: Array = []
+	for c in (ficha["components"] as Array):
+		glifos.append_array(c["sigils"])
+		calidades.append_array(c.get("quality", []))
+	var calidad: float = float(ficha.get("element_q", 1.0))
+	for q in calidades:
+		calidad = minf(calidad, float(q))
+	var receta := Receta3D.new(Vector2.RIGHT)
+	for s in glifos:
+		receta.apply(s)
+	# Flecha y barrera solo orientan el eje: el glifo de "lejos" (origin) no las desplaza. Que la barrera nazca donde apuntas lo decide `Hechizo.en_punto`.
+	if receta.travels or receta.spread:
+		receta.origin = 0.0
+	receta.calidad = calidad
+	var hechizo: Hechizo = receta.hechizo(rune)
+	if hechizo != null and tinta_ != null and rune != null:
+		hechizo.dano *= tinta_.mult_dano(Objetos.elemento_de(rune))
+	return {"receta": receta, "rune": rune, "calidad": calidad, "glifos": glifos, "hechizo": hechizo}
+
+
+## H7: los textos de rechazo/aviso de una página, UNA vez cada uno, para que el libro (antes de lanzar) y `_preparar_pagina` (al lanzar) no puedan decir cosas distintas. Cada uno es "" si no procede.
+static func aviso_altura(hechizo: Hechizo, rune: RuneData) -> String:
+	return GeometriaV2.aviso_materia(hechizo.geo(), rune)
+
+
+static func aviso_sin_uso(ignorados: PackedStringArray) -> String:
+	return "" if ignorados.is_empty() else "Aún sin uso: %s" % ", ".join(ignorados)
+
+
+## Lo que cuesta de verdad el hechizo: `coste_tinta` con la rebaja del pigmento (E1) si hay tinta.
+static func tinta_prevista(hechizo: Hechizo, rune: RuneData, tinta_: Tinta = null) -> float:
+	if tinta_ == null:
+		return hechizo.coste_tinta
+	return tinta_.coste_efectivo(hechizo.coste_tinta, Objetos.elemento_de(rune))
+
+
+static func aviso_tinta(hechizo: Hechizo, rune: RuneData, tinta_: Tinta = null) -> String:
+	if tinta_ == null:
+		return ""
+	var coste: float = tinta_prevista(hechizo, rune, tinta_)
+	if tinta_.puede_pagar(hechizo.forma, coste):
+		return ""
+	return "Tinta insuficiente (%d / %d)" % [int(ceil(tinta_.actual)), int(ceil(coste))]
+
+
+## Los avisos de una página, en el orden en que los daría `_preparar_pagina`: altura rechazada, glifos sin uso, tinta insuficiente. La recarga no entra (depende del reloj) ni la falta de elemento o de glifos
+## (eso lo dice quien mira la ficha). `tinta_` null = sin tinta (pruebas y laboratorios): no hay aviso de tinta.
+static func avisos_de(hechizo: Hechizo, rune: RuneData, ignorados: PackedStringArray, tinta_: Tinta = null) -> Array[String]:
+	var salida: Array[String] = []
+	if hechizo == null:
+		return salida
+	for aviso in [aviso_altura(hechizo, rune), aviso_sin_uso(ignorados), aviso_tinta(hechizo, rune, tinta_)]:
+		if String(aviso) != "":
+			salida.append(String(aviso))
+	return salida
+
+
+## Lo que el libro cuenta como información (no es un aviso, no impide nada): de dónde nace el hechizo.
+static func notas_de(hechizo: Hechizo) -> Array[String]:
+	var salida: Array[String] = []
+	if hechizo != null and hechizo.en_punto:
+		salida.append("Nace donde apuntas")
+	return salida
+
+
 ## 8.8: ¿se puede lanzar una receta con estos glifos? Devuelve "" si sí, o el aviso. Pensado para que el libro avise ANTES de
 ## cerrarlo (spellbook.gd es de Pablo: la llamada la pone él; mientras, `cast_page` ya se niega con este mismo aviso).
 static func aviso_receta(glifos: Array, rune: RuneData = null) -> String:
@@ -816,57 +886,51 @@ func _preparar_pagina(indice: int) -> bool:
 		PlayLog.event("cast_bloqueado", {"pagina": indice + 1, "queda": snappedf(cooldown_left[indice], 0.1)})
 		return false
 
-	# UNA RECETA POR PÁGINA: los glifos de todos los sectores se funden en un solo hechizo.
-	var fusion: Dictionary = {"sigils": [], "quality": []}
-	for c in componentes:
-		(fusion["sigils"] as Array).append_array(c["sigils"])
-		(fusion["quality"] as Array).append_array(c.get("quality", []))
-	for s in fusion["sigils"]:
+	# UNA RECETA POR PÁGINA: los glifos de todos los sectores se funden en un solo hechizo (H7: `receta_de_ficha`, la misma fusión que usa el libro para avisar antes de lanzar).
+	# H1 (29/10): el `Hechizo` de la página se construye UNA vez, aquí (con el pigmento de daño del elemento, E1: único sitio donde se aplica); `en_punto`, el rechazo de construcción, la altura,
+	# el coste, la recarga, la previsión y el disparo leen este (`hechizo_de` lo copia).
+	var montada: Dictionary = receta_de_ficha(ficha, element_data, tinta)
+	var receta: Receta3D = montada["receta"]
+	var calidad: float = float(montada["calidad"])
+	var glifos_pagina: Array = montada["glifos"]
+	for s in glifos_pagina:
 		if not Repertoire.sigil_active(Sigils.repertorio_de(s)):
 			_feedback("Un glifo de la página ya no está activo")
 			return false
-
-	var calidad: float = float(ficha.get("element_q", 1.0))
-	for q in fusion["quality"]:
-		calidad = minf(calidad, float(q))
-
-	var receta := Receta3D.new(Vector2.RIGHT)
-	for s in fusion["sigils"]:
-		receta.apply(s)
-	# Flecha y barrera solo orientan el eje: el glifo de "lejos" (origin) no las desplaza. Que la barrera nazca donde apuntas lo decide `Hechizo.en_punto` (más abajo).
-	if receta.travels or receta.spread:
-		receta.origin = 0.0
-	receta.calidad = calidad
+	var hechizo: Hechizo = montada["hechizo"]
+	if hechizo == null:
+		_feedback("La página %d no se puede lanzar" % (indice + 1))
+		return false
+	var geo_h: Dictionary = hechizo.geo()
 	# 8.6: el tope de altura combinado. Si lo supera, se avisa y NO se lanza (no se recorta en silencio).
 	# R2: el tope de pisar depende del ESTADO del elemento (un sólido más alto de lo que se sube no se lanza).
-	var aviso_v2: String = GeometriaV2.aviso_materia(receta.geo(), element_data)
+	var aviso_v2: String = aviso_altura(hechizo, element_data)
 	if aviso_v2 != "":
 		Sfx.play(self, "sello_no")
 		Sensacion3D.no_puedes(self, indice)
 		_feedback(aviso_v2)
-		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(receta.geo()["y_tope"]), "glifos": (fusion["sigils"] as Array).duplicate()})
+		PlayLog.event("cast_rechazado_altura", {"pagina": indice + 1, "y_tope": int(geo_h["y_tope"]), "glifos": glifos_pagina.duplicate()})
 		return false
 	# R3: los glifos aparcados (retardo, atracción, espejo, amplificar) no rompen nada: se dibujan, se avisa y no hacen nada.
-	if not receta.ignorados.is_empty():
-		_feedback("Aún sin uso: %s" % ", ".join(receta.ignorados))
+	var aviso_uso: String = aviso_sin_uso(receta.ignorados)
+	if aviso_uso != "":
+		_feedback(aviso_uso)
 		PlayLog.event("glifo_sin_uso", {"pagina": indice + 1, "glifos": Array(receta.ignorados)})
 
 	# TINTA (15/10): se comprueba aquí, antes de apuntar, para no ralentizar el tiempo y luego negarte el lanzamiento. Se COBRA al soltar
 	# (`lanzar_ahora`): si cancelas el apuntado no pierdes nada.
-	var coste_tinta: float = receta.coste_tinta()      # 29/10 (DANO_Y_TINTA): por potencia (nº de glifos), no por volumen
-	if tinta != null:
-		coste_tinta = tinta.coste_efectivo(coste_tinta, Objetos.elemento_de(element_data))     # E1: la rebaja del pigmento (la aplica Tinta, aquí solo se le dice el elemento)
-	if tinta != null and not tinta.puede_pagar(receta.forma(), coste_tinta):
+	var aviso_ink: String = aviso_tinta(hechizo, element_data, tinta)
+	if aviso_ink != "":
 		Sfx.play(self, "sello_no")
 		Sensacion3D.no_puedes(self, indice)
-		_feedback("Tinta insuficiente (%d / %d)" % [int(ceil(tinta.actual)), int(ceil(coste_tinta))])
-		PlayLog.event("cast_sin_tinta", {"pagina": indice + 1, "forma": receta.forma(), "coste": snappedf(coste_tinta, 0.1), "hay": snappedf(tinta.actual, 0.1)})
+		_feedback(aviso_ink)
+		PlayLog.event("cast_sin_tinta", {"pagina": indice + 1, "forma": receta.forma(), "coste": snappedf(tinta_prevista(hechizo, element_data, tinta), 0.1), "hay": snappedf(tinta.actual, 0.1)})
 		return false
 
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
-		"glifos": (fusion["sigils"] as Array).duplicate(),
+		"glifos": glifos_pagina.duplicate(),
 		"elemento_nombre": _gesture_name_of(ficha["element"]),
-		"en_punto": receta.hechizo(element_data).en_punto}      # 18/10: «nace donde apuntas» (cast on point); lo pide un glifo (la barrera)
+		"hechizo": hechizo, "en_punto": hechizo.en_punto}      # 18/10: «nace donde apuntas» (cast on point); lo pide un glifo (la barrera)
 	return true
 
 
@@ -1207,11 +1271,11 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}
 
 	if tinta != null:
-		tinta.gastar(forma, receta.coste_tinta(), elemento)       # E1: con el elemento, para la rebaja del pigmento
+		tinta.gastar(forma, _coste_de(datos), elemento)       # E1: con el elemento, para la rebaja del pigmento
 
 	# Recarga y coste al SOLTAR: durante el conjuro la página ya no se puede volver a lanzar.
-	cooldown_total[indice] = receta.cooldown
-	cooldown_left[indice] = receta.cooldown
+	cooldown_total[indice] = _recarga_de(datos)
+	cooldown_left[indice] = _recarga_de(datos)
 
 	var tiempos: Array = tiempos_conjuro(elemento)
 	if con_conjuro and conjuro_activo and is_inside_tree() and not _cast_point.is_empty() and conjuro_escala > 0.0:
@@ -1375,7 +1439,7 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	desplaza_mano = Vector3.ZERO
 	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)))   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
-		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": receta.cooldown, "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
+		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": _recarga_de(datos), "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}
 	if retardo > 0.0:
 		ev["retardo"] = snappedf(retardo, 0.01)
@@ -1389,14 +1453,29 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	lanzado.emit(elemento, forma, n)
 
 
-## 28/10 · A2: el `Hechizo` que sale de una página preparada (`datos` de `_preparar_pagina`), tal cual lo lanza `_disparar` — con el pigmento de daño (E1) —, y con los `cambios_hechizo` del
-## laboratorio encima (lo que añade `lanzar_hechizo`). Lo usan `_disparar` y la previsión (`PrevisionHechizo`), para que prevean EXACTAMENTE lo que sale. Devuelve null si la runa no se lanza.
+## H1: coste en tinta (antes de la rebaja del pigmento) y recarga de una página preparada: los del `Hechizo` (la receta, si no lo trae: laboratorios y pruebas con `datos` a mano).
+func _coste_de(datos: Dictionary) -> float:
+	var h: Hechizo = datos.get("hechizo") as Hechizo
+	return h.coste_tinta if h != null else (datos["receta"] as Receta3D).coste_tinta()
+
+
+func _recarga_de(datos: Dictionary) -> float:
+	var h: Hechizo = datos.get("hechizo") as Hechizo
+	return h.recarga if h != null else (datos["receta"] as Receta3D).cooldown
+
+
+## 28/10 · A2 / H1: el `Hechizo` que sale de una página preparada (`datos` de `_preparar_pagina`), tal cual lo lanza `_disparar`. Lo usan `_disparar`, el rechazo de construcción y la previsión
+## (`PrevisionHechizo`), para que prevean EXACTAMENTE lo que sale. Devuelve el de `datos["hechizo"]` (ya con el pigmento de daño, E1) COPIADO: `lanzar_hechizo`/`_salida_de_mano` y los laboratorios
+## lo tocan y la previsión lo pide cada fotograma, y copiar no construye. Solo si `datos` no lo trae (laboratorios y pruebas que lo montan a mano) se construye aquí, con el pigmento.
+## Devuelve null si la runa no se lanza.
 func hechizo_de(datos: Dictionary) -> Hechizo:
-	var receta: Receta3D = datos["receta"]
+	var preparado: Hechizo = datos.get("hechizo") as Hechizo
+	if preparado != null:
+		return preparado.copiar()
 	var rune: RuneData = datos["rune"]
-	var hechizo: Hechizo = receta.hechizo(rune)
+	var hechizo: Hechizo = (datos["receta"] as Receta3D).hechizo(rune)
 	if tinta != null and hechizo != null:
-		hechizo.dano *= tinta.mult_dano(Objetos.elemento_de(rune))         # E1: pigmento de daño del elemento (único sitio; 1 si no toca). Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+		hechizo.dano *= tinta.mult_dano(Objetos.elemento_de(rune))         # E1: pigmento de daño del elemento. Se queda en el hechizo: golpe, área y escudo lo leen de ahí
 	return hechizo
 
 
@@ -2356,7 +2435,7 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3) -> String:
 	var rune: RuneData = datos.get("rune")
 	if receta == null or rune == null or jugador == null:
 		return ""
-	var h: Hechizo = receta.hechizo(rune)
+	var h: Hechizo = hechizo_de(datos)      # H1: el de `_preparar_pagina` (copiado); sin él (laboratorios, pruebas), se construye
 	if h == null or not h.solido_quieto:
 		return ""
 	# Una barrera (solidez > 0) protege con su SolidezV2 aunque el bloque de tierra de debajo no quepa (el muro que nace en tu propia casilla y te cubre: escenario_bosque_01_v01 4.6): se lanza como siempre.
@@ -2720,7 +2799,6 @@ class Receta3D extends SpellRecipe:
 
 	## Cuántas veces se dibujó cada glifo V2 (un multiconjunto: el orden de dibujo no cuenta).
 	var contadores: Dictionary = {}
-	var _geo: Dictionary = {}
 
 	## Se conserva porque el resto del Lanzador (campos antiguos, `_spread_points`) lo lee; en la V2 nunca vale true.
 	var line: bool = false
@@ -2728,34 +2806,62 @@ class Receta3D extends SpellRecipe:
 	## Un glifo suma a su contador y la recarga sale de la tabla. No pasa por SpellRecipe.apply: la V2 no usa FORM/OPERATOR.
 	## `levitacion` (ᛏ) vale como `altura` (Sigils.ALIAS_V2): ya no tiene significado propio.
 	func apply(sigil_name: String) -> void:
-		_geo = {}
+		_h = null                                          # H1: el Hechizo cacheado ya no vale
 		var nombre: String = Sigils.glifo_v2(sigil_name)
-		if Sigils.GLIFOS_V2.has(nombre):
+		if Sigils.GLIFOS.has(nombre):
 			contadores[nombre] = int(contadores.get(nombre, 0)) + 1
 			cooldown = Sigils.cooldown_v2(contadores)
 		else:
 			ignorados.append(sigil_name)
 		_sincronizar()
 
-	## HC2: el `Hechizo` que sale de esta receta con un elemento (los glifos dibujados, la calidad del trazo y lo que la receta no conoce, anotado en `ignorados`).
-	func hechizo(rune: RuneData, permitir_cinematico: bool = false) -> Hechizo:
+	## H1 (29/10, PLAN_SISTEMA_HECHIZOS): `Receta3D` es un ADAPTADOR «contadores + calidad → Hechizo». Guarda UN `Hechizo` (`_h`) y coste, nº de glifos, tamaño, geometría y forma salen de él: no hay
+	## cálculo paralelo. Se rehace solo si cambian los contadores (`apply` lo invalida), la calidad o la runa que se pide. Sin runa pedida aún se construye `Hechizo.construir(null, ...)`;
+	## en cuanto se pide `hechizo(rune)`, `geo()` y `forma()` leen el CON elemento (el `haz` y el `nombre` dependen de `estado_materia`: un sólido con ᛁ no es un haz). Coste, nº de glifos y recarga no dependen de la runa.
+	var _h: Hechizo = null
+	var _h_clave: String = ""
+	var _h_runa: int = 0                                   ## id de instancia de la runa con la que se construyó `_h` (0 = sin elemento)
+
+	func _clave() -> String:
+		return "%s|%.4f" % [str(contadores), calidad]
+
+	## El `Hechizo` cacheado para ESTA runa (lo construye si no está). No lo toques: `hechizo()` devuelve una copia.
+	func _cacheado(rune: RuneData, permitir_cinematico: bool = false) -> Hechizo:
+		var id_runa: int = rune.get_instance_id() if rune != null else 0
+		if _h != null and _h_clave == _clave() and _h_runa == id_runa:
+			return _h
 		var h: Hechizo = Hechizo.construir(rune, contadores, calidad, permitir_cinematico)
 		if h == null:
 			return null                                    # runa cinemática sin permiso (ver Hechizo.construir)
 		h.ignorados.append_array(ignorados)
-		return h
+		_h = h
+		_h_clave = _clave()
+		_h_runa = id_runa
+		return _h
+
+	## El cacheado que haya (con o sin elemento) mientras sirvan los contadores y la calidad; si no hay ninguno, el sin elemento.
+	func _actual() -> Hechizo:
+		if _h != null and _h_clave == _clave():
+			return _h
+		return _cacheado(null)
+
+	## HC2: el `Hechizo` que sale de esta receta con un elemento (los glifos dibujados, la calidad del trazo y lo que la receta no conoce, anotado en `ignorados`). Es una COPIA del cacheado:
+	## quien lo recibe (el lanzador, los laboratorios) puede tocarlo sin ensuciar la receta. Pedirlo dos veces con la misma runa no construye dos veces.
+	func hechizo(rune: RuneData, permitir_cinematico: bool = false) -> Hechizo:
+		var h: Hechizo = _cacheado(rune, permitir_cinematico)
+		return h.copiar() if h != null else null
 
 	## 29/10 (DANO_Y_TINTA): glifos de la receta que el juego conoce (los aparcados e ignorados no cuentan). De aquí sale la potencia.
 	func n_glifos() -> int:
-		var n: int = 0
-		for k in contadores:
-			if Sigils.GLIFOS_V2.has(String(k)):
-				n += maxi(int(contadores[k]), 0)
-		return n
+		return _actual().n_glifos
 
-	## Coste en tinta ANTES de la rebaja del pigmento: T_base(potencia) × (1 + recargos), el mismo cálculo que `Hechizo.coste_tinta` (`Dano.tinta`).
+	## H3: glifos que suman al daño (sin ᛁ ni ᛏ).
+	func n_glifos_dano() -> int:
+		return _actual().n_glifos_dano
+
+	## Coste en tinta ANTES de la rebaja del pigmento: el de `Hechizo.coste_tinta` (`Dano.tinta`).
 	func coste_tinta() -> float:
-		return Dano.tinta(n_glifos(), Sigils.recargos_tinta(geo()["props"]))
+		return _actual().coste_tinta
 
 	## Tamaño relativo (la esfera base vale 1; ver Sigils.coste_v2). Ya NO es lo que cuesta en tinta: lo usan el laboratorio y las pruebas.
 	func tamano_relativo() -> float:
@@ -2766,15 +2872,15 @@ class Receta3D extends SpellRecipe:
 	func usa_geo() -> bool:
 		return true
 
-	## La geometría de esta receta (se recalcula al añadir glifos).
+	## La geometría de esta receta: la del `Hechizo` (`Hechizo.geo()`, mismo formato que `GeometriaV2.evaluar`). Devuelve una copia nueva cada vez.
 	func geo() -> Dictionary:
-		if _geo.is_empty():
-			_geo = GeometriaV2.evaluar(contadores)
-		return _geo
+		return _actual().geo()
 
 	## Los indicadores antiguos (los lee el resto del Lanzador) se derivan de los números de la receta; cada uno sale de UNA propiedad o eje.
+	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_barrido`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
+	## Va por `GeometriaV2.evaluar` (la cuenta antigua) y NO por el `Hechizo`: así `apply` no construye nada y el libro construye una sola vez.
 	func _sincronizar() -> void:
-		var g: Dictionary = geo()
+		var g: Dictionary = GeometriaV2.evaluar(contadores)
 		var props: Dictionary = g["props"]
 		travels = bool(g["viaja"])
 		reach = 1 if travels else 0

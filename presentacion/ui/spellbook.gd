@@ -1054,6 +1054,7 @@ func _draw() -> void:
 	_draw_core(_on_page(_core_c()))
 	_draw_components(c)
 	_draw_pages(c)
+	_draw_resumen(c)
 
 	var ink: Color = RECORD_INK if is_recording else STROKE_INK
 	var grosor: float = _u(4.0)
@@ -1292,7 +1293,7 @@ func _contadores_pagina() -> Dictionary:
 	for component in caster.components():
 		for sello_pagina in (component["sigils"] as Array):
 			var nombre: String = Sigils.glifo_v2(String(sello_pagina))
-			if Sigils.GLIFOS_V2.has(nombre):
+			if Sigils.GLIFOS.has(nombre):
 				cont[nombre] = int(cont.get(nombre, 0)) + 1
 	return cont
 
@@ -1494,7 +1495,19 @@ func _draw_core(c: Vector2) -> void:
 		element.color.darkened(CORE_NAME_DARKEN))
 
 	# 18/10: el tamaño del hechizo en casillas (x·y·z) como un cubo con las proporciones de la página. Sin glifos sale 1·1·1 (la esfera base).
-	EjesRecetaUi.dibujar_indicador(self, EjesRecetaUi.sitio_en_nucleo(c, _u(_core_u())), _u(_core_u()), Sigils.aplicar_v2(_contadores_pagina()))
+	EjesRecetaUi.dibujar_indicador(self, EjesRecetaUi.sitio_en_nucleo(c, _u(_core_u())), _u(_core_u()), _geo_indicador(_contadores_pagina()))
+
+
+## H1: la geometría del indicador sale de un `Hechizo` sin elemento (no de `Sigils.aplicar_v2`, en desuso), y solo se reconstruye cuando cambian los glifos de la página (este dibujo corre cada fotograma).
+var _ind_clave: String = ""
+var _ind_geo: Dictionary = {}
+
+func _geo_indicador(contadores: Dictionary) -> Dictionary:
+	var clave: String = str(contadores)
+	if _ind_geo.is_empty() or clave != _ind_clave:
+		_ind_geo = Hechizo.construir(null, contadores).geo()
+		_ind_clave = clave
+	return _ind_geo
 
 
 ## Las divisiones entre sectores: van del núcleo al borde, porque el
@@ -1783,6 +1796,88 @@ func _draw_centered_text(pos: Vector2, text: String, color: Color) -> void:
 ## cualquier Node desde M4 (si es Node3D suena posicional), así que se devuelve el nodo tal cual.
 func _oyente() -> Node:
 	return get_tree().get_first_node_in_group("player")
+
+
+## --- H7 (29/10, PLAN_SISTEMA_HECHIZOS §3): LO QUE CUESTA Y HACE LA PÁGINA, SIN LANZARLA ---
+##
+## Una banda de hasta cuatro líneas sobre las pestañas (el hueco de papel liso entre la cenefa y el aro; el cubo y la corona se quedan como estaban):
+##   1. «tinta 18 / 73 · daño 13 · ligera · recarga 2,5 s» — la tinta que cobraría frente a la que hay (en rojo si no llega), el daño con el nivel de daño y lo que tarda en recargar.
+##   2. «crecer: crece 0,5 m/s» — lo que aportó el último glifo (`Hechizo.diferencia` de esa página; el nombre es `Sigils.nombre_visible`). Si lo último fue el elemento, «Elemento: Fuego».
+##   3. «daño 13 → 26 · tinta 8 → 18» — los números que movió.
+##   4. los avisos (los mismos textos de `_preparar_pagina`: `Lanzador3D.avisos_de`) en el rojo del libro, y «Nace donde apuntas» como nota. Una página sin nada dibujado no pinta nada.
+## Lo calcula `Grimorio.resumen_pagina` al cambiar la página; aquí solo se pinta.
+const RESUMEN_ANCHO: float = 440.0       ## unidades de diseño: más allá, la línea se recorta con «…»
+const RESUMEN_SOBRE_PESTANAS: float = 24.0
+
+
+func _draw_resumen(c: Vector2) -> void:
+	var caster := _spellcaster()
+	if caster == null or not caster.has_method("resumen_pagina"):
+		return
+	var r: Dictionary = caster.call("resumen_pagina")
+	if r.is_empty() or bool(r["vacia"]) or (r["resumen"] as Dictionary).is_empty():
+		return
+	var res: Dictionary = r["resumen"]
+	var avisos: Array = r["avisos"]
+	var lineas: Array = []        # [texto, color]
+	var t: Tinta = caster.get("tinta") as Tinta
+	var tinta_txt: String = "tinta %s" % Hechizo.texto_numero(float(r["tinta_prevista"]), 0)
+	var tinta_corta: bool = false
+	if t != null:
+		tinta_txt += " / %s" % Hechizo.texto_numero(t.actual, 0)
+		tinta_corta = Lanzador3D.aviso_tinta(r["hechizo"] as Hechizo, r["rune"] as RuneData, t) != ""
+	var fila: String = "%s · daño %s · %s · recarga %s s" % [tinta_txt, Hechizo.texto_numero(float(res["dano"])), String(res["nivel_dano"]), Hechizo.texto_segundos(float(res["recarga"]))]
+	lineas.append([fila, RECORD_INK if tinta_corta else INK])
+	# lo que aportó el último glifo
+	var propias: Array = []
+	var numeros: Array = []
+	for f in (r["frases"] as Array):
+		((numeros if bool((f as Dictionary)["numerico"]) else propias) as Array).append(String((f as Dictionary)["texto"]))
+	if (r["glifos"] as Array).is_empty() and propias.is_empty() and String(r["texto"]) != "":
+		propias.append(String(r["texto"]))      # el elemento, o una frase que no es de ningún glifo
+	elif not (r["glifos"] as Array).is_empty():
+		var nombres: PackedStringArray = PackedStringArray()
+		for g in (r["glifos"] as Array):
+			nombres.append(Sigils.nombre_visible(String(g)))
+		if propias.is_empty():
+			propias.append("sin cambio de forma")
+		propias[0] = "%s: %s" % [" / ".join(nombres), String(propias[0])]
+	if not propias.is_empty():
+		lineas.append([" · ".join(PackedStringArray(propias)), INK])
+	if not numeros.is_empty():
+		lineas.append([" · ".join(PackedStringArray(numeros)), Color(INK, 0.7)])
+	var extra: PackedStringArray = PackedStringArray(avisos)
+	if not extra.is_empty():
+		lineas.append([" · ".join(extra), RECORD_INK])
+	var notas: PackedStringArray = PackedStringArray()
+	for n in (r["notas"] as Array):
+		if not " · ".join(PackedStringArray(propias)).to_lower().contains(String(n).to_lower()):      # la frase del glifo ya lo dice
+			notas.append(String(n))
+	if not notas.is_empty():
+		lineas.append([" · ".join(notas), Color(INK, 0.7)])
+	var fuente: Font = ThemeDB.fallback_font
+	var tam: int = _u_font()
+	var paso: float = float(tam) + _u(3.0)
+	var base: float = c.y - _u(RADIUS + 34.0 + RESUMEN_SOBRE_PESTANAS) - paso * float(lineas.size() - 1)
+	var textos: Array = []
+	var ancho_max: float = 0.0
+	for k in range(lineas.size()):
+		var txt: String = String(lineas[k][0])
+		var tope: float = _u(RESUMEN_ANCHO)
+		var recortado: bool = false
+		while txt.length() > 4 and fuente.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x > tope:
+			txt = txt.substr(0, txt.length() - 1)
+			recortado = true
+		if recortado:
+			txt = txt.substr(0, txt.length() - 1) + "…"
+		var ancho: float = fuente.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+		textos.append([txt, ancho])
+		ancho_max = maxf(ancho_max, ancho)
+	# Un papel por detrás: la banda cae sobre la cenefa y sin él las letras se pierden entre las hojas.
+	var caja := Rect2(c.x - ancho_max * 0.5 - _u(10.0), base - float(tam) - _u(1.0), ancho_max + _u(20.0), paso * float(lineas.size()) + _u(4.0))
+	draw_rect(caja, Color(EjesRecetaUi.PAPEL, 0.86))
+	for k in range(lineas.size()):
+		draw_string(fuente, Vector2(c.x - float(textos[k][1]) * 0.5, base + paso * float(k)), String(textos[k][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, tam, lineas[k][1] as Color)
 
 
 ## --- Las pestañas de las páginas ---
