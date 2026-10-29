@@ -1464,6 +1464,8 @@ func _terminar(causa: String) -> void:
 	activo = false
 	motivo_fin = causa
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
+	if (causa == "muro" or causa == "suelo") and not seco and lanz != null:
+		Sensacion3D.impacto_mundo(lanz, p, dir_fin, h.elemento, _radio_u, causa)      # gamefeel lote 4: parar contra el mundo se nota
 	if causa != "retorno":
 		# el sitio del impacto es donde se para; si lo paró un golpe, donde está lo golpeado (un goblin en el agua se hiela con su casilla, no la de antes)
 		var sitio: Vector3 = _sitio_golpe if (causa == "golpe" and _sitio_golpe != Vector3.INF) else p

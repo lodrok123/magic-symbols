@@ -141,6 +141,10 @@ var _t_hitstop: float = 0.0
 var _roll_guardado: float = 0.0
 var _roll_guardado_mov: Vector3 = Vector3.ZERO
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
+## 29/10 (gamefeel lote 4): la velocidad de andar REAL (u/s) con el arranque y la frenada de `Sensacion3D.velocidad_suelo` (fuera del hielo; en el hielo, `_vel_hielo`).
+## `corriendo` es lo que la cámara lee para adelantarse más.
+var vel_suelo: Vector3 = Vector3.ZERO
+var corriendo: bool = false
 
 ## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
 const DIST_PASO_ANDAR: float = 0.85          ## u recorridas entre dos pasos andando (a 1,6 u/s: ~1,9 pasos por segundo)
@@ -409,6 +413,7 @@ func _morir() -> void:
 	muerto = true
 	nadando = false
 	_lanzando = false
+	vel_suelo = Vector3.ZERO
 	pj.soltar_lanzar()
 	_t_muerte = TIEMPO_REAPARECER
 	if lanz != null and lanz.modo_lanzar:
@@ -424,6 +429,7 @@ func _morir() -> void:
 
 
 func reaparecer() -> void:
+	vel_suelo = Vector3.ZERO
 	muerto = false
 	nadando = false
 	vida = Estado.i().vida_max
@@ -550,11 +556,15 @@ func _process(delta: float) -> void:
 		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b) y los gestos (agacharse...) te dejan quieto hasta que acaban
 	var objetivo: Vector3 = mov * vel
 	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
+	corriendo = correr and mov != Vector3.ZERO
 	if en_hielo:
 		_vel_hielo = Jugador3D.velocidad_hielo(_vel_hielo, objetivo, delta)
+		vel_suelo = _vel_hielo
 	else:
-		_vel_hielo = objetivo                    # al salir del hielo vuelve lo normal (y al entrar conserva lo que llevabas)
-	var paso: Vector3 = (_vel_hielo if en_hielo else objetivo) * delta + _empuje * delta
+		# Gamefeel lote 4: andar arranca y frena en un suspiro (ACEL_SUELO / FRENO_SUELO); con la sensación apagada es `objetivo` tal cual, como siempre.
+		vel_suelo = Sensacion3D.velocidad_suelo(vel_suelo, objetivo, delta) if (en_suelo and not nadando and _t_roll <= 0.0 and not _acoplada) else objetivo
+		_vel_hielo = vel_suelo                   # al salir del hielo vuelve lo normal (y al entrar conserva lo que llevabas)
+	var paso: Vector3 = (_vel_hielo if en_hielo else vel_suelo) * delta + _empuje * delta
 	if _t_roll > 0.0:
 		mov = Vector3.ZERO
 		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
@@ -775,6 +785,16 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	_roll_previa = ctrl
 
 
+## Cuánto le queda a la voltereta para volver (1 = recién usada, 0 = lista). Lo pinta `PageHud` junto a las páginas (29/10: el HUD lo pedía desde el 14/10 y nadie lo daba).
+func roll_cooldown_fraction() -> float:
+	return clampf(_roll_cd / maxf(TIEMPO_VOLTERETA, 0.01), 0.0, 1.0)
+
+
+## Lo que le queda a la voltereta (s). Lo lee `Sensacion3D.DirectorSensacion` para el clic de «ya puedes».
+func roll_cd() -> float:
+	return _roll_cd
+
+
 ## Giro actual de la cámara de la maqueta en grados (0 si el mundo no gira la cámara).
 func _giro_camara() -> float:
 	var g: Variant = mundo.get("_giro_cam") if mundo != null else null
@@ -792,6 +812,7 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	_mirada = _roll_dir
 	pj.mirar(_roll_dir, 1.0)
 	pj.rodar()                                     # 6.12: roll sin desplazamiento de cadera (lo movemos nosotros)
+	Sensacion3D.voltereta(self)                    # gamefeel lote 4: polvo a los pies y roce de tela
 	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
 	_esquiva_con_premio()
 

@@ -5122,7 +5122,7 @@ func _process(delta: float) -> void:
 			# El radio crece con el zoom para que no se vea el borde de lo sembrado al alejar la cámara.
 			_hierba.set_radio(clampi(ceili(_tam_camara * 0.95 / _hierba.lado_bloque) + 1, 2, 7))
 			_hierba.actualizar(_jugador.position)
-		_foco = _foco.lerp(_centro(_jugador), 1.0 - exp(-SEGUIMIENTO * delta))
+		_foco = _foco.lerp(_centro(_jugador) + Sensacion3D.adelanto_actual * (_tam_camara / ZOOM_INICIAL), 1.0 - exp(-SEGUIMIENTO * delta))     # gamefeel lote 4: el foco se adelanta hacia donde va y apunta (la misma fracción de pantalla a cualquier zoom)
 		if transparencia_jugador and decorado_por_lotes:
 			Ocluso3D.actualizar(_jugador.position + Vector3(0.0, 0.8, 0.0), radio_transparencia)
 		var amb: Node = _efectos.get_node_or_null("Ambiente1")

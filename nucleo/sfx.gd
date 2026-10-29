@@ -148,6 +148,15 @@ const CATALOGO: Dictionary = {
 	# 29/10 (gamefeel lote 3): la capa de combate (en bucle; la pone Sensacion3D.DirectorSensacion con su propio volumen) y el remate al limpiar la sala.
 	"combate_loop":     {"f": ["combate_loop.wav"],     "db": -17.0, "tono": 0.0},
 	"sala_limpia":      {"f": ["sala_limpia.wav"],      "db": -9.0,  "tono": 0.0},
+	# 29/10 (gamefeel lote 4, Juego; audio/gen_sfx_sensacion.py). El cuerpo que encaja un golpe (`Combate3D.snd_golpe` por familia), la jugadora que lo encaja, el latido
+	# de la vida baja (bucle, `Sensacion3D.DirectorSensacion`), la voltereta, el clic de «ya puedes otra vez», el proyectil contra el mundo y el aro de carga (bucle).
+	# (golpe_carne, golpe_piedra, limo_golpe y limo_muere están en Sfx3D.CATALOGO: son del cuerpo del enemigo y llevan distancia, como su grito.)
+	"dano_jugadora":    {"f": ["dano_jugadora.wav"],    "db": -7.0,  "tono": 0.08},
+	"latido":           {"f": ["latido.wav"],           "db": -8.0,  "tono": 0.0},
+	"voltereta":        {"f": ["voltereta.wav"],        "db": -14.0, "tono": 0.10},
+	"recarga_lista":    {"f": ["recarga_lista.wav"],    "db": -16.0, "tono": 0.03},
+	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
+	"carga_bucle":      {"f": ["carga_bucle.wav"],      "db": -18.0, "tono": 0.0},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 
@@ -192,6 +201,11 @@ static var _ultima: Dictionary = {}
 ## flecha que se clava— y un hijo se va con su padre.
 ## `tono` > 0 fija el pitch_scale (16/10: el llenado sube con el nivel); 0 = el aleatorio de siempre. Quien llama sin él no nota nada.
 static func play(origen: Node, nombre: String, tono: float = 0.0) -> void:
+	play_en(origen, nombre, Vector3.INF, tono)
+
+
+## Como `play`, pero EN `pos` (mundo) y no donde está `origen`: un proyectil que choca lejos de quien lo lanzó (29/10, gamefeel lote 4). `pos` = INF → donde está `origen`.
+static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.0) -> void:
 	if not CATALOGO.has(nombre) or origen == null or not origen.is_inside_tree():
 		return
 
@@ -225,7 +239,10 @@ static func play(origen: Node, nombre: String, tono: float = 0.0) -> void:
 	if padre == null:
 		padre = origen.get_tree().root
 	padre.add_child(p)
-	p.set("global_position", origen.get("global_position"))
+	if pos != Vector3.INF and p is Node3D:
+		p.set("global_position", pos)
+	else:
+		p.set("global_position", origen.get("global_position"))
 	p.connect("finished", p.queue_free)
 	p.call("play")
 

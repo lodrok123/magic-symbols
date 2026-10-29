@@ -59,6 +59,26 @@ const IMPACTO: Array = [
 	{"n": "SQUASH_TIEMPO", "paso": 0.01, "min": 0.02, "max": 1.0},
 	{"n": "SALTO_ALTO", "paso": 0.05, "min": 0.0, "max": 2.0},
 	{"n": "SALTO_TIEMPO", "paso": 0.02, "min": 0.05, "max": 1.0},
+	# 29/10 (gamefeel lote 4, F20): las de `Sensacion3D` van con el prefijo «S:» (`impacto_valor` / `impacto_poner` las enrutan). S:ACTIVA a 0 apaga TODA la sensación: es el modo «comparar».
+	{"n": "S:ACTIVA", "paso": 1.0, "min": 0.0, "max": 1.0},
+	{"n": "S:RETROCESO_V0", "paso": 0.1, "min": 0.0, "max": 5.0},
+	{"n": "S:ZOOM_GOLPE", "paso": 0.005, "min": 0.0, "max": 0.2},
+	{"n": "S:HITSTOP_COMPARTIDO", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:TEMBLOR_DANO", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:ARRANQUE", "paso": 0.1, "min": 0.0, "max": 3.0},
+	{"n": "S:T_ARRANQUE", "paso": 0.05, "min": 0.0, "max": 1.5},
+	{"n": "S:RESPINGO", "paso": 0.02, "min": 0.0, "max": 0.6},
+	{"n": "S:TEMBLOR_MUERTE", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:TEMBLOR_REACCION", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:HITSTOP_MUNDO", "paso": 0.01, "min": 0.0, "max": 0.5},
+	{"n": "S:ACEL_SUELO", "paso": 2.5, "min": 0.0, "max": 80.0},
+	{"n": "S:FRENO_SUELO", "paso": 2.5, "min": 0.0, "max": 80.0},
+	{"n": "S:ADELANTO_MOV", "paso": 0.1, "min": 0.0, "max": 3.0},
+	{"n": "S:ADELANTO_APUNTA", "paso": 0.1, "min": 0.0, "max": 3.0},
+	{"n": "S:ADELANTO_SUAVE", "paso": 0.5, "min": 0.5, "max": 20.0},
+	{"n": "S:TEMBLOR_MUNDO", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "S:T_CARGA", "paso": 0.05, "min": 0.05, "max": 2.0},
+	{"n": "S:VIDA_LATIDO", "paso": 0.02, "min": 0.0, "max": 1.0},
 	{"n": "INTERRUPCION_GOLPE", "paso": 0.05, "min": 0.0, "max": 3.0},
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
 ]
@@ -353,6 +373,9 @@ static func impacto_valor(nombre: String) -> float:
 			return Combate3D.SQUASH_ESCALA.x
 		"SQUASH_Y":
 			return Combate3D.SQUASH_ESCALA.y
+	if nombre.begins_with("S:"):
+		var v: Variant = (Sensacion3D as GDScript).get(nombre.substr(2))
+		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
 	return float((Combate3D as GDScript).get(nombre))
 
 
@@ -363,7 +386,12 @@ static func impacto_poner(nombre: String, v: float) -> void:
 		"SQUASH_Y":
 			Combate3D.SQUASH_ESCALA = Vector3(Combate3D.SQUASH_ESCALA.x, v, Combate3D.SQUASH_ESCALA.z)
 		_:
-			(Combate3D as GDScript).set(nombre, v)
+			if nombre.begins_with("S:"):
+				var n: String = nombre.substr(2)
+				var actual: Variant = (Sensacion3D as GDScript).get(n)
+				(Sensacion3D as GDScript).set(n, v >= 0.5 if actual is bool else v)
+			else:
+				(Combate3D as GDScript).set(nombre, v)
 
 
 ## Cambia la entrada `i` de IMPACTO `pasos` veces su paso (con tope en su mínimo y máximo). Devuelve el valor nuevo.
@@ -383,6 +411,8 @@ func impacto_restaurar() -> void:
 func impacto_tabla() -> Dictionary:
 	var d: Dictionary = {}
 	for e in IMPACTO:
+		if String(e["n"]) == "S:ACTIVA":
+			continue                                   # «comparar» no se guarda: el lab no debe volver a abrir con la sensación apagada (es static: todo el proceso)
 		d[String(e["n"])] = snappedf(impacto_valor(String(e["n"])), 0.0001)
 	return d
 
@@ -541,7 +571,7 @@ func guardar() -> bool:
 ## La tabla lista para pegar en el código (la imprime P). Devuelve el texto.
 func tabla_texto() -> String:
 	var t: PackedStringArray = []
-	t.append("# F3 Impacto · constantes de enemigos/combate_3d.gd")
+	t.append("# F3 Impacto · constantes de enemigos/combate_3d.gd (y, con «S:», de presentacion/sensacion_3d.gd)")
 	for e in IMPACTO:
 		var n: String = String(e["n"])
 		var base: float = float(impacto_inicial.get(n, 0.0))

@@ -37,6 +37,12 @@ const CATALOGO: Dictionary = {
 	# Al morir: los mismos gritos, más graves y más cortos de oído (tono 0,8) para que no se confunda con el aviso.
 	"goblin_muere": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"],
 		"db": -5.0, "tono": 0.05, "base": 0.8},
+	# 29/10 (gamefeel lote 4, audio/gen_sfx_sensacion.py): el CUERPO que encaja un hechizo (`Combate3D.snd_golpe`: carne, piedra del gólem, chapoteo del limo) y el limo
+	# que revienta. Aquí y no en Sfx porque son del enemigo: con distancia y veda por emisor (tres goblins golpeados a la vez suenan tres veces).
+	"golpe_carne":  {"f": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
+	"golpe_piedra": {"f": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	"limo_golpe":   {"f": ["limo_golpe.wav"],   "db": -9.0, "tono": 0.12},
+	"limo_muere":   {"f": ["limo_muere.wav"],   "db": -7.0, "tono": 0.06},
 	"gato_maullido": {"f": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],
@@ -74,7 +80,8 @@ static func _flujo(archivo: String) -> AudioStream:
 
 
 ## Un sonido suelto en la posición de `origen`. `db_extra` lo sube o baja para este disparo.
-static func play(origen: Node3D, nombre: String, db_extra: float = 0.0) -> void:
+## `tono_mult` (29/10) multiplica el tono (1 = el del catálogo): un golpe a la debilidad suena más grave.
+static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mult: float = 1.0) -> void:
 	if origen == null or not is_instance_valid(origen) or not origen.is_inside_tree() or not CATALOGO.has(nombre):
 		return
 	var cfg: Dictionary = CATALOGO[nombre]
@@ -95,7 +102,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0) -> void:
 	p.stream = s
 	p.volume_db = float(cfg.get("db", -6.0)) + db_extra
 	var t: float = float(cfg.get("tono", 0.0))
-	p.pitch_scale = float(cfg.get("base", 1.0)) * (1.0 + randf_range(-t, t))
+	p.pitch_scale = float(cfg.get("base", 1.0)) * (1.0 + randf_range(-t, t)) * tono_mult
 	p.unit_size = float(cfg.get("unidad", UNIDAD))
 	p.max_distance = float(cfg.get("alcance", ALCANCE))
 	# Cuelga de la raíz y no del emisor: el goblin que muere se libera a los 1,4 s y se llevaría el grito con él.

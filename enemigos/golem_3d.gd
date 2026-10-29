@@ -109,6 +109,7 @@ func _ready() -> void:
 	tinte = Color.WHITE
 	snd_alerta = ""
 	snd_muere = "derrumbe"
+	snd_golpe = "golpe_piedra"               # 29/10 (gamefeel lote 4): el núcleo o el cuerpo tumbado encajan un golpe de verdad
 	empujable_golpe = false
 	botin_goblin = false
 	if jugador == null or lanz == null:

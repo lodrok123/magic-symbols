@@ -20,6 +20,14 @@ extends RefCounted
 ##     hacia ella (`Combate3D.Botin3D`);
 ##   · REACCIONES grandes con su momento (`reaccion_grande`): vapor, descarga, congelado sobre mojado, hundido, el limo que crece, el núcleo del gólem, el gólem que
 ##     resbala: hitstop del MUNDO (todos los enemigos y ella), rótulo grande, temblor y sonido propio.
+## LOTE 4 (29/10, Pablo: «sí, lote 4», tras docs/PROMPT_RESUMEN_GAMEFEEL.md §5):
+##   · el CUERPO que encaja un golpe suena (`golpe_enemigo`, desde `Combate3D._impacto_visual`; `snd_golpe` por familia: carne, piedra, limo) y el limo tiene su muerte;
+##   · la JUGADORA suena al encajar un golpe (`dano_recibido`) y, con la vida baja, le late el corazón (`DirectorSensacion`, bucle `latido` que sube con lo que falta);
+##   · la VOLTERETA levanta polvo y suena (`voltereta`), y cuando vuelve a estar lista (ella o una página) suena un clic y la página destella (`recarga_lista`);
+##   · la CÁMARA se ADELANTA hacia donde va y hacia donde apunta (`adelanto_actual`, lo calcula el director y lo suma la maqueta al foco);
+##   · ANDAR arranca y frena en un suspiro (`velocidad_suelo`: aceleración y frenada, lo usa `Jugador3D._process` fuera del hielo);
+##   · un proyectil que se PARA CONTRA EL MUNDO (pared, bloque, barrera; el suelo, a medias) se nota (`impacto_mundo`, desde `HechizoVivo._terminar`);
+##   · mientras se MANTIENE 1/2/3 (o se apunta) un aro del color del elemento se cierra en la mano y un zumbido sube de tono (`carga` / `carga_fin`, desde `Lanzador3D`).
 ## Nada de esto cambia reglas (daño, empuje del juego, tiempos de recarga): solo cómo se ve, se oye y se nota. `ACTIVA` = false lo apaga todo.
 
 static var ACTIVA: bool = true
@@ -90,8 +98,35 @@ static var T_SUBE_MUSICA: float = 1.2           ## s reales en entrar
 static var T_BAJA_MUSICA: float = 2.5           ## s reales en salir
 static var T_SIGUE_COMBATE: float = 2.5         ## s reales sin nadie persiguiéndola antes de dar el combate por acabado
 
+# --- LOTE 4 · sonido del cuerpo golpeado y de la jugadora ---
+static var SONAR_GOLPES: bool = true           ## el cuerpo del enemigo suena al encajar un hechizo (su `snd_golpe`); el golpe F ya sonaba (`dano`)
+static var VIDA_LATIDO: float = 0.34           ## fracción de vida por debajo de la cual late el corazón…
+static var DB_LATIDO: float = -8.0             ## …a este volumen con la vida casi a cero (sube desde −18 dB al entrar)
+static var T_LATIDO_ENTRA: float = 0.6         ## s reales que tarda en entrar y en irse
+# --- LOTE 4 · voltereta y recargas ---
+static var POLVO_VOLTERETA: float = 0.3        ## radio (u) del polvo a los pies al empezar a rodar (0 = sin polvo)
+static var AVISAR_RECARGAS: bool = true        ## clic suave (y destello de la página) cuando una página o la voltereta vuelven a estar listas
+# --- LOTE 4 · cámara con adelanto ---
+static var ADELANTO_MOV: float = 0.25          ## u que el foco se adelanta hacia donde CORRE (andando, nada: es un juego de leer el suelo); crece con la velocidad real
+static var ADELANTO_APUNTA: float = 0.8        ## u hacia donde mira mientras apunta (1/2/3 mantenida o arrastre): el alcance cae en el borde de una cámara de tamaño 6
+static var ADELANTO_SUAVE: float = 3.5         ## /s: el adelanto se acerca a su meta con lerp(1 − e^(−k·dt)) (bajo = perezoso, alto = nervioso)
+static var ADELANTO_MAX: float = 1.0           ## u: tope del adelanto (a tamaño 6; la maqueta lo escala con el zoom)
+static var ZOOM_APUNTA: float = 0.0            ## alternativa a ADELANTO_APUNTA: alejar la cámara esta fracción (0,06–0,08) mientras se apunta, con ella en el centro. 0 = apagado
+static var adelanto_actual: Vector3 = Vector3.ZERO   ## lo que la maqueta suma al foco de la cámara (lo calcula el director cada fotograma)
+# --- LOTE 4 · andar con arranque y frenada ---
+static var ACEL_SUELO: float = 12.0            ## u/s² al arrancar (andar 1,6 u/s: 0,13 s; correr 3: 0,25 s). 0 = instantáneo, como antes. Con 25 (4 fotogramas) no se notaba
+static var FRENO_SUELO: float = 30.0           ## u/s² al soltar las teclas (de 1,6 u/s se para en 0,053 s y 0,04 u)
+# --- LOTE 4 · el proyectil contra el mundo ---
+static var TEMBLOR_MUNDO: float = 0.12         ## temblor al parar contra pared, bloque o barrera (× el tamaño del hechizo; el suelo, la mitad)
+static var ESTRELLA_MUNDO: float = 0.8         ## tamaño de la estrella de impacto (× la de golpe)
+# --- LOTE 4 · carga en la mano ---
+static var T_CARGA: float = 0.55               ## s reales en que el aro se cierra del radio inicial al final; después late
+static var RADIO_CARGA: Vector2 = Vector2(0.3, 0.12)    ## u: radio del aro al empezar y al cerrarse (0,45 tapaba el torso al empezar)
+static var TONO_CARGA: Vector2 = Vector2(0.8, 1.25)     ## tono del zumbido al empezar y al cerrarse
+
 ## Para las pruebas: cuántas veces se pidió cada cosa.
-static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0, "respingo": 0, "flecha": 0, "combate": 0, "sala_limpia": 0}
+static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0, "respingo": 0, "flecha": 0, "combate": 0, "sala_limpia": 0,
+	"golpe_son": 0, "dano_son": 0, "latido": 0, "voltereta": 0, "recarga_lista": 0, "impacto_mundo": 0, "carga": 0}
 
 const CODIGO_VINETA: String = """
 shader_type canvas_item;
@@ -188,6 +223,8 @@ static func dano_recibido(j: Node3D, cantidad: float) -> void:
 		(fx as Vfx3D).temblor(TEMBLOR_DANO * fuerza)
 	if j.has_method("hitstop"):
 		j.call("hitstop", HITSTOP_DANO)
+	cuenta["dano_son"] = int(cuenta["dano_son"]) + 1
+	Sfx.play(j, "dano_jugadora", clampf(1.1 - cantidad / 80.0, 0.75, 1.1) * randf_range(0.94, 1.06))      # lote 4: más grave cuanto mayor el golpe (y nunca dos iguales)
 
 
 ## La viñeta roja: un CanvasLayer que se crea una vez por jugadora y se reutiliza.
@@ -413,12 +450,97 @@ class DirectorSensacion extends Node:
 		_capa.add_child(_lienzo)
 		add_child(_capa)
 
+	var _latido: Node = null                 ## lote 4: el bucle del corazón mientras la vida va baja
+	var vol_latido: float = 0.0              ## 0..1
+	var _k_latido: float = 0.0               ## la última fuerza del latido en vida (al morir se funde desde ahí, sin salto)
+	var _cl_antes: Array = []                ## lote 4: `cooldown_left` del fotograma anterior (para avisar solo de recargas que se agotaron solas)
+	var _zoom_apunta_puesto: bool = false
+	var _roll_listo_antes: bool = true       ## lote 4: para avisar cuando la voltereta vuelve
+	var _paginas_listas: Array = []          ## lote 4: por página, si estaba lista el fotograma anterior
+
 	func _process(delta: float) -> void:
 		var dr: float = Sensacion3D.delta_real(delta)
 		_t += dr
 		if _lienzo != null:
 			_lienzo.queue_redraw()
 		_musica_paso(dr)
+		_latido_paso(dr)
+		_recargas_paso()
+		_adelanto_paso(dr)
+
+	# --- lote 4 · latido con la vida baja ---
+	func _latido_paso(dr: float) -> void:
+		var viva: bool = Sensacion3D.ACTIVA and jugadora != null and is_instance_valid(jugadora) and not bool(jugadora.get("muerto"))
+		var fr: float = 1.0
+		if viva:
+			fr = float(jugadora.get("vida")) / maxf(Estado.i().vida_max, 1.0)
+			_k_latido = 1.0 - clampf(fr / maxf(Sensacion3D.VIDA_LATIDO, 0.01), 0.0, 1.0)
+		var meta: float = 1.0 if (viva and fr < Sensacion3D.VIDA_LATIDO) else 0.0
+		vol_latido = move_toward(vol_latido, meta, dr / maxf(Sensacion3D.T_LATIDO_ENTRA, 0.01))
+		if vol_latido > 0.0 and _latido == null and jugadora != null and jugadora.is_inside_tree():
+			_latido = Sfx.bucle(jugadora, "latido", 1.0)
+			if _latido != null:
+				_latido.name = "Latido"
+				Sensacion3D.cuenta["latido"] = int(Sensacion3D.cuenta["latido"]) + 1
+		if _latido != null and is_instance_valid(_latido):
+			# Más fuerte y más rápido cuanto menos vida queda (con VIDA_LATIDO de vida, suave y a 1 por segundo; a cero, DB_LATIDO y 1,35 por segundo). Muerta, se funde desde donde iba.
+			var k: float = _k_latido
+			_latido.set("volume_db", lerpf(-18.0, Sensacion3D.DB_LATIDO, k) + linear_to_db(maxf(vol_latido, 0.0001)))
+			_latido.set("pitch_scale", lerpf(1.0, 1.35, k))
+			_latido.set("global_position", jugadora.global_position)
+			if vol_latido <= 0.0:
+				_latido.queue_free()
+				_latido = null
+		elif _latido != null:
+			_latido = null
+
+	# --- lote 4 · «ya puedes otra vez»: clic cuando la voltereta o una página vuelven a estar listas ---
+	## Solo avisa de recargas que se AGOTARON SOLAS (el valor anterior era ya pequeño): si una prueba, un laboratorio o el reinicio las ponen a cero de golpe, calla. Muerta, calla.
+	func _recargas_paso() -> void:
+		if jugadora == null or not is_instance_valid(jugadora):
+			return
+		var muerta: bool = bool(jugadora.get("muerto"))
+		var cd: float = float(jugadora.call("roll_cd")) if jugadora.has_method("roll_cd") else 0.0
+		var listo: bool = cd <= 0.0
+		if listo and not _roll_listo_antes and not muerta:
+			Sensacion3D.recarga_lista(jugadora, -1)
+		_roll_listo_antes = listo
+		var lanz: Variant = jugadora.get("lanz")
+		if not (lanz is Lanzador3D) or not is_instance_valid(lanz):
+			return
+		var cl: Array = (lanz as Lanzador3D).cooldown_left
+		if _cl_antes.size() != cl.size():
+			_cl_antes = cl.duplicate()
+			return
+		for i in range(cl.size()):
+			var antes: float = float(_cl_antes[i])
+			var ahora: float = float(cl[i])
+			if ahora <= 0.0 and antes > 0.0 and antes <= 0.25 and not muerta and float((lanz as Lanzador3D).cooldown_total[i]) > 0.0:
+				Sensacion3D.recarga_lista(jugadora, i)
+			_cl_antes[i] = ahora
+
+	# --- lote 4 · adelanto de la cámara ---
+	func _adelanto_paso(dr: float) -> void:
+		var meta: Vector3 = Vector3.ZERO
+		var apunta: bool = false
+		if Sensacion3D.ACTIVA and jugadora != null and is_instance_valid(jugadora) and not bool(jugadora.get("muerto")):
+			apunta = Sensacion3D.apuntando(jugadora)
+			var mirada: Vector3 = jugadora.call("mirada") if jugadora.has_method("mirada") else Vector3.ZERO
+			meta = Sensacion3D.meta_adelanto(jugadora.get("vel_suelo") as Vector3, mirada, apunta, bool(jugadora.get("corriendo")))
+		Sensacion3D.adelanto_actual = Sensacion3D.adelanto_actual.lerp(meta, 1.0 - exp(-Sensacion3D.ADELANTO_SUAVE * dr))
+		# La alternativa «cámara fija»: alejar un poco mientras apunta (ZOOM_APUNTA > 0), con ella en el centro. Se mete y se quita con el golpe de zoom (signo contrario).
+		var quiere_zoom: bool = apunta and Sensacion3D.ZOOM_APUNTA > 0.0
+		if quiere_zoom != _zoom_apunta_puesto and jugadora != null and is_instance_valid(jugadora) and jugadora.is_inside_tree():
+			_zoom_apunta_puesto = quiere_zoom
+			var cam: Camera3D = jugadora.get_viewport().get_camera_3d()
+			if cam != null:
+				var prop: String = "size" if cam.projection == Camera3D.PROJECTION_ORTHOGONAL else "fov"
+				var base: float = float(cam.get_meta("zoom_apunta_base")) if cam.has_meta("zoom_apunta_base") else float(cam.get(prop))
+				cam.set_meta("zoom_apunta_base", base)
+				var tw: Tween = cam.create_tween()
+				tw.tween_property(cam, prop, base * (1.0 + Sensacion3D.ZOOM_APUNTA) if quiere_zoom else base, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+				if not quiere_zoom:
+					tw.tween_callback(func() -> void: cam.remove_meta("zoom_apunta_base"))
 
 	# --- música ---
 	func _musica_paso(dr: float) -> void:
@@ -496,6 +618,205 @@ class DirectorSensacion extends Node:
 	func _exit_tree() -> void:
 		if _musica != null and is_instance_valid(_musica):
 			_musica.stop()
+		if _latido != null and is_instance_valid(_latido):
+			_latido.queue_free()
+		Sensacion3D.adelanto_actual = Vector3.ZERO
+
+
+## =====================================================================================================
+##  LOTE 4
+## =====================================================================================================
+
+## El cuerpo de `e` (Combate3D) encaja un hechizo del elemento `el`: suena su `snd_golpe` (carne, piedra, limo…), un poco más grave si es su debilidad (el golpe pesa más).
+## Lo llama `Combate3D._impacto_visual` solo con elemento: el golpe F ya suena en `GolpeCuerpo` y el «Piedra» del gólem en `_piedra`.
+static func golpe_enemigo(e: Node3D, el: String, debil: bool) -> void:
+	if not ACTIVA or not SONAR_GOLPES or e == null or not e.is_inside_tree() or el == "":
+		return
+	var snd: String = String(e.get("snd_golpe")) if e.get("snd_golpe") != null else "golpe_carne"
+	if snd == "" or not Sfx3D.CATALOGO.has(snd):
+		return
+	cuenta["golpe_son"] = int(cuenta["golpe_son"]) + 1
+	Sfx3D.play(e, snd, 0.0, 0.85 if debil else 1.0)      # Sfx3D: con distancia y veda por emisor (tres golpeados a la vez suenan tres veces)
+
+
+## La jugadora empieza una voltereta: polvo a los pies (en suelo, no en el agua) y el roce de la tela.
+static func voltereta(j: Node3D) -> void:
+	if not ACTIVA or j == null or not j.is_inside_tree():
+		return
+	cuenta["voltereta"] = int(cuenta["voltereta"]) + 1
+	Sfx.play(j, "voltereta")
+	if bool(j.get("en_suelo")) and not bool(j.get("nadando")):
+		polvo(j.get("mundo") as Node, j.position, POLVO_VOLTERETA)
+
+
+## La voltereta (`pagina` = −1) o la página `pagina` vuelven a estar listas: clic suave y, si es una página, destella en el HUD.
+static func recarga_lista(j: Node3D, pagina: int) -> void:
+	if not ACTIVA or not AVISAR_RECARGAS or j == null or not j.is_inside_tree():
+		return
+	cuenta["recarga_lista"] = int(cuenta["recarga_lista"]) + 1
+	Sfx.play(j, "recarga_lista", 1.0 if pagina < 0 else 1.12)
+	if pagina >= 0:
+		var lanz: Variant = j.get("lanz")
+		var hud: Variant = (lanz as Object).get("_page_hud") if lanz is Object else null
+		if hud is Control and is_instance_valid(hud) and (hud as Control).has_method("destello"):
+			(hud as Control).call("destello", pagina, 0.2)
+
+
+## La velocidad de andar tras `delta`: se acerca a `objetivo` (lo que piden las teclas) con ACEL_SUELO si hay teclas o FRENO_SUELO si no. Apagada (o con
+## ACEL_SUELO = 0), devuelve `objetivo` tal cual: instantáneo, como antes. Estática para medirla sin escena (como `Jugador3D.velocidad_hielo`).
+static func velocidad_suelo(v: Vector3, objetivo: Vector3, delta: float) -> Vector3:
+	if not ACTIVA or ACEL_SUELO <= 0.0:
+		return objetivo
+	var tasa: float = ACEL_SUELO if objetivo != Vector3.ZERO else maxf(FRENO_SUELO, 0.01)
+	return v.move_toward(objetivo, tasa * delta)
+
+
+## ¿Está apuntando (1/2/3 mantenida o el arrastre)? Lee el Lanzador de la jugadora.
+static func apuntando(j: Node3D) -> bool:
+	var lanz: Variant = j.get("lanz")
+	return lanz is Lanzador3D and is_instance_valid(lanz) and (lanz as Lanzador3D).modo_lanzar
+
+
+## La meta del adelanto de la cámara: hacia donde CORRE (`vel_suelo`, ADELANTO_MOV, proporcional a la velocidad; andando no) y, apuntando, hacia donde mira (ADELANTO_APUNTA);
+## con tope ADELANTO_MAX. Decisión 29/10 (Pablo): cámara móvil «como ahora», con el adelanto casi todo en el apuntado y casi nada en el andar: es un juego de leer el suelo.
+## Pura, para probarla sin escena.
+static func meta_adelanto(vel_suelo: Vector3, mirada: Vector3, apunta: bool, corre: bool) -> Vector3:
+	var m := Vector3.ZERO
+	var v := Vector3(vel_suelo.x, 0.0, vel_suelo.z)
+	if corre and v.length() > 0.05:
+		m += v.normalized() * ADELANTO_MOV * clampf(v.length() / 3.0, 0.0, 1.0)      # crece con la velocidad real: acompaña al arranque y se recoge al frenar
+	if apunta:
+		var d := Vector3(mirada.x, 0.0, mirada.z)
+		if d.length() > 0.01:
+			m += d.normalized() * ADELANTO_APUNTA
+	if m.length() > ADELANTO_MAX:
+		m = m.normalized() * ADELANTO_MAX
+	return m
+
+
+## Un proyectil se para contra el mundo en `p` yendo hacia `dir`: `causa` «muro» (pared, bloque, barrera, lo que bloquea) o «suelo» (el arco que cae). Estrella del color del
+## elemento, chorro de piezas hacia donde iba, temblor según el tamaño (`radio_u`, u) y un toc sordo; el suelo, sin sonido y la mitad de temblor. `lanz` presta el mundo.
+static func impacto_mundo(lanz: Lanzador3D, p: Vector3, dir: Vector3, elemento: String, radio_u: float, causa: String) -> void:
+	if not ACTIVA or lanz == null or not lanz.is_inside_tree():
+		return
+	cuenta["impacto_mundo"] = int(cuenta["impacto_mundo"]) + 1
+	var suelo: bool = causa == "suelo"
+	var tam: float = clampf(radio_u / 0.25, 0.5, 2.5)          # la flecha de base (0,115 u) ≈ 0,5; una bola grande, hasta 2,5
+	var fx: Variant = lanz.get("fx")
+	if fx is Vfx3D and is_instance_valid(fx):
+		var v: Vfx3D = fx as Vfx3D
+		v.golpe_estrella(p, elemento, ESTRELLA_MUNDO * tam, 0.09)
+		if not suelo:
+			v.golpe_direccional(p, -dir, elemento, 0.8 * tam)       # las piezas rebotan hacia atrás: vienen de la pared
+		v.temblor(TEMBLOR_MUNDO * tam * (0.5 if suelo else 1.0))
+	if not suelo:
+		Sfx.play_en(lanz, "golpe_mundo", p, clampf(1.2 - 0.25 * tam, 0.6, 1.2))     # EN el impacto, no en ella
+
+
+## Empieza la carga: un aro del color del elemento se cierra en la mano del Lanzador mientras dura el modo de lanzar y un zumbido sube de tono. Lo llama
+## `Lanzador3D._entrar_modo_lanzar`; `carga_fin` lo quita (`_salir_modo`). Un aro nuevo sustituye al que hubiera.
+static func carga(lanz: Lanzador3D, elemento: String) -> void:
+	carga_fin(lanz)
+	if not ACTIVA or lanz == null or not lanz.is_inside_tree():
+		return
+	cuenta["carga"] = int(cuenta["carga"]) + 1
+	var a := AroCarga.new()
+	a.name = "AroCarga"
+	a.lanz = lanz
+	a.color = Vfx3D.COLOR.get(elemento, Color.WHITE)
+	lanz.add_child(a)
+
+
+static func carga_fin(lanz: Lanzador3D) -> void:
+	if lanz == null:
+		return
+	var a: Node = lanz.get_node_or_null("AroCarga")
+	if a != null:
+		a.name = "AroCargaViejo"
+		(a as AroCarga).apagar()
+
+
+## El aro de carga (lote 4): un toro plano a la altura de la mano que se cierra en T_CARGA y luego late; el zumbido `carga_bucle` sube de tono con él.
+class AroCarga extends MeshInstance3D:
+	var lanz: Lanzador3D = null
+	var color: Color = Color.WHITE
+	var t: float = 0.0
+	var _zumbido: Node = null
+	var _apagando: bool = false
+
+	func _ready() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS
+		top_level = true
+		var m := TorusMesh.new()
+		m.inner_radius = 0.9
+		m.outer_radius = 1.0
+		m.rings = 24
+		m.ring_segments = 8
+		mesh = m
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = color.lerp(Color.WHITE, 0.25)
+		mat.emission_enabled = true
+		mat.emission = color
+		mat.emission_energy_multiplier = 2.0
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material_override = mat
+		cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_zumbido = Sfx.bucle(lanz, "carga_bucle", Sensacion3D.TONO_CARGA.x)
+		_colocar()
+
+	func _colocar() -> void:
+		if lanz == null or not is_instance_valid(lanz) or not lanz.is_inside_tree():
+			return
+		global_position = lanz.pos_mano()
+		var k: float = clampf(t / maxf(Sensacion3D.T_CARGA, 0.01), 0.0, 1.0)
+		var r: float = lerpf(Sensacion3D.RADIO_CARGA.x, Sensacion3D.RADIO_CARGA.y, 1.0 - (1.0 - k) * (1.0 - k))
+		if k >= 1.0:
+			r *= 1.0 + 0.1 * sin((t - Sensacion3D.T_CARGA) * 14.0)       # cerrado: late
+		scale = Vector3.ONE * r
+		var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+		if cam != null:
+			var hacia: Vector3 = (cam.global_position - global_position).normalized()
+			if hacia.length() > 0.01:
+				look_at(global_position + hacia, Vector3.UP)
+				rotate_object_local(Vector3.RIGHT, PI * 0.5)
+		var mat: StandardMaterial3D = material_override as StandardMaterial3D
+		if mat != null and not _apagando:
+			mat.albedo_color.a = 0.35 + 0.55 * k
+		if _zumbido != null and is_instance_valid(_zumbido):
+			_zumbido.set("pitch_scale", lerpf(Sensacion3D.TONO_CARGA.x, Sensacion3D.TONO_CARGA.y, k))
+			_zumbido.set("global_position", global_position)
+
+	func _process(delta: float) -> void:
+		if _apagando:
+			return
+		if lanz == null or not is_instance_valid(lanz) or not lanz.modo_lanzar:
+			apagar()
+			return
+		t += Sensacion3D.delta_real(delta)
+		_colocar()
+
+	## Se va: el zumbido se funde y el aro se abre y se apaga en 0,12 s.
+	func apagar() -> void:
+		if _apagando:
+			return
+		_apagando = true
+		Sfx.parar(_zumbido, 0.1)
+		_zumbido = null
+		if not is_inside_tree():
+			queue_free()
+			return
+		var tw: Tween = create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(self, "scale", scale * 1.8, 0.12).set_ease(Tween.EASE_OUT)
+		var mat: StandardMaterial3D = material_override as StandardMaterial3D
+		if mat != null:
+			tw.tween_property(mat, "albedo_color:a", 0.0, 0.12)
+		tw.chain().tween_callback(queue_free)
+
+	func _exit_tree() -> void:
+		Sfx.parar(_zumbido, 0.0)
+		_zumbido = null
 
 
 ## Dónde va la punta de la flecha del aviso `a` en una pantalla de `tam` (dentro del rectángulo `dentro`), o null si no lleva flecha: su enemigo se

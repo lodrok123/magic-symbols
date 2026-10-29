@@ -12,6 +12,17 @@ LOTE 3 (29/10; después de los anteriores, que salen iguales):
   · combate_loop    capa de combate en BUCLE (4 compases a 110 ppm, la menor): tambor grave, tom, sonajero y un bajo pulsado; empieza y acaba en silencio
                     de golpe para que el bucle no se note (lo pone en bucle Sfx.flujo_en_bucle)
   · sala_limpia     remate al caer el último del combate: golpe de tambor y arpegio que sube (la-do-mi-la)
+LOTE 4 (29/10; después de los anteriores, que salen iguales):
+  · golpe_carne_0/1   el cuerpo de un enemigo que encaja un hechizo: golpe sordo corto (dos variantes; Sfx varía el tono)
+  · golpe_piedra      el gólem que encaja un golpe: toc de piedra
+  · limo_golpe        el limo que encaja un golpe: chapoteo gelatinoso corto
+  · limo_muere        el limo que revienta: chapoteo largo con burbujas
+  · dano_jugadora     la jugadora encaja un golpe: «uf» sordo y grave
+  · latido            un latido de corazón EN BUCLE (1 s): suena con la vida baja (lo pone en bucle Sfx.flujo_en_bucle)
+  · voltereta         roce de tela rápido de la voltereta
+  · recarga_lista     clic suave: una página o la voltereta vuelven a estar listas
+  · golpe_mundo       un proyectil que se para contra una pared o un bloque: toc sordo
+  · carga_bucle       aro que se cierra en la mano mientras se mantiene 1/2/3 (bucle; el Lanzador le sube el tono)
 PRIMERA VERSIÓN SINTETIZADA: se afina escuchando."""
 import math, os, random, struct, wave
 
@@ -229,6 +240,130 @@ def sala_limpia():
     guardar("sala_limpia.wav", x, 0.12)
 
 
+def _golpe_sordo(nombre, d, f0, f1, caida, ruido_k, fc, rms):
+    """Seno que baja de f0 a f1 con ruido filtrado encima: el esqueleto de todos los golpes sordos."""
+    n = pasabajos(ruido(d), fc)
+    x = []
+    fase = 0.0
+    for i in range(muestras(d)):
+        tt = i / SR
+        fase += 2 * math.pi * (f1 + (f0 - f1) * math.exp(-caida * tt)) / SR
+        e = math.exp(-14.0 * tt) * min(1.0, tt / 0.003)
+        x.append(math.sin(fase) * e + ruido_k * n[i] * math.exp(-22.0 * tt))
+    guardar(nombre, x, rms)
+
+
+def golpe_carne():
+    _golpe_sordo("golpe_carne_0.wav", 0.16, 220.0, 70.0, 40.0, 0.9, 1800.0, 0.14)
+    _golpe_sordo("golpe_carne_1.wav", 0.15, 190.0, 65.0, 45.0, 1.1, 1400.0, 0.14)
+
+
+def golpe_piedra():
+    """Toc de piedra: golpe muy corto con dos parciales inarmónicos y un poco de ruido alto."""
+    d = 0.18
+    n = pasaaltos(ruido(d), 2500.0)
+    x = []
+    for i in range(muestras(d)):
+        tt = i / SR
+        e = math.exp(-28.0 * tt)
+        x.append((math.sin(2 * math.pi * 410.0 * tt) * 0.7 + math.sin(2 * math.pi * 1130.0 * tt) * 0.35) * e + 0.5 * n[i] * math.exp(-60.0 * tt))
+    guardar("golpe_piedra.wav", x, 0.14)
+
+
+def _chapoteo(nombre, d, burbujas, rms):
+    n = pasabajos(ruido(d), 700.0)
+    x = []
+    fase = 0.0
+    for i in range(muestras(d)):
+        tt = i / SR
+        fase += 2 * math.pi * (90.0 + 60.0 * math.sin(2 * math.pi * 9.0 * tt)) / SR
+        e = math.sin(math.pi * min(tt / d, 1.0)) ** 0.7 * math.exp(-5.0 * tt)
+        x.append(0.6 * math.sin(fase) * e + 1.2 * n[i] * e)
+    for k in range(burbujas):
+        t0 = rng.uniform(0.02, d - 0.08)
+        fr = rng.uniform(500.0, 1400.0)
+        i0 = muestras(t0)
+        for i in range(muestras(0.06)):
+            u = i / SR
+            if i0 + i < len(x):
+                x[i0 + i] += math.sin(2 * math.pi * (fr * (1.0 + 2.0 * u)) * u) * math.exp(-45.0 * u) * 0.35
+    guardar(nombre, x, rms)
+
+
+def limo_golpe():
+    _chapoteo("limo_golpe.wav", 0.22, 2, 0.12)
+
+
+def limo_muere():
+    _chapoteo("limo_muere.wav", 0.7, 9, 0.13)
+
+
+def dano_jugadora():
+    """«Uf» sordo: golpe grave con un soplo de aire que se apaga."""
+    d = 0.3
+    aire = pasaaltos(pasabajos(ruido(d), 2200.0), 500.0)
+    x = []
+    fase = 0.0
+    for i in range(muestras(d)):
+        tt = i / SR
+        fase += 2 * math.pi * (160.0 * math.exp(-18.0 * tt) + 55.0) / SR
+        x.append(math.sin(fase) * math.exp(-10.0 * tt) * min(1.0, tt / 0.004) + 0.7 * aire[i] * math.exp(-9.0 * (tt - 0.03)) * (1.0 if tt > 0.03 else 0.0))
+    guardar("dano_jugadora.wav", x, 0.14)
+
+
+def latido():
+    """Un ciclo de corazón (lub-dub) en 1,0 s exactos, grave y sordo; empieza y acaba en silencio para el bucle."""
+    d = 1.0
+    x = [0.0] * muestras(d)
+    for t0, fuerza in ((0.0, 1.0), (0.17, 0.65)):
+        i0 = muestras(t0)
+        fase = 0.0
+        for i in range(muestras(0.16)):
+            u = i / SR
+            fase += 2 * math.pi * (70.0 * math.exp(-12.0 * u) + 40.0) / SR
+            if i0 + i < len(x):
+                x[i0 + i] += math.sin(fase) * math.exp(-16.0 * u) * min(1.0, u / 0.004) * fuerza
+    guardar("latido.wav", x, 0.09)
+
+
+def voltereta():
+    """Roce de tela: ruido en banda media con una envolvente de soplo que sube de tono."""
+    d = 0.32
+    n = pasaaltos(pasabajos(ruido(d), 3200.0), 700.0)
+    x = []
+    for i in range(muestras(d)):
+        tt = i / SR
+        e = math.sin(math.pi * min(tt / d, 1.0)) ** 1.3
+        x.append(n[i] * e)
+    guardar("voltereta.wav", x, 0.09)
+
+
+def recarga_lista():
+    """Clic suave: dos parciales cortos, como un cierre de madera pequeño."""
+    d = 0.09
+    x = []
+    for i in range(muestras(d)):
+        tt = i / SR
+        e = math.exp(-50.0 * tt)
+        x.append((math.sin(2 * math.pi * 1450.0 * tt) * 0.6 + math.sin(2 * math.pi * 2900.0 * tt) * 0.25) * e)
+    guardar("recarga_lista.wav", x, 0.10)
+
+
+def golpe_mundo():
+    _golpe_sordo("golpe_mundo.wav", 0.2, 150.0, 55.0, 35.0, 0.7, 900.0, 0.13)
+
+
+def carga_bucle():
+    """Zumbido en bucle (0,5 s): un acorde de dos senos con un leve temblor; el Lanzador le sube el tono mientras se mantiene la tecla."""
+    d = 0.5
+    x = []
+    for i in range(muestras(d)):
+        tt = i / SR
+        trem = 1.0 + 0.12 * math.sin(2 * math.pi * 7.0 * tt)
+        x.append((math.sin(2 * math.pi * 196.0 * tt) * 0.6 + math.sin(2 * math.pi * 293.7 * tt) * 0.35 + math.sin(2 * math.pi * 392.0 * tt) * 0.15) * trem)
+    guardar("carga_bucle.wav", x, 0.09)
+
+
 if __name__ == "__main__":
     lanzar_salida()
     no_puedes()
@@ -238,3 +373,13 @@ if __name__ == "__main__":
     moneda()
     combate_loop()
     sala_limpia()
+    golpe_carne()
+    golpe_piedra()
+    limo_golpe()
+    limo_muere()
+    dano_jugadora()
+    latido()
+    voltereta()
+    recarga_lista()
+    golpe_mundo()
+    carga_bucle()

@@ -84,7 +84,8 @@ func _ready() -> void:
 	health = VIDA
 	tinte = Color.WHITE
 	snd_alerta = ""
-	snd_muere = ""
+	snd_muere = "limo_muere"                 # 29/10 (gamefeel lote 4): chapoteo largo al reventar; antes no sonaba
+	snd_golpe = "limo_golpe"
 	cuerpo = LimoVisual3D.new()
 	cuerpo.name = String(name) + "_cuerpo"
 	mundo.add_child(cuerpo)
@@ -241,6 +242,8 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 	_destello = maxf(_destello, DESTELLO_DANO)
 	_t_gracia = GRACIA_SUELO
 	_rotular()
+	if origen == "hechizo":
+		Sensacion3D.golpe_enemigo(self, el, false)         # gamefeel lote 4: absorber también es encajar un golpe, y el cuerpo suena
 	absorciones.append({"accion": acc, "elemento": el, "origen": origen, "cura": curada})
 	PlayLog.event("limo_absorbe", {"accion": acc, "elemento": el, "origen": origen, "grande": grande, "vida": snappedf(health, 0.1)})
 
@@ -555,6 +558,8 @@ func _morir(ahogado: bool = false) -> void:
 	PlayLog.event("goblin_muere", {"nombre": nombre, "celda": [Terreno3D.celda_de(position).x, Terreno3D.celda_de(position).y], "ahogado": ahogado})
 	Estado.i().enemigo_muerto.emit(Vector2(position.x, position.z), nombre)
 	Sensacion3D.muerte(self)                                 # gamefeel lote 2
+	if snd_muere != "" and Sfx3D.CATALOGO.has(snd_muere):
+		Sfx3D.play(self, snd_muere)                          # gamefeel lote 4 (el `_morir` de Combate3D no corre aquí: el limo tiene el suyo)
 	var c: LimoVisual3D = cuerpo
 	if c != null and is_instance_valid(c):
 		c.cancelar_salto()

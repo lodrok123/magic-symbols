@@ -201,6 +201,7 @@ var resiste: String = "fuego"
 var nombre: String = "Goblin guerrero"
 var snd_alerta: String = "goblin_grito"      ## sonido al descubrir al jugador (Gatopedro usa otro)
 var snd_muere: String = "goblin_muere"       ## sonido al morir
+var snd_golpe: String = "golpe_carne"        ## 29/10 (gamefeel lote 4): el cuerpo al encajar un hechizo (`Sensacion3D.golpe_enemigo`); "" = sin sonido
 var tinte: Color = Color(1.12, 0.9, 0.85)
 var oro: int = ORO_BOTIN
 var altura: float = 0.85                ## alto del modelo, para la barra
@@ -1005,6 +1006,7 @@ func _reaccion_visual(el: String) -> void:
 func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> void:
 	if not muerto:
 		_respingar(dir)
+		Sensacion3D.golpe_enemigo(self, el, debil)    # gamefeel lote 4: el cuerpo suena (solo con elemento: el golpe F y el «Piedra» ya suenan)
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
 	if not (fx is Vfx3D) or not is_inside_tree():
 		return

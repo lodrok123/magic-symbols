@@ -980,6 +980,7 @@ func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 			jugador.call("bloquear", true)
 		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), tiempo)
 	_crear_marcadores(rune.color)
+	Sensacion3D.carga(self, Objetos.elemento_de(rune))     # gamefeel lote 4: el aro que se cierra en la mano y el zumbido que sube
 	if rapido:
 		_actualizar_raton_rapido()                # ya desde el primer fotograma: un toque corto lanza hacia el ratón de ahora
 	if _guia != null:
@@ -997,6 +998,7 @@ func _salir_modo(lanzando: bool = false) -> void:
 	_rapido = false
 	_pagina_rapida = -1
 	_fijado = false
+	Sensacion3D.carga_fin(self)                   # gamefeel lote 4: el aro se abre y se apaga
 	Engine.time_scale = TiempoBruja.ESCALA if TiempoBruja.activa() else (1.0 if _ts_antes <= 0.0 else _ts_antes)
 	if _guia != null:
 		_guia.visible = false
@@ -1427,6 +1429,11 @@ func _salida_de_mano(hechizo: Hechizo, origen: Vector3) -> Vector3:
 
 
 ## La mano que lanza (la derecha: la de las motas del lanzamiento). Sin esqueleto (laboratorios) se aproxima.
+## Dónde está la mano que lanza (pública desde el 29/10: el aro de carga de `Sensacion3D` la sigue).
+func pos_mano() -> Vector3:
+	return _pos_mano()
+
+
 func _pos_mano() -> Vector3:
 	var pj: Node3D = jugador.get("pj") if jugador != null else null
 	if pj != null:
