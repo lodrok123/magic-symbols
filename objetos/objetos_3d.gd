@@ -457,20 +457,24 @@ func punto_activacion() -> Vector3:
 ## 28/10 · A2 (previsión): QUÉ le haría este hechizo a esta pieza AHORA, sin tocarla: «prende», «apaga» (el agua o el frío a lo que arde, o a un fuego de mapa encendido), «moja» (el agua a la
 ## leña mojable), «aviva» (el viento lleva la llama de lo que arde), «enciende» (calor a un brasero o fogata apagados), «activa» (un tótem con su elemento), «brota» (el agua a un surtidor) o
 ## «» (nada: o no le toca, o no puede, como prender lo que ya está mojado o ardiendo). `on_spell_hit` APLICA lo que dice esto; la previsión del indicador lo enseña.
-func reaccion_a(rune_data: RuneData) -> String:
+func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 	if rune_data == null:
 		return ""
-	var calor: bool = rune_data.tags.has("calor")
-	var rayo: bool = rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
-	var humedo: bool = rune_data.tags.has("agua") or rune_data.tags.has("frio")
+	# H6: decide por PROPIEDADES (Materia): las del Hechizo si viene, si no las del RuneData (sus números y, de respaldo, sus etiquetas)
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	var calor: bool = Materia.calienta(m)
+	var rayo: bool = Materia.conduce(m)
+	var frio: bool = Materia.enfria(m)
+	var agua: bool = Materia.riega(m)
+	var humedo: bool = Materia.moja(m) or frio
 	if tiene_papel(P_INFLAMABLE):
 		if calor or rayo:
 			return "prende" if can_burn() else ""
 		if humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
 			return "apaga"
-		if tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+		if tiene_papel(P_MOJABLE) and agua and estado == EstadoObj.SANO:
 			return "moja"
-		if rune_data.tags.has("viento") and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
+		if Materia.sopla(m) and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
 			return "aviva"
 		return ""
 	if tiene_papel(P_FUENTE_FUEGO):
@@ -480,14 +484,14 @@ func reaccion_a(rune_data: RuneData) -> String:
 			return "apaga"
 		return ""
 	if tiene_papel(P_ACTIVABLE):
-		return "activa" if (not activo and _le_toca(rune_data)) else ""
+		return "activa" if (not activo and _le_toca(m)) else ""
 	if tiene_papel(P_RECIBE_AGUA):
-		return "brota" if rune_data.tags.has("agua") else ""
+		return "brota" if agua else ""
 	return ""
 
 
-func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
-	match reaccion_a(rune_data):
+func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	match reaccion_a(rune_data, hechizo):
 		"prende":
 			ignite(Lanzador3D.ultimo_impacto)
 		"apaga":
@@ -512,28 +516,31 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> voi
 
 
 ## ¿Cambiaría algo este hechizo aquí? Si no, lo atraviesa.
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null:
 		return false
-	var calor: bool = rune_data.tags.has("calor")
-	var rayo: bool = rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
-	var humedo: bool = rune_data.tags.has("agua") or rune_data.tags.has("frio")
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	var calor: bool = Materia.calienta(m)
+	var rayo: bool = Materia.conduce(m)
+	var frio: bool = Materia.enfria(m)
+	var agua: bool = Materia.riega(m)
+	var humedo: bool = Materia.moja(m) or frio
 	if tiene_papel(P_INFLAMABLE):
 		if calor or rayo:
 			return estado == EstadoObj.SANO
-		if tiene_papel(P_MOJABLE) and rune_data.tags.has("agua") and estado == EstadoObj.SANO:
+		if tiene_papel(P_MOJABLE) and agua and estado == EstadoObj.SANO:
 			return not esta_mojado()
 		var apaga: bool = humedo and tiene_papel(P_APAGA)
-		var lleva: bool = rune_data.tags.has("viento") and tiene_papel(P_PROPAGA_LLAMA)
+		var lleva: bool = Materia.sopla(m) and tiene_papel(P_PROPAGA_LLAMA)
 		return (apaga or lleva) and estado == EstadoObj.ARDIENDO
 	if tiene_papel(P_FUENTE_FUEGO):
 		if calor:
 			return not is_lit
 		return humedo and is_lit and tiene_papel(P_APAGA)
 	if tiene_papel(P_ACTIVABLE):
-		return not activo and _le_toca(rune_data)
+		return not activo and _le_toca(m)
 	if tiene_papel(P_RECIBE_AGUA):
-		return rune_data.tags.has("agua")
+		return agua
 	return false
 
 
@@ -564,13 +571,14 @@ static func _runa_fuego() -> RuneData:
 	return r
 
 
-func _le_toca(rune_data: RuneData) -> bool:
+## ¿Es de lo que pide el tótem? `m` = `Materia.de(…)` del hechizo: calor (fuego), humedad sin frío (agua) o corriente (rayo).
+func _le_toca(m: Dictionary) -> bool:
 	match elemento:
 		"fuego":
-			return rune_data.tags.has("calor")
+			return Materia.calienta(m)
 		"agua":
-			return rune_data.tags.has("agua")
-	return rune_data.tags.has("rayo") or rune_data.tags.has("electrico")
+			return Materia.riega(m)
+	return Materia.conduce(m)
 
 
 ## --- Objetos que arden ---

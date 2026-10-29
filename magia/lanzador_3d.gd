@@ -12,12 +12,14 @@ extends Grimorio
 ##
 ## CONTRATO on_spell_hit (publicado en docs/DIARIO.md, 2026-10-06):
 ##
-##   func on_spell_hit(rune_data: RuneData, direccion: Vector3) -> void
+##   func on_spell_hit(rune_data: RuneData, direccion: Vector3, hechizo: Hechizo = null) -> void
 ##
 ## Lo implementa cualquier nodo que quiera reaccionar a un hechizo: un Area3D en la capa CAPA_REACTIVO. Se decide por
 ## las etiquetas de `rune_data.tags`, nunca por `rune_type`. `direccion` es horizontal y unitaria (y = 0), o ZERO si el
 ## hechizo está quieto. Opcionales (si faltan se asume lo de siempre):
-##   spell_reacts(rune_data, direccion) -> bool     ¿cambia algo de verdad? (falta = sí)
+##   spell_reacts(rune_data, direccion, hechizo = null) -> bool     ¿cambia algo de verdad? (falta = sí)
+##   (H6) `hechizo` es el Hechizo que golpea, cuando el lanzador lo tiene: sus propiedades físicas (temperatura, humedad, conductividad, empuje…) mandan sobre las etiquetas (ver `Materia`).
+##   Es OPCIONAL: `_golpear` solo lo pasa a los métodos que declaran el tercer argumento (`_admite_hechizo`); los que siguen con dos no cambian.
 ##   spell_passes_through() -> bool                 superficie: reacciona pero no detiene
 ##   spell_flies_over(rune_data, cargado) -> bool   deja pasar a algunos (el agua al viento)
 ##   carried_element() -> RuneData                  lo que el viento puede llevarse (una llama)
@@ -2023,7 +2025,7 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 		return false
 	var reacciona: bool = true
 	if obj.has_method("spell_reacts"):
-		reacciona = bool(obj.call("spell_reacts", rune, dir))
+		reacciona = bool(obj.call("spell_reacts", rune, dir, hechizo)) if (hechizo != null and _admite_hechizo(obj, "spell_reacts")) else bool(obj.call("spell_reacts", rune, dir))
 	if activable and reacciona and fx != null and is_instance_valid(fx):
 		fx.chispazo(punto, Objetos.elemento_de(rune))        # la chispa nace en el punto de activación
 	ultimo_impacto = punto
@@ -2031,13 +2033,32 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	# 14/10: qué objeto recibe el golpe (el registro de partida solo decía los lanzamientos, no a quién llegaban).
 	PlayLog.event("golpe_objeto", {"objeto": _nombre_de_objeto(obj), "elemento": Objetos.elemento_de(rune), "reacciona": reacciona,
 		"punto": [snappedf(punto.x, 0.1), snappedf(punto.y, 0.1), snappedf(punto.z, 0.1)]})
-	if hechizo != null and obj is Combate3D:
-		(obj as Combate3D).on_spell_hit(rune, dir, hechizo)
+	if hechizo != null and _admite_hechizo(obj, "on_spell_hit"):
+		obj.call("on_spell_hit", rune, dir, hechizo)
 	else:
 		obj.call("on_spell_hit", rune, dir)
 	ultimo_impacto = Vector3.INF
 	ultimo_nivel = 0
 	return reacciona
+
+
+## H6: ¿declara el método `metodo` de `obj` un tercer argumento (el `hechizo`)? Se mira UNA vez por script y método (la lista de métodos es cara); un objeto sin script no lo admite.
+static var _admite_hechizo_cache: Dictionary = {}
+
+static func _admite_hechizo(obj: Node, metodo: String) -> bool:
+	var sc: Script = obj.get_script() as Script
+	if sc == null:
+		return false
+	var clave: String = "%d/%s" % [sc.get_instance_id(), metodo]
+	if _admite_hechizo_cache.has(clave):
+		return bool(_admite_hechizo_cache[clave])
+	var admite: bool = false
+	for m in obj.get_method_list():
+		if String(m["name"]) == metodo:
+			admite = (m["args"] as Array).size() >= 3
+			break
+	_admite_hechizo_cache[clave] = admite
+	return admite
 
 
 ## 28/10 · A2 (previsión): el empuje que `_golpear` da a `obj` ANTES de su `on_spell_hit` (el viento empuja, la atracción tira), sin darlo: {dir, fuerza} o {} si no empuja. Es la decisión

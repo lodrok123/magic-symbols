@@ -250,6 +250,7 @@ sin `SCRIPT ERROR`; previsión (`prever`) los recoge (hoy `retorna` solo se prev
 glifo, la tinta prevista coincide con la que cobra `lanzar_ahora`, y los avisos del libro coinciden con los de `_preparar_pagina`. Captura para Pablo.
 
 ### H6 · Interacción material (punto 6) — gradual, el último
+**PRIMERA ENTREGA HECHA (29/10, diario 286): datos, Materia, contrato, `objetos_3d.gd`.** (Los `.tres` ya traían los cuatro campos físicos desde antes: el paso 1 era solo comprobarlo; el golden no cambia. El resto, archivo a archivo, en `docs/PENDIENTES.md` → «Hechizos · H6».)
 
 **Archivos:** `nucleo/materia.gd` (nueva, `Materia`), los 7 `*_rune.tres`, `objetos/objetos_3d.gd`, después uno a uno `barril`, `cuerda`, `compuerta`,
 `lava`, `nexo_rayo`, `molino`, `muro_agrietado`, `surtidor`, `tronco_puente`, `bloque_empujable`, `pulsador`…; `enemigos/combate_3d.gd` (`decidir_golpe`:
