@@ -176,13 +176,14 @@ func _entrar_y_salir() -> void:
 	var tr_b: TroncoEstanque3D = maqueta.get_node("Reglas").get("_tronco_estanque") as TroncoEstanque3D
 	_ok("2.7b el tronco del estanque no se atraviesa por el fondo (z %.2f, tronco z %.2f)" % [jugador.position.z, tr_b.position.z], tr_b != null and jugador.position.z > tr_b.position.z + TroncoEstanque3D.RADIO_MODELO and absf(jugador.position.y - fondo) < 0.03)
 	await mover_hacia(Vector2i(16, 16), 6.0, 0.25)
-	# Salir: por el este, de (16,16) a (18,16), trepando el borde.
+	# Salir: por el este, de (16,16) trepando el borde hacia (18,15). En (17,16) hay un brasero de la secuencia (SECUENCIA en bosque_01_3d.gd):
+	# yendo recto por la fila 16 se choca con él (29/10: hasta el lote 4 de la sensación el paso anterior no volvía a (16,16) y se salía en diagonal desde (16,14) sin notarlo).
 	var i2: int = _n()
-	var llego3: bool = await mover_hacia(Vector2i(18, 16), 12.0, 0.25)
+	var llego3: bool = await mover_hacia(Vector2i(18, 15), 12.0, 0.25)
 	await avanzar_s(1.0)
 	var sal: Array = muestreo.datos.slice(i2)
 	var y_fin: float = float((sal[sal.size() - 1] as Array)[2])
-	_ok("2.8 sale por el borde este (fila 16) y queda de pie en el suelo (y %.3f)" % y_fin, llego3 and absf(y_fin - alto) < 0.03 and not Terreno3D.es_hueco_cauce(celda_jugador()), "celda %s" % str(celda_jugador()))
+	_ok("2.8 sale por el borde este (de (16,16) a (18,15)) y queda de pie en el suelo (y %.3f)" % y_fin, llego3 and absf(y_fin - alto) < 0.03 and not Terreno3D.es_hueco_cauce(celda_jugador()), "celda %s" % str(celda_jugador()))
 	# La trepada dura un rato (TASA_TREPAR) y la y sube de forma continua, sin saltos de más de 0,2 u por fotograma.
 	var salto_max: float = 0.0
 	var k_c: int = -1
