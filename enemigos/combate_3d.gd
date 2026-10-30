@@ -698,35 +698,39 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "bruto": 0.0, "defensa": defensa, "dano": 0.0,
 		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental}
-	if elemental and el == "agua":
+	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
+	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
+	var m: Dictionary = Materia.de(hechizo)
+	var riega: bool = Materia.riega(m)
+	var conduce: bool = Materia.conduce(m)
+	if elemental and riega:
 		r["curado"] = true
 		return r
-	match el:
-		"fuego":
-			if mojado > 0.0:
-				r["mojado"] = 0.0
-				r["vapor"] = true
-			else:
-				r["quemando"] = maxf(hechizo.quema, ELEMENTAL_QUEMA) if elemental else hechizo.quema       # el elemental queda ardiendo un poco más: «ignite»
-		"agua":
-			r["mojado"] = hechizo.moja
-			r["quemando"] = 0.0
-		"rayo":
-			if mojado > 0.0:
-				x = Dano.X_RAYO_MOJADO
-				r["arco"] = true
-		"hielo":
-			r["congelado"] = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
-			if mojado > 0.0:
-				suma_x = Dano.SUMA_HIELO_MOJADO
-			r["quemando"] = 0.0
-		"viento":
-			if not elemental:                 # pesa demasiado: el viento no le corta el ataque
-				r["interrumpe"] = hechizo.interrumpe
-		"tierra":
-			r["lento"] = hechizo.ralentiza
+	if Materia.calienta(m):
+		if mojado > 0.0:
+			r["mojado"] = 0.0
+			r["vapor"] = true
+		else:
+			r["quemando"] = maxf(hechizo.quema, ELEMENTAL_QUEMA) if elemental else hechizo.quema       # el elemental queda ardiendo un poco más: «ignite»
+	elif riega:
+		r["mojado"] = hechizo.moja
+		r["quemando"] = 0.0
+	elif conduce:
+		if mojado > 0.0:
+			x = Dano.X_RAYO_MOJADO
+			r["arco"] = true
+	elif Materia.enfria(m):
+		r["congelado"] = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
+		if mojado > 0.0:
+			suma_x = Dano.SUMA_HIELO_MOJADO
+		r["quemando"] = 0.0
+	elif Materia.sopla(m):
+		if not elemental:                 # pesa demasiado: el viento no le corta el ataque
+			r["interrumpe"] = hechizo.interrumpe
+	elif Materia.golpea(m):
+		r["lento"] = hechizo.ralentiza
 	var avisos: Array = r["avisos"]
-	if el == "rayo":
+	if conduce:
 		avisos.append("electrocutado")                # cada descarga que le llega es una reacción (no hay estado que dure)
 	var ardia: bool = quemando > 0.0
 	if float(r["quemando"]) > 0.0 and not ardia:
