@@ -101,7 +101,7 @@ const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 const CAPACIDAD_PRIMER_LIBRO: Array = [4, 6]
 const PROGRESIONES: Dictionary = {
 	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
-		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
 	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
@@ -111,7 +111,7 @@ const PROGRESIONES: Dictionary = {
 	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
 	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
-		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
 	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
 	# El cofre del final da ᛉ permanencia (la barrera que dura).
@@ -1768,20 +1768,20 @@ func _activacion_al_final(tramo: Dictionary) -> Vector3:
 		var obj: Node = g["obj"]
 		if not is_instance_valid(obj) or not obj.has_method("punto_activacion"):
 			return Vector3.INF
-		if obj.has_method("spell_reacts") and not bool(obj.call("spell_reacts", tramo["rune"], tramo["dir"])):
+		if not reacciona_a(obj, tramo["rune"], tramo["dir"], tramo.get("hechizo") as Hechizo):
 			return Vector3.INF
 		return obj.call("punto_activacion")
 	return Vector3.INF
 
 
 ## P2: lo primero activable que cruza el haz de un chorro, de la mano hacia delante. Devuelve su punto de activación (o INF).
-func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneData) -> Vector3:
+func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneData, hechizo: Hechizo = null) -> Vector3:
 	var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
 	for h in _rayo_areas(espacio, mano, dir, largo):
 		var obj: Node = h["obj"]
 		if not obj.has_method("punto_activacion") or not obj.has_method("on_spell_hit"):
 			continue
-		if obj.has_method("spell_reacts") and not bool(obj.call("spell_reacts", rune, dir)):
+		if not reacciona_a(obj, rune, dir, hechizo):
 			continue
 		return obj.call("punto_activacion")
 	return Vector3.INF
@@ -1848,7 +1848,7 @@ func _despues(t: float, f: Callable) -> void:
 ## en una barrera o en lo primero que reacciona y detiene. Lo que atraviesa se anota como golpe. Con rebotes la
 ## trayectoria se parte en tramos. Devuelve {tramos: [{desde, hasta, dir, golpes, rune?, elemento?}], fin}.
 func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: RuneData, atraviesa: bool,
-		rebotes: int, atrae: bool) -> Dictionary:
+		rebotes: int, atrae: bool, hechizo: Hechizo = null) -> Dictionary:
 	var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
 	var tramos: Array = []
 	var pos: Vector3 = origen
@@ -1917,15 +1917,13 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 			if nv < nivel:
 				continue                                # vuela por encima (levitación más alta que el objeto)
 			var a_ras: bool = nv < 1 + nivel            # objeto a ras: reacciona pero no frena
-			if rune_act.tags.has("viento") and not cargado and obj.has_method("carried_element"):
+			if Materia.sopla(Materia.de(hechizo if hechizo != null else rune_act)) and not cargado and obj.has_method("carried_element"):
 				var llevado: RuneData = obj.call("carried_element")
 				if llevado != null:
 					rune_act = llevado
 					cargado = true
 			golpes.append({"obj": obj, "dist": float(h["dist"]), "punto": pos + d * float(h["dist"])})
-			var reacciona: bool = true
-			if obj.has_method("spell_reacts"):
-				reacciona = bool(obj.call("spell_reacts", rune_act, d))
+			var reacciona: bool = reacciona_a(obj, rune_act, d, hechizo if not cargado else null)
 			var cruza: bool = a_ras or (obj.has_method("spell_passes_through") and bool(obj.call("spell_passes_through"))) \
 				or (obj.has_method("spell_flies_over") and bool(obj.call("spell_flies_over", rune_act, cargado)))
 			if reacciona and not cruza and not atraviesa:
@@ -1936,7 +1934,7 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 
 		var fin: Vector3 = pos + d * parada
 		var tramo: Dictionary = {"desde": pos, "hasta": fin, "dir": d, "golpes": golpes, "rune": rune_act,
-			"elemento": Objetos.elemento_de(rune_act)}
+			"elemento": Objetos.elemento_de(rune_act), "hechizo": hechizo if not cargado else null}
 		tramos.append(tramo)
 		restante -= parada
 		if cortado and (choca_celda or rebota_zona) and (rebotes > 0 or (refleja_vol and not reflejado)) and normal != Vector3.ZERO and restante > 0.3:
@@ -2018,14 +2016,12 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	var activable: bool = obj.has_method("punto_activacion")
 	if activable:
 		punto = obj.call("punto_activacion")
-	var empuje: Dictionary = empuje_de_golpe(obj, rune, dir, punto, atrae, desde)
+	var empuje: Dictionary = empuje_de_golpe(obj, rune, dir, punto, atrae, desde, hechizo)
 	if not empuje.is_empty():
 		obj.call("push", empuje["dir"], empuje["fuerza"])
 	if not obj.has_method("on_spell_hit"):
 		return false
-	var reacciona: bool = true
-	if obj.has_method("spell_reacts"):
-		reacciona = bool(obj.call("spell_reacts", rune, dir, hechizo)) if (hechizo != null and _admite_hechizo(obj, "spell_reacts")) else bool(obj.call("spell_reacts", rune, dir))
+	var reacciona: bool = reacciona_a(obj, rune, dir, hechizo)
 	if activable and reacciona and fx != null and is_instance_valid(fx):
 		fx.chispazo(punto, Objetos.elemento_de(rune))        # la chispa nace en el punto de activación
 	ultimo_impacto = punto
@@ -2061,10 +2057,20 @@ static func _admite_hechizo(obj: Node, metodo: String) -> bool:
 	return admite
 
 
+## H6: ¿cambia algo de verdad este hechizo en `obj`? (`spell_reacts`; sin el método, sí). Le pasa el `Hechizo` solo si el objeto declara el tercer argumento. Es la misma consulta
+## para `_golpear`, el trazado de la bola, el haz y la previsión (`PrevisionHechizo`), así que no pueden discrepar.
+static func reacciona_a(obj: Node, rune: RuneData, dir: Vector3, hechizo: Hechizo = null) -> bool:
+	if not obj.has_method("spell_reacts"):
+		return true
+	if hechizo != null and _admite_hechizo(obj, "spell_reacts"):
+		return bool(obj.call("spell_reacts", rune, dir, hechizo))
+	return bool(obj.call("spell_reacts", rune, dir))
+
+
 ## 28/10 · A2 (previsión): el empuje que `_golpear` da a `obj` ANTES de su `on_spell_hit` (el viento empuja, la atracción tira), sin darlo: {dir, fuerza} o {} si no empuja. Es la decisión
 ## que `_golpear` ejecuta con `push`, extraída para que la previsión del indicador (`PrevisionHechizo`) y el golpe real no puedan divergir.
-static func empuje_de_golpe(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, atrae: bool, desde: Vector3) -> Dictionary:
-	var es_viento: bool = rune.tags.has("viento")
+static func empuje_de_golpe(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, atrae: bool, desde: Vector3, hechizo: Hechizo = null) -> Dictionary:
+	var es_viento: bool = Materia.sopla(Materia.de(hechizo if hechizo != null else rune))       # H6: un aire (gas que empuja), no «lleva la etiqueta viento»
 	if not ((es_viento or atrae) and obj.has_method("push")):
 		return {}
 	if atrae:
@@ -2192,7 +2198,7 @@ func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Ve
 	var columna: bool = receta.blocks and receta.height > 0 and receta.spread and not onda
 	if columna:
 		_levantar_columna(campo, receta.vida(), 1, rune.color)
-	elif rune.tags.has("tierra") and receta.es_quieto() and not muro and not cupula:
+	elif Materia.golpea(Materia.de(rune)) and receta.es_quieto() and not muro and not cupula:
 		var celdas: Dictionary = {}
 		for pt in campo.puntos:
 			celdas[celda_de(pt as Vector3)] = true
@@ -2813,7 +2819,7 @@ class Receta3D extends SpellRecipe:
 
 	## Glifos aparcados (17/10): se pueden dibujar sin romper nada, pero aún no hacen nada. La receta los apunta en `ignorados` y el
 	## Lanzador avisa «Aún sin uso».
-	const APARCADOS: PackedStringArray = ["retardo", "atraccion", "espejo", "amplificar"]
+	const APARCADOS: PackedStringArray = ["atraccion", "espejo", "amplificar"]       # 30/10 (H5): «retardo» ya hace algo
 
 	## Glifos que la v2 no conoce (los aparcados y cualquier otro): no rompen la receta, se anotan aquí.
 	var ignorados: PackedStringArray = PackedStringArray()
@@ -3336,10 +3342,11 @@ class BarreraFuego extends Area3D:
 	func nivel_altura() -> int:
 		return 1
 
-	func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+	func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 		if apagada or rune_data == null:
 			return
-		if not (rune_data.tags.has("agua") or rune_data.tags.has("frio")):
+		var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+		if not (Materia.moja(m) or Materia.enfria(m)):
 			return
 		apagar_ahora()
 		# El agua salpica: también apaga las casillas de fuego pegadas (así el hueco cabe, y no hay que acertar fila a fila).

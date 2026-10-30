@@ -54,11 +54,14 @@ func _enter_tree() -> void:
 	actual = self
 	if not estados.cambio.is_connected(_estado_cambio):
 		estados.cambio.connect(_estado_cambio)
+	estados.estado_zona_en = EstadoZona3D.estados_de          # F4: el suelo se seca, se hiela y caduca según los estados de la zona
 
 
 func _exit_tree() -> void:
 	if estados.cambio.is_connected(_estado_cambio):
 		estados.cambio.disconnect(_estado_cambio)
+	if estados.estado_zona_en == Callable(EstadoZona3D, "estados_de"):
+		estados.estado_zona_en = Callable()
 	if actual == self:
 		actual = null
 
@@ -67,10 +70,16 @@ func _exit_tree() -> void:
 ## y nada caducaba; ahora el mojado se seca (`EstadosSuelo3D.DURA`). En pausa no corre (es un `_process` de nodo normal).
 func _process(delta: float) -> void:
 	estados.avanzar(delta)
+	avanzar_iluminadas(delta)
+	var sim: AguaSim3D = agua
+	if sim != null and not sim.factor_hielo_dura.is_valid():
+		sim.factor_hielo_dura = EstadoZona3D.factor_hielo_dura       # F4: el hielo del agua dura según la zona (calor 1/3, frío casi no caduca)
 
 
-func _estado_cambio(c: Vector2i, estado: String, _si: bool) -> void:
+func _estado_cambio(c: Vector2i, estado: String, si: bool) -> void:
 	casilla_cambio.emit(c, String(EstadosSuelo3D.QUE.get(estado, estado)))
+	if si and estado == EstadosSuelo3D.SEGADA:
+		Botin.al_segar(self, c)                  # F1: segar hierba puede dar una baya o una flor (tabla `hierba_segada`, una vez por casilla cada 60 s)
 
 
 ## M3: el mundo recibe ACCIONES, no hechizos. Reparte al agua (agua, fuego, hielo; ver ReaccionesAgua3D) y al ESTADO del suelo (mojada,
@@ -150,3 +159,91 @@ static func avisar_logro(nombre: String, punto: Vector3, nodo: Node = null) -> v
 		return
 	if actual != null and is_instance_valid(actual):
 		actual.logro.emit(nombre, punto, nodo)
+
+
+## =====================================================================================================
+##  F4 · Estados del mundo (docs/PLAN_BASE_DATOS.md §6). Los lleva `EstadoZona3D`; aquí está la fachada que usan el Lanzador, los enemigos y el suelo.
+##  Estáticas: valen sin un Mundo3D en el árbol (pruebas) y sin `EstadoZona3D` devuelven lo neutro ([] / 1 / ZERO / false).
+## =====================================================================================================
+
+## Los estados del mundo que valen en `celda` (fijos de la zona, dinámicos y `veneno` si hay una nube). [] si no hay.
+static func estado_zona(celda: Vector2i) -> Array:
+	return EstadoZona3D.estados_de(celda)
+
+
+## Los estados de la celda donde está la jugadora ahora ([] si no se sabe o no hay).
+static func estados_jugadora() -> Array:
+	var e: EstadoZona3D = EstadoZona3D.actual
+	if e == null or not is_instance_valid(e):
+		return []
+	var c: Vector2i = e.celda_jugadora()
+	return e.estados_en(c) if c != Vector2i(-9999, -9999) else []
+
+
+## Por cuánto se multiplica lo que PERSISTE un hechizo de `elemento` lanzado en `celda` (1 = igual): el producto de las columnas `fuego_x`, `hielo_x`, `rayo_x` y `viento_x` de los estados de la zona
+## (calor: fuego ×1,5, hielo ×0,5 · frío: hielo ×1,5, fuego ×0,7 · humedad: fuego ×0,7, rayo ×1,5 · tormenta: rayo ×1,5). El VIENTO solo cuenta «a favor» del vendaval: pasa la `direccion` del
+## hechizo y, si va a favor del viento de la zona (producto escalar > 0,5), sube ×`viento_x` (2); sin dirección vale 1. `HechizoVivo` debe multiplicar su `persiste` por esto (docs/DIARIO.md, petición).
+static func factor_persiste(elemento: String, celda: Vector2i, direccion: Vector3 = Vector3.ZERO) -> float:
+	var estados: Array = estado_zona(celda)
+	if estados.is_empty():
+		return 1.0
+	if elemento == "viento":
+		var v: Vector3 = viento_zona(celda)
+		if v == Vector3.ZERO or direccion.length() < 0.01:
+			return 1.0
+		var d := Vector3(direccion.x, 0.0, direccion.z).normalized()
+		return EstadoZona3D.producto(estados, "viento_x") if d.dot(v.normalized()) > 0.5 else 1.0
+	if not ["fuego", "hielo", "rayo"].has(elemento):
+		return 1.0
+	return EstadoZona3D.producto(estados, elemento + "_x")
+
+
+## El viento de la zona de `celda` como velocidad en u/s del mundo (dirección × `empuje` casillas/s × casilla); Vector3.ZERO si no hay vendaval. `HechizoVivo` debe sumarlo a la velocidad de los proyectiles.
+static func viento_zona(celda: Vector2i) -> Vector3:
+	var e: EstadoZona3D = EstadoZona3D.actual
+	return e.viento_en(celda) if e != null and is_instance_valid(e) else Vector3.ZERO
+
+
+## Por cuánto se multiplica lo que DURA el hielo en `celda` (calor 1/3; frío ×100 = no caduca). Lo usa el hielo del agua (`AguaSim3D`); el del suelo lo hace `Lanzador3D` (docs/DIARIO.md, petición).
+static func factor_hielo_dura(celda: Vector2i) -> float:
+	return EstadoZona3D.factor_hielo_dura(celda)
+
+
+## --- Luz para la oscuridad ---
+## celda -> s que le quedan. Fuego, rayo y esporas luminosas la encienden (`Lanzador3D` debe llamar a `iluminar`, docs/DIARIO.md); el pulso también podrá. En la oscuridad la jugadora se ve
+## desde cualquier distancia si su casilla está `iluminada`.
+static var _iluminadas: Dictionary = {}
+
+
+## Ilumina `celda` `segundos` s (0 o menos = `ilumina_s` de la tabla, 10). Volver a iluminarla alarga, no acorta.
+static func iluminar(celda: Vector2i, segundos: float = 0.0) -> void:
+	var s: float = segundos if segundos > 0.0 else float(BD.estado_mundo("oscuridad").get("ilumina_s", 10))
+	_iluminadas[celda] = maxf(float(_iluminadas.get(celda, 0.0)), s)
+
+
+## ¿Está `celda` iluminada? Cuenta una luz encendida a ≤ `ilumina_casillas` casillas (3).
+static func iluminada(celda: Vector2i) -> bool:
+	if _iluminadas.is_empty():
+		return false
+	var radio: float = float(BD.estado_mundo("oscuridad").get("ilumina_casillas", 3))
+	for c in _iluminadas.keys():
+		if Vector2((c as Vector2i) - celda).length() <= radio:
+			return true
+	return false
+
+
+## Cuenta atrás de las luces (la llama `_process`; las pruebas sin nodo la llaman a mano).
+static func avanzar_iluminadas(dt: float) -> void:
+	if _iluminadas.is_empty():
+		return
+	for c in _iluminadas.keys():
+		var t: float = float(_iluminadas[c]) - dt
+		if t <= 0.0:
+			_iluminadas.erase(c)
+		else:
+			_iluminadas[c] = t
+
+
+static func apagar_luces() -> void:
+	_iluminadas.clear()
+

@@ -95,21 +95,23 @@ func _dibujar() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if rune_data == null:
 		return
-	if not abierta and abre_con != "" and rune_data.tags.has(ETIQUETA.get(abre_con, "?")):
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if not abierta and abre_con != "" and Materia.cumple(m, ETIQUETA.get(abre_con, "?")):
 		abrir()
-	elif abierta and cierra_con != "" and rune_data.tags.has(ETIQUETA.get(cierra_con, "?")):
+	elif abierta and cierra_con != "" and Materia.cumple(m, ETIQUETA.get(cierra_con, "?")):
 		cerrar()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null:
 		return false
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
 	if not abierta:
-		return abre_con != "" and rune_data.tags.has(ETIQUETA.get(abre_con, "?"))
-	return cierra_con != "" and rune_data.tags.has(ETIQUETA.get(cierra_con, "?"))
+		return abre_con != "" and Materia.cumple(m, ETIQUETA.get(abre_con, "?"))
+	return cierra_con != "" and Materia.cumple(m, ETIQUETA.get(cierra_con, "?"))
 
 
 func carried_element() -> RuneData:

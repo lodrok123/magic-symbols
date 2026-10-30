@@ -60,6 +60,9 @@ const SIGILS: PackedStringArray = [
 	"linea",       # raya (ᛁ isa): con un elemento es un RAYO («haz», 21/10, Pablo); el muro es solo de `barrera`
 	"altura",      # ⊥: estira la forma hacia arriba (fase 8)
 	"raido",       # ᚱ (23/10, Pablo): el glifo «pulso» nuevo (Sigils.nombre_visible); el volumen suelta un pulso que recorre los conductores. Se obtiene en el cofre legendario de la Cueva
+	"perforar",    # ᚦ thurisaz (30/10, H5): el proyectil atraviesa enemigos. Sin muestras hasta que Pablo las grabe con G
+	"retorno",     # ᛃ jera (30/10, H5): el proyectil vuelve al acabar la ida. Sin muestras ni PNG todavía
+	"buscar",      # ᚨ ansuz (30/10, H5): el proyectil gira hacia el enemigo más cercano. Sin muestras hasta que Pablo las grabe con G
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -70,7 +73,7 @@ const RECORDABLE: PackedStringArray = [
 	"flecha", "barrera", "levitacion", "repeticion", "amplificar",
 	"rebote", "retardo", "pulso", "atraccion", "espejo",
 	# 16/10 (biblia de runas de Pablo): también se graban los que aún no lanzan nada, para tenerlos listos (assets, enemigos, señuelos).
-	"linea", "veneno", "naturaleza", "sombra", "luz", "thurisaz", "ansuz", "raido", "permanencia", "berkana",
+	"linea", "veneno", "naturaleza", "sombra", "luz", "perforar", "retorno", "buscar", "raido", "permanencia", "berkana",
 ]
 
 ## --- BIBLIA DE RUNAS (16/10, lámina de Pablo: 24 runas del futhark antiguo) ---
@@ -83,8 +86,9 @@ const RECORDABLE: PackedStringArray = [
 const BIBLIA: Dictionary = {
 	"repeticion": {"futhark": "ᚠ", "nombre_runa": "fehu", "uso": "sello"},
 	"rebote":     {"futhark": "ᚢ", "nombre_runa": "uruz", "uso": "sello"},
-	"thurisaz":   {"futhark": "ᚦ", "nombre_runa": "thurisaz", "uso": "libre"},
-	"ansuz":      {"futhark": "ᚨ", "nombre_runa": "ansuz", "uso": "libre"},
+	"perforar":   {"futhark": "ᚦ", "nombre_runa": "thurisaz", "uso": "sello"},      # 30/10 (H5): antes «thurisaz», libre. El id es el del glifo (perforar), la runa sigue siendo thurisaz
+	"buscar":     {"futhark": "ᚨ", "nombre_runa": "ansuz", "uso": "sello"},         # 30/10 (H5): antes «ansuz», libre
+	"retorno":    {"futhark": "ᛃ", "nombre_runa": "jera", "uso": "sello"},          # 30/10 (H5): ᛃ jera era «naturaleza» (asset); Pablo la dedica al retorno. «naturaleza» se deja como estaba (pendiente de decidir)
 	"raido":      {"futhark": "ᚱ", "nombre_runa": "raido", "uso": "sello"},       # 23/10: antes «libre»; es el glifo «pulso» (parámetro `resuena`, PLAN_PULSO_RESONANTE)
 	"fuego":      {"futhark": "ᚲ", "nombre_runa": "kenaz", "uso": "elemento"},
 	"pulso":      {"futhark": "ᚷ", "nombre_runa": "gebo", "uso": "sello"},       # 23/10: el jugador lo ve como «crecer» (Sigils.NOMBRE_VISIBLE); el id y las muestras no cambian

@@ -78,8 +78,12 @@ otra vez. Ninguno sabe qué otros hay:
 | ᚢ rebote | `rebotes` | +1 | 3 | al chocar, cambia de dirección (necesita *viaja*; sin él, refleja proyectiles) |
 | ᚷ crecer (hasta el 23/10 «pulso») | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño. Id `pulso`, momento *continuo* (sin acción) |
 | ᚱ pulso (**construido el 23/10**, id `raido`) | `resuena` (casillas) | +4 | 12 | el volumen suelta un `Pulso3D` que recorre los conductores con el elemento de la receta; actúa **al final** si viaja, **continuo** si el volumen se queda, **al inicio** en el resto (§2.4 bis; `PLAN_PULSO_RESONANTE.md` §2 y §10 bis) |
-| *aparcados* (17/10) | retardo, atracción, espejo, amplificar | — | — | se quedan fuera de la v2 hasta encontrarles uso |
-| *nuevos* ᚦ ᚨ ᛃ ᛉ ᛞ ᛈ | `perfora`, `marca`, `vuelve`, `guarda`, `destello`, `oculto` | — | — | ver la propuesta anterior |
+| ᚦ perforar (**construido el 30/10**, id `perforar`) | `perfora` (enemigos) | +1 | 3 | el proyectil atraviesa ese número de enemigos y se para en el siguiente (`golpes_dados > perfora`); sin proyectil no hace nada |
+| ᛃ retorno (**30/10**, id `retorno`, sin PNG) | `retorna` (bool) | fija true | — | al acabar la ida el proyectil vuelve a la mano y golpea de nuevo a todos; un 2.º ᛃ no suma nada (solo recarga, daño y tinta). Contra un enemigo SIN perforar, la ida se para en el golpe y la vuelta no lo roza otra vez: dos golpes al mismo exigen ᚦ. La vuelta no aplica la materia (retorno + barrera no levanta barrera) |
+| ᚨ buscar (**30/10**, id `buscar`) | `busca` (fuerza de giro) | +0,5 | 2 | el proyectil gira hacia el enemigo vivo más cercano de su cono de 60° y 6 casillas; sin proyectil no hace nada |
+| retardo (**30/10**, id `retardo`, el reloj de arena) | `retardo` (s) | +1 | 3 | lo que sale tarda en salir: el volumen quieto nace tarde (`eventos_de`) y el proyectil espera quieto en la mano (`HechizoVivo.espera`) y luego arranca. La previsión no espera. El haz (ᛁ + elemento) no lo respeta |
+| *aparcados* (17/10) | atracción, espejo, amplificar | — | — | se quedan fuera de la v2 hasta encontrarles uso |
+| *pendientes* ᛞ ᛈ | `guarda`, `destello`, `oculto` | — | — | ver la propuesta anterior |
 
 ### 2.3 Elemento: estado + características
 

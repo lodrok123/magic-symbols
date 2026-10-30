@@ -251,6 +251,8 @@ func _consumir(causa: String) -> void:
 		_escala_quemado = _quemado.scale
 	if causa == "quemado":
 		desintegra_t = T_DESINTEGRA
+		if combate != null and is_instance_valid(combate):
+			combate.escudo_quemado = true                    # F1: al morir ese goblin suelta los jirones del escudo (tabla `goblin_escudo`)
 		_quemar_mano()
 	_avisar("consumido")
 	consumido.emit(causa)

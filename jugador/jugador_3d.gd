@@ -60,6 +60,8 @@ const ZANCADA_EMPUJAR: float = 0.9          ## u/s de suelo por cada 1,0 de velo
 
 signal murio
 signal reaparecio
+## F4 (29/10): el aguante cambió. `activo` = hay calor o frío en la zona (o aún se está recuperando): el HUD (Pipeline) muestra la barra SOLO entonces.
+signal aguante_cambio(valor: float, activo: bool)
 signal nado_cambiado(nadando: bool)
 signal vida_cambiada(vida: float, maxima: float)
 
@@ -85,6 +87,18 @@ var _t_lanzar: float = 0.0
 var _lanzando: bool = false
 var _t_golpe: float = 0.0
 var _t_inv: float = 0.0
+var _beber_id: String = "pocion"                 ## F3: qué poción se está bebiendo (la grande tarda lo mismo)
+## F4 (29/10): AGUANTE 0–100, la barra de las zonas con calor o frío. Baja `aguante_s` de la tabla por segundo (el frío ×`mojada_x` si estás mojada), a 0 quita `dano_s` de vida por segundo y
+## fuera de todo estado sube `rellena_s` (20) por segundo. `protegida(estado)` lo anula. Se guarda en la partida (`jugadora.aguante`).
+const AGUANTE_MAX: float = 100.0
+const TICK_AGUANTE: float = 0.5                  ## s entre dos pulsos del daño por aguante agotado (como el veneno)
+var aguante: float = AGUANTE_MAX
+var aguante_activo: bool = false
+var _aguante_emitido: float = AGUANTE_MAX
+var _t_dano_aguante: float = 0.0
+var _acum_dano_aguante: float = 0.0
+var _t_brasero: float = 0.0                      ## s que faltan para volver a mirar si hay un brasero cerca (se cachea PERIODO_BRASERO)
+var _brasero_cerca: bool = false
 var _veneno_t: float = 0.0                       ## s que le quedan de veneno (envenenar)
 var _veneno_dps: float = 0.0
 var _veneno_tick: float = 0.0
@@ -180,6 +194,10 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	j.vida = Estado.i().vida_max
 	p_mundo.add_child(j)
 	p_mundo.set("externo", true)
+	var ez: EstadoZona3D = p_mundo.get_node_or_null("EstadoZona3D") as EstadoZona3D
+	if ez == null:
+		ez = EstadoZona3D.montar(p_mundo)      # F4: los estados de zona del mapa (`; zona … estado=calor`)
+	ez.jugador = j
 
 	var l := Lanzador3D.new()
 	l.name = "Lanzador3D"
@@ -333,16 +351,133 @@ func nivel_actual() -> int:
 
 ## VENENO (28/10, E2: la bola del chamán): `dps` de daño por segundo durante `segundos`, en pulsos de TICK_VENENO s, sin la invulnerabilidad ni el empuje de un golpe (se queda el más fuerte).
 func envenenar(dps: float, segundos: float) -> void:
-	if muerto:
+	if muerto or inmune_a("veneno"):
 		return
 	_veneno_dps = maxf(_veneno_dps if _veneno_t > 0.0 else 0.0, dps)
 	_veneno_t = maxf(_veneno_t, segundos)
 	_veneno_tick = minf(_veneno_tick, TICK_VENENO) if _veneno_tick > 0.0 else TICK_VENENO
 
 
+## F3 (29/10): la DEF de la jugadora = la de las mejoras (`Estado.defensa`) + la de la ropa puesta (`Ropa3D`, `efecto.defensa`).
+func defensa_total() -> float:
+	return Estado.i().defensa + (float(pj.defensa_ropa()) if pj != null else 0.0)
+
+
+## ¿Eres inmune a `estado` («veneno», «calor», «frio»)? Por la ropa puesta o por un consumible activo (`Consumibles.protegido`). F4 lo lee para el frío, el calor y el veneno.
+func inmune_a(estado: String) -> bool:
+	return (pj != null and pj.inmune_a(estado)) or Consumibles.protegido(estado)
+
+
+## F4 (29/10): ¿estás protegida de `estado` ahora mismo? Escalera de la tabla: un CONSUMIBLE activo (`Consumibles.resiste`: frescor, abrigo, antídoto), una PRENDA (`inmune_a`) o lo que dice la tabla
+## de ese estado: calor → estar MOJADA (la casilla `mojada` bajo tus pies) o pisar agua; frío → un brasero o fogata ENCENDIDOS a ≤ `brasero_casillas` (2) casillas (se cachea medio segundo).
+func protegida(estado: String) -> bool:
+	if inmune_a(estado) or Consumibles.resiste(estado):
+		return true
+	match estado:
+		"calor":
+			return esta_mojada() or nadando or Terreno3D.es_agua(Terreno3D.celda_de(position))
+		"frio":
+			return brasero_cerca()
+	return false
+
+
+## ¿Hay una casilla mojada bajo ti? (no existe un estado de personaje «mojada» para la jugadora: es el del suelo que pisa.)
+func esta_mojada() -> bool:
+	return Terreno3D.estados.tiene(Terreno3D.celda_de(position), EstadosSuelo3D.MOJADA)
+
+
+## ¿Hay un brasero o una fogata encendidos a ≤ 2 casillas? Cacheado `EstadoZona3D.PERIODO_BRASERO` s (recorre los reactivos); `refrescar_brasero()` fuerza la consulta (pruebas).
+func brasero_cerca() -> bool:
+	if _t_brasero <= 0.0:
+		refrescar_brasero()
+	return _brasero_cerca
+
+
+func refrescar_brasero() -> void:
+	_t_brasero = EstadoZona3D.PERIODO_BRASERO
+	if not is_inside_tree():
+		_brasero_cerca = false
+		return
+	_brasero_cerca = EstadoZona3D.brasero_cerca(get_tree(), position, maxf(float(BD.estado_mundo("frio").get("brasero_casillas", 2)), 0.0))
+
+
+## F4: un paso del aguante con los estados de la zona de ahora (ver `AGUANTE_MAX`). `zona` = los estados de tu casilla.
+func _actualizar_aguante(delta: float, zona: Array) -> void:
+	_t_brasero = maxf(0.0, _t_brasero - delta)
+	if zona.is_empty() and aguante >= AGUANTE_MAX:
+		if aguante_activo:
+			aguante_activo = false
+			aguante_cambio.emit(aguante, false)
+		return
+	var prot: Dictionary = {}
+	for e in ["calor", "frio"]:
+		prot[e] = zona.has(e) and protegida(e)
+	var r: Dictionary = EstadoZona3D.paso_aguante(aguante, delta, zona, prot, esta_mojada() or nadando)
+	aguante = float(r["valor"])
+	var activo: bool = bool(r["en_zona"]) or aguante < AGUANTE_MAX
+	if float(r["dano"]) > 0.0 and not muerto:
+		_acum_dano_aguante += float(r["dano"])
+		_t_dano_aguante += delta
+		if _t_dano_aguante >= TICK_AGUANTE:
+			_t_dano_aguante = 0.0
+			var d: float = _acum_dano_aguante
+			_acum_dano_aguante = 0.0
+			vida = maxf(0.0, vida - d)
+			Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(ceil(d))), Color(1.0, 0.6, 0.3), 0.8)
+			vida_cambiada.emit(vida, Estado.i().vida_max)
+			if vida <= 0.0:
+				_morir()
+	else:
+		_t_dano_aguante = 0.0
+		_acum_dano_aguante = 0.0
+	if absf(aguante - _aguante_emitido) >= 0.1 or activo != aguante_activo:
+		_aguante_emitido = aguante
+		aguante_activo = activo
+		aguante_cambio.emit(aguante, activo)
+
+
+## F4: una zona FIJA con `estado=veneno` (el pantano) envenena como una nube mientras estás dentro (`dano_s` de vida por segundo y `sigue_s` s después), salvo que estés protegida. Las nubes
+## envenenan por su cuenta (`NubeVeneno3D`, con su propio radio), así que aquí solo cuentan los estados FIJOS de la casilla.
+func _veneno_de_zona(zona: Array) -> void:
+	if not zona.has("veneno") or muerto or EstadoZona3D.actual == null:
+		return
+	if not EstadoZona3D.actual.fijos_en(Terreno3D.celda_de(position)).has("veneno") or protegida("veneno"):
+		return
+	var fila: Dictionary = BD.estado_mundo("veneno")
+	envenenar(float(fila.get("dano_s", 2)), float(fila.get("sigue_s", 3)))
+
+
+## F4: lo que empuja el vendaval este fotograma (u). Cero si no sopla, si estás nadando o en el aire, o si TRAS UN MURO: la casilla de donde viene el viento está bloqueada o es un bloque de tierra más alto.
+func _viento_paso(delta: float, zona: Array) -> Vector3:
+	if not zona.has("vendaval") or nadando or not en_suelo or EstadoZona3D.actual == null:
+		return Vector3.ZERO
+	var c: Vector2i = Terreno3D.celda_de(position)
+	var dir: Vector2i = EstadoZona3D.actual.direccion_viento(c)
+	if dir == Vector2i.ZERO:
+		return Vector3.ZERO
+	var contra: Vector2i = c - dir
+	if Terreno3D.bloqueada(contra) or Terreno3D.altura_en(contra) > Terreno3D.altura_en(c):
+		return Vector3.ZERO
+	return EstadoZona3D.actual.viento_en(c) * delta
+
+
+func tiene_estado(estado: String) -> bool:
+	return estado == "veneno" and _veneno_t > 0.0
+
+
+## Quita un estado dañino (hoy solo el veneno). true si había algo que quitar. Lo llama el antídoto (`Consumibles.curar_estado`).
+func curar_estado(estado: String) -> bool:
+	if estado == "veneno" and _veneno_t > 0.0:
+		_veneno_t = 0.0
+		_veneno_dps = 0.0
+		return true
+	return false
+
+
 func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
 		return
+	cantidad = Dano.tras_defensa(cantidad, defensa_total())   # F3: la misma fórmula que los enemigos, D_final = máx(0,2·D, D − DEF)
 	if lanz != null and lanz.absorber_golpe(cantidad, desde):
 		return                                   # la barrera cúpula lo ha parado (6.3)
 	if hud_eow != null and hud_eow.consumibles.absorber(cantidad):
@@ -433,6 +568,7 @@ func reaparecer() -> void:
 	muerto = false
 	nadando = false
 	vida = Estado.i().vida_max
+	aguante = AGUANTE_MAX
 	tinta.rellenar()                         # al reaparecer, tinta llena
 	position = puntos_inicio
 	vy = 0.0
@@ -493,6 +629,10 @@ func _process(delta: float) -> void:
 			vida_cambiada.emit(vida, Estado.i().vida_max)
 			if vida <= 0.0:
 				_morir()
+	var zona: Array = Mundo3D.estado_zona(Terreno3D.celda_de(position))        # F4: calor, frío, vendaval... (casi siempre [])
+	_actualizar_aguante(delta, zona)
+	if not zona.is_empty():
+		_veneno_de_zona(zona)
 	_t_sin_combate += delta
 	tinta.actualizar(delta, _t_sin_combate < TINTA_COMBATE)
 	# F7: cambia de pigmento (comando de prueba hasta que haya recetas y mochila de pigmentos). F8 no: es "detener" en el editor de Godot.
@@ -565,6 +705,8 @@ func _process(delta: float) -> void:
 		vel_suelo = Sensacion3D.velocidad_suelo(vel_suelo, objetivo, delta) if (en_suelo and not nadando and _t_roll <= 0.0 and not _acoplada) else objetivo
 		_vel_hielo = vel_suelo                   # al salir del hielo vuelve lo normal (y al entrar conserva lo que llevabas)
 	var paso: Vector3 = (_vel_hielo if en_hielo else vel_suelo) * delta + _empuje * delta
+	if not zona.is_empty():
+		paso += _viento_paso(delta, zona)          # F4: el vendaval te empuja (salvo tras un muro)
 	if _t_roll > 0.0:
 		mov = Vector3.ZERO
 		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
@@ -834,10 +976,11 @@ func _esquiva_con_premio() -> void:
 
 
 ## Beber una poción (la usa `Consumibles` cuando Q tiene la poción equipada). Devuelve si empezó a beber.
-func usar_pocion() -> bool:
+func usar_pocion(id: String = "pocion") -> bool:
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
-			and vida < Estado.i().vida_max and Estado.i().cuenta("pocion") > 0:
+			and vida < Estado.i().vida_max and Estado.i().cuenta(id) > 0:
+		_beber_id = id
 		_iniciar_beber()
 		return true
 	return false
@@ -873,9 +1016,10 @@ func en_gesto() -> bool:
 func _terminar_beber() -> void:
 	if pj.has_method("desequipar"):
 		pj.call("desequipar")
-	if Estado.i().quitar("pocion"):
-		curar(CURA_POCION)
-		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), "+%d" % int(CURA_POCION), Color(0.5, 1.0, 0.55))
+	if Estado.i().quitar(_beber_id):
+		var cura: float = Mejoras.cura_de(_beber_id) if Objetos.efecto(_beber_id).has("cura") else CURA_POCION   # F3: la de la tabla + la mejora «Poción más dulce»
+		curar(cura)
+		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), "+%d" % int(cura), Color(0.5, 1.0, 0.55))
 		PlayLog.event("beber_fin", {"vida": vida})
 	pj.animacion_actual = ""
 

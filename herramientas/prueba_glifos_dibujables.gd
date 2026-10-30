@@ -7,6 +7,9 @@ extends SceneTree
 ## Sin ventana y rápida:  godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_glifos_dibujables.gd
 
 const MIN_MUESTRAS: int = 3                 ## muestras mínimas por gesto en la biblioteca (con menos el $P es frágil)
+## H5 (30/10): los cuatro glifos nuevos se activan por datos y se prueban por contadores; sus muestras las graba Pablo con G después (PENDIENTES). Mientras tengan 0 muestras avisan en vez de fallar;
+## en cuanto tengan alguna, entran en la regla normal (≥ 3 muestras y ≥ 90 % de acierto). ᚱ y ᛉ NO están aquí a propósito: siguen fallando hasta que Pablo grabe las suyas.
+const PENDIENTES_DE_GRABAR: PackedStringArray = ["perforar", "retorno", "buscar", "retardo"]
 const TASA_MIN: float = 0.9                 ## fracción mínima de variantes deformadas que se reconocen como SU gesto
 const VARIANTES_POR_MUESTRA: int = 20       ## cuántas deformaciones se prueban por cada muestra grabada
 const ESCALA_MIN: float = 0.9               ## escala por eje (aleatoria, independiente en X e Y: la uniforme la quita normalize)
@@ -160,6 +163,9 @@ func _initialize() -> void:
 		if n >= 1:
 			tasa = _tasa(ges, plantillas_glifos, activos_glifos, lib)
 		_fila(glifo, ges, n, tasa, origen)
+		if n == 0 and PENDIENTES_DE_GRABAR.has(glifo):
+			_aviso("glifo %s sin muestras: pendiente de que Pablo las grabe con G (H5; se consigue en: %s)" % [glifo, origen])
+			continue
 		_ok("glifo %s tiene ≥ %d muestras (%s)" % [glifo, MIN_MUESTRAS, ges], n >= MIN_MUESTRAS, "%d muestras; se consigue en: %s" % [n, origen])
 		_ok("glifo %s se reconoce ≥ %d %% contra los demás glifos" % [glifo, int(TASA_MIN * 100.0)], n >= 1 and tasa >= TASA_MIN, "tasa %.1f %%" % (tasa * 100.0))
 

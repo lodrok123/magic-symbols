@@ -8,6 +8,7 @@ extends RefCounted
 ## ancho TOTAL. Toca a TODO lo que haya dentro, a la vez:
 ##   · enemigos (`Combate3D`, grupo «combate3d»):  `recibir_golpe_cuerpo` (daño `DANO`, sin debilidades, y empujón fuerte `EMPUJE` por la reacción `empujado` de siempre);
 ##   · rompibles (jarrón, caja): `golpear()`;
+##   · piezas con el papel `sacudible` (el árbol, F1 de PLAN_BASE_DATOS): `sacudir()` (hojas y, si toca, resina o corteza: tabla `tronco_golpe`);
 ##   · bloques empujables: UNA casilla en la dirección cardinal del golpe (`empujar`), con su perfil de peso; el hielo resbala como con el viento;
 ##   · el resto (placas, fuegos, agua, plantas, palancas…): nada. El golpe no enciende ni moja.
 ## No ve a través de las paredes de verdad: solo cuenta que el centro de la pieza esté dentro del cono y a ≤ `ALTO_MAX` de diferencia de altura.
@@ -25,6 +26,7 @@ const FACTOR_ESCUDO: float = 0.5         ## con un escudo ACTIVO de frente, el g
 const RADIO_ENEMIGO: float = 0.32
 const RADIO_ROMPIBLE: float = 0.45
 const RADIO_BLOQUE: float = 0.9
+const RADIO_SACUDIBLE: float = 0.8        ## un tronco: algo más ancho que un jarrón
 const SONIDO: String = "clavar"          ## golpe seco existente (Sfx); con algo tocado suena además «dano» más grave
 const SONIDO_TOCA: String = "dano"
 const TEMBLOR: float = 0.12              ## intensidad (0-1) del temblor de cámara (Vfx3D.temblor, el mismo mecanismo que los golpes de hechizo)
@@ -53,9 +55,9 @@ static func cardinal(mirada: Vector3) -> Vector2i:
 	return Vector2i(0, 1 if mirada.z >= 0.0 else -1)
 
 
-## Lo que hay dentro del cono, SIN tocarlo: {enemigos: [Combate3D], rompibles: [Rompible3D], bloques: [BloqueEmpujable3D]}.
+## Lo que hay dentro del cono, SIN tocarlo: {enemigos: [Combate3D], rompibles: [Rompible3D], bloques: [BloqueEmpujable3D], sacudibles: [Reactivo3D]}.
 static func objetivos(arbol: SceneTree, origen: Vector3, mirada: Vector3) -> Dictionary:
-	var r: Dictionary = {"enemigos": [], "rompibles": [], "bloques": []}
+	var r: Dictionary = {"enemigos": [], "rompibles": [], "bloques": [], "sacudibles": []}
 	for n in arbol.get_nodes_in_group("combate3d"):
 		var c := n as Combate3D
 		if c != null and is_instance_valid(c) and not c.muerto and en_cono(origen, mirada, c.global_position, RADIO_ENEMIGO):
@@ -64,6 +66,10 @@ static func objetivos(arbol: SceneTree, origen: Vector3, mirada: Vector3) -> Dic
 		var o := n as Rompible3D
 		if o != null and is_instance_valid(o) and not o.roto_ya and en_cono(origen, mirada, o.global_position, RADIO_ROMPIBLE):
 			(r["rompibles"] as Array).append(o)
+	for n in arbol.get_nodes_in_group(Reactivo3D.GRUPO_SACUDIBLE):
+		var sa := n as Reactivo3D
+		if sa != null and is_instance_valid(sa) and en_cono(origen, mirada, sa.global_position, RADIO_SACUDIBLE):
+			(r["sacudibles"] as Array).append(sa)
 	for n in arbol.get_nodes_in_group("empujable"):
 		var b := n as BloqueEmpujable3D
 		if b != null and is_instance_valid(b) and en_cono(origen, mirada, b.global_position, RADIO_BLOQUE):
@@ -75,7 +81,7 @@ static func objetivos(arbol: SceneTree, origen: Vector3, mirada: Vector3) -> Dic
 ## `jugador` pone el origen (sus pies) y el árbol; `mirada` la dirección del golpe.
 static func impactar(jugador: Node3D, mirada: Vector3) -> Dictionary:
 	var dir := Vector3(mirada.x, 0.0, mirada.z).normalized()
-	var res: Dictionary = {"enemigos": 0, "escudos": 0, "rompibles": 0, "bloques": 0, "movidos": 0}
+	var res: Dictionary = {"enemigos": 0, "escudos": 0, "rompibles": 0, "bloques": 0, "movidos": 0, "sacudidos": 0}
 	if dir.length() < 0.5 or not jugador.is_inside_tree():
 		return res
 	var ob: Dictionary = objetivos(jugador.get_tree(), jugador.global_position, dir)
@@ -87,13 +93,16 @@ static func impactar(jugador: Node3D, mirada: Vector3) -> Dictionary:
 	for o in ob["rompibles"]:
 		(o as Rompible3D).golpear(jugador.global_position)
 		res["rompibles"] = int(res["rompibles"]) + 1
+	for sa in ob["sacudibles"]:
+		(sa as Reactivo3D).sacudir()
+		res["sacudidos"] = int(res["sacudidos"]) + 1
 	var cd: Vector2i = cardinal(dir)
 	for b in ob["bloques"]:
 		res["bloques"] = int(res["bloques"]) + 1
 		if (b as BloqueEmpujable3D).empujar(cd, false):
 			res["movidos"] = int(res["movidos"]) + 1
 	# Sonido y temblor: el golpe seco siempre; el temblor y el «dano» solo si tocó algo.
-	var toco: bool = int(res["enemigos"]) + int(res["rompibles"]) + int(res["bloques"]) > 0
+	var toco: bool = int(res["enemigos"]) + int(res["rompibles"]) + int(res["bloques"]) + int(res["sacudidos"]) > 0
 	Sfx.play(jugador, SONIDO, 0.85)                # más grave que el clavar de siempre: un golpe seco
 	if toco:
 		Sfx.play(jugador, SONIDO_TOCA)

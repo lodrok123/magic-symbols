@@ -1,0 +1,27 @@
+pieza	llega	hace	botin	flag	cada_s	estado	nota
+hierba	viento|golpe	segar (la hierba se corta y rebrota a los 60 s)	tabla:hierba_segada	-	60	nuevo	Hierba3D ya tiene «segada» (EstadosSuelo3D); solo falta tirar la tabla al segar
+arbol	golpe	sacudir (hojas caen)	tabla:tronco_golpe	-	30	nuevo	Reactivo3D con papel `+sacudible`; la pieza recuerda el último golpe
+arbol	fuego	arde 6 s y queda chamuscado (no desaparece)	tabla:seto_quemado	-	0	nuevo	papel `+inflamable` ya existe en setos; el árbol no se consume
+colmena	viento	se descuelga: cae el panal (botín de objeto al suelo)	panal:1-2	<nivel>.<sala>.colmena_<id>	0	nuevo	pieza nueva en un árbol; una vez
+colmena	fuego	arde: nube de veneno 3 s (estado `veneno` de 1 casilla) y nada de panal	-	<nivel>.<sala>.colmena_<id>	0	nuevo	premia hacerlo con viento
+nido	viento	se sacude y suelta una pluma	pluma:1	-	45	nuevo	rebrota
+telarana	hielo	se hiela: ya no engancha y se recoge con E	seda:1	-	0	nuevo	hoy la telaraña arde (papel) y bloquea; `+helable` es un papel nuevo
+seto|tronco|puerta_goblin|torre_goblin	fuego	arde y se consume (hoy)	tabla:seto_quemado	-	0	cambio	al consumirse, tirar la tabla en su casilla
+charca	hielo	se hiela: el alga se ve y se coge (hoy, coge_si)	-	-	0	hay	Recolectable3D `alga` con coge_si
+lava	agua	se enfría 10 s: basalto recogible (hoy)	basalto (Recolectable3D)	-	0	hay	
+lava	hielo	se enfría 10 s: OBSIDIANA recogible	obsidiana:1	-	0	nuevo	Lava3D: distinguir `frio` de `agua` en la reacción y poner la planta `obsidiana` en vez de `basalto`
+cristal_resonante	golpe×2	suelta una esquirla (hoy)	esquirla_cristal:1	-	0	hay	MineralPulso
+cristal_resonante	rayo	queda cargado: la próxima esquirla es `cristal_cargado`	cristal_cargado:1	-	0	nuevo	MineralPulso con `cargado` 20 s
+veta	tierra	suelta mineral (hoy)	mineral_veta:1	-	0	hay	
+geoda	pulso	carga y explota (hoy)	ceniza_geoda:1-2	<nivel>.<sala>.geoda	0	cambio	al explotar, además del empujón, deja el polvo en el suelo
+jarron|caja	cualquier golpe	se rompe (hoy)	tabla:jarron_<zona>	<nivel>.rompible.<id>	0	cambio	`BOTIN_ZONA` de Rompible3D pasa a `botin_tablas.tsv`; la zona elige la tabla
+barril	fuego	explota: daña 25 en 1,5 casillas y rompe lo rompible (hoy)	-	-	0	hay	
+cofre	E	se abre y da `da=` (hoy)	da=	abierto=<flag>	0	cambio	`da=tabla:<id>` además de `da=objeto:n`
+cofre	E con llave	abre_si=tener.llave: gasta la llave de la bolsa	da=	abierto=<flag>	0	nuevo	condición `tener.<objeto>` en las expresiones `si=` de Puzle3D
+puerta_llave	E con llave	se abre y se queda (hoy es la flag cueva.c4.llave)	-	<nivel>.<sala>.puerta	0	cambio	leer `tener.llave` y quitar la llave de la bolsa
+estatua	pulso en orden	abre el cofre épico (hoy)	-	cueva.c1.estatuas	0	hay	
+brasero|fogata	fuego	se enciende (hoy)	-	-	0	hay	
+brasero|fogata	E (encendido)	HOGUERA: abre la síntesis de campo (recetas con `donde` = hoguera) y guarda la partida	-	-	0	nuevo	la fogata del Bosque es el punto de guardado natural
+muro_agrietado	tierra×golpes	cae (hoy)	-	<nivel>.<sala>.muro	0	hay	
+pulsador|placa|tinaja|totem|compuerta|molino|surtidor|puente	(sus reglas de Puzle3D)	(hoy)	-	-	0	hay	sin cambios
+seta|flor|raiz|alga|basalto|musgo|helecho_cueva|seta_palida	elemento, pulso, E	Recolectable3D (hoy + plantas nuevas)	objeto de la planta	-	rebrota=	hay	`musgo`, `helecho_cueva` y `seta_palida` son filas nuevas de PLANTAS (sin tabla de reacción salvo la seta pálida: fuego → esporas)

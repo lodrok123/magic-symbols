@@ -1,0 +1,78 @@
+id	nombre	categoria	calidad	pila	etiquetas	potencia	uso	efecto	zona	forma	color	modelo	estado	desc	usos
+oro	Oro	botin	comun	999	-	0	moneda	-	todas	moneda	#FFD94D	moneda	hay	Moneda de oro	-
+seta	Seta	hongo	comun	20	vital	1	ingrediente	-	todas	seta	#D9BF99	setas_rojas	hay	Una seta del bosque	-
+seta_asada	Seta asada	hongo	comun	20	vital,calor	2	ingrediente	-	todas	seta	#D97333	setas_rojas	hay	Huele a brasa	-
+seta_humeda	Seta empapada	hongo	comun	20	vital,agua	2	ingrediente	-	todas	seta	#73A6F2	setas_azules	hay	Chorrea agua	-
+seta_helada	Seta helada	hongo	comun	20	vital,frio	2	ingrediente	-	todas	seta	#99E6FF	setas_azules	hay	Cubierta de escarcha	-
+seta_electrificada	Seta electrificada	hongo	comun	20	vital,electrico	2	ingrediente	-	todas	seta	#FFF259	setas_marrones	hay	Chisporrotea	-
+esporas	Esporas	hongo	comun	20	viento	2	ingrediente	-	todas	cristal	#BFE699	esporas	hay	Dispersadas por el viento	-
+seta_resonante	Seta resonante	hongo	comun	20	vital,resonante	2	ingrediente	-	cueva	seta	#99D9FF	setas_azules	hay	Madura al compás del pulso	-
+esporas_luminosas	Esporas luminosas	hongo	comun	20	resonante,viento,tinta	3	ingrediente	-	cueva	cristal	#C8F0FF	esporas	nuevo	Brillan en la oscuridad	-
+seta_cristalizada	Seta cristalizada	hongo	comun	20	resonante,frio	3	ingrediente	-	cueva	seta	#B3E6F5	setas_azules	nuevo	Tintinea al tocarla	-
+seta_palida	Seta pálida	hongo	comun	20	toxico,vital	2	ingrediente	-	cueva	seta	#E6E6D9	setas_marrones	nuevo	Crece donde no llega la luz. No la comas	-
+flor_luna	Flor de luna	planta	comun	20	vital,tinta	1	ingrediente	-	bosque	flor	#D9D9FF	flor_luna	hay	Pétalos pálidos	-
+flor_ardiente	Flor ardiente	planta	comun	20	tinta,calor	2	ingrediente	-	bosque	flor	#FF8033	flor_luna	hay	Sus pétalos arden sin quemarse	-
+flor_rocio	Flor de rocío	planta	comun	20	tinta,agua	2	ingrediente	-	bosque	flor	#66CCFF	flor_luna	hay	Gotas que no se secan	-
+flor_chispa	Flor cargada	planta	comun	20	tinta,electrico	2	ingrediente	-	bosque	flor	#FFF266	flor_luna	hay	Pica al tocarla	-
+flor_escarcha	Flor de escarcha	planta	comun	20	tinta,frio	2	ingrediente	-	bosque	flor	#B3F2FF	flor_luna	hay	Fría y quebradiza	-
+petalos	Pétalos al viento	planta	comun	20	tinta,viento	2	ingrediente	-	bosque	cristal	#FFBFE6	flor_luna	hay	Ligeros como el aire	-
+lavanda	Lavanda	planta	comun	20	vital,viento	1	ingrediente	-	bosque	flor	#B38CF2	lavanda	hay	Huele a calma	Ingrediente de síntesis (próximamente)|Calma a las criaturas del bosque
+baya	Bayas	planta	comun	20	vital	1	ingrediente	-	bosque	baya	#D9335A	bayas	hay	Dulces y rojas	Ingrediente de síntesis (próximamente)
+helecho	Helecho	planta	comun	20	vital	1	ingrediente	-	bosque	hoja	#59BF66	helecho	hay	Hojas frescas. Base de la Infusión de brezo	Ingrediente de síntesis (próximamente)|Base de la Infusión de brezo
+flor_silvestre	Flor silvestre	planta	comun	20	tinta	1	ingrediente	-	bosque	flor	#FFE666	flor_silvestre	hay	Crece por todo el prado	-
+alga_cueva	Alga de cueva	planta	comun	20	agua,vital	2	ingrediente	-	cueva	hoja	#59B39E	alga_cueva	hay	Atrapada en el hielo de la charca	-
+alga_seca	Alga seca	planta	comun	20	calor,tierra	2	ingrediente	-	cueva	hoja	#AD9961	alga_cueva	hay	Quebradiza y salada	-
+alga_cargada	Alga cargada	planta	comun	20	electrico,agua	3	ingrediente	-	cueva	hoja	#80D9D9	alga_cueva	nuevo	Zumba dentro del frasco	-
+musgo_cueva	Musgo de cueva	planta	comun	20	agua,vital,tinta	1	ingrediente	-	cueva	hoja	#6AA66A	musgo_colgante	nuevo	Siempre húmedo	-
+helecho_cueva	Helecho de cueva	planta	comun	20	vital	1	ingrediente	-	cueva	hoja	#4D9966	helechos_cueva	nuevo	Crece junto a la cascada	-
+raiz	Raíz	raiz	comun	20	tierra,vital	1	ingrediente	-	bosque	raiz	#99734D	raiz	hay	Raíz retorcida	-
+raiz_cenizas	Raíz carbonizada	raiz	comun	20	tierra,calor	2	ingrediente	-	bosque	raiz	#4D4545	raiz	hay	Negra y dura	-
+raiz_hinchada	Raíz hinchada	raiz	comun	20	tierra,agua	2	ingrediente	-	bosque	raiz	#80B3E6	raiz	hay	Llena de agua	-
+raiz_magnetica	Raíz magnética	raiz	comun	20	tierra,electrico	2	ingrediente	-	bosque	raiz	#CCD9FF	raiz	hay	Atrae el metal	-
+cristal_tierra	Cristal de tierra	mineral	comun	20	tierra	3	ingrediente	-	bosque	cristal	#B38C4D	cristal_tierra	hay	Se forma al golpear la raíz con tierra	-
+resina	Resina	planta	comun	20	calor,tinta	2	ingrediente	-	bosque	cristal	#E6A640	resina	nuevo	Pegajosa y dorada. Sale del tronco al golpearlo	-
+corteza	Corteza	planta	comun	20	proteccion,tierra	2	ingrediente	-	bosque	hoja	#8C6B4D	corteza	nuevo	Dura como un escudo pequeño	-
+panal	Panal	animal	comun	10	vital,tinta	2	ingrediente	-	bosque	cristal	#F2C14E	panal	nuevo	El viento lo descuelga de la colmena	-
+pluma	Pluma	animal	comun	20	viento,vital	1	ingrediente	-	bosque	hoja	#F2F2E6	pluma	nuevo	Cae del nido cuando sopla	-
+seda	Seda de araña	animal	comun	20	frio,proteccion	2	ingrediente	-	todas	cristal	#E6E6F2	seda	nuevo	Una telaraña helada se recoge entera	-
+carbon	Carbón	mineral	comun	20	calor,tierra	2	ingrediente	-	todas	piedra	#333333	carbon	nuevo	Lo que queda de un seto que ardió	-
+piedra	Piedra	mineral	comun	20	tierra	1	ingrediente	-	todas	piedra	#9E9EA8	rocas_pequenas	hay	Una piedra del camino	-
+mineral_veta	Mineral de veta	mineral	comun	20	tierra,resonante	2	ingrediente	-	cueva	piedra	#8094C7	mineral_veta	hay	Un trozo de la veta del pulso	-
+esquirla_cristal	Esquirla de cristal	mineral	comun	20	resonante	2	ingrediente	-	cueva	cristal	#C7EBFF	esquirla_cristal	hay	Zumba muy bajito	-
+basalto	Basalto	mineral	comun	20	tierra,calor	2	ingrediente	-	cueva	piedra	#5C5961	basalto_suelto	hay	Roca de lava enfriada	-
+obsidiana	Obsidiana	mineral	comun	20	tierra,frio,calor	3	ingrediente	-	cueva	piedra	#262633	obsidiana	nuevo	Lava enfriada de golpe con hielo	-
+polvo_cristal	Polvo de cristal	mineral	comun	20	resonante,tinta	3	ingrediente	-	cueva	cristal	#D9F2FF	polvo_cristal	nuevo	Pigmento azul del pulso	-
+cristal_cargado	Cristal cargado	mineral	comun	20	resonante,electrico	3	ingrediente	-	cueva	cristal	#FFF0A6	esquirla_cristal	nuevo	Una esquirla que guarda un rayo	-
+ceniza_geoda	Polvo de geoda	mineral	comun	20	resonante,tierra	2	ingrediente	-	cueva	piedra	#8C8CA6	ceniza_geoda	nuevo	Lo que deja la geoda al explotar	-
+colmillo_goblin	Colmillo de goblin	animal	comun	20	tierra,proteccion	2	ingrediente	-	todas	raiz	#EBE0BD	colmillo_goblin	hay	Amarillento y astillado	-
+jiron_escudo	Jirón de escudo	animal	comun	20	calor,proteccion	2	ingrediente	-	todas	hoja	#8C5A33	jiron_escudo	nuevo	Cuero chamuscado de un escudo que ardió	-
+baba_limo	Baba de limo	animal	comun	20	agua,toxico	2	ingrediente	-	todas	cristal	#9EE68C	baba_limo	nuevo	Tiembla sola. Un limo la deja al caer	-
+pluma_chaman	Pluma de chamán	animal	comun	10	viento,toxico	3	ingrediente	-	todas	hoja	#7A5CA6	pluma_chaman	nuevo	Del tocado del chamán goblin	-
+polvo_golem	Polvo de gólem	mineral	comun	10	tierra,proteccion	3	ingrediente	-	todas	piedra	#998C80	polvo_golem	nuevo	Piedra molida que aún pesa	-
+nucleo_eco	Núcleo de eco	mineral	epico	5	resonante,raro	5	ingrediente	-	cueva	cristal	#B86BFF	nucleo_eco	hay	Late dentro como un segundo corazón. Mejora al personaje	Mejora al personaje (vida o tinta)|Material épico: no se vende
+geoda_resonante	Geoda resonante	mineral	epico	5	resonante,tierra,raro	4	ingrediente	-	cueva	cristal	#9E5CF2	geoda_resonante	hay	Hueca y cantarina. Mejora al personaje	-
+savia_elemental	Savia del elemental	planta	epico	5	vital,raro	5	ingrediente	-	bosque	cristal	#7AD96B	savia_elemental	nuevo	La deja el elemental del bosque al caer. Mejora al personaje	-
+glifo_resonancia	Glifo de resonancia	glifo	legendario	1	-	0	glifo	glifo=raido	cueva	cristal	#FFD14D	glifo_resonancia	hay	El cofre legendario de C6: escribe ᚱ en el libro	-
+pocion	Poción de vida	consumible	comun	9	-	0	equipar	cura=40	todas	frasco	#FF594D	pocion	hay	Cura vida. Equípala y usa Q	Cura 40 de vida al beberla (1,5 s quieto)|Se interrumpe si te golpean
+pocion_grande	Poción grande	consumible	comun	9	-	0	equipar	cura=80	todas	frasco	#FF3333	pocion_grande	nuevo	Cura el doble. Tarda lo mismo en beberse	-
+tonico_tinta	Tónico de tinta	consumible	comun	9	-	0	equipar	frascos=1	todas	tonico	#4D8CFF	tonico_tinta	hay	Recarga un frasco de tinta vacío	Recarga 1 frasco de reserva de tinta|Solo sirve si falta algún frasco
+balsamo_protector	Bálsamo protector	consumible	comun	9	-	0	equipar	dura=20	todas	tarro	#F2BD47	balsamo_protector	hay	Absorbe el próximo golpe durante 20 s	Absorbe por completo el próximo golpe|Dura 20 s; si nadie te pega, se pierde
+infusion_brezo	Infusión de brezo	consumible	comun	9	-	0	equipar	dura=12;tasa=3	todas	infusion	#A86BDB	infusion_brezo	hay	Regenera 3 de vida por segundo durante 12 s	Regenera 3 de vida por segundo durante 12 s|Un golpe no corta el efecto
+antidoto	Antídoto	consumible	comun	9	-	0	equipar	cura_estado=veneno;inmune=veneno;dura=60	todas	frasco	#8CD96B	antidoto	nuevo	Quita el veneno y protege 60 s	-
+frescor	Frasco de frescor	consumible	comun	9	-	0	equipar	resiste=calor;dura=90	todas	frasco	#7ACCFF	frescor	nuevo	Aguanta el calor del volcán 90 s	-
+abrigo	Brasa embotellada	consumible	comun	9	-	0	equipar	resiste=frio;dura=90	todas	frasco	#FF9E47	abrigo	nuevo	Aguanta el frío de la cumbre 90 s	-
+pigmento_carmesi	Pigmento Resina Carmesí	pigmento	comun	9	-	0	pigmento	pigmento=resina_carmesi	bosque	tonico	#D93338	pigmento_carmesi	nuevo	Tinta roja: el fuego hace ×1,5 de daño 60 s	-
+pigmento_ocre	Pigmento Ocre del Túmulo	pigmento	comun	9	-	0	pigmento	pigmento=ocre_tumulo	tumulo	tonico	#CC9438	pigmento_ocre	nuevo	Tinta ocre: la tierra cuesta la mitad 60 s	-
+pigmento_musgo	Pigmento Verde de Musgo	pigmento	comun	9	-	0	pigmento	pigmento=verde_musgo	bosque_humedo	tonico	#61B84D	pigmento_musgo	nuevo	Tinta verde: el viento cuesta la mitad 60 s	-
+pigmento_ambar	Pigmento Ámbar Volcánico	pigmento	comun	9	-	0	pigmento	pigmento=ambar_volcanico	volcan	tonico	#F28C1F	pigmento_ambar	nuevo	Tinta ámbar: el rayo hace ×1,5 de daño 60 s	-
+pigmento_eco	Pigmento Azul de Eco	pigmento	comun	9	-	0	pigmento	pigmento=azul_eco	cueva	tonico	#6BB8FF	pigmento_eco	nuevo	Tinta de pulso: el recargo de ᚱ desaparece 60 s	-
+llave	Llave de la Cueva	clave	comun	1	-	0	clave	abre=cueva.c4.puerta	cueva	cristal	#D9B861	llave_pequena	nuevo	Abre la puerta de C4	-
+llave_goblin	Llave goblin	clave	comun	1	-	0	clave	abre=bosque1.campamento.puerta	bosque	cristal	#B3A07A	llave_pequena	hay	La llave del campamento goblin	-
+perla	Perla	clave	comun	1	-	0	clave	-	bosque	cristal	#F2F2FF	perla	hay	Objeto de misión	-
+aletas	Aletas	clave	comun	1	-	0	clave	nadar=si	bosque	cristal	#4DA6D9	aletas	hay	Permiten nadar	-
+capa	Capa corta	ropa	comun	1	-	0	ropa	ranura=exterior	todas	cristal	#4D6BB3	ropa_capa	hay	Una capa ligera. Se consigue en cofres o misiones	-
+capucha	Capucha	ropa	comun	1	-	0	ropa	ranura=cabeza	todas	cristal	#5C4D80	ropa_capucha	hay	Tapa el pelo y poco más	-
+tunica	Túnica sin mangas	ropa	comun	1	-	0	ropa	ranura=medio	todas	cristal	#8C6BB3	ropa_tunica	hay	Túnica de viaje	-
+capa_escarcha	Capa de escarcha	ropa	epico	1	-	0	ropa	ranura=exterior;inmune=frio;defensa=1	todas	cristal	#B3E6FF	ropa_capa	nuevo	La capa bordada con seda helada: el frío no la atraviesa	-
+tunica_salamandra	Túnica de salamandra	ropa	epico	1	-	0	ropa	ranura=medio;inmune=calor;defensa=1	todas	cristal	#FF7A47	ropa_tunica	nuevo	Túnica teñida con resina y jirones: el calor resbala	-
+capucha_musgo	Capucha de musgo	ropa	epico	1	-	0	ropa	ranura=cabeza;inmune=veneno;defensa=1	todas	cristal	#6BA64D	ropa_capucha	nuevo	Capucha forrada de musgo: filtra las esporas	-

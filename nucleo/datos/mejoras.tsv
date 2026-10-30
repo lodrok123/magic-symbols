@@ -1,0 +1,12 @@
+id	nombre	tope	por_nivel	campo	donde_se_aplica	nota
+vida_max	Vida máxima	5	20	Estado.vida_max	Jugador3D (al cargar y al subir)	100 → 200 con las 5
+frascos_tinta	Frascos de reserva	3	1	Tinta.FRASCOS_MAX	Tinta.maxima_frascos()	3 → 6; FRASCOS_MAX pasa a ser el de partida
+tinta_frasco	Tinta por frasco	3	0.10	Tinta.recargar_frasco	Tinta	cada frasco recarga maxima × (1 + 0,1 × nivel)
+paginas	Páginas del grimorio	2	1	Repertoire.paginas	Grimorio	3 → 5
+huecos_glifo	Huecos de glifo	5	1	Repertoire.max_sigils_per_page	Grimorio	1 → 6 (la librera sigue pudiendo venderlos: mismo contador)
+capacidad	Huecos de mochila	3	4	Estado.capacidad	Estado.subir_capacidad	8 → 20
+cura_pocion	Cura de la poción	3	10	Estado.cura_pocion	Consumibles	40 → 70
+defensa	Defensa de la jugadora	2	1	Estado.defensa	Jugador3D.recibir_dano → Dano.impacto	D_final = máx(0,2·D, D − DEF)
+tinta_jefe	Tinta de jefe	4	30	Tinta.maxima	Tinta.ganar_jefe	ya existe (no es receta)
+tinta_secreto	Tinta de secreto	8	10	Tinta.maxima	Tinta.ganar_secreto	ya existe (no es receta)
+velocidad	Velocidad	2	10	Estado.vel_extra	Jugador3D	ya existe (alquimista)

@@ -118,19 +118,19 @@ func _dibujar() -> void:
 
 ## --- Contrato con los hechizos (magia y agua) ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if spell_reacts(rune_data):
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if spell_reacts(rune_data, _direccion, hechizo):
 		_disparar(modo)
 	elif rune_data != null:
 		# 15/10 (Pablo: «pulsando este botón no pasa nada»): un golpe que NO vale también se contesta, para que se sepa que ha llegado.
 		_rechazar("YA PULSADO" if activo else ("SOLO AGUA" if modo == "agua" else "NO"))
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null or modo == "presencia" or activo:
 		return false
 	if modo == "agua":
-		return rune_data.tags.has("agua")
+		return Materia.riega(Materia.de(hechizo if hechizo != null else rune_data))
 	return true
 
 

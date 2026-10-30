@@ -131,9 +131,13 @@ Y dominante → `alto`; plano y quieto → `abajo`; esfera → `x_mano`. Un haz 
 | ᚷ | `pulso` | **crecer** | `crece` +0,5 m/s (tope 1,5) | continuo | 3 | 2,5 |
 | ᛉ | `permanencia` | permanencia | `permanencia` +2 s (tope 25) | final | 3 | 1,5 |
 | ᚱ | `raido` | **pulso** | `resuena` +4 casillas (tope 12); acción `emitir_pulso` | inicio; **final si viaja; continuo si persistente** | 5 | 2,0 |
+| ᚦ | `perforar` | perforar | `perfora` +1 (tope 3) | continuo | 3 | 1,5 |
+| ᛃ | `retorno` | retorno | `retorna` fija true (un 2.º ᛃ no suma nada) | final | 3 | 2,0 |
+| ᚨ | `buscar` | buscar | `busca` +0,5 (tope 2) | continuo | 3 | 1,5 |
+| ⧖ | `retardo` | retardo | `retardo` +1 s (tope 3); el proyectil espera quieto en la mano, el volumen nace tarde | inicio («antes del inicio») | 3 | 1,0 |
 
-- **Aparcados** (se dibujan, avisan «Aún sin uso», no cuentan para nada): retardo, atracción, espejo, amplificar.
-  Propuestas de glifos futuros (no asignados): ᚦ perfora, ᚨ marca, ᛃ vuelve/retorno, ᛞ destello, ᛈ oculto.
+- **Aparcados** (se dibujan, avisan «Aún sin uso», no cuentan para nada): atracción, espejo, amplificar.
+  Propuestas de glifos futuros (no asignados): ᛞ destello, ᛈ oculto (ᚦ, ᛃ, ᚨ y el retardo se activaron el 30/10, H5; sin muestras grabadas aún).
 - **Nombre visible vs id** (`Sigils.NOMBRE_VISIBLE` / `nombre_visible()`): el id es el de las muestras grabadas, el PNG y
   las tablas, y no se renombra. Solo dos cambian al mostrarse: `pulso` → «crecer» y `raido` → «pulso».
 - **Recarga** de la página (`Sigils.cooldown_v2`): la mayor de sus glifos + 0,5 s (`STACK_COOLDOWN`) por cada repetición

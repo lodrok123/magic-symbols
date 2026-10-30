@@ -88,19 +88,21 @@ func _dibujar() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if rune_data == null:
 		return
-	if rune_data.tags.has("agua"):
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if Materia.riega(m):
 		mojar()
-	elif rune_data.tags.has("calor"):
+	elif Materia.calienta(m):
 		secar()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null:
 		return false
-	return rune_data.tags.has("agua") or (rune_data.tags.has("calor") and mojado > 0.0)
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	return Materia.riega(m) or (Materia.calienta(m) and mojado > 0.0)
 
 
 func carried_element() -> RuneData:

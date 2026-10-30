@@ -156,6 +156,10 @@ func _pigmentos_bien() -> bool:
 			if String(p["efecto"]) != "":
 				return false
 			continue
+		if String(p["efecto"]) == "sin_recargo":         # F3: el Azul de Eco no es de ningún sello; quita el recargo de un glifo
+			if String(p.get("glifo", "")) == "" or float(p["dura"]) <= 0.0:
+				return false
+			continue
 		if not elementos.has(String(p["elemento"])) or not ["rebaja", "dano"].has(String(p["efecto"])) or float(p["valor"]) <= 0.0 or float(p["dura"]) <= 0.0:
 			return false
 	return true

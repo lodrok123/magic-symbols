@@ -306,14 +306,14 @@ func _poner_disolver(v: float) -> void:
 ## --- Contrato con los hechizos ---
 
 ## 28/10 · A2 (previsión): qué le haría este hechizo AHORA, sin tocarlo: «rompe» (el golpe que falta), «agrieta» (otro golpe de tierra, pero aún no cae) o «» (no le toca). `on_spell_hit` aplica esto.
-func reaccion_a(rune_data: RuneData) -> String:
-	if por_pulso or rune_data == null or roto_ya or not rune_data.tags.has("tierra"):
+func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
+	if por_pulso or rune_data == null or roto_ya or not Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data)):
 		return ""
 	return "rompe" if recibidos + 1 >= golpes else "agrieta"
 
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if reaccion_a(rune_data) == "":
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if reaccion_a(rune_data, hechizo) == "":
 		return
 	recibidos += 1
 	if recibidos >= golpes:
@@ -322,8 +322,8 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> vo
 	_agrietar(float(recibidos) / float(golpes))
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return not por_pulso and rune_data != null and not roto_ya and rune_data.tags.has("tierra")
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return not por_pulso and rune_data != null and not roto_ya and Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 ## Contrato con el pulso (solo la columna): cada frente que la toca la agrieta más; al `golpes`-ésimo cae. Devuelve true si la hizo caer.

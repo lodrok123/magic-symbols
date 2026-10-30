@@ -214,6 +214,8 @@ con todas las constantes nuevas a 0 el golden no cambia; con los números de Pab
 
 ### H5 · Glifos nuevos: perforar, retorno, buscar; después retardo (punto 5)
 
+**HECHO (30/10, diario 291):** `perforar` (ᚦ), `retorno` (ᛃ, sin PNG), `buscar` (ᚨ) y `retardo` en `Sigils.GLIFOS`, `GestureLibrary` (SIGILS, RECORDABLE, BIBLIA como «sello»), progresiones `todo` y `pruebas`; `HechizoVivo.espera` para el retardo del proyectil; `prueba_glifos_nuevos` (nueva) y `ACTIVABLES` en `prueba_ejecucion_combinaciones`. El 2.º glifo de retorno no hace nada; «dos golpes al mismo enemigo» pide ᚦ además de ᛃ (ver diario). Falta: muestras (Pablo), PNG de jera (Pipeline) y decidir cuándo se ganan.
+
 **Archivos:** `nucleo/sigils.gd` (`GLIFOS`, `GLYPHS`), `nucleo/gesture_library.gd` (`SIGILS`, `RECORDABLE`, `BIBLIA`), `nucleo/repertoire.gd`,
 `magia/lanzador_3d.gd` (`Receta3D.APARCADOS`), `art/ui/glyphs/*.png` (Pipeline), `magia/hechizo_vivo.gd` (solo si el proyectil ignora `retardo`).
 
@@ -250,6 +252,7 @@ sin `SCRIPT ERROR`; previsión (`prever`) los recoge (hoy `retorna` solo se prev
 glifo, la tinta prevista coincide con la que cobra `lanzar_ahora`, y los avisos del libro coinciden con los de `_preparar_pagina`. Captura para Pablo.
 
 ### H6 · Interacción material (punto 6) — gradual, el último
+**SEGUNDA ENTREGA HECHA (30/10, diario 290): los doce objetos restantes, el lanzador y la previsión por `Materia`; `MATERIAL_POR_TIPO` disponible sin usar.** Quedan `decidir_golpe` de `Combate3D` y sustituir los papeles por el material.
 **PRIMERA ENTREGA HECHA (29/10, diario 286): datos, Materia, contrato, `objetos_3d.gd`.** (Los `.tres` ya traían los cuatro campos físicos desde antes: el paso 1 era solo comprobarlo; el golden no cambia. El resto, archivo a archivo, en `docs/PENDIENTES.md` → «Hechizos · H6».)
 
 **Archivos:** `nucleo/materia.gd` (nueva, `Materia`), los 7 `*_rune.tres`, `objetos/objetos_3d.gd`, después uno a uno `barril`, `cuerda`, `compuerta`,

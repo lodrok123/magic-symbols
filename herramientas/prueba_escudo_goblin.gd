@@ -43,8 +43,44 @@ func _initialize() -> void:
 	await _mojado()
 	await _mano()
 	await _burbujas()
+	_botin()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## F1 (29/10, PLAN_BASE_DATOS): el escudo que ARDE hasta quemarse marca `escudo_quemado` en su goblin y, al morir, además de su tabla suelta los jirones (`goblin_escudo`); uno roto a golpes no.
+func _botin() -> void:
+	var g := _goblin(8, 5)
+	var e: Escudo3D = Escudo3D.equipar(g)
+	g.set_physics_process(false)
+	_ok("9.1 sin quemarse el escudo, el goblin no lleva jirones", not g.escudo_quemado)
+	var g2 := _goblin(8, 7)
+	var e2: Escudo3D = Escudo3D.equipar(g2)
+	g2.set_physics_process(false)
+	e2._consumir("roto")
+	_ok("9.2 un escudo roto a golpes no deja jirones", not g2.escudo_quemado)
+	e._consumir("quemado")
+	_ok("9.3 un escudo quemado marca `escudo_quemado` en su goblin", g.escudo_quemado)
+	Botin.tirada_forzada = 0.99
+	g._soltar_botin()
+	g2._soltar_botin()
+	Botin.tirada_forzada = -1.0
+	var jirones: int = 0
+	var jirones2: int = 0
+	for it in g.botin_soltado:
+		if String((it as Dictionary)["que"]) == "jiron_escudo":
+			jirones += int((it as Dictionary)["n"])
+	for it in g2.botin_soltado:
+		if String((it as Dictionary)["que"]) == "jiron_escudo":
+			jirones2 += int((it as Dictionary)["n"])
+	_ok("9.4 al morir suelta su tabla (oro 10) más un jirón de escudo; el del escudo roto, solo el oro", jirones == 1 and jirones2 == 0 and g.botin_soltado.size() == 2 and g2.botin_soltado.size() == 1, str(g.botin_soltado) + " " + str(g2.botin_soltado))
+	g.oro = 20
+	g2.oro = 0
+	Botin.tirada_forzada = 0.99
+	g._soltar_botin()
+	g2._soltar_botin()
+	Botin.tirada_forzada = -1.0
+	_ok("9.5 `oro` de la pieza sustituye al de la tabla (20) y con `oro = 0` no cae oro", int(g.botin_soltado[0]["n"]) == 20 and g2.botin_soltado.is_empty(), str(g.botin_soltado) + " " + str(g2.botin_soltado))
 
 
 func _goblin(cx: int, cz: int) -> Combate3D:

@@ -33,6 +33,10 @@ const UMBRAL_ALCANCE: float = 0.8               ## fracción de `distancia_max` 
 const DIBUJABLES: Array = ["linea_x", "linea_z", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso"]
 ## ᚱ no se puede dibujar (sin muestras en gesture_library.tres): no entra en las 165 y se prueba aparte.
 const RECETAS_RAIDO: Array = [["raido"], ["raido", "flecha"], ["raido", "barrera"], ["raido", "linea_x"], ["raido", "altura"], ["raido", "flecha", "barrera"], ["raido", "repeticion", "flecha"], ["raido", "pulso", "linea_x"]]
+## H5 (30/10): perforar, retorno, buscar y retardo tampoco tienen muestras todavía: sueltos, con flecha y con las otras dos combinaciones habituales (barrera, línea) se ejecutan aparte. Un retorno acaba en «retorno»
+## (o en un muro/golpe de la vuelta), no a su alcance: la comprobación del 80 % no se le pide.
+const ACTIVABLES: Array = [["perforar"], ["perforar", "flecha"], ["perforar", "perforar", "flecha"], ["retorno"], ["retorno", "flecha"], ["retorno", "flecha", "barrera"], ["buscar"], ["buscar", "flecha"], ["buscar", "buscar", "flecha"],
+	["retardo"], ["retardo", "flecha"], ["retardo", "barrera"], ["retardo", "linea_x"], ["retardo", "retardo", "flecha"], ["perforar", "buscar", "flecha"], ["retorno", "retardo", "flecha"]]
 const MAX_EJEMPLOS: int = 4
 
 var _fallos: int = 0
@@ -109,6 +113,9 @@ func _initialize() -> void:
 		for e in ELEMENTOS:
 			await _caso(runes[e], e, combo)
 	for combo in RECETAS_RAIDO:
+		for e in ELEMENTOS:
+			await _caso(runes[e], e, combo)
+	for combo in ACTIVABLES:
 		for e in ELEMENTOS:
 			await _caso(runes[e], e, combo)
 	_resumen(combos.size(), float(Time.get_ticks_msec() - t0) / 1000.0)
@@ -255,7 +262,13 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 		if vistas != h.copias:
 			_anota("copias vistas == copias (%s)" % ("proyectil" if rama == "proyectil" else "volumen"), "%s: copias %d, vistas %d" % [et, h.copias, vistas])
 	# --- solidez → SolidezV2 (una por manifestación) ---
-	if h.solidez > 0.0:
+	if h.solidez > 0.0 and h.retorna and rama == "proyectil":
+		# H5: la vuelta de un retorno acaba en «retorno», que no aplica la materia en el sitio (`_terminar`): la barrera de «retorno + flecha + barrera» no se levanta. Es lo que sale de los campos; se anota, no se arregla.
+		_aviso("retorno + barrera con flecha: el proyectil vuelve a la mano y no levanta la barrera (la vuelta no aplica su materia)", et)
+	elif h.solidez > 0.0 and h.retardo > 0.0 and rama != "proyectil":
+		# H5: con retardo la tanda (y su SolidezV2) nace tras el retardo, por un temporizador del árbol: esta prueba mira nada más lanzar. El nacimiento tardío lo mide `prueba_glifos_nuevos`.
+		_aviso("retardo + barrera (volumen): la barrera nace tras el retardo, no al lanzar (medido en prueba_glifos_nuevos)", et)
+	elif h.solidez > 0.0:
 		var esperadas: int = (r["vivos"] as Array).size() if rama == "proyectil" else 1
 		if int(r["solideces"]) < esperadas:
 			_anota("solidez → SolidezV2 (una por manifestación)", "%s: %d de %d" % [et, int(r["solideces"]), esperadas])
@@ -270,7 +283,7 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 				_anota("el proyectil acaba (no pasa de MAX_PASOS)", et)
 				continue
 			var recorrido_cas: float = hv.recorrido / Terreno3D.casilla
-			var obstaculo: bool = hv.motivo_fin == "muro" or hv.motivo_fin == "golpe"
+			var obstaculo: bool = hv.motivo_fin == "muro" or hv.motivo_fin == "golpe" or (h.retorna and hv.motivo_fin == "retorno")
 			if hv.motivo_fin == "suelo" and recorrido_cas < UMBRAL_ALCANCE * h.distancia_max and not obstaculo:
 				_anota("la flecha no cae al suelo antes del %.0f %% de su alcance en llano" % (UMBRAL_ALCANCE * 100.0), "%s: %.2f de %.0f casillas (suelo)" % [et, recorrido_cas, h.distancia_max])
 				var clave: String = "%s alcance %.0f m" % [elemento, h.distancia_max]
@@ -303,7 +316,7 @@ func _resumen(n_combos: int, seg: float) -> void:
 		"solidez → SolidezV2 (una por manifestación)", "ᚱ suelta su Pulso3D", "el proyectil acaba (no pasa de MAX_PASOS)",
 		"la flecha no cae al suelo antes del %.0f %% de su alcance en llano" % (UMBRAL_ALCANCE * 100.0), "la flecha recorre ≥ 80 % de su alcance",
 		"ᚷ cambia algo medible respecto al mismo hechizo sin ᚷ"]
-	_ok("se ejecutaron las %d × 6 + %d × 6 combinaciones" % [n_combos, RECETAS_RAIDO.size()], _ejecutados >= (n_combos + RECETAS_RAIDO.size()) * ELEMENTOS.size(), "%d" % _ejecutados)
+	_ok("se ejecutaron las %d × 6 + %d × 6 + %d × 6 combinaciones" % [n_combos, RECETAS_RAIDO.size(), ACTIVABLES.size()], _ejecutados >= (n_combos + RECETAS_RAIDO.size() + ACTIVABLES.size()) * ELEMENTOS.size(), "%d" % _ejecutados)
 	for crit in criterios:
 		var n: int = int(_tipos.get(crit, 0))
 		_ok("%s (en %d casos)" % [crit, n], n == 0, "" if n == 0 else "p. ej. " + str(_ejemplos.get(crit, [])))

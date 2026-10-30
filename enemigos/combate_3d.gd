@@ -210,6 +210,14 @@ var quemando: float = 0.0
 var envenenado: float = 0.0             ## HC4: s que le quedan de veneno (lo deja `Hechizo.veneno`); hiere `_dps_veneno` por segundo, en pulsos de TICK_VENENO
 var _dps_veneno: float = 0.0
 var _tick_veneno: float = 0.0
+## F4 (29/10): ESTADOS DEL MUNDO de la zona. `inmune_estados` = los que no le afectan (cada tipo pone los suyos: limo y chamán de veneno, el limo de fuego y el gólem de calor, el gólem de veneno).
+## `aguante` 0–100 como el de la jugadora (misma regla y misma tabla `estados_mundo.tsv`): en calor o frío baja, a 0 pierde `dano_s` de vida por segundo, fuera sube. Los goblins se cansan en el volcán.
+var inmune_estados: Array = []
+var aguante: float = EstadoZona3D.AGUANTE_MAX
+var _acum_dano_aguante: float = 0.0
+var _t_dano_aguante: float = 0.0
+var _t_brasero_e: float = 0.0
+var _brasero_cerca_e: bool = false
 var mojado: float = 0.0
 var congelado: float = 0.0
 var lento: float = 0.0
@@ -231,7 +239,12 @@ var duracion_hundimiento: float = 0.0    ## s que dura el hundimiento real (el c
 var quieto: bool = false                 ## R4 (17/10): sin IA (ni ve, ni persigue, ni ataca): los laboratorios lo ponen para tener dianas con vida. Sí recibe golpes, empuje y efectos
 ## C1 (28/10): false = el golpe cuerpo a cuerpo de la jugadora (`GolpeCuerpo`) le hace daño pero NO lo mueve (por masa). Lo pone a false el gólem de piedra (`Golem3D`, E3, 28/10).
 var empujable_golpe: bool = true
-var botin_goblin: bool = true           ## E3 (28/10): false = al morir no suelta los materiales del goblin (`BotinGoblin`: el colmillo); el gólem no los tiene
+var botin_goblin: bool = true           ## HEREDADO (E3, 28/10): desde F1 (29/10) lo que suelta cada enemigo lo dice su tabla (`tabla_botin`); el gólem tiene la suya (`golem`) y ya no hace falta apagar nada. Se conserva por si alguien lo lee
+## F1 (29/10, PLAN_BASE_DATOS): la tabla de `nucleo/datos/botin_tablas.tsv` que se tira al morir. Por defecto la del goblin; limo, chamán, gólem y elemental ponen la suya.
+@export var tabla_botin: String = "goblin"
+## Lo marca `Escudo3D` cuando su escudo termina de arder: entonces, al morir, se suma la tirada `goblin_escudo` (los jirones del escudo).
+var escudo_quemado: bool = false
+var botin_soltado: Array = []          ## lo que soltó al morir ([{que, n}]; las pruebas lo leen)
 var premia_tinta: bool = true           ## C2 (28/10): false = muñeco o diana que no da tinta por reacción (`Tinta.premiar_reaccion`)
 var arquero: bool = false               ## ataque a distancia (lo decide el modelo: goblin_archer*)
 var fijo: bool = false                  ## 24/10 (paso batido del Bosque 01 v01): arquero DE PUESTO. No persigue, no retrocede ni patrulla: dispara desde su sitio a quien entre en ARQUERO_FIJO_ALCANCE con línea libre, apuntando con adelanto (la flecha tarda ~1,5 s: sin él solo acierta al que está parado)
@@ -360,6 +373,8 @@ func _ready() -> void:
 	monitoring = false
 	monitorable = true
 	elemental = pj != null and pj.id == ID_ELEMENTAL
+	if elemental and not inmune_estados.has("veneno"):
+		inmune_estados.append("veneno")                 # no tiene carne que envenenar (ya lo ignoraba `golpe`)
 	es_goblin = pj != null and pj.id.begins_with("goblin")
 	if es_goblin:
 		pj.ritmo = RITMO_GOBLIN
@@ -1083,6 +1098,9 @@ func _efectos(delta: float) -> void:
 				return
 		if envenenado <= 0.0:
 			_dps_veneno = 0.0
+	_aguante_zona(delta)
+	if muerto:
+		return
 	var estaba_mojado: bool = mojado > 0.0
 	var estaba_congelado: bool = congelado > 0.0
 	mojado = maxf(0.0, mojado - delta)
@@ -1098,6 +1116,67 @@ func _efectos(delta: float) -> void:
 	_descanso = maxf(0.0, _descanso - delta)
 	if elemental:
 		_efectos_elemental(delta)
+
+
+## --- F4 · Estados del mundo: veneno, calor, frío ---
+
+## ¿No le afecta `estado` ("veneno", "calor", "frio")? (`inmune_estados`; el limo de fuego lo amplía.)
+func inmune_a(estado: String) -> bool:
+	return inmune_estados.has(estado)
+
+
+## Envenena `segundos` s a `dps` por segundo (lo hace la nube de veneno, `NubeVeneno3D`). false si es inmune o ya murió. Se queda con lo más largo y lo más fuerte, como `golpe`.
+func envenenar(dps: float, segundos: float) -> bool:
+	if muerto or inmune_a("veneno"):
+		return false
+	if envenenado <= 0.0:
+		texto("Veneno", Color(0.55, 0.9, 0.35), 0.28)
+	envenenado = maxf(envenenado, segundos)
+	_dps_veneno = maxf(_dps_veneno, dps)
+	return true
+
+
+## ¿Está protegido de `estado` ahora? Inmune, o la misma regla de la jugadora: calor → mojado (o la casilla mojada, o en el agua); frío → un brasero o fogata encendidos a ≤ 2 casillas.
+func protegido_de(estado: String) -> bool:
+	if inmune_a(estado):
+		return true
+	var c: Vector2i = Terreno3D.celda_de(position)
+	match estado:
+		"calor":
+			return mojado > 0.0 or Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA) or Terreno3D.es_agua(c)
+		"frio":
+			if _t_brasero_e <= 0.0:
+				_t_brasero_e = EstadoZona3D.PERIODO_BRASERO
+				_brasero_cerca_e = is_inside_tree() and EstadoZona3D.brasero_cerca(get_tree(), position, float(BD.estado_mundo("frio").get("brasero_casillas", 2)))
+			return _brasero_cerca_e
+	return false
+
+
+## El aguante del enemigo: un paso con los estados de su casilla (casi siempre vacíos: sale enseguida).
+func _aguante_zona(delta: float) -> void:
+	_t_brasero_e = maxf(0.0, _t_brasero_e - delta)
+	if aguante >= EstadoZona3D.AGUANTE_MAX and EstadoZona3D.actual == null:
+		return
+	var zona: Array = Mundo3D.estado_zona(Terreno3D.celda_de(position))
+	if zona.is_empty() and aguante >= EstadoZona3D.AGUANTE_MAX:
+		return
+	var prot: Dictionary = {}
+	for e in ["calor", "frio"]:
+		prot[e] = zona.has(e) and protegido_de(e)
+	var r: Dictionary = EstadoZona3D.paso_aguante(aguante, delta, zona, prot, mojado > 0.0 or Terreno3D.estados.tiene(Terreno3D.celda_de(position), EstadosSuelo3D.MOJADA))
+	aguante = float(r["valor"])
+	if float(r["dano"]) > 0.0:
+		_acum_dano_aguante += float(r["dano"])
+		_t_dano_aguante += delta
+		if _t_dano_aguante >= 0.5:
+			_t_dano_aguante = 0.0
+			var d: float = _acum_dano_aguante
+			_acum_dano_aguante = 0.0
+			_num_elemento = ""
+			receive_damage(d)
+	else:
+		_t_dano_aguante = 0.0
+		_acum_dano_aguante = 0.0
 
 
 ## --- A2 · El fuego pasa por contacto ---
@@ -1663,6 +1742,12 @@ func _ve(radio: float) -> bool:
 		return false
 	if _dist(jugador.position) > radio:
 		return false
+	# F4: en una zona con OSCURIDAD solo ve a la jugadora a ≤ `vista_enemigo_casillas` (3), salvo que su casilla esté iluminada (fuego, rayo, esporas: `Mundo3D.iluminar`).
+	if EstadoZona3D.actual != null:
+		var zona: Array = Mundo3D.estado_zona(Terreno3D.celda_de(position))
+		if zona.has("oscuridad") and not Mundo3D.iluminada(Terreno3D.celda_de(jugador.position)):
+			if _dist(jugador.position) > EstadoZona3D.numero(zona, "vista_enemigo_casillas") * Terreno3D.casilla:
+				return false
 	return Terreno3D.linea_libre(position, jugador.position)
 
 
@@ -2005,6 +2090,7 @@ func _preparar_elemental() -> void:
 	debil = "fuego"
 	resiste = ""
 	oro = ELEM_ORO
+	tabla_botin = "elemental"
 	_alto_base = altura
 	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
 		if n != null:
@@ -2350,10 +2436,7 @@ func _morir(ahogado: bool = false) -> void:
 	if ahogado:
 		_hundir_modelo(dur_hundir)
 		return
-	if oro > 0:
-		Botin3D.soltar(mundo, jugador, oro, position)
-	if not elemental and botin_goblin:
-		BotinGoblin.soltar(mundo, position)       # materiales (colmillo): docs/MATERIALES_CUEVA.md
+	_soltar_botin()
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
 	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)
@@ -2361,6 +2444,24 @@ func _morir(ahogado: bool = false) -> void:
 		if is_instance_valid(pj):
 			pj.queue_free()
 		queue_free())
+
+
+## F1 (29/10): el botín de este enemigo, por su tabla (`Botin.tirar(tabla_botin)`; más `goblin_escudo` si su escudo ardió). El oro de la tabla se sustituye por `oro` si la pieza lo fija
+## (`oro` > 0: el goblin inicial del Bosque da 20, el gato 15…) y se quita si `oro` es 0 (un muñeco sin recompensa). Lo llaman también los enemigos con muerte propia (limo).
+func _soltar_botin() -> void:
+	var lista: Array = Botin.tirar(tabla_botin)
+	if escudo_quemado:
+		lista.append_array(Botin.tirar("goblin_escudo"))
+	var final: Array = []
+	for it in lista:
+		var d: Dictionary = it as Dictionary
+		if String(d["que"]) == Botin.ORO:
+			if oro <= 0:
+				continue
+			d["n"] = oro
+		final.append(d)
+	botin_soltado = final
+	Botin.soltar(mundo, position, final, jugador)
 
 
 ## Pone el clip «Drowning» si el modelo lo trae Y el árbol de animación lo admite (el grafo reducido de los enemigos hoy no: ver el encargo del informe). Si no, la pose de

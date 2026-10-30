@@ -209,3 +209,35 @@ static func activate_all() -> void:
 
 static func reset_to_p0() -> void:
 	set_active(P0_ELEMENTS, P0_SIGILS)
+
+
+## --- Guardado (F2 de PLAN_BASE_DATOS, 29/10) ---
+## `paginas`: las páginas del libro preparadas, como lista de `{"elemento": "fuego", "glifos": ["flecha"]}` (elemento vacío = página sin preparar).
+## El que sabe de verdad qué hay en las páginas es el `Grimorio` (magia/, otro contexto): hasta que ofrezca algo como `a_paginas()` / `desde_paginas()`,
+## `Partida.guardar` toma las páginas de `extra["paginas"]` si el nivel las da, y si no, de aquí. Al cargar se dejan aquí para que el libro las lea.
+static var paginas: Array = []
+
+
+static func a_dic() -> Dictionary:
+	return {"sellos": Array(_elements), "glifos": Array(_sigils), "paginas": paginas.duplicate(true)}
+
+
+## Sustituye sellos (elementos) y glifos conocidos y las páginas. Una clave que falte deja ESO como está (el repertorio de partida lo pone el nivel).
+## Respeta la capacidad del libro (`max_elementos`, `max_glifos`) igual que `set_active`.
+static func desde_dic(d: Dictionary) -> void:
+	if d.has("sellos") or d.has("glifos"):
+		var el := PackedStringArray()
+		var gl := PackedStringArray()
+		for e in d.get("sellos", Array(_elements)):
+			el.append(String(e))
+		for g in d.get("glifos", Array(_sigils)):
+			gl.append(String(g))
+		set_active(el, gl)
+	if d.has("paginas"):
+		paginas = []
+		for p in d["paginas"]:
+			if p is Dictionary:
+				var gs: Array = []
+				for g in (p as Dictionary).get("glifos", []):
+					gs.append(String(g))
+				paginas.append({"elemento": String((p as Dictionary).get("elemento", "")), "glifos": gs})

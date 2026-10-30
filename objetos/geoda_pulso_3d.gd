@@ -33,6 +33,7 @@ var cerca: float = 0.0                  ## casillas: solo reacciona a los pulsos
 var pulsos_recibidos: int = 0           ## los que la cargaron (los que llegaron con la jugadora lejos no cuentan)
 var cargando: bool = false
 var explotada: bool = false
+var ceniza: Array = []                  ## F1: lo que soltó al explotar ([{que, n}]: `ceniza_geoda` 1–2, lo dice `reactivos_mapa.tsv`); las pruebas lo leen
 var golpeados: Array = []               ## los Combate3D que alcanzó (las pruebas)
 var rotos: Array = []                   ## lo que había en el grupo `explosionable` al alcance y recibió la explosión (las pruebas)
 var _mundo: Node = null
@@ -135,6 +136,11 @@ func _explotar() -> void:
 			n.call("recibir_explosion", punto)
 			rotos.append(n)
 	_golpear(punto)
+	# F1 (29/10): además del empujón, el polvo de la geoda queda en el suelo (`ceniza_geoda`).
+	var fila: Dictionary = Botin.fila_reactivo("geoda", "pulso")
+	ceniza = Botin.desde_texto(String(fila.get("botin", "ceniza_geoda:1-2")))
+	if get_parent() is Node3D:
+		Botin.soltar(get_parent(), Terreno3D.centro_de(celda, Terreno3D.y_pies(celda)), ceniza)
 	explota.emit(punto, RADIO)
 	Sfx.play(self, "explosion")
 	PulsoPantalla3D.lanzar_en(get_tree(), punto, 0.6, 0.3)

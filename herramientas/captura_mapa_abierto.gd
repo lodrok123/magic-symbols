@@ -46,13 +46,13 @@ func _escenario() -> void:
 	await avanzar_s(1.0)
 	_foto("jarron_1_entero")
 	if jarron != null:
-		Rompible3D.tirada_forzada = 0.99
+		Botin.tirada_forzada = 0.99
 		jarron.golpear(jugador.position)
 		await avanzar_s(0.22)
 		_foto("jarron_2_rompiendose")
 		await avanzar_s(1.0)
 		_foto("jarron_3_roto_con_botin")
-	Rompible3D.tirada_forzada = Rompible3D.PROB_FORZADA_NINGUNA
+	Botin.tirada_forzada = -1.0
 
 	# Transición: pisar la boca. El Bosque 01 v01 todavía no existe: hace de él la escena del Bosque 01.
 	Niveles.registrar("Bosque_01_v01", "res://escenas/PruebaBosque01.tscn")

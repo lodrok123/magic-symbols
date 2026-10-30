@@ -430,6 +430,15 @@ func ropa_puesta() -> Array[String]:
 	return Ropa3D.puestas(_modelo) if _modelo != null else ([] as Array[String])
 
 
+## F3: lo que dice la ropa puesta (su `efecto` en objetos.tsv, ver `Ropa3D.efecto_de`): ¿te hace inmune a `estado`? y ¿cuánta DEF suma?
+func inmune_a(estado: String) -> bool:
+	return Ropa3D.inmune_ids(ropa_puesta(), estado)
+
+
+func defensa_ropa() -> int:
+	return Ropa3D.defensa_ids(ropa_puesta())
+
+
 ## Chamán: el bastón (la pieza de Equipo3D con PiezaApoyada3D) agarrado a la mano (`true`, mientras dura trazar/clavar/lanzar) o plantado en el suelo (`false`, idle y andar). null si no lleva.
 func agarrar_baston(si: bool, mezcla: float = 0.15) -> void:
 	for p in _equipo:

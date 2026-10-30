@@ -69,6 +69,10 @@ static func crear(p_mundo: Node3D, pos: Vector3, p_elemento: String = "", p_gran
 	return l
 
 
+func _init() -> void:
+	inmune_estados = ["veneno"]               # F4: no tiene carne que envenenar
+
+
 func _ready() -> void:
 	add_to_group("combate3d")
 	add_to_group("goblins")
@@ -79,6 +83,7 @@ func _ready() -> void:
 	debil = ""
 	resiste = ""
 	oro = ORO_LIMO
+	tabla_botin = "limo"
 	vida_max = VIDA
 	defensa = Dano.DEF_LIMO                   # 29/10 (DANO_Y_TINTA): 0
 	health = VIDA
@@ -292,6 +297,11 @@ func _rotular() -> void:
 		_nombre_etiqueta.text = nombre
 	if _marca_debil != null:
 		_marca_debil.modulate = Pulso3D.color_de(elemento) if elemento != "" else Color.WHITE
+
+
+## F4: el limo de FUEGO tampoco sufre el calor (los de calor se curan en el volcán); el resto, lo de siempre.
+func inmune_a(estado: String) -> bool:
+	return super(estado) or (estado == "calor" and elemento == "fuego")
 
 
 ## ¿Qué elemento hay en su casilla? (las zonas de hechizos que siguen en el suelo, la casilla helada/electrificada/mojada, o algo que arde y lo toca). «» = ninguno.
@@ -573,6 +583,5 @@ func _morir(ahogado: bool = false) -> void:
 	if ahogado:
 		_hundir_modelo(1.4)                                  # aviso, reacción «hundido» (tinta C2) y la señal; sin modelo Pj3D se borra en el acto
 		return
-	if oro > 0 and jugador != null and is_instance_valid(jugador):
-		Botin3D.soltar(mundo, jugador, oro, position)
+	_soltar_botin()                                          # F1: la tabla `limo` (oro siempre + baba 70 %)
 	queue_free()

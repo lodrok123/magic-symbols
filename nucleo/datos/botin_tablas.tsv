@@ -1,0 +1,55 @@
+tabla	objeto	peso	min	max	nota	independiente
+jarron_bosque	nada	50	0	0	EoW: la mayoría de los jarrones salen vacíos	-
+jarron_bosque	oro	40	3	8		-
+jarron_bosque	pocion	10	1	1		-
+jarron_ruinas	nada	45	0	0		-
+jarron_ruinas	oro	35	6	14		-
+jarron_ruinas	pocion	5	1	1		-
+jarron_ruinas	esquirla_cristal	15	1	1		-
+jarron_cueva	nada	35	0	0		-
+jarron_cueva	oro	35	5	12		-
+jarron_cueva	pocion	5	1	1		-
+jarron_cueva	esquirla_cristal	25	1	1		-
+jarron_campamento	nada	40	0	0		-
+jarron_campamento	oro	45	6	12		-
+jarron_campamento	pocion	15	1	1		-
+jarron_santuario	oro	70	8	16		-
+jarron_santuario	pocion	30	2	2		-
+hierba_segada	nada	85	0	0	segar hierba: casi siempre nada (EoW)	-
+hierba_segada	baya	10	1	1		-
+hierba_segada	flor_silvestre	5	1	1		-
+tronco_golpe	nada	40	0	0	golpe F a un árbol; el mismo árbol no vuelve a dar hasta 30 s	-
+tronco_golpe	resina	40	1	1		-
+tronco_golpe	corteza	20	1	1		-
+seto_quemado	nada	70	0	0	al consumirse un seto, tronco o puerta goblin	-
+seto_quemado	carbon	30	1	1		-
+cofre_pequeno	oro	60	10	20		-
+cofre_pequeno	pocion	40	1	1		-
+jarron_clasico	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
+jarron_clasico	oro	40	3	8	-	-
+jarron_clasico	pocion	10	1	1	-	-
+jarron_atardecer	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
+jarron_atardecer	oro	40	4	9	-	-
+jarron_atardecer	pocion	10	1	1	-	-
+jarron_agua	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
+jarron_agua	oro	40	4	10	-	-
+jarron_agua	pocion	10	1	1	-	-
+jarron_fuego	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
+jarron_fuego	oro	40	5	11	-	-
+jarron_fuego	pocion	10	1	1	-	-
+jarron_hielo	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
+jarron_hielo	oro	40	5	12	-	-
+jarron_hielo	pocion	10	1	1	-	-
+goblin	oro	1	10	10	siempre; `oro` de la instancia (Combate3D.oro) lo sustituye si la pieza lo fija	si
+goblin	colmillo_goblin	0.6	1	1	tirada propia del 60 % (era BotinGoblin.PROB_COLMILLO)	si
+goblin_escudo	jiron_escudo	1	1	1	solo si el escudo ardió: lo decide Escudo3D (escudo_quemado), la tabla solo dice qué cae	si
+limo	oro	1	5	5	siempre	si
+limo	baba_limo	70	1	2	-	-
+limo	nada	30	0	0	-	-
+chaman	oro	1	15	15	siempre	si
+chaman	pluma_chaman	50	1	1	-	-
+chaman	nada	50	0	0	-	-
+golem	oro	1	40	40	siempre	si
+golem	polvo_golem	100	1	2	-	-
+elemental	oro	1	150	150	jefe: siempre	si
+elemental	savia_elemental	100	1	1	jefe: siempre	-

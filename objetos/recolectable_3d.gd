@@ -26,7 +26,9 @@ const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 ## 24/10 (tercera tanda): `alga_cueva` y `basalto_suelto` ya son piezas propias (antes `planta_agua` y `rocas_pequenas` teñidas con el color del objeto): llevan su color pintado y no se tiñen.
 const VISUAL_PLANTA: Dictionary = {"alga": "alga_cueva", "basalto": "basalto_suelto"}
 const VISUAL_PROVISIONAL: Array = []        ## las plantas cuyo modelo es un préstamo teñido (hoy ninguna)
-const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}   ## la roca suelta se lee mal a la altura de la cámara: se agranda
+const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}
+## F1 (29/10, PLAN_BASE_DATOS): el basalto cogido sobre roca que enfrió el HIELO es OBSIDIANA (`Lava3D.via_de_roca`). Se mira al estar disponible y al cogerlo.
+const OBJETO_ROCA_HIELO: String = "obsidiana"   ## la roca suelta se lee mal a la altura de la cámara: se agranda
 const CADA_CONDICION: float = 0.2      ## s entre mirada y mirada a `coge_si`
 const OBJETO_MADURO: String = "seta_resonante"   ## lo que da la seta madurada por un pulso
 const T_BRILLO_PULSO: float = 0.9      ## s que dura el brillo de la seta cuando le llega un pulso
@@ -90,15 +92,30 @@ func _ready() -> void:
 	set_process(not coge_si.is_empty())
 
 
+## La pieza del decorado que dibuja esta planta: la de siempre (alga, basalto, las tres setas por variante) o, para las plantas nuevas de F1 (musgo, helecho de cueva, seta pálida…), la que
+## dice la columna `modelo` de su objeto en `objetos.tsv`. "" = no hay pieza y se pone una primitiva (esfera del color del objeto).
+func _id_visual() -> String:
+	if VISUAL_PLANTA.has(planta):
+		return String(VISUAL_PLANTA[planta])
+	if planta == "seta":
+		return String(VARIANTES[variante])
+	var base: String = String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta))
+	var m: String = String(BD.objeto(base).get("modelo", ""))
+	return m if m != "" and ResourceLoader.exists("res://arte/piezas/%s.tscn" % m) else ""
+
+
 func _poner_visual() -> void:
-	var id: String = String(VISUAL_PLANTA.get(planta, VARIANTES[variante]))
+	var id: String = _id_visual()
 	var n: Node3D = null
-	if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
-		n = _mundo.call("_pieza", id) as Node3D
+	if id != "":
+		if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
+			n = _mundo.call("_pieza", id) as Node3D
+		if n == null:
+			var escena: PackedScene = load("res://arte/piezas/%s.tscn" % id) as PackedScene
+			if escena != null:
+				n = escena.instantiate() as Node3D
 	if n == null:
-		var escena: PackedScene = load("res://arte/piezas/%s.tscn" % id) as PackedScene
-		if escena != null:
-			n = escena.instantiate() as Node3D
+		n = _primitiva()
 	if n == null:
 		return
 	n.name = "visual"
@@ -110,6 +127,22 @@ func _poner_visual() -> void:
 			Paleta3D.tintar(n, Objetos.color(objeto))
 		n.scale *= float(ESCALA_VISUAL.get(planta, 1.0))
 	n.visible = disponible and not recogido_ya
+
+
+## Sin pieza de decorado: una esfera pequeña del color del objeto (la misma salida que el botín del suelo).
+func _primitiva() -> Node3D:
+	var raiz := Node3D.new()
+	var mi := MeshInstance3D.new()
+	var es := SphereMesh.new()
+	es.radius = 0.2
+	es.height = 0.3
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Objetos.color(objeto)
+	es.material = m
+	mi.mesh = es
+	mi.position = Vector3(0.0, 0.18, 0.0)
+	raiz.add_child(mi)
+	return raiz
 
 
 ## ¿Se cumple la condición ahora? Sin `coge_si` siempre; con ella y sin puzle que la evalúe, nunca.
@@ -126,9 +159,26 @@ func visible_en_mundo() -> bool:
 
 ## Muestra u oculta la planta según `disponible` (y la deja o no a tiro de los hechizos).
 func _aplicar_disponible() -> void:
+	_refrescar_roca()
 	if _visual != null:
 		_visual.visible = disponible and not recogido_ya
 	collision_layer = Lanzador3D.CAPA_REACTIVO if (disponible and not recogido_ya) else 0
+
+
+## El basalto sobre roca enfriada por HIELO es obsidiana. Mira las lavas del nivel (grupo `lava3d`); solo cambia el objeto mientras no se haya transformado ni cogido.
+func _refrescar_roca() -> void:
+	if planta != "basalto" or recogido_ya or not disponible:
+		return
+	var hielo: bool = false
+	if is_inside_tree():
+		for l in get_tree().get_nodes_in_group("lava3d"):
+			if is_instance_valid(l) and l.has_method("via_de_roca") and String(l.call("via_de_roca", celda)) == Lava3D.VIA_HIELO:
+				hielo = true
+	var nuevo: String = OBJETO_ROCA_HIELO if hielo else String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta))
+	if nuevo != objeto:
+		objeto = nuevo
+		if _visual != null and hielo:
+			Paleta3D.tintar(_visual, Objetos.color(objeto))
 
 
 ## --- Contrato con los hechizos ---
@@ -251,6 +301,7 @@ func _al_llegar_las_manos() -> void:
 func recoger() -> bool:
 	if recogido_ya or not puede_cogerse():
 		return false
+	_refrescar_roca()
 	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
 	if Estado.i().agregar(objeto, 1) <= 0:
 		if lanz != null and lanz.has_method("avisar"):

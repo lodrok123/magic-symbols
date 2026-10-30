@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "meta": {
+    "ranura": 1,
+    "guardado_en": "2026-10-29T18:40:00",
+    "segundos_jugados": 5420,
+    "punto": "bosque1.s2.fogata"
+  },
+  "jugadora": {
+    "mapa_actual": "Bosque_01",
+    "entrada": "fogata_s2",
+    "posicion": [12.5, 0.0, 34.0],
+    "vida": 85.0,
+    "aguante": 100.0,
+    "ropa_puesta": ["capa", "tunica"],
+    "consumible_equipado": "pocion",
+    "opciones": {"asistencia": 0.5, "trazo_recto": true, "lanzamiento_inteligente": false}
+  },
+  "tinta": {
+    "actual": 62.0,
+    "frascos": 2,
+    "pigmento": "azul_arcano",
+    "pigmento_s": 0.0
+  },
+  "bolsa": {
+    "oro": 143,
+    "capacidad": 12,
+    "items": {
+      "pocion": 2,
+      "baya": 7,
+      "seta_asada": 3,
+      "colmillo_goblin": 4,
+      "resina": 2,
+      "capa": 1,
+      "tunica": 1,
+      "llave": 1
+    }
+  },
+  "mejoras": {
+    "vida_max": 1,
+    "capacidad": 1,
+    "tinta_secreto": 2,
+    "huecos_glifo": 1
+  },
+  "grimorio": {
+    "sellos": ["fuego", "agua", "tierra"],
+    "glifos": ["flecha", "barrera", "linea"],
+    "paginas": [
+      {"elemento": "fuego", "glifos": ["flecha"]},
+      {"elemento": "agua", "glifos": ["barrera", "linea"]},
+      {"elemento": "", "glifos": []}
+    ]
+  },
+  "recetas_conocidas": ["pocion", "infusion_brezo", "tonico_tinta", "vida_1"],
+  "estados": {
+    "bosque1.s1.cofre_01": "abierto",
+    "bosque1.s2.puerta_02": "desbloqueada",
+    "bosque1.s2.trazo_03": "recogido",
+    "bosque1.s3.jefe_01": "derrotado",
+    "bosque1.rompible.jarron_7": "roto",
+    "bosque1.s1.colmena_a": "caida",
+    "cueva.c1.estatuas": "resuelto"
+  },
+  "flags": {
+    "bosque1.s1.aprendio_magia_fuego": true,
+    "bosque1.s3.antorchas": 3,
+    "bosque1.rotulo.claro_visto": true
+  },
+  "mundo": {
+    "Bosque_01": {
+      "tormenta": {"activo": false, "quedan_s": 0.0},
+      "nubes_veneno": []
+    }
+  },
+  "misiones": {
+    "seguida": "guardabosques_goblins",
+    "orden": ["tutorial_fuego", "guardabosques_goblins"],
+    "misiones": {
+      "tutorial_fuego": {"estado": "completa", "objetivos": [{"texto": "Enciende las antorchas", "hecho": true}]},
+      "guardabosques_goblins": {"estado": "activa", "objetivos": [{"texto": "Derrota a 3 goblins", "hecho": false, "n": 1}]}
+    }
+  }
+}

@@ -905,6 +905,9 @@ func eventos_pendientes(consumir: bool = false) -> Array:
 
 func paso(delta: float) -> void:
 	_t += delta
+	if _t - _ritmo_hielo_t > 0.5:
+		_ritmo_hielo_t = _t
+		_ritmo_hielo_cache.clear()
 	if not _eventos.is_empty():
 		_podar_eventos()
 	_acumulado = minf(_acumulado + delta, PASO_FIJO * float(MAX_PASOS))
@@ -919,6 +922,22 @@ func paso(delta: float) -> void:
 		n_pasos += 1
 	if n_pasos > 0:
 		_revisar_casillas()
+
+
+## F4 (29/10): Callable(celda: Vector2i) -> float, cuánto dura el hielo en esa casilla frente a lo normal (`Mundo3D` conecta `EstadoZona3D.factor_hielo_dura`: calor 1/3, frío ×100). Vacío = 1.
+var factor_hielo_dura: Callable = Callable()
+var _ritmo_hielo_cache: Dictionary = {}          ## casilla -> ritmo del reloj del hielo (1 / factor); se vacía cada medio segundo
+var _ritmo_hielo_t: float = 0.0
+
+
+## A qué ritmo corre el reloj del trocito `i` de hielo (1 = normal, 3 = se deshace en un tercio).
+func _ritmo_hielo(i: int) -> float:
+	if not factor_hielo_dura.is_valid():
+		return 1.0
+	var c := Vector2i((i % w) / sub, (i / w) / sub)
+	if not _ritmo_hielo_cache.has(c):
+		_ritmo_hielo_cache[c] = 1.0 / maxf(float(factor_hielo_dura.call(c)), 0.01)
+	return float(_ritmo_hielo_cache[c])
 
 
 func _paso(dt: float) -> void:
@@ -938,7 +957,7 @@ func _paso(dt: float) -> void:
 			if cerrado[i] == 1:
 				continue
 			if helado[i] == 1:
-				hielo_t[i] -= dt
+				hielo_t[i] -= dt * _ritmo_hielo(i)
 				if hielo_t[i] <= 0.0:
 					_soltar_trozo(i)            # se acabó el tiempo: vuelve a ser agua, la misma de antes
 				else:

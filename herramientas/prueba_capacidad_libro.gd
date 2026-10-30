@@ -77,7 +77,7 @@ func _init() -> void:
 	libro.set("pintados", [])
 	libro.call("_draw_legend")
 	p = libro.get("pintados")
-	_ok(_cuenta(p, true) == 6 and _cuenta(p, false) == _con_dibujo() and libro.get("cerradas") == [0, 0], "pruebas: 6 elementos y todos los glifos con dibujo pintados, ninguna casilla cerrada (%d, %d, %s)" % [_cuenta(p, true), _cuenta(p, false), str(libro.get("cerradas"))])
+	_ok(_cuenta(p, true) == 6 and _cuenta(p, false) == mini(_con_dibujo(), CASILLAS_GLIFO_LAMINA) and libro.get("cerradas") == [0, 0], "pruebas: 6 elementos y los glifos con dibujo que caben en la lámina pintados, ninguna casilla cerrada (%d, %d, %s)" % [_cuenta(p, true), _cuenta(p, false), str(libro.get("cerradas"))])
 
 	# 4 · La paleta de pruebas quita el tope
 	Lanzador3D.aplicar_progresion("bosque")
@@ -112,6 +112,11 @@ func _ok(bien: bool, texto: String) -> void:
 
 
 ## Glifos activos que la leyenda puede pintar (los que tienen dibujo), hasta la capacidad.
+## Casillas de glifo de la lámina «bosque» (la rejilla de la página derecha). H5 (30/10): con perforar, buscar y retardo el kit «pruebas» tiene 10 glifos con dibujo (retorno aún no tiene PNG): la 10.ª no cabe en la
+## lámina y no se pinta (solo ocurre en los bancos de pruebas; los kits de historia están limitados a 6). Pendiente del Pipeline: una lámina con más casillas o paginar la chuleta.
+const CASILLAS_GLIFO_LAMINA: int = 9
+
+
 func _con_dibujo() -> int:
 	var n: int = 0
 	for g in Repertoire.active_sigils():

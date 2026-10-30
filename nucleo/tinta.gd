@@ -60,7 +60,7 @@ const REGEN: float = 3.0                      ## tinta/s fuera de combate: llena
 const REGEN_COMBATE: float = 1.0              ## con enemigos encima, a un tercio
 const ESPERA_TRAS_GASTAR: float = 1.2         ## s sin recuperar justo después de lanzar (si no, el coste real sería menor)
 const UMBRAL_BAJA: float = 0.25               ## por debajo se pinta en rojo ("baja tinta")
-const FRASCOS_MAX: int = 3                    ## huecos de frasco de reserva
+const FRASCOS_MAX: int = 3                    ## huecos de frasco de reserva DE PARTIDA. Con la mejora `frascos_tinta` hay más: usa `frascos_max()` / `maxima_frascos()`
 const FRASCOS_INICIALES: int = 3              ## frascos llenos con los que empieza la partida
 
 ## TINTA POR REACCIÓN (C2, 28/10, decisión de Pablo): +20 de tinta cada vez que provocas un COMBO contra un enemigo (lo bastante para no ignorarlo, poco para
@@ -94,6 +94,9 @@ const PIGMENTOS: Dictionary = {
 	"ocre_tumulo": {"nombre": "Ocre del Túmulo", "color": Color(0.80, 0.58, 0.22), "zona": "tumulo", "elemento": "tierra", "efecto": "rebaja", "valor": 0.5, "dura": PIGMENTO_DURA},
 	"verde_musgo": {"nombre": "Verde de Musgo", "color": Color(0.38, 0.72, 0.30), "zona": "bosque_humedo", "elemento": "viento", "efecto": "rebaja", "valor": 0.5, "dura": PIGMENTO_DURA},
 	"ambar_volcanico": {"nombre": "Ámbar Volcánico", "color": Color(0.95, 0.55, 0.12), "zona": "volcan", "elemento": "rayo", "efecto": "dano", "valor": 1.5, "dura": PIGMENTO_DURA},
+	# F3 (29/10): el quinto pigmento, que sale de la síntesis (receta `pigmento_eco`, objeto `pigmento_eco`). Efecto «sin_recargo»: durante `dura` s el glifo `glifo` (ᚱ, id `raido`) no paga su
+	# recargo del 25 % de tinta. Aquí solo está el DATO y la pregunta `quita_recargo(glifo)`; quien calcula el coste (`Dano.tinta`, Hechizos) tiene que llamarla. `elemento` va vacío (no es de ningún sello).
+	"azul_eco": {"nombre": "Azul de Eco", "color": Color(0.42, 0.72, 1.0), "zona": "cueva", "elemento": "", "efecto": "sin_recargo", "glifo": "raido", "valor": 1.0, "dura": PIGMENTO_DURA},
 }
 const PIGMENTO_BASE: String = "azul_arcano"
 
@@ -109,11 +112,31 @@ var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento act
 func _init() -> void:
 	maxima = maxima_calculada()
 	actual = maxima
-	frascos = clampi(Estado.i().frascos_tinta, 0, FRASCOS_MAX)       # los frascos viajan con la partida (otra sala, reaparecer sin descanso)
+	frascos = clampi(Estado.i().frascos_tinta, 0, frascos_max())       # los frascos viajan con la partida (otra sala, reaparecer sin descanso)
 
 
 func _est() -> Estado:
 	return partida if partida != null else Estado.i()
+
+
+## F3: los huecos de frasco que hay ahora = los de partida + el nivel de la mejora `frascos_tinta` (3 → 6). Estático: lee el `Estado` de la partida (o el que se le pase).
+static func frascos_max(e: Estado = null) -> int:
+	return FRASCOS_MAX + Mejoras.nivel("frascos_tinta", e)
+
+
+func maxima_frascos() -> int:
+	return frascos_max(_est())
+
+
+## F3: lo que deja un frasco en la barra al gastarse = `maxima × (1 + 0,1 × nivel de tinta_frasco)`. Por encima de `maxima` es un colchón: se gasta primero y no se regenera.
+func tinta_por_frasco() -> float:
+	return maxima * (1.0 + Mejoras.valor("tinta_frasco", _est()))
+
+
+## F3: ¿el pigmento activo quita el recargo del glifo `glifo`? (Azul de Eco con ᚱ). Lo pregunta quien calcula el coste de un hechizo (Hechizos).
+func quita_recargo(glifo: String) -> bool:
+	var p: Dictionary = PIGMENTOS[pigmento]
+	return String(p["efecto"]) == "sin_recargo" and String(p.get("glifo", "")) == glifo
 
 
 ## Lo que sube la barra cada jefe / cada secreto: el reparto de lo ganable (TOTAL - INICIAL) entre cuántos hay.
@@ -253,7 +276,7 @@ func gastar(forma: String, coste: float = -1.0, elemento: String = "") -> bool:
 ## Un frasco lleno se vacía y la barra se rellena entera (la barra pasa a `maxima`).
 func _vaciar_frasco() -> void:
 	frascos -= 1
-	actual = maxima
+	actual = tinta_por_frasco()
 	_guardar_frascos()
 	frasco_gastado.emit()
 	cambiada.emit()
@@ -264,13 +287,13 @@ func _guardar_frascos() -> void:
 
 
 func frascos_vacios() -> int:
-	return FRASCOS_MAX - frascos
+	return maxima_frascos() - frascos
 
 
 ## Recarga `n` frascos vacíos (lo hace el Tónico de tinta con 1). Devuelve cuántos recargó de verdad (0 si ya estaban todos llenos).
 func recargar_frasco(n: int = 1) -> int:
 	var antes: int = frascos
-	frascos = clampi(frascos + n, 0, FRASCOS_MAX)
+	frascos = clampi(frascos + n, 0, maxima_frascos())
 	if frascos != antes:
 		_guardar_frascos()
 		cambiada.emit()
@@ -292,7 +315,7 @@ func rellenar_barra() -> void:
 ## Fuente, descanso o reaparecer: la barra Y los frascos, llenos.
 func rellenar() -> void:
 	recuperar(maxima)
-	recargar_frasco(FRASCOS_MAX)
+	recargar_frasco(maxima_frascos())
 
 
 ## Regeneración natural. `en_combate` la frena a un tercio.
@@ -358,3 +381,22 @@ func premiar_reaccion(enemigo: Object, tipo: String) -> float:
 	PlayLog.event("tinta_reaccion", {"tipo": tipo, "enemigo": String(enemigo.get("nombre")) if enemigo.get("nombre") != null else str(enemigo.name),
 		"tinta": snappedf(ganada, 0.1)})
 	return ganada
+
+
+## --- Guardado (F2 de PLAN_BASE_DATOS, 29/10) ---
+## Es la sección `tinta` del archivo de partida. `maxima` NO se guarda: sale de las mejoras (`maxima_calculada`), que `Partida` carga antes.
+func a_dic() -> Dictionary:
+	return {"actual": actual, "frascos": frascos, "pigmento": pigmento, "pigmento_s": _t_pigmento}
+
+
+## Sustituye el estado. Claves que falten → barra llena, frascos de partida y pigmento base. Un pigmento que ya no exista vuelve al base.
+func desde_dic(d: Dictionary) -> void:
+	maxima = maxima_calculada()
+	actual = clampf(float(d.get("actual", maxima)), 0.0, maxima)
+	frascos = clampi(int(d.get("frascos", FRASCOS_INICIALES)), 0, maxima_frascos())
+	_guardar_frascos()
+	var p: String = String(d.get("pigmento", PIGMENTO_BASE))
+	pigmento = p if PIGMENTOS.has(p) else PIGMENTO_BASE
+	_t_pigmento = maxf(0.0, float(d.get("pigmento_s", 0.0))) if pigmento != PIGMENTO_BASE else 0.0
+	_espera = 0.0
+	cambiada.emit()

@@ -10,6 +10,12 @@ extends RefCounted
 ##   tonico_tinta       Tónico de tinta    recarga 1 frasco de reserva de tinta vacío (`Tinta.recargar_frasco`); inútil con los frascos llenos
 ##   balsamo_protector  Bálsamo protector  durante 20 s el PRÓXIMO golpe se absorbe entero (`absorber`, lo llama `Jugador3D.recibir_dano`); si no llega, se pierde
 ##   infusion_brezo     Infusión de brezo  regenera 3 de vida por segundo durante 12 s (36 en total), a golpes de `TICK_REGEN_S`; un golpe no la corta
+## F3 (29/10): los otros consumibles de la tabla (`objetos.tsv`, uso = equipar) por la columna `efecto`, SIN un `match` por id:
+##   pocion_grande      cura 80 (lo bebe el jugador igual que la poción: `usar_pocion(id)`)      antidoto  `cura_estado=veneno;inmune=veneno;dura=60`
+##   frescor / abrigo   `resiste=calor|frio;dura=90`
+## Quitar un estado (`cura_estado`) llama a `Jugador3D.curar_estado`. Las protecciones (`inmune`, `resiste`) viven en `inmunidades` / `resistencias`: estado -> segundos
+## que quedan, y `actualizar(delta)` las cuenta atrás. Son ESTÁTICAS (un solo reloj para toda la partida, como `Estado`): F4 las lee con `Consumibles.protegido(estado)` y
+## `Consumibles.resiste(estado)` desde donde haga falta (el calor, el frío, el veneno). Los pigmentos (uso = pigmento) NO pasan por aquí: ver `aplicar_pigmento`.
 ## Usar uno gasta una unidad de la mochila (`Estado.quitar`); si no se puede (vida llena, frascos llenos, ya activo...) NO se gasta y se dice por qué.
 ## El equipado vive en `Estado.consumible_equipado` (viaja con la partida). Al acabarse, el equipado pasa solo al siguiente que quede; si no queda ninguno
 ## se queda el último a cero (círculo apagado) hasta que consigas más.
@@ -28,6 +34,9 @@ var escudo_t: float = 0.0                         ## s que le quedan al bálsamo
 var regen_t: float = 0.0                          ## s que le quedan a la infusión
 var regen_tasa: float = 0.0                       ## vida por segundo de la infusión activa
 var _acum: float = 0.0
+## F3: estado ("veneno", "calor", "frio") -> segundos que le quedan a la protección. `inmunidades` = no te afecta; `resistencias` = lo aguantas (lo que decida F4: más tiempo, menos daño).
+static var inmunidades: Dictionary = {}
+static var resistencias: Dictionary = {}
 
 
 func _est() -> Estado:
@@ -89,7 +98,7 @@ func motivo_no(id: String) -> String:
 	if cantidad(id) <= 0:
 		return "No te quedan"
 	match id:
-		"pocion":
+		"pocion", "pocion_grande":
 			if _vida() >= _vida_max() - 0.01:
 				return "Ya tienes la vida llena"
 		"infusion_brezo":
@@ -99,11 +108,19 @@ func motivo_no(id: String) -> String:
 				return "Ya estás regenerando"
 		"tonico_tinta":
 			var t: Tinta = jugador.get("tinta") as Tinta
-			if t == null or t.frascos >= Tinta.FRASCOS_MAX:
+			if t == null or t.frascos >= t.maxima_frascos():
 				return "Todos los frascos están llenos"
 		"balsamo_protector":
 			if escudo_t > 0.0:
 				return "Ya llevas el bálsamo puesto"
+		_:
+			var ef: Dictionary = Objetos.efecto(id)
+			if ef.has("inmune") and protegido(String(ef["inmune"])) and not ef.has("cura_estado"):
+				return "Ya estás protegido"
+			if ef.has("resiste") and resiste(String(ef["resiste"])):
+				return "Ya aguantas eso"
+			if ef.has("inmune") and ef.has("cura_estado") and protegido(String(ef["inmune"])) and not tiene_estado(String(ef["cura_estado"])):
+				return "Ya estás protegido"
 	return ""
 
 
@@ -124,9 +141,11 @@ func usar(id: String) -> bool:
 		return false
 	var ef: Dictionary = Objetos.efecto(id)
 	match id:
-		"pocion":
+		"pocion", "pocion_grande":
 			# Beber lo hace el jugador (animación, 1,5 s, cura y gasta la poción al terminar). Si está ocupado (rodando, lanzando...) dice que no.
-			if not bool(jugador.call("usar_pocion")):
+			# La poción de siempre se llama sin argumentos (los jugadores de mentira de las pruebas no los tienen); la grande dice cuál es.
+			var bebe: bool = bool(jugador.call("usar_pocion")) if id == "pocion" else bool(jugador.call("usar_pocion", id))
+			if not bebe:
 				aviso.emit("Ahora no puedes beber", COLOR_NO)
 				return false
 			cambiado.emit()
@@ -145,8 +164,70 @@ func usar(id: String) -> bool:
 			regen_tasa = float(ef.get("tasa", 3.0))
 			_acum = 0.0
 			aviso.emit("Infusión de brezo: te regeneras", Color(0.85, 0.65, 1.0))
+		_:
+			if not _efecto_generico(id, ef):
+				aviso.emit("Eso no se usa así", COLOR_NO)
+				return false
 	_tras_gastar(id)
 	return true
+
+
+## Los consumibles de la tabla que no tienen caso propio: `cura_estado`, `inmune` y `resiste` (con `dura`). Gasta la unidad. false si el efecto no trae nada de eso.
+func _efecto_generico(id: String, ef: Dictionary) -> bool:
+	if not (ef.has("cura_estado") or ef.has("inmune") or ef.has("resiste")):
+		return false
+	_est().quitar(id)
+	var dura: float = float(ef.get("dura", 60.0))
+	if ef.has("cura_estado"):
+		curar_estado(String(ef["cura_estado"]))
+	if ef.has("inmune"):
+		inmunidades[String(ef["inmune"])] = dura
+	if ef.has("resiste"):
+		resistencias[String(ef["resiste"])] = dura
+	aviso.emit("%s: %d s" % [String(Objetos.DATOS.get(id, {}).get("nombre", id)), int(dura)], Color(0.65, 0.95, 0.7))
+	return true
+
+
+## Quita el estado (hoy solo el veneno) a la jugadora. El gancho de F4: si el jugador tiene `curar_estado`, lo llama. Devuelve si había algo que quitar.
+func curar_estado(estado: String) -> bool:
+	if jugador != null and jugador.has_method("curar_estado"):
+		return bool(jugador.call("curar_estado", estado))
+	return false
+
+
+## ¿Tiene la jugadora ese estado ahora? (para no gastar un antídoto en balde si además ya está protegida).
+func tiene_estado(estado: String) -> bool:
+	return jugador != null and jugador.has_method("tiene_estado") and bool(jugador.call("tiene_estado", estado))
+
+
+## ¿Es inmune a `estado` ahora mismo por un consumible? (la ropa se pregunta aparte: `Ropa3D.inmune_ids`).
+static func protegido(estado: String) -> bool:
+	return float(inmunidades.get(estado, 0.0)) > 0.0
+
+
+## ¿Aguanta `estado`? Vale una resistencia o una inmunidad (quien es inmune también aguanta).
+static func resiste(estado: String) -> bool:
+	return float(resistencias.get(estado, 0.0)) > 0.0 or protegido(estado)
+
+
+## Segundos que le quedan a la protección contra `estado` (la mayor de las dos; 0 si ninguna).
+static func tiempo_proteccion(estado: String) -> float:
+	return maxf(float(inmunidades.get(estado, 0.0)), float(resistencias.get(estado, 0.0)))
+
+
+static func limpiar_protecciones() -> void:
+	inmunidades = {}
+	resistencias = {}
+
+
+## Gasta una unidad de un objeto de uso «pigmento» y activa su pigmento en la tinta de la jugadora. Mismo contrato que `Sintesis.aplicar_pigmento`.
+func aplicar_pigmento(objeto: String) -> bool:
+	var t: Tinta = jugador.get("tinta") as Tinta if jugador != null else null
+	var ok: bool = Sintesis.aplicar_pigmento(objeto, t, _est())
+	if ok:
+		aviso.emit("Pigmento: %s" % String(Objetos.DATOS.get(objeto, {}).get("nombre", objeto)), Color(0.6, 0.8, 1.0))
+		cambiado.emit()
+	return ok
 
 
 func _tras_gastar(id: String) -> void:
@@ -180,6 +261,15 @@ func absorber(cant: float) -> bool:
 	return true
 
 
+static func _contar_atras(d: Dictionary, delta: float) -> void:
+	for k in d.keys():
+		var t: float = float(d[k]) - delta
+		if t <= 0.0:
+			d.erase(k)
+		else:
+			d[k] = t
+
+
 func escudo_activo() -> bool:
 	return escudo_t > 0.0
 
@@ -190,6 +280,8 @@ func regen_activa() -> bool:
 
 ## Avanza el reloj del bálsamo y de la infusión (cada `TICK_REGEN_S` cae un trozo de vida con `curar`).
 func actualizar(delta: float) -> void:
+	_contar_atras(inmunidades, delta)
+	_contar_atras(resistencias, delta)
 	if escudo_t > 0.0:
 		escudo_t = maxf(0.0, escudo_t - delta)
 		if escudo_t <= 0.0:

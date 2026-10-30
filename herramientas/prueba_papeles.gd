@@ -77,8 +77,9 @@ func _igual(r: Reactivo3D, esperados: Array) -> bool:
 
 func _tabla() -> void:
 	var madera: Array = [Reactivo3D.P_INFLAMABLE, Reactivo3D.P_PROPAGA_LLAMA, Reactivo3D.P_APAGA]
-	for tipo in ["seto", "tronco", "telarana", "puerta_goblin", "torre_goblin"]:
+	for tipo in ["seto", "tronco", "puerta_goblin", "torre_goblin"]:
 		_ok("1 %s: inflamable, propaga la llama y se deja apagar (y no es mojable de serie)" % tipo, _igual(_nuevo(tipo), madera))
+	_ok("1 telarana: lo de la madera y, desde F1, helable (el hielo la hiela y da seda)", _igual(_nuevo("telarana"), madera + [Reactivo3D.P_HELABLE]))
 	for tipo in ["fogata", "brasero"]:
 		_ok("1 %s: fuente de fuego que se deja apagar" % tipo, _igual(_nuevo(tipo), [Reactivo3D.P_FUENTE_FUEGO, Reactivo3D.P_APAGA]))
 	_ok("1 totem: activable", _igual(_nuevo("totem", "fuego"), [Reactivo3D.P_ACTIVABLE]))

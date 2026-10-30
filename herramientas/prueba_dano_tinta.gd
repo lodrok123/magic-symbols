@@ -179,7 +179,7 @@ func _pura_tinta_h4() -> void:
 		var t: Dictionary = (Sigils.GLIFOS[k] as Dictionary).get("tinta", {})
 		if t.is_empty() or float(t.get("por_glifo", -1.0)) != 0.0:
 			aportes_a_cero = false
-	_ok("4b los 10 glifos llevan «tinta» con por_glifo = 0", aportes_a_cero and Sigils.GLIFOS.size() == 10)
+	_ok("4b los 14 glifos (10 + los 4 de H5) llevan «tinta» con por_glifo = 0", aportes_a_cero and Sigils.GLIFOS.size() == 14)
 	_ok("4b K_COPIA, K_HIJO y K_PERIODICO valen 0 y el continuo se decide como siempre", Dano.K_COPIA == 0.0 and Dano.K_HIJO == 0.0 and Dano.K_PERIODICO == 0.0 and not Dano.CONTINUO_POR_HECHIZO)
 	# tabla con las constantes del juego (todo a 0): receta -> tinta
 	var tabla: Array = [

@@ -91,6 +91,7 @@ var _p_previa: Vector3 = Vector3.ZERO     ## dónde estaba al empezar el paso (e
 var edad: float = 0.0                      ## s de este tramo
 var volviendo: bool = false
 var golpes_dados: int = 0                  ## objetos que ha golpeado en este tramo (perfora)
+var espera: float = 0.0                    ## H5: s de `retardo` que le quedan a un proyectil antes de ponerse en marcha (nace quieto en la mano; `paso` los descuenta; 0 = ya en marcha). El VFX y las pruebas lo leen
 var rebotes_usados: int = 0
 var golpeados: Dictionary = {}             ## instance_id -> true: a quién ya golpeó en este tramo (un hijo hereda los del padre)
 var eventos_vistos: Array = []             ## nombres de los eventos disparados, en orden (las pruebas y el lab los leen)
@@ -582,7 +583,7 @@ func camino(origen: Vector2, d: Vector2, viaja: float, rebotes: int, atraviesa: 
 		return res
 	var inicio := Vector3(origen.x, Lanzador3D.y_pies(Lanzador3D.celda_de(Vector3(origen.x, 0.0, origen.y))) + Terreno3D.ALTO_NIVEL * 0.5, origen.y)
 	var altura_antes: int = lanz.altura
-	var tr: Dictionary = lanz.trazar(inicio, Vector3(d.x, 0.0, d.y), viaja * cas, 0, data, atraviesa, rebotes, false)
+	var tr: Dictionary = lanz.trazar(inicio, Vector3(d.x, 0.0, d.y), viaja * cas, 0, data, atraviesa, rebotes, false, h)
 	lanz.altura = altura_antes
 	var recorrido: float = 0.0
 	var siguiente: float = cas
@@ -1196,7 +1197,9 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3
 	if is_inside_tree():
 		global_position = p
 	if seco:
-		return 1
+		return 1                                       # la previsión no espera: simula desde que arranca
+	if h.retardo > 0.0 and h.profundidad == 0:
+		espera = h.retardo                             # H5: nace quieto en el origen y arranca a los `retardo` s (un hijo no repite la espera de su padre)
 	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 	if h.estela != "":
 		lanz.vfx_hechizo.emit(h.estela, p, elemento)
@@ -1209,6 +1212,8 @@ func _physics_process(delta: float) -> void:
 
 ## El factor de este fotograma (en el punto medio del paso, para que lo recorrido cuadre) y avanza el reloj del arranque.
 func _arranque(delta: float) -> float:
+	if espera > 0.0:
+		return 1.0                                     # H5: esperando su `retardo`: el arranque suave empieza cuando se pone en marcha
 	if volviendo or not activo or t_arranque >= Sensacion3D.T_ARRANQUE or v.length() < 0.01:
 		t_arranque = maxf(t_arranque, Sensacion3D.T_ARRANQUE) if v.length() >= 0.01 else t_arranque
 		factor_arranque = 1.0
@@ -1226,6 +1231,12 @@ func _process(delta: float) -> void:
 func paso(dt: float) -> void:
 	if not activo or dt <= 0.0:
 		return
+	if espera > 0.0:                                   # H5: `retardo` del proyectil: quieto en el origen, sin edad ni golpes; lo que sobra del paso ya cuenta como vuelo
+		if dt <= espera:
+			espera -= dt
+			return
+		dt -= espera
+		espera = 0.0
 	edad += dt
 	if _radio_u < _radio_pleno_u:                                          # `crece` en vuelo: el radio de acierto sube a `crece` m/s hasta el entero
 		_radio_u = minf(_radio_pleno_u, _radio_u + _crece_u * dt)

@@ -99,11 +99,16 @@ static func invocar_golem(p_mundo: Node3D, pos: Vector3, p_jugador: Jugador3D = 
 	return g
 
 
+func _init() -> void:
+	inmune_estados = ["calor", "veneno"]      # F4: es piedra
+
+
 func _ready() -> void:
 	nombre = "Gólem de piedra"
 	vida_max = VIDA
 	defensa = Dano.DEF_GOLEM                  # 29/10 (DANO_Y_TINTA): 10 — solo los hechizos potentes lo hieren de verdad
 	oro = ORO_GOLEM
+	tabla_botin = "golem"
 	debil = ""
 	resiste = ""
 	tinte = Color.WHITE

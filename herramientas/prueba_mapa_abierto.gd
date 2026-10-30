@@ -88,8 +88,16 @@ func _gramatica() -> void:
 	var da: Array = (piezas[8] as Puzle3D.Pieza).p["da"]
 	_ok("1 cofre da=oro:30+seta_asada:2 se lee como lista", da.size() == 2 and String(da[0]["que"]) == "oro" and int(da[1]["n"]) == 2 and String(da[1]["que"]) == "seta_asada")
 	_ok("1 puerta con `flag=` (otro nombre de abierto=) leída", String((piezas[9] as Puzle3D.Pieza).p["flag"]) == "a.b.d")
-	_ok("1 botin=zona toma el perfil de la zona: tirada baja = nada, media = oro, alta = poción", Rompible3D.botin_de_perfil("bosque", 0.1) == "nada" and Rompible3D.botin_de_perfil("bosque", 0.6) == "oro" and Rompible3D.botin_de_perfil("bosque", 0.95) == "pocion"
-		and Rompible3D.botin_de_perfil("zona_x", 0.0, "", "campamento") == "nada" and Rompible3D.botin_de_perfil("bosque", 0.5, "", "campamento") == "oro")
+	# F1: `botin=zona` tira la tabla `jarron_<zona>` (antes un perfil en código): tirada baja = nada, media = oro, alta = poción.
+	var perfil: Array = []
+	for tirada in [0.1, 0.6, 0.95]:
+		Botin.tirada_forzada = tirada
+		var l: Array = Botin.tirar("jarron_bosque")
+		perfil.append(String((l[0] as Dictionary)["que"]) if not l.is_empty() else "nada")
+	Botin.tirada_forzada = 0.5
+	var l_camp: Array = Botin.tirar(Botin.tabla_de_zona("jarron", "zona_x", "", "campamento"))
+	Botin.tirada_forzada = -1.0
+	_ok("1 botin=zona toma la tabla de la zona: tirada baja = nada, media = oro, alta = poción", perfil == ["nada", "oro", "pocion"] and not l_camp.is_empty() and String((l_camp[0] as Dictionary)["que"]) == "oro", str(perfil))
 
 
 func _zonas_texto() -> void:
@@ -155,14 +163,14 @@ func _rompibles() -> void:
 	_ok("3 un jarrón entero tapa su casilla, está en el grupo `rompible` y reacciona a un hechizo", Terreno3D.bloqueada(Vector2i(1, 12)) and j_a.is_in_group("rompible") and j_a.spell_reacts(fuego) and not j_a.roto_ya)
 	_ok("3 el modelo se ve (el jarrón de verdad, o la caja de reserva)", j_a.get_node_or_null("modelo") != null and (j_a.get_node("modelo") as Node3D).visible)
 	# Tabla por zona, sin azar.
-	_ok("3 tabla por zona: bosque 3..8 de oro, ruinas 6..14, cueva 5..12; fila de defecto si la zona no existe", Rompible3D.oro_de("bosque", 0.0) == 3 and Rompible3D.oro_de("bosque", 0.99999) == 8
-		and Rompible3D.oro_de("ruinas", 0.0) == 6 and Rompible3D.oro_de("cueva", 0.99999) == 12 and Rompible3D.oro_de("zona_que_no_existe", 0.0) == 2
-		and Rompible3D.fila_de("zona_que_no_existe") == Rompible3D.BOTIN_DEFECTO and Rompible3D.fila_de("nombre_raro", "cueva") == Rompible3D.BOTIN_ZONA["cueva"])
+	_ok("3 tabla por zona: bosque 3..8 de oro, ruinas 6..14, cueva 5..12; la tabla del bosque si la zona no existe", Botin.rango("jarron_bosque", "oro") == Vector2i(3, 8)
+		and Botin.rango("jarron_ruinas", "oro") == Vector2i(6, 14) and Botin.rango("jarron_cueva", "oro") == Vector2i(5, 12)
+		and Botin.tabla_de_zona("jarron", "zona_que_no_existe") == "jarron_bosque" and Botin.tabla_de_zona("jarron", "nombre_raro", "cueva") == "jarron_cueva")
 	_ok("3 el botín válido: oro, pocion, nada o un objeto que existe", Rompible3D.botin_valido("oro") and Rompible3D.botin_valido("pocion") and Rompible3D.botin_valido("nada") and Rompible3D.botin_valido("seta") and not Rompible3D.botin_valido("espada_de_fuego"))
 	# 1 · Un hechizo de verdad (agua desde el norte, por la columna 8) rompe el jarrón de la poción.
 	colocar_jugador(Vector2i(8, 16))
 	await avanzar_s(0.3)
-	Rompible3D.tirada_forzada = 0.99                 # sin esquirla: el botín es lo de la tabla
+	Botin.tirada_forzada = 0.99                      # botin=pocion explícito: la tirada no importa (solo la cantidad)
 	var antes_poc: int = Estado.i().cuenta("pocion")
 	var salio: bool = lanzar_a_celda("agua", ["flecha"], Vector2i(8, 14), Vector2i(8, 16))        # la flecha viaja 2 casillas: el jarrón está justo al alcance
 	await avanzar_s(1.5)
@@ -186,7 +194,7 @@ func _rompibles() -> void:
 	await avanzar_s(0.2)
 	_ok("3 no reaparece ni vuelve a soltar nada si se le golpea otra vez", j_b.soltado.size() == 1 and j_b.n_restos() == restos and Estado.i().oro == oro_antes)
 	# 2 · Una explosión rompe el de oro de C6; el oro está dentro del rango de la zona y se coge.
-	Rompible3D.tirada_forzada = 0.99
+	Botin.tirada_forzada = 0.99
 	j_c.recibir_explosion(j_c.global_position)
 	await avanzar_s(0.2)
 	var n_oro: int = int(j_c.soltado[0]["n"]) if not j_c.soltado.is_empty() else -1
@@ -194,13 +202,14 @@ func _rompibles() -> void:
 	colocar_jugador(Vector2i(17, 11))
 	await avanzar_s(0.5)
 	_ok("3 el oro se coge pasando cerca (%d monedas)" % n_oro, Estado.i().oro == oro_antes + n_oro)
-	# 3 · Un empujón (viento) lo rompe: el jarrón alto de C6, con esquirla forzada: el material extra de la cueva.
-	Rompible3D.tirada_forzada = 0.0
+	# 3 · Un empujón (viento) lo rompe: el jarrón alto de C6 con `botin=zona` y tirada 0,99 da lo último de la tabla de las ruinas: la esquirla (F1: ya no hay un «mineral extra» aparte).
+	j_d.botin = "zona"
+	Botin.tirada_forzada = 0.99
 	j_d.push(Vector3.RIGHT, 1.0)
 	await avanzar_s(0.2)
-	Rompible3D.tirada_forzada = Rompible3D.PROB_FORZADA_NINGUNA
+	Botin.tirada_forzada = -1.0
 	var mineral: String = Objetos.mineral_de("jarron", "romper")
-	_ok("3 un empujón lo rompe; en las ruinas (mineral 0,15) y con tirada ganadora suelta además `%s`" % mineral, j_d.roto_ya and mineral != "" and j_d.soltado.size() == 2 and String(j_d.soltado[1]["que"]) == mineral, str(j_d.soltado))
+	_ok("3 un empujón lo rompe; con botin=zona y la tirada más alta, la tabla de las ruinas suelta `%s`" % mineral, j_d.roto_ya and mineral != "" and j_d.soltado.size() == 1 and String(j_d.soltado[0]["que"]) == mineral and j_d.tabla_usada == "jarron_ruinas", str(j_d.soltado) + " " + j_d.tabla_usada)
 	colocar_jugador(Vector2i(10, 12))
 	await avanzar_s(0.5)
 	_ok("3 la esquirla también se coge", Estado.i().cuenta(mineral) == 1)

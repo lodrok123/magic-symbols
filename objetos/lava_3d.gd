@@ -14,6 +14,8 @@ extends Area3D
 ##     (`Mundo3D.impacto`, lo que cae en el suelo) y además es un Area3D de reactivos (`on_spell_hit`, lo que la golpea en vuelo). 24/10: y también el AGUA de la simulación
 ##     que le llega (la flecha de agua real se para en el borde de la lava y deja el agua en la orilla): ver CADA_AGUA.
 ##   · `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s (un puzle contrarreloj). 0 = se queda roca.
+##   · F1 (29/10, PLAN_BASE_DATOS §3.2): la roca RECUERDA con qué se enfrió (`via_de_roca`): el AGUA deja basalto (lo de siempre) y el HIELO deja OBSIDIANA. Quien coge el mineral
+##     (`Recolectable3D` con planta `basalto`) pregunta por aquí y da `obsidiana` si la roca nació del frío.
 ##
 ## EL ASPECTO lo da un plano con un shader propio (sin texturas): lava que fluye con ruido, placas de costra oscura que derivan despacio con
 ## grietas incandescentes entre ellas, el borde del charco más costroso (más frío) y la roca enfriada como basalto con grietas que se apagan.
@@ -22,6 +24,9 @@ extends Area3D
 ## Se coloca desde un mapa con `; pieza <id> lava <x> <y> [celdas=<lista>] [vuelve=<s>]` (escenas/puzle.gd) o con `preparar` desde código.
 
 signal enfriada(celda: Vector2i)
+
+const VIA_AGUA: String = "agua"
+const VIA_HIELO: String = "hielo"
 signal apagada
 
 const ALCANCE_FUEGO: float = 0.9        ## casillas: lo inflamable a menos de esto de una casilla de lava prende
@@ -143,6 +148,7 @@ var vuelve: float = 0.0
 var is_lit: bool = false                ## queda lava (como el `is_lit` de Reactivo3D: lo leen Puzle3D y el contador)
 var _lava: Dictionary = {}              ## Vector2i -> true mientras es lava
 var _roca: Dictionary = {}              ## Vector2i -> s que le quedan de calor (y, con `vuelve`, para volver a ser lava)
+var _roca_con: Dictionary = {}                  ## Vector2i -> VIA_AGUA | VIA_HIELO: con qué se enfrió cada casilla de roca (F1)
 var _puente: Dictionary = {}            ## Vector2i -> true: casillas cubiertas por un PUENTE permanente (una columna caída): no vuelven a ser lava
 var _rect: Rect2i = Rect2i()
 var _img: Image = null
@@ -273,6 +279,11 @@ func es_roca(c: Vector2i) -> bool:
 	return _roca.has(c)
 
 
+## Con qué se enfrió la roca de `c`: VIA_AGUA, VIA_HIELO o "" si `c` no es roca enfriada. Lo lee `Recolectable3D` (basalto o obsidiana).
+func via_de_roca(c: Vector2i) -> String:
+	return String(_roca_con.get(c, "")) if _roca.has(c) else ""
+
+
 ## ¿Esta casilla está cubierta por un puente permanente (`tender_puente`)?
 func es_puente(c: Vector2i) -> bool:
 	return _puente.has(c)
@@ -286,6 +297,7 @@ func tender_puente(c: Vector2i) -> bool:
 		return false
 	_lava.erase(c)
 	_roca.erase(c)
+	_roca_con.erase(c)
 	_puente[c] = true
 	Terreno3D.conductores[c] = true
 	_pixel(c)
@@ -300,15 +312,15 @@ func tender_puente(c: Vector2i) -> bool:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if rune_data == null or not _enfria(rune_data.tags):
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data == null or not _enfria(Materia.de(hechizo if hechizo != null else rune_data)):
 		return
 	var p: Vector3 = Lanzador3D.ultimo_impacto
-	enfriar_en(Terreno3D.celda_de(p) if p != Vector3.INF else celdas[0])
+	enfriar_en(Terreno3D.celda_de(p) if p != Vector3.INF else celdas[0], VIA_HIELO if Objetos.elemento_de(rune_data) == "hielo" else VIA_AGUA)
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and not _lava.is_empty() and _enfria(rune_data.tags)
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return rune_data != null and not _lava.is_empty() and _enfria(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 func carried_element() -> RuneData:
@@ -319,12 +331,12 @@ func nivel_altura() -> int:
 	return 0                                # a ras: reacciona pero no detiene lo que vuela por encima
 
 
-## Enfría la casilla `c` (o la de lava más cercana, si `c` no lo es) y sus cuatro vecinas de lava.
-func enfriar_en(c: Vector2i) -> void:
+## Enfría la casilla `c` (o la de lava más cercana, si `c` no lo es) y sus cuatro vecinas de lava. `via` = con qué: VIA_AGUA (basalto) o VIA_HIELO (obsidiana).
+func enfriar_en(c: Vector2i, via: String = VIA_AGUA) -> void:
 	if _lava.is_empty():
 		return
 	for q in celdas_enfriables(c):
-		_enfriar(q as Vector2i)
+		_enfriar(q as Vector2i, via)
 	if _lava.is_empty():
 		is_lit = false
 		apagada.emit()
@@ -332,14 +344,14 @@ func enfriar_en(c: Vector2i) -> void:
 
 ## --- Por dentro ---
 
-func _enfria(tags: Array) -> bool:
-	return tags.has("agua") or tags.has("frio")
+func _enfria(m: Dictionary) -> bool:
+	return Materia.enfria(m) or Materia.moja(m)
 
 
 func _al_impacto(punto: Vector3, elemento: String, radio: float) -> void:
 	var c2: Vector2i = celda_de_impacto(punto, elemento, radio)
 	if c2 != Vector2i(-9999, -9999):
-		enfriar_en(c2)
+		enfriar_en(c2, VIA_HIELO if elemento == "hielo" else VIA_AGUA)
 
 
 ## 28/10 · A2 (previsión): la casilla de lava que un impacto de `elemento` en `punto` (con `radio` u) enfriaría, o (-9999, -9999) si ninguna. Es la regla de `_al_impacto`, que la ejecuta;
@@ -370,9 +382,10 @@ func celdas_enfriables(c: Vector2i) -> Array:
 	return r
 
 
-func _enfriar(c: Vector2i) -> void:
+func _enfriar(c: Vector2i, via: String = VIA_AGUA) -> void:
 	_lava.erase(c)
 	_roca[c] = T_ENFRIAR
+	_roca_con[c] = via
 	Terreno3D.conductores[c] = true         # fase 3 del Pulso (C3): la lava no conduce, pero el BASALTO enfriado sí, mientras dura (PLAN_PULSO_RESONANTE §5)
 	_pixel(c)
 	Terreno3D.liberar_celda(c)
@@ -387,6 +400,7 @@ func _enfriar(c: Vector2i) -> void:
 
 func _fundir(c: Vector2i) -> void:
 	_roca.erase(c)
+	_roca_con.erase(c)
 	Terreno3D.conductores.erase(c)          # vuelve a ser lava: deja de conducir
 	_lava[c] = true
 	is_lit = true

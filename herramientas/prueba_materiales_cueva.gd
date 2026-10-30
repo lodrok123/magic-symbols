@@ -173,14 +173,27 @@ func _colmillo(z: Puzle3D) -> void:
 	BotinGoblin.tirada_forzada = 0.99                       # el primero cae con la tirada perdida: no suelta nada
 	vivos[0].call("receive_damage", 9999.0)
 	await avanzar_s(0.5)
-	_ok("4 un goblin real cae con la tirada perdida: ningún colmillo", Estado.i().cuenta("colmillo_goblin") == antes2)
-	BotinGoblin.tirada_forzada = 0.0                        # el segundo, con la ganada: el colmillo llega a la bolsa por Combate3D._morir
+	_ok("4 un goblin real cae con la tirada perdida: ningún colmillo (ni en el suelo)", Estado.i().cuenta("colmillo_goblin") == antes2 and _colmillos_en_suelo().is_empty())
+	BotinGoblin.tirada_forzada = 0.0                        # el segundo, con la ganada: F1 (29/10): el colmillo CAE AL SUELO (BotinObjeto3D) desde Combate3D._morir
 	for i in range(1, vivos.size()):
 		vivos[i].call("receive_damage", 9999.0)
 		muertos += 1
 	await avanzar_s(0.5)
 	BotinGoblin.tirada_forzada = -1.0
-	_ok("4 los goblins reales que caen con la tirada ganada dan un colmillo cada uno (%d)" % muertos, Estado.i().cuenta("colmillo_goblin") == antes2 + muertos)
+	var en_suelo: Array = _colmillos_en_suelo()
+	_ok("4 los goblins reales que caen con la tirada ganada sueltan un colmillo cada uno al suelo (%d)" % muertos, en_suelo.size() == muertos and Estado.i().cuenta("colmillo_goblin") == antes2)
+	for b in en_suelo:
+		(b as BotinObjeto3D).recoger()
+	_ok("4 y al cogerlos llegan a la bolsa (%d)" % muertos, Estado.i().cuenta("colmillo_goblin") == antes2 + muertos)
+
+
+## Los colmillos que hay sueltos en el suelo del mundo ahora mismo.
+func _colmillos_en_suelo() -> Array:
+	var r: Array = []
+	for b in maqueta.find_children("Botin_colmillo_goblin*", "", true, false):
+		if b is BotinObjeto3D and not (b as BotinObjeto3D).recogido:
+			r.append(b)
+	return r
 
 
 # ---------------------------------------------------------------------------------------------------------------------

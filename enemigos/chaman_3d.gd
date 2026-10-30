@@ -78,11 +78,16 @@ static func invocar_chaman(p_mundo: Node3D, pos: Vector3, p_jugador: Jugador3D =
 	return c
 
 
+func _init() -> void:
+	inmune_estados = ["veneno"]               # F4: el chamán no se envenena con su propio veneno
+
+
 func _ready() -> void:
 	nombre = "Chamán goblin"
 	vida_max = VIDA
 	defensa = Dano.DEF_CHAMAN                 # 29/10 (DANO_Y_TINTA): 0
 	oro = ORO_CHAMAN
+	tabla_botin = "chaman"
 	debil = ""
 	resiste = ""
 	tinte = Color.WHITE

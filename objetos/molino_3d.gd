@@ -89,13 +89,13 @@ func _dibujar() -> void:
 
 ## --- Contrato con los hechizos: solo el agua la empuja ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if rune_data != null and rune_data.tags.has("agua"):
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data != null and Materia.riega(Materia.de(hechizo if hechizo != null else rune_data)):
 		_t_impulso = T_IMPULSO
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and rune_data.tags.has("agua")
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return rune_data != null and Materia.riega(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 func carried_element() -> RuneData:

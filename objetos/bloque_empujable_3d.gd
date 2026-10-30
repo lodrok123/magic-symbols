@@ -388,8 +388,8 @@ func _parar() -> void:
 
 ## 28/10 · A2 (previsión): qué le haría este hechizo al bloque AHORA, sin moverlo: {} si nada (no es viento, no hay dirección, se está moviendo o no cabe), o
 ## {reaccion: "mueve", dir: Vector2i, destino: Vector2i (la casilla en que acabaría: una más; el HIELO resbala hasta que algo lo para)}. `on_spell_hit` empuja con esto.
-func reaccion_a(rune_data: RuneData, direccion: Vector3) -> Dictionary:
-	if rune_data == null or not rune_data.tags.has("viento") or moviendo:
+func reaccion_a(rune_data: RuneData, direccion: Vector3, hechizo: Hechizo = null) -> Dictionary:
+	if rune_data == null or not Materia.sopla(Materia.de(hechizo if hechizo != null else rune_data)) or moviendo:
 		return {}
 	var d: Vector2i = dir_cardinal(direccion)
 	if d == Vector2i.ZERO or not puede_moverse(d):
@@ -401,14 +401,14 @@ func reaccion_a(rune_data: RuneData, direccion: Vector3) -> Dictionary:
 	return {"reaccion": "mueve", "dir": d, "destino": destino}
 
 
-func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
-	var r: Dictionary = reaccion_a(rune_data, direccion)
+func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	var r: Dictionary = reaccion_a(rune_data, direccion, hechizo)
 	if not r.is_empty():
 		empujar(r["dir"] as Vector2i)
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and rune_data.tags.has("viento")
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return rune_data != null and Materia.sopla(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 func carried_element() -> RuneData:

@@ -157,13 +157,13 @@ func _construir_visual() -> void:
 		_pivote.add_child(mi)
 
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if rune_data != null and rune_data.tags.has("calor"):
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data != null and Materia.calienta(Materia.de(hechizo if hechizo != null else rune_data)):
 		caer()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return not cayo and rune_data != null and rune_data.tags.has("calor")
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return not cayo and rune_data != null and Materia.calienta(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 func punto_activacion() -> Vector3:

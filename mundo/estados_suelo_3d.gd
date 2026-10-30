@@ -77,6 +77,12 @@ var _escarcha: Dictionary = {}        ## Vector2i -> true
 ## intensidad del hecho: la casilla se pinta con el avance mientras haya uno (> 0).
 var _avance: Dictionary = {}          ## estado -> Dictionary(Vector2i -> float 0..1)
 
+## F4 (29/10): Callable(celda: Vector2i) -> Array con los estados del mundo de la zona de esa casilla (`EstadoZona3D.estados_de`; la conecta `Mundo3D`). Con él el suelo CADUCA según la zona
+## (`secado_x`: el mojado se seca en 6 s con calor; `hielo_dura_x`: lo helado con caducidad dura 1/3 con calor y casi no caduca con frío) y el mojado se hiela solo en el frío
+## (`hiela_sola_s`). Sin él (vacío) todo es como siempre.
+var estado_zona_en: Callable = Callable()
+var _frio_t: Dictionary = {}          ## Vector2i -> s que lleva mojada en una zona que hiela sola
+
 ## Lado de la textura (casillas). 40 = el `_lado` de la maqueta; `dimensionar` lo cambia (Mundo3D le pasa el del mapa).
 var lado: int = 40
 var _img: Image = null
@@ -199,18 +205,49 @@ func avanzar(dt: float) -> void:
 				listas.append(c)             # ya empapó del todo: no hace falta seguir contando
 		for c in listas:
 			ed.erase(c)
+	if estado_zona_en.is_valid():
+		_hielo_solo(dt)
 	for estado in _queda.keys():
 		var q: Dictionary = _queda[estado]
 		var secado: float = float(SECADO.get(estado, 0.0))
 		var caducan: Array = []
 		for c in q.keys():
-			q[c] = float(q[c]) - dt
+			q[c] = float(q[c]) - dt * _ritmo_caducidad(c as Vector2i, String(estado))
 			if float(q[c]) <= 0.0:
 				caducan.append(c)
 			elif float(q[c]) < secado:
 				_sucia = true                # se está secando: la imagen cambia
 		for c in caducan:
 			poner(c, String(estado), false)
+
+
+## F4: a qué velocidad corre el reloj de `estado` en `c` según la zona (1 = normal): el mojado se seca 1/`secado_x` veces más deprisa; lo helado con caducidad, 1/`hielo_dura_x`.
+func _ritmo_caducidad(c: Vector2i, estado: String) -> float:
+	if not estado_zona_en.is_valid() or (estado != MOJADA and estado != HELADA):
+		return 1.0
+	var zona: Array = estado_zona_en.call(c)
+	if zona.is_empty():
+		return 1.0
+	var x: float = EstadoZona3D.producto(zona, "secado_x" if estado == MOJADA else "hielo_dura_x")
+	return 1.0 / maxf(x, 0.01)
+
+
+## F4: en una zona con `hiela_sola_s` (frío) una casilla de SUELO mojada se hiela sola a los 5 s (la misma transición que un hechizo de hielo: mojada → helada). Solo SUELO (`ReaccionesSuelo3D.clase_de`).
+func _hielo_solo(dt: float) -> void:
+	var mojadas: Dictionary = _celdas.get(MOJADA, {})
+	for c in _frio_t.keys():
+		if not mojadas.has(c):
+			_frio_t.erase(c)
+	for c in mojadas.keys():
+		var tiempo: float = EstadoZona3D.numero(estado_zona_en.call(c), "hiela_sola_s")
+		if tiempo <= 0.0:
+			_frio_t.erase(c)
+			continue
+		_frio_t[c] = float(_frio_t.get(c, 0.0)) + dt
+		if float(_frio_t[c]) >= tiempo:
+			_frio_t.erase(c)
+			if ReaccionesSuelo3D.clase_de(c as Vector2i) == "suelo":
+				aplicar(c as Vector2i, "frio")
 
 
 ## Aplica la acción («agua», «frio», «calor») a la casilla con la primera fila de `TRANSICIONES` que encaje.
@@ -323,4 +360,5 @@ func limpiar() -> void:
 	_edad.clear()
 	_escarcha.clear()
 	_avance.clear()
+	_frio_t.clear()
 	_sucia = true

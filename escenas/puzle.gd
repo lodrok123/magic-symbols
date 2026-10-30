@@ -121,14 +121,23 @@ extends Node
 ##              pide) y se queda activo; pone `flag` con la forma de siempre (nivel.sala.hecho). `rearme` > 0: se apaga solo. Modelo `receptor_runico`. Bloquea su casilla
 ##   jarron, caja  botin=oro|pocion|nada|zona|<objeto> (oro)  cantidad=<n> (la de la zona)  alto=si (jarron_alto)  pequena=si (caja_pequena)  celdas=<lista>  modelo=caja (en un jarron)   Rompible3D (mapas abiertos, 23/10): un jarrón o una caja
 ##              que tapa su casilla y se ROMPE con cualquier golpe (un hechizo, un empujón de viento, una explosión; `golpear()` para el cuerpo a cuerpo que aún no hay), deja restos
-##              y suelta su BOTÍN según la ZONA donde está (`Rompible3D.BOTIN_ZONA`: bosque, ruinas, cueva…). `botin=oro` da monedas, `pocion` una poción, `<objeto>` cualquier id de
-##              `Objetos.DATOS`, `nada` no da nada, `zona` tira el perfil de la zona (nada/oro/poción); `cantidad` fija cuánto. `celdas` pone uno en cada casilla (<id>, <id>_2, <id>_3…).
+##              y suelta su BOTÍN según la ZONA donde está (tabla `jarron_<zona>` de `botin_tablas.tsv`, F1: bosque, ruinas, cueva…). `botin=oro` da monedas, `pocion` una poción, `<objeto>` cualquier id de
+##              `Objetos.DATOS`, `nada` no da nada, `zona` tira la tabla de la zona (casi siempre nada; a veces oro, poción…); `cantidad` fija cuánto. `celdas` pone uno en cada casilla (<id>, <id>_2, <id>_3…).
 ##              No reaparece: la flag `<nivel>.rompible.<id>` sobrevive a cambiar de nivel y a guardar
 ##   salida     a=<Nivel>:<entrada> (o escena=<Nivel o escena> entrada=<nombre>)  celdas=<lista> (la propia x,y)  modo=pisar|usar (pisar)  marca=si|no (si)  modelo=<id> (aún no se dibuja)     SalidaNivel3D (transición entre niveles): al pisar sus casillas (o con E,
 ##              `modo=usar`) carga <Nivel> (tabla `Niveles.ESCENAS`) y deja a la jugadora en su entrada con ese nombre, con fundido a negro. Nace desarmada y se arma al salir de sus casillas.
 ##              Si el nivel no existe todavía, avisa en consola y en pantalla y no hace nada
 ##   entrada    mira=n|e|s|o (hacia dentro)                                          EntradaNivel3D: el punto de llegada de otro nivel; el ID de la pieza es su nombre (`a=Cueva:desde_bosque`).
 ##              La jugadora aparece en su casilla mirando a `mira` o, sin ella, hacia donde hay más suelo libre seguido. Es también su punto de reaparición. No dibuja ni bloquea
+##   colmena    (sin claves)                                                        Colmena3D (F1, 29/10): colgada de un árbol. VIENTO: cae el panal (`panal` 1–2, una vez: flag `<nivel>.colmena.<id>`). FUEGO: arde, nube de
+##              veneno 3 s y nada de panal. Primitivas hasta que haya pieza. Señales `cae_panal`, `arde`; condición `colgada`|`vacia`
+##   nube_veneno  vida=<s> (6; 0 = permanente)  radio=<casillas> (1)                 NubeVeneno3D (F4, 29/10): una nube de veneno con vida propia. Envenena a quien esté dentro (2 de vida/s y 3 s después; el antídoto, la capucha de musgo y el
+##              limo, el chamán y el gólem no se envenenan), el VIENTO la empuja y la dispersa (8 s) y el FUEGO la consume (4 s). Se guarda en la partida. Señal `disipada`
+##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
+##   arbol      modelo=arbol_redondo|arbol_redondo_2|pino|pino_2 (arbol_redondo)    Reactivo3D `arbol` (F1): bloquea su casilla; un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, cada 30 s
+##   musgo, helecho_cueva, seta_palida   coge_si=<expresión>  rebrota=<s> (0)        Recolectable3D (F1): como `alga`, con la pieza de la columna `modelo` de su objeto (o una esfera si no la hay)
+##   cofre (da=)  da=<objeto>:<n>[+<objeto>:<n>…] (`oro` es oro)  o  da=tabla:<id> (una tirada de `botin_tablas.tsv`; se mezcla con «+»). `abre_si=tener.<objeto>`: la condición `tener.<objeto>` vale mientras
+##              haya ese objeto en la bolsa (también en `si=`); con `gasta=si` el cofre quita 1 de cada objeto `tener.` de su `abre_si` al abrirse (la llave de la bolsa)
 ##   cofre (da=)  da=<objeto>:<n>[+<objeto>:<n>…] (`oro` es oro)        Al acabar de abrirse da ESE botín una vez (oro y lo que quepa en la mochila; avisa). Un cofre que nace abierto no da
 ##   vigía con la sala ya limpia: si su `flag` está puesta al montar, sus enemigos (los de `de=`) NO aparecen: no se repueblan al volver de otro nivel ni al cargar partida
 ##   puerta (con llave)  llave=<flag>  gasta=si|no (no)  abierto=<flag> (o flag=<flag>)          La puerta pide la llave DE VERDAD: con `llave` solo se abre si esa flag está puesta Y la jugadora está delante (la toca o
@@ -193,6 +202,8 @@ extends Node
 ##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar     prisma  girar     pared_hueca  abrir
 ##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
 ##   jarron, caja        romper (como un golpe)                salida   usar (la dispara, como si la jugadora la pisara)      columna  romper (la tumba)
+##   zona       poner(<estado>[,<segundos>]) | quitar(<estado>)     (F4, 29/10: los estados DINÁMICOS del mundo de `estados_mundo.tsv`, p. ej. `hace=zona.poner(tormenta,60)` o `zona.poner(vendaval)`; sin segundos, los de la tabla
+##              o hasta `zona.quitar`. «zona» es palabra reservada como «flag»; el veneno no se pone así: es de las nubes (`nube_veneno`))
 ## `abrir_cauce` sin argumentos usa los de la pieza (manantial) o Surtidor3D.CAUDAL_TINAJA / VOL_TINAJA (tinaja).
 ##
 ## FLAGS (C1, 21/10): lo que el juego RECUERDA entre partidas (`nucleo/flags.gd`). «flag» es una palabra reservada: ninguna pieza se
@@ -240,6 +251,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido",
 	"guardian": "levanta", "puente": "tendido",
+	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -279,6 +291,12 @@ const SENALES: Dictionary = {
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 	"guardian": {"levanta": ["levanta", 1, null]},
 	"puente": {"tendido": ["completo", 0, null]},
+	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
+	"nube_veneno": {"disipada": ["disipada", 0, null]},
+	"nido": {"suelta": ["suelta", 0, null]},
+	"musgo": {"recogida": ["recogido", 1, null]},
+	"helecho_cueva": {"recogida": ["recogido", 1, null]},
+	"seta_palida": {"recogida": ["recogido", 1, null]},
 }
 const CONDICIONES: Dictionary = {
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
@@ -310,6 +328,10 @@ const CONDICIONES: Dictionary = {
 	"bloque": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
+	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
+	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"seta_palida": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -331,6 +353,9 @@ const ACCIONES: Dictionary = {
 	"seta": {"recoger": 0},
 	"alga": {"recoger": 0},
 	"basalto": {"recoger": 0},
+	"musgo": {"recoger": 0},
+	"helecho_cueva": {"recoger": 0},
+	"seta_palida": {"recoger": 0},
 	"cristal": {"latir": 0},
 	"receptor": {"activar": 0, "apagar": 0},
 	"prisma": {"girar": 0},
@@ -365,12 +390,19 @@ const CLAVES: Dictionary = {
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
-	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da"},
+	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da", "gasta": "b"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f", "madura": "b"},
 	"alga": {"coge_si": "expr", "rebrota": "f"},
 	"basalto": {"coge_si": "expr", "rebrota": "f"},
+	"musgo": {"coge_si": "expr", "rebrota": "f"},
+	"helecho_cueva": {"coge_si": "expr", "rebrota": "f"},
+	"seta_palida": {"coge_si": "expr", "rebrota": "f"},
+	"colmena": {},
+	"nube_veneno": {"vida": "f", "radio": "f"},
+	"nido": {},
+	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
 	"cristal": {"cada": "f", "alcance": "f"},
 	"veta": {"celdas": "celdas", "enlaces": "celdas", "aturde": "f", "mineral": "b"},
 	"columna": {"golpes": "f", "cae": "s:n|e|s|o", "puente": "id", "largo": "f", "flag": "flag"},
@@ -407,6 +439,8 @@ const CADA_COFRE: float = 0.2
 const T_VIGIA_SIN_ENEMIGOS: float = 3.0
 ## C1: el «id» con el que se nombran las flags en las reglas (cuando=flag.x, si=flag.x, hace=flag.poner(x)).
 const ID_FLAG: String = "flag"
+const ID_ZONA: String = "zona"                   ## F4: `hace=zona.poner(tormenta,60)`: los estados dinámicos del mundo (EstadoZona3D)
+const ACCIONES_ZONA: Array = ["poner", "quitar"]
 const ACCIONES_FLAG: Array = ["poner", "quitar"]
 ## RESPUESTA POSITIVA (PLAN_EOW_VISUAL §4): las piezas lógicas avisan de un LOGRO con un nombre del catálogo cerrado `Mundo3D.LOGROS`; qué se ve y suena lo decide
 ## `Logros3D`. Quién emite qué (cada uno UNA vez por suceso real, nunca al montar ni al recargar algo que ya estaba hecho):
@@ -421,6 +455,8 @@ static var silencio_logros: bool = false
 static var _logro_en: Dictionary = {}                    ## nombre -> fotograma del último aviso
 ## C2: condición de casilla `casilla(x,y).<estado>`: los estados de EstadosSuelo3D (B1) y «agua» (Terreno3D.es_agua).
 const TERMINO_CASILLA: String = "casilla"
+## F1: condición `tener.<objeto>` = hay al menos uno en la bolsa (`Estado.cuenta`). Palabra reservada, como `flag`.
+const TERMINO_TENER: String = "tener"
 const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua", "roca"]
 ## Piezas que ya pone la maqueta por letra: la casilla de la pieza tiene que llevar esa letra.
 const LETRA_MAQUETA: Dictionary = {"tinaja": "u", "totem": "i", "emisor": "e", "brasero": "T", "seto": "z"}
@@ -841,7 +877,10 @@ class CofrePuzle extends Node3D:
 	var celda: Vector2i = Vector2i.ZERO
 	var expr: Array = []                         ## aparece_si= (vacío = siempre)
 	var expr_abre: Array = []                    ## abre_si= (vacío = siempre): mientras no se cumpla el cofre está SELLADO (se ve, pero E avisa y no lo abre). PLAN_PULSO_RESONANTE §8
-	var da: Array = []                           ## da= ([{que, n}]): el botín que da al abrirse
+	var da: Array = []                           ## da= ([{que, n}] o {tabla}): el botín que da al abrirse
+	var gasta: bool = false                      ## gasta=si: al abrirse quita 1 de cada objeto `tener.` de su `abre_si` (la llave de la bolsa)
+	var gastado: Array = []                      ## lo que gastó de verdad (las pruebas)
+	var _gastado_ya: bool = false
 	var botin_dado: Array = []                   ## lo que dio de verdad al abrirse (las pruebas)
 	var glifo: String = ""                       ## glifo= (id del libro): abrirlo da ese glifo con la secuencia del cofre legendario (SecuenciaCofreLegendario3D)
 	var secuencia: SecuenciaCofreLegendario3D = null
@@ -965,19 +1004,37 @@ class CofrePuzle extends Node3D:
 				return false
 			_abriendo = true
 			ctrl.connect("abierto", _al_abrirse, CONNECT_ONE_SHOT)
+			_gastar()
 			secuencia = SecuenciaCofreLegendario3D.new()
 			secuencia.name = "Secuencia"
 			add_child(secuencia)
 			secuencia.iniciar(self, ctrl, mundo, glifo)
 			return true
 		if ctrl == null:
+			_gastar()
 			_al_abrirse()
 			return true
 		if not bool(ctrl.call("abrir")):
 			return false                          # aún apareciendo: el jugador volverá a pulsar
 		_abriendo = true
 		ctrl.connect("abierto", _al_abrirse, CONNECT_ONE_SHOT)
+		_gastar()
 		return true
+
+	## `gasta=si`: quita de la bolsa 1 de cada objeto `tener.<objeto>` del grupo de `abre_si` que se cumple (la llave). Una sola vez.
+	func _gastar() -> void:
+		if not gasta or _gastado_ya:
+			return
+		_gastado_ya = true
+		for g in expr_abre:
+			if puzle != null and not bool(puzle.call("cumple_expr", [g])):
+				continue
+			for t in (g as Array):
+				if String((t as Dictionary)["tipo"]) == "tener" and not bool((t as Dictionary)["neg"]):
+					var ob: String = String((t as Dictionary)["objeto"])
+					if Estado.i().quitar(ob, 1):
+						gastado.append(ob)
+			return
 
 	## ¿Se cumple `abre_si`? (vacío = sí).
 	func sellado_cumplido() -> bool:
@@ -991,7 +1048,13 @@ class CofrePuzle extends Node3D:
 		var sin_sitio: bool = false
 		var color: Color = Color(1.0, 0.9, 0.6)
 		var mejor: float = -1.0
-		for it in da:
+		var items: Array = []
+		for it0 in da:
+			if (it0 as Dictionary).has("tabla"):
+				items.append_array(Botin.tirar(String((it0 as Dictionary)["tabla"])))       # F1: `da=tabla:<id>`
+			else:
+				items.append(it0)
+		for it in items:
 			var que: String = String((it as Dictionary)["que"])
 			var n: int = int((it as Dictionary)["n"])
 			if que == "oro":
@@ -1012,7 +1075,7 @@ class CofrePuzle extends Node3D:
 		if not da.is_empty():
 			var lz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
 			if lz != null and lz.has_method("avisar"):
-				lz.call("avisar", "Cofre abierto: %s%s" % [", ".join(texto), " (la mochila está llena: lo demás se queda aquí)" if sin_sitio else ""], color)
+				lz.call("avisar", "Cofre abierto: %s%s" % [", ".join(texto) if not texto.is_empty() else "vacío", " (la mochila está llena: lo demás se queda aquí)" if sin_sitio else ""], color)
 		return dado
 
 	func _al_abrirse() -> void:
@@ -1288,8 +1351,8 @@ static func _leer_pieza(p: PackedStringArray, n: int, l: String, por_id: Diction
 	if por_id.has(id):
 		_aviso_linea(avisos, n, l, "id repetido «%s» (ya está en la línea %d)" % [id, (por_id[id] as Pieza).n])
 		return null
-	if id == ID_FLAG:
-		_aviso_linea(avisos, n, l, "«%s» es una palabra reservada (las flags): ponle otro id a la pieza" % ID_FLAG)
+	if id == ID_FLAG or id == ID_ZONA or id == TERMINO_TENER:
+		_aviso_linea(avisos, n, l, "«%s» es una palabra reservada (las flags, la zona y la bolsa): ponle otro id a la pieza" % id)
 		return null
 	if not CLAVES.has(tipo):
 		_aviso_linea(avisos, n, l, "tipo desconocido «%s» (valen: %s)" % [tipo, ", ".join(CLAVES.keys())])
@@ -1364,8 +1427,14 @@ static func _valor(tipo: String, t: String) -> Array:
 		var lista: Array = []
 		for trozo in t.split("+", false):
 			var kv: PackedStringArray = String(trozo).split(":")
+			if kv.size() == 2 and kv[0] == "tabla":
+				# F1: `tabla:<id>` = una tirada de `botin_tablas.tsv` al abrirse (varias se suman con «+»).
+				if not Botin.existe(kv[1]):
+					return [false, null, "la tabla «%s» no existe en nucleo/datos/botin_tablas.tsv" % kv[1]]
+				lista.append({"tabla": kv[1]})
+				continue
 			if kv.size() != 2 or not kv[1].is_valid_int() or int(kv[1]) <= 0 or not (kv[0] == "oro" or Objetos.existe(kv[0])):
-				return [false, null, "«%s» no es <objeto>:<n> (oro u objeto de Objetos.DATOS; n entero > 0), unidos con «+»" % trozo]
+				return [false, null, "«%s» no es <objeto>:<n> (oro u objeto de Objetos.DATOS; n entero > 0) ni tabla:<id>, unidos con «+»" % trozo]
 			lista.append({"que": kv[0], "n": int(kv[1])})
 		if lista.is_empty():
 			return [false, null, "lista vacía"]
@@ -1654,6 +1723,12 @@ static func _leer_termino(t: String, por_id: Dictionary, n: int, l: String, avis
 			_aviso_linea(avisos, n, l, "si=%s: «%s» no es un nombre de flag (nivel.sala.hecho)" % [t, nf])
 			return {}
 		return {"neg": false, "tipo": "flag", "nombre": nf}
+	if t.begins_with(TERMINO_TENER + "."):
+		var ob: String = t.substr(TERMINO_TENER.length() + 1)
+		if not Objetos.existe(ob):
+			_aviso_linea(avisos, n, l, "si=%s: «%s» no es un objeto de Objetos.DATOS (se escribe tener.<objeto>, por ejemplo tener.llave)" % [t, ob])
+			return {}
+		return {"neg": false, "tipo": "tener", "objeto": ob}
 	var sw: PackedStringArray = t.split(".")
 	if sw.size() != 2 or not por_id.has(sw[0]):
 		_aviso_linea(avisos, n, l, "si=%s: tiene que ser <id>.<condición> de una pieza que existe" % t)
@@ -1700,6 +1775,24 @@ static func _leer_accion(t: String, por_id: Dictionary, n: int, l: String, aviso
 			_aviso_linea(avisos, n, l, "hace=%s: «%s» no es un nombre de flag (nivel.sala.hecho)" % [t, nf])
 			return {}
 		return {"id": ID_FLAG, "accion": acc, "args": [], "nombre": nf}
+	# zona.poner(<estado>[,<segundos>]) / zona.quitar(<estado>) (F4): el primer argumento es un nombre de estado, el segundo un número.
+	if t.begins_with(ID_ZONA + "."):
+		var accz: String = t.substr(ID_ZONA.length() + 1, (ip if ip >= 0 else t.length()) - ID_ZONA.length() - 1)
+		if not (accz in ACCIONES_ZONA):
+			_aviso_linea(avisos, n, l, "hace=%s: la zona sabe %s" % [t, ", ".join(ACCIONES_ZONA)])
+			return {}
+		if ip < 0 or not t.ends_with(")"):
+			_aviso_linea(avisos, n, l, "hace=%s: se escribe zona.%s(<estado>%s)" % [t, accz, ",<segundos>" if accz == "poner" else ""])
+			return {}
+		var az: PackedStringArray = t.substr(ip + 1, t.length() - ip - 2).split(",")
+		var estz: String = az[0].strip_edges()
+		if BD.estado_mundo(estz).is_empty() or estz == "veneno":
+			_aviso_linea(avisos, n, l, "hace=%s: «%s» no es un estado del mundo que se pueda poner (estados_mundo.tsv; el veneno es de las nubes)" % [t, estz])
+			return {}
+		if az.size() > (2 if accz == "poner" else 1) or (az.size() == 2 and not az[1].strip_edges().is_valid_float()):
+			_aviso_linea(avisos, n, l, "hace=%s: argumentos no válidos (zona.poner(<estado>,<segundos>) o zona.quitar(<estado>))" % t)
+			return {}
+		return {"id": ID_ZONA, "accion": accz, "args": [float(az[1])] if az.size() == 2 else [], "estado": estz}
 	if ip >= 0:
 		if not t.ends_with(")"):
 			_aviso_linea(avisos, n, l, "hace=%s: falta el «)»" % t)
@@ -1857,7 +1950,7 @@ func _crear(pz: Pieza) -> void:
 			se.preparar(pz.celda, String(pz.p.get("variante", "")), float(pz.p.get("rebrota", 0.0)), mundo as Node)
 			cont.add_child(se)
 			pz.nodo = se
-		"alga", "basalto":
+		"alga", "basalto", "musgo", "helecho_cueva", "seta_palida":
 			# Materiales de la Cueva (docs/MATERIALES_CUEVA.md): un Recolectable3D que solo existe mientras se cumple `coge_si`.
 			var ma := Recolectable3D.new()
 			ma.name = pz.id
@@ -2065,6 +2158,9 @@ func _crear(pz: Pieza) -> void:
 			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo,
 				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)), pz.exprs.get("abre_si", []), String(pz.p.get("glifo", "")))
 			cf.da = pz.p.get("da", [])
+			cf.gasta = bool(pz.p.get("gasta", false))
+			if cf.gasta and not pz.p.has("abre_si"):
+				_avisar_pieza(pz, "«gasta=si» solo vale con «abre_si=tener.<objeto>» (no hay nada que gastar)")
 			pz.nodo = cf
 		"cristal":
 			var cr := CristalPulso3D.new()
@@ -2190,12 +2286,73 @@ func _crear(pz: Pieza) -> void:
 				_avisar_pieza(pz, "decorado necesita «modelo=<pieza>» y que la pieza exista")
 				return
 			pz.nodo = dec
+		"colmena":
+			var cm := Colmena3D.new()
+			cm.name = pz.id
+			cm.preparar(pz.celda, nivel)
+			cont.add_child(cm)
+			pz.nodo = cm
+		"nube_veneno":
+			# F4: una nube de veneno (vida en s, 0 = permanente; radio en casillas). Cuelga del contenedor de piezas y se registra sola en EstadoZona3D.
+			var nb: NubeVeneno3D = NubeVeneno3D.crear(cont, Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda)), float(pz.p.get("vida", 6.0)), float(pz.p.get("radio", 1.0)))
+			nb.name = pz.id
+			pz.nodo = nb
+		"nido":
+			var nd2 := Nido3D.new()
+			nd2.name = pz.id
+			nd2.preparar(pz.celda)
+			cont.add_child(nd2)
+			pz.nodo = nd2
+		"arbol":
+			# F1: un árbol que se SACUDE con el golpe F (papel `sacudible` de Reactivo3D). Modelo de la maqueta (`_pieza`) o, sin él, un tronco y una copa de primitivas.
+			var vis_a: Node3D = null
+			var id_a: String = String(pz.p.get("modelo", "arbol_redondo"))
+			if mundo is Object and (mundo as Object).has_method("_pieza"):
+				vis_a = (mundo as Object).call("_pieza", id_a) as Node3D
+			if vis_a == null:
+				vis_a = _arbol_primitivo()
+			var ar := Reactivo3D.new()
+			ar.name = pz.id
+			ar.add_child(vis_a)
+			var fx_a: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+			ar.preparar("arbol", pz.celda, "", fx_a as Vfx3D, vis_a)
+			ar.position = Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda))
+			cont.add_child(ar)
+			Terreno3D.bloquear_celda(pz.celda)
+			pz.nodo = ar
 		"pared_hueca":
 			var ph := ParedHuecaPulso3D.new()
 			ph.name = pz.id
 			ph.preparar(pz.celda, String(pz.p.get("flag", "")), mundo as Node, String(pz.p.get("mira", "")))
 			cont.add_child(ph)
 			pz.nodo = ph
+
+
+## Un árbol de primitivas (tronco y copa) para la pieza `arbol` cuando la maqueta no tiene modelo.
+static func _arbol_primitivo() -> Node3D:
+	var raiz := Node3D.new()
+	var tronco := MeshInstance3D.new()
+	var cil := CylinderMesh.new()
+	cil.top_radius = 0.18
+	cil.bottom_radius = 0.26
+	cil.height = 1.6
+	var mt := StandardMaterial3D.new()
+	mt.albedo_color = Color(0.4, 0.28, 0.18)
+	cil.material = mt
+	tronco.mesh = cil
+	tronco.position = Vector3(0.0, 0.8, 0.0)
+	raiz.add_child(tronco)
+	var copa := MeshInstance3D.new()
+	var es := SphereMesh.new()
+	es.radius = 0.9
+	es.height = 1.5
+	var mc := StandardMaterial3D.new()
+	mc.albedo_color = Color(0.36, 0.62, 0.34)
+	es.material = mc
+	copa.mesh = es
+	copa.position = Vector3(0.0, 2.1, 0.0)
+	raiz.add_child(copa)
+	return raiz
 
 
 ## Avisa de un logro (ver arriba). `nodo` = la pieza que lo origina: de ella sale el punto (1 u por encima de su base) para destello y sonido.
@@ -2860,6 +3017,8 @@ func _cumple_termino(t: Dictionary) -> bool:
 			v = _cumple(String(t["id"]), String(t["cond"]))
 		"flag":
 			v = Flags.i().tiene(String(t["nombre"]))
+		"tener":
+			v = Estado.i().cuenta(String(t["objeto"])) > 0
 		"casilla":
 			# «agua» no es un estado del suelo: la dice el terreno (Terreno3D.es_agua). El resto, EstadosSuelo3D (B1).
 			var c: Vector2i = t["celda"]
@@ -2894,6 +3053,16 @@ func _ejecutar(a: Dictionary) -> void:
 			Flags.i().poner(String(a["nombre"]))
 		else:
 			Flags.i().quitar(String(a["nombre"]))
+		return
+	if String(a["id"]) == ID_ZONA:
+		var ez: EstadoZona3D = EstadoZona3D.actual
+		if ez == null or not is_instance_valid(ez):
+			push_warning("Puzle3D: zona.%s(%s) sin EstadoZona3D en el nivel" % [a["accion"], a["estado"]])
+			return
+		if String(a["accion"]) == "poner":
+			ez.poner(String(a["estado"]), float((a["args"] as Array)[0]) if (a["args"] as Array).size() > 0 else 0.0)
+		else:
+			ez.quitar(String(a["estado"]))
 		return
 	var pz: Pieza = _piezas.get(a["id"], null)
 	if pz == null:

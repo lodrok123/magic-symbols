@@ -8,64 +8,15 @@ extends RefCounted
 ## (electrificar una seta, quemar una flor...). La tabla REACCIONES dice qué sale de cada
 ## cruce; no hay sistema de cocina, solo el objeto en la mochila para usarlo en recetas.
 
-## forma: "frasco", "seta", "flor", "raiz", "cristal", "moneda", "tonico", "tarro", "infusion"
-## Campos opcionales (24/10, menú de pestañas estilo Echoes of Wisdom): `usos` = lista de frases del panel «Usos conocidos» del Inventario (sin ella, el panel
-## dice que aún no se le conoce ningún uso); `efecto` = los números de un consumible (los lee `Consumibles`, ÚNICO sitio donde viven).
-const DATOS: Dictionary = {
-	"oro": {"nombre": "Oro", "desc": "Moneda de oro", "color": Color(1.0, 0.85, 0.3), "forma": "moneda"},
-	"pocion": {"nombre": "Poción de vida", "desc": "Cura vida. Equípala y usa Q", "color": Color(1.0, 0.35, 0.3), "forma": "frasco",
-		"usos": ["Cura 40 de vida al beberla (1,5 s quieto)", "Se interrumpe si te golpean"], "efecto": {"cura": 40.0}},
-	# Los otros tres consumibles del HUD (Q usa el equipado, R cambia). Números en `efecto`; el texto de `desc` los repite: si cambias uno, cambia el otro.
-	"tonico_tinta": {"nombre": "Tónico de tinta", "desc": "Recarga un frasco de tinta vacío", "color": Color(0.30, 0.55, 1.0), "forma": "tonico",
-		"usos": ["Recarga 1 frasco de reserva de tinta", "Solo sirve si falta algún frasco"], "efecto": {"frascos": 1}},
-	"balsamo_protector": {"nombre": "Bálsamo protector", "desc": "Absorbe el próximo golpe durante 20 s", "color": Color(0.95, 0.74, 0.28), "forma": "tarro",
-		"usos": ["Absorbe por completo el próximo golpe", "Dura 20 s; si nadie te pega, se pierde"], "efecto": {"dura": 20.0}},
-	"infusion_brezo": {"nombre": "Infusión de brezo", "desc": "Regenera 3 de vida por segundo durante 12 s", "color": Color(0.66, 0.42, 0.86), "forma": "infusion",
-		"usos": ["Regenera 3 de vida por segundo durante 12 s", "Un golpe no corta el efecto"], "efecto": {"dura": 12.0, "tasa": 3.0}},
-
-	# Cosas del decorado con lógica: se recogen del escenario con E (ver recolectable.gd)
-	"lavanda": {"nombre": "Lavanda", "desc": "Huele a calma. Ingrediente", "color": Color(0.7, 0.55, 0.95), "forma": "flor",
-		"usos": ["Ingrediente de síntesis (próximamente)", "Calma a las criaturas del bosque"]},
-	"baya": {"nombre": "Bayas", "desc": "Dulces y rojas. Ingrediente", "color": Color(0.85, 0.2, 0.35), "forma": "baya",
-		"usos": ["Ingrediente de síntesis (próximamente)"]},
-	"helecho": {"nombre": "Helecho", "desc": "Hojas frescas. Ingrediente", "color": Color(0.35, 0.75, 0.4), "forma": "hoja",
-		"usos": ["Ingrediente de síntesis (próximamente)", "Base de la Infusión de brezo"]},
-	"piedra": {"nombre": "Piedra", "desc": "Una piedra del camino. Ingrediente", "color": Color(0.62, 0.62, 0.66), "forma": "piedra"},
-	"flor_silvestre": {"nombre": "Flor silvestre", "desc": "Crece por todo el prado. Ingrediente", "color": Color(1.0, 0.9, 0.4), "forma": "flor"},
-
-	"seta": {"nombre": "Seta", "desc": "Una seta del bosque", "color": Color(0.85, 0.75, 0.6), "forma": "seta"},
-	"seta_electrificada": {"nombre": "Seta electrificada", "desc": "Chisporrotea. Ingrediente", "color": Color(1.0, 0.95, 0.35), "forma": "seta"},
-	"seta_asada": {"nombre": "Seta asada", "desc": "Huele a brasa. Ingrediente", "color": Color(0.85, 0.45, 0.2), "forma": "seta"},
-	"seta_helada": {"nombre": "Seta helada", "desc": "Cubierta de escarcha. Ingrediente", "color": Color(0.6, 0.9, 1.0), "forma": "seta"},
-	"seta_humeda": {"nombre": "Seta empapada", "desc": "Chorrea agua. Ingrediente", "color": Color(0.45, 0.65, 0.95), "forma": "seta"},
-	"esporas": {"nombre": "Esporas", "desc": "Dispersadas por el viento. Ingrediente", "color": Color(0.75, 0.9, 0.6), "forma": "cristal"},
-
-	"flor_luna": {"nombre": "Flor de luna", "desc": "Pétalos pálidos", "color": Color(0.85, 0.85, 1.0), "forma": "flor"},
-	"flor_ardiente": {"nombre": "Flor ardiente", "desc": "Sus pétalos arden sin quemarse. Ingrediente", "color": Color(1.0, 0.5, 0.2), "forma": "flor"},
-	"flor_rocio": {"nombre": "Flor de rocío", "desc": "Gotas que no se secan. Ingrediente", "color": Color(0.4, 0.8, 1.0), "forma": "flor"},
-	"flor_chispa": {"nombre": "Flor cargada", "desc": "Pica al tocarla. Ingrediente", "color": Color(1.0, 0.95, 0.4), "forma": "flor"},
-	"petalos": {"nombre": "Pétalos al viento", "desc": "Ligeros como el aire. Ingrediente", "color": Color(1.0, 0.75, 0.9), "forma": "cristal"},
-	"flor_escarcha": {"nombre": "Flor de escarcha", "desc": "Fría y quebradiza. Ingrediente", "color": Color(0.7, 0.95, 1.0), "forma": "flor"},
-
-	"raiz": {"nombre": "Raíz", "desc": "Raíz retorcida", "color": Color(0.6, 0.45, 0.3), "forma": "raiz"},
-	"raiz_cenizas": {"nombre": "Raíz carbonizada", "desc": "Negra y dura. Ingrediente", "color": Color(0.3, 0.27, 0.27), "forma": "raiz"},
-	"raiz_hinchada": {"nombre": "Raíz hinchada", "desc": "Llena de agua. Ingrediente", "color": Color(0.5, 0.7, 0.9), "forma": "raiz"},
-	"raiz_magnetica": {"nombre": "Raíz magnética", "desc": "Atrae el metal. Ingrediente", "color": Color(0.8, 0.85, 1.0), "forma": "raiz"},
-	"cristal_tierra": {"nombre": "Cristal de tierra", "desc": "Se forma al golpear la raíz con tierra. Ingrediente", "color": Color(0.7, 0.55, 0.3), "forma": "cristal"},
-
-	# Materiales de la Cueva (docs/MATERIALES_CUEVA.md). `calidad` ausente = común. Formas y colores: las que ya había, sin arte nuevo.
-	"seta_resonante": {"nombre": "Seta resonante", "desc": "Madura al compás del pulso. Ingrediente", "color": Color(0.6, 0.85, 1.0), "forma": "seta"},
-	"alga_cueva": {"nombre": "Alga de cueva", "desc": "Atrapada en el hielo de la charca. Ingrediente", "color": Color(0.35, 0.7, 0.62), "forma": "hoja"},
-	"alga_seca": {"nombre": "Alga seca", "desc": "Quebradiza y salada. Ingrediente", "color": Color(0.68, 0.6, 0.38), "forma": "hoja"},
-	"mineral_veta": {"nombre": "Mineral de veta", "desc": "Un trozo de la veta del pulso. Ingrediente", "color": Color(0.5, 0.58, 0.78), "forma": "piedra"},
-	"esquirla_cristal": {"nombre": "Esquirla de cristal", "desc": "Zumba muy bajito. Ingrediente", "color": Color(0.78, 0.92, 1.0), "forma": "cristal"},
-	"basalto": {"nombre": "Basalto", "desc": "Roca de lava enfriada. Ingrediente", "color": Color(0.36, 0.35, 0.38), "forma": "piedra"},
-	"colmillo_goblin": {"nombre": "Colmillo de goblin", "desc": "Amarillento y astillado. Ingrediente", "color": Color(0.92, 0.88, 0.74), "forma": "raiz"},
-	# Épicos: ingredientes para mejorar al PERSONAJE (vida, tinta, pigmentos, ropa), no variables de un glifo (PLAN_PULSO_RESONANTE §10.4).
-	"nucleo_eco": {"nombre": "Núcleo de eco", "desc": "Late dentro como un segundo corazón. Mejora al personaje", "color": Color(0.72, 0.42, 1.0), "forma": "cristal", "calidad": "epico",
-		"usos": ["Mejora al personaje (vida o tinta)", "Material épico: no se vende"]},
-	"geoda_resonante": {"nombre": "Geoda resonante", "desc": "Hueca y cantarina. Mejora al personaje", "color": Color(0.62, 0.36, 0.95), "forma": "cristal", "calidad": "epico"},
-}
+## DESDE F0 (29/10, PLAN_BASE_DATOS) NADA DE ESTO SE ESCRIBE AQUÍ: `DATOS`, `PLANTAS`, `MINERALES`, `CLAVE`, `CURAN` y `CONSUMIBLES` se GENERAN al cargar
+## el script desde las tablas de `res://nucleo/datos/` (las lee `BD`), para que los 30 y pico sitios que los leen hoy sigan funcionando sin cambiar.
+## Si quieres un objeto nuevo, una planta nueva o un consumible nuevo, es una fila en `objetos.tsv` / `fuentes.tsv`, no una línea de GDScript.
+##
+## Cada entrada de `DATOS` conserva las claves de siempre: `nombre`, `desc`, `color` (Color), `forma` (la de `dibujar`: "frasco", "seta", "flor", "raiz", "cristal",
+## "moneda", "tonico", "tarro", "infusion"...), `calidad` (solo si no es común), `usos` (frases del panel «Usos conocidos» del Inventario; sin ellas el panel dice que aún
+## no se le conoce ninguno) y `efecto` (los números de un consumible; los lee `Consumibles`, ÚNICO sitio donde viven). Y gana las de la tabla: `categoria` (la de
+## §2.1 del plan: hongo, planta, raiz, mineral, animal, botin, consumible, pigmento, clave, ropa, glifo), `etiquetas`, `potencia`, `pila`, `uso`, `modelo` y `zona`.
+static var DATOS: Dictionary = {}
 
 ## --- Calidades (PLAN_PULSO_RESONANTE §7): común gris/blanco · épico morado · legendario dorado ---
 ## `color` pinta el borde del aviso al cogerlo y el aro del icono; `aviso_s` es lo que dura el aviso en pantalla.
@@ -78,41 +29,117 @@ const CALIDADES: Dictionary = {
 	"legendario": {"nombre": "Legendario", "color": Color(1.0, 0.82, 0.3), "aviso_s": 4.5},
 }
 
-## Dónde sale cada mineral de un reactivo (gancho de la fase 3 del pulso: la veta y el cristal aún no llaman a esto).
-## reactivo del mundo -> {via: lo que le hace falta (elemento lanzado o golpes), da: el material}
-const MINERALES: Dictionary = {
-	"veta": {"via": "tierra", "golpes": 1, "da": "mineral_veta"},
-	"cristal_resonante": {"via": "golpe", "golpes": 2, "da": "esquirla_cristal"},
-	"jarron": {"via": "romper", "golpes": 1, "da": "esquirla_cristal"},
-}
+## Dónde sale cada mineral de un reactivo (gancho de la fase 3 del pulso). Se genera de `fuentes.tsv` (filas golpe/romper/tabla de un objeto de categoría
+## mineral cuyo `de` es una veta, un cristal o un jarrón; la primera fila de cada `de` manda).
+## reactivo del mundo -> {via: lo que le hace falta (elemento lanzado, "golpe" o "romper"), golpes: cuántos, da: el material}
+static var MINERALES: Dictionary = {}
 
-## Plantas del mundo (las que se ven en el suelo antes de reaccionar).
+## Plantas del mundo (las que se ven en el suelo antes de reaccionar). Se genera de `fuentes.tsv`: la base es la fila `recoger` de la planta y la tabla son sus
+## filas `reaccion` SIN condición (las que dependen de un estado del mundo, como el alga cargada de la charca electrificada, esperan a su fase).
 ## base: objeto original · tabla: etiqueta del elemento -> objeto resultante
-const PLANTAS: Dictionary = {
-	"seta": {"base": "seta", "tabla": {
-		"rayo": "seta_electrificada", "fuego": "seta_asada", "hielo": "seta_helada",
-		"agua": "seta_humeda", "viento": "esporas"}},
-	"flor": {"base": "flor_luna", "tabla": {
-		"fuego": "flor_ardiente", "agua": "flor_rocio", "rayo": "flor_chispa",
-		"viento": "petalos", "hielo": "flor_escarcha"}},
-	"raiz": {"base": "raiz", "tabla": {
-		"fuego": "raiz_cenizas", "agua": "raiz_hinchada", "rayo": "raiz_magnetica",
-		"tierra": "cristal_tierra"}},
-	# La Cueva: el alga solo se coge con la charca helada (ver `coge_si` en Recolectable3D); el fuego la seca.
-	"alga": {"base": "alga_cueva", "tabla": {"fuego": "alga_seca"}},
-}
+static var PLANTAS: Dictionary = {}
+
+## Las piezas de `fuentes.tsv` que son plantas (las demás `de` son enemigos, cofres, reactivos...). Las cuatro de siempre y las tres de la Cueva que llegan con F0.
+const PIEZAS_PLANTA: PackedStringArray = ["seta", "flor", "raiz", "alga", "musgo", "helecho_cueva", "seta_palida"]
+## Pila por hueco de un objeto que no está en la tabla (lo de siempre: `Estado.PILA_MAX`).
+const PILA_DEFECTO: int = 9
 
 const ETIQUETAS: Array = ["rayo", "fuego", "hielo", "agua", "viento", "tierra"]
 
 ## --- Categorías de la bolsa (Fase 14.3) ---
 ## La bolsa ordena SIEMPRE por categoría: primero los componentes (ingredientes), luego las pociones, al final los objetos clave (llaves
-## y cosas de misión). Dentro de cada una, por nombre. Lo que no está en CLAVE ni en CURAN es un componente.
+## y cosas de misión). Dentro de cada una, por nombre. Sale de la columna `categoria` de la tabla (ver `categoria`).
 const CATEGORIAS: Array = ["componentes", "pociones", "clave"]
-const CLAVE: PackedStringArray = ["llave", "llave_goblin", "perla", "aletas"]
-## Objetos que curan: la bolsa les pone un corazón rojo (como Echoes of Wisdom).
-const CURAN: PackedStringArray = ["pocion", "infusion_brezo"]
-## Los consumibles del HUD, en el orden en que R los recorre. Q usa el equipado (ver `Consumibles`). Van en la categoría de pociones.
-const CONSUMIBLES: PackedStringArray = ["pocion", "tonico_tinta", "balsamo_protector", "infusion_brezo"]
+## Los objetos de categoría «clave» de la tabla (llaves y cosas de misión; la ropa y los glifos también van a la pestaña clave pero no están aquí).
+static var CLAVE: PackedStringArray = PackedStringArray()
+## Objetos que curan (la bolsa les pone un corazón rojo, como Echoes of Wisdom): los que llevan `cura` o `tasa` en su `efecto`.
+static var CURAN: PackedStringArray = PackedStringArray()
+## Los consumibles del HUD, en el orden en que R los recorre (los de `uso = equipar`). Q usa el equipado (ver `Consumibles`). Van en la categoría de pociones.
+## Primero los que el juego ya tenía (`estado = hay`, en el orden de la tabla: poción, tónico, bálsamo, infusión) y luego los nuevos, para que R no cambie de orden.
+static var CONSUMIBLES: PackedStringArray = PackedStringArray()
+
+
+## Se ejecuta una vez, al cargar el script: rellena DATOS, PLANTAS, MINERALES, CLAVE, CURAN y CONSUMIBLES desde `BD`.
+static func _static_init() -> void:
+	_construir()
+
+
+static func _construir() -> void:
+	DATOS = {}
+	var clave: PackedStringArray = PackedStringArray()
+	var curan: PackedStringArray = PackedStringArray()
+	var consumibles_hay: PackedStringArray = PackedStringArray()
+	var consumibles_nuevos: PackedStringArray = PackedStringArray()
+	var objs: Dictionary = BD.objetos()
+	for id in objs:
+		var o: Dictionary = objs[id]
+		var d: Dictionary = {"nombre": o["nombre"], "desc": o["desc"], "color": o["color"], "forma": o["forma"]}
+		if String(o["calidad"]) != "" and String(o["calidad"]) != CALIDAD_COMUN:
+			d["calidad"] = o["calidad"]
+		if not (o["usos"] as Array).is_empty():
+			d["usos"] = o["usos"]
+		if not (o["efecto"] as Dictionary).is_empty():
+			d["efecto"] = o["efecto"]
+		for k in ["categoria", "etiquetas", "potencia", "pila", "uso", "modelo", "zona"]:
+			d[k] = o[k]
+		DATOS[id] = d
+		if String(o["categoria"]) == "clave":
+			clave.append(id)
+		var ef: Dictionary = o["efecto"]
+		if ef.has("cura") or ef.has("tasa"):
+			curan.append(id)
+		if String(o["uso"]) == "equipar":
+			if String(o["estado"]) == "hay":
+				consumibles_hay.append(id)
+			else:
+				consumibles_nuevos.append(id)
+	CLAVE = clave
+	CURAN = curan
+	CONSUMIBLES = consumibles_hay + consumibles_nuevos
+	_construir_plantas()
+	_construir_minerales()
+
+
+static func _construir_plantas() -> void:
+	PLANTAS = {}
+	for pieza in PIEZAS_PLANTA:
+		PLANTAS[pieza] = {"base": pieza, "tabla": {}}
+	var con_base: Dictionary = {}
+	for f in BD.fuentes():
+		var de: String = String(f["de"])
+		if not PLANTAS.has(de):
+			continue
+		var planta: Dictionary = PLANTAS[de]
+		if String(f["fuente"]) == "recoger":
+			if not con_base.has(de):
+				con_base[de] = true
+				planta["base"] = String(f["objeto"])
+		elif String(f["fuente"]) == "reaccion" and String(f["condicion"]) == "" and ETIQUETAS.has(String(f["via"])):
+			(planta["tabla"] as Dictionary)[String(f["via"])] = String(f["objeto"])
+
+
+static func _construir_minerales() -> void:
+	MINERALES = {}
+	for f in BD.fuentes():
+		var de: String = String(f["de"])
+		if not ["veta", "cristal_resonante", "jarron"].has(de) or MINERALES.has(de):
+			continue
+		if not ["golpe", "romper", "tabla"].has(String(f["fuente"])) or String(BD.objeto(String(f["objeto"])).get("categoria", "")) != "mineral":
+			continue
+		var via: String = String(f["via"])
+		var m: Dictionary = {"da": String(f["objeto"])}
+		if via.begins_with("golpes:"):
+			m["via"] = "golpe"
+			m["golpes"] = via.substr(7).to_int()
+		elif via == "romper":
+			m["via"] = "romper"
+			m["golpes"] = 1
+		elif ETIQUETAS.has(via):
+			m["via"] = via
+			m["golpes"] = 1
+		else:
+			continue
+		MINERALES[de] = {"via": m["via"], "golpes": m["golpes"], "da": m["da"]}
 
 
 static func existe(id: String) -> bool:
@@ -148,12 +175,35 @@ static func mineral_de(reactivo: String, via: String) -> String:
 	return String(m.get("da", "")) if String(m.get("via", "")) == via else ""
 
 
+## La categoría de la BOLSA (componentes / pociones / clave), agrupando la de la tabla como dice PLAN_BASE_DATOS §2.1:
+## consumible + pigmento → pociones; clave + ropa + glifo → clave; todo lo demás (hongos, plantas, raíces, minerales, animales, botín) → componentes.
 static func categoria(id: String) -> String:
-	if CURAN.has(id) or CONSUMIBLES.has(id):
-		return "pociones"
-	if CLAVE.has(id):
-		return "clave"
+	match categoria_bd(id):
+		"consumible", "pigmento":
+			return "pociones"
+		"clave", "ropa", "glifo":
+			return "clave"
 	return "componentes"
+
+
+## La categoría fina de la tabla (hongo, planta, raiz, mineral, animal, botin, consumible, pigmento, clave, ropa, glifo); "" si el objeto no existe.
+static func categoria_bd(id: String) -> String:
+	return String((DATOS.get(id, {}) as Dictionary).get("categoria", ""))
+
+
+## Cuántas unidades caben en un hueco de la mochila (columna `pila`); 9 si el objeto no está en la tabla.
+static func pila(id: String) -> int:
+	return maxi(1, int((DATOS.get(id, {}) as Dictionary).get("pila", PILA_DEFECTO)))
+
+
+## Las etiquetas que aporta a una receta (`vital`, `calor`...); [] si no tiene.
+static func etiquetas(id: String) -> Array:
+	return (DATOS.get(id, {}) as Dictionary).get("etiquetas", [])
+
+
+## Cuánto aporta cada etiqueta (1–5); 0 si no aporta nada.
+static func potencia(id: String) -> int:
+	return int((DATOS.get(id, {}) as Dictionary).get("potencia", 0))
 
 
 static func cura(id: String) -> bool:

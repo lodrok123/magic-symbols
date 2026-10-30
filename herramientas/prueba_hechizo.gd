@@ -70,7 +70,10 @@ func _generar(nombres: Array, restante: int, desde: int, actual: Array, salida: 
 
 # --- La tabla nueva y la vieja dicen lo mismo ---
 func _tablas() -> void:
-	_ok(Sigils.GLIFOS.keys() == Sigils.GLIFOS_V2.keys(), "GLIFOS y GLIFOS_V2 no tienen los mismos glifos / orden")
+	# H5 (30/10): GLIFOS_V2 está en desuso y no recibe los glifos nuevos (perforar, retorno, buscar, retardo): los de V2 son los primeros de GLIFOS, en el mismo orden, y lo que sobra es solo H5.
+	var claves_v2: Array = Sigils.GLIFOS_V2.keys()
+	_ok(Sigils.GLIFOS.keys().slice(0, claves_v2.size()) == claves_v2, "GLIFOS y GLIFOS_V2 no tienen los mismos glifos / orden")
+	_ok(Sigils.GLIFOS.keys().slice(claves_v2.size()) == ["perforar", "retorno", "buscar", "retardo"], "GLIFOS tiene, además de los de GLIFOS_V2, exactamente los cuatro de H5")
 	for nombre in Sigils.GLIFOS_V2:
 		var v: Dictionary = Sigils.GLIFOS_V2[nombre]
 		var n: Dictionary = Sigils.GLIFOS[nombre]

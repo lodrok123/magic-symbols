@@ -197,18 +197,15 @@ static func _de_golpe(lanzador: Lanzador3D, obj: Node, h: Hechizo, rune: RuneDat
 		return _enemigo(obj as Combate3D, h, rune, dir, punto, gp["desde"])
 	if not obj.has_method("on_spell_hit"):
 		return {}
-	var reacciona: bool = true
-	if obj.has_method("spell_reacts"):
-		reacciona = bool(obj.call("spell_reacts", rune, dir))      # la misma consulta que `Lanzador3D._golpear`
-	if not reacciona:
+	if not Lanzador3D.reacciona_a(obj, rune, dir, h):      # la misma consulta que `Lanzador3D._golpear`, con el mismo Hechizo
 		return {}
-	return _pieza(obj, rune, dir, punto)
+	return _pieza(obj, rune, dir, punto, h)
 
 
 static func _enemigo(g: Combate3D, h: Hechizo, rune: RuneData, dir: Vector3, punto: Vector3, desde: Vector3) -> Dictionary:
 	if g.muerto:
 		return {}
-	var previo: Dictionary = Lanzador3D.empuje_de_golpe(g, rune, dir, punto, false, desde)
+	var previo: Dictionary = Lanzador3D.empuje_de_golpe(g, rune, dir, punto, false, desde, h)
 	var pg: Dictionary = g.prever_golpe(h, dir, previo)
 	var cas: float = Terreno3D.casilla
 	var lista: Array = []
@@ -249,7 +246,7 @@ static func _enemigo(g: Combate3D, h: Hechizo, rune: RuneData, dir: Vector3, pun
 		"mult": 1.0 if bool(pg["cubierto"]) else float(pg["mult"]), "extra": extra}
 
 
-static func _pieza(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3) -> Dictionary:
+static func _pieza(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, h: Hechizo = null) -> Dictionary:
 	var celda: Vector2i = Terreno3D.celda_de((obj as Node3D).global_position) if obj is Node3D else Vector2i.ZERO
 	var extra: Dictionary = {"golpes": 1}
 	var reaccion: String = ""
@@ -261,18 +258,18 @@ static func _pieza(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3) -> D
 		celda = celdas[0]
 		extra["celdas"] = celdas
 	elif obj is BloqueEmpujable3D:
-		var r: Dictionary = (obj as BloqueEmpujable3D).reaccion_a(rune, dir)
+		var r: Dictionary = (obj as BloqueEmpujable3D).reaccion_a(rune, dir, h)
 		if r.is_empty():
 			return {}
 		reaccion = String(r["reaccion"])
 		extra["destino"] = r["destino"]
 		extra["dir"] = r["dir"]
 	elif obj is MuroAgrietado3D:
-		reaccion = (obj as MuroAgrietado3D).reaccion_a(rune)
+		reaccion = (obj as MuroAgrietado3D).reaccion_a(rune, h)
 	elif obj is Rompible3D:
 		reaccion = "rompe"
 	elif obj is Reactivo3D:
-		reaccion = (obj as Reactivo3D).reaccion_a(rune)
+		reaccion = (obj as Reactivo3D).reaccion_a(rune, h)
 	else:
 		reaccion = "activa"                              # una pieza con `spell_reacts` y sin tabla de nombres propia (pulsador, compuerta, cristal…): reacciona y se activa
 	if reaccion == "":

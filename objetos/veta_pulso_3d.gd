@@ -160,8 +160,8 @@ func _mirar_tierra(delta: float) -> void:
 
 
 ## Un hechizo de tierra pica la veta. Devuelve el material que soltó ("" si no soltó nada).
-func picar(rune: RuneData) -> String:
-	if rune == null or not rune.tags.has("tierra") or trozo_dado:
+func picar(rune: RuneData, hechizo: Hechizo = null) -> String:
+	if rune == null or not Materia.golpea(Materia.de(hechizo if hechizo != null else rune)) or trozo_dado:
 		return ""
 	golpes_tierra += 1
 	var da: String = Objetos.mineral_de("veta", "tierra")

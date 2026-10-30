@@ -1,0 +1,85 @@
+objeto	fuente	de	via	condicion	prob	min	max	zona	nota
+seta	recoger	seta	E	-	1	1	1	todas	Recolectable3D, planta `seta`
+seta_asada	reaccion	seta	fuego	-	1	1	1	todas	Objetos.PLANTAS
+seta_humeda	reaccion	seta	agua	-	1	1	1	todas	
+seta_helada	reaccion	seta	hielo	-	1	1	1	todas	
+seta_electrificada	reaccion	seta	rayo	-	1	1	1	todas	
+esporas	reaccion	seta	viento	-	1	1	1	todas	
+seta_resonante	pulso	seta	pulso	madura=si	1	1	1	cueva	Recolectable3D.on_pulso
+esporas_luminosas	reaccion	seta_resonante	viento	-	1	1	1	cueva	nueva fila en la tabla de la seta resonante
+seta_cristalizada	reaccion	seta_resonante	hielo	-	1	1	1	cueva	
+seta_palida	recoger	seta_palida	E	-	1	1	1	cueva	planta nueva: solo en zonas con estado `oscuridad`
+flor_luna	recoger	flor	E	-	1	1	1	bosque	
+flor_ardiente	reaccion	flor	fuego	-	1	1	1	bosque	
+flor_rocio	reaccion	flor	agua	-	1	1	1	bosque	
+flor_chispa	reaccion	flor	rayo	-	1	1	1	bosque	
+flor_escarcha	reaccion	flor	hielo	-	1	1	1	bosque	
+petalos	reaccion	flor	viento	-	1	1	1	bosque	
+lavanda	recoger	lavanda	E	-	1	1	1	bosque	
+baya	recoger	bayas	E	-	1	1	1	bosque	
+baya	tabla	hierba	segar	-	1	1	1	bosque	tabla `hierba_segada`: segar hierba con viento o golpe
+helecho	recoger	helecho	E	-	1	1	1	bosque	
+flor_silvestre	recoger	flor_silvestre	E	-	1	1	1	bosque	
+flor_silvestre	tabla	hierba	segar	-	1	1	1	bosque	tabla `hierba_segada`
+alga_cueva	recoger	alga	E	casilla(x,y).helada	1	1	1	cueva	
+alga_seca	reaccion	alga	fuego	-	1	1	1	cueva	
+alga_cargada	reaccion	alga	rayo	charca electrificada	1	1	1	cueva	
+musgo_cueva	recoger	musgo	E	-	1	1	1	cueva	modelo `musgo_colgante` junto a la cascada
+helecho_cueva	recoger	helecho_cueva	E	-	1	1	1	cueva	
+raiz	recoger	raiz	E	-	1	1	1	bosque	
+raiz_cenizas	reaccion	raiz	fuego	-	1	1	1	bosque	
+raiz_hinchada	reaccion	raiz	agua	-	1	1	1	bosque	
+raiz_magnetica	reaccion	raiz	rayo	-	1	1	1	bosque	
+cristal_tierra	reaccion	raiz	tierra	-	1	1	1	bosque	
+resina	tabla	arbol	golpe	-	1	1	1	bosque	tabla `tronco_golpe`: golpe F a un árbol, cada 30 s
+corteza	tabla	arbol	golpe	-	1	1	1	bosque	tabla `tronco_golpe`
+panal	reactivo	colmena	viento	-	1	1	2	bosque	pieza nueva `colmena`: el viento lo descuelga; el fuego lo quema (nada) y suelta esporas de veneno 3 s
+pluma	reactivo	nido	viento	-	1	1	1	bosque	pieza nueva `nido` (en un árbol): el viento lo sacude
+seda	reaccion	telarana	hielo	-	1	1	1	todas	Reactivo3D `telarana` + `+helable`: helada se recoge con E y da seda
+carbon	tabla	seto	consumido	-	0.3	1	1	todas	tabla `seto_quemado`: al consumirse un seto, tronco o puerta goblin
+piedra	recoger	rocas_pequenas	E	-	1	1	1	todas	
+mineral_veta	golpe	veta	tierra	mineral=si	1	1	1	cueva	MineralPulso
+esquirla_cristal	golpe	cristal_resonante	golpes:2	-	1	1	1	cueva	MineralPulso
+esquirla_cristal	tabla	jarron	romper	-	1	1	1	cueva	tabla `jarron_cueva`
+basalto	recoger	basalto	E	casilla(x,y).roca	1	1	1	cueva	10 s antes de que vuelva la lava
+obsidiana	reaccion	lava	hielo	-	1	1	1	cueva	reacción nueva: hielo sobre lava deja `obsidiana` recogible 10 s (el agua sigue dando basalto)
+polvo_cristal	golpe	esquirla_cristal	tierra	tirada en el suelo	1	1	1	cueva	pieza de botín de objeto `esquirla_cristal` + tierra
+cristal_cargado	reaccion	cristal_resonante	rayo	-	1	1	1	cueva	
+ceniza_geoda	romper	geoda	pulso	-	1	1	2	cueva	GeodaPulso3D al explotar
+colmillo_goblin	enemigo	goblin	-	-	0.6	1	1	todas	tabla `goblin`
+jiron_escudo	enemigo	goblin_escudo	escudo ardiendo	-	1	1	1	todas	tabla `goblin_escudo`: solo si el escudo se quemó
+baba_limo	enemigo	limo	-	-	0.7	1	2	todas	tabla `limo`
+pluma_chaman	enemigo	chaman	-	-	0.5	1	1	todas	tabla `chaman`
+polvo_golem	enemigo	golem	-	-	1	1	2	todas	tabla `golem`
+savia_elemental	enemigo	elemental	-	-	1	1	1	bosque	tabla `elemental` (jefe)
+nucleo_eco	cofre	cofre_epico	abrir	cueva.c1.estatuas	1	1	1	cueva	da=nucleo_eco:1
+geoda_resonante	cofre	cofre_epico	abrir	-	1	1	1	cueva	sin sitio en el mapa todavía
+glifo_resonancia	cofre	cofre_legendario	abrir	-	1	1	1	cueva	C6
+llave	cofre	cofre	abrir	-	1	1	1	cueva	C4: da=llave:1 (hoy es solo la flag cueva.c4.llave)
+pocion	tabla	jarron	romper	-	1	1	1	todas	tablas `jarron_*`
+pocion	receta	-	sintesis	-	1	1	1	todas	recetas.tsv
+pocion	comprar	alquimista	oro	-	1	1	1	bosque	
+pocion_grande	receta	-	sintesis	-	1	1	1	todas	
+tonico_tinta	receta	-	sintesis	-	1	1	1	todas	
+balsamo_protector	receta	-	sintesis	-	1	1	1	todas	
+infusion_brezo	receta	-	sintesis	-	1	1	1	todas	
+antidoto	receta	-	sintesis	-	1	1	1	todas	
+frescor	receta	-	sintesis	-	1	1	1	todas	
+abrigo	receta	-	sintesis	-	1	1	1	todas	
+pigmento_carmesi	receta	-	sintesis	-	1	1	1	bosque	
+pigmento_ocre	receta	-	sintesis	-	1	1	1	tumulo	
+pigmento_musgo	receta	-	sintesis	-	1	1	1	bosque_humedo	
+pigmento_ambar	receta	-	sintesis	-	1	1	1	volcan	
+pigmento_eco	receta	-	sintesis	-	1	1	1	cueva	
+capa	cofre	cofre	abrir	-	1	1	1	bosque	ropa: cofres y misiones, nunca recetas (DISENO_FUTURO §7)
+capucha	mision	guardabosques	recompensa	-	1	1	1	bosque	
+tunica	cofre	cofre	abrir	-	1	1	1	cueva	
+capa_escarcha	receta	capa	bordado	-	1	1	1	todas	mejora de prenda: consume la capa + ingredientes
+tunica_salamandra	receta	tunica	bordado	-	1	1	1	todas	
+capucha_musgo	receta	capucha	bordado	-	1	1	1	todas	
+oro	tabla	jarron	romper	-	1	3	8	todas	tablas `jarron_*` (cifras por zona)
+oro	enemigo	goblin	-	-	1	2	6	todas	Combate3D.Botin3D
+oro	cofre	cofre	abrir	-	1	10	20	todas	da=oro:n
+llave_goblin	cofre	cofre	abrir	-	1	1	1	bosque	campamento goblin (hoy)
+perla	mision	-	recompensa	-	1	1	1	bosque	objeto de misión (hoy)
+aletas	mision	-	recompensa	-	1	1	1	bosque	objeto de misión (hoy)

@@ -126,6 +126,9 @@ const GLYPHS: Dictionary = {
 	"permanencia": preload("res://art/ui/glyphs/permanencia.png"),
 	# 23/10 (Pulso resonante, fase 2): ᚱ raido es el glifo «pulso» nuevo (el PNG ya existía en la lámina).
 	"raido": preload("res://art/ui/glyphs/raido.png"),
+	# 30/10 (H5): ᚦ perforar y ᚨ buscar tienen su PNG de la lámina (thurisaz.png, ansuz.png). ᛃ retorno (jera) NO tiene PNG todavía: sin entrada aquí el libro lo pinta con el trazo a mano (como «pilar»); pendiente del Pipeline.
+	"perforar": preload("res://art/ui/glyphs/thurisaz.png"),
+	"buscar": preload("res://art/ui/glyphs/ansuz.png"),
 }
 
 ## NOMBRE QUE VE EL JUGADOR (23/10, decisión de Pablo): el id de un glifo es el de sus muestras grabadas (`GestureLibrary`), su PNG y las tablas, y NO se renombra. Lo que se
@@ -407,6 +410,16 @@ const GLIFOS: Dictionary = {
 	"raido": {"repertorio": "raido", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 12.0}, "momento": "inicio", "paso": 5, "accion": "emitir_pulso",
 		"momento_si": [{"cuando": "viaja", "es": "final"}, {"cuando": "persistente", "es": "continuo"}],
 		"modificadores": [{"campo": "resuena", "op": "suma", "valor": PASO_RESUENA_V2, "tope": TOPE_RESUENA_V2}]},
+	# --- H5 (30/10, decisión de Pablo; PLAN_SISTEMA_HECHIZOS §3 H5): se activan los campos que HechizoVivo ya ejecutaba (HC4) y el retardo del proyectil. Tinta a 0 y `cuenta_dano` por defecto (cuentan para el daño):
+	# decisión provisional anotada en el diario para que Pablo la confirme.
+	# ᚦ perforar: +1 enemigo atravesado por glifo (tope 3) antes de pararse.
+	"perforar": {"repertorio": "perforar", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "perfora", "op": "suma", "valor": 1, "tope": 3}]},
+	# ᛃ retorno: al acabar la ida el proyectil vuelve y golpea de nuevo. Es un booleano: un segundo ᛃ no hace nada más (y sí cuenta para daño, tinta y recarga).
+	"retorno": {"repertorio": "retorno", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "retorna", "op": "fija", "valor": true}]},
+	# ᚨ buscar: el proyectil gira hacia el enemigo vivo más cercano de su cono (+0,5 de fuerza de giro por glifo, tope 2).
+	"buscar": {"repertorio": "buscar", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "busca", "op": "suma", "valor": 0.5, "tope": 2.0}]},
+	# ⧖ retardo: lo que sale tarda `retardo` s en salir (+1 s por glifo, tope 3): el volumen quieto nace tarde y el proyectil espera quieto en la mano. «Antes del inicio» = momento «inicio».
+	"retardo": {"repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 }
 
 

@@ -88,6 +88,8 @@ static func _fundir_etiquetas(m: Dictionary, etiquetas: Array) -> void:
 		m[campo] = maxf(float(m[campo]), float(e[campo]))
 	if etiquetas.has("viento") and String(m["estado"]) == "solido":
 		m["estado"] = "gas"
+	if etiquetas.has("tierra"):
+		m["densidad"] = maxf(float(m["densidad"]), 2.0)
 
 
 static func calienta(m: Dictionary) -> bool:
@@ -127,6 +129,25 @@ static func es_solido(m: Dictionary) -> bool:
 ## Un sólido denso que cae o se clava: la tierra.
 static func golpea(m: Dictionary) -> bool:
 	return es_solido(m) and float(m.get("densidad", 0.0)) >= D_PESADA and not enfria(m)
+
+
+## El predicado por su nombre, para las tablas de datos (la compuerta: abre_con / cierra_con): «calor» → calienta, «agua» → riega, «frio» → enfria,
+## «rayo» (o «electrico») → conduce, «viento» → sopla, «tierra» → golpea. Un nombre desconocido nunca se cumple.
+static func cumple(m: Dictionary, nombre: String) -> bool:
+	match nombre:
+		"calor":
+			return calienta(m)
+		"agua":
+			return riega(m)
+		"frio":
+			return enfria(m)
+		"rayo", "electrico":
+			return conduce(m)
+		"viento":
+			return sopla(m)
+		"tierra":
+			return golpea(m)
+	return false
 
 
 ## MEJORAS_POTENCIA §5 en propiedades. `estado` = {mojado, ardiendo, helado, encendido…} (lo que falte es false). Devuelve la reacción que tendría la pieza, sin aplicarla:

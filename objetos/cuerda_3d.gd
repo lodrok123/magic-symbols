@@ -156,21 +156,23 @@ func _tenir(c: Variant, emision: float = 0.0) -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if rune_data == null:
 		return
-	if rune_data.tags.has("calor") or rune_data.tags.has("rayo") or rune_data.tags.has("electrico"):
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if Materia.calienta(m) or Materia.conduce(m):
 		arder()
-	elif (rune_data.tags.has("agua") or rune_data.tags.has("frio")) and estado == EstadoCuerda.ARDIENDO:
+	elif (Materia.riega(m) or Materia.enfria(m)) and estado == EstadoCuerda.ARDIENDO:
 		_apagar()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null:
 		return false
-	if rune_data.tags.has("calor") or rune_data.tags.has("rayo") or rune_data.tags.has("electrico"):
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if Materia.calienta(m) or Materia.conduce(m):
 		return estado == EstadoCuerda.ENTERA
-	return (rune_data.tags.has("agua") or rune_data.tags.has("frio")) and estado == EstadoCuerda.ARDIENDO
+	return (Materia.riega(m) or Materia.enfria(m)) and estado == EstadoCuerda.ARDIENDO
 
 
 func carried_element() -> RuneData:

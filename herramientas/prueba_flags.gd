@@ -40,6 +40,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 func _initialize() -> void:
 	await process_frame
 	_api()
+	_version2()
 	_gramatica()
 	await _puzle_enlazado()
 	print("FALLOS: %d" % _fallos)
@@ -74,6 +75,44 @@ func _api() -> void:
 	_ok("2 cargar avisa de cada flag que llega", vistos_g.size() == 3, str(vistos_g))
 	_ok("2 cargar un archivo que no existe devuelve false", not Flags.nuevo().cargar("user://no_existe_jamas_flags.json"))
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(RUTA))
+
+
+## VERSIÓN 2 (F2 de PLAN_BASE_DATOS, 29/10): una flag puede ser una cadena corta («abierto»); `a_dic` separa `estados` y `flags`;
+## `desde_dic` lee las dos secciones y también el formato de la versión 1.
+func _version2() -> void:
+	var f: Flags = Flags.nuevo()
+	var vistos: Array = []
+	f.flag_cambio.connect(func(n: String, v: Variant) -> void: vistos.append([n, v]))
+	_ok("7 poner con cadena: queda puesta y valor() da la cadena", f.poner("bosque1.s1.cofre_01", "abierto") and f.tiene("bosque1.s1.cofre_01") and f.valor("bosque1.s1.cofre_01") == "abierto")
+	_ok("7 avisa con la cadena", vistos == [["bosque1.s1.cofre_01", "abierto"]], str(vistos))
+	_ok("7 la misma cadena otra vez no avisa; otra cadena sí", not f.poner("bosque1.s1.cofre_01", "abierto") and f.poner("bosque1.s1.cofre_01", "vacio") and vistos.size() == 2)
+	f.poner("bosque1.s1.cofre_01", "abierto")
+	_ok("7 una cadena vacía quita la flag", f.poner("bosque1.s2.x", "roto") and f.poner("bosque1.s2.x", "") and not f.tiene("bosque1.s2.x"))
+	f.poner("bosque1.s3.antorchas", 3)
+	f.poner("bosque1.rotulo.claro_visto")
+	var d: Dictionary = f.a_dic()
+	_ok("7 a_dic separa estados y flags", d.keys().size() == 2 and d["estados"] == {"bosque1.s1.cofre_01": "abierto"} and d["flags"] == {"bosque1.s3.antorchas": 3, "bosque1.rotulo.claro_visto": true}, str(d))
+	# Por JSON (los enteros vuelven como float) y a una instancia nueva.
+	var g: Flags = Flags.nuevo()
+	g.desde_dic(JSON.parse_string(JSON.stringify(d)))
+	_ok("7 desde_dic devuelve cadena, entero (int) y true", g.valor("bosque1.s1.cofre_01") == "abierto" and g.valor("bosque1.s3.antorchas") is int and g.valor("bosque1.s3.antorchas") == 3 and g.valor("bosque1.rotulo.claro_visto") == true)
+	# Formato de la versión 1: con «version» y «flags», y plano.
+	var v1: Flags = Flags.nuevo()
+	v1.desde_dic({"version": 1, "flags": {"bosque1.s3.placa": true, "pradera.s1.puente": 2.0}})
+	_ok("7 lee el formato viejo {version, flags}", v1.tiene("bosque1.s3.placa") and v1.valor("pradera.s1.puente") is int)
+	var plano: Flags = Flags.nuevo()
+	plano.desde_dic({"bosque1.s3.placa": true, "bosque1.s1.cofre": "abierto", "mal": true})
+	_ok("7 lee un diccionario plano y descarta nombres mal escritos", plano.nombres() == ["bosque1.s1.cofre", "bosque1.s3.placa"] and plano.valor("bosque1.s1.cofre") == "abierto", str(plano.nombres()))
+	var vacio: Flags = Flags.nuevo()
+	vacio.desde_dic({})
+	_ok("7 desde_dic({}) deja todo vacío", vacio.nombres().is_empty())
+	# Cargar avisa de lo que desaparece
+	var h: Flags = Flags.nuevo()
+	h.poner("a.b.c", "x")
+	var av: Array = []
+	h.flag_cambio.connect(func(n: String, v: Variant) -> void: av.append([n, v]))
+	h.desde_dic({})
+	_ok("7 desde_dic avisa de la que desaparece (false)", av == [["a.b.c", false]], str(av))
 
 
 func _gramatica() -> void:

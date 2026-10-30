@@ -19,6 +19,10 @@ extends Node
 ## La maqueta lo monta con tres llamadas: `colocar(mundo)` (dentro de _colocar_extras, antes de agrupar los lotes),
 ## `iniciar(mundo)` (al final de _ready, con el Jugador3D ya montado) y los registros `registrar_*` mientras coloca letras.
 
+## F3 (29/10): la hoguera (E junto a una fogata o un brasero encendidos) y el alquimista (E a su lado) piden la síntesis. Esta señal es para la interfaz del Pipeline, que aún no existe;
+## `Sintesis.i().sintesis_abierta` dice lo mismo desde cualquier sitio. `donde` ∈ hoguera, alquimista.
+signal sintesis_abierta(donde: String)
+
 const MAPA: PackedStringArray = [
 	"#######################",
 	"#S....#...~~~~.p.~....#",
@@ -388,6 +392,7 @@ func iniciar(mundo: Variant) -> void:
 		if n is Jugador3D:
 			_jug = n
 	_n_goblins = (m._goblins as Array).size()
+	_continuar_partida()                      # F2 (29/10): con `Partida.continuar`, ANTES de definir las misiones (conservan el progreso del guardado)
 	var capa := CanvasLayer.new()
 	capa.layer = 6
 	add_child(capa)
@@ -423,6 +428,7 @@ func iniciar(mundo: Variant) -> void:
 	for r in m._reactivos:
 		if is_instance_valid(r) and r.tipo == "brasero":
 			braseros += 1
+	_conectar_hogueras()
 	var falta: Array = [not _losas.values().has("p"), _n_goblins == 0, _npcs.is_empty(), braseros == 0]
 	Misiones.i().definir({"id": MISION, "titulo": "Las cuatro tareas", "tipo": "principal",
 		"texto": "El guardabosques quiere ver de qué eres capaz: pisa la baldosa, acaba con los goblins, habla con alguien y enciende las antorchas. Con las cuatro hechas se abre la puerta.",
@@ -472,8 +478,7 @@ func _process(delta: float) -> void:
 		if _jug != null:
 			_jug.puntos_inicio = m._centro_celda(c, m.ALTO)
 		_decir("Punto de guardado", 2.0)
-		Misiones.i().guardar()                 # el diario de misiones se guarda en los puntos de guardado
-		Flags.i().guardar()                    # C1 (21/10): y, al lado, lo que el mundo recuerda (cofres abiertos, salas resueltas)
+		_guardar_partida(c)                    # F2 (29/10): una partida, un archivo (bolsa, oro, tinta, flags, misiones y el sitio): ver Partida
 	elif not (m._guardados as Array).has(c):
 		_ultimo_guardado = Vector2i(-1, -1)
 	_recoger(pj)
@@ -505,6 +510,85 @@ func _t_hud_actualizar(delta: float) -> void:
 	if _t_hud > 0.25:
 		_t_hud = 0.0
 		_refrescar_hud()
+
+
+## F2 (29/10): registra la tinta viva en `Partida` y, si el menú pidió «Continuar» (`Partida.continuar`), carga la ranura y coloca a la jugadora.
+## Es de un solo uso (baja `continuar`): un viaje a otro nivel arranca otra escena y no debe volver a leer el archivo. Mismo nivel → donde se guardó
+## (`posicion`); otro nivel → en la entrada que diga `entrada` si existe esa pieza; si no, donde nace siempre.
+func _continuar_partida() -> void:
+	if _jug != null:
+		Partida.tinta = _jug.tinta
+	if not Partida.continuar:
+		return
+	Partida.continuar = false
+	var d: Dictionary = Partida.cargar(Partida.ranura_actual)
+	if d.is_empty() or _jug == null:
+		return
+	var j: Dictionary = d.get("jugadora", {}) as Dictionary
+	_jug.vida = clampf(float(j.get("vida", Estado.i().vida_max)), 1.0, Estado.i().vida_max)
+	_jug.vida_cambiada.emit(_jug.vida, Estado.i().vida_max)
+	_jug.aguante = clampf(float(j.get("aguante", Jugador3D.AGUANTE_MAX)), 0.0, Jugador3D.AGUANTE_MAX)       # F4
+	var mundo_nivel: Variant = (d.get("mundo", {}) as Dictionary).get(String(m.get("nivel")), {}) if d.get("mundo", {}) is Dictionary else {}
+	if mundo_nivel is Dictionary and EstadoZona3D.actual != null and is_instance_valid(EstadoZona3D.actual):
+		EstadoZona3D.actual.desde_dic(mundo_nivel as Dictionary)           # F4: los estados dinámicos y las nubes de ese nivel
+	if _jug.pj != null:
+		for id in j.get("ropa_puesta", []):
+			_jug.pj.poner_ropa(String(id))
+	var pos: Array = j.get("posicion", []) as Array
+	if String(j.get("mapa_actual", "")) == String(m.get("nivel")) and pos.size() >= 3:
+		var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+		var c: Vector2i = m._celda_de(p)
+		m.ir_a(c)                                # cámara y hierba al sitio
+		(m._jugador as Node3D).position = p
+		_jug.position = p
+		_jug.puntos_inicio = p
+	else:
+		for e in get_tree().get_nodes_in_group("entrada_nivel"):
+			if is_instance_valid(e) and String(e.get("nombre")) == String(j.get("entrada", "")):
+				Niveles.colocar(m, e)
+				break
+
+
+## F3: cada fogata y cada brasero del nivel avisa cuando se usa encendido (`Reactivo3D.hoguera_abierta`).
+func _conectar_hogueras() -> void:
+	for r in m._reactivos:
+		if is_instance_valid(r) and (r.tipo == "fogata" or r.tipo == "brasero") and not r.hoguera_abierta.is_connected(_en_hoguera):
+			r.hoguera_abierta.connect(_en_hoguera)
+
+
+## F3: la hoguera GUARDA la partida (punto = la casilla de la pieza; funciona aunque la interfaz no exista) y abre el taller de campo: las recetas de `donde = hoguera`.
+func _en_hoguera(c: Vector2i) -> void:
+	_guardar_partida(c)
+	Sintesis.conocidas("hoguera")               # descubre las que toquen (se apuntan antes de guardar la siguiente vez)
+	_decir("Hoguera: partida guardada", 2.5)
+	sintesis_abierta.emit("hoguera")
+	Sintesis.abrir("hoguera")
+
+
+## F2: el punto de guardado escribe la partida entera. `extra` lleva lo que solo el nivel sabe (dónde está la jugadora, su vida, su ropa).
+func _guardar_partida(c: Vector2i) -> void:
+	var pos: Vector3 = (m._jugador as Node3D).position
+	var cercana: String = ""
+	var mejor: float = INF
+	for e in get_tree().get_nodes_in_group("entrada_nivel"):
+		if is_instance_valid(e):
+			var dd: float = (e as Node3D).position.distance_squared_to(pos)
+			if dd < mejor:
+				mejor = dd
+				cercana = String(e.get("nombre"))
+	var extra: Dictionary = {
+		"mapa_actual": String(m.get("nivel")), "entrada": cercana, "posicion": pos,
+		"punto": "%s.%d_%d" % [String(m.get("nivel")), c.x, c.y],
+	}
+	if _jug != null:
+		extra["vida"] = _jug.vida
+		extra["aguante"] = _jug.aguante                  # F4
+		if _jug.pj != null:
+			extra["ropa_puesta"] = _jug.pj.ropa_puesta()
+	var ez: EstadoZona3D = EstadoZona3D.actual
+	if ez != null and is_instance_valid(ez):
+		extra["mundo"] = {String(m.get("nivel")): ez.a_dic()}     # F4: tormenta, vendaval y nubes de veneno vivas
+	Partida.guardar(Partida.ranura_actual, extra)
 
 
 func _recoger(pj: Pj3D) -> void:
@@ -544,6 +628,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			mejor = String(nombre)
 	if mejor == "":
 		return
+	if mejor == "alquimista":
+		sintesis_abierta.emit("alquimista")       # F3: además de charlar, su taller (todas las recetas, cobra oro)
+		Sintesis.abrir("alquimista")
 	var npc: Pj3D = _npcs[mejor]
 	var lineas: Array = DIALOGOS[mejor]
 	var i: int = int(_lineas_dialogo[mejor])

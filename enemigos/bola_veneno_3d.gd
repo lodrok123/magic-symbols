@@ -5,6 +5,7 @@ extends Node3D
 ## al soltarla (tarda en llegar: si se mueve, falla) y estalla en un charco verde. Antes de salir marca en el suelo dónde va a caer (C3, `AvisoAtaque3D.circulo`, el mismo radio con el que luego
 ## comprueba el daño), y rodar en la ventana del aviso da el tiempo bruja (C4). Daño pequeño al caer (DANO) y VENENO (`Jugador3D.envenenar`: VENENO_DPS por segundo durante VENENO_S s, sin
 ## empuje ni invulnerabilidad). La burbuja del lanzador la para en el aire como a la flecha.
+## F4 (29/10): al estallar deja además una NUBE DE VENENO (`NubeVeneno3D`, `T_NUBE` s, el mismo radio que el charco) que envenena a quien se quede dentro y se deja empujar por el viento o quemar por el fuego.
 
 signal impacto(acerto: bool)
 
@@ -18,6 +19,7 @@ const ALTURA_ARCO: float = 0.22                ## el arco sube esto × la distan
 const ALTURA_ARCO_MAX: float = 1.6
 const COLOR: Color = Color(0.55, 0.92, 0.3)
 const T_CHARCO: float = 0.7
+const T_NUBE: float = 3.0                      ## s que dura la nube que deja
 
 var dueno: Node3D = null
 var jugador: Jugador3D = null
@@ -110,7 +112,16 @@ func _caer() -> void:
 			jugador.recibir_dano(DANO, global_position)
 			jugador.envenenar(VENENO_DPS, VENENO_S)
 	PlayLog.event("bola_veneno", {"acierta": acerto})
+	_dejar_nube()
 	_terminar(true)
+
+
+## F4: la nube cuelga del padre de la bola (la bola se libera al acabar el charco; la nube no).
+func _dejar_nube() -> void:
+	var padre: Node = get_parent()
+	if padre == null:
+		return
+	NubeVeneno3D.crear(padre, Vector3(destino.x, destino.y, destino.z), T_NUBE, RADIO / Terreno3D.casilla, jugador)
 
 
 func _terminar(charco: bool) -> void:

@@ -332,7 +332,7 @@ func _escenario() -> void:
 	# --- 8 · cosas a las que no hace nada: una placa de peso (Area), una fogata ---
 	# (el golpe solo recorre enemigos, rompibles y bloques: lo demás no se consulta). Lo comprobamos con la lista de objetivos.
 	var ob: Dictionary = GolpeCuerpo.objetivos(self, jugador.position, NORTE)
-	_ok("8 la lista de objetivos solo tiene enemigos, rompibles y bloques", ob.keys().size() == 3 and (ob["enemigos"] as Array).is_empty() and (ob["bloques"] as Array).is_empty())
+	_ok("8 la lista de objetivos solo tiene enemigos, rompibles, bloques y sacudibles (F1)", ob.keys().size() == 4 and (ob["sacudibles"] as Array).is_empty() and (ob["enemigos"] as Array).is_empty() and (ob["bloques"] as Array).is_empty())
 	await avanzar_s(0.3)
 
 	# --- 9 · estados que bloquean: rodando, con el modo de lanzar activo (nadando, más abajo, en el agua de verdad) ---

@@ -490,6 +490,11 @@ const ROMPIBLES: Array = [["jarrones_linde", "bosque"], ["cajas_tala", "bosque"]
 	["jarrones_hondonada", "ruinas"], ["jarrones_campamento", "campamento"], ["jarrones_explanada", "bosque"], ["jarrones_escondite", "ruinas"]]
 
 
+## El primer objeto de una tirada de botín ("nada" si no salió nada).
+func _primero(lista: Array) -> String:
+	return String((lista[0] as Dictionary)["que"]) if not lista.is_empty() else "nada"
+
+
 func _rompibles() -> void:
 	var total: int = 0
 	var mal: Array = []
@@ -502,17 +507,20 @@ func _rompibles() -> void:
 			var ro: Rompible3D = nodo as Rompible3D
 			total += 1
 			var c: Vector2i = ro.celda
-			var fila: Dictionary = Rompible3D.fila_de(zonas.nombre_en(c), zonas.luz_en(c), zonas.botin_en(c))
-			if fila != Rompible3D.BOTIN_ZONA[String(r[1])]:
+			var tabla_z: String = Botin.tabla_de_zona("jarron", zonas.nombre_en(c), zonas.luz_en(c), zonas.botin_en(c))
+			if tabla_z != "jarron_" + String(r[1]):
 				mal.append("%s en %s: zona «%s»" % [String(r[0]), str(c), zonas.nombre_en(c)])
 			if not Terreno3D.bloqueada(c):
 				mal.append("%s en %s no bloquea su casilla" % [String(r[0]), str(c)])
 	_ok("6.1 hay 30 rompibles (jarrones y cajas) repartidos por las 9 regiones, cada uno bloquea su casilla y cae en la zona de su botín", total == 30 and mal.is_empty(), "%d rompibles; %s" % [total, str(mal)])
 	# El botín depende de la región: el mismo número de la suerte da otra cosa en el campamento que en el bosque.
-	var t_bosque: String = Rompible3D.botin_de_perfil("linde", 0.45, "bosque", "bosque")
-	var t_campamento: String = Rompible3D.botin_de_perfil("campamento", 0.45, "fuego", "campamento")
+	Botin.tirada_forzada = 0.45
+	var t_bosque: String = _primero(Botin.tirar(Botin.tabla_de_zona("jarron", "linde", "bosque", "bosque")))
+	var t_campamento: String = _primero(Botin.tirar(Botin.tabla_de_zona("jarron", "campamento", "fuego", "campamento")))
+	Botin.tirada_forzada = -1.0
 	_ok("6.2 el perfil de botín cambia con la región: con la misma tirada (0,45) el bosque da «%s» y el campamento «%s»" % [t_bosque, t_campamento], t_bosque != t_campamento)
-	_ok("6.3 y el oro: bosque 3-8, ruinas 6-14, campamento 6-12", Rompible3D.oro_de("linde", 0.0, "bosque", "bosque") == 3 and Rompible3D.oro_de("hondonada", 0.9999, "ruinas", "ruinas") == 14 and Rompible3D.oro_de("campamento", 0.0, "fuego", "campamento") == 6)
+	_ok("6.3 y el oro: bosque 3-8, ruinas 6-14, campamento 6-12", Botin.rango(Botin.tabla_de_zona("jarron", "linde", "bosque", "bosque"), "oro") == Vector2i(3, 8) and Botin.rango(Botin.tabla_de_zona("jarron", "hondonada", "ruinas", "ruinas"), "oro") == Vector2i(6, 14)
+		and Botin.rango(Botin.tabla_de_zona("jarron", "campamento", "fuego", "campamento"), "oro") == Vector2i(6, 12))
 	# Romper de verdad: un golpe suelta el botín de SU zona y libera la casilla; con un hechizo también.
 	var linde: Rompible3D = (z.pieza("jarrones_linde").nodos as Array)[0] as Rompible3D
 	linde.golpear()

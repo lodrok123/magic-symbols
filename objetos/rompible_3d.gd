@@ -14,40 +14,26 @@ extends Area3D
 ## NO REAPARECE: se apunta una flag `<nivel>.rompible.<id>` (Flags), que sobrevive a cambiar de nivel (la Cueva ↔ el Bosque recargan la escena) y a guardar.
 ## Con la flag ya puesta nace ROTO: solo los restos, sin polvo ni botín.
 ##
-## BOTÍN. `botin=oro|pocion|nada|<objeto>`; qué sale de cada uno lo dice la ZONA (`BOTIN_ZONA`, nombre de zona → cifras; la zona la da Zonas3D con su `nombre=` o, si no
-## lo tiene, el nombre de su luz: bosque, ruinas, cueva…). Fuera de toda zona vale la zona de la escena; una zona sin fila usa `BOTIN_DEFECTO`.
-##   oro      monedas (Combate3D.Botin3D, las de los goblins): una cantidad al azar entre las dos cifras de la zona (`cantidad=<n>` la fija)
-##   pocion   `pocion` en el suelo, la cantidad de la zona (`cantidad=<n>` la fija)
+## BOTÍN (F1 de docs/PLAN_BASE_DATOS.md, 29/10: ya no hay cifras aquí). El botín sale de la TABLA `jarron_<zona>` de `nucleo/datos/botin_tablas.tsv` (`Botin.tabla_de_zona`): la zona la da
+## Zonas3D con su `botin=` o su `nombre=` o, si no, el nombre de su luz (bosque, ruinas, cueva…); fuera de toda zona vale la zona de la escena; una zona sin tabla usa `jarron_bosque`.
+## `botin=` dice QUÉ se tira:
+##   zona     (lo normal) UNA tirada de la tabla de la zona (`Botin.tirar`): casi siempre nada, a veces oro, poción o, en la cueva, esquirla de cristal
+##   oro      monedas: una cantidad al azar entre las dos cifras de la fila `oro` de la tabla de la zona (`cantidad=<n>` la fija)
+##   pocion   `pocion` en el suelo, la cantidad de la fila `pocion` de la zona (`cantidad=<n>` la fija)
 ##   <objeto> cualquier id de `Objetos.DATOS` (esquirla_cristal, seta…): 1 unidad (`cantidad=<n>`)
 ##   nada     un jarrón vacío (sirve de adorno, de gancho de puzle o de sorpresa mala)
-## Además, en las zonas con `mineral` > 0, un jarrón da con esa probabilidad el material que dice `Objetos.mineral_de("jarron", "romper")` (la esquirla de la Cueva).
-## Lo que cae al suelo se coge pasando cerca (el oro y el objeto), con el aviso de calidad de siempre.
+## Todo cae al suelo como `BotinObjeto3D` (o la moneda de siempre, el oro) y se coge pasando cerca, con el aviso de calidad de siempre; si la bolsa está llena se queda ahí.
 ##
 ## Se coloca desde un mapa con `; pieza <id> jarron|caja <x> <y> [botin=…] [cantidad=<n>] [alto=si] [pequena=si]` (escenas/puzle.gd), o con `preparar` desde código.
 
 signal roto
 
-## Zona → cifras del botín. `oro`: [mínimo, máximo] de monedas · `pocion`: cuántas · `mineral`: probabilidad de material extra en un jarrón.
-const BOTIN_ZONA: Dictionary = {
-	"bosque": {"oro": [3, 8], "pocion": 1, "mineral": 0.0},
-	"clasico": {"oro": [3, 8], "pocion": 1, "mineral": 0.0},
-	"atardecer": {"oro": [4, 9], "pocion": 1, "mineral": 0.0},
-	"agua": {"oro": [4, 10], "pocion": 1, "mineral": 0.0},
-	"fuego": {"oro": [5, 11], "pocion": 1, "mineral": 0.0},
-	"ruinas": {"oro": [6, 14], "pocion": 1, "mineral": 0.15},
-	"hielo": {"oro": [5, 12], "pocion": 1, "mineral": 0.0},
-	"cueva": {"oro": [5, 12], "pocion": 1, "mineral": 0.35},
-	"santuario": {"oro": [8, 16], "pocion": 2, "mineral": 0.0},
-	"campamento": {"oro": [6, 12], "pocion": 1, "mineral": 0.0, "perfil": {"nada": 0.4, "oro": 0.45, "pocion": 0.15}},
-}
-const BOTIN_DEFECTO: Dictionary = {"oro": [2, 5], "pocion": 1, "mineral": 0.0}
-const ZONA_DEFECTO: String = "bosque"
+const ZONA_DEFECTO: String = "bosque"      ## la zona de un jarrón fuera de toda zona (y su tabla `jarron_bosque`)
+const BASE_TABLA: String = "jarron"         ## las tablas de botín de un jarrón o una caja son `jarron_<zona>`
 const BOTIN_ORO: String = "oro"
 const BOTIN_POCION: String = "pocion"
 const BOTIN_NADA: String = "nada"
 const BOTIN_PERFIL: String = "zona"
-## Probabilidades de `botin=zona` (nada, oro, poción; suman 1). En EoW casi todo jarrón sale vacío (P(nada) de 0,5 a 0,94 según la región).
-const PERFIL_DEFECTO: Dictionary = {"nada": 0.5, "oro": 0.4, "pocion": 0.1}
 
 ## Modelo de cada tipo: pieza normal y pieza alternativa (`alto=si` en el jarrón, `pequena=si` en la caja), y de qué color son los trozos.
 const MODELOS: Dictionary = {
@@ -64,12 +50,8 @@ const ALTO_SALTO: float = 0.7               ## u
 const TONO_ROMPE: float = 1.6               ## pitch del «derrumbe», más agudo (cerámica, no piedra)
 const POLVO_RADIO: float = 0.8
 const FLAG_TROZO: String = "rompible"       ## el trozo de en medio de `<nivel>.rompible.<id>`
-const PROB_FORZADA_NINGUNA: float = -1.0
 
-## Solo para las pruebas: >= 0 sustituye al azar en la tirada del mineral extra. -1 = al azar.
-static var tirada_forzada: float = PROB_FORZADA_NINGUNA
-## Lo mismo para la tirada de `botin=zona` (nada / oro / poción).
-static var tirada_perfil: float = PROB_FORZADA_NINGUNA
+## Para las pruebas de la tirada: `Botin.tirada_forzada` (ya no hay una propia de los rompibles).
 
 var celda: Vector2i = Vector2i.ZERO
 var tipo: String = "jarron"
@@ -80,7 +62,8 @@ var nivel: String = ""
 var roto_ya: bool = false
 var soltado: Array = []                     ## lo que soltó al romperse: [{"que": "oro"|id, "n": int}] (las pruebas lo leen)
 var zona: String = ""                       ## la zona donde se rompió (la que decidió el botín)
-var botin_efectivo: String = ""             ## lo que tocó de verdad (con `botin=zona`, lo que salió de la tirada)
+var tabla_usada: String = ""                ## la tabla de botín que se usó (`jarron_cueva`…)
+var botin_efectivo: String = ""             ## lo que tocó de verdad (con `botin=zona`, lo primero que salió de la tirada; "nada" si no salió nada)
 var _mundo: Node = null
 var _modelo: Node3D = null
 var _restos: Node3D = null
@@ -316,37 +299,9 @@ static func zona_de(mundo: Node, c: Vector2i) -> String:
 	return ZONA_DEFECTO
 
 
-## La fila del botín de una zona: la que pida su `botin=` si existe; si no, la de su nombre; si no tiene (una zona con `nombre=` propio), la de su luz; si tampoco, `BOTIN_DEFECTO`.
-static func fila_de(p_zona: String, p_luz: String = "", p_botin: String = "") -> Dictionary:
-	if BOTIN_ZONA.has(p_botin):
-		return BOTIN_ZONA[p_botin]                  # la zona dice qué fila usar (`botin=campamento` en su línea `; zona`)
-	if BOTIN_ZONA.has(p_zona):
-		return BOTIN_ZONA[p_zona]
-	return BOTIN_ZONA.get(p_luz, BOTIN_DEFECTO)
-
-
-## Cuánto oro da una zona con esta tirada (0..1 reparte el rango entero). Pura: se mide sin azar.
-static func oro_de(p_zona: String, tirada: float, p_luz: String = "", p_botin: String = "") -> int:
-	var r: Array = fila_de(p_zona, p_luz, p_botin)["oro"]
-	var lo: int = int(r[0])
-	var hi: int = int(r[1])
-	return clampi(lo + int(floor(clampf(tirada, 0.0, 0.9999) * float(hi - lo + 1))), lo, hi)
-
-
-## ¿Es un valor válido de `botin=`? (oro, pocion, nada o un objeto de Objetos.DATOS).
+## ¿Es un valor válido de `botin=`? (oro, pocion, nada, zona o un objeto de Objetos.DATOS).
 static func botin_valido(t: String) -> bool:
 	return t == BOTIN_ORO or t == BOTIN_POCION or t == BOTIN_NADA or t == BOTIN_PERFIL or Objetos.existe(t)
-
-
-## `botin=zona`: el jarrón no tiene botín fijo, sale el que reparte el PERFIL de su zona (`BOTIN_ZONA[zona]["perfil"]`: probabilidades de nada, oro y poción), tirada al romperse.
-static func botin_de_perfil(p_zona: String, tirada: float, p_luz: String = "", p_botin: String = "") -> String:
-	var perfil: Dictionary = fila_de(p_zona, p_luz, p_botin).get("perfil", PERFIL_DEFECTO)
-	var acumulado: float = 0.0
-	for k in [BOTIN_NADA, BOTIN_ORO, BOTIN_POCION]:
-		acumulado += float(perfil.get(k, 0.0))
-		if tirada < acumulado:
-			return k
-	return BOTIN_NADA
 
 
 func _soltar_botin(punto: Vector3) -> void:
@@ -356,37 +311,25 @@ func _soltar_botin(punto: Vector3) -> void:
 	if zn != null and zn.has_method("luz_en"):
 		luz_zona = String(zn.call("luz_en", celda))
 	var perfil_zona: String = String(zn.call("botin_en", celda)) if zn != null and zn.has_method("botin_en") else ""
-	var fila: Dictionary = fila_de(zona, luz_zona, perfil_zona)
+	tabla_usada = Botin.tabla_de_zona(BASE_TABLA, zona, luz_zona, perfil_zona)
 	var raiz: Node3D = (_mundo as Node3D) if _mundo is Node3D else (get_parent() as Node3D)
-	var jug: Jugador3D = _jugador()
-	var que: String = botin
-	if que == BOTIN_PERFIL:
-		que = botin_de_perfil(zona, randf() if tirada_perfil < 0.0 else tirada_perfil, luz_zona, perfil_zona)
-	botin_efectivo = que
-	match que:
+	var lista: Array = []
+	match botin:
 		BOTIN_NADA:
 			pass
+		BOTIN_PERFIL:
+			lista = Botin.tirar(tabla_usada)
 		BOTIN_ORO:
-			var n: int = cantidad if cantidad > 0 else oro_de(zona, randf(), luz_zona, perfil_zona)
-			soltado.append({"que": BOTIN_ORO, "n": n})
-			if raiz != null:
-				Combate3D.Botin3D.soltar(raiz, jug, n, punto)
+			var n: int = cantidad if cantidad > 0 else Botin.entre(Botin.rango(tabla_usada, BOTIN_ORO))
+			lista.append({"que": BOTIN_ORO, "n": n})
 		BOTIN_POCION:
-			var n2: int = cantidad if cantidad > 0 else int(fila["pocion"])
-			soltado.append({"que": BOTIN_POCION, "n": n2})
-			BotinObjeto3D.soltar(raiz, jug, BOTIN_POCION, n2, punto)
+			var n2: int = cantidad if cantidad > 0 else maxi(Botin.rango(tabla_usada, BOTIN_POCION).x, 1)
+			lista.append({"que": BOTIN_POCION, "n": n2})
 		_:
-			var n3: int = maxi(cantidad, 1)
-			soltado.append({"que": que, "n": n3})
-			BotinObjeto3D.soltar(raiz, jug, que, n3, punto)
-	# El material extra del jarrón (la esquirla de la Cueva): solo si la zona lo da y el botín no es «nada».
-	var prob: float = float(fila.get("mineral", 0.0))
-	if tipo == "jarron" and que != BOTIN_NADA and prob > 0.0:
-		var mineral: String = Objetos.mineral_de("jarron", "romper")
-		var tirada: float = randf() if tirada_forzada < 0.0 else tirada_forzada
-		if mineral != "" and tirada < prob:
-			soltado.append({"que": mineral, "n": 1})
-			BotinObjeto3D.soltar(raiz, jug, mineral, 1, punto + Vector3(0.0, 0.0, -0.5))
+			lista.append({"que": botin, "n": maxi(cantidad, 1)})
+	botin_efectivo = String((lista[0] as Dictionary)["que"]) if not lista.is_empty() else BOTIN_NADA
+	soltado = lista
+	Botin.soltar(raiz, punto, lista)
 
 
 func _jugador() -> Jugador3D:
@@ -394,70 +337,3 @@ func _jugador() -> Jugador3D:
 		return null
 	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
 	return (lanz.get("jugador") as Jugador3D) if lanz != null and lanz.get("jugador") is Jugador3D else null
-
-
-## Objeto suelto en el suelo (la poción o el material de un rompible): flota y gira; al pasar cerca se mete en la mochila con el aviso de calidad de siempre.
-## Si la mochila está llena se queda ahí (y avisa) hasta que haya sitio.
-class BotinObjeto3D extends MeshInstance3D:
-	const ALCANCE: float = 1.1
-	const ALTURA: float = 0.35
-	const TAMANO: float = 0.2
-	var jugador: Jugador3D = null
-	var objeto: String = ""
-	var cantidad: int = 1
-	var recogido: bool = false
-	var _t: float = 0.0
-	var _base_y: float = 0.0
-	var _t_aviso: float = 0.0
-
-	static func soltar(p_mundo: Node3D, p_jugador: Jugador3D, id: String, n: int, pos: Vector3) -> BotinObjeto3D:
-		if p_mundo == null:
-			return null
-		var b := BotinObjeto3D.new()
-		b.jugador = p_jugador
-		b.objeto = id
-		b.cantidad = n
-		var caja := BoxMesh.new()
-		caja.size = Vector3.ONE * TAMANO
-		var m := StandardMaterial3D.new()
-		m.albedo_color = Objetos.color(id)
-		m.emission_enabled = true
-		m.emission = Objetos.color(id)
-		m.emission_energy_multiplier = 0.5
-		m.roughness = 0.4
-		caja.material = m
-		b.mesh = caja
-		b.name = "Botin_" + id
-		b.position = pos + Vector3(randf_range(-0.4, 0.4), ALTURA, randf_range(0.2, 0.6))
-		b._base_y = b.position.y
-		p_mundo.add_child(b)
-		return b
-
-	func _process(delta: float) -> void:
-		if recogido:
-			return
-		_t += delta
-		_t_aviso -= delta
-		position.y = _base_y + sin(_t * 3.0) * 0.06
-		rotate_y(delta * 2.0)
-		if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
-			return
-		var d: float = Vector2(jugador.position.x - position.x, jugador.position.z - position.z).length()
-		if d < ALCANCE and absf(jugador.position.y - (_base_y - ALTURA)) < 1.4:
-			recoger()
-
-	## Lo mete en la mochila. Devuelve false si no cabe.
-	func recoger() -> bool:
-		if recogido:
-			return false
-		var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
-		if Estado.i().agregar(objeto, cantidad) <= 0:
-			if _t_aviso <= 0.0 and lanz != null and lanz.has_method("avisar"):
-				lanz.call("avisar", "Mochila llena")
-				_t_aviso = 2.0
-			return false
-		recogido = true
-		AvisoObjeto.mostrar(lanz, objeto, cantidad)
-		PlayLog.event("objeto_suelo", {"objeto": objeto, "n": cantidad})
-		queue_free()
-		return true

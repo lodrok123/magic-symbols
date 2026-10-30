@@ -11,12 +11,14 @@ extends RefCounted
 ## Qué es flag y qué no: solo lo persistente. Lo que pasa DENTRO de una sala mientras se juega (un pulsador hundido, una compuerta a
 ## medio abrir) sigue en las piezas de `Puzle3D`.
 ##
-## Valor: normalmente `true`; se admite un entero (contadores: «cuántas antorchas encendidas») o `false` (= quitarla). `tiene(nombre)`
-## es true si el valor es verdadero (true o un número distinto de 0).
+## Valor: normalmente `true`; se admite un entero (contadores: «cuántas antorchas encendidas»), una CADENA corta con el nombre del estado
+## (`"abierto"`, `"roto"`, `"derrotado"`: VERSIÓN 2, F2 de PLAN_BASE_DATOS, 29/10) o `false` (= quitarla). `tiene(nombre)` es true si
+## está puesta (true, un número distinto de 0 o una cadena no vacía); `valor(nombre)` devuelve la cadena. `si=flag.x` de `Puzle3D` solo usa `tiene`.
 ##
 ## SEÑAL `flag_cambio(nombre, valor)`: solo cuando el valor cambia de verdad. Nadie sondea.
-## GUARDADO: `guardar()` / `cargar()` en `ruta_guardado` (JSON en user://, al lado de `misiones.json`). Igual que `Misiones`, NO se guarda
-## sola: la llaman los puntos de guardado (`Jugabilidad3D`) junto a `Misiones.i().guardar()`.
+## GUARDADO: el juego guarda TODO en un archivo con `Partida` (`nucleo/partida.gd`), que pide `a_dic()` y reparte `desde_dic()`. `a_dic()`
+## separa `estados` (las flags con cadena, como el esbozo de Pablo) y `flags` (true o entero). `guardar()` / `cargar()` a un archivo suelto
+## se mantienen solo por compatibilidad (la migración de `Partida` lee con ellos el `flags.json` viejo y algunas pruebas); el juego ya no los llama.
 ## Uso desde los puzles: `Puzle3D` (acción `flag.poner(nombre)`, señal `cuando=flag.<nombre>`, condición `si=flag.<nombre>`).
 
 signal flag_cambio(nombre: String, valor: Variant)
@@ -26,7 +28,7 @@ const RUTA_DEFECTO: String = "user://flags.json"
 static var _inst: Flags = null
 
 var ruta_guardado: String = RUTA_DEFECTO
-var _valores: Dictionary = {}           ## nombre -> true | int
+var _valores: Dictionary = {}           ## nombre -> true | int | String
 
 
 static func i() -> Flags:
@@ -83,7 +85,7 @@ func tiene(nombre: String) -> bool:
 	return _valores.has(nombre)
 
 
-## El valor (true o un entero); `defecto` si no está.
+## El valor (true, un entero o la cadena del estado); `defecto` si no está.
 func valor(nombre: String, defecto: Variant = false) -> Variant:
 	return _valores.get(nombre, defecto)
 
@@ -98,8 +100,11 @@ func nombres(prefijo: String = "") -> Array:
 	return r
 
 
-## true y los enteros distintos de 0 se guardan; false, 0 y null quitan la flag (devuelve null).
+## true, los enteros distintos de 0 y las cadenas no vacías se guardan; false, 0, «» y null quitan la flag (devuelve null).
 static func _normalizar(v: Variant) -> Variant:
+	if v is String or v is StringName:
+		var t: String = String(v).strip_edges()
+		return t if t != "" else null
 	if v is bool:
 		return true if v else null
 	if v is int or v is float:
@@ -110,18 +115,32 @@ static func _normalizar(v: Variant) -> Variant:
 
 # --- Guardado ---
 
+## `{"estados": {nombre: cadena}, "flags": {nombre: true | int}}`: las dos secciones que `Partida` escribe tal cual en el archivo.
 func a_dic() -> Dictionary:
-	return {"version": 1, "flags": _valores.duplicate()}
+	var estados: Dictionary = {}
+	var flags: Dictionary = {}
+	for n in _valores:
+		if _valores[n] is String:
+			estados[n] = _valores[n]
+		else:
+			flags[n] = _valores[n]
+	return {"estados": estados, "flags": flags}
 
 
-## Sustituye lo que hay por lo guardado. Avisa (`flag_cambio`) de cada flag que cambia, también de las que desaparecen.
+## Sustituye lo que hay por lo guardado. Lee las dos secciones (`estados` y `flags`) y también el formato de la versión 1
+## (`{"version": 1, "flags": {...}}` o un diccionario plano nombre -> valor). Avisa (`flag_cambio`) de cada flag que cambia, también de las que desaparecen.
 func desde_dic(d: Dictionary) -> void:
 	var nuevos: Dictionary = {}
-	var f: Dictionary = d.get("flags", {})
-	for n in f:
-		var v: Variant = _normalizar(f[n])            # JSON devuelve los números como float: vuelven a entero
-		if v != null and nombre_valido(String(n)):
-			nuevos[String(n)] = v
+	var secciones: Array = [d]                         # plano: nombre -> valor
+	if d.has("estados") or d.has("flags"):
+		secciones = [d.get("estados", {}), d.get("flags", {})]
+	for sec in secciones:
+		if not (sec is Dictionary):
+			continue
+		for n in sec:
+			var v: Variant = _normalizar(sec[n])      # JSON devuelve los números como float: vuelven a entero
+			if v != null and nombre_valido(String(n)):
+				nuevos[String(n)] = v
 	var viejos: Dictionary = _valores
 	_valores = nuevos
 	for n in viejos:
@@ -140,7 +159,7 @@ func guardar(ruta: String = "") -> bool:
 	if fa == null:
 		push_warning("Flags.guardar: no se pudo abrir %s" % r)
 		return false
-	fa.store_string(JSON.stringify(a_dic()))
+	fa.store_string(JSON.stringify(a_dic()))        # (compatibilidad: ya no es el formato del juego, ver `Partida`)
 	fa.close()
 	return true
 

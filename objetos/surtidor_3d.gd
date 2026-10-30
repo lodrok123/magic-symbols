@@ -96,13 +96,13 @@ static func buscar_cauce(origen: Vector2i, es_cauce: Callable) -> Array:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if rune_data != null and rune_data.tags.has("agua") and not esta_lleno:
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data != null and Materia.riega(Materia.de(hechizo if hechizo != null else rune_data)) and not esta_lleno:
 		llenar()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and rune_data.tags.has("agua") and not esta_lleno
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return rune_data != null and Materia.riega(Materia.de(hechizo if hechizo != null else rune_data)) and not esta_lleno
 
 
 func carried_element() -> RuneData:

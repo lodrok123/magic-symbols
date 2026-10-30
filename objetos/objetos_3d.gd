@@ -57,9 +57,13 @@ signal agua_llega
 ## 16/10 (Fase 14.6, laboratorio de fuego): la llama de una fogata o un brasero se enciende (true) o se apaga (false). `activado` ya dice
 ## lo mismo pero con dos textos; esta es la que escucha Puzle3D (`brasero.encendido` / `brasero.apagado`).
 signal llama(encendida: bool)
+## F3 (29/10, hoguera): la jugadora ha pulsado E junto a una fogata o un brasero ENCENDIDOS. Lleva la casilla de la pieza. Quien lo escucha (`Jugabilidad3D`) guarda la partida y abre
+## la síntesis con `donde = hoguera`; el Reactivo no sabe nada de partidas ni de recetas.
+signal hoguera_abierta(celda: Vector2i)
 
 const GRUPO_ARDE: String = "flammable3d"
 const GRUPO_REACTIVO: String = "reactivo3d"
+const GRUPO_SACUDIBLE: String = "sacudible3d"
 const GRUPO_PESO: String = "peso"          ## lo que pesa lo tiene que poner el Juego (bloque de tierra) y el empujable
 const S: float = 2.3                       ## lado de una casilla (el de PruebaTest2.S)
 
@@ -113,15 +117,26 @@ const P_CONGELABLE: String = "congelable"          ## el frío lo congela. Solo 
 const P_FUENTE_FUEGO: String = "fuente_fuego"      ## fuego de mapa (fogata, brasero): el calor lo ENCIENDE, no se consume (FUENTES da los números); el rayo no lo toca
 const P_ACTIVABLE: String = "activable"            ## se activa UNA vez con su `elemento` (tótem: calor · agua · rayo) y se queda
 const P_RECIBE_AGUA: String = "recibe_agua"        ## el agua lo llena y brota (surtidor, tinaja)
+## F1 (29/10, PLAN_BASE_DATOS §3.2): dos papeles más, los que hacen que reaccionar DÉ algo.
+const P_SACUDIBLE: String = "sacudible"            ## un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, no más de una vez cada T_SACUDIR s (el árbol)
+const P_HELABLE: String = "helable"                ## el hielo lo hiela: deja de bloquear su casilla, ya no arde y se recoge con E dando lo de `reactivos_mapa.tsv` (la telaraña → `seda`)
 const PAPELES_VALIDOS: Array = [
-	P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_MOJABLE, P_PESADO, P_CONDUCE, P_CONGELABLE, P_FUENTE_FUEGO, P_ACTIVABLE, P_RECIBE_AGUA,
+	P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_MOJABLE, P_PESADO, P_CONDUCE, P_CONGELABLE, P_FUENTE_FUEGO, P_ACTIVABLE, P_RECIBE_AGUA, P_SACUDIBLE, P_HELABLE,
 ]
+const T_SACUDIR: float = 30.0                     ## s que el mismo árbol tarda en volver a soltar algo
+const ALCANCE_HOGUERA: float = 2.7               ## u: a cuánto hay que estar de una fogata / un brasero encendidos para usarlos con E (la casilla mide 2,3)
+const ALCANCE_RECOGER: float = 2.0                ## u: a cuánto hay que estar para coger con E lo helado
+## Los tipos que, al consumirse ardiendo, sueltan la tabla `seto_quemado` (el carbón). La telaraña no: su botín es la seda helada.
+const TIPOS_BOTIN_QUEMADO: Array = ["seto", "tronco", "puerta_goblin", "torre_goblin"]
+const TABLA_QUEMADO: String = "seto_quemado"
+const TABLA_SACUDIR: String = "tronco_golpe"
 ## tipo -> papeles de serie. `mojable` no está en ninguno: sin pedirlo, el agua no le hace nada a la leña sana (diario 100). Seto, tronco, telaraña,
 ## puerta y torre de madera comparten papeles: lo que cambia entre ellos son solo los números de COMBUSTIBLES.
 const PAPELES_POR_TIPO: Dictionary = {
 	"seto": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
 	"tronco": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
-	"telarana": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"telarana": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_HELABLE],          # F1: además se hiela
+	"arbol": [P_SACUDIBLE],                                                  # F1: pieza `arbol` de Puzle3D; también vale `+sacudible` en cualquier otra
 	"puerta_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
 	"torre_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
 	"fogata": [P_FUENTE_FUEGO, P_APAGA],
@@ -131,6 +146,13 @@ const PAPELES_POR_TIPO: Dictionary = {
 	"emisor_rayo": [P_CONDUCE],
 	"puente": [],
 	"placa": [],
+}
+## H6 (tercera parte): de QUÉ está hecha cada pieza (`Materia.MATERIALES`), para que la tabla de MEJORAS_POTENCIA §5 (`Materia.reaccion`) pueda decidir por material. Está DISPONIBLE
+## (`material()`, `reaccion_material`) pero la lógica de arriba sigue siendo la de los papeles: solo la prueba (`prueba_materia_reactivos_2`) las compara. Los tipos de otros archivos
+## (barril, cuerda, nexo, pulsador) figuran aquí para esa comparación; las hierbas, el cristal y el resto no existen aún como tipo.
+const MATERIAL_POR_TIPO: Dictionary = {
+	"seto": "vegetal", "tronco": "madera", "puerta_goblin": "madera", "torre_goblin": "madera", "puente": "madera", "telarana": "tela",
+	"cuerda": "tela", "barril": "madera", "placa": "piedra", "pulsador": "piedra", "nexo_rayo": "metal",
 }
 
 enum EstadoObj { SANO, ARDIENDO, CONSUMIDO }
@@ -149,6 +171,11 @@ var datos_fuente: Array = []            ## 24/10: [alto de las llamas, escala, r
 var hierba_cerca: Callable = Callable()
 
 var estado: EstadoObj = EstadoObj.SANO
+var helada: bool = false             ## F1 (`helable`): el hielo la heló; ya no bloquea ni arde y se coge con E
+var cogida: bool = false             ## F1: ya se cogió lo que daba al helarse
+var sacudidas: int = 0               ## F1 (`sacudible`): cuántas veces ha soltado algo (las pruebas)
+var _ultima_sacudida: float = -1000000.0   ## reloj de juego (s) de la última vez que soltó algo
+var soltado: Array = []              ## F1: lo último que soltó ([{que, n}]; las pruebas lo leen)
 var is_lit: bool = false             ## arde (igual que en el 2D: el hielo y el viento lo miran)
 var activo: bool = false             ## tótem activado
 var usado: bool = false              ## placa pisada / puente tendido
@@ -335,9 +362,13 @@ func _ready() -> void:
 		add_to_group(GRUPO_ARDE)
 	if tiene_papel(P_PESADO):
 		add_to_group(GRUPO_PESO)            # lo que pesa lo detectan las placas (antes solo el bloque de tierra y el empujable)
+	if tiene_papel(P_SACUDIBLE):
+		add_to_group(GRUPO_SACUDIBLE)       # el golpe F (GolpeCuerpo) los busca por aquí
+	set_process_unhandled_input(false)       # solo lo helado se coge con E: se enciende en `_helar`
 	if tiene_papel(P_FUENTE_FUEGO):
 		add_to_group(Pulso3D.GRUPO_PULSABLE)    # fase 3 del Pulso: un pulso de FUEGO que llega al brasero lo enciende (`on_pulso`)
 		_montar_fuente()
+		set_process_unhandled_input(true)       # F3: con E, una llama encendida es una hoguera (`hoguera_abierta`)
 	match tipo:                              # el montaje visual sigue por tipo: depende del modelo, no de cómo reacciona
 		"totem":
 			_montar_totem()
@@ -468,6 +499,8 @@ func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 	var agua: bool = Materia.riega(m)
 	var humedo: bool = Materia.moja(m) or frio
 	if tiene_papel(P_INFLAMABLE):
+		if tiene_papel(P_HELABLE) and frio and estado == EstadoObj.SANO and not helada:
+			return "hiela"                                  # F1: la telaraña sana + hielo → se hiela (antes el frío no le hacía nada si no ardía)
 		if calor or rayo:
 			return "prende" if can_burn() else ""
 		if humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
@@ -492,6 +525,8 @@ func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	match reaccion_a(rune_data, hechizo):
+		"hiela":
+			_helar()
 		"prende":
 			ignite(Lanzador3D.ultimo_impacto)
 		"apaga":
@@ -515,6 +550,16 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 			brotar()
 
 
+## H6: el material de esta pieza ("" si el catálogo no le da uno).
+func material() -> String:
+	return String(MATERIAL_POR_TIPO.get(tipo, ""))
+
+
+## H6: lo que la tabla por MATERIAL (`Materia.reaccion`) haría con `m` (= `Materia.de(…)`) en el estado de esta pieza. NADA lo llama aún salvo la prueba: la decisión real sigue en `reaccion_a`.
+func reaccion_material(m: Dictionary) -> String:
+	return Materia.reaccion(m, material(), {"mojado": esta_mojado(), "ardiendo": estado == EstadoObj.ARDIENDO, "helado": helada})
+
+
 ## ¿Cambiaría algo este hechizo aquí? Si no, lo atraviesa.
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null:
@@ -526,8 +571,10 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	var agua: bool = Materia.riega(m)
 	var humedo: bool = Materia.moja(m) or frio
 	if tiene_papel(P_INFLAMABLE):
+		if tiene_papel(P_HELABLE) and frio and estado == EstadoObj.SANO and not helada:
+			return true
 		if calor or rayo:
-			return estado == EstadoObj.SANO
+			return estado == EstadoObj.SANO and not helada
 		if tiene_papel(P_MOJABLE) and agua and estado == EstadoObj.SANO:
 			return not esta_mojado()
 		var apaga: bool = humedo and tiene_papel(P_APAGA)
@@ -581,10 +628,119 @@ func _le_toca(m: Dictionary) -> bool:
 	return Materia.conduce(m)
 
 
+## --- F1 (PLAN_BASE_DATOS §3.2): reaccionar da algo ---
+
+## Suelta `lista` ([{que, n}]) en la casilla de esta pieza (cuelga del mismo padre que ella, que no se libera al consumirse). La anota en `soltado`.
+func _soltar(lista: Array) -> void:
+	soltado = lista
+	if lista.is_empty():
+		return
+	var padre: Node3D = get_parent() as Node3D
+	if padre == null:
+		return
+	Botin.soltar(padre, Terreno3D.centro_de(celda, Terreno3D.y_pies(celda)), lista)
+
+
+## `sacudible`: el golpe F (o el atajo de las pruebas) sacude la pieza. Suelta la tabla `tronco_golpe` y devuelve la lista; [] si no es sacudible o aún no pasaron T_SACUDIR s desde la
+## última vez (se sacude igual, pero no cae nada). `ahora` = reloj de juego en s (por defecto el del motor; las pruebas lo pasan).
+func sacudir(ahora: float = -1.0) -> Array:
+	if not tiene_papel(P_SACUDIBLE) or estado == EstadoObj.CONSUMIDO:
+		return []
+	var t: float = ahora if ahora >= 0.0 else Time.get_ticks_msec() / 1000.0
+	if visual != null and is_instance_valid(visual) and is_inside_tree():
+		var tw: Tween = create_tween()
+		tw.tween_property(visual, "rotation:z", 0.05, 0.06)
+		tw.tween_property(visual, "rotation:z", -0.05, 0.1)
+		tw.tween_property(visual, "rotation:z", 0.0, 0.08)
+	var fila: Dictionary = Botin.fila_reactivo("arbol", "golpe")           # lo que da y cada cuánto: reactivos_mapa.tsv (si no está, los valores de siempre)
+	var espera: float = float(fila.get("cada_s", 0)) if float(fila.get("cada_s", 0)) > 0.0 else T_SACUDIR
+	if t - _ultima_sacudida < espera:
+		soltado = []
+		return []
+	_ultima_sacudida = t
+	sacudidas += 1
+	var texto: String = String(fila.get("botin", ""))
+	var lista: Array = Botin.desde_texto(texto) if texto != "" else Botin.tirar(TABLA_SACUDIR)
+	_soltar(lista)
+	return lista
+
+
+## `helable`: el hielo hiela la pieza (la telaraña): deja de bloquear su casilla, se tiñe de azul claro, ya no arde y se coge con E.
+func _helar() -> void:
+	if helada or estado != EstadoObj.SANO:
+		return
+	helada = true
+	Terreno3D.liberar_celda(celda)
+	_pintar_tinte(1.0, Color(0.72, 0.9, 1.0))
+	_reaccionar("congelado")
+	set_process_unhandled_input(true)
+
+
+## Lo helado se coge con E si la jugadora está cerca (ALCANCE_RECOGER u).
+func _unhandled_input(ev: InputEvent) -> void:
+	if tiene_papel(P_FUENTE_FUEGO):
+		if is_lit and ev is InputEventKey and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo and (ev as InputEventKey).keycode == KEY_E and _jugadora_junto(ALCANCE_HOGUERA):
+			hoguera_abierta.emit(celda)
+			get_viewport().set_input_as_handled()
+		return
+	if not helada or cogida or not (ev is InputEventKey):
+		return
+	var k: InputEventKey = ev as InputEventKey
+	if not k.pressed or k.echo or k.keycode != KEY_E:
+		return
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
+	var j: Node3D = lanz.get("jugador") as Node3D if lanz != null else null
+	if j == null:
+		return
+	var d: Vector3 = j.global_position - global_position
+	d.y = 0.0
+	if d.length() > ALCANCE_RECOGER + Terreno3D.casilla * 0.3:
+		return
+	if recoger_helado():
+		get_viewport().set_input_as_handled()
+
+
+## ¿Está la jugadora a menos de `alcance` u (en el suelo) de esta pieza? Se la busca como el resto del archivo: por el lanzador.
+func _jugadora_junto(alcance: float) -> bool:
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
+	var j: Node3D = lanz.get("jugador") as Node3D if lanz != null else null
+	if j == null:
+		return false
+	var d: Vector3 = j.global_position - global_position
+	d.y = 0.0
+	return d.length() <= alcance
+
+
+## Coge lo que da lo helado (`reactivos_mapa.tsv`: telaraña + hielo → `seda:1`) y la pieza desaparece. false si no está helada, ya se cogió o la bolsa está llena.
+func recoger_helado() -> bool:
+	if not helada or cogida:
+		return false
+	var fila: Dictionary = Botin.fila_reactivo(tipo, "hielo")
+	var lista: Array = Botin.desde_texto(String(fila.get("botin", "")))
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+	var metido: Array = []
+	for it in lista:
+		var entra: int = Estado.i().agregar(String((it as Dictionary)["que"]), int((it as Dictionary)["n"]))
+		if entra <= 0:
+			if lanz != null and lanz.has_method("avisar"):
+				lanz.call("avisar", "Mochila llena")
+			return false
+		AvisoObjeto.mostrar(lanz, String((it as Dictionary)["que"]), entra)
+		metido.append({"que": String((it as Dictionary)["que"]), "n": entra})
+	cogida = true
+	soltado = metido
+	collision_layer = 0
+	set_process_unhandled_input(false)
+	var tw := create_tween()
+	tw.tween_property(self, "scale", Vector3(1.0, 0.05, 1.0), 0.25)
+	tw.tween_callback(queue_free)
+	return true
+
+
 ## --- Objetos que arden ---
 
 func can_burn() -> bool:
-	return tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not esta_mojado()
+	return tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not esta_mojado() and not helada
 
 
 ## ¿Está empapado (leña mojable regada hace menos de T_MOJADO s)? Mojado no prende, ni por hechizo ni por contagio.
@@ -667,6 +823,8 @@ func _consumir() -> void:
 	collision_layer = 0
 	remove_from_group(GRUPO_ARDE)
 	consumido.emit(celda)
+	if tiene_papel(P_INFLAMABLE) and TIPOS_BOTIN_QUEMADO.has(tipo):
+		_soltar(Botin.tirar(TABLA_QUEMADO))        # F1: al consumirse un seto, tronco o puerta goblin cae lo de `seto_quemado` (30 % carbón) en su casilla
 	set_process(false)
 	var tw := create_tween()
 	tw.set_parallel(true)

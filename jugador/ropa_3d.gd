@@ -47,7 +47,69 @@ static func prendas() -> Dictionary:
 
 
 static func existe(id: String) -> bool:
-	return prendas().has(id)
+	return not datos_de(id).is_empty()
+
+
+## F3 (29/10): las prendas BORDADAS (`capa_escarcha`, `tunica_salamandra`, `capucha_musgo`) salen de las recetas de tipo `ropa` de `recetas.tsv` (ancla = la prenda base, `da` = la
+## bordada) y no están en `ropa.json`: mientras el Pipeline no les ponga entrada (y tinte), se ven con el mismo .glb y las mismas zonas que su base. bordada -> base.
+static var _bases: Dictionary = {}
+static var _bases_cargadas: bool = false
+
+
+static func base_de(id: String) -> String:
+	if not _bases_cargadas:
+		_bases_cargadas = true
+		for rid in BD.recetas():
+			var r: Dictionary = BD.recetas()[rid]
+			if String(r.get("tipo", "")) == "ropa" and String(r.get("ancla", "")) != "":
+				_bases[String(r.get("da", "")).split(":")[0]] = String(r["ancla"])
+	return String(_bases.get(id, ""))
+
+
+## Los datos de dibujo de la prenda: los suyos de `ropa.json` o, si no tiene, los de su base. {} si no se sabe dibujar.
+static func datos_de(id: String) -> Dictionary:
+	var d: Variant = prendas().get(id)
+	if d is Dictionary:
+		return d
+	var b: String = base_de(id)
+	if b != "" and prendas().get(b) is Dictionary:
+		return prendas()[b]
+	return {}
+
+
+## --- Efecto de la prenda (F3): sale de `BD.objeto(id).efecto` (`ranura=`, `inmune=<estado>`, `defensa=<n>`), no de `ropa.json`, que solo dice cómo se ve. ---
+
+static func efecto_de(id: String) -> Dictionary:
+	return Objetos.efecto(id)
+
+
+static func ranura_de(id: String) -> String:
+	return String(efecto_de(id).get("ranura", ""))
+
+
+## ¿Alguna de las prendas `ids` hace inmune a `estado` («frio», «calor», «veneno»)?
+static func inmune_ids(ids: Array, estado: String) -> bool:
+	for id in ids:
+		if String(efecto_de(String(id)).get("inmune", "")) == estado:
+			return true
+	return false
+
+
+## La DEF que suman las prendas `ids` (`defensa=` de cada una).
+static func defensa_ids(ids: Array) -> int:
+	var d: int = 0
+	for id in ids:
+		d += int(efecto_de(String(id)).get("defensa", 0))
+	return d
+
+
+## Lo mismo para las prendas PUESTAS en `modelo`.
+static func inmune_a(modelo: Node3D, estado: String) -> bool:
+	return inmune_ids(puestas(modelo), estado)
+
+
+static func defensa_ropa(modelo: Node3D) -> int:
+	return defensa_ids(puestas(modelo))
 
 
 ## Cuelga la prenda `id` del esqueleto del `modelo` (raíz de un personaje con el esqueleto de la jugadora base). Devuelve su MeshInstance3D o null.
@@ -59,7 +121,7 @@ static func poner(modelo: Node3D, id: String, preparar: Callable = Callable()) -
 	if not existe(id):
 		push_warning("Ropa3D: no hay prenda «%s» en %s" % [id, RUTA_DATOS])
 		return null
-	var ruta: String = CARPETA_MODELOS + String((prendas()[id] as Dictionary).get("glb", id)) + ".glb"
+	var ruta: String = CARPETA_MODELOS + String(datos_de(id).get("glb", id)) + ".glb"
 	if not ResourceLoader.exists(ruta):
 		push_warning("Ropa3D: falta %s" % ruta)
 		return null
@@ -90,7 +152,7 @@ static func poner(modelo: Node3D, id: String, preparar: Callable = Callable()) -
 	sk.add_child(mi)
 	mi.skeleton = NodePath("..")
 	mi.transform = Transform3D.IDENTITY
-	if bool((prendas()[id] as Dictionary).get("muelles", false)):
+	if bool(datos_de(id).get("muelles", false)):
 		var muelles := CapaMuelles3D.new()
 		muelles.name = PREFIJO_MUELLES + id
 		sk.add_child(muelles)
@@ -138,7 +200,7 @@ static func puestas(modelo: Node3D) -> Array[String]:
 static func zonas_tapadas(modelo: Node3D) -> Array[String]:
 	var res: Array[String] = []
 	for id in puestas(modelo):
-		for z in ((prendas().get(id, {}) as Dictionary).get("oculta", []) as Array):
+		for z in (datos_de(id).get("oculta", []) as Array):
 			if not res.has(String(z)):
 				res.append(String(z))
 	return res
