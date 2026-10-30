@@ -177,7 +177,11 @@ func _comprobar(rune: RuneData, elemento: String, combo: Array, c: Dictionary, r
 ## Una línea OK/FALLO por criterio (con cuántos hechizos lo incumplen y los primeros casos) y los avisos.
 func _resumen(n_combos: int, total: int, seg: float) -> void:
 	print("barrido: %d combinaciones de 0..%d glifos × %d elementos = %d hechizos construidos en %.1f s" % [n_combos, Hechizo.MAX_GLIFOS, ELEMENTOS.size(), total, seg])
-	_ok("se construyen los 48 048 (8 008 × 6)", total == 48048, "%d" % total)
+	# H5 (30/10): con 14 glifos son C(14 + 6, 6) = 38 760 combinaciones × 6 = 232 560 (antes, con 10: 8 008 × 6 = 48 048); el recuento sale de la tabla y no de una constante.
+	var esperadas: int = 1
+	for k in range(1, Hechizo.MAX_GLIFOS + 1):
+		esperadas = int(roundf(float(esperadas) * float(Sigils.GLIFOS.size() + k) / float(k)))
+	_ok("se construyen todos los hechizos (%d combinaciones × 6)" % esperadas, n_combos == esperadas and total == esperadas * ELEMENTOS.size(), "%d" % total)
 	var criterios: Array = ["construye (no es null)", "§1.9 semiejes ≤ 3 / 3 / 1", "§1.9 ningún semieje baja de grosor_min", "§1.9 elevacion en [0, 2]", "§1.9 distancia_max y alcance del haz ≤ 8",
 		"§1.9 persiste + permanencia ≤ 25 s", "§1.9 copias en [1, 8]", "§1.9 niveles ≤ 2", "figura() es una de las conocidas", "forma es x_mano / alto / abajo",
 		"coste de tinta finito y ≤ Tinta.MAXIMA", "recarga > 0 (salvo la página vacía)", "copiar() = a_diccionario()", "con({}) = a_diccionario()",

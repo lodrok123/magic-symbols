@@ -588,7 +588,7 @@ func _ciclo_de_vida() -> void:
 	_ok(true, "PlayLog receta_v2: se registra sin error")
 
 	# --- Los glifos aparcados no rompen nada ---
-	for gl in ["retardo", "atraccion", "espejo", "amplificar"]:
+	for gl in ["atraccion", "espejo", "amplificar"]:       # H5 (30/10): «retardo» ya no está aparcado
 		var r: Lanzador3D.Receta3D = _receta(["flecha", gl])
 		_ok(r.ignorados == PackedStringArray([gl]) and r.geo()["props"] == _receta(["flecha"]).geo()["props"], "aparcado · %s: se ignora sin romper la receta" % gl)
 	_ok(_receta(["levitacion"]).geo()["y"] == _receta(["altura"]).geo()["y"] and _receta(["levitacion"]).ignorados.is_empty(), "levitación (ᛏ) vale solo como altura")
