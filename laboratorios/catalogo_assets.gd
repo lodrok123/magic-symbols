@@ -5,9 +5,15 @@ extends Node3D
 ## personajes chibi uno al lado de otro, a la misma altura, para comparar proporciones.
 ## Sirve para revisar de un vistazo qué pieza está mal (rota, mezclada, mal medida, mal orientada).
 ##
-## Teclas: 1 piezas · 2 personajes · Q/E girar todo · R/F inclinación · +/- zoom · flechas mover · L luz
+## Teclas: 1 piezas · 2 personajes · P sueltas · O objetos 2D · Q/E girar todo · R/F inclinación · +/- zoom · flechas mover · L luz
 ##         (personajes) 3/4 cabeza · 5/6 piernas · 7/8 torso de los que tienen proporciones (chibi_elf)
 ##                      0 proporciones originales / ajustadas · A siguiente animación
+##
+## OBJETOS 2D (tecla O, 30/10): el MOSTRADOR de los iconos de objeto de `presentacion/ui/laminas/objeto_<id>.png` (los 27 recortados de
+## `arte/laminas/objetos_lamina_01.webp` y los de antes), cada uno como una TARJETA de pie con RELIEVE: el icono delante y, detrás, CAPAS_RELIEVE
+## siluetas oscuras desplazadas hacia atrás (una extrusión) más un contorno; así se ve si el dibujo aguanta como pieza con volumen y no solo como
+## estampa plana. Son RECOGIBLES: un clic en la tarjeta la mete en la bolsa (`Estado.agregar`, con su aviso) y con I se abre la `BolsaUI` de verdad,
+## para ver el icono en su hueco con marco de calidad y número. X vacía la bolsa. La capacidad se sube a los 20 huecos para que quepan muchos.
 
 const BIBLIOTECAS: Array = ["res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb",
 	"res://arte/meshy/magia.glb"]
@@ -18,8 +24,18 @@ const CARPETAS_SUELTAS: Array = ["res://arte/meshy/piezas/", "res://arte/meshy/c
 const MAX_BYTES_SUELTA: int = 3000000   ## las bibliotecas grandes de piezas/ (bosque_*, campamento...) pesan más
 const POR_FILA: int = 6
 const HUECO: float = 3.4
+const RUTA_ICONOS: String = "res://presentacion/ui/laminas/"
+const LADO_TARJETA: float = 1.8          ## u: lado del icono de pie
+const CAPAS_RELIEVE: int = 10            ## siluetas oscuras detrás del icono
+const GROSOR_CAPA: float = 0.022         ## u entre capa y capa (relieve total ≈ 0,22 u)
+const CONTORNO: float = 0.025            ## u: cuánto asoma la silueta del contorno por los bordes
+const COLOR_RELIEVE_FRENTE: Color = Color(0.36, 0.27, 0.2)
+const COLOR_RELIEVE_FONDO: Color = Color(0.14, 0.1, 0.08)
+const POR_FILA_OBJETOS: int = 8
+const HUECO_OBJETOS: float = 2.6
+const FONDO_OBJETOS: float = 1.9            ## las filas van a HUECO_OBJETOS × esto de fondo: el rótulo va en el suelo, delante de la tarjeta
 
-@export var modo: int = 0             ## 0 piezas, 1 personajes
+@export var modo: int = 0             ## 0 piezas, 1 personajes, 2 sueltas, 3 objetos 2D
 @export var uniforme: bool = true     ## piezas todas al mismo tamaño (para ver la forma) o a su medida de la maqueta
 @export var solo_biblioteca: String = ""  ## "bosque", "objetos" o "magia" para ver solo una
 @export var solo_pieza: String = ""       ## id de una pieza para verla sola
@@ -37,6 +53,8 @@ var _tam: float = 10.0
 var _luz_suave: bool = true
 var _originales: bool = false
 var _anim: int = 0
+var _bolsa: BolsaUI = null
+var _cogidos: int = 0
 
 
 ## Pone a todos los personajes en una animación (idle, walk, run...).
@@ -107,6 +125,8 @@ func _montar() -> void:
 		_montar_piezas()
 	elif modo == 2:
 		_montar_sueltas()
+	elif modo == 3:
+		_montar_objetos()
 	else:
 		_montar_personajes()
 	if foco != Vector3.INF:
@@ -230,6 +250,134 @@ func _montar_sueltas() -> void:
 	_hud.text = "PIEZAS SUELTAS · %d (omitidas %d bibliotecas grandes)\n1 bibliotecas · 2 personajes · P sueltas · Q/E girar · R/F inclinación · +/- zoom · flechas" % [i, saltadas]
 
 
+## Objetos 2D (modo 3): los iconos como tarjetas con relieve, en rejilla y recogibles con un clic (ver cabecera).
+func _montar_objetos() -> void:
+	if _bolsa == null:
+		_bolsa = BolsaUI.new()
+		add_child(_bolsa)
+	Estado.i().capacidad = maxi(Estado.i().capacidad, 20)
+	var ids: Array[String] = _iconos_objeto()
+	var i: int = 0
+	for id in ids:
+		if solo_pieza != "" and not id.begins_with(solo_pieza):
+			continue
+		var tex: Texture2D = BolsaUI.tex("objeto_" + id)
+		if tex == null:
+			continue
+		var cont := Node3D.new()
+		cont.name = "objeto_" + id
+		cont.position = Vector3(float(i % POR_FILA_OBJETOS) * HUECO_OBJETOS, 0.0, float(floori(float(i) / float(POR_FILA_OBJETOS))) * HUECO_OBJETOS * FONDO_OBJETOS)
+		cont.rotation_degrees.y = giro
+		_raiz.add_child(cont)
+		var alto: float = LADO_TARJETA * 0.5 + 0.12
+		# El relieve: siluetas oscuras de atrás hacia delante, cada una un poco más clara, y todas asoman por los bordes (contorno).
+		for k in range(CAPAS_RELIEVE, 0, -1):
+			var u: float = float(k - 1) / float(maxi(CAPAS_RELIEVE - 1, 1))
+			var capa: Sprite3D = _tarjeta(tex, COLOR_RELIEVE_FONDO.lerp(COLOR_RELIEVE_FRENTE, 1.0 - u))
+			capa.position = Vector3(0.0, alto, -float(k) * GROSOR_CAPA)
+			var f: float = (LADO_TARJETA + CONTORNO * 2.0) / LADO_TARJETA
+			capa.scale = Vector3(f, f, 1.0)
+			cont.add_child(capa)
+		var frente: Sprite3D = _tarjeta(tex, Color.WHITE)
+		frente.position = Vector3(0.0, alto, 0.0)
+		cont.add_child(frente)
+		# La zona que atiende el clic.
+		var area := Area3D.new()
+		area.set_meta("objeto", id)
+		var cs := CollisionShape3D.new()
+		var caja := BoxShape3D.new()
+		caja.size = Vector3(LADO_TARJETA, LADO_TARJETA, float(CAPAS_RELIEVE) * GROSOR_CAPA + 0.05)
+		cs.shape = caja
+		cs.position = Vector3(0.0, alto, -float(CAPAS_RELIEVE) * GROSOR_CAPA * 0.5)
+		area.add_child(cs)
+		cont.add_child(area)
+		var l := Label3D.new()
+		l.text = "%s\n%s" % [id, String(BD.objeto(id).get("nombre", ""))]
+		l.font_size = 30
+		l.outline_size = 10
+		l.pixel_size = 0.0065
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.position = cont.position + Vector3(0.0, 0.05, 1.35)   # en el suelo, delante de la tarjeta (no tapa la fila de atrás)
+		_raiz.add_child(l)
+		i += 1
+	var filas: int = maxi(1, int(ceil(float(i) / float(POR_FILA_OBJETOS))))
+	_centro = Vector3(float(POR_FILA_OBJETOS - 1) * HUECO_OBJETOS * 0.5, 0.9, float(filas - 1) * HUECO_OBJETOS * FONDO_OBJETOS * 0.5)
+	_tam = float(filas) * HUECO_OBJETOS * FONDO_OBJETOS * 0.62 + 3.0
+	_hud_objetos()
+
+
+func _tarjeta(tex: Texture2D, color: Color) -> Sprite3D:
+	var s := Sprite3D.new()
+	s.texture = tex
+	s.pixel_size = LADO_TARJETA / float(maxi(tex.get_width(), 1))
+	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	s.alpha_scissor_threshold = 0.5
+	s.shaded = true
+	s.double_sided = true
+	s.modulate = color
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR
+	return s
+
+
+func _tarjetas() -> int:
+	var n: int = 0
+	for h in _raiz.get_children():
+		if h is Node3D and h.name.begins_with("objeto_"):
+			n += 1
+	return n
+
+
+func _hud_objetos(aviso: String = "") -> void:
+	var e: Estado = Estado.i()
+	var total: int = 0
+	for k in e.items:
+		total += int(e.items[k])
+	_hud.text = "OBJETOS 2D · %d iconos · en la bolsa %d (%d ids de %d huecos) %s\nclic coge · I bolsa · X vaciar · 1 piezas · 2 personajes · P sueltas · Q/E girar · R/F inclinación · +/- zoom · flechas" % [_tarjetas(), total, e.items.size(), e.capacidad, aviso]
+
+
+## Los `objeto_<id>.png` de la carpeta de láminas (en un exportado solo quedan los `.import`), ordenados por id.
+func _iconos_objeto() -> Array[String]:
+	var res: Array[String] = []
+	var d: DirAccess = DirAccess.open(RUTA_ICONOS)
+	if d == null:
+		return res
+	for f in d.get_files():
+		var nombre: String = f.trim_suffix(".import")
+		if nombre.begins_with("objeto_") and nombre.ends_with(".png"):
+			var id: String = nombre.trim_prefix("objeto_").trim_suffix(".png")
+			if not res.has(id):
+				res.append(id)
+	res.sort()
+	return res
+
+
+## Un clic sobre una tarjeta la coge: la mete en la bolsa con su aviso y la tarjeta da un botecito.
+func _clic_objeto(pos: Vector2) -> void:
+	var desde: Vector3 = _camara.project_ray_origin(pos)
+	var dir: Vector3 = _camara.project_ray_normal(pos)
+	var q := PhysicsRayQueryParameters3D.create(desde, desde + dir * 300.0)
+	q.collide_with_areas = true
+	q.collide_with_bodies = false
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty() or not (hit["collider"] as Node).has_meta("objeto"):
+		return
+	var area: Node3D = hit["collider"] as Node3D
+	var id: String = String(area.get_meta("objeto"))
+	var entra: int = Estado.i().agregar(id, 1)
+	if entra <= 0:
+		_hud_objetos("· LA BOLSA ESTÁ LLENA (X la vacía)")
+		return
+	_cogidos += 1
+	if Sensacion3D.ACTIVA:
+		Sfx.play(self, "logro_brillo")
+	var cont: Node3D = area.get_parent() as Node3D
+	var tw: Tween = create_tween()
+	tw.tween_property(cont, "position:y", 0.25, 0.08).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(cont, "position:y", 0.0, 0.2).set_trans(Tween.TRANS_BOUNCE)
+	_hud_objetos("· cogido %s" % id)
+
+
 ## Las piezas son los hijos de la raíz de la biblioteca (o del primer nivel que tenga varios).
 func _piezas_de(lib: Node3D) -> Array[Node3D]:
 	var n: Node = lib
@@ -347,9 +495,20 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if modo == 3 and ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_clic_objeto((ev as InputEventMouseButton).position)
+		return
 	if not (ev is InputEventKey) or not (ev as InputEventKey).pressed:
 		return
 	match (ev as InputEventKey).keycode:
+		KEY_O:
+			modo = 3
+			_montar()
+		KEY_X:
+			if modo == 3:
+				Estado.i().items.clear()
+				Estado.i().cambiado.emit()
+				_hud_objetos()
 		KEY_1:
 			modo = 0
 			_montar()
