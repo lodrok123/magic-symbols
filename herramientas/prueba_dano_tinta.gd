@@ -329,6 +329,13 @@ func _pura_enemigos() -> void:
 	g.mojado = 0.0
 	_ok("6 rayo seco: 55 − 2 = 53 · hielo seco: 20 − 2 = 18 (pasan por la defensa)", _c(float(g.decidir_golpe(hr)["dano"]), 53.0) and _c(float(g.decidir_golpe(hh)["dano"]), 18.0))
 	# golpes para matar (tabla del doc) contra el goblin de 50
+	# 30/10 (playtest de Pablo): ⧖ retardo se ve como «carga»: +1 s de espera y G (`potencia`) ×1,25 por glifo, que `decidir_golpe` ya multiplica. (La espera real del proyectil la mide prueba_glifos_nuevos.)
+	for par in [[1, 1.25, 1.0], [3, 1.953125, 3.0]]:
+		var hc: Hechizo = Hechizo.construir(_rune("fuego"), {"flecha": 1, "retardo": int(par[0])})
+		var hb: Hechizo = hc.copiar().con({"potencia": 1.0})
+		var rc: Dictionary = g.decidir_golpe(hc)
+		var rb: Dictionary = g.decidir_golpe(hb)
+		_ok("6 carga×%d: daño bruto ×%s (%.2f contra %.2f sin carga) y espera %.0f s" % [int(par[0]), str(par[1]), float(rc["bruto"]), float(rb["bruto"]), hc.retardo], _c(float(rc["bruto"]), float(rb["bruto"]) * float(par[1])) and _c(hc.retardo, float(par[2])) and _c(hc.potencia, float(par[1])) and hc.n_glifos_dano == 1 + int(par[0]))
 	_ok("6 un goblin (50, DEF 2) cae con 5 fuegos ligeros (11,2 × 5 = 56) y no con 4", Dano.golpes_para_matar(50.0, float(g.decidir_golpe(_hechizo("fuego", 1))["dano"])) == 5)
 	_ok("6 con 2 fuegos medios deja 1,2 de vida (la quemadura lo remata): 2 × 24,4 = 48,8", _c(2.0 * 24.4, 48.8) and Dano.golpes_para_matar(50.0, 24.4) == 3)
 	# limo y chamán sin defensa

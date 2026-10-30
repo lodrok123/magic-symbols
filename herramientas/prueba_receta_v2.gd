@@ -58,8 +58,10 @@ func _initialize() -> void:
 	_topes_y_casos()
 	_combinaciones(nombres)
 	_orientacion_linea()
+	Sigils.EJE_DECRECIENTE_ACTIVO = false       # 30/10: aquí se mide la vida de los volúmenes ya hechos (ᛁ con paso fijo 0,25); la serie decreciente se comprobó en `_topes_y_casos`
 	await _ciclo_de_vida()
 	_retiradas()
+	Sigils.EJE_DECRECIENTE_ACTIVO = true
 	print("RESULTADO receta_v2: %d combinaciones × %d elementos · FALLOS: %d" % [combinaciones, ELEMENTOS.size(), fallos])
 	quit(1 if fallos > 0 else 0)
 
@@ -97,9 +99,9 @@ func _topes_y_casos() -> void:
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
 	g = Sigils.aplicar_v2({"linea_x": 4})
-	_ok(_casi(g["x"], rb + 4.0 * Sigils.PASO_ANCHO_V2) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 4 pasos de ancho (PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
+	_ok(_casi(g["x"], Sigils.semieje_horizontal_v2(4)) and _casi(g["x"], rb + 0.25 * (1.0 + 0.75 + 0.5625 + 0.421875)) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 0,25 · (1 + 0,75 + 0,5625 + 0,4219) (30/10: cada ᛁ un 25 %% menos; PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
 	g = Sigils.aplicar_v2({"linea_z": 2})
-	_ok(_casi(g["z"], rb + 2.0 * Sigils.PASO_FONDO_V2) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 2 pasos de fondo (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
+	_ok(_casi(g["z"], rb + 0.25 * 1.75) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 0,25 · 1,75 (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
 	g = Sigils.aplicar_v2({"altura": 4})
 	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: PASO_ALTURA_V2 0,30 → 3; con +0,10 eran 7; con 0,25 y +0,15, 4)
 	var n_dos_niveles: int = ceili((0.75 - rb) / Sigils.PASO_ALTURA_V2 - 0.0001)
@@ -107,13 +109,15 @@ func _topes_y_casos() -> void:
 	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1,
 		"altura ×%d → 2 niveles (con uno menos, o con uno solo, se queda en 1)" % n_dos_niveles)
 	# Decisión de Pablo 24/10: con pocos glifos se llega a 2 niveles (3 ᛏ, el tope) y a un muro de 3 casillas (ᛜ + 4 ᛁ).
-	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), Sigils.TOPE_EJE_ALTURA_V2), "3 ᛏ = 2 niveles y justo el tope de altura (%.2f)" % Sigils.TOPE_EJE_ALTURA_V2)
+	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), 1.0), "3 ᛏ = 2 niveles (semieje 1,00)")
+	# 30/10 (playtest de Pablo): el tope de altura sube a 2,0 = 4 niveles (el límite físico): 6 ᛏ = 1,90 = 4 niveles; 5 ᛏ = 3; más ᛏ topan en 2,0.
+	_ok(Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2})) == 4 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 5})) == 3 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 4})) == 3 and _casi(float(Sigils.aplicar_v2({"altura": 99})["y"]), Sigils.TOPE_EJE_ALTURA_V2) and Sigils.TOPE_EJE_ALTURA_V2 == 2.0, "6 ᛏ = 4 niveles, 5 = 3, y el tope de altura es 2,0")
 	var cas_g: float = Terreno3D.casilla
 	var centro_g := Vector2(0.5, 0.5) * cas_g
 	var muro_n: Callable = func(n_i: int) -> int:
 		return Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"barrera": 1, "linea_x": n_i}), centro_g, Vector2.DOWN, cas_g).size()
-	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 2 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 5,
-		"ᛜ + 2 ᛁ = muro de 3 casillas (con 1 ᛁ, 1; con 4, 5): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(2 * Sigils.GLIFOS_ANCHO_MURO_3_V2)])
+	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 9 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(40)) == 3,
+		"ᛜ + 9 ᛁ = muro de 3 casillas (con 8 ᛁ, 1; con 40, 3: la serie decreciente no pasa de 1,10): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(40)])
 	_ok(_casi(float(Sigils.aplicar_v2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
 	g = Sigils.aplicar_v2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
@@ -123,7 +127,9 @@ func _topes_y_casos() -> void:
 	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 1.0), "valores de propiedades: %s" % str(p))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
 	p = g["props"]
-	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 1.0), "topes de ejes 3 / 3 / 1 (19/10: la altura topa en 1,0 = 2 niveles): %s" % str(g))
+	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 2.0), "topes de ejes 3 / 3 / 2 (30/10: la altura topa en 2,0 = 4 niveles; con ᚷ ×99 los tres llegan al tope): %s" % str(g))
+	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99})
+	_ok((g["x"] > 1.09 and g["x"] < 1.1001) and _casi(g["y"], 2.0), "sin ᚷ, 99 ᛁ no pasan de la asíntota 1,10 (la serie decreciente) y la altura topa en 2,0")
 	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], 1.5), "topes de propiedades: %s" % str(p))
 	_ok(Sigils.aplicar_v2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
 	# nombre derivado
@@ -159,7 +165,10 @@ func _topes_y_casos() -> void:
 # --- Todas las combinaciones ---
 func _combinaciones(nombres: Array) -> void:
 	var cas: float = Terreno3D.casilla
-	var maximo: Dictionary = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99})
+	var maximo: Dictionary = Sigils.aplicar_v2({})                  # 30/10: con ᛁ decreciente 99 ᛁ ya no llegan al tope; el máximo son los topes de los tres ejes (3 / 2 / 3)
+	maximo["x"] = Sigils.TOPE_EJE_HORIZONTAL_V2
+	maximo["y"] = Sigils.TOPE_EJE_ALTURA_V2
+	maximo["z"] = Sigils.TOPE_EJE_HORIZONTAL_V2
 	var cuenta_max: Dictionary = {}
 	for oi in range(ORIGENES.size()):
 		for di in range(DIRECCIONES):
@@ -348,7 +357,9 @@ func _receta(glifos: Array, calidad: float = 1.0) -> Lanzador3D.Receta3D:
 ## Los glifos ᛁ (ancho) que hacen falta para llegar a `semieje` casillas con la base y el paso de ancho de hoy (antes de 24/10 eran 8 para 1,45).
 func _ejes_x(semieje: float) -> Array:
 	var r: Array = []
-	for _k in range(ceili((semieje - Sigils.RADIO_BASE_V2) / Sigils.PASO_ANCHO_V2 - 0.0001)):
+	var n: int = 0
+	while Sigils.semieje_horizontal_v2(n) < semieje - 0.0001 and n < 40:      # 30/10: la serie decreciente no tiene fórmula lineal
+		n += 1
 		r.append("linea_x")
 	return r
 
@@ -423,18 +434,22 @@ func _ciclo_de_vida() -> void:
 	# 24/10 (D-7): `crece` pasó de «escala por segundo» a «m/s de radio»: el tiempo de crecer = semieje × (1 − escala_nace) / crece. Con 9 ᛁ (semieje 2,35) eran 3,3 s y la zona de la mano (fuego,
 	# 3 s de vida) se apagaba antes de que naciera la última tanda; con 4 ᛁ (semieje 1,10, 3 casillas) son 1,54 s y la prueba sigue midiendo lo mismo: nace pequeño y acaba entero.
 	# 29/10: con el paso de ancho de 0,5 el mismo semieje 1,10 son 2 ᛁ (GLIFOS_ANCHO_MURO_3_V2).
-	var sin_crecer: Array = _lanzar(["linea_x", "linea_x"], "fire")
-	var final_: Array = _lanzar(["linea_x", "linea_x", "pulso"], "fire")      # el último en lanzarse es el que se mide
-	_ok(final_.size() == sin_crecer.size(), "crece: al acabar de crecer ocupa lo mismo que sin crecer (%d y %d casillas)" % [final_.size(), sin_crecer.size()])
+	# 30/10: cada ᚷ además MULTIPLICA los semiejes ×1,25: el volumen nace pequeño y crece hasta un tamaño MAYOR que el de sin ᚷ (4 ᛁ de 0,25 = 1,10 → 3 casillas; con ᚷ ×3 2,15 → 5)
+	var glifos_crece: Array = ["linea_x", "linea_x", "linea_x", "linea_x", "linea_z", "linea_z", "linea_z", "linea_z", "pulso", "pulso", "pulso"]
+	var sin_crecer: Array = _lanzar(["linea_x", "linea_x", "linea_x", "linea_x", "linea_z", "linea_z", "linea_z", "linea_z"], "fire")
+	var cuenta_sin: int = 0
+	for z in _l._zonas_v2:
+		cuenta_sin += (z as Lanzador3D.ZonaV2).celdas.size()
+	var final_: Array = _lanzar(glifos_crece, "fire")      # el último en lanzarse es el que se mide
 	var inicial: int = 0
 	for z in _l._zonas_v2:
 		inicial += (z as Lanzador3D.ZonaV2).celdas.size()
-	_ok(inicial < final_.size() and inicial >= 1, "crece: al nacer ocupa menos que al final (%d de %d) y siempre incluye la casilla de la mano" % [inicial, final_.size()])
-	await _esperar(HechizoVivo.tiempo_de_crecer(0.5, 0.3, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_ANCHO_V2) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
+	_ok(inicial >= 1 and cuenta_sin == sin_crecer.size(), "crece: al nacer ocupa pocas casillas (%d) e incluye la casilla de la mano" % inicial)
+	await _esperar(HechizoVivo.tiempo_de_crecer(1.5, 0.3, float(Sigils.aplicar_v2({"linea_x": 4, "pulso": 3})["x"])) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
 	var al_final: int = 0
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()
-	_ok(al_final == final_.size(), "crece (ESPEC §1.3): el volumen escala hasta el 100 %% y las zonas que deja suman las casillas del volumen FINAL (%d de %d)" % [al_final, final_.size()])
+	_ok(al_final > cuenta_sin and al_final > inicial, "crece (ESPEC §1.3, 30/10): el volumen escala hasta el 100 %% y acaba con MÁS casillas que sin ᚷ (%d con ᚷ×3, semieje 2,15, y %d sin ᚷ)" % [al_final, cuenta_sin])
 	Sigils.HAZ_ACTIVO = true
 	var rapido: Array = HechizoVivo.fases_crece(1.5, 0.3, 0.25)
 	var lento: Array = HechizoVivo.fases_crece(0.5, 0.3, 0.25)

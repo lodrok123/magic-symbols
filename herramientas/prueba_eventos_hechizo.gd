@@ -402,6 +402,19 @@ func _casos_finales(runes: Dictionary) -> void:
 		v.motivo_fin == "golpe" and v.pulsos_soltados.size() == 1 and v.finales_vistos == ["al_impactar"] and (r["enemigo"] as Combate3D).health < 100.0)
 	_ok("finales · … y el pulso sale de la casilla del enemigo (%s)" % str(cel), cel.has(ORIGEN_C + Vector2i(2, 0)))
 	await _limpiar(r)
+	# 2b · 30/10 (playtest de Pablo: «el pulso debe nacer del punto de impacto»): flecha ×3 (4 casillas de alcance) + ᚱ contra un enemigo a 3 casillas: el Pulso3D arranca en la casilla del ENEMIGO,
+	# ni en la del lanzador ni en la del final del alcance; y contra una pared a 3 casillas, en la casilla de delante de la pared (la de contacto).
+	r = _ejecutar_h(Hechizo.construir(fuego, _contadores(["raido", "flecha", "flecha", "flecha"]), 1.0), Vector2i(-1, -1), ORIGEN_C + Vector2i(3, 0))
+	v = r["v"]
+	cel = _celdas_de_pulsos(v)
+	_ok("finales · ᚱ + flecha×3 contra un enemigo a 3 casillas: el pulso arranca en SU casilla (%s) y no en la del lanzador ni en la del alcance (%s)" % [str(ORIGEN_C + Vector2i(3, 0)), str(cel)],
+		v.motivo_fin == "golpe" and v.pulsos_soltados.size() == 1 and cel.has(ORIGEN_C + Vector2i(3, 0)) and not cel.has(ORIGEN_C) and not cel.has(ORIGEN_C + Vector2i(4, 0)))
+	await _limpiar(r)
+	r = _ejecutar_h(Hechizo.construir(fuego, _contadores(["raido", "flecha", "flecha", "flecha"]), 1.0), ORIGEN_C + Vector2i(3, 0))
+	v = r["v"]
+	cel = _celdas_de_pulsos(v)
+	_ok("finales · ᚱ + flecha×3 contra una pared a 3 casillas: el pulso arranca en la superficie de contacto (%s) y no en la del lanzador" % str(cel), v.motivo_fin == "muro" and v.pulsos_soltados.size() == 1 and cel.has(ORIGEN_C + Vector2i(2, 0)) and not cel.has(ORIGEN_C))
+	await _limpiar(r)
 	# 3 · ᚱ quieto: el pulso sale al inicio y al_expirar (con una acción de laboratorio) salta UNA vez al acabar la vida, no antes
 	var hq: Hechizo = Hechizo.construir(fuego, _contadores(["raido"]), 1.0).con({"eventos": {"al_expirar": [{"accion": "vfx", "nombre": "fin"}]}})
 	r = _ejecutar_h(hq)

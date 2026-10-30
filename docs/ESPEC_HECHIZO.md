@@ -60,9 +60,9 @@ Columnas: **campo** (nombre en el código) · **unidad** · **base** (sin elemen
 
 | campo | unidad | base | quién lo cambia | hoy |
 |---|---|---|---|---|
-| `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: **+0,25/glifo** (`PASO_ANCHO_V2`), tope 3,0 (ᛜ + 4 ᛁ = semieje 1,10 = muro de 3 casillas) | ≠ base 0,15 → 0,25 → 0,10 · paso 0,15 → 0,10 → 0,25 |
-| `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: +0,10/glifo (`PASO_FONDO_V2`), tope 3,0 | ≠ base |
-| `semieje_y` (alto) | m | 0,10 | ᛏ: **+0,30/glifo** (`PASO_ALTURA_V2`), tope 1,0 (2 niveles con **3 glifos**: 0,10 + 3·0,30 = 1,0; 1 ᛏ = 0,40 y 2 ᛏ = 0,70 siguen en 1 nivel) | ≠ base y tope 2,0 → 1,0 · paso 0,15 → 0,10 → 0,30 |
+| `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: **30/10: 1.º +0,25 y cada ᛁ siguiente un 25 % menos** (`PASO_ANCHO_V2`, `FACTOR_DECRECIENTE_EJE_V2` 0,75, op `suma_decreciente`; asíntota 1,10), tope 3,0 (ᛜ + 9 ᛁ = semieje ≥ 1,0 = muro de 3 casillas) | ≠ base 0,15 → 0,25 → 0,10 · paso 0,15 → 0,10 → 0,25 |
+| `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: igual que X (30/10: 0,25 y ×0,75 por glifo; `PASO_FONDO_V2`), tope 3,0 | ≠ base |
+| `semieje_y` (alto) | m | 0,10 | ᛏ: **+0,30/glifo** (`PASO_ALTURA_V2`), tope **2,0 (30/10: 4 niveles; 3 glifos = 2 niveles, 6 glifos = 4)**: 0,10 + n·0,30; 1 ᛏ = 0,40 y 2 ᛏ = 0,70 siguen en 1 nivel | ≠ base y tope 2,0 → 1,0 · paso 0,15 → 0,10 → 0,30 |
 | `grosor_min` | m | 0,10 (= la base; 24/10: antes 0,15) | — | + (ningún semieje baja de aquí: un muro fino no desaparece) |
 | `volumen`, `superficie`, `niveles` | m³, m², nº | derivados | — | `niveles` = ; los otros + |
 
@@ -176,7 +176,7 @@ En `Hechizo`, aplicados al final de `construir()` y también a lo que se toque e
 | límite | valor | nota |
 |---|---|---|
 | semieje x / z máximo | 3,0 m | ancho o fondo total de 6 m |
-| semieje y máximo | 1,0 m | 2 niveles |
+| semieje y máximo | 2,0 m | 4 niveles (30/10; el rechazo de sólidos más altos que `MAX_NIVELES_SUBIBLES` no cambia) |
 | `elevacion` máxima | 2 m | |
 | altura total (`elevacion` + 2 × semieje_y) | 2 niveles | el sólido más alto no se lanza (aviso de hoy) |
 | `distancia_max` máxima | 8 m | flecha llega a 6 con 5 glifos |
@@ -207,17 +207,21 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 
 | glifo | campos que toca |
 |---|---|
-| ᛁ horizontal | `semieje_x` +0,25 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛁ vertical | `semieje_z` +0,10 (tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛏ | `semieje_y` +0,30 (tope 1,0) |
+| ᛁ horizontal | `semieje_x` `suma_decreciente` 0,25 ×0,75ⁿ (30/10; tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛁ vertical | `semieje_z` `suma_decreciente` 0,25 ×0,75ⁿ (30/10; tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
+| ᛏ | `semieje_y` +0,30 (tope 2,0 desde el 30/10) |
 | ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) · `impulso_salida` +0,7 m/s por glifo sucesivo (`Sigils.IMPULSO_POR_FLECHA_V2`, 24/10: así el arco crece con el alcance; solo actúa con gravedad > 0, fuego no cambia) |
-| ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `en_punto` · `permanencia` +1 s por glifo sucesivo |
+| ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `permanencia` +1 s por glifo sucesivo (30/10: ya no `en_punto`; los sólidos quietos lo ponen solos) |
 | ᚠ repetición | `copias` +1 (tope 4) |
 | ᚢ rebote | `rebotes` +1 (tope 3) |
-| ᚷ pulso | `crece` +0,5 m/s (tope 1,5) |
+| ᚷ crecer | `crece` +0,5 m/s (tope 1,5) · `semiejes.x\|y\|z` ×1,25 (30/10) |
+| ᚦ perforar | `perfora` +1 (tope 3): enemigos atravesados; sin flecha, el haz atraviesa hasta `perfora` casillas sólidas (30/10) |
+| ᛃ retorno | `retorna`; sin flecha (30/10) el elemento se aplica además en la casilla del lanzador al acabar |
+| ᚨ buscar | `busca` +1 (tope 3, 30/10): imán y cono ±60° / ±90° / ±120° |
+| ⧖ carga (id `retardo`) | `retardo` +1 s (tope 3) · `semiejes.x\|y\|z` ×1,2 · `potencia` ×1,25 (30/10) |
 | **ᛉ Permanencia** (nuevo; algiz, decidido 19/10) | `permanencia` +2 s por glifo (tope 25 con `persiste`) |
 
-Retardo, atracción, espejo y amplificar siguen aparcados.
+Atracción, espejo y amplificar siguen aparcados.
 
 ## 3b. ᛁ `linea` = RAYO (21/10, decisión de Pablo; el muro es solo de `barrera`)
 

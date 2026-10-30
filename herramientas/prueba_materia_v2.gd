@@ -48,6 +48,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 func _initialize() -> void:
 	await process_frame
+	Sigils.EJE_DECRECIENTE_ACTIVO = false      # 30/10: esta prueba construye volúmenes grandes con ᛁ: sin la serie decreciente (cada ᛁ suma 0,25 fijo) se llega a ellos
 	Sigils.HAZ_ACTIVO = false         # 21/10: ᛁ sola ahora es un rayo (prueba_haz.gd); esta prueba mide la materia de los VOLÚMENES estirados (X×6, Z×6…), que siguen existiendo con barrera o por el laboratorio
 	for estado in ELEMENTOS:
 		for nombre in RECETAS:
@@ -291,7 +292,7 @@ func _extras() -> void:
 	_montar()
 	# Un bloque de tierra grande: semieje 2,05 en X y en Z (antes eran 12 + 12 glifos con base 0,25 y paso 0,15); los glifos salen de la base y del paso actuales
 	var glifos_tierra: Array = []
-	var n_ancho: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_ANCHO_V2 - 0.0001)
+	var n_ancho: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_ANCHO_V2 - 0.0001)      # con EJE_DECRECIENTE_ACTIVO = false: paso fijo
 	var n_fondo: int = ceili((SEMIEJE_TIERRA_GRANDE - Sigils.RADIO_BASE_V2) / Sigils.PASO_FONDO_V2 - 0.0001)
 	for _k in range(n_ancho):
 		glifos_tierra.append("linea_x")

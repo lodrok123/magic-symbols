@@ -134,8 +134,8 @@ func _comprobar(rune: RuneData, elemento: String, combo: Array, c: Dictionary, r
 		_anota("§1.9 persiste + permanencia ≤ 25 s", et)
 	if h.copias < 1 or h.copias > Hechizo.LIM_COPIAS:
 		_anota("§1.9 copias en [1, 8]", et)
-	if h.niveles > 2:
-		_anota("§1.9 niveles ≤ 2", et)
+	if h.niveles > 4:
+		_anota("§1.9 niveles ≤ 4", et)
 	# --- forma y figura ---
 	var fig: String = h.figura()
 	if not FIGURAS.has(fig):
@@ -183,7 +183,7 @@ func _resumen(n_combos: int, total: int, seg: float) -> void:
 		esperadas = int(roundf(float(esperadas) * float(Sigils.GLIFOS.size() + k) / float(k)))
 	_ok("se construyen todos los hechizos (%d combinaciones × 6)" % esperadas, n_combos == esperadas and total == esperadas * ELEMENTOS.size(), "%d" % total)
 	var criterios: Array = ["construye (no es null)", "§1.9 semiejes ≤ 3 / 3 / 1", "§1.9 ningún semieje baja de grosor_min", "§1.9 elevacion en [0, 2]", "§1.9 distancia_max y alcance del haz ≤ 8",
-		"§1.9 persiste + permanencia ≤ 25 s", "§1.9 copias en [1, 8]", "§1.9 niveles ≤ 2", "figura() es una de las conocidas", "forma es x_mano / alto / abajo",
+		"§1.9 persiste + permanencia ≤ 25 s", "§1.9 copias en [1, 8]", "§1.9 niveles ≤ 4", "figura() es una de las conocidas", "forma es x_mano / alto / abajo",
 		"coste de tinta finito y ≤ Tinta.MAXIMA", "recarga > 0 (salvo la página vacía)", "copiar() = a_diccionario()", "con({}) = a_diccionario()",
 		"Receta3D = Hechizo en tinta", "Receta3D = Hechizo en recarga", "Receta3D = Hechizo en forma"]
 	for crit in criterios:

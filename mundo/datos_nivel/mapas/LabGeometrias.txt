@@ -1,31 +1,32 @@
-; LABORATORIO DE GEOMETRÍAS (29/10, Juego). 20 x 27: ocho carriles de oeste a este (filas 2, 5, 8, 11, 15, 18, 21 y 24) para lanzar UN hechizo con ocho geometrías a la vez.
-; Lo lee PruebaTest2 (nivel = "LabGeometrias") desde laboratorios/LabGeometrias3D.tscn; carriles, panel y teclas son de laboratorios/lab_geometrias_3d.gd.
-; NO se hornea: es un laboratorio. Archivo NUEVO en datos_nivel/mapas (carpeta de Pablo), mismo precedente que LabRecetas.txt: Pablo, confirma o muévelo.
-; La jugadora (S) está en la fila 13, la única sin carril.
-####################
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#.........S........#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-#..................#
-####################
+; LABORATORIO DE GEOMETRÍAS (29/10, rehecho el 30/10, Juego). 24 x 27: quince carriles en dos columnas para lanzar el MISMO hechizo base con UN glifo distinto en cada uno.
+; Columna oeste (sale de x = 2): base, ᛁ ancho, ᛁ fondo, ᛏ, ᛇ, ᛜ, ᚠ, ᚢ (filas 2, 5, 8, 11, 14, 17, 20, 23). Columna este (sale de x = 13): ᚷ, ᛉ, ᚱ, ᚦ, ᛃ, ᚨ, ⧖ (filas 2-20).
+; Lo lee PruebaTest2 (nivel = "LabGeometrias") desde laboratorios/LabGeometrias3D.tscn; carriles, dianas (goblins quietos que pone el lab), panel y teclas son de laboratorios/lab_geometrias_3d.gd.
+; El muro suelto de (3, 23), pegado a su principio, es la pared del carril del rebote. La jugadora (S) está en (11, 13), entre las dos columnas.
+; NO se hornea: es un laboratorio. Archivo en datos_nivel/mapas (carpeta de Pablo), mismo precedente que LabRecetas.txt.
+########################
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#..........S...........#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#......................#
+#..#...................#
+#......................#
+#......................#
+########################

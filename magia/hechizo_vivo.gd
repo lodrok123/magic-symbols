@@ -66,9 +66,10 @@ const VIDA_RETORNO_S: float = 4.0           ## s máximos de la vuelta de un `re
 const RADIO_ENEMIGO_U: float = 0.6          ## radio con que un enemigo (o un reactivo) recibe un golpe de proyectil
 const CENTRO_ENEMIGO_U: float = 0.8         ## altura del pecho sobre sus pies: a donde apunta `busca` y de donde cuenta la ventana vertical del golpe
 const VENTANA_Y_U: float = 1.0              ## holgura vertical del golpe (más el radio del proyectil)
-const GIRO_BASE: float = TAU                ## rad/s de giro hacia el objetivo con `busca` = 1
+const GIRO_BASE: float = 1.5 * TAU         ## rad/s de giro hacia el objetivo con `busca` = 1 (30/10, playtest de Pablo: «un solo ᚨ ya debe notarse como imán»; antes TAU)
 const BUSCA_ALCANCE_CAS: float = 6.0        ## casillas a las que `busca` ve un objetivo
-const BUSCA_COS: float = 0.5                ## cono de `busca`: coseno de 60° a cada lado
+const BUSCA_COS: float = 0.5                ## cono de `busca` = 1: coseno de 60° a cada lado
+const BUSCA_COS_POR_NIVEL: float = 0.5      ## 30/10: el cono se abre con `busca`: cada glifo más baja el coseno esto (busca 1 → 0,5 · 2 → 0 (±90°) · 3 → −0,5 (±120°)): más glifos ven objetivos más laterales
 const LLEGADA_U: float = 0.7                ## a esta distancia del lanzador, lo que vuelve (`retorna`) se da por recogido
 const SEGURIDAD_S: float = 0.25             ## s tras nacer en los que NO hiere al lanzador aunque `golpea_lanzador`
 const DESPLAZA_HIJO_U: float = 0.15         ## un hijo nace un poco por delante, para no chocar en el mismo punto que su padre
@@ -130,6 +131,7 @@ var momentos_vistos: Array = []            ## MOMENTO DE EJECUCIÓN: [{momento, 
 var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este hechizo (glifo ᚱ)
 var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
 var finales_vistos: Array = []             ## H2: los eventos de final (`Hechizo.EVENTOS_FINAL`) que SALTARON, tengan o no acciones: un tramo termina en exactamente uno (las pruebas lo leen)
+var retornos_a_mano: int = 0               ## 30/10: veces que ᛃ sin flecha aplicó el elemento en la casilla del lanzador (las pruebas lo leen)
 var _final_hecho: bool = false             ## H2: ya saltó uno de los tres finales: ningún hechizo dispara dos (la ida de un `retorna` no cuenta: solo acaba el tramo de vuelta)
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
@@ -360,21 +362,46 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	d2 = d2.normalized()
 	var o2 := Vector2(origen.x, origen.z)
 	var cas: float = Terreno3D.casilla
-	var tramo: Array = camino(o2, d2, h.alcance_haz, 0, true)
-	var fin2: Vector2 = (tramo.back()["p"] as Vector2) if not tramo.is_empty() else o2
+	# 30/10 (playtest de Pablo: ᚦ «tiene que tener efecto en el punto de impacto»): sin flecha, `perfora` deja ATRAVESAR hasta `perfora` casillas sólidas o barreras: el haz sigue detrás de ellas
+	# con el alcance que le queda en vez de pararse en la primera. Cada tramo libre es un segmento; las casillas atravesadas no entran en el recorrido (siguen sin quemarse).
+	var segmentos: Array = []
+	var golpes_total: Array = []
+	var inicio_s: Vector2 = o2
+	var restante_cas: float = h.alcance_haz
+	var atravesadas: int = 0
+	var fin2: Vector2 = o2
+	while true:
+		var tramo: Array = camino(inicio_s, d2, restante_cas, 0, true)
+		fin2 = (tramo.back()["p"] as Vector2) if not tramo.is_empty() else inicio_s
+		segmentos.append([inicio_s, fin2])
+		golpes_total.append_array(golpes_camino)
+		restante_cas -= inicio_s.distance_to(fin2) / cas
+		if atravesadas >= h.perfora or restante_cas < 0.05:
+			break
+		var salto: Dictionary = _haz_salto_obstaculo(fin2, d2, restante_cas * cas)
+		if salto.is_empty() or atravesadas + int(salto["n"]) > h.perfora:
+			break                                       # no hay obstáculo delante (acabó el alcance) o es más grueso de lo que perfora: se para como siempre
+		atravesadas += int(salto["n"])
+		restante_cas -= fin2.distance_to(salto["salida"] as Vector2) / cas
+		inicio_s = salto["salida"]
+		fin2 = inicio_s
+	golpes_camino = golpes_total
 	# Las casillas del recorrido: la recta de la mano al final muestreada a un cuarto de casilla (una diagonal no se salta ninguna), sin la del lanzador ni las sólidas.
 	var c0: Vector2i = Terreno3D.celda_de(origen)
 	var celdas: Array = []
 	var vistas: Dictionary = {}
 	var largo: float = o2.distance_to(fin2)
-	var pasos: int = maxi(int(ceilf(largo / (cas * 0.25))), 1)
-	for i in range(pasos + 1):
-		var q: Vector2 = o2.lerp(fin2, float(i) / float(pasos))
-		var c: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
-		if c == c0 or vistas.has(c) or not Lanzador3D.en_mapa(c) or Lanzador3D.celda_solida(c, 0):
-			continue
-		vistas[c] = true
-		celdas.append(c)
+	for seg in segmentos:
+		var a_s: Vector2 = seg[0]
+		var b_s: Vector2 = seg[1]
+		var pasos: int = maxi(int(ceilf(a_s.distance_to(b_s) / (cas * 0.25))), 1)
+		for i in range(pasos + 1):
+			var q: Vector2 = a_s.lerp(b_s, float(i) / float(pasos))
+			var c: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
+			if c == c0 or vistas.has(c) or not Lanzador3D.en_mapa(c) or Lanzador3D.celda_solida(c, 0):
+				continue
+			vistas[c] = true
+			celdas.append(c)
 	_celdas_volumen = celdas
 	var suelo: float = Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y
 	var d3 := Vector3(d2.x, 0.0, d2.y)
@@ -397,6 +424,35 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	if is_inside_tree() and not seco:
 		_despues(vida_vfx, func() -> void: pass)         # el HechizoVivo vive lo que se ve el haz: el dibujo cuelga de él y, si se va antes, se apaga a los 0,5 s (VfxElemento3D._soltar)
 	return maxi(celdas.size(), 1)
+
+
+## `perfora` del haz: si justo delante de `desde` (a menos de media casilla) hay una casilla sólida o una barrera, sigue en línea recta hasta salir de ella (como mucho `max_m` metros) y devuelve
+## {salida: Vector2 (un poco más allá), n: casillas sólidas distintas y barreras atravesadas}. Vacío si no hay obstáculo delante o no se sale de él dentro del alcance.
+func _haz_salto_obstaculo(desde: Vector2, d: Vector2, max_m: float) -> Dictionary:
+	if lanz == null or lanz.mundo == null:
+		return {}
+	var cas: float = Terreno3D.casilla
+	var paso: float = cas * 0.1
+	var y: float = Terreno3D.y_pies(Terreno3D.celda_de(Vector3(desde.x, 0.0, desde.y))) + Terreno3D.ALTO_NIVEL * 0.5
+	var dentro: bool = false
+	var cuenta: Dictionary = {}
+	var libres_seguidos: int = 0
+	var rec: float = paso
+	while rec <= max_m:
+		var q: Vector2 = desde + d * rec
+		var cq: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
+		var sol: bool = Lanzador3D.celda_solida(cq, 0)
+		var bar: bool = lanz._barrera_en(Vector3(q.x, y, q.y), 0)
+		if sol or bar:
+			dentro = true
+			cuenta[cq if sol else Vector2i(-1000, int(floorf(rec / cas)))] = true         # una barrera cuenta una vez por casilla de recorrido que ocupa
+			libres_seguidos = 0
+		elif dentro:
+			return {"salida": q + d * paso, "n": cuenta.size()}
+		elif rec > cas * 0.5:
+			return {}                                       # no hay obstáculo pegado al final del tramo
+		rec += paso
+	return {}
 
 
 ## Lo que el haz hace en sus casillas (RAYO): la ENERGÍA es la descarga de siempre (recorre el agua y los conductores y golpea a todo lo que haya); el resto marca el estado de suelo que deja el
@@ -970,11 +1026,23 @@ func _disparar_final(evento: String, causa: String, pos: Vector3, dir: Vector3, 
 	disparar_evento(evento, pos, dir)
 
 
+## ᛃ sin flecha (30/10): la materia del hechizo, el mismo `Hechizo`, en la casilla de quien lo lanzó. Al lanzador solo le hiere `golpea_lanzador` (lo hace `_danar_area`, no este camino).
+func _retorno_a_la_mano(dir: Vector3) -> void:
+	if lanz == null or lanz.jugador == null or not is_instance_valid(lanz.jugador) or not lanz.is_inside_tree():
+		return
+	retornos_a_mano += 1
+	_aplicar_materia_en_el_sitio((lanz.jugador as Node3D).global_position, dir)
+
+
 ## Lo que NACE QUIETO se extingue al acabar su vida (`persiste` + `permanencia`, o lo que dura el haz o el viaje del volumen): ahí saltan `al_expirar` y el momento «final» de los glifos
 ## (los de momento «final» o «extincion»), con las casillas del volumen. Un proyectil no pasa por aquí: su final lo dispara `_terminar`.
 func _programar_extincion(origen: Vector3, dir: Vector3) -> void:
 	if proyectil:
 		return
+	if h.retorna and h.profundidad == 0 and not seco:
+		# 30/10 (decisión de Pablo, ᛃ sin flecha): «vuelve a la mano»: al acabar (el haz es instantáneo: al nacer; el volumen quieto, al expirar) el elemento se aplica también en la casilla del lanzador
+		var hasta_r: float = 0.0 if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0)) + h.permanencia
+		_despues(maxf(hasta_r, 0.0), func() -> void: _retorno_a_la_mano(dir))
 	var momento: bool = h.profundidad == 0 and not h.glifos.is_empty() and not h.acciones_en_fin("extincion").is_empty()
 	if not momento and not h.eventos.has("al_expirar"):
 		return
@@ -1407,7 +1475,7 @@ func _rebotar() -> void:
 	disparar_evento("al_rebotar", p, v.normalized())
 
 
-## `busca`: gira la velocidad hacia el enemigo vivo más cercano del cono delante (BUSCA_COS) y dentro de BUSCA_ALCANCE_CAS, hasta `busca × GIRO_BASE` rad/s.
+## `busca`: gira la velocidad hacia el enemigo vivo más cercano del cono delante (`BUSCA_COS`, más abierto con más `busca`) y dentro de BUSCA_ALCANCE_CAS, hasta `busca × GIRO_BASE` rad/s.
 ## Ignora a los ya golpeados en este tramo (así un hijo que encadena no vuelve al que acaba de herir).
 func _buscar(dt: float) -> void:
 	if lanz == null or not lanz.is_inside_tree():
@@ -1415,12 +1483,13 @@ func _buscar(dt: float) -> void:
 	var dir: Vector3 = v.normalized()
 	var mejor: Vector3 = Vector3.ZERO
 	var mejor_d: float = INF
+	var cos_cono: float = lerpf(BUSCA_COS, BUSCA_COS - 2.0 * BUSCA_COS_POR_NIVEL, clampf((h.busca - 1.0) / 2.0, 0.0, 1.0))
 	for e in lanz.get_tree().get_nodes_in_group("combate3d"):
 		if not is_instance_valid(e) or e.get("muerto") == true or golpeados.has((e as Object).get_instance_id()):
 			continue
 		var a: Vector3 = (e as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - p
 		var dist: float = a.length()
-		if dist < 0.01 or dist > BUSCA_ALCANCE_CAS * Terreno3D.casilla or dir.dot(a / dist) < BUSCA_COS:
+		if dist < 0.01 or dist > BUSCA_ALCANCE_CAS * Terreno3D.casilla or dir.dot(a / dist) < cos_cono:
 			continue
 		if dist < mejor_d:
 			mejor_d = dist

@@ -94,9 +94,9 @@ Temperatura, humedad, conductividad, `elasticidad` e `intensidad_estado` **solo 
 
 | eje | glifo | paso por glifo | tope (semieje) | valores con n glifos |
 |---|---|---|---|---|
-| X ancho | ᛁ dibujada horizontal (`linea_x`) | +0,5 (`PASO_ANCHO_V2`; 29/10, antes 0,25) | 3,0 (`TOPE_EJE_HORIZONTAL_V2`) | 1: 0,60 (1 casilla) · **2: 1,10 (3 casillas)** · 4: 2,10 (5 casillas) · 6: tope 3,0 |
-| Z fondo | ᛁ dibujada vertical (`linea_z`) | +0,5 (`PASO_FONDO_V2`; 29/10, antes 0,10) | 3,0 | igual que el ancho: 2 glifos = 3 casillas, 6 = tope |
-| Y alto | ᛏ (`altura`; alias `levitacion`) | +0,30 (`PASO_ALTURA_V2`) | 1,0 (`TOPE_EJE_ALTURA_V2`) | 1: 0,40 · 2: 0,70 (1 nivel) · **3: 1,00 (2 niveles)** |
+| X ancho | ᛁ dibujada horizontal (`linea_x`) | **30/10:** 1.º +0,25 (`PASO_ANCHO_V2`) y cada ᛁ siguiente un 25 % menos (`FACTOR_DECRECIENTE_EJE_V2` 0,75; op `suma_decreciente`; interpretación a confirmar por Pablo) | 3,0 (`TOPE_EJE_HORIZONTAL_V2`), inalcanzable solo con ᛁ (asíntota 1,10) | 1: 0,35 · 2: 0,54 · 4: 0,78 · 6: 0,92 · **9: 1,02 (3 casillas, `GLIFOS_ANCHO_MURO_3_V2`)** |
+| Z fondo | ᛁ dibujada vertical (`linea_z`) | igual que el ancho (`PASO_FONDO_V2` 0,25 y ×0,75) | 3,0 | igual que el ancho |
+| Y alto | ᛏ (`altura`; alias `levitacion`) | +0,30 (`PASO_ALTURA_V2`) | **2,0** (`TOPE_EJE_ALTURA_V2`, 30/10: 4 niveles, límite físico) | 1: 0,40 · 2: 0,70 (1 nivel) · **3: 1,00 (2 niveles)** · 4: 1,30 · 5: 1,60 (3) · **6: 1,90 (4 niveles)** |
 
 Orientación de la raya ᛁ: respecto a la página; más horizontal → X, más vertical → Z, diagonal exacta → X.
 
@@ -121,20 +121,20 @@ Y dominante → `alto`; plano y quieto → `abajo`; esfera → `x_mano`. Un haz 
 
 | runa | id interno | nombre visible | campos que toca (por glifo, tope) | momento | paso | recarga |
 |---|---|---|---|---|---|---|
-| ᛁ | `linea_x` | linea | semieje_x +0,5 (3,0) | inicio | 1 | 2,0 |
-| ᛁ | `linea_z` | linea | semieje_z +0,5 (3,0) | inicio | 1 | 2,0 |
-| ᛏ | `altura` (`levitacion`) | altura | semieje_y +0,30 (1,0) | inicio | 1 | 2,0 |
+| ᛁ | `linea_x` | linea | semieje_x `suma_decreciente` 0,25 ×0,75 por glifo (3,0) | inicio | 1 | 2,0 |
+| ᛁ | `linea_z` | linea | semieje_z `suma_decreciente` 0,25 ×0,75 por glifo (3,0) | inicio | 1 | 2,0 |
+| ᛏ | `altura` (`levitacion`) | altura | semieje_y +0,30 (2,0) | inicio | 1 | 2,0 |
 | ᛇ | `flecha` | flecha | `velocidad` fija = 4 u/s ÷ casilla ≈ **1,7 m/s**; `distancia_max` desde 1, +1/glifo (tope 6) → 2, 3, 4, 5, 6 m; `impulso_salida` +0,7 m/s por glifo sucesivo (salta 1) | continuo | 3 | 1,0 |
-| ᛜ | `barrera` | barrera | `solidez` desde 1, ×1,5/glifo (tope 3) → 1,5 · 2,25 · 3; `en_punto` = true; `permanencia` +1 s por glifo sucesivo | continuo | 4 | 3,0 |
+| ᛜ | `barrera` | barrera | `solidez` desde 1, ×1,5/glifo (tope 3) → 1,5 · 2,25 · 3; (30/10: ya NO `en_punto`: nace en el lanzador; los sólidos quietos lo ponen solos); `permanencia` +1 s por glifo sucesivo | continuo | 4 | 3,0 |
 | ᚠ | `repeticion` | repeticion | `copias` desde 1, +1 (tope 4) | inicio | 2 | 1,5 |
 | ᚢ | `rebote` | rebote | `rebotes` +1 (tope 3) | final | 3 | 1,5 |
-| ᚷ | `pulso` | **crecer** | `crece` +0,5 m/s (tope 1,5) | continuo | 3 | 2,5 |
+| ᚷ | `pulso` | **crecer** | `crece` +0,5 m/s (tope 1,5); `semiejes.x\|y\|z` ×1,25 (30/10) | continuo | 3 | 2,5 |
 | ᛉ | `permanencia` | permanencia | `permanencia` +2 s (tope 25) | final | 3 | 1,5 |
 | ᚱ | `raido` | **pulso** | `resuena` +4 casillas (tope 12); acción `emitir_pulso` | inicio; **final si viaja; continuo si persistente** | 5 | 2,0 |
-| ᚦ | `perforar` | perforar | `perfora` +1 (tope 3) | continuo | 3 | 1,5 |
-| ᛃ | `retorno` | retorno | `retorna` fija true (un 2.º ᛃ no suma nada) | final | 3 | 2,0 |
-| ᚨ | `buscar` | buscar | `busca` +0,5 (tope 2) | continuo | 3 | 1,5 |
-| ⧖ | `retardo` | retardo | `retardo` +1 s (tope 3); el proyectil espera quieto en la mano, el volumen nace tarde | inicio («antes del inicio») | 3 | 1,0 |
+| ᚦ | `perforar` | perforar | `perfora` +1 (tope 3); sin flecha, el haz atraviesa hasta `perfora` casillas sólidas (30/10) | continuo | 3 | 1,5 |
+| ᛃ | `retorno` | retorno | `retorna` fija true (un 2.º ᛃ no suma nada; sin flecha, 30/10: el elemento se aplica además en la casilla del lanzador al acabar) | final | 3 | 2,0 |
+| ᚨ | `buscar` | buscar | `busca` +1 (tope 3); el cono se abre: ±60° / ±90° / ±120°; giro 1,5·TAU rad/s por punto (30/10) | continuo | 3 | 1,5 |
+| ⧖ | `retardo` | **carga** (30/10) | `retardo` +1 s (tope 3); `semiejes.x\|y\|z` ×1,2 y `potencia` ×1,25 por glifo; el proyectil espera quieto en la mano, el volumen nace tarde | inicio («antes del inicio») | 3 | 1,0 |
 
 - **Aparcados** (se dibujan, avisan «Aún sin uso», no cuentan para nada): atracción, espejo, amplificar.
   Propuestas de glifos futuros (no asignados): ᛞ destello, ᛈ oculto (ᚦ, ᛃ, ᚨ y el retardo se activaron el 30/10, H5; sin muestras grabadas aún).
@@ -188,7 +188,7 @@ barreras, deja el estado de suelo del elemento en cada casilla. No deja bloques,
     no levanta bloque sin ᛉ o ᛜ.
 - **Rebotes**: +1 por ᚢ, tope 3 (lab hasta 6). `elasticidad` 0,2 existe pero no se usa.
 - **Copias**: ᚠ +1, tope 4; `separacion` 0,5 m y `dispersion` 15° (campos); separación mínima de centro a centro 1 casilla.
-- **en_punto** (nace donde apuntas, dentro del anillo de alcance): lo pone la barrera y, por regla
+- **en_punto** (nace donde apuntas, dentro del anillo de alcance): ya no lo pone la barrera (30/10) sino, por regla
   (`SOLIDO_QUIETO_EN_PUNTO`), **todo sólido quieto** (tierra/hielo que ni es haz ni viaja). Si ahí no cabe (agua, casilla
   ocupada, cornisa, encima de la jugadora o de un enemigo, fuera de alcance, demasiada altura) el Lanzador avisa «Ahí no se
   puede construir: …» **antes** de cobrar tinta y recarga.

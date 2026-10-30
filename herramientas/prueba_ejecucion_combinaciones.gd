@@ -536,6 +536,26 @@ func _crece_en_metros(runes: Dictionary) -> void:
 	_ok("A4 …cada tanda es una casilla nueva (rasteriza al cruzar una) y al final ocupa las mismas casillas que sin crecer (%d y %d)" % [celdas_crece.size(), celdas_quieto.size()], celdas_crece.size() == celdas_quieto.size() and (evs[0] as Dictionary)["celdas"].size() < celdas_quieto.size())
 	var t_ult: float = float((evs.back() as Dictionary)["t"])
 	_ok("A4 …y la última casilla nace ANTES del tiempo de crecimiento completo (%.2f s de %.2f s)" % [t_ult, vg.tiempo_crecimiento], t_ult <= vg.tiempo_crecimiento + 0.001 and vg.tiempo_crecimiento > 0.0)
+	# 30/10 (playtest de Pablo): cada ᚷ además MULTIPLICA los semiejes ×1,25 (más glifos, mayor tope geométrico y mayor tasa): con ᚷ×2 el volumen nace pequeño y acaba con MÁS casillas que sin ᚷ
+	Sigils.HAZ_ACTIVO = false
+	var datos_g: Dictionary = {}
+	for n_g in [0, 1, 2]:
+		var gl: Dictionary = {"linea_x": 6, "linea_z": 6}
+		if n_g > 0:
+			gl["pulso"] = n_g
+		var hg: Hechizo = Hechizo.construir(fuego, gl, 1.0)
+		_montar()
+		var vgc: HechizoVivo = HechizoVivo.preparar(hg, _l)
+		var evg: Array = vgc.eventos_de(hg.geo(), Vector2(o.x, o.z), Vector2.RIGHT)
+		var cg: Dictionary = {}
+		for ev in evg:
+			for c in (ev as Dictionary)["celdas"]:
+				cg[c] = true
+		datos_g[n_g] = {"casillas": cg.size(), "t": vgc.tiempo_crecimiento, "x": hg.semieje_x, "crece": hg.crece}
+	Sigils.HAZ_ACTIVO = true
+	_ok("A4 ᚷ×2: semieje ×1,25² y crece 1 m/s; acaba con MÁS casillas que sin ᚷ (%d vs %d; semieje %.2f vs %.2f) y tarda en llegar (%.2f s; sin ᚷ no crece)" % [datos_g[2]["casillas"], datos_g[0]["casillas"], datos_g[2]["x"], datos_g[0]["x"], datos_g[2]["t"]],
+		int(datos_g[2]["casillas"]) > int(datos_g[0]["casillas"]) and absf(float(datos_g[2]["x"]) - float(datos_g[0]["x"]) * 1.5625) < 0.0001 and float(datos_g[0]["t"]) == 0.0 and float(datos_g[2]["t"]) > 0.0)
+	_ok("A4 ᚷ×1 también: más casillas o igual que sin ᚷ y el tiempo es (s − s·escala_nace)/crece con el semieje ya multiplicado (%.2f s)" % datos_g[1]["t"], int(datos_g[1]["casillas"]) >= int(datos_g[0]["casillas"]) and absf(float(datos_g[1]["t"]) - float(datos_g[1]["x"]) * 0.7 / 0.5) < 0.001)
 	# el proyectil con crece: nace pequeño y crece en vuelo hasta el radio entero de semiejes_vuelo
 	for crece in [0.0, 0.5]:
 		_montar()

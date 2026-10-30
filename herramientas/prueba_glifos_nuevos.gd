@@ -1,7 +1,7 @@
 extends SceneTree
 ## H5 (30/10; docs/PLAN_SISTEMA_HECHIZOS.md §3 H5): los cuatro glifos que activan campos del Hechizo que ya existían, sin ventana:
 ##   godot --headless --fixed-fps 60 --path . --script res://herramientas/prueba_glifos_nuevos.gd
-##   ᚦ perforar (perfora +1, tope 3) · ᛃ retorno (retorna = true) · ᚨ buscar (busca +0,5, tope 2) · retardo (+1 s, tope 3; el proyectil espera quieto y el volumen nace tarde).
+##   ᚦ perforar (perfora +1, tope 3) · ᛃ retorno (retorna = true) · ᚨ buscar (busca +1, tope 3; 30/10: el cono se abre con cada glifo) · retardo = «carga» (+1 s, tope 3, semiejes ×1,2 y potencia ×1,25 por glifo; el proyectil espera quieto y el volumen nace tarde).
 ## Ninguno tiene muestras grabadas (Pablo las graba con G): se prueban por contadores, no dibujándolos. Mundo falso de 20×20 como el de `prueba_ejecucion_combinaciones`, con enemigos Combate3D
 ## en fila; el proyectil se avanza a mano (`paso(dt)`) y los golpes se cuentan mirando la vida de cada enemigo en cada paso.
 
@@ -144,9 +144,14 @@ func _datos() -> void:
 	_ok("perforar: perfora 1 con ᚦ, 3 con tres y se queda en 3 (tope) con cinco", h1.perfora == 1 and _hz({"perforar": 3}).perfora == 3 and h5.perfora == 3)
 	_ok("retorno: retorna = true con uno y con dos (un segundo ᛃ no hace nada más)", _hz({"retorno": 1}).retorna and _hz({"retorno": 2}).retorna and not _hz({}).retorna
 		and _hz({"retorno": 1}).a_diccionario() != null and _hz({"retorno": 2}).busca == _hz({"retorno": 1}).busca)
-	_ok("buscar: busca 0,5 · 1,0 · 2,0 (tope con cinco)", is_equal_approx(_hz({"buscar": 1}).busca, 0.5) and is_equal_approx(_hz({"buscar": 2}).busca, 1.0) and is_equal_approx(_hz({"buscar": 5}).busca, 2.0))
+	_ok("buscar: busca 1 · 2 · 3 (tope con cinco; 30/10, antes 0,5 por glifo y tope 2)", is_equal_approx(_hz({"buscar": 1}).busca, 1.0) and is_equal_approx(_hz({"buscar": 2}).busca, 2.0) and is_equal_approx(_hz({"buscar": 5}).busca, 3.0))
+	var c1: Hechizo = _hz({"flecha": 2, "retardo": 1})
+	var c3: Hechizo = _hz({"flecha": 2, "retardo": 3})
+	var c0: Hechizo = _hz({"flecha": 2})
+	_ok("carga (retardo): +1 s, semiejes ×1,2^n y potencia ×1,25^n (30/10); el alcance no cambia", is_equal_approx(c1.retardo, 1.0) and is_equal_approx(c3.retardo, 3.0) and is_equal_approx(c1.semieje_x, c0.semieje_x * 1.2) and is_equal_approx(c3.semieje_y, c0.semieje_y * pow(1.2, 3.0)) and is_equal_approx(c1.potencia, 1.25) and is_equal_approx(c3.potencia, pow(1.25, 3.0)) and is_equal_approx(c3.distancia_max, c0.distancia_max), "x %.3f→%.3f · G %.3f" % [c0.semieje_x, c3.semieje_x, c3.potencia])
+	_ok("carga sin flecha no cuenta como «viaja» ni quita el haz (no toca distancia_max): propiedades iguales y nombre «carga»", not _hz({"retardo": 2}).propiedades_usadas().has("viaja") and _hz({"retardo": 2}).distancia_max == 0.0 and Sigils.nombre_visible("retardo") == "carga" and Sigils.cuenta_dano("retardo"))
 	_ok("retardo: 1 s · 2 s · 3 s (tope con cinco)", is_equal_approx(_hz({"retardo": 1}).retardo, 1.0) and is_equal_approx(_hz({"retardo": 2}).retardo, 2.0) and is_equal_approx(_hz({"retardo": 5}).retardo, 3.0))
-	_ok("glifos_hasta_tope: perforar 3 · buscar 4 · retardo 3", Sigils.glifos_hasta_tope("perforar") == 3 and Sigils.glifos_hasta_tope("buscar") == 4 and Sigils.glifos_hasta_tope("retardo") == 3)
+	_ok("glifos_hasta_tope: perforar 3 · buscar 3 · retardo 3", Sigils.glifos_hasta_tope("perforar") == 3 and Sigils.glifos_hasta_tope("buscar") == 3 and Sigils.glifos_hasta_tope("retardo") == 3)
 	_ok("recargas: perforar 1,5 · retorno 2,0 · buscar 1,5 · retardo 1,0 (+0,5 por glifo repetido)", is_equal_approx(Sigils.cooldown_v2({"perforar": 1}), 1.5) and is_equal_approx(Sigils.cooldown_v2({"retorno": 1}), 2.0)
 		and is_equal_approx(Sigils.cooldown_v2({"buscar": 2}), 2.0) and is_equal_approx(Sigils.cooldown_v2({"retardo": 1}), 1.0))
 	# nada de lo existente cambia: el hechizo sin glifos nuevos es el de siempre
@@ -263,11 +268,33 @@ func _retorno() -> void:
 	var g3: Array = _correr_contando(v3, [e3])
 	_ok("retorno×2 hace lo mismo que retorno×1 (dos golpes, no cuatro): %s" % str(g3), g3 == [2] and v3.motivo_fin == "retorno")
 	await _limpiar(v3)
-	# retorno sin flecha: no es un proyectil, no hace nada (se acepta)
-	_montar(Vector2i(4, 8))
-	var q: HechizoVivo = _lanzar(_hz({"retorno": 1}))
-	_ok("retorno sin flecha: es un volumen quieto, no hay nada que vuelva (no falla ni se cuelga)", not q.proyectil and q.casillas > 0)
-	await _limpiar(q)
+	# 30/10 (decisión de Pablo): ᛃ sin flecha = «vuelve a la mano»: al acabar, el elemento se aplica también en la casilla del lanzador (quieto: al expirar; haz: al nacer). Sin ᛃ, esa casilla no cambia.
+	var casilla_j: Vector2i = Vector2i(4, 8)
+	var agua_total: Dictionary = {}                 # el agua no marca casillas: se mide el volumen que echa a AguaSim
+	for caso in [["fire", {"retorno": 1}, true], ["fire", {}, false], ["water", {"linea_x": 1, "retorno": 1}, true], ["water", {"linea_x": 1}, false]]:
+		_montar(casilla_j)
+		var rn: RuneData = load("res://nucleo/%s_rune.tres" % caso[0])
+		var q: HechizoVivo = _lanzar(_hz(caso[1], rn), Vector3.RIGHT)
+		_ok("retorno sin flecha (%s %s): no es un proyectil y nace (no falla ni se cuelga)" % [caso[0], str(caso[1])], not q.proyectil and q.casillas > 0)
+		var antes_m: int = 0
+		for mc in _m.marcas:
+			antes_m += 1 if (mc as Array)[1] == casilla_j else 0
+		var vive: float = maxf(q.h.persiste, 0.0) + q.h.permanencia + 0.5
+		var es_haz: bool = q.h.haz
+		var t_e: float = 0.0
+		while t_e < (0.3 if es_haz else vive):
+			await create_timer(0.1).timeout
+			t_e += 0.1
+		var tras_m: int = 0
+		for mc in _m.marcas:
+			tras_m += 1 if (mc as Array)[1] == casilla_j else 0
+		if caso[0] == "water":
+			agua_total[bool(caso[2])] = q.retornos_a_mano if is_instance_valid(q) else 0
+		else:
+			_ok("retorno sin flecha (%s %s): %s en la casilla del lanzador (marcas %d → %d)" % [caso[0], str(caso[1]), "se aplica" if bool(caso[2]) else "no se aplica", antes_m, tras_m], (tras_m > antes_m) == bool(caso[2]))
+		if is_instance_valid(q):
+			await _limpiar(q)
+	_ok("retorno sin flecha (agua + ᛁ, haz): aplica el agua también en la casilla del lanzador (%d veces con ᛃ y %d sin ᛃ)" % [int(agua_total.get(true, -1)), int(agua_total.get(false, -1))], int(agua_total.get(true, -1)) == 1 and int(agua_total.get(false, -1)) == 0)
 
 
 # =====================================================================================================
@@ -306,15 +333,28 @@ func _buscar() -> void:
 	var c: HechizoVivo = _lanzar(_hz({"flecha": 4, "buscar": 4}))
 	var dir0c: Vector3 = c.v.normalized()
 	var g_c: Array = _correr_contando(c, [detras])
-	_ok("buscar×4 + flecha: un enemigo a 124° (fuera del cono) no lo atrae: sigue recto y no lo golpea (%s)" % str(g_c), g_c == [0] and c.v.normalized().dot(dir0c) > 0.999 and c.motivo_fin != "golpe")
+	_ok("buscar×4 (busca 3, cono de ±120°) + flecha: un enemigo a 124° (fuera del cono) no lo atrae: sigue recto y no lo golpea (%s)" % str(g_c), g_c == [0] and c.v.normalized().dot(dir0c) > 0.999 and c.motivo_fin != "golpe")
 	await _limpiar(c)
-	# a 90° exactos (fuera del cono de 60°)
-	_montar()
-	var lado: Combate3D = _enemigo(Vector2i(5, 11))
-	var l2: HechizoVivo = _lanzar(_hz({"flecha": 4, "buscar": 4}))
-	var g_l: Array = _correr_contando(l2, [lado])
-	_ok("buscar + flecha: un enemigo a 90° tampoco la desvía (%s)" % str(g_l), g_l == [0] and l2.v.normalized().dot(Vector3.RIGHT) > 0.999)
-	await _limpiar(l2)
+	# 30/10 (playtest de Pablo: «un solo ᚨ ya es un imán; más ᚨ, más imán»): enemigo a 2 casillas, a 25° (dentro del cono de 60° de ᚨ×1) y a 90° (solo con ᚨ×2 o más: cono ±90° y ±120°)
+	for caso in [[25.0, 0, false], [25.0, 1, true], [90.0, 1, false], [90.0, 3, true], [90.0, 0, false]]:
+		_montar()
+		var a_grados: float = float(caso[0])
+		var n_a: int = int(caso[1])
+		var mod := Pj3D.new()
+		mod.position = _origen() - Vector3(0.0, 0.8, 0.0) + Vector3(cos(deg_to_rad(a_grados)), 0.0, sin(deg_to_rad(a_grados))) * 2.0 * Terreno3D.casilla
+		_m.add_child(mod)
+		var lat: Combate3D = Combate3D.equipar(mod, _m, _jug, _l)
+		lat.set_physics_process(false)
+		lat.altura = 0.85
+		lat.congelado = 99.0
+		lat.health = VIDA
+		var glifos_a: Dictionary = {"flecha": 4}
+		if n_a > 0:
+			glifos_a["buscar"] = n_a
+		var l2: HechizoVivo = _lanzar(_hz(glifos_a))
+		var g_l: Array = _correr_contando(l2, [lat])
+		_ok("buscar×%d + flecha: un enemigo a 2 casillas y %.0f° %s (%s, motivo «%s»)" % [n_a, a_grados, "lo alcanza" if bool(caso[2]) else "no lo alcanza", str(g_l), l2.motivo_fin], (g_l == [1]) == bool(caso[2]))
+		await _limpiar(l2)
 	# buscar + volumen quieto: no hay proyectil, no hace nada (se acepta)
 	_montar()
 	var q: HechizoVivo = _lanzar(_hz({"buscar": 2}))

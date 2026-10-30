@@ -39,9 +39,9 @@ es un **elipsoide** con semiejes (X, Y, Z), orientado a la mirada (Z = hacia del
 
 | eje | glifo | cada glifo añade | tope |
 |---|---|---|---|
-| X · horizontal | ᛁ línea dibujada **horizontal** | +0,25 de semieje (`PASO_ANCHO_V2`, 24/10): ᛜ + 4 ᛁ = muro de 3 casillas | semieje 3,0 (6 casillas de ancho) |
-| Z · profundidad | ᛁ línea dibujada **vertical** | +0,10 de semieje (`PASO_FONDO_V2`) | semieje 3,0 (6 casillas) |
-| Y · altura | ᛏ (antes levitación) | +0,30 de semieje (`PASO_ALTURA_V2`): 3 ᛏ = 2 niveles | semieje 1,0 (2 niveles; `MAX_NIVELES_SUBIBLES` si se puede pisar) |
+| X · horizontal | ᛁ línea dibujada **horizontal** | **30/10 (playtest de Pablo; interpretación a confirmar):** el 1.º ᛁ suma 0,25 (`PASO_ANCHO_V2`) y cada ᛁ siguiente un 25 % MENOS que el anterior (×`FACTOR_DECRECIENTE_EJE_V2` = 0,75): 0,25 · 0,19 · 0,14 …, op de datos `suma_decreciente`. Nunca pasa de 1,10: ᛜ + 9 ᛁ = muro de 3 casillas (`GLIFOS_ANCHO_MURO_3_V2`), más que los 6 glifos de una página | semieje 3,0 (inalcanzable solo con ᛁ; sí con ᚷ) |
+| Z · profundidad | ᛁ línea dibujada **vertical** | igual que X (30/10): 0,25 y cada ᛁ siguiente ×0,75 (`PASO_FONDO_V2`) | semieje 3,0 |
+| Y · altura | ᛏ (antes levitación) | +0,30 de semieje (`PASO_ALTURA_V2`): 3 ᛏ = 2 niveles, 6 ᛏ = 4 niveles | semieje **2,0 (30/10: 4 niveles, el límite físico)**; un sólido de más de `MAX_NIVELES_SUBIBLES` sigue sin lanzarse |
 
 (Valores del 24/10, decisión de Pablo: base 0,10 y un paso por eje para que con pocos glifos se llegue a 2 niveles y a un muro de 3 casillas. Los costes de §2.5 salen del volumen y por tanto de estos pasos.)
 
@@ -73,15 +73,15 @@ otra vez. Ninguno sabe qué otros hay:
 | glifo | parámetro | por glifo | tope | qué significa para cualquier volumen |
 |---|---|---|---|---|
 | ᛇ flecha | `viaja` (casillas) | +3 | 6 | desplazamiento: el volumen se desplaza desde la mano hacia delante (ya no es geometría) |
-| ᛜ barrera | `solidez` | ×1,5 | ×3 | el volumen bloquea proyectiles y aguanta golpes |
+| ᛜ barrera | `solidez` | ×1,5 | ×3 | el volumen bloquea proyectiles y aguanta golpes. **30/10: ya no es apuntable** (sin `en_punto`): nace en el lanzador y lo rodea; tierra y hielo siguen naciendo donde apuntas por ser sólidos quietos |
 | ᚠ repetición | `copias` | +1 | 4 | n volúmenes, repartidos a lo largo de X |
 | ᚢ rebote | `rebotes` | +1 | 3 | al chocar, cambia de dirección (necesita *viaja*; sin él, refleja proyectiles) |
-| ᚷ crecer (hasta el 23/10 «pulso») | `crece` (escala/s) | +0,5 | 1,5 | el volumen nace pequeño y crece hasta su tamaño. Id `pulso`, momento *continuo* (sin acción) |
+| ᚷ crecer (hasta el 23/10 «pulso») | `crece` (m/s de radio) + semiejes | +0,5 y semiejes ×1,25 (`CRECER_TOPE_V2`) | 1,5 y los topes globales | el volumen nace pequeño y crece hasta un tamaño MAYOR (30/10: más glifos, mayor tope geométrico y mayor tasa). Id `pulso`, momento *continuo* (sin acción) |
 | ᚱ pulso (**construido el 23/10**, id `raido`) | `resuena` (casillas) | +4 | 12 | el volumen suelta un `Pulso3D` que recorre los conductores con el elemento de la receta; actúa **al final** si viaja, **continuo** si el volumen se queda, **al inicio** en el resto (§2.4 bis; `PLAN_PULSO_RESONANTE.md` §2 y §10 bis) |
-| ᚦ perforar (**construido el 30/10**, id `perforar`) | `perfora` (enemigos) | +1 | 3 | el proyectil atraviesa ese número de enemigos y se para en el siguiente (`golpes_dados > perfora`); sin proyectil no hace nada |
-| ᛃ retorno (**30/10**, id `retorno`, sin PNG) | `retorna` (bool) | fija true | — | al acabar la ida el proyectil vuelve a la mano y golpea de nuevo a todos; un 2.º ᛃ no suma nada (solo recarga, daño y tinta). Contra un enemigo SIN perforar, la ida se para en el golpe y la vuelta no lo roza otra vez: dos golpes al mismo exigen ᚦ. La vuelta no aplica la materia (retorno + barrera no levanta barrera) |
-| ᚨ buscar (**30/10**, id `buscar`) | `busca` (fuerza de giro) | +0,5 | 2 | el proyectil gira hacia el enemigo vivo más cercano de su cono de 60° y 6 casillas; sin proyectil no hace nada |
-| retardo (**30/10**, id `retardo`, el reloj de arena) | `retardo` (s) | +1 | 3 | lo que sale tarda en salir: el volumen quieto nace tarde (`eventos_de`) y el proyectil espera quieto en la mano (`HechizoVivo.espera`) y luego arranca. La previsión no espera. El haz (ᛁ + elemento) no lo respeta |
+| ᚦ perforar (**construido el 30/10**, id `perforar`) | `perfora` (enemigos o casillas) | +1 | 3 | el proyectil atraviesa ese número de enemigos y se para en el siguiente (`golpes_dados > perfora`). **Sin flecha (30/10, interpretación):** el haz atraviesa hasta `perfora` casillas sólidas o barreras y sigue con el alcance que le queda; un volumen quieto ya nace solapando casillas bloqueadas (el rasterizado no las descarta; tierra/hielo siguen necesitando casilla libre) |
+| ᛃ retorno (**30/10**, id `retorno`, sin PNG) | `retorna` (bool) | fija true | — | al acabar la ida el proyectil vuelve a la mano y golpea de nuevo a todos (**sin flecha, 30/10 decisión de Pablo «vuelve a la mano»:** al expirar el volumen, o al nacer el haz, el elemento se aplica también en la casilla del lanzador); un 2.º ᛃ no suma nada (solo recarga, daño y tinta). Contra un enemigo SIN perforar, la ida se para en el golpe y la vuelta no lo roza otra vez: dos golpes al mismo exigen ᚦ. La vuelta no aplica la materia (retorno + barrera no levanta barrera) |
+| ᚨ buscar (**30/10**, id `buscar`) | `busca` (imán) | +1 (30/10; antes +0,5) | 3 (antes 2) | el proyectil se imanta al enemigo vivo más cercano a 6 casillas: el cono es de ±60° con ᚨ×1, ±90° con ×2 y ±120° con ×3, y gira 1,5·TAU rad/s por punto de `busca`; sin proyectil no hace nada |
+| ⧖ **carga** (id `retardo`, el reloj de arena; se ve como «carga» desde el 30/10) | `retardo` (s), semiejes, `potencia` | +1 s · semiejes ×1,2 · `potencia` ×1,25 (G del daño) | 3 s | más potente a cambio de esperar. Lo que sale tarda en salir: el volumen quieto nace tarde (`eventos_de`) y el proyectil espera quieto en la mano (`HechizoVivo.espera`) y luego arranca. La previsión no espera. El haz (ᛁ + elemento) no lo respeta |
 | *aparcados* (17/10) | atracción, espejo, amplificar | — | — | se quedan fuera de la v2 hasta encontrarles uso |
 | *pendientes* ᛞ ᛈ | `guarda`, `destello`, `oculto` | — | — | ver la propuesta anterior |
 

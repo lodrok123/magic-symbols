@@ -147,7 +147,9 @@ func _paridad_receta() -> void:
 	for nombre in Sigils.GLIFOS_V2:
 		var d: Dictionary = Sigils.GLIFOS_V2[nombre]
 		var viejo: int
-		if String(d.get("modo", "suma")) == "multiplica":
+		if String(d.get("modo", "suma")) == "suma_decreciente":       # 30/10: ᛁ no llega al tope (1,10 < 3,0): el «tope» es el glifo que aporta menos de 0,01 m (13 con 0,25 y ×0,75)
+			viejo = ceili(1.0 + log(0.01 / float(d["por_glifo"])) / log(float(d["factor"])))
+		elif String(d.get("modo", "suma")) == "multiplica":
 			viejo = maxi(1, ceili(log(float(d["tope"]) / float(d["inicio"])) / log(float(d["por_glifo"])) - 0.000001))
 		else:
 			viejo = maxi(1, ceili((float(d["tope"]) - float(d["inicio"])) / float(d["por_glifo"]) - 0.000001))

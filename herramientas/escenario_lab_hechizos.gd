@@ -12,7 +12,10 @@ const SEMIEJE_TIERRA_LAB: float = 0.7      ## semieje en X y Z del bloque de tie
 
 ## Los glifos de un eje que hacen falta para llegar a `semieje` casillas con la base y el paso de ESE eje (`Sigils.PASO_ANCHO_V2`, `PASO_FONDO_V2` o `PASO_ALTURA_V2`).
 func _glifos_hasta(semieje: float, paso: float) -> int:
-	return ceili((semieje - Sigils.RADIO_BASE_V2) / paso - 0.0001)
+	var n: int = 0
+	while Sigils.semieje_horizontal_v2(n, paso) < semieje - 0.0001 and n < 40:      # ᛁ: serie decreciente (30/10) o paso fijo si EJE_DECRECIENTE_ACTIVO = false
+		n += 1
+	return n
 
 var lab: Node = null
 
@@ -83,17 +86,19 @@ func _escenario() -> void:
 	lab.limpiar()
 	lab.sumar("linea_z", 1)
 	lab.sumar("linea_z", 1)
-	_ok("2 sumar dos linea_z da z = base + 2 pasos de fondo (%.2f)" % (Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_FONDO_V2), is_equal_approx(float(lab.receta().geo()["z"]), Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_FONDO_V2), str(lab.receta().geo()["z"]))
+	_ok("2 sumar dos linea_z da z = base + 0,25 · 1,75 (el 2.º ᛁ aporta un 25 %% menos; %.4f)" % Sigils.semieje_horizontal_v2(2, Sigils.PASO_FONDO_V2), is_equal_approx(float(lab.receta().geo()["z"]), Sigils.semieje_horizontal_v2(2, Sigils.PASO_FONDO_V2)), str(lab.receta().geo()["z"]))
 	lab.limpiar()
 	for _i in range(Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2):
 		lab.sumar("altura", 1)
 	_ok("2 3 ᛏ (dentro del límite de 6 glifos del lab) = 2 niveles", int(lab.contadores.get("altura", 0)) == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and Lanzador3D.GeometriaV2.niveles(lab.receta().geo()) == 2, str(lab.contadores))
 	lab.limpiar()
+	lab.limite_glifos = false                              # 30/10: con la serie decreciente un muro de 3 casillas pide 9 ᛁ, más que el límite de 6 glifos (anotado para Pablo)
 	lab.sumar("barrera", 1)
 	for _i in range(Sigils.GLIFOS_ANCHO_MURO_3_V2):
 		lab.sumar("linea_x", 1)
+	lab.limite_glifos = true
 	var muro_g: Dictionary = lab.receta().geo()
-	_ok("2 ᛜ + 4 ᛁ (5 glifos, dentro del límite del lab) = muro de 3 casillas de ancho", int(lab.contadores.get("linea_x", 0)) == Sigils.GLIFOS_ANCHO_MURO_3_V2 and Lanzador3D.GeometriaV2.celdas(muro_g, Vector2(0.5, 0.5) * Terreno3D.casilla, Vector2.RIGHT, Terreno3D.casilla).size() == 3, str(lab.contadores))
+	_ok("2 ᛜ + 9 ᛁ (sin el límite de 6 del lab) = muro de 3 casillas de ancho", int(lab.contadores.get("linea_x", 0)) == Sigils.GLIFOS_ANCHO_MURO_3_V2 and Lanzador3D.GeometriaV2.celdas(muro_g, Vector2(0.5, 0.5) * Terreno3D.casilla, Vector2.RIGHT, Terreno3D.casilla).size() == 3, str(lab.contadores))
 	lab.limpiar()
 	lab.limite_glifos = false                              # 19/10: con el límite de 6 glifos no se llegaría al tope de ᛁ (19): aquí se mide el tope de cada glifo, no el límite
 	for _i in range(lab.glifos_hasta_tope("linea_z") + 3):
@@ -141,7 +146,7 @@ func _escenario() -> void:
 	_ok("3 el HUD enseña el coste (en tinta, por potencia, 29/10)", hud.contains("Coste") and hud.contains("de tinta"), hud.get_slice("\n", 2))
 	_ok("3 el HUD enseña el nombre derivado", hud.contains("Nombre derivado: x_mano"), hud.get_slice("\n", 3))
 	_ok("3 el HUD enseña el estado de la materia", hud.contains("Estado: "), hud.get_slice("\n", 4))
-	_ok("3 el HUD enseña los semiejes del elipsoide", hud.contains("Elipsoide") and hud.contains("z %.2f" % (Sigils.RADIO_BASE_V2 + Sigils.PASO_FONDO_V2)), hud.get_slice("\n", 1))
+	_ok("3 el HUD enseña los semiejes del elipsoide", hud.contains("Elipsoide") and hud.contains("z %.2f" % Sigils.semieje_horizontal_v2(1, Sigils.PASO_FONDO_V2)), hud.get_slice("\n", 1))
 	var alambre: ImmediateMesh = (lab.get("_alambre") as MeshInstance3D).mesh as ImmediateMesh
 	var casillas: ImmediateMesh = (lab.get("_casillas") as MeshInstance3D).mesh as ImmediateMesh
 	_ok("3 el elipsoide está dibujado (alambre) y las casillas también", alambre.get_surface_count() == 1 and casillas.get_surface_count() == 1)
@@ -400,11 +405,13 @@ func _escenario() -> void:
 	lab.limpiar()
 	lab.poner_elemento("earth")
 	lab.limite_glifos = false                  # 24/10: con base 0,10 hacen falta más glifos que el límite de 6 para llegar al mismo bloque de tierra que antes
+	Sigils.EJE_DECRECIENTE_ACTIVO = false      # 30/10: con la serie decreciente 0,7 de semieje pide más ᛁ de los que caben; aquí se mide la limpieza, no la serie
 	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB, Sigils.PASO_ANCHO_V2)):
 		lab.sumar("linea_x", 1)
 	for _i in range(_glifos_hasta(SEMIEJE_TIERRA_LAB, Sigils.PASO_FONDO_V2)):
 		lab.sumar("linea_z", 1)
 	lab.limite_glifos = true
+	Sigils.EJE_DECRECIENTE_ACTIVO = true
 	colocar_jugador(Vector2i(4, 8))
 	jugador.call("mirar_hacia", Vector3.RIGHT)
 	lab.lanzar()

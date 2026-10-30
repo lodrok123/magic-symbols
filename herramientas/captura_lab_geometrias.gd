@@ -1,5 +1,5 @@
 extends "res://herramientas/escenario_lab_geometrias.gd"
-## FOTOS DEL LABORATORIO DE GEOMETRÍAS (29/10): los ocho carriles lanzados a la vez con cada elemento. NECESITA VENTANA:
+## FOTOS DEL LABORATORIO DE GEOMETRÍAS (29/10; 30/10 con los quince carriles y sus dianas): lanzados a la vez con cada elemento. NECESITA VENTANA:
 ##   godot --path . --resolution 1280x720 --script res://herramientas/captura_lab_geometrias.gd -- [carpeta]   (por defecto res://docs/capturas/lab_geometrias)
 
 var _dir: String = "res://docs/capturas/lab_geometrias"
@@ -15,24 +15,22 @@ func _escenario() -> void:
 	await avanzar(5)
 	if lab == null:
 		return
+	for pal in maqueta.find_children("*", "PanelContainer", true, false):
+		if pal.get_script() != null and String((pal.get_script() as Script).resource_path).ends_with("rune_palette.gd"):
+			(pal as CanvasItem).visible = false          # la paleta de pruebas (F1)
+	# 30/10: los quince carriles (base + 1 glifo) con sus dianas, sin panel y con ᛁ ×2 en la base.
 	for e in ["fire", "water", "earth"]:
 		lab.call("poner_elemento", e)
 		_tecla_lab(KEY_SPACE)
-		await avanzar_s(0.6)
+		await avanzar_s(0.8)
 		await _foto(e)
 		_tecla_lab(KEY_BACKSPACE)
 		await avanzar_s(0.5)
-	# De cerca: la tierra ancha y el muro, para ver el perfil de los bloques (29/10).
-	lab.call("poner_elemento", "earth")
-	colocar_jugador(Vector2i(6, 10))
-	for pal in maqueta.find_children("*", "RunePalette", true, false):
-		(pal as CanvasItem).visible = false
-	maqueta.set("_tam_camara", 12.0)
-	(maqueta.get("_camara") as Camera3D).size = 12.0
-	await avanzar_s(0.5)
+	lab.call("poner_elemento", "fire")
+	lab.call("sumar", "linea_x", 2)
 	_tecla_lab(KEY_SPACE)
-	await avanzar_s(1.5)
-	await _foto("earth_cerca")
+	await avanzar_s(0.8)
+	await _foto("fire_base_x2")
 	print("FOTOS en %s" % ProjectSettings.globalize_path(_dir))
 
 

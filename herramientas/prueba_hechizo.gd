@@ -85,7 +85,7 @@ func _tablas() -> void:
 				principal = m
 		_ok(not principal.is_empty(), "%s: ningún modificador sobre %s" % [nombre, destino])
 		_ok(_casi(float(principal["valor"]), float(v["por_glifo"])) and _casi(float(principal["tope"]), float(v["tope"])), "%s: valor o tope difieren" % nombre)
-		_ok(String(principal["op"]) == ("multiplica" if v.get("modo", "suma") == "multiplica" else "suma"), "%s: operación distinta" % nombre)
+		_ok(String(principal["op"]) == String(v.get("modo", "suma")) and (String(v.get("modo", "suma")) != "suma_decreciente" or _casi(float(principal["factor"]), float(v["factor"]))), "%s: operación distinta" % nombre)
 		_ok(String(principal["campo"]) == destino, "%s: campo %s ≠ %s" % [nombre, principal["campo"], destino])
 		if v["tipo"] == "prop" and float(v["inicio"]) != 0.0:
 			_ok(principal.has("desde") and _casi(float(principal["desde"]), float(v["inicio"])), "%s: «desde» ≠ inicio" % nombre)
@@ -171,11 +171,12 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 		and h.semieje_x >= h.grosor_min and h.semieje_y >= h.grosor_min and h.semieje_z >= h.grosor_min, "%s: supera un límite de la ESPEC §1.9" % et)
 	# los campos nuevos (HC4) siguen en su defecto
 	var vel_esperada: float = Sigils.velocidad_flecha() if int(c.get("flecha", 0)) > 0 else 0.0     # la flecha pone la velocidad; sin flecha, 0
-	# en_punto: la barrera (glifo) o, desde el 24/10, un sólido quieto (tierra/hielo que ni es haz ni flecha: no puede nacer en la casilla de quien lo lanza)
+	# en_punto: desde el 24/10, un sólido quieto (30/10: ya NO la barrera: nace en el lanzador; un sólido con barrera sigue en el punto por ser sólido quieto)
+	# antes: la barrera (glifo) o un sólido quieto (tierra/hielo que ni es haz ni flecha: no puede nacer en la casilla de quien lo lanza)
 	var lineas_c: int = int(c.get("linea_x", 0)) + int(c.get("linea_z", 0))
 	var haz_c: bool = lineas_c > 0 and int(c.get("barrera", 0)) == 0 and int(c.get("flecha", 0)) == 0 and h.estado_materia != "solido"     # 29/10: un sólido con ᛁ no es haz
 	var solido_quieto_c: bool = h.estado_materia == "solido" and int(c.get("flecha", 0)) == 0 and not haz_c
-	_ok(h.en_punto == (int(c.get("barrera", 0)) > 0 or solido_quieto_c), "%s: en_punto solo con barrera o con un sólido quieto" % et)
+	_ok(h.en_punto == solido_quieto_c, "%s: en_punto solo con un sólido quieto (30/10: la barrera ya no es apuntable, nace en el lanzador)" % et)
 	_ok(h.velocidad == vel_esperada and h.aceleracion == 0.0 and not h.retorna and h.busca == 0.0 and h.perfora == 0 and h.radio_explosion == 0.0 \
 		and not h.golpea_lanzador and h.veneno == 0.0 and h.choca_con == 0 and h.estela == "" and h.efecto_impacto == "", "%s: un campo de HC4 se movió de su defecto" % et)
 	# los campos que el elemento toca (ESPEC §2) valen lo que dice su .tres (sin glifos que los muevan: ninguno toca estos)
@@ -238,7 +239,7 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	_ok(_casi(h.semiejes.y, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_ALTURA_V2) and _casi(h.semiejes.x, Sigils.RADIO_BASE_V2), "levitacion×2 = altura×2 y un contador negativo no hace nada")
 	# sin elemento (null): defectos y glifos, sin romper
 	var sin: Hechizo = Hechizo.construir(null, {"linea_z": 2})
-	_ok(sin.elemento == "" and _casi(sin.semiejes.z, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_FONDO_V2) and sin.dano == 1.0 and sin.gravedad == 1.0, "sin elemento: solo los glifos y las bases de la ESPEC (daño 1, gravedad 1)")
+	_ok(sin.elemento == "" and _casi(sin.semiejes.z, Sigils.semieje_horizontal_v2(2, Sigils.PASO_FONDO_V2)) and sin.dano == 1.0 and sin.gravedad == 1.0, "sin elemento: solo los glifos y las bases de la ESPEC (daño 1, gravedad 1)")
 	# el orden de dibujo no existe: mismo diccionario en otro orden, mismo hechizo
 	var a: Hechizo = Hechizo.construir(runes["ice"], {"flecha": 1, "barrera": 2, "altura": 1})
 	var b: Hechizo = Hechizo.construir(runes["ice"], {"altura": 1, "barrera": 2, "flecha": 1})
@@ -259,7 +260,7 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	_ok(_casi(barrera.semiejes.x, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.z, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.y, Sigils.RADIO_BASE_V2), "barrera: sin ejes, x y z = radio base")
 	_ok(barrera.en_punto and _casi(barrera.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and barrera.permanencia == 0.0, "barrera ×1: en_punto, persiste del elemento y sin permanencia")
 	var barrera3: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 3, "linea_x": 2})
-	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, 2.0 * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.RADIO_BASE_V2 + 2.0 * Sigils.PASO_ANCHO_V2), "barrera ×3: permanencia +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
+	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, 2.0 * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.semieje_horizontal_v2(2)), "barrera ×3: permanencia +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
 	_ok(not Hechizo.construir(runes["fire"], {"linea_x": 2}).en_punto and Hechizo.construir(runes["earth"], {"linea_x": 2}).en_punto, "sin barrera: el fuego no nace en el punto; la tierra con ᛁ sí (29/10: es un sólido quieto, no un haz)")
 	# 24/10: un SÓLIDO QUIETO (tierra/hielo con solo ᛏ, ᚢ o ᚱ) nace donde apuntas; una flecha, un haz o un elemento que no es sólido, no
 	for elem in ["earth", "ice"]:
@@ -268,7 +269,7 @@ func _casos_sueltos(runes: Dictionary) -> void:
 			_ok(q.solido_quieto and q.en_punto and String(q.origen.get("en_punto", "")) == Hechizo.ORIGEN_EN_PUNTO_SOLIDO, "%s %s: sólido quieto → en_punto (origen «derivado:solido», fue «%s»)" % [elem, str(g), String(q.origen.get("en_punto", ""))])
 		_ok(not Hechizo.construir(runes[elem], {"flecha": 1}).en_punto, "%s + flecha: viaja, no nace en el punto" % elem)
 	_ok(not Hechizo.construir(runes["fire"], {"altura": 1}).en_punto and not Hechizo.construir(runes["water"], {"altura": 1}).en_punto, "fuego y agua quietos (no sólidos): no nacen en el punto")
-	_ok(String(Hechizo.construir(runes["earth"], {"barrera": 1}).origen.get("en_punto", "")) == "glifo:barrera", "la barrera de tierra conserva su origen «glifo:barrera»")
+	_ok(String(Hechizo.construir(runes["earth"], {"barrera": 1}).origen.get("en_punto", "")) == Hechizo.ORIGEN_EN_PUNTO_SOLIDO and not Hechizo.construir(runes["water"], {"barrera": 1}).en_punto and not Hechizo.construir(runes["fire"], {"barrera": 2}).en_punto, "30/10: la barrera ya no es apuntable: la de agua y la de fuego nacen en el lanzador; la de tierra sigue en el punto por ser un sólido quieto (origen «derivado:solido»)")
 	var lab_off: Hechizo = Hechizo.construir(runes["earth"], {"altura": 1}).con({"en_punto": false})
 	_ok(not lab_off.en_punto, "el laboratorio puede apagar en_punto de un sólido quieto (la regla respeta el origen «lab»)")
 	var lab_viaja: Hechizo = Hechizo.construir(runes["earth"], {"altura": 1}).con({"distancia_max": 3.0})
@@ -347,10 +348,10 @@ func _espec_e1(runes: Dictionary) -> void:
 	_ok(_casi(vacio.altura_salida, Hechizo.ALTURA_MANO_U / Terreno3D.casilla), "altura_salida en metros: la mano (0,9 u) ÷ casilla = %.3f m" % vacio.altura_salida)
 	# un eje: cada glifo suma el paso de SU eje (ancho 0,25 · fondo 0,10 · altura 0,30) y topa en 3 (X, Z) y en 1 (Y)
 	var x3: Hechizo = Hechizo.construir(null, {"linea_x": 3})
-	_ok(_casi(x3.semieje_x, base + 3.0 * Sigils.PASO_ANCHO_V2), "linea_x ×3: base + 3 · paso de ancho (%.2f)" % x3.semieje_x)
-	_ok(_casi(Hechizo.construir(null, {"linea_z": 3}).semieje_z, base + 3.0 * Sigils.PASO_FONDO_V2) and _casi(Hechizo.construir(null, {"altura": 3}).semieje_y, base + 3.0 * Sigils.PASO_ALTURA_V2) and Hechizo.construir(null, {"altura": Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2}).niveles == 2, "linea_z ×3 y altura ×3: el paso de su eje; 3 ᛏ = 2 niveles")
-	_ok(Hechizo.construir(null, {"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2}).semieje_x >= 1.0 and Hechizo.construir(null, {"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1}).semieje_x < 1.0, "ᛜ + 4 ᛁ llega a semieje 1,0 (muro de 3 casillas) y con 3 no")
-	_ok(_casi(Hechizo.construir(null, {"linea_x": 99}).semieje_x, 3.0) and _casi(Hechizo.construir(null, {"altura": 99}).semieje_y, 1.0), "topes: X 3,0 y Y 1,0")
+	_ok(_casi(x3.semieje_x, Sigils.semieje_horizontal_v2(3)) and _casi(x3.semieje_x, base + 0.25 * (1.0 + 0.75 + 0.5625)), "linea_x ×3: base + 0,25 · (1 + 0,75 + 0,5625) (30/10: cada ᛁ aporta un 25 %% menos; %.4f)" % x3.semieje_x)
+	_ok(_casi(Hechizo.construir(null, {"linea_z": 3}).semieje_z, Sigils.semieje_horizontal_v2(3, Sigils.PASO_FONDO_V2)) and _casi(Hechizo.construir(null, {"altura": 3}).semieje_y, base + 3.0 * Sigils.PASO_ALTURA_V2) and Hechizo.construir(null, {"altura": Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2}).niveles == 2, "linea_z ×3 y altura ×3: el paso de su eje; 3 ᛏ = 2 niveles")
+	_ok(Hechizo.construir(null, {"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2}).semieje_x >= 1.0 and Hechizo.construir(null, {"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1}).semieje_x < 1.0, "ᛜ + 9 ᛁ llega a semieje 1,0 (muro de 3 casillas) y con 8 no")
+	_ok(_casi(Hechizo.construir(null, {"altura": 99}).semieje_y, 2.0) and Hechizo.construir(null, {"linea_x": 99}).semieje_x > 1.09 and Hechizo.construir(null, {"linea_x": 99}).semieje_x < 1.1001, "topes: Y 2,0 (4 niveles) y X 99 ᛁ se queda en la asíntota 1,10")
 	# derivados
 	var h: Hechizo = Hechizo.construir(runes["earth"], {"linea_x": 2, "barrera": 3, "repeticion": 2, "pulso": 1, "rebote": 1, "flecha": 1})
 	var v: float = 4.0 / 3.0 * PI * h.semieje_x * h.semieje_y * h.semieje_z
@@ -363,7 +364,7 @@ func _espec_e1(runes: Dictionary) -> void:
 	_ok(h.copiar().con({"elevacion": 1.0}).flota, "elevacion > 0 → flota")
 	# límites en con(): el laboratorio tampoco puede saltárselos
 	var lab: Hechizo = Hechizo.construir(runes["fire"], {}).con({"semiejes.x": 5.0, "semiejes.y": 3.0, "semiejes.z": 0.01, "elevacion": 9.0, "distancia_max": 20.0, "persiste": 20.0, "permanencia": 20.0, "copias": 50})
-	_ok(lab.semieje_x == 3.0 and lab.semieje_y == 1.0 and _casi(lab.semieje_z, lab.grosor_min) and lab.elevacion == 2.0 and lab.distancia_max == 8.0 and lab.copias == 8, "con(): topa en los límites de §1.9 y ningún semieje baja de grosor_min")
+	_ok(lab.semieje_x == 3.0 and lab.semieje_y == 2.0 and _casi(lab.semieje_z, lab.grosor_min) and lab.elevacion == 2.0 and lab.distancia_max == 8.0 and lab.copias == 8, "con(): topa en los límites de §1.9 y ningún semieje baja de grosor_min")
 	_ok(_casi(lab.persiste + lab.permanencia, 25.0) and _casi(lab.persiste, 20.0), "con(): persiste + permanencia ≤ 25 s (la vida natural primero)")
 	for campo in Hechizo.EDITABLES:                                    # el rango del lab nunca pasa de un límite
 		var r: Dictionary = Hechizo.EDITABLES[campo]

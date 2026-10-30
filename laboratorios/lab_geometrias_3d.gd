@@ -1,36 +1,48 @@
 class_name LabGeometrias3D
 extends Node
 
-## LABORATORIO DE GEOMETRÍAS (29/10, Juego; Pablo: «un laboratorio de vfx con un hechizo con distintas geometrías para revisarlas todas juntas, y que se
-## puedan añadir glifos para modificar»). Sobre `laboratorios/LabGeometrias3D.tscn` (la maqueta PruebaTest2 con nivel = "LabGeometrias"); este nodo
-## cuelga de ella como «Reglas», igual que LabRecetas3D. Mapa: mundo/datos_nivel/mapas/LabGeometrias.txt (20 × 27, abierto).
+## LABORATORIO DE GEOMETRÍAS (29/10, Juego; rehecho el 30/10, Pablo: «se tiene que poder ver a simple vista todas las interacciones de 1 glifo diferente, el
+## resto hago yo con el panel»). Sobre `laboratorios/LabGeometrias3D.tscn` (la maqueta PruebaTest2 con nivel = "LabGeometrias"); este nodo cuelga de ella como
+## «Reglas», igual que LabRecetas3D. Mapa: mundo/datos_nivel/mapas/LabGeometrias.txt (24 × 27, abierto, con la pared del carril del rebote).
 ##
-## OCHO CARRILES, de oeste a este, cada uno con una GEOMETRÍA (los glifos de forma de `CARRILES`): esfera, ancha, larga, alta, flecha, flecha ancha, muro y
-## muro largo. Espacio los lanza TODOS A LA VEZ con el mismo elemento, así se comparan los VFX uno al lado del otro. Los MODIFICADORES (el panel, o el
-## teclado numérico) se suman a la geometría de cada carril: con +2 repetición, las ocho salen con tres copias. Cada carril lleva su cartel con el nombre,
-## el nombre derivado de la receta (x_mano · alto · abajo…) y su coste; «rechazado» si el juego no lo deja nacer (p. ej. un sólido demasiado alto).
-## Lo que nace donde apuntas (la barrera, `en_punto`) sale CASILLAS_APUNTADAS por delante del principio del carril.
+## QUINCE CARRILES en dos columnas: el hechizo BASE (lo que pongas en el panel) y, en cada uno de los otros catorce, la base + UN glifo de cada tipo de
+## Sigils.GLIFOS. Espacio los lanza TODOS A LA VEZ con el mismo elemento. El plan de pruebas de Pablo: pon una propiedad en el panel (p. ej. ᛁ), mira cómo
+## reacciona con cada glifo suelto, súmale más de esa propiedad para ver la progresión y pasa a la siguiente.
+## Los glifos que solo actúan si el hechizo VIAJA (ᚢ rebote, ᚦ perforar, ᛃ retorno, ᚨ buscar) llevan ᛇ de base en su carril (lo dice el cartel).
+## DIANAS: cada carril tiene su goblin quieto (Combate3D.quieto: no ve, no ataca, recibe golpes, estados y empuje) a DIST_DIANA casillas; perforar lleva tres
+## en fila, buscar una desviada del eje y rebote la tiene DETRÁS (el proyectil choca con la pared de delante y vuelve). Se reponen nuevas y sanas en cada
+## lanzamiento y con Retroceso, así cada tanda empieza igual. Sin botín de oro.
+## Lo que nace donde apuntas (`en_punto`: la barrera, la tierra y el hielo quietos) sale CASILLAS_APUNTADAS por delante del principio del carril, justo antes de la diana.
 ## Se lanza con `Lanzador3D.lanzar_receta`: no gasta tinta ni espera recarga.
 ## TECLAS (las de la maqueta siguen: WASD, +/- zoom…):
-##   Espacio lanza los ocho · Tab siguiente elemento · Numpad 1–9 y «.» suman un modificador (con Mayús, restan; el orden es el de Sigils.GLIFOS)
-##   Numpad 0 quita los modificadores · Numpad Intro repite solo cada T_AUTO s · Retroceso borra lo que queda en la sala · L/./, cámara lenta y paso a paso
+##   Espacio lanza los quince · Tab siguiente elemento · Numpad 1–9 y «.» suman al panel (con Mayús, restan; el orden es el de Sigils.GLIFOS)
+##   Numpad 0 vacía el panel · Numpad Intro repite solo cada T_AUTO s · Retroceso borra lo que queda en la sala y repone las dianas · L/./, cámara lenta y paso a paso
 
 const NIVEL_MAPA: String = "LabGeometrias"
-const X_CARRIL: int = 2                         ## columna donde empieza cada carril
+const X_COLUMNA: Array = [2, 13]                ## columna donde empieza cada carril, por columna (oeste, este)
 const DIR: Vector3 = Vector3.RIGHT              ## todos hacia el este
-const CASILLAS_APUNTADAS: float = 3.0
+const DIST_DIANA: int = 2                       ## casillas de la diana por delante del principio del carril (la flecha de 1 ᛇ llega a 2)
+const CASILLAS_APUNTADAS: float = 1.0           ## lo que nace donde apuntas: una casilla antes de la diana (encima, un sólido no podría nacer: la casilla está ocupada)
 const T_AUTO: float = 3.0
-const ZOOM: float = 38.0                        ## tamaño de cámara para ver la sala entera
-## [nombre, fila, glifos de la geometría]
+const ZOOM: float = 40.0                        ## tamaño de cámara para ver la sala entera
+## Por carril: nombre (sin runas: la fuente de los carteles 3D no las tiene), columna (0 oeste · 1 este), fila, los glifos que pone el carril (además del panel), dianas (casillas relativas al principio del carril;
+## sin la clave, una a DIST_DIANA) y la nota del cartel.
 const CARRILES: Array = [
-	["Esfera", 2, {}],
-	["Ancha", 5, {"linea_x": 2}],
-	["Larga", 8, {"linea_z": 2}],
-	["Alta", 11, {"altura": 3}],
-	["Flecha", 15, {"flecha": 1}],
-	["Flecha ancha", 18, {"flecha": 1, "linea_x": 1}],
-	["Muro", 21, {"barrera": 1, "linea_x": 2, "altura": 2}],
-	["Muro largo", 24, {"barrera": 1, "linea_z": 2, "altura": 1}],
+	{"nombre": "Base", "col": 0, "fila": 2, "glifos": {}, "nota": "solo el panel"},
+	{"nombre": "Línea X (ancho)", "col": 0, "fila": 5, "glifos": {"linea_x": 1}},
+	{"nombre": "Línea Z (fondo)", "col": 0, "fila": 8, "glifos": {"linea_z": 1}},
+	{"nombre": "Altura", "col": 0, "fila": 11, "glifos": {"altura": 1}},
+	{"nombre": "Flecha", "col": 0, "fila": 14, "glifos": {"flecha": 1}},
+	{"nombre": "Barrera", "col": 0, "fila": 17, "glifos": {"barrera": 1}},
+	{"nombre": "Repetición", "col": 0, "fila": 20, "glifos": {"repeticion": 1}},
+	{"nombre": "Rebote", "col": 0, "fila": 23, "glifos": {"rebote": 1, "flecha": 1}, "dianas": [Vector2i(-1, 0)], "nota": "lleva flecha · pared delante, diana detrás"},
+	{"nombre": "Crecer", "col": 1, "fila": 2, "glifos": {"pulso": 1}},
+	{"nombre": "Permanencia", "col": 1, "fila": 5, "glifos": {"permanencia": 1}},
+	{"nombre": "Pulso", "col": 1, "fila": 8, "glifos": {"raido": 1}},
+	{"nombre": "Perforar", "col": 1, "fila": 11, "glifos": {"perforar": 1, "flecha": 1}, "dianas": [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0)], "nota": "lleva flecha · tres dianas"},
+	{"nombre": "Retorno", "col": 1, "fila": 14, "glifos": {"retorno": 1, "flecha": 1}, "nota": "lleva flecha"},
+	{"nombre": "Buscar", "col": 1, "fila": 17, "glifos": {"buscar": 1, "flecha": 1}, "dianas": [Vector2i(DIST_DIANA, 1)], "nota": "lleva flecha · diana fuera del eje"},
+	{"nombre": "Retardo", "col": 1, "fila": 20, "glifos": {"retardo": 1}},
 ]
 const TECLAS_MODIFICADOR: Array = [KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5, KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9, KEY_KP_PERIOD]
 
@@ -40,9 +52,10 @@ var _l: Lanzador3D = null
 var tiempo: TiempoLab3D = null
 
 var elemento: String = "fire"
-var modificadores: Dictionary = {}              ## glifo -> veces (solo los > 0): se suman a todos los carriles
+var modificadores: Dictionary = {}              ## el PANEL: glifo -> veces (solo los > 0), el hechizo base que se suma a todos los carriles
 var auto: bool = false
-var lanzadas: int = 0                           ## tandas de ocho
+var lanzadas: int = 0                           ## tandas de quince
+var dianas: Array = []                          ## {carril, celda, combate: Combate3D}: las de la tanda actual
 var ultimas: Array = []                         ## por carril: {nombre, glifos, n, nombre_receta, coste}
 
 var _t_auto: float = 0.0
@@ -76,6 +89,7 @@ func iniciar(mundo: Variant) -> void:
 	add_child(tiempo)
 	_poner_zoom()
 	_montar_carteles()
+	reponer_dianas()
 	_montar_panel()
 	_montar_hud()
 	_refrescar()
@@ -95,9 +109,9 @@ func _poner_zoom() -> void:
 #  Las recetas
 # ---------------------------------------------------------------------------------------------------------------------
 
-## Los glifos del carril `i`: los de su geometría más los modificadores.
+## Los glifos del carril `i`: el panel más el glifo propio del carril (y la ᛇ de base de los que solo actúan al viajar).
 func glifos_de(i: int) -> Dictionary:
-	var g: Dictionary = (CARRILES[i][2] as Dictionary).duplicate()
+	var g: Dictionary = ((CARRILES[i] as Dictionary)["glifos"] as Dictionary).duplicate()
 	for k in modificadores:
 		g[k] = int(g.get(k, 0)) + int(modificadores[k])
 	return g
@@ -116,9 +130,24 @@ func runa() -> RuneData:
 	return load("res://nucleo/%s_rune.tres" % elemento) as RuneData
 
 
-## Casilla y punto (a la altura de los pies) donde empieza el carril `i`.
+## Casilla donde empieza el carril `i`.
+func celda_de(i: int) -> Vector2i:
+	var cr: Dictionary = CARRILES[i]
+	return Vector2i(int(X_COLUMNA[int(cr["col"])]), int(cr["fila"]))
+
+
+## Casillas de las dianas del carril `i`.
+func celdas_diana(i: int) -> Array:
+	var c0: Vector2i = celda_de(i)
+	var res: Array = []
+	for d in (CARRILES[i] as Dictionary).get("dianas", [Vector2i(DIST_DIANA, 0)]):
+		res.append(c0 + (d as Vector2i))
+	return res
+
+
+## Punto (a la altura de los pies) donde empieza el carril `i`.
 func inicio_de(i: int) -> Vector3:
-	var c := Vector2i(X_CARRIL, int(CARRILES[i][1]))
+	var c: Vector2i = celda_de(i)
 	return Vector3((float(c.x) + 0.5) * Terreno3D.casilla, Terreno3D.y_pies(c), (float(c.y) + 0.5) * Terreno3D.casilla)
 
 
@@ -151,11 +180,12 @@ func poner_elemento(e: String) -> void:
 		_refrescar()
 
 
-## Lanza los ocho carriles a la vez. Devuelve cuántos salieron (n > 0).
+## Lanza los quince carriles a la vez, con dianas nuevas. Devuelve cuántos salieron (n > 0).
 func lanzar_todos() -> int:
 	var rune: RuneData = runa()
 	if rune == null:
 		return 0
+	reponer_dianas()
 	ultimas.clear()
 	var salieron: int = 0
 	for i in range(CARRILES.size()):
@@ -168,7 +198,7 @@ func lanzar_todos() -> int:
 		if n > 0:
 			salieron += 1
 		var g: Dictionary = r.geo()
-		ultimas.append({"nombre": String(CARRILES[i][0]), "glifos": glifos_de(i), "n": n, "nombre_receta": String(g["nombre"]),
+		ultimas.append({"nombre": String((CARRILES[i] as Dictionary)["nombre"]), "glifos": glifos_de(i), "n": n, "nombre_receta": String(g["nombre"]),
 			"semiejes": Vector3(float(g["x"]), float(g["y"]), float(g["z"])), "coste": snappedf(r.tamano_relativo(), 0.01),
 			"aviso": Lanzador3D.GeometriaV2.aviso_materia(g, rune)})
 	lanzadas += 1
@@ -180,7 +210,7 @@ func lanzar_todos() -> int:
 
 ## Deja la sala como al abrir (la sala no tiene agua propia): hechizos vivos, bloques de tierra, zonas y solideces V2, hielo, agua y estados del suelo.
 ## Lo mismo que `LabHechizos3D.limpiar_sala`; sin esto lo que deja un elemento (un charco, un bloque) hace que el siguiente no nazca en su carril.
-## Devuelve cuántas cosas quitó.
+## Repone también las dianas. Devuelve cuántas cosas quitó.
 func borrar_sala() -> int:
 	var n: int = 0
 	for h in (m as Node).find_children("*", "HechizoVivo", true, false):
@@ -220,7 +250,38 @@ func borrar_sala() -> int:
 			for c in est.celdas(String(e)):
 				if est.poner(c as Vector2i, String(e), false):
 					n += 1
+	reponer_dianas()
 	return n
+
+
+## Quita las dianas que haya (vivas, muertas o a medio morir) y pone una nueva y sana en cada casilla de `celdas_diana`: goblins quietos, sin oro.
+## Devuelve cuántas puso.
+func reponer_dianas() -> int:
+	var lista: Variant = (m as Object).get("_goblins")
+	for d in dianas:
+		var cb: Variant = (d as Dictionary)["combate"]
+		if is_instance_valid(cb):
+			var pj: Pj3D = (cb as Combate3D).pj
+			if lista is Array:
+				(lista as Array).erase(pj)
+			if is_instance_valid(pj):
+				pj.queue_free()
+			(cb as Combate3D).remove_from_group("combate3d")
+			(cb as Node).queue_free()
+	dianas.clear()
+	for i in range(CARRILES.size()):
+		for c in celdas_diana(i):
+			var pj: Pj3D = m.call("_personaje", m.PJ_GOBLIN, m.call("_pos_marca", c, m.ALTO))
+			if pj == null:
+				continue
+			pj.rotation.y = PI                    # de cara al hechizo (llega desde el oeste)
+			if lista is Array:
+				(lista as Array).append(pj)
+			var cb: Combate3D = Combate3D.equipar(pj, m, _jug, _l)
+			cb.quieto = true
+			cb.oro = 0
+			dianas.append({"carril": i, "celda": c, "combate": cb})
+	return dianas.size()
 
 
 func alternar_auto() -> void:
@@ -289,11 +350,43 @@ func _montar_carteles() -> void:
 func _texto_cartel(i: int) -> String:
 	var r: Lanzador3D.Receta3D = receta_de(i)
 	var g: Dictionary = r.geo()
-	var t: String = "%s\n%.2f × %.2f × %.2f · coste %.2f" % [String(CARRILES[i][0]), float(g["x"]), float(g["y"]), float(g["z"]), r.tamano_relativo()]
+	var cr: Dictionary = CARRILES[i]
+	var t: String = String(cr["nombre"])
+	if cr.has("nota"):
+		t += "  (%s)" % String(cr["nota"])
+	t += "\n%.2f × %.2f × %.2f" % [float(g["x"]), float(g["y"]), float(g["z"])]
+	var propio: String = valor_propio(i, r)
+	if propio != "":
+		t += "\n" + propio
 	if i < ultimas.size() and int((ultimas[i] as Dictionary)["n"]) <= 0:
 		var aviso: String = String((ultimas[i] as Dictionary).get("aviso", ""))
 		t += "\nRECHAZADO" + (": " + aviso if aviso != "" else " (no nace aquí)")
 	return t
+
+
+## Lo que el glifo propio del carril pone en el hechizo (los campos de sus modificadores en Sigils.GLIFOS, con el panel ya sumado): «perfora 1 · …».
+func valor_propio(i: int, r: Lanzador3D.Receta3D = null) -> String:
+	if r == null:
+		r = receta_de(i)
+	var rune: RuneData = runa()
+	var hz: Hechizo = r.hechizo(rune) if rune != null else null
+	if hz == null:
+		return ""
+	var partes: PackedStringArray = []
+	var propios: Dictionary = (CARRILES[i] as Dictionary)["glifos"]
+	for glifo in propios:
+		if glifo == "flecha" and propios.size() > 1:
+			continue                              # la ᛇ de base de rebote, perforar, retorno y buscar: el cartel enseña lo del glifo del carril
+		for mod in (Sigils.GLIFOS[glifo] as Dictionary)["modificadores"]:
+			var campo: String = String((mod as Dictionary)["campo"])
+			var v: Variant = hz.get(campo)
+			if campo.begins_with("semiejes."):
+				v = hz.semiejes[["x", "y", "z"].find(campo.substr(9))]
+			var txt: String = str(v)
+			if v is float:
+				txt = String.num(snappedf(float(v), 0.01))
+			partes.append("%s %s" % [campo.replace("semiejes.", "eje "), txt])
+	return " · ".join(partes)
 
 
 func _montar_panel() -> void:
@@ -310,7 +403,7 @@ func _montar_panel() -> void:
 	var v := VBoxContainer.new()
 	caja.add_child(v)
 	var titulo := Label.new()
-	titulo.text = "GEOMETRÍAS · modificadores"
+	titulo.text = "GEOMETRÍAS · hechizo base (todos)"
 	v.add_child(titulo)
 	for nombre in Sigils.GLIFOS:
 		var fila := HBoxContainer.new()
@@ -368,7 +461,7 @@ func texto_hud() -> String:
 	var mods: PackedStringArray = []
 	for k in modificadores:
 		mods.append("%s ×%d" % [Sigils.nombre_visible(String(k)), int(modificadores[k])])
-	return "LAB DE GEOMETRÍAS · %s · modificadores: %s\nEspacio lanza los 8 · Tab elemento · Numpad 1–9/. suma (Mayús resta) · 0 quita · Intro repite · Retroceso borra" % [
+	return "LAB DE GEOMETRÍAS · %s · base: %s\nEspacio lanza los 15 (base + 1 glifo cada uno) · Tab elemento · Numpad 1–9/. suma a la base (Mayús resta) · 0 vacía · Intro repite · Retroceso borra y repone dianas" % [
 		String(LabRecetas3D.NOMBRE_ELEMENTO.get(elemento, elemento)), ", ".join(mods) if not mods.is_empty() else "ninguno"]
 
 

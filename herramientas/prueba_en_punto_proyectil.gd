@@ -77,7 +77,11 @@ func _escenario() -> void:
 
 	# --- 2 · barrera + flecha: en el punto apuntado ---
 	await _limpiar()
-	var datos_bf: Dictionary = _datos(["barrera", "flecha"], "fire")
+	# 30/10 (playtest de Pablo: «la barrera mejor que no sea apuntable»): la barrera ya NO es en_punto, así que el hechizo que nace en el punto y viaja lo pone el laboratorio (`con({"en_punto": true})`),
+	# que es el único que lo puede mezclar con una flecha. El caso de «barrera + flecha» (nace en la mano) se mide en 2b.
+	var datos_bf: Dictionary = _datos(["flecha"], "fire")
+	datos_bf["hechizo"] = ((datos_bf["receta"] as Lanzador3D.Receta3D).hechizo(datos_bf["rune"] as RuneData)).con({"en_punto": true})
+	datos_bf["en_punto"] = true
 	lanzador.lanzar_ahora(datos_bf, punto, Vector3.RIGHT, false)
 	var bf: Array = _vivos()
 	var mano_bf: Vector3 = lanzador._pos_cast_point()
@@ -89,6 +93,13 @@ func _escenario() -> void:
 		_ok("2 …y NO en la mano (la mano está a %.2f u del punto y el proyectil a %.2f u de la mano)" % [_plano(mano_bf, punto), _plano(b.p, mano_bf)], _plano(b.p, mano_bf) > MIN_SEPARACION_MANO_U)
 		_ok("2 …y no sale de la altura de la mano (su salida es la de siempre, %.2f u sobre su casilla: no el %.2f de la mano)" % [b.p.y - Terreno3D.y_pies(Terreno3D.celda_de(b.p)), mano_bf.y - Terreno3D.y_pies(Terreno3D.celda_de(mano_bf))],
 			absf((b.p.y - Terreno3D.y_pies(Terreno3D.celda_de(b.p))) - Hechizo.ALTURA_MANO_U) < 0.05)
+
+	# --- 2b · barrera + flecha: ya no es apuntable, nace en la mano como una flecha ---
+	await _limpiar()
+	var datos_b2: Dictionary = _datos(["barrera", "flecha"], "fire")
+	lanzador.lanzar_ahora(datos_b2, pies, Vector3.RIGHT, false)
+	var b2: Array = _vivos()
+	_ok("2b barrera + flecha: sale un proyectil que ya NO es en_punto y nace en la mano", b2.size() == 1 and not (b2[0] as HechizoVivo).h.en_punto and _plano((b2[0] as HechizoVivo).p, lanzador._pos_cast_point()) <= TOL_MANO_U)
 
 	# --- 3 · el punto está dentro del anillo y lejos de la mano ---
 	var casillas_al_punto: float = _plano(punto, pies) / Terreno3D.casilla

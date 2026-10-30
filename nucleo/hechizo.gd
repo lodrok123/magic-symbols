@@ -54,7 +54,7 @@ const MAX_PROFUNDIDAD: int = 2
 const MAX_VIVOS: int = 32
 ## Límites globales de seguridad (ESPEC_HECHIZO §1.9). Se aplican al final de `construir()` y de `con()`: ni los glifos ni el laboratorio pueden saltárselos.
 const LIM_SEMIEJE_HORIZONTAL: float = 3.0     ## m (6 m de ancho o fondo total)
-const LIM_SEMIEJE_ALTO: float = 1.0           ## m (2 niveles)
+const LIM_SEMIEJE_ALTO: float = 2.0           ## m (4 niveles: el límite físico; 30/10, antes 1,0 = 2 niveles)
 const LIM_ELEVACION: float = 2.0              ## m
 const LIM_DISTANCIA: float = 8.0              ## m (la flecha llega a 6 con 5 glifos)
 const LIM_VIDA_S: float = 25.0                ## s: persiste + permanencia
@@ -99,7 +99,7 @@ const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez"
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
 ## (color, deja, estela, efecto_impacto, eventos: son nombres o listas, no números).
 const EDITABLES: Dictionary = {
-	"semiejes.x": {"paso": 0.05, "min": 0.10, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.10, "max": 1.0}, "semiejes.z": {"paso": 0.05, "min": 0.10, "max": 3.0},
+	"semiejes.x": {"paso": 0.05, "min": 0.10, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.10, "max": 2.0}, "semiejes.z": {"paso": 0.05, "min": 0.10, "max": 3.0},
 	"grosor_min": {"paso": 0.05, "min": 0.05, "max": 0.5}, "separacion": {"paso": 0.25, "min": 0.0, "max": 3.0}, "dispersion": {"paso": 5.0, "min": 0.0, "max": 90.0},
 	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
 	"resuena": {"paso": 1.0, "min": 0.0, "max": 12.0},
@@ -383,7 +383,8 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 	var topes: Dictionary = {}
 	for rango in ["fija", "suma", "multiplica"]:
 		for m in lista:
-			if String(m["op"]) != rango:
+			var op_m: String = String(m["op"])
+			if (op_m if op_m != "suma_decreciente" else "suma") != rango:       # la suma decreciente va en el rango de las sumas
 				continue
 			var campo: String = String(m["campo"])
 			var v: float = 0.0
@@ -398,7 +399,10 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 				if m.has("desde") and not _tocados.has(campo):
 					_escribir(campo, float(m["desde"]))
 				v = float(_leer(campo))
-				v = v + float(m["valor"]) * float(n) if rango == "suma" else v * pow(float(m["valor"]), float(n))
+				if op_m == "suma_decreciente":
+					v += float(m["valor"]) * Sigils.serie_decreciente(float(m["factor"]), n)
+				else:
+					v = v + float(m["valor"]) * float(n) if rango == "suma" else v * pow(float(m["valor"]), float(n))
 				_escribir(campo, v)
 			if marca_tocados:
 				_tocados[campo] = true

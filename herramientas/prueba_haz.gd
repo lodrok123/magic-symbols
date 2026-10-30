@@ -230,6 +230,28 @@ func _se_para() -> void:
 	_lanzar(_hz("fuego", {"linea_x": 1}), Vector3(0.0, 0.0, 1.0))
 	_ok("4 apunta donde se le dice: hacia +Z hiere al enemigo de esa columna (%.0f → %.1f)" % [vn, e_n.health], e_n.health < vn)
 
+	# 30/10 (playtest de Pablo): ᚦ perforar sin flecha deja ATRAVESAR `perfora` casillas sólidas: fuego + ᛁ×4 + ᚦ atraviesa una pared de 1 casilla y quema lo que hay detrás;
+	# con una pared de 2 casillas y un solo ᚦ se para en ella como siempre; con dos ᚦ la atraviesa.
+	for caso in [[[Vector2i(8, 8)], 0, false], [[Vector2i(8, 8)], 1, true], [[Vector2i(8, 8), Vector2i(9, 8)], 1, false], [[Vector2i(8, 8), Vector2i(9, 8)], 2, true]]:
+		_montar()
+		for b in (caso[0] as Array):
+			_m._bloqueadas[b] = true
+		var detras_p: Combate3D = _enemigo(Vector2i(10, 8))
+		var vt_p: float = detras_p.health
+		var glifos_p: Dictionary = {"linea_x": 4}
+		if int(caso[1]) > 0:
+			glifos_p["perforar"] = int(caso[1])
+		_lanzar(_hz("fuego", glifos_p))
+		var vol_p: Dictionary = _volumenes[0][2] if not _volumenes.is_empty() else {}
+		var tras_p: bool = false
+		var en_pared: bool = false
+		for c in vol_p.get("celdas", []):
+			tras_p = tras_p or (c as Vector2i).x > (caso[0] as Array).back().x
+			en_pared = en_pared or (caso[0] as Array).has(c)
+		var herido: bool = detras_p.health < vt_p
+		_ok("4 perforar×%d + haz contra una pared de %d casilla/s: %s lo de detrás (herido %s, casillas detrás %s) y ninguna casilla de la pared" % [int(caso[1]), (caso[0] as Array).size(), "alcanza" if bool(caso[2]) else "no alcanza", str(herido), str(tras_p)],
+			herido == bool(caso[2]) and tras_p == bool(caso[2]) and not en_pared)
+
 
 # 5. La barrera sigue siendo muro; la línea ya no -----------------------------------------------------------------------------------
 

@@ -25,12 +25,12 @@ func _initialize() -> void:
 	for n in [1, 2, 3, 4]:
 		var g: Dictionary = G.evaluar({"linea_z": n})
 		var largo: float = 2.0 * float(g["z"])
-		var esperado: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_FONDO_V2 * float(n)), 6.0)
+		var esperado: float = minf(2.0 * Sigils.semieje_horizontal_v2(n, Sigils.PASO_FONDO_V2), 6.0)
 		_ok("3 linea_z ×%d: largo %.2f casillas" % [n, esperado], is_equal_approx(largo, esperado), str(largo))
 	# 4. Cada línea horizontal (X) suma PASO_ANCHO_V2 de semieje; tope 6.
 	for n in [1, 2, 3, 4]:
 		var g: Dictionary = G.evaluar({"linea_x": n})
-		var ancho: float = minf(2.0 * (Sigils.RADIO_BASE_V2 + Sigils.PASO_ANCHO_V2 * float(n)), 6.0)
+		var ancho: float = minf(2.0 * Sigils.semieje_horizontal_v2(n), 6.0)
 		_ok("4 linea_x ×%d: ancho %.2f casillas" % [n, ancho], is_equal_approx(2.0 * float(g["x"]), ancho))
 	# 4 bis. Decisión de Pablo 24/10: ᛜ + 4 ᛁ horizontales = muro de 3 casillas de ancho (origen en el centro de una casilla, mirando a un eje; en diagonal el muro de 0,10 de fondo no alcanza centros vecinos); 3 ᛏ = 2 niveles.
 	for dir in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
@@ -47,6 +47,7 @@ func _initialize() -> void:
 	_ok("5 linea_z ×13: una fila hacia delante y nada detrás de la mano (%d casillas)" % haz.size(), filas.size() == 1 and not detras and haz.size() >= 3)
 	# 6. El tope por eje: 99 glifos no pasan de 6 casillas de largo, 6 de ancho y 2 niveles (19/10: altura topada en 1,0 de semieje).
 	var m: Dictionary = G.evaluar({"linea_x": 99, "linea_z": 99, "altura": 99})
-	_ok("6 topes por eje: 6 × 6 × 2 niveles", is_equal_approx(2.0 * float(m["x"]), 6.0) and is_equal_approx(2.0 * float(m["z"]), 6.0) and G.niveles(m) == 2)
+	# 30/10: ᛁ decreciente no pasa de 2,2 casillas (asíntota 1,10) y la altura topa en 2,0 = 4 niveles; con ᚷ ×99 (que multiplica) los tres llegan al tope: 6 × 6 × 4 niveles.
+	_ok("6 99 ᛁ y 99 ᛏ: ancho y fondo no pasan de 2,2 casillas (serie decreciente) y 4 niveles", 2.0 * float(m["x"]) < 2.2001 and 2.0 * float(m["z"]) < 2.2001 and G.niveles(m) == 4)
 	print("FALLOS: %d" % _fallos)
 	quit(_fallos)

@@ -9,6 +9,13 @@ extends RefCounted
 const RUTA: String = "user://lab_recetas.json"
 
 
+static func _repetir(glifo: String, n: int) -> Array:
+	var r: Array = []
+	for _i in range(n):
+		r.append(glifo)
+	return r
+
+
 static func nueva(nombre: String, glifos: Array, elemento: String, cambios: Dictionary = {}) -> Dictionary:
 	return {"nombre": nombre, "glifos": glifos.duplicate(), "elemento": elemento, "cambios": cambios.duplicate(true)}
 
@@ -18,7 +25,7 @@ static func por_defecto() -> Array:
 	return [
 		nueva("bola de fuego", ["flecha", "linea_x", "linea_z", "altura"], "fire"),
 		nueva("flecha triple de hielo", ["flecha", "repeticion", "repeticion"], "ice"),
-		nueva("muro de tierra", ["barrera", "linea_x", "linea_x", "altura"], "earth"),        # 29/10: ᛜ + 2 ᛁ = muro de 3 casillas (PASO_ANCHO_V2 0,5; el 24/10 eran 4 ᛁ) y 1 ᛏ = el de 1 nivel
+		nueva("muro de tierra", ["barrera"] + _repetir("linea_x", 4) + ["altura"], "earth"),        # 30/10: caben 6 glifos; con la serie decreciente 4 ᛁ dan 0,78 de semieje (1 casilla), el muro de 3 pide 9 ᛁ (GLIFOS_ANCHO_MURO_3_V2)
 		nueva("barrera de agua", ["barrera", "linea_x", "linea_x", "permanencia"], "water"),
 		nueva("pilar de rayo", ["altura", "altura", "altura", "permanencia", "permanencia"], "lightning"),
 		nueva("onda de viento", ["flecha", "pulso", "pulso", "linea_z", "linea_z"], "wind"),
