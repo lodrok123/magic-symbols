@@ -55,7 +55,6 @@ const TIEMPO_PAGINA: float = 0.7            ## 27/10 · A1: Engine.time_scale en
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
-const ALTO_BOLA: float = 0.6                 ## Vfx3D.lanzar eleva la bola 0,6·escala sobre los pies que recibe (valor suyo; ver diario P2)
 const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const VEL_MURO: float = 1.72                ## casillas/s (Sigils.WALL_SPEED 110 px / 64)
 const VEL_ONDA: float = 1.48                ## casillas/s (Sigils.PULSE_SPEED 95 px / 64)
@@ -132,9 +131,6 @@ const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "linea", "altura",
 ## DÓNDE golpeó el último hechizo (mundo) y a qué nivel; on_spell_hit no lleva posición. Vector3.INF = ninguna.
 static var ultimo_impacto: Vector3 = Vector3.INF
 static var ultimo_nivel: int = 0
-
-## Radio (m) de la bola que se dibuja ahora; Tamaño lo agranda (8.5). Vuelve a RADIO_BOLA con cada lanzamiento.
-var _radio_bola_actual: float = RADIO_BOLA
 
 
 ## Casillas cuyo hielo no caduca (el nivel lo marca): Vector2i -> true.
@@ -1725,37 +1721,6 @@ func _una_ola(receta: Receta3D, data: RuneData, elemento: String, origen: Vector
 	return _crear_campo(receta, data, elemento, origen, giro, manifest, receta.height)
 
 
-func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector3, dir: Vector3, alcance: float,
-		nivel: int) -> void:
-	var y_vuelo: float = y_pies(celda_de(origen)) + Terreno3D.ALTO_NIVEL * 0.5 * float(1 + nivel)
-	var inicio := Vector3(origen.x, y_vuelo, origen.z)
-	var res: Dictionary = trazar(inicio, dir, alcance, nivel, rune, receta.lifetime > 0.0, receta.bounces, receta.pull)
-	var t: float = 0.0
-	for tramo in res["tramos"]:
-		var a: Vector3 = tramo["desde"]
-		var b: Vector3 = tramo["hasta"]
-		var pie_a: Vector3 = Vector3(a.x, y_pies(celda_de(a)), a.z)
-		var pie_b: Vector3 = Vector3(b.x, y_pies(celda_de(b)), b.z)
-		# P2 (13/10): si lo que frena la bola es un objeto con punto de activación (el cuenco de la antorcha, la boca de la tinaja),
-		# la bola acaba ahí y no donde roza la caja de acierto. Vfx3D.lanzar eleva los dos extremos ALTO_BOLA·escala sobre los
-		# «pies» que se le pasan, por eso se resta.
-		var p_act: Vector3 = _activacion_al_final(tramo)
-		if p_act != Vector3.INF and fx != null:
-			pie_b = Vector3(p_act.x, p_act.y - ALTO_BOLA * fx.escala, p_act.z)
-		var el: String = String(tramo.get("elemento", elemento))
-		if Vfx3D.ELEMENTOS.has(el):
-			_visual_en(t, el, pie_a, pie_b)
-		var viaje: float = _tiempo_de_viaje(el, a.distance_to(b))
-		for g in tramo["golpes"]:
-			var obj: Node = g["obj"]
-			var dist_g: float = float(g["dist"])
-			var dir_g: Vector3 = tramo["dir"]
-			var rune_g: RuneData = tramo.get("rune", rune)
-			_despues(t + _tiempo_de_viaje(el, dist_g), _golpear.bind(obj, rune_g, dir_g, g["punto"], nivel, receta.pull,
-				(tramo["desde"] as Vector3)))
-		t += viaje
-
-
 ## P2: el punto de activación del objeto que PARA este tramo (el último golpe, a la distancia a la que acaba el tramo, que
 ## reacciona al hechizo). Vector3.INF si el tramo acaba en una pared, en el alcance, o en un objeto sin punto propio.
 func _activacion_al_final(tramo: Dictionary) -> Vector3:
@@ -1785,31 +1750,6 @@ func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneDat
 			continue
 		return obj.call("punto_activacion")
 	return Vector3.INF
-
-
-func _tiempo_de_viaje(elemento: String, distancia: float) -> float:
-	# 6.5: todos son una bola que viaja; el rayo, más rápido; la tierra, más lenta.
-	var v: float = fx.velocidad if fx != null else 7.0
-	match elemento:
-		"rayo":
-			v *= 2.0
-		"tierra":
-			v *= 0.8
-	return maxf(0.1, distancia / maxf(v, 0.1))
-
-
-func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
-	if fx == null:
-		return
-	if retraso <= 0.001:
-		_visual(elemento, pie_a, pie_b)
-	else:
-		_despues(retraso, _visual.bind(elemento, pie_a, pie_b))
-
-
-func _visual(elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
-	if fx != null and is_instance_valid(fx):
-		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": _radio_bola_actual})
 
 
 ## Borra un nodo si sigue vivo. Se conecta con `.bind(weakref(nodo))`: una lambda que capture el nodo da error en el motor («Lambda capture at index 0 was freed») cuando
@@ -2904,7 +2844,7 @@ class Receta3D extends SpellRecipe:
 		return _actual().geo()
 
 	## Los indicadores antiguos (los lee el resto del Lanzador) se derivan de los números de la receta; cada uno sale de UNA propiedad o eje.
-	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_barrido`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
+	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
 	## Va por `GeometriaV2.evaluar` (la cuenta antigua) y NO por el `Hechizo`: así `apply` no construye nada y el libro construye una sola vez.
 	func _sincronizar() -> void:
 		var g: Dictionary = GeometriaV2.evaluar(contadores)

@@ -4352,3 +4352,24 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 | flecha, repetición, rebote, permanencia | «Aceptado»: sin cambios | — | — |
 
 **Golden.** Se midió ANTES (`prueba_hechizo_golden` con el límite de líneas quitado): 30 132 de 36 721 recetas difieren (158 220 campos) y TODAS llevan al menos uno de ᛁ, ᛏ, ᛜ, ᚷ, ᚨ o ⧖; los campos son solo semiejes, volumen, superficie, masa, coste, niveles, forma, cast_point, `en_punto` (5 920, las barreras que no son sólidas), `busca` y `potencia`; `dano`, `coste_tinta`, `recarga` y `nivel_dano` no cambian en ninguna. Regenerado a propósito con `-- --regenerar` (12,2 MB). **Pruebas que se adaptaron** (no por fallo del código): las que construían volúmenes grandes con ᛁ (`prueba_materia_v2`, parte de `prueba_receta_v2` y de `escenario_lab_hechizos`) apagan `Sigils.EJE_DECRECIENTE_ACTIVO` (cada ᛁ suma 0,25 fijo), como `HAZ_ACTIVO`; el «muro de tierra» de `RecetasLab.por_defecto` queda en ᛜ + 4 ᛁ + ᛏ (6 glifos, 1 casilla de ancho; el de 3 casillas ya no cabe en una página) y la «barrera de agua» (2 ᛁ) mide ahora 0,54 de semieje (1 casilla). Pendiente de Pablo: confirmar las interpretaciones de la tabla (sobre todo ᛁ, que deja el muro de 3 casillas fuera de una página) .
+
+## 295 — Dirección (30/10): **Limpieza: lo que no usa nada, fuera (204 archivos, 24,4 MB); el resto, propuesto o preguntado** — `docs/LIMPIEZA_2026-10-30.md`
+Encargo de Pablo: «analiza toda la carpeta y desecha todo lo que no tenga uso». Se han buscado los usos de cada archivo en los dos árboles, por nombre, uid, `class_name`, ruta de carpeta y palabra. **Borrado** (`git rm`):
+- `art/forest`, `art/bosque`, `art/particles` y `art/recogibles` (sprites 2D)
+- `arte/meshy/__pycache__`
+- las tres texturas sueltas de `chibi_elf`: el GLB las lleva incrustadas y **el GLB se queda**
+- `arte/suelo_meshy/Screenshot_1.png` (una captura de escritorio)
+- en `magia/lanzador_3d.gd`, `_barrido`, `_tiempo_de_viaje`, `_visual_en`, `_visual`, `_radio_bola_actual` y `ALTO_BOLA` (0 llamadas, −61 líneas).
+
+**Vuelto a comprobar y vivo**: la voltereta de `page_hud.gd`, porque `roll_cooldown_fraction` existe desde el 29/10.
+
+**Verificación**: un `load()` de los 209 `.tscn`, 9 `.tres` y 577 `.gd` da 0 errores, antes y después. En la batería de 198 pruebas, 187 están en 0 y las otras 11 fallan igual antes y después (`ropa_capa` 24, `glifos_dibujables` 6, `playtest_eow` 5…; `mapa_abierto` da 1 corrida sola). No hay ningún SCRIPT ERROR.
+**Pablo, mira §3 (B) y §4 (C) del documento.** Lo más urgente es **C1**: el commit «PRUEBA» (`4cf7b7b5`, 26/10) borró los 7 GLB de anillos y fuegos de `presentacion/vfx`. `vfx_3d.gd` cae al dibujo de antes sin dar error, así que no se ven, y se pueden recuperar de `34448e55`.
+
+Además, B pide decidir sobre:
+- las copias `_copia_*` y los JPEG `Wolfwood` (14 MB) de `mundo/datos_nivel`
+- `assets/kenney_mini-forest_1.0`
+- los docs de la era 2D, que están en tu `ORDENAR_DOCS.cmd`: por eso no los he movido a `_historico`
+- un `.gdignore` en `docs/`.
+
+Y C pregunta por `presentacion/grimorio` (22 MB), `_anteriores_v8`/`_anteriores` (29 MB), `lab_grandmaster_3d`, `vista_suelo_editor`, las escenas `Prueba*Bosque`, `spellcaster`, la burbuja `Campo`, los 10 reenvíos (siguen a 0 usos) y el `.docx` de QA, que es idéntico al de Estructura.
