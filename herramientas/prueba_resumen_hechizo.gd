@@ -116,7 +116,7 @@ func _comprobar_avisos() -> void:
 			break
 	_ok("avisos: se pudo provocar el rechazo por altura", provocado)
 	# glifo aparcado: se avisa y se sigue
-	_componer("fuego", ["flecha", "retardo"])
+	_componer("fuego", ["flecha", "amplificar"])       # 31/10: «retardo» ya hace algo desde H5 (30/10); el aparcado es otro (`Receta3D.APARCADOS`)
 	var r2: Dictionary = lanzador.resumen_pagina(0)
 	lanzador.cast_page(0)
 	_ok("avisos: «Aún sin uso» del libro = el de cast_page («%s»)" % lanzador.feedback_text, (r2["avisos"] as Array).size() == 1 and lanzador.feedback_text == String((r2["avisos"] as Array)[0]) and lanzador.feedback_text.begins_with("Aún sin uso"))
@@ -149,8 +149,8 @@ func _comprobar_avisos() -> void:
 	var falta: Array = lanzador.resumen_pagina(0)["avisos"]
 	lanzador.cast_page(0)
 	_ok("avisos: elemento sin glifos = el de cast_page («%s»)" % lanzador.feedback_text, falta.size() == 1 and String(falta[0]) == lanzador.feedback_text)
-	_componer("fuego", ["barrera"])
-	_ok("avisos: la barrera «Nace donde apuntas» sale como nota, no como aviso", (lanzador.resumen_pagina(0)["notas"] as Array).has("Nace donde apuntas") and (lanzador.resumen_pagina(0)["avisos"] as Array).is_empty())
+	_componer("tierra", ["barrera"])       # 31/10: la barrera de fuego ya no apunta (playtest del 30/10); la de tierra sí (sólido quieto)
+	_ok("avisos: la barrera de tierra «Nace donde apuntas» sale como nota, no como aviso", (lanzador.resumen_pagina(0)["notas"] as Array).has("Nace donde apuntas") and (lanzador.resumen_pagina(0)["avisos"] as Array).is_empty())
 
 
 func _repetir(glifo: String, n: int) -> Array:

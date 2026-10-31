@@ -124,13 +124,13 @@ func _topes_y_casos() -> void:
 	_ok(_casi(Sigils.RADIO_BARRERA_U, Lanzador3D.RADIO_BURBUJA), "RADIO_BARRERA_U coincide con Lanzador3D.RADIO_BURBUJA")
 	g = Sigils.aplicar_v2({"flecha": 1, "barrera": 2, "repeticion": 2, "rebote": 2, "pulso": 2})
 	var p: Dictionary = g["props"]
-	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 1.0), "valores de propiedades: %s" % str(p))
+	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 2.0 * Sigils.CRECER_TASA_V2), "valores de propiedades: %s" % str(p))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
 	p = g["props"]
 	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 2.0), "topes de ejes 3 / 3 / 2 (30/10: la altura topa en 2,0 = 4 niveles; con ᚷ ×99 los tres llegan al tope): %s" % str(g))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99})
 	_ok((g["x"] > 1.09 and g["x"] < 1.1001) and _casi(g["y"], 2.0), "sin ᚷ, 99 ᛁ no pasan de la asíntota 1,10 (la serie decreciente) y la altura topa en 2,0")
-	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], 1.5), "topes de propiedades: %s" % str(p))
+	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], Sigils.CRECER_TASA_TOPE_V2), "topes de propiedades: %s" % str(p))
 	_ok(Sigils.aplicar_v2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
 	# nombre derivado
 	var N := func(c: Dictionary) -> String:
@@ -568,7 +568,9 @@ func _ciclo_de_vida() -> void:
 	# bloquea el trazo del jugador y aguanta golpes ajenos hasta romperse
 	_montar()
 	_l._materializar(_receta(_ejes_x(SEMIEJE_MURO_ANCHO) + ["barrera"]), _rune("water"), _origen(), Vector3.RIGHT)
-	_ok(_l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(0, 1), 0.5), 0), "solidez: _barrera_en ve el volumen (bloquea el trazo del jugador)")
+	# 31/10 (REV 01): ᛜ + ᛁ es un MURO delante (GeometriaV2.DISTANCIA_MURO), no una burbuja centrada en la mano: el volumen está una casilla por delante y se estira de lado
+	_ok(_l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(1, 1), 0.5), 0), "solidez: _barrera_en ve el muro (una casilla por delante y de lado: bloquea el trazo del jugador)")
+	_ok(not _l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(0, 1), 0.5), 0), "solidez: el muro ya no rodea la mano (la casilla de al lado de la jugadora queda libre)")
 	var s2: Lanzador3D.SolidezV2 = _l._solideces_v2[0]
 	var punto: Vector3 = Lanzador3D.centro_de(ORIGEN_C, 0.5)
 	var total: float = s2.aguante                       # 45 = 30 × 1,5 (una barrera)

@@ -499,7 +499,7 @@ func _glifo_del_jugador(pared: ParedHuecaPulso3D, receptor: ReceptorPulso3D, pri
 	await avanzar_s(0.4)
 	_ok("9c lanzar ᚷ (crecer) + fuego sale", await _lanzar_y_ver("fuego", ["pulso"], Vector3.LEFT))
 	var crecer: HechizoVivo = _vivo()
-	_ok("9c ᚷ «crecer» sigue dando crece = 0,5, figura «pulso», sin pulso resonante ni acciones de momento", crecer != null and crecer.h.crece == 0.5 and crecer.h.figura() == "pulso" and crecer.h.resuena == 0.0
+	_ok("9c ᚷ «crecer» sigue dando crece = CRECER_TASA_V2 (31/10: 0,6), figura «pulso», sin pulso resonante ni acciones de momento", crecer != null and is_equal_approx(crecer.h.crece, Sigils.CRECER_TASA_V2) and crecer.h.figura() == "pulso" and crecer.h.resuena == 0.0
 		and crecer.h.acciones_en("inicio").is_empty() and crecer.pulsos_soltados.is_empty())
 
 	# d) barrera + ᚱ: continuo, con periodo mínimo; sin reentradas.
