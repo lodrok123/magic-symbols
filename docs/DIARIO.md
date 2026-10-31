@@ -4384,3 +4384,19 @@ Pendiente de decidir (de Pablo): si el nivel jugable de verdad debe nacer con un
 - **297 bis (31/10, misma sesión):** batería `tools\pruebas.cmd solo …` (42 pruebas de hechizos, libro y laboratorios) tras los cambios: solo quedan los fallos conocidos `prueba_barrido_hechizos` (tiempo) y `prueba_glifos_dibujables` (muestras sin grabar). Se adaptaron además `escenario_cueva_pulso` (ᚷ = `CRECER_TASA_V2`) y `prueba_resumen_hechizo`, que estaba desfasada desde el 30/10: usaba `retardo` como glifo aparcado (ahora `amplificar`) y la barrera de fuego como apuntable (ahora la de tierra). `pruebas.cmd` necesita en `tools\godot_local.txt` el `.exe` normal, no el `_console.exe` («Invalid wrapper executable name»).
 
 — Juego
+
+## 298 — Juego (31/10): **Plan de VFX por elemento y estado del mundo** — nuevo `docs/PLAN_VFX_ELEMENTOS.md` (diseño, sin código). Pablo trae referencias por elemento (fuego y rayo: Wizard of Legend; agua: Kena / Nine Parchments; tierra: Echoes of Wisdom; viento: Spellbreak; hielo: Nine Parchments) y la lámina de cuatro pilares (mundo y puzles, gamefeel, dirección artística, reacciones). Medido: el fuego (`vfx_elementos/fuego.gd`, 15 líneas) y el rayo son casi solo paleta sobre el kit; tierra, hielo y viento tienen piezas propias; estados del suelo, autómata de la hierba, tabla de reacciones y `Sensacion3D` ya existen. El plan da principios (silueta y movimiento, solo fuego y rayo brillan, cuatro tiempos mano/viaje/impacto/residuo), una ficha por elemento, la tabla de reacciones con lo que existe y lo que falta, gamefeel por elemento y el orden V0–V5 (Pipeline) / E1–E2, G1 (Juego). **Para Pipeline:** empezar por V0 (banco de comparación en el laboratorio) y V1 (fuego propio). **Para Pablo:** las 5 decisiones del §6.
+
+— Juego
+
+## 299 — Juego (31/10): **Decisiones de Pablo sobre el plan de VFX** (`PLAN_VFX_ELEMENTOS.md` §6): hierba seca **sí**; viento sobre fuego **propaga** (no solo inclina); destello de pantalla en el rayo **sí**; solo la tierra tiembla al construir; velocidades de partida (placa de hielo 0,1 s por casilla, descarga 0,03 s) **de momento así**. **Para Pipeline:** la hierba seca y la propagación por viento son reglas del autómata de la hierba, que vive en `presentacion/prueba_test2.gd` (suyo); la recomendación del plan es que las añada allí con esos números (camino a) y más adelante sacar el autómata a `mundo/` (camino b).
+
+— Juego
+
+## 300 — Juego (31/10): **Shaders de godotshaders.com elegidos por Pablo, revisados** (`PLAN_VFX_ELEMENTOS.md` §5 bis): fuego raymarched (CC0; caro: 4 pasos, no en la hierba), toon water (MIT; viene aditivo y brilla: pasarlo a mezcla), 3D lightning (CC0; el alfa sale del canal rojo y un rayo azul desaparece: usar luminancia), ice (CC0; es de SUPERFICIE y en sintaxis de Godot 3: recomendado para el bloque de hielo sólido, y el soplo helado con el de fuego en frío), magic circle (MIT; 2D y sin runas: portarlo a un plano y añadir los PNG de los glifos). **Para Pipeline:** integrarlos con esos cambios y guardar el aviso MIT de los dos que lo llevan.
+
+— Juego
+
+## 301 — Juego (31/10): **Pablo confirma el reparto del hielo** (`PLAN_VFX_ELEMENTOS.md` §5 bis): el Spatial Ice Shader va al **bloque de hielo sólido** (`BloqueHielo`) y a los racimos; el **soplo de aire helado** se hace con el shader de fuego raymarched con paleta fría, sin emisión y en `blend_mix`. **Para Pipeline.**
+
+— Juego
