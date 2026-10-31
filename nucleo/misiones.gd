@@ -31,6 +31,10 @@ extends RefCounted
 
 signal mision_cambio(id: String)
 signal seguida_cambio(id: String)
+## U3 (31/10): los tres momentos que el jugador debe NOTAR (el HUD los suena y los anima). `mision_cambio` sigue saliendo en cualquier cambio.
+signal mision_activada(id: String)                      ## una oculta pasó a activa
+signal objetivo_marcado(id: String, indice: int)        ## un objetivo se marcó hecho y NO cerró la misión (si la cierra, solo sale `mision_completada`)
+signal mision_completada(id: String)                    ## la misión se cerró (y pagó, si tocaba)
 
 const TIPOS: PackedStringArray = ["principal", "secundaria"]
 const ESTADOS: PackedStringArray = ["oculta", "activa", "completa"]
@@ -157,6 +161,7 @@ func activar(id: String) -> void:
 	# La primera misión que se activa pasa a ser la seguida (si no hay ninguna): el jugador siempre ve algo en el HUD.
 	if _seguida == "" or estado(_seguida) != "activa":
 		seguir(id)
+	mision_activada.emit(id)
 
 
 ## Marca (o desmarca) un objetivo. Si con eso están todos hechos y la misión se autocompleta, la completa. Devuelve true si cambió algo.
@@ -171,7 +176,10 @@ func objetivo_hecho(id: String, indice: int, hecho: bool = true) -> bool:
 		return false                              # una misión cerrada no se reabre por un objetivo suelto
 	objs[indice]["hecho"] = hecho
 	mision_cambio.emit(id)
-	if hecho and bool(m["auto_completa"]) and m["estado"] == "activa" and objetivos_pendientes(id) == 0:
+	var cierra: bool = hecho and bool(m["auto_completa"]) and m["estado"] == "activa" and objetivos_pendientes(id) == 0
+	if hecho and not cierra:
+		objetivo_marcado.emit(id, indice)
+	if cierra:
 		completar(id)
 	return true
 
@@ -217,10 +225,12 @@ func completar(id: String) -> void:
 		var rec: Dictionary = m["recompensa"]
 		if int(rec.get("oro", 0)) > 0:
 			Estado.i().dar_oro(int(rec["oro"]))
+			Sfx.play_ui("moneda")                    # gamefeel U4: la recompensa en oro se oye (el HUD suena además el acierto de la misión)
 		for item in (rec.get("items", {}) as Dictionary):
 			Estado.i().agregar(String(item), int((rec["items"] as Dictionary)[item]))
 	PlayLog.event("mision", {"id": id, "estado": "completa"})
 	mision_cambio.emit(id)
+	mision_completada.emit(id)
 	if _seguida == id:
 		# La siguiente misión activa pasa a seguirse sola.
 		var siguiente: String = ""

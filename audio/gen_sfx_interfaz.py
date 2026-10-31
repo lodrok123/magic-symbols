@@ -116,6 +116,31 @@ def ui_equipar():
     guardar("ui_equipar.wav", x, 0.11)
 
 
+def barrido():
+    """U1: vaciar la pagina del grimorio. Roce de ruido filtrado que se abre y cae (una mano que barre el papel), 0,22 s."""
+    n = muestras(0.22)
+    x = [0.0] * n
+    prev = 0.0
+    for i in range(n):
+        t = i / SR
+        env = math.sin(math.pi * min(1.0, t / 0.22)) ** 1.5
+        a = 0.85 - 0.6 * (t / 0.22)           # el filtro se cierra: del siseo al soplo
+        prev = prev * a + rng.uniform(-1.0, 1.0) * (1.0 - a)
+        x[i] = (prev * 2.2) * env
+    guardar("barrido.wav", x, 0.10)
+
+
+def reaparecer():
+    """U2: la vuelta tras morir. Dos notas suaves que suben (sol4 y re5) con mucha cola, sin ataque duro, 0,6 s."""
+    x = [0.0] * muestras(0.6)
+    for ini, f in ((0.0, 392.0), (0.16, 587.3)):
+        for i in range(muestras(0.44)):
+            t = i / SR
+            v = (math.sin(2 * math.pi * f * t) + 0.2 * math.sin(2 * math.pi * f * 2 * t)) * math.exp(-t * 6.5) * min(1.0, t * 60.0)
+            x[muestras(ini) + i] += v
+    guardar("reaparecer.wav", x, 0.10)
+
+
 if __name__ == "__main__":
     bolsa()
     pocion()
@@ -124,3 +149,5 @@ if __name__ == "__main__":
     comprar()
     ui_tick()
     ui_equipar()
+    barrido()          # al final: el generador aleatorio es compartido y asi los anteriores salen igual que antes
+    reaparecer()

@@ -46,6 +46,9 @@ static var HITSTOP_COMPARTIDO: float = 0.6     ## la jugadora se congela esta fr
 # --- daño recibido ---
 static var T_VINETA: float = 0.22
 static var ALFA_VINETA: float = 0.5
+static var T_VINETA_REAPARECER: float = 0.6                     ## U2: s en que la viñeta clara de la vuelta se abre y se apaga
+static var ALFA_VINETA_REAPARECER: float = 0.85                 ## U2: opacidad inicial de esa viñeta clara
+static var COLOR_VINETA_REAPARECER: Color = Color(0.92, 1.0, 0.95)
 static var TEMBLOR_DANO: float = 0.35          ## intensidad de `Vfx3D.temblor` (0..1)
 static var HITSTOP_DANO: float = 0.05          ## s que se congela ella al recibir un golpe
 
@@ -127,7 +130,7 @@ static var TONO_CARGA: Vector2 = Vector2(0.8, 1.25)     ## tono del zumbido al e
 
 ## Para las pruebas: cuántas veces se pidió cada cosa.
 static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0, "respingo": 0, "flecha": 0, "combate": 0, "sala_limpia": 0,
-	"golpe_son": 0, "dano_son": 0, "latido": 0, "voltereta": 0, "recarga_lista": 0, "impacto_mundo": 0, "carga": 0}
+	"golpe_son": 0, "dano_son": 0, "latido": 0, "voltereta": 0, "recarga_lista": 0, "impacto_mundo": 0, "carga": 0, "reaparece": 0}
 
 const CODIGO_VINETA: String = """
 shader_type canvas_item;
@@ -141,6 +144,22 @@ void fragment() {
 }
 """
 static var _sh_vineta: Shader = null
+
+## U2: la inversa de la roja. Clara, empieza cerrada sobre los bordes y se ABRE (`apertura` 0 → 1) hasta no verse.
+const CODIGO_VINETA_CLARA: String = """
+shader_type canvas_item;
+uniform float apertura = 0.0;
+uniform float fuerza = 0.85;
+uniform vec4 color : source_color = vec4(0.92, 1.0, 0.95, 1.0);
+void fragment() {
+	vec2 q = UV * 2.0 - 1.0;
+	float r = length(q * vec2(1.0, 0.8));
+	float ri = mix(0.0, 1.6, apertura);
+	float borde = smoothstep(ri, ri + 0.7, r);
+	COLOR = vec4(color.rgb, borde * fuerza * (1.0 - apertura * apertura));
+}
+"""
+static var _sh_vineta_clara: Shader = null
 
 
 ## Hitstop (s) de un golpe de `dano` a un enemigo: de Combate3D.HITSTOP (flojo) a Combate3D.HITSTOP_DEBIL (con DANO_HITSTOP_MAX o más); si es su debilidad, el máximo.
@@ -226,6 +245,45 @@ static func dano_recibido(j: Node3D, cantidad: float) -> void:
 		j.call("hitstop", HITSTOP_DANO)
 	cuenta["dano_son"] = int(cuenta["dano_son"]) + 1
 	Sfx.play(j, "dano_jugadora", clampf(1.1 - cantidad / 80.0, 0.75, 1.1) * randf_range(0.94, 1.06))      # lote 4: más grave cuanto mayor el golpe (y nunca dos iguales)
+
+
+## U2: la jugadora reaparece: una viñeta clara que se abre en `T_VINETA_REAPARECER` s y se apaga (la capa queda oculta). Devuelve la capa (null si `ACTIVA` es false).
+static func reaparece(j: Node3D) -> CanvasLayer:
+	if not ACTIVA or j == null or not j.is_inside_tree():
+		return null
+	cuenta["reaparece"] = int(cuenta["reaparece"]) + 1
+	var capa: CanvasLayer = j.get_meta("vineta_reaparece") if j.has_meta("vineta_reaparece") else null
+	if capa == null or not is_instance_valid(capa):
+		if _sh_vineta_clara == null:
+			_sh_vineta_clara = Shader.new()
+			_sh_vineta_clara.code = CODIGO_VINETA_CLARA
+		capa = CanvasLayer.new()
+		capa.layer = 51
+		capa.name = "VinetaReaparece"
+		var r := ColorRect.new()
+		r.name = "R"
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		r.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var m := ShaderMaterial.new()
+		m.shader = _sh_vineta_clara
+		r.material = m
+		capa.add_child(r)
+		j.add_child(capa)
+		j.set_meta("vineta_reaparece", capa)
+	var mat: ShaderMaterial = (capa.get_node("R") as ColorRect).material as ShaderMaterial
+	if capa.has_meta("tw"):
+		var viejo: Variant = capa.get_meta("tw")
+		if viejo is Tween and (viejo as Tween).is_valid():
+			(viejo as Tween).kill()
+	mat.set_shader_parameter("color", COLOR_VINETA_REAPARECER)
+	mat.set_shader_parameter("fuerza", ALFA_VINETA_REAPARECER)
+	mat.set_shader_parameter("apertura", 0.0)
+	capa.visible = true
+	var tw: Tween = capa.create_tween()
+	capa.set_meta("tw", tw)
+	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("apertura", v), 0.0, 1.0, maxf(T_VINETA_REAPARECER, 0.01)).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(func() -> void: capa.visible = false)
+	return capa
 
 
 ## La viñeta roja: un CanvasLayer que se crea una vez por jugadora y se reutiliza.

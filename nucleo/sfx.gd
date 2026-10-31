@@ -65,7 +65,7 @@ const CATALOGO: Dictionary = {
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
 	"pira":     {"f": ["pira.wav"],     "db": -3.0,  "tono": 0.0},
 	"dano":     {"f": ["dano.wav"],     "db": -7.0,  "tono": 0.10},
-	"muerte":   {"f": ["muerte.wav"],   "db": -4.0,  "tono": 0.0},
+	"muerte":   {"f": ["muerte.wav"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
 
 	# --- Foley (Kenney, CC0).
 	"paso": {"f": ["paso_0.ogg", "paso_1.ogg", "paso_2.ogg",
@@ -177,6 +177,9 @@ const CATALOGO: Dictionary = {
 	"comprar":    {"f": ["comprar.wav"],    "db": -8.0,  "tono": 0.0},
 	"ui_tick":    {"f": ["ui_tick.wav"],    "db": -20.0, "tono": 0.04},
 	"ui_equipar": {"f": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
+	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
+	"barrido":    {"f": ["barrido.wav"],    "db": -12.0, "tono": 0.04},
+	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.

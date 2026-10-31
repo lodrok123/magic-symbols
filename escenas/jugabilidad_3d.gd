@@ -607,6 +607,7 @@ func _recoger(pj: Pj3D) -> void:
 			_decir("Poción (+1)", 1.6)
 		else:
 			Estado.i().dar_oro(int(b["n"]))
+			Sfx.play_ui("moneda")                         # gamefeel U4
 			_decir("Oro +%d" % int(b["n"]), 1.6)
 		nodo.queue_free()
 		_botin.remove_at(i)

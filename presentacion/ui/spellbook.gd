@@ -495,6 +495,40 @@ func _toggle() -> void:
 		_open()
 
 
+## GAMEFEEL U1 (31/10): el libro entra y sale con un fundido y un respiro de escala (0,96 → 1) en vez de aparecer de golpe. Sigue vivo con el árbol en pausa y a pesar del
+## `time_scale`. Con `Sensacion3D.ACTIVA = false` no hay tween: aparece y desaparece de golpe, como antes (los sonidos no dependen de esto).
+static var T_LIBRO_S: float = 0.15           ## duración de abrir y de cerrar
+static var ESCALA_LIBRO_CERRADO: float = 0.96 ## escala de partida al abrir y de llegada al cerrar
+var _tw_libro: Tween = null
+
+
+func _animar_libro(abrir: bool) -> void:
+	if _tw_libro != null and _tw_libro.is_valid():
+		_tw_libro.kill()
+	_tw_libro = null
+	pivot_offset = size * 0.5
+	if not Sensacion3D.ACTIVA or not is_inside_tree():
+		modulate.a = 1.0
+		scale = Vector2.ONE
+		visible = abrir
+		return
+	if abrir:
+		scale = Vector2.ONE * ESCALA_LIBRO_CERRADO
+		modulate.a = 0.0
+	_tw_libro = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	_tw_libro.tween_property(self, "scale", Vector2.ONE if abrir else Vector2.ONE * ESCALA_LIBRO_CERRADO, T_LIBRO_S).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tw_libro.tween_property(self, "modulate:a", 1.0 if abrir else 0.0, T_LIBRO_S)
+	if not abrir:
+		_tw_libro.chain().tween_callback(_libro_cerrado_del_todo)
+
+
+func _libro_cerrado_del_todo() -> void:
+	if not is_open:
+		visible = false
+		modulate.a = 1.0
+		scale = Vector2.ONE
+
+
 func _open() -> void:
 	GestureRecognizer.exigencia = EXIGENCIA_RECTO if _recto_activo() else 1.0
 	# Si el árbol ya estaba congelado, la pausa es de otro: has muerto o
@@ -512,6 +546,7 @@ func _open() -> void:
 	is_open = true
 	Sfx.play(_oyente(), "libro_abre")
 	visible = true
+	_animar_libro(true)
 	stroke = PackedVector2Array()
 	pending_strokes = []
 	_asist_reiniciar()
@@ -537,7 +572,7 @@ func _open() -> void:
 func _close() -> void:
 	is_open = false
 	Sfx.play(_oyente(), "libro_cierra")
-	visible = false
+	_animar_libro(false)
 	is_drawing = false
 	if mano != null:
 		mano.ocultar()

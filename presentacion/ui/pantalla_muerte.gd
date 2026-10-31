@@ -125,6 +125,7 @@ func mostrar(jugador: Node) -> void:
 	_mat.set_shader_parameter("desenfoque", 0.0)
 	_mat.set_shader_parameter("oscuro", 0.0)
 	PlayLog.event("pantalla_muerte", {"fase": "inicio"})
+	Sfx.play_ui("muerte")                     # gamefeel U2: el campanazo grave de «Has muerto» (−8 dB en Sfx.CATALOGO; no depende de Sensacion3D.ACTIVA)
 	_tw = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
 	_tw.tween_method(func(v: float) -> void: _mat.set_shader_parameter("desenfoque", v), 0.0, DESENFOQUE, T_FUNDIDO)
 	_tw.tween_method(func(v: float) -> void: _mat.set_shader_parameter("oscuro", v), 0.0, OSCURO, T_FUNDIDO)
@@ -194,6 +195,8 @@ func _esconder_ui() -> void:
 		var capa: CanvasLayer = n as CanvasLayer
 		if capa == self or not capa.visible:
 			continue
+		if capa.name == &"VinetaDano" or capa.name == &"VinetaReaparece":
+			continue                          # U2: las viñetas de la jugadora (daño y vuelta) no son interfaz: el golpe que mata y la vuelta se ven
 		_escondidas.append(capa)
 		capa.visible = false
 

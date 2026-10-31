@@ -290,6 +290,7 @@ func add_gesture(strokes: Array, sector: Vector2) -> void:
 	# suelto y minúsculo sí, pero tres líneas cortas son un gesto válido.
 	if strokes.size() == 1 and _get_total_length() < MIN_STROKE_LENGTH:
 		print("Trazo demasiado corto, ignorado")
+		Sfx.play(self, "sello_no")                      # 31/10 (tarea U1): antes era un rechazo mudo
 		_feedback("Trazo demasiado corto")
 		return
 
@@ -531,6 +532,7 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	if not Repertoire.aim_with_mouse and not Sigils.allowed_on(sigil_name, sector):
 		print("'", sigil_name, "' no vale hacia ahí: una flecha vuela plana.",
 			" Prueba con levitación, barrera o pilar.")
+		Sfx.play(self, "sello_no")                      # 31/10 (tarea U1): antes era un rechazo mudo
 		_feedback("'%s' no vale hacia ahí" % sigil_name)
 		return
 
@@ -675,6 +677,11 @@ func components() -> Array:
 	return current_components
 
 
+## Volumen (dB) del «pagina» al deshacer y del «barrido» al vaciar la página (tarea U1).
+static var DB_DESHACER: float = -14.0
+static var DB_VACIAR: float = -12.0
+
+
 ## Deshace el último trazo que tuvo efecto. Los trazos que no llegaron a
 ## contar (demasiado cortos, o hechos sobre el núcleo sin sector) no
 ## entran en el historial, así que deshacer nunca "gasta" un turno en
@@ -685,6 +692,7 @@ func undo_last() -> void:
 		return
 
 	var last: Dictionary = undo_history.pop_back()
+	Sfx.play_ui("pagina", DB_DESHACER)                  # 31/10 (tarea U1): una página que se vuelve, suave
 
 	match last["kind"]:
 		"element":
@@ -709,6 +717,8 @@ func undo_last() -> void:
 ## equivocación sería el peor error posible de esta pantalla: se pierde
 ## trabajo que el jugador no estaba ni mirando.
 func clear_sequence() -> void:
+	if current_element != Runes.Type.NONE or not current_components.is_empty():
+		Sfx.play_ui("barrido", DB_VACIAR)               # 31/10 (tarea U1): solo si había algo que barrer
 	current_element = Runes.Type.NONE
 	pages[page]["element_q"] = 1.0
 	current_components.clear()

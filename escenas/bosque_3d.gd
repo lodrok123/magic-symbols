@@ -55,6 +55,7 @@ const DIALOGOS: Dictionary = {
 const TEXTO_OFERTA: String = "¿Una barrera? Son %d de oro. (E para comprar)"
 const TEXTO_SIN_ORO: String = "Te faltan %d de oro. Los goblins de abajo suelen llevar."
 const TEXTO_YA_COMPRADA: String = "Ya tienes la barrera. Úsala antes de necesitarla."
+static var DB_NO_PUEDES: float = -14.0      ## U4: dB del «no_puedes» de la tienda (sin oro o ya comprada), el mismo que en la mochila
 
 var m: Variant = null                       ## la maqueta (PruebaTest2). Sin tipo: se le llama a métodos suyos
 var _losas: Dictionary = {}                 ## Vector2i -> letra (a, p, w)
@@ -405,12 +406,15 @@ func _comprar_barrera() -> void:
 	if _barrera_comprada or Repertoire.sigil_active("barrera"):
 		_barrera_comprada = true
 		_decir("Guardabosques: «%s»" % TEXTO_YA_COMPRADA, 4.0)
+		Sfx.play_ui("no_puedes", DB_NO_PUEDES)           # gamefeel U4: ya la tienes
 		return
 	var e: Estado = Estado.i()
 	if e.oro < PRECIO_BARRERA:
 		_decir("Guardabosques: «%s»" % (TEXTO_SIN_ORO % (PRECIO_BARRERA - e.oro)), 4.0)
+		Sfx.play_ui("no_puedes", DB_NO_PUEDES)           # gamefeel U4: no llega el oro
 		return
 	if e.gastar_oro(PRECIO_BARRERA):
+		Sfx.play_ui("comprar")                            # gamefeel U4
 		Repertoire.conseguir_sigil("barrera")         # se escribe en la página derecha del libro al abrirlo
 		_barrera_comprada = true
 		_decir("Glifo barrera comprado (-%d oro)" % PRECIO_BARRERA, 5.0)

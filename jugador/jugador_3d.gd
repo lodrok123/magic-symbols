@@ -498,6 +498,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	PlayLog.event("dano_jugador", {"cantidad": cantidad, "vida": vida})
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	if vida <= 0.0:
+		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel U2: la viñeta y el golpe también en el golpe que mata, antes del fundido de la pantalla de muerte
 		_morir()
 	else:
 		pj.animacion_actual = ""
@@ -578,6 +579,8 @@ func reaparecer() -> void:
 	pj.animacion_actual = ""
 	pj.jugar("idle")
 	PlayLog.event("reaparece")
+	Sfx.play_ui("reaparecer")                         # gamefeel U2: un tono suave de vuelta
+	Sensacion3D.reaparece(self)                       # y una viñeta clara que se abre (0,6 s)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	reaparecio.emit()
 	if lanz != null:

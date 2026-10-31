@@ -683,6 +683,7 @@ func _dar_botin(i: int) -> void:
 		var n: int = int(botin[id])
 		if id == "oro":
 			Estado.i().dar_oro(n)
+			Sfx.play_ui("moneda")                         # gamefeel U4
 			texto.append("%d de oro" % n)
 		else:
 			var entra: int = Estado.i().agregar(String(id), n)

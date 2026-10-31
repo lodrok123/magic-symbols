@@ -1059,6 +1059,7 @@ class CofrePuzle extends Node3D:
 			var n: int = int((it as Dictionary)["n"])
 			if que == "oro":
 				Estado.i().dar_oro(n)
+				Sfx.play_ui("moneda")                        # gamefeel U4
 				dado.append({"que": que, "n": n})
 				texto.append("%d de oro" % n)
 				continue
