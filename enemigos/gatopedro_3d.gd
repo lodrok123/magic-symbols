@@ -60,6 +60,7 @@ static func equipar_gatopedro(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3
 	# Antes de add_child: `_ready` de Combate3D copia vida_max a health y construye la barra con estos valores.
 	c.nombre = NOMBRE_OFICIAL
 	c.vida_max = VIDA
+	c.masa = 0.5                             # tarea P: el gato se mueve mucho
 	c.defensa = 0.0                          # 29/10 (DANO_Y_TINTA): sin defensa (un gato)
 	c.debil = ""
 	c.resiste = ""

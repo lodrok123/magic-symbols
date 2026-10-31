@@ -49,7 +49,11 @@ const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
 const IMPACTO: Array = [
 	{"n": "MULT_EMPUJE", "paso": 0.25, "min": 0.0, "max": 10.0},
 	{"n": "EMPUJE_MIN_CASILLAS", "paso": 0.05, "min": 0.0, "max": 3.0},
-	{"n": "MULT_EMPUJE_ELEMENTAL", "paso": 0.05, "min": 0.0, "max": 3.0},
+	{"n": "K_EMPUJE_MIN", "paso": 0.05, "min": 0.0, "max": 3.0},
+	{"n": "K_EMPUJE_MAX", "paso": 0.05, "min": 0.0, "max": 4.0},
+	{"n": "DANO_EMPUJE_MAX", "paso": 1.0, "min": 1.0, "max": 100.0},
+	{"n": "K_EMPUJE_DEBIL", "paso": 0.05, "min": 0.5, "max": 3.0},
+	{"n": "S:V0_REF", "paso": 0.5, "min": 1.0, "max": 30.0},
 	{"n": "DECAIMIENTO_EMPUJE", "paso": 0.5, "min": 1.0, "max": 30.0},
 	{"n": "HITSTOP", "paso": 0.01, "min": 0.0, "max": 0.5},
 	{"n": "HITSTOP_DEBIL", "paso": 0.01, "min": 0.0, "max": 0.5},

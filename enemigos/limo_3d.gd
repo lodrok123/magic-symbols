@@ -85,7 +85,8 @@ func _ready() -> void:
 	oro = ORO_LIMO
 	tabla_botin = "limo"
 	vida_max = VIDA
-	defensa = Dano.DEF_LIMO                   # 29/10 (DANO_Y_TINTA): 0
+	masa = 1.2 if grande else 0.6             # tarea P: ligero; el grande pesa el doble
+	defensa = Dano.DEF_LIMO                  # 29/10 (DANO_Y_TINTA): 0
 	health = VIDA
 	tinte = Color.WHITE
 	snd_alerta = ""
@@ -222,7 +223,8 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			tenido.emit(el)
 		"crece":
 			grande = true
-			cuerpo.cargar(el)                                   # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
+			masa = 1.2                                          # tarea P: crece, pesa el doble
+			cuerpo.cargar(el)                                 # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
 			_al_crecer()
 			texto_grande("¡Crece!", col, 0.25)
 			crecio.emit(LimoVisual3D.TAMANO_GRANDE)
@@ -537,9 +539,9 @@ func _cortar_accion() -> void:
 		_quitar_aviso()
 
 
-func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
+func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> void:
 	_cortar_accion()
-	super(direccion, fuerza, suelo)
+	super(direccion, fuerza, suelo, dano, debil)
 
 
 func _reaccion_visual(_el: String) -> void:

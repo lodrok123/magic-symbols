@@ -20,6 +20,7 @@ extends Area3D
 ##   agua    daño + MOJADO (6 s): -25 % de velocidad; el rayo le hace +50 % y salta.
 ##   rayo    daño alto + ATURDE; si está mojado, x1,5 y SALTA al más cercano.
 ##   hielo   poco daño + CONGELA; mojado, congela más y hace +15.
+##   EMPUJE (31/10, tarea P): v0 = fuerza_golpe × MULT_EMPUJE × ESCALA_EMPUJE × k_dano / masa; k_dano sube con el daño del golpe (K_EMPUJE_MIN..K_EMPUJE_MAX) y con la debilidad (K_EMPUJE_DEBIL); masa por enemigo (guerrero 1, limo 0,6, elemental 3,3...).
 ##   viento  casi sin daño: INTERRUMPE y EMPUJA.   tierra  pedrada + retroceso y lentitud (3 s).
 
 const COLORES: Dictionary = {
@@ -40,7 +41,12 @@ const ESCALA_EMPUJE: float = 2.3 / 64.0 * 0.1      ## 2D: dir * fuerza * 0.1 px/
 ## y una `const` no se puede escribir. Se leen igual que una constante (`Combate3D.MULT_EMPUJE`). Valores confirmados por Pablo.
 static var MULT_EMPUJE: float = 2.0            ## × sobre TODA fuerza de `push` (`fuerza_golpe` del Hechizo y también viento/atracción de Lanzador3D)
 static var EMPUJE_MIN_CASILLAS: float = 0.35   ## ningún golpe con daño > 0 recorre menos de esto (× Terreno3D.casilla); a ×2 los básicos aún no se veían
-static var MULT_EMPUJE_ELEMENTAL: float = 0.3  ## el elemental pesa: recibe este factor del empuje y del suelo (antes 0,15, sin ×2)
+## 31/10 (tarea P): el empuje depende del DAÑO del golpe y de la MASA del enemigo (`masa`; el elemental 3,3 sustituye al antiguo MULT_EMPUJE_ELEMENTAL 0,3):
+##   v0 = fuerza × MULT_EMPUJE × ESCALA_EMPUJE × k_dano / masa,  k_dano = lerp(K_EMPUJE_MIN, K_EMPUJE_MAX, dano / DANO_EMPUJE_MAX) × (K_EMPUJE_DEBIL si debilidad)
+static var K_EMPUJE_MIN: float = 0.7           ## k_dano con un golpe sin daño o ligero (menos que antes)
+static var K_EMPUJE_MAX: float = 1.6           ## k_dano con DANO_EMPUJE_MAX de daño o más
+static var DANO_EMPUJE_MAX: float = 40.0       ## daño a partir del cual el empuje ya no crece (el mismo corte que Sensacion3D.DANO_HITSTOP_MAX)
+static var K_EMPUJE_DEBIL: float = 1.25        ## × extra si el golpe es de su elemento débil
 static var DECAIMIENTO_EMPUJE: float = 7.0     ## `lerp(empuje, 0, 7·dt)` por fotograma: el recorrido es v0 / 7 (de ahí la v0 mínima del suelo)
 static var TEMBLOR_GOLPE: float = 0.25         ## intensidad (0–1) del temblor de cámara al golpear a un enemigo (Vfx3D.temblor)
 static var TEMBLOR_DEBIL: float = 0.5          ## ... y si el elemento es su punto débil
@@ -296,6 +302,8 @@ var _t_anim: float = 0.0
 var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
 var _ataque_vel: float = 1.0
 var elemental: bool = false             ## el elemental de bosque (comportamiento propio)
+var masa: float = 1.0                   ## kg relativos: el empuje se divide por ella; 1 = goblin guerrero
+var _k_golpe: float = 1.0               ## tarea P: fuerza visual del último empujón (v0 / V0_REF); lo leen el aplastamiento, el respingo y el polvo, y vuelve a 1 tras usarse
 var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
 var _v_avance: float = 0.0              ## 28/10: u/s a los que avanza ahora mismo (ya con ritmo y estados): de ahí sale la velocidad del clip de andar sin patinar
 var _potenciado: bool = false           ## el agua lo ha agrandado ahora mismo
@@ -390,8 +398,10 @@ func _ready() -> void:
 	arquero = pj != null and pj.id.begins_with("goblin_archer")
 	if arquero:
 		nombre = "Goblin arquero"
+		masa = 0.9
 	elif pj != null and pj.id.begins_with("goblin_asesino"):
 		nombre = "Goblin asesino"
+		masa = 0.8
 	_vida_mostrada = 1.0
 	_ultima_celda_ok()
 	# Materiales del modelo (cada copia tiene los suyos) y su color de partida
@@ -481,6 +491,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		if not muerto:
 			_iniciar_hitstop(hs)
 		_impacto_visual("", false, d)
+	_k_golpe = 1.0
 	_destello = maxf(_destello, DESTELLO_GOLPE)
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador                                  # un golpe te hace mirar a quien viene
@@ -490,25 +501,31 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 
 
 ## `suelo` = es un golpe con daño: no recorre menos de EMPUJE_MIN_CASILLAS casillas (v0 mínima = casillas × tamaño × DECAIMIENTO, porque el
-## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El elemental recibe MULT_EMPUJE_ELEMENTAL también en el suelo (si no, pegaría igual que un goblin).
-func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
+## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El suelo también se divide por `masa` (si no, el elemental pegaría igual que un goblin).
+## Tarea P (31/10): `dano` y `debil` del golpe escalan el empuje (`v0_de_empuje`); viento/atracción llaman sin ellos (defaults).
+func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> void:
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() < 0.01 or muerto:
 		return
-	var v0: float = v0_de_empuje(fuerza, suelo)
+	var v0: float = v0_de_empuje(fuerza, suelo, dano, debil)
+	_k_golpe = clampf(v0 / Sensacion3D.V0_REF, 0.6, 1.6)
 	_empuje += d.normalized() * v0
 	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
 	if v0 >= EMPUJADO_V0_MIN:
-		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE)     # gamefeel lote 2: los pies levantan polvo al salir despedido
+		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE * _k_golpe)     # gamefeel lote 2: los pies levantan polvo al salir despedido
 	_empezar_empujado(d, v0)
 
 
 ## 28/10 · A2: la velocidad inicial (u/s) de un empujón de `fuerza`; `suelo` = es un golpe con daño (no recorre menos de EMPUJE_MIN_CASILLAS). Lo usan `push` y la previsión.
-func v0_de_empuje(fuerza: float, suelo: bool = false) -> float:
-	var peso: float = MULT_EMPUJE_ELEMENTAL if elemental else 1.0
-	var v0: float = fuerza * MULT_EMPUJE * ESCALA_EMPUJE * peso
+## Tarea P: × k_dano(dano, debil) / masa (ver K_EMPUJE_MIN…K_EMPUJE_DEBIL); el suelo también se divide por masa. `dano` < 0 (el defecto) = «sin escalar por daño» (k = 1): viento, atracción y el golpe F (empujón de fuerza, no de daño).
+func v0_de_empuje(fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> float:
+	var m: float = maxf(masa, 0.05)
+	var k: float = 1.0
+	if dano >= 0.0:
+		k = lerpf(K_EMPUJE_MIN, K_EMPUJE_MAX, clampf(dano / maxf(DANO_EMPUJE_MAX, 0.001), 0.0, 1.0)) * (K_EMPUJE_DEBIL if debil else 1.0)
+	var v0: float = fuerza * MULT_EMPUJE * ESCALA_EMPUJE * k / m
 	if suelo:
-		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE * peso)
+		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE / m)
 	return v0
 
 
@@ -573,7 +590,7 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 		for k in dec:
 			r[k] = dec[k]
 		if not bool(dec["curado"]) and d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:
-			empujes.append({"v0": v0_de_empuje(hechizo.fuerza_golpe, float(dec["dano"]) > 0.0), "dir": d.normalized()})
+			empujes.append({"v0": v0_de_empuje(hechizo.fuerza_golpe, float(dec["dano"]) > 0.0, float(dec["dano"]), float(dec["mult"]) > 1.0), "dir": d.normalized()})
 	r["empujes"] = empujes
 	if not empujes.is_empty():
 		var vs: Array = []
@@ -630,7 +647,7 @@ func multiplicador(elemento: String) -> float:
 
 
 ## Las reacciones de `REACCIONES` que ESTE enemigo tiene de verdad (leído de `golpe`, `_ia` y `_ajustar_al_suelo`, no supuesto):
-##   · quemado, congelado, electrocutado, empujado y cae_al_agua: todos (el elemental también; pesa: recibe el empuje × MULT_EMPUJE_ELEMENTAL).
+##   · quemado, congelado, electrocutado, empujado y cae_al_agua: todos (el elemental también; pesa: masa 3,3, su empuje se divide por ella).
 ##   · mojado y aturdido: todos MENOS el elemental. El agua no lo moja: lo cura y lo agranda (`_agua_elemental`); y `golpe`/`_ia` ignoran el aturdimiento
 ##     de un elemental (pesa demasiado). Decisión de diseño anterior a A3, que se respeta y se declara aquí.
 func reacciones_soportadas() -> PackedStringArray:
@@ -795,7 +812,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_dps_veneno = maxf(_dps_veneno, hechizo.veneno_dps)
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:      # el empuje del viento (y la atracción) lo da Lanzador3D por push(): su fuerza_golpe es 0
-		push(d, hechizo.fuerza_golpe, dano > 0.0)
+		push(d, hechizo.fuerza_golpe, dano > 0.0, dano, mult > 1.0)
 	if bool(dec["aturde"]):
 		_aturdir(hechizo.aturde)
 	if dano > 0.0:
@@ -1003,9 +1020,10 @@ func _fin_hitstop() -> void:
 func _reaccion_visual(el: String) -> void:
 	if not elemental and pj != null and is_instance_valid(pj):
 		_cancelar_squash()
-		_poner_squash(SQUASH_ESCALA)
+		var esc: Vector3 = Vector3.ONE.lerp(SQUASH_ESCALA, _k_golpe)     # tarea P: el aplastamiento sigue a la fuerza del empujón
+		_poner_squash(esc)
 		_tw_squash = create_tween()
-		_tw_squash.tween_method(_poner_squash, SQUASH_ESCALA, Vector3.ONE, SQUASH_TIEMPO) \
+		_tw_squash.tween_method(_poner_squash, esc, Vector3.ONE, SQUASH_TIEMPO) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if SALTO_ELEMENTOS.has(el) and _fase_empuje == FASE_NINGUNA:      # lanzado por el aire, el saltito de viento/tierra sobra
 		if _tw_salto != null and _tw_salto.is_valid():
@@ -1022,6 +1040,7 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	if not muerto:
 		_respingar(dir)
 		Sensacion3D.golpe_enemigo(self, el, debil)    # gamefeel lote 4: el cuerpo suena (solo con elemento: el golpe F y el «Piedra» ya suenan)
+	_k_golpe = 1.0                                    # tarea P: ya se usó; el siguiente golpe sin empuje vuelve a la fuerza normal
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
 	if not (fx is Vfx3D) or not is_inside_tree():
 		return
@@ -1045,7 +1064,7 @@ func _respingar(dir: Vector3) -> void:
 		d.y = 0.0
 	if d.length() < 0.01:
 		return
-	var f: float = Sensacion3D.RESPINGO * (0.6 if elemental else 1.0)
+	var f: float = Sensacion3D.RESPINGO * (0.6 if elemental else 1.0) * _k_golpe
 	if _tw_respingo != null and _tw_respingo.is_valid():
 		_tw_respingo.kill()
 	Sensacion3D.cuenta["respingo"] = int(Sensacion3D.cuenta["respingo"]) + 1
@@ -2084,6 +2103,7 @@ func _quad(color: Color, prioridad: int, alto: float) -> MeshInstance3D:
 
 func _preparar_elemental() -> void:
 	vida_max = ELEM_VIDA
+	masa = 3.3
 	defensa = Dano.DEF_ELEMENTAL
 	health = ELEM_VIDA
 	nombre = "Elemental del bosque"

@@ -106,6 +106,7 @@ func _init() -> void:
 func _ready() -> void:
 	nombre = "Gólem de piedra"
 	vida_max = VIDA
+	masa = 6.0                               # tarea P: solo por coherencia (no es empujable por golpe)
 	defensa = Dano.DEF_GOLEM                  # 29/10 (DANO_Y_TINTA): 10 — solo los hechizos potentes lo hieren de verdad
 	oro = ORO_GOLEM
 	tabla_botin = "golem"
@@ -364,7 +365,7 @@ func reacciones_soportadas() -> PackedStringArray:
 	return PackedStringArray(["empujado", "cae_al_agua"])      # solo resbalando sobre hielo; las demás no le pasan
 
 
-func v0_de_empuje(_fuerza: float, _suelo: bool = false) -> float:
+func v0_de_empuje(_fuerza: float, _suelo: bool = false, _dano: float = -1.0, _debil: bool = false) -> float:
 	return 0.0
 
 
@@ -408,7 +409,7 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 ## =====================================================================================================
 
 ## Viento y atracción llegan aquí por `Lanzador3D._golpear` y los gases por `HechizoVivo`. Los empujes de `golpe` (hechizos con fuerza_golpe) y del golpe F no pasan por aquí: sus overrides no llaman a `push`.
-func push(direccion: Vector3, fuerza: float, _suelo: bool = false) -> void:
+func push(direccion: Vector3, fuerza: float, _suelo: bool = false, _dano: float = -1.0, _debil: bool = false) -> void:
 	if muerto or fuerza <= 0.0 or Vector2(direccion.x, direccion.z).length() < 0.01:
 		return
 	if puede_resbalar():

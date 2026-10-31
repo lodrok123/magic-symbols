@@ -57,6 +57,7 @@ static var T_ESTELA: float = 0.025             ## s entre bola y bola de la este
 static var T_ESTELA_VIVE: float = 0.16
 # --- LOTE 2 · polvo ---
 static var POLVO_EMPUJE: float = 0.45          ## radio (u) del polvo a los pies al salir empujado
+static var V0_REF: float = 8.0                 ## u/s de un empujón «medio»: aplastamiento, respingo y polvo se escalan con clamp(v0 / V0_REF, 0,6, 1,6) (tarea P)
 static var POLVO_CAIDA: float = 0.75           ## radio al caer del vuelo del empujón / al aterrizar el limo
 static var EMPUJE_POLVO_JUGADORA: float = 2.0  ## u/s de empujón a la jugadora a partir de los que levanta polvo
 static var VY_POLVO_CAIDA: float = 4.5         ## u/s de caída a partir de los que levanta polvo al tocar suelo

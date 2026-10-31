@@ -209,7 +209,7 @@ Además: `Sfx.play` con un `CanvasLayer` de origen falla en `global_position` (`
 
 | Orden | Tarea | Dueño | Tamaño | Por qué primero |
 |---|---|---|---|---|
-| 1 | **P** empuje por daño y masa | Juego | medio | Es el pilar más incoherente y toca una sola función (`v0_de_empuje`) con previsión ya conectada |
+| 1 | **P** empuje por daño y masa (**hecho 31/10**) | Juego | medio | Es el pilar más incoherente y toca una sola función (`v0_de_empuje`) con previsión ya conectada |
 | 2 | **H** destello por elemento | Juego | pequeño | Lo que Pablo pidió literalmente; un solo sitio de pintura |
 | 3 | **M** mochila y consumibles | Juego (UI) | medio | El ejemplo pedido; corrige lo más mudo del juego (poción, errores) |
 | 4 | **S1** mando de volumen en vivo + bus Interfaz | Juego | pequeño | Sin esto «sutil» no se puede afinar sin reiniciar |
