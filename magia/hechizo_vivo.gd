@@ -131,7 +131,10 @@ var momentos_vistos: Array = []            ## MOMENTO DE EJECUCIÓN: [{momento, 
 var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este hechizo (glifo ᚱ)
 var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
 var finales_vistos: Array = []             ## H2: los eventos de final (`Hechizo.EVENTOS_FINAL`) que SALTARON, tengan o no acciones: un tramo termina en exactamente uno (las pruebas lo leen)
-var retornos_a_mano: int = 0               ## 30/10: veces que ᛃ sin flecha aplicó el elemento en la casilla del lanzador (las pruebas lo leen)
+var ecos_de_retorno: int = 0               ## 31/10: veces que ᛃ sin flecha repitió el impacto (las pruebas lo leen)
+## ⧖ / ᛃ (31/10, REV 01 del checklist, Pablo: «haz que haya un impacto con un pequeño delay»): sin flecha, ᛃ repite el impacto EN EL PUNTO DE IMPACTO (la punta del haz o el sitio del volumen)
+## este tiempo después de acabar: otra vez la materia y el daño. Sustituye a «vuelve a la mano» (30/10).
+const RETORNO_ECO_S: float = 0.4
 var _final_hecho: bool = false             ## H2: ya saltó uno de los tres finales: ningún hechizo dispara dos (la ida de un `retorna` no cuenta: solo acaba el tramo de vuelta)
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
@@ -689,7 +692,7 @@ func _materia_solido(ctx: Dictionary) -> int:
 		if rune.deja != "":
 			_marcar(String(ctx["elemento"]), cc)
 		if rune.pisable:
-			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"])}
+			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"]), "elemento": String(ctx["elemento"])}
 			opc.merge(perfil_solido(cc, ctx))
 			for _k in range(int(ctx["niveles"])):
 				if lanz.construir_tierra(cc, true, opc):
@@ -718,7 +721,10 @@ static func perfil_solido(c: Vector2i, ctx: Dictionary) -> Dictionary:
 	var sx: float = maxf(float(g["x"]), 0.5)
 	var sz: float = maxf(float(g["z"]), 0.5)
 	var rel: Vector2 = (Vector2((float(c.x) + 0.5) * cas, (float(c.y) + 0.5) * cas) - Vector2(o.x, o.z)) / cas
-	var lz: float = rel.dot(d)
+	# 31/10 (REV 01, Pablo: «la tierra, geometrías coherentes con los ejes X y Z»): el centro del elipsoide está `GeometriaV2.adelanto(g)` casillas por delante de `origen` (como en `celdas`);
+	# antes se medía desde `origen` y una losa larga en Z salía con el fondo recortado como si fuera borde y la parte de atrás entera.
+	# (Lo que aplica un proyectil al pararse ya va CENTRADO en el punto, `_celdas_en`: ahí no hay adelanto.)
+	var lz: float = rel.dot(d) - (0.0 if bool(ctx.get("impacto", false)) else Lanzador3D.GeometriaV2.adelanto(g))
 	var lx: float = rel.dot(d.orthogonal())
 	var r2: float = (lx * lx) / (sx * sx) + (lz * lz) / (sz * sz)
 	if r2 <= 0.0001 or (sx <= 0.5 and sz <= 0.5):
@@ -1026,12 +1032,17 @@ func _disparar_final(evento: String, causa: String, pos: Vector3, dir: Vector3, 
 	disparar_evento(evento, pos, dir)
 
 
-## ᛃ sin flecha (30/10): la materia del hechizo, el mismo `Hechizo`, en la casilla de quien lo lanzó. Al lanzador solo le hiere `golpea_lanzador` (lo hace `_danar_area`, no este camino).
-func _retorno_a_la_mano(dir: Vector3) -> void:
-	if lanz == null or lanz.jugador == null or not is_instance_valid(lanz.jugador) or not lanz.is_inside_tree():
+## ᛃ sin flecha (31/10): el ECO. El mismo `Hechizo` vuelve a golpear donde impactó: su materia (`_aplicar_materia_en_el_sitio`) y su daño en el área que ocupa (`_danar_area`).
+## Al lanzador solo le hiere `golpea_lanzador`, como siempre.
+func _eco_de_retorno(origen: Vector3, dir: Vector3) -> void:
+	if lanz == null or not lanz.is_inside_tree():
 		return
-	retornos_a_mano += 1
-	_aplicar_materia_en_el_sitio((lanz.jugador as Node3D).global_position, dir)
+	ecos_de_retorno += 1
+	if h.haz:
+		_materializar_haz(origen, dir)          # el haz golpea en TODO su recorrido: el eco es otro haz igual (dibujo, sonido, estados y un golpe a cada uno)
+		return
+	_aplicar_materia_en_el_sitio(origen, dir)
+	_danar_area(maxf(maxf(float(g.get("x", 0.0)), float(g.get("z", 0.0))), 0.5), h.dano, origen, dir)
 
 
 ## Lo que NACE QUIETO se extingue al acabar su vida (`persiste` + `permanencia`, o lo que dura el haz o el viaje del volumen): ahí saltan `al_expirar` y el momento «final» de los glifos
@@ -1040,9 +1051,9 @@ func _programar_extincion(origen: Vector3, dir: Vector3) -> void:
 	if proyectil:
 		return
 	if h.retorna and h.profundidad == 0 and not seco:
-		# 30/10 (decisión de Pablo, ᛃ sin flecha): «vuelve a la mano»: al acabar (el haz es instantáneo: al nacer; el volumen quieto, al expirar) el elemento se aplica también en la casilla del lanzador
+		# 31/10 (REV 01, ᛃ sin flecha): al acabar (el haz es instantáneo: al nacer; el volumen quieto, al expirar) y RETORNO_ECO_S después, el impacto se repite en su sitio (`_eco_de_retorno`)
 		var hasta_r: float = 0.0 if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0)) + h.permanencia
-		_despues(maxf(hasta_r, 0.0), func() -> void: _retorno_a_la_mano(dir))
+		_despues(maxf(hasta_r, 0.0) + RETORNO_ECO_S, func() -> void: _eco_de_retorno(origen, dir))
 	var momento: bool = h.profundidad == 0 and not h.glifos.is_empty() and not h.acciones_en_fin("extincion").is_empty()
 	if not momento and not h.eventos.has("al_expirar"):
 		return

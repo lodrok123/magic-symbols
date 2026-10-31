@@ -391,6 +391,9 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 			var n: int = int(m.get("n", 1))
 			# `salta`: los k primeros glifos no cuentan (la barrera: el 1.º da «en_punto», cada glifo SUCESIVO suma +1 s de persistencia)
 			n = maxi(n - int(m.get("salta", 0)), 0)
+			# `hasta` (31/10): los glifos a partir del k-ésimo ya no cuentan para ESTE modificador (⧖ carga: tamaño y potencia hasta el rango 3)
+			if m.has("hasta"):
+				n = mini(n, int(m["hasta"]))
 			if n == 0 and rango != "fija":
 				continue                                # sin glifos que cuenten no se toca el campo (ni «desde», ni «tocado», ni el origen)
 			if rango == "fija":
@@ -474,8 +477,7 @@ func _escribir(campo: String, valor: Variant) -> void:
 func _contar_glifos_dano() -> int:
 	var n: int = 0
 	for k in glifos:
-		if Sigils.cuenta_dano(String(k)):
-			n += maxi(int(glifos[k]), 0)
+		n += Sigils.peso_dano(String(k)) * maxi(int(glifos[k]), 0)
 	return n
 
 
@@ -557,7 +559,8 @@ func propiedades_usadas() -> Dictionary:
 ## Es lo que leen `GeometriaV2.celdas`, el VFX por estado y el laboratorio mientras no pasen a leer el Hechizo directamente.
 func geo() -> Dictionary:
 	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "z_glifos": _glifos_z,
-		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": "", "haz": haz}
+		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": "", "haz": haz,
+		"muro": solidez > 0.0 and glifos_linea() > 0 and not en_punto}       # 31/10 (REV 01): ᛜ + ᛁ = muro delante, no burbuja (`GeometriaV2.es_muro`); lo que nace donde apuntas ya está delante
 
 
 ## Cuántas ᛁ (`linea_x` + `linea_z`) lleva el hechizo.

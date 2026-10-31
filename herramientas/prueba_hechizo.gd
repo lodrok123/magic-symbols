@@ -147,8 +147,7 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	_ok(_casi(h.permanencia, perm), "%s: permanencia %.3f ≠ %.3f" % [et, h.permanencia, perm])
 	var n_g: int = 0
 	for k in c:
-		if Sigils.cuenta_dano(String(k)):         # H3: ᛁ y ᛏ no suman al daño
-			n_g += int(c[k])
+		n_g += Sigils.peso_dano(String(k)) * int(c[k])         # H3: ᛁ y ᛏ no suman al daño; 31/10: ⧖ carga suma 2
 	_ok(_casi(h.dano, Dano.base_elemental(n_g, h.elemento, rune.damage)) and _casi(h.empuje, rune.empuje) and h.estado_materia == rune.estado and h.pisable == rune.pisable and h.deja == rune.deja, "%s: daño, empuje, estado, pisable o deja" % et)
 	_ok(h.color == rune.color and h.etiquetas == rune.tags and h.elemento == Objetos.elemento_de(rune), "%s: color, etiquetas o elemento" % et)
 	# derivados contra Receta3D y GeometriaV2

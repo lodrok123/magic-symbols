@@ -359,10 +359,10 @@ func _crecer_y_nombres() -> void:
 	var fuego: RuneData = _runa("fire")
 	var c1: Hechizo = Hechizo.construir(fuego, {"pulso": 1})
 	var c3: Hechizo = Hechizo.construir(fuego, {"pulso": 3})
-	_ok("9 ᚷ «crecer» no cambia: id `pulso`, parámetro `crece` (+0,5 por glifo, tope 1,5), runa ᚷ, figura «pulso», sin pulso resonante",
-		Sigils.GLIFOS_V2["pulso"]["param"] == "crece" and c1.crece == 0.5 and c3.crece == 1.5 and Hechizo.construir(fuego, {"pulso": 4}).crece == 1.5 and c1.figura() == "pulso" and c1.resuena == 0.0
+	_ok("9 ᚷ «crecer» no cambia: id `pulso`, parámetro `crece` (31/10: +CRECER_TASA_V2 por glifo, tope CRECER_TASA_TOPE_V2), runa ᚷ, figura «pulso», sin pulso resonante",
+		Sigils.GLIFOS_V2["pulso"]["param"] == "crece" and is_equal_approx(c1.crece, Sigils.CRECER_TASA_V2) and is_equal_approx(c3.crece, Sigils.CRECER_TASA_TOPE_V2) and is_equal_approx(Hechizo.construir(fuego, {"pulso": 4}).crece, Sigils.CRECER_TASA_TOPE_V2) and c1.figura() == "pulso" and c1.resuena == 0.0
 		and String(GestureLibrary.BIBLIA["pulso"]["futhark"]) == "ᚷ" and c1.acciones_en("inicio").is_empty())
 	_ok("9 el jugador lo ve como «crecer» y al glifo nuevo como «pulso»", Sigils.nombre_visible("pulso") == "crecer" and Sigils.nombre_visible("raido") == "pulso" and Sigils.nombre_visible("flecha") == "flecha")
 	_ok("9 la chuleta del libro rotula ᚷ «crecer» y ᚱ «pulso» (EjesRecetaUi.EFECTO)", EjesRecetaUi.EFECTO["pulso"] == "crecer" and EjesRecetaUi.EFECTO["raido"] == "pulso")
 	_ok("9 los dos glifos tienen PNG propio en el libro", Sigils.GLYPHS.has("pulso") and Sigils.GLYPHS.has("raido") and Sigils.GLYPHS["pulso"] != Sigils.GLYPHS["raido"])
-	_ok("9 la onda de viento de siempre (recetas del lab: flecha + ᚷᚷ + ᛁᛁ) sigue construyéndose", Hechizo.construir(_runa("wind"), {"flecha": 1, "pulso": 2, "linea_z": 2}).crece == 1.0)
+	_ok("9 la onda de viento de siempre (recetas del lab: flecha + ᚷᚷ + ᛁᛁ) sigue construyéndose", Hechizo.construir(_runa("wind"), {"flecha": 1, "pulso": 2, "linea_z": 2}).crece == 2.0 * Sigils.CRECER_TASA_V2)
