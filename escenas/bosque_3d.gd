@@ -182,6 +182,8 @@ func _montar_sello_salida() -> void:
 ## Al final de _ready de la maqueta: el Jugador3D ya existe, los goblins ya tienen su Combate3D y los reactivos están puestos.
 func iniciar(mundo: Variant) -> void:
 	m = mundo
+	add_to_group(PistaProximidad.GRUPO)                  # gamefeel U6: la pista «[E] Hablar» cerca de un NPC
+	PistaProximidad.asegurar(get_tree())
 	for n in (m as Node).get_children():
 		if n is Jugador3D:
 			_jug = n
@@ -359,6 +361,25 @@ func _abrir_salida(con_aviso: bool) -> void:
 		var tw := create_tween()
 		tw.tween_property(_sello_salida, "scale:y", 0.01, 0.8)
 		tw.tween_callback(_sello_salida.hide)
+
+
+## Gamefeel U6: lo que ofrece a la pista «[E]» (la misma regla que la E de abajo: el NPC más cercano dentro de `ALCANCE_HABLAR`). Con la oferta del guardabosques en pie, la E compra.
+func accion_pista() -> String:
+	if m == null or m.get("_jugador") == null:
+		return ""
+	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
+	var mejor: String = ""
+	var dist: float = ALCANCE_HABLAR
+	for nombre in _npcs:
+		var d: float = PistaProximidad.dist_plana((_npcs[nombre] as Pj3D).position, yo)
+		if d < dist:
+			dist = d
+			mejor = String(nombre)
+	if mejor == "guardabosques" and _t_oferta > 0.0:
+		return "Comprar"
+	if mejor == "" or _t_habla > 0.0:
+		return ""
+	return "Hablar"
 
 
 func _unhandled_input(ev: InputEvent) -> void:

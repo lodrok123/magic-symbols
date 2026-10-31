@@ -63,7 +63,7 @@ const CATALOGO: Dictionary = {
 	"derrumbe": {"f": ["derrumbe.wav"], "db": -7.0,  "tono": 0.10},
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
-	"pira":     {"f": ["pira.wav"],     "db": -3.0,  "tono": 0.0},
+	"pira":     {"f": ["pira.wav"],     "db": -6.0,  "tono": 0.0},
 	"dano":     {"f": ["dano.wav"],     "db": -7.0,  "tono": 0.10},
 	"muerte":   {"f": ["muerte.wav"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
 
@@ -107,7 +107,7 @@ const CATALOGO: Dictionary = {
 	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
 	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"],     "db": -9.0,  "tono": 0.08},
 	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
-	"explosion":         {"f": ["explosion.wav"],         "db": -3.0,  "tono": 0.06},
+	"explosion":         {"f": ["explosion.wav"],         "db": -6.0,  "tono": 0.06},
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
 	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
 	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
@@ -180,6 +180,8 @@ const CATALOGO: Dictionary = {
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
 	"barrido":    {"f": ["barrido.wav"],    "db": -12.0, "tono": 0.04},
 	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
+	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
+	"cofre_tapa": {"f": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.

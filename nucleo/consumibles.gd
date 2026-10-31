@@ -263,6 +263,7 @@ func absorber(cant: float) -> bool:
 	if escudo_t <= 0.0 or cant <= 0.0:
 		return false
 	escudo_t = 0.0
+	Sfx.play_ui("escudo_golpe")                       # gamefeel U7: el bálsamo se come el golpe
 	aviso.emit("¡El bálsamo ha absorbido el golpe!", Color(1.0, 0.85, 0.45))
 	cambiado.emit()
 	return true
@@ -292,6 +293,7 @@ func actualizar(delta: float) -> void:
 	if escudo_t > 0.0:
 		escudo_t = maxf(0.0, escudo_t - delta)
 		if escudo_t <= 0.0:
+			Sfx.play_ui("escudo_roto")                # gamefeel U7: el bálsamo se agotó sin recibir golpe
 			aviso.emit("El bálsamo se ha agotado", COLOR_NO)
 			cambiado.emit()
 	if regen_t > 0.0 and jugador != null:

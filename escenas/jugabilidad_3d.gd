@@ -388,6 +388,8 @@ func _montar_puerta() -> void:
 ## Al final de _ready de la maqueta: el Jugador3D ya existe y los goblins ya están en `_goblins`.
 func iniciar(mundo: Variant) -> void:
 	m = mundo
+	add_to_group(PistaProximidad.GRUPO)                  # gamefeel U6: la pista «[E] Hablar» cerca de un NPC
+	PistaProximidad.asegurar(get_tree())
 	for n in m.get_children():
 		if n is Jugador3D:
 			_jug = n
@@ -599,10 +601,14 @@ func _recoger(pj: Pj3D) -> void:
 		var d: Vector3 = pj.position - m._centro_celda(b["c"], pj.position.y)
 		d.y = 0.0
 		if d.length() > ALCANCE_BOTIN:
+			b.erase("llena_avisada")                     # al alejarse vuelve a poder avisar
 			continue
 		if String(b["tipo"]) == "pocion":
 			if Estado.i().agregar("pocion", int(b["n"])) <= 0:
 				_decir("Mochila llena", 1.5)
+				if not b.has("llena_avisada"):           # gamefeel U7: una vez por visita (esto se comprueba cada fotograma)
+					b["llena_avisada"] = true
+					Sfx.play_ui("no_puedes", Recolectable3D.DB_MOCHILA_LLENA)
 				continue
 			_decir("Poción (+1)", 1.6)
 		else:
@@ -611,6 +617,16 @@ func _recoger(pj: Pj3D) -> void:
 			_decir("Oro +%d" % int(b["n"]), 1.6)
 		nodo.queue_free()
 		_botin.remove_at(i)
+
+
+## Gamefeel U6: lo que ofrece a la pista «[E]» (la misma regla que la E de abajo: algún NPC dentro de `ALCANCE_HABLAR`). Mientras habla, se esconde.
+func accion_pista() -> String:
+	if m == null or m._jugador == null or _t_habla > 0.0:
+		return ""
+	for nombre in _npcs:
+		if PistaProximidad.dist_plana((_npcs[nombre] as Pj3D).position, (m._jugador as Pj3D).position) < ALCANCE_HABLAR:
+			return "Hablar"
+	return ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:

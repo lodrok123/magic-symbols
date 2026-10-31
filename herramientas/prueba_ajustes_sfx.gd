@@ -41,7 +41,7 @@ func _escenario() -> void:
 	Sfx.vaciar_registro()
 
 	# --- db_de y AJUSTES ---
-	_ok("2 AJUSTES vacío: db_de = catálogo (explosion)", is_equal_approx(Sfx.db_de("explosion"), -3.0))
+	_ok("2 AJUSTES vacío: db_de = catálogo (explosion)", is_equal_approx(Sfx.db_de("explosion"), -6.0))
 	var todos_igual: bool = true
 	for n in Sfx.CATALOGO:
 		if not is_equal_approx(Sfx.db_de(String(n)), float(Sfx.CATALOGO[n]["db"])):
@@ -49,7 +49,7 @@ func _escenario() -> void:
 	_ok("2 con AJUSTES vacío todos los sonidos dan su db del catálogo", todos_igual)
 	_ok("2 un nombre desconocido da 0", is_equal_approx(Sfx.db_de("no_existe_jamas"), 0.0))
 	Sfx.play(lab, "explosion")
-	_ok("2 play suena a −3 dB (catálogo)", _ultimo("explosion").has("db") and is_equal_approx(float(_ultimo("explosion")["db"]), -3.0), str(_ultimo("explosion")))
+	_ok("2 play suena a −6 dB (catálogo)", _ultimo("explosion").has("db") and is_equal_approx(float(_ultimo("explosion")["db"]), -6.0), str(_ultimo("explosion")))
 
 	await _pausa()
 	Sfx.AJUSTES["explosion"] = -20.0
@@ -128,17 +128,17 @@ func _escenario() -> void:
 	_ok("5 los sonidos van en orden alfabético", alfabetico)
 	var i_exp: int = nombres_db.find("dB:explosion") + base.size()
 	_ok("5 «dB:explosion» está", i_exp >= base.size())
-	_ok("5 su valor inicial es el del catálogo (−3)", is_equal_approx(LabHechizos3D.impacto_valor("dB:explosion"), -3.0))
+	_ok("5 su valor inicial es el del catálogo (−6)", is_equal_approx(LabHechizos3D.impacto_valor("dB:explosion"), -6.0))
 
 	Sfx.AJUSTES.clear()
 	Sfx.vaciar_registro()
 	await _pausa()                                     # la veda de play_ui: el «explosion» de arriba acaba de sonar
 	lab.set("impacto_sel", i_exp)                      # la ventana del panel sigue a la elegida
 	var v_nuevo: float = float(lab.call("impacto_cambiar", i_exp, -4))
-	_ok("5 ← cuatro pasos de 1 dB deja −7 dB", is_equal_approx(v_nuevo, -7.0), str(v_nuevo))
-	_ok("5 y lo escribe en Sfx.AJUSTES", Sfx.AJUSTES.has("explosion") and is_equal_approx(float(Sfx.AJUSTES["explosion"]), -7.0), str(Sfx.AJUSTES))
-	_ok("5 y lo reproduce al instante (play_ui, −7 dB)", Sfx.veces("explosion") == 1 and is_equal_approx(float(_ultimo("explosion").get("db", 99.0)), -7.0), str(Sfx.CONTEO))
-	_ok("5 el panel de texto muestra el cambio", String(lab.call("_texto_impacto")).contains("dB:explosion") and String(lab.call("_texto_impacto")).contains("era -3.000"))
+	_ok("5 ← cuatro pasos de 1 dB deja −10 dB", is_equal_approx(v_nuevo, -10.0), str(v_nuevo))
+	_ok("5 y lo escribe en Sfx.AJUSTES", Sfx.AJUSTES.has("explosion") and is_equal_approx(float(Sfx.AJUSTES["explosion"]), -10.0), str(Sfx.AJUSTES))
+	_ok("5 y lo reproduce al instante (play_ui, −10 dB)", Sfx.veces("explosion") == 1 and is_equal_approx(float(_ultimo("explosion").get("db", 99.0)), -10.0), str(Sfx.CONTEO))
+	_ok("5 el panel de texto muestra el cambio", String(lab.call("_texto_impacto")).contains("dB:explosion") and String(lab.call("_texto_impacto")).contains("era -6.000"))
 	await _pausa()
 	lab.call("impacto_cambiar", i_exp, 4)
 	_ok("5 volver al valor del catálogo borra el ajuste", not Sfx.AJUSTES.has("explosion"), str(Sfx.AJUSTES))

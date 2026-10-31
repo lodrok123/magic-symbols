@@ -299,6 +299,7 @@ func _agachar_jugadora() -> float:
 func _empezar_anticipacion() -> void:
 	if _estado != Estado.ANTICIPANDO:        # alguien llamó a cerrar()/poner_estado() durante la espera del gesto
 		return
+	Sfx.play(self, "creak")                  # gamefeel U5: la bisagra cruje al anticipar
 	_anticipacion()
 	var tw: Tween = create_tween()
 	tw.tween_interval(T_ANTICIPA)
@@ -341,6 +342,7 @@ func _girar_tapa() -> void:
 	_estado = Estado.ABRIENDO
 	_tapa.quaternion = _q_reposo
 	abriendo.emit()
+	Sfx.play(self, "cofre_tapa")             # gamefeel U5: el chasquido seco de la tapa
 	var dura: float = T_ABRIR_SIN_CLIP
 	if _anim != null:
 		dura = _anim.get_animation(CLIP_ABRIR).length

@@ -80,10 +80,12 @@ func _ready() -> void:
 	var t: Tinta = _tinta_jugador()
 	if t != null:
 		t.frasco_gastado.connect(_al_gastar_frasco)
+		t.frasco_recargado.connect(_al_recargar_frasco)
 		t.insuficiente.connect(func(_f: String, _c: float, _h: float) -> void: _t_aviso = T_AVISO_TINTA_S)
 		t.reaccion_premiada.connect(_al_premiar_reaccion)
 	consumibles.al_cambiar_mochila()          # equipa el primero que haya (con la mochila como esté al montar)
 	actualizar()
+	_vida.peso_dano = true                    # gamefeel U8: desde ahora, perder vida deja franja fantasma y flash (la tinta no: baja a cada hechizo)
 
 
 func _exit_tree() -> void:
@@ -157,6 +159,12 @@ func _al_premiar_reaccion(tipo: String, cantidad: float) -> void:
 func _al_gastar_frasco() -> void:
 	_frascos.destello(_tinta_jugador().frascos)       # el frasco que acaba de vaciarse (su índice = los que quedan llenos)
 	_avisar("Frasco de tinta gastado (quedan %d)" % _tinta_jugador().frascos, Color(0.6, 0.8, 1.0))
+
+
+## Gamefeel U8: un frasco vacío se acaba de llenar (tónico de tinta): el frasco destella del color de la tinta. Sin `Sensacion3D.ACTIVA`, nada.
+func _al_recargar_frasco(indice: int) -> void:
+	if _frascos != null and Sensacion3D.ACTIVA:
+		_frascos.destello_recarga(indice)
 
 
 ## M4: un consumible que no se pudo usar (vida llena, sin unidades...): `no_puedes` suave y el círculo tiembla.
@@ -248,6 +256,7 @@ class Frascos extends Control:
 	var color: Color = Color(0.30, 0.55, 1.0)
 	var _t_destello: float = 0.0
 	var _i_destello: int = -1
+	var _recarga: bool = false                  ## el destello en curso es de recarga (halo de color) y no de vaciado (halo blanco)
 
 	func _init() -> void:
 		custom_minimum_size = Vector2(HudEoW.ANCHO_FRASCOS_PX, ALTO_PX)
@@ -264,8 +273,20 @@ class Frascos extends Control:
 	func destello(indice: int) -> void:
 		_i_destello = indice
 		_t_destello = T_DESTELLO_S
+		_recarga = false
 		set_process(true)
 		queue_redraw()
+
+	## Gamefeel U8: el frasco `indice` se acaba de llenar: halo del color de la tinta que se encoge hacia el frasco.
+	func destello_recarga(indice: int) -> void:
+		_i_destello = indice
+		_t_destello = T_DESTELLO_S
+		_recarga = true
+		set_process(true)
+		queue_redraw()
+
+	func destello_activo() -> bool:
+		return _t_destello > 0.0
 
 	func _process(delta: float) -> void:
 		_t_destello = maxf(0.0, _t_destello - delta)
@@ -302,7 +323,8 @@ class Frascos extends Control:
 		draw_rect(Rect2(Vector2(cx - 4.8, 1.0), Vector2(9.6, 5.0)), CORCHO)
 		draw_rect(Rect2(Vector2(cx - 4.8, 1.0), Vector2(9.6, 5.0)), TemaInterfaz.BORDE_CALIDO_OSCURO, false, 1.0)
 		if pop > 0.0:
-			draw_circle(Vector2(cx, cy), r + 3.0, Color(1, 1, 1, 0.45 * pop))
+			var halo: Color = color.lightened(0.5) if _recarga else Color(1, 1, 1)
+			draw_circle(Vector2(cx, cy), r + 3.0 + (4.0 * pop if _recarga else 0.0), Color(halo.r, halo.g, halo.b, (0.6 if _recarga else 0.45) * pop))
 
 
 ## --- El círculo del consumible equipado ---

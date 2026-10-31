@@ -224,12 +224,11 @@ func recoger() -> bool:
 			llena_avisada = true
 			if lanz != null and lanz.has_method("avisar"):
 				lanz.call("avisar", TXT_LLENA, Color(1.0, 0.75, 0.5))
+			Sfx.play_ui("no_puedes", Recolectable3D.DB_MOCHILA_LLENA)       # gamefeel U7 (una vez por pieza, como el aviso)
 		return false
 	AvisoObjeto.mostrar(lanz, objeto, entra)
 	PlayLog.event("objeto_suelo", {"objeto": objeto, "n": entra})
-	if is_inside_tree() and Sensacion3D.ACTIVA:
-		Sfx.play(self, "logro_brillo")
-	cantidad -= entra
+	cantidad -= entra                        # el sonido lo pone AvisoObjeto.mostrar, según la calidad (gamefeel S2)
 	if cantidad > 0:
 		imantado = false
 		_vel = 0.0

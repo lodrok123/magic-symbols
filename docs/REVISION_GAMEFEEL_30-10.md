@@ -215,7 +215,7 @@ Además: `Sfx.play` con un `CanvasLayer` de origen falla en `global_position` (`
 | 4 | **S1** mando de volumen en vivo + bus Interfaz (**hecho 31/10**) | Juego | pequeño | Sin esto «sutil» no se puede afinar sin reiniciar |
 | 5 | **V1** barrera = muro, pulso que crece, radio con suelo | Pipeline / Juego | grande | Lo más visible del pilar VFX; el apuntado ya promete lo que el VFX no cumple |
 | 6 | **U1 + U2 + U3 + U4** grimorio, muerte, misiones, tienda (**hecho 31/10**) | Juego | pequeño ×3 | Momentos clave sin ningún sonido |
-| 7 | **V2, V3, S2, U1, U5 a U8** | varios | medio | Completan los pilares |
+| 7 | **V2, V3** (otro chat); **S2, U5 a U8** (**hecho 31/10**) | varios | medio | Completan los pilares |
 
 Cada tarea: su prueba headless, su captura con ventana cuando algo no se ve sin pantalla, commit propio con mensaje en español, y en el DIARIO una entrada con dónde verlo (escena y tecla). Nada cambia reglas (daño, tinta, recargas): si una tarea las tocara, se para y se pregunta.
 

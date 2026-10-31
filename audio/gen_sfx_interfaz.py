@@ -141,6 +141,19 @@ def reaparecer():
     guardar("reaparecer.wav", x, 0.10)
 
 
+def cofre_tapa():
+    """U5: chasquido seco de la tapa del cofre al abrirse. Golpe de madera (tono grave que cae) + un chasquido corto de ruido, 0,14 s."""
+    n = muestras(0.14)
+    x = [0.0] * n
+    r2 = random.Random(5112026)               # generador propio: no altera los demas sonidos
+    for i in range(n):
+        t = i / SR
+        madera = math.sin(2 * math.pi * (260.0 - 500.0 * t) * t) * math.exp(-t * 45.0)
+        clic = r2.uniform(-1.0, 1.0) * math.exp(-t * 150.0)
+        x[i] = madera * 0.8 + clic * 0.6
+    guardar("cofre_tapa.wav", x, 0.12)
+
+
 if __name__ == "__main__":
     bolsa()
     pocion()
@@ -151,3 +164,4 @@ if __name__ == "__main__":
     ui_equipar()
     barrido()          # al final: el generador aleatorio es compartido y asi los anteriores salen igual que antes
     reaparecer()
+    cofre_tapa()       # U5 (solo este: genera el wav nuevo)
