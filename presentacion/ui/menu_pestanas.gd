@@ -45,8 +45,26 @@ const PESTANAS: Array = [
 	{"id": "ajustes", "nombre": "Ajustes", "sub": "Sonido, controles y pantalla", "prox": "Aquí ajustarás el sonido, los controles y la pantalla."},
 ]
 
+## GAMEFEEL M (31/10): sonidos y movimiento de la mochila. Todo lo afinable aquí; `Sensacion3D.ACTIVA = false` apaga los pops, deslizamientos y destellos pero NO los sonidos.
+static var DB_NO_PUEDES: float = -14.0          ## Enter sobre un material o un objeto clave
+static var DB_PAGINA: float = -14.0             ## cambiar de pestaña
+static var T_ANILLO_S: float = 0.08             ## el aro dorado se desliza de un hueco al otro
+static var T_PAGINA_S: float = 0.12             ## el contenido de la pestaña entra desde un lado
+static var DESPLAZ_PAGINA_PX: float = 12.0
+static var T_FUNDIDO_ICONO_S: float = 0.1       ## el icono del detalle funde al cambiar de objeto
+static var T_BRILLO_NUEVO_S: float = 0.4        ## el hueco del objeto recién llegado brilla
+static var T_ORO_S: float = 0.3                 ## el contador de oro cuenta hacia el valor nuevo
+static var POP_ORO: float = 1.2                 ## escala inicial del pop del contador
+
 var abierta: bool = false
 var pestana: int = INDICE_INVENTARIO
+var _anillo: Anillo = null                       ## el aro dorado del hueco elegido (un control aparte por encima de la rejilla)
+var _anillo_colocado: bool = false
+var _tw_anillo: Tween = null
+var _tw_pagina: Tween = null
+var _tw_oro: Tween = null
+var _oro_valor: int = 0
+var _cuentas: Dictionary = {}                    ## id -> cantidad en la mochila tras el último refresco (para ver qué objeto es nuevo)
 var _velo: ColorRect
 var _marco: Control
 var _fondo: Control
@@ -250,33 +268,69 @@ func abrir(p_pestana: int = INDICE_INVENTARIO) -> void:
 		return
 	if is_inside_tree() and get_tree().paused:
 		return                                      # con otra pantalla que ya pausa (el libro, un cofre) no se abre encima
+	if _libro_abierto():
+		return                                      # M6: el libro no pausa (solo ralentiza el tiempo): con él abierto tampoco se abre la mochila encima
 	abierta = true
 	pestana = clampi(p_pestana, 0, PESTANAS.size() - 1)
-	_refrescar()
+	_refrescar(false)                               # al abrir no se anima nada (ni «objeto nuevo» por lo que llegó con el menú cerrado)
 	_mostrar_pagina()
 	if is_inside_tree():
 		get_tree().paused = true
 		_pausado_por_mi = true
-		Sonidos.play(self, "bolsa", -4.0, 1.0)
+		Sfx.play_ui("libro_abre" if pestana == INDICE_MISIONES else "bolsa")      # M1: la J abre el diario de misiones como un libro
 	_animar(true)
+	var h: BolsaUI.Hueco = hueco(_sel) if pestana == INDICE_INVENTARIO else null
+	if h != null and h.id != "":
+		h.pop()                                     # M1: el hueco elegido entra con un pop
 
 
 func cerrar() -> void:
 	if not abierta:
 		return
+	var era_misiones: bool = pestana == INDICE_MISIONES
 	abierta = false
 	if _pausado_por_mi and is_inside_tree():
 		get_tree().paused = false
 	_pausado_por_mi = false
 	if is_inside_tree():
-		Sonidos.play(self, "bolsa", -4.0, 0.85)
+		if era_misiones:
+			Sfx.play_ui("libro_cierra")
+		else:
+			Sfx.play_ui("bolsa", INF, 0.85)
 	_animar(false)
+
+
+## ¿Está abierto el libro de hechizos? (lo dice el lanzador; sin él, por ejemplo en las pruebas sueltas, no).
+func _libro_abierto() -> bool:
+	if not is_inside_tree():
+		return false
+	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
+	return lanz != null and lanz.has_method("libro_abierto") and bool(lanz.call("libro_abierto"))
 
 
 func cambiar_pestana(i: int) -> void:
 	var n: int = PESTANAS.size()
+	var antes: int = pestana
 	pestana = ((i % n) + n) % n
 	_mostrar_pagina()
+	if pestana != antes and abierta and is_inside_tree():
+		Sfx.play_ui("pagina", DB_PAGINA)            # M2
+		_entrada_pagina(1.0 if pestana > antes else -1.0)
+
+
+## M2: el contenido de la pestaña nueva entra desde `DESPLAZ_PAGINA_PX` px al lado de donde viene (`dir` > 0: llega por la derecha).
+func _entrada_pagina(dir: float) -> void:
+	if _tw_pagina != null and _tw_pagina.is_valid():
+		_tw_pagina.kill()
+	_cuerpo.position = CUERPO_POS
+	_cuerpo.modulate.a = 1.0
+	if not Sensacion3D.ACTIVA:
+		return
+	_cuerpo.position.x = CUERPO_POS.x + DESPLAZ_PAGINA_PX * dir
+	_cuerpo.modulate.a = 0.4
+	_tw_pagina = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	_tw_pagina.tween_property(_cuerpo, "position:x", CUERPO_POS.x, T_PAGINA_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_tw_pagina.tween_property(_cuerpo, "modulate:a", 1.0, T_PAGINA_S)
 
 
 func siguiente_pestana(paso: int) -> void:
@@ -420,15 +474,28 @@ func accion() -> void:
 			_diario.alternar_seguida()
 		return
 	var d: Dictionary = detalle()
-	if d.is_empty() or not Objetos.es_consumible(String(d["id"])):
+	if d.is_empty():
 		return
+	if not Objetos.es_consumible(String(d["id"])):
+		# M3: un material o un objeto clave no se equipa: «no puedes» y el hueco tiembla.
+		Sfx.play_ui("no_puedes", DB_NO_PUEDES)
+		var hm: BolsaUI.Hueco = hueco(_sel)
+		if hm != null:
+			hm.temblar()
+		return
+	var hud: Node = get_tree().get_first_node_in_group("hud_eow") if is_inside_tree() else null
 	if bool(d["equipado"]):
 		cerrar()
-		var hud: Node = get_tree().get_first_node_in_group("hud_eow") if is_inside_tree() else null
 		if hud != null and hud.has_method("usar_equipado"):
 			hud.call_deferred("usar_equipado")      # con el árbol ya reanudado (el menú pausaba)
 	else:
-		_consumibles.equipar(String(d["id"]))
+		if _consumibles.equipar(String(d["id"])):   # (esto emite Estado.cambiado: el refresco actualiza los mismos huecos, no los recrea)
+			Sfx.play_ui("ui_equipar")
+			var he: BolsaUI.Hueco = hueco(_sel)
+			if he != null:
+				he.pop()
+			if hud != null and hud.has_method("destello_equipado"):
+				hud.call("destello_equipado")
 
 
 ## --- Inventario ---
@@ -438,35 +505,31 @@ func _al_cambiar_mochila() -> void:
 		_refrescar()
 
 
-func _refrescar() -> void:
+## M3: los 20 huecos se crean UNA vez (`_crear_huecos`) y aquí solo se les cambia el objeto, la cantidad y el bloqueo: así un hueco puede animarse (pop, brillo, temblor)
+## sin que el siguiente refresco lo destruya. `animar` = false al abrir el menú (nada de lo que llegó con él cerrado cuenta como nuevo).
+func _refrescar(animar: bool = true) -> void:
 	if _rejilla == null:
 		return
 	var e: Estado = Estado.i()
-	_oro.text = str(e.oro)
+	_poner_oro(e.oro, animar)
 	_pie_huecos.text = "%d/%d huecos" % [e.huecos_usados(), e.capacidad]
 	var id_elegido: String = String(_pilas[_sel][0]) if _sel >= 0 and _sel < _pilas.size() else ""
-	for h in _huecos:
-		if is_instance_valid(h):
-			(h as Node).queue_free()
-	_huecos.clear()
 	_pilas = BolsaUI.ordenar(e.items)
-	for i in range(COLUMNAS * FILAS):
-		var h := BolsaUI.Hueco.new()
-		h.tam = TAM_HUECO
-		h.indice = i
+	if _huecos.is_empty():
+		_crear_huecos()
+	for i in range(_huecos.size()):
+		var h: BolsaUI.Hueco = _huecos[i]
 		h.bloqueado = i >= e.capacidad
 		if i < _pilas.size() and not h.bloqueado:
 			h.id = String(_pilas[i][0])
 			h.cantidad = int(_pilas[i][1])
 			h.cura = Objetos.cura(h.id)
-			h.pulsado = func(_id: String) -> void: _clic(i)
-			h.al_pasar = _elegir
-		elif h.bloqueado:
-			h.tooltip_text = "Hueco bloqueado: el alquimista puede ampliar la mochila"
-		h.size = Vector2(TAM_HUECO, TAM_HUECO)
-		h.position = Vector2(float(i % COLUMNAS), float(i / COLUMNAS)) * (TAM_HUECO + SEP_HUECO)
-		_rejilla.add_child(h)
-		_huecos.append(h)
+		else:
+			h.id = ""
+			h.cantidad = 0
+			h.cura = false
+		h.tooltip_text = "Hueco bloqueado: el alquimista puede ampliar la mochila" if h.bloqueado else ""
+		h.refrescar_datos()
 	# La elección sigue en su objeto si aún está; si no, en el primero (o en ninguno).
 	var nuevo: int = -1
 	if id_elegido != "":
@@ -476,7 +539,60 @@ func _refrescar() -> void:
 				break
 	if nuevo < 0 and not _pilas.is_empty():
 		nuevo = clampi(_sel, 0, _pilas.size() - 1) if _sel >= 0 else 0
-	_elegir(nuevo)
+	if not animar:
+		_anillo_colocado = false                        # al abrir el aro aparece donde toca, sin deslizarse desde donde se quedó
+	_elegir(nuevo, false)
+	# M5: el objeto que ha llegado con el menú abierto (id nuevo o más cantidad que antes) hace pop y brilla en su hueco.
+	if animar:
+		for id in e.items.keys():
+			if int(e.items[id]) > int(_cuentas.get(id, 0)):
+				for i in range(_pilas.size() - 1, -1, -1):
+					if String(_pilas[i][0]) == String(id) and i < _huecos.size() and not (_huecos[i] as BolsaUI.Hueco).bloqueado:
+						(_huecos[i] as BolsaUI.Hueco).pop()
+						(_huecos[i] as BolsaUI.Hueco).brillar(T_BRILLO_NUEVO_S)
+						break
+	_cuentas = e.items.duplicate()
+
+
+## Los 20 huecos y el aro dorado que se desliza por encima (M2).
+func _crear_huecos() -> void:
+	for i in range(COLUMNAS * FILAS):
+		var h := BolsaUI.Hueco.new()
+		h.tam = TAM_HUECO
+		h.indice = i
+		h.sin_aro = true
+		h.pulsado = func(_id: String) -> void: _clic(i)
+		h.al_pasar = _elegir
+		h.size = Vector2(TAM_HUECO, TAM_HUECO)
+		h.position = Vector2(float(i % COLUMNAS), float(i / COLUMNAS)) * (TAM_HUECO + SEP_HUECO)
+		_rejilla.add_child(h)
+		_huecos.append(h)
+	_anillo = Anillo.new()
+	_anillo.size = Vector2(TAM_HUECO, TAM_HUECO)
+	_anillo.visible = false
+	_rejilla.add_child(_anillo)                         # el último hijo: se pinta por encima de los huecos
+
+
+## M5: el contador de oro cuenta hacia el valor nuevo en `T_ORO_S` s y hace pop; `moneda` al subir (el sonido suena aunque la sensación esté apagada).
+func _poner_oro(valor: int, animar: bool) -> void:
+	if _tw_oro != null and _tw_oro.is_valid():
+		_tw_oro.kill()
+	var desde: int = _oro_valor
+	_oro_valor = valor
+	if not animar or valor == desde:
+		_oro.text = str(valor)
+		return
+	if valor > desde:
+		Sfx.play_ui("moneda")
+	if not Sensacion3D.ACTIVA:
+		_oro.text = str(valor)
+		return
+	_oro.pivot_offset = _oro.size * 0.5
+	_oro.scale = Vector2.ONE * POP_ORO
+	_tw_oro = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	_tw_oro.tween_method(func(v: float) -> void: _oro.text = str(int(round(v))), float(desde), float(valor), T_ORO_S)
+	_tw_oro.tween_property(_oro, "scale", Vector2.ONE, T_ORO_S).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tw_oro.chain().tween_callback(func() -> void: _oro.text = str(valor))
 
 
 func _clic(i: int) -> void:
@@ -486,9 +602,11 @@ func _clic(i: int) -> void:
 		_elegir(i)
 
 
-func _elegir(i: int) -> void:
+## Elige el hueco `i` (flechas, ratón o refresco). `sonar` = false cuando lo hace el refresco: el tic es solo para cuando el jugador cambia de hueco (M2).
+func _elegir(i: int, sonar: bool = true) -> void:
 	if i >= _pilas.size():
 		i = _sel
+	var cambia: bool = i != _sel
 	_sel = i
 	for k in range(_huecos.size()):
 		var h: BolsaUI.Hueco = _huecos[k]
@@ -496,11 +614,44 @@ func _elegir(i: int) -> void:
 		if h.elegido != ahora:
 			h.elegido = ahora
 			h.queue_redraw()
+	_mover_anillo()
+	if cambia and sonar and abierta:
+		Sfx.play_ui("ui_tick")
 	if _detalle != null:
 		_detalle.mostrar(detalle())
 
 
+## El aro dorado va al hueco elegido: se desliza en `T_ANILLO_S` s desde donde estaba (de golpe la primera vez, o con la sensación apagada).
+func _mover_anillo() -> void:
+	if _anillo == null:
+		return
+	var h: BolsaUI.Hueco = hueco(_sel)
+	var ver: bool = h != null and h.id != ""
+	if _tw_anillo != null and _tw_anillo.is_valid():
+		_tw_anillo.kill()
+	_anillo.visible = ver
+	if not ver:
+		_anillo_colocado = false
+		return
+	if _anillo_colocado and Sensacion3D.ACTIVA and not _anillo.position.is_equal_approx(h.position):
+		_tw_anillo = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		_tw_anillo.tween_property(_anillo, "position", h.position, T_ANILLO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		_anillo.position = h.position
+	_anillo_colocado = true
+
+
 ## --- Piezas de dibujo ---
+
+## El aro dorado del hueco elegido (M2): un control suelto sobre la rejilla, para poder deslizarlo de un hueco al siguiente.
+class Anillo extends Control:
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		draw_polyline(BolsaUI.camino(r.grow(-0.5), clampf(size.x * 0.14, 5.0, 10.0)), BolsaUI.COLOR_ELEGIDO, 3.0, true)
+
 
 ## El marco del menú: cuero con costura, interior de pergamino, y el título de la pestaña.
 class Fondo extends Control:
@@ -598,6 +749,8 @@ class Detalle extends Control:
 	var _usos: Label
 	var _pista: Label
 	var _vacio: Label
+	var _id_mostrado: String = ""
+	var _tw_icono: Tween = null
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -641,7 +794,17 @@ class Detalle extends Control:
 		_vacio.visible = not hay
 		queue_redraw()
 		if not hay:
+			_id_mostrado = ""
 			return
+		if String(d["id"]) != _id_mostrado:
+			_id_mostrado = String(d["id"])
+			if _tw_icono != null and _tw_icono.is_valid():
+				_tw_icono.kill()
+			_icono.modulate.a = 1.0
+			if Sensacion3D.ACTIVA and is_inside_tree() and menu != null and menu.abierta:
+				_icono.modulate.a = 0.0                # M2: el icono del detalle funde al cambiar de objeto
+				_tw_icono = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+				_tw_icono.tween_property(_icono, "modulate:a", 1.0, MenuPestanas.T_FUNDIDO_ICONO_S)
 		_icono.set("id", String(d["id"]))
 		_icono.set("calidad", String(d["calidad"]))
 		_icono.queue_redraw()

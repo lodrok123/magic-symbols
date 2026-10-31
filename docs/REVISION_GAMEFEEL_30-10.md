@@ -211,7 +211,7 @@ Además: `Sfx.play` con un `CanvasLayer` de origen falla en `global_position` (`
 |---|---|---|---|---|
 | 1 | **P** empuje por daño y masa (**hecho 31/10**) | Juego | medio | Es el pilar más incoherente y toca una sola función (`v0_de_empuje`) con previsión ya conectada |
 | 2 | **H** destello por elemento (**hecho 31/10**) | Juego | pequeño | Lo que Pablo pidió literalmente; un solo sitio de pintura |
-| 3 | **M** mochila y consumibles | Juego (UI) | medio | El ejemplo pedido; corrige lo más mudo del juego (poción, errores) |
+| 3 | **M** mochila y consumibles (**hecho 31/10**) | Juego (UI) | medio | El ejemplo pedido; corrige lo más mudo del juego (poción, errores) |
 | 4 | **S1** mando de volumen en vivo + bus Interfaz | Juego | pequeño | Sin esto «sutil» no se puede afinar sin reiniciar |
 | 5 | **V1** barrera = muro, pulso que crece, radio con suelo | Pipeline / Juego | grande | Lo más visible del pilar VFX; el apuntado ya promete lo que el VFX no cumple |
 | 6 | **U2 + U3 + U4** muerte, misiones, tienda | Juego | pequeño ×3 | Momentos clave sin ningún sonido |

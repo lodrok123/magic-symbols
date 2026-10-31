@@ -22,6 +22,10 @@ var rotulo: String = ""
 var color: Color = Color(0.35, 0.85, 0.4)
 var fraccion: float = 1.0
 var _mostrada: float = 1.0                                   ## la fracción que se ve (se acerca a `fraccion` suavemente)
+## Gamefeel M4 (31/10): el PULSO de una curación. Una franja clara que avanza por delante del relleno mientras éste sube y se apaga (`pulso()`).
+static var T_PULSO_S: float = 0.5
+static var ANCHO_PULSO_PX: float = 18.0
+var pulso_t: float = 0.0                                     ## s que le quedan al pulso (0 = sin pulso)
 
 
 func _init() -> void:
@@ -62,10 +66,17 @@ func poner_ancho(ancho: float) -> void:
 	queue_redraw()
 
 
+func pulso() -> void:
+	pulso_t = T_PULSO_S
+	set_process(true)
+	queue_redraw()
+
+
 func _process(delta: float) -> void:
 	_mostrada = move_toward(_mostrada, fraccion, delta / T_SUAVIZADO_S)
+	pulso_t = maxf(0.0, pulso_t - delta)
 	queue_redraw()
-	if is_equal_approx(_mostrada, fraccion):
+	if is_equal_approx(_mostrada, fraccion) and pulso_t <= 0.0:
 		set_process(false)
 
 
@@ -95,3 +106,13 @@ func _draw() -> void:
 		brillo.bg_color = BRILLO_ARRIBA
 		brillo.set_corner_radius_all(2)
 		brillo.draw(get_canvas_item(), Rect2(r.position + Vector2(2.0, 1.0), Vector2(maxf(r.size.x - 4.0, 0.0), r.size.y * 0.4)))
+	if pulso_t > 0.0:
+		# La franja clara va justo por delante del borde del relleno (el frente), se desvanece y no sale de la pista.
+		var k: float = pulso_t / T_PULSO_S
+		var x0: float = dentro.position.x + ancho
+		var x1: float = minf(x0 + ANCHO_PULSO_PX, dentro.end.x)
+		if x1 > x0:
+			var fr := StyleBoxFlat.new()
+			fr.bg_color = Color(1.0, 1.0, 1.0, 0.7 * k)
+			fr.set_corner_radius_all(3)
+			fr.draw(get_canvas_item(), Rect2(Vector2(x0, dentro.position.y), Vector2(x1 - x0, dentro.size.y)))

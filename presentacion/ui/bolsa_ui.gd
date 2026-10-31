@@ -235,11 +235,25 @@ class Hueco extends Control:
 	var _encima: bool = false
 	var tam: float = BolsaUI.TAM
 	var calidad: String = Objetos.CALIDAD_COMUN       ## la del objeto del hueco: decide el marco (MarcoCalidad)
+	## Gamefeel M (31/10). `sin_aro`: el aro dorado del elegido no lo pinta el hueco sino un control aparte que se desliza (MenuPestanas.Anillo). Los demás son efectos
+	## de un solo hueco (`pop`, `brillar`, `temblar`); cada uno guarda su Tween para que las pruebas vean que está vivo. Si `Sensacion3D.ACTIVA` es false no hacen nada.
+	var sin_aro: bool = false
+	var brillo: float = 0.0:                           ## 0..1, aureola dorada que se apaga sola (objeto nuevo)
+		set(v):
+			brillo = v
+			queue_redraw()
+	var tembl_x: float = 0.0:                          ## desplazamiento horizontal del dibujo mientras tiembla (rechazo)
+		set(v):
+			tembl_x = v
+			queue_redraw()
+	var tween_pop: Tween = null
+	var tween_brillo: Tween = null
+	var tween_tembl: Tween = null
 
 	func _ready() -> void:
 		custom_minimum_size = Vector2(tam, tam)
-		calidad = BolsaUI.calidad_de(id) if id != "" else Objetos.CALIDAD_COMUN
-		set_process(id != "" and not bloqueado and MarcoCalidad.anima(calidad))       # el brillo de épico y legendario se anima; el común no gasta redibujados
+		pivot_offset = size * 0.5
+		refrescar_datos()
 		mouse_entered.connect(func():
 			_encima = true
 			queue_redraw()
@@ -247,7 +261,47 @@ class Hueco extends Control:
 				al_pasar.call(indice))
 		mouse_exited.connect(func(): _encima = false; queue_redraw())
 
+	## Recalcula lo que depende de `id` (marco de calidad, si se anima). Lo llama `_ready` y quien reutilice el hueco cambiándole el objeto (MenuPestanas._refrescar).
+	func refrescar_datos() -> void:
+		calidad = BolsaUI.calidad_de(id) if id != "" else Objetos.CALIDAD_COMUN
+		set_process(id != "" and not bloqueado and MarcoCalidad.anima(calidad))       # el brillo de épico y legendario se anima; el común no gasta redibujados
+		queue_redraw()
+
+	func _matar(tw: Tween) -> void:
+		if tw != null and tw.is_valid():
+			tw.kill()
+
+	## Escala 1,15 → 1 en 0,12 s con TRANS_BACK (abrir, equipar, objeto nuevo).
+	func pop() -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		_matar(tween_pop)
+		pivot_offset = size * 0.5
+		scale = Vector2.ONE * 1.15
+		tween_pop = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween_pop.tween_property(self, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	## Aureola dorada que se apaga en `dur` s.
+	func brillar(dur: float = 0.4) -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		_matar(tween_brillo)
+		brillo = 1.0
+		tween_brillo = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween_brillo.tween_property(self, "brillo", 0.0, dur)
+
+	## Tiembla de lado a lado 0,15 s (mismo patrón que PageHud.temblar): «no se puede».
+	func temblar(dur: float = 0.15) -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		_matar(tween_tembl)
+		tween_tembl = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween_tembl.tween_method(func(t: float) -> void: tembl_x = sin(t * TAU * 3.0) * 5.0 * (1.0 - t), 0.0, 1.0, dur)
+		tween_tembl.tween_callback(func() -> void: tembl_x = 0.0)
+
 	func _draw() -> void:
+		if tembl_x != 0.0:
+			draw_set_transform(Vector2(tembl_x, 0.0), 0.0, Vector2.ONE)
 		var r := Rect2(Vector2.ZERO, size)
 		var estado: String = "bloqueado" if bloqueado else ("encima" if _encima else ("lleno" if id != "" else "vacio"))
 		var arte: Texture2D = BolsaUI.tex("mochila_hueco" if estado == "lleno" else "mochila_hueco_" + estado)
@@ -278,7 +332,12 @@ class Hueco extends Control:
 			Objetos.dibujar(self, id, size * 0.5 + Vector2(0, -3), size.x * 0.26)
 		if cura:
 			BolsaUI.corazon(self, Vector2(size.x * 0.2, size.y * 0.2), size.x * 0.11)
-		if elegido:
+		if brillo > 0.0:
+			var aureola: StyleBoxFlat = BolsaUI._caja(Color(1.0, 0.85, 0.35, 0.35 * brillo), Color(1.0, 0.85, 0.35, brillo), 3, int(clampf(size.x * 0.14, 5.0, 10.0)))
+			aureola.shadow_color = Color(1.0, 0.8, 0.25, 0.6 * brillo)
+			aureola.shadow_size = 8
+			aureola.draw(get_canvas_item(), r)
+		if elegido and not sin_aro:
 			draw_polyline(BolsaUI.camino(r.grow(-0.5), clampf(size.x * 0.14, 5.0, 10.0)), BolsaUI.COLOR_ELEGIDO, 3.0, true)
 		if cantidad >= 1:
 			var f: Font = TemaInterfaz.fuente()

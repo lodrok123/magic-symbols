@@ -166,7 +166,44 @@ const CATALOGO: Dictionary = {
 	"logro_acierto":   {"f": ["logro_acierto.wav"],   "db": -9.0,  "tono": 0.01},
 	"logro_brillo":    {"f": ["logro_brillo.wav"],    "db": -12.0, "tono": 0.01},
 	"logro_fanfarria": {"f": ["logro_fanfarria.wav"], "db": -7.0,  "tono": 0.0},
+
+	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
+	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
+	"bolsa":      {"f": ["bolsa.wav"],      "db": -10.0, "tono": 0.0},
+	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
+	"pocion_fin": {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0, "pitch": 1.15},
+	"recoger":    {"f": ["recoger.wav"],    "db": -10.0, "tono": 0.0},
+	"golpe_ui":   {"f": ["golpe_ui.wav"],   "db": -8.0,  "tono": 0.0},
+	"comprar":    {"f": ["comprar.wav"],    "db": -8.0,  "tono": 0.0},
+	"ui_tick":    {"f": ["ui_tick.wav"],    "db": -20.0, "tono": 0.04},
+	"ui_equipar": {"f": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 }
+
+## El bus de la interfaz. No hay `default_bus_layout.tres` en el proyecto: `play_ui` lo crea al primer uso (hijo de Master) si no existe.
+const BUS_INTERFAZ: String = "Interfaz"
+
+## Registro de reproducciones para las PRUEBAS (headless no se oye nada): con `REGISTRAR = true` cada sonido que de verdad suena (tras la veda) suma 1 en `CONTEO[nombre]`
+## y se anota en `ULTIMOS` ({nombre, db, tono}). Apagado por defecto: en el juego no cuesta nada.
+static var REGISTRAR: bool = false
+static var CONTEO: Dictionary = {}
+static var ULTIMOS: Array = []
+
+static func _anotar(nombre: String, db: float, tono: float) -> void:
+	if not REGISTRAR:
+		return
+	CONTEO[nombre] = int(CONTEO.get(nombre, 0)) + 1
+	ULTIMOS.append({"nombre": nombre, "db": db, "tono": tono})
+	if ULTIMOS.size() > 200:
+		ULTIMOS.pop_front()
+
+
+static func vaciar_registro() -> void:
+	CONTEO.clear()
+	ULTIMOS.clear()
+
+
+static func veces(nombre: String) -> int:
+	return int(CONTEO.get(nombre, 0))
 
 ## Etiqueta del elemento -> sonido. Se mira en ESTE orden, y el orden
 ## importa: el hielo lleva "frio" y el fuego "calor", pero un hechizo
@@ -219,6 +256,7 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	var flujo: AudioStream = load(CARPETA + String(archivos.pick_random()))
 	if flujo == null:
 		return
+	_anotar(nombre, float(cfg["db"]), tono)
 
 	# M4: el origen puede ser un nodo 3D (Lanzador3D, Grimorio) o uno 2D (el libro, el 2D que aún queda). 3D → reproductor 3D.
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
@@ -247,6 +285,51 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	p.call("play")
 
 
+## Sonido de INTERFAZ (31/10, tarea M6): un `AudioStreamPlayer` plano (sin posición ni distancia) en el bus «Interfaz». No necesita origen, así que sirve desde un `CanvasLayer`
+## o un `Control` (`play` falla con ellos en `global_position`). `db` = INF usa el del catálogo; `tono` > 0 fija el pitch (si no, el `pitch` base del catálogo × la variación aleatoria).
+## Misma veda (VEDA_MS) por nombre que `play`. Sigue sonando con el árbol en pausa (menús).
+static func play_ui(nombre: String, db: float = INF, tono: float = 0.0) -> void:
+	if not CATALOGO.has(nombre):
+		return
+	var arbol: SceneTree = Engine.get_main_loop() as SceneTree
+	if arbol == null or arbol.root == null:
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if ahora - int(_ultima.get(nombre, -9999)) < VEDA_MS:
+		return
+	_ultima[nombre] = ahora
+	var cfg: Dictionary = CATALOGO[nombre]
+	var flujo: AudioStream = load(CARPETA + String((cfg["f"] as Array).pick_random()))
+	if flujo == null:
+		return
+	var vol: float = float(cfg["db"]) if db == INF else db
+	var v: float = float(cfg["tono"])
+	var pitch: float = float(cfg.get("pitch", 1.0)) * (1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
+	if tono > 0.0:
+		pitch = tono
+	_anotar(nombre, vol, pitch)
+	_asegurar_bus_interfaz()
+	var p := AudioStreamPlayer.new()
+	p.stream = flujo
+	p.volume_db = vol
+	p.pitch_scale = pitch
+	p.bus = BUS_INTERFAZ
+	p.process_mode = Node.PROCESS_MODE_ALWAYS
+	arbol.root.add_child(p)
+	p.finished.connect(p.queue_free)
+	p.play()
+
+
+## Crea el bus «Interfaz» (enviando a Master) si aún no existe.
+static func _asegurar_bus_interfaz() -> void:
+	if AudioServer.get_bus_index(BUS_INTERFAZ) >= 0:
+		return
+	AudioServer.add_bus()
+	var i: int = AudioServer.bus_count - 1
+	AudioServer.set_bus_name(i, BUS_INTERFAZ)
+	AudioServer.set_bus_send(i, "Master")
+
+
 ## El flujo de `nombre` listo para sonar en bucle (un WAV importado trae el bucle apagado: se duplica y se activa sobre todo el audio). null si no está.
 static func flujo_en_bucle(nombre: String) -> AudioStream:
 	if not CATALOGO.has(nombre):
@@ -273,6 +356,7 @@ static func bucle(origen: Node, nombre: String, tono: float = 1.0) -> Node:
 	var flujo: AudioStream = flujo_en_bucle(nombre)
 	if flujo == null:
 		return null
+	_anotar(nombre, float(cfg["db"]), tono)
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
 	p.set("volume_db", float(cfg["db"]))
