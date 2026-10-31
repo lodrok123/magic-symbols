@@ -54,7 +54,14 @@ static var TEMBLOR_DEBIL: float = 0.5          ## ... y si el elemento es su pun
 ## y la jugadora se congela también una fracción (Sensacion3D.HITSTOP_COMPARTIDO). Antes era fijo: 0,06 y 0,09.
 static var HITSTOP: float = 0.04               ## s que se congela ESE enemigo con el golpe más flojo (IA, animación y empuje; el mundo no)
 static var HITSTOP_DEBIL: float = 0.10         ## el máximo: un golpe grande o de su elemento débil
-static var DESTELLO_GOLPE: float = 0.20        ## s de blanco puro tras un golpe (antes 0,10 y tinte ×2,2, que dejaba ver la textura)
+static var DESTELLO_GOLPE: float = 0.20        ## s del destello de un golpe (0 = sin destello). 31/10 (tarea H): empieza T_FLASH_BLANCO s en blanco puro y sigue con el color del elemento (antes 0,10 y tinte ×2,2, que dejaba ver la textura)
+static var T_FLASH_BLANCO: float = 0.05        ## s de blanco puro al empezar el destello de un golpe con elemento (se ve a simple vista)
+static var T_FLASH_FUNDIDO: float = 0.06       ## s finales en que la energía del destello baja linealmente a 0 (antes cortaba en seco)
+static var ENERGIA_FLASH: float = 1.4          ## energía de la emisión del color del elemento (Color del elemento aclarado 35 % hacia blanco)
+static var DESTELLO_DEBIL: float = 0.28        ## s del destello si el golpe es de su elemento débil...
+static var ENERGIA_FLASH_DEBIL: float = 1.8    ## ... y su energía
+static var ENERGIA_FLASH_CONTINUO: float = 0.8 ## energía del tinte del daño continuo (quemadura, veneno, pulsos): sin fase blanca, para que no parpadee
+const COLOR_FLASH_PIEDRA: Color = Color(0.75, 0.75, 0.75)   ## destello corto del «Piedra» del gólem (elemento «piedra»)
 static var SQUASH_ESCALA: Vector3 = Vector3(1.25, 0.8, 1.25)   ## aplastamiento del modelo al golpe: vuelve a 1 en SQUASH_TIEMPO con TRANS_BACK
 static var SQUASH_TIEMPO: float = 0.15
 static var ANTICIPA_ESCALA: Vector3 = Vector3(1.12, 0.86, 1.12)   ## gamefeel: cómo se encoge al empezar el aviso de su ataque (C3)
@@ -273,8 +280,14 @@ var _t_contacto_fuego: float = 0.0      ## cuenta atrás hasta la próxima compr
 var _barra_t: float = 0.0
 var _vida_mostrada: float = 1.0
 var impactos_visuales: int = 0              ## cuántas veces pidió estrella + temblor al Vfx3D (para las pruebas)
-var _destello: float = 0.0
-var _flash_blanco: bool = false         ## el destello está pintado ahora mismo (emisión blanca en los materiales)
+var _destello: float = 0.0              ## s que le quedan al destello
+var _destello_total: float = 0.0        ## duración con que empezó (el tiempo transcurrido es _destello_total − _destello)
+var _destello_el: String = ""           ## elemento que lo tiñe ("" = blanco, "piedra" = gris corto)
+var _destello_debil: bool = false       ## golpe de su elemento débil: más largo y más fuerte
+var _destello_continuo: bool = false    ## daño continuo (quemadura, veneno, pulsos): sin fase blanca
+var _flash_blanco: bool = false         ## el destello está pintado ahora mismo (emisión en los materiales)
+var _flash_color: Color = Color.WHITE   ## último color de emisión aplicado a los materiales
+var _flash_energia: float = -1.0        ## ... y su energía
 var _emision_previa: Array = []         ## [enabled, color, energía] de cada material antes del destello, para devolverlo igual
 var _hitstop: float = 0.0               ## s que le quedan congelado por el último golpe
 var respingo: Vector3 = Vector3.ZERO    ## gamefeel lote 3: desplazamiento del MODELO (no del nodo) del tirón al recibir un golpe; vuelve solo a cero
@@ -492,7 +505,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 			_iniciar_hitstop(hs)
 		_impacto_visual("", false, d)
 	_k_golpe = 1.0
-	_destello = maxf(_destello, DESTELLO_GOLPE)
+	iniciar_destello("", false)                          # golpe F: blanco corto, sin fase de color
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador                                  # un golpe te hace mirar a quien viene
 	PlayLog.event("golpe_cuerpo_recibido", {"nombre": nombre, "dano": snappedf(float(r["dano"]), 0.1), "vida": snappedf(health, 0.1), "escudo": parado,
@@ -826,7 +839,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		if not muerto:
 			interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
 			_iniciar_hitstop(hs)
-	_destello = maxf(_destello, DESTELLO_GOLPE)
+	iniciar_destello(el, mult > 1.0)
 	if not muerto:
 		_reaccion_visual(el)
 	_impacto_visual(el, mult > 1.0, d)
@@ -878,7 +891,8 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 			return
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
-	_destello = maxf(_destello, DESTELLO_DANO)
+	if not _num_golpe:
+		iniciar_destello(_num_elemento, false, true)     # daño continuo: tinte del elemento; los golpes ponen el suyo después (golpe, recibir_golpe_cuerpo)
 	_barra_destello = DESTELLO_BARRA
 	_perdida_espera = RETARDO_PERDIDA
 	_numero(cantidad)
@@ -1218,7 +1232,7 @@ func prender_por_contacto(segundos: float = QUEMA_CONTACTO) -> bool:
 	quemando = maxf(quemando, maxf(segundos, ELEMENTAL_QUEMA) if elemental else segundos)
 	if not estaba:
 		_reaccionar("prendido")
-		_destello = maxf(_destello, DESTELLO_DANO)
+		iniciar_destello("fuego", false, true)
 		PlayLog.event("goblin_prende_por_contacto", {"nombre": nombre})
 	return true
 
@@ -1958,17 +1972,70 @@ func _animar() -> void:
 ##  Aspecto: tinte por material y barra de vida
 ## =====================================================================================================
 
-## Destello BLANCO PURO: albedo negro + emisión blanca, así la textura del modelo no se ve (el tinte ×2,2 de antes la dejaba asomar). Al apagarlo
-## se devuelve la emisión que cada material tenía. Se llama cada fotograma desde _dibujar_estado; solo toca los materiales al cambiar de estado.
-func _destello_blanco(activo: bool) -> void:
+## Empieza un destello (tarea H, 31/10). `el` = elemento que lo tiñe ("" = blanco puro, "piedra" = gris corto del gólem); `debil` = golpe de su elemento débil (más largo y fuerte);
+## `continuo` = daño que no es golpe (quemadura, veneno, pulsos: tinte del elemento sin fase blanca). Un destello nuevo sustituye al que hubiera, salvo que uno continuo
+## no pisa un golpe en curso. Con DESTELLO_GOLPE = 0 los golpes no destellan.
+func iniciar_destello(el: String, debil: bool, continuo: bool = false) -> void:
+	var dur: float = DESTELLO_DANO if continuo else (DESTELLO_DEBIL if debil else DESTELLO_GOLPE)
+	if dur <= 0.0 or (DESTELLO_GOLPE <= 0.0 and not continuo):
+		return
+	if continuo and _destello > 0.0 and not _destello_continuo:
+		return
+	_destello = dur
+	_destello_total = dur
+	_destello_el = el
+	_destello_debil = debil
+	_destello_continuo = continuo
+
+
+func _color_destello(el: String) -> Color:
+	if el == "piedra":
+		return COLOR_FLASH_PIEDRA
+	if el == "veneno":
+		return Color(0.55, 0.9, 0.35)
+	return (COLORES[el] as Color).lerp(Color.WHITE, 0.35) if COLORES.has(el) else Color.WHITE
+
+
+## Qué toca pintar ahora: [color, energía], según el tiempo transcurrido del destello. Sin sensación, o sin elemento (golpe F): blanco de siempre.
+func _destello_fase() -> Array:
+	var blanco: Array = [Color.WHITE, 1.0]
+	if not Sensacion3D.ACTIVA or _destello_el == "":
+		return blanco
+	if _destello_el == "piedra":
+		return [COLOR_FLASH_PIEDRA, 1.0]
+	if _destello_continuo:
+		var cc: Color = _color_destello(_destello_el)
+		return blanco if cc == Color.WHITE else [cc, ENERGIA_FLASH_CONTINUO]
+	if not COLORES.has(_destello_el) or _destello_total - _destello < T_FLASH_BLANCO:
+		return blanco
+	var energia: float = ENERGIA_FLASH_DEBIL if _destello_debil else ENERGIA_FLASH
+	if T_FLASH_FUNDIDO > 0.0 and _destello < T_FLASH_FUNDIDO:
+		energia *= _destello / T_FLASH_FUNDIDO
+	return [_color_destello(_destello_el), energia]
+
+
+## Destello: albedo negro + emisión de `color` a `energia`, así la textura del modelo no se ve (el tinte ×2,2 de antes la dejaba asomar). Al apagarlo se devuelve la emisión que cada
+## material tenía. Se llama cada fotograma desde _dibujar_estado; solo toca la emisión de los materiales cuando cambian el color o la energía (el albedo negro sí, porque
+## _aplicar_tinte lo repinta cada fotograma).
+func _destello_pintar(activo: bool, color: Color = Color.WHITE, energia: float = 1.0) -> void:
 	if activo == _flash_blanco:
 		if activo:
+			var cambia: bool = not color.is_equal_approx(_flash_color) or not is_equal_approx(energia, _flash_energia)
+			if cambia:
+				_flash_color = color
+				_flash_energia = energia
 			for m in _materiales:
-				if is_instance_valid(m):
-					(m as StandardMaterial3D).albedo_color = Color.BLACK    # _aplicar_tinte lo acaba de repintar con el tinte
+				var mat3: StandardMaterial3D = m as StandardMaterial3D
+				if is_instance_valid(mat3):
+					mat3.albedo_color = Color.BLACK    # _aplicar_tinte lo acaba de repintar con el tinte
+					if cambia:
+						mat3.emission = color
+						mat3.emission_energy_multiplier = energia
 		return
 	_flash_blanco = activo
 	if activo:
+		_flash_color = color
+		_flash_energia = energia
 		_emision_previa.clear()
 		for m in _materiales:
 			var mat: StandardMaterial3D = m as StandardMaterial3D
@@ -1977,8 +2044,8 @@ func _destello_blanco(activo: bool) -> void:
 				continue
 			_emision_previa.append([mat.emission_enabled, mat.emission, mat.emission_energy_multiplier])
 			mat.emission_enabled = true
-			mat.emission = Color.WHITE
-			mat.emission_energy_multiplier = 1.0
+			mat.emission = color
+			mat.emission_energy_multiplier = energia
 			mat.albedo_color = Color.BLACK
 	else:
 		for i in range(_materiales.size()):
@@ -2011,7 +2078,11 @@ func _dibujar_estado(delta: float) -> void:
 	if _t_conjuro > 0.0:                      # brillo sutil que lo cura
 		c = c.lerp(Color(0.8, 1.55, 0.85), 0.35 + 0.15 * sin(Time.get_ticks_msec() * 0.012))
 	_aplicar_tinte(c)
-	_destello_blanco(_destello > 0.0)
+	if _destello > 0.0:
+		var fase: Array = _destello_fase()
+		_destello_pintar(true, fase[0], float(fase[1]))
+	else:
+		_destello_pintar(false)
 
 	var fr: float = clampf(health / vida_max, 0.0, 1.0)
 	_barra_destello = maxf(0.0, _barra_destello - delta)
@@ -2438,7 +2509,7 @@ func _morir(ahogado: bool = false) -> void:
 	if _tw_salto != null and _tw_salto.is_valid():
 		_tw_salto.kill()
 	_cancelar_squash()
-	_destello_blanco(false)
+	_destello_pintar(false)
 	_aplicar_tinte(tinte)
 	var dur_hundir: float = 0.0
 	if ahogado:

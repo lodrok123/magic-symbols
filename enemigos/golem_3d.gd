@@ -261,7 +261,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_hitstop_compartido(hs)
 		if not muerto:
 			_iniciar_hitstop(hs)
-		_destello = maxf(_destello, DESTELLO_GOLPE)
+		iniciar_destello(hechizo.elemento, true)          # tarea H: el núcleo expuesto destella del color del elemento y 0,28 s
 		_impacto_visual(hechizo.elemento, true, d)
 	elif not vulnerable() and hechizo.elemento != "viento":
 		_piedra(d)                                   # el viento ya habló en `push` («Ni se inmuta» o resbala)
@@ -287,7 +287,8 @@ func _aplicar_dano(cantidad: float) -> void:
 		return
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
-	_destello = maxf(_destello, DESTELLO_DANO)
+	if not _num_golpe:
+		iniciar_destello(_num_elemento, false, true)
 	_barra_destello = DESTELLO_BARRA
 	_perdida_espera = RETARDO_PERDIDA
 	_numero(cantidad)
@@ -315,7 +316,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, _fuerza: float, _factor_esc
 		_hitstop_compartido(hs)
 		if not muerto:
 			_iniciar_hitstop(hs)
-		_destello = maxf(_destello, DESTELLO_GOLPE)
+		iniciar_destello("", false)                       # golpe F con el núcleo a la vista: blanco corto
 		_impacto_visual("", false, d)
 	else:
 		_piedra(d)
@@ -330,6 +331,7 @@ func _piedra(dir: Vector3 = Vector3.ZERO) -> void:
 	if _t_texto > 0.0:
 		return
 	_t_texto = PAUSA_TEXTO
+	iniciar_destello("piedra", false)                     # tarea H: destello gris corto
 	texto("Piedra", COLOR_PIEDRA, 0.28)
 	Sfx3D.play(self, "escudo_golpe")
 	if dir.length() > 0.01:

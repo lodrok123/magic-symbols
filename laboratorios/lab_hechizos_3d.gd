@@ -49,11 +49,7 @@ const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
 const IMPACTO: Array = [
 	{"n": "MULT_EMPUJE", "paso": 0.25, "min": 0.0, "max": 10.0},
 	{"n": "EMPUJE_MIN_CASILLAS", "paso": 0.05, "min": 0.0, "max": 3.0},
-	{"n": "K_EMPUJE_MIN", "paso": 0.05, "min": 0.0, "max": 3.0},
-	{"n": "K_EMPUJE_MAX", "paso": 0.05, "min": 0.0, "max": 4.0},
-	{"n": "DANO_EMPUJE_MAX", "paso": 1.0, "min": 1.0, "max": 100.0},
-	{"n": "K_EMPUJE_DEBIL", "paso": 0.05, "min": 0.5, "max": 3.0},
-	{"n": "S:V0_REF", "paso": 0.5, "min": 1.0, "max": 30.0},
+	{"n": "K_EMPUJE_MIN", "paso": 0.05, "min": 0.0, "max": 3.0},      # 31/10 (tarea P): ocupa el hueco de MULT_EMPUJE_ELEMENTAL; `escenario_lab_hechizos` cuenta con SQUASH_XZ en el índice 7
 	{"n": "DECAIMIENTO_EMPUJE", "paso": 0.5, "min": 1.0, "max": 30.0},
 	{"n": "HITSTOP", "paso": 0.01, "min": 0.0, "max": 0.5},
 	{"n": "HITSTOP_DEBIL", "paso": 0.01, "min": 0.0, "max": 0.5},
@@ -63,6 +59,18 @@ const IMPACTO: Array = [
 	{"n": "SQUASH_TIEMPO", "paso": 0.01, "min": 0.02, "max": 1.0},
 	{"n": "SALTO_ALTO", "paso": 0.05, "min": 0.0, "max": 2.0},
 	{"n": "SALTO_TIEMPO", "paso": 0.02, "min": 0.05, "max": 1.0},
+	# 31/10 (tarea P): el empuje por daño y masa. (Van después de las de siempre para no mover sus índices.)
+	{"n": "K_EMPUJE_MAX", "paso": 0.05, "min": 0.0, "max": 4.0},
+	{"n": "DANO_EMPUJE_MAX", "paso": 1.0, "min": 1.0, "max": 100.0},
+	{"n": "K_EMPUJE_DEBIL", "paso": 0.05, "min": 0.5, "max": 3.0},
+	{"n": "S:V0_REF", "paso": 0.5, "min": 1.0, "max": 30.0},
+	# 31/10 (tarea H): el destello del color del elemento.
+	{"n": "T_FLASH_BLANCO", "paso": 0.01, "min": 0.0, "max": 0.2},
+	{"n": "T_FLASH_FUNDIDO", "paso": 0.01, "min": 0.0, "max": 0.2},
+	{"n": "ENERGIA_FLASH", "paso": 0.1, "min": 0.0, "max": 4.0},
+	{"n": "DESTELLO_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "ENERGIA_FLASH_DEBIL", "paso": 0.1, "min": 0.0, "max": 4.0},
+	{"n": "ENERGIA_FLASH_CONTINUO", "paso": 0.1, "min": 0.0, "max": 4.0},
 	# 29/10 (gamefeel lote 4, F20): las de `Sensacion3D` van con el prefijo «S:» (`impacto_valor` / `impacto_poner` las enrutan). S:ACTIVA a 0 apaga TODA la sensación: es el modo «comparar».
 	{"n": "S:ACTIVA", "paso": 1.0, "min": 0.0, "max": 1.0},
 	{"n": "S:RETROCESO_V0", "paso": 0.1, "min": 0.0, "max": 5.0},

@@ -246,7 +246,7 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			mojado = 0.0
 		"hielo":
 			congelado = 0.0
-	_destello = maxf(_destello, DESTELLO_DANO)
+	iniciar_destello(el, false, true)
 	_t_gracia = GRACIA_SUELO
 	_rotular()
 	if origen == "hechizo":
@@ -544,9 +544,11 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = 
 	super(direccion, fuerza, suelo, dano, debil)
 
 
-func _reaccion_visual(_el: String) -> void:
+func _reaccion_visual(el: String) -> void:
 	if cuerpo != null and is_instance_valid(cuerpo) and not cuerpo.en_salto:
-		cuerpo.golpe()
+		# tarea H: el destello del limo lleva el color del elemento (con la sensación apagada o DESTELLO_GOLPE = 0, sin destello: el limo no tenía)
+		var col: Color = (COLORES[el] as Color).lerp(Color.WHITE, 0.35) if COLORES.has(el) else Color.WHITE
+		cuerpo.golpe(col, 1.0 if Sensacion3D.ACTIVA and DESTELLO_GOLPE > 0.0 else 0.0)
 
 
 ## =====================================================================================================
