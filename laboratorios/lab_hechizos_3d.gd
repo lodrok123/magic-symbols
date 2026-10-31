@@ -95,6 +95,30 @@ const IMPACTO: Array = [
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
 ]
 
+## 31/10 (tarea S1): el mando de volumen en vivo. Al final de F3, detrás de todo lo de IMPACTO, una entrada «dB:nombre» por sonido de `Sfx.CATALOGO` (alfabético), la del bus y la acción de imprimir.
+const DB_PREFIJO: String = "dB:"
+const DB_BUS: String = "dB:Interfaz (bus)"
+const DB_IMPRIMIR: String = "dB:imprimir ajustes"
+const DB_MIN: float = -40.0
+const DB_MAX: float = 6.0
+const DB_PASO: float = 1.0
+const VENTANA_IMPACTO: int = 36                ## filas de F3 que se dibujan a la vez; con más entradas (son ~150) el panel se desplaza siguiendo a la elegida
+static var _entradas_cache: Array = []
+
+
+## Las entradas de F3: IMPACTO (los índices de siempre, SQUASH_XZ es el 7) + las de volumen, en este orden. Se arma una vez.
+static func entradas() -> Array:
+	if _entradas_cache.is_empty():
+		_entradas_cache = IMPACTO.duplicate()
+		var nombres: Array = Sfx.CATALOGO.keys()
+		nombres.sort()
+		for nombre in nombres:
+			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_BUS, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_IMPRIMIR, "paso": 1.0, "min": 0.0, "max": 1.0})
+	return _entradas_cache
+
+
 enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX, ESTADOS }
 
 var pestana: int = Pestana.RECETA
@@ -138,7 +162,7 @@ func iniciar(mundo: Variant) -> void:
 	_cam_juego = get_viewport().get_camera_3d()
 	_l.conjuro_fase.connect(_al_conjuro_fase)
 	_l.lanzado.connect(_al_lanzado)
-	for e in IMPACTO:
+	for e in entradas():
 		impacto_inicial[String(e["n"])] = impacto_valor(String(e["n"]))
 	_registrar_agua()
 	_l.cambios_hechizo = cambios_hechizo           # el mismo diccionario: lo que se toque aquí lo ve el lanzador al instante
@@ -385,6 +409,12 @@ static func impacto_valor(nombre: String) -> float:
 			return Combate3D.SQUASH_ESCALA.x
 		"SQUASH_Y":
 			return Combate3D.SQUASH_ESCALA.y
+	if nombre.begins_with(DB_PREFIJO):
+		if nombre == DB_IMPRIMIR:
+			return 0.0                                     # una acción: siempre vuelve a 0
+		if nombre == DB_BUS:
+			return Sfx.volumen_bus(Sfx.BUS_INTERFAZ) if AudioServer.get_bus_index(Sfx.BUS_INTERFAZ) >= 0 else Sfx.VOLUMEN_BUS_INTERFAZ
+		return Sfx.db_de(nombre.substr(DB_PREFIJO.length()))
 	if nombre.begins_with("S:"):
 		var v: Variant = (Sensacion3D as GDScript).get(nombre.substr(2))
 		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
@@ -398,7 +428,19 @@ static func impacto_poner(nombre: String, v: float) -> void:
 		"SQUASH_Y":
 			Combate3D.SQUASH_ESCALA = Vector3(Combate3D.SQUASH_ESCALA.x, v, Combate3D.SQUASH_ESCALA.z)
 		_:
-			if nombre.begins_with("S:"):
+			if nombre.begins_with(DB_PREFIJO):
+				if nombre == DB_IMPRIMIR:
+					if v >= 0.5:
+						Sfx.imprimir_ajustes()
+				elif nombre == DB_BUS:
+					Sfx.fijar_volumen_bus(Sfx.BUS_INTERFAZ, v)
+				else:
+					var s: String = nombre.substr(DB_PREFIJO.length())
+					if Sfx.CATALOGO.has(s) and is_equal_approx(v, float(Sfx.CATALOGO[s]["db"])):
+						Sfx.AJUSTES.erase(s)               # igual al catálogo: no es un ajuste
+					else:
+						Sfx.AJUSTES[s] = v
+			elif nombre.begins_with("S:"):
 				var n: String = nombre.substr(2)
 				var actual: Variant = (Sensacion3D as GDScript).get(n)
 				(Sensacion3D as GDScript).set(n, v >= 0.5 if actual is bool else v)
@@ -408,10 +450,15 @@ static func impacto_poner(nombre: String, v: float) -> void:
 
 ## Cambia la entrada `i` de IMPACTO `pasos` veces su paso (con tope en su mínimo y máximo). Devuelve el valor nuevo.
 func impacto_cambiar(i: int, pasos: int) -> float:
-	var e: Dictionary = IMPACTO[clampi(i, 0, IMPACTO.size() - 1)]
+	var todas: Array = entradas()
+	var e: Dictionary = todas[clampi(i, 0, todas.size() - 1)]
 	var v: float = clampf(impacto_valor(String(e["n"])) + float(pasos) * float(e["paso"]), float(e["min"]), float(e["max"]))
 	v = snappedf(v, float(e["paso"]) * 0.1)
 	impacto_poner(String(e["n"]), v)
+	var nom: String = String(e["n"])
+	if nom.begins_with(DB_PREFIJO) and nom != DB_IMPRIMIR:
+		# Para OÍR el cambio al instante: el sonido por `play_ui` (el bus, con un tic de la interfaz). La veda de 70 ms de Sfx no deja repetirlo más rápido.
+		Sfx.play_ui("ui_tick" if nom == DB_BUS else nom.substr(DB_PREFIJO.length()))
 	return v
 
 
@@ -422,9 +469,11 @@ func impacto_restaurar() -> void:
 
 func impacto_tabla() -> Dictionary:
 	var d: Dictionary = {}
-	for e in IMPACTO:
-		if String(e["n"]) == "S:ACTIVA":
+	for e in entradas():
+		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR:
 			continue                                   # «comparar» no se guarda: el lab no debe volver a abrir con la sensación apagada (es static: todo el proceso)
+		if String(e["n"]).begins_with(DB_PREFIJO) and is_equal_approx(impacto_valor(String(e["n"])), float(impacto_inicial.get(String(e["n"]), 0.0))):
+			continue                                   # los volúmenes solo si los has tocado: son ~100 y no ensucian el archivo
 		d[String(e["n"])] = snappedf(impacto_valor(String(e["n"])), 0.0001)
 	return d
 
@@ -584,7 +633,7 @@ func guardar() -> bool:
 func tabla_texto() -> String:
 	var t: PackedStringArray = []
 	t.append("# F3 Impacto · constantes de enemigos/combate_3d.gd (y, con «S:», de presentacion/sensacion_3d.gd)")
-	for e in IMPACTO:
+	for e in IMPACTO:                                  # (los «dB:» no: se vuelcan con su propia entrada «dB:imprimir ajustes», en formato de catálogo)
 		var n: String = String(e["n"])
 		var base: float = float(impacto_inicial.get(n, 0.0))
 		var ahora: float = impacto_valor(n)
@@ -727,9 +776,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 	elif receta_f1 and k.keycode == KEY_RIGHT:
 		tabla_cambiar(paso)
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_UP:
-		impacto_sel = (impacto_sel - 1 + IMPACTO.size()) % IMPACTO.size()
+		impacto_sel = (impacto_sel - 1 + entradas().size()) % entradas().size()
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_DOWN:
-		impacto_sel = (impacto_sel + 1) % IMPACTO.size()
+		impacto_sel = (impacto_sel + 1) % entradas().size()
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_LEFT:
 		impacto_cambiar(impacto_sel, -paso)
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_RIGHT:
@@ -902,11 +951,19 @@ func _texto_conjuro() -> String:
 func _texto_impacto() -> String:
 	var t: PackedStringArray = []
 	t.append("IMPACTO · constantes de Combate3D EN VIVO (↑↓ elige · ←→ cambia, Mayús ×10 · Retroceso restaura · G guarda · P imprime)")
-	for i in range(IMPACTO.size()):
-		var n: String = String(IMPACTO[i]["n"])
+	var todas: Array = entradas()
+	# Ventana desplazable: con ~150 entradas no cabrían en pantalla. Sigue a la elegida (↑↓, y al dar la vuelta salta al otro extremo).
+	var ini: int = clampi(impacto_sel - VENTANA_IMPACTO / 2, 0, maxi(0, todas.size() - VENTANA_IMPACTO))
+	var fin: int = mini(todas.size(), ini + VENTANA_IMPACTO)
+	if ini > 0:
+		t.append("  ▲ %d más arriba" % ini)
+	for i in range(ini, fin):
+		var n: String = String(todas[i]["n"])
 		var v: float = impacto_valor(n)
 		var base: float = float(impacto_inicial.get(n, v))
 		t.append("%s %-24s %8.3f%s" % ["►" if i == impacto_sel else " ", n, v, ("   (era %.3f)" % base) if not is_equal_approx(v, base) else ""])
+	if fin < todas.size():
+		t.append("  ▼ %d más abajo   (los «dB:» afinan el volumen de cada sonido y lo reproducen; «dB:imprimir ajustes» a 1 los vuelca para pegar en Sfx.CATALOGO)" % (todas.size() - fin))
 	t.append("Lanza con Espacio sobre los goblins quietos para ver el empuje, la pausa, el destello y el aplastamiento.")
 	return "\n".join(t)
 

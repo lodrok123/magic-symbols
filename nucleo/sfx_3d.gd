@@ -100,7 +100,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 		return
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
-	p.volume_db = float(cfg.get("db", -6.0)) + db_extra
+	p.volume_db = float(Sfx.AJUSTES.get(nombre, cfg.get("db", -6.0))) + db_extra      # S1: el ajuste en vivo (Sfx.AJUSTES) manda sobre el catálogo
 	var t: float = float(cfg.get("tono", 0.0))
 	p.pitch_scale = float(cfg.get("base", 1.0)) * (1.0 + randf_range(-t, t)) * tono_mult
 	p.unit_size = float(cfg.get("unidad", UNIDAD))
@@ -143,7 +143,7 @@ static func ambiente(origen: Node3D, nombre: String) -> AudioStreamPlayer3D:
 		return null
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
-	p.volume_db = float(cfg.get("db", -8.0))
+	p.volume_db = float(Sfx.AJUSTES.get(nombre, cfg.get("db", -8.0)))
 	p.unit_size = float(cfg.get("unidad", UNIDAD))
 	p.max_distance = float(cfg.get("alcance", ALCANCE))
 	p.position = Vector3(0.0, float(cfg.get("alto", 0.5)), 0.0)

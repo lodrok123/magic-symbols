@@ -179,8 +179,63 @@ const CATALOGO: Dictionary = {
 	"ui_equipar": {"f": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 }
 
-## El bus de la interfaz. No hay `default_bus_layout.tres` en el proyecto: `play_ui` lo crea al primer uso (hijo de Master) si no existe.
+## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.
 const BUS_INTERFAZ: String = "Interfaz"
+static var VOLUMEN_BUS_INTERFAZ: float = -6.0     ## dB de partida del bus «Interfaz» cuando se crea en caliente (el .tres lleva el mismo)
+
+## AFINADO EN VIVO (31/10, tarea S1): nombre -> dB que SOBRESCRIBE el del catálogo. Lo escribe el panel F3 del LabHechizos3D («dB:nombre»); vacío = suena como dice CATALOGO.
+## `imprimir_ajustes()` vuelca lo cambiado en formato de catálogo para pegarlo. También lo consulta Sfx3D.
+static var AJUSTES: Dictionary = {}
+
+
+## Los dB con que suena `nombre`: el ajuste en vivo si lo hay, y si no el del catálogo (de Sfx; los de Sfx3D, su propio db). Un nombre desconocido: 0.
+static func db_de(nombre: String) -> float:
+	if AJUSTES.has(nombre):
+		return float(AJUSTES[nombre])
+	if CATALOGO.has(nombre):
+		return float((CATALOGO[nombre] as Dictionary)["db"])
+	return 0.0
+
+
+## Lo que has cambiado respecto al catálogo, una línea por sonido en orden alfabético y listo para pegar: `"nombre": {"db": -12.0},`. Lo imprime y lo devuelve.
+## Un ajuste igual al del catálogo no se lista. Si el bus «Interfaz» no está a su volumen de partida, lo dice al final.
+static func imprimir_ajustes() -> String:
+	var lineas: PackedStringArray = []
+	lineas.append("# Sfx.AJUSTES · dB cambiados respecto a Sfx.CATALOGO (pega cada db en su entrada)")
+	var nombres: Array = AJUSTES.keys()
+	nombres.sort()
+	var n: int = 0
+	for nombre in nombres:
+		var nuevo: float = float(AJUSTES[nombre])
+		var viejo: float = float((CATALOGO[nombre] as Dictionary)["db"]) if CATALOGO.has(nombre) else (float(Sfx3D.CATALOGO[nombre]["db"]) if Sfx3D.CATALOGO.has(nombre) else 0.0)
+		if is_equal_approx(nuevo, viejo):
+			continue
+		lineas.append("\"%s\": {\"db\": %s},   # antes %s" % [nombre, str(snappedf(nuevo, 0.01)), str(viejo)])
+		n += 1
+	if n == 0:
+		lineas.append("# (ningún sonido cambiado)")
+	if AudioServer.get_bus_index(BUS_INTERFAZ) >= 0 and not is_equal_approx(volumen_bus(BUS_INTERFAZ), VOLUMEN_BUS_INTERFAZ):
+		lineas.append("# bus «%s»: %s dB (partida %s; en default_bus_layout.tres: bus/1/volume_db)" % [BUS_INTERFAZ, str(snappedf(volumen_bus(BUS_INTERFAZ), 0.01)), str(VOLUMEN_BUS_INTERFAZ)])
+	var texto: String = "\n".join(lineas)
+	print(texto)
+	return texto
+
+
+## Volumen (dB) de un bus por nombre; 0 si no existe.
+static func volumen_bus(bus: String) -> float:
+	var i: int = AudioServer.get_bus_index(bus)
+	return AudioServer.get_bus_volume_db(i) if i >= 0 else 0.0
+
+
+## Fija el volumen (dB) de un bus por nombre. «Interfaz» se crea si falta. Devuelve false si el bus no existe.
+static func fijar_volumen_bus(bus: String, db: float) -> bool:
+	if bus == BUS_INTERFAZ:
+		_asegurar_bus_interfaz()
+	var i: int = AudioServer.get_bus_index(bus)
+	if i < 0:
+		return false
+	AudioServer.set_bus_volume_db(i, db)
+	return true
 
 ## Registro de reproducciones para las PRUEBAS (headless no se oye nada): con `REGISTRAR = true` cada sonido que de verdad suena (tras la veda) suma 1 en `CONTEO[nombre]`
 ## y se anota en `ULTIMOS` ({nombre, db, tono}). Apagado por defecto: en el juego no cuesta nada.
@@ -256,12 +311,12 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	var flujo: AudioStream = load(CARPETA + String(archivos.pick_random()))
 	if flujo == null:
 		return
-	_anotar(nombre, float(cfg["db"]), tono)
+	_anotar(nombre, db_de(nombre), tono)
 
 	# M4: el origen puede ser un nodo 3D (Lanzador3D, Grimorio) o uno 2D (el libro, el 2D que aún queda). 3D → reproductor 3D.
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
-	p.set("volume_db", float(cfg["db"]))
+	p.set("volume_db", db_de(nombre))
 	var v: float = float(cfg["tono"])
 	p.set("pitch_scale", 1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
 	if tono > 0.0:
@@ -302,7 +357,7 @@ static func play_ui(nombre: String, db: float = INF, tono: float = 0.0) -> void:
 	var flujo: AudioStream = load(CARPETA + String((cfg["f"] as Array).pick_random()))
 	if flujo == null:
 		return
-	var vol: float = float(cfg["db"]) if db == INF else db
+	var vol: float = db_de(nombre) if db == INF else db
 	var v: float = float(cfg["tono"])
 	var pitch: float = float(cfg.get("pitch", 1.0)) * (1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
 	if tono > 0.0:
@@ -328,6 +383,7 @@ static func _asegurar_bus_interfaz() -> void:
 	var i: int = AudioServer.bus_count - 1
 	AudioServer.set_bus_name(i, BUS_INTERFAZ)
 	AudioServer.set_bus_send(i, "Master")
+	AudioServer.set_bus_volume_db(i, VOLUMEN_BUS_INTERFAZ)
 
 
 ## El flujo de `nombre` listo para sonar en bucle (un WAV importado trae el bucle apagado: se duplica y se activa sobre todo el audio). null si no está.
@@ -356,10 +412,10 @@ static func bucle(origen: Node, nombre: String, tono: float = 1.0) -> Node:
 	var flujo: AudioStream = flujo_en_bucle(nombre)
 	if flujo == null:
 		return null
-	_anotar(nombre, float(cfg["db"]), tono)
+	_anotar(nombre, db_de(nombre), tono)
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
-	p.set("volume_db", float(cfg["db"]))
+	p.set("volume_db", db_de(nombre))
 	p.set("pitch_scale", tono)
 	p.process_mode = Node.PROCESS_MODE_ALWAYS
 	var padre: Node = origen.get_tree().current_scene
