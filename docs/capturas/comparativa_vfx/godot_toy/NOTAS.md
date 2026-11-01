@@ -142,3 +142,15 @@ Pablo: en `bola_cerca` se veía una estrella de meridianos en la base (las lengu
 **Comprobación** (vistas desde arriba, de lado y desde el suelo en el lab, más `bola_cerca`, `bola_juego` y `bola_vuelo`): sin facetas, silueta redonda y una sola; la estrella ya no se ve como estrella, queda un abanico muy tenue en el borde de abajo (visible solo desde abajo o a 2 m, y fundido).
 
 **Tonos** (`bola_cerca`; objetivo 15–30 / 50–65 / ≤ 20): 18 / 76 / 6 % (ronda 4: 22 / 58 / 21): demasiado naranja y poco amarillo, el cuerpo es ahora casi plano de color; el núcleo claro se ve poco. Prueba sin ventana: 0 fallos. Nota propia de la bola: 4,5 (cuerpo liso, una sola llama; le falta un núcleo más claro). Reloj: 20:49 – 21:00, ≈ 11 min.
+
+## Ronda 6 (1/11): la bola como billboard
+
+La ronda 5 no resolvió la bola: el abanico de la base seguía viéndose como un disco con rayos y en vuelo parecía un cilindro cortado con tapa. Causa: en una malla de revolución, cualquier UV que converge en un polo pellizca la textura y fundir o cerrar el polo deja una tapa. Se cambia de enfoque. La malla de la ronda 5 queda como `BolaFuegoToy_malla.tscn` y sus capturas y GIF en `ronda5/` para compararlas.
+
+**Método.** Un solo quad con billboard y el shader `fuego_lelu_bola.gdshader` (el método de Le Lu en 2D): la textura de lenguas sube por el eje de la llama, un segundo ruido, y en lugar del gradiente vertical se resta un **gradiente radial** (distancia al centro de la bola, estirada hacia arriba) con `pot_grad` 3,2: la silueta es una gota redonda abajo con lenguas arriba; la textura pesa poco en la mitad de abajo (silueta redonda) y todo el peso arriba; mismo `smoothstep` con `blandura` 0,22, misma rampa y núcleo claro en el centro (`calor_extra`); el ruido fino de las puntas y el titileo son los de siempre; un marco que apaga el alfa en el borde del quad. Sin malla 3D: no hay polos, facetas ni tapas. Halo aditivo pequeño detrás, luz, chispas y trocitos como antes. En vuelo, `EfectoToy` pone `inclin` = 1 y le pasa a cada frame la velocidad (`vel_dir`): el eje de la llama se alinea en pantalla con la velocidad y la llama se alarga hacia atrás (la estela es la misma llama estirada, no un segundo objeto); no hay cilindros.
+
+**Comprobación:** una sola silueta, sin disco y sin rayos, desde la cámara del juego, desde arriba, de lado y desde el suelo (vistas del lab), en `bola_cerca`, `bola_juego` y `bola_vuelo`. El impacto no se tocó (sigue el de la ronda 2).
+
+**Mallas frente a billboard.** El billboard gana: la malla de la ronda 5 daba un buen volumen pero nunca perdió del todo el abanico de la base ni el aspecto de tapa en vuelo; el billboard no tiene ninguno de los dos defectos. Lo que se pierde: no se ve de perfil si la cámara baja a ras (siempre mira a la cámara) y el interior no tiene cuerpo.
+
+**Tonos** (`bola_cerca`; objetivo 15–30 / 50–65 / ≤ 20): **15 / 65 / 20 %** (ronda 5: 20 / 74 / 6). Núcleo claro visible. Nota propia de la bola: 4,5. Prueba sin ventana: 0 fallos. Reloj: 20:53 – 21:05, ≈ 12 min (la primera versión era una llama alta y estrecha, no una bola; se ensanchó con `radio` 0,52 y `alargado` 0,72).

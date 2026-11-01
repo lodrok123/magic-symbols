@@ -68,6 +68,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
+	if proyectil and _listo:
+		for m in _mats:
+			if m.shader != null and m.shader.resource_path.get_file() == "fuego_lelu_bola.gdshader":
+				m.set_shader_parameter("vel_dir", -global_transform.basis.z)
 	if _luz != null and _listo:
 		_t += delta
 		var f: float = 1.0 + titileo * (sin(_t * 6.1 + _fase) * 0.6 + sin(_t * 10.7 + _fase * 2.0) * 0.4)
@@ -194,6 +198,9 @@ func _set_proyectil(v: bool) -> void:
 		for mi in find_children("*", "MeshInstance3D", true, false):
 			if (mi as Node).is_in_group("estela_malla"):
 				(mi as Node3D).visible = v                       # estela corta de la ronda 3 (malla con la textura de lenguas)
+		for m in _mats:
+			if m.shader != null and m.shader.resource_path.get_file() == "fuego_lelu_bola.gdshader":
+				m.set_shader_parameter("inclin", 1.0 if v else 0.0)       # billboard de la bola: el eje de la llama sigue a la velocidad
 		var inc: Node3D = get_node_or_null("Cuerpo/Inclinable") as Node3D
 		if inc != null:
 			inc.rotation_degrees.x = 55.0 if v else 0.0       # en vuelo, la llama se inclina hacia atrás

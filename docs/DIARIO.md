@@ -4405,3 +4405,5 @@ Ronda 3 de la 304 (Godot, prueba 3): los cinco efectos rehechos con el método d
 Ronda 4 de la 304 (Godot, prueba 3): pulido pedido por Pablo. Bola con una sola silueta (exterior `cull_back`, núcleo como halo aditivo, malla cerrada abajo) y muro como una sola banda de sección rectangular redondeada de 6,9 × 0,6 m, sin círculos ni huecos; tonos muro 17/60/23, bola 22/58/21; diez muros a 638 fps; prueba a 0 fallos.
 
 Ronda 5 de la 304 (Godot, prueba 3): la bola sin estrella en la base ni facetas (gota abierta con base fundida y disco aditivo, 64 × 40 segmentos, desplazamiento de vértices a 0 en la punta, segundo ruido en el cuerpo); tonos 18/76/6; prueba a 0 fallos.
+
+Ronda 6 de la 304 (Godot, prueba 3): la bola pasa de malla de revolución a quad billboard con el método de Le Lu en 2D (gradiente radial restado, textura de lenguas que sube, rampa con núcleo claro, en vuelo el eje sigue a la velocidad): sin polos, facetas ni tapas; tonos 15/65/20; la malla queda como `BolaFuegoToy_malla.tscn`; prueba a 0 fallos.
