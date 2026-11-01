@@ -8,6 +8,7 @@ Capturas de *The Legend of Zelda: Link's Awakening* (2019) y *Echoes of Wisdom* 
 | `la_pilar.jpg` | Trampa de fuego de Link's Awakening: columna alta de llama con bolas blandas apiladas, núcleo claro, resplandor cálido en las paredes. | Pilar | YouTube (miniatura) |
 | `la_antorchas.jpg` | Braseros y antorchas de Link's Awakening: llamas pequeñas, redondas, brillantes, dos tonos; cómo luce una luz de fuego en el diorama. | Bola estática | nintendolife |
 | `eow_ignizol.jpg` | Ignizol: una sola llama pequeña con punta ondulada, amarillo a naranja, con brillo. | Bola (forma de una llama) | destructoid |
+| `ref_bola_vuelo.png` | Bola de fuego en vuelo, anime, aportada por Pablo el 1/11 por la noche: la bola NO es una esfera perfecta, se deforma libremente; núcleo blanco muy brillante con destello, cuerpo que se alarga hacia atrás en lenguas que se desgarran y se sueltan, estelas finas de chispas con puntos brillantes en forma de estrella, resplandor amplio. | **Bola en movimiento** | Pablo |
 
 Lo que define el estilo (comprobable):
 - Llama **blanda**: degradado suave de blanco-amarillo a naranja, sin umbral duro ni contorno; borde con resplandor (bloom) cálido.
@@ -15,5 +16,4 @@ Lo que define el estilo (comprobable):
 - Sin rojo oscuro, sin humo negro; como mucho un humo claro escaso.
 - Luz cálida en el suelo con titileo suave; chispas pequeñas y pocas.
 - Se lee a la distancia de la cámara del juego (ortográfica, 30°), como en un diorama.
-
-| `ref_bola_vuelo.png` | Bola de fuego en vuelo (anime, aportada por Pablo el 1/11 por la noche): la bola NO es una esfera perfecta, se deforma libremente; núcleo blanco muy brillante con destello, cuerpo que se alarga hacia atrás en lenguas que se desgarran y se sueltan, estelas finas de chispas con puntos brillantes en forma de estrella, resplandor amplio. Referencia de la **bola en movimiento**. | Pablo |
+- La bola de fuego **se deforma libremente**, nunca es una esfera perfecta (apunte de Pablo, 1/11).
