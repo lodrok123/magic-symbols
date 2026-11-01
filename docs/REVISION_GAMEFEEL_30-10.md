@@ -225,3 +225,89 @@ Cada tarea: su prueba headless, su captura con ventana cuando algo no se ve sin 
 2. **H:** ¿el blanco inicial de 0,05 s se queda (asegura que se ve) o prefieres el color del elemento desde el primer fotograma?
 3. **M:** ¿cuál era el ejemplo del inventario que querías que analizara? No llegó en el mensaje.
 4. **V1:** `presentacion/` es del Pipeline según `PROPIETARIOS.md`. ¿Lo hace este contexto igualmente?
+
+---
+
+## 8. Segunda tanda (1/11): lo que falta más allá de los cuatro pilares
+
+Pedido por Pablo el 1/11 tras cerrar la primera tanda. Cinco tareas que no tocan el VFX de los hechizos (eso lo lleva otro chat; `presentacion/vfx_3d.gd` y los proyectiles no se editan aquí). Todo `static var`, todo respeta `Sensacion3D.ACTIVA` (si es false, nada de movimiento, pero sí sonidos), nada cambia reglas.
+
+### Tarea C · Cámara que reacciona (Sonnet, pequeña)
+
+Hoy el golpe se nota en el enemigo y en la viñeta, pero la cámara solo tiembla (`Vfx3D.temblor`, 5 sacudidas de `h_offset/v_offset`) con intensidad fija por evento (`TEMBLOR_GOLPE` 0,25). No hay Camera3D propia en el repo: todo va por `get_viewport().get_camera_3d()`.
+
+- **C1 · Retroceso al lanzar.** En `Sensacion3D.disparo(lanz, elemento, dir, mano, retroceso)` (`sensacion_3d.gd:175`): empujar la cámara 2 a 6 px (`h_offset/v_offset`) en sentido contrario a `dir` proyectado en pantalla y volver en 0,12 s (TRANS_BACK); la magnitud escala con el número de glifos de la receta (`RETROCESO_CAM_MIN` 2 px con 1 glifo, `RETROCESO_CAM_MAX` 6 px con 5). El lanzador ya sabe los glifos (`glifos_pagina` en `_preparar_pagina`, `lanzador_3d.gd:897`); si `disparo` no los recibe, añadir un parámetro opcional `n_glifos` con valor por defecto 1. Debe convivir con el temblor: ambos escriben `h_offset/v_offset`, así que el retroceso se suma a la base guardada en la meta `temblor_base` de la cámara, no la pisa.
+- **C2 · Temblor por daño.** `Combate3D._impacto_visual` (`combate_3d.gd:1050-1066`) llama `temblor(TEMBLOR_GOLPE)`: multiplicar por `_k_golpe` (ya calculado por la tarea P: 0,6 a 1,6) con tope `TEMBLOR_MAX` 0,5. Con debilidad se mantiene `TEMBLOR_DEBIL`. El golpe F y el daño continuo no tiemblan más que hoy.
+- **C3 · Sin acumulación.** Dos golpes en el mismo fotograma (área) no suman temblor: `Vfx3D.temblor` ya corta el anterior, pero C2 debe pasar el máximo de los `_k_golpe` del fotograma, no el último. Guardar en `Sensacion3D` un `_temblor_pendiente` que se aplica en el siguiente `_process` con el mayor valor pedido.
+
+**Prueba** `herramientas/prueba_camara_reacciona.gd`: disparo con 1 glifo mueve la cámara ≥ 2 px y con 5 glifos ≥ 2× más; vuelve a la base en 0,15 s; durante un temblor el retroceso no deja la cámara desplazada al acabar (base restaurada); golpe de 5 glifos tiembla más que de 1; dos golpes en el mismo fotograma = un temblor con el mayor; `ACTIVA = false` → cámara quieta. Regresión: `prueba_sensacion` 1-4, `prueba_golpe_cuerpo`, `escenario_lab_hechizos`.
+
+**Dónde verlo:** `laboratorios/LabHechizos3D.tscn`, Espacio con 1 y 5 glifos; panel F3 (`S:RETROCESO_CAM_*`, `TEMBLOR_MAX`).
+
+### Tarea D · Ping de debilidad (Sonnet, pequeña)
+
+`HITSTOP_DEBIL` (0,10 s) ya congela al enemigo, pero la única señal de «has acertado el elemento» es la barra.
+
+- Al golpear con debilidad (`Combate3D.golpe`, rama `mult > 1.0`, `combate_3d.gd:837-845`): sonido `ping_debil` (nuevo, agudo y corto, −10 dB, generado con `audio/gen_sfx_interfaz.py`, bus Master porque es del mundo: `Sfx.play(self, …)`) y un **flash de pantalla de un fotograma** blanco al 18 % (`ALFA_FLASH_DEBIL`), con el patrón de `Sensacion3D._vineta` (`sensacion_3d.gd:290`: CanvasLayer propia «FlashDebil», ColorRect lleno, se apaga en el siguiente fotograma). Con resistencia (`mult < 1.0`): `golpe_sordo` (nuevo, grave y apagado, −12 dB) y sin flash.
+- `Sensacion3D.ACTIVA = false` apaga el flash; los sonidos quedan.
+- Veda de 120 ms para el flash (un área que golpea a cuatro enemigos débiles no parpadea cuatro veces).
+
+**Prueba** `herramientas/prueba_ping_debil.gd`: golpe débil → `ping_debil` y la capa de flash visible un fotograma y oculta al siguiente; golpe normal → ni sonido ni flash; resistente → `golpe_sordo`; cuatro golpes débiles en 50 ms → un solo flash y cuatro pings (el ping tiene su veda de `Sfx3D`, comprobar lo que salga y documentarlo); `ACTIVA = false` sin flash. Regresión: `prueba_destello_elemento`, `prueba_sensacion`, `prueba_empuje_masa`.
+
+**Dónde verlo:** `laboratorios/LabRecetas3D.tscn`, agua sobre un enemigo de fuego.
+
+### Tarea E · Muerte por elemento (Sonnet, media)
+
+Hoy todos los enemigos mueren igual (`Combate3D._morir`, `combate_3d.gd:2485`: animación `death`, sonido, encoger a 0,01 en 0,35 s tras 1,4 s, botín). Es el momento de mayor recompensa y no dice nada del elemento. `_destello_el` conserva el elemento del golpe letal.
+
+- **E1 · Variante por elemento** en `Combate3D._morir`, leída de `_destello_el` antes de limpiar, en una función `_muerte_elemental(el)` que los hijos pueden sobrescribir:
+  - **fuego:** tinte a carbón (`_aplicar_tinte` hacia `Color(0.15, 0.1, 0.08)` en 0,4 s), `Vfx3D.ceniza(p)` sobre el cuerpo y `llamas` pequeñas 0,8 s; el encogido final es un desmoronamiento (escala Y a 0,01 primero, luego XZ).
+  - **hielo:** tinte azul claro y emisión fría durante 0,3 s, luego el cuerpo se **rompe**: `Vfx3D.chispazo_suave(p, COLOR[hielo])` y el modelo desaparece de golpe (sin encoger) con 6-8 trozos (cubos pequeños `MeshInstance3D` con el color del tinte que caen con gravedad simple y se funden en 1 s; nodo ayudante `TrozosHielo3D` en `enemigos/`).
+  - **rayo:** el cuerpo se queda **rígido** (sin animación `death`: pausar el AnimationPlayer en el fotograma del golpe), tiembla en sitio 0,3 s (`_respingar` repetido) con `Vfx3D.chispazo(p, "rayo")` ×3 y cae de golpe (rotación X 90° en 0,15 s).
+  - **agua:** `salpicadura(p, 1.2)` y `vapor(p)`, el cuerpo se desliza 0,5 u en la dirección del último empuje mientras encoge.
+  - **tierra:** `polvo` grande (`Sensacion3D.polvo(en, pos, 1.2)`) y `grietas(suelo, 0.6, 1.5)`; el cuerpo se hunde 0,3 u antes de encoger.
+  - **viento / sin elemento / golpe F:** como hoy.
+- **E2 · Sonido por elemento:** `snd_muere` sigue sonando; además un remate corto por elemento: fuego `pira` a −14 (ya existe), hielo `hielo_rompe` (nuevo), rayo `chispazo` (si existe en catálogo; si no, nuevo), agua `salpicadura` (si existe), tierra `derrumbe` a −12 (existe). Nuevos generados con el script de audio.
+- **E3 · Los hijos:** limo (`limo_3d.gd:558`, tiene `_morir` propio y shader) solo recibe el tinte y las partículas, no el desmoronamiento ni los trozos; gólem (`golem_3d.gd:595`) y chamán (`chaman_3d.gd:392`) llaman a `_muerte_elemental` si su `_morir` propio no lo impide; gato como el goblin; elemental (`_morir_elemental`, `combate_3d.gd:2363`) no cambia.
+- **E4 · Límite:** máximo `MAX_MUERTES_VFX` 3 muertes con efecto completo por segundo; a partir de ahí solo tinte y sonido (un área que mata a seis no debe bajar los fps). `ACTIVA = false` → muerte de hoy.
+
+**Prueba** `herramientas/prueba_muerte_elemento.gd`: matar a un goblin con cada elemento (fuego, hielo, rayo, agua, tierra, viento, golpe F) y comprobar la rama (tinte, nodos de partículas creados, AnimationPlayer pausado en rayo, trozos en hielo que desaparecen antes de 1,5 s, el nodo se libera en el mismo tiempo que hoy ±0,3 s); el botín y `Estado.enemigo_muerto` llegan igual en todas; limo con fuego → tinte sin trozos; siete muertes en 0,5 s → solo 3 con partículas; `ACTIVA = false` → sin nodos nuevos. Regresión: `prueba_limo_combate`, `prueba_golem_combate`, `prueba_chaman_combate`, `prueba_gatopedro`, `prueba_sensacion` 1-4, `prueba_destello_elemento`, `prueba_empuje_masa`, `escenario_sala_limo`, `escenario_sala_golem`.
+
+**Dónde verlo:** `laboratorios/LabRecetas3D.tscn`, matar goblins con cada elemento; `escenas/PruebaSalaLimo.tscn`.
+
+### Tarea O · Oclusión del sonido (Sonnet, pequeña)
+
+`Sfx3D.play` (`sfx_3d.gd:84`) crea un `AudioStreamPlayer3D` en la raíz, sin bus propio ni filtro. Un enemigo detrás de una roca suena igual que uno a la vista.
+
+- Bus nuevo **«Mundo»** en `default_bus_layout.tres` (0 dB, a Master) con un `AudioEffectLowPassFilter` desactivado por defecto; todos los `AudioStreamPlayer3D` de `Sfx3D` van a él. Bus **«Ocluido»** (a Master) con el mismo filtro a `CORTE_OCLUSION` 900 Hz y −6 dB.
+- Al crear el reproductor, `Sfx3D` lanza un `RayCast3D`/`PhysicsDirectSpaceState3D.intersect_ray` desde el oyente (`AudioListener3D` de `jugador_3d.gd:841`) al origen, solo contra la capa de terreno y obstáculos (la que use la jugadora para chocar; comprobar `collision_mask`); si hay algo en medio, el reproductor va al bus «Ocluido». Para bucles (`ambiente`) se reevalúa cada `T_REEVALUAR_OCLUSION` 0,25 s y se cambia de bus en caliente (sin cortar).
+- `OCLUSION_ACTIVA` static var; si es false, todo va a «Mundo». Fila «dB:Mundo (bus)» y «dB:Ocluido (bus)» en el panel F3, junto a «dB:Interfaz (bus)».
+
+**Prueba** `herramientas/prueba_oclusion_sfx.gd`: un sonido con línea de vista va al bus «Mundo»; con un `StaticBody3D` con `BoxShape3D` entre medias va a «Ocluido»; un ambiente cambia de bus al interponer y quitar el muro sin reiniciarse (`playing` sigue true, `get_playback_position` no vuelve a 0); `OCLUSION_ACTIVA = false` → siempre «Mundo»; los dB de `AJUSTES` siguen mandando. Regresión: `prueba_ajustes_sfx`, `prueba_golpe_cuerpo`, `prueba_sintesis`, `prueba_mochila_sensacion`.
+
+**Dónde verlo:** `escenas/PruebaBosque.tscn`, un goblin alertado detrás de una roca grande.
+
+### Tarea Pa · Pausa y volumen en juego (Sonnet, media)
+
+No hay pausa: con el juego limpio, Escape no hace nada (`menu_pestanas.gd:417` y `lanzador_3d.gd:1105` solo cierran lo suyo). El mando de volumen de S1 vive en el panel F3 del laboratorio.
+
+- `presentacion/ui/menu_pausa.gd` (`MenuPausa`), montado en `lanzador_3d.gd` justo tras `MenuPestanas` (`:615-617`), `process_mode = ALWAYS`. Escape con nada abierto lo abre (y pausa con el mismo patrón de `MenuPestanas.abrir`: `get_tree().paused`, `_pausado_por_mi`, no se abre si ya hay pausa ni con el libro abierto); Escape o «Continuar» lo cierra. Si `MenuPestanas` o el libro están abiertos, Escape sigue cerrándolos como hoy (orden de prioridad: libro → mochila → pausa).
+- Contenido, navegable con flechas y Enter y con ratón, con el tema de `prueba_tema_interfaz`: **Continuar**, **Volumen general / Mundo / Interfaz** (tres deslizadores de −30 a +6 dB, en vivo con `Sfx.fijar_volumen_bus`; «Mundo» solo si la tarea O ya existe, si no, Master e Interfaz), **Sensación** (interruptor que escribe `Sensacion3D.ACTIVA`), **Reiniciar nivel** (recarga la escena actual, con confirmación), **Salir** (`get_tree().quit()`, con confirmación). Los volúmenes se guardan en `user://ajustes.cfg` (`ConfigFile`) y se cargan al arrancar (`Sfx._ready` o un autoload que ya exista).
+- Entrada y salida con tween 0,15 s (fundido y escala 0,96 → 1, como el grimorio de U1); sonidos `libro_abre`/`libro_cierra` a −12, `ui_tick` al navegar, `ui_equipar` al confirmar, `no_puedes` en opciones no disponibles. Un fondo oscurecido al 55 % sobre el juego, sin desenfoque.
+- No existe menú principal y no se crea en esta tarea.
+
+**Prueba** `herramientas/prueba_menu_pausa.gd`: Escape pausa el árbol y abre con tween y `libro_abre`; segundo Escape cierra y despausa; con la mochila abierta Escape cierra la mochila y no abre la pausa; con el libro abierto no se abre; mover el deslizador de Interfaz cambia `AudioServer` y se guarda en `user://ajustes.cfg`; recargar los ajustes recupera el valor; interruptor Sensación escribe `ACTIVA`; «Reiniciar» recarga la escena (comprobar que la raíz cambia de instancia); `ACTIVA = false` abre sin tween. Regresión: `prueba_hud_eow`, `prueba_bolsa`, `prueba_lanzamiento_rapido`, `prueba_mochila_sensacion`, `prueba_tema_interfaz`, `prueba_ajustes_sfx`.
+
+**Dónde verlo:** `escenas/PruebaBosque.tscn`, Escape.
+
+### Orden
+
+| Orden | Tarea | Tamaño | Lote |
+|---|---|---|---|
+| 1 | **C** cámara que reacciona | pequeño | A |
+| 2 | **D** ping de debilidad | pequeño | A |
+| 3 | **E** muerte por elemento | medio | A |
+| 4 | **O** oclusión del sonido | pequeño | B |
+| 5 | **Pa** pausa y volumen | medio | B |
+
+Lote A toca `enemigos/`, `presentacion/sensacion_3d.gd` y el catálogo; lote B toca `nucleo/sfx_3d.gd`, `presentacion/ui/` y los buses. Se programan uno tras otro para no pisar `nucleo/sfx.gd`.

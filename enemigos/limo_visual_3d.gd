@@ -465,6 +465,13 @@ func golpe(color: Color = Color.WHITE, fuerza: float = 1.0) -> void:
 	_te = 0.0
 
 
+## Tarea E3 (1/11): la muerte por elemento tiñe el cuerpo de `color` (carbón del fuego, azul claro del hielo): el tinte del elemento (`color_elemento`) pasa a ser éste y la carga sube a 1.
+func tenir_muerte(color: Color) -> void:
+	if material_cuerpo != null:
+		material_cuerpo.set_shader_parameter("color_elemento", color)
+	_carga_obj = 1.0
+
+
 ## Se estira en horizontal y se parte en dos limos un escalón más pequeños (grande → 2 normales, normal → 2 pequeños de 0,6; un pequeño no se divide) que salen a los lados. Los hijos son hermanos (hijos del
 ## mismo padre); nacen ocultos y aparecen cuando el original acaba de estirarse. Devuelve los hijos.
 func dividir() -> Array:

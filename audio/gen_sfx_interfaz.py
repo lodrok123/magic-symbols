@@ -154,6 +154,81 @@ def cofre_tapa():
     guardar("cofre_tapa.wav", x, 0.12)
 
 
+def ping_debil():
+    """D: has acertado la debilidad. Ping agudo y corto (2,6 kHz + octava), 0,16 s, ataque seco."""
+    n = muestras(0.16)
+    x = [0.0] * n
+    for i in range(n):
+        t = i / SR
+        x[i] = (math.sin(2 * math.pi * 2637.0 * t) + 0.35 * math.sin(2 * math.pi * 5274.0 * t)) * math.exp(-t * 30.0) * min(1.0, t * 800.0)
+    guardar("ping_debil.wav", x, 0.10)
+
+
+def golpe_sordo():
+    """D: el golpe resistido. Golpe grave y apagado (90 Hz que cae + ruido muy filtrado), 0,18 s."""
+    n = muestras(0.18)
+    x = [0.0] * n
+    r2 = random.Random(1112026)               # generador propio
+    prev = 0.0
+    for i in range(n):
+        t = i / SR
+        prev = prev * 0.95 + r2.uniform(-1.0, 1.0) * 0.05
+        x[i] = (math.sin(2 * math.pi * (95.0 - 140.0 * t) * t) * 0.9 + prev * 3.0) * math.exp(-t * 26.0)
+    guardar("golpe_sordo.wav", x, 0.12)
+
+
+def hielo_rompe():
+    """E: el cuerpo congelado se rompe. Estallido de ruido agudo + tres tintineos de cristal que bajan, 0,5 s."""
+    n = muestras(0.5)
+    x = [0.0] * n
+    r2 = random.Random(2112026)
+    prev = 0.0
+    for i in range(n):
+        t = i / SR
+        prev = prev * 0.3 + r2.uniform(-1.0, 1.0) * 0.7
+        x[i] = (r2.uniform(-1.0, 1.0) - prev * 0.6) * math.exp(-t * 55.0) * 0.9
+    for ini, f in ((0.01, 3520.0), (0.07, 2960.0), (0.14, 4186.0)):
+        for i in range(muestras(0.3)):
+            t = i / SR
+            x[muestras(ini) + i] += math.sin(2 * math.pi * f * t) * math.exp(-t * 14.0) * 0.5
+    guardar("hielo_rompe.wav", x, 0.11)
+
+
+def chispazo():
+    """E: el cuerpo se queda rigido y suelta chispas. Tres chasquidos de ruido con un zumbido de 120 Hz que se apaga, 0,4 s."""
+    n = muestras(0.4)
+    x = [0.0] * n
+    r2 = random.Random(3112026)
+    for ini in (0.0, 0.11, 0.2):
+        for i in range(muestras(0.07)):
+            t = i / SR
+            x[muestras(ini) + i] += r2.uniform(-1.0, 1.0) * math.exp(-t * 90.0)
+    for i in range(n):
+        t = i / SR
+        x[i] += (math.sin(2 * math.pi * 120.0 * t) + 0.5 * math.sin(2 * math.pi * 360.0 * t)) * 0.35 * math.exp(-t * 7.0)
+    guardar("chispazo.wav", x, 0.11)
+
+
+def salpicadura():
+    """E: el cuerpo se deshace en agua. Chapoteo corto: ruido que se abre y gotas (burbujas) que suben, 0,45 s."""
+    n = muestras(0.45)
+    x = [0.0] * n
+    r2 = random.Random(4112026)
+    prev = 0.0
+    for i in range(n):
+        t = i / SR
+        a = 0.5 + 0.4 * min(1.0, t / 0.2)
+        prev = prev * a + r2.uniform(-1.0, 1.0) * (1.0 - a)
+        x[i] = prev * 2.0 * math.sin(math.pi * min(1.0, t / 0.3)) ** 1.2 * math.exp(-t * 4.0)
+    for ini, f in ((0.05, 500.0), (0.13, 700.0), (0.22, 900.0)):
+        fase = 0.0
+        for i in range(muestras(0.08)):
+            t = i / SR
+            fase += 2 * math.pi * (f + 3000.0 * t) / SR
+            x[muestras(ini) + i] += math.sin(fase) * math.exp(-t * 40.0) * 0.5
+    guardar("salpicadura.wav", x, 0.11)
+
+
 if __name__ == "__main__":
     bolsa()
     pocion()
@@ -164,4 +239,9 @@ if __name__ == "__main__":
     ui_equipar()
     barrido()          # al final: el generador aleatorio es compartido y asi los anteriores salen igual que antes
     reaparecer()
-    cofre_tapa()       # U5 (solo este: genera el wav nuevo)
+    cofre_tapa()       # U5
+    ping_debil()       # D y E (31/10-1/11): cada uno con su generador propio, asi que no alteran los anteriores
+    golpe_sordo()
+    hielo_rompe()
+    chispazo()
+    salpicadura()

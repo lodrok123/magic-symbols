@@ -47,6 +47,8 @@ var cuerpo: LimoVisual3D = null
 var golpes_dados: int = 0                     ## acometidas que le dieron (pruebas)
 var acometidas: int = 0                       ## acometidas empezadas (pruebas)
 var absorciones: Array = []                   ## [{accion: tine|crece|cura, elemento, origen: hechizo|suelo|pulso, cura}] (pruebas y diario)
+var muerte_el: String = ""                    ## tarea E3: el elemento del golpe que lo mató, si fue uno de VARIANTES_MUERTE (pruebas)
+var muerte_tinte: Color = Color(0, 0, 0, 0)   ## ... y el tinte que se le puso al cuerpo (alfa 0 = ninguno)
 var _accion: String = ""                      ## "" | "brinco" | "acometida"
 var _t_accion: float = 0.0
 var _golpe_hecho: bool = false
@@ -575,6 +577,18 @@ func _morir(ahogado: bool = false) -> void:
 	if snd_muere != "" and Sfx3D.CATALOGO.has(snd_muere):
 		Sfx3D.play(self, snd_muere)                          # gamefeel lote 4 (el `_morir` de Combate3D no corre aquí: el limo tiene el suyo)
 	var c: LimoVisual3D = cuerpo
+	# Tarea E3 (1/11): la muerte por elemento del limo es solo el remate sonoro, el tinte (carbón, azul) y las partículas: ni desmoronamiento ni trozos (se deshace en un charco).
+	var el_muerte: String = "" if ahogado else _elemento_letal()
+	if VARIANTES_MUERTE.has(el_muerte):
+		muerte_el = el_muerte
+		Sfx.play(self, String(SONIDO_MUERTE[el_muerte]))
+		if Sensacion3D.ACTIVA:
+			if c != null and is_instance_valid(c) and (el_muerte == "fuego" or el_muerte == "hielo"):
+				muerte_tinte = TINTE_CARBON if el_muerte == "fuego" else Color(0.55, 0.85, 1.0)
+				c.tenir_muerte(muerte_tinte)
+			if _cupo_muerte_vfx():
+				Sensacion3D.cuenta["muerte_vfx"] = int(Sensacion3D.cuenta["muerte_vfx"]) + 1
+				_particulas_muerte(el_muerte, false)
 	if c != null and is_instance_valid(c):
 		c.cancelar_salto()
 		var tw: Tween = c.create_tween()

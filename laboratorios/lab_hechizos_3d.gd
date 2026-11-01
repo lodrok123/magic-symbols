@@ -93,6 +93,18 @@ const IMPACTO: Array = [
 	{"n": "S:VIDA_LATIDO", "paso": 0.02, "min": 0.0, "max": 1.0},
 	{"n": "INTERRUPCION_GOLPE", "paso": 0.05, "min": 0.0, "max": 3.0},
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
+	# 1/11 (tareas C, D y E; al final para no mover índices): cámara que reacciona, ping de debilidad y muerte por elemento.
+	{"n": "S:RETROCESO_CAM_MIN", "paso": 0.5, "min": 0.0, "max": 20.0},
+	{"n": "S:RETROCESO_CAM_MAX", "paso": 0.5, "min": 0.0, "max": 30.0},
+	{"n": "S:T_RETROCESO_CAM", "paso": 0.01, "min": 0.02, "max": 0.6},
+	{"n": "TEMBLOR_MAX", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:ALFA_FLASH_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "S:VEDA_FLASH_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "MAX_MUERTES_VFX", "paso": 1.0, "min": 0.0, "max": 20.0},
+	{"n": "T_MUERTE_TINTE", "paso": 0.05, "min": 0.05, "max": 2.0},
+	{"n": "T_MUERTE_HIELO", "paso": 0.05, "min": 0.05, "max": 1.0},
+	{"n": "T_MUERTE_RAYO", "paso": 0.05, "min": 0.05, "max": 1.0},
+	{"n": "N_TROZOS_HIELO", "paso": 1.0, "min": 1.0, "max": 12.0},
 ]
 
 ## 31/10 (tarea S1): el mando de volumen en vivo. Al final de F3, detrás de todo lo de IMPACTO, una entrada «dB:nombre» por sonido de `Sfx.CATALOGO` (alfabético), la del bus y la acción de imprimir.

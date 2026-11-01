@@ -182,6 +182,15 @@ const CATALOGO: Dictionary = {
 	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
 	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
 	"cofre_tapa": {"f": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
+	# 1/11 (gamefeel tarea D): el ping de «has acertado la debilidad» y el golpe sordo de «resiste» (del mundo: `Sfx.play(enemigo, …)`, bus Master).
+	"ping_debil":  {"f": ["ping_debil.wav"],  "db": -10.0, "tono": 0.02},
+	"golpe_sordo": {"f": ["golpe_sordo.wav"], "db": -12.0, "tono": 0.06},
+	# 1/11 (gamefeel tarea E2): el remate de la muerte por elemento, tras el grito (`Combate3D._muerte_elemental`). «pira_muerte» y «derrumbe_muerte» son los de siempre más bajos.
+	"pira_muerte":     {"f": ["pira.wav"],     "db": -14.0, "tono": 0.0},
+	"derrumbe_muerte": {"f": ["derrumbe.wav"], "db": -12.0, "tono": 0.10},
+	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "db": -9.0, "tono": 0.06},
+	"chispazo":        {"f": ["chispazo.wav"],    "db": -11.0, "tono": 0.06},
+	"salpicadura":     {"f": ["salpicadura.wav"], "db": -10.0, "tono": 0.08},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.

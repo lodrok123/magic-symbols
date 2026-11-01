@@ -1439,7 +1439,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	desplaza_mano = Vector3.ZERO
-	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)))   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
+	var n_glifos: int = maxi(1, (datos["glifos"] as Array).size()) if datos.get("glifos") is Array else 1      # tarea C1: cuántos glifos lleva la receta (la cámara retrocede más con más)
+	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)), n_glifos)   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": _recarga_de(datos), "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}

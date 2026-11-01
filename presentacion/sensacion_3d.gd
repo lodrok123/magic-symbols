@@ -37,12 +37,20 @@ static var ZOOM_GOLPE: float = 0.025           ## la cámara se acerca un 2,5 %�
 static var T_ZOOM: float = 0.12                ## …y vuelve en este tiempo
 static var DESTELLO_MANO: float = 0.55         ## tamaño de la estrella de la mano (× la de impacto)
 static var T_DESTELLO_MANO: float = 0.08
+## 1/11 (tarea C1): la cámara retrocede al lanzar. Píxeles de pantalla (se convierten a unidades de `h_offset`/`v_offset` con el tamaño de la cámara) en sentido contrario al disparo:
+## RETROCESO_CAM_MIN con 1 glifo en la receta, RETROCESO_CAM_MAX con 5, y vuelve en T_RETROCESO_CAM s (TRANS_BACK). 0 en MAX = sin retroceso de cámara.
+static var RETROCESO_CAM_MIN: float = 2.0
+static var RETROCESO_CAM_MAX: float = 6.0
+static var T_RETROCESO_CAM: float = 0.12
 # --- al no poder ---
 static var T_TEMBLOR_PAGINA: float = 0.3
 static var T_CURSOR_NO: float = 0.25
 # --- golpes a enemigos ---
 static var DANO_HITSTOP_MAX: float = 40.0      ## con este daño (o más) el hitstop es el máximo (Combate3D.HITSTOP_DEBIL); con 0, el mínimo (Combate3D.HITSTOP)
 static var HITSTOP_COMPARTIDO: float = 0.6     ## la jugadora se congela esta fracción del hitstop del enemigo
+## 1/11 (tarea D): has acertado su debilidad → un destello blanco de pantalla de UN fotograma (y el sonido `ping_debil`); con veda para que un área que da a cuatro débiles no parpadee cuatro veces.
+static var ALFA_FLASH_DEBIL: float = 0.18      ## opacidad del blanco (0 = sin flash)
+static var VEDA_FLASH_DEBIL: float = 0.12      ## s (de reloj) entre un flash y el siguiente
 # --- daño recibido ---
 static var T_VINETA: float = 0.22
 static var ALFA_VINETA: float = 0.5
@@ -130,7 +138,15 @@ static var TONO_CARGA: Vector2 = Vector2(0.8, 1.25)     ## tono del zumbido al e
 
 ## Para las pruebas: cuántas veces se pidió cada cosa.
 static var cuenta: Dictionary = {"disparo": 0, "no_puedes": 0, "dano": 0, "zoom": 0, "polvo": 0, "estela": 0, "esquiva": 0, "muerte": 0, "ultimo": 0, "reaccion": 0, "copias": 0, "tic": 0, "respingo": 0, "flecha": 0, "combate": 0, "sala_limpia": 0,
-	"golpe_son": 0, "dano_son": 0, "latido": 0, "voltereta": 0, "recarga_lista": 0, "impacto_mundo": 0, "carga": 0, "reaparece": 0}
+	"golpe_son": 0, "dano_son": 0, "latido": 0, "voltereta": 0, "recarga_lista": 0, "impacto_mundo": 0, "carga": 0, "reaparece": 0,
+	"retroceso_cam": 0, "temblor_golpe": 0, "ping_debil": 0, "flash_debil": 0, "golpe_sordo": 0, "muerte_vfx": 0}
+## C2/C3: el temblor de cámara de los golpes se pide con `temblor_golpe` y se aplica UNA vez en el fotograma siguiente con el mayor valor pedido.
+static var ultimo_temblor: float = 0.0         ## la intensidad del último temblor de golpe aplicado (para las pruebas)
+static var _temblor_pendiente: float = 0.0
+static var _temblor_fx: Vfx3D = null
+static var _temblor_programado: bool = false
+static var _capa_flash_debil: CanvasLayer = null
+static var _t_flash_debil_ms: int = -100000
 
 const CODIGO_VINETA: String = """
 shader_type canvas_item;
@@ -172,13 +188,16 @@ static func hitstop_de(dano: float, debil: bool) -> float:
 
 ## Al salir el hechizo. `dir` = hacia dónde va; `mano` = dónde nace (el destello). `retroceso` false = el hechizo no sale de la mano sino que nace donde se apunta
 ## (la barrera): entonces no hay empujón hacia atrás, solo el zoom, el destello y el sonido.
-static func disparo(lanz: Lanzador3D, elemento: String, dir: Vector3, mano: Vector3, retroceso: bool = true) -> void:
+## `n_glifos` = cuántos glifos lleva la receta (1 si no se sabe): la cámara retrocede más cuantos más lleve (tarea C1).
+static func disparo(lanz: Lanzador3D, elemento: String, dir: Vector3, mano: Vector3, retroceso: bool = true, n_glifos: int = 1) -> void:
 	if not ACTIVA or lanz == null or not lanz.is_inside_tree():
 		return
 	cuenta["disparo"] = int(cuenta["disparo"]) + 1
 	var d := Vector3(dir.x, 0.0, dir.z)
 	if retroceso and lanz.jugador != null and d.length() > 0.01 and lanz.jugador.has_method("push"):
 		lanz.jugador.call("push", -d.normalized(), RETROCESO_V0)
+	if retroceso:
+		retroceso_camara(lanz.get_viewport(), dir, n_glifos)
 	golpe_zoom(lanz.get_viewport(), ZOOM_GOLPE, T_ZOOM)
 	var fx: Variant = lanz.get("fx")
 	if fx is Vfx3D and is_instance_valid(fx):
@@ -208,6 +227,164 @@ static func golpe_zoom(vp: Viewport, k: float, t: float) -> void:
 	tw.tween_property(cam, prop, base, maxf(t, 0.01)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(func() -> void: cam.remove_meta("zoom_base"))
 	cuenta["zoom"] = int(cuenta["zoom"]) + 1
+
+
+## Tarea C1 (1/11): retroceso de la cámara al lanzar. Empuja `h_offset`/`v_offset` RETROCESO_CAM_MIN..MAX píxeles (según `n_glifos`: 1 → MIN, 5 → MAX) en sentido contrario a `dir`
+## proyectada en pantalla y vuelve en T_RETROCESO_CAM s. Convive con `Vfx3D.temblor`: ambos escriben los offsets, y el temblor parte de lo que haya (base) y la restaura al acabar, así
+## que el retroceso se suma por DIFERENCIAS (no pisa) y también a la base guardada en la meta `temblor_base`; un vigilante (`_VigilaRetroceso`) corrige lo que el final del temblor
+## deshiciera si éste acaba con el retroceso a medias. Un retroceso nuevo SUSTITUYE al anterior (no se suman). Ortográfica: píxel = size / alto de la ventana.
+static func retroceso_camara(vp: Viewport, dir: Vector3, n_glifos: int) -> void:
+	if not ACTIVA or vp == null or RETROCESO_CAM_MAX <= 0.0:
+		return
+	var cam: Camera3D = vp.get_camera_3d()
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if cam == null or d.length() < 0.01:
+		return
+	d = d.normalized()
+	var b: Basis = cam.global_transform.basis
+	var pantalla := Vector2(d.dot(b.x), d.dot(b.y))              # hacia dónde va el disparo en la pantalla (y hacia arriba)
+	if pantalla.length() < 0.05:
+		return
+	var k: float = clampf(float(n_glifos - 1) / 4.0, 0.0, 1.0)
+	var px: float = lerpf(RETROCESO_CAM_MIN, RETROCESO_CAM_MAX, k)
+	var peak: Vector2 = -pantalla.normalized() * px * unidades_por_pixel(cam, vp)
+	cuenta["retroceso_cam"] = int(cuenta["retroceso_cam"]) + 1
+	if cam.has_meta("retro_tween"):
+		var viejo: Variant = cam.get_meta("retro_tween")
+		if viejo is Tween and (viejo as Tween).is_valid():
+			(viejo as Tween).kill()
+	if cam.get_node_or_null("VigilaRetroceso") == null:
+		var v := _VigilaRetroceso.new()
+		v.name = "VigilaRetroceso"
+		v.cam = cam
+		cam.add_child(v)
+	_retro_aplicar(cam, peak)
+	var tw: Tween = cam.create_tween()
+	cam.set_meta("retro_tween", tw)
+	tw.tween_method(func(f: float) -> void: _retro_aplicar(cam, peak * f), 1.0, 0.0, maxf(T_RETROCESO_CAM, 0.02)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func() -> void:
+		_retro_aplicar(cam, Vector2.ZERO)
+		cam.remove_meta("retro_aplicado"))
+
+
+## Unidades de `h_offset`/`v_offset` que mide un píxel de pantalla con esa cámara (ortográfica: size / alto; en perspectiva, a 10 u de ella).
+static func unidades_por_pixel(cam: Camera3D, vp: Viewport) -> float:
+	var tam: Vector2 = vp.get_visible_rect().size
+	var lado: float = maxf(tam.x if cam.keep_aspect == Camera3D.KEEP_WIDTH else tam.y, 1.0)
+	if cam.projection == Camera3D.PROJECTION_ORTHOGONAL:
+		return cam.size / lado
+	return 2.0 * tan(deg_to_rad(cam.fov) * 0.5) * 10.0 / lado
+
+
+## Pone la contribución del retroceso en `contrib` (unidades): suma la DIFERENCIA con la que había a los offsets y a la base del temblor si hay uno en marcha.
+static func _retro_aplicar(cam: Camera3D, contrib: Vector2) -> void:
+	if not is_instance_valid(cam):
+		return
+	var previo: Vector2 = cam.get_meta("retro_aplicado") if cam.has_meta("retro_aplicado") else Vector2.ZERO
+	var dif: Vector2 = contrib - previo
+	cam.h_offset += dif.x
+	cam.v_offset += dif.y
+	if cam.has_meta("temblor_base"):
+		cam.set_meta("temblor_base", (cam.get_meta("temblor_base") as Vector2) + dif)
+	cam.set_meta("retro_aplicado", contrib)
+
+
+## Cuelga de la cámara mientras hay retroceso. Si un temblor acaba (Vfx3D lo deja en la base con que empezó, que incluía el retroceso de ESE momento), lo corrige a la base que
+## llevaba la meta al final (con las diferencias del retroceso sumadas). Se va solo cuando no queda ni retroceso ni temblor.
+class _VigilaRetroceso extends Node:
+	var cam: Camera3D = null
+	var _visto: bool = false
+	var _base: Vector2 = Vector2.ZERO
+	var _ap_visto: Vector2 = Vector2.ZERO
+
+	func _process(_delta: float) -> void:
+		if cam == null or not is_instance_valid(cam):
+			queue_free()
+			return
+		var ap: Vector2 = cam.get_meta("retro_aplicado") if cam.has_meta("retro_aplicado") else Vector2.ZERO
+		if cam.has_meta("temblor_base"):
+			_base = cam.get_meta("temblor_base")
+			_ap_visto = ap
+			_visto = true
+		elif _visto:
+			_visto = false
+			var corregida: Vector2 = _base + (ap - _ap_visto)      # lo que se sumó al retroceso entre mi última mirada y el final del temblor
+			cam.h_offset = corregida.x
+			cam.v_offset = corregida.y
+		if not _visto and not cam.has_meta("retro_aplicado"):
+			queue_free()
+
+
+## Tarea C2/C3 (1/11): el temblor de cámara de un golpe a un enemigo. No tiembla en el acto: se guarda el MAYOR valor pedido en este fotograma y se aplica una sola vez al siguiente
+## (`process_frame`), así un área que golpea a cinco no suma cinco temblores ni gana el último sino el más fuerte. Con `ACTIVA` = false, como siempre: en el acto y con lo que se pida.
+static func temblor_golpe(fx: Vfx3D, intensidad: float) -> void:
+	if fx == null or not is_instance_valid(fx) or not fx.is_inside_tree() or intensidad <= 0.0:
+		return
+	if not ACTIVA:
+		fx.temblor(intensidad)
+		return
+	_temblor_pendiente = maxf(_temblor_pendiente, intensidad)
+	_temblor_fx = fx
+	if _temblor_programado:
+		return
+	_temblor_programado = true
+	fx.get_tree().process_frame.connect(_aplicar_temblor_pendiente, CONNECT_ONE_SHOT)
+
+
+static func _aplicar_temblor_pendiente() -> void:
+	_temblor_programado = false
+	var k: float = _temblor_pendiente
+	_temblor_pendiente = 0.0
+	var fx: Vfx3D = _temblor_fx
+	_temblor_fx = null
+	if k > 0.0 and fx != null and is_instance_valid(fx) and fx.is_inside_tree():
+		ultimo_temblor = k
+		cuenta["temblor_golpe"] = int(cuenta["temblor_golpe"]) + 1
+		fx.temblor(k)
+
+
+## Tarea D (1/11): `e` ha recibido un golpe de su elemento débil. Suena `ping_debil` (siempre: los sonidos no dependen de ACTIVA; la veda de `Sfx` es de 70 ms por nombre, así que cuatro
+## golpes en el mismo instante suenan UNA vez) y, con ACTIVA, un destello blanco de pantalla de un fotograma al ALFA_FLASH_DEBIL, con veda de VEDA_FLASH_DEBIL s.
+static func ping_debil(e: Node3D) -> void:
+	if e == null or not e.is_inside_tree():
+		return
+	cuenta["ping_debil"] = int(cuenta["ping_debil"]) + 1
+	Sfx.play(e, "ping_debil")
+	if not ACTIVA or ALFA_FLASH_DEBIL <= 0.0:
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if ahora - _t_flash_debil_ms < int(VEDA_FLASH_DEBIL * 1000.0):
+		return
+	_t_flash_debil_ms = ahora
+	if _capa_flash_debil == null or not is_instance_valid(_capa_flash_debil) or not _capa_flash_debil.is_inside_tree():
+		var capa := CanvasLayer.new()
+		capa.layer = 49
+		capa.name = "FlashDebil"
+		capa.process_mode = Node.PROCESS_MODE_ALWAYS
+		var r := ColorRect.new()
+		r.name = "R"
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		r.set_anchors_preset(Control.PRESET_FULL_RECT)
+		capa.add_child(r)
+		capa.visible = false
+		e.get_tree().root.add_child(capa)
+		_capa_flash_debil = capa
+	(_capa_flash_debil.get_node("R") as ColorRect).color = Color(1.0, 1.0, 1.0, ALFA_FLASH_DEBIL)
+	_capa_flash_debil.visible = true
+	cuenta["flash_debil"] = int(cuenta["flash_debil"]) + 1
+	var capa2: CanvasLayer = _capa_flash_debil
+	var ocultar: Callable = func() -> void:
+		if is_instance_valid(capa2):
+			capa2.visible = false
+	e.get_tree().process_frame.connect(ocultar, CONNECT_ONE_SHOT)
+
+
+## Tarea D: `e` ha recibido un golpe de un elemento al que resiste: un golpe grave y apagado, sin flash.
+static func golpe_sordo(e: Node3D) -> void:
+	if e == null or not e.is_inside_tree():
+		return
+	cuenta["golpe_sordo"] = int(cuenta["golpe_sordo"]) + 1
+	Sfx.play(e, "golpe_sordo")
 
 
 ## No se puede lanzar (recarga, tinta, ahora no…): golpe seco, la página `indice` tiembla en rojo en el HUD (si se sabe cuál) y el cursor parpadea en rojo.

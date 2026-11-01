@@ -50,6 +50,16 @@ static var K_EMPUJE_DEBIL: float = 1.25        ## × extra si el golpe es de su 
 static var DECAIMIENTO_EMPUJE: float = 7.0     ## `lerp(empuje, 0, 7·dt)` por fotograma: el recorrido es v0 / 7 (de ahí la v0 mínima del suelo)
 static var TEMBLOR_GOLPE: float = 0.25         ## intensidad (0–1) del temblor de cámara al golpear a un enemigo (Vfx3D.temblor)
 static var TEMBLOR_DEBIL: float = 0.5          ## ... y si el elemento es su punto débil
+static var TEMBLOR_MAX: float = 0.5            ## 1/11 (tarea C2): tope del temblor de un golpe normal, que es TEMBLOR_GOLPE × `_k_golpe` (0,6..1,6 según la fuerza del empujón)
+## 1/11 (tarea E): la muerte por elemento (`_muerte_elemental`). Como mucho MAX_MUERTES_VFX muertes por segundo llevan el efecto completo; las demás, solo tinte y sonido.
+static var MAX_MUERTES_VFX: int = 3
+static var T_MUERTE_TINTE: float = 0.4         ## s que tarda el cuerpo en teñirse (carbón del fuego; el hielo, 0,3 s: `T_MUERTE_HIELO`)
+static var T_MUERTE_HIELO: float = 0.3         ## s de cuerpo helado antes de romperse
+static var T_MUERTE_RAYO: float = 0.3          ## s que tiembla rígido antes de caer
+static var N_TROZOS_HIELO: int = 7             ## trozos al romperse el hielo (6-8)
+static var TINTE_CARBON: Color = Color(0.15, 0.1, 0.08)
+static var TINTE_HIELO: Color = Color(0.7, 0.95, 1.35)
+static var _t_muertes_vfx: Array = []          ## ms de las últimas muertes con efecto completo
 ## 28/10 (gamefeel, `Sensacion3D.hitstop_de`): el hitstop es PROPORCIONAL al daño, de HITSTOP (golpe flojo) a HITSTOP_DEBIL (Sensacion3D.DANO_HITSTOP_MAX de daño o más, o su debilidad),
 ## y la jugadora se congela también una fracción (Sensacion3D.HITSTOP_COMPARTIDO). Antes era fijo: 0,06 y 0,09.
 static var HITSTOP: float = 0.04               ## s que se congela ESE enemigo con el golpe más flojo (IA, animación y empuje; el mundo no)
@@ -815,8 +825,10 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_encoger()                             # el fuego le quita lo que le dio el agua
 	if mult > 1.0:
 		texto("¡Débil!", COLORES.get(debil, Color.WHITE), 0.28)
+		Sensacion3D.ping_debil(self)                  # tarea D: el ping (y el flash de pantalla de un fotograma, con veda)
 	elif mult < 1.0 and base > 0.0:
 		texto("Resiste", Color(0.7, 0.7, 0.7), 0.28)
+		Sensacion3D.golpe_sordo(self)                 # tarea D: el golpe grave y apagado de lo que resiste
 
 	if bool(dec["veneno"]):           # el veneno no hace nada a un elemental (no tiene carne); se queda el más largo / fuerte
 		if envenenado <= 0.0:
@@ -1054,6 +1066,7 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	if not muerto:
 		_respingar(dir)
 		Sensacion3D.golpe_enemigo(self, el, debil)    # gamefeel lote 4: el cuerpo suena (solo con elemento: el golpe F y el «Piedra» ya suenan)
+	var k_temblor: float = _k_golpe if Sensacion3D.ACTIVA else 1.0      # tarea C2: el temblor sigue a la fuerza del empujón (con la sensación apagada, el de siempre)
 	_k_golpe = 1.0                                    # tarea P: ya se usó; el siguiente golpe sin empuje vuelve a la fuerza normal
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
 	if not (fx is Vfx3D) or not is_inside_tree():
@@ -1063,7 +1076,9 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	if not Vfx3D.ELEMENTOS.has(el):
 		return
 	(fx as Vfx3D).golpe_estrella(global_position + Vector3(0.0, 0.6, 0.0), el, 1.5 if debil else 1.0)
-	(fx as Vfx3D).temblor(TEMBLOR_DEBIL if debil else TEMBLOR_GOLPE)
+	# Tarea C2/C3: débil = TEMBLOR_DEBIL tal cual; si no, TEMBLOR_GOLPE × la fuerza del empujón con tope TEMBLOR_MAX. `temblor_golpe` junta los de un mismo fotograma en el mayor.
+	var t_temblor: float = TEMBLOR_DEBIL if debil else minf(TEMBLOR_GOLPE * k_temblor, TEMBLOR_MAX)
+	Sensacion3D.temblor_golpe(fx as Vfx3D, t_temblor)
 	impactos_visuales += 1
 
 
@@ -2511,9 +2526,21 @@ func _morir(ahogado: bool = false) -> void:
 	_cancelar_squash()
 	_destello_pintar(false)
 	_aplicar_tinte(tinte)
+	# Tarea E (1/11): la muerte por elemento. `variante` = el elemento del golpe que lo mató (solo fuego, hielo, rayo, agua y tierra; ahogado y elemental, no); `completo` = además lleva el
+	# efecto entero (partículas, trozos…): con ACTIVA y dentro del tope MAX_MUERTES_VFX por segundo. Sin cupo: solo tinte y sonido.
+	var variante: String = ""
+	var completo: bool = false
+	if not ahogado and not elemental:
+		variante = _elemento_letal()
+		if not VARIANTES_MUERTE.has(variante):
+			variante = ""
+		if variante != "" and Sensacion3D.ACTIVA:
+			completo = _cupo_muerte_vfx()
 	var dur_hundir: float = 0.0
 	if ahogado:
 		dur_hundir = _animar_ahogo()
+	elif variante == "rayo" and completo:
+		pj.set_velocidad_animacion(0.0)                   # rígido: ni clip `death`, la pose del golpe se queda congelada (el AnimationPlayer del árbol, a velocidad 0)
 	else:
 		Jugador3D.una_vez(pj, "death")
 	if not elemental:
@@ -2527,14 +2554,179 @@ func _morir(ahogado: bool = false) -> void:
 	if ahogado:
 		_hundir_modelo(dur_hundir)
 		return
+	var salida: String = "normal"
+	if variante != "":
+		salida = _muerte_elemental(variante, completo)
 	_soltar_botin()
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
-	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)
+	var esc0: Vector3 = pj.scale
+	match salida:
+		"desmorona":                                       # fuego: primero se hunde en altura y luego se queda en nada a lo ancho (0,2 + 0,15 s: lo mismo que el encogido de siempre)
+			tw.tween_property(pj, "scale:y", esc0.y * 0.01, 0.2)
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.15)
+		"nada":                                            # hielo: el modelo ya se fue; solo se espera lo de siempre
+			tw.tween_interval(0.35)
+		"desliza":                                         # agua: se escurre 0,5 u hacia donde iba mientras encoge
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.35)
+			tw.parallel().tween_property(pj, "position", pj.position + _dir_empuje_muerte() * 0.5, 0.35)
+		_:
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.35)
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(pj):
 			pj.queue_free()
 		queue_free())
+
+
+## =====================================================================================================
+##  Muerte por elemento (tarea E, 1/11)
+## =====================================================================================================
+
+const VARIANTES_MUERTE: Array = ["fuego", "hielo", "rayo", "agua", "tierra"]       # viento, sin elemento y golpe F mueren como siempre
+const SONIDO_MUERTE: Dictionary = {"fuego": "pira_muerte", "hielo": "hielo_rompe", "rayo": "chispazo", "agua": "salpicadura", "tierra": "derrumbe_muerte"}
+
+
+## El elemento del golpe que lo mata. OJO: NO sale de `_destello_el`, porque `golpe` arranca el destello DESPUÉS de `receive_damage` (que es quien llama a `_morir`) y ahí aún
+## está el del golpe anterior; `_num_elemento` sí es el del golpe letal. Sin golpe (daño continuo), muere ardiendo si ardía; el veneno y lo demás, sin elemento.
+func _elemento_letal() -> String:
+	if _num_golpe:
+		return _num_elemento
+	return "fuego" if quemando > 0.0 else ""
+
+
+## ¿Cabe otra muerte con el efecto completo? Como mucho MAX_MUERTES_VFX en el último segundo (reloj de pared). Si cabe, la apunta.
+static func _cupo_muerte_vfx() -> bool:
+	var ahora: int = Time.get_ticks_msec()
+	while not _t_muertes_vfx.is_empty() and ahora - int(_t_muertes_vfx[0]) >= 1000:
+		_t_muertes_vfx.pop_front()
+	if _t_muertes_vfx.size() >= MAX_MUERTES_VFX:
+		return false
+	_t_muertes_vfx.append(ahora)
+	return true
+
+
+func _fx_muerte() -> Vfx3D:
+	var fx: Variant = mundo.get("_fx") if mundo != null else null
+	return fx as Vfx3D if fx is Vfx3D and is_instance_valid(fx) and (fx as Vfx3D).is_inside_tree() else null
+
+
+## Hacia dónde iba el último empuje (plano XZ, normalizado); si no lo hubo, lejos de la jugadora.
+func _dir_empuje_muerte() -> Vector3:
+	var d := Vector3(_empuje.x, 0.0, _empuje.z)
+	if d.length() < 0.01 and jugador != null and is_instance_valid(jugador):
+		d = Vector3(position.x - jugador.position.x, 0.0, position.z - jugador.position.z)
+	return d.normalized() if d.length() > 0.01 else Vector3.RIGHT
+
+
+## Tiñe el cuerpo hacia `c` en `t` s (muerto, `_dibujar_estado` ya no corre: el tinte se queda donde acaba).
+func _tenir_muerte(c: Color, t: float) -> void:
+	var tw: Tween = create_tween()
+	tw.tween_method(_aplicar_tinte, tinte, c, maxf(t, 0.01))
+
+
+## Las partículas sueltas de la muerte de `el` (las que no dependen del cuerpo, y por eso también las del limo): ceniza y llamitas, salpicadura y vapor, polvo y grietas.
+## `con_cuerpo` = quien llama ya trae su propio remate de rayo y de hielo (el goblin rígido, los trozos); sin cuerpo (el limo) basta un chispazo.
+func _particulas_muerte(el: String, con_cuerpo: bool) -> void:
+	var fx: Vfx3D = _fx_muerte()
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	match el:
+		"fuego":
+			if fx != null:
+				fx.ceniza(p)
+				var l: Node3D = fx.llamas(position, 0.5, 0.3)
+				get_tree().create_timer(0.8).timeout.connect(func() -> void:
+					if is_instance_valid(l):
+						l.queue_free())
+		"agua":
+			if fx != null:
+				fx.salpicadura(position, 1.2)
+				fx.vapor(p)
+		"tierra":
+			Sensacion3D.polvo(mundo, position, 1.2)
+			if fx != null:
+				fx.grietas(position, 0.6, 1.5)
+		"rayo":
+			if fx != null and not con_cuerpo:
+				fx.chispazo(p, "rayo")
+		"hielo":
+			if fx != null and not con_cuerpo:
+				fx.chispazo_suave(p, Vfx3D.COLOR["hielo"])
+
+
+## E1/E2: la muerte de `el` (fuego, hielo, rayo, agua o tierra). Suena el remate del elemento; con `Sensacion3D.ACTIVA` además se tiñe (fuego y hielo) y, si `completo` (cupo de
+## MAX_MUERTES_VFX por segundo), lleva el efecto entero. Los hijos pueden sobrescribirla (llamando a `super`). Devuelve cómo acaba el cuerpo, que `_morir` anima tras 1,4 s:
+## «normal» (encoge), «desmorona» (fuego: baja en altura y luego a lo ancho), «nada» (hielo: el modelo ya se rompió) o «desliza» (agua: encoge escurriéndose 0,5 u).
+func _muerte_elemental(el: String, completo: bool) -> String:
+	Sfx.play(self, String(SONIDO_MUERTE.get(el, "")))
+	if not Sensacion3D.ACTIVA or pj == null or not is_instance_valid(pj):
+		return "normal"
+	if el == "fuego":
+		_tenir_muerte(TINTE_CARBON, T_MUERTE_TINTE)
+	elif el == "hielo":
+		_tenir_muerte(TINTE_HIELO, T_MUERTE_HIELO)
+	if not completo:
+		return "normal"
+	Sensacion3D.cuenta["muerte_vfx"] = int(Sensacion3D.cuenta["muerte_vfx"]) + 1
+	_particulas_muerte(el, true)
+	match el:
+		"fuego":
+			return "desmorona"
+		"hielo":
+			for m in _materiales:                          # emisión fría mientras se congela del todo
+				var mat: StandardMaterial3D = m as StandardMaterial3D
+				if is_instance_valid(mat):
+					mat.emission_enabled = true
+					mat.emission = Color(0.45, 0.75, 1.0)
+					mat.emission_energy_multiplier = 0.8
+			var tw: Tween = create_tween()
+			tw.tween_interval(T_MUERTE_HIELO)
+			tw.tween_callback(_romper_hielo)
+			return "nada"
+		"rayo":
+			_sacudir_rigido()
+		"agua":
+			return "desliza"
+		"tierra":
+			var hundir: Tween = create_tween()
+			hundir.tween_property(pj, "position:y", pj.position.y - 0.3, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	return "normal"
+
+
+## Hielo: el cuerpo se rompe. El modelo desaparece de golpe, un chispazo suave y 6-8 trozos que caen y se funden en 1 s.
+func _romper_hielo() -> void:
+	if pj == null or not is_instance_valid(pj):
+		return
+	pj.visible = false
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	var fx: Vfx3D = _fx_muerte()
+	if fx != null:
+		fx.chispazo_suave(p, Vfx3D.COLOR["hielo"])
+	TrozosHielo3D.crear(mundo if mundo != null else get_parent(), p, TINTE_HIELO.clamp(Color(0, 0, 0, 1), Color(1, 1, 1, 1)), clampi(N_TROZOS_HIELO, 1, 12), altura)
+
+
+## Rayo: rígido (sin clip de muerte; el árbol de animación está a velocidad 0), tiembla en sitio T_MUERTE_RAYO s (`_respingar` repetido), suelta tres chispazos y cae de golpe
+## (rotación X de 90° en 0,15 s).
+func _sacudir_rigido() -> void:
+	var base: Vector3 = pj.position
+	var fx: Vfx3D = _fx_muerte()
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	var tw: Tween = create_tween()
+	var pasos: int = 5
+	for i in range(pasos):
+		tw.tween_callback(func() -> void:
+			_respingar(Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU))
+			if fx != null and is_instance_valid(fx) and i % 2 == 0:
+				fx.chispazo(p, "rayo"))
+		tw.tween_interval(T_MUERTE_RAYO / float(pasos))
+	tw.tween_callback(func() -> void:
+		respingo = Vector3.ZERO
+		if is_instance_valid(pj):
+			pj.position = base)
+	tw.tween_property(pj, "rotation:x", PI * 0.5, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var sync: Tween = create_tween()                      # muerto, `_physics_process` ya no pone el modelo donde toca: se le copia el respingo aquí
+	sync.tween_method(func(_t: float) -> void:
+		if is_instance_valid(pj):
+			pj.position = base + respingo, 0.0, 1.0, T_MUERTE_RAYO)
 
 
 ## F1 (29/10): el botín de este enemigo, por su tabla (`Botin.tirar(tabla_botin)`; más `goblin_escudo` si su escudo ardió). El oro de la tabla se sustituye por `oro` si la pieza lo fija
