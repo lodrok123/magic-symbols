@@ -222,6 +222,7 @@ func efecto(cual: String) -> Node3D:
 			e.call("lanzar", -1.0)
 		"bola_vuelo_toy":
 			e.global_position = pie + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
+			e.look_at(e.global_position + _dir, Vector3.UP)   # el -Z mira hacia donde vuela: la estela cae por +Z
 			e.set("proyectil", true)
 			_aplicar_mandos_toy(e)
 			e.call("lanzar", -1.0)

@@ -191,3 +191,9 @@ func _set_proyectil(v: bool) -> void:
 		for gp in find_children("*", "GPUParticles3D", true, false):
 			if (gp as Node).is_in_group("estela"):
 				(gp as GPUParticles3D).emitting = v
+		for mi in find_children("*", "MeshInstance3D", true, false):
+			if (mi as Node).is_in_group("estela_malla"):
+				(mi as Node3D).visible = v                       # estela corta de la ronda 3 (malla con la textura de lenguas)
+		var inc: Node3D = get_node_or_null("Cuerpo/Inclinable") as Node3D
+		if inc != null:
+			inc.rotation_degrees.x = 55.0 if v else 0.0       # en vuelo, la llama se inclina hacia atrás

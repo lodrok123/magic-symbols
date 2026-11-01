@@ -158,7 +158,7 @@ func _mandos_mandan() -> void:
 func _primer_material(e: Node, shader: String) -> ShaderMaterial:
 	for n in e.find_children("*", "GeometryInstance3D", true, false):
 		var m: ShaderMaterial = (n as GeometryInstance3D).material_override as ShaderMaterial
-		if m != null and m.shader != null and m.shader.resource_path.get_file() == shader:
+		if m != null and m.shader != null and (m.shader.resource_path.get_file() == shader or (shader == "llama_toy.gdshader" and m.shader.resource_path.get_file().begins_with("fuego_lelu"))):
 			return m
 	return null
 
@@ -195,6 +195,14 @@ func _estilo() -> void:
 		if rr < 0.85 or (ms.get_string(1) != "rojo" and gg < 0.3):
 			oscuros = true
 	_ok("cuatro colores de la rampa (rojo-anaranjado #D9...: r ≥ 0,85; naranja, amarillo y blanco con g ≥ 0,3), ninguno rojo oscuro", vistos == 4 and not oscuros, "vistos %d" % vistos)
+	# ronda 3: fuego por texturas (Le Lu)
+	var lelu: String = FileAccess.get_file_as_string(DIR + "fuego_lelu.gdshaderinc")
+	_ok("ronda 3: fuego_lelu con smoothstep(umbral, umbral + blandura), rampa 1D, gradiente vertical y vértices desplazados", lelu.contains("smoothstep(umbral, umbral + blandura, f)") and lelu.contains("rampa") and lelu.contains("pow(vg, pot_grad)") and lelu.contains("textureLod(ruido_v"))
+	_ok("ronda 3: sin discard y sin contorno", not lelu.contains("discard") and not lelu.contains("contorno"))
+	for t in ["T_FirePanningCyl45.png", "T_PerlinNoise_Tiled.png", "T_CloudNoise_Tiled.png", "T_Noise1_tiled.png", "readme.txt"]:
+		_ok("textura de Le Lu " + t, ResourceLoader.exists("res://assets/vfx/lelu_noise/" + t) or FileAccess.file_exists("res://assets/vfx/lelu_noise/" + t))
+	for n in ["BolaFuegoToy_r2", "MuroFuegoToy_r2", "PilarFuegoToy_r2", "BarreraFuegoToy_r2"]:
+		_ok("escena de la ronda 2 guardada: " + n, _cargar(n) != null)
 	_ok("el azul solo entra por el mando tono", llama.contains("mix(vec3(1.0, 0.30") and llama.contains("tono"))
 
 
