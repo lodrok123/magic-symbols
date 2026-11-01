@@ -14,7 +14,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = 0.05
-shader_parameter/semilla = 0.28754306
+shader_parameter/semilla = 0.5391427
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_8nlqm"]
@@ -31,7 +31,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.30664837
+shader_parameter/semilla = 0.047842756
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_3pqco"]
@@ -574,12 +574,12 @@ scale_max = 1.2
 scale_curve = SubResource("CurveTexture_vdksb")
 color_ramp = SubResource("GradientTexture1D_1uucw")
 
-[sub_resource type="Gradient" id="Gradient_7rn4l"]
+[sub_resource type="Gradient" id="Gradient_ihv4b"]
 offsets = PackedFloat32Array(0, 0.45, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4i2c7"]
-gradient = SubResource("Gradient_7rn4l")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7awcr"]
+gradient = SubResource("Gradient_ihv4b")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
@@ -589,7 +589,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_4i2c7")
+albedo_texture = SubResource("GradientTexture2D_7awcr")
 disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -652,127 +652,127 @@ _data = {
 &"vivir": SubResource("Animation_3d15c")
 }
 
-[node name="MuroFuegoToy" type="Node3D" unique_id=1086657721]
+[node name="MuroFuegoToy" type="Node3D" unique_id=4964768]
 script = ExtResource("1_0wwqg")
 tam_referencia = Vector3(6.9, 1.5, 0.3)
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1705379150]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1887193562]
 
-[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=50542632]
+[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=136877668]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 material_override = SubResource("ShaderMaterial_gxqkp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_8nlqm")
 
-[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=361045618]
+[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=702233250]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 material_override = SubResource("ShaderMaterial_p682i")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_3pqco")
 
-[node name="Atras0" type="MeshInstance3D" parent="Cuerpo" unique_id=310944162]
+[node name="Atras0" type="MeshInstance3D" parent="Cuerpo" unique_id=435376646]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2, 0, 0.05)
 material_override = SubResource("ShaderMaterial_7nes6")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_vbpu1")
 
-[node name="Atras1" type="MeshInstance3D" parent="Cuerpo" unique_id=93934129]
+[node name="Atras1" type="MeshInstance3D" parent="Cuerpo" unique_id=196440049]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.555, 0, 0.05)
 material_override = SubResource("ShaderMaterial_21gky")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_48i5b")
 
-[node name="Atras2" type="MeshInstance3D" parent="Cuerpo" unique_id=2082325590]
+[node name="Atras2" type="MeshInstance3D" parent="Cuerpo" unique_id=887366405]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 0, 0.05)
 material_override = SubResource("ShaderMaterial_36efd")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_j3fa8")
 
-[node name="Atras3" type="MeshInstance3D" parent="Cuerpo" unique_id=1396096470]
+[node name="Atras3" type="MeshInstance3D" parent="Cuerpo" unique_id=1910514869]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.905, 0, 0.05)
 material_override = SubResource("ShaderMaterial_kws22")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_074h5")
 
-[node name="Atras4" type="MeshInstance3D" parent="Cuerpo" unique_id=245919859]
+[node name="Atras4" type="MeshInstance3D" parent="Cuerpo" unique_id=329182143]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, 0.05)
 material_override = SubResource("ShaderMaterial_5eyn0")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_7i1qo")
 
-[node name="Atras5" type="MeshInstance3D" parent="Cuerpo" unique_id=1620749082]
+[node name="Atras5" type="MeshInstance3D" parent="Cuerpo" unique_id=405259672]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.745, 0, 0.05)
 material_override = SubResource("ShaderMaterial_svfrp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_fv60h")
 
-[node name="Atras6" type="MeshInstance3D" parent="Cuerpo" unique_id=33178039]
+[node name="Atras6" type="MeshInstance3D" parent="Cuerpo" unique_id=458613653]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 0, 0.05)
 material_override = SubResource("ShaderMaterial_p2g3p")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_cjpbp")
 
-[node name="Atras7" type="MeshInstance3D" parent="Cuerpo" unique_id=1790035710]
+[node name="Atras7" type="MeshInstance3D" parent="Cuerpo" unique_id=1918402985]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.395, 0, 0.05)
 material_override = SubResource("ShaderMaterial_3csa3")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_msd1h")
 
-[node name="Atras8" type="MeshInstance3D" parent="Cuerpo" unique_id=1282424181]
+[node name="Atras8" type="MeshInstance3D" parent="Cuerpo" unique_id=584569998]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.4, 0, 0.05)
 material_override = SubResource("ShaderMaterial_gyoep")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_3qw2p")
 
-[node name="Delante0" type="MeshInstance3D" parent="Cuerpo" unique_id=839609270]
+[node name="Delante0" type="MeshInstance3D" parent="Cuerpo" unique_id=918485672]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.94, 0, -0.05)
 material_override = SubResource("ShaderMaterial_x1ue1")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_0gu8t")
 
-[node name="Delante1" type="MeshInstance3D" parent="Cuerpo" unique_id=2082235962]
+[node name="Delante1" type="MeshInstance3D" parent="Cuerpo" unique_id=1820542773]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.24, 0, -0.05)
 material_override = SubResource("ShaderMaterial_tcuqr")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_6f7n0")
 
-[node name="Delante2" type="MeshInstance3D" parent="Cuerpo" unique_id=1113215641]
+[node name="Delante2" type="MeshInstance3D" parent="Cuerpo" unique_id=385293911]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.22, 0, -0.05)
 material_override = SubResource("ShaderMaterial_eagr7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_vkknj")
 
-[node name="Delante3" type="MeshInstance3D" parent="Cuerpo" unique_id=1559181160]
+[node name="Delante3" type="MeshInstance3D" parent="Cuerpo" unique_id=1170745054]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, -0.05)
 material_override = SubResource("ShaderMaterial_1kp46")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_qrglx")
 
-[node name="Delante4" type="MeshInstance3D" parent="Cuerpo" unique_id=1971523423]
+[node name="Delante4" type="MeshInstance3D" parent="Cuerpo" unique_id=681264139]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.05)
 material_override = SubResource("ShaderMaterial_fl4to")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_yvhjk")
 
-[node name="Delante5" type="MeshInstance3D" parent="Cuerpo" unique_id=521352476]
+[node name="Delante5" type="MeshInstance3D" parent="Cuerpo" unique_id=664954075]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0, -0.05)
 material_override = SubResource("ShaderMaterial_41qvw")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_woto8")
 
-[node name="Delante6" type="MeshInstance3D" parent="Cuerpo" unique_id=1158892802]
+[node name="Delante6" type="MeshInstance3D" parent="Cuerpo" unique_id=388087950]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.22, 0, -0.05)
 material_override = SubResource("ShaderMaterial_n8w40")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_82k46")
 
-[node name="Delante7" type="MeshInstance3D" parent="Cuerpo" unique_id=894428863]
+[node name="Delante7" type="MeshInstance3D" parent="Cuerpo" unique_id=351927746]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.92, 0, -0.05)
 material_override = SubResource("ShaderMaterial_sqlj1")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_h5top")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1179138163 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=77172709 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 cast_shadow = 0
 amount = 14
@@ -783,12 +783,12 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_55i1f")
 draw_pass_1 = SubResource("QuadMesh_tvv1r")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=2010846841]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=228593331]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 light_color = Color(1, 0.72, 0.38, 1)
 light_energy = 1.6
 omni_range = 6.5
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=139164174]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=919543046]
 libraries/ = SubResource("AnimationLibrary_fl7uy")

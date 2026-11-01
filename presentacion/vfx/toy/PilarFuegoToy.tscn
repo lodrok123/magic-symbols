@@ -14,7 +14,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.008799115
+shader_parameter/semilla = 0.48027164
 shader_parameter/anillo = 0.5
 
 [sub_resource type="QuadMesh" id="QuadMesh_lpcyd"]
@@ -31,7 +31,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.094401464
+shader_parameter/semilla = 0.561892
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_oejm1"]
@@ -154,12 +154,12 @@ scale_max = 1.2
 scale_curve = SubResource("CurveTexture_dstcw")
 color_ramp = SubResource("GradientTexture1D_35gh7")
 
-[sub_resource type="Gradient" id="Gradient_7rn4l"]
+[sub_resource type="Gradient" id="Gradient_ihv4b"]
 offsets = PackedFloat32Array(0, 0.45, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4i2c7"]
-gradient = SubResource("Gradient_7rn4l")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7awcr"]
+gradient = SubResource("Gradient_ihv4b")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
@@ -169,7 +169,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_4i2c7")
+albedo_texture = SubResource("GradientTexture2D_7awcr")
 disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -232,40 +232,40 @@ _data = {
 &"vivir": SubResource("Animation_r2s5o")
 }
 
-[node name="PilarFuegoToy" type="Node3D" unique_id=1680754796]
+[node name="PilarFuegoToy" type="Node3D" unique_id=1321279271]
 script = ExtResource("1_127qq")
 tam_referencia = Vector3(1, 4, 1)
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1706037661]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1857993540]
 
-[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=290390701]
+[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=152945799]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 material_override = SubResource("ShaderMaterial_a1q2t")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_lpcyd")
 
-[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=1331814357]
+[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=1270987846]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
 material_override = SubResource("ShaderMaterial_1kbh3")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_oejm1")
 
-[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=1936405122]
+[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=1162074227]
 material_override = SubResource("ShaderMaterial_mvt85")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_6l1en")
 
-[node name="Cuerpo" type="MeshInstance3D" parent="Cuerpo" unique_id=1984157268]
+[node name="Cuerpo" type="MeshInstance3D" parent="Cuerpo" unique_id=513400756]
 material_override = SubResource("ShaderMaterial_ejv3y")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_qofjf")
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1302972643]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1667500770]
 material_override = SubResource("ShaderMaterial_ycpwp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_430oe")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1904293095 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=307876444 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 cast_shadow = 0
 amount = 16
@@ -276,12 +276,12 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_yy85n")
 draw_pass_1 = SubResource("QuadMesh_tf5ge")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=1368482084]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=581425346]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
 light_color = Color(1, 0.72, 0.38, 1)
 light_energy = 2.0
 omni_range = 7.0
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=101559446]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1443749906]
 libraries/ = SubResource("AnimationLibrary_vk6at")

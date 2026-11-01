@@ -103,6 +103,7 @@ func _simple(clave: String, nombre: String) -> void:
 
 func _diez() -> void:
 	root.get_window().size = TAM_1080
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)       # si no, el fps se queda clavado en la frecuencia del monitor
 	await _seg(0.3)
 	_lab.call("poner_camara", 2)
 	_lab.call("diez_muros", false, true)
@@ -116,7 +117,7 @@ func _diez() -> void:
 	var fps: float = suma / float(n)
 	print("diez_muros fps=%.1f ventana=%s viewport=%s" % [fps, str(root.get_window().size), str(root.get_viewport().get_visible_rect().size)])
 	var f: FileAccess = FileAccess.open(_dir.path_join("diez_muros_fps.txt"), FileAccess.WRITE)
-	f.store_string("fps medios sobre 60 fotogramas: %.1f\nresolución de la ventana: %s\nGPU: %s\n" % [fps, str(root.get_window().size), RenderingServer.get_video_adapter_name()])
+	f.store_string("fps medios sobre 60 fotogramas (sin vsync): %.1f\nresolución de la ventana: %s\nGPU: %s\n" % [fps, str(root.get_window().size), RenderingServer.get_video_adapter_name()])
 	f.close()
 	_guardar("diez_muros.png")
 	_lab.call("limpiar")

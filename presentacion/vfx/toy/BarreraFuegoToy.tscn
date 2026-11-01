@@ -15,7 +15,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = 0.04
-shader_parameter/semilla = 0.539823
+shader_parameter/semilla = 0.4735741
 shader_parameter/anillo = 1.0
 
 [sub_resource type="QuadMesh" id="QuadMesh_co30m"]
@@ -92,12 +92,12 @@ scale_max = 1.2
 scale_curve = SubResource("CurveTexture_iq2k8")
 color_ramp = SubResource("GradientTexture1D_nidor")
 
-[sub_resource type="Gradient" id="Gradient_7rn4l"]
+[sub_resource type="Gradient" id="Gradient_ihv4b"]
 offsets = PackedFloat32Array(0, 0.45, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4i2c7"]
-gradient = SubResource("Gradient_7rn4l")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7awcr"]
+gradient = SubResource("Gradient_ihv4b")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
@@ -107,7 +107,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_4i2c7")
+albedo_texture = SubResource("GradientTexture2D_7awcr")
 disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -170,25 +170,25 @@ _data = {
 &"vivir": SubResource("Animation_qbx1l")
 }
 
-[node name="BarreraFuegoToy" type="Node3D" unique_id=2000178167]
+[node name="BarreraFuegoToy" type="Node3D" unique_id=933455638]
 script = ExtResource("1_pl323")
 tam_referencia = Vector3(3, 3, 3)
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1238707832]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1033033569]
 
-[node name="Anillo" type="MeshInstance3D" parent="Cuerpo" unique_id=2126538607]
+[node name="Anillo" type="MeshInstance3D" parent="Cuerpo" unique_id=2030453611]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 material_override = SubResource("ShaderMaterial_2cp1p")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_co30m")
 
-[node name="Cascara" type="MeshInstance3D" parent="Cuerpo" unique_id=1886369862]
+[node name="Cascara" type="MeshInstance3D" parent="Cuerpo" unique_id=1994255668]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 material_override = SubResource("ShaderMaterial_yitx1")
 cast_shadow = 0
 mesh = SubResource("SphereMesh_4p1ie")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=877657830 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1660361620 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
 cast_shadow = 0
 amount = 14
@@ -199,12 +199,12 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_jlvmh")
 draw_pass_1 = SubResource("QuadMesh_vo1w5")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=1157669989]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=2086373089]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
 light_color = Color(1, 0.72, 0.38, 1)
 light_energy = 1.5
 omni_range = 5.5
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=828149887]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1232447228]
 libraries/ = SubResource("AnimationLibrary_njtmq")

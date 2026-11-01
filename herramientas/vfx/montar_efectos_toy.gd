@@ -272,16 +272,21 @@ func _impacto() -> Node3D:
 	var e: Node3D = Node3D.new()
 	e.name = "Estallido"
 	c.add_child(e)
-	_halo(e, "Halo", 3.6, Vector3(0, 0.3, 0), 0.5, 3.0)
-	_llama(e, "Bola", Vector2(1.9, 2.0), Vector3(0, -0.2, 0), {"radio": 0.4, "punta_h": 1.6, "afilado": 0.8, "radio_bola": 0.75, "blandura": 0.7, "ondulacion": 0.9,
-		"transparencia": 0.85, "brillo": 1.0, "semilla": 0.2, "escala_ruido": 2.0, "billboard": 2}, 1)
+	_halo(e, "Halo", 3.2, Vector3(0, 0.3, 0), 0.3, 3.0)
+	for i in 7:
+		var ang: float = TAU * float(i) / 7.0 + 0.3
+		var hh: float = 0.85 + 0.35 * fmod(float(i) * 0.618, 1.0)
+		_llama(e, "Petalo%d" % i, Vector2(1.1, hh * 1.25), Vector3(cos(ang) * 0.38, -0.1, sin(ang) * 0.38), {"radio": 0.3, "punta_h": hh, "afilado": 0.8, "blandura": 0.3,
+			"ondulacion": 0.9, "transparencia": 0.8, "brillo": 1.0, "velocidad": 1.4, "semilla": 0.13 * float(i), "borde_claro": 0.5, "base_clara": 0.6, "escala_ruido": 2.4}, 1)
+	_llama(e, "Bola", Vector2(1.9, 2.0), Vector3(0, -0.2, 0), {"radio": 0.4, "punta_h": 1.6, "afilado": 0.8, "radio_bola": 0.6, "blandura": 0.5, "ondulacion": 0.9,
+		"transparencia": 0.7, "brillo": 1.0, "semilla": 0.2, "escala_ruido": 2.0, "billboard": 2}, 1)
 	_llama(e, "Nucleo", Vector2(1.2, 1.2), Vector3(0, 0.0, 0), {"radio": 0.2, "punta_h": 0.8, "afilado": 0.8, "radio_bola": 0.4, "blandura": 0.7, "ondulacion": 0.5,
 		"transparencia": 1.0, "brillo": 1.1, "semilla": 0.7, "base_clara": 1.0, "billboard": 2}, 2)
 	var anillo: Node3D = Node3D.new()
 	anillo.name = "Anillo"
 	c.add_child(anillo)
 	_halo(anillo, "Disco", 2.4, Vector3(0, 0.03, 0), 1.0, 1.0, 0, Color(1.0, 0.6, 0.2), {"anillo": 1.0, "latido": 0.0})
-	_luz(r, Vector3(0, 0.6, 0), 1.8, 5.0)
+	_luz(r, Vector3(0, 0.6, 0), 1.3, 4.5)
 	_particulas(c, "Chispas", 14, 0.9, 0.09, Vector3(0.1, 0.05, 0.1), Vector2(1.6, 3.2), Vector3(0, 1, 0), 70.0, Vector3(0, -3.0, 0),
 		[Color(1.0, 0.95, 0.65, 1.0), Color(1.0, 0.7, 0.25, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", true, 0.95, true, Vector3(0, 0.1, 0))
 	var f_est: Callable = func(an: Animation) -> void:

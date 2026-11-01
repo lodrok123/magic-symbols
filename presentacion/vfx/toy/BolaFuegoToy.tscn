@@ -15,7 +15,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.94385767
+shader_parameter/semilla = 0.87466496
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_cnlw4"]
@@ -138,12 +138,12 @@ scale_max = 1.2
 scale_curve = SubResource("CurveTexture_mlc53")
 color_ramp = SubResource("GradientTexture1D_v41yx")
 
-[sub_resource type="Gradient" id="Gradient_7rn4l"]
+[sub_resource type="Gradient" id="Gradient_ihv4b"]
 offsets = PackedFloat32Array(0, 0.45, 1)
 colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_4i2c7"]
-gradient = SubResource("Gradient_7rn4l")
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7awcr"]
+gradient = SubResource("Gradient_ihv4b")
 fill = 1
 fill_from = Vector2(0.5, 0.5)
 fill_to = Vector2(1, 0.5)
@@ -153,7 +153,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_4i2c7")
+albedo_texture = SubResource("GradientTexture2D_7awcr")
 disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -195,7 +195,7 @@ transparency = 1
 blend_mode = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
-albedo_texture = SubResource("GradientTexture2D_4i2c7")
+albedo_texture = SubResource("GradientTexture2D_7awcr")
 disable_receive_shadows = true
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -258,38 +258,38 @@ _data = {
 &"vivir": SubResource("Animation_0r27x")
 }
 
-[node name="BolaFuegoToy" type="Node3D" unique_id=710415774]
+[node name="BolaFuegoToy" type="Node3D" unique_id=846645244]
 script = ExtResource("1_eja2f")
 tam_referencia = Vector3(0.8, 0.8, 0.8)
 escena_impacto = ExtResource("2_c1pk3")
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=21572383]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1767989152]
 
-[node name="Halo" type="MeshInstance3D" parent="Cuerpo" unique_id=1554596745]
+[node name="Halo" type="MeshInstance3D" parent="Cuerpo" unique_id=215001380]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 material_override = SubResource("ShaderMaterial_43to5")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_cnlw4")
 
-[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=188161164]
+[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=177305071]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.52, 0)
 material_override = SubResource("ShaderMaterial_oahc7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_e6txe")
 
-[node name="Bola" type="MeshInstance3D" parent="Cuerpo" unique_id=947736424]
+[node name="Bola" type="MeshInstance3D" parent="Cuerpo" unique_id=1389343587]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
 material_override = SubResource("ShaderMaterial_hylmb")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_srxki")
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=643350102]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=867698515]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.24, 0)
 material_override = SubResource("ShaderMaterial_khesm")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_ipuay")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=549373098 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=2080587161 groups=["chispas"]]
 cast_shadow = 0
 lifetime = 1.3
 fixed_fps = 0
@@ -298,7 +298,7 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_ypon3")
 draw_pass_1 = SubResource("QuadMesh_0ld0x")
 
-[node name="Estela" type="GPUParticles3D" parent="Cuerpo" unique_id=1674147907 groups=["estela"]]
+[node name="Estela" type="GPUParticles3D" parent="Cuerpo" unique_id=1202272861 groups=["estela"]]
 cast_shadow = 0
 emitting = false
 amount = 18
@@ -308,11 +308,11 @@ visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
 process_material = SubResource("ParticleProcessMaterial_deyb0")
 draw_pass_1 = SubResource("QuadMesh_8xt5y")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=2117349879]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=1012976975]
 light_color = Color(1, 0.72, 0.38, 1)
 light_energy = 1.1
 omni_range = 4.5
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=1704232248]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=507074376]
 libraries/ = SubResource("AnimationLibrary_wo7hn")

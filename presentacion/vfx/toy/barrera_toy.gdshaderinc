@@ -13,7 +13,7 @@ uniform float transparencia : hint_range(0.2, 1.0) = 0.9;
 group_uniforms;
 
 group_uniforms forma;
-uniform int lenguas : hint_range(3, 14) = 7;
+uniform int lenguas : hint_range(3, 14) = 8;
 uniform float giro : hint_range(-1.0, 1.0) = 0.3;             // vueltas por segundo (el signo cambia el sentido)
 uniform float torsion : hint_range(0.0, 2.0) = 0.8;           // cuánto se enroscan al subir
 uniform float resplandor_borde : hint_range(0.0, 1.0) = 0.35; // fuerza del borde luminoso de la cáscara
@@ -71,14 +71,14 @@ void fragment() {
 	float cascara = fres * resplandor_borde + 0.05 * (1.0 - hy);
 
 	float dentro = clamp(d / 0.3, 0.0, 1.0);
-	float calor = clamp(dentro * 0.55 + (1.0 - h_rel) * 0.3 - 0.08 + franja * 0.5, 0.0, 1.0);
+	float calor = clamp(dentro * 0.42 + (1.0 - h_rel) * 0.28 - 0.06 + franja * 0.45, 0.0, 1.0);
 	vec3 c_naranja = mix(vec3(1.0, 0.42, 0.04), vec3(0.15, 0.40, 1.0), tono);
 	vec3 c_amarillo = mix(vec3(1.0, 0.70, 0.18), vec3(0.35, 0.75, 1.0), tono);
 	vec3 c_blanco = mix(vec3(1.0, 0.92, 0.58), vec3(0.85, 0.97, 1.0), tono);
 	vec3 col = mix(c_naranja, c_amarillo, smoothstep(0.2, 0.75, calor));
 	col = mix(col, c_blanco, smoothstep(0.82, 1.0, calor));
 	float filo = smoothstep(0.0, suave * 0.6, d) * (1.0 - smoothstep(suave * 0.6, suave * 2.4, d));
-	col = mix(col, c_blanco, filo * 0.4);
+	col = mix(col, c_blanco, filo * 0.25);
 	vec3 col_cascara = mix(c_amarillo, c_blanco, 0.3);
 	float a_len = max(lengua, franja * 0.9);
 	vec3 c_fin = mix(col_cascara, col, clamp(a_len * 1.5, 0.0, 1.0));
