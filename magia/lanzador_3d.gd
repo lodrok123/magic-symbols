@@ -150,7 +150,8 @@ var camara: Camera3D = null
 var altura: int = 0                     ## nivel del hechizo que pregunta a una barrera (bloquea_proyectiles lo lee)
 
 var capa_ui: CanvasLayer = null
-var menu: MenuPestanas = null           ## el menú con pestañas (I Inventario, J Misiones): en 3D lo monta el lanzador, como el libro
+var pausa: MenuPausa = null             ## el menú de pausa (Escape con nada abierto; gamefeel Pa)
+var menu: MenuPestanas = null          ## el menú con pestañas (I Inventario, J Misiones): en 3D lo monta el lanzador, como el libro
 var mochila: BolsaUI = null             ## (heredado) la bolsa antigua: ya no se monta, queda null (la sustituye `menu`)
 var diario: DiarioMisiones = null       ## (heredado) el diario suelto: ya no se monta, queda null (vive dentro de `menu`)
 var libro: Control = null
@@ -614,6 +615,9 @@ func construir_interfaz() -> void:
 	# del que el menú reutiliza la lista y la ficha). Pausa el árbol; el lanzador es ALWAYS. La línea de la misión seguida sigue en el HUD.
 	menu = MenuPestanas.new()
 	capa_ui.add_child(menu)
+	# 1/11 (gamefeel Pa): el menú de pausa (Escape con nada abierto). Detrás del menú con pestañas para que, con la mochila abierta, Escape la cierre a ella.
+	pausa = MenuPausa.new()
+	capa_ui.add_child(pausa)
 	capa_ui.add_child(MisionHud.new())
 
 	libro = Control.new()

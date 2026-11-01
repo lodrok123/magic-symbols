@@ -111,6 +111,8 @@ const IMPACTO: Array = [
 const DB_PREFIJO: String = "dB:"
 const DB_BUS: String = "dB:Interfaz (bus)"
 const DB_IMPRIMIR: String = "dB:imprimir ajustes"
+const DB_BUS_MUNDO: String = "dB:Mundo (bus)"          ## 1/11 (tarea O): van DESPUÉS de «imprimir ajustes» para no mover ningún índice
+const DB_BUS_OCLUIDO: String = "dB:Ocluido (bus)"
 const DB_MIN: float = -40.0
 const DB_MAX: float = 6.0
 const DB_PASO: float = 1.0
@@ -128,6 +130,8 @@ static func entradas() -> Array:
 			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
 		_entradas_cache.append({"n": DB_BUS, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
 		_entradas_cache.append({"n": DB_IMPRIMIR, "paso": 1.0, "min": 0.0, "max": 1.0})
+		_entradas_cache.append({"n": DB_BUS_MUNDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_BUS_OCLUIDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
 	return _entradas_cache
 
 
@@ -426,6 +430,9 @@ static func impacto_valor(nombre: String) -> float:
 			return 0.0                                     # una acción: siempre vuelve a 0
 		if nombre == DB_BUS:
 			return Sfx.volumen_bus(Sfx.BUS_INTERFAZ) if AudioServer.get_bus_index(Sfx.BUS_INTERFAZ) >= 0 else Sfx.VOLUMEN_BUS_INTERFAZ
+		if nombre == DB_BUS_MUNDO or nombre == DB_BUS_OCLUIDO:
+			Sfx3D._asegurar_buses()
+			return Sfx.volumen_bus(Sfx3D.BUS_MUNDO if nombre == DB_BUS_MUNDO else Sfx3D.BUS_OCLUIDO)
 		return Sfx.db_de(nombre.substr(DB_PREFIJO.length()))
 	if nombre.begins_with("S:"):
 		var v: Variant = (Sensacion3D as GDScript).get(nombre.substr(2))
@@ -446,6 +453,9 @@ static func impacto_poner(nombre: String, v: float) -> void:
 						Sfx.imprimir_ajustes()
 				elif nombre == DB_BUS:
 					Sfx.fijar_volumen_bus(Sfx.BUS_INTERFAZ, v)
+				elif nombre == DB_BUS_MUNDO or nombre == DB_BUS_OCLUIDO:
+					Sfx3D._asegurar_buses()
+					Sfx.fijar_volumen_bus(Sfx3D.BUS_MUNDO if nombre == DB_BUS_MUNDO else Sfx3D.BUS_OCLUIDO, v)
 				else:
 					var s: String = nombre.substr(DB_PREFIJO.length())
 					if Sfx.CATALOGO.has(s) and is_equal_approx(v, float(Sfx.CATALOGO[s]["db"])):

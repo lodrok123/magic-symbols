@@ -310,4 +310,4 @@ No hay pausa: con el juego limpio, Escape no hace nada (`menu_pestanas.gd:417` y
 | 4 | **O** oclusión del sonido | pequeño | B |
 | 5 | **Pa** pausa y volumen | medio | B |
 
-Lote A toca `enemigos/`, `presentacion/sensacion_3d.gd` y el catálogo; lote B toca `nucleo/sfx_3d.gd`, `presentacion/ui/` y los buses. Se programan uno tras otro para no pisar `nucleo/sfx.gd`.
+Lote A toca `enemigos/`, `presentacion/sensacion_3d.gd` y el catálogo; lote B toca `nucleo/sfx_3d.gd`, `presentacion/ui/` y los buses. Se programan uno tras otro para no pisar `nucleo/sfx.gd`. **Los dos lotes hechos el 1/11** (diario 301 y 302). Hallazgo sin tocar: en headless un bucle de `Sfx3D.ambiente` que arranca pasada la mitad del archivo se para solo; conviene oír un brasero en el juego real.
