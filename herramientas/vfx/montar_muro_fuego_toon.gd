@@ -15,6 +15,8 @@ const TAM_MURO: Vector2 = Vector2(6.9, 1.5)
 const TAM_COLUMNA: Vector2 = Vector2(1.0, 4.0)
 const TAM_IMPACTO: Vector2 = Vector2(1.6, 1.5)
 const DURA_IMPACTO: float = 1.2
+const ALTO_BASE: float = 0.3                        ## m del plano de la base brillante (la llama de la base mide la mitad)
+const ANCHO_LENGUA: float = 1.35                     ## ancho del quad de cada lengua respecto a su alto (más anchas que altas)
 const GROSOR_MURO: float = 0.3                      ## z de tam_referencia (el de MuroFuego)
 const SEPARACION_PLANOS: float = 0.09                ## m entre el plano delantero y el trasero
 const SUBDIV_ANCHO: int = 48
@@ -28,18 +30,20 @@ const AZUL_NUCLEO: Color = Color("D8F6FF")
 const COLOR_LUZ: Color = Color(1.0, 0.58, 0.22)
 const ENERGIA_LUZ: float = 2.4
 const RANGO_LUZ: float = 6.5
-const ALTURA_PUNTA: float = 1.0                      ## m a escala 1 donde nace el humo (punta típica de la llama)
+const ALTURA_PUNTA: float = 0.75                      ## m a escala 1 donde nace el humo (punta típica de la llama)
 const VIDA_NACER: float = 0.3
 const VIDA_VIVIR: float = 1.0
 const VIDA_MORIR: float = 0.5
-const AMOUNT_HUMO: int = 18
-const AMOUNT_CHISPAS: int = 36
+const AMOUNT_HUMO: int = 7
+const AMOUNT_CHISPAS: int = 90
 
 
 func _init() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR))
 	var r1: Error = _guardar_rampa(COLOR_BORDE, COLOR_CUERPO, COLOR_NUCLEO, "rampa_fuego_toon")
 	var r2: Error = _guardar_rampa(AZUL_BORDE, AZUL_CUERPO, AZUL_NUCLEO, "rampa_fuego_azul")
+	var r5: Error = _guardar_rampa5([Color("8A2412"), Color("C4401A"), Color("DC6418"), Color("F09A20"), Color("FFD88A")], "rampa_fuego_5")
+	var r6: Error = _guardar_rampa5([Color("0A1C6B"), Color("1E4FC8"), Color("2FA8FF"), Color("8FDCFF"), Color("E8FAFF")], "rampa_azul_5")
 	var e: Error = _guardar(_muro(), "MuroFuegoToon")
 	var e2: Error = _guardar(_columna(), "ColumnaFuegoToon")
 	var e3: Error = _guardar(_impacto(), "ImpactoFuegoToon")
@@ -49,6 +53,18 @@ func _init() -> void:
 
 
 ## Rampa en escalones (interpolación constante): borde → cuerpo → núcleo, tres tonos planos.
+## Rampa de 5 escalones (borde rojo oscuro, rojo-naranja, naranja, amarillo, crema), interpolación constante.
+func _guardar_rampa5(colores: Array, nombre: String) -> Error:
+	var g: Gradient = Gradient.new()
+	g.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
+	g.offsets = PackedFloat32Array([0.0, 0.1, 0.22, 0.5, 0.86])
+	g.colors = PackedColorArray(colores)
+	var t: GradientTexture1D = GradientTexture1D.new()
+	t.gradient = g
+	t.width = 128
+	return ResourceSaver.save(t, DIR + nombre + ".tres")
+
+
 func _guardar_rampa(borde: Color, cuerpo: Color, nucleo: Color, nombre: String) -> Error:
 	var g: Gradient = Gradient.new()
 	g.interpolation_mode = Gradient.GRADIENT_INTERPOLATE_CONSTANT
@@ -68,25 +84,55 @@ func _muro() -> Node3D:
 	var cuerpo: Node3D = Node3D.new()
 	cuerpo.name = "Cuerpo"
 	raiz.add_child(cuerpo)
-	var pa: MeshInstance3D = _plano("PlanoA", 0.0, 0.0)
-	pa.position = Vector3(0, TAM_MURO.y * 0.5, SEPARACION_PLANOS * 0.5)
-	cuerpo.add_child(pa)
-	var pb: MeshInstance3D = _plano("PlanoB", 17.0, 0.35)
-	pb.position = Vector3(0, TAM_MURO.y * 0.5, -SEPARACION_PLANOS * 0.5)
-	cuerpo.add_child(pb)
-	var humo: GPUParticles3D = _particulas("Humo", AMOUNT_HUMO, 1.4, 0.4, _mat_humo(), {
-		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.48, 0.05, 0.08),
-		"direction": Vector3(0, 1, 0), "spread": 8.0, "initial_velocity_min": 0.4, "initial_velocity_max": 0.7,
-		"gravity": Vector3(0, 0.1, 0), "scale_min": 0.5, "scale_max": 0.9,
-		"scale_curve": _curva([[0.0, 0.35], [1.0, 1.3]])})
+	var rampa5: Texture2D = load(DIR + "rampa_fuego_5.tres")
+	# Resplandor en el suelo (aditivo, dos óvalos planos) y base brillante continua.
+	var halo: MeshInstance3D = MeshInstance3D.new()
+	halo.name = "Halo"
+	var pl: PlaneMesh = PlaneMesh.new()
+	pl.size = Vector2(TAM_MURO.x + 3.0, 3.2)
+	halo.mesh = pl
+	var mh: ShaderMaterial = ShaderMaterial.new()
+	mh.shader = load(DIR + "halo_toon.gdshader")
+	mh.resource_local_to_scene = true
+	halo.material_override = mh
+	halo.position = Vector3(0, 0.03, 0.4)
+	halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cuerpo.add_child(halo)
+	var base: MeshInstance3D = MeshInstance3D.new()
+	base.name = "Base"
+	var pb: PlaneMesh = PlaneMesh.new()
+	pb.size = Vector2(TAM_MURO.x, ALTO_BASE)
+	pb.orientation = PlaneMesh.FACE_Z
+	pb.subdivide_width = 4
+	pb.subdivide_depth = 1
+	base.mesh = pb
+	var mb: ShaderMaterial = ShaderMaterial.new()
+	mb.shader = load(DIR + "base_toon.gdshader")
+	mb.resource_local_to_scene = true
+	mb.set_shader_parameter("rampa", rampa5)
+	mb.set_shader_parameter("tam_malla", Vector2(TAM_MURO.x, ALTO_BASE))
+	mb.set_shader_parameter("fps", float(FPS_TOON))
+	base.material_override = mb
+	base.position = Vector3(0, ALTO_BASE * 0.5, 0.12)
+	base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	cuerpo.add_child(base)
+	# Lenguas: tres grupos de partículas. Las grandes detrás, las pequeñas delante.
+	cuerpo.add_child(_lenguas("LenguasGrandes", 24, 0.65, 1.0, -0.22, 0.12, rampa5))
+	cuerpo.add_child(_lenguas("LenguasMedianas", 44, 0.4, 0.7, 0.0, 0.12, rampa5))
+	cuerpo.add_child(_lenguas("LenguasPequenas", 52, 0.25, 0.45, 0.2, 0.12, rampa5))
+	var humo: GPUParticles3D = _particulas("Humo", AMOUNT_HUMO, 1.6, 0.5, _mat_humo(), {
+		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.47, 0.1, 0.15),
+		"direction": Vector3(0, 1, 0), "spread": 8.0, "initial_velocity_min": 0.35, "initial_velocity_max": 0.6,
+		"gravity": Vector3(0, 0.05, 0), "scale_min": 0.6, "scale_max": 1.0,
+		"scale_curve": _curva([[0.0, 0.33], [1.0, 1.0]])})
 	humo.position = Vector3(0, ALTURA_PUNTA, 0)
 	cuerpo.add_child(humo)
-	var chispas: GPUParticles3D = _particulas("Chispas", AMOUNT_CHISPAS, 1.1, 0.05, _mat_chispa(), {
-		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.48, 0.1, 0.1),
-		"direction": Vector3(0, 1, 0), "spread": 20.0, "initial_velocity_min": 1.3, "initial_velocity_max": 2.6,
-		"gravity": Vector3(0, -0.4, 0), "scale_min": 0.7, "scale_max": 1.3,
+	var chispas: GPUParticles3D = _particulas("Chispas", AMOUNT_CHISPAS, 1.0, 0.09, _mat_chispa(), {
+		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.48, 0.1, 0.2),
+		"direction": Vector3(0, 1, 0), "spread": 18.0, "initial_velocity_min": 1.0, "initial_velocity_max": 2.4,
+		"gravity": Vector3(0, -0.3, 0), "scale_min": 0.5, "scale_max": 1.0,
 		"scale_curve": _curva([[0.0, 1.0], [0.8, 1.0], [1.0, 0.0]])})
-	chispas.position = Vector3(0, 0.35, 0)
+	chispas.position = Vector3(0, 0.3, 0)
 	cuerpo.add_child(chispas)
 	var luz: OmniLight3D = OmniLight3D.new()
 	luz.name = "Luz"
@@ -101,17 +147,34 @@ func _muro() -> Node3D:
 	raiz.add_child(ap)
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	ap.add_animation_library("", lib)
-	_anim(lib, "nacer", VIDA_NACER, false, [
-		["Cuerpo/PlanoA:material_override:shader_parameter/erosion", [[0.0, 1.0], [VIDA_NACER, 0.0]]],
-		["Cuerpo/PlanoB:material_override:shader_parameter/erosion", [[0.0, 1.0], [VIDA_NACER, 0.0]]],
-		["Cuerpo/Luz:light_energy", [[0.0, 0.0], [VIDA_NACER, ENERGIA_LUZ]]]])
+	var er: Array = ["Cuerpo/LenguasGrandes", "Cuerpo/LenguasMedianas", "Cuerpo/LenguasPequenas", "Cuerpo/Base", "Cuerpo/Halo"]
+	var nacer: Array = [["Cuerpo/Luz:light_energy", [[0.0, 0.0], [VIDA_NACER, ENERGIA_LUZ]]]]
+	var morir: Array = [["Cuerpo/Luz:light_energy", [[0.0, ENERGIA_LUZ], [VIDA_MORIR, 0.0]]],
+		["Cuerpo/Humo:emitting", [[0.0, false]]], ["Cuerpo/Chispas:emitting", [[0.0, false]]],
+		["Cuerpo/LenguasGrandes:emitting", [[0.0, false]]], ["Cuerpo/LenguasMedianas:emitting", [[0.0, false]]], ["Cuerpo/LenguasPequenas:emitting", [[0.0, false]]]]
+	for n in er:
+		nacer.append([n + ":material_override:shader_parameter/erosion", [[0.0, 1.0], [VIDA_NACER, 0.0]]])
+		morir.append([n + ":material_override:shader_parameter/erosion", [[0.0, 0.0], [VIDA_MORIR, 1.0]]])
+	_anim(lib, "nacer", VIDA_NACER, false, nacer)
 	_anim(lib, "vivir", VIDA_VIVIR, true, [["Cuerpo/Luz:light_energy", _titileo()]])
-	_anim(lib, "morir", VIDA_MORIR, false, [
-		["Cuerpo/PlanoA:material_override:shader_parameter/erosion", [[0.0, 0.0], [VIDA_MORIR, 1.0]]],
-		["Cuerpo/PlanoB:material_override:shader_parameter/erosion", [[0.0, 0.0], [VIDA_MORIR, 1.0]]],
-		["Cuerpo/Luz:light_energy", [[0.0, ENERGIA_LUZ], [VIDA_MORIR, 0.0]]],
-		["Cuerpo/Humo:emitting", [[0.0, false]]], ["Cuerpo/Chispas:emitting", [[0.0, false]]]])
+	_anim(lib, "morir", VIDA_MORIR, false, morir)
 	return raiz
+
+
+## Un grupo de lenguas: cada partícula es una lengua (quad más ancho que alto, escala = tamaño) que vive entre 0,4 y 0,8 s y se repone sola.
+func _lenguas(nombre: String, cantidad: int, esc_min: float, esc_max: float, z: float, z_ext: float, rampa: Texture2D) -> GPUParticles3D:
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(DIR + "lengua_toon.gdshader")
+	m.resource_local_to_scene = true
+	m.set_shader_parameter("rampa", rampa)
+	m.set_shader_parameter("fps", float(FPS_TOON))
+	var gp: GPUParticles3D = _particulas(nombre, cantidad, 0.8, 1.0, m, {
+		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.5, 0.01, z_ext),
+		"direction": Vector3(0, 1, 0), "spread": 0.0, "initial_velocity_min": 0.0, "initial_velocity_max": 0.0,
+		"gravity": Vector3.ZERO, "scale_min": esc_min, "scale_max": esc_max, "lifetime_randomness": 0.5})
+	(gp.draw_pass_1 as QuadMesh).size = Vector2(ANCHO_LENGUA, 1.0)
+	gp.position = Vector3(0, 0, z)
+	return gp
 
 
 ## Columna de 1 × 4 m (ref_hoguera): dos planos con billboard bloqueado en Y (una sola lengua grande cada uno), humo en la punta, chispas, una luz.
@@ -323,6 +386,7 @@ func _mat_chispa() -> ShaderMaterial:
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = load(DIR + "chispa_toon.gdshader")
 	m.resource_local_to_scene = true
+	m.set_shader_parameter("rampa", load(DIR + "rampa_fuego_5.tres"))
 	return m
 
 

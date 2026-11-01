@@ -16,12 +16,12 @@ const ESCENA_COLUMNA: String = "res://presentacion/vfx/efectos/ColumnaFuego.tscn
 const ESCENA_MURO_TOON: String = "res://presentacion/vfx/toon/MuroFuegoToon.tscn"
 const ESCENA_COLUMNA_TOON: String = "res://presentacion/vfx/toon/ColumnaFuegoToon.tscn"
 const ESCENA_BOLA_TOON: String = "res://presentacion/vfx/toon/BolaFuegoToon.tscn"
-const RAMPAS_TOON: PackedStringArray = ["res://presentacion/vfx/toon/rampa_fuego_toon.tres", "res://presentacion/vfx/toon/rampa_fuego_azul.tres"]
+const RAMPAS_TOON: PackedStringArray = ["res://presentacion/vfx/toon/rampa_fuego_5.tres", "res://presentacion/vfx/toon/rampa_azul_5.tres"]
 ## Los diez mandos del fuego toon: [nombre del parámetro en fuego_toon.gdshader, mínimo, máximo, paso, valor de origen]. «rampa» no es un número: + / − cambian de rampa (fuego, azul).
 const MANDOS_TOON: Array = [
-	["fps", 2.0, 60.0, 2.0, 12.0], ["umbral", 0.0, 0.6, 0.02, 0.04], ["altura_llama", 0.2, 2.0, 0.1, 0.8], ["desplazamiento", 0.0, 1.0, 0.05, 0.45],
-	["contorno", 0.0, 1.0, 0.1, 0.0], ["rampa", 0.0, 1.0, 1.0, 0.0], ["velocidad", 0.1, 6.0, 0.2, 1.4], ["escala_ruido", 2.0, 24.0, 1.0, 9.0],
-	["brillo", 0.2, 3.0, 0.1, 1.0], ["erosion", 0.0, 1.0, 0.1, 0.0]]
+	["fps", 2.0, 60.0, 2.0, 12.0], ["umbral", 0.0, 0.5, 0.02, 0.02], ["altura_llama", 0.3, 1.0, 0.05, 1.0], ["desplazamiento", 0.0, 1.0, 0.05, 0.5],
+	["contorno", 0.0, 1.0, 0.1, 0.35], ["rampa", 0.0, 1.0, 1.0, 0.0], ["velocidad", 0.1, 6.0, 0.2, 1.6], ["escala_ruido", 2.0, 24.0, 1.0, 9.0],
+	["brillo", 0.2, 3.0, 0.05, 0.86], ["erosion", 0.0, 1.0, 0.1, 0.0]]
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -236,9 +236,9 @@ func diez_muros(toon: bool = false) -> void:
 ## Materiales de fuego (los de los planos) de un efecto toon.
 func _materiales_toon(e: Node) -> Array:
 	var r: Array = []
-	for n in e.find_children("*", "MeshInstance3D", true, false):
-		var m: ShaderMaterial = (n as MeshInstance3D).material_override as ShaderMaterial
-		if m != null and m.shader != null and m.shader.resource_path.ends_with("fuego_toon.gdshader"):
+	for n in e.find_children("*", "GeometryInstance3D", true, false):
+		var m: ShaderMaterial = (n as GeometryInstance3D).material_override as ShaderMaterial
+		if m != null and m.shader != null and m.shader.resource_path.get_file() in ["fuego_toon.gdshader", "lengua_toon.gdshader", "base_toon.gdshader", "halo_toon.gdshader", "chispa_toon.gdshader"]:
 			r.append(m)
 	return r
 
@@ -250,6 +250,9 @@ func _valor_mando_toon(i: int) -> float:
 
 ## Pone en un efecto toon los valores que el usuario ha movido con el teclado.
 func _aplicar_mandos_toon(e: Node) -> void:
+	if _valores_toon.has("fps"):
+		for gp in e.find_children("*", "GPUParticles3D", true, false):
+			(gp as GPUParticles3D).fixed_fps = int(_valores_toon["fps"])   # las partículas llevan su propio fps
 	for m in _materiales_toon(e):
 		for i in MANDOS_TOON.size():
 			var nombre: String = MANDOS_TOON[i][0]

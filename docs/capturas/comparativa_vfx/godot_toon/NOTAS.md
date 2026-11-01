@@ -83,3 +83,62 @@ Lo que más separa el muro de `ref_muro.jpg`, según yo: (1) la masa continua ba
 - No he hecho **las cinco modificaciones de §1** ni el «solo, sin pedir código, cronometrado»: son para la hora de Pablo. Mi estimación de cada una con los mandos actuales: (1) fuego azul: tecla de la rampa en el lab (ya existe `rampa_fuego_azul.tres`), 1 paso; (2) de 12 a 6 fps: mando `fps`, 1 paso (pero las partículas llevan `fixed_fps` aparte, en el inspector de cada nodo, y la luz sus claves); (3) lenguas un 50 % más altas: mando `altura_llama` de 0,8 a 1,2; (4) quitar el humo y doblar las chispas: hace falta tocar la escena (borrar el nodo `Humo` y subir `amount` de `Chispas`); (5) muro al doble de largo con la misma densidad: `preparar` con el doble de X escala el plano y el shader mantiene la densidad (comprobado la escala en la prueba, no el aspecto en pantalla).
 - La `Movie Maker` grabó a 1152 × 648; el GIF son 36 fotogramas a 12 por segundo, 768 px de ancho, 64 colores (la cuantización del GIF puede cambiar tonos respecto a la captura).
 - No he abierto el editor de Godot: las escenas están escritas por script y comprobadas por carga en headless y por las capturas; no he revisado cómo se ven en el inspector.
+
+---
+
+# Ronda 2 (1/11, tras «parece un papel», Pablo): lenguas sueltas superpuestas en vez de un plano
+
+Lo de arriba describe la ronda 1 (dos planos con `fuego_toon`). `muro_cerca_r1.png` es la captura de aquella ronda, para comparar. Esta sección es la que vale para el muro; columna, bola e impacto siguen con la técnica de la ronda 1 y no se han rehecho.
+
+## Qué tiene el fuego de `ref_muro.jpg` y no tenía el mío (descrito mirando la referencia y mis capturas de la ronda 1; lo escribo al final de la ronda, no antes de tocar nada)
+
+- **Proporción de tonos**: en la referencia domina un naranja ámbar (≈ `#C06020` a `#E08020`) con un amarillo cálido (≈ `#E0C020`) en la base y la mitad baja de cada lengua; el rojo es solo el borde fino de arriba. En la ronda 1 yo tenía una franja de crema de 7 m (el tono más claro ocupaba la mitad de la llama) y tres tonos en zonas enormes. Medido: el 89 % de los píxeles de fuego de la referencia son de tono < 45° (naranja) y solo el 11 % amarillo; en mi ronda 1 la luz crema/amarilla era dominante.
+- **Forma**: lenguas más anchas que altas, redondeadas, de muchos tamaños, solapadas a distintas profundidades; la mía eran dientes de sierra idénticos en un solo plano.
+- **Línea de base**: no es recta; sube y baja con la hierba. La mía era una regla.
+- **Humo**: poco, gris claro, fino. **Chispas**: muchas, pequeñas, como puntos.
+- **Brillo**: el fuego de la referencia es oscuro-cálido (valor entre 0,75 y 0,9 en el 45 % de los píxeles); el mío era saturado y al máximo.
+
+## Qué cambió
+
+| Antes (ronda 1) | Ahora (ronda 2) |
+|---|---|
+| Dos planos con tres capas de lenguas cada uno | **Tres grupos de `GPUParticles3D` (24 grandes detrás, 44 medianas, 52 pequeñas delante = 120 lenguas)**, cada partícula es una lengua en un quad (`lengua_toon.gdshader`) que gira hacia la cámara sin tumbarse, con su forma (anchura, ladeo y ondulación por semilla de la posición de nacimiento), su altura (0,25–1,0 m) y su vida (0,4–0,8 s: nace, crece, se estrecha y desaparece de golpe). Más anchas que altas (quad 1,35 : 1). Ancho máximo al 30 % de la altura, punta redondeada |
+| Rampa de 3 tonos | **Rampa de 5 escalones** (`rampa_fuego_5.tres`): rojo oscuro (borde), rojo-naranja, naranja, amarillo ámbar, crema; el color depende de la altura dentro de la lengua (crema solo en el corazón de la base, amarillo la mitad baja, naranja el cuerpo, rojo arriba y en el borde). El crema ya no es la mitad de la llama sino un 3 % de los píxeles |
+| Franja recta crema | **Base** (`base_toon.gdshader`): franja de ≈ 16 cm, amarillo abajo, naranja, rojo fino, con el borde superior ondulado por ruido de valor a saltos de 1/12 s |
+| Sin resplandor | **Halo** (`halo_toon.gdshader`): óvalo plano aditivo de dos tonos en el suelo con el radio titilando a saltos de fotograma; la luz sigue siendo una |
+| Esferas azules opacas | Humo en bolas de **dos grises cálidos** con el tono claro como media luna, borde irregular, 0,3 a 0,5 m, **7 vivas**, desde 0,75 m de altura (la punta de las lenguas) |
+| Rombos | Chispas alargadas con cabeza redonda y cola fina, **90 vivas**, dos tonos que salen de la propia rampa (no añaden colores) |
+| Paleta de la spec tal cual | Los colores se bajaron de brillo (`brillo` 0,86) y se calibraron contra lo que sale por pantalla, porque el tonemap del lab (filmic) aclara y desvía el amarillo: ámbar `#F09A20`, naranja `#DC6418`, rojo `#C4401A`, borde `#8A2412`, crema `#FFD88A` (más oscuros y menos amarillos que `#FF8A1F` / `#FFF3B0` de §0.1; el objetivo era parecerse a la referencia, que manda) |
+
+Los diez mandos de `lengua_toon.gdshader` (mismo nombre que los de `fuego_toon` para el panel del lab; el lab los aplica a todos los materiales toon y `fps` además a `fixed_fps` de las partículas): `fps`, `umbral`, `altura_llama` (fracción del quad), `desplazamiento` (ladeo y ondulación), `contorno` (borde rojo oscuro, 0,35), `rampa`, `velocidad` (ritmo del ondular), `escala_ruido` (frecuencia del ondular), `brillo` (0,86), `erosion`.
+
+## Medida objetiva por ronda
+
+`herramientas/distancia_fuego_toon.gd` (sin ventana): histograma de tono × valor de 8 × 8 celdas sobre los píxeles de fuego (saturación > 0,4), en la franja de la referencia (filas 270–380 de 668) y en el rectángulo del muro de mi captura (`muro_cerca.png`: rect 220,200,1380,800; `juego_muro.png`: rect 220,140,1160,250). Distancia 0 = igual, 2 = nada en común. **Límites**: la referencia incluye hierba naranja detrás (cuenta como fuego), el JPEG da degradados que un fuego plano nunca tendrá (así que hay un suelo por debajo de 0 que no se alcanza), y mi rectángulo lleva chispas y humo.
+
+| Versión | `muro_cerca` | `juego_muro` | Qué se cambió |
+|---|---|---|---|
+| Ronda 1 | 1,034 | 1,036 | (base de comparación) |
+| r8 primera con partículas (lenguas como colinas, amarillo vivo) | 0,727 | 0,758 | el cambio de técnica |
+| r9 tonos más naranja, sparks 110 | 0,725 | 0,741 | |
+| r10 lenguas más puntiagudas y densas | 0,726 | 0,740 | |
+| r11 / r12 brillo 0,9 y ámbar | 0,732 / 0,730 | 0,741 / 0,741 | casi nada: el tonemap deshacía el cambio |
+| r13 tonos subidos a naranja saturado | 0,944 | 0,954 | **peor**; se desechó (todo el fuego quedó en una sola celda de tono y valor) |
+| r14 rampa más oscura calibrada con la salida real | 0,580 | 0,648 | **el mejor muro_cerca** |
+| r15 lenguas más bajas, más anchas, humo menor | 0,655 | 0,653 | más parecido a la vista, la métrica no bajó |
+| **Final entregado** | **0,662** | **0,650** | chispas con la rampa (cuenta ≤ 8 colores) |
+
+Lectura honesta: la distancia bajó de 1,03 a 0,65 (−37 %) pero no por debajo de ≈ 0,6 porque el fuego plano tiene el 70 % de sus píxeles en una sola celda de valor y la referencia reparte 54 / 35 / 9 % en tres. No hay forma de bajar eso sin degradado o ruido de textura, que es justo lo que no queremos. Mirando las capturas, r15 se parece más a la referencia que r14 aunque la métrica empeore un poco (lenguas de tamaño y proporción más cercanos), así que no la he tratado como criterio único. La ronda 1 → 2 sí baja y la captura se acerca claramente.
+
+## Nota propia frente a `ref_muro.jpg` (1–5)
+
+- Ronda 1: **2 / 5** (se lee como fuego, pero es una franja de recortes idénticos con una base de regla).
+- Ronda 2 (`juego_muro.png`, cámara del juego): **3,5 / 5**; ya es la misma familia de fuego: lenguas redondeadas, solapadas, de tamaños distintos, base ondulada, tres tonos más el amarillo claro abajo y rojo fino arriba, humo escaso, chispas pequeñas. Lo que me impide el 4: (1) las lenguas son más altas y puntiagudas que las de la referencia, que forman una masa baja casi continua; (2) cada lengua tiene bandas horizontales de color nítidas («cebolla»), la referencia las tiene más irregulares; (3) en `muro_cerca.png` (cámara oblicua a 2 m) se ven los quads de perfil y la base como tira fina con puntitos; (4) el humo son bolas aisladas, no una nube.
+- Tiempo: 13:58 – 14:44 ≈ **46 min de reloj** para la ronda (muy por debajo del límite de 3 h; paro porque la métrica ha dejado de bajar y la nota propia, 3,5, no llega al 4 por cosas que cuestan más que unos retoques: lenguas con ruido de borde propio y más masa baja).
+
+## Otros resultados de la ronda
+
+- Secuencia de 3 s (36 fotogramas a 12 por segundo en `muro_2m_3s.gif`) rehecha. A 24 fps la diferencia entre fotogramas consecutivos sigue alternando 0,000 y 0,09–0,12: se mueve solo cada 1/12 s (lenguas, humo, chispas, luz, halo).
+- `prueba_vfx_toon.gd`: **0 fallos**; paleta de **7 colores** a 5 bits (5 de llama, 2 de humo; las chispas usan los de la rampa). La captura de la paleta (`muro_cerca_solo_llama.png`) oculta el halo (aditivo, añadiría tonos que no son de la llama) y el bloom.
+- Partículas del muro: 120 lenguas + 7 humo + 90 chispas = 217 (≤ 300), 1 luz. Diez muros: 60 fps (el panel de la captura), a 1600 × 1000, no a 1080p.
+- No cumple lo pedido: la rampa son 5 tonos y no 3 (por petición de la ronda), y los colores se alejan de `#FFF3B0` / `#FF8A1F` / `#C8321E` (ver arriba). No he probado `contorno` más alto ni el halo con el sol apagado.

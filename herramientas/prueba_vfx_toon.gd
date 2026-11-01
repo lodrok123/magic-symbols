@@ -91,7 +91,7 @@ func _escena() -> void:
 		var gp: GPUParticles3D = n
 		_ok("6 %s: fixed_fps %d sin interpolar" % [gp.name, FPS_TOON], gp.fixed_fps == FPS_TOON and not gp.interpolate, "%d %s" % [gp.fixed_fps, str(gp.interpolate)])
 	var humo: Node3D = e.get_node_or_null("Cuerpo/Humo") as Node3D
-	_ok("6 el humo nace en la punta (y ≥ 60 % del alto)", humo != null and humo.position.y >= 0.6 * REF.y, str(humo.position.y) if humo != null else "sin humo")
+	_ok("6 el humo nace en la punta (y ≥ 40 % del alto: las lenguas llegan a ~1 m)", humo != null and humo.position.y >= 0.4 * REF.y, str(humo.position.y) if humo != null else "sin humo")
 	if ap != null and ap.has_animation("vivir"):
 		var a: Animation = ap.get_animation("vivir")
 		var bien: bool = a.get_track_count() > 0 and a.length > 0.0
@@ -103,10 +103,15 @@ func _escena() -> void:
 				for k in range(1, pasos):
 					bien = bien and absf((a.track_get_key_time(t, k) - a.track_get_key_time(t, k - 1)) - 1.0 / float(FPS_TOON)) < 0.001
 		_ok("6 la luz titila en escalones de 1/%d s (%d claves, vecino más cercano)" % [FPS_TOON, pasos], bien and pasos >= FPS_TOON)
-	for p in ["PlanoA", "PlanoB"]:
-		var mi: MeshInstance3D = e.get_node_or_null("Cuerpo/" + p) as MeshInstance3D
-		var m: ShaderMaterial = mi.material_override as ShaderMaterial if mi != null else null
-		_ok("6 %s: fps del shader = %d y rampa en escalones" % [p, FPS_TOON], m != null and int(m.get_shader_parameter("fps")) == FPS_TOON and _rampa_constante(m.get_shader_parameter("rampa")))
+	for p in ["LenguasGrandes", "LenguasMedianas", "LenguasPequenas", "Base"]:
+		var gi: GeometryInstance3D = e.get_node_or_null("Cuerpo/" + p) as GeometryInstance3D
+		var m: ShaderMaterial = gi.material_override as ShaderMaterial if gi != null else null
+		_ok("6 %s: fps del shader = %d y rampa de 5 escalones constantes" % [p, FPS_TOON], m != null and int(m.get_shader_parameter("fps")) == FPS_TOON and _rampa_constante(m.get_shader_parameter("rampa")))
+	var n_lenguas: int = 0
+	for p in ["LenguasGrandes", "LenguasMedianas", "LenguasPequenas"]:
+		var gp: GPUParticles3D = e.get_node_or_null("Cuerpo/" + p) as GPUParticles3D
+		n_lenguas += gp.amount if gp != null else 0
+	_ok("6 entre 40 y 150 lenguas (%d)" % n_lenguas, n_lenguas >= 40 and n_lenguas <= 150)
 	# 3: escalado
 	var v: Dictionary = {"x": REF.x * 0.5 / CASILLA, "y": REF.y * 0.5 / CASILLA, "z": REF.z * 0.5 / CASILLA}
 	e.call("preparar", v, Vector3(0, 0, -1), "fuego")
@@ -173,7 +178,7 @@ func _defecto(sh: Shader, nombre: String) -> float:
 
 func _rampa_constante(t: Variant) -> bool:
 	var g: GradientTexture1D = t as GradientTexture1D
-	return g != null and g.gradient != null and g.gradient.interpolation_mode == Gradient.GRADIENT_INTERPOLATE_CONSTANT and g.gradient.get_point_count() == 3
+	return g != null and g.gradient != null and g.gradient.interpolation_mode == Gradient.GRADIENT_INTERPOLATE_CONSTANT and g.gradient.get_point_count() == 5
 
 
 func _shaders() -> void:

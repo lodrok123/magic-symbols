@@ -98,8 +98,11 @@ func _correr() -> void:
 func _solo_llama() -> void:
 	_lab.call("poner_camara", 1)
 	var ocultos: Array = []
+	for h in _lab.find_children("Halo", "", true, false):
+		ocultos.append(h)
+		h.set("visible", false)
 	for h in _lab.get_children():
-		if h.name == "Suelo" or h.name.begins_with("Cubo") or h.name == "Jugadora":
+		if h.name == "Suelo" or h.name == "Halo" or h.name.begins_with("Cubo") or h.name == "Jugadora":
 			ocultos.append(h)
 			h.set("visible", false)
 	var we: WorldEnvironment = _lab.get_node_or_null("Ambiente") as WorldEnvironment

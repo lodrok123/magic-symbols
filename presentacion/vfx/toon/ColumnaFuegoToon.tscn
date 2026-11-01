@@ -1,21 +1,22 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://presentacion/vfx/efectos/efecto_vfx_3d.gd" id="1_jlpma"]
-[ext_resource type="Shader" path="res://presentacion/vfx/toon/fuego_toon.gdshader" id="2_oynlx"]
-[ext_resource type="Texture2D" path="res://presentacion/vfx/toon/rampa_fuego_toon.tres" id="3_6nff5"]
-[ext_resource type="Shader" path="res://presentacion/vfx/toon/humo_toon.gdshader" id="4_jkdey"]
-[ext_resource type="Shader" path="res://presentacion/vfx/toon/chispa_toon.gdshader" id="5_iedef"]
+[ext_resource type="Script" path="res://presentacion/vfx/efectos/efecto_vfx_3d.gd" id="1_oynlx"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toon/fuego_toon.gdshader" id="2_6nff5"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/toon/rampa_fuego_toon.tres" id="3_jkdey"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toon/humo_toon.gdshader" id="4_iedef"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toon/chispa_toon.gdshader" id="5_ggilv"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/toon/rampa_fuego_5.tres" id="6_muakq"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ggilv"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_co7as"]
 resource_local_to_scene = true
 render_priority = 0
-shader = ExtResource("2_oynlx")
+shader = ExtResource("2_6nff5")
 shader_parameter/fps = 12.0
 shader_parameter/umbral = null
 shader_parameter/altura_llama = 1.0
 shader_parameter/desplazamiento = 0.25
 shader_parameter/contorno = null
-shader_parameter/rampa = ExtResource("3_6nff5")
+shader_parameter/rampa = ExtResource("3_jkdey")
 shader_parameter/velocidad = null
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = null
@@ -24,36 +25,6 @@ shader_parameter/suavidad = null
 shader_parameter/tam_malla = Vector2(1, 4)
 shader_parameter/semilla = 3.0
 shader_parameter/ancho_lengua = 0.62
-shader_parameter/base_brillante = 0.0
-shader_parameter/gotas = 0.5
-shader_parameter/retroceso = null
-shader_parameter/billboard_y = true
-shader_parameter/color_contorno = null
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_muakq"]
-size = Vector2(1, 4)
-subdivide_width = 48
-subdivide_depth = 6
-orientation = 2
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_co7as"]
-resource_local_to_scene = true
-render_priority = 0
-shader = ExtResource("2_oynlx")
-shader_parameter/fps = 12.0
-shader_parameter/umbral = null
-shader_parameter/altura_llama = 0.75
-shader_parameter/desplazamiento = 0.25
-shader_parameter/contorno = null
-shader_parameter/rampa = ExtResource("3_6nff5")
-shader_parameter/velocidad = null
-shader_parameter/escala_ruido = 2.0
-shader_parameter/brillo = null
-shader_parameter/erosion = null
-shader_parameter/suavidad = null
-shader_parameter/tam_malla = Vector2(1, 4)
-shader_parameter/semilla = 29.0
-shader_parameter/ancho_lengua = 0.4
 shader_parameter/base_brillante = 0.0
 shader_parameter/gotas = 0.5
 shader_parameter/retroceso = null
@@ -69,21 +40,52 @@ orientation = 2
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vmk6b"]
 resource_local_to_scene = true
 render_priority = 0
-shader = ExtResource("4_jkdey")
+shader = ExtResource("2_6nff5")
+shader_parameter/fps = 12.0
+shader_parameter/umbral = null
+shader_parameter/altura_llama = 0.75
+shader_parameter/desplazamiento = 0.25
+shader_parameter/contorno = null
+shader_parameter/rampa = ExtResource("3_jkdey")
+shader_parameter/velocidad = null
+shader_parameter/escala_ruido = 2.0
+shader_parameter/brillo = null
+shader_parameter/erosion = null
+shader_parameter/suavidad = null
+shader_parameter/tam_malla = Vector2(1, 4)
+shader_parameter/semilla = 29.0
+shader_parameter/ancho_lengua = 0.4
+shader_parameter/base_brillante = 0.0
+shader_parameter/gotas = 0.5
+shader_parameter/retroceso = null
+shader_parameter/billboard_y = true
+shader_parameter/color_contorno = null
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_kru0g"]
+size = Vector2(1, 4)
+subdivide_width = 48
+subdivide_depth = 6
+orientation = 2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wagc6"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("4_iedef")
 shader_parameter/tono_cuerpo = null
 shader_parameter/tono_luz = null
-shader_parameter/luz_radio = null
-shader_parameter/luz_desfase = null
+shader_parameter/sombra_desfase = null
+shader_parameter/sombra_radio = null
 shader_parameter/redondez = null
+shader_parameter/irregular = null
 
-[sub_resource type="Curve" id="Curve_kru0g"]
+[sub_resource type="Curve" id="Curve_ipj7t"]
 _data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
 point_count = 2
 
-[sub_resource type="CurveTexture" id="CurveTexture_wagc6"]
-curve = SubResource("Curve_kru0g")
+[sub_resource type="CurveTexture" id="CurveTexture_fwoxt"]
+curve = SubResource("Curve_ipj7t")
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ipj7t"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_vtrh3"]
 emission_shape = 1
 emission_sphere_radius = 0.25
 direction = Vector3(0, 1, 0)
@@ -92,26 +94,27 @@ initial_velocity_min = 0.4
 initial_velocity_max = 0.8
 gravity = Vector3(0, 0.1, 0)
 scale_min = 0.6
-scale_curve = SubResource("CurveTexture_wagc6")
+scale_curve = SubResource("CurveTexture_fwoxt")
 
-[sub_resource type="QuadMesh" id="QuadMesh_fwoxt"]
+[sub_resource type="QuadMesh" id="QuadMesh_4rjlb"]
 size = Vector2(0.4, 0.4)
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_vtrh3"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sf0is"]
 resource_local_to_scene = true
 render_priority = 0
-shader = ExtResource("5_iedef")
-shader_parameter/color = null
+shader = ExtResource("5_ggilv")
+shader_parameter/rampa = ExtResource("6_muakq")
+shader_parameter/brillo = null
 shader_parameter/alargado = null
 
-[sub_resource type="Curve" id="Curve_4rjlb"]
+[sub_resource type="Curve" id="Curve_xgvqg"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(0.8, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 3
 
-[sub_resource type="CurveTexture" id="CurveTexture_sf0is"]
-curve = SubResource("Curve_4rjlb")
+[sub_resource type="CurveTexture" id="CurveTexture_4p6fj"]
+curve = SubResource("Curve_xgvqg")
 
-[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_xgvqg"]
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_pco7y"]
 emission_shape = 1
 emission_sphere_radius = 0.2
 direction = Vector3(0, 1, 0)
@@ -121,12 +124,12 @@ initial_velocity_max = 2.4
 gravity = Vector3(0, -0.3, 0)
 scale_min = 0.7
 scale_max = 1.3
-scale_curve = SubResource("CurveTexture_sf0is")
+scale_curve = SubResource("CurveTexture_4p6fj")
 
-[sub_resource type="QuadMesh" id="QuadMesh_4p6fj"]
+[sub_resource type="QuadMesh" id="QuadMesh_6y1ru"]
 size = Vector2(0.05, 0.05)
 
-[sub_resource type="Animation" id="Animation_pco7y"]
+[sub_resource type="Animation" id="Animation_toe5x"]
 length = 0.5
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -189,7 +192,7 @@ tracks/4/keys = {
 "values": [false]
 }
 
-[sub_resource type="Animation" id="Animation_6y1ru"]
+[sub_resource type="Animation" id="Animation_b4dno"]
 length = 0.3
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -228,7 +231,7 @@ tracks/2/keys = {
 "values": [0.0, 2.4]
 }
 
-[sub_resource type="Animation" id="Animation_toe5x"]
+[sub_resource type="Animation" id="Animation_bugn5"]
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -243,60 +246,60 @@ tracks/0/keys = {
 "values": [1.9679999999999997, 2.28, 2.544, 2.16, 2.688, 2.4, 1.9679999999999997, 2.28, 2.544, 2.16, 2.688, 2.4]
 }
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_b4dno"]
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_7tkcg"]
 _data = {
-&"morir": SubResource("Animation_pco7y"),
-&"nacer": SubResource("Animation_6y1ru"),
-&"vivir": SubResource("Animation_toe5x")
+&"morir": SubResource("Animation_toe5x"),
+&"nacer": SubResource("Animation_b4dno"),
+&"vivir": SubResource("Animation_bugn5")
 }
 
-[node name="ColumnaFuegoToon" type="Node3D" unique_id=923770797]
-script = ExtResource("1_jlpma")
+[node name="ColumnaFuegoToon" type="Node3D" unique_id=132026212]
+script = ExtResource("1_oynlx")
 tam_referencia = Vector3(1, 4, 1)
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=276603320]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1535413942]
 
-[node name="PlanoA" type="MeshInstance3D" parent="Cuerpo" unique_id=164619006]
+[node name="PlanoA" type="MeshInstance3D" parent="Cuerpo" unique_id=42988603]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0.02)
-material_override = SubResource("ShaderMaterial_ggilv")
-cast_shadow = 0
-mesh = SubResource("PlaneMesh_muakq")
-
-[node name="PlanoB" type="MeshInstance3D" parent="Cuerpo" unique_id=406744523]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.02)
 material_override = SubResource("ShaderMaterial_co7as")
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_6e0qh")
 
-[node name="Humo" type="GPUParticles3D" parent="Cuerpo" unique_id=1512475167]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+[node name="PlanoB" type="MeshInstance3D" parent="Cuerpo" unique_id=63520599]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -0.02)
 material_override = SubResource("ShaderMaterial_vmk6b")
+cast_shadow = 0
+mesh = SubResource("PlaneMesh_kru0g")
+
+[node name="Humo" type="GPUParticles3D" parent="Cuerpo" unique_id=1089926735]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.2, 0)
+material_override = SubResource("ShaderMaterial_wagc6")
 cast_shadow = 0
 amount = 14
 lifetime = 1.8
 fixed_fps = 12
 interpolate = false
 visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
-process_material = SubResource("ParticleProcessMaterial_ipj7t")
-draw_pass_1 = SubResource("QuadMesh_fwoxt")
+process_material = SubResource("ParticleProcessMaterial_vtrh3")
+draw_pass_1 = SubResource("QuadMesh_4rjlb")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1381937230]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=682795847]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-material_override = SubResource("ShaderMaterial_vtrh3")
+material_override = SubResource("ShaderMaterial_sf0is")
 cast_shadow = 0
 amount = 24
 lifetime = 1.4
 fixed_fps = 12
 interpolate = false
 visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
-process_material = SubResource("ParticleProcessMaterial_xgvqg")
-draw_pass_1 = SubResource("QuadMesh_4p6fj")
+process_material = SubResource("ParticleProcessMaterial_pco7y")
+draw_pass_1 = SubResource("QuadMesh_6y1ru")
 
-[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=1317830461]
+[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=1241203297]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.5)
 light_color = Color(1, 0.58, 0.22, 1)
 light_energy = 2.4
 omni_range = 6.5
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=660034785]
-libraries/ = SubResource("AnimationLibrary_b4dno")
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=1094102127]
+libraries/ = SubResource("AnimationLibrary_7tkcg")
