@@ -79,15 +79,20 @@ Se reutiliza la cola de scripts y `poc_niagara.py` de la prueba B; lo nuevo es e
 
 ## 4. Tabla de resultados
 
+Rellenada el 1/11 a las 15:50 con lo entregado (Godot: rama `claude/prueba2-godot-toon`, commit `68d9f371`, tres rondas; Unreal: rama `claude/prueba2-unreal-toon`, commit `19ce693a`, 17 rondas). Las filas de Pablo quedan en blanco hasta que mire las capturas y haga su hora.
+
 | Criterio | Peso | Godot | Unreal | Notas |
 |---|---|---|---|---|
-| Aspecto frente a los tres fotogramas (Pablo, 1–5) | 3 | | | muro; columna y bola si llegan |
-| Horas de agente hasta el muro que Pablo da por bueno | 2 | | | de las 16 |
-| Las cinco modificaciones de §1: cuántas solo, tiempo | 3 | | | |
-| Fps con diez muros a 1080p | 1 | | | mínimo 60 |
-| Flujo que sobrevive (sin ventana, pruebas, texto, capturas) | 3 | | | 0–5 |
-| Parte de lo que se ve que es contenido ajeno | 1 | | | % |
+| Aspecto frente a los tres fotogramas (Pablo, 1–5) | 3 | | | Solo muro en los dos. Nota de la dirección: Godot 3,5 (silueta de picos bien, borde rojo rodea cada capa, falta la franja crema de la base); Unreal 3,5 (tres tonos donde la referencia los pone, lenguas como recortes apilados con contorno rojo grueso, muro bajo desde la cámara del juego). Los agentes se dieron 3,5 los dos. |
+| Horas de agente hasta el muro que Pablo da por bueno | 2 | 2 h 40 (3 rondas) | 2 h 10 (17 rondas) | de las 16; ninguno llegó al 4/5, pararon por la regla «la medida deja de bajar» |
+| Las cinco modificaciones de §1: cuántas solo, tiempo | 3 | | | pendiente de la hora de Pablo |
+| Fps con diez muros a 1080p | 1 | 60 a 1600 × 1000 (no medido a 1080p) | 105–116 a 1080p | 122 partículas por muro en Godot, 81 en Unreal; 1 luz los dos |
+| Flujo que sobrevive (sin ventana, pruebas, texto, capturas) | 3 | 5 | 4 | Godot: todo sin ventana, 0 fallos, 7 colores. Unreal: material de 89 nodos por script, 19 aserciones en editor, `-run=pythonscript` **funciona** (15 s, 16 OK y 3 omitidas porque el commandlet no compila shaders); capturas solo con editor abierto; disco C a 0 MB bloqueó el commit 6 min |
+| Parte de lo que se ve que es contenido ajeno | 1 | 0 % | 0 % | Unreal sin textura ni asset de Epic; Fab no usado |
+| Distancia de histograma a `ref_muro.jpg` (0–2, menos es mejor) | — | 1,03 → 0,66 → 0,60 | 1,08 → 0,71 | Los dos agentes descartaron versiones con menor distancia (0,28 en Godot, 0,54 en Unreal) por verse peor: la medida sirve de guía, no de juez |
 | Coste de llegar al juego entero | 3 | 0 | 50–80 jornadas (`MIGRACION_UNREAL_COSTE_2026-11-01.md`) | |
+
+Lectura de la dirección al cierre del día: con método libre y referencia los dos motores llegan a lo mismo en el mismo tiempo (3,5 sobre 5, unas 2 h y media de agente), y les falta lo mismo: que las lenguas se fundan entre sí en vez de apilarse como recortes. Es un problema de técnica (una sola malla larga con el material en vez de sprites o planos sueltos), no de motor. Unreal sorprende en lo que la prueba 1 negaba: el flujo sin interfaz existe y el material entero se hizo por script. Godot sigue siendo más barato en todo lo demás.
 
 La regla de decisión de §5 de la comparativa sigue valiendo: el traslado solo se abre con Godot por debajo del 80 % del aspecto de Unreal y Pablo haciendo solo ≥ 4 de 5 modificaciones allí y ≤ 2 aquí.
 
