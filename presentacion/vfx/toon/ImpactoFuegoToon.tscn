@@ -178,24 +178,24 @@ _data = {
 &"nacer": SubResource("Animation_kvwwv")
 }
 
-[node name="ImpactoFuegoToon" type="Node3D" unique_id=226946419]
+[node name="ImpactoFuegoToon" type="Node3D" unique_id=188390785]
 script = ExtResource("1_es4yo")
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1316167115]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1070977620]
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1502533637]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1568802688]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 material_override = SubResource("ShaderMaterial_mb84j")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_4nn40")
 
-[node name="PlanoA" type="MeshInstance3D" parent="Cuerpo" unique_id=765672228]
+[node name="PlanoA" type="MeshInstance3D" parent="Cuerpo" unique_id=1824827440]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.02)
 material_override = SubResource("ShaderMaterial_075ex")
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_t7kgi")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=497029330]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=616188945]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 material_override = SubResource("ShaderMaterial_yr1uc")
 cast_shadow = 0
@@ -209,7 +209,7 @@ visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
 process_material = SubResource("ParticleProcessMaterial_ir4uw")
 draw_pass_1 = SubResource("QuadMesh_ibaxr")
 
-[node name="Humo" type="GPUParticles3D" parent="Cuerpo" unique_id=746990460]
+[node name="Humo" type="GPUParticles3D" parent="Cuerpo" unique_id=704205109]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
 material_override = SubResource("ShaderMaterial_ggyq6")
 cast_shadow = 0
@@ -222,11 +222,11 @@ visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
 process_material = SubResource("ParticleProcessMaterial_bxq3t")
 draw_pass_1 = SubResource("QuadMesh_08dow")
 
-[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=981042773]
+[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=1119653022]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0.4)
 light_color = Color(1, 0.58, 0.22, 1)
 light_energy = 2.4
 omni_range = 6.5
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=765027575]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=275867793]
 libraries/ = SubResource("AnimationLibrary_wo65c")

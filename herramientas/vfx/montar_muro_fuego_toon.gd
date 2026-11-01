@@ -15,6 +15,9 @@ const TAM_MURO: Vector2 = Vector2(6.9, 1.5)
 const TAM_COLUMNA: Vector2 = Vector2(1.0, 4.0)
 const TAM_IMPACTO: Vector2 = Vector2(1.6, 1.5)
 const DURA_IMPACTO: float = 1.2
+## [z, alto, celdas del ruido en 6,9 m, semilla] de cada plano de la cinta, del trasero al delantero
+const CINTAS: Array = [[-0.3, 1.3, 9.0, 0.0], [-0.2, 1.1, 11.0, 1.0], [-0.1, 0.9, 13.0, 2.0], [0.05, 0.7, 15.0, 3.0], [0.18, 0.55, 17.0, 4.0], [0.3, 0.4, 19.0, 5.0]]
+const AMOUNT_SUELTAS: int = 24
 const ALTO_BASE: float = 0.3                        ## m del plano de la base brillante (la llama de la base mide la mitad)
 const ANCHO_LENGUA: float = 1.35                     ## ancho del quad de cada lengua respecto a su alto (más anchas que altas)
 const GROSOR_MURO: float = 0.3                      ## z de tam_referencia (el de MuroFuego)
@@ -34,7 +37,7 @@ const ALTURA_PUNTA: float = 0.75                      ## m a escala 1 donde nace
 const VIDA_NACER: float = 0.3
 const VIDA_VIVIR: float = 1.0
 const VIDA_MORIR: float = 0.5
-const AMOUNT_HUMO: int = 7
+const AMOUNT_HUMO: int = 8
 const AMOUNT_CHISPAS: int = 90
 
 
@@ -116,12 +119,33 @@ func _muro() -> Node3D:
 	base.position = Vector3(0, ALTO_BASE * 0.5, 0.12)
 	base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	cuerpo.add_child(base)
-	# Lenguas: tres grupos de partículas. Las grandes detrás, las pequeñas delante.
-	cuerpo.add_child(_lenguas("LenguasGrandes", 24, 0.65, 1.0, -0.22, 0.12, rampa5))
-	cuerpo.add_child(_lenguas("LenguasMedianas", 44, 0.4, 0.7, 0.0, 0.12, rampa5))
-	cuerpo.add_child(_lenguas("LenguasPequenas", 52, 0.25, 0.45, 0.2, 0.12, rampa5))
+	# Cinta: seis planos largos solapados a distintas profundidades; el más trasero es el más alto y el delantero el más bajo. Las lenguas salen del ruido (cinta_toon).
+	for i in CINTAS.size():
+		var d: Array = CINTAS[i]
+		var cinta: MeshInstance3D = MeshInstance3D.new()
+		cinta.name = "Cinta%d" % i
+		var pc: PlaneMesh = PlaneMesh.new()
+		pc.size = Vector2(TAM_MURO.x, float(d[1]))
+		pc.orientation = PlaneMesh.FACE_Z
+		pc.subdivide_width = 1
+		pc.subdivide_depth = 1
+		cinta.mesh = pc
+		var mc: ShaderMaterial = ShaderMaterial.new()
+		mc.shader = load(DIR + "cinta_toon.gdshader")
+		mc.resource_local_to_scene = true
+		mc.set_shader_parameter("rampa", rampa5)
+		mc.set_shader_parameter("fps", float(FPS_TOON))
+		mc.set_shader_parameter("tam_malla", Vector2(TAM_MURO.x, float(d[1])))
+		mc.set_shader_parameter("semilla", float(d[3]))
+		mc.set_shader_parameter("escala_ruido", float(d[2]))
+		cinta.material_override = mc
+		cinta.position = Vector3(0, float(d[1]) * 0.5, float(d[0]))
+		cinta.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cuerpo.add_child(cinta)
+	# Unas pocas lenguas sueltas pequeñas por delante, que se separan por arriba.
+	cuerpo.add_child(_lenguas("LenguasSueltas", AMOUNT_SUELTAS, 0.2, 0.4, 0.38, 0.1, rampa5))
 	var humo: GPUParticles3D = _particulas("Humo", AMOUNT_HUMO, 1.6, 0.5, _mat_humo(), {
-		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.47, 0.1, 0.15),
+		"emission_shape": ParticleProcessMaterial.EMISSION_SHAPE_BOX, "emission_box_extents": Vector3(TAM_MURO.x * 0.22, 0.1, 0.15),
 		"direction": Vector3(0, 1, 0), "spread": 8.0, "initial_velocity_min": 0.35, "initial_velocity_max": 0.6,
 		"gravity": Vector3(0, 0.05, 0), "scale_min": 0.6, "scale_max": 1.0,
 		"scale_curve": _curva([[0.0, 0.33], [1.0, 1.0]])})
@@ -147,11 +171,11 @@ func _muro() -> Node3D:
 	raiz.add_child(ap)
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	ap.add_animation_library("", lib)
-	var er: Array = ["Cuerpo/LenguasGrandes", "Cuerpo/LenguasMedianas", "Cuerpo/LenguasPequenas", "Cuerpo/Base", "Cuerpo/Halo"]
+	var er: Array = ["Cuerpo/Cinta0", "Cuerpo/Cinta1", "Cuerpo/Cinta2", "Cuerpo/Cinta3", "Cuerpo/Cinta4", "Cuerpo/Cinta5", "Cuerpo/LenguasSueltas", "Cuerpo/Base", "Cuerpo/Halo"]
 	var nacer: Array = [["Cuerpo/Luz:light_energy", [[0.0, 0.0], [VIDA_NACER, ENERGIA_LUZ]]]]
 	var morir: Array = [["Cuerpo/Luz:light_energy", [[0.0, ENERGIA_LUZ], [VIDA_MORIR, 0.0]]],
 		["Cuerpo/Humo:emitting", [[0.0, false]]], ["Cuerpo/Chispas:emitting", [[0.0, false]]],
-		["Cuerpo/LenguasGrandes:emitting", [[0.0, false]]], ["Cuerpo/LenguasMedianas:emitting", [[0.0, false]]], ["Cuerpo/LenguasPequenas:emitting", [[0.0, false]]]]
+		["Cuerpo/LenguasSueltas:emitting", [[0.0, false]]]]
 	for n in er:
 		nacer.append([n + ":material_override:shader_parameter/erosion", [[0.0, 1.0], [VIDA_NACER, 0.0]]])
 		morir.append([n + ":material_override:shader_parameter/erosion", [[0.0, 0.0], [VIDA_MORIR, 1.0]]])

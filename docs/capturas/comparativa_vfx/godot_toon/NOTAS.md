@@ -142,3 +142,42 @@ Lectura honesta: la distancia bajó de 1,03 a 0,65 (−37 %) pero no por debajo 
 - `prueba_vfx_toon.gd`: **0 fallos**; paleta de **7 colores** a 5 bits (5 de llama, 2 de humo; las chispas usan los de la rampa). La captura de la paleta (`muro_cerca_solo_llama.png`) oculta el halo (aditivo, añadiría tonos que no son de la llama) y el bloom.
 - Partículas del muro: 120 lenguas + 7 humo + 90 chispas = 217 (≤ 300), 1 luz. Diez muros: 60 fps (el panel de la captura), a 1600 × 1000, no a 1080p.
 - No cumple lo pedido: la rampa son 5 tonos y no 3 (por petición de la ronda), y los colores se alejan de `#FFF3B0` / `#FF8A1F` / `#C8321E` (ver arriba). No he probado `contorno` más alto ni el halo con el sol apagado.
+
+---
+
+# Ronda 3 (1/11): cinta continua con ruido celular en lugar de lenguas sueltas
+
+Cambio de enfoque pedido tras «cebolla / filas de calabazas»: las lenguas ya no son formas fijas, salen del ruido. `muro_cerca_r1.png` y `muro_cerca_r2.png` son las capturas de las rondas 1 y 2; `muro_cerca.png`, la de ahora.
+
+## Qué cambió
+
+- **Cuerpo del muro** = 6 planos largos solapados a profundidades distintas (z de −0,3 a +0,3; el trasero es el más alto, 1,3 m, y el delantero el más bajo, 0,4 m), con `cinta_toon.gdshader` (procedimental, sin texturas): ruido **Voronoi 2D** estirado en vertical (`estirado` 0,25), subiendo con el tiempo cuantizado a 12 fps (y los puntos del ruido se mueven con el mismo reloj), un offset de UV distinto por plano (`semilla`) y distinta densidad de celdas (9 a 19 en 6,9 m); máscara = (1 − altura relativa, con una envolvente irregular que no es recta) × (0,2 + 0,9 × ruido^3,2) + franja brillante continua en la base; **umbral duro** (`suavidad` ≤ 0,03, descarte 0/1) que recorta las puntas. La silueta sale del ruido: ninguna forma repetida. La deformación del ruido tiene dos ondas (una grande y otra fina que deshilacha el borde).
+- **Color por el valor de la máscara** (altura + ruido), 4 escalones de la rampa de 5: rojo solo en una banda fina del borde y de las puntas, naranja el cuerpo, amarillo la base, crema solo en lo más bajo (1 % de los píxeles de fuego). Contorno oscuro opcional (mando `contorno`, 0 por defecto).
+- **Lenguas sueltas**: solo 24 pequeñas (partículas con `lengua_toon`, 0,2–0,4 m) por delante. Humo: 8 bolas, agrupadas en el centro del muro (caja de 1/5 de ancho). Chispas, base, halo y luz como en la ronda 2.
+- Se pierde el desplazamiento de vértices (ya no hay malla subdividida): la silueta la hace el umbral. Los diez mandos de `cinta_toon` mantienen el nombre (`escala_ruido` = celdas del ruido en 6,9 m, `velocidad` = m/s a los que sube el ruido, `desplazamiento` = deformación del ruido, `umbral` por defecto 0,3).
+
+## Medida y rondas (distancia de histograma tono × valor; ver ronda 2 para el método y sus límites)
+
+| Versión | `muro_cerca` | `juego_muro` | Qué se vio |
+|---|---|---|---|
+| Ronda 1 | 1,034 | 1,036 | franja de recortes idénticos |
+| Ronda 2 | 0,662 | 0,650 | lenguas separadas con bandas concéntricas («calabazas») |
+| r16 primera cinta | **0,280** | **0,369** | masa continua, pero demasiado rojo/naranja plano y colinas redondas, los extremos cortados en vertical |
+| r17 más contraste, más denso, extremos bajan | 0,610 | 0,642 | línea baja irregular, lenguas pequeñas |
+| r18 más estirado, más amarillo | 0,713 | 0,771 | más bonito (picos amarillos) pero «cristales» afilados y fuera de la paleta de la referencia |
+| r19 segunda onda de deshilachado | 0,711 | 0,785 | bordes más fluidos |
+| r20 amarillo solo en la mitad baja, rojo fino | 0,572 | 0,547 | **elegida**: masa continua naranja con picos ondulados irregulares y la base amarilla |
+| **Final (otra ejecución de la misma versión)** | **0,601** | **0,600** | |
+
+Honestidad sobre la métrica: la mejor distancia fue r16 (0,28 en `muro_cerca`) pero vista era una masa roja demasiado plana; no la usé. Entre la distancia y lo que veo ha habido varias veces desacuerdo (el histograma premia el naranja/rojo oscuro y castiga el amarillo, porque en la referencia el 89 % de los píxeles de fuego son naranja ámbar). Elegí r20 por ser la que a la vista se parece más (silueta y proporción: banda baja y larga, picos irregulares), con distancia 0,55–0,60 (−40 % respecto a la ronda 2 y −42 % en `juego_muro`... véase la tabla, de 1,03 a 0,60 desde la ronda 1). **No ha bajado de 0,5** en las rondas hechas con aspecto aceptable (solo en r16, que descarté): cumple la condición de parada del coordinador.
+
+## Nota propia frente a `ref_muro.jpg` (1–5)
+
+- Ronda 1: 2. Ronda 2: 3,5 (mi nota; el coordinador dio 3). **Ronda 3: 3,5–4** en `juego_muro.png` (cámara del juego): ya es una banda baja, larga, continua, con picos irregulares nacidos del ruido, base brillante ondulada, rojo fino, humo escaso, chispas pequeñas; las lenguas se solapan en profundidad. Lo que falta para el 4 firme: los picos son más triangulares y lisos que las lenguas con «mordiscos» de la referencia; la banda inferior tiene bandas horizontales finas (se ven las capas de planos); a 2 m (`muro_cerca.png`) y desde el lado se aprecia que son planos; el humo sigue siendo bolas aisladas.
+- Horas de la ronda: 14:47 – 14:51 en reloj de la sesión (≈ 25 min con lectura y retoques).
+
+## Resultados de la ronda
+
+- `prueba_vfx_toon.gd`: **0 fallos**; paleta **7 colores** a 5 bits (rojo, naranja, amarillo, crema, borde oscuro; humo 2). Partículas del muro: 24 + 8 + 90 = 122 (≤ 300), 1 luz.
+- GIF de 3 s rehecho; a 24 fps la diferencia entre fotogramas consecutivos alterna 0,000 y 0,09–0,12: sigue moviéndose solo cada 1/12 s (el ruido, las partículas, la luz y el halo).
+- Columna, bola e impacto no se han tocado (técnica de la ronda 1; las partículas de chispa de la ronda 2 sí les afectan).

@@ -161,25 +161,25 @@ _data = {
 &"vivir": SubResource("Animation_vm42r")
 }
 
-[node name="BolaFuegoToon" type="Node3D" unique_id=252174479]
+[node name="BolaFuegoToon" type="Node3D" unique_id=1138797316]
 script = ExtResource("1_1dmbs")
 tam_referencia = Vector3(0.8, 0.8, 0.8)
 escena_impacto = ExtResource("2_kdx23")
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=987516668]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=346016340]
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=259606604]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1169988862]
 material_override = SubResource("ShaderMaterial_e2v44")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_d687x")
 
-[node name="Llama" type="MeshInstance3D" parent="Cuerpo" unique_id=1072596035]
+[node name="Llama" type="MeshInstance3D" parent="Cuerpo" unique_id=83282059]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -0.02)
 material_override = SubResource("ShaderMaterial_lki2k")
 cast_shadow = 0
 mesh = SubResource("PlaneMesh_d58nv")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1471652740 groups=["estela"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1040807023 groups=["estela"]]
 material_override = SubResource("ShaderMaterial_lo2yf")
 cast_shadow = 0
 amount = 24
@@ -190,11 +190,11 @@ visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
 process_material = SubResource("ParticleProcessMaterial_1baju")
 draw_pass_1 = SubResource("QuadMesh_tdd3s")
 
-[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=881077297]
+[node name="Luz" type="OmniLight3D" parent="Cuerpo" unique_id=1202464526]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.3)
 light_color = Color(1, 0.58, 0.22, 1)
 light_energy = 2.4
 omni_range = 6.5
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=134419639]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=2082216778]
 libraries/ = SubResource("AnimationLibrary_3mngp")

@@ -103,15 +103,15 @@ func _escena() -> void:
 				for k in range(1, pasos):
 					bien = bien and absf((a.track_get_key_time(t, k) - a.track_get_key_time(t, k - 1)) - 1.0 / float(FPS_TOON)) < 0.001
 		_ok("6 la luz titila en escalones de 1/%d s (%d claves, vecino más cercano)" % [FPS_TOON, pasos], bien and pasos >= FPS_TOON)
-	for p in ["LenguasGrandes", "LenguasMedianas", "LenguasPequenas", "Base"]:
+	for p in ["Cinta0", "Cinta1", "Cinta2", "Cinta3", "Cinta4", "Cinta5", "Base"]:
 		var gi: GeometryInstance3D = e.get_node_or_null("Cuerpo/" + p) as GeometryInstance3D
 		var m: ShaderMaterial = gi.material_override as ShaderMaterial if gi != null else null
 		_ok("6 %s: fps del shader = %d y rampa de 5 escalones constantes" % [p, FPS_TOON], m != null and int(m.get_shader_parameter("fps")) == FPS_TOON and _rampa_constante(m.get_shader_parameter("rampa")))
 	var n_lenguas: int = 0
-	for p in ["LenguasGrandes", "LenguasMedianas", "LenguasPequenas"]:
+	for p in ["LenguasSueltas"]:
 		var gp: GPUParticles3D = e.get_node_or_null("Cuerpo/" + p) as GPUParticles3D
 		n_lenguas += gp.amount if gp != null else 0
-	_ok("6 entre 40 y 150 lenguas (%d)" % n_lenguas, n_lenguas >= 40 and n_lenguas <= 150)
+	_ok("6 lenguas sueltas ≤ 30 (%d) sobre la cinta de 6 planos" % n_lenguas, n_lenguas >= 1 and n_lenguas <= 30)
 	# 3: escalado
 	var v: Dictionary = {"x": REF.x * 0.5 / CASILLA, "y": REF.y * 0.5 / CASILLA, "z": REF.z * 0.5 / CASILLA}
 	e.call("preparar", v, Vector3(0, 0, -1), "fuego")
