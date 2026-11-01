@@ -1,0 +1,309 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/vfx/toy/efecto_toy.gd" id="1_eja2f"]
+[ext_resource type="PackedScene" path="res://presentacion/vfx/toy/ImpactoBolaToy.tscn" id="2_c1pk3"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toy/halo_toy.gdshader" id="3_yj53v"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toy/llama_toy.gdshader" id="4_gd717"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_43to5"]
+render_priority = -1
+shader = ExtResource("3_yj53v")
+shader_parameter/color = Color(1, 0.55, 0.14, 1)
+shader_parameter/brillo = 0.32
+shader_parameter/caida = 3.0
+shader_parameter/tono = null
+shader_parameter/billboard = 2
+shader_parameter/vida = null
+shader_parameter/latido = null
+shader_parameter/semilla = 0.38075405
+shader_parameter/anillo = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_cnlw4"]
+size = Vector2(2.6, 2.6)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_oahc7"]
+render_priority = 0
+shader = ExtResource("4_gd717")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.6
+shader_parameter/ondulacion = 0.7
+shader_parameter/velocidad = 0.8
+shader_parameter/escala_ruido = 2.0
+shader_parameter/brillo = 0.95
+shader_parameter/tono = null
+shader_parameter/transparencia = 0.35
+shader_parameter/tam = Vector2(1.7, 2.1)
+shader_parameter/radio = 0.4
+shader_parameter/punta_h = 1.15
+shader_parameter/afilado = 0.6
+shader_parameter/radio_bola = 0.52
+shader_parameter/base_clara = 0.2
+shader_parameter/borde_claro = 0.2
+shader_parameter/semilla = 0.31
+shader_parameter/billboard = 2
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_e6txe"]
+size = Vector2(1.7, 2.1)
+center_offset = Vector3(0, 1.05, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hylmb"]
+render_priority = 1
+shader = ExtResource("4_gd717")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.22
+shader_parameter/ondulacion = 0.6
+shader_parameter/velocidad = null
+shader_parameter/escala_ruido = 2.4
+shader_parameter/brillo = 1.0
+shader_parameter/tono = null
+shader_parameter/transparencia = 0.95
+shader_parameter/tam = Vector2(1.3, 1.7)
+shader_parameter/radio = 0.3
+shader_parameter/punta_h = 0.98
+shader_parameter/afilado = 0.5
+shader_parameter/radio_bola = 0.4
+shader_parameter/base_clara = 0.5
+shader_parameter/borde_claro = null
+shader_parameter/semilla = 0.62
+shader_parameter/billboard = 2
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_srxki"]
+size = Vector2(1.3, 1.7)
+center_offset = Vector3(0, 0.85, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_khesm"]
+render_priority = 2
+shader = ExtResource("4_gd717")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.4
+shader_parameter/ondulacion = 0.35
+shader_parameter/velocidad = 1.3
+shader_parameter/escala_ruido = 3.0
+shader_parameter/brillo = 1.05
+shader_parameter/tono = null
+shader_parameter/transparencia = 1.0
+shader_parameter/tam = Vector2(0.9, 1.1)
+shader_parameter/radio = 0.14
+shader_parameter/punta_h = 0.5
+shader_parameter/afilado = 0.9
+shader_parameter/radio_bola = 0.22
+shader_parameter/base_clara = 1.0
+shader_parameter/borde_claro = 0.1
+shader_parameter/semilla = 0.9
+shader_parameter/billboard = 2
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_ipuay"]
+size = Vector2(0.9, 1.1)
+center_offset = Vector3(0, 0.55, 0)
+
+[sub_resource type="Gradient" id="Gradient_lce2f"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 0.95, 0.65, 0, 1, 0.85, 0.45, 1, 1, 0.55, 0.15, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_v41yx"]
+gradient = SubResource("Gradient_lce2f")
+
+[sub_resource type="Curve" id="Curve_y3w3e"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.15), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_mlc53"]
+curve = SubResource("Curve_y3w3e")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ypon3"]
+emission_shape = 3
+emission_box_extents = Vector3(0.2, 0.15, 0.2)
+direction = Vector3(0, 1, 0)
+spread = 40.0
+initial_velocity_min = 0.3
+initial_velocity_max = 0.8
+gravity = Vector3(0, 0.35, 0)
+scale_min = 0.7
+scale_max = 1.2
+scale_curve = SubResource("CurveTexture_mlc53")
+color_ramp = SubResource("GradientTexture1D_v41yx")
+
+[sub_resource type="Gradient" id="Gradient_7rn4l"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_4i2c7"]
+gradient = SubResource("Gradient_7rn4l")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1jfys"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_4i2c7")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_0ld0x"]
+material = SubResource("StandardMaterial3D_1jfys")
+size = Vector2(0.07, 0.07)
+
+[sub_resource type="Gradient" id="Gradient_30vsk"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 0.8, 0.4, 0, 1, 0.6, 0.18, 0.4, 1, 0.5, 0.12, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_nduad"]
+gradient = SubResource("Gradient_30vsk")
+
+[sub_resource type="Curve" id="Curve_o8er1"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.15), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_00res"]
+curve = SubResource("Curve_o8er1")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_deyb0"]
+emission_shape = 3
+emission_box_extents = Vector3(0.06, 0.06, 0.06)
+direction = Vector3(0, 1, 0)
+spread = 180.0
+initial_velocity_max = 0.1
+gravity = Vector3(0, 0, 0)
+scale_min = 0.7
+scale_max = 1.2
+scale_curve = SubResource("CurveTexture_00res")
+color_ramp = SubResource("GradientTexture1D_nduad")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1eot2"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_4i2c7")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_8xt5y"]
+material = SubResource("StandardMaterial3D_1eot2")
+size = Vector2(0.3, 0.3)
+
+[sub_resource type="Animation" id="Animation_j3utx"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_8xqav"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_0r27x"]
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_wo7hn"]
+_data = {
+&"morir": SubResource("Animation_j3utx"),
+&"nacer": SubResource("Animation_8xqav"),
+&"vivir": SubResource("Animation_0r27x")
+}
+
+[node name="BolaFuegoToy" type="Node3D" unique_id=2030210338]
+script = ExtResource("1_eja2f")
+tam_referencia = Vector3(0.8, 0.8, 0.8)
+escena_impacto = ExtResource("2_c1pk3")
+
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1074723204]
+
+[node name="Halo" type="MeshInstance3D" parent="Cuerpo" unique_id=8047401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+material_override = SubResource("ShaderMaterial_43to5")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_cnlw4")
+
+[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=343372533]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.52, 0)
+material_override = SubResource("ShaderMaterial_oahc7")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_e6txe")
+
+[node name="Bola" type="MeshInstance3D" parent="Cuerpo" unique_id=212464951]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4, 0)
+material_override = SubResource("ShaderMaterial_hylmb")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_srxki")
+
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1825481102]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.24, 0)
+material_override = SubResource("ShaderMaterial_khesm")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_ipuay")
+
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=54667546 groups=["chispas"]]
+cast_shadow = 0
+lifetime = 1.3
+fixed_fps = 0
+visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_ypon3")
+draw_pass_1 = SubResource("QuadMesh_0ld0x")
+
+[node name="Estela" type="GPUParticles3D" parent="Cuerpo" unique_id=1778882015 groups=["estela"]]
+cast_shadow = 0
+emitting = false
+amount = 18
+lifetime = 0.24
+fixed_fps = 0
+visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
+process_material = SubResource("ParticleProcessMaterial_deyb0")
+draw_pass_1 = SubResource("QuadMesh_8xt5y")
+
+[node name="Luz" type="OmniLight3D" parent="." unique_id=870006685]
+light_color = Color(1, 0.72, 0.38, 1)
+light_energy = 1.1
+omni_range = 4.5
+omni_attenuation = 1.4
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=864002340]
+libraries/ = SubResource("AnimationLibrary_wo7hn")

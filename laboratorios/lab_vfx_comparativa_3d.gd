@@ -22,6 +22,14 @@ const MANDOS_TOON: Array = [
 	["fps", 2.0, 60.0, 2.0, 12.0], ["umbral", 0.0, 0.7, 0.02, 0.3], ["altura_llama", 0.2, 1.5, 0.05, 1.0], ["desplazamiento", 0.0, 1.0, 0.05, 0.5],
 	["contorno", 0.0, 1.0, 0.1, 0.0], ["rampa", 0.0, 1.0, 1.0, 0.0], ["velocidad", 0.1, 6.0, 0.2, 1.4], ["escala_ruido", 2.0, 24.0, 1.0, 9.0],
 	["brillo", 0.2, 3.0, 0.05, 0.86], ["erosion", 0.0, 1.0, 0.1, 0.0]]
+## Prueba 3 (fuego «toy», docs/PRUEBA3_VFX_TOY_2026-11-01.md): F1 bola estática · F2 muro · F3 pilar · F4 bola en vuelo con impacto · F5 barrera · F6 diez muros toy ·
+##          los mismos RePág / AvPág / + / − / Retroceso mueven los DIEZ mandos del raíz (EfectoToy) de lo que haya vivo; el panel los muestra en castellano.
+const ESCENA_TOY: Dictionary = {"bola_toy": "res://presentacion/vfx/toy/BolaFuegoToy.tscn", "bola_vuelo_toy": "res://presentacion/vfx/toy/BolaFuegoToy.tscn",
+	"muro_toy": "res://presentacion/vfx/toy/MuroFuegoToy.tscn", "pilar_toy": "res://presentacion/vfx/toy/PilarFuegoToy.tscn", "barrera_toy": "res://presentacion/vfx/toy/BarreraFuegoToy.tscn"}
+## [propiedad de EfectoToy, mínimo, máximo, paso, valor de origen]
+const MANDOS_TOY: Array = [
+	["altura", 0.3, 3.0, 0.1, 1.0], ["ancho", 0.3, 2.0, 0.1, 1.0], ["blandura", 0.05, 1.0, 0.05, 0.22], ["ondulacion", 0.0, 1.5, 0.1, 0.6], ["velocidad", 0.1, 4.0, 0.1, 1.0],
+	["brillo", 0.3, 3.0, 0.1, 1.0], ["halo", 0.0, 3.0, 0.1, 1.0], ["tono", 0.0, 1.0, 0.1, 0.0], ["chispas", 0.0, 1.0, 0.1, 1.0], ["luz", 0.0, 4.0, 0.1, 1.0]]
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -50,7 +58,9 @@ var _panel_visible: bool = true
 var _efectos: Node3D = null
 var _bolas: Array = []                             ## [{nodo, origen}]
 var _mando_toon: int = 0                           ## el mando elegido con RePág / AvPág
-var _valores_toon: Dictionary = {}                 ## nombre del mando -> valor actual (los muros toon nuevos nacen con él)
+var _valores_toon: Dictionary = {}
+var _toy: bool = false                             ## true: los mandos son los de EfectoToy (prueba 3)
+var _valores_toy: Dictionary = {}                  ## propiedad -> valor actual (lo que nazca después nace con él)
 
 
 func _ready() -> void:
@@ -171,15 +181,21 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_1: efecto("bola")
 		KEY_2: efecto("muro")
 		KEY_3: efecto("columna")
-		KEY_5: efecto("muro_toon")
-		KEY_6: efecto("columna_toon")
-		KEY_7: efecto("bola_toon")
-		KEY_PAGEUP: _mando_toon = (_mando_toon + MANDOS_TOON.size() - 1) % MANDOS_TOON.size()
-		KEY_PAGEDOWN: _mando_toon = (_mando_toon + 1) % MANDOS_TOON.size()
+		KEY_5: _toy = false; efecto("muro_toon")
+		KEY_6: _toy = false; efecto("columna_toon")
+		KEY_7: _toy = false; efecto("bola_toon")
+		KEY_F1: _toy = true; efecto("bola_toy")
+		KEY_F2: _toy = true; efecto("muro_toy")
+		KEY_F3: _toy = true; efecto("pilar_toy")
+		KEY_F4: _toy = true; efecto("bola_vuelo_toy")
+		KEY_F5: _toy = true; efecto("barrera_toy")
+		KEY_F6: _toy = true; diez_muros(false, true)
+		KEY_PAGEUP: _mando_toon = (_mando_toon + _n_mandos() - 1) % _n_mandos()
+		KEY_PAGEDOWN: _mando_toon = (_mando_toon + 1) % _n_mandos()
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: mover_mando_toon(_mando_toon, 1)
 		KEY_MINUS, KEY_KP_SUBTRACT: mover_mando_toon(_mando_toon, -1)
 		KEY_BACKSPACE: reponer_mando_toon(_mando_toon)
-		KEY_9: diez_muros(true)
+		KEY_9: _toy = false; diez_muros(true)
 		KEY_0: diez_muros()
 		KEY_X: limpiar()
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
@@ -190,7 +206,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 ## Lanza un efecto delante de la jugadora. Devuelve el nodo (o null si falta la escena).
 func efecto(cual: String) -> Node3D:
-	var ruta: String = {"bola": ESCENA_BOLA, "muro": ESCENA_MURO, "columna": ESCENA_COLUMNA, "muro_toon": ESCENA_MURO_TOON, "columna_toon": ESCENA_COLUMNA_TOON, "bola_toon": ESCENA_BOLA_TOON}.get(cual, "")
+	_toy = cual.ends_with("_toy")
+	var ruta: String = ESCENA_TOY[cual] if ESCENA_TOY.has(cual) else {"bola": ESCENA_BOLA, "muro": ESCENA_MURO, "columna": ESCENA_COLUMNA, "muro_toon": ESCENA_MURO_TOON, "columna_toon": ESCENA_COLUMNA_TOON, "bola_toon": ESCENA_BOLA_TOON}.get(cual, "")
 	if ruta == "" or not ResourceLoader.exists(ruta):
 		push_warning("falta la escena del efecto «%s»" % cual)
 		return null
@@ -198,6 +215,29 @@ func efecto(cual: String) -> Node3D:
 	_efectos.add_child(e)
 	var pie: Vector3 = _pj.global_position
 	match cual:
+		"bola_toy":
+			e.global_position = pie + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
+			_aplicar_mandos_toy(e)
+			e.call("lanzar", -1.0)
+		"bola_vuelo_toy":
+			e.global_position = pie + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
+			e.set("proyectil", true)
+			_aplicar_mandos_toy(e)
+			e.call("lanzar", -1.0)
+			_bolas.append({"nodo": e, "origen": e.global_position})
+		"muro_toy":
+			e.global_position = pie + _dir * DISTANCIA_EFECTO
+			e.look_at(e.global_position + _dir, Vector3.UP)
+			_aplicar_mandos_toy(e)
+			e.call("lanzar", VIDA_MURO)
+		"pilar_toy":
+			e.global_position = pie + _dir * DISTANCIA_EFECTO
+			_aplicar_mandos_toy(e)
+			e.call("lanzar", VIDA_COLUMNA)
+		"barrera_toy":
+			e.global_position = pie
+			_aplicar_mandos_toy(e)
+			e.call("lanzar", -1.0)
 		"bola", "bola_toon":
 			e.global_position = pie + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
 			e.call("lanzar", -1.0)
@@ -216,8 +256,9 @@ func efecto(cual: String) -> Node3D:
 
 
 ## Diez muros en dos filas, para leer el fps con el presupuesto a tope.
-func diez_muros(toon: bool = false) -> void:
-	var ruta: String = ESCENA_MURO_TOON if toon else ESCENA_MURO
+func diez_muros(toon: bool = false, toy: bool = false) -> void:
+	_toy = toy
+	var ruta: String = ESCENA_TOY["muro_toy"] if toy else (ESCENA_MURO_TOON if toon else ESCENA_MURO)
 	if not ResourceLoader.exists(ruta):
 		return
 	for i in DIEZ_MUROS:
@@ -225,6 +266,8 @@ func diez_muros(toon: bool = false) -> void:
 		_efectos.add_child(e)
 		if toon:
 			_aplicar_mandos_toon(e)
+		if toy:
+			_aplicar_mandos_toy(e)
 		e.global_position = Vector3(-7.0 + float(i % 5) * 3.5, 0.0, -6.0 + float(i / 5) * 5.0)
 		e.rotation_degrees = Vector3(0, 90.0, 0)
 		e.call("lanzar", VIDA_MURO)
@@ -266,6 +309,12 @@ func _aplicar_mandos_toon(e: Node) -> void:
 
 ## Sube (+1) o baja (−1) un mando un paso, dentro de su rango, en todos los muros toon vivos.
 func mover_mando_toon(i: int, signo: int) -> void:
+	if _toy:
+		var dt: Array = MANDOS_TOY[i]
+		_valores_toy[dt[0]] = snappedf(clampf(_valor_mando_toy(i) + float(signo) * float(dt[3]), float(dt[1]), float(dt[2])), 0.001)
+		for e in _efectos.get_children():
+			_aplicar_mandos_toy(e)
+		return
 	var d: Array = MANDOS_TOON[i]
 	var nuevo: float
 	if d[0] == "rampa":
@@ -278,6 +327,12 @@ func mover_mando_toon(i: int, signo: int) -> void:
 
 
 func reponer_mando_toon(i: int) -> void:
+	if _toy:
+		_valores_toy.erase(MANDOS_TOY[i][0])
+		for e in _efectos.get_children():
+			if e.has_method("lanzar"):
+				e.set(MANDOS_TOY[i][0], MANDOS_TOY[i][4])
+		return
 	_valores_toon.erase(MANDOS_TOON[i][0])
 	var d: Array = MANDOS_TOON[i]
 	for e in _efectos.get_children():
@@ -288,7 +343,28 @@ func reponer_mando_toon(i: int) -> void:
 				m.set_shader_parameter(d[0], d[4])
 
 
+func _n_mandos() -> int:
+	return MANDOS_TOY.size() if _toy else MANDOS_TOON.size()
+
+
+func _valor_mando_toy(i: int) -> float:
+	return float(_valores_toy.get(MANDOS_TOY[i][0], MANDOS_TOY[i][4]))
+
+
+## Pone en un efecto de la prueba 3 los valores que se han movido con el teclado (el raíz es un EfectoToy: son sus exports).
+func _aplicar_mandos_toy(e: Node) -> void:
+	if not e.has_method("lanzar"):
+		return
+	for k in _valores_toy:
+		e.set(k, _valores_toy[k])
+
+
 func _texto_mandos_toon() -> String:
+	if _toy:
+		var st: String = "MANDOS TOY (RePág/AvPág elige · +/− cambia · Retroceso repone):"
+		for i in MANDOS_TOY.size():
+			st += "\n%s %s %.2f" % [">" if i == _mando_toon else " ", String(MANDOS_TOY[i][0]), _valor_mando_toy(i)]
+		return st
 	var s: String = "MANDOS TOON (RePág/AvPág elige · +/− cambia · Retroceso repone):"
 	for i in MANDOS_TOON.size():
 		var d: Array = MANDOS_TOON[i]
