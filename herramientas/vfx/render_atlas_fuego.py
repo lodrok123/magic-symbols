@@ -151,6 +151,7 @@ def _montar_simulacion(sc):
     shutil.rmtree(cache, ignore_errors=True)   # una caché de otra resolución recorta la llama
     os.makedirs(cache, exist_ok=True)
     ds.cache_directory = cache
+    os.chdir(cache)                         # Mantaflow deja waveletNoiseTile.bin en el directorio actual: que caiga en la caché, no en el repo
 
     bpy.ops.mesh.primitive_uv_sphere_add(radius=RADIO_EMISOR, location=(0.0, 0.0, RADIO_EMISOR * 0.8))
     em = bpy.context.active_object
