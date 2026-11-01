@@ -31,7 +31,7 @@ group_uniforms forma;
 uniform float tam = 2.4;                          // lado del quad en metros
 uniform float radio = 0.52;                        // radio de la bola en metros
 uniform float alargado = 0.72;                    // cuánto se estira hacia arriba (menor = más alto)
-uniform float alargado_vuelo = 0.16;              // y en vuelo (la estela)
+uniform float alargado_vuelo = 0.1;              // y en vuelo (la estela)
 uniform vec2 repeticion = vec2(0.8, 0.65);        // repeticiones de la textura de lenguas por metro
 uniform vec2 rep_ruido = vec2(0.7, 0.5);
 uniform float giro : hint_range(-1.0, 1.0) = 0.05;
@@ -46,6 +46,9 @@ uniform float escala_rampa = 1.0;
 uniform float contraste = 1.0;
 uniform float calor_extra = 0.32;                 // núcleo claro en el centro
 uniform float semilla = 0.0;
+uniform float deform : hint_range(0.0, 1.0) = 0.42;            // cuánto deforma el contorno el ruido de baja frecuencia que gira
+uniform float deform_vuelo : hint_range(0.0, 1.0) = 0.6;
+uniform float desplaza = 0.3;
 uniform float inclin : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 vel_dir = vec3(0.0, 0.0, -1.0);
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
@@ -64,6 +67,7 @@ void vertex() {
 void fragment() {
 	float t = TIME * velocidad;
 	vec2 p = vec2(UV.x - 0.5, 0.5 - UV.y) * tam;
+	p -= eje * desplaza * inclin;                    // en vuelo el centro del cuerpo queda detrás de la cabeza: la cola nace detrás
 	vec2 perp = vec2(eje.y, -eje.x);
 	float ya = dot(p, eje);
 	float xa = dot(p, perp);
@@ -72,8 +76,15 @@ void fragment() {
 		yy *= mix(alargado, alargado_vuelo, inclin) / altura;
 	}
 	float g = length(vec2(xa / ancho, yy)) / radio;
+	// la bola nunca es un círculo: un ruido de baja frecuencia, que gira despacio, estira y hunde el contorno en todas direcciones
+	float th = atan(xa, ya);
+	float rot = t * 0.3 + semilla * 6.0;
+	float nl = texture(ruido_a, vec2(cos(th + rot), sin(th + rot)) * 0.2 + vec2(0.5 + semilla, 0.5 + t * 0.04)).r;
+	float nl2 = texture(ruido_a, vec2(cos(th * 2.0 - rot * 1.7), sin(th * 2.0 - rot * 1.7)) * 0.3 + vec2(0.13, 0.71 + t * 0.06)).r;
+	g *= 1.0 + mix(deform, deform_vuelo, inclin) * ((0.5 - nl) * 1.6 + (0.5 - nl2) * 0.9);
 	float l = texture(lenguas, vec2(xa * repeticion.x + giro * t + semilla, -ya * repeticion.y + t * 0.35)).r;
 	float peso_l = mix(peso_abajo, 1.0, smoothstep(-0.1, 0.35, ya / radio));
+	peso_l = max(peso_l, 0.6 * smoothstep(0.5, 1.0, abs(xa) / radio));       // lenguas también a los lados
 	float r2 = texture(ruido_a, vec2(xa * rep_ruido.x - giro * t * 1.7 + 0.37 + semilla * 0.5, -ya * rep_ruido.y + t * vel_ruido)).r;
 	float f = l * peso_l + (r2 - 0.5) * peso_ruido * (0.5 + ondulacion) - pow(g, pot_grad) * fuerza_grad + desfase;
 	float arriba = smoothstep(0.6, 1.8, ya / radio) * chisporroteo;

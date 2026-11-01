@@ -154,6 +154,74 @@ func _fuego(padre: Node, nombre: String, malla: Mesh, pos: Vector3, p: Dictionar
 	return mi
 
 
+## Partículas de la bola EN VUELO (ronda 7): jirones de llama que se sueltan por detrás y chispas con estela larga y fina y cabeza en estrella de cuatro puntas.
+## Solo emiten con `proyectil` activo (grupo `vuelo`); quedan en el mundo (local_coords falso) y se quedan atrás de la bola.
+func _vuelo(c: Node3D) -> void:
+	_rampas()
+	var jir: GPUParticles3D = _particulas_vuelo(c, "Jirones", 5, 0.45, Vector3(0.12, 0.12, 0.05), Vector2(1.0, 2.0), 30.0, Vector2(0.28, 0.55),
+		[Color(1.0, 0.55, 0.12, 0.95), Color(0.95, 0.28, 0.06, 0.7), Color(0.8, 0.12, 0.03, 0.0)], QuadMesh.new(), "res://presentacion/vfx/toy/jiron_toy.gdshader", Vector2(1.0, 1.0))
+	var q: QuadMesh = QuadMesh.new()
+	var ch: GPUParticles3D = _particulas_vuelo(c, "ChispasEstela", 6, 0.7, Vector3(0.28, 0.28, 0.05), Vector2(0.5, 1.4), 38.0, Vector2(0.5, 1.2),
+		[Color(1.0, 0.75, 0.3, 1.0), Color(1.0, 0.5, 0.12, 0.8), Color(1.0, 0.35, 0.08, 0.0)], q, "res://presentacion/vfx/toy/chispa_toy.gdshader", Vector2(0.05, 1.0))
+	# cabeza en estrella de cuatro puntas (segunda pasada de dibujo de las mismas partículas)
+	var cab: QuadMesh = QuadMesh.new()
+	cab.size = Vector2(0.26, 0.26)
+	var sm: StandardMaterial3D = StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	sm.vertex_color_use_as_albedo = true
+	sm.albedo_texture = load(TEX + "T_flare8_vfx.png")
+	cab.material = sm
+	ch.draw_passes = 2
+	ch.draw_pass_2 = cab
+
+
+func _particulas_vuelo(c: Node3D, nombre: String, cantidad: int, vida_s: float, caja: Vector3, vel: Vector2, abierto: float, escala: Vector2, colores: Array,
+		malla: QuadMesh, shader: String, tam: Vector2) -> GPUParticles3D:
+	var gp: GPUParticles3D = GPUParticles3D.new()
+	gp.name = nombre
+	gp.amount = cantidad
+	gp.lifetime = vida_s
+	gp.local_coords = false
+	gp.emitting = false
+	gp.fixed_fps = 0
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gp.visibility_aabb = AABB(Vector3(-8, -4, -8), Vector3(16, 8, 16))
+	var pm: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = caja
+	pm.direction = Vector3(0, 0, 1)
+	pm.spread = abierto
+	pm.initial_velocity_min = vel.x
+	pm.initial_velocity_max = vel.y
+	pm.gravity = Vector3.ZERO
+	pm.scale_min = escala.x
+	pm.scale_max = escala.y
+	var g: Gradient = Gradient.new()
+	var offs: PackedFloat32Array = PackedFloat32Array()
+	var cols: PackedColorArray = PackedColorArray()
+	for i in colores.size():
+		offs.append(float(i) / float(maxi(colores.size() - 1, 1)))
+		cols.append(colores[i])
+	g.offsets = offs
+	g.colors = cols
+	var gt: GradientTexture1D = GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	gp.process_material = pm
+	malla.size = tam if tam.y > 0.0 else Vector2(0.3, 0.3)
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(shader)
+	m.set_shader_parameter("lenguas", load(TEX + "T_FirePanningCyl45.png"))
+	malla.material = m
+	gp.draw_pass_1 = malla
+	gp.add_to_group("vuelo", true)
+	c.add_child(gp)
+	return gp
+
+
 ## Bola (ronda 6): un QUAD con billboard y el shader fuego_lelu_bola (método de Le Lu en 2D con gradiente radial): una sola silueta de gota, sin malla 3D (sin polos, facetas ni tapas).
 ## En modo proyectil el eje de la llama se alinea con la velocidad y se alarga hacia atrás (la estela); ver EfectoToy.
 func _bola() -> Node3D:
@@ -170,6 +238,41 @@ func _bola() -> Node3D:
 	mi.material_override = _mat_fuego("res://presentacion/vfx/toy/fuego_lelu_bola.gdshader", {"semilla": 0.3}, 0)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(mi)
+	# ronda 7: FRENTE = cabeza redonda y brillante (blanco -> amarillo -> naranja fino) + halo muy brillante + destello de 4 puntas; en vuelo se adelanta por -Z
+	var fr: Node3D = Node3D.new()
+	fr.name = "Frente"
+	c.add_child(fr)
+	_halo(fr, "Destello", 0.8, Vector3(0, 0.0, 0), 0.9, 2.4, 2, Color(1.0, 0.7, 0.35), {"latido": 0.12})
+	var cab: MeshInstance3D = MeshInstance3D.new()
+	cab.name = "Cabeza"
+	var cq: QuadMesh = QuadMesh.new()
+	cq.size = Vector2(1.0, 1.0)
+	cab.mesh = cq
+	var cm: ShaderMaterial = ShaderMaterial.new()
+	cm.shader = load("res://presentacion/vfx/toy/cabeza_toy.gdshader")
+	cm.render_priority = 2
+	cm.set_shader_parameter("ruido", load(TEX + "T_PerlinNoise_Tiled.png"))
+	cm.set_shader_parameter("radio", 0.22)
+	cab.material_override = cm
+	cab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fr.add_child(cab)
+	var flare: MeshInstance3D = MeshInstance3D.new()
+	flare.name = "Estrella"
+	var fq: QuadMesh = QuadMesh.new()
+	fq.size = Vector2(1.05, 1.05)
+	var fm: StandardMaterial3D = StandardMaterial3D.new()
+	fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	fm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	fm.albedo_texture = load(TEX + "T_flare8_vfx.png")
+	fm.albedo_color = Color(1.0, 0.92, 0.75, 0.85)
+	fm.render_priority = 3
+	fq.material = fm
+	flare.mesh = fq
+	flare.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	fr.add_child(flare)
+	_vuelo(c)
 	_trocitos(c, 2, Vector3(0.1, 0.05, 0.1), Vector3(0, 0.55, 0))
 	_luz(r, Vector3(0, 0, 0), 1.1, 4.5)
 	_particulas(c, "Chispas", 8, 1.3, 0.07, Vector3(0.2, 0.15, 0.2), Vector2(0.3, 0.8), Vector3(0, 1, 0), 40.0, Vector3(0, 0.35, 0),

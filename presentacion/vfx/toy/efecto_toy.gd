@@ -28,6 +28,7 @@ extends EfectoVfx3D
 @export var titileo: float = 0.10
 
 var _listo: bool = false
+var _vuelo_part: Array = []
 var _mats: Array[ShaderMaterial] = []
 var _halos: Array[ShaderMaterial] = []
 var _luz: OmniLight3D = null
@@ -59,6 +60,17 @@ func _ready() -> void:
 			_mats.append(m)
 			if m.next_pass is ShaderMaterial:
 				_mats.append(m.next_pass as ShaderMaterial)
+	_vuelo_part.clear()
+	for gp in find_children("*", "GPUParticles3D", true, false):
+		if (gp as Node).is_in_group("vuelo"):
+			var g3: GPUParticles3D = gp
+			for k in [1, 2]:
+				var mesh: QuadMesh = (g3.draw_pass_1 if k == 1 else g3.draw_pass_2) as QuadMesh
+				if k == 1 and mesh != null:
+					var dup: QuadMesh = mesh.duplicate() as QuadMesh
+					dup.material = (mesh.material as ShaderMaterial).duplicate() as ShaderMaterial     # cada instancia, el suyo
+					g3.draw_pass_1 = dup
+			_vuelo_part.append(g3)
 	_luz = find_child("Luz", true, false) as OmniLight3D
 	if _luz != null:
 		_luz_base = _luz.light_energy
@@ -69,9 +81,19 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	if proyectil and _listo:
+		for gp in _vuelo_part:
+			for pase in [gp.draw_pass_1]:
+				var sm: ShaderMaterial = (pase as QuadMesh).material as ShaderMaterial
+				if sm != null:
+					sm.set_shader_parameter("vel_dir", -global_transform.basis.z)
 		for m in _mats:
 			if m.shader != null and m.shader.resource_path.get_file() == "fuego_lelu_bola.gdshader":
 				m.set_shader_parameter("vel_dir", -global_transform.basis.z)
+	if _listo:
+		var est: Node3D = get_node_or_null("Cuerpo/Frente/Estrella") as Node3D
+		if est != null:
+			var pe: float = 1.0 + 0.1 * chisporroteo * (sin(_t * 17.0 + _fase) * 0.6 + sin(_t * 26.0) * 0.4)
+			est.scale = Vector3(pe, pe, pe)             # titileo leve del destello
 	if _luz != null and _listo:
 		_t += delta
 		var f: float = 1.0 + titileo * (sin(_t * 6.1 + _fase) * 0.6 + sin(_t * 10.7 + _fase * 2.0) * 0.4)
@@ -193,6 +215,9 @@ func _set_proyectil(v: bool) -> void:
 	proyectil = v
 	if _listo:
 		for gp in find_children("*", "GPUParticles3D", true, false):
+			if (gp as Node).is_in_group("vuelo"):
+				(gp as GPUParticles3D).emitting = v          # jirones y chispas con estela: solo en vuelo
+		for gp in find_children("*", "GPUParticles3D", true, false):
 			if (gp as Node).is_in_group("estela"):
 				(gp as GPUParticles3D).emitting = v
 		for mi in find_children("*", "MeshInstance3D", true, false):
@@ -201,6 +226,9 @@ func _set_proyectil(v: bool) -> void:
 		for m in _mats:
 			if m.shader != null and m.shader.resource_path.get_file() == "fuego_lelu_bola.gdshader":
 				m.set_shader_parameter("inclin", 1.0 if v else 0.0)       # billboard de la bola: el eje de la llama sigue a la velocidad
+		var fre: Node3D = get_node_or_null("Cuerpo/Frente") as Node3D
+		if fre != null:
+			fre.position.z = -0.2 if v else 0.0              # la cabeza va delante en vuelo
 		var inc: Node3D = get_node_or_null("Cuerpo/Inclinable") as Node3D
 		if inc != null:
 			inc.rotation_degrees.x = 55.0 if v else 0.0       # en vuelo, la llama se inclina hacia atrás

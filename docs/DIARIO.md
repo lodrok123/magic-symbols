@@ -4407,3 +4407,5 @@ Ronda 4 de la 304 (Godot, prueba 3): pulido pedido por Pablo. Bola con una sola 
 Ronda 5 de la 304 (Godot, prueba 3): la bola sin estrella en la base ni facetas (gota abierta con base fundida y disco aditivo, 64 × 40 segmentos, desplazamiento de vértices a 0 en la punta, segundo ruido en el cuerpo); tonos 18/76/6; prueba a 0 fallos.
 
 Ronda 6 de la 304 (Godot, prueba 3): la bola pasa de malla de revolución a quad billboard con el método de Le Lu en 2D (gradiente radial restado, textura de lenguas que sube, rampa con núcleo claro, en vuelo el eje sigue a la velocidad): sin polos, facetas ni tapas; tonos 15/65/20; la malla queda como `BolaFuegoToy_malla.tscn`; prueba a 0 fallos.
+
+Ronda 7 de la 304 (Godot, prueba 3): la bola se deforma (contorno con ruido de baja frecuencia que gira, lenguas por los lados), tiene cabeza redonda y brillante con destello de cuatro puntas (el cuerpo y la cola nacen detrás), jirones y chispas con estela en vuelo; tonos 18/55/28 (amarillo pasado por la cabeza); comparada con `ref_bola_vuelo.png` en NOTAS; prueba a 0 fallos.
