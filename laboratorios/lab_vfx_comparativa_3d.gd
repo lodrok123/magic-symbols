@@ -31,6 +31,16 @@ const MANDOS_TOY: Array = [
 	["altura", 0.3, 3.0, 0.1, 1.0], ["chisporroteo", 0.0, 1.0, 0.1, 0.6], ["blandura", 0.05, 1.0, 0.05, 0.22], ["ondulacion", 0.0, 1.5, 0.1, 0.6], ["velocidad", 0.1, 4.0, 0.1, 1.0],
 	["brillo", 0.3, 3.0, 0.1, 1.0], ["halo", 0.0, 3.0, 0.1, 1.0], ["tono", 0.0, 1.0, 0.1, 0.0], ["chispas", 0.0, 1.0, 0.1, 1.0], ["luz", 0.0, 4.0, 0.1, 1.0]]
 const CAMARA_TOY: Dictionary = {"Barrera": [1.9, 0.9], "Pilar": [2.1, 1.7], "Muro": [1.15, 0.7]}   ## [factor de distancia, altura a la que mira]
+## Fuego paramétrico (FuegoToy, rama fuego-toy-parametrico): F7 crea el FuegoToy con la figura y el tamaño de la prueba 3 y, pulsada otra vez, pasa a la figura siguiente
+## (bola → muro → pilar → barrera) · U / J x más / menos · I / K y más / menos · O / L z más / menos (×1,2 cada pulsación; la geometría se rehace sola) · V bola en vuelo (sí/no) ·
+## F8 devuelve los ejes al tamaño de la prueba 3 · F9 prueba `desde_hechizo` con hechizos de ejemplo (bola, muro, pilar, barrera, flecha). Los diez mandos (RePág, +, −) valen también aquí.
+const FIGURAS_PARAM: Array = [
+	[0, "bola", Vector3(0.4, 0.4, 0.4)], [1, "muro", Vector3(3.45, 1.5, 0.3)], [2, "pilar", Vector3(0.5, 4.0, 0.5)], [3, "barrera", Vector3(1.5, 1.5, 1.5)]]
+const PASO_EJE: float = 1.2
+## Hechizos de ejemplo de F9: [nombre, semiejes en casillas, velocidad, solidez]
+const EJEMPLOS_HECHIZO: Array = [
+	["bola (esfera 0,3)", Vector3(0.3, 0.3, 0.3), 0.0, 0.0], ["muro (1,5 x 0,13 de fondo)", Vector3(1.5, 0.3, 0.13), 0.0, 0.0], ["pilar (alto 1,7)", Vector3(0.2, 1.7, 0.2), 0.0, 0.0],
+	["barrera (cúpula 0,65)", Vector3(0.65, 0.65, 0.65), 0.0, 1.5], ["flecha (viaja)", Vector3(0.3, 0.3, 0.3), 8.0, 0.0], ["barrera alargada (muro sólido)", Vector3(1.2, 0.5, 0.2), 0.0, 1.5]]
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -61,6 +71,9 @@ var _bolas: Array = []                             ## [{nodo, origen}]
 var _mando_toon: int = 0                           ## el mando elegido con RePág / AvPág
 var _valores_toon: Dictionary = {}
 var _toy: bool = false                             ## true: los mandos son los de EfectoToy (prueba 3)
+var _param: FuegoToy = null                        ## el FuegoToy vivo (F7 / F9)
+var _param_i: int = -1                             ## figura de F7 (índice de FIGURAS_PARAM)
+var _param_ej: int = 0                             ## ejemplo de hechizo de F9
 var _valores_toy: Dictionary = {}                  ## propiedad -> valor actual (lo que nazca después nace con él)
 
 
@@ -172,7 +185,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()]) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -191,6 +204,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F4: _toy = true; efecto("bola_vuelo_toy")
 		KEY_F5: _toy = true; efecto("barrera_toy")
 		KEY_F6: _toy = true; diez_muros(false, true)
+		KEY_F7: fuego_param((_param_i + 1) % FIGURAS_PARAM.size())
+		KEY_F8: fuego_param(maxi(_param_i, 0))
+		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
+		KEY_U: eje_param(0, 1)
+		KEY_J: eje_param(0, -1)
+		KEY_I: eje_param(1, 1)
+		KEY_K: eje_param(1, -1)
+		KEY_O: eje_param(2, 1)
+		KEY_L: eje_param(2, -1)
+		KEY_V: viaja_param()
 		KEY_PAGEUP: _mando_toon = (_mando_toon + _n_mandos() - 1) % _n_mandos()
 		KEY_PAGEDOWN: _mando_toon = (_mando_toon + 1) % _n_mandos()
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: mover_mando_toon(_mando_toon, 1)
@@ -255,6 +278,107 @@ func efecto(cual: String) -> Node3D:
 			e.call("lanzar", VIDA_COLUMNA)
 	ultimo_efecto = e
 	return e
+
+
+# ---------------------------------------------------------------- fuego paramétrico (FuegoToy) ----------------------------------------------------------------
+
+## F7 / F8: crea el FuegoToy con la figura y el tamaño de la prueba 3 (i = índice de FIGURAS_PARAM) y lo coloca como las escenas validadas.
+func fuego_param(i: int) -> FuegoToy:
+	_toy = true
+	_param_i = clampi(i, 0, FIGURAS_PARAM.size() - 1)
+	var d: Array = FIGURAS_PARAM[_param_i]
+	var s: Vector3 = d[2]
+	var e: FuegoToy = FuegoToy.new()
+	e.definir(d[0], s.x, s.y, s.z, false)
+	_poner_param(e, 0.0)
+	return e
+
+
+## F9: crea el FuegoToy a partir de un Hechizo de ejemplo con `desde_hechizo` (figura, tamaño y vuelo salen solos).
+func fuego_hechizo(i: int) -> FuegoToy:
+	_toy = true
+	var d: Array = EJEMPLOS_HECHIZO[i % EJEMPLOS_HECHIZO.size()]
+	var h: Hechizo = Hechizo.new()
+	var s: Vector3 = d[1]
+	h.semieje_x = s.x
+	h.semieje_y = s.y
+	h.semieje_z = s.z
+	h.velocidad = float(d[2])
+	h.solidez = float(d[3])
+	var e: FuegoToy = FuegoToy.new()
+	e.desde_hechizo(h)
+	var giro: float = e.rotation.y
+	e.rotation = Vector3.ZERO
+	_param_i = int(e.figura)
+	_poner_param(e, giro)
+	return e
+
+
+func _poner_param(e: FuegoToy, giro: float) -> void:
+	_quitar_param()
+	_aplicar_mandos_toy(e)
+	_efectos.add_child(e)
+	var pie: Vector3 = _pj.global_position
+	match e.figura:
+		FuegoToy.Figura.BOLA:
+			e.global_position = pie + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
+		FuegoToy.Figura.BARRERA:
+			e.global_position = pie
+		_:
+			e.global_position = pie + _dir * DISTANCIA_EFECTO
+			e.look_at(e.global_position + _dir, Vector3.UP)     # el X del muro queda de lado al tiro
+	e.rotate_y(giro)
+	e.lanzar(-1.0)
+	_param = e
+	ultimo_efecto = e
+	if e.viaja:
+		_lanzar_param_en_vuelo()
+
+
+func _quitar_param() -> void:
+	if _param != null and is_instance_valid(_param):
+		_bolas = _bolas.filter(func(b: Dictionary) -> bool: return b["nodo"] != _param)
+		_param.get_parent().remove_child(_param)
+		_param.queue_free()
+	_param = null
+
+
+## U/J, I/K, O/L: sube o baja un semieje (x, y, z) un 20 %. La geometría se rehace sola.
+func eje_param(eje: int, signo: int) -> void:
+	if _param == null or not is_instance_valid(_param):
+		fuego_param(maxi(_param_i, 0))
+	var f: float = PASO_EJE if signo > 0 else 1.0 / PASO_EJE
+	match eje:
+		0: _param.semieje_x = clampf(_param.semieje_x * f, 0.05, 8.0)
+		1: _param.semieje_y = clampf(_param.semieje_y * f, 0.05, 8.0)
+		2: _param.semieje_z = clampf(_param.semieje_z * f, 0.05, 8.0)
+
+
+## V: la bola (solo la figura bola) vuela en bucle por delante de la jugadora, o vuelve a quedarse quieta.
+func viaja_param() -> void:
+	if _param == null or not is_instance_valid(_param):
+		fuego_param(0)
+	_param.viaja = not _param.viaja
+	if _param.viaja:
+		_lanzar_param_en_vuelo()
+	else:
+		_bolas = _bolas.filter(func(b: Dictionary) -> bool: return b["nodo"] != _param)
+		_param.rotation = Vector3.ZERO
+		_param.global_position = _pj.global_position + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
+
+
+func _lanzar_param_en_vuelo() -> void:
+	var o: Vector3 = _pj.global_position + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
+	_param.global_position = o
+	_param.look_at(o + _dir, Vector3.UP)      # su -Z mira hacia donde vuela
+	_bolas.append({"nodo": _param, "origen": o, "bucle": true})
+
+
+func _texto_param() -> String:
+	if _param == null or not is_instance_valid(_param):
+		return "\nFUEGO PARAMETRICO: F7 figura (bola > muro > pilar > barrera) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3"
+	return "\nFUEGO PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3)" % [
+		["bola", "muro", "pilar", "barrera"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
 
 
 ## Diez muros en dos filas, para leer el fps con el presupuesto a tope.
@@ -390,6 +514,10 @@ func _mover_bolas(delta: float) -> void:
 		if not is_instance_valid(n) or not n.is_inside_tree():
 			continue
 		var d: Vector3 = (n.global_position - (b["origen"] as Vector3))
+		if d.length() >= ALCANCE_BOLA and b.get("bucle", false):
+			n.global_position = b["origen"]          # el FuegoToy en vuelo (V) da vueltas: vuelve a la mano y sigue
+			quedan.append(b)
+			continue
 		if d.length() >= ALCANCE_BOLA:
 			n.global_position.y = 0.05
 			n.call("impactar")
@@ -452,6 +580,16 @@ func _seguir_camara() -> void:
 			if ultimo_efecto.name.begins_with(clave):
 				dist *= float(CAMARA_TOY[clave][0])
 				objetivo = ultimo_efecto.global_position + Vector3(0, float(CAMARA_TOY[clave][1]), 0)
+	if ultimo_efecto is FuegoToy and is_instance_valid(ultimo_efecto):
+		# FuegoToy: la cámara de cada figura de la prueba 3 (CAMARA_TOY) escalada por lo que crece o mengua respecto al tamaño validado
+		var ft: FuegoToy = ultimo_efecto
+		var clave: String = ["", "Muro", "Pilar", "Barrera"][int(ft.figura)]
+		var fc: Array = CAMARA_TOY.get(clave, [1.0, 0.8])
+		var ref_y: float = [FuegoToy.REF_BOLA.x, FuegoToy.REF_MURO.y, FuegoToy.REF_PILAR.y, FuegoToy.REF_BARRERA.y][int(ft.figura)]
+		var ext: float = ft.extension() / FuegoToy._extension_ref(ft.figura)
+		dist *= float(fc[0]) * clampf(ext, 0.45, 3.5)
+		var yo: float = ft.semieje_y if ft.figura != FuegoToy.Figura.BOLA else maxf(ft.semieje_x, ft.semieje_z)
+		objetivo = ft.global_position + Vector3(0, float(fc[1]) * yo / ref_y, 0)
 	var lado: Vector3 = Vector3(-_dir.z, 0, _dir.x) * 0.6 - _dir * 0.8
 	var desde: Vector3 = objetivo + lado.normalized() * dist + Vector3(0, dist * 0.35, 0)
 	_cam.global_position = desde

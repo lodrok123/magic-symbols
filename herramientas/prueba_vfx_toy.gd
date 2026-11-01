@@ -55,6 +55,7 @@ func _correr() -> void:
 	_capturas()
 	_lab()
 	await _modificaciones()
+	await _parametrico()
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)
 
@@ -273,3 +274,218 @@ func _modificaciones() -> void:
 	b.scale = Vector3(2, 2, 2)
 	_ok("(4) barrera el doble de grande: escala 2 en el raíz", b.scale == Vector3(2, 2, 2))
 	b.queue_free()
+
+
+# ---------------------------------------------------------------- FuegoToy (fuego paramétrico) ----------------------------------------------------------------
+
+func _ft(fig: int, x: float, y: float, z: float, vuela: bool = false) -> FuegoToy:
+	var e: FuegoToy = FuegoToy.new()
+	e.definir(fig, x, y, z, vuela)
+	_raiz.add_child(e)
+	return e
+
+
+func _aabb(e: Node, nodo: String) -> AABB:
+	var mi: MeshInstance3D = e.find_child(nodo, true, false) as MeshInstance3D
+	return mi.mesh.get_aabb() if mi != null and mi.mesh != null else AABB()
+
+
+func _param(e: Node, nodo: String, nombre: String) -> Variant:
+	var mi: MeshInstance3D = e.find_child(nodo, true, false) as MeshInstance3D
+	if mi == null or not (mi.material_override is ShaderMaterial):
+		return null
+	return (mi.material_override as ShaderMaterial).get_shader_parameter(nombre)
+
+
+func _cerca(a: float, b: float, tol: float) -> bool:
+	return absf(a - b) <= tol
+
+
+## FuegoToy: un solo efecto con ejes que produce las cuatro figuras. Comprueba la geometría contra los semiejes, que reproduce las escenas validadas con el tamaño de la prueba 3,
+## que alargar un muro no estira la textura, que `desde_hechizo` elige la figura, y que las cinco modificaciones de Pablo y el presupuesto valen aquí también.
+func _parametrico() -> void:
+	print("== FuegoToy (paramétrico)")
+	var F = FuegoToy.Figura
+	# 1. contrato y mandos
+	var e0: FuegoToy = _ft(F.MURO, 3.45, 1.5, 0.3)
+	await process_frame
+	_ok("FuegoToy es un EfectoToy con el contrato (preparar / lanzar / morir / impactar) y Anim", e0 is EfectoToy and e0.has_method("preparar") and e0.has_method("lanzar")
+		and e0.has_method("morir") and e0.has_method("impactar") and (e0.get_node("Anim") as AnimationPlayer).has_animation("morir"))
+	_ok("FuegoToy hereda los diez mandos con rango", _rangos(e0).size() == 10)
+	e0.queue_free()
+	await process_frame
+	# 2. geometría = semiejes, con el tamaño de la prueba 3 y con otros
+	var casos: Array = [
+		[F.MURO, 3.45, 1.5, 0.3, "Banda"], [F.MURO, 6.0, 0.8, 0.3, "Banda"], [F.MURO, 1.5, 1.5, 0.3, "Banda"], [F.PILAR, 0.5, 4.0, 0.5, "Exterior"],
+		[F.PILAR, 0.3, 6.0, 0.3, "Exterior"], [F.PILAR, 1.0, 1.5, 1.0, "Exterior"], [F.PILAR, 0.6, 3.0, 0.3, "Exterior"], [F.BARRERA, 1.5, 1.5, 1.5, "Cascara"],
+		[F.BARRERA, 1.5, 0.8, 1.5, "Cascara"], [F.BARRERA, 2.5, 2.0, 1.2, "Cascara"]]
+	for c in casos:
+		var e: FuegoToy = _ft(c[0], c[1], c[2], c[3])
+		await process_frame
+		var bb: AABB = _aabb(e, c[4])
+		var esp_y: float = float(c[2]) * (2.0 if c[0] == F.BARRERA else 1.0)
+		var ok: bool = _cerca(bb.size.x, 2.0 * float(c[1]), 0.02 * float(c[1]) + 0.01) and _cerca(bb.size.y, esp_y, 0.01 * esp_y + 0.01) and _cerca(bb.size.z, 2.0 * float(c[3]), 0.02 * float(c[3]) + 0.01)
+		_ok("malla %s de %s: AABB %s ≈ (2x, y, 2z) = (%.2f, %.2f, %.2f)" % [c[4], ["bola", "muro", "pilar", "barrera"][c[0]], str(bb.size), 2.0 * float(c[1]), esp_y, 2.0 * float(c[3])], ok)
+		e.queue_free()
+		await process_frame
+	# la bola: radio máx(x, z), y alto por escala Y del quad
+	var b1: FuegoToy = _ft(F.BOLA, 0.4, 0.8, 0.4)
+	var b2: FuegoToy = _ft(F.BOLA, 0.6, 0.3, 0.2)
+	await process_frame
+	var ll: MeshInstance3D = b1.find_child("Llama", true, false) as MeshInstance3D
+	_ok("bola 0,4·0,8·0,4: quad de 2,4 m (radio 0,4) y escala Y 2 (elipsoide alta)", ll != null and _cerca((ll.mesh as QuadMesh).size.x, 2.4, 0.01) and _cerca(ll.scale.y, 2.0, 0.01))
+	var ll2: MeshInstance3D = b2.find_child("Llama", true, false) as MeshInstance3D
+	_ok("bola 0,6·0,3·0,2: radio = máx(x, z) = 0,6 (quad de 3,6 m) y escala Y 0,5", ll2 != null and _cerca((ll2.mesh as QuadMesh).size.x, 3.6, 0.01) and _cerca(ll2.scale.y, 0.5, 0.01))
+	b1.queue_free()
+	b2.queue_free()
+	await process_frame
+	# 3. con el tamaño de la prueba 3 sale lo mismo que las escenas validadas (mallas y repeticiones de textura)
+	var pares: Array = [["MuroFuegoToy", F.MURO, 3.45, 1.5, 0.3, ["Banda", "Interior"]], ["PilarFuegoToy", F.PILAR, 0.5, 4.0, 0.5, ["Exterior", "Nucleo"]],
+		["BarreraFuegoToy", F.BARRERA, 1.5, 1.5, 1.5, ["Cascara"]]]
+	for p in pares:
+		var v: Node3D = _cargar(p[0])
+		_raiz.add_child(v)
+		var e: FuegoToy = _ft(p[1], p[2], p[3], p[4])
+		await process_frame
+		for nodo in p[5]:
+			var a1: AABB = _aabb(v, nodo)
+			var a2: AABB = _aabb(e, nodo)
+			_ok("%s/%s: malla de FuegoToy ≈ la validada (%s frente a %s)" % [p[0], nodo, str(a2.size), str(a1.size)], a1.size.distance_to(a2.size) < 0.02 * a1.size.length())
+			for u in ["repeticion", "rep_ruido"]:
+				var r1: Vector2 = _param(v, nodo, u)
+				var r2: Vector2 = _param(e, nodo, u)
+				_ok("%s/%s: %s = %s (validada %s)" % [p[0], nodo, u, str(r2), str(r1)], absf(r1.x - r2.x) < 0.001 and absf(r1.y - r2.y) < 0.06)
+		v.queue_free()
+		e.queue_free()
+		await process_frame
+	# 4. un muro más largo NO estira la textura: más repeticiones, y los metros de contorno por repetición se quedan en ~2,9
+	var m3: FuegoToy = _ft(F.MURO, 1.5, 1.5, 0.3)
+	var m12: FuegoToy = _ft(F.MURO, 6.0, 1.5, 0.3)
+	await process_frame
+	var r3: Vector2 = _param(m3, "Banda", "repeticion")
+	var r12: Vector2 = _param(m12, "Banda", "repeticion")
+	_ok("muro de 3 m (%.0f repeticiones) y de 12 m (%.0f): el largo cambia el nº de repeticiones" % [r3.x, r12.x], r12.x > r3.x + 2.0)
+	var mpr3: float = FuegoToyMallas.largo_contorno(1.5, 0.3, 6.0) / r3.x
+	var mpr12: float = FuegoToyMallas.largo_contorno(6.0, 0.3, 6.0) / r12.x
+	_ok("metros de contorno por repetición: 3 m → %.2f, 12 m → %.2f (validado 2,90): no se estira" % [mpr3, mpr12], absf(mpr3 - 2.9) < 0.9 and absf(mpr12 - 2.9) < 0.9 and absf(mpr12 / mpr3 - 1.0) < 0.35)
+	m3.queue_free()
+	m12.queue_free()
+	await process_frame
+	# 5. reconstruir en vivo: cambiar un eje rehace la malla y conserva los mandos
+	var viv: FuegoToy = _ft(F.PILAR, 0.5, 4.0, 0.5)
+	await process_frame
+	viv.set("tono", 1.0)
+	viv.semieje_y = 2.0
+	viv.semieje_x = 1.0
+	await process_frame
+	await process_frame
+	var bv: AABB = _aabb(viv, "Exterior")
+	_ok("cambiar los ejes en vivo rehace la malla (alto 2, ancho 2: %s)" % str(bv.size), _cerca(bv.size.y, 2.0, 0.02) and _cerca(bv.size.x, 2.0, 0.04))
+	_ok("... y conserva los mandos (tono 1)", _cerca(float((_primer_material(viv, "llama_toy.gdshader") as ShaderMaterial).get_shader_parameter("tono")), 1.0, 0.001))
+	viv.figura = F.MURO
+	await process_frame
+	await process_frame
+	_ok("cambiar de figura en vivo (pilar → muro) también", viv.find_child("Banda", true, false) != null and viv.find_child("Exterior", true, false) == null)
+	viv.queue_free()
+	await process_frame
+	# 6. desde_hechizo
+	var casilla: float = 2.3
+	var casos_h: Array = [
+		["muro", Vector3(1.5, 0.652, 0.13), 0.0, 0.0, F.MURO], ["pilar", Vector3(0.2, 1.7, 0.2), 0.0, 0.0, F.PILAR], ["bola", Vector3(0.3, 0.3, 0.3), 0.0, 0.0, F.BOLA],
+		["barrera (cúpula)", Vector3(0.65, 0.65, 0.65), 0.0, 1.5, F.BARRERA], ["barrera alargada", Vector3(1.2, 0.5, 0.2), 0.0, 1.5, F.MURO], ["flecha (viaja)", Vector3(0.3, 0.3, 0.3), 8.0, 0.0, F.BOLA]]
+	for c in casos_h:
+		var h: Hechizo = Hechizo.new()
+		h.semieje_x = c[1].x
+		h.semieje_y = c[1].y
+		h.semieje_z = c[1].z
+		h.velocidad = c[2]
+		h.solidez = c[3]
+		var d: Dictionary = FuegoToy.describir(h, casilla)
+		_ok("desde_hechizo %s → figura %s (nombre derivado «%s»)" % [c[0], ["BOLA", "MURO", "PILAR", "BARRERA"][d["figura"]], d["nombre"]], d["figura"] == c[4])
+		var e: FuegoToy = FuegoToy.new()
+		e.desde_hechizo(h)
+		_raiz.add_child(e)
+		await process_frame
+		var esp: Vector3 = h.semiejes_vuelo * casilla if c[2] > 0.0 else h.semiejes * casilla
+		var largo: float = maxf(esp.x, esp.z)
+		var corto: float = minf(esp.x, esp.z)
+		var xx: float = e.semieje_x if e.figura != F.MURO else e.semieje_x
+		var ok_t: bool = _cerca(e.semieje_y, esp.y, 0.01)
+		if e.figura == F.MURO:
+			ok_t = ok_t and _cerca(e.semieje_x, largo, 0.01) and _cerca(e.semieje_z, corto, 0.01)
+		else:
+			ok_t = ok_t and _cerca(e.semieje_x, esp.x, 0.01) and _cerca(e.semieje_z, esp.z, 0.01)
+		_ok("   tamaño en metros = semiejes × %.1f (flecha: × Hechizo.ESCALA_PROYECTIL): %s" % [casilla, str(e.semiejes())], ok_t and xx > 0.0)
+		_ok("   viaja = %s" % str(e.viaja), e.viaja == (c[2] > 0.0))
+		e.queue_free()
+		await process_frame
+	var haz: Hechizo = Hechizo.new()
+	haz.glifos = {"linea_x": 1}
+	haz.estado_materia = "plasma"
+	var dh: Dictionary = FuegoToy.describir(haz, casilla)
+	_ok("un haz no tiene figura propia: devuelve BOLA y lo dice (%s)" % str(dh["nota"]), dh["figura"] == F.BOLA and String(dh["nota"]) != "")
+	# preparar con el volumen de un hechizo (casillas) no escala el nodo: rehace la geometría en metros
+	var pr: FuegoToy = _ft(F.MURO, 1.0, 1.0, 1.0)
+	await process_frame
+	pr.preparar({"x": 1.5, "y": 0.652, "z": 0.13}, Vector3.ZERO, "fuego")
+	await process_frame
+	_ok("preparar({x: 1,5 casillas}) → semieje_x 3,45 m y escala 1", _cerca(pr.semieje_x, 3.45, 0.01) and pr.scale == Vector3.ONE)
+	pr.queue_free()
+	await process_frame
+	# 7. las cinco modificaciones de Pablo siguen funcionando en FuegoToy
+	print("== las cinco modificaciones en FuegoToy")
+	var pil: FuegoToy = _ft(F.PILAR, 0.5, 4.0, 0.5)
+	await process_frame
+	pil.set("tono", 1.0)
+	pil.set("altura", 2.0)
+	pil.set("chispas", 0.5)
+	var mm: ShaderMaterial = _primer_material(pil, "llama_toy.gdshader")
+	_ok("(1) fuego azul: tono 1", mm != null and float(mm.get_shader_parameter("tono")) == 1.0)
+	_ok("(2) llama el doble de alta: altura 2", mm != null and float(mm.get_shader_parameter("altura")) == 2.0)
+	_ok("(3) mitad de chispas: chispas 0,5", (pil.find_child("Chispas", true, false) as GPUParticles3D).amount_ratio == 0.5)
+	pil.call("lanzar", 1.0)
+	var t0: int = Time.get_ticks_msec()
+	while is_instance_valid(pil) and float(Time.get_ticks_msec() - t0) < 3000.0:
+		await process_frame
+	var tt: float = float(Time.get_ticks_msec() - t0) / 1000.0
+	_ok("(5) pilar que dura 1 s y se apaga: lanzar(1.0) lo libera a los %.2f s" % tt, not is_instance_valid(pil) and tt < 1.9)
+	var bar: FuegoToy = _ft(F.BARRERA, 1.5, 1.5, 1.5)
+	await process_frame
+	bar.scale = Vector3(2, 2, 2)
+	_ok("(4) barrera el doble de grande: escala 2 del raíz, o semiejes 3", bar.scale == Vector3(2, 2, 2))
+	bar.definir(F.BARRERA, 3.0, 3.0, 3.0)
+	await process_frame
+	_ok("(4) ... o semiejes 3: malla de 6 m", _cerca(_aabb(bar, "Cascara").size.x, 6.0, 0.1))
+	bar.queue_free()
+	# proyectil: la bola en vuelo emite cola y jirones, la estática no
+	var bv1: FuegoToy = _ft(F.BOLA, 0.4, 0.4, 0.4, true)
+	var be: FuegoToy = _ft(F.BOLA, 0.4, 0.4, 0.4, false)
+	await process_frame
+	await process_frame
+	var jv: GPUParticles3D = bv1.find_child("Jirones", true, false) as GPUParticles3D
+	var je: GPUParticles3D = be.find_child("Jirones", true, false) as GPUParticles3D
+	_ok("bola viaja: Jirones y ChispasEstela emiten; estática: no", jv != null and je != null and jv.emitting and not je.emitting and (bv1.find_child("ChispasEstela", true, false) as GPUParticles3D).emitting)
+	_ok("bola viaja: destello de 4 puntas visible; estática: oculto", (bv1.find_child("Estrella", true, false) as Node3D).visible and not (be.find_child("Estrella", true, false) as Node3D).visible)
+	bv1.queue_free()
+	be.queue_free()
+	await process_frame
+	# 8. presupuesto en los extremos: ≤ 1 luz y ≤ 300 partículas
+	var ext: Array = [[F.BOLA, 3.0, 2.0, 3.0, true], [F.BOLA, 0.1, 0.1, 0.1, false], [F.MURO, 6.9, 2.0, 0.5, false], [F.MURO, 8.0, 4.6, 3.0, false], [F.PILAR, 3.0, 4.6, 3.0, false],
+		[F.PILAR, 0.1, 6.0, 0.1, false], [F.BARRERA, 6.9, 4.6, 6.9, false], [F.BARRERA, 0.3, 0.3, 0.3, false]]
+	for c in ext:
+		var e: FuegoToy = _ft(c[0], c[1], c[2], c[3], c[4])
+		await process_frame
+		var luces: int = 0
+		var part: int = 0
+		for n in e.find_children("*", "", true, false):
+			if n is Light3D:
+				luces += 1
+			elif n is GPUParticles3D:
+				part += (n as GPUParticles3D).amount
+		_ok("presupuesto %s %.1f·%.1f·%.1f%s: %d luz y %d partículas" % [["bola", "muro", "pilar", "barrera"][c[0]], c[1], c[2], c[3], " en vuelo" if c[4] else "", luces, part], luces <= MAX_LUCES and part <= MAX_PARTICULAS)
+		e.queue_free()
+		await process_frame
+	# 9. el lab tiene las teclas nuevas
+	var lab_cod: String = (load("res://laboratorios/lab_vfx_comparativa_3d.gd") as GDScript).source_code
+	for k in ["KEY_F7", "KEY_F8", "KEY_F9", "KEY_U", "KEY_J", "KEY_I", "KEY_K", "KEY_O", "KEY_L", "KEY_V"]:
+		_ok("lab: tecla " + k, lab_cod.contains(k + ":"))

@@ -36,11 +36,19 @@ var _luz_base: float = 1.0
 var _cuerpo: Node3D = null
 var _t: float = 0.0
 var _fase: float = 0.0
+## Cuánto se adelanta la cabeza de la bola en vuelo (m, por -Z). FuegoToy lo escala con el tamaño de la bola.
+var _avance_cabeza: float = -0.12
 
 
 func _ready() -> void:
 	super._ready()
 	_fase = randf() * 100.0
+	_recoger()
+
+
+## Recoge los materiales, las partículas y la luz del árbol (al nacer; FuegoToy lo repite cuando reconstruye su geometría).
+func _recoger() -> void:
+	_listo = false
 	_cuerpo = get_node_or_null("Cuerpo") as Node3D
 	_mats.clear()
 	_halos.clear()
@@ -230,7 +238,7 @@ func _set_proyectil(v: bool) -> void:
 				m.set_shader_parameter("inclin", 1.0 if v else 0.0)       # billboard de la bola: el eje de la llama sigue a la velocidad
 		var fre: Node3D = get_node_or_null("Cuerpo/Frente") as Node3D
 		if fre != null:
-			fre.position.z = -0.12 if v else 0.0             # la cabeza va delante en vuelo (poco: la cola tiene que arrancar dentro de ella)
+			fre.position.z = _avance_cabeza if v else 0.0             # la cabeza va delante en vuelo (poco: la cola tiene que arrancar dentro de ella)
 		var est: Node3D = get_node_or_null("Cuerpo/Frente/Estrella") as Node3D
 		if est != null:
 			est.visible = v                                  # destello de 4 puntas solo en vuelo
