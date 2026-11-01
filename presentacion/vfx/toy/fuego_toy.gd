@@ -13,7 +13,8 @@ extends EfectoToy
 ## Los números de referencia (r 0,4 la bola; 3,45 × 1,5 × 0,3 el muro; 0,5 × 4 el pilar; 1,5 la barrera) son las medidas de las escenas validadas: con ellas, FuegoToy
 ## produce lo mismo que esas escenas (ver docs/capturas/comparativa_vfx/godot_toy/parametrico/NOTAS.md).
 
-enum Figura { BOLA, MURO, PILAR, BARRERA }
+## HAZ (familia LINEAL): tubo abierto de 2·x de largo y radio z que sale del origen (la mano) hacia -Z; el eje va a altura máx(y, 0,4). Lenguas que corren a lo largo y punta que se disipa.
+enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ }
 
 const DIR: String = "res://presentacion/vfx/toy/"
 const TEX: String = "res://assets/vfx/lelu_noise/"
@@ -31,6 +32,7 @@ const REF_BOLA: Vector3 = Vector3(0.4, 0.4, 0.4)
 const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
 const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
+const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)          # no validado en la prueba 3: primera versión
 ## Una repetición de la textura de lenguas cada tantos metros de contorno (media de lo medido en las tres escenas validadas: 2,90 · 3,14 · 3,14).
 const METROS_POR_REPETICION: float = 2.9
 
@@ -141,7 +143,7 @@ func desde_hechizo(h: Hechizo) -> void:
 
 ## Figura y tamaño de un hechizo, SIN crear nada: {figura, x, y, z (m), viaja, giro_y (rad), nombre (derivado), nota}.
 ## Regla (plan procedural: figura explícita → superficie/columna → volumen; el proyectil es un comportamiento, no una figura):
-##   · haz (ᛁ línea): no tiene figura propia en FuegoToy → BOLA (nota).
+##   · haz (ᛁ línea, `h.haz`): HAZ, largo = alcance del haz, radio = HAZ_ANCHO / 2, eje a la altura de la mano.
 ##   · viaja (o velocidad > 0): BOLA con cola, con los semiejes EN VUELO (× Hechizo.ESCALA_PROYECTIL).
 ##   · solidez > 0 (barrera): MURO si es alargada en planta (largo ≥ 2 × fondo), si no BARRERA (cúpula).
 ##   · sin solidez: nombre_derivado «alto» → PILAR; alargado en planta → MURO; lo demás (esfera, elipsoide, zona plana redonda) → BOLA (nota si es plana).
@@ -155,8 +157,13 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 	var alargado: bool = largo >= 2.0 * corto - 0.0001
 	var fig: Figura = Figura.BOLA
 	var nota: String = ""
+	var y_haz: float = 0.0
+	var z_haz: float = 0.0
 	if h.haz:
-		nota = "haz: sin figura propia, se dibuja como BOLA"
+		# haz (ᛁ línea): `nombre_derivado` no distingue el haz (da «x_mano»), lo decide `h.haz`. Largo = alcance del haz (m-casilla) × casilla; radio = la mitad del grosor de dibujo.
+		fig = Figura.HAZ
+		y_haz = Hechizo.ALTURA_MANO_U
+		z_haz = Hechizo.HAZ_ANCHO * casilla_m * 0.5
 	elif vuela:
 		fig = Figura.BOLA
 	elif h.solidez > 0.0:
@@ -176,6 +183,8 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		x = s.z                      # el muro se alarga por su X: se gira 90° si lo largo es el fondo
 		z = s.x
 		giro = PI * 0.5
+	if fig == Figura.HAZ:
+		return {"figura": fig, "x": h.alcance_haz * casilla_m * 0.5, "y": y_haz, "z": z_haz, "viaja": false, "giro_y": 0.0, "nombre": nombre, "nota": ""}
 	return {"figura": fig, "x": x, "y": s.y, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
 
 
@@ -188,7 +197,7 @@ static func _extension(fig: Figura, x: float, y: float, z: float) -> float:
 	match fig:
 		Figura.BOLA:
 			return maxf(x, z)
-		Figura.MURO:
+		Figura.MURO, Figura.HAZ:
 			return x
 		Figura.PILAR:
 			return sqrt(pow(maxf(x, z), 2.0) + pow(y * 0.5, 2.0))
@@ -203,6 +212,8 @@ static func _extension_ref(fig: Figura) -> float:
 			return _extension(fig, REF_MURO.x, REF_MURO.y, REF_MURO.z)
 		Figura.PILAR:
 			return _extension(fig, REF_PILAR.x, REF_PILAR.y, REF_PILAR.z)
+		Figura.HAZ:
+			return REF_HAZ.x
 	return _extension(fig, REF_BARRERA.x, REF_BARRERA.y, REF_BARRERA.z)
 
 
@@ -236,6 +247,8 @@ func _construir() -> void:
 			_pilar(cuerpo, luz)
 		Figura.BARRERA:
 			_barrera(cuerpo, luz)
+		Figura.HAZ:
+			_haz(cuerpo, luz)
 	_anim_si_hace_falta()
 
 
@@ -426,6 +439,19 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_cilindro(0.5333, hi), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
 		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
 		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.6, "velocidad": 1.5, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
+	# Pilares más gordos que el validado (r 0,5): un cilindro de lenguas con solo dos capas se ve hueco (un aro a rayas). Se añaden capas intermedias, una cada ~0,4 m de
+	# radio por encima de 0,55 (máx. 3), entre el exterior y el núcleo, cada una con su semilla y su velocidad, para que el pilar se vea tan lleno como el validado.
+	var n_extra: int = clampi(int(round((rm - 0.55) / 0.4)) + (1 if rm > 0.55 else 0), 0, 3)
+	for i in n_extra:
+		var f: float = lerpf(1.0, 0.6, float(i + 1) / float(n_extra + 1))      # fracción del radio del exterior
+		var rxc: float = rx * f
+		var rzc: float = rz * f
+		var hc: float = alto * lerpf(1.0, 0.775, float(i + 1) / float(n_extra + 1))
+		var lc: float = FuegoToyMallas.perimetro_elipse(rxc, rzc)
+		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_cilindro(lerpf(0.72, 0.5333, float(i + 1) / float(n_extra + 1)), hc), FuegoToyMallas.segmentos(lc)),
+			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
+			"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.33 + 0.21 * float(i), "velocidad": 1.1 + 0.2 * float(i), "calor_extra": 0.15,
+			"amplitud_vert": 0.16 * amp}, 1)
 	var area: float = sqrt(clampf(fr * fa, 0.05, 6.0))
 	var vv: float = clampf(fa, 0.5, 2.5)
 	_trocitos(c, _cant(3.0, area, 1, 10), Vector3(rx * 0.6, 0.1, rz * 0.6), Vector3(0, 0.75 * alto, 0), vv)
@@ -447,8 +473,9 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 	var ecuador: float = FuegoToyMallas.perimetro_elipse(rx, rz)
 	var meridiano: float = FuegoToyMallas.perimetro_elipse(rh, ry) * 0.5
 	var malla: ArrayMesh = FuegoToyMallas.elipsoide(rx, ry, rz, 25, clampi(int(round(ecuador / 0.2)), 48, 160))
-	var p: Dictionary = {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(ecuador, m[0]), meridiano / float(m[1])),
-		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(ecuador, m[2]), meridiano / float(m[3])), "v_base": 0.3, "umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.15,
+	# mínimos de repeticiones (una barrera pequeña con 1-2 repeticiones casi no tiene lenguas): 3 por vuelta y 1 en vertical; no cambian la de 1,5 (3; 1,4) ni la de 3
+	var p: Dictionary = {"repeticion": Vector2(maxf(3.0, FuegoToyMallas.repeticiones_u(ecuador, m[0])), maxf(1.0, meridiano / float(m[1]))),
+		"rep_ruido": Vector2(maxf(3.0, FuegoToyMallas.repeticiones_u(ecuador, m[2])), maxf(1.5, meridiano / float(m[3]))), "v_base": 0.3, "umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.15,
 		"pot_grad": 1.1, "giro": 0.25, "resplandor_borde": 0.45, "escala_rampa": 1.3, "calor_extra": 0.05, "amplitud_vert": 0.1 * clampf(fr, 0.5, 2.0), "velocidad": 1.0,
 		"transparencia": 0.92}
 	var mi: MeshInstance3D = _fuego(c, "Cascara", malla, Vector3(0, 0.4 * ry, 0), p, 0, SH_ATRAS)
@@ -459,6 +486,38 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 	_particulas(c, "Chispas", _cant(14.0, area * area, 5, 60), 1.6, 0.07, Vector3(rx * 0.8, 0.1, rz * 0.8), Vector2(0.3, 0.9) * vv, Vector3(0, 1, 0), 25.0, Vector3(0, 0.5, 0) * vv,
 		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", Vector3(0, 0.133 * ry, 0), rh * 2.0 + ry + 4.0)
 	_ajustar_luz(luz, Vector3(0, 0.467 * ry, 0), 1.5, 5.5)
+
+
+# ---- HAZ ----
+
+## Tubo abierto de radio z y largo 2·x, de la mano (origen) hacia -Z a la altura máx(y, 0,4). Es el cilindro del pilar tumbado (el eje de la malla, Y, pasa a -Z): U da la vuelta
+## y V va de la mano a la punta, así que las lenguas corren por el tubo hacia la punta y el gradiente restado la disipa. Núcleo interior más estrecho y caliente.
+func _haz(c: Node3D, luz: OmniLight3D) -> void:
+	var largo: float = semieje_x * 2.0
+	var r: float = semieje_z
+	var h: float = maxf(semieje_y, 0.4)
+	var eje: Node3D = Node3D.new()
+	eje.name = "Eje"
+	eje.position = Vector3(0, h, 0)
+	eje.rotation = Vector3(-PI * 0.5, 0, 0)         # +Y de la malla → -Z
+	c.add_child(eje)
+	var m: Array = FuegoToyMallas.M_PILAR
+	var amp: float = clampf(r / 0.5, 0.3, 1.0)
+	var l1: float = FuegoToyMallas.perimetro_elipse(r, r)
+	_fuego(eje, "Exterior", FuegoToyMallas.banda(r, r, 2.0, FuegoToyMallas.perfil_cilindro(0.55, largo), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), largo / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), largo / float(m[3])),
+		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.2, "velocidad": 1.6, "amplitud_vert": 0.2 * amp}, 0)
+	var ri: float = r * 0.55
+	var l2: float = FuegoToyMallas.perimetro_elipse(ri, ri)
+	_fuego(eje, "Nucleo", FuegoToyMallas.banda(ri, ri, 2.0, FuegoToyMallas.perfil_cilindro(0.5, largo * 0.85), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, m[0]), largo * 0.85 / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, m[2]), largo * 0.85 / float(m[3])),
+		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.6, "velocidad": 2.2, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
+	_halo(c, "Base", Vector2(4.0 * r + 0.5, 4.0 * r + 0.5), Vector3(0, h, 0), 0.5, 2.4, 2, Color(1.0, 0.28, 0.06))
+	var f: float = clampf(largo / (2.0 * REF_HAZ.x), 0.4, 3.0)
+	_trocitos(c, _cant(3.0, f, 1, 10), Vector3(r, r, largo * 0.15), Vector3(0, h, -largo * 0.8), 1.0)
+	_particulas(c, "Chispas", _cant(10.0, f, 4, 40), 1.0, 0.07, Vector3(r, r, largo * 0.45), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", Vector3(0, h, -largo * 0.5), largo + 6.0)
+	_ajustar_luz(luz, Vector3(0, h, -largo * 0.4), 1.4, 5.0)
 
 
 # ------------------------------------------------------------------ ladrillos ------------------------------------------------------------------

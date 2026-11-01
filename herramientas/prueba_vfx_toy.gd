@@ -56,6 +56,7 @@ func _correr() -> void:
 	_lab()
 	await _modificaciones()
 	await _parametrico()
+	await _pulido()
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)
 
@@ -423,7 +424,15 @@ func _parametrico() -> void:
 	haz.glifos = {"linea_x": 1}
 	haz.estado_materia = "plasma"
 	var dh: Dictionary = FuegoToy.describir(haz, casilla)
-	_ok("un haz no tiene figura propia: devuelve BOLA y lo dice (%s)" % str(dh["nota"]), dh["figura"] == F.BOLA and String(dh["nota"]) != "")
+	_ok("un haz (ᛁ línea) → figura HAZ, largo = alcance del haz (x %.2f m), radio = HAZ_ANCHO / 2 (z %.2f m)" % [dh["x"], dh["z"]], dh["figura"] == F.HAZ and _cerca(float(dh["x"]), haz.alcance_haz * casilla * 0.5, 0.01) and _cerca(float(dh["z"]), Hechizo.HAZ_ANCHO * casilla * 0.5, 0.01) and not dh["viaja"])
+	var hz: FuegoToy = FuegoToy.new()
+	hz.desde_hechizo(haz)
+	_raiz.add_child(hz)
+	await process_frame
+	var bh: AABB = _aabb(hz, "Exterior")
+	_ok("HAZ desde_hechizo: tubo de %.2f m de largo y %.2f de diámetro (AABB %s)" % [hz.semieje_x * 2.0, hz.semieje_z * 2.0, str(bh.size)], _cerca(bh.size.y, hz.semieje_x * 2.0, 0.02) and _cerca(bh.size.x, hz.semieje_z * 2.0, 0.02))
+	hz.queue_free()
+	await process_frame
 	# preparar con el volumen de un hechizo (casillas) no escala el nodo: rehace la geometría en metros
 	var pr: FuegoToy = _ft(F.MURO, 1.0, 1.0, 1.0)
 	await process_frame
@@ -489,3 +498,37 @@ func _parametrico() -> void:
 	var lab_cod: String = (load("res://laboratorios/lab_vfx_comparativa_3d.gd") as GDScript).source_code
 	for k in ["KEY_F7", "KEY_F8", "KEY_F9", "KEY_U", "KEY_J", "KEY_I", "KEY_K", "KEY_O", "KEY_L", "KEY_V"]:
 		_ok("lab: tecla " + k, lab_cod.contains(k + ":"))
+
+
+## Ronda de pulido: pilares gordos llenos (capas intermedias), mínimo de repeticiones en la barrera pequeña y haz (LINEAL).
+func _pulido() -> void:
+	print("== FuegoToy: pulido (pilar grande, barrera pequeña, haz)")
+	var F = FuegoToy.Figura
+	var val: Node3D = _cargar("PilarFuegoToy")
+	_raiz.add_child(val)
+	var p05: FuegoToy = _ft(F.PILAR, 0.5, 4.0, 0.5)
+	var p12: FuegoToy = _ft(F.PILAR, 1.2, 4.6, 1.2)
+	var p10: FuegoToy = _ft(F.PILAR, 1.0, 1.5, 1.0)
+	await process_frame
+	_ok("pilar 0,5·4 (el validado) sigue con 2 capas, sin capas añadidas", p05.find_child("Capa0", true, false) == null and p05.find_children("*", "MeshInstance3D", true, false).size() == val.find_children("*", "MeshInstance3D", true, false).size())
+	var n12: int = 0
+	for n in p12.get_children()[0].get_children():
+		if String(n.name).begins_with("Capa"):
+			n12 += 1
+	_ok("pilar grande 1,2·4,6·1,2: capas intermedias entre exterior y núcleo (%d)" % n12, n12 >= 2)
+	_ok("pilar gordo 1·1,5·1 también tiene capas intermedias", p10.find_child("Capa0", true, false) != null)
+	for e in [val, p05, p12, p10]:
+		e.queue_free()
+	await process_frame
+	var b05: FuegoToy = _ft(F.BARRERA, 0.5, 0.5, 0.5)
+	var b15: FuegoToy = _ft(F.BARRERA, 1.5, 1.5, 1.5)
+	var b30: FuegoToy = _ft(F.BARRERA, 3.0, 3.0, 3.0)
+	await process_frame
+	var r05: Vector2 = _param(b05, "Cascara", "repeticion")
+	var r15: Vector2 = _param(b15, "Cascara", "repeticion")
+	var r30: Vector2 = _param(b30, "Cascara", "repeticion")
+	_ok("barrera r 0,5: al menos 3 repeticiones por vuelta (%s)" % str(r05), r05.x >= 3.0 and r05.y >= 1.0)
+	_ok("barrera 1,5 sigue en (3; 1,4) y la de 3 en (6; 2,8): %s y %s" % [str(r15), str(r30)], _cerca(r15.x, 3.0, 0.001) and _cerca(r15.y, 1.4, 0.01) and _cerca(r30.x, 6.0, 0.001) and _cerca(r30.y, 2.8, 0.03))
+	for e in [b05, b15, b30]:
+		e.queue_free()
+	await process_frame

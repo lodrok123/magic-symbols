@@ -1,4 +1,4 @@
-﻿# Promedia medir_tonos_fuego.py sobre las 6 fotos param_*_cerca_N.png y val_*_cerca_N.png de captura_fuego_parametrico.gd (modo tonos). Uso: python herramientas/medir_tonos_promedio.py <carpeta>
+# Promedia medir_tonos_fuego.py sobre las 6 fotos param_*_cerca_N.png y val_*_cerca_N.png de captura_fuego_parametrico.gd (modo tonos). Uso: python herramientas/medir_tonos_promedio.py <carpeta>
 import sys, os, glob, subprocess
 sys.path.insert(0, "herramientas")
 d = sys.argv[1]
@@ -8,7 +8,7 @@ src = open("herramientas/medir_tonos_fuego.py", encoding="utf-8-sig").read().spl
 ns = {}
 exec(src, ns)
 import re
-for fig in ["bola", "muro", "pilar", "barrera"]:
+for fig in ["bola", "muro", "pilar", "barrera", "pilar_grande", "pilar_gordo", "barrera_pequena", "barrera_grande", "haz"]:
     for pre in ["param", "val"]:
         res = []
         for f in sorted(glob.glob(os.path.join(d, "%s_%s_cerca_*.png" % (pre, fig)))):
@@ -16,6 +16,9 @@ for fig in ["bola", "muro", "pilar", "barrera"]:
             m = re.findall(r"(\d+)%", r)
             res.append([int(x) for x in m])
         n = len(res)
+        if n == 0:
+            continue
         print(fig, pre, n, "medias rojo-naranja / naranja / amarillo: %.0f / %.0f / %.0f" % tuple(sum(c) / n for c in zip(*res)))
+
 
 

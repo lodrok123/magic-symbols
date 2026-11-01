@@ -29,11 +29,11 @@ Ojo: `BolaFuegoToy.tscn` se retocó a mano después de `montar_efectos_lelu.gd` 
 
 ## 3. Lo que NO encaja o no sale igual (sin adornar)
 
-- **Haz** (ᛁ `linea`): no hay figura lineal; sale como BOLA y `describir` lo anota («haz: sin figura propia»). La familia LINEAL del plan sigue sin hacerse.
+- **Haz**: resuelto en la ronda de pulido (figura HAZ, primera versión; ver abajo).
 - **Zona plana redonda** (nombre derivado «abajo», sin barrera, no alargada): se dibuja como bola aplanada; no hay figura de «zona en el suelo».
 - **Bola con x ≠ z**: es un billboard; solo cuenta máx(x, z). El alto sí se estira (y).
 - **Bola en vuelo**: ignora y (la llama sigue la velocidad); en la lámina la cola se ve corta y la celda es pequeña (la bola avanza 6 m en 0,8 s y la cámara abre mucho).
-- **Barrera pequeña** (0,5) casi no tiene lenguas (una repetición mínima sobre 3 m de contorno) y se lee como una cúpula translúcida con un anillo; la **barrera grande** (3 m) enseña mejor la cara de atrás y es más hueca. **Pilar grande** (1,2·4,6·1,2): las lenguas se acaban a la mitad de la altura (el gradiente vertical es relativo a V, y con 1,8 repeticiones verticales el pilar se ve a rayas).
+- (Antes de la ronda de pulido) barrera pequeña sin lenguas y pilares gordos huecos: resueltos abajo.
 - Muros largos (6 m): las lenguas **no se estiran** (3,1 m de contorno por repetición frente a 2,9 en el validado), pero con la cámara que cabe el muro entero salen pequeñas en la lámina.
 - En la lámina el cubo de 1 m y la cámara se encuadran por celda (misma dirección y FOV, distinta distancia); no es la misma distancia en todas porque un muro de 12 m y una bola de 0,3 m no caben a la vez.
 - La prueba de aspecto (cómo se ve en el juego, con su entorno) no se hizo; solo en el lab.
@@ -67,3 +67,26 @@ F7 crea el `FuegoToy` con la figura y el tamaño de la prueba 3 (otra pulsación
 | `FuegoToyMallas` + `FuegoToy` + humo | 21:26 – 21:40 |
 | Lab (F7–F9, U/J…) y 37 aserciones nuevas | 21:40 – 21:46 |
 | Captura, lámina, medida de tonos (incl. la repetición con 6 fotos) | 21:46 – 21:54 |
+
+## 8. Ronda de pulido (1/11, tarde)
+
+1. **Pilares gordos**: causa = un cilindro de lenguas con solo dos capas, visto de lado, se ve hueco (un aro a rayas); no era la V ni el gradiente. Ahora, por encima de r = 0,55 m (media de x y z), se añaden capas intermedias (Capa0..2, una cada ~0,4 m de radio, máx. 3) entre el exterior y el núcleo, cada una con su semilla y su velocidad. El pilar validado (0,5·4) no cambia: sigue con exterior y núcleo (comprobado en la prueba). El pilar grande (1,2·4,6·1,2, 3 capas) sale lleno; el gordo bajo (1·1,5·1, 2 capas) también, aunque desde arriba se ve el borde abierto de la corona.
+2. **Barrera pequeña**: mínimos de repeticiones epeticion ≥ (3; 1) y ep_ruido ≥ (3; 1,5). La de 1,5 sigue en (3; 1,4) y la de 3 en (6; 2,8): comprobado. La de 0,5 ya tiene lenguas, aunque más pequeñas que las de la validada.
+3. **Bola en vuelo en la lámina**: cámara cerca (como ola_vuelo.png de la ronda 8) y a mitad de recorrido. La cola es la misma que la de la escena validada pero se ve **más corta que en ola_vuelo.png**: allí la bola vuela alejándose de la cámara y la cola viene hacia ella (se alarga en perspectiva); en la lámina vuela de lado y se ve su longitud real. No he cambiado la cola.
+4. **Haz** (primera versión, familia LINEAL): figura HAZ, tubo abierto de largo 2·x y radio z que sale del origen (la mano) hacia -Z a la altura máx(y, 0,4); es el cilindro del pilar tumbado (U da la vuelta, V va de la mano a la punta, las lenguas corren hacia la punta y el gradiente restado la disipa), con núcleo interior más estrecho y caliente, halo en la mano, chispas a lo largo y trocitos en la punta. describir lo elige con h.haz (no con 
+ombre_derivado, que da «x_mano» para el haz): largo = lcance_haz × casilla, radio = HAZ_ANCHO × casilla / 2, altura = ALTURA_MANO_U. En el lab: F7 pasa por él, F9 incluye un haz de ejemplo.
+   - Qué falla: no está validado por Pablo ni hay escena de referencia; el haz «grueso y corto» (0,8·0,5·0,4) sale como un abanico abierto en la punta (el ahusado 0,55 y el ruido de vértices con tubos anchos); no sigue el trazado real de HechizoVivo (es recto); no tiene impacto en la punta.
+
+**Tonos** (media de 6 fotos, cámara «cerca» del lab; objetivo 15–30 / 50–65 / ≤ 20):
+
+| Caso | rojo-naranja / naranja / amarillo |
+|---|---|
+| pilar validado 0,5·4 (FuegoToy / escena) | 28 / 59 / 13 · 28 / 57 / 15 |
+| **pilar grande 1,2·4,6·1,2** | 18 / 68 / 15 (naranja 3 puntos por encima) |
+| pilar gordo 1·1,5·1 | 18 / 66 / 15 |
+| barrera 1,5 (FuegoToy / escena) | 42 / 50 / 8 · 40 / 50 / 10 |
+| **barrera pequeña 0,5** | 25 / 53 / 22 (amarillo 2 puntos por encima) |
+| barrera grande 3 | 43 / 48 / 8 |
+| haz 1,5·0,5·0,15 | 35 / 48 / 16 (rojo algo alto) |
+
+Prueba sin ventana: 0 fallos (+ aserciones del haz, de las capas del pilar y del mínimo de repeticiones). Reloj: 21:57 – 22:20 (≈ 23 min).

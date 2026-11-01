@@ -16,8 +16,8 @@ CELDA_W, CELDA_H = 540, 405
 RUBRO_H = 84            # cabecera de cada celda (rotulo)
 MARGEN = 10
 BANDA_W = 74            # rotulo de la fila (girado)
-FILAS = ["BOLA", "MURO", "PILAR", "BARRERA", "PROPIEDADES\nmuro 3,45·1,5·0,3", "PROPIEDADES\nbola r 0,4"]
-FIGURAS = ["bola", "muro", "pilar", "barrera"]
+FILAS = ["BOLA", "MURO", "PILAR", "BARRERA", "HAZ", "PROPIEDADES\nmuro 3,45·1,5·0,3", "PROPIEDADES\nbola r 0,4"]
+FIGURAS = ["bola", "muro", "pilar", "barrera", "haz"]
 FONDO = (22, 22, 26)
 PAPEL = (34, 34, 40)
 TEXTO = (240, 236, 228)
@@ -49,24 +49,25 @@ def main():
     filas = max(c["fila"] for c in celdas) + 1
     ancho = BANDA_W + MARGEN + cols * (CELDA_W + MARGEN)
     cab = 120
+    nfig = 1 + max(c["fila"] for c in celdas if not c.get("prop"))
     sep = 46                 # franja entre figuras y propiedades
     alto_celda = RUBRO_H + CELDA_H
-    alto = cab + 4 * (alto_celda + MARGEN) + sep + 2 * (alto_celda + MARGEN) + MARGEN
+    alto = cab + nfig * (alto_celda + MARGEN) + sep + 2 * (alto_celda + MARGEN) + MARGEN
     im = Image.new("RGB", (ancho, alto), FONDO)
     d = ImageDraw.Draw(im)
     f_t, f_s, f_c, f_p, f_b = fuente(40, True), fuente(22), fuente(23, True), fuente(20), fuente(30, True)
     d.text((MARGEN * 2, 14), "FuegoToy: los ejes (x, y, z) y las propiedades, una sola escena paramétrica", font=f_t, fill=TEXTO)
     d.text((MARGEN * 2, 66), "Misma dirección de cámara y mismo FOV en todas las celdas; la distancia se ajusta para que quepan el efecto y el cubo gris de 1 m de referencia (a su izquierda). "
            "Semiejes en metros.", font=f_s, fill=SUAVE)
-    d.text((MARGEN * 2, 92), "Columnas de las filas de figuras: pequeño · tamaño de la prueba 3 · grande · anisótropo A · anisótropo B · escena validada de la prueba 3 (para comparar) · bola en vuelo.",
+    d.text((MARGEN * 2, 92), "Columnas de las filas de figuras: pequeño · tamaño de la prueba 3 · grande · anisótropo A · anisótropo B · escena validada (no hay del haz: es nuevo) de la prueba 3 (para comparar) · bola en vuelo.",
            font=f_s, fill=SUAVE)
 
     def y_fila(f):
-        if f < 4:
+        if f < nfig:
             return cab + f * (alto_celda + MARGEN)
-        return cab + 4 * (alto_celda + MARGEN) + sep + (f - 4) * (alto_celda + MARGEN)
+        return cab + nfig * (alto_celda + MARGEN) + sep + (f - nfig) * (alto_celda + MARGEN)
 
-    d.text((MARGEN * 2, y_fila(4) - sep + 6), "PROPIEDADES (mandos de EfectoToy) sobre el muro 3,45·1,5·0,3 y la bola de radio 0,4", font=f_b, fill=ACENTO)
+    d.text((MARGEN * 2, y_fila(nfig) - sep + 6), "PROPIEDADES (mandos de EfectoToy) sobre el muro 3,45·1,5·0,3 y la bola de radio 0,4", font=f_b, fill=ACENTO)
     for f in range(filas):
         y0 = y_fila(f)
         banda = Image.new("RGB", (alto_celda, BANDA_W), PAPEL)

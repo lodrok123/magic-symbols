@@ -35,23 +35,25 @@ func _def() -> void:
 		["bola", 0, [[0.15, 0.15, 0.15], [0.4, 0.4, 0.4], [1.2, 1.2, 1.2], [0.4, 0.8, 0.4], [0.6, 0.25, 0.6]], "BolaFuegoToy", "en vuelo"],
 		["muro", 1, [[0.8, 0.7, 0.2], [3.45, 1.5, 0.3], [6.0, 2.5, 0.5], [1.5, 1.5, 0.3], [6.0, 0.8, 0.3]], "MuroFuegoToy", ""],
 		["pilar", 2, [[0.2, 1.0, 0.2], [0.5, 4.0, 0.5], [1.2, 4.6, 1.2], [0.3, 6.0, 0.3], [1.0, 1.5, 1.0]], "PilarFuegoToy", ""],
-		["barrera", 3, [[0.5, 0.5, 0.5], [1.5, 1.5, 1.5], [3.0, 3.0, 3.0], [1.5, 0.8, 1.5], [2.5, 2.0, 1.2]], "BarreraFuegoToy", ""]]
-	var nombres_aniso: Dictionary = {"bola": ["alta", "baja y ancha"], "muro": ["corto", "largo y bajo"], "pilar": ["fino y alto", "gordo y bajo"], "barrera": ["achatada", "elíptica"]}
+		["barrera", 3, [[0.5, 0.5, 0.5], [1.5, 1.5, 1.5], [3.0, 3.0, 3.0], [1.5, 0.8, 1.5], [2.5, 2.0, 1.2]], "BarreraFuegoToy", ""],
+		["haz", 4, [[0.6, 0.5, 0.08], [1.5, 0.5, 0.15], [3.45, 0.9, 0.4], [3.0, 0.5, 0.06], [0.8, 0.5, 0.4]], "", ""]]
+	var nombres_aniso: Dictionary = {"bola": ["alta", "baja y ancha"], "muro": ["corto", "largo y bajo"], "pilar": ["fino y alto", "gordo y bajo"], "barrera": ["achatada", "elíptica"], "haz": ["fino y largo", "grueso y corto"]}
 	for f in figs.size():
 		var fg: Array = figs[f]
 		for c in 5:
 			var s: Array = fg[2][c]
 			var etiqueta: String = cols[c] if c < 3 else "%s (%s)" % [cols[c], nombres_aniso[fg[0]][c - 3]]
-			_celdas.append({"id": "%s_%d" % [fg[0], c], "fila": f, "col": c, "titulo": etiqueta, "figura": fg[1], "x": s[0], "y": s[1], "z": s[2], "props": {}, "viaja": false, "validada": ""})
+			_celdas.append({"id": "%s_%d" % [fg[0], c], "fila": f, "col": c, "titulo": etiqueta, "figura": fg[1], "x": s[0], "y": s[1], "z": s[2], "props": {}, "viaja": false, "validada": "", "prop": false})
 		var s3: Array = fg[2][1]
-		_celdas.append({"id": "%s_val" % fg[0], "fila": f, "col": 5, "titulo": cols[5], "figura": fg[1], "x": s3[0], "y": s3[1], "z": s3[2], "props": {}, "viaja": false, "validada": fg[3]})
-	_celdas.append({"id": "bola_vuelo", "fila": 0, "col": 6, "titulo": "en vuelo (viaja)", "figura": 0, "x": 0.4, "y": 0.4, "z": 0.4, "props": {}, "viaja": true, "validada": ""})
+		if fg[3] != "":
+			_celdas.append({"id": "%s_val" % fg[0], "fila": f, "col": 5, "titulo": cols[5], "figura": fg[1], "x": s3[0], "y": s3[1], "z": s3[2], "props": {}, "viaja": false, "validada": fg[3], "prop": false})
+	_celdas.append({"id": "bola_vuelo", "fila": 0, "col": 6, "titulo": "en vuelo (viaja)", "figura": 0, "x": 0.4, "y": 0.4, "z": 0.4, "props": {}, "viaja": true, "validada": "", "prop": false})
 	var props: Array = [["base", {}], ["tono 1 (azul)", {"tono": 1.0}], ["altura 2", {"altura": 2.0}], ["chispas 0", {"chispas": 0.0}], ["brillo 0,5", {"brillo": 0.5}],
 		["blandura 0,6", {"blandura": 0.6}], ["chisporroteo 0", {"chisporroteo": 0.0}]]
 	for f in 2:
 		for c in props.size():
 			var muro: bool = f == 0
-			_celdas.append({"id": "%s_prop%d" % ["muro" if muro else "bola", c], "fila": 4 + f, "col": c, "titulo": props[c][0], "figura": 1 if muro else 0,
+			_celdas.append({"id": "%s_prop%d" % ["muro" if muro else "bola", c], "fila": 5 + f, "prop": true, "col": c, "titulo": props[c][0], "figura": 1 if muro else 0,
 				"x": 3.45 if muro else 0.4, "y": 1.5 if muro else 0.4, "z": 0.3 if muro else 0.4, "props": props[c][1], "viaja": false, "validada": ""})
 
 
@@ -110,6 +112,8 @@ func _caja(fig: int, x: float, y: float, z: float, mult_y: float) -> AABB:
 			return AABB(Vector3(-x - 0.2, 0.0, -z - 0.2), Vector3(2.0 * x + 0.4, y * 1.2 * mult_y, 2.0 * z + 0.4))
 		2:
 			return AABB(Vector3(-x, 0.0, -z), Vector3(2.0 * x, y * 1.1 * mult_y, 2.0 * z))
+	if fig == 4:       # haz: sale del origen hacia -X (el nodo se gira 90° para verlo de lado), eje a la altura max(y, 0,4)
+		return AABB(Vector3(-2.0 * x, 0.0, -z - 0.2), Vector3(2.0 * x + 0.3, maxf(y, 0.4) + z + 0.3, 2.0 * z + 0.4))
 	return AABB(Vector3(-x, 0.0, -z), Vector3(2.0 * x, y * 1.45, 2.0 * z))
 
 
@@ -148,6 +152,8 @@ func _celda(c: Dictionary) -> void:
 	for k in props:
 		e.set(k, props[k])
 	_lab.add_child(e)
+	if fig == 4:
+		e.rotation.y = PI * 0.5
 	if vuela:
 		# bola en vuelo hacia -X a 8 m/s; se fotografía a los 0,8 s de vuelo (la cola y las estelas ya están formadas)
 		e.position = Vector3(2.6, pos.y, 0.0)
@@ -163,8 +169,8 @@ func _celda(c: Dictionary) -> void:
 			t = float(Time.get_ticks_msec() - ms0) / 1000.0
 			e.position.x = x0 - 8.0 * t
 			await process_frame
-		cubo.position = Vector3(e.position.x + 2.8, 0.5, -0.7)
-		union = AABB(Vector3(e.position.x - 1.6, 0.0, -1.2), Vector3(5.0, 1.2, 1.9))
+		cubo.position = Vector3(e.position.x + 2.0, 0.5, -1.6)
+		union = AABB(Vector3(e.position.x - 0.9, 0.0, -2.2), Vector3(4.2, 1.3, 2.6))       # cámara cerca, como bola_vuelo.png de la ronda 8: la bola y su cola
 	else:
 		await _seg(ESPERA)
 	_encuadrar(union)
@@ -231,6 +237,18 @@ func _tonos() -> void:
 			root.get_viewport().get_texture().get_image().save_png(_dir.path_join("val_%s_cerca_%d.png" % [nombres[i], k]))
 			await _seg(0.41)
 		print("tonos " + nombres[i])
+	# tamaños que cambiaron en la ronda de pulido: mismas 6 fotos con la cámara «cerca» (que se ajusta al tamaño)
+	for ex in [["pilar_grande", 2, 1.2, 4.6, 1.2], ["pilar_gordo", 2, 1.0, 1.5, 1.0], ["barrera_pequena", 3, 0.5, 0.5, 0.5], ["barrera_grande", 3, 3.0, 3.0, 3.0], ["haz", 4, 1.5, 0.5, 0.15]]:
+		_lab.call("limpiar")
+		var e: FuegoToy = _lab.call("fuego_param", ex[1])
+		e.definir(ex[1], ex[2], ex[3], ex[4], false)
+		await _seg(1.5)
+		_lab.call("poner_camara", 1)
+		await _seg(0.2)
+		for k in 6:
+			root.get_viewport().get_texture().get_image().save_png(_dir.path_join("param_%s_cerca_%d.png" % [ex[0], k]))
+			await _seg(0.41)
+		print("tonos " + ex[0])
 	_lab.call("limpiar")
 
 

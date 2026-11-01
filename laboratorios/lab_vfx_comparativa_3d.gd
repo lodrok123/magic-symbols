@@ -32,15 +32,15 @@ const MANDOS_TOY: Array = [
 	["brillo", 0.3, 3.0, 0.1, 1.0], ["halo", 0.0, 3.0, 0.1, 1.0], ["tono", 0.0, 1.0, 0.1, 0.0], ["chispas", 0.0, 1.0, 0.1, 1.0], ["luz", 0.0, 4.0, 0.1, 1.0]]
 const CAMARA_TOY: Dictionary = {"Barrera": [1.9, 0.9], "Pilar": [2.1, 1.7], "Muro": [1.15, 0.7]}   ## [factor de distancia, altura a la que mira]
 ## Fuego paramétrico (FuegoToy, rama fuego-toy-parametrico): F7 crea el FuegoToy con la figura y el tamaño de la prueba 3 y, pulsada otra vez, pasa a la figura siguiente
-## (bola → muro → pilar → barrera) · U / J x más / menos · I / K y más / menos · O / L z más / menos (×1,2 cada pulsación; la geometría se rehace sola) · V bola en vuelo (sí/no) ·
+## (bola → muro → pilar → barrera → haz) · U / J x más / menos · I / K y más / menos · O / L z más / menos (×1,2 cada pulsación; la geometría se rehace sola) · V bola en vuelo (sí/no) ·
 ## F8 devuelve los ejes al tamaño de la prueba 3 · F9 prueba `desde_hechizo` con hechizos de ejemplo (bola, muro, pilar, barrera, flecha). Los diez mandos (RePág, +, −) valen también aquí.
 const FIGURAS_PARAM: Array = [
-	[0, "bola", Vector3(0.4, 0.4, 0.4)], [1, "muro", Vector3(3.45, 1.5, 0.3)], [2, "pilar", Vector3(0.5, 4.0, 0.5)], [3, "barrera", Vector3(1.5, 1.5, 1.5)]]
+	[0, "bola", Vector3(0.4, 0.4, 0.4)], [1, "muro", Vector3(3.45, 1.5, 0.3)], [2, "pilar", Vector3(0.5, 4.0, 0.5)], [3, "barrera", Vector3(1.5, 1.5, 1.5)], [4, "haz", Vector3(1.5, 0.5, 0.15)]]
 const PASO_EJE: float = 1.2
 ## Hechizos de ejemplo de F9: [nombre, semiejes en casillas, velocidad, solidez]
 const EJEMPLOS_HECHIZO: Array = [
 	["bola (esfera 0,3)", Vector3(0.3, 0.3, 0.3), 0.0, 0.0], ["muro (1,5 x 0,13 de fondo)", Vector3(1.5, 0.3, 0.13), 0.0, 0.0], ["pilar (alto 1,7)", Vector3(0.2, 1.7, 0.2), 0.0, 0.0],
-	["barrera (cúpula 0,65)", Vector3(0.65, 0.65, 0.65), 0.0, 1.5], ["flecha (viaja)", Vector3(0.3, 0.3, 0.3), 8.0, 0.0], ["barrera alargada (muro sólido)", Vector3(1.2, 0.5, 0.2), 0.0, 1.5]]
+	["barrera (cúpula 0,65)", Vector3(0.65, 0.65, 0.65), 0.0, 1.5], ["flecha (viaja)", Vector3(0.3, 0.3, 0.3), 8.0, 0.0], ["barrera alargada (muro sólido)", Vector3(1.2, 0.5, 0.2), 0.0, 1.5], ["haz (ᛁ línea, alcance 3)", Vector3(0.3, 0.3, 0.3), 0.0, 0.0, true]]
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -305,6 +305,9 @@ func fuego_hechizo(i: int) -> FuegoToy:
 	h.semieje_z = s.z
 	h.velocidad = float(d[2])
 	h.solidez = float(d[3])
+	if d.size() > 4:
+		h.glifos = {"linea_x": 1}       # ᛁ: con estado de materia que no sea sólido es un haz
+		h.estado_materia = "plasma"
 	var e: FuegoToy = FuegoToy.new()
 	e.desde_hechizo(h)
 	var giro: float = e.rotation.y
@@ -324,6 +327,9 @@ func _poner_param(e: FuegoToy, giro: float) -> void:
 			e.global_position = pie + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
 		FuegoToy.Figura.BARRERA:
 			e.global_position = pie
+		FuegoToy.Figura.HAZ:
+			e.global_position = pie + _dir * 0.5            # sale de la mano hacia delante
+			e.look_at(e.global_position + _dir, Vector3.UP)
 		_:
 			e.global_position = pie + _dir * DISTANCIA_EFECTO
 			e.look_at(e.global_position + _dir, Vector3.UP)     # el X del muro queda de lado al tiro
@@ -378,7 +384,7 @@ func _texto_param() -> String:
 	if _param == null or not is_instance_valid(_param):
 		return "\nFUEGO PARAMETRICO: F7 figura (bola > muro > pilar > barrera) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3"
 	return "\nFUEGO PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3)" % [
-		["bola", "muro", "pilar", "barrera"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
+		["bola", "muro", "pilar", "barrera", "haz"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
 
 
 ## Diez muros en dos filas, para leer el fps con el presupuesto a tope.
@@ -583,13 +589,15 @@ func _seguir_camara() -> void:
 	if ultimo_efecto is FuegoToy and is_instance_valid(ultimo_efecto):
 		# FuegoToy: la cámara de cada figura de la prueba 3 (CAMARA_TOY) escalada por lo que crece o mengua respecto al tamaño validado
 		var ft: FuegoToy = ultimo_efecto
-		var clave: String = ["", "Muro", "Pilar", "Barrera"][int(ft.figura)]
+		var clave: String = ["", "Muro", "Pilar", "Barrera", "Muro"][int(ft.figura)]
 		var fc: Array = CAMARA_TOY.get(clave, [1.0, 0.8])
-		var ref_y: float = [FuegoToy.REF_BOLA.x, FuegoToy.REF_MURO.y, FuegoToy.REF_PILAR.y, FuegoToy.REF_BARRERA.y][int(ft.figura)]
+		var ref_y: float = [FuegoToy.REF_BOLA.x, FuegoToy.REF_MURO.y, FuegoToy.REF_PILAR.y, FuegoToy.REF_BARRERA.y, FuegoToy.REF_HAZ.y][int(ft.figura)]
 		var ext: float = ft.extension() / FuegoToy._extension_ref(ft.figura)
 		dist *= float(fc[0]) * clampf(ext, 0.45, 3.5)
 		var yo: float = ft.semieje_y if ft.figura != FuegoToy.Figura.BOLA else maxf(ft.semieje_x, ft.semieje_z)
 		objetivo = ft.global_position + Vector3(0, float(fc[1]) * yo / ref_y, 0)
+		if ft.figura == FuegoToy.Figura.HAZ:
+			objetivo = ft.global_transform * Vector3(0, maxf(ft.semieje_y, 0.4), -ft.semieje_x)       # mira al centro del haz
 	var lado: Vector3 = Vector3(-_dir.z, 0, _dir.x) * 0.6 - _dir * 0.8
 	var desde: Vector3 = objetivo + lado.normalized() * dist + Vector3(0, dist * 0.35, 0)
 	_cam.global_position = desde
