@@ -13,7 +13,7 @@ Fuentes para mirar (vídeo y desglose, no capturas sueltas):
 - Otra recreación, con las cinco fases de una explosión: https://80.lv/articles/making-zelda-like-vfx-with-unity
 - Fuego procedimental con tiempo cuantizado: https://80.lv/articles/check-out-this-fully-procedural-stylized-fire-vfx-made-with-shaders/
 
-**Tres fotogramas de referencia** en `docs/capturas/comparativa_vfx/referencia/` (`ref_muro.png`, `ref_hoguera.png`, `ref_impacto.png`): un muro o línea de fuego en el suelo, una hoguera o columna, y un golpe de fuego. Se guardan antes de empezar y son contra lo que Pablo puntúa. Están pendientes de su visto bueno para descargarlos (son capturas del juego; uso interno de referencia).
+**Tres fotogramas de referencia** en `docs/capturas/comparativa_vfx/referencia/` (`ref_muro.jpg`, `ref_hoguera.png`, `ref_impacto.jpg`, más `ref_muro_b.jpg` de apoyo; ver `LEEME.md` allí): una línea de fuego en la hierba, una hoguera y una explosión de barriles de Breath of the Wild. Validados por Pablo el 1/11; son contra lo que puntúa. Uso interno de referencia.
 
 ### 0.1 Lo que define el estilo, en términos que se pueden comprobar
 
