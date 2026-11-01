@@ -64,12 +64,11 @@ func _ready() -> void:
 	for gp in find_children("*", "GPUParticles3D", true, false):
 		if (gp as Node).is_in_group("vuelo"):
 			var g3: GPUParticles3D = gp
-			for k in [1, 2]:
-				var mesh: QuadMesh = (g3.draw_pass_1 if k == 1 else g3.draw_pass_2) as QuadMesh
-				if k == 1 and mesh != null:
-					var dup: QuadMesh = mesh.duplicate() as QuadMesh
-					dup.material = (mesh.material as ShaderMaterial).duplicate() as ShaderMaterial     # cada instancia, el suyo
-					g3.draw_pass_1 = dup
+			var mesh: QuadMesh = g3.draw_pass_1 as QuadMesh      # solo la primera pasada (no se lee draw_pass_2: con una sola pasada da error de índice)
+			if mesh != null and mesh.material is ShaderMaterial:
+				var dup: QuadMesh = mesh.duplicate() as QuadMesh
+				dup.material = (mesh.material as ShaderMaterial).duplicate() as ShaderMaterial     # cada instancia, el suyo
+				g3.draw_pass_1 = dup
 			_vuelo_part.append(g3)
 	_luz = find_child("Luz", true, false) as OmniLight3D
 	if _luz != null:
@@ -121,6 +120,9 @@ func _aplicar_todo() -> void:
 		h.set_shader_parameter("tono", tono)
 	_set_chispas(chispas)
 	_set_aparicion(aparicion)
+	var est0: Node3D = get_node_or_null("Cuerpo/Frente/Estrella") as Node3D
+	if est0 != null:
+		est0.visible = proyectil                             # en estática, sin destello de 4 puntas (ronda 8)
 
 
 func _param_mats(nombre: String, v: float) -> void:
@@ -228,7 +230,10 @@ func _set_proyectil(v: bool) -> void:
 				m.set_shader_parameter("inclin", 1.0 if v else 0.0)       # billboard de la bola: el eje de la llama sigue a la velocidad
 		var fre: Node3D = get_node_or_null("Cuerpo/Frente") as Node3D
 		if fre != null:
-			fre.position.z = -0.2 if v else 0.0              # la cabeza va delante en vuelo
+			fre.position.z = -0.12 if v else 0.0             # la cabeza va delante en vuelo (poco: la cola tiene que arrancar dentro de ella)
+		var est: Node3D = get_node_or_null("Cuerpo/Frente/Estrella") as Node3D
+		if est != null:
+			est.visible = v                                  # destello de 4 puntas solo en vuelo
 		var inc: Node3D = get_node_or_null("Cuerpo/Inclinable") as Node3D
 		if inc != null:
 			inc.rotation_degrees.x = 55.0 if v else 0.0       # en vuelo, la llama se inclina hacia atrás

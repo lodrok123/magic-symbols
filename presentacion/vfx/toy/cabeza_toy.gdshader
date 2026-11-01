@@ -28,10 +28,10 @@ void fragment() {
 	float g = length(p) / radio * (1.0 + (n - 0.5) * 0.28 * (0.4 + chisporroteo));
 	float a = 1.0 - smoothstep(0.78, 1.0, g);                                 // opaca en el centro, borde fino
 	vec3 blanco = vec3(1.0, 0.97, 0.82);
-	vec3 amarillo = vec3(1.0, 0.76, 0.22);
+	vec3 amarillo = vec3(1.0, 0.55, 0.12);
 	vec3 naranja = vec3(1.0, 0.36, 0.05);
-	vec3 col = mix(blanco, amarillo, smoothstep(0.1, 0.38, g));
-	col = mix(col, naranja, smoothstep(0.4, 0.8, g));
+	vec3 col = mix(blanco, amarillo, smoothstep(0.06, 0.2, g));      // ronda 8: anillo amarillo estrecho
+	col = mix(col, naranja, smoothstep(0.24, 0.5, g));
 	col = mix(col, mix(vec3(0.8, 0.95, 1.0), vec3(0.15, 0.4, 1.0), smoothstep(0.3, 0.95, g)), tono);
 	float titila = 1.0 + 0.1 * chisporroteo * (sin(TIME * 11.0 + semilla * 20.0) * 0.6 + sin(TIME * 15.0) * 0.4);
 	ALBEDO = col * brillo * titila;

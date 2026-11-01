@@ -30,7 +30,7 @@ size = Vector2(2, 2)
 
 [sub_resource type="Gradient" id="Gradient_nduad"]
 offsets = PackedFloat32Array(0, 0.22, 0.62, 0.9, 1)
-colors = PackedColorArray(0.85, 0.12, 0.03, 1, 1, 0.32, 0.03, 1, 1, 0.52, 0.08, 1, 1, 0.74, 0.2, 1, 1, 0.93, 0.62, 1)
+colors = PackedColorArray(0.85, 0.12, 0.03, 1, 1, 0.32, 0.03, 1, 1, 0.52, 0.08, 1, 1, 0.64, 0.14, 1, 1, 0.8, 0.42, 1)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_o8er1"]
 gradient = SubResource("Gradient_nduad")
@@ -92,9 +92,9 @@ size = Vector2(2.4, 2.4)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_j3utx"]
 render_priority = -1
 shader = ExtResource("3_srxki")
-shader_parameter/color = Color(1, 0.7, 0.35, 1)
-shader_parameter/brillo = 0.9
-shader_parameter/caida = 2.4
+shader_parameter/color = Color(1, 0.4, 0.1, 1)
+shader_parameter/brillo = 0.4
+shader_parameter/caida = 2.8
 shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
