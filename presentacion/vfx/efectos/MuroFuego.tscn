@@ -1,0 +1,474 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/vfx/efectos/efecto_vfx_3d.gd" id="1_vtd13"]
+[ext_resource type="Shader" path="res://presentacion/vfx/shaders/scroll_erosion.gdshader" id="2_ij7ow"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/rampa_fuego.tres" id="3_2oimr"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/ruido_perlin.tres" id="4_lothf"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/ruido_celular.tres" id="5_qesgr"]
+[ext_resource type="Shader" path="res://presentacion/vfx/shaders/flipbook_erosion.gdshader" id="6_2j11o"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/fuego_8x8.png" id="7_ywurf"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/brasa.png" id="8_jegny"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/humo_8x8.png" id="9_xleb6"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/rampa_humo.tres" id="10_7pqiv"]
+[ext_resource type="Shader" path="res://presentacion/vfx/shaders/calor.gdshader" id="11_k1kcf"]
+[ext_resource type="Texture2D" path="res://presentacion/vfx/atlas/normales_ruido.tres" id="12_f1gm2"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kb0i1"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("2_ij7ow")
+shader_parameter/ruido_a = ExtResource("4_lothf")
+shader_parameter/ruido_b = ExtResource("5_qesgr")
+shader_parameter/escala_a = null
+shader_parameter/escala_b = null
+shader_parameter/velocidad_a = null
+shader_parameter/velocidad_b = null
+shader_parameter/rampa = ExtResource("3_2oimr")
+shader_parameter/uv_rango = null
+shader_parameter/altura_llama = 1.6
+shader_parameter/umbral = null
+shader_parameter/suavidad = null
+shader_parameter/erosion = null
+shader_parameter/bordes_x = null
+shader_parameter/brillo = 0.55
+shader_parameter/rampa_tope = null
+shader_parameter/aditivo = null
+shader_parameter/repeticion_x = 4.0
+shader_parameter/silueta = null
+shader_parameter/base = 0.04
+shader_parameter/ruido_base = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_f8wyr"]
+size = Vector2(6.9, 1.5)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dptft"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("2_ij7ow")
+shader_parameter/ruido_a = ExtResource("4_lothf")
+shader_parameter/ruido_b = ExtResource("5_qesgr")
+shader_parameter/escala_a = null
+shader_parameter/escala_b = Vector2(1.7, 0.9)
+shader_parameter/velocidad_a = 0.7
+shader_parameter/velocidad_b = null
+shader_parameter/rampa = ExtResource("3_2oimr")
+shader_parameter/uv_rango = null
+shader_parameter/altura_llama = 1.3
+shader_parameter/umbral = null
+shader_parameter/suavidad = null
+shader_parameter/erosion = null
+shader_parameter/bordes_x = null
+shader_parameter/brillo = 0.4
+shader_parameter/rampa_tope = null
+shader_parameter/aditivo = null
+shader_parameter/repeticion_x = 3.0
+shader_parameter/silueta = null
+shader_parameter/base = 0.04
+shader_parameter/ruido_base = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_wu718"]
+size = Vector2(6.9, 1.1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_we4yp"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("2_ij7ow")
+shader_parameter/ruido_a = ExtResource("4_lothf")
+shader_parameter/ruido_b = ExtResource("5_qesgr")
+shader_parameter/escala_a = Vector2(1.3, 0.6)
+shader_parameter/escala_b = null
+shader_parameter/velocidad_a = 0.45
+shader_parameter/velocidad_b = null
+shader_parameter/rampa = ExtResource("3_2oimr")
+shader_parameter/uv_rango = null
+shader_parameter/altura_llama = 1.3
+shader_parameter/umbral = null
+shader_parameter/suavidad = null
+shader_parameter/erosion = null
+shader_parameter/bordes_x = null
+shader_parameter/brillo = 0.4
+shader_parameter/rampa_tope = null
+shader_parameter/aditivo = null
+shader_parameter/repeticion_x = 3.5
+shader_parameter/silueta = null
+shader_parameter/base = 0.04
+shader_parameter/ruido_base = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_ldtdw"]
+size = Vector2(6.9, 1.1)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8rks5"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("6_2j11o")
+shader_parameter/atlas = ExtResource("7_ywurf")
+shader_parameter/columnas = 8
+shader_parameter/filas = 8
+shader_parameter/ruido = ExtResource("4_lothf")
+shader_parameter/ruido_escala = null
+shader_parameter/ruido_velocidad = null
+shader_parameter/ruido_peso = null
+shader_parameter/rampa = ExtResource("3_2oimr")
+shader_parameter/erosion_min = null
+shader_parameter/erosion_max = null
+shader_parameter/suavidad = null
+shader_parameter/brillo = null
+shader_parameter/color_por_alfa = null
+shader_parameter/aditivo = 1.0
+shader_parameter/suavizado = null
+
+[sub_resource type="Curve" id="Curve_6kybf"]
+_data = [Vector2(0, 0.7), 0.0, 0.0, 0, 0, Vector2(0.3, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.2), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_8y13t"]
+curve = SubResource("Curve_6kybf")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_iurl2"]
+emission_shape = 3
+emission_box_extents = Vector3(3.3, 0.05, 0.12)
+angle_min = -20.0
+angle_max = 20.0
+direction = Vector3(0, 1, 0)
+spread = 10.0
+initial_velocity_min = 1.0
+initial_velocity_max = 1.6
+angular_velocity_min = -30.0
+angular_velocity_max = 30.0
+gravity = Vector3(0, 0.5, 0)
+scale_min = 0.6
+scale_max = 0.9
+scale_curve = SubResource("CurveTexture_8y13t")
+anim_speed_min = 1.0
+anim_speed_max = 1.0
+anim_offset_max = 1.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_onlfp"]
+size = Vector2(0.7, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mrhqj"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 0.8, 0.4, 1)
+albedo_texture = ExtResource("8_jegny")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="Curve" id="Curve_k3p1s"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_n7olr"]
+curve = SubResource("Curve_k3p1s")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_v43wi"]
+emission_shape = 3
+emission_box_extents = Vector3(3.4, 0.1, 0.15)
+direction = Vector3(0, 1, 0)
+spread = 25.0
+initial_velocity_min = 1.0
+initial_velocity_max = 2.5
+gravity = Vector3(0, -0.5, 0)
+scale_curve = SubResource("CurveTexture_n7olr")
+color = Color(1, 0.6, 0.15, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_oio0k"]
+size = Vector2(0.05, 0.05)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_h2she"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("6_2j11o")
+shader_parameter/atlas = ExtResource("9_xleb6")
+shader_parameter/columnas = 8
+shader_parameter/filas = 8
+shader_parameter/ruido = ExtResource("4_lothf")
+shader_parameter/ruido_escala = null
+shader_parameter/ruido_velocidad = null
+shader_parameter/ruido_peso = null
+shader_parameter/rampa = ExtResource("10_7pqiv")
+shader_parameter/erosion_min = 0.3
+shader_parameter/erosion_max = null
+shader_parameter/suavidad = null
+shader_parameter/brillo = 0.8
+shader_parameter/color_por_alfa = 1.0
+shader_parameter/aditivo = 0.0
+shader_parameter/suavizado = null
+
+[sub_resource type="Gradient" id="Gradient_5rq64"]
+offsets = PackedFloat32Array(0, 0.2, 1)
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 0.15, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_yapli"]
+gradient = SubResource("Gradient_5rq64")
+
+[sub_resource type="Curve" id="Curve_e6q7i"]
+_data = [Vector2(0, 0.5), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_nvqxt"]
+curve = SubResource("Curve_e6q7i")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_xf0is"]
+emission_shape = 3
+emission_box_extents = Vector3(3.2, 0.1, 0.1)
+direction = Vector3(0, 1, 0)
+spread = 15.0
+initial_velocity_min = 0.6
+initial_velocity_max = 1.0
+gravity = Vector3(0, 0.3, 0)
+scale_curve = SubResource("CurveTexture_nvqxt")
+color_ramp = SubResource("GradientTexture1D_yapli")
+anim_speed_min = 0.7
+anim_speed_max = 0.7
+anim_offset_max = 1.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_b3vof"]
+size = Vector2(0.9, 0.9)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_fsety"]
+resource_local_to_scene = true
+render_priority = -1
+shader = ExtResource("11_k1kcf")
+shader_parameter/normales = ExtResource("12_f1gm2")
+shader_parameter/fuerza = 0.01
+shader_parameter/velocidad = null
+shader_parameter/escala = null
+shader_parameter/borde = 0.6
+shader_parameter/intensidad = null
+shader_parameter/billboard = false
+shader_parameter/mascara = 0
+
+[sub_resource type="QuadMesh" id="QuadMesh_8aq0i"]
+size = Vector2(7, 1.8)
+
+[sub_resource type="Animation" id="Animation_hphep"]
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Cuerpo/PlanoA:material_override:shader_parameter/erosion")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Cuerpo/PlanoB:material_override:shader_parameter/erosion")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Cuerpo/PlanoC:material_override:shader_parameter/erosion")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Cuerpo/Luz1:light_energy")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [2.0, 0.0]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("Cuerpo/Luz2:light_energy")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [2.0, 0.0]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("Cuerpo/Llamas:emitting")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("Cuerpo/Brasas:emitting")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("Cuerpo/Humo:emitting")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("Cuerpo/Calor:material_override:shader_parameter/intensidad")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_ywuwa"]
+length = 0.3
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Cuerpo:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(1, 0.02, 1), Vector3(1, 1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Cuerpo/Luz1:light_energy")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 2.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Cuerpo/Luz2:light_energy")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 2.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_1twli"]
+_data = {
+&"morir": SubResource("Animation_hphep"),
+&"nacer": SubResource("Animation_ywuwa")
+}
+
+[node name="MuroFuego" type="Node3D" unique_id=286083323]
+script = ExtResource("1_vtd13")
+tam_referencia = Vector3(6.9, 1.5, 0.3)
+
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1524115111]
+
+[node name="PlanoA" type="MeshInstance3D" parent="Cuerpo" unique_id=1028547120]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+material_override = SubResource("ShaderMaterial_kb0i1")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_f8wyr")
+
+[node name="PlanoB" type="MeshInstance3D" parent="Cuerpo" unique_id=1410403603]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0.12)
+material_override = SubResource("ShaderMaterial_dptft")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_wu718")
+
+[node name="PlanoC" type="MeshInstance3D" parent="Cuerpo" unique_id=1458961411]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, -0.12)
+material_override = SubResource("ShaderMaterial_we4yp")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_ldtdw")
+
+[node name="Llamas" type="GPUParticles3D" parent="Cuerpo" unique_id=569913043]
+material_override = SubResource("ShaderMaterial_8rks5")
+amount = 60
+lifetime = 0.7
+visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
+process_material = SubResource("ParticleProcessMaterial_iurl2")
+draw_pass_1 = SubResource("QuadMesh_onlfp")
+
+[node name="Brasas" type="GPUParticles3D" parent="Cuerpo" unique_id=1546217693]
+material_override = SubResource("StandardMaterial3D_mrhqj")
+amount = 40
+lifetime = 1.2
+visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
+process_material = SubResource("ParticleProcessMaterial_v43wi")
+draw_pass_1 = SubResource("QuadMesh_oio0k")
+
+[node name="Humo" type="GPUParticles3D" parent="Cuerpo" unique_id=29403387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+material_override = SubResource("ShaderMaterial_h2she")
+amount = 12
+lifetime = 1.4
+visibility_aabb = AABB(-8, -2, -8, 16, 10, 16)
+process_material = SubResource("ParticleProcessMaterial_xf0is")
+draw_pass_1 = SubResource("QuadMesh_b3vof")
+
+[node name="Luz1" type="OmniLight3D" parent="Cuerpo" unique_id=222484067]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.8, 0)
+light_color = Color(1, 0.55, 0.2, 1)
+light_energy = 2.0
+omni_range = 4.0
+
+[node name="Luz2" type="OmniLight3D" parent="Cuerpo" unique_id=1293232766]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.7, 0.8, 0)
+light_color = Color(1, 0.55, 0.2, 1)
+light_energy = 2.0
+omni_range = 4.0
+
+[node name="Calor" type="MeshInstance3D" parent="Cuerpo" unique_id=755364490]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0.2)
+material_override = SubResource("ShaderMaterial_fsety")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_8aq0i")
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=888199597]
+libraries/ = SubResource("AnimationLibrary_1twli")

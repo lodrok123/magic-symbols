@@ -81,9 +81,21 @@ Cada una en `presentacion/vfx/efectos/`, con un script mínimo (`efecto_vfx_3d.g
 
 ### 1.4 Dónde se prueba
 
-`laboratorios/LabVfx3D.tscn` ya existe; se le añade un modo «COMPARATIVA» (tecla C): plano, cuatro cubos, la jugadora, y teclas **1** bola, **2** muro, **3** columna, **0** diez muros a la vez (medida de fps). Las escenas se instancian directamente, sin pasar por el sistema de hechizos, para que el tiempo se vaya en el aspecto y no en la integración.
+`laboratorios/LabVfxComparativa3D.tscn` (F6): plano, cuatro cubos, la jugadora montada como el juego, y teclas **1** bola, **2** muro, **3** columna, **0** diez muros a la vez (medida de fps), **X** limpia, **C** cámara (juego → cerca 2 m → lejos 10 m), flechas para andar. Las escenas se instancian directamente, sin pasar por el sistema de hechizos, para que el tiempo se vaya en el aspecto y no en la integración. (`LabVfx3D` no valía: es la matriz F4 de `LabHechizos3D`, no una escena suelta.)
 
-Captura: `herramientas/captura_vfx_comparativa.gd` (ventana, no headless) deja en `docs/capturas/comparativa_vfx/godot/` las capturas a 2 m y 10 m de cada efecto y la escena con diez muros con el fps en pantalla.
+Captura: `herramientas/captura_vfx_comparativa.gd` (ventana, no headless) deja en `docs/capturas/comparativa_vfx/godot/` las capturas a 2 m y 10 m de cada efecto, la vista del juego y la escena con diez muros con el fps en pantalla.
+
+### 1.4 bis · Estado el 1/11 (primera versión, hecha por un agente en una tarde)
+
+Hecho y en el repo: el atlas de Mantaflow (`herramientas/vfx/render_atlas_fuego.py`, 96 divisiones, 64 fotogramas en bucle de llama estable, alfa = max(densidad, luminancia) suavizado), los cuatro shaders, las cuatro escenas escritas por `herramientas/vfx/montar_efectos_fuego.gd` (la primera versión; a partir de aquí se retocan en el editor y **no** se vuelve a correr el montador, que las pisaría), el lab, la captura y `herramientas/prueba_vfx_comparativa.gd` (presupuesto, escalado, vida, shaders) a 0 fallos.
+
+Lo que se ve en las capturas y dónde se toca:
+- **Muro**: las llamas de arriba leen bien a 2 m y en la vista del juego; la base aún es una franja amarilla demasiado sólida (las tres capas se suman por encima del umbral). Se toca en `MuroFuego.tscn` → PlanoA/B/C → `material_override`: `ruido_base` (0,35: más bajo = base más rota), `brillo`, `rampa_tope`.
+- **Columna**: con la silueta apagada (`silueta`) dejó de ser un tubo de cristal; ahora la llevan las partículas y los cilindros apenas se ven. Para que vuelvan a verse: `ColumnaFuego.tscn` → CilindroInt → `brillo` 0,5 → 0,8 y `umbral` 0,4 → 0,3.
+- **Bola**: núcleo translúcido con las llamas pegadas (van en coordenadas locales) y chispas y humo que se quedan atrás. El impacto es el efecto que mejor sale.
+- **Calor**: funciona en los tres; está muy bajo (`fuerza` 0,008–0,012) porque alto convertía el muro en una banda ondulada en el cielo.
+- **fps**: con diez muros a lo lejos, 60 (tope de vsync). Con un solo efecto a 2 m, entre 33 y 53 a 1600×1000 en una RTX 3070: el coste es de relleno (quads grandes cerca de la cámara, tres capas aditivas) y de la lectura de pantalla del calor; está sin optimizar y es un dato de la tabla, no un veredicto.
+- **Atlas**: el humo sale negro de Blender (sin luz de volumen útil); el shader lo colorea por densidad (`color_por_alfa` = 1), así que sirve. Para otro color o altura de llama se cambia `TEMPERATURA_K`, `FUEGO_COMBUSTION` o `ENCUADRE` y se vuelve a correr el script (unos 3 min; borra su caché al acabar).
 
 ### 1.5 Traslado al sistema de hechizos (si gana Godot, o para enseñar el camino)
 
