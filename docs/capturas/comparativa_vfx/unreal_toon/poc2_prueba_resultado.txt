@@ -1,0 +1,20 @@
+OK    material M_FuegoToon existe
+OK    M_FuegoToon es Unlit
+OK    M_FuegoToon es Masked
+OK    M_FuegoToon compila | 271 instrucciones
+OK    material M_HumoToon existe
+OK    M_HumoToon es Unlit
+OK    M_HumoToon es Masked
+OK    M_HumoToon compila | 105 instrucciones
+OK    material M_ChispaToon existe
+OK    M_ChispaToon es Unlit
+OK    M_ChispaToon es Masked
+OK    M_ChispaToon compila | 95 instrucciones
+OK    MI_FuegoToon_Cuerpo existe
+OK    los diez mandos en castellano | Fps, Umbral, Banda, AlturaLlama, Erosion, Desplazamiento, Contorno, Velocidad, EscalaRuido, Brillo
+OK    NS_MuroFuegoToon existe
+OK    paso fijo de 1/12 s | True, 0.0833 s
+OK    <= 1 luz por efecto | LightRenderer: 1; renderers del sistema: 5 ['NiagaraLightRendererProperties_15', 'NiagaraSpriteRendererProperties_58', 'NiagaraSpriteRendererProperties_57', 'NiagaraSpriteRendererProperties_56', 'NiagaraSpriteRendererProperties_55']
+OK    <= 300 partículas por muro (presupuesto tasa x vida) | 81 = {'Lenguas': 36.4, 'Base': 8.399999999999999, 'Humo': 3.5, 'Chispas': 32.0, 'Luz': 1}
+OK    paleta de la llama <= 8 colores (5 bits, >= 1 % del área) en muro_cerca.png | 737847 píxeles de llama, 362 colores en total, 4 principales: [((29, 17, 3), 0.542), ((28, 27, 14), 0.257), ((25, 4, 2), 0.099), ((29, 16, 3), 0.069)]
+PRUEBA POC2: 19 comprobaciones, 0 fallos
