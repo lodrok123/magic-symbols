@@ -44,12 +44,14 @@ uniform float semilla = 0.0;
 uniform float v_base : hint_range(0.0, 0.9) = 0.0;   // V a la que empieza el fuego (la esfera de la barrera: donde toca el suelo)
 uniform float resplandor_borde : hint_range(0.0, 1.0) = 0.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
+uniform float vert_polo : hint_range(0.0, 1.0) = 0.0;     // 1 = el desplazamiento de vértices se apaga en la punta (silueta redonda en el polo)
+uniform float fade_base : hint_range(0.0, 0.5) = 0.0;     // fundido de la base (V de 0 a este valor) para que no se vea el pellizco de la UV en el polo
 group_uniforms;
 
 void vertex() {
 	vec2 uvn = vec2(UV.x * 3.0 + semilla * 1.7, (1.0 - UV.y) * 1.5 + TIME * velocidad * 0.5);
 	float n = textureLod(ruido_v, uvn, 0.0).r;
-	float sube = smoothstep(0.0, 0.8, UV.y);
+	float sube = smoothstep(0.0, 0.8, UV.y) * (1.0 - vert_polo * smoothstep(0.8, 1.0, UV.y));
 	VERTEX += NORMAL * (n - 0.5) * 2.0 * amplitud_vert * ondulacion * sube;
 	VERTEX.y *= altura;
 	VERTEX.xz *= ancho;
@@ -72,6 +74,7 @@ void fragment() {
 	f -= (fino - 0.4) * 1.1 * chisporroteo * smoothstep(0.3, 0.85, vg);
 	// (5) transparencia
 	float a = smoothstep(umbral, umbral + blandura, f);
+	a *= (fade_base > 0.0 ? smoothstep(0.0, fade_base, UV.y) : 1.0);
 	a *= step(v_base, UV.y) * (1.0 - smoothstep(0.88, 1.0, vg));          // (8) fundido arriba
 	// (6) color por rampa
 	float idx = clamp((f - umbral) * escala_rampa + calor_extra, 0.0, 1.0);

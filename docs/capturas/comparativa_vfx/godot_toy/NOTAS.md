@@ -132,3 +132,13 @@ Pablo: la dirección de la ronda 3 vale; solo pulido. Las capturas y GIF de la r
 **Medida de tonos** (rojo-naranja / naranja / amarillo; objetivo 15–30 / 50–65 / ≤ 20): `muro_cerca` 17 / 60 / 23 % (ronda 3: 16 / 68 / 16), `bola_cerca` 22 / 58 / 21 % (ronda 3: 32 / 62 / 7). Amarillo un poco por encima del 20 % en ambos (la bola por el núcleo aditivo; `muro_juego` y `bola_juego`, con muy pocos píxeles de fuego, dan 29 y 25 % de amarillo).
 
 **Resultados.** Diez muros a 1920 × 1080: **638 fps** sin vsync (540 en la ronda 3; la banda tiene menos mallas). Prueba sin ventana a 0 fallos. Capturas y GIF rehechos de bola, `bola_vuelo` y muro (pilar, barrera e impacto no se tocaron). Notas propias: bola 4 (una sola llama; le falta que el cuerpo sea menos liso y que no se vea la estrella de la base), muro 4,5. Reloj de la ronda: 20:45 – 20:55, ≈ 10 min.
+
+## Ronda 5 (1/11): la bola, sin estrella ni facetas
+
+Pablo: en `bola_cerca` se veía una estrella de meridianos en la base (las lenguas convergían al polo) y la superficie parecía una gema low-poly. Solo la bola; capturas y GIF anteriores en `ronda4/`.
+
+**Cambios.** (1) La gota se queda abierta abajo (radio 0,07, ya no 0,01) y su base se funde: nuevo uniform `fade_base` (alfa de 0 a 1 entre V = 0 y 0,2), más un disco aditivo naranja-rojo pequeño debajo (`Base`) que tapa el hueco; (2) 64 segmentos alrededor y 40 anillos de altura (antes 32 y 18) y uniform `vert_polo` = 1, que lleva a 0 el desplazamiento de vértices hacia la punta (el cuerpo tiene la silueta redonda; el desplazamiento ya era 0 en la base); (3) segundo ruido más fuerte en el cuerpo (`peso_ruido` 0,55 con 3 × 1,6 repeticiones) y la rampa más baja (`escala_rampa` 0,75) para que el cuerpo sea naranja y no crema. Probado en el camino: con el ruido al 0,85 el cuerpo se agujereaba como un queso (celdas del ruido); con `fade_base` 0,42 la mitad de abajo quedaba pálida y translúcida; 0,2 es el punto.
+
+**Comprobación** (vistas desde arriba, de lado y desde el suelo en el lab, más `bola_cerca`, `bola_juego` y `bola_vuelo`): sin facetas, silueta redonda y una sola; la estrella ya no se ve como estrella, queda un abanico muy tenue en el borde de abajo (visible solo desde abajo o a 2 m, y fundido).
+
+**Tonos** (`bola_cerca`; objetivo 15–30 / 50–65 / ≤ 20): 18 / 76 / 6 % (ronda 4: 22 / 58 / 21): demasiado naranja y poco amarillo, el cuerpo es ahora casi plano de color; el núcleo claro se ve poco. Prueba sin ventana: 0 fallos. Nota propia de la bola: 4,5 (cuerpo liso, una sola llama; le falta un núcleo más claro). Reloj: 20:49 – 21:00, ≈ 11 min.

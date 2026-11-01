@@ -162,15 +162,16 @@ func _bola() -> Node3D:
 	r.set("escena_impacto", load(DIR + "ImpactoBolaToy.tscn") if ResourceLoader.exists(DIR + "ImpactoBolaToy.tscn") else null)
 	var c: Node3D = r.get_node("Cuerpo")
 	_halo(c, "Halo", 2.4, Vector3(0, 0.1, 0), 0.4, 3.0)
-	var gota: ArrayMesh = _malla(_anillos([Vector3(0, 0.01, -0.4), Vector3(0.14, 0.33, -0.28), Vector3(0.34, 0.42, -0.02), Vector3(0.58, 0.32, 0.22), Vector3(0.82, 0.16, 0.5), Vector3(1, 0.02, 0.78)], 18), 32)
+	var gota: ArrayMesh = _malla(_anillos([Vector3(0, 0.07, -0.4), Vector3(0.14, 0.33, -0.28), Vector3(0.34, 0.42, -0.02), Vector3(0.58, 0.32, 0.22), Vector3(0.82, 0.16, 0.5), Vector3(1, 0.02, 0.78)], 40), 64)
 	var interior: ArrayMesh = _malla(_anillos([Vector3(0, 0.07, -0.34), Vector3(0.14, 0.2, -0.26), Vector3(0.36, 0.26, -0.04), Vector3(0.62, 0.18, 0.16), Vector3(1, 0.02, 0.52)], 18), 28)
 	var inc: Node3D = Node3D.new()
 	inc.name = "Inclinable"
 	c.add_child(inc)
 	# ronda 4: una sola silueta. El exterior descarta la cara trasera (cull_back) y es opaco en el cuerpo; dentro no hay otra malla con borde propio,
 	# sino un nucleo aditivo (halo) que se funde con el cuerpo.
-	_fuego(inc, "Exterior", gota, Vector3.ZERO, {"repeticion": Vector2(1.0, 0.8), "rep_ruido": Vector2(2.0, 1.2), "umbral": 0.25, "desfase": 0.72, "fuerza_grad": 0.9, "pot_grad": 1.9, "semilla": 0.3,
-		"amplitud_vert": 0.1, "velocidad": 1.1}, 0, Vector3.ONE, SH_DELANTE)
+	_fuego(inc, "Exterior", gota, Vector3.ZERO, {"repeticion": Vector2(1.0, 0.8), "umbral": 0.25, "desfase": 0.95, "fuerza_grad": 0.9, "pot_grad": 2.2, "semilla": 0.3,
+		"amplitud_vert": 0.1, "velocidad": 1.1, "vert_polo": 1.0, "fade_base": 0.2, "peso_ruido": 0.55, "escala_rampa": 0.75, "rep_ruido": Vector2(3.0, 1.6)}, 0, Vector3.ONE, SH_DELANTE)
+	_halo(inc, "Base", 0.5, Vector3(0, -0.38, 0), 0.5, 1.6, 0, Color(1.0, 0.3, 0.06), {"latido": 0.05})
 	_halo(inc, "Nucleo", 0.9, Vector3(0, 0.0, 0), 0.45, 2.2, 2, Color(1.0, 0.5, 0.12), {"latido": 0.1})
 	var estela: ArrayMesh = _malla(_anillos([Vector3(0, 0.2, 0.0), Vector3(0.5, 0.16, 0.8), Vector3(1, 0.02, 1.7)], 10), 20)
 	var est: MeshInstance3D = _fuego(c, "Estela", estela, Vector3(0, 0, 0.2), {"repeticion": Vector2(1.0, 0.7), "umbral": 0.22, "desfase": 0.5, "fuerza_grad": 0.9, "semilla": 0.5, "velocidad": 1.8, "amplitud_vert": 0.05}, 0)
