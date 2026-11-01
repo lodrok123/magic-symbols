@@ -15,3 +15,5 @@ Lo que define el estilo (comprobable):
 - Sin rojo oscuro, sin humo negro; como mucho un humo claro escaso.
 - Luz cálida en el suelo con titileo suave; chispas pequeñas y pocas.
 - Se lee a la distancia de la cámara del juego (ortográfica, 30°), como en un diorama.
+
+| `ref_bola_vuelo.png` | Bola de fuego en vuelo (anime, aportada por Pablo el 1/11 por la noche): la bola NO es una esfera perfecta, se deforma libremente; núcleo blanco muy brillante con destello, cuerpo que se alarga hacia atrás en lenguas que se desgarran y se sueltan, estelas finas de chispas con puntos brillantes en forma de estrella, resplandor amplio. Referencia de la **bola en movimiento**. | Pablo |
