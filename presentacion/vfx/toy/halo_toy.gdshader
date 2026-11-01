@@ -26,7 +26,7 @@ void fragment() {
 	float r = length(p);
 	float f = pow(clamp(1.0 - r, 0.0, 1.0), caida);
 	if (anillo > 0.0) {
-		float k = smoothstep(0.0, 0.5, r) * (1.0 - smoothstep(0.62, 1.0, r));
+		float k = exp(-pow((r - 0.68) / 0.2, 2.0));
 		f = mix(f, k * 0.8, anillo);
 	}
 	float pulso = 1.0 + latido * sin(TIME * 5.3 + semilla * 6.28) + latido * 0.6 * sin(TIME * 9.1 + semilla * 3.0);

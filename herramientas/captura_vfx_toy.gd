@@ -38,6 +38,8 @@ func _correr() -> void:
 	root.get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	_lab = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_lab)
+	if a.size() > 2 and a[2] == "singlow":
+		(_lab.get_node("Ambiente") as WorldEnvironment).environment.glow_enabled = false
 	await _seg(0.4)
 	if secuencia:
 		await _secuencia(que)

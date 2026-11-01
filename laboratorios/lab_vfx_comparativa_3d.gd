@@ -30,6 +30,7 @@ const ESCENA_TOY: Dictionary = {"bola_toy": "res://presentacion/vfx/toy/BolaFueg
 const MANDOS_TOY: Array = [
 	["altura", 0.3, 3.0, 0.1, 1.0], ["ancho", 0.3, 2.0, 0.1, 1.0], ["blandura", 0.05, 1.0, 0.05, 0.22], ["ondulacion", 0.0, 1.5, 0.1, 0.6], ["velocidad", 0.1, 4.0, 0.1, 1.0],
 	["brillo", 0.3, 3.0, 0.1, 1.0], ["halo", 0.0, 3.0, 0.1, 1.0], ["tono", 0.0, 1.0, 0.1, 0.0], ["chispas", 0.0, 1.0, 0.1, 1.0], ["luz", 0.0, 4.0, 0.1, 1.0]]
+const CAMARA_TOY: Dictionary = {"Barrera": [1.9, 0.9], "Pilar": [2.1, 1.7], "Muro": [1.15, 0.7]}   ## [factor de distancia, altura a la que mira]
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -445,6 +446,11 @@ func _seguir_camara() -> void:
 	if ultimo_efecto != null and is_instance_valid(ultimo_efecto) and ultimo_efecto.is_inside_tree():
 		objetivo = ultimo_efecto.global_position + Vector3(0, 0.8, 0)
 	var dist: float = DIST_CERCA if camara_actual == 1 else DIST_LEJOS
+	if ultimo_efecto != null and is_instance_valid(ultimo_efecto):
+		for clave in CAMARA_TOY:                     # los efectos grandes piden la cámara más atrás y más alta (la barrera mide 3 m, el pilar 4)
+			if ultimo_efecto.name.begins_with(clave):
+				dist *= float(CAMARA_TOY[clave][0])
+				objetivo = ultimo_efecto.global_position + Vector3(0, float(CAMARA_TOY[clave][1]), 0)
 	var lado: Vector3 = Vector3(-_dir.z, 0, _dir.x) * 0.6 - _dir * 0.8
 	var desde: Vector3 = objetivo + lado.normalized() * dist + Vector3(0, dist * 0.35, 0)
 	_cam.global_position = desde

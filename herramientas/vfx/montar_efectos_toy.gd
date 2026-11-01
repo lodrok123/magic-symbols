@@ -70,11 +70,11 @@ func _llama(padre: Node, nombre: String, tam: Vector2, pos: Vector3, p: Dictiona
 	return mi
 
 
-func _halo(padre: Node, nombre: String, lado: float, pos: Vector3, brillo: float, caida: float, billboard: int = 2, color: Color = Color(1.0, 0.55, 0.14), extra: Dictionary = {}) -> MeshInstance3D:
+func _halo(padre: Node, nombre: String, lado: float, pos: Vector3, brillo: float, caida: float, billboard: int = 2, color: Color = Color(1.0, 0.55, 0.14), extra: Dictionary = {}, alto: float = -1.0) -> MeshInstance3D:
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = nombre
 	var q: QuadMesh = QuadMesh.new()
-	q.size = Vector2(lado, lado)
+	q.size = Vector2(lado, lado if alto < 0.0 else alto)
 	if billboard == 0:
 		q.orientation = PlaneMesh.FACE_Y
 	mi.mesh = q
@@ -299,13 +299,88 @@ func _impacto() -> Node3D:
 	return r
 
 
+## Muro de fuego: 6,9 × 1,5 m. Dos filas de lenguas gordas (nueve atrás, más altas y tenues; ocho delante, más bajas y brillantes) que se solapan, un charco de luz
+## alargado en el suelo, una luz, pocas chispas. Las lenguas cuelgan del plano del muro (su X); el billboard en Y las gira hacia la cámara.
 func _muro() -> Node3D:
-	return Node3D.new()
+	var r: Node3D = _raiz("MuroFuegoToy")
+	r.set("tam_referencia", Vector3(6.9, 1.5, 0.3))
+	var c: Node3D = r.get_node("Cuerpo")
+	_halo(c, "Charco", 7.6, Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.55, 0.15), {"latido": 0.05}, 2.4)
+	_halo(c, "Resplandor", 7.2, Vector3(0, 0.55, 0), 0.22, 2.6, 2, Color(1.0, 0.6, 0.2), {}, 2.2)
+	var alt_atras: Array = [1.45, 1.1, 1.6, 1.25, 1.5, 1.05, 1.55, 1.2, 1.4]
+	for i in 9:
+		var x: float = -3.3 + float(i) * 0.825 + (0.1 if i % 2 == 0 else -0.08)
+		var h: float = alt_atras[i]
+		_llama(c, "Atras%d" % i, Vector2(1.9, h * 1.25), Vector3(x, 0.0, 0.05), {"radio": 0.55, "punta_h": h, "afilado": 0.85, "radio_bola": 0.0, "blandura": 0.3,
+			"ondulacion": 0.85, "transparencia": 0.5, "brillo": 0.95, "velocidad": 0.85 + 0.05 * float(i % 4), "semilla": 0.07 * float(i) + 0.03, "borde_claro": 0.45,
+			"base_clara": 0.5, "escala_ruido": 2.0, "lobulos": 0.4}, 0)
+	var alt_delante: Array = [0.95, 1.2, 0.85, 1.1, 1.3, 0.9, 1.15, 0.8]
+	for i in 8:
+		var x: float = -3.0 + float(i) * 0.86 + (0.06 if i % 2 == 0 else -0.1)
+		var h: float = alt_delante[i]
+		_llama(c, "Delante%d" % i, Vector2(1.5, h * 1.25), Vector3(x, 0.0, -0.05), {"radio": 0.42, "punta_h": h, "afilado": 0.8, "blandura": 0.28, "ondulacion": 0.8,
+			"transparencia": 0.78, "brillo": 1.0, "velocidad": 1.0 + 0.06 * float(i % 3), "semilla": 0.5 + 0.09 * float(i), "borde_claro": 0.5, "base_clara": 0.8,
+			"escala_ruido": 2.4, "lobulos": 0.35}, 1)
+	_luz(r, Vector3(0, 0.7, 0), 1.6, 6.5)
+	_particulas(c, "Chispas", 14, 1.4, 0.07, Vector3(3.2, 0.1, 0.2), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
+		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.5, 0))
+	_anim(r)
+	return r
 
 
+## Pilar: r 0,5 × 4 m. Una columna ancha casi de la misma anchura hasta arriba, de lóbulos gordos como bolas apiladas (la trampa de Link's Awakening),
+## con tres capas (exterior tenue, cuerpo, núcleo estrecho y claro), anillo de luz en el suelo y chispas que suben.
 func _pilar() -> Node3D:
-	return Node3D.new()
+	var r: Node3D = _raiz("PilarFuegoToy")
+	r.set("tam_referencia", Vector3(1.0, 4.0, 1.0))
+	var c: Node3D = r.get_node("Cuerpo")
+	_halo(c, "Charco", 2.6, Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.55, 0.15), {"anillo": 0.5})
+	_halo(c, "Resplandor", 3.4, Vector3(0, 1.4, 0), 0.2, 2.8, 2, Color(1.0, 0.6, 0.2), {}, 4.2)
+	_llama(c, "Exterior", Vector2(2.1, 5.0), Vector3(0, 0.0, 0), {"radio": 0.62, "punta_h": 4.3, "afilado": 0.32, "blandura": 0.35, "ondulacion": 1.0, "lobulos": 0.55,
+		"transparencia": 0.45, "brillo": 0.95, "velocidad": 0.9, "semilla": 0.11, "borde_claro": 0.4, "base_clara": 0.4, "escala_ruido": 1.5, "bultos": 0.22, "bultos_freq": 5.0}, 0)
+	_llama(c, "Cuerpo", Vector2(1.7, 4.8), Vector3(0, 0.0, 0), {"radio": 0.5, "punta_h": 4.0, "afilado": 0.3, "blandura": 0.28, "ondulacion": 0.9, "lobulos": 0.5,
+		"transparencia": 0.8, "brillo": 1.0, "velocidad": 1.1, "semilla": 0.52, "borde_claro": 0.5, "base_clara": 0.7, "escala_ruido": 1.8, "bultos": 0.3, "bultos_freq": 6.5}, 1)
+	_llama(c, "Nucleo", Vector2(1.1, 3.6), Vector3(0, 0.0, 0), {"radio": 0.28, "punta_h": 3.0, "afilado": 0.4, "blandura": 0.35, "ondulacion": 0.7, "lobulos": 0.4,
+		"transparencia": 0.9, "brillo": 1.05, "velocidad": 1.35, "semilla": 0.83, "borde_claro": 0.1, "base_clara": 1.0, "escala_ruido": 2.2, "bultos": 0.25, "bultos_freq": 7.5}, 2)
+	_luz(r, Vector3(0, 1.3, 0), 2.0, 7.0)
+	_particulas(c, "Chispas", 16, 1.8, 0.07, Vector3(0.3, 0.1, 0.3), Vector2(0.6, 1.5), Vector3(0, 1, 0), 20.0, Vector3(0, 0.5, 0),
+		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.3, 0))
+	_anim(r, 0.4, 0.6)
+	return r
 
 
+## Barrera: esfera r 1,5 m centrada en el jugador (el origen es el suelo: la esfera sube 0,6). Cáscara translúcida con borde de resplandor y lenguas que
+## suben girando; se ve a la jugadora dentro. Dos pasadas (cara de atrás y cara de delante) para que las mezclas salgan en orden.
 func _barrera() -> Node3D:
-	return Node3D.new()
+	var r: Node3D = _raiz("BarreraFuegoToy")
+	r.set("tam_referencia", Vector3(3.0, 3.0, 3.0))
+	var c: Node3D = r.get_node("Cuerpo")
+	_halo(c, "Anillo", 3.9, Vector3(0, 0.03, 0), 0.8, 1.0, 0, Color(1.0, 0.55, 0.15), {"anillo": 1.0, "latido": 0.04})
+	var esf: MeshInstance3D = MeshInstance3D.new()
+	esf.name = "Cascara"
+	var sm: SphereMesh = SphereMesh.new()
+	sm.radius = 1.5
+	sm.height = 3.0
+	sm.radial_segments = 64
+	sm.rings = 32
+	esf.mesh = sm
+	esf.position = Vector3(0, 0.6, 0)
+	esf.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var base_p: Dictionary = {"y_suelo": -0.6, "radio_esfera": 1.5}
+	var m_atras: ShaderMaterial = ShaderMaterial.new()
+	m_atras.shader = load("res://presentacion/vfx/toy/barrera_toy_trasera.gdshader")
+	var m_delante: ShaderMaterial = ShaderMaterial.new()
+	m_delante.shader = load(SH_BARRERA)
+	for k in base_p:
+		m_atras.set_shader_parameter(k, base_p[k])
+		m_delante.set_shader_parameter(k, base_p[k])
+	m_atras.render_priority = 0
+	m_delante.render_priority = 1
+	m_atras.next_pass = m_delante
+	esf.material_override = m_atras
+	c.add_child(esf)
+	_luz(r, Vector3(0, 0.7, 0), 1.5, 5.5)
+	_particulas(c, "Chispas", 14, 1.6, 0.07, Vector3(1.2, 0.1, 1.2), Vector2(0.3, 0.9), Vector3(0, 1, 0), 25.0, Vector3(0, 0.5, 0),
+		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.2, 0))
+	_anim(r, 0.5, 0.6)
+	return r

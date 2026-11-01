@@ -14,7 +14,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.50705695
+shader_parameter/semilla = 0.14014696
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_ctyoc"]
@@ -37,6 +37,9 @@ shader_parameter/radio = 0.4
 shader_parameter/punta_h = 1.6
 shader_parameter/afilado = 0.8
 shader_parameter/radio_bola = 0.75
+shader_parameter/lobulos = null
+shader_parameter/bultos = null
+shader_parameter/bultos_freq = null
 shader_parameter/base_clara = null
 shader_parameter/borde_claro = null
 shader_parameter/semilla = 0.2
@@ -64,6 +67,9 @@ shader_parameter/radio = 0.2
 shader_parameter/punta_h = 0.8
 shader_parameter/afilado = 0.8
 shader_parameter/radio_bola = 0.4
+shader_parameter/lobulos = null
+shader_parameter/bultos = null
+shader_parameter/bultos_freq = null
 shader_parameter/base_clara = 1.0
 shader_parameter/borde_claro = null
 shader_parameter/semilla = 0.7
@@ -84,7 +90,7 @@ shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = 0.0
-shader_parameter/semilla = 0.40354824
+shader_parameter/semilla = 0.42891863
 shader_parameter/anillo = 1.0
 
 [sub_resource type="QuadMesh" id="QuadMesh_o8wej"]
@@ -220,41 +226,41 @@ _data = {
 &"vivir": SubResource("Animation_v4pqf")
 }
 
-[node name="ImpactoBolaToy" type="Node3D" unique_id=649232733]
+[node name="ImpactoBolaToy" type="Node3D" unique_id=1811245129]
 script = ExtResource("1_ssx14")
 vida = 0.9
 titileo = 0.0
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1327385904]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1267972971]
 
-[node name="Estallido" type="Node3D" parent="Cuerpo" unique_id=62837095]
+[node name="Estallido" type="Node3D" parent="Cuerpo" unique_id=731391899]
 
-[node name="Halo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1010939663]
+[node name="Halo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1760505337]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 material_override = SubResource("ShaderMaterial_mr1my")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_ctyoc")
 
-[node name="Bola" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=552455302]
+[node name="Bola" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1356164457]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("ShaderMaterial_r2ofe")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_k2oav")
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=291585490]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1583308343]
 material_override = SubResource("ShaderMaterial_o1bk5")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_ds7hq")
 
-[node name="Anillo" type="Node3D" parent="Cuerpo" unique_id=2028303310]
+[node name="Anillo" type="Node3D" parent="Cuerpo" unique_id=761049930]
 
-[node name="Disco" type="MeshInstance3D" parent="Cuerpo/Anillo" unique_id=1368731972]
+[node name="Disco" type="MeshInstance3D" parent="Cuerpo/Anillo" unique_id=951972125]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 material_override = SubResource("ShaderMaterial_wd0f7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_o8wej")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1106419587 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=2123322783 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 cast_shadow = 0
 amount = 14
@@ -267,11 +273,11 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_ug57r")
 draw_pass_1 = SubResource("QuadMesh_blvtl")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=159793192]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=2040476928]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 light_color = Color(1, 0.72, 0.38, 1)
 light_energy = 1.8
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=264924271]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=342814940]
 libraries/ = SubResource("AnimationLibrary_rhbma")

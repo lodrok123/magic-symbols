@@ -24,6 +24,9 @@ uniform float radio : hint_range(0.05, 3.0) = 0.42; // semiancho de la base en m
 uniform float punta_h : hint_range(0.1, 8.0) = 1.35;// altura de la punta en metros
 uniform float afilado : hint_range(0.2, 3.0) = 0.7; // forma de la gota (bajo = rechoncha, alto = aguda)
 uniform float radio_bola : hint_range(0.0, 2.0) = 0.0; // si > 0 el cuerpo es un círculo de ese radio (bola) con una punta pequeña
+uniform float lobulos : hint_range(0.0, 1.0) = 0.30;     // cuánto muerde el ruido el borde (lóbulos redondos)
+uniform float bultos : hint_range(0.0, 0.6) = 0.0;       // anchura que sube y baja en ondas (columna de bolas apiladas)
+uniform float bultos_freq : hint_range(1.0, 14.0) = 6.0;  // bultos por metro
 uniform float base_clara : hint_range(0.0, 1.0) = 0.6;   // cuánto se aclara el corazón de la base
 uniform float borde_claro : hint_range(0.0, 1.0) = 0.5;  // cuánto se aclara el filo translúcido
 uniform float semilla = 0.0;
@@ -33,17 +36,12 @@ group_uniforms;
 
 varying vec2 v_tam;
 
-float hash(vec2 p) {
-	p = fract(p * vec2(123.34, 456.21));
-	p += dot(p, p + 45.32);
-	return fract(p.x * p.y);
-}
-
+// Ruido liso a base de senos con dominio deformado (sin celdas: el de valor con hash dejaba parches rectangulares). Devuelve ~0..1.
 float vnoise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+	float a = sin(p.x * 1.3 + sin(p.y * 1.1 + 1.7) * 1.5);
+	float b = sin(p.y * 1.9 + p.x * 0.7 + sin(p.x * 2.3 + 0.6) * 1.2);
+	float c = sin((p.x + p.y) * 2.9 + 4.1);
+	return clamp(0.5 + 0.27 * a + 0.2 * b + 0.07 * c, 0.0, 1.0);
 }
 
 float fbm(vec2 p) {
@@ -80,7 +78,7 @@ void fragment() {
 	float ru = n1 - n2 * 0.55;                      // ~ -0.3 .. 0.8
 
 	// la llama se mece: la punta se ladea y se retuerce con más fuerza cuanto más arriba
-	float mecer = (sin(t * 1.5 + semilla * 6.283 + yn * 2.2) * 0.11 + (n1 - 0.5) * 0.55) * ondulacion * yn * yn * radio * 2.2;
+	float mecer = (sin(t * 1.5 + semilla * 6.283 + yn * 2.2) * 0.16 + (n1 - 0.5) * 1.1) * ondulacion * yn * yn * radio * 2.4;
 
 	// perfil de gota: semiancho que baja hasta cero en la punta, con la base redondeada
 	float tope = 1.0 - clamp(yn, 0.0, 1.0);
@@ -88,7 +86,10 @@ void fragment() {
 	float rb = radio * 0.95;
 	float basey = clamp((rb - m.y) / rb, 0.0, 1.0);
 	hw *= sqrt(max(0.0, 1.0 - basey * basey));
-	float d = hw - abs(m.x - mecer);
+	hw *= 1.0 + bultos * sin(m.y * bultos_freq - t * 3.0 + semilla * 6.283) * (0.4 + ondulacion * 0.6);
+	float dx = m.x - mecer;
+	float ee = 0.12 * radio;
+	float d = hw - (sqrt(dx * dx + ee * ee) - ee);        // valor absoluto suavizado: sin arruga en el eje de la llama
 	// bola: un círculo que se pega a la base de la gota
 	if (radio_bola > 0.0) {
 		vec2 c = vec2(m.x - mecer * 0.3, m.y - radio_bola);
@@ -96,7 +97,7 @@ void fragment() {
 		d = max(d, db * 0.95);
 	}
 	// el ruido muerde el borde y la punta (los lóbulos redondos de la referencia)
-	d += (ru - 0.28) * 0.30 * ondulacion * radio * (0.35 + yn);
+	d += (ru - 0.28) * lobulos * 1.6 * ondulacion * radio * (0.35 + yn);
 
 	float suave = blandura * radio * 0.9 + 0.001;
 	float cuerpo = smoothstep(0.0, suave, d);
@@ -106,10 +107,10 @@ void fragment() {
 
 	// color: rampa continua naranja -> amarillo -> blanco amarillento, de dentro afuera y de abajo arriba
 	float dentro = clamp(d / max(radio_bola, radio), 0.0, 1.0);
-	float calor = clamp(dentro * 1.0 - yn * 0.3 + (ru - 0.25) * 0.3, 0.0, 1.0);
+	float calor = clamp(dentro * 0.9 - yn * 0.3 + (ru - 0.25) * 0.3, 0.0, 1.0);
 	calor = max(calor, base_clara * (1.0 - clamp(yn * 1.8, 0.0, 1.0)) * dentro);
 	vec3 c_naranja = mix(vec3(1.0, 0.42, 0.04), vec3(0.15, 0.40, 1.0), tono);
-	vec3 c_amarillo = mix(vec3(1.0, 0.70, 0.18), vec3(0.35, 0.75, 1.0), tono);
+	vec3 c_amarillo = mix(vec3(1.0, 0.66, 0.15), vec3(0.35, 0.75, 1.0), tono);
 	vec3 c_blanco = mix(vec3(1.0, 0.92, 0.58), vec3(0.85, 0.97, 1.0), tono);
 	vec3 col = mix(c_naranja, c_amarillo, smoothstep(0.22, 0.8, calor));
 	col = mix(col, c_blanco, smoothstep(0.82, 1.0, calor));
@@ -119,7 +120,7 @@ void fragment() {
 	// el borde es más transparente que el centro: el cuerpo deja ver lo de detrás
 	float a_final = a * mix(0.55, 1.0, smoothstep(0.0, 0.6, dentro)) * transparencia * vida;
 	// que ningún borde del plano se vea nunca (el degradado llega a cero antes)
-	float marco = smoothstep(0.0, 0.1, UV.x) * smoothstep(1.0, 0.9, UV.x) * smoothstep(0.0, 0.08, UV.y) * smoothstep(1.0, 0.97, UV.y);
+	float marco = smoothstep(0.0, 0.1, UV.x) * (1.0 - smoothstep(0.9, 1.0, UV.x)) * smoothstep(0.0, 0.08, UV.y) * (1.0 - smoothstep(0.97, 1.0, UV.y));
 	a_final *= marco;
 	ALBEDO = col * brillo;
 	ALPHA = clamp(a_final, 0.0, 1.0);
