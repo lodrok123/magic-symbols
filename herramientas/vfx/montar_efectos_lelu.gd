@@ -104,6 +104,43 @@ func _mat_fuego(shader: String, p: Dictionary, prio: int = 0) -> ShaderMaterial:
 	return m
 
 
+## Malla de revolución con sección RECTANGULAR REDONDEADA (superelipse de semiejes a × b y exponente n), abierta arriba y abajo. U sigue la longitud del contorno
+## (así la textura no se estira en los lados largos); `vueltas` es el nº de repeticiones de la textura que caben (tiene que ser entero para que cierre la costura).
+func _malla_lazo(a: float, b: float, alto: float, s_alto: float, n: float = 6.0, seg: int = 120) -> ArrayMesh:
+	var pts: Array = []
+	var acum: Array = [0.0]
+	for i in seg + 1:
+		var t: float = TAU * float(i) / float(seg)
+		var c: float = cos(t)
+		var s: float = sin(t)
+		pts.append(Vector2(a * signf(c) * pow(absf(c), 2.0 / n), b * signf(s) * pow(absf(s), 2.0 / n)))
+		if i > 0:
+			acum.append(float(acum[i - 1]) + (pts[i] as Vector2).distance_to(pts[i - 1]))
+	var total: float = acum[seg]
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var anillos: int = 14
+	for j in anillos:
+		var v: float = float(j) / float(anillos - 1)
+		var esc: float = lerpf(1.0, s_alto, v)
+		for i in seg + 1:
+			var p: Vector2 = pts[i]
+			st.set_uv(Vector2(float(acum[i]) / total, v))
+			st.set_normal(Vector3(p.x / (a * a), 0, p.y / (b * b)).normalized())
+			st.add_vertex(Vector3(p.x * esc, v * alto, p.y * esc))
+	for j in anillos - 1:
+		for i in seg:
+			var a0: int = j * (seg + 1) + i
+			var b0: int = a0 + seg + 1
+			st.add_index(a0)
+			st.add_index(b0)
+			st.add_index(a0 + 1)
+			st.add_index(a0 + 1)
+			st.add_index(b0)
+			st.add_index(b0 + 1)
+	return st.commit()
+
+
 func _fuego(padre: Node, nombre: String, malla: Mesh, pos: Vector3, p: Dictionary, prio: int = 0, escala: Vector3 = Vector3.ONE, shader: String = SH_LELU) -> MeshInstance3D:
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = nombre
@@ -125,15 +162,16 @@ func _bola() -> Node3D:
 	r.set("escena_impacto", load(DIR + "ImpactoBolaToy.tscn") if ResourceLoader.exists(DIR + "ImpactoBolaToy.tscn") else null)
 	var c: Node3D = r.get_node("Cuerpo")
 	_halo(c, "Halo", 2.4, Vector3(0, 0.1, 0), 0.4, 3.0)
-	var gota: ArrayMesh = _malla(_anillos([Vector3(0, 0.1, -0.4), Vector3(0.14, 0.33, -0.28), Vector3(0.34, 0.42, -0.02), Vector3(0.58, 0.32, 0.22), Vector3(0.82, 0.16, 0.5), Vector3(1, 0.02, 0.78)], 18), 32)
+	var gota: ArrayMesh = _malla(_anillos([Vector3(0, 0.01, -0.4), Vector3(0.14, 0.33, -0.28), Vector3(0.34, 0.42, -0.02), Vector3(0.58, 0.32, 0.22), Vector3(0.82, 0.16, 0.5), Vector3(1, 0.02, 0.78)], 18), 32)
 	var interior: ArrayMesh = _malla(_anillos([Vector3(0, 0.07, -0.34), Vector3(0.14, 0.2, -0.26), Vector3(0.36, 0.26, -0.04), Vector3(0.62, 0.18, 0.16), Vector3(1, 0.02, 0.52)], 18), 28)
 	var inc: Node3D = Node3D.new()
 	inc.name = "Inclinable"
 	c.add_child(inc)
-	_fuego(inc, "Exterior", gota, Vector3.ZERO, {"repeticion": Vector2(1.0, 0.8), "rep_ruido": Vector2(2.0, 1.2), "umbral": 0.25, "desfase": 0.62, "fuerza_grad": 0.9, "pot_grad": 1.8, "semilla": 0.3,
-		"amplitud_vert": 0.1, "velocidad": 1.1}, 0)
-	_fuego(inc, "Nucleo", interior, Vector3.ZERO, {"repeticion": Vector2(1.0, 0.8), "rep_ruido": Vector2(2.0, 1.2), "umbral": 0.25, "desfase": 0.62, "fuerza_grad": 0.9, "pot_grad": 1.8, "calor_extra": 0.35,
-		"semilla": 0.7, "amplitud_vert": 0.06, "velocidad": 1.6, "brillo": 1.1}, 1)
+	# ronda 4: una sola silueta. El exterior descarta la cara trasera (cull_back) y es opaco en el cuerpo; dentro no hay otra malla con borde propio,
+	# sino un nucleo aditivo (halo) que se funde con el cuerpo.
+	_fuego(inc, "Exterior", gota, Vector3.ZERO, {"repeticion": Vector2(1.0, 0.8), "rep_ruido": Vector2(2.0, 1.2), "umbral": 0.25, "desfase": 0.72, "fuerza_grad": 0.9, "pot_grad": 1.9, "semilla": 0.3,
+		"amplitud_vert": 0.1, "velocidad": 1.1}, 0, Vector3.ONE, SH_DELANTE)
+	_halo(inc, "Nucleo", 0.9, Vector3(0, 0.0, 0), 0.45, 2.2, 2, Color(1.0, 0.5, 0.12), {"latido": 0.1})
 	var estela: ArrayMesh = _malla(_anillos([Vector3(0, 0.2, 0.0), Vector3(0.5, 0.16, 0.8), Vector3(1, 0.02, 1.7)], 10), 20)
 	var est: MeshInstance3D = _fuego(c, "Estela", estela, Vector3(0, 0, 0.2), {"repeticion": Vector2(1.0, 0.7), "umbral": 0.22, "desfase": 0.5, "fuerza_grad": 0.9, "semilla": 0.5, "velocidad": 1.8, "amplitud_vert": 0.05}, 0)
 	est.rotation_degrees = Vector3(90, 0, 0)       # la malla apunta hacia +Z (hacia atrás del vuelo)
@@ -154,14 +192,12 @@ func _muro() -> Node3D:
 	var c: Node3D = r.get_node("Cuerpo")
 	_halo(c, "Charco", 7.6, Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.28, 0.06), {"latido": 0.05}, 2.4)
 	_halo(c, "Resplandor", 7.2, Vector3(0, 0.55, 0), 0.22, 2.6, 2, Color(1.0, 0.28, 0.06), {}, 2.2)
-	var alturas: Array = [1.5, 1.2, 1.6, 1.3, 1.55, 1.15, 1.45]
-	for i in 7:
-		var x: float = -3.15 + float(i) * 1.05
-		var h: float = alturas[i]
-		_fuego(c, "Cilindro%d" % i, _cilindro(0.5, 0.3, h), Vector3(x, 0.0, 0.0), {"repeticion": Vector2(1.2, 0.9), "semilla": 0.17 * float(i) + 0.05, "velocidad": 0.9 + 0.07 * float(i % 4),
-			"umbral": 0.27, "desfase": 0.42, "fuerza_grad": 1.05}, 0, Vector3(1.3, 1.0, 1.0))
-		_fuego(c, "Interior%d" % i, _cilindro(0.3, 0.14, h * 0.7), Vector3(x, 0.0, 0.0), {"repeticion": Vector2(1.2, 0.9), "semilla": 0.4 + 0.19 * float(i), "velocidad": 1.4 + 0.1 * float(i % 3),
-			"umbral": 0.27, "desfase": 0.42, "fuerza_grad": 1.0, "calor_extra": 0.3, "brillo": 1.1}, 1, Vector3(1.3, 1.0, 1.0))
+	# ronda 4: una sola malla con sección rectangular redondeada (6,9 x 0,6 m): la banda es continua y las lenguas salen del rectángulo entero, sin aros ni huecos.
+	var banda: ArrayMesh = _malla_lazo(3.45, 0.3, 1.5, 0.78)
+	var banda_in: ArrayMesh = _malla_lazo(3.3, 0.12, 1.05, 0.7)
+	_fuego(c, "Banda", banda, Vector3.ZERO, {"repeticion": Vector2(5.0, 0.9), "rep_ruido": Vector2(6.0, 1.6), "semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": 0.45, "fuerza_grad": 1.05}, 0)
+	_fuego(c, "Interior", banda_in, Vector3.ZERO, {"repeticion": Vector2(6.0, 0.9), "rep_ruido": Vector2(7.0, 1.6), "semilla": 0.4, "velocidad": 1.5, "umbral": 0.27, "desfase": 0.45, "fuerza_grad": 1.0,
+		"calor_extra": 0.3, "brillo": 1.1}, 1)
 	_trocitos(c, 3, Vector3(3.0, 0.05, 0.15), Vector3(0, 1.0, 0))
 	_luz(r, Vector3(0, 0.7, 0), 1.6, 6.5)
 	_particulas(c, "Chispas", 14, 1.4, 0.07, Vector3(3.2, 0.1, 0.2), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
