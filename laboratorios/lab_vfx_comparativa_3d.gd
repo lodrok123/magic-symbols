@@ -28,7 +28,7 @@ const ESCENA_TOY: Dictionary = {"bola_toy": "res://presentacion/vfx/toy/BolaFueg
 	"muro_toy": "res://presentacion/vfx/toy/MuroFuegoToy.tscn", "pilar_toy": "res://presentacion/vfx/toy/PilarFuegoToy.tscn", "barrera_toy": "res://presentacion/vfx/toy/BarreraFuegoToy.tscn"}
 ## [propiedad de EfectoToy, mínimo, máximo, paso, valor de origen]
 const MANDOS_TOY: Array = [
-	["altura", 0.3, 3.0, 0.1, 1.0], ["ancho", 0.3, 2.0, 0.1, 1.0], ["blandura", 0.05, 1.0, 0.05, 0.22], ["ondulacion", 0.0, 1.5, 0.1, 0.6], ["velocidad", 0.1, 4.0, 0.1, 1.0],
+	["altura", 0.3, 3.0, 0.1, 1.0], ["chisporroteo", 0.0, 1.0, 0.1, 0.6], ["blandura", 0.05, 1.0, 0.05, 0.22], ["ondulacion", 0.0, 1.5, 0.1, 0.6], ["velocidad", 0.1, 4.0, 0.1, 1.0],
 	["brillo", 0.3, 3.0, 0.1, 1.0], ["halo", 0.0, 3.0, 0.1, 1.0], ["tono", 0.0, 1.0, 0.1, 0.0], ["chispas", 0.0, 1.0, 0.1, 1.0], ["luz", 0.0, 4.0, 0.1, 1.0]]
 const CAMARA_TOY: Dictionary = {"Barrera": [1.9, 0.9], "Pilar": [2.1, 1.7], "Muro": [1.15, 0.7]}   ## [factor de distancia, altura a la que mira]
 const ID_JUGADORA: String = "jugadora_base"

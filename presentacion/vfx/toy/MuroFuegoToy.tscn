@@ -7,14 +7,14 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_gxqkp"]
 render_priority = -1
 shader = ExtResource("2_2nfqc")
-shader_parameter/color = Color(1, 0.55, 0.15, 1)
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
 shader_parameter/brillo = 0.5
 shader_parameter/caida = 1.6
 shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = 0.05
-shader_parameter/semilla = 0.5391427
+shader_parameter/semilla = 0.33519885
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_8nlqm"]
@@ -24,14 +24,14 @@ orientation = 1
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_p682i"]
 render_priority = -1
 shader = ExtResource("2_2nfqc")
-shader_parameter/color = Color(1, 0.6, 0.2, 1)
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
 shader_parameter/brillo = 0.22
 shader_parameter/caida = 2.6
 shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.047842756
+shader_parameter/semilla = 0.47160718
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_3pqco"]
@@ -48,6 +48,7 @@ shader_parameter/velocidad = 0.85
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.8125)
 shader_parameter/radio = 0.55
@@ -78,6 +79,7 @@ shader_parameter/velocidad = 0.9
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.375)
 shader_parameter/radio = 0.55
@@ -108,6 +110,7 @@ shader_parameter/velocidad = 0.95
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 2)
 shader_parameter/radio = 0.55
@@ -138,6 +141,7 @@ shader_parameter/velocidad = 1.0
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.5625)
 shader_parameter/radio = 0.55
@@ -168,6 +172,7 @@ shader_parameter/velocidad = 0.85
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.875)
 shader_parameter/radio = 0.55
@@ -198,6 +203,7 @@ shader_parameter/velocidad = 0.9
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.3125)
 shader_parameter/radio = 0.55
@@ -228,6 +234,7 @@ shader_parameter/velocidad = 0.95
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.9375)
 shader_parameter/radio = 0.55
@@ -258,6 +265,7 @@ shader_parameter/velocidad = 1.0
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.5)
 shader_parameter/radio = 0.55
@@ -288,6 +296,7 @@ shader_parameter/velocidad = 0.85
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 0.95
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.5
 shader_parameter/tam = Vector2(1.9, 1.75)
 shader_parameter/radio = 0.55
@@ -318,6 +327,7 @@ shader_parameter/velocidad = 1.0
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.1875)
 shader_parameter/radio = 0.42
@@ -348,6 +358,7 @@ shader_parameter/velocidad = 1.06
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.5)
 shader_parameter/radio = 0.42
@@ -378,6 +389,7 @@ shader_parameter/velocidad = 1.12
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.0625)
 shader_parameter/radio = 0.42
@@ -408,6 +420,7 @@ shader_parameter/velocidad = 1.0
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.375)
 shader_parameter/radio = 0.42
@@ -438,6 +451,7 @@ shader_parameter/velocidad = 1.06
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.625)
 shader_parameter/radio = 0.42
@@ -468,6 +482,7 @@ shader_parameter/velocidad = 1.12
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.125)
 shader_parameter/radio = 0.42
@@ -498,6 +513,7 @@ shader_parameter/velocidad = 1.0
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1.4375)
 shader_parameter/radio = 0.42
@@ -528,6 +544,7 @@ shader_parameter/velocidad = 1.06
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.78
 shader_parameter/tam = Vector2(1.5, 1)
 shader_parameter/radio = 0.42
@@ -549,7 +566,7 @@ center_offset = Vector3(0, 0.5, 0)
 
 [sub_resource type="Gradient" id="Gradient_givp5"]
 offsets = PackedFloat32Array(0, 0.5, 1)
-colors = PackedColorArray(1, 0.95, 0.65, 0, 1, 0.82, 0.4, 1, 1, 0.5, 0.12, 0)
+colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.38, 0.08, 0.8, 0.85, 0.15, 0.04, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_1uucw"]
 gradient = SubResource("Gradient_givp5")
@@ -563,12 +580,12 @@ curve = SubResource("Curve_qxrtk")
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_55i1f"]
 emission_shape = 3
-emission_box_extents = Vector3(3.2, 0.1, 0.2)
+emission_box_extents = Vector3(3, 0.05, 0.15)
 direction = Vector3(0, 1, 0)
-spread = 30.0
-initial_velocity_min = 0.3
-initial_velocity_max = 0.9
-gravity = Vector3(0, 0.3, 0)
+spread = 15.0
+initial_velocity_min = 0.7
+initial_velocity_max = 1.4
+gravity = Vector3(0, 0.4, 0)
 scale_min = 0.7
 scale_max = 1.2
 scale_curve = SubResource("CurveTexture_vdksb")
@@ -598,9 +615,52 @@ particles_anim_loop = false
 
 [sub_resource type="QuadMesh" id="QuadMesh_tvv1r"]
 material = SubResource("StandardMaterial3D_3atd1")
+size = Vector2(0.2, 0.2)
+
+[sub_resource type="Gradient" id="Gradient_m4glw"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 0.8, 0.4, 0, 1, 0.6, 0.2, 1, 1, 0.5, 0.12, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_ltxwo"]
+gradient = SubResource("Gradient_m4glw")
+
+[sub_resource type="Curve" id="Curve_3d15c"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.15), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_fl7uy"]
+curve = SubResource("Curve_3d15c")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_0j5t7"]
+emission_shape = 3
+emission_box_extents = Vector3(3.2, 0.1, 0.2)
+direction = Vector3(0, 1, 0)
+spread = 30.0
+initial_velocity_min = 0.3
+initial_velocity_max = 0.9
+gravity = Vector3(0, 0.3, 0)
+scale_min = 0.7
+scale_max = 1.2
+scale_curve = SubResource("CurveTexture_fl7uy")
+color_ramp = SubResource("GradientTexture1D_ltxwo")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tij5r"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_7awcr")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_8uibj"]
+material = SubResource("StandardMaterial3D_tij5r")
 size = Vector2(0.07, 0.07)
 
-[sub_resource type="Animation" id="Animation_m4glw"]
+[sub_resource type="Animation" id="Animation_3i63w"]
 length = 0.5
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -615,7 +675,7 @@ tracks/0/keys = {
 "values": [1.0, 0.0]
 }
 
-[sub_resource type="Animation" id="Animation_ltxwo"]
+[sub_resource type="Animation" id="Animation_5uai0"]
 length = 0.3
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -630,7 +690,7 @@ tracks/0/keys = {
 "values": [0.0, 1.0]
 }
 
-[sub_resource type="Animation" id="Animation_3d15c"]
+[sub_resource type="Animation" id="Animation_b84ab"]
 loop_mode = 1
 tracks/0/type = "value"
 tracks/0/imported = false
@@ -645,134 +705,145 @@ tracks/0/keys = {
 "values": [1.0]
 }
 
-[sub_resource type="AnimationLibrary" id="AnimationLibrary_fl7uy"]
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_522s4"]
 _data = {
-&"morir": SubResource("Animation_m4glw"),
-&"nacer": SubResource("Animation_ltxwo"),
-&"vivir": SubResource("Animation_3d15c")
+&"morir": SubResource("Animation_3i63w"),
+&"nacer": SubResource("Animation_5uai0"),
+&"vivir": SubResource("Animation_b84ab")
 }
 
-[node name="MuroFuegoToy" type="Node3D" unique_id=4964768]
+[node name="MuroFuegoToy" type="Node3D" unique_id=1958348202]
 script = ExtResource("1_0wwqg")
 tam_referencia = Vector3(6.9, 1.5, 0.3)
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1887193562]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=114891060]
 
-[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=136877668]
+[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=1654595099]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
 material_override = SubResource("ShaderMaterial_gxqkp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_8nlqm")
 
-[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=702233250]
+[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=1725652962]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.55, 0)
 material_override = SubResource("ShaderMaterial_p682i")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_3pqco")
 
-[node name="Atras0" type="MeshInstance3D" parent="Cuerpo" unique_id=435376646]
+[node name="Atras0" type="MeshInstance3D" parent="Cuerpo" unique_id=762909956]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.2, 0, 0.05)
 material_override = SubResource("ShaderMaterial_7nes6")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_vbpu1")
 
-[node name="Atras1" type="MeshInstance3D" parent="Cuerpo" unique_id=196440049]
+[node name="Atras1" type="MeshInstance3D" parent="Cuerpo" unique_id=309575427]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.555, 0, 0.05)
 material_override = SubResource("ShaderMaterial_21gky")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_48i5b")
 
-[node name="Atras2" type="MeshInstance3D" parent="Cuerpo" unique_id=887366405]
+[node name="Atras2" type="MeshInstance3D" parent="Cuerpo" unique_id=608357500]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 0, 0.05)
 material_override = SubResource("ShaderMaterial_36efd")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_j3fa8")
 
-[node name="Atras3" type="MeshInstance3D" parent="Cuerpo" unique_id=1910514869]
+[node name="Atras3" type="MeshInstance3D" parent="Cuerpo" unique_id=1483905700]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.905, 0, 0.05)
 material_override = SubResource("ShaderMaterial_kws22")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_074h5")
 
-[node name="Atras4" type="MeshInstance3D" parent="Cuerpo" unique_id=329182143]
+[node name="Atras4" type="MeshInstance3D" parent="Cuerpo" unique_id=337284391]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 0, 0.05)
 material_override = SubResource("ShaderMaterial_5eyn0")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_7i1qo")
 
-[node name="Atras5" type="MeshInstance3D" parent="Cuerpo" unique_id=405259672]
+[node name="Atras5" type="MeshInstance3D" parent="Cuerpo" unique_id=1505369972]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.745, 0, 0.05)
 material_override = SubResource("ShaderMaterial_svfrp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_fv60h")
 
-[node name="Atras6" type="MeshInstance3D" parent="Cuerpo" unique_id=458613653]
+[node name="Atras6" type="MeshInstance3D" parent="Cuerpo" unique_id=1293011694]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 0, 0.05)
 material_override = SubResource("ShaderMaterial_p2g3p")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_cjpbp")
 
-[node name="Atras7" type="MeshInstance3D" parent="Cuerpo" unique_id=1918402985]
+[node name="Atras7" type="MeshInstance3D" parent="Cuerpo" unique_id=1350589591]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.395, 0, 0.05)
 material_override = SubResource("ShaderMaterial_3csa3")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_msd1h")
 
-[node name="Atras8" type="MeshInstance3D" parent="Cuerpo" unique_id=584569998]
+[node name="Atras8" type="MeshInstance3D" parent="Cuerpo" unique_id=19459117]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.4, 0, 0.05)
 material_override = SubResource("ShaderMaterial_gyoep")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_3qw2p")
 
-[node name="Delante0" type="MeshInstance3D" parent="Cuerpo" unique_id=918485672]
+[node name="Delante0" type="MeshInstance3D" parent="Cuerpo" unique_id=1288521636]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.94, 0, -0.05)
 material_override = SubResource("ShaderMaterial_x1ue1")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_0gu8t")
 
-[node name="Delante1" type="MeshInstance3D" parent="Cuerpo" unique_id=1820542773]
+[node name="Delante1" type="MeshInstance3D" parent="Cuerpo" unique_id=558742389]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.24, 0, -0.05)
 material_override = SubResource("ShaderMaterial_tcuqr")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_6f7n0")
 
-[node name="Delante2" type="MeshInstance3D" parent="Cuerpo" unique_id=385293911]
+[node name="Delante2" type="MeshInstance3D" parent="Cuerpo" unique_id=229396374]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.22, 0, -0.05)
 material_override = SubResource("ShaderMaterial_eagr7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_vkknj")
 
-[node name="Delante3" type="MeshInstance3D" parent="Cuerpo" unique_id=1170745054]
+[node name="Delante3" type="MeshInstance3D" parent="Cuerpo" unique_id=1832019954]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.52, 0, -0.05)
 material_override = SubResource("ShaderMaterial_1kp46")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_qrglx")
 
-[node name="Delante4" type="MeshInstance3D" parent="Cuerpo" unique_id=681264139]
+[node name="Delante4" type="MeshInstance3D" parent="Cuerpo" unique_id=932894502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, -0.05)
 material_override = SubResource("ShaderMaterial_fl4to")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_yvhjk")
 
-[node name="Delante5" type="MeshInstance3D" parent="Cuerpo" unique_id=664954075]
+[node name="Delante5" type="MeshInstance3D" parent="Cuerpo" unique_id=988042604]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 0, -0.05)
 material_override = SubResource("ShaderMaterial_41qvw")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_woto8")
 
-[node name="Delante6" type="MeshInstance3D" parent="Cuerpo" unique_id=388087950]
+[node name="Delante6" type="MeshInstance3D" parent="Cuerpo" unique_id=1787980970]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.22, 0, -0.05)
 material_override = SubResource("ShaderMaterial_n8w40")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_82k46")
 
-[node name="Delante7" type="MeshInstance3D" parent="Cuerpo" unique_id=351927746]
+[node name="Delante7" type="MeshInstance3D" parent="Cuerpo" unique_id=326890807]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.92, 0, -0.05)
 material_override = SubResource("ShaderMaterial_sqlj1")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_h5top")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=77172709 groups=["chispas"]]
+[node name="Trocitos" type="GPUParticles3D" parent="Cuerpo" unique_id=1272323362 groups=["trocitos"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+cast_shadow = 0
+amount = 3
+lifetime = 0.5
+fixed_fps = 0
+visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_55i1f")
+draw_pass_1 = SubResource("QuadMesh_tvv1r")
+
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=50443377 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 cast_shadow = 0
 amount = 14
@@ -780,15 +851,15 @@ lifetime = 1.4
 fixed_fps = 0
 visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
 local_coords = true
-process_material = SubResource("ParticleProcessMaterial_55i1f")
-draw_pass_1 = SubResource("QuadMesh_tvv1r")
+process_material = SubResource("ParticleProcessMaterial_0j5t7")
+draw_pass_1 = SubResource("QuadMesh_8uibj")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=228593331]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=1607593678]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
-light_color = Color(1, 0.72, 0.38, 1)
+light_color = Color(1, 0.5, 0.22, 1)
 light_energy = 1.6
 omni_range = 6.5
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=919543046]
-libraries/ = SubResource("AnimationLibrary_fl7uy")
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=75229327]
+libraries/ = SubResource("AnimationLibrary_522s4")

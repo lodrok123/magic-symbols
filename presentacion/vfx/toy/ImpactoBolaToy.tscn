@@ -7,14 +7,14 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_mr1my"]
 render_priority = -1
 shader = ExtResource("2_grvcw")
-shader_parameter/color = Color(1, 0.55, 0.14, 1)
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
 shader_parameter/brillo = 0.3
 shader_parameter/caida = 3.0
 shader_parameter/tono = null
 shader_parameter/billboard = 2
 shader_parameter/vida = null
 shader_parameter/latido = null
-shader_parameter/semilla = 0.97469205
+shader_parameter/semilla = 0.7611046
 shader_parameter/anillo = null
 
 [sub_resource type="QuadMesh" id="QuadMesh_ctyoc"]
@@ -31,6 +31,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.0625)
 shader_parameter/radio = 0.3
@@ -61,6 +62,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.332875)
 shader_parameter/radio = 0.3
@@ -91,6 +93,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.16575)
 shader_parameter/radio = 0.3
@@ -121,6 +124,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.436125)
 shader_parameter/radio = 0.3
@@ -151,6 +155,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.269)
 shader_parameter/radio = 0.3
@@ -181,6 +186,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.101875)
 shader_parameter/radio = 0.3
@@ -211,6 +217,7 @@ shader_parameter/velocidad = 1.4
 shader_parameter/escala_ruido = 2.4
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.8
 shader_parameter/tam = Vector2(1.1, 1.37225)
 shader_parameter/radio = 0.3
@@ -241,6 +248,7 @@ shader_parameter/velocidad = null
 shader_parameter/escala_ruido = 2.0
 shader_parameter/brillo = 1.0
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 0.7
 shader_parameter/tam = Vector2(1.9, 2)
 shader_parameter/radio = 0.4
@@ -271,6 +279,7 @@ shader_parameter/velocidad = null
 shader_parameter/escala_ruido = null
 shader_parameter/brillo = 1.1
 shader_parameter/tono = null
+shader_parameter/chisporroteo = null
 shader_parameter/transparencia = 1.0
 shader_parameter/tam = Vector2(1.2, 1.2)
 shader_parameter/radio = 0.2
@@ -293,14 +302,14 @@ center_offset = Vector3(0, 0.6, 0)
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rhbma"]
 render_priority = -1
 shader = ExtResource("2_grvcw")
-shader_parameter/color = Color(1, 0.6, 0.2, 1)
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
 shader_parameter/brillo = 1.0
 shader_parameter/caida = 1.0
 shader_parameter/tono = null
 shader_parameter/billboard = 0
 shader_parameter/vida = null
 shader_parameter/latido = 0.0
-shader_parameter/semilla = 0.9164382
+shader_parameter/semilla = 0.64806676
 shader_parameter/anillo = 1.0
 
 [sub_resource type="QuadMesh" id="QuadMesh_dk1u5"]
@@ -309,7 +318,7 @@ orientation = 1
 
 [sub_resource type="Gradient" id="Gradient_78c06"]
 offsets = PackedFloat32Array(0, 0.5, 1)
-colors = PackedColorArray(1, 0.95, 0.65, 1, 1, 0.7, 0.25, 1, 1, 0.5, 0.12, 0)
+colors = PackedColorArray(1, 0.75, 0.35, 1, 1, 0.45, 0.12, 1, 1, 0.5, 0.12, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_e72vx"]
 gradient = SubResource("Gradient_78c06")
@@ -436,83 +445,83 @@ _data = {
 &"vivir": SubResource("Animation_xju1i")
 }
 
-[node name="ImpactoBolaToy" type="Node3D" unique_id=1703709668]
+[node name="ImpactoBolaToy" type="Node3D" unique_id=1898035461]
 script = ExtResource("1_ssx14")
 vida = 0.9
 titileo = 0.0
 
-[node name="Cuerpo" type="Node3D" parent="." unique_id=1031494921]
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1709866427]
 
-[node name="Estallido" type="Node3D" parent="Cuerpo" unique_id=27573296]
+[node name="Estallido" type="Node3D" parent="Cuerpo" unique_id=1305315390]
 
-[node name="Halo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1136310816]
+[node name="Halo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1779274917]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
 material_override = SubResource("ShaderMaterial_mr1my")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_ctyoc")
 
-[node name="Petalo0" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=272103363]
+[node name="Petalo0" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=677431379]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.36302787, -0.1, 0.11229768)
 material_override = SubResource("ShaderMaterial_r2ofe")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_k2oav")
 
-[node name="Petalo1" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1330493484]
+[node name="Petalo1" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1641602009]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13854632, -0.1, 0.35384306)
 material_override = SubResource("ShaderMaterial_o1bk5")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_ds7hq")
 
-[node name="Petalo2" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=128548202]
+[node name="Petalo2" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1761569912]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.19026344, -0.1, 0.3289374)
 material_override = SubResource("ShaderMaterial_wd0f7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_o8wej")
 
-[node name="Petalo3" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=17833464]
+[node name="Petalo3" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=129154358]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.37580094, -0.1, 0.056335177)
 material_override = SubResource("ShaderMaterial_pm0mp")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_87ugm")
 
-[node name="Petalo4" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=438143286]
+[node name="Petalo4" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=946304175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.27835268, -0.1, -0.2586886)
 material_override = SubResource("ShaderMaterial_88dfj")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_naxvn")
 
-[node name="Petalo5" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=288667158]
+[node name="Petalo5" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=103149817]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.028700842, -0.1, -0.3789146)
 material_override = SubResource("ShaderMaterial_ug57r")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_7rn4l")
 
-[node name="Petalo6" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=844981038]
+[node name="Petalo6" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1275825478]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.31414202, -0.1, -0.21381016)
 material_override = SubResource("ShaderMaterial_4i2c7")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_v8fvn")
 
-[node name="Bola" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1114262673]
+[node name="Bola" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1085869867]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
 material_override = SubResource("ShaderMaterial_blvtl")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_7s5dj")
 
-[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1228747202]
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo/Estallido" unique_id=1625439853]
 material_override = SubResource("ShaderMaterial_46pim")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_v4pqf")
 
-[node name="Anillo" type="Node3D" parent="Cuerpo" unique_id=1447986087]
+[node name="Anillo" type="Node3D" parent="Cuerpo" unique_id=12441949]
 
-[node name="Disco" type="MeshInstance3D" parent="Cuerpo/Anillo" unique_id=846602945]
+[node name="Disco" type="MeshInstance3D" parent="Cuerpo/Anillo" unique_id=1541756212]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
 material_override = SubResource("ShaderMaterial_rhbma")
 cast_shadow = 0
 mesh = SubResource("QuadMesh_dk1u5")
 
-[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1698580680 groups=["chispas"]]
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1368893860 groups=["chispas"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 cast_shadow = 0
 amount = 14
@@ -525,12 +534,12 @@ local_coords = true
 process_material = SubResource("ParticleProcessMaterial_rbf04")
 draw_pass_1 = SubResource("QuadMesh_3h11q")
 
-[node name="Luz" type="OmniLight3D" parent="." unique_id=82635184]
+[node name="Luz" type="OmniLight3D" parent="." unique_id=1124039837]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-light_color = Color(1, 0.72, 0.38, 1)
+light_color = Color(1, 0.5, 0.22, 1)
 light_energy = 1.3
 omni_range = 4.5
 omni_attenuation = 1.4
 
-[node name="Anim" type="AnimationPlayer" parent="." unique_id=152903733]
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=546134372]
 libraries/ = SubResource("AnimationLibrary_bam08")

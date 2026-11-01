@@ -4,7 +4,7 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_add, fog_disabled;
 // RESPLANDOR ADITIVO (prueba 3 de VFX): un disco con caída suave. Con billboard completo detrás de la llama (halo) o tumbado en el suelo (charco de luz).
 // `brillo` es el mando «halo» de EfectoToy.
 
-uniform vec3 color : source_color = vec3(1.0, 0.55, 0.14);
+uniform vec3 color : source_color = vec3(1.0, 0.28, 0.06);
 uniform float brillo : hint_range(0.0, 3.0) = 0.8;
 uniform float caida : hint_range(0.5, 6.0) = 2.4;     // más alto = más concentrado
 uniform float tono : hint_range(0.0, 1.0) = 0.0;
@@ -31,6 +31,6 @@ void fragment() {
 	}
 	float pulso = 1.0 + latido * sin(TIME * 5.3 + semilla * 6.28) + latido * 0.6 * sin(TIME * 9.1 + semilla * 3.0);
 	vec3 c = mix(color, vec3(0.2, 0.5, 1.0), tono);
-	ALBEDO = c * f * brillo * pulso * vida;
+	ALBEDO = c * f * brillo * 0.6 * pulso * vida;
 	ALPHA = 1.0;
 }

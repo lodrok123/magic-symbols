@@ -10,7 +10,7 @@ extends EfectoVfx3D
 
 @export_group("Los diez mandos")
 @export_range(0.3, 3.0, 0.05) var altura: float = 1.0: set = _set_altura
-@export_range(0.3, 2.0, 0.05) var ancho: float = 1.0: set = _set_ancho
+@export_range(0.0, 1.0, 0.05) var chisporroteo: float = 0.6: set = _set_chisporroteo
 @export_range(0.05, 1.0, 0.01) var blandura: float = 0.22: set = _set_blandura
 @export_range(0.0, 1.5, 0.05) var ondulacion: float = 0.6: set = _set_ondulacion
 @export_range(0.1, 4.0, 0.05) var velocidad: float = 1.0: set = _set_velocidad
@@ -20,6 +20,7 @@ extends EfectoVfx3D
 @export_range(0.0, 1.0, 0.05) var chispas: float = 1.0: set = _set_chispas
 @export_range(0.0, 4.0, 0.05) var luz: float = 1.0: set = _set_luz
 @export_group("Otros")
+@export_range(0.3, 2.0, 0.05) var ancho: float = 1.0: set = _set_ancho
 @export_range(0.0, 1.0, 0.01) var aparicion: float = 1.0: set = _set_aparicion
 @export var vida: float = -1.0
 ## Modo proyectil (bola): suelta la estela corta mientras vuela.
@@ -70,6 +71,7 @@ func _process(delta: float) -> void:
 	if _luz != null and _listo:
 		_t += delta
 		var f: float = 1.0 + titileo * (sin(_t * 6.1 + _fase) * 0.6 + sin(_t * 10.7 + _fase * 2.0) * 0.4)
+		f += 0.12 * chisporroteo * (sin(_t * 58.0 + _fase * 3.0) * 0.6 + sin(_t * 87.0 + _fase) * 0.4)   # crepitar: 9-14 Hz, irregular
 		_luz.light_energy = _luz_base * luz * f * aparicion
 
 
@@ -82,6 +84,7 @@ func _aplicar_todo() -> void:
 		return
 	_param_mats("altura", altura)
 	_param_mats("ancho", ancho)
+	_set_chisporroteo(chisporroteo)
 	_param_mats("blandura", blandura)
 	_param_mats("ondulacion", ondulacion)
 	_param_mats("velocidad", velocidad)
@@ -155,6 +158,16 @@ func _set_chispas(v: float) -> void:
 	if _listo:
 		for gp in find_children("*", "GPUParticles3D", true, false):
 			(gp as GPUParticles3D).amount_ratio = clampf(v, 0.0, 1.0)
+
+
+func _set_chisporroteo(v: float) -> void:
+	chisporroteo = v
+	_param_mats("chisporroteo", v)
+	if _listo:
+		for gp in find_children("*", "GPUParticles3D", true, false):
+			if (gp as Node).is_in_group("trocitos"):
+				(gp as GPUParticles3D).amount_ratio = clampf(v, 0.0, 1.0)
+				(gp as GPUParticles3D).emitting = v > 0.01
 
 
 func _set_luz(v: float) -> void:

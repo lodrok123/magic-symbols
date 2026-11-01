@@ -15,6 +15,7 @@ uniform float velocidad : hint_range(0.1, 4.0) = 1.0;         // velocidad a la 
 uniform float escala_ruido : hint_range(0.5, 6.0) = 2.2;      // tamaño de las ondas (más alto = más pequeñas)
 uniform float brillo : hint_range(0.3, 3.0) = 1.0;            // intensidad del color (por encima de 1,3 entra en el resplandor)
 uniform float tono : hint_range(0.0, 1.0) = 0.0;              // 0 fuego, 1 fuego azul
+uniform float chisporroteo : hint_range(0.0, 1.0) = 0.6;   // ruido fino y rápido solo en las puntas (se rompen y desaparecen a saltos) y titileo rápido del brillo
 uniform float transparencia : hint_range(0.2, 1.0) = 0.92;    // opacidad máxima del cuerpo
 group_uniforms;
 
@@ -99,29 +100,40 @@ void fragment() {
 	// el ruido muerde el borde y la punta (los lóbulos redondos de la referencia)
 	d += (ru - 0.28) * lobulos * 1.6 * ondulacion * radio * (0.35 + yn);
 
+	// chisporroteo: ruido de alta frecuencia, 2,5 veces más rápido que el grande, que solo actúa en el tercio de arriba de la lengua
+	float arriba = smoothstep(0.5, 0.85, yn) * chisporroteo;
+	float fino1 = vnoise(vec2(m.x * escala_ruido * 4.5 + semilla * 9.0, m.y * escala_ruido * 4.0 - t * 2.4 * 2.5));
+	float fino2 = vnoise(vec2(m.x * escala_ruido * 7.0 + 3.7, m.y * escala_ruido * 6.0 - t * 2.4 * 3.2 + semilla * 5.0));
+	d += (fino1 - 0.5) * 0.7 * radio * arriba;
 	float suave = blandura * radio * 0.9 + 0.001;
 	float cuerpo = smoothstep(0.0, suave, d);
 	// la punta se deshace suavemente
 	float punta = smoothstep(0.0, 0.35, (1.0 - yn) + (ru - 0.3) * 0.25 * ondulacion);
 	float a = cuerpo * punta;
+	a *= 1.0 - arriba * (1.0 - smoothstep(0.38, 0.5, fino2));         // pedacitos que se separan y se apagan a saltos
 
 	// color: rampa continua naranja -> amarillo -> blanco amarillento, de dentro afuera y de abajo arriba
 	float dentro = clamp(d / max(radio_bola, radio), 0.0, 1.0);
 	float calor = clamp(dentro * 0.9 - yn * 0.3 + (ru - 0.25) * 0.3, 0.0, 1.0);
 	calor = max(calor, base_clara * (1.0 - clamp(yn * 1.8, 0.0, 1.0)) * dentro);
-	vec3 c_naranja = mix(vec3(1.0, 0.42, 0.04), vec3(0.15, 0.40, 1.0), tono);
-	vec3 c_amarillo = mix(vec3(1.0, 0.66, 0.15), vec3(0.35, 0.75, 1.0), tono);
-	vec3 c_blanco = mix(vec3(1.0, 0.92, 0.58), vec3(0.85, 0.97, 1.0), tono);
-	vec3 col = mix(c_naranja, c_amarillo, smoothstep(0.22, 0.8, calor));
-	col = mix(col, c_blanco, smoothstep(0.82, 1.0, calor));
+	// ronda 2: borde rojo-anaranjado que se funde en transparencia, cuerpo naranja saturado, amarillo y blanco solo en un núcleo pequeño
+	calor = pow(calor, 1.8);
+	vec3 c_rojo = mix(vec3(0.85, 0.12, 0.03), vec3(0.05, 0.20, 0.85), tono);
+	vec3 c_naranja = mix(vec3(1.0, 0.30, 0.03), vec3(0.15, 0.40, 1.0), tono);
+	vec3 c_amarillo = mix(vec3(1.0, 0.62, 0.12), vec3(0.35, 0.75, 1.0), tono);
+	vec3 c_blanco = mix(vec3(1.0, 0.88, 0.50), vec3(0.85, 0.97, 1.0), tono);
+	vec3 col = mix(c_rojo, c_naranja, smoothstep(0.1, 0.72, calor));
+	col = mix(col, c_amarillo, smoothstep(0.66, 0.92, calor));
+	col = mix(col, c_blanco, smoothstep(0.88, 1.0, calor));
 	// el filo translúcido más claro (el aro crema de la referencia)
 	float filo = smoothstep(0.0, suave * 0.6, d) * (1.0 - smoothstep(suave * 0.6, suave * 2.2, d));
-	col = mix(col, c_blanco, filo * borde_claro * 0.7);
+	col = mix(col, vec3(1.0, 0.42, 0.06), filo * borde_claro * 0.6);   // el filo es naranja intenso, no crema
 	// el borde es más transparente que el centro: el cuerpo deja ver lo de detrás
 	float a_final = a * mix(0.55, 1.0, smoothstep(0.0, 0.6, dentro)) * transparencia * vida;
 	// que ningún borde del plano se vea nunca (el degradado llega a cero antes)
 	float marco = smoothstep(0.0, 0.1, UV.x) * (1.0 - smoothstep(0.9, 1.0, UV.x)) * smoothstep(0.0, 0.08, UV.y) * (1.0 - smoothstep(0.97, 1.0, UV.y));
 	a_final *= marco;
-	ALBEDO = col * brillo;
+	float titila = 1.0 + 0.14 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);   // 8-15 Hz, irregular
+	ALBEDO = col * brillo * titila;
 	ALPHA = clamp(a_final, 0.0, 1.0);
 }

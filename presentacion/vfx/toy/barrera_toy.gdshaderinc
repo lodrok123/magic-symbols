@@ -72,14 +72,17 @@ void fragment() {
 
 	float dentro = clamp(d / 0.3, 0.0, 1.0);
 	float calor = clamp(dentro * 0.42 + (1.0 - h_rel) * 0.28 - 0.06 + franja * 0.45, 0.0, 1.0);
-	vec3 c_naranja = mix(vec3(1.0, 0.42, 0.04), vec3(0.15, 0.40, 1.0), tono);
-	vec3 c_amarillo = mix(vec3(1.0, 0.70, 0.18), vec3(0.35, 0.75, 1.0), tono);
-	vec3 c_blanco = mix(vec3(1.0, 0.92, 0.58), vec3(0.85, 0.97, 1.0), tono);
-	vec3 col = mix(c_naranja, c_amarillo, smoothstep(0.2, 0.75, calor));
-	col = mix(col, c_blanco, smoothstep(0.82, 1.0, calor));
+	calor = pow(calor, 1.8);
+	vec3 c_rojo = mix(vec3(0.85, 0.12, 0.03), vec3(0.05, 0.20, 0.85), tono);
+	vec3 c_naranja = mix(vec3(1.0, 0.30, 0.03), vec3(0.15, 0.40, 1.0), tono);
+	vec3 c_amarillo = mix(vec3(1.0, 0.62, 0.12), vec3(0.35, 0.75, 1.0), tono);
+	vec3 c_blanco = mix(vec3(1.0, 0.88, 0.50), vec3(0.85, 0.97, 1.0), tono);
+	vec3 col = mix(c_rojo, c_naranja, smoothstep(0.1, 0.72, calor));
+	col = mix(col, c_amarillo, smoothstep(0.62, 0.9, calor));
+	col = mix(col, c_blanco, smoothstep(0.88, 1.0, calor));
 	float filo = smoothstep(0.0, suave * 0.6, d) * (1.0 - smoothstep(suave * 0.6, suave * 2.4, d));
-	col = mix(col, c_blanco, filo * 0.25);
-	vec3 col_cascara = mix(c_amarillo, c_blanco, 0.3);
+	col = mix(col, vec3(1.0, 0.42, 0.06), filo * 0.4);
+	vec3 col_cascara = mix(c_naranja, c_amarillo, 0.25);
 	float a_len = max(lengua, franja * 0.9);
 	vec3 c_fin = mix(col_cascara, col, clamp(a_len * 1.5, 0.0, 1.0));
 	float alfa = max(a_len * 0.85, cascara) * transparencia * vida;

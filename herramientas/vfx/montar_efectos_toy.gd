@@ -70,7 +70,7 @@ func _llama(padre: Node, nombre: String, tam: Vector2, pos: Vector3, p: Dictiona
 	return mi
 
 
-func _halo(padre: Node, nombre: String, lado: float, pos: Vector3, brillo: float, caida: float, billboard: int = 2, color: Color = Color(1.0, 0.55, 0.14), extra: Dictionary = {}, alto: float = -1.0) -> MeshInstance3D:
+func _halo(padre: Node, nombre: String, lado: float, pos: Vector3, brillo: float, caida: float, billboard: int = 2, color: Color = Color(1.0, 0.28, 0.06), extra: Dictionary = {}, alto: float = -1.0) -> MeshInstance3D:
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = nombre
 	var q: QuadMesh = QuadMesh.new()
@@ -99,7 +99,7 @@ func _luz(raiz: Node, pos: Vector3, energia: float, rango: float) -> OmniLight3D
 	var l: OmniLight3D = OmniLight3D.new()
 	l.name = "Luz"
 	l.position = pos
-	l.light_color = Color(1.0, 0.72, 0.38)
+	l.light_color = Color(1.0, 0.5, 0.22)
 	l.light_energy = energia
 	l.omni_range = rango
 	l.omni_attenuation = 1.4
@@ -185,6 +185,12 @@ func _particulas(padre: Node, nombre: String, cantidad: int, vida_s: float, tam:
 	return gp
 
 
+## Trocitos de llama que se desprenden de las puntas: 2-6 por segundo (cantidad / vida), con la rampa roja-naranja-amarilla, suben y se apagan.
+func _trocitos(c: Node, cantidad: int, caja: Vector3, pos: Vector3) -> void:
+	_particulas(c, "Trocitos", cantidad, 0.5, 0.2, caja, Vector2(0.7, 1.4), Vector3(0, 1, 0), 15.0, Vector3(0, 0.4, 0),
+		[Color(1.0, 0.7, 0.2, 0.9), Color(1.0, 0.38, 0.08, 0.8), Color(0.85, 0.15, 0.04, 0.0)], "trocitos", false, 0.0, true, pos)
+
+
 func _anim(raiz: Node, dura_nacer: float = 0.3, dura_morir: float = 0.5, extra: Dictionary = {}) -> void:
 	var ap: AnimationPlayer = AnimationPlayer.new()
 	ap.name = "Anim"
@@ -253,11 +259,12 @@ func _bola() -> Node3D:
 	# núcleo: más pequeño y casi blanco
 	_llama(c, "Nucleo", Vector2(0.9, 1.1), Vector3(0, -0.24, 0), {"radio": 0.14, "punta_h": 0.5, "afilado": 0.9, "radio_bola": 0.22, "blandura": 0.4, "ondulacion": 0.35,
 		"transparencia": 1.0, "brillo": 1.05, "semilla": 0.9, "base_clara": 1.0, "borde_claro": 0.1, "escala_ruido": 3.0, "velocidad": 1.3, "billboard": 2}, 2)
+	_trocitos(c, 2, Vector3(0.1, 0.05, 0.1), Vector3(0, 0.45, 0))
 	_luz(r, Vector3(0, 0, 0), 1.1, 4.5)
 	_particulas(c, "Chispas", 8, 1.3, 0.07, Vector3(0.2, 0.15, 0.2), Vector2(0.3, 0.8), Vector3(0, 1, 0), 40.0, Vector3(0, 0.35, 0),
-		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.85, 0.45, 1.0), Color(1.0, 0.55, 0.15, 0.0)])
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.62, 0.22, 1.0), Color(1.0, 0.55, 0.15, 0.0)])
 	var est: GPUParticles3D = _particulas(c, "Estela", 18, 0.24, 0.3, Vector3(0.06, 0.06, 0.06), Vector2(0.0, 0.1), Vector3(0, 1, 0), 180.0, Vector3.ZERO,
-		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.18, 0.4), Color(1.0, 0.5, 0.12, 0.0)], "estela", false, 0.0, false)
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.4, 0.1, 0.4), Color(1.0, 0.5, 0.12, 0.0)], "estela", false, 0.0, false)
 	est.emitting = false
 	_anim(r)
 	return r
@@ -285,10 +292,10 @@ func _impacto() -> Node3D:
 	var anillo: Node3D = Node3D.new()
 	anillo.name = "Anillo"
 	c.add_child(anillo)
-	_halo(anillo, "Disco", 2.4, Vector3(0, 0.03, 0), 1.0, 1.0, 0, Color(1.0, 0.6, 0.2), {"anillo": 1.0, "latido": 0.0})
+	_halo(anillo, "Disco", 2.4, Vector3(0, 0.03, 0), 1.0, 1.0, 0, Color(1.0, 0.28, 0.06), {"anillo": 1.0, "latido": 0.0})
 	_luz(r, Vector3(0, 0.6, 0), 1.3, 4.5)
 	_particulas(c, "Chispas", 14, 0.9, 0.09, Vector3(0.1, 0.05, 0.1), Vector2(1.6, 3.2), Vector3(0, 1, 0), 70.0, Vector3(0, -3.0, 0),
-		[Color(1.0, 0.95, 0.65, 1.0), Color(1.0, 0.7, 0.25, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", true, 0.95, true, Vector3(0, 0.1, 0))
+		[Color(1.0, 0.75, 0.35, 1.0), Color(1.0, 0.45, 0.12, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", true, 0.95, true, Vector3(0, 0.1, 0))
 	var f_est: Callable = func(an: Animation) -> void:
 		var p: int = an.add_track(Animation.TYPE_VALUE)
 		an.track_set_path(p, NodePath("Cuerpo/Estallido:scale"))
@@ -310,8 +317,8 @@ func _muro() -> Node3D:
 	var r: Node3D = _raiz("MuroFuegoToy")
 	r.set("tam_referencia", Vector3(6.9, 1.5, 0.3))
 	var c: Node3D = r.get_node("Cuerpo")
-	_halo(c, "Charco", 7.6, Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.55, 0.15), {"latido": 0.05}, 2.4)
-	_halo(c, "Resplandor", 7.2, Vector3(0, 0.55, 0), 0.22, 2.6, 2, Color(1.0, 0.6, 0.2), {}, 2.2)
+	_halo(c, "Charco", 7.6, Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.28, 0.06), {"latido": 0.05}, 2.4)
+	_halo(c, "Resplandor", 7.2, Vector3(0, 0.55, 0), 0.22, 2.6, 2, Color(1.0, 0.28, 0.06), {}, 2.2)
 	var alt_atras: Array = [1.45, 1.1, 1.6, 1.25, 1.5, 1.05, 1.55, 1.2, 1.4]
 	for i in 9:
 		var x: float = -3.3 + float(i) * 0.825 + (0.1 if i % 2 == 0 else -0.08)
@@ -326,9 +333,10 @@ func _muro() -> Node3D:
 		_llama(c, "Delante%d" % i, Vector2(1.5, h * 1.25), Vector3(x, 0.0, -0.05), {"radio": 0.42, "punta_h": h, "afilado": 0.8, "blandura": 0.28, "ondulacion": 0.8,
 			"transparencia": 0.78, "brillo": 1.0, "velocidad": 1.0 + 0.06 * float(i % 3), "semilla": 0.5 + 0.09 * float(i), "borde_claro": 0.5, "base_clara": 0.8,
 			"escala_ruido": 2.4, "lobulos": 0.35}, 1)
+	_trocitos(c, 3, Vector3(3.0, 0.05, 0.15), Vector3(0, 1.0, 0))
 	_luz(r, Vector3(0, 0.7, 0), 1.6, 6.5)
 	_particulas(c, "Chispas", 14, 1.4, 0.07, Vector3(3.2, 0.1, 0.2), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
-		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.5, 0))
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.5, 0))
 	_anim(r)
 	return r
 
@@ -339,17 +347,18 @@ func _pilar() -> Node3D:
 	var r: Node3D = _raiz("PilarFuegoToy")
 	r.set("tam_referencia", Vector3(1.0, 4.0, 1.0))
 	var c: Node3D = r.get_node("Cuerpo")
-	_halo(c, "Charco", 2.6, Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.55, 0.15), {"anillo": 0.5})
-	_halo(c, "Resplandor", 3.4, Vector3(0, 1.4, 0), 0.2, 2.8, 2, Color(1.0, 0.6, 0.2), {}, 4.2)
+	_halo(c, "Charco", 2.6, Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5})
+	_halo(c, "Resplandor", 3.4, Vector3(0, 1.4, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06), {}, 4.2)
 	_llama(c, "Exterior", Vector2(2.1, 5.0), Vector3(0, 0.0, 0), {"radio": 0.62, "punta_h": 4.3, "afilado": 0.32, "blandura": 0.35, "ondulacion": 1.0, "lobulos": 0.55,
 		"transparencia": 0.45, "brillo": 0.95, "velocidad": 0.9, "semilla": 0.11, "borde_claro": 0.4, "base_clara": 0.4, "escala_ruido": 1.5, "bultos": 0.22, "bultos_freq": 5.0}, 0)
 	_llama(c, "Cuerpo", Vector2(1.7, 4.8), Vector3(0, 0.0, 0), {"radio": 0.5, "punta_h": 4.0, "afilado": 0.3, "blandura": 0.28, "ondulacion": 0.9, "lobulos": 0.5,
 		"transparencia": 0.8, "brillo": 1.0, "velocidad": 1.1, "semilla": 0.52, "borde_claro": 0.5, "base_clara": 0.7, "escala_ruido": 1.8, "bultos": 0.3, "bultos_freq": 6.5}, 1)
 	_llama(c, "Nucleo", Vector2(1.1, 3.6), Vector3(0, 0.0, 0), {"radio": 0.28, "punta_h": 3.0, "afilado": 0.4, "blandura": 0.35, "ondulacion": 0.7, "lobulos": 0.4,
 		"transparencia": 0.9, "brillo": 1.05, "velocidad": 1.35, "semilla": 0.83, "borde_claro": 0.1, "base_clara": 1.0, "escala_ruido": 2.2, "bultos": 0.25, "bultos_freq": 7.5}, 2)
+	_trocitos(c, 3, Vector3(0.3, 0.1, 0.3), Vector3(0, 3.0, 0))
 	_luz(r, Vector3(0, 1.3, 0), 2.0, 7.0)
 	_particulas(c, "Chispas", 16, 1.8, 0.07, Vector3(0.3, 0.1, 0.3), Vector2(0.6, 1.5), Vector3(0, 1, 0), 20.0, Vector3(0, 0.5, 0),
-		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.3, 0))
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.3, 0))
 	_anim(r, 0.4, 0.6)
 	return r
 
@@ -360,7 +369,7 @@ func _barrera() -> Node3D:
 	var r: Node3D = _raiz("BarreraFuegoToy")
 	r.set("tam_referencia", Vector3(3.0, 3.0, 3.0))
 	var c: Node3D = r.get_node("Cuerpo")
-	_halo(c, "Anillo", 3.9, Vector3(0, 0.03, 0), 0.8, 1.0, 0, Color(1.0, 0.55, 0.15), {"anillo": 1.0, "latido": 0.04})
+	_halo(c, "Anillo", 3.9, Vector3(0, 0.03, 0), 0.8, 1.0, 0, Color(1.0, 0.28, 0.06), {"anillo": 1.0, "latido": 0.04})
 	var esf: MeshInstance3D = MeshInstance3D.new()
 	esf.name = "Cascara"
 	var sm: SphereMesh = SphereMesh.new()
@@ -384,8 +393,9 @@ func _barrera() -> Node3D:
 	m_atras.next_pass = m_delante
 	esf.material_override = m_atras
 	c.add_child(esf)
+	_trocitos(c, 3, Vector3(1.0, 0.1, 1.0), Vector3(0, 1.8, 0))
 	_luz(r, Vector3(0, 0.7, 0), 1.5, 5.5)
 	_particulas(c, "Chispas", 14, 1.6, 0.07, Vector3(1.2, 0.1, 1.2), Vector2(0.3, 0.9), Vector3(0, 1, 0), 25.0, Vector3(0, 0.5, 0),
-		[Color(1.0, 0.95, 0.65, 0.0), Color(1.0, 0.82, 0.4, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.2, 0))
+		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", false, 0.0, true, Vector3(0, 0.2, 0))
 	_anim(r, 0.5, 0.6)
 	return r

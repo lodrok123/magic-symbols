@@ -31,7 +31,7 @@ Media de las cinco: **3,3**. Es la nota de quien lo ha hecho; la que vale es la 
 
 ## Los diez mandos (raíz de cada escena, inspector, grupo «Los diez mandos», con rango)
 
-`altura` (0,3–3) · `ancho` (0,3–2) · `blandura` (0,05–1) · `ondulacion` (0–1,5) · `velocidad` (0,1–4) · `brillo` (0,3–3) · `halo` (0–3) · `tono` (0 fuego, 1 azul) · `chispas` (0–1, proporción) · `luz` (0–4, energía de la luz).
+`altura` (0,3–3) · `chisporroteo` (0–1, ronda 2; sustituye a `ancho`, que sigue como ajuste suelto en «Otros») · `blandura` (0,05–1) · `ondulacion` (0–1,5) · `velocidad` (0,1–4) · `brillo` (0,3–3) · `halo` (0–3) · `tono` (0 fuego, 1 azul) · `chispas` (0–1, proporción) · `luz` (0–4, energía de la luz).
 Cada instancia duplica sus materiales al nacer, así que mover un mando en una no cambia las demás. Fuera de los diez: `vida` (segundos que dura al lanzar), `proyectil` (bola), `titileo`, `aparicion` (la anima el AnimationPlayer).
 
 ## Método
@@ -72,3 +72,24 @@ Total de reloj de agente ≈ **40 min** de las 16 h de presupuesto. Hora de Pabl
 - Que los shaders **compilen** se ve porque salen en las capturas (ventana real, Vulkan); la prueba sin ventana solo comprueba que cargan.
 - El lab usa el bloom (`glow`) del entorno; no se ha probado el efecto en el entorno del juego, que puede no tenerlo (los halos aditivos están para que no dependa de él, pero el aspecto cambiaría).
 - Sin comparar a ojo con la referencia lado a lado en una pantalla de Pablo; los GIF son 640 px de ancho, 24 fps, 192 colores.
+
+## Ronda 2 (1/11): menos amarillo, más contraste y chisporroteo en las puntas
+
+Pablo: «la mejor prueba de hoy», pero demasiado amarillo, faltan rojos y anaranjados y contraste, y las puntas son lisas y lentas.
+
+**Color.** Rampa nueva en `llama_toy.gdshader` y en la barrera: borde rojo-anaranjado (0,85 / 0,12 / 0,03) que se funde en transparencia, cuerpo naranja saturado (1 / 0,30 / 0,03), amarillo (1 / 0,62 / 0,12) y blanco crema solo en un núcleo pequeño; `calor` pasa por `pow(calor, 1,8)` para que el salto núcleo-cuerpo se note; el filo ya no es crema sino naranja intenso (como el borde de las lenguas de `eow_hierba.jpg`). Halos aditivos en rojo-naranja y a 0,6 de lo que eran; luz, chispas y trocitos en naranja. No hizo falta un mando `calidez`: se quedan los diez.
+
+**Medida** (`herramientas/medir_tonos_fuego.py`: píxeles con saturación > 0,4 y valor > 0,35, sin el panel; rojo-naranja = tono < 20°, naranja 20–40°, amarillo > 40°; las capturas de antes están en `antes_ronda2/`):
+
+| Captura | Antes: rojo-naranja / naranja / amarillo | Después |
+|---|---|---|
+| `muro_cerca` | 0 / 38 / 62 % | **41 / 59 / 0 %** |
+| `pilar_cerca` | 0 / 24 / 76 % | **20 / 79 / 1 %** |
+| `bola_cerca` | 0 / 17 / 83 % | 31 / 69 / 0 % |
+| `barrera_cerca` | 0 / 8 / 92 % | 7 / 89 / 4 % |
+
+Objetivo 15–30 % rojo-naranja, 50–65 % naranja, ≤ 20 % amarillo: el muro tiene demasiado rojo (41 %), el pilar y la barrera demasiado naranja y poco rojo (la barrera, 7 %); el amarillo ya no pasa del 4 %. Límite de la medida: el borde translúcido sobre el suelo gris del lab se mezcla y cuenta como naranja o desaparece; el núcleo amarillo-blanco es tan pequeño (< 2 %) que apenas cuenta.
+
+**Chisporroteo.** Mando `chisporroteo` (0–1, por defecto 0,6) que escala tres cosas: (1) en el shader, dos ruidos finos y rápidos (2,5 y 3,2 veces la velocidad del grande) que solo actúan en el tercio de arriba de cada lengua: muerden el borde y cortan pedacitos que se apagan a saltos; el cuerpo sigue blando; (2) trocitos de llama que se desprenden de la punta (partículas con rampa amarillo → naranja → rojo, vida 0,5 s, 2 a 6 por segundo según el efecto: bola 4, muro 6, pilar 6, barrera 6); (3) titileo irregular de 9 y 14 Hz del brillo (± 14 %) y de la luz (± 12 %). Con `chisporroteo` 0 vuelve a lo liso de la ronda 1. Presupuesto: 1 luz y ≤ 32 partículas por efecto.
+
+**Resultados.** Capturas y los cinco GIF de 3 s rehechos (en los GIF se ven las puntas romperse y los trocitos subir); diez muros a 1920 × 1080: 786 fps sin vsync; prueba sin ventana a 0 fallos (la comprobación de paleta ahora pide los cuatro colores de la rampa y rojo ≥ 0,85). Notas propias tras la ronda: bola 3,5, muro 4, pilar 4, bola en movimiento 3, barrera 3,5 (la barrera gana mucho con el color; la estela de la bola sigue siendo una nube). Reloj de la ronda: 17:25 – 17:38, ≈ 13 min (de ellos ≈ 3 perdidos por un parche que dejó dos `@export` con el mismo nombre y escenas generadas sin script).

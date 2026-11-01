@@ -22,7 +22,7 @@ const CAPTURAS: String = "res://docs/capturas/comparativa_vfx/godot_toy/"
 const ESCENAS: Dictionary = {
 	"BolaFuegoToy": Vector3(0.8, 0.8, 0.8), "MuroFuegoToy": Vector3(6.9, 1.5, 0.3), "PilarFuegoToy": Vector3(1.0, 4.0, 1.0),
 	"BarreraFuegoToy": Vector3(3.0, 3.0, 3.0), "ImpactoBolaToy": Vector3(1.0, 1.0, 1.0)}
-const MANDOS: PackedStringArray = ["altura", "ancho", "blandura", "ondulacion", "velocidad", "brillo", "halo", "tono", "chispas", "luz"]
+const MANDOS: PackedStringArray = ["altura", "chisporroteo", "blandura", "ondulacion", "velocidad", "brillo", "halo", "tono", "chispas", "luz"]
 const PNG: PackedStringArray = ["bola_cerca", "bola_juego", "bola_vuelo", "bola_impacto", "muro_cerca", "muro_juego", "pilar_cerca", "pilar_juego", "barrera_cerca", "barrera_juego", "diez_muros"]
 const GIF: PackedStringArray = ["bola_3s", "bola_vuelo_3s", "muro_3s", "pilar_3s", "barrera_3s"]
 const SHADERS: PackedStringArray = ["llama_toy.gdshader", "halo_toy.gdshader", "barrera_toy.gdshader", "barrera_toy_trasera.gdshader"]
@@ -129,13 +129,13 @@ func _mandos_mandan() -> void:
 	var r: Dictionary = _rangos(a)
 	_ok("diez mandos con rango en el raíz", r.size() == 10, str(r.keys()))
 	a.set("altura", 2.0)
-	a.set("ancho", 1.5)
+	a.set("chisporroteo", 0.0)
 	a.set("tono", 1.0)
 	a.set("blandura", 0.4)
 	var m_a: ShaderMaterial = _primer_material(a, "llama_toy.gdshader")
 	var m_b: ShaderMaterial = _primer_material(b, "llama_toy.gdshader")
 	_ok("altura llega al material de la instancia", m_a != null and absf(float(m_a.get_shader_parameter("altura")) - 2.0) < 0.001)
-	_ok("ancho, tono y blandura llegan", m_a != null and absf(float(m_a.get_shader_parameter("ancho")) - 1.5) < 0.001 and absf(float(m_a.get_shader_parameter("tono")) - 1.0) < 0.001
+	_ok("chisporroteo, tono y blandura llegan", m_a != null and absf(float(m_a.get_shader_parameter("chisporroteo"))) < 0.001 and absf(float(m_a.get_shader_parameter("tono")) - 1.0) < 0.001
 		and absf(float(m_a.get_shader_parameter("blandura")) - 0.4) < 0.001)
 	_ok("las demás instancias no cambian (materiales propios)", m_b != null and m_a != m_b and absf(float(m_b.get_shader_parameter("altura")) - 1.0) < 0.001)
 	a.set("chispas", 0.5)
@@ -185,17 +185,17 @@ func _estilo() -> void:
 	_ok("rampa continua: mix + smoothstep, sin step() ni escalones", llama.contains("smoothstep") and llama.contains("mix(") and not llama.contains(" step("))
 	# colores de fuego: los tres vec3 de la rampa (naranja, amarillo, blanco) antes de la versión azul
 	var re: RegEx = RegEx.new()
-	re.compile("c_(naranja|amarillo|blanco)\\s*=\\s*mix\\(vec3\\(([0-9.]+),\\s*([0-9.]+),\\s*([0-9.]+)\\)")
+	re.compile("c_(rojo|naranja|amarillo|blanco)\\s*=\\s*mix\\(vec3\\(([0-9.]+),\\s*([0-9.]+),\\s*([0-9.]+)\\)")
 	var vistos: int = 0
 	var oscuros: bool = false
 	for ms in re.search_all(llama):
 		vistos += 1
 		var rr: float = float(ms.get_string(2))
 		var gg: float = float(ms.get_string(3))
-		if rr < 0.95 or gg < 0.35:
+		if rr < 0.85 or (ms.get_string(1) != "rojo" and gg < 0.3):
 			oscuros = true
-	_ok("tres colores de fuego encontrados, ninguno rojo oscuro (r ≥ 0,95, g ≥ 0,35)", vistos == 3 and not oscuros, "vistos %d" % vistos)
-	_ok("el azul solo entra por el mando tono", llama.contains("mix(vec3(1.0, 0.42") and llama.contains("tono"))
+	_ok("cuatro colores de la rampa (rojo-anaranjado #D9...: r ≥ 0,85; naranja, amarillo y blanco con g ≥ 0,3), ninguno rojo oscuro", vistos == 4 and not oscuros, "vistos %d" % vistos)
+	_ok("el azul solo entra por el mando tono", llama.contains("mix(vec3(1.0, 0.30") and llama.contains("tono"))
 
 
 func _defecto(codigo: String, nombre: String) -> float:
