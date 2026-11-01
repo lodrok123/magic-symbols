@@ -49,14 +49,14 @@ Rellenada el 1/11 por la noche. **Pablo decidió a media tarde quedarse en Godot
 |---|---|---|---|---|---|
 | Aspecto por efecto frente a la referencia (Pablo, 1–5, media de cinco) | 3 | pendiente de Pablo (agente: bola 4,5, muro 4,5, pilar 4,5, vuelo 3,5, barrera 4) | — | — | Pablo sobre la ronda 3: «por fin esta sí es una dirección» |
 | Efectos entregados de cinco | 2 | 5 (el impacto de la bola, de la ronda 2) | parado | — | |
-| Horas de agente | 2 | ≈ 1 h 45 en seis rondas (40 + 13 + 9 + 10 + 11 + 12 min) | — | 12 min de búsqueda | de las 16 |
+| Horas de agente | 2 | ≈ 2 h en siete rondas (40 + 13 + 9 + 10 + 11 + 12 + 15 min) | — | 12 min de búsqueda | de las 16 |
 | Cinco modificaciones: cuántas solo, tiempo | 3 | pendiente; las cinco salen por mando o parámetro y la prueba sin ventana lo comprueba | — | — | |
 | Fps diez muros 1080p | 1 | 638 sin vsync | — | — | |
 | Flujo que sobrevive (sin ventana, pruebas, texto, capturas) | 3 | 5 | — | — | 0–5 |
 | Contenido ajeno en lo que se ve | 1 | 4 texturas del pack gratuito de Le Lu (`assets/vfx/lelu_noise/`, permiso en su readme): la silueta de las lenguas | — | — | % |
 | Coste de llegar al juego entero | 3 | 0 | 50–80 jornadas | 50–80 jornadas + licencias | |
 
-### 4.1 Las seis rondas de Godot (rama `claude/prueba3-godot-toy`)
+### 4.1 Las siete rondas de Godot (rama `claude/prueba3-godot-toy`)
 
 | Ronda | Commit | Qué | Veredicto |
 |---|---|---|---|
@@ -66,8 +66,9 @@ Rellenada el 1/11 por la noche. **Pablo decidió a media tarde quedarse en Godot
 | 4 | `eab5262a` | Muro como una malla de sección rectangular redondeada de 6,9 × 0,6 m; bola con cara trasera descartada | Muro resuelto; la bola gana una estrella de meridianos en la base |
 | 5 | `da21c6a0` | Bola con base fundida y disco | No resuelto: disco con rayos y tapa en vuelo |
 | 6 | `ba232777` | Bola como billboard con el método en 2D y gradiente radial; en vuelo alineada a la velocidad y estirada | Una sola silueta, sin polos; se pierde el perfil a ras de suelo |
+| 7 | `a9004af8` | Bola deformada por dos ruidos lentos (no es esfera); cabeza (head) propia: quad blanco-amarillo con destello de 4 puntas y halo corto; cola que nace detrás de la cabeza con 5 jirones y 6 estelas de chispas con punta de estrella | Apuntes de Pablo: «se deforma libremente» y «si modificas la cresta (head) ya estaría». Amarillo 28–30 %, por encima del 20 % (anillo de la cabeza y halo); queda un `ERROR: Index p_pass = 1` inofensivo |
 
-Tonos finales (rojo-naranja / naranja / amarillo; objetivo 15–30 / 50–65 / ≤ 20): muro 17 / 60 / 23, pilar 26 / 57 / 17, bola 18 / 63 / 19, barrera 38 / 48 / 14.
+Tonos finales (rojo-naranja / naranja / amarillo; objetivo 15–30 / 50–65 / ≤ 20): muro 17 / 60 / 23, pilar 26 / 57 / 17, bola 18 / 55 / 28 (ronda 7; en vuelo 14 / 57 / 30), barrera 38 / 48 / 14.
 
 ## 5. Calendario
 
