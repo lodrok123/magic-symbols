@@ -389,6 +389,7 @@ func _reglas_nuevas(runes: Dictionary) -> void:
 	await _solidez_y_proyectil(runes)
 	# --- A4 · ᚷ en m/s de radio ---
 	await _crece_en_metros(runes)
+	await _crece_casillas(runes)
 	# --- A5 · cada flecha SUCESIVA suma impulso_salida ---
 	await _impulso_por_flecha(runes)
 
@@ -491,6 +492,18 @@ func _impulso_por_flecha(runes: Dictionary) -> void:
 			_ok("A5 %s flecha×%d: recorre %.2f de %.0f casillas (≥ 80 %%, motivo «%s»)" % [elemento, n, rec, h.distancia_max, v.motivo_fin], obstaculo or rec >= UMBRAL_ALCANCE * h.distancia_max)
 			await _limpiar({"vivos": _vivos()})
 
+
+## 2/11 (A2 «Sello se ejecuta»): MEDICIÓN, no fallo. La auditoría del 24/10 (#8) dijo que ᚷ no cambia ninguna casilla con ≤ 3 glifos. Aquí se mide: el volumen quieto de cada elemento con ᚷ×0..3 y cuántas casillas ocupa.
+## Hoy: ᚷ×1 sube el radio ×1,30 (0,10 → 0,13 m; decisión de Pablo 31/10, REV 01) y para sumar una casilla hace falta pasar de 0,5 m de semieje, así que SALE 1 casilla en los tres: queda como AVISO hasta que Pablo decida.
+func _crece_casillas(runes: Dictionary) -> void:
+	for elemento in ELEMENTOS:
+		var cuentas: Array = []
+		for n in [0, 1, 2, 3]:
+			var r: Dictionary = _ejecutar(runes[elemento], _veces("pulso", n), false)
+			cuentas.append(int(r["casillas"]))
+			await _limpiar(r)
+		var cambia: bool = cuentas[1] > cuentas[0]
+		print("%s ᚷ×0..3 ocupa %s casillas · ᚷ×1 %s" % ["OK    A4 medido" if cambia else "AVISO A4 medido:", str(cuentas), "añade casilla" if cambia else "NO añade ninguna casilla (semieje 0,10 → 0,13 m; hace falta > 0,5 m)"])
 
 ## ᚷ: m/s de radio.
 func _crece_en_metros(runes: Dictionary) -> void:

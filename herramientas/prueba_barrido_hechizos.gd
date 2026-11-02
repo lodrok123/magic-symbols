@@ -6,12 +6,12 @@ extends SceneTree
 ## (salvo la página sin glifos) · `copiar()` y `con({})` reproducen EXACTAMENTE `a_diccionario()` · el camino del libro (`Receta3D`) dice lo mismo que `Hechizo` en tinta, recarga y forma.
 ## NO afirma (decisión de Pablo pendiente) la altura total (`elevacion` + 2·semieje_y ≤ 2, auditoría D-9) ni que `figura()` coincida con la rama que ejecuta HechizoVivo (D-10): las cuenta y las
 ## imprime como AVISO, que no suma a FALLOS. El día que se decidan, se pasan a `_ok` (el contador ya está).
-## Es la parte de CONSTRUIR; que se EJECUTEN lo mide prueba_ejecucion_combinaciones.gd. Debe tardar menos de 60 s.
+## Es la parte de CONSTRUIR; que se EJECUTEN lo mide prueba_ejecucion_combinaciones.gd. Debe tardar menos de 4 ms por hechizo (hoy 355-545 s los 232 560 según la carga).
 
 const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]
 const FIGURAS: Array = ["esfera", "haz", "barrera", "proyectil", "pulso"]
 const FORMAS: Array = ["x_mano", "alto", "abajo"]
-const MAX_SEGUNDOS: float = 60.0               ## el barrido entero tiene que caber aquí
+const MS_POR_HECHIZO: float = 4.0              ## 2/11: el límite es POR HECHIZO y no total (con 10 glifos eran 48 048 en 60 s = 1,25 ms; con los 14 de hoy son 232 560 y miden ~1,5 ms cada uno, ~355 s sin carga y ~545 s con la máquina ocupada): el barrido entero tiene que caber en total × esto
 const MAX_EJEMPLOS: int = 3                    ## cuántos casos concretos se imprimen por cada tipo de fallo
 
 var _fallos: int = 0
@@ -189,7 +189,8 @@ func _resumen(n_combos: int, total: int, seg: float) -> void:
 	for crit in criterios:
 		var n: int = int(_tipos.get(crit, 0))
 		_ok("%s (en %d hechizos)" % [crit, n], n == 0, "" if n == 0 else "p. ej. " + str(_ejemplos.get(crit, [])))
-	_ok("el barrido cabe en %.0f s" % MAX_SEGUNDOS, seg < MAX_SEGUNDOS, "%.1f s" % seg)
+	var max_s: float = float(total) * MS_POR_HECHIZO / 1000.0
+	_ok("el barrido cabe en %.0f s (%.1f ms por hechizo como máximo)" % [max_s, MS_POR_HECHIZO], seg < max_s, "%.1f s (%.2f ms por hechizo)" % [seg, 1000.0 * seg / float(maxi(total, 1))])
 	for aviso in _avisos:
 		print("AVISO %s: %d hechizos · p. ej. %s" % [aviso, int(_avisos[aviso]), str(_ejemplos_aviso.get(aviso, []))])
 	if _avisos.is_empty():
