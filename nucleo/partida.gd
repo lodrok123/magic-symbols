@@ -135,6 +135,7 @@ static func reunir(ranura: int, extra: Dictionary = {}) -> Dictionary:
 			"guardado_unix": Time.get_unix_time_from_system(),
 			"segundos_jugados": int(segundos_jugados()),
 			"punto": String(extra.get("punto", "")),
+			"hora_dia": float(extra.get("hora_dia", CicloDia3D.HORA)),      # C1 (2/11): la hora del ciclo de día (0-24) viaja con la partida
 		},
 		"jugadora": {
 			"mapa_actual": String(extra.get("mapa_actual", "")),
@@ -198,6 +199,9 @@ static func cargar(ranura: int = -1) -> Dictionary:
 	Misiones.i().desde_dic(_dic(d.get("misiones", {})))
 	Estadisticas.desde_dic(d.get("estadisticas", {}))      # A3: un archivo v2 no la trae = ceros
 	mundo = _dic(d.get("mundo", {})).duplicate(true)
+	var hora: Variant = _dic(d.get("meta", {})).get("hora_dia")           # un archivo de antes de C1 no la trae: la hora se queda como esté
+	if hora != null:
+		CicloDia3D.HORA = fposmod(float(hora), 24.0)
 	_segundos_base = float(_dic(d.get("meta", {})).get("segundos_jugados", 0.0))
 	_t0_ms = Time.get_ticks_msec()
 	return d
@@ -351,8 +355,11 @@ static func extra_de(mundo_nivel: Node, jug: Node, c: Vector2i) -> Dictionary:
 		if pj != null:
 			extra["ropa_puesta"] = (pj as Object).call("ropa_puesta")
 	var ez: EstadoZona3D = EstadoZona3D.actual
+	var del_nivel: Dictionary = {}
 	if ez != null and is_instance_valid(ez):
-		extra["mundo"] = {nivel: ez.a_dic()}
+		del_nivel = ez.a_dic()
+	del_nivel["suelo"] = Terreno3D.estados.a_dic()            # C1 (2/11): mojado, escarcha, quemado, segado y electrificado del suelo, con lo que les queda
+	extra["mundo"] = {nivel: del_nivel}
 	return extra
 
 
@@ -376,6 +383,8 @@ static func aplicar_continuar(mundo_nivel: Node, jug: Node) -> bool:
 	var mundo_n: Variant = _dic(d.get("mundo", {})).get(nivel, {})
 	if mundo_n is Dictionary and EstadoZona3D.actual != null and is_instance_valid(EstadoZona3D.actual):
 		EstadoZona3D.actual.desde_dic(mundo_n as Dictionary)
+	if mundo_n is Dictionary and (mundo_n as Dictionary).has("suelo"):
+		Terreno3D.estados.desde_dic(_dic((mundo_n as Dictionary)["suelo"]))      # C1 (2/11): el suelo vuelve como se guardó (un archivo anterior no trae la clave = el suelo del nivel recién montado)
 	var pj: Variant = jug.get("pj")
 	if pj != null:
 		for id in j.get("ropa_puesta", []):

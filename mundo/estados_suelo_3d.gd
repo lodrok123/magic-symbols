@@ -56,6 +56,12 @@ const TRANSICIONES: Array = [
 ## y lo quemado y lo segado se quedan.
 const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "mojada": 20.0, "segada": 0.0}
 
+## C1 (2/11, lote 3 cambio 1), la columna «al_caducar»: qué estado queda en la casilla cuando OTRO caduca (se quita el que caduca y se pone este; "" o sin fila = nada). Hoy solo hay una fila: lo que
+## se hiela (una `helada` que se puso con caducidad) se deshiela y deja la casilla MOJADA, que es lo que ya hacen `Lanzador3D._derretir` y `Hierba3D` por su cuenta (son dos relojes de 20 s que siguen
+## vivos; ver DIARIO 341). Mientras `DURA["helada"]` sea 0 y nadie pase `dura` a `poner`, esta fila no se usa; es el sitio donde quedará la regla cuando el Lanzador consulte este reloj en vez del suyo.
+## El mojado se seca sin más (sin fila), como siempre.
+const AL_CADUCAR: Dictionary = {"helada": "mojada"}
+
 ## HUMEDAD QUE SE VE (27/10, idea de DK Bananza: «el suelo que toca el agua se oscurece poco a poco»). Solo aspecto: el hecho «mojada»
 ## es sí/no y dura lo de `DURA`; lo que pinta la imagen sube en SUBE s al mojarse (el agua empapa) y baja en los últimos SECADO s
 ## (se seca). Un estado sin fila aquí se pinta con su intensidad tal cual, como siempre.
@@ -219,6 +225,9 @@ func avanzar(dt: float) -> void:
 				_sucia = true                # se está secando: la imagen cambia
 		for c in caducan:
 			poner(c, String(estado), false)
+			var despues: String = String(AL_CADUCAR.get(estado, ""))
+			if despues != "":
+				poner(c, despues, true)              # al_caducar: lo helado queda mojado (con la caducidad del mojado, `DURA`)
 
 
 ## F4: a qué velocidad corre el reloj de `estado` en `c` según la zona (1 = normal): el mojado se seca 1/`secado_x` veces más deprisa; lo helado con caducidad, 1/`hielo_dura_x`.
@@ -350,6 +359,55 @@ func celdas(estado: String) -> Array:
 
 func cuantas(estado: String) -> int:
 	return (_celdas.get(estado, {}) as Dictionary).size()
+
+
+## C1 punto 3 (partida entera): el estado del suelo como diccionario para el archivo de partida. Por estado, una lista de [x, y, intensidad, segundos que le quedan] (0 = no caduca) y, aparte,
+## las casillas con escarcha. NO guarda la «helada» que no es escarcha (el hielo sobre agua lo lleva `Terreno3D.poner_helada` y la simulación del agua, que no se guardan) ni el avance visual
+## (`_avance`, solo aspecto) ni la edad del empapado (al cargar, lo mojado se ve entero).
+func a_dic() -> Dictionary:
+	var estados: Dictionary = {}
+	for estado in TODOS:
+		var lista: Array = []
+		for c in celdas(estado):
+			var p: Vector2i = c
+			if estado == HELADA and not es_escarcha(p):
+				continue
+			lista.append([p.x, p.y, snappedf(intensidad(p, estado), 0.001), snappedf(queda(p, estado), 0.01)])
+		if not lista.is_empty():
+			estados[estado] = lista
+	var esc: Array = []
+	for c in _escarcha.keys():
+		if tiene(c as Vector2i, HELADA):
+			esc.append([(c as Vector2i).x, (c as Vector2i).y])
+	return {"estados": estados, "escarcha": esc}
+
+
+## Lo contrario de `a_dic`: deja el suelo como estaba en el archivo. Vacía antes lo que hubiera (`limpiar`) y pone cada casilla con `poner` (así avisa por `cambio` y la hierba, el suelo y el
+## agua se redibujan). Un diccionario ilegible, un estado desconocido o una casilla fuera del mapa se saltan sin romper nada.
+func desde_dic(d: Dictionary) -> void:
+	var antes: Array = []
+	for estado in TODOS:
+		for c in celdas(estado):
+			antes.append([c, estado])
+	limpiar()
+	for par in antes:
+		cambio.emit(par[0], String(par[1]), false)     # `limpiar` no avisa: quien dibuja se entera de que lo de antes ya no está
+	var esc: Variant = d.get("escarcha", [])
+	if esc is Array:
+		for v in (esc as Array):
+			if v is Array and (v as Array).size() >= 2:
+				_escarcha[Vector2i(int(v[0]), int(v[1]))] = true     # antes de `poner`: quien escuche ya debe ver que no es hielo de agua
+	var estados: Variant = d.get("estados", {})
+	if not (estados is Dictionary):
+		return
+	for estado in (estados as Dictionary).keys():
+		var lista: Variant = (estados as Dictionary)[estado]
+		if not TODOS.has(String(estado)) or not (lista is Array):
+			continue
+		for v in (lista as Array):
+			if not (v is Array) or (v as Array).size() < 4:
+				continue
+			poner(Vector2i(int(v[0]), int(v[1])), String(estado), true, float(v[2]), float(v[3]))
 
 
 ## Empieza de cero (cambio de nivel). No emite `cambio`: quien recarga el nivel se redibuja entero.

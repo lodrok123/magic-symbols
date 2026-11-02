@@ -5,7 +5,8 @@
     "guardado_en": "2026-10-29T18:40:00",
     "guardado_unix": 1793299200.0,
     "segundos_jugados": 5420,
-    "punto": "bosque1.s2.fogata"
+    "punto": "bosque1.s2.fogata",
+    "hora_dia": 16.5
   },
   "jugadora": {
     "mapa_actual": "Bosque_01",
