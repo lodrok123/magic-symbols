@@ -7,10 +7,15 @@ extends SceneTree
 ##       a su lado) y celdas.json (figura, ejes y rótulos) para herramientas/lamina_vfx.py
 ##   godot --path . --script res://herramientas/captura_fuego_parametrico.gd -- <carpeta> tonos
 ##       las cuatro figuras de la prueba 3 con la cámara «cerca» del lab (la de siempre) y las escenas validadas con la misma cámara, 1600×1000, para herramientas/medir_tonos_fuego.py
+##   godot --path . --script res://herramientas/captura_fuego_parametrico.gd -- <carpeta> hielo_rayo
+##       (B1, 2/11/2026) las cinco figuras de HieloToy y de RayoToy con la cámara «cerca» del lab (tamaño de la prueba 3) y tres fotogramas del ciclo de cada uno (hielo: pilar que crece / vive / se rompe;
+##       rayo: muro que nace / vive / muere, a cámara lenta: Engine.time_scale 0,1 porque el rayo nace en 0,06 s), para herramientas/lamina_vfx.py --hielo-rayo
+##   Un tercer argumento opcional, el ELEMENTO (fuego, agua, hielo o rayo), vale para los modos «celdas» y «tonos»: lo mismo con la clase de ese elemento (las escenas validadas solo existen para el fuego).
 ## Las celdas no se guardan en el repositorio (pesan); se rehacen con este script.
 
 const CELDA: Vector2i = Vector2i(800, 600)
 const TAM_TONOS: Vector2i = Vector2i(1600, 1000)
+const TAM_HR: Vector2i = Vector2i(1200, 900)
 const FOV: float = 50.0
 const MARGEN: float = 0.04
 const ESPERA: float = 1.3
@@ -63,13 +68,20 @@ func _correr() -> void:
 	if a.size() > 0:
 		_dir = a[0]
 	var que: String = a[1] if a.size() > 1 else "celdas"
+	var elem: String = a[2] if a.size() > 2 else "fuego"
 	if not _dir.is_absolute_path():
 		_dir = ProjectSettings.globalize_path("res://" + _dir)
 	DirAccess.make_dir_recursive_absolute(_dir)
 	root.get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	_lab = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_lab)
-	if que == "tonos":
+	_lab.call("poner_elemento", elem)
+	if que == "hielo_rayo":
+		root.get_window().size = TAM_HR
+		_lab.set("_panel_visible", false)
+		await _seg(0.5)
+		await _hielo_rayo()
+	elif que == "tonos":
 		root.get_window().size = TAM_TONOS
 		await _seg(0.5)
 		await _tonos()
@@ -85,6 +97,8 @@ func _correr() -> void:
 		_lab.add_child(_cam)
 		_cam.make_current()
 		_def()
+		if elem != "fuego":
+			_celdas = _celdas.filter(func(c: Dictionary) -> bool: return c["validada"] == "")
 		await _seg(0.5)
 		await _celdas_todas()
 	print("CAPTURAS en " + _dir)
@@ -146,9 +160,8 @@ func _celda(c: Dictionary) -> void:
 	if c["validada"] != "":
 		e = (load("res://presentacion/vfx/toy/%s.tscn" % c["validada"]) as PackedScene).instantiate() as Node3D
 	else:
-		var ft: FuegoToy = FuegoToy.new()
-		ft.definir(fig, x, y, z, vuela)
-		e = ft
+		e = _lab.call("_nuevo_toy") as Node3D
+		e.call("definir", fig, x, y, z, vuela)
 	for k in props:
 		e.set(k, props[k])
 	_lab.add_child(e)
@@ -253,4 +266,71 @@ func _tonos() -> void:
 
 
 func _seg(s: float) -> void:
-	await create_timer(s).timeout
+	await create_timer(s, true, false, true).timeout        # ignora Engine.time_scale (el rayo se fotografía a cámara lenta)
+
+# ---------------------------------------------------------------- hielo y rayo (B1, 2/11/2026) ----------------------------------------------------------------
+
+const HR_FIGURAS: Array = ["bola", "muro", "pilar", "barrera", "haz"]
+
+
+## Una foto con el estado actual del lab. Para el rayo espera a que la intensidad del redibujo sea alta (con 3 fotogramas por redibujo y un 10 % de redibujos casi apagados, una foto al azar puede salir oscura).
+func _foto(ruta: String, e: Node3D, espera_rayo: bool) -> void:
+	if espera_rayo and e.has_method("intensidad_actual"):
+		for k in 40:
+			await process_frame
+			if float(e.call("intensidad_actual")) >= 0.7:
+				break
+	await RenderingServer.frame_post_draw
+	root.get_viewport().get_texture().get_image().save_png(ruta)
+
+
+## Las cinco figuras de la prueba 3 de cada elemento nuevo con la cámara «cerca» del lab, y tres fotogramas del ciclo (hielo: pilar crece / vive / se rompe; rayo: muro nace / vive / muere, a cámara lenta).
+func _hielo_rayo() -> void:
+	var celdas: Array = []
+	for elem in ["hielo", "rayo"]:
+		_lab.call("poner_elemento", elem)
+		for i in 5:
+			_lab.call("limpiar")
+			var e: Node3D = _lab.call("fuego_param", i)
+			await _seg(1.3)
+			_lab.call("poner_camara", 1)
+			await _seg(0.25)
+			var id: String = "%s_%s" % [elem, HR_FIGURAS[i]]
+			await _foto(_dir.path_join("hr_%s.png" % id), e, elem == "rayo")
+			e.visible = false                                               # la misma foto sin el efecto: herramientas/medir_tonos_hielo_rayo.py resta las dos para medir solo los píxeles del efecto
+			await process_frame
+			await _foto(_dir.path_join("hr_%s_base.png" % id), e, false)
+			e.visible = true
+			celdas.append({"id": id, "elemento": elem, "tipo": "figura", "figura": i, "x": e.get("semieje_x"), "y": e.get("semieje_y"), "z": e.get("semieje_z"), "titulo": HR_FIGURAS[i]})
+			print("hr " + id)
+		# ciclo
+		var fig_ciclo: int = 2 if elem == "hielo" else 1
+		var lento: float = 1.0 if elem == "hielo" else 0.1
+		_lab.call("limpiar")
+		Engine.time_scale = lento
+		var c: Node3D = _lab.call("fuego_param", fig_ciclo)
+		var t_nace: float = 0.5 if elem == "hielo" else 0.3          # s reales: hielo nace en 0,9 s (a 0,5 s va por 0,55 de crece); rayo nace en 0,06 s a escala 0,1 (a 0,3 s reales va por 0,5)
+		await _seg(t_nace)
+		_lab.call("poner_camara", 1)
+		await _seg(0.1)
+		var nombres: Array = ["crece", "vive", "se rompe"] if elem == "hielo" else ["nace", "vive", "muere"]
+		var info: Array = []
+		await _foto(_dir.path_join("hr_%s_ciclo_0.png" % elem), c, false)
+		info.append("crece = %.2f" % float(c.get("crece")))
+		await _seg(1.4 if elem == "hielo" else 1.2)
+		await _foto(_dir.path_join("hr_%s_ciclo_1.png" % elem), c, elem == "rayo")
+		info.append("crece = %.2f, corte = %.2f" % [float(c.get("crece")), float(c.get("corte"))])
+		c.call("morir")
+		await _seg(0.55 if elem == "hielo" else 0.9)
+		await _foto(_dir.path_join("hr_%s_ciclo_2.png" % elem), c, false)
+		info.append("corte = %.2f" % float(c.get("corte")))
+		Engine.time_scale = 1.0
+		for k in 3:
+			celdas.append({"id": "%s_ciclo_%d" % [elem, k], "elemento": elem, "tipo": "ciclo", "figura": fig_ciclo, "paso": k, "titulo": nombres[k], "info": info[k],
+				"x": c.get("semieje_x") if is_instance_valid(c) else 0.0, "y": 0.0, "z": 0.0})
+		print("hr ciclo " + elem)
+		await _seg(1.0)
+	_lab.call("limpiar")
+	var f: FileAccess = FileAccess.open(_dir.path_join("celdas_hr.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify(celdas, "\t"))
+	f.close()
