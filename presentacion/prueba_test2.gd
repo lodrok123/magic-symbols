@@ -1235,6 +1235,12 @@ func _ready() -> void:
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
+	# 2/11 (tercera tanda A1): «Continuar»/«Cargar» valen para cualquier nivel, no solo Jugabilidad3D: se carga la ranura ANTES de que las reglas definan sus misiones.
+	if Partida.continuar:
+		var jug_c: Node = get_node_or_null("Jugador3D")
+		if jug_c != null:
+			Partida.tinta = jug_c.get("tinta")
+		Partida.aplicar_continuar(self, jug_c)
 	if _reglas != null:
 		add_child(_reglas)
 		_reglas.iniciar(self)

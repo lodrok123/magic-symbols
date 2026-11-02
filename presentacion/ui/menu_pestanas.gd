@@ -34,6 +34,7 @@ const TINTA: Color = Color("4e3a26")
 const TINTA_SUAVE: Color = Color(0.31, 0.23, 0.15, 0.62)
 const INDICE_INVENTARIO: int = 0
 const INDICE_MISIONES: int = 4
+const INDICE_ESTADISTICAS: int = 5                 ## 2/11 (tercera tanda A3): tras Misiones; Ajustes pasa a la 6
 
 ## id, nombre, subtítulo bajo el título, y (solo las que aún no funcionan) lo que dirá su «Próximamente».
 const PESTANAS: Array = [
@@ -42,6 +43,7 @@ const PESTANAS: Array = [
 	{"id": "sintesis", "nombre": "Síntesis", "sub": "Combina materiales", "prox": "Aquí mezclarás los materiales que recojas para preparar tónicos y pigmentos."},
 	{"id": "mapa", "nombre": "Mapa", "sub": "Por dónde has pasado", "prox": "Aquí verás el mapa de cada zona, con sus secretos y sus salidas."},
 	{"id": "misiones", "nombre": "Misiones", "sub": "Tu diario de misiones"},
+	{"id": "estadisticas", "nombre": "Estadísticas", "sub": "Lo que llevas hecho"},
 	{"id": "ajustes", "nombre": "Ajustes", "sub": "Sonido, controles y pantalla", "prox": "Aquí ajustarás el sonido, los controles y la pantalla."},
 ]
 
@@ -72,6 +74,10 @@ var _barra: Control
 var _cuerpo: Control
 var _pag_inv: Control
 var _pag_mis: Control
+var _pag_est: Control                              ## A3: la pestaña Estadísticas (dos columnas: la partida y este nivel)
+var _col_total: GridContainer
+var _col_nivel: GridContainer
+var _pie_est: Label
 var _pag_prox: Control
 var _rejilla: Control
 var _huecos: Array = []
@@ -117,6 +123,7 @@ func _ready() -> void:
 	_marco.add_child(_cuerpo)
 	_construir_inventario()
 	_construir_misiones()
+	_construir_estadisticas()
 	_construir_proximamente()
 	get_viewport().size_changed.connect(_colocar)
 	Estado.i().cambiado.connect(_al_cambiar_mochila)
@@ -181,6 +188,83 @@ func _construir_misiones() -> void:
 	_diario.montar_en(_pag_mis, CUERPO_TAM)
 
 
+## A3: dos columnas en el tema del pergamino: «Tu partida» (`Estadisticas.total`) y «Este nivel» (`Estadisticas.por_nivel`), y debajo el desglose por tipo de enemigo y elemento.
+func _construir_estadisticas() -> void:
+	_pag_est = Control.new()
+	_pag_est.size = CUERPO_TAM
+	_pag_est.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cuerpo.add_child(_pag_est)
+	var marcas := Control.new()                     # la raya que separa las dos columnas
+	marcas.size = CUERPO_TAM
+	marcas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	marcas.draw.connect(func() -> void: marcas.draw_line(Vector2(CUERPO_TAM.x * 0.5, 0.0), Vector2(CUERPO_TAM.x * 0.5, CUERPO_TAM.y - 70.0), TINTA_SUAVE, 1.5))
+	_pag_est.add_child(marcas)
+	for k in range(2):
+		var x: float = 6.0 if k == 0 else CUERPO_TAM.x * 0.5 + 24.0
+		var titulo: Label = BolsaUI._etiqueta(20)
+		titulo.text = "Tu partida" if k == 0 else "Este nivel"
+		titulo.position = Vector2(x, 0.0)
+		_pag_est.add_child(titulo)
+		var rejilla := GridContainer.new()
+		rejilla.columns = 2
+		rejilla.add_theme_constant_override("h_separation", 24)
+		rejilla.add_theme_constant_override("v_separation", 8)
+		rejilla.position = Vector2(x, 38.0)
+		rejilla.custom_minimum_size = Vector2(CUERPO_TAM.x * 0.5 - 40.0, 0.0)
+		_pag_est.add_child(rejilla)
+		if k == 0:
+			_col_total = rejilla
+		else:
+			_col_nivel = rejilla
+	_pie_est = BolsaUI._etiqueta(14)
+	_pie_est.position = Vector2(6.0, CUERPO_TAM.y - 62.0)
+	_pie_est.size = Vector2(CUERPO_TAM.x - 12.0, 56.0)
+	_pie_est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_pag_est.add_child(_pie_est)
+	_refrescar_estadisticas()
+
+
+## Las cifras de la pestaña: {"total": [[etiqueta, valor], …], "nivel": […]}. Es lo que se dibuja (y lo que miran las pruebas).
+func estadisticas_filas() -> Dictionary:
+	var n: Dictionary = Estadisticas.por_nivel.duplicate(true)
+	n["segundos"] = Estadisticas.segundos_nivel()
+	return {"total": Estadisticas.filas(Estadisticas.a_dic()), "nivel": Estadisticas.filas(n)}
+
+
+func _refrescar_estadisticas() -> void:
+	if _col_total == null:
+		return
+	var f: Dictionary = estadisticas_filas()
+	for par in [[_col_total, f["total"]], [_col_nivel, f["nivel"]]]:
+		var rejilla: GridContainer = par[0]
+		for h in rejilla.get_children():
+			rejilla.remove_child(h)
+			h.queue_free()
+		for fila in (par[1] as Array):
+			var a: Label = BolsaUI._etiqueta(16)
+			a.text = String(fila[0])
+			a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			rejilla.add_child(a)
+			var b: Label = BolsaUI._etiqueta(16)
+			b.text = String(fila[1])
+			b.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			rejilla.add_child(b)
+	var partes: PackedStringArray = []
+	var en: Dictionary = Estadisticas.total["enemigos"]
+	if not en.is_empty():
+		var l: PackedStringArray = []
+		for k in en.keys():
+			l.append("%s %d" % [String(k), int(en[k])])
+		partes.append("Vencidos: " + ", ".join(l))
+	var he: Dictionary = Estadisticas.total["hechizos"]
+	if not he.is_empty():
+		var l2: PackedStringArray = []
+		for k in he.keys():
+			l2.append("%s %d" % [String(k), int(he[k])])
+		partes.append("Hechizos: " + ", ".join(l2))
+	_pie_est.text = "\n".join(partes) if not partes.is_empty() else "Aún no has contado nada: sal a pelear."
+
+
 func _construir_proximamente() -> void:
 	_pag_prox = Proximamente.new()
 	_pag_prox.menu = self
@@ -196,7 +280,7 @@ func pestana_id() -> String:
 
 
 func funcional(i: int) -> bool:
-	return i == INDICE_INVENTARIO or i == INDICE_MISIONES
+	return i == INDICE_INVENTARIO or i == INDICE_MISIONES or i == INDICE_ESTADISTICAS
 
 
 ## Las pilas de la mochila en el orden del menú: [[id, cantidad], ...].
@@ -250,6 +334,8 @@ func pista() -> String:
 			return "[Q/E] pestaña   [↑↓←→] elegir   [Enter] equipar / usar   [I / Esc] cerrar"
 		INDICE_MISIONES:
 			return "[Q/E] pestaña   [↑↓] elegir   [Enter] seguir   [J / Esc] cerrar"
+		INDICE_ESTADISTICAS:
+			return "[Q/E] pestaña   [I / Esc] cerrar"
 	return "[Q/E] pestaña   [I / Esc] cerrar"
 
 
@@ -342,6 +428,10 @@ func _mostrar_pagina() -> void:
 		return
 	_pag_inv.visible = pestana == INDICE_INVENTARIO
 	_pag_mis.visible = pestana == INDICE_MISIONES
+	if _pag_est != null:
+		_pag_est.visible = pestana == INDICE_ESTADISTICAS
+		if _pag_est.visible:
+			_refrescar_estadisticas()
 	_pag_prox.visible = not funcional(pestana)
 	_fondo.queue_redraw()
 	_barra.queue_redraw()
@@ -915,6 +1005,11 @@ static func icono(c: CanvasItem, tipo: String, p: Vector2, r: float, col: Color,
 			for k in range(3):
 				c.draw_line(p + Vector2(-r * 0.4, -r * 0.45 + float(k) * r * 0.45), p + Vector2(r * 0.4, -r * 0.45 + float(k) * r * 0.45), fondo, maxf(1.0, r * 0.12), true)
 			c.draw_colored_polygon(PackedVector2Array([p + Vector2(r * 0.3, -r * 0.9), p + Vector2(r * 0.65, -r * 0.55), p + Vector2(r * 0.3, -r * 0.55)]), fondo)
+		"estadisticas":
+			for k in range(3):                       # tres barras de alturas distintas sobre una línea base
+				var alto: float = r * (0.7 + 0.55 * float(k))
+				c.draw_rect(Rect2(p + Vector2(-r * 0.85 + float(k) * r * 0.62, r * 0.8 - alto), Vector2(r * 0.46, alto)), col)
+			c.draw_line(p + Vector2(-r, r * 0.85), p + Vector2(r, r * 0.85), col, maxf(1.0, r * 0.14), true)
 		"ajustes":
 			var dientes := PackedVector2Array()
 			for k in range(16):

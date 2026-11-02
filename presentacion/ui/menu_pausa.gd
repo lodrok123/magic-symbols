@@ -9,7 +9,8 @@ extends CanvasLayer
 ## Sensación (interruptor de `Sensacion3D.ACTIVA`) · Reiniciar nivel (recarga la escena, pide confirmación) · Salir (cierra el juego, pide confirmación).
 ## Los volúmenes y la sensación se guardan en `user://ajustes.cfg` (`RUTA_AJUSTES`) al cambiarlos y se cargan al montar el primer menú de la sesión (`cargar_ajustes`).
 ## Entra y sale en `T_S` s con fundido y escala 0,96 → 1 como el grimorio (U1); con `Sensacion3D.ACTIVA = false` aparece y desaparece de golpe (los sonidos quedan).
-## No existe menú principal y esto no lo crea.
+## 2/11 (tercera tanda A1): fila nueva «Salir al menú principal» (con confirmación): autoguarda en la ranura «auto» (A2) y cambia a `RUTA_MENU_PRINCIPAL`. MODO `sin_partida`: lo usa el menú principal
+## como «Ajustes» (sin Reiniciar ni Salir al menú; «Continuar» pasa a llamarse «Volver»; Escape no lo abre solo, se abre con `abrir()`; avisa con la señal `cerrada`).
 ## Para las pruebas: `abrir()`, `cerrar()`, `mover(dir)`, `ajustar(dir)`, `accion()`, `abierta`, `fila`, `confirmando`, `valor_de(id)`, `poner_volumen(id, db)`.
 
 const FILAS: Array = [
@@ -19,9 +20,15 @@ const FILAS: Array = [
 	{"id": "interfaz", "texto": "Volumen de la interfaz", "tipo": "volumen", "bus": "Interfaz"},
 	{"id": "sensacion", "texto": "Sensación", "tipo": "interruptor"},
 	{"id": "reiniciar", "texto": "Reiniciar nivel", "tipo": "peligro"},
+	{"id": "menu", "texto": "Salir al menú principal", "tipo": "peligro"},
 	{"id": "salir", "texto": "Salir", "tipo": "peligro"},
 ]
+## Filas que NO se ven con `sin_partida` (el menú principal no tiene nivel que reiniciar ni al que volver).
+const FILAS_CON_PARTIDA: PackedStringArray = ["reiniciar", "menu"]
 
+signal cerrada
+
+static var RUTA_MENU_PRINCIPAL: String = "res://escenas/MenuPrincipal.tscn"
 static var RUTA_AJUSTES: String = "user://ajustes.cfg"
 static var T_S: float = 0.15                    ## duración de abrir y de cerrar
 static var ESCALA_CERRADO: float = 0.96         ## escala de partida al abrir y de llegada al cerrar
@@ -35,6 +42,8 @@ var abierta: bool = false
 var fila: int = 0                               ## la fila elegida
 var confirmando: String = ""                    ## «reiniciar» o «salir» mientras espera el segundo Enter; "" si no
 var reinicios: int = 0                          ## cuántas veces se confirmó «Reiniciar» (las pruebas lo miran)
+var salidas_menu: int = 0                       ## cuántas veces se confirmó «Salir al menú principal» (las pruebas)
+var sin_partida: bool = false                   ## A1: modo «Ajustes» del menú principal (ver arriba); ponerlo ANTES de añadirlo al árbol
 var _pausado_por_mi: bool = false
 var _velo: ColorRect
 var _centro: CenterContainer
@@ -75,8 +84,12 @@ func _ready() -> void:
 	caja.add_child(titulo)
 	for i in range(FILAS.size()):
 		caja.add_child(_crear_fila(i))
+		if not _fila_visible(i):
+			(_filas[i]["panel"] as Control).visible = false
+	if sin_partida:
+		(_filas[0]["etiqueta"] as Label).text = "Volver"
 	var pie := Label.new()
-	pie.text = "[↑↓] elegir   [←→] ajustar   [Enter] aceptar   [Esc] continuar"
+	pie.text = "[↑↓] elegir   [←→] ajustar   [Enter] aceptar   [Esc] " + ("volver" if sin_partida else "continuar")
 	pie.add_theme_font_size_override("font_size", TemaInterfaz.TAM_FUENTE_PEQUENO)
 	pie.add_theme_color_override("font_color", TemaInterfaz.TEXTO_SUAVE)
 	pie.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -163,6 +176,20 @@ func _estilo_deslizador(s: HSlider) -> void:
 
 func id_fila(i: int) -> String:
 	return String((FILAS[i] as Dictionary)["id"])
+
+
+## ¿Se ve la fila `i` en el modo de ahora? (con `sin_partida` faltan Reiniciar y Salir al menú).
+func _fila_visible(i: int) -> bool:
+	return not (sin_partida and FILAS_CON_PARTIDA.has(id_fila(i)))
+
+
+## Las ids de las filas que se ven, en orden (las pruebas).
+func ids_visibles() -> Array:
+	var r: Array = []
+	for i in range(FILAS.size()):
+		if _fila_visible(i):
+			r.append(id_fila(i))
+	return r
 
 
 func _indice(id: String) -> int:
@@ -260,6 +287,7 @@ func cerrar() -> void:
 	if is_inside_tree():
 		Sfx.play_ui("libro_cierra", DB_SONIDO)
 	_animar(false)
+	cerrada.emit()
 
 
 ## Sin otra pantalla que ya pause, sin el libro abierto y sin el lanzador apuntando (ahí Escape cancela el apuntado).
@@ -339,7 +367,13 @@ func _elegir(i: int, sonar: bool = true) -> void:
 
 
 func mover(dir: int) -> void:
-	_elegir((fila + dir + FILAS.size()) % FILAS.size())
+	var paso: int = 1 if dir >= 0 else -1
+	var i: int = fila
+	for _k in range(absi(dir)):
+		i = (i + paso + FILAS.size()) % FILAS.size()
+		while not _fila_visible(i):                # salta las filas ocultas del modo sin partida
+			i = (i + paso + FILAS.size()) % FILAS.size()
+	_elegir(i)
 
 
 ## ← → en un deslizador: ±PASO_DB. En una fila que no es deslizador: «no puedes». En el límite también.
@@ -382,6 +416,8 @@ func accion() -> void:
 			confirmando = ""
 			if id == "reiniciar":
 				_reiniciar()
+			elif id == "menu":
+				_salir_al_menu()
 			else:
 				_salir()
 
@@ -411,6 +447,23 @@ func _reiniciar() -> void:
 func _salir() -> void:
 	if is_inside_tree():
 		get_tree().quit()
+
+
+## A1/A2: despausa, AUTOGUARDA en la ranura «auto» (con el árbol ya reanudado, o se difiere) y cambia a la escena del menú principal.
+func _salir_al_menu() -> void:
+	salidas_menu += 1
+	if not is_inside_tree():
+		return
+	var arbol: SceneTree = get_tree()
+	abierta = false
+	if _tw != null and _tw.is_valid():
+		_tw.kill()
+	_velo.visible = false
+	_centro.visible = false
+	_pausado_por_mi = false
+	arbol.paused = false
+	Partida.autoguardar(arbol, "menu")
+	arbol.change_scene_to_file(RUTA_MENU_PRINCIPAL)
 
 
 ## Escape con una confirmación pendiente la cancela; si no, cierra el menú.
@@ -465,7 +518,7 @@ func _input(event: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
 	if not abierta:
-		if k.keycode == KEY_ESCAPE and _puede_abrir():
+		if k.keycode == KEY_ESCAPE and not sin_partida and _puede_abrir():
 			get_viewport().set_input_as_handled()
 			abrir()
 		return

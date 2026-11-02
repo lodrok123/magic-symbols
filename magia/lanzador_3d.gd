@@ -619,6 +619,7 @@ func construir_interfaz() -> void:
 	pausa = MenuPausa.new()
 	capa_ui.add_child(pausa)
 	capa_ui.add_child(MisionHud.new())
+	capa_ui.add_child(IconoGuardado.new())      # tercera tanda A2: el círculo que gira al autoguardar
 
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS

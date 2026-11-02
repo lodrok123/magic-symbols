@@ -64,6 +64,7 @@ signal reaparecio
 signal aguante_cambio(valor: float, activo: bool)
 signal nado_cambiado(nadando: bool)
 signal vida_cambiada(vida: float, maxima: float)
+signal dano_recibido(cantidad: float)             ## A3 (estadísticas): un golpe que de verdad ha quitado vida (no el absorbido por barrera o bálsamo)
 
 var pj: Pj3D = null
 var mundo: Node3D = null
@@ -234,6 +235,8 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 			Combate3D.equipar(g as Pj3D, p_mundo, j, l)
 	# C2 (28/10): las reacciones de combo contra enemigos devuelven tinta (`TintaReaccion`, cuelga del Mundo3D de la maqueta)
 	TintaReaccion.conectar(p_mundo.get("_mundo") as Mundo3D, j.tinta)
+	Estadisticas.conectar(p_mundo.get("_mundo") as Mundo3D, j, l)      # tercera tanda A3: enemigos, hechizos, daño, oro, muertes y cofres
+	Partida.vigilar_misiones()                                          # tercera tanda A2: completar una misión autoguarda
 	j._construir_hud()
 	j.pantalla_muerte = PantallaMuerte.new()
 	j.pantalla_muerte.name = "PantallaMuerte"
@@ -496,6 +499,7 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if desde != Vector3.ZERO and d.length() > 0.01:
 		push(d.normalized(), 4.5)
 	PlayLog.event("dano_jugador", {"cantidad": cantidad, "vida": vida})
+	dano_recibido.emit(cantidad)                      # A3: lo cuenta `Estadisticas` (daño que de verdad entró, tras defensa, barrera y bálsamo)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	if vida <= 0.0:
 		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel U2: la viñeta y el golpe también en el golpe que mata, antes del fundido de la pantalla de muerte

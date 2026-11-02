@@ -1,8 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "meta": {
     "ranura": 1,
     "guardado_en": "2026-10-29T18:40:00",
+    "guardado_unix": 1793299200.0,
     "segundos_jugados": 5420,
     "punto": "bosque1.s2.fogata"
   },
@@ -79,5 +80,15 @@
       "tutorial_fuego": {"estado": "completa", "objetivos": [{"texto": "Enciende las antorchas", "hecho": true}]},
       "guardabosques_goblins": {"estado": "activa", "objetivos": [{"texto": "Derrota a 3 goblins", "hecho": false, "n": 1}]}
     }
+  },
+  "estadisticas": {
+    "enemigos": {"Goblin": 4, "Limo": 2},
+    "hechizos": {"fuego": 11, "agua": 3},
+    "dano_hecho": 412.0,
+    "dano_recibido": 96.0,
+    "oro_ganado": 35,
+    "muertes": 1,
+    "cofres": 2,
+    "segundos": 5420.0
   }
 }

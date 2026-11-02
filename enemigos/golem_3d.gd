@@ -285,6 +285,7 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 func _aplicar_dano(cantidad: float) -> void:
 	if health <= 0.0 or cantidad <= 0.0:
 		return
+	Estadisticas.dano_hecho(minf(cantidad, health))     # A3
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
 	if not _num_golpe:

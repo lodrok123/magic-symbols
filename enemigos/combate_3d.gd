@@ -901,6 +901,7 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 		cantidad = escudo_natural.absorber(cantidad, _num_elemento)     # E2: el escudo de naturaleza se come el daño (el fuego lo quema)
 		if cantidad <= 0.0:
 			return
+	Estadisticas.dano_hecho(minf(cantidad, health))     # A3: el daño que de verdad quita (no pasa de la vida que quedaba)
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
 	if not _num_golpe:

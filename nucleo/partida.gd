@@ -25,7 +25,17 @@ extends RefCounted
 ## MIGRACIÓN. Si la ranura no existe pero sí `flags.json` y/o `misiones.json` (el guardado de la versión 1), `cargar` los lee con `Flags.cargar` /
 ## `Misiones.cargar`, escribe la ranura en versión 2 y renombra los viejos a `.v1.bak` (no se borran). Pasa una sola vez.
 
-const VERSION: int = 2
+##
+## TERCERA TANDA GAMEFEEL (2/11, A1–A3). VERSIÓN 3: añade la sección `estadisticas` (`Estadisticas`) y `meta.guardado_unix` (para saber cuál de dos ranuras es más reciente). Un archivo v2 sigue
+## cargando (sin sección = estadísticas a cero). AUTOGUARDADO: la ranura 0 («auto») la escribe `autoguardar` al cambiar de nivel (`Niveles`), al completar una misión (`vigilar_misiones`)
+## y al salir al menú (`MenuPausa`); con el árbol en pausa se difiere (`diferido`) y lo hace `IconoGuardado` al despausar. Los puntos de guardado siguen escribiendo en la ranura 1.
+## «Continuar» del menú principal carga la ranura más reciente (`ranura_mas_reciente`); `ranura_a_cargar` es de un solo uso como `continuar` y deja `ranura_actual` (donde escriben los puntos de guardado) intacta.
+
+const VERSION: int = 3
+const VERSIONES_LEIBLES: Array = [2, 3]
+const RANURA_AUTO: int = 0
+const PUNTO_VIAJE: String = "viaje"               ## `meta.punto` del autoguardado al cambiar de nivel
+const RANURAS_MAX: int = 9                        ## las ranuras 0…9 se buscan para «Cargar»
 const RUTA: String = "user://partidas/ranura_%d.json"       ## la ruta de siempre (con `carpeta` por defecto); ver `ruta()`
 const CARPETA_DEFECTO: String = "user://partidas/"
 const RUTA_FLAGS_V1: String = "user://flags.json"
@@ -34,6 +44,16 @@ const SUFIJO_BAK: String = ".v1.bak"
 
 static var ranura_actual: int = 1
 static var continuar: bool = false
+## Qué ranura lee el próximo «continuar» (-1 = `ranura_actual`). De un solo uso: lo baja a -1 quien carga.
+static var ranura_a_cargar: int = -1
+## A2: ¿se autoguarda en la ranura 0? Las pruebas lo apagan o lo encienden.
+static var AUTOGUARDADO: bool = true
+## En headless (pruebas y escenarios) NO se autoguarda salvo que esto sea true: así correr una prueba no pisa la ranura «auto» de nadie.
+static var AUTOGUARDADO_EN_HEADLESS: bool = false
+## Un autoguardado que se pidió con el árbol en pausa y espera a que se despause.
+static var diferido: bool = false
+static var ultimo_motivo_auto: String = ""         ## «nivel», «mision», «menu»: lo último que autoguardó (las pruebas)
+static var autoguardados: int = 0                  ## cuántos se han hecho en esta sesión (las pruebas)
 ## Dónde se guardan las ranuras y dónde están los archivos de la versión 1. Las pruebas los apuntan a una carpeta suya.
 static var carpeta: String = CARPETA_DEFECTO
 static var ruta_flags_v1: String = RUTA_FLAGS_V1
@@ -112,6 +132,7 @@ static func reunir(ranura: int, extra: Dictionary = {}) -> Dictionary:
 		"meta": {
 			"ranura": ranura,
 			"guardado_en": Time.get_datetime_string_from_system(),
+			"guardado_unix": Time.get_unix_time_from_system(),
 			"segundos_jugados": int(segundos_jugados()),
 			"punto": String(extra.get("punto", "")),
 		},
@@ -134,6 +155,7 @@ static func reunir(ranura: int, extra: Dictionary = {}) -> Dictionary:
 		"flags": fl["flags"],
 		"mundo": _mundo_a_guardar(extra),
 		"misiones": mis,
+		"estadisticas": Estadisticas.a_dic(),
 	}
 
 
@@ -174,6 +196,7 @@ static func cargar(ranura: int = -1) -> Dictionary:
 	recetas_conocidas = _cadenas(d.get("recetas_conocidas", []))
 	Flags.i().desde_dic({"estados": _dic(d.get("estados", {})), "flags": _dic(d.get("flags", {}))})
 	Misiones.i().desde_dic(_dic(d.get("misiones", {})))
+	Estadisticas.desde_dic(d.get("estadisticas", {}))      # A3: un archivo v2 no la trae = ceros
 	mundo = _dic(d.get("mundo", {})).duplicate(true)
 	_segundos_base = float(_dic(d.get("meta", {})).get("segundos_jugados", 0.0))
 	_t0_ms = Time.get_ticks_msec()
@@ -196,8 +219,8 @@ static func leer(ranura: int) -> Dictionary:
 	if not (d is Dictionary):
 		push_warning("Partida.leer: %s no es una partida válida (JSON roto)" % p)
 		return {}
-	if int((d as Dictionary).get("version", -1)) != VERSION:
-		push_warning("Partida.leer: %s es de la versión %s y solo se conoce la %d" % [p, str((d as Dictionary).get("version", "?")), VERSION])
+	if not VERSIONES_LEIBLES.has(int((d as Dictionary).get("version", -1))):
+		push_warning("Partida.leer: %s es de la versión %s y solo se conoce la %d (y la 2)" % [p, str((d as Dictionary).get("version", "?")), VERSION])
 		return {}
 	return d
 
@@ -243,3 +266,174 @@ static func _posicion(v: Variant) -> Array:
 	if v is Array and (v as Array).size() >= 3:
 		return [float(v[0]), float(v[1]), float(v[2])]
 	return [0.0, 0.0, 0.0]
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Tercera tanda (2/11): menú principal, autoguardado y continuar para todos los niveles
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Qué hay guardado: [{ranura, mapa, segundos, guardado_en, punto}] de las ranuras 0…RANURAS_MAX que existen y se leen, la «auto» (0) la primera.
+static func resumen_ranuras() -> Array:
+	var r: Array = []
+	for n in range(RANURAS_MAX + 1):
+		if not existe(n):
+			continue
+		var d: Dictionary = leer(n)
+		if d.is_empty():
+			continue
+		var meta: Dictionary = _dic(d.get("meta", {}))
+		r.append({"ranura": n, "mapa": String(_dic(d.get("jugadora", {})).get("mapa_actual", "")), "segundos": int(meta.get("segundos_jugados", 0)),
+			"guardado_en": String(meta.get("guardado_en", "")), "punto": String(meta.get("punto", ""))})
+	return r
+
+
+## ¿Cuándo se guardó? (segundos unix; los archivos sin `guardado_unix` caen a 0).
+static func _cuando(d: Dictionary) -> float:
+	return float(_dic(d.get("meta", {})).get("guardado_unix", 0.0))
+
+
+## La ranura legible más reciente de la 1 (manual) y la 0 (auto) por `meta.guardado_unix`; empate = la 1. -1 si no hay ninguna.
+static func ranura_mas_reciente() -> int:
+	var d1: Dictionary = leer(1) if existe(1) else {}
+	var d0: Dictionary = leer(RANURA_AUTO) if existe(RANURA_AUTO) else {}
+	if d1.is_empty() and d0.is_empty():
+		return -1
+	if d0.is_empty():
+		return 1
+	if d1.is_empty():
+		return RANURA_AUTO
+	return RANURA_AUTO if _cuando(d0) > _cuando(d1) else 1
+
+
+## Pone a cero los sistemas que viven en singletons (oro, mochila, flags, misiones, glifos, estadísticas): una partida nueva empieza limpia aunque se llegue desde otra (Salir al menú).
+static func nueva() -> void:
+	Estado.nuevo()
+	Flags.nuevo()
+	Misiones.nuevo()
+	Repertoire.reset_to_p0()
+	Repertoire.paginas = []
+	mundo = {}
+	recetas_conocidas = []
+	tinta = null
+	tinta_pendiente = {}
+	_segundos_base = 0.0
+	_t0_ms = Time.get_ticks_msec()
+	Estadisticas.reiniciar()
+	continuar = false
+	ranura_a_cargar = -1
+	diferido = false
+
+
+## Prepara «Continuar»/«Cargar»: el próximo nivel que arranque carga la ranura `n` (los puntos de guardado siguen escribiendo en `ranura_actual`).
+static func preparar_carga(n: int) -> void:
+	continuar = true
+	ranura_a_cargar = n
+
+
+## El `extra` de `guardar` para un nivel en marcha: dónde está la jugadora, su vida, su ropa y los estados de zona. `c` = la casilla del punto de guardado.
+static func extra_de(mundo_nivel: Node, jug: Node, c: Vector2i) -> Dictionary:
+	var pj_mundo: Node3D = mundo_nivel.get("_jugador") as Node3D
+	var pos: Vector3 = pj_mundo.position if pj_mundo != null else Vector3.ZERO
+	var cercana: String = ""
+	var mejor: float = INF
+	for e in mundo_nivel.get_tree().get_nodes_in_group("entrada_nivel"):
+		if is_instance_valid(e):
+			var dd: float = (e as Node3D).position.distance_squared_to(pos)
+			if dd < mejor:
+				mejor = dd
+				cercana = String(e.get("nombre"))
+	var nivel: String = String(mundo_nivel.get("nivel"))
+	var extra: Dictionary = {"mapa_actual": nivel, "entrada": cercana, "posicion": pos, "punto": "%s.%d_%d" % [nivel, c.x, c.y]}
+	if jug != null:
+		extra["vida"] = jug.get("vida")
+		extra["aguante"] = jug.get("aguante")
+		var pj: Variant = jug.get("pj")
+		if pj != null:
+			extra["ropa_puesta"] = (pj as Object).call("ropa_puesta")
+	var ez: EstadoZona3D = EstadoZona3D.actual
+	if ez != null and is_instance_valid(ez):
+		extra["mundo"] = {nivel: ez.a_dic()}
+	return extra
+
+
+## Si `continuar` está puesto, carga la ranura (`ranura_a_cargar` o `ranura_actual`) y coloca a la jugadora: misma vida, aguante, ropa y estados de zona; en su sitio si es el mismo nivel
+## o en la entrada que diga el archivo. Es de un solo uso. Devuelve true si cargó algo. ANTES de que el nivel defina sus misiones (`Misiones.definir` conserva el progreso cargado).
+static func aplicar_continuar(mundo_nivel: Node, jug: Node) -> bool:
+	if not continuar:
+		return false
+	continuar = false
+	var r: int = ranura_a_cargar if ranura_a_cargar >= 0 else ranura_actual
+	ranura_a_cargar = -1
+	var d: Dictionary = cargar(r)
+	if d.is_empty() or jug == null:
+		return false
+	var j: Dictionary = _dic(d.get("jugadora", {}))
+	var vmax: float = Estado.i().vida_max
+	jug.set("vida", clampf(float(j.get("vida", vmax)), 1.0, vmax))
+	jug.emit_signal("vida_cambiada", float(jug.get("vida")), vmax)
+	jug.set("aguante", clampf(float(j.get("aguante", 100.0)), 0.0, 100.0))
+	var nivel: String = String(mundo_nivel.get("nivel"))
+	var mundo_n: Variant = _dic(d.get("mundo", {})).get(nivel, {})
+	if mundo_n is Dictionary and EstadoZona3D.actual != null and is_instance_valid(EstadoZona3D.actual):
+		EstadoZona3D.actual.desde_dic(mundo_n as Dictionary)
+	var pj: Variant = jug.get("pj")
+	if pj != null:
+		for id in j.get("ropa_puesta", []):
+			(pj as Object).call("poner_ropa", String(id))
+	var pos: Array = j.get("posicion", []) as Array
+	var por_entrada: bool = String(_dic(d.get("meta", {})).get("punto", "")) == PUNTO_VIAJE        # el autoguardado de un viaje apunta a la ENTRADA del nivel nuevo, no a la salida del viejo
+	if String(j.get("mapa_actual", "")) == nivel and pos.size() >= 3 and not por_entrada:
+		var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
+		mundo_nivel.call("ir_a", mundo_nivel.call("_celda_de", p))
+		(mundo_nivel.get("_jugador") as Node3D).position = p
+		(jug as Node3D).position = p
+		jug.set("puntos_inicio", p)
+	else:
+		for e in mundo_nivel.get_tree().get_nodes_in_group("entrada_nivel"):
+			if is_instance_valid(e) and String(e.get("nombre")) == String(j.get("entrada", "")):
+				Niveles.colocar(mundo_nivel, e)
+				break
+	return true
+
+
+## Guarda en la ranura 0 («auto») lo del nivel que está en el árbol. false si no se hizo: apagado, headless sin permiso, sin nivel ni jugadora, jugadora caída o árbol en pausa (entonces
+## queda `diferido` y lo repite `IconoGuardado` al despausar). Si guarda, el icono del HUD aparece.
+static func autoguardar(arbol: SceneTree, motivo: String = "", sobrescribir: Dictionary = {}) -> bool:
+	if not AUTOGUARDADO or arbol == null:
+		return false
+	if DisplayServer.get_name() == "headless" and not AUTOGUARDADO_EN_HEADLESS:
+		return false
+	if arbol.paused:
+		diferido = true
+		ultimo_motivo_auto = motivo
+		return false
+	var lanz: Node = arbol.get_first_node_in_group("spellcaster")
+	if lanz == null:
+		return false
+	var jug: Node = lanz.get("jugador") as Node
+	var nivel: Node = lanz.get("mundo") as Node
+	if jug == null or nivel == null or not is_instance_valid(jug) or not is_instance_valid(nivel) or bool(jug.get("muerto")):
+		return false
+	var pj_mundo: Node3D = nivel.get("_jugador") as Node3D
+	var c: Vector2i = nivel.call("_celda_de", pj_mundo.position) if pj_mundo != null else Vector2i.ZERO
+	var extra: Dictionary = extra_de(nivel, jug, c)
+	extra["punto"] = "auto"
+	extra.merge(sobrescribir, true)
+	diferido = false
+	if not guardar(RANURA_AUTO, extra):
+		return false
+	autoguardados += 1
+	ultimo_motivo_auto = motivo
+	arbol.call_group("icono_guardado", "mostrar")
+	return true
+
+
+## Autoguardar al completar una misión. Se engancha a la instancia de `Misiones` de ahora (por eso se llama en cada `Jugador3D.montar`).
+static func vigilar_misiones() -> void:
+	var m: Misiones = Misiones.i()
+	if not m.mision_completada.is_connected(_al_completar_mision):
+		m.mision_completada.connect(_al_completar_mision)
+
+
+static func _al_completar_mision(_id: String) -> void:
+	autoguardar(Engine.get_main_loop() as SceneTree, "mision")

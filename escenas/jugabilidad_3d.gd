@@ -520,35 +520,8 @@ func _t_hud_actualizar(delta: float) -> void:
 func _continuar_partida() -> void:
 	if _jug != null:
 		Partida.tinta = _jug.tinta
-	if not Partida.continuar:
-		return
-	Partida.continuar = false
-	var d: Dictionary = Partida.cargar(Partida.ranura_actual)
-	if d.is_empty() or _jug == null:
-		return
-	var j: Dictionary = d.get("jugadora", {}) as Dictionary
-	_jug.vida = clampf(float(j.get("vida", Estado.i().vida_max)), 1.0, Estado.i().vida_max)
-	_jug.vida_cambiada.emit(_jug.vida, Estado.i().vida_max)
-	_jug.aguante = clampf(float(j.get("aguante", Jugador3D.AGUANTE_MAX)), 0.0, Jugador3D.AGUANTE_MAX)       # F4
-	var mundo_nivel: Variant = (d.get("mundo", {}) as Dictionary).get(String(m.get("nivel")), {}) if d.get("mundo", {}) is Dictionary else {}
-	if mundo_nivel is Dictionary and EstadoZona3D.actual != null and is_instance_valid(EstadoZona3D.actual):
-		EstadoZona3D.actual.desde_dic(mundo_nivel as Dictionary)           # F4: los estados dinámicos y las nubes de ese nivel
-	if _jug.pj != null:
-		for id in j.get("ropa_puesta", []):
-			_jug.pj.poner_ropa(String(id))
-	var pos: Array = j.get("posicion", []) as Array
-	if String(j.get("mapa_actual", "")) == String(m.get("nivel")) and pos.size() >= 3:
-		var p := Vector3(float(pos[0]), float(pos[1]), float(pos[2]))
-		var c: Vector2i = m._celda_de(p)
-		m.ir_a(c)                                # cámara y hierba al sitio
-		(m._jugador as Node3D).position = p
-		_jug.position = p
-		_jug.puntos_inicio = p
-	else:
-		for e in get_tree().get_nodes_in_group("entrada_nivel"):
-			if is_instance_valid(e) and String(e.get("nombre")) == String(j.get("entrada", "")):
-				Niveles.colocar(m, e)
-				break
+	# 2/11 (tercera tanda): el cuerpo vive ahora en `Partida.aplicar_continuar`, que `PruebaTest2` llama para TODOS los niveles antes de sus reglas (aquí ya habrá bajado `continuar`).
+	Partida.aplicar_continuar(m, _jug)
 
 
 ## F3: cada fogata y cada brasero del nivel avisa cuando se usa encendido (`Reactivo3D.hoguera_abierta`).
@@ -569,27 +542,7 @@ func _en_hoguera(c: Vector2i) -> void:
 
 ## F2: el punto de guardado escribe la partida entera. `extra` lleva lo que solo el nivel sabe (dónde está la jugadora, su vida, su ropa).
 func _guardar_partida(c: Vector2i) -> void:
-	var pos: Vector3 = (m._jugador as Node3D).position
-	var cercana: String = ""
-	var mejor: float = INF
-	for e in get_tree().get_nodes_in_group("entrada_nivel"):
-		if is_instance_valid(e):
-			var dd: float = (e as Node3D).position.distance_squared_to(pos)
-			if dd < mejor:
-				mejor = dd
-				cercana = String(e.get("nombre"))
-	var extra: Dictionary = {
-		"mapa_actual": String(m.get("nivel")), "entrada": cercana, "posicion": pos,
-		"punto": "%s.%d_%d" % [String(m.get("nivel")), c.x, c.y],
-	}
-	if _jug != null:
-		extra["vida"] = _jug.vida
-		extra["aguante"] = _jug.aguante                  # F4
-		if _jug.pj != null:
-			extra["ropa_puesta"] = _jug.pj.ropa_puesta()
-	var ez: EstadoZona3D = EstadoZona3D.actual
-	if ez != null and is_instance_valid(ez):
-		extra["mundo"] = {String(m.get("nivel")): ez.a_dic()}     # F4: tormenta, vendaval y nubes de veneno vivas
+	var extra: Dictionary = Partida.extra_de(m, _jug, c)      # 2/11: el armado del `extra` es común (también lo usa el autoguardado)
 	Partida.guardar(Partida.ranura_actual, extra)
 
 

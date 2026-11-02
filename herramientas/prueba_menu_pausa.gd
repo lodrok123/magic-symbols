@@ -140,8 +140,8 @@ func _escenario() -> void:
 
 	# --- 7 · Salir pide confirmación y no cierra ---
 	p.fila = 0
-	p.mover(6)
-	_ok("7 la fila 6 es «Salir»", p.id_fila(p.fila) == "salir")
+	p.mover(7)                                         # 2/11: la fila 6 es ahora «Salir al menú principal»
+	_ok("7 la fila 7 es «Salir»", p.id_fila(p.fila) == "salir")
 	await _pausa_de_veda()
 	await _pulsar(KEY_ENTER)
 	_ok("7 el primer Enter solo pide confirmación", p.confirmando == "salir")
