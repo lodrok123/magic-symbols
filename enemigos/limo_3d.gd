@@ -47,6 +47,8 @@ var cuerpo: LimoVisual3D = null
 var golpes_dados: int = 0                     ## acometidas que le dieron (pruebas)
 var acometidas: int = 0                       ## acometidas empezadas (pruebas)
 var absorciones: Array = []                   ## [{accion: tine|crece|cura, elemento, origen: hechizo|suelo|pulso, cura}] (pruebas y diario)
+var muerte_el: String = ""                    ## tarea E3: el elemento del golpe que lo mató, si fue uno de VARIANTES_MUERTE (pruebas)
+var muerte_tinte: Color = Color(0, 0, 0, 0)   ## ... y el tinte que se le puso al cuerpo (alfa 0 = ninguno)
 var _accion: String = ""                      ## "" | "brinco" | "acometida"
 var _t_accion: float = 0.0
 var _golpe_hecho: bool = false
@@ -85,12 +87,14 @@ func _ready() -> void:
 	oro = ORO_LIMO
 	tabla_botin = "limo"
 	vida_max = VIDA
-	defensa = Dano.DEF_LIMO                   # 29/10 (DANO_Y_TINTA): 0
+	masa = 1.2 if grande else 0.6             # tarea P: ligero; el grande pesa el doble
+	defensa = Dano.DEF_LIMO                  # 29/10 (DANO_Y_TINTA): 0
 	health = VIDA
 	tinte = Color.WHITE
 	snd_alerta = ""
 	snd_muere = "limo_muere"                 # 29/10 (gamefeel lote 4): chapoteo largo al reventar; antes no sonaba
 	snd_golpe = "limo_golpe"
+	snd_paso = ""                            # 2/11 (tarea R): el limo repta, sin pisadas
 	cuerpo = LimoVisual3D.new()
 	cuerpo.name = String(name) + "_cuerpo"
 	mundo.add_child(cuerpo)
@@ -222,7 +226,8 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			tenido.emit(el)
 		"crece":
 			grande = true
-			cuerpo.cargar(el)                                   # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
+			masa = 1.2                                          # tarea P: crece, pesa el doble
+			cuerpo.cargar(el)                                 # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
 			_al_crecer()
 			texto_grande("¡Crece!", col, 0.25)
 			crecio.emit(LimoVisual3D.TAMANO_GRANDE)
@@ -244,7 +249,7 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			mojado = 0.0
 		"hielo":
 			congelado = 0.0
-	_destello = maxf(_destello, DESTELLO_DANO)
+	iniciar_destello(el, false, true)
 	_t_gracia = GRACIA_SUELO
 	_rotular()
 	if origen == "hechizo":
@@ -537,14 +542,16 @@ func _cortar_accion() -> void:
 		_quitar_aviso()
 
 
-func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
+func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> void:
 	_cortar_accion()
-	super(direccion, fuerza, suelo)
+	super(direccion, fuerza, suelo, dano, debil)
 
 
-func _reaccion_visual(_el: String) -> void:
+func _reaccion_visual(el: String) -> void:
 	if cuerpo != null and is_instance_valid(cuerpo) and not cuerpo.en_salto:
-		cuerpo.golpe()
+		# tarea H: el destello del limo lleva el color del elemento (con la sensación apagada o DESTELLO_GOLPE = 0, sin destello: el limo no tenía)
+		var col: Color = (COLORES[el] as Color).lerp(Color.WHITE, 0.35) if COLORES.has(el) else Color.WHITE
+		cuerpo.golpe(col, 1.0 if Sensacion3D.ACTIVA and DESTELLO_GOLPE > 0.0 else 0.0)
 
 
 ## =====================================================================================================
@@ -571,6 +578,18 @@ func _morir(ahogado: bool = false) -> void:
 	if snd_muere != "" and Sfx3D.CATALOGO.has(snd_muere):
 		Sfx3D.play(self, snd_muere)                          # gamefeel lote 4 (el `_morir` de Combate3D no corre aquí: el limo tiene el suyo)
 	var c: LimoVisual3D = cuerpo
+	# Tarea E3 (1/11): la muerte por elemento del limo es solo el remate sonoro, el tinte (carbón, azul) y las partículas: ni desmoronamiento ni trozos (se deshace en un charco).
+	var el_muerte: String = "" if ahogado else _elemento_letal()
+	if VARIANTES_MUERTE.has(el_muerte):
+		muerte_el = el_muerte
+		Sfx.play(self, String(SONIDO_MUERTE[el_muerte]))
+		if Sensacion3D.ACTIVA:
+			if c != null and is_instance_valid(c) and (el_muerte == "fuego" or el_muerte == "hielo"):
+				muerte_tinte = TINTE_CARBON if el_muerte == "fuego" else Color(0.55, 0.85, 1.0)
+				c.tenir_muerte(muerte_tinte)
+			if _cupo_muerte_vfx():
+				Sensacion3D.cuenta["muerte_vfx"] = int(Sensacion3D.cuenta["muerte_vfx"]) + 1
+				_particulas_muerte(el_muerte, false)
 	if c != null and is_instance_valid(c):
 		c.cancelar_salto()
 		var tw: Tween = c.create_tween()

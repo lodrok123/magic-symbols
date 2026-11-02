@@ -1229,12 +1229,23 @@ func _ready() -> void:
 		Realce3D.montar(lz, self)
 	# Bloque 3 EoW (23/10): luz y cámara por área, de las líneas «; zona» del mapa del nivel (Zonas3D). Sin esas líneas no cambia nada.
 	Zonas3D.montar(self)
+	# Tercera tanda (2/11): los puntos de objetivo de las misiones son de ESTE mundo (el nivel los pone al iniciarse, después de esta línea); el ciclo de día y noche solo en los mapas
+	# exteriores (Bosque*, nunca cueva ni salas: después de Zonas3D, que le da la luz de la zona que MULTIPLICA); y el ambiente sonoro por zona en todos.
+	Misiones.i().limpiar_puntos()
+	CicloDia3D.montar(self)
+	AmbienteZona.montar(self)
 	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.
 	if niebla_fosos:
 		NieblaFoso3D.montar(self)
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
+	# 2/11 (tercera tanda A1): «Continuar»/«Cargar» valen para cualquier nivel, no solo Jugabilidad3D: se carga la ranura ANTES de que las reglas definan sus misiones.
+	if Partida.continuar:
+		var jug_c: Node = get_node_or_null("Jugador3D")
+		if jug_c != null:
+			Partida.tinta = jug_c.get("tinta")
+		Partida.aplicar_continuar(self, jug_c)
 	if _reglas != null:
 		add_child(_reglas)
 		_reglas.iniciar(self)
@@ -3061,12 +3072,18 @@ func _plantilla(id: String) -> Array:
 			malla = Ocluso3D.malla_con_hueco(malla)
 			if parte[2] != null:
 				parte[2] = Ocluso3D.convertir(parte[2] as Material)
-			if viento_decorado > 0.0 and VIENTO_DECORADO.has(id):
-				var fuerza: float = float(VIENTO_DECORADO[id]) * viento_decorado
+			# W5 (2/11): además de los de VIENTO_DECORADO, helechos y hierba alta se mecen un poco, y todos ellos (arbustos incluidos) se apartan al pasar la jugadora (`Caminar3D`).
+			var viva: bool = Caminar3D.es_pieza_viva(id)
+			if viento_decorado > 0.0 and (VIENTO_DECORADO.has(id) or viva):
+				var fuerza: float = float(VIENTO_DECORADO[id]) * viento_decorado if VIENTO_DECORADO.has(id) else Caminar3D.fuerza_viento_pieza() * viento_decorado
 				for i in range(malla.get_surface_count()):
 					Ocluso3D.poner_viento(malla.surface_get_material(i), fuerza, malla)
+					if viva:
+						Ocluso3D.poner_apartar(malla.surface_get_material(i), 1.0, malla)
 				if parte[2] != null:
 					Ocluso3D.poner_viento(parte[2] as Material, fuerza, malla)
+					if viva:
+						Ocluso3D.poner_apartar(parte[2] as Material, 1.0, malla)
 		parte[0] = malla
 	_plantillas[id] = res
 	return res

@@ -463,6 +463,7 @@ func _sincronizar_mision() -> void:
 	var mi: Misiones = Misiones.i()
 	if not mi.existe(MISION):
 		return
+	_poner_puntos_mision(mi)
 	var n_totems: int = _contar_totems()
 	mi.objetivo_texto(MISION, OBJ_TOTEMS, "Despertar los tres tótems de fuego (%d/3)" % n_totems)
 	var n_camaras: int = _contar_flags(F_CAMARAS)
@@ -477,6 +478,24 @@ func _sincronizar_mision() -> void:
 	for o in hechos:
 		if bool(hechos[o]):
 			mi.objetivo_hecho(MISION, int(o))
+
+
+## Tercera tanda C1: dónde está lo que pide cada objetivo, para el marcador del borde de pantalla (MarcadorMision). Solo los que son un lugar: la tala, el paso batido, el próximo tótem
+## sin despertar y la puerta. Los demás (la llave, el elemental, los opcionales) no llevan punto: sin punto no hay flecha.
+func _poner_puntos_mision(mi: Misiones) -> void:
+	mi.fijar_punto(MISION, _punto_celda(Vector2i(RECT_TALA.get_center())), OBJ_TALA)
+	mi.fijar_punto(MISION, _punto_celda(Vector2i(RECT_PRADO_TRAS_PASO.get_center())), OBJ_PASO)
+	var celda_totem: Variant = null
+	for i in range(F_TOTEM.size()):
+		if not Flags.i().tiene(F_TOTEM[i]):
+			celda_totem = _celdas_totem[i]
+			break
+	mi.fijar_punto(MISION, _punto_celda(celda_totem) if celda_totem != null else null, OBJ_TOTEMS)
+	mi.fijar_punto(MISION, _punto_celda(_celda_puerta) if _celda_puerta.x >= 0 else null, OBJ_PUERTA)
+
+
+func _punto_celda(c: Vector2i) -> Vector3:
+	return Terreno3D.centro_de(c, Terreno3D.y_pies(c))
 
 
 func _contar_flags(lista: PackedStringArray) -> int:
@@ -929,7 +948,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or m == null or m.get("_jugador") == null:
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
 	var mejor: Dictionary = {}

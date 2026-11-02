@@ -20,6 +20,7 @@ extends Area3D
 signal recogido(objeto: String)
 
 const ALCANCE: float = 2.0              ## u: a cuánto hay que estar para cogerla con E (la jugadora mide ~1)
+static var DB_MOCHILA_LLENA: float = -14.0   ## gamefeel U7: volumen de «no_puedes» al intentar coger con la mochila llena
 const VARIANTES: Dictionary = {"roja": "setas_rojas", "azul": "setas_azules", "marron": "setas_marrones"}
 const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 ## Las plantas que no son setas usan una pieza del decorado que ya existe (sin arte nuevo) teñida con el color de su objeto.
@@ -78,6 +79,8 @@ func _ready() -> void:
 	collision_mask = 0
 	collision_layer = Lanzador3D.CAPA_REACTIVO
 	add_to_group("recolectable")
+	add_to_group(PistaProximidad.GRUPO)           # gamefeel U6: la pista «[E] Recoger» cuando está a mano
+	PistaProximidad.asegurar(get_tree())
 	if madura:
 		add_to_group(Pulso3D.GRUPO_PULSABLE)
 	var forma := CollisionShape3D.new()
@@ -258,7 +261,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if recogido_ya or not disponible or not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var pj: Vector3 = _pos_jugador()
 	if pj == Vector3.INF:
@@ -306,14 +309,14 @@ func recoger() -> bool:
 	if Estado.i().agregar(objeto, 1) <= 0:
 		if lanz != null and lanz.has_method("avisar"):
 			lanz.call("avisar", "Mochila llena")
+		Sfx.play_ui("no_puedes", DB_MOCHILA_LLENA)       # gamefeel U7
 		return false
 	recogido_ya = true
 	collision_layer = 0
 	if _visual != null:
 		_visual.visible = false
 	AvisoObjeto.mostrar(lanz, objeto, 1)      # común: «X (+1)»; épico: borde morado, más largo y destello
-	Sfx.play(self, "logro_brillo")
-	recogido.emit(objeto)
+	recogido.emit(objeto)                     # el sonido lo pone AvisoObjeto.mostrar, según la calidad (gamefeel S2)
 	if rebrota > 0.0:
 		_t = 0.0
 		_rebrotando = true
@@ -350,6 +353,22 @@ func _process(delta: float) -> void:
 		_visual = null
 	_poner_visual()
 	_aplicar_disponible()
+
+
+## Gamefeel U6: lo que ofrece a la pista «[E]»: «Recoger» si la E la cogería ahora (a mano, disponible y la más cercana de las que hay a mano); si no, "".
+func accion_pista() -> String:
+	if recogido_ya or not disponible or _cogiendo or not is_inside_tree():
+		return ""
+	var pj: Vector3 = _pos_jugador()
+	if pj == Vector3.INF:
+		return ""
+	var mia: float = _dist(pj, global_position)
+	if mia > ALCANCE:
+		return ""
+	for o in get_tree().get_nodes_in_group("recolectable"):
+		if o != self and is_instance_valid(o) and not bool(o.get("recogido_ya")) and bool(o.get("disponible")) and _dist(pj, (o as Node3D).global_position) < mia:
+			return ""
+	return "Recoger"
 
 
 func _pos_jugador() -> Vector3:

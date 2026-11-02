@@ -31,6 +31,10 @@ extends RefCounted
 
 signal mision_cambio(id: String)
 signal seguida_cambio(id: String)
+## U3 (31/10): los tres momentos que el jugador debe NOTAR (el HUD los suena y los anima). `mision_cambio` sigue saliendo en cualquier cambio.
+signal mision_activada(id: String)                      ## una oculta pasó a activa
+signal objetivo_marcado(id: String, indice: int)        ## un objetivo se marcó hecho y NO cerró la misión (si la cierra, solo sale `mision_completada`)
+signal mision_completada(id: String)                    ## la misión se cerró (y pagó, si tocaba)
 
 const TIPOS: PackedStringArray = ["principal", "secundaria"]
 const ESTADOS: PackedStringArray = ["oculta", "activa", "completa"]
@@ -43,6 +47,10 @@ var _misiones: Dictionary = {}           ## id -> misión
 var _orden: Array = []                   ## ids en el orden de definición
 var _seguida: String = ""
 var _del_guardado: Dictionary = {}       ## ids que vinieron de `cargar()`: al definirlos de nuevo se conserva el progreso
+## PUNTO DE OBJETIVO (tercera tanda, C1, 2/11): dónde está lo que pide la misión, para el marcador del borde de pantalla (MarcadorMision). NO se guarda: lo pone el nivel al montarse
+## (`limpiar_puntos` lo vacía al montar uno nuevo, así un punto de un nivel no apunta en otro). id -> {"mision": punto, "objetivos": {indice: punto}}.
+## Un punto es un Vector3 (mundo) o un String (nombre de un grupo del árbol: el primer nodo del grupo; así sirve para un NPC que se mueve).
+var _puntos: Dictionary = {}
 
 
 static func i() -> Misiones:
@@ -102,6 +110,14 @@ func definir(datos: Dictionary) -> String:
 	if not _misiones.has(id):
 		_orden.append(id)
 	_misiones[id] = m
+	_puntos.erase(id)
+	if datos.has("punto_objetivo"):
+		fijar_punto(id, datos["punto_objetivo"])
+	var k_obj: int = 0
+	for o in datos.get("objetivos", []):
+		if o is Dictionary and (o as Dictionary).has("punto"):
+			fijar_punto(id, (o as Dictionary)["punto"], k_obj)
+		k_obj += 1
 	mision_cambio.emit(id)
 	return id
 
@@ -157,6 +173,7 @@ func activar(id: String) -> void:
 	# La primera misión que se activa pasa a ser la seguida (si no hay ninguna): el jugador siempre ve algo en el HUD.
 	if _seguida == "" or estado(_seguida) != "activa":
 		seguir(id)
+	mision_activada.emit(id)
 
 
 ## Marca (o desmarca) un objetivo. Si con eso están todos hechos y la misión se autocompleta, la completa. Devuelve true si cambió algo.
@@ -171,7 +188,10 @@ func objetivo_hecho(id: String, indice: int, hecho: bool = true) -> bool:
 		return false                              # una misión cerrada no se reabre por un objetivo suelto
 	objs[indice]["hecho"] = hecho
 	mision_cambio.emit(id)
-	if hecho and bool(m["auto_completa"]) and m["estado"] == "activa" and objetivos_pendientes(id) == 0:
+	var cierra: bool = hecho and bool(m["auto_completa"]) and m["estado"] == "activa" and objetivos_pendientes(id) == 0
+	if hecho and not cierra:
+		objetivo_marcado.emit(id, indice)
+	if cierra:
 		completar(id)
 	return true
 
@@ -217,10 +237,12 @@ func completar(id: String) -> void:
 		var rec: Dictionary = m["recompensa"]
 		if int(rec.get("oro", 0)) > 0:
 			Estado.i().dar_oro(int(rec["oro"]))
+			Sfx.play_ui("moneda")                    # gamefeel U4: la recompensa en oro se oye (el HUD suena además el acierto de la misión)
 		for item in (rec.get("items", {}) as Dictionary):
 			Estado.i().agregar(String(item), int((rec["items"] as Dictionary)[item]))
 	PlayLog.event("mision", {"id": id, "estado": "completa"})
 	mision_cambio.emit(id)
+	mision_completada.emit(id)
 	if _seguida == id:
 		# La siguiente misión activa pasa a seguirse sola.
 		var siguiente: String = ""
@@ -257,6 +279,40 @@ func objetivo_actual(id: String) -> String:
 		if not bool(o["hecho"]):
 			return String(o["texto"])
 	return ""
+
+
+## Pone (o quita, con null) el punto de la misión entera (`indice` = -1) o de un objetivo. No emite señales: el marcador lo lee cada fotograma.
+func fijar_punto(id: String, punto: Variant, indice: int = -1) -> void:
+	if punto != null and not (punto is Vector3 or punto is String or punto is StringName):
+		push_warning("Misiones.fijar_punto: el punto de %s debe ser Vector3 o el nombre de un grupo" % id)
+		return
+	var d: Dictionary = _puntos.get(id, {"mision": null, "objetivos": {}})
+	if indice < 0:
+		d["mision"] = punto
+	elif punto == null:
+		(d["objetivos"] as Dictionary).erase(indice)
+	else:
+		(d["objetivos"] as Dictionary)[indice] = punto
+	_puntos[id] = d
+
+
+## El punto al que apunta el marcador de la misión `id`: el de su primer objetivo pendiente si lo tiene; si ese objetivo no dice nada, el de la misión; si tampoco, null (sin flecha).
+func punto_objetivo(id: String) -> Variant:
+	if not _misiones.has(id) or estado(id) != "activa" or not _puntos.has(id):
+		return null
+	var d: Dictionary = _puntos[id]
+	var objs: Array = (_misiones[id] as Dictionary)["objetivos"]
+	for k in range(objs.size()):
+		if not bool(objs[k]["hecho"]):
+			if (d["objetivos"] as Dictionary).has(k):
+				return (d["objetivos"] as Dictionary)[k]
+			break
+	return d["mision"]
+
+
+## Olvida todos los puntos (un nivel nuevo se monta: los puntos de antes eran de otro mundo).
+func limpiar_puntos() -> void:
+	_puntos.clear()
 
 
 ## La línea discreta del HUD: «Título · objetivo actual». Vacía si no se sigue nada.

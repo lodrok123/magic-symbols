@@ -27,7 +27,9 @@ const NOMBRE_ICONO: String = "IconoAviso"
 const ICONO_PX: float = 40.0
 const ICONO_AIRE_PX: float = 7.0                           ## aire a cada lado del icono
 const ALTO_MIN_PX: float = ICONO_PX + 2.0 * (BORDE_PX + 3.0)   ## el panel con icono es al menos así de alto
-const DESTELLO_ENERGIA: float = 3.0          ## fuerza de la luz del destello épico
+## Gamefeel S2 (31/10): el sonido del aviso según la calidad (catálogo de `Sfx`). «raro» aún no existe en `Objetos.CALIDADES` (solo común, épico y legendario): queda listo por si se añade.
+static var SONIDO_CALIDAD: Dictionary = {"comun": "recoger", "raro": "logro_pista", "epico": "logro_brillo", "legendario": "logro_acierto"}
+const DESTELLO_ENERGIA: float = 3.0         ## fuerza de la luz del destello épico
 const DESTELLO_ALCANCE: float = 5.0          ## u
 const DESTELLO_SUBE_S: float = 0.08
 const DESTELLO_BAJA_S: float = 0.45
@@ -44,7 +46,9 @@ static func mostrar(lanz: Node, id: String, n: int = 1) -> Color:
 	var cal: String = Objetos.calidad(id)
 	var color: Color = Objetos.color_calidad(id)
 	mostrar_texto(lanz, texto(id, n), cal, id)
-	if cal == Objetos.CALIDAD_EPICO and lanz != null and lanz.has_method("avisar"):
+	if lanz != null and lanz.has_method("avisar"):
+		Sfx.play_ui(String(SONIDO_CALIDAD.get(cal, SONIDO_CALIDAD[Objetos.CALIDAD_COMUN])))      # gamefeel S2: cada calidad suena distinto
+	if cal ==Objetos.CALIDAD_EPICO and lanz != null and lanz.has_method("avisar"):
 		var j: Variant = lanz.get("jugador")
 		if j is Node3D and (j as Node3D).is_inside_tree():
 			destello(j as Node3D, color)

@@ -146,7 +146,8 @@ var camara: Camera3D = null
 var altura: int = 0                     ## nivel del hechizo que pregunta a una barrera (bloquea_proyectiles lo lee)
 
 var capa_ui: CanvasLayer = null
-var menu: MenuPestanas = null           ## el menú con pestañas (I Inventario, J Misiones): en 3D lo monta el lanzador, como el libro
+var pausa: MenuPausa = null             ## el menú de pausa (Escape con nada abierto; gamefeel Pa)
+var menu: MenuPestanas = null          ## el menú con pestañas (I Inventario, J Misiones): en 3D lo monta el lanzador, como el libro
 var mochila: BolsaUI = null             ## (heredado) la bolsa antigua: ya no se monta, queda null (la sustituye `menu`)
 var diario: DiarioMisiones = null       ## (heredado) el diario suelto: ya no se monta, queda null (vive dentro de `menu`)
 var libro: Control = null
@@ -610,7 +611,12 @@ func construir_interfaz() -> void:
 	# del que el menú reutiliza la lista y la ficha). Pausa el árbol; el lanzador es ALWAYS. La línea de la misión seguida sigue en el HUD.
 	menu = MenuPestanas.new()
 	capa_ui.add_child(menu)
+	# 1/11 (gamefeel Pa): el menú de pausa (Escape con nada abierto). Detrás del menú con pestañas para que, con la mochila abierta, Escape la cierre a ella.
+	pausa = MenuPausa.new()
+	capa_ui.add_child(pausa)
 	capa_ui.add_child(MisionHud.new())
+	capa_ui.add_child(MarcadorMision.new())      # tercera tanda C1: la flecha dorada al borde hacia el objetivo de la misión seguida
+	capa_ui.add_child(IconoGuardado.new())      # tercera tanda A2: el círculo que gira al autoguardar
 
 	libro = Control.new()
 	libro.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -1101,7 +1107,7 @@ func _cancelar_modo() -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if not modo_lanzar:
 		return
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action("pausa"):
 		_cancelar_modo()
 		get_viewport().set_input_as_handled()
 	elif ev is InputEventMouseButton:
@@ -1450,7 +1456,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	desplaza_mano = Vector3.ZERO
-	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)))   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
+	var n_glifos: int = maxi(1, (datos["glifos"] as Array).size()) if datos.get("glifos") is Array else 1      # tarea C1: cuántos glifos lleva la receta (la cámara retrocede más con más)
+	Sensacion3D.disparo(self, elemento, dir, _pos_mano(), not bool(datos.get("en_punto", false)), n_glifos)   # gamefeel: retroceso (si sale de la mano), golpe de zoom, destello y la salida común
 	var ev: Dictionary = {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "glifos": datos["glifos"],
 		"calidad": snappedf(float(datos["calidad"]), 0.01), "recarga": _recarga_de(datos), "forma": forma, "tinta": snappedf(tinta.actual if tinta != null else -1.0, 0.1),
 		"origen": [snappedf(origen.x, 0.1), snappedf(origen.z, 0.1)], "manifestaciones": n}
@@ -2185,6 +2192,9 @@ const SFX_CONJURO: String = "conjuro_arcano"
 func _sonar_fase_v2(fase: String, elemento: String, derivado: String = "", en: Vector3 = Vector3.ZERO) -> void:
 	var nombre: String = "%s_%s" % [derivado if fase == "impacto" and derivado != "" else elemento, fase]
 	var real: String = nombre if Sfx.CATALOGO.has(nombre) else elemento
+	# 2/11 (tarea R): si hay un impacto grabado PARA EL ELEMENTO («fuego_impacto», lentikula Basic/Druid cuando se bajen), suena ese antes que el derivado (x_mano_impacto…). Sin entradas, nada cambia.
+	if fase == "impacto" and Sfx.CATALOGO.has("%s_impacto" % elemento):
+		real = "%s_impacto" % elemento
 	sonidos_fase.append({"fase": fase, "pedido": nombre, "suena": real, "elemento": elemento})
 	if Sfx.CATALOGO.has(real):
 		Sfx.play(self, real, 0.85 if fase == "carga" and real == elemento else 0.0)

@@ -39,6 +39,7 @@ extends RefCounted
 
 signal cambiada                               ## cualquier cambio de cantidad, de máximo o de pigmento (para repintar)
 signal frasco_gastado                         ## un frasco lleno se ha vaciado para rellenar la barra (el HUD lo anima y avisa)
+signal frasco_recargado(indice: int)           ## un frasco vacío se ha llenado (tónico de tinta); `indice` = el último que se llenó (el HUD lo destella)
 signal insuficiente(forma: String, coste: float, hay: float)
 signal pigmento_acabado(id: String)           ## el pigmento temporal se ha agotado (ya ha vuelto el base)
 signal reaccion_premiada(tipo: String, cantidad: float)   ## una reacción de combo ha dado tinta (el HUD pinta el «+20» y el nombre)
@@ -297,6 +298,7 @@ func recargar_frasco(n: int = 1) -> int:
 	if frascos != antes:
 		_guardar_frascos()
 		cambiada.emit()
+		frasco_recargado.emit(frascos - 1)         # gamefeel U8: el HUD destella el frasco que acaba de llenarse
 	return frascos - antes
 
 

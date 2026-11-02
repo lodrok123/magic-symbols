@@ -45,7 +45,8 @@ const CARPETA: String = "res://audio/"
 ## arreglando archivos: dicen la INTENCIÓN. El paso y el trazo van bajos
 ## porque suenan cien veces por nivel; la pira va alta porque suena una y
 ## es el final.
-const CATALOGO: Dictionary = {
+## 2/11 (tarea R): `static var` y no `const` para poder añadir una entrada EN CALIENTE (las pruebas, y los impactos por elemento de lentikula cuando se bajen) sin tocar este archivo.
+static var CATALOGO: Dictionary = {
 	# --- Elementos (sintetizados). Los busca for_element por etiqueta.
 	"fuego":   {"f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
 	"agua":    {"f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
@@ -63,9 +64,9 @@ const CATALOGO: Dictionary = {
 	"derrumbe": {"f": ["derrumbe.wav"], "db": -7.0,  "tono": 0.10},
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
-	"pira":     {"f": ["pira.wav"],     "db": -3.0,  "tono": 0.0},
+	"pira":     {"f": ["pira.wav"],     "db": -6.0,  "tono": 0.0},
 	"dano":     {"f": ["dano.wav"],     "db": -7.0,  "tono": 0.10},
-	"muerte":   {"f": ["muerte.wav"],   "db": -4.0,  "tono": 0.0},
+	"muerte":   {"f": ["muerte.wav"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
 
 	# --- Foley (Kenney, CC0).
 	"paso": {"f": ["paso_0.ogg", "paso_1.ogg", "paso_2.ogg",
@@ -79,7 +80,8 @@ const CATALOGO: Dictionary = {
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
 	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"],
 		"db": -10.0, "tono": 0.06},
-	"clavar":        {"f": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
+	# 2/11 (tarea R): «f» = lo grabado nuevo, «f_sint» = lo que sonaba antes (con GRABADOS = false suena este). Ver docs/DIARIO.md 306 para el porqué de cada archivo.
+	"clavar":        {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sint": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
 	"creak":         {"f": ["creak.ogg"],  "db": -11.0, "tono": 0.08},
 
 	# --- Grimorio (sintetizados a propósito).
@@ -89,6 +91,9 @@ const CATALOGO: Dictionary = {
 	# dos notas que suben y una que baja— porque tienen que leerse como
 	# "sí" y "no" sin que nadie lo explique.
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
+	# 2/11 (tarea R): la pluma que suena MIENTRAS se arrastra el trazo (bucle; volumen por velocidad: `Spellbook`), y las hojas pasando para la animación de página (tarea L; sin uso aún).
+	"pluma_bucle":   {"f": ["fs_pluma_pergamino.mp3"], "db": -30.0, "tono": 0.0},
+	"paginas_bucle": {"f": ["fs_paginas_bucle.mp3"],   "db": -16.0, "tono": 0.0},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
 	# 27/10: la CONJURACIÓN suena arcana, sea cual sea el elemento (OpenGameArt, CC0: «Magic Spell SFX» de JaggedStone). Lo toca el Lanzador al
 	# empezar cada conjuro, debajo del sonido del elemento (`Lanzador3D._sonar_fase_v2`, fase «carga»).
@@ -97,6 +102,12 @@ const CATALOGO: Dictionary = {
 	# 27/10: la DESCARGA de la fuente eléctrica (EmisorRayo3D): un chasquazo al soltar y chisporroteo mientras dura (antes no sonaba).
 	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
+	# 2/11 (tercera tanda, C3): AMBIENTE POR ZONA (nucleo/ambiente_zona.gd; audio/gen_sfx_interfaz.py `ambiente_zonas`). Bucles planos en el bus «Mundo» a −18 dB; los pájaros son tres trinos sueltos.
+	"amb_bosque":  {"f": ["amb_bosque_loop.wav"],  "db": -18.0, "tono": 0.0},
+	"amb_cueva":   {"f": ["amb_cueva_loop.wav"],   "db": -18.0, "tono": 0.0},
+	"amb_sala":    {"f": ["amb_sala_loop.wav"],    "db": -18.0, "tono": 0.0},
+	"amb_grillos": {"f": ["amb_grillos_loop.wav"], "db": -18.0, "tono": 0.0},
+	"amb_pajaros": {"f": ["amb_pajaros_0.wav", "amb_pajaros_1.wav", "amb_pajaros_2.wav"], "db": -18.0, "tono": 0.06},
 	"pulso_resonante": {"f": ["pulso_resonante.wav"], "db": -10.0, "tono": 0.02},      # 26/10: sonido propio del pulso (audio/gen_sfx_pulso.py); lo usan Pulso3D y todo lo que responde
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
 
@@ -107,7 +118,7 @@ const CATALOGO: Dictionary = {
 	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
 	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"],     "db": -9.0,  "tono": 0.08},
 	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
-	"explosion":         {"f": ["explosion.wav"],         "db": -3.0,  "tono": 0.06},
+	"explosion":         {"f": ["explosion.wav"],         "db": -6.0,  "tono": 0.06},
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
 	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
 	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
@@ -141,10 +152,11 @@ const CATALOGO: Dictionary = {
 	# 28/10 (Juego, gamefeel lote 1; audio/gen_sfx_sensacion.py): la salida común de todo hechizo, el «no puedes» seco y el aviso de ataque de un enemigo (C3).
 	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
 	"no_puedes":        {"f": ["no_puedes.wav"],        "db": -8.0,  "tono": 0.05},
+	"no_puedes_ui":     {"f": ["kenney_error_0.ogg", "kenney_error_1.ogg", "kenney_error_2.ogg", "kenney_error_3.ogg"], "f_sint": ["no_puedes.wav"], "db": -12.0, "tono": 0.04},   # 2/11 (R): el «no» de los MENÚS; el del mundo (arriba) no cambia
 	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
 	"tiempo_tic":       {"f": ["tiempo_tic.wav"],       "db": -10.0, "tono": 0.0},
 	"reaccion_grande":  {"f": ["reaccion_grande.wav"],  "db": -7.0,  "tono": 0.04},
-	"moneda":           {"f": ["moneda.wav"],           "db": -14.0, "tono": 0.08},
+	"moneda":           {"f": ["kenney_monedas_0.ogg", "kenney_monedas_1.ogg"], "f_sint": ["moneda.wav"], "db": -14.0, "tono": 0.08},
 	# 29/10 (gamefeel lote 3): la capa de combate (en bucle; la pone Sensacion3D.DirectorSensacion con su propio volumen) y el remate al limpiar la sala.
 	"combate_loop":     {"f": ["combate_loop.wav"],     "db": -17.0, "tono": 0.0},
 	"sala_limpia":      {"f": ["sala_limpia.wav"],      "db": -9.0,  "tono": 0.0},
@@ -166,7 +178,130 @@ const CATALOGO: Dictionary = {
 	"logro_acierto":   {"f": ["logro_acierto.wav"],   "db": -9.0,  "tono": 0.01},
 	"logro_brillo":    {"f": ["logro_brillo.wav"],    "db": -12.0, "tono": 0.01},
 	"logro_fanfarria": {"f": ["logro_fanfarria.wav"], "db": -7.0,  "tono": 0.0},
+
+	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
+	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
+	"bolsa":      {"f": ["kenney_bolsa_0.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
+	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
+	"pocion_fin": {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0, "pitch": 1.15},
+	"recoger":    {"f": ["kenney_recoger_0.ogg", "kenney_recoger_1.ogg", "kenney_recoger_2.ogg", "kenney_recoger_3.ogg"], "f_sint": ["recoger.wav"], "db": -10.0, "tono": 0.04},
+	"golpe_ui":   {"f": ["golpe_ui.wav"],   "db": -8.0,  "tono": 0.0},
+	"comprar":    {"f": ["kenney_comprar_0.ogg", "kenney_comprar_1.ogg"], "f_sint": ["comprar.wav"], "db": -8.0,  "tono": 0.0},
+	"ui_tick":    {"f": ["kenney_clic_0.ogg", "kenney_clic_1.ogg", "kenney_clic_2.ogg", "kenney_clic_3.ogg", "kenney_clic_4.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.04},
+	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
+	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
+	"barrido":    {"f": ["barrido.wav"],    "db": -12.0, "tono": 0.04},
+	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
+	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
+	"cofre_tapa": {"f": ["kenney_cofre_tapa_0.ogg", "kenney_cofre_tapa_1.ogg", "kenney_cofre_tapa_2.ogg"], "f_sint": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
+	# 1/11 (gamefeel tarea D): el ping de «has acertado la debilidad» y el golpe sordo de «resiste» (del mundo: `Sfx.play(enemigo, …)`, bus Master).
+	"ping_debil":  {"f": ["ping_debil.wav"],  "db": -10.0, "tono": 0.02},
+	"golpe_sordo": {"f": ["golpe_sordo.wav"], "db": -12.0, "tono": 0.06},
+	# 1/11 (gamefeel tarea E2): el remate de la muerte por elemento, tras el grito (`Combate3D._muerte_elemental`). «pira_muerte» y «derrumbe_muerte» son los de siempre más bajos.
+	"pira_muerte":     {"f": ["pira.wav"],     "db": -14.0, "tono": 0.0},
+	"derrumbe_muerte": {"f": ["derrumbe.wav"], "db": -12.0, "tono": 0.10},
+	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "db": -9.0, "tono": 0.06},
+	"chispazo":        {"f": ["chispazo.wav"],    "db": -11.0, "tono": 0.06},
+	"salpicadura":     {"f": ["salpicadura.wav"], "db": -10.0, "tono": 0.08},
 }
+
+## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.
+const BUS_INTERFAZ: String = "Interfaz"
+static var VOLUMEN_BUS_INTERFAZ: float = -6.0     ## dB de partida del bus «Interfaz» cuando se crea en caliente (el .tres lleva el mismo)
+
+## AFINADO EN VIVO (31/10, tarea S1): nombre -> dB que SOBRESCRIBE el del catálogo. Lo escribe el panel F3 del LabHechizos3D («dB:nombre»); vacío = suena como dice CATALOGO.
+## `imprimir_ajustes()` vuelca lo cambiado en formato de catálogo para pegarlo. También lo consulta Sfx3D.
+static var AJUSTES: Dictionary = {}
+
+
+## 2/11 (tarea R): true = suenan las GRABACIONES (clave «f» de cada entrada); false = lo sintetizado de antes (clave «f_sint», si la entrada la tiene). Para comparar de oído: fila S:GRABADOS del panel F3.
+static var GRABADOS: bool = true
+## Pluma del trazo (tarea R): suena mientras se arrastra el trazo en el libro, con el volumen según la velocidad del gesto.
+static var PLUMA_ACTIVA: bool = true
+static var DB_PLUMA_MIN: float = -30.0        ## dB con el gesto parado
+static var DB_PLUMA_MAX: float = -14.0        ## dB a velocidad normal de dibujo
+static var VELOCIDAD_PLUMA: float = 900.0     ## px/s del ratón que cuentan como «velocidad normal»
+static var SUAVIZADO_PLUMA: float = 0.05      ## s de suavizado del volumen
+
+
+## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; si no, «f».
+static func archivos_de(cfg: Dictionary) -> Array:
+	if not GRABADOS and cfg.has("f_sint"):
+		return cfg["f_sint"] as Array
+	return cfg["f"] as Array
+
+
+## Los dB con que suena `nombre`: el ajuste en vivo si lo hay, y si no el del catálogo (de Sfx; los de Sfx3D, su propio db). Un nombre desconocido: 0.
+static func db_de(nombre: String) -> float:
+	if AJUSTES.has(nombre):
+		return float(AJUSTES[nombre])
+	if CATALOGO.has(nombre):
+		return float((CATALOGO[nombre] as Dictionary)["db"])
+	return 0.0
+
+
+## Lo que has cambiado respecto al catálogo, una línea por sonido en orden alfabético y listo para pegar: `"nombre": {"db": -12.0},`. Lo imprime y lo devuelve.
+## Un ajuste igual al del catálogo no se lista. Si el bus «Interfaz» no está a su volumen de partida, lo dice al final.
+static func imprimir_ajustes() -> String:
+	var lineas: PackedStringArray = []
+	lineas.append("# Sfx.AJUSTES · dB cambiados respecto a Sfx.CATALOGO (pega cada db en su entrada)")
+	var nombres: Array = AJUSTES.keys()
+	nombres.sort()
+	var n: int = 0
+	for nombre in nombres:
+		var nuevo: float = float(AJUSTES[nombre])
+		var viejo: float = float((CATALOGO[nombre] as Dictionary)["db"]) if CATALOGO.has(nombre) else (float(Sfx3D.CATALOGO[nombre]["db"]) if Sfx3D.CATALOGO.has(nombre) else 0.0)
+		if is_equal_approx(nuevo, viejo):
+			continue
+		lineas.append("\"%s\": {\"db\": %s},   # antes %s" % [nombre, str(snappedf(nuevo, 0.01)), str(viejo)])
+		n += 1
+	if n == 0:
+		lineas.append("# (ningún sonido cambiado)")
+	if AudioServer.get_bus_index(BUS_INTERFAZ) >= 0 and not is_equal_approx(volumen_bus(BUS_INTERFAZ), VOLUMEN_BUS_INTERFAZ):
+		lineas.append("# bus «%s»: %s dB (partida %s; en default_bus_layout.tres: bus/1/volume_db)" % [BUS_INTERFAZ, str(snappedf(volumen_bus(BUS_INTERFAZ), 0.01)), str(VOLUMEN_BUS_INTERFAZ)])
+	var texto: String = "\n".join(lineas)
+	print(texto)
+	return texto
+
+
+## Volumen (dB) de un bus por nombre; 0 si no existe.
+static func volumen_bus(bus: String) -> float:
+	var i: int = AudioServer.get_bus_index(bus)
+	return AudioServer.get_bus_volume_db(i) if i >= 0 else 0.0
+
+
+## Fija el volumen (dB) de un bus por nombre. «Interfaz» se crea si falta. Devuelve false si el bus no existe.
+static func fijar_volumen_bus(bus: String, db: float) -> bool:
+	if bus == BUS_INTERFAZ:
+		_asegurar_bus_interfaz()
+	var i: int = AudioServer.get_bus_index(bus)
+	if i < 0:
+		return false
+	AudioServer.set_bus_volume_db(i, db)
+	return true
+
+## Registro de reproducciones para las PRUEBAS (headless no se oye nada): con `REGISTRAR = true` cada sonido que de verdad suena (tras la veda) suma 1 en `CONTEO[nombre]`
+## y se anota en `ULTIMOS` ({nombre, db, tono}). Apagado por defecto: en el juego no cuesta nada.
+static var REGISTRAR: bool = false
+static var CONTEO: Dictionary = {}
+static var ULTIMOS: Array = []
+
+static func _anotar(nombre: String, db: float, tono: float) -> void:
+	if not REGISTRAR:
+		return
+	CONTEO[nombre] = int(CONTEO.get(nombre, 0)) + 1
+	ULTIMOS.append({"nombre": nombre, "db": db, "tono": tono})
+	if ULTIMOS.size() > 200:
+		ULTIMOS.pop_front()
+
+
+static func vaciar_registro() -> void:
+	CONTEO.clear()
+	ULTIMOS.clear()
+
+
+static func veces(nombre: String) -> int:
+	return int(CONTEO.get(nombre, 0))
 
 ## Etiqueta del elemento -> sonido. Se mira en ESTE orden, y el orden
 ## importa: el hielo lleva "frio" y el fuego "calor", pero un hechizo
@@ -215,15 +350,16 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	_ultima[nombre] = ahora
 
 	var cfg: Dictionary = CATALOGO[nombre]
-	var archivos: Array = cfg["f"]
+	var archivos: Array = archivos_de(cfg)
 	var flujo: AudioStream = load(CARPETA + String(archivos.pick_random()))
 	if flujo == null:
 		return
+	_anotar(nombre, db_de(nombre), tono)
 
 	# M4: el origen puede ser un nodo 3D (Lanzador3D, Grimorio) o uno 2D (el libro, el 2D que aún queda). 3D → reproductor 3D.
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
-	p.set("volume_db", float(cfg["db"]))
+	p.set("volume_db", db_de(nombre))
 	var v: float = float(cfg["tono"])
 	p.set("pitch_scale", 1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
 	if tono > 0.0:
@@ -247,12 +383,61 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	p.call("play")
 
 
+## Sonido de INTERFAZ (31/10, tarea M6): un `AudioStreamPlayer` plano (sin posición ni distancia) en el bus «Interfaz». No necesita origen, así que sirve desde un `CanvasLayer`
+## o un `Control` (`play` falla con ellos en `global_position`). `db` = INF usa el del catálogo; `tono` > 0 fija el pitch (si no, el `pitch` base del catálogo × la variación aleatoria).
+## Misma veda (VEDA_MS) por nombre que `play`. Sigue sonando con el árbol en pausa (menús).
+static func play_ui(nombre: String, db: float = INF, tono: float = 0.0) -> void:
+	if not CATALOGO.has(nombre):
+		return
+	var arbol: SceneTree = Engine.get_main_loop() as SceneTree
+	if arbol == null or arbol.root == null:
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if ahora - int(_ultima.get(nombre, -9999)) < VEDA_MS:
+		return
+	_ultima[nombre] = ahora
+	var cfg: Dictionary = CATALOGO[nombre]
+	var flujo: AudioStream = load(CARPETA + String(archivos_de(cfg).pick_random()))
+	if flujo == null:
+		return
+	var vol: float = db_de(nombre) if db == INF else db
+	var v: float = float(cfg["tono"])
+	var pitch: float = float(cfg.get("pitch", 1.0)) * (1.0 if v <= 0.0 else randf_range(1.0 - v, 1.0 + v))
+	if tono > 0.0:
+		pitch = tono
+	_anotar(nombre, vol, pitch)
+	_asegurar_bus_interfaz()
+	var p := AudioStreamPlayer.new()
+	p.stream = flujo
+	p.volume_db = vol
+	p.pitch_scale = pitch
+	p.bus = BUS_INTERFAZ
+	p.process_mode = Node.PROCESS_MODE_ALWAYS
+	arbol.root.add_child(p)
+	p.finished.connect(p.queue_free)
+	p.play()
+
+
+## Crea el bus «Interfaz» (enviando a Master) si aún no existe.
+static func _asegurar_bus_interfaz() -> void:
+	if AudioServer.get_bus_index(BUS_INTERFAZ) >= 0:
+		return
+	AudioServer.add_bus()
+	var i: int = AudioServer.bus_count - 1
+	AudioServer.set_bus_name(i, BUS_INTERFAZ)
+	AudioServer.set_bus_send(i, "Master")
+	AudioServer.set_bus_volume_db(i, VOLUMEN_BUS_INTERFAZ)
+
+
 ## El flujo de `nombre` listo para sonar en bucle (un WAV importado trae el bucle apagado: se duplica y se activa sobre todo el audio). null si no está.
 static func flujo_en_bucle(nombre: String) -> AudioStream:
 	if not CATALOGO.has(nombre):
 		return null
-	var flujo: AudioStream = load(CARPETA + String((CATALOGO[nombre]["f"] as Array)[0]))
-	if flujo is AudioStreamWAV:
+	var flujo: AudioStream = load(CARPETA + String(archivos_de(CATALOGO[nombre])[0]))
+	if flujo is AudioStreamMP3 or flujo is AudioStreamOggVorbis:
+		flujo = flujo.duplicate() as AudioStream
+		flujo.set("loop", true)
+	elif flujo is AudioStreamWAV:
 		var w: AudioStreamWAV = (flujo as AudioStreamWAV).duplicate() as AudioStreamWAV
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0
@@ -273,9 +458,10 @@ static func bucle(origen: Node, nombre: String, tono: float = 1.0) -> Node:
 	var flujo: AudioStream = flujo_en_bucle(nombre)
 	if flujo == null:
 		return null
+	_anotar(nombre, db_de(nombre), tono)
 	var p: Node = AudioStreamPlayer3D.new() if origen is Node3D else AudioStreamPlayer2D.new()
 	p.set("stream", flujo)
-	p.set("volume_db", float(cfg["db"]))
+	p.set("volume_db", db_de(nombre))
 	p.set("pitch_scale", tono)
 	p.process_mode = Node.PROCESS_MODE_ALWAYS
 	var padre: Node = origen.get_tree().current_scene

@@ -1,4 +1,4 @@
-﻿class_name Jugador3D
+class_name Jugador3D
 extends Node3D
 
 ## EL JUGADOR DEL TEST 3 (4.3 jugador mínimo, 4.4 altura, 4.4b agua). Dueño: Juego.
@@ -64,6 +64,7 @@ signal reaparecio
 signal aguante_cambio(valor: float, activo: bool)
 signal nado_cambiado(nadando: bool)
 signal vida_cambiada(vida: float, maxima: float)
+signal dano_recibido(cantidad: float)             ## A3 (estadísticas): un golpe que de verdad ha quitado vida (no el absorbido por barrera o bálsamo)
 
 var pj: Pj3D = null
 var mundo: Node3D = null
@@ -234,6 +235,8 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 			Combate3D.equipar(g as Pj3D, p_mundo, j, l)
 	# C2 (28/10): las reacciones de combo contra enemigos devuelven tinta (`TintaReaccion`, cuelga del Mundo3D de la maqueta)
 	TintaReaccion.conectar(p_mundo.get("_mundo") as Mundo3D, j.tinta)
+	Estadisticas.conectar(p_mundo.get("_mundo") as Mundo3D, j, l)      # tercera tanda A3: enemigos, hechizos, daño, oro, muertes y cofres
+	Partida.vigilar_misiones()                                          # tercera tanda A2: completar una misión autoguarda
 	j._construir_hud()
 	j.pantalla_muerte = PantallaMuerte.new()
 	j.pantalla_muerte.name = "PantallaMuerte"
@@ -496,8 +499,10 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	if desde != Vector3.ZERO and d.length() > 0.01:
 		push(d.normalized(), 4.5)
 	PlayLog.event("dano_jugador", {"cantidad": cantidad, "vida": vida})
+	dano_recibido.emit(cantidad)                      # A3: lo cuenta `Estadisticas` (daño que de verdad entró, tras defensa, barrera y bálsamo)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	if vida <= 0.0:
+		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel U2: la viñeta y el golpe también en el golpe que mata, antes del fundido de la pantalla de muerte
 		_morir()
 	else:
 		pj.animacion_actual = ""
@@ -578,6 +583,8 @@ func reaparecer() -> void:
 	pj.animacion_actual = ""
 	pj.jugar("idle")
 	PlayLog.event("reaparece")
+	Sfx.play_ui("reaparecer")                         # gamefeel U2: un tono suave de vuelta
+	Sensacion3D.reaparece(self)                       # y una viñeta clara que se abre (0,6 s)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	reaparecio.emit()
 	if lanz != null:
@@ -675,16 +682,16 @@ func _process(delta: float) -> void:
 	var libre: bool = not bloqueado and mundo.get("_velo") == null and not get_tree().paused \
 			and not (lanz != null and lanz.libro_abierto())     # con el libro abierto el tiempo corre, pero tú estás escribiendo
 	if libre:
-		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		if Input.is_action_pressed("mover_izquierda"):
 			entrada.x -= 1.0
-		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		if Input.is_action_pressed("mover_derecha"):
 			entrada.x += 1.0
-		if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		if Input.is_action_pressed("mover_adelante"):
 			entrada.y -= 1.0
-		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		if Input.is_action_pressed("mover_atras"):
 			entrada.y += 1.0
-	var correr: bool = libre and not apuntando_rapido and Input.is_key_pressed(KEY_SHIFT)     # A1: apuntando de pie-andando no se corre ni se salta
-	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_key_pressed(KEY_SPACE)
+	var correr: bool = libre and not apuntando_rapido and Input.is_action_pressed("correr")     # A1: apuntando de pie-andando no se corre ni se salta
+	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_action_pressed("saltar")
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
@@ -729,10 +736,11 @@ func _process(delta: float) -> void:
 			_mirada = mov
 			pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
 		if mundo.has_method("marcar_pisado") and not nadando:
-			mundo.call("marcar_pisado", Terreno3D.celda_de(position), 0.35)
+			mundo.call("marcar_pisado", Terreno3D.celda_de(position), Caminar3D.PISADO_CORRER if (corriendo and Sensacion3D.ACTIVA) else Caminar3D.PISADO_ANDAR)    # gamefeel W2: más marcado al correr
 
 	_vertical(delta, salto)
 	_animar(mov, correr)
+	Caminar3D.actualizar(self, mov != Vector3.ZERO, delta)     # 2/11 (gamefeel W1-W5): cuerpo, cámara, rastro de la hierba, agua, hojas y pájaros
 	_actualizar_sonido(delta)
 	_sincronizar()
 	_actualizar_hud()
@@ -823,6 +831,7 @@ func _sonar_pasos(recorrido: float, correr: bool) -> void:
 	if _dist_paso < (DIST_PASO_CORRER if correr else DIST_PASO_ANDAR):
 		return
 	_dist_paso = 0.0
+	Caminar3D.paso(self, correr)         # 2/11 (gamefeel W1/W4): polvo, huellas y vadeo en cada paso
 	var tipo: int = 0
 	if mundo.has_method("_tipo_suelo"):
 		tipo = int(mundo.call("_tipo_suelo", Terreno3D.celda_de(position)))
@@ -883,7 +892,7 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 ## 6.6: Ctrl = voltereta. Se dispara al PULSAR (no mientras se mantiene). (Q ya no bebe aquí: desde el 24/10 Q usa el consumible equipado, en `HudEoW`,
 ## que para la poción llama a `usar_pocion()` de más abajo.)
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
-	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
+	var ctrl: bool = libre and Input.is_action_pressed("voltereta")
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo
 	if ctrl and not _roll_previa:
@@ -900,7 +909,7 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			PlayLog.event("pulsacion_guardada", {"accion": "voltereta"})
 			_iniciar_voltereta(mov if mov != Vector3.ZERO else _roll_guardado_mov)
 	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
-	var tecla_golpe: bool = libre and Input.is_key_pressed(KEY_F)
+	var tecla_golpe: bool = libre and Input.is_action_pressed("golpe")
 	if tecla_golpe and not _pegar_previa:
 		_iniciar_golpe_cuerpo()                  # (comprueba `puede_golpear_cuerpo`)
 	_pegar_previa = tecla_golpe
@@ -990,7 +999,78 @@ func _iniciar_beber() -> void:
 	_t_beber = T_BEBER
 	if pj.beber(T_BEBER) <= 0.0:                   # Pipeline: stand_drink recortado + poción en la mano
 		pj.jugar("drink", true)                    # sin clip: al menos que dure lo mismo
+	_sonar_beber()
 	PlayLog.event("beber_inicio", {"pociones": Estado.i().cuenta("pocion")})
+
+
+## Gamefeel M4 (31/10): los «glu glu» de la poción en bucle `T_SONIDO_BEBER_S` s acompañando al clip `drink` (se corta antes si acaba o te golpean).
+static var T_SONIDO_BEBER_S: float = 1.2
+## ... y el destello verde de la jugadora al terminar de beber (emisión de sus materiales, como el hit flash de `Combate3D`, que se apaga solo).
+static var COLOR_DESTELLO_BEBER: Color = Color(0.55, 1.0, 0.6)
+static var T_DESTELLO_BEBER_S: float = 0.2
+static var ENERGIA_DESTELLO_BEBER: float = 1.2
+static var DB_CANCELAR_BEBER: float = -12.0
+var _snd_beber: Node = null
+var _tw_destello_beber: Tween = null
+var _emision_destello_beber: Array = []            ## [material, enabled, color, energía] de cada material antes del destello, para devolverlo igual
+
+
+func _sonar_beber() -> void:
+	_parar_sonido_beber(0.0)
+	_snd_beber = Sfx.bucle(self, "pocion")
+	if _snd_beber != null and is_inside_tree():
+		get_tree().create_timer(T_SONIDO_BEBER_S).timeout.connect(_cortar_sonido_beber.bind(weakref(_snd_beber)))
+
+
+## Pasado `T_SONIDO_BEBER_S` corta el bucle de la poción si aún suena (el reproductor puede haberse liberado ya al terminar o cancelar: por eso un WeakRef y no una captura).
+func _cortar_sonido_beber(ref: WeakRef) -> void:
+	var p: Object = ref.get_ref()
+	if p != null:
+		Sfx.parar(p as Node, 0.1)
+
+
+func _parar_sonido_beber(fundido: float = 0.1) -> void:
+	if _snd_beber != null and is_instance_valid(_snd_beber):
+		Sfx.parar(_snd_beber, fundido)
+	_snd_beber = null
+
+
+## Destello de color sobre los materiales de la jugadora: emisión de `color` a `energia` que baja a 0 en `dur` s y devuelve la emisión que tenían. Sin sensación, no se hace.
+func destello_color(color: Color, dur: float, energia: float) -> void:
+	if not Sensacion3D.ACTIVA or pj == null or not is_inside_tree():
+		return
+	_fin_destello_color()
+	for m in pj._materiales:
+		if is_instance_valid(m):
+			_emision_destello_beber.append([m, m.emission_enabled, m.emission, m.emission_energy_multiplier])
+			m.emission_enabled = true
+			m.emission = color
+			m.emission_energy_multiplier = energia
+	pj.sincronizar_juguete()
+	_tw_destello_beber = create_tween()
+	_tw_destello_beber.tween_method(_paso_destello_color.bind(energia), 1.0, 0.0, dur)
+	_tw_destello_beber.tween_callback(_fin_destello_color)
+
+
+func _paso_destello_color(k: float, energia: float) -> void:
+	for e in _emision_destello_beber:
+		if is_instance_valid(e[0]):
+			(e[0] as StandardMaterial3D).emission_energy_multiplier = energia * k
+	pj.sincronizar_juguete()
+
+
+func _fin_destello_color() -> void:
+	if _tw_destello_beber != null and _tw_destello_beber.is_valid():
+		_tw_destello_beber.kill()
+	for e in _emision_destello_beber:
+		if is_instance_valid(e[0]):
+			var m: StandardMaterial3D = e[0]
+			m.emission_enabled = bool(e[1])
+			m.emission = e[2]
+			m.emission_energy_multiplier = float(e[3])
+	_emision_destello_beber.clear()
+	if pj != null:
+		pj.sincronizar_juguete()
 
 
 ## Un GESTO (24/10): el clip del rol (`agacharse`, `ofrecer`, `saludo`...: Pj3D.SINONIMOS) suena UNA vez a la velocidad `vel` y te deja quieto lo que dura; después vuelve idle.
@@ -1016,16 +1096,23 @@ func en_gesto() -> bool:
 func _terminar_beber() -> void:
 	if pj.has_method("desequipar"):
 		pj.call("desequipar")
+	_parar_sonido_beber()
 	if Estado.i().quitar(_beber_id):
 		var cura: float = Mejoras.cura_de(_beber_id) if Objetos.efecto(_beber_id).has("cura") else CURA_POCION   # F3: la de la tabla + la mejora «Poción más dulce»
 		curar(cura)
 		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), "+%d" % int(cura), Color(0.5, 1.0, 0.55))
+		Sfx.play_ui("pocion_fin")                                       # M4: el último trago (la poción +15 %)
+		destello_color(COLOR_DESTELLO_BEBER, T_DESTELLO_BEBER_S, ENERGIA_DESTELLO_BEBER)
+		if hud_eow != null:
+			hud_eow.pulso_vida()
 		PlayLog.event("beber_fin", {"vida": vida})
 	pj.animacion_actual = ""
 
 
 func _cancelar_beber() -> void:
 	_t_beber = 0.0
+	_parar_sonido_beber()
+	Sfx.play_ui("no_puedes", DB_CANCELAR_BEBER)         # M4: el golpe te cortó el trago
 	if pj.has_method("desequipar"):
 		pj.call("desequipar")
 	pj.animacion_actual = ""
@@ -1104,6 +1191,8 @@ func _vertical(delta: float, salto: bool) -> void:
 		if position.y <= suelo and vy <= 0.0:
 			if vy <= -Sensacion3D.VY_POLVO_CAIDA and not agua:
 				Sensacion3D.polvo(mundo, Vector3(position.x, suelo, position.z), Sensacion3D.POLVO_CAIDA)     # gamefeel lote 2: cae de alto
+			if not agua:
+				Caminar3D.aterrizar(self, vy)     # gamefeel W1: el cuerpo se aplasta un poco al tocar suelo
 			position.y = suelo
 			vy = 0.0
 			en_suelo = true

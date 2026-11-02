@@ -23,7 +23,8 @@ extends Node2D
 ## LA CURVA DE MUÑECA. La pluma se inclina según hacia dónde va (`inclinacion`): hasta ±`INCLINA_MAX` grados con la velocidad horizontal,
 ## suavizada; y la mano gira un poco MENOS que la pluma (`GIRO_MANO`), como una muñeca que no es rígida.
 
-enum Pose { REPOSO, ESCRIBIENDO, LEVANTADA }
+## PINZA (tarea L, 2/11): pulgar e índice juntos, para agarrar la hoja al pasar página. No es una pose que salga sola: solo la fija `pose_forzada` (el libro).
+enum Pose { REPOSO, ESCRIBIENDO, LEVANTADA, PINZA }
 
 const RUTA: String = "res://presentacion/ui/laminas/"
 ## La punta de la pluma en los PNG (todos de 560 × 560): el ancla de todo.
@@ -45,6 +46,10 @@ const AUMENTO_LEVANTADA: float = 1.04
 @export var visible_al_inicio: bool = true
 
 var pose: int = Pose.REPOSO
+## >= 0: la pose manda el libro y no se calcula (pasar página: LEVANTADA y PINZA). -1 = automática, como siempre.
+var pose_forzada: int = -1
+## Cuántas veces ha cambiado a cada pose (para las pruebas: «pasó por LEVANTADA y PINZA»).
+var poses_vistas: Dictionary = {}
 var _alzada: float = 1.0                    ## 0 = pulsando sobre la página · 1 = levantada del todo
 var _buffer: Array = []                     ## [[t, punto]] de los últimos 0,5 s
 var _punta_actual: Vector2 = Vector2.ZERO
@@ -93,11 +98,12 @@ func _cargar(nombre: String) -> Texture2D:
 
 
 static func nombre_pose(p: int) -> String:
-	return ["reposo", "escribiendo", "levantada"][clampi(p, 0, 2)]
+	return ["reposo", "escribiendo", "levantada", "pinza"][clampi(p, 0, 3)]
 
 
 func _poner_texturas() -> void:
-	var n: String = nombre_pose(pose)
+	# La mano 2D no tiene lámina de pinza: se queda la de LEVANTADA (la 3D sí la aproxima, ver ManoPluma3D).
+	var n: String = nombre_pose(Pose.LEVANTADA if pose == Pose.PINZA else pose)
 	_s_mano.texture = _cargar("mano_" + n)
 	_s_sombra.texture = _cargar("sombra_" + n)
 	_s_pluma.texture = _cargar("mano_pluma")
@@ -157,7 +163,10 @@ func _process(delta: float) -> void:
 	_punta_actual = punto_con_retardo(_buffer, _reloj)
 	_vel = (_punta_actual - antes) / maxf(delta, 0.0001)
 	# La pose: pulsando → ESCRIBIENDO; sin pulsar → LEVANTADA y, tras T_REPOSO sin moverse, REPOSO.
-	if _dibujando:
+	if pose_forzada >= 0:
+		_t_quieta = 0.0
+		_cambiar_pose(pose_forzada)
+	elif _dibujando:
 		_t_quieta = 0.0
 		_cambiar_pose(Pose.ESCRIBIENDO)
 	else:
@@ -176,6 +185,7 @@ func _cambiar_pose(p: int) -> void:
 	if p == pose:
 		return
 	pose = p
+	poses_vistas[p] = int(poses_vistas.get(p, 0)) + 1
 	if _s_mano != null:
 		_poner_texturas()
 

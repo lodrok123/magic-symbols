@@ -20,6 +20,7 @@ extends Area3D
 ##   agua    daño + MOJADO (6 s): -25 % de velocidad; el rayo le hace +50 % y salta.
 ##   rayo    daño alto + ATURDE; si está mojado, x1,5 y SALTA al más cercano.
 ##   hielo   poco daño + CONGELA; mojado, congela más y hace +15.
+##   EMPUJE (31/10, tarea P): v0 = fuerza_golpe × MULT_EMPUJE × ESCALA_EMPUJE × k_dano / masa; k_dano sube con el daño del golpe (K_EMPUJE_MIN..K_EMPUJE_MAX) y con la debilidad (K_EMPUJE_DEBIL); masa por enemigo (guerrero 1, limo 0,6, elemental 3,3...).
 ##   viento  casi sin daño: INTERRUMPE y EMPUJA.   tierra  pedrada + retroceso y lentitud (3 s).
 
 const COLORES: Dictionary = {
@@ -40,15 +41,37 @@ const ESCALA_EMPUJE: float = 2.3 / 64.0 * 0.1      ## 2D: dir * fuerza * 0.1 px/
 ## y una `const` no se puede escribir. Se leen igual que una constante (`Combate3D.MULT_EMPUJE`). Valores confirmados por Pablo.
 static var MULT_EMPUJE: float = 2.0            ## × sobre TODA fuerza de `push` (`fuerza_golpe` del Hechizo y también viento/atracción de Lanzador3D)
 static var EMPUJE_MIN_CASILLAS: float = 0.35   ## ningún golpe con daño > 0 recorre menos de esto (× Terreno3D.casilla); a ×2 los básicos aún no se veían
-static var MULT_EMPUJE_ELEMENTAL: float = 0.3  ## el elemental pesa: recibe este factor del empuje y del suelo (antes 0,15, sin ×2)
+## 31/10 (tarea P): el empuje depende del DAÑO del golpe y de la MASA del enemigo (`masa`; el elemental 3,3 sustituye al antiguo MULT_EMPUJE_ELEMENTAL 0,3):
+##   v0 = fuerza × MULT_EMPUJE × ESCALA_EMPUJE × k_dano / masa,  k_dano = lerp(K_EMPUJE_MIN, K_EMPUJE_MAX, dano / DANO_EMPUJE_MAX) × (K_EMPUJE_DEBIL si debilidad)
+static var K_EMPUJE_MIN: float = 0.7           ## k_dano con un golpe sin daño o ligero (menos que antes)
+static var K_EMPUJE_MAX: float = 1.6           ## k_dano con DANO_EMPUJE_MAX de daño o más
+static var DANO_EMPUJE_MAX: float = 40.0       ## daño a partir del cual el empuje ya no crece (el mismo corte que Sensacion3D.DANO_HITSTOP_MAX)
+static var K_EMPUJE_DEBIL: float = 1.25        ## × extra si el golpe es de su elemento débil
 static var DECAIMIENTO_EMPUJE: float = 7.0     ## `lerp(empuje, 0, 7·dt)` por fotograma: el recorrido es v0 / 7 (de ahí la v0 mínima del suelo)
 static var TEMBLOR_GOLPE: float = 0.25         ## intensidad (0–1) del temblor de cámara al golpear a un enemigo (Vfx3D.temblor)
 static var TEMBLOR_DEBIL: float = 0.5          ## ... y si el elemento es su punto débil
+static var TEMBLOR_MAX: float = 0.5            ## 1/11 (tarea C2): tope del temblor de un golpe normal, que es TEMBLOR_GOLPE × `_k_golpe` (0,6..1,6 según la fuerza del empujón)
+## 1/11 (tarea E): la muerte por elemento (`_muerte_elemental`). Como mucho MAX_MUERTES_VFX muertes por segundo llevan el efecto completo; las demás, solo tinte y sonido.
+static var MAX_MUERTES_VFX: int = 3
+static var T_MUERTE_TINTE: float = 0.4         ## s que tarda el cuerpo en teñirse (carbón del fuego; el hielo, 0,3 s: `T_MUERTE_HIELO`)
+static var T_MUERTE_HIELO: float = 0.3         ## s de cuerpo helado antes de romperse
+static var T_MUERTE_RAYO: float = 0.3          ## s que tiembla rígido antes de caer
+static var N_TROZOS_HIELO: int = 7             ## trozos al romperse el hielo (6-8)
+static var TINTE_CARBON: Color = Color(0.15, 0.1, 0.08)
+static var TINTE_HIELO: Color = Color(0.7, 0.95, 1.35)
+static var _t_muertes_vfx: Array = []          ## ms de las últimas muertes con efecto completo
 ## 28/10 (gamefeel, `Sensacion3D.hitstop_de`): el hitstop es PROPORCIONAL al daño, de HITSTOP (golpe flojo) a HITSTOP_DEBIL (Sensacion3D.DANO_HITSTOP_MAX de daño o más, o su debilidad),
 ## y la jugadora se congela también una fracción (Sensacion3D.HITSTOP_COMPARTIDO). Antes era fijo: 0,06 y 0,09.
 static var HITSTOP: float = 0.04               ## s que se congela ESE enemigo con el golpe más flojo (IA, animación y empuje; el mundo no)
 static var HITSTOP_DEBIL: float = 0.10         ## el máximo: un golpe grande o de su elemento débil
-static var DESTELLO_GOLPE: float = 0.20        ## s de blanco puro tras un golpe (antes 0,10 y tinte ×2,2, que dejaba ver la textura)
+static var DESTELLO_GOLPE: float = 0.20        ## s del destello de un golpe (0 = sin destello). 31/10 (tarea H): empieza T_FLASH_BLANCO s en blanco puro y sigue con el color del elemento (antes 0,10 y tinte ×2,2, que dejaba ver la textura)
+static var T_FLASH_BLANCO: float = 0.05        ## s de blanco puro al empezar el destello de un golpe con elemento (se ve a simple vista)
+static var T_FLASH_FUNDIDO: float = 0.06       ## s finales en que la energía del destello baja linealmente a 0 (antes cortaba en seco)
+static var ENERGIA_FLASH: float = 1.4          ## energía de la emisión del color del elemento (Color del elemento aclarado 35 % hacia blanco)
+static var DESTELLO_DEBIL: float = 0.28        ## s del destello si el golpe es de su elemento débil...
+static var ENERGIA_FLASH_DEBIL: float = 1.8    ## ... y su energía
+static var ENERGIA_FLASH_CONTINUO: float = 0.8 ## energía del tinte del daño continuo (quemadura, veneno, pulsos): sin fase blanca, para que no parpadee
+const COLOR_FLASH_PIEDRA: Color = Color(0.75, 0.75, 0.75)   ## destello corto del «Piedra» del gólem (elemento «piedra»)
 static var SQUASH_ESCALA: Vector3 = Vector3(1.25, 0.8, 1.25)   ## aplastamiento del modelo al golpe: vuelve a 1 en SQUASH_TIEMPO con TRANS_BACK
 static var SQUASH_TIEMPO: float = 0.15
 static var ANTICIPA_ESCALA: Vector3 = Vector3(1.12, 0.86, 1.12)   ## gamefeel: cómo se encoge al empezar el aviso de su ataque (C3)
@@ -59,6 +82,22 @@ static var INTERRUPCION_GOLPE: float = 0.6     ## s sin atacar tras un golpe con
 static var INTERRUPCION_DANO: float = 0.3      ## s que da cualquier otro daño (quemadura, arco del rayo): con 0,6 una quemadura no le dejaría atacar nunca
 ## C3 (28/10): los ataques marcan antes en el suelo la zona que van a golpear (`AvisoAtaque3D`). `static var` para poder apagarlo desde un laboratorio.
 static var AVISAR_ATAQUES: bool = true
+## B2 (tercera tanda, 2/11): ICONOS DE ESTADO junto a la barra de vida: hasta 4 (quemado, congelado, envenenado, mojado, aturdido/electrificado) con una barra de tiempo restante debajo. SOLO LEEN
+## `quemando`, `congelado`, `envenenado`, `mojado` y `stun_timer`; no cambian ningún estado. Son información, no sensación: se ven igual con `Sensacion3D.ACTIVA = false`. El elemental no los muestra.
+static var ICONOS_ESTADO_SIEMPRE: bool = true  ## true = se ven mientras haya un estado activo; false = solo mientras se ve la barra de vida
+static var ICONOS_CON_SIMBOLOS: bool = false   ## false = letras Q C V M E de color (la fuente por defecto no tiene ♨ ❄ ☠ ≈ ⚡); true = esos símbolos si la fuente del sistema los trae
+static var ICONO_TAM_FUENTE: int = 44
+static var ICONO_SEPARACION: float = 0.2       ## u entre iconos
+static var ICONO_BAJADA: float = 0.2           ## u por debajo de la barra de vida
+static var ICONO_BARRA_ANCHO: float = 0.16     ## u: ancho de la barra de tiempo (llena)
+static var ICONOS_ESTADO: Array = [
+	{"id": "quemado", "letra": "Q", "simbolo": "♨", "color": Color(1.0, 0.5, 0.2), "var": "quemando"},
+	{"id": "congelado", "letra": "C", "simbolo": "❄", "color": Color(0.55, 0.9, 1.0), "var": "congelado"},
+	{"id": "envenenado", "letra": "V", "simbolo": "☠", "color": Color(0.55, 0.9, 0.35), "var": "envenenado"},
+	{"id": "mojado", "letra": "M", "simbolo": "≈", "color": Color(0.4, 0.65, 1.0), "var": "mojado"},
+	{"id": "electrificado", "letra": "E", "simbolo": "⚡", "color": Color(1.0, 0.95, 0.35), "var": "stun_timer"},
+]
+const MAX_ICONOS_ESTADO: int = 4
 const DESTELLO_DANO: float = 0.10              ## destello del daño que no es golpe (quemadura): el de siempre, para que no parpadee en blanco
 
 ## --- IA (px del 2D pasados a unidades: 300 px ≈ 2,5 casillas, §4.3 del plan) ---
@@ -201,6 +240,11 @@ var resiste: String = "fuego"
 var nombre: String = "Goblin guerrero"
 var snd_alerta: String = "goblin_grito"      ## sonido al descubrir al jugador (Gatopedro usa otro)
 var snd_muere: String = "goblin_muere"       ## sonido al morir
+var snd_paso: String = "paso_goblin"        ## 2/11 (tarea R): la pisada al andar (`_sonar_pasos`); "" = sin pasos. El gólem usa «paso_golem»; el limo y el gato no llevan.
+var zancada_sonido: float = 0.9              ## u andadas entre pisadas
+var _paso_prev: Vector3 = Vector3(INF, 0.0, 0.0)
+var _paso_acc: float = 0.0
+const ZANCADA_TELEPORTE: float = 1.5         ## u por fotograma: más que esto no es andar (teletransporte, reaparición)
 var snd_golpe: String = "golpe_carne"        ## 29/10 (gamefeel lote 4): el cuerpo al encajar un hechizo (`Sensacion3D.golpe_enemigo`); "" = sin sonido
 var tinte: Color = Color(1.12, 0.9, 0.85)
 var oro: int = ORO_BOTIN
@@ -267,8 +311,14 @@ var _t_contacto_fuego: float = 0.0      ## cuenta atrás hasta la próxima compr
 var _barra_t: float = 0.0
 var _vida_mostrada: float = 1.0
 var impactos_visuales: int = 0              ## cuántas veces pidió estrella + temblor al Vfx3D (para las pruebas)
-var _destello: float = 0.0
-var _flash_blanco: bool = false         ## el destello está pintado ahora mismo (emisión blanca en los materiales)
+var _destello: float = 0.0              ## s que le quedan al destello
+var _destello_total: float = 0.0        ## duración con que empezó (el tiempo transcurrido es _destello_total − _destello)
+var _destello_el: String = ""           ## elemento que lo tiñe ("" = blanco, "piedra" = gris corto)
+var _destello_debil: bool = false       ## golpe de su elemento débil: más largo y más fuerte
+var _destello_continuo: bool = false    ## daño continuo (quemadura, veneno, pulsos): sin fase blanca
+var _flash_blanco: bool = false         ## el destello está pintado ahora mismo (emisión en los materiales)
+var _flash_color: Color = Color.WHITE   ## último color de emisión aplicado a los materiales
+var _flash_energia: float = -1.0        ## ... y su energía
 var _emision_previa: Array = []         ## [enabled, color, energía] de cada material antes del destello, para devolverlo igual
 var _hitstop: float = 0.0               ## s que le quedan congelado por el último golpe
 var respingo: Vector3 = Vector3.ZERO    ## gamefeel lote 3: desplazamiento del MODELO (no del nodo) del tirón al recibir un golpe; vuelve solo a cero
@@ -296,6 +346,8 @@ var _t_anim: float = 0.0
 var _ataque: float = 0.0       ## s que le quedan a la animación de ataque en curso (bloquea movimiento y giro)
 var _ataque_vel: float = 1.0
 var elemental: bool = false             ## el elemental de bosque (comportamiento propio)
+var masa: float = 1.0                   ## kg relativos: el empuje se divide por ella; 1 = goblin guerrero
+var _k_golpe: float = 1.0               ## tarea P: fuerza visual del último empujón (v0 / V0_REF); lo leen el aplastamiento, el respingo y el polvo, y vuelve a 1 tras usarse
 var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
 var _v_avance: float = 0.0              ## 28/10: u/s a los que avanza ahora mismo (ya con ritmo y estados): de ahí sale la velocidad del clip de andar sin patinar
 var _potenciado: bool = false           ## el agua lo ha agrandado ahora mismo
@@ -320,6 +372,8 @@ var _barra_perdida: MeshInstance3D = null
 var _barra_vida: MeshInstance3D = null
 var _marca_debil: Label3D = null
 var _nombre_etiqueta: Label3D = null
+var _iconos_estado: Array = []                  ## B2: MAX_ICONOS_ESTADO huecos {letra: Label3D, barra: MeshInstance3D, id: String}
+var _estado_visto_max: Dictionary = {}          ## B2: el mayor tiempo visto de cada estado (la barra de tiempo es restante / eso)
 const ANCHO_BARRA: float = 0.8
 const ALTO_BARRA: float = 0.09
 
@@ -390,8 +444,10 @@ func _ready() -> void:
 	arquero = pj != null and pj.id.begins_with("goblin_archer")
 	if arquero:
 		nombre = "Goblin arquero"
+		masa = 0.9
 	elif pj != null and pj.id.begins_with("goblin_asesino"):
 		nombre = "Goblin asesino"
+		masa = 0.8
 	_vida_mostrada = 1.0
 	_ultima_celda_ok()
 	# Materiales del modelo (cada copia tiene los suyos) y su color de partida
@@ -481,7 +537,8 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		if not muerto:
 			_iniciar_hitstop(hs)
 		_impacto_visual("", false, d)
-	_destello = maxf(_destello, DESTELLO_GOLPE)
+	_k_golpe = 1.0
+	iniciar_destello("", false)                          # golpe F: blanco corto, sin fase de color
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador                                  # un golpe te hace mirar a quien viene
 	PlayLog.event("golpe_cuerpo_recibido", {"nombre": nombre, "dano": snappedf(float(r["dano"]), 0.1), "vida": snappedf(health, 0.1), "escudo": parado,
@@ -490,25 +547,31 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 
 
 ## `suelo` = es un golpe con daño: no recorre menos de EMPUJE_MIN_CASILLAS casillas (v0 mínima = casillas × tamaño × DECAIMIENTO, porque el
-## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El elemental recibe MULT_EMPUJE_ELEMENTAL también en el suelo (si no, pegaría igual que un goblin).
-func push(direccion: Vector3, fuerza: float, suelo: bool = false) -> void:
+## empuje decae con lerp(…, 7·dt) y recorre v0 / 7). El suelo también se divide por `masa` (si no, el elemental pegaría igual que un goblin).
+## Tarea P (31/10): `dano` y `debil` del golpe escalan el empuje (`v0_de_empuje`); viento/atracción llaman sin ellos (defaults).
+func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> void:
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() < 0.01 or muerto:
 		return
-	var v0: float = v0_de_empuje(fuerza, suelo)
+	var v0: float = v0_de_empuje(fuerza, suelo, dano, debil)
+	_k_golpe = clampf(v0 / Sensacion3D.V0_REF, 0.6, 1.6)
 	_empuje += d.normalized() * v0
 	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
 	if v0 >= EMPUJADO_V0_MIN:
-		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE)     # gamefeel lote 2: los pies levantan polvo al salir despedido
+		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE * _k_golpe)     # gamefeel lote 2: los pies levantan polvo al salir despedido
 	_empezar_empujado(d, v0)
 
 
 ## 28/10 · A2: la velocidad inicial (u/s) de un empujón de `fuerza`; `suelo` = es un golpe con daño (no recorre menos de EMPUJE_MIN_CASILLAS). Lo usan `push` y la previsión.
-func v0_de_empuje(fuerza: float, suelo: bool = false) -> float:
-	var peso: float = MULT_EMPUJE_ELEMENTAL if elemental else 1.0
-	var v0: float = fuerza * MULT_EMPUJE * ESCALA_EMPUJE * peso
+## Tarea P: × k_dano(dano, debil) / masa (ver K_EMPUJE_MIN…K_EMPUJE_DEBIL); el suelo también se divide por masa. `dano` < 0 (el defecto) = «sin escalar por daño» (k = 1): viento, atracción y el golpe F (empujón de fuerza, no de daño).
+func v0_de_empuje(fuerza: float, suelo: bool = false, dano: float = -1.0, debil: bool = false) -> float:
+	var m: float = maxf(masa, 0.05)
+	var k: float = 1.0
+	if dano >= 0.0:
+		k = lerpf(K_EMPUJE_MIN, K_EMPUJE_MAX, clampf(dano / maxf(DANO_EMPUJE_MAX, 0.001), 0.0, 1.0)) * (K_EMPUJE_DEBIL if debil else 1.0)
+	var v0: float = fuerza * MULT_EMPUJE * ESCALA_EMPUJE * k / m
 	if suelo:
-		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE * peso)
+		v0 = maxf(v0, EMPUJE_MIN_CASILLAS * Terreno3D.casilla * DECAIMIENTO_EMPUJE / m)
 	return v0
 
 
@@ -573,7 +636,7 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 		for k in dec:
 			r[k] = dec[k]
 		if not bool(dec["curado"]) and d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:
-			empujes.append({"v0": v0_de_empuje(hechizo.fuerza_golpe, float(dec["dano"]) > 0.0), "dir": d.normalized()})
+			empujes.append({"v0": v0_de_empuje(hechizo.fuerza_golpe, float(dec["dano"]) > 0.0, float(dec["dano"]), float(dec["mult"]) > 1.0), "dir": d.normalized()})
 	r["empujes"] = empujes
 	if not empujes.is_empty():
 		var vs: Array = []
@@ -630,7 +693,7 @@ func multiplicador(elemento: String) -> float:
 
 
 ## Las reacciones de `REACCIONES` que ESTE enemigo tiene de verdad (leído de `golpe`, `_ia` y `_ajustar_al_suelo`, no supuesto):
-##   · quemado, congelado, electrocutado, empujado y cae_al_agua: todos (el elemental también; pesa: recibe el empuje × MULT_EMPUJE_ELEMENTAL).
+##   · quemado, congelado, electrocutado, empujado y cae_al_agua: todos (el elemental también; pesa: masa 3,3, su empuje se divide por ella).
 ##   · mojado y aturdido: todos MENOS el elemental. El agua no lo moja: lo cura y lo agranda (`_agua_elemental`); y `golpe`/`_ia` ignoran el aturdimiento
 ##     de un elemental (pesa demasiado). Decisión de diseño anterior a A3, que se respeta y se declara aquí.
 func reacciones_soportadas() -> PackedStringArray:
@@ -789,8 +852,10 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_encoger()                             # el fuego le quita lo que le dio el agua
 	if mult > 1.0:
 		texto("¡Débil!", COLORES.get(debil, Color.WHITE), 0.28)
+		Sensacion3D.ping_debil(self)                  # tarea D: el ping (y el flash de pantalla de un fotograma, con veda)
 	elif mult < 1.0 and base > 0.0:
 		texto("Resiste", Color(0.7, 0.7, 0.7), 0.28)
+		Sensacion3D.golpe_sordo(self)                 # tarea D: el golpe grave y apagado de lo que resiste
 
 	if bool(dec["veneno"]):           # el veneno no hace nada a un elemental (no tiene carne); se queda el más largo / fuerte
 		if envenenado <= 0.0:
@@ -799,7 +864,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_dps_veneno = maxf(_dps_veneno, hechizo.veneno_dps)
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:      # el empuje del viento (y la atracción) lo da Lanzador3D por push(): su fuerza_golpe es 0
-		push(d, hechizo.fuerza_golpe, dano > 0.0)
+		push(d, hechizo.fuerza_golpe, dano > 0.0, dano, mult > 1.0)
 	if bool(dec["aturde"]):
 		_aturdir(hechizo.aturde)
 	if dano > 0.0:
@@ -813,7 +878,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		if not muerto:
 			interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
 			_iniciar_hitstop(hs)
-	_destello = maxf(_destello, DESTELLO_GOLPE)
+	iniciar_destello(el, mult > 1.0)
 	if not muerto:
 		_reaccion_visual(el)
 	_impacto_visual(el, mult > 1.0, d)
@@ -863,9 +928,11 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 		cantidad = escudo_natural.absorber(cantidad, _num_elemento)     # E2: el escudo de naturaleza se come el daño (el fuego lo quema)
 		if cantidad <= 0.0:
 			return
+	Estadisticas.dano_hecho(minf(cantidad, health))     # A3: el daño que de verdad quita (no pasa de la vida que quedaba)
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
-	_destello = maxf(_destello, DESTELLO_DANO)
+	if not _num_golpe:
+		iniciar_destello(_num_elemento, false, true)     # daño continuo: tinte del elemento; los golpes ponen el suyo después (golpe, recibir_golpe_cuerpo)
 	_barra_destello = DESTELLO_BARRA
 	_perdida_espera = RETARDO_PERDIDA
 	_numero(cantidad)
@@ -977,8 +1044,28 @@ func _physics_process(delta: float) -> void:
 		# y lo pisaría, y `pj.position` pelearía con el tween que lo hunde. Muerto, esta pasada se acaba aquí.
 		return
 	_animar()
+	_sonar_pasos()
 	pj.position = position + Vector3(0.0, _salto_y, 0.0) + respingo
 	_dibujar_estado(delta)
+
+
+## 2/11 (tarea R): las pisadas del enemigo. No hay evento de apoyo en los clips, así que suenan POR DISTANCIA recorrida (cada `zancada_sonido` u, que es una pisada de las del clip `walk`).
+## Solo cuenta el movimiento propio: un empujón (`_empuje`), un salto de más de ZANCADA_TELEPORTE en un fotograma o ir en el aire no suenan.
+func _sonar_pasos() -> void:
+	if snd_paso == "" or elemental:
+		return
+	var pos: Vector3 = Vector3(position.x, 0.0, position.z)
+	if _paso_prev.x == INF:
+		_paso_prev = pos
+		return
+	var d: float = pos.distance_to(_paso_prev)
+	_paso_prev = pos
+	if d > ZANCADA_TELEPORTE or _empuje.length() > 0.3 or _salto_y > 0.05:
+		return
+	_paso_acc += d
+	if _paso_acc >= zancada_sonido:
+		_paso_acc = fmod(_paso_acc, zancada_sonido)
+		Sfx3D.play(self, snd_paso)
 
 
 ## Congela a este enemigo `t` s (si ya estaba congelado más rato, no se acorta). La animación se para con velocidad 0.
@@ -1007,9 +1094,10 @@ func _fin_hitstop() -> void:
 func _reaccion_visual(el: String) -> void:
 	if not elemental and pj != null and is_instance_valid(pj):
 		_cancelar_squash()
-		_poner_squash(SQUASH_ESCALA)
+		var esc: Vector3 = Vector3.ONE.lerp(SQUASH_ESCALA, _k_golpe)     # tarea P: el aplastamiento sigue a la fuerza del empujón
+		_poner_squash(esc)
 		_tw_squash = create_tween()
-		_tw_squash.tween_method(_poner_squash, SQUASH_ESCALA, Vector3.ONE, SQUASH_TIEMPO) \
+		_tw_squash.tween_method(_poner_squash, esc, Vector3.ONE, SQUASH_TIEMPO) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if SALTO_ELEMENTOS.has(el) and _fase_empuje == FASE_NINGUNA:      # lanzado por el aire, el saltito de viento/tierra sobra
 		if _tw_salto != null and _tw_salto.is_valid():
@@ -1026,6 +1114,8 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	if not muerto:
 		_respingar(dir)
 		Sensacion3D.golpe_enemigo(self, el, debil)    # gamefeel lote 4: el cuerpo suena (solo con elemento: el golpe F y el «Piedra» ya suenan)
+	var k_temblor: float = _k_golpe if Sensacion3D.ACTIVA else 1.0      # tarea C2: el temblor sigue a la fuerza del empujón (con la sensación apagada, el de siempre)
+	_k_golpe = 1.0                                    # tarea P: ya se usó; el siguiente golpe sin empuje vuelve a la fuerza normal
 	var fx: Variant = mundo.get("_fx") if mundo != null else null
 	if not (fx is Vfx3D) or not is_inside_tree():
 		return
@@ -1034,7 +1124,9 @@ func _impacto_visual(el: String, debil: bool, dir: Vector3 = Vector3.ZERO) -> vo
 	if not Vfx3D.ELEMENTOS.has(el):
 		return
 	(fx as Vfx3D).golpe_estrella(global_position + Vector3(0.0, 0.6, 0.0), el, 1.5 if debil else 1.0)
-	(fx as Vfx3D).temblor(TEMBLOR_DEBIL if debil else TEMBLOR_GOLPE)
+	# Tarea C2/C3: débil = TEMBLOR_DEBIL tal cual; si no, TEMBLOR_GOLPE × la fuerza del empujón con tope TEMBLOR_MAX. `temblor_golpe` junta los de un mismo fotograma en el mayor.
+	var t_temblor: float = TEMBLOR_DEBIL if debil else minf(TEMBLOR_GOLPE * k_temblor, TEMBLOR_MAX)
+	Sensacion3D.temblor_golpe(fx as Vfx3D, t_temblor)
 	impactos_visuales += 1
 
 
@@ -1049,7 +1141,7 @@ func _respingar(dir: Vector3) -> void:
 		d.y = 0.0
 	if d.length() < 0.01:
 		return
-	var f: float = Sensacion3D.RESPINGO * (0.6 if elemental else 1.0)
+	var f: float = Sensacion3D.RESPINGO * (0.6 if elemental else 1.0) * _k_golpe
 	if _tw_respingo != null and _tw_respingo.is_valid():
 		_tw_respingo.kill()
 	Sensacion3D.cuenta["respingo"] = int(Sensacion3D.cuenta["respingo"]) + 1
@@ -1203,7 +1295,7 @@ func prender_por_contacto(segundos: float = QUEMA_CONTACTO) -> bool:
 	quemando = maxf(quemando, maxf(segundos, ELEMENTAL_QUEMA) if elemental else segundos)
 	if not estaba:
 		_reaccionar("prendido")
-		_destello = maxf(_destello, DESTELLO_DANO)
+		iniciar_destello("fuego", false, true)
 		PlayLog.event("goblin_prende_por_contacto", {"nombre": nombre})
 	return true
 
@@ -1943,17 +2035,70 @@ func _animar() -> void:
 ##  Aspecto: tinte por material y barra de vida
 ## =====================================================================================================
 
-## Destello BLANCO PURO: albedo negro + emisión blanca, así la textura del modelo no se ve (el tinte ×2,2 de antes la dejaba asomar). Al apagarlo
-## se devuelve la emisión que cada material tenía. Se llama cada fotograma desde _dibujar_estado; solo toca los materiales al cambiar de estado.
-func _destello_blanco(activo: bool) -> void:
+## Empieza un destello (tarea H, 31/10). `el` = elemento que lo tiñe ("" = blanco puro, "piedra" = gris corto del gólem); `debil` = golpe de su elemento débil (más largo y fuerte);
+## `continuo` = daño que no es golpe (quemadura, veneno, pulsos: tinte del elemento sin fase blanca). Un destello nuevo sustituye al que hubiera, salvo que uno continuo
+## no pisa un golpe en curso. Con DESTELLO_GOLPE = 0 los golpes no destellan.
+func iniciar_destello(el: String, debil: bool, continuo: bool = false) -> void:
+	var dur: float = DESTELLO_DANO if continuo else (DESTELLO_DEBIL if debil else DESTELLO_GOLPE)
+	if dur <= 0.0 or (DESTELLO_GOLPE <= 0.0 and not continuo):
+		return
+	if continuo and _destello > 0.0 and not _destello_continuo:
+		return
+	_destello = dur
+	_destello_total = dur
+	_destello_el = el
+	_destello_debil = debil
+	_destello_continuo = continuo
+
+
+func _color_destello(el: String) -> Color:
+	if el == "piedra":
+		return COLOR_FLASH_PIEDRA
+	if el == "veneno":
+		return Color(0.55, 0.9, 0.35)
+	return (COLORES[el] as Color).lerp(Color.WHITE, 0.35) if COLORES.has(el) else Color.WHITE
+
+
+## Qué toca pintar ahora: [color, energía], según el tiempo transcurrido del destello. Sin sensación, o sin elemento (golpe F): blanco de siempre.
+func _destello_fase() -> Array:
+	var blanco: Array = [Color.WHITE, 1.0]
+	if not Sensacion3D.ACTIVA or _destello_el == "":
+		return blanco
+	if _destello_el == "piedra":
+		return [COLOR_FLASH_PIEDRA, 1.0]
+	if _destello_continuo:
+		var cc: Color = _color_destello(_destello_el)
+		return blanco if cc == Color.WHITE else [cc, ENERGIA_FLASH_CONTINUO]
+	if not COLORES.has(_destello_el) or _destello_total - _destello < T_FLASH_BLANCO:
+		return blanco
+	var energia: float = ENERGIA_FLASH_DEBIL if _destello_debil else ENERGIA_FLASH
+	if T_FLASH_FUNDIDO > 0.0 and _destello < T_FLASH_FUNDIDO:
+		energia *= _destello / T_FLASH_FUNDIDO
+	return [_color_destello(_destello_el), energia]
+
+
+## Destello: albedo negro + emisión de `color` a `energia`, así la textura del modelo no se ve (el tinte ×2,2 de antes la dejaba asomar). Al apagarlo se devuelve la emisión que cada
+## material tenía. Se llama cada fotograma desde _dibujar_estado; solo toca la emisión de los materiales cuando cambian el color o la energía (el albedo negro sí, porque
+## _aplicar_tinte lo repinta cada fotograma).
+func _destello_pintar(activo: bool, color: Color = Color.WHITE, energia: float = 1.0) -> void:
 	if activo == _flash_blanco:
 		if activo:
+			var cambia: bool = not color.is_equal_approx(_flash_color) or not is_equal_approx(energia, _flash_energia)
+			if cambia:
+				_flash_color = color
+				_flash_energia = energia
 			for m in _materiales:
-				if is_instance_valid(m):
-					(m as StandardMaterial3D).albedo_color = Color.BLACK    # _aplicar_tinte lo acaba de repintar con el tinte
+				var mat3: StandardMaterial3D = m as StandardMaterial3D
+				if is_instance_valid(mat3):
+					mat3.albedo_color = Color.BLACK    # _aplicar_tinte lo acaba de repintar con el tinte
+					if cambia:
+						mat3.emission = color
+						mat3.emission_energy_multiplier = energia
 		return
 	_flash_blanco = activo
 	if activo:
+		_flash_color = color
+		_flash_energia = energia
 		_emision_previa.clear()
 		for m in _materiales:
 			var mat: StandardMaterial3D = m as StandardMaterial3D
@@ -1962,8 +2107,8 @@ func _destello_blanco(activo: bool) -> void:
 				continue
 			_emision_previa.append([mat.emission_enabled, mat.emission, mat.emission_energy_multiplier])
 			mat.emission_enabled = true
-			mat.emission = Color.WHITE
-			mat.emission_energy_multiplier = 1.0
+			mat.emission = color
+			mat.emission_energy_multiplier = energia
 			mat.albedo_color = Color.BLACK
 	else:
 		for i in range(_materiales.size()):
@@ -1996,7 +2141,11 @@ func _dibujar_estado(delta: float) -> void:
 	if _t_conjuro > 0.0:                      # brillo sutil que lo cura
 		c = c.lerp(Color(0.8, 1.55, 0.85), 0.35 + 0.15 * sin(Time.get_ticks_msec() * 0.012))
 	_aplicar_tinte(c)
-	_destello_blanco(_destello > 0.0)
+	if _destello > 0.0:
+		var fase: Array = _destello_fase()
+		_destello_pintar(true, fase[0], float(fase[1]))
+	else:
+		_destello_pintar(false)
 
 	var fr: float = clampf(health / vida_max, 0.0, 1.0)
 	_barra_destello = maxf(0.0, _barra_destello - delta)
@@ -2015,6 +2164,7 @@ func _dibujar_estado(delta: float) -> void:
 		for n in [_barra_fondo, _barra_perdida, _barra_vida]:
 			(n as Node3D).visible = ver
 	_nombre_etiqueta.visible = _barra_t > 0.0 and not elemental
+	_actualizar_iconos_estado(not elemental and (fr < 0.999 or _barra_destello > 0.0))
 	if elemental:
 		_actualizar_barra_jefe(fr)
 
@@ -2055,6 +2205,95 @@ func _construir_barra() -> void:
 	_nombre_etiqueta.position = Vector3(0.0, alto + 0.14, 0.0)
 	_nombre_etiqueta.visible = false
 	add_child(_nombre_etiqueta)
+	_construir_iconos_estado(alto)
+
+
+## B2: los huecos de los iconos (letra + barra de tiempo), ocultos, bajo la barra de vida.
+func _construir_iconos_estado(alto: float) -> void:
+	_iconos_estado.clear()
+	for i in range(MAX_ICONOS_ESTADO):
+		var l := Label3D.new()
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.pixel_size = 0.0035
+		l.font_size = ICONO_TAM_FUENTE
+		l.outline_size = 10
+		l.visible = false
+		l.position = Vector3(0.0, alto - ICONO_BAJADA, 0.0)
+		add_child(l)
+		var b := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(ICONO_BARRA_ANCHO, 0.025)
+		b.mesh = q
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.no_depth_test = true
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.render_priority = 3
+		b.material_override = m
+		b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		b.visible = false
+		b.position = Vector3(0.0, alto - ICONO_BAJADA - 0.1, 0.0)
+		add_child(b)
+		_iconos_estado.append({"letra": l, "barra": b, "id": ""})
+
+
+## B2: los estados activos, en el orden de ICONOS_ESTADO, con su fracción de tiempo restante (0..1). Solo lee. Lo usan el dibujo y las pruebas.
+func estados_activos() -> Array:
+	var r: Array = []
+	for d in ICONOS_ESTADO:
+		var t: float = float(get(String(d["var"])))
+		var id: String = String(d["id"])
+		if t > 0.0:
+			_estado_visto_max[id] = maxf(float(_estado_visto_max.get(id, 0.0)), t)
+			r.append({"id": id, "tiempo": t, "fraccion": clampf(t / maxf(float(_estado_visto_max[id]), 0.001), 0.0, 1.0), "icono": d})
+		else:
+			_estado_visto_max.erase(id)
+	return r
+
+
+## B2: pinta los iconos. `barra_visible`: ¿se ve la barra de vida? (con ICONOS_ESTADO_SIEMPRE = false solo entonces).
+func _actualizar_iconos_estado(barra_visible: bool) -> void:
+	if _iconos_estado.is_empty():
+		return
+	var activos: Array = estados_activos() if (not muerto and not elemental and (ICONOS_ESTADO_SIEMPRE or barra_visible)) else []
+	var n: int = mini(activos.size(), MAX_ICONOS_ESTADO)
+	for i in range(_iconos_estado.size()):
+		var h: Dictionary = _iconos_estado[i]
+		var l: Label3D = h["letra"]
+		var b: MeshInstance3D = h["barra"]
+		if i >= n:
+			l.visible = false
+			b.visible = false
+			h["id"] = ""
+			continue
+		var a: Dictionary = activos[i]
+		var d: Dictionary = a["icono"]
+		var x: float = (float(i) - float(n - 1) * 0.5) * ICONO_SEPARACION
+		var col: Color = d["color"]
+		l.text = String(d["simbolo"] if ICONOS_CON_SIMBOLOS else d["letra"])
+		l.modulate = col
+		l.outline_modulate = Color(0.05, 0.05, 0.08, 1.0)
+		l.position.x = x
+		l.visible = true
+		var fr: float = float(a["fraccion"])
+		var q: QuadMesh = b.mesh as QuadMesh
+		q.size = Vector2(maxf(ICONO_BARRA_ANCHO * fr, 0.002), 0.025)
+		q.center_offset = Vector3(-ICONO_BARRA_ANCHO * 0.5 + q.size.x * 0.5, 0.0, 0.0)
+		(b.material_override as StandardMaterial3D).albedo_color = col
+		b.position.x = x
+		b.visible = true
+		h["id"] = String(a["id"])
+
+
+## Los ids de los iconos que se ven AHORA (las pruebas).
+func iconos_estado_visibles() -> Array:
+	var r: Array = []
+	for h in _iconos_estado:
+		if (h["letra"] as Label3D).visible:
+			r.append(String(h["id"]))
+	return r
 
 
 func _quad_mesh() -> QuadMesh:
@@ -2088,6 +2327,7 @@ func _quad(color: Color, prioridad: int, alto: float) -> MeshInstance3D:
 
 func _preparar_elemental() -> void:
 	vida_max = ELEM_VIDA
+	masa = 3.3
 	defensa = Dano.DEF_ELEMENTAL
 	health = ELEM_VIDA
 	nombre = "Elemental del bosque"
@@ -2415,6 +2655,7 @@ func _morir(ahogado: bool = false) -> void:
 	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
 		if n != null:
 			(n as Node3D).visible = false
+	_actualizar_iconos_estado(false)                  # B2: muerto → los iconos de estado se apagan
 	# Si muere en pleno golpe: sin destello blanco, sin aplastamiento ni salto a medias (el tween de muerte encoge pj.scale desde su valor actual).
 	_destello = 0.0
 	_hitstop = 0.0
@@ -2422,11 +2663,23 @@ func _morir(ahogado: bool = false) -> void:
 	if _tw_salto != null and _tw_salto.is_valid():
 		_tw_salto.kill()
 	_cancelar_squash()
-	_destello_blanco(false)
+	_destello_pintar(false)
 	_aplicar_tinte(tinte)
+	# Tarea E (1/11): la muerte por elemento. `variante` = el elemento del golpe que lo mató (solo fuego, hielo, rayo, agua y tierra; ahogado y elemental, no); `completo` = además lleva el
+	# efecto entero (partículas, trozos…): con ACTIVA y dentro del tope MAX_MUERTES_VFX por segundo. Sin cupo: solo tinte y sonido.
+	var variante: String = ""
+	var completo: bool = false
+	if not ahogado and not elemental:
+		variante = _elemento_letal()
+		if not VARIANTES_MUERTE.has(variante):
+			variante = ""
+		if variante != "" and Sensacion3D.ACTIVA:
+			completo = _cupo_muerte_vfx()
 	var dur_hundir: float = 0.0
 	if ahogado:
 		dur_hundir = _animar_ahogo()
+	elif variante == "rayo" and completo:
+		pj.set_velocidad_animacion(0.0)                   # rígido: ni clip `death`, la pose del golpe se queda congelada (el AnimationPlayer del árbol, a velocidad 0)
 	else:
 		Jugador3D.una_vez(pj, "death")
 	if not elemental:
@@ -2440,14 +2693,179 @@ func _morir(ahogado: bool = false) -> void:
 	if ahogado:
 		_hundir_modelo(dur_hundir)
 		return
+	var salida: String = "normal"
+	if variante != "":
+		salida = _muerte_elemental(variante, completo)
 	_soltar_botin()
 	var tw: Tween = create_tween()
 	tw.tween_interval(1.4)
-	tw.tween_property(pj, "scale", pj.scale * 0.01, 0.35)
+	var esc0: Vector3 = pj.scale
+	match salida:
+		"desmorona":                                       # fuego: primero se hunde en altura y luego se queda en nada a lo ancho (0,2 + 0,15 s: lo mismo que el encogido de siempre)
+			tw.tween_property(pj, "scale:y", esc0.y * 0.01, 0.2)
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.15)
+		"nada":                                            # hielo: el modelo ya se fue; solo se espera lo de siempre
+			tw.tween_interval(0.35)
+		"desliza":                                         # agua: se escurre 0,5 u hacia donde iba mientras encoge
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.35)
+			tw.parallel().tween_property(pj, "position", pj.position + _dir_empuje_muerte() * 0.5, 0.35)
+		_:
+			tw.tween_property(pj, "scale", esc0 * 0.01, 0.35)
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(pj):
 			pj.queue_free()
 		queue_free())
+
+
+## =====================================================================================================
+##  Muerte por elemento (tarea E, 1/11)
+## =====================================================================================================
+
+const VARIANTES_MUERTE: Array = ["fuego", "hielo", "rayo", "agua", "tierra"]       # viento, sin elemento y golpe F mueren como siempre
+const SONIDO_MUERTE: Dictionary = {"fuego": "pira_muerte", "hielo": "hielo_rompe", "rayo": "chispazo", "agua": "salpicadura", "tierra": "derrumbe_muerte"}
+
+
+## El elemento del golpe que lo mata. OJO: NO sale de `_destello_el`, porque `golpe` arranca el destello DESPUÉS de `receive_damage` (que es quien llama a `_morir`) y ahí aún
+## está el del golpe anterior; `_num_elemento` sí es el del golpe letal. Sin golpe (daño continuo), muere ardiendo si ardía; el veneno y lo demás, sin elemento.
+func _elemento_letal() -> String:
+	if _num_golpe:
+		return _num_elemento
+	return "fuego" if quemando > 0.0 else ""
+
+
+## ¿Cabe otra muerte con el efecto completo? Como mucho MAX_MUERTES_VFX en el último segundo (reloj de pared). Si cabe, la apunta.
+static func _cupo_muerte_vfx() -> bool:
+	var ahora: int = Time.get_ticks_msec()
+	while not _t_muertes_vfx.is_empty() and ahora - int(_t_muertes_vfx[0]) >= 1000:
+		_t_muertes_vfx.pop_front()
+	if _t_muertes_vfx.size() >= MAX_MUERTES_VFX:
+		return false
+	_t_muertes_vfx.append(ahora)
+	return true
+
+
+func _fx_muerte() -> Vfx3D:
+	var fx: Variant = mundo.get("_fx") if mundo != null else null
+	return fx as Vfx3D if fx is Vfx3D and is_instance_valid(fx) and (fx as Vfx3D).is_inside_tree() else null
+
+
+## Hacia dónde iba el último empuje (plano XZ, normalizado); si no lo hubo, lejos de la jugadora.
+func _dir_empuje_muerte() -> Vector3:
+	var d := Vector3(_empuje.x, 0.0, _empuje.z)
+	if d.length() < 0.01 and jugador != null and is_instance_valid(jugador):
+		d = Vector3(position.x - jugador.position.x, 0.0, position.z - jugador.position.z)
+	return d.normalized() if d.length() > 0.01 else Vector3.RIGHT
+
+
+## Tiñe el cuerpo hacia `c` en `t` s (muerto, `_dibujar_estado` ya no corre: el tinte se queda donde acaba).
+func _tenir_muerte(c: Color, t: float) -> void:
+	var tw: Tween = create_tween()
+	tw.tween_method(_aplicar_tinte, tinte, c, maxf(t, 0.01))
+
+
+## Las partículas sueltas de la muerte de `el` (las que no dependen del cuerpo, y por eso también las del limo): ceniza y llamitas, salpicadura y vapor, polvo y grietas.
+## `con_cuerpo` = quien llama ya trae su propio remate de rayo y de hielo (el goblin rígido, los trozos); sin cuerpo (el limo) basta un chispazo.
+func _particulas_muerte(el: String, con_cuerpo: bool) -> void:
+	var fx: Vfx3D = _fx_muerte()
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	match el:
+		"fuego":
+			if fx != null:
+				fx.ceniza(p)
+				var l: Node3D = fx.llamas(position, 0.5, 0.3)
+				get_tree().create_timer(0.8).timeout.connect(func() -> void:
+					if is_instance_valid(l):
+						l.queue_free())
+		"agua":
+			if fx != null:
+				fx.salpicadura(position, 1.2)
+				fx.vapor(p)
+		"tierra":
+			Sensacion3D.polvo(mundo, position, 1.2)
+			if fx != null:
+				fx.grietas(position, 0.6, 1.5)
+		"rayo":
+			if fx != null and not con_cuerpo:
+				fx.chispazo(p, "rayo")
+		"hielo":
+			if fx != null and not con_cuerpo:
+				fx.chispazo_suave(p, Vfx3D.COLOR["hielo"])
+
+
+## E1/E2: la muerte de `el` (fuego, hielo, rayo, agua o tierra). Suena el remate del elemento; con `Sensacion3D.ACTIVA` además se tiñe (fuego y hielo) y, si `completo` (cupo de
+## MAX_MUERTES_VFX por segundo), lleva el efecto entero. Los hijos pueden sobrescribirla (llamando a `super`). Devuelve cómo acaba el cuerpo, que `_morir` anima tras 1,4 s:
+## «normal» (encoge), «desmorona» (fuego: baja en altura y luego a lo ancho), «nada» (hielo: el modelo ya se rompió) o «desliza» (agua: encoge escurriéndose 0,5 u).
+func _muerte_elemental(el: String, completo: bool) -> String:
+	Sfx.play(self, String(SONIDO_MUERTE.get(el, "")))
+	if not Sensacion3D.ACTIVA or pj == null or not is_instance_valid(pj):
+		return "normal"
+	if el == "fuego":
+		_tenir_muerte(TINTE_CARBON, T_MUERTE_TINTE)
+	elif el == "hielo":
+		_tenir_muerte(TINTE_HIELO, T_MUERTE_HIELO)
+	if not completo:
+		return "normal"
+	Sensacion3D.cuenta["muerte_vfx"] = int(Sensacion3D.cuenta["muerte_vfx"]) + 1
+	_particulas_muerte(el, true)
+	match el:
+		"fuego":
+			return "desmorona"
+		"hielo":
+			for m in _materiales:                          # emisión fría mientras se congela del todo
+				var mat: StandardMaterial3D = m as StandardMaterial3D
+				if is_instance_valid(mat):
+					mat.emission_enabled = true
+					mat.emission = Color(0.45, 0.75, 1.0)
+					mat.emission_energy_multiplier = 0.8
+			var tw: Tween = create_tween()
+			tw.tween_interval(T_MUERTE_HIELO)
+			tw.tween_callback(_romper_hielo)
+			return "nada"
+		"rayo":
+			_sacudir_rigido()
+		"agua":
+			return "desliza"
+		"tierra":
+			var hundir: Tween = create_tween()
+			hundir.tween_property(pj, "position:y", pj.position.y - 0.3, 0.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	return "normal"
+
+
+## Hielo: el cuerpo se rompe. El modelo desaparece de golpe, un chispazo suave y 6-8 trozos que caen y se funden en 1 s.
+func _romper_hielo() -> void:
+	if pj == null or not is_instance_valid(pj):
+		return
+	pj.visible = false
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	var fx: Vfx3D = _fx_muerte()
+	if fx != null:
+		fx.chispazo_suave(p, Vfx3D.COLOR["hielo"])
+	TrozosHielo3D.crear(mundo if mundo != null else get_parent(), p, TINTE_HIELO.clamp(Color(0, 0, 0, 1), Color(1, 1, 1, 1)), clampi(N_TROZOS_HIELO, 1, 12), altura)
+
+
+## Rayo: rígido (sin clip de muerte; el árbol de animación está a velocidad 0), tiembla en sitio T_MUERTE_RAYO s (`_respingar` repetido), suelta tres chispazos y cae de golpe
+## (rotación X de 90° en 0,15 s).
+func _sacudir_rigido() -> void:
+	var base: Vector3 = pj.position
+	var fx: Vfx3D = _fx_muerte()
+	var p: Vector3 = position + Vector3(0.0, altura * 0.5, 0.0)
+	var tw: Tween = create_tween()
+	var pasos: int = 5
+	for i in range(pasos):
+		tw.tween_callback(func() -> void:
+			_respingar(Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU))
+			if fx != null and is_instance_valid(fx) and i % 2 == 0:
+				fx.chispazo(p, "rayo"))
+		tw.tween_interval(T_MUERTE_RAYO / float(pasos))
+	tw.tween_callback(func() -> void:
+		respingo = Vector3.ZERO
+		if is_instance_valid(pj):
+			pj.position = base)
+	tw.tween_property(pj, "rotation:x", PI * 0.5, 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var sync: Tween = create_tween()                      # muerto, `_physics_process` ya no pone el modelo donde toca: se le copia el respingo aquí
+	sync.tween_method(func(_t: float) -> void:
+		if is_instance_valid(pj):
+			pj.position = base + respingo, 0.0, 1.0, T_MUERTE_RAYO)
 
 
 ## F1 (29/10): el botín de este enemigo, por su tabla (`Botin.tirar(tabla_botin)`; más `goblin_escudo` si su escudo ardió). El oro de la tabla se sustituye por `oro` si la pieza lo fija

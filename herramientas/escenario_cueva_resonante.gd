@@ -348,6 +348,8 @@ func _c4() -> bool:
 	_ok("4 C4: la sala se abre y aparece el cofre de la llave", not cerrojo.cerrado and not cofre.es_oculto)
 	if not await _ruta("4 C4", [[Vector2i(22, 6), TOL_EXACTA]]):
 		return false
+	# El cofre aún está «apareciendo» (no abrible) si la jugadora llega deprisa: se espera a que termine, como haría una persona.
+	await _esperar(func() -> bool: return cofre.ctrl == null or StringName(cofre.ctrl.call("estado_nombre")) == &"cerrado", 5.0)
 	await _pulsar_e()
 	await _esperar(func() -> bool: return cofre.es_abierto, 5.0)
 	_ok("4 C4: con E el cofre da la LLAVE (flag cuevap.c4.llave)", cofre.es_abierto and Flags.i().tiene("cuevap.c4.llave"))

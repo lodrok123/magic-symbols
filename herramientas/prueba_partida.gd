@@ -128,7 +128,7 @@ func _ida_y_vuelta() -> void:
 	_ok("1 tras el reinicio no queda nada", Estado.i().oro == 0 and Flags.i().nombres().is_empty() and Misiones.i().ids().is_empty() and Partida.tinta.actual != 62.0)
 	var d: Dictionary = Partida.cargar(1)
 	var e: Estado = Estado.i()
-	_ok("1 cargar devuelve la partida (versión 2)", int(d.get("version", 0)) == 2)
+	_ok("1 cargar devuelve la partida (versión 3, desde el 2/11)", int(d.get("version", 0)) == Partida.VERSION and Partida.VERSION == 3)
 	_ok("1 oro, capacidad y bolsa (con sus enteros)", e.oro == 143 and e.capacidad == 12 and e.items == {"pocion": 2, "baya": 7, "capa": 1, "llave": 1} and e.items["baya"] is int, str(e.items))
 	_ok("1 mejoras", e.mejoras == {"vida_max": 1, "tinta_secreto": 2} and e.nivel("tinta_secreto") == 2, str(e.mejoras))
 	_ok("1 consumible y opciones", e.consumible_equipado == "pocion" and is_equal_approx(e.asistencia, 0.8) and e.trazo_recto == false and e.lanzamiento_inteligente == true)
@@ -215,14 +215,14 @@ func _migracion() -> void:
 	Misiones.nuevo()
 	_ok("4 partida: no hay ranura 1, sí los dos archivos viejos", not Partida.existe(1) and FileAccess.file_exists(Partida.ruta_flags_v1) and FileAccess.file_exists(Partida.ruta_misiones_v1))
 	var d: Dictionary = Partida.cargar(1)
-	_ok("4 cargar migra y devuelve una partida v2", int(d.get("version", 0)) == 2 and Partida.existe(1))
+	_ok("4 cargar migra y devuelve una partida (v3, la vigente)", int(d.get("version", 0)) == Partida.VERSION and Partida.existe(1))
 	_ok("4 las flags y las misiones viejas están cargadas", Flags.i().tiene("bosque1.s1.cofre") and Flags.i().valor("bosque1.s3.antorchas") == 2 and Misiones.i().estado("vieja") == "activa", str(Flags.i().nombres()))
 	_ok("4 la ranura nueva las lleva en sus secciones", d["flags"].has("bosque1.s3.antorchas") and (d["misiones"]["misiones"] as Dictionary).has("vieja"))
 	_ok("4 los viejos quedan como .v1.bak y ya no están con su nombre", FileAccess.file_exists(Partida.ruta_flags_v1 + ".v1.bak") and FileAccess.file_exists(Partida.ruta_misiones_v1 + ".v1.bak") and not FileAccess.file_exists(Partida.ruta_flags_v1) and not FileAccess.file_exists(Partida.ruta_misiones_v1))
 	# Segunda vez: ya no migra, lee la ranura.
 	Flags.nuevo()
 	var d2: Dictionary = Partida.cargar(1)
-	_ok("4 la segunda vez lee la ranura (sin archivos viejos)", int(d2.get("version", 0)) == 2 and Flags.i().tiene("bosque1.s1.cofre"))
+	_ok("4 la segunda vez lee la ranura (sin archivos viejos)", int(d2.get("version", 0)) == Partida.VERSION and Flags.i().tiene("bosque1.s1.cofre"))
 	_ok("4 sin ranura ni archivos viejos, cargar devuelve {}", Partida.cargar(3).is_empty())
 
 

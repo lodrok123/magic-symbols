@@ -64,6 +64,8 @@ uniform float aplastar = 0.0;     // 0..1: temblor de gelatina (golpe)
 uniform float congelado = 0.0;    // 0 gelatina ... 1 cubo de hielo
 uniform float intensidad = 0.0;   // 0..1: el limo GRANDE tiñe más fuerte
 uniform float plano = -0.34;
+uniform vec4 flash_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);   // tarea H: color del destello de un golpe (el del elemento aclarado)
+uniform float flash_fuerza = 0.0;                                      // 0..1: cuánto se tiñe y brilla; baja sola a 0 en T_FLASH
 varying vec3 pos_c;
 varying vec3 pos_l;
 void vertex() {
@@ -109,13 +111,15 @@ void fragment() {
 	chielo = mix(chielo, vec3(1.0), arista * 0.8 + grieta * 0.25);
 	col = mix(col, chielo, congelado);
 	alfa = mix(alfa, mix(0.62, 0.95, max(fres, arista)), congelado);
+	col = mix(col, flash_color.rgb, 0.85 * flash_fuerza);
+	alfa = mix(alfa, 0.95, flash_fuerza);
 	ALBEDO = col;
 	ALPHA = alfa;
 	ROUGHNESS = mix(0.14, 0.05, congelado);
 	SPECULAR = 0.9;
 	vec3 L = normalize(vec3(-0.35, 0.65, 0.7));                     // brillo pequeño de ventana, en el espacio de la cámara
 	float h = pow(max(dot(n, normalize(L + normalize(VIEW))), 0.0), 90.0);
-	EMISSION = col * 0.15 + vec3(h) * 0.85 + vec3(arista * 0.25 * congelado);
+	EMISSION = col * 0.15 + vec3(h) * 0.85 + vec3(arista * 0.25 * congelado) + flash_color.rgb * flash_fuerza * 1.2;
 }
 """
 
@@ -162,6 +166,9 @@ var _tam_ini: float = 1.0
 var _crec_te: float = -1.0                       ## <0 = no está creciendo
 var _pulso_te: float = -1.0                      ## pulso de absorción del grande
 var _destello: float = 0.0                       ## el núcleo destella al absorber
+const T_FLASH: float = 0.25                      ## s que tarda el destello del cuerpo (golpe) en bajar de 1 a 0
+var _flash_color: Color = Color.WHITE            ## color del destello del cuerpo
+var _flash_fuerza: float = 0.0                   ## 1 al golpear, baja a 0 en T_FLASH
 var _g: float = 0.0                              ## 0..1: cuánto «grande» se ve (cejas, ojos, núcleo, respiración)
 var _cejas: Array[MeshInstance3D] = []
 var _sep_hijos: float = 0.9
@@ -445,11 +452,24 @@ func cancelar_salto() -> void:
 	en_salto = false
 
 
-func golpe() -> void:
+## Tarea H: `color` y `fuerza` son el destello del cuerpo (el color del elemento que lo golpea; `fuerza` 0 = sin destello). Sin argumentos: destello blanco.
+func golpe(color: Color = Color.WHITE, fuerza: float = 1.0) -> void:
+	_flash_color = color
+	_flash_fuerza = clampf(fuerza, 0.0, 1.0)
+	if material_cuerpo != null:
+		material_cuerpo.set_shader_parameter("flash_color", _flash_color)
+		material_cuerpo.set_shader_parameter("flash_fuerza", _flash_fuerza)
 	if _estado == "salto" or _estado == "dividir":
 		return
 	_estado = "golpe"
 	_te = 0.0
+
+
+## Tarea E3 (1/11): la muerte por elemento tiñe el cuerpo de `color` (carbón del fuego, azul claro del hielo): el tinte del elemento (`color_elemento`) pasa a ser éste y la carga sube a 1.
+func tenir_muerte(color: Color) -> void:
+	if material_cuerpo != null:
+		material_cuerpo.set_shader_parameter("color_elemento", color)
+	_carga_obj = 1.0
 
 
 ## Se estira en horizontal y se parte en dos limos un escalón más pequeños (grande → 2 normales, normal → 2 pequeños de 0,6; un pequeño no se divide) que salen a los lados. Los hijos son hermanos (hijos del
@@ -507,6 +527,7 @@ func _process(delta: float) -> void:
 	_te += delta
 	_g = move_toward(_g, 1.0 if esta_grande() else 0.0, delta / 0.3)
 	_destello = move_toward(_destello, 0.0, delta / 0.5)
+	_flash_fuerza = move_toward(_flash_fuerza, 0.0, delta / T_FLASH)
 	_animar_tamano(delta)
 	congelado = move_toward(congelado, _cong_obj, delta / 0.45)
 	_carga = move_toward(_carga, _carga_obj, delta / 0.35)
@@ -551,6 +572,8 @@ func _process(delta: float) -> void:
 	material_cuerpo.set_shader_parameter("carga", _carga)
 	material_cuerpo.set_shader_parameter("congelado", congelado)
 	material_cuerpo.set_shader_parameter("aplastar", _temblor)
+	material_cuerpo.set_shader_parameter("flash_color", _flash_color)
+	material_cuerpo.set_shader_parameter("flash_fuerza", _flash_fuerza)
 
 
 ## Tamaño que se ve: crecimiento elástico (se encoge ~0,1 s, se infla pasándose un ~12 % y se asienta) y pulso de absorción del grande.

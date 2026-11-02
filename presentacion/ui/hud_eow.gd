@@ -28,6 +28,11 @@ const COLOR_TINTA_BAJA: Color = Color(1.0, 0.3, 0.25)
 const COLOR_TINTA_SIN: Color = Color(0.5, 0.5, 0.55)
 const COLOR_ESCUDO: Color = Color(1.0, 0.85, 0.4)
 const COLOR_REGEN: Color = Color(0.8, 0.55, 1.0)
+## GAMEFEEL M (31/10). Con `Sensacion3D.ACTIVA = false` el destello, el temblor, el giro y el pulso de vida no se hacen; los sonidos sí.
+static var DB_NO_PUEDES: float = -14.0         ## un consumible que no se puede usar
+static var T_DESTELLO_S: float = 0.2           ## destello del círculo al equipar
+static var T_TEMBLOR_S: float = 0.15           ## temblor del círculo al rechazar
+static var T_GIRO_S: float = 0.15              ## el icono gira 180° al cambiar de consumible con R
 
 var jugador: Node = null
 var consumibles: Consumibles = Consumibles.new()
@@ -70,14 +75,17 @@ func _ready() -> void:
 	consumibles.jugador = jugador
 	consumibles.aviso.connect(_avisar)
 	consumibles.cambiado.connect(_circulo.queue_redraw)
+	consumibles.rechazado.connect(_al_rechazar)
 	Estado.i().cambiado.connect(consumibles.al_cambiar_mochila)
 	var t: Tinta = _tinta_jugador()
 	if t != null:
 		t.frasco_gastado.connect(_al_gastar_frasco)
+		t.frasco_recargado.connect(_al_recargar_frasco)
 		t.insuficiente.connect(func(_f: String, _c: float, _h: float) -> void: _t_aviso = T_AVISO_TINTA_S)
 		t.reaccion_premiada.connect(_al_premiar_reaccion)
 	consumibles.al_cambiar_mochila()          # equipa el primero que haya (con la mochila como esté al montar)
 	actualizar()
+	_vida.peso_dano = true                    # gamefeel U8: desde ahora, perder vida deja franja fantasma y flash (la tinta no: baja a cada hechizo)
 
 
 func _exit_tree() -> void:
@@ -153,6 +161,31 @@ func _al_gastar_frasco() -> void:
 	_avisar("Frasco de tinta gastado (quedan %d)" % _tinta_jugador().frascos, Color(0.6, 0.8, 1.0))
 
 
+## Gamefeel U8: un frasco vacío se acaba de llenar (tónico de tinta): el frasco destella del color de la tinta. Sin `Sensacion3D.ACTIVA`, nada.
+func _al_recargar_frasco(indice: int) -> void:
+	if _frascos != null and Sensacion3D.ACTIVA:
+		_frascos.destello_recarga(indice)
+
+
+## M4: un consumible que no se pudo usar (vida llena, sin unidades...): `no_puedes` suave y el círculo tiembla.
+func _al_rechazar(_motivo: String) -> void:
+	Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
+	if _circulo != null:
+		_circulo.temblar()
+
+
+## M3: el menú acaba de equipar un consumible: el círculo destella 0,2 s.
+func destello_equipado() -> void:
+	if _circulo != null:
+		_circulo.destello()
+
+
+## M4: la poción terminó de hacer efecto: la barra de vida recibe un pulso (franja clara por delante del relleno).
+func pulso_vida() -> void:
+	if _vida != null and Sensacion3D.ACTIVA:
+		_vida.pulso()
+
+
 func _avisar(texto: String, color: Color) -> void:
 	var lanz: Variant = jugador.get("lanz") if jugador != null else null
 	if lanz != null and (lanz as Object).has_method("avisar"):
@@ -184,8 +217,14 @@ func cambiar_equipado() -> String:
 	var id: String = consumibles.siguiente()
 	if id == "":
 		_avisar("No tienes ningún consumible", Consumibles.COLOR_NO)
+		Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
+		if _circulo != null:
+			_circulo.temblar()
 	else:
 		_avisar("Equipado: %s (%d)" % [Objetos.nombre(id), consumibles.cantidad(id)], Objetos.color(id).lightened(0.35))
+		Sfx.play_ui("ui_tick")                      # M4: R cambia de consumible: tic y el icono gira 180°
+		if _circulo != null:
+			_circulo.girar()
 	return id
 
 
@@ -193,11 +232,11 @@ func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
-	if k.keycode == KEY_Q:
+	if k.is_action("usar_consumible"):
 		if libre():
 			get_viewport().set_input_as_handled()
 			consumibles.usar_equipado()
-	elif k.keycode == KEY_R:
+	elif k.is_action("cambiar_consumible"):
 		if libre():
 			get_viewport().set_input_as_handled()
 			cambiar_equipado()
@@ -217,6 +256,7 @@ class Frascos extends Control:
 	var color: Color = Color(0.30, 0.55, 1.0)
 	var _t_destello: float = 0.0
 	var _i_destello: int = -1
+	var _recarga: bool = false                  ## el destello en curso es de recarga (halo de color) y no de vaciado (halo blanco)
 
 	func _init() -> void:
 		custom_minimum_size = Vector2(HudEoW.ANCHO_FRASCOS_PX, ALTO_PX)
@@ -233,8 +273,20 @@ class Frascos extends Control:
 	func destello(indice: int) -> void:
 		_i_destello = indice
 		_t_destello = T_DESTELLO_S
+		_recarga = false
 		set_process(true)
 		queue_redraw()
+
+	## Gamefeel U8: el frasco `indice` se acaba de llenar: halo del color de la tinta que se encoge hacia el frasco.
+	func destello_recarga(indice: int) -> void:
+		_i_destello = indice
+		_t_destello = T_DESTELLO_S
+		_recarga = true
+		set_process(true)
+		queue_redraw()
+
+	func destello_activo() -> bool:
+		return _t_destello > 0.0
 
 	func _process(delta: float) -> void:
 		_t_destello = maxf(0.0, _t_destello - delta)
@@ -271,7 +323,8 @@ class Frascos extends Control:
 		draw_rect(Rect2(Vector2(cx - 4.8, 1.0), Vector2(9.6, 5.0)), CORCHO)
 		draw_rect(Rect2(Vector2(cx - 4.8, 1.0), Vector2(9.6, 5.0)), TemaInterfaz.BORDE_CALIDO_OSCURO, false, 1.0)
 		if pop > 0.0:
-			draw_circle(Vector2(cx, cy), r + 3.0, Color(1, 1, 1, 0.45 * pop))
+			var halo: Color = color.lightened(0.5) if _recarga else Color(1, 1, 1)
+			draw_circle(Vector2(cx, cy), r + 3.0 + (4.0 * pop if _recarga else 0.0), Color(halo.r, halo.g, halo.b, (0.6 if _recarga else 0.45) * pop))
 
 
 ## --- El círculo del consumible equipado ---
@@ -279,10 +332,52 @@ class Circulo extends Control:
 	const RADIO_PX: float = 38.0
 	const RADIO_ICONO_PX: float = 22.0
 	var consumibles: Consumibles = null
+	## Efectos de la tarea M (31/10): cada uno con su Tween (las pruebas miran que esté vivo). Corren aunque el árbol esté en pausa (se equipa desde el menú).
+	var fx_destello: float = 0.0:                 ## 1 → 0 al equipar
+		set(v):
+			fx_destello = v
+			queue_redraw()
+	var fx_tembl: float = 0.0:                    ## px de desplazamiento horizontal mientras tiembla
+		set(v):
+			fx_tembl = v
+			queue_redraw()
+	var fx_giro: float = 0.0:                     ## rad de giro del icono (0 → π al pulsar R)
+		set(v):
+			fx_giro = v
+			queue_redraw()
+	var tween_destello: Tween = null
+	var tween_tembl: Tween = null
+	var tween_giro: Tween = null
 
 	func _init() -> void:
 		custom_minimum_size = Vector2(HudEoW.LADO_CIRCULO_PX, HudEoW.LADO_CIRCULO_PX + 18.0)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _nuevo_tween(viejo: Tween) -> Tween:
+		if viejo != null and viejo.is_valid():
+			viejo.kill()
+		return create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+
+	func destello() -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		fx_destello = 1.0
+		tween_destello = _nuevo_tween(tween_destello)
+		tween_destello.tween_property(self, "fx_destello", 0.0, HudEoW.T_DESTELLO_S)
+
+	func temblar() -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		tween_tembl = _nuevo_tween(tween_tembl)
+		tween_tembl.tween_method(func(t: float) -> void: fx_tembl = sin(t * TAU * 3.0) * 6.0 * (1.0 - t), 0.0, 1.0, HudEoW.T_TEMBLOR_S)
+		tween_tembl.tween_callback(func() -> void: fx_tembl = 0.0)
+
+	func girar() -> void:
+		if not Sensacion3D.ACTIVA:
+			return
+		fx_giro = -PI                                 # el icono nuevo aparece boca abajo y gira 180° hasta quedar derecho
+		tween_giro = _nuevo_tween(tween_giro)
+		tween_giro.tween_property(self, "fx_giro", 0.0, HudEoW.T_GIRO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 	func _process(_delta: float) -> void:
 		if consumibles != null and (consumibles.escudo_activo() or consumibles.regen_activa()):
@@ -293,6 +388,8 @@ class Circulo extends Control:
 			return
 		var f: Font = TemaInterfaz.fuente()
 		var c := Vector2(size.x - RADIO_PX - 14.0, RADIO_PX + 12.0)
+		if fx_tembl != 0.0:
+			draw_set_transform(Vector2(fx_tembl, 0.0), 0.0, Vector2.ONE)
 		var id: String = consumibles.equipado()
 		var n: int = consumibles.cantidad(id) if id != "" else 0
 		# Sombra, fondo oscuro y marco dorado con filete interior (como el resto de marcos de la interfaz).
@@ -303,11 +400,19 @@ class Circulo extends Control:
 		draw_arc(c, RADIO_PX - 5.0, 0.0, TAU, 48, Color(TemaInterfaz.BORDE_CALIDO, 0.25), 1.2, true)
 		# El icono (apagado si no queda ninguno).
 		if id != "":
-			Objetos.dibujar(self, id, c + Vector2(0, -2), RADIO_ICONO_PX)
+			if fx_giro != 0.0:
+				draw_set_transform(c + Vector2(fx_tembl, 0.0), fx_giro, Vector2.ONE)          # el icono gira sobre el centro del círculo
+				Objetos.dibujar(self, id, Vector2(0, -2), RADIO_ICONO_PX)
+				draw_set_transform(Vector2(fx_tembl, 0.0), 0.0, Vector2.ONE)
+			else:
+				Objetos.dibujar(self, id, c + Vector2(0, -2), RADIO_ICONO_PX)
 			if n <= 0:
 				draw_circle(c, RADIO_PX - 2.0, Color(0.05, 0.05, 0.08, 0.62))
 		else:
 			draw_string(f, c + Vector2(-8, 8), "—", HORIZONTAL_ALIGNMENT_CENTER, 16.0, 26, Color(1, 1, 1, 0.35))
+		if fx_destello > 0.0:
+			draw_circle(c, RADIO_PX, Color(1.0, 0.95, 0.7, 0.5 * fx_destello))
+			draw_arc(c, RADIO_PX + 3.0, 0.0, TAU, 48, Color(1.0, 0.9, 0.5, fx_destello), 4.0, true)
 		# Anillo de tiempo del bálsamo o de la infusión.
 		var anillo: Array = _anillo()
 		if anillo[0] > 0.0:

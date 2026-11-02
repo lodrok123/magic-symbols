@@ -85,6 +85,7 @@ func _init() -> void:
 func _ready() -> void:
 	nombre = "Chamán goblin"
 	vida_max = VIDA
+	masa = 0.9
 	defensa = Dano.DEF_CHAMAN                 # 29/10 (DANO_Y_TINTA): 0
 	oro = ORO_CHAMAN
 	tabla_botin = "chaman"

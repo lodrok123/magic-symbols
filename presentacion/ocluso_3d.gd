@@ -23,6 +23,7 @@ extends RefCounted
 ## Pj3D, VFX, suelo y hierba no pasan por aquí (no se vuelven translúcidos).
 
 const PARAM: String = "oc_jugador"
+const PARAMS_APARTAR: PackedStringArray = ["ap_p", "ap_r1", "ap_r2", "ap_r3", "ap_r4", "ap_r5"]     ## W5: ver el shader común
 const ALFA_MIN: float = 0.12            ## opacidad en el centro del círculo (0 = agujero limpio)
 const MARGEN_PROFUNDIDAD: float = 0.5   ## lo que está a menos de esto por detrás del jugador no se recorta
 
@@ -56,6 +57,14 @@ shader_type spatial;
 render_mode CULL;
 
 global uniform vec4 oc_jugador;
+// W5 (2/11): arbustos y helechos se apartan al pasar la jugadora. `ap_p` = (pie xyz, radio; 0 = apagado) y `ap_r1..5` = rastro (xyz, peso del muelle), que escribe `Caminar3D`.
+global uniform vec4 ap_p;
+global uniform vec4 ap_r1;
+global uniform vec4 ap_r2;
+global uniform vec4 ap_r3;
+global uniform vec4 ap_r4;
+global uniform vec4 ap_r5;
+uniform float apartar = 0.0;            // 0 = no se aparta; > 0 = fuerza (1 = arbusto). Solo `poner_apartar` lo sube
 
 uniform sampler2D tex_albedo : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec4 color : source_color = vec4(1.0);
@@ -141,6 +150,11 @@ vec3 voronoi(vec3 p) {
 	return vec3(id, d1, d2 - d1);
 }
 
+vec2 apartar_de(vec2 o, vec4 r, float radio) {
+	vec2 d = o - r.xz;
+	return normalize(d + vec2(0.001, 0.0)) * (1.0 - smoothstep(0.0, radio, length(d))) * r.w;
+}
+
 void vertex() {
 	po = VERTEX * length(MODEL_MATRIX[0].xyz);
 	vy = VERTEX.y;
@@ -160,6 +174,18 @@ void vertex() {
 		vec3 lado = vec3(-0.6, 0.0, 0.8);
 		vec3 desp = (dir * balanceo * 0.035 * h * h + lado * aleteo * 0.012 * h) * alto_m * viento;
 		VERTEX += (transpose(mat3(MODEL_MATRIX)) * desp) / max(esc * esc, 0.0001);
+	}
+	// W5: APARTADO. La mata se inclina alejándose de la jugadora (y de su rastro, con muelle), más cuanto más alto el vértice; el pie no se mueve. Como el viento: se mide en metros del mundo.
+	if (apartar > 0.0 && ap_p.w > 0.0 && caja_y.y > 0.0001) {
+		float h2 = clamp((VERTEX.y - caja_y.x) / caja_y.y, 0.0, 1.0);
+		vec3 base_a = MODEL_MATRIX[3].xyz;
+		float esc2 = length(MODEL_MATRIX[0].xyz);
+		vec2 ap = apartar_de(base_a.xz, vec4(ap_p.xyz, 1.0), ap_p.w) + apartar_de(base_a.xz, ap_r1, ap_p.w) + apartar_de(base_a.xz, ap_r2, ap_p.w)
+				+ apartar_de(base_a.xz, ap_r3, ap_p.w) + apartar_de(base_a.xz, ap_r4, ap_p.w) + apartar_de(base_a.xz, ap_r5, ap_p.w);
+		float am = length(ap);
+		ap *= min(am, 1.0) / max(am, 0.0001);
+		vec3 desp2 = vec3(ap.x, 0.0, ap.y) * (h2 * h2 * 0.3 * caja_y.y * esc2 * apartar);
+		VERTEX += (transpose(mat3(MODEL_MATRIX)) * desp2) / max(esc2 * esc2, 0.0001);
 	}
 }
 
@@ -255,6 +281,8 @@ static func preparar() -> void:
 		return
 	_listo = true
 	RenderingServer.global_shader_parameter_add(PARAM, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(0.0, 0.0, 0.0, 0.0))
+	for n in PARAMS_APARTAR:      # W5: apartado de arbustos y helechos (todo a 0 = apagado)
+		RenderingServer.global_shader_parameter_add(n, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(0.0, 0.0, 0.0, 0.0))
 
 
 ## Pecho del jugador (mundo) y radio del círculo en metros. radio <= 0 lo apaga.
@@ -382,6 +410,25 @@ static func poner_viento(mat: Material, fuerza: float, malla: Mesh) -> void:
 	if mat is ShaderMaterial and es_comun(mat):
 		poner_caja(mat, malla)
 		(mat as ShaderMaterial).set_shader_parameter("viento", fuerza)
+
+
+## W5 (2/11): la pieza se aparta de la jugadora (`fuerza` 0 = no, 1 = arbusto). Pone también la caja de la malla (la altura: el pie no se mueve). Como el viento, solo en el material común.
+static func poner_apartar(mat: Material, fuerza: float, malla: Mesh) -> void:
+	if mat is ShaderMaterial and es_comun(mat):
+		poner_caja(mat, malla)
+		(mat as ShaderMaterial).set_shader_parameter("apartar", fuerza)
+
+
+## W5: dónde está la jugadora y su rastro para todos los materiales con `apartar` > 0. `radio` <= 0 lo apaga. `rastro`: hasta 5 Vector4 (xyz, peso del muelle).
+static var rastro_ultimo: Vector4 = Vector4.ZERO         ## lo último que se mandó como `ap_p` (el renderizador de pruebas no deja leer los globales)
+
+static func poner_rastro(pos: Vector3, radio: float, rastro: Array) -> void:
+	if not _listo:
+		return
+	rastro_ultimo = Vector4(pos.x, pos.y, pos.z, radio)
+	RenderingServer.global_shader_parameter_set("ap_p", Vector4(pos.x, pos.y, pos.z, radio))
+	for i in range(5):
+		RenderingServer.global_shader_parameter_set("ap_r%d" % (i + 1), (rastro[i] as Vector4) if i < rastro.size() else Vector4.ZERO)
 
 
 ## Altura del MUNDO por debajo de la cual no se dibuja nada (la enredadera que brota del suelo). -1000 = sin recorte.

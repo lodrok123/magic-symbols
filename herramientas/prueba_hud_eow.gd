@@ -296,7 +296,7 @@ func _menu() -> void:
 	# Pestañas
 	m.cambiar_pestana(1)
 	_ok(m.pestana_id() == "grimorio" and not m.funcional(1) and m._pag_prox.visible and not m._pag_inv.visible, "pestaña 2 = Grimorio con su «Próximamente»")
-	for i in [2, 3, 5]:
+	for i in [2, 3, 6]:                             # 2/11: Estadísticas es la 5 (funcional) y Ajustes pasa a la 6
 		m.cambiar_pestana(i)
 		_ok(not m.funcional(i) and m._pag_prox.visible and String(MenuPestanas.PESTANAS[i]["prox"]) != "", "pestaña %s = «Próximamente» con su texto" % m.pestana_id())
 	m.cambiar_pestana(MenuPestanas.INDICE_MISIONES)

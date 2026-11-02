@@ -91,7 +91,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if modo != MODO_USAR or not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	if cerca() and usar():
 		get_viewport().set_input_as_handled()

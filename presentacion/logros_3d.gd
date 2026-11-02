@@ -252,6 +252,13 @@ static func hitstop_activo() -> bool:
 	return _hitstop_activo
 
 
+## Quien tenía el tiempo antes del hitstop (la cámara lenta del último enemigo) sigue contando por debajo: cambia lo que se devolverá al acabar. Sin hitstop no hace nada.
+## 2/11: sin esto, «sala_limpia» (hitstop) encima de la cámara lenta (0,3) dejaba el juego a 0,3 para siempre.
+static func poner_escala_previa(v: float) -> void:
+	if _hitstop_activo:
+		_escala_previa = v
+
+
 ## Acercamiento de la cámara: `cantidad` = fracción (0,1 = 10 % más cerca). Sube, se mantiene y vuelve. false si no hay cámara.
 static func zoom(arbol: SceneTree, cantidad: float) -> bool:
 	if arbol == null or arbol.root == null:

@@ -106,6 +106,7 @@ func _init() -> void:
 func _ready() -> void:
 	nombre = "Gólem de piedra"
 	vida_max = VIDA
+	masa = 6.0                               # tarea P: solo por coherencia (no es empujable por golpe)
 	defensa = Dano.DEF_GOLEM                  # 29/10 (DANO_Y_TINTA): 10 — solo los hechizos potentes lo hieren de verdad
 	oro = ORO_GOLEM
 	tabla_botin = "golem"
@@ -114,7 +115,9 @@ func _ready() -> void:
 	tinte = Color.WHITE
 	snd_alerta = ""
 	snd_muere = "derrumbe"
-	snd_golpe = "golpe_piedra"               # 29/10 (gamefeel lote 4): el núcleo o el cuerpo tumbado encajan un golpe de verdad
+	snd_paso = "paso_golem"                  # 2/11 (tarea R): pisadas pesadas, una cada 1,8 u andadas
+	zancada_sonido = 1.8
+	snd_golpe = "golpe_piedra"             # 29/10 (gamefeel lote 4): el núcleo o el cuerpo tumbado encajan un golpe de verdad
 	empujable_golpe = false
 	botin_goblin = false
 	if jugador == null or lanz == null:
@@ -260,7 +263,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_hitstop_compartido(hs)
 		if not muerto:
 			_iniciar_hitstop(hs)
-		_destello = maxf(_destello, DESTELLO_GOLPE)
+		iniciar_destello(hechizo.elemento, true)          # tarea H: el núcleo expuesto destella del color del elemento y 0,28 s
 		_impacto_visual(hechizo.elemento, true, d)
 	elif not vulnerable() and hechizo.elemento != "viento":
 		_piedra(d)                                   # el viento ya habló en `push` («Ni se inmuta» o resbala)
@@ -284,9 +287,11 @@ func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 func _aplicar_dano(cantidad: float) -> void:
 	if health <= 0.0 or cantidad <= 0.0:
 		return
+	Estadisticas.dano_hecho(minf(cantidad, health))     # A3
 	health -= cantidad
 	_barra_t = TIEMPO_BARRA
-	_destello = maxf(_destello, DESTELLO_DANO)
+	if not _num_golpe:
+		iniciar_destello(_num_elemento, false, true)
 	_barra_destello = DESTELLO_BARRA
 	_perdida_espera = RETARDO_PERDIDA
 	_numero(cantidad)
@@ -314,7 +319,7 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, _fuerza: float, _factor_esc
 		_hitstop_compartido(hs)
 		if not muerto:
 			_iniciar_hitstop(hs)
-		_destello = maxf(_destello, DESTELLO_GOLPE)
+		iniciar_destello("", false)                       # golpe F con el núcleo a la vista: blanco corto
 		_impacto_visual("", false, d)
 	else:
 		_piedra(d)
@@ -329,6 +334,7 @@ func _piedra(dir: Vector3 = Vector3.ZERO) -> void:
 	if _t_texto > 0.0:
 		return
 	_t_texto = PAUSA_TEXTO
+	iniciar_destello("piedra", false)                     # tarea H: destello gris corto
 	texto("Piedra", COLOR_PIEDRA, 0.28)
 	Sfx3D.play(self, "escudo_golpe")
 	if dir.length() > 0.01:
@@ -364,7 +370,7 @@ func reacciones_soportadas() -> PackedStringArray:
 	return PackedStringArray(["empujado", "cae_al_agua"])      # solo resbalando sobre hielo; las demás no le pasan
 
 
-func v0_de_empuje(_fuerza: float, _suelo: bool = false) -> float:
+func v0_de_empuje(_fuerza: float, _suelo: bool = false, _dano: float = -1.0, _debil: bool = false) -> float:
 	return 0.0
 
 
@@ -408,7 +414,7 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 ## =====================================================================================================
 
 ## Viento y atracción llegan aquí por `Lanzador3D._golpear` y los gases por `HechizoVivo`. Los empujes de `golpe` (hechizos con fuerza_golpe) y del golpe F no pasan por aquí: sus overrides no llaman a `push`.
-func push(direccion: Vector3, fuerza: float, _suelo: bool = false) -> void:
+func push(direccion: Vector3, fuerza: float, _suelo: bool = false, _dano: float = -1.0, _debil: bool = false) -> void:
 	if muerto or fuerza <= 0.0 or Vector2(direccion.x, direccion.z).length() < 0.01:
 		return
 	if puede_resbalar():

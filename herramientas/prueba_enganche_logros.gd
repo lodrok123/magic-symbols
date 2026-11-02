@@ -107,8 +107,10 @@ func _conexiones(mundo: Object, senal: String, metodo: String) -> int:
 	for c in mundo.get_signal_connection_list(senal):
 		var cb: Callable = c["callable"]
 		var objeto: Object = cb.get_object()
-		# Solo las de la tabla estatica (objeto = el script de la clase), no las del lab, que tambien se llama `_al_reaccionar` pero cuelga de un nodo.
-		if cb.get_method() == metodo and not (objeto is Node):
+		# Solo las de la tabla estatica (objeto = el script de la clase), no las del lab, que tambien se llama `_al_reaccionar` pero cuelga de un nodo,
+		# ni las de `Estadisticas` (2/11, tercera tanda), que tambien es estatica y tambien llama `_al_logro` a la suya.
+		var clase: GDScript = Logros3D if senal == "logro" else ReaccionesVfx3D
+		if cb.get_method() == metodo and objeto == clase:
 			n += 1
 	return n
 

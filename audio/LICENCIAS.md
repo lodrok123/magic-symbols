@@ -43,6 +43,29 @@ Paquetes: **Kenney RPG Audio** y **Kenney UI Audio**, ambos CC0 — uso
 libre, también comercial, sin atribución obligatoria. Los .zip originales
 están en `Assets/`.
 
+**Grabados el 2/11 (tarea R; copiados desde `audio/fuentes/`)**, todos CC0. Cada entrada sustituida del catálogo guarda además el sintetizado de antes (`f_sint`;
+con `Sfx.GRABADOS = false` suena ése).
+
+| archivo del juego | original | autor · pack |
+|---|---|---|
+| `kenney_monedas_0..1.ogg` | `handleCoins`, `handleCoins2` | Kenney · RPG Audio |
+| `kenney_recoger_0..3.ogg` | `cloth1..4` | Kenney · RPG Audio |
+| `kenney_equipar_0..1.ogg` | `beltHandle1..2` | Kenney · RPG Audio |
+| `kenney_bolsa_0.ogg`, `kenney_bolsa_1.ogg` | `handleSmallLeather2`, `cloth3` | Kenney · RPG Audio |
+| `kenney_comprar_0.ogg`, `kenney_comprar_1.ogg` | `handleCoins` (RPG Audio), `confirmation_001` (Interface Sounds) | Kenney |
+| `kenney_clic_0..4.ogg` | `click_001..005` | Kenney · Interface Sounds |
+| `kenney_error_0..3.ogg` | `error_001`, `error_002`, `error_004`, `error_005` | Kenney · Interface Sounds |
+| `kenney_cofre_tapa_0..2.ogg` | `impactWood_medium_000..002` | Kenney · Impact Sounds |
+| `kenney_golpe_piedra_0..2.ogg` | `impactMining_000..002` | Kenney · Impact Sounds |
+| `kenney_golpe_carne_0..2.ogg` | `impactPunch_medium_000..002` | Kenney · Impact Sounds |
+| `kenney_clavar_0.ogg`, `kenney_clavar_1.ogg` | `impactPunch_heavy_000`, `impactWood_heavy_000` | Kenney · Impact Sounds |
+| `kenney_paso_golem_0..3.ogg` | `footstep_concrete_000..003` (tono ×0,6 en el juego) | Kenney · Impact Sounds |
+| `kenney_paso_goblin_0..3.ogg` | `footstep_grass_000..002`, `footstep_wood_000` (tono ×1,2 en el juego) | Kenney · Impact Sounds |
+| `oga_gato_maullido_0.wav`, `oga_gato_maullido_1.wav`, `oga_gato_maullido_2.ogg` | `cat_mewpurr.wav`, `cat_softmew.wav`, `Meow.ogg` | «cat purr meow» y «meow» · https://opengameart.org/content/cat-purr-meow · https://opengameart.org/content/meow |
+| `oga_gato_ronroneo_loop.wav` | `cat_purractive_loop.wav` | «cat purr meow» · https://opengameart.org/content/cat-purr-meow |
+| `fs_pluma_pergamino.mp3` | `pluma_pergamino_brktkrgll.mp3` (Freesound 856167, previsualización HQ) | brktkrgll · https://freesound.org/people/brktkrgll/sounds/856167/ |
+| `fs_paginas_bucle.mp3` | `paginas_P_Chester.mp3` (Freesound 465260, previsualización HQ) | P_Chester · https://freesound.org/people/P_Chester/sounds/465260/ |
+
 ## Sintetizados — `tools/gen_sonidos_ambiente.py`
 
 Ambiente y criaturas, también por código (sin muestras: no hay licencias
@@ -92,3 +115,24 @@ el 27/10/2026 y se renombraron con el prefijo `oga_`. Los usan `Sfx.CATALOGO` y 
 
 Los sintetizados a los que sustituyen (`agua_loop`, `fuego_loop`, `elem_hielo`, `elem_rayo`, `congelar`, `arde_bucle`
 y las pisadas `paso_*`) siguen en esta carpeta por si se quiere volver atrás: basta con cambiar el nombre en el catálogo.
+
+## Fuentes descargadas sin usar todavía — `audio/fuentes/` (2/11)
+
+Packs completos bajados el 2/11/2026 para sustituir sintetizados por grabaciones. **Nada de esto está en el catálogo aún**:
+cuando un sonido pase al juego se copia a `audio/` con prefijo (`kenney_`, `oga_`, `fs_`, `lk_`), se da de alta en `CATALOGO`
+y se anota aquí en la tabla de arriba. Los packs enteros no se cargan en Godot (la carpeta lleva un `.gdignore`).
+
+| carpeta | pack | licencia | contenido |
+|---|---|---|---|
+| `kenney_rpg-audio/` | Kenney RPG Audio · https://kenney.nl/assets/rpg-audio | CC0 | 50: monedas, tela, cinturón, libro, puertas, pasos, armas |
+| `kenney_impact-sounds/` | Kenney Impact Sounds · https://kenney.nl/assets/impact-sounds | CC0 | 130: pasos por material e impactos (madera, metal, piedra, cristal, tela) |
+| `kenney_interface-sounds/` | Kenney Interface Sounds · https://kenney.nl/assets/interface-sounds | CC0 | 100: clics, confirmar, volver, error, deslizar |
+| `kenney_ui-audio/` | Kenney UI Audio · https://kenney.nl/assets/ui-audio | CC0 | 50: clics, rollover, interruptores |
+| `oga_gato/` | «cat purr meow» (`cat_*.wav`) y «meow» (`Meow*.ogg`) · https://opengameart.org/content/cat-purr-meow · https://opengameart.org/content/meow | CC0 | ronroneo en bucle, maullidos |
+| `freesound/` | seis clips CC0 de Freesound (previsualización HQ en mp3, el wav original pide cuenta): `pluma_papel_duro_marcoman89` (194905), `pluma_pergamino_brktkrgll` (856167), `pluma_pergamino_Nickh69` (507864), `pagina_eZZin` (641757), `paginas_P_Chester` (465260), `paginas_lento_rapido_jephwallace` (318615) · https://freesound.org/people/<autor>/sounds/<id>/ | CC0 | pluma escribiendo (bucle para `trazo`), hojas pasando (bucle para la animación de páginas) |
+| `lentikula/` | **pendiente de bajar a mano** (itch.io «name your own price» a 0): «Basic Spell Impacts» (20: rayo, fuego, hielo, agua) · https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx y «Druid Spell Impacts» (15: tierra, planta, viento) · https://lentikula.itch.io/druid-spell-impacts | CC0 | impactos por elemento, 48 kHz 24 bit |
+
+Vistos y NO bajados (CC-BY 4.0, exigen acreditar; decide Pablo): «Magic Spell SFX» de The Soundrack (425, nueve elementos,
+carga/lanzar/vuelo; 1,5 GB), «Reading & Writing Sound Pack» de The Soundrack (266: libros, páginas, lápiz), «Free Monster Sounds»
+de Coucassi (8 criaturas con aparecer/ataque/daño/muerte/pasos; trae limo y orco). De pago: «Monster Vocalizations» de Morphonaut
+(CC0, 2 $, el único con goblin, gólem y goo). Los bundles GDC de Sonniss (gratis, sin atribución, sin redistribuir) no caben en el disco.

@@ -181,7 +181,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	var k: InputEventKey = ev as InputEventKey
 	if not k.pressed or k.echo:
 		return
-	if k.keycode == KEY_T:
+	if k.is_action("libro"):
 		alternar()
 		get_viewport().set_input_as_handled()
 		return

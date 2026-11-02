@@ -53,6 +53,13 @@ extends Node3D
 @export var brillo: float = 1.0              ## multiplica el color (la maqueta oscurece el suelo y la hierba igual)
 @export var albedos_eow: bool = true         ## albedos (22/10, `Albedos3D`): valor de las briznas y contraste/valor de las tarjetas igualados con el suelo; false = como antes (se pone antes de sembrar)
 
+## W2 (2/11, docs/REVISION_GAMEFEEL_30-10.md §11): la hierba se aparta con muelle. Lo afinable; lo alimenta `Caminar3D.actualizar` cada fotograma con `set_apartado`.
+static var APARTAR_FUERZA: float = 0.3            ## inclinación de las puntas al apartarse (las tarjetas, ×0,83: 0,25 como siempre)
+static var APARTAR_RADIO: float = 0.9             ## u andando…
+static var APARTAR_RADIO_CORRER: float = 1.2      ## …y corriendo
+static var APARTAR_RADIO_BASE: float = 0.7        ## el de antes de W2 (sin `Sensacion3D.ACTIVA`)
+static var APARTAR_RETORNO_S: float = 0.6         ## s que tarda en volver con rebote al salir ella del radio
+
 const NOMBRES_MODO: Array = ["briznas", "tarjetas pintadas", "briznas + tarjetas"]
 
 const COLORES_FLOR: Array = [Color(1.0, 0.78, 0.86), Color(1.0, 1.0, 0.96), Color(1.0, 0.93, 0.55),
@@ -74,6 +81,17 @@ uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform vec3 posicion_jugador = vec3(-1000.0, 0.0, -1000.0);
 uniform float radio_pisar = 0.7;
+uniform float fuerza_apartar = 0.3;      // W2: cuánto se inclina una punta al apartarse (`Hierba3D.APARTAR_FUERZA`)
+uniform vec4 rast1 = vec4(0.0);          // W2: rastro de la jugadora (xyz = dónde estuvo, w = peso del muelle; 0 = nada)
+uniform vec4 rast2 = vec4(0.0);
+uniform vec4 rast3 = vec4(0.0);
+uniform vec4 rast4 = vec4(0.0);
+uniform vec4 rast5 = vec4(0.0);
+uniform vec2 empuje = vec2(0.0);         // W2: velocidad de la jugadora sobre el suelo / velocidad de correr (arrastra las puntas)
+vec2 apartar_de(vec2 o, vec2 p, float peso) {
+	vec2 d = o - p;
+	return normalize(d + vec2(0.001, 0.0)) * (1.0 - smoothstep(0.0, radio_pisar, length(d))) * peso;
+}
 varying float alto;
 varying vec3 tinte;
 varying float quemado;
@@ -97,19 +115,23 @@ void vertex() {
 	float t = TIME * 1.7 + mundo.x * 0.55 + mundo.z * 0.35;
 	// Mojada pesa y se mueve menos; con escarcha está tiesa.
 	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
-	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * rigidez;
+	float meneo = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * rigidez;
 	float inv_x = 1.0 / max(length(MODEL_MATRIX[0].xyz), 0.001);
 	float inv_z = 1.0 / max(length(MODEL_MATRIX[2].xyz), 0.001);
-	VERTEX.x += empuje * 0.05 * inv_x;
-	VERTEX.z += empuje * 0.025 * inv_z;
+	VERTEX.x += meneo * 0.05 * inv_x;
+	VERTEX.z += meneo * 0.025 * inv_z;
 	// Pisada por celda (solo aspecto): se tumba hacia +x+z.
 	float tumbar = texture(pisado, uv_e).r * alto * alto;
 	VERTEX.x += tumbar * 0.18 * inv_x;
 	VERTEX.z += tumbar * 0.10 * inv_z;
-	// Se aparta de la chibi en radial.
-	vec2 d = origen.xz - posicion_jugador.xz;
-	float cerca = 1.0 - smoothstep(0.0, radio_pisar, length(d));
-	vec2 apartar = normalize(d + vec2(0.001, 0.0)) * cerca * alto * alto * 0.3 * (1.0 - 0.7 * escarcha);
+	// Se aparta de la chibi en radial (W2, 2/11: y con muelle. El rastro `rast1..5` son los puntos donde estuvo (peso 1 mientras estaba dentro del radio; al salir,
+	// seno amortiguado 0,6 s que pasa un poco al otro lado), y `empuje` arrastra las puntas en el sentido de la marcha). Sin rastro ni empuje es el apartado de siempre.
+	vec2 ap = apartar_de(origen.xz, posicion_jugador.xz, 1.0) + apartar_de(origen.xz, rast1.xz, rast1.w) + apartar_de(origen.xz, rast2.xz, rast2.w)
+			+ apartar_de(origen.xz, rast3.xz, rast3.w) + apartar_de(origen.xz, rast4.xz, rast4.w) + apartar_de(origen.xz, rast5.xz, rast5.w);
+	float am = length(ap);
+	ap *= min(am, 1.0) / max(am, 0.0001);
+	ap += empuje * 0.5 * min(am, 1.0);
+	vec2 apartar = ap * alto * alto * fuerza_apartar * (1.0 - 0.7 * escarcha);
 	VERTEX.x += apartar.x * inv_x;
 	VERTEX.z += apartar.y * inv_z;
 }
@@ -146,6 +168,17 @@ uniform float celda = 2.3;
 uniform float lado = 40.0;
 uniform vec3 posicion_jugador = vec3(-1000.0, 0.0, -1000.0);
 uniform float radio_pisar = 0.7;
+uniform float fuerza_apartar = 0.25;     // W2 (como en las briznas): inclinación de las tarjetas al apartarse
+uniform vec4 rast1 = vec4(0.0);
+uniform vec4 rast2 = vec4(0.0);
+uniform vec4 rast3 = vec4(0.0);
+uniform vec4 rast4 = vec4(0.0);
+uniform vec4 rast5 = vec4(0.0);
+uniform vec2 empuje = vec2(0.0);
+vec2 apartar_de(vec2 o, vec2 p, float peso) {
+	vec2 d = o - p;
+	return normalize(d + vec2(0.001, 0.0)) * (1.0 - smoothstep(0.0, radio_pisar, length(d))) * peso;
+}
 varying vec3 tinte;
 varying float quemado;
 varying float mojado;
@@ -166,16 +199,21 @@ void vertex() {
 	escarcha = max(hu.g, e.b);
 	float cre = texture(crecida, uv_e).r;
 	float escala_y = mix(1.0, 0.1, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.6, cre) * mix(1.0, 0.85, mojado);   // 6.14
-	vec2 d = origen.xz - posicion_jugador.xz;
-	float cerca = (1.0 - smoothstep(0.0, radio_pisar, length(d))) * (1.0 - 0.7 * escarcha);     // con escarcha apenas se aparta
-	float tumbar = (texture(pisado, uv_e).r + cerca) * alto * alto * 0.25;
-	float esc = length(MODEL_MATRIX[0].xyz);
 	vec3 der = normalize(INV_VIEW_MATRIX[0].xyz);
+	// W2 (2/11): el apartado de la tarjeta es el mismo de las briznas (radial, con el rastro de muelle y el arrastre de la marcha), proyectado sobre el eje de la pantalla en que se inclina.
+	vec2 ap = apartar_de(origen.xz, posicion_jugador.xz, 1.0) + apartar_de(origen.xz, rast1.xz, rast1.w) + apartar_de(origen.xz, rast2.xz, rast2.w)
+			+ apartar_de(origen.xz, rast3.xz, rast3.w) + apartar_de(origen.xz, rast4.xz, rast4.w) + apartar_de(origen.xz, rast5.xz, rast5.w);
+	float am = length(ap);
+	ap *= min(am, 1.0) / max(am, 0.0001);
+	ap += empuje * 0.5 * min(am, 1.0);
+	float cerca = dot(ap, normalize(der.xz + vec2(0.0001, 0.0))) * (1.0 - 0.7 * escarcha);     // con escarcha apenas se aparta
+	float tumbar = (texture(pisado, uv_e).r + cerca) * alto * alto * fuerza_apartar;
+	float esc = length(MODEL_MATRIX[0].xyz);
 	vec3 arr = normalize(INV_VIEW_MATRIX[1].xyz);
 	float t = TIME * 1.7 + origen.x * 0.55 + origen.z * 0.35;
 	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
-	float empuje = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * 0.12 * rigidez;
-	vec3 mundo = origen + (der * (VERTEX.x + empuje + tumbar) + arr * VERTEX.y * escala_y) * esc;
+	float meneo = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * 0.12 * rigidez;
+	vec3 mundo = origen + (der * (VERTEX.x + meneo + tumbar) + arr * VERTEX.y * escala_y) * esc;
 	VERTEX = (inverse(MODEL_MATRIX) * vec4(mundo, 1.0)).xyz;
 }
 void fragment() {
@@ -413,6 +451,7 @@ func _crear_bloque(b: Vector2i) -> void:
 	for h in padre.get_children():
 		(h as MultiMeshInstance3D).custom_aabb = caja
 	_aplicar_modo(padre)
+	Caminar3D.decorar_bloque(self, padre, rect, _y)       # W5 (2/11): hojas bajo los árboles y motas/luciérnagas; hijos del bloque, se liberan con él
 
 
 ## 0 briznas · 1 tarjetas pintadas · 2 las dos.
@@ -480,12 +519,54 @@ func set_posicion_jugador(p: Vector3) -> void:
 			m.set_shader_parameter("posicion_jugador", p)
 
 
+## W2: el rastro de la jugadora (`rastro`: hasta 5 Vector4, xyz = dónde estuvo, w = peso del muelle), el radio de apartado y el empuje de su marcha (vel / vel. de correr, plano XZ).
+## Se llama cada fotograma desde `Caminar3D.actualizar`; con rastro vacío, radio `APARTAR_RADIO_BASE` y empuje cero es el apartado de siempre.
+func set_apartado(rastro: Array, radio: float, empuje: Vector2) -> void:
+	for m in [_mat_matojo, _mat_tarjeta]:
+		if m == null:
+			continue
+		for i in range(5):
+			m.set_shader_parameter("rast%d" % (i + 1), (rastro[i] as Vector4) if i < rastro.size() else Vector4.ZERO)
+		m.set_shader_parameter("radio_pisar", radio)
+		m.set_shader_parameter("empuje", empuje)
+	if _mat_matojo != null:
+		_mat_matojo.set_shader_parameter("fuerza_apartar", APARTAR_FUERZA)
+	if _mat_tarjeta != null:
+		_mat_tarjeta.set_shader_parameter("fuerza_apartar", APARTAR_FUERZA * 0.83)
+
+
+## Lo que el shader tiene ahora de cada uniform del apartado (para las pruebas).
+func parametro_apartado(nombre: String) -> Variant:
+	return _mat_matojo.get_shader_parameter(nombre) if _mat_matojo != null else null
+
+
+## Los bloques creados cuyo rectángulo está a menos de `radio` (plano XZ) de `p`: Array de [Vector2i, Rect2]. Para los pájaros de `Caminar3D`.
+func bloques_cerca(p: Vector3, radio: float) -> Array:
+	var r: Array = []
+	for b in _bloques:
+		var rect := Rect2(_zona.position + Vector2(b) * lado_bloque, Vector2(lado_bloque, lado_bloque)).intersection(_zona)
+		var q := Vector2(clampf(p.x, rect.position.x, rect.end.x), clampf(p.z, rect.position.y, rect.end.y))
+		if q.distance_to(Vector2(p.x, p.z)) <= radio:
+			r.append([b, rect])
+	return r
+
+
 ## Hierba crecida de una casilla (0 = fina, 1 = alta). Se sube a la GPU al llamar a `subir_crecida()`.
 func set_crecida(c: Vector2i, valor: float) -> void:
 	if _img_crecida == null or c.x < 0 or c.y < 0 or c.x >= _img_crecida.get_width() or c.y >= _img_crecida.get_height():
 		return
 	_img_crecida.set_pixel(c.x, c.y, Color(valor, 0.0, 0.0, 1.0))
 	_crecida_sucia = true
+
+
+## Los nodos de los bloques creados ahora mismo (para que `Caminar3D` revise sus hojas y motas).
+func nodos_bloques() -> Array:
+	return _bloques.values()
+
+
+## ¿La casilla tiene la hierba crecida (alta y tupida)? Para las briznas sueltas al correr (`Caminar3D`).
+func es_crecida(c: Vector2i) -> bool:
+	return _img_crecida != null and c.x >= 0 and c.y >= 0 and c.x < _img_crecida.get_width() and c.y < _img_crecida.get_height() and _img_crecida.get_pixel(c.x, c.y).r > 0.5
 
 
 func subir_crecida() -> void:

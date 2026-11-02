@@ -295,6 +295,32 @@ func _caso_muerte() -> void:
 	Engine.time_scale = 1.0
 	_limpiar()
 	await avanzar_s(2.0)
+	# 2/11 (bug visto con ventana): el hitstop de «sala_limpia» cae encima de la cámara lenta y, al acabar, devolvía el 0,3: el juego se quedaba lento.
+	var d: Combate3D = _goblin(Vector2i(9, 33), true, 10.0)
+	await avanzar(2)
+	u0 = int(Sensacion3D.cuenta["ultimo"])
+	d.receive_damage(100.0)
+	_ok("4 cae el último: cámara lenta (0,3)", int(Sensacion3D.cuenta["ultimo"]) == u0 + 1 and is_equal_approx(Engine.time_scale, Sensacion3D.CAMARA_LENTA), "%.2f" % Engine.time_scale)
+	Logros3D.hitstop(maqueta.get_tree(), 0.08)
+	await avanzar(1)
+	_ok("4 el hitstop de un logro encima: el tiempo casi parado", is_equal_approx(Engine.time_scale, Logros3D.ESCALA_HITSTOP), "%.3f" % Engine.time_scale)
+	await avanzar(3)
+	# Con fps fijo el delta no va escalado por el tiempo, así que `delta_real` corre ×50 durante el hitstop y la cámara lenta se agota en ese mismo fotograma:
+	# aquí no se puede medir «sigue a 0,3»; solo que al soltar el hitstop el tiempo no se queda a 0,02 y que acaba a 1 (abajo), que es lo que fallaba.
+	_ok("4 al acabar el hitstop (0,08 s) el tiempo no se queda casi parado", not Logros3D.hitstop_activo() and Engine.time_scale >= Sensacion3D.CAMARA_LENTA - 0.01, "%.3f" % Engine.time_scale)
+	await avanzar(40)                                  # fotogramas = tiempo real (a 30 fps, 1,3 s); avanzar_s cuenta tiempo de juego, que aquí va a 0,3
+	_ok("4 y la cámara lenta vuelve sola a 1 (antes se quedaba a 0,3)", is_equal_approx(Engine.time_scale, 1.0) and maqueta.get_tree().root.get_node_or_null("CamaraLenta") == null, "%.3f" % Engine.time_scale)
+	# Y al revés: la cámara lenta acaba DURANTE un hitstop largo: al soltarlo, el tiempo vuelve a 1, no a 0,3.
+	var e2: Combate3D = _goblin(Vector2i(9, 33), true, 10.0)
+	await avanzar(2)
+	e2.receive_damage(100.0)
+	Logros3D.hitstop(maqueta.get_tree(), Sensacion3D.T_CAMARA_LENTA + Sensacion3D.T_VUELTA_LENTA + 0.2)
+	await avanzar(int(ceil((Sensacion3D.T_CAMARA_LENTA + Sensacion3D.T_VUELTA_LENTA + 0.5) * 30.0)))
+	_ok("4 si la cámara lenta acaba dentro de un hitstop largo, al soltarlo el tiempo queda a 1", not Logros3D.hitstop_activo() and is_equal_approx(Engine.time_scale, 1.0), "%.3f" % Engine.time_scale)
+	Logros3D.restaurar_tiempo()
+	Engine.time_scale = 1.0
+	_limpiar()
+	await avanzar_s(2.0)
 
 
 # --- 5 · reacciones grandes ------------------------------------------------------------------------------------------

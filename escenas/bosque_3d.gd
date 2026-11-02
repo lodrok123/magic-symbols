@@ -55,6 +55,7 @@ const DIALOGOS: Dictionary = {
 const TEXTO_OFERTA: String = "¿Una barrera? Son %d de oro. (E para comprar)"
 const TEXTO_SIN_ORO: String = "Te faltan %d de oro. Los goblins de abajo suelen llevar."
 const TEXTO_YA_COMPRADA: String = "Ya tienes la barrera. Úsala antes de necesitarla."
+static var DB_NO_PUEDES: float = -14.0      ## U4: dB del «no_puedes» de la tienda (sin oro o ya comprada), el mismo que en la mochila
 
 var m: Variant = null                       ## la maqueta (PruebaTest2). Sin tipo: se le llama a métodos suyos
 var _losas: Dictionary = {}                 ## Vector2i -> letra (a, p, w)
@@ -181,6 +182,8 @@ func _montar_sello_salida() -> void:
 ## Al final de _ready de la maqueta: el Jugador3D ya existe, los goblins ya tienen su Combate3D y los reactivos están puestos.
 func iniciar(mundo: Variant) -> void:
 	m = mundo
+	add_to_group(PistaProximidad.GRUPO)                  # gamefeel U6: la pista «[E] Hablar» cerca de un NPC
+	PistaProximidad.asegurar(get_tree())
 	for n in (m as Node).get_children():
 		if n is Jugador3D:
 			_jug = n
@@ -227,6 +230,15 @@ func iniciar(mundo: Variant) -> void:
 		"texto": "La puerta del claro se abre con tres runas: fuego, agua y rayo. Un elemental guarda la salida del bosque; mientras viva, el camino sigue sellado.",
 		"origen": "Guardabosques", "objetivos": objetivos})
 	Misiones.i().activar(MISION)
+	# Tercera tanda C1: dónde está cada tarea, para el marcador del borde de pantalla (las runas: su tótem; la puerta; la salida). Los objetivos sin lugar claro (el elemental) no llevan punto.
+	for i in range(ELEMENTOS_RUNA.size()):
+		var tot: Variant = _totems.get(ELEMENTOS_RUNA[i])
+		if tot != null and is_instance_valid(tot):
+			Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(tot.celda, Terreno3D.y_pies(tot.celda)), i)
+	if _puerta_c.x >= 0:
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_puerta_c, Terreno3D.y_pies(_puerta_c)), OBJ_PUERTA)
+	if _salida_c.x >= 0:
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_salida_c, Terreno3D.y_pies(_salida_c)), OBJ_SALIDA)
 	if _puerta_c.x < 0:
 		Misiones.i().objetivo_hecho(MISION, OBJ_PUERTA)
 	if _salida_abierta:
@@ -360,11 +372,30 @@ func _abrir_salida(con_aviso: bool) -> void:
 		tw.tween_callback(_sello_salida.hide)
 
 
+## Gamefeel U6: lo que ofrece a la pista «[E]» (la misma regla que la E de abajo: el NPC más cercano dentro de `ALCANCE_HABLAR`). Con la oferta del guardabosques en pie, la E compra.
+func accion_pista() -> String:
+	if m == null or m.get("_jugador") == null:
+		return ""
+	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
+	var mejor: String = ""
+	var dist: float = ALCANCE_HABLAR
+	for nombre in _npcs:
+		var d: float = PistaProximidad.dist_plana((_npcs[nombre] as Pj3D).position, yo)
+		if d < dist:
+			dist = d
+			mejor = String(nombre)
+	if mejor == "guardabosques" and _t_oferta > 0.0:
+		return "Comprar"
+	if mejor == "" or _t_habla > 0.0:
+		return ""
+	return "Hablar"
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or m == null or m.get("_jugador") == null:
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
 	var mejor: String = ""
@@ -405,12 +436,15 @@ func _comprar_barrera() -> void:
 	if _barrera_comprada or Repertoire.sigil_active("barrera"):
 		_barrera_comprada = true
 		_decir("Guardabosques: «%s»" % TEXTO_YA_COMPRADA, 4.0)
+		Sfx.play_ui("no_puedes", DB_NO_PUEDES)           # gamefeel U4: ya la tienes
 		return
 	var e: Estado = Estado.i()
 	if e.oro < PRECIO_BARRERA:
 		_decir("Guardabosques: «%s»" % (TEXTO_SIN_ORO % (PRECIO_BARRERA - e.oro)), 4.0)
+		Sfx.play_ui("no_puedes", DB_NO_PUEDES)           # gamefeel U4: no llega el oro
 		return
 	if e.gastar_oro(PRECIO_BARRERA):
+		Sfx.play_ui("comprar")                            # gamefeel U4
 		Repertoire.conseguir_sigil("barrera")         # se escribe en la página derecha del libro al abrirlo
 		_barrera_comprada = true
 		_decir("Glifo barrera comprado (-%d oro)" % PRECIO_BARRERA, 5.0)

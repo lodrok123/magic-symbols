@@ -49,7 +49,7 @@ const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
 const IMPACTO: Array = [
 	{"n": "MULT_EMPUJE", "paso": 0.25, "min": 0.0, "max": 10.0},
 	{"n": "EMPUJE_MIN_CASILLAS", "paso": 0.05, "min": 0.0, "max": 3.0},
-	{"n": "MULT_EMPUJE_ELEMENTAL", "paso": 0.05, "min": 0.0, "max": 3.0},
+	{"n": "K_EMPUJE_MIN", "paso": 0.05, "min": 0.0, "max": 3.0},      # 31/10 (tarea P): ocupa el hueco de MULT_EMPUJE_ELEMENTAL; `escenario_lab_hechizos` cuenta con SQUASH_XZ en el índice 7
 	{"n": "DECAIMIENTO_EMPUJE", "paso": 0.5, "min": 1.0, "max": 30.0},
 	{"n": "HITSTOP", "paso": 0.01, "min": 0.0, "max": 0.5},
 	{"n": "HITSTOP_DEBIL", "paso": 0.01, "min": 0.0, "max": 0.5},
@@ -59,6 +59,18 @@ const IMPACTO: Array = [
 	{"n": "SQUASH_TIEMPO", "paso": 0.01, "min": 0.02, "max": 1.0},
 	{"n": "SALTO_ALTO", "paso": 0.05, "min": 0.0, "max": 2.0},
 	{"n": "SALTO_TIEMPO", "paso": 0.02, "min": 0.05, "max": 1.0},
+	# 31/10 (tarea P): el empuje por daño y masa. (Van después de las de siempre para no mover sus índices.)
+	{"n": "K_EMPUJE_MAX", "paso": 0.05, "min": 0.0, "max": 4.0},
+	{"n": "DANO_EMPUJE_MAX", "paso": 1.0, "min": 1.0, "max": 100.0},
+	{"n": "K_EMPUJE_DEBIL", "paso": 0.05, "min": 0.5, "max": 3.0},
+	{"n": "S:V0_REF", "paso": 0.5, "min": 1.0, "max": 30.0},
+	# 31/10 (tarea H): el destello del color del elemento.
+	{"n": "T_FLASH_BLANCO", "paso": 0.01, "min": 0.0, "max": 0.2},
+	{"n": "T_FLASH_FUNDIDO", "paso": 0.01, "min": 0.0, "max": 0.2},
+	{"n": "ENERGIA_FLASH", "paso": 0.1, "min": 0.0, "max": 4.0},
+	{"n": "DESTELLO_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "ENERGIA_FLASH_DEBIL", "paso": 0.1, "min": 0.0, "max": 4.0},
+	{"n": "ENERGIA_FLASH_CONTINUO", "paso": 0.1, "min": 0.0, "max": 4.0},
 	# 29/10 (gamefeel lote 4, F20): las de `Sensacion3D` van con el prefijo «S:» (`impacto_valor` / `impacto_poner` las enrutan). S:ACTIVA a 0 apaga TODA la sensación: es el modo «comparar».
 	{"n": "S:ACTIVA", "paso": 1.0, "min": 0.0, "max": 1.0},
 	{"n": "S:RETROCESO_V0", "paso": 0.1, "min": 0.0, "max": 5.0},
@@ -81,7 +93,122 @@ const IMPACTO: Array = [
 	{"n": "S:VIDA_LATIDO", "paso": 0.02, "min": 0.0, "max": 1.0},
 	{"n": "INTERRUPCION_GOLPE", "paso": 0.05, "min": 0.0, "max": 3.0},
 	{"n": "INTERRUPCION_DANO", "paso": 0.05, "min": 0.0, "max": 3.0},
+	# 1/11 (tareas C, D y E; al final para no mover índices): cámara que reacciona, ping de debilidad y muerte por elemento.
+	{"n": "S:RETROCESO_CAM_MIN", "paso": 0.5, "min": 0.0, "max": 20.0},
+	{"n": "S:RETROCESO_CAM_MAX", "paso": 0.5, "min": 0.0, "max": 30.0},
+	{"n": "S:T_RETROCESO_CAM", "paso": 0.01, "min": 0.02, "max": 0.6},
+	{"n": "TEMBLOR_MAX", "paso": 0.05, "min": 0.0, "max": 1.0},
+	{"n": "S:ALFA_FLASH_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "S:VEDA_FLASH_DEBIL", "paso": 0.02, "min": 0.0, "max": 1.0},
+	{"n": "MAX_MUERTES_VFX", "paso": 1.0, "min": 0.0, "max": 20.0},
+	{"n": "T_MUERTE_TINTE", "paso": 0.05, "min": 0.05, "max": 2.0},
+	{"n": "T_MUERTE_HIELO", "paso": 0.05, "min": 0.05, "max": 1.0},
+	{"n": "T_MUERTE_RAYO", "paso": 0.05, "min": 0.05, "max": 1.0},
+	{"n": "N_TROZOS_HIELO", "paso": 1.0, "min": 1.0, "max": 12.0},
 ]
+
+## 31/10 (tarea S1): el mando de volumen en vivo. Al final de F3, detrás de todo lo de IMPACTO, una entrada «dB:nombre» por sonido de `Sfx.CATALOGO` (alfabético), la del bus y la acción de imprimir.
+const DB_PREFIJO: String = "dB:"
+const DB_BUS: String = "dB:Interfaz (bus)"
+const DB_IMPRIMIR: String = "dB:imprimir ajustes"
+const DB_BUS_MUNDO: String = "dB:Mundo (bus)"          ## 1/11 (tarea O): van DESPUÉS de «imprimir ajustes» para no mover ningún índice
+const DB_BUS_OCLUIDO: String = "dB:Ocluido (bus)"
+## 2/11 (tercera tanda, N): el ciclo día/noche (CicloDia3D). Van al FINAL de F3, tras los buses, para no mover ningún índice; con prefijo «S:» pero se enrutan a CicloDia3D, no a Sensacion3D.
+const CICLO_HORA: String = "S:HORA"
+const CICLO_DURACION: String = "S:DURACION_DIA_S"
+const SON_GRABADOS: String = "S:GRABADOS"              ## 2/11 (tarea R): se enruta a Sfx.GRABADOS (no a Sensacion3D)
+const DB_NUEVOS: Array = ["no_puedes_ui", "paginas_bucle", "pluma_bucle"]   ## entradas del catálogo de la tarea R: sus filas dB van al final
+## 2/11 (tareas L y W): filas de otras clases, con prefijo propio y enrutadas por `get`/`set` como las «S:». Van al FINAL de F3, tras las dB nuevas.
+## [nombre sin prefijo, paso, min, max]; los bool van 0/1 y los int se redondean.
+const FILAS_L: Array = [                       ## L: → Spellbook (la mano pasa la página)
+	["PASAR_PAGINA_ANIMADO", 1.0, 0.0, 1.0], ["T_MANO_IR", 0.01, 0.0, 0.5], ["T_HOJA_CIERRA", 0.01, 0.0, 0.5], ["T_HOJA_ABRE", 0.01, 0.0, 0.5],
+	["T_PASAR_MAX", 0.05, 0.1, 1.5], ["HOJA_MIN", 0.01, 0.0, 0.3], ["CAMBIA_AL_CERRAR", 1.0, 0.0, 1.0], ["MANO_BORDE_U", 2.0, 0.0, 120.0],
+]
+const FILAS_MP: Array = [                      ## Mp: → ManoPluma3D
+	["PINZA_INCLINACION", 1.0, 0.0, 45.0], ["PINZA_ESCALA", 0.01, 0.5, 1.2],
+]
+const FILAS_S_W: Array = [                     ## S: → Sensacion3D (W3, balanceo al correr)
+	["BALANCEO_ACTIVO", 1.0, 0.0, 1.0], ["BALANCEO_AMPLITUD", 0.005, 0.0, 0.1], ["BALANCEO_HZ", 0.1, 0.5, 5.0], ["BALANCEO_HZ_ANDAR", 0.1, 0.5, 5.0], ["T_BALANCEO", 0.05, 0.0, 1.0],
+]
+const FILAS_W: Array = [                       ## W: → Caminar3D (W1 pies, W2 hierba, W3 cuerpo, W4 agua, W5 mundo)
+	["POLVO_PASO_ACTIVO", 1.0, 0.0, 1.0], ["POLVO_PASO_VIDA", 0.05, 0.1, 2.0], ["POLVO_PASO_SUBE", 0.05, 0.0, 1.0], ["POLVO_PASO_LADO", 0.02, 0.0, 0.5],
+	["MOTAS_PASO_N", 1.0, 0.0, 12.0], ["MOTAS_PASO_SALTO", 0.05, 0.0, 1.5], ["T_ATERRIZA", 0.02, 0.02, 0.5],
+	["PISADO_ANDAR", 0.05, 0.0, 1.0], ["PISADO_CORRER", 0.05, 0.0, 1.0], ["MOTAS_ALTA_ACTIVO", 1.0, 0.0, 1.0], ["MOTAS_ALTA_N", 1.0, 0.0, 12.0], ["ESTELA_PASO", 0.05, 0.0, 1.0], ["ESTELA_DT", 0.05, 0.05, 1.0],
+	["CUERPO_ACTIVO", 1.0, 0.0, 1.0], ["INCLINACION_GIRO", 0.5, 0.0, 20.0], ["GIRO_REF", 30.0, 90.0, 1080.0], ["T_INCLINA", 0.02, 0.02, 0.5],
+	["T_ARRANQUE_APLASTA", 0.02, 0.02, 0.5], ["FRENADA_INCLINA", 0.5, 0.0, 15.0], ["T_FRENADA", 0.02, 0.02, 0.5], ["FRENADA_VEL", 0.05, 0.1, 1.0],
+	["AGUA_ACTIVA", 1.0, 0.0, 1.0], ["ONDA_PASO", 0.01, 0.0, 0.5], ["ONDA_ENTRADA", 0.01, 0.0, 0.5], ["ONDA_NADO", 0.01, 0.0, 0.5], ["ONDA_RADIO", 0.05, 0.1, 2.0],
+	["T_ONDA_NADO", 0.05, 0.1, 2.0], ["GOTAS_PASO", 1.0, 0.0, 12.0], ["DB_CHAPOTEO_PASO", 1.0, -40.0, 6.0], ["SALPICADURA_ENTRADA", 0.05, 0.0, 2.0],
+	["VIENTO_PIEZAS", 0.01, 0.0, 0.3], ["APARTAR_PIEZAS_ACTIVO", 1.0, 0.0, 1.0], ["APARTAR_PIEZAS_RADIO", 0.1, 0.2, 3.0], ["APARTAR_PIEZAS_RETORNO_S", 0.05, 0.1, 2.0],
+	["HOJAS_ACTIVO", 1.0, 0.0, 1.0], ["HOJAS_POR_BLOQUE", 1.0, 0.0, 12.0], ["T_HOJAS_S", 0.5, 0.5, 20.0], ["T_HOJA_CAIDA", 0.1, 0.5, 6.0], ["HOJA_TAM", 0.01, 0.02, 0.3],
+	["HOJAS_ALTURA", 0.25, 0.5, 8.0], ["HOJAS_CORRER", 1.0, 0.0, 12.0], ["ARBOL_RADIO", 0.1, 0.5, 4.0],
+	["MOTAS_ACTIVO", 1.0, 0.0, 1.0], ["MOTAS_DIA", 1.0, 0.0, 20.0], ["MOTAS_NOCHE", 1.0, 0.0, 20.0], ["MOTAS_TAM", 0.01, 0.01, 0.2], ["MOTAS_ALFA", 0.05, 0.0, 1.0], ["MOTAS_ALTURA", 0.05, 0.0, 2.0],
+	["PAJAROS_ACTIVO", 1.0, 0.0, 1.0], ["PROB_PAJAROS", 0.05, 0.0, 1.0], ["PAJAROS_MIN_S", 1.0, 1.0, 60.0], ["PAJAROS_DIST", 0.5, 1.0, 10.0], ["PAJAROS_TAM", 0.05, 0.05, 0.5], ["PAJAROS_VIDA", 0.1, 0.5, 4.0], ["DB_PAJAROS", 1.0, -40.0, 6.0],
+]
+const FILAS_HB: Array = [                      ## Hb: → Hierba3D (W2, apartado con muelle)
+	["APARTAR_FUERZA", 0.05, 0.0, 1.0], ["APARTAR_RADIO", 0.1, 0.2, 3.0], ["APARTAR_RADIO_CORRER", 0.1, 0.2, 3.0], ["APARTAR_RADIO_BASE", 0.1, 0.2, 3.0], ["APARTAR_RETORNO_S", 0.05, 0.1, 2.0],
+]
+const FILAS_HU: Array = [                      ## Hu: → Huellas3D (W1)
+	["HUELLAS_ACTIVO", 1.0, 0.0, 1.0], ["HUELLAS_MAX", 4.0, 0.0, 128.0], ["T_HUELLA", 0.5, 0.5, 20.0], ["ALFA_HUELLA", 0.05, 0.0, 1.0], ["ALTO_HUELLA", 0.005, 0.0, 0.1],
+]
+
+
+const _SPELLBOOK: GDScript = preload("res://presentacion/ui/spellbook.gd")   ## el libro no tiene class_name
+
+
+## Clase a la que va una entrada con prefijo propio (L:, Mp:, W:, Hb:, Hu:); null si el prefijo no es de estos.
+static func clase_de_prefijo(nombre: String) -> GDScript:
+	if nombre.begins_with("L:"):
+		return _SPELLBOOK
+	if nombre.begins_with("Mp:"):
+		return ManoPluma3D
+	if nombre.begins_with("W:"):
+		return Caminar3D
+	if nombre.begins_with("Hb:"):
+		return Hierba3D
+	if nombre.begins_with("Hu:"):
+		return Huellas3D
+	return null
+
+
+static func _anadir_filas(prefijo: String, filas: Array) -> void:
+	for f in filas:
+		_entradas_cache.append({"n": prefijo + String(f[0]), "paso": float(f[1]), "min": float(f[2]), "max": float(f[3])})
+const DB_MIN: float = -40.0
+const DB_MAX: float = 6.0
+const DB_PASO: float = 1.0
+const VENTANA_IMPACTO: int = 36                ## filas de F3 que se dibujan a la vez; con más entradas (son ~150) el panel se desplaza siguiendo a la elegida
+static var _entradas_cache: Array = []
+
+
+## Las entradas de F3: IMPACTO (los índices de siempre, SQUASH_XZ es el 7) + las de volumen, en este orden. Se arma una vez.
+static func entradas() -> Array:
+	if _entradas_cache.is_empty():
+		_entradas_cache = IMPACTO.duplicate()
+		var nombres: Array = Sfx.CATALOGO.keys()
+		nombres.sort()
+		for nombre in nombres:
+			if DB_NUEVOS.has(String(nombre)):
+				continue                                  # los de 2/11 (tarea R) van al final, para no mover ningún índice
+			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_BUS, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_IMPRIMIR, "paso": 1.0, "min": 0.0, "max": 1.0})
+		_entradas_cache.append({"n": DB_BUS_MUNDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": DB_BUS_OCLUIDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": CICLO_HORA, "paso": 0.5, "min": 0.0, "max": 24.0})
+		_entradas_cache.append({"n": CICLO_DURACION, "paso": 30.0, "min": 0.0, "max": 1200.0})
+		# 2/11 (tarea R): S:GRABADOS (1 = grabaciones, 0 = sintetizados de antes: para comparar de oído con el mando dB) y los sonidos nuevos del catálogo.
+		_entradas_cache.append({"n": SON_GRABADOS, "paso": 1.0, "min": 0.0, "max": 1.0})
+		for nombre in DB_NUEVOS:
+			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
+		# 2/11 (tareas L y W): la mano pasando página y el caminar satisfactorio, al final.
+		_anadir_filas("L:", FILAS_L)
+		_anadir_filas("Mp:", FILAS_MP)
+		_anadir_filas("S:", FILAS_S_W)
+		_anadir_filas("W:", FILAS_W)
+		_anadir_filas("Hb:", FILAS_HB)
+		_anadir_filas("Hu:", FILAS_HU)
+	return _entradas_cache
+
 
 enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX, ESTADOS }
 
@@ -124,9 +251,12 @@ func iniciar(mundo: Variant) -> void:
 	if _jug == null or _l == null:
 		return
 	_cam_juego = get_viewport().get_camera_3d()
+	# Tercera tanda N: el lab también tiene luz direccional, así que lleva el ciclo (se mira con S:HORA y S:DURACION_DIA_S de F3). Parado de partida (DURACION_DIA_S = 0): afinar hechizos con la luz cambiando sería un incordio.
+	CicloDia3D.DURACION_DIA_S = 0.0
+	CicloDia3D.montar(mundo, true)
 	_l.conjuro_fase.connect(_al_conjuro_fase)
 	_l.lanzado.connect(_al_lanzado)
-	for e in IMPACTO:
+	for e in entradas():
 		impacto_inicial[String(e["n"])] = impacto_valor(String(e["n"]))
 	_registrar_agua()
 	_l.cambios_hechizo = cambios_hechizo           # el mismo diccionario: lo que se toque aquí lo ve el lanzador al instante
@@ -373,8 +503,27 @@ static func impacto_valor(nombre: String) -> float:
 			return Combate3D.SQUASH_ESCALA.x
 		"SQUASH_Y":
 			return Combate3D.SQUASH_ESCALA.y
+		CICLO_HORA:
+			return CicloDia3D.HORA
+		CICLO_DURACION:
+			return CicloDia3D.DURACION_DIA_S
+		SON_GRABADOS:
+			return 1.0 if Sfx.GRABADOS else 0.0
+	if nombre.begins_with(DB_PREFIJO):
+		if nombre == DB_IMPRIMIR:
+			return 0.0                                     # una acción: siempre vuelve a 0
+		if nombre == DB_BUS:
+			return Sfx.volumen_bus(Sfx.BUS_INTERFAZ) if AudioServer.get_bus_index(Sfx.BUS_INTERFAZ) >= 0 else Sfx.VOLUMEN_BUS_INTERFAZ
+		if nombre == DB_BUS_MUNDO or nombre == DB_BUS_OCLUIDO:
+			Sfx3D._asegurar_buses()
+			return Sfx.volumen_bus(Sfx3D.BUS_MUNDO if nombre == DB_BUS_MUNDO else Sfx3D.BUS_OCLUIDO)
+		return Sfx.db_de(nombre.substr(DB_PREFIJO.length()))
 	if nombre.begins_with("S:"):
 		var v: Variant = (Sensacion3D as GDScript).get(nombre.substr(2))
+		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
+	var clase: GDScript = clase_de_prefijo(nombre)
+	if clase != null:
+		var v: Variant = clase.get(nombre.substr(nombre.find(":") + 1))
 		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
 	return float((Combate3D as GDScript).get(nombre))
 
@@ -385,21 +534,57 @@ static func impacto_poner(nombre: String, v: float) -> void:
 			Combate3D.SQUASH_ESCALA = Vector3(v, Combate3D.SQUASH_ESCALA.y, v)
 		"SQUASH_Y":
 			Combate3D.SQUASH_ESCALA = Vector3(Combate3D.SQUASH_ESCALA.x, v, Combate3D.SQUASH_ESCALA.z)
+		CICLO_HORA:
+			CicloDia3D.HORA = fposmod(v, 24.0)
+		CICLO_DURACION:
+			CicloDia3D.DURACION_DIA_S = maxf(v, 0.0)
+		SON_GRABADOS:
+			Sfx.GRABADOS = v >= 0.5
 		_:
-			if nombre.begins_with("S:"):
+			if nombre.begins_with(DB_PREFIJO):
+				if nombre == DB_IMPRIMIR:
+					if v >= 0.5:
+						Sfx.imprimir_ajustes()
+				elif nombre == DB_BUS:
+					Sfx.fijar_volumen_bus(Sfx.BUS_INTERFAZ, v)
+				elif nombre == DB_BUS_MUNDO or nombre == DB_BUS_OCLUIDO:
+					Sfx3D._asegurar_buses()
+					Sfx.fijar_volumen_bus(Sfx3D.BUS_MUNDO if nombre == DB_BUS_MUNDO else Sfx3D.BUS_OCLUIDO, v)
+				else:
+					var s: String = nombre.substr(DB_PREFIJO.length())
+					if Sfx.CATALOGO.has(s) and is_equal_approx(v, float(Sfx.CATALOGO[s]["db"])):
+						Sfx.AJUSTES.erase(s)               # igual al catálogo: no es un ajuste
+					else:
+						Sfx.AJUSTES[s] = v
+			elif nombre.begins_with("S:"):
 				var n: String = nombre.substr(2)
 				var actual: Variant = (Sensacion3D as GDScript).get(n)
 				(Sensacion3D as GDScript).set(n, v >= 0.5 if actual is bool else v)
+			elif clase_de_prefijo(nombre) != null:
+				var clase: GDScript = clase_de_prefijo(nombre)
+				var n: String = nombre.substr(nombre.find(":") + 1)
+				var actual: Variant = clase.get(n)
+				if actual is bool:
+					clase.set(n, v >= 0.5)
+				elif actual is int:
+					clase.set(n, int(roundf(v)))
+				else:
+					clase.set(n, v)
 			else:
 				(Combate3D as GDScript).set(nombre, v)
 
 
 ## Cambia la entrada `i` de IMPACTO `pasos` veces su paso (con tope en su mínimo y máximo). Devuelve el valor nuevo.
 func impacto_cambiar(i: int, pasos: int) -> float:
-	var e: Dictionary = IMPACTO[clampi(i, 0, IMPACTO.size() - 1)]
+	var todas: Array = entradas()
+	var e: Dictionary = todas[clampi(i, 0, todas.size() - 1)]
 	var v: float = clampf(impacto_valor(String(e["n"])) + float(pasos) * float(e["paso"]), float(e["min"]), float(e["max"]))
 	v = snappedf(v, float(e["paso"]) * 0.1)
 	impacto_poner(String(e["n"]), v)
+	var nom: String = String(e["n"])
+	if nom.begins_with(DB_PREFIJO) and nom != DB_IMPRIMIR:
+		# Para OÍR el cambio al instante: el sonido por `play_ui` (el bus, con un tic de la interfaz). La veda de 70 ms de Sfx no deja repetirlo más rápido.
+		Sfx.play_ui("ui_tick" if nom == DB_BUS else nom.substr(DB_PREFIJO.length()))
 	return v
 
 
@@ -410,9 +595,11 @@ func impacto_restaurar() -> void:
 
 func impacto_tabla() -> Dictionary:
 	var d: Dictionary = {}
-	for e in IMPACTO:
-		if String(e["n"]) == "S:ACTIVA":
+	for e in entradas():
+		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR or String(e["n"]) == CICLO_HORA or String(e["n"]) == SON_GRABADOS:
 			continue                                   # «comparar» no se guarda: el lab no debe volver a abrir con la sensación apagada (es static: todo el proceso)
+		if String(e["n"]).begins_with(DB_PREFIJO) and is_equal_approx(impacto_valor(String(e["n"])), float(impacto_inicial.get(String(e["n"]), 0.0))):
+			continue                                   # los volúmenes solo si los has tocado: son ~100 y no ensucian el archivo
 		d[String(e["n"])] = snappedf(impacto_valor(String(e["n"])), 0.0001)
 	return d
 
@@ -572,7 +759,7 @@ func guardar() -> bool:
 func tabla_texto() -> String:
 	var t: PackedStringArray = []
 	t.append("# F3 Impacto · constantes de enemigos/combate_3d.gd (y, con «S:», de presentacion/sensacion_3d.gd)")
-	for e in IMPACTO:
+	for e in IMPACTO:                                  # (los «dB:» no: se vuelcan con su propia entrada «dB:imprimir ajustes», en formato de catálogo)
 		var n: String = String(e["n"])
 		var base: float = float(impacto_inicial.get(n, 0.0))
 		var ahora: float = impacto_valor(n)
@@ -715,9 +902,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 	elif receta_f1 and k.keycode == KEY_RIGHT:
 		tabla_cambiar(paso)
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_UP:
-		impacto_sel = (impacto_sel - 1 + IMPACTO.size()) % IMPACTO.size()
+		impacto_sel = (impacto_sel - 1 + entradas().size()) % entradas().size()
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_DOWN:
-		impacto_sel = (impacto_sel + 1) % IMPACTO.size()
+		impacto_sel = (impacto_sel + 1) % entradas().size()
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_LEFT:
 		impacto_cambiar(impacto_sel, -paso)
 	elif pestana == Pestana.IMPACTO and k.keycode == KEY_RIGHT:
@@ -890,11 +1077,19 @@ func _texto_conjuro() -> String:
 func _texto_impacto() -> String:
 	var t: PackedStringArray = []
 	t.append("IMPACTO · constantes de Combate3D EN VIVO (↑↓ elige · ←→ cambia, Mayús ×10 · Retroceso restaura · G guarda · P imprime)")
-	for i in range(IMPACTO.size()):
-		var n: String = String(IMPACTO[i]["n"])
+	var todas: Array = entradas()
+	# Ventana desplazable: con ~150 entradas no cabrían en pantalla. Sigue a la elegida (↑↓, y al dar la vuelta salta al otro extremo).
+	var ini: int = clampi(impacto_sel - VENTANA_IMPACTO / 2, 0, maxi(0, todas.size() - VENTANA_IMPACTO))
+	var fin: int = mini(todas.size(), ini + VENTANA_IMPACTO)
+	if ini > 0:
+		t.append("  ▲ %d más arriba" % ini)
+	for i in range(ini, fin):
+		var n: String = String(todas[i]["n"])
 		var v: float = impacto_valor(n)
 		var base: float = float(impacto_inicial.get(n, v))
 		t.append("%s %-24s %8.3f%s" % ["►" if i == impacto_sel else " ", n, v, ("   (era %.3f)" % base) if not is_equal_approx(v, base) else ""])
+	if fin < todas.size():
+		t.append("  ▼ %d más abajo   (los «dB:» afinan el volumen de cada sonido y lo reproducen; «dB:imprimir ajustes» a 1 los vuelca para pegar en Sfx.CATALOGO)" % (todas.size() - fin))
 	t.append("Lanza con Espacio sobre los goblins quietos para ver el empuje, la pausa, el destello y el aplastamiento.")
 	return "\n".join(t)
 

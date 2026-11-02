@@ -574,7 +574,7 @@ class PuertaPuzle extends Node3D:
 		if llave == "" or abierta or not (ev is InputEventKey):
 			return
 		var k: InputEventKey = ev as InputEventKey
-		if not k.pressed or k.echo or k.keycode != KEY_E:
+		if not k.pressed or k.echo or not k.is_action("interactuar"):
 			return
 		if distancia_jugadora() <= ALCANCE_USAR and intentar(true):
 			get_viewport().set_input_as_handled()
@@ -1059,6 +1059,7 @@ class CofrePuzle extends Node3D:
 			var n: int = int((it as Dictionary)["n"])
 			if que == "oro":
 				Estado.i().dar_oro(n)
+				Sfx.play_ui("moneda")                        # gamefeel U4
 				dado.append({"que": que, "n": n})
 				texto.append("%d de oro" % n)
 				continue
@@ -1103,7 +1104,7 @@ class CofrePuzle extends Node3D:
 		if not (ev is InputEventKey) or not es_cerrado or _abriendo:
 			return
 		var k: InputEventKey = ev as InputEventKey
-		if not k.pressed or k.echo or k.keycode != KEY_E:
+		if not k.pressed or k.echo or not k.is_action("interactuar"):
 			return
 		var j: Node3D = Puzle3D.jugador_nodo(get_tree(), mundo)
 		if j == null:

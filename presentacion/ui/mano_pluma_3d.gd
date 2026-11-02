@@ -34,7 +34,9 @@ const PUNTA_VP: Vector2 = Vector2(170.0, 170.0)   ## píxel del viewport donde c
 const INCLINACION_CAMARA: float = 28.0            ## grados que la cámara se aparta de la vertical, para que se lea el volumen (0 = plano, como un dibujo)
 const YAW_BASE: float = -135.0                    ## grados: hacia dónde miran los dedos (arriba-izquierda), como la mano 2D, que viene de abajo a la derecha
 const LEVANTE_ALTO: float = 0.12                  ## m que sube la mano cuando no escribe (alzada = 1)
-const SOMBRA_ALPHA: float = 0.40                  ## opacidad de la sombra con la mano en la página
+static var PINZA_INCLINACION: float = 18.0        ## grados que la mano se inclina al «pinzar» (aproximación de la pose PINZA, que el GLB no trae)
+static var PINZA_ESCALA: float = 0.93             ## y cuánto se encoge
+const SOMBRA_ALPHA: float = 0.40                 ## opacidad de la sombra con la mano en la página
 const SOMBRA_ALPHA_ALTA: float = 0.28             ## y con la mano levantada
 
 ## Se aplica al nodo entero (sprite y sombra): 1 = el tamaño de diseño. Sustituye al `escala` de la 2D, que era «0,55 sobre un PNG de 560».
@@ -181,8 +183,13 @@ func _aplicar() -> void:
 	var yaw_pluma: Basis = Basis(Vector3.UP, deg_to_rad(YAW_BASE - _giro))
 	# La mano se coloca para que el plumín, que está en `enganche.origin` en el espacio de la mano, caiga en el origen del ancla.
 	_brazo.transform = Transform3D(yaw_mano, -(yaw_mano * enganche.origin))
+	# PINZA (tarea L): el GLB no trae una mano con pulgar e índice juntos; se aproxima cerrando la mano sobre el punto de agarre (se inclina hacia la página y se
+	# encoge un poco, como al apretar), y la pluma se esconde (la hoja se agarra con los dedos, no con el plumín).
+	if pose == Pose.PINZA:
+		var cierre: Basis = Basis(Vector3.RIGHT, deg_to_rad(PINZA_INCLINACION)) * Basis.from_scale(Vector3.ONE * PINZA_ESCALA)
+		_brazo.transform = Transform3D(cierre, Vector3.ZERO) * _brazo.transform
 	_pluma.transform = Transform3D(yaw_pluma * enganche.basis, Vector3.ZERO)
-	_pluma.visible = pluma_siempre or pose == Pose.ESCRIBIENDO
+	_pluma.visible = (pluma_siempre or pose == Pose.ESCRIBIENDO) and pose != Pose.PINZA
 	# La sombra: un óvalo bajo la mano (a medio camino entre el plumín y la muñeca), alargado en la dirección del brazo; más lejos y más clara al levantarla.
 	var centro: Vector3 = _brazo.transform * Vector3(0.0, 0.0, -0.22)
 	var dir_pant: Vector2 = proyectar(yaw_mano * Vector3(0.0, 0.0, -1.0))

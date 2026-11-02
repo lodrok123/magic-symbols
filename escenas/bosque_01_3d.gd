@@ -141,6 +141,8 @@ func _arrancar() -> void:
 ## Entrada pública: `mundo` es la maqueta ya montada.
 func iniciar(mundo: Variant) -> void:
 	m = mundo
+	add_to_group(PistaProximidad.GRUPO)                  # gamefeel U6: la pista «[E] Abrir / Hablar»
+	PistaProximidad.asegurar(get_tree())
 	for n in (m as Node).get_children():
 		if n is Jugador3D:
 			_jug = n
@@ -199,6 +201,8 @@ func iniciar(mundo: Variant) -> void:
 		"texto": "Tres tótems de fuego, cada uno con su manera de despertar, abren la puerta del fondo. Detrás espera el elemental del bosque.",
 		"origen": "Bosque 01", "objetivos": objetivos})
 	Misiones.i().activar(MISION)
+	if _celda_puerta.x >= 0:      # tercera tanda C1: el marcador del borde de pantalla apunta a la puerta cuando toca abrirla
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_celda_puerta, Terreno3D.y_pies(_celda_puerta)), OBJ_PUERTA)
 	if _goblins.is_empty():
 		Misiones.i().objetivo_hecho(MISION, OBJ_GOBLINS)
 	if _patrulla.is_empty():
@@ -625,11 +629,28 @@ func _aparecer_cofre(i: int) -> void:
 	_cofres[i] = nodo
 
 
+## Gamefeel U6: lo que ofrece a la pista «[E]» (misma prioridad que la E de abajo: cofres primero, luego el alquimista). Un cofre ya abierto o entregado no ofrece nada.
+func accion_pista() -> String:
+	if m == null or m.get("_jugador") == null:
+		return ""
+	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
+	for i in range(_cofres.size()):
+		var cf: Variant = _cofres[i]
+		if cf != null and _lejos(cf.position, yo) <= ALCANCE_E:
+			var ctrl: Cofre3D = Cofre3D.en(cf)
+			if bool(_entregado[i]) or (ctrl != null and (ctrl.esta_abierto() or ctrl.estado_nombre() != &"cerrado")):
+				return ""
+			return "Abrir"
+	if _npc != null and _t_habla <= 0.0 and _lejos(_npc.position, yo) <= ALCANCE_E:
+		return "Hablar"
+	return ""
+
+
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or m == null or m.get("_jugador") == null:
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
 	# Cofres primero (si estás al lado de uno, abrirlo es lo que quieres), luego el alquimista.
@@ -672,6 +693,9 @@ func _al_abrir_cofre(i: int) -> void:
 		_decir("Fin de la demo. Gracias por jugar el Bosque.", 10.0)
 	else:
 		_dar_botin(i)
+		# gamefeel U5: los cofres de las ramas avisan el logro como los del puzle (el 0 da un glifo y el 1 cierra la demo: ya llevan su propio aviso).
+		var cf: Variant = _cofres[i]
+		Mundo3D.avisar_logro("cofre_abierto", (cf as Node3D).position + Vector3.UP if cf is Node3D else Vector3.ZERO, cf as Node)
 
 
 ## El botín de un cofre de las ramas: oro y lo que quepa en la bolsa (lo que no cabe se queda fuera y se dice).
@@ -683,6 +707,7 @@ func _dar_botin(i: int) -> void:
 		var n: int = int(botin[id])
 		if id == "oro":
 			Estado.i().dar_oro(n)
+			Sfx.play_ui("moneda")                         # gamefeel U4
 			texto.append("%d de oro" % n)
 		else:
 			var entra: int = Estado.i().agregar(String(id), n)

@@ -39,11 +39,15 @@ const CATALOGO: Dictionary = {
 		"db": -5.0, "tono": 0.05, "base": 0.8},
 	# 29/10 (gamefeel lote 4, audio/gen_sfx_sensacion.py): el CUERPO que encaja un hechizo (`Combate3D.snd_golpe`: carne, piedra del gólem, chapoteo del limo) y el limo
 	# que revienta. Aquí y no en Sfx porque son del enemigo: con distancia y veda por emisor (tres goblins golpeados a la vez suenan tres veces).
-	"golpe_carne":  {"f": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
-	"golpe_piedra": {"f": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	# 2/11 (tarea R): «f» grabado (Kenney Impact, CC0), «f_sint» lo sintetizado de antes (suena con Sfx.GRABADOS = false).
+	"golpe_carne":  {"f": ["kenney_golpe_carne_0.ogg", "kenney_golpe_carne_1.ogg", "kenney_golpe_carne_2.ogg"], "f_sint": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
+	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg", "kenney_golpe_piedra_2.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	# Pasos de los enemigos (tarea R): el gólem pesa (concreto, tono ×0,6, fuerte); el goblin es ligero (hierba y madera, tono ×1,2). Los dispara el propio enemigo al andar (`PasosEnemigo3D`).
+	"paso_golem":   {"f": ["kenney_paso_golem_0.ogg", "kenney_paso_golem_1.ogg", "kenney_paso_golem_2.ogg", "kenney_paso_golem_3.ogg"], "db": -4.0, "tono": 0.06, "base": 0.6, "unidad": 4.0, "alcance": 16.0},
+	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg", "kenney_paso_goblin_1.ogg", "kenney_paso_goblin_2.ogg", "kenney_paso_goblin_3.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},
 	"limo_golpe":   {"f": ["limo_golpe.wav"],   "db": -9.0, "tono": 0.12},
 	"limo_muere":   {"f": ["limo_muere.wav"],   "db": -7.0, "tono": 0.06},
-	"gato_maullido": {"f": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
+	"gato_maullido": {"f": ["oga_gato_maullido_0.wav", "oga_gato_maullido_1.wav", "oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],
 		"db": -10.0, "tono": 0.06},
@@ -58,8 +62,21 @@ const AMBIENTES: Dictionary = {
 	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
 	# 28/10: el arrastre del bloque de piedra al empujarlo (BloqueEmpujable3D): no hay un arrastre grabado, así que el «rodar» sintetizado en bucle, bajo.
+	# 2/11 (tarea R): el ronroneo del gato quieto cerca de la jugadora (OpenGameArt «cat purr meow», CC0).
+	"gato_ronroneo": {"f": "oga_gato_ronroneo_loop.wav", "db": -14.0, "unidad": 2.0, "alcance": 8.0, "alto": 0.3},
 	"arrastre": {"f": "rodar.wav", "db": -17.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
 }
+
+## OCLUSIÓN (1/11, tarea O): todo AudioStreamPlayer3D de Sfx3D va al bus «Mundo» (0 dB) si hay línea de vista con el oyente, o al bus «Ocluido»
+## (−6 dB y filtro paso bajo) si un sólido del nivel se interpone. Los buses viven en default_bus_layout.tres; si faltan (pruebas sin el layout) se crean.
+const BUS_MUNDO: String = "Mundo"
+const BUS_OCLUIDO: String = "Ocluido"
+static var OCLUSION_ACTIVA: bool = true
+static var CORTE_OCLUSION: float = 900.0           ## Hz del filtro paso bajo del bus «Ocluido»
+static var T_REEVALUAR_OCLUSION: float = 0.25      ## s entre comprobaciones de un bucle (cambia de bus en caliente, sin cortar)
+static var VOLUMEN_BUS_MUNDO: float = 0.0
+static var VOLUMEN_BUS_OCLUIDO: float = -6.0
+static var ALTO_OIDO: float = 0.6                  ## u sobre el suelo del oyente desde donde sale el rayo
 
 static var _flujos: Dictionary = {}       ## archivo -> AudioStream (solo los que cargaron)
 static var _ultima: Dictionary = {}       ## "nombre|emisor" -> ms del último disparo
@@ -90,7 +107,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 	if ahora - int(_ultima.get(clave, -9999)) < VEDA_MS:
 		return
 	_ultima[clave] = ahora
-	var lista: Array = cfg["f"]
+	var lista: Array = Sfx.archivos_de(cfg)
 	var i: int = randi() % lista.size()
 	if lista.size() > 1 and i == int(_ultimo_var.get(nombre, -1)):
 		i = (i + 1 + randi() % (lista.size() - 1)) % lista.size()      # nunca el mismo dos veces seguidas
@@ -98,9 +115,10 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 	var s: AudioStream = _flujo(String(lista[i]))
 	if s == null:
 		return
+	Sfx._anotar(nombre, float(Sfx.AJUSTES.get(nombre, cfg.get("db", -6.0))) + db_extra, 0.0)      # para las pruebas (solo cuenta con Sfx.REGISTRAR)
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
-	p.volume_db = float(cfg.get("db", -6.0)) + db_extra
+	p.volume_db = float(Sfx.AJUSTES.get(nombre, cfg.get("db", -6.0))) + db_extra      # S1: el ajuste en vivo (Sfx.AJUSTES) manda sobre el catálogo
 	var t: float = float(cfg.get("tono", 0.0))
 	p.pitch_scale = float(cfg.get("base", 1.0)) * (1.0 + randf_range(-t, t)) * tono_mult
 	p.unit_size = float(cfg.get("unidad", UNIDAD))
@@ -108,6 +126,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 	# Cuelga de la raíz y no del emisor: el goblin que muere se libera a los 1,4 s y se llevaría el grito con él.
 	origen.get_tree().root.add_child(p)
 	p.global_position = origen.global_position + Vector3(0.0, 0.6, 0.0)
+	p.bus = bus_para(p)
 	p.finished.connect(p.queue_free)
 	p.play()
 
@@ -143,7 +162,7 @@ static func ambiente(origen: Node3D, nombre: String) -> AudioStreamPlayer3D:
 		return null
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
-	p.volume_db = float(cfg.get("db", -8.0))
+	p.volume_db = float(Sfx.AJUSTES.get(nombre, cfg.get("db", -8.0)))
 	p.unit_size = float(cfg.get("unidad", UNIDAD))
 	p.max_distance = float(cfg.get("alcance", ALCANCE))
 	p.position = Vector3(0.0, float(cfg.get("alto", 0.5)), 0.0)
@@ -154,7 +173,76 @@ static func ambiente(origen: Node3D, nombre: String) -> AudioStreamPlayer3D:
 
 static func _arrancar(p: AudioStreamPlayer3D) -> void:
 	if is_instance_valid(p) and p.stream != null:
+		p.bus = bus_para(p)
+		var t := Timer.new()                       # reevalúa la oclusión mientras dure el bucle (el temporizador muere con él)
+		t.wait_time = maxf(T_REEVALUAR_OCLUSION, 0.05)
+		t.timeout.connect(_reevaluar.bind(p))
+		p.add_child(t)
+		t.start()
 		p.play.call_deferred(randf() * maxf(p.stream.get_length(), 0.1))
+
+
+static func _reevaluar(p: AudioStreamPlayer3D) -> void:
+	if not is_instance_valid(p) or not p.is_inside_tree():
+		return
+	var b: String = bus_para(p)
+	if String(p.bus) != b:
+		p.bus = b                                  # cambio en caliente: no reinicia ni corta el bucle
+	for h in p.get_children():
+		if h is Timer:
+			(h as Timer).wait_time = maxf(T_REEVALUAR_OCLUSION, 0.05)
+
+
+## El bus (nombre) que le toca a un reproductor ya dentro del árbol: «Mundo» con línea de vista, «Ocluido» si un sólido (capa Terreno3D.CAPA_SOLIDO, la de
+## la colisión del nivel contra la que choca la jugadora) se interpone entre el oyente y él. Con OCLUSION_ACTIVA = false, siempre «Mundo».
+static func bus_para(p: Node3D) -> StringName:
+	_asegurar_buses()
+	if not OCLUSION_ACTIVA or p == null or not p.is_inside_tree():
+		return BUS_MUNDO
+	var oyente: Variant = _pos_oyente(p)
+	if oyente == null:
+		return BUS_MUNDO
+	var mundo: World3D = p.get_world_3d()
+	if mundo == null:
+		return BUS_MUNDO
+	var q := PhysicsRayQueryParameters3D.create(oyente as Vector3, p.global_position, Terreno3D.CAPA_SOLIDO)
+	q.collide_with_areas = false
+	return BUS_OCLUIDO if not mundo.direct_space_state.intersect_ray(q).is_empty() else BUS_MUNDO
+
+
+## Dónde está el oído (AudioListener3D activo, y si no, la cámara) con un poco de altura sobre los pies; null si no hay ninguno.
+static func _pos_oyente(p: Node3D) -> Variant:
+	var vp: Viewport = p.get_viewport()
+	if vp == null:
+		return null
+	var o: Node3D = null
+	if vp.has_method("get_audio_listener_3d"):
+		o = vp.call("get_audio_listener_3d") as Node3D
+	if o == null:
+		o = vp.get_camera_3d()
+	if o == null:
+		return null
+	return o.global_position + Vector3(0.0, ALTO_OIDO, 0.0)
+
+
+## Crea «Mundo» y «Ocluido» (a Master) si el layout no los trae, y deja el corte del filtro de «Ocluido» en CORTE_OCLUSION.
+static func _asegurar_buses() -> void:
+	for par in [[BUS_MUNDO, VOLUMEN_BUS_MUNDO], [BUS_OCLUIDO, VOLUMEN_BUS_OCLUIDO]]:
+		if AudioServer.get_bus_index(par[0]) >= 0:
+			continue
+		AudioServer.add_bus()
+		var n: int = AudioServer.bus_count - 1
+		AudioServer.set_bus_name(n, par[0])
+		AudioServer.set_bus_send(n, "Master")
+		AudioServer.set_bus_volume_db(n, par[1])
+		if par[0] == BUS_OCLUIDO:
+			var f := AudioEffectLowPassFilter.new()
+			AudioServer.add_bus_effect(n, f)
+	var i: int = AudioServer.get_bus_index(BUS_OCLUIDO)
+	if i >= 0 and AudioServer.get_bus_effect_count(i) > 0:
+		var ef: AudioEffect = AudioServer.get_bus_effect(i, 0)
+		if ef is AudioEffectLowPassFilter and not is_equal_approx((ef as AudioEffectLowPassFilter).cutoff_hz, CORTE_OCLUSION):
+			(ef as AudioEffectLowPassFilter).cutoff_hz = CORTE_OCLUSION
 
 
 ## Apaga un bucle con un fundido de medio segundo y lo libera. Acepta null o un reproductor ya liberado.

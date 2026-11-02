@@ -213,14 +213,15 @@ func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo:
 		return
-	if k.keycode == KEY_J:
+	if k.is_action("misiones"):
 		get_viewport().set_input_as_handled()
 		alternar()
 	elif abierto:
+		if k.is_action("pausa"):
+			get_viewport().set_input_as_handled()
+			cerrar()
+			return
 		match k.keycode:
-			KEY_ESCAPE:
-				get_viewport().set_input_as_handled()
-				cerrar()
 			KEY_UP:
 				get_viewport().set_input_as_handled()
 				mover(-1)

@@ -24,6 +24,7 @@ const ESCENAS: Dictionary = {
 	"SalaEmpuje": "res://escenas/PruebaSalaEmpuje.tscn",            # 27/10: la sala de los bloques empujables (docs/EMPUJAR_BLOQUES.md)
 	"Bosque_01_v01": "res://escenas/PruebaBosque01_v01.tscn",     # el mapa lo diseña otro agente (docs/PLAN_BOSQUE_01_V01.md): hasta que exista la escena, la salida avisa
 }
+const NIVEL_INICIAL: String = "Bosque_01_v01"   ## donde entra «Nueva partida» del menú principal (era la `run/main_scene` hasta el 2/11)
 const T_FUNDIDO: float = 0.35
 const CAPA_FUNDIDO: int = 100
 const NOMBRE_FUNDIDO: String = "FundidoNiveles"
@@ -125,6 +126,9 @@ static func _viaje(mundo: Node, nivel: String, entrada: String) -> void:
 		vida_pendiente = float(jug.get("vida"))
 		jug.call("bloquear", true)
 	var negro: ColorRect = _velo(arbol)
+	# Tercera tanda (2/11): ANTES del fundido de salida, el autoguardado (ranura «auto», apuntando a la entrada del nivel nuevo) y el resumen del nivel que se deja (A2, A4).
+	Partida.autoguardar(arbol, "nivel", {"mapa_actual": nivel, "entrada": entrada, "punto": Partida.PUNTO_VIAJE})
+	ResumenNivel.mostrar(arbol, origen, Estadisticas.cerrar_nivel())
 	await _fundir(negro, 1.0)
 	entrada_pendiente = entrada
 	PlayLog.viaje_en_curso = true

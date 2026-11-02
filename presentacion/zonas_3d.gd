@@ -149,6 +149,18 @@ func zona_en(c: Vector2i) -> Dictionary:
 	return {}
 
 
+## Tercera tanda (2/11), para CicloDia3D y AmbienteZona (solo LEEN; no cambian cómo se mezcla la luz): la luz de la zona donde está el jugador (a la que va o ya ha llegado)...
+func luz_actual() -> String:
+	return _hacia_luz if _hacia_luz != "" else _defecto
+
+
+## ...y los valores de luz de AHORA (la mezcla en curso incluida), sin el ciclo del día encima. Es la base que el ciclo multiplica.
+func valores_actuales() -> Dictionary:
+	if _hacia.is_empty():
+		return LuzZona3D.valores(_defecto)
+	return LuzZona3D.mezclar(_desde, _hacia, smoothstep(0.0, 1.0, _t))
+
+
 func _ready() -> void:
 	_hacia_luz = _defecto
 	_hacia = LuzZona3D.valores(_defecto)

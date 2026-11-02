@@ -23,6 +23,7 @@ extends RefCounted
 signal cambiado                                   ## equipado, cantidades o efectos activos distintos (para repintar el HUD)
 signal aviso(texto: String, color: Color)         ## algo que decirle al jugador («Vida llena», «Bálsamo activo»…)
 signal usado(id: String)                          ## se ha gastado una unidad de `id`
+signal rechazado(motivo: String)                  ## intentó usar uno y no se pudo (vida llena, sin unidades...): el HUD suena `no_puedes` y hace temblar el círculo (gamefeel M4). Siempre va junto a un `aviso` en naranja.
 
 const TICK_REGEN_S: float = 0.5                   ## cada cuánto cae un trozo de la infusión (tasa × TICK)
 const COLOR_OK: Color = Color(0.7, 1.0, 0.8)
@@ -128,16 +129,22 @@ func motivo_no(id: String) -> String:
 func usar_equipado() -> bool:
 	var id: String = equipado()
 	if id == "":
-		aviso.emit("No llevas ningún consumible", COLOR_NO)
+		_rechazar("No llevas ningún consumible")
 		return false
 	return usar(id)
+
+
+## Dice por qué no se pudo (aviso naranja) y avisa de que fue un rechazo (sonido y temblor del HUD).
+func _rechazar(motivo: String) -> void:
+	aviso.emit(motivo, COLOR_NO)
+	rechazado.emit(motivo)
 
 
 ## Usa `id` si se puede (y gasta una unidad); si no, avisa del motivo y no gasta nada.
 func usar(id: String) -> bool:
 	var motivo: String = motivo_no(id)
 	if motivo != "":
-		aviso.emit(motivo, COLOR_NO)
+		_rechazar(motivo)
 		return false
 	var ef: Dictionary = Objetos.efecto(id)
 	match id:
@@ -146,7 +153,7 @@ func usar(id: String) -> bool:
 			# La poción de siempre se llama sin argumentos (los jugadores de mentira de las pruebas no los tienen); la grande dice cuál es.
 			var bebe: bool = bool(jugador.call("usar_pocion")) if id == "pocion" else bool(jugador.call("usar_pocion", id))
 			if not bebe:
-				aviso.emit("Ahora no puedes beber", COLOR_NO)
+				_rechazar("Ahora no puedes beber")
 				return false
 			cambiado.emit()
 			return true       # la unidad se gasta al acabar de beber (Jugador3D._terminar_beber): `HudEoW` lo ve por `Estado.cambiado` y llama a `al_cambiar_mochila`
@@ -166,7 +173,7 @@ func usar(id: String) -> bool:
 			aviso.emit("Infusión de brezo: te regeneras", Color(0.85, 0.65, 1.0))
 		_:
 			if not _efecto_generico(id, ef):
-				aviso.emit("Eso no se usa así", COLOR_NO)
+				_rechazar("Eso no se usa así")
 				return false
 	_tras_gastar(id)
 	return true
@@ -256,6 +263,7 @@ func absorber(cant: float) -> bool:
 	if escudo_t <= 0.0 or cant <= 0.0:
 		return false
 	escudo_t = 0.0
+	Sfx.play_ui("escudo_golpe")                       # gamefeel U7: el bálsamo se come el golpe
 	aviso.emit("¡El bálsamo ha absorbido el golpe!", Color(1.0, 0.85, 0.45))
 	cambiado.emit()
 	return true
@@ -285,6 +293,7 @@ func actualizar(delta: float) -> void:
 	if escudo_t > 0.0:
 		escudo_t = maxf(0.0, escudo_t - delta)
 		if escudo_t <= 0.0:
+			Sfx.play_ui("escudo_roto")                # gamefeel U7: el bálsamo se agotó sin recibir golpe
 			aviso.emit("El bálsamo se ha agotado", COLOR_NO)
 			cambiado.emit()
 	if regen_t > 0.0 and jugador != null:
