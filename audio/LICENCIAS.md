@@ -92,3 +92,24 @@ el 27/10/2026 y se renombraron con el prefijo `oga_`. Los usan `Sfx.CATALOGO` y 
 
 Los sintetizados a los que sustituyen (`agua_loop`, `fuego_loop`, `elem_hielo`, `elem_rayo`, `congelar`, `arde_bucle`
 y las pisadas `paso_*`) siguen en esta carpeta por si se quiere volver atrás: basta con cambiar el nombre en el catálogo.
+
+## Fuentes descargadas sin usar todavía — `audio/fuentes/` (2/11)
+
+Packs completos bajados el 2/11/2026 para sustituir sintetizados por grabaciones. **Nada de esto está en el catálogo aún**:
+cuando un sonido pase al juego se copia a `audio/` con prefijo (`kenney_`, `oga_`, `fs_`, `lk_`), se da de alta en `CATALOGO`
+y se anota aquí en la tabla de arriba. Los packs enteros no se cargan en Godot (la carpeta lleva un `.gdignore`).
+
+| carpeta | pack | licencia | contenido |
+|---|---|---|---|
+| `kenney_rpg-audio/` | Kenney RPG Audio · https://kenney.nl/assets/rpg-audio | CC0 | 50: monedas, tela, cinturón, libro, puertas, pasos, armas |
+| `kenney_impact-sounds/` | Kenney Impact Sounds · https://kenney.nl/assets/impact-sounds | CC0 | 130: pasos por material e impactos (madera, metal, piedra, cristal, tela) |
+| `kenney_interface-sounds/` | Kenney Interface Sounds · https://kenney.nl/assets/interface-sounds | CC0 | 100: clics, confirmar, volver, error, deslizar |
+| `kenney_ui-audio/` | Kenney UI Audio · https://kenney.nl/assets/ui-audio | CC0 | 50: clics, rollover, interruptores |
+| `oga_gato/` | «cat purr meow» (`cat_*.wav`) y «meow» (`Meow*.ogg`) · https://opengameart.org/content/cat-purr-meow · https://opengameart.org/content/meow | CC0 | ronroneo en bucle, maullidos |
+| `freesound/` | seis clips CC0 de Freesound (previsualización HQ en mp3, el wav original pide cuenta): `pluma_papel_duro_marcoman89` (194905), `pluma_pergamino_brktkrgll` (856167), `pluma_pergamino_Nickh69` (507864), `pagina_eZZin` (641757), `paginas_P_Chester` (465260), `paginas_lento_rapido_jephwallace` (318615) · https://freesound.org/people/<autor>/sounds/<id>/ | CC0 | pluma escribiendo (bucle para `trazo`), hojas pasando (bucle para la animación de páginas) |
+| `lentikula/` | **pendiente de bajar a mano** (itch.io «name your own price» a 0): «Basic Spell Impacts» (20: rayo, fuego, hielo, agua) · https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx y «Druid Spell Impacts» (15: tierra, planta, viento) · https://lentikula.itch.io/druid-spell-impacts | CC0 | impactos por elemento, 48 kHz 24 bit |
+
+Vistos y NO bajados (CC-BY 4.0, exigen acreditar; decide Pablo): «Magic Spell SFX» de The Soundrack (425, nueve elementos,
+carga/lanzar/vuelo; 1,5 GB), «Reading & Writing Sound Pack» de The Soundrack (266: libros, páginas, lápiz), «Free Monster Sounds»
+de Coucassi (8 criaturas con aparecer/ataque/daño/muerte/pasos; trae limo y orco). De pago: «Monster Vocalizations» de Morphonaut
+(CC0, 2 $, el único con goblin, gólem y goo). Los bundles GDC de Sonniss (gratis, sin atribución, sin redistribuir) no caben en el disco.
