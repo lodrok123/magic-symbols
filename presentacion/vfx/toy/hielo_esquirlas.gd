@@ -1,6 +1,6 @@
 extends Node3D
 
-## ESQUIRLAS DE HIELO POR CPU (3/11/2026, hielo «toy»; el equivalente de agua_gotas.gd). Un MultiMesh de tetraedros (hielo_cristal.gdshader, mezcla, sin emisión) que mueve este nodo: NO es un
+## ESQUIRLAS DE HIELO POR CPU (2/11/2026, hielo «toy»; el equivalente de agua_gotas.gd). Un MultiMesh de tetraedros (hielo_cristal.gdshader, mezcla, sin emisión) que mueve este nodo: NO es un
 ## GPUParticles3D (no cuenta en el presupuesto de partículas) y su posición y velocidad se pueden medir en las pruebas (`estados()`), porque en headless el MultiMesh no guarda datos.
 ## Se usa con `const HieloEsquirlas = preload("res://presentacion/vfx/toy/hielo_esquirlas.gd")` (sin class_name). Como RESERVA (`montar(n)` + `emitir(...)`) el nodo es top_level: las esquirlas se quedan
 ## en el MUNDO, GIRAN, CAEN con gravedad, rebotan una vez al llegar al suelo, se quedan quietas un momento y se desvanecen (de ahí «se rompe y caen las esquirlas»).

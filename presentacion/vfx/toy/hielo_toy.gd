@@ -1,7 +1,7 @@
 class_name HieloToy
 extends EfectoToy
 
-## HIELO «TOY» (3/11/2026, rama claude/b1-hielo-rayo, B1 de docs/DIRECCION_2026-11-02.md §2.B). Clase HERMANA de FuegoToy y AguaToy: misma API, mismas cinco figuras (BOLA, MURO, PILAR, BARRERA, HAZ), mismos ejes
+## HIELO «TOY» (2/11/2026, rama claude/b1-hielo-rayo, B1 de docs/DIRECCION_2026-11-02.md §2.B). Clase HERMANA de FuegoToy y AguaToy: misma API, mismas cinco figuras (BOLA, MURO, PILAR, BARRERA, HAZ), mismos ejes
 ## (semieje_x / y / z en m), misma escala (`describir` / `desde_hechizo` son los de FuegoToy: un hechizo cambia de elemento sin cambiar de tamaño) y los mismos mandos (los diez de EfectoToy; valen `altura`,
 ## `ancho`, `brillo`, `velocidad` y `chispas` = cuántas esquirlas; los de luz, halo, tono y blandura no hacen nada en el hielo, que no brilla). FuegoToy y AguaToy no se han tocado: la máquina de carga e impacto está
 ## copiada, no compartida.

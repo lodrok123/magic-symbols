@@ -20,7 +20,7 @@ class JugadorFalso extends Jugador3D:
 
 const LADO: int = 24
 const SALIDA: Vector2i = Vector2i(5, 8)
-const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "hielo": "ice", "rayo": "lightning"}      # hielo y rayo: B1 (3/11/2026)
+const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "hielo": "ice", "rayo": "lightning"}      # hielo y rayo: B1 (2/11/2026)
 const CLASES: Dictionary = {"fuego": "FuegoToy", "agua": "AguaToy", "hielo": "HieloToy", "rayo": "RayoToy"}
 const TOPE_LUCES: Dictionary = {"fuego": 1, "agua": 0, "hielo": 0, "rayo": 1}          # el rayo lleva una luz (el destello); el agua y el hielo, ninguna
 const CASILLA: float = 2.3

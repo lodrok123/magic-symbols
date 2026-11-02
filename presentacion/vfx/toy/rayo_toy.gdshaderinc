@@ -1,4 +1,4 @@
-// RAYO «TOY» (3/11/2026, rama claude/b1-hielo-rayo). Piezas comunes de los shaders del rayo (trazos, destellos, suelo):
+// RAYO «TOY» (2/11/2026, rama claude/b1-hielo-rayo). Piezas comunes de los shaders del rayo (trazos, destellos, suelo):
 //   · ADITIVO (blend_add) y unshaded: el rayo es luz, es el único de los elementos nuevos que brilla. Sin escribir profundidad. Única excepción: el CUERPO amarillo del trazo (rayo_trazo_cuerpo.gdshader) va en mezcla normal, porque
 //     sumar amarillo a un suelo claro da blanco; el hilo blanco y el halo azul van encima, aditivos.
 //   · PALETA = la del RAYO DEL JUEGO (vfx_3d.gd, vfx_estado_3d.gd, emisor_rayo_3d.gd), centralizada en rayo_paleta.gd (los defaults de abajo son IGUALES a esas constantes): hilo blanco, cuerpo amarillo y halo azul.

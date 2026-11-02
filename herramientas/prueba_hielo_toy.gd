@@ -1,6 +1,6 @@
 extends SceneTree
 
-## PRUEBA del hielo «toy» (B1, 3/11/2026; a imagen de prueba_agua_toy.gd). Sin ventana:
+## PRUEBA del hielo «toy» (B1, 2/11/2026; a imagen de prueba_agua_toy.gd). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_hielo_toy.gd
 ## Comprueba, con HieloToy, ImpactoHieloToy y la paleta:
 ##   1. ESTILO: los shaders del hielo son blend_mix y unshaded, sin blend_add ni EMISSION

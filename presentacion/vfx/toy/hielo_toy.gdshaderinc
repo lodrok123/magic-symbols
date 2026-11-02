@@ -1,4 +1,4 @@
-// HIELO «TOY» (3/11/2026, rama claude/b1-hielo-rayo). Piezas comunes de los shaders del hielo (cristales, esquirlas, escarcha, destello):
+// HIELO «TOY» (2/11/2026, rama claude/b1-hielo-rayo). Piezas comunes de los shaders del hielo (cristales, esquirlas, escarcha, destello):
 //   · blend_mix, SIN emisión y SIN luz (los shaders son unshaded): el hielo no brilla, solo se ve más o menos claro.
 //   · PALETA = la del HIELO DEL MUNDO (costra_hielo_3d.gd, vfx_3d.gd, vfx_estado_3d.gd), centralizada en hielo_paleta.gd (los defaults de abajo son IGUALES a esas constantes).
 //   · Tres tonos por ESCALONES (facetas): tono_a = hondo, tono_b = claro, tono_c = escarcha (lo más blanco); borde por fresnel con color_borde; grietas con color_grieta.

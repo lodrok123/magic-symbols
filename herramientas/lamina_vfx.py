@@ -6,6 +6,8 @@ Uso:
 Las capturas las saca herramientas/captura_fuego_parametrico.gd (modo celdas).
 Modo "en el juego" (A1, 2/11/2026): python herramientas/lamina_vfx.py --en-juego <carpeta con <elemento>_<hechizo>_<actual|procedural>_<t>.png y celdas.json> <lamina.png>
     (las saca herramientas/captura_vfx_en_juego.gd con la camara del juego): una fila por hechizo, y por elemento dos columnas lado a lado, el dibujo ACTUAL y el PROCEDURAL (FuegoToy / AguaToy). Cada celda lleva su rotulo (titulo, figura y ejes x·y·z en metros, propiedades);
+Modo "hielo y rayo" (B1, 2/11/2026): python herramientas/lamina_vfx.py --hielo-rayo <carpeta con hr_<elemento>_<figura>.png, hr_<elemento>_ciclo_<n>.png y celdas_hr.json> <lamina.png> [ancho_reducido=1600]
+    (las saca herramientas/captura_fuego_parametrico.gd en el modo hielo_rayo): por elemento, las cinco figuras de la prueba 3 y tres fotogramas del ciclo (hielo: crece, vive, se rompe; rayo: nace, vive, muere), con la paleta de cada elemento leida de hielo_paleta.gd / rayo_paleta.gd;
 la lamina cabe en menos de 4000 px de ancho y se guarda tambien una copia reducida (<salida>_reducida.png).
 """
 import json
@@ -166,8 +168,92 @@ def lamina_en_juego(carpeta, salida, ancho_red=2400):
         red.save(ruta_red)
         print("reducida", ruta_red, red.size)
 
+# ---------------------------------------------------------------- modo "hielo y rayo" (B1, 2/11/2026) ----------------------------------------------------------------
+import re
+
+PALETAS = {"hielo": "presentacion/vfx/toy/hielo_paleta.gd", "rayo": "presentacion/vfx/toy/rayo_paleta.gd"}
+HR_TITULOS = {"hielo": "HIELO: HieloToy", "rayo": "RAYO: RayoToy"}
+HR_LEMA = {"hielo": "cristal translucido (blend_mix, sin brillo propio) que CRECE POR ETAPAS y SE ROMPE; colores del hielo del mundo (costra helada del agua, perfil hielo del juego)",
+           "rayo": "luz (aditivo): DURA MUY POCO, la linea quebrada se REDIBUJA cada 0,05 s; colores del rayo del juego (amarillo-blanco con halo azul)"}
+HR_CICLO = {"hielo": "pilar 0,5 · 4 · 0,5 m", "rayo": "valla (muro) 3,45 · 1,5 · 0,3 m, a camara lenta ×10"}
+
+
+def leer_paleta(raiz, elemento):
+    """Los colores de la paleta central del elemento: {NOMBRE: (r, g, b) 0..255}, leidos del .gd (no se copian a mano)."""
+    ruta = os.path.join(raiz, PALETAS[elemento])
+    res = {}
+    for m in re.finditer(r"^const (\w+): Color = Color\(([0-9.]+), ([0-9.]+), ([0-9.]+)\)", open(ruta, encoding="utf-8").read(), re.M):
+        res[m.group(1)] = tuple(int(round(float(m.group(k)) * 255)) for k in (2, 3, 4))
+    return res
+
+
+def lamina_hielo_rayo(carpeta, salida, ancho_red=1600):
+    celdas = json.load(open(os.path.join(carpeta, "celdas_hr.json"), encoding="utf-8"))
+    raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    cols = 5
+    ancho = BANDA_W + MARGEN + cols * (CELDA_W + MARGEN)
+    cab = 120
+    alto_celda = RUBRO_H + CELDA_H
+    sec = 150                                       # titulo del elemento + paleta
+    alto = cab + 2 * (sec + 2 * (alto_celda + MARGEN)) + MARGEN
+    im = Image.new("RGB", (ancho, alto), FONDO)
+    d = ImageDraw.Draw(im)
+    f_t, f_s, f_c, f_p, f_b = fuente(40, True), fuente(22), fuente(23, True), fuente(20), fuente(30, True)
+    d.text((MARGEN * 2, 14), "Hielo y rayo «toy»: hermanas de FuegoToy y AguaToy (B1)", font=f_t, fill=TEXTO)
+    d.text((MARGEN * 2, 66), "Cinco figuras con los tamaños de la prueba 3 y la cámara «cerca» del lab (la misma para los dos), y tres fotogramas del ciclo de cada uno. Los dos son clases de EfectoToy con la misma API; el elemento no cambia la figura ni el tamaño.", font=f_s, fill=SUAVE)
+    d.text((MARGEN * 2, 92), "Las fotos son de la ventana del lab (suelo gris, cubos de 1 m de referencia a los lados); el rayo es instantáneo, así que su ciclo está fotografiado a cámara lenta.", font=f_s, fill=SUAVE)
+    y0 = cab
+    for elem in ("hielo", "rayo"):
+        d.text((MARGEN * 2, y0 + 6), HR_TITULOS[elem], font=f_b, fill=ACENTO)
+        d.text((MARGEN * 2, y0 + 46), HR_LEMA[elem], font=f_s, fill=SUAVE)
+        # paleta
+        x = MARGEN * 2
+        for nombre, rgb in leer_paleta(raiz, elem).items():
+            if nombre in ("BANDAS",):
+                continue
+            d.rectangle([x, y0 + 84, x + 34, y0 + 118], fill=rgb, outline=(90, 90, 96))
+            d.text((x + 42, y0 + 88), "%s %d·%d·%d" % (nombre, rgb[0], rgb[1], rgb[2]), font=f_p, fill=TEXTO)
+            x += 42 + 11 * len("%s %d·%d·%d" % (nombre, rgb[0], rgb[1], rgb[2])) + 26
+        ys = y0 + sec
+        fig = [c for c in celdas if c["elemento"] == elem and c["tipo"] == "figura"]
+        ciclo = [c for c in celdas if c["elemento"] == elem and c["tipo"] == "ciclo"]
+        for fila, lista in enumerate((fig, ciclo)):
+            yf = ys + fila * (alto_celda + MARGEN)
+            banda = Image.new("RGB", (alto_celda, BANDA_W), PAPEL)
+            bd = ImageDraw.Draw(banda)
+            bd.text((16, 20), "FIGURAS" if fila == 0 else "CICLO", font=f_c, fill=ACENTO)
+            im.paste(banda.rotate(90, expand=True), (0, yf))
+            for k, c in enumerate(lista):
+                x0 = BANDA_W + MARGEN + k * (CELDA_W + MARGEN)
+                d.rectangle([x0, yf, x0 + CELDA_W, yf + RUBRO_H], fill=PAPEL)
+                if fila == 0:
+                    d.text((x0 + 10, yf + 5), c["titulo"], font=f_c, fill=TEXTO)
+                    d.text((x0 + 10, yf + 36), "x·y·z = %s·%s·%s m" % (num(c["x"]), num(c["y"]), num(c["z"])), font=f_p, fill=SUAVE)
+                else:
+                    d.text((x0 + 10, yf + 5), "%d · %s" % (k + 1, c["titulo"]), font=f_c, fill=TEXTO)
+                    d.text((x0 + 10, yf + 36), HR_CICLO[elem], font=f_p, fill=SUAVE)
+                    d.text((x0 + 10, yf + 60), c["info"].replace(".", ","), font=fuente(16), fill=ACENTO)
+                ruta = os.path.join(carpeta, "hr_%s.png" % c["id"])
+                if os.path.exists(ruta):
+                    img = Image.open(ruta).convert("RGB").resize((CELDA_W, CELDA_H), Image.LANCZOS)
+                    im.paste(img, (x0, yf + RUBRO_H))
+                else:
+                    d.rectangle([x0, yf + RUBRO_H, x0 + CELDA_W, yf + RUBRO_H + CELDA_H], outline=(200, 60, 60))
+                    d.text((x0 + 20, yf + RUBRO_H + 20), "FALTA la captura", font=f_c, fill=(220, 90, 90))
+        y0 += sec + 2 * (alto_celda + MARGEN)
+    im.save(salida)
+    print("lamina", salida, im.size)
+    if im.size[0] > ancho_red:
+        red = im.resize((ancho_red, int(im.size[1] * ancho_red / im.size[0])), Image.LANCZOS)
+        ruta_red = os.path.splitext(salida)[0] + "_reducida.png"
+        red.save(ruta_red)
+        print("reducida", ruta_red, red.size)
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--en-juego":
         lamina_en_juego(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 2400)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--hielo-rayo":
+        lamina_hielo_rayo(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 1600)
     else:
         main()

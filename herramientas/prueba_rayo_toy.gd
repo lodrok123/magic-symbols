@@ -1,6 +1,6 @@
 extends SceneTree
 
-## PRUEBA del rayo «toy» (B1, 3/11/2026; a imagen de prueba_agua_toy.gd y prueba_hielo_toy.gd). Sin ventana:
+## PRUEBA del rayo «toy» (B1, 2/11/2026; a imagen de prueba_agua_toy.gd y prueba_hielo_toy.gd). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_rayo_toy.gd
 ## Comprueba, con RayoToy, ImpactoRayoToy y la paleta:
 ##   1. ESTILO: los shaders de trazo (hilo y halo) y de destello son blend_add y unshaded (el rayo es luz), sin EMISSION; el CUERPO amarillo del trazo es la única capa en blend_mix (sumar amarillo a un suelo claro da blanco)

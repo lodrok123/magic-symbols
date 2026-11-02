@@ -10,7 +10,7 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, fog_disabled;
 
 uniform sampler2D grietas : filter_linear_mipmap, repeat_enable;      // T_Cracks336
 uniform float instancias : hint_range(0.0, 1.0) = 0.0;
-uniform float opacidad = 0.56;
+uniform float opacidad = 0.68;
 uniform float rim_pot = 2.0;
 uniform float escarcha_base = 0.55;                                   // cuánto se blanquea la base
 uniform float grieta : hint_range(0.0, 1.0) = 0.0;
@@ -36,10 +36,10 @@ void fragment() {
 	float franja = fract(TIME * 0.11 * velocidad + datos.a);
 	float barrido = (1.0 - smoothstep(0.0, 0.12, abs(altura - franja * 1.4 + 0.2))) * 0.22;
 	float base = (1.0 - smoothstep(0.0, 0.32, altura)) * escarcha_base;
-	float v = 0.08 + 0.42 * cara + 0.10 * datos.r + 0.24 * fres + 0.18 * arista + barrido + 0.4 * base;
+	float v = 0.06 + 0.34 * cara + 0.08 * datos.r + 0.16 * fres + 0.12 * arista + 0.8 * barrido + 0.3 * base;
 	vec3 col = hielo_tonos(v, 0.9, 0.05);
 	col = mix(col, color_nucleo, 0.42 * pow(nv, 2.0) * (1.0 - base));
-	col = mix(col, color_borde, clamp(fres * 0.7 + arista * 0.35, 0.0, 1.0));
+	col = mix(col, color_borde, clamp(fres * 0.5 + arista * 0.25, 0.0, 1.0));
 	float gr = texture(grietas, UV * vec2(1.1, 0.9) + vec2(datos.a * 3.7, datos.r)).r;
 	float linea = grieta * smoothstep(0.35, 0.8, gr);
 	col = mix(col, color_grieta, clamp(linea, 0.0, 1.0));

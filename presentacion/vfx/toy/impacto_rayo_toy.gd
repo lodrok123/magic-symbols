@@ -1,7 +1,7 @@
 class_name ImpactoRayoToy
 extends Node3D
 
-## IMPACTO DEL RAYO «TOY» (3/11/2026, rama claude/b1-hielo-rayo; PRIMERA VERSIÓN SENCILLA; el equivalente de ImpactoAguaToy e ImpactoFuegoToy). Misma API: `crear(variante, normal, radio)`, `tiempo()`, `duracion()`,
+## IMPACTO DEL RAYO «TOY» (2/11/2026, rama claude/b1-hielo-rayo; PRIMERA VERSIÓN SENCILLA; el equivalente de ImpactoAguaToy e ImpactoFuegoToy). Misma API: `crear(variante, normal, radio)`, `tiempo()`, `duracion()`,
 ## `avanzar_a(t)`, `lanzar()` / `morir()` (contrato de EfectoVfx3D). Es luz: ADITIVO, sin luces propias, DURA MUY POCO (0,3-0,8 s; el golpe, ~0,2 s). Todo se libera solo.
 ## Lo que lleva (GOLPE, contra una pared o el suelo; `normal` = normal de la superficie hacia fuera):
 ##   · DESCARGAS: 6 trazos quebrados (rayo_trazo.gdshader) que salen del punto de impacto hacia fuera, en el hemisferio de la normal, y SE REDIBUJAN cada 0,05 s (distintos cada vez) mientras se apagan en ~0,25 s.

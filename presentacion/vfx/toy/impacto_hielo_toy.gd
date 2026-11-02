@@ -1,7 +1,7 @@
 class_name ImpactoHieloToy
 extends Node3D
 
-## IMPACTO DEL HIELO «TOY» (3/11/2026, rama claude/b1-hielo-rayo; PRIMERA VERSIÓN SENCILLA; el equivalente de ImpactoAguaToy e ImpactoFuegoToy). Misma API: `crear(variante, normal, radio)`, `tiempo()`, `duracion()`,
+## IMPACTO DEL HIELO «TOY» (2/11/2026, rama claude/b1-hielo-rayo; PRIMERA VERSIÓN SENCILLA; el equivalente de ImpactoAguaToy e ImpactoFuegoToy). Misma API: `crear(variante, normal, radio)`, `tiempo()`, `duracion()`,
 ## `avanzar_a(t)`, `lanzar()` / `morir()` (contrato de EfectoVfx3D). Es HIELO: mezcla normal, sin luz, sin aditivo. Todo se libera solo.
 ## Lo que lleva (GOLPE, contra una pared o el suelo; `normal` = normal de la superficie hacia fuera):
 ##   · RÁFAGA DE ESQUIRLAS: un MultiMesh movido por la CPU (hielo_cristal.gdshader) con esquirlas que salen del punto de impacto HACIA FUERA, en el hemisferio de la normal, giran y CAEN con la gravedad real

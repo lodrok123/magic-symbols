@@ -1,6 +1,6 @@
 extends RefCounted
 
-## TRAZOS Y DESTELLOS DEL RAYO «TOY» (3/11/2026, rama claude/b1-hielo-rayo). Se usa con `const RayoTrazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")` (sin class_name, como agua_mallas.gd).
+## TRAZOS Y DESTELLOS DEL RAYO «TOY» (2/11/2026, rama claude/b1-hielo-rayo). Se usa con `const RayoTrazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")` (sin class_name, como agua_mallas.gd).
 ## El rayo no es una malla: es una LÍNEA QUEBRADA que se redibuja cada pocos fotogramas. `camino` saca los puntos (punto medio desplazado al azar, con la desviación nula en los extremos), `trazar` los convierte en
 ## tramos (con su ancho y su opacidad, hasta una fracción `hasta` del camino: así el rayo «cae» o se extiende en lugar de aparecer entero) y `volcar` los escribe en un MultiMesh (rayo_trazo.gdshader, aditivo) que
 ## mueve la CPU: no es un GPUParticles3D (no cuenta en el presupuesto de partículas) y se puede medir en las pruebas. Los destellos (rayo_destello.gdshader) son otro MultiMesh, igual.

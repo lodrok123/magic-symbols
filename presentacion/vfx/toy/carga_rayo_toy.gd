@@ -1,6 +1,6 @@
 extends Node3D
 
-## CASTEO DEL RAYO (3/11/2026; el equivalente de carga_agua_toy.gd y carga_toy.gd). Lo que rodea a la mano mientras se carga el hechizo (aditivo, como todo el rayo; sin luz propia):
+## CASTEO DEL RAYO (2/11/2026; el equivalente de carga_agua_toy.gd y carga_toy.gd). Lo que rodea a la mano mientras se carga el hechizo (aditivo, como todo el rayo; sin luz propia):
 ##   · CHISPAS pequeñas (estrellas de T_flare8) que aparecen en una esfera de ~0,6-1 m alrededor de la mano y CONVERGEN hacia la bola que se va formando, en espiral y acelerando. Cuanto más avanza la carga,
 ##     más chispas hay a la vez. Son un MultiMesh movido por la CPU: no cuentan como GPUParticles3D y son deterministas (hash) para medirlas con `estado_gotas()`.
 ##   · ARCOS: tres arcos cortos de descarga que saltan de la mano a un punto cercano y se redibujan cada 0,06 s (quebrados, distintos cada vez), más frecuentes y largos cuanto más carga.

@@ -1,7 +1,7 @@
 class_name VfxToyJuego
 extends Node
 
-## EL FUEGO, EL AGUA, EL HIELO Y EL RAYO OFICIALES EN EL JUEGO (A1, 2/11/2026; hielo y rayo, B1, 3/11/2026: HieloToy / RayoToy, ≤ 1 luz por hechizo: solo el rayo la lleva; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
+## EL FUEGO, EL AGUA, EL HIELO Y EL RAYO OFICIALES EN EL JUEGO (A1, 2/11/2026; hielo y rayo, B1, 2/11/2026: HieloToy / RayoToy, ≤ 1 luz por hechizo: solo el rayo la lleva; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
 ## Selector: ProjectSettings `magic_symbols/vfx_procedural` (false por defecto). Con true, el fuego y el agua de los hechizos (HechizoVivo) se dibujan con `FuegoToy` / `AguaToy`
 ## (`desde_hechizo(h)`: figura, semiejes y vuelo salen del Hechizo, sin tocar nada a mano por hechizo) en lugar de `VfxElemento3D` (que con el ajuste a true se calla para esos dos elementos)
 ## y de la forma en la mano de `ConjuroVfx3D` (que tampoco la dibuja: la carga la hace el toy). Con false este nodo no hace nada: el juego dibuja lo de siempre. Los demás elementos no cambian.

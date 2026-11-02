@@ -1,6 +1,6 @@
 extends Node3D
 
-## CASTEO DEL HIELO (3/11/2026; el equivalente de carga_agua_toy.gd y carga_toy.gd). Lo que rodea a la mano mientras se carga el hechizo, sutil y SIN brillo (no hay halo, ni luz, ni aditivo):
+## CASTEO DEL HIELO (2/11/2026; el equivalente de carga_agua_toy.gd y carga_toy.gd). Lo que rodea a la mano mientras se carga el hechizo, sutil y SIN brillo (no hay halo, ni luz, ni aditivo):
 ##   · ESQUIRLAS pequeñas que aparecen en una esfera de ~0,6-1 m alrededor de la mano y CONVERGEN hacia el bloque de hielo que se va formando, en espiral y acelerando, girando sobre sí mismas.
 ##     Cuanto más avanza la carga, más esquirlas hay a la vez. Son un MultiMesh movido por la CPU: no cuentan como GPUParticles3D y son deterministas (hash) para medirlas con `estado_gotas()`.
 ##   · ÓRBITAS: tres cristales pequeños que giran alrededor de la mano y se van cerrando.

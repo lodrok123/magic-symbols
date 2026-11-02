@@ -1,6 +1,6 @@
 extends RefCounted
 
-## GEOMETRÍA DEL HIELO «TOY» (3/11/2026, rama claude/b1-hielo-rayo). Se usa con `const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")` (sin class_name, como agua_mallas.gd).
+## GEOMETRÍA DEL HIELO «TOY» (2/11/2026, rama claude/b1-hielo-rayo). Se usa con `const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")` (sin class_name, como agua_mallas.gd).
 ## Todo son facetas PLANAS (una normal por cara): un cristal es un prisma de 6 lados con la punta de pirámide, una esquirla es un tetraedro alargado, el bloque de la bola es una icosfera de 80 caras
 ## con los vértices movidos un poco. Reutiliza FuegoToyMallas para lo que ya existe (perímetro de la elipse, haz) y las texturas de assets/vfx/lelu_noise/ (uso libre).
 ## También reparte los cristales de cada figura (`capa_*`: listas de diccionarios, deterministas con la semilla, para poder medirlas en las pruebas).
