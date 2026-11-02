@@ -637,10 +637,10 @@ func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo:
 		return
-	if k.keycode == KEY_I:
+	if k.is_action("mochila"):
 		get_viewport().set_input_as_handled()
 		alternar()
-	elif k.keycode == KEY_ESCAPE and abierta:
+	elif k.is_action("pausa") and abierta:
 		get_viewport().set_input_as_handled()
 		alternar()
 	elif abierta:
@@ -683,7 +683,7 @@ func _refrescar() -> void:
 			h.id = String(pilas[i][0])
 			h.cantidad = int(pilas[i][1])
 			h.cura = Objetos.cura(h.id)
-			h.tooltip_text = "%s\n%s" % [Objetos.nombre(h.id), String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
+			h.tooltip_text = "%s\n%s" % [Objetos.nombre(h.id), Objetos.descripcion(h.id)]
 			h.pulsado = _usar
 			h.al_pasar = _elegir
 		elif h.bloqueado:
@@ -733,7 +733,7 @@ func _pintar_nombre() -> void:
 	if h != null and h.id != "":
 		var cal: String = MarcoCalidad.normalizar(h.calidad)
 		var rareza: String = "" if cal == Objetos.CALIDAD_COMUN else "  ·  " + String((Objetos.CALIDADES[cal] as Dictionary)["nombre"])
-		_info.text = "%s%s\n%s" % [Objetos.nombre(h.id), rareza, String(Objetos.DATOS.get(h.id, {}).get("desc", ""))]
+		_info.text = "%s%s\n%s" % [Objetos.nombre(h.id), rareza, Objetos.descripcion(h.id)]
 	else:
 		_info.text = "%d/%d huecos" % [e.huecos_usados(), e.capacidad]
 

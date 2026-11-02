@@ -82,6 +82,22 @@ static var INTERRUPCION_GOLPE: float = 0.6     ## s sin atacar tras un golpe con
 static var INTERRUPCION_DANO: float = 0.3      ## s que da cualquier otro daño (quemadura, arco del rayo): con 0,6 una quemadura no le dejaría atacar nunca
 ## C3 (28/10): los ataques marcan antes en el suelo la zona que van a golpear (`AvisoAtaque3D`). `static var` para poder apagarlo desde un laboratorio.
 static var AVISAR_ATAQUES: bool = true
+## B2 (tercera tanda, 2/11): ICONOS DE ESTADO junto a la barra de vida: hasta 4 (quemado, congelado, envenenado, mojado, aturdido/electrificado) con una barra de tiempo restante debajo. SOLO LEEN
+## `quemando`, `congelado`, `envenenado`, `mojado` y `stun_timer`; no cambian ningún estado. Son información, no sensación: se ven igual con `Sensacion3D.ACTIVA = false`. El elemental no los muestra.
+static var ICONOS_ESTADO_SIEMPRE: bool = true  ## true = se ven mientras haya un estado activo; false = solo mientras se ve la barra de vida
+static var ICONOS_CON_SIMBOLOS: bool = false   ## false = letras Q C V M E de color (la fuente por defecto no tiene ♨ ❄ ☠ ≈ ⚡); true = esos símbolos si la fuente del sistema los trae
+static var ICONO_TAM_FUENTE: int = 44
+static var ICONO_SEPARACION: float = 0.2       ## u entre iconos
+static var ICONO_BAJADA: float = 0.2           ## u por debajo de la barra de vida
+static var ICONO_BARRA_ANCHO: float = 0.16     ## u: ancho de la barra de tiempo (llena)
+static var ICONOS_ESTADO: Array = [
+	{"id": "quemado", "letra": "Q", "simbolo": "♨", "color": Color(1.0, 0.5, 0.2), "var": "quemando"},
+	{"id": "congelado", "letra": "C", "simbolo": "❄", "color": Color(0.55, 0.9, 1.0), "var": "congelado"},
+	{"id": "envenenado", "letra": "V", "simbolo": "☠", "color": Color(0.55, 0.9, 0.35), "var": "envenenado"},
+	{"id": "mojado", "letra": "M", "simbolo": "≈", "color": Color(0.4, 0.65, 1.0), "var": "mojado"},
+	{"id": "electrificado", "letra": "E", "simbolo": "⚡", "color": Color(1.0, 0.95, 0.35), "var": "stun_timer"},
+]
+const MAX_ICONOS_ESTADO: int = 4
 const DESTELLO_DANO: float = 0.10              ## destello del daño que no es golpe (quemadura): el de siempre, para que no parpadee en blanco
 
 ## --- IA (px del 2D pasados a unidades: 300 px ≈ 2,5 casillas, §4.3 del plan) ---
@@ -351,6 +367,8 @@ var _barra_perdida: MeshInstance3D = null
 var _barra_vida: MeshInstance3D = null
 var _marca_debil: Label3D = null
 var _nombre_etiqueta: Label3D = null
+var _iconos_estado: Array = []                  ## B2: MAX_ICONOS_ESTADO huecos {letra: Label3D, barra: MeshInstance3D, id: String}
+var _estado_visto_max: Dictionary = {}          ## B2: el mayor tiempo visto de cada estado (la barra de tiempo es restante / eso)
 const ANCHO_BARRA: float = 0.8
 const ALTO_BARRA: float = 0.09
 
@@ -2117,6 +2135,7 @@ func _dibujar_estado(delta: float) -> void:
 		for n in [_barra_fondo, _barra_perdida, _barra_vida]:
 			(n as Node3D).visible = ver
 	_nombre_etiqueta.visible = _barra_t > 0.0 and not elemental
+	_actualizar_iconos_estado(not elemental and (fr < 0.999 or _barra_destello > 0.0))
 	if elemental:
 		_actualizar_barra_jefe(fr)
 
@@ -2157,6 +2176,95 @@ func _construir_barra() -> void:
 	_nombre_etiqueta.position = Vector3(0.0, alto + 0.14, 0.0)
 	_nombre_etiqueta.visible = false
 	add_child(_nombre_etiqueta)
+	_construir_iconos_estado(alto)
+
+
+## B2: los huecos de los iconos (letra + barra de tiempo), ocultos, bajo la barra de vida.
+func _construir_iconos_estado(alto: float) -> void:
+	_iconos_estado.clear()
+	for i in range(MAX_ICONOS_ESTADO):
+		var l := Label3D.new()
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.pixel_size = 0.0035
+		l.font_size = ICONO_TAM_FUENTE
+		l.outline_size = 10
+		l.visible = false
+		l.position = Vector3(0.0, alto - ICONO_BAJADA, 0.0)
+		add_child(l)
+		var b := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(ICONO_BARRA_ANCHO, 0.025)
+		b.mesh = q
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m.no_depth_test = true
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.render_priority = 3
+		b.material_override = m
+		b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		b.visible = false
+		b.position = Vector3(0.0, alto - ICONO_BAJADA - 0.1, 0.0)
+		add_child(b)
+		_iconos_estado.append({"letra": l, "barra": b, "id": ""})
+
+
+## B2: los estados activos, en el orden de ICONOS_ESTADO, con su fracción de tiempo restante (0..1). Solo lee. Lo usan el dibujo y las pruebas.
+func estados_activos() -> Array:
+	var r: Array = []
+	for d in ICONOS_ESTADO:
+		var t: float = float(get(String(d["var"])))
+		var id: String = String(d["id"])
+		if t > 0.0:
+			_estado_visto_max[id] = maxf(float(_estado_visto_max.get(id, 0.0)), t)
+			r.append({"id": id, "tiempo": t, "fraccion": clampf(t / maxf(float(_estado_visto_max[id]), 0.001), 0.0, 1.0), "icono": d})
+		else:
+			_estado_visto_max.erase(id)
+	return r
+
+
+## B2: pinta los iconos. `barra_visible`: ¿se ve la barra de vida? (con ICONOS_ESTADO_SIEMPRE = false solo entonces).
+func _actualizar_iconos_estado(barra_visible: bool) -> void:
+	if _iconos_estado.is_empty():
+		return
+	var activos: Array = estados_activos() if (not muerto and not elemental and (ICONOS_ESTADO_SIEMPRE or barra_visible)) else []
+	var n: int = mini(activos.size(), MAX_ICONOS_ESTADO)
+	for i in range(_iconos_estado.size()):
+		var h: Dictionary = _iconos_estado[i]
+		var l: Label3D = h["letra"]
+		var b: MeshInstance3D = h["barra"]
+		if i >= n:
+			l.visible = false
+			b.visible = false
+			h["id"] = ""
+			continue
+		var a: Dictionary = activos[i]
+		var d: Dictionary = a["icono"]
+		var x: float = (float(i) - float(n - 1) * 0.5) * ICONO_SEPARACION
+		var col: Color = d["color"]
+		l.text = String(d["simbolo"] if ICONOS_CON_SIMBOLOS else d["letra"])
+		l.modulate = col
+		l.outline_modulate = Color(0.05, 0.05, 0.08, 1.0)
+		l.position.x = x
+		l.visible = true
+		var fr: float = float(a["fraccion"])
+		var q: QuadMesh = b.mesh as QuadMesh
+		q.size = Vector2(maxf(ICONO_BARRA_ANCHO * fr, 0.002), 0.025)
+		q.center_offset = Vector3(-ICONO_BARRA_ANCHO * 0.5 + q.size.x * 0.5, 0.0, 0.0)
+		(b.material_override as StandardMaterial3D).albedo_color = col
+		b.position.x = x
+		b.visible = true
+		h["id"] = String(a["id"])
+
+
+## Los ids de los iconos que se ven AHORA (las pruebas).
+func iconos_estado_visibles() -> Array:
+	var r: Array = []
+	for h in _iconos_estado:
+		if (h["letra"] as Label3D).visible:
+			r.append(String(h["id"]))
+	return r
 
 
 func _quad_mesh() -> QuadMesh:
@@ -2518,6 +2626,7 @@ func _morir(ahogado: bool = false) -> void:
 	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
 		if n != null:
 			(n as Node3D).visible = false
+	_actualizar_iconos_estado(false)                  # B2: muerto → los iconos de estado se apagan
 	# Si muere en pleno golpe: sin destello blanco, sin aplastamiento ni salto a medias (el tween de muerte encoge pj.scale desde su valor actual).
 	_destello = 0.0
 	_hitstop = 0.0

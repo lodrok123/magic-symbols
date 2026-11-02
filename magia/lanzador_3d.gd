@@ -1110,7 +1110,7 @@ func _cancelar_modo() -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if not modo_lanzar:
 		return
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action("pausa"):
 		_cancelar_modo()
 		get_viewport().set_input_as_handled()
 	elif ev is InputEventMouseButton:

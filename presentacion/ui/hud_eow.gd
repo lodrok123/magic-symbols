@@ -232,11 +232,11 @@ func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
-	if k.keycode == KEY_Q:
+	if k.is_action("usar_consumible"):
 		if libre():
 			get_viewport().set_input_as_handled()
 			consumibles.usar_equipado()
-	elif k.keycode == KEY_R:
+	elif k.is_action("cambiar_consumible"):
 		if libre():
 			get_viewport().set_input_as_handled()
 			cambiar_equipado()

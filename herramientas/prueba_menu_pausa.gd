@@ -140,8 +140,8 @@ func _escenario() -> void:
 
 	# --- 7 · Salir pide confirmación y no cierra ---
 	p.fila = 0
-	p.mover(7)                                         # 2/11: la fila 6 es ahora «Salir al menú principal»
-	_ok("7 la fila 7 es «Salir»", p.id_fila(p.fila) == "salir")
+	p.mover(8)                                         # 2/11: la fila 7 es «Salir al menú principal» y, con «Controles» (B1) tras Sensación, «Salir» es la 8
+	_ok("7 la fila 8 es «Salir»", p.id_fila(p.fila) == "salir")
 	await _pausa_de_veda()
 	await _pulsar(KEY_ENTER)
 	_ok("7 el primer Enter solo pide confirmación", p.confirmando == "salir")
@@ -170,8 +170,8 @@ func _escenario() -> void:
 	await _pausa_de_veda()
 	await _pulsar(KEY_ESCAPE)
 	p.fila = 0
-	p.mover(5)
-	_ok("9 la fila 5 es «Reiniciar nivel»", p.id_fila(p.fila) == "reiniciar")
+	p.mover(6)                                         # B1 (2/11): «Controles» ocupa la fila 5; «Reiniciar nivel» pasa a la 6
+	_ok("9 la fila 6 es «Reiniciar nivel»", p.id_fila(p.fila) == "reiniciar")
 	await _pulsar(KEY_ENTER)
 	_ok("9 el primer Enter pide confirmación y no reinicia", p.confirmando == "reiniciar" and p.reinicios == 0 and is_instance_valid(maqueta) and current_scene == maqueta)
 	var vieja: Node = maqueta

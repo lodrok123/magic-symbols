@@ -261,7 +261,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if recogido_ya or not disponible or not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var pj: Vector3 = _pos_jugador()
 	if pj == Vector3.INF:

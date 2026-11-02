@@ -14,7 +14,14 @@ extends Control
 ## Se abre con T y no con TAB a propósito: TAB es la tecla que Godot usa
 ## por defecto para saltar de un control de interfaz al siguiente, así
 ## que siempre habría riesgo de que las dos cosas se pisaran.
-const OPEN_KEY: Key = KEY_T
+const OPEN_KEY: Key = KEY_T      ## solo de referencia: la tecla real es la acción «libro» del InputMap (remapeable)
+
+## B1: acciones de página (1/2/3 de fábrica) → 0..2, o -1 si el evento no es ninguna.
+static func _pagina_de_tecla(ev: InputEvent) -> int:
+	for i in range(3):
+		if ev.is_action("pagina_%d" % (i + 1)):
+			return i
+	return -1
 
 const RADIUS: float = 250.0        ## círculo que contiene el hechizo
 const CORE_RADIUS: float = 120.0   ## núcleo central: el elemento
@@ -375,8 +382,34 @@ func _spellcaster() -> Node:
 	return spellcaster
 
 
+## B4 (2/11): el glifo de la chuleta sobre el que está el ratón (su id de `Sigils`; "" = ninguno) y las casillas de la leyenda de este fotograma {rect, nombre}.
+## Al elegirlo, una línea de pie dice qué hace (`TextosObjetos.GLIFO`). Las pruebas lo fijan a mano con `elegir_glifo`.
+var glifo_elegido: String = ""
+var _casillas_leyenda: Array = []
+
+
+func elegir_glifo(nombre: String) -> void:
+	if nombre != glifo_elegido:
+		glifo_elegido = nombre
+		queue_redraw()
+
+
+## La línea de pie del glifo elegido ("" si no hay o no tiene texto).
+func pie_glifo_texto() -> String:
+	return TextosObjetos.glifo(glifo_elegido) if glifo_elegido != "" else ""
+
+
+func _glifo_bajo(pos: Vector2) -> String:
+	for c in _casillas_leyenda:
+		if (c["rect"] as Rect2).has_point(pos):
+			return String(c["nombre"])
+	return ""
+
+
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == OPEN_KEY:
+	if event is InputEventMouseMotion and is_open:
+		elegir_glifo(_glifo_bajo(get_local_mouse_position()))
+	if event is InputEventKey and event.pressed and not event.echo and event.is_action("libro"):
 		_toggle()
 		# Marcar el evento como atendido evita que llegue a nadie más.
 		get_viewport().set_input_as_handled()
@@ -391,13 +424,13 @@ func _input(event: InputEvent) -> void:
 	# lanza igual hacia el ratón. Con el «lanzamiento inteligente» pulsar ya lanza. El modo del libro (clic, arrastre, suelta) sigue en `cast_page`.
 	if not is_open:
 		if event is InputEventKey and not event.echo \
-				and event.keycode >= KEY_1 and event.keycode <= KEY_3:
+				and _pagina_de_tecla(event) >= 0:
 			var caster := _spellcaster()
 			if caster:
 				if event.pressed:
-					caster.pulsar_pagina(event.keycode - KEY_1)
+					caster.pulsar_pagina(_pagina_de_tecla(event))
 				else:
-					caster.soltar_pagina(event.keycode - KEY_1)
+					caster.soltar_pagina(_pagina_de_tecla(event))
 			get_viewport().set_input_as_handled()
 		return
 
@@ -437,10 +470,10 @@ func _input(event: InputEvent) -> void:
 		# CON EL LIBRO ABIERTO, 1/2/3 PASAN PÁGINA. Misma tecla, sentidos
 		# emparejados: fuera lanza la página 2, dentro te lleva a ella. No
 		# hay dos mapas de teclas que aprender, hay uno con dos modos.
-		if not is_recording and event.keycode >= KEY_1 and event.keycode <= KEY_3:
+		if not is_recording and _pagina_de_tecla(event) >= 0:
 			var caster := _spellcaster()
-			if caster and event.keycode - KEY_1 < Repertoire.pages_available(caster.PAGES):
-				caster.select_page(event.keycode - KEY_1)
+			if caster and _pagina_de_tecla(event) < Repertoire.pages_available(caster.PAGES):
+				caster.select_page(_pagina_de_tecla(event))
 				Sfx.play(_oyente(), "pagina")
 			queue_redraw()
 			get_viewport().set_input_as_handled()
@@ -1110,6 +1143,28 @@ func _draw() -> void:
 		_draw_redibujado(grosor)
 
 	_draw_hint(c)
+	_draw_pie_glifo()
+
+
+## B4: la línea de pie del glifo elegido (qué hace), bajo el libro, sobre un papel para que se lea; recortada con «…» si no cabe.
+func _draw_pie_glifo() -> void:
+	var txt: String = pie_glifo_texto()
+	if txt == "":
+		return
+	var fuente: Font = ThemeDB.fallback_font
+	var tam: int = _u_font()
+	var libro: Rect2 = _book_rect()
+	var tope: float = libro.size.x * 0.8
+	var recortado: bool = false
+	while txt.length() > 4 and fuente.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x > tope:
+		txt = txt.substr(0, txt.length() - 1)
+		recortado = true
+	if recortado:
+		txt = txt.substr(0, txt.length() - 1) + "…"
+	var ancho: float = fuente.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	var y: float = libro.end.y - _u(26.0)
+	draw_rect(Rect2(libro.position.x + libro.size.x * 0.5 - ancho * 0.5 - _u(10.0), y - float(tam) - _u(1.0), ancho + _u(20.0), float(tam) + _u(8.0)), Color(EjesRecetaUi.PAPEL, 0.9))
+	draw_string(fuente, Vector2(libro.position.x + libro.size.x * 0.5 - ancho * 0.5, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, INK)
 
 
 ## Le da a la mano, cada fotograma, dónde apuntar. Dibujando: el ÚLTIMO punto del trazo ya imantado (`stroke_visible`), no el ratón crudo (así la pluma va
@@ -1227,6 +1282,7 @@ func _draw_legend() -> void:
 	if caster == null:
 		return
 
+	_casillas_leyenda = []
 	var slot: int = 0
 	# Lámina con círculos de sello propios (bosque): los elementos van a los círculos y los glifos a la rejilla, contados por separado.
 	var ley_sellos: Array = _libro().get("leyenda_sellos", [])
@@ -1358,6 +1414,8 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 		if slot >= ley.size():
 			return
 		at = _on_page(ley[slot])
+	if not sello and TextosObjetos.glifo(label) != "":
+		_casillas_leyenda.append({"rect": Rect2(at - Vector2(tam, tam) * 0.6, Vector2(tam, tam) * 1.2), "nombre": label})     # B4: dónde está (para elegirlo con el ratón)
 
 	# 24/10: un glifo recién conseguido se está escribiendo en su casilla (ver `_escribiendo`); al acabar sigue el dibujo de siempre.
 	if not sello and _escribiendo.has(label):

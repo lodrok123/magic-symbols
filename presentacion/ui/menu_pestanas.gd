@@ -488,13 +488,13 @@ func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
-	if k.keycode == KEY_I:
+	if k.is_action("mochila"):
 		get_viewport().set_input_as_handled()
 		if abierta and pestana != INDICE_INVENTARIO:
 			cambiar_pestana(INDICE_INVENTARIO)
 		else:
 			alternar()
-	elif k.keycode == KEY_J:
+	elif k.is_action("misiones"):
 		get_viewport().set_input_as_handled()
 		if abierta and pestana != INDICE_MISIONES:
 			cambiar_pestana(INDICE_MISIONES)
@@ -504,13 +504,13 @@ func _input(event: InputEvent) -> void:
 			abrir(INDICE_MISIONES)
 	elif not abierta:
 		return
-	elif k.keycode == KEY_ESCAPE:
+	elif k.is_action("pausa"):
 		get_viewport().set_input_as_handled()
 		cerrar()
-	elif k.keycode == KEY_Q or k.keycode == KEY_PAGEUP:
+	elif k.is_action("pestana_anterior") or k.keycode == KEY_PAGEUP:
 		get_viewport().set_input_as_handled()
 		siguiente_pestana(-1)
-	elif k.keycode == KEY_E or k.keycode == KEY_PAGEDOWN:
+	elif k.is_action("pestana_siguiente") or k.keycode == KEY_PAGEDOWN:
 		get_viewport().set_input_as_handled()
 		siguiente_pestana(1)
 	elif k.keycode == KEY_UP:
@@ -841,6 +841,7 @@ class Detalle extends Control:
 	var _vacio: Label
 	var _id_mostrado: String = ""
 	var _tw_icono: Tween = null
+	var _y_linea: float = 214.0                  ## B4: dónde cae la línea sobre «Usos conocidos» (baja si la descripción ocupa más de dos líneas)
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -903,6 +904,11 @@ class Detalle extends Control:
 		_tipo.add_theme_color_override("font_color", MenuPestanas.color_tipo(String(d["calidad"])))
 		_desc.text = String(d["desc"])
 		_desc.size.y = 24.0
+		# B4: las descripciones nuevas son de 1-2 frases y ocupan más de una línea: «Usos conocidos» y su línea bajan lo que haga falta.
+		var alto_desc: float = maxf(_desc.get_minimum_size().y, 24.0)
+		_y_linea = maxf(214.0, _desc.position.y + alto_desc + 10.0)
+		_titulo_usos.position.y = _y_linea + 8.0
+		_usos.position.y = _y_linea + 32.0
 		var usos: Array = d["usos"]
 		if usos.is_empty():
 			_usos.text = "Aún no se le conoce ningún uso."
@@ -922,7 +928,7 @@ class Detalle extends Control:
 	func _draw() -> void:
 		BolsaUI._caja(BolsaUI.PERGAMINO_CLARO, BolsaUI.LINEA, 2, 12).draw(get_canvas_item(), Rect2(Vector2.ZERO, size))
 		if _icono != null and _icono.visible:
-			draw_line(Vector2(24.0, 214.0), Vector2(size.x - 24.0, 214.0), Color(BolsaUI.LINEA, 0.55), 1.5)
+			draw_line(Vector2(24.0, _y_linea), Vector2(size.x - 24.0, _y_linea), Color(BolsaUI.LINEA, 0.55), 1.5)
 
 
 ## El icono del objeto en grande: placa oscura redondeada, el icono dibujado a tamaño y el marco de su calidad (y el brillo animado de épico y legendario).

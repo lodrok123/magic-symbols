@@ -146,7 +146,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not activa or not saltable or not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if k.pressed and not k.echo and (k.keycode == KEY_E or k.keycode == KEY_SPACE or k.keycode == KEY_ENTER or k.keycode == KEY_ESCAPE):
+	if k.pressed and not k.echo and (k.is_action("interactuar") or k.keycode == KEY_SPACE or k.keycode == KEY_ENTER or k.is_action("pausa")):
 		if saltar():
 			get_viewport().set_input_as_handled()
 

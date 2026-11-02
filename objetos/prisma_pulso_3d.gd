@@ -214,7 +214,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var j: Node3D = Puzle3D.jugador_nodo(get_tree(), _mundo)
 	if j == null:

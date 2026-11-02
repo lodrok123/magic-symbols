@@ -228,8 +228,10 @@ static func efecto(id: String) -> Dictionary:
 	return (DATOS.get(id, {}) as Dictionary).get("efecto", {})
 
 
+## B4 (2/11): el texto de `TextosObjetos` (1-2 frases verdaderas); si falta, la columna `desc` de la tabla.
 static func descripcion(id: String) -> String:
-	return String((DATOS.get(id, {}) as Dictionary).get("desc", ""))
+	var t: String = TextosObjetos.descripcion(id)
+	return t if t != "" else String((DATOS.get(id, {}) as Dictionary).get("desc", ""))
 
 
 ## Qué elemento (nombre de sello) lleva una runa, mirando sus etiquetas.

@@ -219,7 +219,9 @@ func _menu_principal() -> void:
 	_ok("A1 las filas ocultas no se ven y ↓ las salta", not (m.ajustes._filas[m.ajustes._indice("reiniciar")]["panel"] as Control).visible)
 	m.ajustes.fila = m.ajustes._indice("sensacion")
 	m.ajustes.mover(1)
-	_ok("A1 desde Sensación ↓ salta Reiniciar y Salir al menú y cae en «Salir»", m.ajustes.id_fila(m.ajustes.fila) == "salir")
+	_ok("B1 desde Sensación ↓ cae en «Controles» (fila nueva del 2/11, antes caía en «Salir»)", m.ajustes.id_fila(m.ajustes.fila) == "controles")
+	m.ajustes.mover(1)
+	_ok("A1 desde Controles ↓ salta Reiniciar y Salir al menú y cae en «Salir»", m.ajustes.id_fila(m.ajustes.fila) == "salir")
 	var ajus: MenuPausa = m.ajustes
 	await _pausa_aj_cerrar(m)
 	_ok("A1 Escape cierra Ajustes y el menú principal sigue ahí", ajus != null and not ajus.abierta and m.modo == "principal" and m.ajustes == null)

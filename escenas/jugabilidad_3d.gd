@@ -586,7 +586,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or m == null or m._jugador == null:
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var mejor: String = ""
 	var dist: float = ALCANCE_HABLAR

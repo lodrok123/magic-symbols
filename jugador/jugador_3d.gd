@@ -682,16 +682,16 @@ func _process(delta: float) -> void:
 	var libre: bool = not bloqueado and mundo.get("_velo") == null and not get_tree().paused \
 			and not (lanz != null and lanz.libro_abierto())     # con el libro abierto el tiempo corre, pero tú estás escribiendo
 	if libre:
-		if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+		if Input.is_action_pressed("mover_izquierda"):
 			entrada.x -= 1.0
-		if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+		if Input.is_action_pressed("mover_derecha"):
 			entrada.x += 1.0
-		if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+		if Input.is_action_pressed("mover_adelante"):
 			entrada.y -= 1.0
-		if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+		if Input.is_action_pressed("mover_atras"):
 			entrada.y += 1.0
-	var correr: bool = libre and not apuntando_rapido and Input.is_key_pressed(KEY_SHIFT)     # A1: apuntando de pie-andando no se corre ni se salta
-	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_key_pressed(KEY_SPACE)
+	var correr: bool = libre and not apuntando_rapido and Input.is_action_pressed("correr")     # A1: apuntando de pie-andando no se corre ni se salta
+	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_action_pressed("saltar")
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
@@ -890,7 +890,7 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 ## 6.6: Ctrl = voltereta. Se dispara al PULSAR (no mientras se mantiene). (Q ya no bebe aquí: desde el 24/10 Q usa el consumible equipado, en `HudEoW`,
 ## que para la poción llama a `usar_pocion()` de más abajo.)
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
-	var ctrl: bool = libre and Input.is_key_pressed(KEY_CTRL)
+	var ctrl: bool = libre and Input.is_action_pressed("voltereta")
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo
 	if ctrl and not _roll_previa:
@@ -907,7 +907,7 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			PlayLog.event("pulsacion_guardada", {"accion": "voltereta"})
 			_iniciar_voltereta(mov if mov != Vector3.ZERO else _roll_guardado_mov)
 	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
-	var tecla_golpe: bool = libre and Input.is_key_pressed(KEY_F)
+	var tecla_golpe: bool = libre and Input.is_action_pressed("golpe")
 	if tecla_golpe and not _pegar_previa:
 		_iniciar_golpe_cuerpo()                  # (comprueba `puede_golpear_cuerpo`)
 	_pegar_previa = tecla_golpe

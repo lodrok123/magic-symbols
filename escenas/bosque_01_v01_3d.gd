@@ -929,7 +929,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or m == null or m.get("_jugador") == null:
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
 	var mejor: Dictionary = {}

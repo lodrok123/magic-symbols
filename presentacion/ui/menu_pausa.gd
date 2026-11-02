@@ -19,6 +19,7 @@ const FILAS: Array = [
 	{"id": "mundo", "texto": "Volumen del mundo", "tipo": "volumen", "bus": "Mundo"},
 	{"id": "interfaz", "texto": "Volumen de la interfaz", "tipo": "volumen", "bus": "Interfaz"},
 	{"id": "sensacion", "texto": "Sensación", "tipo": "interruptor"},
+	{"id": "controles", "texto": "Controles", "tipo": "submenu"},
 	{"id": "reiniciar", "texto": "Reiniciar nivel", "tipo": "peligro"},
 	{"id": "menu", "texto": "Salir al menú principal", "tipo": "peligro"},
 	{"id": "salir", "texto": "Salir", "tipo": "peligro"},
@@ -44,6 +45,14 @@ var confirmando: String = ""                    ## «reiniciar» o «salir» mie
 var reinicios: int = 0                          ## cuántas veces se confirmó «Reiniciar» (las pruebas lo miran)
 var salidas_menu: int = 0                       ## cuántas veces se confirmó «Salir al menú principal» (las pruebas)
 var sin_partida: bool = false                   ## A1: modo «Ajustes» del menú principal (ver arriba); ponerlo ANTES de añadirlo al árbol
+var en_controles: bool = false                  ## B1: se ve la pantalla Controles (acción → tecla) en vez de la lista principal
+var ctrl_fila: int = 0                          ## la fila elegida de Controles: 0..N-1 acciones, N «Restaurar», N+1 «Volver»
+var capturando: bool = false                    ## esperando la tecla nueva de la acción `ctrl_fila` (Escape cancela)
+var aviso_controles: String = ""                ## la línea de ayuda / aviso de la pantalla Controles
+var _panel_ctrl: PanelContainer
+var _ctrl_filas: Array = []                     ## por fila de Controles: {panel, nombre, tecla}
+var _ctrl_aviso: Label
+var _ctrl_scroll: ScrollContainer
 var _pausado_por_mi: bool = false
 var _velo: ColorRect
 var _centro: CenterContainer
@@ -94,6 +103,8 @@ func _ready() -> void:
 	pie.add_theme_color_override("font_color", TemaInterfaz.TEXTO_SUAVE)
 	pie.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caja.add_child(pie)
+	Controles.registrar()
+	_construir_controles()
 	_refrescar()
 
 
@@ -241,6 +252,7 @@ static func guardar_ajustes() -> bool:
 		if String(d["tipo"]) == "volumen":
 			c.set_value("volumen", String(d["id"]), volumen_bus_de(String(d["bus"])))
 	c.set_value("sensacion", "activa", Sensacion3D.ACTIVA)
+	Controles.escribir(c)                          # B1: [controles] (solo lo que difiere de fábrica)
 	return c.save(RUTA_AJUSTES) == OK
 
 
@@ -255,6 +267,7 @@ static func cargar_ajustes() -> bool:
 			_aplicar_bus(String(d["bus"]), clampf(float(c.get_value("volumen", String(d["id"]))), VOL_MIN_DB, VOL_MAX_DB))
 	if c.has_section_key("sensacion", "activa"):
 		Sensacion3D.ACTIVA = bool(c.get_value("sensacion", "activa"))
+	Controles.leer(c)                              # B1: las teclas remapeadas valen desde el arranque
 	return true
 
 
@@ -268,6 +281,7 @@ func abrir() -> void:
 	abierta = true
 	confirmando = ""
 	fila = 0
+	_salir_de_controles()
 	_refrescar()
 	if is_inside_tree():
 		get_tree().paused = true
@@ -281,6 +295,7 @@ func cerrar() -> void:
 		return
 	abierta = false
 	confirmando = ""
+	_salir_de_controles()
 	if _pausado_por_mi and is_inside_tree():
 		get_tree().paused = false
 	_pausado_por_mi = false
@@ -403,6 +418,9 @@ func accion() -> void:
 			cerrar()
 		"interruptor":
 			_alternar_sensacion()
+		"submenu":
+			Sfx.play_ui("ui_equipar")
+			abrir_controles()
 		"volumen":
 			Sfx.play_ui("no_puedes")
 		"peligro":
@@ -468,12 +486,227 @@ func _salir_al_menu() -> void:
 
 ## Escape con una confirmación pendiente la cancela; si no, cierra el menú.
 func _escape() -> void:
+	if en_controles:
+		if capturando:
+			capturando = false
+			Sfx.play_ui("ui_tick")
+			_refrescar_controles()
+		else:
+			cerrar_controles()
+		return
 	if confirmando != "":
 		confirmando = ""
 		Sfx.play_ui("ui_tick")
 		_refrescar()
 	else:
 		cerrar()
+
+
+## --- B1 · Pantalla Controles: acción → tecla, Enter y pulsar una tecla para remapear, Escape cancela / vuelve, «Restaurar» las de fábrica ---
+
+func _construir_controles() -> void:
+	_panel_ctrl = PanelContainer.new()
+	_panel_ctrl.custom_minimum_size = Vector2(520.0, 0.0)
+	_panel_ctrl.visible = false
+	_centro.add_child(_panel_ctrl)
+	var caja := VBoxContainer.new()
+	caja.add_theme_constant_override("separation", 6)
+	_panel_ctrl.add_child(caja)
+	var titulo := Label.new()
+	titulo.text = "Controles"
+	titulo.add_theme_font_size_override("font_size", 28)
+	titulo.add_theme_color_override("font_color", TemaInterfaz.BORDE_CALIDO)
+	titulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	caja.add_child(titulo)
+	_ctrl_scroll = ScrollContainer.new()
+	_ctrl_scroll.custom_minimum_size = Vector2(0.0, 340.0)
+	_ctrl_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	caja.add_child(_ctrl_scroll)
+	var lista := VBoxContainer.new()
+	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lista.add_theme_constant_override("separation", 2)
+	_ctrl_scroll.add_child(lista)
+	var n: int = Controles.ACCIONES.size()
+	for i in range(n + 2):
+		var p := PanelContainer.new()
+		p.mouse_filter = Control.MOUSE_FILTER_PASS
+		var h := HBoxContainer.new()
+		p.add_child(h)
+		var nombre := Label.new()
+		nombre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nombre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(nombre)
+		var tecla := Label.new()
+		tecla.custom_minimum_size = Vector2(170.0, 0.0)
+		tecla.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		tecla.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(tecla)
+		if i < n:
+			nombre.text = Controles.texto(String(Controles.ACCIONES[i]["id"]))
+		elif i == n:
+			nombre.text = "Restaurar teclas de fábrica"
+		else:
+			nombre.text = "Volver"
+		p.mouse_entered.connect(func() -> void: ctrl_elegir(i))
+		p.gui_input.connect(func(ev: InputEvent) -> void:
+			var mb := ev as InputEventMouseButton
+			if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+				ctrl_elegir(i, false)
+				ctrl_accion())
+		lista.add_child(p)
+		_ctrl_filas.append({"panel": p, "nombre": nombre, "tecla": tecla})
+	_ctrl_aviso = Label.new()
+	_ctrl_aviso.add_theme_font_size_override("font_size", TemaInterfaz.TAM_FUENTE_PEQUENO)
+	_ctrl_aviso.add_theme_color_override("font_color", TemaInterfaz.TEXTO_SUAVE)
+	_ctrl_aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ctrl_aviso.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ctrl_aviso.custom_minimum_size = Vector2(480.0, 36.0)
+	caja.add_child(_ctrl_aviso)
+	_refrescar_controles()
+
+
+func abrir_controles() -> void:
+	en_controles = true
+	capturando = false
+	ctrl_fila = 0
+	aviso_controles = ""
+	_panel.visible = false
+	_panel_ctrl.visible = true
+	_panel_ctrl.modulate.a = 1.0
+	_refrescar_controles()
+
+
+func cerrar_controles() -> void:
+	if not en_controles:
+		return
+	_salir_de_controles()
+	Sfx.play_ui("ui_tick")
+	_refrescar()
+
+
+## Vuelve a la lista principal sin sonar (lo usan abrir, cerrar y «Volver»).
+func _salir_de_controles() -> void:
+	en_controles = false
+	capturando = false
+	if _panel != null:
+		_panel.visible = true
+	if _panel_ctrl != null:
+		_panel_ctrl.visible = false
+
+
+## Las acciones remapeables, N; las filas de Controles son N + «Restaurar» + «Volver».
+func ctrl_total() -> int:
+	return Controles.ACCIONES.size() + 2
+
+
+func ctrl_elegir(i: int, sonar: bool = true) -> void:
+	if capturando:
+		return
+	i = clampi(i, 0, ctrl_total() - 1)
+	if i != ctrl_fila:
+		ctrl_fila = i
+		if sonar and abierta:
+			Sfx.play_ui("ui_tick")
+	_refrescar_controles()
+
+
+func ctrl_mover(dir: int) -> void:
+	ctrl_elegir((ctrl_fila + (1 if dir >= 0 else -1) + ctrl_total()) % ctrl_total())
+
+
+## Enter / clic en una fila de Controles: una acción empieza a esperar la tecla, «Restaurar» vuelve a las de fábrica, «Volver» sale.
+func ctrl_accion() -> void:
+	var n: int = Controles.ACCIONES.size()
+	if ctrl_fila < n:
+		capturando = true
+		aviso_controles = "Pulsa la tecla nueva para «%s» (Esc cancela)" % Controles.texto(String(Controles.ACCIONES[ctrl_fila]["id"]))
+		Sfx.play_ui("ui_tick")
+	elif ctrl_fila == n:
+		Controles.restaurar()
+		guardar_ajustes()
+		aviso_controles = "Teclas de fábrica restauradas"
+		Sfx.play_ui("ui_equipar")
+	else:
+		Sfx.play_ui("ui_equipar")
+		cerrar_controles()
+		return
+	_refrescar_controles()
+
+
+## Llega la tecla elegida para la acción `ctrl_fila`. Una tecla que no se puede usar no la asigna y sigue esperando; una ocupada se INTERCAMBIA y suena «no_puedes».
+func ctrl_asignar(codigo: int) -> void:
+	var n: int = Controles.ACCIONES.size()
+	if ctrl_fila >= n:
+		return
+	var id: String = String(Controles.ACCIONES[ctrl_fila]["id"])
+	var r: Dictionary = Controles.remapear(id, codigo)
+	if not bool(r["ok"]):
+		Sfx.play_ui("no_puedes")
+		aviso_controles = "Esa tecla no se puede usar. Pulsa otra (Esc cancela)"
+		_refrescar_controles()
+		return
+	capturando = false
+	guardar_ajustes()
+	if String(r["intercambio"]) != "":
+		Sfx.play_ui("no_puedes")
+		aviso_controles = "«%s» usaba esa tecla: se han intercambiado" % Controles.texto(String(r["intercambio"]))
+	else:
+		Sfx.play_ui("ui_equipar")
+		aviso_controles = "%s: %s" % [Controles.texto(id), Controles.nombre_tecla(codigo)]
+	_refrescar_controles()
+
+
+## Teclas de la pantalla Controles cuando NO se espera una tecla (↑↓ eligen, Enter actúa). Devuelve true si la tecla se tomó.
+func _controles_input(k: InputEventKey) -> bool:
+	if not en_controles:
+		return false
+	match k.keycode:
+		KEY_UP:
+			get_viewport().set_input_as_handled()
+			ctrl_mover(-1)
+		KEY_DOWN:
+			get_viewport().set_input_as_handled()
+			ctrl_mover(1)
+		KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
+			get_viewport().set_input_as_handled()
+			ctrl_accion()
+		KEY_ESCAPE:
+			get_viewport().set_input_as_handled()
+			_escape()
+		_:
+			get_viewport().set_input_as_handled()      # el resto no hace nada aquí, pero tampoco llega al juego
+	return true
+
+
+func _refrescar_controles() -> void:
+	if _ctrl_filas.is_empty():
+		return
+	var n: int = Controles.ACCIONES.size()
+	for i in range(_ctrl_filas.size()):
+		var reg: Dictionary = _ctrl_filas[i]
+		var p: PanelContainer = reg["panel"]
+		if i == ctrl_fila:
+			var caja: StyleBoxFlat = TemaInterfaz.caja_panel(TemaInterfaz.FONDO_PANEL.lightened(0.14), TemaInterfaz.BORDE_CALIDO, 2)
+			caja.shadow_size = 0
+			p.add_theme_stylebox_override("panel", caja)
+		else:
+			var libre := StyleBoxFlat.new()
+			libre.bg_color = Color(0, 0, 0, 0)
+			libre.set_content_margin_all(TemaInterfaz.MARGEN_Y_PX)
+			libre.content_margin_left = TemaInterfaz.MARGEN_X_PX
+			libre.content_margin_right = TemaInterfaz.MARGEN_X_PX
+			p.add_theme_stylebox_override("panel", libre)
+		var tecla: Label = reg["tecla"]
+		if i < n:
+			var id: String = String(Controles.ACCIONES[i]["id"])
+			tecla.text = "…" if (capturando and i == ctrl_fila) else Controles.texto_teclas(id)
+			tecla.add_theme_color_override("font_color", TemaInterfaz.BORDE_CALIDO if (capturando and i == ctrl_fila) else (TemaInterfaz.TEXTO if Controles.modificada(id) else TemaInterfaz.TEXTO_SUAVE))
+		else:
+			tecla.text = ""
+	if _ctrl_aviso != null:
+		_ctrl_aviso.text = aviso_controles if aviso_controles != "" else "[↑↓] elegir   [Enter] cambiar la tecla   [Esc] volver"
+	if _ctrl_scroll != null and ctrl_fila >= 0 and ctrl_fila < _ctrl_filas.size() and is_inside_tree():
+		_ctrl_scroll.ensure_control_visible(_ctrl_filas[ctrl_fila]["panel"])
 
 
 ## --- Dibujo de las filas ---
@@ -515,12 +748,27 @@ func _refrescar() -> void:
 
 func _input(event: InputEvent) -> void:
 	var k := event as InputEventKey
-	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
+	if k == null or not k.pressed or k.echo:
+		return
+	if abierta and en_controles and capturando:        # B1: la tecla que se pulsa es la nueva (con Ctrl o Alt puestos también: Ctrl solo se puede asignar así)
+		get_viewport().set_input_as_handled()
+		if k.keycode == KEY_ESCAPE:
+			_escape()
+		else:
+			ctrl_asignar(int(k.keycode) if k.keycode != KEY_NONE else int(k.physical_keycode))
+		return
+	if k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
 	if not abierta:
-		if k.keycode == KEY_ESCAPE and not sin_partida and _puede_abrir():
+		if k.is_action("pausa") and not sin_partida and _puede_abrir():
 			get_viewport().set_input_as_handled()
 			abrir()
+		return
+	if _controles_input(k):
+		return
+	if k.is_action("pausa"):
+		get_viewport().set_input_as_handled()
+		_escape()
 		return
 	match k.keycode:
 		KEY_ESCAPE:

@@ -679,14 +679,14 @@ func _helar() -> void:
 ## Lo helado se coge con E si la jugadora está cerca (ALCANCE_RECOGER u).
 func _unhandled_input(ev: InputEvent) -> void:
 	if tiene_papel(P_FUENTE_FUEGO):
-		if is_lit and ev is InputEventKey and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo and (ev as InputEventKey).keycode == KEY_E and _jugadora_junto(ALCANCE_HOGUERA):
+		if is_lit and ev is InputEventKey and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo and (ev as InputEventKey).is_action("interactuar") and _jugadora_junto(ALCANCE_HOGUERA):
 			hoguera_abierta.emit(celda)
 			get_viewport().set_input_as_handled()
 		return
 	if not helada or cogida or not (ev is InputEventKey):
 		return
 	var k: InputEventKey = ev as InputEventKey
-	if not k.pressed or k.echo or k.keycode != KEY_E:
+	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var lanz: Node = get_tree().get_first_node_in_group("spellcaster")
 	var j: Node3D = lanz.get("jugador") as Node3D if lanz != null else null
