@@ -1,7 +1,7 @@
 class_name VfxToyJuego
 extends Node
 
-## EL FUEGO Y EL AGUA OFICIALES EN EL JUEGO (A1, 2/11/2026; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
+## EL FUEGO, EL AGUA, EL HIELO Y EL RAYO OFICIALES EN EL JUEGO (A1, 2/11/2026; hielo y rayo, B1, 3/11/2026: HieloToy / RayoToy, ≤ 1 luz por hechizo: solo el rayo la lleva; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
 ## Selector: ProjectSettings `magic_symbols/vfx_procedural` (false por defecto). Con true, el fuego y el agua de los hechizos (HechizoVivo) se dibujan con `FuegoToy` / `AguaToy`
 ## (`desde_hechizo(h)`: figura, semiejes y vuelo salen del Hechizo, sin tocar nada a mano por hechizo) en lugar de `VfxElemento3D` (que con el ajuste a true se calla para esos dos elementos)
 ## y de la forma en la mano de `ConjuroVfx3D` (que tampoco la dibuja: la carga la hace el toy). Con false este nodo no hace nada: el juego dibuja lo de siempre. Los demás elementos no cambian.
@@ -15,7 +15,7 @@ extends Node
 ## Uso:   VfxToyJuego.conectar(lanzador, mundo)
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
-const ELEMENTOS: PackedStringArray = ["fuego", "agua"]
+const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]
 const MAX_VIVOS: int = 12
 const VIDA_MIN: float = 1.0
 const VIDA_MAX: float = 25.0                  ## = VfxElemento3D.VIDA_MAX (el límite global persiste + permanencia)
@@ -26,7 +26,7 @@ const CARGA_RADIO_MAX: float = 0.45           ## la bola de la mano de lo que NO
 const ALTO_BOLA_QUIETA_MIN: float = 0.3
 
 ## Cuántos toys ha creado de cada elemento y el último (las pruebas y la captura lo leen).
-var creados: Dictionary = {"fuego": 0, "agua": 0}
+var creados: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0}
 var ultimo: Node3D = null
 var cargas: int = 0                           ## cargas en la mano empezadas
 
@@ -72,7 +72,16 @@ func vivos() -> int:
 
 
 func _nuevo(elemento: String) -> Node3D:
-	var t: Node3D = AguaToy.new() if elemento == "agua" else FuegoToy.new()
+	var t: Node3D = null
+	match elemento:
+		"agua":
+			t = AguaToy.new()
+		"hielo":
+			t = HieloToy.new()
+		"rayo":
+			t = RayoToy.new()
+		_:
+			t = FuegoToy.new()
 	t.set("casilla", Terreno3D.casilla)
 	creados[elemento] = int(creados[elemento]) + 1
 	ultimo = t
@@ -405,7 +414,7 @@ func _expirar(ref: WeakRef) -> void:
 	if t == null or not is_instance_valid(t) or not t.is_inside_tree():
 		return
 	if int(t.get("figura")) == 0:
-		if t is AguaToy and bool(t.get("area_al_impactar")):
+		if (t is AguaToy or t is HieloToy or t is RayoToy) and bool(t.get("area_al_impactar")):
 			t.call("impactar_en", t.global_position, Vector3.UP)
 		else:
 			t.call("terminar_sin_choque")

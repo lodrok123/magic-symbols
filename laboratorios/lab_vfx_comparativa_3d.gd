@@ -89,7 +89,8 @@ var _mando_toon: int = 0                           ## el mando elegido con RePá
 var _valores_toon: Dictionary = {}
 var _toy: bool = false                             ## true: los mandos son los de EfectoToy (prueba 3)
 var _param = null                                  ## el FuegoToy / AguaToy vivo (F7 / F9)
-var elemento: String = "fuego"                     ## «fuego» o «agua»: lo que crean G, B, N, M, R, F7, F9 y los ejes (Z lo alterna)
+var elemento: String = "fuego"                     ## «fuego», «agua», «hielo» o «rayo»: lo que crean G, B, N, M, R, F7, F9 y los ejes (Z los cicla en ese orden)
+const ELEMENTOS_TOY: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]
 var _param_i: int = -1                             ## figura de F7 (índice de FIGURAS_PARAM)
 var _param_ej: int = 0                             ## ejemplo de hechizo de F9
 var _valores_toy: Dictionary = {}                  ## propiedad -> valor actual (lo que nazca después nace con él)
@@ -315,9 +316,9 @@ func efecto(cual: String) -> Node3D:
 
 # ---------------------------------------------------------------- fuego paramétrico (FuegoToy) ----------------------------------------------------------------
 
-## Z: alterna el ELEMENTO (fuego / agua) de lo que se cree a partir de ahora (G, B, N, M, R, F7, F9, ejes). Si hay un efecto paramétrico vivo (F7 / F9) se rehace con el otro elemento.
+## Z: cicla el ELEMENTO (fuego → agua → hielo → rayo → fuego) de lo que se cree a partir de ahora (G, B, N, M, R, F7, F9, ejes). Si hay un efecto paramétrico vivo (F7 / F9) se rehace con el otro elemento.
 func alternar_elemento() -> void:
-	poner_elemento("agua" if elemento == "fuego" else "fuego")
+	poner_elemento(ELEMENTOS_TOY[(ELEMENTOS_TOY.find(elemento) + 1) % ELEMENTOS_TOY.size()])
 
 
 func poner_elemento(nuevo: String) -> void:
@@ -329,22 +330,43 @@ func poner_elemento(nuevo: String) -> void:
 		fuego_param(maxi(fig, 0))
 
 
-## Un efecto «toy» nuevo del elemento activo (FuegoToy o AguaToy: la misma API).
+## Un efecto «toy» nuevo del elemento activo (FuegoToy, AguaToy, HieloToy o RayoToy: la misma API).
 func _nuevo_toy() -> Node3D:
-	if elemento == "agua":
-		return AguaToy.new()
+	match elemento:
+		"agua":
+			return AguaToy.new()
+		"hielo":
+			return HieloToy.new()
+		"rayo":
+			return RayoToy.new()
 	return FuegoToy.new()
 
 
-## ¿Es un efecto «toy» (de cualquiera de los dos elementos)?
+## ¿Es un efecto «toy» (de cualquiera de los cuatro elementos)?
 func _es_toy(e: Node) -> bool:
-	return e is FuegoToy or e is AguaToy
+	return e is FuegoToy or e is AguaToy or e is HieloToy or e is RayoToy
 
 
-## Un impacto del elemento activo (ImpactoFuegoToy o ImpactoAguaToy; las variantes GOLPE, FIN y REBOTE tienen los mismos números).
+## El nombre del elemento de un efecto «toy» (para el rótulo).
+func _nombre_toy(e: Node) -> String:
+	if e is AguaToy:
+		return "AGUA"
+	if e is HieloToy:
+		return "HIELO"
+	if e is RayoToy:
+		return "RAYO"
+	return "FUEGO"
+
+
+## Un impacto del elemento activo (ImpactoFuegoToy, ImpactoAguaToy, ImpactoHieloToy o ImpactoRayoToy; las variantes GOLPE, FIN y REBOTE tienen los mismos números, y AREA = 3 en agua, hielo y rayo).
 func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
-	if elemento == "agua":
-		return ImpactoAguaToy.crear(variante as ImpactoAguaToy.Variante, normal, radio)
+	match elemento:
+		"agua":
+			return ImpactoAguaToy.crear(variante as ImpactoAguaToy.Variante, normal, radio)
+		"hielo":
+			return ImpactoHieloToy.crear(variante as ImpactoHieloToy.Variante, normal, radio)
+		"rayo":
+			return ImpactoRayoToy.crear(variante as ImpactoRayoToy.Variante, normal, radio)
 	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
 
 
@@ -454,7 +476,7 @@ func _morir_y_rehacer_param() -> void:
 ## P: EXPLOSIÓN DE ÁREA 3 m delante de la jugadora. Con agua es ImpactoAguaToy.Variante.AREA (radio 1,8 m); con fuego, el impacto de suelo grande.
 func explosion_area(radio: float = RADIO_AREA_LAB) -> Node3D:
 	_toy = true
-	var imp: Node3D = _nuevo_impacto(3 if elemento == "agua" else 0, Vector3.UP, radio if elemento == "agua" else radio * 0.5)
+	var imp: Node3D = _nuevo_impacto(0 if elemento == "fuego" else 3, Vector3.UP, radio * 0.5 if elemento == "fuego" else radio)
 	_efectos.add_child(imp)
 	imp.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + _dir * 3.5
 	ultimo_efecto = imp
@@ -470,9 +492,9 @@ func _lanzar_param_en_vuelo() -> void:
 
 func _texto_param() -> String:
 	if _param == null or not is_instance_valid(_param):
-		return "\nFUEGO PARAMETRICO: F7 figura (bola > muro > pilar > barrera) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3 · Z fuego/agua"
-	return "\n%s PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3 · Z fuego/agua)" % [
-		"AGUA" if _param is AguaToy else "FUEGO", ["bola", "muro", "pilar", "barrera", "haz"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
+		return "\n%s PARAMETRICO: F7 figura (bola > muro > pilar > barrera > haz) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3 · Z fuego/agua/hielo/rayo" % elemento.to_upper()
+	return "\n%s PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3 · Z fuego/agua/hielo/rayo)" % [
+		_nombre_toy(_param), ["bola", "muro", "pilar", "barrera", "haz"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
 
 
 ## Diez muros en dos filas, para leer el fps con el presupuesto a tope.
@@ -680,8 +702,8 @@ func nombre_estilo_impacto() -> String:
 
 
 func _texto_carga() -> String:
-	var s: String = "\nELEMENTO: %s (Z cambia fuego/agua)  ·  CARGA / IMPACTO [impacto %s]: G carga>suelta>vuelo>pared · B pared · N suelo · M fin · R rebote · P explosion de AREA (agua; el pilar de F7 nace solo, V lo hace morir) · Y estilo C/A/B (solo fuego) · T mando · Q- E+  |" % [
-		elemento.to_upper(), nombre_estilo_impacto() if elemento == "fuego" else "salpicadura de agua"]
+	var s: String = "\nELEMENTO: %s (Z cicla fuego/agua/hielo/rayo)  ·  CARGA / IMPACTO [impacto %s]: G carga>suelta>vuelo>pared · B pared · N suelo · M fin · R rebote · P explosion de AREA (agua, hielo, rayo; el pilar de F7 nace solo, V lo hace morir) · Y estilo C/A/B (solo fuego) · T mando · Q- E+  |" % [
+		elemento.to_upper(), nombre_estilo_impacto() if elemento == "fuego" else {"agua": "salpicadura de agua", "hielo": "esquirlas de hielo", "rayo": "descarga"}[elemento]]
 	for i in MANDOS_CARGA.size():
 		var d: Array = MANDOS_CARGA[i]
 		s += " %s%s %.2f" % [">" if i == _mando_carga else "", String(d[0]).replace("carga_", ""), float(_valores_carga.get(d[0], d[4]))]
@@ -847,7 +869,7 @@ func _seguir_camara() -> void:
 			if ultimo_efecto.name.begins_with(clave):
 				dist *= float(CAMARA_TOY[clave][0])
 				objetivo = ultimo_efecto.global_position + Vector3(0, float(CAMARA_TOY[clave][1]), 0)
-	if _es_toy(ultimo_efecto) and is_instance_valid(ultimo_efecto):
+	if is_instance_valid(ultimo_efecto) and _es_toy(ultimo_efecto):
 		# FuegoToy / AguaToy: la cámara de cada figura de la prueba 3 (CAMARA_TOY) escalada por lo que crece o mengua respecto al tamaño validado
 		var ft = ultimo_efecto
 		var clave: String = ["", "Muro", "Pilar", "Barrera", "Muro"][int(ft.figura)]

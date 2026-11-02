@@ -1177,8 +1177,8 @@ func _lab() -> void:
 	await process_frame
 	_ok("el eje U cambia el semieje del AguaToy", float(fp.get("semieje_x")) > 0.45)
 	lab.call("limpiar")
-	lab.call("alternar_elemento")
-	_ok("Z → fuego otra vez", String(lab.get("elemento")) == "fuego")
+	lab.call("poner_elemento", "fuego")                # Z ahora cicla fuego → agua → hielo → rayo (prueba_hielo_toy / prueba_rayo_toy lo comprueban): aquí se vuelve al fuego a mano
+	_ok("de vuelta a fuego", String(lab.get("elemento")) == "fuego")
 	var ef: Node3D = lab.call("carga_completa")
 	var ifu: Node3D = lab.call("impacto_pared")
 	_ok("con fuego, G y B siguen creando FuegoToy / ImpactoFuegoToy", ef is FuegoToy and ifu is ImpactoFuegoToy)
