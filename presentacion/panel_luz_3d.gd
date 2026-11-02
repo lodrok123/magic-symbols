@@ -6,7 +6,9 @@ extends CanvasLayer
 ##
 ## Teclas (solo con el panel visible, en `_input` para que ni la maqueta ni la jugadora las vean): ↑↓ elegir fila (con vuelta), ←→ cambiar (Shift = ×10), Backspace restaurar todo
 ## a lo que había al montar el panel, P imprime `texto_valores()`. F3 abre y cierra, pero lo maneja la maqueta (`alternar`): aquí NO se consume.
-## Cada fila lee y escribe en una clase según `CLASE_DE`: «ciclo» (CicloDia3D), «zona» (LuzZona3D) o «sol» (la DirectionalLight3D de la maqueta).
+## Cada fila lee y escribe en una clase según `CLASE_DE`: «ciclo» (CicloDia3D), «zona» (LuzZona3D), «sol» (la DirectionalLight3D de la maqueta) o «hierba» (Hierba3D.RECIBE_SOMBRA;
+## al escribir llama a `poner_recibe_sombra` de la hierba de la maqueta, `_hierba`, para que se vea en caliente).
+## Contraste de sombra: HIERBA_SOMBRA sí · AMBIENTE_FACTOR 0,5 · SOL_FACTOR 1,3 · SOMBRA_BLUR 0,5
 
 ## [nombre, paso, mínimo, máximo]. Las filas bool van de 0 a 1 (≥ 0,5 = sí).
 const FILAS: Array = [
@@ -18,6 +20,9 @@ const FILAS: Array = [
 	["SOMBRA_BLUR", 0.1, 0.0, 5.0],
 	["SOMBRA_DISTANCIA", 5.0, 10.0, 200.0],
 	["SOL_INCLINACION_EXTRA", 2.0, -40.0, 40.0],
+	["SOL_FACTOR", 0.05, 0.2, 3.0],
+	["AMBIENTE_FACTOR", 0.05, 0.0, 2.0],
+	["HIERBA_SOMBRA", 1.0, 0.0, 1.0],
 	["ELEVACION_MIN", 0.05, 0.0, 1.0],
 	["GIRO_POR_HORA", 1.0, 0.0, 30.0],
 	["NOCHE_SOL_ENERGIA", 0.02, 0.0, 1.0],
@@ -33,13 +38,14 @@ const FILAS: Array = [
 const CLASE_DE: Dictionary = {
 	"HORA": "ciclo", "DURACION_DIA_S": "ciclo", "CICLO_ACTIVO": "ciclo", "SOMBRAS": "sol",
 	"SOMBRA_OPACIDAD": "zona", "SOMBRA_BLUR": "zona", "SOMBRA_DISTANCIA": "zona", "SOL_INCLINACION_EXTRA": "zona",
+	"SOL_FACTOR": "zona", "AMBIENTE_FACTOR": "zona", "HIERBA_SOMBRA": "hierba",
 	"ELEVACION_MIN": "ciclo", "GIRO_POR_HORA": "ciclo",
 	"NOCHE_SOL_ENERGIA": "ciclo", "NOCHE_AMBIENTE_ENERGIA": "ciclo", "AMANECER_SOL_ENERGIA": "ciclo", "AMANECER_AMBIENTE_ENERGIA": "ciclo",
 	"ATARDECER_SOL_ENERGIA": "ciclo", "ATARDECER_AMBIENTE_ENERGIA": "ciclo", "NIEBLA_NOCHE_MAS": "ciclo", "LUNA_ENERGIA": "ciclo", "LUNA_ACTIVA": "ciclo",
 }
 const ESC_CICLO: GDScript = preload("res://presentacion/ciclo_dia_3d.gd")
 const ESC_ZONA: GDScript = preload("res://presentacion/luz_zona_3d.gd")
-const BOOLEANAS: PackedStringArray = ["CICLO_ACTIVO", "SOMBRAS", "LUNA_ACTIVA"]
+const BOOLEANAS: PackedStringArray = ["CICLO_ACTIVO", "SOMBRAS", "LUNA_ACTIVA", "HIERBA_SOMBRA"]
 
 var seleccion: int = 0
 var _m: Node3D = null
@@ -132,6 +138,8 @@ func valor(nombre: String) -> float:
 			return (1.0 if bool(v) else 0.0) if es_booleana(nombre) else float(v)
 		"zona":
 			return float(ESC_ZONA.get(nombre))
+		"hierba":
+			return 1.0 if Hierba3D.RECIBE_SOMBRA else 0.0
 		"sol":
 			if _sol != null and is_instance_valid(_sol):
 				return 1.0 if _sol.shadow_enabled else 0.0
@@ -149,12 +157,23 @@ func poner(nombre: String, v: float) -> void:
 			ESC_CICLO.set(nombre, (x >= 0.5) if es_booleana(nombre) else x)
 		"zona":
 			ESC_ZONA.set(nombre, x)
+		"hierba":
+			_poner_hierba(x >= 0.5)
 		"sol":
 			if _sol != null and is_instance_valid(_sol):
 				_sol.shadow_enabled = x >= 0.5
 	_aviso_reloj = nombre == "HORA" and CicloDia3D.DURACION_DIA_S > 0.0
 	_aplicar_sin_ciclo()
 	_refrescar()
+
+
+## HIERBA_SOMBRA: por la hierba de la maqueta si la hay (reescribe sus shaders); si no, solo la variable estática.
+func _poner_hierba(v: bool) -> void:
+	var h: Variant = _m.get("_hierba") if _m != null else null
+	if h is Hierba3D and is_instance_valid(h):
+		(h as Hierba3D).poner_recibe_sombra(v)
+	else:
+		Hierba3D.RECIBE_SOMBRA = v
 
 
 ## Mueve la fila `i` `pasos` pasos (negativo = abajo). Las bool se invierten con cualquier paso.
@@ -176,6 +195,8 @@ func restaurar() -> void:
 				ESC_CICLO.set(n, (x >= 0.5) if es_booleana(String(n)) else x)
 			"zona":
 				ESC_ZONA.set(n, x)
+			"hierba":
+				_poner_hierba(x >= 0.5)
 			"sol":
 				if _sol != null and is_instance_valid(_sol):
 					_sol.shadow_enabled = x >= 0.5

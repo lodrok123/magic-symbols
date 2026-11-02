@@ -95,6 +95,49 @@ func _escenario() -> void:
 	_ok("10 por defecto: a las 2 h energía 0,12", _cerca(e2, 0.12), str(e2))
 	_ok("10 por defecto: noche_k(2) = 1 y noche_k(13) = 0", _cerca(CicloDia3D.noche_k(2.0), 1.0) and _cerca(CicloDia3D.noche_k(13.0), 0.0))
 
+	# Contraste de sombra: factores de sol y ambiente y la hierba con sombra (todo por defecto = como siempre)
+	var env: Environment = maqueta.get("_env") as Environment
+	_ok("11 hay Environment", env != null)
+	_ok("11 por defecto: SOL_FACTOR y AMBIENTE_FACTOR 1 y la hierba sin sombra", _cerca(LuzZona3D.SOL_FACTOR, 1.0, 0.0001) and _cerca(LuzZona3D.AMBIENTE_FACTOR, 1.0, 0.0001) and not Hierba3D.RECIBE_SOMBRA)
+	panel.poner("DURACION_DIA_S", 0.0)
+	panel.poner("HORA", 13.0)
+	await avanzar(2)
+	var e_sol0: float = sol.light_energy
+	var e_amb0: float = env.ambient_light_energy
+	var e_esp: float = float(CicloDia3D.transformar(LuzZona3D.valores(String(maqueta.get("zona_luz"))), 13.0)["sol_energia"])
+	_ok("11 por defecto: sol.light_energy es la energía del ciclo a las 13 h", _cerca(e_sol0, e_esp, 0.02), "%.3f vs %.3f" % [e_sol0, e_esp])
+	_ok("11 por defecto: hay luz de sol y de ambiente", e_sol0 > 0.1 and e_amb0 > 0.1, "%.3f %.3f" % [e_sol0, e_amb0])
+	panel.poner("SOL_FACTOR", 1.5)
+	await avanzar(2)
+	_ok("12 SOL_FACTOR 1,5 -> sol.light_energy ≈ 1,5 × la de antes", _cerca(sol.light_energy, 1.5 * e_sol0, 0.01), "%.3f vs %.3f" % [sol.light_energy, 1.5 * e_sol0])
+	_ok("12 SOL_FACTOR no toca el ambiente", _cerca(env.ambient_light_energy, e_amb0, 0.001))
+	panel.poner("AMBIENTE_FACTOR", 0.5)
+	await avanzar(2)
+	_ok("13 AMBIENTE_FACTOR 0,5 -> env.ambient_light_energy ≈ 0,5 × el de antes", _cerca(env.ambient_light_energy, 0.5 * e_amb0, 0.01), "%.3f vs %.3f" % [env.ambient_light_energy, 0.5 * e_amb0])
+	var hierba: Variant = maqueta.get("_hierba")
+	var mat_m: ShaderMaterial = (hierba as Hierba3D).get("_mat_matojo") as ShaderMaterial if hierba is Hierba3D else null
+	if mat_m != null:
+		_ok("14 antes: el shader del matojo tiene shadows_disabled", mat_m.shader.code.contains("shadows_disabled"))
+	panel.poner("HIERBA_SOMBRA", 1.0)
+	_ok("14 HIERBA_SOMBRA 1 -> Hierba3D.RECIBE_SOMBRA true", Hierba3D.RECIBE_SOMBRA)
+	_ok("14 HIERBA_SOMBRA es booleana y vale 1", panel.es_booleana("HIERBA_SOMBRA") and panel.valor("HIERBA_SOMBRA") >= 0.5)
+	if mat_m != null:
+		_ok("14 el shader del matojo ya NO contiene shadows_disabled", not mat_m.shader.code.contains("shadows_disabled"))
+		var mat_t: ShaderMaterial = (hierba as Hierba3D).get("_mat_tarjeta") as ShaderMaterial
+		var mat_f: ShaderMaterial = (hierba as Hierba3D).get("_mat_flor") as ShaderMaterial
+		_ok("14 tarjetas y flores igual", (mat_t == null or not mat_t.shader.code.contains("shadows_disabled")) and mat_f != null and not mat_f.shader.code.contains("shadows_disabled"))
+	panel.poner("HIERBA_SOMBRA", 0.0)
+	_ok("15 HIERBA_SOMBRA 0 -> RECIBE_SOMBRA false", not Hierba3D.RECIBE_SOMBRA)
+	if mat_m != null:
+		_ok("15 el shader del matojo vuelve a contener shadows_disabled", mat_m.shader.code.contains("shadows_disabled"))
+	_ok("15 texto_valores sigue con una línea por fila", panel.texto_valores().split("\n", false).size() == PanelLuz3D.FILAS.size())
+	panel.poner("HIERBA_SOMBRA", 1.0)
+	panel.restaurar()
+	await avanzar(2)
+	_ok("16 restaurar: factores en 1 y hierba sin sombra", _cerca(LuzZona3D.SOL_FACTOR, 1.0, 0.0001) and _cerca(LuzZona3D.AMBIENTE_FACTOR, 1.0, 0.0001) and not Hierba3D.RECIBE_SOMBRA)
+	if mat_m != null:
+		_ok("16 restaurar: el shader vuelve a tener shadows_disabled", mat_m.shader.code.contains("shadows_disabled"))
+
 	# Dejarlo todo como estaba
 	panel2.restaurar()
 	CicloDia3D.reiniciar()

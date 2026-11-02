@@ -253,6 +253,8 @@ void fragment() {
 }
 """
 
+## true = los matojos, las tarjetas y las flores reciben la sombra del sol; false = como siempre, sin sombra (más barato). Afinable en caliente (panel F3).
+static var RECIBE_SOMBRA: bool = false
 var _mat_matojo: ShaderMaterial = null
 var _mat_tarjeta: ShaderMaterial = null
 var _mat_flor: ShaderMaterial = null
@@ -338,12 +340,27 @@ func _dentro(b: Vector2i) -> bool:
 	return b.x >= 0 and b.y >= 0 and float(b.x) * lado_bloque < _zona.size.x and float(b.y) * lado_bloque < _zona.size.y
 
 
+## El código del shader según `RECIBE_SOMBRA`: igual que `base` (sin sombra) o sin el `shadows_disabled` del render_mode.
+static func _codigo(base: String) -> String:
+	return base.replace(", shadows_disabled", "") if RECIBE_SOMBRA else base
+
+
+## Cambia `RECIBE_SOMBRA` y reescribe el código de los tres materiales ya creados (todos los bloques los comparten), para verlo en caliente.
+func poner_recibe_sombra(v: bool) -> void:
+	RECIBE_SOMBRA = v
+	var pares: Array = [[_mat_matojo, CODIGO_MATOJO], [_mat_tarjeta, CODIGO_TARJETA], [_mat_flor, CODIGO_FLOR]]
+	for p in pares:
+		var m: ShaderMaterial = p[0] as ShaderMaterial
+		if m != null and m.shader != null:
+			m.shader.code = _codigo(String(p[1]))
+
+
 func _preparar() -> void:
 	if _malla != null:
 		return
 	_mat_matojo = ShaderMaterial.new()
 	var sh := Shader.new()
-	sh.code = CODIGO_MATOJO
+	sh.code = _codigo(CODIGO_MATOJO)
 	_mat_matojo.shader = sh
 	_mat_matojo.set_shader_parameter("base", color_base)
 	_mat_matojo.set_shader_parameter("punta", color_punta)
@@ -354,7 +371,7 @@ func _preparar() -> void:
 	if ResourceLoader.exists(atlas_tarjetas):
 		_mat_tarjeta = ShaderMaterial.new()
 		var sht := Shader.new()
-		sht.code = CODIGO_TARJETA
+		sht.code = _codigo(CODIGO_TARJETA)
 		_mat_tarjeta.shader = sht
 		_mat_tarjeta.set_shader_parameter("atlas", load(atlas_tarjetas) as Texture2D)
 		_mat_tarjeta.set_shader_parameter("viento", viento)
@@ -365,7 +382,7 @@ func _preparar() -> void:
 		_quad_tarjeta.material = _mat_tarjeta
 	_mat_flor = ShaderMaterial.new()
 	var shf := Shader.new()
-	shf.code = CODIGO_FLOR
+	shf.code = _codigo(CODIGO_FLOR)
 	_mat_flor.shader = shf
 	_mat_flor.set_shader_parameter("forma", _textura_flor())
 	_mat_flor.set_shader_parameter("brillo", brillo)

@@ -33,6 +33,9 @@ static var SOMBRA_DISTANCIA: float = 35.0           ## afinable en caliente (pan
 static var SOMBRA_BLUR: float = 1.6                 ## afinable en caliente (panel F3 del mapa)
 static var SOMBRA_OPACIDAD: float = 1.0             ## `shadow_opacity` del sol: 1 = sombra negra del todo, menos = más suave (panel F3)
 static var SOL_INCLINACION_EXTRA: float = 0.0       ## grados que se SUMAN al `sol_pitch` de la zona en `aplicar_valores` (más negativo = más vertical; panel F3)
+## Multiplican la energía del SOL y del AMBIENTE de CUALQUIER zona, encima del ciclo. 1 = como siempre. Para más contraste de sombra: sol arriba, ambiente abajo (panel F3).
+static var SOL_FACTOR: float = 1.0
+static var AMBIENTE_FACTOR: float = 1.0
 const ZONAS: Dictionary = {
 	# V2: sol cálido casi cenital y AMBIENTE DE DOS COLORES de verdad: el cielo (azul lila claro) alumbra lo que mira arriba y el rebote del
 	# suelo (verde seco cálido) lo que mira abajo y los costados. Antes los dos eran iguales y el ambiente era un color plano.
@@ -128,14 +131,14 @@ static func aplicar(env: Environment, sol: DirectionalLight3D, zona: String) -> 
 	var z: Dictionary = ZONAS[zona]
 	if sol != null:
 		sol.light_color = z["sol_color"]
-		sol.light_energy = float(z["sol_energia"])
+		sol.light_energy = float(z["sol_energia"]) * SOL_FACTOR
 		sol.rotation_degrees = Vector3(float(z["sol_pitch"]), float(z["sol_yaw"]), 0.0)
 		sol.directional_shadow_mode = int(z.get("sombra_modo", SOMBRA_MODO)) as DirectionalLight3D.ShadowMode
 		sol.directional_shadow_max_distance = float(z.get("sombra_distancia", SOMBRA_DISTANCIA))
 		sol.shadow_blur = float(z.get("sombra_blur", SOMBRA_BLUR))
 		sol.shadow_opacity = SOMBRA_OPACIDAD
 	if env != null:
-		ambiente_dos_colores(env, z["ambiente_arriba"], z["ambiente_abajo"], float(z["ambiente_energia"]))
+		ambiente_dos_colores(env, z["ambiente_arriba"], z["ambiente_abajo"], float(z["ambiente_energia"]) * AMBIENTE_FACTOR)
 	return true
 
 
@@ -171,14 +174,14 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 		return
 	if sol != null:
 		sol.light_color = v["sol_color"]
-		sol.light_energy = float(v["sol_energia"])
+		sol.light_energy = float(v["sol_energia"]) * SOL_FACTOR
 		sol.rotation_degrees = Vector3(clampf(float(v["sol_pitch"]) + SOL_INCLINACION_EXTRA, -89.0, -5.0), float(v["sol_yaw"]), 0.0)
 		sol.shadow_opacity = SOMBRA_OPACIDAD
 	if env == null:
 		return
 	var mat: ProceduralSkyMaterial = env.sky.sky_material as ProceduralSkyMaterial if env.sky != null else null
 	if mat == null:
-		ambiente_dos_colores(env, v["ambiente_arriba"], v["ambiente_abajo"], float(v["ambiente_energia"]))
+		ambiente_dos_colores(env, v["ambiente_arriba"], v["ambiente_abajo"], float(v["ambiente_energia"]) * AMBIENTE_FACTOR)
 		return
 	var arriba: Color = v["ambiente_arriba"]
 	var abajo: Color = v["ambiente_abajo"]
@@ -187,7 +190,7 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 	mat.sky_horizon_color = medio
 	mat.ground_horizon_color = medio
 	mat.ground_bottom_color = abajo
-	env.ambient_light_energy = float(v["ambiente_energia"])
+	env.ambient_light_energy = float(v["ambiente_energia"]) * AMBIENTE_FACTOR
 
 
 ## La sombra de una zona (lo que no se interpola): al terminar el cambio.
