@@ -98,7 +98,7 @@ inicial. Hay **dos** ejes horizontales (ancho X y fondo Z), así que «longitud�
 | `permanencia` | s | 0 | **Permanencia ᛉ**: +2 s/glifo · barrera: +1 s por glifo sucesivo (antes iba a `persiste`) | + (tiempo que se queda donde nace o donde para) |
 | `retardo` | s | 0 | — (glifo retardo, aparcado) | + |
 | `intervalo` | s | 0,25 | — | ← `TICK_ZONA_V2` |
-| `crece` | m/s | 0 | pulso: +0,5, tope 1,5 | ≠ unidad: hoy «escala/s», pasa a m/s de radio |
+| `crece` | m/s | 0 | pulso (ᚷ): **+0,6 m/s por glifo, tope 1,8** (`Sigils.CRECER_TASA_V2`; 31/10) y, además, semiejes ×**1,30** por glifo (`CRECER_TOPE_V2`) | ≠ unidad: m/s de radio (hecho). **Medido 2/11: con ᚷ×1..3 sobre el volumen base (semieje 0,10 m) el radio final es 0,13 / 0,17 / 0,22 m y NO añade ninguna casilla** (una casilla nueva exige > 0,5 m de semieje); lo que ᚷ cambia hoy es el tiempo de crecimiento (0,15 / 0,10 / 0,09 s) y el radio de acierto. Pendiente de decisión de Pablo: el ×1,30 de la REV 01 y «ᚷ×1 suma una casilla» no caben a la vez |
 | `escala_nace` | factor | 0,3 | — | ← `ESCALA_NACE_V2` |
 
 - **`duracion_persistente` no es un campo:** es la vida total, que sale de la regla §0.3 (`persiste` + `permanencia`
