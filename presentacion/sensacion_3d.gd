@@ -1159,20 +1159,29 @@ class CamaraLenta extends Node:
 		Engine.time_scale = _puesto
 
 	func _process(delta: float) -> void:
-		if not is_equal_approx(Engine.time_scale, _puesto):
+		# 2/11: la pausa de impacto de un logro («sala_limpia» cae en el mismo instante que el último enemigo) toma el tiempo unas centésimas y luego devuelve
+		# «lo que había». Si lo que había era esta cámara lenta, se sigue contando por debajo y se le dice qué devolver; si no, el juego se quedaba a 0,3.
+		var en_hitstop: bool = Logros3D.hitstop_activo()
+		if not en_hitstop and not is_equal_approx(Engine.time_scale, _puesto):
 			_puesto = 1.0
 			queue_free()                   # otro (el libro, el tiempo bruja) ha tomado el tiempo: es suyo, no se toca
 			return
 		_t += Sensacion3D.delta_real(delta)
 		var fin: float = Sensacion3D.T_CAMARA_LENTA + Sensacion3D.T_VUELTA_LENTA
 		if _t >= fin:
-			Engine.time_scale = 1.0
+			if en_hitstop:
+				Logros3D.poner_escala_previa(1.0)
+			else:
+				Engine.time_scale = 1.0
 			_puesto = 1.0
 			queue_free()
 			return
 		var k: float = clampf((_t - Sensacion3D.T_CAMARA_LENTA) / maxf(Sensacion3D.T_VUELTA_LENTA, 0.01), 0.0, 1.0)
 		_puesto = lerpf(Sensacion3D.CAMARA_LENTA, 1.0, k * k)
-		Engine.time_scale = _puesto
+		if en_hitstop:
+			Logros3D.poner_escala_previa(_puesto)
+		else:
+			Engine.time_scale = _puesto
 
 	func _exit_tree() -> void:
 		if _puesto < 1.0 and is_equal_approx(Engine.time_scale, _puesto):
