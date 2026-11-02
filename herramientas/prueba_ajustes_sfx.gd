@@ -119,10 +119,11 @@ func _escenario() -> void:
 	var nombres_db: Array = []
 	for i in range(base.size(), todas.size()):
 		nombres_db.append(String(todas[i]["n"]))
-	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción y (tarea O, 1/11) los buses «Mundo» y «Ocluido»", nombres_db.size() == Sfx.CATALOGO.size() + 4, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 4])
-	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», y al final (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)»", nombres_db[nombres_db.size() - 4] == "dB:Interfaz (bus)" and nombres_db[nombres_db.size() - 3] == "dB:imprimir ajustes" and nombres_db[nombres_db.size() - 2] == "dB:Mundo (bus)" and nombres_db[nombres_db.size() - 1] == "dB:Ocluido (bus)")
+	# 2/11 (tercera tanda, N): detrás de los buses van las dos filas del ciclo día/noche (S:HORA y S:DURACION_DIA_S), siempre al final para no mover índices.
+	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción, (tarea O, 1/11) los buses «Mundo» y «Ocluido» y (tercera tanda N) las dos del ciclo día/noche", nombres_db.size() == Sfx.CATALOGO.size() + 6, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 6])
+	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», luego (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)» y al final «S:HORA» y «S:DURACION_DIA_S»", nombres_db[nombres_db.size() - 6] == "dB:Interfaz (bus)" and nombres_db[nombres_db.size() - 5] == "dB:imprimir ajustes" and nombres_db[nombres_db.size() - 4] == "dB:Mundo (bus)" and nombres_db[nombres_db.size() - 3] == "dB:Ocluido (bus)" and nombres_db[nombres_db.size() - 2] == "S:HORA" and nombres_db[nombres_db.size() - 1] == "S:DURACION_DIA_S")
 	var alfabetico: bool = true
-	for i in range(1, nombres_db.size() - 4):
+	for i in range(1, nombres_db.size() - 6):
 		if String(nombres_db[i - 1]) > String(nombres_db[i]):
 			alfabetico = false
 	_ok("5 los sonidos van en orden alfabético", alfabetico)
@@ -169,13 +170,13 @@ func _escenario() -> void:
 	ev.keycode = KEY_UP
 	ev.pressed = true
 	lab._unhandled_input(ev)
-	_ok("8 ↑ desde la primera da la vuelta a la última entrada", int(lab.get("impacto_sel")) == todas.size() - 1 and String(todas[todas.size() - 1]["n"]) == "dB:Ocluido (bus)", str(lab.get("impacto_sel")))
+	_ok("8 ↑ desde la primera da la vuelta a la última entrada", int(lab.get("impacto_sel")) == todas.size() - 1 and String(todas[todas.size() - 1]["n"]) == "S:DURACION_DIA_S", str(lab.get("impacto_sel")))
 	var txt: String = String(lab.call("_texto_impacto"))
 	var filas: int = 0
 	for l in txt.split("\n"):
 		if l.begins_with("►") or l.begins_with(" ") and l.length() > 30:
 			filas += 1
-	_ok("8 el panel enseña la elegida y un máximo de %d filas" % LabHechizos3D.VENTANA_IMPACTO, txt.contains("► dB:Ocluido (bus)") and filas <= LabHechizos3D.VENTANA_IMPACTO + 2, "%d filas" % filas)
+	_ok("8 el panel enseña la elegida y un máximo de %d filas" % LabHechizos3D.VENTANA_IMPACTO, txt.contains("► S:DURACION_DIA_S") and filas <= LabHechizos3D.VENTANA_IMPACTO + 2, "%d filas" % filas)
 	_ok("8 y avisa de que hay más arriba", txt.contains("más arriba"))
 	lab.set("impacto_sel", 0)
 	_ok("8 con la primera elegida avisa de que hay más abajo", String(lab.call("_texto_impacto")).contains("más abajo"))

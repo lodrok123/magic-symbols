@@ -169,7 +169,7 @@ func _escenario() -> void:
 		nombres.append(String(e["n"]))
 	var ii: int = nombres.find(LabHechizos3D.DB_BUS)
 	_ok("8 el panel F3 tiene «dB:Interfaz (bus)», «dB:Mundo (bus)» y «dB:Ocluido (bus)»", ii >= 0 and nombres.has("dB:Mundo (bus)") and nombres.has("dB:Ocluido (bus)"))
-	_ok("8 las filas nuevas van al FINAL (no mueven índices) y SQUASH_XZ sigue siendo la 7", nombres.find("dB:Mundo (bus)") > ii and nombres.back() == "dB:Ocluido (bus)" and nombres[7] == "SQUASH_XZ")
+	_ok("8 las filas nuevas van al FINAL (no mueven índices) y SQUASH_XZ sigue siendo la 7", nombres.find("dB:Mundo (bus)") > ii and nombres[nombres.size() - 3] == "dB:Ocluido (bus)" and nombres[nombres.size() - 2] == "S:HORA" and nombres.back() == "S:DURACION_DIA_S" and nombres[7] == "SQUASH_XZ")
 	LabHechizos3D.impacto_poner("dB:Mundo (bus)", -3.0)
 	LabHechizos3D.impacto_poner("dB:Ocluido (bus)", -9.0)
 	_ok("8 mover las filas cambia los buses", is_equal_approx(AudioServer.get_bus_volume_db(im), -3.0) and is_equal_approx(AudioServer.get_bus_volume_db(io), -9.0)

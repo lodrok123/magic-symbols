@@ -113,6 +113,9 @@ const DB_BUS: String = "dB:Interfaz (bus)"
 const DB_IMPRIMIR: String = "dB:imprimir ajustes"
 const DB_BUS_MUNDO: String = "dB:Mundo (bus)"          ## 1/11 (tarea O): van DESPUÉS de «imprimir ajustes» para no mover ningún índice
 const DB_BUS_OCLUIDO: String = "dB:Ocluido (bus)"
+## 2/11 (tercera tanda, N): el ciclo día/noche (CicloDia3D). Van al FINAL de F3, tras los buses, para no mover ningún índice; con prefijo «S:» pero se enrutan a CicloDia3D, no a Sensacion3D.
+const CICLO_HORA: String = "S:HORA"
+const CICLO_DURACION: String = "S:DURACION_DIA_S"
 const DB_MIN: float = -40.0
 const DB_MAX: float = 6.0
 const DB_PASO: float = 1.0
@@ -132,6 +135,8 @@ static func entradas() -> Array:
 		_entradas_cache.append({"n": DB_IMPRIMIR, "paso": 1.0, "min": 0.0, "max": 1.0})
 		_entradas_cache.append({"n": DB_BUS_MUNDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
 		_entradas_cache.append({"n": DB_BUS_OCLUIDO, "paso": DB_PASO, "min": -60.0, "max": DB_MAX})
+		_entradas_cache.append({"n": CICLO_HORA, "paso": 0.5, "min": 0.0, "max": 24.0})
+		_entradas_cache.append({"n": CICLO_DURACION, "paso": 30.0, "min": 0.0, "max": 1200.0})
 	return _entradas_cache
 
 
@@ -176,6 +181,9 @@ func iniciar(mundo: Variant) -> void:
 	if _jug == null or _l == null:
 		return
 	_cam_juego = get_viewport().get_camera_3d()
+	# Tercera tanda N: el lab también tiene luz direccional, así que lleva el ciclo (se mira con S:HORA y S:DURACION_DIA_S de F3). Parado de partida (DURACION_DIA_S = 0): afinar hechizos con la luz cambiando sería un incordio.
+	CicloDia3D.DURACION_DIA_S = 0.0
+	CicloDia3D.montar(mundo, true)
 	_l.conjuro_fase.connect(_al_conjuro_fase)
 	_l.lanzado.connect(_al_lanzado)
 	for e in entradas():
@@ -425,6 +433,10 @@ static func impacto_valor(nombre: String) -> float:
 			return Combate3D.SQUASH_ESCALA.x
 		"SQUASH_Y":
 			return Combate3D.SQUASH_ESCALA.y
+		CICLO_HORA:
+			return CicloDia3D.HORA
+		CICLO_DURACION:
+			return CicloDia3D.DURACION_DIA_S
 	if nombre.begins_with(DB_PREFIJO):
 		if nombre == DB_IMPRIMIR:
 			return 0.0                                     # una acción: siempre vuelve a 0
@@ -446,6 +458,10 @@ static func impacto_poner(nombre: String, v: float) -> void:
 			Combate3D.SQUASH_ESCALA = Vector3(v, Combate3D.SQUASH_ESCALA.y, v)
 		"SQUASH_Y":
 			Combate3D.SQUASH_ESCALA = Vector3(Combate3D.SQUASH_ESCALA.x, v, Combate3D.SQUASH_ESCALA.z)
+		CICLO_HORA:
+			CicloDia3D.HORA = fposmod(v, 24.0)
+		CICLO_DURACION:
+			CicloDia3D.DURACION_DIA_S = maxf(v, 0.0)
 		_:
 			if nombre.begins_with(DB_PREFIJO):
 				if nombre == DB_IMPRIMIR:
@@ -492,7 +508,7 @@ func impacto_restaurar() -> void:
 func impacto_tabla() -> Dictionary:
 	var d: Dictionary = {}
 	for e in entradas():
-		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR:
+		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR or String(e["n"]) == CICLO_HORA:
 			continue                                   # «comparar» no se guarda: el lab no debe volver a abrir con la sensación apagada (es static: todo el proceso)
 		if String(e["n"]).begins_with(DB_PREFIJO) and is_equal_approx(impacto_valor(String(e["n"])), float(impacto_inicial.get(String(e["n"]), 0.0))):
 			continue                                   # los volúmenes solo si los has tocado: son ~100 y no ensucian el archivo

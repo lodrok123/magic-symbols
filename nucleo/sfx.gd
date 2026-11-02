@@ -97,6 +97,12 @@ const CATALOGO: Dictionary = {
 	# 27/10: la DESCARGA de la fuente eléctrica (EmisorRayo3D): un chasquazo al soltar y chisporroteo mientras dura (antes no sonaba).
 	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
+	# 2/11 (tercera tanda, C3): AMBIENTE POR ZONA (nucleo/ambiente_zona.gd; audio/gen_sfx_interfaz.py `ambiente_zonas`). Bucles planos en el bus «Mundo» a −18 dB; los pájaros son tres trinos sueltos.
+	"amb_bosque":  {"f": ["amb_bosque_loop.wav"],  "db": -18.0, "tono": 0.0},
+	"amb_cueva":   {"f": ["amb_cueva_loop.wav"],   "db": -18.0, "tono": 0.0},
+	"amb_sala":    {"f": ["amb_sala_loop.wav"],    "db": -18.0, "tono": 0.0},
+	"amb_grillos": {"f": ["amb_grillos_loop.wav"], "db": -18.0, "tono": 0.0},
+	"amb_pajaros": {"f": ["amb_pajaros_0.wav", "amb_pajaros_1.wav", "amb_pajaros_2.wav"], "db": -18.0, "tono": 0.06},
 	"pulso_resonante": {"f": ["pulso_resonante.wav"], "db": -10.0, "tono": 0.02},      # 26/10: sonido propio del pulso (audio/gen_sfx_pulso.py); lo usan Pulso3D y todo lo que responde
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
 

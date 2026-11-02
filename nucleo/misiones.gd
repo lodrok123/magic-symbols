@@ -47,6 +47,10 @@ var _misiones: Dictionary = {}           ## id -> misión
 var _orden: Array = []                   ## ids en el orden de definición
 var _seguida: String = ""
 var _del_guardado: Dictionary = {}       ## ids que vinieron de `cargar()`: al definirlos de nuevo se conserva el progreso
+## PUNTO DE OBJETIVO (tercera tanda, C1, 2/11): dónde está lo que pide la misión, para el marcador del borde de pantalla (MarcadorMision). NO se guarda: lo pone el nivel al montarse
+## (`limpiar_puntos` lo vacía al montar uno nuevo, así un punto de un nivel no apunta en otro). id -> {"mision": punto, "objetivos": {indice: punto}}.
+## Un punto es un Vector3 (mundo) o un String (nombre de un grupo del árbol: el primer nodo del grupo; así sirve para un NPC que se mueve).
+var _puntos: Dictionary = {}
 
 
 static func i() -> Misiones:
@@ -106,6 +110,14 @@ func definir(datos: Dictionary) -> String:
 	if not _misiones.has(id):
 		_orden.append(id)
 	_misiones[id] = m
+	_puntos.erase(id)
+	if datos.has("punto_objetivo"):
+		fijar_punto(id, datos["punto_objetivo"])
+	var k_obj: int = 0
+	for o in datos.get("objetivos", []):
+		if o is Dictionary and (o as Dictionary).has("punto"):
+			fijar_punto(id, (o as Dictionary)["punto"], k_obj)
+		k_obj += 1
 	mision_cambio.emit(id)
 	return id
 
@@ -267,6 +279,40 @@ func objetivo_actual(id: String) -> String:
 		if not bool(o["hecho"]):
 			return String(o["texto"])
 	return ""
+
+
+## Pone (o quita, con null) el punto de la misión entera (`indice` = -1) o de un objetivo. No emite señales: el marcador lo lee cada fotograma.
+func fijar_punto(id: String, punto: Variant, indice: int = -1) -> void:
+	if punto != null and not (punto is Vector3 or punto is String or punto is StringName):
+		push_warning("Misiones.fijar_punto: el punto de %s debe ser Vector3 o el nombre de un grupo" % id)
+		return
+	var d: Dictionary = _puntos.get(id, {"mision": null, "objetivos": {}})
+	if indice < 0:
+		d["mision"] = punto
+	elif punto == null:
+		(d["objetivos"] as Dictionary).erase(indice)
+	else:
+		(d["objetivos"] as Dictionary)[indice] = punto
+	_puntos[id] = d
+
+
+## El punto al que apunta el marcador de la misión `id`: el de su primer objetivo pendiente si lo tiene; si ese objetivo no dice nada, el de la misión; si tampoco, null (sin flecha).
+func punto_objetivo(id: String) -> Variant:
+	if not _misiones.has(id) or estado(id) != "activa" or not _puntos.has(id):
+		return null
+	var d: Dictionary = _puntos[id]
+	var objs: Array = (_misiones[id] as Dictionary)["objetivos"]
+	for k in range(objs.size()):
+		if not bool(objs[k]["hecho"]):
+			if (d["objetivos"] as Dictionary).has(k):
+				return (d["objetivos"] as Dictionary)[k]
+			break
+	return d["mision"]
+
+
+## Olvida todos los puntos (un nivel nuevo se monta: los puntos de antes eran de otro mundo).
+func limpiar_puntos() -> void:
+	_puntos.clear()
 
 
 ## La línea discreta del HUD: «Título · objetivo actual». Vacía si no se sigue nada.

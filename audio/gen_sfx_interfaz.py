@@ -229,6 +229,119 @@ def salpicadura():
     guardar("salpicadura.wav", x, 0.11)
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+#  AMBIENTE POR ZONA (2/11, tercera tanda, lote 3, tarea C3; nucleo/ambiente_zona.gd). Generador propio (no toca el `rng` compartido). 22,05 kHz, mono.
+#  Los bucles son largos y sin costura (frecuencias con ciclos enteros o cruce de la cola con el principio); el volumen real lo dice `Sfx.CATALOGO` (−18 dB).
+# ---------------------------------------------------------------------------------------------------------------------
+SR_AMB = 22050
+
+
+def _guardar_amb(nombre, x, rms_obj, bucle):
+    m = sum(x) / len(x)
+    x = [v - m for v in x]
+    r = math.sqrt(sum(v * v for v in x) / len(x)) + 1e-9
+    x = [v * rms_obj / r for v in x]
+    pico = max(abs(v) for v in x)
+    if pico > 0.95:
+        x = [v * 0.95 / pico for v in x]
+    if not bucle:
+        f = int(SR_AMB * 0.01)
+        for i in range(f):
+            x[i] *= i / f
+            x[-1 - i] *= i / f
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), nombre)
+    with wave.open(ruta, "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR_AMB)
+        w.writeframes(b"".join(struct.pack("<h", int(max(-1.0, min(1.0, v)) * 32767)) for v in x))
+    print(nombre, round(len(x) / SR_AMB, 2), "s")
+
+
+def _cruzar(x, fade):
+    """Bucle sin costura: la cola (de `fade` muestras) se mezcla, con cruce de igual potencia, sobre el principio."""
+    n = len(x) - fade
+    y = x[:n]
+    for i in range(fade):
+        k = i / fade
+        y[i] = x[i] * math.sin(k * math.pi / 2) + x[n + i] * math.cos(k * math.pi / 2)
+    return y
+
+
+def _viento(r, dur, corte, ritmo, hondo):
+    """Ruido filtrado (paso bajo de dos polos) con ráfagas lentas. `hondo` baja el suelo de la ráfaga."""
+    fade = int(SR_AMB * 0.6)
+    n = int(SR_AMB * dur) + fade
+    a = math.exp(-2 * math.pi * corte / SR_AMB)
+    p1 = p2 = 0.0
+    x = [0.0] * n
+    for i in range(n):
+        t = i / SR_AMB
+        p1 = p1 * a + r.uniform(-1.0, 1.0) * (1 - a)
+        p2 = p2 * a + p1 * (1 - a)
+        rafaga = hondo + (1.0 - hondo) * (0.5 + 0.5 * math.sin(2 * math.pi * ritmo * t + 1.3 * math.sin(2 * math.pi * ritmo * 0.37 * t)))
+        x[i] = p2 * rafaga
+    return _cruzar(x, fade)
+
+
+def _gorjeo(r, notas, f_ini, f_fin, dur):
+    """Un trino: `notas` silbidos cortos que barren de f_ini a f_fin (Hz) con vibrato. Devuelve las muestras."""
+    n = int(SR_AMB * dur)
+    x = [0.0] * n
+    pos = 0.0
+    for k in range(notas):
+        ini = int(SR_AMB * (0.04 + k * dur * 0.8 / notas))
+        largo = int(SR_AMB * r.uniform(0.07, 0.13))
+        fa = r.uniform(f_ini, f_fin) * r.uniform(0.9, 1.1)
+        fb = fa * r.uniform(0.7, 1.4)
+        fase = 0.0
+        for i in range(min(largo, n - ini)):
+            u = i / largo
+            f = fa + (fb - fa) * u + 90.0 * math.sin(2 * math.pi * 38.0 * i / SR_AMB)
+            fase += 2 * math.pi * f / SR_AMB
+            x[ini + i] += math.sin(fase) * math.sin(math.pi * u) ** 1.5
+    return x
+
+
+def ambiente_zonas():
+    """amb_bosque_loop (viento suave), amb_cueva_loop (viento grave y goteo), amb_sala_loop (zumbido bajo), amb_pajaros_0..2 (trinos) y amb_grillos_loop (noche)."""
+    r = random.Random(2112026)
+    # bosque: viento suave, ráfagas lentas
+    _guardar_amb("amb_bosque_loop.wav", _viento(r, 6.0, 520.0, 0.23, 0.35), 0.10, True)
+    # cueva: viento grave y goteo (las gotas caen antes del final para no quedar cortadas por el cruce)
+    v = _viento(r, 6.0, 170.0, 0.13, 0.5)
+    for _ in range(7):
+        ini = int(SR_AMB * r.uniform(0.2, 5.2))
+        f0 = r.uniform(900.0, 1500.0)
+        fase = 0.0
+        amp = r.uniform(0.25, 0.5)
+        for i in range(int(SR_AMB * 0.25)):
+            t = i / SR_AMB
+            fase += 2 * math.pi * (f0 * (1.0 + 0.9 * (1 - math.exp(-t * 30.0)))) / SR_AMB
+            v[ini + i] += math.sin(fase) * math.exp(-t * 22.0) * amp * 0.06
+    _guardar_amb("amb_cueva_loop.wav", v, 0.10, True)
+    # sala / interior: zumbido bajo; todos los componentes dan ciclos enteros en 4 s, así que cierra solo
+    n = int(SR_AMB * 4.0)
+    z = [0.0] * n
+    for i in range(n):
+        t = i / SR_AMB
+        z[i] = (math.sin(2 * math.pi * 52.0 * t) + 0.5 * math.sin(2 * math.pi * 104.0 * t + 0.6) + 0.22 * math.sin(2 * math.pi * 156.0 * t + 1.1)) * (0.85 + 0.15 * math.sin(2 * math.pi * 0.5 * t))
+    _guardar_amb("amb_sala_loop.wav", z, 0.09, True)
+    # pájaros: tres trinos distintos, sueltos (los dispara AmbienteZona cada INTERVALO_PAJAROS)
+    _guardar_amb("amb_pajaros_0.wav", _gorjeo(r, 4, 2800.0, 4200.0, 1.0), 0.10, False)
+    _guardar_amb("amb_pajaros_1.wav", _gorjeo(r, 6, 3200.0, 5200.0, 1.3), 0.10, False)
+    _guardar_amb("amb_pajaros_2.wav", _gorjeo(r, 3, 2400.0, 3600.0, 0.8), 0.10, False)
+    # grillos (noche): dos insectos con trenes de pulsos de portadora entera, de 4 s exactos
+    n = int(SR_AMB * 4.0)
+    g = [0.0] * n
+    for portadora, periodo, pulsos_s, amp in ((4400.0, 0.5, 38.0, 1.0), (5200.0, 0.4, 44.0, 0.7)):
+        for i in range(n):
+            t = i / SR_AMB
+            c = (t % periodo) / periodo
+            if c < 0.32:
+                pulso = max(0.0, math.sin(2 * math.pi * pulsos_s * t)) ** 2
+                g[i] += math.sin(2 * math.pi * portadora * t) * pulso * math.sin(math.pi * c / 0.32) * amp
+    _guardar_amb("amb_grillos_loop.wav", g, 0.08, True)
+
+
 if __name__ == "__main__":
     bolsa()
     pocion()
@@ -245,3 +358,4 @@ if __name__ == "__main__":
     hielo_rompe()
     chispazo()
     salpicadura()
+    ambiente_zonas()   # C3 (2/11): ambiente sonoro por zona, con su propio generador

@@ -1229,6 +1229,11 @@ func _ready() -> void:
 		Realce3D.montar(lz, self)
 	# Bloque 3 EoW (23/10): luz y cámara por área, de las líneas «; zona» del mapa del nivel (Zonas3D). Sin esas líneas no cambia nada.
 	Zonas3D.montar(self)
+	# Tercera tanda (2/11): los puntos de objetivo de las misiones son de ESTE mundo (el nivel los pone al iniciarse, después de esta línea); el ciclo de día y noche solo en los mapas
+	# exteriores (Bosque*, nunca cueva ni salas: después de Zonas3D, que le da la luz de la zona que MULTIPLICA); y el ambiente sonoro por zona en todos.
+	Misiones.i().limpiar_puntos()
+	CicloDia3D.montar(self)
+	AmbienteZona.montar(self)
 	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.
 	if niebla_fosos:
 		NieblaFoso3D.montar(self)

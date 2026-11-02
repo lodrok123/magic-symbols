@@ -230,6 +230,15 @@ func iniciar(mundo: Variant) -> void:
 		"texto": "La puerta del claro se abre con tres runas: fuego, agua y rayo. Un elemental guarda la salida del bosque; mientras viva, el camino sigue sellado.",
 		"origen": "Guardabosques", "objetivos": objetivos})
 	Misiones.i().activar(MISION)
+	# Tercera tanda C1: dónde está cada tarea, para el marcador del borde de pantalla (las runas: su tótem; la puerta; la salida). Los objetivos sin lugar claro (el elemental) no llevan punto.
+	for i in range(ELEMENTOS_RUNA.size()):
+		var tot: Variant = _totems.get(ELEMENTOS_RUNA[i])
+		if tot != null and is_instance_valid(tot):
+			Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(tot.celda, Terreno3D.y_pies(tot.celda)), i)
+	if _puerta_c.x >= 0:
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_puerta_c, Terreno3D.y_pies(_puerta_c)), OBJ_PUERTA)
+	if _salida_c.x >= 0:
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_salida_c, Terreno3D.y_pies(_salida_c)), OBJ_SALIDA)
 	if _puerta_c.x < 0:
 		Misiones.i().objetivo_hecho(MISION, OBJ_PUERTA)
 	if _salida_abierta:

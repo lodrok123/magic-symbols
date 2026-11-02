@@ -201,6 +201,8 @@ func iniciar(mundo: Variant) -> void:
 		"texto": "Tres tótems de fuego, cada uno con su manera de despertar, abren la puerta del fondo. Detrás espera el elemental del bosque.",
 		"origen": "Bosque 01", "objetivos": objetivos})
 	Misiones.i().activar(MISION)
+	if _celda_puerta.x >= 0:      # tercera tanda C1: el marcador del borde de pantalla apunta a la puerta cuando toca abrirla
+		Misiones.i().fijar_punto(MISION, Terreno3D.centro_de(_celda_puerta, Terreno3D.y_pies(_celda_puerta)), OBJ_PUERTA)
 	if _goblins.is_empty():
 		Misiones.i().objetivo_hecho(MISION, OBJ_GOBLINS)
 	if _patrulla.is_empty():
