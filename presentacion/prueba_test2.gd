@@ -3072,12 +3072,18 @@ func _plantilla(id: String) -> Array:
 			malla = Ocluso3D.malla_con_hueco(malla)
 			if parte[2] != null:
 				parte[2] = Ocluso3D.convertir(parte[2] as Material)
-			if viento_decorado > 0.0 and VIENTO_DECORADO.has(id):
-				var fuerza: float = float(VIENTO_DECORADO[id]) * viento_decorado
+			# W5 (2/11): además de los de VIENTO_DECORADO, helechos y hierba alta se mecen un poco, y todos ellos (arbustos incluidos) se apartan al pasar la jugadora (`Caminar3D`).
+			var viva: bool = Caminar3D.es_pieza_viva(id)
+			if viento_decorado > 0.0 and (VIENTO_DECORADO.has(id) or viva):
+				var fuerza: float = float(VIENTO_DECORADO[id]) * viento_decorado if VIENTO_DECORADO.has(id) else Caminar3D.fuerza_viento_pieza() * viento_decorado
 				for i in range(malla.get_surface_count()):
 					Ocluso3D.poner_viento(malla.surface_get_material(i), fuerza, malla)
+					if viva:
+						Ocluso3D.poner_apartar(malla.surface_get_material(i), 1.0, malla)
 				if parte[2] != null:
 					Ocluso3D.poner_viento(parte[2] as Material, fuerza, malla)
+					if viva:
+						Ocluso3D.poner_apartar(parte[2] as Material, 1.0, malla)
 		parte[0] = malla
 	_plantillas[id] = res
 	return res

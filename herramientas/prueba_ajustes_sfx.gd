@@ -120,10 +120,15 @@ func _escenario() -> void:
 	for i in range(base.size(), todas.size()):
 		nombres_db.append(String(todas[i]["n"]))
 	# 2/11 (tercera tanda, N): detrás de los buses van las dos filas del ciclo día/noche (S:HORA y S:DURACION_DIA_S), siempre al final para no mover índices.
-	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción, (tarea O, 1/11) los buses «Mundo» y «Ocluido» y (tercera tanda N) las dos del ciclo día/noche y (2/11, tarea R) S:GRABADOS y las tres filas dB nuevas que van al final", nombres_db.size() == Sfx.CATALOGO.size() + 7, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 7])
-	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», luego (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)» y al final «S:HORA» y «S:DURACION_DIA_S»", nombres_db[nombres_db.size() - 10] == "dB:Interfaz (bus)" and nombres_db[nombres_db.size() - 9] == "dB:imprimir ajustes" and nombres_db[nombres_db.size() - 8] == "dB:Mundo (bus)" and nombres_db[nombres_db.size() - 7] == "dB:Ocluido (bus)" and nombres_db[nombres_db.size() - 6] == "S:HORA" and nombres_db[nombres_db.size() - 5] == "S:DURACION_DIA_S" and nombres_db[nombres_db.size() - 4] == "S:GRABADOS" and nombres_db[nombres_db.size() - 3] == "dB:no_puedes_ui" and nombres_db[nombres_db.size() - 2] == "dB:paginas_bucle" and nombres_db[nombres_db.size() - 1] == "dB:pluma_bucle")
+	# 2/11 (tareas L y W): detrás de las tres dB nuevas van las filas L:, Mp:, S:BALANCEO, W:, Hb: y Hu: (las static var de la mano pasando página y del caminar), siempre al final.
+	var n_lw: int = LabHechizos3D.FILAS_L.size() + LabHechizos3D.FILAS_MP.size() + LabHechizos3D.FILAS_S_W.size() + LabHechizos3D.FILAS_W.size() + LabHechizos3D.FILAS_HB.size() + LabHechizos3D.FILAS_HU.size()
+	var fin_r: int = nombres_db.size() - n_lw              # índice justo después de la cola de la tarea R
+	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción, (tarea O, 1/11) los buses «Mundo» y «Ocluido» y (tercera tanda N) las dos del ciclo día/noche y (2/11, tarea R) S:GRABADOS y las tres filas dB nuevas, y (tareas L y W) las filas L:/Mp:/S:/W:/Hb:/Hu: del final", nombres_db.size() == Sfx.CATALOGO.size() + 7 + n_lw, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 7 + n_lw])
+	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», luego (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)», «S:HORA» y «S:DURACION_DIA_S», S:GRABADOS y las tres dB de la tarea R", nombres_db[fin_r - 10] == "dB:Interfaz (bus)" and nombres_db[fin_r - 9] == "dB:imprimir ajustes" and nombres_db[fin_r - 8] == "dB:Mundo (bus)" and nombres_db[fin_r - 7] == "dB:Ocluido (bus)" and nombres_db[fin_r - 6] == "S:HORA" and nombres_db[fin_r - 5] == "S:DURACION_DIA_S" and nombres_db[fin_r - 4] == "S:GRABADOS" and nombres_db[fin_r - 3] == "dB:no_puedes_ui" and nombres_db[fin_r - 2] == "dB:paginas_bucle" and nombres_db[fin_r - 1] == "dB:pluma_bucle")
+	_ok("5 (tareas L y W) el bloque del final empieza por «L:PASAR_PAGINA_ANIMADO» y acaba en «Hu:ALTO_HUELLA», y ninguna fila suya es «dB:»", nombres_db[fin_r] == "L:PASAR_PAGINA_ANIMADO" and nombres_db[nombres_db.size() - 1] == "Hu:ALTO_HUELLA" and not nombres_db.slice(fin_r).any(func(n: String) -> bool: return n.begins_with("dB:")))
+	_ok("5 «W:PISADO_CORRER» lee y escribe Caminar3D (0,55 de partida)", is_equal_approx(LabHechizos3D.impacto_valor("W:PISADO_CORRER"), 0.55))
 	var alfabetico: bool = true
-	for i in range(1, nombres_db.size() - 10):
+	for i in range(1, fin_r - 10):
 		if String(nombres_db[i - 1]) > String(nombres_db[i]):
 			alfabetico = false
 	_ok("5 los sonidos van en orden alfabético", alfabetico)
@@ -170,13 +175,13 @@ func _escenario() -> void:
 	ev.keycode = KEY_UP
 	ev.pressed = true
 	lab._unhandled_input(ev)
-	_ok("8 ↑ desde la primera da la vuelta a la última entrada", int(lab.get("impacto_sel")) == todas.size() - 1 and String(todas[todas.size() - 1]["n"]) == "dB:pluma_bucle", str(lab.get("impacto_sel")))
+	_ok("8 ↑ desde la primera da la vuelta a la última entrada", int(lab.get("impacto_sel")) == todas.size() - 1 and String(todas[todas.size() - 1]["n"]) == "Hu:ALTO_HUELLA", str(lab.get("impacto_sel")))
 	var txt: String = String(lab.call("_texto_impacto"))
 	var filas: int = 0
 	for l in txt.split("\n"):
 		if l.begins_with("►") or l.begins_with(" ") and l.length() > 30:
 			filas += 1
-	_ok("8 el panel enseña la elegida y un máximo de %d filas" % LabHechizos3D.VENTANA_IMPACTO, txt.contains("► dB:pluma_bucle") and filas <= LabHechizos3D.VENTANA_IMPACTO + 2, "%d filas" % filas)
+	_ok("8 el panel enseña la elegida y un máximo de %d filas" % LabHechizos3D.VENTANA_IMPACTO, txt.contains("► Hu:ALTO_HUELLA") and filas <= LabHechizos3D.VENTANA_IMPACTO + 2, "%d filas" % filas)
 	_ok("8 y avisa de que hay más arriba", txt.contains("más arriba"))
 	lab.set("impacto_sel", 0)
 	_ok("8 con la primera elegida avisa de que hay más abajo", String(lab.call("_texto_impacto")).contains("más abajo"))

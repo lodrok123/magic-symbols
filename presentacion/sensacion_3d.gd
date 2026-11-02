@@ -289,6 +289,68 @@ static func _retro_aplicar(cam: Camera3D, contrib: Vector2) -> void:
 	cam.set_meta("retro_aplicado", contrib)
 
 
+## W3 (2/11, docs/REVISION_GAMEFEEL_30-10.md §11): BALANCEO DE CÁMARA AL CORRER. `v_offset` oscila BALANCEO_AMPLITUD u a BALANCEO_HZ (dos pasos por ciclo) mientras `vel_norm` > 0 (1 corriendo, 0,5 andando = la mitad
+## de amplitud; 0 = quieta, nadando, en el aire, en pausa), con entrada y salida lineales en T_BALANCEO s. Se suma por DIFERENCIAS a los offsets y a la base del temblor (la misma composición que el retroceso de
+## C1), así que al parar la cámara vuelve exactamente a su base. `delta` es de juego. Lo llama `Caminar3D.actualizar` cada fotograma; si dejan de llamarlo, el vigilante lo apaga solo.
+static var BALANCEO_ACTIVO: bool = true
+static var BALANCEO_AMPLITUD: float = 0.02      ## u de v_offset (a tamaño 6 son ~3 px)
+static var BALANCEO_HZ: float = 2.6             ## corriendo (≈ los pasos por segundo a DIST_PASO_CORRER); andando, BALANCEO_HZ_ANDAR
+static var BALANCEO_HZ_ANDAR: float = 1.9
+static var T_BALANCEO: float = 0.25             ## s en entrar y en salir
+static var _bal_peso: float = 0.0               ## la envolvente actual (0..1)
+static var _bal_fase: float = 0.0               ## ciclos acumulados
+static var _bal_frame: int = 0                  ## en qué fotograma fue la última llamada
+static var ultimo_balanceo: Vector2 = Vector2.ZERO    ## lo último que se sumó a los offsets (para las pruebas)
+
+
+static func balanceo_carrera(vp: Viewport, vel_norm: float, delta: float) -> void:
+	if vp == null:
+		return
+	var cam: Camera3D = vp.get_camera_3d()
+	if cam == null:
+		return
+	_bal_frame = Engine.get_process_frames()
+	var objetivo: float = clampf(vel_norm, 0.0, 1.0) if (ACTIVA and BALANCEO_ACTIVO and BALANCEO_AMPLITUD > 0.0) else 0.0
+	_balanceo_paso(cam, objetivo, delta)
+
+
+static func _balanceo_paso(cam: Camera3D, objetivo: float, delta: float) -> void:
+	if not is_instance_valid(cam) or delta <= 0.0:
+		return
+	if _bal_peso == objetivo and objetivo == 0.0 and not cam.has_meta("balanceo_aplicado"):
+		return
+	_bal_peso = move_toward(_bal_peso, objetivo, delta / maxf(T_BALANCEO, 0.01))
+	var contrib := Vector2.ZERO
+	if _bal_peso > 0.0:
+		var hz: float = lerpf(BALANCEO_HZ_ANDAR, BALANCEO_HZ, clampf((_bal_peso - 0.5) * 2.0, 0.0, 1.0))
+		_bal_fase = fposmod(_bal_fase + delta * hz, 1.0)
+		contrib.y = BALANCEO_AMPLITUD * _bal_peso * sin(TAU * _bal_fase)
+	else:
+		_bal_fase = 0.0
+	if contrib != Vector2.ZERO and cam.get_node_or_null("VigilaRetroceso") == null:
+		var v := _VigilaRetroceso.new()
+		v.name = "VigilaRetroceso"
+		v.cam = cam
+		cam.add_child(v)
+	var previo: Vector2 = cam.get_meta("balanceo_aplicado") if cam.has_meta("balanceo_aplicado") else Vector2.ZERO
+	var dif: Vector2 = contrib - previo
+	if dif != Vector2.ZERO:
+		cam.h_offset += dif.x
+		cam.v_offset += dif.y
+		if cam.has_meta("temblor_base"):
+			cam.set_meta("temblor_base", (cam.get_meta("temblor_base") as Vector2) + dif)
+	if contrib == Vector2.ZERO:
+		cam.remove_meta("balanceo_aplicado")
+	else:
+		cam.set_meta("balanceo_aplicado", contrib)
+	ultimo_balanceo = contrib
+
+
+## Polvo de un paso (W1): delega en `Caminar3D.polvo_paso`. `k` 0 = andando, 1 = corriendo; `tipo` = el de `_tipo_suelo` (0 hierba: motas verdes, 1 camino, 2 tierra; 3 piedra: nada).
+static func polvo_paso(j: Node3D, pos_pie: Vector3, k: float = 0.0, tipo: int = 2) -> void:
+	Caminar3D.polvo_paso(j, pos_pie, k, tipo)
+
+
 ## Cuelga de la cámara mientras hay retroceso. Si un temblor acaba (Vfx3D lo deja en la base con que empezó, que incluía el retroceso de ESE momento), lo corrige a la base que
 ## llevaba la meta al final (con las diferencias del retroceso sumadas). Se va solo cuando no queda ni retroceso ni temblor.
 class _VigilaRetroceso extends Node:
@@ -297,11 +359,19 @@ class _VigilaRetroceso extends Node:
 	var _base: Vector2 = Vector2.ZERO
 	var _ap_visto: Vector2 = Vector2.ZERO
 
-	func _process(_delta: float) -> void:
+	func _init() -> void:
+		process_mode = Node.PROCESS_MODE_ALWAYS          # W3: en pausa también deshace el balanceo de carrera
+
+	func _process(delta: float) -> void:
 		if cam == null or not is_instance_valid(cam):
 			queue_free()
 			return
+		# W3 (2/11): si nadie alimenta el balanceo de carrera (pausa, se murió, otra escena), se apaga solo en T_BALANCEO s.
+		if cam.has_meta("balanceo_aplicado") and Engine.get_process_frames() - Sensacion3D._bal_frame > 3:
+			Sensacion3D._balanceo_paso(cam, 0.0, delta)
 		var ap: Vector2 = cam.get_meta("retro_aplicado") if cam.has_meta("retro_aplicado") else Vector2.ZERO
+		if cam.has_meta("balanceo_aplicado"):
+			ap += cam.get_meta("balanceo_aplicado") as Vector2
 		if cam.has_meta("temblor_base"):
 			_base = cam.get_meta("temblor_base")
 			_ap_visto = ap
@@ -311,7 +381,7 @@ class _VigilaRetroceso extends Node:
 			var corregida: Vector2 = _base + (ap - _ap_visto)      # lo que se sumó al retroceso entre mi última mirada y el final del temblor
 			cam.h_offset = corregida.x
 			cam.v_offset = corregida.y
-		if not _visto and not cam.has_meta("retro_aplicado"):
+		if not _visto and not cam.has_meta("retro_aplicado") and not cam.has_meta("balanceo_aplicado"):
 			queue_free()
 
 

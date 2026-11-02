@@ -1,4 +1,4 @@
-﻿class_name Jugador3D
+class_name Jugador3D
 extends Node3D
 
 ## EL JUGADOR DEL TEST 3 (4.3 jugador mínimo, 4.4 altura, 4.4b agua). Dueño: Juego.
@@ -736,10 +736,11 @@ func _process(delta: float) -> void:
 			_mirada = mov
 			pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
 		if mundo.has_method("marcar_pisado") and not nadando:
-			mundo.call("marcar_pisado", Terreno3D.celda_de(position), 0.35)
+			mundo.call("marcar_pisado", Terreno3D.celda_de(position), Caminar3D.PISADO_CORRER if (corriendo and Sensacion3D.ACTIVA) else Caminar3D.PISADO_ANDAR)    # gamefeel W2: más marcado al correr
 
 	_vertical(delta, salto)
 	_animar(mov, correr)
+	Caminar3D.actualizar(self, mov != Vector3.ZERO, delta)     # 2/11 (gamefeel W1-W5): cuerpo, cámara, rastro de la hierba, agua, hojas y pájaros
 	_actualizar_sonido(delta)
 	_sincronizar()
 	_actualizar_hud()
@@ -830,6 +831,7 @@ func _sonar_pasos(recorrido: float, correr: bool) -> void:
 	if _dist_paso < (DIST_PASO_CORRER if correr else DIST_PASO_ANDAR):
 		return
 	_dist_paso = 0.0
+	Caminar3D.paso(self, correr)         # 2/11 (gamefeel W1/W4): polvo, huellas y vadeo en cada paso
 	var tipo: int = 0
 	if mundo.has_method("_tipo_suelo"):
 		tipo = int(mundo.call("_tipo_suelo", Terreno3D.celda_de(position)))
@@ -1189,6 +1191,8 @@ func _vertical(delta: float, salto: bool) -> void:
 		if position.y <= suelo and vy <= 0.0:
 			if vy <= -Sensacion3D.VY_POLVO_CAIDA and not agua:
 				Sensacion3D.polvo(mundo, Vector3(position.x, suelo, position.z), Sensacion3D.POLVO_CAIDA)     # gamefeel lote 2: cae de alto
+			if not agua:
+				Caminar3D.aterrizar(self, vy)     # gamefeel W1: el cuerpo se aplasta un poco al tocar suelo
 			position.y = suelo
 			vy = 0.0
 			en_suelo = true

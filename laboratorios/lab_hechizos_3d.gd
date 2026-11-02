@@ -118,6 +118,61 @@ const CICLO_HORA: String = "S:HORA"
 const CICLO_DURACION: String = "S:DURACION_DIA_S"
 const SON_GRABADOS: String = "S:GRABADOS"              ## 2/11 (tarea R): se enruta a Sfx.GRABADOS (no a Sensacion3D)
 const DB_NUEVOS: Array = ["no_puedes_ui", "paginas_bucle", "pluma_bucle"]   ## entradas del catálogo de la tarea R: sus filas dB van al final
+## 2/11 (tareas L y W): filas de otras clases, con prefijo propio y enrutadas por `get`/`set` como las «S:». Van al FINAL de F3, tras las dB nuevas.
+## [nombre sin prefijo, paso, min, max]; los bool van 0/1 y los int se redondean.
+const FILAS_L: Array = [                       ## L: → Spellbook (la mano pasa la página)
+	["PASAR_PAGINA_ANIMADO", 1.0, 0.0, 1.0], ["T_MANO_IR", 0.01, 0.0, 0.5], ["T_HOJA_CIERRA", 0.01, 0.0, 0.5], ["T_HOJA_ABRE", 0.01, 0.0, 0.5],
+	["T_PASAR_MAX", 0.05, 0.1, 1.5], ["HOJA_MIN", 0.01, 0.0, 0.3], ["CAMBIA_AL_CERRAR", 1.0, 0.0, 1.0], ["MANO_BORDE_U", 2.0, 0.0, 120.0],
+]
+const FILAS_MP: Array = [                      ## Mp: → ManoPluma3D
+	["PINZA_INCLINACION", 1.0, 0.0, 45.0], ["PINZA_ESCALA", 0.01, 0.5, 1.2],
+]
+const FILAS_S_W: Array = [                     ## S: → Sensacion3D (W3, balanceo al correr)
+	["BALANCEO_ACTIVO", 1.0, 0.0, 1.0], ["BALANCEO_AMPLITUD", 0.005, 0.0, 0.1], ["BALANCEO_HZ", 0.1, 0.5, 5.0], ["BALANCEO_HZ_ANDAR", 0.1, 0.5, 5.0], ["T_BALANCEO", 0.05, 0.0, 1.0],
+]
+const FILAS_W: Array = [                       ## W: → Caminar3D (W1 pies, W2 hierba, W3 cuerpo, W4 agua, W5 mundo)
+	["POLVO_PASO_ACTIVO", 1.0, 0.0, 1.0], ["POLVO_PASO_VIDA", 0.05, 0.1, 2.0], ["POLVO_PASO_SUBE", 0.05, 0.0, 1.0], ["POLVO_PASO_LADO", 0.02, 0.0, 0.5],
+	["MOTAS_PASO_N", 1.0, 0.0, 12.0], ["MOTAS_PASO_SALTO", 0.05, 0.0, 1.5], ["T_ATERRIZA", 0.02, 0.02, 0.5],
+	["PISADO_ANDAR", 0.05, 0.0, 1.0], ["PISADO_CORRER", 0.05, 0.0, 1.0], ["MOTAS_ALTA_ACTIVO", 1.0, 0.0, 1.0], ["MOTAS_ALTA_N", 1.0, 0.0, 12.0], ["ESTELA_PASO", 0.05, 0.0, 1.0], ["ESTELA_DT", 0.05, 0.05, 1.0],
+	["CUERPO_ACTIVO", 1.0, 0.0, 1.0], ["INCLINACION_GIRO", 0.5, 0.0, 20.0], ["GIRO_REF", 30.0, 90.0, 1080.0], ["T_INCLINA", 0.02, 0.02, 0.5],
+	["T_ARRANQUE_APLASTA", 0.02, 0.02, 0.5], ["FRENADA_INCLINA", 0.5, 0.0, 15.0], ["T_FRENADA", 0.02, 0.02, 0.5], ["FRENADA_VEL", 0.05, 0.1, 1.0],
+	["AGUA_ACTIVA", 1.0, 0.0, 1.0], ["ONDA_PASO", 0.01, 0.0, 0.5], ["ONDA_ENTRADA", 0.01, 0.0, 0.5], ["ONDA_NADO", 0.01, 0.0, 0.5], ["ONDA_RADIO", 0.05, 0.1, 2.0],
+	["T_ONDA_NADO", 0.05, 0.1, 2.0], ["GOTAS_PASO", 1.0, 0.0, 12.0], ["DB_CHAPOTEO_PASO", 1.0, -40.0, 6.0], ["SALPICADURA_ENTRADA", 0.05, 0.0, 2.0],
+	["VIENTO_PIEZAS", 0.01, 0.0, 0.3], ["APARTAR_PIEZAS_ACTIVO", 1.0, 0.0, 1.0], ["APARTAR_PIEZAS_RADIO", 0.1, 0.2, 3.0], ["APARTAR_PIEZAS_RETORNO_S", 0.05, 0.1, 2.0],
+	["HOJAS_ACTIVO", 1.0, 0.0, 1.0], ["HOJAS_POR_BLOQUE", 1.0, 0.0, 12.0], ["T_HOJAS_S", 0.5, 0.5, 20.0], ["T_HOJA_CAIDA", 0.1, 0.5, 6.0], ["HOJA_TAM", 0.01, 0.02, 0.3],
+	["HOJAS_ALTURA", 0.25, 0.5, 8.0], ["HOJAS_CORRER", 1.0, 0.0, 12.0], ["ARBOL_RADIO", 0.1, 0.5, 4.0],
+	["MOTAS_ACTIVO", 1.0, 0.0, 1.0], ["MOTAS_DIA", 1.0, 0.0, 20.0], ["MOTAS_NOCHE", 1.0, 0.0, 20.0], ["MOTAS_TAM", 0.01, 0.01, 0.2], ["MOTAS_ALFA", 0.05, 0.0, 1.0], ["MOTAS_ALTURA", 0.05, 0.0, 2.0],
+	["PAJAROS_ACTIVO", 1.0, 0.0, 1.0], ["PROB_PAJAROS", 0.05, 0.0, 1.0], ["PAJAROS_MIN_S", 1.0, 1.0, 60.0], ["PAJAROS_DIST", 0.5, 1.0, 10.0], ["PAJAROS_TAM", 0.05, 0.05, 0.5], ["PAJAROS_VIDA", 0.1, 0.5, 4.0], ["DB_PAJAROS", 1.0, -40.0, 6.0],
+]
+const FILAS_HB: Array = [                      ## Hb: → Hierba3D (W2, apartado con muelle)
+	["APARTAR_FUERZA", 0.05, 0.0, 1.0], ["APARTAR_RADIO", 0.1, 0.2, 3.0], ["APARTAR_RADIO_CORRER", 0.1, 0.2, 3.0], ["APARTAR_RADIO_BASE", 0.1, 0.2, 3.0], ["APARTAR_RETORNO_S", 0.05, 0.1, 2.0],
+]
+const FILAS_HU: Array = [                      ## Hu: → Huellas3D (W1)
+	["HUELLAS_ACTIVO", 1.0, 0.0, 1.0], ["HUELLAS_MAX", 4.0, 0.0, 128.0], ["T_HUELLA", 0.5, 0.5, 20.0], ["ALFA_HUELLA", 0.05, 0.0, 1.0], ["ALTO_HUELLA", 0.005, 0.0, 0.1],
+]
+
+
+const _SPELLBOOK: GDScript = preload("res://presentacion/ui/spellbook.gd")   ## el libro no tiene class_name
+
+
+## Clase a la que va una entrada con prefijo propio (L:, Mp:, W:, Hb:, Hu:); null si el prefijo no es de estos.
+static func clase_de_prefijo(nombre: String) -> GDScript:
+	if nombre.begins_with("L:"):
+		return _SPELLBOOK
+	if nombre.begins_with("Mp:"):
+		return ManoPluma3D
+	if nombre.begins_with("W:"):
+		return Caminar3D
+	if nombre.begins_with("Hb:"):
+		return Hierba3D
+	if nombre.begins_with("Hu:"):
+		return Huellas3D
+	return null
+
+
+static func _anadir_filas(prefijo: String, filas: Array) -> void:
+	for f in filas:
+		_entradas_cache.append({"n": prefijo + String(f[0]), "paso": float(f[1]), "min": float(f[2]), "max": float(f[3])})
 const DB_MIN: float = -40.0
 const DB_MAX: float = 6.0
 const DB_PASO: float = 1.0
@@ -145,6 +200,13 @@ static func entradas() -> Array:
 		_entradas_cache.append({"n": SON_GRABADOS, "paso": 1.0, "min": 0.0, "max": 1.0})
 		for nombre in DB_NUEVOS:
 			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
+		# 2/11 (tareas L y W): la mano pasando página y el caminar satisfactorio, al final.
+		_anadir_filas("L:", FILAS_L)
+		_anadir_filas("Mp:", FILAS_MP)
+		_anadir_filas("S:", FILAS_S_W)
+		_anadir_filas("W:", FILAS_W)
+		_anadir_filas("Hb:", FILAS_HB)
+		_anadir_filas("Hu:", FILAS_HU)
 	return _entradas_cache
 
 
@@ -459,6 +521,10 @@ static func impacto_valor(nombre: String) -> float:
 	if nombre.begins_with("S:"):
 		var v: Variant = (Sensacion3D as GDScript).get(nombre.substr(2))
 		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
+	var clase: GDScript = clase_de_prefijo(nombre)
+	if clase != null:
+		var v: Variant = clase.get(nombre.substr(nombre.find(":") + 1))
+		return (1.0 if bool(v) else 0.0) if v is bool else float(v)
 	return float((Combate3D as GDScript).get(nombre))
 
 
@@ -494,6 +560,16 @@ static func impacto_poner(nombre: String, v: float) -> void:
 				var n: String = nombre.substr(2)
 				var actual: Variant = (Sensacion3D as GDScript).get(n)
 				(Sensacion3D as GDScript).set(n, v >= 0.5 if actual is bool else v)
+			elif clase_de_prefijo(nombre) != null:
+				var clase: GDScript = clase_de_prefijo(nombre)
+				var n: String = nombre.substr(nombre.find(":") + 1)
+				var actual: Variant = clase.get(n)
+				if actual is bool:
+					clase.set(n, v >= 0.5)
+				elif actual is int:
+					clase.set(n, int(roundf(v)))
+				else:
+					clase.set(n, v)
 			else:
 				(Combate3D as GDScript).set(nombre, v)
 
