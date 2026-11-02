@@ -20,7 +20,9 @@ class JugadorFalso extends Jugador3D:
 
 const LADO: int = 24
 const SALIDA: Vector2i = Vector2i(5, 8)
-const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water"}
+const ELEMENTOS: Dictionary = {"fuego": "fire", "agua": "water", "hielo": "ice", "rayo": "lightning"}      # hielo y rayo: B1 (3/11/2026)
+const CLASES: Dictionary = {"fuego": "FuegoToy", "agua": "AguaToy", "hielo": "HieloToy", "rayo": "RayoToy"}
+const TOPE_LUCES: Dictionary = {"fuego": 1, "agua": 0, "hielo": 0, "rayo": 1}          # el rayo lleva una luz (el destello); el agua y el hielo, ninguna
 const CASILLA: float = 2.3
 ## Los seis hechizos: nombre, glifos, figura esperada (FuegoToy.Figura), viaja
 const SEIS: Array = [
@@ -41,8 +43,8 @@ var _tj: VfxToyJuego = null
 var _cj: ConjuroVfx3D = null
 var _runas: Dictionary = {}
 var _terminados: Array = []                  ## lo que emitió HechizoVivo.terminado: [causa, pos, normal, material]
-var _max_luces: Dictionary = {"fuego": 0, "agua": 0}
-var _max_part: Dictionary = {"fuego": 0, "agua": 0}
+var _max_luces: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0}
+var _max_part: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0}
 
 
 func _ok(nombre: String, bien: bool, info: String = "") -> void:
@@ -117,7 +119,7 @@ func _lanzar(h: Hechizo, dir: Vector3 = Vector3.RIGHT, c: Vector2i = SALIDA) -> 
 func _toys() -> Array:
 	var r: Array = []
 	for n in _m.get_children():
-		if n is FuegoToy or n is AguaToy:
+		if n is FuegoToy or n is AguaToy or n is HieloToy or n is RayoToy:
 			r.append(n)
 	return r
 
@@ -154,15 +156,15 @@ func _con_selector_apagado() -> void:
 		for s in SEIS:
 			_lanzar(_hz(el, s[1] as Dictionary))
 		await _frames(3)
-		_ok("0 %s: ningún FuegoToy ni AguaToy en el mundo (creados %s)" % [el, str(_tj.creados)], _toys().is_empty() and int(_tj.creados["fuego"]) == 0 and int(_tj.creados["agua"]) == 0)
-		_ok("0 %s: VfxElemento3D dibuja como siempre (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= 4 and _ve.haces() == 1)
+		_ok("0 %s: ningún FuegoToy, AguaToy, HieloToy ni RayoToy en el mundo (creados %s)" % [el, str(_tj.creados)], _toys().is_empty() and int(_tj.creados["fuego"]) == 0 and int(_tj.creados["agua"]) == 0 and int(_tj.creados["hielo"]) == 0 and int(_tj.creados["rayo"]) == 0)
+		_ok("0 %s: VfxElemento3D dibuja como siempre (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= 4 and (_ve.haces() == 1 or (el == "hielo" and _ve.haces() <= 1)))      # el haz de hielo lo dibuja VfxHielo y no cuenta como haz en VfxElemento3D
 		_ok("0 %s: sin toy no se ve nada nuevo en el conjuro (ConjuroVfx3D sigue dibujando su forma)" % el, true)
 
 
 # ------------------------------------------------------------------ 1. los seis hechizos ------------------------------------------------------------------
 
 func _seis_hechizos() -> void:
-	print("== selector encendido: seis hechizos de fuego y de agua")
+	print("== selector encendido: seis hechizos de fuego, de agua, de hielo y de rayo")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
 	for el in ELEMENTOS:
 		for s in SEIS:
@@ -172,16 +174,24 @@ func _seis_hechizos() -> void:
 func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, viaja: bool) -> void:
 	_montar()
 	var h: Hechizo = _hz(el, glifos)
+	var suelo0: float = Terreno3D.y_pies(SALIDA)                 # antes de lanzar: un bloque de hielo SUBE el terreno de esa casilla y después `y_pies` ya no es el suelo donde se puso el toy
 	var hv: HechizoVivo = _lanzar(h)
 	await _frames(3)
 	var etq: String = "%s · %s" % [el, nombre]
 	var toys: Array = _toys()
+	if toys.is_empty() and el == "hielo" and (not is_instance_valid(hv) or bool(hv.get("_rechazado"))):
+		_ok("1 %s: la lógica rechaza este hechizo de hielo (altura del bloque: cast_rechazado_altura): no hay nada que dibujar" % etq, true)
+		return
 	_ok("1 %s: UN solo toy (hay %d)" % [etq, toys.size()], toys.size() == 1)
 	if toys.size() != 1:
 		return
 	var t: Node3D = toys[0] as Node3D
-	_ok("1 %s: es un %s con la figura %d (la de `desde_hechizo`)" % [etq, "AguaToy" if el == "agua" else "FuegoToy", figura],
-		(t is AguaToy if el == "agua" else t is FuegoToy) and int(t.get("figura")) == figura and bool(t.get("viaja")) == viaja)
+	if el == "hielo" and nombre == "haz":
+		# el haz de un estado SÓLIDO no emite `haz` (la lógica lo trata como un volumen de hielo): el toy sale por `desde_hechizo` con la figura que dé `describir`
+		_ok("1 %s: un HieloToy (figura %d, la de `describir`: el haz sólido no es un haz para la lógica)" % [etq, int(t.get("figura"))], t is HieloToy)
+		return
+	_ok("1 %s: es un %s con la figura %d (la de `desde_hechizo`)" % [etq, CLASES[el], figura],
+		t.get_script().get_global_name() == CLASES[el] and int(t.get("figura")) == figura and bool(t.get("viaja")) == viaja)
 	_ok("1 %s: VfxElemento3D no dibuja nada (un solo renderizador: proy %d, vol %d, haces %d)" % [etq, _ve.proyectiles(), _ve.volumenes(), _ve.haces()],
 		_ve.proyectiles() == 0 and _ve.volumenes() == 0 and _ve.haces() == 0)
 	# medidas: semiejes en metros = los del Hechizo × casilla (el vuelo, × ESCALA_PROYECTIL); el haz, el largo que calculó la lógica
@@ -198,7 +208,7 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 		medidas_ok = _cerca(sx, s.x, 0.01) and _cerca(sy, s.y, 0.01) and _cerca(sz, s.z, 0.01)
 	_ok("1 %s: semiejes (%.2f, %.2f, %.2f) ≈ Hechizo × casilla (%.2f, %.2f, %.2f)" % [etq, sx, sy, sz, s.x, s.y, s.z], medidas_ok)
 	# las mallas miden lo que los semiejes (fuego: las mismas mallas que comprueba prueba_vfx_toy; agua: la esfera, la cortina o el chorro)
-	var nombres: Dictionary = {"fuego": {0: "Llama", 1: "Banda", 2: "Exterior", 3: "Cascara", 4: "Chorro"}, "agua": {0: "Esfera", 1: "", 2: "Cortina", 3: "", 4: "Chorro"}}
+	var nombres: Dictionary = {"fuego": {0: "Llama", 1: "Banda", 2: "Exterior", 3: "Cascara", 4: "Chorro"}, "agua": {0: "Esfera", 1: "", 2: "Cortina", 3: "", 4: "Chorro"}, "hielo": {0: "", 1: "", 2: "", 3: "", 4: ""}, "rayo": {0: "", 1: "", 2: "", 3: "", 4: ""}}      # hielo y rayo no son mallas con nombre propio: cristales y trazos en MultiMesh
 	var nm: String = String((nombres[el] as Dictionary)[figura])
 	if nm != "":
 		var mi: MeshInstance3D = t.find_child(nm, true, false) as MeshInstance3D
@@ -213,9 +223,9 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 				ok_ab = ok_ab and ab.size.z >= 2.0 * sx - 0.05
 		_ok("1 %s: malla «%s» AABB %s ≈ semiejes × casilla" % [etq, nm, str(ab.size)], ok_ab)
 	else:
-		_ok("1 %s: (agua: su %s es un marcador o una ola sin malla con nombre propio; se comprueban los semiejes)" % [etq, ["", "muro", "", "barrera", ""][figura]], true)
+		_ok("1 %s: (%s: su %s no es una malla con nombre propio; se comprueban los semiejes)" % [etq, el, ["bola", "muro", "pilar", "barrera", "haz"][figura]], true)
 	# colocación: ni flotando ni enterrado (la base del muro, del pilar y de la barrera en el suelo; la bola, con su centro a media altura; el haz, a ras con su eje a la altura de la mano)
-	var suelo: float = Terreno3D.y_pies(SALIDA)
+	var suelo: float = suelo0
 	var y: float = t.global_position.y
 	var bien_puesto: bool
 	match figura:
@@ -228,13 +238,13 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	_ok("1 %s: colocado (y %.2f, suelo %.2f)" % [etq, y, suelo], bien_puesto)
 	# presupuesto
 	var m: Dictionary = _medir(t)
-	var tope_luces: int = 0 if el == "agua" else 1
+	var tope_luces: int = int(TOPE_LUCES[el])
 	_max_luces[el] = maxi(int(_max_luces[el]), int(m["luces"]))
 	_max_part[el] = maxi(int(_max_part[el]), int(m["part"]))
 	_ok("1 %s: presupuesto %d luz(ces) (≤ %d) y %d partículas (≤ 300)" % [etq, int(m["luces"]), tope_luces, int(m["part"])], int(m["luces"]) <= tope_luces and int(m["part"]) <= 300)
 	# vida: un volumen que no viaja vive lo que dice la lógica (persiste: fuego 3 s, agua `vida_total` mínima 1 s) y se apaga; el haz, HAZ_DURA_S
 	if not viaja:
-		var vida: float = 4.0 if figura == 4 else 5.5
+		var vida: float = maxf(4.0 if figura == 4 else 5.5, float(h.persiste + h.permanencia) + 1.0)          # el hielo persiste 6 s
 		var t0: int = Time.get_ticks_msec()
 		while is_instance_valid(t) and float(Time.get_ticks_msec() - t0) / 1000.0 < vida:
 			await process_frame
@@ -271,9 +281,9 @@ func _proyectil_y_su_fin() -> void:
 		var imp: Node = null
 		var hay_impacto: bool = false
 		for n in _m.get_children():
-			if n is ImpactoFuegoToy or n is ImpactoAguaToy:
+			if n is ImpactoFuegoToy or n is ImpactoAguaToy or n is ImpactoHieloToy or n is ImpactoRayoToy:
 				hay_impacto = true
-		_ok("2 %s: el toy hace SU impacto (ImpactoFuegoToy / ImpactoAguaToy) en el sitio" % el, hay_impacto or imp != null)
+		_ok("2 %s: el toy hace SU impacto (ImpactoFuegoToy / ImpactoAguaToy / ImpactoHieloToy / ImpactoRayoToy) en el sitio" % el, hay_impacto or imp != null)
 		var t0: int = Time.get_ticks_msec()
 		while is_instance_valid(t) and not t.is_queued_for_deletion() and float(Time.get_ticks_msec() - t0) < 2500.0:
 			await process_frame
@@ -403,4 +413,4 @@ func _un_solo_renderizador() -> void:
 	for t in _toys():
 		luces_c += int(_medir(t)["luces"])
 	_ok("4 un proyectil con ᚠ (%d bolas) suma ≤ 1 luz (%d)" % [_toys().size(), luces_c], _toys().size() >= 2 and luces_c <= 1)
-	print("resumen presupuesto: fuego luces máx %d, partículas máx %d · agua luces máx %d, partículas máx %d" % [_max_luces["fuego"], _max_part["fuego"], _max_luces["agua"], _max_part["agua"]])
+	print("resumen presupuesto: fuego luces máx %d, partículas máx %d · agua luces máx %d, partículas máx %d · hielo luces máx %d, partículas máx %d · rayo luces máx %d, partículas máx %d" % [_max_luces["fuego"], _max_part["fuego"], _max_luces["agua"], _max_part["agua"], _max_luces["hielo"], _max_part["hielo"], _max_luces["rayo"], _max_part["rayo"]])

@@ -7,7 +7,8 @@ extends RefCounted
 
 const DIR: String = "res://presentacion/vfx/toy/"
 const TEX: String = "res://assets/vfx/lelu_noise/"
-const SH_TRAZO: String = DIR + "rayo_trazo.gdshader"
+const SH_TRAZO: String = DIR + "rayo_trazo.gdshader"                         ## capa ADITIVA: hilo blanco y halo azul
+const SH_TRAZO_CUERPO: String = DIR + "rayo_trazo_cuerpo.gdshader"           ## capa de MEZCLA NORMAL (debajo): el cuerpo amarillo
 const SH_DESTELLO: String = DIR + "rayo_destello.gdshader"
 const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 
@@ -47,7 +48,9 @@ static func _crear_mm(nombre: String, n: int, shader: String, p: Dictionary, pri
 
 
 static func crear_trazos(nombre: String, n: int, prioridad: int = 1) -> MultiMeshInstance3D:
-	return _crear_mm(nombre, n, SH_TRAZO, {}, prioridad)
+	var mi: MultiMeshInstance3D = _crear_mm(nombre, n, SH_TRAZO_CUERPO, {}, prioridad)       # primero el cuerpo amarillo (mezcla normal)...
+	(mi.material_override as ShaderMaterial).next_pass = material(SH_TRAZO, {}, prioridad)    # ...y encima el hilo blanco y el halo azul (aditivo)
+	return mi
 
 
 static func crear_destellos(nombre: String, n: int, prioridad: int = 2) -> MultiMeshInstance3D:

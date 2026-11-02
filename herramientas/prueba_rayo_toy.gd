@@ -3,7 +3,7 @@ extends SceneTree
 ## PRUEBA del rayo «toy» (B1, 3/11/2026; a imagen de prueba_agua_toy.gd y prueba_hielo_toy.gd). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_rayo_toy.gd
 ## Comprueba, con RayoToy, ImpactoRayoToy y la paleta:
-##   1. ESTILO: los shaders de trazo y destello son blend_add y unshaded (el rayo es luz), sin EMISSION; los del suelo no existen (el rayo no deja nada propio)
+##   1. ESTILO: los shaders de trazo (hilo y halo) y de destello son blend_add y unshaded (el rayo es luz), sin EMISSION; el CUERPO amarillo del trazo es la única capa en blend_mix (sumar amarillo a un suelo claro da blanco)
 ##   2. PALETA: rayo_paleta.gd == los defaults de rayo_toy.gdshaderinc == lo que RayoTrazos.material() pasa a los shaders; cada valor == el del juego (vfx_3d.gd, vfx_estado_3d.gd, emisor_rayo_3d.gd);
 ##      amarillo en el cuerpo, azul en el halo
 ##   3. FIGURAS: BOLA, MURO, PILAR, BARRERA y HAZ con los tamaños de la prueba 3: lo que dibujan cabe en los semiejes (alto de la columna, ancho de la valla, radio del aro, largo del arco)
@@ -20,7 +20,7 @@ extends SceneTree
 const RayoTrazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")
 const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 const MAX_PARTICULAS: int = 300
-const SHADERS: PackedStringArray = ["rayo_toy.gdshaderinc", "rayo_trazo.gdshader", "rayo_destello.gdshader"]
+const SHADERS: PackedStringArray = ["rayo_toy.gdshaderinc", "rayo_trazo.gdshaderinc", "rayo_trazo.gdshader", "rayo_trazo_cuerpo.gdshader", "rayo_destello.gdshader"]
 const FIGURAS: Array = [["BOLA", 0, Vector3(0.4, 0.4, 0.4)], ["MURO", 1, Vector3(3.45, 1.5, 0.3)], ["PILAR", 2, Vector3(0.5, 4.0, 0.5)], ["BARRERA", 3, Vector3(1.5, 1.5, 1.5)], ["HAZ", 4, Vector3(1.5, 0.5, 0.15)]]
 
 var _fallos: int = 0
@@ -30,6 +30,7 @@ var _max_gpu: int = 0
 var _max_part: int = 0
 var _adit: int = 0
 var _no_adit: int = 0
+var _cuerpo: int = 0
 
 
 func _initialize() -> void:
@@ -60,8 +61,8 @@ func _correr() -> void:
 	await _api()
 	await _extremos()
 	await _lab()
-	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos, %d no aditivos" % [_max_luces, _max_gpu, _max_part, _adit, _no_adit])
-	_ok("presupuesto: ≤ 1 luz, 0 GPUParticles3D, ≤ %d partículas, todo aditivo" % MAX_PARTICULAS, _max_luces <= 1 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _adit > 0 and _no_adit == 0)
+	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos, %d de cuerpo (mezcla), %d otros" % [_max_luces, _max_gpu, _max_part, _adit, _cuerpo, _no_adit])
+	_ok("presupuesto: ≤ 1 luz, 0 GPUParticles3D, ≤ %d partículas, todo aditivo salvo la capa del cuerpo amarillo" % MAX_PARTICULAS, _max_luces <= 1 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _adit > 0 and _cuerpo > 0 and _no_adit == 0)
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)
 
@@ -79,6 +80,7 @@ func _medir() -> void:
 	var part: int = 0
 	var adit: int = 0
 	var noadit: int = 0
+	var cuerpo: int = 0
 	for n in _raiz.find_children("*", "", true, false):
 		if n is Light3D and (n as Light3D).is_visible_in_tree():
 			luces += 1
@@ -91,6 +93,8 @@ func _medir() -> void:
 			while m != null:
 				if m.shader != null and m.shader.code.find("blend_add") >= 0:
 					adit += 1
+				elif m.shader != null and m.shader.resource_path.ends_with("rayo_trazo_cuerpo.gdshader"):
+					cuerpo += 1                                  # la única capa que no es aditiva: el cuerpo amarillo
 				else:
 					noadit += 1
 				m = m.next_pass as ShaderMaterial
@@ -99,6 +103,7 @@ func _medir() -> void:
 	_max_part = maxi(_max_part, part)
 	_adit = maxi(_adit, adit)
 	_no_adit = maxi(_no_adit, noadit)
+	_cuerpo = maxi(_cuerpo, cuerpo)
 
 
 func _nueva() -> RayoToy:
@@ -123,7 +128,9 @@ func _estilo() -> void:
 				cuerpo.append(l)
 		var codigo: String = "\n".join(cuerpo)
 		_ok(s + ": sin EMISSION", codigo.find("EMISSION") < 0)
-		if s.ends_with(".gdshader"):
+		if s == "rayo_trazo_cuerpo.gdshader":
+			_ok(s + ": el CUERPO amarillo va en blend_mix y unshaded (sumar amarillo a un suelo claro da blanco), sin escribir profundidad", codigo.find("blend_mix") >= 0 and codigo.find("blend_add") < 0 and codigo.find("unshaded") >= 0 and codigo.find("depth_draw_never") >= 0)
+		elif s.ends_with(".gdshader"):
 			_ok(s + ": blend_add y unshaded (es luz), sin escribir profundidad", codigo.find("blend_add") >= 0 and codigo.find("unshaded") >= 0 and codigo.find("depth_draw_never") >= 0)
 
 

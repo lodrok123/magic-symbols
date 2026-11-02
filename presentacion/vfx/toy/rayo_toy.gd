@@ -5,7 +5,7 @@ extends EfectoToy
 ## (semieje_x / y / z en m), misma escala (`describir` / `desde_hechizo` son los de FuegoToy: un hechizo cambia de elemento sin cambiar de tamaño) y los mismos mandos (los diez de EfectoToy; valen `brillo` y
 ## `velocidad` (del parpadeo), `chispas` (cuántas chispas), `luz` y `ancho`; `altura`, `halo`, `tono` y `blandura` no hacen nada). FuegoToy, AguaToy y HieloToy no se han tocado: la máquina de carga e impacto
 ## está copiada, no compartida.
-## Es LUZ: el único de los elementos nuevos que BRILLA. Todos los shaders son blend_add y unshaded (rayo_trazo.gdshader: tramos rectos que miran a la cámara, hilo blanco, cuerpo amarillo y halo azul; rayo_destello.gdshader:
+## Es LUZ: el único de los elementos nuevos que BRILLA. Los shaders son blend_add y unshaded (rayo_trazo.gdshader: tramos rectos que miran a la cámara, hilo blanco y halo azul), salvo el CUERPO AMARILLO del trazo, que va debajo en mezcla normal (rayo_trazo_cuerpo.gdshader: sumar amarillo a un suelo claro da blanco y el rayo del juego es amarillo-blanco con halo azul; rayo_destello.gdshader:
 ## estrella de T_flare8 teñida igual). NO hay GPUParticles3D: los trazos y los destellos son MultiMesh movidos por la CPU. UNA luz (OmniLight3D «Luz», blanco azulada, parpadea con el rayo): el destello que ilumina
 ## el suelo es lo que da la identidad al rayo, y el fuego usa también una; VfxToyJuego la apaga en las copias sobrantes (≤ 1 luz por hechizo).
 ## CARÁCTER (docs/PLAN_VFX_ELEMENTOS.md): el rayo DURA MUY POCO.
@@ -711,7 +711,7 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 	var r: float = maxf(semieje_x, semieje_z)
 	var g: float = _grosor(r / 0.4 * 0.5)
 	_pos_luz = Vector3.ZERO
-	bril.append({"pos": Vector3.ZERO, "tam": r * 3.0, "alfa": 0.5 * env, "estrella": 0.0})            # halo
+	bril.append({"pos": Vector3.ZERO, "tam": r * 3.0, "alfa": 0.3 * env, "estrella": 0.0})            # halo
 	bril.append({"pos": Vector3.ZERO, "tam": r * 1.5, "alfa": 0.95 * env, "estrella": 1.0})           # núcleo
 	for k in 6:
 		var d: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized()
@@ -749,7 +749,7 @@ func _gen_pilar(lista: Array, bril: Array, env: float, cr: float) -> void:
 		RayoTrazos.trazar(lista, pts, g, 0.95 * env, cr, 1.0, 0.5, float(k) * 2.0)
 		RayoTrazos.ramas(lista, pts, 2, 0.5 + rm, g * 0.55, 0.8 * env, cr, _rng, 3)
 	bril.append({"pos": Vector3(0, alto, 0), "tam": 0.7 + rm * 1.4, "alfa": 0.9 * env * smoothstep(0.0, 0.3, cr), "estrella": 0.9})
-	bril.append({"pos": Vector3(0, 0.15, 0), "tam": 1.4 + rm * 3.2, "alfa": 0.55 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.0})
+	bril.append({"pos": Vector3(0, 0.15, 0), "tam": 1.4 + rm * 3.2, "alfa": 0.35 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.0})
 	for k2 in 3:
 		var a3: float = _rng.randf() * TAU
 		bril.append({"pos": Vector3(cos(a3) * rx * 1.3, 0.12, sin(a3) * rz * 1.3), "tam": 0.3 + 0.2 * rm, "alfa": 0.8 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.9})
@@ -821,7 +821,7 @@ func _gen_barrera(lista: Array, bril: Array, env: float, cr: float) -> void:
 			RayoTrazos.trazar(lista, RayoTrazos.camino(puntos[q], puntos[q + 1], 4, 0.06 * y + 0.03, _rng), g * 0.6, 0.85 * env, cr, 0.8, 0.7, float(k))
 		if k < 3:
 			bril.append({"pos": puntos[0] + Vector3(0, 0.05, 0), "tam": 0.35 + 0.1 * y, "alfa": 0.8 * env, "estrella": 0.9})
-	bril.append({"pos": Vector3(0, 0.1, 0), "tam": (x + z) * 1.2, "alfa": 0.3 * env, "estrella": 0.0})
+	bril.append({"pos": Vector3(0, 0.1, 0), "tam": (x + z) * 1.2, "alfa": 0.2 * env, "estrella": 0.0})
 
 
 ## HAZ = ARCO entre la mano (el origen) y el objetivo (hacia -Z, a la altura máx(y, 0,4)): un tronco quebrado, una segunda línea más fina que lo acompaña y tres ramas; `crece` lo extiende de golpe hasta la punta.
