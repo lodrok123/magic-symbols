@@ -69,7 +69,7 @@
     "id": "fuego_muro_actual_045",
     "modo": "actual",
     "t": 0.45,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "fuego",
@@ -77,7 +77,7 @@
     "id": "fuego_muro_actual_110",
     "modo": "actual",
     "t": 1.1,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "fuego",
@@ -85,7 +85,7 @@
     "id": "fuego_muro_procedural_045",
     "modo": "procedural",
     "t": 0.45,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "fuego",
@@ -93,7 +93,7 @@
     "id": "fuego_muro_procedural_110",
     "modo": "procedural",
     "t": 1.1,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "fuego",
@@ -133,7 +133,7 @@
     "id": "fuego_barrera_actual_045",
     "modo": "actual",
     "t": 0.45,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "fuego",
@@ -141,7 +141,7 @@
     "id": "fuego_barrera_actual_110",
     "modo": "actual",
     "t": 1.1,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "fuego",
@@ -149,7 +149,7 @@
     "id": "fuego_barrera_procedural_045",
     "modo": "procedural",
     "t": 0.45,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "fuego",
@@ -157,7 +157,7 @@
     "id": "fuego_barrera_procedural_110",
     "modo": "procedural",
     "t": 1.1,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "fuego",
@@ -293,7 +293,7 @@
     "id": "agua_muro_actual_045",
     "modo": "actual",
     "t": 0.45,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "agua",
@@ -301,7 +301,7 @@
     "id": "agua_muro_actual_110",
     "modo": "actual",
     "t": 1.1,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "agua",
@@ -309,7 +309,7 @@
     "id": "agua_muro_procedural_045",
     "modo": "procedural",
     "t": 0.45,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "agua",
@@ -317,7 +317,7 @@
     "id": "agua_muro_procedural_110",
     "modo": "procedural",
     "t": 1.1,
-    "titulo": "muro"
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
   },
   {
     "elemento": "agua",
@@ -357,7 +357,7 @@
     "id": "agua_barrera_actual_045",
     "modo": "actual",
     "t": 0.45,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "agua",
@@ -365,7 +365,7 @@
     "id": "agua_barrera_actual_110",
     "modo": "actual",
     "t": 1.1,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "agua",
@@ -373,7 +373,7 @@
     "id": "agua_barrera_procedural_045",
     "modo": "procedural",
     "t": 0.45,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "agua",
@@ -381,7 +381,7 @@
     "id": "agua_barrera_procedural_110",
     "modo": "procedural",
     "t": 1.1,
-    "titulo": "barrera"
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
   },
   {
     "elemento": "agua",

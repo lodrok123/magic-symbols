@@ -112,8 +112,8 @@ def main():
 # ---------------------------------------------------------------- modo "en el juego" (A1, 2/11/2026) ----------------------------------------------------------------
 # Fotogramas completos de 1280x720 con la camara del juego (ortogonal): se recorta un area alrededor de la jugadora (centro de pantalla), a escala 1:1 de pixeles
 # del juego (sin reescalar, para que el tamano de los dos dibujos se pueda comparar a ojo), y se ponen lado a lado.
-EJ_RECORTE = (400, 200, 880, 560)     # x0, y0, x1, y1 del recorte (480x360): la jugadora (centro de pantalla, ~645, 380) y lo que sale por delante
-EJ_CELDA = (480, 360)                 # tamano de la celda en la lamina: 1:1 con los pixeles del juego (nada reescalado)
+EJ_RECORTE = (480, 160, 1280, 640)    # x0, y0, x1, y1 del recorte (800x480): la jugadora (centro de pantalla, ~645, 380) y lo que sale por delante (un muro a 2 casillas queda a ~550 px; la jugadora, a la izquierda)
+EJ_CELDA = (640, 384)                 # tamano de la celda en la lamina: 0,8 de los pixeles del juego, igual en todas las celdas
 EJ_HECHIZOS = [("bola_quieta", "BOLA QUIETA"), ("proyectil", "PROYECTIL"), ("muro", "MURO"), ("pilar", "PILAR"), ("barrera", "BARRERA"), ("haz", "HAZ"), ("carga", "CARGA EN LA MANO")]
 EJ_ELEMENTOS = ["fuego", "agua"]
 

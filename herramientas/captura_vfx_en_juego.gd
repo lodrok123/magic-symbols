@@ -11,9 +11,9 @@ const RUTA: String = "res://escenas/PruebaBosque01_v01.tscn"
 const HECHIZOS: Array = [
 	["bola_quieta", "bola quieta", ["pulso"]],      # sin glifos la página no se lanza; ᛟ `pulso` da una bola quieta que crece (radio 0,3)
 	["proyectil", "proyectil", ["flecha"]],
-	["muro", "muro", ["barrera", "linea_x", "linea_x"]],
+	["muro", "muro (con ᛉ: sin altura queda bajo la hierba)", ["barrera", "linea_x", "linea_x", "altura"]],      # ᚦ+ᛁᛁ solo = 2,5 × 0,46 × 0,46 m (la hierba lo tapa); con ᛉ sube a 1,8 m
 	["pilar", "pilar", ["altura", "altura", "altura"]],
-	["barrera", "barrera", ["barrera", "linea_x", "linea_x", "linea_z", "linea_z"]],
+	["barrera", "barrera (con ᛁ ᛁ y ᛉ)", ["barrera", "linea_x", "linea_z", "altura"]],      # ᚦ sola = cúpula de 0,23 m de radio (invisible entre la hierba); con ᛁ en X y en Z y ᛉ, cúpula de 1,6 m de ancho
 	["haz", "haz", ["linea_x", "linea_x"]],
 	["carga", "carga en la mano", ["flecha"]],
 ]
@@ -81,13 +81,23 @@ func _una(el: String, hz: Array, modo: String) -> void:
 	var origen: Vector3 = jugador.position
 	if (hz[2] as Array).has("barrera"):
 		origen += DIR * Terreno3D.casilla * 2.0      # ᚦ nace donde se apunta (`en_punto`, hasta ALCANCE_ORIGEN casillas): dos casillas por delante; lo demás nace en la jugadora
+	var avisos: Array = []
+	var cb: Callable = func(est: String, e: String, g: Dictionary, o: Vector3, _d: Vector3, _p: Dictionary) -> void:
+		avisos.append("%s/%s xyz=(%.2f,%.2f,%.2f) casillas=%d eventos=%s suelo=%.2f origen=%s jugador=%s" % [est, e, float(g["x"]), float(g["y"]), float(g["z"]), (g["celdas"] as Array).size(), str((g["eventos"] as Array)[0]["pos"]) if (g["eventos"] as Array).size() > 0 else "-", float(g["suelo"]), str(o), str(jugador.position)])
+	lanzador.hechizo_v2.connect(cb)
 	var salio: bool = lanzador.lanzar_pagina_ya(0, origen, DIR, con_conjuro)
 	_ok("1 %s · %s · %s: sale el hechizo" % [el, id, modo], salio)
+	await avanzar(2)
+	lanzador.hechizo_v2.disconnect(cb)
+	print("HECHIZO_V2 %s %s %s: %s" % [el, id, modo, str(avisos)])
 	var t_ant: float = 0.0
 	var tiempos: Array = TIEMPOS
 	for t in tiempos:
 		await avanzar_s(float(t) - t_ant)
 		t_ant = float(t)
+		_ocultar_ui(root)      # el cartel de zona («La boca de la cueva») es un CanvasLayer que nace al empezar: se esconde antes de cada foto
+		if t == tiempos[0] and (id == "bola_quieta" or id == "proyectil"):
+			_medir(el, id, modo)
 		var nombre: String = "%s_%s_%s_%03d" % [el, id, modo, int(round(float(t) * 100.0))]
 		root.get_viewport().get_texture().get_image().save_png(_dir.path_join(nombre + ".png"))
 		_json.append({"id": nombre, "elemento": el, "hechizo": id, "titulo": String(hz[1]), "modo": modo, "t": float(t)})
@@ -121,3 +131,24 @@ func _buscar_claro() -> Vector2i:
 			if ok:
 				return Vector2i(x, y)
 	return Vector2i(-1, -1)
+
+
+## Mide el tamaño de lo que se ve (unión de las mallas, sin partículas) del toy o del dibujo de antes, para compararlos con los semiejes de la lógica.
+func _medir(el: String, id: String, modo: String) -> void:
+	var raices: Array = []
+	for n in maqueta.get_children():
+		if n is FuegoToy or n is AguaToy:
+			raices.append(n)
+	for n in maqueta.find_children("VfxElemento*", "Node3D", true, false):
+		raices.append(n)
+	var union := AABB()
+	var primero: bool = true
+	for r in raices:
+		for m in (r as Node).find_children("*", "MeshInstance3D", true, false):
+			var mi: MeshInstance3D = m as MeshInstance3D
+			if mi.mesh == null or not mi.is_visible_in_tree():
+				continue
+			var ab: AABB = mi.global_transform * mi.mesh.get_aabb()
+			union = ab if primero else union.merge(ab)
+			primero = false
+	print("MEDIDA %s %s %s: %d raices, mallas visibles AABB tamaño %s" % [el, id, modo, raices.size(), str(union.size) if not primero else "ninguna"])
