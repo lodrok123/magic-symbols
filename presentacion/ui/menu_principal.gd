@@ -300,7 +300,7 @@ func accion() -> void:
 			Sfx.play_ui("ui_equipar", DB_SONIDO)
 			_cargar_ranura(int(_items[fila]["ranura"]))
 		"vacio":
-			Sfx.play_ui("no_puedes", DB_SONIDO)
+			Sfx.play_ui("no_puedes_ui", DB_SONIDO)
 		"volver":
 			Sfx.play_ui("ui_equipar", DB_SONIDO)
 			_cambiar_modo(MODO_PRINCIPAL)
@@ -309,7 +309,7 @@ func accion() -> void:
 ## Supr en «Cargar»: la primera vez pide confirmación; la segunda (Supr o Enter) borra la ranura. Fuera de una ranura, «no puedes».
 func borrar_elegida() -> void:
 	if modo != MODO_CARGAR or id_elegida() != "slot":
-		Sfx.play_ui("no_puedes", DB_SONIDO)
+		Sfx.play_ui("no_puedes_ui", DB_SONIDO)
 		return
 	if confirmando != "borrar":
 		confirmando = "borrar"
@@ -384,7 +384,7 @@ func _al_cerrar_ajustes() -> void:
 func _continuar() -> void:
 	var r: int = Partida.ranura_mas_reciente()
 	if r < 0:
-		Sfx.play_ui("no_puedes", DB_SONIDO)
+		Sfx.play_ui("no_puedes_ui", DB_SONIDO)
 		return
 	_cargar_ranura(r)
 
@@ -393,7 +393,7 @@ func _continuar() -> void:
 func _cargar_ranura(n: int) -> void:
 	var d: Dictionary = Partida.leer(n)
 	if d.is_empty():
-		Sfx.play_ui("no_puedes", DB_SONIDO)
+		Sfx.play_ui("no_puedes_ui", DB_SONIDO)
 		return
 	var mapa: String = Niveles.nivel_de(String((d.get("jugadora", {}) as Dictionary).get("mapa_actual", "")))
 	var escena: String = Niveles.escena_de(mapa) if Niveles.existe(mapa) else Niveles.escena_de(Niveles.NIVEL_INICIAL)

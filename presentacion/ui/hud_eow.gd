@@ -169,7 +169,7 @@ func _al_recargar_frasco(indice: int) -> void:
 
 ## M4: un consumible que no se pudo usar (vida llena, sin unidades...): `no_puedes` suave y el círculo tiembla.
 func _al_rechazar(_motivo: String) -> void:
-	Sfx.play_ui("no_puedes", DB_NO_PUEDES)
+	Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
 	if _circulo != null:
 		_circulo.temblar()
 
@@ -217,7 +217,7 @@ func cambiar_equipado() -> String:
 	var id: String = consumibles.siguiente()
 	if id == "":
 		_avisar("No tienes ningún consumible", Consumibles.COLOR_NO)
-		Sfx.play_ui("no_puedes", DB_NO_PUEDES)
+		Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
 		if _circulo != null:
 			_circulo.temblar()
 	else:

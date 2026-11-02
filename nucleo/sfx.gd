@@ -45,7 +45,8 @@ const CARPETA: String = "res://audio/"
 ## arreglando archivos: dicen la INTENCIÓN. El paso y el trazo van bajos
 ## porque suenan cien veces por nivel; la pira va alta porque suena una y
 ## es el final.
-const CATALOGO: Dictionary = {
+## 2/11 (tarea R): `static var` y no `const` para poder añadir una entrada EN CALIENTE (las pruebas, y los impactos por elemento de lentikula cuando se bajen) sin tocar este archivo.
+static var CATALOGO: Dictionary = {
 	# --- Elementos (sintetizados). Los busca for_element por etiqueta.
 	"fuego":   {"f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
 	"agua":    {"f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
@@ -79,7 +80,8 @@ const CATALOGO: Dictionary = {
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
 	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"],
 		"db": -10.0, "tono": 0.06},
-	"clavar":        {"f": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
+	# 2/11 (tarea R): «f» = lo grabado nuevo, «f_sint» = lo que sonaba antes (con GRABADOS = false suena este). Ver docs/DIARIO.md 306 para el porqué de cada archivo.
+	"clavar":        {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sint": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
 	"creak":         {"f": ["creak.ogg"],  "db": -11.0, "tono": 0.08},
 
 	# --- Grimorio (sintetizados a propósito).
@@ -89,6 +91,9 @@ const CATALOGO: Dictionary = {
 	# dos notas que suben y una que baja— porque tienen que leerse como
 	# "sí" y "no" sin que nadie lo explique.
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
+	# 2/11 (tarea R): la pluma que suena MIENTRAS se arrastra el trazo (bucle; volumen por velocidad: `Spellbook`), y las hojas pasando para la animación de página (tarea L; sin uso aún).
+	"pluma_bucle":   {"f": ["fs_pluma_pergamino.mp3"], "db": -30.0, "tono": 0.0},
+	"paginas_bucle": {"f": ["fs_paginas_bucle.mp3"],   "db": -16.0, "tono": 0.0},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
 	# 27/10: la CONJURACIÓN suena arcana, sea cual sea el elemento (OpenGameArt, CC0: «Magic Spell SFX» de JaggedStone). Lo toca el Lanzador al
 	# empezar cada conjuro, debajo del sonido del elemento (`Lanzador3D._sonar_fase_v2`, fase «carga»).
@@ -147,10 +152,11 @@ const CATALOGO: Dictionary = {
 	# 28/10 (Juego, gamefeel lote 1; audio/gen_sfx_sensacion.py): la salida común de todo hechizo, el «no puedes» seco y el aviso de ataque de un enemigo (C3).
 	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
 	"no_puedes":        {"f": ["no_puedes.wav"],        "db": -8.0,  "tono": 0.05},
+	"no_puedes_ui":     {"f": ["kenney_error_0.ogg", "kenney_error_1.ogg", "kenney_error_2.ogg", "kenney_error_3.ogg"], "f_sint": ["no_puedes.wav"], "db": -12.0, "tono": 0.04},   # 2/11 (R): el «no» de los MENÚS; el del mundo (arriba) no cambia
 	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
 	"tiempo_tic":       {"f": ["tiempo_tic.wav"],       "db": -10.0, "tono": 0.0},
 	"reaccion_grande":  {"f": ["reaccion_grande.wav"],  "db": -7.0,  "tono": 0.04},
-	"moneda":           {"f": ["moneda.wav"],           "db": -14.0, "tono": 0.08},
+	"moneda":           {"f": ["kenney_monedas_0.ogg", "kenney_monedas_1.ogg"], "f_sint": ["moneda.wav"], "db": -14.0, "tono": 0.08},
 	# 29/10 (gamefeel lote 3): la capa de combate (en bucle; la pone Sensacion3D.DirectorSensacion con su propio volumen) y el remate al limpiar la sala.
 	"combate_loop":     {"f": ["combate_loop.wav"],     "db": -17.0, "tono": 0.0},
 	"sala_limpia":      {"f": ["sala_limpia.wav"],      "db": -9.0,  "tono": 0.0},
@@ -175,19 +181,19 @@ const CATALOGO: Dictionary = {
 
 	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
 	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
-	"bolsa":      {"f": ["bolsa.wav"],      "db": -10.0, "tono": 0.0},
+	"bolsa":      {"f": ["kenney_bolsa_0.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
 	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
 	"pocion_fin": {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0, "pitch": 1.15},
-	"recoger":    {"f": ["recoger.wav"],    "db": -10.0, "tono": 0.0},
+	"recoger":    {"f": ["kenney_recoger_0.ogg", "kenney_recoger_1.ogg", "kenney_recoger_2.ogg", "kenney_recoger_3.ogg"], "f_sint": ["recoger.wav"], "db": -10.0, "tono": 0.04},
 	"golpe_ui":   {"f": ["golpe_ui.wav"],   "db": -8.0,  "tono": 0.0},
-	"comprar":    {"f": ["comprar.wav"],    "db": -8.0,  "tono": 0.0},
-	"ui_tick":    {"f": ["ui_tick.wav"],    "db": -20.0, "tono": 0.04},
-	"ui_equipar": {"f": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
+	"comprar":    {"f": ["kenney_comprar_0.ogg", "kenney_comprar_1.ogg"], "f_sint": ["comprar.wav"], "db": -8.0,  "tono": 0.0},
+	"ui_tick":    {"f": ["kenney_clic_0.ogg", "kenney_clic_1.ogg", "kenney_clic_2.ogg", "kenney_clic_3.ogg", "kenney_clic_4.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.04},
+	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
 	"barrido":    {"f": ["barrido.wav"],    "db": -12.0, "tono": 0.04},
 	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
 	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
-	"cofre_tapa": {"f": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
+	"cofre_tapa": {"f": ["kenney_cofre_tapa_0.ogg", "kenney_cofre_tapa_1.ogg", "kenney_cofre_tapa_2.ogg"], "f_sint": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
 	# 1/11 (gamefeel tarea D): el ping de «has acertado la debilidad» y el golpe sordo de «resiste» (del mundo: `Sfx.play(enemigo, …)`, bus Master).
 	"ping_debil":  {"f": ["ping_debil.wav"],  "db": -10.0, "tono": 0.02},
 	"golpe_sordo": {"f": ["golpe_sordo.wav"], "db": -12.0, "tono": 0.06},
@@ -206,6 +212,23 @@ static var VOLUMEN_BUS_INTERFAZ: float = -6.0     ## dB de partida del bus «Int
 ## AFINADO EN VIVO (31/10, tarea S1): nombre -> dB que SOBRESCRIBE el del catálogo. Lo escribe el panel F3 del LabHechizos3D («dB:nombre»); vacío = suena como dice CATALOGO.
 ## `imprimir_ajustes()` vuelca lo cambiado en formato de catálogo para pegarlo. También lo consulta Sfx3D.
 static var AJUSTES: Dictionary = {}
+
+
+## 2/11 (tarea R): true = suenan las GRABACIONES (clave «f» de cada entrada); false = lo sintetizado de antes (clave «f_sint», si la entrada la tiene). Para comparar de oído: fila S:GRABADOS del panel F3.
+static var GRABADOS: bool = true
+## Pluma del trazo (tarea R): suena mientras se arrastra el trazo en el libro, con el volumen según la velocidad del gesto.
+static var PLUMA_ACTIVA: bool = true
+static var DB_PLUMA_MIN: float = -30.0        ## dB con el gesto parado
+static var DB_PLUMA_MAX: float = -14.0        ## dB a velocidad normal de dibujo
+static var VELOCIDAD_PLUMA: float = 900.0     ## px/s del ratón que cuentan como «velocidad normal»
+static var SUAVIZADO_PLUMA: float = 0.05      ## s de suavizado del volumen
+
+
+## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; si no, «f».
+static func archivos_de(cfg: Dictionary) -> Array:
+	if not GRABADOS and cfg.has("f_sint"):
+		return cfg["f_sint"] as Array
+	return cfg["f"] as Array
 
 
 ## Los dB con que suena `nombre`: el ajuste en vivo si lo hay, y si no el del catálogo (de Sfx; los de Sfx3D, su propio db). Un nombre desconocido: 0.
@@ -327,7 +350,7 @@ static func play_en(origen: Node, nombre: String, pos: Vector3, tono: float = 0.
 	_ultima[nombre] = ahora
 
 	var cfg: Dictionary = CATALOGO[nombre]
-	var archivos: Array = cfg["f"]
+	var archivos: Array = archivos_de(cfg)
 	var flujo: AudioStream = load(CARPETA + String(archivos.pick_random()))
 	if flujo == null:
 		return
@@ -374,7 +397,7 @@ static func play_ui(nombre: String, db: float = INF, tono: float = 0.0) -> void:
 		return
 	_ultima[nombre] = ahora
 	var cfg: Dictionary = CATALOGO[nombre]
-	var flujo: AudioStream = load(CARPETA + String((cfg["f"] as Array).pick_random()))
+	var flujo: AudioStream = load(CARPETA + String(archivos_de(cfg).pick_random()))
 	if flujo == null:
 		return
 	var vol: float = db_de(nombre) if db == INF else db
@@ -410,8 +433,11 @@ static func _asegurar_bus_interfaz() -> void:
 static func flujo_en_bucle(nombre: String) -> AudioStream:
 	if not CATALOGO.has(nombre):
 		return null
-	var flujo: AudioStream = load(CARPETA + String((CATALOGO[nombre]["f"] as Array)[0]))
-	if flujo is AudioStreamWAV:
+	var flujo: AudioStream = load(CARPETA + String(archivos_de(CATALOGO[nombre])[0]))
+	if flujo is AudioStreamMP3 or flujo is AudioStreamOggVorbis:
+		flujo = flujo.duplicate() as AudioStream
+		flujo.set("loop", true)
+	elif flujo is AudioStreamWAV:
 		var w: AudioStreamWAV = (flujo as AudioStreamWAV).duplicate() as AudioStreamWAV
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0

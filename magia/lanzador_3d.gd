@@ -2237,6 +2237,9 @@ const SFX_CONJURO: String = "conjuro_arcano"
 func _sonar_fase_v2(fase: String, elemento: String, derivado: String = "", en: Vector3 = Vector3.ZERO) -> void:
 	var nombre: String = "%s_%s" % [derivado if fase == "impacto" and derivado != "" else elemento, fase]
 	var real: String = nombre if Sfx.CATALOGO.has(nombre) else elemento
+	# 2/11 (tarea R): si hay un impacto grabado PARA EL ELEMENTO («fuego_impacto», lentikula Basic/Druid cuando se bajen), suena ese antes que el derivado (x_mano_impacto…). Sin entradas, nada cambia.
+	if fase == "impacto" and Sfx.CATALOGO.has("%s_impacto" % elemento):
+		real = "%s_impacto" % elemento
 	sonidos_fase.append({"fase": fase, "pedido": nombre, "suena": real, "elemento": elemento})
 	if Sfx.CATALOGO.has(real):
 		Sfx.play(self, real, 0.85 if fase == "carga" and real == elemento else 0.0)

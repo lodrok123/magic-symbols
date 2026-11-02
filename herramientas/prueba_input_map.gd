@@ -393,7 +393,7 @@ func _pantalla_controles(p: MenuPausa) -> void:
 	p._input(_ev(KEY_ENTER))
 	p._input(_ev(KEY_K))
 	_ok("15 elegir una tecla ocupada INTERCAMBIA (misiones = K, mochila = J)", Controles.teclas("misiones") == [KEY_K] and Controles.teclas("mochila") == [KEY_J])
-	_ok("15 suena «no_puedes» y el aviso lo dice", Sfx.veces("no_puedes") == 1 and p.aviso_controles.contains("intercambiado"), "%d · %s" % [Sfx.veces("no_puedes"), p.aviso_controles])
+	_ok("15 suena «no_puedes_ui» y el aviso lo dice", Sfx.veces("no_puedes_ui") == 1 and p.aviso_controles.contains("intercambiado"), "%d · %s" % [Sfx.veces("no_puedes_ui"), p.aviso_controles])
 	_ok("15 sin teclas repetidas", _sin_repetidas())
 
 	# Restaurar.

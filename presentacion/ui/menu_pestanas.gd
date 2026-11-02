@@ -568,7 +568,7 @@ func accion() -> void:
 		return
 	if not Objetos.es_consumible(String(d["id"])):
 		# M3: un material o un objeto clave no se equipa: «no puedes» y el hueco tiembla.
-		Sfx.play_ui("no_puedes", DB_NO_PUEDES)
+		Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
 		var hm: BolsaUI.Hueco = hueco(_sel)
 		if hm != null:
 			hm.temblar()

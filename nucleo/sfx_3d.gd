@@ -39,11 +39,15 @@ const CATALOGO: Dictionary = {
 		"db": -5.0, "tono": 0.05, "base": 0.8},
 	# 29/10 (gamefeel lote 4, audio/gen_sfx_sensacion.py): el CUERPO que encaja un hechizo (`Combate3D.snd_golpe`: carne, piedra del gólem, chapoteo del limo) y el limo
 	# que revienta. Aquí y no en Sfx porque son del enemigo: con distancia y veda por emisor (tres goblins golpeados a la vez suenan tres veces).
-	"golpe_carne":  {"f": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
-	"golpe_piedra": {"f": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	# 2/11 (tarea R): «f» grabado (Kenney Impact, CC0), «f_sint» lo sintetizado de antes (suena con Sfx.GRABADOS = false).
+	"golpe_carne":  {"f": ["kenney_golpe_carne_0.ogg", "kenney_golpe_carne_1.ogg", "kenney_golpe_carne_2.ogg"], "f_sint": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
+	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg", "kenney_golpe_piedra_2.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	# Pasos de los enemigos (tarea R): el gólem pesa (concreto, tono ×0,6, fuerte); el goblin es ligero (hierba y madera, tono ×1,2). Los dispara el propio enemigo al andar (`PasosEnemigo3D`).
+	"paso_golem":   {"f": ["kenney_paso_golem_0.ogg", "kenney_paso_golem_1.ogg", "kenney_paso_golem_2.ogg", "kenney_paso_golem_3.ogg"], "db": -4.0, "tono": 0.06, "base": 0.6, "unidad": 4.0, "alcance": 16.0},
+	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg", "kenney_paso_goblin_1.ogg", "kenney_paso_goblin_2.ogg", "kenney_paso_goblin_3.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},
 	"limo_golpe":   {"f": ["limo_golpe.wav"],   "db": -9.0, "tono": 0.12},
 	"limo_muere":   {"f": ["limo_muere.wav"],   "db": -7.0, "tono": 0.06},
-	"gato_maullido": {"f": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
+	"gato_maullido": {"f": ["oga_gato_maullido_0.wav", "oga_gato_maullido_1.wav", "oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],
 		"db": -10.0, "tono": 0.06},
@@ -58,6 +62,8 @@ const AMBIENTES: Dictionary = {
 	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
 	# 28/10: el arrastre del bloque de piedra al empujarlo (BloqueEmpujable3D): no hay un arrastre grabado, así que el «rodar» sintetizado en bucle, bajo.
+	# 2/11 (tarea R): el ronroneo del gato quieto cerca de la jugadora (OpenGameArt «cat purr meow», CC0).
+	"gato_ronroneo": {"f": "oga_gato_ronroneo_loop.wav", "db": -14.0, "unidad": 2.0, "alcance": 8.0, "alto": 0.3},
 	"arrastre": {"f": "rodar.wav", "db": -17.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
 }
 
@@ -101,7 +107,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 	if ahora - int(_ultima.get(clave, -9999)) < VEDA_MS:
 		return
 	_ultima[clave] = ahora
-	var lista: Array = cfg["f"]
+	var lista: Array = Sfx.archivos_de(cfg)
 	var i: int = randi() % lista.size()
 	if lista.size() > 1 and i == int(_ultimo_var.get(nombre, -1)):
 		i = (i + 1 + randi() % (lista.size() - 1)) % lista.size()      # nunca el mismo dos veces seguidas
@@ -109,6 +115,7 @@ static func play(origen: Node3D, nombre: String, db_extra: float = 0.0, tono_mul
 	var s: AudioStream = _flujo(String(lista[i]))
 	if s == null:
 		return
+	Sfx._anotar(nombre, float(Sfx.AJUSTES.get(nombre, cfg.get("db", -6.0))) + db_extra, 0.0)      # para las pruebas (solo cuenta con Sfx.REGISTRAR)
 	var p := AudioStreamPlayer3D.new()
 	p.stream = s
 	p.volume_db = float(Sfx.AJUSTES.get(nombre, cfg.get("db", -6.0))) + db_extra      # S1: el ajuste en vivo (Sfx.AJUSTES) manda sobre el catálogo

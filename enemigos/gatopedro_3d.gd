@@ -45,6 +45,14 @@ var _t_susto: float = 0.0
 var _rumbo: Vector3 = Vector3.ZERO        ## último rumbo elegido (da histéresis: sin esto zigzaguea entre dos rumbos casi iguales)
 var _vel_real: float = 0.0                ## u/s que lleva este frame (la usa _animar para que las patas no patinen)
 
+## 2/11 (tarea R): ronronea (bucle `gato_ronroneo` de Sfx3D) cuando lleva más de T_RONRONEO_QUIETO s quieto y la jugadora está a menos de DIST_RONRONEO u; se calla al moverse o al alejarse.
+static var RONRONEO_ACTIVO: bool = true
+static var T_RONRONEO_QUIETO: float = 1.0
+static var DIST_RONRONEO: float = 4.0
+var _t_quieto: float = 0.0
+var _pos_prev_ronroneo: Vector3 = Vector3(INF, 0.0, 0.0)
+var _ronroneo: AudioStreamPlayer3D = null
+
 
 ## Le cuelga el comportamiento de Gatopedro a un modelo `lince` que ya está en el mundo.
 static func equipar_gatopedro(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D) -> Gatopedro3D:
@@ -67,6 +75,7 @@ static func equipar_gatopedro(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3
 	c.tinte = Color.WHITE
 	c.oro = ORO_GATOPEDRO
 	c.snd_alerta = "gato_maullido"
+	c.snd_paso = ""
 	c.snd_muere = "gato_maullido"
 	p_mundo.add_child(c, true)
 	c._marca_debil.visible = false          # sin debilidad no hay rombo de elemento
@@ -83,6 +92,25 @@ static func invocar(p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D, p
 	if lista is Array:
 		(lista as Array).append(modelo)
 	return equipar_gatopedro(modelo, p_mundo, p_jugador, p_lanz)
+
+
+func _physics_process(delta: float) -> void:
+	super(delta)
+	_actualizar_ronroneo(delta)
+
+
+func _actualizar_ronroneo(delta: float) -> void:
+	var quieta: bool = _pos_prev_ronroneo.x != INF and position.distance_to(_pos_prev_ronroneo) < 0.005
+	_pos_prev_ronroneo = position
+	_t_quieto = _t_quieto + delta if quieta else 0.0
+	var cerca: bool = jugador != null and is_instance_valid(jugador) and not jugador.muerto and _dist(jugador.position) < DIST_RONRONEO
+	var debe: bool = RONRONEO_ACTIVO and not muerto and cerca and _t_quieto > T_RONRONEO_QUIETO and estado != "huye"
+	if debe and (_ronroneo == null or not is_instance_valid(_ronroneo)):
+		_ronroneo = Sfx3D.ambiente(self, "gato_ronroneo")
+	elif not debe and _ronroneo != null:
+		if is_instance_valid(_ronroneo):
+			Sfx3D.parar(_ronroneo)
+		_ronroneo = null
 
 
 ## Un hechizo que no lo mata lo asusta (huye sin pausas y más rápido unos segundos), lo vea o no.

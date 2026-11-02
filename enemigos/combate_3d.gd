@@ -240,6 +240,11 @@ var resiste: String = "fuego"
 var nombre: String = "Goblin guerrero"
 var snd_alerta: String = "goblin_grito"      ## sonido al descubrir al jugador (Gatopedro usa otro)
 var snd_muere: String = "goblin_muere"       ## sonido al morir
+var snd_paso: String = "paso_goblin"        ## 2/11 (tarea R): la pisada al andar (`_sonar_pasos`); "" = sin pasos. El gólem usa «paso_golem»; el limo y el gato no llevan.
+var zancada_sonido: float = 0.9              ## u andadas entre pisadas
+var _paso_prev: Vector3 = Vector3(INF, 0.0, 0.0)
+var _paso_acc: float = 0.0
+const ZANCADA_TELEPORTE: float = 1.5         ## u por fotograma: más que esto no es andar (teletransporte, reaparición)
 var snd_golpe: String = "golpe_carne"        ## 29/10 (gamefeel lote 4): el cuerpo al encajar un hechizo (`Sensacion3D.golpe_enemigo`); "" = sin sonido
 var tinte: Color = Color(1.12, 0.9, 0.85)
 var oro: int = ORO_BOTIN
@@ -1035,8 +1040,28 @@ func _physics_process(delta: float) -> void:
 		# y lo pisaría, y `pj.position` pelearía con el tween que lo hunde. Muerto, esta pasada se acaba aquí.
 		return
 	_animar()
+	_sonar_pasos()
 	pj.position = position + Vector3(0.0, _salto_y, 0.0) + respingo
 	_dibujar_estado(delta)
+
+
+## 2/11 (tarea R): las pisadas del enemigo. No hay evento de apoyo en los clips, así que suenan POR DISTANCIA recorrida (cada `zancada_sonido` u, que es una pisada de las del clip `walk`).
+## Solo cuenta el movimiento propio: un empujón (`_empuje`), un salto de más de ZANCADA_TELEPORTE en un fotograma o ir en el aire no suenan.
+func _sonar_pasos() -> void:
+	if snd_paso == "" or elemental:
+		return
+	var pos: Vector3 = Vector3(position.x, 0.0, position.z)
+	if _paso_prev.x == INF:
+		_paso_prev = pos
+		return
+	var d: float = pos.distance_to(_paso_prev)
+	_paso_prev = pos
+	if d > ZANCADA_TELEPORTE or _empuje.length() > 0.3 or _salto_y > 0.05:
+		return
+	_paso_acc += d
+	if _paso_acc >= zancada_sonido:
+		_paso_acc = fmod(_paso_acc, zancada_sonido)
+		Sfx3D.play(self, snd_paso)
 
 
 ## Congela a este enemigo `t` s (si ya estaba congelado más rato, no se acorta). La animación se para con velocidad 0.

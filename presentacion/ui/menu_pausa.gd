@@ -398,12 +398,12 @@ func ajustar(dir: int) -> void:
 		_alternar_sensacion()
 		return
 	if String(d["tipo"]) != "volumen":
-		Sfx.play_ui("no_puedes")
+		Sfx.play_ui("no_puedes_ui")
 		return
 	var s: HSlider = _filas[fila]["deslizador"]
 	var nuevo: float = clampf(s.value + float(dir) * PASO_DB, VOL_MIN_DB, VOL_MAX_DB)
 	if is_equal_approx(nuevo, s.value):
-		Sfx.play_ui("no_puedes")
+		Sfx.play_ui("no_puedes_ui")
 		return
 	s.value = nuevo
 	Sfx.play_ui("ui_tick")
@@ -422,7 +422,7 @@ func accion() -> void:
 			Sfx.play_ui("ui_equipar")
 			abrir_controles()
 		"volumen":
-			Sfx.play_ui("no_puedes")
+			Sfx.play_ui("no_puedes_ui")
 		"peligro":
 			var id: String = String(d["id"])
 			if confirmando != id:
@@ -641,14 +641,14 @@ func ctrl_asignar(codigo: int) -> void:
 	var id: String = String(Controles.ACCIONES[ctrl_fila]["id"])
 	var r: Dictionary = Controles.remapear(id, codigo)
 	if not bool(r["ok"]):
-		Sfx.play_ui("no_puedes")
+		Sfx.play_ui("no_puedes_ui")
 		aviso_controles = "Esa tecla no se puede usar. Pulsa otra (Esc cancela)"
 		_refrescar_controles()
 		return
 	capturando = false
 	guardar_ajustes()
 	if String(r["intercambio"]) != "":
-		Sfx.play_ui("no_puedes")
+		Sfx.play_ui("no_puedes_ui")
 		aviso_controles = "«%s» usaba esa tecla: se han intercambiado" % Controles.texto(String(r["intercambio"]))
 	else:
 		Sfx.play_ui("ui_equipar")

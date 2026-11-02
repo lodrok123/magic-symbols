@@ -664,6 +664,8 @@ func _begin_stroke(pos: Vector2) -> void:
 		return
 
 	is_drawing = true
+	_pluma_pos = pos
+	_pluma_pos_prev = pos
 	# Empezar un trazo cancela la cuenta atrás: este trazo forma parte
 	# del mismo gesto que los anteriores.
 	gesture_countdown = 0.0
@@ -685,6 +687,7 @@ func _add_point(pos: Vector2) -> void:
 		_end_stroke()
 		return
 
+	_pluma_pos = pos
 	if stroke_crudo.is_empty() or stroke_crudo[-1].distance_to(pos) >= MIN_POINT_DISTANCE:
 		stroke_crudo.append(pos)
 		if _recto_activo():
@@ -707,6 +710,7 @@ func _end_stroke() -> void:
 		return
 
 	is_drawing = false
+	_parar_pluma()
 
 	if stroke.size() >= 2:
 		pending_strokes.append(stroke)
@@ -739,7 +743,49 @@ func _end_stroke() -> void:
 var _aviso_visible: bool = false
 
 
+## 2/11 (tarea R): LA PLUMA. Mientras se arrastra el trazo suena un bucle de pluma sobre pergamino (`Sfx` «pluma_bucle», bus «Interfaz») cuyo volumen sigue la velocidad del gesto:
+## parado = Sfx.DB_PLUMA_MIN, a Sfx.VELOCIDAD_PLUMA px/s o más = Sfx.DB_PLUMA_MAX, suavizado Sfx.SUAVIZADO_PLUMA s. Se corta al soltar. El `trazo` de tiza al soltar se queda.
+var _pluma: AudioStreamPlayer = null
+var _pluma_pos: Vector2 = Vector2.ZERO         ## último punto del ratón dentro del trazo
+var _pluma_pos_prev: Vector2 = Vector2.ZERO
+var _pluma_vel: float = 0.0                    ## px/s del último fotograma
+
+
+func _actualizar_pluma(delta: float) -> void:
+	if not (is_drawing and Sfx.PLUMA_ACTIVA):
+		if _pluma != null:
+			_parar_pluma()
+		return
+	if delta <= 0.0:
+		return
+	_pluma_vel = _pluma_pos.distance_to(_pluma_pos_prev) / delta
+	_pluma_pos_prev = _pluma_pos
+	var objetivo: float = lerpf(Sfx.DB_PLUMA_MIN, Sfx.DB_PLUMA_MAX, clampf(_pluma_vel / maxf(Sfx.VELOCIDAD_PLUMA, 1.0), 0.0, 1.0))
+	if _pluma == null or not is_instance_valid(_pluma):
+		var flujo: AudioStream = Sfx.flujo_en_bucle("pluma_bucle")
+		if flujo == null:
+			return
+		Sfx._asegurar_bus_interfaz()
+		_pluma = AudioStreamPlayer.new()
+		_pluma.stream = flujo
+		_pluma.bus = Sfx.BUS_INTERFAZ
+		_pluma.volume_db = Sfx.DB_PLUMA_MIN
+		_pluma.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_pluma)
+		_pluma.play(randf() * maxf(flujo.get_length() - 0.5, 0.0))
+		Sfx._anotar("pluma_bucle", Sfx.DB_PLUMA_MIN, 1.0)
+	_pluma.volume_db += (objetivo - _pluma.volume_db) * (1.0 - exp(-delta / maxf(Sfx.SUAVIZADO_PLUMA, 0.001)))
+
+
+func _parar_pluma() -> void:
+	if _pluma != null and is_instance_valid(_pluma):
+		Sfx.parar(_pluma, 0.06)
+	_pluma = null
+	_pluma_vel = 0.0
+
+
 func _process(delta: float) -> void:
+	_actualizar_pluma(delta)
 	_mano_actualizar()
 	if is_drawing and mano != null and mano.visible:
 		queue_redraw()                       # la punta se mueve cada fotograma y la tinta del trazo en curso llega hasta ella

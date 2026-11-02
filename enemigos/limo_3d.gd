@@ -94,6 +94,7 @@ func _ready() -> void:
 	snd_alerta = ""
 	snd_muere = "limo_muere"                 # 29/10 (gamefeel lote 4): chapoteo largo al reventar; antes no sonaba
 	snd_golpe = "limo_golpe"
+	snd_paso = ""                            # 2/11 (tarea R): el limo repta, sin pisadas
 	cuerpo = LimoVisual3D.new()
 	cuerpo.name = String(name) + "_cuerpo"
 	mundo.add_child(cuerpo)
