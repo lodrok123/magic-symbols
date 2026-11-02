@@ -1222,6 +1222,7 @@ func _ready() -> void:
 	# validarlo elemento por elemento (F8 lo enciende y apaga), para que no se dibuje encima del de elemento.
 	var vfx_elemento: VfxElemento3D = VfxElemento3D.conectar(get_node_or_null("Lanzador3D"), self)
 	vfx_elemento.casilla = Terreno3D.casilla
+	VfxToyJuego.conectar(get_node_or_null("Lanzador3D"), self)      # A1 (2/11): FuegoToy/AguaToy en el juego; inerte salvo con `magic_symbols/vfx_procedural` = true
 	vfx_estado.encendido = false
 	# Bloque 2 EoW (23/10): con el libro abierto o apuntando, lo que reaccionaría al hechizo se marca con un borde de luz (Realce3D).
 	var lz: Lanzador3D = get_node_or_null("Lanzador3D") as Lanzador3D

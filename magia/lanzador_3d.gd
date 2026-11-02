@@ -246,6 +246,7 @@ var _page_hud: Control = null
 ## HC4: un hechizo pide un efecto visual por su NOMBRE (acción `vfx`, `estela` y `efecto_impacto`). Lo resuelve el Pipeline (VfxEstado3D / Vfx3D): mientras nadie escuche, no se ve nada.
 signal vfx_hechizo(nombre: String, posicion: Vector3, elemento: String)
 signal conjuro_fase(fase: String, elemento: String, posicion: Vector3)
+var conjuro_actual: Dictionary = {}     ## A1: {hechizo: Hechizo, carga: float} del conjuro en curso (se rellena en `lanzar_ahora`; solo lo lee el VFX)
 ## Receta V2: sale UNA vez por hechizo, antes de materializarlo. Para el VFX del Pipeline: un dibujo por ESTADO escalado a (x, y, z).
 ## `g` = {x, y, z (semiejes en casillas), celdas: Array[Vector2i], niveles: int}; `props` = lo de Sigils.aplicar_v2 (viaja, solidez…).
 signal hechizo_v2(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary)
@@ -1288,6 +1289,7 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 	if con_conjuro and conjuro_activo and is_inside_tree():
 		var hc: Hechizo = hechizo_de(datos)
 		carga = hc.retardo if hc != null else 0.0
+		conjuro_actual = {"hechizo": hc, "carga": carga}      # A1: lo que `VfxToyJuego` necesita para la carga de la mano (el Hechizo y los s de ⧖ carga)
 	if carga > 0.0:
 		datos = datos.duplicate()
 		datos["carga_en_mano"] = carga

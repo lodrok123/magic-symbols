@@ -141,6 +141,9 @@ var _en_momento: bool = false             ## true mientras corren las acciones d
 var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
 var seco: bool = false                     ## 28/10 · A2: modo «en seco» (`HechizoVivo.prever`): corre las MISMAS reglas pero no aplica nada: los golpes y las marcas de suelo se anotan en `prevision` en vez de darse
 var prevision: Dictionary = {}             ## A2: lo que haría el hechizo en seco: {golpes: [{obj, dir, punto, desde}], suelo: [{elemento, celda}], fin: Vector3 (INF = no se detuvo), causa: String, rebotes: int}
+## A1 (2/11, VFX en el juego; solo DATOS para el dibujo, la lógica no los lee): el proyectil avisa de su fin y de sus rebotes con lo que el VFX necesita y antes no llegaba (la normal de la superficie y su material).
+signal terminado(causa: String, pos: Vector3, normal: Vector3, material: String)   ## causa = `motivo_fin`; normal = hacia fuera de lo que paró al proyectil; material = letra del mapa de la casilla (muro, suelo) o ""
+signal rebotado(pos: Vector3, normal: Vector3)
 
 
 ## Crea el hechizo vivo de una definición, lo materializa y devuelve el nodo (`casillas` = cuántas casillas ocupó; 0 = no se lanzó).
@@ -1483,6 +1486,7 @@ func _rebotar() -> void:
 	if seco:
 		prevision["rebotes"] = int(prevision.get("rebotes", 0)) + 1
 		return                                         # `al_rebotar` son acciones (hijos, sonidos): en seco no
+	rebotado.emit(p, v.normalized())                   # A1: para el dibujo (la velocidad ya está reflejada: apunta hacia fuera de lo que rebotó)
 	disparar_evento("al_rebotar", p, v.normalized())
 
 
@@ -1604,6 +1608,8 @@ func _terminar(causa: String) -> void:
 	activo = false
 	motivo_fin = causa
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
+	if not seco:
+		terminado.emit(causa, p, _normal_de_fin(causa, dir_fin), _material_de_fin(causa))      # A1: el VFX recibe el fin con su normal y su material
 	if (causa == "muro" or causa == "suelo") and not seco and lanz != null:
 		Sensacion3D.impacto_mundo(lanz, p, dir_fin, h.elemento, _radio_u, causa)      # gamefeel lote 4: parar contra el mundo se nota
 	var celdas_final: Array = []
@@ -1628,6 +1634,22 @@ func _terminar(causa: String) -> void:
 	else:
 		expirar.call()
 	_revisar_fin()
+
+
+## A1: la normal (hacia fuera) de lo que paró al proyectil, solo para el dibujo: suelo = arriba; muro = la contraria al eje horizontal dominante de la velocidad (las paredes son de casilla); golpe y demás = contra la marcha.
+func _normal_de_fin(causa: String, dir_fin: Vector3) -> Vector3:
+	if causa == "suelo":
+		return Vector3.UP
+	if causa == "muro":
+		return Vector3(-signf(dir_fin.x), 0.0, 0.0) if absf(dir_fin.x) >= absf(dir_fin.z) else Vector3(0.0, 0.0, -signf(dir_fin.z))
+	return -dir_fin
+
+
+## A1: el material de lo que paró al proyectil, solo para el dibujo: la letra del mapa de la casilla de contacto (muro, suelo); "" si no hay (un golpe, el alcance). Aún no hay tabla letra → material.
+func _material_de_fin(causa: String) -> String:
+	if (causa == "muro" or causa == "suelo") and not _contacto_celdas.is_empty() and Lanzador3D.en_mapa(_contacto_celdas[0] as Vector2i):
+		return Lanzador3D.letra_de(_contacto_celdas[0] as Vector2i)
+	return ""
 
 
 ## ESPEC §0.3 (regla de impacto, 19/10): al PARARSE (alcance, choque, suelo, golpe más allá de `perfora`, frenado) el proyectil aplica su MATERIA una vez en el sitio: el agua va a
