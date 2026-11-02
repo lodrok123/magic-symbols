@@ -55,7 +55,6 @@ const TIEMPO_PAGINA: float = 0.7            ## 27/10 · A1: Engine.time_scale en
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
-const ALTO_BOLA: float = 0.6                 ## Vfx3D.lanzar eleva la bola 0,6·escala sobre los pies que recibe (valor suyo; ver diario P2)
 const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const VEL_MURO: float = 1.72                ## casillas/s (Sigils.WALL_SPEED 110 px / 64)
 const VEL_ONDA: float = 1.48                ## casillas/s (Sigils.PULSE_SPEED 95 px / 64)
@@ -132,9 +131,6 @@ const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "linea", "altura",
 ## DÓNDE golpeó el último hechizo (mundo) y a qué nivel; on_spell_hit no lleva posición. Vector3.INF = ninguna.
 static var ultimo_impacto: Vector3 = Vector3.INF
 static var ultimo_nivel: int = 0
-
-## Radio (m) de la bola que se dibuja ahora; Tamaño lo agranda (8.5). Vuelve a RADIO_BOLA con cada lanzamiento.
-var _radio_bola_actual: float = RADIO_BOLA
 
 
 ## Casillas cuyo hielo no caduca (el nivel lo marca): Vector2i -> true.
@@ -1286,6 +1282,16 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 	cooldown_left[indice] = _recarga_de(datos)
 
 	var tiempos: Array = tiempos_conjuro(elemento)
+	# 31/10 (REV 01, ⧖ carga: «el hechizo se debe sostener en la mano durante el retraso»): con conjuro, el `retardo` se pasa con la forma creciendo en la mano y el hechizo sale ya sin esperar
+	# (`_disparar` le quita el retardo). Sin conjuro (laboratorios, pruebas), lo espera `HechizoVivo` como antes.
+	var carga: float = 0.0
+	if con_conjuro and conjuro_activo and is_inside_tree():
+		var hc: Hechizo = hechizo_de(datos)
+		carga = hc.retardo if hc != null else 0.0
+	if carga > 0.0:
+		datos = datos.duplicate()
+		datos["carga_en_mano"] = carga
+		tiempos = [tiempos[0], tiempos[1], float(tiempos[2]) + carga]
 	if con_conjuro and conjuro_activo and is_inside_tree() and not _cast_point.is_empty() and conjuro_escala > 0.0:
 		_conjurar_punto(datos, origen, dir)       # el clip manda: el hechizo nace en el `instante` del cast point
 	elif con_conjuro and conjuro_activo and is_inside_tree() and (float(tiempos[0]) + float(tiempos[1]) + float(tiempos[2])) > 0.0:
@@ -1363,6 +1369,7 @@ func _conjurar_punto(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	var t_runa: float = total * float(anticipacion[0])
 	var t_voluta: float = total * float(anticipacion[1])
 	var t_forma: float = total * float(anticipacion[2])
+	var carga: float = float(datos.get("carga_en_mano", 0.0))
 	if _page_hud != null and _page_hud.has_method("destello"):
 		_page_hud.call("destello", indice, t_runa + 0.15)
 	await get_tree().create_timer(maxf(t_runa, 0.001), false).timeout
@@ -1372,7 +1379,7 @@ func _conjurar_punto(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	await get_tree().create_timer(maxf(t_voluta, 0.001), false).timeout
 	var punto: Vector3 = _pos_cast_point()
 	conjuro_fase.emit("forma", elemento, punto)
-	var esfera: MeshInstance3D = null if forma_externa else _forma_en_mano(punto, color, t_forma)
+	var esfera: MeshInstance3D = null if forma_externa else _forma_en_mano(punto, color, t_forma + carga)
 	# Espera al instante del clip (por fotograma). El respaldo por reloj evita quedarse esperando si el clip no avanza.
 	var espera: float = 0.0
 	var limite: float = t_forma + 0.6
@@ -1382,6 +1389,8 @@ func _conjurar_punto(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 			break
 		await get_tree().process_frame
 		espera += get_process_delta_time()
+	if carga > 0.0:
+		await get_tree().create_timer(carga, false).timeout       # ⧖ carga: la forma se sostiene en el cast point lo que dure el retardo
 	if is_instance_valid(esfera):
 		esfera.queue_free()
 	conjurando = false
@@ -1442,6 +1451,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
 	_sonar_fase_v2("disparo", elemento)
 	var hechizo: Hechizo = hechizo_de(datos)
+	if float(datos.get("carga_en_mano", 0.0)) > 0.0 and hechizo != null:
+		hechizo.retardo = 0.0             # ⧖ carga: ya se esperó en la mano (`lanzar_ahora`)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
 	var n: int = lanzar_hechizo(hechizo, origen, dir)
 	desplaza_mano = Vector3.ZERO
@@ -1732,37 +1743,6 @@ func _una_ola(receta: Receta3D, data: RuneData, elemento: String, origen: Vector
 	return _crear_campo(receta, data, elemento, origen, giro, manifest, receta.height)
 
 
-func _barrido(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector3, dir: Vector3, alcance: float,
-		nivel: int) -> void:
-	var y_vuelo: float = y_pies(celda_de(origen)) + Terreno3D.ALTO_NIVEL * 0.5 * float(1 + nivel)
-	var inicio := Vector3(origen.x, y_vuelo, origen.z)
-	var res: Dictionary = trazar(inicio, dir, alcance, nivel, rune, receta.lifetime > 0.0, receta.bounces, receta.pull)
-	var t: float = 0.0
-	for tramo in res["tramos"]:
-		var a: Vector3 = tramo["desde"]
-		var b: Vector3 = tramo["hasta"]
-		var pie_a: Vector3 = Vector3(a.x, y_pies(celda_de(a)), a.z)
-		var pie_b: Vector3 = Vector3(b.x, y_pies(celda_de(b)), b.z)
-		# P2 (13/10): si lo que frena la bola es un objeto con punto de activación (el cuenco de la antorcha, la boca de la tinaja),
-		# la bola acaba ahí y no donde roza la caja de acierto. Vfx3D.lanzar eleva los dos extremos ALTO_BOLA·escala sobre los
-		# «pies» que se le pasan, por eso se resta.
-		var p_act: Vector3 = _activacion_al_final(tramo)
-		if p_act != Vector3.INF and fx != null:
-			pie_b = Vector3(p_act.x, p_act.y - ALTO_BOLA * fx.escala, p_act.z)
-		var el: String = String(tramo.get("elemento", elemento))
-		if Vfx3D.ELEMENTOS.has(el):
-			_visual_en(t, el, pie_a, pie_b)
-		var viaje: float = _tiempo_de_viaje(el, a.distance_to(b))
-		for g in tramo["golpes"]:
-			var obj: Node = g["obj"]
-			var dist_g: float = float(g["dist"])
-			var dir_g: Vector3 = tramo["dir"]
-			var rune_g: RuneData = tramo.get("rune", rune)
-			_despues(t + _tiempo_de_viaje(el, dist_g), _golpear.bind(obj, rune_g, dir_g, g["punto"], nivel, receta.pull,
-				(tramo["desde"] as Vector3)))
-		t += viaje
-
-
 ## P2: el punto de activación del objeto que PARA este tramo (el último golpe, a la distancia a la que acaba el tramo, que
 ## reacciona al hechizo). Vector3.INF si el tramo acaba en una pared, en el alcance, o en un objeto sin punto propio.
 func _activacion_al_final(tramo: Dictionary) -> Vector3:
@@ -1792,31 +1772,6 @@ func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneDat
 			continue
 		return obj.call("punto_activacion")
 	return Vector3.INF
-
-
-func _tiempo_de_viaje(elemento: String, distancia: float) -> float:
-	# 6.5: todos son una bola que viaja; el rayo, más rápido; la tierra, más lenta.
-	var v: float = fx.velocidad if fx != null else 7.0
-	match elemento:
-		"rayo":
-			v *= 2.0
-		"tierra":
-			v *= 0.8
-	return maxf(0.1, distancia / maxf(v, 0.1))
-
-
-func _visual_en(retraso: float, elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
-	if fx == null:
-		return
-	if retraso <= 0.001:
-		_visual(elemento, pie_a, pie_b)
-	else:
-		_despues(retraso, _visual.bind(elemento, pie_a, pie_b))
-
-
-func _visual(elemento: String, pie_a: Vector3, pie_b: Vector3) -> void:
-	if fx != null and is_instance_valid(fx):
-		fx.lanzar_forma("bola", elemento, pie_a, pie_b, {"radio": _radio_bola_actual})
 
 
 ## Borra un nodo si sigue vivo. Se conecta con `.bind(weakref(nodo))`: una lambda que capture el nodo da error en el motor («Lambda capture at index 0 was freed») cuando
@@ -2507,8 +2462,11 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	entrada["niveles"] = int(entrada["niveles"]) + 1
 	entrada["resta"] = float(opc.get("resta", DURACION_TIERRA))
 	var n: int = int(entrada["niveles"])
+	# 31/10 (REV 01 del checklist, Pablo: «el hielo está mezclado con tierra»): el hielo sólido usaba este mismo bloque y se vestía con las facetas de VfxTierra. Con `opc.elemento` = «hielo»
+	# se llama BloqueHielo, no se viste de tierra y la caja lleva un material de hielo (translúcido, liso y brillante). La colisión, la altura y la duración no cambian.
+	var es_hielo: bool = String(opc.get("elemento", "")) == "hielo"
 	var bloque := Area3D.new()              # Area3D: así la placa de peso (grupo "peso") lo nota
-	bloque.name = "BloqueTierra"
+	bloque.name = "BloqueHielo" if es_hielo else "BloqueTierra"
 	bloque.collision_layer = 1
 	bloque.collision_mask = 0
 	bloque.monitoring = false
@@ -2524,11 +2482,18 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = opc.get("color", Color(0.5, 0.37, 0.24))
 	mat.roughness = 1.0
+	if es_hielo:
+		mat.albedo_color = Color(0.72, 0.9, 1.0, 0.72)
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.roughness = 0.08
+		mat.metallic_specular = 0.9
+		mat.rim_enabled = true
+		mat.rim = 0.6
 	caja.material = mat
 	var mi := MeshInstance3D.new()
 	mi.mesh = caja
 	mi.position = desplaza
-	var facetado: bool = dibujar and VfxTierra.vestir_bloques       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja
+	var facetado: bool = dibujar and VfxTierra.vestir_bloques and not es_hielo       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja (no al hielo)
 	mi.visible = dibujar and not facetado   # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
 	var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * (float(n) - 0.5))
@@ -2737,10 +2702,22 @@ class GeometriaV2 extends RefCounted:
 	## Cuánto se adelanta el centro del volumen sobre la mano, en casillas: (z − radio base) para que el extremo de atrás se quede en la mano. **Con barrera
 	## (props.solidez) es 0**: el volumen es la circunferencia que rodea al jugador y está centrado en él (18/10, Pablo). Lo usan `celdas`, el alambre del
 	## laboratorio y debería usarlo el VFX por estado (mismo criterio: `props` tiene `solidez` ⇒ centro en el jugador).
+	## 31/10 (REV 01 del checklist, Pablo: «que con darle valores en X y Z la barrera tome formas de muro»): una barrera con ᛁ (X o Z por encima del radio base) ya no rodea a la jugadora:
+	## es un MURO cuyo centro va (DISTANCIA_MURO + z − radio base) casillas por delante, así su cara de atrás queda cerca de DISTANCIA_MURO; se estira de lado con X y hacia delante con Z.
+	## Sin ᛁ sigue siendo la burbuja centrada en ella.
+	const DISTANCIA_MURO: float = 1.0
+
 	static func adelanto(g: Dictionary) -> float:
 		if (g.get("props", {}) as Dictionary).has("solidez"):
-			return 0.0
+			if not es_muro(g):
+				return 0.0
+			return DISTANCIA_MURO + float(g["z"]) - Sigils.RADIO_BASE_V2
 		return float(g["z"]) - Sigils.RADIO_BASE_V2
+
+	## ¿Es una barrera con forma de muro? (ᛜ + algún ᛁ: la clave `muro` de `Hechizo.geo()`, que cuenta glifos; ᚷ y la carga también agrandan los semiejes y no hacen muro).
+	## Sin esa clave (el camino antiguo `aplicar_v2`, el VFX de hoy) no es muro.
+	static func es_muro(g: Dictionary) -> bool:
+		return (g.get("props", {}) as Dictionary).has("solidez") and bool(g.get("muro", false))
 
 	## La geometría de una receta: lo de Sigils.aplicar_v2 más lo que el resto del Lanzador pregunta a `Receta3D.geo()`.
 	static func evaluar(contadores: Dictionary) -> Dictionary:
@@ -2914,7 +2891,7 @@ class Receta3D extends SpellRecipe:
 		return _actual().geo()
 
 	## Los indicadores antiguos (los lee el resto del Lanzador) se derivan de los números de la receta; cada uno sale de UNA propiedad o eje.
-	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_barrido`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
+	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
 	## Va por `GeometriaV2.evaluar` (la cuenta antigua) y NO por el `Hechizo`: así `apply` no construye nada y el libro construye una sola vez.
 	func _sincronizar() -> void:
 		var g: Dictionary = GeometriaV2.evaluar(contadores)

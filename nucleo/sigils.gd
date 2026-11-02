@@ -321,7 +321,18 @@ static func semieje_horizontal_v2(n: int, paso: float = PASO_ANCHO_V2) -> float:
 ## Cuántos ᛁ horizontales hacen un muro (ᛜ + ᛁ) de 3 casillas (semieje ≥ 1,0: el centro de la casilla vecina cae dentro). Con 0,25 y ×0,75: 0,10 + 0,25 · (1 − 0,75^9) / 0,25 = 1,02 con 9 ᛁ (con 8: 0,9999).
 ## OJO: pasa de MAX_GLIFOS (6): con el decrecimiento un muro de 3 casillas ya no cabe en una página (anotado en el diario para Pablo).
 const GLIFOS_ANCHO_MURO_3_V2: int = 9
-const CRECER_TOPE_V2: float = 1.25         ## 30/10: cada ᚷ multiplica los tres semiejes por esto (el volumen nace pequeño y crece hasta el tamaño mayor; los topes globales siguen valiendo)
+## 30/10: cada ᚷ multiplica los tres semiejes por esto (el volumen nace pequeño y crece hasta el tamaño mayor; los topes globales siguen valiendo).
+## 31/10 (REV 01 del checklist, Pablo: «el crecimiento final un 30 % más grande en su punto máximo; ajusta el crecimiento en consecuencia»): 1,25 → 1,30, y la tasa (`crece`) sube en la misma proporción
+## que lo que crece de más (0,30 / 0,25 = ×1,2: 0,5 → CRECER_TASA_V2 = 0,6 m/s por glifo, tope 1,8), así tarda lo mismo en llegar a un tamaño mayor.
+const CRECER_TOPE_V2: float = 1.30
+const CRECER_TASA_V2: float = 0.6          ## m/s de radio que suma cada ᚷ a `crece`
+const CRECER_TASA_TOPE_V2: float = 1.8
+## ⧖ «carga» (31/10, REV 01, Pablo): «se sostiene en la mano durante el retraso; una vez lanzado aumenta significativamente el daño (puede valer por 2) y sus valores como crecer pero ×2.
+## Sucesivos glifos aumentan el retraso y añaden daño y tamaño; alcanzado el rango 3 solo aumenta el daño en un valor fijo». Cada glifo hasta CARGA_RANGO_V2: +1 s, semiejes ×CRECER_TOPE_V2² y
+## potencia ×CARGA_POTENCIA_V2; a partir de ahí solo el recuento de daño (CARGA_PESO_DANO por glifo, que sube el nivel de daño, un salto fijo de la tabla de `Dano`).
+const CARGA_RANGO_V2: int = 3
+const CARGA_POTENCIA_V2: float = 1.5
+const CARGA_PESO_DANO: int = 2
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
 const VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U: float = 4.0   ## u/s: la velocidad de la flecha de ayer (decisión de Pablo, 19/10: la misma). En metros sale de dividirla por la casilla: `velocidad_flecha()`
 ## m/s de una flecha = 4 u/s / casilla (≈ 1,7 con casilla 2,3). Es una función y no una const porque depende de `Terreno3D.casilla`; la tabla `GLIFOS` la pide con «@velocidad_flecha».
@@ -377,7 +388,7 @@ const GLIFOS_V2: Dictionary = {
 	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
 	"repeticion": {"tipo": "prop", "param": "copias", "inicio": 1.0, "por_glifo": 1.0, "tope": 4.0, "modo": "suma", "repertorio": "repeticion", "cooldown": 1.5},
 	"rebote": {"tipo": "prop", "param": "rebotes", "inicio": 0.0, "por_glifo": 1.0, "tope": 3.0, "modo": "suma", "repertorio": "rebote", "cooldown": 1.5},
-	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": 0.5, "tope": 1.5, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
+	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): +2 s por glifo de tiempo que se queda donde nace o donde para. Tope 25 s (el límite global cuenta además la `persiste`).
 	"permanencia": {"tipo": "prop", "param": "permanencia", "inicio": 0.0, "por_glifo": 2.0, "tope": 25.0, "modo": "suma", "repertorio": "permanencia", "cooldown": 1.5},
 	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2): +4 casillas de alcance por glifo, tope 12. El nombre que ve el jugador es «pulso»; el id es el de la runa (raido).
@@ -418,7 +429,7 @@ const GLIFOS: Dictionary = {
 	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	# ᚷ «crecer» (hasta el 23/10 se llamaba «pulso»; el id, el parámetro `crece` y el efecto no cambian: ver NOMBRE_VISIBLE). Crece mientras vive.
 	# 30/10 (playtest de Pablo, «más glifos, mayor tope geométrico y mayor tasa»): además de `crece` +0,5 m/s, cada ᚷ MULTIPLICA los tres semiejes por CRECER_TOPE_V2 (el volumen nace pequeño y crece hasta ese tamaño mayor).
-	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 0.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": 0.5, "tope": 1.5},
+	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 0.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2}]},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): lo que hace que un hechizo SE QUEDE (defensas, piezas de puzle). +2 s por glifo; `Hechizo._limitar` recorta persiste + permanencia a 25 s.
 	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 9.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
@@ -438,8 +449,10 @@ const GLIFOS: Dictionary = {
 	# ⧖ retardo, que el jugador ve como «carga» (30/10, playtest de Pablo: «cambiarlo por carga que aumente todos sus parámetros a cambio de un delay»): lo que sale tarda `retardo` s en salir (+1 s por glifo, tope 3)
 	# y a cambio sale más grande (semiejes ×1,2 por glifo) y con más daño (`potencia` ×1,25 por glifo = la G de `Combate3D.decidir_golpe`). El volumen quieto nace tarde y el proyectil espera quieto en la mano.
 	# El alcance (`distancia_max` ×1,2) NO se multiplica: un campo tocado cuenta como «propiedad usada» (`viaja`) y una carga sin flecha encarecería y quitaría el haz; anotado en el diario.
-	"retardo": {"repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0},
-		{"campo": "semiejes.x", "op": "multiplica", "valor": 1.2}, {"campo": "semiejes.y", "op": "multiplica", "valor": 1.2}, {"campo": "semiejes.z", "op": "multiplica", "valor": 1.2}, {"campo": "potencia", "op": "multiplica", "valor": 1.25}]},
+	# 31/10 (REV 01): en el juego la espera se pasa con la forma en la mano (`Lanzador3D`); semiejes ×CRECER_TOPE_V2² y potencia ×CARGA_POTENCIA_V2 hasta el rango 3 (`hasta`), y cuenta POR 2 para el daño.
+	"retardo": {"cuenta_dano": CARGA_PESO_DANO, "repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0},
+		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2},
+		{"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "potencia", "op": "multiplica", "valor": CARGA_POTENCIA_V2, "hasta": CARGA_RANGO_V2}]},
 }
 
 
@@ -493,7 +506,15 @@ const ALIAS_V2: Dictionary = {"levitacion": "altura"}
 
 ## ¿Suma este glifo al recuento ofensivo del daño? (`cuenta_dano` de GLIFOS, true por defecto; un nombre que no está en la tabla cuenta.)
 static func cuenta_dano(glifo: String) -> bool:
-	return bool((GLIFOS.get(glifo, {}) as Dictionary).get("cuenta_dano", true))
+	return peso_dano(glifo) > 0
+
+
+## 31/10: cuántos glifos ofensivos vale UNO de este (`cuenta_dano`: true = 1, false = 0, o un número; ⧖ carga vale 2).
+static func peso_dano(glifo: String) -> int:
+	var v: Variant = (GLIFOS.get(glifo, {}) as Dictionary).get("cuenta_dano", true)
+	if v is bool:
+		return 1 if v else 0
+	return maxi(int(v), 0)
 
 
 ## El nombre con el que cuenta un glifo en la receta V2 (resuelve ALIAS_V2; lo que no tenga alias se devuelve igual).

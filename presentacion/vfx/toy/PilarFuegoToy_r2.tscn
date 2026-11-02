@@ -1,0 +1,344 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/vfx/toy/efecto_toy.gd" id="1_127qq"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toy/halo_toy.gdshader" id="2_y3k57"]
+[ext_resource type="Shader" path="res://presentacion/vfx/toy/llama_toy.gdshader" id="3_cwoxf"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a1q2t"]
+render_priority = -1
+shader = ExtResource("2_y3k57")
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
+shader_parameter/brillo = 0.45
+shader_parameter/caida = 1.8
+shader_parameter/tono = null
+shader_parameter/billboard = 0
+shader_parameter/vida = null
+shader_parameter/latido = null
+shader_parameter/semilla = 0.20134008
+shader_parameter/anillo = 0.5
+
+[sub_resource type="QuadMesh" id="QuadMesh_lpcyd"]
+size = Vector2(2.6, 2.6)
+orientation = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1kbh3"]
+render_priority = -1
+shader = ExtResource("2_y3k57")
+shader_parameter/color = Color(1, 0.28, 0.06, 1)
+shader_parameter/brillo = 0.2
+shader_parameter/caida = 2.8
+shader_parameter/tono = null
+shader_parameter/billboard = 2
+shader_parameter/vida = null
+shader_parameter/latido = null
+shader_parameter/semilla = 0.89244336
+shader_parameter/anillo = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_oejm1"]
+size = Vector2(3.4, 4.2)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_mvt85"]
+render_priority = 0
+shader = ExtResource("3_cwoxf")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.35
+shader_parameter/ondulacion = 1.0
+shader_parameter/velocidad = 0.9
+shader_parameter/escala_ruido = 1.5
+shader_parameter/brillo = 0.95
+shader_parameter/tono = null
+shader_parameter/chisporroteo = null
+shader_parameter/transparencia = 0.45
+shader_parameter/tam = Vector2(2.1, 5)
+shader_parameter/radio = 0.62
+shader_parameter/punta_h = 4.3
+shader_parameter/afilado = 0.32
+shader_parameter/radio_bola = null
+shader_parameter/lobulos = 0.55
+shader_parameter/bultos = 0.22
+shader_parameter/bultos_freq = 5.0
+shader_parameter/base_clara = 0.4
+shader_parameter/borde_claro = 0.4
+shader_parameter/semilla = 0.11
+shader_parameter/billboard = null
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_6l1en"]
+size = Vector2(2.1, 5)
+center_offset = Vector3(0, 2.5, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ejv3y"]
+render_priority = 1
+shader = ExtResource("3_cwoxf")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.28
+shader_parameter/ondulacion = 0.9
+shader_parameter/velocidad = 1.1
+shader_parameter/escala_ruido = 1.8
+shader_parameter/brillo = 1.0
+shader_parameter/tono = null
+shader_parameter/chisporroteo = null
+shader_parameter/transparencia = 0.8
+shader_parameter/tam = Vector2(1.7, 4.8)
+shader_parameter/radio = 0.5
+shader_parameter/punta_h = 4.0
+shader_parameter/afilado = 0.3
+shader_parameter/radio_bola = null
+shader_parameter/lobulos = 0.5
+shader_parameter/bultos = 0.3
+shader_parameter/bultos_freq = 6.5
+shader_parameter/base_clara = 0.7
+shader_parameter/borde_claro = 0.5
+shader_parameter/semilla = 0.52
+shader_parameter/billboard = null
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_qofjf"]
+size = Vector2(1.7, 4.8)
+center_offset = Vector3(0, 2.4, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ycpwp"]
+render_priority = 2
+shader = ExtResource("3_cwoxf")
+shader_parameter/altura = null
+shader_parameter/ancho = null
+shader_parameter/blandura = 0.35
+shader_parameter/ondulacion = 0.7
+shader_parameter/velocidad = 1.35
+shader_parameter/escala_ruido = 2.2
+shader_parameter/brillo = 1.05
+shader_parameter/tono = null
+shader_parameter/chisporroteo = null
+shader_parameter/transparencia = 0.9
+shader_parameter/tam = Vector2(1.1, 3.6)
+shader_parameter/radio = 0.28
+shader_parameter/punta_h = 3.0
+shader_parameter/afilado = 0.4
+shader_parameter/radio_bola = null
+shader_parameter/lobulos = 0.4
+shader_parameter/bultos = 0.25
+shader_parameter/bultos_freq = 7.5
+shader_parameter/base_clara = 1.0
+shader_parameter/borde_claro = 0.1
+shader_parameter/semilla = 0.83
+shader_parameter/billboard = null
+shader_parameter/vida = null
+
+[sub_resource type="QuadMesh" id="QuadMesh_430oe"]
+size = Vector2(1.1, 3.6)
+center_offset = Vector3(0, 1.8, 0)
+
+[sub_resource type="Gradient" id="Gradient_k1g5f"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 0.7, 0.2, 0.9, 1, 0.38, 0.08, 0.8, 0.85, 0.15, 0.04, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_35gh7"]
+gradient = SubResource("Gradient_k1g5f")
+
+[sub_resource type="Curve" id="Curve_3umtq"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.15), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_dstcw"]
+curve = SubResource("Curve_3umtq")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_yy85n"]
+emission_shape = 3
+emission_box_extents = Vector3(0.3, 0.1, 0.3)
+direction = Vector3(0, 1, 0)
+spread = 15.0
+initial_velocity_min = 0.7
+initial_velocity_max = 1.4
+gravity = Vector3(0, 0.4, 0)
+scale_min = 0.7
+scale_max = 1.2
+scale_curve = SubResource("CurveTexture_dstcw")
+color_ramp = SubResource("GradientTexture1D_35gh7")
+
+[sub_resource type="Gradient" id="Gradient_ihv4b"]
+offsets = PackedFloat32Array(0, 0.45, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.55, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_7awcr"]
+gradient = SubResource("Gradient_ihv4b")
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dy4ho"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_7awcr")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_tf5ge"]
+material = SubResource("StandardMaterial3D_dy4ho")
+size = Vector2(0.2, 0.2)
+
+[sub_resource type="Gradient" id="Gradient_8y202"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(1, 0.8, 0.4, 0, 1, 0.6, 0.2, 1, 1, 0.5, 0.12, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_l5x1q"]
+gradient = SubResource("Gradient_8y202")
+
+[sub_resource type="Curve" id="Curve_r2s5o"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.15, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.15), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_vk6at"]
+curve = SubResource("Curve_r2s5o")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_c6wnn"]
+emission_shape = 3
+emission_box_extents = Vector3(0.3, 0.1, 0.3)
+direction = Vector3(0, 1, 0)
+spread = 20.0
+initial_velocity_min = 0.6
+initial_velocity_max = 1.5
+gravity = Vector3(0, 0.5, 0)
+scale_min = 0.7
+scale_max = 1.2
+scale_curve = SubResource("CurveTexture_vk6at")
+color_ramp = SubResource("GradientTexture1D_l5x1q")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_v2d6g"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_texture = SubResource("GradientTexture2D_7awcr")
+disable_receive_shadows = true
+billboard_mode = 3
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="QuadMesh" id="QuadMesh_iw0sa"]
+material = SubResource("StandardMaterial3D_v2d6g")
+size = Vector2(0.07, 0.07)
+
+[sub_resource type="Animation" id="Animation_c6k7r"]
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.0, 0.0]
+}
+
+[sub_resource type="Animation" id="Animation_nq257"]
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.0]
+}
+
+[sub_resource type="Animation" id="Animation_0pvni"]
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:aparicion")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2hrtb"]
+_data = {
+&"morir": SubResource("Animation_c6k7r"),
+&"nacer": SubResource("Animation_nq257"),
+&"vivir": SubResource("Animation_0pvni")
+}
+
+[node name="PilarFuegoToy" type="Node3D" unique_id=1118383999]
+script = ExtResource("1_127qq")
+tam_referencia = Vector3(1, 4, 1)
+
+[node name="Cuerpo" type="Node3D" parent="." unique_id=1285817366]
+
+[node name="Charco" type="MeshInstance3D" parent="Cuerpo" unique_id=1719207322]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+material_override = SubResource("ShaderMaterial_a1q2t")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_lpcyd")
+
+[node name="Resplandor" type="MeshInstance3D" parent="Cuerpo" unique_id=1477557411]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+material_override = SubResource("ShaderMaterial_1kbh3")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_oejm1")
+
+[node name="Exterior" type="MeshInstance3D" parent="Cuerpo" unique_id=1886824463]
+material_override = SubResource("ShaderMaterial_mvt85")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_6l1en")
+
+[node name="Cuerpo" type="MeshInstance3D" parent="Cuerpo" unique_id=466696918]
+material_override = SubResource("ShaderMaterial_ejv3y")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_qofjf")
+
+[node name="Nucleo" type="MeshInstance3D" parent="Cuerpo" unique_id=1472329333]
+material_override = SubResource("ShaderMaterial_ycpwp")
+cast_shadow = 0
+mesh = SubResource("QuadMesh_430oe")
+
+[node name="Trocitos" type="GPUParticles3D" parent="Cuerpo" unique_id=1568805978 groups=["trocitos"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 0)
+cast_shadow = 0
+amount = 3
+lifetime = 0.5
+fixed_fps = 0
+visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_yy85n")
+draw_pass_1 = SubResource("QuadMesh_tf5ge")
+
+[node name="Chispas" type="GPUParticles3D" parent="Cuerpo" unique_id=1220266548 groups=["chispas"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+cast_shadow = 0
+amount = 16
+lifetime = 1.8
+fixed_fps = 0
+visibility_aabb = AABB(-6, -3, -6, 12, 12, 12)
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_c6wnn")
+draw_pass_1 = SubResource("QuadMesh_iw0sa")
+
+[node name="Luz" type="OmniLight3D" parent="." unique_id=1790925340]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+light_color = Color(1, 0.5, 0.22, 1)
+light_energy = 2.0
+omni_range = 7.0
+omni_attenuation = 1.4
+
+[node name="Anim" type="AnimationPlayer" parent="." unique_id=888854236]
+libraries/ = SubResource("AnimationLibrary_2hrtb")

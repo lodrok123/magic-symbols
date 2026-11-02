@@ -553,9 +553,9 @@ func _crece_en_metros(runes: Dictionary) -> void:
 				cg[c] = true
 		datos_g[n_g] = {"casillas": cg.size(), "t": vgc.tiempo_crecimiento, "x": hg.semieje_x, "crece": hg.crece}
 	Sigils.HAZ_ACTIVO = true
-	_ok("A4 ᚷ×2: semieje ×1,25² y crece 1 m/s; acaba con MÁS casillas que sin ᚷ (%d vs %d; semieje %.2f vs %.2f) y tarda en llegar (%.2f s; sin ᚷ no crece)" % [datos_g[2]["casillas"], datos_g[0]["casillas"], datos_g[2]["x"], datos_g[0]["x"], datos_g[2]["t"]],
-		int(datos_g[2]["casillas"]) > int(datos_g[0]["casillas"]) and absf(float(datos_g[2]["x"]) - float(datos_g[0]["x"]) * 1.5625) < 0.0001 and float(datos_g[0]["t"]) == 0.0 and float(datos_g[2]["t"]) > 0.0)
-	_ok("A4 ᚷ×1 también: más casillas o igual que sin ᚷ y el tiempo es (s − s·escala_nace)/crece con el semieje ya multiplicado (%.2f s)" % datos_g[1]["t"], int(datos_g[1]["casillas"]) >= int(datos_g[0]["casillas"]) and absf(float(datos_g[1]["t"]) - float(datos_g[1]["x"]) * 0.7 / 0.5) < 0.001)
+	_ok("A4 ᚷ×2: semieje ×CRECER_TOPE_V2² (31/10: 1,30) y crece 2 × CRECER_TASA_V2; acaba con MÁS casillas que sin ᚷ (%d vs %d; semieje %.2f vs %.2f) y tarda en llegar (%.2f s; sin ᚷ no crece)" % [datos_g[2]["casillas"], datos_g[0]["casillas"], datos_g[2]["x"], datos_g[0]["x"], datos_g[2]["t"]],
+		int(datos_g[2]["casillas"]) > int(datos_g[0]["casillas"]) and absf(float(datos_g[2]["x"]) - float(datos_g[0]["x"]) * pow(Sigils.CRECER_TOPE_V2, 2.0)) < 0.0001 and float(datos_g[0]["t"]) == 0.0 and float(datos_g[2]["t"]) > 0.0)
+	_ok("A4 ᚷ×1 también: más casillas o igual que sin ᚷ y el tiempo es (s − s·escala_nace)/crece con el semieje ya multiplicado (%.2f s)" % datos_g[1]["t"], int(datos_g[1]["casillas"]) >= int(datos_g[0]["casillas"]) and absf(float(datos_g[1]["t"]) - float(datos_g[1]["x"]) * 0.7 / Sigils.CRECER_TASA_V2) < 0.001)
 	# el proyectil con crece: nace pequeño y crece en vuelo hasta el radio entero de semiejes_vuelo
 	for crece in [0.0, 0.5]:
 		_montar()

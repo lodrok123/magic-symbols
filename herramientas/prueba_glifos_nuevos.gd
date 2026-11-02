@@ -148,7 +148,10 @@ func _datos() -> void:
 	var c1: Hechizo = _hz({"flecha": 2, "retardo": 1})
 	var c3: Hechizo = _hz({"flecha": 2, "retardo": 3})
 	var c0: Hechizo = _hz({"flecha": 2})
-	_ok("carga (retardo): +1 s, semiejes ×1,2^n y potencia ×1,25^n (30/10); el alcance no cambia", is_equal_approx(c1.retardo, 1.0) and is_equal_approx(c3.retardo, 3.0) and is_equal_approx(c1.semieje_x, c0.semieje_x * 1.2) and is_equal_approx(c3.semieje_y, c0.semieje_y * pow(1.2, 3.0)) and is_equal_approx(c1.potencia, 1.25) and is_equal_approx(c3.potencia, pow(1.25, 3.0)) and is_equal_approx(c3.distancia_max, c0.distancia_max), "x %.3f→%.3f · G %.3f" % [c0.semieje_x, c3.semieje_x, c3.potencia])
+	_ok("carga (retardo): +1 s, semiejes ×1,3²^n y potencia ×1,5^n (31/10, REV 01); el alcance no cambia", is_equal_approx(c1.retardo, 1.0) and is_equal_approx(c3.retardo, 3.0) and is_equal_approx(c1.semieje_x, c0.semieje_x * Sigils.CRECER_TOPE_V2 * Sigils.CRECER_TOPE_V2) and is_equal_approx(c3.semieje_y, c0.semieje_y * pow(Sigils.CRECER_TOPE_V2, 6.0)) and is_equal_approx(c1.potencia, 1.5) and is_equal_approx(c3.potencia, pow(1.5, 3.0)) and is_equal_approx(c3.distancia_max, c0.distancia_max), "x %.3f→%.3f · G %.3f" % [c0.semieje_x, c3.semieje_x, c3.potencia])
+	# 31/10 (REV 01): alcanzado el rango 3, un ⧖ más ya no agranda ni sube G ni espera más: solo suma 2 al recuento de daño (un salto fijo del nivel)
+	var c4: Hechizo = _hz({"flecha": 2, "retardo": 4})
+	_ok("carga×4 = carga×3 en tamaño, G y espera; daño: cuenta 2 por glifo (%d → %d)" % [c3.n_glifos_dano, c4.n_glifos_dano], is_equal_approx(c4.semieje_x, c3.semieje_x) and is_equal_approx(c4.potencia, c3.potencia) and is_equal_approx(c4.retardo, c3.retardo) and c4.n_glifos_dano == c3.n_glifos_dano + 2 and Sigils.peso_dano("retardo") == 2)
 	_ok("carga sin flecha no cuenta como «viaja» ni quita el haz (no toca distancia_max): propiedades iguales y nombre «carga»", not _hz({"retardo": 2}).propiedades_usadas().has("viaja") and _hz({"retardo": 2}).distancia_max == 0.0 and Sigils.nombre_visible("retardo") == "carga" and Sigils.cuenta_dano("retardo"))
 	_ok("retardo: 1 s · 2 s · 3 s (tope con cinco)", is_equal_approx(_hz({"retardo": 1}).retardo, 1.0) and is_equal_approx(_hz({"retardo": 2}).retardo, 2.0) and is_equal_approx(_hz({"retardo": 5}).retardo, 3.0))
 	_ok("glifos_hasta_tope: perforar 3 · buscar 3 · retardo 3", Sigils.glifos_hasta_tope("perforar") == 3 and Sigils.glifos_hasta_tope("buscar") == 3 and Sigils.glifos_hasta_tope("retardo") == 3)
@@ -269,32 +272,52 @@ func _retorno() -> void:
 	_ok("retorno×2 hace lo mismo que retorno×1 (dos golpes, no cuatro): %s" % str(g3), g3 == [2] and v3.motivo_fin == "retorno")
 	await _limpiar(v3)
 	# 30/10 (decisión de Pablo): ᛃ sin flecha = «vuelve a la mano»: al acabar, el elemento se aplica también en la casilla del lanzador (quieto: al expirar; haz: al nacer). Sin ᛃ, esa casilla no cambia.
-	var casilla_j: Vector2i = Vector2i(4, 8)
+	var casilla_j: Vector2i = SALIDA              # 31/10: el eco cae donde nace el volumen (el origen del lanzamiento), no en la casilla de la jugadora
 	var agua_total: Dictionary = {}                 # el agua no marca casillas: se mide el volumen que echa a AguaSim
 	for caso in [["fire", {"retorno": 1}, true], ["fire", {}, false], ["water", {"linea_x": 1, "retorno": 1}, true], ["water", {"linea_x": 1}, false]]:
-		_montar(casilla_j)
+		_montar(Vector2i(4, 8))
 		var rn: RuneData = load("res://nucleo/%s_rune.tres" % caso[0])
 		var q: HechizoVivo = _lanzar(_hz(caso[1], rn), Vector3.RIGHT)
 		_ok("retorno sin flecha (%s %s): no es un proyectil y nace (no falla ni se cuelga)" % [caso[0], str(caso[1])], not q.proyectil and q.casillas > 0)
 		var antes_m: int = 0
 		for mc in _m.marcas:
 			antes_m += 1 if (mc as Array)[1] == casilla_j else 0
-		var vive: float = maxf(q.h.persiste, 0.0) + q.h.permanencia + 0.5
+		var vive: float = maxf(q.h.persiste, 0.0) + q.h.permanencia + 0.5 + HechizoVivo.RETORNO_ECO_S
 		var es_haz: bool = q.h.haz
 		var t_e: float = 0.0
-		while t_e < (0.3 if es_haz else vive):
+		while t_e < (0.3 + HechizoVivo.RETORNO_ECO_S if es_haz else vive):
 			await create_timer(0.1).timeout
 			t_e += 0.1
 		var tras_m: int = 0
 		for mc in _m.marcas:
 			tras_m += 1 if (mc as Array)[1] == casilla_j else 0
 		if caso[0] == "water":
-			agua_total[bool(caso[2])] = q.retornos_a_mano if is_instance_valid(q) else 0
+			agua_total[bool(caso[2])] = q.ecos_de_retorno if is_instance_valid(q) else 0
 		else:
 			_ok("retorno sin flecha (%s %s): %s en la casilla del lanzador (marcas %d → %d)" % [caso[0], str(caso[1]), "se aplica" if bool(caso[2]) else "no se aplica", antes_m, tras_m], (tras_m > antes_m) == bool(caso[2]))
 		if is_instance_valid(q):
 			await _limpiar(q)
-	_ok("retorno sin flecha (agua + ᛁ, haz): aplica el agua también en la casilla del lanzador (%d veces con ᛃ y %d sin ᛃ)" % [int(agua_total.get(true, -1)), int(agua_total.get(false, -1))], int(agua_total.get(true, -1)) == 1 and int(agua_total.get(false, -1)) == 0)
+	_ok("retorno sin flecha (agua + ᛁ, haz): repite el impacto una vez (%d ecos con ᛃ y %d sin ᛃ)" % [int(agua_total.get(true, -1)), int(agua_total.get(false, -1))], int(agua_total.get(true, -1)) == 1 and int(agua_total.get(false, -1)) == 0)
+	# 31/10 (REV 01, «un impacto con un pequeño delay»): rayo + ᛁ×2 (haz) contra una diana a 2 casillas: sin ᛃ la hiere una vez; con ᛃ, otra vez RETORNO_ECO_S después, en la punta del haz
+	for con_r in [false, true]:
+		_montar(Vector2i(4, 8))
+		var diana: Combate3D = _enemigo(Vector2i(7, 8))
+		var gl: Dictionary = {"linea_x": 2}
+		if con_r:
+			gl["retorno"] = 1
+		var vida0: float = diana.health
+		var qh: HechizoVivo = _lanzar(_hz(gl, load("res://nucleo/lightning_rune.tres")), Vector3.RIGHT)      # rayo: sin daño periódico que se confunda con el eco
+		var vida_haz: float = diana.health
+		var t_h: float = 0.0
+		while t_h < 0.3 + HechizoVivo.RETORNO_ECO_S:
+			await create_timer(0.1).timeout
+			t_h += 0.1
+		var vida_fin: float = diana.health
+		var golpes_h: int = (1 if vida_haz < vida0 - 0.001 else 0) + (1 if vida_fin < vida_haz - 0.001 else 0)
+		_ok("eco de ᛃ (rayo + ᛁ×2, haz, diana a 2 casillas, %s ᛃ): %d golpes (vida %.1f → %.1f → %.1f)" % ["con" if con_r else "sin", golpes_h, vida0, vida_haz, vida_fin],
+			golpes_h == (2 if con_r else 1) and qh.h.haz)
+		if is_instance_valid(qh):
+			await _limpiar(qh)
 
 
 # =====================================================================================================

@@ -180,6 +180,10 @@ func _caso_solidos() -> void:
 	var borde: Dictionary = HechizoVivo.perfil_solido(Vector2i(5, 6), ctx)
 	_ok("4 perfil: el bloque del centro, entero; el del borde, más estrecho, más bajo y hacia dentro", centro.is_empty() and not borde.is_empty()
 		and (borde["escala"] as Vector3).x < 1.0 and (borde["escala"] as Vector3).y < 1.0 and (borde["desplaza"] as Vector3).z < 0.0, str(borde))
+	# 31/10 (REV 01): con fondo (Z) el centro del elipsoide va adelantado (`GeometriaV2.adelanto`): la casilla del centro es la de delante de la mano, no la de la mano
+	var ctx_z: Dictionary = {"origen": ctx["origen"], "dir": Vector3.RIGHT, "g": {"x": 0.1, "y": 0.1, "z": 1.1}}
+	_ok("4 perfil en Z: el centro (una casilla por delante) entero y la casilla de la mano, recortada como el otro extremo", HechizoVivo.perfil_solido(Vector2i(6, 5), ctx_z).is_empty()
+		and not HechizoVivo.perfil_solido(Vector2i(5, 5), ctx_z).is_empty() and not HechizoVivo.perfil_solido(Vector2i(7, 5), ctx_z).is_empty())
 	_ok("4 una sola casilla no cambia", HechizoVivo.perfil_solido(Vector2i(5, 5), {"origen": ctx["origen"], "dir": Vector3.RIGHT, "g": {"x": 0.1, "y": 0.1, "z": 0.1}}).is_empty())
 	lab.call("limpiar")
 	lab.call("borrar_sala")

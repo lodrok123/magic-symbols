@@ -1,0 +1,3 @@
+fps medios sobre 60 fotogramas (sin vsync): 638.0
+resolución de la ventana: (1920, 1080)
+GPU: NVIDIA GeForce RTX 3070
