@@ -434,6 +434,11 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
+	# Tarea L: mientras la mano pasa la página, el ratón no escribe: sus eventos se ENCOLAN y se reproducen al terminar (no se pierde ningún trazo).
+	if _pasando and _encolar_raton(event):
+		get_viewport().set_input_as_handled()
+		return
+
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == RECORD_KEY:
 			is_recording = not is_recording
@@ -473,8 +478,7 @@ func _input(event: InputEvent) -> void:
 		if not is_recording and _pagina_de_tecla(event) >= 0:
 			var caster := _spellcaster()
 			if caster and _pagina_de_tecla(event) < Repertoire.pages_available(caster.PAGES):
-				caster.select_page(_pagina_de_tecla(event))
-				Sfx.play(_oyente(), "pagina")
+				pasar_pagina(_pagina_de_tecla(event))
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 			return
@@ -499,6 +503,10 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 
+	_manejar_raton(event)
+
+
+func _manejar_raton(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			_begin_stroke(event.position)
@@ -519,6 +527,244 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and is_drawing:
 		_add_point(event.position)
 		get_viewport().set_input_as_handled()
+
+
+## --- TAREA L (2/11): LA MANO PASA LA PÁGINA ---
+## Al pulsar 1/2/3 con el libro abierto la mano sube (LEVANTADA), va al borde derecho de las páginas en T_MANO_IR, agarra la hoja (PINZA) y tira de ella hacia el lomo
+## mientras la hoja se aplasta en X hasta HOJA_MIN (T_HOJA_CIERRA, pivote en el lomo); la hoja nueva se despliega con TRANS_BACK (T_HOJA_ABRE) y la mano suelta (LEVANTADA).
+## Con `paginas_bucle` de fondo y `pagina` al terminar. Es la misma cuenta que `grimorio_ui._pasar`. La hoja es el libro entero (el nodo se escala en X); la mano, hija
+## suya, se contraescala para no aplastarse con él. Total <= T_PASAR_MAX (los tres tiempos se encogen en proporción si la suma lo pasara).
+## `caster.select_page` ocurre cuando la hoja está del todo plegada (CAMBIA_AL_CERRAR = true: así la hoja que se despliega ya es la nueva) o, con false, al FINAL. Nada lee la
+## página antes: `page_hud` y el dibujo del libro leen `caster.page` cada fotograma.
+## MIENTRAS DURA la escritura queda en espera: los eventos de ratón se encolan (`_cola_raton`) y se reproducen al terminar sobre la página nueva; nada se pierde.
+## Pulsar otra página durante la animación la encadena (`_pasar_pend`). Con `Sensacion3D.ACTIVA = false`, `PASAR_PAGINA_ANIMADO = false` o el libro aún abriéndose: cambio instantáneo + `pagina`.
+static var PASAR_PAGINA_ANIMADO: bool = true
+static var T_MANO_IR: float = 0.12           ## s que la mano tarda en llegar al borde de las páginas
+static var T_HOJA_CIERRA: float = 0.09       ## s que la hoja actual tarda en aplastarse
+static var T_HOJA_ABRE: float = 0.12         ## s que la nueva tarda en desplegarse (TRANS_BACK)
+static var T_PASAR_MAX: float = 0.45         ## techo de la suma
+static var HOJA_MIN: float = 0.02            ## escala X de la hoja plegada
+static var CAMBIA_AL_CERRAR: bool = true     ## true = la página cambia con la hoja plegada · false = al final de la animación
+static var MANO_BORDE_U: float = 40.0        ## unidades de diseño que la mano agarra por dentro del borde derecho de las páginas
+const COLA_RATON_MAX: int = 4000
+
+var _pasando: bool = false
+var _pasar_pend: Array = []                  ## páginas pedidas durante la animación, en orden
+var _pasar_destino: int = -1
+var _pasar_cambiada: bool = false
+var _pasar_t: float = 0.0
+var _pasar_tw: Tween = null
+var _pasar_bucle: AudioStreamPlayer = null
+var _pasar_mano_ini: Vector2 = Vector2.ZERO
+var _pasar_mano_punto: Vector2 = Vector2.ZERO
+var _cola_raton: Array = []
+var _cola_traza: bool = false
+var hoja_min_visto: float = 1.0              ## la escala X más pequeña de la última animación (para las pruebas)
+var pasar_pagina_usado_ms: int = 0           ## ms de reloj de pared de la última animación (para las pruebas)
+var _pasar_ini_ms: int = 0
+
+
+func pasando_pagina() -> bool:
+	return _pasando
+
+
+func _puede_animar_pagina() -> bool:
+	if not PASAR_PAGINA_ANIMADO or not Sensacion3D.ACTIVA or not is_open or not is_inside_tree() or mano == null:
+		return false
+	return _tw_libro == null or not _tw_libro.is_valid() or not _tw_libro.is_running()
+
+
+func _cambiar_pagina_ya(n: int) -> void:
+	var caster := _spellcaster()
+	if caster:
+		caster.select_page(n)
+		Sfx.play(_oyente(), "pagina")
+
+
+## Lo único que llaman las teclas de página (y las pruebas).
+func pasar_pagina(n: int) -> void:
+	var caster := _spellcaster()
+	if caster == null:
+		return
+	if _pasando:
+		_pasar_pend.append(n)
+		return
+	if n == int(caster.get("page")) or not _puede_animar_pagina():
+		_cambiar_pagina_ya(n)
+		return
+	_empezar_pasar(n)
+
+
+func _duraciones_pasar() -> Array:
+	var suma: float = T_MANO_IR + T_HOJA_CIERRA + T_HOJA_ABRE
+	var k: float = minf(1.0, T_PASAR_MAX / maxf(suma, 0.0001))
+	return [T_MANO_IR * k, T_HOJA_CIERRA * k, T_HOJA_ABRE * k]
+
+
+func _lomo_x() -> float:
+	return _on_page(_page_block().get_center()).x
+
+
+func _borde_mano() -> Vector2:
+	var pb: Rect2 = _page_block()
+	return _on_page(Vector2(pb.end.x, pb.position.y + pb.size.y * 0.55)) - Vector2(_u(MANO_BORDE_U), 0.0)
+
+
+func _empezar_pasar(n: int) -> void:
+	if is_drawing:
+		_end_stroke()
+	_pasando = true
+	_pasar_destino = n
+	_pasar_cambiada = false
+	_pasar_t = 0.0
+	hoja_min_visto = 1.0
+	_pasar_ini_ms = Time.get_ticks_msec()
+	pivot_offset = Vector2(_lomo_x(), size.y * 0.5)
+	_pasar_mano_ini = get_local_mouse_position()
+	_pasar_mano_punto = _pasar_mano_ini
+	_arrancar_bucle_paginas()
+	var d: Array = _duraciones_pasar()
+	var total: float = float(d[0]) + float(d[1]) + float(d[2])
+	if _pasar_tw != null and _pasar_tw.is_valid():
+		_pasar_tw.kill()
+	_pasar_tw = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	# Tres tramos encadenados (mano · cierra · abre): cada uno entrega su valor final exacto, así la hoja llega de verdad a HOJA_MIN y a 1 aunque los fotogramas no caigan justo.
+	var t1: float = float(d[0])
+	var t2: float = t1 + float(d[1])
+	_pasar_tw.tween_method(_pasar_paso, 0.0, t1, t1)
+	_pasar_tw.tween_method(_pasar_paso, t1, t2, float(d[1]))
+	_pasar_tw.tween_method(_pasar_paso, t2, total, float(d[2]))
+	_pasar_tw.tween_callback(_pasar_fin)
+	_pasar_paso(0.0)
+
+
+func _pasar_paso(t: float) -> void:
+	_pasar_t = t
+	var d: Array = _duraciones_pasar()
+	var t1: float = float(d[0])
+	var t2: float = t1 + float(d[1])
+	var kx: float = 1.0
+	var borde: Vector2 = _borde_mano()
+	if t < t1:
+		mano.pose_forzada = ManoPluma2D.Pose.LEVANTADA
+		_pasar_mano_punto = _pasar_mano_ini.lerp(borde, smoothstep(0.0, 1.0, t / maxf(t1, 0.0001)))
+	elif t < t2:
+		mano.pose_forzada = ManoPluma2D.Pose.PINZA
+		_pasar_mano_punto = borde
+		var u: float = (t - t1) / maxf(t2 - t1, 0.0001)
+		kx = lerpf(1.0, HOJA_MIN, u * u)
+	else:
+		mano.pose_forzada = ManoPluma2D.Pose.LEVANTADA
+		_pasar_mano_punto = borde
+		if CAMBIA_AL_CERRAR and not _pasar_cambiada:
+			_pasar_aplicar()
+		var u2: float = clampf((t - t2) / maxf(float(d[2]), 0.0001), 0.0, 1.0)
+		var v: float = u2 - 1.0
+		var f: float = 1.0 + 2.70158 * v * v * v + 1.70158 * v * v      # TRANS_BACK, EASE_OUT
+		kx = lerpf(HOJA_MIN, 1.0, f)
+	hoja_min_visto = minf(hoja_min_visto, kx)
+	scale.x = kx * scale.y
+	mano.scale = Vector2(1.0 / maxf(kx, 0.0001), 1.0)               # contraescala: la mano no se aplasta con la hoja
+
+
+func _pasar_aplicar() -> void:
+	_pasar_cambiada = true
+	var caster := _spellcaster()
+	if caster:
+		caster.select_page(_pasar_destino)
+	queue_redraw()
+
+
+func _pasar_fin() -> void:
+	if not _pasar_cambiada:
+		_pasar_aplicar()
+	Sfx.play(_oyente(), "pagina")
+	_pasar_restaurar()
+	pasar_pagina_usado_ms = Time.get_ticks_msec() - _pasar_ini_ms
+	while not _pasar_pend.is_empty() and not _pasando:
+		pasar_pagina(int(_pasar_pend.pop_front()))
+	if not _pasando:
+		_vaciar_cola_raton()
+	queue_redraw()
+
+
+func _pasar_restaurar() -> void:
+	_pasando = false
+	_parar_bucle_paginas()
+	scale.x = scale.y
+	pivot_offset = size * 0.5
+	if mano != null:
+		mano.scale = Vector2.ONE
+		mano.pose_forzada = -1
+
+
+## Cierra el libro a media animación: la página que se pidió queda elegida (como antes, que cambiaba al pulsar), sin sonido, y la cola de ratón se descarta (como los trazos pendientes).
+func _cancelar_pasar() -> void:
+	if not _pasando:
+		return
+	if _pasar_tw != null and _pasar_tw.is_valid():
+		_pasar_tw.kill()
+	_pasar_tw = null
+	var ultimo: int = _pasar_destino if _pasar_pend.is_empty() else int(_pasar_pend.back())
+	_pasar_destino = ultimo
+	_pasar_aplicar()
+	_pasar_pend.clear()
+	_cola_raton.clear()
+	_cola_traza = false
+	_pasar_restaurar()
+
+
+func _arrancar_bucle_paginas() -> void:
+	_parar_bucle_paginas()
+	var flujo: AudioStream = Sfx.flujo_en_bucle("paginas_bucle")
+	if flujo == null:
+		return
+	Sfx._asegurar_bus_interfaz()
+	_pasar_bucle = AudioStreamPlayer.new()
+	_pasar_bucle.stream = flujo
+	_pasar_bucle.bus = Sfx.BUS_INTERFAZ
+	_pasar_bucle.volume_db = Sfx.db_de("paginas_bucle")
+	_pasar_bucle.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_pasar_bucle)
+	_pasar_bucle.play()
+	Sfx._anotar("paginas_bucle", _pasar_bucle.volume_db, 1.0)
+
+
+func _parar_bucle_paginas() -> void:
+	if _pasar_bucle != null and is_instance_valid(_pasar_bucle):
+		Sfx.parar(_pasar_bucle, 0.04)
+	_pasar_bucle = null
+
+
+## true si el evento se guardó para después (y no debe tratarse ahora).
+func _encolar_raton(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_cola_traza = true
+				_cola_raton.append(event)
+			elif _cola_traza:
+				_cola_traza = false
+				_cola_raton.append(event)
+			return true
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			_cola_raton.append(event)
+			return true
+		return false
+	if event is InputEventMouseMotion and _cola_traza:
+		if _cola_raton.size() < COLA_RATON_MAX:
+			_cola_raton.append(event)
+		return true
+	return false
+
+
+func _vaciar_cola_raton() -> void:
+	var cola: Array = _cola_raton
+	_cola_raton = []
+	_cola_traza = false
+	for ev in cola:
+		_manejar_raton(ev)
+	queue_redraw()
 
 
 func _toggle() -> void:
@@ -603,6 +849,7 @@ func _open() -> void:
 
 
 func _close() -> void:
+	_cancelar_pasar()
 	is_open = false
 	Sfx.play(_oyente(), "libro_cierra")
 	_animar_libro(false)
@@ -1224,7 +1471,9 @@ func _mano_actualizar() -> void:
 	var punto: Vector2 = get_local_mouse_position()
 	if is_drawing and not stroke_visible.is_empty():
 		punto = stroke_visible[stroke_visible.size() - 1]
-	mano.apuntar(punto, is_drawing)
+	if _pasando:
+		punto = _pasar_mano_punto
+	mano.apuntar(punto, is_drawing and not _pasando)
 
 
 ## Recorta el trazo en curso hasta la punta de la pluma: la punta cae sobre la poligonal, un poco por detrás del último punto (retardo de 60 ms).
