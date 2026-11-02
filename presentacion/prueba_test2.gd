@@ -959,6 +959,7 @@ var _img_zona_v: Image = null              ## solo las casillas ZONA_V (R = 1): 
 var _img_campo: Image = null
 var _camara: Camera3D = null
 var _sol: DirectionalLight3D = null
+var _panel_luz: PanelLuz3D = null                   ## F3: panel de luz del mapa (PanelLuz3D)
 var _foco: Vector3 = Vector3.ZERO
 var _tam_camara: float = ZOOM_INICIAL
 var _incl: float = INCLINACION
@@ -1234,6 +1235,8 @@ func _ready() -> void:
 	# exteriores (Bosque*, nunca cueva ni salas: después de Zonas3D, que le da la luz de la zona que MULTIPLICA); y el ambiente sonoro por zona en todos.
 	Misiones.i().limpiar_puntos()
 	CicloDia3D.montar(self)
+	if _sol != null:
+		_panel_luz = PanelLuz3D.montar(self)          # F3: luz del mapa afinable en caliente (oculto)
 	AmbienteZona.montar(self)
 	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.
 	if niebla_fosos:
@@ -4971,6 +4974,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo:
 		return
 	match k.keycode:
+		KEY_F3:
+			if _panel_luz != null:
+				_panel_luz.alternar()
 		KEY_F9:
 			_hornear_con_aviso()
 		KEY_F10:

@@ -11,7 +11,7 @@ extends Node
 ##
 ## DÓNDE SE MONTA. Lo monta la maqueta (PruebaTest2) en los mapas exteriores (nivel que empieza por «Bosque»: Bosque, Bosque_01, Bosque_01_v01; `PREFIJOS_EXTERIOR`), nunca en cueva ni salas; y
 ## LabHechizos3D lo monta a la fuerza (`forzar`) para mirar la luz desde el panel F3 (`S:HORA`, `S:DURACION_DIA_S`). Un mapa sin DirectionalLight3D no lo monta y lo dice por consola una vez.
-## No hay teclas en el juego: es depuración, desde F3 y desde `prueba_dia_noche`. `HORA` es static: el día sigue al cambiar de nivel.
+## En los mapas exteriores, F3 abre `PanelLuz3D` (hora, duración del día, sombras y energías de noche/amanecer/atardecer afinables en caliente; P imprime los valores). También desde F3 del laboratorio y desde `prueba_dia_noche`. `HORA` es static: el día sigue al cambiar de nivel.
 ##
 ## TABLAS. `TABLA_SOL` = [hora, tinte (se multiplica al color del sol), energía (se multiplica)] y `TABLA_AMBIENTE` = [hora, tinte, energía], interpolación lineal entre filas, envuelta a las 24.
 
@@ -25,6 +25,15 @@ static var HORA_CENIT: float = 13.0                 ## (informativa: es la mitad
 static var ELEVACION_MIN: float = 0.3               ## fracción de la inclinación de la zona que conserva el sol bajo el horizonte (la luz de noche sigue cayendo desde arriba, como la luna)
 static var GIRO_POR_HORA: float = 8.0               ## grados que gira el sol alrededor de la vertical por hora (la sombra recorre el suelo)
 static var PREFIJOS_EXTERIOR: PackedStringArray = ["Bosque"]
+## Energías y tinte de noche afinables (panel F3 del mapa): las usan las filas de las tablas con esas horas (`_energia`, `_tinte`); el valor de la tabla en esas filas se ignora.
+static var NOCHE_SOL_ENERGIA: float = 0.12          ## filas de las 0, 3, 23 y 24 h
+static var NOCHE_AMBIENTE_ENERGIA: float = 0.40
+static var AMANECER_SOL_ENERGIA: float = 0.55       ## fila de las 7 h
+static var AMANECER_AMBIENTE_ENERGIA: float = 0.75
+static var ATARDECER_SOL_ENERGIA: float = 0.55      ## fila de las 19,5 h
+static var ATARDECER_AMBIENTE_ENERGIA: float = 0.70
+static var NOCHE_TINTE_SOL: Color = Color(0.45, 0.60, 1.0)
+static var NOCHE_TINTE_AMBIENTE: Color = Color(0.55, 0.65, 1.0)
 static var TABLA_SOL: Array = [
 	[0.0, Color(0.45, 0.60, 1.0), 0.12],
 	[3.0, Color(0.45, 0.60, 1.0), 0.12],            # noche azul
@@ -113,7 +122,7 @@ static func es_noche() -> bool:
 ## 0 de día, 1 con la noche cerrada (sigue la energía de la tabla del sol: 0,55 o más = 0; 0,12 = 1). Mueve la luna, la niebla y los grillos.
 static func noche_k(h: float) -> float:
 	var e: float = float(_fila(TABLA_SOL, h)[1])
-	return clampf((0.55 - e) / (0.55 - 0.12), 0.0, 1.0)
+	return clampf((AMANECER_SOL_ENERGIA - e) / maxf(AMANECER_SOL_ENERGIA - NOCHE_SOL_ENERGIA, 0.001), 0.0, 1.0)
 
 
 ## Fracción de la inclinación de la zona a la hora `h`: sin(π·t) entre el amanecer y el atardecer (1 a mitad: las 13), `ELEVACION_MIN` fuera.
@@ -133,8 +142,30 @@ static func _fila(tabla: Array, h: float) -> Array:
 		var b: Array = tabla[i + 1]
 		if h >= float(a[0]) and h <= float(b[0]):
 			var t: float = (h - float(a[0])) / maxf(float(b[0]) - float(a[0]), 0.0001)
-			return [(a[1] as Color).lerp(b[1] as Color, t), lerpf(float(a[2]), float(b[2]), t)]
-	return [(tabla[0] as Array)[1], (tabla[0] as Array)[2]]
+			return [_tinte(tabla, a).lerp(_tinte(tabla, b), t), lerpf(_energia(tabla, a), _energia(tabla, b), t)]
+	var p: Array = tabla[0]
+	return [_tinte(tabla, p), _energia(tabla, p)]
+
+
+## La energía de una fila de tabla: las de noche, amanecer y atardecer salen de las `static var` afinables (panel F3); el resto, de la tabla.
+static func _energia(tabla: Array, fila: Array) -> float:
+	var sol: bool = is_same(tabla, TABLA_SOL)
+	var h: float = float(fila[0])
+	if h == 0.0 or h == 3.0 or h == 23.0 or h == 24.0:
+		return NOCHE_SOL_ENERGIA if sol else NOCHE_AMBIENTE_ENERGIA
+	if h == 7.0:
+		return AMANECER_SOL_ENERGIA if sol else AMANECER_AMBIENTE_ENERGIA
+	if h == 19.5:
+		return ATARDECER_SOL_ENERGIA if sol else ATARDECER_AMBIENTE_ENERGIA
+	return float(fila[2])
+
+
+## El tinte de una fila: las de noche salen de `NOCHE_TINTE_*`; el resto, de la tabla.
+static func _tinte(tabla: Array, fila: Array) -> Color:
+	var h: float = float(fila[0])
+	if h == 0.0 or h == 3.0 or h == 23.0 or h == 24.0:
+		return NOCHE_TINTE_SOL if is_same(tabla, TABLA_SOL) else NOCHE_TINTE_AMBIENTE
+	return fila[1] as Color
 
 
 static func _por(c: Color, tinte: Color) -> Color:

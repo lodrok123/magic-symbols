@@ -1,0 +1,109 @@
+extends "res://herramientas/escenario_base.gd"
+## PANEL DE LUZ DEL MAPA (F3, 2/11): PanelLuz3D en el Bosque 01 v01. Oculto al montar; alternar; HORA/SOMBRAS/SOMBRA_OPACIDAD/SOL_INCLINACION_EXTRA/NOCHE_SOL_ENERGIA escriben donde toca;
+## cambiar respeta min/max; restaurar lo devuelve todo; texto_valores una línea por fila; con los valores por defecto el ciclo da lo de siempre.
+##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_panel_luz.gd
+
+const RUTA_V01: String = "res://escenas/PruebaBosque01_v01.tscn"
+
+
+func _cerca(a: float, b: float, tol: float = 0.01) -> bool:
+	return absf(a - b) <= tol
+
+
+func _escenario() -> void:
+	var guarda_dur: float = CicloDia3D.DURACION_DIA_S
+	var guarda_hora: float = CicloDia3D.HORA
+	await cargar(RUTA_V01)
+	var panel: PanelLuz3D = maqueta.get_node_or_null("PanelLuz3D") as PanelLuz3D
+	_ok("1 la maqueta tiene PanelLuz3D", panel != null)
+	if panel == null:
+		return
+	_ok("1 el panel nace oculto", not panel.visible)
+	panel.alternar()
+	_ok("1 alternar lo muestra", panel.visible)
+	panel.alternar()
+	_ok("1 alternar otra vez lo oculta", not panel.visible)
+	var sol: DirectionalLight3D = maqueta.get("_sol") as DirectionalLight3D
+	_ok("1 hay sol y ciclo", sol != null and maqueta.get_node_or_null("CicloDia3D") != null)
+
+	# Estado de partida (con el reloj parado para que las comparaciones sean exactas).
+	CicloDia3D.DURACION_DIA_S = 0.0
+	panel.poner("DURACION_DIA_S", 0.0)
+	var panel2: PanelLuz3D = panel
+	# Los «originales» del panel son los del montaje; los reponemos tal cual para la prueba de restaurar.
+	_ok("2 valor(HORA) == CicloDia3D.HORA", _cerca(panel.valor("HORA"), CicloDia3D.HORA, 0.0001))
+	panel.poner("HORA", 22.0)
+	_ok("2 poner(HORA, 22) -> CicloDia3D.HORA 22", _cerca(CicloDia3D.HORA, 22.0, 0.0001), str(CicloDia3D.HORA))
+	await avanzar(2)
+	_ok("2 con DURACION_DIA_S = 0 la hora sigue en 22", _cerca(CicloDia3D.HORA, 22.0, 0.0001), str(CicloDia3D.HORA))
+
+	panel.poner("SOMBRAS", 0.0)
+	_ok("3 SOMBRAS 0 -> shadow_enabled false", not sol.shadow_enabled)
+	panel.poner("SOMBRAS", 1.0)
+	_ok("3 SOMBRAS 1 -> shadow_enabled true", sol.shadow_enabled)
+
+	panel.poner("SOMBRA_OPACIDAD", 0.5)
+	await avanzar(2)
+	_ok("4 SOMBRA_OPACIDAD 0,5 -> sol.shadow_opacity ≈ 0,5", _cerca(sol.shadow_opacity, 0.5), str(sol.shadow_opacity))
+
+	panel.poner("HORA", 10.0)
+	await avanzar(2)
+	var pitch0: float = sol.rotation_degrees.x
+	panel.poner("SOL_INCLINACION_EXTRA", -10.0)
+	await avanzar(2)
+	var pitch1: float = sol.rotation_degrees.x
+	_ok("5 SOL_INCLINACION_EXTRA -10 baja el pitch 10°", _cerca(pitch0 - pitch1, 10.0, 0.05), "%.2f -> %.2f" % [pitch0, pitch1])
+
+	panel.poner("HORA", 2.0)
+	panel.poner("NOCHE_SOL_ENERGIA", 0.3)
+	var e_noche: float = float(CicloDia3D.transformar(LuzZona3D.valores("bosque"), 2.0)["sol_energia"])
+	_ok("6 NOCHE_SOL_ENERGIA 0,3 -> transformar a las 2 h ≈ 0,3", _cerca(e_noche, 0.3), str(e_noche))
+
+	# cambiar con Shift (×10 pasos) respeta min y max
+	panel.poner("SOMBRA_OPACIDAD", 0.9)
+	var i_op: int = _indice("SOMBRA_OPACIDAD")
+	panel.cambiar(i_op, 10)
+	_ok("7 cambiar ×10 respeta el máximo", _cerca(panel.valor("SOMBRA_OPACIDAD"), 1.0, 0.0001), str(panel.valor("SOMBRA_OPACIDAD")))
+	panel.cambiar(i_op, -100)
+	_ok("7 cambiar ×-100 respeta el mínimo", _cerca(panel.valor("SOMBRA_OPACIDAD"), 0.0, 0.0001), str(panel.valor("SOMBRA_OPACIDAD")))
+	panel.poner("SOMBRA_DISTANCIA", 5.0)
+	_ok("7 SOMBRA_DISTANCIA no baja de 10", _cerca(panel.valor("SOMBRA_DISTANCIA"), 10.0, 0.0001))
+	panel.poner("CICLO_ACTIVO", 0.4)
+	_ok("7 bool: 0,4 -> no", panel.valor("CICLO_ACTIVO") < 0.5)
+	panel.poner("CICLO_ACTIVO", 0.6)
+	_ok("7 bool: 0,6 -> sí", panel.valor("CICLO_ACTIVO") >= 0.5)
+
+	# texto_valores: una línea por fila
+	var lineas: PackedStringArray = panel.texto_valores().split("\n", false)
+	_ok("8 texto_valores tiene una línea por fila", lineas.size() == PanelLuz3D.FILAS.size(), "%d vs %d" % [lineas.size(), PanelLuz3D.FILAS.size()])
+
+	# restaurar: vuelve a lo del montaje
+	panel.restaurar()
+	await avanzar(2)
+	_ok("9 restaurar: HORA", _cerca(CicloDia3D.HORA, guarda_hora, 0.2), "%.2f vs %.2f" % [CicloDia3D.HORA, guarda_hora])
+	_ok("9 restaurar: SOMBRA_OPACIDAD 1", _cerca(LuzZona3D.SOMBRA_OPACIDAD, 1.0, 0.0001) and _cerca(sol.shadow_opacity, 1.0))
+	_ok("9 restaurar: SOL_INCLINACION_EXTRA 0", _cerca(LuzZona3D.SOL_INCLINACION_EXTRA, 0.0, 0.0001))
+	_ok("9 restaurar: NOCHE_SOL_ENERGIA 0,12", _cerca(CicloDia3D.NOCHE_SOL_ENERGIA, 0.12, 0.0001))
+	_ok("9 restaurar: DURACION_DIA_S del montaje", _cerca(CicloDia3D.DURACION_DIA_S, guarda_dur, 0.0001), str(CicloDia3D.DURACION_DIA_S))
+	_ok("9 restaurar: sombras encendidas", sol.shadow_enabled)
+
+	# valores por defecto: el ciclo da lo de siempre
+	var base: Dictionary = LuzZona3D.valores("bosque")
+	var e13: float = float(CicloDia3D.transformar(base, 13.0)["sol_energia"])
+	var e2: float = float(CicloDia3D.transformar(base, 2.0)["sol_energia"])
+	_ok("10 por defecto: a las 13 h energía 1,0", _cerca(e13, 1.0), str(e13))
+	_ok("10 por defecto: a las 2 h energía 0,12", _cerca(e2, 0.12), str(e2))
+	_ok("10 por defecto: noche_k(2) = 1 y noche_k(13) = 0", _cerca(CicloDia3D.noche_k(2.0), 1.0) and _cerca(CicloDia3D.noche_k(13.0), 0.0))
+
+	# Dejarlo todo como estaba
+	panel2.restaurar()
+	CicloDia3D.reiniciar()
+	CicloDia3D.DURACION_DIA_S = 600.0
+	print("FIN (guarda dur %.0f)" % guarda_dur)
+
+
+func _indice(nombre: String) -> int:
+	for i in range(PanelLuz3D.FILAS.size()):
+		if String(PanelLuz3D.FILAS[i][0]) == nombre:
+			return i
+	return -1

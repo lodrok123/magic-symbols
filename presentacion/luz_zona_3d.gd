@@ -29,8 +29,10 @@ extends RefCounted
 const SOL_INCLINACION: float = -70.0
 ## Sombra del sol. Como antes: PARALLEL_4_SPLITS, 30 u, blur 1,0.
 const SOMBRA_MODO: int = DirectionalLight3D.SHADOW_ORTHOGONAL
-const SOMBRA_DISTANCIA: float = 35.0
-const SOMBRA_BLUR: float = 1.6
+static var SOMBRA_DISTANCIA: float = 35.0           ## afinable en caliente (panel F3 del mapa)
+static var SOMBRA_BLUR: float = 1.6                 ## afinable en caliente (panel F3 del mapa)
+static var SOMBRA_OPACIDAD: float = 1.0             ## `shadow_opacity` del sol: 1 = sombra negra del todo, menos = más suave (panel F3)
+static var SOL_INCLINACION_EXTRA: float = 0.0       ## grados que se SUMAN al `sol_pitch` de la zona en `aplicar_valores` (más negativo = más vertical; panel F3)
 const ZONAS: Dictionary = {
 	# V2: sol cálido casi cenital y AMBIENTE DE DOS COLORES de verdad: el cielo (azul lila claro) alumbra lo que mira arriba y el rebote del
 	# suelo (verde seco cálido) lo que mira abajo y los costados. Antes los dos eran iguales y el ambiente era un color plano.
@@ -131,6 +133,7 @@ static func aplicar(env: Environment, sol: DirectionalLight3D, zona: String) -> 
 		sol.directional_shadow_mode = int(z.get("sombra_modo", SOMBRA_MODO)) as DirectionalLight3D.ShadowMode
 		sol.directional_shadow_max_distance = float(z.get("sombra_distancia", SOMBRA_DISTANCIA))
 		sol.shadow_blur = float(z.get("sombra_blur", SOMBRA_BLUR))
+		sol.shadow_opacity = SOMBRA_OPACIDAD
 	if env != null:
 		ambiente_dos_colores(env, z["ambiente_arriba"], z["ambiente_abajo"], float(z["ambiente_energia"]))
 	return true
@@ -169,7 +172,8 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 	if sol != null:
 		sol.light_color = v["sol_color"]
 		sol.light_energy = float(v["sol_energia"])
-		sol.rotation_degrees = Vector3(float(v["sol_pitch"]), float(v["sol_yaw"]), 0.0)
+		sol.rotation_degrees = Vector3(clampf(float(v["sol_pitch"]) + SOL_INCLINACION_EXTRA, -89.0, -5.0), float(v["sol_yaw"]), 0.0)
+		sol.shadow_opacity = SOMBRA_OPACIDAD
 	if env == null:
 		return
 	var mat: ProceduralSkyMaterial = env.sky.sky_material as ProceduralSkyMaterial if env.sky != null else null
