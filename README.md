@@ -1,179 +1,109 @@
 # Magic Symbols
 
-Juego 2D isométrico de magia por dibujo de runas, hecho en **Godot 4.7**.
+Juego 3D de puzles y aventura de magia por dibujo de runas, hecho en **Godot 4.7** (Forward+). La protagonista es una elfa chibi; la cámara es ortogonal, inclinada 60°, y gira de 90° en 90°.
 
-Dibujas un símbolo, el juego lo reconoce, y el elemento que sale
-reacciona con el mundo de forma física: el fuego se propaga por la
-hierba, el viento lo aviva, el agua conduce el rayo, el hielo deja el
-suelo resbaladizo.
+Abres el libro, dibujas un sello (el elemento) y glifos (la forma), y lanzas el hechizo desde la jugadora. El elemento cambia el mundo de forma física: el fuego quema la hierba, el agua moja y, con más agua, hiela, el calor funde el hielo, el rayo se conduce por el agua.
 
-Referencias: *Magicka* (combinar elementos), *Witch Hat Atelier* (que
-dibujar importe), *Breath of the Wild* (reacciones físicas entre
-elementos).
+Referencias: *Magicka* (combinar elementos), *Witch Hat Atelier* (que dibujar importe), *Echoes of Wisdom*, *Link's Awakening*, *Wizard of Legend*, *Kena* y *Noita*. El resumen de diseño está en **`docs/GDD.md`**.
 
 ---
 
 ## Cómo se juega
 
+Las teclas se pueden reasignar desde el menú de pausa; estas son las de serie (`nucleo/controles.gd`).
+
 | tecla | acción |
 |---|---|
-| `WASD` | moverse |
-| `Shift` | saltar (impulso corto que ignora colisiones) |
-| `Espacio` | voltereta (esquiva rápida con recarga) |
-| `T` | abrir / cerrar el grimorio; **el tiempo se detiene** mientras está abierto |
-| `1` `2` `3` | con el libro **cerrado**, lanzar la página 1, 2 o 3; con el libro abierto, cambiar de página |
-| ratón | en los niveles se apunta con el ratón |
-| `E` | hablar con un NPC, recoger un ingrediente o planta, comprar en un puesto |
-| `I` | mochila (pausa el juego) |
-| `Q` | beber una poción |
-| `F1` | ocultar / mostrar la paleta de pruebas (incluye "Añadir todos") |
-| `R` | reiniciar el nivel (también en pausa); en la pantalla de muerte, volver al último punto de guardado |
+| `WASD` / flechas | moverse |
+| `Shift` | correr |
+| `Espacio` | saltar |
+| `Ctrl` | voltereta |
+| `F` | golpe cuerpo a cuerpo |
+| `E` | interactuar (hablar, recoger, abrir) |
+| `T` | abrir / cerrar el libro de hechizos |
+| `1` `2` `3` | con el libro cerrado, lanzar la página 1, 2 o 3; con el libro abierto, cambiar de página |
+| `I` / `J` | mochila / misiones |
+| `Q` / `R` | usar consumible / cambiar consumible |
+| `Esc` | pausa |
 
-Con el grimorio abierto:
+**Con el libro abierto el tiempo va al 30 %**: tienes tiempo para dibujar, pero el mundo sigue vivo. El hechizo siempre sale de la jugadora.
 
-- Dibuja en el **núcleo** (el círculo central) → eliges el **elemento**
-  o *sello* (fuego, agua, tierra, rayo, hielo, viento).
-- Dibuja en un **sector** (uno de los 8 alrededor) → añades un **glifo**
-  con su dirección. Varios glifos **se combinan**: barrera + levitación da
-  una columna, levitación + flecha un tornado que se mueve. Ninguna de
-  esas combinaciones está programada — emergen.
-- Al cerrar el libro con `T`, se lanza la página abierta. Hay tres
-  páginas; no se gastan, se recargan.
+Con el libro abierto:
 
-Dibujar en varios sectores lanza varios componentes a la vez: cuatro
-flechas en cuatro sectores son cuatro proyectiles en cuatro direcciones.
+- Dibuja en el **núcleo** (el círculo central) para elegir el **sello**, es decir el elemento: fuego, agua, tierra, rayo, hielo o viento.
+- Dibuja en un **sector** (uno de los que rodean el núcleo) para añadir un **glifo**. Los glifos se combinan: nadie ha programado «barrera + flecha», sale de que cada glifo aporte lo suyo al hechizo.
+- Al cerrar el libro con `T`, se lanza la página abierta. Hay tres páginas; no se gastan, se recargan. Los hechizos cuestan tinta (se empieza con 100, el tope es 300).
+
+Los dibujos de cada runa están en `docs/runas.png`.
 
 ### Modo de grabación
 
-Dentro del grimorio, `G` entra y sale del modo de grabación, donde
-dibujar **no lanza nada**: guarda el trazo como muestra del gesto
-seleccionado. `1`–`9` eligen gesto y **`← →` recorren la lista entera**.
-`Retroceso` borra la última muestra y `Supr` (dos veces) borra todas las
-de ese gesto.
-
-**Los dibujos de cada runa están en `docs/runas.png`.**
-
-Graba **varias muestras por gesto** (cuatro o cinco): el mismo trazo
-sale distinto rápido que despacio, grande que pequeño, y con una sola
-muestra el reconocedor es frágil.
+Dentro del libro, `G` entra y sale del modo de grabación, donde dibujar **no lanza nada**: guarda el trazo como muestra del gesto seleccionado. Graba **varias muestras por gesto** (cuatro o cinco): el mismo trazo sale distinto rápido que despacio, grande que pequeño. Las muestras viven en `nucleo/gesture_library.tres`.
 
 ---
 
 ## Cómo está montado
 
-La idea que sostiene todo el proyecto es que **el comportamiento son
-datos, no código**:
+La idea que sostiene el proyecto es que **el comportamiento son datos, no código**.
 
-- Un **elemento** es un archivo `.tres` (`fire_rune.tres`,
-  `ice_rune.tres`…) con su color, su daño y sus etiquetas. Inventar un
-  elemento es crear un `.tres` y añadir una línea a `spellcaster.gd`.
-- Una **animación** es un atlas de 8 direcciones que el pipeline exporta
-  con su `meta.json` (`export_godot/CONTRATO_GODOT.md`). Cambiar de
-  personaje es exportar otro.
-- Un **gesto** es una plantilla grabada en `gesture_library.tres`.
-  Cambiar cómo se dibuja el fuego es redibujarlo, no reescribir una
-  función que lo detecte.
-- Una **reacción** es una etiqueta. El agua no pregunta "¿eres fuego?",
-  pregunta "¿traes la etiqueta `calor`?". Por eso un elemento nuevo
-  funciona contra el mundo entero sin tocar el mundo.
-- Los **glifos** (flecha, barrera, levitación, repetición, amplificar, y
-  los nuevos rebote, retardo, pulso, atracción y espejo) no declaran
-  combinaciones: cada uno escribe su aportación en una receta común
-  (`spell_recipe.gd`) y la receta terminada se interpreta al final.
-  `barrera + flecha` da un muro que avanza sin que esa regla esté escrita
-  en ninguna parte.
-- Un **nivel** es un plano de letras: el motor (`nivel_base.gd`) sabe
-  construir cada letra, y cada nivel solo pone su plano y sus datos.
+- **Hechizo** (`nucleo/hechizo.gd`): elemento + glifos dan tres semiejes X/Y/Z, una figura, si viaja y si es un haz. Los glifos están en `nucleo/sigils.gd`; el elemento decide su **materia** (sólido, líquido, plasma, energía, gas) y `magia/hechizo_vivo.gd` la ejecuta.
+- **Mundo con estado** (`mundo/`): cada casilla puede estar helada, electrificada, quemada, mojada o segada, y las transiciones son una tabla (`mundo/estados_suelo_3d.gd`).
+- **Enemigos** (`enemigos/`): comparten `combate_3d.gd` (vida, debilidades, estados, empuje por masa).
+- **Gesto** (`nucleo/gesture_*`): el reconocedor es **$P (Point-Cloud Recognizer)** de Vatavu, Anthony y Wobbrock (ICMI 2012), licencia New BSD.
+- **Nivel**: un plano de letras en `mundo/datos_nivel/mapas/` más una escena en `escenas/`; las reglas de puzle están en `escenas/puzle.gd`.
+- **Reacciones**: el mundo habla por contratos pequeños (`on_spell_hit`, `spell_reacts`) y por la tabla de estados, no por «¿eres fuego?».
 
-El reconocedor es **$P (Point-Cloud Recognizer)** de Vatavu, Anthony y
-Wobbrock (ICMI 2012), portado a GDScript en `gesture_recognizer.gd`.
-Licencia New BSD.
+Documentos:
 
-**`ARQUITECTURA.md` tiene el detalle completo** de lo que el código hace
-hoy, con las decisiones y sus motivos. **`docs/DISENO_FUTURO.md`** tiene
-lo que se quiere hacer. **`docs/PROPIETARIOS.md`** dice quién toca qué.
+- **`docs/GDD.md`**: qué juego es y qué está decidido.
+- **`ARQUITECTURA.md`**: lo que el código hace hoy, con el porqué (partes de la era 2D están desfasadas, ver `docs/DECISIONES_CHATS.md` §2).
+- **`docs/DISENO_FUTURO.md`**: lo que se quiere hacer.
+- **`docs/DIRECCION_2026-11-02.md`**: dónde está el proyecto y por dónde seguir.
+- **`docs/PROPIETARIOS.md`**: quién toca qué.
+- **`docs/CONTEXTO.md`**: cómo se trabaja.
 
 ---
 
 ## Seguir en otro ordenador
 
-1. Instala **Godot 4.7** y clona este repositorio.
+1. Instala **Godot 4.7** y clona este repositorio (`BAJAR_DE_GITHUB.cmd` y `SUBIR_A_GITHUB.cmd` hacen la subida y la bajada).
 2. Abre la carpeta desde el gestor de proyectos de Godot.
-3. La primera apertura tarda: Godot reconstruye `.godot/` reimportando
-   todas las texturas. Es normal y solo pasa una vez.
-4. Los personajes se renderizan con el pipeline (`pipeline/`, necesita
-   Python y Blender) y se exportan a `export_godot/`; el juego solo lee
-   esa carpeta.
+3. La primera apertura tarda: Godot reconstruye `.godot/` reimportando las texturas. Es normal y solo pasa una vez.
+4. Escena de arranque: `escenas/MenuPrincipal.tscn` (menú principal); «Nueva partida» entra en `escenas/PruebaBosque01_v01.tscn`. Cada nivel se prueba con F6 sobre su escena `Prueba*.tscn`.
 
-### Límite de tamaño de textura
+### Lanzar las pruebas
 
-Las tiras de efectos (`art/fx/`) no pasan de ~1280 px de lado y van en
-**rejilla de 6 columnas**, no en tira larga: una tira de 19 fotogramas de
-128 px mide 2432 px y falla en cualquier tarjeta con el tope en 2048. Los
-atlas del pipeline miden hasta 3072×1920 y funcionan en las tarjetas
-actuales; si hiciera falta soportar un tope de 2048, el pipeline sabe
-partirlos (`max_columns_per_part`).
+Sin ventana, desde la raíz del repo:
+
+- `tools\pruebas.cmd` lanza todas las pruebas `herramientas/prueba_*.gd` y los escenarios, y resume el resultado (busca Godot en `tools\godot_local.txt`).
+- `tools\pruebas.cmd solo <trozo de nombre>` lanza un subconjunto; `tools\prueba_una.cmd` lanza una sola.
+- Un módulo nuevo nace con su `herramientas/prueba_<modulo>.gd` y se da por bueno con `TOTAL DE FALLOS: 0`.
 
 ---
 
 ## Créditos de recursos
 
-- **Kenney Sketch Town** (CC0) — los cubos de terreno de `Blockout` e
-  `IsoTest`.
-- **Kenney** — packs de interfaz, runas y partículas (CC0).
-- **Personajes, enemigos y bloques del juego** — modelos 3D de Meshy
-  procesados por el pipeline de `pipeline/` (render isométrico de 8
-  direcciones); ver `pipeline/catalogo.json` para la licencia de cada
-  asset.
-- Efectos de rayo, hielo y tiempo: generados por `tools/gen_fx.py`;
-  sonidos: `tools/gen_sfx.py`.
+- **Kenney** (CC0): interfaz, runas y partículas.
+- **Personajes, enemigos y piezas del juego**: modelos 3D de Meshy (`arte/modelos/`, `arte/meshy/`).
+- **Sonidos**: `audio/`, con sus licencias en `audio/LICENCIAS.md`.
 - Reconocedor de gestos **$P** de Vatavu, Anthony y Wobbrock (New BSD).
 
-> **Atribución pendiente de comprobar.** `pipeline/catalogo.json` marca
-> `tree_ghibli_01` como **CC-BY-4.0** (autor "Alex Ace", Sketchfab) con
-> atribución obligatoria. Si el árbol se usa en el juego, su crédito tiene
-> que figurar aquí y en el juego; si no, hay que quitarlo del
-> `meta.json` del terreno.
+> **Atribución pendiente de comprobar.** El árbol `tree_ghibli_01` figuraba como **CC-BY-4.0** (autor «Alex Ace», Sketchfab), con atribución obligatoria. Si sigue en el juego, su crédito tiene que figurar aquí y en el juego. No se ha podido comprobar en este checkout porque el catálogo del que salía ya no está en el repositorio.
 
 ---
 
-## Las herramientas
+## Herramientas (`tools/`)
 
-Se guardan en el repo para que cada paso sea **repetible**, en vez de
-acordarse de que un día alguien recortó unos PNG a mano. Hay dos carpetas:
-
-### `pipeline/`: personajes, enemigos y terreno (lo que usa el juego hoy)
-
-Se manejan con los `.cmd` de `pipeline/` desde Windows (necesitan Python y
-Blender).
-
-| comando | qué hace |
+| herramienta | qué hace |
 |---|---|
-| `PROCESAR.cmd` | punto de entrada único (`ms_assets.py`): `procesar`, `nuevo <tipo> <id>`, `aprobar`, `rehacer`, `estado`, `escena`, `migrar`, `demo`, `cola`, `arte` |
-| `PROCESAR_PERSONAJES.cmd` | renderiza en 8 direcciones todo lo que haya en `pipeline/inbox/` (`procesar_inbox.py`), lo valida y escribe `pipeline_output/<id>/REPORTE.md` |
-| `EXPORTAR_GODOT.cmd <id>` | copia un personaje **aprobado** a `export_godot/characters/<id>/` y escribe su `meta.json` (se niega si el reporte no empieza por `# APROBADO`; `--forzar` lo salta) |
-| `PROCESAR_ARTE.cmd`, `VARIANTES_ARTE.cmd` | pasada de estilo sobre un personaje ya renderizado, y sus variantes |
-| `NOCHE.cmd`, `NOCHE_RESTO.cmd` | procesan varios personajes seguidos y dejan un log en `pipeline_output/arte_QA/` |
-| `ORDENAR_CARPETA.cmd` | crea la estructura y **mueve** (no borra) lo obsoleto a `_obsoleto/`; seguro de repetir |
-| `build_npc_v25.cmd`, `render_npc_v25.cmd`, `run_npc_e2e_v24.cmd` | versiones antiguas del flujo de NPC; candidatas a `_obsoleto/` |
+| `pruebas.cmd`, `prueba_una.cmd`, `resumen_prueba.ps1` | lanzan y resumen las pruebas sin ventana |
+| `grabar_laboratorio.bat` | graba un laboratorio con el modo Movie Maker de Godot |
+| `subir_a_github.bat` | comprobaciones y subida a GitHub |
+| `podar_gestos.py` | quita muestras dispersas y nombres muertos de `gesture_library.tres` |
+| `grafo.py` | grafo de dependencias entre scripts |
+| `limpieza_mover.ps1`, `reorganizar.ps1` | scripts de limpieza del 13/10 |
+| `gen_pasos_suaves.py`, `gen_sonidos_ambiente.py` | generadores de sonido |
+| `ampliar_bosque_01.py`, `hoja_a_nivel.py` | utilidades de niveles |
+| `autorig_chaman.py`, `autorig_golem.py`, `separar_orbe_baston.py` | utilidades de modelos |
 
-### `tools/`: generadores del arte de septiembre y utilidades
-
-| script | qué genera | estado |
-|---|---|---|
-| `gen_fx.py` | las tiras de efecto de rayo, hielo y tiempo (rejilla de 6 columnas) | **vigente** |
-| `gen_fire_tiers.py` | las tres intensidades del fuego (`fire`, `fire_mid`, `fire_high`) | **vigente** |
-| `gen_sfx.py` | los efectos de sonido, sintetizados, como `.wav` sueltos | **vigente** |
-| `grabar_laboratorio.bat` | graba el laboratorio de VFX con el modo Movie Maker de Godot | **vigente** |
-| `subir_a_github.bat` | comprobaciones y subida a GitHub | **vigente** |
-| `podar_gestos.py` | quita muestras dispersas y nombres muertos de `gesture_library.tres` | **vigente** (es del Juego) |
-| `gen_iso_tiles.py`, `gen_props.py`, `gen_floor.py` | cubos, adornos y fondo de Sketch Town | histórico: solo para `Blockout` e `IsoTest` |
-| `gen_tiles_pintadas.py`, `gen_props_bosque.py` | losas pintadas y maleza metidas en la rejilla | histórico, sustituidos por el terreno del pipeline |
-| `gen_actor.py`, `gen_hero_sheets.py`, `video_a_fila.py` | la maga de relleno de 64×64, y la maga sacada de vídeo | histórico: animador antiguo (`ActorAnimator`) |
-| `gen_enemies.py` | arquero, guerrero y flecha con la paleta de Sketch Town | histórico |
-| `gen_walk.py` | — | **obsoleto**, lo dice su propia cabecera |
-| `empezar_prueba_iso.bat` | preparaba la rama `prueba-isometrico` | **obsoleto**: esa rama ya no existe |
-
-> `tools/` contiene además un `Godot_v4.7.2-stable_win64.exe` de 181 MB,
-> vídeos y un zip que `.gitignore` no excluye. GitHub rechaza archivos de
-> más de 100 MB: comprobar con `git ls-files tools` si están versionados.
+> `tools/` contiene además un `Godot_v4.7.2-stable_win64.exe` de unos 180 MB, vídeos y un zip. GitHub rechaza archivos de más de 100 MB: comprobar con `git ls-files tools` si están versionados (en este checkout el ejecutable y los vídeos no figuran en `git ls-files`).

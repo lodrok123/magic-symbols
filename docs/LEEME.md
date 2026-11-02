@@ -1,5 +1,15 @@
 # docs/ — cómo está organizado
 
+**Empieza por aquí (2/11/2026):**
+
+- [`GDD.md`](GDD.md): qué juego es, pilares, bucle, qué está decidido y qué no (dos páginas).
+- [`DIRECCION_2026-11-02.md`](DIRECCION_2026-11-02.md): dónde está el proyecto y por dónde seguir.
+- [`CONTEXTO.md`](CONTEXTO.md) y [`PROPIETARIOS.md`](PROPIETARIOS.md): cómo se trabaja y quién toca qué.
+
+Los documentos nuevos van fechados `NOMBRE_AAAA-MM-DD.md` y se enlazan desde este archivo.
+
+> Aviso: la tabla de carpetas de abajo (`proyecto/`, `arte/`, `sistemas/`) es de la reorganización del 5/10 y **no refleja la disposición actual**: hoy los documentos están sueltos en `docs/`, con `qa/`, `Playtests/`, `capturas/` y `maqueta_3d/` como subcarpetas. Sin reescribir por no estar en el encargo; las rutas de abajo (`proyecto/PROPIETARIOS.md`, `poc_25d/LEEME.md`) ya no existen.
+
 Cuatro carpetas por tema. Un documento vive en una sola; si no sabes dónde
 va, es que no hace falta crearlo (regla 7 de `proyecto/PROPIETARIOS.md`).
 

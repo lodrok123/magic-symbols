@@ -720,10 +720,14 @@ func _sombreados(n: Node) -> Array:
 func _paleta() -> void:
 	print("== paleta (agua del mundo)")
 	var mundo: String = FileAccess.get_file_as_string("res://presentacion/agua_render_3d.gd")
-	_ok("paleta: los valores son los del agua del mundo (somero, hondo, espuma, cáusticas, lecho, tinte de fresnel)",
-		_colores_iguales(_vec3_de(mundo, "color_somero_est"), AguaPaleta.SOMERO) and _colores_iguales(_vec3_de(mundo, "color_hondo_est"), AguaPaleta.HONDO)
-		and _colores_iguales(_vec3_de(mundo, "color_espuma"), AguaPaleta.ESPUMA) and _colores_iguales(_vec3_de(mundo, "color_causticas"), AguaPaleta.CAUSTICAS)
-		and _colores_iguales(_vec3_de(mundo, "color_lecho"), AguaPaleta.LECHO) and mundo.contains("vec3(0.88, 0.94, 1.0)") and _colores_iguales(Color(0.88, 0.94, 1.0), AguaPaleta.FRESNEL))
+	# 3/11 (turquesa): la referencia es el agua del juego con filtro (de serie), cuyo color al fondo es FILTRO_COLOR_HONDO (0.06,0.33,0.38): la paleta lleva su MATIZ (turquesa) con algo más de luz.
+	var mh: Color = Color(0.06, 0.33, 0.38)
+	_ok("paleta: el mundo sirve el agua con filtro y FILTRO_COLOR_HONDO sigue siendo el de la referencia", mundo.contains("const FILTRO: bool = true") and mundo.contains("const FILTRO_COLOR_HONDO: Color = Color(0.06, 0.33, 0.38)"))
+	_ok("paleta: hondo, somero, cáusticas y lecho son turquesa (matiz del filtro del agua del mundo ±0,04), el hondo no es más claro que el somero y ninguno es negro",
+		absf(AguaPaleta.HONDO.h - mh.h) < 0.04 and absf(AguaPaleta.SOMERO.h - mh.h) < 0.04 and absf(AguaPaleta.CAUSTICAS.h - mh.h) < 0.06 and absf(AguaPaleta.LECHO.h - mh.h) < 0.04
+		and AguaPaleta.HONDO.v < AguaPaleta.SOMERO.v and AguaPaleta.HONDO.v > 0.3 and AguaPaleta.HONDO.g > AguaPaleta.HONDO.r * 2.0)
+	_ok("paleta: espuma y tinte de fresnel son los del agua del mundo (blanca y claro 0.88,0.94,1.0)",
+		_colores_iguales(_vec3_de(mundo, "color_espuma"), AguaPaleta.ESPUMA) and mundo.contains("vec3(0.88, 0.94, 1.0)") and _colores_iguales(Color(0.88, 0.94, 1.0), AguaPaleta.FRESNEL))
 	var inc: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/agua_toy.gdshaderinc")
 	var gota: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/agua_gota.gdshader")
 	_ok("paleta: los defaults de agua_toy.gdshaderinc son los de la paleta central",

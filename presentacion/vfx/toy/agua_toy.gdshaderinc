@@ -8,11 +8,11 @@
 
 uniform sampler2D causticas : filter_linear_mipmap, repeat_enable;     // T_Noise_Wf4
 uniform sampler2D flujo : filter_linear_mipmap, repeat_enable;         // T_Noise_W5i
-uniform vec3 tono_a : source_color = vec3(0.20, 0.52, 0.80);           // hondo (color_hondo_est del agua del mundo)
-uniform vec3 tono_b : source_color = vec3(0.44, 0.80, 0.91);           // somero (color_somero_est)
+uniform vec3 tono_a : source_color = vec3(0.12, 0.46, 0.50);           // hondo (turquesa del agua del juego con filtro, ver agua_paleta.gd)
+uniform vec3 tono_b : source_color = vec3(0.34, 0.74, 0.72);           // somero (turquesa del agua del juego con filtro)
 uniform vec3 tono_c : source_color = vec3(0.96, 0.99, 1.0);            // espuma (color_espuma)
-uniform vec3 color_causticas : source_color = vec3(0.72, 0.93, 1.0);
-uniform vec3 color_lecho : source_color = vec3(0.16, 0.38, 0.55);
+uniform vec3 color_causticas : source_color = vec3(0.66, 0.95, 0.92);
+uniform vec3 color_lecho : source_color = vec3(0.07, 0.34, 0.38);
 uniform vec3 tinte_fresnel : source_color = vec3(0.88, 0.94, 1.0);
 uniform float bandas : hint_range(1.0, 8.0) = 3.0;
 uniform float brillo : hint_range(0.3, 3.0) = 1.0;

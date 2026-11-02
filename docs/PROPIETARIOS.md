@@ -1,9 +1,10 @@
 # Propietarios — quién toca qué
 
-El proyecto lo desarrollan **dos contextos en paralelo** (dos proyectos de
-Claude, a veces en máquinas distintas): el de **Juego** (jugabilidad, runas,
-niveles, mundo) y el de **Pipeline** (arte, modelos, dibujo del mundo, VFX,
-HUD). Este archivo dice qué carpetas posee cada uno y dónde se encuentran.
+El proyecto lo desarrollan **varios contextos en paralelo** (proyectos de
+Claude, a veces en máquinas distintas): **Juego** (jugabilidad, runas,
+niveles, mundo), **Pipeline** (arte, modelos, dibujo del mundo, HUD),
+**Godot** (los VFX oficiales de los elementos) y **Dirección** (planifica y
+audita). Este archivo dice qué carpetas posee cada uno y dónde se encuentran.
 
 > **Regla de oro: un archivo tiene UN propietario.** Si una tarea pide tocar
 > un archivo que no es tuyo, **no lo edites**: para, di qué cambio hace falta
@@ -33,7 +34,7 @@ Ambos pueden ser usados indistintivamente.
 | Carpeta | Qué hay |
 |---|---|
 | `nucleo/` | datos puros sin nodo: `runes.gd`, `rune_data.gd`, `sigils.gd`, `spell_recipe.gd`, `estado.gd`, `objetos.gd`, `repertoire.gd`, `playlog.gd`, `playlog_3d.gd`, gestos (`gesture_*`), `*_rune.tres` (**`sfx.gd` y `sonidos.gd` son del Pipeline**, ver sección 2) |
-| `magia/` | `lanzador_3d.gd` (Lanzador3D, GeometriaHechizo, Receta3D), `spellcaster.gd` (base 2D hasta M4), `formas_3d.gd` |
+| `magia/` | `lanzador_3d.gd` (Lanzador3D, GeometriaHechizo, Receta3D), `hechizo_vivo.gd`, `formas_3d.gd`; `spellcaster.gd`: **muerto, pendiente de borrar** (solo lo cargan dos herramientas, `herramientas/captura_libro_bosque.gd` y `herramientas/prueba_receta_v2.gd`; el grupo «spellcaster» que usa el resto del juego es un nombre de grupo del `Lanzador3D`, no este script) |
 | `mundo/` | `terreno_3d.gd`, `mundo_3d.gd`, `estados_suelo_3d.gd`, `agua_sim_3d.gd`, `hornear_nivel.gd`, `marcador_3d.gd`, `pieza_3d.gd`, `vista_suelo_editor.gd`, `datos_nivel/datos_test2.gd` |
 | `objetos/` | `objetos_3d.gd` (Reactivo3D), `surtidor_3d.gd`, `emisor_rayo_3d.gd`, `puente_reactivo_3d.gd`, `enredadera_3d.gd`, `flotador_3d.gd` |
 | `enemigos/` | `combate_3d.gd` e IA |
@@ -58,7 +59,7 @@ como método de la fachada (`Mundo3D` / `Terreno3D`) en el diario; **nunca**
 
 | Carpeta | Qué hay |
 |---|---|
-| `presentacion/` | la maqueta (`prueba_test2.gd`), `vfx_3d.gd`, `vfx_kit_3d.gd`, `vfx_elementos/`, `vfx/`, el dibujo del agua (`agua_render_3d.gd`, `agua_ondas_3d.gd`, `agua_metaballs_3d.gd`, `costra_hielo_3d.gd`, `canal_3d.gd`), `hierba_3d.gd`, `ocluso_3d.gd`, `hilo_luz_3d.gd`, `grimorio/`, `ui/laminas/` (**salvo los cuatro `.gd` de `ui/` listados en la sección 1**) |
+| `presentacion/` (salvo `presentacion/vfx/toy/`, que es de Godot, sección 2b) | la maqueta (`prueba_test2.gd`), `vfx_3d.gd`, `vfx_kit_3d.gd`, `vfx_elementos/`, `vfx/`, el dibujo del agua (`agua_render_3d.gd`, `agua_ondas_3d.gd`, `agua_metaballs_3d.gd`, `costra_hielo_3d.gd`, `canal_3d.gd`), `hierba_3d.gd`, `ocluso_3d.gd`, `hilo_luz_3d.gd`, `grimorio/`, `ui/laminas/` (**salvo los cuatro `.gd` de `ui/` listados en la sección 1**) |
 | `arte/` | `modelos/` (los `.glb` y texturas), `piezas/`, `meshy/`, `suelo_meshy/`, `equipo/`, `COPIAR_MODELOS.cmd` |
 | **Audio, entero** (14/10, Pablo): `audio/` (los sonidos y su `LICENCIAS.md`), `nucleo/sfx.gd` y `nucleo/sonidos.gd` (qué suena, cuándo y cómo: posicional en 3D) | sonidos y música. El Juego solo **llama** a `Sfx.play` / `Sonidos.play` con un nombre; si falta un sonido, lo pide por el diario |
 | `art/ui/`, `art/fx/` | iconos del grimorio y de elemento |
@@ -70,6 +71,29 @@ como método de la fachada (`Mundo3D` / `Terreno3D`) en el diario; **nunca**
 **No toca**: ningún archivo de la sección 1. En particular, la maqueta **no
 llama a estáticos nuevos de `Lanzador3D`** ni expone campos privados para el
 Juego: lo que el Juego necesite se pide por el diario y se pone en la fachada.
+
+---
+
+## 2b. Godot (VFX oficiales de los elementos)
+
+**Posee**
+
+| Carpeta | Qué hay |
+|---|---|
+| `presentacion/vfx/toy/` | `FuegoToy`, `AguaToy` y sus piezas (carga, impacto, mallas, paleta, shaders) |
+| `laboratorios/` (parte) | `LabVfxComparativa3D.tscn`, `lab_vfx_comparativa_3d.gd` |
+| `herramientas/` (parte) | `prueba_vfx_toy.gd`, `prueba_agua_toy.gd`, `captura_vfx_toy.gd`, `captura_carga_impacto_toy.gd` y el resto de `captura_*toy*` |
+| `docs/` (parte) | `PRUEBA*_VFX*.md`, `COMPARATIVA_VFX_*.md`, `PROPUESTA_AGUA_TOY_*.md`, `docs/capturas/comparativa_vfx/` |
+
+**No toca**: las secciones 1 y 2. Enganchar los VFX al juego (`HechizoVivo`, `VfxElemento3D`) es un encargo propio, partido en contrato y consumo.
+
+---
+
+## 2c. Dirección (planifica, audita, redacta encargos)
+
+**Posee** solo documentos: `docs/DIRECCION_*`, `docs/ANALISIS_*` (y `docs/ANALISIS_DIRECCION_24-10/`), `docs/PRUEBA*_VFX*` (en coordinación con Godot), `docs/PLAN_*`, `docs/GDD.md` y la puesta al día de `README.md` y `docs/CONTEXTO.md` cuando Pablo lo encarga.
+
+**No toca** código ni escenas: propone el encargo y lo ejecuta el contexto dueño.
 
 ---
 
@@ -142,7 +166,7 @@ Las firmas **no cambian sin entrada en el diario**.
 - Un archivo que no aparece en ninguna carpeta de arriba → **preguntar**.
 - Un archivo de **código o escena** nuevo → va en la carpeta de su capa y lo
   posee el dueño de esa carpeta; si es de la otra capa, se pide.
-- Un **documento** nuevo en `docs/` → **no se crea sin proponerlo** (ver 7).
+- Un **documento** nuevo en `docs/` → va fechado `docs/NOMBRE_AAAA-MM-DD.md` y se enlaza desde `docs/LEEME.md` (ver 7).
 - Una tarea que de verdad necesita tocar los dos lados → se parte en dos
   (primero quien define el contrato, luego quien lo consume). Nunca una sola
   sesión haciendo las dos cosas.
@@ -168,11 +192,11 @@ Las firmas **no cambian sin entrada en el diario**.
 | `docs/maqueta_3d/LEEME.md` | estado de la maqueta 3D y reparto para M5 | Pipeline |
 | `docs/Playtests/` | un archivo por sesión de juego, solo conclusiones | Pablo |
 
-**Regla.** Un contexto **no crea** un documento nuevo en `docs/`. Si cree que
-hace falta, lo propone en el diario y lo crea Pablo o quien él diga. Los
-documentos que no están en la tabla son **borradores** pendientes de
-integrar y borrar.
+**Regla.** Los documentos nuevos van fechados `docs/NOMBRE_AAAA-MM-DD.md` y se
+enlazan desde `docs/LEEME.md`. Los que no están en la tabla son fotografías de
+un momento (asesoramientos, pruebas, propuestas): no se reescriben, se
+sustituyen por uno nuevo con otra fecha.
 
 Antes de empezar la primera iteración después de un cambio de ordenador (paranda/pablo) revisar que la versión es la más actualizada para iterar desde ahí. En caso de detectarse cualquier cosa informar.
 
-**Firmas del diario.** Solo hay dos contextos: `Juego` y `Pipeline`.
+**Firmas del diario.** Los contextos que firman son `Juego`, `Pipeline`, `Godot` y `Dirección`.

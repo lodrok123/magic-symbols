@@ -7,8 +7,8 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, fog_disabled;
 // INSTANCE_CUSTOM: r = claridad 0..1 (0 azul medio, 1 celeste), g = opacidad, b = 1 burbuja, a = reservado.
 // En la transformación de la instancia: eje Y = dirección de la velocidad (mundo) × largo, eje X/Z = ancho.
 
-uniform vec3 tono_a : source_color = vec3(0.20, 0.52, 0.80);
-uniform vec3 tono_b : source_color = vec3(0.44, 0.80, 0.91);
+uniform vec3 tono_a : source_color = vec3(0.12, 0.46, 0.50);
+uniform vec3 tono_b : source_color = vec3(0.34, 0.74, 0.72);
 uniform vec3 tono_c : source_color = vec3(0.96, 0.99, 1.0);
 uniform float brillo : hint_range(0.3, 3.0) = 1.0;
 
