@@ -334,7 +334,7 @@ func caer_rayo(alcance: float = 6.0) -> Vector2i:
 		for g in get_tree().get_nodes_in_group("combate3d"):
 			if is_instance_valid(g) and not bool(g.get("muerto")) and Terreno3D.celda_de((g as Node3D).position) == c:
 				g.call("receive_damage", DANO_RAYO)
-				Mundo3D.avisar_reaccion("electrocutado", (g as Node3D).position + Vector3(0.0, 0.8, 0.0), g)
+				Mundo3D.avisar_reaccion(Mundo3D.R_ELECTROCUTADO, (g as Node3D).position + Vector3(0.0, 0.8, 0.0), g)
 	return c
 
 

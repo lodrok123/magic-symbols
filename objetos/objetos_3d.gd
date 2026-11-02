@@ -536,7 +536,7 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 				_apagar_fuente()
 		"moja":
 			if _mojado_s <= 0.0:
-				_reaccionar("mojado")                  # solo si estaba seco: regar lo ya mojado solo alarga el tiempo, no es un cambio
+				_reaccionar(Mundo3D.R_MOJADO)                  # solo si estaba seco: regar lo ya mojado solo alarga el tiempo, no es un cambio
 			_mojado_s = T_MOJADO
 			PiezaFuego3D.mojado(visual, true)       # capa húmeda del Pipeline (diario 109); se quita al secarse, en `_process`
 			set_process(true)
@@ -672,7 +672,7 @@ func _helar() -> void:
 	helada = true
 	Terreno3D.liberar_celda(celda)
 	_pintar_tinte(1.0, Color(0.72, 0.9, 1.0))
-	_reaccionar("congelado")
+	_reaccionar(Mundo3D.R_CONGELADO)
 	set_process_unhandled_input(true)
 
 
@@ -753,7 +753,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 		return
 	estado = EstadoObj.ARDIENDO
 	is_lit = true
-	_reaccionar("prendido")
+	_reaccionar(Mundo3D.R_PRENDIDO)
 	_t = 0.0
 	_t_contagio = 0.0
 	var d: Array = _num_combustible()
@@ -778,7 +778,7 @@ func _process(delta: float) -> void:
 		_mojado_s = maxf(0.0, _mojado_s - delta)
 		if _mojado_s <= 0.0:
 			PiezaFuego3D.mojado(visual, false)
-			_reaccionar("secado")
+			_reaccionar(Mundo3D.R_SECADO)
 	if rele_activo and is_lit:
 		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:
@@ -805,7 +805,7 @@ func _reaccionar(nombre: String) -> void:
 func _apagar() -> void:
 	estado = EstadoObj.SANO
 	is_lit = false
-	_reaccionar("apagado_agua")             # solo lo apaga el agua o el frío (`humedo` en on_spell_hit); el viento no apaga, lleva la llama
+	_reaccionar(Mundo3D.R_APAGADO_AGUA)             # solo lo apaga el agua o el frío (`humedo` en on_spell_hit); el viento no apaga, lleva la llama
 	_quitar_fuego()
 	_ver_ardiendo(false)
 	_k = maxf(_k, _quemado_v)               # el fundido a sano parte de lo que llevara quemado (con el material común _k no se anima mientras arde)
@@ -817,7 +817,7 @@ func _apagar() -> void:
 func _consumir() -> void:
 	estado = EstadoObj.CONSUMIDO
 	is_lit = false
-	_reaccionar("consumido")
+	_reaccionar(Mundo3D.R_CONSUMIDO)
 	_quitar_fuego()
 	fx.ceniza(global_position)
 	collision_layer = 0
@@ -952,7 +952,7 @@ func _montar_fuente() -> void:
 func _encender(con_efectos: bool) -> void:
 	is_lit = true
 	if con_efectos:
-		_reaccionar("prendido")             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
+		_reaccionar(Mundo3D.R_PRENDIDO)             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
 	var d: Array = _num_fuente()
 	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1 * mult_luz, 3.0 * (1.0 + (mult_luz - 1.0) * 0.5), Vector3(0.0, float(d[0]) + 0.7, 0.0))
@@ -971,7 +971,7 @@ func _encender(con_efectos: bool) -> void:
 
 
 ## `motivo` = nombre de reacción con que se avisa: por defecto la apaga el agua o el frío; el relé y las reglas de Puzle3D la apagan sin elemento (consumido).
-func _apagar_fuente(motivo: String = "apagado_agua") -> void:
+func _apagar_fuente(motivo: String = Mundo3D.R_APAGADO_AGUA) -> void:
 	is_lit = false
 	_reaccionar(motivo)
 	_t_rele = 0.0
@@ -1005,7 +1005,7 @@ func _avanzar_rele(delta: float) -> void:
 		if is_instance_valid(rele_siguiente) and not rele_siguiente.is_lit:
 			rele_siguiente.encender_llama()
 	if _t_rele >= rele_dura:
-		_apagar_fuente("consumido")
+		_apagar_fuente(Mundo3D.R_CONSUMIDO)
 
 
 ## Enciende la llama de una fogata o un brasero sin hechizo (lo usan el relé y las reglas de Puzle3D). No hace nada si ya arde.
@@ -1017,7 +1017,7 @@ func encender_llama() -> void:
 ## Apaga la llama de una fogata o un brasero sin hechizo. No hace nada si ya está apagada.
 func apagar_llama() -> void:
 	if tiene_papel(P_FUENTE_FUEGO) and is_lit:
-		_apagar_fuente("consumido")
+		_apagar_fuente(Mundo3D.R_CONSUMIDO)
 
 
 ## --- 9.7 · Fuente eléctrica y surtidor (Bosque 1) ---

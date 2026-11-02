@@ -577,7 +577,7 @@ func _hundir_modelo(duracion: float) -> void:
 	duracion_hundimiento = maxf(duracion, 0.1)
 	if Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(_punto_hundido, "fuego", maxf(_radio_cuerpo(), 0.4) * 1.5)
-	_reaccionar("prendido", _punto_hundido)
+	_reaccionar(Mundo3D.R_PRENDIDO, _punto_hundido)
 	if pj == null or not is_instance_valid(pj):
 		queue_free()
 		return

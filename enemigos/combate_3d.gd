@@ -203,7 +203,7 @@ const REACCIONES: PackedStringArray = ["quemado", "mojado", "congelado", "electr
 ## Cae al agua: si tras un EMPUJE (o porque el suelo se le va: el hielo se derrite, el agua sube) su casilla es agua honda y no helada, se HUNDE: baja bajo la
 ## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
 ## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
-const AVISO_HUNDIDO: String = "hundido"
+const AVISO_HUNDIDO: String = Mundo3D.R_HUNDIDO
 ## Ahogamiento lento (diario 245, pedido de Pablo tras validar el clip «Drowning»): el agua «se lo traga» despacio, no de golpe.
 const TIEMPO_HUNDIMIENTO: float = 3.2          ## s que dura el hundimiento si el modelo NO trae clip (con clip, dura lo que el clip: así acaban a la vez)
 const PROFUNDIDAD_EXTRA_HUNDIDO: float = 0.3   ## u que baja de más por debajo de la superficie (la cabeza también se pierde)
@@ -556,7 +556,7 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = 
 	var v0: float = v0_de_empuje(fuerza, suelo, dano, debil)
 	_k_golpe = clampf(v0 / Sensacion3D.V0_REF, 0.6, 1.6)
 	_empuje += d.normalized() * v0
-	_reaccionar("empujado")                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
+	_reaccionar(Mundo3D.R_EMPUJADO)                        # una vez por empujón (cada llamada a push), no por fotograma de desplazamiento
 	if v0 >= EMPUJADO_V0_MIN:
 		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE * _k_golpe)     # gamefeel lote 2: los pies levantan polvo al salir despedido
 	_empezar_empujado(d, v0)
@@ -794,19 +794,19 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		r["lento"] = hechizo.ralentiza
 	var avisos: Array = r["avisos"]
 	if conduce:
-		avisos.append("electrocutado")                # cada descarga que le llega es una reacción (no hay estado que dure)
+		avisos.append(Mundo3D.R_ELECTROCUTADO)                # cada descarga que le llega es una reacción (no hay estado que dure)
 	var ardia: bool = quemando > 0.0
 	if float(r["quemando"]) > 0.0 and not ardia:
-		avisos.append("prendido")
+		avisos.append(Mundo3D.R_PRENDIDO)
 	elif ardia and float(r["quemando"]) <= 0.0:
-		avisos.append("apagado_agua")                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
+		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
 	var estaba_mojado: bool = mojado > 0.0
 	if estaba_mojado and float(r["mojado"]) <= 0.0:
-		avisos.append("secado")                       # el fuego sobre mojado = vapor: lo seca
+		avisos.append(Mundo3D.R_SECADO)                       # el fuego sobre mojado = vapor: lo seca
 	elif not estaba_mojado and float(r["mojado"]) > 0.0:
-		avisos.append("mojado")
+		avisos.append(Mundo3D.R_MOJADO)
 	if float(r["congelado"]) > 0.0 and not (congelado > 0.0):
-		avisos.append("congelado")
+		avisos.append(Mundo3D.R_CONGELADO)
 	# 29/10 (DANO_Y_TINTA): D = (B·E · G · X + suma) × R y después la defensa: UN solo punto de cálculo (`Dano`). `hechizo.dano` ya es B·E (con el pigmento); G = `hechizo.potencia`.
 	r["base"] = hechizo.dano * hechizo.potencia * x + suma_x
 	r["bruto"] = Dano.bruto(hechizo.dano, hechizo.potencia, x, float(r["mult"]), suma_x)
@@ -894,7 +894,7 @@ func _reaccionar(nombre: String, punto: Variant = null) -> void:
 
 func _aturdir(segundos: float) -> void:
 	if stun_timer <= 0.0:
-		_reaccionar("aturdido")                    # solo al empezar: volver a aturdir a uno ya aturdido no es un cambio
+		_reaccionar(Mundo3D.R_ATURDIDO)                    # solo al empezar: volver a aturdir a uno ya aturdido no es un cambio
 	stun_timer = segundos
 	_carga = 0.0
 
@@ -1172,7 +1172,7 @@ func _efectos(delta: float) -> void:
 	if quemando > 0.0:
 		quemando -= delta
 		if quemando <= 0.0:
-			_reaccionar("consumido")                # se le acabó el fuego solo: el Pipeline corta las llamas del cuerpo con `consumido`
+			_reaccionar(Mundo3D.R_CONSUMIDO)                # se le acabó el fuego solo: el Pipeline corta las llamas del cuerpo con `consumido`
 		_tick_fuego -= delta
 		if _tick_fuego <= 0.0:
 			_tick_fuego = 0.5
@@ -1202,9 +1202,9 @@ func _efectos(delta: float) -> void:
 	mojado = maxf(0.0, mojado - delta)
 	congelado = maxf(0.0, congelado - delta)
 	if estaba_mojado and mojado <= 0.0:
-		_reaccionar("secado")
+		_reaccionar(Mundo3D.R_SECADO)
 	if estaba_congelado and congelado <= 0.0:
-		_reaccionar("derretido")
+		_reaccionar(Mundo3D.R_DERRETIDO)
 	lento = maxf(0.0, lento - delta)
 	_t_anim = maxf(0.0, _t_anim - delta)
 	_avanzar_empujado(delta)
@@ -1294,7 +1294,7 @@ func prender_por_contacto(segundos: float = QUEMA_CONTACTO) -> bool:
 	var estaba: bool = quemando > 0.0
 	quemando = maxf(quemando, maxf(segundos, ELEMENTAL_QUEMA) if elemental else segundos)
 	if not estaba:
-		_reaccionar("prendido")
+		_reaccionar(Mundo3D.R_PRENDIDO)
 		iniciar_destello("fuego", false, true)
 		PlayLog.event("goblin_prende_por_contacto", {"nombre": nombre})
 	return true
@@ -2640,7 +2640,7 @@ func _morir(ahogado: bool = false) -> void:
 		return
 	_quitar_aviso()
 	if quemando > 0.0:
-		_reaccionar("apagado_agua" if ahogado else "consumido")     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
+		_reaccionar(Mundo3D.R_APAGADO_AGUA if ahogado else Mundo3D.R_CONSUMIDO)     # muere ardiendo: que se corten las llamas del cuerpo (el agua las apaga)
 	muerto = true
 	_fase_empuje = FASE_NINGUNA                       # muerto o hundido en pleno vuelo: no se levanta
 	_t_fase_empuje = 0.0
@@ -2924,7 +2924,7 @@ func _hundir_modelo(duracion: float) -> void:
 	duracion_hundimiento = maxf(duracion, 0.1)         # lo lee el Pipeline (`ReaccionesVfx3D.dura_hundimiento`): burbujas y sonido duran lo que el cuerpo tarda en bajar
 	if Mundo3D.actual != null:
 		Mundo3D.actual.avisar_impacto(_punto_hundido, AVISO_HUNDIDO, maxf(_radio_cuerpo(), 0.4) * 1.5)
-	_reaccionar("hundido", _punto_hundido)          # A4: el mismo hecho que el aviso `impacto` de arriba (conviven: los usan consumidores distintos)
+	_reaccionar(Mundo3D.R_HUNDIDO, _punto_hundido)          # A4: el mismo hecho que el aviso `impacto` de arriba (conviven: los usan consumidores distintos)
 	hundido.emit(self)
 	if pj == null or not is_instance_valid(pj):
 		queue_free()

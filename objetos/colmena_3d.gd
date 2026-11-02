@@ -175,7 +175,7 @@ func arder() -> bool:
 	_poner_nube()
 	if _visual != null:
 		_visual.visible = false
-	Mundo3D.avisar_reaccion("prendido", global_position if is_inside_tree() else position, self)
+	Mundo3D.avisar_reaccion(Mundo3D.R_PRENDIDO, global_position if is_inside_tree() else position, self)
 	arde.emit()
 	set_process(true)
 	return true

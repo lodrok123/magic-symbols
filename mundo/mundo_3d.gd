@@ -35,8 +35,27 @@ const LOGROS: PackedStringArray = ["paso_puzle", "puzle_resuelto", "sala_limpia"
 
 ## CATÁLOGO CERRADO de reacciones (contrato con el Pipeline: `ReaccionesVfx3D.CATALOGO` tiene estos mismos nombres, en este orden).
 ## Se avisa UNA vez por cambio real de estado, nunca por fotograma. «bloqueado» lo añadió el Pipeline para el escudo; lo emite `Escudo3D` (A5) cuando para un disparo de frente.
-const REACCIONES: PackedStringArray = ["prendido", "apagado_agua", "apagado_viento", "consumido", "mojado", "secado", "congelado", "derretido",
-	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado"]
+## C1 (2/11, lote 3): UN SOLO NOMBRE por reacción. Los nombres son estas constantes (`Mundo3D.R_*`); `Combate3D`, `Reactivo3D`, `Escudo3D`, `EstadoZona3D`… las usan en vez de escribir el texto a mano
+## (prueba_catalogo_reacciones). El texto de cada una es el de siempre: la tabla del Pipeline (`ReaccionesVfx3D`) sigue buscando por el mismo nombre.
+const R_PRENDIDO: String = "prendido"
+const R_APAGADO_AGUA: String = "apagado_agua"
+const R_APAGADO_VIENTO: String = "apagado_viento"    ## hoy nadie lo emite: el viento lleva la llama, no la apaga (medido en prueba_catalogo_reacciones)
+const R_CONSUMIDO: String = "consumido"
+const R_MOJADO: String = "mojado"
+const R_SECADO: String = "secado"
+const R_CONGELADO: String = "congelado"
+const R_DERRETIDO: String = "derretido"
+const R_ELECTROCUTADO: String = "electrocutado"
+const R_HUNDIDO: String = "hundido"
+const R_ATURDIDO: String = "aturdido"
+const R_EMPUJADO: String = "empujado"
+const R_BLOQUEADO: String = "bloqueado"
+const REACCIONES: PackedStringArray = [R_PRENDIDO, R_APAGADO_AGUA, R_APAGADO_VIENTO, R_CONSUMIDO, R_MOJADO, R_SECADO, R_CONGELADO, R_DERRETIDO,
+	R_ELECTROCUTADO, R_HUNDIDO, R_ATURDIDO, R_EMPUJADO, R_BLOQUEADO]
+## El CONTRATO del enemigo (`Combate3D.REACCIONES`: lo que un enemigo SABE hacer, en infinitivo de estado: quemado, cae_al_agua…) y el AVISO que emite cuando le pasa (este catálogo). Son dos
+## listas con un fin distinto (capacidades / sucesos), pero cada capacidad apunta a UN aviso: aquí está la traducción, en un solo sitio.
+const AVISO_DE_CONTRATO: Dictionary = {"quemado": R_PRENDIDO, "mojado": R_MOJADO, "congelado": R_CONGELADO, "electrocutado": R_ELECTROCUTADO,
+	"empujado": R_EMPUJADO, "aturdido": R_ATURDIDO, "cae_al_agua": R_HUNDIDO}
 
 ## El mundo vivo (null si no hay). Estático para que los módulos sin nodo (Terreno3D) puedan avisarle.
 static var actual: Mundo3D = null

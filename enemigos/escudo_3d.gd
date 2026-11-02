@@ -181,20 +181,20 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 
 func _recibir(h: Hechizo) -> void:
 	bloqueos += 1
-	_avisar("bloqueado")
+	_avisar(Mundo3D.R_BLOQUEADO)
 	bloqueado.emit(_pos_mundo())
 	var r: String = reaccion_a(h)                        # A2: la decisión del fuego es de `reaccion_a`, la misma que consulta la previsión
 	match h.elemento:
 		"fuego":
 			if r == "seca":
 				mojado_t = 0.0                           # fuego sobre mojado = vapor: lo seca y no prende (como el goblin)
-				_avisar("secado")
+				_avisar(Mundo3D.R_SECADO)
 				_actualizar_mojado()
 			else:
 				prender()
 		"agua":
 			if tiene_papel(PAPEL_INFLAMABLE) and mojado_t <= 0.0:
-				_avisar("mojado")
+				_avisar(Mundo3D.R_MOJADO)
 			mojado_t = T_MOJADO
 			apagar()
 			_actualizar_mojado()
@@ -215,7 +215,7 @@ func prender() -> bool:
 	arde_t = T_CONSUMO
 	if _entero != null:
 		_entero.poner_estado("ardiendo")
-	_avisar("prendido")
+	_avisar(Mundo3D.R_PRENDIDO)
 	return true
 
 
@@ -227,7 +227,7 @@ func apagar() -> bool:
 	arde_t = 0.0
 	if _entero != null:
 		_entero.poner_estado("entero")
-	_avisar("apagado_agua")
+	_avisar(Mundo3D.R_APAGADO_AGUA)
 	return true
 
 
@@ -254,7 +254,7 @@ func _consumir(causa: String) -> void:
 		if combate != null and is_instance_valid(combate):
 			combate.escudo_quemado = true                    # F1: al morir ese goblin suelta los jirones del escudo (tabla `goblin_escudo`)
 		_quemar_mano()
-	_avisar("consumido")
+	_avisar(Mundo3D.R_CONSUMIDO)
 	consumido.emit(causa)
 	PlayLog.event("escudo_consumido", {"causa": causa})
 
