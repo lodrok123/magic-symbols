@@ -370,5 +370,44 @@ Lo que ya existe y se reutiliza: `Partida` (nucleo/partida.gd: ranuras `user://p
 | 2 | B1, B2, B4 | project.godot [input], jugador_3d.gd, lanzador_3d.gd, ui/*, escenas/*.gd, combate_3d.gd, nucleo/textos_objetos.gd (nuevo), spellbook.gd |
 | 3 | C1, C3, N | presentacion/ui/marcador_mision.gd (nuevo), nucleo/misiones.gd, nucleo/ambiente_zona.gd (nuevo), presentacion/ciclo_dia_3d.gd (nuevo), escenas de bosque, lab_hechizos_3d.gd |
 
-Uno tras otro, commit por lote, diario 303, 304 y 305.
+Uno tras otro, commit por lote, diario 303, 304 y 305. **Hechos el 2/11.**
+
+---
+
+## 10. Sonidos grabados (2/11): sustituir síntesis por grabaciones
+
+Pablo pidió buscar SFX reales y sintetizar solo lo que no se encuentre. Inventario en `audio/LICENCIAS.md` §«Fuentes descargadas»; packs en `audio/fuentes/` (con `.gdignore`). Hallazgo: `tools/gen_sfx.py`, que LICENCIAS cita como generador de `elem_*`, `prender`, `chispa`, `derrumbe`, `rodar`, `arco`, `pira`, `dano`, `muerte`, `trazo`, `sello_ok`, `sello_no` y `congelar`, **no existe en el repo**; esos wav no se pueden regenerar.
+
+### Tarea R · Sustitución (Sonnet; Pablo escucha y decide)
+
+Regla: cada sustitución es una línea del `CATALOGO` (o de `Sfx3D.CATALOGO`) apuntando a un archivo nuevo copiado a `audio/` con prefijo (`kenney_`, `oga_`, `fs_`, `lk_`); el sintetizado se queda. Un `static var Sfx.GRABADOS: bool = true` permite volver a los sintetizados en bloque (el catálogo guarda las dos rutas: `"archivo"` y `"archivo_sint"`), y una fila `S:GRABADOS` en el panel F3 para comparar en vivo con el mando de dB de S1.
+
+| entrada del catálogo | hoy | candidato | notas |
+|---|---|---|---|
+| `moneda` | síntesis | Kenney RPG `handleCoins`, `handleCoins2` (2 variantes) | oro |
+| `recoger` (común) | síntesis | Kenney RPG `cloth1..4` o `handleSmallLeather` | objeto |
+| `ui_equipar` | síntesis | Kenney RPG `beltHandle1..2` | equipar |
+| `bolsa` | síntesis | Kenney RPG `handleSmallLeather2` + `cloth` | abrir mochila |
+| `ui_tick` | síntesis | Kenney Interface `click_001..005` (−20 dB) | navegar |
+| `no_puedes` (interfaz) | síntesis | Kenney Interface `error_001..008` | solo en menús; el `no_puedes` del mundo se queda |
+| `comprar` | síntesis | Kenney RPG `handleCoins` + Interface `confirmation_001` | tienda |
+| `cofre_tapa` | síntesis | Kenney RPG `doorOpen` corto o Impact `impactWood_medium` | tapa |
+| `golpe_piedra` (gólem) | síntesis | Kenney Impact `impactMining_00x`, `impactStone` | golpe al gólem |
+| `golpe_carne` | síntesis | Kenney Impact `impactPunch_00x` o `impactSoft` | golpe a enemigo |
+| `clavar` (golpe F) | Kenney `chop` | Kenney Impact `impactPunch` + `impactWood` | ya es grabado; comparar |
+| pasos del gólem (nuevo `paso_golem`) | nada | Kenney Impact `footstep_concrete` a tono 0,6 y −4 dB | pasos pesados |
+| pasos del goblin (nuevo `paso_goblin`) | nada | Kenney Impact `footstep_grass/wood` a tono 1,2 | enemigos sin pasos |
+| `gato_maullido` | síntesis | OGA `cat_mewpurr`, `cat_softmew`, `Meow` (3 variantes) | alerta y muerte |
+| ronroneo del gato (nuevo, bucle) | nada | OGA `cat_purractive_loop` | cuando está quieto cerca |
+| `trazo` | tiza sintetizada al soltar | `fs_pluma_*` como **bucle mientras se arrastra** (volumen por velocidad del trazo) + el `trazo` de hoy al soltar | cambio de comportamiento en `spellbook.gd:715` |
+| `pagina` | Kenney `bookFlip1..3` | se queda; añadir `paginas_bucle` = `fs_paginas_P_Chester` recortado para la animación de hojas | la animación no existe (tarea L) |
+| impactos por elemento (`fuego_impacto`…) | solo `x_mano/alto/abajo_impacto` | lentikula Basic + Druid, 5 variantes por elemento | **cuando Pablo baje los packs**; `_sonar_fase_v2` pide `<elemento>_impacto` antes que el derivado |
+
+Lo que sigue sintetizado porque no hay grabación libre: `sello_ok`/`sello_no` (son música), los jingles de logro, `pulso_resonante`, elemento tiempo, `carga_bucle`, voces de chamán y elemental, `limo_*` (Coucassi lo tiene pero es CC-BY: decide Pablo), goblin y gólem (Morphonaut, 2 $, decide Pablo).
+
+**Prueba** `herramientas/prueba_sonidos_grabados_2.gd`: cada entrada sustituida carga, dura < 3 s salvo bucles, y `GRABADOS = false` devuelve el archivo sintetizado; los nuevos (`paso_golem`, `paso_goblin`, ronroneo) suenan desde su enemigo. Regresión: `prueba_sonidos_grabados`, `prueba_ajustes_sfx`, `prueba_mochila_sensacion`, `prueba_interfaz_u5_u8`, `prueba_gatopedro`, `prueba_golem_combate`.
+
+### Tarea L · Animación de pasar página con la mano (Sonnet, media)
+
+No existe: `spellbook.gd` cambia de página solo con sonido y `mano_pluma_2d/3d` solo tiene poses de escribir. Al pulsar `pagina_N`: la mano 3D sube (`LEVANTADA`), se desplaza al borde derecho del libro en 0,12 s, «pinza» (nueva pose `PINZA`, pulgar e índice juntos) y arrastra hacia la izquierda mientras la hoja actual se aplasta en `scale.x` hasta 0,02 y la nueva se despliega (patrón de `grimorio_ui.gd:158-165`, 0,09 + 0,12 s), con `paginas_bucle` de fondo y `pagina` al terminar; la mano vuelve a `REPOSO`. Total ≤ 0,45 s; con `Sensacion3D.ACTIVA = false` cambio instantáneo como hoy. La escritura queda bloqueada durante la animación (no se pierde ningún trazo: se encola). Prueba `prueba_pasar_pagina.gd`: la página cambia al final de la animación, no antes; un trazo durante la animación se aplica después; tiempos; ACTIVA false.
 
