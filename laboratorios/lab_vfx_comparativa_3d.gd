@@ -41,6 +41,23 @@ const PASO_EJE: float = 1.2
 const EJEMPLOS_HECHIZO: Array = [
 	["bola (esfera 0,3)", Vector3(0.3, 0.3, 0.3), 0.0, 0.0], ["muro (1,5 x 0,13 de fondo)", Vector3(1.5, 0.3, 0.13), 0.0, 0.0], ["pilar (alto 1,7)", Vector3(0.2, 1.7, 0.2), 0.0, 0.0],
 	["barrera (cúpula 0,65)", Vector3(0.65, 0.65, 0.65), 0.0, 1.5], ["flecha (viaja)", Vector3(0.3, 0.3, 0.3), 8.0, 0.0], ["barrera alargada (muro sólido)", Vector3(1.2, 0.5, 0.2), 0.0, 1.5], ["haz (ᛁ línea, alcance 3)", Vector3(0.3, 0.3, 0.3), 0.0, 0.0, true]]
+## Carga e impacto del fuego (rama fuego-toy-carga-impacto, FuegoToy.empezar_carga / soltar / impactar_en / rebotar / terminar_sin_choque, ImpactoFuegoToy):
+##   G carga completa (brillo y chispas en la mano, SIN bola; se suelta y la bola aparece con un pop, vuela 6 m y el impacto sale en una pared)
+##   B impacto en la pared · N impacto en el suelo · M fin sin choque (el hechizo se agota en el aire) · R rebote (salpica en la pared y sigue)
+##   P explosión de ÁREA (agua: ImpactoAguaToy.Variante.AREA, radio 1,8 m, 3,5 m delante; fuego: impacto de suelo grande) · V con un pilar / haz de F7: lo hace MORIR y renacer
+##   T elige un mando de la carga · Q baja / E sube el mando elegido (tamaño inicial, curva, nº de chispas, brillo del destello, brillo de la mano, radio de las chispas, bola visible 0/1)
+## [propiedad de FuegoToy, mínimo, máximo, paso, valor de origen]
+##   Y recorre el estilo del impacto: C (POR DEFECTO: golpe sutil + chispas desde el impacto hacia afuera) → A (estallido cartoon, T_VFX_Ex1d) → B (bola de fuego redonda, flipbook). Se ve en la línea de ayuda.
+##   Mandos (T los recorre): carga_brillo, carga_radio, carga_bola_visible (0 = no se ve la bola al cargar, 1 = crece en la mano como antes), tam_estallido y vel_flipbook (solo estilos A y B).
+const MANDOS_CARGA: Array = [
+	["carga_tam_inicial", 0.03, 0.6, 0.03, 0.12], ["carga_curva", 0.3, 3.0, 0.1, 0.8], ["carga_chispas", 0, 40, 4, 28], ["carga_destello", 0.0, 3.0, 0.2, 1.0],
+	["carga_brillo", 0.0, 3.0, 0.2, 1.0], ["carga_radio", 0.5, 2.0, 0.1, 1.0], ["carga_bola_visible", 0, 1, 1, 0]]
+## Mandos del impacto (propiedades ESTÁTICAS de ImpactoFuegoToy; valen para los impactos que nazcan después): [propiedad, mínimo, máximo, paso, valor de origen]
+const MANDOS_IMPACTO: Array = [["tam_estallido", 0.5, 2.0, 0.1, 1.0], ["vel_flipbook", 0.4, 2.5, 0.1, 1.0]]
+const DURACION_CARGA_LAB: float = 1.2              ## s que dura la carga hasta llenarse
+const SOSTEN_CARGA_LAB: float = 0.6                ## s que se sostiene ya llena (respira) antes de soltar: el «⧖ carga» largo
+const RADIO_BOLA_LAB: float = 0.4
+const RADIO_AREA_LAB: float = 1.8                  ## m de radio de la explosión de área (P)
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
 const LADO_MAPA: float = 20.0
@@ -71,10 +88,15 @@ var _bolas: Array = []                             ## [{nodo, origen}]
 var _mando_toon: int = 0                           ## el mando elegido con RePág / AvPág
 var _valores_toon: Dictionary = {}
 var _toy: bool = false                             ## true: los mandos son los de EfectoToy (prueba 3)
-var _param: FuegoToy = null                        ## el FuegoToy vivo (F7 / F9)
+var _param = null                                  ## el FuegoToy / AguaToy vivo (F7 / F9)
+var elemento: String = "fuego"                     ## «fuego» o «agua»: lo que crean G, B, N, M, R, F7, F9 y los ejes (Z lo alterna)
 var _param_i: int = -1                             ## figura de F7 (índice de FIGURAS_PARAM)
 var _param_ej: int = 0                             ## ejemplo de hechizo de F9
 var _valores_toy: Dictionary = {}                  ## propiedad -> valor actual (lo que nazca después nace con él)
+var _valores_carga: Dictionary = {}                ## mandos de la carga movidos con Q / E
+var _mando_carga: int = 0                          ## el elegido con T
+var _pared: Node3D = null                          ## la pared de prueba de los impactos (la crea G / B / R, la quita X)
+var camara_fija: Dictionary = {}                   ## {desde, mira}: si no está vacío, las cámaras cerca / lejos usan esto (lo usan las capturas)
 
 
 func _ready() -> void:
@@ -185,7 +207,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -204,6 +226,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F4: _toy = true; efecto("bola_vuelo_toy")
 		KEY_F5: _toy = true; efecto("barrera_toy")
 		KEY_F6: _toy = true; diez_muros(false, true)
+		KEY_Z: alternar_elemento()
 		KEY_F7: fuego_param((_param_i + 1) % FIGURAS_PARAM.size())
 		KEY_F8: fuego_param(maxi(_param_i, 0))
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
@@ -214,6 +237,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_O: eje_param(2, 1)
 		KEY_L: eje_param(2, -1)
 		KEY_V: viaja_param()
+		KEY_P: explosion_area()
+		KEY_G: carga_completa()
+		KEY_B: impacto_pared()
+		KEY_N: impacto_suelo()
+		KEY_M: lanzar_proyectil("fin")
+		KEY_R: lanzar_proyectil("rebote")
+		KEY_Y: alternar_estilo_impacto()
+		KEY_T: _mando_carga = (_mando_carga + 1) % (MANDOS_CARGA.size() + MANDOS_IMPACTO.size())
+		KEY_Q: mover_mando_carga(_mando_carga, -1)
+		KEY_E: mover_mando_carga(_mando_carga, 1)
 		KEY_PAGEUP: _mando_toon = (_mando_toon + _n_mandos() - 1) % _n_mandos()
 		KEY_PAGEDOWN: _mando_toon = (_mando_toon + 1) % _n_mandos()
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: mover_mando_toon(_mando_toon, 1)
@@ -282,20 +315,53 @@ func efecto(cual: String) -> Node3D:
 
 # ---------------------------------------------------------------- fuego paramétrico (FuegoToy) ----------------------------------------------------------------
 
-## F7 / F8: crea el FuegoToy con la figura y el tamaño de la prueba 3 (i = índice de FIGURAS_PARAM) y lo coloca como las escenas validadas.
-func fuego_param(i: int) -> FuegoToy:
+## Z: alterna el ELEMENTO (fuego / agua) de lo que se cree a partir de ahora (G, B, N, M, R, F7, F9, ejes). Si hay un efecto paramétrico vivo (F7 / F9) se rehace con el otro elemento.
+func alternar_elemento() -> void:
+	poner_elemento("agua" if elemento == "fuego" else "fuego")
+
+
+func poner_elemento(nuevo: String) -> void:
+	if nuevo == elemento:
+		return
+	elemento = nuevo
+	if _param != null and is_instance_valid(_param):
+		var fig: int = _param_i
+		fuego_param(maxi(fig, 0))
+
+
+## Un efecto «toy» nuevo del elemento activo (FuegoToy o AguaToy: la misma API).
+func _nuevo_toy() -> Node3D:
+	if elemento == "agua":
+		return AguaToy.new()
+	return FuegoToy.new()
+
+
+## ¿Es un efecto «toy» (de cualquiera de los dos elementos)?
+func _es_toy(e: Node) -> bool:
+	return e is FuegoToy or e is AguaToy
+
+
+## Un impacto del elemento activo (ImpactoFuegoToy o ImpactoAguaToy; las variantes GOLPE, FIN y REBOTE tienen los mismos números).
+func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
+	if elemento == "agua":
+		return ImpactoAguaToy.crear(variante as ImpactoAguaToy.Variante, normal, radio)
+	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
+
+
+## F7 / F8: crea el FuegoToy (o AguaToy) con la figura y el tamaño de la prueba 3 (i = índice de FIGURAS_PARAM) y lo coloca como las escenas validadas.
+func fuego_param(i: int) -> Node3D:
 	_toy = true
 	_param_i = clampi(i, 0, FIGURAS_PARAM.size() - 1)
 	var d: Array = FIGURAS_PARAM[_param_i]
 	var s: Vector3 = d[2]
-	var e: FuegoToy = FuegoToy.new()
+	var e = _nuevo_toy()
 	e.definir(d[0], s.x, s.y, s.z, false)
 	_poner_param(e, 0.0)
 	return e
 
 
-## F9: crea el FuegoToy a partir de un Hechizo de ejemplo con `desde_hechizo` (figura, tamaño y vuelo salen solos).
-func fuego_hechizo(i: int) -> FuegoToy:
+## F9: crea el FuegoToy (o AguaToy) a partir de un Hechizo de ejemplo con `desde_hechizo` (figura, tamaño y vuelo salen solos).
+func fuego_hechizo(i: int) -> Node3D:
 	_toy = true
 	var d: Array = EJEMPLOS_HECHIZO[i % EJEMPLOS_HECHIZO.size()]
 	var h: Hechizo = Hechizo.new()
@@ -308,7 +374,7 @@ func fuego_hechizo(i: int) -> FuegoToy:
 	if d.size() > 4:
 		h.glifos = {"linea_x": 1}       # ᛁ: con estado de materia que no sea sólido es un haz
 		h.estado_materia = "plasma"
-	var e: FuegoToy = FuegoToy.new()
+	var e = _nuevo_toy()
 	e.desde_hechizo(h)
 	var giro: float = e.rotation.y
 	e.rotation = Vector3.ZERO
@@ -317,7 +383,7 @@ func fuego_hechizo(i: int) -> FuegoToy:
 	return e
 
 
-func _poner_param(e: FuegoToy, giro: float) -> void:
+func _poner_param(e, giro: float) -> void:
 	_quitar_param()
 	_aplicar_mandos_toy(e)
 	_efectos.add_child(e)
@@ -362,6 +428,9 @@ func eje_param(eje: int, signo: int) -> void:
 
 ## V: la bola (solo la figura bola) vuela en bucle por delante de la jugadora, o vuelve a quedarse quieta.
 func viaja_param() -> void:
+	if _param != null and is_instance_valid(_param) and int(_param.figura) != 0:
+		_morir_y_rehacer_param()
+		return
 	if _param == null or not is_instance_valid(_param):
 		fuego_param(0)
 	_param.viaja = not _param.viaja
@@ -373,6 +442,25 @@ func viaja_param() -> void:
 		_param.global_position = _pj.global_position + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
 
 
+## V con una figura que no es la bola (pilar, haz...): la hace MORIR (el pilar se desploma y deja charco; el haz se suelta) y 2,4 s después la vuelve a hacer nacer.
+func _morir_y_rehacer_param() -> void:
+	var fig: int = int(_param.figura)
+	_param.morir()
+	await get_tree().create_timer(2.4).timeout
+	if _param == null or not is_instance_valid(_param):
+		fuego_param(fig)
+
+
+## P: EXPLOSIÓN DE ÁREA 3 m delante de la jugadora. Con agua es ImpactoAguaToy.Variante.AREA (radio 1,8 m); con fuego, el impacto de suelo grande.
+func explosion_area(radio: float = RADIO_AREA_LAB) -> Node3D:
+	_toy = true
+	var imp: Node3D = _nuevo_impacto(3 if elemento == "agua" else 0, Vector3.UP, radio if elemento == "agua" else radio * 0.5)
+	_efectos.add_child(imp)
+	imp.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + _dir * 3.5
+	ultimo_efecto = imp
+	return imp
+
+
 func _lanzar_param_en_vuelo() -> void:
 	var o: Vector3 = _pj.global_position + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
 	_param.global_position = o
@@ -382,9 +470,9 @@ func _lanzar_param_en_vuelo() -> void:
 
 func _texto_param() -> String:
 	if _param == null or not is_instance_valid(_param):
-		return "\nFUEGO PARAMETRICO: F7 figura (bola > muro > pilar > barrera) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3"
-	return "\nFUEGO PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3)" % [
-		["bola", "muro", "pilar", "barrera", "haz"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
+		return "\nFUEGO PARAMETRICO: F7 figura (bola > muro > pilar > barrera) · F9 hechizo de ejemplo · U/J x · I/K y · O/L z · V bola en vuelo · F8 tamano de la prueba 3 · Z fuego/agua"
+	return "\n%s PARAMETRICO [%s] x %.2f · y %.2f · z %.2f m%s  (F7 figura · F9 hechizo · U/J x · I/K y · O/L z · V vuelo · F8 prueba 3 · Z fuego/agua)" % [
+		"AGUA" if _param is AguaToy else "FUEGO", ["bola", "muro", "pilar", "barrera", "haz"][int(_param.figura)], _param.semieje_x, _param.semieje_y, _param.semieje_z, " · EN VUELO" if _param.viaja else ""]
 
 
 ## Diez muros en dos filas, para leer el fps con el presupuesto a tope.
@@ -511,6 +599,159 @@ func limpiar() -> void:
 		h.queue_free()
 	_bolas.clear()
 	ultimo_efecto = null
+	if _pared != null and is_instance_valid(_pared):
+		_pared.queue_free()
+	_pared = null
+
+
+# ---------------------------------------------------------------- carga e impacto del fuego (FuegoToy / ImpactoFuegoToy) ----------------------------------------------------------------
+
+func _mano() -> Vector3:
+	return _pj.global_position + Vector3(0, ALTURA_MANO, 0) + _dir * 0.5
+
+
+## Pared de prueba perpendicular al tiro, a ALCANCE_BOLA m de la mano (su cara delantera está justo ahí).
+func _poner_pared() -> void:
+	if _pared != null and is_instance_valid(_pared):
+		_pared.queue_free()
+	_pared = Node3D.new()
+	_pared.name = "ParedImpacto"
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	var bm: BoxMesh = BoxMesh.new()
+	bm.size = Vector3(9.0, 3.2, 0.3)
+	mi.mesh = bm
+	var mt: StandardMaterial3D = StandardMaterial3D.new()
+	mt.albedo_color = Color(0.56, 0.52, 0.47)
+	mt.roughness = 0.95
+	mi.material_override = mt
+	mi.position = Vector3(0, 1.6, 0)
+	_pared.add_child(mi)
+	add_child(_pared)
+	var pie: Vector3 = _pj.global_position
+	_pared.global_position = Vector3(pie.x, 0.0, pie.z) + _dir * (ALCANCE_BOLA + 0.15)       # la cara delantera queda a ALCANCE_BOLA m de la jugadora
+	_pared.look_at(_pared.global_position + _dir, Vector3.UP)
+
+
+func _aplicar_mandos_carga(e: Node) -> void:
+	for k in _valores_carga:
+		e.set(k, bool(_valores_carga[k]) if k == "carga_bola_visible" else _valores_carga[k])
+
+
+func mover_mando_carga(i: int, signo: int) -> void:
+	if i >= MANDOS_CARGA.size():
+		var di: Array = MANDOS_IMPACTO[i - MANDOS_CARGA.size()]
+		var vi: float = clampf(_valor_impacto(di[0]) + float(signo) * float(di[3]), float(di[1]), float(di[2]))
+		if di[0] == "tam_estallido":
+			ImpactoFuegoToy.tam_estallido = snappedf(vi, 0.001)
+		else:
+			ImpactoFuegoToy.vel_flipbook = snappedf(vi, 0.001)
+		return
+	var d: Array = MANDOS_CARGA[i]
+	var v: float = float(_valores_carga.get(d[0], d[4])) + float(signo) * float(d[3])
+	v = clampf(v, float(d[1]), float(d[2]))
+	_valores_carga[d[0]] = int(round(v)) if (d[0] == "carga_chispas" or d[0] == "carga_bola_visible") else snappedf(v, 0.001)
+	for e in _efectos.get_children():
+		if _es_toy(e):
+			_aplicar_mandos_carga(e)
+
+
+func _valor_impacto(nombre: String) -> float:
+	return ImpactoFuegoToy.tam_estallido if nombre == "tam_estallido" else ImpactoFuegoToy.vel_flipbook
+
+
+## Y: recorre el estilo de los impactos nuevos: C (golpe sutil + chispas hacia afuera, por defecto) → A (estallido cartoon) → B (bola de fuego redonda) → C.
+func alternar_estilo_impacto() -> void:
+	match ImpactoFuegoToy.estilo:
+		ImpactoFuegoToy.Estilo.C:
+			ImpactoFuegoToy.estilo = ImpactoFuegoToy.Estilo.A
+		ImpactoFuegoToy.Estilo.A:
+			ImpactoFuegoToy.estilo = ImpactoFuegoToy.Estilo.B
+		_:
+			ImpactoFuegoToy.estilo = ImpactoFuegoToy.Estilo.C
+
+
+func nombre_estilo_impacto() -> String:
+	match ImpactoFuegoToy.estilo:
+		ImpactoFuegoToy.Estilo.A:
+			return "A (estallido cartoon Ex1d)"
+		ImpactoFuegoToy.Estilo.B:
+			return "B (bola de fuego, flipbook)"
+	return "C (golpe sutil + chispas)"
+
+
+func _texto_carga() -> String:
+	var s: String = "\nELEMENTO: %s (Z cambia fuego/agua)  ·  CARGA / IMPACTO [impacto %s]: G carga>suelta>vuelo>pared · B pared · N suelo · M fin · R rebote · P explosion de AREA (agua; el pilar de F7 nace solo, V lo hace morir) · Y estilo C/A/B (solo fuego) · T mando · Q- E+  |" % [
+		elemento.to_upper(), nombre_estilo_impacto() if elemento == "fuego" else "salpicadura de agua"]
+	for i in MANDOS_CARGA.size():
+		var d: Array = MANDOS_CARGA[i]
+		s += " %s%s %.2f" % [">" if i == _mando_carga else "", String(d[0]).replace("carga_", ""), float(_valores_carga.get(d[0], d[4]))]
+	for j in MANDOS_IMPACTO.size():
+		var di: Array = MANDOS_IMPACTO[j]
+		s += " %s%s %.2f" % [">" if MANDOS_CARGA.size() + j == _mando_carga else "", String(di[0]), _valor_impacto(di[0])]
+	return s
+
+
+## G: brillo y chispas en la mano durante DURACION_CARGA_LAB s, se sostiene SOSTEN_CARGA_LAB s más (respira), se suelta (la bola aparece con un pop), vuela hasta la pared y el impacto sale por su normal.
+func carga_completa(radio: float = RADIO_BOLA_LAB) -> Node3D:
+	_toy = true
+	_poner_pared()
+	var e = _nuevo_toy()
+	_aplicar_mandos_toy(e)
+	_aplicar_mandos_carga(e)
+	_efectos.add_child(e)
+	e.global_position = _mano()
+	e.look_at(e.global_position + _dir, Vector3.UP)
+	e.empezar_carga(DURACION_CARGA_LAB, radio)
+	ultimo_efecto = e
+	_suelta_y_vuela(e, DURACION_CARGA_LAB + SOSTEN_CARGA_LAB, "golpe")
+	return e
+
+
+## M / R: carga corta y proyectil que (M) se agota en el aire a 3,5 m o (R) rebota en la pared y se agota 2 m después.
+func lanzar_proyectil(modo: String, radio: float = RADIO_BOLA_LAB) -> Node3D:
+	_toy = true
+	if modo == "rebote":
+		_poner_pared()
+	var e = _nuevo_toy()
+	_aplicar_mandos_toy(e)
+	_aplicar_mandos_carga(e)
+	_efectos.add_child(e)
+	e.global_position = _mano()
+	e.look_at(e.global_position + _dir, Vector3.UP)
+	e.empezar_carga(0.35, radio)
+	ultimo_efecto = e
+	_suelta_y_vuela(e, 0.4, modo)
+	return e
+
+
+func _suelta_y_vuela(e: Node3D, tras: float, modo: String) -> void:
+	var dir: Vector3 = _dir
+	await get_tree().create_timer(tras).timeout
+	if not is_instance_valid(e) or not e.is_inside_tree():
+		return
+	e.call("soltar", dir)
+	_bolas.append({"nodo": e, "origen": e.global_position, "dir": dir, "modo": modo, "alcance": 3.5 if modo == "fin" else ALCANCE_BOLA - 0.5, "normal": -dir})
+
+
+## B: el impacto solo (sin bola) en la pared de prueba, orientado por su normal.
+func impacto_pared(variante: int = 0) -> Node3D:
+	_toy = true
+	_poner_pared()
+	var imp: Node3D = _nuevo_impacto(variante, -_dir, RADIO_BOLA_LAB)
+	_efectos.add_child(imp)
+	imp.global_position = _mano() + _dir * (ALCANCE_BOLA - 0.5)
+	ultimo_efecto = imp
+	return imp
+
+
+## N: el impacto solo en el suelo (corona hacia arriba).
+func impacto_suelo(variante: int = 0) -> Node3D:
+	_toy = true
+	var imp: Node3D = _nuevo_impacto(variante, Vector3.UP, RADIO_BOLA_LAB)
+	_efectos.add_child(imp)
+	imp.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + _dir * 3.0
+	ultimo_efecto = imp
+	return imp
 
 
 func _mover_bolas(delta: float) -> void:
@@ -518,6 +759,22 @@ func _mover_bolas(delta: float) -> void:
 	for b in _bolas:
 		var n: Node3D = b["nodo"]
 		if not is_instance_valid(n) or not n.is_inside_tree():
+			continue
+		if b.has("modo"):
+			var dv: Vector3 = b["dir"]
+			if (n.global_position - (b["origen"] as Vector3)).length() >= float(b["alcance"]):
+				var punto: Vector3 = n.global_position
+				match String(b["modo"]):
+					"golpe":
+						n.call("impactar_en", punto, b["normal"])
+					"rebote":
+						var nd: Vector3 = n.call("rebotar", punto, b["normal"])
+						quedan.append({"nodo": n, "origen": punto, "dir": nd, "modo": "fin", "alcance": 2.0, "normal": Vector3.UP})
+					_:
+						n.call("terminar_sin_choque")
+				continue
+			n.global_position += dv * VEL_BOLA * delta
+			quedan.append(b)
 			continue
 		var d: Vector3 = (n.global_position - (b["origen"] as Vector3))
 		if d.length() >= ALCANCE_BOLA and b.get("bucle", false):
@@ -577,6 +834,10 @@ func _seguir_camara() -> void:
 		_cam.global_position = foco + atras
 		_cam.look_at(foco, Vector3.UP)
 		return
+	if not camara_fija.is_empty():
+		_cam.global_position = camara_fija["desde"]
+		_cam.look_at(camara_fija["mira"], Vector3.UP)
+		return
 	var objetivo: Vector3 = foco + _dir * DISTANCIA_EFECTO
 	if ultimo_efecto != null and is_instance_valid(ultimo_efecto) and ultimo_efecto.is_inside_tree():
 		objetivo = ultimo_efecto.global_position + Vector3(0, 0.8, 0)
@@ -586,17 +847,17 @@ func _seguir_camara() -> void:
 			if ultimo_efecto.name.begins_with(clave):
 				dist *= float(CAMARA_TOY[clave][0])
 				objetivo = ultimo_efecto.global_position + Vector3(0, float(CAMARA_TOY[clave][1]), 0)
-	if ultimo_efecto is FuegoToy and is_instance_valid(ultimo_efecto):
-		# FuegoToy: la cámara de cada figura de la prueba 3 (CAMARA_TOY) escalada por lo que crece o mengua respecto al tamaño validado
-		var ft: FuegoToy = ultimo_efecto
+	if _es_toy(ultimo_efecto) and is_instance_valid(ultimo_efecto):
+		# FuegoToy / AguaToy: la cámara de cada figura de la prueba 3 (CAMARA_TOY) escalada por lo que crece o mengua respecto al tamaño validado
+		var ft = ultimo_efecto
 		var clave: String = ["", "Muro", "Pilar", "Barrera", "Muro"][int(ft.figura)]
 		var fc: Array = CAMARA_TOY.get(clave, [1.0, 0.8])
 		var ref_y: float = [FuegoToy.REF_BOLA.x, FuegoToy.REF_MURO.y, FuegoToy.REF_PILAR.y, FuegoToy.REF_BARRERA.y, FuegoToy.REF_HAZ.y][int(ft.figura)]
-		var ext: float = ft.extension() / FuegoToy._extension_ref(ft.figura)
+		var ext: float = ft.extension() / FuegoToy._extension_ref(int(ft.figura) as FuegoToy.Figura)
 		dist *= float(fc[0]) * clampf(ext, 0.45, 3.5)
-		var yo: float = ft.semieje_y if ft.figura != FuegoToy.Figura.BOLA else maxf(ft.semieje_x, ft.semieje_z)
+		var yo: float = ft.semieje_y if int(ft.figura) != FuegoToy.Figura.BOLA else maxf(ft.semieje_x, ft.semieje_z)
 		objetivo = ft.global_position + Vector3(0, float(fc[1]) * yo / ref_y, 0)
-		if ft.figura == FuegoToy.Figura.HAZ:
+		if int(ft.figura) == FuegoToy.Figura.HAZ:
 			objetivo = ft.global_transform * Vector3(0, maxf(ft.semieje_y, 0.4), -ft.semieje_x)       # mira al centro del haz
 	var lado: Vector3 = Vector3(-_dir.z, 0, _dir.x) * 0.6 - _dir * 0.8
 	var desde: Vector3 = objetivo + lado.normalized() * dist + Vector3(0, dist * 0.35, 0)

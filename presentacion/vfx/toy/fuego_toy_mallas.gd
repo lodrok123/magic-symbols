@@ -128,3 +128,123 @@ static func _indices(st: SurfaceTool, anillos: int, seg: int) -> void:
 			st.add_index(a0 + 1)
 			st.add_index(b0)
 			st.add_index(b0 + 1)
+
+
+# ------------------------------------------------------------------ láminas billboard de eje vertical (revisión «muy 2D») ------------------------------------------------------------------
+
+## Cuadrícula de 1 × 1 m para las láminas Y-billboard (fuego_lelu_vbb.gdshader): x de -0,5 a 0,5, y de 0 a 1, UV con V = 0 abajo y 1 arriba. Varias filas y columnas para que el balanceo
+## de los vértices la doble como una lengua y no como una carta.
+static func quad_vbb(cols: int = 4, filas: int = 10) -> ArrayMesh:
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for j in filas + 1:
+		var v: float = float(j) / float(filas)
+		for i in cols + 1:
+			var u: float = float(i) / float(cols)
+			st.set_uv(Vector2(u, v))
+			st.set_normal(Vector3(0, 0, 1))
+			st.add_vertex(Vector3(u - 0.5, v, 0.0))
+	for j in filas:
+		for i in cols:
+			var a0: int = j * (cols + 1) + i
+			var b0: int = a0 + cols + 1
+			st.add_index(a0)
+			st.add_index(b0)
+			st.add_index(a0 + 1)
+			st.add_index(a0 + 1)
+			st.add_index(b0)
+			st.add_index(b0 + 1)
+	return st.commit()
+
+
+## Una lámina: {pos (suelo), w, h (m), sem, hot (0-1), fase (s), alfa (0-1)}.
+static func _lamina(p: Vector3, w: float, h: float, rng: RandomNumberGenerator, hot: float, alfa: float) -> Dictionary:
+	return {"pos": p, "w": w, "h": h, "sem": rng.randf() * 7.0, "hot": hot, "fase": rng.randf() * 20.0, "alfa": alfa}
+
+
+## MURO: una columna cada ~0,55 m a lo largo de x y, en cada una, tres láminas repartidas en el fondo (una al centro, más caliente y baja, y dos a los lados, cada una con su desplazamiento
+## en z y en x), de modo que de canto (mirando a lo largo del muro) se ve una masa de ~2·b de profundidad y no una raya. Determinista (semilla fija).
+static func laminas_muro(a: float, b: float, alto: float, tope: int = 90) -> Array:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 20261102
+	var paso: float = 0.55
+	var n: int = clampi(int(round(2.0 * a * 0.93 / paso)) + 1, 3, tope / 3)
+	var r: Array = []
+	var ancho: float = maxf(paso * 2.0, 0.9)
+	for i in n:
+		var x: float = lerpf(-a * 0.93, a * 0.93, float(i) / float(n - 1))
+		var jx: float = paso * 0.35
+		r.append(_lamina(Vector3(x + rng.randf_range(-jx, jx), 0.0, rng.randf_range(-0.2, 0.2) * b), ancho * rng.randf_range(0.8, 1.0), alto * rng.randf_range(0.65, 0.8), rng, 1.0, 0.9))
+		for lado in [-1.0, 1.0]:
+			r.append(_lamina(Vector3(x + rng.randf_range(-jx, jx), 0.0, float(lado) * b * rng.randf_range(0.55, 1.0)), ancho * rng.randf_range(0.85, 1.15), alto * rng.randf_range(0.85, 1.0), rng, 0.2, 0.8))
+	return r
+
+
+## PILAR: un anillo de láminas alrededor del eje (elipse de semiejes rx·0,5 × rz·0,5, con radio y ángulo desplazados) y tres láminas de núcleo, más calientes y bajas.
+static func laminas_pilar(rx: float, rz: float, alto: float, tope: int = 60) -> Array:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 20261103
+	var rm: float = (rx + rz) * 0.5
+	var n: int = clampi(int(round(perimetro_elipse(rx, rz) / 0.5)), 5, tope - 4)
+	var r: Array = []
+	var ancho: float = 1.3 * rm + 0.2
+	var fase: float = rng.randf() * TAU
+	for i in n:
+		var ang: float = fase + TAU * float(i) / float(n) + rng.randf_range(-0.25, 0.25)
+		var rr: float = rng.randf_range(0.35, 0.65)
+		r.append(_lamina(Vector3(cos(ang) * rx * rr, 0.0, sin(ang) * rz * rr), ancho * rng.randf_range(0.85, 1.1), alto * rng.randf_range(0.88, 1.0), rng, 0.2, 0.8))
+	for i in 3:
+		var ang2: float = fase + TAU * float(i) / 3.0
+		r.append(_lamina(Vector3(cos(ang2) * rx * 0.15, 0.0, sin(ang2) * rz * 0.15), ancho * 0.75, alto * rng.randf_range(0.7, 0.8), rng, 1.0, 0.9))
+	return r
+
+# ------------------------------------------------------------------ HAZ cónico (ronda de Pablo, 2/11) ------------------------------------------------------------------
+
+## Cuántos largos del haz mide la malla del chorro (el trozo de más es el sitio al que se desplaza el chorro al cortarse: haz_toy.gdshader, corte).
+const HAZ_LARGO_MALLA: float = 1.8
+const HAZ_ABRE_POT: float = 0.8            ## el radio crece como s^0,8: casi lineal y más rápido al principio (un cono que se abre en bocanadas)
+
+
+## Semianchura base (m) del chorro a la fracción s (0 = origen, 1 = punta) de su largo: nace de un punto fino 0 y se abre hasta 1. La misma fórmula que haz_toy.gdshader (sin la bocanada).
+static func ancho_haz(s: float, r0: float, r1: float) -> float:
+	return r0 + (r1 - r0) * pow(clampf(s, 0.0, 1.0), HAZ_ABRE_POT)
+
+
+## Tira de eje -Z de largo · HAZ_LARGO_MALLA m con ilas filas y cols columnas laterales: la fila s tiene semianchura ncho_haz(s), así que el origen es un PUNTO (ancho r0) y la punta
+## el radio r1. UV.x = lateral (0 a 1), UV.y = fracción a lo largo de la malla (0 a 1). El shader la gira alrededor de su eje para que mire a la cámara.
+static func haz_cono(largo: float, r0: float, r1: float, cols: int = 6, filas: int = 56) -> ArrayMesh:
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for j in filas + 1:
+		var v: float = float(j) / float(filas)
+		var s: float = v * HAZ_LARGO_MALLA
+		var w: float = ancho_haz(s, r0, r1)
+		for i in cols + 1:
+			var u: float = float(i) / float(cols)
+			st.set_uv(Vector2(u, v))
+			st.set_normal(Vector3(0, 1, 0))
+			st.add_vertex(Vector3((u * 2.0 - 1.0) * w, 0.0, -s * largo))
+	_indices(st, filas + 1, cols)
+	return st.commit()
+
+## BASE IRREGULAR DEL PILAR (ronda de Pablo, 2/11: «mete un patrón más irregular en la base»): lenguas bajas de distinta altura y grosor alrededor de la base, a radios distintos (algunas pegadas al pilar, otras
+## separadas) y unas pocas llamitas sueltas en el suelo, más lejos. Determinista. Se dibujan con las láminas Y-billboard (siempre visibles: el filtro por elevación de la cámara se desactiva en el material).
+static func laminas_base_pilar(rx: float, rz: float, alto: float) -> Array:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 20261104
+	var rm: float = (rx + rz) * 0.5
+	var r: Array = []
+	var n: int = clampi(int(round(perimetro_elipse(rx, rz) / 0.42)), 6, 16)
+	var fase: float = rng.randf() * TAU
+	for i in n:
+		var ang: float = fase + TAU * (float(i) + rng.randf_range(-0.38, 0.38)) / float(n)
+		var rr: float = rng.randf_range(0.7, 1.35)
+		var h: float = clampf(alto * rng.randf_range(0.04, 0.2), 0.2, 0.95)
+		var w: float = rng.randf_range(0.22, 0.6) * (0.6 + 0.8 * rm)
+		r.append(_lamina(Vector3(cos(ang) * rx * rr, 0.0, sin(ang) * rz * rr), w, h, rng, 0.15, 0.9))
+	for i in 5:
+		var ang2: float = fase + rng.randf() * TAU
+		var rr2: float = rng.randf_range(1.5, 2.4)
+		r.append(_lamina(Vector3(cos(ang2) * rx * rr2 + (0.0 if rx > 0.3 else 0.3), 0.0, sin(ang2) * rz * rr2), rng.randf_range(0.16, 0.3), rng.randf_range(0.14, 0.32), rng, 0.05, 0.85))
+	return r
+

@@ -52,7 +52,15 @@ uniform float desplaza = 0.1;
 uniform float inclin : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 vel_dir = vec3(0.0, 0.0, -1.0);
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
+uniform float afila_cola : hint_range(0.0, 3.0) = 0.0;    // en vuelo: cuánto se estrecha la cola con la distancia a la cabeza (0 = como la validada: columna casi uniforme)
+uniform float cabeza_vuelo : hint_range(0.5, 2.0) = 1.0;  // en vuelo: factor del radio de la cabeza redonda (1 = como la validada)
+uniform float cierre_vuelo : hint_range(0.0, 2.0) = 0.0;  // en vuelo: cuánto más duro cae el borde (menos puntas alrededor de la cabeza; 0 = como la validada)
+uniform float calor_cola : hint_range(0.0, 1.0) = 1.0;    // en vuelo: cuánto del núcleo claro se mantiene a lo largo de la cola (1 = como la validada; menos = la cola se va al naranja)
 group_uniforms;
+
+// Fundido contra la geometría de detrás (revisión de Pablo): apagado por defecto (0); FuegoToy lo enciende.
+uniform float suave_prof : hint_range(0.0, 3.0) = 0.0;
+uniform sampler2D tex_prof : hint_depth_texture, repeat_disable, filter_nearest;
 
 varying vec2 eje;
 
@@ -75,7 +83,12 @@ void fragment() {
 	if (yy > 0.0) {
 		yy *= mix(alargado, alargado_vuelo, inclin) / altura;
 	}
-	float g = length(vec2(xa / ancho, yy)) / radio;
+	float rad = radio * mix(1.0, cabeza_vuelo, inclin);
+	float xs = xa;
+	if (ya > 0.0) {
+		xs *= 1.0 + afila_cola * inclin * ya / rad;       // la cola se estrecha hacia atrás: la cabeza es lo más ancho
+	}
+	float g = length(vec2(xs / ancho, yy)) / rad;
 	// la bola nunca es un círculo: un ruido de baja frecuencia, que gira despacio, estira y hunde el contorno en todas direcciones
 	float th = atan(xa, ya);
 	float rot = t * 0.3 + semilla * 6.0;
@@ -86,17 +99,26 @@ void fragment() {
 	float peso_l = mix(peso_abajo, 1.0, smoothstep(-0.1, 0.35, ya / radio));
 	peso_l = max(peso_l, 0.6 * smoothstep(0.5, 1.0, abs(xa) / radio));       // lenguas también a los lados
 	float r2 = texture(ruido_a, vec2(xa * rep_ruido.x - giro * t * 1.7 + 0.37 + semilla * 0.5, -ya * rep_ruido.y + t * vel_ruido)).r;
-	float f = l * peso_l + (r2 - 0.5) * peso_ruido * (0.5 + ondulacion) - pow(g, pot_grad) * fuerza_grad + desfase;
+	float f = l * peso_l + (r2 - 0.5) * peso_ruido * (0.5 + ondulacion) - pow(g, pot_grad) * fuerza_grad * (1.0 + cierre_vuelo * inclin) + desfase;
 	float arriba = smoothstep(0.6, 1.8, ya / radio) * chisporroteo;
 	float fino = texture(ruido_fino, vec2(xa * 2.5 + semilla * 3.0, -ya * 1.6 + t * 2.4)).r;
 	f -= (fino - 0.4) * 1.1 * arriba;
 	float a = smoothstep(umbral, umbral + blandura, f);
 	float borde = max(abs(p.x), abs(p.y)) * 2.0 / tam;
 	a *= 1.0 - smoothstep(0.82, 1.0, borde);
-	float idx = clamp((f - umbral) * escala_rampa + calor_extra * (1.0 - smoothstep(0.0, 0.85, g)), 0.0, 1.0);
+	float calor_k = mix(1.0, mix(1.0, calor_cola, smoothstep(0.0, 2.0, ya / rad)), inclin);
+	float idx = clamp((f - umbral) * escala_rampa + calor_extra * calor_k * (1.0 - smoothstep(0.0, 0.85, g)), 0.0, 1.0);
 	idx = pow(idx, contraste);
 	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
 	float titila = 1.0 + 0.14 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);
 	ALBEDO = col * brillo * titila;
-	ALPHA = clamp(a * transparencia * vida, 0.0, 1.0);
+	float suave = 1.0;
+	if (suave_prof > 0.0) {
+		float dp = texture(tex_prof, SCREEN_UV).r;
+		if (dp > 0.00001) {
+			vec4 w = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, dp, 1.0);
+			suave = clamp((-w.z / w.w + VERTEX.z) / suave_prof, 0.0, 1.0);
+		}
+	}
+	ALPHA = clamp(a * transparencia * vida * suave, 0.0, 1.0);
 }
