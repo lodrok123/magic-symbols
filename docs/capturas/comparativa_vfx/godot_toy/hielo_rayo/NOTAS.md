@@ -86,3 +86,20 @@ En `prueba_vfx_en_juego` el hielo pide tres excepciones (la prueba las dice): la
 ## 7. Horas (reloj del PC, 2/11)
 
 Ver la entrada 342 del diario.
+
+
+## Ronda bola (3/11)
+
+Rama `claude/b1b-bola-rayo` (worktree `E:\tmp\wt_b1b_bola_rayo`, desde `main` en 6afb9b2d, sin push). Solo la BOLA de `RayoToy` (quieta, en carga, en vuelo y su muerte); muro, pilar, barrera, haz, HieloToy, FuegoToy, AguaToy y la paleta no se tocan.
+
+**Lámina:** `LAMINA_bola_rayo.png` (2834 × 2156) y `LAMINA_bola_rayo_reducida.png` (1600 × 1217). Filas: quieta (antes de B1 y después, en cámara «cerca» y en cámara del juego), carga a tres momentos (progreso 0,22 / 0,5 / 0,95), vuelo (lateral y juego, antes y después) y muerte a tres momentos (corte 0,2 / 0,45 / 0,75, a cámara lenta ×10). Las fotos «antes» de B1 están en `bola_antes_b1/` (se sacaron con una copia temporal de `rayo_toy.gd` de `6afb9b2d`, con otro `class_name`, que no se guarda).
+
+**Cómo se rehace:** `godot --path . --script res://herramientas/captura_fuego_parametrico.gd -- <carpeta> bola_rayo rayo [antes]` (con ventana, 1200 × 900; `antes` necesita la copia temporal en `presentacion/vfx/toy/_antes_tmp/rayo_toy_b1.gd`) y `python herramientas/lamina_vfx.py --bola-rayo <carpeta> <lamina.png>`. La cámara del juego es ortogonal, tamaño 6 y 30° de elevación (las del lab).
+
+**Qué cambió:** de seis trazos que salían del centro a una esfera de energía: cuerpo esférico (`rayo_bola.gdshader`, `blend_mix`, fresnel: blanco al centro, amarillo del rayo del juego, canto algo más oscuro, velo azul, vetas que crepitan) + halo azul detrás + seis arcos que recorren la superficie + tres que saltan y vuelven (todo se redibuja cada 0,05 s). Núcleo ≥ 0,6 siempre. En vuelo: destello de cabeza solo en vuelo, cola corta (≤ 2 diámetros) que nace dentro de la cabeza y hasta 16 chispas que se quedan atrás y caen. Carga: la esfera ya lo es a medio crecer y los arcos salen de su superficie. Muerte: `morir` anima `corte` (0,15 s): la esfera se contrae y revienta en ocho arcos cortos y chispas.
+
+**Rondas de captura (mirando cada imagen):** (1) ya se leía como esfera, pero era lechosa y casi blanca, sin contorno; arcos gordos y pálidos; chispas minúsculas → más amarillo (blanco solo en el centro), canto oscurecido, arcos más finos y brillantes, saltos más bajos, chispas más grandes. (2) Amarilla y con volumen; una foto salió casi transparente porque la herramienta fotografiaba antes de que acabara «nacer» (arreglado en la herramienta); la cola, fina → más gruesa. (3) Lámina completa y revisada.
+
+**Presupuesto (medido, `prueba_rayo_toy`):** 239 instancias de MultiMesh como máximo en todo el ciclo (≤ 300), 1 luz, 0 GPUParticles3D; la esfera es un MeshInstance3D (cuenta como 1 material de mezcla normal, junto con la capa del cuerpo del trazo).
+
+**Lo que no sale bien:** en la cámara del juego la bola mide unos 120 px de 900 y los arcos finos se pierden algo (el cuerpo amarillo sí se lee); el reventón a veces deja arcos algo gruesos y pálidos; las chispas de vuelo no chocan con nada, solo se apagan al bajar de la altura del suelo; el impacto (GOLPE, FIN) es el de B1; no se ha visto en el juego real con ventana.
