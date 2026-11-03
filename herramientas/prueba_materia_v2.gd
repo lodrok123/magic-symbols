@@ -147,7 +147,7 @@ func _caso(estado: String, nombre: String) -> void:
 		Terreno3D.conductores[ult + Vector2i(1, 0)] = true
 		Terreno3D.conductores[ult + Vector2i(2, 0)] = true
 		dentro.position = Lanzador3D.centro_de(ult + Vector2i(2, 0), MundoFalso.ALTO)
-	var aviso_esperado: bool = estado == "solido" and niv > Jugador3D.MAX_NIVELES_SUBIBLES
+	var aviso_esperado: bool = false      # 3/11 (Pablo: «no capear la altura»): ya no hay rechazo por altura; un bloque más alto de lo que se sube se construye y no se pisa
 	var suelo_esp: float = Terreno3D.y_pies(Terreno3D.celda_de(_origen()))      # ANTES de lanzar: un sólido levanta la casilla del origen
 	var n: int = _l._materializar(receta, rune, _origen(), Vector3.RIGHT, rune.cinematico)
 	if aviso_esperado:
@@ -180,9 +180,9 @@ func _caso(estado: String, nombre: String) -> void:
 			var pisables: bool = true
 			for c in celdas_esperadas:
 				todas = todas and Terreno3D.celda_solida(c as Vector2i, 0) and Terreno3D.altura_en(c as Vector2i) == niv
-				pisables = pisables and Terreno3D.pisable(c as Vector2i, 0, true, Jugador3D.MAX_NIVELES_SUBIBLES, false) == rune.pisable
+				pisables = pisables and Terreno3D.pisable(c as Vector2i, 0, true, Jugador3D.MAX_NIVELES_SUBIBLES, false) == (rune.pisable and niv <= Jugador3D.MAX_NIVELES_SUBIBLES)      # 3/11: un bloque más alto de lo que se sube se construye y no se pisa
 			_ok("%s: %d casillas × %d nivel(es) con colisión (devuelve %d)" % [et, celdas_esperadas.size(), niv, n], todas and n == celdas_esperadas.size() * niv)
-			_ok("%s: pisable = RuneData.pisable (%s)" % [et, rune.pisable], pisables)
+			_ok("%s: pisable = RuneData.pisable y no más alto de lo que se sube (%s, %d niveles)" % [et, rune.pisable, niv], pisables)
 			_ok("%s: ocupa solo las casillas del volumen" % et, Terreno3D.alturas.size() == celdas_esperadas.size())
 			_l._avanzar_caducidades(rune.persiste + 0.1)
 			_ok("%s: dura `persiste` (%.0f s) y luego no queda nada" % [et, rune.persiste], Terreno3D.alturas.is_empty())
@@ -259,7 +259,7 @@ func _hielo() -> void:
 	# Un sólido que no cabe en lo que se sube tampoco se lanza con aviso de hielo
 	_montar()
 	var n2: int = _l._materializar(_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"]), rune, _origen(), Vector3.RIGHT)
-	_ok("hielo · Y×2 (3 niveles > %d) no se lanza" % Jugador3D.MAX_NIVELES_SUBIBLES, n2 == 0 and Terreno3D.alturas.is_empty())
+	_ok("hielo · Y alto (más de %d nivel): YA se lanza (3/11, sin tope de altura) y levanta su bloque, que simplemente no se pisa" % Jugador3D.MAX_NIVELES_SUBIBLES, n2 > 0 and not Terreno3D.alturas.is_empty())
 
 
 ## Lo que no es un estado concreto: reactivos que arden, que un estado desconocido cae al más inofensivo, que la tierra de siempre no se toca,
@@ -284,7 +284,7 @@ func _extras() -> void:
 	var n: int = _l._materializar(_receta([]), rara, _origen(), Vector3.RIGHT)
 	_ok("un estado desconocido cae a «campo» (señal con estado campo, %d casilla)" % n, _senales.size() == 1 and _senales[0][0] == "campo" and _l._zonas_v2.size() == antes + 1)
 	# aviso_receta ve el estado
-	_ok("aviso_receta: un sólido de 3 niveles avisa, el agua no", Lanzador3D.aviso_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"], load("res://nucleo/earth_rune.tres")) != "" and Lanzador3D.aviso_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"], load("res://nucleo/water_rune.tres")) == "")
+	_ok("aviso_receta: 3/11, ni un sólido de muchos niveles avisa ya (no se capea la altura), ni el agua", Lanzador3D.aviso_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"], load("res://nucleo/earth_rune.tres")) == "" and Lanzador3D.aviso_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"], load("res://nucleo/water_rune.tres")) == "")
 	# La tierra «a mano» (construir_tierra sin opciones V2) sigue siendo un bloque por casilla y entra en el FIFO
 	_montar()
 	var ok_t: bool = _l.construir_tierra(Vector2i(6, 6)) and _l.bloques_de_tierra() == 1
@@ -340,7 +340,7 @@ func _vivo() -> void:
 	# un hechizo rechazado (sólido demasiado alto) no ocupa nada
 	_montar()
 	var alto: HechizoVivo = HechizoVivo.crear(_receta(["altura", "altura", "altura", "altura", "altura", "altura", "altura", "altura"]).hechizo(load("res://nucleo/earth_rune.tres")), _origen(), Vector3.RIGHT, _l)
-	_ok("HC2: un sólido más alto de lo que se pisa devuelve 0 casillas", alto.casillas == 0)
+	_ok("HC2: 3/11, un sólido más alto de lo que se pisa YA no se rechaza (%d casillas)" % alto.casillas, alto.casillas > 0)
 
 	# ESPEC_HECHIZO §0.3: la flecha de agua que viaja no echa agua al salir, la echa al llegar a su alcance, y entonces el hechizo desaparece
 	_montar()

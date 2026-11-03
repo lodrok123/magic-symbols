@@ -239,7 +239,7 @@ func _en_nodo_del_lanzador(n: Node) -> void:
 	if not (n is HechizoVivo):
 		return
 	var hv: HechizoVivo = n
-	if not encendido or hv.h == null or hv.h.velocidad <= 0.0:
+	if not encendido or hv.h == null or not hv.h.proyectil:      # 3/11 (R1): el volumen que viaja (ᛜ + ᛇ) no es un proyectil
 		return
 	_dibujar_proyectil.call_deferred(hv)
 

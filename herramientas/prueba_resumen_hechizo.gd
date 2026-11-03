@@ -104,17 +104,13 @@ func _cobro_y_recarga() -> void:
 
 ## 2. los avisos del libro son los de `_preparar_pagina`
 func _comprobar_avisos() -> void:
-	# altura rechazada: un sólido (tierra) más alto de lo que se sube
-	var provocado: bool = false
+	# 3/11 (Pablo: «no capear la altura»): la altura YA NO se rechaza: ni con 6 ᛏ de tierra el libro avisa de «Demasiada altura»
+	var rechazada: bool = false
 	for n in range(1, 7):
 		_componer("tierra", _repetir("altura", n))
 		var r: Dictionary = lanzador.resumen_pagina(0)
-		if (r["avisos"] as Array).any(func(a): return String(a).begins_with("Demasiada altura")):
-			lanzador.cast_page(0)
-			_ok("avisos: altura rechazada (%d ᛏ de tierra): el libro dice «%s»" % [n, str((r["avisos"] as Array)[0])], not lanzador.modo_lanzar and lanzador.feedback_text == String((r["avisos"] as Array)[0]))
-			provocado = true
-			break
-	_ok("avisos: se pudo provocar el rechazo por altura", provocado)
+		rechazada = rechazada or (r["avisos"] as Array).any(func(a): return String(a).begins_with("Demasiada altura"))
+	_ok("avisos: la altura ya no se rechaza (1 a 6 ᛏ de tierra no avisan)", not rechazada)
 	# glifo aparcado: se avisa y se sigue
 	_componer("fuego", ["flecha", "amplificar"])       # 31/10: «retardo» ya hace algo desde H5 (30/10); el aparcado es otro (`Receta3D.APARCADOS`)
 	var r2: Dictionary = lanzador.resumen_pagina(0)

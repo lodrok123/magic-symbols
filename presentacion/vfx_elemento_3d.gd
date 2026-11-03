@@ -301,7 +301,7 @@ func _en_nodo(n: Node) -> void:
 		return
 	# `h` se asigna en `preparar`, antes de añadirse; la velocidad y la dirección (`v`) se fijan después, en `_iniciar_proyectil`: por eso se dibuja diferido.
 	var hv := n as HechizoVivo
-	if hv.h != null and hv.h.velocidad > 0.0:
+	if hv.h != null and hv.h.proyectil:      # 3/11 (R1): el muro que viaja no es un proyectil: lo dibuja `hechizo_v2`
 		_dibujar_proyectil.call_deferred(weakref(hv))
 
 

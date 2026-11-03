@@ -607,7 +607,7 @@ func desde_hechizo(h: Hechizo) -> void:
 ##   Â· sin solidez: nombre_derivado Â«altoÂ» â†’ PILAR; alargado en planta â†’ MURO; lo demÃ¡s (esfera, elipsoide, zona plana redonda) â†’ BOLA (nota si es plana).
 ## Los semiejes de Hechizo estÃ¡n en casillas y se pasan a metros con `casilla` (2,3, como VfxElemento3D).
 static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
-	var vuela: bool = h.viaja or h.velocidad > 0.0
+	var vuela: bool = (h.viaja or h.velocidad > 0.0) and not h.volumen_viaja      # 3/11 (R1): el volumen sólido que viaja (ᛜ + ᛇ) es un MURO/BARRERA que se desplaza, no una bola con cola
 	var s: Vector3 = (h.semiejes_vuelo if vuela else h.semiejes) * casilla_m
 	var nombre: String = Hechizo.nombre_derivado(h.semieje_x, h.semieje_y, h.semieje_z, vuela)
 	var largo: float = maxf(s.x, s.z)

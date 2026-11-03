@@ -134,7 +134,7 @@ func _comprobar(rune: RuneData, elemento: String, combo: Array, c: Dictionary, r
 		_anota("§1.9 persiste + permanencia ≤ 25 s", et)
 	if h.copias < 1 or h.copias > Hechizo.LIM_COPIAS:
 		_anota("§1.9 copias en [1, 8]", et)
-	if h.niveles > 4:
+	if h.semieje_y > Hechizo.LIM_SEMIEJE_ALTO + 1e-6:          # 3/11: la altura ya no se capa en 4 niveles (rendimiento decreciente); solo el tope de seguridad
 		_anota("§1.9 niveles ≤ 4", et)
 	# --- forma y figura ---
 	var fig: String = h.figura()

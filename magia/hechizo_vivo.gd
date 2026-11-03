@@ -23,6 +23,17 @@ extends Node3D
 ##   · ᚷ `crece` va en m/s DE RADIO (ESPEC §1.3), no en escala por segundo: el volumen nace a `escala_nace` × sus semiejes y crece hasta el 100 % en
 ##     (semieje − semieje × escala_nace) / crece segundos (`tiempo_crecimiento`). Mientras crece rasteriza casillas nuevas cada vez que su radio cruza una (antes solo había 8 fases fijas).
 ##     El proyectil con `crece` crece en vuelo (su radio de acierto `_radio_u` sube a `crece` m/s hasta el de `semiejes_vuelo`).
+##
+## CINCO REGLAS GENERALES DE COMBINAR GLIFOS (3/11/2026, decisión de Pablo «R1…R5»: no se hardcodean recetas; salen de condiciones por PROPIEDADES del Hechizo —solidez, velocidad, copias, retorna, crece, semiejes— para cualquier elemento):
+##   · R1 · ᛇ sobre algo con FORMA = la forma viaja. Con solidez (`Hechizo.volumen_viaja`, ᛜ + ᛇ) NO sale una bola: el volumen entero recorre su ruta (`eventos_de`, a la velocidad de la flecha) y su SolidezV2 lo ACOMPAÑA
+##     (`_solidez_sigue`: ocupa las casillas donde está y suelta las que deja); lo que encuentra se golpea (`_contacto` por tanda) y se empuja (`EMPUJE_MURO_K`). ᚲ + ᛇ sin solidez sigue siendo la bola de siempre.
+##   · R2 · ᛃ sobre lo que viaja = el camino incluye la VUELTA. El proyectil ya volvía (`_fin_de_ida`); ahora el volumen que viaja también vuelve al lanzador (tramo de vuelta en `eventos_de`: vuelve a golpear, sin repetir su materia).
+##   · R3 · ᛃ SIN flecha y con ᚠ (≥ 2 copias) = las copias ORBITAN el lanzador (`Hechizo.orbita`, `_materializar_orbita`): un orbe por copia, el radio lo abren los semiejes X/Z, la duración la dan persiste + permanencia; golpean lo
+##     que tocan en su vuelta y, con ᚨ, un orbe sale disparado contra un enemigo vivo cercano. Sin copias, ᛃ sigue siendo el eco del impacto.
+##   · R4 · ᚷ sobre un volumen que domina en altura (`Hechizo.columna`, ᛏ + ᚷ) = crece de ABAJO ARRIBA (antes la altura nacía entera): su altura sube con `crece` y ELEVA lo que haya dentro (`_avanzar_columna`: `elevar` del
+##     jugador y los enemigos, el mismo contrato que `push`).
+##   · R5 · ᚷ golpea AL CRECER: cada fase de crecimiento ya golpeaba las casillas NUEVAS que alcanza (`eventos_de` + `_vivir` + `tocados`: onda expansiva por casillas); y un volumen líquido que crece (`Hechizo.estalla`, ᛚ ᚷ…) ESTALLA al expirar
+##     con daño en área de su tamaño final (`_estallar`, `Hechizo.radio_estallido`): lo que ya dibuja `AguaToy.area_al_impactar`.
 
 ## --- MATERIA V2 (R2, 17/10; docs/GLIFOS_RECETA.md §2.3-2.4): lo que llena el volumen lo decide el estado de la materia, UNA vez por estado ---
 const T_LLENADO_V2: float = 1.0             ## líquido: s que tarda en echar el agua de su volumen
@@ -49,7 +60,18 @@ const PULSO_V2: Dictionary = {"plasma": "pulso_plasma", "gas": "pulso_gas", "cam
 const MUESTRAS_CRECE_V2: int = 24          ## 24/10: en cuántos pasos iguales se muestrea el crecimiento de un volumen para ver cuándo su radio cruza una casilla (antes: 8 fases de al menos un `intervalo`)
 const PASO_CRECE_MIN_S: float = 0.05       ## s: paso mínimo entre dos muestras del crecimiento (un crecimiento muy corto no se parte en trozos más pequeños que unos fotogramas)
 const SEPARACION_COPIAS_MIN_CASILLAS: float = 1.0   ## casillas de centro a centro entre dos copias como mínimo (una copia por casilla: la casilla es lo que se rasteriza)
-const MAX_EVENTOS_V2: int = 64            ## tope de apariciones (copias × fases × posiciones) por hechizo
+const MAX_EVENTOS_V2: int = 128           ## tope de apariciones (copias × fases × posiciones) por hechizo (3/11: 64 → 128, que el volumen que viaja y vuelve con copias no se corte en la vuelta)
+## 3/11 (R1/R2): el muro que viaja y empuja. Fracción de `Lanzador3D.FUERZA_EMPUJE` con que arrastra a quien alcanza; cuánto se queda su SolidezV2 tras su último paso si no hay `permanencia`.
+const EMPUJE_MURO_K: float = 0.5
+const COLA_SOLIDEZ_S: float = 0.3
+## 3/11 (R3): los orbes de ᛃ + ᚠ. Radio de la órbita = ORBITA_RADIO_BASE_CAS + ORBITA_RADIO_POR_SEMIEJE × el mayor de X y Z (casillas); una vuelta cada ORBITA_VUELTA_S s; dura persiste + permanencia (mínimo ORBITA_VIDA_MIN_S).
+const ORBITA_RADIO_BASE_CAS: float = 1.0
+const ORBITA_RADIO_POR_SEMIEJE: float = 2.0
+const ORBITA_VUELTA_S: float = 2.0
+const ORBITA_VIDA_MIN_S: float = 3.0
+const ORBE_RADIO_MIN_U: float = 0.2         ## u: el orbe acierta con su tamaño en vuelo (semiejes × ESCALA_PROYECTIL), pero nunca menos de esto
+## 3/11 (R4): lo que vive como mínimo (s) el pilar que sube, alzando lo que tiene dentro.
+const COLUMNA_VIDA_MIN_S: float = 1.0
 const PASO_SECO_S: float = 1.0 / 20.0          ## 28/10 · A2: paso de la simulación en seco. Más grueso que el de la física (1/60) para que sea barata (se llama cada fotograma al apuntar): el rayo de `_golpes_areas` cubre todo el tramo, así que no se salta nada; el arco cambia unos milímetros
 const PASOS_MAX_SECO: int = 100             ## A2: tope de pasos de un proyectil en seco (5 s de vuelo): lo que no ha parado a tiempo se da por llegado
 ## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
@@ -132,6 +154,19 @@ var pulsos_soltados: Array = []            ## los Pulso3D que ha soltado este he
 var _momento_hecho: Dictionary = {}        ## momento -> true para «inicio» y «final» (una vez cada uno: sin reentradas)
 var finales_vistos: Array = []             ## H2: los eventos de final (`Hechizo.EVENTOS_FINAL`) que SALTARON, tengan o no acciones: un tramo termina en exactamente uno (las pruebas lo leen)
 var ecos_de_retorno: int = 0               ## 31/10: veces que ᛃ sin flecha repitió el impacto (las pruebas lo leen)
+## --- 3/11 (R1-R5): el estado en marcha de las reglas de combinar glifos (las pruebas y el VFX lo leen) ---
+var _solideces_sigue: Dictionary = {}      ## R1: copia -> {nodo: SolidezV2, hasta: ms}: la solidez que acompaña a cada copia del volumen que viaja
+var orbes: Array = []                      ## R3: [{p: Vector3, ang: float, vuelta: float (rad de esta vuelta), golpeados: Dictionary, activo: bool, lanzado: bool}]; vacío si no orbita
+var radio_orbita_u: float = 0.0            ## R3: radio de la órbita (u)
+var orbes_lanzados: int = 0                ## R3 + ᚨ: orbes que salieron disparados contra un enemigo
+var _vida_orbita: float = 0.0
+var _t_orbita: float = 0.0
+var _objetivos_orbe: Dictionary = {}       ## R3 + ᚨ: instance_id -> true de los enemigos a los que ya se disparó un orbe
+var _t_nacido: float = 0.0                 ## s de juego desde que nació el volumen (lo que cuenta `avanzar_volumen`)
+var columna: Dictionary = {}               ## R4: {celdas: Dictionary, y1: m de la altura final (casillas), nace: fracción con que nace, t0: s hasta que nace, t: s que tarda en crecer, vida: s hasta que suelta lo que alza}; vacío si no crece en altura
+var elevados: int = 0                      ## R4: veces que `elevar` alzó a algo (las pruebas lo leen)
+var estallidos: int = 0                    ## R5: veces que el volumen líquido estalló en área (las pruebas lo leen)
+var _centro_volumen: Vector3 = Vector3.ZERO ## el centro del volumen que nace quieto, en el suelo: de ahí sale el estallido
 ## ⧖ / ᛃ (31/10, REV 01 del checklist, Pablo: «haz que haya un impacto con un pequeño delay»): sin flecha, ᛃ repite el impacto EN EL PUNTO DE IMPACTO (la punta del haz o el sitio del volumen)
 ## este tiempo después de acabar: otra vez la materia y el daño. Sustituye a «vuelve a la mano» (30/10).
 const RETORNO_ECO_S: float = 0.4
@@ -160,7 +195,7 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	lanzador.add_child(nuevo)
 	nuevo.set_physics_process(not a_mano)
 	var n_proyectiles: int = copias_de_proyectil(hechizo)
-	if hechizo.velocidad > 0.0:
+	if hechizo.proyectil:                      # 3/11 (R1): el volumen sólido que viaja (ᛜ + ᛇ) no es un proyectil: lo recorre `_materializar`
 		var salida: Dictionary = salida_de_copia(hechizo, copia, n_proyectiles, dir)
 		nuevo.casillas = nuevo._iniciar_proyectil(origen, salida["dir"], salida["desvio"])
 	else:
@@ -184,7 +219,7 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 
 ## Cuántos proyectiles salen de un hechizo: sus `copias` si es un PROYECTIL lanzado (velocidad > 0, profundidad 0), y 1 en cualquier otro caso (un volumen se reparte en `eventos_de`; un hijo no se multiplica).
 static func copias_de_proyectil(hechizo: Hechizo) -> int:
-	if hechizo.velocidad <= 0.0 or hechizo.profundidad > 0:
+	if not hechizo.proyectil or hechizo.profundidad > 0:
 		return 1
 	return maxi(hechizo.copias, 1)
 
@@ -219,7 +254,7 @@ static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir:
 	if hechizo == null or lanzador == null or lanzador.mundo == null or not lanzador.is_inside_tree():
 		return res
 	var copias: int = copias_de_proyectil(hechizo)
-	for i in range(copias if hechizo.velocidad > 0.0 else 1):
+	for i in range(copias if hechizo.proyectil else 1):
 		var v := HechizoVivo.new()
 		v.lanz = lanzador
 		v.h = hechizo
@@ -230,7 +265,7 @@ static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir:
 		v.seco = true
 		v.prevision = {"golpes": [], "suelo": [], "fin": Vector3.INF, "causa": "", "rebotes": 0}
 		v.linaje = Linaje.new()
-		if hechizo.velocidad > 0.0:
+		if hechizo.proyectil:
 			var salida: Dictionary = salida_de_copia(hechizo, i, copias, dir)
 			v._iniciar_proyectil(origen, salida["dir"], salida["desvio"])
 			var camino: PackedVector3Array = [v.p]
@@ -285,6 +320,8 @@ static func tiempo_caida(geo: Dictionary) -> float:
 
 ## Hace que ocurra lo que dice el Hechizo: avisa al VFX, y cada tanda de casillas cobra vida a su hora. Devuelve cuántas casillas ocupa (0 = rechazado).
 func _materializar(origen: Vector3, dir: Vector3) -> int:
+	if h.orbita:
+		return _materializar_orbita(origen, dir)          # 3/11 (R3): ᛃ sin flecha y con ᚠ: las copias orbitan al lanzador
 	if h.haz:
 		return _materializar_haz(origen, dir)             # RAYO (21/10): ᛁ + elemento. No es un volumen que se rasteriza: es un recorrido
 	var aviso: String = Lanzador3D.GeometriaV2.aviso_materia(g, h.fuente)
@@ -312,7 +349,7 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 	var suelo: float = Terreno3D.y_pies(c_origen) if Terreno3D.en_mapa(c_origen) else origen.y
 	var eventos_vfx: Array = []
 	for ev in eventos:
-		eventos_vfx.append({"t": float(ev["t"]), "pos": ev["pos"], "dir": ev["dir"]})
+		eventos_vfx.append({"t": float(ev["t"]), "pos": ev["pos"], "dir": ev["dir"], "vuelta": bool(ev.get("vuelta", false)), "copia": int(ev.get("copia", 0))})
 	# §0.3 — la vida: si viaja, desaparece al llegar o chocar (+ `permanencia`) y la `persiste` del elemento NO cuenta; si nace quieto, `persiste` + `permanencia`.
 	var viaja: bool = h.viaja
 	_t_viaje = float(eventos.back()["t"]) if (viaja and not eventos.is_empty()) else 0.0
@@ -321,6 +358,22 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 		"persiste": data.persiste, "suelo": suelo, "eventos": eventos_vfx, "t_caida": t_caida,
 		"viaja": viaja, "velocidad": _velocidad_viaje(), "permanencia": h.permanencia, "vida_total": vida_total,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad}
+	if h.retorna and viaja:
+		volumen["retorna"] = true                                              # 3/11 (R2): la ruta de `eventos` incluye la VUELTA (cada evento dice si es de vuelta); la clave solo sale si pasa
+	# 3/11 (R4/R5): lo que el dibujo necesita del volumen que crece en altura o estalla (solo datos: la lógica ya lo decide aquí).
+	var p0: Vector2 = (eventos[0]["pos"] as Vector2) if not eventos.is_empty() else Vector2(origen.x, origen.z)
+	_centro_volumen = Vector3(p0.x, suelo + 0.3, p0.y)
+	if h.columna and not viaja:
+		var celdas_col: Dictionary = {}
+		for c in todas:
+			celdas_col[c] = true
+		columna = {"celdas": celdas_col, "y1": float(g["y"]), "nace": h.escala_nace, "t0": h.retardo, "t": tiempo_crecimiento,
+			"vida": h.retardo + maxf(maxf(tiempo_crecimiento, h.persiste + h.permanencia), COLUMNA_VIDA_MIN_S), "suelo": suelo}
+		volumen["columna"] = {"y1": float(g["y"]), "nace": h.escala_nace, "t0": h.retardo, "t": tiempo_crecimiento}
+		if not seco:
+			_despues(float(columna["vida"]), func() -> void: pass)         # el hechizo vive mientras el pilar alza lo que tiene dentro (si no, se borraba al acabar de echar el agua)
+	if h.estalla and h.profundidad == 0:
+		volumen["estalla"] = {"t": h.retardo + _t_estallido(), "radio": h.radio_estallido}
 	if not seco:
 		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, props)
@@ -334,25 +387,42 @@ func _materializar(origen: Vector3, dir: Vector3) -> int:
 	var refleja: bool = float(props.get("rebotes", 0.0)) > 0.0 and float(props.get("viaja", 0.0)) <= 0.0
 	var cuenta: int = 0
 	var tocados: Dictionary = {}                       # a quién le llegó ya el golpe entero en ESTE hechizo (instance_id -> true)
+	var tocados_vuelta: Dictionary = {}                # R2: el tramo de VUELTA es un tramo nuevo: puede volver a golpear a todos (como el proyectil que vuelve, `_fin_de_ida`)
+	var ocupacion_s: float = (2.0 * float(g["z"]) + 1.0) / maxf(_velocidad_viaje(), 0.001)    # R1: lo que tarda el volumen en pasar por encima de una casilla (su fondo + una casilla)
 	for ev in eventos:
 		var celdas_ev: Array = ev["celdas"]
 		var dir_ev: Vector2 = ev["dir"]
 		var dir3: Vector3 = dir if dir_ev.is_equal_approx(d2) else Vector3(dir_ev.x, 0.0, dir_ev.y)
 		var pos: Vector2 = ev["pos"]
+		var vuelta: bool = bool(ev.get("vuelta", false))
 		var vida: float = -1.0                             # -1 = sin vida declarada: cada materia usa la suya de siempre
 		if viaja:
 			vida = maxf(_t_viaje - float(ev["t"]) + h.permanencia, h.intervalo)
+			if ev.has("ocupa"):
+				# R1: la materia de un volumen que VIAJA y es sólido (muro) vive lo que el volumen tarda en pasar por la casilla (más la `permanencia` si es el último paso): el muro lleva su fuego o su agua, no los siembra
+				vida = maxf(ocupacion_s + (h.permanencia if float(ev["t"]) >= float(ev["fin"]) - 0.001 else 0.0), h.intervalo)
 		elif vida_total > 0.0:
 			vida = vida_total
 		var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas_ev, "niveles": niveles, "vida": vida,
 			"origen": origen if pos.is_equal_approx(Vector2(origen.x, origen.z)) else Vector3(pos.x, origen.y, pos.y),
 			"dir": dir3, "estado": estado, "fraccion": copias * float(celdas_ev.size()) / float(maxi(todas.size(), 1)),
-			"tocados": tocados, "golpes": ev.get("golpes", [])}
+			"tocados": tocados_vuelta if vuelta else tocados, "golpes": ev.get("golpes", [])}
+		if ev.has("ocupa"):                                 # R1: el volumen que viaja lleva su solidez consigo (`_solidez_sigue`)
+			ctx["sigue"] = true
+			ctx["ocupa"] = ev["ocupa"]
+			ctx["copia"] = int(ev.get("copia", 0))
+			ctx["t_ev"] = float(ev["t"])
+			ctx["fin"] = float(ev["fin"])
+			var mv: Vector2 = ev.get("mueve", dir_ev)
+			ctx["mueve"] = Vector3(mv.x, 0.0, mv.y)
+		if vuelta:
+			ctx["vuelta"] = true                            # R2: en la vuelta solo golpea y mueve la solidez; la materia ya se echó en la ida
 		var t: float = float(ev["t"])
 		if t <= 0.001 or seco:           # en seco no se espera: todas las tandas, de golpe (lo que ocupará el hechizo en total)
 			cuenta += _vivir(ctx, solidez, refleja)
 		else:
-			cuenta += celdas_ev.size()
+			if not vuelta:
+				cuenta += celdas_ev.size()
 			_despues(t, func() -> void: _vivir(ctx, solidez, refleja))
 	return cuenta
 
@@ -432,6 +502,207 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	return maxi(celdas.size(), 1)
 
 
+## =====================================================================================================
+##  3/11/2026 · R3, R4 y R5 (decisión de Pablo): lo que hace un volumen que NO es un proyectil mientras vive
+## =====================================================================================================
+## Un solo ticker, `avanzar_volumen(dt)`: lo llama `_physics_process` (y las pruebas, a mano, con `a_mano`). Hace avanzar los orbes (R3) y alza lo que haya dentro del pilar que crece (R4).
+
+const ORBE_LANZADO_VEL: float = 5.0         ## m/s del orbe que sale disparado con ᚨ (más rápido que la flecha: ya va con su tamaño y rumbo)
+
+func avanzar_volumen(dt: float) -> void:
+	if proyectil or seco or not _nacido or dt <= 0.0:
+		return
+	_t_nacido += dt
+	if not columna.is_empty():
+		_avanzar_columna(dt)
+	if not orbes.is_empty():
+		_avanzar_orbes(dt)
+
+
+## R3 · ᛃ sin flecha y con ᚠ (`Hechizo.orbita`): cada copia es un ORBE que da vueltas al lanzador. Radio = `ORBITA_RADIO_BASE_CAS` + `ORBITA_RADIO_POR_SEMIEJE` × el mayor de X y Z (así las ᛁ abren la órbita), una vuelta cada
+## `ORBITA_VUELTA_S` s, repartidos a partes iguales; viven persiste + permanencia (mínimo `ORBITA_VIDA_MIN_S`). Cada orbe golpea una vez por vuelta a lo que toca (como el proyectil: `_golpear` → `al_golpear`). Con ᚨ (`busca`),
+## un orbe por glifo sale disparado como proyectil contra un enemigo vivo cercano (`_orbe_busca`: el mismo imán que el proyectil). Devuelve cuántos orbes salen (las copias).
+func _materializar_orbita(origen: Vector3, dir: Vector3) -> int:
+	var cas: float = Terreno3D.casilla
+	var n: int = maxi(h.copias, 1)
+	var d2 := Vector2(dir.x, dir.z)
+	d2 = d2.normalized() if d2.length() > 0.001 else Vector2.RIGHT
+	radio_orbita_u = (ORBITA_RADIO_BASE_CAS + ORBITA_RADIO_POR_SEMIEJE * maxf(float(g["x"]), float(g["z"]))) * cas
+	_vida_orbita = clampf(h.persiste + h.permanencia, ORBITA_VIDA_MIN_S, Hechizo.LIM_VIDA_S)
+	_t_orbita = 0.0
+	_centro_volumen = Vector3(origen.x, 0.0, origen.z)
+	orbes = []
+	for i in range(n):
+		orbes.append({"ang": d2.angle() + TAU * float(i) / float(n), "vuelta": 0.0, "golpeados": {}, "activo": true, "lanzado": false, "p": Vector3.ZERO})
+	_poner_orbes()
+	if seco:
+		return n
+	var c0: Vector2i = Terreno3D.celda_de(origen)
+	var suelo: float = Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y
+	var volumen: Dictionary = {"x": g["x"], "y": g["y"], "z": g["z"], "celdas": [c0], "niveles": 1, "persiste": 0.0, "suelo": suelo,
+		"eventos": [{"t": 0.0, "pos": Vector2(origen.x, origen.z), "dir": d2, "vuelta": false}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": _vida_orbita,
+		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,
+		"orbita": {"n": n, "radio": radio_orbita_u, "vuelta_s": ORBITA_VUELTA_S, "vida": _vida_orbita, "radio_orbe": maxf(maxf(float(g["x"]), float(g["z"])) * Hechizo.ESCALA_PROYECTIL * cas, ORBE_RADIO_MIN_U)}}
+	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
+	_despues(_vida_orbita, _fin_orbita)
+	return n
+
+
+## El centro de la órbita: el lanzador a la altura de su mano (si no hay lanzador en juego, donde se lanzó).
+func _centro_orbita() -> Vector3:
+	var base: Vector3 = _centro_volumen
+	if lanz != null and lanz.jugador != null and is_instance_valid(lanz.jugador):
+		base = (lanz.jugador as Node3D).global_position
+	var c: Vector2i = Terreno3D.celda_de(base)
+	var suelo: float = Terreno3D.y_pies(c) if Terreno3D.en_mapa(c) else base.y
+	return Vector3(base.x, suelo + (h.altura_salida + h.elevacion) * Terreno3D.casilla, base.z)
+
+
+## Pone cada orbe en su sitio de la órbita (sin avanzar el ángulo).
+func _poner_orbes() -> void:
+	var centro: Vector3 = _centro_orbita()
+	for o in orbes:
+		var a: float = float((o as Dictionary)["ang"])
+		(o as Dictionary)["p"] = centro + Vector3(cos(a), 0.0, sin(a)) * radio_orbita_u
+
+
+func _avanzar_orbes(dt: float) -> void:
+	_t_orbita += dt
+	if _t_orbita >= _vida_orbita:
+		_fin_orbita()
+		return
+	var w: float = TAU / ORBITA_VUELTA_S
+	var centro: Vector3 = _centro_orbita()
+	var r_acierto: float = maxf(maxf(float(g["x"]), float(g["z"])) * Hechizo.ESCALA_PROYECTIL * Terreno3D.casilla, ORBE_RADIO_MIN_U)
+	for o in orbes:
+		var od: Dictionary = o
+		if not bool(od["activo"]):
+			continue
+		od["ang"] = float(od["ang"]) + w * dt
+		od["vuelta"] = float(od["vuelta"]) + w * dt
+		if float(od["vuelta"]) >= TAU:
+			od["vuelta"] = float(od["vuelta"]) - TAU
+			(od["golpeados"] as Dictionary).clear()                 # una vuelta nueva: puede volver a golpear a lo que ya tocó
+		var a: float = float(od["ang"])
+		od["p"] = centro + Vector3(cos(a), 0.0, sin(a)) * radio_orbita_u
+		_golpes_del_orbe(od, r_acierto, Vector3(-sin(a), 0.0, cos(a)))
+	_orbe_busca()
+
+
+## Lo que toca un orbe en su posición (enemigos y reactivos a menos de radio + RADIO_ENEMIGO_U en planta y dentro de la ventana vertical): un golpe por objeto y vuelta.
+func _golpes_del_orbe(o: Dictionary, r: float, tangente: Vector3) -> void:
+	if lanz == null or not lanz.is_inside_tree():
+		return
+	var p_orbe: Vector3 = o["p"]
+	var golpeados_orbe: Dictionary = o["golpeados"]
+	for grupo in ["combate3d", "reactivo3d"]:
+		for obj in lanz.get_tree().get_nodes_in_group(grupo):
+			if fuera_de_juego(obj) or golpeados_orbe.has((obj as Object).get_instance_id()):
+				continue
+			var c: Vector3 = (obj as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
+			var plano: Vector3 = c - p_orbe
+			plano.y = 0.0
+			if plano.length() > r + RADIO_ENEMIGO_U or absf(c.y - p_orbe.y) > r + VENTANA_Y_U:
+				continue
+			golpeados_orbe[(obj as Object).get_instance_id()] = true
+			golpes_dados += 1
+			_golpear(obj, tangente, (obj as Node3D).global_position, p_orbe)
+
+
+## R3 + ᚨ: «un orbe sale disparado hacia un enemigo vivo cercano (como el imán actual)». Por cada ᚨ (`busca`) un orbe — el más cercano al enemigo — deja la órbita como PROYECTIL (copia del hechizo con velocidad, alcance
+## `BUSCA_ALCANCE_CAS` y su `busca`, que lo gira hacia el objetivo con `_buscar`), contra el enemigo vivo más cercano al lanzador dentro de ese alcance que aún no tenga un orbe encima.
+func _orbe_busca() -> void:
+	if h.busca <= 0.0 or orbes_lanzados >= int(ceilf(h.busca)) or lanz == null or not lanz.is_inside_tree() or linaje == null or linaje.vivos >= Hechizo.MAX_VIVOS:
+		return
+	var centro: Vector3 = _centro_orbita()
+	var objetivo: Node3D = null
+	var mejor: float = INF
+	for e in lanz.get_tree().get_nodes_in_group("combate3d"):
+		if fuera_de_juego(e) or _objetivos_orbe.has((e as Object).get_instance_id()):
+			continue
+		var dist: float = ((e as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - centro).length()
+		if dist <= BUSCA_ALCANCE_CAS * Terreno3D.casilla and dist < mejor:
+			mejor = dist
+			objetivo = e as Node3D
+	if objetivo == null:
+		return
+	var elegido: int = -1
+	var cerca: float = INF
+	for i in range(orbes.size()):
+		if bool((orbes[i] as Dictionary)["activo"]):
+			var dd: float = ((orbes[i] as Dictionary)["p"] as Vector3).distance_to(objetivo.global_position)
+			if dd < cerca:
+				cerca = dd
+				elegido = i
+	if elegido < 0:
+		return
+	var od: Dictionary = orbes[elegido]
+	od["activo"] = false
+	od["lanzado"] = true
+	orbes_lanzados += 1
+	_objetivos_orbe[(objetivo as Object).get_instance_id()] = true
+	var hijo: Hechizo = h.copiar()
+	hijo.eventos = {}
+	hijo.profundidad = h.profundidad + 1
+	hijo.con({"velocidad": ORBE_LANZADO_VEL, "distancia_max": BUSCA_ALCANCE_CAS, "copias": 1, "retorna": false, "crece": 0.0, "solidez": 0.0, "gravedad": 0.0, "retardo": 0.0})
+	var al: Vector3 = objetivo.global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - (od["p"] as Vector3)
+	al.y = 0.0
+	var d: Vector3 = al.normalized() if al.length() > 0.01 else Vector3.RIGHT
+	HechizoVivo.crear(hijo, od["p"] as Vector3, d, lanz, linaje, golpeados.duplicate(), manual)
+
+
+## Se acaba la órbita: los orbes se apagan (lo que ya salió disparado sigue su vuelo).
+func _fin_orbita() -> void:
+	for o in orbes:
+		(o as Dictionary)["activo"] = false
+
+
+## R4 · la altura (u sobre el suelo) a la que ha subido el pilar que crece: de `nace` × su altura final a la entera, a `crece` m/s de radio (el mismo tiempo que ya manda `tiempo_de_crecer`). 0 si no es un pilar o aún no ha nacido.
+func altura_columna_u() -> float:
+	if columna.is_empty():
+		return 0.0
+	var t: float = _t_nacido - float(columna["t0"])
+	if t < 0.0:
+		return 0.0
+	var total: float = float(columna["t"])
+	var nace: float = float(columna["nace"])
+	var s: float = 1.0 if total <= 0.0 else clampf(nace + (1.0 - nace) * t / total, nace, 1.0)
+	return float(columna["y1"]) * s * Terreno3D.casilla
+
+
+## R4 · «ELEVA lo que haya dentro»: mientras vive el pilar (`columna["vida"]`), todo lo que está en sus casillas y tiene `elevar` (el contrato nuevo, hermano de `push`: `Jugador3D.elevar` usa su `vy`, el salto de siempre;
+## `Combate3D.elevar` alza su dibujo como el saltito del golpe) sube con la cima: se queda a la altura que lleva el pilar. Al acabar, se suelta (el jugador cae por su gravedad; el enemigo baja).
+func _avanzar_columna(dt: float) -> void:
+	if lanz == null or not lanz.is_inside_tree() or _t_nacido < float(columna["t0"]) or _t_nacido > float(columna["vida"]):
+		return
+	var alto: float = altura_columna_u()
+	var celdas: Dictionary = columna["celdas"]
+	var dentro: Array = []
+	if lanz.jugador != null and is_instance_valid(lanz.jugador) and celdas.has(Terreno3D.celda_de((lanz.jugador as Node3D).global_position)):
+		dentro.append(lanz.jugador)
+	for grupo in ["combate3d", "reactivo3d"]:
+		dentro.append_array(nodos_en(lanz, grupo, celdas))
+	for obj in dentro:
+		if obj.has_method("elevar"):
+			obj.call("elevar", alto, dt)
+			elevados += 1
+
+
+## R5 · cuánto vive (s, desde que nace) el volumen líquido que crece antes de estallar: su vida (persiste + permanencia) con un mínimo de `Hechizo.ESTALLIDO_MIN_S` y nunca menos de lo que tarda en crecer.
+func _t_estallido() -> float:
+	return maxf(maxf(h.persiste + h.permanencia, Hechizo.ESTALLIDO_MIN_S), tiempo_crecimiento)
+
+
+## R5 · el estallido del volumen líquido que ha crecido (`Hechizo.estalla`): el agua revienta y daña en área (`_danar_area`, el mismo de `radio_explosion`) de `Hechizo.radio_estallido` casillas desde su centro, con el daño del hechizo.
+func _estallar(dir: Vector3) -> void:
+	if lanz == null or not lanz.is_inside_tree():
+		return
+	estallidos += 1
+	eventos_vistos.append("estallido")
+	_danar_area(h.radio_estallido, h.dano, _centro_volumen, dir)
+
+
 ## `perfora` del haz: si justo delante de `desde` (a menos de media casilla) hay una casilla sólida o una barrera, sigue en línea recta hasta salir de ella (como mucho `max_m` metros) y devuelve
 ## {salida: Vector2 (un poco más allá), n: casillas sólidas distintas y barreras atravesadas}. Vacío si no hay obstáculo delante o no se sale de él dentro del alcance.
 func _haz_salto_obstaculo(desde: Vector2, d: Vector2, max_m: float) -> Dictionary:
@@ -504,15 +775,23 @@ func _revisar_fin() -> void:
 
 ## Una tanda de casillas cobra vida: el estado del elemento la llena (MATERIA_V2) y, si hay `solidez`, un SolidezV2 la protege por encima.
 func _vivir(ctx: Dictionary, solidez: float, refleja: bool) -> int:
+	var vuelta: bool = bool(ctx.get("vuelta", false))
+	if vuelta and seco:
+		return 0                                           # R2: la previsión no cuenta la vuelta
 	_golpes_del_camino(ctx)
+	var sigue: bool = bool(ctx.get("sigue", false)) and solidez > 0.0
+	if sigue and not seco:
+		_solidez_sigue(ctx, solidez, refleja)              # R1: la solidez del volumen que viaja se mueve con él (también en un paso sin casillas nuevas)
 	if (ctx["celdas"] as Array).is_empty():
 		return 0
-	if CONTACTO_V2.has(String(ctx["estado"])):
-		_contacto(ctx)
+	if CONTACTO_V2.has(String(ctx["estado"])) or vuelta:
+		_contacto(ctx)                                     # R2: en la vuelta TODOS los estados golpean lo que cruzan (en la ida los de zona lo hacen por su pulso)
+	if vuelta:
+		return 0                                           # …pero sin repetir la materia
 	if seco:
 		return _materia_seca(ctx)
 	var n: int = int(call(String(MATERIA_V2[String(ctx["estado"])]), ctx))
-	if solidez > 0.0:
+	if solidez > 0.0 and not sigue:
 		_solidez(ctx, solidez, refleja)
 	return n
 
@@ -559,10 +838,13 @@ func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
 	var separacion: float = maxf(2.0 * float(geo["x"]) + h.separacion, SEPARACION_COPIAS_MIN_CASILLAS) * cas
 	var vel: float = _velocidad_viaje()                                      # m/s = casillas/s
 	var semieje_crece: float = maxf(float(geo["x"]), float(geo["z"]))        # el radio que manda el tiempo de crecimiento: el mayor de la planta (la altura nace entera)
+	if h.columna:
+		semieje_crece = maxf(semieje_crece, float(geo["y"]))                   # 3/11 (R4): un pilar crece también de abajo arriba y manda su altura: la altura NO nace entera
 	var fases: Array = fases_crece(crece, h.escala_nace, h.intervalo, semieje_crece)
 	tiempo_crecimiento = tiempo_de_crecer(crece, h.escala_nace, semieje_crece)
 	var ya: Dictionary = {}
 	var eventos: Array = []
+	var sigue: bool = h.volumen_viaja                                          # 3/11 (R1): cada paso del volumen sólido que viaja es un evento aunque no gane casillas, con TODAS las que ocupa (su solidez las lleva)
 	# Con un número PAR de copias el reparto simétrico (−0,5, +0,5 pasos…) pone sus centros justo en el borde entre dos casillas, y el redondeo de coma flotante los mete a veces en la misma:
 	# ᚠ×1 daba 1 casilla en vez de 2 y ᚠ×3 daba 3 en vez de 4 (auditoría D-1). El centro del reparto se corre medio paso (la primera copia, o la mitad de ellas, queda en la mano y el resto
 	# a un paso entero): cada centro cae a un número entero de pasos de la mano, nunca en un borde. Con un número impar el reparto es el simétrico de siempre.
@@ -570,17 +852,41 @@ func eventos_de(geo: Dictionary, origen: Vector2, d: Vector2) -> Array:
 	for i in range(copias):
 		var o: Vector2 = origen + perp * (float(i - mitad_copias) * separacion)
 		var di: Vector2 = d.rotated(deg_to_rad((float(i) - float(copias - 1) * 0.5) * h.dispersion))   # abanico: cada copia mira `dispersion` grados más allá que la anterior
+		var primero_copia: int = eventos.size()
 		for f in fases:
-			_evento(eventos, ya, geo, float(f["s"]), o, di, h.retardo + float(f["t"]))
+			_evento(eventos, ya, geo, float(f["s"]), o, di, h.retardo + float(f["t"]), sigue, i)
 		if viaja > 0.0:
 			var t0: float = h.retardo + float((fases.back() as Dictionary)["t"])
 			var recorrido: Array = camino(o, di, viaja, rebotes)
 			for j in range(recorrido.size()):
 				var paso: Dictionary = recorrido[j]
-				_evento(eventos, ya, geo, 1.0, paso["p"], paso["d"], t0 + float(j + 1) / vel)
+				_evento(eventos, ya, geo, 1.0, paso["p"], paso["d"], t0 + float(j + 1) / vel, sigue, i)
 			if not golpes_camino.is_empty():
 				var fin: Dictionary = recorrido.back() if not recorrido.is_empty() else {"p": o, "d": di}
 				eventos.append({"t": t0 + float(recorrido.size()) / vel, "celdas": [], "pos": fin["p"], "dir": fin["d"], "golpes": golpes_camino.duplicate()})
+			# 3/11 · R2 (decisión de Pablo: «ᛃ sobre cualquier cosa que viaja = el camino incluye la VUELTA»): el volumen que viaja y `retorna` deshace su ruta hasta la mano. El tramo de vuelta es un tramo nuevo
+			# (vuelve a golpear a todos lo que cruza, y su solidez lo sigue) pero NO repite la materia: el fuego o el agua ya quedaron en la ida. La dirección del dibujo (`dir`) es la de siempre; `mueve` es hacia dónde va.
+			if h.retorna and not recorrido.is_empty():
+				var t_ida: float = t0 + float(recorrido.size()) / vel
+				var puntos: Array = [{"p": o, "d": di}] + recorrido
+				for k in range(1, puntos.size()):
+					var destino: Dictionary = puntos[puntos.size() - 1 - k]
+					var desde: Dictionary = puntos[puntos.size() - k]
+					var sentido: Vector2 = ((destino["p"] as Vector2) - (desde["p"] as Vector2))
+					sentido = sentido.normalized() if sentido.length() > 0.001 else -(desde["d"] as Vector2)
+					var cs_vuelta: Array = _celdas_del_volumen(geo, destino["p"] as Vector2, di)
+					var ev_vuelta: Dictionary = {"t": t_ida + float(k) / vel, "celdas": cs_vuelta, "pos": destino["p"], "dir": di, "mueve": sentido, "vuelta": true}
+					if sigue:
+						ev_vuelta["ocupa"] = cs_vuelta
+						ev_vuelta["copia"] = i
+					eventos.append(ev_vuelta)
+		if sigue:
+			var t_fin: float = 0.0
+			for k in range(primero_copia, eventos.size()):
+				t_fin = maxf(t_fin, float((eventos[k] as Dictionary)["t"]))
+			for k in range(primero_copia, eventos.size()):
+				if (eventos[k] as Dictionary).has("ocupa"):
+					(eventos[k] as Dictionary)["fin"] = t_fin
 	eventos.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["t"]) < float(b["t"]))
 	if eventos.size() > MAX_EVENTOS_V2:
 		eventos.resize(MAX_EVENTOS_V2)
@@ -619,18 +925,56 @@ static func fases_crece(crece: float, escala_nace: float, _intervalo: float, sem
 
 
 ## Añade la tanda de casillas del volumen a escala `s` (en planta) centrado en `pos`, sin las que ya tenía un evento anterior.
-func _evento(eventos: Array, ya: Dictionary, geo: Dictionary, s: float, pos: Vector2, d: Vector2, t: float) -> void:
+func _evento(eventos: Array, ya: Dictionary, geo: Dictionary, s: float, pos: Vector2, d: Vector2, t: float, con_ocupa: bool = false, copia: int = 0) -> void:
 	var gs: Dictionary = geo.duplicate()
 	gs["x"] = float(geo["x"]) * s
 	gs["z"] = float(geo["z"]) * s
 	var nuevas: Array = []
-	for c in Lanzador3D.GeometriaV2.celdas(gs, pos, d, Terreno3D.casilla):
+	var todas_en_mapa: Array = []
+	var lista_celdas: Array = _celdas_de_paso(gs, pos, d) if con_ocupa else Lanzador3D.GeometriaV2.celdas(gs, pos, d, Terreno3D.casilla)
+	for c in lista_celdas:
 		var cc: Vector2i = c
-		if Lanzador3D.en_mapa(cc) and not ya.has(cc):
+		if not Lanzador3D.en_mapa(cc):
+			continue
+		todas_en_mapa.append(cc)
+		if not ya.has(cc):
 			ya[cc] = true
 			nuevas.append(cc)
-	if not nuevas.is_empty():
+	if con_ocupa:
+		# R1: el volumen sólido que viaja deja un evento en CADA paso (aunque no gane casillas) con todas las que ocupa en él: su SolidezV2 se mueve con ellas
+		eventos.append({"t": t, "celdas": nuevas, "pos": pos, "dir": d, "ocupa": todas_en_mapa, "copia": copia})
+	elif not nuevas.is_empty():
 		eventos.append({"t": t, "celdas": nuevas, "pos": pos, "dir": d})
+
+
+## Las casillas del volumen (a su escala entera) centrado en `pos` mirando a `d`, sin las que quedan fuera del mapa: lo que ocupa en ese paso de su ruta.
+func _celdas_del_volumen(geo: Dictionary, pos: Vector2, d: Vector2) -> Array:
+	var r: Array = []
+	for c in _celdas_de_paso(geo, pos, d):
+		if Lanzador3D.en_mapa(c as Vector2i):
+			r.append(c)
+	return r
+
+
+## 3/11 (R1): las casillas del volumen centrado en `pos` SIN la propia casilla de `pos` cuando el centro del volumen va más de media casilla por delante (ᛜ + ᛁ: el muro nace una casilla delante de quien lanza). `GeometriaV2.celdas`
+## mete siempre la casilla de `pos` (para la esfera base es su centro); en un muro es la de quien lanza, y un volumen que se desplaza no debe arrastrarla consigo. Un volumen quieto no pasa por aquí: no cambia.
+func _celdas_de_paso(gs: Dictionary, pos: Vector2, d: Vector2) -> Array:
+	var cas: float = Terreno3D.casilla
+	var r: Array = Lanzador3D.GeometriaV2.celdas(gs, pos, d, cas)
+	var avance: float = Lanzador3D.GeometriaV2.adelanto(gs)
+	if avance < 0.5:
+		return r
+	var c0 := Vector2i(int(floorf(pos.x / cas)), int(floorf(pos.y / cas)))
+	var dn: Vector2 = d.normalized() if d.length() > 0.001 else Vector2.RIGHT
+	var rel: Vector2 = (Vector2((float(c0.x) + 0.5) * cas, (float(c0.y) + 0.5) * cas) - pos) / cas
+	var lz: float = rel.dot(dn) - avance
+	var lx: float = rel.dot(dn.orthogonal())
+	var sx: float = maxf(float(gs["x"]), 0.0001)
+	var sz: float = maxf(float(gs["z"]), 0.0001)
+	if (lz * lz) / (sz * sz) + (lx * lx) / (sx * sx) <= 1.0:
+		return r
+	r.erase(c0)
+	return r
 
 
 ## El camino del desplazamiento: una posición por casilla recorrida, [{p: Vector2, d: Vector2}], SIN la de partida. Lo traza `trazar` (para
@@ -945,8 +1289,7 @@ func _descarga(ctx: Dictionary, area: Dictionary) -> int:
 
 
 ## 6. SOLIDEZ por encima de cualquier estado: las casillas de la tanda bloquean proyectiles y aguantan golpes (también el agua o el gas).
-func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> void:
-	var rune: RuneData = ctx["data"]
+func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> Lanzador3D.SolidezV2:
 	var s := Lanzador3D.SolidezV2.new()
 	s.celdas = {}
 	for c in ctx["celdas"]:
@@ -961,6 +1304,40 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> void:
 	l.mundo.add_child(s)
 	l._solideces_v2.append(s)
 	s.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), s))
+	return s
+
+
+## 3/11/2026 · R1 (decisión de Pablo: «la solidez debe acompañar al volumen mientras se mueve»): el volumen sólido que viaja lleva UNA SolidezV2 por copia que ocupa, en cada paso de su ruta, justo las casillas donde está
+## (`ctx["ocupa"]`): las casillas que deja se liberan y las nuevas bloquean. Vive hasta su último paso (`ctx["fin"]`) más la `permanencia` (o `COLA_SOLIDEZ_S`). Si la rompen a golpes (`aguante`) no se rehace.
+## «Si es razonable se empuja»: lo que ya había en una casilla que el muro ocupa por primera vez (enemigos, que tienen `push`) sale arrastrado en la dirección del paso, con `EMPUJE_MURO_K` de la fuerza del viento.
+func _solidez_sigue(ctx: Dictionary, solidez: float, refleja: bool) -> void:
+	var copia: int = int(ctx.get("copia", 0))
+	var ocupa: Array = ctx["ocupa"]
+	# Tras su último paso: si vuelve (ᛃ) se deshace en cuanto llega (COLA_SOLIDEZ_S); si no, SE PLANTA donde llega como la barrera de ᛜ + ᛇ de siempre (§0.3): persiste + permanencia, mínimo VIDA_MIN_SOLIDEZ_V2
+	var cola: float = COLA_SOLIDEZ_S if h.retorna else maxf(h.persiste + h.permanencia, VIDA_MIN_SOLIDEZ_V2)
+	var vida: float = maxf(float(ctx["fin"]) - float(ctx["t_ev"]), 0.0) + cola
+	var reg: Dictionary = _solideces_sigue.get(copia, {})
+	var s: Lanzador3D.SolidezV2 = reg.get("nodo") as Lanzador3D.SolidezV2 if reg.has("nodo") and is_instance_valid(reg.get("nodo")) else null
+	var antes: Dictionary = {}
+	if s == null:
+		if reg.has("nodo"):
+			return                                          # la rompieron a golpes a mitad de camino: no se rehace
+		s = _solidez({"data": ctx["data"], "elemento": ctx["elemento"], "niveles": ctx["niveles"], "celdas": ocupa, "vida": vida}, solidez, refleja)
+		_solideces_sigue[copia] = {"nodo": s}
+	else:
+		antes = s.celdas
+	var nuevas: Dictionary = {}
+	s.celdas = {}
+	for c in ocupa:
+		s.celdas[c] = true
+		if not antes.has(c):
+			nuevas[c] = true
+	s.vida = vida
+	var mueve: Vector3 = ctx.get("mueve", Vector3.ZERO)
+	if mueve.length() > 0.01 and not nuevas.is_empty():
+		for obj in nodos_en(lanz, "combate3d", nuevas):
+			if obj.has_method("push"):
+				obj.call("push", mueve.normalized(), Lanzador3D.FUERZA_EMPUJE * EMPUJE_MURO_K)
 
 
 ## =====================================================================================================
@@ -1067,15 +1444,21 @@ func _eco_de_retorno(origen: Vector3, dir: Vector3) -> void:
 func _programar_extincion(origen: Vector3, dir: Vector3) -> void:
 	if proyectil:
 		return
-	if h.retorna and h.profundidad == 0 and not seco:
+	if h.estalla and h.profundidad == 0 and not seco:
+		# 3/11 · R5 (decisión de Pablo: «ᚷ + agua = explosión»): el volumen líquido que ha crecido ESTALLA al acabar su vida (lo que dibuja `AguaToy.area_al_impactar`): daño en área de su tamaño final
+		_despues(h.retardo + _t_estallido(), func() -> void: _estallar(dir))
+	if h.retorna and not h.viaja and not h.orbita and h.profundidad == 0 and not seco:
 		# 31/10 (REV 01, ᛃ sin flecha): al acabar (el haz es instantáneo: al nacer; el volumen quieto, al expirar) y RETORNO_ECO_S después, el impacto se repite en su sitio (`_eco_de_retorno`)
-		var hasta_r: float = 0.0 if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0)) + h.permanencia
+		# 3/11 (R2/R3): lo que viaja ya VUELVE (`eventos_de`) y lo que orbita ya da vueltas (`_materializar_orbita`): el eco es solo para el ᛃ sin camino ni copias
+		var hasta_r: float = 0.0 if h.haz else maxf(h.persiste, 0.0) + h.permanencia
 		_despues(maxf(hasta_r, 0.0) + RETORNO_ECO_S, func() -> void: _eco_de_retorno(origen, dir))
 	var momento: bool = h.profundidad == 0 and not h.glifos.is_empty() and not h.acciones_en_fin("extincion").is_empty()
 	if not momento and not h.eventos.has("al_expirar"):
 		return
 	# §0.3: lo que viaja expira al llegar + `permanencia`; lo que nace quieto, a `persiste` + `permanencia`
 	var hasta: float = (Hechizo.HAZ_DURA_S if h.haz else (_t_viaje if h.viaja else maxf(h.persiste, 0.0))) + h.permanencia
+	if h.orbita:
+		hasta = _vida_orbita                              # 3/11 (R3): los orbes viven lo que dura la órbita
 	_despues(maxf(hasta, 0.0), func() -> void: _disparar_final("al_expirar", "extincion", origen, dir, _celdas_del_momento(origen) if momento else []))
 
 
@@ -1304,6 +1687,7 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3
 
 func _physics_process(delta: float) -> void:
 	paso(delta * _arranque(delta))
+	avanzar_volumen(delta)                                 # 3/11 (R3/R4): orbes y pilar que alza; un proyectil no pasa por aquí
 
 
 ## El factor de este fotograma (en el punto medio del paso, para que lo recorrido cuadre) y avanza el reloj del arranque.

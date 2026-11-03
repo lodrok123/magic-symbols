@@ -48,6 +48,7 @@ func _initialize() -> void:
 	# 6. El tope por eje: 99 glifos no pasan de 6 casillas de largo, 6 de ancho y 2 niveles (19/10: altura topada en 1,0 de semieje).
 	var m: Dictionary = G.evaluar({"linea_x": 99, "linea_z": 99, "altura": 99})
 	# 30/10: ᛁ decreciente no pasa de 2,2 casillas (asíntota 1,10) y la altura topa en 2,0 = 4 niveles; con ᚷ ×99 (que multiplica) los tres llegan al tope: 6 × 6 × 4 niveles.
-	_ok("6 99 ᛁ y 99 ᛏ: ancho y fondo no pasan de 2,2 casillas (serie decreciente) y 4 niveles", 2.0 * float(m["x"]) < 2.2001 and 2.0 * float(m["z"]) < 2.2001 and G.niveles(m) == 4)
+	# 3/11: ᛁ lineal (0,50 + 0,25 · (n − 1)) topa en 3,0 de semieje = 6 casillas; la altura ya no tiene tope: 99 ᛏ se quedan en la asíntota 2,10 (4 niveles) sin que nada la corte
+	_ok("6 99 ᛁ y 99 ᛏ: ancho y fondo topan en 6 casillas y la altura en su asíntota 2,10 (4 niveles, sin tope)", is_equal_approx(2.0 * float(m["x"]), 6.0) and is_equal_approx(2.0 * float(m["z"]), 6.0) and float(m["y"]) > 2.09 and float(m["y"]) < 2.1001 and G.niveles(m) == 4)
 	print("FALLOS: %d" % _fallos)
 	quit(_fallos)

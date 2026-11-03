@@ -19,7 +19,7 @@ extends Node3D
 ## `nadando`: velocidad x0,4, sin lanzar ni saltar, clip swim_forward (si el modelo no lo tiene, walk), sin daño. Sale
 ## al tocar una casilla de suelo llano.
 
-const MAX_NIVELES_SUBIBLES: int = 1
+const MAX_NIVELES_SUBIBLES: int = 1      ## 3/11/2026: lo que la jugadora puede ESCALAR de una casilla a otra, NO un límite de los hechizos (la altura de un bloque ya no se capa ni se rechaza)
 ## Tope propio de un nivel (0 = sin tope propio: vale MAX_NIVELES_SUBIBLES). Terra Fina lo pone a 2 (tres alturas: pies, pelvis y
 ## pecho del titán) y lo suelta al salir; así Bosque y los hechizos siguen con 1.
 static var tope_niveles_nivel: int = 0
@@ -525,6 +525,20 @@ func push(direccion: Vector3, fuerza: float) -> void:
 	_empuje += d.normalized() * f
 	if f >= Sensacion3D.EMPUJE_POLVO_JUGADORA and en_suelo and not nadando:
 		Sensacion3D.polvo(mundo, position, Sensacion3D.POLVO_EMPUJE)       # gamefeel lote 2
+
+
+## 3/11/2026 · R4 (decisión de Pablo: «ᛏ + ᚷ eleva lo que haya dentro»): contrato `elevar`, hermano de `push`: un pilar que crece alza a la jugadora hasta `altura_u` (u sobre el suelo de su casilla) con el MISMO salto de siempre
+## (`vy` y `en_suelo`, ver `_vertical`): sube a la velocidad que hace falta para seguir la cima (con tope) y, al acabar el pilar, cae por su gravedad.
+const ELEVAR_VY_MAX: float = 7.0
+
+func elevar(altura_u: float, dt: float = 0.016) -> void:
+	if muerto or nadando:
+		return
+	var objetivo: float = Terreno3D.y_pies(Terreno3D.celda_de(position)) + altura_u
+	if position.y >= objetivo - 0.02:
+		return
+	en_suelo = false
+	vy = clampf((objetivo - position.y) / maxf(dt, 0.001), 0.0, ELEVAR_VY_MAX)       # sube justo lo que le falta para la cima (sin arrastrar la inercia más allá de ella)
 
 
 ## T-CP1: cómo va el clip del cast point (0 en el recorte de inicio, 1 en el de fin; -1 si no hay), lo que tarda en llegar a su instante y dónde nace el hechizo.

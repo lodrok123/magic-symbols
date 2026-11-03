@@ -182,7 +182,7 @@ func _escenario() -> void:
 	var n_raras: int = (lab.raras as Array).size()
 	var f2: Dictionary = lab.lanzar()
 	await avanzar_s(1.2)
-	_ok("4 un sólido demasiado alto no se lanza (n = 0) y se anota receta_rara «rechazada»", int(f2["n"]) == 0 and (lab.raras as Array).size() == n_raras + 1 and (lab.raras.back()["motivos"] as Array).has("rechazada"), str(lab.raras.back() if not (lab.raras as Array).is_empty() else {}))
+	_ok("4 3/11: un sólido alto YA se lanza (n > 0, la altura no se rechaza) y no se anota como «rechazada»", int(f2["n"]) > 0 and ((lab.raras as Array).size() == n_raras or not (lab.raras.back()["motivos"] as Array).has("rechazada")), str(lab.raras.back() if not (lab.raras as Array).is_empty() else {}))
 	_ok("4 PlayLog tiene el evento receta_rara", eventos("receta_rara").size() >= 1)
 	lab.limpiar()
 	lab.poner_elemento("fire")

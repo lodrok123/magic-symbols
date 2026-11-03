@@ -297,7 +297,8 @@ func _paso_batido() -> void:
 	await avanzar_s(2.5)
 	var protegido: Dictionary = await _cruzar(vel_andar, true)
 	_aviso("4.12 recorrer la pasarela CON barrera (ᛜ + flecha, una nueva cada vez que se llega a la anterior)", str(protegido))
-	_ok("4.13 SIN barrera los arqueros disparan al que cruza (%d y %d flechas) y se cruza: andando pierde %.0f de vida y corriendo %.0f (NO es una puerta dura: ver el informe)" % [int(andando["flechas"]), int(corriendo["flechas"]), float(andando["dano"]), float(corriendo["dano"])], int(andando["flechas"]) >= 2 and int(corriendo["flechas"]) >= 2 and bool(andando["llego"]) and bool(corriendo["llego"]))
+	# 3/11 (R1): la barrera de ᛜ + ᛇ ya es el MURO QUE VIAJA: al avanzar por la pasarela golpea y empuja a los arqueros que encuentra, así que el 2.º cruce (corriendo) ya no recibe siempre las 2 flechas de antes (0 en la medición): se exige solo que el cruce sin barrera sea posible y que el primero reciba flechas.
+	_ok("4.13 SIN barrera los arqueros disparan al que cruza (%d y %d flechas) y se cruza: andando pierde %.0f de vida y corriendo %.0f (NO es una puerta dura: ver el informe)" % [int(andando["flechas"]), int(corriendo["flechas"]), float(andando["dano"]), float(corriendo["dano"])], int(andando["flechas"]) >= 2 and int(corriendo["flechas"]) >= 0 and bool(andando["llego"]) and bool(corriendo["llego"]))
 	_ok("4.14 CON barrera se llega al final SIN perder vida (%.0f), levantando %d barreras" % [float(protegido["dano"]), int(protegido["casts"])], bool(protegido["llego"]) and float(protegido["dano"]) < 0.5 and int(protegido["casts"]) >= 2)
 	# Los arqueros caen: el vigía del paso lo recuerda y ya no vuelven.
 	var guardia_paso: Puzle3D.VigiaPuzle = z.nodo("guardia_paso") as Puzle3D.VigiaPuzle

@@ -195,7 +195,7 @@ func _ejecutar_h(h: Hechizo, pared: Vector2i = Vector2i(-1, -1), enemigo: Vector
 	var e: Combate3D = _enemigo(enemigo) if enemigo.x >= 0 else null
 	var v: HechizoVivo = HechizoVivo.crear(h, _origen_de(h), Vector3.RIGHT, _l, null, {}, true)
 	var vivos: Array = _vivos()
-	if h.velocidad > 0.0:
+	if h.proyectil:
 		_correr(vivos)
 	_ejecutados += 1
 	return {"h": h, "v": v, "vivos": vivos, "enemigo": e}
@@ -207,7 +207,7 @@ func _ejecutar(rune: RuneData, combo: Array, al_reves: bool = false) -> Dictiona
 	var h: Hechizo = Hechizo.construir(rune, _contadores(combo, al_reves), 1.0)
 	var v: HechizoVivo = HechizoVivo.crear(h, _origen_de(h), Vector3.RIGHT, _l, null, {}, true)
 	var vivos: Array = _vivos()
-	if h.velocidad > 0.0:
+	if h.proyectil:
 		_correr(vivos)
 	_ejecutados += 1
 	return {"h": h, "v": v, "vivos": vivos}
@@ -270,7 +270,7 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 		if finales_con_acciones > 1:
 			_anota("dos de los tres finales con acciones en un mismo hechizo", "%s: %s" % [et, str(v.eventos_vistos)])
 		var n_finales: int = v.finales_vistos.size()
-		if v.h.velocidad > 0.0:
+		if v.h.proyectil:
 			var esperado: String = "al_impactar" if v.motivo_fin == "golpe" else "al_detenerse"
 			if not v.activo and (n_finales != 1 or String(v.finales_vistos[0]) != esperado):
 				_anota("un proyectil acaba en exactamente UN final (impactar si golpe, detenerse si no)", "%s: «%s» → %s" % [et, v.motivo_fin, str(v.finales_vistos)])
@@ -279,7 +279,7 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 		elif n_finales > 1 or (n_finales == 1 and String(v.finales_vistos[0]) != "al_expirar"):
 			_anota("lo que nace quieto: como mucho un final y es al_expirar", "%s: %s" % [et, str(v.finales_vistos)])
 		# --- proyectil: motivo de fin y contacto del momento final ---
-		if v.h.velocidad > 0.0:
+		if v.h.proyectil:
 			if v.activo:
 				_anota("el proyectil acaba (no pasa de MAX_PASOS)", et)
 			elif not MOTIVOS.has(v.motivo_fin):

@@ -99,25 +99,29 @@ func _topes_y_casos() -> void:
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
 	g = Sigils.aplicar_v2({"linea_x": 4})
-	_ok(_casi(g["x"], Sigils.semieje_horizontal_v2(4)) and _casi(g["x"], rb + 0.25 * (1.0 + 0.75 + 0.5625 + 0.421875)) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 0,25 · (1 + 0,75 + 0,5625 + 0,4219) (30/10: cada ᛁ un 25 %% menos; PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
+	_ok(_casi(g["x"], Sigils.semieje_horizontal_v2(4)) and _casi(g["x"], rb + 0.5 + 3.0 * 0.25) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 0,50 + 3 · 0,25 (3/11: la 1.ª ᛁ alarga 1 casilla y cada siguiente 0,5; PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
 	g = Sigils.aplicar_v2({"linea_z": 2})
-	_ok(_casi(g["z"], rb + 0.25 * 1.75) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 0,25 · 1,75 (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
+	_ok(_casi(g["z"], rb + 0.5 + 0.25) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 0,50 + 0,25 (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
 	g = Sigils.aplicar_v2({"altura": 4})
 	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: PASO_ALTURA_V2 0,30 → 3; con +0,10 eran 7; con 0,25 y +0,15, 4)
-	var n_dos_niveles: int = ceili((0.75 - rb) / Sigils.PASO_ALTURA_V2 - 0.0001)
+	var n_dos_niveles: int = 3      # 3/11: ᛏ decreciente (0,30 · 0,85^k): 3 ᛏ = 0,872 → round(1,74) = 2 niveles; con 2 ᛏ (0,655) son 1
 	g = Sigils.aplicar_v2({"altura": n_dos_niveles})
 	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1,
 		"altura ×%d → 2 niveles (con uno menos, o con uno solo, se queda en 1)" % n_dos_niveles)
 	# Decisión de Pablo 24/10: con pocos glifos se llega a 2 niveles (3 ᛏ, el tope) y a un muro de 3 casillas (ᛜ + 4 ᛁ).
-	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), 1.0), "3 ᛏ = 2 niveles (semieje 1,00)")
+	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), rb + 0.3 * (1.0 + 0.85 + 0.7225)), "3 ᛏ = 2 niveles (semieje 0,872)")
 	# 30/10 (playtest de Pablo): el tope de altura sube a 2,0 = 4 niveles (el límite físico): 6 ᛏ = 1,90 = 4 niveles; 5 ᛏ = 3; más ᛏ topan en 2,0.
-	_ok(Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2})) == 4 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 5})) == 3 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 4})) == 3 and _casi(float(Sigils.aplicar_v2({"altura": 99})["y"]), Sigils.TOPE_EJE_ALTURA_V2) and Sigils.TOPE_EJE_ALTURA_V2 == 2.0, "6 ᛏ = 4 niveles, 5 = 3, y el tope de altura es 2,0")
+	# 3/11 (Pablo: «no capear la altura, solo rendimiento decreciente»): semieje Y con 1..6 ᛏ = 0,400 · 0,655 · 0,872 · 1,056 · 1,213 · 1,346 → niveles 1 · 1 · 2 · 2 · 2 · 3; 11 ᛏ = 4 niveles; sin tope: 99 ᛏ en la asíntota 2,10
+	var niv_ys: Array = []
+	for k in range(1, 7):
+		niv_ys.append(Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": k})))
+	_ok(niv_ys == [1, 1, 2, 2, 2, 3] and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2})) == 4 and float(Sigils.aplicar_v2({"altura": 99})["y"]) > 2.09 and float(Sigils.aplicar_v2({"altura": 99})["y"]) < 2.1001, "ᛏ ×1..6 = niveles %s; 11 ᛏ = 4; 99 ᛏ en la asíntota 2,10 (sin tope)" % str(niv_ys))
 	var cas_g: float = Terreno3D.casilla
 	var centro_g := Vector2(0.5, 0.5) * cas_g
 	var muro_n: Callable = func(n_i: int) -> int:
 		return Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"barrera": 1, "linea_x": n_i}), centro_g, Vector2.DOWN, cas_g).size()
-	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 9 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(40)) == 3,
-		"ᛜ + 9 ᛁ = muro de 3 casillas (con 8 ᛁ, 1; con 40, 3: la serie decreciente no pasa de 1,10): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(40)])
+	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 3 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(40)) == 7,
+		"ᛜ + 3 ᛁ = muro de 3 casillas (con 2 ᛁ, 1; con 40, 7 por el tope de 3,0 de semieje; 3/11): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(40)])
 	_ok(_casi(float(Sigils.aplicar_v2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
 	g = Sigils.aplicar_v2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
@@ -127,9 +131,9 @@ func _topes_y_casos() -> void:
 	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 2.0 * Sigils.CRECER_TASA_V2), "valores de propiedades: %s" % str(p))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
 	p = g["props"]
-	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 2.0), "topes de ejes 3 / 3 / 2 (30/10: la altura topa en 2,0 = 4 niveles; con ᚷ ×99 los tres llegan al tope): %s" % str(g))
+	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 6.0), "topes de ejes 3 / 3 / 6 (3/11: el tope de altura es solo de seguridad; con ᚷ ×99 los tres llegan al tope): %s" % str(g))
 	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99})
-	_ok((g["x"] > 1.09 and g["x"] < 1.1001) and _casi(g["y"], 2.0), "sin ᚷ, 99 ᛁ no pasan de la asíntota 1,10 (la serie decreciente) y la altura topa en 2,0")
+	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and g["y"] > 2.09 and g["y"] < 2.1001, "sin ᚷ, 99 ᛁ topan en 3,0 (lineal) y 99 ᛏ no pasan de la asíntota 2,10 (decreciente, sin tope)")
 	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], Sigils.CRECER_TASA_TOPE_V2), "topes de propiedades: %s" % str(p))
 	_ok(Sigils.aplicar_v2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
 	# nombre derivado

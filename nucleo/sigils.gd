@@ -297,16 +297,24 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ##   cooldown   recarga de la página, la MISMA que le da hoy `FORM` (V2 no toca la recarga)
 const RADIO_BASE_V2: float = 0.10         ## semieje base en metros-casilla (24/10, decisión de Pablo «base 0,10 y cada glifo suma 0,10»: antes 0,25 desde el 19/10 y 0,15 antes; la esfera base mide 0,2 m de ancho)
 const TOPE_EJE_HORIZONTAL_V2: float = 3.0  ## semieje máximo en X y Z (§1.9: 6 m de ancho o fondo total)
-const TOPE_EJE_ALTURA_V2: float = 2.0      ## semieje máximo en Y (30/10, playtest de Pablo: «más altura pero más acotada, límite físico de 4» niveles; el 24/10 era 1,0 = 2 niveles)
+const TOPE_EJE_ALTURA_V2: float = 6.0      ## semieje máximo en Y · 3/11/2026 (Pablo: «vamos a no capear la altura, solo que tenga un rendimiento decreciente»): tope de SEGURIDAD solo para no romper nada; ᛏ decreciente ya no llega a 2,1 (30/10 era 2,0 = 4 niveles)
 ## Paso POR EJE (24/10, Pablo: «deja la base en 0,10 pero ajusta el paso de altura y ancho para que con pocos glifos se llegue a 2 niveles y a un muro de 3 casillas»).
 const GLIFOS_ALTURA_DOS_NIVELES_V2: int = 3   ## cuántos ᛏ llevan la altura a 2 niveles (RADIO_BASE_V2 + 3 · PASO_ALTURA_V2 = 1,0 → round(2 · 1,0)); con 6 ᛏ (1,90) son 4 niveles, el límite físico
-const GLIFOS_ALTURA_CUATRO_NIVELES_V2: int = 6   ## cuántos ᛏ hacen 4 niveles (30/10): RADIO_BASE_V2 + 6 · 0,30 = 1,90 → round(3,8) = 4
-const PASO_ALTURA_V2: float = 0.30         ## m que suma CADA ᛏ al semieje Y. 1 ᛏ = 0,40 · 2 = 0,70 (1 nivel) · 3 = 1,00 (2 niveles) · 4 = 1,30 · 5 = 1,60 (3 niveles) · 6 = 1,90 (4 niveles); tope 2,0
+const GLIFOS_ALTURA_CUATRO_NIVELES_V2: int = 11   ## cuántos ᛏ hacen 4 niveles (3/11: con el rendimiento decreciente ya no caben en una página; antes 6)
+## 3/11/2026 (Pablo: «vamos a no capear la altura, solo que tenga un rendimiento decreciente»): ᛏ pasa a SUMA DECRECIENTE (como ᛁ) y sin tope práctico. El 1.º ᛏ suma PASO_ALTURA_V2 (0,30: lo de hoy) y cada siguiente
+## FACTOR_DECRECIENTE_ALTURA_V2 (×0,85) veces el anterior: semieje Y = base + 0,30 · (1 − 0,85^n) / 0,15 (asíntota 2,10 m). Semieje y niveles (round(2·y)) con 1..6 ᛏ:
+##   1 → 0,400 (1) · 2 → 0,655 (1) · 3 → 0,872 (2) · 4 → 1,056 (2) · 5 → 1,213 (2) · 6 → 1,346 (3)      (antes, lineal: 0,40 · 0,70 · 1,00 · 1,30 · 1,60 · 1,90 = 1, 1, 2, 3, 3, 4 niveles)
+const FACTOR_DECRECIENTE_ALTURA_V2: float = 0.85
+const PASO_ALTURA_V2: float = 0.30         ## m que suma el 1.er ᛏ al semieje Y (los siguientes, ×FACTOR_DECRECIENTE_ALTURA_V2 cada uno)
 ## 30/10 (playtest de Pablo, «reducir un 50 % el parámetro inicial y reducir un 25 % cada suma de glifo»; INTERPRETACIÓN pendiente de confirmar): el 1.er ᛁ suma 0,25 m (la mitad de 0,5) y cada
 ## ᛁ siguiente suma un 25 % MENOS que el anterior: 0,25 · 0,1875 · 0,1406 …, o sea semieje = base + PASO · (1 − f^n) / (1 − f). Nunca pasa de base + PASO / (1 − f) = 1,10 (el tope de 3,0 no se alcanza).
 const FACTOR_DECRECIENTE_EJE_V2: float = 0.75
-const PASO_ANCHO_V2: float = 0.25          ## m que suma el 1.er ᛁ horizontal al semieje X (los siguientes, ×FACTOR_DECRECIENTE_EJE_V2 cada uno; antes 0,5 fijo: 29/10)
-const PASO_FONDO_V2: float = 0.25          ## igual, para el fondo (semieje Z). Con el haz no importa (alcance por nº de ᛁ, `Hechizo.HAZ_*`)
+## 3/11/2026 (Pablo: «aumenta la distancia de una línea a 1 casilla. Sucesivas líneas 0,5 casillas»): la 1.ª ᛁ alarga el volumen 1 casilla (semieje +0,50) y cada siguiente 0,5 casillas (semieje +0,25), en ancho (linea_x) o en
+## fondo (linea_z): semieje = base + 0,50 + 0,25 · (n − 1) (ya NO decreciente geométrico: FACTOR_DECRECIENTE_EJE_V2 queda sin uso). Ancho total (m = casillas) y casillas que ocupa un muro (ᛜ + ᛁ; entran las de lado cuyo centro cae dentro) con 1..6 ᛁ:
+##   1 → 1,20 (1 casilla) · 2 → 1,70 (1) · 3 → 2,20 (3) · 4 → 2,70 (3) · 5 → 3,20 (3) · 6 → 3,70 (3)   [semieje 0,60 · 0,85 · 1,10 · 1,35 · 1,60 · 1,85]. ᛜ + 5 ᛁ = muro de 3 casillas con los 6 glifos de una página (con 3 ᛁ ya).
+const PASO_ANCHO_V2: float = 0.50          ## m que suma el 1.er ᛁ horizontal al semieje X
+const PASO_FONDO_V2: float = 0.50          ## igual, para el fondo (semieje Z). Con el haz no importa (alcance por nº de ᛁ, `Hechizo.HAZ_*`)
+const PASO_LUEGO_V2: float = 0.25          ## m que suma cada ᛁ SIGUIENTE al primero (X o Z)
 const APORTE_DESPRECIABLE_V2: float = 0.01   ## m: por debajo de esto un ᛁ más ya no se nota (solo sirve para decir «tope en N glifos» en el laboratorio)
 ## Suma de la serie 1 + f + … + f^(n−1) (lo que multiplica al primer aporte de `suma_decreciente`).
 static func serie_decreciente(f: float, n: int) -> float:
@@ -316,11 +324,18 @@ static func serie_decreciente(f: float, n: int) -> float:
 ## Interruptor de PRUEBAS (como `HAZ_ACTIVO`): con false, cada ᛁ aporta lo mismo (el 1.º, `PASO_*_V2`) y se puede construir un volumen grande con glifos de eje sin que la serie decreciente lo impida. El juego lo deja en true.
 static var EJE_DECRECIENTE_ACTIVO: bool = true
 ## Semieje de un eje horizontal con `n` ᛁ: base + paso · (1 − f^n) / (1 − f). Lo usan las pruebas y el laboratorio para calcular lo que dan N glifos.
+## 3/11: el 1.º aporta `paso` y cada siguiente PASO_LUEGO_V2. Con EJE_DECRECIENTE_ACTIVO = false (pruebas) cada ᛁ aporta `paso`.
+static func serie_primero_luego(primero: float, luego: float, n: int) -> float:
+	if n <= 0:
+		return 0.0
+	if not EJE_DECRECIENTE_ACTIVO:
+		return primero * float(n)
+	return primero + luego * float(n - 1)
 static func semieje_horizontal_v2(n: int, paso: float = PASO_ANCHO_V2) -> float:
-	return RADIO_BASE_V2 + paso * serie_decreciente(FACTOR_DECRECIENTE_EJE_V2, n)
+	return RADIO_BASE_V2 + serie_primero_luego(paso, PASO_LUEGO_V2, n)
 ## Cuántos ᛁ horizontales hacen un muro (ᛜ + ᛁ) de 3 casillas (semieje ≥ 1,0: el centro de la casilla vecina cae dentro). Con 0,25 y ×0,75: 0,10 + 0,25 · (1 − 0,75^9) / 0,25 = 1,02 con 9 ᛁ (con 8: 0,9999).
 ## OJO: pasa de MAX_GLIFOS (6): con el decrecimiento un muro de 3 casillas ya no cabe en una página (anotado en el diario para Pablo).
-const GLIFOS_ANCHO_MURO_3_V2: int = 9
+const GLIFOS_ANCHO_MURO_3_V2: int = 3     # 3/11: con 0,50 + 0,25 · (n − 1), 3 ᛁ ya dan semieje 1,10 (antes 9)
 ## 30/10: cada ᚷ multiplica los tres semiejes por esto (el volumen nace pequeño y crece hasta el tamaño mayor; los topes globales siguen valiendo).
 ## 31/10 (REV 01 del checklist, Pablo: «el crecimiento final un 30 % más grande en su punto máximo; ajusta el crecimiento en consecuencia»): 1,25 → 1,30, y la tasa (`crece`) sube en la misma proporción
 ## que lo que crece de más (0,30 / 0,25 = ×1,2: 0,5 → CRECER_TASA_V2 = 0,6 m/s por glifo, tope 1,8), así tarda lo mismo en llegar a un tamaño mayor.
@@ -380,9 +395,9 @@ static var HAZ_ACTIVO: bool = true
 const GLIFOS_V2: Dictionary = {
 	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
 	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma 0,15. 24/10 (Pablo): base 0,10 y un paso POR EJE: ancho 0,25, fondo 0,10, altura 0,30. Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
-	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ANCHO_V2, "modo": "suma_decreciente", "factor": FACTOR_DECRECIENTE_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_FONDO_V2, "modo": "suma_decreciente", "factor": FACTOR_DECRECIENTE_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
+	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ANCHO_V2, "modo": "primero_luego", "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_FONDO_V2, "modo": "primero_luego", "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
+	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ALTURA_V2, "modo": "suma_decreciente", "factor": FACTOR_DECRECIENTE_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
 	# Propiedades.
 	"flecha": {"tipo": "prop", "param": "viaja", "inicio": 1.0, "por_glifo": 1.0, "tope": 6.0, "modo": "suma", "repertorio": "flecha", "cooldown": 1.0},
 	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
@@ -412,9 +427,9 @@ const GLIFOS_V2: Dictionary = {
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
 ## GLIFOS_V2 está EN DESUSO (H1): el laboratorio, la UI de ejes y el libro leen esta tabla; `prueba_hechizo` comprueba que las dos dicen lo mismo.
 const GLIFOS: Dictionary = {
-	"linea_x": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma_decreciente", "valor": PASO_ANCHO_V2, "factor": FACTOR_DECRECIENTE_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"linea_z": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma_decreciente", "valor": PASO_FONDO_V2, "factor": FACTOR_DECRECIENTE_EJE_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
-	"altura": {"cuenta_dano": false, "repertorio": "altura", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma", "valor": PASO_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2}]},
+	"linea_x": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma_primero", "valor": PASO_ANCHO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"linea_z": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma_primero", "valor": PASO_FONDO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
+	"altura": {"cuenta_dano": false, "repertorio": "altura", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma_decreciente", "valor": PASO_ALTURA_V2, "factor": FACTOR_DECRECIENTE_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
 	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 8.0}, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
@@ -479,6 +494,8 @@ static func aplicar_v2(contadores: Dictionary) -> Dictionary:
 				v = v * pow(float(d["por_glifo"]), float(n))
 			"suma_decreciente":       # 30/10: el 1.º aporta `por_glifo` y cada siguiente `factor` veces el anterior
 				v += float(d["por_glifo"]) * serie_decreciente(float(d["factor"]), n)
+			"primero_luego":          # 3/11: el 1.º aporta `por_glifo` y cada siguiente `luego`
+				v += serie_primero_luego(float(d["por_glifo"]), float(d["luego"]), n)
 			_:
 				v = v + float(d["por_glifo"]) * float(n)
 		destino[clave] = minf(v, float(d["tope"]))
@@ -491,7 +508,8 @@ static func aplicar_v2(contadores: Dictionary) -> Dictionary:
 	# RAYO (21/10, Pablo): ᛁ `linea` + elemento = un haz recto; el MURO es solo de `barrera`. Hay haz si se dibujó alguna ᛁ y no hay barrera (solidez) ni flecha (viaja).
 	# Es un dato derivado de la receta (como el nombre de la forma): `GeometriaV2.nombre_derivado` y `Hechizo.haz` lo leen igual.
 	var props_salida: Dictionary = salida["props"]
-	salida["haz"] = HAZ_ACTIVO and maxi(int(contadores.get("linea_x", 0)), 0) + maxi(int(contadores.get("linea_z", 0)), 0) > 0 and not props_salida.has("solidez") and not props_salida.has("viaja")
+	var orbita_v2: bool = maxi(int(contadores.get("retorno", 0)), 0) > 0 and maxi(int(contadores.get("repeticion", 0)), 0) >= 1 and not props_salida.has("viaja")      # 3/11 (R3): ᛃ + ᚠ sin flecha orbita (`Hechizo.orbita`), no es un haz
+	salida["haz"] = HAZ_ACTIVO and maxi(int(contadores.get("linea_x", 0)), 0) + maxi(int(contadores.get("linea_z", 0)), 0) > 0 and not props_salida.has("solidez") and not props_salida.has("viaja") and not orbita_v2
 	return salida
 
 

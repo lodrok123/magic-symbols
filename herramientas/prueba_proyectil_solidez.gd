@@ -178,8 +178,9 @@ func _initialize() -> void:
 		if not alguno:
 			break
 		pasos += 1
-	var motivos: Array = hs.map(func(x: Variant) -> String: return (x as HechizoVivo).motivo_fin)
-	_ok("barrera + flecha + ᚠ: %d copias, todas acaban por «alcance» y no por «muro» (%s)" % [hs.size(), str(motivos)], hs.size() == 2 and motivos.all(func(m: Variant) -> bool: return m == "alcance"))
+	# 3/11/2026 (R1, decisión de Pablo): ᛜ + ᛇ ya NO es un proyectil que levanta su muro al pararse: es el MURO que viaja, con una SolidezV2 por copia que lo acompaña (medido en prueba_reglas_glifos). Las dos copias del
+	# mismo lanzamiento siguen sin chocar entre sí (cada solidez es de su linaje): aquí, que sale UN hechizo (no proyectiles) con dos solideces y nadie acaba en «muro».
+	_ok("barrera + flecha + ᚠ (R1): ya no hay proyectiles (%d vivo, no proyectil) sino el muro que viaja, con %d solideces (una por copia)" % [hs.size(), _l._solideces_v2.size()], hs.size() == 1 and not (hs[0] as HechizoVivo).proyectil and not (hs[0] as HechizoVivo).activo and _l._solideces_v2.size() == 2)
 	await _limpiar()
 
 	print("FALLOS: %d" % _fallos)

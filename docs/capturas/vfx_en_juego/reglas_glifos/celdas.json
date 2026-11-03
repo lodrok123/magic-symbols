@@ -1,0 +1,188 @@
+[
+  {
+    "hechizo": "r1_muro_fuego",
+    "id": "r1_muro_fuego_015",
+    "t": 0.15,
+    "titulo": "R1 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ: el muro AVANZA"
+  },
+  {
+    "hechizo": "r1_muro_fuego",
+    "id": "r1_muro_fuego_055",
+    "t": 0.55,
+    "titulo": "R1 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ: el muro AVANZA"
+  },
+  {
+    "hechizo": "r1_muro_fuego",
+    "id": "r1_muro_fuego_100",
+    "t": 1.0,
+    "titulo": "R1 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ: el muro AVANZA"
+  },
+  {
+    "hechizo": "r1_muro_fuego",
+    "id": "r1_muro_fuego_150",
+    "t": 1.5,
+    "titulo": "R1 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ: el muro AVANZA"
+  },
+  {
+    "hechizo": "r1_muro_fuego",
+    "id": "r1_muro_fuego_220",
+    "t": 2.2,
+    "titulo": "R1 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ: el muro AVANZA"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_015",
+    "t": 0.15,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_070",
+    "t": 0.7,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_130",
+    "t": 1.3,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_190",
+    "t": 1.9,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_260",
+    "t": 2.6,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r2_muro_va_y_vuelve",
+    "id": "r2_muro_va_y_vuelve_320",
+    "t": 3.2,
+    "titulo": "R2 · fuego · ᛜ ᛁ ᛏ ᛏ ᛇ ᛃ: va y VUELVE"
+  },
+  {
+    "hechizo": "r3_orbes_fuego",
+    "id": "r3_orbes_fuego_020",
+    "t": 0.2,
+    "titulo": "R3 · fuego · ᚠ ᚠ ᛃ: tres ORBES"
+  },
+  {
+    "hechizo": "r3_orbes_fuego",
+    "id": "r3_orbes_fuego_060",
+    "t": 0.6,
+    "titulo": "R3 · fuego · ᚠ ᚠ ᛃ: tres ORBES"
+  },
+  {
+    "hechizo": "r3_orbes_fuego",
+    "id": "r3_orbes_fuego_100",
+    "t": 1.0,
+    "titulo": "R3 · fuego · ᚠ ᚠ ᛃ: tres ORBES"
+  },
+  {
+    "hechizo": "r3_orbes_fuego",
+    "id": "r3_orbes_fuego_150",
+    "t": 1.5,
+    "titulo": "R3 · fuego · ᚠ ᚠ ᛃ: tres ORBES"
+  },
+  {
+    "hechizo": "r3_orbes_fuego",
+    "id": "r3_orbes_fuego_220",
+    "t": 2.2,
+    "titulo": "R3 · fuego · ᚠ ᚠ ᛃ: tres ORBES"
+  },
+  {
+    "hechizo": "r4_pilar_agua",
+    "id": "r4_pilar_agua_020",
+    "t": 0.2,
+    "titulo": "R4 · agua · ᛏ ᛏ ᛏ ᚷ: pilar que SUBE"
+  },
+  {
+    "hechizo": "r4_pilar_agua",
+    "id": "r4_pilar_agua_060",
+    "t": 0.6,
+    "titulo": "R4 · agua · ᛏ ᛏ ᛏ ᚷ: pilar que SUBE"
+  },
+  {
+    "hechizo": "r4_pilar_agua",
+    "id": "r4_pilar_agua_100",
+    "t": 1.0,
+    "titulo": "R4 · agua · ᛏ ᛏ ᛏ ᚷ: pilar que SUBE"
+  },
+  {
+    "hechizo": "r4_pilar_agua",
+    "id": "r4_pilar_agua_150",
+    "t": 1.5,
+    "titulo": "R4 · agua · ᛏ ᛏ ᛏ ᚷ: pilar que SUBE"
+  },
+  {
+    "hechizo": "r4_pilar_agua",
+    "id": "r4_pilar_agua_220",
+    "t": 2.2,
+    "titulo": "R4 · agua · ᛏ ᛏ ᛏ ᚷ: pilar que SUBE"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_050",
+    "t": 0.5,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_120",
+    "t": 1.2,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_180",
+    "t": 1.8,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_205",
+    "t": 2.05,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_240",
+    "t": 2.4,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "r5_explosion_agua",
+    "id": "r5_explosion_agua_300",
+    "t": 3.0,
+    "titulo": "R5 · agua · ᚷ ᚷ ⧖: EXPLOSIÓN"
+  },
+  {
+    "hechizo": "rayo_adelante",
+    "id": "rayo_adelante_010",
+    "t": 0.1,
+    "titulo": "Rayo · ᛁ ᛁ ᛁ: hacia delante (no se toca)"
+  },
+  {
+    "hechizo": "rayo_adelante",
+    "id": "rayo_adelante_030",
+    "t": 0.3,
+    "titulo": "Rayo · ᛁ ᛁ ᛁ: hacia delante (no se toca)"
+  },
+  {
+    "hechizo": "rayo_adelante",
+    "id": "rayo_adelante_060",
+    "t": 0.6,
+    "titulo": "Rayo · ᛁ ᛁ ᛁ: hacia delante (no se toca)"
+  },
+  {
+    "hechizo": "rayo_adelante",
+    "id": "rayo_adelante_100",
+    "t": 1.0,
+    "titulo": "Rayo · ᛁ ᛁ ᛁ: hacia delante (no se toca)"
+  }
+]

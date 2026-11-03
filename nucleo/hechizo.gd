@@ -54,7 +54,7 @@ const MAX_PROFUNDIDAD: int = 2
 const MAX_VIVOS: int = 32
 ## Límites globales de seguridad (ESPEC_HECHIZO §1.9). Se aplican al final de `construir()` y de `con()`: ni los glifos ni el laboratorio pueden saltárselos.
 const LIM_SEMIEJE_HORIZONTAL: float = 3.0     ## m (6 m de ancho o fondo total)
-const LIM_SEMIEJE_ALTO: float = 2.0           ## m (4 niveles: el límite físico; 30/10, antes 1,0 = 2 niveles)
+const LIM_SEMIEJE_ALTO: float = 6.0           ## m · 3/11/2026 (Pablo: «no capear la altura, solo rendimiento decreciente»): tope de SEGURIDAD solo para no romper nada (ᛏ decreciente no pasa de 2,1 m ni con ᚷ de 6); antes 2,0 = 4 niveles (30/10; el 24/10, 1,0 = 2 niveles)
 const LIM_ELEVACION: float = 2.0              ## m
 const LIM_DISTANCIA: float = 8.0              ## m (la flecha llega a 6 con 5 glifos)
 const LIM_VIDA_S: float = 25.0                ## s: persiste + permanencia
@@ -82,7 +82,11 @@ const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
 ## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
-const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente", "solido_quieto"]
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente", "solido_quieto",
+	"volumen_viaja", "proyectil", "orbita", "columna", "estalla", "radio_estallido"]       # 3/11 (R1-R5): las reglas de combinar glifos son derivados de solo lectura
+## 3/11/2026 (R5, decisión de Pablo: «ᛚ ᚷ ᚷ ⧖ = explosión de agua»): lo que se ensancha el estallido de un volumen líquido que ha crecido respecto a su tamaño final (casillas), y lo que vive como mínimo antes de estallar (s).
+const ESTALLIDO_MARGEN_CAS: float = 0.75
+const ESTALLIDO_MIN_S: float = 1.0
 ## 24/10 (decisión de Pablo): un SÓLIDO QUIETO (tierra o hielo que no es haz ni viaja) nace donde apuntas (`en_punto`) y no en la casilla de quien lo lanza. Medido con
 ## `escenario_libro_combinaciones`: 36 recetas de tierra/hielo con solo ᛏ, ᚢ o ᚱ nacían en la casilla de la jugadora, `Lanzador3D.construir_tierra` las rechazaba («encima del jugador»)
 ## sin ningún aviso y la tinta y la recarga ya estaban cobradas. Un bloque no puede nacer ahí, así que nace en el punto apuntado dentro del anillo de alcance, como la barrera
@@ -99,7 +103,7 @@ const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez"
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
 ## (color, deja, estela, efecto_impacto, eventos: son nombres o listas, no números).
 const EDITABLES: Dictionary = {
-	"semiejes.x": {"paso": 0.05, "min": 0.10, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.10, "max": 2.0}, "semiejes.z": {"paso": 0.05, "min": 0.10, "max": 3.0},
+	"semiejes.x": {"paso": 0.05, "min": 0.10, "max": 3.0}, "semiejes.y": {"paso": 0.05, "min": 0.10, "max": 6.0}, "semiejes.z": {"paso": 0.05, "min": 0.10, "max": 3.0},
 	"grosor_min": {"paso": 0.05, "min": 0.05, "max": 0.5}, "separacion": {"paso": 0.25, "min": 0.0, "max": 3.0}, "dispersion": {"paso": 5.0, "min": 0.0, "max": 90.0},
 	"copias": {"paso": 1.0, "min": 1.0, "max": 8.0}, "crece": {"paso": 0.1, "min": 0.0, "max": 3.0}, "escala_nace": {"paso": 0.1, "min": 0.05, "max": 1.0}, "solidez": {"paso": 0.5, "min": 0.0, "max": 5.0},
 	"resuena": {"paso": 1.0, "min": 0.0, "max": 12.0},
@@ -136,7 +140,7 @@ var semiejes: Vector3:
 ## Factor de tamaño en vuelo: `ESCALA_PROYECTIL` si es un proyectil (`velocidad` > 0), 1 si no. Es un getter (no un campo derivado en `_derivar`) para que siga a `velocidad` si se edita en el lab.
 var escala_vuelo: float:
 	get:
-		return ESCALA_PROYECTIL if velocidad > 0.0 else 1.0
+		return ESCALA_PROYECTIL if proyectil else 1.0           # 3/11 (R1): el volumen que viaja (muro) se ve y choca entero: solo la bola de la flecha se encoge
 ## Los semiejes tal como se ven y chocan EN VUELO (= `semiejes` × `escala_vuelo`). Los que dibujan o hacen chocar al proyectil leen este, no `semiejes`.
 var semiejes_vuelo: Vector3:
 	get:
@@ -262,6 +266,38 @@ var rebota: bool:
 var persistente: bool:
 	get:
 		return not haz and not (viaja or velocidad > 0.0) and (solidez > 0.0 or permanencia > 0.0 or estado_materia == "solido")
+## 3/11/2026 · R1 (decisión de Pablo: «ᛇ flecha sobre algo con FORMA = la forma viaja»): ¿es un VOLUMEN SÓLIDO que se desplaza (ᛜ + ᛇ)? Con solidez, la flecha NO lo convierte en proyectil-bola: es el volumen entero el
+## que recorre su ruta (`HechizoVivo.eventos_de`), y su SolidezV2 lo acompaña. Se decide por PROPIEDADES (alcance, velocidad de la flecha y solidez), sin nombrar glifos ni elementos. ᚲ + ᛇ (sin solidez) sigue
+## siendo la bola de siempre. Valorado y descartado: aplicarlo también a un volumen alargado sin solidez (ᛁᛁ + ᛇ): hoy es «un proyectil largo» y no hay nada sólido que desplazar (a confirmar por Pablo).
+var volumen_viaja: bool:
+	get:
+		return distancia_max > 0.0 and velocidad > 0.0 and solidez > 0.0
+## ¿Es un PROYECTIL (un punto con volumen que se mueve paso a paso)? Velocidad > 0 salvo el volumen que viaja (R1): ése lo recorre el camino de eventos a la velocidad de la flecha. Lo que decide `crear`, `prever`, la escala
+## en vuelo y qué dibuja cada VFX.
+var proyectil: bool:
+	get:
+		return velocidad > 0.0 and not volumen_viaja
+## 3/11/2026 · R3 (decisión de Pablo: «ᛃ sin flecha y con ᚠ = las copias ORBITAN»): el «retorno sin camino» es dar vueltas. Retorno, sin alcance ni velocidad (sin flecha) y con 2 o más copias: cada copia es un orbe alrededor del
+## lanzador (`HechizoVivo._materializar_orbita`). Con una sola copia (o sin ᚠ) ᛃ sigue siendo el eco del impacto de siempre. Por encima del haz: ᛁ ᚠ ᛃ abre la órbita en vez de ser un haz con copias que no hacían nada.
+var orbita: bool:
+	get:
+		return retorna and distancia_max <= 0.0 and velocidad <= 0.0 and copias >= 2
+## 3/11/2026 · R4 (decisión de Pablo: «ᛏ altura + ᚷ crecer = crece de abajo arriba y eleva lo que haya dentro»): ¿crece y domina la altura (el eje Y manda sobre X y Z)? Es un pilar que sube: su altura crece con `crece`
+## (antes «la altura nace entera») y alza a lo que esté dentro (`HechizoVivo.avanzar_volumen`). Si domina otro eje, crece como siempre (solo en planta).
+var columna: bool:
+	get:
+		return crece > 0.0 and eje_dominante(semieje_x, semieje_y, semieje_z) == "y"
+## 3/11/2026 · R5 (decisión de Pablo: «ᛚ ᚷ ᚷ ⧖ = explosión de agua»): ¿estalla en área al acabar? Un volumen LÍQUIDO que crece, quieto, redondo (ni muro, ni pilar, ni barrera, ni haz, ni órbita): al expirar el agua revienta y daña
+## en `radio_estallido`. Es lo que dibuja `AguaToy.area_al_impactar` (la bola quieta que estalla): la lógica y el dibujo coinciden por las mismas propiedades. Lo que no crece (ᛚ solo) sigue siendo un charco sin daño.
+var estalla: bool:
+	get:
+		var largo: float = maxf(semieje_x, semieje_z)
+		var corto: float = minf(semieje_x, semieje_z)
+		return crece > 0.0 and estado_materia == "liquido" and solidez <= 0.0 and distancia_max <= 0.0 and velocidad <= 0.0 and not haz and not orbita and not columna and largo < 2.0 * corto - 0.0001
+## Radio (casillas) del daño en área del estallido: el tamaño final del volumen más `ESTALLIDO_MARGEN_CAS` (o `radio_explosion` si el laboratorio lo pone mayor).
+var radio_estallido: float:
+	get:
+		return maxf(radio_explosion, maxf(semieje_x, semieje_z) + ESTALLIDO_MARGEN_CAS)
 ## ¿Es un sólido (tierra, hielo) que se queda quieto donde nace? (ni haz, ni flecha, ni velocidad). Lo que decide `SOLIDO_QUIETO_EN_PUNTO`.
 var solido_quieto: bool:
 	get:
@@ -270,7 +306,7 @@ var solido_quieto: bool:
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
 	get:
-		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and estado_materia != "solido"     # 29/10: la tierra y el hielo con ᛁ son un bloque ancho o largo, no un chorro (el haz no construye)
+		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and estado_materia != "solido" and not orbita     # 29/10: la tierra y el hielo con ᛁ son un bloque ancho o largo, no un chorro (el haz no construye) · 3/11 (R3): ni lo que orbita
 ## Alcance del haz en m (0 si no es haz).
 var alcance_haz: float:
 	get:
@@ -384,7 +420,7 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 	for rango in ["fija", "suma", "multiplica"]:
 		for m in lista:
 			var op_m: String = String(m["op"])
-			if (op_m if op_m != "suma_decreciente" else "suma") != rango:       # la suma decreciente va en el rango de las sumas
+			if ("suma" if (op_m == "suma_decreciente" or op_m == "suma_primero") else op_m) != rango:       # la suma decreciente y la de «primero y luego» van en el rango de las sumas
 				continue
 			var campo: String = String(m["campo"])
 			var v: float = 0.0
@@ -404,6 +440,8 @@ func _aplicar(lista: Array, etiqueta: String, marca_tocados: bool) -> void:
 				v = float(_leer(campo))
 				if op_m == "suma_decreciente":
 					v += float(m["valor"]) * Sigils.serie_decreciente(float(m["factor"]), n)
+				elif op_m == "suma_primero":
+					v += Sigils.serie_primero_luego(float(m["valor"]), float(m["luego"]), n)        # 3/11: el 1.º glifo aporta `valor` y cada siguiente `luego`
 				else:
 					v = v + float(m["valor"]) * float(n) if rango == "suma" else v * pow(float(m["valor"]), float(n))
 				_escribir(campo, v)
@@ -484,7 +522,7 @@ func _contar_glifos_dano() -> int:
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
-	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0)) else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
+	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and not orbita)) else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
 	niveles = maxi(1, roundi(2.0 * semieje_y))
 	cast_point = CastPoints.variacion_de(forma)
 	var base: float = 4.0 / 3.0 * PI * pow(Sigils.RADIO_BASE_V2, 3.0)

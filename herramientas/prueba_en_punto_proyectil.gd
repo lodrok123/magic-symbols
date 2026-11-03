@@ -99,7 +99,8 @@ func _escenario() -> void:
 	var datos_b2: Dictionary = _datos(["barrera", "flecha"], "fire")
 	lanzador.lanzar_ahora(datos_b2, pies, Vector3.RIGHT, false)
 	var b2: Array = _vivos()
-	_ok("2b barrera + flecha: sale un proyectil que ya NO es en_punto y nace en la mano", b2.size() == 1 and not (b2[0] as HechizoVivo).h.en_punto and _plano((b2[0] as HechizoVivo).p, lanzador._pos_cast_point()) <= TOL_MANO_U)
+	# 3/11 (R1): ᛜ + ᛇ ya no es un proyectil: es el muro que viaja (volumen con solidez que recorre su ruta); sigue sin ser en_punto
+	_ok("2b barrera + flecha: sale el muro que viaja (R1), que no es proyectil y NO es en_punto", b2.size() == 1 and not (b2[0] as HechizoVivo).h.en_punto and (b2[0] as HechizoVivo).h.volumen_viaja and not (b2[0] as HechizoVivo).proyectil)
 
 	# --- 3 · el punto está dentro del anillo y lejos de la mano ---
 	var casillas_al_punto: float = _plano(punto, pies) / Terreno3D.casilla

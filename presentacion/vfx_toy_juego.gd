@@ -40,6 +40,8 @@ var _carga: Node3D = null
 var _carga_el: String = ""
 var _sigue: Array = []                        ## [{toy: WeakRef, hv: WeakRef | null, ruta: Array, t: float}]
 var _con_luz: Dictionary = {}                 ## lanzamientos (Linaje) que ya tienen un toy con luz: las copias de ᚠ no suman luces
+var _columnas: Array = []                     ## R4: [{toy: WeakRef, ini: ms, nace, t0, t}]: los pilares que crecen de abajo arriba (se escala su Y con el crecimiento lógico)
+var _orbes_vivos: Array = []                  ## R3: [{toy: WeakRef, hv: WeakRef, i: int}]: un toy BOLA por orbe, que sigue `HechizoVivo.orbes[i]`
 
 
 ## ¿Está encendido el selector? (se lee en cada evento: se puede cambiar en marcha desde una prueba o el lab.)
@@ -135,7 +137,7 @@ func _empezar_carga(elemento: String, pos: Vector3) -> void:
 	var dur: float = maxf(t_forma + carga_s, CARGA_MIN_S)
 	var r: float = 0.3
 	if h != null:
-		if h.velocidad > 0.0:
+		if h.proyectil:
 			r = maxf(h.semiejes_vuelo.x, h.semiejes_vuelo.z) * Terreno3D.casilla       # la MISMA bola que saldrá volando
 		else:
 			r = clampf(maxf(h.semieje_x, h.semieje_z) * Terreno3D.casilla, 0.15, CARGA_RADIO_MAX)
@@ -181,7 +183,7 @@ func _en_nodo(n: Node) -> void:
 	_ultimo_hv = weakref(hv)
 	if hv.h == null or not usa_toy(String(hv.elemento)):
 		return
-	if hv.h.velocidad > 0.0 and not hv.h.haz:
+	if hv.h.proyectil and not hv.h.haz:      # 3/11 (R1): el volumen sólido que viaja lo dibuja `hechizo_v2` (un MURO que recorre su ruta), no la bola de un proyectil
 		_proyectil.call_deferred(weakref(hv))      # `v` y la posición se fijan en `_iniciar_proyectil`, después de añadirse
 
 
@@ -288,14 +290,63 @@ func _process(delta: float) -> void:
 			if _recorrer(t, s["ruta"] as Array, float(s["t"])):
 				quedan.append(s)
 	_sigue = quedan
+	_seguir_orbes()
+	_crecer_columnas()
+
+
+## R3: cada bola sigue a su orbe; al apagarse el orbe (acabó la órbita o salió disparado) se deshace.
+func _seguir_orbes() -> void:
+	var quedan: Array = []
+	for s in _orbes_vivos:
+		var t: Node3D = (s["toy"] as WeakRef).get_ref() as Node3D
+		if t == null or not is_instance_valid(t) or not t.is_inside_tree():
+			continue
+		var hv: HechizoVivo = (s["hv"] as WeakRef).get_ref() as HechizoVivo
+		var vivo: bool = false
+		var lanzado: bool = false
+		if hv != null and is_instance_valid(hv) and int(s["i"]) < hv.orbes.size():
+			var o: Dictionary = hv.orbes[int(s["i"])]
+			lanzado = bool(o.get("lanzado", false))
+			if bool(o["activo"]):
+				vivo = true
+				var a: float = float(o["ang"])
+				t.global_position = o["p"] as Vector3
+				_orientar(t, Vector3(-sin(a), 0.0, cos(a)))
+		if vivo:
+			quedan.append(s)
+		elif lanzado:
+			t.call("morir")                              # el orbe salió disparado: esta bola se apaga y el proyectil nuevo lo dibuja su propio toy
+		else:
+			t.call("terminar_sin_choque")
+	_orbes_vivos = quedan
+
+
+## R4: el pilar nace a `nace` de su altura y sube hasta la entera en el tiempo que dice la lógica (`tiempo_crecimiento`): se escala su Y (el dibujo del pilar no anima el crecimiento vertical por sí solo).
+func _crecer_columnas() -> void:
+	var quedan: Array = []
+	for c in _columnas:
+		var t: Node3D = (c["toy"] as WeakRef).get_ref() as Node3D
+		if t == null or not is_instance_valid(t) or not t.is_inside_tree():
+			continue
+		var seg: float = float(Time.get_ticks_msec() - int(c["ini"])) / 1000.0 - float(c["t0"])
+		var total: float = float(c["t"])
+		var f: float = 1.0 if total <= 0.0 else clampf(seg / total, 0.0, 1.0)
+		t.scale.y = lerpf(float(c["nace"]), 1.0, f)
+		if f < 1.0:
+			quedan.append(c)
+	_columnas = quedan
 
 
 ## Un volumen que viaja (`viaja` sin velocidad): el toy va de punto en punto de los eventos de tiempo. Devuelve false al llegar al último.
 func _recorrer(t: Node3D, ruta: Array, tiempo: float) -> bool:
 	var ult: Dictionary = ruta[ruta.size() - 1] as Dictionary
+	var es_bola: bool = int(t.get("figura")) == 0       # 3/11: solo una bola se orienta a lo largo del camino; un muro conserva su orientación (también en la vuelta)
 	if tiempo >= float(ult["t"]):
 		t.global_position = ult["p"] as Vector3
-		t.call("finalizar", "alcance")
+		if es_bola:
+			t.call("finalizar", "alcance")
+		else:
+			t.call("morir")
 		return false
 	for i in range(ruta.size() - 1):
 		var a: Dictionary = ruta[i] as Dictionary
@@ -303,7 +354,8 @@ func _recorrer(t: Node3D, ruta: Array, tiempo: float) -> bool:
 		if tiempo <= float(b["t"]):
 			var u: float = clampf((tiempo - float(a["t"])) / maxf(float(b["t"]) - float(a["t"]), 0.001), 0.0, 1.0)
 			t.global_position = (a["p"] as Vector3).lerp(b["p"] as Vector3, u)
-			_orientar(t, (b["p"] as Vector3) - (a["p"] as Vector3))
+			if es_bola:
+				_orientar(t, (b["p"] as Vector3) - (a["p"] as Vector3))
 			return true
 	return true
 
@@ -326,6 +378,11 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 	if g.has("haz"):
 		_haz(elemento, hv.h, g["haz"] as Dictionary, suelo, float(g.get("vida_total", Hechizo.HAZ_DURA_S)))
 		return
+	if g.has("orbita"):
+		_orbes(elemento, hv, g["orbita"] as Dictionary)       # 3/11 (R3): ᛃ + ᚠ sin flecha: un toy BOLA por orbe, siguiendo su posición
+		return
+	if g.has("estalla"):
+		vida = clampf(float((g["estalla"] as Dictionary)["t"]), VIDA_MIN, VIDA_MAX)      # 3/11 (R5): la bola de agua que crece estalla cuando dice la lógica
 	var sitios: Array = []
 	var ruta: Array = []
 	for e in (g.get("eventos", []) as Array):
@@ -343,13 +400,18 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 	if sitios.is_empty():
 		sitios.append(Vector3(origen.x, suelo, origen.z))
 	if bool(g.get("viaja", false)) and ruta.size() > 1:
-		_volumen_que_viaja(elemento, hv.h, ruta)
+		_volumen_que_viaja(elemento, hv.h, g, suelo, d)
 		return
 	var primero: bool = true
 	for pie in sitios:
 		var t: Node3D = _volumen(elemento, hv.h, pie as Vector3, d, vida)
 		if t != null and not primero:
 			_sin_luz(t)                            # presupuesto: una sola luz por hechizo
+		if t != null and g.has("estalla"):
+			t.set_meta("estalla_m", float((g["estalla"] as Dictionary)["radio"]) * Terreno3D.casilla)      # R5: el radio del daño en área que dice la lógica
+		if t != null and g.has("columna"):
+			var col: Dictionary = g["columna"] as Dictionary
+			_columnas.append({"toy": weakref(t), "ini": Time.get_ticks_msec(), "nace": float(col["nace"]), "t0": float(col["t0"]), "t": float(col["t"])})      # R4: crece de abajo arriba
 		primero = false
 
 
@@ -370,20 +432,65 @@ func _volumen(elemento: String, h: Hechizo, pie: Vector3, d: Vector3, vida: floa
 	return t
 
 
-func _volumen_que_viaja(elemento: String, h: Hechizo, ruta: Array) -> void:
-	if _vivos >= MAX_VIVOS:
-		return
-	var t: Node3D = _nuevo(elemento)
-	t.call("desde_hechizo", h)
-	_colgar(t)
-	var alto: float = maxf(float(t.get("semieje_y")), ALTO_BOLA_QUIETA_MIN)
-	var q: Array = []
-	for r in ruta:
-		q.append({"t": float((r as Dictionary)["t"]), "p": ((r as Dictionary)["p"] as Vector3) + Vector3(0.0, alto, 0.0)})
-	t.global_position = (q[0] as Dictionary)["p"] as Vector3
-	_orientar(t, ((q[q.size() - 1] as Dictionary)["p"] as Vector3) - ((q[0] as Dictionary)["p"] as Vector3))
-	t.call("lanzar", -1.0)
-	_sigue.append({"toy": weakref(t), "hv": null, "ruta": q, "t": 0.0})
+## 3/11 (R1/R2): el volumen que VIAJA (el muro de ᛜ + ᛇ, y su vuelta con ᛃ): un toy por copia (como mucho SITIOS_MAX) que recorre los eventos de tiempo de la lógica, en el CENTRO del volumen (la posición del evento más su
+## adelanto) y con la orientación de siempre (el muro mira donde se lanzó, también en la vuelta). Una bola (lo que viaja sin solidez) además se orienta a lo largo del camino y sale a media altura.
+func _volumen_que_viaja(elemento: String, h: Hechizo, g: Dictionary, suelo: float, d: Vector3) -> void:
+	var adelanto_u: float = Lanzador3D.GeometriaV2.adelanto(h.geo()) * Terreno3D.casilla
+	var por_copia: Dictionary = {}
+	for e in (g.get("eventos", []) as Array):
+		var ed: Dictionary = e
+		var p2: Vector2 = ed.get("pos", Vector2.ZERO)
+		var de2: Vector2 = ed.get("dir", Vector2(d.x, d.z))
+		var de3: Vector3 = Vector3(de2.x, 0.0, de2.y)
+		de3 = de3.normalized() if de3.length() > 0.01 else d
+		var lista: Array = por_copia.get(int(ed.get("copia", 0)), [])
+		lista.append({"t": float(ed.get("t", 0.0)), "p": Vector3(p2.x, suelo, p2.y) + de3 * adelanto_u})
+		por_copia[int(ed.get("copia", 0))] = lista
+	var primero: bool = true
+	var n_toys: int = 0
+	for copia in por_copia:
+		var ruta: Array = por_copia[copia]
+		if _vivos >= MAX_VIVOS or ruta.size() < 2 or n_toys >= SITIOS_MAX:
+			continue
+		n_toys += 1
+		var t: Node3D = _nuevo(elemento)
+		t.call("desde_hechizo", h)
+		_colgar(t)
+		var es_bola: bool = int(t.get("figura")) == 0
+		var alto: float = maxf(float(t.get("semieje_y")), ALTO_BOLA_QUIETA_MIN) if es_bola else 0.0
+		var q: Array = []
+		for r in ruta:
+			q.append({"t": float((r as Dictionary)["t"]), "p": ((r as Dictionary)["p"] as Vector3) + Vector3(0.0, alto, 0.0)})
+		t.global_position = (q[0] as Dictionary)["p"] as Vector3
+		if es_bola:
+			_orientar(t, ((q[q.size() - 1] as Dictionary)["p"] as Vector3) - ((q[0] as Dictionary)["p"] as Vector3))
+		else:
+			t.look_at(t.global_position + d, Vector3.UP)
+			t.rotate_y(float(FuegoToy.describir(h, Terreno3D.casilla)["giro_y"]))
+		t.call("lanzar", -1.0)
+		if not primero:
+			_sin_luz(t)                                # presupuesto: una sola luz por hechizo
+		primero = false
+		_sigue.append({"toy": weakref(t), "hv": null, "ruta": q, "t": 0.0})
+
+
+## 3/11 (R3): los orbes de ᛃ + ᚠ sin flecha: UN toy BOLA por orbe (la misma bola que un proyectil, con cola) que sigue la posición que calcula la lógica (`HechizoVivo.orbes[i]["p"]`). Cuando la lógica apaga el orbe
+## (acaba la órbita) se deshace; si el orbe salió disparado contra un enemigo (ᚨ), esa bola se apaga y el proyectil que nace lo dibuja el camino de siempre. Solo la primera lleva luz.
+func _orbes(elemento: String, hv: HechizoVivo, o: Dictionary) -> void:
+	var r: float = float(o.get("radio_orbe", 0.3))
+	for i in range(int(o.get("n", 0))):
+		if _vivos >= MAX_VIVOS:
+			return
+		var t: Node3D = _nuevo(elemento)
+		t.call("desde_hechizo", hv.h)
+		t.call("definir", FuegoToy.Figura.BOLA, r, r, r, true)
+		_colgar(t)
+		var p0: Vector3 = (hv.orbes[i] as Dictionary)["p"] as Vector3
+		t.global_position = p0
+		t.call("lanzar", -1.0)
+		if i > 0:
+			_sin_luz(t)
+		_orbes_vivos.append({"toy": weakref(t), "hv": weakref(hv), "i": i})
 
 
 ## Un haz (ᛁ): del cast point a la punta que calculó la lógica; su largo es el recorrido real (se para en un muro), la altura de su eje la de la mano.
@@ -426,7 +533,10 @@ func _expirar(ref: WeakRef) -> void:
 		return
 	if int(t.get("figura")) == 0:
 		if (t is AguaToy or t is HieloToy or t is RayoToy) and bool(t.get("area_al_impactar")):
-			t.call("impactar_en", t.global_position, Vector3.UP)
+			if t.has_meta("estalla_m"):
+				t.call("impactar_en", t.global_position, Vector3.UP, float(t.get_meta("estalla_m")))      # R5: con el radio de la lógica
+			else:
+				t.call("impactar_en", t.global_position, Vector3.UP)
 		else:
 			t.call("terminar_sin_choque")
 	else:

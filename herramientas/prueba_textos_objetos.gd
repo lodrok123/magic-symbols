@@ -123,12 +123,12 @@ func _glifos() -> void:
 
 	# Los números de los textos son los del código.
 	var x: String = TextosObjetos.glifo("linea_x")
-	_ok("4 ᛁ decreciente: dice 0,25 m (PASO_ANCHO_V2 = %.2f) y «25 %%» menos (factor %.2f)" % [Sigils.PASO_ANCHO_V2, Sigils.FACTOR_DECRECIENTE_EJE_V2],
-		is_equal_approx(Sigils.PASO_ANCHO_V2, 0.25) and is_equal_approx(Sigils.FACTOR_DECRECIENTE_EJE_V2, 0.75) and x.contains("0,25") and x.contains("25 %") and x.contains("decreciente"))
-	_ok("4 ᛁ: un muro de 3 casillas pide %d (GLIFOS_ANCHO_MURO_3_V2) y el texto dice 9" % Sigils.GLIFOS_ANCHO_MURO_3_V2, Sigils.GLIFOS_ANCHO_MURO_3_V2 == 9 and x.contains("9"))
+	_ok("4 ᛁ (3/11): la 1.ª alarga 1 casilla (semieje %.2f) y cada siguiente 0,5 casillas (semieje %.2f)" % [Sigils.PASO_ANCHO_V2, Sigils.PASO_LUEGO_V2],
+		is_equal_approx(Sigils.PASO_ANCHO_V2, 0.5) and is_equal_approx(Sigils.PASO_LUEGO_V2, 0.25) and x.contains("1 casilla") and x.contains("0,5 casillas"))
+	_ok("4 ᛁ: un muro de 3 casillas pide %d (GLIFOS_ANCHO_MURO_3_V2) y el texto dice 9" % Sigils.GLIFOS_ANCHO_MURO_3_V2, Sigils.GLIFOS_ANCHO_MURO_3_V2 == 3 and x.contains("pide 3"))
 	var h: String = TextosObjetos.glifo("altura")
-	_ok("4 ᛏ: %.2f m por glifo; 3 = 2 niveles, 6 = 4 niveles (el tope)" % Sigils.PASO_ALTURA_V2, is_equal_approx(Sigils.PASO_ALTURA_V2, 0.30) and Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 == 3 and Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2 == 6
-		and h.contains("0,30") and h.contains("3 = 2 niveles") and h.contains("6 = 4 niveles"))
+	_ok("4 ᛏ (3/11): %.2f m el 1.º y cada siguiente un 15 %% menos, sin tope; 3 = 2 niveles, 6 = 3" % Sigils.PASO_ALTURA_V2, is_equal_approx(Sigils.PASO_ALTURA_V2, 0.30) and Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 == 3 and Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2 == 11
+		and h.contains("0,30") and h.contains("3 = 2 niveles") and h.contains("6 = 3 niveles") and h.contains("decreciente"))
 	var g: String = TextosObjetos.glifo("pulso")
 	_ok("4 ᚷ «crecer»: ×%.2f (CRECER_TOPE_V2) y +0,5 m/s con tope 1,5" % Sigils.CRECER_TOPE_V2, is_equal_approx(Sigils.CRECER_TOPE_V2, 1.25) and g.contains("1,25") and g.contains("0,5") and g.contains("1,5"))
 	var r: String = TextosObjetos.glifo("raido")

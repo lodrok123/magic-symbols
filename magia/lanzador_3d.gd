@@ -1508,7 +1508,7 @@ func hechizo_de(datos: Dictionary) -> Hechizo:
 ## volumen y sus casillas siguen saliendo de `origen`, para que la mano no cambie de casilla un hechizo. Sin esqueleto (laboratorios, pruebas) no cambia nada;
 ## y si el laboratorio sobrescribe `altura_salida` (`cambios`), manda él.
 func _salida_de_mano(hechizo: Hechizo, origen: Vector3) -> Vector3:
-	if hechizo == null or hechizo.velocidad <= 0.0 or jugador == null or not (jugador.get("pj") is Node3D):
+	if hechizo == null or not hechizo.proyectil or jugador == null or not (jugador.get("pj") is Node3D):
 		return Vector3.ZERO
 	if hechizo.en_punto:
 		return Vector3.ZERO                               # 24/10 (D-5): lo que se apunta (barrera + flecha) nace EN EL PUNTO apuntado, no en la mano ni a su altura (ESPEC §1.2)
@@ -2429,8 +2429,7 @@ func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false)
 	for g in get_tree().get_nodes_in_group("combate3d"):
 		if is_instance_valid(g) and celda_de((g as Node3D).position) == c:
 			return "hay un enemigo"
-	if niveles > Jugador3D.MAX_NIVELES_SUBIBLES:
-		return "demasiada altura"
+	# 3/11: la altura ya no es motivo de rechazo (ver `GeometriaV2.aviso_materia`): un bloque alto se construye y no se puede pisar.
 	return ""
 
 
@@ -2793,7 +2792,10 @@ class GeometriaV2 extends RefCounted:
 		if rune == null or rune.estado != "solido":
 			return ""
 		var n: int = niveles(g)
-		if n <= Jugador3D.MAX_NIVELES_SUBIBLES:
+		# 3/11/2026 (decisión de Pablo: «vamos a no capear la altura, solo que tenga un rendimiento decreciente»): ya NO se rechaza por altura. Antes un sólido de más de `MAX_NIVELES_SUBIBLES` niveles no se
+		# lanzaba (ni siquiera una flecha o un haz, que no construyen nada). `MAX_NIVELES_SUBIBLES` queda como lo que la jugadora puede ESCALAR (`Terreno3D.pisable`): un bloque más alto simplemente no se pisa. Se conserva la función
+		# (el libro, el laboratorio y `_materializar` la llaman) y devuelve siempre "".
+		if n >= 0:
 			return ""
 		return "Demasiada altura: sube %d niveles y solo se pueden pisar %d. No se lanza." % [n, Jugador3D.MAX_NIVELES_SUBIBLES]
 

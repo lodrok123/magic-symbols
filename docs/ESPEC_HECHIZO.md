@@ -62,7 +62,7 @@ Columnas: **campo** (nombre en el código) · **unidad** · **base** (sin elemen
 |---|---|---|---|---|
 | `semieje_x` (ancho) | m | **0,10** (radio; 24/10, decisión de Pablo: antes 0,25 y 0,15) | ᛁ horizontal: **30/10: 1.º +0,25 y cada ᛁ siguiente un 25 % menos** (`PASO_ANCHO_V2`, `FACTOR_DECRECIENTE_EJE_V2` 0,75, op `suma_decreciente`; asíntota 1,10), tope 3,0 (ᛜ + 9 ᛁ = semieje ≥ 1,0 = muro de 3 casillas) | ≠ base 0,15 → 0,25 → 0,10 · paso 0,15 → 0,10 → 0,25 |
 | `semieje_z` (fondo) | m | 0,10 | ᛁ vertical: igual que X (30/10: 0,25 y ×0,75 por glifo; `PASO_FONDO_V2`), tope 3,0 | ≠ base |
-| `semieje_y` (alto) | m | 0,10 | ᛏ: **+0,30/glifo** (`PASO_ALTURA_V2`), tope **2,0 (30/10: 4 niveles; 3 glifos = 2 niveles, 6 glifos = 4)**: 0,10 + n·0,30; 1 ᛏ = 0,40 y 2 ᛏ = 0,70 siguen en 1 nivel | ≠ base y tope 2,0 → 1,0 · paso 0,15 → 0,10 → 0,30 |
+| `semieje_y` (alto) | m | 0,10 | ᛏ: **3/11: decreciente y sin tope** (§3d): 0,10 + 0,30 · (1 − 0,85^n) / 0,15; 1 ᛏ = 0,40, 3 ᛏ = 0,87 (2 niveles), 6 ᛏ = 1,35 (3 niveles); tope solo de seguridad (6,0) | ≠ base y tope 2,0 → 1,0 · paso 0,15 → 0,10 → 0,30 |
 | `grosor_min` | m | 0,10 (= la base; 24/10: antes 0,15) | — | + (ningún semieje baja de aquí: un muro fino no desaparece) |
 | `volumen`, `superficie`, `niveles` | m³, m², nº | derivados | — | `niveles` = ; los otros + |
 
@@ -214,7 +214,7 @@ acabar su recorrido salvo que lleve Permanencia ᛉ.
 |---|---|
 | ᛁ horizontal | `semieje_x` `suma_decreciente` 0,25 ×0,75ⁿ (30/10; tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
 | ᛁ vertical | `semieje_z` `suma_decreciente` 0,25 ×0,75ⁿ (30/10; tope 3,0) · **sin barrera ni flecha: RAYO (§3b)** |
-| ᛏ | `semieje_y` +0,30 (tope 2,0 desde el 30/10) |
+| ᛏ | `semieje_y` suma DECRECIENTE (0,30 · ×0,85 por glifo, sin tope; 3/11, ver §3d) |
 | ᛇ flecha | `velocidad` = 4 m/s · `distancia_max` 2 + 1 por glifo sucesivo (tope 6) · `impulso_salida` +0,7 m/s por glifo sucesivo (`Sigils.IMPULSO_POR_FLECHA_V2`, 24/10: así el arco crece con el alcance; solo actúa con gravedad > 0, fuego no cambia) |
 | ᛜ barrera | `solidez` 1 × 1,5ⁿ (tope 3) · `permanencia` +1 s por glifo sucesivo (30/10: ya no `en_punto`; los sólidos quietos lo ponen solos) |
 | ᚠ repetición | `copias` +1 (tope 4) |
@@ -256,6 +256,42 @@ es siempre `x_mano` (mano al frente).
 tierra `VfxTierra.fila_pinchos` (pinchos `pincho_tierra_*` que brotan en secuencia) · viento `VfxViento.corriente` (cintas rectas con hojas) · rayo `VfxRayo.descarga` (descarga quebrada que cambia
 de trazado a saltos) · hielo `VfxHielo.rayo` (haz de cristal con esquirlas y escarcha). Prueba: `herramientas/prueba_haz.gd`; capturas: `herramientas/captura_haz.gd` → `docs/capturas/haz/`.
 
+## 3c. Cinco reglas generales de combinar glifos (3/11/2026, decisión de Pablo «R1…R5»)
+
+**No se escriben recetas.** De combinar glifos que ya existen salen estas interacciones, para cualquier elemento, porque cada regla es una **condición por propiedades** del `Hechizo` (solidez, velocidad, copias, `retorna`, `crece`, semiejes), nunca por el nombre de una receta ni de un elemento. Lo que no usa estas combinaciones no cambia.
+Los símbolos son los de la BIBLIA de `gesture_library.gd`: ᚲ fuego, ᛚ agua, ᛊ rayo · ᛇ flecha, ᛜ barrera, ᛁ línea (X/Z), ᛏ altura (id `levitacion`), ᚷ crecer (id `pulso`), ᚠ repetición, ᛃ retorno, ᚨ buscar, ⧖ carga (id `retardo`).
+
+| regla | condición (propiedades) | qué pasa | receta de ejemplo | dónde |
+|---|---|---|---|---|
+| **R1** ᛇ sobre algo con FORMA = la forma viaja | `Hechizo.volumen_viaja`: `distancia_max > 0` y `velocidad > 0` y `solidez > 0` (ᛜ + ᛇ) | NO sale una bola: el volumen entero recorre su ruta (`eventos_de`, a la velocidad de la flecha); su `SolidezV2` lo ACOMPAÑA (`_solidez_sigue`: bloquea las casillas donde está y suelta las que deja); lo que encuentra se golpea (`_contacto`) y se empuja (`EMPUJE_MURO_K` de la fuerza del viento). ᚲ + ᛇ sin solidez sigue siendo la bola de siempre | ᚲ ᛜ ᛁ ᛁ ᛇ = muro de fuego que avanza | `Hechizo.volumen_viaja/proyectil`, `HechizoVivo.eventos_de/_vivir/_solidez_sigue` |
+| **R2** ᛃ sobre lo que viaja = el camino incluye la VUELTA | `retorna` y `viaja` (volumen) | el tramo de vuelta deshace la ruta hasta el lanzador: la solidez retrocede, vuelve a golpear lo que cruza (tramo nuevo, como el proyectil que vuelve) y NO repite la materia | ᚲ ᛜ ᛁ ᛁ ᛇ ᛃ | `HechizoVivo.eventos_de` (eventos `vuelta`) |
+| **R3** ᛃ SIN flecha y con ᚠ = las copias ORBITAN | `Hechizo.orbita`: `retorna`, sin `distancia_max` ni `velocidad`, `copias ≥ 2` | un orbe por copia da vueltas al lanzador (una cada `ORBITA_VUELTA_S` = 2 s); radio = `ORBITA_RADIO_BASE_CAS` (1) + `ORBITA_RADIO_POR_SEMIEJE` (2) × el mayor de X/Z, así las ᛁ lo abren; dura persiste + permanencia (mín. 3 s); golpea una vez por vuelta lo que toca; con ᚨ un orbe por glifo sale disparado como proyectil contra un enemigo vivo a ≤ 6 casillas. Con una sola copia ᛃ sigue siendo el eco del impacto | ᚲ ᚠ ᚠ ᛃ = tres orbes de fuego; + ᚨ = uno sale a por el enemigo | `Hechizo.orbita`, `HechizoVivo._materializar_orbita/_avanzar_orbes/_orbe_busca` |
+| **R4** ᛏ + ᚷ = crece de ABAJO ARRIBA y ELEVA lo que haya dentro | `Hechizo.columna`: `crece > 0` y el eje Y domina | la altura ya no nace entera: sube de `escala_nace` × su altura a la entera en `tiempo_de_crecer` (`altura_columna_u`), y todo lo que esté en sus casillas y tenga el contrato `elevar` (hermano de `push`) sube con la cima: `Jugador3D.elevar` usa su `vy` (el salto de siempre), `Combate3D.elevar` alza su dibujo (`_salto_y`, como el saltito del golpe) | ᛚ ᛏ ᛏ ᛏ ᚷ = pilar de agua ascendente | `Hechizo.columna`, `HechizoVivo._avanzar_columna`, `Jugador3D.elevar`, `Combate3D.elevar` |
+| **R5** ᚷ golpea AL CRECER | (a) ya ocurría: `crece` rasteriza casillas nuevas cada vez que su radio cruza una (`eventos_de`) y cada tanda golpea lo que hay en ellas (`_vivir` + `tocados`: una onda por casillas, una vez por objeto). (b) nuevo, `Hechizo.estalla`: `crece > 0`, `estado_materia == "liquido"`, quieto, redondo (ni muro, pilar, barrera, haz ni órbita) | el volumen líquido que crece ESTALLA al acabar su vida (persiste + permanencia, mín. `ESTALLIDO_MIN_S` = 1 s): `_danar_area` de `radio_estallido` = tamaño final + `ESTALLIDO_MARGEN_CAS` (0,75 casillas) con el daño del hechizo. Es lo que ya dibuja `AguaToy.area_al_impactar` | ᛚ ᚷ ᚷ ⧖ = explosión de agua | `Hechizo.estalla/radio_estallido`, `HechizoVivo._estallar` |
+
+**Decisiones de implementación que Pablo debe confirmar** (están anotadas en el diario 349): R1 solo con solidez (no con cualquier volumen alargado: ᛁᛁ + ᛇ sigue siendo un proyectil largo); el muro que viaja arrastra con `EMPUJE_MURO_K` = 0,5; la órbita (1,0 casillas + 2,0 × semieje, una vuelta cada 2 s); con ᛁ + ᚠ + ᛃ gana la órbita al haz; ᚨ lanza un orbe por glifo; el estallido solo para el agua (líquido) que crece; los enemigos se alzan solo en el dibujo (siguen en su casilla y golpeables).
+Prueba: `herramientas/prueba_reglas_glifos.gd` (cada regla con fuego y agua, y tierra o rayo, más los contraejemplos: ᚲ ᛇ sigue siendo la bola; ᛜ ᛁ el muro quieto; ᛃ sin copias el eco; ᛚ ᛏ ᛏ ᛏ sin ᚷ no alza nada).
+## 3d. Altura sin tope y ᛁ más larga (3/11/2026, decisiones de Pablo)
+
+**ᛏ altura, sin tope y con rendimiento decreciente** («vamos a no capear la altura, solo que tenga un rendimiento decreciente»). `altura` pasa a `suma_decreciente` (como ᛁ lo era): el 1.º ᛏ suma 0,30 m de semieje (lo de hoy) y cada siguiente ×`FACTOR_DECRECIENTE_ALTURA_V2` = 0,85 el anterior; asíntota 2,10 m. El tope (`TOPE_EJE_ALTURA_V2`, `Hechizo.LIM_SEMIEJE_ALTO`) sube a 6,0 solo como seguridad. El aviso/rechazo de altura (`GeometriaV2.aviso_materia`, `puede_construir_en`) **ya no rechaza nada**:
+un sólido más alto de lo que se sube (`Jugador3D.MAX_NIVELES_SUBIBLES`) se lanza y se construye, simplemente no es pisable; esa constante queda como lo que la jugadora puede ESCALAR. «Estás encima», enemigo, cornisa, agua y bloqueada siguen rechazando como siempre.
+
+| ᛏ | 1 | 2 | 3 | 4 | 5 | 6 | (antes, lineal) |
+|---|---|---|---|---|---|---|---|
+| semieje y (m) | 0,400 | 0,655 | 0,872 | 1,056 | 1,213 | 1,346 | 0,40 · 0,70 · 1,00 · 1,30 · 1,60 · 1,90 |
+| niveles = round(2·y) | 1 | 1 | 2 | 2 | 2 | 3 | 1 · 1 · 2 · 3 · 3 · 4 |
+
+(11 ᛏ = 4 niveles: `GLIFOS_ALTURA_CUATRO_NIVELES_V2`.)
+
+**ᛁ línea más larga** («aumenta la distancia de una línea a 1 casilla; sucesivas líneas 0,5 casillas»): la 1.ª ᛁ suma 0,50 m de semieje (1 casilla de largo total) y cada siguiente 0,25 (0,5 casillas), en ancho (`linea_x`) o fondo (`linea_z`). Modo nuevo de modificador, como datos: `op: "suma_primero"` (`valor` el primero, `luego` los siguientes; en `GLIFOS_V2`, `modo: "primero_luego"`). Tope horizontal 3,0 de semieje (6 casillas), sin cambios. El alcance del HAZ no cambia (3 m + 1 m por ᛁ, tope 6).
+
+| ᛁ | 1 | 2 | 3 | 4 | 5 | 6 | (antes, decreciente) |
+|---|---|---|---|---|---|---|---|
+| semieje (m) | 0,60 | 0,85 | 1,10 | 1,35 | 1,60 | 1,85 | 0,35 · 0,54 · 0,68 · … asíntota 1,10 |
+| ancho total (casillas) | 1,2 | 1,7 | 2,2 | 2,7 | 3,2 | 3,7 | |
+| casillas de ancho de ᛜ + ᛁ | 1 | 1 | 3 | 3 | 3 | 3 | 1 hasta 9 ᛁ |
+
+ᛜ + 3 ᛁ ya es un muro de 3 casillas (`GLIFOS_ANCHO_MURO_3_V2` = 3); con ᛜ + 5 ᛁ, 3,2 casillas de ancho con los 6 glifos de una página. El muro nace delante (`DISTANCIA_MURO`) y su casilla de lado no toca la de la jugadora. Prueba: `prueba_reglas_glifos` (secciones A y B).
 ## 4. Ajustes para implementar
 
 ### Juego · E1: unidad y nombres

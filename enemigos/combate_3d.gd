@@ -326,6 +326,7 @@ var _tw_respingo: Tween = null
 var _squash: Vector3 = Vector3.ONE      ## factor de aplastamiento aplicado ahora mismo a pj.scale (se compone con otras escalas)
 var _tw_squash: Tween = null
 var _tw_salto: Tween = null
+var _t_elev: float = 0.0                ## 3/11 (R4): s que le quedan elevado por un pilar que crece (`elevar`); al acabar baja solo
 var _salto_y: float = 0.0               ## u de salto visual sobre el suelo (solo se suma a pj.position)
 ## 15/10 (gamefeel de la barra): la barra solo se ve tras recibir daño; al golpe, el relleno se pone BLANCO un instante y el trozo perdido
 ## se queda en blanco `RETARDO_PERDIDA` s antes de vaciarse, para que se vea cuánto ha quitado el golpe.
@@ -560,6 +561,26 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = 
 	if v0 >= EMPUJADO_V0_MIN:
 		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_EMPUJE * _k_golpe)     # gamefeel lote 2: los pies levantan polvo al salir despedido
 	_empezar_empujado(d, v0)
+
+
+## 3/11/2026 · R4 (decisión de Pablo: «ᛏ + ᚷ eleva lo que haya dentro»): contrato `elevar`, hermano de `push`: un pilar que crece alza a este enemigo hasta `altura_u` (u sobre el suelo). Se alza SU DIBUJO (`_salto_y`, el
+## mismo saltito visual del golpe de viento o tierra) y sigue en su casilla (sigue siendo golpeable); si el pilar deja de pedírselo (`ELEVAR_RETENCION_S`), baja suave.
+const ELEVAR_RETENCION_S: float = 0.25
+
+func elevar(altura_u: float, _dt: float = 0.0) -> void:
+	if muerto:
+		return
+	if _tw_salto != null and _tw_salto.is_valid():
+		_tw_salto.kill()
+	_salto_y = maxf(altura_u, 0.0)
+	_t_elev = ELEVAR_RETENCION_S
+
+
+func _bajar_de_la_elevacion() -> void:
+	if _tw_salto != null and _tw_salto.is_valid():
+		_tw_salto.kill()
+	_tw_salto = create_tween()
+	_tw_salto.tween_property(self, "_salto_y", 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
 ## 28/10 · A2: la velocidad inicial (u/s) de un empujón de `fuerza`; `suelo` = es un golpe con daño (no recorre menos de EMPUJE_MIN_CASILLAS). Lo usan `push` y la previsión.
@@ -1026,6 +1047,10 @@ static func flotante(en: Node, pos: Vector3, txt: String, color: Color, escala: 
 func _physics_process(delta: float) -> void:
 	if muerto or pj == null or not is_instance_valid(pj):
 		return
+	if _t_elev > 0.0:
+		_t_elev -= delta
+		if _t_elev <= 0.0:
+			_bajar_de_la_elevacion()
 	if _hitstop > 0.0:
 		# Pausa de impacto de ESTE enemigo: no avanzan ni su IA, ni su animación (velocidad 0 desde _iniciar_hitstop), ni su empuje (va
 		# dentro de _ia). Sí corren el destello y el dibujo, que son justo lo que hace que el golpe se vea.

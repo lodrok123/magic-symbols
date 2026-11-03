@@ -168,7 +168,7 @@ func _origen_de(h: Hechizo) -> Vector3:
 
 
 func _rama_de(h: Hechizo) -> String:
-	return "haz" if h.haz else ("proyectil" if h.velocidad > 0.0 else ("volumen_viaja" if h.viaja else "volumen_quieto"))
+	return "haz" if h.haz else ("proyectil" if h.proyectil else ("volumen_viaja" if h.viaja else ("orbita" if h.orbita else "volumen_quieto")))      # 3/11 (R1/R3): el muro que viaja (ᛜ + ᛇ) ya no es un proyectil y ᛃ + ᚠ orbita
 
 
 ## Todos los HechizoVivo que cuelgan del lanzador (el lanzado y sus hermanos de copia).
@@ -262,7 +262,7 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 		if vistas != h.copias:
 			_anota("copias vistas == copias (%s)" % ("proyectil" if rama == "proyectil" else "volumen"), "%s: copias %d, vistas %d" % [et, h.copias, vistas])
 	# --- solidez → SolidezV2 (una por manifestación) ---
-	if h.solidez > 0.0 and h.retorna and rama == "proyectil":
+	if h.solidez > 0.0 and h.retorna and rama == "proyectil":      # (ya solo ᛃ + ᛇ sin ᛜ llega aquí con solidez por el laboratorio; con ᛜ + ᛇ es el muro que viaja y vuelve, R1/R2)
 		# H5: la vuelta de un retorno acaba en «retorno», que no aplica la materia en el sitio (`_terminar`): la barrera de «retorno + flecha + barrera» no se levanta. Es lo que sale de los campos; se anota, no se arregla.
 		_aviso("retorno + barrera con flecha: el proyectil vuelve a la mano y no levanta la barrera (la vuelta no aplica su materia)", et)
 	elif h.solidez > 0.0 and h.retardo > 0.0 and rama != "proyectil":
@@ -273,7 +273,9 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 		if int(r["solideces"]) < esperadas:
 			_anota("solidez → SolidezV2 (una por manifestación)", "%s: %d de %d" % [et, int(r["solideces"]), esperadas])
 	# --- ᚱ suelta su pulso ---
-	if h.resuena > 0.0 and int(r["pulsos"]) < 1:
+	if h.resuena > 0.0 and int(r["pulsos"]) < 1 and rama == "volumen_viaja":
+		_aviso("ᚱ con el muro que viaja (R1): el pulso sale al final del viaje (extinción), no al lanzar (medido en prueba_reglas_glifos)", et)
+	elif h.resuena > 0.0 and int(r["pulsos"]) < 1:
 		_anota("ᚱ suelta su Pulso3D", "%s (momento %s)" % [et, h.momento_de("raido")])
 	# --- cada flecha recorre ≥ 80 % o acaba en un obstáculo ---
 	if rama == "proyectil":
@@ -462,8 +464,9 @@ func _solidez_y_proyectil(runes: Dictionary) -> void:
 	var todos_alcance: bool = true
 	for hv in hermanos:
 		todos_alcance = todos_alcance and (hv as HechizoVivo).motivo_fin == "alcance"
-	_ok("A3 barrera + flecha + ᚠ: las 2 copias llegan a su alcance sin chocar con el muro que la primera levantó (motivos %s, %d solideces)" % [str(hermanos.map(func(x: Variant) -> String: return (x as HechizoVivo).motivo_fin)), _l._solideces_v2.size()],
-		todos_alcance and _l._solideces_v2.size() == 2 and vbf.casillas == 2)
+	# 3/11 (R1): ya no hay proyectiles: el muro que viaja lleva una SolidezV2 por copia (el choque con la solidez propia lo mide prueba_reglas_glifos)
+	_ok("A3 (R1) barrera + flecha + ᚠ: el muro que viaja, no proyectiles (%d vivo), con %d solideces (una por copia) y %d casillas" % [hermanos.size(), _l._solideces_v2.size(), vbf.casillas],
+		not vbf.proyectil and _l._solideces_v2.size() == 2 and vbf.casillas >= 2)
 	await _limpiar({"vivos": hermanos})
 
 
@@ -553,7 +556,7 @@ func _crece_en_metros(runes: Dictionary) -> void:
 	Sigils.HAZ_ACTIVO = false
 	var datos_g: Dictionary = {}
 	for n_g in [0, 1, 2]:
-		var gl: Dictionary = {"linea_x": 6, "linea_z": 6}
+		var gl: Dictionary = {"linea_x": 3, "linea_z": 3}      # 3/11: con ᛁ lineal 6 ᛁ ya topan en 3,0 y ᚷ no podía agrandar más
 		if n_g > 0:
 			gl["pulso"] = n_g
 		var hg: Hechizo = Hechizo.construir(fuego, gl, 1.0)
