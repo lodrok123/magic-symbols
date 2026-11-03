@@ -33,8 +33,8 @@
 ########g#####~~#.gT##########.,..######
 ####,...g..,,,~~,,g,,,########......####
 ####..s...,,h,~~r,g,##....,,.,##########
-####.....,T,,,~~..g,,...,,,.s.##########
-####h..,,m,.g,~~ggggggggsgghg,##########
+####.....,T,,,~~..g,,...,s,.s.##########
+####h..,,m,.g,~~ggggggggggghg,##########
 ####...Sggggg.~~..........,,g,##########
 ####.s......,,~~,,,,.#,h,,s.,.##########
 ####...#..T.s,~~r,,,,#,,,,,,############
@@ -98,6 +98,13 @@
 ; decorado sauce 17 6
 ; decorado piedras 25 8
 ; decorado nenufar 27 7
+; decorado canas 13 34
+; decorado abedul_amarillo 4 33
+; decorado helecho_ancho 7 22
+; decorado hojas_monton 9 24
+; decorado juncos 17 35
+; decorado arbol_viejo 23 29
+; decorado canas 32 9
 ; giro 12 5 90
 ; giro 12 6 90
 ; giro 13 5 180
@@ -114,7 +121,7 @@
 ; zona 16,22..35,35 bosque mezcla=5 id=bosque_denso titulo=El_bosque_denso botin=bosque
 ; zona 30,22..35,28 ruinas mezcla=1 id=boca_cueva titulo=La_boca_de_la_cueva botin=ruinas
 ; zona 16,12..27,21 atardecer mezcla=5 id=pradera titulo=La_pradera_alta botin=atardecer
-; zona 5,5..13,11 ruinas mezcla=5 id=plaza_oeste titulo=Las_ruinas_de_los_totems botin=ruinas
+; zona 5,5..13,11 ruinas mezcla=5 id=plaza_oeste titulo=Las_ruinas_de_los_tótems botin=ruinas
 ; zona 16,5..22,11 ruinas mezcla=5 id=ruinas_este botin=ruinas
 ; zona 24,5..33,10 agua mezcla=5 id=estanque titulo=El_estanque_del_molino botin=agua
 ; zona 28,12..35,19 fuego mezcla=1 id=campamento titulo=El_campamento_goblin botin=campamento

@@ -424,7 +424,24 @@ func _pradera() -> void:
 		nido.on_spell_hit(viento)
 		await avanzar_s(0.5)
 	_ok("5.6 el viento sacude el nido y suelta una pluma", nido.sacudidas == 1, str(nido.sacudidas))
-	_matar(vig.vistos)                                    # [muerto=true]
+	# Un guerrero cae a hechizos de VERDAD (tierra, agua y rayo, apuntando a donde esté en cada tiro); los otros cuatro, con `muerto = true`.
+	var guerrero: Combate3D = null
+	for e in vig.vistos:
+		if Terreno3D.celda_de((e as Combate3D).casa) == Vector2i(19, 14):
+			guerrero = e
+	if guerrero != null:
+		await caminar(Vector2i(19, 16), "5.6b")
+		var tiros: int = 0
+		while not guerrero.muerto and tiros < 30:
+			_curar()
+			var dir_g: Vector3 = guerrero.global_position - jugador.position
+			dir_g.y = 0.0
+			lanzar(["tierra", "tierra", "agua", "rayo"][tiros % 4], ["flecha"], dir_g)
+			_disparos += 1
+			tiros += 1
+			await avanzar_s(0.9)
+		_ok("5.6c un guerrero de la pradera cae a hechizos de verdad (%d tiros, daño real de tierra, agua y rayo)" % tiros, guerrero.muerto, "%d tiros" % tiros)
+	_matar(vig.vistos)                                    # [muerto=true] los que quedan
 	await avanzar_s(1.0)
 	_ok("5.7 DESPUÉS: al caer los cinco el vigía pone `bosque02.pradera.limpia` y APARECE el cofre", vig.completo and _flag("bosque02.pradera.limpia") and cofre.es_cerrado)
 	await abrir_cofre("cofre_pradera", "5.8")
@@ -625,6 +642,7 @@ func _santuario() -> void:
 	_ok("10.7 al caer el elemental el vigía pone `bosque02.santuario.limpio`, el cerrojo se abre y APARECE el cofre legendario", vig.completo and _flag("bosque02.santuario.limpio") and not cerr.cerrado and corazon.es_cerrado)
 	var antes: int = int(Logros3D.total.get("nivel_completado", 0))
 	var fin_antes: bool = bool(reglas.get("_terminado"))
+	reglas.set("volver_al_menu", true)                    # solo ahora: a los 10 s de abrirse este cofre el juego vuelve al menú principal (se comprueba al final)
 	await abrir_cofre("cofre_corazon", "10.8")
 	await avanzar_s(1.0)
 	_ok("10.9 FIN DE LA DEMO: `bosque02.santuario.cofre` puesta, `_terminado` y el logro `nivel_completado` emitido UNA vez", _flag("bosque02.santuario.cofre") and not fin_antes and bool(reglas.get("_terminado")) and int(Logros3D.total.get("nivel_completado", 0)) == antes + 1, "logros %d → %d" % [antes, int(Logros3D.total.get("nivel_completado", 0))])
@@ -656,5 +674,8 @@ func _final() -> void:
 	_ok("F.4 las secundarias están completas: Destruir el campamento, La corriente del molino, El peso de la piedra y Siete cofres", mi.estado("bosque_02_campamento") == "completa" and mi.estado("bosque_02_molino") == "completa" and mi.estado("bosque_02_piedra") == "completa" and mi.estado("bosque_02_cofres") == "completa",
 		"%s %s %s %s" % [mi.estado("bosque_02_campamento"), mi.estado("bosque_02_molino"), mi.estado("bosque_02_piedra"), mi.estado("bosque_02_cofres")])
 	_ok("F.5 el marcador de la misión (fijar_punto) ya no apunta a nada al acabar", mi.punto_objetivo("bosque_02") == null)
-	_ok("F.6 en total se anduvieron %d casillas y se lanzaron %d hechizos, sin un solo teletransporte" % [_casillas, _disparos], _casillas > 200 and _disparos >= 15)
-	_aviso("F.7 la mochila (8 huecos) se llenó con el botín del camino; para abrir los cofres la jugadora tiró", str(_tirados))
+	# Fin de la demo: a los 10 s del cofre legendario el juego autoguarda y vuelve al menú principal (la jugadora ya ha terminado: aquí solo se espera el cambio de escena).
+	var al_menu: bool = await esperar(func() -> bool: return current_scene != null and current_scene is MenuPrincipal, 14.0)
+	_ok("F.6 a los 10 s de abrir el cofre legendario el juego vuelve al MENÚ PRINCIPAL (escena %s)" % (current_scene.name if current_scene != null else "ninguna"), al_menu)
+	_ok("F.7 en total se anduvieron %d casillas y se lanzaron %d hechizos, sin un solo salto de más de una casilla" % [_casillas, _disparos], _casillas > 200 and _disparos >= 15)
+	_aviso("F.8 la mochila (8 huecos) se llenó con el botín del camino; para abrir los cofres la jugadora tiró", str(_tirados))
