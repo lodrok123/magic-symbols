@@ -924,6 +924,12 @@ func _cueva_y_vuelta() -> void:
 		return
 	_ok("12.5 la jugadora aparece en `desde_bosque` (4,17) de la Cueva, con el oro y la vida que llevaba", Terreno3D.celda_de(jugador.position) == Vector2i(4, 17) and Estado.i().oro == oro and absf(float(jugador.get("vida")) - vida) < 0.1, "%s oro %d vida %s" % [str(Terreno3D.celda_de(jugador.position)), Estado.i().oro, str(jugador.get("vida"))])
 	_ok("12.6 las flags del Bosque siguen puestas dentro de la Cueva", Flags.i().nombres("bosque01v1.") == flags_antes)
+	# 3/11: la salida de la Cueva ya apunta al Bosque 02 (el nivel inicial). Para seguir probando que el v01 conserva TODO lo resuelto en un viaje de ida y vuelta, la prueba la REDIRIGE a mano al v01.
+	_refrescar()
+	var salida_cueva: SalidaNivel3D = z.nodo("a_bosque") as SalidaNivel3D if z != null else null
+	_ok("12.6b la salida real de la Cueva (a_bosque) va ahora a Bosque_02:boca_cueva; aquí se redirige al v01", salida_cueva != null and salida_cueva.destino == "Bosque_02:boca_cueva")
+	if salida_cueva != null:
+		salida_cueva.destino = "Bosque_01_v01:boca_cueva"
 	await avanzar_s(0.5)
 	var vieja_cueva: Node = maqueta
 	colocar_jugador(Vector2i(4, 18))
