@@ -74,8 +74,8 @@ func _libre(c: Vector2i) -> bool:
 	return Terreno3D.pisable(c, 0, false, 0, false)
 
 
-## true cuando en la casilla no queda NINGÚN nodo reactivo (el consumido se disuelve ~1 s antes de liberarse; mientras existe, `HechizoVivo._contacto` lo golpea por grupo,
-## sin mirar su capa, y el proyectil muere ahí: una flecha disparada desde esa casilla no sale).
+## true cuando en la casilla no queda NINGÚN nodo reactivo (el consumido se disuelve ~1 s antes de liberarse). Hasta el diario 347 `HechizoVivo._contacto` lo golpeaba por grupo
+## sin mirar su capa y el proyectil moría ahí; ahora lo consumido está `fuera_de_juego` y la prueba dispara con la telaraña aún disolviéndose.
 func _consumido(c: Vector2i) -> bool:
 	for r in get_nodes_in_group("reactivo3d"):
 		if is_instance_valid(r) and r.get("celda") == c:
@@ -480,10 +480,9 @@ func _ruinas_este() -> void:
 	await disparar("fuego", ["flecha"], Vector2i(22, 9), Vector2i(22, 7), "6.3")
 	var libre: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 7)), 20.0)
 	_ok("6.4 la telaraña arde y se consume (queda su flag)", libre and _flag("bosque02.quemado.c22_7"))
-	# La casilla se libera antes de que la telaraña consumida desaparezca: hasta entonces se come la flecha (ver `_consumido`). Se espera a que no quede nada.
-	await esperar(func() -> bool: return _consumido(Vector2i(22, 7)), 20.0)
-	# Con la telaraña consumida la casilla (22,7) se pisa: se dispara pegada al tótem (a 2 casillas la flecha se apagaba sin tocar nada: `ultimo_impacto` = inf).
-	await disparar("fuego", ["flecha"], Vector2i(22, 7), Vector2i(22, 6), "6.5")
+	# Se dispara en cuanto la casilla se libera, con la telaraña consumida aún disolviéndose en (22,7): desde el diario 347 lo consumido no se come el hechizo (`HechizoVivo.fuera_de_juego`).
+	_ok("6.4b la telaraña consumida sigue en escena un momento (es lo que antes se comía la flecha)", not _consumido(Vector2i(22, 7)))
+	await disparar("fuego", ["flecha"], Vector2i(22, 8), Vector2i(22, 6), "6.5")
 	var fuego: bool = await esperar(func() -> bool: return bool(tot[0].activo), 6.0)
 	_ok("6.6 DESPUÉS: el tótem de fuego despierta y deja `bosque02.totem.fuego`", fuego and _flag("bosque02.totem.fuego"))
 	# --- agua: la tinaja (13,5) está al otro lado del arroyo; su cuenca abre la reja (19,7) del tótem

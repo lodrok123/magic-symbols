@@ -536,7 +536,7 @@ func _contacto(ctx: Dictionary, grupos: Array = ["reactivo3d", "combate3d"]) -> 
 		celdas[c] = true
 	for grupo in grupos:
 		for obj in nodos_en(lanz, grupo, celdas):
-			if tocados.has(obj.get_instance_id()) or obj.get("muerto") == true:
+			if tocados.has(obj.get_instance_id()) or fuera_de_juego(obj):
 				continue
 			tocados[obj.get_instance_id()] = true
 			_golpear(obj, ctx["dir"], (obj as Node3D).global_position, ctx["origen"])
@@ -832,11 +832,21 @@ static func _olvidar(lanzador_ref: WeakRef, nodo: Node) -> void:
 		(l as Lanzador3D)._solideces_v2.erase(nodo)
 
 
-## Los nodos de un grupo cuya casilla está en `celdas` (Dictionary Vector2i -> true).
+## 3/11 (diario 347): lo que ya no está en juego para un hechizo: un enemigo muerto o un reactivo CONSUMIDO. El consumido sigue ~1 s en escena disolviéndose, ya sin capa de
+## colisión (el rayo de `_golpes_areas` no lo ve), pero los golpes POR GRUPO lo contaban: una flecha que salía de la casilla de una telaraña recién quemada moría ahí sin hacer nada.
+static func fuera_de_juego(obj: Object) -> bool:
+	if not is_instance_valid(obj):
+		return true
+	if obj.get("muerto") == true:
+		return true
+	return obj is Reactivo3D and (obj as Reactivo3D).estado == Reactivo3D.EstadoObj.CONSUMIDO
+
+
+## Los nodos de un grupo cuya casilla está en `celdas` (Dictionary Vector2i -> true). Lo muerto y lo consumido no cuentan (`fuera_de_juego`).
 static func nodos_en(lanzador: Lanzador3D, grupo: String, celdas: Dictionary) -> Array:
 	var r: Array = []
 	for n in lanzador.get_tree().get_nodes_in_group(grupo):
-		if is_instance_valid(n) and celdas.has(Lanzador3D.celda_de((n as Node3D).global_position)):
+		if is_instance_valid(n) and not fuera_de_juego(n) and celdas.has(Lanzador3D.celda_de((n as Node3D).global_position)):
 			r.append(n)
 	return r
 
@@ -1200,7 +1210,7 @@ func _danar_area(radio: float, dano: float, pos: Vector3, dir: Vector3) -> void:
 	hd.eventos = {}
 	for grupo in ["combate3d", "reactivo3d"]:
 		for obj in lanz.get_tree().get_nodes_in_group(grupo):
-			if not is_instance_valid(obj) or obj.get("muerto") == true:
+			if fuera_de_juego(obj):
 				continue
 			var c: Vector3 = (obj as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
 			var plano: Vector3 = c - pos
@@ -1458,7 +1468,7 @@ func _golpes_areas(desde: Vector3, hasta: Vector3) -> void:
 				_contacto_celdas = [Lanzador3D.celda_de((obj as Node3D).global_position)]
 			_terminar_o_volver("muro")
 			return
-		if not obj.has_method("on_spell_hit") or obj.get("muerto") == true:
+		if not obj.has_method("on_spell_hit") or fuera_de_juego(obj):
 			continue
 		golpeados[obj.get_instance_id()] = true
 		golpes_dados += 1
@@ -1476,7 +1486,7 @@ func _golpear_celdas(celdas: Array) -> void:
 		return
 	for grupo in ["combate3d", "reactivo3d"]:
 		for obj in lanz.get_tree().get_nodes_in_group(grupo):
-			if not is_instance_valid(obj) or obj.get("muerto") == true or golpeados.has((obj as Object).get_instance_id()):
+			if fuera_de_juego(obj) or golpeados.has((obj as Object).get_instance_id()):
 				continue
 			if not celdas.has(Lanzador3D.celda_de((obj as Node3D).global_position)):
 				continue
@@ -1532,7 +1542,7 @@ func _golpes_del_paso() -> void:
 			for obj in lanz.get_tree().get_nodes_in_group(grupo):
 				if not activo:
 					return
-				if not is_instance_valid(obj) or obj.get("muerto") == true or golpeados.has((obj as Object).get_instance_id()):
+				if fuera_de_juego(obj) or golpeados.has((obj as Object).get_instance_id()):
 					continue
 				var c: Vector3 = (obj as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0)
 				var plano: Vector3 = c - p

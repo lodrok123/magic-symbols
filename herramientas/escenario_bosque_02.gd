@@ -83,8 +83,7 @@ func _ida_y_vuelta() -> void:
 	var tot: Array = reglas.get("_totems") as Array
 	await disparar("fuego", ["flecha"], Vector2i(22, 9), Vector2i(22, 7), "V2.1")
 	await esperar(func() -> bool: return _libre(Vector2i(22, 7)), 20.0)
-	await esperar(func() -> bool: return _consumido(Vector2i(22, 7)), 20.0)      # hasta que la telaraña consumida desaparece se come la flecha (diario 346)
-	await disparar("fuego", ["flecha"], Vector2i(22, 7), Vector2i(22, 6), "V2.2")
+	await disparar("fuego", ["flecha"], Vector2i(22, 8), Vector2i(22, 6), "V2.2")      # con la telaraña consumida aún disolviéndose (diario 347: ya no se come la flecha)
 	var fuego: bool = await esperar(func() -> bool: return bool(tot[0].activo), 6.0)
 	_ok("V2.3 el tótem de fuego despierta (flag `bosque02.totem.fuego`)", fuego and _flag("bosque02.totem.fuego"))
 	# Foto de lo resuelto ANTES de salir
