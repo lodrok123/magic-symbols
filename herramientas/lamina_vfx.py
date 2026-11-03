@@ -8,6 +8,8 @@ Modo "en el juego" (A1, 2/11/2026): python herramientas/lamina_vfx.py --en-juego
     (las saca herramientas/captura_vfx_en_juego.gd con la camara del juego): una fila por hechizo, y por elemento dos columnas lado a lado, el dibujo ACTUAL y el PROCEDURAL (FuegoToy / AguaToy). Cada celda lleva su rotulo (titulo, figura y ejes x·y·z en metros, propiedades);
 Modo "hielo y rayo" (B1, 2/11/2026): python herramientas/lamina_vfx.py --hielo-rayo <carpeta con hr_<elemento>_<figura>.png, hr_<elemento>_ciclo_<n>.png y celdas_hr.json> <lamina.png> [ancho_reducido=1600]
     (las saca herramientas/captura_fuego_parametrico.gd en el modo hielo_rayo): por elemento, las cinco figuras de la prueba 3 y tres fotogramas del ciclo (hielo: crece, vive, se rompe; rayo: nace, vive, muere), con la paleta de cada elemento leida de hielo_paleta.gd / rayo_paleta.gd;
+Modo "bola de rayo" (B1b, 3/11/2026): python herramientas/lamina_vfx.py --bola-rayo <carpeta con br_<antes|despues>_<situacion>.png y celdas_br.json> <lamina.png> [ancho_reducido=1600]
+    (las saca herramientas/captura_fuego_parametrico.gd en el modo bola_rayo; las de B1 (br_antes_*) se buscan tambien en <carpeta de la lamina>/bola_antes_b1/): la bola quieta antes y despues, la carga a tres momentos, el vuelo (camara lateral y camara del juego) y la muerte a tres momentos;
 la lamina cabe en menos de 4000 px de ancho y se guarda tambien una copia reducida (<salida>_reducida.png).
 """
 import json
@@ -250,9 +252,87 @@ def lamina_hielo_rayo(carpeta, salida, ancho_red=1600):
         print("reducida", ruta_red, red.size)
 
 
+# ---------------------------------------------------------------- modo "bola de rayo" (B1b, 3/11/2026) ----------------------------------------------------------------
+# [fila, titulo, subtitulo, archivo, recorte de la camara del juego]
+BR_FILAS = ["QUIETA", "CARGA", "VUELO", "MUERTE"]
+BR_CELDAS = [
+    [0, "ANTES (B1)", "bola quieta, camara cerca", "br_antes_quieta_a.png", False],
+    [0, "DESPUES", "esfera con arcos envolventes", "br_despues_quieta_a.png", False],
+    [0, "DESPUES", "otro instante (se redibuja cada 0,05 s)", "br_despues_quieta_b.png", False],
+    [0, "ANTES (B1)", "camara del juego (recorte x2)", "br_antes_quieta_juego.png", True],
+    [0, "DESPUES", "camara del juego (recorte x2)", "br_despues_quieta_juego.png", True],
+    [1, "carga 1 · progreso %s", "chispas que convergen; ya es una esfera", "br_despues_carga_0.png", False],
+    [1, "carga 2 · progreso %s", "crece en la mano", "br_despues_carga_1.png", False],
+    [1, "carga 3 · progreso %s", "lista para soltar", "br_despues_carga_2.png", False],
+    [1, "carga 3 · camara del juego", "recorte x2", "br_despues_carga_juego.png", True],
+    [2, "ANTES (B1) · lateral", "la cola larga y sin cabeza", "br_antes_vuelo_lateral.png", False],
+    [2, "DESPUES · lateral", "cabeza, cola corta y chispas que caen", "br_despues_vuelo_lateral.png", False],
+    [2, "ANTES (B1) · juego", "camara del juego (recorte x2)", "br_antes_vuelo_juego.png", True],
+    [2, "DESPUES · juego", "camara del juego (recorte x2)", "br_despues_vuelo_juego.png", True],
+    [3, "muerte 1 · corte %s", "la esfera empieza a contraerse", "br_despues_muerte_0.png", False],
+    [3, "muerte 2 · corte %s", "se contrae y revientan los arcos", "br_despues_muerte_1.png", False],
+    [3, "muerte 3 · corte %s", "solo arcos cortos y chispas", "br_despues_muerte_2.png", False],
+    [3, "muerte 2 · camara del juego", "recorte x2", "br_despues_muerte_juego.png", True],
+]
+
+
+def lamina_bola_rayo(carpeta, salida, ancho_red=1600):
+    datos = json.load(open(os.path.join(carpeta, "celdas_br.json"), encoding="utf-8"))
+    antes_dir = os.path.join(os.path.dirname(os.path.abspath(salida)), "bola_antes_b1")
+    raiz = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    cols = 5
+    ancho = BANDA_W + MARGEN + cols * (CELDA_W + MARGEN)
+    cab = 150
+    alto_celda = RUBRO_H + CELDA_H
+    alto = cab + 4 * (alto_celda + MARGEN) + MARGEN
+    im = Image.new("RGB", (ancho, alto), FONDO)
+    d = ImageDraw.Draw(im)
+    f_t, f_s, f_c, f_p = fuente(40, True), fuente(22), fuente(23, True), fuente(20)
+    d.text((MARGEN * 2, 14), "La bola de rayo (RayoToy BOLA): ronda de pulido", font=f_t, fill=TEXTO)
+    d.text((MARGEN * 2, 66), "Antes: seis trazos que salen del centro, una ramita suelta. Despues: una ESFERA de energia (nucleo blanco-amarillo con fresnel y halo azul) con seis arcos que recorren su superficie y tres que saltan y vuelven.", font=f_s, fill=SUAVE)
+    d.text((MARGEN * 2, 92), "En vuelo: cabeza con destello, cola quebrada corta pegada a ella y chispas que se quedan atras y caen. Al morir se contrae y revienta en ocho arcos y chispas (fotografiada a camara lenta x10).", font=f_s, fill=SUAVE)
+    d.text((MARGEN * 2, 118), "Misma paleta del rayo del juego (rayo_paleta.gd, sin cambios). Fotos de la ventana del lab (1200 x 900): camara cerca y camara del juego (ortogonal, tamano 6, 30 grados).", font=f_s, fill=SUAVE)
+    pos = [0, 0, 0, 0]
+    for fila, tit, sub, arch, juego in BR_CELDAS:
+        k = pos[fila]
+        pos[fila] += 1
+        x0 = BANDA_W + MARGEN + k * (CELDA_W + MARGEN)
+        yf = cab + fila * (alto_celda + MARGEN)
+        if k == 0:
+            banda = Image.new("RGB", (alto_celda, BANDA_W), PAPEL)
+            ImageDraw.Draw(banda).text((16, 20), BR_FILAS[fila], font=f_c, fill=ACENTO)
+            im.paste(banda.rotate(90, expand=True), (0, yf))
+        if "%s" in tit:
+            valor = (datos["objetivos_carga"] if fila == 1 else datos["cortes"])[k if fila == 3 else k]
+            tit = tit % num(valor)
+        d.rectangle([x0, yf, x0 + CELDA_W, yf + RUBRO_H], fill=PAPEL)
+        d.text((x0 + 10, yf + 5), tit, font=f_c, fill=TEXTO)
+        d.text((x0 + 10, yf + 38), sub, font=f_p, fill=SUAVE)
+        ruta = os.path.join(carpeta, arch)
+        if not os.path.exists(ruta):
+            ruta = os.path.join(antes_dir, arch)
+        if os.path.exists(ruta):
+            img = Image.open(ruta).convert("RGB")
+            if juego:
+                img = img.crop((260, 215, 860, 665))
+            im.paste(img.resize((CELDA_W, CELDA_H), Image.LANCZOS), (x0, yf + RUBRO_H))
+        else:
+            d.rectangle([x0, yf + RUBRO_H, x0 + CELDA_W, yf + RUBRO_H + CELDA_H], outline=(200, 60, 60))
+            d.text((x0 + 20, yf + RUBRO_H + 20), "FALTA la captura", font=f_c, fill=(220, 90, 90))
+    im.save(salida)
+    print("lamina", salida, im.size)
+    if im.size[0] > ancho_red:
+        red = im.resize((ancho_red, int(im.size[1] * ancho_red / im.size[0])), Image.LANCZOS)
+        ruta_red = os.path.splitext(salida)[0] + "_reducida.png"
+        red.save(ruta_red)
+        print("reducida", ruta_red, red.size)
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--en-juego":
         lamina_en_juego(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 2400)
+    elif len(sys.argv) > 1 and sys.argv[1] == "--bola-rayo":
+        lamina_bola_rayo(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 1600)
     elif len(sys.argv) > 1 and sys.argv[1] == "--hielo-rayo":
         lamina_hielo_rayo(sys.argv[2], sys.argv[3], int(sys.argv[4]) if len(sys.argv) > 4 else 1600)
     else:

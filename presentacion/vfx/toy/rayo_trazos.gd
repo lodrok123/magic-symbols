@@ -10,6 +10,7 @@ const TEX: String = "res://assets/vfx/lelu_noise/"
 const SH_TRAZO: String = DIR + "rayo_trazo.gdshader"                         ## capa ADITIVA: hilo blanco y halo azul
 const SH_TRAZO_CUERPO: String = DIR + "rayo_trazo_cuerpo.gdshader"           ## capa de MEZCLA NORMAL (debajo): el cuerpo amarillo
 const SH_DESTELLO: String = DIR + "rayo_destello.gdshader"
+const SH_BOLA: String = DIR + "rayo_bola.gdshader"                           ## cuerpo esférico de la bola (mezcla normal, fresnel)
 const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 
 
@@ -55,6 +56,21 @@ static func crear_trazos(nombre: String, n: int, prioridad: int = 1) -> MultiMes
 
 static func crear_destellos(nombre: String, n: int, prioridad: int = 2) -> MultiMeshInstance3D:
 	return _crear_mm(nombre, n, SH_DESTELLO, {"instancias": 1.0}, prioridad)
+
+
+## La ESFERA de la bola de rayo (radio 1: se escala con los semiejes): núcleo blanco-amarillo con fresnel, en mezcla normal (rayo_bola.gdshader). Un MeshInstance3D, no cuenta como partícula.
+static func crear_esfera(nombre: String, prioridad: int = 0) -> MeshInstance3D:
+	var sm: SphereMesh = SphereMesh.new()
+	sm.radius = 1.0
+	sm.height = 2.0
+	sm.radial_segments = 28
+	sm.rings = 14
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = nombre
+	mi.mesh = sm
+	mi.material_override = material(SH_BOLA, {}, prioridad)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
 
 
 static func ocultar(mm: MultiMesh, i: int) -> void:

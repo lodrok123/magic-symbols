@@ -10,6 +10,9 @@ extends SceneTree
 ##   godot --path . --script res://herramientas/captura_fuego_parametrico.gd -- <carpeta> hielo_rayo
 ##       (B1, 2/11/2026) las cinco figuras de HieloToy y de RayoToy con la cámara «cerca» del lab (tamaño de la prueba 3) y tres fotogramas del ciclo de cada uno (hielo: pilar que crece / vive / se rompe;
 ##       rayo: muro que nace / vive / muere, a cámara lenta: Engine.time_scale 0,1 porque el rayo nace en 0,06 s), para herramientas/lamina_vfx.py --hielo-rayo
+##   godot --path . --script res://herramientas/captura_fuego_parametrico.gd -- <carpeta> bola_rayo rayo [antes]
+##       (B1b, 3/11/2026) la BOLA de rayo en 4 situaciones para herramientas/lamina_vfx.py --bola-rayo: quieta, carga (3 momentos), vuelo (cámara lateral y cámara del juego) y muerte (3 momentos, a cámara lenta).
+##       Con `antes` y la copia de B1 en presentacion/vfx/toy/_antes_tmp/rayo_toy_b1.gd (class_name RayoToyB1; se rehace con `git show 6afb9b2d:presentacion/vfx/toy/rayo_toy.gd`) saca también la bola de B1 (br_antes_*).
 ##   Un tercer argumento opcional, el ELEMENTO (fuego, agua, hielo o rayo), vale para los modos «celdas» y «tonos»: lo mismo con la clase de ese elemento (las escenas validadas solo existen para el fuego).
 ## Las celdas no se guardan en el repositorio (pesan); se rehacen con este script.
 
@@ -76,7 +79,12 @@ func _correr() -> void:
 	_lab = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_lab)
 	_lab.call("poner_elemento", elem)
-	if que == "hielo_rayo":
+	if que == "bola_rayo":
+		root.get_window().size = TAM_HR
+		_lab.set("_panel_visible", false)
+		await _seg(0.5)
+		await _bola_rayo()
+	elif que == "hielo_rayo":
 		root.get_window().size = TAM_HR
 		_lab.set("_panel_visible", false)
 		await _seg(0.5)
@@ -333,4 +341,148 @@ func _hielo_rayo() -> void:
 	_lab.call("limpiar")
 	var f: FileAccess = FileAccess.open(_dir.path_join("celdas_hr.json"), FileAccess.WRITE)
 	f.store_string(JSON.stringify(celdas, "\t"))
+	f.close()
+
+
+# ---------------------------------------------------------------- bola de rayo (B1b, 3/11/2026) ----------------------------------------------------------------
+
+const BR_X0: float = 4.5
+const BR_VEL: float = 8.0
+const BR_T_FOTO: float = 0.56
+
+
+func _br_camara(desde: Vector3, mira: Vector3, fov: float = 45.0) -> void:
+	_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	_cam.fov = fov
+	_cam.global_position = desde
+	_cam.look_at(mira, Vector3.UP)
+
+
+## Cámara del juego: ortogonal, tamaño 6 y 30° de elevación (TAM_CAMARA_JUEGO y ELEVACION_JUEGO del lab), centrada en `foco`.
+func _br_camara_juego(foco: Vector3) -> void:
+	_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	_cam.size = 6.0
+	_cam.global_position = foco + Vector3(0, sin(deg_to_rad(30.0)), cos(deg_to_rad(30.0))) * 20.0
+	_cam.look_at(foco, Vector3.UP)
+
+
+## Espera a que `aparicion` llegue a 1 (la animación «nacer»): la primera vez, la compilación de los shaders se come los primeros fotogramas.
+func _br_listo(e: Node3D) -> void:
+	for k in 240:
+		if float(e.get("aparicion")) >= 0.999:
+			break
+		await process_frame
+
+
+func _br_nueva(antes: bool) -> Node3D:
+	var e: Node3D = null
+	if antes:
+		var sc: GDScript = load("res://presentacion/vfx/toy/_antes_tmp/rayo_toy_b1.gd") as GDScript
+		e = sc.new() as Node3D
+	else:
+		e = RayoToy.new()
+	_lab.add_child(e)
+	return e
+
+
+func _bola_rayo() -> void:
+	var a: PackedStringArray = OS.get_cmdline_user_args()
+	var con_antes: bool = a.size() > 3 and a[3] == "antes" and ResourceLoader.exists("res://presentacion/vfx/toy/_antes_tmp/rayo_toy_b1.gd")
+	_lab.call("limpiar")
+	(_lab.get("_pj") as Node3D).visible = false
+	for n in _lab.get_children():
+		if String(n.name).begins_with("Cubo"):
+			(n as Node3D).visible = false
+	_cam = Camera3D.new()
+	_lab.add_child(_cam)
+	_cam.make_current()
+	var celdas: Array = []
+	var bola: Vector3 = Vector3(0, 1.0, 0)
+	for antes in ([true, false] if con_antes else [false]):
+		var pre: String = "antes" if antes else "despues"
+		# 1. quieta: cámara cerca (dos instantes) y cámara del juego
+		var e: Node3D = _br_nueva(antes)
+		e.call("definir", 0, 0.4, 0.4, 0.4, false)
+		e.position = bola
+		e.call("lanzar", -1.0)
+		await _seg(0.8)
+		await _br_listo(e)
+		_br_camara(Vector3(0.9, 1.3, 1.6), bola)
+		await _foto(_dir.path_join("br_%s_quieta_a.png" % pre), e, true)
+		if not antes:
+			await _seg(0.37)
+			await _foto(_dir.path_join("br_despues_quieta_b.png"), e, true)
+		_br_camara_juego(bola)
+		await _foto(_dir.path_join("br_%s_quieta_juego.png" % pre), e, true)
+		e.queue_free()
+		await _seg(0.2)
+		print("br quieta " + pre)
+		# 2. vuelo: la bola pasa a 8 m/s hacia -X; se fotografía al llegar al centro de la cámara (lateral y juego), congelada en ese punto
+		var v: Node3D = _br_nueva(antes)
+		v.call("definir", 0, 0.4, 0.4, 0.4, true)
+		v.position = Vector3(BR_X0, 1.0, 0)
+		v.look_at(v.position + Vector3(-1, 0, 0), Vector3.UP)
+		v.call("lanzar", -1.0)
+		var ms0: int = Time.get_ticks_msec()
+		var t: float = 0.0
+		while t < BR_T_FOTO:
+			t = float(Time.get_ticks_msec() - ms0) / 1000.0
+			v.position.x = BR_X0 - BR_VEL * minf(t, BR_T_FOTO)
+			await process_frame
+		_br_camara(Vector3(v.position.x + 0.8, 1.15, 3.7), Vector3(v.position.x + 0.8, 1.0, 0))
+		await _foto(_dir.path_join("br_%s_vuelo_lateral.png" % pre), v, true)
+		_br_camara_juego(Vector3(v.position.x + 0.8, 0.9, 0))
+		await _foto(_dir.path_join("br_%s_vuelo_juego.png" % pre), v, true)
+		v.queue_free()
+		await _seg(0.3)
+		print("br vuelo " + pre)
+	celdas.append({"id": "quieta", "fila": 0})
+	# 3. carga: la bola se forma en la mano (chispas que convergen), tres momentos
+	var c: RayoToy = RayoToy.new()
+	_lab.add_child(c)
+	c.position = bola
+	c.empezar_carga(1.4, 0.4)
+	var objetivos: Array = [0.22, 0.5, 0.95]
+	for k in objetivos.size():
+		var n: int = 0
+		while c.progreso_carga() < float(objetivos[k]) and n < 600:
+			await process_frame
+			n += 1
+		_br_camara(Vector3(1.1, 1.35, 2.3), Vector3(0, 0.85, 0.1))
+		await _foto(_dir.path_join("br_despues_carga_%d.png" % k), c, true)
+		print("br carga %d  progreso %.2f escala %.2f" % [k, c.progreso_carga(), c.escala_carga()])
+		if k == 2:
+			_br_camara_juego(Vector3(0, 0.9, 0))
+			await _foto(_dir.path_join("br_despues_carga_juego.png"), c, true)
+	c.queue_free()
+	await _seg(0.4)
+	# 4. muerte: a cámara lenta (el rayo muere en 0,15 s); tres momentos del `corte`
+	var m: RayoToy = RayoToy.new()
+	_lab.add_child(m)
+	m.definir(0, 0.4, 0.4, 0.4, false)
+	m.position = bola
+	m.lanzar(-1.0)
+	await _seg(0.6)
+	Engine.time_scale = 0.1
+	m.call("morir")
+	var cortes: Array = [0.2, 0.45, 0.75]
+	for k in cortes.size():
+		var n2: int = 0
+		while is_instance_valid(m) and float(m.get("corte")) < float(cortes[k]) and n2 < 400:
+			await process_frame
+			n2 += 1
+		if not is_instance_valid(m):
+			break
+		_br_camara(Vector3(0.9, 1.3, 1.6), bola)
+		await RenderingServer.frame_post_draw
+		root.get_viewport().get_texture().get_image().save_png(_dir.path_join("br_despues_muerte_%d.png" % k))
+		print("br muerte %d  corte %.2f" % [k, float(m.get("corte"))])
+		if k == 1:
+			_br_camara_juego(bola)
+			await RenderingServer.frame_post_draw
+			root.get_viewport().get_texture().get_image().save_png(_dir.path_join("br_despues_muerte_juego.png"))
+	Engine.time_scale = 1.0
+	_lab.call("limpiar")
+	var f: FileAccess = FileAccess.open(_dir.path_join("celdas_br.json"), FileAccess.WRITE)
+	f.store_string(JSON.stringify({"antes": con_antes, "objetivos_carga": objetivos, "cortes": cortes}, "\t"))
 	f.close()

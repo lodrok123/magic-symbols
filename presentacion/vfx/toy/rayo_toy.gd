@@ -14,7 +14,8 @@ extends EfectoToy
 ##   · MORIR (`corte` 0 → 1, 0,18 s; la bola, 0,15 s): se redibuja cada fotograma mientras se apaga (crepita) y se acaba.
 ## PALETA: la del rayo del juego, centralizada en rayo_paleta.gd (con su procedencia).
 ##
-## FIGURAS: BOLA = núcleo blanco con halo y seis descargas cortas que saltan de él; en vuelo, un zigzag quebrado detrás. MURO = una VALLA DE DESCARGAS entre postes (cada poste es un trazo vertical con su
+## FIGURAS: BOLA = ESFERA DE ENERGÍA (ronda de la bola, 3/11/2026): cuerpo esférico blanco-amarillo con fresnel y halo azul, seis arcos que recorren su superficie y tres que saltan y vuelven; en vuelo, la cabeza con su destello,
+## una cola quebrada corta pegada a ella y chispas que se quedan atrás y caen; al morir se contrae y revienta en arcos y chispas. MURO = una VALLA DE DESCARGAS entre postes (cada poste es un trazo vertical con su
 ## destello, y entre postes saltan dos arcos). PILAR = una COLUMNA DE DESCARGA (de dos a cuatro rayos entrelazados que caen del cielo, con destello arriba y abajo). BARRERA = un ARO CHISPEANTE (tres aros quebrados a
 ## distintas alturas sobre el elipsoide y cuatro arcos que los unen). HAZ = un ARCO entre la mano y el objetivo, con una segunda línea más fina y tres ramas.
 ##
@@ -54,7 +55,12 @@ const T_MORIR: float = 0.18             ## y MUERE en menos de 0,2 s
 const T_NACER_BOLA: float = 0.06
 const T_MORIR_BOLA: float = 0.15
 const T_REDIBUJO: float = 0.05          ## s entre redibujos de la línea quebrada (3 fotogramas a 60 Hz)
-const N_TRAZOS_BOLA: int = 48           ## tramos que caben en el MultiMesh de cada figura
+const N_TRAZOS_BOLA: int = 84           ## tramos que caben en el MultiMesh de cada figura (la bola: meridianos, saltos, cola o reventón)
+const N_FIJOS_BOLA: int = 24            ## BOLA: destellos 0..23 se redibujan cada 0,05 s; del 24 al 39, las chispas que caen detrás en vuelo (cada fotograma)
+const N_CHISPAS_VUELO: int = 16
+const PERIODO_CHISPA: float = 0.035     ## s entre chispa y chispa que deja la bola en vuelo
+const COLA_BOLA: float = 2.8            ## largo de la cola en vuelo, en radios (pegada a la cabeza: ≤ 2 diámetros con las ramas)
+const NUCLEO_MIN: float = 0.6           ## el núcleo de la bola nunca baja de esta intensidad
 const N_TRAZOS_HAZ: int = 64
 const N_TRAZOS_PILAR: int = 96
 const N_TRAZOS_MURO: int = 140
@@ -109,10 +115,16 @@ var _ult_pos: Vector3 = Vector3.ZERO
 var _tiene_ult: bool = false
 var _vel_mundo: Vector3 = Vector3.ZERO
 var _cola_f: float = 0.0
+var _esfera: MeshInstance3D = null          ## BOLA: el cuerpo esférico (rayo_bola.gdshader)
+var _halo_bola: MultiMeshInstance3D = null  ## BOLA: el halo azul redondo, detrás de la esfera
+var _nuc: float = 1.0                       ## BOLA: intensidad del núcleo en el último redibujo (0,6 a 1 mientras vive)
+var _chispas_v: Array = []                  ## BOLA en vuelo: chispas que se quedan atrás [{p (mundo), v, edad, vida, tam}]
+var _t_chispa: float = 0.0
 var _trazos: MultiMeshInstance3D = null     ## los tramos de la línea quebrada
 var _brillos: MultiMeshInstance3D = null    ## destellos: núcleo de la bola, puntas, postes y chispas
 var _lista: Array = []                      ## los tramos del último redibujo [{a, b, ancho, alfa, halo, parpadeo, fase}] (pruebas)
 var _brillos_n: int = 0                     ## destellos puestos en el último redibujo (pruebas)
+var _bril_lista: Array = []                 ## los destellos del último redibujo [{pos, tam, alfa, estrella}] (pruebas)
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _t_red: float = 0.0
 var _n_red: int = 0                         ## cuántos redibujos lleva (pruebas)
@@ -536,6 +548,14 @@ func _construir() -> void:
 			cap = N_TRAZOS_MURO
 		Figura.BARRERA:
 			cap = N_TRAZOS_BARRERA
+	_esfera = null
+	_halo_bola = null
+	_chispas_v = []
+	if figura == Figura.BOLA:
+		_halo_bola = RayoTrazos.crear_destellos("Halo", 1, -1)          # detrás de la esfera
+		cuerpo.add_child(_halo_bola)
+		_esfera = RayoTrazos.crear_esfera("Esfera", 0)
+		cuerpo.add_child(_esfera)
 	_trazos = RayoTrazos.crear_trazos("Trazos", cap)
 	cuerpo.add_child(_trazos)
 	_brillos = RayoTrazos.crear_destellos("Brillos", N_BRILLOS)
@@ -572,7 +592,9 @@ func _anim_si_hace_falta() -> void:
 	for nom in ["nacer", "vivir", "morir"]:
 		var an: Animation = Animation.new()
 		var pista: int = an.add_track(Animation.TYPE_VALUE)
-		an.track_set_path(pista, NodePath(".:crece" if (es_vol and nom == "nacer") else (".:corte" if es_vol else ".:aparicion")))
+		# la bola nace con `aparicion` (0 → 1) y MUERE con `corte` (0 → 1: la esfera se contrae y revienta); las figuras de volumen, con `crece` y `corte`
+		var prop: String = ".:crece" if (es_vol and nom == "nacer") else (".:corte" if (es_vol or nom == "morir") else ".:aparicion")
+		an.track_set_path(pista, NodePath(prop))
 		match nom:
 			"nacer":
 				an.length = nacer
@@ -584,8 +606,8 @@ func _anim_si_hace_falta() -> void:
 				an.track_insert_key(pista, 0.0, 0.0 if es_vol else 1.0)
 			"morir":
 				an.length = morir_s
-				an.track_insert_key(pista, 0.0, 0.0 if es_vol else 1.0)
-				an.track_insert_key(pista, morir_s, 1.0 if es_vol else 0.0)
+				an.track_insert_key(pista, 0.0, 0.0)
+				an.track_insert_key(pista, morir_s, 1.0)
 		an.track_set_interpolation_type(pista, Animation.INTERPOLATION_LINEAR)
 		lib.add_animation(nom, an)
 	if ap.has_animation_library(""):
@@ -629,6 +651,7 @@ func _process(delta: float) -> void:
 	var cambia: bool = absf(crece - _cr_ult) > 0.02 or absf(corte - _co_ult) > 0.02
 	if _t_red >= T_REDIBUJO or cambia:
 		_redibujar(false)
+	_avanzar_chispas_vuelo(delta)
 	_actualizar_luz()
 
 
@@ -686,15 +709,72 @@ func _redibujar(forzar: bool) -> void:
 	for s in lista:
 		s["ancho"] = float(s["ancho"]) * ancho
 	_brillos_n = bril.size()
+	_bril_lista = bril
 	RayoTrazos.volcar(_trazos.multimesh, lista)
 	_lista = lista
 	var mb: MultiMesh = _brillos.multimesh
-	for i in N_BRILLOS:
+	for i in (N_FIJOS_BOLA if figura == Figura.BOLA else N_BRILLOS):       # en la bola, del 24 en adelante son las chispas que caen detrás (cada fotograma)
 		if i < bril.size():
 			var b: Dictionary = bril[i]
 			RayoTrazos.poner_destello(mb, i, b["pos"], float(b["tam"]), float(b["alfa"]) * brillo_chispas(), float(b["estrella"]), _rng.randf() * TAU, float(i) * 0.17)
 		else:
 			RayoTrazos.ocultar(mb, i)
+
+
+## BOLA en vuelo: chispas que salen de la cabeza y SE QUEDAN ATRÁS (en coordenadas del mundo: la bola se aleja) y caen con la gravedad hasta apagarse. Se mueven cada fotograma (no a 20 Hz).
+func _avanzar_chispas_vuelo(delta: float) -> void:
+	if figura != Figura.BOLA or _brillos == null or not is_instance_valid(_brillos) or not is_inside_tree():
+		return
+	var mb: MultiMesh = _brillos.multimesh
+	var vuela: bool = proyectil and _est != EstadoCarga.APAGANDO and corte < 0.05 and _cola_f > 0.3
+	var r: float = maxf(semieje_x, maxf(semieje_y, semieje_z))
+	if vuela:
+		_t_chispa += delta
+		if _t_chispa >= PERIODO_CHISPA:
+			_t_chispa = 0.0
+			if _chispas_v.size() < N_CHISPAS_VUELO:
+				var d: Vector3 = _dir_azar_libre()
+				_chispas_v.append({"p": global_transform * (d * r * 0.8 + Vector3(0, 0, r * 0.4)), "v": d * (0.6 + randf() * 0.8) + Vector3(0, 0.4, 0), "edad": 0.0, "vida": randf_range(0.25, 0.45), "tam": randf_range(0.5, 0.85) * r})
+	var piso: float = global_position.y - altura_suelo
+	var vivas: Array = []
+	for c in _chispas_v:
+		var s: Dictionary = c
+		s["edad"] = float(s["edad"]) + delta
+		var v: Vector3 = s["v"]
+		v.y -= 9.8 * delta
+		s["v"] = v
+		s["p"] = (s["p"] as Vector3) + v * delta
+		if float(s["edad"]) < float(s["vida"]) and (s["p"] as Vector3).y > piso:
+			vivas.append(s)
+	_chispas_v = vivas
+	for i in N_CHISPAS_VUELO:
+		var slot: int = N_FIJOS_BOLA + i
+		if i < _chispas_v.size():
+			var q: Dictionary = _chispas_v[i]
+			var u: float = float(q["edad"]) / float(q["vida"])
+			RayoTrazos.poner_destello(mb, slot, _brillos.to_local(q["p"]), float(q["tam"]) * (1.0 - 0.45 * u), 0.9 * (1.0 - smoothstep(0.5, 1.0, u)) * brillo_chispas() * clampf(_fl + 0.3, 0.0, 1.0), 0.9, float(i) * 1.7 + u * 6.0, float(i) * 0.31)
+		else:
+			RayoTrazos.ocultar(mb, slot)
+
+
+func _dir_azar_libre() -> Vector3:
+	var v: Vector3 = Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1))
+	return v.normalized() if v.length() > 0.05 else Vector3.UP
+
+
+## Chispas de vuelo vivas ahora (pruebas): [{p (mundo), v, edad, vida}].
+func chispas_vuelo() -> Array:
+	return _chispas_v
+
+
+## Los destellos del último redibujo (pruebas): [{pos, tam, alfa, estrella}].
+func brillos_actuales() -> Array:
+	return _bril_lista
+
+
+## Intensidad actual del núcleo de la bola (pruebas): 0,6 a 1 mientras vive.
+func nucleo_actual() -> float:
+	return _nuc
 
 
 ## Cuánto pesan las chispas y los destellos (el mando `chispas`).
@@ -707,27 +787,101 @@ func _grosor(k: float) -> float:
 	return 0.12 + 0.11 * clampf(k, 0.0, 3.0)
 
 
+## Dirección al azar (nunca nula).
+func _dir_azar() -> Vector3:
+	var v: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1))
+	return v.normalized() if v.length() > 0.05 else Vector3.UP
+
+
+## Punto del elipsoide de la bola (semiejes) en la dirección `d` (unitaria), a `k` veces su superficie.
+func _sup(d: Vector3, k: float) -> Vector3:
+	return Vector3(d.x * semieje_x, d.y * semieje_y, d.z * semieje_z) * k
+
+
+## Añade a `lista` los tramos de `pts` con el ancho y la opacidad yendo de una punta a la otra (para la cola: gruesa en la cabeza y fina al final).
+func _afilado(lista: Array, pts: PackedVector3Array, ancho0: float, ancho1: float, alfa0: float, alfa1: float, halo: float, parpadeo: float, fase: float) -> void:
+	var n: int = pts.size() - 1
+	for i in n:
+		var u: float = float(i) / float(maxi(n - 1, 1))
+		lista.append({"a": pts[i], "b": pts[i + 1], "ancho": lerpf(ancho0, ancho1, u), "alfa": lerpf(alfa0, alfa1, u), "halo": halo, "parpadeo": parpadeo, "fase": fase + float(i) * 0.37})
+
+
+## BOLA = ESFERA DE ENERGÍA QUE CREPITA. Un cuerpo esférico (rayo_bola.gdshader: núcleo blanco-amarillo con fresnel, mezcla normal) con un halo azul breve detrás; seis ARCOS que recorren su SUPERFICIE
+## (meridianos quebrados) y tres que SALTAN hacia fuera y vuelven; todo se redibuja cada 0,05 s. El núcleo parpadea pero nunca baja de NUCLEO_MIN. En vuelo: la cabeza delante con su destello, una cola quebrada
+## corta PEGADA a ella y las chispas que caen detrás (`_avanzar_chispas_vuelo`). Al morir (`corte` 0 → 1, 0,15 s): la esfera se contrae y revienta en ocho arcos cortos y chispas.
 func _gen_bola(lista: Array, bril: Array, env: float) -> void:
-	var r: float = maxf(semieje_x, semieje_z)
+	var rx: float = semieje_x
+	var ry: float = semieje_y
+	var rz: float = semieje_z
+	var r: float = maxf(rx, maxf(ry, rz))
 	var g: float = _grosor(r / 0.4 * 0.5)
+	var co: float = clampf(corte, 0.0, 1.0)
+	var ub: float = clampf((co - 0.25) / 0.75, 0.0, 1.0)                              # 0 → 1: el reventón
+	var kr: float = lerpf(1.0, 0.3, smoothstep(0.0, 0.6, co))                         # la esfera se contrae
+	var vuelo: float = smoothstep(0.0, 1.0, _cola_f) if proyectil else 0.0
 	_pos_luz = Vector3.ZERO
-	bril.append({"pos": Vector3.ZERO, "tam": r * 3.0, "alfa": 0.3 * env, "estrella": 0.0})            # halo
-	bril.append({"pos": Vector3.ZERO, "tam": r * 1.5, "alfa": 0.95 * env, "estrella": 1.0})           # núcleo
-	for k in 6:
-		var d: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized()
-		var pts: PackedVector3Array = RayoTrazos.camino(d * r * 0.2, d * r * _rng.randf_range(1.1, 1.8), 3, 0.3 * r, _rng)
-		RayoTrazos.trazar(lista, pts, g * 0.8, 0.95 * env, 1.0, 1.0, 0.5, float(k))
+	_nuc = (NUCLEO_MIN + (1.0 - NUCLEO_MIN) * smoothstep(0.2, 1.0, _fl)) * (1.0 - smoothstep(0.5, 0.75, co))
+	if _esfera != null and is_instance_valid(_esfera):
+		_esfera.visible = _nuc > 0.01
+		_esfera.scale = Vector3(rx, ry, rz * (1.0 + 0.14 * vuelo)) * kr
+		var ms: ShaderMaterial = _esfera.material_override as ShaderMaterial
+		if ms != null:
+			ms.set_shader_parameter("intensidad", _nuc)
+			ms.set_shader_parameter("agitacion", 0.45 + 0.4 * vuelo)
+	if _halo_bola != null and is_instance_valid(_halo_bola):
+		RayoTrazos.poner_destello(_halo_bola.multimesh, 0, Vector3.ZERO, r * (3.0 + 0.6 * vuelo) * lerpf(1.0, 0.5, co), (0.26 + 0.1 * vuelo) * _nuc * pow(1.0 - co, 1.5), 0.0, 0.0, 0.0)
 	if proyectil:
-		# zigzag detrás (+Z): dos líneas que se alejan de la bola y se afinan
-		var cola: float = r * 5.5 * smoothstep(0.0, 1.0, _cola_f)
-		for k2 in 2:
-			var lado: Vector3 = Vector3(float(k2) * 0.35 - 0.17, 0.0, 0.0) * r
-			var pts2: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0, r * 0.4) + lado, Vector3(0, 0, r * 0.4 + cola) + lado, 9, 0.38 * r, _rng)
-			RayoTrazos.trazar(lista, pts2, g * (0.8 - 0.25 * float(k2)), 0.8 * env, 1.0, 0.8, 0.7, 3.0 + float(k2))
-			if k2 == 0:
-				RayoTrazos.ramas(lista, pts2, 2, r * 1.2, g * 0.5, 0.7 * env, 1.0, _rng, 2)
-		for k3 in 3:
-			bril.append({"pos": Vector3(_rng.randf_range(-0.4, 0.4) * r, _rng.randf_range(-0.4, 0.4) * r, r * (1.0 + _rng.randf() * 4.0 * _cola_f)), "tam": r * 0.5, "alfa": 0.8 * env, "estrella": 0.9})
+		# destello de cabeza: solo en vuelo
+		bril.append({"pos": Vector3.ZERO, "tam": r * 2.7 * kr, "alfa": 0.85 * env * vuelo, "estrella": 0.95})
+	var vivo: float = 1.0 - ub
+	if co < 0.9:
+		# SEIS arcos que recorren la superficie (meridianos quebrados, de un lado a otro)
+		for k in 6:
+			var d0: Vector3 = _dir_azar()
+			var eje: Vector3 = d0.cross(_dir_azar())
+			eje = eje.normalized() if eje.length() > 0.05 else Vector3.RIGHT
+			var span: float = _rng.randf_range(0.9, 2.1)
+			var pts: PackedVector3Array = PackedVector3Array()
+			for i in 6:
+				var u: float = float(i) / 5.0
+				var p: Vector3 = _sup(d0.rotated(eje, span * u), 1.06 * kr + _rng.randf_range(-0.07, 0.09))
+				pts.append(p + eje * _rng.randf_range(-1.0, 1.0) * 0.1 * r * kr)
+			RayoTrazos.trazar(lista, pts, g * 0.42, 0.98 * env * vivo, 1.0, 1.0, 0.5, float(k))
+		# TRES que saltan hacia fuera y vuelven a la superficie
+		if ub <= 0.0:
+			for k2 in 3:
+				var da: Vector3 = _dir_azar()
+				var eje2: Vector3 = da.cross(_dir_azar())
+				eje2 = eje2.normalized() if eje2.length() > 0.05 else Vector3.RIGHT
+				var db: Vector3 = da.rotated(eje2, _rng.randf_range(0.8, 1.5))
+				var alto: float = r * _rng.randf_range(0.55, 1.0)
+				var pts2: PackedVector3Array = PackedVector3Array()
+				for i2 in 6:
+					var u2: float = float(i2) / 5.0
+					var dd: Vector3 = da.slerp(db, u2)
+					var lev: float = pow(sin(PI * u2), 0.8)
+					var perp: Vector3 = dd.cross(eje2).normalized()
+					pts2.append(_sup(dd, 1.02) + dd * alto * lev + perp * _rng.randf_range(-1.0, 1.0) * 0.16 * r * lev)
+				RayoTrazos.trazar(lista, pts2, g * 0.4, 0.95 * env, 1.0, 1.0, 0.6, 7.0 + float(k2))
+				bril.append({"pos": pts2[2], "tam": r * 0.5, "alfa": 0.7 * env, "estrella": 0.9})
+	if proyectil and co < 0.5:
+		# cola quebrada corta, PEGADA a la cabeza (nace dentro de la esfera, a media altura de ella) y que se afina; un hilo más fino y dos ramitas
+		var largo: float = r * COLA_BOLA * vuelo
+		var z0: float = r * 0.5
+		var pc: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0, z0), Vector3(0, 0, z0 + largo), 7, 0.3 * r, _rng)
+		_afilado(lista, pc, g * 0.95, g * 0.28, 0.98 * env, 0.6 * env, 1.0, 0.7, 3.0)
+		var pc2: PackedVector3Array = RayoTrazos.camino(Vector3(0.25 * r, 0.12 * r, z0), Vector3(-0.2 * r, 0.1 * r, z0 + largo * 0.65), 5, 0.26 * r, _rng)
+		_afilado(lista, pc2, g * 0.45, g * 0.15, 0.8 * env, 0.4 * env, 0.8, 0.7, 4.0)
+		RayoTrazos.ramas(lista, pc, 2, r * 0.6, g * 0.4, 0.65 * env, 1.0, _rng, 2)
+	if ub > 0.0:
+		# REVENTÓN: ocho arcos cortos que salen de la esfera que se contrae, y chispas que se alejan
+		for k3 in 8:
+			var d3: Vector3 = _dir_azar()
+			var p0: Vector3 = _sup(d3, 0.8 * kr)
+			var largo3: float = r * (0.5 + 1.7 * ub) * _rng.randf_range(0.7, 1.1)
+			var pts3: PackedVector3Array = RayoTrazos.camino(p0, p0 + d3 * largo3, 3, 0.2 * r, _rng)
+			RayoTrazos.trazar(lista, pts3, g * 0.5, 0.95 * _fl * vivo, clampf(ub * 4.0, 0.0, 1.0), 1.0, 0.5, 11.0 + float(k3))
+			bril.append({"pos": d3 * r * (0.5 + 2.4 * ub), "tam": r * 0.38 * (1.0 - 0.5 * ub), "alfa": 0.95 * vivo, "estrella": 0.9})
 
 
 ## PILAR = COLUMNA DE DESCARGA: de 2 a 4 rayos entrelazados que CAEN de la cima (`crece` = hasta dónde han llegado), cada uno con dos ramas; destello arriba y en el suelo.

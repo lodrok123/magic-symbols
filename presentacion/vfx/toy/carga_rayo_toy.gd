@@ -156,8 +156,10 @@ func _redibujar_arcos(p: float) -> void:
 			if _rng.randf() > lerpf(0.5, 0.95, p):          # al principio saltan menos arcos
 				continue
 			var d: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.6, 1.0), _rng.randf_range(-1, 1)).normalized()
-			var largo: float = _r_final * _rng.randf_range(1.2, 2.2) * lerpf(0.8, 1.2, p)
-			var pts: PackedVector3Array = RayoTrazos.camino(d * _r_final * 0.5, d * largo, SEG_ARCO, _r_final * 0.5, _rng)
+			# los arcos salen de la SUPERFICIE de la esfera que se está formando (no de su centro) y saltan hacia fuera
+			var r_bola: float = _r_final * clampf(_esc, 0.05, 1.3)
+			var largo: float = r_bola + _r_final * _rng.randf_range(0.7, 1.5) * lerpf(0.8, 1.2, p)
+			var pts: PackedVector3Array = RayoTrazos.camino(d * r_bola * 0.95, d * largo, SEG_ARCO, _r_final * 0.4, _rng)
 			RayoTrazos.trazar(_lista_arcos, pts, 0.07 * sqrt(_r_final / 0.4) + 0.02, 0.9 * vis, 1.0, 1.0, 0.6, float(j))
 	RayoTrazos.volcar(_arcos.multimesh, _lista_arcos)
 

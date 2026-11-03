@@ -14,13 +14,15 @@ extends SceneTree
 ##   8. IMPACTOS (ImpactoRayoToy GOLPE, FIN, REBOTE, AREA): chispas en el hemisferio de la normal, se alejan y caen; descargas que se redibujan; el AREA son cinco rayos verticales escalonados; duran < 1 s y se liberan solos
 ##   9. API de RayoToy: impactar_en / rebotar / terminar_sin_choque / finalizar; describir y desde_hechizo = los del fuego (misma casilla y misma escala)
 ##  10. PRESUPUESTO en todo el ciclo y en los tamaños extremos: ≤ 1 luz (la del rayo, justificada: el destello que ilumina el suelo), 0 GPUParticles3D, ≤ 300 partículas (instancias de MultiMesh)
+##  10b. BOLA (ronda de la bola, 3/11/2026): cuerpo ESFÉRICO (MeshInstance con la esfera del tamaño de los semiejes, en blend_mix); núcleo que parpadea pero NUNCA baja de 0,6; meridianos que recorren la SUPERFICIE y descargas que saltan y vuelven;
+##      en vuelo, cola ≤ 2 diámetros pegada a la cabeza, destello de cabeza SOLO en vuelo y chispas que se quedan atrás y caen; al morir la esfera se contrae y revienta en arcos cortos y chispas; ≤ 300 instancias
 ##  11. LAB: Z llega al rayo y G / B / N / M / R / P / F7 / F9 crean rayo; VfxToyJuego crea RayoToy y `_sin_luz` apaga su luz
 ## NO comprueba (necesita ventana y GPU): el aspecto ni que los shaders compilen (se ve en la lámina de docs/capturas/comparativa_vfx/godot_toy/hielo_rayo/). Imprime FALLOS: n.
 
 const RayoTrazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")
 const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 const MAX_PARTICULAS: int = 300
-const SHADERS: PackedStringArray = ["rayo_toy.gdshaderinc", "rayo_trazo.gdshaderinc", "rayo_trazo.gdshader", "rayo_trazo_cuerpo.gdshader", "rayo_destello.gdshader"]
+const SHADERS: PackedStringArray = ["rayo_toy.gdshaderinc", "rayo_trazo.gdshaderinc", "rayo_trazo.gdshader", "rayo_trazo_cuerpo.gdshader", "rayo_bola.gdshader", "rayo_destello.gdshader"]
 const FIGURAS: Array = [["BOLA", 0, Vector3(0.4, 0.4, 0.4)], ["MURO", 1, Vector3(3.45, 1.5, 0.3)], ["PILAR", 2, Vector3(0.5, 4.0, 0.5)], ["BARRERA", 3, Vector3(1.5, 1.5, 1.5)], ["HAZ", 4, Vector3(1.5, 0.5, 0.15)]]
 
 var _fallos: int = 0
@@ -60,6 +62,7 @@ func _correr() -> void:
 	await _impactos()
 	await _api()
 	await _extremos()
+	await _bola()
 	await _lab()
 	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos, %d de cuerpo (mezcla), %d otros" % [_max_luces, _max_gpu, _max_part, _adit, _cuerpo, _no_adit])
 	_ok("presupuesto: ≤ 1 luz, 0 GPUParticles3D, ≤ %d partículas, todo aditivo salvo la capa del cuerpo amarillo" % MAX_PARTICULAS, _max_luces <= 1 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _adit > 0 and _cuerpo > 0 and _no_adit == 0)
@@ -93,8 +96,8 @@ func _medir() -> void:
 			while m != null:
 				if m.shader != null and m.shader.code.find("blend_add") >= 0:
 					adit += 1
-				elif m.shader != null and m.shader.resource_path.ends_with("rayo_trazo_cuerpo.gdshader"):
-					cuerpo += 1                                  # la única capa que no es aditiva: el cuerpo amarillo
+				elif m.shader != null and (m.shader.resource_path.ends_with("rayo_trazo_cuerpo.gdshader") or m.shader.resource_path.ends_with("rayo_bola.gdshader")):
+					cuerpo += 1                                  # las únicas capas que no son aditivas: el cuerpo amarillo del trazo y la esfera de la bola
 				else:
 					noadit += 1
 				m = m.next_pass as ShaderMaterial
@@ -128,7 +131,7 @@ func _estilo() -> void:
 				cuerpo.append(l)
 		var codigo: String = "\n".join(cuerpo)
 		_ok(s + ": sin EMISSION", codigo.find("EMISSION") < 0)
-		if s == "rayo_trazo_cuerpo.gdshader":
+		if s == "rayo_trazo_cuerpo.gdshader" or s == "rayo_bola.gdshader":
 			_ok(s + ": el CUERPO amarillo va en blend_mix y unshaded (sumar amarillo a un suelo claro da blanco), sin escribir profundidad", codigo.find("blend_mix") >= 0 and codigo.find("blend_add") < 0 and codigo.find("unshaded") >= 0 and codigo.find("depth_draw_never") >= 0)
 		elif s.ends_with(".gdshader"):
 			_ok(s + ": blend_add y unshaded (es luz), sin escribir profundidad", codigo.find("blend_add") >= 0 and codigo.find("unshaded") >= 0 and codigo.find("depth_draw_never") >= 0)
@@ -217,13 +220,13 @@ func _figuras() -> void:
 				var rmax: float = 0.0
 				for sg in e.trazos_actuales():
 					rmax = maxf(rmax, maxf((sg["a"] as Vector3).length(), (sg["b"] as Vector3).length()))
-				_ok("[BOLA] núcleo + seis descargas cortas: alcance máx %.2f m (≤ 2,5 radios = %.2f)" % [rmax, 2.5 * s.x], rmax <= 2.5 * s.x and rmax >= 1.0 * s.x)
+				_ok("[BOLA] esfera con arcos envolventes: alcance máx %.2f m (≤ 2,5 radios = %.2f)" % [rmax, 2.5 * s.x], rmax <= 2.5 * s.x and rmax >= 1.0 * s.x)
 				e.definir(0, 0.4, 0.4, 0.4, true)
 				await _esperar(0.5)
 				var zmax: float = 0.0
 				for sg2 in e.trazos_actuales():
 					zmax = maxf(zmax, maxf((sg2["a"] as Vector3).z, (sg2["b"] as Vector3).z))
-				_ok("[BOLA] en vuelo sale un zigzag detrás (+Z hasta %.2f m, ≥ 3 radios)" % zmax, zmax >= 3.0 * s.x)
+				_ok("[BOLA] en vuelo sale una cola detrás (+Z hasta %.2f m: entre 2 radios y 2 diámetros = %.2f)" % [zmax, 4.0 * s.x], zmax >= 2.0 * s.x and zmax <= 4.0 * s.x + 0.001)
 			1:
 				_ok("[MURO] valla entre postes: ancho %.2f de ±%.2f m, alto máx %.2f de %.2f m" % [float(c[1]) - float(c[0]), s.x, c[3], s.y],
 					float(c[0]) >= -s.x * 1.03 and float(c[1]) <= s.x * 1.03 and float(c[1]) - float(c[0]) >= s.x * 1.8 and float(c[3]) <= s.y * 1.25 and float(c[3]) >= s.y * 0.8 and float(c[2]) > -0.001)
@@ -666,6 +669,146 @@ func _extremos() -> void:
 		e.queue_free()
 		await process_frame
 
+
+# ------------------------------------------------------------------ 10b. la bola (ronda de la bola, 3/11/2026) ------------------------------------------------------------------
+
+## Cuántos destellos del último redibujo son una estrella grande en el centro (estrella ≥ 0,9, opacidad ≥ 0,1, tamaño ≥ `tam_min`): el destello de cabeza. (Sin ventana los MultiMesh no guardan datos: se lee la lista del redibujo.)
+func _destellos_de_cabeza(e: RayoToy, tam_min: float) -> int:
+	var n: int = 0
+	for b in e.brillos_actuales():
+		var d: Dictionary = b
+		if float(d["estrella"]) >= 0.9 and float(d["alfa"]) >= 0.1 and float(d["tam"]) >= tam_min and (d["pos"] as Vector3).length() < 0.001:
+			n += 1
+	return n
+
+
+func _bola() -> void:
+	print("== bola: esfera de energía")
+	var e: RayoToy = _nueva()
+	await process_frame
+	e.global_position = Vector3(0, 1, 0)
+	e.definir(RayoToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+	await process_frame
+	e.lanzar(-1.0)
+	await _esperar(0.4)
+	var esf: MeshInstance3D = e.find_child("Esfera", true, false) as MeshInstance3D
+	var ms: ShaderMaterial = esf.material_override as ShaderMaterial if esf != null else null
+	_ok("hay una esfera (SphereMesh) de radio = semiejes (escala %s) en blend_mix" % [str(esf.scale) if esf != null else "-"],
+		esf != null and esf.mesh is SphereMesh and ms != null and ms.shader.code.find("blend_mix") >= 0 and esf.scale.distance_to(Vector3(0.4, 0.4, 0.4)) < 0.01)
+	_ok("hay un halo azul redondo detrás (MultiMesh «Halo», un destello)", e.find_child("Halo", true, false) is MultiMeshInstance3D and (e.find_child("Halo", true, false) as MultiMeshInstance3D).multimesh.instance_count == 1)
+	# núcleo, arcos de superficie y saltos, a lo largo de 3 s (60 redibujos)
+	var nmin: float = 9.0
+	var nmax: float = 0.0
+	var imin: float = 9.0
+	var n_sup_min: int = 9999
+	var n_salto_max: int = 0
+	var nbr: int = 0
+	var t0: int = Time.get_ticks_msec()
+	var ult: int = e.redibujos()
+	while float(Time.get_ticks_msec() - t0) < 3000.0:
+		await process_frame
+		_medir()
+		if e.redibujos() != ult:
+			ult = e.redibujos()
+			nmin = minf(nmin, e.nucleo_actual())
+			nmax = maxf(nmax, e.nucleo_actual())
+			imin = minf(imin, e.intensidad_actual())
+			var en_sup: int = 0
+			var fuera: int = 0
+			for sg in e.trazos_actuales():
+				var ra: float = (sg["a"] as Vector3).length() / 0.4
+				var rb: float = (sg["b"] as Vector3).length() / 0.4
+				if ra > 0.9 and ra < 1.2 and rb > 0.9 and rb < 1.2:
+					en_sup += 1
+				if ra > 1.3 or rb > 1.3:
+					fuera += 1
+			n_sup_min = mini(n_sup_min, en_sup)
+			n_salto_max = maxi(n_salto_max, fuera)
+			nbr += 1
+	_ok("el núcleo parpadea pero NUNCA baja de 0,6 (de %.2f a %.2f en %d redibujos) mientras los arcos sí caen (intensidad mínima %.2f)" % [nmin, nmax, nbr, imin], nmin >= 0.5999 and nmax <= 1.0001 and nmax - nmin > 0.1 and imin < 0.7 and nbr > 40)
+	_ok("meridianos que recorren la SUPERFICIE: ≥ %d tramos a 0,9-1,2 radios en todos los redibujos (mínimo)" % 14, n_sup_min >= 14)
+	_ok("descargas que SALTAN hacia fuera (hasta %d tramos a más de 1,3 radios)" % n_salto_max, n_salto_max >= 3)
+	var sin_cab: int = 0
+	for k in 10:
+		await _esperar(0.06)
+		sin_cab += _destellos_de_cabeza(e, 0.4 * 2.0)
+	_ok("quieta: SIN destello de cabeza (estrella grande en el centro, en 10 muestras: %d)" % sin_cab, sin_cab == 0)
+	# en vuelo
+	e.definir(RayoToy.Figura.BOLA, 0.4, 0.4, 0.4, true)
+	e.look_at(e.global_position + Vector3(0, 0, -1), Vector3.UP)
+	await _esperar(0.3)
+	var con_cab: int = 0
+	for k2 in 10:
+		await _esperar(0.06)
+		con_cab += 1 if _destellos_de_cabeza(e, 0.4 * 2.0) >= 1 else 0
+	_ok("en vuelo: destello de cabeza (estrella grande en el centro en %d de 10 muestras)" % con_cab, con_cab == 10)
+	var zmax: float = 0.0
+	var pegada: bool = false
+	for sg2 in e.trazos_actuales():
+		zmax = maxf(zmax, maxf((sg2["a"] as Vector3).z, (sg2["b"] as Vector3).z))
+		var pa: Vector3 = sg2["a"]
+		if absf(pa.x) < 0.001 and absf(pa.y) < 0.001 and absf(pa.z - 0.2) < 0.001:
+			pegada = true
+	_ok("cola ≤ 2 diámetros: la cola llega a %.2f m de %.2f (2 × diámetro) y nace dentro de la cabeza (z = 0,2 m, a %.2f de su centro)" % [zmax, 4.0 * 0.4, 0.2], zmax <= 4.0 * 0.4 + 0.001 and zmax >= 0.8 and pegada)
+	# chispas que se quedan atrás y caen: la bola avanza a 8 m/s hacia -Z
+	var cuenta_max: int = 0
+	var atras: int = 0
+	var total: int = 0
+	var caen: int = 0
+	var v_tot: int = 0
+	t0 = Time.get_ticks_msec()
+	var z0: float = e.global_position.z
+	while float(Time.get_ticks_msec() - t0) < 700.0:
+		e.global_position.z -= 8.0 * 0.016
+		await process_frame
+		_medir()
+		cuenta_max = maxi(cuenta_max, e.chispas_vuelo().size())
+		for c in e.chispas_vuelo():
+			total += 1
+			var cd: Dictionary = c
+			if (cd["p"] as Vector3).z > e.global_position.z + 0.05:
+				atras += 1
+			v_tot += 1
+			if (cd["v"] as Vector3).y < 0.0:
+				caen += 1
+	_ok("chispas de vuelo: hasta %d a la vez (≤ 16); %d de %d quedan DETRÁS de la bola (z mayor que la de la cabeza)" % [cuenta_max, atras, total], cuenta_max >= 3 and cuenta_max <= RayoToy.N_CHISPAS_VUELO and total > 0 and float(atras) / float(total) > 0.7)
+	_ok("…y CAEN (velocidad vertical negativa en %d de %d)" % [caen, v_tot], v_tot > 0 and float(caen) / float(v_tot) > 0.5)
+	# muerte: la esfera se contrae y revienta
+	e.definir(RayoToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+	await process_frame
+	await _esperar(0.2)
+	e.corte = 0.5
+	await _esperar(0.12)
+	var esf2: MeshInstance3D = e.find_child("Esfera", true, false) as MeshInstance3D
+	var kc: float = esf2.scale.x / 0.4
+	_ok("al morir (corte 0,5) la esfera se CONTRAE (a %.2f de su radio)" % kc, kc < 0.55 and kc > 0.2)
+	e.corte = 0.8
+	await _esperar(0.12)
+	var arcos: int = e.trazos_actuales().size()
+	var lejos: float = 0.0
+	for sg3 in e.trazos_actuales():
+		lejos = maxf(lejos, maxf((sg3["a"] as Vector3).length(), (sg3["b"] as Vector3).length()))
+	_ok("…y REVIENTA en arcos cortos: %d tramos (ocho arcos de tres) que llegan a %.2f m (≤ 3 radios = 1,2) y %d chispas" % [arcos, lejos, e._brillos_n], arcos >= 18 and lejos <= 3.0 * 0.4 and lejos > 0.4 and e._brillos_n >= 6)
+	e.queue_free()
+	await process_frame
+	# la muerte de verdad: la animación «morir» sube `corte` y dura 0,15 s
+	var m: RayoToy = _nueva()
+	await process_frame
+	m.definir(RayoToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+	await process_frame
+	m.lanzar(-1.0)
+	await _esperar(0.3)
+	m.morir()
+	var c_max: float = 0.0
+	var a_min: float = 1.0
+	var t1: int = Time.get_ticks_msec()
+	while is_instance_valid(m) and float(Time.get_ticks_msec() - t1) < 500.0:
+		await process_frame
+		_medir()
+		if is_instance_valid(m):
+			c_max = maxf(c_max, m.corte)
+			a_min = minf(a_min, m.aparicion)
+	_ok("morir() de la bola anima `corte` hasta %.2f (la aparición no se toca: mínimo %.2f) y se libera en %.2f s" % [c_max, a_min, float(Time.get_ticks_msec() - t1) / 1000.0], c_max > 0.7 and a_min > 0.99 and not is_instance_valid(m))
 
 # ------------------------------------------------------------------ 11. lab y juego ------------------------------------------------------------------
 
