@@ -137,7 +137,7 @@ static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> 
 	return {"reaccion": nombre, "extra": {"clase": "suelo", "efecto": String(fila["efecto"])}}
 
 
-## El hielo de una casilla de SUELO caduca (20 s, `Lanzador3D._derretir`): la maqueta quita el canal «helado» y deja la casilla mojada, y el
+## El hielo de una casilla de SUELO caduca (20 s, `EstadosSuelo3D.DURA["helada"]`; el Lanzador oye `caducado` y llama a `_derretir`): la maqueta quita el canal «helado» y deja la casilla mojada, y el
 ## estado hace lo mismo. Solo quita la escarcha (el hielo que congeló la simulación se deshiela por su cuenta).
 static func derretir(c: Vector2i) -> void:
 	if clase_de(c) != "suelo":

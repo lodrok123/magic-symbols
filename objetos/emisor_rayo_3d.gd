@@ -25,6 +25,7 @@ signal descarga(celdas: Array)
 
 const PERIODO: float = 4.0            ## s entre una descarga y la siguiente (medidas desde el final de la anterior)
 const DURACION: float = 1.6           ## s que el agua está electrificada
+const RENUEVA_S: float = 0.5          ## s entre renovaciones del estado `electrificada` del suelo (caduca a los 2 s: `EstadosSuelo3D.DURA`)
 const TICK_DANO: float = 0.4          ## s entre dos daños a quien está dentro
 const DANO: float = 8.0               ## por tick (el jugador tiene 100 de vida: ~4 s dentro del agua y a la orilla)
 const MAX_CHISPAS: int = 6            ## chispazos por tick: más de eso no se ve y cuesta
@@ -38,6 +39,7 @@ var electrificada: Array = []         ## Vector2i que ahora llevan corriente (va
 var _t: float = 0.0                   ## cuenta atrás hasta la próxima descarga (o hasta que acabe la actual)
 var _activa: bool = false
 var _t_dano: float = 0.0
+var _t_renueva: float = 0.0           ## cuenta atrás hasta renovar el estado `electrificada` del suelo mientras la descarga está activa
 var _chispas: int = 0
 var _malla: MultiMeshInstance3D = null
 var _jug: Node = null
@@ -114,6 +116,10 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _activa:
 		_fuerza_descarga()
+		_t_renueva -= delta
+		if _t_renueva <= 0.0:
+			_t_renueva = RENUEVA_S
+			_estado_electrificada(true)               # mientras dura la descarga, la renueva (el estado caduca a los 2 s si nadie lo mantiene)
 		_t_dano -= delta
 		if _t_dano <= 0.0:
 			_t_dano = TICK_DANO
@@ -135,6 +141,8 @@ func _soltar() -> void:
 		return
 	_activa = true
 	_t_dano = 0.0
+	_t_renueva = RENUEVA_S
+	_estado_electrificada(true)
 	# 27/10: la descarga SUENA: un chasquazo al soltar y chisporroteo mientras dura (se corta en `_apagar`).
 	Sfx.play(self, "descarga_electrica")
 	_sonido = Sfx.bucle(self, "chasquidos_electricos")
@@ -143,7 +151,19 @@ func _soltar() -> void:
 	descarga.emit(electrificada)
 
 
+## C2 (3/11): el estado `electrificada` del suelo (`EstadosSuelo3D`) de las casillas de la descarga. Reloj oficial: 2 s (`DURA`); mientras la descarga está activa se renueva cada `RENUEVA_S`
+## y al apagarse se quita en el acto. Antes esta fuente no escribía el estado del suelo (solo dibujaba y hería).
+func _estado_electrificada(si: bool) -> void:
+	var e: EstadosSuelo3D = Terreno3D.estados
+	for c in electrificada:
+		var p: Vector2i = c
+		if e.tiene(p, EstadosSuelo3D.ELECTRIFICADA) and e.queda(p, EstadosSuelo3D.ELECTRIFICADA) <= 0.0:
+			continue                                  # la mantiene otro sin caducidad (el canal electrificado del Bosque 1): ni se le pone reloj ni se le quita
+		e.poner(p, EstadosSuelo3D.ELECTRIFICADA, si)   # (es lo que hace `EstadosSuelo3D.mantener` para el caso de poner)
+
+
 func _apagar() -> void:
+	_estado_electrificada(false)
 	_activa = false
 	Sfx.parar(_sonido)
 	_sonido = null

@@ -29,6 +29,9 @@ const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": 
 
 ## Se emite SOLO cuando el estado cambia de verdad (poner lo que ya hay no avisa a nadie).
 signal cambio(c: Vector2i, estado: String, si: bool)
+## C2 (3/11): un estado ha CADUCADO (se le acabó el reloj), a diferencia de `cambio(…, false)`, que también salta si lo quita un hechizo (el fuego funde el hielo). Salta DESPUÉS de `AL_CADUCAR`
+## (la casilla ya está en su estado nuevo). Lo oye `Lanzador3D` para soltar el vapor de la helada que acaba su tiempo.
+signal caducado(c: Vector2i, estado: String)
 
 ## Canal de la textura de cada estado.
 const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
@@ -52,14 +55,14 @@ const TRANSICIONES: Array = [
 
 ## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). El reloj es `Mundo3D._process` → `avanzar`.
 ## 27/10 (lote 3, cambio 1): el MOJADO se seca solo a los 20 s, lo mismo que el suelo que moja la simulación (`AguaSim3D.SECA_EN`).
-## La helada de suelo sigue con su reloj de `Lanzador3D` (se deshiela y deja la casilla mojada), la electricidad la quita el emisor
-## y lo quemado y lo segado se quedan.
-const DURA: Dictionary = {"helada": 0.0, "electrificada": 0.0, "quemada": 0.0, "mojada": 20.0, "segada": 0.0}
+## C2 (3/11, decisión de Pablo: «sin aplicación el rayo se irá a los 2 segundos; hielo se va a los 20 segundos»): la ELECTRIFICADA caduca a los 2 s si nadie la
+## mantiene (el `EmisorRayo3D` activo la renueva mientras dura la descarga) y la HELADA a los 20 s (se deshiela y deja la casilla mojada, `AL_CADUCAR`). Esta constante es
+## el ÚNICO sitio donde está la duración del hielo: `AguaSim3D.DURA_HIELO`, `Hierba3D.ESCARCHA_S` y `Lanzador3D` la leen de aquí. Lo quemado y lo segado se quedan (sin decidir).
+const DURA: Dictionary = {"helada": 20.0, "electrificada": 2.0, "quemada": 0.0, "mojada": 20.0, "segada": 0.0}
 
 ## C1 (2/11, lote 3 cambio 1), la columna «al_caducar»: qué estado queda en la casilla cuando OTRO caduca (se quita el que caduca y se pone este; "" o sin fila = nada). Hoy solo hay una fila: lo que
-## se hiela (una `helada` que se puso con caducidad) se deshiela y deja la casilla MOJADA, que es lo que ya hacen `Lanzador3D._derretir` y `Hierba3D` por su cuenta (son dos relojes de 20 s que siguen
-## vivos; ver DIARIO 341). Mientras `DURA["helada"]` sea 0 y nadie pase `dura` a `poner`, esta fila no se usa; es el sitio donde quedará la regla cuando el Lanzador consulte este reloj en vez del suyo.
-## El mojado se seca sin más (sin fila), como siempre.
+## se hiela (una `helada` que caduca) se deshiela y deja la casilla MOJADA. C2 (3/11): ya se usa de verdad (`DURA["helada"]` = 20) y el `Lanzador3D` dejó su contador: oye `caducado` para soltar
+## el vapor y lo demás. El mojado se seca sin más (sin fila), como siempre.
 const AL_CADUCAR: Dictionary = {"helada": "mojada"}
 
 ## HUMEDAD QUE SE VE (27/10, idea de DK Bananza: «el suelo que toca el agua se oscurece poco a poco»). Solo aspecto: el hecho «mojada»
@@ -147,6 +150,14 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 	return true
 
 
+## C2 (3/11): pone o RENUEVA el estado con la caducidad del reloj oficial (`DURA`), salvo que la casilla ya lo tenga SIN caducidad (lo mantiene otro: el canal electrificado del Bosque 1,
+## el hielo permanente): ese no se acorta. Lo usan la descarga de un hechizo de rayo y el rayo sobre una casilla mojada. Devuelve true si el estado cambió (como `poner`).
+func mantener(c: Vector2i, estado: String) -> bool:
+	if tiene(c, estado) and queda(c, estado) <= 0.0:
+		return false
+	return poner(c, estado, true)
+
+
 ## Intensidad del estado en la casilla (0 si no lo tiene).
 func intensidad(c: Vector2i, estado: String) -> float:
 	if not tiene(c, estado):
@@ -228,6 +239,7 @@ func avanzar(dt: float) -> void:
 			var despues: String = String(AL_CADUCAR.get(estado, ""))
 			if despues != "":
 				poner(c, despues, true)              # al_caducar: lo helado queda mojado (con la caducidad del mojado, `DURA`)
+			caducado.emit(c as Vector2i, String(estado))
 
 
 ## F4: a qué velocidad corre el reloj de `estado` en `c` según la zona (1 = normal): el mojado se seca 1/`secado_x` veces más deprisa; lo helado con caducidad, 1/`hielo_dura_x`.
@@ -272,6 +284,8 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 		for e in fila["pone"]:
 			# Se apunta ANTES de poner: `poner` avisa por señal y quien escuche (Caminos3D) ya debe ver que no es hielo de agua.
 			# Si la casilla ya estaba helada (hielo de una charca que congeló la simulación) sigue siendo hielo de verdad.
+			if String(e) == HELADA and ya_helada:
+				continue         # C2: otro hielo sobre una casilla ya helada NO renueva sus 20 s (Pablo, 12/10; antes lo impedía el `_hielo.has` del Lanzador)
 			if String(e) == HELADA and not ya_helada:
 				_escarcha[c] = true
 			algo = poner(c, String(e), true) or algo

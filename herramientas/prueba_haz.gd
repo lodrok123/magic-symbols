@@ -177,7 +177,10 @@ func _afecta() -> void:
 		else:
 			_ok("3 %s: un enemigo del recorrido pierde vida (%.0f → %.1f) y el de fuera no" % [el, v1, e1.health], e1.health < v1 and e_fuera.health == v_fuera)
 		# estado de suelo en las casillas del recorrido (solo los elementos que lo dejan)
-		if rune.deja != "":
+		if el == "rayo":
+			# C2 (3/11): el rayo deja `electrificado` pero NO pasa por la maqueta (`_al_impactar` quemaría la hierba del recorrido): `marcar_celda` electrifica solo lo mojado o de agua (prueba_reloj_estados, sección 6).
+			_ok("3 rayo deja «%s» sin pasar por la maqueta (ninguna marca de maqueta; el estado lo mide prueba_reloj_estados)" % rune.deja, rune.deja == "electrificado" and _m.marcas.is_empty())
+		elif rune.deja != "":
 			var marcadas: Array = []
 			for m in _m.marcas:
 				marcadas.append(m[1])

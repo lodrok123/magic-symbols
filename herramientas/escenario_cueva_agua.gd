@@ -113,7 +113,7 @@ func _sala_c() -> void:
 	colocar_jugador(Vector2i(CHARCA_C.x, FILA_FOTO))
 	await avanzar_s(0.3)
 	_foto("C_helada")
-	await avanzar_s(Lanzador3D.DURACION_HIELO - (reloj.t - t0) - 1.0)
+	await avanzar_s(EstadosSuelo3D.DURA["helada"] - (reloj.t - t0) - 1.0)
 	_foto("C_a_punto_de_fundirse")
 	await avanzar_s(3.0)
 	_ok("C pasado su tiempo el hielo se funde y vuelve a ser agua", not sim.casilla_helada(CHARCA_C) and Terreno3D.es_agua(CHARCA_C),

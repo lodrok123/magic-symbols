@@ -82,7 +82,7 @@ const T_CRECE: float = 0.9                  ## s que tarda el anillo de barrera 
 const MAX_TIERRA_APILADA: int = 1           ## bloques de tierra uno encima de otro
 const MAX_NIVELES_TIERRA: int = 8           ## tope de bloques vivos a la vez (FIFO)
 const DURACION_TIERRA: float = 25.0         ## segundos
-const DURACION_HIELO: float = 20.0          ## segundos, salvo casillas en `hielo_permanente`
+## (C2, 3/11: aquí estaba `DURACION_HIELO`, el segundo reloj de 20 s del hielo. La duración es `EstadosSuelo3D.DURA["helada"]` y nadie más la cuenta; `hielo_permanente` sigue valiendo.)
 const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 
 
@@ -198,7 +198,7 @@ var _bloques: Array = []                ## tierra construida: {celda, niveles, n
 var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): ZonaV2
 var _solideces_v2: Array = []           ## SolidezV2 vivas: lo que bloquea proyectiles y aguanta golpes (propiedad `solidez`)
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
-var _hielo: Dictionary = {}             ## Vector2i -> {resta, agua}
+var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
 var _t_hielo: float = 0.0
 var _huecos_usados: Array = [{}, {}, {}]    ## por página: clave del sector -> nombre del glifo
 var manifestaciones_vivas: int = 0
@@ -2217,12 +2217,24 @@ func _registrar_receta_v2(hechizo: Hechizo, datos: Dictionary, manifestaciones: 
 ## Marca el suelo de una casilla: es EL impacto del hechizo en ella (PruebaTest2._al_impactar, ESTADOS_SUELO.md). Las
 ## formas de Vfx3D.lanzar_forma son solo visuales y no emiten `impacto`, así que una casilla se marca aquí, una vez.
 func marcar_celda(elemento: String, c: Vector2i) -> void:
+	if elemento == "rayo":
+		electrificar_celda(c)       # C2 (3/11): `deja = "electrificado"`; no pasa por la maqueta ni por `aplicar_accion` (el golpe a los objetos ya lo dio la descarga)
+		return
 	if mundo != null and en_mapa(c) and mundo.has_method("_al_impactar"):
 		if _agua_o_hielo_en_altura(elemento, c):
 			return
 		var punto: Vector3 = centro_de(c, y_pies(c))
 		mundo.call("_al_impactar", elemento, punto)
 		al_impactar(elemento, punto)     # el hielo de un muro o corro tambien caduca a los 20 s (L3)
+
+
+## C2 (3/11, decisión de Pablo): un hechizo de rayo deja `electrificada` (la caducidad es la del reloj oficial, `EstadosSuelo3D.DURA`: 2 s) SOLO en una casilla MOJADA o de AGUA; el rayo sobre suelo
+## seco no deja nada. Un rayo sobre una casilla ya electrificada la renueva. Devuelve si la dejó.
+func electrificar_celda(c: Vector2i) -> bool:
+	if not en_mapa(c) or not (Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA) or Terreno3D.es_agua(c)):
+		return false
+	Terreno3D.estados.mantener(c, EstadosSuelo3D.ELECTRIFICADA)
+	return true
 
 
 ## H4 (DISENO_FUTURO §0b): agua, hielo y charcos SOLO existen a nivel 0. Una casilla con tierra o con una columna
@@ -2614,21 +2626,20 @@ func _avanzar_caducidades(delta: float) -> void:
 				(k["nodo"] as Node).queue_free()
 			_columnas.erase(k)
 			_recalcular(k["celda"] as Vector2i)
+	# C2 (3/11): el Lanzador YA NO CUENTA el tiempo del hielo. El de suelo caduca en `EstadosSuelo3D` (`caducado` → `_al_caducar_estado`); el de agua, en `AguaSim3D` (`tomar_caducado`).
 	_t_hielo += delta
 	if _t_hielo >= 0.25:
-		var dt: float = _t_hielo
 		_t_hielo = 0.0
 		for c in _hielo.keys():
 			var e: Dictionary = _hielo[c]
 			if not _casilla_helada(c as Vector2i):
-				_hielo.erase(c)               # otro lo deshizo (fuego): ya no hay nada que caducar
+				_hielo.erase(c)               # ya no está helada: o la fundió el fuego, o (hielo de agua) se le acabó el tiempo a la simulación
+				if bool(e["agua"]) and Terreno3D.agua_sim != null and Terreno3D.agua_sim.tomar_caducado(c as Vector2i):
+					_derretir(c as Vector2i, true)
 				continue
 			if hielo_permanente.has(c):
-				continue
-			e["resta"] = float(e["resta"]) - dt
-			if float(e["resta"]) <= 0.0:
-				_derretir(c as Vector2i, bool(e["agua"]))
-				_hielo.erase(c)
+				# no caduca: se le quita la caducidad al estado (idempotente). El hielo de agua no la lleva (lo cuenta la simulación, que tampoco lo respeta: como siempre).
+				Terreno3D.estados.poner(c as Vector2i, EstadosSuelo3D.HELADA, true, Terreno3D.estados.intensidad(c as Vector2i, EstadosSuelo3D.HELADA), 0.0)
 
 
 func _casilla_helada(c: Vector2i) -> bool:
@@ -2648,8 +2659,20 @@ func al_impactar(elemento: String, punto: Vector3) -> void:
 		return
 	if _hielo.has(c):
 		return                              # el hielo se aplica una vez: otro hielo encima NO renueva los 20 s (Pablo, 12/10)
-	_hielo[c] = {"resta": DURACION_HIELO, "agua": letra_de(c) == "~"}
+	_hielo[c] = {"agua": letra_de(c) == "~"}
+	if not Terreno3D.estados.caducado.is_connected(_al_caducar_estado):
+		Terreno3D.estados.caducado.connect(_al_caducar_estado)
 	PlayLog.event("hielo", {"celda": [c.x, c.y], "agua": letra_de(c) == "~"})
+
+
+## C2 (3/11): al caducar la `helada` de una casilla de SUELO (el reloj oficial, `EstadosSuelo3D`), se sueltan el vapor y lo demás. La casilla ya quedó mojada (`AL_CADUCAR`).
+## El fuego que funde el hielo NO pasa por aquí (quita la helada sin caducarla). El hielo de agua tampoco: lo cuenta la simulación (ver el bucle de `_process`).
+func _al_caducar_estado(c: Vector2i, estado: String) -> void:
+	if estado != EstadosSuelo3D.HELADA or not _hielo.has(c):
+		return
+	var e: Dictionary = _hielo[c]
+	_hielo.erase(c)
+	_derretir(c, bool(e["agua"]))
 
 
 ## El hielo se deshace: el agua vuelve a ser agua (y se vuelve a bloquear para quien camina) y el suelo

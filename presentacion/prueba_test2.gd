@@ -5382,7 +5382,7 @@ func electrificar_agua(celdas: Array, activo: bool = true) -> void:
 		var c: Vector2i = v
 		# 13/10 (M2): el HECHO «electrificada» es del mundo; las chispas (abajo) son solo dibujo y se quedan aquí.
 		if Terreno3D.estados != null:
-			Terreno3D.estados.poner(c, EstadosSuelo3D.ELECTRIFICADA, activo)
+			Terreno3D.estados.poner(c, EstadosSuelo3D.ELECTRIFICADA, activo, 1.0, 0.0)     # C2 (3/11): lo mantiene quien llama (el canal del Bosque 1 queda electrificado hasta que se apague): sin la caducidad de 2 s
 		if not activo:
 			if _chispas_agua.has(c):
 				(_chispas_agua[c] as Node3D).queue_free()

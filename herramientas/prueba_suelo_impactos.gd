@@ -150,9 +150,9 @@ func _caduca() -> void:
 	await _impacto("hielo", c)
 	_ok("4.1 hielo sobre suelo: helada en estado e imagen", _e(c, "helada") and _coinciden(c), _estado_txt(c))
 	var hielo: Dictionary = lanzador.get("_hielo")
-	_ok("4.2 el Lanzador apunta que ese hielo caduca (20 s)", hielo.has(c), str(hielo.keys()))
-	if hielo.has(c):
-		(hielo[c] as Dictionary)["resta"] = 0.3         # adelantamos el reloj: lo medido es qué pasa al caducar, no los 20 s
+	_ok("4.2 el Lanzador apunta ese hielo (sin contador) y el reloj oficial le da los 20 s: quedan %.1f" % Terreno3D.estados.queda(c, "helada"), hielo.has(c) and Terreno3D.estados.queda(c, "helada") > 18.0 and Terreno3D.estados.queda(c, "helada") <= 20.0, str(hielo.keys()))
+	# C2 (3/11): adelantamos el reloj OFICIAL (el Lanzador ya no cuenta): lo medido es qué pasa al caducar, no los 20 s.
+	Terreno3D.estados.poner(c, "helada", true, 1.0, 0.3)
 	await avanzar_s(1.0)
 	_ok("4.3 al caducar, la imagen quita el hielo y moja la casilla, y el estado hace lo MISMO (sin helada, mojada)", not _e(c, "helada") and _e(c, "mojada") and _coinciden(c), _estado_txt(c))
 	_ok("4.4 y ya no queda escarcha apuntada", not Terreno3D.estados.es_escarcha(c))

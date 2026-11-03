@@ -3,7 +3,7 @@ extends "res://herramientas/escenario_base.gd"
 ##
 ## Con la escena entera: se coloca a un goblin REAL del Bosque (Combate3D) sobre el río de la fila 29 y se lanza hielo + flecha sobre
 ## esa casilla. Se espera: la casilla se hiela (Terreno3D.helada, ya no es agua, se pisa), el goblin queda con `preso_hielo` y
-## `congelado` > 0, y a los DURACION_HIELO (20 s) el hielo se funde solo y lo suelta. El camino es el del jugador; solo se coloca el goblin.
+## `congelado` > 0, y a los 20 s (`EstadosSuelo3D.DURA["helada"]`) el hielo se funde solo y lo suelta. El camino es el del jugador; solo se coloca el goblin.
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/escenario_hielo.gd
 
 const ESTANQUE := Vector2i(4, 29)                      ## el río del Bosque (fila 29, columnas 1–7)
@@ -41,9 +41,9 @@ func _escenario() -> void:
 	_ok("5 y congelado > 0", congelado > 0.0, "%.1f s" % congelado)
 
 	# --- Se suelta solo a los 20 s del hechizo ---
-	await avanzar_s(Lanzador3D.DURACION_HIELO - (reloj.t - t0) - MARGEN)
+	await avanzar_s(EstadosSuelo3D.DURA["helada"] - (reloj.t - t0) - MARGEN)
 	_ok("6 a falta de %.0f s el hielo sigue y el goblin sigue preso" % MARGEN, Terreno3D.helada(ESTANQUE) and g.has_meta("preso_hielo"))
 	await avanzar_s(2.0 * MARGEN)
-	_ok("7 pasados los %.0f s el hielo se ha fundido" % Lanzador3D.DURACION_HIELO, not Terreno3D.helada(ESTANQUE) and not sim.casilla_helada(ESTANQUE), "t = %.1f s" % (reloj.t - t0))
+	_ok("7 pasados los %.0f s el hielo se ha fundido" % EstadosSuelo3D.DURA["helada"], not Terreno3D.helada(ESTANQUE) and not sim.casilla_helada(ESTANQUE), "t = %.1f s" % (reloj.t - t0))
 	_ok("7 la casilla vuelve a ser agua", Terreno3D.es_agua(ESTANQUE))
 	_ok("7 el goblin queda libre: sin preso_hielo y congelado = 0", not g.has_meta("preso_hielo") and float(g.get("congelado")) == 0.0, "congelado %.1f" % float(g.get("congelado")))

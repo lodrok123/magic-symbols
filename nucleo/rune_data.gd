@@ -52,7 +52,7 @@ extends Resource
 ##   persiste  segundos que dura lo creado (0 = no se queda: la descarga del rayo es instantánea, el agua la lleva la simulación)
 ##   empuje    fuerza sobre lo que toca, de 0 a 1 (0 = nada, 1 = lo máximo, el viento)
 ##   pisable   ¿se puede subir encima? (sólidos: tierra, hielo)
-##   deja      estado de suelo que deja al pasar ("quemado", "mojado", "helado"), vacío si no deja
+##   deja      estado de suelo que deja al pasar ("quemado", "mojado", "helado", "electrificado"), vacío si no deja
 const ESTADOS: PackedStringArray = ["solido", "liquido", "plasma", "energia", "gas", "campo"]
 @export_enum("solido", "liquido", "plasma", "energia", "gas", "campo") var estado: String = "solido"
 @export var persiste: float = 0.0

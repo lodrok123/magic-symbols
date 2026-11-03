@@ -910,12 +910,16 @@ func _descarga(ctx: Dictionary, area: Dictionary) -> int:
 	for c in ctx["celdas"]:
 		area[c] = true
 	var vistas: Dictionary = {}
+	# C2 (3/11): la descarga de un rayo deja `electrificada` (2 s, `EstadosSuelo3D.DURA`) en el agua y los conductores que recorre. En seco solo se anota (no escribe estados). No cambia el daño ni la búsqueda.
+	var electrifica: bool = not seco and String(ctx["elemento"]) == "rayo"
 	for c in ctx["celdas"]:
 		if vistas.has(c):
 			continue
 		for w in EmisorRayo3D.agua_conectada(c as Vector2i, conduce):
 			area[w] = true
 			vistas[w] = true
+			if electrifica:
+				Terreno3D.estados.mantener(w as Vector2i, EstadosSuelo3D.ELECTRIFICADA)
 	var d: Vector3 = ctx["dir"]
 	var tocados: Dictionary = ctx["tocados"]
 	for grupo in ["reactivo3d", "combate3d"]:

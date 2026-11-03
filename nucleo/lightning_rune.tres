@@ -15,6 +15,7 @@ tags = Array[String](["rayo", "electrico"])
 estado = "energia"
 persiste = 0.2
 empuje = 0.2
+deja = "electrificado"
 vfx_sheet = ExtResource("2")
 vfx_frames = 18
 beam = true

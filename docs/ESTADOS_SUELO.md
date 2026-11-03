@@ -430,7 +430,8 @@ Al caducar la tierra el bloque se hunde (0,2 s) y quien estuviera encima **cae**
 ### 7.2 Hielo con duración
 
 El hielo es el estado B de una casilla. Cuando una casilla pasa a B = 1 (por `hielo`, o por la segunda `agua` sobre
-suelo mojado), `Lanzador3D` se apunta la casilla y a los **20 s** (`DURACION_HIELO`) la deshace:
+suelo mojado), `Lanzador3D` se apunta la casilla y a los **20 s** la deshace. (C2, 3/11: el tiempo ya NO lo cuenta el Lanzador: es `EstadosSuelo3D.DURA["helada"]`; el suelo caduca en `EstadosSuelo3D` y el
+Lanzador suelta el vapor al oír `caducado`; el hielo de agua lo cuenta por trocitos `AguaSim3D` con la misma duración.)
 
 | casilla | al caducar | lo hace |
 |---|---|---|

@@ -265,7 +265,7 @@ var _crecida_sucia: bool = false
 ## solo actúa en las de clase «suelo»), así que la maqueta avisa aquí al regarla o helarla. RG8, una casilla por píxel; se seca sola.
 ## El shader se queda con el mayor de esto y del estado oficial (G mojada, B helada): si algún día la hierba pasa a EstadosSuelo3D, ya se ve.
 const MOJADA_S: float = 8.0          ## s que se ve mojada del todo (= `PruebaTest2.T_MOJADA_MS`, lo que tarda en poder prender otra vez)
-const ESCARCHA_S: float = 20.0       ## s con escarcha (= `Lanzador3D.DURACION_HIELO` del suelo); al fundirse queda mojada
+const ESCARCHA_S: float = EstadosSuelo3D.DURA["helada"]       ## s con escarcha: la duración del reloj oficial del hielo (C2, 3/11; antes un 20 propio); al fundirse queda mojada. Solo aspecto: la hierba no entra en `EstadosSuelo3D`
 const FUNDIDO_S: float = 2.5         ## s que tarda en desvanecerse al acabar
 var _img_humedad: Image = null
 var _tex_humedad: ImageTexture = null

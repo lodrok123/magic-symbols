@@ -52,7 +52,9 @@ static func poner_helada(c: Vector2i, si: bool) -> void:
 	var era_escarcha: bool = si and estados.es_escarcha(c)
 	if era_escarcha:
 		estados.quitar_escarcha(c)
-	if not estados.poner(c, EstadosSuelo3D.HELADA, si) and era_escarcha:
+	# C2 (3/11): sin caducidad PROPIA (dura = 0). El hielo de agua lo cuenta por trocitos `AguaSim3D` (con `DURA["helada"]` y el factor de zona) y avisa cuando se suelta; si el estado de la
+	# casilla también corriese, dos relojes decidirían a la vez cuándo se funde el mismo hielo.
+	if not estados.poner(c, EstadosSuelo3D.HELADA, si, 1.0, 0.0) and era_escarcha:
 		estados.cambio.emit(c, EstadosSuelo3D.HELADA, true)
 
 

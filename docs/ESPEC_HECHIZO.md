@@ -141,6 +141,11 @@ inicial. Hay **dos** ejes horizontales (ancho X y fondo Z), así que «longitud�
 | `empuje`, `fuerza_golpe` | 0–1 / fuerza | 0 / 400 | elemento | = (en la fase de cálculo pasarán a salir de `masa` × `velocidad`) |
 | `deja`, `estado_materia`, `etiquetas`, `color` | — | — | elemento | = |
 
+`deja` (estado de suelo que deja el elemento): `quemado` (fuego), `mojado` (agua), `helado` (hielo) y, desde el 3/11 (C2, decisión de Pablo), **`electrificado` (rayo)**. El rayo lo deja
+**solo en una casilla mojada o de agua** (`Lanzador3D.electrificar_celda`, vía `marcar_celda("rayo", c)`; sobre suelo seco no deja nada) y la descarga (`HechizoVivo._descarga`) electrifica además
+el agua y los conductores que recorre. La caducidad es la del reloj oficial, `EstadosSuelo3D.DURA["electrificada"]` = **2 s** (la renueva otro rayo o el `EmisorRayo3D` mientras dura su descarga).
+A diferencia de los otros tres, `electrificado` **no pasa por la maqueta** (`_al_impactar`): un rayo marcando casillas no debe quemar la hierba del recorrido.
+
 - **Temperatura, humedad y conductividad** solo se rellenan en esta versión. En la fase de cálculo, las reacciones
   (vapor, congelar mojado, electrocutar mojado) saldrán de ellas en lugar de estar escritas en `Combate3D`.
 - **`efectos [ ]`** de Pablo = los campos de estado de esta tabla + `eventos` (ya existen).

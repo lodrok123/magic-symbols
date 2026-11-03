@@ -192,7 +192,7 @@ var interrumpe: float = 0.0
 var veneno: float = 0.0                ## segundos que dura el veneno que deja al golpear (0 = no envenena) · HC4
 var veneno_dps: float = 3.0            ## daño por segundo mientras dura (solo cuenta si `veneno` > 0)
 var intensidad_estado: float = 1.0     ## × todas las duraciones de estado (ESPEC §1.5; aún no la lee nadie)
-var deja: String = ""                  ## estado de suelo que deja ("quemado", "mojado", "helado")
+var deja: String = ""                  ## estado de suelo que deja ("quemado", "mojado", "helado", "electrificado")
 
 # --- Materia ---
 var estado_materia: String = "solido"  ## "solido" | "liquido" | "plasma" | "energia" | "gas" | "campo"

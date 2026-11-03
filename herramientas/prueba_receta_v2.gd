@@ -70,7 +70,7 @@ func _initialize() -> void:
 func _datos_de_elementos() -> void:
 	var esperado: Dictionary = {
 		"fire": ["plasma", 3.0, false, "quemado"], "water": ["liquido", 0.0, false, "mojado"], "earth": ["solido", 8.0, true, ""],
-		"ice": ["solido", 6.0, true, "helado"], "lightning": ["energia", 0.2, false, ""], "wind": ["gas", 1.5, false, ""],
+		"ice": ["solido", 6.0, true, "helado"], "lightning": ["energia", 0.2, false, "electrificado"], "wind": ["gas", 1.5, false, ""],
 		}
 	for e in ELEMENTOS:
 		var r: RuneData = load("res://nucleo/%s_rune.tres" % e)

@@ -44,7 +44,7 @@ Cámara ortogonal a 60° que gira de 90° en 90°. Con el libro abierto el tiemp
 | calor | helada | pasa a mojada |
 | calor | mojada | se seca (vapor) |
 
-Estados: helada, electrificada, quemada, mojada y segada. El mojado se seca a los 20 s (`DURA`); lo demás no caduca por defecto. Reacciones más ricas en `mundo/reacciones_*_3d.gd`.
+Estados: helada, electrificada, quemada, mojada y segada. Cada estado lleva su reloj en `EstadosSuelo3D.DURA`: el mojado se seca a los 20 s, el **hielo se va a los 20 s** (y deja la casilla mojada) y **la electricidad a los 2 s si nadie la mantiene** (un emisor de rayo activo la renueva mientras dura la descarga; un hechizo de rayo la deja en las casillas mojadas o de agua que toca); quemada y segada no caducan (sin decidir). Una zona de calor acorta el hielo a un tercio y una de frío casi lo detiene. Reacciones más ricas en `mundo/reacciones_*_3d.gd`.
 
 ## Enemigos
 

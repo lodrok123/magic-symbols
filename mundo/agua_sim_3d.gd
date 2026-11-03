@@ -46,7 +46,7 @@ const RETIENE: float = 0.03             ## lámina que el suelo retiene y no cor
 const ABSORBE: float = 0.02             ## u por segundo que el suelo se bebe de una lámina fina
 const UMBRAL_AGUA: float = 0.25         ## profundidad media (u) a partir de la cual una CASILLA es agua para el juego
 const UMBRAL_NADO: float = 0.55         ## y a partir de la cual se nada
-const DURA_HIELO: float = 20.0          ## s que dura el hielo de un hechizo si nadie lo funde antes (11.12)
+const DURA_HIELO: float = EstadosSuelo3D.DURA["helada"]    ## s que dura el hielo de un hechizo si nadie lo funde antes (11.12). C2 (3/11): NO es un valor propio, es el reloj oficial (`EstadosSuelo3D.DURA`)
 const SECA_EN: float = 20.0             ## s que tarda en secarse un trocito desde que se queda sin agua (estado «mojado»)
 ## --- W0 (19/10, PLAN_TRES_FRENTES §3): lo que el dibujo necesita y la simulación no exponía. NO cambian el agua: solo la describen. ---
 const UMBRAL_CAIDA: float = 0.5         ## u de salto de superficie entre un trocito y el vecino al que le corre agua a partir del cual es CASCADA (un nivel de tierra = 1,035 u)
@@ -500,7 +500,17 @@ func cambios_hielo() -> Array:
 	return r
 
 
+## C2 (3/11): casillas cuyo hielo se soltó porque SE ACABÓ SU TIEMPO (no porque lo fundiera el fuego). `Lanzador3D` lo pregunta (`tomar_caducado`) para soltar el vapor solo en ese caso.
+var _caducados: Dictionary = {}
+
+
+## ¿Se soltó el hielo de esta casilla por tiempo desde la última vez que se preguntó? Lo borra al leerlo. Helar de nuevo la casilla (`_helar_trozo`) también lo borra.
+func tomar_caducado(c: Vector2i) -> bool:
+	return _caducados.erase(c)
+
+
 func _helar_trozo(i: int, segundos: float) -> void:
+	_caducados.erase(Vector2i((i % w) / sub, (i / w) / sub))
 	helado[i] = 1
 	hielo_t[i] = segundos
 	hielo_ini[i] = segundos
@@ -959,6 +969,7 @@ func _paso(dt: float) -> void:
 			if helado[i] == 1:
 				hielo_t[i] -= dt * _ritmo_hielo(i)
 				if hielo_t[i] <= 0.0:
+					_caducados[Vector2i((i % w) / sub, (i / w) / sub)] = true    # C2: por tiempo, no por fuego (ver `tomar_caducado`)
 					_soltar_trozo(i)            # se acabó el tiempo: vuelve a ser agua, la misma de antes
 				else:
 					mojado[i] = SECA_EN
