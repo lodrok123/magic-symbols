@@ -8,7 +8,7 @@ extends Control
 ##   · Ajustes   abre `MenuPausa` en modo `sin_partida` (volúmenes y sensación; sin Reiniciar ni Salir al menú)
 ##   · Salir
 ## Entra con fundido y escala 0,96 → 1 en `T_S` s como la pausa. `Sensacion3D.ACTIVA = false` aparece de golpe (los sonidos quedan: `ui_tick` al moverse, `ui_equipar` al aceptar, `no_puedes` al rechazar).
-## Qué escena era la principal antes: `PruebaBosque01_v01.tscn`, que sigue siendo la de «Nueva partida» (`Niveles.ESCENAS["Bosque_01_v01"]`).
+## Qué escena era la principal antes: `PruebaBosque01_v01.tscn`; desde el 3/11 la de «Nueva partida» es `PruebaBosque02.tscn` (`Niveles.NIVEL_INICIAL = "Bosque_02"`).
 ## Para las pruebas: `CAMBIAR_ESCENA = false` no cambia de escena ni cierra el juego (apunta en `destino`, `salio`); `modo`, `fila`, `confirmando`, `ids()`, `texto_fila(i)`, `mover(dir)`, `accion()`,
 ## `borrar_elegida()`, `escape()`, `ajustes`.
 

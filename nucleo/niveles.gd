@@ -23,8 +23,9 @@ const ESCENAS: Dictionary = {
 	"GrutaBatida": "res://escenas/PruebaGrutaBatida.tscn",            # 27/10: el nivel de la barrera (docs/GRUTA_BATIDA.md)
 	"SalaEmpuje": "res://escenas/PruebaSalaEmpuje.tscn",            # 27/10: la sala de los bloques empujables (docs/EMPUJAR_BLOQUES.md)
 	"Bosque_01_v01": "res://escenas/PruebaBosque01_v01.tscn",     # el mapa lo diseña otro agente (docs/PLAN_BOSQUE_01_V01.md): hasta que exista la escena, la salida avisa
+	"Bosque_02": "res://escenas/PruebaBosque02.tscn",             # 3/11: «El corazón del Bosque», 40 × 40 (docs/PLAN_BOSQUE_02.md)
 }
-const NIVEL_INICIAL: String = "Bosque_01_v01"   ## donde entra «Nueva partida» del menú principal (era la `run/main_scene` hasta el 2/11)
+const NIVEL_INICIAL: String = "Bosque_02"   ## donde entra «Nueva partida» del menú principal (era Bosque_01_v01 hasta el 3/11; antes, la `run/main_scene`)
 const T_FUNDIDO: float = 0.35
 const CAPA_FUNDIDO: int = 100
 const NOMBRE_FUNDIDO: String = "FundidoNiveles"

@@ -44,7 +44,7 @@
 ;
 ; --- Conexión con el Bosque: se entra por `desde_bosque` y se vuelve pisando la boca ---
 ; pieza desde_bosque entrada 4 17
-; pieza a_bosque salida 3 18 celdas=3,18..5,18 a=Bosque_01_v01:boca_cueva
+; pieza a_bosque salida 3 18 celdas=3,18..5,18 a=Bosque_02:boca_cueva
 ;
 ; ======================================================================================================================================================
 ;  C1 · LA BOCA — PRESENTAR. Átomos nuevos: cristal que late (E1), veta (C1), seta que madura (X1), geoda (X3, demostración),

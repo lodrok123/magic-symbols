@@ -37,7 +37,7 @@
 ; zona 9,11..15,17 cueva_ruinas mezcla=0.8 rotulo=El_santuario
 ;
 ; pieza desde_bosque entrada 4 15 mira=n
-; pieza a_bosque salida 3 17 celdas=3,17..5,17 a=Bosque_01_v01:boca_cueva
+; pieza a_bosque salida 3 17 celdas=3,17..5,17 a=Bosque_02:boca_cueva
 ;
 ; ======================================================================================================================================================
 ;  G1 · LA BOCA — PRESENTAR: algo levanta fuego LEJOS, donde marca, y tras una reja. Sin hacer nada: el tótem late (cuando la jugadora está cerca), el hilo de luz

@@ -132,7 +132,7 @@ func _menu_principal() -> void:
 	m.accion()
 	_veda()
 	m.accion()
-	_ok("A1 el segundo Enter borra la ranura 1 y entra en el nivel inicial", not Partida.existe(1) and m.destino == Niveles.escena_de(Niveles.NIVEL_INICIAL) and m.destino.ends_with("PruebaBosque01_v01.tscn"), m.destino)
+	_ok("A1 el segundo Enter borra la ranura 1 y entra en el nivel inicial", not Partida.existe(1) and m.destino == Niveles.escena_de(Niveles.NIVEL_INICIAL) and m.destino.ends_with("PruebaBosque02.tscn"), m.destino)
 	_ok("A1 la partida nueva no hereda: no queda Continuar ni «continuar» puesto", not Partida.continuar and Partida.ranura_mas_reciente() == -1)
 	m = _abrir_menu()
 	m.fila = 0

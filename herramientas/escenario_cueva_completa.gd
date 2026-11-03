@@ -695,10 +695,10 @@ func _salida() -> void:
 		await process_frame
 	await avanzar_s(0.6)
 	maqueta = current_scene if current_scene != null else maqueta
-	_ok("9 pisar la salida de C1 (3..5,18) lleva al Bosque 01 v01 (`boca_cueva`)", maqueta != vieja and String(maqueta.get("nivel")) == "Bosque_01_v01", String(maqueta.get("nivel")) if maqueta != null else "sin escena")
+	_ok("9 pisar la salida de C1 (3..5,18) lleva al Bosque 02 (`boca_cueva`; 3/11: ya no al Bosque 01 v01)", maqueta != vieja and String(maqueta.get("nivel")) == "Bosque_02", String(maqueta.get("nivel")) if maqueta != null else "sin escena")
 	var lz: Lanzador3D = get_first_node_in_group("spellcaster") as Lanzador3D
 	var j: Node3D = lz.jugador if lz != null else null
-	_ok("9 la jugadora llega a la boca de la Cueva del Bosque (45,18)", j != null and Terreno3D.celda_de(j.position) == Vector2i(45, 18), str(Terreno3D.celda_de(j.position)) if j != null else "sin jugadora")
+	_ok("9 la jugadora llega a la boca de la Cueva del Bosque 02 (33,24)", j != null and Terreno3D.celda_de(j.position) == Vector2i(33, 24), str(Terreno3D.celda_de(j.position)) if j != null else "sin jugadora")
 	_ok("9 trae lo ganado en la Cueva: el núcleo de eco en la bolsa y las flags de los cofres (llave, glifo, épico)", Estado.i().cuenta("nucleo_eco") == 1 and Flags.i().tiene(FLAG_GLIFO) and Flags.i().tiene(FLAG_EPICO) and Flags.i().tiene(FLAG_LLAVE))
 	_ok("9 y ᚱ «pulso» SIGUE en el libro en el Bosque (Puzle3D reaplica los glifos ganados: la progresión de cada nivel los borraba)", Repertoire.sigil_active("raido"))
 

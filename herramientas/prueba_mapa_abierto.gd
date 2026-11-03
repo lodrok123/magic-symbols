@@ -381,8 +381,8 @@ func _esperar_viaje() -> float:
 func _salida_entrada() -> void:
 	var entrada_n: Node = _z.nodo("desde_bosque")
 	var salida_n: SalidaNivel3D = _z.nodo("a_bosque") as SalidaNivel3D
-	_ok("8 la Cueva tiene la entrada `desde_bosque` (4,17) y la salida `a_bosque` hacia Bosque_01_v01:boca_cueva", entrada_n != null and salida_n != null and salida_n.destino == "Bosque_01_v01:boca_cueva" and salida_n.celdas.size() == 3)
-	_ok("8 la tabla de niveles tiene Bosque_01, Cueva y Bosque_01_v01 (24/10: ya con su escena)", Niveles.ESCENAS.has("Bosque_01") and Niveles.existe("Cueva") and Niveles.ESCENAS.has("Bosque_01_v01") and Niveles.existe("Bosque_01_v01"))
+	_ok("8 la Cueva tiene la entrada `desde_bosque` (4,17) y la salida `a_bosque` hacia Bosque_02:boca_cueva (3/11: el Bosque 02 es el nivel inicial)", entrada_n != null and salida_n != null and salida_n.destino == "Bosque_02:boca_cueva" and salida_n.celdas.size() == 3)
+	_ok("8 la tabla de niveles tiene Bosque_01, Cueva, Bosque_01_v01 (24/10) y Bosque_02 (3/11), todos con su escena", Niveles.ESCENAS.has("Bosque_01") and Niveles.existe("Cueva") and Niveles.ESCENAS.has("Bosque_01_v01") and Niveles.existe("Bosque_01_v01") and Niveles.ESCENAS.has("Bosque_02") and Niveles.existe("Bosque_02"))
 	var ent: SalidaNivel3D.EntradaNivel3D = entrada_n as SalidaNivel3D.EntradaNivel3D
 	var dir: Vector3 = ent.direccion_mirada() if ent != null else Vector3.ZERO
 	var norte: Vector3 = Terreno3D.centro_de(CELDA_ENTRADA + Vector2i(0, -1), 0.0) - Terreno3D.centro_de(CELDA_ENTRADA, 0.0)
