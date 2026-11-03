@@ -1,0 +1,237 @@
+; Bosque_02 «El corazón del Bosque» (3/11/2026): el segundo Bosque, 40 × 40 casillas con un anillo de 4 de árboles (área jugable 4..35 = 32 × 32). docs/PLAN_BOSQUE_02.md.
+; SE HORNEA DESDE ESTE ARCHIVO (herramientas/hornear_bosque_02.gd) a mundo/datos_nivel/Nivel_Bosque_02.tscn. Las líneas `; nombre`, `; marcador` y `; decorado` las lee HorneadorNivel.leer_extras; `; pieza`/`; puzle`, Puzle3D; `; zona`, Zonas3D.
+; Reglas del nivel: escenas/bosque_02_3d.gd (nodo «Reglas» de escenas/PruebaBosque02.tscn). Letras: marcador_3d.gd y hornear_nivel.gd. `#` árbol/roca (no se pisa) · `~` agua · `g` camino de tierra (el guiado) · `,` hierba corta · `v` hierba alta (arde) · `R` piedra.
+; Esquema: arroyo N-S en x 14..15. OESTE: linde (inicio, SO), escondite, plaza de las ruinas (NO) y santuario. ESTE: orilla, claro de las setas, pasillo y boca de la Cueva, pradera, campamento goblin, ruinas, estanque del molino.
+; Se cruza el arroyo con el tronco-puente (fuego) o helándolo; el puente roto del norte (14..15,9) lo tiende el agua o la cuerda.
+########################################
+########################################
+########################################
+########################################
+##############~~########################
+#####RRRR#RRLu~~RR#k#R##ggggggggg-######
+#####RRRR#RR-R~~RR#R#rj#g.~~~~,.,-######
+#######R##cccR~~RRRRRRr#ge~~~~...-######
+#####RDRRRcccR~~RRRRRTRgg.~~~~,..-######
+####,RRRRRRRRR~~RRRRRRR#g,.,,,...-######
+####,RRRRKRRRR~~RecRciR#ggggggggg-######
+#####RRRRRMRRR~~######,#################
+########R#####~~vvvvvvgvfv..x..,,,,,####
+#####RRRRRRR##~~v#vvv#gvvv..x,t.t,o,####
+#####RRRRRRR##~~#vvWvvgvvA,,x,.W.W,,####
+#####RRRRRRR##~~vsvvvTgvvv,,x,,.F,,,####
+#####RRRGRRR##~~vvggggggggggygggggg.####
+#####RRRRRRR##~~vvgv#vvv##..x,,,,,A.####
+#####RRRRRRR##~~vvgvvvvv#v.,x,,tAV..####
+#####RRRRRRR##~~vvgvqvvvWv,,x,o.....####
+##############~~vvgvvvvvvv#,############
+#######....###~~vvgvvvvvvv,,############
+######,,..,###~~#,g,##########.#.##,####
+######r,..r###~~#,g,##########,..,,,####
+######,,..,###~~#,gggglgggzzgggggggU####
+######.,,,####~~#.g.##########,..,,,####
+########g#####~~#.g.##########,##,,,####
+########g#####~~#.gT##########.,..######
+####,...g..,,,~~,,g,,,########......####
+####..s...,,h,~~r,g,##....,,.,##########
+####.....,T,,,~~..g,,...,,,.s.##########
+####h..,,m,.g,~~ggggggggsgghg,##########
+####...Sggggg.~~..........,,g,##########
+####.s......,,~~,,,,.#,h,,s.,.##########
+####...#..T.s,~~r,,,,#,,,,,,############
+####.........,~~,,,,,,##################
+########################################
+########################################
+########################################
+########################################
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; NOMBRES de los marcadores de letra (contrato con escenas/bosque_02_3d.gd: las reglas los leen por nombre) y MARCADORES de datos (tronco-puente, lobernos, asesino).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; nombre 7 32 inicio_02
+; nombre 10 30 brasero_linde_a
+; nombre 10 34 brasero_linde_b
+; nombre 19 27 brasero_guia_01
+; nombre 21 15 brasero_guia_02
+; nombre 21 8 brasero_guia_03
+; nombre 22 6 totem_fuego_02
+; nombre 19 5 totem_agua_02
+; nombre 21 10 totem_rayo_02
+; nombre 34 13 torre_este
+; nombre 30 19 torre_oeste
+; nombre 9 10 placa_ruinas
+; nombre 32 15 fogata_camp
+; nombre 34 17 arquero_fijo_01
+; nombre 8 16 elemental_02
+; nombre 9 31 guardabosques_02
+; nombre 10 11 librera_02
+; nombre 28 16 puerta_goblin_02
+; nombre 22 7 telarana_totem
+; nombre 21 6 telarana_totem_b
+; nombre 22 24 tronco_pasillo
+; nombre 26 24 seto_pasillo_a
+; nombre 27 24 seto_pasillo_b
+; marcador tronco_puente - 13 31 giro=0 nombre=tronco_puente_02
+; marcador loberno - 17 19 nombre=loberno_01
+; marcador loberno - 26 20 nombre=loberno_02
+; marcador asesino - 20 8 nombre=asesino_02
+; decorado cartel 9 33
+; decorado cartel 20 28
+; decorado cartel 23 15
+; decorado cartel 25 6
+; decorado cartel 26 17
+; decorado campamento_cazo 33 12
+; decorado campamento_rocas 35 18
+; decorado campamento_rocas 29 12
+; decorado estatua_piedra 6 11
+; decorado pilar 12 11
+; decorado pilar 6 15
+; decorado pilar 10 15
+; decorado estatua_piedra 6 18
+; decorado estatua_piedra 10 18
+; decorado troncos_apilados 12 33
+; decorado tocon 5 31
+; decorado flores_blancas 6 31
+; decorado flores_amarillas 25 33
+; decorado flores_colores 19 13
+; decorado flores_amarillas 26 19
+; decorado matas 20 20
+; decorado tocon 16 21
+; decorado sauce 17 6
+; decorado piedras 25 8
+; decorado nenufar 27 7
+; giro 12 5 90
+; giro 12 6 90
+; giro 13 5 180
+; giro 33 5 90
+; giro 33 6 90
+; giro 33 7 90
+; giro 33 8 90
+; giro 33 9 90
+; giro 33 10 90
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; ZONAS (Zonas3D): luz, mezcla (5 s fuera, ≤ 1 s las salas), nombre (id=), rótulo la primera vez (titulo=) y fila del botín de los rompibles (botin=). Si se pisan, manda la última: las grandes primero.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; zona 4,28..13,35 bosque mezcla=5 id=linde titulo=La_linde_del_arroyo botin=bosque
+; zona 16,22..35,35 bosque mezcla=5 id=bosque_denso titulo=El_bosque_denso botin=bosque
+; zona 30,22..35,28 ruinas mezcla=1 id=boca_cueva titulo=La_boca_de_la_cueva botin=ruinas
+; zona 16,12..27,21 atardecer mezcla=5 id=pradera titulo=La_pradera_alta botin=atardecer
+; zona 5,5..13,11 ruinas mezcla=5 id=plaza_oeste titulo=Las_ruinas_de_los_totems botin=ruinas
+; zona 16,5..22,11 ruinas mezcla=5 id=ruinas_este botin=ruinas
+; zona 24,5..33,10 agua mezcla=5 id=estanque titulo=El_estanque_del_molino botin=agua
+; zona 28,12..35,19 fuego mezcla=1 id=campamento titulo=El_campamento_goblin botin=campamento
+; zona 5,12..11,19 santuario mezcla=1 id=santuario titulo=El_santuario botin=santuario
+; zona 6,21..10,27 ruinas mezcla=1 id=escondite titulo=El_escondite botin=ruinas
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 1 · LA LINDE (inicio). Los dos braseros (10,30) y (10,34) se encienden con fuego; con 2/2 aparece el cofre común 1 (cofre_linde).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza cont_linde contador 11 30 de=10,30+10,34
+; puzle linde_marca cuando=cont_linde.todos hace=flag.poner(bosque02.linde.braseros)
+; pieza cofre_linde cofre 11 33 aparece_si=flag.bosque02.linde.braseros abierto=bosque02.linde.cofre da=tabla:cofre_pequeno
+; pieza jarrones_linde jarron 5 29 celdas=5,29+11,28+5,34+11,35 botin=zona
+; pieza cajas_linde jarron 6 30 celdas=6,30+8,34 modelo=caja botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 2 · EL ESCONDITE (norte de la linde): el muro agrietado (8,27) lo rompen dos golpes de tierra o una explosión. Detrás, el cofre común 7 y dos telarañas (hielo = seda).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza muro_escondite muro 8 27 golpes=2
+; pieza cofre_escondite cofre 8 22 abierto=bosque02.escondite.cofre da=oro:50+pocion:1
+; pieza jarron_escondite jarron 7 24 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 3 · EL ARROYO y la ORILLA ESTE. El tronco-puente (marcador, 13,31) cae con fuego sobre el río. El cofre común 2 aparece al pisar la orilla este (flag bosque02.arroyo.cruzado, la pone el script).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza cofre_orilla cofre 19 33 aparece_si=flag.bosque02.arroyo.cruzado abierto=bosque02.orilla.cofre da=tabla:cofre_pequeno
+; pieza jarrones_orilla jarron 17 33 celdas=17,33+20,34+18,29 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 4 · LA PRADERA ALTA. Tres goblins y dos lobernos; el vigía pone bosque02.pradera.limpia y aparece el cofre común 3. Colmena (viento = panal, fuego = veneno) y nido (viento = pluma).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza vig_pradera vigia 19 14 de=16,12..27,21 flag=bosque02.pradera.limpia
+; pieza cofre_pradera cofre 21 20 aparece_si=flag.bosque02.pradera.limpia abierto=bosque02.pradera.cofre da=oro:30+pocion:1
+; pieza colmena_pradera colmena 21 12
+; pieza nido_pradera nido 26 12
+; pieza jarrones_pradera jarron 19 12 celdas=19,12+25,20+17,17 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 5 · EL PASILLO DE LA CUEVA y la BOCA. El tronco (22,24) y los dos setos (26,24)/(27,24) cierran el pasillo (fuego). La entrada boca_cueva (33,24) recibe a la jugadora que vuelve de la Cueva.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza boca_salida salida 34 24 celdas=34,24+35,24 a=Cueva:desde_bosque
+; pieza boca_cueva entrada 33 24 mira=o
+; pieza jarrones_boca jarron 31 23 celdas=31,23+33,27 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 6 · EL CLARO DE LAS SETAS: setas que se recogen con E (un elemento antes las transforma).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza seta_a seta 24 30
+; pieza seta_b seta 26 32
+; pieza seta_c seta 28 33
+; pieza jarrones_setas jarron 23 32 celdas=23,32+27,30 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 7 · LAS RUINAS DEL ESTE. TÓTEM DE FUEGO (22,6) tras dos telarañas; TÓTEM DE AGUA (19,5) tras la reja (19,7), que abre la cuenca llena (tinaja de la plaza oeste); TÓTEM DE RAYO (20,10): fuente (16,10) – pozo – NEXO (18,10) – pozo.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza fuente_cadena emisor 17 10
+; pieza pozos_cadena cuenca 18 10 celdas=18,10+20,10 nivel=0.5 fijo=si
+; pieza nexo_cadena nexo 19 10
+; pieza reja_totem puerta 19 7 modelo=reja
+; puzle k_marca cuando=nivel_ruinas.alcanzado hace=flag.poner(bosque02.ruinas.reja)
+; puzle k_abre cuando=flag.bosque02.ruinas.reja hace=reja_totem.abrir
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 8 · LA PLAZA OESTE. TINAJA (13,5) → canal → cuenca (10..12,7..8): con el nivel a 0,45 se abre la reja del tótem de agua. Puente roto del arroyo (14..15,9): lo tiende el agua sobre el pulsador (17,9) o la cuerda (16,8) quemada.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza tinaja_ruinas tinaja 13 5 canal=12,5+12,6
+; pieza cuenca_ruinas cuenca 10 7 celdas=10,7..12,8
+; pieza nivel_ruinas nivel 11 8 objetivo=0.45
+; puzle tinaja_vierte cuando=tinaja_ruinas.agua_llega hace=tinaja_ruinas.abrir_cauce(0.5,20)
+; pieza puente_arroyo puente 14 9 celdas=14,9+15,9
+; pieza pulsador_puente pulsador 17 9 modo=agua
+; pieza cuerda_puente cuerda 16 8 sostiene=puente_arroyo
+; puzle puente_agua cuando=pulsador_puente.pulsado hace=puente_arroyo.tender
+; puzle puente_marca cuando=puente_arroyo.tendido hace=flag.poner(bosque02.ruinas.puente)
+; puzle puente_vuelve cuando=flag.bosque02.ruinas.puente hace=puente_arroyo.tender
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 9 · LA SALA DEL TESORO DE LAS RUINAS: la puerta (7,7) pide la flag bosque02.ruinas.totems (los tres tótems despiertos; la pone el script). Cofre común 6.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza puerta_ruinas puerta 7 7 modelo=llave llave=bosque02.ruinas.totems abierto=bosque02.ruinas.puerta
+; pieza cofre_ruinas cofre 6 5 abierto=bosque02.ruinas.cofre da=oro:40+seta_asada:2
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 10 · EL PESO DE LA PIEDRA: el bloque (5,10) se empuja por la pista (y=10) hasta la placa K (9,10). Cofre ÉPICO 3 (trastienda, tunica_salamandra). La placa K es un Reactivo3D: la flag la pone el script.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza bloque_ruinas bloque 5 10 material=piedra
+; pieza cofre_trastienda cofre 11 10 modelo=epico aparece_si=flag.bosque02.ruinas.placa abierto=bosque02.trastienda.cofre da=tunica_salamandra:1
+; pieza jarrones_plaza jarron 10 6 celdas=10,6+5,11 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 11 · EL ESTANQUE DEL MOLINO. La fuente eléctrica (25,7) electrifica el lago cada ~5,6 s. Canal x=33: manantial (33,5) → compuerta (33,6) → molino (33,8) → desagüe (33,10). El pulsador de agua (31,8) abre la compuerta.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza fuente_estanque emisor 25 7
+; pieza arroyo_molino cuenca 33 5 celdas=33,5..33,10
+; pieza desague_molino cuenca 33 10 fijo=0.02
+; pieza manantial_molino manantial 33 5 caudal=1.5 inicia=no
+; pieza compuerta_molino compuerta 33 6 vertical=no
+; pieza molino_estanque molino 33 8 umbral=0.3
+; pieza pulsador_molino pulsador 31 8 modo=agua
+; puzle grifo_abre cuando=compuerta_molino.abierta hace=manantial_molino.abrir_cauce
+; puzle grifo_cierra cuando=compuerta_molino.cerrada hace=manantial_molino.apagar_fuente
+; puzle molino_boton cuando=pulsador_molino.pulsado hace=compuerta_molino.abrir
+; puzle compuerta_marca cuando=compuerta_molino.abierta hace=flag.poner(bosque02.estanque.compuerta)
+; puzle compuerta_vuelve cuando=flag.bosque02.estanque.compuerta hace=compuerta_molino.abrir
+; puzle molino_marca cuando=molino_estanque.girando hace=flag.poner(bosque02.estanque.molino)
+; pieza cofre_molino cofre 32 5 aparece_si=flag.bosque02.estanque.compuerta abierto=bosque02.molino.cofre da=tabla:cofre_pequeno
+; pieza cofre_estanque cofre 27 9 modelo=epico aparece_si=flag.bosque02.estanque.molino abre_si=casilla(27,8).electrificada abierto=bosque02.estanque.cofre da=capa_escarcha:1
+; pieza alga_estanque alga 28 7 coge_si=casilla(28,7).helada
+; pieza jarrones_estanque jarron 25 9 celdas=25,9+31,6 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 12 · EL CAMPAMENTO GOBLIN (28..35, 12..19). La puerta goblin (28,16) arde; el cerrojo (29,16) se cierra al entrar en la sala; el vigía cuenta a los goblins y al chamán. Cofre ÉPICO 1 (llave del santuario). Cofre común 5 tras quemar la torre este.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza cerr_camp cerrojo 29 16 celdas=29,16 sala=30,12..35,19 hasta=bosque02.campamento.limpio
+; pieza vig_camp vigia 30 12 de=30,12..35,19 flag=bosque02.campamento.limpio
+; puzle camp_abre cuando=vig_camp.todos_derrotados hace=cerr_camp.abrir
+; pieza chaman_camp chaman 32 14
+; pieza barril_camp_a barril 31 17
+; pieza barril_camp_b barril 35 15
+; pieza cofre_campamento cofre 34 16 modelo=epico aparece_si=flag.bosque02.campamento.limpio abierto=bosque02.campamento.cofre da=capucha_musgo:1
+; puzle llave_santuario cuando=cofre_campamento.abierto hace=flag.poner(bosque02.santuario.llave)
+; pieza cofre_torre cofre 35 13 aparece_si=flag.bosque02.torre.quemada abierto=bosque02.torre.cofre da=tabla:cofre_pequeno
+; pieza jarrones_camp jarron 30 17 celdas=30,17+35,17+31,19 botin=zona
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 13 · EL SANTUARIO (5..11, 13..19). La puerta (8,12) pide la llave (flag bosque02.santuario.llave); el cerrojo (8,13) se cierra al entrar; el elemental (8,16) lo vigila el vigía. Cofre LEGENDARIO del corazón: fin de la demo.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza puerta_santuario puerta 8 12 modelo=llave llave=bosque02.santuario.llave abierto=bosque02.santuario.puerta
+; pieza cerr_sant cerrojo 8 13 celdas=8,13 sala=5,14..11,19 hasta=bosque02.santuario.limpio
+; pieza vig_sant vigia 8 16 de=5,13..11,19 flag=bosque02.santuario.limpio
+; puzle sant_abre cuando=vig_sant.todos_derrotados hace=cerr_sant.abrir
+; pieza guardian_sant guardian 5 16 en=7,15+9,15 elemento=fuego
+; pieza cofre_corazon cofre 8 18 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2
