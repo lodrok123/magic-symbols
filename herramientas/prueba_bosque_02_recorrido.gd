@@ -74,6 +74,15 @@ func _libre(c: Vector2i) -> bool:
 	return Terreno3D.pisable(c, 0, false, 0, false)
 
 
+## true cuando en la casilla no queda NINGÚN nodo reactivo (el consumido se disuelve ~1 s antes de liberarse; mientras existe, `HechizoVivo._contacto` lo golpea por grupo,
+## sin mirar su capa, y el proyectil muere ahí: una flecha disparada desde esa casilla no sale).
+func _consumido(c: Vector2i) -> bool:
+	for r in get_nodes_in_group("reactivo3d"):
+		if is_instance_valid(r) and r.get("celda") == c:
+			return false
+	return true
+
+
 ## BFS por las 4 vecinas sobre lo pisable AHORA. Devuelve la lista de casillas desde `desde` hasta `hasta` (ambas incluidas), o [] si no hay camino.
 func _ruta(desde: Vector2i, hasta: Vector2i) -> Array:
 	if desde == hasta:
@@ -146,6 +155,8 @@ func disparar(elemento: String, glifos: Array, desde: Vector2i, objetivo: Vector
 	if not await caminar(desde, que):
 		return false
 	await avanzar(3)
+	# La jugadora puede venir de abrir un cofre o de empujar (gesto en curso): el Lanzador se niega hasta que acaba. No depende del paso de fotograma.
+	await esperar(func() -> bool: return bool(jugador.call("puede_lanzar")), 3.0)
 	var dir: Vector3 = Terreno3D.centro_de(objetivo, 0.0) - jugador.position
 	dir.y = 0.0
 	var salio: bool = lanzar(elemento, glifos, dir)
@@ -469,7 +480,10 @@ func _ruinas_este() -> void:
 	await disparar("fuego", ["flecha"], Vector2i(22, 9), Vector2i(22, 7), "6.3")
 	var libre: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 7)), 20.0)
 	_ok("6.4 la telaraña arde y se consume (queda su flag)", libre and _flag("bosque02.quemado.c22_7"))
-	await disparar("fuego", ["flecha"], Vector2i(22, 8), Vector2i(22, 6), "6.5")
+	# La casilla se libera antes de que la telaraña consumida desaparezca: hasta entonces se come la flecha (ver `_consumido`). Se espera a que no quede nada.
+	await esperar(func() -> bool: return _consumido(Vector2i(22, 7)), 20.0)
+	# Con la telaraña consumida la casilla (22,7) se pisa: se dispara pegada al tótem (a 2 casillas la flecha se apagaba sin tocar nada: `ultimo_impacto` = inf).
+	await disparar("fuego", ["flecha"], Vector2i(22, 7), Vector2i(22, 6), "6.5")
 	var fuego: bool = await esperar(func() -> bool: return bool(tot[0].activo), 6.0)
 	_ok("6.6 DESPUÉS: el tótem de fuego despierta y deja `bosque02.totem.fuego`", fuego and _flag("bosque02.totem.fuego"))
 	# --- agua: la tinaja (13,5) está al otro lado del arroyo; su cuenca abre la reja (19,7) del tótem
@@ -577,7 +591,15 @@ func _estanque() -> void:
 	var t0: float = reloj.t
 	var con_descarga: bool = await esperar(func() -> bool: return epico.sellado_cumplido(), 30.0)
 	_ok("8.11 la fuente (25,7) descarga y `casilla(27,8).electrificada` se cumple a los %.1f s (reloj de 2 s de C2)" % (reloj.t - t0), con_descarga)
-	var abrio: bool = epico.abrir()
+	_hacer_sitio()                                   # el botín del camino (al azar) puede tener la mochila llena: sin hueco la capa no entra
+	# Como en `abrir_cofre`: `Cofre3D.abrir` devuelve false mientras la tapa aún está apareciendo o en otra animación; se insiste (solo con el lago electrificado) hasta 10 s.
+	var abrio: bool = false
+	var t1: float = reloj.t
+	while reloj.t - t1 < 10.0 and not abrio:
+		if epico.sellado_cumplido():
+			abrio = epico.abrir()
+		if not abrio:
+			await avanzar_s(0.1)
 	await esperar(func() -> bool: return epico.es_abierto, 10.0)
 	_ok("8.12 DESPUÉS: con el lago electrificado el cofre épico se abre (capa de escarcha: %d)" % Estado.i().cuenta("capa_escarcha"), abrio and epico.es_abierto and Estado.i().cuenta("capa_escarcha") == 1)
 	_abiertos["cofre_estanque"] = "epico"
