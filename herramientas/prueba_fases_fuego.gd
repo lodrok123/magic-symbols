@@ -23,6 +23,7 @@ var _vfx: VfxElemento3D = null
 
 
 func _initialize() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)      # esta prueba mide el dibujo de VfxElemento3D / ConjuroVfx3D; con el toy de serie (fuego y agua) se callan y lo cubre prueba_vfx_en_juego
 	_correr()
 
 

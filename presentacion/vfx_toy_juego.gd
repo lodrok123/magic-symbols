@@ -15,7 +15,9 @@ extends Node
 ## Uso:   VfxToyJuego.conectar(lanzador, mundo)
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
-const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]
+const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
+const ELEMENTOS_DEFECTO: String = "fuego,agua"
+const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
 const MAX_VIVOS: int = 12
 const VIDA_MIN: float = 1.0
 const VIDA_MAX: float = 25.0                  ## = VfxElemento3D.VIDA_MAX (el límite global persiste + permanencia)
@@ -46,8 +48,17 @@ static func activo() -> bool:
 
 
 ## ¿Dibuja el toy este elemento? (VfxElemento3D y ConjuroVfx3D lo preguntan para callarse.)
-static func reemplaza(elemento: String) -> bool:
-	return ELEMENTOS.has(elemento) and activo()
+static func usa_toy(elemento: String) -> bool:
+	return ELEMENTOS.has(elemento) and activo() and elementos_activos().has(elemento)
+
+
+## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua» por defecto: hielo y rayo siguen con el dibujo de antes hasta que Pablo los apruebe).
+## ÚNICO criterio del juego: VfxToyJuego, VfxElemento3D y ConjuroVfx3D preguntan aquí.
+static func elementos_activos() -> PackedStringArray:
+	var r: PackedStringArray = []
+	for e in String(ProjectSettings.get_setting(AJUSTE_ELEMENTOS, ELEMENTOS_DEFECTO)).split(",", false):
+		r.append(e.strip_edges().to_lower())
+	return r
 
 
 static func conectar(lanzador: Object, mundo: Node3D) -> VfxToyJuego:
@@ -105,7 +116,7 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 		"runa":
 			_retirar_carga()                       # lo que quedara de un conjuro anterior que no llegó a disparar
 		"forma":
-			if reemplaza(elemento):
+			if usa_toy(elemento):
 				_empezar_carga(elemento, posicion)
 
 
@@ -168,7 +179,7 @@ func _en_nodo(n: Node) -> void:
 		return
 	var hv := n as HechizoVivo
 	_ultimo_hv = weakref(hv)
-	if hv.h == null or not reemplaza(String(hv.elemento)):
+	if hv.h == null or not usa_toy(String(hv.elemento)):
 		return
 	if hv.h.velocidad > 0.0 and not hv.h.haz:
 		_proyectil.call_deferred(weakref(hv))      # `v` y la posición se fijan en `_iniciar_proyectil`, después de añadirse
@@ -300,7 +311,7 @@ func _recorrer(t: Node3D, ruta: Array, tiempo: float) -> bool:
 # ------------------------------------------------------------------ lo que no viaja como proyectil ------------------------------------------------------------------
 
 func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, _props: Dictionary) -> void:
-	if not reemplaza(elemento) or _mundo == null or not is_instance_valid(_mundo):
+	if not usa_toy(elemento) or _mundo == null or not is_instance_valid(_mundo):
 		return
 	var hv: HechizoVivo = _ultimo_hv.get_ref() as HechizoVivo if _ultimo_hv != null else null
 	if hv == null or not is_instance_valid(hv) or hv.h == null:

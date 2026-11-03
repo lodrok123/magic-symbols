@@ -39,6 +39,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 
 func _initialize() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)      # esta prueba mide el dibujo de VfxElemento3D / ConjuroVfx3D; con el toy de serie (fuego y agua) se callan y lo cubre prueba_vfx_en_juego
 	await process_frame
 	Terreno3D.alturas.clear()
 	Terreno3D.conductores.clear()

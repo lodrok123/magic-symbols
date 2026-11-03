@@ -60,7 +60,11 @@ Observaciones que importan:
 
 ## 4. Cómo verlo
 
-1. Con Godot **cerrado**, abrir `project.godot` y, en la sección `[magic_symbols]`, poner `vfx_procedural=true` (o, con Godot abierto: Proyecto → Configuración del proyecto → activar «Configuración avanzada» → «Magic Symbols» → `vfx_procedural`).
-2. Abrir y ejecutar `escenas/PruebaBosque01_v01.tscn`. Lanzar fuego y agua con los glifos de siempre: ᚠ `flecha` (proyectil, con su carga en la mano), ᚦ `barrera` + ᛁ (muro), ᛉ `altura` (pilar), ᛁ sola (haz).
-3. Para volver a lo de antes: `vfx_procedural=false`.
-4. Capturas lado a lado: `docs/capturas/vfx_en_juego/lamina_vfx_en_juego.png` (se rehacen con `herramientas/captura_vfx_en_juego.gd` y `herramientas/lamina_vfx.py --en-juego`).
+**De serie desde el 3/11/2026 (aprobados por Pablo: fuego y agua).** Con `project.godot` tal cual ([magic_symbols]: `vfx_procedural=true` y `vfx_procedural_elementos="fuego,agua"`) el fuego y el agua de los hechizos se dibujan con `FuegoToy` / `AguaToy`; el hielo y el rayo siguen con el dibujo de antes (VfxElemento3D, VfxHielo y la forma de la mano de ConjuroVfx3D) hasta que Pablo apruebe sus toys.
+
+1. Abrir y ejecutar `escenas/PruebaBosque01_v01.tscn`. Lanzar fuego y agua con los glifos de siempre: ᚠ `flecha` (proyectil, con su carga en la mano), ᚦ `barrera` + ᛁ (muro), ᛉ `altura` (pilar), ᛁ sola (haz).
+2. **Un único criterio**: `VfxToyJuego.usa_toy(elemento)` = selector general encendido Y el elemento es de los que sabe dibujar el toy (fuego, agua, hielo, rayo) Y figura en `magic_symbols/vfx_procedural_elementos`. Lo preguntan VfxToyJuego (carga, proyectil, volúmenes), VfxElemento3D (`_en_nodo`, `_en_hechizo`) y ConjuroVfx3D (forma y destello), así que cada hechizo tiene UN solo renderizador.
+3. **Encender el hielo y el rayo** (para enseñárselos a Pablo): con Godot cerrado, en `project.godot` poner `vfx_procedural_elementos="fuego,agua,hielo,rayo"` (o, con Godot abierto: Proyecto → Configuración del proyecto → «Configuración avanzada» → Magic Symbols). Se puede dejar solo uno: `"fuego,agua,rayo"`.
+4. **Volver a todo lo de antes**: `vfx_procedural=false` (la lista no cuenta con el selector general apagado). Para quitar solo uno, sacarlo de la lista.
+5. El laboratorio (`laboratorios/lab_vfx_comparativa_3d.gd`) no lee ninguno de los dos ajustes.
+6. Capturas: `docs/capturas/vfx_en_juego/lamina_vfx_en_juego.jpg` (fuego y agua, antes y después) y `docs/capturas/vfx_en_juego/de_serie/` (lo de serie, en el Bosque 01 con la cámara del juego); se rehacen con `herramientas/captura_vfx_en_juego.gd` (cuarto argumento `procedural` = solo lo de serie) y `herramientas/lamina_vfx.py --en-juego`.

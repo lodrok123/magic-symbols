@@ -170,7 +170,7 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 		"forma":
 			_mano = posicion
 			_resolver_origen(elemento)
-			if not VfxToyJuego.reemplaza(elemento):      # A1: con el selector procedural la carga de la mano la dibuja el toy (VfxToyJuego)
+			if not VfxToyJuego.usa_toy(elemento):      # A1: con el selector procedural la carga de la mano la dibuja el toy (VfxToyJuego)
 				forma(elemento, posicion, float(t[2]), _origen, _destino)
 			_parar_sonido_carga(0.0)
 			if FasesFuego3D.aplica(elemento):
@@ -179,7 +179,7 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 					_snd_carga.set("global_position", posicion)
 		"disparo":
 			_parar_sonido_carga(0.1)
-			if not VfxToyJuego.reemplaza(elemento):      # A1: el destello al soltar es el del toy
+			if not VfxToyJuego.usa_toy(elemento):      # A1: el destello al soltar es el del toy
 				destello(elemento, posicion, _origen)
 				onda(elemento, posicion, _origen)
 			retirar_forma()

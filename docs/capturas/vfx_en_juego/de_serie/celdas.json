@@ -1,0 +1,226 @@
+[
+  {
+    "elemento": "fuego",
+    "hechizo": "bola_quieta",
+    "id": "fuego_bola_quieta_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "bola quieta"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "bola_quieta",
+    "id": "fuego_bola_quieta_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "bola quieta"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "proyectil",
+    "id": "fuego_proyectil_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "proyectil"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "proyectil",
+    "id": "fuego_proyectil_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "proyectil"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "muro",
+    "id": "fuego_muro_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "muro",
+    "id": "fuego_muro_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "pilar",
+    "id": "fuego_pilar_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "pilar"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "pilar",
+    "id": "fuego_pilar_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "pilar"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "barrera",
+    "id": "fuego_barrera_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "barrera",
+    "id": "fuego_barrera_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "haz",
+    "id": "fuego_haz_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "haz"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "haz",
+    "id": "fuego_haz_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "haz"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "carga",
+    "id": "fuego_carga_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "carga en la mano"
+  },
+  {
+    "elemento": "fuego",
+    "hechizo": "carga",
+    "id": "fuego_carga_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "carga en la mano"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "bola_quieta",
+    "id": "agua_bola_quieta_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "bola quieta"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "bola_quieta",
+    "id": "agua_bola_quieta_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "bola quieta"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "proyectil",
+    "id": "agua_proyectil_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "proyectil"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "proyectil",
+    "id": "agua_proyectil_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "proyectil"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "muro",
+    "id": "agua_muro_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "muro",
+    "id": "agua_muro_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "muro (con ᛉ: sin altura queda bajo la hierba)"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "pilar",
+    "id": "agua_pilar_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "pilar"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "pilar",
+    "id": "agua_pilar_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "pilar"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "barrera",
+    "id": "agua_barrera_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "barrera",
+    "id": "agua_barrera_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "barrera (con ᛁ ᛁ y ᛉ)"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "haz",
+    "id": "agua_haz_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "haz"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "haz",
+    "id": "agua_haz_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "haz"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "carga",
+    "id": "agua_carga_procedural_045",
+    "modo": "procedural",
+    "t": 0.45,
+    "titulo": "carga en la mano"
+  },
+  {
+    "elemento": "agua",
+    "hechizo": "carga",
+    "id": "agua_carga_procedural_110",
+    "modo": "procedural",
+    "t": 1.1,
+    "titulo": "carga en la mano"
+  }
+]

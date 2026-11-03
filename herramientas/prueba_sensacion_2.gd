@@ -99,6 +99,7 @@ func _etiquetas() -> Array:
 
 
 func _escenario() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)      # esta prueba mide el dibujo de VfxElemento3D (la estela del proyectil); con el toy de serie se calla
 	Flags.nuevo()
 	Estado.nuevo()
 	await cargar(RUTA_BOSQUE, false)

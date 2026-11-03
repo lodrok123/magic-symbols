@@ -2,7 +2,7 @@ extends "res://herramientas/escenario_base.gd"
 ## CAPTURAS DEL FUEGO Y EL AGUA EN EL JUEGO (A1, 2/11/2026). NECESITA VENTANA. Carga el Bosque 01 v01 con la cámara DEL JUEGO (la de la maqueta, ortogonal a 60°, sin tocar su zoom) y lanza los mismos
 ## hechizos (bola quieta, proyectil, muro, pilar, barrera, haz, y la carga en la mano) de fuego y de agua dos veces desde el mismo sitio y la misma luz: con `magic_symbols/vfx_procedural` = false
 ## («actual»: VfxElemento3D y el kit) y = true («procedural»: FuegoToy / AguaToy). Se cambia el ajuste en marcha (VfxToyJuego lo lee en cada evento).
-##   godot --path . --resolution 1280x720 --script res://herramientas/captura_vfx_en_juego.gd -- [carpeta] [solo_elemento] [solo_hechizo]
+##   godot --path . --resolution 1280x720 --script res://herramientas/captura_vfx_en_juego.gd -- [carpeta] [solo_elemento|*] [solo_hechizo|*] [modos: actual,procedural | procedural]
 ## Por defecto escribe en res://docs/capturas/vfx_en_juego/: <elemento>_<hechizo>_<actual|procedural>_<t>.png (fotograma completo del juego) y celdas.json, que monta
 ##   python herramientas/lamina_vfx.py --en-juego docs/capturas/vfx_en_juego docs/capturas/vfx_en_juego/lamina_vfx_en_juego.png
 ## Se miran a ojo (no hay `_ok`).
@@ -23,6 +23,7 @@ const DIR: Vector3 = Vector3(1.0, 0.0, 0.0)
 var _dir: String = "res://docs/capturas/vfx_en_juego"
 var _solo: String = ""
 var _solo_h: String = ""
+var _modos: Array = ["actual", "procedural"]      ## con «procedural» solo: lo de serie del juego (ajuste + lista por defecto de project.godot) sin la comparación con lo viejo
 var _json: Array = []
 
 
@@ -30,10 +31,12 @@ func _escenario() -> void:
 	var a := OS.get_cmdline_user_args()
 	if a.size() > 0 and a[0] != "":
 		_dir = a[0]
-	if a.size() > 1:
+	if a.size() > 1 and a[1] != "*":
 		_solo = a[1]
-	if a.size() > 2:
+	if a.size() > 2 and a[2] != "*":
 		_solo_h = a[2]
+	if a.size() > 3 and a[3] != "":
+		_modos = Array(a[3].split(","))
 	DirAccess.make_dir_recursive_absolute(_dir)
 	Flags.nuevo()
 	Misiones.nuevo()
@@ -57,8 +60,9 @@ func _escenario() -> void:
 		for hz in HECHIZOS:
 			if _solo_h != "" and _solo_h != String(hz[0]):
 				continue
-			for modo in ["actual", "procedural"]:
+			for modo in _modos:
 				ProjectSettings.set_setting(VfxToyJuego.AJUSTE, modo == "procedural")
+				ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, VfxToyJuego.ELEMENTOS_DEFECTO)      # lo de serie: fuego y agua con el toy
 				colocar_jugador(c)
 				await avanzar_s(0.3)
 				await _una(el, hz, modo)

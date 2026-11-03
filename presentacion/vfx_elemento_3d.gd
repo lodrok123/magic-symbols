@@ -297,7 +297,7 @@ func _en_nodo(n: Node) -> void:
 	if not (n is HechizoVivo):
 		return
 	_ultimo = weakref(n)                   # se apunta aunque esté apagado: `hechizo_v2` lo busca
-	if not encendido or VfxToyJuego.reemplaza(String((n as HechizoVivo).elemento)):      # A1: con `magic_symbols/vfx_procedural` el fuego y el agua los dibuja `VfxToyJuego`
+	if not encendido or VfxToyJuego.usa_toy(String((n as HechizoVivo).elemento)):      # A1: con `magic_symbols/vfx_procedural` el fuego y el agua los dibuja `VfxToyJuego`
 		return
 	# `h` se asigna en `preparar`, antes de añadirse; la velocidad y la dirección (`v`) se fijan después, en `_iniciar_proyectil`: por eso se dibuja diferido.
 	var hv := n as HechizoVivo
@@ -313,7 +313,7 @@ func _en_hechizo(estado: String, elemento: String, g: Dictionary, origen: Vector
 		print("[VfxElemento3D] hechizo_v2 %s/%s forma=%s celdas=%d viaja=%s props=%s" % [estado, elemento, str(hv.h.forma) if hv != null and hv.h != null else "?",
 			(g.get("celdas", []) as Array).size(), str(g.get("viaja", false)), str(props.keys())])
 	_log = "%s/%s" % [estado, elemento]
-	if VfxToyJuego.reemplaza(elemento):    # A1: un solo renderizador por hechizo
+	if VfxToyJuego.usa_toy(elemento):    # A1: un solo renderizador por hechizo
 		return
 	if not encendido or _vivos >= MAX_VIVOS or _mundo == null or not is_instance_valid(_mundo):
 		return

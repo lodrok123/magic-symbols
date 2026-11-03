@@ -25,6 +25,7 @@ var _fallos: int = 0
 
 
 func _initialize() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)      # esta prueba es del dibujo de VfxElemento3D; con el toy de serie (fuego y agua) se calla y lo cubre prueba_vfx_en_juego
 	_correr()
 
 

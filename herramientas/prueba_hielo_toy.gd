@@ -738,5 +738,5 @@ func _lab() -> void:
 	var t: Node3D = vj.call("_nuevo", "hielo")
 	_ok("VfxToyJuego._nuevo(«hielo») crea un HieloToy y cuenta uno", t is HieloToy and int(vj.creados["hielo"]) == 1)
 	t.free()
-	_ok("VfxToyJuego.reemplaza(«hielo») depende del selector (%s)" % str(VfxToyJuego.ELEMENTOS), VfxToyJuego.ELEMENTOS.has("hielo") and VfxToyJuego.ELEMENTOS.has("rayo") and VfxToyJuego.reemplaza("hielo") == VfxToyJuego.activo())
+	_ok("VfxToyJuego.reemplaza(«hielo») depende del selector y de la lista de elementos (%s)" % str(VfxToyJuego.ELEMENTOS), VfxToyJuego.ELEMENTOS.has("hielo") and VfxToyJuego.ELEMENTOS.has("rayo") and VfxToyJuego.usa_toy("hielo") == (VfxToyJuego.activo() and VfxToyJuego.elementos_activos().has("hielo")))
 	vj.free()

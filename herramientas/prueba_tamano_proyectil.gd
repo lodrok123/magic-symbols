@@ -49,6 +49,7 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 
 
 func _initialize() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)      # esta prueba mide el dibujo de VfxElemento3D / ConjuroVfx3D; con el toy de serie (fuego y agua) se callan y lo cubre prueba_vfx_en_juego
 	await process_frame
 	# ANTES_CAJA["ice"] es la del cometa del kit (bola + cola). Por defecto el proyectil de hielo es la ESQUIRLA girando (`VfxHielo.proyectil_esquirla = true`, decisión de Pablo): su caja es
 	# la esquirla de largo r_u · ESQUIRLA_LARGO_K (r_u = semieje de vuelo en u; ver `_visual`). Con `proyectil_esquirla = false` vuelve el cometa y se compara con ANTES_CAJA.

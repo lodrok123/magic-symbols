@@ -40,6 +40,7 @@ var _l: Lanzador3D = null
 var _jug: JugadorFalso = null
 var _ve: VfxElemento3D = null
 var _tj: VfxToyJuego = null
+var _defecto_proyecto: Array = []            ## [ajuste, elementos, existe ajuste, existe elementos] tal como los deja project.godot
 var _cj: ConjuroVfx3D = null
 var _runas: Dictionary = {}
 var _terminados: Array = []                  ## lo que emitió HechizoVivo.terminado: [causa, pos, normal, material]
@@ -57,11 +58,13 @@ func _initialize() -> void:
 	await process_frame
 	for e in ELEMENTOS:
 		_runas[e] = load("res://nucleo/%s_rune.tres" % ELEMENTOS[e]) as RuneData
+	_defecto_proyecto = [bool(ProjectSettings.get_setting(VfxToyJuego.AJUSTE, false)), String(ProjectSettings.get_setting(VfxToyJuego.AJUSTE_ELEMENTOS, "")), ProjectSettings.has_setting(VfxToyJuego.AJUSTE), ProjectSettings.has_setting(VfxToyJuego.AJUSTE_ELEMENTOS)]      # lo que dice project.godot antes de tocar nada
 	await _con_selector_apagado()
 	await _seis_hechizos()
 	await _proyectil_y_su_fin()
 	await _carga_en_la_mano()
 	await _un_solo_renderizador()
+	await _de_serie()
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -150,7 +153,8 @@ func _medir(t: Node) -> Dictionary:
 func _con_selector_apagado() -> void:
 	print("== selector apagado: nada cambia")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
-	_ok("0 el ajuste existe y vale false por defecto (project.godot)", not VfxToyJuego.activo() and ProjectSettings.has_setting(VfxToyJuego.AJUSTE))
+	_ok("0 project.godot: ajuste general = true y elementos = «fuego,agua» (de serie; hielo y rayo, no)", bool(_defecto_proyecto[2]) and bool(_defecto_proyecto[3]) and bool(_defecto_proyecto[0]) and String(_defecto_proyecto[1]) == "fuego,agua", str(_defecto_proyecto))
+	_ok("0 con el ajuste a false `usa_toy` es false para los cuatro", not VfxToyJuego.activo() and not VfxToyJuego.usa_toy("fuego") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and not VfxToyJuego.usa_toy("rayo"))
 	for el in ELEMENTOS:
 		_montar()
 		for s in SEIS:
@@ -161,11 +165,16 @@ func _con_selector_apagado() -> void:
 		_ok("0 %s: sin toy no se ve nada nuevo en el conjuro (ConjuroVfx3D sigue dibujando su forma)" % el, true)
 
 
+func _encender_todos() -> void:
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, "fuego,agua,hielo,rayo")      # las secciones 1-4 prueban los cuatro toys; lo de serie, la 5
+
+
 # ------------------------------------------------------------------ 1. los seis hechizos ------------------------------------------------------------------
 
 func _seis_hechizos() -> void:
 	print("== selector encendido: seis hechizos de fuego, de agua, de hielo y de rayo")
-	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	_encender_todos()
 	for el in ELEMENTOS:
 		for s in SEIS:
 			await _un_hechizo(el, String(s[0]), s[1] as Dictionary, int(s[2]), bool(s[3]))
@@ -263,7 +272,7 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 
 func _proyectil_y_su_fin() -> void:
 	print("== proyectil: impacto con la normal de la lógica, rebote y fin sin choque")
-	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	_encender_todos()
 	for el in ELEMENTOS:
 		# choca con la pared del fondo (x = 23): normal -X y material «#»
 		_montar()
@@ -327,7 +336,7 @@ func _proyectil_y_su_fin() -> void:
 
 func _carga_en_la_mano() -> void:
 	print("== carga en la mano: empieza al conjurar, se suelta al lanzar")
-	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	_encender_todos()
 	for el in ELEMENTOS:
 		_montar()
 		var h: Hechizo = _hz(el, {"flecha": 1})
@@ -386,7 +395,7 @@ func _carga_en_la_mano() -> void:
 
 func _un_solo_renderizador() -> void:
 	print("== un solo renderizador y el resto de elementos no cambia")
-	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	_encender_todos()
 	_montar()
 	for el in ["tierra", "viento", "hielo"]:
 		if not _runas.has(el):
@@ -414,3 +423,55 @@ func _un_solo_renderizador() -> void:
 		luces_c += int(_medir(t)["luces"])
 	_ok("4 un proyectil con ᚠ (%d bolas) suma ≤ 1 luz (%d)" % [_toys().size(), luces_c], _toys().size() >= 2 and luces_c <= 1)
 	print("resumen presupuesto: fuego luces máx %d, partículas máx %d · agua luces máx %d, partículas máx %d · hielo luces máx %d, partículas máx %d · rayo luces máx %d, partículas máx %d" % [_max_luces["fuego"], _max_part["fuego"], _max_luces["agua"], _max_part["agua"], _max_luces["hielo"], _max_part["hielo"], _max_luces["rayo"], _max_part["rayo"]])
+
+# ------------------------------------------------------------------ 5. lo de serie: fuego y agua con el toy, hielo y rayo con el dibujo de antes ------------------------------------------------------------------
+
+func _de_serie() -> void:
+	print("== de serie (ajuste = true, elementos = «fuego,agua»): fuego y agua con el toy; hielo y rayo como antes")
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, String(_defecto_proyecto[1]))
+	_ok("5 usa_toy: fuego y agua sí, hielo y rayo no, tierra y viento no", VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and not VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("tierra") and not VfxToyJuego.usa_toy("viento"))
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, " Fuego , rayo,,nada")
+	_ok("5 la lista tolera mayúsculas, espacios y vacíos (%s)" % str(VfxToyJuego.elementos_activos()), VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("nada"))
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, "fuego,agua")
+	for el in ELEMENTOS:
+		var toy: bool = el == "fuego" or el == "agua"
+		for s in SEIS:
+			_montar()
+			_lanzar(_hz(el, s[1] as Dictionary))
+			await _frames(3)
+			var n: int = _toys().size()
+			var etq: String = "%s · %s" % [el, String(s[0])]
+			if toy:
+				_ok("5 %s: UN toy (%d) y VfxElemento3D se calla (proy %d, vol %d, haces %d)" % [etq, n, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], n == 1 and _ve.proyectiles() == 0 and _ve.volumenes() == 0 and _ve.haces() == 0)
+			else:
+				var dibuja: bool = _ve.proyectiles() + _ve.volumenes() + _ve.haces() >= 1 or el == "hielo"      # el hielo sólido lo dibuja también VfxHielo fuera de VfxElemento3D
+				_ok("5 %s: ningún toy (%d, creados %s) y el dibujo de antes sigue (proy %d, vol %d, haces %d)" % [etq, n, str(_tj.creados), _ve.proyectiles(), _ve.volumenes(), _ve.haces()], n == 0 and dibuja and int(_tj.creados[el]) == 0)
+		# la carga de la mano: toy para fuego y agua; ConjuroVfx3D dibuja su forma para hielo y rayo
+		_montar()
+		var h: Hechizo = _hz(el, {"flecha": 1})
+		_l.conjuro_actual = {"hechizo": h, "carga": 0.0}
+		_l.conjuro_fase.emit("runa", el, _origen())
+		_l.conjuro_fase.emit("forma", el, _origen())
+		await _frames(2)
+		if toy:
+			_ok("5 %s: la carga de la mano es del toy (toys %d, formas de ConjuroVfx3D %d)" % [el, _toys().size(), _cj._vivos.size()], _toys().size() == 1 and _tj.cargas == 1 and _cj._vivos.is_empty())
+		else:
+			_ok("5 %s: la carga de la mano la dibuja ConjuroVfx3D como antes (formas %d) y no hay toy (%d)" % [el, _cj._vivos.size(), _toys().size()], _toys().is_empty() and _tj.cargas == 0 and not _cj._vivos.is_empty())
+		# un proyectil que choca: el hielo y el rayo no pasan por VfxToyJuego (ningún Impacto*Toy)
+		if not toy:
+			_montar()
+			var hv: HechizoVivo = _lanzar(_hz(el, {"flecha": 1}).con({"gravedad": 0.0, "distancia_max": 8.0}), Vector3.RIGHT, Vector2i(17, 8))
+			var pasos: int = 0
+			while hv.activo and pasos < 600:
+				hv.paso(0.1)
+				pasos += 1
+			await _frames(2)
+			var imp: bool = false
+			for nd in _m.get_children():
+				if nd is ImpactoHieloToy or nd is ImpactoRayoToy or nd is ImpactoFuegoToy or nd is ImpactoAguaToy:
+					imp = true
+			_ok("5 %s: el impacto contra el muro no crea ningún Impacto*Toy (lo dibuja VfxElemento3D como antes)" % el, not imp)
+	# el selector general a false manda sobre la lista
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
+	_ok("5 con el ajuste general a false la lista no cuenta: nadie usa toy", not VfxToyJuego.usa_toy("fuego") and not VfxToyJuego.usa_toy("agua"))
