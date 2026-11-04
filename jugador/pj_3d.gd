@@ -67,12 +67,23 @@ const SINONIMOS: Dictionary = {
 	"agacharse": ["agacharse"],         # se agacha con las manos juntas y se levanta: cofres pequeños y coger del suelo
 	"ofrecer": ["ofrecer"],             # de pie, adelanta la mano derecha con la palma abierta (hablar / dar algo; el `talk` de siempre no cambia)
 	"empujar": ["empujar"],             # empuja andando (mecánica de empuje del jugador, aún sin construir: Jugador3D.empujando)
+	# Coger, cargar y lanzar (4/11, Meshy; ver ClipsFamilia.FUENTE_CLIPS_CARGA y CargarObjeto3D). Todos una vez salvo los dos de cargar (bucle).
+	"cargar_idle": ["cargar_idle"],       # quieta con las dos manos sobre la cabeza
+	"cargar_andar": ["cargar_andar"],     # un ciclo de paso con las manos arriba, en el sitio
+	"levantar": ["levantar"],             # se agacha, coge del suelo y lo sube sobre la cabeza (dejar_objeto al revés)
+	"lanzar_objeto": ["lanzar_objeto"],   # anticipación, suelta al frente con las dos manos y remate
+	"dejar_objeto": ["dejar_objeto"],     # baja el objeto al suelo, lo deja y se levanta
+	"coger_lanzar": ["coger_lanzar"],     # objetos pequeños: se agacha, coge con la derecha, da un paso y lanza (sin cargarlos)
 }
 
 ## Segundo del clip (a velocidad 1) en que ocurre lo que el Juego sincroniza con él: en `abrir_cofre`, las manos llegan abajo, a la tapa (el clip recortado empieza 0,8 s después
 ## que el de Meshy y las manos llegan a 2,2 s); en `agacharse`, el fondo de la agachada, con las manos a ras de lo que se coge (a 1,75 s). Medidos con la cinemática de los huesos
 ## de las manos en el clip original (arte/meshy/clips_jugadora.py).
-const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75}
+## 4/11 (clips de coger y lanzar, medidos con la cinemática directa de los huesos de las manos: arte/meshy/medir_clips_carga.py; segundos del clip RECORTADO a velocidad 1):
+##   levantar 1,05 = las manos cerradas sobre el objeto, abajo, justo antes de subir (llegan abajo a 0,62 s y se quedan hasta ~1,25 s) · dejar_objeto 1,3 = el objeto ya apoyado (manos a ≤ 2 cm de su
+##   mínimo desde 1,18 s) · lanzar_objeto 0,41 = la suelta, pico de velocidad de las manos (5,3 u/s del GLB, a 0,38–0,42 s) · coger_lanzar_agarre 0,72 = mano derecha en lo más bajo (y 0,31) y
+##   coger_lanzar 2,13 = la suelta con la derecha (pico de 7,0 u/s). `coger_lanzar_agarre` no es un rol: es solo la clave de la segunda marca de ese clip.
+const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75, "levantar": 1.05, "dejar_objeto": 1.3, "lanzar_objeto": 0.41, "coger_lanzar_agarre": 0.72, "coger_lanzar": 2.13}
 ## Lo mismo por MODELO (id del personaje -> rol -> segundo del clip a velocidad 1): el gólem de piedra golpea el suelo con el puño a los AnimacionesGolem.INSTANTE_GOLPE s de `attack` (medido con herramientas/prueba_golem_anim.gd) y queda de rodillas a T_EXPUESTO_ABAJO s de `expuesto`.
 const INSTANTE_CLIP_MODELO: Dictionary = {"golem_piedra": {"attack": AnimacionesGolem.INSTANTE_GOLPE, "expuesto": AnimacionesGolem.T_EXPUESTO_ABAJO},
 	"goblin_chaman": {"clavar": AnimacionesChaman.INSTANTE_CLAVAR, "lanzar": AnimacionesChaman.INSTANTE_LANZAR}}   # el chamán clava el bastón en el suelo a los INSTANTE_CLAVAR s de `clavar`

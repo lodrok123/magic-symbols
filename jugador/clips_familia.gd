@@ -28,6 +28,20 @@ const FUENTE_CLIPS_JUGADORA: Dictionary = {
 	# Las proporciones de cada elfa difieren (piernas, cadera) y en una agachada la cadera retargeteada hunde o levanta la suela unos centímetros: se corrige en cada fotograma.
 	"plantar": ["AbrirCofre", "Agacharse", "Ofrecer", "Saludo", "Empujar"]}
 
+## CLIPS DE COGER, CARGAR Y LANZAR (4/11): Meshy «Willow Fernstep» pasada a Mixamo (la MISMA jugadora que jugadora_base: mismos 65 huesos). arte/meshy/clips_carga.py recorta y renombra los seis clips
+## en arte/meshy/jugadora_carga_clips.glb (solo esqueleto y clips, 0,5 MB; el GLB de 20 MB con malla no está en el repo). Los nombres de destino son los roles de Pj3D.SINONIMOS y los instantes
+## medidos (la suelta, las manos abajo) están en Pj3D.INSTANTE_CLIP. «referencia»: CargarIdle (de pie, pies en el suelo) fija la altura de los pies.
+##   cargar_idle   quieta con las dos manos sobre la cabeza (bucle)         cargar_andar  un ciclo de paso con las manos arriba, en el sitio (bucle)
+##   levantar      se agacha, coge del suelo y lo sube sobre la cabeza       lanzar_objeto  anticipación, suelta al frente con las dos manos y remate
+##   dejar_objeto  baja el objeto al suelo, lo deja y se levanta             coger_lanzar   se agacha, coge con la derecha, da un paso y lanza (objetos pequeños, sin cargarlos)
+## `dejar_objeto` y `levantar` (el mismo clip al revés) vienen con TODO el cuerpo 0,17 más alto que el resto (cadera 1,02 en vez de 0,85: flotaba): `plantar` les pone la suela en el suelo.
+const RUTA_CLIPS_CARGA: String = "res://arte/meshy/jugadora_carga_clips.glb"
+const FUENTE_CLIPS_CARGA: Dictionary = {
+	"ruta": RUTA_CLIPS_CARGA, "referencia": "CargarIdle", "clips": {
+		"cargar_idle": "CargarIdle", "cargar_andar": "CargarAndar", "lanzar_objeto": "LanzarObjeto", "dejar_objeto": "DejarObjeto", "levantar": "Levantar", "coger_lanzar": "CogerLanzar",
+	},
+	"plantar": ["DejarObjeto", "Levantar"]}
+
 ## Los tres casts a UNA mano del Pipeline (diario 150: CastOneHandFront / Up / Ground, la otra mano sujeta el libro) viven en woodland_wanderer_suave.glb. La jugadora nueva (jugadora_base)
 ## los toma de ahí traducidos a su esqueleto (los tres sirven también de pose de referencia del brazo del libro, BrazoLibro3D). Los nombres se conservan: son los de Pj3D.SINONIMOS.
 const RUTA_UNA_MANO: String = "res://arte/modelos/woodland_wanderer_suave.glb"
@@ -38,10 +52,10 @@ const FUENTE_UNA_MANO: Dictionary = {
 
 ## Modelos que SÍ traen AnimationPlayer propio (la elfa jugadora) y solo reciben clips de más: id de GLB -> fuentes (mismo formato que FUENTES). Nunca pisan un clip que ya tenga.
 const EXTRAS: Dictionary = {
-	"woodland_wanderer_suave": [FUENTE_CLIPS_JUGADORA],
-	"woodland_wanderer": [FUENTE_CLIPS_JUGADORA],
-	"chibi_elf": [FUENTE_CLIPS_JUGADORA],
-	"chibi_elf_v2": [FUENTE_CLIPS_JUGADORA],
+	"woodland_wanderer_suave": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
+	"woodland_wanderer": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
+	"chibi_elf": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
+	"chibi_elf_v2": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
 }
 
 ## Modelo (id de GLB) -> de dónde toma sus clips. Solo para modelos que NO traen AnimationPlayer propio. Cada fuente es un GLB de la familia (mismos
@@ -60,6 +74,7 @@ const FUENTES: Dictionary = {
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 		FUENTE_CLIPS_JUGADORA,       # 24/10: abrir_cofre, agacharse, ofrecer, saludo y empujar (ver arriba)
 		FUENTE_UNA_MANO,             # 24/10: los tres casts a una mano (CastOneHandFront / Up / Ground)
+		FUENTE_CLIPS_CARGA,          # 4/11: cargar_idle, cargar_andar, levantar, lanzar_objeto, dejar_objeto y coger_lanzar (ver arriba)
 	],
 	# Chamán goblin (28/10): el esqueleto de Marimanta (66 huesos con las MISMAS bases de hueso: tools/autorig_chaman.py) y sus 7 clips (idle, andar de anciana, hablar, tramar, correr); las reacciones
 	# (hit, death, ahogarse), del goblin guerrero como las del asesino. `trazar` y `clavar` los genera AnimacionesChaman. Con `{}` se traen todos los de Marimanta con su nombre.

@@ -5,6 +5,9 @@ extends "res://herramientas/escenario_base.gd"
 ##   coger un jarrón (tiempos de la agachada, casilla liberada, el objeto sobre la cabeza), que cargando no se corre (ni rueda, golpea o lanza hechizos), la velocidad ×0,7,
 ##   lanzar (cae a la distancia de la tabla), que se rompe y suelta botín, que daña a un goblin con empuje, que Q lo deja entero delante (y se puede volver a coger),
 ##   que un golpe recibido lo tira y rompe, un cogible suelto cualquiera (piedra), el interruptor, y (segunda escena) que E sobre un cofre sigue abriéndolo aunque haya un jarrón al lado.
+## 4/11 (clips de Meshy, arte/meshy/jugadora_carga_clips.glb): además, que con jugadora_base la pose es la de los clips (los seis roles existen con duración e instantes medidos, `cargar_idle` con las manos
+## a la altura de la coronilla, `cargar_andar` en el sitio y a la velocidad del suelo, `levantar` con el agarre en T_FONDO, `lanzar_objeto` con la suelta en su instante, `dejar_objeto`), la ruta del objeto
+## pequeño (`coger_lanzar`, sin cargarlo) y que la capa procedural BrazosCarga3D sigue de respaldo si al modelo le falta un clip.
 
 const RUTA_02: String = "res://escenas/PruebaBosque02.tscn"
 const CLARO_X: Vector2i = Vector2i(-3, 6)         ## el claro buscado: casillas llanas y libres de claro+CLARO_X.x a claro+CLARO_X.y en X (la jugadora lanza hacia +X)
@@ -32,12 +35,15 @@ func _escenario() -> void:
 	j.vida = 100000.0
 	_claro()
 	await _coger()
+	await _clips_cargando()
 	await _no_correr()
 	await _lanzar_y_romper()
 	await _dano_goblin()
 	await _soltar()
 	await _golpe_recibido()
 	await _suelto_generico()
+	await _pequeno()
+	await _respaldo()
 	await _interruptor()
 	await _cofre()
 
@@ -167,6 +173,86 @@ func _coger() -> void:
 
 var _vel_sin: float = 0.0
 
+const ROLES_CLIPS: Array = ["cargar_idle", "cargar_andar", "levantar", "lanzar_objeto", "dejar_objeto", "coger_lanzar"]
+## Roles de los clips de Meshy con instante medido (Pj3D.INSTANTE_CLIP) y su valor esperado (s del clip a velocidad 1; arte/meshy/medir_clips_carga.py).
+const INSTANTES: Dictionary = {"levantar": 1.05, "dejar_objeto": 1.3, "lanzar_objeto": 0.41, "coger_lanzar_agarre": 0.72, "coger_lanzar": 2.13}
+
+
+## Posición de un hueso (Mixamo, sin prefijo) en el mundo, con la pose que tenga el esqueleto ahora.
+func _hueso(nombre: String) -> Vector3:
+	var sk: Skeleton3D = (j.pj as Pj3D)._esqueleto()
+	var i: int = sk.find_bone("mixamorig_" + nombre)
+	return sk.global_transform * sk.get_bone_global_pose(i).origin
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  1b. Los clips de Meshy (cargando el jarrón de _coger)
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _clips_cargando() -> void:
+	var pj: Pj3D = j.pj
+	if c.estado != CargarObjeto3D.Estado.CARGANDO:
+		_ok("3b (no se pudo cargar: se salta)", false)
+		return
+	_ok("3b coger usó los clips de Meshy (usa_clips) y no la capa de respaldo", c.usa_clips and c._brazos == null and not c.pequeno)
+	for rol in ROLES_CLIPS:
+		_ok("3b el rol «%s» existe en jugadora_base (clip «%s», %.2f s)" % [rol, pj.clip_de(rol), pj.duracion(rol)], pj.clip_de(rol) == rol and pj.duracion(rol) > 0.0)
+	for k in INSTANTES:
+		_ok("3b Pj3D.INSTANTE_CLIP[%s] = %.2f s" % [k, INSTANTES[k]], absf(Pj3D.instante_clip_de(pj.id, k) - float(INSTANTES[k])) < 0.001, str(Pj3D.instante_clip_de(pj.id, k)))
+		var rol_k: String = k.replace("_agarre", "")
+		_ok("3b …y cae dentro del clip «%s» (%.2f s)" % [rol_k, pj.duracion(rol_k)], Pj3D.instante_clip_de(pj.id, k) > 0.0 and Pj3D.instante_clip_de(pj.id, k) < pj.duracion(rol_k))
+	# quieta: cargar_idle y las manos en alto (cinemática real de los huesos)
+	_poner_mirada(Vector3.RIGHT)
+	await avanzar_s(0.6)
+	_ok("3b quieta cargando suena cargar_idle", pj.clip_actual() == "cargar_idle", pj.clip_actual())
+	# (manos y coronilla de `skeleton_updated`, con los modificadores puestos: la proporción chibi achica la cabeza a 0,80 y fuera de esa señal HeadTop_End sale 6 cm más alto)
+	var mi: Vector3 = c.mano_izq
+	var md: Vector3 = c.mano_der
+	var coronilla: Vector3 = c.cabeza_top
+	var centro_cabeza: Vector3 = _hueso("Head")
+	var suelo: float = j.position.y
+	print("      cargar_idle (cinemática): manos y %.2f / %.2f u sobre los pies · centro de la cabeza %.2f · coronilla %.2f · separación de las manos %.2f u" % [mi.y - suelo, md.y - suelo, centro_cabeza.y - suelo, coronilla.y - suelo, mi.distance_to(md)])
+	_ok("3b cargar_idle: las dos manos por encima del centro de la cabeza (≥ 0,1 u)", mi.y > centro_cabeza.y + 0.1 and md.y > centro_cabeza.y + 0.1)
+	_ok("3b …y a la altura de la coronilla (no más de 0,15 u por debajo: la chibi tiene la cabeza grande y las manos no la pasan)", mi.y > coronilla.y - 0.15 and md.y > coronilla.y - 0.15 and mi.distance_to(md) < 0.3)
+	# andando: cargar_andar, a la velocidad del suelo, y la cadera en el sitio
+	var an: Animation = pj._ap.get_animation(pj.clip_de("cargar_andar"))
+	var avance: float = 0.0
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) == Animation.TYPE_POSITION_3D and String(an.track_get_path(t)).ends_with("Hips"):
+			var p0: Vector3 = an.track_get_key_value(t, 0)
+			for kk in range(an.track_get_key_count(t)):
+				var pk: Vector3 = an.track_get_key_value(t, kk)
+				avance = maxf(avance, Vector2(pk.x - p0.x, pk.z - p0.z).length())
+	_ok("3b cargar_andar no avanza la cadera (pista del clip: ≤ 0,10 u del GLB frente a los 0,41 u/ciclo de Meshy), duración %.2f s" % pj.duracion("cargar_andar"), avance <= 0.10, "%.3f u" % avance)
+	var centro: Vector3 = Vector3.ZERO
+	var muestras: Array = []
+	_tecla(KEY_W, true)
+	await avanzar_s(0.5)
+	var clip_andando: String = pj.clip_actual()
+	var v_clip: float = pj.arbol().vel_global
+	var v_suelo: float = j.vel_suelo.length()
+	for _i in range(30):
+		await process_frame
+		var rel: Vector3 = _hueso("Hips") - j.position
+		muestras.append(Vector2(rel.x, rel.z))
+		centro += Vector3(rel.x, 0.0, rel.z)
+	_tecla(KEY_W, false)
+	centro /= float(muestras.size())
+	var rango: float = 0.0
+	for m in muestras:
+		rango = maxf(rango, (m as Vector2).distance_to(Vector2(centro.x, centro.z)))
+	print("      cargar_andar: clip a ×%.2f (suelo %.2f u/s, zancada del clip %.2f u/s a ×1, tope ×%.1f) · la cadera se aleja %.3f u de su media en 1 s andando" % [v_clip, v_suelo, CargarObjeto3D.ZANCADA_CARGAR, CargarObjeto3D.VEL_CARGAR_MAX, rango])
+	_ok("3b andando cargando suena cargar_andar", clip_andando == "cargar_andar", clip_andando)
+	_ok("3b su velocidad sigue a la del suelo (u/s ÷ zancada, con topes ×%.1f–×%.1f)" % [CargarObjeto3D.VEL_CARGAR_MIN, CargarObjeto3D.VEL_CARGAR_MAX], absf(v_clip - c.vel_clip_andar(v_suelo)) < 0.05, "%.2f vs %.2f" % [v_clip, c.vel_clip_andar(v_suelo)])
+	_ok("3b andando (cinemática real) la cadera no avanza respecto al cuerpo: se queda a ≤ 0,12 u de su media", rango <= 0.12, "%.3f u" % rango)
+	await avanzar_s(0.4)
+	_ok("3b y al parar vuelve a cargar_idle", pj.clip_actual() == "cargar_idle", pj.clip_actual())
+	_poner(claro)
+	await avanzar_s(0.3)
+	var mi2: Vector3 = c.mano_izq
+	_ok("3b el objeto sigue sobre la cabeza y las manos (base %.2f u, manos %.2f u, coronilla %.2f u; jarrón al %d %% = %.2f u de alto)" % [jar.global_position.y - j.position.y, mi2.y - j.position.y, c.cabeza_top.y - j.position.y, int(CargarObjeto3D.COGIBLES["jarron"]["escala"] * 100.0), float(CargarObjeto3D.COGIBLES["jarron"]["alto"]) * float(CargarObjeto3D.COGIBLES["jarron"]["escala"])], jar.global_position.y > mi2.y - 0.05 and jar.global_position.y > c.cabeza_top.y - CargarObjeto3D.HUNDE_EN_CABEZA - 0.05 and jar.en_brazos)
+	_poner_mirada(Vector3.RIGHT)
+
 
 ## Anda 1 s con W (y Mayús si `corre`) desde el centro del claro y devuelve u/s.
 func _velocidad(corre: bool) -> float:
@@ -214,7 +300,7 @@ func _no_correr() -> void:
 	await avanzar(2)
 	_tecla(KEY_F, false)
 	_ok("4 F no da el golpe cuerpo a cuerpo", float(j.get("_t_pegar")) <= 0.0 and not j.golpeando())
-	_ok("4 el clip que suena al andar cargando es walk (y brazos en alto: capa activa)", c._brazos != null and c._brazos.influence > 0.99, "peso %s" % (c._brazos.influence if c._brazos != null else "sin capa"))
+	_ok("4 con jugadora_base la pose de cargar es la del clip de Meshy (no la capa procedural de respaldo)", c.usa_clips and c._brazos == null, "usa_clips %s · capa %s" % [c.usa_clips, c._brazos])
 	# manos y cabeza medidas
 	var pj: Pj3D = j.pj
 	var mi: Vector3 = c.mano_izq                # (de skeleton_updated: fuera de esa señal la pose es la de la animación sin capas)
@@ -240,10 +326,17 @@ func _lanzar_y_romper() -> void:
 	_ok("5 E con el jarrón en brazos arma el lanzamiento", c.estado == CargarObjeto3D.Estado.ANTICIPANDO)
 	_ok("5 mientras arma no se anda ni se coge otra cosa (quieta)", c.quieta())
 	var t_suelta: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LANZANDO, 1.0)
-	_ok("5 lo suelta a los ~%.2f s de pulsar E" % CargarObjeto3D.T_ANTICIPAR, t_suelta >= 0.0 and absf((reloj.t - t0) - CargarObjeto3D.T_ANTICIPAR) < 0.15, "%.2f s" % (reloj.t - t0))
+	var pj: Pj3D = j.pj
+	var pos_clip: float = pj.arbol().posicion()
+	_ok("5 lo suelta a los ~%.2f s de pulsar E (T_SUELTA_CLIP, el instante medido del clip)" % CargarObjeto3D.T_SUELTA_CLIP, t_suelta >= 0.0 and absf((reloj.t - t0) - CargarObjeto3D.T_SUELTA_CLIP) < 0.1, "%.2f s" % (reloj.t - t0))
+	_ok("5 suena el clip lanzar_objeto y el objeto sale en su instante medido (%.2f s del clip; ahora %.2f s)" % [Pj3D.instante_clip_de(pj.id, "lanzar_objeto"), pos_clip], pj.clip_actual() == "lanzar_objeto" and absf(pos_clip - Pj3D.instante_clip_de(pj.id, "lanzar_objeto")) < 0.2, pj.clip_actual())
 	var t_vuelo0: float = reloj.t
 	await avanzar_s(0.1)
-	_ok("5 tras soltarlo sigue quieta (remate) con los brazos al frente (capa activa)", c.estado == CargarObjeto3D.Estado.LANZANDO and c.quieta() and c._brazos != null and c._brazos.influence > 0.5, "estado %d" % c.estado)
+	_ok("5 tras soltarlo sigue quieta (remate) con el clip lanzar_objeto sonando", c.estado == CargarObjeto3D.Estado.LANZANDO and c.quieta() and pj.clip_actual() == "lanzar_objeto" and c._brazos == null, "estado %d · %s" % [c.estado, pj.clip_actual()])
+	var t_libre: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LIBRE, 1.0)
+	var t_lanzamiento: float = reloj.t - t0
+	print("      lanzamiento total (de pulsar E a poder andar): %.2f s · suelta a los %.2f s (clip a ×%.2f)" % [t_lanzamiento, t_suelta, Pj3D.instante_clip_de(pj.id, "lanzar_objeto") / CargarObjeto3D.T_SUELTA_CLIP])
+	_ok("5 el lanzamiento entero dura ~0,5 s (0,40–0,65)", t_libre >= 0.0 and t_lanzamiento > 0.40 and t_lanzamiento < 0.65, "%.2f s" % t_lanzamiento)
 	var origen: Vector3 = jar.global_position
 	var t_imp: float = await _hasta(func() -> bool: return c.ultimo.get("accion", "") == "impacto", 2.5)
 	var t_vuelo: float = reloj.t - t_vuelo0
@@ -258,7 +351,7 @@ func _lanzar_y_romper() -> void:
 	await avanzar(1)
 	_ok("5 deja restos en el suelo", jar.n_restos() > 0, str(jar.n_restos()))
 	_ok("5 no tapa ninguna casilla", not Terreno3D.bloqueada(Terreno3D.celda_de(jar.global_position)) and not Terreno3D.bloqueada(claro + Vector2i(-1, 0)))
-	_ok("5 la jugadora vuelve a andar a los ~%.2f s del lanzamiento" % (CargarObjeto3D.T_ANTICIPAR + CargarObjeto3D.T_REMATE), await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LIBRE and not j.lleva_carga(), 1.0) >= 0.0 or c.estado == CargarObjeto3D.Estado.LIBRE)
+	_ok("5 la jugadora vuelve a andar (manos libres)", c.estado == CargarObjeto3D.Estado.LIBRE and not j.lleva_carga())
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -323,8 +416,19 @@ func _soltar() -> void:
 	await avanzar(2)
 	var vida0: float = j.vida
 	var t0: float = reloj.t
-	await _pulsar(KEY_Q)
+	var pj: Pj3D = j.pj
+	_tecla(KEY_Q, true)
+	await avanzar(1)
+	_tecla(KEY_Q, false)
+	_ok("7 Q empieza a soltarlo con el clip dejar_objeto", c.estado == CargarObjeto3D.Estado.SOLTANDO and pj.clip_actual() == "dejar_objeto", "%s · %s" % [c.estado, pj.clip_actual()])
+	var t_apoya: float = await _hasta(func() -> bool: return c.ultimo.get("accion", "") == "soltar", 1.5)
+	var pos_dejar: float = pj.arbol().posicion()
+	var t_apoyado: float = reloj.t - t0
 	var t: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LIBRE, 1.5)
+	var t_dejar_total: float = reloj.t - t0
+	print("      dejar_objeto: apoya a los %.2f s (T_DEJAR_FONDO %.2f; clip en %.2f s, instante medido %.2f) · manos libres a los %.2f s" % [t_apoyado, CargarObjeto3D.T_DEJAR_FONDO, pos_dejar, Pj3D.instante_clip_de(pj.id, "dejar_objeto"), t_dejar_total])
+	_ok("7 lo apoya a los ~%.2f s, en el instante medido del clip (%.2f s)" % [CargarObjeto3D.T_DEJAR_FONDO, Pj3D.instante_clip_de(pj.id, "dejar_objeto")], t_apoya >= 0.0 and absf(t_apoyado - CargarObjeto3D.T_DEJAR_FONDO) < 0.1 and absf(pos_dejar - Pj3D.instante_clip_de(pj.id, "dejar_objeto")) < 0.25, "%.2f s · clip %.2f s" % [t_apoyado, pos_dejar])
+	_ok("7 y todo el gesto dura 0,45–0,8 s", t >= 0.0 and t_dejar_total > 0.45 and t_dejar_total < 0.8, "%.2f s" % t_dejar_total)
 	await avanzar(2)
 	var delante: Vector3 = jr.global_position - j.position
 	delante.y = 0.0
@@ -362,10 +466,55 @@ func _golpe_recibido() -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-#  7. Un cogible suelto cualquiera (piedra) y las filas de la tabla
+#  7. Un cogible suelto cualquiera (caja, nodo que no es Rompible3D) y las filas de la tabla
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _suelto_generico() -> void:
+	await avanzar_s(1.0)
+	var cel: Vector2i = claro + Vector2i(-1, 0)
+	var caja := Node3D.new()
+	caja.name = "caja_p"
+	maqueta.add_child(caja)
+	caja.set_meta("cogible", "caja")
+	caja.add_to_group("cogible")
+	caja.global_position = Terreno3D.centro_de(cel, Terreno3D.y_pies(cel))
+	var mi := MeshInstance3D.new()
+	var cubo := BoxMesh.new()
+	cubo.size = Vector3(0.4, 0.4, 0.4)
+	mi.mesh = cubo
+	mi.position.y = 0.2
+	caja.add_child(mi)
+	_poner(claro, Vector3.RIGHT)
+	await avanzar_s(0.3)
+	await _pulsar(KEY_E)
+	var t: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.CARGANDO, 2.0)
+	_poner_mirada(Vector3.RIGHT)
+	await avanzar(2)
+	_ok("9 una caja (nodo suelto con metadato cogible) se coge cargándola", t >= 0.0 and c.tipo == "caja" and not c.pequeno and c.usa_clips, c.tipo)
+	_ok("9 con su fila: ×%.1f de velocidad" % float(CargarObjeto3D.COGIBLES["caja"]["vel"]), is_equal_approx(c.mult_vel(), 0.7))
+	await _pulsar(KEY_E)
+	await _hasta(func() -> bool: return c.ultimo.get("accion", "") == "impacto", 2.5)
+	var u: Dictionary = c.ultimo
+	var esperado: float = float(CargarObjeto3D.COGIBLES["caja"]["alcance"]) * Terreno3D.casilla
+	_ok("9 cae a %.1f casillas (%.2f u ±0,6)" % [float(CargarObjeto3D.COGIBLES["caja"]["alcance"]), esperado], absf(float(u.get("distancia", 0.0)) - esperado) < 0.6, "%.2f u" % float(u.get("distancia", 0.0)))
+	await avanzar(2)
+	_ok("9 y, como su fila rompe y no es un Rompible3D, se esfuma", bool(u.get("rompio", false)) and (not is_instance_valid(caja) or caja.is_queued_for_deletion()))
+	for tipo in CargarObjeto3D.COGIBLES:
+		var f: Dictionary = CargarObjeto3D.COGIBLES[tipo]
+		_ok("9 la fila «%s» trae peso, alcance, daño y rompe" % tipo, f.has("vel") and f.has("alcance") and f.has("dano") and f.has("rompe") and f.has("empuje"))
+	_ok("9 la distinción ligero/pesado: jarrón y caja se cargan, la piedra no", not CargarObjeto3D.es_ligero(CargarObjeto3D.COGIBLES["jarron"]) and not CargarObjeto3D.es_ligero(CargarObjeto3D.COGIBLES["caja"]) and CargarObjeto3D.es_ligero(CargarObjeto3D.COGIBLES["piedra"]))
+	_ok("9 sin la clave `ligero` manda el alto (≤ %.2f u: una fruta de 0,2 sí, una caja de 0,4 no)" % CargarObjeto3D.UMBRAL_LIGERO, CargarObjeto3D.es_ligero({"alto": 0.2}) and not CargarObjeto3D.es_ligero({"alto": 0.4}) and not CargarObjeto3D.es_ligero({"alto": 0.2, "ligero": false}))
+	if is_instance_valid(caja):
+		caja.queue_free()
+	await avanzar_s(0.8)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  7b. Objeto pequeño: coger_lanzar (se agacha, coge con la derecha, da un paso y lanza; sin cargarlo)
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _pequeno() -> void:
+	var pj: Pj3D = j.pj
 	await avanzar_s(1.0)
 	var cel: Vector2i = claro + Vector2i(-1, 0)
 	var piedra := Node3D.new()
@@ -376,30 +525,75 @@ func _suelto_generico() -> void:
 	piedra.global_position = Terreno3D.centro_de(cel, Terreno3D.y_pies(cel))
 	var mi := MeshInstance3D.new()
 	var esfera := SphereMesh.new()
-	esfera.radius = 0.2
-	esfera.height = 0.4
+	esfera.radius = 0.175
+	esfera.height = 0.35
 	mi.mesh = esfera
-	mi.position.y = 0.2
+	mi.position.y = 0.175
 	piedra.add_child(mi)
+	_poner(claro, Vector3.RIGHT)
+	await avanzar_s(0.3)
+	_ok("10 la piedra es candidata y es un objeto ligero (clave `ligero`)", c.candidato() == piedra and CargarObjeto3D.es_ligero(CargarObjeto3D.COGIBLES["piedra"]))
+	var t0: float = reloj.t
+	var origen: Vector3 = piedra.global_position
+	_tecla(KEY_E, true)
+	await avanzar(1)
+	_tecla(KEY_E, false)
+	_ok("10 E empieza el gesto de coger-y-lanzar (COGIENDO, pequeño) con el clip coger_lanzar", c.estado == CargarObjeto3D.Estado.COGIENDO and c.pequeno and not c.usa_clips and pj.clip_actual() == "coger_lanzar", "%s · %s" % [c.estado, pj.clip_actual()])
+	_ok("10 mientras tanto no se anda (gesto) ni se carga nada", j.en_gesto() and c.ocupa_manos())
+	var t_agarra: float = await _hasta(func() -> bool: return bool(c._agarrado), 1.5)
+	var pos_agarre: float = pj.arbol().posicion()
+	await avanzar(2)
+	var en_mano: float = (piedra.global_position + Vector3(0.0, float(CargarObjeto3D.COGIBLES["piedra"]["alto"]) * 0.5, 0.0)).distance_to(c.mano_der)
+	_ok("10 agarra con la mano derecha en el fondo de la agachada (%.2f s; clip en %.2f s, instante medido %.2f s)" % [t_agarra, pos_agarre, Pj3D.instante_clip_de(pj.id, "coger_lanzar_agarre")], t_agarra >= 0.0 and absf(pos_agarre - Pj3D.instante_clip_de(pj.id, "coger_lanzar_agarre")) < 0.25)
+	_ok("10 y la piedra va en esa mano (centro a %.2f u de la mano derecha)" % en_mano, en_mano < 0.2, "%.2f u" % en_mano)
+	var t_suelta: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LANZANDO, 2.0)
+	var pos_suelta: float = pj.arbol().posicion()
+	var t_s: float = reloj.t - t0
+	_ok("10 sale de la mano en el instante medido del clip (%.2f s; clip en %.2f s) y no pasó por CARGANDO" % [Pj3D.instante_clip_de(pj.id, "coger_lanzar"), pos_suelta], t_suelta >= 0.0 and absf(pos_suelta - Pj3D.instante_clip_de(pj.id, "coger_lanzar")) < 0.3 and c.ultimo.has("t_suelta"))
+	var t_libre: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LIBRE, 1.5)
+	var t_total: float = reloj.t - t0
+	print("      objeto pequeño: agarra a los %.2f s · suelta a los %.2f s · manos libres a los %.2f s (T_PEQUENO %.1f) · origen %s" % [c._t_fondo, t_s, t_total, CargarObjeto3D.T_PEQUENO, origen])
+	_ok("10 el gesto entero dura ~%.1f s (1,0–1,4)" % CargarObjeto3D.T_PEQUENO, t_libre >= 0.0 and t_total > 1.0 and t_total < 1.4, "%.2f s" % t_total)
+	var t_imp: float = await _hasta(func() -> bool: return c.ultimo.get("accion", "") == "impacto", 2.5)
+	var u: Dictionary = c.ultimo
+	var esperado: float = float(CargarObjeto3D.COGIBLES["piedra"]["alcance"]) * Terreno3D.casilla
+	# (coger la deja mirando a la piedra, que está a su izquierda en el claro: «hacia delante» es hacia donde estaba la piedra)
+	_ok("10 cae a %.1f casillas (%.2f u ±0,6) hacia donde miraba (hacia donde estaba la piedra)" % [float(CargarObjeto3D.COGIBLES["piedra"]["alcance"]), esperado], t_imp >= 0.0 and absf(float(u.get("distancia", 0.0)) - esperado) < 0.6 and (u["punto"] as Vector3).x < origen.x - 1.0, "%.2f u · x %.2f (piedra en x %.2f)" % [float(u.get("distancia", 0.0)), (u["punto"] as Vector3).x, origen.x])
+	_ok("10 y se queda entera en el suelo (no rompe)", is_instance_valid(piedra) and not bool(u.get("rompio", true)) and absf(piedra.global_position.x - (u["punto"] as Vector3).x) < 0.01)
+	_ok("10 la jugadora vuelve a tener las manos libres y andar a ×1", c.estado == CargarObjeto3D.Estado.LIBRE and not j.lleva_carga() and c.mult_vel() == 1.0)
+	piedra.queue_free()
+	await avanzar_s(0.8)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  7c. Respaldo: un modelo sin los clips de cargar sigue con la capa procedural BrazosCarga3D
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _respaldo() -> void:
+	var pj: Pj3D = j.pj
+	var lib: AnimationLibrary = pj._ap.get_animation_library("")
+	var guardado: Animation = lib.get_animation("levantar")
+	lib.remove_animation("levantar")                  # al modelo «le falta» un clip
+	_ok("11 sin el clip «levantar» el modelo no tiene los clips de cargar (tiene_clips false)", not c.tiene_clips())
+	await avanzar_s(0.5)
+	var cel: Vector2i = claro + Vector2i(-1, 0)
+	var jr: Rompible3D = _jarron(cel, "jarron_resp", "jarron", "nada", 0)
 	_poner(claro, Vector3.RIGHT)
 	await avanzar_s(0.3)
 	await _pulsar(KEY_E)
 	var t: float = await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.CARGANDO, 2.0)
+	_ok("11 coge el jarrón con la capa de respaldo (usa_clips false, BrazosCarga3D puesta y con los brazos en alto)", t >= 0.0 and not c.usa_clips and c._brazos != null and c._brazos.influence > 0.99, "peso %s" % (c._brazos.influence if c._brazos != null else "sin capa"))
+	_ok("11 y el objeto sigue sobre la cabeza (respaldo: escala %.2f)" % jr.scale.x, jr.en_brazos and is_equal_approx(jr.scale.x, float(CargarObjeto3D.COGIBLES["jarron"]["escala"])))
 	_poner_mirada(Vector3.RIGHT)
 	await avanzar(2)
-	_ok("9 una piedra (nodo suelto con metadato cogible) se coge", t >= 0.0 and c.tipo == "piedra", c.tipo)
-	_ok("9 con su fila: ×%.1f de velocidad y no se rompe" % float(CargarObjeto3D.COGIBLES["piedra"]["vel"]), is_equal_approx(c.mult_vel(), 0.6) and not bool(CargarObjeto3D.COGIBLES["piedra"]["rompe"]))
 	await _pulsar(KEY_E)
 	await _hasta(func() -> bool: return c.ultimo.get("accion", "") == "impacto", 2.5)
-	var u: Dictionary = c.ultimo
-	var esperado: float = float(CargarObjeto3D.COGIBLES["piedra"]["alcance"]) * Terreno3D.casilla
-	_ok("9 cae a %.1f casillas (%.2f u ±0,6)" % [float(CargarObjeto3D.COGIBLES["piedra"]["alcance"]), esperado], absf(float(u.get("distancia", 0.0)) - esperado) < 0.6, "%.2f u" % float(u.get("distancia", 0.0)))
-	_ok("9 y se queda entera en el suelo", is_instance_valid(piedra) and not bool(u.get("rompio", true)) and absf(piedra.global_position.x - (u["punto"] as Vector3).x) < 0.01)
-	for tipo in CargarObjeto3D.COGIBLES:
-		var f: Dictionary = CargarObjeto3D.COGIBLES[tipo]
-		_ok("9 la fila «%s» trae peso, alcance, daño y rompe" % tipo, f.has("vel") and f.has("alcance") and f.has("dano") and f.has("rompe") and f.has("empuje"))
-	piedra.queue_free()
+	_ok("11 y lo lanza y rompe como antes", jr.roto_ya)
+	await _hasta(func() -> bool: return c.estado == CargarObjeto3D.Estado.LIBRE, 1.0)
+	lib.add_animation("levantar", guardado)
+	_ok("11 al volver el clip, el modelo vuelve a los clips", c.tiene_clips())
 	await avanzar_s(0.8)
+
 
 
 # ---------------------------------------------------------------------------------------------------------------------

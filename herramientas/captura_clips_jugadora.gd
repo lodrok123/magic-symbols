@@ -1,5 +1,5 @@
 extends SceneTree
-## CAPTURAS de los clips nuevos de la jugadora (24/10; arte/meshy/jugadora_clips.glb vía ClipsFamilia): cada clip en 4 fracciones de su duración, en la jugadora ACTUAL
+## CAPTURAS de los clips nuevos de la jugadora (24/10; arte/meshy/jugadora_clips.glb vía ClipsFamilia; 4/11: y los seis de coger/cargar/lanzar de arte/meshy/jugadora_carga_clips.glb, sin ejecutar aún con ventana): cada clip en 4 fracciones de su duración, en la jugadora ACTUAL
 ## (woodland_wanderer) y en la BASE vestida (jugadora_base con capa con capucha y túnica), de tres cuartos. Una hoja por clip: dos filas (actual, base) × cuatro columnas.
 ## Además, la comparativa de correr y andar: los de siempre frente a los de Meshy (Running y Walking del GLB nuevo), en las dos jugadoras. NECESITA VENTANA:
 ##   godot --path . --script res://herramientas/captura_clips_jugadora.gd -- [carpeta] [secciones: clips,marcha]    (por defecto res://docs/capturas/clips_jugadora)
@@ -9,14 +9,15 @@ const FOTOGRAMAS_ESPERA: int = 6
 const CAMARA_PITCH: float = 8.0
 const GIRO_TRES_CUARTOS: float = 40.0
 const GIRO_LADO: float = 90.0
-const CLIPS_DE_LADO: Array = ["empujar", "abrir_cofre", "agacharse"]    ## los que se mueven hacia delante y atrás: además, de perfil
+const CLIPS_DE_LADO: Array = ["empujar", "abrir_cofre", "agacharse", "levantar", "lanzar_objeto", "dejar_objeto", "coger_lanzar", "cargar_andar"]    ## los que se mueven hacia delante y atrás: además, de perfil
 const TAM_CAMARA: float = 1.5
 const LADO_FOTO: int = 900
 ## Recorte de cada fotograma de la hoja (px de la foto de 900 × 900): el personaje de 1,0 u ocupa unos 600 px de alto, centrado.
 const RECORTE: Rect2i = Rect2i(150, 90, 600, 720)
 const FRACCIONES: Array = [0.0, 0.33, 0.66, 0.99]
 const FRACCIONES_MARCHA: Array = [0.0, 0.25, 0.5, 0.75]
-const CLIPS: Array = ["abrir_cofre", "agacharse", "ofrecer", "saludo", "empujar"]
+## 4/11: se añaden los seis de coger, cargar y lanzar (arte/meshy/jugadora_carga_clips.glb, ClipsFamilia.FUENTE_CLIPS_CARGA); las fracciones son del clip ENTERO a velocidad 1 (el juego los acelera).
+const CLIPS: Array = ["abrir_cofre", "agacharse", "ofrecer", "saludo", "empujar", "cargar_idle", "cargar_andar", "levantar", "lanzar_objeto", "dejar_objeto", "coger_lanzar"]
 const RUTA_CLIPS: String = "res://arte/meshy/jugadora_clips.glb"
 const PRENDAS: Array = ["tunica", "capa", "capucha"]
 ## (comparativa) clip de Meshy en el GLB nuevo (arte/meshy/clips_jugadora.py los renombra) -> rol de Pj3D con el que se compara el de siempre

@@ -10,8 +10,11 @@ extends Node
 ## Con él en brazos: E lo lanza hacia donde mira, Q (`usar_consumible`) lo suelta delante sin romperlo.
 ## FASES (segundos, ver las constantes): agacharse y coger (`T_FONDO` hasta tocar el objeto y otro tanto en alzarse, con el clip `agacharse` acelerado) → llevarlo sobre la cabeza (andar a ×`mult_vel`,
 ## sin correr, saltar, rodar, golpear ni lanzar hechizos) → anticipación `T_ANTICIPAR` + lanzamiento + remate (`T_REMATE`) → vuelo en arco → impacto. Si recibe un golpe con él en brazos, se cae y se rompe.
-## LA POSE: no hay clips de «cargar» ni de «lanzar»; los brazos y la columna los pone `BrazosCarga3D` (capa procedural) sobre el clip `agacharse` / `walk` / `idle`, y el objeto va al punto medio de los huesos
-## de las manos (+ la mitad de su alto) en cada actualización del esqueleto.
+## LA POSE (4/11, clips de Meshy en arte/meshy/jugadora_carga_clips.glb, ver ClipsFamilia.FUENTE_CLIPS_CARGA y docs/RECOGER_LANZAR_2026-11-04.md §2): coger = `levantar` (acelerado: el agarre cae en `T_FONDO`
+## y toda la subida dura ~`T_FONDO`·2), cargando = `cargar_idle` / `cargar_andar` (la velocidad del clip sigue a la real, con tope), lanzar = `lanzar_objeto` (la suelta en su instante medido, `T_SUELTA_CLIP`;
+## ~0,5 s en total), soltar = `dejar_objeto` (apoya a los `T_DEJAR_FONDO` s). Los objetos LIGEROS (`es_ligero`: piedras, frutas…) se cogen y se lanzan de una vez con `coger_lanzar` (`T_PEQUENO` s, sin cargarlos).
+## RESPALDO: un modelo SIN esos clips (`tiene_clips()` falso) sigue con la capa procedural `BrazosCarga3D` sobre `agacharse` / `walk` / `idle`. En los dos casos el objeto va al punto medio de los huesos de las
+## manos (en brazos, sobre la cabeza: ver `_base_en_manos`) en cada actualización del esqueleto.
 
 const RECOGER_ACTIVO: bool = true
 
@@ -19,12 +22,15 @@ enum Estado { LIBRE, COGIENDO, CARGANDO, ANTICIPANDO, LANZANDO, SOLTANDO }
 
 ## Una fila por tipo. `vel` = multiplicador de la velocidad de andar con él en brazos · `alcance` = casillas del lanzamiento (en plano) · `dano` = daño al enemigo que recibe el golpe (como el golpe F: sin elementos) ·
 ## `empuje` = fuerza que se pasa a `Combate3D.recibir_golpe_cuerpo` · `rompe` = se rompe al caer o chocar · `alto` = u de alto · `escala` = a qué tamaño se ve en brazos (el jarrón entero es casi tan alto como ella y le taparía los brazos; vuelve a su tamaño al soltarse o romperse).
+## `ligero` (opcional) = true: objeto pequeño, se coge y se lanza de una vez con el clip `coger_lanzar` sin cargarlo; sin la clave cuenta como ligero lo que mide `UMBRAL_LIGERO` de alto o menos (ver `es_ligero`).
 const COGIBLES: Dictionary = {
 	"jarron": {"nombre": "jarrón", "vel": 0.7, "alcance": 3.5, "dano": 8.0, "empuje": 4500.0, "rompe": true, "alto": 0.5, "escala": 0.6},
 	"caja": {"nombre": "caja", "vel": 0.7, "alcance": 3.2, "dano": 6.0, "empuje": 3500.0, "rompe": true, "alto": 0.4, "escala": 0.65},
 	# Hoy no hay piedras sueltas en el mundo (las `piedras` / `rocas_pequenas` son decorado y las `piedra` de `fuentes.tsv` van a la bolsa con E); la fila queda lista para cuando haya (metadato `cogible` = "piedra").
-	"piedra": {"nombre": "piedra", "vel": 0.6, "alcance": 3.0, "dano": 12.0, "empuje": 6000.0, "rompe": false, "alto": 0.35, "escala": 1.0},
+	"piedra": {"nombre": "piedra", "vel": 0.6, "alcance": 3.0, "dano": 12.0, "empuje": 6000.0, "rompe": false, "alto": 0.35, "escala": 1.0, "ligero": true},
 }
+## Hasta qué alto (u) un cogible sin la clave `ligero` cuenta como pequeño (una piedra de 0,35 u, una fruta de 0,2 u; el jarrón de 0,5 y la caja de 0,4 se cargan).
+const UMBRAL_LIGERO: float = 0.36
 
 # --- tiempos (s). Echoes of Wisdom: agacharse y coger ~0,3 s; alzarlo ~0,3 s; lanzar casi seguido ---
 const T_FONDO: float = 0.33              ## de pulsar E a tener el objeto en las manos (fondo de la agachada); el clip `agacharse` se acelera para que su fondo caiga aquí
@@ -32,6 +38,13 @@ const T_ANTICIPAR: float = 0.12          ## el objeto hacia atrás antes de solt
 const T_REMATE: float = 0.28             ## desde que lo suelta hasta poder andar otra vez
 const T_REMATE_PESO: float = 0.12        ## al final del remate los brazos vuelven a la animación
 const T_SOLTAR: float = 0.28             ## dejarlo delante
+# Con los clips de Meshy (4/11). Los instantes de cada clip (la suelta, las manos abajo) están medidos en Pj3D.INSTANTE_CLIP; el clip se acelera para que caigan en estos tiempos.
+const T_SUELTA_CLIP: float = 0.18        ## de pulsar E a la suelta del objeto con `lanzar_objeto` (el clip, de 1,15 s, va a ×2,3: el lanzamiento entero dura ~0,5 s)
+const T_DEJAR_FONDO: float = 0.34        ## de pulsar Q a apoyar el objeto con `dejar_objeto` (el clip, de 2,32 s, va a ×3,8: entero ~0,6 s)
+const T_PEQUENO: float = 1.2             ## `coger_lanzar` entero (3,25 s a ×2,7): se agacha, coge con la derecha, da un paso y lanza
+const ZANCADA_CARGAR: float = 0.28       ## u/s de suelo que cubre el clip `cargar_andar` a ×1: su ciclo avanza la cadera 0,41 u del GLB (0,26 u del juego, ×0,625) en 0,93 s. Es un andar de pasos CORTOS: el juego va a 1,12 u/s
+const VEL_CARGAR_MIN: float = 0.8        ## tope inferior de la velocidad del clip `cargar_andar` (el arranque, antes de llegar a la velocidad de marcha)
+const VEL_CARGAR_MAX: float = 2.2        ## tope superior: a ×4 (lo que pediría no patinar) los pies son un borrón; a este tope aún patinan (ver docs/RECOGER_LANZAR_2026-11-04.md)
 const T_PESO_GOLPE: float = 0.18         ## los brazos se sueltan tras un golpe
 const ALCANCE_COGER: float = 2.7         ## u (plano) del centro de la jugadora al del objeto: la casilla vecina (2,3) con margen, como el cofre y los NPC
 const ALTO_COGER: float = 1.0            ## u de diferencia de altura como mucho
@@ -77,6 +90,12 @@ var _pos_soltar: Vector3 = Vector3.ZERO
 var _peso_salida: float = 1.0            ## el peso con el que empieza a soltarse la capa (tras un golpe)
 var _desvanece: float = 0.0              ## s que quedan de soltar la capa cuando el estado ya es LIBRE
 var _brazos: BrazosCarga3D = null
+var usa_clips: bool = false                ## true = este cargado va con los clips de Meshy (el modelo los tiene); false = la capa procedural de respaldo
+var pequeno: bool = false                  ## true = objeto ligero cogido con `coger_lanzar` (sin cargarlo)
+var _t_suelta: float = 0.0                 ## pequeño: segundo (de pulsar E) en que sale el objeto de la mano derecha
+var _t_anticipar: float = T_ANTICIPAR      ## lo que dura la anticipación de ESTE lanzamiento (con clip: T_SUELTA_CLIP)
+var _t_remate: float = T_REMATE            ## lo que dura el remate (tras soltar el objeto hasta poder andar) de ESTE lanzamiento / suelta
+var _t_soltar: float = T_SOLTAR            ## lo que tarda en apoyar el objeto al soltarlo con Q
 var _sk: Skeleton3D = null
 var _hueso_izq: int = -1
 var _hueso_der: int = -1
@@ -122,10 +141,19 @@ func quieta() -> bool:
 
 
 ## Lo llama Jugador3D._animar: con el objeto en brazos pone idle / andar (a ×vel el clip) y devuelve true; si no, false y sigue lo de siempre.
+## Con los clips de Meshy: `cargar_andar` (a la velocidad del suelo: `vel_clip_andar`) o `cargar_idle`.
 func animar(mov: Vector3) -> bool:
 	if not ocupa_manos() or estado == Estado.COGIENDO:
 		return false
 	var pj: Pj3D = jugador.pj
+	if usa_clips and estado == Estado.CARGANDO:
+		if mov != Vector3.ZERO:
+			pj.jugar("cargar_andar")
+			pj.set_velocidad_animacion(vel_clip_andar())
+		else:
+			pj.jugar("cargar_idle")
+			pj.set_velocidad_animacion(1.0)
+		return true
 	if estado == Estado.CARGANDO and mov != Vector3.ZERO:
 		pj.jugar("walk")
 		pj.set_velocidad_animacion(mult_vel())
@@ -133,6 +161,29 @@ func animar(mov: Vector3) -> bool:
 		pj.jugar("idle")
 		pj.set_velocidad_animacion(1.0)
 	return true
+
+
+## Velocidad del clip `cargar_andar` para la velocidad real del suelo (u/s): la que cubre su ciclo (`ZANCADA_CARGAR`), con los topes `VEL_CARGAR_MIN`/`VEL_CARGAR_MAX`.
+func vel_clip_andar(v_suelo: float = -1.0) -> float:
+	var v: float = jugador.vel_suelo.length() if v_suelo < 0.0 else v_suelo
+	return clampf(v / ZANCADA_CARGAR, VEL_CARGAR_MIN, VEL_CARGAR_MAX)
+
+
+## ¿El modelo de la jugadora trae TODOS los clips de cargar (levantar, cargar_idle, cargar_andar, lanzar_objeto, dejar_objeto)? Si no, va la capa procedural de respaldo.
+func tiene_clips() -> bool:
+	if jugador == null or jugador.pj == null:
+		return false
+	for rol in ["levantar", "cargar_idle", "cargar_andar", "lanzar_objeto", "dejar_objeto"]:
+		if jugador.pj.duracion(rol) <= 0.0:
+			return false
+	return true
+
+
+## ¿Esta fila es de un objeto ligero (se coge y se lanza de una vez con `coger_lanzar`)? La clave `ligero` manda; sin ella, el alto (`UMBRAL_LIGERO`).
+static func es_ligero(fila: Dictionary) -> bool:
+	if fila.has("ligero"):
+		return bool(fila["ligero"])
+	return float(fila.get("alto", 1.0)) <= UMBRAL_LIGERO
 
 
 ## Un golpe de verdad (Jugador3D.recibir_dano): lo que lleva se cae y se rompe a sus pies; si aún se estaba agachando y no lo había cogido, lo deja donde estaba.
@@ -293,11 +344,20 @@ func coger(o: Node3D) -> bool:
 	hacia.y = 0.0
 	if hacia.length() > 0.05:
 		jugador.mirar_hacia(hacia)
-	var instante: float = Pj3D.instante_clip_de(jugador.pj.id, "agacharse")
-	var vel: float = instante / T_FONDO if instante > 0.0 else 1.0
-	var dur: float = jugador.gesto("agacharse", vel)
+	# Qué clip: `coger_lanzar` (objeto ligero), `levantar` (objeto de carga) o, sin los clips de Meshy, `agacharse` + la capa procedural.
+	var pj: Pj3D = jugador.pj
+	var es_pequeno: bool = es_ligero(fila) and pj.duracion("coger_lanzar") > 0.0
+	var con_clips: bool = not es_pequeno and tiene_clips()
+	var rol: String = "coger_lanzar" if es_pequeno else ("levantar" if con_clips else "agacharse")
+	var instante: float = Pj3D.instante_clip_de(pj.id, "coger_lanzar_agarre" if es_pequeno else rol)
+	var vel: float = 1.0
+	if es_pequeno:
+		vel = pj.duracion(rol) / T_PEQUENO          # el clip entero en T_PEQUENO s
+	elif instante > 0.0:
+		vel = instante / T_FONDO                    # el agarre cae en T_FONDO
+	var dur: float = jugador.gesto(rol, vel)
 	if dur <= 0.0:
-		if jugador.pj.duracion("agacharse") > 0.0:
+		if pj.duracion(rol) > 0.0:
 			return false                         # había clip pero está ocupada (golpeando, rodando…)
 		dur = T_FONDO * 2.0
 		jugador._t_gesto = dur                   # sin clip: se queda quieta el mismo rato
@@ -306,15 +366,19 @@ func coger(o: Node3D) -> bool:
 	objeto = o
 	tipo = t
 	datos = fila
+	usa_clips = con_clips
+	pequeno = es_pequeno
 	estado = Estado.COGIENDO
 	_t = 0.0
 	_agarrado = false
 	_t_total = dur
 	_t_fondo = instante / vel if instante > 0.0 else T_FONDO
+	_t_suelta = Pj3D.instante_clip_de(pj.id, "coger_lanzar") / vel if es_pequeno else 0.0
 	_origen = o.global_position
 	_desvanece = 0.0
-	_asegurar_capa()
-	PlayLog.event("cogible_coger", {"tipo": tipo, "fondo": snappedf(_t_fondo, 0.01), "total": snappedf(_t_total, 0.01)})
+	if not usa_clips and not pequeno:
+		_asegurar_capa()
+	PlayLog.event("cogible_coger", {"tipo": tipo, "fondo": snappedf(_t_fondo, 0.01), "total": snappedf(_t_total, 0.01), "clip": rol if (usa_clips or pequeno) else ""})
 	return true
 
 
@@ -346,7 +410,17 @@ func soltar() -> bool:
 	_pos_soltar = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
 	estado = Estado.SOLTANDO
 	_t = 0.0
+	_t_soltar = T_SOLTAR
+	_t_remate = T_REMATE
 	jugador.mirar_hacia(_pos_soltar - jugador.position)
+	if usa_clips:
+		# `dejar_objeto` acelerado para que el objeto quede apoyado a los T_DEJAR_FONDO s; el resto del clip (se levanta con las manos vacías) es el remate
+		var inst: float = Pj3D.instante_clip_de(jugador.pj.id, "dejar_objeto")
+		var vel: float = inst / T_DEJAR_FONDO if inst > 0.0 else 1.0
+		var dur: float = jugador.gesto("dejar_objeto", vel)
+		if dur > T_DEJAR_FONDO:
+			_t_soltar = T_DEJAR_FONDO
+			_t_remate = dur - T_DEJAR_FONDO
 	return true
 
 
@@ -384,7 +458,17 @@ func lanzar() -> bool:
 		return false
 	estado = Estado.ANTICIPANDO
 	_t = 0.0
+	_t_anticipar = T_ANTICIPAR
+	_t_remate = T_REMATE
 	jugador.pj.mirar(jugador.mirada(), 1.0)
+	if usa_clips:
+		# `lanzar_objeto` acelerado para que el objeto salga a los T_SUELTA_CLIP s (su instante medido); lo que queda del clip es el remate
+		var inst: float = Pj3D.instante_clip_de(jugador.pj.id, "lanzar_objeto")
+		var vel: float = inst / T_SUELTA_CLIP if inst > 0.0 else 1.0
+		var dur: float = jugador.gesto("lanzar_objeto", vel)
+		if dur > T_SUELTA_CLIP:
+			_t_anticipar = T_SUELTA_CLIP
+			_t_remate = dur - T_SUELTA_CLIP
 	return true
 
 
@@ -580,18 +664,18 @@ func _process(delta: float) -> void:
 			_poner_pose("alzado", "alzado", 0.0, 1.0, 1.0)
 			_colocar_objeto()
 		Estado.ANTICIPANDO:
-			var k: float = clampf(_t / T_ANTICIPAR, 0.0, 1.0)
+			var k: float = clampf(_t / _t_anticipar, 0.0, 1.0)
 			_poner_pose("alzado", "atras", k, 1.0, 1.0)
 			_colocar_objeto()
-			if _t >= T_ANTICIPAR:
+			if _t >= _t_anticipar:
 				_soltar_al_aire()
 				estado = Estado.LANZANDO
 				_t = 0.0
 		Estado.LANZANDO:
 			var kk: float = clampf(_t / 0.09, 0.0, 1.0)
-			var peso: float = clampf((T_REMATE - _t) / T_REMATE_PESO, 0.0, 1.0)
+			var peso: float = clampf((_t_remate - _t) / T_REMATE_PESO, 0.0, 1.0)
 			_poner_pose("atras", "adelante", kk, peso, 0.0)
-			if _t >= T_REMATE:
+			if _t >= _t_remate:
 				estado = Estado.LIBRE
 				_poner_pose("adelante", "adelante", 0.0, 0.0, 0.0)
 		Estado.SOLTANDO:
@@ -610,6 +694,14 @@ func _fase_coger() -> void:
 	if _t >= fondo and not _agarrado:
 		_agarrado = true
 		ultimo = {"accion": "coger", "tipo": tipo, "t_fondo": snappedf(_t, 0.001)}
+	if pequeno and _t >= _t_suelta and objeto != null:
+		# objeto ligero: sale de la mano derecha en el instante medido del clip `coger_lanzar`, hacia donde mira, y la jugadora acaba el gesto (remate)
+		_soltar_al_aire()
+		ultimo["t_suelta"] = snappedf(_t, 0.001)
+		estado = Estado.LANZANDO
+		_t_remate = maxf(_t_total - _t_suelta, 0.05)
+		_t = 0.0
+		return
 	if _t >= _t_total and not jugador.en_gesto():
 		estado = Estado.CARGANDO
 		_t = 0.0
@@ -618,18 +710,22 @@ func _fase_coger() -> void:
 
 
 func _fase_soltar() -> void:
-	var k: float = clampf(_t / T_SOLTAR, 0.0, 1.0)
+	var k: float = clampf(_t / _t_soltar, 0.0, 1.0)
 	_poner_pose("alzado", "bajo", smoothstep(0.0, 1.0, k), 1.0 if k < 0.7 else clampf((1.0 - k) / 0.3, 0.0, 1.0), 1.0 - k)
 	_colocar_objeto()
-	if _t >= T_SOLTAR:
+	if _t >= _t_soltar:
 		_dejar(objeto, _pos_soltar)
 		ultimo = {"accion": "soltar", "tipo": tipo, "punto": _pos_soltar, "celda": Terreno3D.celda_de(_pos_soltar)}
 		soltado.emit(tipo, _pos_soltar)
 		PlayLog.event("cogible_soltar", {"tipo": tipo})
-		estado = Estado.LIBRE
-		_limpiar()
 		if _brazos != null:
 			_brazos.influence = 0.0
+		_limpiar()
+		if usa_clips and _t_remate > 0.01:
+			estado = Estado.LANZANDO               # el objeto ya está en el suelo: lo que queda del clip `dejar_objeto` (se levanta) es el remate, quieta
+			_t = 0.0
+		else:
+			estado = Estado.LIBRE
 
 
 ## Pone el objeto donde toca según la fase. Se llama cada fotograma Y cada vez que el esqueleto se actualiza (`skeleton_updated`): solo ahí valen las posiciones de los huesos con las capas
@@ -640,14 +736,18 @@ func _colocar_objeto() -> void:
 	match estado:
 		Estado.COGIENDO:
 			_f_cabeza = clampf((_t - _t_fondo) / maxf(_t_total - _t_fondo, 0.05), 0.0, 1.0)
-			objeto.global_position = _origen.lerp(_base_en_manos(), _k_coger)
+			if pequeno:
+				objeto.global_position = _origen.lerp(_base_en_mano_derecha(), _k_coger)     # un objeto ligero va en la mano derecha, no entre las dos
+			else:
+				objeto.global_position = _origen.lerp(_base_en_manos(), _k_coger)
 			objeto.scale = Vector3.ONE * lerpf(1.0, _escala(), _k_coger)
 		Estado.CARGANDO, Estado.ANTICIPANDO:
-			_f_cabeza = 1.0
+			# Con el clip de lanzar el objeto baja de la coronilla a las manos según se echan atrás y salen al frente (suelta = solo las manos); sin él, sigue sobre la cabeza.
+			_f_cabeza = 1.0 - clampf(_t / _t_anticipar, 0.0, 1.0) if (usa_clips and estado == Estado.ANTICIPANDO) else 1.0
 			objeto.global_position = _base_en_manos()
 			objeto.scale = Vector3.ONE * _escala()
 		Estado.SOLTANDO:
-			var k: float = clampf(_t / T_SOLTAR, 0.0, 1.0)
+			var k: float = clampf(_t / _t_soltar, 0.0, 1.0)
 			var arco: float = 0.25 * 4.0 * k * (1.0 - k)
 			_f_cabeza = 1.0 - k
 			objeto.global_position = _base_en_manos().lerp(_pos_soltar, smoothstep(0.0, 1.0, k)) + Vector3(0, arco, 0)
@@ -687,6 +787,15 @@ func _base_en_manos() -> Vector3:
 	return base
 
 
+## La BASE de un objeto ligero para que su centro quede en la mano derecha (el clip `coger_lanzar` lo coge y lo lanza con ella).
+func _base_en_mano_derecha() -> Vector3:
+	if _sk == null or not is_instance_valid(_sk):
+		_enganchar_esqueleto()
+	if not _tengo_manos:
+		return jugador.position + Vector3(0, 0.5, 0)
+	return mano_der - Vector3(0.0, float(datos.get("alto", 0.3)) * _escala() * 0.5, 0.0)
+
+
 func _enganchar_esqueleto() -> void:
 	var pj: Pj3D = jugador.pj
 	_sk = pj._esqueleto()
@@ -717,6 +826,8 @@ func _asegurar_capa() -> void:
 
 
 func _poner_pose(a: String, b: String, k: float, peso: float, inclina: float) -> void:
+	if usa_clips or pequeno:
+		return                       # con los clips de Meshy la pose es la del clip: la capa procedural solo es el respaldo
 	if _brazos != null and is_instance_valid(_brazos):
 		_brazos.poner(a, b, k, peso, inclina)
 
