@@ -599,7 +599,18 @@ static func fuerza_viento_pieza() -> float:
 	return VIENTO_PIEZAS / 0.035
 
 
-## Posiciones de los árboles (piezas «arbol*») del decorado de la maqueta, de sus lotes. Se calcula una vez por maqueta.
+## 4/11: qué piezas son árboles para las hojas y el polvo al pasar (los muros llevan pino, árbol viejo y sauce; antes solo «arbol*»).
+const PREFIJOS_ARBOL: Array = ["arbol", "pino", "sauce", "abedul"]
+
+
+static func es_arbol(id: String) -> bool:
+	for pre in PREFIJOS_ARBOL:
+		if id.begins_with(String(pre)):
+			return true
+	return false
+
+
+## Posiciones de los árboles (piezas de PREFIJOS_ARBOL) del decorado de la maqueta, de sus lotes. Se calcula una vez por maqueta.
 static func arboles_de(mundo: Object) -> PackedVector3Array:
 	if mundo == null or not is_instance_valid(mundo):
 		return PackedVector3Array()
@@ -610,7 +621,7 @@ static func arboles_de(mundo: Object) -> PackedVector3Array:
 	var lotes: Variant = mundo.get("_lotes")
 	if lotes is Dictionary:
 		for id in (lotes as Dictionary):
-			if String(id).begins_with("arbol"):
+			if es_arbol(String(id)):
 				for t in ((lotes as Dictionary)[id] as Array):
 					r.append((t as Transform3D).origin)
 	_arboles[clave] = r
