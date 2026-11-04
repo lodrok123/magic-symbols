@@ -24,7 +24,7 @@ extends Node
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
 ##   molino     umbral=<u/s> (0.3)  vertical (si)                                     Molino3D
-##   barril                                                                          Barril3D
+##   barril     tam=normal|pequeno (normal)                                           Barril3D. `tam=pequeno`: barril de 0,55 u que la jugadora coge y lanza (radio 1,6, mecha 2,4 s)
 ##   nexo                                                                            NexoRayo3D (pila que conduce mojada)
 ##   puerta     modelo=llave (losa)                                                  losa que bloquea su casilla hasta abrirse (PuertaPuzle). `modelo=llave`: el marco
 ##                                                                                   de piedra y la hoja con herrajes (arte/piezas/puerta_llave_*), girados con la pared
@@ -380,7 +380,7 @@ const CLAVES: Dictionary = {
 	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
-	"barril": {},
+	"barril": {"tam": "s:normal|pequeno"},
 	"nexo": {},
 	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
@@ -1951,7 +1951,7 @@ func _crear(pz: Pieza) -> void:
 		"barril":
 			var ba := Barril3D.new()
 			ba.name = pz.id
-			ba.preparar(pz.celda)
+			ba.preparar(pz.celda, String(pz.p.get("tam", "normal")) == "pequeno")
 			cont.add_child(ba)
 			pz.nodo = ba
 		"seta":

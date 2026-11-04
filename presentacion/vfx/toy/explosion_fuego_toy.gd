@@ -14,7 +14,7 @@ extends Node3D
 const T_ONDA: float = 0.38              ## s que tarda el frente de la onda en llegar a `radio`
 const T_APAGA_ONDA: float = 0.7         ## s en que el anillo ha desaparecido
 const T_CALOR: float = 0.85             ## s en que se apaga el resplandor del suelo
-const T_TOTAL: float = 1.35             ## s hasta liberar el nodo (la bola, las chispas y la luz acaban antes: 1,25 s la que más)
+const T_TOTAL: float = 1.5              ## s hasta liberar el nodo (la bola, las chispas y la luz acaban antes; las brasas del suelo se han ido a 1,4 s). Antes 1,35
 const K_BOLA: float = 0.327             ## radio de impacto de la bola / radio de la explosión (0,85 u para 2,6): la bola mide ≈ 5,2 · 0,85 ≈ 4,4 u de lado y se hincha hasta ~el radio
 const DESP_CALOR: float = -0.05         ## baja la temperatura de la rampa de la bola (ImpactoFuegoToy.desp_calor): la masa sale rojo-naranja y el amarillo queda solo en el núcleo del primer instante
 ## Revisión 4/11 (tarde): destello pequeño y casi blanco-crema (FLASH_K · su tamaño, FLASH_BRILLO), masa recorrida por la parte ROJA de la rampa (TRAMO_BOLA 0–0,5, núcleo naranja y bordes rojos), forma más recortada
@@ -27,12 +27,46 @@ const APLASTA: float = 0.7
 const DUR_K: float = 0.62
 const GRUPO: String = "explosion_fuego_toy"
 
+## 5/11/2026 (Pablo: «que se sienta un poco más como fuego»; mismo tamaño): además de la bola, las chispas y la onda, sube FUEGO de verdad. Todo es FuegoToy (su textura de lenguas, sus shaders y su rampa):
+##   · LENGUAS: un pilar de FuegoToy central y unos pocos alrededor (alturas y retrasos distintos) que suben desde la bola y se deshacen. Cada uno se anima con su `aparicion` (0 → 1 → 0: el cuerpo crece desde el suelo y se apaga).
+##   · BRASAS: unos pocos pilares enanos de FuegoToy repartidos DENTRO del radio que se quedan ardiendo en el suelo ≈ 1 s y se apagan (marcan el área que acaba de arder).
+##   · HUMO cálido: una bocanada breve (VfxPuzle3D, marrón rojizo, poco opaco) que sube tras la bola, ya con el fuego en lo suyo.
+## Los tamaños salen de `radio / RADIO_REF` (el barril grande, 2,6 u): un barril pequeño de radio 1,6 lo hace todo ×0,62.
+const RADIO_REF: float = 2.6
+## Lenguas: [ángulo (°), distancia al centro (× radio), alto (u a RADIO_REF), ancho (u), t de nacimiento (s), t en que empieza a apagarse (s), t en que se ha ido (s)]. La primera es la central.
+const LENGUAS: Array = [
+	[0.0, 0.0, 2.3, 0.55, 0.04, 0.46, 0.88],
+	[20.0, 0.30, 1.6, 0.32, 0.08, 0.40, 0.76],
+	[95.0, 0.34, 1.9, 0.34, 0.12, 0.46, 0.84],
+	[170.0, 0.28, 1.45, 0.30, 0.16, 0.38, 0.74],
+	[235.0, 0.36, 1.75, 0.32, 0.10, 0.44, 0.82],
+	[310.0, 0.32, 1.35, 0.28, 0.19, 0.36, 0.72],
+]
+## Brasas: [ángulo (°), distancia (× radio), t de nacimiento, t en que empieza a apagarse, t en que se ha ido]
+const BRASAS: Array = [
+	[40.0, 0.42, 0.22, 0.90, 1.35],
+	[125.0, 0.60, 0.28, 0.85, 1.30],
+	[205.0, 0.38, 0.25, 0.95, 1.40],
+	[285.0, 0.66, 0.32, 0.80, 1.25],
+	[340.0, 0.50, 0.30, 0.92, 1.38],
+]
+const BRASA_ALTO: float = 0.34
+const BRASA_ANCHO: float = 0.13
+const T_HUMO: float = 0.10              ## s en que sale la bocanada de humo
+const BRILLO_LENGUA: float = 1.0
+const BLANDURA_LENGUA: float = 0.22     ## la del pilar validado
+const ESCALA_RAMPA_LENGUA: float = 0.72 ## fracción de la rampa que recorren las lenguas (1 = hasta el amarillo pálido)
+const CONTRASTE_LENGUA: float = 1.2
+
 var radio: float = 2.6
 var _t: float = 0.0
 var _decal: MeshInstance3D = null
 var _mat: ShaderMaterial = null
 var _bola: ImpactoFuegoToy = null
 var _chispas: ImpactoFuegoToy = null
+var _lenguas: Array = []          ## [{nodo: FuegoToy, t0, t1, t2}]
+var _brasas: Array = []
+var _humo_puesto: bool = false
 
 
 static func crear(radio_: float) -> ExplosionFuegoToy:
@@ -64,7 +98,38 @@ func _ready() -> void:
 	_decal.name = "Onda"
 	_mat = _decal.material_override as ShaderMaterial
 	add_child(_decal)
+	var k: float = radio / RADIO_REF
+	for d in LENGUAS:
+		var l: Array = d
+		_lenguas.append(_pilar(float(l[0]), float(l[1]) * radio, float(l[3]) * k, float(l[2]) * k, float(l[4]), float(l[5]), float(l[6]), 1.0 if _lenguas.is_empty() else 0.0, 1.0))
+	for d in BRASAS:
+		var b: Array = d
+		_brasas.append(_pilar(float(b[0]), float(b[1]) * radio, BRASA_ANCHO * k, BRASA_ALTO * k, float(b[2]), float(b[3]), float(b[4]), 0.0, 0.35))
 	avanzar_a(0.0)
+
+
+## Un pilar de FuegoToy (semiejes `ancho` × `alto` × `ancho`, en u) a `dist` u del centro y `ang` grados, que nace en `t0`, empieza a apagarse en `t1` y se ha ido en `t2`. `luz` = su mando de luz (solo la lengua central ilumina);
+## `chispas` = proporción de chispas.
+func _pilar(ang: float, dist: float, ancho: float, alto: float, t0: float, t1: float, t2: float, luz_: float, chispas_: float) -> Dictionary:
+	var f := FuegoToy.new()
+	f.definir(FuegoToy.Figura.PILAR, ancho, alto, ancho)
+	f.aparicion = 0.0
+	f.luz = luz_
+	f.chispas = chispas_
+	f.brillo = BRILLO_LENGUA
+	f.blandura = BLANDURA_LENGUA
+	f.name = "Lengua"
+	add_child(f)
+	f._param_mats("escala_rampa", ESCALA_RAMPA_LENGUA)       # la rampa de fuego acaba en amarillo pálido: se recorre solo hasta el naranja (rojos y naranjas, nunca amarillo)
+	f._param_mats("contraste", CONTRASTE_LENGUA)
+	var a: float = deg_to_rad(ang)
+	f.position = Vector3(cos(a) * dist, 0.0, sin(a) * dist)
+	return {"nodo": f, "t0": t0, "t1": t1, "t2": t2}
+
+
+## Cuánto se ve (0..1) un pilar en `t`: sube desde su nacimiento (0,12 s) y se apaga entre `t1` y `t2`.
+static func envolvente(t: float, t0: float, t1: float, t2: float) -> float:
+	return smoothstep(t0, t0 + 0.12, t) * (1.0 - smoothstep(t1, t2, t))
 
 
 ## Fracción 0..1 del radio a la que está el frente de la onda en el instante `t` (s).
@@ -96,3 +161,21 @@ func avanzar_a(t: float) -> void:
 	_mat.set_shader_parameter("onda", onda_en(t))
 	_mat.set_shader_parameter("onda_vida", smoothstep(0.0, 0.02, t) * (1.0 - smoothstep(T_ONDA * 0.8, T_APAGA_ONDA, t)))
 	_mat.set_shader_parameter("calor", smoothstep(0.0, 0.03, t) * (1.0 - smoothstep(0.08, T_CALOR, t)))
+	for d in _lenguas:
+		_poner_pilar(d as Dictionary, t)
+	for d in _brasas:
+		_poner_pilar(d as Dictionary, t)
+	if not _humo_puesto and t >= T_HUMO and is_inside_tree():
+		_humo_puesto = true
+		var k: float = radio / RADIO_REF
+		VfxPuzle3D._emisor(self, Vector3(0.0, 0.5 * k, 0.0), "humo", 7, 0.9, 1.1 * k, 1.2 * k,
+			{"color": Color(0.36, 0.2, 0.14, 0.4), "gravedad": 0.9, "abanico": 40.0, "crece": true, "radio_emision": 0.55 * k, "amortigua": 1.2})
+
+
+func _poner_pilar(d: Dictionary, t: float) -> void:
+	var f: FuegoToy = d["nodo"] as FuegoToy
+	if f == null or not is_instance_valid(f):
+		return
+	var e: float = envolvente(t, float(d["t0"]), float(d["t1"]), float(d["t2"]))
+	f.aparicion = e
+	f.visible = e > 0.01
