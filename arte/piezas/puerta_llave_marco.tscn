@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/puerta_llave_marco.glb" id="1_ykswl"]
 
-[node name="puerta_llave_marco" type="Node3D" unique_id=363713978]
+[node name="puerta_llave_marco" type="Node3D" unique_id=1226323163]
 metadata/id = "puerta_llave_marco"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=2082956210]
+[node name="modelo" type="Node3D" parent="." unique_id=637407021]
 
-[node name="puerta_llave_marco2" type="Node3D" parent="modelo" unique_id=97492095 instance=ExtResource("1_ykswl")]
-transform = Transform3D(5.3157544, 0, 0, 0, 5.3157544, 0, 0, 0, 5.3157544, 0, 0, 0)
+[node name="puerta_llave_marco2" type="Node3D" parent="modelo" unique_id=1118392327 instance=ExtResource("1_ykswl")]
+transform = Transform3D(4.2453504, 0, -3.1991007, 0, 5.3157544, 0, 3.1991007, 0, 4.2453504, 0, 0, 0)

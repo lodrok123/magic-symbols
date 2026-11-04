@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/tronco_musgoso.glb" id="1_a0ot0"]
 
-[node name="tronco_musgoso" type="Node3D" unique_id=2103318747]
+[node name="tronco_musgoso" type="Node3D" unique_id=1069996370]
 metadata/id = "tronco_musgoso"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=648690643]
+[node name="modelo" type="Node3D" parent="." unique_id=86088675]
 
-[node name="tronco_musgoso2" type="Node3D" parent="modelo" unique_id=1738739016 instance=ExtResource("1_a0ot0")]
-transform = Transform3D(1.8877434, 0, 0, 0, 1.8877434, 0, 0, 0, 1.8877434, 0, 0, 0)
+[node name="tronco_musgoso2" type="Node3D" parent="modelo" unique_id=1368903339 instance=ExtResource("1_a0ot0")]
+transform = Transform3D(1.8146154, 0, -0.5203326, 0, 1.8877434, 0, 0.5203326, 0, 1.8146154, 0, 0, 0)

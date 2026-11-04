@@ -295,7 +295,7 @@ func _trozos(volar: bool) -> void:
 			pieza = (load("res://arte/piezas/%s.tscn" % id_restos) as PackedScene).instantiate() as Node3D
 		if pieza != null:
 			pieza.name = "restos_modelo"
-			pieza.rotation.y = rng.randf() * TAU
+			pieza.rotation.y = float(rng.randi() % 4) * PI * 0.5      # 4/11: múltiplo de 90° (el decorado ya no gira al azar); los trozos que saltan sí van al azar
 			add_child(pieza)
 	for i in range(N_TROZOS):
 		var t := MeshInstance3D.new()

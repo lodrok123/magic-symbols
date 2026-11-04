@@ -2615,13 +2615,14 @@ func _pieza(id: String) -> Node3D:
 		var escena_suelta: PackedScene = load(suelto) as PackedScene
 		if escena_suelta != null:
 			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
-			suelto_n.rotation.y = deg_to_rad(float(Pieza3D.GIRO_MODELO.get(id, 0.0)))      # giro por modelo (ver Pieza3D.GIRO_MODELO; el cristal, a 0)
+			suelto_n.rotation.y = deg_to_rad(Pieza3D.giro_de(id))      # giro por modelo: lo endereza (ver Pieza3D.GIRO_MODELO), antes de medirlo en _normalizar
 			return _a_paleta(_normalizar(suelto_n, id), id)
 	for b in _bibliotecas:
 		var n: Node = b.find_child(id, true, false)
 		if n != null and n is Node3D:
 			var copia: Node3D = (n as Node3D).duplicate() as Node3D
 			copia.transform = Transform3D.IDENTITY
+			copia.rotation.y = deg_to_rad(Pieza3D.giro_de(id))       # 4/11: enderezar el modelo (Pieza3D.GIRO_MODELO), antes de medirlo
 			return _a_paleta(_normalizar(copia, id), id)
 	if not _avisos.has("sin pieza " + id):
 		_avisos.append("sin pieza " + id)

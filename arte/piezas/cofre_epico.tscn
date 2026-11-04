@@ -1,28 +1,28 @@
-[gd_scene format=4]
+[gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://arte/meshy/piezas/cofre_epico.glb" id="1_nkm0r"]
-[ext_resource type="Script" path="res://presentacion/cofre_3d.gd" id="4_wqa5x"]
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/cofre_epico.glb" id="1_qmrr1"]
+[ext_resource type="Script" path="res://presentacion/cofre_3d.gd" id="2_n2iwu"]
 
-[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_iapbm"]
-points = PackedVector3Array(-0.4, 0.025, -0.417, -0.234, 0.025, -0.379, -0.55, 0, 0.22, -0.443, 0.027, -0.245, -0.414, 0.064, -0.39, -0.396, 0.488, -0.368, -0.383, 0.476, -0.385, 0.058, 0.38, -0.328, 0.549, 0.045, -0.223, 0.375, 0.04, -0.256, 0.447, 0.028, 0.242, -0.372, 0.014, 0.261, -0.457, 0.409, 0.239, -0.533, 0.453, 0.214, -0.527, 0.398, 0.134, 0.408, 0.027, 0.415, 0.236, 0.028, 0.384, -0.429, 0.421, -0.311, -0.507, 0.463, 0.073, -0.517, 0.473, 0.201, -0.339, 0.504, -0.296, 0.161, 0.5, -0.271, 0.133, 0.461, -0.294, 0.51, 0.492, -0.199, 0.43, 0.437, -0.226, 0.55, 0.084, -0.22, 0.408, 0.07, 0.417, -0.071, 0.326, 0.324, -0.393, 0.473, 0.242, -0.057, 0.45, 0.314, -0.449, 0.483, 0.152, -0.183, 0.48, 0.27, 0.331, 0.5, 0.283, 0.429, 0.507, -0.152, 0.492, 0.506, -0.188, 0.373, 0.501, -0.227, 0.496, 0.492, -0.122, 0.515, 0.438, -0.119, 0.408, 0.422, 0.312, 0.384, 0.473, 0.374, 0.362, 0.492, 0.381, 0.298, 0.432, 0.381, 0.002, 0.448, 0.325, 0.23, 0.49, 0.355, 0.469, 0.5, -0.044, 0.402, 0.494, 0.238, 0.432, 0.495, 0.129, 0.482, 0.489, -0.053, 0.413, 0.48, 0.246)
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_nkm0r"]
+points = PackedVector3Array(-0.01, 0.334, -0.293, -0.421, 0.022, -0.286, -0.4, 0.419, -0.261, 0.061, 0.406, -0.278, 0.402, 0.433, -0.265, 0.329, 0.385, -0.273, 0.433, 0.074, -0.29, 0.432, 0.039, -0.293, -0.433, 0, 0.29, -0.426, 0.024, -0.13, -0.428, 0.056, -0.26, -0.409, 0.429, -0.244, -0.271, 0.022, -0.284, 0.089, 0.44, -0.263, 0.279, 0.441, -0.263, 0.389, 0.446, -0.252, 0.405, 0.434, -0.196, 0.421, 0.386, -0.197, 0.428, 0.062, 0.285, 0.429, 0.025, 0.126, 0.276, 0.035, -0.289, -0.273, 0.013, 0.293, -0.35, 0.36, 0.29, -0.42, 0.399, 0.282, -0.43, 0.351, 0.212, 0.427, 0.024, 0.283, 0.273, 0.024, 0.288, -0.426, 0.371, -0.189, -0.423, 0.408, 0.155, -0.408, 0.416, 0.268, -0.346, 0.444, -0.193, 0.342, 0.446, -0.209, 0.337, 0.44, 0.183, 0.382, 0.433, 0.262, 0.396, 0.441, -0.124, 0.405, 0.43, -0.133, 0.396, 0.436, 0.032, 0.401, 0.422, 0.136, 0.399, 0.416, 0.251, 0.408, 0.371, 0.194, 0.326, 0.38, 0.274, -0.002, 0.287, 0.292, -0.294, 0.417, 0.281, 0.009, 0.396, 0.28, -0.108, 0.423, 0.266, -0.359, 0.425, 0.213, 0.263, 0.431, 0.264, 0.39, 0.435, 0.131, 0.061, 0.394, 0.28)
 
-[node name="cofre_epico" type="Node3D" unique_id=547020909]
+[node name="cofre_epico" type="Node3D" unique_id=1190447552]
 metadata/id = "cofre_epico"
 metadata/bloquea = true
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=683772094]
+[node name="modelo" type="Node3D" parent="." unique_id=765667655]
 
-[node name="cofre_epico2" type="Node3D" parent="modelo" unique_id=620629952 instance=ExtResource("1_nkm0r")]
-transform = Transform3D(2.4811327, 0, 0, 0, 2.4811327, 0, 0, 0, 2.4811327, 0.00026153823, 0.0024903214, 0.00059727876)
+[node name="cofre_epico2" type="Node3D" parent="modelo" unique_id=1806294199 instance=ExtResource("1_qmrr1")]
+transform = Transform3D(2.1364121, 0, 0.45410845, 0, 2.184141, 0, -0.45410845, 0, 2.1364121, 0.0003345753, 0.0021922297, 0.00046645265)
 
-[node name="Cofre3D" type="Node3D" parent="." unique_id=797890079]
-script = ExtResource("4_wqa5x")
+[node name="Cofre3D" type="Node3D" parent="." unique_id=1198292219]
+script = ExtResource("2_n2iwu")
 
-[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1846090919]
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=411388112]
 collision_layer = 1024
 collision_mask = 0
 
-[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=622007283]
-shape = SubResource("ConvexPolygonShape3D_iapbm")
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1229892075]
+shape = SubResource("ConvexPolygonShape3D_nkm0r")

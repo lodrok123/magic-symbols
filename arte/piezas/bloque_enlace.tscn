@@ -1,14 +1,14 @@
-[gd_scene format=4]
+[gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://arte/meshy/piezas/bloque_enlace.glb" id="1_mib7n"]
-[node name="bloque_enlace" type="Node3D" unique_id=109086908]
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/bloque_enlace.glb" id="1_6ktgg"]
+
+[node name="bloque_enlace" type="Node3D" unique_id=693740430]
 metadata/id = "bloque_enlace"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1503846244]
+[node name="modelo" type="Node3D" parent="." unique_id=185053667]
 
-[node name="bloque_enlace2" type="Node3D" parent="modelo" unique_id=425598598 instance=ExtResource("1_mib7n")]
-transform = Transform3D(3.0838578, 0, 0, 0, 3.0838578, 0, 0, 0, 3.0838578, 0, 0, 0)
-
+[node name="bloque_enlace2" type="Node3D" parent="modelo" unique_id=1242746974 instance=ExtResource("1_6ktgg")]
+transform = Transform3D(1.569528, 0, 1.5156757, 0, 2.1819007, 0, -1.5156757, 0, 1.569528, 0, 0, 0)

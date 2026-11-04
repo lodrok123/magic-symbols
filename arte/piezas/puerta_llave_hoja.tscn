@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/puerta_llave_hoja.glb" id="1_8sjb4"]
 
-[node name="puerta_llave_hoja" type="Node3D" unique_id=1873161405]
+[node name="puerta_llave_hoja" type="Node3D" unique_id=591308038]
 metadata/id = "puerta_llave_hoja"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=477670040]
+[node name="modelo" type="Node3D" parent="." unique_id=2034151249]
 
-[node name="puerta_llave_hoja2" type="Node3D" parent="modelo" unique_id=1051207385 instance=ExtResource("1_8sjb4")]
-transform = Transform3D(5.955903, 0, 0, 0, 5.955903, 0, 0, 0, 5.955903, 0, 0, 0)
+[node name="puerta_llave_hoja2" type="Node3D" parent="modelo" unique_id=70083253 instance=ExtResource("1_8sjb4")]
+transform = Transform3D(4.756596, 0, -3.5843518, 0, 5.955903, 0, 3.5843518, 0, 4.756596, 0, 0, 0)

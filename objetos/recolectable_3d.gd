@@ -122,7 +122,7 @@ func _poner_visual() -> void:
 	if n == null:
 		return
 	n.name = "visual"
-	n.rotation.y = deg_to_rad(float(absi(celda.x * 31 + celda.y * 17) % 360))
+	n.rotation.y = deg_to_rad(90.0 * float(absi(celda.x * 31 + celda.y * 17) % 4))      # 4/11: múltiplo de 90° (antes % 360)
 	add_child(n)
 	_visual = n
 	if VISUAL_PLANTA.has(planta):

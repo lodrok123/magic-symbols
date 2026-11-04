@@ -1,14 +1,14 @@
-[gd_scene format=4]
+[gd_scene format=3]
 
-[ext_resource type="PackedScene" path="res://arte/meshy/piezas/placa_presion_cueva.glb" id="1_6sga8"]
-[node name="placa_presion_cueva" type="Node3D" unique_id=1857262368]
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/placa_presion_cueva.glb" id="1_8tlqo"]
+
+[node name="placa_presion_cueva" type="Node3D" unique_id=2136656193]
 metadata/id = "placa_presion_cueva"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=176098978]
+[node name="modelo" type="Node3D" parent="." unique_id=1820951202]
 
-[node name="placa_presion_cueva2" type="Node3D" parent="modelo" unique_id=959576679 instance=ExtResource("1_6sga8")]
-transform = Transform3D(3.5618904, 0, 0, 0, 3.5618904, 0, 0, 0, 3.5618904, 0, -0.068263955, 0)
-
+[node name="placa_presion_cueva2" type="Node3D" parent="modelo" unique_id=1316217871 instance=ExtResource("1_8tlqo")]
+transform = Transform3D(2.929902, 0, -0.67642117, 0, 3.0069706, 0, 0.67642117, 0, 2.929902, 0, -0.02647015, 0)

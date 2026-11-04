@@ -125,7 +125,24 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 ## 11/10 puse 180 al cristal de la fuente eléctrica creyendo que su canal azul salía por -Z: era al revés (visto desde arriba, el canal
 ## de venas sale por +Z, que es hacia donde el juego electrifica el agua: `_celda_frente_fuente`). Con 180 las venas se alejaban del canal.
 ## Se deja a 0 (sin giro); la entrada sigue aquí por si otro modelo suelto necesita girarse.
-const GIRO_MODELO: Dictionary = {"cristal_sanctuario": 0.0}
+## 4/11 (Pipeline, diario 356): ahora vale para TODAS las piezas (sueltas y de biblioteca, en `crear_visual` y en `PruebaTest2._pieza`). Medido con
+## `herramientas/medir_giro_modelos.gd` (tabla en docs/GIRO_MODELOS_2026-11-04.tsv): muchos modelos de Meshy salen torcidos en Y (la caja del Bosque 02,
+## ~-20°) y, con las piezas ya a 0/90/180/270, se veían en diagonal. El valor es el giro en Y que alinea su contorno con los ejes (el del rectángulo
+## de área mínima de su casco XZ); se aplica al modelo ANTES de medir su caja (`_normalizar`), así que el centro y el tamaño salen del modelo ya recto.
+## Solo van las piezas de contorno claro (cajas, losas, carteles, troncos, puertas…); lo redondo (rocas, arbustos, árboles) no tiene giro que corregir.
+## Las piezas de la Cueva (cueva_pared, esquinas) quedan fuera: se orientan con GIRO_CUEVA. `valla` (-7°) queda fuera a propósito: enderezada, prueba_colisiones_proporcion
+## la da por «falta» (su contorno de colisión sale 0,11 u más estrecho que el modelo; el margen es 0,10). Si un modelo nuevo sale torcido, se mide y se añade aquí.
+const GIRO_MODELO: Dictionary = {
+	"cristal_sanctuario": 0.0,
+	"caja": -20.0, "caja_cristal": 17.0, "caja_pequena": 12.0, "cofre_epico": 12.0, "cofre_epico_tapa": 12.0,
+	"bloque_enlace": 44.0, "cubo_hielo": -44.0, "bloque_hierba": -20.0, "losa_runas_llana": -23.0, "placa_presion_cueva": -13.0,
+	"labio_cascada": 43.0, "musgo_colgante": 36.0, "puerta_llave_marco": -37.0, "puerta_llave_hoja": -37.0,
+	"troncos_apilados": 32.0, "tronco_seco": -15.0, "tronco": -15.0, "tronco_musgoso": -16.0,
+	"puesto": -12.0, "valla_lianas": -12.0, "muro_ruina": 9.0, "totem_runico": -7.0,
+	"dummy": -38.0,
+	# Carteles (poste + tablón en T): el rectángulo mínimo del casco entero sale ambiguo (±20°); aquí va el ángulo del TABLÓN, medido por PCA de los vértices altos.
+	"cartel": -6.0, "cartel_runa_naranja": -11.0, "cartel_runa_cian": -11.0, "cartel_runa_roja": -11.0, "cartel_runa_amarilla": -11.0,
+	"cartel_runa_verde": -11.0, "cartel_runa_azul": -11.0}
 
 const PLANAS: Dictionary = {"placa_peso": 0.05, "baldosa_guardado": 0.04, "pasadero": 0.10,
 	"losa_runas_llana": 0.08, "losa_runas_remaches": 0.08, "losa_runas_ovalo": 0.08,
@@ -229,6 +246,15 @@ static func id_real(id: String) -> String:
 	return id
 
 
+## Grados de giro en Y que se le dan al modelo `id` para enderezarlo (GIRO_MODELO); 0 si no esta en la tabla.
+static func giro_de(id: String) -> float:
+	return float(GIRO_MODELO.get(id, 0.0)) if giro_activo else 0.0
+
+
+## Solo para herramientas (hoja_giro_modelos.gd, medir_giro_modelos.gd): false = ver los modelos tal como vienen de Meshy, sin enderezar.
+static var giro_activo: bool = true
+
+
 ## Copia del modelo de la pieza, a su medida y con la base en y = 0 centrada. null si ninguna biblioteca la tiene.
 static func crear_visual(id_pedido: String) -> Node3D:
 	var id: String = id_real(id_pedido)
@@ -239,13 +265,14 @@ static func crear_visual(id_pedido: String) -> Node3D:
 		var escena_suelta: PackedScene = load(suelto) as PackedScene
 		if escena_suelta != null:
 			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
-			suelto_n.rotation.y = deg_to_rad(float(GIRO_MODELO.get(id, 0.0)))
+			suelto_n.rotation.y = deg_to_rad(giro_de(id))
 			return _normalizar(suelto_n, id)
 	for b in _bibliotecas:
 		var n: Node = (b as Node).find_child(id, true, false)
 		if n != null and n is Node3D:
 			var copia: Node3D = (n as Node3D).duplicate() as Node3D
 			copia.transform = Transform3D.IDENTITY
+			copia.rotation.y = deg_to_rad(giro_de(id))       # 4/11: enderezar el modelo (GIRO_MODELO), antes de medirlo en _normalizar
 			return _normalizar(copia, id)
 	return null
 
