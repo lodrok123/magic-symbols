@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/pocion_alq_2.glb" id="1_3hc5g"]
+
+[node name="pocion_alq_2" type="Node3D" unique_id=2107013665]
+metadata/id = "pocion_alq_2"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1197583469]
+
+[node name="pocion_alq_22" type="Node3D" parent="modelo" unique_id=517863116 instance=ExtResource("1_3hc5g")]
+transform = Transform3D(1.7135677, 0, 0, 0, 1.7135677, 0, 0, 0, 1.7135677, 0, 0, 0)

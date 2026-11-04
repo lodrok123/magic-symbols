@@ -67,6 +67,8 @@ const MODO: Dictionary = {
 	"cartel_runa_roja": "contorno", "cartel_runa_naranja": "contorno", "cartel_runa_verde": "contorno",
 	"cartel_runa_azul": "contorno", "cartel_runa_amarilla": "contorno", "cartel_runa_cian": "contorno",
 	"bloque_hierba": "contorno", "cubo_hielo": "contorno",
+	# 4/11 (diario 353): las pociones de la alquimia se recogen o decoran: sin cuerpo (igual que la `pocion` de antes).
+	"pocion_alq_0": "ninguna", "pocion_alq_1": "ninguna", "pocion_alq_2": "ninguna", "pocion_alq_3": "ninguna", "pocion_grande": "ninguna",
 }
 
 ## Árboles: solo el tronco. Franjas candidatas (alto de 0,45 a 1,4) y, en cada una, solo el trozo más cercano al eje; se

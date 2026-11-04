@@ -1,0 +1,58 @@
+﻿{
+    "pocion_alq_2":  {
+                         "estado":  "pendiente",
+                         "directo":  true,
+                         "objetivo":  1892,
+                         "niveles":  {
+                                         "1892":  {
+                                                      "archivo":  "pocion_alq_2.glb",
+                                                      "tris":  1892,
+                                                      "kb":  1233
+                                                  }
+                                     },
+                         "origen":  "alquimia_origen.glb (Meshy: Arcane Alchemy Treasure), objeto 5 de la hoja objetos_separados.png: pocion azul",
+                         "nota":  "Separada por componentes conectados (tools/separar_alquimia.py); textura recortada a su zona de UV."
+                     },
+    "pocion_alq_1":  {
+                         "estado":  "pendiente",
+                         "directo":  true,
+                         "objetivo":  1816,
+                         "niveles":  {
+                                         "1816":  {
+                                                      "archivo":  "pocion_alq_1.glb",
+                                                      "tris":  1816,
+                                                      "kb":  1264
+                                                  }
+                                     },
+                         "origen":  "alquimia_origen.glb (Meshy: Arcane Alchemy Treasure), objeto 3 de la hoja objetos_separados.png: pocion verde",
+                         "nota":  "Separada por componentes conectados (tools/separar_alquimia.py); textura recortada a su zona de UV."
+                     },
+    "pocion_alq_0":  {
+                         "estado":  "pendiente",
+                         "directo":  true,
+                         "objetivo":  1766,
+                         "niveles":  {
+                                         "1766":  {
+                                                      "archivo":  "pocion_alq_0.glb",
+                                                      "tris":  1766,
+                                                      "kb":  1260
+                                                  }
+                                     },
+                         "origen":  "alquimia_origen.glb (Meshy: Arcane Alchemy Treasure), objeto 1 de la hoja objetos_separados.png: pocion roja",
+                         "nota":  "Separada por componentes conectados (tools/separar_alquimia.py); textura recortada a su zona de UV."
+                     },
+    "pocion_alq_3":  {
+                         "estado":  "pendiente",
+                         "directo":  true,
+                         "objetivo":  1781,
+                         "niveles":  {
+                                         "1781":  {
+                                                      "archivo":  "pocion_alq_3.glb",
+                                                      "tris":  1781,
+                                                      "kb":  1248
+                                                  }
+                                     },
+                         "origen":  "alquimia_origen.glb (Meshy: Arcane Alchemy Treasure), objeto 7 de la hoja objetos_separados.png: pocion naranja",
+                         "nota":  "Separada por componentes conectados (tools/separar_alquimia.py); textura recortada a su zona de UV."
+                     }
+}
