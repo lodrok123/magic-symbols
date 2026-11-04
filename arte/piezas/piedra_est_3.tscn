@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/piedra_est_3.glb" id="1_gekmc"]
+
+[node name="piedra_est_3" type="Node3D" unique_id=1704744363]
+metadata/id = "piedra_est_3"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=55084531]
+
+[node name="piedra_est_32" type="Node3D" parent="modelo" unique_id=654297929 instance=ExtResource("1_gekmc")]
+transform = Transform3D(0.5723856, 0, 0, 0, 0.5723856, 0, 0, 0, 0.5723856, 0, 0, 0)

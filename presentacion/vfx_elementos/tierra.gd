@@ -32,6 +32,22 @@ extends ElementoVfx
 const RUTA_MODELOS: String = "res://arte/meshy/piezas/"
 const HOJA_MODELOS: String = "elem_tierra"
 
+## 4/11 · ROCAS ESTILIZADAS (pack LeLu, `arte/meshy/aprobacion3d/rocas_estilizadas/`, piezas `roca_est_*` y `piedra_est_*` de `arte/meshy/piezas/`): los terrones y cascotes se dibujan con las
+## piedras pequeñas y el bloque que emerge con las rocas macizas, en lugar de los GLB viejos (`terron_*`, `cascote_*`, `bloque_tierra_*`). El tamaño lo sigue mandando `MEDIDA`.
+## Interruptor: `false` devuelve lo de antes (los GLB viejos o, si no hay, las primitivas facetadas). El pincho no cambia (ninguna roca del pack es una estaca).
+const ROCAS_ESTILIZADAS: bool = true
+## Id (de la variante NEUTRA) del GLB de roca que sustituye a cada pieza; `RocasEstilizadas.id_de` lo cambia por la variante del bioma (musgo en bosque, neutra en cueva, magma en lava).
+## El id de `MEDIDA` se conserva para la medida y el origen.
+## Brillo especular de la roca (el de serie, 0,5, la lavaba hasta el gris liso bajo el sol del juego).
+const ROCA_ESPECULAR: float = 0.12
+## Lo que oscurece el albedo del pack (musgo y neutra; la magma no): con la luz del juego (sol fuerte) la textura clara del pack se quemaba a gris casi blanco, comparada con los GLB viejos.
+const ROCA_OSCURECE: float = 0.85
+const ROCA_DE: Dictionary = {
+	"terron_0": "piedra_est_0", "terron_1": "piedra_est_3", "terron_2": "piedra_est_1", "terron_3": "piedra_est_2", "terron_4": "piedra_est_0", "terron_5": "piedra_est_4",
+	"cascote_0": "piedra_est_1", "cascote_1": "piedra_est_4", "cascote_2": "piedra_est_3", "cascote_3": "piedra_est_2",
+	"bloque_tierra_0": "roca_est_2", "bloque_tierra_1": "roca_est_3", "bloque_tierra_2": "roca_est_2",   # las de cara de arriba ancha (roca_est_1 es una pirámide truncada: arriba mide 0,46 × 0,50 m de 1,08 en la base)
+}
+
 ## Medida de cada pieza (X, Y, Z) en unidades de juego (casilla = 2,3 u; la jugadora ~1). Son las de PROMPTS_ELEMENTOS.md.
 const MEDIDA: Dictionary = {
 	"terron_0": Vector3(0.34, 0.32, 0.38), "terron_1": Vector3(0.45, 0.28, 0.40), "terron_2": Vector3(0.30, 0.30, 0.30),
@@ -230,18 +246,45 @@ static func pieza(id: String) -> MeshInstance3D:
 ## El Mesh del modelo (o null). Lámina primero, GLB suelto después; se cachea.
 static func _modelo(id: String) -> Mesh:
 	if _modelos.has(id):
-		return _modelos[id]
+		return _modelos[id]      # el de siempre (y el que fuerzan las pruebas); las rocas van con clave id|roca (la variante cambia con el bioma)
 	_leer_hoja()
 	var m: Mesh = _hoja.get(id, null)
-	if m == null:
+	var roca: String = ""
+	var clave: String = id
+	if ROCAS_ESTILIZADAS and m == null and ROCA_DE.has(id):
+		roca = RocasEstilizadas.id_de(String(ROCA_DE[id]))       # la variante del bioma donde está el juego (musgo / neutra / magma)
+		clave = id + "|" + roca
+	if _modelos.has(clave):
+		return _modelos[clave]
+	var de_roca: Mesh = ModeloElemento.malla_glb(roca) if roca != "" else null
+	if de_roca != null:
+		# Roca estilizada: va después de la lámina (si algún día hay `elem_tierra.glb`, manda ella) y gana al GLB viejo. Mismos ajustes que ellos: terrones y cascotes por su lado mayor, el bloque a su caja.
+		var ajuste_r: String = "caja" if id.begins_with("bloque_") else "mayor"
+		m = ModeloElemento.hornear(de_roca, MEDIDA.get(id, Vector3.ONE), ajuste_r, _origen_base(id))
+		_sin_brillo(m, roca)
+		_horneado[id] = true
+	elif m == null:
 		var suelto: Mesh = ModeloElemento.malla_glb(id)
 		if suelto != null:
 			# GLB suelto de Meshy: se hornea una vez a la medida del juego y con el origen que toca (ver ModeloElemento). `pieza` lo usa tal cual.
 			var ajuste: String = "caja" if id.begins_with("bloque_") else ("alto" if id.begins_with("pincho_") else "mayor")
 			m = ModeloElemento.hornear(suelto, MEDIDA.get(id, Vector3.ONE), ajuste, _origen_base(id))
 			_horneado[id] = true
-	_modelos[id] = m
+	_modelos[clave] = m
 	return m
+
+
+## Copia el material de la roca (el del GLB se comparte entre piezas) con poco especular: bajo el sol del juego el reflejo la volvía gris casi blanca.
+static func _sin_brillo(m: Mesh, roca_id: String) -> void:
+	for i in range(m.get_surface_count()):
+		var b: BaseMaterial3D = m.surface_get_material(i) as BaseMaterial3D
+		if b == null:
+			continue
+		var c: BaseMaterial3D = b.duplicate() as BaseMaterial3D
+		c.metallic_specular = ROCA_ESPECULAR
+		if not roca_id.contains("_magma_"):
+			c.albedo_color = b.albedo_color * Color(ROCA_OSCURECE, ROCA_OSCURECE, ROCA_OSCURECE, 1.0)      # multiplica la textura (no la sustituye): neutro, conserva el musgo verde y el pardo
+		m.surface_set_material(i, c)
 
 
 static func _leer_hoja() -> void:

@@ -1,0 +1,132 @@
+{
+ "roca_est_0": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stoneB2, material A)",
+  "tris": 1834,
+  "vertices": 2876,
+  "tam_m": [
+   1.288,
+   1.264,
+   1.233
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "roca_est_1": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone6.001, material A)",
+  "tris": 196,
+  "vertices": 588,
+  "tam_m": [
+   1.076,
+   1.22,
+   1.085
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "roca_est_2": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone6.002, material A)",
+  "tris": 196,
+  "vertices": 586,
+  "tam_m": [
+   1.073,
+   1.22,
+   0.648
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "roca_est_3": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone3.001, material A)",
+  "tris": 263,
+  "vertices": 789,
+  "tam_m": [
+   0.933,
+   0.763,
+   1.171
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "roca_est_4": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone4.001, material A)",
+  "tris": 208,
+  "vertices": 620,
+  "tam_m": [
+   0.635,
+   1.178,
+   0.661
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "piedra_est_0": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stoneB1, material A)",
+  "tris": 396,
+  "vertices": 498,
+  "tam_m": [
+   0.819,
+   0.801,
+   0.744
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "piedra_est_1": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone5.001, material A)",
+  "tris": 142,
+  "vertices": 426,
+  "tam_m": [
+   0.694,
+   0.684,
+   0.684
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "piedra_est_2": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone2.002, material A)",
+  "tris": 130,
+  "vertices": 364,
+  "tam_m": [
+   1.007,
+   0.61,
+   0.583
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "piedra_est_3": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone2.001, material A)",
+  "tris": 130,
+  "vertices": 386,
+  "tam_m": [
+   0.999,
+   0.489,
+   1.013
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ },
+ "piedra_est_4": {
+  "estado": "procesado",
+  "directo": true,
+  "origen": "sm_rocks_objects.glb (malla stone1.001, material A)",
+  "tris": 296,
+  "vertices": 888,
+  "tam_m": [
+   0.718,
+   0.416,
+   0.976
+  ],
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
+ }
+}

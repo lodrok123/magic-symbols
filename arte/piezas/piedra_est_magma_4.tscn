@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/piedra_est_magma_4.glb" id="1_tprpt"]
+
+[node name="piedra_est_magma_4" type="Node3D" unique_id=457213903]
+metadata/id = "piedra_est_magma_4"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1971554822]
+
+[node name="piedra_est_magma_42" type="Node3D" parent="modelo" unique_id=1366871450 instance=ExtResource("1_tprpt")]
+transform = Transform3D(0.62505543, 0, 0, 0, 0.62505543, 0, 0, 0, 0.62505543, 0, 0, 0)
