@@ -350,6 +350,9 @@ var elemental: bool = false             ## el elemental de bosque (comportamient
 var masa: float = 1.0                   ## kg relativos: el empuje se divide por ella; 1 = goblin guerrero
 var _k_golpe: float = 1.0               ## tarea P: fuerza visual del último empujón (v0 / V0_REF); lo leen el aplastamiento, el respingo y el polvo, y vuelve a 1 tras usarse
 var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
+var _marcha: MarchaCuadrupedo3D = null  ## 4/11: la marcha del animal (loberno = lobo, canouro = hiena); null en el resto y con MarchaCuadrupedo3D.MARCHA_ANIMAL = false
+var _modo_marcha: String = ""           ## «» | «acecho» | «atras»: lo que pide la conducta del animal a la animación de andar
+var _ataque_visto: float = 0.0          ## `_ataque` del fotograma anterior (para saber cuándo acaba el ataque de un animal)
 var _v_avance: float = 0.0              ## 28/10: u/s a los que avanza ahora mismo (ya con ritmo y estados): de ahí sale la velocidad del clip de andar sin patinar
 var _potenciado: bool = false           ## el agua lo ha agrandado ahora mismo
 var _ya_crecio: bool = false            ## el agua solo lo agranda UNA vez
@@ -433,6 +436,8 @@ func _ready() -> void:
 	es_goblin = pj != null and pj.id.begins_with("goblin")
 	if es_goblin:
 		pj.ritmo = RITMO_GOBLIN
+	if MarchaCuadrupedo3D.MARCHA_ANIMAL and pj != null and MarchaCuadrupedo3D.tiene_perfil(pj.id):
+		_marcha = MarchaCuadrupedo3D.para(pj)
 	var forma := CapsuleShape3D.new()
 	forma.radius = 0.7 * altura / ELEM_ALTO_REF if elemental else 0.32
 	forma.height = maxf(altura, 0.7)
@@ -730,6 +735,8 @@ func reacciones_soportadas() -> PackedStringArray:
 ## por modelo y por clip (guerrero: andar ≈ 0,49 u/s, correr ≈ 1,25). `v_base("walk")` es lo que antes era VEL_PATRULLA y `v_base("run")` lo que era VEL_PERSEGUIR; los demás enemigos (elemental…) siguen con esas dos constantes.
 ## El ritmo (RITMO_GOBLIN) ya no entra en el avance: queda para el resto de los clips (idle, ataque, lanzar…).
 func v_base(clip: String) -> float:
+	if _marcha != null:
+		return _marcha.v_base(clip)          # 4/11: animal con marcha propia (MarchaCuadrupedo3D.PERFILES)
 	if es_goblin and pj != null and is_instance_valid(pj):
 		var d: float = pj.duracion(clip)
 		var z: float = zancada_goblin(clip)
@@ -1063,6 +1070,8 @@ func _physics_process(delta: float) -> void:
 		return
 	_efectos(delta)
 	_ia(delta)
+	if _marcha != null:
+		_actualizar_marcha(delta)
 	_ajustar_al_suelo(delta)
 	if muerto:
 		# `_ajustar_al_suelo` puede haberlo ahogado (`_hundirse` → `_morir(true)`, que ya pidió el clip `drown`): seguir con `_animar` pediría `idle`
@@ -1471,6 +1480,8 @@ func _ia(delta: float) -> void:
 				_en_rango = true
 			elif d.length() > rango * HISTERESIS_RANGO:
 				_en_rango = false
+			if _marcha != null and _marcha.retirada > 0.0:
+				_en_rango = false                  # la hiena se retira tras morder: no espera pegada al jugador
 			if estado == "persigue" and _en_rango:
 				moviendo = 0
 				_atacar(delta)
@@ -1478,7 +1489,21 @@ func _ia(delta: float) -> void:
 				_carga = 0.0
 				moviendo = 2 if vel > 0.8 else 1
 				_v_avance = v_base("run") * vel
-				_mover_paso(_dir_hacia(meta, delta) * _v_avance * delta, false, true)
+				var dir_p: Vector3 = _dir_hacia(meta, delta)
+				var atras: bool = false
+				_modo_marcha = ""
+				if _marcha != null and estado == "persigue":
+					# 4/11 · conducta del animal por datos (MarchaCuadrupedo3D.PERFILES): acecho del lobo; zigzag, parada, retroceso y arrancada de la hiena
+					var cond: Dictionary = _marcha.conducta(d.length(), dir_p, delta)
+					dir_p = cond["dir"]
+					_v_avance *= float(cond["v"])
+					moviendo = int(cond["moviendo"]) if vel > 0.8 or int(cond["moviendo"]) == 0 else 1
+					_modo_marcha = String(cond["modo"])
+					atras = bool(cond["atras"])
+				var paso_p: Vector3 = dir_p * _v_avance * delta
+				if _marcha != null:
+					paso_p = _marcha.paso_suave(paso_p, delta, atras)
+				_mover_paso(paso_p, false, true)
 			else:
 				moviendo = 0
 		"vuelve":
@@ -1492,7 +1517,11 @@ func _ia(delta: float) -> void:
 				mirada = h.normalized()
 				moviendo = 1
 				_v_avance = v_base("walk") * (1.0 if es_goblin else 1.5) * vel
-				if not _mover_paso(_dir_hacia(casa, delta) * _v_avance * delta, false, true):
+				_modo_marcha = ""
+				var paso_v: Vector3 = _dir_hacia(casa, delta) * _v_avance * delta
+				if _marcha != null:
+					paso_v = _marcha.paso_suave(paso_v, delta)
+				if not _mover_paso(paso_v, false, true):
 					estado = "patrulla"
 		_:
 			_patrullar(delta, vel)
@@ -1503,8 +1532,17 @@ func _patrullar(delta: float, vel: float) -> void:
 	moviendo = 1
 	mirada = Vector3(_direccion, 0.0, 0.0)
 	_v_avance = v_base("walk") * vel
+	_modo_marcha = ""
 	var paso := Vector3(_direccion * _v_avance * delta, 0.0, 0.0)
+	if _marcha != null:
+		paso = _marcha.paso_suave(paso, delta)
 	var movido: bool = _mover_paso(paso)
+	if _marcha != null:
+		# 4/11 · el animal gira con velocidad angular máxima: tras dar la vuelta aún sigue un rato hacia fuera, así que solo se invierte si va hacia fuera y no más de una vez cada 0,8 s
+		var fuera: bool = absf(position.x - casa.x) >= DISTANCIA_PATRULLA - 0.6 and (position.x - casa.x) * _direccion > 0.0       # 0,6 u de margen: lo que se pasa mientras gira
+		if (not movido or fuera) and _marcha.permitir_vuelta():
+			_direccion *= -1.0
+		return
 	if not movido or absf(position.x - casa.x) >= DISTANCIA_PATRULLA:
 		_direccion *= -1.0
 
@@ -1627,6 +1665,8 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	_ataque = total
 	_t_anim = total
 	_ataque_vel = vel_anim
+	if _marcha != null:
+		_marcha.al_atacar()
 	anim_orden = "attack"
 	_ataque_id += 1
 	_golpe_pendiente = true
@@ -2033,6 +2073,12 @@ func _animar() -> void:
 		pj.jugar("idle")
 		return
 	pj.set_velocidad_animacion(1.0)
+	if _marcha != null and moviendo > 0:
+		# 4/11: el animal elige clip y velocidad de reproducción para su avance real (sin patinar) y gira con velocidad angular máxima
+		_marcha.animar_andar(_v_avance, _modo_marcha)
+		if mirada.length() > 0.01:
+			pj.mirar(_marcha.rumbo_vec(), 0.05)
+		return
 	if elemental and moviendo == 1:
 		# Pies resbalando: el clip `walk` (5,5 s) a velocidad 1 va más lento que el suelo. Se acelera lo justo.
 		var dur: float = pj.duracion("walk")
@@ -2053,7 +2099,16 @@ func _animar() -> void:
 		_:
 			pj.jugar(clip_andar)
 	if mirada.length() > 0.01 and (moviendo > 0 or estado == "persigue"):
-		pj.mirar(mirada, 0.05)
+		pj.mirar(_marcha.rumbo_vec() if _marcha != null else mirada, 0.05)
+
+
+## 4/11 · cada fotograma tras la IA: el giro del cuerpo con velocidad angular máxima, la cabeza que sigue a la presa y el fin del ataque (retirada de la hiena).
+func _actualizar_marcha(delta: float) -> void:
+	if _ataque_visto > 0.0 and _ataque <= 0.0:
+		_marcha.al_acabar_ataque()
+	_ataque_visto = _ataque
+	var presa: Vector3 = jugador.position if jugador != null and is_instance_valid(jugador) else position
+	_marcha.actualizar(delta, self, mirada, presa, objetivo != null and not muerto, _v_avance if moviendo > 0 else 0.0)
 
 
 ## =====================================================================================================
@@ -3071,3 +3126,4 @@ class Botin3D extends MeshInstance3D:
 			Sfx.play(self, "moneda")
 		PlayLog.event("oro", {"cantidad": cantidad, "total": Estado.i().oro})
 		queue_free()
+
