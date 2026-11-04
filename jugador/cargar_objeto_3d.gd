@@ -44,7 +44,8 @@ const T_DEJAR_FONDO: float = 0.34        ## de pulsar Q a apoyar el objeto con `
 const T_PEQUENO: float = 1.2             ## `coger_lanzar` entero (3,25 s a ×2,7): se agacha, coge con la derecha, da un paso y lanza
 const ZANCADA_CARGAR: float = 0.28       ## u/s de suelo que cubre el clip `cargar_andar` a ×1: su ciclo avanza la cadera 0,41 u del GLB (0,26 u del juego, ×0,625) en 0,93 s. Es un andar de pasos CORTOS: el juego va a 1,12 u/s
 const VEL_CARGAR_MIN: float = 0.8        ## tope inferior de la velocidad del clip `cargar_andar` (el arranque, antes de llegar a la velocidad de marcha)
-const VEL_CARGAR_MAX: float = 2.2        ## tope superior: a ×4 (lo que pediría no patinar) los pies son un borrón; a este tope aún patinan (ver docs/RECOGER_LANZAR_2026-11-04.md)
+const VEL_CARGAR_MAX: float = 2.5        ## tope superior: a ×4 los pies son un borrón. 4/11 (Pablo: «andar más lento»): en vez de patinar, la jugadora anda más despacio cargando
+const VEL_SUELO_CARGAR: float = ZANCADA_CARGAR * VEL_CARGAR_MAX   ## 0,70 u/s: lo más rápido que anda cargando con los clips de Meshy (los pies pisan sin patinar); ver `mult_vel`
 const T_PESO_GOLPE: float = 0.18         ## los brazos se sueltan tras un golpe
 const ALCANCE_COGER: float = 2.7         ## u (plano) del centro de la jugadora al del objeto: la casilla vecina (2,3) con margen, como el cofre y los NPC
 const ALTO_COGER: float = 1.0            ## u de diferencia de altura como mucho
@@ -132,7 +133,10 @@ func ocupa_manos() -> bool:
 func mult_vel() -> float:
 	if not ocupa_manos():
 		return 1.0
-	return float(datos.get("vel", 0.7))
+	var m: float = float(datos.get("vel", 0.7))
+	if usa_clips and jugador != null and jugador._vel_andar > 0.0:
+		m = minf(m, VEL_SUELO_CARGAR / jugador._vel_andar)   # con `cargar_andar` el suelo no va más rápido que sus pasos (sin patinar)
+	return m
 
 
 ## ¿Está quieta de espaldas al mundo (agachándose, armando el lanzamiento, remate, soltando)? Solo andar cargando permite moverse.
