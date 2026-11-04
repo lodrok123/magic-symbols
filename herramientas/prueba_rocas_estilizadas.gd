@@ -3,7 +3,7 @@ extends SceneTree
 ## PRUEBA (Pipeline, 4/11): rocas estilizadas del pack LeLu en TRES variantes (musgo = bosque, neutra = cueva, magma = lava). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_rocas_estilizadas.gd
 ##   1. cada GLB (5 rocas + 5 piedras × 3 variantes) existe, trae UNA malla con UN solo juego de texturas (musgo y neutra: solo albedo; magma: albedo + normal + roughness + emissive), base en y = 0;
-##   2. cada id tiene su alto en `Pieza3D.MEDIDA` y su pieza-escena (bloquean las 5 rocas y piedra_est_*_0/1; las otras 3 piedras se pisan);
+##   2. cada id tiene su alto en `Pieza3D.MEDIDA` y su pieza-escena (bloquea lo que pasa de ColisionPieza.ALTO_MIN_SOLIDO: las 5 rocas y piedra_est_*_0; las otras 4 piedras se pisan);
 ##   3. `RocasEstilizadas.variante_de` elige bien por bioma (bosque → musgo, cueva → neutra, lava → magma) y `id_de` pone el sufijo;
 ##   4. `VfxTierra` (ROCAS_ESTILIZADAS = true) dibuja terrones, cascotes y bloques con la variante del bioma, a la medida de su tabla.
 
@@ -55,7 +55,7 @@ func _initialize() -> void:
 		if ps2 == null:
 			continue
 		var raiz: Node3D = ps2.instantiate() as Node3D
-		var debe: bool = String(id).begins_with("roca_") or String(id).ends_with("_0") or String(id).ends_with("_1")
+		var debe: bool = float(Pieza3D.MEDIDA.get(id, 0.0)) > ColisionPieza.ALTO_MIN_SOLIDO + ColisionPieza.ALTO_TOLERANCIA      # 4/11: lo bajo (≤ 0,45 u) se pisa: piedra_est_*_1 (0,4) ya no bloquea
 		_ok("%s: bloquea = %s" % [id, str(debe)], bool(raiz.get_meta("bloquea", false)) == debe)
 		_ok("%s: cuerpo de colisión" % id, (raiz.get_node_or_null("cuerpo") != null) == debe)
 		raiz.free()
