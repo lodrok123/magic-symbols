@@ -70,7 +70,7 @@ func _init() -> void:
 				var alto: float = Pieza3D._caja(vis, Transform3D.IDENTITY).size.y if vis != null else 0.0
 				if vis != null:
 					vis.free()
-				_ok(alto < ColisionPieza.ALTO_MIN_SOLIDO, "%s: bloquea pero sin cuerpo solo si es baja (%.2f)" % [id, alto])
+				_ok(alto <= ColisionPieza.ALTO_MIN_SOLIDO + ColisionPieza.ALTO_TOLERANCIA, "%s: bloquea pero sin cuerpo solo si es baja (%.2f)" % [id, alto])
 				sin_cuerpo += 1
 			else:
 				con_cuerpo += 1

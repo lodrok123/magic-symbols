@@ -26,6 +26,11 @@ extends SkeletonModifier3D
 @export var pies_abrir: float = 0.0        ## gira los muslos hacia fuera: quita las piernas "en X" y los pies hacia dentro
 @export var pelvis_atras: float = 0.0      ## endereza la pelvis (quita el culo en pompa); las piernas se contragiran y no se mueven
 
+## 4/11 (Pablo, Bosque 02): GIRO DE CABEZA al cambiar de rumbo. Grados de guiñada (alrededor de la VERTICAL del mundo, el mismo signo que el giro del cuerpo:
+## + lleva la cara de +Z hacia +X) que se suman a la pose del clip. Lo reparte entre el cuello (`CUELLO_FRACCION`) y la cabeza; lo pone `Pj3D.girar_hacia`.
+@export var cabeza_giro: float = 0.0
+const CUELLO_FRACCION: float = 0.4
+
 var _cabeza: int = -1
 var _caderas: int = -1
 var _rodillas: PackedInt32Array = PackedInt32Array()   ## LeftLeg / RightLeg (cuelgan del muslo)
@@ -124,6 +129,9 @@ func _process_modification() -> void:
 	for i in range(_brazos.size()):
 		# Los dos hombros giran en sentidos opuestos para abrirse los dos hacia fuera.
 		_girar(sk, _brazos[i], Vector3.BACK, brazos_abrir * (1.0 if i == 0 else -1.0))
+	if absf(cabeza_giro) > 0.01:
+		_girar_vertical(sk, _cuello, cabeza_giro * CUELLO_FRACCION)       # primero el cuello: la cabeza cuelga de él y su eje se calcula ya con ese giro
+		_girar_vertical(sk, _cabeza, cabeza_giro * (1.0 - CUELLO_FRACCION))
 	# Pelvis: se gira la cadera y se deshace el mismo giro en los dos muslos (premultiplicando, en el espacio del
 	# padre), así el torso entero se endereza con la pelvis y las piernas se quedan donde estaban.
 	if _caderas >= 0 and not is_zero_approx(pelvis_atras):
@@ -144,6 +152,16 @@ func _process_modification() -> void:
 	if padre >= 0:
 		subir = sk.get_bone_global_pose(padre).basis.inverse() * subir
 	sk.set_bone_pose_position(_caderas, sk.get_bone_pose_position(_caderas) + subir)
+
+
+## Guiñada de `grados` del hueso alrededor de la vertical del MUNDO (da igual cómo vaya orientado su eje local): se lleva el eje arriba del mundo al espacio del esqueleto
+## y de ahí al del hueso (con su pose global de ahora) y se premultiplica a su rotación local.
+func _girar_vertical(sk: Skeleton3D, hueso: int, grados: float) -> void:
+	if hueso < 0 or is_zero_approx(grados):
+		return
+	var arriba_esq: Vector3 = sk.global_transform.basis.orthonormalized().inverse() * Vector3.UP
+	var eje: Vector3 = (sk.get_bone_global_pose(hueso).basis.orthonormalized().inverse() * arriba_esq).normalized()
+	sk.set_bone_pose_rotation(hueso, sk.get_bone_pose_rotation(hueso) * Quaternion(eje, deg_to_rad(grados)))
 
 
 func _girar(sk: Skeleton3D, hueso: int, eje: Vector3, grados: float) -> void:

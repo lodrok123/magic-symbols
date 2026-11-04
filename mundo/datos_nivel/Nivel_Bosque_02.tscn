@@ -366,7 +366,7 @@ metadata/inflamable = false
 [node name="troncos_apilados_12_33" type="Node3D" parent="Piezas" unique_id=1701112207 instance=ExtResource("17_lna5e")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28.75, 1.035, 77.05)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 

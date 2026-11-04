@@ -286,7 +286,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_21_3" type="Node3D" parent="Piezas" unique_id=1252910632 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.9829316, 0, 0.260015, 0, 1.016741, 0, -0.260015, 0, 0.9829316, 49.68014, 1.005, 8.460195)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -314,14 +314,14 @@ metadata/inflamable = false
 [node name="tronco_musgoso_29_14" type="Node3D" parent="Piezas" unique_id=209520875 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.6080324, 0, -0.8657862, 0, 1.057965, 0, 0.8657862, 0, 0.6080324, 67.49082, 1.005, 33.65111)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
 [node name="tronco_musgoso_19_15" type="Node3D" parent="Piezas" unique_id=906199074 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.7175674, 0, 0.6154683, 0, 0.9453593, 0, -0.6154683, 0, 0.7175674, 44.73829, 1.005, 35.44162)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -370,7 +370,7 @@ metadata/inflamable = false
 [node name="troncos_apilados_6_30" type="Node3D" parent="Piezas" unique_id=1701112207 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.9169883, 0, -0.1819189, 0, 0.9348594, 0, 0.1819189, 0, 0.9169883, 15.36885, 1.005, 70.33504)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -398,7 +398,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_28_30" type="Node3D" parent="Piezas" unique_id=209731284 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.8110764, 0, -0.5911386, 0, 1.003638, 0, 0.5911386, 0, 0.8110764, 65.13347, 1.005, 70.37898)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2486,7 +2486,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_5_3" type="Node3D" parent="Borde" unique_id=408677321 instance=ExtResource("12_krtlh")]
 transform = Transform3D(1.027998, 0, -0.24123, 0, 1.055922, 0, 0.24123, 0, 1.027998, 12.62531, 1.005, 8.066503)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2633,14 +2633,14 @@ metadata/inflamable = true
 [node name="tronco_musgoso_20_6" type="Node3D" parent="Borde" unique_id=1900146449 instance=ExtResource("12_krtlh")]
 transform = Transform3D(1.058344, 0, 0.03320642, 0, 1.058865, 0, -0.03320642, 0, 1.058344, 47.52711, 1.005, 14.74309)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
 [node name="tronco_musgoso_21_6" type="Node3D" parent="Borde" unique_id=1916646675 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.681691, 0, -0.8508014, 0, 1.090214, 0, 0.8508014, 0, 0.681691, 49.31969, 1.005, 14.70249)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2801,7 +2801,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_18_8" type="Node3D" parent="Borde" unique_id=69196843 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.4873291, 0, 1.011427, 0, 1.122709, 0, -1.011427, 0, 0.4873291, 42.36809, 1.005, 19.54111)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2913,7 +2913,7 @@ metadata/inflamable = false
 [node name="tronco_musgoso_4_13" type="Node3D" parent="Borde" unique_id=1083848590 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.5547881, 0, -0.9698232, 0, 1.117294, 0, 0.9698232, 0, 0.5547881, 7.732958, 1.005, 25.119762)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2955,7 +2955,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_14_10" type="Node3D" parent="Borde" unique_id=1603299402 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.7436146, 0, 0.6817453, 0, 1.008831, 0, -0.6817453, 0, 0.7436146, 33.7659, 1.005, 24.23967)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2983,7 +2983,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_23_10" type="Node3D" parent="Borde" unique_id=2005065832 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.2928243, 0, -1.030911, 0, 1.071692, 0, 1.030911, 0, -0.2928243, 53.94634, 1.005, 24.51299)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -2997,7 +2997,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_25_10" type="Node3D" parent="Borde" unique_id=490470404 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.1223438, 0, 1.08536, 0, 1.092233, 0, -1.08536, 0, -0.1223438, 58.97484, 1.005, 24.16765)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3109,7 +3109,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_27_12" type="Node3D" parent="Borde" unique_id=1727333554 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.2620883, 0, -0.9967585, 0, 1.03064, 0, 0.9967585, 0, 0.2620883, 63.65536, 1.005, 28.40072)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3151,7 +3151,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_0_14" type="Node3D" parent="Borde" unique_id=223396512 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.3308621, 0, 0.9964582, 0, 1.049952, 0, -0.9964582, 0, 0.3308621, 1.132583, 1.005, 33.29814)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3431,7 +3431,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_7_20" type="Node3D" parent="Borde" unique_id=1960655703 instance=ExtResource("18_ddfya")]
 transform = Transform3D(1.087599, 0, -0.2867587, 0, 1.124768, 0, 0.2867587, 0, 1.087599, 17.30654, 1.005, 47.45143)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3718,7 +3718,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_3_28" type="Node3D" parent="Borde" unique_id=1322732236 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.1400313, 0, 1.104997, 0, 1.113835, 0, -1.104997, 0, -0.1400313, 7.691634, 1.005, 65.17197)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3739,7 +3739,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_6_28" type="Node3D" parent="Borde" unique_id=1898533441 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.9402027, 0, 0.5080126, 0, 1.068671, 0, -0.5080126, 0, -0.9402027, 14.93519, 1.005, 65.91633)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3830,7 +3830,7 @@ metadata/inflamable = false
 [node name="troncos_apilados_27_28" type="Node3D" parent="Borde" unique_id=2126589337 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.9135307, 0, 0.6436412, 0, 1.117503, 0, -0.6436412, 0, 0.9135307, 63.0916, 1.005, 65.84229)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -3942,7 +3942,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_45_28" type="Node3D" parent="Borde" unique_id=1113895013 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.2818874, 0, 0.973576, 0, 1.013563, 0, -0.973576, 0, -0.2818874, 105.0934, 1.005, 65.96899)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4019,7 +4019,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_5_32" type="Node3D" parent="Borde" unique_id=912525541 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.8901166, 0, -0.6665763, 0, 1.112039, 0, 0.6665763, 0, 0.8901166, 12.74408, 1.005, 74.77763)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4075,7 +4075,7 @@ metadata/inflamable = false
 [node name="troncos_apilados_17_32" type="Node3D" parent="Borde" unique_id=1796957512 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.9967042, 0, 0.3536526, 0, 1.057587, 0, -0.3536526, 0, 0.9967042, 39.83038, 1.005, 74.50395)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4411,7 +4411,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_30_35" type="Node3D" parent="Borde" unique_id=1582723945 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.1690353, 0, -1.091499, 0, 1.10451, 0, 1.091499, 0, -0.1690353, 69.90727, 1.005, 82.04357)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4425,14 +4425,14 @@ metadata/inflamable = true
 [node name="troncos_apilados_41_35" type="Node3D" parent="Borde" unique_id=963491000 instance=ExtResource("18_ddfya")]
 transform = Transform3D(1.105585, 0, -0.1997991, 0, 1.123494, 0, 0.1997991, 0, 1.105585, 95.40467, 1.005, 81.68221)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
 [node name="troncos_apilados_51_35" type="Node3D" parent="Borde" unique_id=34344190 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-1.034436, 0, -0.1366541, 0, 1.043423, 0, 0.1366541, 0, -1.034436, 118.7506, 1.005, 81.27711)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4516,7 +4516,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_40_37" type="Node3D" parent="Borde" unique_id=1034345352 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.8208261, 0, -0.6209365, 0, 1.029232, 0, 0.6209365, 0, -0.8208261, 93.10975, 1.005, 86.32764)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4607,7 +4607,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_6_39" type="Node3D" parent="Borde" unique_id=333124754 instance=ExtResource("18_ddfya")]
 transform = Transform3D(1.003922, 0, -0.2273975, 0, 1.029353, 0, 0.2273975, 0, 1.003922, 14.97186, 1.005, 90.51882)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4698,14 +4698,14 @@ metadata/inflamable = true
 [node name="tronco_musgoso_20_39" type="Node3D" parent="Borde" unique_id=367507055 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.7844555, 0, 0.631289, 0, 1.006924, 0, -0.631289, 0, -0.7844555, 47.33291, 1.005, 90.5694)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
 [node name="tronco_musgoso_21_39" type="Node3D" parent="Borde" unique_id=1212264850 instance=ExtResource("12_krtlh")]
 transform = Transform3D(0.2657188, 0, 1.023246, 0, 1.057185, 0, -1.023246, 0, 0.2657188, 49.39614, 1.005, 90.56438)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4719,7 +4719,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_23_39" type="Node3D" parent="Borde" unique_id=823327858 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.302713, 0, -0.9935166, 0, 1.03861, 0, 0.9935166, 0, 0.302713, 54.23283, 1.005, 90.50989)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4733,7 +4733,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_25_39" type="Node3D" parent="Borde" unique_id=1867498814 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.3715508, 0, 1.060264, 0, 1.123481, 0, -1.060264, 0, -0.3715508, 58.91529, 1.005, 90.45292)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4768,7 +4768,7 @@ metadata/inflamable = true
 [node name="tronco_musgoso_31_39" type="Node3D" parent="Borde" unique_id=2100762759 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.6650248, 0, 0.8070667, 0, 1.04576, 0, -0.8070667, 0, -0.6650248, 72.85055, 1.005, 91.06188)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4817,7 +4817,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_39_39" type="Node3D" parent="Borde" unique_id=1886396064 instance=ExtResource("18_ddfya")]
 transform = Transform3D(-0.6072318, 0, -0.8051398, 0, 1.008455, 0, 0.8051398, 0, -0.6072318, 91.01378, 1.005, 91.17205)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -4873,7 +4873,7 @@ metadata/inflamable = true
 [node name="troncos_apilados_33_40" type="Node3D" parent="Borde" unique_id=562709408 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.7784552, 0, -0.7657111, 0, 1.091928, 0, 0.7657111, 0, 0.7784552, 77.27241, 1.005, 92.91992)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
@@ -5034,14 +5034,14 @@ metadata/inflamable = true
 [node name="tronco_musgoso_29_42" type="Node3D" parent="Borde" unique_id=661305655 instance=ExtResource("12_krtlh")]
 transform = Transform3D(-0.4936462, 0, 0.9982453, 0, 1.113634, 0, -0.9982453, 0, -0.4936462, 67.70552, 1.005, 97.75491)
 metadata/id = "tronco_musgoso"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
 [node name="troncos_apilados_33_42" type="Node3D" parent="Borde" unique_id=1001794223 instance=ExtResource("18_ddfya")]
 transform = Transform3D(0.6635157, 0, -0.7535649, 0, 1.004048, 0, 0.7535649, 0, 0.6635157, 77.26179, 1.005, 98.16472)
 metadata/id = "troncos_apilados"
-metadata/bloquea = true
+metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 

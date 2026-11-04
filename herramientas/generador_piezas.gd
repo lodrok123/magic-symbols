@@ -117,14 +117,18 @@ static func generar(id: String) -> bool:
 		raiz.add_child(ctrl)
 		ctrl.owner = raiz
 	var tipo: String = _tipo(id)
-	if tipo != "ninguna":
+	var formas_previas: Array = _formas(vis, tipo, id) if tipo != "ninguna" else []
+	if tipo != "ninguna" and formas_previas.is_empty() and _usa_contorno(tipo):
+		# 4/11: más baja que ColisionPieza.ALTO_MIN_SOLIDO (0,45): se pisa y se sube encima. Sin cuerpo y sin `bloquea` (aunque esté en BLOQUEA).
+		raiz.set_meta("bloquea", false)
+	elif tipo != "ninguna":
 		var cuerpo := StaticBody3D.new()
 		cuerpo.name = "cuerpo"
 		cuerpo.collision_layer = CAPA_MUNDO
 		cuerpo.collision_mask = 0
 		raiz.add_child(cuerpo)
 		cuerpo.owner = raiz
-		var formas: Array = _formas(vis, tipo, id)
+		var formas: Array = formas_previas
 		if _usa_contorno(tipo) and not formas.is_empty():
 			raiz.set_meta("bloquea", true)               # 21/10: lo que tiene cuerpo medido bloquea (las 43 nuevas salen de `ColisionPieza.MODO`, sin una segunda tabla)
 		var i: int = 0
@@ -230,7 +234,7 @@ static func _formas(vis: Node3D, tipo: String, id: String) -> Array:
 		tipo = "convexa"
 	if _usa_contorno(tipo):
 		# Cascos medidos sobre el contorno (uno por trozo: dos pilares de un arco = dos cascos, el hueco queda libre). `vis` ya está a escala y con la base en y = 0.
-		for nube in ColisionPieza.cascos(vis, tipo):
+		for nube in ColisionPieza.cascos(vis, tipo, ColisionPieza.banda_min(id)):
 			res.append(_casco(nube as PackedVector3Array))
 		return res
 	if tipo == "trimesh":
