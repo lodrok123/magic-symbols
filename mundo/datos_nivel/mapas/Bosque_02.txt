@@ -16,28 +16,28 @@
 ####,RRRRKRRRR~~RecRciR#ggggggggg-######
 #####RRRRRMRRR~~######,#################
 ########R#####~~vvvvvvgvfv..x..,,,,,####
-#####RRRRRRR##~~v#vvv#gvvv..x,t.t,o,####
-#####RRRRRRR##~~#vvWvvgvvA,,x,.W.W,,####
+#####RRRRRRR##~~vvvvvvgvvv..x,t.t,o,####
+#####RRRRRRR##~~vvvWvvgvvA,,x,.W.W,,####
 #####RRRRRRR##~~vsvvvTgvvv,,x,,.F,,,####
 #####RRRGRRR##~~vvggggggggggygggggg.####
-#####RRRRRRR##~~vvgv#vvv##..x,,,,,A.####
-#####RRRRRRR##~~vvgvvvvv#v.,x,,tAV..####
+#####RRRRRRR##~~vvgvvvvv,,..x,,,,,A.####
+#####RRRRRRR##~~vvgvvvvvvv.,x,,tAV..####
 #####RRRRRRR##~~vvgvqvvvWv,,x,o.....####
-##############~~vvgvvvvvvv#,############
+##############~~vvgvvvvvvv,,############
 #######....###~~vvgvvvvvvv,,############
 ######,,..,###~~#,g,##########.#.##,####
 ######r,..r###~~#,g,##########,..,,,####
 ######,,..,###~~#,gggglgggzzgggggggU####
 ######.,,,####~~#.g.##########,..,,,####
-########g#####~~#.g.##########,##,,,####
+########g#####~~#.g.##########,,.,,,####
 ########g#####~~#.gT##########.,..######
 ####,...g..,,,~~,,g,,,########......####
-####..s...,,h,~~r,g,##....,,.,##########
+####..s...,,h,~~r,g,,.....,,.,##########
 ####.....,T,,,~~..g,,...,s,.s.##########
 ####h..,,m,.g,~~ggggggggggghg,##########
 ####...Sggggg.~~..........,,g,##########
-####.s......,,~~,,,,.#,h,,s.,.##########
-####...#..T.s,~~r,,,,#,,,,,,############
+####.s......,,~~,,,,..,h,,s.,.##########
+####......T.s,~~r,,,,,,,,,,,############
 ####.........,~~,,,,,,##################
 ########################################
 ########################################
@@ -95,16 +95,29 @@
 ; decorado flores_amarillas 26 19
 ; decorado matas 20 20
 ; decorado tocon 16 21
-; decorado sauce 17 6
 ; decorado piedras 25 8
 ; decorado nenufar 27 7
 ; decorado canas 13 34
-; decorado abedul_amarillo 4 33
 ; decorado helecho_ancho 7 22
 ; decorado hojas_monton 9 24
 ; decorado juncos 17 35
-; decorado arbol_viejo 23 29
 ; decorado canas 32 9
+; 4/11 (Pablo, playtest): sin árboles sueltos en el interior; las casillas # aisladas pasan a roca (siguen cerrando el paso).
+; decorado roca_grande 16 14
+; decorado roca_grande 21 13
+; decorado roca_grande 7 34
+; decorado roca_grande 20 17
+; decorado roca_grande 17 13
+; decorado roca_grande 26 20
+; decorado roca_grande 31 26
+; decorado roca_grande 32 26
+; decorado roca_grande 21 33
+; decorado roca_grande 21 34
+; decorado roca_grande 20 29
+; decorado roca_grande 21 29
+; decorado roca_grande 24 17
+; decorado roca_grande 25 17
+; decorado roca_grande 24 18
 ; giro 12 5 90
 ; giro 12 6 90
 ; giro 13 5 180

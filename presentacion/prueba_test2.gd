@@ -2679,6 +2679,44 @@ func _caja(n: Node, acum: Transform3D) -> AABB:
 
 
 ## Pone una pieza en una casilla, algo desplazada, girada y con un tamaño variado para que no marque la rejilla.
+## 4/11 (Pablo, playtest del Bosque 02): las piezas ya NO giran al azar (era herencia de la vista isométrica, con ángulos de 30-40°):
+## miran a norte, sur, este u oeste, y se elige el giro que mejor se lee con la cámara fija al norte (masa visual y reconocibilidad).
+##   FRENTE_A_CAMARA  piezas con una cara que se lee (cartel, tótem, cofre, brasero, tienda, estatua…): 0°, de cara a la cámara.
+##   ALARGADAS        lo largo va de este a oeste (0° o 180°): así enseñan toda su masa y no se acortan en profundidad.
+##   el resto         0, 90, 180 o 270 según la casilla (variedad sin ángulos raros).
+## La telaraña ya nacía a 0° (su red en el plano XY, de cara a la cámara). `GIRO_CARDINAL = false` vuelve al giro libre de antes.
+const GIRO_CARDINAL: bool = true
+const FRENTE_A_CAMARA: Array = ["cartel", "totem_runico", "brasero", "fogata", "tienda_goblin", "estandarte_goblin", "puerta_goblin",
+	"torre_goblin", "estatua_piedra", "cofre", "cofre_epico", "cofre_legendario", "puesto", "puesto_mercado", "dummy", "tinaja_ruina",
+	"cristal_sanctuario", "portal_salida", "arco_ruina", "arco_puerta", "telarana", "pilar"]
+const ALARGADAS: Array = ["tronco", "troncos_apilados", "tronco_musgoso", "tronco_enredadera", "tronco_seco", "tronco_resina",
+	"tronco_sin_resina", "seto_seco", "arbusto_otono", "valla", "valla_lianas", "empalizada_goblin", "banco", "laja_piedra"]
+## 4/11 (Pablo): en los muros solo los árboles DETALLADOS (pino, árbol viejo y sauce de `s_stylized_trees`); el redondo claro de la
+## biblioteca vieja (`arbol_redondo`) ya no sale. Peso de cada uno en el reparto (el pino da ritmo vertical; el sauce, el menos frecuente).
+const ARBOLES_MURO: Array = [["pino", 5], ["arbol_viejo", 4], ["sauce", 2]]
+
+
+func _giro_por_defecto(id: String, h: int) -> float:
+	if not GIRO_CARDINAL:
+		return float(h % 360)
+	if FRENTE_A_CAMARA.has(id):
+		return 0.0
+	if ALARGADAS.has(id):
+		return 180.0 * float(h % 2)
+	return 90.0 * float(h % 4)
+
+
+func _arbol_de_muro(h: int) -> String:
+	var total: int = 0
+	for a in ARBOLES_MURO:
+		total += int(a[1])
+	var k: int = (h >> 3) % total
+	for a in ARBOLES_MURO:
+		k -= int(a[1])
+		if k < 0:
+			return String(a[0])
+	return "pino"
+
 func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: bool = true, giro_fijo: float = -1.0) -> Node3D:
 	var id: String = _id_real(id_pedido)
 	var p: Vector3 = _centro_celda(c, y if PLANAS.has(id) else y - HUNDIR)
@@ -2687,7 +2725,7 @@ func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: boo
 	if variar:
 		p += Vector3(float(h % 61 - 30) / 100.0, 0.0, float((h >> 6) % 61 - 30) / 100.0) * S * 0.5
 		escala = 0.88 + float(h % 25) / 100.0
-	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else float(h % 360))
+	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else _giro_por_defecto(id_pedido, h))
 	_registro.append([id_pedido, c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)).scaled(Vector3.ONE * escala), p), bloquea,
 		"marcador" if _en_marcador else "decor"])
 	if _modo_escena or (_modo_nivel and not _en_marcador):
@@ -2764,7 +2802,7 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 	if tipo == "surtidor" and _desvios.has(c):
 		var dv: Vector2 = _desvios[c]          # la tinaja se queda donde la pusiste dentro de la casilla (marcador del nivel)
 		p += Vector3(dv.x, 0.0, dv.y)
-	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else float(h % 360))
+	var giro: float = float(_giros[c]) if _giros.has(c) else (giro_fijo if giro_fijo >= 0.0 else _giro_por_defecto(id_pedido, h))
 	_registro.append([id_pedido, c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), p), bloquea, "marcador"])    # solo el giro, para hornear
 	if bloquea:
 		_bloqueadas[c] = true
@@ -3384,7 +3422,7 @@ func _colocar_letras() -> void:
 					else:
 						# Toda casilla de pared lleva un árbol: antes 1 de cada 4 quedaba sin modelo y era un hueco que parecía
 						# paso pero bloqueaba (pared invisible). Juego, 2026-10-06.
-						_poner("arbol_redondo" if h % 3 != 0 else "pino", c, ALTO, true)
+						_poner(_arbol_de_muro(h), c, ALTO, true)
 				"~":
 					_bloqueadas[c] = true
 					if h % 9 == 0:
@@ -4239,7 +4277,7 @@ func _colocar_extras() -> void:
 	for k in _rotulos:
 		var c3: Vector2i = _rotulos[k]
 		# El tablero del cartel de Meshy mira a 41° del eje: girado así queda de cara a la cámara (+Z).
-		_poner("cartel", c3, ALTO, true, false, GIRO_CARTEL)
+		_poner("cartel", c3, ALTO, true, false, 0.0 if GIRO_CARDINAL else GIRO_CARTEL)
 		_runa_cartel(String(k), _centro_celda(c3, ALTO))
 		_runa_suelo(String(k), _centro_celda(c3 + Vector2i(0, 1), Y_DECAL))
 		_sin_hierba[c3 + Vector2i(0, 1)] = true
