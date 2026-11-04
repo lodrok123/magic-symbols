@@ -21,6 +21,10 @@ extends Node3D
 ## ¿Impide el paso en la casilla donde está? (árboles, rocas, puestos, carteles: sí; hierba, setas, baldosas: no.)
 @export var bloquea: bool = false
 
+## 4/11 (diario 353): true = las pociones del juego (`pocion`, `pocion_grande`) se dibujan con los modelos de la alquimia de Meshy (entradas "pocion" y "pocion_grande" de SUSTITUTAS);
+## false = como antes (`pocion` de magia.glb y `pocion_grande` sin modelo, que el botín sustituye por una esfera). Después hay que regenerar arte/piezas (generar_piezas_cli.gd).
+const POCIONES_ALQUIMIA: bool = true
+
 static var _bibliotecas: Array = []
 
 var _visual: Node3D = null
@@ -36,6 +40,7 @@ const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/
 const SUSTITUTAS: Dictionary = {
 	"arbol_redondo": "arbol_redondo_2", "pino": "pino_2", "seto_seco": "arbusto_otono",
 	"puesto": "puesto_mercado", "arco_puerta": "arco_ruina",
+	"pocion": "pocion_alq_0" if POCIONES_ALQUIMIA else "", "pocion_grande": "pocion_alq_3" if POCIONES_ALQUIMIA else "",   # 4/11 (diario 353)
 }
 
 const MEDIDA: Dictionary = {
@@ -46,6 +51,9 @@ const MEDIDA: Dictionary = {
 	"placa_peso": 0.15, "juncos": 0.8, "barril": 0.8, "cofre": 0.6, "caja": 0.8,
 	"baldosa_guardado": 0.12, "seto_seco": 1.3, "dummy": 1.4, "seta_reactiva": 0.8, "flor_reactiva": 0.9,
 	"raiz_reactiva": 0.9, "portal_salida": 3.0, "pocion": 0.45, "pilar": 1.8,
+	# 4/11 (diario 353): las pociones de la hoja de Meshy «Arcane Alchemy Treasure» (arte/meshy/piezas/pocion_alq_N.glb: 0 roja, 1 verde, 2 azul, 3 naranja).
+	# `pocion` usa la 0 y `pocion_grande` la 3 (ver SUSTITUTAS); la 3 sale más grande a propósito. Los modelos miden ~0,265 y son casi tan anchos como altos.
+	"pocion_alq_0": 0.45, "pocion_alq_1": 0.45, "pocion_alq_2": 0.45, "pocion_alq_3": 0.6, "pocion_grande": 0.6,
 	"cristal_sanctuario": 1.4,   # 12/10: la fuente eléctrica (cristal azul de Meshy, pintado amarillo por objetos_3d.gd); su alto
 	"tinaja_ruina": 1.5,      # ruinas_agua.glb (Meshy «Mossbound Relics»): la tinaja que vierte el agua
 	# campamento_goblin.glb (Meshy «Tusks of the Red Fang»). Alturas en unidades; la puerta y la empalizada van por ancho (abajo).
