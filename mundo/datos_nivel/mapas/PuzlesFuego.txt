@@ -92,6 +92,12 @@
 ; puzle f5_charco_apaga cuando=f5_charco.alcanzado hace=f5_antorcha.apagar
 ; puzle f5_boton_derrite cuando=f5_boton.pulsado hace=f5_hielo.abrir
 ; puzle f5_placa_enciende cuando=f5_placa.pulsado hace=f5_antorcha.encender
+; --- F6 BARRILES PEQUENOS LANZABLES (5/11): dos en la sala del inicio (10,13) y (14,13), y en la sala de al lado (2,1) otro (18,12) y un barril grande de blanco (22,12). E coge, E lanza (se carga sobre
+; ---   la cabeza); encendido (hechizo de fuego o rayo, o junto a algo que arda) la mecha corre tambien en brazos (2,4 s) y explota al caer o al acabar; sin encender no explota. Radio 1,6 u, dano 20/12.
+; pieza f6_peq1 barril 10 13 tam=pequeno
+; pieza f6_peq2 barril 14 13 tam=pequeno
+; pieza f6_peq3 barril 18 12 tam=pequeno
+; pieza f6_grande barril 22 12
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#

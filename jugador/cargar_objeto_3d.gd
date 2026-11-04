@@ -28,6 +28,8 @@ const COGIBLES: Dictionary = {
 	"caja": {"nombre": "caja", "vel": 0.7, "alcance": 3.2, "dano": 6.0, "empuje": 3500.0, "rompe": true, "alto": 0.4, "escala": 1.0},
 	# Hoy no hay piedras sueltas en el mundo (las `piedras` / `rocas_pequenas` son decorado y las `piedra` de `fuentes.tsv` van a la bolsa con E); la fila queda lista para cuando haya (metadato `cogible` = "piedra").
 	"piedra": {"nombre": "piedra", "vel": 0.6, "alcance": 3.0, "dano": 12.0, "empuje": 6000.0, "rompe": false, "alto": 0.35, "escala": 1.0, "ligero": true},
+	# 5/11: el barril pequeño de pólvora (Barril3D con `pequeno`). Se CARGA sobre la cabeza (no es ligero, aunque mida 0,55 de alto) para poder llevarlo encendido; no rompe (se queda en el suelo) y su explosión la pone él (`al_impactar_lanzado`).
+	"barril_pequeno": {"nombre": "barril pequeño", "vel": 0.65, "alcance": 3.0, "dano": 4.0, "empuje": 2500.0, "rompe": false, "alto": 0.55, "escala": 1.0, "ligero": false},
 }
 ## Hasta qué alto (u) un cogible sin la clave `ligero` cuenta como pequeño (una piedra de 0,35 u, una fruta de 0,2 u; el jarrón de 0,5 y la caja de 0,4 se cargan).
 const UMBRAL_LIGERO: float = 0.36
@@ -495,8 +497,10 @@ func _soltar_al_aire() -> void:
 
 
 func _volar(v: Dictionary, delta: float) -> bool:
+	if not is_instance_valid(v["objeto"]):
+		return true                                  # 5/11: el barril pequeño se libera al explotar en el aire (mecha acabada): no se puede ni convertir a Node3D
 	var o: Node3D = v["objeto"] as Node3D
-	if o == null or not is_instance_valid(o):
+	if o == null:
 		return true
 	v["t"] = float(v["t"]) + delta
 	var T: float = maxf(float(v["T"]), 0.05)
@@ -585,6 +589,8 @@ func _aterrizar(v: Dictionary, punto: Vector3) -> void:
 			_romper(o, punto)
 		else:
 			_dejar(o, punto)
+			if o.has_method("al_impactar_lanzado"):
+				o.call("al_impactar_lanzado", punto)        # 5/11: el barril pequeño ENCENDIDO explota al caer o chocar
 	if golpeados > 0 or rompio:
 		Sfx.play(jugador, SONIDO_GOLPE, 0.9)
 		var fx: Variant = jugador.mundo.get("_fx") if jugador.mundo != null else null
