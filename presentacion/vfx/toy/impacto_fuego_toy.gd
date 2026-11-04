@@ -51,6 +51,10 @@ static var estilo: int = Estilo.C
 static var tam_estallido: float = 1.0
 static var vel_flipbook: float = 1.0
 
+## 4/11/2026 (explosión del barril, ExplosionFuegoToy): desplazamiento de la temperatura de la rampa (negativo = más rojo-naranja y menos amarillo) que se suma al `calor` de la bola (estilo B), a 1,6 veces en el
+## destello y a la mitad en las chispas. 0 por defecto: el resto de los impactos no cambian.
+var desp_calor: float = 0.0
+
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
 @export_range(0.05, 4.0, 0.01, "or_greater") var radio: float = 0.4
@@ -298,7 +302,7 @@ func _actualizar_chispas(t: float) -> void:
 		var v: Vector3 = e["vel"]
 		var brasa: bool = bool(d["brasa"])
 		var alfa: float = smoothstep(0.0, 0.06, u) * (1.0 - smoothstep(0.55, 1.0, u))
-		var calor: float = (1.0 - 0.6 * u) if not brasa else (0.6 - 0.45 * u)
+		var calor: float = clampf(((1.0 - 0.6 * u) if not brasa else (0.6 - 0.45 * u)) + desp_calor * 0.5, 0.0, 1.0)
 		var vel0: float = maxf((d["v0"] as Vector3).length(), 0.001)
 		var largo: float = float(d["largo"]) * clampf(v.length() / vel0, 0.3, 1.0) * (1.0 - 0.5 * u * u)
 		_tr_chispas[i] = SpriteToy.poner_chispa(mm, i, e["pos"], v.normalized(), largo, float(d["ancho"]) * (1.0 - 0.4 * u), calor, alfa, brasa)
@@ -434,6 +438,8 @@ func avanzar_a(t: float) -> void:
 		var s: float = d * lerpf(0.4, 1.25 if not es_c else 1.15, _sal(u))
 		_destello.scale = Vector3(s, s, 1.0)
 		SpriteToy.mat(_destello).set_shader_parameter("vida", clampf(flash * (1.0 - smoothstep(0.1, 1.0, u)) * smoothstep(0.0, 0.012, t), 0.0, 1.0))
+		if desp_calor != 0.0:
+			SpriteToy.mat(_destello).set_shader_parameter("calor", desp_calor * 1.6)
 	var fade_fin: float = 1.0 - smoothstep(dur * 0.62, dur, t)
 	match variante:
 		Variante.FIN:
@@ -460,7 +466,7 @@ func avanzar_a(t: float) -> void:
 				var mb: ShaderMaterial = SpriteToy.mat(_bola)
 				mb.set_shader_parameter("fotograma", clampf(t / dur * float(FOTOGRAMAS) * _vel, 0.0, float(FOTOGRAMAS) - 1.001))
 				mb.set_shader_parameter("vida", smoothstep(0.0, 0.015, t) * fade_fin)
-				mb.set_shader_parameter("calor", lerpf(0.06, -0.08, smoothstep(0.0, 0.5 * dur, t)))
+				mb.set_shader_parameter("calor", lerpf(0.06, -0.08, smoothstep(0.0, 0.5 * dur, t)) + desp_calor)
 	if es_c:
 		# halo pequeño y corto + luz que se apaga en ~0,25 s
 		_mat_halo.set_shader_parameter("brillo", 0.55 * flash * (1.0 - smoothstep(0.0, 0.16, t)) + 0.12 * (1.0 - smoothstep(0.0, 0.35, t)) * smoothstep(0.0, 0.03, t) * (1.0 if flash > 0.0 else 0.5))
