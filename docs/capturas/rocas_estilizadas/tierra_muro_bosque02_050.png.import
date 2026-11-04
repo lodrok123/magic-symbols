@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhbwiqf8kmo7n"
-path="res://.godot/imported/rocas_rough.png-c040a1ecb4f33a86cbad31a78fb22f67.ctex"
+uid="uid://7o43s0ftebd6"
+path="res://.godot/imported/tierra_muro_bosque02_050.png-f37414332107cc0d46307e21ab11012f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://arte/meshy/piezas/tex_rocas_est/rocas_rough.png"
-dest_files=["res://.godot/imported/rocas_rough.png-c040a1ecb4f33a86cbad31a78fb22f67.ctex"]
+source_file="res://docs/capturas/rocas_estilizadas/tierra_muro_bosque02_050.png"
+dest_files=["res://.godot/imported/tierra_muro_bosque02_050.png-f37414332107cc0d46307e21ab11012f.ctex"]
 
 [params]
 

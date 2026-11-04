@@ -10,7 +10,7 @@
    1.264,
    1.233
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "roca_est_1": {
   "estado": "procesado",
@@ -23,7 +23,7 @@
    1.22,
    1.085
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "roca_est_2": {
   "estado": "procesado",
@@ -36,7 +36,7 @@
    1.22,
    0.648
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "roca_est_3": {
   "estado": "procesado",
@@ -49,7 +49,7 @@
    0.763,
    1.171
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "roca_est_4": {
   "estado": "procesado",
@@ -62,7 +62,7 @@
    1.178,
    0.661
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "piedra_est_0": {
   "estado": "procesado",
@@ -75,7 +75,7 @@
    0.801,
    0.744
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "piedra_est_1": {
   "estado": "procesado",
@@ -88,7 +88,7 @@
    0.684,
    0.684
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "piedra_est_2": {
   "estado": "procesado",
@@ -101,7 +101,7 @@
    0.61,
    0.583
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "piedra_est_3": {
   "estado": "procesado",
@@ -114,7 +114,7 @@
    0.489,
    1.013
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  },
  "piedra_est_4": {
   "estado": "procesado",
@@ -127,6 +127,6 @@
    0.416,
    0.976
   ],
-  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"
+  "nota": "roca estilizada del pack LeLu; origen en el centro de la base; solo el juego A (albedo; roughness fija 0,9), sin normal"
  }
 }

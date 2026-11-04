@@ -6,8 +6,8 @@ El pack trae las mismas 10 mallas tres veces (A = tierra parda, B = con musgo, C
   - toma la malla del material A de cada roca (posicion, normal, UV, indices),
   - la centra en X/Z y apoya la base en y = 0 (origen en el centro de la base, como todas las piezas), en METROS DEL PACK
     (la escala final la pone `MEDIDA` de mundo/pieza_3d.gd),
-  - la escribe como GLB con un nodo llamado como el id y UN material (albedo A + normal C + roughness C; sin emissive:
-    el de A es la propia albedo al 20 %, un resto del exportador, y el de C son venas de lava que no pegan con tierra),
+  - la escribe como GLB con un nodo llamado como el id y UN material con SOLO el juego A (albedo; roughness fija 0,9; sin normal,
+    sin roughness de C y sin emissive: mezclar juegos enseñaba las grietas de la lava sobre el color de A),
   - las texturas NO van embebidas (serian 3,3 MB x 10): se referencian por URI relativa, una sola copia compartida.
 
 Uso:  python -I separar_rocas.py <sm_rocks_objects.glb> <carpeta_texturas_origen>
@@ -37,10 +37,15 @@ IDS = {
     3: "piedra_est_3",  # stone2   1,01 m losa
     2: "piedra_est_4",  # stone1   0,98 m losa baja
 }
-TEX_ALBEDO = "T_rocks_A_col_0.png"
-TEX_NORMAL = "T_rocks_C_normal_3.png"
-TEX_ROUGH = "T_rocks_C_roughtness_5@channels=G.png"
-NOM_TEX = {TEX_ALBEDO: "rocas_albedo.png", TEX_NORMAL: "rocas_normal.png", TEX_ROUGH: "rocas_rough.png"}
+# Tres variantes del pack, cada una con SU juego de texturas completo (nunca se mezclan): sufijo del id, texturas de origen -> nombre instalado.
+VARIANTES = {
+    "": {"albedo": ("T_rocks_A_col_0.png", "rocas_albedo.png")},                                  # neutra (A, parda): cueva
+    "musgo_": {"albedo": ("T_rocks_B_colors_1.png", "rocas_musgo_albedo.png")},                    # con musgo (B): bosque
+    "magma_": {"albedo": ("T_rocks_C_col_4.png", "rocas_magma_albedo.png"),                        # volcanica (C): magma
+               "normal": ("T_rocks_C_normal_3.png", "rocas_magma_normal.png"),
+               "rough": ("T_rocks_C_roughtness_5@channels=G.png", "rocas_magma_rough.png"),
+               "emisivo": ("T_rocks_C_emissives_2.png", "rocas_magma_emisivo.png")},
+}
 
 
 def leer_glb(p: Path):
@@ -74,9 +79,10 @@ def main() -> None:
     j, b = leer_glb(glb)
     (AQUI / "texturas").mkdir(exist_ok=True)
     (PIEZAS / "tex_rocas_est").mkdir(exist_ok=True)
-    for o, n in NOM_TEX.items():
-        shutil.copy2(tex / o, AQUI / "texturas" / n)
-        shutil.copy2(tex / o, PIEZAS / "tex_rocas_est" / n)
+    for v in VARIANTES.values():
+        for o, n in v.values():
+            shutil.copy2(tex / o, AQUI / "texturas" / n)
+            shutil.copy2(tex / o, PIEZAS / "tex_rocas_est" / n)
     lote = {}
     for im, id_ in IDS.items():
         at = j["meshes"][im]["primitives"][0]["attributes"]
@@ -100,39 +106,50 @@ def main() -> None:
         bi = struct.pack("<%dI" % len(ind), *ind)
         cuerpo = bp + nor + uv + bi
         nv = len(pos) // 3
-        for destino, base in ((AQUI, "texturas/"), (PIEZAS, "tex_rocas_est/")):
-            jj = {
-                "asset": {"version": "2.0", "generator": "separar_rocas.py (pack LeLu sm_rocks_objects)"},
-                "scene": 0, "scenes": [{"nodes": [0]}],
-                "nodes": [{"name": id_, "mesh": 0}],
-                "meshes": [{"name": id_, "primitives": [{"attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2}, "indices": 3, "material": 0}]}],
-                "materials": [{"name": "m_rocas", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}, "metallicFactor": 0.0,
-                                                                          "roughnessFactor": 1.0, "metallicRoughnessTexture": {"index": 2}},
-                               "normalTexture": {"index": 1}}],
-                "textures": [{"source": 0, "sampler": 0}, {"source": 1, "sampler": 0}, {"source": 2, "sampler": 0}],
-                "samplers": [{"magFilter": 9729, "minFilter": 9987, "wrapS": 10497, "wrapT": 10497}],
-                "images": [{"uri": base + "rocas_albedo.png"}, {"uri": base + "rocas_normal.png"}, {"uri": base + "rocas_rough.png"}],
-                "accessors": [
-                    {"bufferView": 0, "componentType": 5126, "count": nv, "type": "VEC3", "min": mn, "max": mx},
-                    {"bufferView": 1, "componentType": 5126, "count": nv, "type": "VEC3"},
-                    {"bufferView": 2, "componentType": 5126, "count": nv, "type": "VEC2"},
-                    {"bufferView": 3, "componentType": 5125, "count": len(ind), "type": "SCALAR"},
-                ],
-                "bufferViews": [
-                    {"buffer": 0, "byteOffset": 0, "byteLength": len(bp), "target": 34962},
-                    {"buffer": 0, "byteOffset": len(bp), "byteLength": len(nor), "target": 34962},
-                    {"buffer": 0, "byteOffset": len(bp) + len(nor), "byteLength": len(uv), "target": 34962},
-                    {"buffer": 0, "byteOffset": len(bp) + len(nor) + len(uv), "byteLength": len(bi), "target": 34963},
-                ],
-                "buffers": [{"byteLength": len(cuerpo)}],
-            }
-            escribir_glb(destino / (id_ + ".glb"), jj, cuerpo)
-        lote[id_] = {"estado": "procesado", "directo": True, "origen": "sm_rocks_objects.glb (malla %s, material A)" % j["meshes"][im]["name"],
-                     "tris": len(ind) // 3, "vertices": nv,
-                     "tam_m": [round(mx[0] - mn[0], 3), round(mx[1] - mn[1], 3), round(mx[2] - mn[2], 3)],
-                     "nota": "roca estilizada del pack LeLu; origen en el centro de la base; texturas A + normal/rough de C (tex_rocas_est)"}
-        print(id_, lote[id_]["tam_m"], lote[id_]["tris"])
-    (AQUI / "lote.json").write_text(json.dumps(lote, indent=1, ensure_ascii=False), encoding="utf-8")
+        for suf, tx in VARIANTES.items():
+            vid = id_.replace("_est_", "_est_" + suf)
+            for destino, base in ((AQUI, "texturas/"), (PIEZAS, "tex_rocas_est/")):
+                orden = ["albedo"] + [k for k in ("normal", "rough", "emisivo") if k in tx]
+                idx = {k: n for n, k in enumerate(orden)}
+                mat = {"name": "m_rocas", "pbrMetallicRoughness": {"baseColorTexture": {"index": idx["albedo"]}, "metallicFactor": 0.0, "roughnessFactor": 0.9}}
+                if "normal" in tx:
+                    mat["normalTexture"] = {"index": idx["normal"]}
+                if "rough" in tx:
+                    mat["pbrMetallicRoughness"]["roughnessFactor"] = 1.0
+                    mat["pbrMetallicRoughness"]["metallicRoughnessTexture"] = {"index": idx["rough"]}
+                if "emisivo" in tx:
+                    mat["emissiveTexture"] = {"index": idx["emisivo"]}
+                    mat["emissiveFactor"] = [1.0, 1.0, 1.0]
+                jj = {
+                    "asset": {"version": "2.0", "generator": "separar_rocas.py (pack LeLu sm_rocks_objects)"},
+                    "scene": 0, "scenes": [{"nodes": [0]}],
+                    "nodes": [{"name": vid, "mesh": 0}],
+                    "meshes": [{"name": vid, "primitives": [{"attributes": {"POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2}, "indices": 3, "material": 0}]}],
+                    "materials": [mat],
+                    "textures": [{"source": n, "sampler": 0} for n in range(len(orden))],
+                    "samplers": [{"magFilter": 9729, "minFilter": 9987, "wrapS": 10497, "wrapT": 10497}],
+                    "images": [{"uri": base + tx[k][1]} for k in orden],
+                    "accessors": [
+                        {"bufferView": 0, "componentType": 5126, "count": nv, "type": "VEC3", "min": mn, "max": mx},
+                        {"bufferView": 1, "componentType": 5126, "count": nv, "type": "VEC3"},
+                        {"bufferView": 2, "componentType": 5126, "count": nv, "type": "VEC2"},
+                        {"bufferView": 3, "componentType": 5125, "count": len(ind), "type": "SCALAR"},
+                    ],
+                    "bufferViews": [
+                        {"buffer": 0, "byteOffset": 0, "byteLength": len(bp), "target": 34962},
+                        {"buffer": 0, "byteOffset": len(bp), "byteLength": len(nor), "target": 34962},
+                        {"buffer": 0, "byteOffset": len(bp) + len(nor), "byteLength": len(uv), "target": 34962},
+                        {"buffer": 0, "byteOffset": len(bp) + len(nor) + len(uv), "byteLength": len(bi), "target": 34963},
+                    ],
+                    "buffers": [{"byteLength": len(cuerpo)}],
+                }
+                escribir_glb(destino / (vid + ".glb"), jj, cuerpo)
+            lote[vid] = {"estado": "procesado", "directo": True, "origen": "sm_rocks_objects.glb (malla %s)" % j["meshes"][im]["name"],
+                         "variante": {"": "neutra (A)", "musgo_": "musgo (B)", "magma_": "magma (C)"}[suf],
+                         "tris": len(ind) // 3, "vertices": nv,
+                         "tam_m": [round(mx[0] - mn[0], 3), round(mx[1] - mn[1], 3), round(mx[2] - mn[2], 3)],
+                         "nota": "roca estilizada del pack LeLu; origen en el centro de la base; un solo juego de texturas (%s)" % ", ".join(tx)}
+            print(vid, lote[vid]["tam_m"], lote[vid]["tris"])
 
 
 main()

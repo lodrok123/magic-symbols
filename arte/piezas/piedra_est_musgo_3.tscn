@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/piedra_est_musgo_3.glb" id="1_7v65x"]
+
+[node name="piedra_est_musgo_3" type="Node3D" unique_id=1017991559]
+metadata/id = "piedra_est_musgo_3"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=1678753975]
+
+[node name="piedra_est_musgo_32" type="Node3D" parent="modelo" unique_id=1598240801 instance=ExtResource("1_7v65x")]
+transform = Transform3D(0.5723856, 0, 0, 0, 0.5723856, 0, 0, 0, 0.5723856, 0, 0, 0)

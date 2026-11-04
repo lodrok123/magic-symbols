@@ -10,12 +10,13 @@ const HECHIZOS: Array = [
 	["muro", ["barrera", "linea_x", "linea_x", "altura"]],
 	["barrera", ["barrera", "linea_x", "linea_z", "altura"]],
 ]
-const TIEMPOS: Array = [0.5, 1.2]
+const TIEMPOS: Array = [0.5, 1.2, 2.2]
 const DIR: Vector3 = Vector3(1.0, 0.0, 0.0)
 
 var _dir: String = "res://docs/capturas/rocas_estilizadas"
 var _suf: String = "rocas"
 var _solo_h: String = ""
+var _ruta: String = RUTA
 
 
 func _escenario() -> void:
@@ -26,10 +27,12 @@ func _escenario() -> void:
 		_suf = a[1]
 	if a.size() > 2 and a[2] != "*":
 		_solo_h = a[2]
+	if a.size() > 3 and a[3] != "":
+		_ruta = a[3]
 	DirAccess.make_dir_recursive_absolute(_dir if not _dir.begins_with("res://") else ProjectSettings.globalize_path(_dir))
 	Flags.nuevo()
 	Misiones.nuevo()
-	await cargar(RUTA, true)
+	await cargar(_ruta, true)
 	if maqueta == null or jugador == null:
 		return
 	lanzador.tinta = null
@@ -37,11 +40,12 @@ func _escenario() -> void:
 	for n in get_nodes_in_group("combate3d"):
 		(n as Combate3D).quieto = true
 	var c: Vector2i = _buscar_claro()
-	_ok("0 hay un claro de 9 × 5 casillas llano (%s)" % str(c), c != Vector2i(-1, -1))
 	if c == Vector2i(-1, -1):
-		return
+		c = celda_jugador()      # sin claro (cueva): donde empieza la jugadora
+		print("sin claro de 9 x 5: se lanza desde ", c)
 	colocar_jugador(c)
 	await avanzar_s(2.0)
+	print("VARIANTE del bioma = ", RocasEstilizadas.variante_actual(), " (estilo=", maqueta.get("estilo"), ", nivel=", maqueta.get("nivel"), ")")
 	print("ROCAS_ESTILIZADAS = ", VfxTierra.ROCAS_ESTILIZADAS, " · hay_modelo(bloque_tierra_0) = ", VfxTierra.hay_modelo("bloque_tierra_0"), " · terron_0 = ", VfxTierra.hay_modelo("terron_0"))
 	for hz in HECHIZOS:
 		if _solo_h != "" and _solo_h != String(hz[0]):
@@ -67,7 +71,23 @@ func _una(hz: Array) -> void:
 	_ok("1 tierra · %s: sale el hechizo" % id, salio)
 	await avanzar(2)
 	if id == "muro" or id == "barrera":
-		colocar_jugador(celda_jugador() + Vector2i(2, 0))      # la cámara sigue a la jugadora: se acerca para que el muro quede en el centro de la foto
+		colocar_jugador(celda_jugador() + Vector2i(1, 0))      # la cámara sigue a la jugadora: se acerca para que el muro quede en el centro de la foto
+	# Cuenta las mallas VISIBLES de cada bloque (un padre con piezas bloque_tierra*): no debe haber dos dibujos a la vez (la caja del Lanzador oculta + las 4 piezas).
+	var por_padre: Dictionary = {}
+	for mi in root.find_children("bloque_tierra*", "MeshInstance3D", true, false):
+		var p: Node = mi.get_parent()
+		var k: String = "%s (%s)" % [p.name, p.get_class()]
+		var ent: Array = por_padre.get(k, [0, 0])
+		ent[0] += 1
+		if (mi as MeshInstance3D).is_visible_in_tree():
+			ent[1] += 1
+		por_padre[k] = ent
+	for k in por_padre:
+		var cajas: int = 0
+		for h in root.find_children("*", "MeshInstance3D", true, false):
+			if h.get_parent() != null and "%s (%s)" % [h.get_parent().name, h.get_parent().get_class()] == k and (h as MeshInstance3D).mesh is BoxMesh and (h as MeshInstance3D).is_visible_in_tree():
+				cajas += 1
+		print("MALLAS_BLOQUE padre=", k, " piezas=", por_padre[k][0], " visibles=", por_padre[k][1], " cajas_visibles=", cajas)
 	var t_ant: float = 0.0
 	for t in TIEMPOS:
 		await avanzar_s(float(t) - t_ant)

@@ -5,11 +5,13 @@ extends SceneTree
 ##   godot --path . --resolution 1700x900 --script res://herramientas/captura_rocas_estilizadas.gd -- docs/capturas/rocas_estilizadas/hoja_rocas.png
 ## No es una prueba: se mira a ojo.
 
+## Tres filas: musgo (bosque), neutra (cueva), magma (lava); en cada una las 5 rocas y las 5 piedras.
 const FILAS: Array = [
-	["roca_est_0", "roca_est_1", "roca_est_2", "roca_est_3", "roca_est_4"],
-	["piedra_est_0", "piedra_est_1", "piedra_est_2", "piedra_est_3", "piedra_est_4"],
+	["musgo", "roca_est_musgo_0", "roca_est_musgo_1", "roca_est_musgo_2", "roca_est_musgo_3", "roca_est_musgo_4", "piedra_est_musgo_0", "piedra_est_musgo_1", "piedra_est_musgo_2", "piedra_est_musgo_3", "piedra_est_musgo_4"],
+	["neutra", "roca_est_0", "roca_est_1", "roca_est_2", "roca_est_3", "roca_est_4", "piedra_est_0", "piedra_est_1", "piedra_est_2", "piedra_est_3", "piedra_est_4"],
+	["magma", "roca_est_magma_0", "roca_est_magma_1", "roca_est_magma_2", "roca_est_magma_3", "roca_est_magma_4", "piedra_est_magma_0", "piedra_est_magma_1", "piedra_est_magma_2", "piedra_est_magma_3", "piedra_est_magma_4"],
 ]
-const SEP: float = 1.9
+const SEP: float = 1.55
 
 
 func _initialize() -> void:
@@ -44,13 +46,13 @@ func _correr() -> void:
 	suelo.mesh = pm
 	root.add_child(suelo)
 	for f in FILAS.size():
-		var z: float = float(f) * 2.6
+		var z: float = float(f) * 2.3
 		var pj := Pj3D.new()
 		root.add_child(pj)
 		pj.cargar("jugadora_base")
 		pj.set_alto(1.0)
-		pj.position = Vector3(-SEP * 0.5 - 1.2, 0.0, z)
-		var ids: Array = FILAS[f]
+		pj.position = Vector3(-1.4, 0.0, z)
+		var ids: Array = (FILAS[f] as Array).slice(1)
 		for i in ids.size():
 			var id: String = ids[i]
 			var n: Node3D = Pieza3D.crear_visual(id)
@@ -63,17 +65,17 @@ func _correr() -> void:
 			var et := Label3D.new()
 			et.text = id
 			et.font_size = 44
-			et.pixel_size = 0.003
+			et.pixel_size = 0.0022
 			et.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 			et.no_depth_test = true
 			et.modulate = Color(1, 1, 1)
 			et.outline_size = 10
 			root.add_child(et)
-			et.position = Vector3(float(i) * SEP, -0.02, z + 0.9)
+			et.position = Vector3(float(i) * SEP, -0.02, z + 0.75)
 	var cam := Camera3D.new()
-	cam.fov = 44.0
+	cam.fov = 50.0
 	root.add_child(cam)
-	cam.look_at_from_position(Vector3(3.0, 5.8, 10.0), Vector3(2.9, 0.3, 1.2))
+	cam.look_at_from_position(Vector3(6.6, 8.5, 9.0), Vector3(6.6, 0.2, 2.0))
 	for _i in 20:
 		await process_frame
 	var img: Image = root.get_viewport().get_texture().get_image()

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be54rtn6r7f07"
-path="res://.godot/imported/tierra_muro_rocas_050.png-196d21bacb97b0660ef7c0a08a8772f7.ctex"
+uid="uid://cjvgm4gebpgd1"
+path="res://.godot/imported/rocas_magma_normal.png-f66a29a1b5c04404a09fa4b768d88f39.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/capturas/rocas_estilizadas/tierra_muro_rocas_050.png"
-dest_files=["res://.godot/imported/tierra_muro_rocas_050.png-196d21bacb97b0660ef7c0a08a8772f7.ctex"]
+source_file="res://arte/meshy/piezas/tex_rocas_est/rocas_magma_normal.png"
+dest_files=["res://.godot/imported/rocas_magma_normal.png-f66a29a1b5c04404a09fa4b768d88f39.ctex"]
 
 [params]
 

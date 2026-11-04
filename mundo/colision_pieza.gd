@@ -70,6 +70,8 @@ const MODO: Dictionary = {
 	# 4/11: rocas estilizadas. Las rocas y las dos piedras mayores bloquean; las otras tres (<= 0,32 u de alto) se pisan.
 	"roca_est_0": "contorno", "roca_est_1": "contorno", "roca_est_2": "contorno", "roca_est_3": "contorno", "roca_est_4": "contorno",
 	"piedra_est_0": "contorno", "piedra_est_1": "contorno",
+	"roca_est_musgo_0": "contorno", "roca_est_musgo_1": "contorno", "roca_est_musgo_2": "contorno", "roca_est_musgo_3": "contorno", "roca_est_musgo_4": "contorno", "piedra_est_musgo_0": "contorno", "piedra_est_musgo_1": "contorno",
+	"roca_est_magma_0": "contorno", "roca_est_magma_1": "contorno", "roca_est_magma_2": "contorno", "roca_est_magma_3": "contorno", "roca_est_magma_4": "contorno", "piedra_est_magma_0": "contorno", "piedra_est_magma_1": "contorno",
 }
 
 ## Árboles: solo el tronco. Franjas candidatas (alto de 0,45 a 1,4) y, en cada una, solo el trozo más cercano al eje; se

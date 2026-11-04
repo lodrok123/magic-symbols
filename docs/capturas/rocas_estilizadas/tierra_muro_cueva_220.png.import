@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c206c2mnv1xci"
-path="res://.godot/imported/rocas_normal.png-c8de1567ecff86b8c7e93ae28f8b6140.ctex"
+uid="uid://bn57jj45pymso"
+path="res://.godot/imported/tierra_muro_cueva_220.png-69ac6251fd430df4ed1315ddbdb7a859.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://arte/meshy/piezas/tex_rocas_est/rocas_normal.png"
-dest_files=["res://.godot/imported/rocas_normal.png-c8de1567ecff86b8c7e93ae28f8b6140.ctex"]
+source_file="res://docs/capturas/rocas_estilizadas/tierra_muro_cueva_220.png"
+dest_files=["res://.godot/imported/tierra_muro_cueva_220.png-69ac6251fd430df4ed1315ddbdb7a859.ctex"]
 
 [params]
 
@@ -21,7 +21,7 @@ compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
 mipmaps/generate=false
 mipmaps/limit=-1
