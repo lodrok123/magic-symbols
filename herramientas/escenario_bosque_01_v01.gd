@@ -479,7 +479,9 @@ func _gente() -> void:
 		_aviso("5.25 sin lobernos en este entorno", "falta arte/modelos/emberheart.glb")
 	else:
 		var celdas_l: Array = lob.map(func(p: Variant) -> Vector2i: return Terreno3D.celda_de((p as Pj3D).position))
-		_ok("5.25 quedan dos lobernos sueltos, uno junto al prado (9,18) y otro en la hierba alta (30,15), cada uno con su Combate3D", lob.size() == 2 and celdas_l.has(Vector2i(9, 18)) and celdas_l.has(Vector2i(30, 15)), str(celdas_l))
+		# 4/11: los lobernos patrullan (±2 u de su casa, y ahora con giro suave): a esta hora pueden estar una casilla al lado de su marcador. Se pide que cada uno esté a ≤ 1 casilla del suyo (antes era la casilla exacta, y fallaba a ratos según la fase de la patrulla).
+		var cerca_de: Callable = func(objetivo: Vector2i) -> bool: return celdas_l.any(func(c: Vector2i) -> bool: return absi(c.x - objetivo.x) <= 1 and absi(c.y - objetivo.y) <= 1)
+		_ok("5.25 quedan dos lobernos sueltos, uno junto al prado (9,18) y otro en la hierba alta (30,15) (±1 casilla: patrullan), cada uno con su Combate3D", lob.size() == 2 and cerca_de.call(Vector2i(9, 18)) and cerca_de.call(Vector2i(30, 15)), str(celdas_l))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1042,3 +1044,4 @@ func _quitar_solideces() -> void:
 		if is_instance_valid(s):
 			(s as Node).queue_free()
 	lanzador._solideces_v2.clear()
+
