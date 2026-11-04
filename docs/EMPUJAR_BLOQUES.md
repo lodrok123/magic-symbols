@@ -72,3 +72,4 @@ Ninguna se resuelve sin su idea: la barrera de tierra no llega a la placa de E1 
 - El bloque de piedra no se rompe ni el de hielo se funde con fuego (solo el viento los toca).
 - Sonido: la piedra suena con un bucle bajo mientras se mueve (`Sfx3D.AMBIENTES["arrastre"]` = el `rodar.wav` sintetizado en bucle; no hay un arrastre grabado); el hielo, `rodar` al empezar y `clavar` al parar; `derrumbe` al reaparecer.
 - Sin polvo continuo a ras de suelo: no existe un efecto pequeño (`VfxPuzle3D.polvo` es una nube grande de derrumbe); el hielo solo levanta un poco al parar.
+- 5/11/2026: tercer material, `roca` (roca estilizada mediana o pequeña, peso 2 y 1) y placas de peso (`pulsador … peso=<n>`): ver `docs/ROCAS_EMPUJABLES_2026-11-05.md`.

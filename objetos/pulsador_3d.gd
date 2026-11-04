@@ -33,6 +33,8 @@ var rearme: float = 0.0
 var cuerpos: Array = []                    ## Node3D extra que también pisan la placa (un tronco, un goblin…)
 var etiqueta: String = ""                  ## rótulo fijo sobre el pulsador (16/10, Pablo: «no entiendo el puzle»); "" = el del modo; "-" = ninguno
 var modelo: String = ""                    ## 23/10: «cueva» = la placa de piedra de la Cueva (PLACA_CUEVA) en vez de la losa ocre; solo en modo presencia
+var peso_min: int = 0                      ## 5/11: > 0 = placa de PESO (solo modo presencia): se pisa con esa suma de `peso_valor` de lo que haya encima (grupo `peso`), no con la jugadora
+var _avisado_ligero: bool = false
 var activo: bool = false                   ## pulsado y aún sin rearmar (o pisado)
 var veces: int = 0                         ## cuántas veces se ha disparado (para las pruebas)
 var _t_rearme: float = 0.0
@@ -68,7 +70,7 @@ func _ready() -> void:
 		etiqueta = {"magia": "CUALQUIER MAGIA", "agua": "SOLO AGUA", "presencia": "PÍSAME"}[modo]
 	if etiqueta != "-":
 		var rot := Label3D.new()
-		rot.text = etiqueta
+		rot.text = etiqueta if not (peso_min > 0 and modo == "presencia" and etiqueta == "PÍSAME") else "PESO %d" % peso_min
 		rot.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		rot.font_size = 30
 		rot.outline_size = 8
@@ -219,6 +221,13 @@ func _process(delta: float) -> void:
 				_disparar("presencia")
 			elif not pisada and activo:
 				_rearmar()
+			if peso_min > 0:
+				# algo encima que pesa menos de lo que pide: se avisa UNA vez («POCO PESO») y se vuelve a avisar si luego se quita y se pone otra cosa
+				var p: int = peso_en_casilla()
+				var ligero: bool = p > 0 and p < peso_min
+				if ligero and not _avisado_ligero:
+					_rotulo("POCO PESO (%d de %d)" % [p, peso_min], Color(1.0, 0.85, 0.6))
+				_avisado_ligero = ligero
 		return
 	if activo and rearme > 0.0:
 		_t_rearme -= delta
@@ -226,7 +235,21 @@ func _process(delta: float) -> void:
 			_rearmar()
 
 
+## 5/11/2026 · PLACA DE PESO (`peso_min` > 0, docs/ROCAS_EMPUJABLES_2026-11-05.md): lo que hay en su casilla del grupo `peso` suma su `peso_valor` (roca pequeña 1, mediana 2, bloque de piedra 3;
+## cualquier otro «peso», p. ej. el bloque de tierra del hechizo, vale 1). Se pisa con `peso_min` o más. La jugadora y `cuerpos` NO cuentan: la placa pide carga, no presencia.
+func peso_en_casilla() -> int:
+	var total: int = 0
+	if not is_inside_tree():
+		return 0
+	for n in get_tree().get_nodes_in_group("peso"):
+		if n is Node3D and is_instance_valid(n) and Terreno3D.celda_de((n as Node3D).global_position) == celda:
+			total += int(n.get("peso_valor")) if n.get("peso_valor") != null else 1
+	return total
+
+
 func _alguien_encima() -> bool:
+	if peso_min > 0:
+		return peso_en_casilla() >= peso_min
 	for n in cuerpos:
 		if is_instance_valid(n) and Terreno3D.celda_de((n as Node3D).global_position) == celda:
 			return true

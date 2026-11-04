@@ -255,3 +255,17 @@
 ; puzle sant_abre cuando=vig_sant.todos_derrotados hace=cerr_sant.abrir
 ; pieza guardian_sant guardian 5 16 en=7,15+9,15 elemento=fuego
 ; pieza cofre_corazon cofre 8 18 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; 14 · LA BALANZA DEL CLARO (5/11/2026, Pablo: «las rocas medianas y pequeñas deberían ser empujables, pequeños puzles de peso»; docs/ROCAS_EMPUJABLES_2026-11-05.md). Junto a la orilla este, al norte del camino (y=31, que
+; queda libre): DOS placas de peso en x=22. La de arriba (22,30) pide PESO 2; la de abajo (22,32) pide PESO 1. Pista de arriba (y=30): la roca MEDIANA (19,30) y, delante de ella, una piedrecita (21,30)
+; que hay que apartar (empujada sobre la placa sola no basta: «POCO PESO»; hay que seguir empujándola hasta (23,30)). Pista de abajo (y=32): la piedra PEQUEÑA (19,32). Se empuja desde el oeste (x=18, el camino).
+; Con las dos placas pisadas aparece el cofre común de la balanza (22,34). Si la mediana se equivoca de placa (se queda en la de abajo) se saca hacia el norte empujando desde (22,33).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza placa_pesada pulsador 22 30 modo=presencia modelo=cueva peso=2
+; pieza placa_ligera pulsador 22 32 modo=presencia modelo=cueva peso=1
+; pieza roca_balanza roca_empujable 19 30 tam=mediana variante=musgo forma=1
+; pieza piedra_balanza_a roca_empujable 21 30 tam=pequena variante=musgo
+; pieza piedra_balanza_b roca_empujable 19 32 tam=pequena variante=musgo
+; puzle balanza_pesada cuando=placa_pesada.pulsado hace=flag.poner(bosque02.balanza.pesada)
+; puzle balanza_ligera cuando=placa_ligera.pulsado hace=flag.poner(bosque02.balanza.ligera)
+; pieza cofre_balanza cofre 22 34 aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno

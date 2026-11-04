@@ -50,6 +50,7 @@ func _escenario() -> void:
 	await _linde()
 	await _escondite()
 	await _arroyo()
+	await _balanza()
 	await _pasillo_cueva()
 	await _pradera()
 	await _ruinas_este()
@@ -289,7 +290,7 @@ func _montaje() -> void:
 	for pz2 in z.piezas():
 		if (pz2 as Puzle3D.Pieza).tipo == "cofre":
 			cofres.append((pz2 as Puzle3D.Pieza).id)
-	_ok("0.7 el mapa declara 11 cofres (7 comunes, 3 épicos y 1 legendario)", cofres.size() == 11, str(cofres.size()))
+	_ok("0.7 el mapa declara 12 cofres (8 comunes, 3 épicos y 1 legendario; el 8.º común es el de la balanza del claro)", cofres.size() == 12, str(cofres.size()))
 	_ok("0.8 la jugadora nace en la linde (7,32)", celda_jugador() == INICIO, str(celda_jugador()))
 	var graves: Array = (maqueta.get("_avisos") as Array).filter(func(a: Variant) -> bool: return (String(a).contains("sin pieza") or String(a).contains("fuera del suelo") or String(a).contains("sin personaje")) and not String(a).contains("losa_runas_ovalo"))
 	_ok("0.9 la maqueta no avisa de piezas ni personajes que falten (salvo la losa del guardián, que ya faltaba en la Gruta Batida)", graves.is_empty(), str(graves))
@@ -387,6 +388,53 @@ func _arroyo() -> void:
 	await avanzar_s(0.6)
 	_ok("3.6 al pisar la orilla este se pone `bosque02.arroyo.cruzado` y aparece el cofre de la orilla", _flag("bosque02.arroyo.cruzado") and _cofre("cofre_orilla").es_cerrado)
 	await abrir_cofre("cofre_orilla", "3.7")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  3b · La balanza del claro (5/11/2026, docs/ROCAS_EMPUJABLES_2026-11-05.md): dos placas de PESO (2 y 1) y tres rocas empujables → cofre común 8
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Empuja la roca `r` una casilla hacia `dir` como la jugadora: anda (BFS, sin teletransportes que salten obstáculos) hasta la casilla de detrás de la roca y la empuja con `empujar(dir, true)`.
+func _empujar_roca(r: BloqueEmpujable3D, dir: Vector2i, que: String) -> bool:
+	if not await caminar(r.celda - dir, que):
+		return false
+	var cedio: bool = r.empujar(dir, true)
+	await esperar(func() -> bool: return not r.moviendo, 12.0)
+	await avanzar(2)
+	return cedio
+
+
+func _balanza() -> void:
+	var este: Vector2i = Vector2i(1, 0)
+	var pesada: Pulsador3D = z.nodo("placa_pesada") as Pulsador3D
+	var ligera: Pulsador3D = z.nodo("placa_ligera") as Pulsador3D
+	var mediana: BloqueEmpujable3D = z.nodo("roca_balanza") as BloqueEmpujable3D
+	var pie_a: BloqueEmpujable3D = z.nodo("piedra_balanza_a") as BloqueEmpujable3D
+	var pie_b: BloqueEmpujable3D = z.nodo("piedra_balanza_b") as BloqueEmpujable3D
+	var cofre: Puzle3D.CofrePuzle = _cofre("cofre_balanza")
+	_ok("3b.1 LA BALANZA · ANTES: placa de peso 2 (22,30) y de peso 1 (22,32) libres, roca mediana (19,30), piedras (21,30) y (19,32) en su sitio y el cofre oculto",
+		pesada != null and ligera != null and mediana != null and pie_a != null and pie_b != null and cofre != null and pesada.peso_min == 2 and ligera.peso_min == 1 and not pesada.activo and not ligera.activo
+		and mediana.celda == Vector2i(19, 30) and pie_a.celda == Vector2i(21, 30) and pie_b.celda == Vector2i(19, 32) and mediana.peso_valor == 2 and pie_a.peso_valor == 1 and cofre.es_oculto)
+	if pesada == null or ligera == null or mediana == null or pie_a == null or pie_b == null or cofre == null:
+		return
+	_ok("3b.2 el camino de y=31 sigue libre con las rocas en su sitio (hay camino a pie de la orilla (16,31) a (24,31))", hay_camino(Vector2i(24, 31)))
+	# la piedrecita de delante, sobre la placa de peso 2: no basta (POCO PESO); se sigue empujando hasta apartarla
+	await _empujar_roca(pie_a, este, "3b.3")
+	await avanzar_s(0.6)
+	_ok("3b.4 una piedra pequeña (peso 1) sobre la placa de peso 2 NO la pisa (pesa %d de 2) ni pone `bosque02.balanza.pesada`" % pesada.peso_en_casilla(), pie_a.celda == Vector2i(22, 30) and pesada.peso_en_casilla() == 1 and not pesada.activo and not _flag("bosque02.balanza.pesada"))
+	await _empujar_roca(pie_a, este, "3b.5")
+	await avanzar_s(0.3)
+	_ok("3b.6 …empujada una casilla más queda apartada en (23,30) y la placa vuelve a estar libre", pie_a.celda == Vector2i(23, 30) and pesada.peso_en_casilla() == 0)
+	for i in range(3):
+		await _empujar_roca(mediana, este, "3b.7")
+	await avanzar_s(0.6)
+	_ok("3b.8 la roca MEDIANA (peso 2) sobre la placa de peso 2 la pisa: `bosque02.balanza.pesada`", mediana.celda == Vector2i(22, 30) and pesada.activo and _flag("bosque02.balanza.pesada") and cofre.es_oculto)
+	for i in range(3):
+		await _empujar_roca(pie_b, este, "3b.9")
+	await avanzar_s(0.8)
+	_ok("3b.10 la piedra PEQUEÑA (peso 1) sobre la placa de peso 1 la pisa: `bosque02.balanza.ligera`, y con las dos APARECE el cofre común", pie_b.celda == Vector2i(22, 32) and ligera.activo and _flag("bosque02.balanza.ligera") and cofre.es_cerrado)
+	_ok("3b.11 con las tres rocas colocadas el camino de y=31 sigue libre", hay_camino(Vector2i(24, 31)))
+	await abrir_cofre("cofre_balanza", "3b.12")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -683,12 +731,12 @@ func _final() -> void:
 			"": comunes += 1
 			"epico": epicos += 1
 			"legendario": legend += 1
-	_ok("F.1 todos los cofres estaban a pie y se abrieron: %d comunes (≥ 5), %d épicos (≥ 2) y %d legendario" % [comunes, epicos, legend], comunes >= 5 and comunes == 7 and epicos >= 2 and epicos == 3 and legend == 1, str(_abiertos.keys()))
+	_ok("F.1 todos los cofres estaban a pie y se abrieron: %d comunes (≥ 5), %d épicos (≥ 2) y %d legendario" % [comunes, epicos, legend], comunes >= 5 and comunes == 8 and epicos >= 2 and epicos == 3 and legend == 1, str(_abiertos.keys()))
 	var flags_ok: bool = true
 	for f in ["bosque02.linde.cofre", "bosque02.orilla.cofre", "bosque02.pradera.cofre", "bosque02.molino.cofre", "bosque02.torre.cofre", "bosque02.ruinas.cofre", "bosque02.escondite.cofre",
-			"bosque02.campamento.cofre", "bosque02.estanque.cofre", "bosque02.trastienda.cofre", "bosque02.santuario.cofre"]:
+			"bosque02.campamento.cofre", "bosque02.estanque.cofre", "bosque02.trastienda.cofre", "bosque02.santuario.cofre", "bosque02.balanza.cofre"]:
 		flags_ok = flags_ok and _flag(f)
-	_ok("F.2 las 11 flags de cofre abierto están puestas", flags_ok)
+	_ok("F.2 las 12 flags de cofre abierto están puestas", flags_ok)
 	await avanzar_s(0.5)
 	var mi: Misiones = Misiones.i()
 	_ok("F.3 la misión principal «El corazón del Bosque» está COMPLETA (7/7) y pagó su oro", mi.estado("bosque_02") == "completa" and mi.progreso("bosque_02") == Vector2i(7, 7), str(mi.progreso("bosque_02")))
