@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/labio_cascada.glb" id="1_xcuyv"]
 
-[node name="labio_cascada" type="Node3D" unique_id=906313248]
+[node name="labio_cascada" type="Node3D" unique_id=1447966756]
 metadata/id = "labio_cascada"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=2137590275]
+[node name="modelo" type="Node3D" parent="." unique_id=180972951]
 
-[node name="labio_cascada2" type="Node3D" parent="modelo" unique_id=1628933850 instance=ExtResource("1_xcuyv")]
-transform = Transform3D(9.2381935, 0, 0, 0, 9.2381935, 0, 0, 0, 9.2381935, 0, 0, 0)
+[node name="labio_cascada2" type="Node3D" parent="modelo" unique_id=828506398 instance=ExtResource("1_xcuyv")]
+transform = Transform3D(4.8889856, 0, 4.559053, 0, 6.6848445, 0, -4.559053, 0, 4.8889856, 0, 0, 0)

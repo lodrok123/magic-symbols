@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/muro_ruina.glb" id="1_qkhcv"]
 
-[node name="muro_ruina" type="Node3D" unique_id=103256218]
+[node name="muro_ruina" type="Node3D" unique_id=1394221945]
 metadata/id = "muro_ruina"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1846908285]
+[node name="modelo" type="Node3D" parent="." unique_id=2986232]
 
-[node name="muro_ruina2" type="Node3D" parent="modelo" unique_id=1647750755 instance=ExtResource("1_qkhcv")]
-transform = Transform3D(5.81102, 0, 0, 0, 5.81102, 0, 0, 0, 5.81102, 0, 0, 0)
+[node name="muro_ruina2" type="Node3D" parent="modelo" unique_id=971851623 instance=ExtResource("1_qkhcv")]
+transform = Transform3D(5.1268773, 0, 0.8120176, 0, 5.1907845, 0, -0.8120176, 0, 5.1268773, 0, 0, 0)

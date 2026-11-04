@@ -2,13 +2,13 @@
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/troncos_apilados.glb" id="1_etdbq"]
 
-[node name="troncos_apilados" type="Node3D" unique_id=1857744314]
+[node name="troncos_apilados" type="Node3D" unique_id=1757582993]
 metadata/id = "troncos_apilados"
 metadata/bloquea = false
 metadata/reactivo = false
 metadata/inflamable = false
 
-[node name="modelo" type="Node3D" parent="." unique_id=1895705589]
+[node name="modelo" type="Node3D" parent="." unique_id=1789974773]
 
-[node name="troncos_apilados2" type="Node3D" parent="modelo" unique_id=1590093361 instance=ExtResource("1_etdbq")]
-transform = Transform3D(2.661178, 0, 0, 0, 2.661178, 0, 0, 0, 2.661178, 0, 0, 0)
+[node name="troncos_apilados2" type="Node3D" parent="modelo" unique_id=878434035 instance=ExtResource("1_etdbq")]
+transform = Transform3D(2.256807, 0, 1.4102095, 0, 2.661178, 0, -1.4102095, 0, 2.256807, 0, 0, 0)
