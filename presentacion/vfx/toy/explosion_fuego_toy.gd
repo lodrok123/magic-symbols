@@ -16,7 +16,15 @@ const T_APAGA_ONDA: float = 0.7         ## s en que el anillo ha desaparecido
 const T_CALOR: float = 0.85             ## s en que se apaga el resplandor del suelo
 const T_TOTAL: float = 1.35             ## s hasta liberar el nodo (la bola, las chispas y la luz acaban antes: 1,25 s la que más)
 const K_BOLA: float = 0.327             ## radio de impacto de la bola / radio de la explosión (0,85 u para 2,6): la bola mide ≈ 5,2 · 0,85 ≈ 4,4 u de lado y se hincha hasta ~el radio
-const DESP_CALOR: float = -0.17         ## baja la temperatura de la rampa de la bola (ImpactoFuegoToy.desp_calor): la masa sale rojo-naranja y el amarillo queda solo en el núcleo del primer instante
+const DESP_CALOR: float = -0.05         ## baja la temperatura de la rampa de la bola (ImpactoFuegoToy.desp_calor): la masa sale rojo-naranja y el amarillo queda solo en el núcleo del primer instante
+## Revisión 4/11 (tarde): destello pequeño y casi blanco-crema (FLASH_K · su tamaño, FLASH_BRILLO), masa recorrida por la parte ROJA de la rampa (TRAMO_BOLA 0–0,5, núcleo naranja y bordes rojos), forma más recortada
+## (RECORTE_BOLA: lóbulos de fuego, no nube), bola aplastada (APLASTA: más ancha que alta, para no tapar a la jugadora) y más corta (DUR_K: 0,8 → 0,5 s).
+const FLASH_K: float = 0.45
+const FLASH_BRILLO: float = 2.2
+const TRAMO_BOLA: Vector2 = Vector2(0.0, 0.5)
+const RECORTE_BOLA: Vector2 = Vector2(0.24, 0.62)
+const APLASTA: float = 0.7
+const DUR_K: float = 0.62
 const GRUPO: String = "explosion_fuego_toy"
 
 var radio: float = 2.6
@@ -39,10 +47,18 @@ func _ready() -> void:
 	_bola = ImpactoFuegoToy.crear(ImpactoFuegoToy.Variante.GOLPE, Vector3.UP, r_bola, ImpactoFuegoToy.Estilo.B)
 	_bola.name = "Bola"
 	_bola.desp_calor = DESP_CALOR
+	_bola.flash_k = FLASH_K
+	_bola.flash_brillo = FLASH_BRILLO
+	_bola.tramo_bola = TRAMO_BOLA
+	_bola.recorte_bola = RECORTE_BOLA
+	_bola.aplasta_bola = APLASTA
+	_bola.dur_k = DUR_K
 	add_child(_bola)
 	_chispas = ImpactoFuegoToy.crear(ImpactoFuegoToy.Variante.GOLPE, Vector3.UP, r_bola, ImpactoFuegoToy.Estilo.C)
 	_chispas.name = "Chispas"
 	_chispas.desp_calor = DESP_CALOR
+	_chispas.flash_k = FLASH_K
+	_chispas.flash_brillo = FLASH_BRILLO
 	add_child(_chispas)
 	_decal = AvisoAreaFuego.decal(radio)
 	_decal.name = "Onda"

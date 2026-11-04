@@ -65,6 +65,8 @@ func _escenario() -> void:
 		b2.preparar(claro)
 		maqueta.add_child(b2)
 		await avanzar(2)
+		await RenderingServer.frame_post_draw
+		_tira([_recorte(centro, modo)], _dir.path_join("barril_entero_%s.png" % modo))
 		Engine.time_scale = 0.2
 		b2.encender()
 		var fotos2: Array = []

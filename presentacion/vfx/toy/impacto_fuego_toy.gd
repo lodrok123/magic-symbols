@@ -55,6 +55,16 @@ static var vel_flipbook: float = 1.0
 ## destello y a la mitad en las chispas. 0 por defecto: el resto de los impactos no cambian.
 var desp_calor: float = 0.0
 
+## 4/11/2026 (explosión del barril, ExplosionFuegoToy): todos neutros por defecto, el resto de los impactos no cambia. `desp_calor` desplaza la temperatura de la rampa (negativo = más rojo; x1,6 en el destello, x0,5 en las chispas).
+## `flash_k` y `flash_brillo`: tamaño y brillo del destello. `tramo_bola` y `recorte_bola`: tramo de la rampa y recorte de forma de la bola (más duro = lóbulos recortados). `aplasta_bola`: <1 = bola más ancha que alta.
+## `dur_k`: factor de la duración del estilo B.
+var flash_k: float = 1.0
+var flash_brillo: float = 1.3
+var tramo_bola: Vector2 = Vector2(0.3, 0.8)
+var recorte_bola: Vector2 = Vector2(0.0, 1.0)
+var aplasta_bola: float = 1.0
+var dur_k: float = 1.0
+
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
 @export_range(0.05, 4.0, 0.01, "or_greater") var radio: float = 0.4
@@ -125,7 +135,7 @@ func duracion() -> float:
 
 func _duracion_de(est: int) -> float:
 	var q: Dictionary = PARAMS[variante]
-	return float(q["dur_a"] if est == Estilo.A else (q["dur_b"] if est == Estilo.B else q["dur_c"]))
+	return float(q["dur_a"] if est == Estilo.A else (q["dur_b"] * dur_k if est == Estilo.B else q["dur_c"]))
 
 
 func estilo_actual() -> int:
@@ -177,8 +187,8 @@ func _construir() -> void:
 			else:
 				var bola: MeshInstance3D = SpriteToy.crear("Bola", SpriteToy.T_FLIPBOOK, SpriteToy.Modo.MEZCLA_SIN_PROF, false,
 					{"usar_alfa": 1.0, "fb_cols": 5, "fb_filas": 5, "fotograma": 0.0, "fotograma_max": float(FOTOGRAMAS - 1), "luminancia": Vector2(0.25, 0.85),
-					"tramo": Vector2(0.3, 0.8), "brillo": 0.95, "giro": 0.0, "vida": 0.0}, 1)
-				bola.position = Vector3(0, 0.9 * r * esc, 0)
+					"tramo": tramo_bola, "recorte": recorte_bola, "brillo": 0.95, "giro": 0.0, "vida": 0.0}, 1)
+				bola.position = Vector3(0, 0.9 * r * esc * aplasta_bola, 0)
 				bola.set_meta("tam", 5.2 * r * tam * esc)
 				_plano.add_child(bola)
 				_bola = bola
@@ -189,9 +199,9 @@ func _construir() -> void:
 					{"recorte": Vector2(0.04, 0.9), "luminancia": Vector2(0.2, 1.0), "tramo": Vector2(0.6, 1.0), "brillo": 1.3, "giro": _giro0 * 0.5, "vida": 0.0}, 4)
 				d.position = Vector3(0, (0.22 if es_c else 0.3) * r, 0)
 				if es_c:
-					d.set_meta("tam", (2.5 if variante == Variante.GOLPE else 1.6) * r * tam)
+					d.set_meta("tam", (2.5 if variante == Variante.GOLPE else 1.6) * r * tam * flash_k)
 				else:
-					d.set_meta("tam", (3.4 if variante == Variante.GOLPE else 2.0) * r * tam)
+					d.set_meta("tam", (3.4 if variante == Variante.GOLPE else 2.0) * r * tam * flash_k)
 				_plano.add_child(d)
 				_destello = d
 	# halo: resplandor aditivo detrás de todo
@@ -416,7 +426,7 @@ func _aplicar_tam(s: float) -> void:
 			_estallido.scale = Vector3(d * s, 1.0, d * s) if _estilo == Estilo.A else Vector3(d * s, d * s, 1.0)
 	if _bola != null:
 		var d2: float = float(_bola.get_meta("tam", 1.0))
-		_bola.scale = Vector3(d2 * s, d2 * s, 1.0)
+		_bola.scale = Vector3(d2 * s, d2 * s * aplasta_bola, 1.0)
 
 
 static func _sal(u: float) -> float:
@@ -438,6 +448,9 @@ func avanzar_a(t: float) -> void:
 		var s: float = d * lerpf(0.4, 1.25 if not es_c else 1.15, _sal(u))
 		_destello.scale = Vector3(s, s, 1.0)
 		SpriteToy.mat(_destello).set_shader_parameter("vida", clampf(flash * (1.0 - smoothstep(0.1, 1.0, u)) * smoothstep(0.0, 0.012, t), 0.0, 1.0))
+		if desp_calor != 0.0:
+			SpriteToy.mat(_destello).set_shader_parameter("calor", desp_calor * 1.6)
+			SpriteToy.mat(_destello).set_shader_parameter("brillo", flash_brillo)
 		if desp_calor != 0.0:
 			SpriteToy.mat(_destello).set_shader_parameter("calor", desp_calor * 1.6)
 	var fade_fin: float = 1.0 - smoothstep(dur * 0.62, dur, t)

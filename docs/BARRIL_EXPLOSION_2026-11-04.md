@@ -43,3 +43,12 @@ Un escudo activo de frente para el golpe del enemigo (vía `recibir_golpe_cuerpo
 `herramientas/prueba_barril_explosion.gd` (40 comprobaciones; sobre PruebaBosque real) y `herramientas/captura_barril_explosion.gd` (con ventana). Capturas en `docs/capturas/barril_explosion/`: `explosion_juego.png`, `explosion_cerca.png` (6 instantes: 0,04 · 0,10 · 0,18 · 0,30 · 0,48 · 0,72 s), `aviso_juego.png`, `aviso_cerca.png` (15 %, 50 %, 90 % de la mecha), con la cámara del juego mirando al norte (tamaño 6, inclinada 30°). Los pinos del decorado se esconden en la captura porque tapaban el barril.
 
 `PiezaPuzle3D` (familia «barril») y `VfxPuzle3D.fogonazo` se dejan como estaban: el juego no usa `PiezaPuzle3D` para el barril (solo `Barril3D`), así que nunca salen dos explosiones.
+## Revisión de la tarde (4/11/2026, a petición de la coordinación)
+
+- **Destello:** ya no es una bola amarilla grande. Tamaño ×0,45 (`FLASH_K`; ≈1,3 u de diámetro, menos del 30 % del radio) y brillo 2,2 (`FLASH_BRILLO`), que lo deja casi blanco-crema en el centro; pasa a naranja-rojo en ~0,1 s.
+- **Masa:** la rampa se recorre por su parte roja, `TRAMO_BOLA` = 0,0–0,5 (antes 0,3–0,8), así que el núcleo es naranja y los bordes rojo intenso; forma más recortada, `RECORTE_BOLA` = 0,24–0,62 (antes sin recorte), para que se vean lóbulos y lenguas y no una nube. `DESP_CALOR` baja de -0,17 a -0,05 (el tramo ya hace el trabajo).
+- **Altura y duración:** la bola se aplasta (`APLASTA` = 0,7: más ancha que alta y más pegada al suelo) y dura 0,5 s en vez de 0,8 (`DUR_K` = 0,62; masa visible ≈ 0,45 s). Ya no tapa a la jugadora a 3,6 u. El nodo se libera igual a 1,35 s.
+- **Anillo:** el color del frente baja de 0,25–0,6 a 0,1–0,5 de la rampa: más rojo en el borde exterior.
+- **Barril encendido:** la emisión (incluso a 0,05) saturaba todo el cilindro de naranja con el entorno del juego, así que se quitó: la madera parpadea de marrón a rojo (`COLOR_MADERA` → `COLOR_MECHA`, mezcla 0,15–0,45). El decal ya no pinta sobre superficies verticales (descarta por la normal reconstruida de la profundidad), así que no tiñe los costados del barril ni los cuerpos; la tapa superior sí recibe algo de tinte.
+- Parámetros nuevos de `ImpactoFuegoToy` (`flash_k`, `flash_brillo`, `tramo_bola`, `recorte_bola`, `aplasta_bola`, `dur_k`), todos neutros por defecto.
+- Captura extra: `barril_entero_juego.png` / `barril_entero_cerca.png` (barril sin encender).

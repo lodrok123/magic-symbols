@@ -24,6 +24,8 @@ const DANO_ENEMIGO: float = 35.0
 const EMPUJE_ENEMIGO: float = 6000.0    ## fuerza de `recibir_golpe_cuerpo` (la escala del jarrón 4500, el golpe F 5000, la piedra 6000): sale despedido más de 2 casillas
 const DANO_JUGADORA: float = 20.0
 const ALTO_AFECTA: float = 1.6          ## u: tope de altura (|Δy| entre quien sea y el suelo del barril) para que la explosión lo alcance: un nivel de tierra más arriba (1 casilla ≈ 1 u) sí, dos no
+const COLOR_MADERA: Color = Color(0.45, 0.3, 0.15)
+const COLOR_MECHA: Color = Color(0.85, 0.16, 0.07)     ## el rojo al que parpadea la madera mientras arde la mecha
 const GRUPO_BARRILES: String = "barriles_polvora"   ## para la cadena: los barriles se avisan entre ellos (no están en `explosionable` para no cambiar lo que hace la lava con ese grupo)
 
 var celda: Vector2i = Vector2i.ZERO
@@ -58,7 +60,7 @@ func _ready() -> void:
 	forma.position = Vector3(0.0, ALTO * 0.5, 0.0)
 	add_child(forma)
 	_mat = StandardMaterial3D.new()
-	_mat.albedo_color = Color(0.45, 0.3, 0.15)
+	_mat.albedo_color = COLOR_MADERA
 	_cuerpo = MeshInstance3D.new()
 	var cil := CylinderMesh.new()
 	cil.top_radius = 0.42
@@ -145,15 +147,15 @@ func encender() -> void:
 		return
 	encendido = true
 	_t = T_MECHA
-	_mat.emission_enabled = true
-	_mat.emission = Color(1.0, 0.4, 0.1)
-	_mat.emission_energy_multiplier = 0.6
+	# Sin emisión: con el entorno del juego (brillo) hasta 0,05 de emisión saturaba el barril entero de naranja. La mecha se lee como un rojo que sube y baja en la propia madera.
+	_mat.albedo_color = COLOR_MADERA.lerp(COLOR_MECHA, 0.15)
 	_poner_aviso()
 
 
 func apagar() -> void:
 	encendido = false
 	_mat.emission_enabled = false
+	_mat.albedo_color = COLOR_MADERA
 	_quitar_aviso()
 
 
@@ -187,7 +189,7 @@ func _process(delta: float) -> void:
 		return
 	_poner_aviso()
 	_t -= delta
-	_mat.emission_energy_multiplier = 0.6 + 0.6 * absf(sin(_t * 20.0))     # parpadea cada vez más deprisa
+	_mat.albedo_color = COLOR_MADERA.lerp(COLOR_MECHA, 0.15 + 0.3 * absf(sin(_t * 20.0)))     # parpadea cada vez más deprisa
 	if aviso != null:
 		aviso.actualizar(1.0 - clampf(_t / T_MECHA, 0.0, 1.0), delta)
 	if _t <= 0.0:

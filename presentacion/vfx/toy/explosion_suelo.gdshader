@@ -25,6 +25,11 @@ void fragment() {
 	float d = texture(prof, SCREEN_UV).r;
 	vec4 v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);
 	v.xyz /= v.w;
+	// solo el suelo: si lo que hay en esa profundidad es una pared (barril, cuerpos, troncos) no se pinta encima
+	vec3 nv = normalize(cross(dFdx(v.xyz), dFdy(v.xyz)));
+	if (abs((INV_VIEW_MATRIX * vec4(nv, 0.0)).y) < 0.6) {
+		discard;
+	}
 	vec3 mundo = (INV_VIEW_MATRIX * vec4(v.xyz, 1.0)).xyz;
 	vec3 l = (inverse(MODEL_MATRIX) * vec4(mundo, 1.0)).xyz;
 	if (abs(l.x) > 0.5 || abs(l.y) > 0.5 || abs(l.z) > 0.5) {
@@ -67,7 +72,7 @@ void fragment() {
 			ring *= onda_vida;
 		}
 		float a_o = clamp(max(brillo_suelo, ring * 0.85), 0.0, 1.0);
-		vec3 c_o = llama(mix(0.25, 0.6, clamp(ring + brillo_suelo, 0.0, 1.0)));
+		vec3 c_o = llama(mix(0.1, 0.5, clamp(ring * 0.6 + brillo_suelo, 0.0, 1.0)));
 		float at2 = 1.0 - (1.0 - a) * (1.0 - a_o);
 		col = (col * a * (1.0 - a_o) + c_o * a_o) / max(at2, 0.0001);
 		a = at2;
