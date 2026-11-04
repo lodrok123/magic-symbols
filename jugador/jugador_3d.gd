@@ -119,6 +119,7 @@ var _vel_correr: float = 3.0
 var _hud_texto: Label = null
 ## 24/10: la vida, los frascos y la barra de tinta y el consumible equipado (Q/R) los pinta y gestiona `HudEoW` (presentacion/ui/hud_eow.gd); antes eran aquí dos barras de ColorRect.
 var hud_eow: HudEoW = null
+var carga: CargarObjeto3D = null            ## 4/11: coger y lanzar objetos (jugador/cargar_objeto_3d.gd); sus siete enganches en este archivo llevan «carga»
 var _t_sin_combate: float = 99.0             ## s desde el último golpe recibido: con menos de TINTA_COMBATE s la tinta se recupera más despacio
 var _f7_previa: bool = false
 const TINTA_COMBATE: float = 6.0
@@ -247,6 +248,7 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	TintaReaccion.conectar(p_mundo.get("_mundo") as Mundo3D, j.tinta)
 	Estadisticas.conectar(p_mundo.get("_mundo") as Mundo3D, j, l)      # tercera tanda A3: enemigos, hechizos, daño, oro, muertes y cofres
 	Partida.vigilar_misiones()                                          # tercera tanda A2: completar una misión autoguarda
+	j.carga = CargarObjeto3D.montar(j)
 	j._construir_hud()
 	j.pantalla_muerte = PantallaMuerte.new()
 	j.pantalla_muerte.name = "PantallaMuerte"
@@ -271,8 +273,12 @@ func ocupada_un_momento() -> bool:
 	return not muerto and (_t_roll > 0.0 or _t_pegar > 0.0 or _t_golpe > 0.0 or _lanzando or _t_hitstop > 0.0)
 
 
+func lleva_carga() -> bool:                    ## 4/11: con un objeto en las manos no se corre, salta, rueda, golpea ni lanza hechizos
+	return carga != null and carga.ocupa_manos()
+
+
 func puede_lanzar() -> bool:
-	return not muerto and not nadando and en_suelo and mundo.get("_velo") == null and (_t_roll <= 0.0 or TiempoBruja.activa()) and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
+	return not muerto and not lleva_carga() and not nadando and en_suelo and mundo.get("_velo") == null and (_t_roll <= 0.0 or TiempoBruja.activa()) and _t_beber <= 0.0 and _t_gesto <= 0.0 and _t_pegar <= 0.0
 
 
 func bloquear(b: bool) -> void:
@@ -497,6 +503,8 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 		return                                   # 24/10: el Bálsamo protector se come el golpe (y se acaba)
 	if _t_beber > 0.0:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
+	if carga != null:
+		carga.al_recibir_golpe()                # 4/11: lo que llevara en brazos se cae y se rompe
 	_t_gesto = 0.0                              # un golpe corta el gesto (la animación de golpe lo sustituye)
 	_t_pegar = 0.0                              # y el golpe cuerpo a cuerpo que estuviera dándose (si no había salido, no sale)
 	vida = maxf(0.0, vida - cantidad)
@@ -714,18 +722,20 @@ func _process(delta: float) -> void:
 			entrada.y -= 1.0
 		if Input.is_action_pressed("mover_atras"):
 			entrada.y += 1.0
-	var correr: bool = libre and not apuntando_rapido and Input.is_action_pressed("correr")     # A1: apuntando de pie-andando no se corre ni se salta
-	var salto: bool = libre and not apuntando_rapido and salto_activo and Input.is_action_pressed("saltar")
+	var correr: bool = libre and not apuntando_rapido and not lleva_carga() and Input.is_action_pressed("correr")     # A1: apuntando de pie-andando no se corre ni se salta
+	var salto: bool = libre and not apuntando_rapido and not lleva_carga() and salto_activo and Input.is_action_pressed("saltar")
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
 	# la mirada y la animación parten de este `mov` ya girado, así que ahí no hay que tocar nada.
 	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_camara()))
 	_gestionar_acciones(libre, mov)
-	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0 or _t_pegar > 0.0:
-		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b) y los gestos (agacharse...) te dejan quieto hasta que acaban
+	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0 or _t_pegar > 0.0 or (carga != null and carga.quieta()):
+		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b), los gestos (agacharse...) y coger o lanzar algo te dejan quieto hasta que acaban
 	var vel: float = _rampa_velocidad(correr and mov != Vector3.ZERO, delta) * (MULT_NADO if nadando else 1.0)
 	_actualizar_corre_real(mov != Vector3.ZERO)
+	if carga != null:
+		vel *= carga.mult_vel()           # cargando: ×0,7 (CargarObjeto3D.COGIBLES)
 	var objetivo: Vector3 = mov * vel
 	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
 	corriendo = correr and mov != Vector3.ZERO
@@ -941,7 +951,7 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 ## 6.6: Ctrl = voltereta. Se dispara al PULSAR (no mientras se mantiene). (Q ya no bebe aquí: desde el 24/10 Q usa el consumible equipado, en `HudEoW`,
 ## que para la poción llama a `usar_pocion()` de más abajo.)
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
-	var ctrl: bool = libre and Input.is_action_pressed("voltereta")
+	var ctrl: bool = libre and not lleva_carga() and Input.is_action_pressed("voltereta")
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo
 	if ctrl and not _roll_previa:
@@ -958,7 +968,7 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 			PlayLog.event("pulsacion_guardada", {"accion": "voltereta"})
 			_iniciar_voltereta(mov if mov != Vector3.ZERO else _roll_guardado_mov)
 	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
-	var tecla_golpe: bool = libre and Input.is_action_pressed("golpe")
+	var tecla_golpe: bool = libre and not lleva_carga() and Input.is_action_pressed("golpe")
 	if tecla_golpe and not _pegar_previa:
 		_iniciar_golpe_cuerpo()                  # (comprueba `puede_golpear_cuerpo`)
 	_pegar_previa = tecla_golpe
@@ -1276,6 +1286,8 @@ func _animar(mov: Vector3, correr: bool) -> void:
 		return
 	if _t_roll > 0.0 or _t_beber > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0:
 		return                                         # el clip de voltereta / beber / gesto ya está sonando
+	if carga != null and carga.animar(mov):
+		return                                         # 4/11: cargando un objeto (andar a su ritmo, idle al lanzar o soltar)
 	if apuntando_rapido and _t_lanzar <= 0.0 and _t_golpe <= 0.0 and lanz != null and lanz.modo_lanzar and not nadando and en_suelo:
 		# A1: apuntando con 1/2/3 pulsada. Quieta: la pose de apuntar (libro en las manos); andando: el clip de andar (la mirada ya la lleva el Lanzador hacia el ratón). `jugar` no reinicia el clip que ya suena.
 		# Andando el clip sigue el ritmo del mundo (a `TIEMPO_PAGINA` los pies no patinan); quieta la pose va a velocidad normal, como en `apuntar_lanzar`.

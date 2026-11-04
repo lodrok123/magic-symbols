@@ -586,6 +586,7 @@ class PuertaPuzle extends Node3D:
 
 	func preparar(c: Vector2i, modelo: String = "", mundo: Node = null) -> void:
 		celda = c
+		add_to_group("e_puerta")               # CargarObjeto3D: E abre la puerta con llave antes que coger un jarrón
 		_mundo = mundo
 		position = Terreno3D.centro_de(c, Terreno3D.alto_suelo)
 		Terreno3D.bloquear_celda(c)
@@ -903,6 +904,7 @@ class CofrePuzle extends Node3D:
 
 	func preparar(p_celda: Vector2i, p_expr: Array, p_flag: String, p_puzle: Variant, p_mundo: Variant, escena: String, p_abre_si: Array = [], p_glifo: String = "") -> void:
 		celda = p_celda
+		add_to_group("e_cofre")                # CargarObjeto3D: E abre el cofre antes que coger un jarrón
 		expr = p_expr
 		expr_abre = p_abre_si
 		glifo = p_glifo

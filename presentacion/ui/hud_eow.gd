@@ -233,7 +233,7 @@ func _input(event: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo or k.alt_pressed or k.ctrl_pressed or k.meta_pressed:
 		return
 	if k.is_action("usar_consumible"):
-		if libre():
+		if libre() and not (jugador != null and jugador.has_method("lleva_carga") and bool(jugador.call("lleva_carga"))):      # 4/11: Q con un objeto en brazos lo suelta (CargarObjeto3D), no bebe
 			get_viewport().set_input_as_handled()
 			consumibles.usar_equipado()
 	elif k.is_action("cambiar_consumible"):
