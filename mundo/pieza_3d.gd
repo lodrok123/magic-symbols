@@ -55,6 +55,9 @@ const MEDIDA: Dictionary = {
 	"campamento_tienda": 1.7, "campamento_cazo": 1.35, "campamento_rocas": 0.8, "campamento_cofre": 0.57,
 	# 15/10: praderas.glb (Meshy «Mossy Meadow Elements», una sola malla que separé en 4 nodos sin suelo). Mismo factor (×1,6 sobre el GLB).
 	"rocas_pequenas": 0.33, "roca_musgosa": 0.5, "hierba_alta": 0.53, "hojas_caidas": 0.23,
+	# 4/11: rocas estilizadas (pack LeLu, `arte/meshy/aprobacion3d/rocas_estilizadas/`): roca = lado mayor >= 1,1 m del pack, piedra = el resto. Alto en u (jugadora ~1).
+	"roca_est_0": 1.4, "roca_est_1": 1.3, "roca_est_2": 1.3, "roca_est_3": 0.9, "roca_est_4": 1.5,
+	"piedra_est_0": 0.5, "piedra_est_1": 0.4, "piedra_est_2": 0.32, "piedra_est_3": 0.28, "piedra_est_4": 0.26,
 	# 15/10: bosque_flora.glb (Meshy «Woodland Flora Collection», una malla separada en 5 nodos sin suelo). Mismo factor ×1,6 (los troncos apilados ×1,9).
 	"helecho": 0.5, "tronco_musgoso": 0.38, "canas": 0.54, "flores_blancas": 0.34, "troncos_apilados": 0.45,
 	# 15/10: bosque_crafting.glb y bosque_tile.glb (Meshy «Enchanted Crafting» / «Enchanted Forest Tile»; cada hoja era una sola malla).
