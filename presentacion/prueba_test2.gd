@@ -2706,7 +2706,12 @@ func _giro_por_defecto(id: String, h: int) -> float:
 	return 90.0 * float(h % 4)
 
 
-func _arbol_de_muro(h: int) -> String:
+## El árbol viejo y el sauce tienen el TRONCO descentrado (las raíces y el tronco hueco salen hacia un lado del modelo): girados, invaden la
+## casilla de al lado. Pegado a algo que se pisa solo va el pino (tronco centrado) y los otros dos quedan para el fondo del muro.
+## (4/11: con ellos en el borde, el pasillo del escondite (8,26) del Bosque 02 quedaba tapado.)
+func _arbol_de_muro(h: int, c: Vector2i = Vector2i(-1, -1)) -> String:
+	if c.x >= 0 and _borde_de_muro(c):
+		return "pino"
 	var total: int = 0
 	for a in ARBOLES_MURO:
 		total += int(a[1])
@@ -2716,6 +2721,19 @@ func _arbol_de_muro(h: int) -> String:
 		if k < 0:
 			return String(a[0])
 	return "pino"
+
+
+## ¿La casilla de muro `c` toca (en las 8 direcciones) una casilla que no es muro? Fuera del mapa cuenta como muro.
+func _borde_de_muro(c: Vector2i) -> bool:
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			var y: int = c.y + dy
+			var x: int = c.x + dx
+			if y < 0 or y >= _mapa.size() or x < 0 or x >= String(_mapa[y]).length():
+				continue
+			if String(_mapa[y])[x] != "#":
+				return true
+	return false
 
 func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: bool = true, giro_fijo: float = -1.0) -> Node3D:
 	var id: String = _id_real(id_pedido)
@@ -3422,7 +3440,7 @@ func _colocar_letras() -> void:
 					else:
 						# Toda casilla de pared lleva un árbol: antes 1 de cada 4 quedaba sin modelo y era un hueco que parecía
 						# paso pero bloqueaba (pared invisible). Juego, 2026-10-06.
-						_poner(_arbol_de_muro(h), c, ALTO, true)
+						_poner(_arbol_de_muro(h, c), c, ALTO, true)
 				"~":
 					_bloqueadas[c] = true
 					if h % 9 == 0:
