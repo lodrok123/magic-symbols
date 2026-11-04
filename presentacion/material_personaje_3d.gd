@@ -28,12 +28,23 @@ void fragment() {
 }
 """
 
+## 4/11 (Pablo, tras el Bosque 02): «en vez de crear una transparencia haz un contorno para el personaje para que se pueda seguir viendo todo».
+## El decorado ya no se agujerea (Ocluso3D.actualizar con radio 0); la jugadora se pinta en dos pases más, SOLO donde algo la tapa:
+##   1. CONTORNO (prioridad 19): el mismo modelo inflado a lo largo de la normal (`grosor_px` píxeles de pantalla), solo las caras traseras (`cull_front`),
+##      de un color plano claro. Asoma como un anillo alrededor de la silueta.
+##   2. RELLENO (prioridad 20, el de siempre): la silueta de la jugadora en un color plano un poco apagado, con un leve claroscuro por la normal para que
+##      se lean brazos y cabeza. Se pinta ENCIMA del contorno, así que del contorno solo queda el anillo.
+## Los dos con `depth_test_disabled`, `depth_draw_never` y sin sombra, y los dos descartan el fragmento si la escena opaca no está claramente más cerca
+## (misma prueba de profundidad por textura, ver el párrafo SILUETA de arriba). Godot 4.7 no trae `depth_test_inverted` (ver el informe del diario 351):
+## el sesgo por textura es lo que permite distinguir «me tapa un árbol» de «mi brazo está detrás de mi torso».
+## Los dos pases solo cuelgan de la JUGADORA (`Pj3D.set_rol_visual`): enemigos, NPC y VFX no los llevan.
 const CODIGO_SILUETA: String = """
 shader_type spatial;
 render_mode unshaded, depth_test_disabled, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 uniform sampler2D profundidad : hint_depth_texture, repeat_disable, filter_nearest;
 uniform vec4 color : source_color = vec4(1.0, 0.8, 0.5, 0.42);
 uniform float sesgo = 0.4;
+uniform float claroscuro = 0.0;     // 0 = color plano; > 0 aclara lo que mira hacia arriba y oscurece lo que mira hacia abajo
 void fragment() {
 	float d = textureLod(profundidad, SCREEN_UV, 0.0).x;
 	vec4 v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);
@@ -41,6 +52,39 @@ void fragment() {
 	float propio = -VERTEX.z;       // distancia (vista) de este fragmento del personaje
 	if (escena > propio - sesgo) {
 		discard;                    // nada lo tapa: no se ve silueta
+	}
+	ALBEDO = color.rgb * (1.0 + claroscuro * (normalize(NORMAL).y - 0.35));
+	ALPHA = color.a;
+}
+"""
+
+const CODIGO_CONTORNO: String = """
+shader_type spatial;
+render_mode skip_vertex_transform, unshaded, depth_test_disabled, depth_draw_never, cull_front, shadows_disabled, fog_disabled;
+uniform sampler2D profundidad : hint_depth_texture, repeat_disable, filter_nearest;
+uniform vec4 color : source_color = vec4(0.87, 0.71, 0.42, 1.0);
+uniform float sesgo = 0.4;
+uniform float grosor_px = 2.5;      // grosor del anillo en píxeles de pantalla (cámara ortogonal; con perspectiva, en metros)
+void vertex() {
+	vec3 p = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 n = normalize((MODELVIEW_NORMAL_MATRIX * NORMAL));
+	float m;
+	if (PROJECTION_MATRIX[3][3] > 0.5) {
+		m = grosor_px * (2.0 / PROJECTION_MATRIX[1][1]) / VIEWPORT_SIZE.y;      // cámara ortogonal: tamaño de la vista / alto de la ventana = metros por píxel
+	} else {
+		m = grosor_px * 0.01;
+	}
+	n.z = 0.0;                                                                 // se infla en el plano de la pantalla: no se acerca ni se aleja
+	VERTEX = p + normalize(n + vec3(0.0001)) * m;
+	NORMAL = n;
+}
+void fragment() {
+	float d = textureLod(profundidad, SCREEN_UV, 0.0).x;
+	vec4 v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d, 1.0);
+	float escena = -v.z / v.w;
+	float propio = -VERTEX.z;
+	if (escena > propio - sesgo) {
+		discard;
 	}
 	ALBEDO = color.rgb;
 	ALPHA = color.a;
@@ -158,6 +202,20 @@ static func rim(color: Color, potencia: float, intensidad: float) -> ShaderMater
 	m.set_shader_parameter("color", Vector3(color.r, color.g, color.b))
 	m.set_shader_parameter("potencia", potencia)
 	m.set_shader_parameter("intensidad", intensidad)
+	return m
+
+
+const PRIORIDAD_CONTORNO: int = 19
+
+static func contorno(color: Color, sesgo: float, grosor_px: float) -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = CODIGO_CONTORNO
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.render_priority = PRIORIDAD_CONTORNO
+	m.set_shader_parameter("color", color)
+	m.set_shader_parameter("sesgo", sesgo)
+	m.set_shader_parameter("grosor_px", grosor_px)
 	return m
 
 

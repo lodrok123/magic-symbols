@@ -90,7 +90,8 @@ func _correr() -> void:
 	_ok(c[0] == jug._juguete.size(), "jugadora: una entrada de sincronización por superficie de juguete")
 	_ok(_rim_en_shader(jug), "jugadora: el rim está encadenado al shader de juguete")
 	_ok(jug._rim_mat != null and jug._rim_mat.next_pass is ShaderMaterial and \
-		(jug._rim_mat.next_pass as ShaderMaterial).shader.code == MaterialPersonaje3D.CODIGO_SILUETA, "jugadora: la silueta sigue tras el rim")
+		(jug._rim_mat.next_pass as ShaderMaterial).shader.code == MaterialPersonaje3D.CODIGO_CONTORNO and \
+		(jug._rim_mat.next_pass.next_pass as ShaderMaterial).shader.code == MaterialPersonaje3D.CODIGO_SILUETA, "jugadora: tras el rim van el contorno y la silueta (4/11)")
 	_ok(jug._sombra != null and jug._sombra.visible, "jugadora: sombra de contacto")
 	var sh0: ShaderMaterial = jug._juguete[0][1]
 	_ok(sh0.get_shader_parameter("matcap") is ImageTexture, "el shader lleva la textura matcap procedural")

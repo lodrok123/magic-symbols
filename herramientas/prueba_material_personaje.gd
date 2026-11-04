@@ -1,4 +1,4 @@
-﻿extends SceneTree
+extends SceneTree
 ## PRUEBA DE V5 «personajes juguete» (docs/PLAN_EOW_VISUAL.md): rim de color, silueta a través de paredes y sombra de contacto en `Pj3D`. Sin ventana:
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_material_personaje.gd
 ## Lo que NO se puede comprobar sin ventana es cómo se VE (el fresnel y el descarte por profundidad de la silueta necesitan GPU): eso se mira en
@@ -65,9 +65,18 @@ func _rim_en(p: Pj3D) -> Array:
 	return [con, total]
 
 
+## 4/11: la cadena es rim -> contorno -> relleno (silueta); se recorre hasta encontrar el código buscado.
+func _tiene_pase(p: Pj3D, codigo: String) -> bool:
+	var m: Material = p._rim_mat.next_pass if p._rim_mat != null else null
+	while m is ShaderMaterial:
+		if (m as ShaderMaterial).shader.code == codigo:
+			return true
+		m = m.next_pass
+	return false
+
+
 func _tiene_silueta(p: Pj3D) -> bool:
-	return p._rim_mat != null and p._rim_mat.next_pass is ShaderMaterial and \
-		(p._rim_mat.next_pass as ShaderMaterial).shader.code == MaterialPersonaje3D.CODIGO_SILUETA
+	return _tiene_pase(p, MaterialPersonaje3D.CODIGO_SILUETA)
 
 
 func _correr() -> void:
@@ -82,6 +91,8 @@ func _correr() -> void:
 	_ok(jug.rol_visual == "jugadora", "la elfa tiene rol «jugadora»")
 	_ok(r[1] > 0 and r[0] == r[1], "todas las superficies opacas de la elfa tienen rim (%d de %d)" % [r[0], r[1]])
 	_ok(_tiene_silueta(jug), "la elfa lleva la silueta encadenada tras el rim")
+	_ok(_tiene_pase(jug, MaterialPersonaje3D.CODIGO_CONTORNO), "la elfa lleva el contorno (4/11) antes del relleno")
+	_ok(jug._con_mat.render_priority < jug._sil_mat.render_priority, "el contorno se pinta antes que el relleno (prioridad %d < %d)" % [jug._con_mat.render_priority, jug._sil_mat.render_priority])
 	_ok(jug._sombra != null and jug._sombra.name == "sombra_contacto" and jug._sombra.visible, "la elfa tiene sombra de contacto visible")
 	var c: Vector3 = jug._rim_mat.get_shader_parameter("color")
 	_ok(c.x > c.z, "el rim de la elfa es cálido (rojo > azul)")
@@ -93,7 +104,7 @@ func _correr() -> void:
 	if npc._modelo != null:
 		var rn: Array = _rim_en(npc)
 		_ok(npc.rol_visual == "npc" and rn[0] == rn[1] and rn[1] > 0, "el NPC tiene rol «npc» y rim en todas sus superficies")
-		_ok(not _tiene_silueta(npc), "el NPC no lleva silueta")
+		_ok(not _tiene_silueta(npc) and not _tiene_pase(npc, MaterialPersonaje3D.CODIGO_CONTORNO), "el NPC no lleva silueta ni contorno")
 		_ok(npc._sombra != null, "el NPC tiene sombra de contacto")
 
 	# 3 · enemigos: rol «enemigo», rim del color de su debilidad, sombra que se apaga al morir
@@ -112,7 +123,7 @@ func _correr() -> void:
 	var re: Array = _rim_en(modelo)
 	_ok(modelo.rol_visual == "enemigo", "el goblin pasa a rol «enemigo» al equiparse")
 	_ok(re[1] > 0 and re[0] == re[1], "el goblin tiene rim en todas sus superficies (%d de %d)" % [re[0], re[1]])
-	_ok(not _tiene_silueta(modelo), "el goblin NO lleva silueta (constante silueta_enemigos apagada)")
+	_ok(not _tiene_silueta(modelo) and not _tiene_pase(modelo, MaterialPersonaje3D.CODIGO_CONTORNO), "el goblin NO lleva silueta ni contorno (constante silueta_enemigos apagada)")
 	var ce: Vector3 = modelo._rim_mat.get_shader_parameter("color")
 	_ok(ce.z > ce.x, "el rim del goblin (debilidad: agua) es frío (azul > rojo)")
 	_ok(modelo._sombra != null and modelo._sombra.visible, "el goblin tiene sombra de contacto visible")

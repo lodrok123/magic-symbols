@@ -718,7 +718,8 @@ void fragment() {
 ## Círculo de transparencia alrededor del jugador: lo que queda entre la cámara y él (árboles, setos, el puesto) se
 ## vuelve translúcido en ese círculo. Solo afecta al decorado en lotes y a los objetos reactivos (Ocluso3D).
 @export var transparencia_jugador: bool = true
-@export var radio_transparencia: float = 1.9
+## 4/11 (Pablo): el decorado se ve ENTERO y la jugadora se ve con contorno (Pj3D.contorno_oculto). Radio 0 = sin agujero; 1.9 devuelve la transparencia por dither.
+@export var radio_transparencia: float = 0.0
 ## Bloque 1 EoW: cuánto se mecen árboles y arbustos (`VIENTO_DECORADO`; 0 = quietos). Necesita `transparencia_jugador` (es el mismo material).
 @export var viento_decorado: float = 1.0
 ## La Cueva (23/10): «bosque» (de serie: árboles en las paredes, hierba) o «cueva» (paredes de roca del kit de cueva según sus vecinas, suelo de
@@ -963,6 +964,8 @@ var _panel_luz: PanelLuz3D = null                   ## F3: panel de luz del mapa
 var _foco: Vector3 = Vector3.ZERO
 var _tam_camara: float = ZOOM_INICIAL
 var _incl: float = INCLINACION
+## 4/11 (Pablo, tras el Bosque 02): la cámara queda FIJA mirando al norte. `true` devuelve el giro de 90° con Z/C (_giro_cam).
+const CAMARA_GIRA: bool = false
 var _giro_cam: float = 0.0              ## giro de la cámara en pasos de 90° (Z/C): para ver qué tapa algo desde el otro lado
 var _hud: Label = null
 var _t_hud: float = 0.0
@@ -4982,9 +4985,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F10:
 			_alternar_capa_agua()
 		KEY_Z, KEY_C:
-			# Giro de 90° de la cámara (Z/C: Q y E son beber y hablar en Jugador3D). El movimiento sigue a la cámara.
-			_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
-			_colocar_camara()
+			# Giro de 90° de la cámara (Z/C). 4/11 (Pablo): cámara fija al norte; con `CAMARA_GIRA = false` las teclas no hacen nada y _giro_cam queda en 0.
+			if CAMARA_GIRA:
+				_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
+				_colocar_camara()
 		KEY_H:
 			_sol.shadow_enabled = not _sol.shadow_enabled
 		KEY_P:

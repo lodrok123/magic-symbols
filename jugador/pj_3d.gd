@@ -261,7 +261,11 @@ const RIM_COBERTURA_MAX: float = 0.30           ## fracción máxima de la super
 const RIM_JUGADORA: Color = Color(1.0, 0.72, 0.42)   ## cálido: la elfa es lo que el ojo debe encontrar primero
 const RIM_NPC: Color = Color(1.0, 0.86, 0.66)        ## cálido pálido, para que no compita con la jugadora
 const RIM_ENEMIGO: Color = Color(0.55, 0.72, 1.0)    ## frío por defecto; Combate3D lo cambia al color de su debilidad (set_rol_visual)
-const SILUETA_COLOR: Color = Color(1.0, 0.8, 0.5, 0.42)
+const SILUETA_COLOR: Color = Color(0.72, 0.66, 0.92, 0.95)     ## 4/11: relleno plano de la jugadora tapada (lavanda apagada; antes ámbar translúcido 0,42)
+const SILUETA_CLAROSCURO: float = 0.35
+const CONTORNO_COLOR: Color = Color(0.17, 0.10, 0.30, 1.0)     ## ciruela oscuro: el dorado de los marcos (TemaInterfaz.BORDE_CALIDO) se perdía sobre el follaje amarillo-verdoso
+const CONTORNO_PX: float = 3.5                            ## grosor del anillo en píxeles de pantalla
+static var contorno_activo: bool = true               ## el anillo claro alrededor de la silueta (false = solo el relleno)
 const SILUETA_SESGO_ALTURAS: float = 0.4           ## cuánto más cerca (en alturas del personaje) debe estar lo que lo tapa para dibujar la silueta
 const SOMBRA_DIAMETRO_ALTURAS: float = 0.7         ## diámetro de la mancha en alturas del modelo
 const SOMBRA_ALFA: float = 0.36
@@ -274,6 +278,7 @@ const ROPA_POR_DEFECTO: Dictionary = {
 var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta
 var _rim_mat: ShaderMaterial = null
 var _sil_mat: ShaderMaterial = null
+var _con_mat: ShaderMaterial = null
 var _sombra: MeshInstance3D = null
 var _caja_vacia: bool = true
 var _yaw: float = 0.0
@@ -593,7 +598,7 @@ func set_rol_visual(rol: String, color_rim: Color = Color(0, 0, 0, 0)) -> void:
 	_rim_mat.set_shader_parameter("color", Vector3(c.r, c.g, c.b))
 	_rim_mat.set_shader_parameter("intensidad", _intensidad_rim())
 	var con_silueta: bool = silueta_activa and (rol == "jugadora" or (silueta_enemigos and rol == "enemigo"))
-	_rim_mat.next_pass = _sil_mat if con_silueta else null
+	_rim_mat.next_pass = (_con_mat if contorno_activo else _sil_mat) if con_silueta else null
 	_actualizar_silueta()
 
 
@@ -601,6 +606,8 @@ func set_rol_visual(rol: String, color_rim: Color = Color(0, 0, 0, 0)) -> void:
 func _actualizar_silueta() -> void:
 	if _sil_mat != null:
 		_sil_mat.set_shader_parameter("sesgo", alto_modelo() * scale.y * SILUETA_SESGO_ALTURAS)
+	if _con_mat != null:
+		_con_mat.set_shader_parameter("sesgo", alto_modelo() * scale.y * SILUETA_SESGO_ALTURAS)
 
 
 ## Pies en el origen y el centro del modelo sobre la vertical.
@@ -649,6 +656,9 @@ func _preparar_materiales(modelo: Node3D) -> void:
 					if _rim_mat == null:
 						_rim_mat = MaterialPersonaje3D.rim(RIM_NPC, RIM_POTENCIA, RIM_INTENSIDAD)
 						_sil_mat = MaterialPersonaje3D.silueta(SILUETA_COLOR, 0.4)
+					_sil_mat.set_shader_parameter("claroscuro", SILUETA_CLAROSCURO)
+					_con_mat = MaterialPersonaje3D.contorno(CONTORNO_COLOR, 0.4, CONTORNO_PX)
+					_con_mat.next_pass = _sil_mat
 					copia.next_pass = _rim_mat
 				# Juguete (V5 punto 5): las superficies opacas se pintan con el shader de rampa + matcap; `copia` queda como material de control
 				# (Combate3D le escribe el tinte; sincronizar_juguete() lo pasa al shader). Las de alfa (pelo, hojas) conservan su StandardMaterial3D.
