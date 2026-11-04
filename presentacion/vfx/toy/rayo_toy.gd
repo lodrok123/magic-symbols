@@ -55,15 +55,15 @@ const T_MORIR: float = 0.18             ## y MUERE en menos de 0,2 s
 const T_NACER_BOLA: float = 0.06
 const T_MORIR_BOLA: float = 0.15
 const T_REDIBUJO: float = 0.05          ## s entre redibujos de la línea quebrada (3 fotogramas a 60 Hz)
-const N_TRAZOS_BOLA: int = 84           ## tramos que caben en el MultiMesh de cada figura (la bola: meridianos, saltos, cola o reventón)
+const N_TRAZOS_BOLA: int = 90           ## tramos que caben en el MultiMesh de cada figura (la bola: meridianos, saltos, cola o reventón)
 const N_FIJOS_BOLA: int = 24            ## BOLA: destellos 0..23 se redibujan cada 0,05 s; del 24 al 39, las chispas que caen detrás en vuelo (cada fotograma)
 const N_CHISPAS_VUELO: int = 16
 const PERIODO_CHISPA: float = 0.035     ## s entre chispa y chispa que deja la bola en vuelo
-const COLA_BOLA: float = 2.8            ## largo de la cola en vuelo, en radios (pegada a la cabeza: ≤ 2 diámetros con las ramas)
+const COLA_BOLA: float = 3.4            ## largo de la estela recta y fina en vuelo, en radios (≤ 2 diámetros: referencia en vídeo, «Projectile»)
 const NUCLEO_MIN: float = 0.6           ## el núcleo de la bola nunca baja de esta intensidad
-const N_TRAZOS_HAZ: int = 64
-const N_TRAZOS_PILAR: int = 96
-const N_TRAZOS_MURO: int = 140
+const N_TRAZOS_HAZ: int = 90
+const N_TRAZOS_PILAR: int = 120
+const N_TRAZOS_MURO: int = 160
 const N_TRAZOS_BARRERA: int = 120
 const N_BRILLOS: int = 40
 const LUZ_ENERGIA: float = 1.6          ## energía de la luz con el rayo a pleno (× `luz` × el parpadeo)
@@ -88,13 +88,15 @@ const LUZ_ENERGIA: float = 1.6          ## energía de la luz con el rayo a plen
 @export var carga_bola_visible: bool = true: set = _set_carga_bola_visible              ## true: la bola se va formando en la mano (por defecto); false: solo chispas y arcos, y la bola aparece al soltar
 @export_group("Impacto")
 ## true: al impactar, en vez del golpe de un proyectil, caen cinco descargas sobre el área (ImpactoRayoToy.Variante.AREA). `desde_hechizo` lo pone en las zonas.
-@export var area_al_impactar: bool = false
+@export var area_al_impactar: bool = false: set = _set_area_al_impactar
 @export_group("Mundo")
 ## Dónde están los pies respecto al nodo (local, -Z = delante): ahí late el halo del casteo.
 @export var pies: Vector3 = Vector3(0, -0.7, 0.5)
 ## Altura (m) del nodo sobre el suelo: las chispas que caen por debajo de ella se apagan.
 @export var altura_suelo: float = 0.7
 
+var _sello: SelloRayo = null                  ## PILAR y zona (BOLA quieta que estalla en área): el sello circular del suelo (referencia en vídeo: «Ultimate» y «Area of effect»)
+var _sello_cerrado: bool = false
 var _construido: bool = false
 var _pendiente: bool = false
 var _figura_anim: int = -1
@@ -420,8 +422,14 @@ func explotar_area(pos: Vector3, radio: float = -1.0) -> Node3D:
 	var r: float = radio if radio > 0.0 else maxf(maxf(semieje_x, semieje_z), 0.3)
 	var imp: ImpactoRayoToy = ImpactoRayoToy.crear(ImpactoRayoToy.Variante.AREA, Vector3.UP, r)
 	imp.altura_suelo = altura_suelo
+	imp.con_sello = _sello == null or not is_instance_valid(_sello)                  # el sello de la zona sigue vivo en la explosión (no se pinta otro encima)
 	padre.add_child(imp)
 	imp.global_position = pos
+	if _sello != null and is_instance_valid(_sello) and not _sello_cerrado:
+		_sello_cerrado = true
+		_sello.reparent(padre, true)
+		padre.get_tree().create_timer(0.55, false).timeout.connect(Callable(_sello, "cerrar"))
+		_sello = null
 	return imp
 
 
@@ -573,6 +581,7 @@ func _construir() -> void:
 		luz_nodo.shadow_enabled = false
 		add_child(luz_nodo)
 	luz_nodo.omni_range = clampf(3.0 + 0.7 * extension(), 3.0, 9.0)
+	_montar_sello()
 	_anim_si_hace_falta()
 
 
@@ -616,6 +625,48 @@ func _anim_si_hace_falta() -> void:
 	dura_morir = morir_s
 
 
+# ------------------------------------------------------------------ sello del suelo ------------------------------------------------------------------
+
+func _set_area_al_impactar(v: bool) -> void:
+	area_al_impactar = v
+	if _construido and is_inside_tree():
+		_montar_sello()
+
+
+## ¿Es una zona (bola quieta que estalla en área al acabar)?
+func es_zona() -> bool:
+	return figura == Figura.BOLA and area_al_impactar and not viaja and _est == EstadoCarga.NINGUNA
+
+
+## Radio (m) del sello del suelo de esta figura, o 0 si no lleva: el pilar, de 0,9 a 3,2 m según su anchura; la zona, el radio de su área.
+func radio_sello() -> float:
+	if figura == Figura.PILAR:
+		return clampf((semieje_x + semieje_z) * 0.5 * 2.6 + 0.55, 0.9, 3.2)
+	if es_zona():
+		return clampf(maxf(semieje_x, semieje_z) * 1.0 + 0.3, 0.9, 3.5)
+	return 0.0
+
+
+## Pone (o quita) el sello bajo la figura. El origen del PILAR es el suelo; el de la bola quieta está a media altura sobre él (VfxToyJuego la sube `semieje_y`).
+func _montar_sello() -> void:
+	if _sello != null and is_instance_valid(_sello):
+		_sello.queue_free()
+	_sello = null
+	_sello_cerrado = false
+	var r: float = radio_sello()
+	if r <= 0.0 or not is_inside_tree():
+		return
+	_sello = SelloRayo.crear(r)
+	_sello.name = "Sello"
+	add_child(_sello)
+	_sello.position = Vector3(0, 0.0 if figura == Figura.PILAR else -maxf(semieje_y, 0.3), 0)
+	_sello.rotation = -rotation                                                     # el círculo no depende de hacia dónde mira el nodo
+
+
+func sello() -> SelloRayo:
+	return _sello
+
+
 # ------------------------------------------------------------------ vuelo ------------------------------------------------------------------
 
 func _set_proyectil(v: bool) -> void:
@@ -653,6 +704,9 @@ func _process(delta: float) -> void:
 		_redibujar(false)
 	_avanzar_chispas_vuelo(delta)
 	_actualizar_luz()
+	if _sello != null and is_instance_valid(_sello) and not _sello_cerrado and (corte > 0.05 or _est == EstadoCarga.APAGANDO):
+		_sello_cerrado = true
+		_sello.cerrar()
 
 
 func _actualizar_luz() -> void:
@@ -832,7 +886,7 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 		RayoTrazos.poner_destello(_halo_bola.multimesh, 0, Vector3.ZERO, r * (3.0 + 0.6 * vuelo) * lerpf(1.0, 0.5, co), (0.26 + 0.1 * vuelo) * _nuc * pow(1.0 - co, 1.5), 0.0, 0.0, 0.0)
 	if proyectil:
 		# destello de cabeza: solo en vuelo
-		bril.append({"pos": Vector3.ZERO, "tam": r * 2.7 * kr, "alfa": 0.85 * env * vuelo, "estrella": 0.95})
+		bril.append({"pos": Vector3.ZERO, "tam": r * 5.0 * kr, "alfa": 1.0 * clampf(env + 0.25, 0.0, 1.0) * vuelo, "estrella": 1.0})      # referencia en vídeo: núcleo muy brillante con destello en estrella
 	var vivo: float = 1.0 - ub
 	if co < 0.9:
 		# SEIS arcos que recorren la superficie (meridianos quebrados, de un lado a otro)
@@ -847,14 +901,14 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 				var p: Vector3 = _sup(d0.rotated(eje, span * u), 1.06 * kr + _rng.randf_range(-0.07, 0.09))
 				pts.append(p + eje * _rng.randf_range(-1.0, 1.0) * 0.1 * r * kr)
 			RayoTrazos.trazar(lista, pts, g * 0.42, 0.98 * env * vivo, 1.0, 1.0, 0.5, float(k))
-		# TRES que saltan hacia fuera y vuelven a la superficie
+		# CUATRO que saltan hacia fuera (más lejos que antes: «arcos que salen de la cabeza») y vuelven a la superficie
 		if ub <= 0.0:
-			for k2 in 3:
+			for k2 in 4:
 				var da: Vector3 = _dir_azar()
 				var eje2: Vector3 = da.cross(_dir_azar())
 				eje2 = eje2.normalized() if eje2.length() > 0.05 else Vector3.RIGHT
 				var db: Vector3 = da.rotated(eje2, _rng.randf_range(0.8, 1.5))
-				var alto: float = r * _rng.randf_range(0.55, 1.0)
+				var alto: float = r * _rng.randf_range(0.6, 1.15)
 				var pts2: PackedVector3Array = PackedVector3Array()
 				for i2 in 6:
 					var u2: float = float(i2) / 5.0
@@ -865,14 +919,28 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 				RayoTrazos.trazar(lista, pts2, g * 0.4, 0.95 * env, 1.0, 1.0, 0.6, 7.0 + float(k2))
 				bril.append({"pos": pts2[2], "tam": r * 0.5, "alfa": 0.7 * env, "estrella": 0.9})
 	if proyectil and co < 0.5:
-		# cola quebrada corta, PEGADA a la cabeza (nace dentro de la esfera, a media altura de ella) y que se afina; un hilo más fino y dos ramitas
+		# ESTELA RECTA Y FINA (referencia en vídeo: una línea blanca casi recta detrás de la cabeza, que se afina): nace dentro de la esfera, casi sin desviación, y un hilo aún más fino que la acompaña
 		var largo: float = r * COLA_BOLA * vuelo
 		var z0: float = r * 0.5
-		var pc: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0, z0), Vector3(0, 0, z0 + largo), 7, 0.3 * r, _rng)
-		_afilado(lista, pc, g * 0.95, g * 0.28, 0.98 * env, 0.6 * env, 1.0, 0.7, 3.0)
-		var pc2: PackedVector3Array = RayoTrazos.camino(Vector3(0.25 * r, 0.12 * r, z0), Vector3(-0.2 * r, 0.1 * r, z0 + largo * 0.65), 5, 0.26 * r, _rng)
-		_afilado(lista, pc2, g * 0.45, g * 0.15, 0.8 * env, 0.4 * env, 0.8, 0.7, 4.0)
-		RayoTrazos.ramas(lista, pc, 2, r * 0.6, g * 0.4, 0.65 * env, 1.0, _rng, 2)
+		var pc: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0, z0), Vector3(0, 0, z0 + largo), 6, 0.05 * r, _rng)
+		_afilado(lista, pc, g * 0.62, g * 0.12, 0.98 * env, 0.3 * env, 0.8, 0.35, 3.0)
+		var pc2: PackedVector3Array = RayoTrazos.camino(Vector3(0.12 * r, 0.06 * r, z0), Vector3(-0.1 * r, 0.05 * r, z0 + largo * 0.7), 5, 0.1 * r, _rng)
+		_afilado(lista, pc2, g * 0.3, g * 0.08, 0.7 * env, 0.25 * env, 0.8, 0.5, 4.0)
+	if es_zona() and co < 0.5:
+		# ZONA (referencia en vídeo, «Area of effect»): descargas que CAEN del cielo dentro del sello, de vez en cuando (a 20 Hz: una de cada dos redibujos)
+		var rs: float = radio_sello()
+		var suelo_y: float = -maxf(semieje_y, 0.3)
+		var n_caen: int = 1 + int(_rng.randf() < 0.35)
+		for kc in n_caen:
+			if _rng.randf() < 0.55:
+				var ac: float = _rng.randf() * TAU
+				var rc: float = sqrt(_rng.randf()) * rs * 0.8
+				var pie: Vector3 = Vector3(cos(ac) * rc, suelo_y + 0.03, sin(ac) * rc)
+				var cima: Vector3 = pie + Vector3(_rng.randf_range(-0.2, 0.2), 2.6 + 0.4 * rs, _rng.randf_range(-0.2, 0.2))
+				var ptc: PackedVector3Array = RayoTrazos.camino(cima, pie, 9, 0.14 + 0.05 * rs, _rng)
+				RayoTrazos.trazar(lista, ptc, g * 0.7, 0.95 * env, 1.0, 1.0, 0.5, 21.0 + float(kc))
+				RayoTrazos.ramas(lista, ptc, 2, 0.4 + 0.15 * rs, g * 0.4, 0.75 * env, 1.0, _rng, 3)
+				bril.append({"pos": pie + Vector3(0, 0.1, 0), "tam": 0.35 + 0.15 * rs, "alfa": 0.9 * env, "estrella": 0.9})
 	if ub > 0.0:
 		# REVENTÓN: ocho arcos cortos que salen de la esfera que se contrae, y chispas que se alejan
 		for k3 in 8:
@@ -884,7 +952,8 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 			bril.append({"pos": d3 * r * (0.5 + 2.4 * ub), "tam": r * 0.38 * (1.0 - 0.5 * ub), "alfa": 0.95 * vivo, "estrella": 0.9})
 
 
-## PILAR = COLUMNA DE DESCARGA: de 2 a 4 rayos entrelazados que CAEN de la cima (`crece` = hasta dónde han llegado), cada uno con dos ramas; destello arriba y en el suelo.
+## PILAR = COLUMNA DE DESCARGA (referencia en vídeo, «Ultimate»: un rayo GRUESO que cae del cielo sobre un sello circular y se RAMIFICA al tocar el suelo, con chispas): de 2 a 4 rayos entrelazados que CAEN de la cima
+## (`crece` = hasta dónde han llegado; el primero, el tronco, es un 60 % más grueso), cada uno con dos ramas; destello arriba y en el suelo, raíces que reptan por el suelo al llegar y chispas. El sello circular lo pone `_montar_sello`.
 func _gen_pilar(lista: Array, bril: Array, env: float, cr: float) -> void:
 	var rx: float = semieje_x
 	var rz: float = semieje_z
@@ -900,49 +969,75 @@ func _gen_pilar(lista: Array, bril: Array, env: float, cr: float) -> void:
 		var cima: Vector3 = Vector3(cos(a) * rx * 0.3, alto, sin(a) * rz * 0.3)
 		var pie: Vector3 = Vector3(cos(a2) * rx * 0.85, 0.0, sin(a2) * rz * 0.85)
 		var pts: PackedVector3Array = RayoTrazos.camino(cima, pie, n, 0.10 + 0.5 * rm, _rng)
-		RayoTrazos.trazar(lista, pts, g, 0.95 * env, cr, 1.0, 0.5, float(k) * 2.0)
+		RayoTrazos.trazar(lista, pts, g * (1.6 if k == 0 else 1.0), 0.95 * env, cr, 1.0, 0.5, float(k) * 2.0)
 		RayoTrazos.ramas(lista, pts, 2, 0.5 + rm, g * 0.55, 0.8 * env, cr, _rng, 3)
 	bril.append({"pos": Vector3(0, alto, 0), "tam": 0.7 + rm * 1.4, "alfa": 0.9 * env * smoothstep(0.0, 0.3, cr), "estrella": 0.9})
-	bril.append({"pos": Vector3(0, 0.15, 0), "tam": 1.4 + rm * 3.2, "alfa": 0.35 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.0})
+	bril.append({"pos": Vector3(0, 0.15, 0), "tam": 1.4 + rm * 3.2, "alfa": 0.5 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.0})
+	bril.append({"pos": Vector3(0, 0.3, 0), "tam": 0.9 + rm * 1.6, "alfa": 0.95 * env * smoothstep(0.7, 1.0, cr), "estrella": 1.0})      # el destello del impacto en el suelo
+	# RAÍCES: al tocar el suelo el rayo se ramifica a ras de tierra (cinco arcos que reptan hacia fuera)
+	var llega: float = smoothstep(0.75, 1.0, cr)
+	for kr in 5:
+		var ar: float = TAU * float(kr) / 5.0 + _rng.randf_range(-0.35, 0.35)
+		var lr: float = (0.45 + 1.4 * rm) * _rng.randf_range(0.7, 1.1)
+		var pr: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0.05, 0), Vector3(cos(ar) * lr, 0.05, sin(ar) * lr), 5, 0.1 + 0.2 * rm, _rng)
+		for q in pr.size():
+			var pq: Vector3 = pr[q]
+			pq.y = 0.05 + 0.05 * float(q % 2)
+			pr[q] = pq
+		RayoTrazos.trazar(lista, pr, g * 0.55, 0.85 * env * llega, 1.0, 0.8, 0.7, float(kr) * 1.3)
+		if kr < 3:
+			bril.append({"pos": pr[pr.size() - 1] + Vector3(0, 0.08, 0), "tam": 0.28 + 0.2 * rm, "alfa": 0.8 * env * llega, "estrella": 0.9})
 	for k2 in 3:
 		var a3: float = _rng.randf() * TAU
 		bril.append({"pos": Vector3(cos(a3) * rx * 1.3, 0.12, sin(a3) * rz * 1.3), "tam": 0.3 + 0.2 * rm, "alfa": 0.8 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.9})
 
 
-## MURO = VALLA DE DESCARGAS entre postes. Semiejes: x = ANCHO, y = ALTO de los postes, z = fondo (los postes se alternan a un lado y otro). `crece` hace saltar los arcos de poste en poste de izquierda a derecha.
+## MURO = CORTINA DE ARCOS VERTICALES densos sobre una LÍNEA BRILLANTE en el suelo (referencia en vídeo, «Wall»). Semiejes: x = ANCHO, y = ALTO de los arcos, z = fondo (los arcos se reparten en él). Un arco cada ~0,2 m de ancho,
+## cada uno de una altura distinta (de la mitad a la entera) y algo inclinado; la línea del suelo es un hilo recto y blanco con destellos. `crece` los hace saltar en cadena de izquierda a derecha.
 func _gen_muro(lista: Array, bril: Array, env: float, cr: float) -> void:
 	var a: float = semieje_x
 	var b: float = semieje_z
 	var alto: float = semieje_y
-	_pos_luz = Vector3(0, alto * 0.6, 0)
-	var np: int = clampi(int(round(2.0 * a / 1.15)) + 1, 2, 8)
+	_pos_luz = Vector3(0, alto * 0.5, 0)
+	var nc: int = clampi(int(round(2.0 * a / 0.2)) + 1, 6, 24)
 	var g: float = _grosor(alto / 1.5 * 0.5)
 	var xs: Array = []
-	for i in np:
-		xs.append(lerpf(-a, a, float(i) / float(np - 1)))
-	for i in np:
-		var x: float = xs[i]
-		var z: float = (0.5 if i % 2 == 0 else -0.5) * b
-		var base: Vector3 = Vector3(x, 0.0, z)
-		var cima: Vector3 = Vector3(x, alto * _rng.randf_range(0.9, 1.0), z)
-		RayoTrazos.trazar(lista, RayoTrazos.camino(base, cima, 3, 0.03, _rng), g * 0.9, 0.95 * env, minf(cr * 3.0, 1.0), 1.0, 0.4, float(i))
-		bril.append({"pos": cima, "tam": 0.45 + 0.12 * alto, "alfa": 0.85 * env * smoothstep(0.0, 0.25, cr), "estrella": 0.9})
-	for i in np - 1:
-		var u0: float = float(i) / float(np - 1)
-		var tramo: float = clampf((cr - u0 * 0.7) / 0.3, 0.0, 1.0)             # los arcos saltan en cadena de izquierda a derecha
+	for i in nc:
+		xs.append(lerpf(-a, a, float(i) / float(nc - 1)))
+	# la LÍNEA BRILLANTE del suelo: recta, de punta a punta, con destellos en los extremos y uno en medio
+	var base: PackedVector3Array = PackedVector3Array([Vector3(-a, 0.04, 0.0), Vector3(a, 0.04, 0.0)])
+	RayoTrazos.trazar(lista, base, g * 0.9, 0.95 * env, minf(cr * 1.6, 1.0), 1.0, 0.3, 0.0)
+	bril.append({"pos": Vector3(-a, 0.08, 0.0), "tam": 0.5 + 0.1 * alto, "alfa": 0.85 * env, "estrella": 0.9})
+	bril.append({"pos": Vector3(a, 0.08, 0.0), "tam": 0.5 + 0.1 * alto, "alfa": 0.85 * env * smoothstep(0.5, 1.0, cr), "estrella": 0.9})
+	bril.append({"pos": Vector3(0.0, 0.05, 0.0), "tam": 0.4 + a * 0.35, "alfa": 0.3 * env, "estrella": 0.0})
+	var altos: Array = []
+	for i in nc:
+		var u0: float = float(i) / float(nc - 1)
+		var tramo: float = clampf((cr - u0 * 0.6) / 0.4, 0.0, 1.0)
+		var h: float = alto * _rng.randf_range(0.5, 1.0)
+		altos.append(h)
 		if tramo <= 0.0:
 			continue
-		var z0: float = (0.5 if i % 2 == 0 else -0.5) * b
-		var z1: float = (0.5 if (i + 1) % 2 == 0 else -0.5) * b
-		for h in 2:
-			var hh: float = alto * (0.3 + 0.48 * float(h)) * _rng.randf_range(0.85, 1.1)
-			var p0: Vector3 = Vector3(xs[i], hh, z0)
-			var p1: Vector3 = Vector3(xs[i + 1], hh + _rng.randf_range(-0.12, 0.12) * alto, z1)
-			var pts: PackedVector3Array = RayoTrazos.camino(p0, p1, 6, 0.12 + 0.06 * alto, _rng)
-			RayoTrazos.trazar(lista, pts, g * 0.8, 0.9 * env, tramo, 1.0, 0.6, float(i * 2 + h))
-		if _rng.randf() < 0.35:
-			var pts2: PackedVector3Array = RayoTrazos.camino(Vector3(xs[i], alto * 0.95, z0), Vector3(xs[i + 1], alto * 0.5, z1), 5, 0.12 + 0.05 * alto, _rng)
-			RayoTrazos.trazar(lista, pts2, g * 0.6, 0.8 * env, tramo, 0.7, 0.7, float(i) * 5.0)
+		var z: float = _rng.randf_range(-0.5, 0.5) * b
+		var x: float = xs[i]
+		var pts: PackedVector3Array = RayoTrazos.camino(Vector3(x, 0.04, z), Vector3(x + _rng.randf_range(-0.12, 0.12), h, z), 4, 0.04 + 0.025 * alto, _rng)
+		for q in pts.size():
+			var pq: Vector3 = pts[q]
+			pq.x = clampf(pq.x, -a, a)                                          # ningún arco se sale del ancho del muro
+			pts[q] = pq
+		RayoTrazos.trazar(lista, pts, g * 0.85, 0.95 * env, tramo, 0.9, 0.7, float(i))
+		if _rng.randf() < 0.25:
+			bril.append({"pos": pts[pts.size() - 1], "tam": 0.2 + 0.05 * alto, "alfa": 0.75 * env * tramo, "estrella": 0.9})
+	# unos pocos arcos que unen la cima de un arco con la del vecino
+	for k in 3:
+		var i2: int = _rng.randi_range(0, nc - 2)
+		var u1: float = float(i2) / float(nc - 1)
+		var tr2: float = clampf((cr - u1 * 0.6) / 0.4, 0.0, 1.0)
+		if tr2 <= 0.0:
+			continue
+		var p0: Vector3 = Vector3(xs[i2], float(altos[i2]) * 0.9, 0.0)
+		var p1: Vector3 = Vector3(xs[i2 + 1], float(altos[i2 + 1]) * 0.9, 0.0)
+		RayoTrazos.trazar(lista, RayoTrazos.camino(p0, p1, 3, 0.06 + 0.03 * alto, _rng), g * 0.4, 0.7 * env, tr2, 0.7, 0.7, float(i2) * 5.0)
 
 
 ## BARRERA = ARO CHISPEANTE sobre el elipsoide (centro a 0,4·y como la del fuego): tres aros quebrados a 0,12·y, 0,65·y y 1,2·y (el radio sigue la curva del elipsoide) y cuatro arcos que los unen. `crece` cierra los aros.
@@ -978,7 +1073,8 @@ func _gen_barrera(lista: Array, bril: Array, env: float, cr: float) -> void:
 	bril.append({"pos": Vector3(0, 0.1, 0), "tam": (x + z) * 1.2, "alfa": 0.2 * env, "estrella": 0.0})
 
 
-## HAZ = ARCO entre la mano (el origen) y el objetivo (hacia -Z, a la altura máx(y, 0,4)): un tronco quebrado, una segunda línea más fina que lo acompaña y tres ramas; `crece` lo extiende de golpe hasta la punta.
+## HAZ = TUBO DE ENERGÍA recto entre la mano (el origen) y el objetivo (hacia -Z, a la altura máx(y, 0,4)) con arcos que se ENROSCAN alrededor y destellos en los dos extremos (referencia en vídeo, «Beam»): un tronco casi recto
+## y grueso (blanco con el halo del rayo), una segunda línea fina con algo de desviación, dos hélices de arcos cortos que lo rodean (cambian de fase en cada redibujo) y tres ramas. `crece` lo extiende de golpe hasta la punta.
 func _gen_haz(lista: Array, bril: Array, env: float, cr: float) -> void:
 	var largo: float = _haz_largo
 	var alt: float = _haz_alt
@@ -986,12 +1082,27 @@ func _gen_haz(lista: Array, bril: Array, env: float, cr: float) -> void:
 	var n: int = clampi(int(round(largo / 0.28)), 8, 20)
 	var g: float = _grosor(_haz_r / 0.45 * 0.6)
 	var amp: float = 0.1 + 0.5 * _haz_r * 0.5
-	var pts: PackedVector3Array = RayoTrazos.camino(Vector3(0, alt, 0), Vector3(0, alt, -largo), n, amp, _rng)
-	RayoTrazos.trazar(lista, pts, g, 0.95 * env, cr, 1.0, 0.5, 0.0)
-	var pts2: PackedVector3Array = RayoTrazos.camino(Vector3(0, alt, 0), Vector3(0, alt, -largo), n, amp * 1.3, _rng)
-	RayoTrazos.trazar(lista, pts2, g * 0.55, 0.7 * env, cr, 0.7, 0.7, 4.0)
+	# el TUBO: una recta de punta a punta (grueso y blanco) y, encima, su línea quebrada fina
+	var tubo: PackedVector3Array = PackedVector3Array([Vector3(0, alt, 0), Vector3(0, alt, -largo)])
+	RayoTrazos.trazar(lista, tubo, g * 1.5, 0.97 * env, cr, 1.0, 0.35, 0.0)
+	var pts: PackedVector3Array = RayoTrazos.camino(Vector3(0, alt, 0), Vector3(0, alt, -largo), n, amp * 0.35, _rng)
+	RayoTrazos.trazar(lista, pts, g * 0.7, 0.9 * env, cr, 1.0, 0.5, 4.0)
+	# las HÉLICES: dos arcos que se enroscan alrededor del tubo
+	var hr: float = clampf(0.05 + 0.3 * _haz_r, 0.06, 0.22)
+	for k in 2:
+		var fase: float = _rng.randf() * TAU
+		var vueltas: float = _rng.randf_range(1.5, 3.0) * (1.0 if k == 0 else -1.0)
+		var m: int = clampi(int(round(largo / 0.2)), 8, 18)
+		var hel: PackedVector3Array = PackedVector3Array()
+		for q in m + 1:
+			var u: float = float(q) / float(m)
+			var ang: float = fase + vueltas * TAU * u
+			var rr: float = hr * (0.55 + 0.45 * sin(PI * u)) * _rng.randf_range(0.8, 1.25)
+			hel.append(Vector3(cos(ang) * rr, alt + sin(ang) * rr, -largo * u))
+		RayoTrazos.trazar(lista, hel, g * 0.42, 0.85 * env, cr, 0.8, 0.8, 7.0 + float(k) * 3.0)
 	RayoTrazos.ramas(lista, pts, 3, 0.35 + 0.4 * largo * 0.2, g * 0.5, 0.8 * env, cr, _rng, 3)
-	bril.append({"pos": Vector3(0, alt, 0), "tam": 0.5 + _haz_r, "alfa": 0.8 * env, "estrella": 0.9})
-	bril.append({"pos": pts[mini(int(floor(cr * float(n))), n)], "tam": 0.6 + _haz_r * 1.5, "alfa": 0.9 * env * smoothstep(0.5, 1.0, cr), "estrella": 0.9})
+	# destellos en los dos extremos (la mano y la punta) y chispas a lo largo
+	bril.append({"pos": Vector3(0, alt, 0), "tam": 0.9 + _haz_r * 1.6, "alfa": 0.95 * env, "estrella": 0.95})
+	bril.append({"pos": Vector3(0, alt, -largo * cr), "tam": 1.0 + _haz_r * 2.0, "alfa": 0.95 * env * smoothstep(0.5, 1.0, cr), "estrella": 0.95})
 	for k in 3:
 		bril.append({"pos": Vector3(_rng.randf_range(-0.2, 0.2), alt + _rng.randf_range(-0.2, 0.2), -largo * _rng.randf_range(0.2, 1.0) * cr), "tam": 0.25, "alfa": 0.7 * env, "estrella": 0.9})

@@ -16,7 +16,7 @@ extends Node
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
 const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
-const ELEMENTOS_DEFECTO: String = "fuego,agua"
+const ELEMENTOS_DEFECTO: String = "fuego,agua,rayo"      ## 5/11: el rayo (RayoToy) se enciende de serie junto al fuego y al agua; el hielo sigue con el dibujo de antes
 const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
 const MAX_VIVOS: int = 12
 const VIDA_MIN: float = 1.0
@@ -26,6 +26,8 @@ const CARGA_MIN_S: float = 0.3
 const CARGA_PERDIDA_S: float = 6.0            ## si el disparo no llega (jugadora muerta), la carga de la mano se retira sola
 const CARGA_RADIO_MAX: float = 0.45           ## la bola de la mano de lo que NO es un proyectil no crece hasta el tamaño del muro: este tope (m)
 const ALTO_BOLA_QUIETA_MIN: float = 0.3
+const MAX_AGUA_ELECTRICA: int = 24            ## casillas de suelo electrificado que se dibujan a la vez (cada una, un EstadoRayoToy SUPERFICIE)
+const T_ENTIDAD_ELECTRICA: float = 1.2        ## s que dura el estado electrificado dibujado en una entidad tras cada descarga (renovable)
 
 ## Cuántos toys ha creado de cada elemento y el último (las pruebas y la captura lo leen).
 var creados: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0}
@@ -41,6 +43,8 @@ var _carga_el: String = ""
 var _sigue: Array = []                        ## [{toy: WeakRef, hv: WeakRef | null, ruta: Array, t: float}]
 var _con_luz: Dictionary = {}                 ## lanzamientos (Linaje) que ya tienen un toy con luz: las copias de ᚠ no suman luces
 var _columnas: Array = []                     ## R4: [{toy: WeakRef, ini: ms, nace, t0, t}]: los pilares que crecen de abajo arriba (se escala su Y con el crecimiento lógico)
+var _agua_electrica: Dictionary = {}          ## ESTADO ELECTRIFICADO del suelo: casilla (Vector2i) → EstadoRayoToy SUPERFICIE (se quita cuando el estado del suelo caduca: reloj oficial, 2 s)
+var electrocutados: int = 0                   ## cuántos estados electrificados de entidad ha dibujado (pruebas)
 var _orbes_vivos: Array = []                  ## R3: [{toy: WeakRef, hv: WeakRef, i: int}]: un toy BOLA por orbe, que sigue `HechizoVivo.orbes[i]`
 
 
@@ -54,7 +58,7 @@ static func usa_toy(elemento: String) -> bool:
 	return ELEMENTOS.has(elemento) and activo() and elementos_activos().has(elemento)
 
 
-## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua» por defecto: hielo y rayo siguen con el dibujo de antes hasta que Pablo los apruebe).
+## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua,rayo» por defecto: el hielo sigue con el dibujo de antes hasta que Pablo lo apruebe).
 ## ÚNICO criterio del juego: VfxToyJuego, VfxElemento3D y ConjuroVfx3D preguntan aquí.
 static func elementos_activos() -> PackedStringArray:
 	var r: PackedStringArray = []
@@ -77,11 +81,82 @@ static func conectar(lanzador: Object, mundo: Node3D) -> VfxToyJuego:
 		lanzador.connect("hechizo_v2", v._en_hechizo)
 	if lanzador is Node:
 		(lanzador as Node).child_entered_tree.connect(v._en_nodo)
+	v._enganchar_estados()
 	return v
 
 
 func vivos() -> int:
 	return _vivos
+
+
+# ------------------------------------------------------------------ estado electrificado (5/11) ------------------------------------------------------------------
+
+## El ESTADO ELECTRIFICADO no es un hechizo: lo ESCUCHA de la lógica. Dos avisos: `Terreno3D.estados.cambio(c, «electrificada», si)` (el suelo, con el reloj oficial) y `Mundo3D.reaccion(«electrocutado», punto, nodo)` (una entidad
+## a la que le llega una descarga). Solo dibuja si el rayo es del toy (`usa_toy("rayo")`).
+func _enganchar_estados() -> void:
+	if Terreno3D.estados != null and not Terreno3D.estados.cambio.is_connected(_al_estado_suelo):
+		Terreno3D.estados.cambio.connect(_al_estado_suelo)
+	var m: Object = Mundo3D.actual
+	if m != null and m.has_signal("reaccion") and not m.is_connected("reaccion", _al_reaccion):
+		m.connect("reaccion", _al_reaccion)
+
+
+## Casillas de suelo electrificadas que se dibujan ahora (pruebas).
+func agua_electrica() -> Dictionary:
+	return _agua_electrica
+
+
+func _al_estado_suelo(c: Vector2i, estado: String, si: bool) -> void:
+	if estado != EstadosSuelo3D.ELECTRIFICADA:
+		return
+	if not si:
+		if _agua_electrica.has(c):
+			var viejo: EstadoRayoToy = _agua_electrica[c] as EstadoRayoToy
+			_agua_electrica.erase(c)
+			if viejo != null and is_instance_valid(viejo):
+				viejo.apagar()
+		return
+	if _agua_electrica.has(c) or not usa_toy("rayo") or _mundo == null or not is_instance_valid(_mundo) or _agua_electrica.size() >= MAX_AGUA_ELECTRICA:
+		return
+	var e: EstadoRayoToy = EstadoRayoToy.para_superficie(Terreno3D.casilla * 0.92, Terreno3D.casilla * 0.92)
+	_mundo.add_child(e)
+	var y: float = 0.0
+	if Terreno3D.hay_mundo():
+		y = Terreno3D.superficie_agua(c) if Terreno3D.es_agua(c) else Terreno3D.y_pies(c)
+	e.global_position = Terreno3D.centro_de(c, y)
+	_agua_electrica[c] = e
+
+
+func _al_reaccion(nombre: String, _punto: Vector3, nodo: Node) -> void:
+	if nombre != "electrocutado" or not usa_toy("rayo") or not (nodo is Node3D) or not is_instance_valid(nodo):
+		return
+	var cuerpo: Node3D = nodo as Node3D
+	var previo: EstadoRayoToy = cuerpo.get_node_or_null("EstadoElectrificado") as EstadoRayoToy
+	if previo != null:
+		previo.renovar(T_ENTIDAD_ELECTRICA)
+		return
+	var dim: Vector2 = _dimensiones(cuerpo)
+	var e: EstadoRayoToy = EstadoRayoToy.para_entidad(dim.x, dim.y, T_ENTIDAD_ELECTRICA)
+	e.name = "EstadoElectrificado"
+	cuerpo.add_child(e)
+	electrocutados += 1
+
+
+## (alto, radio) en metros de lo que hay colgado de `n`: la unión de sus mallas visibles (sin escala de mundo); sin mallas, 1,0 × 0,4.
+static func _dimensiones(n: Node3D) -> Vector2:
+	var union: AABB = AABB()
+	var primero: bool = true
+	for m in n.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = m as MeshInstance3D
+		if mi.mesh == null or not mi.visible:
+			continue
+		var ab: AABB = (n.global_transform.affine_inverse() * mi.global_transform) * mi.mesh.get_aabb()
+		union = ab if primero else union.merge(ab)
+		primero = false
+	if primero:
+		return Vector2(1.0, 0.4)
+	var esc: float = n.global_transform.basis.get_scale().y
+	return Vector2(clampf(union.size.y * esc, 0.5, 3.0), clampf(maxf(union.size.x, union.size.z) * 0.5 * esc, 0.2, 1.2))
 
 
 func _nuevo(elemento: String) -> Node3D:

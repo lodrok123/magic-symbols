@@ -17,7 +17,7 @@ enum Variante { GOLPE, FIN, REBOTE, AREA }
 
 ## Por variante: nº de chispas, nº de descargas, tamaño del destello (× radio), duración (s).
 const PARAMS: Dictionary = {
-	Variante.GOLPE: {"chispas": 18, "descargas": 6, "dest": 3.4, "dur": 0.5},
+	Variante.GOLPE: {"chispas": 18, "descargas": 6, "dest": 3.4, "dur": 0.9},
 	Variante.FIN: {"chispas": 16, "descargas": 3, "dest": 2.0, "dur": 0.45},
 	Variante.REBOTE: {"chispas": 8, "descargas": 3, "dest": 1.8, "dur": 0.3},
 	Variante.AREA: {"chispas": 30, "descargas": 5, "dest": 2.0, "dur": 0.8}}
@@ -28,7 +28,10 @@ const T_REDIBUJO: float = 0.05            ## s entre redibujos de las descargas
 const T_DESTELLO: float = 0.16
 const T_DESCARGA: float = 0.26            ## s que tarda en apagarse una descarga
 const T_ESCALONADO: float = 0.07          ## AREA: s entre una descarga vertical y la siguiente
-const N_TRAZOS: int = 84
+const N_TRAZOS: int = 70
+const N_GRIETAS: int = 48                 ## tramos de la marca de grietas (telaraña eléctrica) que deja el GOLPE sobre la superficie
+const T_GRIETAS: float = 0.9              ## s que dura la marca (se apaga despacio; las descargas, 0,45 s)
+const T_DESCARGA_GOLPE: float = 0.45      ## el GOLPE crepita más tiempo que el resto (referencia en vídeo, «Impact»: ramas verticales que crepitan)
 
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
@@ -41,6 +44,10 @@ var _p: Dictionary = {}
 var _dur: float = 0.5
 var _plano: Node3D = null
 var _trazos: MultiMeshInstance3D = null
+var _grietas: MultiMeshInstance3D = null    ## GOLPE: la marca de grietas sobre la superficie
+var _grietas_base: Array = []               ## sus tramos (fijos; solo cambia el brillo y cuánto han crecido)
+var _sello: SelloRayo = null                ## AREA: el sello circular del suelo
+var con_sello: bool = true                  ## AREA: false si quien lo crea ya trae su sello (RayoToy zona: se lo pasa)
 var _brillos: MultiMeshInstance3D = null
 var _chispas: Array = []                   ## [{p0, v0, vida, tam, retraso}] en el espacio local del plano
 var _sitios: Array = []                    ## AREA: [{pos, t0}] dónde cae cada descarga vertical
@@ -137,9 +144,60 @@ func _construir() -> void:
 		_sitios_area()
 	_trazos = RayoTrazos.crear_trazos("Trazos", N_TRAZOS)
 	_plano.add_child(_trazos)
+	if variante == Variante.GOLPE:
+		_montar_grietas()
+	elif variante == Variante.AREA and con_sello:
+		_sello = SelloRayo.crear(radio)
+		_sello.name = "Sello"
+		add_child(_sello)
 	_brillos = RayoTrazos.crear_destellos("Chispas", n_ch + 12)
 	_plano.add_child(_brillos)
 	avanzar_a(0.0)
+
+
+## GOLPE: la MARCA DE GRIETAS (telaraña eléctrica) sobre la superficie: de seis a ocho brazos quebrados que salen del punto, con una rama cada uno y dos «anillos» (tramos rectos que unen un brazo con el siguiente).
+## Se calcula UNA vez (la marca no se redibuja: es una grieta); luego solo crece (en 0,12 s) y se apaga.
+func _montar_grietas() -> void:
+	var rw: float = clampf(radio * 3.5, 0.6, 1.8)
+	var nb: int = 6
+	var rg: RandomNumberGenerator = RandomNumberGenerator.new()
+	rg.seed = int(radio * 1000.0) + 77
+	var ancho: float = 0.022 + 0.014 * rw
+	var brazos: Array = []
+	for k in nb:
+		var a: float = TAU * float(k) / float(nb) + rg.randf_range(-0.25, 0.25)
+		var l: float = rw * rg.randf_range(0.75, 1.1)
+		var pts: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0.09, 0), Vector3(cos(a) * l, 0.09, sin(a) * l), 4, 0.07 * rw, rg)
+		for q in pts.size():
+			var pq: Vector3 = pts[q]
+			pq.y = 0.09
+			pts[q] = pq
+		brazos.append(pts)
+		RayoTrazos.trazar(_grietas_base, pts, ancho, 0.9, 1.0, 0.7, 0.6, float(k))
+		var i: int = rg.randi_range(1, 2)
+		var fin: Vector3 = pts[i] + Vector3(rg.randf_range(-1, 1), 0.0, rg.randf_range(-1, 1)).normalized() * rw * 0.3
+		RayoTrazos.trazar(_grietas_base, RayoTrazos.camino(pts[i], fin, 2, 0.03 * rw, rg), ancho * 0.7, 0.75, 1.0, 0.6, 0.7, float(k) + 0.5)
+	for anillo in [2, 3]:
+		for k in nb:
+			var p0: Vector3 = (brazos[k] as PackedVector3Array)[anillo]
+			var p1: Vector3 = (brazos[(k + 1) % nb] as PackedVector3Array)[anillo]
+			RayoTrazos.trazar(_grietas_base, PackedVector3Array([p0, p1]), ancho * 0.8, 0.7, 1.0, 0.6, 0.7, float(k) * 1.7)
+	_grietas = RayoTrazos.crear_trazos("Grietas", N_GRIETAS)
+	_plano.add_child(_grietas)
+
+
+## Las grietas en el instante `t`: crecen en 0,12 s (de dentro afuera) y se apagan entre 0,45 y T_GRIETAS s.
+func _pintar_grietas(t: float) -> void:
+	if _grietas == null:
+		return
+	var env: float = (1.0 - smoothstep(0.45, T_GRIETAS, t)) * (0.75 + 0.25 * _rng.randf())
+	var cre: float = clampf(t / 0.12, 0.0, 1.0)
+	var lista: Array = []
+	for s in _grietas_base:
+		var d: Dictionary = (s as Dictionary).duplicate()
+		d["alfa"] = float(d["alfa"]) * env * cre
+		lista.append(d)
+	RayoTrazos.volcar(_grietas.multimesh, lista)
 
 
 ## AREA: una descarga en el centro y cuatro alrededor (a ~0,6 del radio), cada una con su hora; las chispas salen de su descarga.
@@ -225,12 +283,12 @@ func avanzar_a(t: float) -> void:
 	var grueso: float = 0.07 * sqrt(maxf(r / 0.4, 0.4)) + 0.04
 	match variante:
 		Variante.GOLPE, Variante.REBOTE:
-			var env: float = 1.0 - smoothstep(0.1, T_DESCARGA, t)
+			var env: float = 1.0 - smoothstep(0.1, T_DESCARGA_GOLPE if variante == Variante.GOLPE else T_DESCARGA, t)
 			var hasta: float = clampf(t / 0.04, 0.0, 1.0)                 # salen disparadas en los primeros 0,04 s
 			var nd: int = int(_p["descargas"])
 			for k in nd:
 				var ang: float = TAU * float(k) / float(nd) + _rng.randf_range(-0.4, 0.4)
-				var elev: float = _rng.randf_range(0.12, 0.85)
+				var elev: float = _rng.randf_range(0.45, 0.97) if variante == Variante.GOLPE else _rng.randf_range(0.12, 0.85)       # el GOLPE: ramas casi verticales (referencia en vídeo, «Impact»)
 				var dir: Vector3 = Vector3(cos(ang) * (1.0 - elev), elev, sin(ang) * (1.0 - elev)).normalized()
 				var largo: float = r * _rng.randf_range(1.8, 3.2)
 				var pts: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0.03, 0), dir * largo, 5, 0.28 * r + 0.03, _rng)
@@ -259,6 +317,9 @@ func avanzar_a(t: float) -> void:
 				RayoTrazos.trazar(lista, pts3, grueso * 1.4, env3, clampf(tt / 0.04, 0.0, 1.0), 1.0, 0.5, base.x)
 				RayoTrazos.ramas(lista, pts3, 2, radio * 0.7, grueso * 0.8, env3 * 0.8, clampf(tt / 0.04, 0.0, 1.0), _rng, 3)
 	RayoTrazos.volcar(_trazos.multimesh, lista)
+	_pintar_grietas(t)
+	if _sello != null and is_instance_valid(_sello) and t > _dur - 0.3 and t < _fin_t:
+		_sello.cerrar()
 	_lista = lista
 	# destellos: la estrella de golpe, el halo redondo y el brillo de cada sitio
 	var i_b: int = 0
