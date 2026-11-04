@@ -24,7 +24,12 @@ extends Area3D
 ## NO SE GUARDA su posición: al recargar el nivel vuelve a su casilla del mapa. Y para que NUNCA quede atascado sin remedio: un bloque que ya no se puede mover en ninguna dirección (contra una pared
 ## al final de una pista, tras pasarse de la placa) y que no está sirviendo (ni sobre una placa ni sobre un hueco de veta) se DESHACE a los `T_PERDIDO` s y vuelve a formarse en su casilla del mapa.
 ##
-## Se coloca desde un mapa con `; pieza <id> bloque <x> <y> [material=piedra|hielo]` (escenas/puzle.gd) o con `preparar` desde código.
+## ROCA (5/11/2026, docs/ROCAS_EMPUJABLES_2026-11-05.md): tercer material, `roca`. Una roca estilizada MEDIANA o PEQUEÑA (`RocasEstilizadas.tamano_de`) que se empuja EXACTAMENTE igual que la piedra (mismo clip, mismo
+## arranque, misma velocidad, mismo arrastre, mismo atasco/«perdido»), pero con el modelo de la roca (variante del bioma) y SU PESO: `peso_valor` = 2 la mediana, 1 la pequeña (la piedra cuadrada pesa 3, el hielo 1).
+## Una placa con `peso=<n>` (Pulsador3D) solo se pisa si lo que hay encima suma `n` o más. La roca NO tiende los huecos de las vetas (eso es solo del bloque de piedra).
+##
+## Se coloca desde un mapa con `; pieza <id> bloque <x> <y> [material=piedra|hielo]` o `; pieza <id> roca_empujable <x> <y> tam=mediana|pequena [variante=musgo|neutra|magma] [forma=<n>]`
+## (escenas/puzle.gd) o con `preparar` desde código.
 
 signal movido(celda: Vector2i)
 signal paso_dado(celda: Vector2i, vel: float)      ## al llegar al centro de CADA casilla (también al encadenar sin parar); `vel` = u/s con que pasa
@@ -52,7 +57,11 @@ static var _piedras: Dictionary = {}        ## Vector2i -> BloqueEmpujable3D (pi
 
 var celda: Vector2i = Vector2i.ZERO
 var origen: Vector2i = Vector2i.ZERO    ## su casilla del mapa
-var material: String = "piedra"
+var material: String = "piedra"         ## "piedra" | "hielo" | "roca"
+var tam: String = ""                    ## solo `roca`: "mediana" | "pequena"
+var variante: String = ""               ## solo `roca`: "musgo" | "neutra" | "magma" ("" = la del bioma)
+var id_modelo: String = ""              ## solo `roca`: el id de pieza con el que se dibuja (`roca_est_musgo_1`…)
+var peso_valor: int = 3                 ## lo que pesa sobre una placa con `peso=` (grupo `peso`): piedra 3 · roca mediana 2 · roca pequeña 1 · hielo 1
 var moviendo: bool = false
 var empujones: int = 0                  ## empujones aceptados (las pruebas)
 var pasos: int = 0                      ## casillas recorridas en total (las pruebas)
@@ -77,11 +86,18 @@ var _sonido: AudioStreamPlayer3D = null
 
 
 ## `mundo` = la maqueta (da el modelo con su escala); sin ella se carga `arte/piezas/bloque_enlace.tscn`.
-func preparar(p_celda: Vector2i, p_material: String = "piedra", mundo: Node = null) -> void:
+## `roca`: `p_tam` ("mediana"|"pequena"), `p_variante` ("" = la del bioma) y `p_forma` (índice del modelo, -1 = el de `RocasEstilizadas.FORMA_DEFECTO`; si no es del tamaño pedido se usa el de defecto).
+func preparar(p_celda: Vector2i, p_material: String = "piedra", mundo: Node = null, p_tam: String = "", p_variante: String = "", p_forma: int = -1) -> void:
 	_mundo = mundo
 	celda = p_celda
 	origen = p_celda
-	material = p_material if p_material == "hielo" else "piedra"
+	material = p_material if (p_material == "hielo" or p_material == "roca") else "piedra"
+	peso_valor = 1 if material == "hielo" else 3
+	if material == "roca":
+		tam = p_tam if p_tam == RocasEstilizadas.PEQUENA else RocasEstilizadas.MEDIANA
+		variante = p_variante
+		peso_valor = int(RocasEstilizadas.PESO_TAM[tam])
+		id_modelo = _id_de_roca(p_forma)
 	position = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda))
 	Terreno3D.bloquear_celda(celda)
 	_registrar(celda)
@@ -103,6 +119,9 @@ func _ready() -> void:
 	add_child(forma)
 	if material == "hielo":
 		_poner_hielo()
+	elif material == "roca":
+		if not _poner_roca():
+			_poner_caja_piedra()
 	elif not _poner_piedra():
 		_poner_caja_piedra()
 
@@ -161,6 +180,37 @@ func _poner_piedra() -> bool:
 	_cuerpo = n
 	Ocluso3D.convertir_nodo(n)
 	return true
+
+
+## El id de pieza de la roca: `roca_est_<n>` (mediana) o `piedra_est_<n>` (pequeña) con la variante pedida o la del bioma. Si `p_forma` no da una roca del tamaño pedido, el de FORMA_DEFECTO.
+func _id_de_roca(p_forma: int) -> String:
+	var neutro: String = String(RocasEstilizadas.FORMA_DEFECTO[tam])
+	if p_forma >= 0:
+		var cand: String = ("roca_est_%d" if tam == RocasEstilizadas.MEDIANA else "piedra_est_%d") % p_forma
+		if RocasEstilizadas.tamano_de(cand) == tam:
+			neutro = cand
+	return RocasEstilizadas.id_de(neutro, variante)
+
+
+## La roca estilizada (la misma pieza que el decorado, con su variante) con el material común. false si no hay modelo.
+func _poner_roca() -> bool:
+	var n: Node3D = null
+	if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
+		n = _mundo.call("_pieza", id_modelo) as Node3D
+	if n == null:
+		n = Pieza3D.crear_visual(id_modelo)
+	if n == null:
+		return false
+	n.name = "bloque"
+	add_child(n)
+	_cuerpo = n
+	Ocluso3D.convertir_nodo(n)
+	return true
+
+
+## ¿Avanza como la piedra (lento, constante, con arrastre)? Todo menos el hielo.
+func _es_lento() -> bool:
+	return material != "hielo"
 
 
 ## Sin modelo: una caja gris.
@@ -266,7 +316,7 @@ func empujar(dir: Vector2i, con_jugadora: bool = false) -> bool:
 	vel = 0.0
 	_x_total = 0.0
 	_iniciar_casilla(0.0)
-	if material == "piedra":
+	if _es_lento():
 		_sonido = Sfx3D.ambiente(self, "arrastre")      # un arrastre en bucle mientras se mueve
 	else:
 		Sfx.play(self, "rodar")
@@ -318,7 +368,7 @@ func _process(delta: float) -> void:
 
 func _mover(dt: float) -> void:
 	var S: float = Terreno3D.casilla
-	var piedra: bool = material == "piedra"
+	var piedra: bool = _es_lento()
 	var obj: float = VEL_EMPUJE if (piedra or _x_total < MEDIA_CASILLA * S) else VEL_HIELO
 	if _frenando:
 		vel = maxf(sqrt(maxf(2.0 * _a_freno * (S - _s), 0.0)), VEL_MIN)      # deceleración constante: la velocidad sale de lo que queda hasta el centro

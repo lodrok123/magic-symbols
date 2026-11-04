@@ -74,6 +74,10 @@ extends Node
 ##              veta (`enlaces=`) lo TIENDE y el pulso cruza. `hielo`: un empujón y resbala hasta que la siguiente casilla no esté libre (pared, otro bloque, una barrera de tierra, un enemigo).
 ##              Si queda atascado sin remedio (sin ningún movimiento posible y sin servir de nada) se deshace a los 3 s y vuelve a formarse en su casilla del mapa.
 ##              Señales `movido` (al acabar cada movimiento completo; la casilla) y `reaparece`; condiciones `quieto`|`en_marcha`. Usa una `placa` (pulsador modo=presencia) para saber si está encima
+##   roca_empujable  tam=mediana|pequena (mediana)  variante=musgo|neutra|magma (la del bioma)  forma=<n> (1 mediana, 0 pequeña)     BloqueEmpujable3D con material `roca` (5/11/2026, docs/ROCAS_EMPUJABLES_2026-11-05.md): una
+##              roca estilizada que se EMPUJA igual que el `bloque` de piedra (mismo clip, mismo tacto, una casilla por empujón, no tiende vetas) pero pesa lo suyo: mediana 2, pequeña 1 (bloque de
+##              piedra 3). Modelo `roca_est[_musgo|_magma]_<forma>` (mediana) o `piedra_est[…]_<forma>` (pequeña); `forma` fuera del tamaño pedido = el de por defecto. Mismas señales y condiciones que `bloque`.
+##              Las rocas GRANDES (roca_est_0 y 4) siguen siendo muro: no se piden aquí. Una placa `pulsador modo=presencia peso=<n>` solo se pisa con ≥ n de peso encima (la jugadora no cuenta)
 ##   cofre      aparece_si=<expresión de si=> (siempre)  abierto=<flag>  modelo=legendario|epico   CofrePuzle (C3): un Cofre3D (arte/piezas/cofre.tscn) en x,y. Con `abierto` ya puesta al
 ##              montar nace ABIERTO; si no, oculto hasta que `aparece_si` se cumpla (se reevalúa cada 0,2 s y al cambiar cualquier flag) y
 ##              entonces APARECE cerrado (con efecto; si ya se cumplía al montar, sin efecto). El jugador lo abre con E a ≤ 2,7 u; al acabar
@@ -249,7 +253,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
-	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido",
+	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 }
@@ -288,6 +292,7 @@ const SENALES: Dictionary = {
 	"estalagmita": {"cae": ["cae", 0, null]},
 	"geoda": {"explota": ["explota", 2, null]},
 	"bloque": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
+	"roca_empujable": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 	"guardian": {"levanta": ["levanta", 1, null]},
 	"puente": {"tendido": ["completo", 0, null]},
@@ -326,6 +331,7 @@ const CONDICIONES: Dictionary = {
 	"estalagmita": {"caida": ["caida_ya", true], "en_pie": ["caida_ya", false]},
 	"geoda": {"explotada": ["explotada", true], "intacta": ["explotada", false]},
 	"bloque": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
+	"roca_empujable": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
@@ -370,7 +376,7 @@ const ACCIONES: Dictionary = {
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
-	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva"},
+	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
 	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
@@ -409,6 +415,7 @@ const CLAVES: Dictionary = {
 	"estalagmita": {"cae": "s:n|e|s|o", "flag": "flag"},
 	"geoda": {"flag": "flag", "escala": "f", "cerca": "f"},
 	"bloque": {"material": "s:piedra|hielo"},
+	"roca_empujable": {"tam": "s:mediana|pequena", "variante": "s:musgo|neutra|magma", "forma": "f"},
 	"estatuas": {"celdas": "celdas", "secuencia": "secuencia", "flag": "flag"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
@@ -1918,6 +1925,7 @@ func _crear(pz: Pieza) -> void:
 			var b := Pulsador3D.new()
 			b.name = pz.id
 			b.modelo = String(pz.p.get("modelo", ""))
+			b.peso_min = maxi(0, int(pz.p.get("peso", 0)))
 			b.preparar(pz.celda, String(pz.p.get("modo", "magia")), float(pz.p.get("rearme", 0.0)))
 			cont.add_child(b)
 			pz.nodo = b
@@ -1980,6 +1988,12 @@ func _crear(pz: Pieza) -> void:
 			bq.preparar(pz.celda, String(pz.p.get("material", "piedra")), mundo as Node)
 			cont.add_child(bq)
 			pz.nodo = bq
+		"roca_empujable":
+			var rq := BloqueEmpujable3D.new()
+			rq.name = pz.id
+			rq.preparar(pz.celda, "roca", mundo as Node, String(pz.p.get("tam", "mediana")), String(pz.p.get("variante", "")), int(pz.p.get("forma", -1)))
+			cont.add_child(rq)
+			pz.nodo = rq
 		"nexo":
 			var nx := NexoRayo3D.new()
 			nx.name = pz.id
