@@ -15,7 +15,15 @@ extends Node3D
 ## retraso de cola): se ven sus clips tal cual los exportó Meshy, y los mismos controles sirven para afinarlo si hace falta.
 ## 
 ## Teclas: M loberno/lince/canouro · 1 lateral · 2 frente · 3 desde arriba · 4 3/4 · Espacio pausa · S esqueleto · H humo negro en las patas (canouro) · Z zarpazo (clip + garras) · rueda = zoom · arrastrar = orbitar
-## Abrir: poc_25d/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
+## Abrir: laboratorios/LabGato3D.tscn y F6 (no necesita el nivel del bosque).
+##
+## 4/11 · MODO MARCHA (encargo de Pablo: «ponlos en el laboratorio gato»). Enseña la marcha nueva de los animales (presentacion/marcha_cuadrupedo_3d.gd,
+## MarchaCuadrupedo3D) con el loberno (lobo) y el canouro (hiena) MOVIÉNDOSE de verdad sobre un suelo plano grande, enganchada igual que en el juego
+## (`Combate3D`: patrullar, perseguir, atacar, `conducta`, `paso_suave`, `actualizar`, `animar_andar`, `al_atacar`). El lince no tiene perfil: sigue como antes.
+## Teclas del modo marcha: N entra/sale (o el botón del panel) · P patrulla (ida y vuelta entre dos puntos) · C persigue a la presa · Q parado ·
+##   B alterna MarchaCuadrupedo3D.MARCHA_ANIMAL en vivo (antes = clip walk/run sin capa y giro en seco; después = la marcha) · M cambia de animal ·
+##   1-4 cámaras (siguen al animal) · S, H, Z como siempre · clic izquierdo o arrastrar = mueve la PRESA por el suelo · botón derecho arrastrar = orbitar · rueda = zoom.
+## En pantalla: modelo, MARCHA sí/no, modo y estado de conducta, clip y su velocidad, velocidad real u/s, pendiente del lomo y giro de la cabeza.
 
 ## 17/10 (encargo del Juego): solo quedan los tres enemigos en uso. El gato, el loberno v1/meshy y el lince_gato se quitaron con sus GLB.
 ## Con el gato fuera, todos los modelos usan PERFIL_LOBERNO (`_cambiar_modelo` lo aplica a todo id distinto de «gato»); el canouro viene retargeteado al rig del lobo.
@@ -120,6 +128,35 @@ var _sl_vaiven: HSlider = null
 var _giro: Dictionary = {}          ## hueso -> Vector3 (grados) sumado a todo el clip
 var _sel: String = ""
 
+# Modo marcha (4/11)
+const MARCHA_SUELO: float = 60.0               ## lado del suelo plano del modo marcha (u)
+const MARCHA_ALTO: Dictionary = {"loberno": 0.75, "canouro": 0.55}   ## alto de juego de cada animal (el de ALTO_PJ / prueba_test2)
+const MARCHA_PATRULLA: float = 4.0             ## la patrulla va de casa-4 a casa+4 en X (en el juego son 2; aquí más para verla)
+const MARCHA_DIST: float = 5.5                ## distancia de cámara en el modo marcha
+var _marcha_on: bool = false                   ## N: modo marcha pedido (solo se ve si el modelo tiene perfil)
+var _mpj: Pj3D = null                          ## el animal del modo marcha (un Pj3D de verdad, como en el juego)
+var _mm: MarchaCuadrupedo3D = null             ## su capa de marcha
+var _m_modo: String = "quieto"                 ## quieto | patrulla | persigue
+var _presa_pos: Vector3 = Vector3(4.0, 0.0, 0.0)
+var _presa: Node3D = null
+var _suelo_chico: MeshInstance3D = null
+var _suelo_marcha: MeshInstance3D = null
+var _capa_marcha: CanvasLayer = null
+var _rotulo: Label = null
+var _btn_marcha: Button = null
+var _m_casa: Vector3 = Vector3.ZERO
+var _m_dir: float = 1.0
+var _m_mirada: Vector3 = Vector3.RIGHT
+var _m_v_avance: float = 0.0
+var _m_clip_modo: String = ""
+var _m_ataque: float = 0.0
+var _m_carga: float = 0.0
+var _m_descanso: float = 0.0
+var _m_en_rango: bool = false
+var _m_v_real: float = 0.0
+var _m_moviendo: int = 0
+var _dist_rig: float = 3.4
+
 # Interfaz
 var _lista: ItemList = null
 var _sl_giro: Array[HSlider] = []
@@ -201,6 +238,7 @@ func _cambiar_modelo(id: String) -> void:
 	_elegir_clip(_clip_inicial())
 	_camara_preset(0)
 	_refrescar_texto()
+	_aplicar_modo_marcha()
 
 
 func _montar_escena() -> void:
@@ -228,6 +266,8 @@ func _montar_escena() -> void:
 	mat.shader = sh
 	suelo.material_override = mat
 	add_child(suelo)
+	_suelo_chico = suelo
+	_montar_escena_marcha()
 	_cam = Camera3D.new()
 	_cam.fov = 35.0
 	_cam.h_offset = -0.55       # desplaza la vista a la derecha para que el panel no tape al gato
@@ -294,6 +334,10 @@ func _montar_interfaz() -> void:
 	var t := Label.new()
 	t.text = "RIG DEL %s (no modifica archivos)" % _id.to_upper()
 	caja.add_child(t)
+	var b_marcha := Button.new()
+	b_marcha.text = "Modo marcha (N): el animal anda de verdad"
+	b_marcha.pressed.connect(_alternar_modo_marcha)
+	caja.add_child(b_marcha)
 	var opt_modelo := OptionButton.new()
 	var i_modelo: int = 0
 	for k in MODELOS.keys():
@@ -641,6 +685,8 @@ func _refrescar_texto() -> void:
 # ---------- cámara y dibujo ----------
 
 func _process(_d: float) -> void:
+	if _marcha_activa():
+		_paso_marcha(_d)
 	if _ap != null and _ap.current_animation != "" and not _chk_pausa.button_pressed:
 		_ocupado = true
 		_sl_tiempo.value = _ap.current_animation_position / maxf(_ap.current_animation_length, 0.001)
@@ -674,7 +720,7 @@ func _camara_preset(i: int) -> void:
 
 func _dibujar_esqueleto() -> void:
 	_im.clear_surfaces()
-	if _chk_esq == null or not _chk_esq.button_pressed:
+	if _chk_esq == null or not _chk_esq.button_pressed or _marcha_activa():
 		return
 	_im.surface_begin(Mesh.PRIMITIVE_LINES)
 	for b in range(_sk.get_bone_count()):
@@ -703,9 +749,16 @@ func _dibujar_esqueleto() -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if ev is InputEventMouseMotion and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+	var en_marcha: bool = _marcha_activa()
+	# En el modo marcha el botón izquierdo mueve la PRESA y el derecho orbita; fuera de él, el izquierdo orbita como siempre.
+	var boton_orbita: int = MOUSE_BUTTON_MASK_RIGHT if en_marcha else MOUSE_BUTTON_MASK_LEFT
+	if ev is InputEventMouseMotion and (ev.button_mask & boton_orbita) != 0:
 		_yaw -= ev.relative.x * 0.01
 		_pitch = clampf(_pitch + ev.relative.y * 0.01, -0.2, 1.5)
+	elif ev is InputEventMouseMotion and en_marcha and (ev.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		_presa_al_raton(ev.position)
+	elif ev is InputEventMouseButton and ev.pressed and en_marcha and ev.button_index == MOUSE_BUTTON_LEFT:
+		_presa_al_raton(ev.position)
 	elif ev is InputEventMouseButton and ev.pressed:
 		if ev.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_dist = maxf(_dist * 0.9, 0.8)
@@ -713,6 +766,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_dist = minf(_dist * 1.1, 8.0)
 	elif ev is InputEventKey and ev.pressed and not ev.echo:
 		match ev.keycode:
+			KEY_N:
+				_alternar_modo_marcha()
+			KEY_P:
+				marcha_modo("patrulla")
+			KEY_C:
+				marcha_modo("persigue")
+			KEY_Q:
+				marcha_modo("quieto")
+			KEY_B:
+				alternar_marcha_animal()
 			KEY_1:
 				_camara_preset(0)
 			KEY_2:
@@ -745,3 +808,334 @@ func _unhandled_input(ev: InputEvent) -> void:
 				VfxCanouro3D.zarpazo(self, Vector3(0.0, 0.5, 1.0), dir, 1.0)
 			KEY_M:
 				_cambiar_modelo(String(MODELOS.keys()[(MODELOS.keys().find(_id) + 1) % MODELOS.size()]))
+
+
+# ---------- MODO MARCHA (4/11) ----------
+# Reproduce lo que hace `Combate3D` con la marcha del animal (enemigos/combate_3d.gd: `_patrullar`, `_ia` persigue, `_atacar`, `_animar`, `_actualizar_marcha`)
+# sin montar un nivel: el mismo Pj3D, la misma capa MarchaCuadrupedo3D y las mismas llamadas, en el mismo orden (IA → actualizar → animar).
+
+## Hay modo marcha a la vista: pedido con N y el modelo tiene perfil (el lince no).
+func _marcha_activa() -> bool:
+	return _marcha_on and MarchaCuadrupedo3D.tiene_perfil(_id)
+
+
+func _montar_escena_marcha() -> void:
+	# Suelo grande con cuadrícula de 0,5 u (en coordenadas del mundo, para ver cuánto avanza)
+	_suelo_marcha = MeshInstance3D.new()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(MARCHA_SUELO, MARCHA_SUELO)
+	_suelo_marcha.mesh = pm
+	var sh := Shader.new()
+	sh.code = "shader_type spatial;\nrender_mode unshaded;\nvarying vec2 wp;\nvoid vertex(){\n\twp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;\n}\nvoid fragment(){\n\tvec2 g = abs(fract(wp * 2.0 - 0.5) - 0.5) / fwidth(wp * 2.0);\n\tfloat l = 1.0 - min(min(g.x, g.y), 1.0);\n\tvec2 g2 = abs(fract(wp * 0.2 - 0.5) - 0.5) / fwidth(wp * 0.2);\n\tfloat l2 = 1.0 - min(min(g2.x, g2.y), 1.0);\n\tALBEDO = mix(vec3(0.17, 0.2, 0.17), vec3(0.3, 0.36, 0.3), l * 0.7 + l2 * 0.6);\n}\n"
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	_suelo_marcha.material_override = mat
+	_suelo_marcha.visible = false
+	add_child(_suelo_marcha)
+	# La presa: un maniquí (cápsula + cabeza) con sombra redonda en el suelo. Lo mueve el ratón.
+	_presa = Node3D.new()
+	_presa.visible = false
+	add_child(_presa)
+	var mat_p := StandardMaterial3D.new()
+	mat_p.albedo_color = Color(0.95, 0.6, 0.2)
+	var cuerpo := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.radius = 0.16
+	cap.height = 0.8
+	cuerpo.mesh = cap
+	cuerpo.material_override = mat_p
+	cuerpo.position = Vector3(0.0, 0.4, 0.0)
+	_presa.add_child(cuerpo)
+	var cabeza := MeshInstance3D.new()
+	var esf := SphereMesh.new()
+	esf.radius = 0.13
+	esf.height = 0.26
+	cabeza.mesh = esf
+	cabeza.material_override = mat_p
+	cabeza.position = Vector3(0.0, 0.93, 0.0)
+	_presa.add_child(cabeza)
+	var sombra := MeshInstance3D.new()
+	var cil := CylinderMesh.new()
+	cil.top_radius = 0.32
+	cil.bottom_radius = 0.32
+	cil.height = 0.004
+	sombra.mesh = cil
+	var mat_s := StandardMaterial3D.new()
+	mat_s.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat_s.albedo_color = Color(0.0, 0.0, 0.0, 0.45)
+	mat_s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sombra.material_override = mat_s
+	sombra.position = Vector3(0.0, 0.01, 0.0)
+	_presa.add_child(sombra)
+	# Rótulo y botón del modo marcha
+	_capa_marcha = CanvasLayer.new()
+	_capa_marcha.visible = false
+	add_child(_capa_marcha)
+	var panel := PanelContainer.new()
+	panel.position = Vector2(8.0, 8.0)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_capa_marcha.add_child(panel)
+	var caja := VBoxContainer.new()
+	caja.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(caja)
+	_rotulo = Label.new()
+	_rotulo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	caja.add_child(_rotulo)
+	var ayuda := Label.new()
+	ayuda.text = "N volver al rig · P patrulla · C persigue · Q parado · B marcha sí/no · M animal · 1-4 cámara\nclic izq. / arrastrar = mover la presa · botón der. = orbitar · rueda = zoom"
+	ayuda.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ayuda.modulate = Color(0.8, 0.85, 0.9)
+	caja.add_child(ayuda)
+	_btn_marcha = Button.new()
+	_btn_marcha.text = "Volver al rig (N)"
+	_btn_marcha.pressed.connect(_alternar_modo_marcha)
+	caja.add_child(_btn_marcha)
+
+
+## N / botón: alterna entre el modo de antes (clip en bucle quieto + panel de huesos) y el modo marcha.
+func _alternar_modo_marcha() -> void:
+	_marcha_on = not _marcha_on
+	if _marcha_on:
+		_dist_rig = _dist
+	else:
+		_dist = _dist_rig
+	_aplicar_modo_marcha()
+
+
+## Deja la escena como pide `_marcha_on` y el modelo actual: quita o monta el animal de la marcha y enseña u oculta el rig, el panel y el suelo.
+func _aplicar_modo_marcha() -> void:
+	_quitar_marcha()
+	var activa: bool = _marcha_activa()
+	if _capa != null:
+		_capa.visible = not activa
+	if _modelo != null:
+		_modelo.visible = not activa
+	if _suelo_chico != null:
+		_suelo_chico.visible = not activa
+	if _suelo_marcha != null:
+		_suelo_marcha.visible = activa
+	if _presa != null:
+		_presa.visible = activa
+	if _capa_marcha != null:
+		_capa_marcha.visible = _marcha_on
+	if _cam != null:
+		_cam.h_offset = 0.0 if _marcha_on else -0.55
+	if not _marcha_on:
+		return
+	_dist = MARCHA_DIST
+	if not activa:
+		_rotulo.text = "MODO MARCHA — el %s no tiene perfil de marcha: se ve como antes (M para cambiar de animal)" % _id
+		return
+	var pj := Pj3D.new()
+	add_child(pj)
+	if not pj.cargar(_id):
+		pj.queue_free()
+		_rotulo.text = "MODO MARCHA — no se pudo cargar %s" % _id
+		return
+	pj.grafo = ArbolAnimPj.GRAFO_REDUCIDO
+	pj.set_alto(float(MARCHA_ALTO.get(_id, 0.7)))
+	_m_casa = Vector3(-1.0, 0.0, 0.0)
+	pj.position = _m_casa
+	pj.mirar(Vector3.RIGHT, 1.0)                  # de cara a +X (con delta 1 gira de golpe)
+	_mpj = pj
+	_mm = MarchaCuadrupedo3D.para(pj)             # la capa se cuelga del esqueleto, como hace Combate3D en `_ready`
+	if _mm != null:
+		_mm.rumbo = pj.rotation.y
+	_m_modo = "quieto"                            # cada animal nuevo empieza parado: P patrulla, C persigue
+	_m_dir = 1.0
+	_m_mirada = Vector3.RIGHT
+	_m_ataque = 0.0
+	_m_carga = 0.0
+	_m_descanso = 0.0
+	_m_en_rango = false
+	_m_v_real = 0.0
+	_m_moviendo = 0
+	_presa_pos = Vector3(3.5, 0.0, 0.0)
+	_presa.position = _presa_pos
+	_foco = _m_casa + Vector3(0.0, 0.35, 0.0)
+	pj.jugar("idle")
+	_sincronizar_capa()
+
+
+func _quitar_marcha() -> void:
+	if _mpj != null and is_instance_valid(_mpj):
+		_mpj.queue_free()
+	_mpj = null
+	_mm = null
+
+
+## «quieto» | «patrulla» | «persigue»
+func marcha_modo(m: String) -> void:
+	if not _marcha_activa() or _mpj == null:
+		return
+	_m_modo = m
+	if m == "patrulla":
+		_m_casa = Vector3(_mpj.position.x, 0.0, _mpj.position.z)     # patrulla en X alrededor de donde esté
+		_m_dir = 1.0 if _presa_pos.x >= _mpj.position.x else -1.0
+
+
+## B: MARCHA_ANIMAL en vivo. Apagado, el animal va como antes (clip walk/run a ×1, sin capa, giro en seco).
+func alternar_marcha_animal() -> void:
+	MarchaCuadrupedo3D.MARCHA_ANIMAL = not MarchaCuadrupedo3D.MARCHA_ANIMAL
+	_sincronizar_capa()
+
+
+## La capa solo corre con MARCHA_ANIMAL: apagada, se desactiva (no hace ni una llamada) y se le quita la escala de patas que deja puesta.
+func _sincronizar_capa() -> void:
+	if _mm == null or _mpj == null:
+		return
+	var on: bool = MarchaCuadrupedo3D.MARCHA_ANIMAL
+	if on and not _mm.active:
+		_mm.rumbo = _mpj.rotation.y
+		_mpj.animacion_actual = ""
+	elif not on and _mm.active:
+		_mm._soltar()
+		_mpj.animacion_actual = ""
+	_mm.active = on
+
+
+func _presa_al_raton(p: Vector2) -> void:
+	if _cam == null:
+		return
+	var o: Vector3 = _cam.project_ray_origin(p)
+	var n: Vector3 = _cam.project_ray_normal(p)
+	if absf(n.y) < 0.001:
+		return
+	var t: float = -o.y / n.y
+	if t <= 0.0:
+		return
+	var q: Vector3 = o + n * t
+	var m: float = MARCHA_SUELO * 0.5 - 1.0
+	_presa_pos = Vector3(clampf(q.x, -m, m), 0.0, clampf(q.z, -m, m))
+
+
+## Un fotograma del animal: la IA de Combate3D (patrullar / perseguir / atacar), luego `actualizar` de la capa y luego `_animar`.
+func _paso_marcha(delta: float) -> void:
+	if _mpj == null or not is_instance_valid(_mpj):
+		return
+	var pj: Pj3D = _mpj
+	var nueva: bool = _mm != null and MarchaCuadrupedo3D.MARCHA_ANIMAL
+	var pos0: Vector3 = pj.position
+	_presa.position = _presa_pos
+	var persigue: bool = _m_modo == "persigue"
+	var moviendo: int = 0
+	_m_v_avance = 0.0
+	_m_clip_modo = ""
+	_m_descanso = maxf(0.0, _m_descanso - delta)
+	if _m_ataque > 0.0:
+		_m_ataque -= delta                                 # atacando: ni se mueve ni gira
+		if _m_ataque <= 0.0 and nueva:
+			_mm.al_acabar_ataque()
+	elif persigue:
+		var d: Vector3 = _presa_pos - pj.position
+		d.y = 0.0
+		if d.length() > 0.05:
+			_m_mirada = d.normalized()
+		var rango: float = Combate3D.RANGO_ATAQUE
+		if d.length() <= rango:
+			_m_en_rango = true
+		elif d.length() > rango * Combate3D.HISTERESIS_RANGO:
+			_m_en_rango = false
+		if nueva and _mm.retirada > 0.0:
+			_m_en_rango = false                            # la hiena se retira tras morder
+		if _m_en_rango:
+			if _m_descanso <= 0.0:
+				_m_carga += delta
+				if _m_carga >= Combate3D.PREPARAR_GOLPE:
+					_m_carga = 0.0
+					_atacar_marcha(pj, nueva)
+		elif d.length() > 0.3:
+			_m_carga = 0.0
+			moviendo = 2
+			_m_v_avance = _v_base("run", nueva)
+			var dir_p: Vector3 = d.normalized()
+			var atras: bool = false
+			if nueva:
+				var cond: Dictionary = _mm.conducta(d.length(), dir_p, delta)
+				dir_p = cond["dir"]
+				_m_v_avance *= float(cond["v"])
+				moviendo = int(cond["moviendo"])
+				_m_clip_modo = String(cond["modo"])
+				atras = bool(cond["atras"])
+			var paso_p: Vector3 = dir_p * _m_v_avance * delta
+			if nueva:
+				paso_p = _mm.paso_suave(paso_p, delta, atras)
+			pj.position += paso_p
+	elif _m_modo == "patrulla":
+		moviendo = 1
+		_m_mirada = Vector3(_m_dir, 0.0, 0.0)
+		_m_v_avance = _v_base("walk", nueva)
+		var paso := Vector3(_m_dir * _m_v_avance * delta, 0.0, 0.0)
+		if nueva:
+			paso = _mm.paso_suave(paso, delta)
+		pj.position += paso
+		var dx: float = pj.position.x - _m_casa.x
+		if nueva:
+			var fuera: bool = absf(dx) >= MARCHA_PATRULLA - 0.6 and dx * _m_dir > 0.0
+			if fuera and _mm.permitir_vuelta():
+				_m_dir *= -1.0
+		elif absf(dx) >= MARCHA_PATRULLA:
+			_m_dir *= -1.0
+	_m_moviendo = moviendo
+	if nueva:
+		_mm.actualizar(delta, pj, _m_mirada, _presa_pos, persigue, _m_v_avance if moviendo > 0 else 0.0)
+	# _animar
+	if _m_ataque <= 0.0:
+		pj.set_velocidad_animacion(1.0)
+		if nueva and moviendo > 0:
+			_mm.animar_andar(_m_v_avance, _m_clip_modo)
+			if _m_mirada.length() > 0.01:
+				pj.mirar(_mm.rumbo_vec(), 0.05)
+		else:
+			if moviendo == 0:
+				pj.jugar("idle")
+			else:
+				pj.jugar("run" if moviendo == 2 else "walk")
+			if _m_mirada.length() > 0.01 and (moviendo > 0 or persigue):
+				pj.mirar(_mm.rumbo_vec() if nueva else _m_mirada, 0.05)
+	# Cámara que sigue al animal y rótulo
+	var real: float = (pj.position - pos0).length() / maxf(delta, 0.0001)
+	_m_v_real = lerpf(_m_v_real, real, clampf(delta / 0.25, 0.0, 1.0))
+	# La cámara sigue al animal; persiguiendo se corre hacia el punto medio con la presa (hasta 3 u) para que se vean los dos
+	var objetivo_foco: Vector3 = pj.position + Vector3(0.0, 0.3, 0.0)
+	if persigue:
+		var hacia: Vector3 = _presa_pos - pj.position
+		hacia.y = 0.0
+		objetivo_foco += hacia.limit_length(6.0) * 0.5
+	_foco = _foco.lerp(objetivo_foco, clampf(1.0 - exp(-6.0 * delta), 0.0, 1.0))
+	_actualizar_rotulo()
+
+
+func _v_base(clip: String, nueva: bool) -> float:
+	if nueva:
+		return _mm.v_base(clip)
+	return Combate3D.VEL_PERSEGUIR if clip == "run" else Combate3D.VEL_PATRULLA
+
+
+## `Combate3D._iniciar_ataque` sin golpe: el clip entero, avisa a la capa (retirada de la hiena) y deja el descanso.
+func _atacar_marcha(pj: Pj3D, nueva: bool) -> void:
+	var dur: float = pj.duracion("attack")
+	if dur <= 0.0:
+		dur = 0.6
+	_m_ataque = dur / maxf(pj.ritmo, 0.01)
+	_m_descanso = Combate3D.DESCANSO_GOLPE
+	if nueva:
+		_mm.al_atacar()
+	pj.animacion_actual = ""
+	pj.set_velocidad_animacion(1.0)
+	pj.jugar("attack", true)
+
+
+func _actualizar_rotulo() -> void:
+	if _rotulo == null:
+		return
+	var s: String = "MODELO: %s    MARCHA: %s    modo: %s\n" % [_id, "SÍ" if MarchaCuadrupedo3D.MARCHA_ANIMAL else "NO", _m_modo]
+	var est: String = _mm.estado_conducta() if _mm != null and _mm.active else ""      # sin capa no hay conducta (el estado quedaría viejo)
+	s += "conducta: %s\n" % (est if est != "" else "—")
+	s += "clip: %s    vel. del clip: ×%.2f\n" % [_mpj.clip_actual(), _mpj.velocidad_animacion()]
+	s += "velocidad real: %.2f u/s    pedida: %.2f\n" % [_m_v_real, _m_v_avance]
+	if _mm != null and _mm.active:
+		s += "pendiente del lomo: %.1f°    giro de la cabeza: %.1f°" % [_mm.pendiente_lomo(), _mm.yaw_cabeza()]
+	else:
+		s += "pendiente del lomo: —    giro de la cabeza: —   (sin capa)"
+	_rotulo.text = s
