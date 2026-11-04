@@ -51,6 +51,14 @@ const HIELO_ACEL: float = 3.0                ## u/s² con las teclas puestas (an
 const HIELO_FRENO: float = 0.9               ## u/s² sin teclas: cuesta frenar (de 1,6 u/s patinas ~1,4 u)
 const HIELO_GIRO: float = 0.35               ## el giro de la mirada va a esta fracción de lo normal
 
+## --- 4/11 (Pablo, Bosque 02) Movimiento: aceleración andar↔correr y giro del cuerpo ---
+const T_ANDAR_A_CORRER: float = 0.3          ## s en pasar de la velocidad de andar a la de correr (rampa lineal) al pulsar correr
+const T_CORRER_A_ANDAR: float = 0.15         ## s en volver de correr a andar al soltar la tecla de correr
+const FRACCION_CORRE_ENTRA: float = 0.6      ## el clip y los pasos pasan a «correr» cuando la velocidad real pasa de andar + 0,6 · (correr − andar)…
+const FRACCION_CORRE_SALE: float = 0.4       ## …y vuelven a «andar» por debajo de andar + 0,4 · (correr − andar) (la histéresis evita que parpadee)
+const VEL_GIRO_ANDAR: float = 600.0          ## °/s como máximo que gira el cuerpo andando (180° ≈ 0,3 s con la cola del suavizado)
+const VEL_GIRO_CORRER: float = 720.0         ## °/s corriendo
+
 ## --- 27/10 Empujar bloques (docs/EMPUJAR_BLOQUES.md) ---
 const T_EMPUJAR: float = 0.35                ## s apretando contra un bloque pegado antes de que ceda
 const EMPUJE_CARDINAL: float = 0.8           ## componente mínima (de la dirección normalizada) para contar como «hacia una cara»: la diagonal (0,71) no empuja
@@ -160,6 +168,8 @@ var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u
 ## `corriendo` es lo que la cámara lee para adelantarse más.
 var vel_suelo: Vector3 = Vector3.ZERO
 var corriendo: bool = false
+var vel_marcha: float = -1.0                 ## 4/11: velocidad de andar/correr de ahora (u/s), con rampa entre `_vel_andar` y `_vel_correr`; −1 = aún sin estrenar
+var corre_real: bool = false                 ## 4/11: va CORRIENDO de verdad (la velocidad real ya pasó el umbral): lo que miran el clip run/walk y los pasos, no la tecla
 
 ## --- Sonido (Sfx3D): pasos, río y oyente. Todo en `_actualizar_sonido` y `_sonar_pasos`, más abajo. ---
 const DIST_PASO_ANDAR: float = 0.85          ## u recorridas entre dos pasos andando (a 1,6 u/s: ~1,9 pasos por segundo)
@@ -712,9 +722,10 @@ func _process(delta: float) -> void:
 	# la mirada y la animación parten de este `mov` ya girado, así que ahí no hay que tocar nada.
 	var mov := Vector3(entrada.x, 0.0, entrada.y).normalized().rotated(Vector3.UP, deg_to_rad(_giro_camara()))
 	_gestionar_acciones(libre, mov)
-	var vel: float = (_vel_correr if correr else _vel_andar) * (MULT_NADO if nadando else 1.0)
 	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0 or _t_pegar > 0.0:
 		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b) y los gestos (agacharse...) te dejan quieto hasta que acaban
+	var vel: float = _rampa_velocidad(correr and mov != Vector3.ZERO, delta) * (MULT_NADO if nadando else 1.0)
+	_actualizar_corre_real(mov != Vector3.ZERO)
 	var objetivo: Vector3 = mov * vel
 	var en_hielo: bool = not nadando and _t_roll <= 0.0 and Terreno3D.sobre_hielo(position)
 	corriendo = correr and mov != Vector3.ZERO
@@ -740,24 +751,48 @@ func _process(delta: float) -> void:
 		var antes: Vector3 = position
 		_mover_con_choque(paso)
 		if mov != Vector3.ZERO and not acoplada:
-			_sonar_pasos(position.distance_to(antes), correr)
+			_sonar_pasos(position.distance_to(antes), corre_real)
 		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
 			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
 		if en_hielo and position.distance_to(antes) < paso.length() * 0.25:
 			_vel_hielo = Vector3.ZERO               # choca contra algo: se para (si no, seguiría empujando la pared)
 	if mov != Vector3.ZERO:
 		if not apuntando_rapido:                       # A1: apuntando, la mirada la manda el Lanzador (hacia el ratón), no el rumbo
-			_mirada = mov
-			pj.mirar(mov, delta * (HIELO_GIRO if en_hielo else 1.0))
+			_mirada = mov                                  # la dirección lógica (voltereta, golpe, lanzar) es la del rumbo, al instante; lo que gira suave es el modelo
+			pj.girar_hacia(mov, delta * (HIELO_GIRO if en_hielo else 1.0), VEL_GIRO_CORRER if corre_real else VEL_GIRO_ANDAR)
 		if mundo.has_method("marcar_pisado") and not nadando:
 			mundo.call("marcar_pisado", Terreno3D.celda_de(position), Caminar3D.PISADO_CORRER if (corriendo and Sensacion3D.ACTIVA) else Caminar3D.PISADO_ANDAR)    # gamefeel W2: más marcado al correr
 
 	_vertical(delta, salto)
-	_animar(mov, correr)
+	_animar(mov, corre_real)
 	Caminar3D.actualizar(self, mov != Vector3.ZERO, delta)     # 2/11 (gamefeel W1-W5): cuerpo, cámara, rastro de la hierba, agua, hojas y pájaros
 	_actualizar_sonido(delta)
 	_sincronizar()
 	_actualizar_hud()
+
+
+## 4/11 · ACELERACIÓN andar↔correr. Devuelve la velocidad base de este fotograma (sin el factor de nado): `vel_marcha` sube de `_vel_andar` a `_vel_correr` en `T_ANDAR_A_CORRER` s y baja
+## en `T_CORRER_A_ANDAR` (rampas lineales). Quieta (o sin la tecla de correr) la meta es la de andar: el siguiente arranque corriendo empieza gradual, no a tope.
+func _rampa_velocidad(quiere_correr: bool, delta: float) -> float:
+	var meta: float = _vel_correr if quiere_correr else _vel_andar
+	if vel_marcha < 0.0:
+		vel_marcha = _vel_andar
+	var salto: float = maxf(_vel_correr - _vel_andar, 0.01)
+	var tasa: float = salto / (T_ANDAR_A_CORRER if meta > vel_marcha else T_CORRER_A_ANDAR)
+	vel_marcha = move_toward(vel_marcha, meta, tasa * delta)
+	return vel_marcha
+
+
+## 4/11 · ¿Va corriendo DE VERDAD? Por la velocidad de la rampa (no por la tecla), con histéresis. Lo leen `_animar` (clip walk/run) y los pasos (distancia entre pasos, polvo).
+func _actualizar_corre_real(hay_mov: bool) -> void:
+	if not hay_mov:
+		corre_real = false
+		return
+	var dif: float = _vel_correr - _vel_andar
+	if corre_real:
+		corre_real = vel_marcha >= _vel_andar + FRACCION_CORRE_SALE * dif
+	else:
+		corre_real = vel_marcha >= _vel_andar + FRACCION_CORRE_ENTRA * dif
 
 
 ## 27/10 · EMPUJAR BLOQUES (28/10: con PESO). Con `mov` (ya en coordenadas del mundo: es el vector de las teclas girado con la cámara) hacia una cara (componente dominante ≥ `EMPUJE_CARDINAL`), en suelo y sin
@@ -1183,7 +1218,7 @@ func _vertical(delta: float, salto: bool) -> void:
 			_salto_antes = salto
 			return
 
-	var suelo: float = Terreno3D.y_pies(c)
+	var suelo: float = Terreno3D.y_pies(c) + Terreno3D.realce_en(position)      # 4/11: encima de una piedra o un tronco bajo, los pies suben (no bloquean: ver ColisionPieza.REALCE)
 	if en_suelo:
 		if position.y > suelo + TOLERANCIA_SUELO:
 			en_suelo = false                           # se acabó el suelo (bloque caducado): cae

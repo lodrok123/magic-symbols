@@ -293,7 +293,7 @@ static func cascos_colision(id_pedido: String) -> Array:
 	var vis: Node3D = crear_visual(id)
 	if vis != null:
 		var modo: String = ColisionPieza.modo(id)
-		lista = ColisionPieza.cascos(vis, "contorno" if modo == "ninguna" else modo)
+		lista = ColisionPieza.cascos(vis, "contorno" if modo == "ninguna" else modo, ColisionPieza.banda_min(id))
 		vis.free()
 	_cascos[id] = lista
 	return lista

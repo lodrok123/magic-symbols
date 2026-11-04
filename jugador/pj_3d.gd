@@ -755,6 +755,60 @@ func mirar(d: Vector3, delta: float) -> void:
 	rotation.y = _yaw
 
 
+## 4/11 (Pablo, Bosque 02): GIRO DEL CUERPO CON LA CABEZA POR DELANTE. `mirar` (arriba) sigue siendo el giro exponencial de siempre, que usan enemigos, NPC y capturas (con delta ≥ 0,08 es un
+## giro de golpe). Esto es solo para la jugadora andando (`Jugador3D._process`): el cuerpo gira hacia `d` a `GIRO_SUAVIZADO` · (lo que falta) pero nunca a más de `vel_max` °/s (un giro de 180°
+## se ve como un giro, no como un salto; uno de 45° se nota), y la cabeza se adelanta: apunta a la dirección nueva (lo que le falta por girar al cuerpo, con tope ±CABEZA_MAX) antes que el cuerpo y
+## vuelve al centro al llegar. A ~180° no cambia de sentido de repente: sigue por el lado por el que ya giraba (pulsar W-S-W deprisa no hace bailar al personaje de izquierda a derecha).
+const GIRO_SUAVIZADO: float = 14.0         ## 1/s: la parte del ángulo que falta que se gira por segundo (con 12 era el de siempre)
+const GIRO_MANTENER_LADO: float = 150.0    ## ° a partir de los cuales (casi de espaldas) se mantiene el sentido del giro que ya llevaba
+const CABEZA_MAX: float = 60.0             ## ° máximos que la cabeza se separa del cuerpo
+const CABEZA_SIGUE: float = 26.0           ## 1/s: lo deprisa que la cabeza va a su objetivo (se adelanta al cuerpo, que va a GIRO_SUAVIZADO)
+const CABEZA_VUELVE: float = 9.0           ## 1/s: lo deprisa que vuelve al centro cuando el cuerpo ya ha llegado
+const CABEZA_PAUSA: float = 0.08           ## s sin girar tras los que la cabeza vuelve al centro
+var _cabeza_giro: float = 0.0              ## ° actuales de la cabeza respecto al cuerpo (+ = hacia +X con la cara en +Z)
+var _cabeza_obj: float = 0.0
+var _t_sin_girar: float = 99.0
+var _lado_giro: float = 0.0                ## signo del último giro largo (para no cambiar de lado a 180°)
+
+
+func girar_hacia(d: Vector3, delta: float, vel_max: float) -> void:
+	if d.length() < 0.001 or delta <= 0.0:
+		return
+	var objetivo: float = atan2(d.x, d.z)
+	var dif: float = angle_difference(_yaw, objetivo)
+	if absf(dif) > deg_to_rad(GIRO_MANTENER_LADO) and _lado_giro != 0.0 and signf(dif) != _lado_giro and _t_sin_girar < 0.5:
+		dif -= TAU * signf(dif)                        # el otro lado de la vuelta: el mismo en que ya giraba
+	var tasa: float = minf(absf(dif) * GIRO_SUAVIZADO, deg_to_rad(vel_max))
+	var paso: float = minf(tasa * delta, absf(dif)) * signf(dif)
+	_yaw = wrapf(_yaw + paso, -PI, PI)
+	rotation.y = _yaw
+	var falta: float = dif - paso
+	if absf(falta) > deg_to_rad(8.0):
+		_lado_giro = signf(falta)
+	_cabeza_obj = clampf(rad_to_deg(falta), -CABEZA_MAX, CABEZA_MAX)
+	_t_sin_girar = 0.0
+
+
+## Mueve la cabeza hacia su objetivo (o al centro si hace rato que no se gira) y se lo pasa a ProporcionChibi.
+func _actualizar_cabeza(delta: float) -> void:
+	_t_sin_girar += delta
+	if _t_sin_girar > CABEZA_PAUSA:
+		_cabeza_obj = 0.0
+		if _t_sin_girar > 0.5:
+			_lado_giro = 0.0
+	if proporcion == null:
+		return
+	var v: float = CABEZA_SIGUE if absf(_cabeza_obj) > absf(_cabeza_giro) else CABEZA_VUELVE
+	_cabeza_giro = lerpf(_cabeza_giro, _cabeza_obj, 1.0 - exp(-delta * v))
+	if absf(_cabeza_giro) < 0.05 and _cabeza_obj == 0.0:
+		_cabeza_giro = 0.0
+	proporcion.cabeza_giro = _cabeza_giro
+
+
+func cabeza_giro_actual() -> float:
+	return _cabeza_giro
+
+
 ## Velocidad del clip de lanzar (1 = original). Se acelera el clip ENTERO (mismos fotogramas, en menos tiempo), no se recortan fotogramas.
 ## Va como velocidad propia de la reproducción (play(..., custom_speed)), así que no choca con set_velocidad_animacion.
 const VEL_CAST: float = 1.6
@@ -966,6 +1020,7 @@ func _brazo_libro_lado(lado: String) -> void:
 
 ## Cada fotograma: si hay un lanzamiento por cast point, congela el clip en el instante (si `sostener`) y al llegar a `fin`.
 func _process(delta: float) -> void:
+	_actualizar_cabeza(delta)
 	if not _juguete.is_empty():
 		sincronizar_juguete()    # juguete: el tinte que Combate3D escribe en el material de control pasa al shader
 	if _cp.is_empty() or _arbol == null or not _arbol.listo():

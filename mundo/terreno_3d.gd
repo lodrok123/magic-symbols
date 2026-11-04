@@ -194,7 +194,9 @@ class FuenteCasillas extends FuenteSolidez:
 ## `reconstruir()` rellena la caché de casillas: llamarlo UNA vez tras cargar el nivel y esperar un fotograma de física
 ## (el motor no ve los cuerpos nuevos hasta entonces). Lo que cambia en juego (tierra, hielo) va en `extras`.
 class FuenteNodos extends FuenteSolidez:
-	const RADIO_CUERPO: float = 0.3
+	## 4/11 (auditoría de colisiones): 0,3 → 0,25. La caja de jugadora_base (a su alto de 1,0) mide 0,49 × 0,35 u con los brazos como en idle: medio ancho 0,245. Con 0,3 (0,6 de diámetro) se
+	## chocaba contra el aire a 5 cm de cada árbol, valla y piedra; con 0,25 el cuerpo choca donde acaba el modelo.
+	const RADIO_CUERPO: float = 0.25
 	## 21/10: qué parte CENTRAL de la casilla ha de tocar una forma para que la casilla cuente como bloqueada ENTERA (la que ven
 	## hechizos, flechas, línea de visión, el BFS de las pruebas). Antes bastaba rozar el 90 % de la casilla: un pino de 1,59 de
 	## radio (cono medido sobre el modelo) metía 0,4 u en cada casilla vecina y las marcaba enteras → pasillos de una casilla
@@ -636,8 +638,34 @@ static var huellas: Dictionary = {}        ## Vector2i -> Array de Vector3(x, z,
 const MARGEN_HUELLA: float = 0.3
 
 
+## ---- Realces: lo bajo que se SUBE (4/11, Pablo: «que puedas pasar por rocas o pequeñas elevaciones, como los troncos») ----
+## Las piedras y los troncos tumbados de ≤ `ColisionPieza.ALTO_MIN_SOLIDO` (0,45 u) no bloquean (no tienen cuerpo); en vez de atravesarlos con los pies, la jugadora SUBE encima: su suelo sube hasta
+## alto · fracción (`ColisionPieza.REALCE`) en el centro de la pieza y baja suave a 0 en su borde. Vector2i (casilla de la pieza y las 8 vecinas) → Array de Vector4(x, z, radio, altura del realce).
+static var realces: Dictionary = {}
+const REALCE_BORDE: float = 0.55           ## fracción del radio, desde el borde hacia dentro, en que el realce sube de 0 al máximo
+
+
+## Cuánto sube el suelo (u) en el punto `p` por las piedras y los troncos bajos que hay ahí. 0 casi siempre.
+static func realce_en(p: Vector3) -> float:
+	if realces.is_empty():
+		return 0.0
+	var lista: Variant = realces.get(celda_de(p))
+	if lista == null:
+		return 0.0
+	var mejor: float = 0.0
+	for r in (lista as Array):
+		var rv: Vector4 = r
+		var d: float = Vector2(p.x - rv.x, p.z - rv.y).length()
+		if d >= rv.z:
+			continue
+		var k: float = clampf((rv.z - d) / maxf(rv.z * REALCE_BORDE, 0.001), 0.0, 1.0)
+		mejor = maxf(mejor, rv.w * (k * k * (3.0 - 2.0 * k)))
+	return mejor
+
+
 static func calcular_huellas(p_mundo: Node3D) -> int:
 	huellas.clear()
+	realces.clear()
 	var lotes: Variant = p_mundo.get("_lotes")
 	if not (lotes is Dictionary) or (lotes as Dictionary).is_empty():
 		return 0
@@ -661,6 +689,14 @@ static func calcular_huellas(p_mundo: Node3D) -> int:
 			var esc: float = tr.basis.get_scale().x
 			var centro: Vector3 = tr * caja.get_center()
 			var r: float = 0.5 * maxf(caja.size.x, caja.size.z) * esc
+			if ColisionPieza.REALCE.has(String(id)):
+				var alto_r: float = (caja.position.y + caja.size.y) * tr.basis.get_scale().y * float(ColisionPieza.REALCE[String(id)])
+				for dy2 in range(-1, 2):
+					for dx2 in range(-1, 2):
+						var q2 := c + Vector2i(dx2, dy2)
+						if not realces.has(q2):
+							realces[q2] = []
+						(realces[q2] as Array).append(Vector4(centro.x, centro.z, r * 0.9, alto_r))
 			for dy in range(-1, 2):
 				for dx in range(-1, 2):
 					var q := c + Vector2i(dx, dy)

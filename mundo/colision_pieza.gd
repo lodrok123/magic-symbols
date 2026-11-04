@@ -24,7 +24,15 @@ extends RefCounted
 const BANDA_MIN: float = 0.12
 const BANDA_MAX: float = 1.6
 ## Piezas más bajas que esto no son obstáculo (se pisan): losas, hojas, nenúfares.
-const ALTO_MIN_SOLIDO: float = 0.25
+## 4/11 (Pablo, Bosque 02: «que puedas pasar por rocas o pequeñas elevaciones, como los troncos»): subido de 0,25 a 0,45 u. Lo que mide eso o menos (piedras 0,35, rocas pequeñas 0,33, troncos
+## musgosos 0,38, troncos apilados 0,45…) llega por debajo de la rodilla de la jugadora (mide ~1) y de `Jugador3D.TOLERANCIA_SUELO` (0,55): no bloquea y se sube encima (ver `REALCE`). Lo de 0,5 en adelante
+## (roca musgosa, tocón seco) sigue bloqueando. Los REACTIVOS de puzle (tronco que arde, setos, puertas, bloque) no pasan por aquí: su cuerpo lo ponen ellos.
+const ALTO_MIN_SOLIDO: float = 0.45
+## Margen para comparar la altura medida (flotante) con ALTO_MIN_SOLIDO: «0,45 de MEDIDA» sale 0,4500001 del modelo escalado.
+const ALTO_TOLERANCIA: float = 0.005
+## Lo bajo que se SUBE: id → fracción de su altura a la que queda la planta del pie sobre su centro (en el borde baja suave a 0). Solo rocas y troncos tumbados; la hierba, las flores y las hojas no
+## levantan los pies.
+const REALCE: Dictionary = {"piedras": 0.7, "rocas_pequenas": 0.7, "troncos_apilados": 0.6, "tronco_musgoso": 0.65, "basalto_suelto": 0.7, "jarron_roto": 0.5}
 ## Lado de la casilla fina con la que se mira la planta (m). 0,1 distingue un hueco de paso (≥ 0,6) de un poro del modelo.
 const CELDA: float = 0.10
 ## Dos trozos a menos de este número de celdas se consideran el mismo (cierra poros de la malla, no huecos de paso).
@@ -89,6 +97,16 @@ const TRONCO_BANDAS_BAJO: Array = [[0.2, 0.45]]
 const ALTO_TRONCO_BAJO: float = 1.4
 
 
+## 4/11 (auditoría `prueba_colisiones_proporcion`): piezas cuya base se ENSANCHA a ras de suelo (las raíces de un tocón, el pie de una empalizada): con la franja desde BANDA_MIN (0,12) la colisión
+## quedaba 0,15–0,21 u más estrecha que el modelo que se ve. Para ellas la franja empieza más abajo (0,04). id → y mínima de la franja.
+const BANDA_MIN_ID: Dictionary = {"tocon": 0.04, "tocon_seco": 0.04, "tronco_seco": 0.04, "empalizada_goblin": 0.04}
+
+
+## Y mínima de la franja de la pieza `id` (BANDA_MIN salvo las de BANDA_MIN_ID).
+static func banda_min(id: String) -> float:
+	return float(BANDA_MIN_ID.get(id, BANDA_MIN))
+
+
 ## Modo de colisión de la pieza `id` ("ninguna" si no está en la tabla).
 static func modo(id: String) -> String:
 	return String(MODO.get(id, "ninguna"))
@@ -96,7 +114,7 @@ static func modo(id: String) -> String:
 
 ## Cascos de la pieza ya construida (`vis` = lo que devuelve `Pieza3D.crear_visual`, base en y = 0, centrada, a escala).
 ## Devuelve una lista de nubes de puntos (cada una es un casco convexo) en el espacio de la pieza. Vacía = sin cuerpo.
-static func cascos(vis: Node3D, modo_pieza: String) -> Array:
+static func cascos(vis: Node3D, modo_pieza: String, base_min: float = BANDA_MIN) -> Array:
 	if vis == null or modo_pieza == "ninguna":
 		return []
 	var tris: PackedVector3Array = _triangulos(vis, Transform3D.IDENTITY)
@@ -105,7 +123,7 @@ static func cascos(vis: Node3D, modo_pieza: String) -> Array:
 	var ymax_modelo: float = -INF
 	for p in tris:
 		ymax_modelo = maxf(ymax_modelo, p.y)
-	if ymax_modelo < ALTO_MIN_SOLIDO:
+	if ymax_modelo <= ALTO_MIN_SOLIDO + ALTO_TOLERANCIA:
 		return []
 	var res: Array = []
 	if modo_pieza == "tronco" or modo_pieza == "tronco_bajo":
@@ -121,7 +139,7 @@ static func cascos(vis: Node3D, modo_pieza: String) -> Array:
 				mejor = area
 				res = cand
 	else:
-		res = _cascos_banda(tris, BANDA_MIN, BANDA_MAX, false)
+		res = _cascos_banda(tris, base_min, BANDA_MAX, false)
 	# fuera lo diminuto y, si son demasiados, se quedan los de mayor planta
 	var buenos: Array = []
 	for nube in res:
