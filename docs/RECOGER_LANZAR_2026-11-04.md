@@ -100,3 +100,5 @@ Cuando estén, se sustituye la capa por estos clips (solo cambia `CargarObjeto3D
   (probada con un nodo suelto) para cuando existan.
 - Un jarrón soltado en otra casilla vuelve a su sitio de origen si el nivel se recarga (la flag solo recuerda los rotos).
 - La hoguera / brasero encendido (E abre su menú) no se mira como interacción prioritaria: hoy no hay jarrones junto a ellos.
+
+**4/11 · Tamaño real (diario 362):** el jarrón y la caja ya no se encogen en brazos (escala 1,0), como en Echoes of Wisdom; lo que se dice arriba del 60 % queda como historia.

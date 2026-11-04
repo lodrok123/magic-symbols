@@ -21,11 +21,11 @@ const RECOGER_ACTIVO: bool = true
 enum Estado { LIBRE, COGIENDO, CARGANDO, ANTICIPANDO, LANZANDO, SOLTANDO }
 
 ## Una fila por tipo. `vel` = multiplicador de la velocidad de andar con él en brazos · `alcance` = casillas del lanzamiento (en plano) · `dano` = daño al enemigo que recibe el golpe (como el golpe F: sin elementos) ·
-## `empuje` = fuerza que se pasa a `Combate3D.recibir_golpe_cuerpo` · `rompe` = se rompe al caer o chocar · `alto` = u de alto · `escala` = a qué tamaño se ve en brazos (el jarrón entero es casi tan alto como ella y le taparía los brazos; vuelve a su tamaño al soltarse o romperse).
+## `empuje` = fuerza que se pasa a `Combate3D.recibir_golpe_cuerpo` · `rompe` = se rompe al caer o chocar · `alto` = u de alto · `escala` = a qué tamaño se ve en brazos (4/11, Pablo: «tamaño real», como en Echoes of Wisdom: Zelda lleva el jarrón entero, casi tan alto como ella, apoyado sobre la cabeza; 1 = sin encoger).
 ## `ligero` (opcional) = true: objeto pequeño, se coge y se lanza de una vez con el clip `coger_lanzar` sin cargarlo; sin la clave cuenta como ligero lo que mide `UMBRAL_LIGERO` de alto o menos (ver `es_ligero`).
 const COGIBLES: Dictionary = {
-	"jarron": {"nombre": "jarrón", "vel": 0.7, "alcance": 3.5, "dano": 8.0, "empuje": 4500.0, "rompe": true, "alto": 0.5, "escala": 0.6},
-	"caja": {"nombre": "caja", "vel": 0.7, "alcance": 3.2, "dano": 6.0, "empuje": 3500.0, "rompe": true, "alto": 0.4, "escala": 0.65},
+	"jarron": {"nombre": "jarrón", "vel": 0.7, "alcance": 3.5, "dano": 8.0, "empuje": 4500.0, "rompe": true, "alto": 0.5, "escala": 1.0},
+	"caja": {"nombre": "caja", "vel": 0.7, "alcance": 3.2, "dano": 6.0, "empuje": 3500.0, "rompe": true, "alto": 0.4, "escala": 1.0},
 	# Hoy no hay piedras sueltas en el mundo (las `piedras` / `rocas_pequenas` son decorado y las `piedra` de `fuentes.tsv` van a la bolsa con E); la fila queda lista para cuando haya (metadato `cogible` = "piedra").
 	"piedra": {"nombre": "piedra", "vel": 0.6, "alcance": 3.0, "dano": 12.0, "empuje": 6000.0, "rompe": false, "alto": 0.35, "escala": 1.0, "ligero": true},
 }
