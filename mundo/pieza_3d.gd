@@ -138,7 +138,7 @@ const GIRO_MODELO: Dictionary = {
 	"bloque_enlace": 44.0, "cubo_hielo": -44.0, "bloque_hierba": -20.0, "losa_runas_llana": -23.0, "placa_presion_cueva": -13.0,
 	"labio_cascada": 43.0, "musgo_colgante": 36.0, "puerta_llave_marco": -37.0, "puerta_llave_hoja": -37.0,
 	"troncos_apilados": 32.0, "tronco_seco": -15.0, "tronco": -15.0, "tronco_musgoso": -16.0,
-	"puesto": -12.0, "valla_lianas": -12.0, "muro_ruina": 9.0, "totem_runico": -7.0,
+	"puesto": -12.0, "valla_lianas": -12.0, "valla": -7.0, "muro_ruina": 9.0, "totem_runico": -7.0,
 	"dummy": -38.0,
 	# Carteles (poste + tablón en T): el rectángulo mínimo del casco entero sale ambiguo (±20°); aquí va el ángulo del TABLÓN, medido por PCA de los vértices altos.
 	"cartel": -6.0, "cartel_runa_naranja": -11.0, "cartel_runa_cian": -11.0, "cartel_runa_roja": -11.0, "cartel_runa_amarilla": -11.0,

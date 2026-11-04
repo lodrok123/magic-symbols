@@ -12,6 +12,8 @@ extends SceneTree
 const NIVEL: String = "res://mundo/datos_nivel/Nivel_Bosque_02.tscn"
 const MARGEN_REL: float = 0.15
 const MARGEN_ABS: float = 0.10
+## 4/11 (Pablo): margen propio de las piezas que se aceptan algo más justas. La valla enderezada (-7° en Pieza3D.GIRO_MODELO) deja su contorno 0,11 u más estrecho que el modelo.
+const MARGEN_ABS_ID: Dictionary = {"valla": 0.12}
 const AREA_SOBRA_MAX: float = 1.45       ## el casco convexo de un trozo cóncavo (una L) sobra hasta SOBRA_MAX = 1,35 por diseño; + holgura de la malla
 const AREA_FALTA_MIN: float = 0.60
 const PEORES: int = 8
@@ -157,8 +159,8 @@ func _medir(id: String) -> Dictionary:
 		if modo != "ninguna" and ymax > ColisionPieza.ALTO_MIN_SOLIDO + ColisionPieza.ALTO_TOLERANCIA and ca > 0.0:
 			motivo = "FALTA el cuerpo entero (modo %s, alto %.2f)" % [modo, ymax]
 	elif ca > 0.0:
-		var m_w: float = maxf(MARGEN_ABS, MARGEN_REL * cw)
-		var m_d: float = maxf(MARGEN_ABS, MARGEN_REL * cd)
+		var m_w: float = maxf(float(MARGEN_ABS_ID.get(id, MARGEN_ABS)), MARGEN_REL * cw)
+		var m_d: float = maxf(float(MARGEN_ABS_ID.get(id, MARGEN_ABS)), MARGEN_REL * cd)
 		if dw > m_w or dd > m_d:
 			motivo = "SOBRA caja (%+.2f / %+.2f u)" % [dw, dd]
 		elif -dw > m_w or -dd > m_d:
@@ -178,8 +180,8 @@ func _medir(id: String) -> Dictionary:
 	var ew: float = kw - vw
 	var ed: float = kd - vd
 	if motivo == "" and not lista.is_empty() and ymax <= ColisionPieza.BANDA_MAX and not es_arbol:
-		var mv_w: float = maxf(MARGEN_ABS, MARGEN_REL * vw)
-		var mv_d: float = maxf(MARGEN_ABS, MARGEN_REL * vd)
+		var mv_w: float = maxf(float(MARGEN_ABS_ID.get(id, MARGEN_ABS)), MARGEN_REL * vw)
+		var mv_d: float = maxf(float(MARGEN_ABS_ID.get(id, MARGEN_ABS)), MARGEN_REL * vd)
 		if ew > mv_w or ed > mv_d:
 			motivo = "SOBRA frente al modelo entero (%+.2f / %+.2f u)" % [ew, ed]
 		elif -ew > mv_w or -ed > mv_d:
