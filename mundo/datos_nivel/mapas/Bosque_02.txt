@@ -127,6 +127,8 @@
 ; giro 33 8 90
 ; giro 33 9 90
 ; giro 33 10 90
+; 5/11 (playtest): el arco de la boca de la Cueva (35,24) se cruza de oeste a este: sus dos pilares van a norte y sur del camino (90°), no uno encima de él.
+; giro 35 24 90
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; ZONAS (Zonas3D): luz, mezcla (5 s fuera, ≤ 1 s las salas), nombre (id=), rótulo la primera vez (titulo=) y fila del botín de los rompibles (botin=). Si se pisan, manda la última: las grandes primero.
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -234,11 +236,10 @@
 ; pieza alga_estanque alga 28 7 coge_si=casilla(28,7).helada
 ; pieza jarrones_estanque jarron 25 9 celdas=25,9+31,6 botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; 12 · EL CAMPAMENTO GOBLIN (28..35, 12..19). La puerta goblin (28,16) arde; el cerrojo (29,16) se cierra al entrar en la sala; el vigía cuenta a los goblins y al chamán. Cofre ÉPICO 1 (llave del santuario). Cofre común 5 tras quemar la torre este.
+; 12 · EL CAMPAMENTO GOBLIN (28..35, 12..19). La puerta goblin (28,16) arde; el vigía cuenta a los goblins y al chamán (el cofre aparece al limpiar la sala). Cofre ÉPICO 1 (llave del santuario). Cofre común 5 tras quemar la torre este.
+; 5/11 (Pablo, playtest): en zona abierta no hay cerrojo que encierre (`cerr_camp` y `cerr_sant` quitados, con sus puzles `*_abre`); el código del cerrojo se queda para las mazmorras.
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; pieza cerr_camp cerrojo 29 16 celdas=29,16 sala=30,12..35,19 hasta=bosque02.campamento.limpio
 ; pieza vig_camp vigia 30 12 de=30,12..35,19 flag=bosque02.campamento.limpio
-; puzle camp_abre cuando=vig_camp.todos_derrotados hace=cerr_camp.abrir
 ; pieza chaman_camp chaman 32 14
 ; pieza barril_camp_a barril 31 17
 ; pieza barril_camp_b barril 35 15
@@ -247,11 +248,9 @@
 ; pieza cofre_torre cofre 35 13 aparece_si=flag.bosque02.torre.quemada abierto=bosque02.torre.cofre da=tabla:cofre_pequeno
 ; pieza jarrones_camp jarron 30 17 celdas=30,17+35,17+31,19 botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-; 13 · EL SANTUARIO (5..11, 13..19). La puerta (8,12) pide la llave (flag bosque02.santuario.llave); el cerrojo (8,13) se cierra al entrar; el elemental (8,16) lo vigila el vigía. Cofre LEGENDARIO del corazón: fin de la demo.
+; 13 · EL SANTUARIO (5..11, 13..19). La puerta (8,12) pide la llave (flag bosque02.santuario.llave); el elemental (8,16) lo vigila el vigía (sin cerrojo: se puede salir siempre). Cofre LEGENDARIO del corazón: fin de la demo.
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; pieza puerta_santuario puerta 8 12 modelo=llave llave=bosque02.santuario.llave abierto=bosque02.santuario.puerta
-; pieza cerr_sant cerrojo 8 13 celdas=8,13 sala=5,14..11,19 hasta=bosque02.santuario.limpio
 ; pieza vig_sant vigia 8 16 de=5,13..11,19 flag=bosque02.santuario.limpio
-; puzle sant_abre cuando=vig_sant.todos_derrotados hace=cerr_sant.abrir
 ; pieza guardian_sant guardian 5 16 en=7,15+9,15 elemento=fuego
 ; pieza cofre_corazon cofre 8 18 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2

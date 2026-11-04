@@ -607,11 +607,10 @@ func _estanque() -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-#  9 · El campamento goblin: puerta (fuego), cerrojo, vigía → cofre épico 1 (llave) y torre → cofre común 5
+#  9 · El campamento goblin: puerta (fuego), vigía (sin cerrojo desde el 5/11) → cofre épico 1 (llave) y torre → cofre común 5
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _campamento() -> void:
-	var cerr: Puzle3D.CerrojoPuzle = z.nodo("cerr_camp") as Puzle3D.CerrojoPuzle
 	var vig: Puzle3D.VigiaPuzle = _vigia("vig_camp")
 	var epico: Puzle3D.CofrePuzle = _cofre("cofre_campamento")
 	var torre_cofre: Puzle3D.CofrePuzle = _cofre("cofre_torre")
@@ -624,10 +623,10 @@ func _campamento() -> void:
 	_ok("9.5 uno de los dos arqueros es de puesto (no persigue)", arq_fijo != null and bool(arq_fijo.fijo))
 	await caminar(Vector2i(30, 16), "9.6")
 	await avanzar_s(0.6)
-	_ok("9.7 CERROJO: al entrar en la sala se cierra detrás (29,16) y no hay camino de vuelta al exterior (27,16)", cerr.cerrado and not _libre(Vector2i(29, 16)) and not hay_camino(Vector2i(27, 16)))
+	_ok("9.7 SIN CERROJO (zona abierta, 5/11): dentro de la sala la casilla (29,16) sigue libre, hay camino de vuelta al exterior (27,16) y el mapa ya no trae `cerr_camp`", _libre(Vector2i(29, 16)) and hay_camino(Vector2i(27, 16)) and z.nodo("cerr_camp") == null)
 	_matar(vig.vistos)                                    # [muerto=true]
 	await avanzar_s(1.2)
-	_ok("9.8 al caer los cinco el vigía pone `bosque02.campamento.limpio`, el cerrojo se ABRE y hay camino de vuelta", vig.completo and _flag("bosque02.campamento.limpio") and not cerr.cerrado and hay_camino(Vector2i(27, 16)))
+	_ok("9.8 al caer los cinco el vigía pone `bosque02.campamento.limpio` y se puede volver al exterior", vig.completo and _flag("bosque02.campamento.limpio") and hay_camino(Vector2i(27, 16)))
 	_ok("9.9 APARECE el cofre épico del campamento y aún no hay llave", epico.es_cerrado and not _flag("bosque02.santuario.llave"))
 	await abrir_cofre("cofre_campamento", "9.10")
 	await avanzar_s(0.5)
@@ -642,12 +641,11 @@ func _campamento() -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-#  10 · El santuario: la llave, el cerrojo, el elemental y el cofre legendario (fin de la demo)
+#  10 · El santuario: la llave, el elemental (sin cerrojo desde el 5/11) y el cofre legendario (fin de la demo)
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _santuario() -> void:
 	var puerta: Puzle3D.PuertaPuzle = z.nodo("puerta_santuario") as Puzle3D.PuertaPuzle
-	var cerr: Puzle3D.CerrojoPuzle = z.nodo("cerr_sant") as Puzle3D.CerrojoPuzle
 	var vig: Puzle3D.VigiaPuzle = _vigia("vig_sant")
 	var corazon: Puzle3D.CofrePuzle = _cofre("cofre_corazon")
 	_ok("10.1 ANTES: la puerta del santuario sigue cerrada (aunque ya hay llave, hay que ir a tocarla) y el cofre del corazón está oculto", not puerta.abierta and not hay_camino(Vector2i(8, 14)) and corazon.es_oculto)
@@ -656,11 +654,11 @@ func _santuario() -> void:
 	_ok("10.3 DESPUÉS: con la llave la puerta (8,12) se ABRE al tocarla y hay camino a pie hasta el elemental", puerta.abierta and hay_camino(Vector2i(8, 14)))
 	await caminar(Vector2i(8, 14), "10.4")
 	await avanzar_s(0.6)
-	_ok("10.5 CERROJO: al entrar en la sala se cierra detrás (8,13)", cerr.cerrado and not _libre(Vector2i(8, 13)) and not hay_camino(Vector2i(8, 11)))
+	_ok("10.5 SIN CERROJO (zona abierta, 5/11): dentro del santuario (8,13) sigue libre, hay camino de vuelta a (8,11) y el mapa ya no trae `cerr_sant`", _libre(Vector2i(8, 13)) and hay_camino(Vector2i(8, 11)) and z.nodo("cerr_sant") == null)
 	_ok("10.6 el vigía vigila al elemental (1) y aún no hay cofre", vig.vistos.size() == 1 and not vig.completo)
 	_matar(vig.vistos)                                    # [muerto=true]
 	await avanzar_s(1.2)
-	_ok("10.7 al caer el elemental el vigía pone `bosque02.santuario.limpio`, el cerrojo se abre y APARECE el cofre legendario", vig.completo and _flag("bosque02.santuario.limpio") and not cerr.cerrado and corazon.es_cerrado)
+	_ok("10.7 al caer el elemental el vigía pone `bosque02.santuario.limpio` y APARECE el cofre legendario", vig.completo and _flag("bosque02.santuario.limpio") and corazon.es_cerrado)
 	var antes: int = int(Logros3D.total.get("nivel_completado", 0))
 	var fin_antes: bool = bool(reglas.get("_terminado"))
 	reglas.set("volver_al_menu", true)                    # solo ahora: a los 10 s de abrirse este cofre el juego vuelve al menú principal (se comprueba al final)

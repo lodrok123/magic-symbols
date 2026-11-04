@@ -2708,6 +2708,20 @@ func _giro_por_defecto(id: String, h: int) -> float:
 	return 90.0 * float(h % 4)
 
 
+## 5/11: los muros goblin (empalizada `x` y puerta `y`) se orientan por sus vecinas: 90° si el muro sigue por Z (vecina de arriba o abajo
+## y ninguna a los lados), 0° en cualquier otro caso (sigue por X, o suelta). Así el modelo queda en la línea del muro y su colisión (que sale del modelo) también.
+func _giro_de_tramo(c: Vector2i) -> float:
+	var vertical: bool = _es_tramo(c + Vector2i(0, -1)) or _es_tramo(c + Vector2i(0, 1))
+	var horizontal: bool = _es_tramo(c + Vector2i(-1, 0)) or _es_tramo(c + Vector2i(1, 0))
+	return 90.0 if vertical and not horizontal else 0.0
+
+
+func _es_tramo(c: Vector2i) -> bool:
+	if c.y < 0 or c.y >= _mapa.size() or c.x < 0 or c.x >= String(_mapa[c.y]).length():
+		return false
+	return ["x", "y"].has(String(_mapa[c.y])[c.x])
+
+
 ## El árbol viejo y el sauce tienen el TRONCO descentrado (las raíces y el tronco hueco salen hacia un lado del modelo): girados, invaden la
 ## casilla de al lado. Pegado a algo que se pisa solo va el pino (tronco centrado) y los otros dos quedan para el fondo del muro.
 ## (4/11: con ellos en el borde, el pasillo del escondite (8,26) del Bosque 02 quedaba tapado.)
@@ -3568,7 +3582,9 @@ func _colocar_letras() -> void:
 					_poner("tienda_goblin", c, ALTO, true, false)
 				"x":
 					_sin_hierba[c] = true
-					_poner("empalizada_goblin", c, ALTO, true, false, 0.0)       # corre a lo largo de X; `; giro` para ponerla de lado
+					# 5/11 (Pablo, playtest: «muros no lógicos»): el modelo corre a lo largo de X a 0°; en un tramo que va de norte a sur (el campamento: x = 28)
+					# salía de través, a rayas perpendiculares al muro y con huecos. `_giro_de_tramo` la pone a 90° cuando el muro sigue por Z (`; giro` manda).
+					_poner("empalizada_goblin", c, ALTO, true, false, _giro_de_tramo(c))
 				"V":
 					_sin_hierba[c] = true
 					_poner("estandarte_goblin", c, ALTO, true, false)
@@ -3576,9 +3592,9 @@ func _colocar_letras() -> void:
 					# 10/10: puerta del campamento. ARDE (Reactivo3D `puerta_goblin`): al consumirse libera la casilla.
 					_sin_hierba[c] = true
 					if objetos_reactivos:
-						_reactivo_pieza("puerta_goblin", "puerta_goblin", c, ALTO, true, false, 0.0)
+						_reactivo_pieza("puerta_goblin", "puerta_goblin", c, ALTO, true, false, _giro_de_tramo(c))
 					else:
-						_poner("puerta_goblin", c, ALTO, true, false, 0.0)
+						_poner("puerta_goblin", c, ALTO, true, false, _giro_de_tramo(c))
 				"o":
 					# 10/10: torre del campamento. ARDE (Reactivo3D `torre_goblin`).
 					_sin_hierba[c] = true
