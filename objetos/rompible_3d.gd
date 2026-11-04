@@ -67,6 +67,8 @@ var botin_efectivo: String = ""             ## lo que tocó de verdad (con `boti
 var _mundo: Node = null
 var _modelo: Node3D = null
 var _restos: Node3D = null
+var en_brazos: bool = false                 ## la jugadora lo lleva (CargarObjeto3D): sin casilla, sin capa, no se rompe con golpes sueltos
+var _sin_celda: bool = false               ## su casilla ya no la bloquea el: no hay que liberarla al romperse
 
 
 ## `p_mundo` = la maqueta (da el modelo con su escala de `Pieza3D.MEDIDA` y la zona de la casilla).
@@ -96,6 +98,8 @@ func _ready() -> void:
 	add_child(forma)
 	add_to_group("rompible")
 	add_to_group("explosionable")
+	add_to_group("cogible")                 # 4/11: se puede coger y lanzar (CargarObjeto3D.COGIBLES[tipo])
+	set_meta("cogible", tipo)
 	if nivel != "" and Flags.i().tiene(flag()):
 		_nacer_roto()
 		return
@@ -193,15 +197,56 @@ func receive_damage(_cantidad: float = 1.0) -> void:
 	romper()
 
 
+## --- Cogerlo y lanzarlo (4/11, CargarObjeto3D; docs/RECOGER_LANZAR_2026-11-04.md) ---
+## El nodo entero viaja con la jugadora (su `global_position` la pone ella mientras lo lleva o lo lanza). Mientras tanto no tapa su casilla, no recibe golpes y nada lo rompe por su cuenta.
+
+## La jugadora lo levanta: libera su casilla y deja de ser golpeable. false si ya estaba roto o en brazos.
+func al_coger() -> bool:
+	if roto_ya or en_brazos:
+		return false
+	en_brazos = true
+	_sin_celda = true
+	collision_layer = 0
+	remove_from_group("explosionable")
+	Terreno3D.liberar_celda(celda)
+	return true
+
+
+## Lo deja ENTERO en `punto` (suelo): ocupa la casilla de ese punto como cualquier rompible. La flag de roto no cambia (si el nivel se recarga vuelve a su sitio de origen).
+func al_soltar(punto: Vector3) -> void:
+	if roto_ya or not en_brazos:
+		return
+	en_brazos = false
+	_sin_celda = false
+	celda = Terreno3D.celda_de(punto)
+	rotation = Vector3.ZERO
+	position = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda))
+	collision_layer = Lanzador3D.CAPA_REACTIVO
+	add_to_group("explosionable")
+	Terreno3D.bloquear_celda(celda)
+
+
+## Se rompe en `punto` (cayó o chocó): el botín sale de la tabla de la zona de ESA casilla. Sin esto, `romper()` no hace nada mientras está en brazos.
+func romper_lanzado(punto: Vector3) -> void:
+	if roto_ya or not en_brazos:
+		return
+	en_brazos = false
+	rotation = Vector3.ZERO
+	global_position = punto
+	celda = Terreno3D.celda_de(punto)
+	romper()
+
+
 ## --- Romperse ---
 
 func romper() -> void:
-	if roto_ya:
+	if roto_ya or en_brazos:
 		return
 	roto_ya = true
 	collision_layer = 0                      # el nodo se queda (los puzles lo consultan), pero ya no se golpea
 	remove_from_group("explosionable")
-	Terreno3D.liberar_celda(celda)
+	if not _sin_celda:
+		Terreno3D.liberar_celda(celda)
 	if nivel != "":
 		Flags.i().poner(flag())
 	zona = zona_de(_mundo, celda)
