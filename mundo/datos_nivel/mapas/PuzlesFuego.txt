@@ -98,6 +98,27 @@
 ; pieza f6_peq2 barril 14 13 tam=pequeno
 ; pieza f6_peq3 barril 18 12 tam=pequeno
 ; pieza f6_grande barril 22 12
+; --- F7 DRAGONES CRONOMETRADOS (5/11, docs/TRAMPAS_PARED_2026-11-05.md; sala (3,1), x 25..31, y 9..13): dos cabezas de dragon metidas en el muro norte, (26,8) y (30,8), que dan al sur (mira=s) y escupen un chorro
+; ---   por las columnas x=26 y x=30 (alcance 5: cubren de y=9 a y=13, no se rodean). Cada una: 1,5 s de fuego y 2,0 s de descanso (aviso de brasas y humo en los ultimos 0,5 s). La segunda empieza 1,75 s desfasada:
+; ---   nunca arden las dos a la vez (cerca=8: duermen hasta que la jugadora se acerca). Se cruzan por turnos hasta la placa (31,12). Vias: boton ! (25,10) las apaga 8 s; un hechizo de agua o hielo a una cabeza la apaga 8 s.
+; pieza t_drg_a trampa_dragon 26 8 mira=s ciclo=1.5,2.0 desfase=0 alcance=5 cerca=8
+; pieza t_drg_b trampa_dragon 30 8 mira=s ciclo=1.5,2.0 desfase=1.75 alcance=5 cerca=8
+; pieza t_drg_placa pulsador 31 12 modo=presencia
+; pieza t_drg_boton pulsador 25 10 modo=magia
+; puzle t_drg_boton_apaga cuando=t_drg_boton.pulsado hace=t_drg_a.apagar(8) y=t_drg_b.apagar(8)
+; --- F8 FLECHAS QUE SE ESQUIVAN O SE BLOQUEAN (sala (0,2), x 1..7, y 17..23): un mascaron en el muro (8,20) que mira al oeste dispara una flecha NORMAL cada 1,5 s por la fila y=20 hacia la placa (1,20).
+; ---   Se esquiva a tiempo o se empuja el bloque de piedra (5,21) al norte, a (5,20): la flecha se para en el bloque y la parte de detras de la fila queda a cubierto.
+; pieza t_fl_a trampa_flechas 8 20 mira=o cada=1.5 elemento=ninguno alcance=8 cerca=8
+; pieza t_fl_bloque bloque 5 21 material=piedra
+; pieza t_fl_placa pulsador 1 20 modo=presencia
+; --- F9 LA FLECHA DE FUEGO QUE ENCIENDE (sala (1,2), x 9..15, y 17..23): un mascaron en el muro (8,22) que mira al este lanza cada 3 s una FLECHA DE FUEGO por la fila y=22: prende el primer seto (12,22), el fuego
+; ---   corre al segundo (13,22) y enciende el barril (14,22), que explota (uso positivo de la trampa). Via: boton ! (9,18) la apaga; el agua a un seto lo salva (cortafuegos).
+; pieza t_fl_fuego trampa_flechas 8 22 mira=e cada=3.0 elemento=fuego alcance=8 cerca=6
+; pieza t_fl_s1 seto 12 22 mojable=si
+; pieza t_fl_s2 seto 13 22 mojable=si
+; pieza t_fl_barril barril 14 22
+; pieza t_fl_boton pulsador 9 18 modo=magia
+; puzle t_fl_boton_apaga cuando=t_fl_boton.pulsado hace=t_fl_fuego.apagar
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -109,18 +130,18 @@
 #.......#.!...@.#.-.....#.......#
 ####.#######.#######.#######.####
 #......Z#.......#.......#.......#
-#.......#.......#.......#.......#
+#.......#.......#.......#!......#
 #T.T.T.T#.......#.......#.......#
-#...........S...................#
+#...........S..................@#
 #.......#.......#.......#.......#
-#.!...@.#.......#.......#.......#
+#.!...@.#.......#.......#########
+#.......#.......#.......#########
+####.#######.#######.############
 #.......#.......#.......#.......#
-####.#######.#######.#######.####
+#.......#!......#.......#.......#
 #.......#.......#.......#.......#
+#@......#.......#.......#.......#
 #.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
+#.......#...zz..#.......#.......#
 #.......#.......#.......#.......#
 #################################
