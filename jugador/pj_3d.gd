@@ -1048,7 +1048,12 @@ func _actualizar_equipo_solo_en() -> void:
 			continue
 		var pieza: String = String(p.get_meta("equipo_id", ""))
 		if reglas.has(pieza):
-			p.visible = libre or estado_anim() in (reglas[pieza] as Array)
+			# 5/11 (Pablo: «cuando dispare la flecha, que desaparezca de su mano»): dentro de "atacar" la pieza se va al momento del golpe
+			# (MOMENTO_GOLPE "attack", fracción del clip: el instante en que Combate3D suelta el proyectil) y no vuelve hasta el siguiente ataque.
+			var en_estado: bool = estado_anim() in (reglas[pieza] as Array)
+			if en_estado and estado_anim() == "atacar" and _arbol.largo() > 0.0 and _arbol.posicion() / _arbol.largo() >= momento_golpe("attack"):
+				en_estado = false
+			p.visible = libre or en_estado
 
 
 func _process(delta: float) -> void:

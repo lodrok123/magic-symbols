@@ -22,6 +22,7 @@ const K_GIRO: String = "giro"                            ## grados sobre el eje 
 const K_DIST_MIN_CUERPO: String = "dist_min_cuerpo"      ## u de juego: separación mínima lateral al eje del cuerpo (que no atraviese la túnica)
 const K_DESPLAZ_ADELANTE: String = "desplaz_adelante"    ## u de juego: desplazamiento extra hacia delante del agarre
 const K_LADO: String = "lado"                            ## signo en X del personaje del lado de la mano (-1 = derecha de un modelo que mira a +Z)
+const K_DESPLAZ_LATERAL: String = "desplaz_lateral"      ## u de juego: desplazamiento del pie desde la mano HACIA el cuerpo (5/11, bastón de Marimanta); dist_min_cuerpo sigue mandando
 
 const K_Z_MIN: String = "z_min"                         ## u de juego: lo más atrás (eje Z del personaje, +Z = delante) que puede quedar el pie
 const K_Z_MAX: String = "z_max"                         ## y lo más adelante: la mano puede ir al pecho y el palo se queda a su costado, inclinado hacia ella
@@ -45,6 +46,7 @@ var largo_pieza: float = 0.0                    ## u de mundo, ahora mismo
 var giro: float = 0.0
 var dist_min_cuerpo: float = 0.0
 var desplaz_adelante: float = 0.0
+var desplaz_lateral: float = 0.0
 var lado: float = -1.0
 var z_min: float = -INF
 var z_max: float = INF
@@ -74,6 +76,7 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 	z_max = float(datos.get(K_Z_MAX, INF))
 	dist_min_cuerpo = float(datos.get(K_DIST_MIN_CUERPO, 0.0))
 	desplaz_adelante = float(datos.get(K_DESPLAZ_ADELANTE, 0.0))
+	desplaz_lateral = float(datos.get(K_DESPLAZ_LATERAL, 0.0))
 	_transform_mano = pieza.transform
 	agarre_local = pieza.transform * Vector3(0.0, float(datos.get(K_AGARRE_Y, 0.0)), 0.0)
 	_largo_local = _largo_malla(pieza)
@@ -127,7 +130,7 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var objetivo_pie: Vector3 = _pie_local
 	if agarrable and (d_hor <= cerca or not _arrancado):
 		suelta = false
-		var x: float = rel.x
+		var x: float = rel.x - lado * desplaz_lateral     # hacia el cuerpo (el lado de la mano es `lado`)
 		if dist_min_cuerpo > 0.0 and x * lado < dist_min_cuerpo:
 			x = lado * dist_min_cuerpo          # lejos del cuerpo: que el palo no atraviese la túnica
 		objetivo_pie = Vector3(x, 0.0, clampf(rel.z + desplaz_adelante, z_min, z_max))     # sin cruzarse por delante del pecho ni quedar a la espalda

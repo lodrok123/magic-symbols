@@ -23,7 +23,9 @@ const BASTON_GIRO: Vector3 = Vector3(-46.3, 25.0, -163.8)
 ## Modo «apoyada en el suelo y vertical» (PiezaApoyada3D): el bastón no cuelga rígido de la mano, se planta en el suelo bajo la palma y sigue su proyección horizontal.
 ## agarre_y: altura de la palma sobre el pie en unidades de la pieza (0,88 del modelo / 1,3 de escala); dist_min_cuerpo: u de juego que se separa del eje del cuerpo (para no
 ## atravesar la túnica al andar); desplaz_adelante: u de juego extra hacia delante; lado: la mano derecha de un modelo que mira a +Z está en -X; giro: grados sobre su eje.
-const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 0.0, "dist_min_cuerpo": 0.15, "desplaz_adelante": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
+## 5/11 (Pablo: «el bastón en la mano, esa misma posición pero desplazado un poco hacia mi derecha» = hacia el cuerpo): con Marimanta a 0,8 de alto su mano derecha queda a
+## 0,125 u del eje del cuerpo y dist_min_cuerpo 0,15 empujaba el pie del bastón 0,025 más afuera que la mano (el palo pasaba por fuera de la mano). Ahora 0,12: el pie bajo la mano.
+const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.0, "desplaz_lateral": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
 
 ## Bastón del chamán goblin (28/10): baston_chaman_equipo.glb = baston_chaman.glb (Meshy, 1,0 de alto, origen en el centro) con el ORBE aparte (tools/separar_orbe_baston.py), envuelto por BastonChaman3D con la
 ## PUNTA en el origen y el palo hacia +Y. Mide 0,84 en las unidades del modelo (0,95 de alto): 0,75 u en el juego, hasta el pecho del chamán de pie y alcanza el suelo delante de él. Va en la mano DERECHA (la de arriba).
@@ -115,10 +117,11 @@ const EQUIPO: Dictionary = {
 	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano IZQUIERDA (la del brazo estirado al apuntar; madera hacia delante, cuerda hacia el arquero).
 	"goblin_archer_chibi": [
 		# 5/11 (Pablo: «el goblin no sujeta el arco, está todo mal»; antes (0, 0.07, 0.47) y (90, 0, 180), cruzado). arco.glb va a lo largo de +Y (−0,39..0,39), curva en +X
-		# (0..0,5: empuñadura en ~0,28, puntas y CUERDA en 0,5), grosor en Z. Giro medido con la mano al apuntar (ArcheryShot 3,0 s): +Y del arco = arriba del mundo,
-		# +X = hacia el arquero (−brazo), así la cuerda mira al cuerpo (Pablo, 5/11: «la cuerda tiene que mirar hacia el cuerpo del goblin»; con +X hacia delante salía
-		# al revés); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
-		["arco", "LeftHand", Vector3(0.006, 0.334, -0.032), Vector3(-3.7, -59.7, -85.8), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
+		# (0..0,5: empuñadura en ~0,28, puntas y CUERDA en 0,5), grosor en Z. +Y del arco = el eje del PUÑO de LeftHand: la media del arriba del mundo en la mano en
+		# ArcheryShot 2,5–4,0 s y Mixamo_TensarArco, (0,29, 0,05, 0,95) ≈ +Z de la mano (alineado solo al arriba de 3,0 s salía a 45° en otras poses, Pablo 5/11: «el mástil
+		# sujetado con la mano»; con +Z puro apuntaba a 30°, así queda a ~13°, como un arquero que inclina el arco). +X = hacia el arquero (−tiro de 3,0 s) para que la
+		# cuerda mire al cuerpo; posición = −giro·(empuñadura 0,28·1,2, 0, 0): la empuñadura en la palma.
+		["arco", "LeftHand", Vector3(-0.125, 0.311, 0.022), Vector3(21.9, -71.8, -86.9), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
 		# 5/11 (Pablo, con un clip 2D de referencia: «fíjate en la posición del arco y las manos»): flecha en la mano DERECHA con la nocla en la palma y la punta hacia la mano
 		# del arco (medido en ArcheryShot a 3 s: dirección mano derecha → izquierda en el espacio de RightHand (−0,93, 1,69, 0,54)); Pj3D.EQUIPO_SOLO_EN la enseña solo al disparar.
 		["flecha", "RightHand", Vector3(-0.13, 0.24, 0.07), Vector3(32.3, -53.5, 3.6)],

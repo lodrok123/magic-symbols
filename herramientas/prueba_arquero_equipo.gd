@@ -2,7 +2,7 @@ extends SceneTree
 ## PRUEBA del equipo del goblin arquero (5/11, diario 389): arco en la mano izquierda, flecha en la derecha (solo al disparar) y carcaj a la espalda.
 ## Sin ventana:  godot --headless --path . --script res://herramientas/prueba_arquero_equipo.gd
 ## Comprueba con Pj3D real: (1) las tres piezas cuelgan de sus huesos; (2) con el árbol de animación en marcha, la flecha solo se ve en «attack»
-## (estado «atacar»; Pj3D.EQUIPO_SOLO_EN) y con el árbol apagado se ve siempre; (3) apuntando (ArcheryShot a 3 s) la caja del arco está centrada en la mano izquierda y es
+## (estado «atacar»; Pj3D.EQUIPO_SOLO_EN), desaparece de la mano pasado el momento del golpe y con el árbol apagado se ve siempre; (3) apuntando (ArcheryShot a 3 s) la caja del arco está centrada en la mano izquierda y es
 ## vertical, la flecha va de la mano derecha hasta pasado el arco (horizontal) y el carcaj queda detrás de la cadera (−Z) y por debajo del cuello.
 
 const ID: String = "goblin_archer_chibi"
@@ -53,6 +53,22 @@ func _correr() -> void:
 	for _i in 3:
 		await process_frame
 	_ok(pj.estado_anim() == "atacar" and (piezas["flecha"] as Node3D).visible, "al disparar la flecha se ve (estado %s)" % pj.estado_anim())
+	# 5/11: pasado el momento del golpe (la flecha ya volando) desaparece de la mano hasta el siguiente ataque
+	var largo: float = pj._arbol.largo()
+	var t_golpe: float = largo * pj.momento_golpe("attack")
+	while pj.estado_anim() == "atacar" and pj._arbol.posicion() < t_golpe - 0.05:
+		await process_frame
+	_ok(pj.estado_anim() == "atacar" and (piezas["flecha"] as Node3D).visible, "justo antes del golpe (%.2f de %.2f s) la flecha sigue en la mano" % [pj._arbol.posicion(), largo])
+	while pj.estado_anim() == "atacar" and pj._arbol.posicion() < t_golpe + 0.05:
+		await process_frame
+	_ok(pj.estado_anim() == "atacar" and not (piezas["flecha"] as Node3D).visible, "pasado el golpe (%.2f s) la flecha ya no está en la mano" % pj._arbol.posicion())
+	pj.jugar("idle")    # como en el juego: el ataque acaba, vuelve a idle y dispara otra vez
+	for _i in 3:
+		await process_frame
+	pj.jugar("attack", true)
+	for _i in 3:
+		await process_frame
+	_ok(pj.estado_anim() == "atacar" and (piezas["flecha"] as Node3D).visible, "al volver a disparar reaparece")
 	pj._arbol.active = false
 	pj._ap.active = true
 	pj._ap.play("Idle")
