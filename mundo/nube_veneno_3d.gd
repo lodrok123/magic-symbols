@@ -20,7 +20,7 @@ const RADIO_DEFECTO: float = 1.0               ## casillas
 const DERIVA: float = 1.4                      ## u/s a los que el viento la mueve mientras sopla
 const T_SOPLO: float = 1.2                     ## s que sigue a la deriva tras un soplo
 const ALTO_VERTICAL: float = 1.6               ## u de diferencia en altura a los que aún está «dentro»
-const COLOR: Color = Color(0.45, 0.75, 0.25, 0.35)
+const COLOR: Color = Color(0.45, 0.75, 0.25, 0.35)   ## (el dibujo usa los verdes de NubeVenenoVfx; se conserva por si algo lo lee)
 
 ## Las nubes vivas (en el árbol). Estático: lo lee `EstadoZona3D` sin conocerlas una a una.
 static var vivas: Array = []
@@ -35,7 +35,8 @@ var jugador: Jugador3D = null                  ## null = la del lanzador del niv
 var envenenadas: int = 0                       ## veces que envenenó a la jugadora (las pruebas)
 var envenenados: int = 0                       ## veces que envenenó a un enemigo
 var _soplo: float = 0.0
-var _malla: MeshInstance3D = null
+var _vfx: NubeVenenoVfx = null                 ## su dibujo (presentacion/vfx/toy/nube_veneno_vfx.gd): translucido, no toca la logica
+var _edad: float = 0.0                          ## s desde que nacio (el dibujo brota desde el centro)
 var _muerta: bool = false
 
 
@@ -77,22 +78,10 @@ func _ready() -> void:
 	forma.shape = esfera
 	forma.position = Vector3(0.0, 0.8, 0.0)
 	add_child(forma)
-	_malla = MeshInstance3D.new()
-	var es := SphereMesh.new()
-	es.radius = radio * Terreno3D.casilla
-	es.height = es.radius * 1.4
-	es.radial_segments = 16
-	es.rings = 8
-	var m := StandardMaterial3D.new()
-	m.albedo_color = COLOR
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	es.material = m
-	_malla.mesh = es
-	_malla.position = Vector3(0.0, 0.7, 0.0)
-	_malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_malla)
+	_vfx = NubeVenenoVfx.new()
+	_vfx.name = "Dibujo"
+	add_child(_vfx)
+	_vfx.montar(radio * Terreno3D.casilla)
 
 
 func _process(delta: float) -> void:
@@ -114,9 +103,9 @@ func avanzar(dt: float) -> void:
 			retirar()
 			return
 	_envenenar_dentro()
-	if _malla != null:
-		var a: float = 1.0 if permanente else clampf(vida / maxf(vida_max, 0.01), 0.0, 1.0)
-		((_malla.mesh as SphereMesh).material as StandardMaterial3D).albedo_color = Color(COLOR.r, COLOR.g, COLOR.b, COLOR.a * (0.4 + 0.6 * a))
+	_edad += dt
+	if _vfx != null:
+		_vfx.avanzar(dt, _pos(), _edad, vida, vida_max, permanente, ardiendo)
 
 
 func _pos() -> Vector3:
