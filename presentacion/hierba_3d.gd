@@ -288,12 +288,22 @@ var _centro: Vector2i = Vector2i(999999, 999999)
 ## 9.6: multiplicador de altura por punto del mundo (x, z) → 0..1, opcional. La hierba corta decorativa (`,`) sale más baja.
 var _alto: Callable = Callable()
 
+## 5/11 (Pablo, playtest del Bosque 02: «en acumulaciones más densas»): campo de MATAS opcional (x, z) → 0..1. Con él, la hierba no se reparte pareja: en el
+## centro de cada mancha la rejilla es `MATA_MULT_DENSIDAD` veces más tupida y las briznas salen algo más altas; hacia el borde se aclara hasta
+## `CLARO_DENSIDAD` (un claro casi limpio). Sin él (vacío) la siembra es la de siempre, así que los laboratorios y el Test 2D no cambian.
+var _matas: Callable = Callable()
+const MATA_MULT_DENSIDAD: float = 1.7     ## la rejilla de briznas/tarjetas es 1,7× más tupida que `densidad`/`densidad_tarjetas` (se queda en 1 ud de paso por brizna de ≈0,44)
+const CLARO_DENSIDAD: float = 0.05        ## fracción de la rejilla densa que sobrevive en pleno claro (matas = 0): ≈ 0,085 × la densidad de siempre
+const MATA_ALTURA_CLARO: float = 0.80     ## multiplicador de altura de las briznas en el claro...
+const MATA_ALTURA_CENTRO: float = 1.30    ## ... y en el corazón de la mancha (se interpola con el valor de la mata)
 
-func sembrar(zona: Rect2, y: float, peso: Callable, alrededor: bool = false, alto: Callable = Callable()) -> void:
+
+func sembrar(zona: Rect2, y: float, peso: Callable, alrededor: bool = false, alto: Callable = Callable(), matas: Callable = Callable()) -> void:
 	_zona = zona
 	_y = y
 	_peso = peso
 	_alto = alto
+	_matas = matas
 	_preparar()
 	if not alrededor:
 		for bz in range(ceili(zona.size.y / lado_bloque)):
@@ -407,16 +417,24 @@ func _crear_bloque(b: Vector2i) -> void:
 	# Briznas: rejilla con jitter; en el borde (peso 0,3-0,7) más altas, la "franja" que pisa el camino.
 	var matojos: Array[Transform3D] = []
 	var tintes_m: PackedColorArray = PackedColorArray()
-	var paso: float = 1.0 / sqrt(maxf(densidad, 0.01))
+	var con_matas: bool = _matas.is_valid()
+	var paso: float = 1.0 / sqrt(maxf(densidad * (MATA_MULT_DENSIDAD if con_matas else 1.0), 0.01))
 	for iz in range(int(rect.size.y / paso)):
 		for ix in range(int(rect.size.x / paso)):
 			var x: float = rect.position.x + (float(ix) + rng.randf()) * paso
 			var z: float = rect.position.y + (float(iz) + rng.randf()) * paso
+			var m: float = 1.0
+			if con_matas:
+				m = float(_matas.call(x, z))
+				if rng.randf() > lerpf(CLARO_DENSIDAD, 1.0, m):
+					continue            # antes de pedir el peso (lo caro): en los claros casi todo se descarta aquí
 			var w: float = float(_peso.call(x, z))
 			if w <= 0.02 or rng.randf() > w * 1.15:
 				continue
 			var borde: float = 1.0 - absf(w - 0.5) * 2.0
 			var s: float = alto_matojo * (0.75 + rng.randf() * 0.5) * (1.0 + borde * 0.6)
+			if con_matas:
+				s *= lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m)
 			if _alto.is_valid():
 				s *= float(_alto.call(x, z))
 			matojos.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, _y, z)))
@@ -427,16 +445,23 @@ func _crear_bloque(b: Vector2i) -> void:
 	if _quad_tarjeta != null:
 		var trs: Array[Transform3D] = []
 		var tintes: PackedColorArray = PackedColorArray()
-		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas, 0.01))
+		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas * (MATA_MULT_DENSIDAD if con_matas else 1.0), 0.01))
 		for iz in range(int(rect.size.y / paso_t)):
 			for ix in range(int(rect.size.x / paso_t)):
 				var x2: float = rect.position.x + (float(ix) + rng.randf()) * paso_t
 				var z2: float = rect.position.y + (float(iz) + rng.randf()) * paso_t
+				var m2: float = 1.0
+				if con_matas:
+					m2 = float(_matas.call(x2, z2))
+					if rng.randf() > lerpf(CLARO_DENSIDAD, 1.0, m2):
+						continue
 				var w2: float = float(_peso.call(x2, z2))
 				if w2 <= 0.05 or rng.randf() > w2 * 1.1:
 					continue
 				var borde2: float = 1.0 - absf(w2 - 0.5) * 2.0
 				var s2: float = alto_tarjeta * (0.8 + rng.randf() * 0.45) * (1.0 + borde2 * 0.35)
+				if con_matas:
+					s2 *= lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m2)
 				if _alto.is_valid():
 					s2 *= float(_alto.call(x2, z2))
 				trs.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s2, s2, s2)), Vector3(x2, _y, z2)))
@@ -451,6 +476,8 @@ func _crear_bloque(b: Vector2i) -> void:
 	for i in range(int(rect.get_area() * flores_por_unidad)):
 		var x3: float = rect.position.x + rng.randf() * rect.size.x
 		var z3: float = rect.position.y + rng.randf() * rect.size.y
+		if con_matas and float(_matas.call(x3, z3)) < 0.35:
+			continue            # las flores crecen dentro de las matas, no sueltas en el claro
 		if float(_peso.call(x3, z3)) < 0.85:
 			continue
 		var col: Color = COLORES_FLOR[rng.randi() % COLORES_FLOR.size()]
