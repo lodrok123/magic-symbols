@@ -1176,6 +1176,7 @@ func _ready() -> void:
 	elif _modo_escena:
 		_instanciar_escena()
 	_colocar_empujables()
+	_sembrar_adornos()
 	_construir_lotes()
 	_sembrar_hierba()
 	_ambiente()
@@ -2409,7 +2410,8 @@ func _sembrar_hierba() -> void:
 	_hierba.brillo = OSCURECER_SUELO
 	_hierba.albedos_eow = albedos_eow       # albedos
 	add_child(_hierba)
-	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba)
+	var matas: Callable = _mata_hierba if (hierba_en_matas and _solo_zona_v()) else Callable()     # 5/11: macizos con claros (ver _mata_hierba)
+	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba, matas)
 	_hierba.set_estado(Mundo3D.textura_estados(), _tex_pisado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
 	if not hierba_completa and _jugador != null:
 		_hierba.actualizar(_jugador.position, true)     # lo que se ve al empezar, de golpe; el resto al andar
@@ -4673,6 +4675,225 @@ const ALTO_HIERBA_CORTA: float = 0.55
 
 func _alto_hierba(x: float, z: float) -> float:
 	return ALTO_HIERBA_CORTA if _letra(Vector2i(floori(x / S), floori(z / S))) == "," else 1.0
+
+
+## --- 5/11 (Pablo, playtest del Bosque 02): la hierba en MATAS y, en los claros, adornos pequeños ---
+
+## Hierba en macizos con claros entre ellos (como Link's Awakening / Echoes of Wisdom). Solo en los niveles de la siembra por zonas (`_solo_zona_v`: Bosque 01/02, etc.);
+## el Test 2 y los laboratorios siguen con el reparto pareja de siempre.
+@export var hierba_en_matas: bool = true
+## Adornos pequeños (setas y piedrecitas pisables, sin colisión) en los claros de hierba: solo en el bosque (no en cueva ni lava).
+@export var adornos_en_claros: bool = true
+const TAM_MATA: float = 3.2             ## tamaño de las manchas grandes, en casillas (el ruido de baja frecuencia: una mancha ≈ una vez y media esto)
+const TAM_MATA_FINA: float = 1.35       ## el segundo ruido, más fino, que rompe el contorno para que no sean óvalos limpios
+const PESO_MATA_FINA: float = 0.30      ## cuánto pesa el fino en la mezcla (el resto es el grande)
+const UMBRAL_MATA: float = 0.53         ## valor del ruido a partir del cual hay hierba: más alto = menos matas y más claros
+const SUAVE_MATA_ABAJO: float = 0.06    ## la mancha se apaga (de 1 a 0) entre UMBRAL - esto y UMBRAL + SUAVE_MATA_ARRIBA: el borde no es un corte seco
+const SUAVE_MATA_ARRIBA: float = 0.12
+
+
+## Cuánta «mata» hay en un punto del mundo (0 = claro, 1 = corazón de una mancha). Usa `_vruido` (el mismo ruido de valor que el suelo, hecho en CPU).
+## Solo depende de (x, z), así que la hierba sale igual cada vez.
+func _mata_hierba(x: float, z: float) -> float:
+	if _rejilla_mata.is_empty():
+		_preparar_rejilla_mata()
+	# bilineal sobre la rejilla del ruido (4 lecturas en vez de 8 hashes por punto: la siembra pide este valor miles de veces por bloque)
+	var fx: float = clampf(x / S * RES_MATA, 0.0, float(_lado_mata - 2) - 0.001)
+	var fz: float = clampf(z / S * RES_MATA, 0.0, float(_lado_mata - 2) - 0.001)
+	var ix: int = int(fx)
+	var iz: int = int(fz)
+	var tx: float = fx - float(ix)
+	var tz: float = fz - float(iz)
+	var k: int = iz * _lado_mata + ix
+	var n: float = lerpf(lerpf(_rejilla_mata[k], _rejilla_mata[k + 1], tx), lerpf(_rejilla_mata[k + _lado_mata], _rejilla_mata[k + _lado_mata + 1], tx), tz)
+	return smoothstep(UMBRAL_MATA - SUAVE_MATA_ABAJO, UMBRAL_MATA + SUAVE_MATA_ARRIBA, n)
+
+
+const RES_MATA: int = 4                 ## muestras del ruido de las matas por casilla (la mancha más fina mide 1,35 casillas: de sobra)
+var _rejilla_mata: PackedFloat32Array = PackedFloat32Array()
+var _lado_mata: int = 0
+
+
+func _preparar_rejilla_mata() -> void:
+	_lado_mata = _lado * RES_MATA + 2
+	_rejilla_mata.resize(_lado_mata * _lado_mata)
+	for j in range(_lado_mata):
+		for i in range(_lado_mata):
+			var c := Vector2(float(i), float(j)) / float(RES_MATA)
+			_rejilla_mata[j * _lado_mata + i] = _vruido(c / TAM_MATA, 11) * (1.0 - PESO_MATA_FINA) + _vruido(c / TAM_MATA_FINA, 12) * PESO_MATA_FINA
+
+
+const MATA_MAX_ADORNO: float = 0.08     ## en una casilla de hierba (`,` o `v`) solo hay adornos donde la mata es menor que esto (claro de verdad); en `.` (sin briznas) en cualquier sitio
+const PROB_GRUPO_ADORNO: float = 0.22  ## probabilidad de que una casilla libre de claro lleve un grupito
+const PROB_SETAS_ADORNO: float = 0.45   ## de los grupitos, los que son de setas (el resto, de piedrecitas)
+const RADIO_LIBRE_ADORNO: float = 1.15  ## distancia mínima (unidades) a cualquier pieza, marcador o pieza de puzle
+const ADORNO_SETAS: Array = ["setas", "setas_amarillas", "setas_marrones"]
+const ADORNO_ESCALA_SETAS: Dictionary = {"setas": Vector2(0.75, 1.1), "setas_amarillas": Vector2(0.75, 1.1), "setas_marrones": Vector2(0.5, 0.7)}
+var _n_adornos: int = 0
+var _adornos_setas: int = 0
+var _adornos_piedras: int = 0
+var _adornos_pos: Array[Vector3] = []     ## donde quedaron (para las pruebas)
+
+
+## Pone los grupitos de adornos en los claros (antes de `_construir_lotes`: van a los mismos lotes que el resto del decorado, sin colisión).
+## Sin azar de verdad: cada grupo sale de la casilla, así que es igual en cada partida.
+func _sembrar_adornos() -> void:
+	_n_adornos = 0
+	_adornos_setas = 0
+	_adornos_piedras = 0
+	_adornos_pos.clear()
+	if not adornos_en_claros or not _solo_zona_v() or not decorado_por_lotes:
+		return
+	var variante: String = RocasEstilizadas.variante_de(estilo, nivel, String(get_meta("bioma", "")))
+	if variante != RocasEstilizadas.MUSGO:
+		return
+	var ocupado: Dictionary = _ocupacion_adornos()
+	for cz in range(_lado):
+		for cx in range(_lado):
+			var c := Vector2i(cx, cz)
+			var l: String = _letra(c)
+			if not (l == "." or l == "," or l == "v") or _bloqueadas.has(c) or _sin_hierba.has(c) or _celdas_pieza.has(c):
+				continue
+			if _hash(cx, cz, 91) % 1000 >= int(PROB_GRUPO_ADORNO * 1000.0):
+				continue
+			_grupo_adornos(c, ocupado)
+	print("Adornos de claro: ", _n_adornos, " (", _adornos_setas, " setas, ", _adornos_piedras, " piedrecitas)")
+
+
+## Un grupito (2-4) alrededor de un punto de la casilla `c`, de setas o de piedrecitas pisables.
+func _grupo_adornos(c: Vector2i, ocupado: Dictionary) -> void:
+	var h: int = _hash(c.x, c.y, 92)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = h
+	var centro := _centro_celda(c, ALTO) + Vector3(rng.randf_range(-0.25, 0.25) * S, 0.0, rng.randf_range(-0.25, 0.25) * S)
+	var n: int = 2 + rng.randi() % 3
+	var de_setas: bool = rng.randf() < PROB_SETAS_ADORNO
+	var variante: String = RocasEstilizadas.variante_de(estilo, nivel, String(get_meta("bioma", "")))
+	var id_seta: String = ADORNO_SETAS[rng.randi() % ADORNO_SETAS.size()]
+	for i in range(n):
+		var ang: float = rng.randf() * TAU
+		var d: float = rng.randf_range(0.0, 0.5) if i > 0 else 0.0
+		var p := Vector3(centro.x + cos(ang) * d, ALTO, centro.z + sin(ang) * d)
+		var cc: Vector2i = _celda_de(p)
+		if _letra(cc) == "v" or _letra(cc) == ",":
+			if _mata_hierba(p.x, p.z) > MATA_MAX_ADORNO:
+				continue
+		if not _lejos_de_no_hierba(p, cc) or _cerca_de_algo(p, ocupado):
+			continue
+		var giro: float = rng.randf() * TAU
+		var id: String
+		var esc: float
+		if de_setas:
+			id = id_seta
+			var r: Vector2 = ADORNO_ESCALA_SETAS[id]
+			esc = rng.randf_range(r.x, r.y)
+			if i > 0 and rng.randf() < 0.4:      # alguna piedrecita entre las setas
+				id = RocasEstilizadas.id_de("piedra_est_%d" % (1 + rng.randi() % 4), variante)
+				esc = rng.randf_range(0.7, 1.0)
+		else:
+			id = RocasEstilizadas.id_de("piedra_est_%d" % (1 + rng.randi() % 4), variante)
+			esc = rng.randf_range(0.65, 1.15) if i == 0 else rng.randf_range(0.5, 0.85)
+		var real: String = _id_real(id)
+		if _plantilla(real).is_empty():
+			continue
+		if not _lotes.has(real):
+			_lotes[real] = []
+		(_lotes[real] as Array).append(Transform3D(Basis(Vector3.UP, giro).scaled(Vector3.ONE * esc), Vector3(p.x, ALTO - HUNDIR, p.z)))
+		_adornos_pos.append(p)
+		_n_adornos += 1
+		if id.begins_with("setas"):
+			_adornos_setas += 1
+		else:
+			_adornos_piedras += 1
+
+
+## Casilla (Vector2i) -> Array[Vector2] (x, z) de todo lo que ya hay puesto: decorado de lotes, el registro de `_poner`, marcadores del editor, las casillas de las
+## piezas de puzle del .txt (cofres, setas recogibles, jarrones…: se leen de sus líneas `; pieza`, porque Puzle3D las crea después) y los reactivos.
+func _ocupacion_adornos() -> Dictionary:
+	var oc: Dictionary = {}
+	var anotar := func(x: float, z: float) -> void:
+		var k := Vector2i(floori(x / S), floori(z / S))
+		if not oc.has(k):
+			oc[k] = []
+		(oc[k] as Array).append(Vector2(x, z))
+	for id in _lotes:
+		for t in (_lotes[id] as Array):
+			anotar.call((t as Transform3D).origin.x, (t as Transform3D).origin.z)
+	for r in _registro:
+		var o: Vector3 = ((r as Array)[2] as Transform3D).origin
+		anotar.call(o.x, o.z)
+	for c in _marca_tf:
+		var o2: Vector3 = (_marca_tf[c] as Transform3D).origin
+		anotar.call(o2.x, o2.z)
+	for rc in _reactivos:
+		if is_instance_valid(rc):
+			anotar.call((rc as Node3D).position.x, (rc as Node3D).position.z)
+	for q in _celdas_puzle_del_mapa():
+		var cen := _centro_celda(q, 0.0)
+		anotar.call(cen.x, cen.z)
+	return oc
+
+
+## Las casillas que nombran las líneas `; pieza …` del .txt del nivel (x y, y las listas `celdas=a,b+c,d` / `a,b..c,d`, `en=`, `de=`, `canal=`).
+func _celdas_puzle_del_mapa() -> Array[Vector2i]:
+	var res: Array[Vector2i] = []
+	var ruta: String = HorneadorNivel.ruta_mapa(nivel)
+	if ruta == "" or not FileAccess.file_exists(ruta):
+		return res
+	var f: FileAccess = FileAccess.open(ruta, FileAccess.READ)
+	if f == null:
+		return res
+	var rx_par := RegEx.new()
+	rx_par.compile("(\\d+),(\\d+)\\.\\.(\\d+),(\\d+)|(\\d+),(\\d+)")
+	while not f.eof_reached():
+		var linea: String = f.get_line()
+		if not linea.begins_with("; pieza "):
+			continue
+		var tokens: PackedStringArray = linea.split(" ", false)
+		if tokens.size() >= 6 and tokens[4].is_valid_int() and tokens[5].is_valid_int():
+			res.append(Vector2i(int(tokens[4]), int(tokens[5])))
+		for tk in tokens:
+			if not tk.contains("="):
+				continue
+			for m in rx_par.search_all(tk):
+				if m.get_string(1) != "":
+					for yy in range(int(m.get_string(2)), int(m.get_string(4)) + 1):
+						for xx in range(int(m.get_string(1)), int(m.get_string(3)) + 1):
+							res.append(Vector2i(xx, yy))
+				else:
+					res.append(Vector2i(int(m.get_string(5)), int(m.get_string(6))))
+	f.close()
+	return res
+
+
+## ¿El punto está a MARGEN_ADORNO o más de cualquier casilla vecina que no sea hierba (camino, agua, piedra, marcadores…)? Los árboles # no cuentan. Así el adorno nunca cae donde el suelo se mezcla con el camino.
+const MARGEN_ADORNO: float = 0.8
+func _lejos_de_no_hierba(p: Vector3, c: Vector2i) -> bool:
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var q := c + Vector2i(dx, dz)
+			var l: String = _letra(q)
+			if l == "." or l == "," or l == "v" or l == "#":
+				continue
+			var ex: float = maxf(maxf(float(q.x) * S - p.x, p.x - float(q.x + 1) * S), 0.0)
+			var ez: float = maxf(maxf(float(q.y) * S - p.z, p.z - float(q.y + 1) * S), 0.0)
+			if sqrt(ex * ex + ez * ez) < MARGEN_ADORNO:
+				return false
+	return true
+
+
+func _cerca_de_algo(p: Vector3, oc: Dictionary) -> bool:
+	var k := Vector2i(floori(p.x / S), floori(p.z / S))
+	var q := Vector2(p.x, p.z)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var lista: Variant = oc.get(k + Vector2i(dx, dz))
+			if lista == null:
+				continue
+			for o in (lista as Array):
+				if (o as Vector2).distance_to(q) < RADIO_LIBRE_ADORNO:
+					return true
+	return false
 
 
 ## Lo que se VE de «quemado» en una casilla (0..1): el círculo que crece mientras la hierba arde, y 1 en la ceniza y en la hierba segada (el suelo
