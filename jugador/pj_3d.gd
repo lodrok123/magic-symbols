@@ -1528,6 +1528,12 @@ const CORRECCION_POSTURA: Dictionary = {
 		"mixamorig_RightToeBase": Vector3(13.5, 1.0, 32.0),
 		"mixamorig_RightToe_End": Vector3(0.0, 0.0, 14.5),
 	},
+	# Marimanta (5/11, Pablo con LabHumanoide3D en modo juego, Idle_02): la mano derecha girada para que el puño agarre el bastón de frente.
+	"marimanta": {
+		"mixamorig_RightHand": Vector3(-3.5, -11.5, -40.5),
+		"mixamorig_RightHandThumb2": Vector3(1.5, 4.0, 0.0),
+		"mixamorig_RightHandIndex2": Vector3(0.0, 0.5, 0.0),
+	},
 }
 
 
