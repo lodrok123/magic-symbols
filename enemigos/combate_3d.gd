@@ -176,6 +176,7 @@ const ARQUERO_FIJO_RAFAGA: float = 1.6          ## × la velocidad de la animaci
 const SUAVIZADO_VEL_JUGADOR: float = 0.3        ## cuánto pesa cada fotograma en la velocidad estimada del jugador (para apuntar con adelanto)
 const DANO_FLECHA: float = 12.0
 const VEL_FLECHA: float = 9.0
+const LARGO_FLECHA: float = 0.6                 ## largo del proyectil del arquero en el mundo (lo que medía la caja original; el GLB se escala a esto)
 const RADIO_IMPACTO_FLECHA: float = 0.75
 
 ## --- EL FUEGO PASA POR CONTACTO (21/10, A2 de docs/PLAN_EOW.md; regla de Pablo) ---
@@ -1752,14 +1753,7 @@ func _soltar_flecha() -> void:
 			_aviso.cancelar()                                   # no va a llegar: que no avise de un golpe que no existe
 		else:
 			_aviso.fijar(Vector3(destino.x, jugador.position.y, destino.z), t_vuelo)     # C3: cae donde la suelta, cuando llega
-	var flecha := MeshInstance3D.new()
-	var caja := BoxMesh.new()
-	caja.size = Vector3(0.05, 0.05, 0.6)
-	flecha.mesh = caja
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.62, 0.45, 0.25)
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flecha.material_override = mat
+	var flecha: Node3D = _crear_flecha()
 	mundo.add_child(flecha)
 	flecha.position = origen
 	flecha.look_at(destino, Vector3.UP)
@@ -1813,15 +1807,73 @@ func _flecha_toca_fuego(p: Vector3) -> bool:
 	return false
 
 
-## Deja la flecha ardiendo: lo dice la marca `ardiendo` (la leen `_flecha_llega` y las pruebas) y se ve naranja con brillo.
+## El proyectil del arquero: la flecha de verdad (`arte/equipo/flecha.glb`, la misma que lleva en la mano: 0,6 de largo, punta hacia +Y, centrada)
+## dentro de una raíz que vuela con `look_at` (mira por −Z). La pieza va girada −90° en X para que su +Y salga por el −Z de la raíz, y escalada
+## para medir LARGO_FLECHA en el mundo (lo que medía la caja de antes), midiendo el GLB por su AABB por si cambia. Si el GLB faltara, caja marrón de respaldo.
+func _crear_flecha() -> Node3D:
+	var raiz := Node3D.new()
+	raiz.name = "FlechaGoblin"
+	raiz.set_meta("flecha_goblin", true)
+	var pieza: Node3D = Equipo3D.pieza("flecha")
+	if pieza == null:
+		var mi := MeshInstance3D.new()
+		var caja := BoxMesh.new()
+		caja.size = Vector3(0.05, 0.05, LARGO_FLECHA)
+		mi.mesh = caja
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.62, 0.45, 0.25)
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mi.material_override = mat
+		raiz.add_child(mi)
+		return raiz
+	var largo: float = _largo_y(pieza)
+	var k: float = LARGO_FLECHA / largo if largo > 0.001 else 1.0
+	pieza.transform = Transform3D(Basis.from_euler(Vector3(-PI * 0.5, 0.0, 0.0)).scaled(Vector3.ONE * k), Vector3.ZERO)
+	raiz.add_child(pieza)
+	return raiz
+
+
+## Largo en Y (en el espacio local de `pieza`) de la unión de las AABB de sus mallas.
+static func _largo_y(pieza: Node3D) -> float:
+	var y0: float = INF
+	var y1: float = -INF
+	for n in pieza.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = n
+		if mi.mesh == null:
+			continue
+		var caja: AABB = (pieza.global_transform.affine_inverse() * mi.global_transform) * mi.mesh.get_aabb() \
+			if pieza.is_inside_tree() else (_rel(pieza, mi) * mi.mesh.get_aabb())
+		y0 = minf(y0, caja.position.y)
+		y1 = maxf(y1, caja.end.y)
+	return y1 - y0 if y1 > y0 else 0.0
+
+
+## Transformada de `n` respecto a `raiz` (ambos fuera del árbol), encadenando padres.
+static func _rel(raiz: Node3D, n: Node3D) -> Transform3D:
+	var t: Transform3D = Transform3D.IDENTITY
+	var p: Node = n
+	while p != null and p != raiz:
+		if p is Node3D:
+			t = (p as Node3D).transform * t
+		p = p.get_parent()
+	return t
+
+
+## Deja la flecha ardiendo: lo dice la marca `ardiendo` (la leen `_flecha_llega` y las pruebas) y se ve naranja con brillo en todas sus mallas.
 func _encender_flecha(flecha: Node3D) -> void:
 	flecha.set_meta("ardiendo", true)
-	if flecha is MeshInstance3D and (flecha as MeshInstance3D).material_override is StandardMaterial3D:
-		var m: StandardMaterial3D = (flecha as MeshInstance3D).material_override
+	var mallas: Array[Node] = flecha.find_children("*", "MeshInstance3D", true, false)
+	if flecha is MeshInstance3D:
+		mallas.append(flecha)
+	for n in mallas:
+		var mi: MeshInstance3D = n
+		var m := StandardMaterial3D.new()
 		m.albedo_color = COLOR_FLECHA_ARDIENDO
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.emission_enabled = true
 		m.emission = COLOR_FLECHA_ARDIENDO
 		m.emission_energy_multiplier = 2.0
+		mi.material_override = m
 
 
 ## Prende lo inflamable (objetos) cuyo cuerpo toca el punto `p` con un radio `radio`. Lo usa la flecha ardiendo, en vuelo y al impactar.

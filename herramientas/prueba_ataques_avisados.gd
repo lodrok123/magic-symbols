@@ -240,12 +240,61 @@ func _caso_arquero() -> void:
 		await avanzar(1)
 	var fijado: Vector3 = a.centro if is_instance_valid(a) else Vector3.INF
 	_ok("4 arquero: al soltar se queda quieto donde apunta la flecha", fijado != Vector3.INF)
+	_comprobar_proyectil(g)
 	var ta: float = a.t if is_instance_valid(a) else 0.0
 	var t_imp: float = a.t_impacto if is_instance_valid(a) else 0.0
 	var t_dano: float = await _esperar_dano(4.0)
 	_ok("4 arquero: la flecha da a la jugadora (dentro del círculo) cuando acaba el aviso", t_dano != INF and absf(ta + t_dano - t_imp) <= 0.15, "%.2f vs %.2f" % [ta + t_dano, t_imp])
 	_limpiar()
 	await avanzar(3)
+
+
+## 5/11: el proyectil del arquero es la flecha de verdad (`arte/equipo/flecha.glb`), no una caja: mallas del GLB, eje largo en la dirección de
+## vuelo (el −Z de la raíz, que `look_at` apunta al destino) y ≈ LARGO_FLECHA (0,6) de largo en el mundo. Se mira justo al soltar, con la flecha en vuelo.
+func _comprobar_proyectil(g: Combate3D) -> void:
+	var flecha: Node3D = null
+	for n in g.mundo.get_children():
+		if n is Node3D and (n as Node3D).has_meta("flecha_goblin"):
+			flecha = n
+	_ok("4 arquero: hay proyectil en vuelo al soltar", flecha != null)
+	if flecha == null:
+		return
+	var mallas: Array[Node] = flecha.find_children("*", "MeshInstance3D", true, false)
+	var con_caja: bool = false
+	for n in mallas:
+		if (n as MeshInstance3D).mesh is BoxMesh:
+			con_caja = true
+	_ok("4 arquero: el proyectil lleva mallas del GLB y ninguna es un BoxMesh (%d mallas)" % mallas.size(), mallas.size() > 0 and not con_caja)
+	var dir: Vector3 = (fijado_destino(g) - flecha.global_position)
+	var eje: Vector3 = -flecha.global_transform.basis.z.normalized()
+	var alineado: bool = dir.length() > 0.05 and eje.dot(dir.normalized()) > 0.99
+	_ok("4 arquero: el eje largo del proyectil va en la dirección de vuelo", alineado, "eje %s · dir %s" % [eje, dir.normalized()])
+	# largo en el mundo: proyección de los 8 vértices de cada AABB sobre el eje de vuelo; grosor: lo que queda perpendicular
+	var a0: float = INF
+	var a1: float = -INF
+	var grosor: float = 0.0
+	for n in mallas:
+		var mi: MeshInstance3D = n
+		if mi.mesh == null:
+			continue
+		var caja: AABB = mi.mesh.get_aabb()
+		for i in 8:
+			var v: Vector3 = mi.global_transform * caja.get_endpoint(i) - flecha.global_position
+			var s: float = v.dot(eje)
+			a0 = minf(a0, s)
+			a1 = maxf(a1, s)
+			grosor = maxf(grosor, (v - eje * s).length())
+	var largo: float = a1 - a0
+	_ok("4 arquero: el proyectil mide ≈ %.2f de largo (%.3f) y es más largo que grueso (%.3f)" % [Combate3D.LARGO_FLECHA, largo, grosor],
+		absf(largo - Combate3D.LARGO_FLECHA) < 0.05 and grosor < largo * 0.5)
+
+
+## Hacia dónde vuela la flecha en vuelo: el centro del aviso fijado (donde cae), a la altura del pecho de la jugadora como en `_soltar_flecha`.
+func fijado_destino(g: Combate3D) -> Vector3:
+	var a: AvisoAtaque3D = _aviso_de(g)
+	if a != null:
+		return Vector3(a.centro.x, jugador.position.y + 0.8, a.centro.z)
+	return jugador.position + Vector3(0.0, 0.8, 0.0)
 
 
 func _caso_cancelar() -> void:
