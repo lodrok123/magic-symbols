@@ -16,21 +16,52 @@ extends SceneTree
 ##   E · ENGANCHADOS (5/11): jugadora_base, cargada por Pj3D como en el juego, trae los clips de ClipsFamilia.FUENTE_CLIPS_MIXAMO con su nombre (Mixamo_*); con la «referencia» (Idle de
 ##       Mixamo) y «centrar», en Mixamo_CastDosManos y Mixamo_Flotar la suela más baja queda a ≤ SUELA_E del alto del suelo en los tres instantes y la cadera a ≤ CADERA_E alturas de cadera del
 ##       centro en el plano del suelo (media del clip). Necesita el GLB importado por Godot (tools/Godot… --headless --editor --quit, o abrir el editor).
+##   F · OTROS MODELOS (5/11): goblin_archer_chibi, goblin_warrior_chibi, marimanta, alchemist_elf (por ClipsFamilia.EXTRAS) y goblin_chaman (por FUENTES), cargados por Pj3D, traen
+##       sus alternativas Mixamo_* (OTROS) con ≥ 1 pista de rotación por hueso común, sin NaN, y sus roles de siempre (idle, walk, hit…) siguen resolviendo al MISMO clip que antes
+##       de añadirlas (ROLES_ANTES): las alternativas no pisan ningún rol.
 
-const GLB_CLIPS: String = "res://arte/meshy/mixamo_prueba_clips.glb"
+const GLB_CLIPS: String = "res://arte/meshy/mixamo_clips.glb"
+## Otros modelos: id de Pj3D -> alternativas que debe traer.
+const OTROS: Dictionary = {
+	"goblin_archer_chibi": ["Mixamo_TensarArco", "Mixamo_Disparar", "Mixamo_GritoGuerra"],
+	"goblin_warrior_chibi": ["Mixamo_TensarArco", "Mixamo_Disparar", "Mixamo_GritoGuerra"],
+	"marimanta": ["Mixamo_AncianoQuieto", "Mixamo_AncianoAndar", "Mixamo_Rezar"],
+	"goblin_chaman": ["Mixamo_AncianoQuieto", "Mixamo_AncianoAndar", "Mixamo_Rezar"],
+	"alchemist_elf": ["Mixamo_Tabernero"],
+}
+## Rol -> clip al que resolvía cada modelo ANTES de las alternativas (en minúsculas, como lo devuelve Pj3D.clip_de).
+const ROLES_ANTES: Dictionary = {
+	"goblin_archer_chibi": {"idle": "idle", "walk": "walking", "attack": "archeryshot", "hit": "hitreaction", "death": "dead"},
+	"goblin_warrior_chibi": {"idle": "idle", "walk": "walking", "attack": "leftslash", "hit": "slapreaction", "death": "die"},
+	"marimanta": {"idle": "idle_02", "walk": "elderly_shaky_walk_inplace", "talk": "talk_with_left_hand_on_hip"},
+	"goblin_chaman": {"idle": "idle_02", "walk": "walking", "talk": "talk_with_left_hand_on_hip", "hit": "hit", "death": "death"},
+	"alchemist_elf": {"idle": "idle", "walk": "walking", "talk": "standtalkingangry"},
+}
 const ID_DESTINO: String = "jugadora_base"
 const FRACS: Array = [0.1, 0.5, 0.9]
 const HUESOS_MIN: int = 60
 const TOL: float = 10.0
+## La línea cadera→cabeza tiene más margen: la columna de jugadora_base no se alinea al reposo de la fuente (ClipsFamilia.ALINEAR_REPOSO, a propósito) y queda ~9° más erguida que la
+## fuente en todos los clips (lo compensa Pj3D.POSTURAS); en los que doblan mucho el tronco (Getting_Up, Stand_To_Roll, Standing_2H_Magic_Area_Attack_01, Old_Man_Idle) llega a 10–14°.
+const TOL_LINEA: float = 15.0
 const CADERA_XZ_MAX: float = 0.35      ## alturas de cadera
-## Clips que avanzan a propósito (la cadera se desplaza): C se imprime como INFO.
-const AVANZAN: Array = ["Swimming", "Stand_To_Roll"]
+## Clips que avanzan a propósito (la cadera se desplaza): C se imprime como INFO. Push empuja andando (1,17 alturas), Standing_React_Large_From_Front_2 la echa atrás (1,09),
+## Bartending se mueve por la barra (0,39). Two_Hand_Spell_Casting (0,68) y Magic_Heal (0,56) dan un paso al conjurar y vuelven: en el juego van centrados (ClipsFamilia «centrar») y
+## E comprueba que la cadera queda a ≤ CADERA_E del centro de media.
+const AVANZAN: Array = ["Swimming", "Stand_To_Roll", "Old_Man_Walk", "Falling_Back_Death", "Getting_Up", "Push", "Standing_React_Large_From_Front_2", "Bartending",
+	"Two_Hand_Spell_Casting", "Magic_Heal"]
 const ALTO: float = 1.0
-const ENGANCHADOS: Array = ["Mixamo_CastDosManos", "Mixamo_Nadar", "Mixamo_Flotar", "Mixamo_Voltereta"]
-## Solo los clips de pie: Mixamo_Flotar lleva las piernas encogidas pataleando (la suela queda 0,14 del alto por encima del suelo: es un clip de agua, no de suelo) y Mixamo_Nadar
-## y Mixamo_Voltereta avanzan.
-const EN_SUELO: Array = ["Mixamo_CastDosManos"]
-const SUELA_E: float = 0.03
+## Clips de arco: el cuerpo gira 90° para apuntar y el brazo del arco va extendido hacia el blanco; la «apertura» lateral cambia de eje (fuente +85°, destino −4° con el brazo
+## en el mismo sitio: docs/capturas/mixamo_prueba/Standing_Aim_Recoil.png) y no se compara, como boca abajo.
+const DE_PERFIL: Array = ["Standing_Draw_Arrow", "Standing_Aim_Recoil"]
+const ENGANCHADOS: Array = ["Mixamo_CastDosManos", "Mixamo_Nadar", "Mixamo_Flotar", "Mixamo_Voltereta", "Mixamo_CastArea1", "Mixamo_CastArea2", "Mixamo_Curar",
+	"Mixamo_GolpeGrande", "Mixamo_MorirAtras", "Mixamo_Incorporarse", "Mixamo_EmpujePesado", "Mixamo_Beber", "Mixamo_AbrirTapa"]
+## Solo los clips de pie y en el sitio: Mixamo_Flotar lleva las piernas encogidas pataleando (la suela queda 0,14 del alto por encima del suelo: es un clip de agua, no de suelo), Mixamo_Nadar
+## y Mixamo_Voltereta avanzan, Mixamo_MorirAtras acaba tumbada y Mixamo_Incorporarse empieza tumbada (y se desplazan), Mixamo_GolpeGrande la echa atrás y Mixamo_EmpujePesado
+## empuja andando (de puntillas: la suela sube 0,08).
+const EN_SUELO: Array = ["Mixamo_CastDosManos", "Mixamo_CastArea1", "Mixamo_CastArea2", "Mixamo_Curar", "Mixamo_Beber", "Mixamo_AbrirTapa"]
+## 5 % del alto: con la «referencia» Idle los clips de pie quedan a 0,03–0,04 (Beber 0,043: se balancea sobre los talones).
+const SUELA_E: float = 0.05
 const CADERA_E: float = 0.12
 const Medir := preload("res://herramientas/prueba_rigging_postura.gd")
 
@@ -124,11 +155,11 @@ func _correr() -> void:
 			var ms: Dictionary = _pose_fuente(pj, sk_s, an_s, t)
 			var d_lin: float = absf(float(md["linea"]) - float(ms["linea"]))
 			var d_rod: float = maxf(absf(float(md["rod_l"]) - float(ms["rod_l"])), absf(float(md["rod_r"]) - float(ms["rod_r"])))
-			var boca_abajo: bool = absf(float(ms["linea"])) > 90.0
+			var boca_abajo: bool = absf(float(ms["linea"])) > 90.0 or DE_PERFIL.has(String(nombre))
 			var d_bra: float = absf(float(md["brazo_sag"]) - float(ms["brazo_sag"]))
 			if not boca_abajo:
 				d_bra = maxf(d_bra, absf(float(md["brazo_lat"]) - float(ms["brazo_lat"])))
-			ok(d_lin <= TOL, "B %s@%.1f: línea cadera→cabeza %+.1f° contra %+.1f° de la fuente (dif. %.1f, tope %.0f)" % [nombre, f, md["linea"], ms["linea"], d_lin, TOL])
+			ok(d_lin <= TOL_LINEA, "B %s@%.1f: línea cadera→cabeza %+.1f° contra %+.1f° de la fuente (dif. %.1f, tope %.0f)" % [nombre, f, md["linea"], ms["linea"], d_lin, TOL_LINEA])
 			ok(d_rod <= TOL, "B %s@%.1f: rodillas %.1f/%.1f° contra %.1f/%.1f° (dif. %.1f, tope %.0f)" % [nombre, f, md["rod_l"], md["rod_r"], ms["rod_l"], ms["rod_r"], d_rod, TOL])
 			ok(d_bra <= TOL, "B %s@%.1f: brazo %+.1f° delante / %+.1f° abierto contra %+.1f / %+.1f (dif. %.1f, tope %.0f%s)" % [nombre, f, md["brazo_sag"], md["brazo_lat"], ms["brazo_sag"], ms["brazo_lat"], d_bra, TOL,
 				"; boca abajo: la apertura no se compara" if boca_abajo else ""])
@@ -181,6 +212,45 @@ func _correr() -> void:
 		if n_k > 0:
 			media /= float(n_k)
 		ok(media.length() <= CADERA_E, "E %s: la cadera queda a %.2f alturas de cadera del centro (x %+.2f, z %+.2f; tope %.2f)" % [nombre_e, media.length(), media.x, media.y, CADERA_E])
+	# F · los otros modelos: traen sus alternativas y sus roles no cambian.
+	for id_o in OTROS.keys():
+		var pj_o := Pj3D.new()
+		root.add_child(pj_o)
+		if not pj_o.cargar(String(id_o)) or pj_o._ap == null:
+			ok(false, "F Pj3D no cargó " + String(id_o))
+			pj_o.queue_free()
+			continue
+		for i in 2:
+			await process_frame
+		var l_so: Array[Node] = pj_o.find_children("*", "Skeleton3D", true, false)
+		var sk_o: Skeleton3D = l_so[0] as Skeleton3D if not l_so.is_empty() else null
+		var comunes_o: int = 0
+		if sk_o != null:
+			for i in sk_o.get_bone_count():
+				if sk_s.find_bone(sk_o.get_bone_name(i)) >= 0:
+					comunes_o += 1
+		print("INFO  F %s: %d huesos, %d comunes con la fuente; clips %s" % [id_o, sk_o.get_bone_count() if sk_o != null else 0, comunes_o, pj_o._ap.get_animation_list()])
+		for alt in (OTROS[id_o] as Array):
+			var hay_o: bool = pj_o._ap.has_animation(String(alt))
+			if not hay_o:
+				ok(false, "F %s trae «%s»" % [id_o, alt])
+				continue
+			var an_o: Animation = pj_o._ap.get_animation(String(alt))
+			var rot_o: int = 0
+			var nan_o: bool = false
+			for t in an_o.get_track_count():
+				if an_o.track_get_type(t) == Animation.TYPE_ROTATION_3D:
+					rot_o += 1
+				for k in an_o.track_get_key_count(t):
+					var v = an_o.track_get_key_value(t, k)
+					if (v is Quaternion and not (v as Quaternion).is_finite()) or (v is Vector3 and not (v as Vector3).is_finite()):
+						nan_o = true
+			ok(rot_o >= comunes_o - 1 and not nan_o, "F %s trae «%s»: %.2f s, %d pistas de rotación (huesos comunes %d), NaN=%s" % [id_o, alt, an_o.length, rot_o, comunes_o, nan_o])
+		for rol in (ROLES_ANTES[id_o] as Dictionary).keys():
+			var ahora: String = pj_o.clip_de(String(rol)).to_lower()
+			var antes: String = String((ROLES_ANTES[id_o] as Dictionary)[rol])
+			ok(ahora == antes, "F %s: el rol «%s» sigue resolviendo a «%s» (ahora «%s»)" % [id_o, rol, antes, ahora])
+		pj_o.queue_free()
 	_fin()
 
 

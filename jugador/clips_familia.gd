@@ -56,11 +56,35 @@ const FUENTE_UNA_MANO: Dictionary = {
 ##   Mixamo_CastDosManos  conjuro a dos manos, una vez (3,4 s)        Mixamo_Nadar      nado de crol, avanza la cadera (4,5 s)
 ##   Mixamo_Flotar        de pie en el agua moviendo brazos, bucle    Mixamo_Voltereta  de pie, voltereta adelante y de pie; avanza ~4 alturas de cadera (2,4 s)
 ## Para usar uno como rol del juego basta cambiar aquí su nombre de destino por el del rol de Pj3D.SINONIMOS (y quitarlo de la fuente que lo diera antes).
-const RUTA_CLIPS_MIXAMO: String = "res://arte/meshy/mixamo_prueba_clips.glb"
+## 5/11 (Pablo: «los marcados en negrita… las que veas buenas no las borres, déjalas porque pueden valer, como alt»): los 16 de docs/CLIPS_MIXAMO_CANDIDATOS.md entran
+## como ALTERNATIVAS con su nombre Mixamo_* (ningún rol cambia de clip) repartidos por familia: jugadora, goblins (arquero y guerrero: rig de 27 huesos, el retarget
+## solo copia los huesos que existen en el destino), ancianas (Marimanta y el chamán, 65 huesos) y NPC (alquimista). Se miran en LabJugadora3D (jugadora) y en
+## LabHumanoide3D con «como el juego» (el resto). Los 21 clips van en UN solo GLB (arte/meshy/mixamo_clips.glb, herramientas/mixamo_clips_a_glb.gd).
+##   Jugadora: Mixamo_CastArea1 / 2 (conjuro a dos manos hacia el suelo / recoger y soltar, una vez) · Mixamo_Curar (curación a una mano) · Mixamo_GolpeGrande (golpe recibido grande
+##   de frente) · Mixamo_MorirAtras (cae muerta de espaldas) · Mixamo_Incorporarse (se levanta del suelo) · Mixamo_EmpujePesado (empuja algo pesado, bucle) · Mixamo_Beber (8,9 s) ·
+##   Mixamo_AbrirTapa (abre la tapa de un cofre, 8,9 s). Goblins: Mixamo_TensarArco · Mixamo_Disparar (el retroceso del disparo) · Mixamo_GritoGuerra (provocación con hacha).
+##   Ancianas: Mixamo_AncianoQuieto (12 s) · Mixamo_AncianoAndar (arrastra los pies; avanza) · Mixamo_Rezar (de pie, balanceándose). NPC: Mixamo_Tabernero (sirve bebidas, 13,6 s).
+## Los nombres de destino no contienen ninguna clave de Pj3D.SINONIMOS (hit, idle, walk, empujar, levantarse…): el tercer barrido de `_buscar_clip` busca por «contains».
+const RUTA_CLIPS_MIXAMO: String = "res://arte/meshy/mixamo_clips.glb"
 const FUENTE_CLIPS_MIXAMO: Dictionary = {
-	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Two_Hand_Spell_Casting", "Treading_Water"], "clips": {
+	# centrar (medido con prueba_mixamo_clips.gd, desvío medio en alturas de cadera): Two_Hand_Spell_Casting 0,33 · Treading_Water · Magic_Heal 0,26. Push (0,59, recorre 1,17) y
+	# Standing_React_Large_From_Front_2 (0,70, recorre 1,09) NO se centran: se desplazan de verdad (empuja andando; el golpe la echa atrás).
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Two_Hand_Spell_Casting", "Treading_Water", "Magic_Heal"], "clips": {
 		"Mixamo_CastDosManos": "Two_Hand_Spell_Casting", "Mixamo_Nadar": "Swimming", "Mixamo_Flotar": "Treading_Water", "Mixamo_Voltereta": "Stand_To_Roll",
+		"Mixamo_CastArea1": "Standing_2H_Magic_Area_Attack_01", "Mixamo_CastArea2": "Standing_2H_Magic_Area_Attack_02", "Mixamo_Curar": "Magic_Heal",
+		"Mixamo_GolpeGrande": "Standing_React_Large_From_Front_2", "Mixamo_MorirAtras": "Falling_Back_Death", "Mixamo_Incorporarse": "Getting_Up",
+		"Mixamo_EmpujePesado": "Push", "Mixamo_Beber": "Drinking", "Mixamo_AbrirTapa": "Opening_A_Lid",
 	}}
+const FUENTE_MIXAMO_GOBLIN: Dictionary = {
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
+		"Mixamo_TensarArco": "Standing_Draw_Arrow", "Mixamo_Disparar": "Standing_Aim_Recoil", "Mixamo_GritoGuerra": "Standing_Taunt_Battlecry",
+	}}
+const FUENTE_MIXAMO_ANCIANA: Dictionary = {
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
+		"Mixamo_AncianoQuieto": "Old_Man_Idle", "Mixamo_AncianoAndar": "Old_Man_Walk", "Mixamo_Rezar": "Praying_2",
+	}}
+const FUENTE_MIXAMO_NPC: Dictionary = {
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Bartending"], "clips": {"Mixamo_Tabernero": "Bartending"}}   # la cadera a 0,49 alturas hacia atrás; se mueve 0,39 por la barra
 
 ## Modelos que SÍ traen AnimationPlayer propio (la elfa jugadora) y solo reciben clips de más: id de GLB -> fuentes (mismo formato que FUENTES). Nunca pisan un clip que ya tenga.
 const EXTRAS: Dictionary = {
@@ -68,6 +92,11 @@ const EXTRAS: Dictionary = {
 	"woodland_wanderer": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
 	"chibi_elf": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
 	"chibi_elf_v2": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
+	# 5/11: alternativas de Mixamo (ver FUENTE_MIXAMO_*). Los goblins tienen el rig de Meshy de 27 huesos (sin dedos ni Toe_End): se copian los huesos que tienen.
+	"goblin_archer_chibi": [FUENTE_MIXAMO_GOBLIN],
+	"goblin_warrior_chibi": [FUENTE_MIXAMO_GOBLIN],
+	"marimanta": [FUENTE_MIXAMO_ANCIANA],
+	"alchemist_elf": [FUENTE_MIXAMO_NPC],
 }
 
 ## Modelo (id de GLB) -> de dónde toma sus clips. Solo para modelos que NO traen AnimationPlayer propio. Cada fuente es un GLB de la familia (mismos
@@ -96,6 +125,7 @@ const FUENTES: Dictionary = {
 		{"ruta": "res://arte/modelos/goblin_warrior_chibi.glb", "referencia": "Idle", "clips": {
 			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
 		}},
+		FUENTE_MIXAMO_ANCIANA,       # 5/11: Mixamo_AncianoQuieto, Mixamo_AncianoAndar y Mixamo_Rezar, alternativas para mirar
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.

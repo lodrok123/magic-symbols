@@ -7,6 +7,13 @@ Nombre = archivo de `animation_motion/` sin `.fbx`; entre corchetes, segundos. L
 
 Quitados de la búsqueda: deporte, armas de fuego, bailes y clips sentados o tumbados en cama (son unos 1.300 de los 2.317).
 
+**5/11, hecho (diario 387):** los 16 en **negrita** están metidos como ALTERNATIVAS (Pablo: «las que veas buenas no las borres, déjalas porque pueden valer, como alt»):
+ningún rol cambia de clip; cada uno va con su nombre `Mixamo_*` en el GLB único `arte/meshy/mixamo_clips.glb` (21 clips, bajados del espejo de Hugging Face) y se reparte por
+familia en `ClipsFamilia` (jugadora → `FUENTE_CLIPS_MIXAMO`; goblins arquero y guerrero → `FUENTE_MIXAMO_GOBLIN` vía EXTRAS; Marimanta y chamán → `FUENTE_MIXAMO_ANCIANA`;
+alquimista → `FUENTE_MIXAMO_NPC`). Se miran en **laboratorios/LabJugadora3D.tscn** (la jugadora: lista de clips con fuente al lado) y en **laboratorios/LabHumanoide3D.tscn**
+con «COMO EL JUEGO» (que ahora se enciende solo en esos modelos). Para pasar uno a rol del juego: renombrar el destino al rol de `Pj3D.SINONIMOS` (o apuntarlo en `CLIPS_DE`).
+Nombres: CastArea1/2 · Curar · GolpeGrande · MorirAtras · Incorporarse · EmpujePesado · Beber · AbrirTapa · TensarArco · Disparar · GritoGuerra · AncianoQuieto · AncianoAndar · Rezar · Tabernero.
+
 ## 1. Jugadora (héroe)
 
 | Rol en Pj3D | Hoy | Candidatos Mixamo |

@@ -5,7 +5,7 @@ extends SceneTree
 ## Salida en res://docs/capturas/mixamo_prueba/<clip>.png.
 
 const DIR: String = "res://docs/capturas/mixamo_prueba"
-const GLB_CLIPS: String = "res://arte/meshy/mixamo_prueba_clips.glb"
+const GLB_CLIPS: String = "res://arte/meshy/mixamo_clips.glb"
 const ID_DESTINO: String = "jugadora_base"
 const FRACS: Array = [0.1, 0.5, 0.9]
 const ALTO: float = 1.0

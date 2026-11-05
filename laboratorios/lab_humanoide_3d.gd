@@ -268,9 +268,10 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 
 
 ## Modo de serie: «como el juego» donde el GLB solo no sirve (sus clips los pone ClipsFamilia: jugadora_base, elfo_base, goblin_asesino) y apagado en el resto, para no
-## cambiar lo que ya se usaba (los GLB con reproductor propio se ven como siempre).
+## cambiar lo que ya se usaba (los GLB con reproductor propio se ven como siempre). 5/11: también donde ClipsFamilia.EXTRAS añade clips de más (los goblins, Marimanta y el
+## alquimista traen alternativas de Mixamo, Mixamo_*, que solo se ven por esta ruta).
 func _modo_juego_de_serie(id: String) -> bool:
-	return ClipsFamilia.tiene_fuente(Pj3D.glb_de(id))
+	return ClipsFamilia.tiene_fuente(Pj3D.glb_de(id)) or ClipsFamilia.tiene_extras(Pj3D.glb_de(id))
 
 
 ## El Pj3D manda sobre el reproductor con su árbol de animación (ArbolAnimPj); el laboratorio lleva el clip a mano (play, speed_scale, seek), así que el árbol se apaga
