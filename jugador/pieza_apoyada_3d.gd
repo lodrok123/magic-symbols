@@ -24,6 +24,9 @@ const K_DESPLAZ_ADELANTE: String = "desplaz_adelante"    ## u de juego: desplaza
 const K_LADO: String = "lado"                            ## signo en X del personaje del lado de la mano (-1 = derecha de un modelo que mira a +Z)
 const K_DESPLAZ_LATERAL: String = "desplaz_lateral"      ## u de juego: desplazamiento del pie desde la mano HACIA el cuerpo (5/11, bastón de Marimanta); dist_min_cuerpo sigue mandando
 
+const K_GIRO_MUNDO: String = "giro_mundo"                ## true: `giro` es absoluto (grados sobre el eje vertical del MUNDO: 90 = el +X de la pieza mira al norte, −Z), no respecto al personaje
+const K_EJE_MALLA: String = "eje_malla"                  ## true: el palo no pasa por el origen del GLB; se mide su eje (centro XZ de los vértices de la mitad de abajo) y ESE eje es el que se pone bajo la mano
+
 const K_Z_MIN: String = "z_min"                         ## u de juego: lo más atrás (eje Z del personaje, +Z = delante) que puede quedar el pie
 const K_Z_MAX: String = "z_max"                         ## y lo más adelante: la mano puede ir al pecho y el palo se queda a su costado, inclinado hacia ella
 
@@ -47,6 +50,8 @@ var giro: float = 0.0
 var dist_min_cuerpo: float = 0.0
 var desplaz_adelante: float = 0.0
 var desplaz_lateral: float = 0.0
+var giro_mundo: bool = false
+var eje_local: Vector3 = Vector3.ZERO           ## desvío XZ del palo respecto al origen de la pieza, en unidades de la pieza (K_EJE_MALLA)
 var lado: float = -1.0
 var z_min: float = -INF
 var z_max: float = INF
@@ -77,6 +82,8 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 	dist_min_cuerpo = float(datos.get(K_DIST_MIN_CUERPO, 0.0))
 	desplaz_adelante = float(datos.get(K_DESPLAZ_ADELANTE, 0.0))
 	desplaz_lateral = float(datos.get(K_DESPLAZ_LATERAL, 0.0))
+	giro_mundo = bool(datos.get(K_GIRO_MUNDO, false))
+	eje_local = _eje_malla(pieza) if bool(datos.get(K_EJE_MALLA, false)) else Vector3.ZERO
 	_transform_mano = pieza.transform
 	agarre_local = pieza.transform * Vector3(0.0, float(datos.get(K_AGARRE_Y, 0.0)), 0.0)
 	_largo_local = _largo_malla(pieza)
@@ -103,6 +110,26 @@ func _largo_malla(n: Node3D) -> float:
 	for mi in n.find_children("*", "MeshInstance3D", true, false):
 		m = maxf(m, (mi as MeshInstance3D).get_aabb().size.y * (mi as Node3D).scale.y)
 	return m
+
+
+## Centro XZ (en el espacio de la pieza, con la escala de sus nodos de malla) de los vértices de la mitad de abajo de las mallas: por ahí pasa el palo.
+## (5/11, bastón de Marimanta: el GLB de Tripo tiene el palo 0,06 a −X del origen y el rizo hacia +X; plantado por el origen, el palo caía sobre los nudillos.)
+func _eje_malla(n: Node3D) -> Vector3:
+	var suma := Vector3.ZERO
+	var cuenta: int = 0
+	var tope: float = _largo_malla(n) * 0.5
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var m: Mesh = (mi as MeshInstance3D).mesh
+		if m == null:
+			continue
+		var t: Transform3D = n.global_transform.affine_inverse() * (mi as Node3D).global_transform if n.is_inside_tree() else (mi as Node3D).transform
+		for s in m.get_surface_count():
+			for v in m.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]:
+				var p: Vector3 = t * v
+				if p.y <= tope:
+					suma += p
+					cuenta += 1
+	return Vector3(suma.x, 0.0, suma.z) / float(cuenta) if cuenta > 0 else Vector3.ZERO
 
 
 func _al_actualizar_esqueleto() -> void:
@@ -139,7 +166,7 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var k: float = 1.0 if (fijar or not _arrancado) else 1.0 - exp(-SUAVIZADO * delta)
 	_pie_local = _pie_local.lerp(objetivo_pie, k)
 	_arrancado = _arrancado or not suelta
-	var yaw_pieza: float = yaw_modelo + deg_to_rad(giro)
+	var yaw_pieza: float = deg_to_rad(giro) if giro_mundo else yaw_modelo + deg_to_rad(giro)
 	_yaw = yaw_pieza if fijar else lerp_angle(_yaw, yaw_pieza, 1.0 - exp(-SUAVIZADO_GIRO * delta))
 	# Inclinación hacia la mano solo si la palma no queda sobre el pie (por la distancia mínima al cuerpo) y mientras la sostiene.
 	var al_mano := Vector3(rel.x - _pie_local.x, 0.0, rel.z - _pie_local.z)
@@ -152,7 +179,8 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var dir_h: Vector3 = giro_pers * al_mano
 	if tilt > 0.0001 and dir_h.length() > 0.0001:
 		base = Basis(Vector3.UP.cross(dir_h.normalized()).normalized(), tilt) * base      # rota la vertical hacia la mano
-	var plantada := Transform3D(base * Basis.from_scale(Vector3.ONE * _escala_mundo()), raiz + giro_pers * _pie_local)
+	# El PALO (eje_local, girado con la pieza) es lo que va en el pie plantado; el origen del GLB se desplaza lo que haga falta.
+	var plantada := Transform3D(base * Basis.from_scale(Vector3.ONE * _escala_mundo()), raiz + giro_pers * _pie_local - base * (eje_local * _escala_mundo()))
 	# El peso del modo agarrado sube o baja hacia su objetivo (en pruebas `fijar` salta directo).
 	var objetivo_peso: float = 1.0 if agarrado else 0.0
 	if fijar or _mezcla <= 0.0:

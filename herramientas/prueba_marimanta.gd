@@ -151,12 +151,14 @@ func _initialize() -> void:
 			# Modo suelto: con la palma lejísimos (se simula alejando el punto de agarre) el bastón se queda plantado y vertical junto a ella, sin seguir a la mano.
 			_suela_en(p, sk, ap, p.clip_de("idle"), 0.0)
 			apoyo.actualizar(0.0, true)
-			var pie_antes: Vector3 = baston.global_position
+			# 5/11: se mide el pie del PALO (eje_malla: el origen del GLB está 0,06 a un lado y se desplaza un pelo al quitarse la inclinación), no el origen.
+			var pie_antes: Vector3 = baston.global_transform * apoyo.eje_local
 			var agarre_ok: Vector3 = apoyo.agarre_local
 			apoyo.agarre_local += Vector3(BASTON_LEJOS, 0.0, 0.0)
 			apoyo.actualizar(0.0, true)
+			var pie_despues: Vector3 = baston.global_transform * apoyo.eje_local
 			_ok(apoyo.suelta, "con la mano lejos el bastón pasa a modo suelto")
-			_ok(baston.global_position.distance_to(pie_antes) <= 0.001 and rad_to_deg(baston.global_basis.y.normalized().angle_to(Vector3.UP)) <= 0.1, "suelto: plantado en su sitio y vertical (se movió %.4f u)" % baston.global_position.distance_to(pie_antes))
+			_ok(pie_despues.distance_to(pie_antes) <= 0.001 and rad_to_deg(baston.global_basis.y.normalized().angle_to(Vector3.UP)) <= 0.1, "suelto: plantado en su sitio y vertical (se movió %.4f u)" % pie_despues.distance_to(pie_antes))
 			apoyo.agarre_local = agarre_ok
 			apoyo.actualizar(0.0, true)
 			_ok(not apoyo.suelta, "al volver la mano lo vuelve a agarrar")

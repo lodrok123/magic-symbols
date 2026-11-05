@@ -25,7 +25,10 @@ const BASTON_GIRO: Vector3 = Vector3(-46.3, 25.0, -163.8)
 ## atravesar la túnica al andar); desplaz_adelante: u de juego extra hacia delante; lado: la mano derecha de un modelo que mira a +Z está en -X; giro: grados sobre su eje.
 ## 5/11 (Pablo: «el bastón en la mano, esa misma posición pero desplazado un poco hacia mi derecha» = hacia el cuerpo): con Marimanta a 0,8 de alto su mano derecha queda a
 ## 0,125 u del eje del cuerpo y dist_min_cuerpo 0,15 empujaba el pie del bastón 0,025 más afuera que la mano (el palo pasaba por fuera de la mano). Ahora 0,12: el pie bajo la mano.
-const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.0, "desplaz_lateral": 0.0, "lado": -1.0, "z_min": 0.0, "z_max": 0.08}
+## 5/11 (2ª, Pablo: «gira el bastón con la punta hacia el norte; está cosido en el nudillo, que los dedos rodeen el bastón»): el GLB tiene el palo a −0,06 del origen (eje_malla: se
+## planta el PALO, no el origen) y el rizo hacia +X; con giro_mundo y giro 90 el rizo mira al norte del mundo (−Z) mire a donde mire ella. Medido el puño en idle a 0,8 de alto: nudillos
+## en z 0,09–0,12 y yemas en z 0,10–0,13, el hueco del puño a z ≈ 0,105 y x ≈ −0,127; la muñeca (el agarre) en z 0,087, así que desplaz_adelante 0,02 y lateral 0,005, y z_max subido a 0,14.
+const BASTON_APOYO: Dictionary = {"agarre_y": 0.677, "giro": 90.0, "giro_mundo": true, "eje_malla": true, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.02, "desplaz_lateral": 0.005, "lado": -1.0, "z_min": 0.0, "z_max": 0.14}
 
 ## Bastón del chamán goblin (28/10): baston_chaman_equipo.glb = baston_chaman.glb (Meshy, 1,0 de alto, origen en el centro) con el ORBE aparte (tools/separar_orbe_baston.py), envuelto por BastonChaman3D con la
 ## PUNTA en el origen y el palo hacia +Y. Mide 0,84 en las unidades del modelo (0,95 de alto): 0,75 u en el juego, hasta el pecho del chamán de pie y alcanza el suelo delante de él. Va en la mano DERECHA (la de arriba).
