@@ -62,6 +62,7 @@ const DESCRIPCION: Dictionary = {
 	"jiron_escudo": "Cuero chamuscado de un escudo que ardió. Aporta calor y protección.",
 	"baba_limo": "Tiembla sola; un limo la deja al caer. Aporta agua y toxicidad; va en el Antídoto.",
 	"pluma_chaman": "Del tocado del chamán goblin. Aporta viento y toxicidad.",
+	"gota_veneno": "Una gota de veneno puro con un aura morada. Aporta toxicidad fuerte a las recetas; no es para beber.",
 	"polvo_golem": "Piedra molida que aún pesa. Aporta tierra y protección.",
 	# --- Épicos y glifo ---
 	"nucleo_eco": "Late dentro como un segundo corazón. Material épico que no se vende: lo pide el alquimista para el Frasco hondo II.",

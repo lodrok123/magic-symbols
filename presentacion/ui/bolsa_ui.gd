@@ -324,7 +324,8 @@ class Hueco extends Control:
 		# El marco de la calidad del objeto, encima del hueco (común sobrio, épico morado, legendario dorado con destello).
 		MarcoCalidad.dibujar(self, r, calidad)
 		# Arte propio del objeto (poc_25d/ui/objeto_<id>.png) si existe; si no, el dibujo en código de Objetos.
-		var icono: Texture2D = BolsaUI.tex("objeto_" + id)
+		# Primero el icono de la lámina de inventario (arte/iconos/<id>.png, vía Objetos.dibujar); luego el arte de laminas/.
+		var icono: Texture2D = null if Objetos.tiene_icono(id) else BolsaUI.tex("objeto_" + id)
 		if icono != null:
 			var lado: float = size.x * 0.62
 			draw_texture_rect(icono, Rect2(size * 0.5 + Vector2(-lado * 0.5, -lado * 0.5 - 3.0), Vector2(lado, lado)), false)

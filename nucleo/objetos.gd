@@ -250,8 +250,53 @@ static func elemento_de(rune_data: RuneData) -> String:
 	return ""
 
 
+## ICONOS DE LA LÁMINA DE INVENTARIO (5/11): `res://arte/iconos/<id>.png`, 256×256 con fondo transparente (los recorta `herramientas/recortar_lamina_iconos.py`).
+## Si el objeto tiene ese PNG, `dibujar` lo pone en vez del dibujo en código (y la bolsa, el aviso, el HUD y el panel de detalle pasan todos por `dibujar`).
+const RUTA_ICONOS: String = "res://arte/iconos/"
+const LADOS_ICONO: Array = [32, 64, 128, 256]       ## tamaños de caché: se reduce el PNG una vez al tamaño más cercano por encima (un 256 a 25 px sin reducir se ve con dientes)
+const ESCALA_ICONO: float = 2.4                      ## lado dibujado = radio × esto (como el arte de la bolsa: size.x × 0.62 con radio size.x × 0.26)
+static var _iconos: Dictionary = {}
+
+
+## ¿Tiene el objeto su PNG de icono en `arte/iconos/`?
+static func tiene_icono(id: String) -> bool:
+	return id != "" and ResourceLoader.exists(RUTA_ICONOS + id + ".png")
+
+
+## El icono del objeto reducido al tamaño de caché que cubre `lado` px (o null si no tiene PNG). Una sola reducción por tamaño.
+static func icono(id: String, lado: float = 256.0) -> Texture2D:
+	var cubo: int = 256
+	for l in LADOS_ICONO:
+		if float(l) >= lado:
+			cubo = int(l)
+			break
+	var clave: String = "%s@%d" % [id, cubo]
+	if _iconos.has(clave):
+		return _iconos[clave]
+	var t: Texture2D = null
+	if tiene_icono(id):
+		var base: Texture2D = load(RUTA_ICONOS + id + ".png") as Texture2D
+		if base != null:
+			if cubo >= base.get_width():
+				t = base
+			else:
+				var img: Image = base.get_image()
+				if img != null:
+					img.resize(cubo, cubo, Image.INTERPOLATE_LANCZOS)
+					t = ImageTexture.create_from_image(img)
+	_iconos[clave] = t
+	return t
+
+
 ## Dibuja el icono de un objeto en `c` con su centro en `p` y radio aproximado `r`.
 static func dibujar(c: CanvasItem, id: String, p: Vector2, r: float) -> void:
+	var lado_png: float = r * ESCALA_ICONO
+	var png: Texture2D = icono(id, lado_png)
+	if png != null:
+		c.draw_texture_rect(png, Rect2(p - Vector2(lado_png, lado_png) * 0.5, Vector2(lado_png, lado_png)), false)
+		if calidad(id) != CALIDAD_COMUN:
+			c.draw_arc(p, r * 1.15, 0.0, TAU, 24, color_calidad(id), maxf(1.5, r * 0.14), true)
+		return
 	var d: Dictionary = DATOS.get(id, {})
 	var col: Color = d.get("color", Color.WHITE)
 	var oscuro: Color = col.darkened(0.45)
