@@ -32,7 +32,8 @@ var aviso: AvisoAtaque3D = null
 var parada: bool = false
 var llego: bool = false
 var acerto: bool = false
-var _malla: MeshInstance3D = null
+var _malla: Node3D = null                           ## el cuerpo del vfx (núcleo + halo): se oculta al caer
+var vfx: NaturalezaProyectilToy = null
 var _luz: OmniLight3D = null
 
 
@@ -54,22 +55,12 @@ static func lanzar(en: Node, p_origen: Vector3, p_destino: Vector3, p_dueno: Nod
 
 
 func _construir() -> void:
-	var esf := SphereMesh.new()
-	esf.radius = 0.11
-	esf.height = 0.22
-	esf.radial_segments = 14
-	esf.rings = 7
-	var m := StandardMaterial3D.new()
-	m.albedo_color = COLOR
-	m.emission_enabled = true
-	m.emission = COLOR
-	m.emission_energy_multiplier = 2.2
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_malla = MeshInstance3D.new()
-	_malla.mesh = esf
-	_malla.material_override = m
-	_malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_malla)
+	# 5/11: aspecto de naturaleza (NaturalezaProyectilToy): núcleo claro, cuerpo verde, estela que sigue el arco y hojas que caen. La lógica no cambia.
+	vfx = NaturalezaProyectilToy.new()
+	vfx.name = "Vfx"
+	add_child(vfx)
+	vfx.montar(COLOR, destino.y)
+	_malla = vfx.cuerpo
 	_luz = OmniLight3D.new()
 	_luz.light_color = COLOR
 	_luz.light_energy = 1.2
@@ -134,24 +125,36 @@ func _terminar(charco: bool) -> void:
 		aviso.cancelar()
 	if charco:
 		_charco()
+	var espera: float = T_CHARCO + 0.1
+	if vfx != null:
+		if charco:
+			vfx.estallar(destello_pos())
+		else:
+			vfx.dispersar(global_position)
+		espera = maxf(espera, vfx.restante() + 0.1)      # las hojas del estallido terminan de caer antes de liberar la bola
 	impacto.emit(acerto)
 	var tw: Tween = create_tween()
-	tw.tween_interval(T_CHARCO + 0.1)
+	tw.tween_interval(espera)
 	tw.tween_callback(queue_free)
 
 
+func destello_pos() -> Vector3:
+	return Vector3(destino.x, destino.y + 0.05, destino.z)
+
+
 func _charco() -> void:
+	# 5/11: disco redondo y blando (antes un cuadrado liso con aditivo): mismo radio, mismo tiempo, mismo verde de la bola
 	var disco := MeshInstance3D.new()
 	var q := QuadMesh.new()
 	q.size = Vector2(RADIO * 2.0, RADIO * 2.0)
 	q.orientation = PlaneMesh.FACE_Y
 	disco.mesh = q
-	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.cull_mode = BaseMaterial3D.CULL_DISABLED
-	m.albedo_color = Color(COLOR.r, COLOR.g, COLOR.b, 0.7)
+	var m := ShaderMaterial.new()
+	m.shader = load("res://presentacion/vfx/toy/naturaleza_blob.gdshader") as Shader
+	m.set_shader_parameter("cartel", false)
+	m.set_shader_parameter("nucleo", 0.0)
+	m.set_shader_parameter("blandura", 0.45)
+	m.set_shader_parameter("modulo", Color(COLOR.r * 0.8, COLOR.g * 0.9, COLOR.b * 0.9, 0.5))
 	disco.material_override = m
 	disco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(disco)
@@ -161,4 +164,4 @@ func _charco() -> void:
 	var tw: Tween = disco.create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(disco, "scale", Vector3.ONE, 0.2)
-	tw.tween_property(m, "albedo_color:a", 0.0, T_CHARCO)
+	tw.tween_method(func(a: float) -> void: m.set_shader_parameter("modulo", Color(COLOR.r * 0.8, COLOR.g * 0.9, COLOR.b * 0.9, a)), 0.5, 0.0, T_CHARCO)
