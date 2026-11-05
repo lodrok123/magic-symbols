@@ -3032,7 +3032,7 @@ func _enlazar_reactivos() -> void:
 
 func _parar_tinajas() -> void:
 	for r in _reactivos:
-		if r.tipo == "surtidor":
+		if is_instance_valid(r) and r.tipo == "surtidor":     # 5/11: un reactivo ya liberado (roto, recogido) daba «previously freed»
 			r.dejar_de_verter()
 
 

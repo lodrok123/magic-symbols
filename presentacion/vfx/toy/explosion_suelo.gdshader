@@ -16,6 +16,10 @@ uniform float onda = -1.0;                              // radio normalizado del
 uniform float onda_vida : hint_range(0.0, 1.0) = 0.0;
 uniform float calor : hint_range(0.0, 1.0) = 0.0;       // resplandor del suelo tras la explosión
 uniform float semilla = 0.0;
+// 5/11 (integración): solo se pinta lo que está a <= `alto_max` u sobre el suelo del centro (el origen del aviso, `centro_y` u por debajo del centro de la caja).
+// Así no tiñe los hombros ni la cabeza de la jugadora o de los goblins que estén dentro (también miran hacia arriba). Lo más bajo (una terraza de debajo) sí se pinta.
+uniform float centro_y = 0.4;
+uniform float alto_max = 0.45;
 
 vec3 llama(float k) {
 	return texture(rampa, vec2(clamp(k, 0.0, 0.85), 0.5)).rgb;
@@ -31,6 +35,9 @@ void fragment() {
 		discard;
 	}
 	vec3 mundo = (INV_VIEW_MATRIX * vec4(v.xyz, 1.0)).xyz;
+	if (mundo.y - (MODEL_MATRIX[3].y - centro_y) > alto_max) {
+		discard;
+	}
 	vec3 l = (inverse(MODEL_MATRIX) * vec4(mundo, 1.0)).xyz;
 	if (abs(l.x) > 0.5 || abs(l.y) > 0.5 || abs(l.z) > 0.5) {
 		discard;
