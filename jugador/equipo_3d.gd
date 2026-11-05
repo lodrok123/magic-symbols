@@ -115,9 +115,10 @@ const EQUIPO: Dictionary = {
 	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano IZQUIERDA (la del brazo estirado al apuntar; madera hacia delante, cuerda hacia el arquero).
 	"goblin_archer_chibi": [
 		# 5/11 (Pablo: «el goblin no sujeta el arco, está todo mal»; antes (0, 0.07, 0.47) y (90, 0, 180), cruzado). arco.glb va a lo largo de +Y (−0,39..0,39), curva en +X
-		# (0..0,5, nocla en 0 y puntas en 0,5), grosor en Z. Giro medido con la mano al apuntar (ArcheryShot 3,0 s): +Y del arco = arriba del mundo, +X = hacia delante del
-		# brazo (cuerda hacia el arquero); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
-		["arco", "LeftHand", Vector3(-0.006, -0.334, 0.032), Vector3(3.7, 120.3, 85.8), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
+		# (0..0,5: empuñadura en ~0,28, puntas y CUERDA en 0,5), grosor en Z. Giro medido con la mano al apuntar (ArcheryShot 3,0 s): +Y del arco = arriba del mundo,
+		# +X = hacia el arquero (−brazo), así la cuerda mira al cuerpo (Pablo, 5/11: «la cuerda tiene que mirar hacia el cuerpo del goblin»; con +X hacia delante salía
+		# al revés); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
+		["arco", "LeftHand", Vector3(0.006, 0.334, -0.032), Vector3(-3.7, -59.7, -85.8), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
 		# 5/11 (Pablo, con un clip 2D de referencia: «fíjate en la posición del arco y las manos»): flecha en la mano DERECHA con la nocla en la palma y la punta hacia la mano
 		# del arco (medido en ArcheryShot a 3 s: dirección mano derecha → izquierda en el espacio de RightHand (−0,93, 1,69, 0,54)); Pj3D.EQUIPO_SOLO_EN la enseña solo al disparar.
 		["flecha", "RightHand", Vector3(-0.13, 0.24, 0.07), Vector3(32.3, -53.5, 3.6)],

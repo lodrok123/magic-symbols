@@ -76,6 +76,8 @@ func _correr() -> void:
 	print("  mano izq %s der %s | arco centro %s tam %s | flecha centro %s tam %s | carcaj centro %s tam %s" % [izq, der, arco.get_center(), arco.size, flecha.get_center(), flecha.size, carcaj.get_center(), carcaj.size])
 	_ok(arco.get_center().distance_to(izq) < 0.06 * ALTO, "el arco está centrado en la mano izquierda (a %.3f u)" % arco.get_center().distance_to(izq))
 	_ok(arco.size.y > arco.size.x and arco.size.y > arco.size.z, "el arco apuntando es vertical (%.2f de alto)" % arco.size.y)
+	# 5/11 (Pablo): la CUERDA mira al cuerpo: la madera (el grueso de la caja, que curva desde la empuñadura hacia las puntas) queda por delante de la mano.
+	_ok((arco.get_center() - izq).dot(tiro) > 0.01, "la madera del arco queda por delante de la mano (cuerda hacia el cuerpo): %.3f u" % (arco.get_center() - izq).dot(tiro))
 	_ok(flecha.size.y < 0.15 * ALTO, "la flecha apuntando va horizontal (%.3f de alto)" % flecha.size.y)
 	var cola: float = (flecha.get_center() - tiro * flecha.size.length() * 0.5).distance_to(der)
 	_ok(cola < 0.08 * ALTO, "la nocla de la flecha está en la mano derecha (a %.3f u)" % cola)
