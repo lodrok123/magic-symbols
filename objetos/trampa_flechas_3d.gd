@@ -13,6 +13,11 @@ extends TrampaPared3D
 ##
 ## Ciclo: `cada=<s>` (1,2 por defecto), `desfase=<s>` (en qué punto del intervalo empieza), `vel=<casillas/s>` (3,5 ≈ 8 u/s, la flecha del goblin ≈ 9 u/s) y `alcance=<casillas>` (8, el tope de un hechizo).
 ## Pieza `trampa_flechas` en el mapa; dueño: Juego.
+##
+## LA BOCA SE MUEVE (5/11/2026, Pablo: «la boca abriendo, disparo, y cierra con anticipación»). El mascarón tiene MANDÍBULA (`Mandibula`, un pivote en la bisagra de atrás) y la cabeza entera (`Mascaron`) se
+## mueve con ella. Por disparo: ANTICIPACIÓN (ANTICIPA_S = 0,5 s antes): primero APRIETA la boca y echa la cabeza atrás (APRIETA_S = 0,18 s, el gesto contrario, para que se lea lo que viene), luego la ABRE
+## de golpe hasta ABRE_GRADOS y la sostiene abierta un instante → DISPARO: la cabeza da un culatazo atrás y la mandíbula un tirón → CIERRE (CIERRE_S = 0,38 s) con un pequeño rebote al cerrar.
+## Con `cada` más corto que ANTICIPA_S + CIERRE_S los tiempos se encogen en proporción. Apagada o dormida: boca cerrada. La ranura que se ilumina (AVISO_S) va dentro de la anticipación.
 
 signal dispara                     ## acaba de salir una flecha
 
@@ -31,6 +36,19 @@ const LOSA: Vector3 = Vector3(1.6, 1.9, 0.30)
 const CARA: Vector3 = Vector3(1.2, 1.25, 0.30)       ## el mascarón sale de la losa
 const BOCA_Y: float = 0.95
 const BOCA_Z: float = 0.62                           ## la ranura, desde la cara del muro
+const BISAGRA_Y: float = BOCA_Y - 0.05               ## la mandíbula gira por su arista de arriba y atrás; cerrada deja una raja oscura de 0,10 hasta el labio de arriba
+const LABIO_Y: float = BOCA_Y + 0.05
+
+# --- la boca (s y grados) ---
+const ANTICIPA_S: float = 0.5
+const APRIETA_S: float = 0.18
+const CIERRE_S: float = 0.38
+const ABRE_GRADOS: float = 38.0
+const APRIETA_GRADOS: float = -5.0
+const TIRON_GRADOS: float = 7.0                      ## de más al disparar
+const ATRAS_APRIETA_U: float = 0.04                  ## la cabeza se echa atrás al apretar
+const CULATAZO_U: float = 0.07                       ## y al disparar
+const CULATAZO_S: float = 0.16
 
 var cada_s: float = CADA_DEFECTO
 var vel: float = VEL_DEFECTO
@@ -44,6 +62,9 @@ var _vuelos: Array = []                   ## WeakRef de los HechizoVivo en vuelo
 var _ranura: StandardMaterial3D = null
 var _carbones: Array[StandardMaterial3D] = []
 var _ojos: StandardMaterial3D = null
+var _cabeza: Node3D = null
+var _mandibula: Node3D = null
+var angulo_boca: float = 0.0              ## grados de la mandíbula ahora (+ = abierta)
 
 
 func preparar_ciclo(p_cada: float, p_desfase: float, p_vel: float) -> void:
@@ -64,20 +85,40 @@ func _ready() -> void:
 	super._ready()
 	_t = fposmod(desfase_s, cada_s)
 	_pintar(0.0)
+	_poner_boca(pose_boca(_t))
 
 
 func _construir() -> void:
 	var fuego: bool = elemento == "fuego"
 	_caja("Losa", LOSA, Vector3(0.0, LOSA.y * 0.5, LOSA.z * 0.5), _material(COLOR_PIEDRA))
-	_caja("Cara", CARA, Vector3(0.0, 1.02, LOSA.z + CARA.z * 0.5), _material(Color(0.36, 0.33, 0.30)))
-	_caja("Ceja", Vector3(1.0, 0.1, 0.12), Vector3(0.0, 1.5, LOSA.z + CARA.z + 0.02), _material(COLOR_PIEDRA_OSCURA))
-	_ojos = _material(COLOR_BRASA, 0.5, true)
-	_caja("OjoIzq", Vector3(0.24, 0.07, 0.04), Vector3(-0.34, 1.3, LOSA.z + CARA.z + 0.01), _ojos)
-	_caja("OjoDer", Vector3(0.24, 0.07, 0.04), Vector3(0.34, 1.3, LOSA.z + CARA.z + 0.01), _ojos)
-	# La ranura de arquero: un hueco oscuro con un rescoldo detrás.
-	_caja("Ranura", Vector3(0.84, 0.16, 0.05), Vector3(0.0, BOCA_Y, LOSA.z + CARA.z + 0.0), _material(Color(0.02, 0.015, 0.015)))
+	# La garganta: el fondo oscuro de la boca, con el rescoldo, pegado a la losa (no se mueve; se ve al abrir).
+	_caja("Ranura", Vector3(0.9, 0.42, 0.04), Vector3(0.0, BOCA_Y - 0.08, LOSA.z + 0.02), _material(Color(0.02, 0.015, 0.015)))
 	_ranura = _material(COLOR_BRASA if fuego else Color(0.75, 0.78, 0.82), 0.5, true)
-	_caja("Rescoldo", Vector3(0.76, 0.09, 0.02), Vector3(0.0, BOCA_Y, LOSA.z + CARA.z + 0.03), _ranura)
+	_caja("Rescoldo", Vector3(0.76, 0.09, 0.02), Vector3(0.0, BOCA_Y, LOSA.z + 0.05), _ranura)
+	# La cabeza (se echa atrás y da el culatazo): media cara de arriba con cejas, ojos y colmillos, y la mandíbula colgada de su bisagra.
+	_cabeza = Node3D.new()
+	_cabeza.name = "Mascaron"
+	_cabeza.position = Vector3(0.0, BOCA_Y, LOSA.z)
+	add_child(_cabeza)
+	var piedra_cara: StandardMaterial3D = _material(Color(0.36, 0.33, 0.30))
+	var arriba_y: float = 1.02 + CARA.y * 0.5                       # el alto de la cara de antes (0,395 … 1,645)
+	_caja("Cara", Vector3(CARA.x, arriba_y - LABIO_Y, CARA.z), Vector3(0.0, (arriba_y + LABIO_Y) * 0.5 - BOCA_Y, CARA.z * 0.5), piedra_cara, _cabeza)
+	_caja("Ceja", Vector3(1.0, 0.1, 0.12), Vector3(0.0, 1.5 - BOCA_Y, CARA.z + 0.02), _material(COLOR_PIEDRA_OSCURA), _cabeza)
+	_ojos = _material(COLOR_BRASA, 0.5, true)
+	_caja("OjoIzq", Vector3(0.24, 0.07, 0.04), Vector3(-0.34, 1.3 - BOCA_Y, CARA.z + 0.01), _ojos, _cabeza)
+	_caja("OjoDer", Vector3(0.24, 0.07, 0.04), Vector3(0.34, 1.3 - BOCA_Y, CARA.z + 0.01), _ojos, _cabeza)
+	var diente: StandardMaterial3D = _material(Color(0.72, 0.68, 0.64))
+	for x in [-0.32, 0.32]:
+		_caja("Colmillo", Vector3(0.08, 0.1, 0.07), Vector3(x, LABIO_Y - BOCA_Y - 0.05, CARA.z - 0.05), diente, _cabeza)
+	_mandibula = Node3D.new()
+	_mandibula.name = "Mandibula"
+	_mandibula.position = Vector3(0.0, BISAGRA_Y - BOCA_Y, 0.0)
+	_cabeza.add_child(_mandibula)
+	var abajo_y: float = 1.02 - CARA.y * 0.5
+	var alto_m: float = BISAGRA_Y - abajo_y
+	_caja("Quijada", Vector3(CARA.x * 0.96, alto_m, CARA.z), Vector3(0.0, -alto_m * 0.5, CARA.z * 0.5), piedra_cara, _mandibula)
+	for x in [-0.16, 0.16]:
+		_caja("Colmillo", Vector3(0.07, 0.08, 0.06), Vector3(x, 0.04, CARA.z - 0.05), diente, _mandibula)
 	# Brasero encima: cuenco de piedra y tres carbones (encendidos solo con flechas de fuego).
 	var cuenco := MeshInstance3D.new()
 	cuenco.name = "Brasero"
@@ -106,11 +147,13 @@ func _physics_process(delta: float) -> void:
 	if _contar_apagada(delta):
 		en_aviso = false
 		_pintar(0.0)
+		_cerrar_boca(delta)
 		return
 	if dormida():
 		en_aviso = false
 		_t = fposmod(desfase_s, cada_s)
 		_pintar(0.0)
+		_cerrar_boca(delta)
 		return
 	_t += delta
 	if _t >= cada_s:
@@ -119,6 +162,63 @@ func _physics_process(delta: float) -> void:
 	var aviso: float = minf(AVISO_S, cada_s)
 	en_aviso = _t >= cada_s - aviso
 	_pintar(clampf((_t - (cada_s - aviso)) / aviso, 0.0, 1.0) if en_aviso else 0.0)
+	_poner_boca(pose_boca(_t))
+
+
+## La pose de la boca a `t` s del último disparo (el siguiente, a `cada_s - t`): {"angulo": grados de la mandíbula, "atras": u que se echa atrás la cabeza, "aprieta": 0…1}.
+func pose_boca(t: float) -> Dictionary:
+	var k: float = minf(1.0, cada_s / (ANTICIPA_S + CIERRE_S))         # con un `cada` corto todo se encoge
+	var antic: float = ANTICIPA_S * k
+	var cierre: float = CIERRE_S * k
+	var hasta: float = cada_s - t
+	var ang: float = 0.0
+	var atras: float = 0.0
+	var aprieta: float = 0.0
+	if disparos > 0 and t < cierre:
+		# Tras el disparo: tirón de más y culatazo, luego cierra con un rebote (sale un poco por debajo de cerrada y vuelve).
+		var s: float = t / cierre
+		if s < 0.2:
+			ang = ABRE_GRADOS + TIRON_GRADOS * sin(PI * s / 0.2)
+		else:
+			ang = ABRE_GRADOS * (1.0 - _sale_con_rebote((s - 0.2) / 0.8))
+		var c: float = t / (CULATAZO_S * k)
+		if c < 1.0:
+			atras = CULATAZO_U * (1.0 - c) * (1.0 - c)                   # de golpe atrás y vuelve
+	elif hasta < antic:
+		var r: float = 1.0 - hasta / antic
+		var ap: float = APRIETA_S / ANTICIPA_S
+		if r < ap:
+			aprieta = smoothstep(0.0, 1.0, r / ap)
+			ang = APRIETA_GRADOS * aprieta
+			atras = ATRAS_APRIETA_U * aprieta
+		else:
+			var u: float = minf((r - ap) / ((1.0 - ap) * 0.8), 1.0)        # abre en el 80 % y sostiene abierta el resto
+			var e: float = 1.0 - pow(1.0 - u, 3.0)                        # de golpe al principio
+			ang = lerpf(APRIETA_GRADOS, ABRE_GRADOS, e)
+			atras = ATRAS_APRIETA_U * (1.0 - e)
+			aprieta = 1.0 - e
+	return {"angulo": ang, "atras": atras, "aprieta": aprieta}
+
+
+func _sale_con_rebote(u: float) -> float:
+	var c1: float = 1.70158
+	var c3: float = c1 + 1.0
+	var v: float = u - 1.0
+	return 1.0 + c3 * v * v * v + c1 * v * v
+
+
+func _poner_boca(p: Dictionary) -> void:
+	angulo_boca = float(p["angulo"])
+	if _mandibula != null:
+		_mandibula.rotation.x = deg_to_rad(angulo_boca)
+	if _cabeza != null:
+		var a: float = float(p["aprieta"])
+		_cabeza.position.z = LOSA.z - float(p["atras"])
+		_cabeza.scale = Vector3(1.0 + 0.03 * a, 1.0 - 0.04 * a, 1.0)
+
+
+func _cerrar_boca(delta: float) -> void:
+	_poner_boca({"angulo": move_toward(angulo_boca, 0.0, 120.0 * delta), "atras": 0.0, "aprieta": 0.0})
 
 
 func _al_apagar() -> void:

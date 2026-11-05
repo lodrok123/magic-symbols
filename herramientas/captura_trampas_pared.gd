@@ -26,6 +26,9 @@ func _escenario() -> void:
 	(jugador as Jugador3D).vida = 100000.0
 	var tam_juego: float = float(maqueta.get("_tam_camara"))
 	print("cámara del juego: tamaño %.2f" % tam_juego)
+	await _boca(tam_juego)
+	if a.size() > 1 and a[1] == "boca":
+		return
 	await _dragon(tam_juego)
 	await _flecha(tam_juego)
 	await _frente(tam_juego)
@@ -246,6 +249,48 @@ func _frente(tam_juego: float) -> void:
 		await avanzar_s(1.5)
 	fuego.queue_free()
 	normal.queue_free()
+# ---------------------------------------------------------------------------------------------------------------------
+
+## La BOCA del mascarón de frente (mascaron_boca_cerca.png / _juego.png): cerrada · aprieta · abierta · disparo (tirón) · cerrando · rebote. Cada foto espera a ese instante del ciclo (`_t`, tiempo de juego).
+func _boca(tam_juego: float) -> void:
+	var m := TrampaFlechas3D.new()
+	m.name = "FrenteBoca"
+	m.preparar(Vector2i(23, 16), "s", "fuego", 6, maqueta)
+	m.preparar_ciclo(2.0, 0.0, 3.5)
+	(maqueta.get("_props") as Node).add_child(m)
+	# [nombre, ¿después del disparo?, t]: antes del disparo t = s que faltan; después, s desde el disparo
+	var pasos: Array = [["cerrada", false, 0.9], ["aprieta", false, 0.33], ["abierta", false, 0.03], ["disparo", true, 0.05], ["cerrando", true, 0.12], ["rebote", true, 0.25]]
+	for modo in ["cerca", "juego"]:
+		_cam(3.4 if modo == "cerca" else tam_juego)
+		_poner_j(Vector2i(24, 17))
+		await avanzar_s(0.5)
+		_ocultar_ui(root)
+		Engine.time_scale = 0.1
+		var centro: Vector3 = m.global_position + Vector3(0.0, 1.1, 0.6)
+		var fotos: Array = []
+		var d0: int = m.disparos
+		for paso in pasos:
+			var seguro: int = 0
+			while seguro < 20000:
+				seguro += 1
+				await process_frame
+				var hecho: bool
+				if bool(paso[1]):
+					hecho = m.disparos > d0 and m._t >= float(paso[2]) and m._t < float(paso[2]) + 0.2
+				else:
+					hecho = m.disparos == d0 and m.cada_s - m._t <= float(paso[2])
+				if hecho:
+					break
+			await RenderingServer.frame_post_draw
+			fotos.append(_recorte(centro, modo))
+			print("boca %s · %s · %.1f°" % [modo, paso[0], m.angulo_boca])
+		Engine.time_scale = 1.0
+		_tira(fotos, _dir.path_join("mascaron_boca_%s.png" % modo))
+		await avanzar_s(0.5)
+	m.queue_free()
+	await avanzar(2)
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 ## Recorte alrededor de un punto del mundo: 700 × 520 px (la cámara del juego) o 900 × 640 de cerca.

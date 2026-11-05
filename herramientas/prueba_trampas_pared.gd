@@ -562,14 +562,39 @@ func _flecha_fuego() -> void:
 	var avisos_vistos: float = 0.0
 	var t_ini: float = reloj.t
 	var t_prev: float = reloj.t
+	var ang_antes: Array = []                 # grados de la mandíbula en el fotograma de antes de cada disparo
+	var ang_prev: float = f.angulo_boca
+	var d_prev: int = f.disparos
+	var ang_min: float = 0.0
+	var ang_reposo: float = -1.0              # a mitad del descanso
 	while reloj.t - t_ini < 6.0:
 		await process_frame
 		if f.en_aviso:
 			avisos_vistos += reloj.t - t_prev
 		t_prev = reloj.t
+		if f.disparos != d_prev:
+			ang_antes.append(ang_prev)
+			d_prev = f.disparos
+		ang_prev = f.angulo_boca
+		ang_min = minf(ang_min, f.angulo_boca)
+		if f.disparos > disparos0 and absf(f._t - 1.0) < 0.05:
+			ang_reposo = absf(f.angulo_boca)
 	var cuantos: int = f.disparos - disparos0
 	_ok("6.11 con cada=2,0 dispara 3 veces en 6 s (disparos %d)" % cuantos, cuantos == 3, "%d" % cuantos)
 	_ok("6.12 la ranura avisa unos %.2f s por disparo (AVISO_S = %.2f)" % [avisos_vistos / 3.0, TrampaFlechas3D.AVISO_S], absf(avisos_vistos / float(maxi(cuantos, 1)) - TrampaFlechas3D.AVISO_S) < 0.12)
+	var abierta: bool = ang_antes.size() == cuantos and cuantos > 0
+	for a in ang_antes:
+		abierta = abierta and float(a) >= TrampaFlechas3D.ABRE_GRADOS - 4.0
+	_ok("6.13 la boca está ABIERTA al disparar (grados justo antes de cada disparo: %s; abre a %.0f)" % [str(ang_antes), TrampaFlechas3D.ABRE_GRADOS], abierta)
+	_ok("6.14 antes de abrir APRIETA (mínimo %.1f°) y en el descanso está cerrada (%.1f° a 1 s del disparo)" % [ang_min, ang_reposo], ang_min <= TrampaFlechas3D.APRIETA_GRADOS * 0.8 and ang_reposo >= 0.0 and ang_reposo < 0.5)
+	var p_c: Dictionary = f.pose_boca(TrampaFlechas3D.CIERRE_S + 0.01)
+	_ok("6.15 cerrada otra vez a los %.2f s del disparo (%.1f°)" % [TrampaFlechas3D.CIERRE_S, float(p_c["angulo"])], absf(float(p_c["angulo"])) < 0.5)
+	var linea: PackedStringArray = []
+	for i in range(23):
+		var tt: float = f.cada_s - 0.6 + 0.05 * float(i)
+		var p: Dictionary = f.pose_boca(fposmod(tt, f.cada_s))
+		linea.append("%+.2f s:%.0f°" % [tt - f.cada_s, float(p["angulo"])])
+	print("MEDIDA boca del mascarón (s respecto al disparo : grados): " + ", ".join(linea))
 	for x in [f, f2]:
 		_quitar(x)
 	if is_instance_valid(e):
