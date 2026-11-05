@@ -308,6 +308,75 @@ func _esfera(nombre: String, radio: float, pos: Vector3, mat: Material, padre: N
 	return mi
 
 
+## MODELO DE MESHY CON ESQUELETO PUESTO AQUÍ (5/11/2026). Meshy entrega UNA malla sin rig, normalizada a 1 de alto; esto la cuelga en `Modelo` (escala `escala`, posición `pos`) con un Skeleton3D
+## en cadena (`nombres[k]` con pivote `pivotes[k]`, en coordenadas del modelo, cada uno hijo del anterior) y los pesos que dé `pesos(p) -> Array` (uno por hueso, suman 1) para cada vértice.
+## Devuelve el Skeleton3D (null si el modelo no está o no trae malla). Los hijos lo posan con set_bone_pose_rotation / _position.
+func _modelo_con_huesos(ruta: String, escala: float, pos: Vector3, nombres: Array, pivotes: Array, pesos: Callable) -> Skeleton3D:
+	if not ResourceLoader.exists(ruta):
+		return null
+	var escena: PackedScene = load(ruta) as PackedScene
+	if escena == null:
+		return null
+	var suelto: Node = escena.instantiate()
+	var fuente: MeshInstance3D = _primera_malla(suelto)
+	if fuente == null or fuente.mesh == null:
+		suelto.free()
+		return null
+	var a: Array = fuente.mesh.surface_get_arrays(0)
+	var mat: Material = fuente.get_active_material(0)
+	suelto.free()
+	var n: int = nombres.size()
+	var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var huesos := PackedInt32Array()
+	var ws := PackedFloat32Array()
+	huesos.resize(v.size() * 4)
+	ws.resize(v.size() * 4)
+	for i in v.size():
+		var w: Array = pesos.call(v[i])
+		for k in range(4):
+			huesos[i * 4 + k] = mini(k, n - 1)
+			ws[i * 4 + k] = float(w[k]) if k < w.size() else 0.0
+	a[Mesh.ARRAY_BONES] = huesos
+	a[Mesh.ARRAY_WEIGHTS] = ws
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+	am.surface_set_material(0, mat)
+	var modelo := Node3D.new()
+	modelo.name = "Modelo"
+	modelo.position = pos
+	modelo.scale = Vector3.ONE * escala
+	add_child(modelo)
+	var esq := Skeleton3D.new()
+	esq.name = "Esqueleto"
+	modelo.add_child(esq)
+	var skin := Skin.new()
+	for k in range(n):
+		esq.add_bone(nombres[k])
+		if k > 0:
+			esq.set_bone_parent(k, k - 1)
+		var rel: Vector3 = (pivotes[k] as Vector3) - ((pivotes[k - 1] as Vector3) if k > 0 else Vector3.ZERO)
+		esq.set_bone_rest(k, Transform3D(Basis(), rel))
+		esq.set_bone_pose_position(k, rel)
+		skin.add_bind(k, Transform3D(Basis(), pivotes[k]).affine_inverse())
+	var mi := MeshInstance3D.new()
+	mi.name = "Malla"
+	mi.mesh = am
+	mi.skin = skin
+	esq.add_child(mi)
+	mi.skeleton = NodePath("..")
+	return esq
+
+
+func _primera_malla(n: Node) -> MeshInstance3D:
+	if n is MeshInstance3D:
+		return n
+	for h in n.get_children():
+		var m: MeshInstance3D = _primera_malla(h)
+		if m != null:
+			return m
+	return null
+
+
 ## Caja envolvente de todo lo que cuelga de la trampa, en coordenadas locales (las pruebas lo miden): Vector3(ancho, alto, saliente).
 func medidas() -> Dictionary:
 	var minimo := Vector3(INF, INF, INF)

@@ -174,6 +174,19 @@ Variante (si el mascarón no convence): *«a boar head» / «a snarling lizard h
 
 Tras generarlos: el Pipeline separa las piezas con los nombres de arriba y los deja en `arte/piezas/trampa_dragon.tscn` y `arte/piezas/trampa_flechas.tscn`; el código ya expone `boca_local()` y `prof_cuerpo()` (ajustar si el modelo cambia las medidas) y las piezas móviles de las primitivas se llaman igual (`Cabeza`, `Mandibula`, `Cuello0..4`, `Ranura`).
 
+### 5.1 Modelos enganchados (5/11, los GLB de Pablo)
+
+Meshy los entregó como **una sola malla** cada uno (sin piezas ni rig, normalizados a 1 de alto, cara hacia +Z, ~15 000 triángulos y textura 2048: más de lo pedido, pero se ven bien y son dos piezas). No se separan en Blender: `TrampaPared3D._modelo_con_huesos` les pone **un esqueleto en el juego** con pesos suaves sacados de la geometría (sin cortes, la malla se dobla). Si falta el GLB se dibujan las primitivas de antes.
+
+| | Dragón (`arte/meshy/trampa_dragon.glb`, «Embergate Dragon») | Mascarón (`arte/meshy/trampa_flechas.glb`, «Molten Gargoyle Codex») |
+|---|---|---|
+| Escala | ×2,0: 1,44 × 2,00 u; la losa se mete 0,30 u en el muro | ×2,2: 1,75 × 2,20 u con el brasero; Meshy le puso cara **por los dos lados**: la de atrás queda dentro del muro |
+| Huesos | Raíz (losa) → Cuello (sale del arco) → Cabeza → Mandíbula | Raíz (losa) → Mascaron (todo el relieve) → Mandibula (el labio de abajo, bajo la raja) |
+| Boca | a 1,32 u del suelo y 1,70 de la pared (antes 1,20 / 1,70) | a 0,82 u del suelo y 0,44 de la pared (antes 0,95 / 0,62) |
+| Animación | reposo con vaivén; aviso: se arquea hacia atrás y abre la boca; fuego: se lanza, boca abierta, tiembla; apagado: cabeza caída | la de la boca (aprieta, abre a 38°, tirón y culatazo, cierra con rebote); un rescoldo emisivo detrás del labio da el brillo del aviso |
+
+Lo que no se puede con una sola malla: los ojos y los carbones no brillan por su cuenta (vienen pintados en la textura); la luz naranja de la boca sí cambia con el aviso. Poses de cerca en `dragon_modelo_poses.png` (reposo · aviso · fuego · apagado, de lado y de tres cuartos) y `mascaron_modelo_poses.png` (cerrada · aprieta · abierta · disparo · cerrando · rebote, de frente y de lado).
+
 ---
 
 ## 6. Capturas (`docs/capturas/trampas_pared/`, cámara del juego, a cámara lenta)

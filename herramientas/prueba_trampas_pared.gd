@@ -799,6 +799,10 @@ func _medidas() -> void:
 	f.set_physics_process(false)
 	var mf: Dictionary = f.medidas()
 	print("MEDIDA mascarón de flechas (u): %.2f × %.2f × %.2f saliente (%.2f casillas de ancho); ranura a %.2f u del suelo y a %.2f de la cara del muro" % [mf["ancho"], mf["alto"], mf["saliente"], float(mf["ancho"]) / Terreno3D.casilla, f.altura_boca_u(), f.boca_local().z])
+	_ok("9.1 el dragón usa el modelo de Meshy con su esqueleto (4 huesos)", d._esq != null and d._esq.get_bone_count() == 4)
+	_ok("9.2 el mascarón usa el modelo de Meshy con su esqueleto (3 huesos)", f._esq != null and f._esq.get_bone_count() == 3)
+	_ok("9.3 la boca (donde nace el hechizo) queda por delante de la caja que recibe hechizos (dragón %.2f > %.2f, mascarón %.2f > %.2f)" % [d.boca_local().z - HechizoVivo.HAZ_BOCA_U, d.prof_cuerpo(), f.boca_local().z, f.prof_cuerpo()],
+			d.boca_local().z - HechizoVivo.HAZ_BOCA_U > d.prof_cuerpo() and f.boca_local().z > f.prof_cuerpo())
 	print("MEDIDA tiempos: aviso del dragón %.2f s; aviso del mascarón %.2f s; haz cada %.1f s (el haz se ve %.1f s); invulnerabilidad de la jugadora %.1f s" % [TrampaDragon3D.AVISO_S, TrampaFlechas3D.AVISO_S, TrampaDragon3D.TICK_S, Hechizo.HAZ_DURA_S, Jugador3D.INVULNERABLE])
 	print("MEDIDA daño a la jugadora: dragón %.0f por haz = %.1f/s sostenido; flecha %.0f; para comparar: golpe de goblin %.0f, flecha de goblin %.0f, barril 20" % [TrampaDragon3D.DANO_TICK, TrampaDragon3D.DANO_TICK / TrampaDragon3D.TICK_S, TrampaFlechas3D.DANO_JUGADORA, Combate3D.DANO_GOLPE, Combate3D.DANO_FLECHA])
 	print("MEDIDA velocidad: la jugadora anda a 1,6 u/s y corre a 3 u/s; la flecha va a %.1f u/s (flecha normal %.1f u/s)" % [3.5 * Terreno3D.casilla, FlechaTrampa3D.VEL_U])

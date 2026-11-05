@@ -70,6 +70,9 @@ func periodo() -> float:
 
 
 func boca_local() -> Vector3:
+	if _esq != null:
+		var b: Vector3 = _de_modelo(MOD_BOCA)
+		return Vector3(b.x, b.y, CABEZA_Z_MAX + PUNTA_CABEZA)          # el hocico del modelo ya queda a 1,70 de la cara del muro
 	return Vector3(0.0, BOCA_Y, CABEZA_Z_MAX + PUNTA_CABEZA)
 
 
@@ -101,6 +104,8 @@ func _ready() -> void:
 
 
 func _construir() -> void:
+	if _construir_modelo():
+		return
 	var piedra: StandardMaterial3D = _material(COLOR_PIEDRA)
 	_caja("Losa", LOSA, Vector3(0.0, LOSA.y * 0.5, LOSA.z * 0.5), piedra)
 	# Dintel y jambas: la boca de cueva (piedra más oscura) en la que se mete el cuello.
@@ -142,6 +147,76 @@ func _construir() -> void:
 	_humo = _particulas(Color(0.34, 0.31, 0.30, 0.5), Color(0.2, 0.19, 0.19, 0.0), 8, 1.1, 0.2, Vector3(0.0, 1.0, 0.4), 30.0, 0.3, 0.7, Vector3(0.0, 0.45, 0.0))
 	_humo.position = Vector3(0.0, 0.02, PUNTA_CABEZA)
 	_cabeza.add_child(_humo)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  El modelo de Meshy (5/11/2026, Pablo: «Embergate Dragon»)
+# ---------------------------------------------------------------------------------------------------------------------
+## Viene en UNA malla (losa + cuello + cabeza, sin rig), normalizada a 1 de alto, con la boca hacia +Z. Aquí se le pone un esqueleto de 4 huesos con pesos suaves sacados de la geometría (raíz = losa,
+## cuello, cabeza, mandíbula) para que se eche atrás, se lance y abra la boca sin cortar la malla. Medidas en las coordenadas del modelo (MOD_*): la losa va de z −0,50 a −0,22, el cuello sale del arco
+## en z ≈ −0,22 y la cabeza (girada un poco hacia +X) acaba en el hocico, z 0,50, con la boca entre y 0,12 y 0,20.
+
+## Escala: 2,0 u de alto (1,44 de ancho). La losa se mete MOD_HUNDE u en el muro: el hocico queda a 1,70 u de la cara del muro (lo mismo que la cabeza lanzada de las primitivas).
+const MODELO: String = "res://arte/meshy/trampa_dragon.glb"
+const MOD_ESCALA: float = 2.0
+const MOD_HUNDE: float = 0.30
+const MOD_CUELLO: Vector3 = Vector3(-0.05, 0.0, -0.22)
+const MOD_CABEZA: Vector3 = Vector3(0.06, 0.24, 0.08)
+const MOD_BISAGRA: Vector3 = Vector3(0.12, 0.15, 0.22)
+const MOD_BOCA: Vector3 = Vector3(0.13, 0.16, 0.47)
+
+var _esq: Skeleton3D = null
+var _modelo: Node3D = null
+
+
+## Del espacio del modelo al de la trampa (+Z hacia fuera de la cara del muro, y desde el suelo).
+static func _de_modelo(p: Vector3) -> Vector3:
+	return Vector3(p.x * MOD_ESCALA, (p.y + 0.5) * MOD_ESCALA, (p.z + 0.5) * MOD_ESCALA - MOD_HUNDE)
+
+
+func _construir_modelo() -> bool:
+	_esq = _modelo_con_huesos(MODELO, MOD_ESCALA, _de_modelo(Vector3.ZERO), ["Raiz", "Cuello", "Cabeza", "Mandibula"], [Vector3.ZERO, MOD_CUELLO, MOD_CABEZA, MOD_BISAGRA], _pesos_modelo)
+	if _esq == null:
+		return false
+	_modelo = _esq.get_parent() as Node3D
+	# Brasas y humo en la boca: siguen a la cabeza con un BoneAttachment3D.
+	var at := BoneAttachment3D.new()
+	at.name = "EnCabeza"
+	at.bone_name = "Cabeza"
+	_esq.add_child(at)
+	var boca := Node3D.new()
+	boca.name = "Boca"
+	boca.position = MOD_BOCA - MOD_CABEZA
+	boca.scale = Vector3.ONE / MOD_ESCALA
+	at.add_child(boca)
+	_brillo = _material(COLOR_BRASA, 0.6, true)
+	_brasas = _particulas(Color(1.0, 0.45, 0.1, 0.9), Color(0.8, 0.12, 0.05, 0.0), 14, 0.55, 0.06, Vector3(0.0, 0.5, 1.0), 22.0, 0.9, 1.9, Vector3(0.0, -1.4, 0.0))
+	boca.add_child(_brasas)
+	_humo = _particulas(Color(0.34, 0.31, 0.30, 0.5), Color(0.2, 0.19, 0.19, 0.0), 8, 1.1, 0.2, Vector3(0.0, 1.0, 0.4), 30.0, 0.3, 0.7, Vector3(0.0, 0.45, 0.0))
+	boca.add_child(_humo)
+	return true
+
+
+## a: todo lo que sale por delante de la losa (dentro del arco); b: la cabeza (por delante y por arriba del codo del cuello); c: la quijada (por debajo de la boca, en la parte de delante de la cabeza).
+static func _pesos_modelo(p: Vector3) -> Array:
+	var en_arco: float = 1.0 - smoothstep(0.26, 0.34, absf(p.x))
+	var w_a: float = smoothstep(-0.21, -0.10, p.z) * en_arco
+	var w_b: float = smoothstep(-0.04, 0.10, p.z) * smoothstep(-0.06, 0.08, p.y)
+	var w_c: float = (1.0 - smoothstep(0.115, 0.15, p.y)) * smoothstep(0.17, 0.25, p.z)
+	return [1.0 - w_a, w_a * (1.0 - w_b), w_a * w_b * (1.0 - w_c), w_a * w_b * w_c]
+
+
+## La pose del modelo: `_ext` 0 = echado atrás (aviso) … 1 = lanzado (fuego); `_mand` = apertura de la boca (rad); `caida` = apagado, cabeza caída.
+func _posar_modelo(caida: float, bob: float, tiembla: float) -> void:
+	# Echado atrás el cuello se arquea hacia la losa y la cabeza mira arriba; lanzado, el cuello avanza y la cabeza queda horizontal (el chorro sale recto); apagado, todo cae.
+	# El modelo en reposo ya mira algo hacia abajo: lanzado se levanta un poco para que la boca quede horizontal. `e` reparte `_ext` (el reposo, 0,15, queda a medio camino).
+	var e: float = 1.0 - pow(1.0 - clampf(_ext, 0.0, 1.0), 4.0)
+	var cuello := Quaternion(Vector3.RIGHT, lerpf(-0.50, -0.14, e) + caida * 0.8 + bob)
+	var cabeza := Quaternion(Vector3.RIGHT, lerpf(-0.25, -0.12, e) + caida * 0.8) * Quaternion(Vector3.UP, tiembla)
+	_esq.set_bone_pose_rotation(1, cuello)
+	_esq.set_bone_pose_position(1, MOD_CUELLO + Vector3(0.0, lerpf(0.02, -0.01, e), lerpf(-0.05, 0.08, e)))
+	_esq.set_bone_pose_rotation(2, cabeza)
+	_esq.set_bone_pose_rotation(3, Quaternion(Vector3.RIGHT, _mand * 0.9))
 
 
 ## Tres púas en el lomo de un segmento del cuello.
@@ -319,10 +394,19 @@ func _animar(delta: float, ya: bool = false) -> void:
 	else:
 		_ext = move_toward(_ext, ext_obj, vel_ext * delta)
 		_mand = move_toward(_mand, mand_obj, 5.0 * delta)
-	if _cabeza == null:
-		return
 	var bob: float = 0.03 * sin(_t_anim * 2.2) if fase == Fase.REPOSO else 0.0
 	var tiembla: float = 0.012 * sin(_t_anim * 70.0) if fase == Fase.FUEGO else 0.0
+	if _esq != null:
+		_posar_modelo(caida, bob * 1.5, tiembla * 2.0)
+		_brillo.emission_energy_multiplier = brillo
+		if _luz != null:
+			_luz.light_energy = luz
+			_luz.position = boca_local()
+		_brasas.emitting = brasas
+		_humo.emitting = humo
+		return
+	if _cabeza == null:
+		return
 	var z: float = lerpf(CABEZA_Z_MIN, CABEZA_Z_MAX, _ext)
 	var base: Vector3 = Vector3(0.0, BOCA_Y, 0.34)
 	var fin: Vector3 = Vector3(tiembla, BOCA_Y + bob - caida * 0.35, z)

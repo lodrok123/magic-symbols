@@ -26,10 +26,14 @@ func _escenario() -> void:
 	(jugador as Jugador3D).vida = 100000.0
 	var tam_juego: float = float(maqueta.get("_tam_camara"))
 	print("cámara del juego: tamaño %.2f" % tam_juego)
-	await _boca(tam_juego)
-	if a.size() > 1 and a[1] == "boca":
+	var solo: String = a[1] if a.size() > 1 else ""
+	if solo != "dragon":
+		await _boca(tam_juego)
+	if solo == "boca":
 		return
 	await _dragon(tam_juego)
+	if solo == "dragon":
+		return
 	await _flecha(tam_juego)
 	await _frente(tam_juego)
 

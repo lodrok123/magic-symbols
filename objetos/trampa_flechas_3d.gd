@@ -74,11 +74,55 @@ func preparar_ciclo(p_cada: float, p_desfase: float, p_vel: float) -> void:
 
 
 func boca_local() -> Vector3:
+	if hay_modelo():
+		return _de_modelo(MOD_BOCA)
 	return Vector3(0.0, BOCA_Y, BOCA_Z)
 
 
 func prof_cuerpo() -> float:
-	return BOCA_Z - 0.07                        # la caja acaba justo antes de la ranura: la flecha nace fuera de ella
+	return boca_local().z - 0.07                # la caja acaba justo antes de la ranura: la flecha nace fuera de ella
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  El modelo de Meshy (5/11/2026, Pablo: «Molten Gargoyle Codex», de su lámina del mascarón)
+# ---------------------------------------------------------------------------------------------------------------------
+## UNA malla sin rig, 1 de alto (brasero incluido), 0,8 de ancho, la cara hacia +Z. Meshy la sacó con cara POR LOS DOS LADOS (la de atrás espejada): la losa es el plano z = 0 del modelo
+## (0,09 de grueso) y la mitad de atrás queda metida en el muro. Se le ponen 3 huesos: raíz (losa), `Mascaron` (todo el relieve de delante: el culatazo y el apretón) y `Mandibula` (el labio
+## de abajo, por debajo de la raja de la boca, y = −0,12; bisagra arriba y atrás). El brillo de la raja es un rescoldo emisivo metido detrás del labio.
+const MODELO: String = "res://arte/meshy/trampa_flechas.glb"
+const MOD_ESCALA: float = 2.2                 ## 2,2 u de alto con el brasero (la losa sola ≈ 1,95), 1,75 de ancho
+const MOD_CARA: Vector3 = Vector3(0.0, -0.05, 0.045)
+const MOD_BISAGRA: Vector3 = Vector3(0.0, -0.12, 0.06)
+const MOD_BOCA: Vector3 = Vector3(0.0, -0.125, 0.20)
+const MOD_RAJA_Y: float = -0.12               ## la raja de la boca (y del modelo)
+
+var _esq: Skeleton3D = null
+
+
+static func hay_modelo() -> bool:
+	return ResourceLoader.exists(MODELO)
+
+
+## Del espacio del modelo al de la trampa (+Z hacia fuera de la cara del muro, y desde el suelo).
+static func _de_modelo(p: Vector3) -> Vector3:
+	return Vector3(p.x * MOD_ESCALA, (p.y + 0.5) * MOD_ESCALA, p.z * MOD_ESCALA)
+
+
+## Relieve de delante (z > 0,045, la cara de la losa) en la parte central; la quijada, por debajo de la raja y por encima de la barbilla.
+static func _pesos_modelo(p: Vector3) -> Array:
+	var delante: float = smoothstep(0.04, 0.07, p.z) * (1.0 - smoothstep(0.31, 0.36, absf(p.x)))
+	var quijada: float = (1.0 - smoothstep(MOD_RAJA_Y - 0.025, MOD_RAJA_Y + 0.005, p.y)) * smoothstep(-0.40, -0.33, p.y) * (1.0 - smoothstep(0.26, 0.31, absf(p.x)))
+	return [1.0 - delante, delante * (1.0 - quijada), delante * quijada]
+
+
+func _construir_modelo() -> bool:
+	_esq = _modelo_con_huesos(MODELO, MOD_ESCALA, _de_modelo(Vector3.ZERO), ["Raiz", "Mascaron", "Mandibula"], [Vector3.ZERO, MOD_CARA, MOD_BISAGRA], _pesos_modelo)
+	if _esq == null:
+		return false
+	var fuego: bool = elemento == "fuego"
+	_ranura = _material(COLOR_BRASA if fuego else Color(0.75, 0.78, 0.82), 0.5, true)
+	_caja("Rescoldo", Vector3(1.0, 0.07, 0.02), _de_modelo(Vector3(0.0, MOD_RAJA_Y + 0.005, 0.07)), _ranura)
+	return true
 
 
 func _ready() -> void:
@@ -89,6 +133,8 @@ func _ready() -> void:
 
 
 func _construir() -> void:
+	if _construir_modelo():
+		return
 	var fuego: bool = elemento == "fuego"
 	_caja("Losa", LOSA, Vector3(0.0, LOSA.y * 0.5, LOSA.z * 0.5), _material(COLOR_PIEDRA))
 	# La garganta: el fondo oscuro de la boca, con el rescoldo, pegado a la losa (no se mueve; se ve al abrir).
@@ -209,6 +255,12 @@ func _sale_con_rebote(u: float) -> float:
 
 func _poner_boca(p: Dictionary) -> void:
 	angulo_boca = float(p["angulo"])
+	if _esq != null:
+		var a_: float = float(p["aprieta"])
+		_esq.set_bone_pose_position(1, MOD_CARA - Vector3(0.0, 0.0, float(p["atras"]) / MOD_ESCALA))
+		_esq.set_bone_pose_scale(1, Vector3(1.0 + 0.03 * a_, 1.0 - 0.04 * a_, 1.0))
+		_esq.set_bone_pose_rotation(2, Quaternion(Vector3.RIGHT, deg_to_rad(angulo_boca)))
+		return
 	if _mandibula != null:
 		_mandibula.rotation.x = deg_to_rad(angulo_boca)
 	if _cabeza != null:
