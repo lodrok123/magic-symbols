@@ -284,7 +284,6 @@ func _forma_mano(raiz: Node3D, p: Dictionary, dura: float) -> void:
 	luz.light_energy = 0.0
 	luz.shadow_enabled = false
 	raiz.add_child(luz)
-	var tw := raiz.create_tween().set_parallel(true)
 	var espera_latido: float = dura
 	raiz.set_meta("bola", nucleo)                # (la prueba y el lab lo miran)
 	if fuego:
@@ -292,10 +291,12 @@ func _forma_mano(raiz: Node3D, p: Dictionary, dura: float) -> void:
 		espera_latido = FasesFuego3D.crecer_bola(nucleo)
 		FasesFuego3D.montar_carga(chis, luz)
 	else:
+		var tw := raiz.create_tween().set_parallel(true)
 		tw.tween_property(nucleo, "scale", Vector3.ONE, dura).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tw.tween_property(luz, "light_energy", 1.4, dura)
+	# Giro con su propio tween: con fuego y sin «gira», el tween común se quedaba vacío y daba «started with no Tweeners» (playtest del 3/11).
 	if nucleo.has_meta("gira"):
-		tw.tween_property(nucleo, "rotation:y", TAU, dura + 0.3)
+		raiz.create_tween().tween_property(nucleo, "rotation:y", TAU, dura + 0.3)
 	_latido(raiz, nucleo, espera_latido)
 
 

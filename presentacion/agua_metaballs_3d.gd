@@ -181,9 +181,12 @@ func _nodo_nuevo(n: Node) -> void:
 		_marcar.call_deferred(n)
 
 
-func _marcar(n: Node) -> void:
-	if n == null or not is_instance_valid(n):
+## `nodo` sin tipo: la llamada diferida de `_nodo_nuevo` puede llegar con el nodo ya liberado, y con `n: Node` Godot fallaba al convertir el argumento
+## antes de llegar al `is_instance_valid` («Cannot convert argument 1 from Object to Object», 55 veces en el playtest del 4/11 en el santuario).
+func _marcar(nodo) -> void:
+	if not is_instance_valid(nodo) or not (nodo is Node):
 		return
+	var n: Node = nodo
 	var v := n as GeometryInstance3D
 	if v == null or not (n is MeshInstance3D or n is MultiMeshInstance3D):
 		return

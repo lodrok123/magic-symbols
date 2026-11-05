@@ -246,21 +246,30 @@ func _process(delta: float) -> void:
 func _dibujar(alfa: float, col: Color, escala: float, ancho: float, rotura: float) -> void:
 	if _malla == null:
 		return
-	var im := ImmediateMesh.new()
-	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
-	var pulso: float = 0.88 + 0.12 * sin(_t * 9.0)
-	var c := Color(col.r, col.g, col.b, clampf(alfa * BRILLO * pulso, 0.0, 1.0))
+	# Primero los tramos y luego la malla: con el primer punto del trazo aún no hay ningún tramo, y una superficie sin vértices da
+	# «No vertices were added, surface can't be created» en la consola (playtests del 3/11 y del 4/11).
+	var tramos: Array[Vector3] = []
 	for k in range(trazos.size()):
 		var t: PackedVector3Array = trazos[k]
 		var prev := Vector3.INF
 		for i in range(t.size()):
 			var p: Vector3 = _a_local(t[i], escala, rotura, k, i)
-			if prev != Vector3.INF:
-				_cinta(im, prev, p, ancho, c)
+			if prev != Vector3.INF and prev.distance_to(p) >= 0.0001:
+				tramos.append_array([prev, p])
 			prev = p
 		if k == trazos.size() - 1 and _abierto and estado == "dibujando" and prev != Vector3.INF:
 			var tp: Vector3 = Vector3(punta.x - global_position.x, ALTO_SUELO, punta.z - global_position.z)
-			_cinta(im, prev, tp, ancho, c)
+			if prev.distance_to(tp) >= 0.0001:
+				tramos.append_array([prev, tp])
+	if tramos.is_empty():
+		_malla.mesh = null
+		return
+	var im := ImmediateMesh.new()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var pulso: float = 0.88 + 0.12 * sin(_t * 9.0)
+	var c := Color(col.r, col.g, col.b, clampf(alfa * BRILLO * pulso, 0.0, 1.0))
+	for j in range(0, tramos.size(), 2):
+		_cinta(im, tramos[j], tramos[j + 1], ancho, c)
 	im.surface_end()
 	_malla.mesh = im
 
