@@ -18,6 +18,8 @@ const CLIPS_ELFA: Array = ["Anim01a0e90d", "ChargedGroundSlam", "ChargedSpellCas
 ## Roles que el Juego pide y que tienen que existir (los de MINIMOS «heroe» + los de lanzar).
 const ROLES_HEROE: Array = ["idle", "walk", "run", "cast", "hit", "death", "roll", "leer", "swim", "cast_proyectil", "cast_corro", "cast_columna", "cast_muro",
 	"cast_empuje", "talk", "drink", "pick_up", "walk02"]
+## 5/11: roles que ya NO son los de la elfa sino clips de Mixamo (Pj3D.CLIPS_DE["jugadora_base"]): rol -> clip (en minúsculas).
+const ROLES_MIXAMO: Dictionary = {"roll": "mixamo_voltereta", "drink": "mixamo_beber"}
 const PRENDAS: Array = ["tunica", "capa", "capucha"]
 const RAIZ_MAX: float = 0.12              ## deriva horizontal máxima de la cadera en idle/andar/correr/cast (fracción del alto del modelo)
 const SUELO_IDLE_TOL: float = 0.02
@@ -104,6 +106,9 @@ func _initialize() -> void:
 	for r in ROLES_HEROE:
 		var c_base: String = p.clip_de(r)
 		var c_elfa: String = elfa.clip_de(r)
+		if ROLES_MIXAMO.has(r):
+			_ok(c_base.to_lower() == String(ROLES_MIXAMO[r]) and p.duracion(r) > 0.0, "rol %s -> %s (Mixamo, Pj3D.CLIPS_DE; %.2f s)" % [r, c_base, p.duracion(r)])
+			continue
 		_ok(c_base != "" and c_base.to_lower() == c_elfa.to_lower() and p.duracion(r) > 0.0, "rol %s -> %s (elfa: %s, %.2f s)" % [r, c_base, c_elfa, p.duracion(r)])
 	elfa.queue_free()
 	for r in ["idle", "walk", "run", "cast_proyectil", "talk"]:

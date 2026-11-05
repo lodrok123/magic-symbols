@@ -916,8 +916,8 @@ func _es_cast(clip: String) -> bool:
 
 ## Pone a la heroína (si no es ya la que se ve) y reproduce el clip. Solo está en woodland_wanderer_suave.glb (el que usa el juego), no en el «orig».
 func _probar_cast(clip: String) -> void:
-	if _id != "woodland_wanderer":
-		_elegir_personaje("woodland_wanderer")
+	if _id != "woodland_wanderer" or _juego:
+		_elegir_personaje("woodland_wanderer", 0)   # los casts se miden sobre los clips del GLB (modo GLB; desde el 5/11 este id arrancaría «como el juego» por sus EXTRAS)
 	if _ap == null or not _ap.has_animation(clip):
 		_lbl_cast.text = "El GLB de «%s» no trae el clip %s." % [_id, clip]
 		return

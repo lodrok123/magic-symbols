@@ -115,7 +115,12 @@ const EQUIPO: Dictionary = {
 	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano IZQUIERDA (la del brazo estirado al apuntar; madera hacia delante, cuerda hacia el arquero).
 	# equipo/flecha.glb (punta hacia +Y, centrada) queda para el Juego (proyectil o carcaj): Equipo3D.pieza("flecha").
 	"goblin_archer_chibi": [
-		["arco", "LeftHand", Vector3(0.0, 0.07, 0.47), Vector3(90.0, 0.0, 180.0), Vector3(1.2, 1.2, 2.2)],   # mano IZQUIERDA (la que se estira al apuntar): limbos verticales, madera delante y cuerda detrás; el empuñe del GLB está en un extremo, de ahí el 0,47 (Z de la mano) para centrarlo. 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
+		# 5/11 (Pablo: «el goblin no sujeta el arco, está todo mal»): con (0, 0.07, 0.47) y (90, 0, 180) el arco quedaba 0,24 u por delante y encima de la mano y con la curva de lado.
+		# Medido con la mano al apuntar (ArcheryShot 3,0 s): en el espacio del hueso LeftHand el brazo va por +Y y el arriba del mundo es (0,51, 0,07, 0,86); el GLB del arco tiene la
+		# empuñadura en el origen, el largo por Y (0,78) y la curva hacia +X (0,50, la cuerda). Giro = {GLB +X -> hacia el arquero (−brazo), GLB +Y -> arriba}; la empuñadura en la palma (0,06 por los dedos).
+		# 5/11: arco.glb va a lo largo de +Y (−0,39..0,39), curva en +X (0..0,5, nocla en 0 y puntas en 0,5), grosor en Z. Giro medido en ArcheryShot a 3 s:
+		# +Y del arco = arriba del mundo, +X = hacia delante del brazo (cuerda hacia el arquero); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
+		["arco", "LeftHand", Vector3(-0.006, -0.334, 0.032), Vector3(3.7, 120.3, 85.8), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
 	],
 	"goblin_warrior": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],

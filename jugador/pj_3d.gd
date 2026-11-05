@@ -103,6 +103,9 @@ const ANIM_CAST: Dictionary = {
 ## Clips que un personaje tiene con otro nombre del que dice SINONIMOS: id -> {rol: clip}. Se miran primero.
 ## goblin_warrior_chibi: su HitReaction arrastra la cadera 1,25 alturas (4.8 lo detectó); SlapReaction se queda en su sitio.
 const CLIPS_DE: Dictionary = {
+	# 5/11 (Pablo: «hay un roll que puedes sustituir por el Mixamo. El Drinking puedes usar el de Mixamo también»): la voltereta es Stand_To_Roll (2,37 s; RollDodge de la elfa, 1,83) y
+	# beber es Drinking (8,9 s; bebe con la MANO IZQUIERDA de 2,25 a 5,75 s, como la poción de PIEZAS_MANO; BEBER_DESDE/HASTA 2–6 le valen igual que a StandAndDrink). Ver ClipsFamilia.FUENTE_CLIPS_MIXAMO.
+	"jugadora_base": {"roll": "mixamo_voltereta", "drink": "mixamo_beber"},
 	"goblin_warrior_chibi": {"hit": "slapreaction"},
 	"goblin_espadachin": {"hit": "slapreaction"},
 	# El arquero no tiene clips de espada ni de retroceso con esos nombres: dispara con ArcheryShot y retrocede con Walk002.
@@ -1420,7 +1423,8 @@ const PASO_CORTO: Dictionary = {
 ## Velocidad del clip por personaje (se multiplica por la de VEL_CLIP): id -> {clip: factor}. El gato anda a 0,27: con los pasos tan
 ## cortos de PASO_CORTO, a velocidad normal movía las patas demasiado deprisa para lo poco que avanzan.
 ## goblin_asesino: (28/10) ya no lleva factor aquí: el clip de andar de los goblins va a la velocidad que pide el suelo (Combate3D.ZANCADA_GOBLIN), sin patinar.
-const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "golem_piedra": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
+## jugadora_base roll 1.3 (5/11): la voltereta de Mixamo (Stand_To_Roll, 2,37 s) dura 0,91 s a ×2,6, lo mismo que la de la elfa (RollDodge 1,83 s a ×2); Jugador3D la recorta a 1,0 s como mucho.
+const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince": {"walk": 0.5}, "golem_piedra": {"walk": 1.4}, "jugadora_base": {"walk": 1.6, "run": 1.2, "roll": 1.3}}   # 11/10: 0,27 en el laboratorio; Pablo pidió +50 % (con VEL_GATO igual, para que no patine)
 
 
 ## Factor de zancada por personaje y clip (12/10, Pablo con LabHumanoide3D): id -> {clip: {grupo: factor}}. Cada hueso del grupo gira solo
@@ -2216,13 +2220,14 @@ func _reproducir(nombre: String, una_vez: bool, vel: float, mezcla: float, _forz
 		animacion_actual = nombre
 
 
-## Lo que dura el clip de `nombre` (s) a su velocidad normal (la de VEL_CLIP si la tiene: la voltereta va al doble), o 0 si no existe.
+## Lo que dura el clip de `nombre` (s) a su velocidad normal (la de VEL_CLIP si la tiene: la voltereta va al doble; y la de VEL_CLIP_PJ del personaje, 5/11: antes no contaba y
+## la voltereta de Mixamo de la jugadora decía 1,18 s cuando `jugar` la reproduce en 0,91), o 0 si no existe.
 ## La IA lo usa para no cortar una animación a medias (p. ej. el disparo del arquero dura 5 s, no 0,8).
 func duracion(nombre: String) -> float:
 	if _ap == null:
 		return 0.0
 	var clip: String = _buscar_clip(nombre)
-	return _ap.get_animation(clip).length / float(VEL_CLIP.get(nombre, 1.0)) if clip != "" else 0.0
+	return _ap.get_animation(clip).length / (float(VEL_CLIP.get(nombre, 1.0)) * float(VEL_CLIP_PJ.get(id, {}).get(nombre, 1.0))) if clip != "" else 0.0
 
 
 ## En qué momento del clip `nombre` sale el golpe/la flecha, como fracción de su duración (0..1). Medido a ojo en el clip:

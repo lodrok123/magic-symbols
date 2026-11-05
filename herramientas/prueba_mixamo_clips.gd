@@ -25,8 +25,8 @@ const GLB_CLIPS: String = "res://arte/meshy/mixamo_clips.glb"
 const OTROS: Dictionary = {
 	"goblin_archer_chibi": ["Mixamo_TensarArco", "Mixamo_Disparar", "Mixamo_GritoGuerra"],
 	"goblin_warrior_chibi": ["Mixamo_TensarArco", "Mixamo_Disparar", "Mixamo_GritoGuerra"],
-	"marimanta": ["Mixamo_AncianoQuieto", "Mixamo_AncianoAndar", "Mixamo_Rezar"],
-	"goblin_chaman": ["Mixamo_AncianoQuieto", "Mixamo_AncianoAndar", "Mixamo_Rezar"],
+	"marimanta": ["Mixamo_Rezar"],       # 5/11: Old_Man_Idle/Walk retirados (no sujetan el bastón)
+	"goblin_chaman": ["Mixamo_Rezar"],
 	"alchemist_elf": ["Mixamo_Tabernero"],
 }
 ## Rol -> clip al que resolvía cada modelo ANTES de las alternativas (en minúsculas, como lo devuelve Pj3D.clip_de).
@@ -212,6 +212,10 @@ func _correr() -> void:
 		if n_k > 0:
 			media /= float(n_k)
 		ok(media.length() <= CADERA_E, "E %s: la cadera queda a %.2f alturas de cadera del centro (x %+.2f, z %+.2f; tope %.2f)" % [nombre_e, media.length(), media.x, media.y, CADERA_E])
+	# E2 · (5/11, Pablo) la voltereta y beber de la jugadora son ya los de Mixamo (Pj3D.CLIPS_DE), y la voltereta dura lo que la de la elfa (≤ 1 s, el tope de Jugador3D).
+	ok(pj.clip_de("roll").to_lower() == "mixamo_voltereta", "E2 jugadora_base: el rol roll es «%s»" % pj.clip_de("roll"))
+	ok(pj.clip_de("drink").to_lower() == "mixamo_beber", "E2 jugadora_base: el rol drink es «%s»" % pj.clip_de("drink"))
+	ok(pj.duracion("roll") > 0.0 and pj.duracion("roll") <= 1.0, "E2 jugadora_base: la voltereta dura %.2f s a su velocidad (tope 1,0)" % pj.duracion("roll"))
 	# F · los otros modelos: traen sus alternativas y sus roles no cambian.
 	for id_o in OTROS.keys():
 		var pj_o := Pj3D.new()

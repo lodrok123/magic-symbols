@@ -122,12 +122,13 @@ func _correr() -> void:
 	await process_frame
 	_ok(lab._pj2 != null and lab._ap2 != null, "comparar con elfo_base (ClipsFamilia) se monta con Pj3D")
 	lab._elegir_comparacion("")
-	# ---- cambiar a chibi_elf: modo GLB, clips del GLB como antes ----
-	lab._elegir_personaje("chibi_elf")
+	# ---- cambiar a chibi_elf en modo GLB (juego = 0: desde el 5/11 los modelos con EXTRAS también arrancan «como el juego» de serie), clips del GLB como antes ----
+	lab._elegir_personaje("chibi_elf", 0)
 	await process_frame
 	await process_frame
 	_ok(not lab._juego and lab._pj == null, "chibi_elf: modo GLB, sin Pj3D")
 	_ok(not lab._chk_juego.button_pressed, "la casilla se apaga")
+	_ok(lab._modo_juego_de_serie("chibi_elf") and lab._modo_juego_de_serie("goblin_archer_chibi") and not lab._modo_juego_de_serie("modelo_sin_fuentes"), "de serie: «como el juego» en los que tienen FUENTES o EXTRAS (chibi_elf, goblin_archer_chibi), no en los demás")
 	_ok(lab._ap.get_animation_list().size() > 0 and (lab._ap.has_animation("Walking") or lab._ap.has_animation("walking")), "chibi_elf: clips del GLB (%d)" % lab._ap.get_animation_list().size())
 	_ok(lab._opt_clip.item_count == lab._ap.get_animation_list().size() and not lab._opt_clip.get_item_text(0).contains("("), "la lista del modo GLB no lleva roles")
 	_ok(lab._tit_giro.text.begins_with("Hueso"), "el título del giro vuelve a ser el de siempre")

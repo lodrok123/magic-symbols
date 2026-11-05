@@ -63,8 +63,11 @@ const FUENTE_UNA_MANO: Dictionary = {
 ##   Jugadora: Mixamo_CastArea1 / 2 (conjuro a dos manos hacia el suelo / recoger y soltar, una vez) · Mixamo_Curar (curación a una mano) · Mixamo_GolpeGrande (golpe recibido grande
 ##   de frente) · Mixamo_MorirAtras (cae muerta de espaldas) · Mixamo_Incorporarse (se levanta del suelo) · Mixamo_EmpujePesado (empuja algo pesado, bucle) · Mixamo_Beber (8,9 s) ·
 ##   Mixamo_AbrirTapa (abre la tapa de un cofre, 8,9 s). Goblins: Mixamo_TensarArco · Mixamo_Disparar (el retroceso del disparo) · Mixamo_GritoGuerra (provocación con hacha).
-##   Ancianas: Mixamo_AncianoQuieto (12 s) · Mixamo_AncianoAndar (arrastra los pies; avanza) · Mixamo_Rezar (de pie, balanceándose). NPC: Mixamo_Tabernero (sirve bebidas, 13,6 s).
+##   Ancianas: Mixamo_Rezar (de pie, balanceándose). NPC: Mixamo_Tabernero (sirve bebidas, 13,6 s).
 ## Los nombres de destino no contienen ninguna clave de Pj3D.SINONIMOS (hit, idle, walk, empujar, levantarse…): el tercer barrido de `_buscar_clip` busca por «contains».
+## 5/11 (Pablo): Mixamo_Voltereta y Mixamo_Beber son YA los roles `roll` y `drink` de la jugadora (Pj3D.CLIPS_DE["jugadora_base"]); los casts y Curar se quedan como alternativas
+## para hechizos distintos (muro, pilar…). Old_Man_Idle / Old_Man_Walk se probaron y se RETIRARON: llevan las manos juntas en la barriga, el bastón plantado de Marimanta y el
+## chamán no encuentra la mano (se queda suelto) y el andar parece gesticular; no sirven con bastón. Siguen dentro del GLB por si hace falta un anciano sin bastón.
 const RUTA_CLIPS_MIXAMO: String = "res://arte/meshy/mixamo_clips.glb"
 const FUENTE_CLIPS_MIXAMO: Dictionary = {
 	# centrar (medido con prueba_mixamo_clips.gd, desvío medio en alturas de cadera): Two_Hand_Spell_Casting 0,33 · Treading_Water · Magic_Heal 0,26. Push (0,59, recorre 1,17) y
@@ -81,7 +84,7 @@ const FUENTE_MIXAMO_GOBLIN: Dictionary = {
 	}}
 const FUENTE_MIXAMO_ANCIANA: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
-		"Mixamo_AncianoQuieto": "Old_Man_Idle", "Mixamo_AncianoAndar": "Old_Man_Walk", "Mixamo_Rezar": "Praying_2",
+		"Mixamo_Rezar": "Praying_2",
 	}}
 const FUENTE_MIXAMO_NPC: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Bartending"], "clips": {"Mixamo_Tabernero": "Bartending"}}   # la cadera a 0,49 alturas hacia atrás; se mueve 0,39 por la barra
@@ -125,7 +128,7 @@ const FUENTES: Dictionary = {
 		{"ruta": "res://arte/modelos/goblin_warrior_chibi.glb", "referencia": "Idle", "clips": {
 			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
 		}},
-		FUENTE_MIXAMO_ANCIANA,       # 5/11: Mixamo_AncianoQuieto, Mixamo_AncianoAndar y Mixamo_Rezar, alternativas para mirar
+		FUENTE_MIXAMO_ANCIANA,       # 5/11: Mixamo_Rezar, alternativa para mirar (los Old_Man_* se retiraron: no sujetan el bastón)
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
@@ -170,6 +173,11 @@ const ALINEAR_REPOSO: Dictionary = {
 	# 25/10 (Pablo: «los pies están girados»): también el pie («Foot»: tramo tobillo → base de los dedos). Sin alinearlo, el pie izquierdo apuntaba 11,5° hacia
 	# DENTRO en idle y el derecho 1,4°, cuando la fuente los lleva hacia fuera; el tramo alineado copia la orientación del pie de la fuente.
 	"jugadora_base": ["UpLeg", "Leg", "Arm", "ForeArm", "Hand", "Foot"],
+	# 5/11 (Pablo: «en el alquimista revisa tabernero, están los brazos mal, no se posicionan adelante»): los rigs de Meshy de 27 huesos (alquimista, goblins) tienen el reposo de los
+	# brazos distinto al Y Bot de Mixamo y los clips de Mixamo (solo entran por EXTRAS: sus clips propios no pasan por aquí) les dejaban los brazos caídos y atrás. Solo brazos.
+	"alchemist_elf": ["Arm", "ForeArm", "Hand"],
+	"goblin_archer_chibi": ["Arm", "ForeArm", "Hand"],
+	"goblin_warrior_chibi": ["Arm", "ForeArm", "Hand"],
 }
 ## false = retarget de antes sin alinear (para medir el antes y el después en las pruebas; hay que vaciar la caché con `vaciar_cache()`).
 static var alinear_activo: bool = true

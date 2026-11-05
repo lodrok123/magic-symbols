@@ -12,7 +12,9 @@ ningún rol cambia de clip; cada uno va con su nombre `Mixamo_*` en el GLB únic
 familia en `ClipsFamilia` (jugadora → `FUENTE_CLIPS_MIXAMO`; goblins arquero y guerrero → `FUENTE_MIXAMO_GOBLIN` vía EXTRAS; Marimanta y chamán → `FUENTE_MIXAMO_ANCIANA`;
 alquimista → `FUENTE_MIXAMO_NPC`). Se miran en **laboratorios/LabJugadora3D.tscn** (la jugadora: lista de clips con fuente al lado) y en **laboratorios/LabHumanoide3D.tscn**
 con «COMO EL JUEGO» (que ahora se enciende solo en esos modelos). Para pasar uno a rol del juego: renombrar el destino al rol de `Pj3D.SINONIMOS` (o apuntarlo en `CLIPS_DE`).
-Nombres: CastArea1/2 · Curar · GolpeGrande · MorirAtras · Incorporarse · EmpujePesado · Beber · AbrirTapa · TensarArco · Disparar · GritoGuerra · AncianoQuieto · AncianoAndar · Rezar · Tabernero.
+Nombres: CastArea1/2 · Curar · GolpeGrande · MorirAtras · Incorporarse · EmpujePesado · Beber · AbrirTapa · TensarArco · Disparar · GritoGuerra · Rezar · Tabernero.
+**5/11, revisión de Pablo (diario 388):** Voltereta y Beber pasan a ser los roles `roll` y `drink` de la jugadora; los casts y Curar se quedan como alternativas para otros hechizos
+(muro, pilar…). Old_Man_Idle y Old_Man_Walk se RETIRAN del chamán y Marimanta (manos en la barriga: sueltan el bastón plantado y el andar parece gesticular); siguen en el GLB.
 
 ## 1. Jugadora (héroe)
 
@@ -64,8 +66,8 @@ No hay en Mixamo: **leer un libro** (Readandwrite sigue de Meshy), **ahogarse** 
 
 ## 3. Marimanta y chamán (ancianas)
 
-- idle: **Old_Man_Idle** [12,2] «anciano de pie» (largo, recortar), Injured_Idle [9,4]
-- walk: **Old_Man_Walk** [1,3] «arrastra los pies» (sustituto del Elderly_Shaky_Walk de Meshy, que no avanza), Injured_Walk_2 [1,2] «cojea de la pierna derecha», Walking_22 [1,8] «cuidadoso»
+- idle: ~~Old_Man_Idle~~ [12,2] «anciano de pie» (probado 5/11 y retirado: manos en la barriga, no sujeta el bastón), Injured_Idle [9,4]
+- walk: ~~Old_Man_Walk~~ [1,3] «arrastra los pies» (probado 5/11 y retirado: mismo problema, parece gesticular), Injured_Walk_2 [1,2] «cojea de la pierna derecha», Walking_22 [1,8] «cuidadoso»
 - talk: Talking_2 [10,3] «conversación general», Standing_Arguing [27,4] «discute» (recortar), Head_Nod_Yes [2,6], Annoyed_Head_Shake [2,6], Pointing_3 [2,8], Dismissing_Gesture [2,3] «te despide con la mano», Angry_Point [2,5]
 - pensar / tramar: Thoughtful_Head_Nod [3], Thoughtful_Head_Shake [3,1], Look_Away_Gesture [2,4] «mira a otro lado sarcástica»
 - rezar / ritual (chamán): **Praying_2** [3,3] «reza de pie balanceándose», Praying_4 [2] «de rodillas», Praying_5 [6,7] «cae de rodillas», Kneeling_Down [2,8], Sword_And_Shield_Power_Up [2,4] «se carga de poder» (para el trazado de runas, sin la espada)
