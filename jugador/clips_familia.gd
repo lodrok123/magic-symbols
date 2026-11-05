@@ -50,6 +50,18 @@ const FUENTE_UNA_MANO: Dictionary = {
 		"CastOneHandFront": "CastOneHandFront", "CastOneHandUp": "CastOneHandUp", "CastOneHandGround": "CastOneHandGround",
 	}}
 
+## CLIPS DE MIXAMO (5/11, diario 385): clips de la librería de Mixamo (esqueleto Y Bot, los MISMOS 65 huesos que jugadora_base) juntados en un GLB por herramientas/mixamo_clips_a_glb.gd.
+## Entran por el mismo retarget que el resto de fuentes. «referencia»: el Idle de Mixamo (de pie, pies en el suelo). «centrar»: los clips «in place» de Mixamo traen la cadera puesta a
+## un lado (Two_Hand_Spell_Casting, 0,33 alturas de cadera). Nombres de destino con prefijo «Mixamo_» para no pisar los roles de la elfa (chibi_elf va antes y gana de todos modos):
+##   Mixamo_CastDosManos  conjuro a dos manos, una vez (3,4 s)        Mixamo_Nadar      nado de crol, avanza la cadera (4,5 s)
+##   Mixamo_Flotar        de pie en el agua moviendo brazos, bucle    Mixamo_Voltereta  de pie, voltereta adelante y de pie; avanza ~4 alturas de cadera (2,4 s)
+## Para usar uno como rol del juego basta cambiar aquí su nombre de destino por el del rol de Pj3D.SINONIMOS (y quitarlo de la fuente que lo diera antes).
+const RUTA_CLIPS_MIXAMO: String = "res://arte/meshy/mixamo_prueba_clips.glb"
+const FUENTE_CLIPS_MIXAMO: Dictionary = {
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Two_Hand_Spell_Casting", "Treading_Water"], "clips": {
+		"Mixamo_CastDosManos": "Two_Hand_Spell_Casting", "Mixamo_Nadar": "Swimming", "Mixamo_Flotar": "Treading_Water", "Mixamo_Voltereta": "Stand_To_Roll",
+	}}
+
 ## Modelos que SÍ traen AnimationPlayer propio (la elfa jugadora) y solo reciben clips de más: id de GLB -> fuentes (mismo formato que FUENTES). Nunca pisan un clip que ya tenga.
 const EXTRAS: Dictionary = {
 	"woodland_wanderer_suave": [FUENTE_CLIPS_JUGADORA, FUENTE_CLIPS_CARGA],
@@ -75,6 +87,7 @@ const FUENTES: Dictionary = {
 		FUENTE_CLIPS_JUGADORA,       # 24/10: abrir_cofre, agacharse, ofrecer, saludo y empujar (ver arriba)
 		FUENTE_UNA_MANO,             # 24/10: los tres casts a una mano (CastOneHandFront / Up / Ground)
 		FUENTE_CLIPS_CARGA,          # 4/11: cargar_idle, cargar_andar, levantar, lanzar_objeto, dejar_objeto y coger_lanzar (ver arriba)
+		FUENTE_CLIPS_MIXAMO,         # 5/11: Mixamo_CastDosManos, Mixamo_Nadar, Mixamo_Flotar y Mixamo_Voltereta (ver arriba)
 	],
 	# Chamán goblin (28/10): el esqueleto de Marimanta (66 huesos con las MISMAS bases de hueso: tools/autorig_chaman.py) y sus 7 clips (idle, andar de anciana, hablar, tramar, correr); las reacciones
 	# (hit, death, ahogarse), del goblin guerrero como las del asesino. `trazar` y `clavar` los genera AnimacionesChaman. Con `{}` se traen todos los de Marimanta con su nombre.

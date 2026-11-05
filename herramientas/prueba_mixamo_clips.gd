@@ -13,6 +13,9 @@ extends SceneTree
 ## La apertura lateral del brazo no se compara cuando la figura está boca abajo (|línea| > 90°, el medio de una voltereta): el signo de «abierto» depende de dónde queda el lateral
 ## y con el cuerpo invertido la misma pose da signos opuestos (se imprime como INFO).
 ## Y para cada clip imprime, para mirar a ojo: duración, pistas, inclinación y rodillas al 50 %.
+##   E · ENGANCHADOS (5/11): jugadora_base, cargada por Pj3D como en el juego, trae los clips de ClipsFamilia.FUENTE_CLIPS_MIXAMO con su nombre (Mixamo_*); con la «referencia» (Idle de
+##       Mixamo) y «centrar», en Mixamo_CastDosManos y Mixamo_Flotar la suela más baja queda a ≤ SUELA_E del alto del suelo en los tres instantes y la cadera a ≤ CADERA_E alturas de cadera del
+##       centro en el plano del suelo (media del clip). Necesita el GLB importado por Godot (tools/Godot… --headless --editor --quit, o abrir el editor).
 
 const GLB_CLIPS: String = "res://arte/meshy/mixamo_prueba_clips.glb"
 const ID_DESTINO: String = "jugadora_base"
@@ -23,6 +26,12 @@ const CADERA_XZ_MAX: float = 0.35      ## alturas de cadera
 ## Clips que avanzan a propósito (la cadera se desplaza): C se imprime como INFO.
 const AVANZAN: Array = ["Swimming", "Stand_To_Roll"]
 const ALTO: float = 1.0
+const ENGANCHADOS: Array = ["Mixamo_CastDosManos", "Mixamo_Nadar", "Mixamo_Flotar", "Mixamo_Voltereta"]
+## Solo los clips de pie: Mixamo_Flotar lleva las piernas encogidas pataleando (la suela queda 0,14 del alto por encima del suelo: es un clip de agua, no de suelo) y Mixamo_Nadar
+## y Mixamo_Voltereta avanzan.
+const EN_SUELO: Array = ["Mixamo_CastDosManos"]
+const SUELA_E: float = 0.03
+const CADERA_E: float = 0.12
 const Medir := preload("res://herramientas/prueba_rigging_postura.gd")
 
 var _fallos: int = 0
@@ -147,6 +156,31 @@ func _correr() -> void:
 			print("INFO  ", msg_c, " · avanza a propósito")
 		else:
 			ok(xz_max <= CADERA_XZ_MAX, msg_c)
+	# E · los clips enganchados por FUENTES (con referencia y centrar), tal como los carga el juego.
+	var cad_d: int = sk_d.find_bone("mixamorig_Hips")
+	var cad_rest_d: Vector3 = sk_d.get_bone_rest(cad_d).origin
+	for nombre_e in ENGANCHADOS:
+		var hay: bool = ap_d.has_animation(nombre_e)
+		ok(hay, "E jugadora_base trae «%s» por ClipsFamilia.FUENTES" % nombre_e)
+		if not hay or not EN_SUELO.has(nombre_e):
+			continue
+		var an_e: Animation = ap_d.get_animation(nombre_e)
+		var peor: float = 0.0
+		for f in FRACS:
+			var m: Dictionary = await _pose_destino(pj, sk_d, ap_d, nombre_e, an_e.length * float(f))
+			peor = maxf(peor, absf(float(m["suela"])))
+		ok(peor <= SUELA_E, "E %s: la suela más baja se aleja del suelo como mucho %.3f del alto (tope %.3f)" % [nombre_e, peor, SUELA_E])
+		var media := Vector2.ZERO
+		var n_k: int = 0
+		for tt in an_e.get_track_count():
+			if an_e.track_get_type(tt) == Animation.TYPE_POSITION_3D and String(an_e.track_get_path(tt)).ends_with("mixamorig_Hips"):
+				for k in an_e.track_get_key_count(tt):
+					var p: Vector3 = an_e.track_get_key_value(tt, k)
+					media += Vector2(p.x - cad_rest_d.x, p.z - cad_rest_d.z) / maxf(cad_rest_d.y, 0.000001)
+					n_k += 1
+		if n_k > 0:
+			media /= float(n_k)
+		ok(media.length() <= CADERA_E, "E %s: la cadera queda a %.2f alturas de cadera del centro (x %+.2f, z %+.2f; tope %.2f)" % [nombre_e, media.length(), media.x, media.y, CADERA_E])
 	_fin()
 
 
