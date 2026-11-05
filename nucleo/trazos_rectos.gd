@@ -65,6 +65,24 @@ const SELLOS: Dictionary = {
 	"buscar": "D|DR|DR",          # ᚨ  palo y dos ramas que bajan
 }
 
+## OTRAS FORMAS que también valen para una entrada, además de la de la tabla (que es la que se enseña en la guía). Mismo formato.
+## Solo para runas que se dibujan, con naturalidad, de dos maneras; cada una pasa el mismo control de choques que la tabla.
+##   rayo (5/11, segundo playtest de Pablo): el log lo leía «DL,DR,DL» tres veces de tres: el zigzag VERTICAL de un relámpago (ϟ),
+##   mientras que ᛊ en el libro está tumbada («DR,UR,DR»). Valen las dos.
+const OTRAS_FORMAS_ELEMENTOS: Dictionary = {
+	"rayo": ["DL,DR,DL"],
+}
+const OTRAS_FORMAS_SELLOS: Dictionary = {}
+
+
+## Todas las formas de una entrada del vocabulario (la de la tabla primero), como textos.
+static func formas(vocabulario: Dictionary, nombre: String) -> PackedStringArray:
+	var res := PackedStringArray([String(vocabulario[nombre])])
+	var otras: Dictionary = OTRAS_FORMAS_ELEMENTOS if vocabulario == ELEMENTOS else (OTRAS_FORMAS_SELLOS if vocabulario == SELLOS else {})
+	for t in otras.get(nombre, []):
+		res.append(String(t))
+	return res
+
 ## --- UMBRALES ---
 const NOMBRES_DIR: PackedStringArray = ["R", "UR", "U", "UL", "L", "DL", "D", "DR"]
 const PASOS: int = 8
@@ -198,7 +216,12 @@ static func reconocer(trazos: Array, vocabulario: Dictionary) -> Dictionary:
 	# Para cada plantilla: [coste, dentro_de_tolerancia, nombre]. El coste ordena también las que no valen (para el aviso).
 	var filas: Array = []
 	for nombre in vocabulario:
-		var d: Dictionary = distancia(leidas, texto_a_gesto(String(vocabulario[nombre])))
+		# Con varias formas, cuenta la mejor (dentro de tolerancia antes que fuera; luego la de menos coste).
+		var d: Dictionary = {}
+		for texto in formas(vocabulario, String(nombre)):
+			var df: Dictionary = distancia(leidas, texto_a_gesto(texto))
+			if d.is_empty() or (bool(df["dentro"]) and not bool(d["dentro"])) or (bool(df["dentro"]) == bool(d["dentro"]) and int(df["coste"]) < int(d["coste"])):
+				d = df
 		filas.append([int(d["coste"]), bool(d["dentro"]), String(nombre)])
 	if filas.is_empty():
 		return res
@@ -229,9 +252,10 @@ static func puede_completarse(trazos: Array, vocabulario: Dictionary) -> bool:
 	if leidas.is_empty():
 		return false
 	for nombre in vocabulario:
-		var plantilla: Array = texto_a_gesto(String(vocabulario[nombre]))
-		if plantilla.size() > leidas.size() and _cabe_en(leidas, 0, plantilla, []):
-			return true
+		for texto in formas(vocabulario, String(nombre)):
+			var plantilla: Array = texto_a_gesto(texto)
+			if plantilla.size() > leidas.size() and _cabe_en(leidas, 0, plantilla, []):
+				return true
 	return false
 
 

@@ -150,6 +150,13 @@ func _lectura() -> void:
 	var r_ken: Dictionary = TrazosRectos.reconocer([ken], TrazosRectos.ELEMENTOS)
 	_ok("2 la runa de fuego tal como se ve en el libro (ᚲ, «<») es fuego", r_ken["accepted"] and r_ken["name"] == "fuego", "%s -> %s" % [r_ken["secuencia"], r_ken["name"]])
 
+	# Segundo playtest: el rayo dibujado como un relámpago vertical (ϟ, el log lo leyó «DL,DR,DL») es rayo, igual que la ᛊ tumbada del libro.
+	var rayo_v: Array = []
+	for vert in [Vector2(260, 100), Vector2(220, 150), Vector2(260, 200), Vector2(220, 250)]:
+		rayo_v.append(vert)
+	var r_rayo: Dictionary = TrazosRectos.reconocer([_pulir(rayo_v, 0.05)], TrazosRectos.ELEMENTOS)
+	_ok("2 el rayo vertical (ϟ, como lo dibujó Pablo) es rayo", r_rayo["accepted"] and r_rayo["name"] == "rayo", "%s -> %s" % [r_rayo["secuencia"], r_rayo["name"]])
+
 	# El rombo (cerrado) empezado en cualquier esquina, y también a mitad de un lado.
 	var v_rombo: Array = [Vector2(0, -60), Vector2(-60, 0), Vector2(0, 60), Vector2(60, 0)]
 	var malos_rombo: PackedStringArray = []
@@ -184,26 +191,30 @@ func _reconocimiento() -> void:
 	for vocab in [["elemento", TrazosRectos.ELEMENTOS], ["sello", TrazosRectos.SELLOS]]:
 		var tabla: Dictionary = vocab[1]
 		for nombre in tabla:
-			var texto: String = String(tabla[nombre])
-			var peor: String = ""
-			var total_bien: int = 0
-			var total: int = 0
-			for v in variantes:
-				var bien: int = 0
-				var fallos_aqui: PackedStringArray = []
-				for _i in range(REPETICIONES):
-					var trazos: Array = _dibujar(texto, v["ruido"], v["red"], v["largos"], v["alreves"], v["barajar"])
-					var r: Dictionary = TrazosRectos.reconocer(trazos, tabla)
-					if r["accepted"] and r["name"] == nombre:
-						bien += 1
-					elif fallos_aqui.size() < 2:
-						fallos_aqui.append("leído %s -> %s" % [r["secuencia"], r["name"]])
-				total_bien += bien
-				total += REPETICIONES
-				if bien < REPETICIONES:
-					peor += " [%s %d/%d: %s]" % [v["n"], bien, REPETICIONES, "; ".join(fallos_aqui)]
-			_ok("3 %s %s «%s» se reconoce en %d dibujos con ruido, esquinas, tramos desiguales, al revés y en otro orden" % [vocab[0], nombre, texto, total],
-				total_bien == total, "%d/%d%s" % [total_bien, total, peor])
+			for texto in TrazosRectos.formas(tabla, String(nombre)):     # también las OTRAS_FORMAS (rayo vertical)
+				_reconocer_forma(vocab[0], tabla, String(nombre), texto, variantes)
+
+
+func _reconocer_forma(vocab: String, tabla: Dictionary, nombre: String, texto: String, variantes: Array) -> void:
+	var peor: String = ""
+	var total_bien: int = 0
+	var total: int = 0
+	for v in variantes:
+		var bien: int = 0
+		var fallos_aqui: PackedStringArray = []
+		for _i in range(REPETICIONES):
+			var trazos: Array = _dibujar(texto, v["ruido"], v["red"], v["largos"], v["alreves"], v["barajar"])
+			var r: Dictionary = TrazosRectos.reconocer(trazos, tabla)
+			if r["accepted"] and r["name"] == nombre:
+				bien += 1
+			elif fallos_aqui.size() < 2:
+				fallos_aqui.append("leído %s -> %s" % [r["secuencia"], r["name"]])
+		total_bien += bien
+		total += REPETICIONES
+		if bien < REPETICIONES:
+			peor += " [%s %d/%d: %s]" % [v["n"], bien, REPETICIONES, "; ".join(fallos_aqui)]
+	_ok("3 %s %s «%s» se reconoce en %d dibujos con ruido, esquinas, tramos desiguales, al revés y en otro orden" % [vocab, nombre, texto, total],
+		total_bien == total, "%d/%d%s" % [total_bien, total, peor])
 
 
 ## MIDE (no falla): cuánto aguanta con más deformación que la de las comprobaciones. Sirve para calibrar los umbrales de TrazosRectos.
@@ -229,18 +240,24 @@ func _medidas() -> void:
 func _choques() -> void:
 	for vocab in [["elementos", TrazosRectos.ELEMENTOS], ["sellos", TrazosRectos.SELLOS]]:
 		var tabla: Dictionary = vocab[1]
-		var nombres: Array = tabla.keys()
+		# Cada forma es una fila [nombre, texto]: las OTRAS_FORMAS también tienen que estar lejos de las runas de los demás.
+		var filas: Array = []
+		for nombre in tabla:
+			for texto in TrazosRectos.formas(tabla, String(nombre)):
+				filas.append([String(nombre), texto])
 		var choques: PackedStringArray = []
 		var minimo_separacion: int = 99
-		for i in range(nombres.size()):
-			for j in range(i + 1, nombres.size()):
-				var a: Array = TrazosRectos.texto_a_gesto(String(tabla[nombres[i]]))
-				var b: Array = TrazosRectos.texto_a_gesto(String(tabla[nombres[j]]))
+		for i in range(filas.size()):
+			for j in range(i + 1, filas.size()):
+				if filas[i][0] == filas[j][0]:
+					continue
+				var a: Array = TrazosRectos.texto_a_gesto(String(filas[i][1]))
+				var b: Array = TrazosRectos.texto_a_gesto(String(filas[j][1]))
 				# a vs b (con todas las variantes de b: al revés, otro orden) y b vs a: ninguna dentro de tolerancia.
 				var d1: Dictionary = TrazosRectos.distancia(a, b)
 				var d2: Dictionary = TrazosRectos.distancia(b, a)
 				if bool(d1["dentro"]) or bool(d2["dentro"]):
-					choques.append("%s/%s" % [nombres[i], nombres[j]])
+					choques.append("%s «%s» / %s «%s»" % [filas[i][0], filas[i][1], filas[j][0], filas[j][1]])
 				minimo_separacion = mini(minimo_separacion, mini(int(d1["coste"]), int(d2["coste"])))
 		_ok("4 en los %s ninguna plantilla cae dentro de la tolerancia de otra (también al revés)" % vocab[0], choques.is_empty(),
 			"choques: %s  (desviación mínima entre dos plantillas: %d pasos)" % [str(choques), minimo_separacion])
