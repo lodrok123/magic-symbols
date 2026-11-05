@@ -1033,8 +1033,27 @@ func _brazo_libro_lado(lado: String) -> void:
 
 
 ## Cada fotograma: si hay un lanzamiento por cast point, congela el clip en el instante (si `sostener`) y al llegar a `fin`.
+## 5/11: piezas de Equipo3D que solo se ven en ciertos estados del árbol (la flecha del arquero, solo al disparar: fuera del ataque el proyectil no existe). Con el árbol apagado
+## (laboratorios y pruebas que llevan el clip a mano) se ven siempre.
+const EQUIPO_SOLO_EN: Dictionary = {"goblin_archer_chibi": {"flecha": ["atacar"]}}   # estados de ArbolAnimPj (atacar = el rol attack)
+
+
+func _actualizar_equipo_solo_en() -> void:
+	var reglas: Dictionary = EQUIPO_SOLO_EN.get(id, {})
+	if reglas.is_empty():
+		return
+	var libre: bool = _arbol == null or not _arbol.active
+	for p in _equipo:
+		if not is_instance_valid(p):
+			continue
+		var pieza: String = String(p.get_meta("equipo_id", ""))
+		if reglas.has(pieza):
+			p.visible = libre or estado_anim() in (reglas[pieza] as Array)
+
+
 func _process(delta: float) -> void:
 	_actualizar_cabeza(delta)
+	_actualizar_equipo_solo_en()
 	if not _juguete.is_empty():
 		sincronizar_juguete()    # juguete: el tinte que Combate3D escribe en el material de control pasa al shader
 	if _cp.is_empty() or _arbol == null or not _arbol.listo():

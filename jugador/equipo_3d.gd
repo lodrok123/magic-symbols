@@ -113,14 +113,17 @@ const EQUIPO: Dictionary = {
 		["grimorio", "Hips", Vector3(0.36, 0.02, -0.06), Vector3(0.0, 90.0, -8.0)],
 	],
 	# Arquero: el arco de Meshy (equipo/arco.glb) en la mano IZQUIERDA (la del brazo estirado al apuntar; madera hacia delante, cuerda hacia el arquero).
-	# equipo/flecha.glb (punta hacia +Y, centrada) queda para el Juego (proyectil o carcaj): Equipo3D.pieza("flecha").
 	"goblin_archer_chibi": [
-		# 5/11 (Pablo: «el goblin no sujeta el arco, está todo mal»): con (0, 0.07, 0.47) y (90, 0, 180) el arco quedaba 0,24 u por delante y encima de la mano y con la curva de lado.
-		# Medido con la mano al apuntar (ArcheryShot 3,0 s): en el espacio del hueso LeftHand el brazo va por +Y y el arriba del mundo es (0,51, 0,07, 0,86); el GLB del arco tiene la
-		# empuñadura en el origen, el largo por Y (0,78) y la curva hacia +X (0,50, la cuerda). Giro = {GLB +X -> hacia el arquero (−brazo), GLB +Y -> arriba}; la empuñadura en la palma (0,06 por los dedos).
-		# 5/11: arco.glb va a lo largo de +Y (−0,39..0,39), curva en +X (0..0,5, nocla en 0 y puntas en 0,5), grosor en Z. Giro medido en ArcheryShot a 3 s:
-		# +Y del arco = arriba del mundo, +X = hacia delante del brazo (cuerda hacia el arquero); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
+		# 5/11 (Pablo: «el goblin no sujeta el arco, está todo mal»; antes (0, 0.07, 0.47) y (90, 0, 180), cruzado). arco.glb va a lo largo de +Y (−0,39..0,39), curva en +X
+		# (0..0,5, nocla en 0 y puntas en 0,5), grosor en Z. Giro medido con la mano al apuntar (ArcheryShot 3,0 s): +Y del arco = arriba del mundo, +X = hacia delante del
+		# brazo (cuerda hacia el arquero); posición = −giro·(empuñadura 0,28·1,2, 0, 0) para que la empuñadura quede en la palma.
 		["arco", "LeftHand", Vector3(-0.006, -0.334, 0.032), Vector3(3.7, 120.3, 85.8), Vector3(1.2, 1.2, 2.2)],   # 6.13: +20 % de largo (Y) y de curva (X), y más grueso (Z ×2,2)
+		# 5/11 (Pablo, con un clip 2D de referencia: «fíjate en la posición del arco y las manos»): flecha en la mano DERECHA con la nocla en la palma y la punta hacia la mano
+		# del arco (medido en ArcheryShot a 3 s: dirección mano derecha → izquierda en el espacio de RightHand (−0,93, 1,69, 0,54)); Pj3D.EQUIPO_SOLO_EN la enseña solo al disparar.
+		["flecha", "RightHand", Vector3(-0.13, 0.24, 0.07), Vector3(32.3, -53.5, 3.6)],
+		# Carcaj a la espalda, colgado de Spine2 (su +Y ≈ arriba y su +Z ≈ el frente del personaje en todos los clips medidos): detrás (−Z), un poco bajo, inclinado 25° con la
+		# boca hacia el hombro derecho (el de la mano que saca la flecha).
+		["carcaj", "Spine2", Vector3(0.0, -0.06, -0.27), Vector3(0.0, 0.0, 25.0)],   # −0,27: por fuera de la capa (a −0,20 la capa lo tapaba casi entero)
 	],
 	"goblin_warrior": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
@@ -220,6 +223,8 @@ static func pieza(id: String) -> Node3D:
 			return _grimorio()
 		"pluma":
 			return _pluma()
+		"carcaj":
+			return _carcaj()
 	return Node3D.new()
 
 
@@ -361,6 +366,26 @@ static func _pluma() -> Node3D:
 	aleta.scale = Vector3(0.75, 2.4, 0.12)
 	var punta := _parte(raiz, _esfera(0.018), TAPA, Vector3(0.0, 0.17, 0.0))
 	punta.scale = Vector3(0.8, 1.6, 0.12)
+	return raiz
+
+
+## Carcaj del arquero (5/11): tubo de cuero a lo largo de +Y (0,42 de alto, centrado) con tres flechas de equipo/flecha.glb (0,6 de largo, punta hacia +Y) metidas del
+## revés: las plumas asoman 0,2 por la boca. Pablo lo pidió con un clip 2D de referencia (el goblin saca la flecha del carcaj por encima del hombro).
+static func _carcaj() -> Node3D:
+	var raiz := Node3D.new()
+	raiz.name = "carcaj"
+	_parte(raiz, _cilindro(0.055, 0.045, 0.42), CUERO, Vector3.ZERO)
+	_parte(raiz, _cilindro(0.062, 0.062, 0.04), CUERO.darkened(0.25), Vector3(0.0, 0.19, 0.0))
+	_parte(raiz, _cilindro(0.058, 0.058, 0.03), CUERDA, Vector3(0.0, -0.12, 0.0))
+	var ruta: String = CARPETA + "flecha.glb"
+	if ResourceLoader.exists(ruta):
+		var ps: PackedScene = load(ruta) as PackedScene
+		for i in range(3):
+			var ang: float = float(i) / 3.0 * TAU
+			var f: Node3D = ps.instantiate() as Node3D
+			f.position = Vector3(cos(ang) * 0.022, 0.21 - 0.3 + 0.2, sin(ang) * 0.022)
+			f.rotation_degrees = Vector3(180.0 + (3.0 if i == 1 else -3.0), 0.0, 4.0 * cos(ang))
+			raiz.add_child(f)
 	return raiz
 
 
