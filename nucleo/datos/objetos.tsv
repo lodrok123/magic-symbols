@@ -47,6 +47,7 @@ ceniza_geoda	Polvo de geoda	mineral	comun	20	resonante,tierra	2	ingrediente	-	cu
 colmillo_goblin	Colmillo de goblin	animal	comun	20	tierra,proteccion	2	ingrediente	-	todas	raiz	#EBE0BD	colmillo_goblin	hay	Amarillento y astillado	-
 jiron_escudo	Jirón de escudo	animal	comun	20	calor,proteccion	2	ingrediente	-	todas	hoja	#8C5A33	jiron_escudo	nuevo	Cuero chamuscado de un escudo que ardió	-
 baba_limo	Baba de limo	animal	comun	20	agua,toxico	2	ingrediente	-	todas	cristal	#9EE68C	baba_limo	nuevo	Tiembla sola. Un limo la deja al caer	-
+gota_veneno	Gota de veneno	animal	comun	20	toxico	3	ingrediente	-	todas	cristal	#8CE65C	baba_limo	nuevo	Una gota verde con un aura morada. No la toques	-
 pluma_chaman	Pluma de chamán	animal	comun	10	viento,toxico	3	ingrediente	-	todas	hoja	#7A5CA6	pluma_chaman	nuevo	Del tocado del chamán goblin	-
 polvo_golem	Polvo de gólem	mineral	comun	10	tierra,proteccion	3	ingrediente	-	todas	piedra	#998C80	polvo_golem	nuevo	Piedra molida que aún pesa	-
 nucleo_eco	Núcleo de eco	mineral	epico	5	resonante,raro	5	ingrediente	-	cueva	cristal	#B86BFF	nucleo_eco	hay	Late dentro como un segundo corazón. Mejora al personaje	Mejora al personaje (vida o tinta)|Material épico: no se vende
