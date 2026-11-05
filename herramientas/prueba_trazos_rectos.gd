@@ -141,6 +141,34 @@ func _lectura() -> void:
 	_ok("2 un puntito sin recorrido no tiene dirección", TrazosRectos.secuencia(pt).is_empty())
 	_ok("2 invertir: tramos al revés y direcciones opuestas", TrazosRectos.invertir([7, 5]) == [1, 3] and TrazosRectos.invertir(TrazosRectos.invertir([6, 0, 2])) == [6, 0, 2])
 
+	# 5/11, primer playtest: Pablo dibujó la runa de fuego del libro (ᚲ, «<»), el log la leyó «DL,DR» y la tabla vieja (Λ) la rechazaba.
+	var ken: Array = []
+	for i in range(16):
+		ken.append(Vector2(200.0 - float(i) * 4.0, 100.0 + float(i) * 4.0))
+	for i in range(1, 16):
+		ken.append(Vector2(140.0 + float(i) * 4.0, 160.0 + float(i) * 4.0))
+	var r_ken: Dictionary = TrazosRectos.reconocer([ken], TrazosRectos.ELEMENTOS)
+	_ok("2 la runa de fuego tal como se ve en el libro (ᚲ, «<») es fuego", r_ken["accepted"] and r_ken["name"] == "fuego", "%s -> %s" % [r_ken["secuencia"], r_ken["name"]])
+
+	# El rombo (cerrado) empezado en cualquier esquina, y también a mitad de un lado.
+	var v_rombo: Array = [Vector2(0, -60), Vector2(-60, 0), Vector2(0, 60), Vector2(60, 0)]
+	var malos_rombo: PackedStringArray = []
+	for inicio in range(4):
+		var v: Array = []
+		for k in range(5):
+			v.append((v_rombo[(inicio + k) % 4] as Vector2) + Vector2(300, 300))
+		var r_r: Dictionary = TrazosRectos.reconocer([_pulir(v, 0.05)], TrazosRectos.SELLOS)
+		if not (r_r["accepted"] and r_r["name"] == "barrera"):
+			malos_rombo.append("esquina %d: %s -> %s" % [inicio, r_r["secuencia"], r_r["name"]])
+	var medio: Vector2 = ((v_rombo[0] as Vector2) + (v_rombo[1] as Vector2)) * 0.5
+	var v_medio: Array = [medio, v_rombo[1], v_rombo[2], v_rombo[3], v_rombo[0], medio]
+	for i in range(v_medio.size()):
+		v_medio[i] = (v_medio[i] as Vector2) + Vector2(300, 300)
+	var r_m: Dictionary = TrazosRectos.reconocer([_pulir(v_medio, 0.0)], TrazosRectos.SELLOS)
+	if not (r_m["accepted"] and r_m["name"] == "barrera"):
+		malos_rombo.append("a mitad de lado: %s -> %s" % [r_m["secuencia"], r_m["name"]])
+	_ok("2 el rombo de la barrera vale empezado en cualquier esquina y a mitad de un lado", malos_rombo.is_empty(), str(malos_rombo))
+
 
 ## --- 2. CADA PLANTILLA SE RECONOCE ---
 
@@ -218,9 +246,9 @@ func _choques() -> void:
 			"choques: %s  (desviación mínima entre dos plantillas: %d pasos)" % [str(choques), minimo_separacion])
 	# El detector detecta: dos plantillas que SÍ chocan.
 	var chocan: bool = bool(TrazosRectos.distancia(TrazosRectos.texto_a_gesto("R,D"), TrazosRectos.texto_a_gesto("DR,DL"))["dentro"])
-	_ok("4 (control) el detector ve el choque de Γ «R,D» con la flecha «DR,DL», que fue el motivo de cambiar `buscar`", chocan)
+	_ok("4 (control) el detector ve el choque de Γ «R,D» con la flecha «DR,DL», (control: dos formas a 45° chocan)", chocan)
 	var chocan2: bool = bool(TrazosRectos.distancia(TrazosRectos.texto_a_gesto("DR|DL"), TrazosRectos.texto_a_gesto("R|R"))["dentro"])
-	_ok("4 (control) el detector ve el choque del X «DR|DL» con las dos rayas «R|R», que fue el motivo de cambiar `hielo`", chocan2)
+	_ok("4 (control) el detector ve el choque del X «DR|DL» con las dos rayas «R|R», (control: dos formas a 45° chocan)", chocan2)
 
 
 ## --- 4. RECHAZOS ---
@@ -329,7 +357,7 @@ func _grimorio() -> void:
 
 	# Un elemento al revés y con los trazos en otro orden.
 	g.clear_sequence()
-	g.add_gesture(_dibujar("U|R", 2.0, 0.1, true, true, true), Vector2.ZERO)
+	g.add_gesture(_dibujar(String(TrazosRectos.ELEMENTOS["hielo"]), 2.0, 0.1, true, true, true), Vector2.ZERO)
 	_ok("6 el hielo (dos trazos) dibujado al revés y en otro orden también", g.current_element == Runes.Type.ELEMENT_ICE)
 
 	# Un rechazo en el núcleo no toca la página y deja el aviso «se parece a».
@@ -351,23 +379,23 @@ func _grimorio() -> void:
 			malos.append("%s->%s" % [nombre, str(puestos)])
 	_ok("6 los once sellos de la tabla dibujados en un sector quedan en la página", malos.is_empty(), str(malos))
 
-	# Sin girar por sector: la misma flecha vale en cualquier sector, y la altura (Λ) NO se convierte en otra cosa al girar el sector.
+	# Sin girar por sector: la altura (ᛏ) vale en cualquier sector y NO se convierte en otra cosa al girar el sector.
 	malos = PackedStringArray()
 	for s in [Vector2(1, 0), Vector2(0, 1), Vector2(-1, 0), Vector2(0, -1), Vector2(0.7, 0.7)]:
 		g.clear_sequence()
-		g.add_gesture(_dibujar("UR,DR", 2.0, 0.1, false, false, false), s)
+		g.add_gesture(_dibujar(String(TrazosRectos.SELLOS["altura"]), 2.0, 0.1, false, false, false), s)
 		var hallado: Array = []
 		for c in g.components():
 			hallado.append_array(c["sigils"])
 		if not hallado.has("altura"):
 			malos.append("%s->%s" % [str(s), str(hallado)])
-	_ok("6 «Λ» es altura en cualquier sector (las direcciones se leen respecto a la página, sin girar por sector)", malos.is_empty(), str(malos))
+	_ok("6 ᛏ es altura en cualquier sector (las direcciones se leen respecto a la página, sin girar por sector)", malos.is_empty(), str(malos))
 
 	# Un sello bloqueado se rechaza con su aviso, no se convierte en otro.
 	g.clear_sequence()
 	Repertoire.lock_sigil("rebote")
 	g.feedback_text = ""
-	g.add_gesture(_dibujar("DR,UR", 1.0, 0.1, false, false, false), sector)
+	g.add_gesture(_dibujar(String(TrazosRectos.SELLOS["rebote"]), 1.0, 0.1, false, false, false), sector)
 	var llevaba: Array = []
 	for c in g.components():
 		llevaba.append_array(c["sigils"])
@@ -394,7 +422,7 @@ func _grimorio() -> void:
 	var l := Lanzador3D.new()
 	root.add_child(l)
 	await process_frame
-	l.add_gesture(_dibujar("UR,DR", 1.0, 0.1, false, false, false), Vector2.ZERO)
+	l.add_gesture(_dibujar(String(TrazosRectos.ELEMENTOS["fuego"]), 1.0, 0.1, false, false, false), Vector2.ZERO)
 	_ok("6 el Lanzador3D también reconoce un elemento por trazos rectos", l.current_element == Runes.Type.SHAPE_TRIANGLE)
 	l.queue_free()
 	g.queue_free()

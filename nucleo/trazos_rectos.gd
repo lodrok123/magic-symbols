@@ -26,45 +26,43 @@ extends RefCounted
 ##     repetir formas entre sí (el X es el sello `pulso` y habría podido ser un elemento).
 ##
 ## NO SE GIRA POR SECTOR. Con el $P (Grimorio.ROTAR_POR_SECTOR) se probaba el trazo girado como si el sector fuera el de la
-## derecha. Aquí NO: las direcciones se leen respecto a la PÁGINA, no respecto al sector donde cae el trazo. Una flecha «>» es
-## «DR,DL» en el sector de arriba, en el de la derecha y en el de abajo; si girase con el sector, la altura (Λ) y el rebote (V)
-## serían el mismo trazo según dónde se dibujen. Sin giro, el glifo se dibuja siempre igual y la tabla de la guía visible es cierta.
+## derecha. Aquí NO: las direcciones se leen respecto a la PÁGINA, no respecto al sector donde cae el trazo. Un «<» es «DL,DR» en
+## el sector de arriba, en el de la derecha y en el de abajo; si girase con el sector, dos glifos distintos serían el mismo trazo
+## según dónde se dibujen. Sin giro, la runa se dibuja siempre como se ve en la chuleta.
 
-## --- LA TABLA (la propuso Claude el 5/11; Pablo la ajusta en el playtest) ---
+## --- LA TABLA ---
 ## Es DATO: cambiar un trazo es cambiar un texto. Formato: tramos separados por «,» y trazos separados por «|».
 ## Direcciones: R derecha · UR arriba-derecha · U arriba · UL arriba-izquierda · L izquierda · DL abajo-izquierda · D abajo · DR abajo-derecha.
-## Cambios sobre la propuesta inicial, por choque dentro de la tolerancia (lo comprueba prueba_trazos_rectos.gd):
-##   - hielo: «DR|DL» (X) chocaba con viento «R|R» (dos diagonales caen a 45° de dos horizontales), pasa a «U|R» (+, una cruz).
-##     El X sigue siendo el sello `pulso`, que es otro vocabulario.
-##   - perforar: «D,R» (L) chocaba con retorno (<) y con rebote (V); pasa a «R,D,L» (un gancho: ᚦ, el bulto de la derecha).
-##   - buscar: «R,D» (Γ) chocaba con flecha (>) y con altura (Λ); pasa a «D,UR,DR» (un tallo con una pata). Un escalón «D,R,D», que
-##     también valía, se descartó: es casi una raya (Grimorio._is_straight la tomaría por `linea` antes de leerla).
-##   Las formas de DOS tramos con giro de 90° (>, <, Λ, V) llenan todo el espacio que deja la tolerancia: no cabe una quinta.
+## REGLA (5/11, primer playtest de Pablo): EL TRAZO ES LA RUNA QUE SE VE (art/ui/glyphs/*.png). La primera tabla inventaba formas aparte
+## (fuego era un Λ) y Pablo, con razón, dibujaba la runa del libro (ᚲ, «<»): el log lo leía «DL,DR» una y otra vez y lo rechazaba. Todas
+## las runas de la lámina son ya tramos rectos, así que cada entrada es la runa tal cual: un palo es un trazo aparte («D», da igual el
+## sentido) y las ramas, otro. Un gesto de varios trazos admite cualquier orden; hay GESTURE_PAUSE (0,75 s) entre trazo y trazo.
+## Una figura CERRADA (el rombo de la barrera) vale empezada en cualquier esquina (ver `_cerrada`).
 
 ## Elementos (se dibujan sobre el NÚCLEO). Las claves son las de GestureLibrary.ELEMENTS.
 const ELEMENTOS: Dictionary = {
-	"fuego": "UR,DR",        # Λ, una llama
-	"agua": "UR,DR,UR",      # una onda
-	"tierra": "D,R,U",       # U, un cuenco
-	"rayo": "DL,R,DL",       # un zigzag
-	"hielo": "U|R",          # +, una cruz de dos trazos
-	"viento": "R|R",         # dos rayas horizontales
+	"fuego": "DL,DR",        # ᚲ  «<»
+	"agua": "U,DR",          # ᛚ  palo y brazo que baja a la derecha (de abajo arriba y bajando)
+	"tierra": "U,DR,UR,D",   # ᛗ  una M
+	"rayo": "DR,UR,DR",      # ᛊ  el zigzag
+	"hielo": "D|DR",         # ᚾ  palo y la diagonal que lo cruza
+	"viento": "U,DR,D",      # ᚢ  la ∩ con el techo inclinado
 }
 
 ## Sellos (se dibujan sobre un SECTOR). Las claves son las de GestureLibrary.SIGILS. `linea` no está: sigue siendo la raya sola
 ## (Grimorio._is_straight), que se resuelve antes de llegar aquí.
 const SELLOS: Dictionary = {
-	"flecha": "DR,DL",       # >, punta
-	"retorno": "DL,DR",      # <
-	"altura": "UR,DR",       # Λ
-	"rebote": "DR,UR",       # V
-	"barrera": "U,R,D",      # ∩, un arco
-	"repeticion": "R,DL,R",  # Z
-	"pulso": "DR|DL",        # X, crecer (ᚷ)
-	"raido": "U,DR,U",       # N (ᚱ)
-	"permanencia": "D,R,U",  # U (ᛉ)
-	"perforar": "R,D,L",     # un gancho (ᚦ)
-	"buscar": "D,UR,DR",     # un tallo con una pata (ᚨ)
+	"flecha": "UL,D,UL",          # ᛇ  gancho arriba, palo, gancho abajo (de una vez)
+	"retorno": "DL,DR",           # ᛃ  no tiene PNG todavía: «<» hasta que lo tenga
+	"altura": "D|UR,DR",          # ᛏ  palo y el tejado Λ
+	"rebote": "U,DR",             # la Λ de pata izquierda recta
+	"barrera": "DL,DR,UR,UL",     # ◇  el rombo (cerrado: cualquier esquina vale)
+	"repeticion": "D|UR|UR",      # ᚠ  palo y dos ramas que suben
+	"pulso": "DR|DL",             # ᚷ  la X
+	"raido": "U,DR,DL,DR",        # ᚱ  palo, el ojo y la pata (como una R)
+	"permanencia": "D|DR,UR",     # ᛉ  palo y la V de arriba
+	"perforar": "D|DR,DL",        # ᚦ  palo y el pico «>»
+	"buscar": "D|DR|DR",          # ᚨ  palo y dos ramas que bajan
 }
 
 ## --- UMBRALES ---
@@ -72,6 +70,8 @@ const NOMBRES_DIR: PackedStringArray = ["R", "UR", "U", "UL", "L", "DL", "D", "D
 const PASOS: int = 8
 ## Cuánto puede desviarse cada tramo de la plantilla, en pasos de 45°.
 const TOLERANCIA: int = 1
+## Tope del umbral de tramo corto: nunca más que esta fracción del tramo más largo del trazo (ver `secuencia`).
+const MIN_TRAMO_DEL_MAYOR: float = 0.35
 ## Un tramo más corto que esta fracción del recorrido de SU trazo se descarta (esquinas redondeadas, temblor). Pablo pidió ~12 %; medido con\n## dibujos sintéticos (prueba_trazos_rectos.gd, AVISO) 0,12 deja pasar esquinas cortadas al 15 % como un tramo más y 0,15 las lee bien (0,18 ya\n## empieza a comerse tramos legítimos). A ajustar en el playtest.
 const MIN_TRAMO: float = 0.15
 ## Si se descarta más de esta fracción del recorrido de un trazo, el trazo es un garabato (ILEGIBLE) y no se lee.
@@ -116,14 +116,22 @@ static func secuencia(trazo: Array) -> Array:
 			continue
 		tramos.append([direccion_de(v), l])
 	tramos = _fundir(tramos)
+	# Trazo cerrado empezado a mitad de un lado: el primer y el último tramo son el MISMO lado partido en dos; se juntan antes de quitar
+	# los cortos (cada mitad sola podría quedarse por debajo de MIN_TRAMO y perderse).
+	var cierre: float = (puntos[0] as Vector2).distance_to(puntos[puntos.size() - 1])
+	if tramos.size() > 2 and int(tramos[0][0]) == int(tramos[tramos.size() - 1][0]) and cierre < MIN_TRAMO * recorrido:
+		tramos[0][1] = float(tramos[0][1]) + float(tramos[tramos.size() - 1][1])
+		tramos.remove_at(tramos.size() - 1)
 
 	# Los tramos cortos se quitan de una vez (no uno a uno: quitar de uno en uno encadena, y un garabato de muchos tramos pequeños
 	# acababa reducido a dos y aceptado), y los vecinos que quedan iguales se funden. Si todos son cortos se queda el más largo.
-	var umbral: float = MIN_TRAMO * recorrido
 	var largo_max: int = 0
 	for i in range(tramos.size()):
 		if float(tramos[i][1]) > float(tramos[largo_max][1]):
 			largo_max = i
+	# 5/11: con runas de 4 tramos (ᛗ, ᚱ, el rombo) el 15 % del recorrido se comía el tramo más corto; el umbral tampoco pasa de una
+	# fracción del tramo MÁS LARGO, que en una runa de dos tramos da lo mismo y en una de cuatro deja vivos los tramos legítimos.
+	var umbral: float = minf(MIN_TRAMO * recorrido, MIN_TRAMO_DEL_MAYOR * float(tramos[largo_max][1]))
 	var firmes: Array = []
 	var descartado: float = 0.0
 	if float(tramos[largo_max][1]) < umbral:
@@ -307,9 +315,33 @@ static func texto_guia(nombre: String, es_elemento: bool) -> String:
 
 
 ## Desviación de un trazo leído contra una secuencia de la plantilla: pasos de diferencia tramo a tramo.
+## Con una plantilla CERRADA se prueba cada esquina como punto de partida y se queda la mejor.
 static func _coste_trazo(leida: Array, plantilla: Array) -> Dictionary:
 	if leida.has(ILEGIBLE):
 		return {"coste": 1000, "dentro": false}
+	if not _cerrada(plantilla):
+		return _coste_lineal(leida, plantilla)
+	var mejor: Dictionary = {}
+	for r in range(plantilla.size()):
+		var girada: Array = plantilla.slice(r) + plantilla.slice(0, r)
+		var c: Dictionary = _coste_lineal(leida, girada)
+		if mejor.is_empty() or (bool(c["dentro"]) and not bool(mejor["dentro"])) \
+				or (bool(c["dentro"]) == bool(mejor["dentro"]) and int(c["coste"]) < int(mejor["coste"])):
+			mejor = c
+	return mejor
+
+
+## ¿Acaba la plantilla donde empieza? (tres tramos o más cuyos vectores suman cero: el rombo).
+static func _cerrada(plantilla: Array) -> bool:
+	if plantilla.size() < 3:
+		return false
+	var suma := Vector2.ZERO
+	for d in plantilla:
+		suma += vector_de(int(d))
+	return suma.length() < 0.25
+
+
+static func _coste_lineal(leida: Array, plantilla: Array) -> Dictionary:
 	var comunes: int = mini(leida.size(), plantilla.size())
 	var coste: int = 0
 	var dentro: bool = leida.size() == plantilla.size()

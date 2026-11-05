@@ -1731,10 +1731,13 @@ func _glifo_conocido(nombre: String, es_elemento: bool) -> bool:
 
 
 ## El trazo que se dibuja junto a cada glifo de la chuleta ("" = no se dibuja guía: método de plantillas o glifo sin trazo).
+## 5/11: el trazo ES la runa, así que la guía solo añade por dónde empezar; en los de varios trazos (palo + ramas) la guía los
+## amontonaría en el centro y diría menos que la propia runa: no se dibuja.
 func _trazo_visible(nombre: String, es_elemento: bool) -> String:
 	if Grimorio.METODO_TRAZO != "rectos":
 		return ""
-	return TrazosRectos.texto_guia(nombre, es_elemento)
+	var texto: String = TrazosRectos.texto_guia(nombre, es_elemento)
+	return "" if texto.contains("|") else texto
 
 
 ## Tamaño de la guía del trazo respecto al del glifo, y dónde se pone (en tamaños de glifo, desde su centro). Un elemento va en su círculo
