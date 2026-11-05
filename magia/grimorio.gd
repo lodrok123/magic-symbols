@@ -142,8 +142,16 @@ var feedback_until: int = 0
 var _parecido: String = ""
 var _calidad_elemento: float = 1.0
 
-## Un glifo se compara también girado según su sector (ver _reconocer_glifo).
+## Un glifo se compara también girado según su sector (ver _reconocer_glifo). Solo vale para el $P: con TRAZOS RECTOS no se gira.
 const ROTAR_POR_SECTOR: bool = true
+
+## CÓMO SE RECONOCE LO QUE SE DIBUJA (5/11, Pablo):
+##   "rectos"     (por defecto) cada glifo/elemento es una secuencia corta de tramos rectos en 8 direcciones (TrazosRectos): no hay
+##                plantillas que grabar y las direcciones se leen respecto a la página.
+##   "plantillas" el $P de siempre (GestureRecognizer + GestureLibrary), que no se ha borrado. Es lo que usan los sellos sin entrada
+##                en la tabla de trazos (levitacion, amplificar, retardo, atraccion, espejo) cuando el método es "rectos".
+## Para volver al $P basta con poner "plantillas" aquí (o en una prueba, antes de dibujar). La raya de un solo trazo (`linea`) no depende de esto.
+static var METODO_TRAZO: String = "rectos"
 
 
 ## Este nodo ya no escucha el ratón. Desde que existe el grimorio, quien
@@ -315,7 +323,8 @@ func add_gesture(strokes: Array, sector: Vector2) -> void:
 
 ## Un sello se compara SOLO contra sellos, nunca contra los elementos.
 func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
-	if not gesture_library.has_any(GestureLibrary.SIGILS):
+	var con_rectos: bool = METODO_TRAZO == "rectos"
+	if not con_rectos and not gesture_library.has_any(GestureLibrary.SIGILS):
 		print("Aún no hay sellos grabados.")
 		_add_component(sector)
 		return
@@ -332,15 +341,20 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 			_add_component(sector)
 		return
 
-	var result: Dictionary = _reconocer_glifo(strokes, sector)
+	var result: Dictionary = _reconocer_glifo_rectos(strokes) if con_rectos else _reconocer_glifo(strokes, sector)
+	var metodo: String = String(result.get("metodo", "plantillas"))
 
 	# Se imprime también el RIVAL. Un rechazo sin rival no se puede
 	# arreglar: "barrera al 4%" parece mala suerte, y "barrera contra
 	# rombo al 4%" dice exactamente qué hay que tocar.
-	print("[$P sello] ", result["name"], " vs ", result["second_name"],
-		"  margen ", "%.0f%%" % (100.0 * minf(result["margin"], 9.99)),
-		"" if result["accepted"] else "  -> RECHAZADO",
-		"  (girado)" if result.get("girado", false) else "")
+	if metodo == "rectos":
+		print("[rectos sello] leído ", result.get("secuencia", ""), " -> ", result["name"], " vs ", result["second_name"],
+			"  desviación ", result.get("desviacion", 0), "" if result["accepted"] else "  -> RECHAZADO")
+	else:
+		print("[$P sello] ", result["name"], " vs ", result["second_name"],
+			"  margen ", "%.0f%%" % (100.0 * minf(result["margin"], 9.99)),
+			"" if result["accepted"] else "  -> RECHAZADO",
+			"  (girado)" if result.get("girado", false) else "")
 
 	if result["accepted"] and Sigils.is_known(result["name"]):
 		# Un sello reconocido pero no activo se rechaza AQUÍ, antes del
@@ -352,7 +366,7 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 		PlayLog.event("trazo", {"tipo": "glifo", "nombre": result["name"],
 			"margen": snappedf(result["margin"], 0.01),
 			"calidad": snappedf(result.get("quality", 1.0), 0.01),
-			"girado": result.get("girado", false)})
+			"girado": result.get("girado", false), "metodo": metodo})
 		# Si el $P reconoce `linea` (plantilla grabada), entra también con su orientación: `linea` a secas no existe en la receta V2.
 		add_sigil(sector, _nombre_linea() if String(result["name"]) == "linea" else String(result["name"]), result.get("quality", 1.0))
 		return
@@ -376,7 +390,36 @@ func _add_sigil_gesture(strokes: Array, sector: Vector2) -> void:
 		print("No he reconocido ese sello. Vuelve a dibujarlo.")
 		_feedback("No reconocido · se parece a: %s" % _nombre_visible(result["name"]))
 		PlayLog.event("fallo", {"tipo": "glifo", "parece": result["name"],
-			"rival": result["second_name"], "margen": snappedf(result["margin"], 0.01)})
+			"rival": result["second_name"], "margen": snappedf(result["margin"], 0.01), "metodo": metodo})
+
+
+## Reconoce un glifo por TRAZOS RECTOS (TrazosRectos.SELLOS). Sin girar por sector: las direcciones se leen respecto a la página.
+## Los sellos sin entrada en la tabla (levitacion, amplificar, retardo, atraccion, espejo) siguen por el $P: si los rectos no
+## aceptan nada y hay plantillas grabadas de esos sellos, se prueba el $P SOLO contra ellos.
+func _reconocer_glifo_rectos(strokes: Array) -> Dictionary:
+	var r: Dictionary = TrazosRectos.reconocer(strokes, TrazosRectos.SELLOS)
+	r["metodo"] = "rectos"
+	r["girado"] = false
+	if r["accepted"]:
+		return r
+	var plantillas: Dictionary = {}
+	var activos: PackedStringArray = []
+	for nombre in GestureLibrary.SIGILS:
+		if TrazosRectos.SELLOS.has(nombre) or nombre == "linea":
+			continue
+		var propias: Dictionary = gesture_library.templates_for(PackedStringArray([nombre]))
+		if propias.has(nombre) and not (propias[nombre] as Array).is_empty():
+			plantillas[nombre] = propias[nombre]
+			if Repertoire.sigil_active(nombre):
+				activos.append(nombre)
+	if plantillas.size() < 2:
+		return r
+	var p: Dictionary = GestureRecognizer.recognize(strokes, plantillas, activos)
+	if not p["accepted"]:
+		return r
+	p["metodo"] = "plantillas"
+	p["girado"] = false
+	return p
 
 
 ## Nombre con el que se registra la raya sola: según cómo se dibujó respecto a la PÁGINA, horizontal -> `linea_x` (ancho), vertical -> `linea_z`
@@ -477,7 +520,7 @@ func _add_element(strokes: Array) -> void:
 	current_element = rune
 	pages[page]["element_q"] = _calidad_elemento
 	PlayLog.event("trazo", {"tipo": "elemento", "nombre": gesture_name,
-		"calidad": snappedf(_calidad_elemento, 0.01)})
+		"calidad": snappedf(_calidad_elemento, 0.01), "metodo": METODO_TRAZO})
 	print("Elemento: ", rune_database[rune].display_name)
 	_actualizar_resumen(page)
 
@@ -857,6 +900,21 @@ func _recognize_with_templates(strokes: Array) -> Runes.Type:
 	return GESTURE_TO_RUNE.get(result["name"], Runes.Type.NONE)
 
 
+## El elemento por TRAZOS RECTOS: compite solo con los elementos de la tabla (TrazosRectos.ELEMENTOS). Como con el $P, se reconoce
+## entre todos y el filtro de «aún no lo conoces» lo pone después `_add_element`.
+func _recognize_rectos(strokes: Array) -> Runes.Type:
+	var r: Dictionary = TrazosRectos.reconocer(strokes, TrazosRectos.ELEMENTOS)
+	_parecido = "" if r["sin_trazo"] else String(r["name"])
+	_calidad_elemento = r["quality"] if r["accepted"] else 1.0
+	print("[rectos] leído ", r["secuencia"], " -> ", r["name"], " vs ", r["second_name"],
+		"  desviación ", r["desviacion"], "" if r["accepted"] else "  -> RECHAZADO")
+	if not r["accepted"]:
+		PlayLog.event("fallo", {"tipo": "elemento", "parece": r["name"], "rival": r["second_name"],
+			"margen": snappedf(r["margin"], 0.01), "metodo": "rectos"})
+		return Runes.Type.NONE
+	return GESTURE_TO_RUNE.get(r["name"], Runes.Type.NONE)
+
+
 ## Dice QUÉ falta, no solo que algo falla. Un mensaje que enumera los
 ## elementos sin grabar ahorra el rato de buscar el fallo donde no está.
 func _warn_missing_templates() -> void:
@@ -877,6 +935,8 @@ func _warn_missing_templates() -> void:
 ## conteo de esquinas, que es lo que permite grabarlas sin que el juego
 ## se quede mientras tanto sin reconocer nada.
 func _recognize_shape(strokes: Array) -> Runes.Type:
+	if METODO_TRAZO == "rectos":
+		return _recognize_rectos(strokes)
 	if gesture_library.has_any(GestureLibrary.ELEMENTS):
 		return _recognize_with_templates(strokes)
 

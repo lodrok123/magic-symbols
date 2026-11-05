@@ -23,6 +23,8 @@ var rng := RandomNumberGenerator.new()
 
 
 func _init() -> void:
+	# 5/11: esta prueba es del $P (la asistencia se apoya en las plantillas); con trazos rectos el libro la desactiva (Spellbook._asistencia_activa).
+	Grimorio.METODO_TRAZO = "plantillas"
 	rng.seed = 20261016
 	var biblioteca: GestureLibrary = GestureLibrary.get_shared()
 	_conjunto("P0 (4 elementos)", biblioteca, ["fuego", "agua", "viento", "rayo"] as PackedStringArray, GestureLibrary.ELEMENTS, 0.0)

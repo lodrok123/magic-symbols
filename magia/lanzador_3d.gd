@@ -742,6 +742,38 @@ func cast_current() -> void:
 	cast_page(page)
 
 
+## EL LIBRO ES PARA PREPARAR, NO PARA COMBATIR (5/11, Pablo). Con enemigos persiguiendo a la jugadora (`Sensacion3D.enemigos_en_combate`) el libro no
+## se abre (sonido de rechazo y un aviso en pantalla, que se ve sin el libro) y, si ya estaba abierto cuando empieza el combate, se cierra SIN lanzar
+## la página. En combate se lanza con 1/2/3 (lanzamiento rápido, sin cambios). Con `LIBRO_EN_COMBATE = true` todo vuelve a ser como antes.
+static var LIBRO_EN_COMBATE: bool = false
+const AVISO_LIBRO_EN_COMBATE: String = "En combate: lanza tus páginas con 1/2/3"
+
+
+## La regla, pura (para probarla sin escena): ¿impide el combate abrir el libro, dados los enemigos que hay en combate?
+static func combate_impide_libro(enemigos_en_combate: int) -> bool:
+	return not LIBRO_EN_COMBATE and enemigos_en_combate > 0
+
+
+## ¿Está la jugadora en combate ahora mismo, de modo que el libro no deba abrirse? Solo mira; no avisa.
+func hay_combate_que_impide_libro() -> bool:
+	if LIBRO_EN_COMBATE or jugador == null or not is_instance_valid(jugador):
+		return false
+	return combate_impide_libro(Sensacion3D.enemigos_en_combate(jugador).size())
+
+
+## La pregunta que hace el libro antes de abrirse: si el combate lo impide, avisa (rechazo + texto en pantalla) y devuelve true.
+func libro_bloqueado_por_combate() -> bool:
+	if not hay_combate_que_impide_libro():
+		return false
+	_rechazar_libro_en_combate()
+	return true
+
+
+func _rechazar_libro_en_combate() -> void:
+	Sfx.play(self, "sello_no")
+	avisar(AVISO_LIBRO_EN_COMBATE)
+
+
 ## Lo llama el libro justo ANTES de abrirse (y de pausar el árbol). 5.2: el libro ya no pausa; el tiempo va al
 ## TIEMPO_LIBRO y `_process` deshace la pausa que pone spellbook.gd mientras el libro esté abierto.
 func remember_aim() -> void:
@@ -1189,6 +1221,10 @@ func usar_pocion() -> void:
 
 
 func _process(delta: float) -> void:
+	if libro_abierto() and hay_combate_que_impide_libro():
+		# 5/11: empezó el combate con el libro abierto: se cierra sin lanzar la página (el lanzamiento rápido sigue en 1/2/3).
+		libro.call("cerrar_sin_lanzar")
+		_rechazar_libro_en_combate()
 	if libro_abierto():
 		if get_tree().paused:
 			get_tree().paused = false        # 5.2: el libro de spellbook.gd pausa; aquí solo se ralentiza

@@ -809,6 +809,10 @@ func _libro_cerrado_del_todo() -> void:
 
 
 func _open() -> void:
+	# 5/11 (Pablo): el libro es para preparar, no para combatir. Con enemigos en combate no se abre (el lanzador avisa y suena el rechazo).
+	var lanzador := _spellcaster()
+	if lanzador != null and lanzador.has_method("libro_bloqueado_por_combate") and bool(lanzador.call("libro_bloqueado_por_combate")):
+		return
 	GestureRecognizer.exigencia = EXIGENCIA_RECTO if _recto_activo() else 1.0
 	# Si el árbol ya estaba congelado, la pausa es de otro: has muerto o
 	# has ganado. Abrir el libro y cerrarlo luego descongelaría esa
@@ -848,7 +852,13 @@ func _open() -> void:
 	queue_redraw()
 
 
-func _close() -> void:
+## Cierra el libro SIN lanzar la página (empezó el combate con el libro abierto: ver Lanzador3D.LIBRO_EN_COMBATE).
+func cerrar_sin_lanzar() -> void:
+	if is_open:
+		_close(false)
+
+
+func _close(lanzar: bool = true) -> void:
 	_cancelar_pasar()
 	is_open = false
 	Sfx.play(_oyente(), "libro_cierra")
@@ -866,8 +876,10 @@ func _close() -> void:
 	get_tree().paused = false
 
 	var caster := _spellcaster()
-	if caster:
+	if caster and lanzar:
 		caster.cast_current()
+	elif caster and caster.has_method("_fin_libro_lento"):
+		caster.call("_fin_libro_lento")        # sin lanzar: el lanzador no se entera de que se cerró hasta su próximo _process; aquí se devuelve el tiempo ya
 
 
 ## --- Captura del trazo ---
@@ -1105,6 +1117,16 @@ func _recto_activo() -> bool:
 func _cierre_inmediato() -> bool:
 	if is_recording:
 		return false
+	if Grimorio.METODO_TRAZO == "rectos":
+		# 5/11: con trazos rectos se cierra al soltar si lo dibujado ya se reconoce y ningún glifo de más trazos puede continuarlo.
+		var sector_r: Vector2 = _sector_of_gesture()
+		var caster_r := _spellcaster()
+		if sector_r == SIN_HUECO or caster_r == null:
+			return false
+		var vocab: Dictionary = TrazosRectos.ELEMENTOS if sector_r == Vector2.ZERO else TrazosRectos.SELLOS
+		if TrazosRectos.puede_completarse(pending_strokes, vocab):
+			return false
+		return bool(_reconocer_real(caster_r, pending_strokes, sector_r)["accepted"])
 	var fam: Dictionary = _familia_asistencia(pending_strokes)
 	if fam.is_empty():
 		return false
@@ -1128,7 +1150,9 @@ func _asistencia() -> float:
 
 ## Activa solo con la opción > 0 y fuera del modo de grabación (grabar plantillas con ayuda las estropearía).
 func _asistencia_activa() -> bool:
-	return _asistencia() > 0.0 and not is_recording
+	# 5/11: con TRAZOS RECTOS no hay plantillas con las que asistir (la guía fantasma y la corrección se apoyan en el $P): el trazo ya se
+	# rectifica a ocho direcciones y la guía de cada glifo está en la paleta. Con METODO_TRAZO = "plantillas" vuelve todo como estaba.
+	return _asistencia() > 0.0 and not is_recording and Grimorio.METODO_TRAZO != "rectos"
 
 
 func _asist_reiniciar() -> void:
@@ -1215,7 +1239,14 @@ func _decidir_con_asistencia(caster: Node, sector: Vector2) -> Array:
 ## Lo que el Spellcaster haría con el trazo real: {name, accepted}. Misma ruta que `add_gesture` (elemento en el núcleo, sello en sector).
 func _reconocer_real(caster: Node, strokes: Array, sector: Vector2) -> Dictionary:
 	var r: Dictionary
-	if sector == Vector2.ZERO:
+	if Grimorio.METODO_TRAZO == "rectos":
+		if sector == Vector2.ZERO:
+			r = TrazosRectos.reconocer(strokes, TrazosRectos.ELEMENTOS)
+		elif caster.has_method("_reconocer_glifo_rectos"):
+			r = caster.call("_reconocer_glifo_rectos", strokes)
+		else:
+			r = TrazosRectos.reconocer(strokes, TrazosRectos.SELLOS)
+	elif sector == Vector2.ZERO:
 		r = GestureRecognizer.recognize(strokes, library.templates_for(GestureLibrary.ELEMENTS), Repertoire.active_elements())
 	elif caster.has_method("_reconocer_glifo"):
 		r = caster.call("_reconocer_glifo", strokes, sector)
@@ -1603,9 +1634,10 @@ func _draw_legend() -> void:
 			continue
 		# El elemento se anota CON SU COLOR, igual que en el núcleo: la
 		# chuleta enseña la runa tal como se va a ver al dibujarla.
+		_trazo_casilla = _trazo_visible(gesture_name, true)
 		_draw_legend_slot(slot, datos.glyph, datos.display_name,
 			datos.color.darkened(CORE_GLYPH_DARKEN),
-			library.sample_count(gesture_name) > 0, _glyph_angle(gesture_name), separa)
+			_glifo_conocido(gesture_name, true), _glyph_angle(gesture_name), separa)
 		slot += 1
 
 	if separa:
@@ -1620,8 +1652,9 @@ func _draw_legend() -> void:
 		if glyph == null:
 			continue
 		# Los sellos, sin teñir. La misma regla que en la corona.
+		_trazo_casilla = _trazo_visible(gesture_name, false)
 		_draw_legend_slot(slot, glyph, gesture_name, INK,
-			library.sample_count(gesture_name) > 0)
+			_glifo_conocido(gesture_name, false), 0.0, false)
 		slot += 1
 
 
@@ -1689,9 +1722,37 @@ func _usos_pagina() -> Dictionary:
 	return _contadores_pagina()
 
 
+## 5/11 (TRAZOS RECTOS): un glifo se anota con tinta si la biblioteca tiene muestras suyas (el $P) o, con trazos rectos, si tiene trazo en la
+## tabla (no hay nada que grabar). Si no, se queda en marca de agua.
+func _glifo_conocido(nombre: String, es_elemento: bool) -> bool:
+	if library.sample_count(nombre) > 0:
+		return true
+	return Grimorio.METODO_TRAZO == "rectos" and TrazosRectos.tiene_trazo(nombre, es_elemento)
+
+
+## El trazo que se dibuja junto a cada glifo de la chuleta ("" = no se dibuja guía: método de plantillas o glifo sin trazo).
+func _trazo_visible(nombre: String, es_elemento: bool) -> String:
+	if Grimorio.METODO_TRAZO != "rectos":
+		return ""
+	return TrazosRectos.texto_guia(nombre, es_elemento)
+
+
+## Tamaño de la guía del trazo respecto al del glifo, y dónde se pone (en tamaños de glifo, desde su centro). Un elemento va en su círculo
+## de sello (60 px) y no cabe al lado: la guía baja DEBAJO del círculo, en el hueco hasta la rejilla de glifos. Los glifos tienen un óvalo
+## de 140×101 en el que el dibujo ocupa el centro, y la guía va a su derecha. En una lámina sin círculos aparte, a la derecha del glifo.
+const GUIA_TAM: float = 0.62
+const GUIA_DESP_GLIFO: Vector2 = Vector2(0.98, -0.05)
+const GUIA_DESP_SELLO: Vector2 = Vector2(0.0, 1.22)
+
 ## `sello` = es un elemento y la lámina tiene círculos de sello aparte: va a su círculo, más pequeño y sin rótulo (no cabe dentro).
+## `_trazo_casilla` (lo pone quien llama justo antes, para no cambiar la firma que otras pruebas sobrescriben) = el texto de su trazo en
+## TrazosRectos ("" = sin guía): se dibuja una polilínea con punto de inicio y punta de flecha.
+var _trazo_casilla: String = ""
+
 func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 		ink: Color, known: bool, angle: float = 0.0, sello: bool = false) -> void:
+	var trazo: String = _trazo_casilla
+	_trazo_casilla = ""
 	var cell := Vector2(float(slot % GRID_COLS), float(slot / GRID_COLS))
 	var at: Vector2 = _on_page(GRID_ORIGIN + GRID_STEP * cell)
 	var ley: Array = _libro().get("leyenda", [])
@@ -1711,6 +1772,13 @@ func _draw_legend_slot(slot: int, glyph: Texture2D, label: String,
 		at = _on_page(ley[slot])
 	if not sello and TextosObjetos.glifo(label) != "":
 		_casillas_leyenda.append({"rect": Rect2(at - Vector2(tam, tam) * 0.6, Vector2(tam, tam) * 1.2), "nombre": label})     # B4: dónde está (para elegirlo con el ratón)
+
+	if trazo != "":
+		var lado_guia: float = tam * GUIA_TAM
+		var centro_guia: Vector2 = at + (GUIA_DESP_SELLO if sello else GUIA_DESP_GLIFO) * tam
+		var tinta_guia: Color = Color(ink.r, ink.g, ink.b, 0.85 if known else 0.4)
+		TrazosRectos.dibujar_guia(self, trazo, Rect2(centro_guia - Vector2(lado_guia, lado_guia) * 0.5, Vector2(lado_guia, lado_guia)),
+			tinta_guia, maxf(tam * 0.04, 1.5))
 
 	# 24/10: un glifo recién conseguido se está escribiendo en su casilla (ver `_escribiendo`); al acabar sigue el dibujo de siempre.
 	if not sello and _escribiendo.has(label):
