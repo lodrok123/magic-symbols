@@ -47,7 +47,7 @@ func _escenario() -> void:
 	await _lab_f8()
 	await _lab_f9()
 	await _nodos()
-	_medidas()
+	await _medidas()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -182,7 +182,10 @@ func _cableado() -> void:
 	_ok("1.6 sus ciclos son los del mapa (1,5 s de fuego, 2,0 s de descanso; el segundo desfasado 1,75 s)", a != null and b != null and a.encendida_s == 1.5 and a.apagada_s == 2.0 and b.desfase_s == 1.75)
 	var f8: TrampaFlechas3D = _pz.nodo("t_fl_a") as TrampaFlechas3D
 	var f9: TrampaFlechas3D = _pz.nodo("t_fl_fuego") as TrampaFlechas3D
-	_ok("1.7 F8 y F9 montan los mascarones: uno de flecha normal mirando al oeste y otro de fuego mirando al este", f8 != null and f9 != null and f8.elemento == "" and f8.mira == "o" and f9.elemento == "fuego" and f9.mira == "e" and f9.cada_s == 3.0)
+	_ok("1.7 F8 y F9 montan los mascarones: uno de flecha normal mirando al oeste y otro de fuego en el muro norte mirando al sur", f8 != null and f9 != null and f8.elemento == "" and f8.mira == "o" and f9.elemento == "fuego" and f9.mira == "s" and f9.cada_s == 3.0)
+	# Desde el muro norte (14,16) la de F9 está a ≤ 6 casillas de donde las pruebas 6 ponen a la jugadora (sala de al lado, (16..21,19)): se queda APAGADA hasta su turno (7.12), para que no queme antes sus setos.
+	if f9 != null:
+		f9.apagar(0.0)
 	_ok("1.8 la trampa está en la cara del muro y a ras del suelo de la casilla de delante", a != null and absf(a.position.z - 9.0 * Terreno3D.casilla) < 0.01 and absf(a.position.y - Terreno3D.y_pies(Vector2i(26, 9))) < 0.01, "pos %s" % a.position)
 	# Orientaciones: el +Z local mira hacia fuera del muro en las cuatro.
 	var bien: bool = true
@@ -725,9 +728,12 @@ func _lab_f9() -> void:
 	var s1: Node = _pz.nodo("t_fl_s1")
 	var s2: Node = _pz.nodo("t_fl_s2")
 	var ba: Barril3D = _pz.nodo("t_fl_barril") as Barril3D
+	_jugadora_lista(Vector2i(2, 2))
+	f.encender()
+	await avanzar_s(0.5)
 	_ok("7.12 F9: los setos y el barril están enteros antes de empezar", s1 != null and s2 != null and ba != null and not bool(s1.get("is_lit")) and not bool(s2.get("is_lit")) and not ba.explotado)
 	_ok("7.12b F9: dormida (`cerca=6`) mientras la jugadora está lejos: no ha disparado ni una vez desde que arrancó la escena", f.dormida() and f.disparos == 0, "disparos %d" % f.disparos)
-	_jugadora_lista(Vector2i(12, 17))                          # entra en la sala (a 5,8 casillas de la trampa, `cerca=6`; el barril, a 12 u: fuera de su radio)
+	_jugadora_lista(Vector2i(12, 17))                          # entra en la sala (a 2 casillas de la de delante de la trampa, `cerca=6`; el barril, a 10 u: fuera de su radio)
 	f._t = f.cada_s - 0.05                                     # el primer disparo sale ya
 	var t0: float = reloj.t
 	var t_s1: float = -1.0
@@ -799,6 +805,18 @@ func _medidas() -> void:
 	f.set_physics_process(false)
 	var mf: Dictionary = f.medidas()
 	print("MEDIDA mascarón de flechas (u): %.2f × %.2f × %.2f saliente (%.2f casillas de ancho); ranura a %.2f u del suelo y a %.2f de la cara del muro" % [mf["ancho"], mf["alto"], mf["saliente"], float(mf["ancho"]) / Terreno3D.casilla, f.altura_boca_u(), f.boca_local().z])
+	# 9.0: las llamas del dragón crecen al 70 % («nacer» del haz más lento).
+	d._tick()
+	await process_frame
+	var ritmos: Array = []
+	for n in root.find_children("*", "FuegoToy", true, false):
+		var ap: AnimationPlayer = (n as Node).get_node_or_null("Anim") as AnimationPlayer
+		if ap != null and int((n as FuegoToy).figura) == int(FuegoToy.Figura.HAZ):
+			ritmos.append(snappedf(ap.speed_scale, 0.01))
+	if ritmos.is_empty():
+		_aviso("9.0 ritmo de las llamas del dragón", "en esta escena no se dibuja el haz (sin VfxToyJuego): no se mide")
+	else:
+		_ok("9.0 las llamas del chorro del dragón crecen un 30 %% más despacio (ritmo de «nacer» %s; %.2f s en vez de 0,40)" % [str(ritmos), 0.4 / float(ritmos[-1])], absf(float(ritmos[-1]) - TrampaDragon3D.RITMO_LLAMAS) < 0.01)
 	_ok("9.1 el dragón usa el modelo de Meshy con su esqueleto (4 huesos)", d._esq != null and d._esq.get_bone_count() == 4)
 	_ok("9.2 el mascarón usa el modelo de Meshy con su esqueleto (3 huesos)", f._esq != null and f._esq.get_bone_count() == 3)
 	_ok("9.3 la boca (donde nace el hechizo) queda por delante de la caja que recibe hechizos (dragón %.2f > %.2f, mascarón %.2f > %.2f)" % [d.boca_local().z - HechizoVivo.HAZ_BOCA_U, d.prof_cuerpo(), f.boca_local().z, f.prof_cuerpo()],

@@ -54,7 +54,7 @@ const SALAS: Array = [
 ## TRAMPAS DE PARED (5/11/2026, docs/TRAMPAS_PARED_2026-11-05.md): tres salas más, aparte de las cinco de arriba para no tocar `_puzles` (que cuentan las pruebas). Teclas 6–8.
 ##   F7 (3,1) DRAGONES CRONOMETRADOS: dos cabezas en el muro norte (26,8) y (30,8) que escupen por las columnas x=26 y x=30 por turnos (1,5 s de fuego + 2,0 s de descanso, la segunda desfasada 1,75 s); placa (31,12) al fondo.
 ##   F8 (0,2) FLECHAS QUE SE ESQUIVAN O SE BLOQUEAN: un mascarón (8,20) dispara una flecha normal cada 1,5 s por la fila y=20; un bloque de piedra empujable (5,21) la tapa.
-##   F9 (1,2) LA FLECHA DE FUEGO QUE ENCIENDE: un mascarón (8,22) lanza una flecha de fuego cada 3 s por la fila y=22: prende dos setos y enciende el barril del fondo.
+##   F9 (1,2) LA FLECHA DE FUEGO QUE ENCIENDE: un mascarón en el muro norte (14,16), de frente a la cámara, lanza una flecha de fuego cada 3 s por la columna x=14: prende dos setos y enciende el barril del fondo.
 const TRAMPAS: Array = [
 	{"nombre": "F7 dragones", "entrada": Vector2i(25, 12), "cartel": Vector2i(28, 10),
 		"texto": "F7 · DRAGONES CRONOMETRADOS\nUn chorro por columna (x=26 y x=30): 1,5 s de fuego, 2 s de descanso,\navisan con brasas y humo 0,5 s antes. Nunca arden los dos a la vez.\nLlega a la placa del fondo. Botón: los apaga 8 s · agua a la cabeza: la apaga 8 s.",
@@ -63,7 +63,7 @@ const TRAMPAS: Array = [
 		"texto": "F8 · FLECHAS\nEl mascarón dispara una flecha cada 1,5 s por la fila de la placa.\nEsquívala o empuja el bloque al norte (5,20) para taparte.",
 		"ids": {"a": "t_fl_a", "bloque": "t_fl_bloque", "placa": "t_fl_placa"}},
 	{"nombre": "F9 flecha de fuego", "entrada": Vector2i(12, 17), "cartel": Vector2i(12, 19),
-		"texto": "F9 · LA FLECHA DE FUEGO ENCIENDE\nCada 3 s el mascarón lanza una flecha de fuego por la fila de abajo:\nprende los setos y enciende el barril. Agua a un seto = cortafuegos · botón: lo apaga.",
+		"texto": "F9 · LA FLECHA DE FUEGO ENCIENDE\nCada 3 s el mascarón abre la boca y lanza una flecha de fuego hacia el sur:\nprende los setos y enciende el barril. Agua a un seto = cortafuegos · botón: lo apaga.",
 		"ids": {"a": "t_fl_fuego", "s1": "t_fl_s1", "s2": "t_fl_s2", "barril": "t_fl_barril", "boton": "t_fl_boton"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.

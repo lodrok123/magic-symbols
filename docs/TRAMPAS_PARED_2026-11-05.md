@@ -77,7 +77,7 @@ Reglas: `cuando=<id>.escupe|calla|apagada` (dragón) o `.dispara|apagada` (flech
 
 - **F7 · dragones cronometrados** (sala (3,1), x 25–31, y 9–13; añadí muros en y=14–15 para que no se rodee): dos cabezas en el muro norte, `(26,8)` y `(30,8)`, `mira=s`, `ciclo=1.5,2.0` y la segunda con `desfase=1.75` (nunca arden las dos a la vez; callan las dos 0,5 s de cada 3,5). Chorros por las columnas x=26 y x=30 (alcance 5: cubren y=9..13). Placa de presencia en `(31,12)` y botón `!` en `(25,10)` que apaga los dos 8 s. `cerca=8`.
 - **F8 · flechas que se esquivan o se bloquean** (sala (0,2)): mascarón normal en el muro `(8,20)`, `mira=o`, `cada=1.5`, `elemento=ninguno`, por la fila y=20 hasta la placa `(1,20)`; un bloque de piedra empujable en `(5,21)` que se empuja al norte a `(5,20)` y tapa lo de detrás. `cerca=8`.
-- **F9 · la flecha de fuego que enciende** (sala (1,2)): mascarón de fuego en el muro `(8,22)`, `mira=e`, `cada=3.0`; la flecha prende el seto `(12,22)`, el fuego corre al seto `(13,22)` y enciende el barril `(14,22)`, que explota (uso positivo de la trampa). Botón `!` en `(9,18)` que la apaga. `cerca=6`. Agua a un seto = cortafuegos (como F4).
+- **F9 · la flecha de fuego que enciende** (sala (1,2)): mascarón de fuego en el muro NORTE `(14,16)`, `mira=s` (desde el 5/11: de frente a la cámara, para ver la boca; antes en `(8,22)` mirando al este, de canto), `cada=3.0`; la flecha prende el seto `(14,19)`, el fuego corre al seto `(14,20)` y enciende el barril `(14,21)`, que explota (uso positivo de la trampa). Botón `!` en `(9,18)` que la apaga. `cerca=6`. Agua a un seto = cortafuegos (como F4).
 
 El lab pone HUD con el estado de cada trampa (reposo / AVISO / ESCUPE / APAGADA) y carteles. No se ha tocado `Bosque_02.txt`.
 

@@ -111,12 +111,12 @@
 ; pieza t_fl_a trampa_flechas 8 20 mira=o cada=1.5 elemento=ninguno alcance=8 cerca=8
 ; pieza t_fl_bloque bloque 5 21 material=piedra
 ; pieza t_fl_placa pulsador 1 20 modo=presencia
-; --- F9 LA FLECHA DE FUEGO QUE ENCIENDE (sala (1,2), x 9..15, y 17..23): un mascaron en el muro (8,22) que mira al este lanza cada 3 s una FLECHA DE FUEGO por la fila y=22: prende el primer seto (12,22), el fuego
-; ---   corre al segundo (13,22) y enciende el barril (14,22), que explota (uso positivo de la trampa). Via: boton ! (9,18) la apaga; el agua a un seto lo salva (cortafuegos).
-; pieza t_fl_fuego trampa_flechas 8 22 mira=e cada=3.0 elemento=fuego alcance=8 cerca=6
-; pieza t_fl_s1 seto 12 22 mojable=si
-; pieza t_fl_s2 seto 13 22 mojable=si
-; pieza t_fl_barril barril 14 22
+; --- F9 LA FLECHA DE FUEGO QUE ENCIENDE (sala (1,2), x 9..15, y 17..23): un mascaron en el muro NORTE (14,16) que mira al sur (se ve de frente: la boca se abre al disparar) lanza cada 3 s una FLECHA DE FUEGO
+; ---   por la columna x=14: prende el primer seto (14,19), el fuego corre al segundo (14,20) y enciende el barril (14,21), que explota (uso positivo de la trampa). Via: boton ! (9,18) la apaga; el agua a un seto lo salva (cortafuegos). Antes (hasta el 5/11) estaba en el muro oeste (8,22) mirando al este, y se veia de canto.
+; pieza t_fl_fuego trampa_flechas 14 16 mira=s cada=3.0 elemento=fuego alcance=8 cerca=6
+; pieza t_fl_s1 seto 14 19 mojable=si
+; pieza t_fl_s2 seto 14 20 mojable=si
+; pieza t_fl_barril barril 14 21
 ; pieza t_fl_boton pulsador 9 18 modo=magia
 ; puzle t_fl_boton_apaga cuando=t_fl_boton.pulsado hace=t_fl_fuego.apagar
 ; ---------------------------------------------------------------------------------------------------------------------------------
@@ -139,9 +139,9 @@
 ####.#######.#######.############
 #.......#.......#.......#.......#
 #.......#!......#.......#.......#
+#.......#.....z.#.......#.......#
+#@......#.....z.#.......#.......#
 #.......#.......#.......#.......#
-#@......#.......#.......#.......#
 #.......#.......#.......#.......#
-#.......#...zz..#.......#.......#
 #.......#.......#.......#.......#
 #################################

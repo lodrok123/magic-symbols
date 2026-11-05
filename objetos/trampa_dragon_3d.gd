@@ -19,6 +19,7 @@ signal calla                       ## deja de echar fuego
 enum Fase { REPOSO, AVISO, FUEGO, APAGADA }
 
 const AVISO_S: float = 0.5
+const RITMO_LLAMAS: float = 0.7           ## las llamas del chorro crecen un 30 % más despacio que las de la jugadora («nacer» del haz: 0,4 s → 0,57 s; Pablo, 5/11). Solo el dibujo
 const TICK_S: float = 0.8                 ## s entre dos haces seguidos (> 0,7 s de invulnerabilidad de la jugadora)
 const DANO_TICK: float = 10.0             ## daño a la jugadora por tick (compárese: golpe de goblin 20, barril 20, flecha de goblin 12)
 const LATERAL_U: float = 0.75             ## u a cada lado del eje en las que quema a la jugadora
@@ -319,7 +320,9 @@ func _tick() -> void:
 	if _hechizo == null:
 		_hechizo = construir_hechizo({"linea_x": clampi(alcance - 2, 1, 4)})
 	if _hechizo != null:
-		lanzar_hechizo_vivo(_hechizo.copiar(), origen_chorro(), dir)
+		var h: Hechizo = _hechizo.copiar()
+		h.set_meta(VfxToyJuego.META_RITMO_NACER, RITMO_LLAMAS)
+		lanzar_hechizo_vivo(h, origen_chorro(), dir)
 	ticks += 1
 	if jugadora_en_chorro() and herir_jugadora(DANO_TICK, boca_mundo()):
 		golpes_jugadora += 1

@@ -2,7 +2,7 @@ extends "res://herramientas/escenario_base.gd"
 ## TRAMPAS DE PARED · CAPTURAS (5/11/2026; docs/TRAMPAS_PARED_2026-11-05.md): el dragón en reposo, en aviso y escupiendo, y la flecha de fuego en vuelo, con la cámara del juego (fija al norte). NECESITA VENTANA:
 ##   godot --path . --resolution 1280x720 --fixed-fps 30 --script res://herramientas/captura_trampas_pared.gd -- [carpeta]   (por defecto res://docs/capturas/trampas_pared)
 ## Saca: dragon_ciclo_cerca.png y dragon_ciclo_juego.png (reposo · aviso · fuego al empezar · fuego a tope · fuego al final), dragon_pasillo.png (F7 entera con los dos dragones y la jugadora),
-## mascaron_flecha_secuencia.png (F9 de canto: ranura apagada · avisando · flecha recién salida · en vuelo · prendiendo el seto) y mascaron_frente_cerca.png / _juego.png (los dos mascarones de frente: reposo · avisando · fogonazo · flecha en vuelo).
+## mascaron_flecha_secuencia.png (F9 de frente, muro norte: boca cerrada · avisando · flecha recién salida · en vuelo · prendiendo el seto) y mascaron_frente_cerca.png / _juego.png (los dos mascarones de frente: reposo · avisando · fogonazo · flecha en vuelo).
 ## El tiempo va a cámara lenta (`Engine.time_scale`) y cada foto espera al instante que se pide.
 
 var _dir: String = "res://docs/capturas/trampas_pared"
@@ -150,13 +150,13 @@ func _flecha(tam_juego: float) -> void:
 	# La de fuego: la jugadora al lado de la fila (11,21), las fotos con el seto al fondo.
 	for modo in ["ancho"]:
 		_cam(7.4)
-		_poner_j(Vector2i(10, 21))
+		_poner_j(Vector2i(12, 19))
 		f.encender()
 		f._t = 0.0
 		await avanzar_s(0.2)
 		_ocultar_ui(root)
 		Engine.time_scale = 0.2
-		var centro: Vector3 = Vector3(25.0, Terreno3D.y_pies(Vector2i(11, 22)) + 0.6, 22.5 * Terreno3D.casilla)
+		var centro: Vector3 = Terreno3D.centro_de(Vector2i(14, 19), Terreno3D.y_pies(Vector2i(14, 19)) + 0.6)
 		var fotos: Array = []
 		# 1 ranura apagada (justo tras un disparo), 2 ranura avisando (a 0,3 s del disparo), 3 flecha recién salida (+0,15 s), 4 en vuelo (+0,7 s), 5 al prender el seto
 		var seguro: int = 0

@@ -509,7 +509,27 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	if al.length() > 0.01:
 		t.look_at(t.global_position + al, Vector3.UP)
 	t.call("lanzar", -1.0)
+	_ritmo_nacer(t, float(h.get_meta(META_RITMO_NACER, 1.0)))
 	_expira_en(t, maxf(vida, 0.3))
+
+
+## 5/11 (Pablo, el dragón de pared: «desacelera las llamas un 30 % para que crezcan menos rápido»): quien lanza el hechizo puede marcarlo con la meta `ritmo_nacer_vfx` (× la velocidad de «nacer»;
+## 0,7 = un 30 % más lento). Solo el crecimiento: al acabar «nacer» el toy vuelve a ritmo 1 (su «morir» dura lo de siempre). Sin la meta no cambia nada.
+const META_RITMO_NACER: StringName = &"ritmo_nacer_vfx"
+
+
+func _ritmo_nacer(t: Node3D, ritmo: float) -> void:
+	if absf(ritmo - 1.0) < 0.001:
+		return
+	var ap: AnimationPlayer = t.get_node_or_null("Anim") as AnimationPlayer
+	if ap == null or not ap.has_animation("nacer"):
+		return
+	ap.speed_scale = maxf(ritmo, 0.05)
+	var ref: WeakRef = weakref(ap)
+	_mundo.get_tree().create_timer(ap.get_animation("nacer").length / ap.speed_scale, false).timeout.connect(func() -> void:
+		var a: AnimationPlayer = ref.get_ref() as AnimationPlayer
+		if a != null and is_instance_valid(a):
+			a.speed_scale = 1.0)
 
 
 func _sin_luz(t: Node3D) -> void:
