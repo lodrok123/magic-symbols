@@ -21,6 +21,9 @@ func _ok(cond: bool, texto: String) -> void:
 func _correr() -> void:
 	await process_frame          # el árbol ya está listo: global_position solo vale con el nodo dentro del árbol
 	print("== LuzZona3D: zonas ==")
+	# «bosque = antes» (y «clasico») se mide SIN la capa 1 de contraste (5/11): con el preset encendido sol y ambiente se multiplican por 1,3 y 0,5. Se restaura al final.
+	var contraste_antes: bool = ContrasteLuz3D.ACTIVO
+	ContrasteLuz3D.poner(false)
 	var env := Environment.new()
 	var sol := DirectionalLight3D.new()
 	root.add_child(sol)
@@ -135,5 +138,6 @@ func _correr() -> void:
 	_ok(vi != null and vi.layer == 0 and vi.get_child(0) is ColorRect, "la viñeta va en la capa 0 (por debajo del HUD)")
 	_ok((vi.get_child(0) as ColorRect).mouse_filter == Control.MOUSE_FILTER_IGNORE, "la viñeta no se come los clics")
 
+	ContrasteLuz3D.poner(contraste_antes)
 	print("FALLOS %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)

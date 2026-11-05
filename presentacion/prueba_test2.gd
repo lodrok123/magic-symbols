@@ -1241,6 +1241,9 @@ func _ready() -> void:
 	Misiones.i().limpiar_puntos()
 	CicloDia3D.montar(self)
 	if _sol != null:
+		# Capa 1 de contraste (preset conmutable desde F3). Se aplica JUSTO ANTES de montar el panel para que sus «originales» (restaurar) ya sean los de la capa 1; el SSAO ya está montado
+		# (Posproceso3D.aplicar_entorno va antes) y el ciclo aún no ha escrito. Idempotente.
+		ContrasteLuz3D.aplicar(self)
 		_panel_luz = PanelLuz3D.montar(self)          # F3: luz del mapa afinable en caliente (oculto)
 	AmbienteZona.montar(self)
 	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.

@@ -437,12 +437,17 @@ func _escenas_reales() -> void:
 	_ok("4 Bosque 01 v01 monta el ambiente sonoro (tipo bosque)", amb != null and amb.tipo_actual == "bosque", amb.tipo_actual if amb != null else "")
 	var sol: DirectionalLight3D = maqueta.get("_sol") as DirectionalLight3D
 	var env: Environment = maqueta.get("_env") as Environment
+	# «bosque = antes»: las energías exactas del sol (1,0 a las 13 h; ≤ 0,15 a las 2 h) se miden SIN la capa 1 de contraste (sol ×1,3). Se restaura tras las comprobaciones.
+	var contraste_antes: bool = ContrasteLuz3D.ACTIVO
+	ContrasteLuz3D.poner(false, maqueta)
+	await avanzar(3)
 	_ok("4 a las 13 el sol del bosque tiene la luz de la zona sin teñir", sol != null and _color_cerca(sol.light_color, LuzZona3D.ZONAS["bosque"]["sol_color"] as Color, 0.02) and _cerca(sol.light_energy, 1.0, 0.02),
 		"%s %.2f" % [sol.light_color, sol.light_energy])
 	CicloDia3D.HORA = 2.0
 	await avanzar(3)
 	_ok("4 a las 2 el sol es azul y tenue (el ciclo manda sobre Zonas3D)", sol.light_energy <= 0.15 and sol.light_color.b > sol.light_color.r + 0.2, "%.2f %s" % [sol.light_energy, sol.light_color])
 	_ok("4 y el ambiente del entorno baja", env.ambient_light_energy < 0.6 * 0.5, str(env.ambient_light_energy))
+	ContrasteLuz3D.poner(contraste_antes, maqueta)
 	CicloDia3D.HORA = 13.0
 	await avanzar(3)
 

@@ -33,7 +33,9 @@ static var SOMBRA_DISTANCIA: float = 35.0           ## afinable en caliente (pan
 static var SOMBRA_BLUR: float = 1.6                 ## afinable en caliente (panel F3 del mapa)
 static var SOMBRA_OPACIDAD: float = 1.0             ## `shadow_opacity` del sol: 1 = sombra negra del todo, menos = más suave (panel F3)
 static var SOL_INCLINACION_EXTRA: float = 0.0       ## grados que se SUMAN al `sol_pitch` de la zona en `aplicar_valores` (más negativo = más vertical; panel F3)
-## Multiplican la energía del SOL y del AMBIENTE de CUALQUIER zona, encima del ciclo. 1 = como siempre. Para más contraste de sombra: sol arriba, ambiente abajo (panel F3).
+## Multiplican la energía del sol y del ambiente de cualquier zona, encima del ciclo. 1 = como siempre.
+## 5/11: AMBIENTE_FACTOR se escribe en `sky_energy_multiplier`/`ground_energy_multiplier` del cielo, porque con el ambiente tomado del cielo (`AMBIENT_SOURCE_SKY`, contribución 1)
+## `ambient_light_energy` no cambia nada (medido 5/11: a 0 la sombra seguía al 77 % del sol; la energía del cielo a 0,5 la deja en ≈ 50 %).
 static var SOL_FACTOR: float = 1.0
 static var AMBIENTE_FACTOR: float = 1.0
 const ZONAS: Dictionary = {
@@ -177,6 +179,9 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 		sol.light_energy = float(v["sol_energia"]) * SOL_FACTOR
 		sol.rotation_degrees = Vector3(clampf(float(v["sol_pitch"]) + SOL_INCLINACION_EXTRA, -89.0, -5.0), float(v["sol_yaw"]), 0.0)
 		sol.shadow_opacity = SOMBRA_OPACIDAD
+		# 5/11: el blur y la distancia también se reescriben aquí: con el ciclo en marcha este es el único sitio que escribe en el sol cada fotograma, y si no SOMBRA_BLUR (panel F3, capa 1) no se veía.
+		sol.shadow_blur = float(v.get("sombra_blur", SOMBRA_BLUR))
+		sol.directional_shadow_max_distance = float(v.get("sombra_distancia", SOMBRA_DISTANCIA))
 	if env == null:
 		return
 	var mat: ProceduralSkyMaterial = env.sky.sky_material as ProceduralSkyMaterial if env.sky != null else null
@@ -190,6 +195,9 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 	mat.sky_horizon_color = medio
 	mat.ground_horizon_color = medio
 	mat.ground_bottom_color = abajo
+	# 5/11: la energía real del ambiente la fija el cielo (ver AMBIENTE_FACTOR).
+	mat.sky_energy_multiplier = AMBIENTE_FACTOR
+	mat.ground_energy_multiplier = AMBIENTE_FACTOR
 	env.ambient_light_energy = float(v["ambiente_energia"]) * AMBIENTE_FACTOR
 
 
@@ -214,6 +222,9 @@ static func ambiente_dos_colores(env: Environment, arriba: Color, abajo: Color, 
 	mat.ground_bottom_color = abajo
 	mat.sky_curve = 0.15
 	mat.ground_curve = 0.15
+	# 5/11: la energía real del ambiente la fija el cielo (ver AMBIENTE_FACTOR).
+	mat.sky_energy_multiplier = AMBIENTE_FACTOR
+	mat.ground_energy_multiplier = AMBIENTE_FACTOR
 	mat.sun_angle_max = 0.0              # sin disco de sol pintado en el cielo: el sol real es la DirectionalLight3D
 	var cielo := Sky.new()
 	cielo.sky_material = mat

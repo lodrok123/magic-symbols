@@ -26,6 +26,18 @@ func _escenario() -> void:
 	var sol: DirectionalLight3D = maqueta.get("_sol") as DirectionalLight3D
 	_ok("1 hay sol y ciclo", sol != null and maqueta.get_node_or_null("CicloDia3D") != null)
 
+	# Capa 1 de contraste (ContrasteLuz3D): al cargar el Bosque está ENCENDIDA de serie y los seis valores son los del preset.
+	var env0: Environment = maqueta.get("_env") as Environment
+	_ok("1b CAPA1_CONTRASTE es la primera fila", String(PanelLuz3D.FILAS[0][0]) == "CAPA1_CONTRASTE" and panel.es_booleana("CAPA1_CONTRASTE"))
+	_ok("1b al cargar: ContrasteLuz3D.ACTIVO true y la fila vale sí", ContrasteLuz3D.ACTIVO and panel.valor("CAPA1_CONTRASTE") >= 0.5)
+	_ok("1b al cargar: AMBIENTE_FACTOR 0,5 · SOL_FACTOR 1,3 · SOMBRA_BLUR 0,5", _cerca(LuzZona3D.AMBIENTE_FACTOR, 0.5, 0.0001) and _cerca(LuzZona3D.SOL_FACTOR, 1.3, 0.0001) and _cerca(LuzZona3D.SOMBRA_BLUR, 0.5, 0.0001))
+	_ok("1b al cargar: Hierba3D.RECIBE_SOMBRA true", Hierba3D.RECIBE_SOMBRA)
+	_ok("1b al cargar: Posproceso3D SSAO 2,0 / 1,4", _cerca(Posproceso3D.SSAO_INTENSIDAD, 2.0, 0.0001) and _cerca(Posproceso3D.SSAO_RADIO, 1.4, 0.0001))
+	if env0 != null and env0.ssao_enabled:
+		_ok("1b al cargar: env.ssao_intensity 2,0 y ssao_radius 1,4", _cerca(env0.ssao_intensity, 2.0, 0.0001) and _cerca(env0.ssao_radius, 1.4, 0.0001), "%.2f %.2f" % [env0.ssao_intensity, env0.ssao_radius])
+	else:
+		print("  (sin SSAO en este renderer: solo se comprueban las static vars de Posproceso3D)")
+
 	# Estado de partida (con el reloj parado para que las comparaciones sean exactas).
 	CicloDia3D.DURACION_DIA_S = 0.0
 	panel.poner("DURACION_DIA_S", 0.0)
@@ -96,6 +108,9 @@ func _escenario() -> void:
 	_ok("10 por defecto: noche_k(2) = 1 y noche_k(13) = 0", _cerca(CicloDia3D.noche_k(2.0), 1.0) and _cerca(CicloDia3D.noche_k(13.0), 0.0))
 
 	# Contraste de sombra: factores de sol y ambiente y la hierba con sombra (todo por defecto = como siempre)
+	# CAMBIO DE CONTRATO A PROPÓSITO (5/11): «por defecto = sol 1,0 y ambiente 0,6» es la luz de ANTES; con la capa 1 encendida (ya es el valor de serie) es otra.
+	# Por eso estas comprobaciones se hacen con el preset APAGADO (se vuelve a encender más abajo). Los umbrales no se tocan.
+	panel.poner("CAPA1_CONTRASTE", 0.0)
 	var env: Environment = maqueta.get("_env") as Environment
 	_ok("11 hay Environment", env != null)
 	_ok("11 por defecto: SOL_FACTOR y AMBIENTE_FACTOR 1 y la hierba sin sombra", _cerca(LuzZona3D.SOL_FACTOR, 1.0, 0.0001) and _cerca(LuzZona3D.AMBIENTE_FACTOR, 1.0, 0.0001) and not Hierba3D.RECIBE_SOMBRA)
@@ -134,9 +149,43 @@ func _escenario() -> void:
 	panel.poner("HIERBA_SOMBRA", 1.0)
 	panel.restaurar()
 	await avanzar(2)
-	_ok("16 restaurar: factores en 1 y hierba sin sombra", _cerca(LuzZona3D.SOL_FACTOR, 1.0, 0.0001) and _cerca(LuzZona3D.AMBIENTE_FACTOR, 1.0, 0.0001) and not Hierba3D.RECIBE_SOMBRA)
+	# Los «originales» del panel ya son los de la capa 1 (se aplica antes de montarlo), así que restaurar devuelve el preset encendido.
+	_ok("16 restaurar: vuelve la capa 1 (sol 1,3 · ambiente 0,5 · hierba con sombra)", _cerca(LuzZona3D.SOL_FACTOR, 1.3, 0.0001) and _cerca(LuzZona3D.AMBIENTE_FACTOR, 0.5, 0.0001) and Hierba3D.RECIBE_SOMBRA)
 	if mat_m != null:
-		_ok("16 restaurar: el shader vuelve a tener shadows_disabled", mat_m.shader.code.contains("shadows_disabled"))
+		_ok("16 restaurar: el shader de la hierba no tiene shadows_disabled", not mat_m.shader.code.contains("shadows_disabled"))
+
+	# Preset de contraste: apagado -> la luz de antes; encendido -> la capa 1; las filas sueltas mandan por encima; restaurar devuelve ACTIVO.
+	panel.restaurar()
+	panel.poner("CAPA1_CONTRASTE", 1.0)
+	panel.poner("DURACION_DIA_S", 0.0)
+	panel.poner("HORA", 13.0)
+	await avanzar(2)
+	var e_c1: float = sol.light_energy
+	panel.poner("CAPA1_CONTRASTE", 0.0)
+	await avanzar(2)
+	var e_ant: float = sol.light_energy
+	_ok("17 CAPA1_CONTRASTE 0 -> ACTIVO false y la fila vale no", not ContrasteLuz3D.ACTIVO and panel.valor("CAPA1_CONTRASTE") < 0.5)
+	_ok("17 apagado: 1,0 / 1,0 / false / 1,6", _cerca(LuzZona3D.AMBIENTE_FACTOR, 1.0, 0.0001) and _cerca(LuzZona3D.SOL_FACTOR, 1.0, 0.0001) and not Hierba3D.RECIBE_SOMBRA and _cerca(LuzZona3D.SOMBRA_BLUR, 1.6, 0.0001))
+	_ok("17 apagado: SSAO 1,2 / 1,0 (static vars)", _cerca(Posproceso3D.SSAO_INTENSIDAD, 1.2, 0.0001) and _cerca(Posproceso3D.SSAO_RADIO, 1.0, 0.0001))
+	if env.ssao_enabled:
+		_ok("17 apagado: env.ssao_intensity 1,2 y ssao_radius 1,0", _cerca(env.ssao_intensity, 1.2, 0.0001) and _cerca(env.ssao_radius, 1.0, 0.0001))
+	_ok("17 apagado: sol.light_energy baja en proporción (÷1,3)", e_ant > 0.1 and _cerca(e_c1 / e_ant, 1.3, 0.02), "%.3f / %.3f" % [e_c1, e_ant])
+	panel.poner("CAPA1_CONTRASTE", 1.0)
+	await avanzar(2)
+	_ok("18 encendido: vuelven 0,5 / 1,3 / true / 0,5", ContrasteLuz3D.ACTIVO and _cerca(LuzZona3D.AMBIENTE_FACTOR, 0.5, 0.0001) and _cerca(LuzZona3D.SOL_FACTOR, 1.3, 0.0001) and Hierba3D.RECIBE_SOMBRA and _cerca(LuzZona3D.SOMBRA_BLUR, 0.5, 0.0001))
+	_ok("18 encendido: SSAO 2,0 / 1,4 y el sol vuelve a su energía", _cerca(Posproceso3D.SSAO_INTENSIDAD, 2.0, 0.0001) and _cerca(Posproceso3D.SSAO_RADIO, 1.4, 0.0001) and _cerca(sol.light_energy, e_c1, 0.01))
+	if env.ssao_enabled:
+		_ok("18 encendido: env.ssao 2,0 / 1,4", _cerca(env.ssao_intensity, 2.0, 0.0001) and _cerca(env.ssao_radius, 1.4, 0.0001))
+	panel.poner("SOL_FACTOR", 2.0)
+	_ok("19 una fila suelta no cambia ACTIVO", ContrasteLuz3D.ACTIVO and _cerca(LuzZona3D.SOL_FACTOR, 2.0, 0.0001))
+	panel.poner("SSAO_INTENSIDAD", 3.0)
+	_ok("19 SSAO_INTENSIDAD 3,0 -> static var 3,0", _cerca(Posproceso3D.SSAO_INTENSIDAD, 3.0, 0.0001) and _cerca(panel.valor("SSAO_INTENSIDAD"), 3.0, 0.0001))
+	if env.ssao_enabled:
+		_ok("19 SSAO_INTENSIDAD 3,0 -> env.ssao_intensity 3,0", _cerca(env.ssao_intensity, 3.0, 0.0001))
+	panel.poner("CAPA1_CONTRASTE", 0.0)
+	panel.restaurar()
+	await avanzar(2)
+	_ok("20 restaurar: ACTIVO true, sol 1,3, SSAO 2,0 / 1,4", ContrasteLuz3D.ACTIVO and _cerca(LuzZona3D.SOL_FACTOR, 1.3, 0.0001) and _cerca(Posproceso3D.SSAO_INTENSIDAD, 2.0, 0.0001) and _cerca(Posproceso3D.SSAO_RADIO, 1.4, 0.0001) and Hierba3D.RECIBE_SOMBRA)
 
 	# Dejarlo todo como estaba
 	panel2.restaurar()

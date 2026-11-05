@@ -21,8 +21,8 @@ static var activo: bool = true
 ## Suave a propósito: que oscurezca el pie de los troncos, rocas y bloques sin ensuciar las superficies grandes. Valores de Godot por defecto:
 ## radio 1,0 · intensidad 2,0 · poder 1,5 · detalle 0,5. La casilla mide 2,3 u, así que un radio de 1,0 cubre media casilla alrededor de la pieza.
 const SSAO_ACTIVO: bool = true
-const SSAO_RADIO: float = 1.0            ## unidades de mundo en las que busca oclusores
-const SSAO_INTENSIDAD: float = 1.2       ## cuánto oscurece (por defecto 2,0: aquí más suave)
+static var SSAO_RADIO: float = 1.0       ## unidades de mundo en las que busca oclusores (static var: afinable en caliente, ContrasteLuz3D y panel F3)
+static var SSAO_INTENSIDAD: float = 1.2  ## cuánto oscurece (por defecto 2,0: aquí más suave)
 const SSAO_PODER: float = 1.5            ## curva: más alto = el AO se concentra en las esquinas
 const SSAO_DETALLE: float = 0.5
 const SSAO_AFECTA_LUZ: float = 0.0       ## 0 = solo oscurece el AMBIENTE (no la luz directa del sol: la sombra del sol ya la pone la sombra)
@@ -101,13 +101,20 @@ static func _ssao(env: Environment) -> void:
 			print("Posproceso3D: SSAO no disponible con el renderer «%s» (solo Forward+): se omite." % RenderingServer.get_current_rendering_method())
 		return
 	env.ssao_enabled = true
-	env.ssao_radius = SSAO_RADIO
-	env.ssao_intensity = SSAO_INTENSIDAD
+	aplicar_ssao(env)
 	env.ssao_power = SSAO_PODER
 	env.ssao_detail = SSAO_DETALLE
 	env.ssao_light_affect = SSAO_AFECTA_LUZ
 	env.ssao_ao_channel_affect = 0.0
 	env.set("ssao_sharpness", 0.98)
+
+
+## Escribe radio e intensidad del SSAO en el Environment (solo si ya tiene el SSAO encendido). Pública para cambiarlos en caliente.
+static func aplicar_ssao(env: Environment) -> void:
+	if env == null or not env.ssao_enabled:
+		return
+	env.ssao_radius = SSAO_RADIO
+	env.ssao_intensity = SSAO_INTENSIDAD
 
 
 ## Crea la viñeta como hija de `padre` (CanvasLayer capa 0). Devuelve el nodo o null si está apagada (o `activo = false`).

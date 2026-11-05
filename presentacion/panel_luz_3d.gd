@@ -8,10 +8,12 @@ extends CanvasLayer
 ## a lo que había al montar el panel, P imprime `texto_valores()`. F3 abre y cierra, pero lo maneja la maqueta (`alternar`): aquí NO se consume.
 ## Cada fila lee y escribe en una clase según `CLASE_DE`: «ciclo» (CicloDia3D), «zona» (LuzZona3D), «sol» (la DirectionalLight3D de la maqueta) o «hierba» (Hierba3D.RECIBE_SOMBRA;
 ## al escribir llama a `poner_recibe_sombra` de la hierba de la maqueta, `_hierba`, para que se vea en caliente).
-## Contraste de sombra: HIERBA_SOMBRA sí · AMBIENTE_FACTOR 0,5 · SOL_FACTOR 1,3 · SOMBRA_BLUR 0,5
+## Contraste de sombra: CAPA1_CONTRASTE sí/no compara la luz nueva con la de antes (ContrasteLuz3D: HIERBA_SOMBRA sí · AMBIENTE_FACTOR 0,5 · SOL_FACTOR 1,3 · SOMBRA_BLUR 0,5 · SSAO 2,0 / 1,4).
+## Las filas sueltas (SOL_FACTOR, AMBIENTE_FACTOR, HIERBA_SOMBRA, SOMBRA_BLUR, SSAO_*) mandan por encima del preset y no cambian ContrasteLuz3D.ACTIVO. Clase «pos» = Posproceso3D.
 
 ## [nombre, paso, mínimo, máximo]. Las filas bool van de 0 a 1 (≥ 0,5 = sí).
 const FILAS: Array = [
+	["CAPA1_CONTRASTE", 1.0, 0.0, 1.0],
 	["HORA", 0.25, 0.0, 24.0],
 	["DURACION_DIA_S", 30.0, 0.0, 3600.0],
 	["CICLO_ACTIVO", 1.0, 0.0, 1.0],
@@ -23,6 +25,8 @@ const FILAS: Array = [
 	["SOL_FACTOR", 0.05, 0.2, 3.0],
 	["AMBIENTE_FACTOR", 0.05, 0.0, 2.0],
 	["HIERBA_SOMBRA", 1.0, 0.0, 1.0],
+	["SSAO_INTENSIDAD", 0.1, 0.0, 4.0],
+	["SSAO_RADIO", 0.1, 0.2, 4.0],
 	["ELEVACION_MIN", 0.05, 0.0, 1.0],
 	["GIRO_POR_HORA", 1.0, 0.0, 30.0],
 	["NOCHE_SOL_ENERGIA", 0.02, 0.0, 1.0],
@@ -36,6 +40,7 @@ const FILAS: Array = [
 	["LUNA_ACTIVA", 1.0, 0.0, 1.0],
 ]
 const CLASE_DE: Dictionary = {
+	"CAPA1_CONTRASTE": "contraste", "SSAO_INTENSIDAD": "pos", "SSAO_RADIO": "pos",
 	"HORA": "ciclo", "DURACION_DIA_S": "ciclo", "CICLO_ACTIVO": "ciclo", "SOMBRAS": "sol",
 	"SOMBRA_OPACIDAD": "zona", "SOMBRA_BLUR": "zona", "SOMBRA_DISTANCIA": "zona", "SOL_INCLINACION_EXTRA": "zona",
 	"SOL_FACTOR": "zona", "AMBIENTE_FACTOR": "zona", "HIERBA_SOMBRA": "hierba",
@@ -45,7 +50,8 @@ const CLASE_DE: Dictionary = {
 }
 const ESC_CICLO: GDScript = preload("res://presentacion/ciclo_dia_3d.gd")
 const ESC_ZONA: GDScript = preload("res://presentacion/luz_zona_3d.gd")
-const BOOLEANAS: PackedStringArray = ["CICLO_ACTIVO", "SOMBRAS", "LUNA_ACTIVA", "HIERBA_SOMBRA"]
+const ESC_POS: GDScript = preload("res://presentacion/posproceso_3d.gd")
+const BOOLEANAS: PackedStringArray = ["CAPA1_CONTRASTE", "CICLO_ACTIVO", "SOMBRAS", "LUNA_ACTIVA", "HIERBA_SOMBRA"]
 
 var seleccion: int = 0
 var _m: Node3D = null
@@ -140,6 +146,10 @@ func valor(nombre: String) -> float:
 			return float(ESC_ZONA.get(nombre))
 		"hierba":
 			return 1.0 if Hierba3D.RECIBE_SOMBRA else 0.0
+		"contraste":
+			return 1.0 if ContrasteLuz3D.ACTIVO else 0.0
+		"pos":
+			return float(ESC_POS.get(nombre))
 		"sol":
 			if _sol != null and is_instance_valid(_sol):
 				return 1.0 if _sol.shadow_enabled else 0.0
@@ -159,6 +169,10 @@ func poner(nombre: String, v: float) -> void:
 			ESC_ZONA.set(nombre, x)
 		"hierba":
 			_poner_hierba(x >= 0.5)
+		"contraste":
+			ContrasteLuz3D.poner(x >= 0.5, _m)
+		"pos":
+			_poner_pos(nombre, x)
 		"sol":
 			if _sol != null and is_instance_valid(_sol):
 				_sol.shadow_enabled = x >= 0.5
@@ -174,6 +188,14 @@ func _poner_hierba(v: bool) -> void:
 		(h as Hierba3D).poner_recibe_sombra(v)
 	else:
 		Hierba3D.RECIBE_SOMBRA = v
+
+
+## SSAO_*: escribe la variable de Posproceso3D y la reaplica al Environment de la maqueta.
+func _poner_pos(nombre: String, x: float) -> void:
+	ESC_POS.set(nombre, x)
+	var env: Variant = _m.get("_env") if _m != null else null
+	if env is Environment:
+		Posproceso3D.aplicar_ssao(env as Environment)
 
 
 ## Mueve la fila `i` `pasos` pasos (negativo = abajo). Las bool se invierten con cualquier paso.
@@ -197,6 +219,10 @@ func restaurar() -> void:
 				ESC_ZONA.set(n, x)
 			"hierba":
 				_poner_hierba(x >= 0.5)
+			"contraste":
+				ContrasteLuz3D.poner(x >= 0.5, _m)    # primero el preset; las filas sueltas de después lo pisan con sus valores del montaje
+			"pos":
+				_poner_pos(String(n), x)
 			"sol":
 				if _sol != null and is_instance_valid(_sol):
 					_sol.shadow_enabled = x >= 0.5
