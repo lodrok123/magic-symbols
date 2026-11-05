@@ -147,6 +147,11 @@ extends Node
 ##   puerta (con llave)  llave=<flag>  gasta=si|no (no)  abierto=<flag> (o flag=<flag>)          La puerta pide la llave DE VERDAD: con `llave` solo se abre si esa flag está puesta Y la jugadora está delante (la toca o
 ##              pulsa E a ≤ PuertaPuzle.ALCANCE_USAR); sin la flag, tocarla o pulsar E avisa «Hace falta una llave». `gasta=si` quita la flag al abrir (la llave se gasta); `abierto=<flag>`
 ##              recuerda que se abrió (con ella puesta nace abierta). Sin `llave`, la puerta es la de siempre (la abre una regla)
+##   trampa_dragon   mira=n|e|s|o (s)  ciclo=<encendida>,<apagada> (2.0,1.5)  desfase=<s> (0)  alcance=3..6 (5)  elemento=fuego|agua|hielo|rayo|tierra|viento (fuego)  agua=si|no (si)  cerca=<casillas> (0)   TrampaDragon3D (5/11, docs/TRAMPAS_PARED_2026-11-05.md):
+##              cabeza de dragón de cuello largo metida en el MURO de x,y (una `#`) que da a la casilla de `mira`; ESCUPE un chorro continuo (el haz real de la jugadora, relanzado cada 0,8 s) durante `encendida` s y
+##              descansa `apagada` s, avisando con brasas y humo 0,5 s antes. `desfase` = punto del ciclo en el que empieza (0 = en reposo). `agua=no`: el agua y el hielo no la apagan (8 s). `cerca=<n>`: dormida (ciclo parado) mientras la jugadora esté a más de n casillas de la casilla de delante. Hiere a la jugadora 10 por tick
+##   trampa_flechas  mira=n|e|s|o (s)  cada=<s> (1.2)  desfase=<s> (0)  alcance=<casillas> (8)  vel=<casillas/s> (3.5)  elemento=fuego|ninguno|agua|… (fuego)  agua=si|no (si)  cerca=<casillas> (0)   TrampaFlechas3D (5/11): mascarón de piedra en el muro
+##              que dispara cada `cada` s una FLECHA (fuego + ᛇ: hechizo real que vuela recto, prende lo inflamable y se para en muros y bloques; `elemento=ninguno`: flecha normal, 12 a la jugadora), con la ranura iluminada 0,35 s antes
 ##
 
 ## SEÑALES (`cuando=<id>.<señal>`; sin señal vale la primera de cada fila):
@@ -154,6 +159,7 @@ extends Node
 ##   molino     girando | parado            nexo       conduce | corta            barril  explota
 ##   puerta     abierta | cerrada           totem      activado                   tinaja  agua_llega
 ##   emisor     descarga
+##   trampa_dragon  escupe | calla | apagada          trampa_flechas  dispara | apagada
 ##   brasero    encendido | apagado          contador   todos | no_todos            cuerda  rota
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
@@ -205,6 +211,7 @@ extends Node
 ##   cerrojo             abrir (definitivo) | cerrar                              cofre   abrir (como si el jugador pulsara E) | aparecer (lo fuerza)
 ##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar     prisma  girar     pared_hueca  abrir
 ##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
+##   trampa_dragon, trampa_flechas   apagar(s) (s segundos; sin argumento, hasta `encender`) | encender         (condiciones: activa | apagada)
 ##   jarron, caja        romper (como un golpe)                salida   usar (la dispara, como si la jugadora la pisara)      columna  romper (la tumba)
 ##   zona       poner(<estado>[,<segundos>]) | quitar(<estado>)     (F4, 29/10: los estados DINÁMICOS del mundo de `estados_mundo.tsv`, p. ej. `hace=zona.poner(tormenta,60)` o `zona.poner(vendaval)`; sin segundos, los de la tabla
 ##              o hasta `zona.quitar`. «zona» es palabra reservada como «flag»; el veneno no se pone así: es de las nubes (`nube_veneno`))
@@ -254,7 +261,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
-	"guardian": "levanta", "puente": "tendido",
+	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
@@ -296,6 +303,8 @@ const SENALES: Dictionary = {
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 	"guardian": {"levanta": ["levanta", 1, null]},
 	"puente": {"tendido": ["completo", 0, null]},
+	"trampa_dragon": {"escupe": ["escupe", 0, null], "calla": ["calla", 0, null], "apagada": ["apagada", 0, null]},
+	"trampa_flechas": {"dispara": ["dispara", 0, null], "apagada": ["apagada", 0, null]},
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"nido": {"suelta": ["suelta", 0, null]},
@@ -334,6 +343,8 @@ const CONDICIONES: Dictionary = {
 	"roca_empujable": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
+	"trampa_dragon": {"activa": ["activa", true], "apagada": ["activa", false]},
+	"trampa_flechas": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
 	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
@@ -373,6 +384,8 @@ const ACCIONES: Dictionary = {
 	"columna": {"romper": 0},
 	"guardian": {"levantar": 0},
 	"puente": {"tender": 0},
+	"trampa_dragon": {"apagar": 1, "encender": 0},
+	"trampa_flechas": {"apagar": 1, "encender": 0},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -429,6 +442,8 @@ const CLAVES: Dictionary = {
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
 	"golem": {"quieto": "b"},
 	"chaman": {"quieto": "b"},
+	"trampa_dragon": {"mira": "s:n|e|s|o", "ciclo": "par", "desfase": "f", "alcance": "f", "elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
+	"trampa_flechas": {"mira": "s:n|e|s|o", "cada": "f", "desfase": "f", "alcance": "f", "vel": "f", "elemento": "s:fuego|ninguno|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -467,6 +482,8 @@ const TERMINO_TENER: String = "tener"
 const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua", "roca"]
 ## Piezas que ya pone la maqueta por letra: la casilla de la pieza tiene que llevar esa letra.
 const LETRA_MAQUETA: Dictionary = {"tinaja": "u", "totem": "i", "emisor": "e", "brasero": "T", "seto": "z"}
+## Trampas de pared (5/11): van en una casilla de MURO y miran a una casilla de suelo.
+const TRAMPAS_PARED: Array = ["trampa_dragon", "trampa_flechas"]
 ## Piezas que necesitan la simulación de agua (`agua_fisica = true` en la escena).
 const NECESITAN_AGUA: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino"]
 const NECESITAN_CAUCE: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino"]
@@ -1472,6 +1489,12 @@ static func _valor(tipo: String, t: String) -> Array:
 		if not _id_valido(t):
 			return [false, null, "tiene que ser el id de otra pieza (letras, cifras y «_»)"]
 		return [true, t, ""]
+	if tipo == "par":
+		# «2.0,1.5»: dos números separados por coma (el ciclo de la trampa dragón: encendida, apagada). Devuelve [float, float].
+		var dos: PackedStringArray = t.split(",")
+		if dos.size() != 2 or not dos[0].is_valid_float() or not dos[1].is_valid_float() or float(dos[0]) < 0.0 or float(dos[1]) < 0.0:
+			return [false, null, "tiene que ser «<s>,<s>» (dos números ≥ 0 separados por coma, p. ej. 2.0,1.5)"]
+		return [true, [float(dos[0]), float(dos[1])], ""]
 	if tipo.begins_with("s:"):
 		var vale: PackedStringArray = tipo.substr(2).split("|")
 		if not (t in vale):
@@ -1889,6 +1912,17 @@ func _casilla_valida(pz: Pieza, c: Vector2i) -> bool:
 		_avisar_pieza(pz, "la casilla %s está fuera del mapa" % c)
 		return false
 	var letra: String = Terreno3D.letra_de(c)
+	if pz.tipo in TRAMPAS_PARED:
+		# 5/11: la trampa de pared va METIDA en un muro (su x,y es una `#`) y da a la casilla de `mira`, que tiene que ser suelo.
+		if letra != "#":
+			_avisar_pieza(pz, "la casilla %s es «%s»: una trampa de pared va en una casilla de muro «#» (x y = el muro; `mira` = hacia dónde da)" % [c, letra])
+			return false
+		var d: Vector2i = TrampaPared3D.DIRS_CELDA.get(String(pz.p.get("mira", "s")), Vector2i(0, 1))
+		var delante: String = Terreno3D.letra_de(c + d) if Terreno3D.en_mapa(c + d) else "#"
+		if delante == "#" or delante == " ":
+			_avisar_pieza(pz, "la trampa de %s da a un muro (la casilla %s es «%s»): `mira` tiene que apuntar a suelo" % [c, c + d, delante])
+			return false
+		return true
 	if letra == "#" or letra == " ":
 		_avisar_pieza(pz, "la casilla %s es un muro" % c)
 		return false
@@ -2044,6 +2078,25 @@ func _crear(pz: Pieza) -> void:
 			en.preparar(pz.celda, pz.id, String(pz.p.get("mira", "")))
 			cont.add_child(en)
 			pz.nodo = en
+		"trampa_dragon":
+			var td := TrampaDragon3D.new()
+			td.name = pz.id
+			var ciclo_d: Array = pz.p.get("ciclo", [TrampaDragon3D.ENCENDIDA_DEFECTO, TrampaDragon3D.APAGADA_DEFECTO])
+			td.preparar(pz.celda, String(pz.p.get("mira", "s")), String(pz.p.get("elemento", "fuego")), clampi(int(pz.p.get("alcance", TrampaDragon3D.ALCANCE_DEFECTO)), TrampaDragon3D.ALCANCE_MIN, TrampaDragon3D.ALCANCE_MAX), mundo as Node)
+			td.preparar_ciclo(float(ciclo_d[0]), float(ciclo_d[1]), float(pz.p.get("desfase", 0.0)))
+			td.apaga_con_agua = bool(pz.p.get("agua", true))
+			td.cerca = float(pz.p.get("cerca", 0.0))
+			cont.add_child(td)
+			pz.nodo = td
+		"trampa_flechas":
+			var tf := TrampaFlechas3D.new()
+			tf.name = pz.id
+			tf.preparar(pz.celda, String(pz.p.get("mira", "s")), String(pz.p.get("elemento", "fuego")), clampi(int(pz.p.get("alcance", TrampaFlechas3D.ALCANCE_DEFECTO)), 1, 8), mundo as Node)
+			tf.preparar_ciclo(float(pz.p.get("cada", TrampaFlechas3D.CADA_DEFECTO)), float(pz.p.get("desfase", 0.0)), float(pz.p.get("vel", TrampaFlechas3D.VEL_DEFECTO)))
+			tf.apaga_con_agua = bool(pz.p.get("agua", true))
+			tf.cerca = float(pz.p.get("cerca", 0.0))
+			cont.add_child(tf)
+			pz.nodo = tf
 		"emisor":
 			var em := EmisorRayo3D.new()
 			em.name = pz.id
@@ -3138,7 +3191,10 @@ func _ejecutar(a: Dictionary) -> void:
 					nd.call("encender")
 		"apagar":
 			if nd != null:
-				nd.call("apagar_llama" if pz.tipo == "brasero" else "apagar")
+				if pz.tipo in TRAMPAS_PARED:
+					nd.call("apagar", float(args[0]) if args.size() > 0 else 0.0)        # `apagar(s)`: s segundos; sin argumento, hasta `encender`
+				else:
+					nd.call("apagar_llama" if pz.tipo == "brasero" else "apagar")
 		"quemar":
 			if nd != null:
 				nd.call("quemar")

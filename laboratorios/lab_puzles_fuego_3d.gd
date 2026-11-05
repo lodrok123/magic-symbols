@@ -51,6 +51,21 @@ const SALAS: Array = [
 		"texto": "F5 · DERRITE EL BLOQUE\nEl fuego derrite el hielo y el agua APAGA la antorcha de abajo.\nLa puerta abre con la antorcha encendida y el hielo derretido: el orden importa.\nBotón: derrite · placa: enciende la antorcha.",
 		"ids": {"detector": "f5_charco", "compuerta": "f5_hielo", "antorcha": "f5_antorcha", "contador": "f5_cont", "puerta": "f5_puerta"}},
 ]
+## TRAMPAS DE PARED (5/11/2026, docs/TRAMPAS_PARED_2026-11-05.md): tres salas más, aparte de las cinco de arriba para no tocar `_puzles` (que cuentan las pruebas). Teclas 6–8.
+##   F7 (3,1) DRAGONES CRONOMETRADOS: dos cabezas en el muro norte (26,8) y (30,8) que escupen por las columnas x=26 y x=30 por turnos (1,5 s de fuego + 2,0 s de descanso, la segunda desfasada 1,75 s); placa (31,12) al fondo.
+##   F8 (0,2) FLECHAS QUE SE ESQUIVAN O SE BLOQUEAN: un mascarón (8,20) dispara una flecha normal cada 1,5 s por la fila y=20; un bloque de piedra empujable (5,21) la tapa.
+##   F9 (1,2) LA FLECHA DE FUEGO QUE ENCIENDE: un mascarón (8,22) lanza una flecha de fuego cada 3 s por la fila y=22: prende dos setos y enciende el barril del fondo.
+const TRAMPAS: Array = [
+	{"nombre": "F7 dragones", "entrada": Vector2i(25, 12), "cartel": Vector2i(28, 10),
+		"texto": "F7 · DRAGONES CRONOMETRADOS\nUn chorro por columna (x=26 y x=30): 1,5 s de fuego, 2 s de descanso,\navisan con brasas y humo 0,5 s antes. Nunca arden los dos a la vez.\nLlega a la placa del fondo. Botón: los apaga 8 s · agua a la cabeza: la apaga 8 s.",
+		"ids": {"a": "t_drg_a", "b": "t_drg_b", "placa": "t_drg_placa", "boton": "t_drg_boton"}},
+	{"nombre": "F8 flechas", "entrada": Vector2i(4, 17), "cartel": Vector2i(4, 18),
+		"texto": "F8 · FLECHAS\nEl mascarón dispara una flecha cada 1,5 s por la fila de la placa.\nEsquívala o empuja el bloque al norte (5,20) para taparte.",
+		"ids": {"a": "t_fl_a", "bloque": "t_fl_bloque", "placa": "t_fl_placa"}},
+	{"nombre": "F9 flecha de fuego", "entrada": Vector2i(12, 17), "cartel": Vector2i(12, 19),
+		"texto": "F9 · LA FLECHA DE FUEGO ENCIENDE\nCada 3 s el mascarón lanza una flecha de fuego por la fila de abajo:\nprende los setos y enciende el barril. Agua a un seto = cortafuegos · botón: lo apaga.",
+		"ids": {"a": "t_fl_fuego", "s1": "t_fl_s1", "s2": "t_fl_s2", "barril": "t_fl_barril", "boton": "t_fl_boton"}},
+]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
 
@@ -58,6 +73,7 @@ var m: Variant = null                        ## la maqueta (PruebaTest2). Sin ti
 var _jug: Jugador3D = null
 var _puzle_nodo: Puzle3D = null              ## quien monta las piezas y las reglas desde el .txt
 var _puzles: Array = []                      ## [{nombre, entrada, detector, compuerta, puerta, …}] una por sala
+var _trampas: Array = []                     ## [{nombre, entrada, a, b, placa, …}] las tres salas de trampas de pared (TRAMPAS)
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: Array = []
@@ -118,6 +134,18 @@ func _montar_salas() -> void:
 			q[papel] = nd
 		_puzles.append(q)
 		_cartel(sala["cartel"] as Vector2i, String(sala["texto"]))
+	for s in TRAMPAS:
+		var sala_t: Dictionary = s
+		var qt: Dictionary = {"nombre": sala_t["nombre"], "entrada": sala_t["entrada"]}
+		var ids_t: Dictionary = sala_t["ids"]
+		for papel in ids_t:
+			var nd_t: Node = _puzle_nodo.nodo(String(ids_t[papel]))
+			if nd_t == null:
+				_avisos.append("%s: no hay pieza «%s» (papel «%s») en %s.txt" % [sala_t["nombre"], ids_t[papel], papel, NIVEL_MAPA])
+				push_warning("LabPuzlesFuego3D: " + String(_avisos.back()))
+			qt[papel] = nd_t
+		_trampas.append(qt)
+		_cartel(sala_t["cartel"] as Vector2i, String(sala_t["texto"]))
 
 
 ## Un cartel flotante en la casilla `c` con las instrucciones de la sala.
@@ -204,6 +232,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
+	var teclas_t: Dictionary = {KEY_6: 0, KEY_7: 1, KEY_8: 2}          # trampas de pared: F7, F8, F9
+	if teclas_t.has(k.keycode):
+		var nt: int = int(teclas_t[k.keycode])
+		if nt < _trampas.size():
+			colocar_jugador(_trampas[nt]["entrada"] as Vector2i)
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -223,6 +256,14 @@ func puzle(nombre: String) -> Dictionary:
 	return {}
 
 
+## Una sala de trampas de pared por su nombre corto («F7», «F8», «F9»); {} si no existe.
+func trampas(nombre: String) -> Dictionary:
+	for q in _trampas:
+		if String(q["nombre"]).split(" ")[0] == nombre:
+			return q
+	return {}
+
+
 func _montar_hud() -> void:
 	var capa := CanvasLayer.new()
 	capa.layer = 6
@@ -234,6 +275,15 @@ func _montar_hud() -> void:
 	_hud.add_theme_constant_override("outline_size", 6)
 	capa.add_child(_hud)
 	_refrescar_hud()
+
+
+## El estado de una trampa de pared para el HUD: «APAGADA», y por fase para el dragón («reposo», «AVISO», «ESCUPE») o «espera»/«AVISO» para las flechas.
+func _estado_trampa(tr: Variant) -> String:
+	if not bool((tr as Object).get("activa")):
+		return "APAGADA"
+	if tr is TrampaDragon3D:
+		return ["reposo", "AVISO", "ESCUPE", "apagada"][int((tr as TrampaDragon3D).fase)]
+	return "AVISO" if bool((tr as Object).get("en_aviso")) else "espera"
 
 
 func _llama(r: Variant) -> String:
@@ -275,6 +325,20 @@ func _refrescar_hud() -> void:
 		if p != null:
 			linea += "  puerta %s" % ("ABIERTA" if p.abierta else "cerrada")
 		t += linea + "\n"
+	t += "TRAMPAS DE PARED · 6–8 ir a la sala\n"
+	for q in _trampas:
+		var lt: String = "  %-18s" % String(q["nombre"])
+		for papel in ["a", "b"]:
+			var tr: Variant = q.get(papel)
+			if tr != null and is_instance_valid(tr):
+				lt += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
+		var pl: Variant = q.get("placa")
+		if pl != null and is_instance_valid(pl):
+			lt += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")
+		if q.has("barril") and q["barril"] != null and is_instance_valid(q["barril"]):
+			var bt: Barril3D = q["barril"]
+			lt += "  barril %s" % ("EXPLOTADO" if bt.explotado else ("encendido" if bt.encendido else "entero"))
+		t += lt + "\n"
 	for a in _avisos:
 		t += "  AVISO " + String(a) + "\n"
 	_hud.text = t
