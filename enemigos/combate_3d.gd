@@ -350,6 +350,7 @@ var elemental: bool = false             ## el elemental de bosque (comportamient
 var masa: float = 1.0                   ## kg relativos: el empuje se divide por ella; 1 = goblin guerrero
 var _k_golpe: float = 1.0               ## tarea P: fuerza visual del último empujón (v0 / V0_REF); lo leen el aplastamiento, el respingo y el polvo, y vuelve a 1 tras usarse
 var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
+var _niebla: NieblaCanouro3D = null   ## 5/11: niebla negra a ras de las patas del canouro (NieblaCanouro3D); null en el resto
 var _marcha: MarchaCuadrupedo3D = null  ## 4/11: la marcha del animal (loberno = lobo, canouro = hiena); null en el resto y con MarchaCuadrupedo3D.MARCHA_ANIMAL = false
 var _modo_marcha: String = ""           ## «» | «acecho» | «atras»: lo que pide la conducta del animal a la animación de andar
 var _ataque_visto: float = 0.0          ## `_ataque` del fotograma anterior (para saber cuándo acaba el ataque de un animal)
@@ -438,6 +439,8 @@ func _ready() -> void:
 		pj.ritmo = RITMO_GOBLIN
 	if MarchaCuadrupedo3D.MARCHA_ANIMAL and pj != null and MarchaCuadrupedo3D.tiene_perfil(pj.id):
 		_marcha = MarchaCuadrupedo3D.para(pj)
+	if pj != null and pj.id == "canouro":
+		_niebla = NieblaCanouro3D.poner(pj, altura)      # 5/11: niebla negra a ras de las patas (Pablo)
 	var forma := CapsuleShape3D.new()
 	forma.radius = 0.7 * altura / ELEM_ALTO_REF if elemental else 0.32
 	forma.height = maxf(altura, 0.7)
@@ -2727,6 +2730,8 @@ func _morir(ahogado: bool = false) -> void:
 	se_hundio = ahogado
 	if pj != null:
 		pj.apagar_sombra()      # V5: sin mancha en el suelo bajo un cuerpo caído o hundiéndose
+		if _niebla != null and is_instance_valid(_niebla):
+			_niebla.apagar()
 	collision_layer = 0
 	monitorable = false
 	remove_from_group("combate3d")
