@@ -20,9 +20,9 @@ extends Node
 const K_AGARRE_Y: String = "agarre_y"                    ## altura de la palma sobre el pie, en unidades de la pieza (sin su escala)
 const K_GIRO: String = "giro"                            ## grados sobre el eje vertical respecto a hacia donde mira el personaje (0 por defecto)
 const K_DIST_MIN_CUERPO: String = "dist_min_cuerpo"      ## u de juego: separación mínima lateral al eje del cuerpo (que no atraviese la túnica)
-const K_DESPLAZ_ADELANTE: String = "desplaz_adelante"    ## u de juego: desplazamiento extra hacia delante del agarre
+const K_DESPLAZ_ADELANTE: String = "desplaz_adelante"    ## u de juego: desplazamiento hacia delante del punto de agarre (de la muñeca al centro del puño)
 const K_LADO: String = "lado"                            ## signo en X del personaje del lado de la mano (-1 = derecha de un modelo que mira a +Z)
-const K_DESPLAZ_LATERAL: String = "desplaz_lateral"      ## u de juego: desplazamiento del pie desde la mano HACIA el cuerpo (5/11, bastón de Marimanta); dist_min_cuerpo sigue mandando
+const K_DESPLAZ_LATERAL: String = "desplaz_lateral"      ## u de juego: desplazamiento del punto de agarre HACIA el cuerpo (5/11, bastón de Marimanta); dist_min_cuerpo sigue mandando
 
 const K_GIRO_MUNDO: String = "giro_mundo"                ## true: `giro` es absoluto (grados sobre el eje vertical del MUNDO: 90 = el +X de la pieza mira al norte, −Z), no respecto al personaje
 const K_EJE_MALLA: String = "eje_malla"                  ## true: el palo no pasa por el origen del GLB; se mide su eje (centro XZ de los vértices de la mitad de abajo) y ESE eje es el que se pone bajo la mano
@@ -148,6 +148,10 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var giro_pers := Basis(Vector3.UP, yaw_modelo)
 	var mano: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(hueso) * agarre_local
 	var rel: Vector3 = giro_pers.inverse() * (mano - raiz)          # la palma en el espacio del personaje girado, en unidades de mundo
+	# 5/11: los desplazamientos mueven el PUNTO DE AGARRE (hacia el cuerpo y hacia delante), no solo el pie: si solo movieran el pie, la inclinación hacia la
+	# mano devolvía el palo al punto original a la altura de la mano (el bastón de Marimanta volvía a la muñeca, al canto del puño).
+	rel.x -= lado * desplaz_lateral
+	rel.z += desplaz_adelante
 	var altura: float = rel.y
 	if not _arrancado:
 		_pie_local = Vector3(lado * REPOSO_LATERAL, 0.0, REPOSO_ADELANTE)
@@ -157,10 +161,10 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var objetivo_pie: Vector3 = _pie_local
 	if agarrable and (d_hor <= cerca or not _arrancado):
 		suelta = false
-		var x: float = rel.x - lado * desplaz_lateral     # hacia el cuerpo (el lado de la mano es `lado`)
+		var x: float = rel.x
 		if dist_min_cuerpo > 0.0 and x * lado < dist_min_cuerpo:
 			x = lado * dist_min_cuerpo          # lejos del cuerpo: que el palo no atraviese la túnica
-		objetivo_pie = Vector3(x, 0.0, clampf(rel.z + desplaz_adelante, z_min, z_max))     # sin cruzarse por delante del pecho ni quedar a la espalda
+		objetivo_pie = Vector3(x, 0.0, clampf(rel.z, z_min, z_max))     # sin cruzarse por delante del pecho ni quedar a la espalda
 	else:
 		suelta = true
 	var k: float = 1.0 if (fijar or not _arrancado) else 1.0 - exp(-SUAVIZADO * delta)
