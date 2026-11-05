@@ -11,15 +11,15 @@ signal roto(causa: String)
 const VIDA: float = 25.0                        ## daño que absorbe
 const COLOR: Color = Color(0.35, 1.0, 0.45)
 const COLOR_ROTO: Color = Color(0.9, 0.5, 0.2)
-const T_ROTURA: float = 0.45
+const T_ROTURA: float = 0.45                    ## s mínimos que dura el escudo roto en pantalla (5/11: ahora espera a que su vfx acabe de deshojarse, con tope T_ROTURA_MAX)
+const T_ROTURA_MAX: float = 2.6
 
 var combate: Combate3D = null
 var vida: float = VIDA
 var vida_max: float = VIDA
 var estado: String = "activo"                   ## activo · roto · quemado
 var absorbidos: float = 0.0                     ## daño total absorbido (pruebas)
-var _malla: MeshInstance3D = null
-var _mat: StandardMaterial3D = null
+var barrera: NaturalezaBarreraToy = null        ## el aspecto (hierba, hojas, cúpula): ver NaturalezaBarreraToy
 var _t: float = 0.0
 var _t_rotura: float = 0.0
 
@@ -45,26 +45,11 @@ func activo() -> bool:
 
 
 func _construir() -> void:
-	var alto: float = maxf(combate.altura, 0.6)
-	_mat = StandardMaterial3D.new()
-	_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_mat.albedo_color = Color(COLOR.r, COLOR.g, COLOR.b, 0.22)
-	_mat.rim_enabled = true
-	_mat.rim = 1.0
-	var esf := SphereMesh.new()
-	esf.radius = alto * 0.62
-	esf.height = alto * 1.24
-	esf.radial_segments = 20
-	esf.rings = 10
-	_malla = MeshInstance3D.new()
-	_malla.mesh = esf
-	_malla.material_override = _mat
-	_malla.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_malla.position = Vector3(0, alto * 0.5, 0)
-	add_child(_malla)
+	# 5/11: ya no es una burbuja lisa: anillo de hierba a los pies, hojas que giran y una cúpula tenue (NaturalezaBarreraToy). La lógica (absorber, vida, roto) es la de siempre.
+	barrera = NaturalezaBarreraToy.new()
+	barrera.name = "Barrera"
+	add_child(barrera)
+	barrera.montar(combate.altura)
 
 
 ## Recibe `cantidad` de daño de `elemento`; devuelve el que NO absorbe (0 si se lo comió todo). El fuego lo quema entero.
@@ -79,6 +64,9 @@ func absorber(cantidad: float, elemento: String = "") -> float:
 	vida -= parte
 	absorbidos += parte
 	Combate3D.flotante(combate.mundo, combate.position + Vector3(0, combate.altura + 0.5, 0), "Escudo", COLOR, 0.8)
+	if barrera != null:
+		barrera.poner_vida(vida / vida_max)
+		barrera.golpe()
 	if vida <= 0.0:
 		_romper("golpes")
 	return cantidad - parte
@@ -88,6 +76,8 @@ func _romper(causa: String) -> void:
 	vida = 0.0
 	estado = "quemado" if causa == "fuego" else "roto"
 	_t_rotura = 0.0
+	if barrera != null:
+		barrera.romper(causa)
 	if combate != null and is_instance_valid(combate) and combate.escudo_natural == self:
 		combate.escudo_natural = null
 	roto.emit(causa)
@@ -96,16 +86,9 @@ func _romper(causa: String) -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	if estado == "activo":
-		if _mat != null:
-			_mat.albedo_color = Color(COLOR.r, COLOR.g, COLOR.b, 0.16 + 0.07 * sin(_t * 3.0) + 0.1 * (vida / vida_max))
 		if combate != null and is_instance_valid(combate):
 			position = Vector3.ZERO
 	else:
 		_t_rotura += delta
-		var k: float = clampf(_t_rotura / T_ROTURA, 0.0, 1.0)
-		if _mat != null:
-			_mat.albedo_color = Color(COLOR_ROTO.r, COLOR_ROTO.g, COLOR_ROTO.b, 0.5 * (1.0 - k))
-		if _malla != null:
-			_malla.scale = Vector3.ONE * (1.0 + 0.4 * k)
-		if k >= 1.0:
+		if barrera == null or (barrera.terminada() and _t_rotura >= T_ROTURA) or _t_rotura >= T_ROTURA_MAX:
 			queue_free()

@@ -204,6 +204,7 @@ func _montar_panel() -> void:
 func _process(delta: float) -> void:
 	_andar(delta)
 	_mover_bolas(delta)
+	_mover_naturaleza(delta)
 	_seguir_camara()
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
@@ -231,6 +232,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F7: fuego_param((_param_i + 1) % FIGURAS_PARAM.size())
 		KEY_F8: fuego_param(maxi(_param_i, 0))
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
+		KEY_F10: naturaleza_barrera()
+		KEY_F11: naturaleza_bola()
 		KEY_U: eje_param(0, 1)
 		KEY_J: eje_param(0, -1)
 		KEY_I: eje_param(1, 1)
@@ -897,3 +900,61 @@ func luces_y_particulas() -> Array:
 		elif n is GPUParticles3D and (n as GPUParticles3D).emitting:
 			part += (n as GPUParticles3D).amount
 	return [luces, part]
+
+
+# ---------------------------------------------------------------- naturaleza del chamán goblin (5/11/2026): F10 barrera · F11 bola ----------------------------------------------------------------
+## F10: la barrera de hierba y hojas a los pies de la cápsula. Cada pulsación hace lo siguiente: nacer → golpe → roto por golpes; otra vez nacer → golpe → quemado por fuego; y así alternando.
+## F11: la bola de naturaleza en arco desde la mano, con su estela y hojas; al llegar estalla en hojas. Sin lógica de juego: es solo el aspecto (NaturalezaBarreraToy / NaturalezaProyectilToy).
+var _nat_barrera: NaturalezaBarreraToy = null
+var _nat_paso: int = 0
+var _nat_quema: bool = false
+var _nat_bolas: Array = []                        ## [{vfx, t, o, d}]
+
+
+func naturaleza_barrera() -> NaturalezaBarreraToy:
+	if _nat_barrera == null or not is_instance_valid(_nat_barrera) or _nat_barrera.estado != "activo":
+		_nat_barrera = NaturalezaBarreraToy.new()
+		_nat_barrera.name = "NaturalezaBarrera"
+		_efectos.add_child(_nat_barrera)
+		_nat_barrera.global_position = _pj.global_position
+		_nat_barrera.montar(1.0)
+		_nat_paso = 0
+	elif _nat_paso == 0:
+		_nat_barrera.poner_vida(0.7)
+		_nat_barrera.golpe()
+		_nat_paso = 1
+	else:
+		_nat_barrera.romper("fuego" if _nat_quema else "golpes")
+		_nat_quema = not _nat_quema
+	return _nat_barrera
+
+
+func naturaleza_bola() -> NaturalezaProyectilToy:
+	var v := NaturalezaProyectilToy.new()
+	v.name = "NaturalezaBola"
+	_efectos.add_child(v)
+	var o: Vector3 = _mano()
+	v.global_position = o
+	v.montar(Color(0.55, 0.92, 0.3), o.y - ALTURA_MANO)
+	_nat_bolas.append({"vfx": v, "t": 0.0, "o": o, "d": o + _dir * 6.0 + Vector3(0, -ALTURA_MANO, 0)})
+	return v
+
+
+func _mover_naturaleza(delta: float) -> void:
+	for b in _nat_bolas.duplicate():
+		var v: NaturalezaProyectilToy = b["vfx"]
+		if v == null or not is_instance_valid(v):
+			_nat_bolas.erase(b)
+			continue
+		b["t"] = float(b["t"]) + delta
+		var k: float = clampf(float(b["t"]) / 1.4, 0.0, 1.0)
+		if v.en_vuelo:
+			var p: Vector3 = (b["o"] as Vector3).lerp(b["d"], k)
+			p.y += 4.0 * 1.2 * k * (1.0 - k)
+			v.global_position = p
+			if k >= 1.0:
+				v.estallar(p)
+		elif float(b["t"]) > 4.0:
+			v.queue_free()
+			_nat_bolas.erase(b)
+
