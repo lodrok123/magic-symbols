@@ -216,3 +216,6 @@ Revisados uno a uno en su página (licencia, versión, tipo, coste). **Pipeline 
 - (a) Pipeline añade las dos reglas al autómata de la maqueta, con los números que da este plan;
 - (b) el Juego saca el autómata a `mundo/` (como se hizo con `EstadosSuelo3D` en B1/B2) y la maqueta solo lo dibuja. Es más trabajo, pero deja las reglas donde las demás.
 Recomendación: **(a) ahora** para poder probarlo, y (b) cuando se toque la hierba otra vez.
+
+### Nota 5/11 · Rayo ya en el juego (rama claude/vfx-rayo-ref)
+El rayo procedural (RayoToy) está encendido de serie (`vfx_procedural_elementos="fuego,agua,rayo"`) y se llevó a la referencia en vídeo de Pablo (solo referencia visual; todo procedural): bola con estrella y estela recta, impacto con ramas verticales y marca de grietas, pilar sobre sello circular con raíces, haz tubular con hélices, muro de arcos sobre línea de suelo, área con sello y descargas, y el ESTADO electrificado (`EstadoRayoToy`: en entidad y en el agua del suelo, reloj oficial 2 s). Ver DIARIO 365 y `docs/capturas/vfx_en_juego/rayo_ref/`. Pendiente: contraste sobre hierba clara y estado en entidad más legible.

@@ -153,7 +153,7 @@ func _medir(t: Node) -> Dictionary:
 func _con_selector_apagado() -> void:
 	print("== selector apagado: nada cambia")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
-	_ok("0 project.godot: ajuste general = true y elementos = «fuego,agua» (de serie; hielo y rayo, no)", bool(_defecto_proyecto[2]) and bool(_defecto_proyecto[3]) and bool(_defecto_proyecto[0]) and String(_defecto_proyecto[1]) == "fuego,agua", str(_defecto_proyecto))
+	_ok("0 project.godot: ajuste general = true y elementos = «fuego,agua,rayo» (de serie; el hielo, no)", bool(_defecto_proyecto[2]) and bool(_defecto_proyecto[3]) and bool(_defecto_proyecto[0]) and String(_defecto_proyecto[1]) == "fuego,agua,rayo", str(_defecto_proyecto))
 	_ok("0 con el ajuste a false `usa_toy` es false para los cuatro", not VfxToyJuego.activo() and not VfxToyJuego.usa_toy("fuego") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and not VfxToyJuego.usa_toy("rayo"))
 	for el in ELEMENTOS:
 		_montar()
@@ -430,7 +430,7 @@ func _de_serie() -> void:
 	print("== de serie (ajuste = true, elementos = «fuego,agua»): fuego y agua con el toy; hielo y rayo como antes")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, String(_defecto_proyecto[1]))
-	_ok("5 usa_toy: fuego y agua sí, hielo y rayo no, tierra y viento no", VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and not VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("tierra") and not VfxToyJuego.usa_toy("viento"))
+	_ok("5 usa_toy: fuego, agua y rayo sí, hielo no, tierra y viento no", VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("tierra") and not VfxToyJuego.usa_toy("viento"))
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, " Fuego , rayo,,nada")
 	_ok("5 la lista tolera mayúsculas, espacios y vacíos (%s)" % str(VfxToyJuego.elementos_activos()), VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("nada"))
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, "fuego,agua")
