@@ -619,8 +619,8 @@ func _orbe_busca() -> void:
 	var objetivo: Node3D = null
 	var mejor: float = INF
 	for e in lanz.get_tree().get_nodes_in_group("combate3d"):
-		if fuera_de_juego(e) or _objetivos_orbe.has((e as Object).get_instance_id()):
-			continue
+		if fuera_de_juego(e) or _objetivos_orbe.has((e as Object).get_instance_id()) or (e.has_method("apuntable") and not e.apuntable()):
+			continue                                    # (6/11: el canouro con niebla no se deja fijar)
 		var dist: float = ((e as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - centro).length()
 		if dist <= BUSCA_ALCANCE_CAS * Terreno3D.casilla and dist < mejor:
 			mejor = dist
@@ -1900,6 +1900,8 @@ func _buscar(dt: float) -> void:
 	for e in lanz.get_tree().get_nodes_in_group("combate3d"):
 		if not is_instance_valid(e) or e.get("muerto") == true or golpeados.has((e as Object).get_instance_id()):
 			continue
+		if e.has_method("apuntable") and not e.apuntable():
+			continue                                    # 6/11: el canouro con niebla no se deja fijar
 		var a: Vector3 = (e as Node3D).global_position + Vector3(0.0, CENTRO_ENEMIGO_U, 0.0) - p
 		var dist: float = a.length()
 		if dist < 0.01 or dist > BUSCA_ALCANCE_CAS * Terreno3D.casilla or dir.dot(a / dist) < cos_cono:

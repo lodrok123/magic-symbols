@@ -122,13 +122,21 @@ void fragment() {
 var pj: Node3D = null
 var alto: float = 0.55
 var capas: Array[MeshInstance3D] = []
-var emisores: Array[GPUParticles3D] = []     ## humo del cuerpo (top_level, uno por hueso de HUMO_HUESOS que exista)
+var emisores: Array[GPUParticles3D] = []     ## humo del cuerpo (uno por hueso de HUMO_HUESOS que exista, colgado de un BoneAttachment3D)
 var ojos: Array[MeshInstance3D] = []         ## los dos ojos (hijos de un BoneAttachment3D del esqueleto)
 var cuerpo: Array[MeshInstance3D] = []       ## mallas del animal pintadas de negro
 var _sk: Skeleton3D = null
 var _huesos: Array[int] = []
 var _atadura: BoneAttachment3D = null        ## la de los ojos
 var _ataduras: Array[BoneAttachment3D] = []  ## una por emisor de humo
+var _mat_negro: StandardMaterial3D = null
+var _override_antes: Array[Material] = []    ## el override que tenía cada malla de `cuerpo` antes de pintarla (se devuelve al disiparse)
+## 6/11 (Pablo, canouro v2): cuánta niebla hay ahora (1 = entera, 0 = disipada). `disipar` la apaga con un fundido y `rebrotar` la devuelve:
+## las láminas bajan su opacidad con ella, el humo de los huesos sale en proporción (`amount_ratio`) y por debajo de la mitad el cuerpo deja de
+## ir pintado de negro (se ve el animal: está expuesto, y vuelve a verse el destello de los golpes). Los ojos no cambian.
+var densidad: float = 1.0
+var _densidad_meta: float = 1.0
+var _t_fundido: float = 0.5   ## s que tarda en ir de 0 a 1 (o al revés) la última orden
 
 
 ## Crea la niebla y la cuelga del Pj3D seguido. Devuelve null si ACTIVA es false.
@@ -205,10 +213,12 @@ func _montar_cuerpo() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = CUERPO_COLOR
+	_mat_negro = mat
 	for n in modelo.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		if mi.name == "sombra_contacto" or mi.get_parent() is BoneAttachment3D:
 			continue
+		_override_antes.append(mi.material_override)
 		mi.material_override = mat
 		cuerpo.append(mi)
 
@@ -385,8 +395,38 @@ func _exit_tree() -> void:
 		_atadura.queue_free()
 
 
+## 6/11: la niebla se disipa (el fuego se la lleva) con un fundido de `t` s. Sigue en el árbol, solo invisible.
+func disipar(t: float = 0.6) -> void:
+	_densidad_meta = 0.0
+	_t_fundido = maxf(t, 0.01)
+
+
+## 6/11: la niebla vuelve a crecer hasta su densidad entera en `t` s.
+func rebrotar(t: float = 1.5) -> void:
+	_densidad_meta = 1.0
+	_t_fundido = maxf(t, 0.01)
+
+
+func _aplicar_densidad() -> void:
+	for k in range(capas.size()):
+		var mat: ShaderMaterial = capas[k].mesh.material as ShaderMaterial
+		if mat != null:
+			mat.set_shader_parameter("alfa", OPACIDAD * pow(OPACIDAD_POR_CAPA, float(k)) * densidad)
+		capas[k].visible = densidad > 0.002
+	for e in emisores:
+		if is_instance_valid(e):
+			e.amount_ratio = densidad
+	var negro: bool = densidad >= 0.5
+	for k in range(cuerpo.size()):
+		if is_instance_valid(cuerpo[k]):
+			cuerpo[k].material_override = _mat_negro if negro else _override_antes[k]
+
+
 func _process(delta: float) -> void:
 	if pj == null or not is_instance_valid(pj):
 		return
 	global_position = global_position.lerp(pj.global_position, clampf(SUAVIZADO * delta, 0.0, 1.0))
 	global_rotation = Vector3.ZERO
+	if not is_equal_approx(densidad, _densidad_meta):
+		densidad = move_toward(densidad, _densidad_meta, delta / _t_fundido)
+		_aplicar_densidad()

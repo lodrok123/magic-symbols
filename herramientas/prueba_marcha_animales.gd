@@ -436,7 +436,9 @@ func _caso_lobo() -> void:
 func _caso_hiena() -> void:
 	# D4 · hiena: zigzag, parada, retroceso (de espaldas), arrancada, ataque y retirada
 	_jugadora_lista(Vector2i(10, FILA))
+	CanouroV2.CANOURO_V2 = false              # 6/11: esta es la conducta GENÉRICA de la hiena (MarchaCuadrupedo3D); el canouro v2 tiene la suya (prueba_canouro_v2.gd)
 	var g: Combate3D = _enemigo("canouro", Vector2i(13, FILA))
+	CanouroV2.CANOURO_V2 = true
 	var m: MarchaCuadrupedo3D = g._marcha
 	var estados: Array = []
 	var signos: Array = []

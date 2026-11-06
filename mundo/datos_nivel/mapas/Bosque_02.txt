@@ -73,6 +73,9 @@
 ; marcador loberno - 17 19 nombre=loberno_01
 ; marcador loberno - 26 20 nombre=loberno_02
 ; marcador asesino - 20 8 nombre=asesino_02
+; 6/11 (canouro v2): dos canouros en el bosque denso (zona bosque_denso, 16,22..35,35), a pie desde el tronco-puente por el camino de tierra; lejos de la balanza de rocas (19..22, 30..34), las setas, los jarrones y los goblins.
+; marcador canouro - 26 29 nombre=canouro_01
+; marcador canouro - 25 34 nombre=canouro_02
 ; decorado cartel 9 33
 ; decorado cartel 20 28
 ; decorado cartel 23 15

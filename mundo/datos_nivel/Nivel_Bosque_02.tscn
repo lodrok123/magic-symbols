@@ -7099,6 +7099,16 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.035, 47.15)
 script = ExtResource("33_holg5")
 grupo = "loberno"
 
+[node name="canouro_01" type="Node3D" parent="Marcadores" unique_id=1873640521 groups=["canouro", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.95, 1.035, 67.85)
+script = ExtResource("33_holg5")
+grupo = "canouro"
+
+[node name="canouro_02" type="Node3D" parent="Marcadores" unique_id=1873640522 groups=["canouro", "marcador"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 58.65, 1.035, 79.35)
+script = ExtResource("33_holg5")
+grupo = "canouro"
+
 [node name="asesino_02" type="Node3D" parent="Marcadores" unique_id=171762727 groups=["asesino", "marcador"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.15, 1.035, 19.55)
 script = ExtResource("33_holg5")
