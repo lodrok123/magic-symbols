@@ -292,6 +292,30 @@ un sólido más alto de lo que se sube (`Jugador3D.MAX_NIVELES_SUBIBLES`) se lan
 | casillas de ancho de ᛜ + ᛁ | 1 | 1 | 3 | 3 | 3 | 3 | 1 hasta 9 ᛁ |
 
 ᛜ + 3 ᛁ ya es un muro de 3 casillas (`GLIFOS_ANCHO_MURO_3_V2` = 3); con ᛜ + 5 ᛁ, 3,2 casillas de ancho con los 6 glifos de una página. El muro nace delante (`DISTANCIA_MURO`) y su casilla de lado no toca la de la jugadora. Prueba: `prueba_reglas_glifos` (secciones A y B).
+
+## 3e. «Al impactar» (C3) y hechizo × hechizo (B5) (6/11/2026)
+
+**C3 · glifo «al impactar» (trigger, Noita).** Es ⧖ `retardo` (en el juego «carga») cuando está **entre dos formas** del dibujo; no hay glifo nuevo. Nota sobre el encargo: `retardo` NO estaba aparcado (desde el 30/10 es la «carga», con su tinta, su tamaño ×1,2 y su potencia ×1,25), así que no se ha sacado de ninguna lista de aparcados. Se rescata por el ORDEN, igual que C2: con una forma de `Hechizo.DISPARADOR["antes"]` (ᛇ) dibujada antes y una de `["despues"]` (ᛇ ᛜ ᛁ) dibujada después, ⧖ deja de ser carga y parte la página en **padre** (lo de antes) e **hijo** (lo de después). Sin orden de dibujo, o con ⧖ al principio o al final, sigue siendo carga (nada de lo que había cambia).
+- El hijo es la SIGUIENTE forma de la página, construida desde sus glifos con el elemento del padre (no una copia del padre con cambios): ᛇ ⧖ ᛜ = una flecha que, al pararse, levanta una barrera del mismo elemento donde se para. Lleva todo lo que se dibuja después (ᛇ ⧖ ᛜ ᛏ = barrera alta).
+- Nace en los finales `al_impactar` (golpe) y `al_detenerse` (muro, suelo, alcance, frenado). Un hechizo dispara solo UNO por tramo, así que sale un hijo; con ᛃ retorno no nace al recoger el proyectil (`salvo: ["retorno"]`). Si el proyectil se gasta en un cruce de B5 (vapor, descarga) tampoco: no impactó.
+- Tinta: el padre cobra sus glifos (la flecha, sin la barrera ni la carga) y el recargo `Dano.K_HIJO` UNA vez (la acción del segundo final va marcada `mismo_hijo` y `hijos_previstos` la salta). Los glifos del hijo no se cobran aparte (lo pide así el encargo; si Pablo quiere que cuesten, es sumar su tinta base al recargo).
+- El hijo hereda la potencia (sobrecarga C1) y la proporción del pigmento de daño del padre. Profundidad máxima `MAX_PROFUNDIDAD` = 2: ᛇ ⧖ ᛇ ⧖ ᛜ funciona (padre → hijo → nieto).
+- Pendiente: la previsión del indicador no dibuja el hijo (los eventos no se prevén, como el resto de hijos), y el libro no distingue visualmente el ⧖ disparador del ⧖ carga. Pablo debe decidir si quiere un glifo propio (subiría la tabla de 14 a 15 glifos y rehace el golden).
+
+**B5 · hechizo × hechizo (Spellbreak).** Un proyectil vivo que ENTRA en una casilla ocupada por una **zona viva de otro hechizo** se transforma según `HechizoVivo.CRUCES[elemento del proyectil][elemento de la zona]`:
+
+| proyectil × zona | acción | resultado |
+|---|---|---|
+| fuego × agua | `apagar` | el proyectil se apaga (causa `cruce`, no aplica su materia) y deja `vapor` en la casilla; avisa `apagado_agua` |
+| viento × fuego | `encender` | el proyectil pasa a ser de fuego (se reconstruye con la runa de fuego y los mismos glifos: hereda la quema) y sigue volando; avisa `llamarada` |
+| rayo × agua | `descargar` | `_descarga` sobre toda la zona de agua (y el agua conectada): daño del hechizo a quien esté dentro, la zona queda `electrificada`; el proyectil se gasta; avisa `electrocutado` |
+
+- «Zona viva» = las `ZonaV2` de `Lanzador3D._zonas_v2` (la llama del fuego, el campo del viento) y los charcos de `Lanzador3D.zonas_cruce` (una `ZonaV2` sin pulso que deja el agua que se lanza, `ZONA_AGUA_S` = 6 s). NO es el agua del mapa ni el suelo mojado: si lo fuera, la flecha de fuego que cruza un río de un puzle se apagaría.
+- Solo se mira al ENTRAR en una casilla nueva; un cruce por casilla. Añadir un cruce es una fila de la tabla (y un caso en `_cruce` si la acción es nueva). Sin reacciones nuevas en el catálogo: se reutilizan `apagado_agua`, `llamarada` y `electrocutado`, que ya tienen efecto y sonido.
+- Previsión: `HechizoVivo.prever` devuelve `cruces` y `PrevisionHechizo` los añade como entradas de suelo («Vapor», «¡Llamarada!», «Descarga» en `PrevisionReaccion3D.ESTILO`). No cubre lo que el cruce provoca después (el enemigo que quemaría el viento ya transformado se sigue previendo como viento).
+- Pendiente de VFX: el proyectil transformado conserva el dibujo del elemento original (solo cambia la lógica); el VFX de «fuego encendido» está por hacer.
+- Prueba: `herramientas/prueba_bloque_b5_c3.gd`.
+
 ## 4. Ajustes para implementar
 
 ### Juego · E1: unidad y nombres

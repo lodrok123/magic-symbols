@@ -105,6 +105,9 @@ func _limpiar() -> void:
 	for z in lanzador._zonas_v2.duplicate():          # las zonas de fuego, gas… de un caso siguen un rato: no deben herir al goblin del siguiente
 		if is_instance_valid(z):
 			(z as Node).queue_free()
+	for zc in lanzador.zonas_cruce.duplicate():       # B5: el charco que deja el agua de un caso apagaría (vapor) el fuego del siguiente al cruzarlo
+		if is_instance_valid(zc):
+			(zc as Node).queue_free()
 	for sd in lanzador._solideces_v2.duplicate():
 		if is_instance_valid(sd):
 			(sd as Node).queue_free()

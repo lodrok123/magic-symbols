@@ -170,8 +170,8 @@ static func hijos_previstos(h: Hechizo) -> int:
 	var n: int = 0
 	for ev in h.eventos:
 		for a in (h.eventos[ev] as Array):
-			if a is Dictionary and String((a as Dictionary).get("accion", "")) == "crear_hijo":
-				n += maxi(int((a as Dictionary).get("cuantos", 1)), 1)
+			if a is Dictionary and String((a as Dictionary).get("accion", "")) == "crear_hijo" and not bool((a as Dictionary).get("mismo_hijo", false)):       # C3: el hijo de «al impactar» está en dos finales pero sale uno solo
+				n +=maxi(int((a as Dictionary).get("cuantos", 1)), 1)
 	return n
 
 

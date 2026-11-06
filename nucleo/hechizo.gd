@@ -27,6 +27,19 @@ const ORDEN_PARES: Array = [
 	{"antes": "barrera", "despues": "pulso", "campo": "late"},
 ]
 
+## C3 (6/11/2026): el glifo «AL IMPACTAR» (Noita: trigger). No es un glifo nuevo: es ⧖ `retardo` (en el juego «carga») cuando está ENTRE DOS FORMAS del dibujo. Fallo que evita: la tabla de glifos
+## pasaría de 14 a 15 (la lista de glifos, el golden de combinaciones y el reconocedor lo cuentan) por algo que se resuelve con el orden, igual que C2. Con una forma de `antes` ANTES de él y una de `despues`
+## DESPUÉS, el glifo deja de ser carga: lo dibujado después es el HIJO (la siguiente forma de la página), que nace donde el proyectil se para. Sin orden, o con ⧖ al principio o al final, sigue siendo carga.
+##   antes     formas que tiene que haber ANTES (el que lleva el hijo es un proyectil: ᛇ)        despues   formas que tiene que haber DESPUÉS para que haya hijo
+##   eventos   los finales en los que nace (un hechizo dispara uno solo por tramo, así que sale un hijo)       salvo   causas de fin sin hijo (retorno: el proyectil vuelve a la mano)
+const DISPARADOR: Dictionary = {
+	"glifo": "retardo",
+	"antes": ["flecha"],
+	"despues": ["flecha", "barrera", "linea_x", "linea_z"],
+	"eventos": ["al_impactar", "al_detenerse"],
+	"salvo": ["retorno"],
+}
+
 ## Los campos, por grupos, en el orden en que los enseñará el laboratorio (HC5). [nombre, grupo].
 ## Los campos nuevos de la ESPEC (19/10) se han metido en los grupos de siempre para no tocar el orden del lab: tiempo → movimiento, física → materia.
 const CAMPOS: Array = [
@@ -236,7 +249,8 @@ var orden_glifos: Array[String] = []
 var rafaga: bool = false
 var intervalo_copias: float = 0.0      ## s entre copia y copia de una ráfaga (0 = salen a la vez)
 var late: bool = false
-var profundidad: int = 0               ## 0 = el hechizo lanzado; un hijo creado por `crear_hijo` vale la del padre + 1 (tope MAX_PROFUNDIDAD)
+var hijo_siguiente: Dictionary = {}    ## C3: {glifos, orden} de la forma que nace al impactar (vacío = sin hijo de página). Lo lee la previsión de la UI; el que lo crea es la acción `crear_hijo` con `glifos_hijo`
+var profundidad: int = 0              ## 0 = el hechizo lanzado; un hijo creado por `crear_hijo` vale la del padre + 1 (tope MAX_PROFUNDIDAD)
 
 # --- Derivados (se calculan al final de `construir`) ---
 var _glifos_x: float = 0.0             ## lo que dieron los glifos antes de los mínimos (el coste cuenta ESTO: la barrera no encarece)
@@ -357,6 +371,10 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 	if elemento_rune != null and elemento_rune.cinematico and not permitir_cinematico:
 		push_warning("Hechizo.construir: «%s» es una runa cinemática (no la lanza el jugador); pide permitir_cinematico = true si es un evento de guion." % elemento_rune.display_name)
 		return null
+	var corte: Dictionary = _corte_disparador(contadores, orden)      # C3: «al impactar» parte la página en padre e hijo (vacío = sin disparador: la receta entera, como siempre)
+	if not corte.is_empty():
+		contadores = corte["padre"] as Dictionary
+		orden = corte["orden_padre"] as Array
 	var h := Hechizo.new()
 	CapaBases.aplicar_defectos(h)          # 1. los defectos: los del `var`, salvo lo que el laboratorio haya tocado en «Bases» (vacía en el juego normal)
 	h.calidad = calidad_trazo
@@ -387,6 +405,8 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 			mod["de"] = "glifo:%s" % nombre
 			lista.append(mod)
 	h._aplicar(lista, "glifo", true)
+	if not corte.is_empty():
+		h._poner_disparador(corte)          # antes de derivar: el hijo entra en el coste (`Dano.K_HIJO`) y en los eventos
 	# 29/10 (DANO_Y_TINTA): el daño base sale de la potencia (nº de glifos) y del elemento. 6/11 (bloque A1): también hielo y rayo (`Dano.MULT_ELEMENTO` los lleva); el `damage` del .tres (20 / 55) ya no cuenta.
 	if Dano.tiene_tabla(h.elemento):
 		h.dano = Dano.base_elemental(h._contar_glifos_dano(), h.elemento)
@@ -402,6 +422,64 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 	h._derivar()
 	h._aplicar_orden(orden)          # C2: después de derivar (necesita saber si es un proyectil); sin orden no hace nada
 	return h
+
+
+## C3: parte la página en PADRE (lo de antes del disparador) e HIJO (lo de después), si el orden de dibujo cumple `DISPARADOR`: un ⧖ con una forma de `antes` antes y una de `despues` después. Se mira
+## cada ⧖ por orden y vale el primero que cumple (los demás ⧖ del padre siguen siendo carga; los del hijo, lo que sean allí). Devuelve {padre: contadores, hijo: contadores, orden_padre, orden_hijo}, o {}.
+## El disparador se quita de los contadores del padre (no es también carga: la flecha no espera ni engorda). Los nombres con alias se resuelven (ᛏ «levitacion» = altura).
+static func _corte_disparador(contadores: Dictionary, orden: Array) -> Dictionary:
+	var gatillo: String = String(DISPARADOR["glifo"])
+	var v2: Array = []
+	for g in orden:
+		var n: String = Sigils.glifo_v2(String(g))
+		if Sigils.GLIFOS.has(n):
+			v2.append(n)
+	for i in range(v2.size()):
+		if String(v2[i]) != gatillo:
+			continue
+		var hijo_orden: Array = v2.slice(i + 1)
+		var hay_antes: bool = false
+		for k in range(i):
+			hay_antes = hay_antes or (DISPARADOR["antes"] as Array).has(v2[k])
+		var hay_despues: bool = false
+		for g in hijo_orden:
+			hay_despues = hay_despues or (DISPARADOR["despues"] as Array).has(g)
+		if not (hay_antes and hay_despues):
+			continue
+		var hijo: Dictionary = {}
+		for g in hijo_orden:
+			hijo[g] = int(hijo.get(g, 0)) + 1
+		var padre: Dictionary = {}
+		for nombre in contadores:
+			var n2: String = Sigils.glifo_v2(String(nombre))
+			padre[n2] = int(padre.get(n2, 0)) + maxi(int(contadores[nombre]), 0)
+		for g in hijo:
+			padre[g] = int(padre.get(g, 0)) - int(hijo[g])
+		padre[gatillo] = int(padre.get(gatillo, 0)) - 1
+		for g in padre.keys():
+			if int(padre[g]) <= 0:
+				padre.erase(g)
+		return {"padre": padre, "hijo": hijo, "orden_padre": v2.slice(0, i), "orden_hijo": hijo_orden}
+	return {}
+
+
+## C3: pone en los finales de `DISPARADOR["eventos"]` la acción `crear_hijo` con la página del hijo (`glifos_hijo` + `orden_hijo`). Va con el paso y el orden de tabla del glifo que la pone, como cualquier
+## acción de glifo. Solo UNA cuenta para la tinta (`Dano.hijos_previstos` salta las marcadas `mismo_hijo`): el hechizo dispara un solo final, así que sale un solo hijo.
+func _poner_disparador(corte: Dictionary) -> void:
+	hijo_siguiente = {"glifos": (corte["hijo"] as Dictionary).duplicate(), "orden": (corte["orden_hijo"] as Array).duplicate()}
+	var gatillo: String = String(DISPARADOR["glifo"])
+	var primero: bool = true
+	for ev in DISPARADOR["eventos"]:
+		var acciones: Array = eventos.get(String(ev), []) as Array
+		var a: Dictionary = {"accion": "crear_hijo", "cuantos": 1, "glifos_hijo": (corte["hijo"] as Dictionary).duplicate(), "orden_hijo": (corte["orden_hijo"] as Array).duplicate(),
+			"salvo": (DISPARADOR["salvo"] as Array).duplicate(), "paso": int(Sigils.GLIFOS.get(gatillo, {}).get("paso", Sigils.PASO_DEFECTO)), "orden": _orden_de_glifo(gatillo)}
+		if not primero:
+			a["mismo_hijo"] = true
+		primero = false
+		acciones.append(a)
+		eventos[String(ev)] = acciones
+	origen["eventos"] = "glifo:%s" % gatillo
+	_tocados["eventos"] = true
 
 
 ## C2 (6/11/2026): aplica `ORDEN_PARES` al orden de dibujo. Guarda el orden (solo glifos conocidos, con alias resueltos) y enciende `rafaga` / `late` si el glifo `antes` aparece antes que el `despues`

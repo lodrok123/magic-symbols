@@ -57,6 +57,7 @@ const ESTILO: Dictionary = {
 	"escombro": ["Escombro", Color(0.78, 0.53, 0.35)],         # B3: la tierra deja escombro (ralentiza, sólido para proyectiles)
 	"vapor": ["Vapor", Color(0.92, 0.92, 0.95)],               # B3: el agua sobre lo quemado (o el calor sobre lo mojado) suelta una nube
 	"electrifica": ["Electrifica", Color(1.0, 0.92, 0.3)],     # B3: el rayo sobre una casilla mojada
+	"descarga": ["Descarga", Color(1.0, 0.92, 0.3)],           # B5: el rayo que cruza el charco de un hechizo de agua descarga sobre toda la zona (el mismo amarillo eléctrico que «Electrocuta»)
 }
 const COLOR_DEBIL: Color = Color(1.0, 0.35, 0.25)       ## «×1,5» (débil, 29/10)
 const ALTO_ROTULO: float = 0.5                           ## por encima de los pies + altura: justo sobre la barra de vida (Combate3D: altura + 0,28); más alto, en la vista isométrica cae sobre el enemigo de detrás

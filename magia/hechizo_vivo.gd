@@ -49,6 +49,20 @@ const MATERIA_V2: Dictionary = {
 ## estado -> método que corre en cada pulso de su zona (los estados instantáneos no tienen)
 const PULSO_V2: Dictionary = {"plasma": "pulso_plasma", "gas": "pulso_gas", "campo": "pulso_campo"}
 
+## 6/11/2026 · B5 HECHIZO × HECHIZO (PROPUESTAS_COMBATE bloque B; Spellbreak). Un proyectil vivo que ENTRA en una casilla ocupada por una ZONA viva de otro elemento se transforma. La tabla es la UNICA regla:
+## CRUCES[elemento del proyectil][elemento de la zona] = {accion, aviso (reacción de Mundo3D.REACCIONES que se avisa, sin catálogo nuevo), previsto (rótulo de PrevisionReaccion3D.ESTILO), …}.
+##   apagar     el proyectil se apaga y deja `vapor` (EstadosSuelo3D) en la casilla       encender  el proyectil pasa a `a` (se reconstruye con su runa `runa` y sus mismos glifos: hereda su quema)
+##   descargar  daño del hechizo a todo enemigo/pieza de la zona de agua (y del agua conectada) y la zona queda electrificada; el proyectil se gasta
+## Una "zona viva" es la de un HECHIZO (las ZonaV2 de `Lanzador3D._zonas_v2`: la llama del fuego, el campo del viento; y `Lanzador3D.zonas_cruce`: el charco que deja el agua), NO el agua del mapa: si lo
+## fuera, la flecha de fuego que cruza un río en un puzle se apagaría. Fallo que evita: ningún hechizo reaccionaba con otro, así que dos zonas se pisaban sin más.
+## Añadir un cruce es una fila aquí (y, si es un tipo de acción nuevo, un caso en `_cruce`); la previsión (`prevision["cruces"]`) lo anuncia con el mismo rótulo.
+const CRUCES: Dictionary = {
+	"fuego": {"agua": {"accion": "apagar", "aviso": Mundo3D.R_APAGADO_AGUA, "previsto": "vapor"}},
+	"viento": {"fuego": {"accion": "encender", "a": "fuego", "runa": "res://nucleo/fire_rune.tres", "aviso": Mundo3D.R_LLAMARADA, "previsto": "llamarada"}},
+	"rayo": {"agua": {"accion": "descargar", "aviso": Mundo3D.R_ELECTROCUTADO, "previsto": "descarga"}},
+}
+const ZONA_AGUA_S: float = 6.0             ## B5: lo que dura el charco de un hechizo de agua como zona de cruce (el agua real sigue en AguaSim3D; esto es solo para que otro hechizo la reconozca)
+
 ## --- CICLO DE VIDA V2 (R3, 17/10; GLIFOS_RECETA §2.2 y §2.4; vida nueva: ESPEC_HECHIZO §0.3, 19/10) ---
 ## Orden fijo, y cada paso lee SOLO números del Hechizo (ningún `if` por pareja de glifos):
 ##   1. copias   repartidas a lo largo de X con `separacion` m entre una y otra y abiertas `dispersion` grados
@@ -183,7 +197,9 @@ var _en_momento: bool = false             ## true mientras corren las acciones d
 var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
 var _juice_impacto: bool = false          ## E1 (6/11): ya pidió el temblor/hitstop de su primer impacto (un área que golpea a cinco, o un haz que perfora, lo hace UNA vez, no cinco: congelaría el mundo en tartamudeo)
 var seco: bool = false                     ## 28/10 · A2: modo «en seco» (`HechizoVivo.prever`): corre las MISMAS reglas pero no aplica nada: los golpes y las marcas de suelo se anotan en `prevision` en vez de darse
-var prevision: Dictionary = {}             ## A2: lo que haría el hechizo en seco: {golpes: [{obj, dir, punto, desde}], suelo: [{elemento, celda}], fin: Vector3 (INF = no se detuvo), causa: String, rebotes: int}
+var prevision: Dictionary = {}             ## A2: lo que haría el hechizo en seco: {golpes: [{obj, dir, punto, desde}], suelo: [{elemento, celda}], fin: Vector3 (INF = no se detuvo), causa: String, rebotes: int, cruces: [{reaccion, celda, accion}] (B5)}
+var cruces_vistos: Array = []              ## B5: los cruces que hizo este proyectil, en orden: [{accion, aviso, celda, zona}] (las pruebas lo leen)
+var _celda_cruce: Vector2i = Vector2i(-9999, -9999)   ## B5: la última casilla en la que se miraron las zonas (solo se mira al ENTRAR en una casilla nueva)
 ## A1 (2/11, VFX en el juego; solo DATOS para el dibujo, la lógica no los lee): el proyectil avisa de su fin y de sus rebotes con lo que el VFX necesita y antes no llegaba (la normal de la superficie y su material).
 signal terminado(causa: String, pos: Vector3, normal: Vector3, material: String)   ## causa = `motivo_fin`; normal = hacia fuera de lo que paró al proyectil; material = letra del mapa de la casilla (muro, suelo) o ""
 signal rebotado(pos: Vector3, normal: Vector3)
@@ -260,7 +276,7 @@ func _exit_tree() -> void:
 ## NO cubre (se anota en la previsión): los eventos del hechizo (hijos, explosión en área `radio_explosion`, `al_golpear`…), los pulsos periódicos de las zonas, el empuje del gas a los enemigos ni los momentos
 ## de los glifos (el pulso de ᚱ). Un proyectil con `retorna` se prevé solo en la ida.
 static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir: Vector3) -> Dictionary:
-	var res: Dictionary = {"golpes": [], "suelo": [], "fines": [], "causas": [], "rebotes": 0, "caminos": [], "volumenes": []}     # caminos (28/10, apuntado): los puntos del vuelo de cada copia, para dibujarlo
+	var res: Dictionary = {"golpes": [], "suelo": [], "fines": [], "causas": [], "rebotes": 0, "caminos": [], "volumenes": [], "cruces": []}     # B5: cruces = lo que haría el proyectil al pasar por zonas de otro hechizo · caminos (28/10, apuntado): los puntos del vuelo de cada copia, para dibujarlo
 	if hechizo == null or lanzador == null or lanzador.mundo == null or not lanzador.is_inside_tree():
 		return res
 	var copias: int = copias_de_proyectil(hechizo)
@@ -273,7 +289,7 @@ static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir:
 		v.estado = hechizo.estado_materia if MATERIA_V2.has(hechizo.estado_materia) else ESTADO_RESERVA_V2
 		v.data = hechizo.fuente
 		v.seco = true
-		v.prevision = {"golpes": [], "suelo": [], "fin": Vector3.INF, "causa": "", "rebotes": 0}
+		v.prevision = {"golpes": [], "suelo": [], "fin": Vector3.INF, "causa": "", "rebotes": 0, "cruces": []}
 		v.linaje = Linaje.new()
 		if hechizo.proyectil:
 			var salida: Dictionary = salida_de_copia(hechizo, i, copias, dir)
@@ -299,6 +315,7 @@ static func prever(hechizo: Hechizo, lanzador: Lanzador3D, origen: Vector3, dir:
 		(res["golpes"] as Array).append_array(v.prevision["golpes"] as Array)
 		(res["volumenes"] as Array).append_array(v.prevision.get("volumenes", []) as Array)
 		(res["suelo"] as Array).append_array(v.prevision["suelo"] as Array)
+		(res["cruces"] as Array).append_array(v.prevision["cruces"] as Array)
 		if v.prevision["fin"] != Vector3.INF:
 			(res["fines"] as Array).append(v.prevision["fin"])
 			(res["causas"] as Array).append(String(v.prevision["causa"]))
@@ -1118,7 +1135,23 @@ func _materia_liquido(ctx: Dictionary) -> int:
 				sim.fuente_en(cc, parte / T_LLENADO_V2)
 				sim.limitar_fuente(cc, parte)
 	_despues(tiempo_caida(ctx["g"]), echar)
+	_registrar_charco(libres, tiempo_caida(ctx["g"]))
 	return libres.size()
+
+
+## B5: el charco que deja un hechizo de agua, como zona de cruce (fuego por agua = vapor, rayo por agua = descarga). Una ZonaV2 sin pulso (no es zona de `_zonas_v2`: las pruebas y el limo cuentan esas)
+## guardada en `Lanzador3D.zonas_cruce`; dura lo que tarda el agua en caer más `ZONA_AGUA_S`. El agua real sigue siendo la simulación; esto es solo para que otro hechizo sepa que hay agua DE HECHIZO aquí.
+func _registrar_charco(celdas: Array, t_caida: float) -> void:
+	var z := Lanzador3D.ZonaV2.new()
+	z.lanz = lanz
+	z.elemento = "agua"
+	z.vida = t_caida + ZONA_AGUA_S
+	for c in celdas:
+		z.celdas[c] = true
+	var l: Lanzador3D = lanz
+	l.mundo.add_child(z)
+	l.zonas_cruce.append(z)
+	z.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), z))
 
 
 ## PLASMA: una zona que hiere mientras dura (`persiste` s) y deja su estado de suelo (`deja`). Prende lo que arda: los reactivos (Reactivo3D) de
@@ -1183,6 +1216,7 @@ static func _olvidar(lanzador_ref: WeakRef, nodo: Node) -> void:
 	var l: Variant = lanzador_ref.get_ref()
 	if l != null:
 		(l as Lanzador3D)._zonas_v2.erase(nodo)
+		(l as Lanzador3D).zonas_cruce.erase(nodo)
 		(l as Lanzador3D)._solideces_v2.erase(nodo)
 
 
@@ -1460,7 +1494,7 @@ func _disparar_final(evento: String, causa: String, pos: Vector3, dir: Vector3, 
 	finales_vistos.append(evento)
 	if h.profundidad == 0 and not celdas.is_empty() and not h.acciones_en_fin(causa).is_empty():
 		_momento(Sigils.MOMENTO_FINAL, celdas, causa)
-	disparar_evento(evento, pos, dir)
+	disparar_evento(evento, pos, dir, {"causa": causa})      # C3: la causa viaja con el final (el hijo de «al impactar» no nace al recoger un proyectil que vuelve)
 
 
 ## ᛃ sin flecha (31/10): el ECO. El mismo `Hechizo` vuelve a golpear donde impactó: su materia (`_aplicar_materia_en_el_sitio`) y su daño en el área que ocupa (`_danar_area`).
@@ -1651,6 +1685,8 @@ func _danar_area(radio: float, dano: float, pos: Vector3, dir: Vector3) -> void:
 func _crear_hijo(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -> void:
 	if h.profundidad >= Hechizo.MAX_PROFUNDIDAD:
 		return
+	if (a.get("salvo", []) as Array).has(String(extra.get("causa", ""))):
+		return                                         # C3: «salvo» = causas de fin con las que este hijo NO nace (retorno: el proyectil vuelve a la mano)
 	var cuantos: int = maxi(int(a.get("cuantos", 1)), 1)
 	var abanico: float = float(a.get("abanico", 0.0))
 	var ya: Dictionary = golpeados.duplicate()
@@ -1660,13 +1696,32 @@ func _crear_hijo(a: Dictionary, pos: Vector3, dir: Vector3, extra: Dictionary) -
 	for i in range(cuantos):
 		if linaje.vivos >= Hechizo.MAX_VIVOS:
 			break
-		var hijo: Hechizo = h.copiar()
-		hijo.eventos = {}
+		var hijo: Hechizo = _hijo_de_pagina(a) if a.has("glifos_hijo") else h.copiar()
+		if hijo == null:
+			continue
+		if not a.has("glifos_hijo"):
+			hijo.eventos = {}
 		hijo.profundidad = h.profundidad + 1
-		hijo.con(a.get("cambios", {}) as Dictionary)
+		if not a.has("glifos_hijo"):
+			hijo.con(a.get("cambios", {}) as Dictionary)
 		var grados: float = 0.0 if cuantos == 1 else lerpf(-abanico * 0.5, abanico * 0.5, float(i) / float(cuantos - 1))
 		var d: Vector3 = d0.rotated(Vector3.UP, deg_to_rad(grados))
 		HechizoVivo.crear(hijo, pos + d * DESPLAZA_HIJO_U, d, lanz, linaje, ya, manual)
+
+
+## C3 (6/11/2026) · el hijo del glifo «al impactar» (⧖ `retardo` entre dos formas; ver `Hechizo.DISPARADOR`): NO es una copia del padre con cambios, es la SIGUIENTE forma de la página, construida desde sus glifos (`glifos_hijo`, con su
+## orden de dibujo) y con el elemento del padre: la flecha + ⧖ + barrera deja una BARRERA, no una flecha gruesa. Hereda del padre la potencia (sobrecarga) y la proporción del pigmento de daño (el
+## `dano *= mult_dano` del lanzador se aplica después de construir; sin esto el hijo saldría sin pigmento). Su coste de tinta no se cobra aparte: lo paga el padre con `Dano.K_HIJO`.
+func _hijo_de_pagina(a: Dictionary) -> Hechizo:
+	var hijo: Hechizo = Hechizo.construir(h.fuente, a["glifos_hijo"] as Dictionary, h.calidad, false, a.get("orden_hijo", []) as Array)
+	if hijo == null:
+		return null
+	hijo.potencia = h.potencia
+	if Dano.tiene_tabla(h.elemento):
+		var base: float = Dano.base_elemental(h._contar_glifos_dano(), h.elemento)
+		if base > 0.0:
+			hijo.dano *= h.dano / base
+	return hijo
 
 
 ## Marca el suelo con el estado de un elemento en un círculo de `radio` casillas (0 = solo la casilla de `pos`).
@@ -1779,6 +1834,10 @@ func paso(dt: float) -> void:
 		return
 	if is_inside_tree():
 		global_position = p
+	# 3 bis (B5): al ENTRAR en una casilla con una zona viva de otro hechizo, el proyectil puede transformarse (CRUCES). Antes de los golpes: un proyectil apagado no golpea.
+	_cruzar_zonas()
+	if not activo:
+		return
 	# 4. golpes, rastro y estela
 	_golpes_del_paso()
 	if not activo:
@@ -1963,6 +2022,98 @@ func _buscar(dt: float) -> void:
 	v = dir.slerp(mejor, giro / ang) * v.length()
 
 
+## B5: las zonas vivas de hechizo que ocupan la casilla `c`: elemento -> [zonas]. Son las ZonaV2 con pulso del lanzador (llama, campo) y los charcos de `Lanzador3D.zonas_cruce`. Una zona que ya se
+## está borrando no cuenta (el fuego que acaba de apagarse no enciende el viento).
+static func zonas_en(lanzador: Lanzador3D, c: Vector2i) -> Dictionary:
+	var r: Dictionary = {}
+	for lista in [lanzador._zonas_v2, lanzador.zonas_cruce]:
+		for z in lista:
+			if not is_instance_valid(z) or (z as Node).is_queued_for_deletion() or not (z as Lanzador3D.ZonaV2).celdas.has(c):
+				continue
+			var e: String = (z as Lanzador3D.ZonaV2).elemento
+			if not r.has(e):
+				r[e] = []
+			(r[e] as Array).append(z)
+	return r
+
+
+## B5: al ENTRAR en una casilla nueva, mira si la ocupa una zona de otro hechizo con la que haya cruce (`CRUCES`). Solo al entrar: un proyectil lento que tarda tres fotogramas en salir de una
+## casilla no se transforma tres veces. Un cruce por casilla (el primero de la fila de su elemento).
+func _cruzar_zonas() -> void:
+	if lanz == null or not lanz.is_inside_tree() or not CRUCES.has(elemento):
+		return
+	var c: Vector2i = Lanzador3D.celda_de(p)
+	if c == _celda_cruce:
+		return
+	_celda_cruce = c
+	if not Lanzador3D.en_mapa(c):
+		return
+	var zonas: Dictionary = zonas_en(lanz, c)
+	var fila: Dictionary = CRUCES[elemento]
+	for otro in fila:
+		if zonas.has(otro):
+			_cruce(fila[otro] as Dictionary, c, zonas[otro] as Array)
+			return
+
+
+## B5: ejecuta una fila de `CRUCES`. En seco (previsión) solo anota el cruce y deja que el proyectil siga el mismo camino (se acaba o se transforma), sin tocar el suelo ni avisar.
+func _cruce(f: Dictionary, c: Vector2i, zonas: Array) -> void:
+	cruces_vistos.append({"accion": String(f["accion"]), "aviso": String(f["aviso"]), "celda": c})
+	if seco:
+		(prevision["cruces"] as Array).append({"reaccion": String(f["previsto"]), "celda": c, "accion": String(f["accion"])})
+	match String(f["accion"]):
+		"apagar":
+			if not seco:
+				Terreno3D.estados.mantener(c, EstadosSuelo3D.VAPOR)
+			_terminar("cruce")
+		"encender":
+			_transformar(f)
+		"descargar":
+			_descargar_en_zona(zonas)
+			_terminar("cruce")
+	if not seco:
+		Mundo3D.avisar_reaccion(String(f["aviso"]), Terreno3D.centro_de(c, Terreno3D.y_pies(c)), null)
+
+
+## B5 · «encender»: el proyectil pasa a ser de otro elemento SIN dejar de volar (misma velocidad, mismo camino). Se reconstruye el hechizo con la runa de la fila y los mismos glifos, así hereda
+## todo lo del nuevo elemento (la quema, el daño por tics, lo que deja). La potencia (sobrecarga) y la profundidad se conservan, y también el hijo de «al impactar» (C3), que no sale del elemento.
+func _transformar(f: Dictionary) -> void:
+	var rune: RuneData = load(String(f["runa"])) as RuneData
+	if rune == null:
+		return
+	var nuevo: Hechizo = Hechizo.construir(rune, h.glifos, h.calidad, false, h.orden_glifos)
+	if nuevo == null:
+		return
+	nuevo.potencia = h.potencia
+	nuevo.profundidad = h.profundidad
+	for ev in h.eventos:
+		for a in (h.eventos[ev] as Array):
+			if (a as Dictionary).has("glifos_hijo"):
+				var lista: Array = nuevo.eventos.get(ev, []) as Array
+				lista.append((a as Dictionary).duplicate(true))
+				nuevo.eventos[ev] = lista
+	h = nuevo
+	data = rune
+	elemento = nuevo.elemento
+	estado = nuevo.estado_materia if MATERIA_V2.has(nuevo.estado_materia) else ESTADO_RESERVA_V2
+
+
+## B5 · «descargar»: el rayo que cruza un charco descarga sobre TODA la zona de agua (y el agua que la toca): daño del hechizo a quien esté dentro, y la zona pasa a `electrificada`. Es la
+## descarga de siempre (`_descarga`) con las casillas de la zona; `golpeados` es la lista de «ya tocados», así el proyectil no vuelve a herir al mismo enemigo en su siguiente paso.
+func _descargar_en_zona(zonas: Array) -> void:
+	if data == null:
+		return
+	var celdas: Array = []
+	for z in zonas:
+		for k in (z as Lanzador3D.ZonaV2).celdas:
+			if not celdas.has(k):
+				celdas.append(k)
+	_descarga({"data": data, "elemento": elemento, "celdas": celdas, "tocados": golpeados, "dir": v.normalized() if v.length() > 0.001 else Vector3.RIGHT, "origen": p}, {})
+	if not seco:
+		for k in celdas:
+			Terreno3D.estados.mantener(k as Vector2i, EstadosSuelo3D.ELECTRIFICADA)
+
+
 ## Los objetos que toca el proyectil en su posición: enemigos y reactivos a menos de radio + RADIO_ENEMIGO_U (en planta) y dentro de la ventana vertical. Uno por objeto y tramo.
 func _golpes_del_paso() -> void:
 	_golpes_areas(_p_previa, p)
@@ -2053,6 +2204,17 @@ func _terminar(causa: String) -> void:
 	activo = false
 	motivo_fin = causa
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
+	if causa == "cruce":
+		# B5: el proyectil se gastó en el cruce con la zona de otro hechizo (vapor, descarga): no aplica su materia donde está ni salta ningún final (ni el hijo de «al impactar»: no impactó).
+		# El VFX lo recibe como un fin sin choque («alcance»: se encoge y se va), que es el que ya sabe dibujar.
+		if seco:
+			prevision["fin"] = p
+			prevision["causa"] = causa
+		else:
+			terminado.emit("alcance", p, -dir_fin, "")
+		quedandose = false
+		_revisar_fin()
+		return
 	if not seco:
 		terminado.emit(causa, p, _normal_de_fin(causa, dir_fin), _material_de_fin(causa))      # A1: el VFX recibe el fin con su normal y su material
 	if (causa == "muro" or causa == "suelo") and not seco and lanz != null:

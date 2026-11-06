@@ -89,8 +89,11 @@ static func prever(lanzador: Lanzador3D, datos: Dictionary, origen: Vector3, dir
 	var marcas: Array = []                                   # [{elemento, celda, solo_hierba}]
 	for m in vivo["suelo"]:
 		marcas.append({"elemento": m["elemento"], "celda": m["celda"], "solo_hierba": false})
-	for f in vivo["fines"]:
-		var cf: Vector2i = Terreno3D.celda_de(f as Vector3)
+	for i_fin in range((vivo["fines"] as Array).size()):
+		var f: Vector3 = vivo["fines"][i_fin]
+		if i_fin < (vivo["causas"] as Array).size() and String(vivo["causas"][i_fin]) == "cruce":
+			continue                                             # B5: se gastó en una zona de otro hechizo (vapor, descarga): no se para a prender la hierba de ahí
+		var cf: Vector2i = Terreno3D.celda_de(f)
 		if Terreno3D.en_mapa(cf):
 			marcas.append({"elemento": h.elemento, "celda": cf, "solo_hierba": true})        # el impacto del VFX donde se para: solo la hierba de la maqueta (el agua, p. ej., no marca casillas)
 	var hechas: Dictionary = {}
@@ -106,6 +109,13 @@ static func prever(lanzador: Lanzador3D, datos: Dictionary, origen: Vector3, dir
 		if _hay_suelo(res, c, String(r["reaccion"])):
 			continue
 		res.append({"que": "suelo", "nodo": null, "celda": c, "reaccion": String(r["reaccion"]), "mult": 1.0, "extra": r["extra"]})
+
+	# 2 bis (B5) · Hechizo × hechizo: lo que pasaría al cruzar una zona de otro hechizo (vapor, llamarada, descarga). Es una entrada de SUELO (un cuadro y un rótulo en la casilla del cruce), con el mismo
+	# patrón que «llamarada» y «roto» del bloque B: el rótulo sale de `PrevisionReaccion3D.ESTILO` y la lista no lleva nada que el indicador no sepa pintar.
+	for cr in vivo.get("cruces", []):
+		var cc: Vector2i = cr["celda"]
+		if not _hay_suelo(res, cc, String(cr["reaccion"])):
+			res.append({"que": "suelo", "nodo": null, "celda": cc, "reaccion": String(cr["reaccion"]), "mult": 1.0, "extra": {"clase": "cruce", "efecto": String(cr["accion"])}})
 
 	# 3 · La lava se enfría por el AVISO de impacto del agua y del hielo (`Lava3D._al_impacto`), no solo por el golpe: se pregunta en el sitio donde cae y en cada casilla marcada.
 	if h.elemento == "agua" or h.elemento == "hielo":

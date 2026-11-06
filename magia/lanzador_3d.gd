@@ -214,6 +214,7 @@ var lanzamiento_inteligente: bool:
 var _campos: Array = []                 ## Campo: muros, corros, ondas, tierra...
 var _bloques: Array = []                ## tierra construida: {celda, niveles, nodos, resta, v2}
 var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): ZonaV2
+var zonas_cruce: Array = []             ## 6/11 (B5): zonas SIN pulso que otro hechizo reconoce al cruzarlas (el charco del agua): ZonaV2. Aparte de `_zonas_v2` a propósito: el limo y las pruebas cuentan esas como zonas de pulso
 var _solideces_v2: Array = []           ## SolidezV2 vivas: lo que bloquea proyectiles y aguanta golpes (propiedad `solidez`)
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
 var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
