@@ -50,6 +50,7 @@ colmillo_goblin	enemigo	goblin	-	-	0.6	1	1	todas	tabla `goblin`
 jiron_escudo	enemigo	goblin_escudo	escudo ardiendo	-	1	1	1	todas	tabla `goblin_escudo`: solo si el escudo se quemó
 baba_limo	enemigo	limo	-	-	0.7	1	2	todas	tabla `limo`
 pluma_chaman	enemigo	chaman	-	-	0.5	1	1	todas	tabla `chaman`
+antidoto	enemigo	chaman	-	-	0.5	1	1	todas	tabla `chaman` (6/11, chamán v2): tirada propia del 50 %
 polvo_golem	enemigo	golem	-	-	1	1	2	todas	tabla `golem`
 savia_elemental	enemigo	elemental	-	-	1	1	1	bosque	tabla `elemental` (jefe)
 nucleo_eco	cofre	cofre_epico	abrir	cueva.c1.estatuas	1	1	1	cueva	da=nucleo_eco:1

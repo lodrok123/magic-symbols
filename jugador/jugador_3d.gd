@@ -37,6 +37,11 @@ const TASA_TREPAR: float = 3.5              ## u/s al salir trepando de un foso 
 const HUNDIDO: float = 0.35               ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 const INVULNERABLE: float = 0.7
 const TICK_VENENO: float = 0.5               ## s entre dos pulsos del veneno (envenenar)
+## 6/11 (Pablo, chamán v2): VENENO QUE SE ACUMULA. Cada golpe del chamán (`envenenar_pila`) añade una pila; cada pila hace PILA_VENENO_DPS por segundo y dura PILA_VENENO_S s (temporizador propio).
+const PILA_VENENO_MAX: int = 3
+const PILA_VENENO_DPS: float = 2.0
+const PILA_VENENO_S: float = 4.0
+const VENENO_PUEDE_MATAR: bool = false       ## false: el veneno (pilas, nubes, pantano) nunca baja la vida de 1
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
@@ -111,6 +116,8 @@ var _brasero_cerca: bool = false
 var _veneno_t: float = 0.0                       ## s que le quedan de veneno (envenenar)
 var _veneno_dps: float = 0.0
 var _veneno_tick: float = 0.0
+var _pilas_veneno: Array[float] = []             ## 6/11: s que le quedan a cada pila de veneno del chamán (máx PILA_VENENO_MAX)
+var _pila_tick: float = 0.0
 var _t_muerte: float = 0.0
 var _ultima: Vector3 = Vector3.ZERO
 var _salto_antes: bool = false
@@ -377,6 +384,56 @@ func envenenar(dps: float, segundos: float) -> void:
 	_veneno_tick = minf(_veneno_tick, TICK_VENENO) if _veneno_tick > 0.0 else TICK_VENENO
 
 
+## 6/11 (chamán v2): añade UNA pila de veneno (PILA_VENENO_DPS durante PILA_VENENO_S s, cada pila con su reloj). Con PILA_VENENO_MAX pilas, el golpe nuevo renueva la que menos le queda.
+## `envenenar` (nubes, pantano, colmena) NO apila: es veneno de ambiente y se suma aparte. Devuelve las pilas que hay ahora (0 si la protege la ropa o un antídoto).
+func envenenar_pila() -> int:
+	if muerto or inmune_a("veneno"):
+		return 0
+	if _pilas_veneno.size() < PILA_VENENO_MAX:
+		_pilas_veneno.append(PILA_VENENO_S)
+	else:
+		var peor: int = 0
+		for i in range(_pilas_veneno.size()):
+			if _pilas_veneno[i] < _pilas_veneno[peor]:
+				peor = i
+		_pilas_veneno[peor] = PILA_VENENO_S
+	if _pila_tick <= 0.0:
+		_pila_tick = TICK_VENENO
+	Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), "Veneno x%d" % _pilas_veneno.size(), Color(0.55, 0.9, 0.35), 0.8)
+	return _pilas_veneno.size()
+
+
+func pilas_veneno() -> int:
+	return _pilas_veneno.size()
+
+
+## Vida que queda tras `d` de veneno: sin VENENO_PUEDE_MATAR no baja de 1 (si ya estaba por debajo, no la toca).
+func _vida_tras_veneno(d: float) -> float:
+	if VENENO_PUEDE_MATAR:
+		return maxf(0.0, vida - d)
+	return minf(vida, maxf(1.0, vida - d))
+
+
+## Un paso de las pilas: cada TICK_VENENO s, pilas × PILA_VENENO_DPS × TICK_VENENO de daño; después gastan su reloj y las que llegan a 0 se van.
+func _veneno_pilas_paso(delta: float) -> void:
+	if _pilas_veneno.is_empty() or muerto:
+		return
+	_pila_tick -= delta
+	if _pila_tick <= 0.0:
+		_pila_tick = TICK_VENENO
+		var d: float = float(_pilas_veneno.size()) * PILA_VENENO_DPS * TICK_VENENO
+		vida = _vida_tras_veneno(d)
+		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(ceil(d))), Color(0.55, 0.9, 0.35), 0.8)
+		vida_cambiada.emit(vida, Estado.i().vida_max)
+		if vida <= 0.0:
+			_morir()
+			return
+	for i in range(_pilas_veneno.size() - 1, -1, -1):
+		_pilas_veneno[i] -= delta
+		if _pilas_veneno[i] <= 0.0:
+			_pilas_veneno.remove_at(i)
+
+
 ## F3 (29/10): la DEF de la jugadora = la de las mejoras (`Estado.defensa`) + la de la ropa puesta (`Ropa3D`, `efecto.defensa`).
 func defensa_total() -> float:
 	return Estado.i().defensa + (float(pj.defensa_ropa()) if pj != null else 0.0)
@@ -481,14 +538,15 @@ func _viento_paso(delta: float, zona: Array) -> Vector3:
 
 
 func tiene_estado(estado: String) -> bool:
-	return estado == "veneno" and _veneno_t > 0.0
+	return estado == "veneno" and (_veneno_t > 0.0 or not _pilas_veneno.is_empty())
 
 
 ## Quita un estado dañino (hoy solo el veneno). true si había algo que quitar. Lo llama el antídoto (`Consumibles.curar_estado`).
 func curar_estado(estado: String) -> bool:
-	if estado == "veneno" and _veneno_t > 0.0:
+	if estado == "veneno" and (_veneno_t > 0.0 or not _pilas_veneno.is_empty()):
 		_veneno_t = 0.0
 		_veneno_dps = 0.0
+		_pilas_veneno.clear()               # 6/11: el antídoto quita también las pilas del chamán
 		return true
 	return false
 
@@ -663,11 +721,12 @@ func _process(delta: float) -> void:
 		_veneno_tick -= delta
 		if _veneno_tick <= 0.0:
 			_veneno_tick = TICK_VENENO
-			vida = maxf(0.0, vida - _veneno_dps * TICK_VENENO)
+			vida = _vida_tras_veneno(_veneno_dps * TICK_VENENO)      # 6/11: no mata (VENENO_PUEDE_MATAR)
 			Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(ceil(_veneno_dps * TICK_VENENO))), Color(0.55, 0.9, 0.35), 0.8)
 			vida_cambiada.emit(vida, Estado.i().vida_max)
 			if vida <= 0.0:
 				_morir()
+	_veneno_pilas_paso(delta)
 	var zona: Array = Mundo3D.estado_zona(Terreno3D.celda_de(position))        # F4: calor, frío, vendaval... (casi siempre [])
 	_actualizar_aguante(delta, zona)
 	if not zona.is_empty():

@@ -49,6 +49,7 @@ limo	nada	30	0	0	-	-
 chaman	oro	1	15	15	siempre	si
 chaman	pluma_chaman	50	1	1	-	-
 chaman	nada	50	0	0	-	-
+chaman	antidoto	0.5	1	1	6/11 (chamán v2): tirada propia del 50 %	si
 golem	oro	1	40	40	siempre	si
 golem	polvo_golem	100	1	2	-	-
 elemental	oro	1	150	150	jefe: siempre	si

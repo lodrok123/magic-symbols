@@ -107,7 +107,7 @@ func _escenario() -> void:
 	var dd: float = _dist_a(_ch.position)
 	_ok("2.3 dispara desde la distancia que mantiene", dd >= Chaman3D.DIST_MIN - 0.8 and dd <= Chaman3D.ALCANCE_BOLA + 0.5, "(%.1f u)" % dd)
 	await avanzar_s(2.5)
-	_ok("2.4 la jugadora quieta recibe el daño y el veneno", j.vida < vida0, "(vida %.1f -> %.1f, veneno %.1f s)" % [vida0, j.vida, j._veneno_t])
+	_ok("2.4 la jugadora quieta recibe el daño y el veneno", j.vida < vida0, "(vida %.1f -> %.1f, pilas de veneno %d)" % [vida0, j.vida, j.pilas_veneno()])
 	_ok("2.5 no volvió a escudar (todos tienen escudo)", _ch.rituales == 1)
 
 	# ---- 2b · retrocede --------------------------------------------------------------------------------------------
@@ -193,7 +193,7 @@ func _escenario() -> void:
 	var vida_j: float = j.vida
 	var b: BolaVeneno3D = BolaVeneno3D.lanzar(maqueta, jugador.position + Vector3(0, 1, 3), jugador.position, _ch, j, lanzador)
 	await avanzar_s(b.t_vuelo + 0.3)
-	_ok("4.6 una bola que cae sobre ella la hiere y la envenena", b.acerto and j.vida <= vida_j - BolaVeneno3D.DANO + 0.01 and j._veneno_t > 0.0, "(vida %.1f -> %.1f)" % [vida_j, j.vida])
+	_ok("4.6 una bola que cae sobre ella la hiere y la envenena", b.acerto and j.vida <= vida_j - BolaVeneno3D.DANO + 0.01 and j.tiene_estado("veneno"),"(vida %.1f -> %.1f)" % [vida_j, j.vida])
 	var q: Vector3 = jugador.position + Vector3(4.0, 0, 0)
 	var b2: BolaVeneno3D = BolaVeneno3D.lanzar(maqueta, q + Vector3(0, 1, 3), q, _ch, j, lanzador)
 	await avanzar_s(b2.t_vuelo + 0.3)

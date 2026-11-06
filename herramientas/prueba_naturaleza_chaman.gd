@@ -175,7 +175,7 @@ func _escenario() -> void:
 	var b3: BolaVeneno3D = BolaVeneno3D.lanzar(maqueta, j.position + Vector3(0, 1, 3), j.position, _ch, j, lanzador)
 	while not b3.llego:
 		await avanzar(1)
-	_ok("2.17 una bola que cae sobre la jugadora la hiere y la envenena, como antes", b3.acerto and j.vida <= vida_j - BolaVeneno3D.DANO + 0.01 and j._veneno_t > 0.0)
+	_ok("2.17 una bola que cae sobre la jugadora la hiere y la envenena, como antes", b3.acerto and j.vida <= vida_j - BolaVeneno3D.DANO + 0.01 and j.tiene_estado("veneno"))   # 6/11: v2 envenena con una pila (antes `_veneno_t`)
 	await avanzar_s(3.0)
 
 	# ---- 3 · el escudo ---------------------------------------------------------------------------------------------------

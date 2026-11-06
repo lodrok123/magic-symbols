@@ -101,7 +101,10 @@ func _caer() -> void:
 		if d.length() <= RADIO and absf(jugador.position.y - destino.y) < Terreno3D.ALTO_NIVEL * 0.9:
 			acerto = true
 			jugador.recibir_dano(DANO, global_position)
-			jugador.envenenar(VENENO_DPS, VENENO_S)
+			if Chaman3D.CHAMAN_V2:
+				jugador.envenenar_pila()               # 6/11: una pila más (se acumulan hasta 3; ver Jugador3D.envenenar_pila)
+			else:
+				jugador.envenenar(VENENO_DPS, VENENO_S)
 	PlayLog.event("bola_veneno", {"acierta": acerto})
 	_dejar_nube()
 	_terminar(true)

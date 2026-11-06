@@ -162,7 +162,7 @@ func _recetas_y_botin() -> void:
 				botin_mal.append("%s: %s peso/min/max" % [tabla, o])
 			if String(f.get("independiente", "")) not in ["", "si"]:
 				botin_mal.append("%s: %s independiente «%s»" % [tabla, o, f.get("independiente", "")])
-	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 20 tablas)" % n_filas, botin_mal.is_empty() and n_filas == 54, str(botin_mal) + " " + str(n_filas))
+	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 20 tablas)" % n_filas, botin_mal.is_empty() and n_filas == 55, str(botin_mal) + " " + str(n_filas))
 
 
 func _compatibilidad() -> void:
