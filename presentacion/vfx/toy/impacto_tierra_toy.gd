@@ -2,7 +2,8 @@ class_name ImpactoTierraToy
 extends Node3D
 
 ## IMPACTO DE LA TIERRA «TOY» (6/11/2026; el equivalente de ImpactoHieloToy). Misma API: `crear(variante, normal, radio)`, `tiempo()`, `duracion()`, `avanzar_a(t)`, `lanzar()` / `morir()`.
-## Es TIERRA: PIEDRECITAS (MultiMesh de pedruscos, tierra_roca.gdshader) que salen del punto HACIA FUERA en el hemisferio de la normal, giran y CAEN con la gravedad real (fórmula cerrada,
+## Es TIERRA: PIEDRECITAS (MultiMesh de piedra_est_1, la piedra pequeña del mapa, con tierra_roca.gdshader: textura gris de las rocas + luz de la escena) que salen del punto HACIA FUERA en el
+## hemisferio de la normal, giran y CAEN con la gravedad real (fórmula cerrada,
 ## `piedras_estado(t)` las mide), se quedan en la superficie o en el suelo del mundo y se hunden al final; y una NUBE DE POLVO pardo de dos tonos (humo toon, humo_toy.gd) a ras de la
 ## superficie que se abre en radial y se erosiona. SIN destello, sin luz, sin aditivos, sin GPUParticles3D. Todo se libera solo.
 ## Variantes: GOLPE (todo), FIN (se agota en el aire: terrones que caen y un poco de polvo), REBOTE (pequeño), AREA (zona: polvo ancho y muchas piedrecitas; la normal siempre es arriba).
@@ -211,6 +212,6 @@ func avanzar_a(t: float) -> void:
 			HieloMallas.ocultar(mm, i)
 			continue
 		var rot: Basis = (Basis(d["eje"], float(d["vel_ang"]) * t * (0.0 if bool(e["quieta"]) else 1.0)) * (d["rot0"] as Basis)).orthonormalized()
-		var s: float = float(d["tam"]) * (1.0 - smoothstep(0.75, 1.0, u))                     # al final se hunde en el suelo (encoge)
-		mm.set_instance_transform(i, Transform3D(rot * Basis.from_scale(Vector3.ONE * s), e["pos"]))
+		var s: float = float(d["tam"]) * (1.0 - smoothstep(0.75, 1.0, u)) * 2.0 / TierraToy.lado_malla(mm.mesh)   # `tam` = radio; al final se hunde en el suelo (encoge)
+		mm.set_instance_transform(i, TierraToy.centrar(mm.mesh, rot * Basis.from_scale(Vector3.ONE * s), e["pos"]))
 		mm.set_instance_custom_data(i, Color(float(d["tono"]), 1.0, 0.0, 0.0))

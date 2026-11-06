@@ -5,11 +5,15 @@ extends EfectoToy
 ## figuras (BOLA, MURO, PILAR, BARRERA, HAZ), mismos ejes (semieje_x / y / z en m), misma escala (`describir` / `desde_hechizo` son los de FuegoToy) y los mismos diez mandos de EfectoToy
 ## (valen `altura`, `ancho`, `velocidad`, `brillo` y `chispas` = cuántos terrones y cuánto polvo; luz, halo, tono y blandura no hacen nada: la tierra no brilla). Máquina de carga e impacto copiada
 ## de HieloToy, no compartida.
-## CARÁCTER: MACIZA, MATE, de SOMBRAS DURAS (tierra_roca.gdshader: tres tonos planos por cara con luz fija, opaca; Vfx3D.COLOR["tierra"] ≈ 0,85·0,66·0,40) y con PESO: los bloques
-## SUBEN DEL SUELO con ANTICIPACIÓN (0,1 s de temblor y polvo en la base), SOBREPASO y ASENTAMIENTO (polvo radial bajo + 2-3 fragmentos que ruedan) y al morir se HUNDEN en el suelo con
-## polvo (no se desvanecen). El polvo es humo toon PARDO de dos tonos (humo_toy.gd). Sin luz, sin aditivos, sin GPUParticles3D: MultiMesh movidos por la CPU.
-## FIGURAS: BOLA = pedrusco facetado (icosfera de 80 caras con ruido de vértices) que gira al volar y suelta terrones y polvo. MURO = hilera de bloques facetados a lo largo de x. PILAR = un
-## bloque alto con cuatro más bajos alrededor. BARRERA = corona de bloques inclinados hacia dentro sobre la elipse del suelo. HAZ = hilera de púas de piedra que brotan hacia -Z.
+## CARÁCTER (2.ª versión, 6/11 tarde: LA PIEDRA DEL MUNDO): las figuras están hechas de las ROCAS ESTILIZADAS DEL MAPA (arte/meshy/piezas/roca_est_0..4 grandes y piedra_est_0..4
+## pequeñas, las mismas que ArteEntorno3D, Pieza3D y los bloques empujables) con SU textura gris (tex_rocas_est/rocas_albedo.png) y la LUZ DE LA ESCENA (tierra_roca.gdshader: mate, sin
+## especular, con un velo ligero de Vfx3D.COLOR["piedra"] y la base manchada de tierra), así casan con los pedruscos grises que ya dibuja el juego. Las mallas se cargan del GLB una vez
+## (`malla_roca`, como ImpactoMagmaToy.malla_piedra). Y con PESO: los bloques SUBEN DEL SUELO con ANTICIPACIÓN (0,1 s de temblor y polvo en la base), SOBREPASO y ASENTAMIENTO (polvo radial
+## bajo + 2-3 fragmentos que ruedan) y al morir se HUNDEN en el suelo con polvo (no se desvanecen). El polvo es humo toon PARDO de dos tonos (humo_toy.gd), al tono de la tierra del suelo del
+## bosque. Sin luz, sin aditivos, sin GPUParticles3D: MultiMesh movidos por la CPU (uno por tipo de roca que use la figura, ≤ 5; ≤ MAX_BLOQUES rocas por figura).
+## FIGURAS: BOLA = una piedra_est_0 (la más redonda) que gira al volar y suelta terrones (piedra_est_1) y polvo. MURO = hilera de roca_est_1 / 2 / 0 escaladas al ancho y alto de los
+## semiejes, a trompicones, con piedras pequeñas al pie. PILAR = una roca_est_4 alta con cuatro roca_est_1 / 0 más bajas alrededor y piedras al pie. BARRERA = corona de rocas inclinadas hacia
+## dentro sobre la elipse del suelo. HAZ = hilera de púas (piedra_est_0 / 1 alargadas e inclinadas) que brotan hacia -Z.
 ## Ciclo de vida de un proyectil de tierra, sobre UN SOLO nodo (igual que las hermanas):
 ##   empezar_carga(duracion, tam_final)  piedrecitas que CONVERGEN en la mano mientras la roca crece en ella. NO hace falta `lanzar()`.
 ##   progreso_carga() -> float · soltar(dir) · cancelar_carga() · impactar_en(pos, normal, escala) (ImpactoTierraToy GOLPE: piedrecitas con gravedad + nube de polvo pardo a ras de suelo)
@@ -21,6 +25,16 @@ enum EstadoCarga { NINGUNA, CARGANDO, SOLTANDO, APAGANDO, CANCELANDO }
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const SH_ROCA: String = "res://presentacion/vfx/toy/tierra_roca.gdshader"
+const RUTA_ROCA: String = "res://arte/meshy/piezas/%s.glb"                                   ## piedra_est_0..4 (pequeñas, 0,4-0,8 m) y roca_est_0..4 (grandes, 0,8-1,3 m), base en y = 0
+const TEX_ALBEDO: String = "res://arte/meshy/piezas/tex_rocas_est/rocas_albedo.png"
+const MALLA_BOLA: String = "piedra_est_0"          ## la más redonda (0,82 × 0,80 × 0,74 m)
+const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fragmentos (0,69 m, 426 vértices)
+const MALLAS_MURO: Array = ["roca_est_1", "roca_est_2", "roca_est_1", "roca_est_0", "roca_est_2", "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
+const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
+const MAX_TIPOS: int = 5                                              ## MultiMesh (tipos de roca) por figura como mucho
+const MALLAS_PUA: Array = ["piedra_est_0", "piedra_est_1"]
+## Velo de Vfx3D.COLOR["piedra"] (0,72·0,58·0,42) sobre la textura, MUY ligero (un 10 %): la textura rocas_albedo ya es parda y con más velo salía rosada frente a los bloques grises del mapa.
+const TINTE_PIEDRA: Color = Color(0.98, 0.96, 0.93)
 
 const REF_BOLA: Vector3 = Vector3(0.4, 0.4, 0.4)
 const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
@@ -28,10 +42,11 @@ const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
 const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)
 
-## Polvo pardo: dos tonos tierra (claro = Vfx3D.COLOR["tierra"] aclarado; sombra = ocre oscuro) y un tono viejo más apagado.
-const POLVO_CLARO: Color = Color(0.82, 0.70, 0.52)
-const POLVO_SOMBRA: Color = Color(0.56, 0.43, 0.28)
-const POLVO_VIEJO: Color = Color(0.50, 0.41, 0.31)
+## Polvo pardo: dos tonos al color de la tierra del suelo del bosque (arte/suelo_meshy, en juego ≈ 0,62·0,40·0,22; docs/capturas/hierba_bloques/llanura_despues.png): claro = esa tierra
+## aclarada por el polvo en el aire; sombra = la tierra húmeda; viejo = más apagado y gris. Menos naranja que la 1.ª versión (0,82·0,70·0,52).
+const POLVO_CLARO: Color = Color(0.76, 0.58, 0.40)
+const POLVO_SOMBRA: Color = Color(0.52, 0.36, 0.22)
+const POLVO_VIEJO: Color = Color(0.47, 0.37, 0.28)
 
 const T_SOLTAR: float = 0.14
 const T_APAGAR: float = 0.4
@@ -51,20 +66,66 @@ const POLVO_FIG: int = 18
 const PIEDRAS_FIG: int = 24
 
 
+# ================================================================== LAS ROCAS DEL MAPA ==================================================================
+static var _mallas: Dictionary = {}        ## id ("roca_est_1") → Mesh, cargadas del GLB una vez (compartidas por todas las figuras y los impactos)
+
+
+## La malla de la roca estilizada `id` (piedra_est_N / roca_est_N), cargada del GLB una vez (el mismo acceso que ImpactoMagmaToy.malla_piedra). Si faltara, una esfera de pocos lados.
+static func malla_roca(id: String) -> Mesh:
+	if _mallas.has(id):
+		return _mallas[id]
+	var m: Mesh = null
+	var ps: PackedScene = load(RUTA_ROCA % id) as PackedScene
+	if ps != null:
+		var n: Node = ps.instantiate()
+		var l: Array = n.find_children("*", "MeshInstance3D", true, false)
+		var mi: MeshInstance3D = n if n is MeshInstance3D else (l[0] if not l.is_empty() else null)
+		if mi != null:
+			m = mi.mesh
+		n.free()
+	if m == null:
+		var s: SphereMesh = SphereMesh.new()
+		s.radius = 0.35
+		s.height = 0.7
+		s.radial_segments = 8
+		s.rings = 4
+		m = s
+	_mallas[id] = m
+	return m
+
+
+## Lado mayor (x/z) de la huella de una malla, sin escalar.
+static func lado_malla(m: Mesh) -> float:
+	var s: Vector3 = m.get_aabb().size
+	return maxf(maxf(s.x, s.z), 0.001)
+
+
+## Transformación que pone la malla (base en y = 0, no del todo centrada en x/z) con su CENTRO en `pos` y la base `b` (giro × escala): para piedras que giran en el aire.
+static func centrar(m: Mesh, b: Basis, pos: Vector3) -> Transform3D:
+	var a: AABB = m.get_aabb()
+	return Transform3D(b, pos - b * (a.position + a.size * 0.5))
+
+
+## Transformación que pone la malla con la BASE en `pos`, girada `rot`, escalada para que ocupe exactamente `wx` × `h` × `wz` m (la roca se ajusta al hueco que le toca).
+static func asentar(m: Mesh, rot: Basis, wx: float, h: float, wz: float, pos: Vector3) -> Transform3D:
+	var a: AABB = m.get_aabb()
+	var esc: Vector3 = Vector3(wx / maxf(a.size.x, 0.001), h / maxf(a.size.y, 0.001), wz / maxf(a.size.z, 0.001))
+	var b: Basis = rot * Basis.from_scale(esc)
+	return Transform3D(b, pos - b * Vector3(a.position.x + a.size.x * 0.5, 0.0, a.position.z + a.size.z * 0.5))
+
+
 # ================================================================== PIEDRAS POR CPU ==================================================================
-## Terrones, piedrecitas y fragmentos: un MultiMesh de pedruscos (tierra_roca.gdshader) que caen con gravedad, giran, rebotan una vez y se quedan en el suelo hasta encogerse. `mundo` = top_level.
+## Terrones, piedrecitas y fragmentos: un MultiMesh de piedra_est_1 (tierra_roca.gdshader) que caen con gravedad, giran, rebotan una vez y se quedan en el suelo hasta encogerse. `mundo` = top_level.
+## `tam` = RADIO aparente (m), como antes con la icosfera: la malla se escala a 2·tam de lado.
 class Piedras extends Node3D:
 	var gravedad: float = 9.8
 	var suelo_y: float = -1.0e9
 	var _mi: MultiMeshInstance3D = null
 	var _s: Array = []
 	var _cursor: int = 0
-	static var _malla: ArrayMesh = null
 
-	static func malla_piedra() -> ArrayMesh:
-		if _malla == null:
-			_malla = HieloMallas.bloque(0.3, 4.0)
-		return _malla
+	static func malla_piedra() -> Mesh:
+		return TierraToy.malla_roca(TierraToy.MALLA_TERRON)
 
 	func montar(n: int, mundo: bool) -> void:
 		top_level = mundo
@@ -146,8 +207,8 @@ class Piedras extends Node3D:
 				var g: Vector3 = d["giro"]
 				if g.length() > 0.001:
 					d["rot"] = (Basis(g.normalized(), g.length() * delta) * (d["rot"] as Basis)).orthonormalized()
-			var s: float = float(d["tam"]) * (1.0 - smoothstep(0.75, 1.0, u))           # al final se hunde (encoge), no se desvanece
-			mm.set_instance_transform(i, Transform3D((d["rot"] as Basis) * Basis.from_scale(Vector3.ONE * s), d["pos"]))
+			var s: float = float(d["tam"]) * (1.0 - smoothstep(0.75, 1.0, u)) * 2.0 / TierraToy.lado_malla(mm.mesh)   # al final se hunde (encoge), no se desvanece
+			mm.set_instance_transform(i, TierraToy.centrar(mm.mesh, (d["rot"] as Basis) * Basis.from_scale(Vector3.ONE * s), d["pos"]))
 			mm.set_instance_custom_data(i, Color(float(d["tono"]), 1.0, 0.0, 0.0))
 
 	func estados() -> Array:
@@ -159,17 +220,19 @@ class Piedras extends Node3D:
 		return r
 
 
-## ShaderMaterial de la roca (opaco, sin luz) con `p` encima.
+## ShaderMaterial de la roca (opaco, con la luz de la escena, la textura gris de las rocas del mapa y el velo de piedra) con `p` encima.
 static func material_roca(p: Dictionary = {}) -> ShaderMaterial:
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = load(SH_ROCA)
+	m.set_shader_parameter("albedo_tex", load(TEX_ALBEDO))
+	m.set_shader_parameter("tinte", TINTE_PIEDRA)
 	for k in p:
 		m.set_shader_parameter(k, p[k])
 	return m
 
 
-## MultiMesh de `n` rocas (`malla`) con el material de la roca para instancias.
-static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0) -> MultiMeshInstance3D:
+## MultiMesh de `n` rocas (`malla`) con el material de la roca para instancias. `base_tierra` = 1: la base manchada de tierra (bloques que salen del suelo).
+static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0, base_tierra: float = 0.0) -> MultiMeshInstance3D:
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
@@ -180,7 +243,7 @@ static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0
 	var mi: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	mi.name = nombre
 	mi.multimesh = mm
-	mi.material_override = material_roca({"instancias": 1.0, "oscurecer": oscurecer})
+	mi.material_override = material_roca({"instancias": 1.0, "oscurecer": oscurecer, "base_tierra": base_tierra})
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.custom_aabb = AABB(Vector3.ONE * -40.0, Vector3.ONE * 80.0)
 	return mi
@@ -190,28 +253,6 @@ static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0
 static func polvo_params(tam_ini: float, tam_fin: float, vida: float, deriva: Vector3, mundo: bool) -> Dictionary:
 	return {"claro": POLVO_CLARO, "sombra": POLVO_SOMBRA, "viejo": POLVO_VIEJO, "tam_ini": tam_ini, "tam_fin": tam_fin, "vida": vida, "deriva": deriva, "erosion": 0.9, "estirado": 1.0,
 		"umbral": 0.42, "ruido_borde": 0.22, "mundo": mundo, "giro_vel": 0.4, "curva": 0.5, "friccion": 1.6}
-
-
-## Bloque facetado unidad: caja de ±0,5 en x z y alto 1 (base en y = 0) con las esquinas movidas y la tapa estrechada e inclinada: cada cara es plana (dos triángulos no coplanarios = facetas).
-static func prisma(semilla: float = 1.0) -> ArrayMesh:
-	var h: Callable = func(a: float) -> float: return fposmod(sin(a * 12.9898 + semilla * 7.1) * 43758.5453, 1.0) - 0.5
-	var b: Array = []
-	var t: Array = []
-	for i in 4:
-		var sx: float = -0.5 if (i == 0 or i == 3) else 0.5
-		var sz: float = -0.5 if i < 2 else 0.5
-		b.append(Vector3(sx * (1.0 + 0.12 * h.call(float(i) + 1.0)), 0.0, sz * (1.0 + 0.12 * h.call(float(i) + 2.0))))
-		t.append(Vector3(sx * (0.86 + 0.14 * h.call(float(i) + 3.0)), 1.0 + 0.1 * h.call(float(i) + 4.0), sz * (0.86 + 0.14 * h.call(float(i) + 5.0))))
-	var st: SurfaceTool = SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var c: Vector3 = Vector3(0, 0.5, 0)
-	for i in 4:
-		var j: int = (i + 1) % 4
-		HieloMallas._tri(st, b[i], b[j], t[j], c, [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1)], 0.0, 0.0, 1.0)
-		HieloMallas._tri(st, b[i], t[j], t[i], c, [Vector2(0, 0), Vector2(1, 1), Vector2(0, 1)], 0.0, 1.0, 1.0)
-	HieloMallas._tri(st, t[0], t[1], t[2], c, [Vector2(0, 1), Vector2(1, 1), Vector2(1, 1)], 1.0, 1.0, 1.0)
-	HieloMallas._tri(st, t[0], t[2], t[3], c, [Vector2(0, 1), Vector2(1, 1), Vector2(0, 1)], 1.0, 1.0, 1.0)
-	return st.commit()
 
 
 @export_group("Figura y ejes (m)")
@@ -255,8 +296,8 @@ var _c_acc: float = 0.0
 var _pop: bool = false
 var _roca: MeshInstance3D = null        ## BOLA
 var _inclinable: Node3D = null
-var _bloques: Array = []                ## figuras de volumen: [{pos, rot, wx, h, wz, retraso, tono}]
-var _bloques_mm: MultiMeshInstance3D = null
+var _bloques: Array = []                ## figuras de volumen: [{pos, rot, wx, h, wz, retraso, tono, malla (id), mm (índice en _bloques_mms), idx (instancia)}]
+var _bloques_mms: Array = []            ## Array[MultiMeshInstance3D]: uno por tipo de roca que use la figura (el primero se llama «Bloques»)
 var _polvo: Node3D = null               ## HumoToy pardo (mundo)
 var _piedras: Node3D = null             ## Piedras (mundo)
 var _asentado: bool = false             ## ¿ya soltó el polvo y los fragmentos del asentamiento?
@@ -699,7 +740,7 @@ func _construir() -> void:
 	_roca = null
 	_inclinable = null
 	_bloques = []
-	_bloques_mm = null
+	_bloques_mms = []
 	_asentado = false
 	_hundiendo = false
 	_acc = 0.0
@@ -720,19 +761,59 @@ func _construir() -> void:
 	_anim_si_hace_falta()
 
 
-static func _b(pos: Vector3, rot: Basis, wx: float, h: float, wz: float, retraso: float, rng: RandomNumberGenerator) -> Dictionary:
-	return {"pos": pos, "rot": rot, "wx": wx, "h": h, "wz": wz, "retraso": retraso, "tono": rng.randf()}
+## Un bloque de la figura: roca `malla` (id) con la base en `pos`, giro `rot`, que ocupa `wx` × `h` × `wz` m, sale tras `retraso` (0..0,6 de la subida) y con su tono.
+static func _b(malla: String, pos: Vector3, rot: Basis, wx: float, h: float, wz: float, retraso: float, rng: RandomNumberGenerator) -> Dictionary:
+	return {"malla": malla, "pos": pos, "rot": rot, "wx": wx, "h": h, "wz": wz, "retraso": retraso, "tono": rng.randf(), "mm": 0, "idx": 0}
 
 
-func _montar_bloques(c: Node3D, capa: Array, malla: Mesh) -> void:
+## Giro de una roca de la figura: media vuelta o no (la cara de atrás es otra roca) más un desvío `desvio` rad, y una pizca de inclinación `inclina` hacia un lado al azar.
+static func _giro_roca(rng: RandomNumberGenerator, desvio: float, inclina: float = 0.0) -> Basis:
+	var b: Basis = Basis(Vector3.UP, (PI if rng.randf() < 0.5 else 0.0) + rng.randf_range(-desvio, desvio))
+	if inclina > 0.0001:
+		var a: float = rng.randf() * TAU
+		b = Basis(Vector3(cos(a), 0.0, sin(a)), rng.randf_range(-inclina, inclina)) * b
+	return b
+
+
+## Monta las rocas de `capa` (≤ MAX_BLOQUES): un MultiMesh por tipo de roca (el primero, «Bloques»; los demás, «Bloques_<id>»), todas bajo tierra hasta `_avanzar_bloques`.
+func _montar_bloques(c: Node3D, capa: Array) -> void:
 	if capa.size() > MAX_BLOQUES:
 		capa = capa.slice(0, MAX_BLOQUES)
 	_bloques = capa
-	_bloques_mm = crear_mm("Bloques", _bloques.size(), malla)
-	c.add_child(_bloques_mm)
+	_bloques_mms = []
+	var grupos: Dictionary = {}
+	for b in _bloques:
+		var id: String = b["malla"]
+		if not grupos.has(id):
+			if grupos.size() >= MAX_TIPOS:                                                  # más tipos de los que caben: esta roca se hace con uno de los que ya hay
+				id = grupos.keys()[grupos.size() - 1]
+				b["malla"] = id
+			else:
+				grupos[id] = []
+		(grupos[id] as Array).append(b)
+	for id in grupos:
+		var lista: Array = grupos[id]
+		var k: int = _bloques_mms.size()
+		var mi: MultiMeshInstance3D = crear_mm("Bloques" if k == 0 else "Bloques_" + String(id), lista.size(), malla_roca(id), 0.0, 1.0)
+		c.add_child(mi)
+		_bloques_mms.append(mi)
+		for j in lista.size():
+			(lista[j] as Dictionary)["mm"] = k
+			(lista[j] as Dictionary)["idx"] = j
 
 
-## BOLA: pedrusco facetado que gira (quieto despacio, en vuelo deprisa sobre el eje del vuelo).
+## Piedras pequeñas al pie de una figura (rellenan hasta `tope` huecos): tumbadas junto a `pos`, mirando hacia fuera `d`, de 0,25-0,45 del alto `h` y con más retraso (salen con el asentamiento).
+static func _pie(capa: Array, pos: Vector3, d: Vector3, w: float, h: float, retraso: float, rng: RandomNumberGenerator, tope: int) -> void:
+	if capa.size() >= tope:
+		return
+	var id: String = MALLAS_PIE[rng.randi() % MALLAS_PIE.size()]
+	var t: float = w * rng.randf_range(0.32, 0.5)
+	var ht: float = minf(h * rng.randf_range(0.25, 0.42), t * 0.9)
+	var p: Vector3 = pos + d * (w * 0.5 + t * 0.35)
+	capa.append(_b(id, p, Basis(Vector3.UP, rng.randf() * TAU), t, ht, t * rng.randf_range(0.8, 1.1), retraso, rng))
+
+
+## BOLA: una piedra_est_0 (la más redonda del mapa) ajustada a los semiejes, que gira (quieta despacio, en vuelo deprisa sobre el eje del vuelo).
 func _bola(c: Node3D) -> void:
 	var r: float = maxf(semieje_x, semieje_z)
 	_inclinable = Node3D.new()
@@ -740,42 +821,57 @@ func _bola(c: Node3D) -> void:
 	c.add_child(_inclinable)
 	_roca = MeshInstance3D.new()
 	_roca.name = "Roca"
-	_roca.mesh = HieloMallas.bloque(0.2, 1.0 + randf() * 5.0)
+	var m: Mesh = malla_roca(MALLA_BOLA)
+	_roca.mesh = m
 	_roca.material_override = material_roca()
 	_roca.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_roca.scale = Vector3(r, r * semieje_y / maxf(r, 0.001), r)
+	var a: AABB = m.get_aabb()
+	var esc: Vector3 = Vector3(2.0 * r / maxf(a.size.x, 0.001), 2.0 * semieje_y / maxf(a.size.y, 0.001), 2.0 * r / maxf(a.size.z, 0.001))
+	_roca.transform = centrar(m, Basis.from_scale(esc), Vector3.ZERO)
 	_inclinable.add_child(_roca)
 
 
-## MURO: hilera de bloques facetados a lo largo de x (más altos hacia el centro), cada uno con su pequeño retraso al subir.
+## MURO: hilera de rocas grandes a lo largo de x (más altas hacia el centro, de anchos desiguales y solapadas para que no se vea el fondo entre ellas, cada una con su retraso al subir)
+## y piedras pequeñas al pie, a un lado y a otro.
 func _muro(c: Node3D) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 23 + int(semieje_x * 100.0)
 	var n: int = clampi(int(round(2.0 * semieje_x / 0.62)), 3, MAX_BLOQUES)
 	var w: float = 2.0 * semieje_x / float(n)
+	var fondo: float = maxf(2.0 * semieje_z, 0.3)
 	var capa: Array = []
+	var pies: Array = []
 	for i in n:
 		var x: float = -semieje_x + w * (float(i) + 0.5)
 		var env: float = 1.0 - 0.28 * pow(absf(x) / maxf(semieje_x, 0.01), 2.5)
 		var hh: float = semieje_y * rng.randf_range(0.8, 1.0) * env
-		capa.append(_b(Vector3(x, 0.0, rng.randf_range(-0.2, 0.2) * semieje_z), Basis(Vector3.UP, rng.randf_range(-0.12, 0.12)), w * 1.02, hh, maxf(2.0 * semieje_z, 0.25), absf(x) / maxf(semieje_x, 0.01) * 0.25, rng))
-	_montar_bloques(c, capa, prisma(2.0))
+		var id: String = MALLAS_MURO[(i * 5 + int(rng.randi() % 3)) % MALLAS_MURO.size()]
+		var pos: Vector3 = Vector3(x, 0.0, rng.randf_range(-0.12, 0.12) * fondo)
+		capa.append(_b(id, pos, _giro_roca(rng, 0.14, 0.04), w * rng.randf_range(1.12, 1.3), hh, fondo * rng.randf_range(0.9, 1.15), absf(x) / maxf(semieje_x, 0.01) * 0.25, rng))
+		if i % 2 == 0:
+			pies.append([pos, Vector3(0.0, 0.0, 1.0 if (i / 2) % 2 == 0 else -1.0), fondo, hh, 0.3 + absf(x) / maxf(semieje_x, 0.01) * 0.25])
+	for p in pies:
+		_pie(capa, p[0], p[1], p[2], p[3], p[4], rng, MAX_BLOQUES)
+	_montar_bloques(c, capa)
 
 
-## PILAR: un bloque alto en el centro y cuatro más bajos pegados, ligeramente inclinados hacia fuera.
+## PILAR: una roca alta (roca_est_4) en el centro y cuatro más bajas pegadas, ligeramente inclinadas hacia fuera, con piedras al pie.
 func _pilar(c: Node3D) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 37
 	var capa: Array = []
-	capa.append(_b(Vector3.ZERO, Basis(Vector3.UP, rng.randf() * TAU), semieje_x * 1.4, semieje_y, semieje_z * 1.4, 0.0, rng))
+	capa.append(_b("roca_est_4", Vector3.ZERO, Basis(Vector3.UP, rng.randf() * TAU), semieje_x * 1.5, semieje_y, semieje_z * 1.5, 0.0, rng))
 	for k in 4:
 		var a: float = TAU * float(k) / 4.0 + rng.randf_range(-0.3, 0.3)
 		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
-		capa.append(_b(Vector3(d.x * semieje_x * 1.1, 0.0, d.z * semieje_z * 1.1), HieloMallas._inclinar(d, rng.randf_range(0.08, 0.18), a), semieje_x * 0.9, semieje_y * rng.randf_range(0.28, 0.5), semieje_z * 0.9, 0.12 + 0.05 * float(k), rng))
-	_montar_bloques(c, capa, prisma(3.0))
+		var id: String = "roca_est_1" if k % 2 == 0 else "roca_est_0"
+		var pos: Vector3 = Vector3(d.x * semieje_x * 1.15, 0.0, d.z * semieje_z * 1.15)
+		capa.append(_b(id, pos, HieloMallas._inclinar(d, rng.randf_range(0.08, 0.18), a + rng.randf_range(-0.4, 0.4)), semieje_x * 1.1, semieje_y * rng.randf_range(0.28, 0.5), semieje_z * 1.1, 0.12 + 0.05 * float(k), rng))
+		_pie(capa, pos, d, semieje_x * 1.1, semieje_y * 0.4, 0.35 + 0.05 * float(k), rng, MAX_BLOQUES)
+	_montar_bloques(c, capa)
 
 
-## BARRERA: corona de bloques inclinados hacia dentro sobre la elipse del suelo.
+## BARRERA: corona de rocas grandes (bloques, losas y alguna redonda) inclinadas hacia dentro sobre la elipse del suelo.
 func _barrera(c: Node3D) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 41
@@ -785,12 +881,13 @@ func _barrera(c: Node3D) -> void:
 	for i in n:
 		var a: float = TAU * float(i) / float(n)
 		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
-		var w: float = perim / float(n) * 0.9
-		capa.append(_b(Vector3(d.x * semieje_x * 0.92, 0.0, d.z * semieje_z * 0.92), HieloMallas._inclinar(-d, rng.randf_range(0.25, 0.42), atan2(-d.x, -d.z)), w, semieje_y * rng.randf_range(0.75, 1.0), w * 0.6, rng.randf_range(0.0, 0.2), rng))
-	_montar_bloques(c, capa, prisma(4.0))
+		var w: float = perim / float(n) * rng.randf_range(1.0, 1.15)
+		var id: String = MALLAS_MURO[(i * 3 + int(rng.randi() % 2)) % 5]                   # sin la alta (roca_est_4): la corona es baja y ancha
+		capa.append(_b(id, Vector3(d.x * semieje_x * 0.92, 0.0, d.z * semieje_z * 0.92), HieloMallas._inclinar(-d, rng.randf_range(0.25, 0.42), atan2(-d.x, -d.z) + (PI if rng.randf() < 0.5 else 0.0)), w, semieje_y * rng.randf_range(0.75, 1.0), w * 0.6, rng.randf_range(0.0, 0.2), rng))
+	_montar_bloques(c, capa)
 
 
-## HAZ: hilera de púas de piedra que BROTAN del suelo hacia -Z (cada una sale después de la anterior), cada vez más bajas.
+## HAZ: hilera de púas de piedra (piedra_est_0 / 1 estiradas a lo alto e inclinadas hacia delante) que BROTAN del suelo hacia -Z (cada una sale después de la anterior), cada vez más bajas.
 func _haz(c: Node3D) -> void:
 	_haz_largo = semieje_x * 2.0
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
@@ -801,10 +898,11 @@ func _haz(c: Node3D) -> void:
 	var capa: Array = []
 	for i in n:
 		var f: float = (float(i) + 0.5) / float(n)
-		var w: float = clampf(_haz_r * rng.randf_range(0.35, 0.55), 0.06, 0.5)
+		var w: float = clampf(_haz_r * rng.randf_range(0.5, 0.75), 0.08, 0.6)
 		var lado: Vector3 = Vector3(rng.randf_range(-0.6, 0.6), 0.0, 0.0) * _haz_r
-		capa.append(_b(Vector3(lado.x, 0.0, -f * _haz_largo), HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.15, 0.35), 0.0), w, _haz_alt * 2.0 * rng.randf_range(0.8, 1.2) * (1.15 - 0.5 * f), w, f * 0.6, rng))
-	_montar_bloques(c, capa, HieloMallas.cristal(5, 7.0))
+		var id: String = MALLAS_PUA[i % MALLAS_PUA.size()]
+		capa.append(_b(id, Vector3(lado.x, 0.0, -f * _haz_largo), HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.15, 0.35), rng.randf_range(-0.3, 0.3)), w, _haz_alt * 2.0 * rng.randf_range(0.8, 1.2) * (1.15 - 0.5 * f), w * rng.randf_range(0.8, 1.0), f * 0.6, rng))
+	_montar_bloques(c, capa)
 
 
 func _anim_si_hace_falta() -> void:
@@ -868,9 +966,8 @@ func alturas_actuales() -> Array:
 
 ## Pone cada bloque según `sube` (anticipación → subida con sobrepaso → asentamiento) y `hunde` (temblor y bajada bajo tierra). Suelta el polvo y los fragmentos en su momento.
 func _avanzar_bloques(delta: float) -> void:
-	if _bloques_mm == null or not is_instance_valid(_bloques_mm) or _bloques.is_empty():
+	if _bloques_mms.is_empty() or _bloques.is_empty():
 		return
-	var mm: MultiMesh = _bloques_mm.multimesh
 	var sb: float = clampf(sube, 0.0, 1.0)
 	var hd: float = clampf(hunde, 0.0, 1.0)
 	var tt: float = Time.get_ticks_msec() * 0.001
@@ -891,8 +988,17 @@ func _avanzar_bloques(delta: float) -> void:
 		if hd > 0.0:
 			y -= h * 1.05 * smoothstep(0.25, 1.0, hd)
 		_y_act.append(y)
-		var visible: bool = y > -h * 0.999
-		HieloMallas.poner(mm, j, pos + Vector3(0, y, 0), b["rot"], float(b["wx"]) * ancho, h if visible else 0.0, float(b["wz"]) * ancho, float(b["tono"]), 1.0, 0.0)
+		var visible: bool = y > -h * 0.999 and h > 0.0005
+		var mi: MultiMeshInstance3D = _bloques_mms[int(b["mm"])]
+		if mi == null or not is_instance_valid(mi):
+			continue
+		var mm: MultiMesh = mi.multimesh
+		var idx: int = int(b["idx"])
+		if visible:
+			mm.set_instance_transform(idx, asentar(mm.mesh, b["rot"], float(b["wx"]) * ancho, h, float(b["wz"]) * ancho, pos + Vector3(0, y, 0)))
+			mm.set_instance_custom_data(idx, Color(float(b["tono"]), 1.0, 0.0, 0.0))
+		else:
+			HieloMallas.ocultar(mm, idx)
 	if delta > 0.0 and is_inside_tree():
 		_polvo_de_bloques(delta, sb, hd, k_ant, asentados)
 

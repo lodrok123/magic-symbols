@@ -1,35 +1,36 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_opaque, fog_disabled;        // sin cull: las mallas facetadas (hielo_mallas._tri) no garantizan el sentido de giro de cada cara
+render_mode cull_back, depth_draw_opaque, specular_disabled;
 
-// ROCA DE TIERRA «TOY» (6/11/2026; referencia Echoes of Wisdom): MACIZA, MATE, de SOMBRAS DURAS. Opaca (sin ALPHA: va por la pasada opaca), sin luz de la escena: tres tonos planos por
-// orientación de cada CARA respecto a una luz fija arriba a la izquierda (claro / medio / sombra, escalones duros), con las aristas un poco más claras y la base un poco más oscura (tierra).
-// Malla: normales planas por cara, COLOR.r = altura 0..1 (hielo_mallas.gd: bloque, cristal; TierraToy._prisma). Con `instancias` = 1 (MultiMesh) INSTANCE_CUSTOM: r = variación de tono 0..1.
+// ROCA DE TIERRA «TOY» (6/11/2026, 2.ª versión: LA PIEDRA DEL MUNDO). Las mallas son las rocas estilizadas del mapa (arte/meshy/piezas/piedra_est_* y roca_est_*) con SU textura
+// (tex_rocas_est/rocas_albedo.png, la misma que llevan en el GLB) y la LUZ DE LA ESCENA (sol + ambiente, como las rocas de ArteEntorno3D / Pieza3D): mate (roughness 1, sin especular),
+// opaca (sin ALPHA: pasada opaca), sin emisión ni aditivos. Encima, solo ajustes ligeros sobre la textura, nunca color plano:
+//   · `tinte`: un velo de Vfx3D.COLOR["piedra"] (0,72·0,58·0,42) aclarado; a 1,0 es la textura tal cual.
+//   · `base_tierra`: la base de la roca (VERTEX.y < 0,2 m del modelo, que tiene la base en y = 0) tira a tierra (`color_base`): los bloques que suben del suelo salen manchados.
+//   · con `instancias` = 1 (MultiMesh) INSTANCE_CUSTOM.r = variación de tono 0..1 por roca; `oscurecer` = 1 apaga toda la roca un tercio (fragmentos, piedrecitas).
 
-uniform vec3 color_claro : source_color = vec3(0.85, 0.66, 0.40);     // Vfx3D.COLOR["tierra"]
-uniform vec3 color_medio : source_color = vec3(0.66, 0.50, 0.31);
-uniform vec3 color_sombra : source_color = vec3(0.46, 0.33, 0.21);
-uniform vec3 color_base : source_color = vec3(0.52, 0.38, 0.22);      // Vfx3D perfil tierra «nucleo»
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap;
+uniform vec3 tinte : source_color = vec3(0.98, 0.96, 0.93);
+uniform vec3 color_base : source_color = vec3(0.50, 0.37, 0.24);
+uniform float base_tierra : hint_range(0.0, 1.0) = 0.0;
 uniform float instancias : hint_range(0.0, 1.0) = 0.0;
-uniform float oscurecer : hint_range(0.0, 1.0) = 0.0;                 // 1: toda la roca más oscura (fragmentos, polvo de la base)
+uniform float oscurecer : hint_range(0.0, 1.0) = 0.0;
 uniform float brillo : hint_range(0.3, 3.0) = 1.0;
 
 varying float altura;
 varying float tono;
 
 void vertex() {
-	altura = COLOR.r;
+	altura = VERTEX.y;
 	tono = instancias > 0.5 ? INSTANCE_CUSTOM.r : 0.5;
 }
 
 void fragment() {
-	vec3 n = normalize(NORMAL);
-	vec3 luz = normalize(vec3(-0.45, 0.8, 0.4));
-	float d = dot(n, (mat3(VIEW_MATRIX) * luz));
-	vec3 col = d > 0.35 ? color_claro : (d > -0.15 ? color_medio : color_sombra);
-	float arista = 1.0 - smoothstep(0.0, 0.06, min(UV.x, 1.0 - UV.x));
-	col = mix(col, color_claro * 1.08, arista * 0.35 * step(0.35, d));
-	col = mix(col, color_base, (1.0 - smoothstep(0.0, 0.25, altura)) * 0.45);
-	col *= mix(0.9, 1.08, tono);
+	vec3 col = texture(albedo_tex, UV).rgb * tinte;
+	col = mix(col, color_base, base_tierra * (1.0 - smoothstep(0.0, 0.2, altura)) * 0.5);
+	col *= mix(0.88, 1.08, tono);
 	col *= 1.0 - 0.35 * oscurecer;
 	ALBEDO = col * brillo;
+	ROUGHNESS = 1.0;
+	METALLIC = 0.0;
+	SPECULAR = 0.0;
 }

@@ -9,7 +9,7 @@ const CASOS: Array = [
 	# id, elemento, glifos, dirección (con y < 0 el proyectil baja y revienta contra el suelo), desplazamiento en casillas hacia +X, tiempos de foto
 	["magma_vuelo", "magma", {"flecha": 1}, Vector3(1.0, 0.0, 0.0), 0.0, [0.25, 0.5]],
 	["magma_crater", "magma", {"flecha": 1}, Vector3(1.0, -0.55, 0.0), 0.0, [0.5, 0.9, 1.8, 3.2]],
-	["tierra_muro", "tierra", {"barrera": 1, "linea_x": 2, "altura": 1}, Vector3(1.0, 0.0, 0.0), 2.0, [0.15, 0.4, 1.2]],
+	["tierra_muro", "tierra", {"barrera": 1, "linea_x": 2, "altura": 1}, Vector3(1.0, 0.0, 0.0), 1.0, [0.15, 0.4, 1.2]],      # 6/11 tarde: a 1 casilla (a 2 el muro del toy caía fuera del encuadre, tapado por el bloque sólido del Lanzador)
 	["viento_rafaga", "viento", {"flecha": 1}, Vector3(1.0, 0.0, 0.0), 0.0, [0.2, 0.45]],
 	["viento_haz", "viento", {"linea_x": 2}, Vector3(1.0, 0.0, 0.0), 0.0, [0.3, 1.0]],
 ]

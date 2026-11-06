@@ -3,7 +3,8 @@ extends SceneTree
 ## PRUEBA del viento y la tierra «toy» (6/11/2026; a imagen de prueba_hielo_toy.gd). Sin ventana (los class_name son nuevos: antes, `--headless --import`):
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_viento_tierra_toy.gd
 ## Comprueba, con VientoToy / ImpactoVientoToy, TierraToy / ImpactoTierraToy y el humo toon (humo_toy.gd):
-##   1. ESTILO: los shaders nuevos no son aditivos ni emisivos; el humo toon es blend_mix, unshaded y de borde duro (discard); la roca es opaca y unshaded
+##   1. ESTILO: los shaders nuevos no son aditivos ni emisivos; el humo toon es blend_mix, unshaded y de borde duro (discard); la roca es opaca, con la textura de las rocas del mapa
+##      (rocas_albedo.png) y la luz de la escena (NO unshaded; mate, sin especular), y las figuras usan las mallas piedra_est_* / roca_est_* del mapa (6/11 tarde: «la piedra del mundo»)
 ##   2. HUMO TOON: una bocanada NACE pequeña, CRECE (~×2,5), se EROSIONA al final (erosion sube con la edad) y MUERE en su vida; deriva en curva
 ##   3. FIGURAS: las dos clases se crean y las 5 figuras y `desde_hechizo` no fallan; sin luces ni GPUParticles3D; piezas esperadas (cintas, hojas, bloques, roca...)
 ##   4. TIERRA: los bloques SUBEN del suelo con anticipación, sobrepaso y asentamiento (`subida`), sueltan polvo y fragmentos al asentarse y se HUNDEN al morir
@@ -132,19 +133,27 @@ func _limpiar_impactos() -> void:
 
 func _estilo() -> void:
 	print("== shaders")
+	var codigos: Dictionary = {}
 	for s in ["humo_toon.gdshader", "tierra_roca.gdshader"]:
 		var txt: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/" + s)
 		var cuerpo: PackedStringArray = PackedStringArray()
 		for l in txt.split("\n"):
 			if not l.strip_edges().begins_with("//"):
 				cuerpo.append(l)
-		var codigo: String = "\n".join(cuerpo)
-		_ok(s + ": sin blend_add, sin EMISSION, unshaded", codigo.find("blend_add") < 0 and codigo.find("EMISSION") < 0 and codigo.find("unshaded") >= 0)
-	var humo: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/humo_toon.gdshader")
+		codigos[s] = "\n".join(cuerpo)
+	var humo: String = codigos["humo_toon.gdshader"]
+	_ok("humo_toon: sin blend_add, sin EMISSION, unshaded", humo.find("blend_add") < 0 and humo.find("EMISSION") < 0 and humo.find("unshaded") >= 0)
 	_ok("humo_toon: borde duro (discard, ALPHA = 1.0), dos tonos (color_claro / color_sombra), color viejo y erosión por edad", humo.find("discard") >= 0 and humo.find("ALPHA = 1.0") >= 0
 		and humo.find("color_sombra") >= 0 and humo.find("color_viejo") >= 0 and humo.find("erosion") >= 0)
-	var roca: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/tierra_roca.gdshader")
-	_ok("tierra_roca: opaca (no escribe ALPHA) con tres tonos planos", roca.find("ALPHA =") < 0 and roca.find("color_sombra") >= 0 and roca.find("color_medio") >= 0)
+	var roca: String = codigos["tierra_roca.gdshader"]
+	_ok("tierra_roca: sin blend_add, sin EMISSION, con la LUZ de la escena (no unshaded), mate (ROUGHNESS = 1.0) y sin especular", roca.find("blend_add") < 0 and roca.find("EMISSION") < 0
+		and roca.find("unshaded") < 0 and roca.find("ROUGHNESS = 1.0") >= 0 and roca.find("specular_disabled") >= 0)
+	_ok("tierra_roca: opaca (no escribe ALPHA) y pinta la TEXTURA de las rocas del mapa (albedo_tex) con un velo (tinte), no color plano", roca.find("ALPHA =") < 0 and roca.find("albedo_tex") >= 0
+		and roca.find("texture(albedo_tex, UV)") >= 0 and roca.find("tinte") >= 0)
+	_ok("las rocas del mapa existen (piedra_est_0..4, roca_est_0..4 y rocas_albedo.png)", ResourceLoader.exists(TierraToy.TEX_ALBEDO) and range(5).all(func(i: int) -> bool: return ResourceLoader.exists(TierraToy.RUTA_ROCA % ("piedra_est_%d" % i)) and ResourceLoader.exists(TierraToy.RUTA_ROCA % ("roca_est_%d" % i))))
+	var mb: Mesh = TierraToy.malla_roca("piedra_est_0")
+	_ok("malla_roca carga la piedra_est_0 del GLB (%d vértices, base en y = 0, %.2f m de lado) y la cachea" % [(mb.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size(), TierraToy.lado_malla(mb)],
+		mb is ArrayMesh and absf(mb.get_aabb().position.y) < 0.01 and TierraToy.lado_malla(mb) > 0.5 and TierraToy.malla_roca("piedra_est_0") == mb)
 	_ok("el ruido del humo existe (T_CloudNoise_Tiled.png)", ResourceLoader.exists(HumoToy.TEX_RUIDO))
 
 
@@ -212,10 +221,26 @@ func _figuras(cl: String) -> void:
 		else:
 			var bl: MultiMeshInstance3D = e.find_child("Bloques", true, false) as MultiMeshInstance3D
 			if int(f[1]) == 0:
-				_ok("[tierra BOLA] pedrusco facetado (Roca) con material de roca", e.find_child("Roca", true, false) is MeshInstance3D and ((e.find_child("Roca", true, false) as MeshInstance3D).material_override as ShaderMaterial).shader.resource_path.ends_with("tierra_roca.gdshader"))
+				var roca: MeshInstance3D = e.find_child("Roca", true, false) as MeshInstance3D
+				_ok("[tierra BOLA] la roca es la piedra_est_0 del mapa con el material de roca (textura rocas_albedo)", roca != null and roca.mesh == TierraToy.malla_roca("piedra_est_0")
+					and (roca.material_override as ShaderMaterial).shader.resource_path.ends_with("tierra_roca.gdshader") and (roca.material_override as ShaderMaterial).get_shader_parameter("albedo_tex") is Texture2D)
 			else:
-				var n: int = (e.get("_bloques") as Array).size()
-				_ok("[tierra %s] %d bloques facetados en un MultiMesh (≤ 24) y polvo + terrones en reserva" % [f[0], n], bl != null and n >= 3 and n <= 24 and e.find_child("Polvo", true, false) != null and e.find_child("Terrones", true, false) != null)
+				var bloques: Array = e.get("_bloques")
+				var n: int = bloques.size()
+				var mms: Array = e.get("_bloques_mms")
+				var mallas: Dictionary = {}
+				var inst: int = 0
+				var del_mapa: bool = true
+				for b in bloques:
+					mallas[String((b as Dictionary)["malla"])] = true
+					del_mapa = del_mapa and (String((b as Dictionary)["malla"]).begins_with("roca_est_") or String((b as Dictionary)["malla"]).begins_with("piedra_est_"))
+				for mi in mms:
+					inst += (mi as MultiMeshInstance3D).multimesh.instance_count
+					del_mapa = del_mapa and (mi as MultiMeshInstance3D).multimesh.mesh is ArrayMesh and ((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("albedo_tex") is Texture2D
+				_ok("[tierra %s] %d rocas del mapa (%s) en %d MultiMesh (≤ 5, uno por tipo; ≤ 24 rocas) y polvo + terrones en reserva" % [f[0], n, ", ".join(mallas.keys()), mms.size()],
+					bl != null and n >= 3 and n <= 24 and inst == n and mms.size() == mallas.size() and mms.size() <= 5 and del_mapa and e.find_child("Polvo", true, false) != null and e.find_child("Terrones", true, false) != null)
+				var terr: MultiMeshInstance3D = e.find_child("Terrones", true, false).get_child(0) as MultiMeshInstance3D
+				_ok("[tierra %s] los terrones son la piedra_est_1 del mapa" % f[0], terr != null and terr.multimesh.mesh == TierraToy.malla_roca("piedra_est_1"))
 		e.queue_free()
 		await process_frame
 	# desde_hechizo: la misma regla que el fuego
@@ -245,9 +270,10 @@ func _tierra_sube() -> void:
 	e.sube = 0.1
 	e._avanzar_bloques(0.0)
 	var bajo: bool = true
-	for y in e.alturas_actuales():
-		bajo = bajo and float(y) <= -0.5
-	_ok("con sube = 0,1 (anticipación) todos los bloques siguen bajo tierra (y ≤ −0,5 m)", bajo)
+	var ys: Array = e.alturas_actuales()
+	for j in ys.size():
+		bajo = bajo and float(ys[j]) <= -0.5 * float((e._bloques[j] as Dictionary)["h"])        # las piedras del pie son bajas: se mide contra el alto de cada roca
+	_ok("con sube = 0,1 (anticipación) todas las rocas siguen bajo tierra (y ≤ −½ de su alto)", bajo and ys.size() >= 3)
 	e.sube = 1.0
 	e._avanzar_bloques(0.0)
 	var arriba: bool = true
