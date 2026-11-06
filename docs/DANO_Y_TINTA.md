@@ -45,13 +45,17 @@ Ejemplos (fuego; tinta antes de la rebaja del pigmento):
 
 Hielo y rayo (aparcados) conservan su daño de siempre con cualquier geometría.
 
+> **6/11: ya no.** Hielo y rayo entraron en la tabla (bloque A1 de `PROPUESTAS_COMBATE_2026-11-06.md`, decisión de Pablo «ningún elemento es más fuerte que otro»): rayo ×1,00 y hielo ×0,90, así que su daño sale de B × E como el de los demás (rayo 12 / 24 / 40, hielo 10,8 / 21,6 / 36). El `damage` de sus `.tres` (55 y 20) sigue escrito, pero `Hechizo.construir` lo sobrescribe. El aturdimiento y el salto en arco del rayo y la congelación del hielo se mantienen: son su «valor extra», como la quemadura del fuego.
+
 | Nivel | Daño base B (nivel de daño) | Tinta base T_base (potencia) |
 |---|---|---|
 | Ligera | 12 | 8 |
 | Media | 24 | 18 |
 | Alta | 40 | 34 |
 
-**Multiplicador elemental E:** fuego ×1,10 (quemadura) · agua ×0,80 (humedad y conducción) · tierra ×1,15 (impacto y estructuras) · viento ×0,80 (empuje).
+**Multiplicador elemental E:** fuego ×1,10 (quemadura) · agua ×0,80 (humedad y conducción) · tierra ×1,15 (impacto y estructuras) · viento ×0,80 (empuje) · *(6/11)* rayo ×1,00 (aturdimiento y salto) · hielo ×0,90 (congelación).
+
+> 6/11: la regla de Pablo es que ningún elemento supere a otro en más del 15 % a igual potencia. Con estos valores de partida **no se cumple** (tierra 1,15 contra agua o viento 0,80: +43,7 %; fuego 1,10 contra agua: +37,5 %). La prueba `prueba_dano_tinta` lo imprime como AVISO, no como fallo: son valores de partida para que Pablo los afine (`Dano.MULT_ELEMENTO`, `Dano.DESVIO_ELEMENTOS_MAX`).
 
 | B × E | Ligera | Media | Alta |
 |---|---|---|---|
@@ -59,6 +63,8 @@ Hielo y rayo (aparcados) conservan su daño de siempre con cualquier geometría.
 | Agua | 9,6 | 19,2 | 32 |
 | Tierra | 13,8 | 27,6 | 46 |
 | Viento | 9,6 | 19,2 | 32 |
+| Rayo *(6/11)* | 12 | 24 | 40 |
+| Hielo *(6/11)* | 10,8 | 21,6 | 36 |
 
 Eficiencia daño/tinta (B / T_base): **ligera 1,5 · media 1,33 · alta 1,18**. La potencia baja es más eficiente en tinta; la alta compensa porque **la defensa plana se come una parte fija de cada golpe** (§4): contra un enemigo con DEF 5, la ligera de fuego pierde el 38 % de su daño en la defensa y la alta solo el 11 %. Lanzar muchos hechizos pequeños gasta menos tinta por punto de daño, pero contra enemigos blindados solo la potencia alta (y la media) hace daño de verdad.
 
@@ -76,10 +82,10 @@ D_final = máx( SUELO_DEF · D ,  D − DEF )     SUELO_DEF = 0,2
 | Símbolo | Qué es | Valor hoy |
 |---|---|---|
 | B | daño base de la potencia | 12 / 24 / 40 |
-| E | multiplicador del elemento | tabla de arriba (1 para hielo y rayo) |
+| E | multiplicador del elemento | tabla de arriba (6/11: los seis elementos, rayo ×1,00 y hielo ×0,90) |
 | G | glifos con efecto propio sobre el impacto (`Hechizo.potencia`) | **1,0**: ningún glifo lo toca (ver §6) |
-| X | la reacción | rayo sobre mojado ×1,5 · el resto 1 |
-| suma_X | lo que SUMA la reacción | hielo sobre mojado +15 (entra antes de R) |
+| X | la reacción | rayo sobre mojado ×1,5 · *(6/11)* hielo sobre mojado ×1,5 (`Dano.X_HIELO_MOJADO`) · el resto 1 |
+| suma_X | lo que SUMA la reacción | *(6/11)* ninguna: el hielo sobre mojado era +15 y pasó a ×1,5 (con el daño nuevo el +15 daba 25,8 a una ligera de 10,8). El gancho `suma_x` sigue en `Dano.bruto` por si otra reacción lo necesita |
 | R | lo que le pasa a ESE enemigo con ese elemento | débil ×1,5 · resiste ×0,75 · normal ×1 · gólem de pie 0 · gólem con el núcleo expuesto ×1,5 |
 | DEF | defensa plana del enemigo | §4 |
 
@@ -101,11 +107,13 @@ Sale del **`Hechizo` construido**: `Dano.tinta_de(h)` (lo que cobra el juego: `H
 | Término | De dónde sale | Hoy |
 |---|---|---|
 | `T_base` | nº de glifos → potencia: 0–1 ligera **8** · 2–3 media **18** · ≥ 4 alta **34** | igual |
-| `aporte_glifo` | dato `"tinta": {"por_glifo": x, "tope": t}` en cada entrada de `Sigils.GLIFOS`: `mín(x · n, t)` (sin clave, 0) | 0 en los 10 glifos |
-| `recargo_instancias` | `Dano.K_COPIA` × (copias − 1) + `Dano.K_HIJO` × hijos previstos (suma de `cuantos` de las acciones `crear_hijo` de todos los eventos) | 0 y 0 |
-| `recargo_periodico` | **+0,25** (`Sigils.COSTE_CONTINUO_V2`) si ᚱ y el volumen se queda sin viajar (`Dano.es_continuo`) · más `Dano.K_PERIODICO` si `dano_periodico > 0` o `veneno > 0` | 0,25 como siempre; K_PERIODICO 0 |
+| `aporte_glifo` | dato `"tinta": {"por_glifo": x, "tope": t}` en cada entrada de `Sigils.GLIFOS`: `mín(x · n, t)` (sin clave, 0) | 29/10: 0 en los 10 glifos · **6/11: flecha 2 · barrera 4 · repetición 3 · rebote 2 · pulso 2 · permanencia 3 · raido 4 · ejes, altura, perforar, retorno, buscar y retardo 0** |
+| `recargo_instancias` | `Dano.K_COPIA` × (copias − 1) + `Dano.K_HIJO` × hijos previstos (suma de `cuantos` de las acciones `crear_hijo` de todos los eventos) | 29/10: 0 y 0 · **6/11: K_COPIA 0,15 · K_HIJO 0,10** |
+| `recargo_periodico` | **+0,25** (`Sigils.COSTE_CONTINUO_V2`) si ᚱ y el volumen se queda sin viajar (`Dano.es_continuo`) · más `Dano.K_PERIODICO` si `dano_periodico > 0` o `veneno > 0` | 0,25 como siempre; K_PERIODICO se queda en 0 (el fuego ya hiere por tics de serie) |
 
-El nº de glifos sigue entrando **solo** por `T_base` (sin doble conteo): el aporte de un glifo es un precio propio de ese glifo, no un segundo conteo, y vale 0 hasta que Pablo lo ponga.
+El nº de glifos sigue entrando **solo** por `T_base` (sin doble conteo): el aporte de un glifo es un precio propio de ese glifo, no un segundo conteo. *(6/11, bloque A3: hasta entonces valía 0; los valores de partida los afina Pablo.)*
+
+> **Tabla de abajo, a fecha del 29/10 (con aportes y K a 0).** Con los valores del 6/11 las tintas son otras: flecha 10 · ᚠᚠ + flecha (18 + 6 + 2) × 1,30 = 33,8 · barrera + ᚱ (18 + 4 + 4) × 1,25 = 32,5 · permanencia + ᚱ 31,25 · tierra + ᛁᛁ + ᚱ 22 · flecha + ᚱ 24 · barrera ×2 + ᚱ ×2 (34 + 8 + 8) × 1,25 = 62,5. La receta de 6 glifos más cara del catálogo (27 132 recetas, recorridas por `prueba_dano_tinta`) cuesta 93,5 (barrera ×2 + repetición ×3 + ᚱ), por debajo de la barra inicial de 100.
 
 **Cuándo es «continuo» (`Dano.CONTINUO_POR_HECHIZO`).** Hoy (`false`) es la condición de siempre, por las propiedades de la receta: ᚱ + no viaja + (barrera o permanencia). Con `true` se decidiría con `Hechizo.persistente`, que cierra PENDIENTES (tierra/hielo + ᚱ sin barrera también laten y no pagaban), pero **cambia el golden**: tierra/hielo + ᚱ sin barrera suben (+25 %: p. ej. ᛁᛁ + ᚱ, 18 → 22,5) y ᛁᛁ + ᛉ + ᚱ (un haz, no se queda) baja (42,5 → 34). Se deja a `false` por la regla «el golden no se regenera»; **decisión para Pablo** (la prueba cubre las dos).
 
@@ -119,7 +127,7 @@ El nº de glifos sigue entrando **solo** por `T_base` (sin doble conteo): el apo
 | tierra + ᛁᛁ + ᚱ (sin barrera) | 18 (con `CONTINUO_POR_HECHIZO`: 22,5) |
 | fuego (ya hiere por tics: `dano_periodico` 40) | 8 |
 
-**Propuesta de números para Pablo** (nada de esto está aplicado; los topes de los glifos ya están escritos en `Sigils.GLIFOS`):
+**Propuesta de números para Pablo** (*6/11: aplicada tal cual en el bloque A3; K_COPIA 0,15 y K_HIJO 0,10; los topes de los glifos ya estaban escritos en `Sigils.GLIFOS`*):
 
 | Glifo | `por_glifo` propuesto | Glifo | `por_glifo` propuesto |
 |---|---|---|---|
@@ -184,6 +192,8 @@ Sin defensa, daño/tinta sería casi plano (1,5 / 1,33 / 1,18) y lo óptimo ser�
 
 ## 5. Hielo y rayo (aparcados)
 
+> **6/11: retomados y aplicados (bloque A1).** Rayo ×1,00 y hielo ×0,90 en `Dano.MULT_ELEMENTO`; el hielo sobre mojado pasa de +15 a ×1,5 (`Dano.X_HIELO_MOJADO`); el rayo sobre mojado sigue ×1,5. Lo que sigue es el texto del 29/10, que describe el estado anterior.
+
 Se retomarán. De momento **conservan su daño de siempre** (`nucleo/ice_rune.tres` 20, `lightning_rune.tres` 55 y todas sus reglas: hielo +15 sobre mojado, rayo ×1,5 sobre mojado y salto al enemigo más cercano), sin tabla de potencia; pero **sí pasan por R y por la defensa**, para que todos los enemigos lean igual (un rayo contra un goblin: 55 − 2 = 53).
 
 **Propuesta para cuando se retomen** (no aplicada; anotada en `Dano.PROPUESTA_RAYO` y `PROPUESTA_HIELO`): rayo ×1,00 y hielo ×0,90 sobre la misma tabla de B → rayo 12 / 24 / 40 y hielo 10,8 / 21,6 / 36 (con el aturdimiento y la congelación como su valor extra, como la quemadura al fuego). El +15 del hielo sobre mojado y el ×1,5 del rayo habrá que revisarlos entonces: con el daño nuevo el +15 pesa mucho más (una ligera de hielo pasa de 10,8 a 25,8 sobre un mojado).
@@ -220,7 +230,9 @@ Por tanto **G = 1** hoy. El gancho está listo: `Combate3D.decidir_golpe` ya mul
 | Número flotante | `Combate3D._numero` (recibe el `D_final`) |
 | Pruebas | `herramientas/prueba_dano_tinta.gd` |
 
-Cambios en los datos: la tierra ya no suma +18 (`earth_rune.tres`); `fire_rune.tres` (50) y `water_rune.tres` (40) conservan su `damage` pero `Hechizo.construir` lo sobrescribe con la tabla (hielo y rayo, no).
+Cambios en los datos: la tierra ya no suma +18 (`earth_rune.tres`); `fire_rune.tres` (50) y `water_rune.tres` (40) conservan su `damage` pero `Hechizo.construir` lo sobrescribe con la tabla (6/11: también `ice_rune.tres` 20 y `lightning_rune.tres` 55).
+
+**Debilidades (6/11, bloque A2):** los goblins ya no son débiles al agua ni resisten el fuego por defecto (`Combate3D.debil` / `resiste` nacen en `""`). Los goblins de un nivel «Bosque*» (Bosque, Bosque_01, Bosque_01_v01, Bosque_02) siguen con agua / fuego (`Combate3D.DEBILIDAD_GOBLIN_POR_NIVEL`, por prefijo del `nivel` del mundo) y la pieza `; pieza <id> vigia <x> <y> de=<casillas> debil=<elemento> resiste=<elemento>` los fija por enemigo. Los números de esta tabla por enemigo (§3, «Golpes para matar») están calculados con R = 1; contra un goblin del Bosque sigue valiendo el fuego ×0,75 y el agua ×1,5.
 
 ---
 
@@ -229,4 +241,4 @@ Cambios en los datos: la tierra ya no suma +18 (`earth_rune.tres`); `fire_rune.t
 - **Daños de entorno** (`EmisorRayo3D` 8 por tic, `EstalagmitaPulso3D` 25, `GeodaPulso3D`) hieren a los enemigos por `receive_damage` directo; con la vida a la mitad pesan el doble. No se han tocado.
 - **Quemadura** (3 por 0,5 s durante 3 s = hasta 18; el elemental 6 por tic) y `dano_periodico` del fuego (40 × 0,25 s = 10 por pulso) siguen con sus cifras de antes: contra un goblin de 50 son un tercio de la vida (la quemadura) y 1,25 s de zona.
 - **Escudos** (`Escudo3D.VIDA_ESCUDO` 60, `EscudoNaturaleza3D.VIDA` 25) no son enemigos y no se han reducido.
-- **Hielo sobre mojado +15** pesa mucho con el daño nuevo (§5).
+- **Hielo sobre mojado +15** pesa mucho con el daño nuevo (§5). *(6/11: resuelto, ahora es ×1,5.)*

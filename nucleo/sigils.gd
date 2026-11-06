@@ -422,8 +422,8 @@ const GLIFOS_V2: Dictionary = {
 ##   salta   (opcional) los k primeros glifos no cuentan: n = max(n − k, 0), y con n = 0 el modificador no se aplica («persiste +1 por cada glifo SUCESIVO»: salta 1)
 ##   desde   valor de partida si ningún otro glifo ha tocado ya ese campo (opcional; p. ej. la solidez parte de 1 con el primer glifo y vale 0 sin ninguno)
 ## `cuenta_dano` (H3, opcional, por defecto true): ¿suma este glifo al recuento OFENSIVO que fija el daño (`Hechizo.n_glifos_dano`)? Los de geometría (ᛁ linea_x, ᛁ linea_z, ᛏ altura) no: cuestan tinta pero no dan daño (PLAN_SISTEMA_HECHIZOS §4.1).
-## `tinta` (H4, opcional): {por_glifo, tope} = lo que suma este glifo a la tinta BASE (`Dano.desglose_tinta`: min(por_glifo × n, tope)); sin la clave, 0. Todos a 0 hasta que Pablo ponga números.
-##   Propuesta de arranque (NO aplicada): flecha 2 · barrera 4 · repetición 3 · rebote 2 · pulso (crecer) 2 · permanencia 3 · raido 4 · ejes 0. Los topes escritos (3-4 glifos de cada uno) son los de esa propuesta.
+## `tinta` (H4, opcional): {por_glifo, tope} = lo que suma este glifo a la tinta BASE (`Dano.desglose_tinta`: min(por_glifo × n, tope)); sin la clave, 0. 6/11 (bloque A3): valores de partida APLICADOS (Pablo los afinará): flecha 2 · barrera 4 · repetición 3 · rebote 2 · pulso (crecer) 2 · permanencia 3 · raido 4 · ejes, altura, perforar, retorno, buscar y retardo 0.
+##   Los topes escritos (3-4 glifos de cada uno) son los de la propuesta de DANO_Y_TINTA §2 y no se han tocado.
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
 ## GLIFOS_V2 está EN DESUSO (H1): el laboratorio, la UI de ejes y el libro leen esta tabla; `prueba_hechizo` comprueba que las dos dicen lo mismo.
 const GLIFOS: Dictionary = {
@@ -431,26 +431,26 @@ const GLIFOS: Dictionary = {
 	"linea_z": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma_primero", "valor": PASO_FONDO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
 	"altura": {"cuenta_dano": false, "repertorio": "altura", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma_decreciente", "valor": PASO_ALTURA_V2, "factor": FACTOR_DECRECIENTE_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
-	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 8.0}, "momento": "continuo", "paso": 3, "modificadores": [
+	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "tinta": {"por_glifo": 2.0, "tope": 8.0}, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
 		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0},
 			{"campo": "impulso_salida", "op": "suma", "valor": IMPULSO_POR_FLECHA_V2, "salta": 1}]},
 	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). 30/10 (playtest de Pablo, «mejor que no sea apuntable, más intuitivo»): YA NO nace donde apuntas (sin `en_punto`): nace en el lanzador y lo rodea, como antes del 18/10;
 	# los sólidos quietos (tierra, hielo) siguen naciendo donde apuntas por `Hechizo.SOLIDO_QUIETO_EN_PUNTO` (un bloque no puede nacer bajo la jugadora). Cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
-	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "tinta": {"por_glifo": 0.0, "tope": 12.0}, "momento": "continuo", "paso": 4, "modificadores": [
+	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "tinta": {"por_glifo": 4.0, "tope": 12.0}, "momento": "continuo", "paso": 4, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
 		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},
-	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 9.0}, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
-	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
+	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
+	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	# ᚷ «crecer» (hasta el 23/10 se llamaba «pulso»; el id, el parámetro `crece` y el efecto no cambian: ver NOMBRE_VISIBLE). Crece mientras vive.
 	# 30/10 (playtest de Pablo, «más glifos, mayor tope geométrico y mayor tasa»): además de `crece` +0,5 m/s, cada ᚷ MULTIPLICA los tres semiejes por CRECER_TOPE_V2 (el volumen nace pequeño y crece hasta ese tamaño mayor).
-	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 0.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2},
+	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2}]},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): lo que hace que un hechizo SE QUEDE (defensas, piezas de puzle). +2 s por glifo; `Hechizo._limitar` recorta persiste + permanencia a 25 s.
-	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 9.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
+	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
 	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2 y §10 bis): el volumen suelta un `Pulso3D` de `resuena` casillas con el elemento de la receta.
 	# Cuándo: al FINAL si el hechizo viaja (flecha + pulso = pulso donde choca, sin caso especial); CONTINUO si el volumen se queda (barrera, sólido, permanencia); al INICIO en el resto.
-	"raido": {"repertorio": "raido", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 12.0}, "momento": "inicio", "paso": 5, "accion": "emitir_pulso",
+	"raido": {"repertorio": "raido", "cooldown": 2.0, "tinta": {"por_glifo": 4.0, "tope": 12.0}, "momento": "inicio", "paso": 5, "accion": "emitir_pulso",
 		"momento_si": [{"cuando": "viaja", "es": "final"}, {"cuando": "persistente", "es": "continuo"}],
 		"modificadores": [{"campo": "resuena", "op": "suma", "valor": PASO_RESUENA_V2, "tope": TOPE_RESUENA_V2}]},
 	# --- H5 (30/10, decisión de Pablo; PLAN_SISTEMA_HECHIZOS §3 H5): se activan los campos que HechizoVivo ya ejecutaba (HC4) y el retardo del proyectil. Tinta a 0 y `cuenta_dano` por defecto (cuentan para el daño):

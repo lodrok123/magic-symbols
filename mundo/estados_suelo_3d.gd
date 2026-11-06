@@ -58,7 +58,9 @@ const TRANSICIONES: Array = [
 ## C2 (3/11, decisión de Pablo: «sin aplicación el rayo se irá a los 2 segundos; hielo se va a los 20 segundos»): la ELECTRIFICADA caduca a los 2 s si nadie la
 ## mantiene (el `EmisorRayo3D` activo la renueva mientras dura la descarga) y la HELADA a los 20 s (se deshiela y deja la casilla mojada, `AL_CADUCAR`). Esta constante es
 ## el ÚNICO sitio donde está la duración del hielo: `AguaSim3D.DURA_HIELO`, `Hierba3D.ESCARCHA_S` y `Lanzador3D` la leen de aquí. Lo quemado y lo segado se quedan (sin decidir).
-const DURA: Dictionary = {"helada": 20.0, "electrificada": 2.0, "quemada": 0.0, "mojada": 20.0, "segada": 0.0}
+## 6/11 (bloque A5, decisión de Pablo): la ELECTRIFICADA pasa de 2 s a 6 s (con 2 s no daba tiempo a preparar nada encima) y la QUEMADA deja de ser permanente: caduca a los 8 s.
+## OJO: el 3/11 Pablo había fijado electrificada 2 s; el 6 s NO es un error, es esta decisión posterior. La helada se queda en 20 s.
+const DURA: Dictionary = {"helada": 20.0, "electrificada": 6.0, "quemada": 8.0, "mojada": 20.0, "segada": 0.0}
 
 ## C1 (2/11, lote 3 cambio 1), la columna «al_caducar»: qué estado queda en la casilla cuando OTRO caduca (se quita el que caduca y se pone este; "" o sin fila = nada). Hoy solo hay una fila: lo que
 ## se hiela (una `helada` que caduca) se deshiela y deja la casilla MOJADA. C2 (3/11): ya se usa de verdad (`DURA["helada"]` = 20) y el `Lanzador3D` dejó su contador: oye `caducado` para soltar

@@ -55,6 +55,8 @@ extends Node
 ##                              VigiaPuzle (C3): vigila a los Combate3D cuya casilla de PARTIDA (`casa`) está en `de`
 ##              (un rectángulo `x0,y0..x1,y1` es "la zona"). Cuando han caído todos (muertos o hundidos) emite `todos_derrotados` y, si hay
 ##              `flag`, la pone. Mientras no haya encontrado ninguno no se da por cumplido (una lista que no casa con nadie avisa)
+##              6/11 (bloque A2): `debil=<elemento>` y `resiste=<elemento>` fijan la debilidad / resistencia de esos enemigos (sin ellas, los de fuera del Bosque no tienen ninguna:
+##              `Combate3D.DEBILIDAD_GOBLIN_POR_NIVEL`). Ej.: `; pieza g vigia 0 0 de=12,8 debil=rayo resiste=agua`
 ##   cerrojo    celdas=<lista> (obligatoria)  sala=<lista>  hasta=<flag>             CerrojoPuzle (C3): puertas de sala (PuertaPuzle, una por casilla de `celdas`). Nacen
 ##              ABIERTAS; se cierran cuando el jugador pisa una casilla de `sala` (y no está en la puerta). Se abren con la acción `abrir`
 ##              y ya no vuelven a cerrarse. `hasta=<flag>`: con esa flag puesta (al montar o después) ni se cierra ni se queda cerrado.
@@ -407,7 +409,7 @@ const CLAVES: Dictionary = {
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f"},
 	"cuerda": {"sostiene": "id"},
-	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b"},
+	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
 	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da", "gasta": "b"},
 	"muro": {"golpes": "f"},
@@ -747,6 +749,8 @@ class VigiaPuzle extends Node:
 	var completo: bool = false
 	var vistos: Array = []                       ## los Combate3D que vigila
 	var puesto: bool = false                     ## 27/10: sus ARQUEROS son de puesto (`Combate3D.fijo`): no persiguen, baten desde donde nacen
+	var debil: String = ""                       ## 6/11 (bloque A2): "" = no toca la debilidad del enemigo (la del nivel); si no, `Combate3D.fijar_debilidad`
+	var resiste: String = ""
 	var _t: float = 0.0
 	var _t_sin: float = 0.0
 	var _avisado: bool = false
@@ -818,6 +822,8 @@ class VigiaPuzle extends Node:
 					vistos.append(n)
 					if puesto and (n as Combate3D).arquero:
 						(n as Combate3D).fijo = true
+					if debil != "" or resiste != "":
+						(n as Combate3D).fijar_debilidad(debil if debil != "" else (n as Combate3D).debil, resiste if resiste != "" else (n as Combate3D).resiste)
 
 
 ## C3 · CERROJO: las puertas de una sala. Nacen abiertas; se cierran cuando el jugador entra en `sala` y se abren con `abrir` (definitivo: no
@@ -2206,6 +2212,8 @@ func _crear(pz: Pieza) -> void:
 			vg.name = pz.id
 			vg.preparar(pz.p["de"], String(pz.p.get("flag", "")))
 			vg.puesto = bool(pz.p.get("puesto", false))
+			vg.debil = String(pz.p.get("debil", ""))
+			vg.resiste = String(pz.p.get("resiste", ""))
 			vg.aviso.connect(_avisar)
 			cont.add_child(vg)
 			if vg.completo:

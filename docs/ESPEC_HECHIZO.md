@@ -143,7 +143,7 @@ inicial. Hay **dos** ejes horizontales (ancho X y fondo Z), así que «longitud�
 
 `deja` (estado de suelo que deja el elemento): `quemado` (fuego), `mojado` (agua), `helado` (hielo) y, desde el 3/11 (C2, decisión de Pablo), **`electrificado` (rayo)**. El rayo lo deja
 **solo en una casilla mojada o de agua** (`Lanzador3D.electrificar_celda`, vía `marcar_celda("rayo", c)`; sobre suelo seco no deja nada) y la descarga (`HechizoVivo._descarga`) electrifica además
-el agua y los conductores que recorre. La caducidad es la del reloj oficial, `EstadosSuelo3D.DURA["electrificada"]` = **2 s** (la renueva otro rayo o el `EmisorRayo3D` mientras dura su descarga).
+el agua y los conductores que recorre. La caducidad es la del reloj oficial, `EstadosSuelo3D.DURA["electrificada"]` = **6 s** (6/11, bloque A5 por decisión de Pablo; era 2 s desde el 3/11) (la renueva otro rayo o el `EmisorRayo3D` mientras dura su descarga).
 A diferencia de los otros tres, `electrificado` **no pasa por la maqueta** (`_al_impactar`): un rayo marcando casillas no debe quemar la hierba del recorrido.
 
 - **Temperatura, humedad y conductividad** solo se rellenan en esta versión. En la fase de cálculo, las reacciones

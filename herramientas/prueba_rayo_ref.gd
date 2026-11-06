@@ -188,9 +188,9 @@ func _correr() -> void:
 			min_h = mini(min_h, ea.huecos_encendidos())
 			max_h = maxi(max_h, ea.huecos_encendidos())
 		_ok("[AGUA] es intermitente (de %d a %d arcos encendidos a la vez) y está a ras de superficie" % [min_h, max_h], min_h < max_h)
-		Terreno3D.estados.avanzar(2.1)       # el reloj oficial: 2 s
+		Terreno3D.estados.avanzar(float(EstadosSuelo3D.DURA["electrificada"]) + 0.1)       # el reloj oficial (6/11, bloque A5: 6 s; era 2 s)
 		await process_frame
-		_ok("[AGUA] al caducar el estado (2 s) se apaga el dibujo", not tj.agua_electrica().has(c) and ea.esta_apagando())
+		_ok("[AGUA] al caducar el estado (6 s) se apaga el dibujo", not tj.agua_electrica().has(c) and ea.esta_apagando())
 	Terreno3D.estados.limpiar()
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)

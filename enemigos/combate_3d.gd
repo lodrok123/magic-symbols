@@ -264,8 +264,16 @@ var vida_max: float = VIDA_MAXIMA
 ## 29/10 (DANO_Y_TINTA): DEFENSA plana del enemigo: `Dano.tras_defensa` la resta de cada golpe (con el suelo del 20 %). 2 = goblin (arquero, asesino, guerrero); 5 = el que lleva escudo
 ## (`Escudo3D.equipar`); 6 = elemental; 10 = gólem; 0 = limo, chamán, gatopedro. NO afecta al daño continuo (quemadura, veneno, pulsos).
 @export var defensa: float = Dano.DEF_GOBLIN
-var debil: String = "agua"
-var resiste: String = "fuego"
+## 6/11 (bloque A2, decisión de Pablo: «ningún elemento es más fuerte que otro»): ya NO hay debilidad ni resistencia por defecto. Antes TODOS los goblins eran débiles al agua y resistían
+## el fuego (castigaba al elemento oficial del juego). Ahora salen de `DEBILIDAD_GOBLIN_POR_NIVEL` (el Bosque, nivel inicial, se queda como estaba) y la pieza `vigia` puede
+## fijarlas por enemigo con `debil=` / `resiste=` (`fijar_debilidad`).
+var debil: String = ""
+var resiste: String = ""
+
+## Debilidad de los goblins por nivel: se busca la primera clave que sea PREFIJO del `nivel` del mundo (Bosque, Bosque_01, Bosque_01_v01, Bosque_02...). Un nivel que no esté aquí
+## no pone debilidad a nadie. Se eligió una tabla aquí y no una clave de `Lanzador3D.PROGRESIONES` porque las progresiones se buscan por el nombre EXACTO del nivel y Bosque_01 / Bosque_02
+## caen en «todo» (o en el kit «pruebas»): la clave no llegaría a los mapas del Bosque.
+const DEBILIDAD_GOBLIN_POR_NIVEL: Dictionary = {"Bosque": {"debil": "agua", "resiste": "fuego"}}
 var nombre: String = "Goblin guerrero"
 var snd_alerta: String = "goblin_grito"      ## sonido al descubrir al jugador (Gatopedro usa otro)
 var snd_muere: String = "goblin_muere"       ## sonido al morir
@@ -442,8 +450,35 @@ static func equipar(modelo: Pj3D, p_mundo: Node3D, p_jugador: Jugador3D, p_lanz:
 	c.position = modelo.position
 	c.casa = modelo.position
 	c.altura = modelo.alto_modelo() * modelo.scale.y
+	var def_nivel: Dictionary = debilidad_defecto_de(p_mundo)       # ANTES de add_child: lo que ajusten luego `_ready` o el tipo de enemigo (elemental, canouro) manda sobre el defecto
+	c.debil = String(def_nivel.get("debil", ""))
+	c.resiste = String(def_nivel.get("resiste", ""))
 	p_mundo.add_child(c, true)
 	return c
+
+
+## 6/11 (bloque A2): la debilidad de goblin por defecto del nivel de `p_mundo` ({debil, resiste}; vacía si el nivel no tiene fila en `DEBILIDAD_GOBLIN_POR_NIVEL`).
+static func debilidad_defecto_de(p_mundo: Node) -> Dictionary:
+	if p_mundo == null:
+		return {}
+	var nivel: Variant = p_mundo.get("nivel")
+	if nivel == null:
+		return {}
+	for clave in DEBILIDAD_GOBLIN_POR_NIVEL:
+		if String(nivel).begins_with(String(clave)):
+			return DEBILIDAD_GOBLIN_POR_NIVEL[clave]
+	return {}
+
+
+## 6/11 (bloque A2): fija la debilidad y la resistencia de ESTE enemigo (la pieza `vigia` con `debil=` / `resiste=`) y repinta lo que ya se dibujó con las anteriores: el rombo sobre la cabeza
+## y el borde brillante del modelo. Sin repintar, el rombo seguía del color de la debilidad vieja (o blanco).
+func fijar_debilidad(p_debil: String, p_resiste: String) -> void:
+	debil = p_debil
+	resiste = p_resiste
+	if _marca_debil != null and is_instance_valid(_marca_debil):
+		_marca_debil.modulate = COLORES.get(debil, Color.WHITE)
+	if pj != null and is_instance_valid(pj):
+		pj.set_rol_visual("enemigo", (COLORES.get(debil, Pj3D.RIM_ENEMIGO) as Color).lerp(Color.WHITE, 0.25))
 
 
 ## Crea un elemental de bosque en `pos` (un modelo nuevo + su combate). Lo usa la tecla F8 del Jugador3D y servirá a cualquier
@@ -834,7 +869,7 @@ func vel_mult() -> float:
 ## 28/10 · A2 (previsión): la DECISIÓN del golpe, sin aplicar nada (ni estado, ni señales, ni texto). Es la única fuente de verdad: `golpe` aplica lo que devuelve esto y
 ## `prever_golpe` (la previsión del indicador) lo enseña. Devuelve:
 ##   curado     true = elemental con agua: lo cura y lo agranda (`_agua_elemental`), no recibe nada más
-##   mult       R: debilidad ×1,5 / resistencia ×0,75 / 1        base  B·E·G·X (+ la suma de la reacción) ANTES de R y de la defensa (el rayo sobre mojado X = ×1,5, el hielo sobre mojado suma 15)
+##   mult       R: debilidad ×1,5 / resistencia ×0,75 / 1        base  B·E·G·X (+ la suma de la reacción) ANTES de R y de la defensa (el rayo sobre mojado X = ×1,5; 6/11: el hielo sobre mojado también ×1,5, antes sumaba 15)
 ##   bruto      D = base × R, antes de la defensa        dano  D_final = máx(SUELO_DEF · D, D − defensa) (`Dano.aplicar`: el ÚNICO punto del cálculo)       defensa   la de este enemigo
 ##   mojado, quemando, congelado   cómo quedan esos contadores    lento   -1 = no cambia      interrumpe   -1 = no cambia (el viento la fija; el elemental no)
 ##   vapor      fuego sobre mojado       arco   el rayo sobre mojado salta al más cercano
@@ -878,7 +913,7 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 			r["congelado"] = maxf(float(r["congelado"]), ELEM_REGADO_CONGELA)       # ELEMENTAL V2: el agua lo ha dejado empapado de savia y agua: el hielo lo congela de verdad
 			r["regado"] = true
 		if mojado > 0.0:
-			suma_x = Dano.SUMA_HIELO_MOJADO
+			x = Dano.X_HIELO_MOJADO           # 6/11 (bloque A1): ×1,5 y no +15, que con el daño nuevo duplicaba una ligera (DANO_Y_TINTA §5)
 		r["quemando"] = 0.0
 	elif Materia.sopla(m):
 		if not elemental:                 # pesa demasiado: el viento no le corta el ataque

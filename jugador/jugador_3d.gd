@@ -35,7 +35,8 @@ const MULT_NADO: float = 0.4
 static var nado_permitido: bool = false
 const TASA_TREPAR: float = 3.5              ## u/s al salir trepando de un foso (cauce hondo / cuenca): 0,94 u en ~0,27 s
 const HUNDIDO: float = 0.35               ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
-const INVULNERABLE: float = 0.7
+## 6/11 (bloque A4, valor de partida para que Pablo lo afine): 0,7 → 0,4 s de invulnerabilidad tras recibir un golpe. Con 0,7 s un enemigo que pegaba dos veces seguidas casi nunca llegaba a hacer el segundo golpe y el combate cuerpo a cuerpo no tenía riesgo.
+const INVULNERABLE: float = 0.4
 const TICK_VENENO: float = 0.5               ## s entre dos pulsos del veneno (envenenar)
 ## 6/11 (Pablo, chamán v2): VENENO QUE SE ACUMULA. Cada golpe del chamán (`envenenar_pila`) añade una pila; cada pila hace PILA_VENENO_DPS por segundo y dura PILA_VENENO_S s (temporizador propio).
 const PILA_VENENO_MAX: int = 3
@@ -46,7 +47,8 @@ const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
 ## --- 6.6 Voltereta: ≤ 1 casilla, colisiona paso a paso, sin daño mientras dura, reutilización larga ---
-const TIEMPO_VOLTERETA: float = 4.0          ## segundos hasta poder repetirla
+## 6/11 (bloque A4, valor de partida): la recarga baja de 4 s a 1,5 s: con 4 s la esquiva no se podía usar como parte del combate (un enemigo la gastaba y tocaba comérselo todo).
+const TIEMPO_VOLTERETA: float = 1.5          ## segundos hasta poder repetirla
 const DIST_VOLTERETA: float = 1.0            ## casillas
 ## --- 6.7 Beber poción: bloqueado mientras bebe; cura al terminar; un golpe la interrumpe ---
 const T_BEBER: float = 1.5

@@ -297,5 +297,5 @@ func _vuelta() -> void:
 
 func _goblins_igual() -> void:
 	var c := Combate3D.new()
-	_ok("9 los goblins siguen con sus sonidos y su rombo de siempre", c.snd_alerta == "goblin_grito" and c.snd_muere == "goblin_muere" and c.debil == "agua" and c.resiste == "fuego" and c.vida_max == Combate3D.VIDA_MAXIMA)
+	_ok("9 los goblins siguen con sus sonidos y su rombo de siempre", c.snd_alerta == "goblin_grito" and c.snd_muere == "goblin_muere" and c.debil == "" and c.resiste == "" and c.vida_max == Combate3D.VIDA_MAXIMA)      # 6/11 (bloque A2): sin debilidad por defecto; la del Bosque sale de DEBILIDAD_GOBLIN_POR_NIVEL
 	c.free()

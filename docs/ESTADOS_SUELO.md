@@ -366,6 +366,20 @@ Reglas en canales para una celda de hierba:
 
 ---
 
+## 4 bis. Relojes de los estados del suelo en el 3D (`EstadosSuelo3D.DURA`)
+
+El reloj oficial es un único diccionario, `EstadosSuelo3D.DURA` (`mundo/estados_suelo_3d.gd`), que mueve `Mundo3D._process`. Valores vigentes:
+
+| Estado | Dura | Desde cuándo |
+|---|---|---|
+| helada | 20 s | 3/11 (Pablo: «hielo se va a los 20 segundos»); al caducar deja la casilla mojada |
+| mojada | 20 s | 27/10 |
+| **electrificada** | **6 s** | **6/11, bloque A5 (decisión de Pablo). Era 2 s desde el 3/11: el 6 s NO es un error**; con 2 s no daba tiempo a preparar nada encima. La renueva el `EmisorRayo3D` mientras dura su descarga |
+| **quemada** | **8 s** | **6/11, bloque A5. Antes no caducaba nunca** |
+| segada | no caduca | sin decidir |
+
+---
+
 ## 5. Lo que el 3D tiene y el 2D no: solo aspecto
 
 - **Pisado (canal A)** y **hierba que se aparta** de la chibi (D4): **solo visuales**. No cambian nada del

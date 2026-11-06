@@ -1,7 +1,8 @@
 extends SceneTree
 ## C1 punto 1 (2/11) + C2 (3/11, Pablo: «sin aplicación el rayo se irá a los 2 segundos. Hielo se va a los 20 segundos»): UN SOLO RELOJ DE ESTADOS. Sin ventana:
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_reloj_estados.gd
-## Mide: el reloj del mundo con fotogramas reales; `DURA` (mojada 20 s, helada 20 s, electrificada 2 s; quemada y segada sin decidir); `al_caducar` (helada → mojada) y la señal `caducado`;
+## 6/11 (bloque A5, decisión de Pablo): la electrificada pasa de 2 s a 6 s y la quemada caduca a 8 s (antes no caducaba). Esta prueba lee la duración de `DURA` (`ELEC`) en vez de suponer 2 s, y el valor queda fijado en la comprobación 2.
+## Mide: el reloj del mundo con fotogramas reales; `DURA` (mojada 20 s, helada 20 s, electrificada 6 s, quemada 8 s; segada sin decidir); `al_caducar` (helada → mojada) y la señal `caducado`;
 ## el Lanzador SIN contador de hielo (vapor al oír `caducado`, `hielo_permanente`, el fuego no suelta vapor); el emisor de rayo activo mantiene la electrificada; un hechizo de rayo la deja
 ## SOLO en casilla mojada o de agua (y en el agua/conductores que recorre); UNA sola duración del hielo (`DURA[helada]`; `AguaSim3D.DURA_HIELO` y `Hierba3D.ESCARCHA_S` son alias); calor acorta el hielo.
 
@@ -22,6 +23,8 @@ class MundoFalso extends Node3D:
 		pass
 	func quitar_placa_hielo(c: Vector2i) -> void:
 		placas_quitadas.append(c)
+
+const ELEC: float = EstadosSuelo3D.DURA["electrificada"]     ## 6/11: s que dura una electrificada sin dueño (6; era 2 hasta el bloque A5)
 
 var _fallos: int = 0
 
@@ -78,12 +81,12 @@ func _reloj_del_mundo() -> void:
 func _dura_y_al_caducar() -> void:
 	var d: Dictionary = EstadosSuelo3D.DURA
 	_ok("2 DURA mojada = 20 s (lo mismo que AguaSim3D.SECA_EN)", is_equal_approx(float(d["mojada"]), 20.0) and is_equal_approx(float(d["mojada"]), AguaSim3D.SECA_EN))
-	_ok("2 DURA helada = 20 s y electrificada = 2 s (decisión de Pablo, 3/11)", is_equal_approx(float(d["helada"]), 20.0) and is_equal_approx(float(d["electrificada"]), 2.0))
+	_ok("2 DURA helada = 20 s (Pablo, 3/11) y electrificada = 6 s, quemada = 8 s (Pablo, 6/11, bloque A5; la electrificada era 2 s)", is_equal_approx(float(d["helada"]), 20.0) and is_equal_approx(float(d["electrificada"]), 6.0) and is_equal_approx(float(d["quemada"]), 8.0))
 	var sin_caducar: PackedStringArray = []
 	for k in d.keys():
 		if float(d[k]) <= 0.0:
 			sin_caducar.append(String(k))
-	_ok("2 MEDIDO (AVISO, sin decidir): no caducan solos %s" % str(sin_caducar), sin_caducar.size() == 2 and sin_caducar.has("quemada") and sin_caducar.has("segada"))
+	_ok("2 MEDIDO (AVISO, sin decidir): no caducan solos %s (la quemada ya caduca, 6/11)" % str(sin_caducar), sin_caducar.size() == 1 and sin_caducar.has("segada"))
 
 	var e := EstadosSuelo3D.new()
 	var c := Vector2i(2, 2)
@@ -125,32 +128,32 @@ func _dura_y_al_caducar() -> void:
 	_ok("3 `mantener` no pone reloj a una electrificada que ya está sin caducidad (la mantiene otro)", e.tiene(k, EstadosSuelo3D.ELECTRIFICADA))
 	e.poner(k, EstadosSuelo3D.ELECTRIFICADA, false)
 	e.mantener(k, EstadosSuelo3D.ELECTRIFICADA)
-	_ok("3 y sobre una casilla sin ella la pone con los 2 s de DURA", is_equal_approx(e.queda(k, EstadosSuelo3D.ELECTRIFICADA), 2.0))
+	_ok("3 y sobre una casilla sin ella la pone con los 6 s de DURA", is_equal_approx(e.queda(k, EstadosSuelo3D.ELECTRIFICADA), ELEC))
 
 
-## Electrificada con el reloj del mundo y fotogramas REALES: dura 2 s, ni uno menos ni mucho más.
+## Electrificada con el reloj del mundo y fotogramas REALES: dura ELEC (6 s), ni uno menos ni mucho más.
 func _electrificada_real() -> void:
 	Terreno3D.estados.limpiar()
 	var m := Mundo3D.new()
 	root.add_child(m)
 	var c := Vector2i(6, 6)
 	Terreno3D.estados.poner(c, EstadosSuelo3D.ELECTRIFICADA, true)
-	_ok("4 una electrificada sin dueño nace con 2,0 s", is_equal_approx(Terreno3D.estados.queda(c, EstadosSuelo3D.ELECTRIFICADA), 2.0))
+	_ok("4 una electrificada sin dueño nace con 6,0 s", is_equal_approx(Terreno3D.estados.queda(c, EstadosSuelo3D.ELECTRIFICADA), ELEC))
 	var e: EstadosSuelo3D = Terreno3D.estados
 	var visto_hasta: float = 0.0           # lo que llevaba gastado la última vez que se la vio viva (s de reloj del mundo = suma de los delta reales)
 	var fotogramas: int = 0
 	while e.tiene(c, EstadosSuelo3D.ELECTRIFICADA) and fotogramas < 2000:
-		visto_hasta = 2.0 - e.queda(c, EstadosSuelo3D.ELECTRIFICADA)
+		visto_hasta = ELEC - e.queda(c, EstadosSuelo3D.ELECTRIFICADA)
 		await process_frame
 		fotogramas += 1
-	_ok("4 con fotogramas reales (%d fotogramas) la electrificada se ve viva hasta los %.2f s de reloj y se va justo después: dura 2,0 s" % [fotogramas, visto_hasta], visto_hasta > 1.8 and visto_hasta <= 2.0 and fotogramas > 1)
+	_ok("4 con fotogramas reales (%d fotogramas) la electrificada se ve viva hasta los %.2f s de reloj y se va justo después: dura 6,0 s" % [fotogramas, visto_hasta], visto_hasta > ELEC - 0.2 and visto_hasta <= ELEC and fotogramas > 1)
 	_ok("4 …y ya no está", not e.tiene(c, EstadosSuelo3D.ELECTRIFICADA))
 	m.queue_free()
 	await process_frame
 	Terreno3D.estados.limpiar()
 
 
-## El emisor de rayo: mientras la descarga está activa renueva el estado (más de 2 s); al apagarse lo quita; no toca lo que otro mantiene sin caducidad.
+## El emisor de rayo: mientras la descarga está activa renueva el estado (más de ELEC s); al apagarse lo quita; no toca lo que otro mantiene sin caducidad.
 func _emisor() -> void:
 	Terreno3D.estados.limpiar()
 	var e: EstadosSuelo3D = Terreno3D.estados
@@ -166,24 +169,24 @@ func _emisor() -> void:
 	em._t = 100.0
 	em._t_dano = 100.0
 	em._estado_electrificada(true)
-	_ok("5 al soltar la descarga las casillas quedan electrificadas con los 2 s de DURA", e.tiene(a, EstadosSuelo3D.ELECTRIFICADA) and is_equal_approx(e.queda(b, EstadosSuelo3D.ELECTRIFICADA), 2.0))
+	_ok("5 al soltar la descarga las casillas quedan electrificadas con los 6 s de DURA", e.tiene(a, EstadosSuelo3D.ELECTRIFICADA) and is_equal_approx(e.queda(b, EstadosSuelo3D.ELECTRIFICADA), ELEC))
 	_ok("5 la que mantenía otro sin caducidad sigue sin caducidad", e.queda(fija, EstadosSuelo3D.ELECTRIFICADA) == 0.0)
 	var siempre: bool = true
-	for i in range(60):                                                     # 6 s de descarga activa, sin que `_t` baje a 0
+	for i in range(150):                                                    # 15 s de descarga activa (más del doble de ELEC), sin que `_t` baje a 0
 		em._process(0.1)
 		e.avanzar(0.1)
 		if not e.tiene(a, EstadosSuelo3D.ELECTRIFICADA) or not e.tiene(b, EstadosSuelo3D.ELECTRIFICADA):
 			siempre = false
-	_ok("5 el emisor ACTIVO la mantiene: 6 s después (3 veces los 2 s de DURA) sigue electrificada", siempre)
+	_ok("5 el emisor ACTIVO la mantiene: 15 s después (más del doble de los 6 s de DURA) sigue electrificada", siempre)
 	em._apagar()
 	_ok("5 al apagarse la descarga el estado se quita en el acto", not e.tiene(a, EstadosSuelo3D.ELECTRIFICADA) and not e.tiene(b, EstadosSuelo3D.ELECTRIFICADA))
 	_ok("5 y no quita la que mantenía otro", e.tiene(fija, EstadosSuelo3D.ELECTRIFICADA))
-	# Sin emisor (nadie la mantiene) se va a los 2 s.
+	# Sin emisor (nadie la mantiene) se va a los 6 s.
 	e.poner(a, EstadosSuelo3D.ELECTRIFICADA, true)
-	e.avanzar(1.9)
+	e.avanzar(ELEC - 0.1)
 	var a1: bool = e.tiene(a, EstadosSuelo3D.ELECTRIFICADA)
 	e.avanzar(0.2)
-	_ok("5 sin nadie que la mantenga se va a los 2 s", a1 and not e.tiene(a, EstadosSuelo3D.ELECTRIFICADA))
+	_ok("5 sin nadie que la mantenga se va a los 6 s", a1 and not e.tiene(a, EstadosSuelo3D.ELECTRIFICADA))
 	em.m.free()
 	em.free()
 	e.limpiar()
@@ -232,10 +235,10 @@ func _rayo_hechizo() -> void:
 	_ok("6 …ni por `marcar_celda`", not e.tiene(seca, EstadosSuelo3D.ELECTRIFICADA))
 	l.marcar_celda("rayo", mojada)
 	l.marcar_celda("rayo", agua)
-	_ok("6 sobre una casilla MOJADA la deja electrificada (2 s)", e.tiene(mojada, EstadosSuelo3D.ELECTRIFICADA) and is_equal_approx(e.queda(mojada, EstadosSuelo3D.ELECTRIFICADA), 2.0))
+	_ok("6 sobre una casilla MOJADA la deja electrificada (6 s)", e.tiene(mojada, EstadosSuelo3D.ELECTRIFICADA) and is_equal_approx(e.queda(mojada, EstadosSuelo3D.ELECTRIFICADA), ELEC))
 	_ok("6 sobre una casilla de AGUA también", e.tiene(agua, EstadosSuelo3D.ELECTRIFICADA))
-	e.avanzar(2.1)
-	_ok("6 y a los 2 s caduca sola", not e.tiene(mojada, EstadosSuelo3D.ELECTRIFICADA) and not e.tiene(agua, EstadosSuelo3D.ELECTRIFICADA))
+	e.avanzar(ELEC + 0.1)
+	_ok("6 y a los 6 s caduca sola", not e.tiene(mojada, EstadosSuelo3D.ELECTRIFICADA) and not e.tiene(agua, EstadosSuelo3D.ELECTRIFICADA))
 	# El rayo NO hace otra cosa al suelo: no moja, no hiela, no quema.
 	l.marcar_celda("rayo", mojada)
 	_ok("6 el rayo no cambia mojada/helada/quemada de la casilla", e.tiene(mojada, EstadosSuelo3D.MOJADA) and not e.tiene(mojada, EstadosSuelo3D.HELADA) and not e.tiene(mojada, EstadosSuelo3D.QUEMADA))
@@ -253,8 +256,8 @@ func _rayo_hechizo() -> void:
 	_ok("6 la descarga electrifica la casilla mojada del haz", e.tiene(mojada, EstadosSuelo3D.ELECTRIFICADA))
 	_ok("6 …y el agua que el haz toca y TODA la conectada (la rama (10,9), fuera del haz)", e.tiene(agua, EstadosSuelo3D.ELECTRIFICADA) and e.tiene(Vector2i(9, 9), EstadosSuelo3D.ELECTRIFICADA) and e.tiene(Vector2i(10, 9), EstadosSuelo3D.ELECTRIFICADA))
 	_ok("6 el suelo seco del haz no queda electrificado", not e.tiene(seca, EstadosSuelo3D.ELECTRIFICADA) and not e.tiene(Vector2i(7, 7), EstadosSuelo3D.ELECTRIFICADA))
-	e.avanzar(2.1)
-	_ok("6 y todo se va a los 2 s", e.cuantas(EstadosSuelo3D.ELECTRIFICADA) == 0)
+	e.avanzar(ELEC + 0.1)
+	_ok("6 y todo se va a los 6 s", e.cuantas(EstadosSuelo3D.ELECTRIFICADA) == 0)
 	# En seco (la previsión del apuntado) no escribe estados.
 	var prev: Dictionary = HechizoVivo.prever(h, l, origen, Vector3.RIGHT)
 	_ok("6 la previsión en seco no escribe estados", e.cuantas(EstadosSuelo3D.ELECTRIFICADA) == 0 and not prev.is_empty())
@@ -398,14 +401,14 @@ func _zona_de_calor() -> void:
 	e.poner(c, EstadosSuelo3D.HELADA, true)
 	e.avanzar(200.0)
 	_ok("10 en zona de frío la helada casi no caduca (200 s después sigue)", e.tiene(c, EstadosSuelo3D.HELADA))
-	# La electrificada no depende de la zona: 2 s en calor también.
+	# La electrificada no depende de la zona: 6 s en calor también.
 	e.limpiar()
 	e.estado_zona_en = func(_p: Vector2i) -> Array: return ["calor"]
 	e.poner(c, EstadosSuelo3D.ELECTRIFICADA, true)
-	e.avanzar(1.9)
+	e.avanzar(ELEC - 0.1)
 	var v: bool = e.tiene(c, EstadosSuelo3D.ELECTRIFICADA)
 	e.avanzar(0.2)
-	_ok("10 la electrificada va por el reloj normal también en calor (2 s)", v and not e.tiene(c, EstadosSuelo3D.ELECTRIFICADA))
+	_ok("10 la electrificada va por el reloj normal también en calor (6 s)", v and not e.tiene(c, EstadosSuelo3D.ELECTRIFICADA))
 	# Agua: el factor de zona lo aplica la simulación a SUS trocitos con la misma duración oficial.
 	var a := AguaSim3D.new()
 	var s: float = 2.3

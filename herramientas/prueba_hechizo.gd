@@ -252,7 +252,7 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	var txt: String = a.describir()
 	_ok(txt.contains("solidez") and txt.contains("glifo:barrera") and txt.contains("elemento"), "describir: campos distintos del defecto y su origen\n" + txt)
 	# el origen distingue defecto, elemento, glifo y calidad
-	_ok(String(a.origen.get("solidez", "")) == "glifo:barrera" and String(a.origen.get("dano", "")) == "elemento" and String(a.origen.get("persiste", "")) == "calidad", "origen: %s" % str(a.origen))
+	_ok(String(a.origen.get("solidez", "")) == "glifo:barrera" and String(a.origen.get("dano", "")) == "potencia" and String(a.origen.get("persiste", "")) == "calidad", "origen: %s (6/11, bloque A1: el daño del hielo, como el de todos, viene de la potencia; antes del .tres: «elemento»)" % str(a.origen))
 	_ok(Hechizo.defecto("copias") == 1 and Hechizo.defecto("semiejes") == Vector3(1, 1, 1) * Sigils.RADIO_BASE_V2, "defecto() lee del var")
 	# la barrera ya NO tiene radio mínimo (18/10): el tamaño lo ponen solo los ejes; nace donde apuntas y cada glifo sucesivo suma 1 s
 	var barrera: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 1})

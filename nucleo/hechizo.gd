@@ -175,7 +175,7 @@ var en_punto: bool = false            ## nace donde apunta el cursor (dentro del
 var busca: float = 0.0                 ## fuerza de giro hacia un objetivo (0 = recto) · HC4
 
 # --- Daño y combate ---
-var dano: float = 1.0                  ## daño base B × E. 29/10 (DANO_Y_TINTA): fuego, agua, tierra y viento lo ponen `construir` desde la potencia (`Dano.base_elemental`); hielo y rayo (aparcados) conservan RuneData.damage. No depende de la calidad
+var dano: float = 1.0                  ## daño base B × E. 29/10 (DANO_Y_TINTA): `construir` lo pone desde la potencia (`Dano.base_elemental`); desde el 6/11 también para hielo y rayo (antes conservaban RuneData.damage). No depende de la calidad
 var dano_periodico: float = 0.0        ## puntos/s de una zona de plasma · antes `FRAC_DANO_ZONA_V2` (20 % del daño por pulso)
 var potencia: float = 1.0              ## G de `Dano`: factor del daño por glifos con efecto propio sobre el impacto (glifo amplificar, aparcado) · ESPEC §1.5. Hoy 1,0; NO es el nivel de potencia (ese es `nivel_potencia`)
 var empuje: float = 0.0                ## 0..1: cuánto empuja un campo de gas (la zona) y qué fracción de la fuerza máxima es
@@ -372,7 +372,7 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 			mod["de"] = "glifo:%s" % nombre
 			lista.append(mod)
 	h._aplicar(lista, "glifo", true)
-	# 29/10 (DANO_Y_TINTA): el daño base de fuego, agua, tierra y viento sale de la potencia (nº de glifos) y del elemento; hielo y rayo conservan el suyo.
+	# 29/10 (DANO_Y_TINTA): el daño base sale de la potencia (nº de glifos) y del elemento. 6/11 (bloque A1): también hielo y rayo (`Dano.MULT_ELEMENTO` los lleva); el `damage` del .tres (20 / 55) ya no cuenta.
 	if Dano.tiene_tabla(h.elemento):
 		h.dano = Dano.base_elemental(h._contar_glifos_dano(), h.elemento)
 		h.origen["dano"] = "potencia"

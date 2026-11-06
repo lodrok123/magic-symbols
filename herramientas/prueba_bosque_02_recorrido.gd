@@ -632,12 +632,12 @@ func _estanque() -> void:
 	# el lago: sellado hasta que la fuente lo electrifica (casilla (27,8)); la fuente descarga cada ~5,6 s
 	var camino_epico: bool = await caminar(Vector2i(27, 10), "8.8")
 	_ok("8.9 llegar a la orilla del lago fue posible a pie", camino_epico)
-	# primero se espera a un momento SIN descarga (el reloj de la electrificada caduca a los 2 s) y se comprueba que el cofre está sellado
+	# primero se espera a un momento SIN descarga (el reloj de la electrificada caduca a los 6 s desde el 6/11, bloque A5; eran 2 s) y se comprueba que el cofre está sellado
 	var sin_descarga: bool = await esperar(func() -> bool: return not epico.sellado_cumplido(), 30.0)
 	_ok("8.10 SELLADO · ANTES: sin descarga el lago no está electrificado y el cofre épico no se abre (E avisaría «sellado»)", sin_descarga and not epico.abrir() and epico.es_cerrado)
 	var t0: float = reloj.t
 	var con_descarga: bool = await esperar(func() -> bool: return epico.sellado_cumplido(), 30.0)
-	_ok("8.11 la fuente (25,7) descarga y `casilla(27,8).electrificada` se cumple a los %.1f s (reloj de 2 s de C2)" % (reloj.t - t0), con_descarga)
+	_ok("8.11 la fuente (25,7) descarga y `casilla(27,8).electrificada` se cumple a los %.1f s (reloj de C2: 6 s desde el 6/11)" % (reloj.t - t0), con_descarga)
 	_hacer_sitio()                                   # el botín del camino (al azar) puede tener la mochila llena: sin hueco la capa no entra
 	# Como en `abrir_cofre`: `Cofre3D.abrir` devuelve false mientras la tapa aún está apareciendo o en otra animación; se insiste (solo con el lago electrificado) hasta 10 s.
 	var abrio: bool = false

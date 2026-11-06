@@ -164,7 +164,8 @@ func _ida_y_vuelta() -> void:
 	_ok("2 suelo: el diccionario es idéntico al de antes de guardar (menos el hielo de agua)", s.a_dic() == suelo_antes, "")
 	# El reloj sigue corriendo sobre lo cargado: a los 13 s se seca la casilla.
 	s.avanzar(13.1)
-	_ok("2 y lo cargado sigue caducando: a los 13 s la casilla se seca", not s.tiene(Vector2i(3, 4), EstadosSuelo3D.MOJADA) and s.tiene(Vector2i(8, 2), EstadosSuelo3D.QUEMADA))
+	# 6/11 (bloque A5): la quemada ya caduca (8 s), así que a los 13,1 s ya no está; lo que no caduca es la segada (DURA 0). Antes se comprobaba la quemada, que era permanente.
+	_ok("2 y lo cargado sigue caducando: a los 13 s la casilla se seca, la quemada (8 s) se ha ido y la segada sigue", not s.tiene(Vector2i(3, 4), EstadosSuelo3D.MOJADA) and not s.tiene(Vector2i(8, 2), EstadosSuelo3D.QUEMADA) and s.tiene(Vector2i(9, 2), EstadosSuelo3D.SEGADA))
 	nivel2.queue_free()
 	await process_frame
 

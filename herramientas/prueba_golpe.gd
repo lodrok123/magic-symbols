@@ -50,6 +50,8 @@ func _nuevo(montaje: String) -> Combate3D:
 	var g: Combate3D = Combate3D.equipar(modelo, _mundo, j, null)
 	g.set_physics_process(false)
 	g.altura = 0.85
+	g.debil = "agua"                    # 6/11 (bloque A2): el goblin ya no nace débil al agua ni resistente al fuego; esta tabla se midió con ese goblin (el del Bosque), así que se le pone aquí
+	g.resiste = "fuego"
 	g.health = 1000.0                   # 29/10 (DANO_Y_TINTA): con 50 de vida el rayo sobre mojado (80,5) quedaba cortado por la vida; aquí se mide el daño, no la muerte
 	g.vida_max = 1000.0
 	if montaje == "mojado":
@@ -92,7 +94,7 @@ func _initialize() -> void:
 	print("RESULTADO golpe: %d montajes · FALLOS: %d" % [tabla.size(), _fallos])
 	quit(1 if _fallos > 0 else 0)
 
-## Medida con el código ANTERIOR a HC3 (18/10).
+## Medida con el código ANTERIOR a HC3 (18/10). 6/11 (bloque A1, a propósito): las filas hielo/normal, hielo/mojado, rayo/normal y rayo/mojado cambian el `dano` (hielo 10,8 − 2 = 8,8 · sobre mojado 10,8 × 1,5 − 2 = 14,2 · rayo 12 − 2 = 10 · sobre mojado 12 × 1,5 − 2 = 16); antes 18, 33, 53 y 80,5.
 const ANTES: Dictionary = {
 	"fuego/normal": { "dano": 7.9, "mojado": 0.0, "quemando": 3.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"fuego/mojado": { "dano": 7.9, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
@@ -103,11 +105,11 @@ const ANTES: Dictionary = {
 	"tierra/normal": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
 	"tierra/mojado": { "dano": 11.8, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
 	"tierra/elemental": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 4.7 },
-	"hielo/normal": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"hielo/mojado": { "dano": 33.0, "mojado": 3.0, "quemando": 0.0, "congelado": 2.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"hielo/normal": { "dano": 8.8, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
+	"hielo/mojado": { "dano": 14.2, "mojado": 3.0, "quemando": 0.0, "congelado": 2.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"hielo/elemental": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
-	"rayo/normal": { "dano": 53.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
-	"rayo/mojado": { "dano": 80.5, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
+	"rayo/normal": { "dano": 10.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
+	"rayo/mojado": { "dano": 16.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
 	"rayo/elemental": { "dano": 53.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
 	"viento/normal": { "dano": 7.6, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
 	"viento/mojado": { "dano": 7.6, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },

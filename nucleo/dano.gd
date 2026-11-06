@@ -13,14 +13,14 @@ extends RefCounted
 ## DAÑO POR IMPACTO:  D = B × E × G × X × R   y después la defensa:  D_final = máx(SUELO_DEF · D, D − DEF)
 ##   B  daño base de la potencia (BASE)             E  multiplicador del elemento (MULT_ELEMENTO)
 ##   G  glifos con efecto propio sobre el impacto (`Hechizo.potencia`; hoy 1,0: ningún glifo lo toca, el gancho está listo)
-##   X  la reacción (rayo sobre mojado ×1,5); hielo sobre mojado SUMA 15 (`suma_x`, dentro de R:  (B·E·G·X + suma) × R)
+##   X  la reacción sobre mojado: rayo ×1,5 y (6/11) hielo ×1,5 (antes SUMABA 15; `suma_x` queda como gancho, hoy 0)
 ##   R  lo que le pasa a ESE enemigo con ese elemento: débil ×1,5 · resiste ×0,75 · gólem de pie 0 · núcleo expuesto ×1,5
 ##   DEF  defensa plana del enemigo. El suelo (20 % de D) impide que una defensa alta deje un golpe en 0: con DEF > D queda D × SUELO_DEF.
 ## El daño CONTINUO (quemadura, veneno, pulsos) pasa por R pero NO por DEF (`continuo`).
-## HIELO y RAYO están APARCADOS: conservan su daño de siempre (`base_elemental` con `fija`) pero pasan por el mismo cálculo final (R y DEF), para que todos los enemigos lean igual.
+## 6/11 (bloque A1): HIELO y RAYO ya no están aparcados: salen de B × E como los demás (rayo ×1,00, hielo ×0,90).
 ##
 ## TINTA (H4):  T = (T_base(potencia) + Σ aporte_glifo) × (1 + recargo_instancias + recargo_periodico); `tinta_de(h)` / `desglose_tinta(h)`. Hoy solo cuesta el continuo ᚱ (`Sigils.COSTE_CONTINUO_V2`):
-## aportes y K_* están a 0 hasta que Pablo ponga números. El nº de glifos entra únicamente por T_base: no hay doble conteo. La rebaja del pigmento (`Tinta.coste_efectivo`) se aplica encima, fuera de aquí.
+## 6/11 (bloque A3): los aportes por glifo (`Sigils.GLIFOS[...]["tinta"]`) y K_COPIA / K_HIJO ya tienen valores de partida; K_PERIODICO sigue a 0. El nº de glifos entra únicamente por T_base: no hay doble conteo. La rebaja del pigmento (`Tinta.coste_efectivo`) se aplica encima, fuera de aquí.
 
 const LIGERA: int = 0
 const MEDIA: int = 1
@@ -39,19 +39,23 @@ const GLIFOS_ALTA_DANO: int = 5
 const BASE: Array = [12.0, 24.0, 40.0]           ## B: daño base
 const TINTA_BASE: Array = [8.0, 18.0, 34.0]      ## T_base: tinta (la barra es de 100)
 
-## E: multiplicador de cada elemento con tabla. Hielo y rayo NO están (aparcados): conservan su daño propio (`base_elemental` con `fija`).
-## Propuesta para cuando se retomen (no aplicada): rayo ×1,00 y hielo ×0,90 sobre la misma tabla de B.
-const MULT_ELEMENTO: Dictionary = {"fuego": 1.10, "agua": 0.80, "tierra": 1.15, "viento": 0.80}
-const PROPUESTA_RAYO: float = 1.00
-const PROPUESTA_HIELO: float = 0.90
+## E: multiplicador de cada elemento con tabla.
+## 6/11 (bloque A1, decisión de Pablo: «ningún elemento es más fuerte que otro»): rayo ×1,00 y hielo ×0,90 entran en la tabla. Antes iban «aparcados» con su daño fijo del .tres
+## (rayo 55, hielo 20) y un rayo de 0 glifos hacía más que un fuego de 6 (44). Su valor extra es el aturdimiento y el salto (rayo) y la congelación (hielo), como la quemadura del fuego.
+const RAYO_E: float = 1.00
+const HIELO_E: float = 0.90
+const MULT_ELEMENTO: Dictionary = {"fuego": 1.10, "agua": 0.80, "tierra": 1.15, "viento": 0.80, "rayo": RAYO_E, "hielo": HIELO_E}
+## Margen que se tolera entre dos elementos a igual potencia (la prueba lo vigila como AVISO: fuego 1,10 contra agua 0,80 ya lo supera; es un valor de partida para que Pablo lo afine).
+const DESVIO_ELEMENTOS_MAX: float = 0.15
 
 ## R genérico (la tabla de debilidades de cada enemigo vive en `Combate3D.multiplicador`).
 const MULT_DEBIL: float = 1.5
 const MULT_RESISTE: float = 0.75
 
-## X: la reacción del rayo sobre un enemigo mojado, y lo que SUMA el hielo sobre un mojado.
+## X: la reacción sobre un enemigo mojado. Rayo ×1,5 (conducción). 6/11 (bloque A1): el hielo sobre mojado pasa de SUMAR 15 a ×1,5: con el daño nuevo (ligera 10,8) el +15 daba 25,8,
+## más del doble de una ligera normal; multiplicando, el mojado favorece igual al rayo y al hielo.
 const X_RAYO_MOJADO: float = 1.5
-const SUMA_HIELO_MOJADO: float = 15.0
+const X_HIELO_MOJADO: float = 1.5
 
 ## Suelo de la defensa: fracción de D que siempre pasa.
 const SUELO_DEF: float = 0.2
@@ -91,7 +95,7 @@ static func nombre_nivel_dano(n_glifos_dano: int) -> String:
 	return NOMBRES[nivel_dano(n_glifos_dano)]
 
 
-## ¿Tiene este elemento tabla de potencia? (fuego, agua, tierra, viento; hielo y rayo, no)
+## ¿Tiene este elemento tabla de potencia? (desde el 6/11 los seis: fuego, agua, tierra, viento, rayo y hielo)
 static func tiene_tabla(elemento: String) -> bool:
 	return MULT_ELEMENTO.has(elemento)
 
@@ -148,9 +152,11 @@ static func tinta(n_glifos: int, recargos: float = 0.0) -> float:
 
 
 ## --- TINTA DESDE EL HECHIZO (H4, 29/10; PLAN_SISTEMA_HECHIZOS §3): T = T_base(potencia) + Σ aporte_glifo;  T_final = T × (1 + recargo_instancias + recargo_periodico) ---
-## Todas las constantes nuevas se entregan a 0 (el golden no cambia) hasta que Pablo ponga los números (propuesta en docs/DANO_Y_TINTA.md §2).
-const K_COPIA: float = 0.0          ## recargo por cada copia de más (repetición): K_COPIA × (copias − 1)
-const K_HIJO: float = 0.0           ## recargo por cada hijo previsto (suma de `cuantos` de las acciones `crear_hijo` de todos los eventos)
+## (Hasta el 6/11 se entregaban a 0 y el golden no cambiaba; el bloque A3 puso los primeros números, propuesta de docs/DANO_Y_TINTA.md §2.)
+## 6/11 (bloque A3, valores de partida para que Pablo los afine): K_COPIA y K_HIJO ya cobran; K_PERIODICO sigue a 0 porque el fuego hiere por tics de serie (`dano_periodico` 40)
+## y con 0,1 todo hechizo de fuego costaría ×1,1.
+const K_COPIA: float = 0.15         ## recargo por cada copia de más (repetición): K_COPIA × (copias − 1). Sin él, ᚠ triplicaba el daño por 3 glifos de precio fijo
+const K_HIJO: float = 0.10          ## recargo por cada hijo previsto (suma de `cuantos` de las acciones `crear_hijo` de todos los eventos)
 const K_PERIODICO: float = 0.0      ## recargo si el hechizo hiere por tics (`dano_periodico > 0` o `veneno > 0`)
 ## Recargo del pulso continuo ᚱ: con true se decide con `Hechizo.persistente` (cubre tierra/hielo y excluye el haz); con false, la condición de siempre por propiedades de la receta
 ## (ᚱ + no viaja + barrera o permanencia). A true cambian recetas del golden (tierra/hielo + ᚱ sin barrera suben +25 %; haz + permanencia + ᚱ baja): se deja a false hasta que Pablo decida (DANO_Y_TINTA §2).

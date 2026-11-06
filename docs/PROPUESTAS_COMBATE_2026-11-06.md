@@ -275,15 +275,45 @@ Hielo + rayo es el único par de dos runas descubiertas que propongo; el resto d
 
 ## 6. Tabla de elementos e interacciones (para rótulos, colores e iconos)
 
-Resumen de lo que hace hoy cada elemento y lo que añadiría el bloque B, para que arte haga un icono y un color por reacción. Las filas «propuesta» no existen.
+Actualizada el 6/11 a **4 elementos base + 4 derivados** (§5.2). Para arte: un icono y un color por fila y por reacción. «(hoy)» existe en código; el resto es propuesta. Los derivados heredan las etiquetas de sus padres (`CombosSellos`), así que lo marcado «hereda» lo hacen ya sin código nuevo.
 
-| elemento | color (guía) | enemigo sin estado | enemigo mojado | enemigo quemado | enemigo congelado | enemigo aturdido | suelo |
+### 6.1 Los ocho elementos y sus estados
+
+| elemento | origen | color (guía) | estado que deja en el ENEMIGO | estado que deja en el SUELO | extra propio |
+|---|---|---|---|---|---|
+| **fuego** | base | rojo/naranja | quemado (hoy) | quemada; prende hierba; seca mojado; derrite hielo a charco (hoy) | daño por tics (hoy) |
+| **agua** | base | azul | mojado: ×0,75 velocidad, apaga (hoy) | mojada; sobre mojada → helada (hoy) | conduce el rayo (hoy) |
+| **tierra** | base | ocre | ralentizado ×0,6 (hoy) | escombro: casilla sólida para proyectiles 6 s (B3) | ×1,15 impacto (hoy) |
+| **viento** | base | verde pálido | interrumpe el ataque, empuja (hoy) | **limpia** mojada/quemada/electrificada (B3) | hunde al que empuja al agua (hoy) |
+| **hielo** | agua + viento | celeste | congelado 1,5 s (hoy) | helada: puente, resbala (hoy) | congelado se puede **romper** (B1) |
+| **rayo** | fuego + viento | amarillo/violeta | aturdido 1,2 s (hoy) | electrificada 6 s sobre mojada (A5) | salta al vecino a ≤ 4,5 u (hoy) |
+| **magma** | fuego + tierra | naranja oscuro | quemado fuerte + atrapado al enfriar | lava 8 s → roca (nuevo suelo) | hereda fuego y tierra |
+| **barro** | agua + tierra | marrón | embarrado: atrapado 2 s, apagado, aislado del rayo | barro: ×0,5 velocidad, no conduce | hereda agua y tierra |
+
+### 6.2 Elemento que LLEGA × estado que TIENE el enemigo
+
+| llega ↓ / tiene → | sin estado | mojado | quemado | congelado | aturdido | embarrado |
+|---|---|---|---|---|---|---|
+| **fuego** | prende (hoy) | seca, «¡Vapor!» (hoy) | aviva +daño | derrite → mojado | — | cuece: embarrado → ralentizado largo |
+| **agua** | moja (hoy) | — | apaga + vapor que ciega (B2) | — | — | — |
+| **tierra** | ralentiza (hoy) | **embarra** (hereda barro) | — | **roto ×2** (B1) | tumba | — |
+| **viento** | interrumpe (hoy) | seca | **llamarada**: contagia al vecino (B2) | **roto** (B1) | — | seca a ralentizado |
+| **hielo** | congela (hoy) | congela 2,5 s ×1,5 (A1) | apaga + niebla | — | congela | congela el barro: atrapado sólido |
+| **rayo** | aturde (hoy) | ×1,5 y salta (hoy) | explosión pequeña | **roto + metralla** (B1) | prolonga | nada (el barro aísla) |
+| **magma** | quema fuerte | seca y quema | aviva | derrite y quema | — | cuece a roca: atrapado 3 s |
+| **barro** | embarra | embarra (más tiempo) | apaga | — | — | — |
+
+### 6.3 Elemento que LLEGA × estado del SUELO
+
+| llega ↓ / casilla → | seca | mojada | helada | electrificada | quemada | barro | lava |
 |---|---|---|---|---|---|---|---|
-| fuego | rojo/naranja | prende (hoy) | lo seca, «¡Vapor!» (hoy) | aviva: +daño (prop.) | derrite: pierde congelado, mojado (prop.) | — | seca mojado, derrite hielo a charco, prende hierba (hoy) |
-| agua | azul | moja, apaga (hoy) | — | apaga + vapor que ciega (prop. B2) | — | — | moja; sobre mojado hiela (hoy) |
-| tierra | ocre | ralentiza (hoy) | lodo: atrapa (prop.) | — | **roto** ×2 (prop. B1) | tumba (prop.) | deja escombro (prop. B3) |
-| rayo | amarillo/violeta | aturde (hoy) | ×1,5 y salta (hoy) | explosión pequeña (prop.) | **roto** + metralla (prop.) | prolonga (prop.) | electrifica mojado (hoy, 2 s → 6 s prop.) |
-| hielo | celeste | congela 1,5 s (hoy) | congela 2,5 s +15 (hoy) | apaga + niebla (prop.) | — | congela (prop.) | hiela, quita mojado (hoy) |
-| viento | verde pálido | interrumpe (hoy) | seca (prop.) | **llamarada**: contagia al vecino (prop. B2) | **roto** (prop. B1) | — | limpia mojado/quemado/electrificado (prop. B3) |
+| **fuego** | prende hierba (hoy) | seca (hoy) | charco (hoy) | — | — | cuece a seca | — |
+| **agua** | moja (hoy) | hiela (hoy) | nada (hoy) | apaga la carga | apaga (hoy) | — | enfría a roca (hoy, lava) |
+| **tierra** | escombro (B3) | barro (hereda) | — | — | — | — | — |
+| **viento** | — | seca (B3) | — | limpia (B3) | limpia (B3) | seca a seca | aviva |
+| **hielo** | hiela (hoy) | hiela (hoy) | — | — | apaga | hiela (sólido) | enfría a roca |
+| **rayo** | — | electrifica 6 s (A5) | — | renueva (hoy) | — | nada | — |
+| **magma** | lava 8 s → roca | vapor + roca | derrite a mojada | — | — | roca | — |
+| **barro** | barro | barro | — | apaga la carga | apaga | — | roca |
 
-Cada celda «prop.» es una línea en `decidir_golpe` o una fila en `TRANSICIONES`, y un rótulo + color en `PrevisionReaccion3D.ESTILO`.
+**Reglas de lectura:** cada celda es una fila en `EstadosSuelo3D.TRANSICIONES` (6.3) o una rama en `Combate3D.decidir_golpe` (6.2), y un rótulo + color en `PrevisionReaccion3D.ESTILO`. Las celdas vacías no reaccionan y la previsión no dice nada. Los estados nuevos del suelo que pide la tabla: **escombro**, **barro**, **lava** y **roca** (la lava y la roca ya existen en `Lava3D` como pieza; faltan como estado de casilla).

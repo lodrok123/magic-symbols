@@ -2,7 +2,7 @@ extends "res://herramientas/escenario_base.gd"
 ## LA SALA DEL GÓLEM (28/10; mapas/SalaGolem.txt, escenas/PruebaSalaGolem.tscn): la pieza `golem` monta el gólem y el vigía lo cuenta; vencido el último, aparece el cofre.
 ## Juega las DOS formas de vencerlo, con hechizos lanzados por el camino de verdad (`Lanzador3D.lanzar_ahora`), y que la flecha directa no le hace nada:
 ##   · FORMA 1 · ESQUIVAR Y CASTIGAR EL NÚCLEO. Un gólem persigue, saca su aviso, ella rueda en la ventana final (tiempo bruja), el golpe cae en vacío, queda de rodillas con el núcleo a la vista
-##     y dos rayos (55 × 1,5 cada uno) lo matan dentro de la ventana.
+##     y tres rayos de potencia media (6/11: 24 × 1,5 − 10 = 26 cada uno; antes dos de 55 × 1,5 con la flecha sola) lo matan dentro de la ventana.
 ##   · FORMA 2 · HIELO + VIENTO. Un hechizo de hielo hiela la franja de agua (3..8, 4); el gólem sobre el hielo recibe un viento y resbala hasta la charca honda: se hunde (+20 de tinta).
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/escenario_sala_golem.gd
 
@@ -14,13 +14,14 @@ func _pos(c: Vector2i) -> Vector3:
 	return Vector3((float(c.x) + 0.5) * Terreno3D.casilla, Terreno3D.y_pies(c), (float(c.y) + 0.5) * Terreno3D.casilla)
 
 
-func _preparar(desde: Vector2i, elemento: String) -> Dictionary:
+func _preparar(desde: Vector2i, elemento: String, glifos: Array = ["flecha"]) -> Dictionary:
 	colocar_jugador(desde)
 	(jugador as Jugador3D).vida = 100000.0
 	lanzador.select_page(0)
 	lanzador.clear_sequence()
 	lanzador.place_element(elemento)
-	lanzador.place_sigil("flecha")
+	for g in glifos:
+		lanzador.place_sigil(String(g))
 	lanzador.cooldown_left[0] = 0.0
 	if lanzador.tinta != null:
 		lanzador.tinta.rellenar_barra()
@@ -28,8 +29,8 @@ func _preparar(desde: Vector2i, elemento: String) -> Dictionary:
 	return lanzador._preparado
 
 
-func _disparar(desde: Vector2i, elemento: String, dir: Vector3, espera: float = 1.2) -> void:
-	var d: Dictionary = _preparar(desde, elemento)
+func _disparar(desde: Vector2i, elemento: String, dir: Vector3, espera: float = 1.2, glifos: Array = ["flecha"]) -> void:
+	var d: Dictionary = _preparar(desde, elemento, glifos)
 	lanzador._salir_modo(true)
 	lanzador._preparado = {}
 	lanzador.lanzar_ahora(d, jugador.position, dir)
@@ -150,10 +151,14 @@ func _escenario() -> void:
 	await avanzar_s(0.3)
 	_ok("5 el núcleo brilla: %.1f (reposo %.2f)" % [b.brillo_nucleo(), Golem3D.BRILLO_REPOSO], b.brillo_nucleo() > Golem3D.BRILLO_REPOSO * 3.0)
 	var vida_b: float = b.health
-	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 0.0)
-	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 1.6)
+	# 6/11 (bloque A1): el rayo ya no vale 55 fijos (con la flecha sola bastaban DOS) sino 12 / 24 / 40 según los glifos ofensivos. Contra el gólem (vida 70, DEF 10, núcleo ×1,5) un rayo ligero hace 8 y uno MEDIO
+	# (3 glifos: flecha, perforar y buscar, lo que cabe en los 3 huecos del libro) 24 × 1,5 − 10 = 26: hacen falta TRES medios dentro de la ventana (78 ≥ 70). Dos solo dejan al gólem en 18 de vida.
+	var rayo_medio: Array = ["flecha", "perforar", "buscar"]
+	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 0.0, rayo_medio)
+	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 0.0, rayo_medio)
+	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 1.6, rayo_medio)
 	var murio: bool = not is_instance_valid(b) or b.muerto
-	_ok("5 dos rayos (55 × 1,5 = 82,5 cada uno) lo vencen dentro de la ventana del núcleo (vida %.0f → %.0f)" % [vida_b, b.health if is_instance_valid(b) else 0.0], murio and (not is_instance_valid(b) or not b.se_hundio))
+	_ok("5 tres rayos de potencia media (24 × 1,5 − 10 = 26 cada uno) lo vencen dentro de la ventana del núcleo (vida %.0f → %.0f)" % [vida_b, b.health if is_instance_valid(b) else 0.0], murio and (not is_instance_valid(b) or not b.se_hundio))
 	await avanzar_s(2.5)
 	# --- La sala ---
 	await avanzar_s(1.5)
