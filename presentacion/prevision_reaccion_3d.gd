@@ -28,6 +28,9 @@ const ESTILO: Dictionary = {
 	"resbala": ["Resbala", Color(0.55, 0.95, 1.0)],           # E3: el viento sobre hielo lo hace deslizarse
 	"lava": ["¡Lava!", Color(1.0, 0.4, 0.15)],                # E3: acaba en la lava
 	"electrocuta": ["Electrocuta", Color(1.0, 0.92, 0.3)],
+	"rompe_x2": ["Rompe ×2", Color(0.7, 0.92, 1.0)],          # B1 (6/11): congelado + tierra/viento/rayo; el hielo (celeste)
+	"llamarada": ["¡Llamarada!", Color(1.0, 0.45, 0.15)],     # B2: viento sobre quien arde, contagia al vecino (rojo-naranja)
+	"ciega": ["Ciega", Color(0.82, 0.86, 0.92)],              # B2: agua sobre quien arde, el vapor lo ciega
 	"congela": ["Congela", Color(0.55, 0.95, 1.0)],
 	"prende": ["Prende", Color(1.0, 0.55, 0.2)],
 	"moja": ["Moja", Color(0.35, 0.65, 1.0)],
@@ -50,6 +53,10 @@ const ESTILO: Dictionary = {
 	"agrieta": ["Agrieta", Color(0.85, 0.7, 0.5)],
 	"rompe": ["Rompe", Color(0.9, 0.6, 0.4)],
 	"enfria": ["Enfría", Color(0.62, 0.68, 0.78)],
+	"limpia": ["Limpia", Color(0.8, 0.95, 0.88)],              # B3: el viento quita lo electrificado o lo quemado del suelo
+	"escombro": ["Escombro", Color(0.78, 0.53, 0.35)],         # B3: la tierra deja escombro (ralentiza, sólido para proyectiles)
+	"vapor": ["Vapor", Color(0.92, 0.92, 0.95)],               # B3: el agua sobre lo quemado (o el calor sobre lo mojado) suelta una nube
+	"electrifica": ["Electrifica", Color(1.0, 0.92, 0.3)],     # B3: el rayo sobre una casilla mojada
 }
 const COLOR_DEBIL: Color = Color(1.0, 0.35, 0.25)       ## «×1,5» (débil, 29/10)
 const ALTO_ROTULO: float = 0.5                           ## por encima de los pies + altura: justo sobre la barra de vida (Combate3D: altura + 0,28); más alto, en la vista isométrica cae sobre el enemigo de detrás

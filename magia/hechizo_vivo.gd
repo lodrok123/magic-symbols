@@ -64,6 +64,12 @@ const MAX_EVENTOS_V2: int = 128           ## tope de apariciones (copias × fase
 ## 3/11 (R1/R2): el muro que viaja y empuja. Fracción de `Lanzador3D.FUERZA_EMPUJE` con que arrastra a quien alcanza; cuánto se queda su SolidezV2 tras su último paso si no hay `permanencia`.
 const EMPUJE_MURO_K: float = 0.5
 const COLA_SOLIDEZ_S: float = 0.3
+## 6/11 (bloque B7, fuego amigo suave; Magicka): las zonas vivas de TU hechizo (la llama que deja el fuego, la descarga de tu rayo sobre el agua que pisas) también te dañan. Fallo que evita: poner
+## una barrera de fuego o un rayo sobre el agua no tenía riesgo ninguno, así que dónde la ponías daba igual. `static var` y no `const` para que las pruebas que no lo quieran lo apaguen.
+static var FUEGO_AMIGO: bool = true
+const DANO_PROPIO_POR_TIC: float = 2.0     ## lo que te quita cada pulso de la zona (el mismo `intervalo` que a los enemigos); pasa por tu defensa y tu invulnerabilidad (`Jugador3D.dano_ambiental`)
+const GRACIA_PROPIA_S: float = 0.6         ## s tras lanzar sin daño propio: el hechizo sale de TU casilla y sin esto te quemarías al nacer
+var _t_creado_ms: int = Time.get_ticks_msec()   ## cuándo nació este lanzamiento (la gracia de la descarga, que no tiene zona con reloj propio)
 ## 3/11 (R3): los orbes de ᛃ + ᚠ. Radio de la órbita = ORBITA_RADIO_BASE_CAS + ORBITA_RADIO_POR_SEMIEJE × el mayor de X y Z (casillas); una vuelta cada ORBITA_VUELTA_S s; dura persiste + permanencia (mínimo ORBITA_VIDA_MIN_S).
 const ORBITA_RADIO_BASE_CAS: float = 1.0
 const ORBITA_RADIO_POR_SEMIEJE: float = 2.0
@@ -1238,6 +1244,24 @@ static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 		else:
 			z.tocados[e.get_instance_id()] = true
 			lanzador._golpear(e, z.rune, d, (e as Node3D).global_position, 0, false, z.origen)
+	if z.dano_periodico > 0.0:
+		var quitado: float = golpe_propio(lanzador, z.celdas, z.elemento, z.edad, not z.avisada_jugadora)
+		if quitado > 0.0:
+			z.avisada_jugadora = true
+
+
+## B7: el daño de una zona o descarga de TU hechizo sobre ti, si estás dentro de sus `celdas` y ya pasó la gracia (`edad_s` desde que lanzaste). Va por `Jugador3D.dano_ambiental` (invulnerabilidad,
+## defensa, viñeta, HUD; sin empujón ni hitstop). `con_rotulo`: el «¡Te quemas!» solo sale la primera vez por zona. Devuelve lo que te quitó (0 si nada).
+static func golpe_propio(lanzador: Lanzador3D, celdas: Dictionary, elemento: String, edad_s: float, con_rotulo: bool = true) -> float:
+	if not FUEGO_AMIGO or edad_s < GRACIA_PROPIA_S or lanzador == null or not is_instance_valid(lanzador):
+		return 0.0
+	var j: Node3D = lanzador.jugador
+	if j == null or not is_instance_valid(j) or not j.has_method("dano_ambiental") or not celdas.has(Lanzador3D.celda_de(j.global_position)):
+		return 0.0
+	var quitado: float = float(j.call("dano_ambiental", DANO_PROPIO_POR_TIC, elemento))
+	if quitado > 0.0 and con_rotulo:
+		Combate3D.flotante(lanzador.mundo, j.global_position + Vector3(0.0, 2.1, 0.0), "¡Te quemas!" if elemento == "fuego" else "¡Te hiere tu hechizo!", Combate3D.COLORES.get(elemento, Color(1.0, 0.5, 0.2)), 0.9)
+	return quitado
 
 
 ## PULSO DE GAS: empuja con `empuje` (0-1) × FUERZA_EMPUJE por segundo, en la dirección de la mirada. Los reactivos (no los enemigos: ya se empujan
@@ -1285,6 +1309,9 @@ func _descarga(ctx: Dictionary, area: Dictionary) -> int:
 				continue
 			tocados[obj.get_instance_id()] = true
 			_golpear(obj, d, (obj as Node3D).global_position, ctx["origen"])
+	if not seco and String(ctx["elemento"]) == "rayo":
+		# B7: si pisas el agua o el conductor que recorre tu propia descarga, te llega (una vez: la descarga es instantánea)
+		golpe_propio(lanz, area, "rayo", float(Time.get_ticks_msec() - _t_creado_ms) / 1000.0)
 	if rune.deja != "":
 		for c in ctx["celdas"]:
 			_marcar(String(ctx["elemento"]), c as Vector2i)

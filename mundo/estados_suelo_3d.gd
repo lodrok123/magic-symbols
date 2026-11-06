@@ -22,10 +22,22 @@ const MOJADA: String = "mojada"
 ## 16/10 (14.2 · P3): la hierba de la casilla está SEGADA (cortada o consumida por el fuego): queda rastrojo y no vuelve a crecer en la sesión.
 ## La pone quien la siega (hoy: el fuego al acabar la ceniza de una mata); la maqueta (`Rastrojo3D`) solo DIBUJA el rastrojo al oír `cambio`.
 const SEGADA: String = "segada"
-const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada", "segada"]
+## 6/11 (bloque B3): ESCOMBRO es lo que deja la tierra al pararse (ralentiza a quien lo pisa y es sólido para los proyectiles) y VAPOR la nube que deja el calor al secar (la ceguera de los
+## enemigos que la usen es de otro agente: aquí solo es el DATO). Ninguno tiene canal en la imagen: no se pintan en el suelo.
+const ESCOMBRO: String = "escombro"
+const VAPOR: String = "vapor"
+const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada", "segada", "escombro", "vapor"]
 
 ## Cómo se llama cada estado en `Mundo3D.casilla_cambio(c, que)`, que habla de lo que pasó, no de cómo queda la casilla.
-const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado", "segada": "siega"}
+const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado", "segada": "siega", "escombro": "tierra", "vapor": "nube"}
+
+## B3: lo que dura el escombro y el vapor (s). Una sola constante cada uno; `DURA` las lee.
+const ESCOMBRO_S: float = 6.0
+const VAPOR_S: float = 4.0
+## B3: a qué velocidad anda quien pisa el estado (×; 1 = normal). El jugador y los enemigos lo leen con `factor_velocidad(celda)` cuando se enganchen.
+const FACTOR_VELOCIDAD: Dictionary = {"escombro": 0.7}
+## B3: estados que un proyectil NO atraviesa (`bloquea_proyectil`). HechizoVivo lo consultará cuando se enganche.
+const BLOQUEA_PROYECTIL: PackedStringArray = ["escombro"]
 
 ## Se emite SOLO cuando el estado cambia de verdad (poner lo que ya hay no avisa a nadie).
 signal cambio(c: Vector2i, estado: String, si: bool)
@@ -43,15 +55,54 @@ const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
 ##   sin     la casilla NO debe tener este estado ("" = da igual)
 ##   quita / pone   estados que se quitan y se ponen
 ##   efecto  lo que la presentación debería pintar (hoy solo «vapor»); `aplicar` lo devuelve, no lo pinta
+## Columnas opcionales (B3, 6/11), para no tocar las filas de siempre:
+##   con_algun  la casilla debe tener AL MENOS UNO de estos estados (lista). Sin ella, una fila «limpia» encajaría en casillas que no tienen nada que limpiar y taparía a la siguiente.
+##   mantiene   true = el estado que pone se pone con `mantener` (no acorta uno que ya no caduca; el rayo sobre la electrificada permanente de un puzle)
+##   rotulo     nombre de la reacción para la previsión cuando la fila cambia algo (si falta, `ReaccionesSuelo3D.prever` lo deduce de lo que quita y pone)
+## Acciones nuevas (B3): «sopla» (viento), «escombro» (tierra), «descarga» (rayo). Una acción sin fila (la «tierra» a secas) no hace nada, como siempre.
 ## Una regla nueva es una fila nueva; ningún estado sabe de los demás.
 const TRANSICIONES: Array = [
 	{"accion": "agua", "con": "helada", "sin": "", "quita": [], "pone": [], "efecto": ""},                     # ya helada: nada
 	{"accion": "agua", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": ["helada"], "efecto": ""},     # dos aguas hielan
+	{"accion": "agua", "con": "quemada", "sin": "", "quita": [], "pone": ["mojada", "vapor"], "efecto": "vapor", "rotulo": "vapor"},   # B3: el agua sobre lo quemado humea (la quemada se queda: eso lo decide su reloj)
 	{"accion": "agua", "con": "", "sin": "", "quita": [], "pone": ["mojada"], "efecto": ""},
 	{"accion": "frio", "con": "", "sin": "", "quita": ["mojada"], "pone": ["helada"], "efecto": ""},
-	{"accion": "calor", "con": "helada", "sin": "", "quita": ["helada"], "pone": ["mojada"], "efecto": ""},    # el hielo pasa a charco
-	{"accion": "calor", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": [], "efecto": "vapor"},       # el charco se seca
+	{"accion": "calor", "con": "helada", "sin": "", "quita": ["helada"], "pone": ["mojada", "vapor"], "efecto": ""},    # el hielo pasa a charco (y suelta una nube; el vapor VISUAL de este caso lo pinta el Lanzador al caducar)
+	{"accion": "calor", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": ["vapor"], "efecto": "vapor"},       # el charco se seca y deja la nube
+	# B3 · VIENTO: limpia. El hielo pesa (el viento no lo mueve): fila PRIMERA y vacía para que la de abajo no encaje en una casilla helada.
+	{"accion": "sopla", "con": "helada", "sin": "", "quita": [], "pone": [], "efecto": ""},
+	{"accion": "sopla", "con": "", "con_algun": ["mojada", "electrificada", "quemada"], "sin": "", "quita": ["mojada", "electrificada", "quemada"], "pone": [], "efecto": ""},
+	# B3 · TIERRA: escombro (6 s). Otra pedrada sobre el escombro lo renueva.
+	{"accion": "escombro", "con": "", "sin": "", "quita": [], "pone": ["escombro"], "efecto": ""},
+	# B3 · RAYO: sobre casilla MOJADA electrifica (6 s); sobre seca, nada (no hay fila). Es lo mismo que hace `Lanzador3D.electrificar_celda` (que además cubre el agua).
+	{"accion": "descarga", "con": "mojada", "sin": "", "quita": [], "pone": ["electrificada"], "efecto": "", "mantiene": true},
 ]
+
+## B3: de qué ELEMENTO viene cada acción (para consultar `REACCION_MATERIAL`, que habla de elementos). Una acción que no está aquí no mira el material.
+const ELEMENTO_DE_ACCION: Dictionary = {"agua": "agua", "frio": "hielo", "calor": "fuego", "sopla": "viento", "escombro": "tierra", "descarga": "rayo"}
+
+## B4 (6/11) · MATERIAL por casilla. Los valores posibles:
+const MATERIALES: PackedStringArray = ["hierba", "roca", "tierra", "madera", "agua", "arena"]
+## Qué material sale de la LETRA del mapa (`Terreno3D.letra_de`) si nadie lo dice: `v` hierba, `~` agua, `#` roca (muro), `b` madera (el puente de tablas/tronco); el resto, tierra.
+const MATERIAL_DE_LETRA: Dictionary = {"v": "hierba", "~": "agua", "#": "roca", "b": "madera"}
+const MATERIAL_DEFECTO: String = "tierra"
+
+## B4: elemento × material = qué puede pasar. Sin entrada = lo de siempre (todo permitido, sin factor). Claves:
+##   prende   el fuego puede ENCENDER la casilla (hierba y madera sí; roca, tierra, arena, agua no). Es solo el encendido: el calor sigue fundiendo hielo y secando charcos en cualquier suelo (`TRANSICIONES`).
+##   propaga  lo que arde contagia a las vecinas (la hierba sí; la madera arde sola). La propagación la hace el autómata de la maqueta (`_hf`); esto es lo que debe preguntarle.
+##   actua    false = el elemento NO deja su estado ahí (la tierra no hace escombro en el agua).
+##   seca_x   cuántas veces más deprisa se SECA lo mojado (la arena bebe: el doble, DURA/2).
+##   hiela    el hielo sobre agua hiela (lo hace la simulación del agua, `ReaccionesAgua3D`; aquí es dato de la tabla).
+const REACCION_MATERIAL: Dictionary = {
+	"fuego": {
+		"hierba": {"prende": true, "propaga": true},
+		"madera": {"prende": true, "propaga": false},
+		"roca": {"prende": false}, "tierra": {"prende": false}, "arena": {"prende": false}, "agua": {"prende": false},
+	},
+	"agua": {"arena": {"seca_x": 2.0}},
+	"tierra": {"agua": {"actua": false}},
+	"hielo": {"agua": {"hiela": true}},
+}
 
 ## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). El reloj es `Mundo3D._process` → `avanzar`.
 ## 27/10 (lote 3, cambio 1): el MOJADO se seca solo a los 20 s, lo mismo que el suelo que moja la simulación (`AguaSim3D.SECA_EN`).
@@ -60,7 +111,8 @@ const TRANSICIONES: Array = [
 ## el ÚNICO sitio donde está la duración del hielo: `AguaSim3D.DURA_HIELO`, `Hierba3D.ESCARCHA_S` y `Lanzador3D` la leen de aquí. Lo quemado y lo segado se quedan (sin decidir).
 ## 6/11 (bloque A5, decisión de Pablo): la ELECTRIFICADA pasa de 2 s a 6 s (con 2 s no daba tiempo a preparar nada encima) y la QUEMADA deja de ser permanente: caduca a los 8 s.
 ## OJO: el 3/11 Pablo había fijado electrificada 2 s; el 6 s NO es un error, es esta decisión posterior. La helada se queda en 20 s.
-const DURA: Dictionary = {"helada": 20.0, "electrificada": 6.0, "quemada": 8.0, "mojada": 20.0, "segada": 0.0}
+## 6/11 (bloque B3): escombro 6 s y vapor 4 s (`ESCOMBRO_S`, `VAPOR_S`).
+const DURA: Dictionary = {"helada": 20.0, "electrificada": 6.0, "quemada": 8.0, "mojada": 20.0, "segada": 0.0, "escombro": ESCOMBRO_S, "vapor": VAPOR_S}
 
 ## C1 (2/11, lote 3 cambio 1), la columna «al_caducar»: qué estado queda en la casilla cuando OTRO caduca (se quita el que caduca y se pone este; "" o sin fila = nada). Hoy solo hay una fila: lo que
 ## se hiela (una `helada` que caduca) se deshiela y deja la casilla MOJADA. C2 (3/11): ya se usa de verdad (`DURA["helada"]` = 20) y el `Lanzador3D` dejó su contador: oye `caducado` para soltar
@@ -93,6 +145,11 @@ var _avance: Dictionary = {}          ## estado -> Dictionary(Vector2i -> float 
 ## (`hiela_sola_s`). Sin él (vacío) todo es como siempre.
 var estado_zona_en: Callable = Callable()
 var _frio_t: Dictionary = {}          ## Vector2i -> s que lleva mojada en una zona que hiela sola
+## B4 · MATERIAL. Vive aquí (y no en `Terreno3D`) porque es el mismo tipo de dato que los estados —una propiedad por casilla que decide qué reacciona— y quien pregunta
+## «¿esto arde? ¿esto se seca?» ya le pregunta a esta clase; `Terreno3D` solo conoce las letras, y de ahí se deduce lo que nadie ha dicho (`material_de`).
+var _material: Dictionary = {}        ## Vector2i -> String: solo las casillas que alguien fijó (pieza `; material` o `poner_material`); el resto se deduce de la letra
+## Quien conozca la hierba de verdad (hoy la maqueta: `_es_hierba`, que no es solo la letra `v` sino también el tipo de suelo y las zonas) la conecta aquí: Callable(c) -> bool. Sin él, la letra.
+var hierba_en: Callable = Callable()
 
 ## Lado de la textura (casillas). 40 = el `_lado` de la maqueta; `dimensionar` lo cambia (Mundo3D le pasa el del mapa).
 var lado: int = 40
@@ -290,7 +347,16 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 				continue         # C2: otro hielo sobre una casilla ya helada NO renueva sus 20 s (Pablo, 12/10; antes lo impedía el `_hielo.has` del Lanzador)
 			if String(e) == HELADA and not ya_helada:
 				_escarcha[c] = true
-			algo = poner(c, String(e), true) or algo
+			if bool(fila.get("mantiene", false)):
+				algo = mantener(c, String(e)) or algo      # B3: la descarga no acorta una electrificada que otro mantiene sin caducidad
+				continue
+			# B4: la arena bebe: lo mojado se seca `seca_x` veces más deprisa (DURA/2). Solo se pasa la duración si cambia; con 1 es la de siempre.
+			var dura: float = -1.0
+			if String(e) == MOJADA:
+				var x: float = float(reaccion("agua", material_de(c), "seca_x", 1.0))
+				if not is_equal_approx(x, 1.0):
+					dura = float(DURA[MOJADA]) / maxf(x, 0.01)
+			algo = poner(c, String(e), true, 1.0, dura) or algo
 		return {"cambio": algo, "efecto": String(fila["efecto"])}
 	return {"cambio": false, "efecto": ""}
 
@@ -298,6 +364,9 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 ## 28/10 · A2 (previsión): la fila de `TRANSICIONES` que `aplicar` usaría con esta acción en esta casilla ({} si ninguna encaja), sin tocar nada. `aplicar` la ejecuta; la previsión
 ## la lee (`ReaccionesSuelo3D.prever`): una sola regla.
 func fila_para(c: Vector2i, accion: String) -> Dictionary:
+	# B4: si el material de la casilla dice que este elemento NO actúa ahí (la tierra en el agua no hace escombro), ninguna fila encaja.
+	if not bool(reaccion(String(ELEMENTO_DE_ACCION.get(accion, "")), material_de(c), "actua", true)):
+		return {}
 	for f in TRANSICIONES:
 		var fila: Dictionary = f
 		if String(fila["accion"]) != accion:
@@ -306,8 +375,119 @@ func fila_para(c: Vector2i, accion: String) -> Dictionary:
 			continue
 		if String(fila["sin"]) != "" and tiene(c, String(fila["sin"])):
 			continue
+		if fila.has("con_algun"):
+			var alguno: bool = false
+			for e in (fila["con_algun"] as Array):
+				if tiene(c, String(e)):
+					alguno = true
+					break
+			if not alguno:
+				continue
 		return fila
 	return {}
+
+
+## B3/B4 (previsión): ¿cambiaría algo `aplicar` con esta fila en esta casilla? (quita algo que hay o pone algo que falta). `ReaccionesSuelo3D.prever` solo avisa si es que sí.
+func cambiaria(c: Vector2i, fila: Dictionary) -> bool:
+	for e in (fila["quita"] as Array):
+		if tiene(c, String(e)):
+			return true
+	for e in (fila["pone"] as Array):
+		if not tiene(c, String(e)):
+			return true
+	return false
+
+
+## B3 · ¿hay escombro (o lo que haga de él) que frene a quien pisa esta casilla? Producto de `FACTOR_VELOCIDAD` de los estados que tiene; 1 = normal.
+## Pendiente de engancharlo: `jugador_3d.gd` y `combate_3d.gd` (ver el informe).
+func factor_velocidad(c: Vector2i) -> float:
+	var f: float = 1.0
+	for estado in FACTOR_VELOCIDAD.keys():
+		if tiene(c, String(estado)):
+			f *= float(FACTOR_VELOCIDAD[estado])
+	return f
+
+
+## B3 · ¿un proyectil que pasa por esta casilla se para? (escombro). Pendiente de engancharlo: `HechizoVivo` (ver el informe).
+func bloquea_proyectil(c: Vector2i) -> bool:
+	for estado in BLOQUEA_PROYECTIL:
+		if tiene(c, estado):
+			return true
+	return false
+
+
+## B3 · ¿hay una nube de vapor en la casilla? (la deja el calor al secar; quien la use —la ceguera de los enemigos— la lee aquí)
+func hay_vapor(c: Vector2i) -> bool:
+	return tiene(c, VAPOR)
+
+
+## B4 · lo que la tabla `REACCION_MATERIAL` dice de `elemento` sobre `material` para la `clave`; `defecto` si no dice nada.
+static func reaccion(elemento: String, material: String, clave: String, defecto: Variant = null) -> Variant:
+	var filas: Dictionary = (REACCION_MATERIAL.get(elemento, {}) as Dictionary)
+	return (filas.get(material, {}) as Dictionary).get(clave, defecto)
+
+
+## B4 · el material de la casilla: lo que alguien fijó (pieza `; material`, `poner_material`) > la hierba que reconoce quien la conoce (`hierba_en`) > la letra del mapa (`MATERIAL_DE_LETRA`)
+## > `tierra`. Sin mundo (una prueba suelta) y sin nada fijado, `tierra`.
+func material_de(c: Vector2i) -> String:
+	if _material.has(c):
+		return String(_material[c])
+	if hierba_en.is_valid() and bool(hierba_en.call(c)):
+		return "hierba"
+	if Terreno3D.hay_mundo() and Terreno3D.en_mapa(c):
+		return String(MATERIAL_DE_LETRA.get(Terreno3D.letra_de(c), MATERIAL_DEFECTO))
+	return MATERIAL_DEFECTO
+
+
+## B4 · fija el material de una casilla (la pieza `; material x y mat` del mapa lo hace al montar). "" lo quita (vuelve a deducirse de la letra). Devuelve false si el material no existe.
+func poner_material(c: Vector2i, material: String) -> bool:
+	if material == "":
+		return _material.erase(c)
+	if not MATERIALES.has(material):
+		push_warning("EstadosSuelo3D: «%s» no es un material (%s)" % [material, ", ".join(MATERIALES)])
+		return false
+	_material[c] = material
+	return true
+
+
+## B4 · ¿puede el fuego ENCENDER esta casilla? Lo dice `REACCION_MATERIAL`: la hierba y la madera sí; roca, tierra, arena y agua no. La maqueta lo consulta en `_puede_prender`.
+func puede_prender(c: Vector2i) -> bool:
+	return bool(reaccion("fuego", material_de(c), "prende", false))
+
+
+## B4 · ¿lo que arde en esta casilla contagia a las vecinas? (la hierba sí; la madera arde sola). El autómata de la maqueta debería preguntarlo; hoy solo hay hierba.
+func propaga_fuego(c: Vector2i) -> bool:
+	return bool(reaccion("fuego", material_de(c), "propaga", false))
+
+
+## B4 · cambio de nivel: olvida los materiales fijados (`limpiar` NO los toca, porque `desde_dic` limpia al cargar una partida y los materiales son del mapa, no de la partida).
+func olvidar_materiales() -> void:
+	_material.clear()
+
+
+## B4 · lee las líneas `; material <x> <y> <material>` (una casilla) y `; material <x0>,<y0>..<x1>,<y1> <material>` (un rectángulo) de un texto de mapa. Una línea mala se avisa y se salta.
+func leer_materiales(texto: String) -> int:
+	var n: int = 0
+	for bruta in texto.split("\n"):
+		var linea: String = bruta.strip_edges()
+		if not linea.begins_with(";"):
+			continue
+		var partes: PackedStringArray = linea.substr(1).strip_edges().split(" ", false)
+		if partes.size() < 3 or partes[0] != "material":
+			continue
+		if partes.size() >= 4 and partes[1].is_valid_int() and partes[2].is_valid_int():
+			if poner_material(Vector2i(int(partes[1]), int(partes[2])), partes[3]):
+				n += 1
+		else:
+			var rect: Rect2i = EstadoZona3D._rect(partes[1])
+			if rect.size.x <= 0:
+				push_warning("EstadosSuelo3D: línea de material mal formada: «%s»" % linea)
+				continue
+			for y in range(rect.position.y, rect.position.y + rect.size.y):
+				for x in range(rect.position.x, rect.position.x + rect.size.x):
+					if poner_material(Vector2i(x, y), partes[2]):
+						n += 1
+	return n
 
 
 ## ¿Es la «helada» de esta casilla solo la del suelo (escarcha) y no hielo sobre agua? Falso si la casilla no está helada.

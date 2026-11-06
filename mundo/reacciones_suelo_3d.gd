@@ -19,8 +19,11 @@
 class_name ReaccionesSuelo3D
 extends RefCounted
 
-## Qué acción del estado es cada elemento. El rayo, la tierra y el viento no cambian canales del suelo (`_impacto_en_suelo`).
-const ACCION_DE: Dictionary = {"agua": "agua", "hielo": "frio", "fuego": "calor"}
+## Qué acción del estado es cada elemento. Agua, hielo y fuego son los canales de siempre (`_impacto_en_suelo`). 6/11 (bloque B3) el viento «sopla» (limpia), la tierra deja «escombro» y el
+## rayo «descarga» (electrifica lo mojado): cada una tiene sus filas en `EstadosSuelo3D.TRANSICIONES`.
+const ACCION_DE: Dictionary = {"agua": "agua", "hielo": "frio", "fuego": "calor", "viento": "sopla", "tierra": "escombro", "rayo": "descarga"}
+## B3: acciones que también alcanzan a la casilla de HIERBA (el resto es del autómata de la maqueta). El escombro es solo un estado: no toca la hierba, pero la tierra cae también sobre ella.
+const ACCIONES_EN_HIERBA: PackedStringArray = ["escombro"]
 ## Fases de la hierba de la maqueta (`PruebaTest2.Fase`; no tiene class_name, como en bosque_01_3d.gd).
 const FASE_ARDIENDO: int = 3
 const FASE_CENIZAS: int = 4
@@ -74,7 +77,7 @@ static func aplicar(a: AccionElemental) -> Dictionary:
 		# hierba se ve mojada y no prende (HIERBA_MOJADA_S), no los 20 s del suelo desnudo.
 		var cambio: bool = Terreno3D.estados.poner(c, EstadosSuelo3D.MOJADA, true, 1.0, HIERBA_MOJADA_S)
 		return {"cambio": cambio, "efecto": ""}
-	if clase != "suelo":
+	if clase != "suelo" and not (clase == "hierba" and ACCIONES_EN_HIERBA.has(accion)):
 		return {}
 	return Terreno3D.estados.aplicar(c, accion)
 
@@ -82,7 +85,8 @@ static func aplicar(a: AccionElemental) -> Dictionary:
 ## 28/10 · A2 (previsión): qué le haría un impacto de `elemento` a la casilla `c`, SIN aplicar nada. Devuelve {} si no pasaría nada, o {reaccion, extra}:
 ##   hierba  prende · arde · brota · apaga · abanica (`prever_hierba` de la maqueta)    suelo  hiela · moja · seca · derrite (la fila de `EstadosSuelo3D.TRANSICIONES` que `aplicar` usaría)
 ##   agua    hiela (el hielo sobre agua con fondo) · derrite (el fuego sobre agua helada) · evapora (el fuego sobre agua)
-## Son las mismas reglas que `aplicar` y la simulación del agua (`ReaccionesAgua3D`); lo que no cambia el suelo (rayo, tierra, viento) no devuelve nada.
+## Son las mismas reglas que `aplicar` y la simulación del agua (`ReaccionesAgua3D`). B3 (6/11): suelo también devuelve «limpia» (viento sobre electrificada o quemada; «seca» si era mojada), «escombro» (tierra; también sobre
+## hierba, nunca en agua), «electrifica» (rayo sobre casilla mojada) y «vapor» (agua sobre lo quemado); lo que no cambia nada no devuelve nada. B4: el material de la casilla ya está dentro de `fila_para`.
 ## `solo_hierba`: el impacto del VFX de un proyectil que se para (el agua no marca casillas) solo alcanza a la hierba de la maqueta (`_al_impactar`), no escribe estados del suelo.
 static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> Dictionary:
 	if not Terreno3D.en_mapa(c):
@@ -98,7 +102,8 @@ static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> 
 				return {"reaccion": r, "extra": {"clase": "hierba"}}
 		if accion == "agua" and not Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA):
 			return {"reaccion": "moja", "extra": {"clase": "hierba"}}
-		return {}
+		if solo_hierba or not ACCIONES_EN_HIERBA.has(accion):
+			return {}                                           # B3: salvo el escombro, lo de la hierba es del autómata de la maqueta (arriba)
 	if accion == "":
 		return {}
 	if accion != "calor" and Terreno3D.altura_en(c) >= 1:
@@ -116,25 +121,38 @@ static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> 
 				if honda:
 					return {"reaccion": "evapora", "extra": {"clase": "agua"}}
 		return {}
-	if clase != "suelo":
+	if clase != "suelo" and clase != "hierba":
 		return {}
-	var fila: Dictionary = Terreno3D.estados.fila_para(c, accion)
+	var e: EstadosSuelo3D = Terreno3D.estados
+	var fila: Dictionary = e.fila_para(c, accion)
 	if fila.is_empty():
 		return {}
 	var pone: Array = fila["pone"]
 	var quita: Array = fila["quita"]
+	var real: Array = []                                    # B3: lo que de verdad quitaría (el viento solo quita lo que la casilla tiene)
+	for q in quita:
+		if e.tiene(c, String(q)):
+			real.append(q)
 	var nombre: String = ""
-	if pone.has(EstadosSuelo3D.HELADA) and not Terreno3D.estados.tiene(c, EstadosSuelo3D.HELADA):
+	if String(fila.get("rotulo", "")) != "" and e.cambiaria(c, fila):
+		nombre = String(fila["rotulo"])                     # B3: la fila lo nombra ella misma (el agua sobre lo quemado: «Vapor»)
+	elif pone.has(EstadosSuelo3D.HELADA) and not e.tiene(c, EstadosSuelo3D.HELADA):
 		nombre = "hiela"
 	elif pone.has(EstadosSuelo3D.MOJADA) and not quita.has(EstadosSuelo3D.HELADA):
-		nombre = "moja" if not Terreno3D.estados.tiene(c, EstadosSuelo3D.MOJADA) else ""
+		nombre = "moja" if not e.tiene(c, EstadosSuelo3D.MOJADA) else ""
 	elif quita.has(EstadosSuelo3D.HELADA) and pone.has(EstadosSuelo3D.MOJADA):
 		nombre = "derrite"
-	elif quita.has(EstadosSuelo3D.MOJADA) and pone.is_empty():
-		nombre = "seca"
+	elif real.has(EstadosSuelo3D.MOJADA) and (pone.is_empty() or pone == [EstadosSuelo3D.VAPOR]):
+		nombre = "seca"                                     # el calor (deja vapor) y el viento (no deja nada) secan
+	elif not real.is_empty() and pone.is_empty():
+		nombre = "limpia"                                   # B3: el viento quita lo electrificado o lo quemado
+	elif pone.has(EstadosSuelo3D.ESCOMBRO) and not e.tiene(c, EstadosSuelo3D.ESCOMBRO):
+		nombre = "escombro"
+	elif pone.has(EstadosSuelo3D.ELECTRIFICADA) and not e.tiene(c, EstadosSuelo3D.ELECTRIFICADA):
+		nombre = "electrifica"                              # B3: el rayo sobre lo mojado
 	if nombre == "":
 		return {}
-	return {"reaccion": nombre, "extra": {"clase": "suelo", "efecto": String(fila["efecto"])}}
+	return {"reaccion": nombre, "extra": {"clase": clase, "efecto": String(fila["efecto"])}}
 
 
 ## El hielo de una casilla de SUELO caduca (20 s, `EstadosSuelo3D.DURA["helada"]`; el Lanzador oye `caducado` y llama a `_derretir`): la maqueta quita el canal «helado» y deja la casilla mojada, y el

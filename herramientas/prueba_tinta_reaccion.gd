@@ -157,6 +157,7 @@ func _topes() -> void:
 	b.golpe(_h("ice"), Vector3.ZERO)
 	_ok("2.3 el mismo tipo en OTRO enemigo sí da", is_equal_approx(_tinta.actual, 40.0), "%.1f" % _tinta.actual)
 	a.golpe(_h("water"), Vector3.ZERO)
+	a.congelado = 0.0          # 6/11 (bloque B1): rayo sobre congelado es «roto» (otro premio); aquí se mide el electrocutado, así que se descongela
 	a.golpe(_h("lightning"), Vector3.ZERO)
 	_ok("2.4 otro tipo (electrocutado) en A sí da", is_equal_approx(_tinta.actual, 60.0), "%.1f" % _tinta.actual)
 	a.golpe(_h("lightning"), Vector3.ZERO)
@@ -244,4 +245,4 @@ func _diario() -> void:
 	var texto: String = FileAccess.get_file_as_string(ruta) if ruta != "" else ""
 	_ok("7.1 el PlayLog apunta «tinta_reaccion» con tipo y enemigo", texto.contains("\"evento\":\"tinta_reaccion\"") and texto.contains("\"tipo\":\"hundido\"") and texto.contains("\"enemigo\":"),
 		ruta)
-	_ok("7.2 la constante vale 20 y hay 5 tipos premiados", is_equal_approx(Tinta.TINTA_POR_REACCION, 20.0) and Tinta.REACCIONES_PREMIADAS.size() == 5)
+	_ok("7.2 la constante vale 20 y hay 7 tipos premiados (6/11: + roto y llamarada)", is_equal_approx(Tinta.TINTA_POR_REACCION, 20.0) and Tinta.REACCIONES_PREMIADAS.size() == 7)

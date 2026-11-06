@@ -32,6 +32,9 @@ const FAMILIAS: Dictionary = {
 	"hundido":       ["hunde", 1.25, 0.7],
 	"aturdido":      ["aturde", 1.0, 1.1],
 	"empujado":      ["empuja", 0.8, 0.0],
+	"roto":          ["rompe_x2", 1.35, 1.7],      # 6/11 bloque B: el remate suena más agudo que el congelado (1,55)
+	"llamarada":     ["llamarada", 1.25, 0.9],
+	"cegado":        ["ciega", 0.9, 0.0],
 }
 
 ## Lo último que se hizo, para las pruebas: {aviso, estilo, color, tono, anillo}.

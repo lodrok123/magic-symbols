@@ -229,6 +229,21 @@ signal flecha_ardiente_impacta(objetivo: Node3D)
 ## Todo enemigo responde a las mismas siete reacciones (nombres fijos, los de `reacciones_soportadas()`); la prueba herramientas/prueba_contrato_enemigo.gd
 ## recorre cada tipo y comprueba que lo que declara es lo que de verdad hace. Una reacción que un tipo NO tiene se declara ausente, no se finge.
 const REACCIONES: PackedStringArray = ["quemado", "mojado", "congelado", "electrocutado", "empujado", "aturdido", "cae_al_agua"]
+
+## --- 6/11/2026 · BLOQUE B (docs/PROPUESTAS_COMBATE_2026-11-06.md §2 y §6.2): reacciones nuevas SOBRE EL ENEMIGO ---
+## B1 · ROTO: congelado + tierra, viento, rayo o golpe F. Fallo que evita: el congelado era un callejón sin salida (solo duraba y se acababa); ahora es un estado que ABRE un remate (daño ×`Dano.X_ROTO`,
+## se rompe el hielo y cae). Con rayo, además salta metralla al vecino más cercano, pero a menos distancia que el arco del mojado.
+const ROTO_EMPUJE: float = 2500.0               ## fuerza del empujón con que cae al romperse (si el golpe no trae el suyo): menos que el golpe F (5000), lo justo para tirarlo
+const METRALLA_ALCANCE: float = 2.5             ## u a las que salta la metralla del rayo sobre congelado
+const ARCO_ALCANCE: float = 4.5                 ## u a las que salta el arco del rayo sobre mojado (el de siempre; antes escrito a mano en `_arco_cercano`)
+## B2 · LLAMARADA: el viento sobre un enemigo que ARDE no solo le corta el ataque: lleva el fuego al enemigo más cercano en la dirección del soplo.
+const LLAMARADA_ALCANCE: float = 2.5            ## u máximas hasta el vecino que prende
+const LLAMARADA_SEMIANGULO: float = 45.0        ## grados a cada lado de la dirección del viento (cono de ±45°)
+const LLAMARADA_QUEMA_MIN: float = QUEMA_CONTACTO   ## s mínimos de quemadura que lleva (y con los que se refresca el que sopla): un tramo final de 0,2 s no contagiaría nada
+## B2 · CEGADO: el agua sobre un enemigo que ARDE levanta vapor que lo ciega: su IA no ve a la jugadora (`_ve`) y vuelve a «busca» / patrulla mientras dura.
+const CEGADO_S: float = 2.0
+const COLOR_ROTO: Color = Color(0.7, 0.92, 1.0)         ## rótulo «¡Roto!»: el hielo (celeste), como el de la previsión
+const COLOR_LLAMARADA: Color = Color(1.0, 0.45, 0.15)   ## rótulo «¡Llamarada!»: rojo-naranja, nunca amarillo
 ## Cae al agua: si tras un EMPUJE (o porque el suelo se le va: el hielo se derrite, el agua sube) su casilla es agua honda y no helada, se HUNDE: baja bajo la
 ## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
 ## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
@@ -302,6 +317,7 @@ var _brasero_cerca_e: bool = false
 var mojado: float = 0.0
 var congelado: float = 0.0
 var lento: float = 0.0
+var cegado: float = 0.0                 ## B2 (6/11): s que le quedan ciego (agua sobre quemado): `_ve` devuelve false
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
 
@@ -601,7 +617,7 @@ func escudo_cubre(direccion: Vector3) -> bool:
 ## sin daño y con `factor_escudo` del empuje; con el escudo quemado o roto, lo tumba como a cualquiera. Un enemigo con `empujable_golpe` false (el gólem, `Golem3D`) recibe el daño pero NO se mueve.
 ## Devuelve {escudo: bool, dano: float, v0: float}.
 func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escudo: float = 0.5) -> Dictionary:
-	var r: Dictionary = {"escudo": false, "dano": 0.0, "v0": 0.0}
+	var r: Dictionary = {"escudo": false, "dano": 0.0, "v0": 0.0, "roto": false}
 	var d := Vector3(dir.x, 0.0, dir.z)
 	if muerto or d.length() < 0.01:
 		return r
@@ -616,6 +632,13 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 	_cancelar_ataque()
 	_carga = 0.0
 	interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
+	# B1 (6/11): el golpe F sobre un congelado lo ROMPE (daño ×X_ROTO, se acaba el hielo y el empujón de abajo lo tira). Con el escudo de frente no: el escudo para el golpe y el hielo aguanta.
+	var roto: bool = congelado > 0.0 and not parado
+	if roto:
+		r["roto"] = true
+		congelado = 0.0
+		dano *= Dano.X_ROTO
+		_aviso_roto()
 	if empujable_golpe:
 		var f: float = fuerza * (factor_escudo if parado else 1.0)
 		r["v0"] = v0_de_empuje(f, true)
@@ -885,7 +908,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "bruto": 0.0, "defensa": float(corteza["defensa"]), "dano": 0.0,
 		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental,
-		"espalda": bool(corteza["espalda"]), "regado": false}
+		"espalda": bool(corteza["espalda"]), "regado": false,
+		"roto": false, "llamarada": null, "cegado": 0.0, "alcance_arco": ARCO_ALCANCE}
 	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
 	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
 	var m: Dictionary = Materia.de(hechizo)
@@ -894,6 +918,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	if elemental and riega:
 		r["curado"] = true
 		return r
+	# B1 (6/11): congelado + tierra, viento o rayo = ROTO (daño ×X_ROTO, se acaba el hielo). Un congelado mojado también: el remate manda sobre el ×1,5 del mojado (no se apilan).
+	var roto: bool = congelado > 0.0 and (conduce or Materia.sopla(m) or Materia.golpea(m))
 	if Materia.calienta(m):
 		if mojado > 0.0:
 			r["mojado"] = 0.0
@@ -903,8 +929,14 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	elif riega:
 		r["mojado"] = hechizo.moja
 		r["quemando"] = 0.0
+		if quemando > 0.0:
+			r["cegado"] = CEGADO_S                    # B2: apaga y el vapor lo ciega (el aviso va tras «apagado_agua»)
 	elif conduce:
-		if mojado > 0.0:
+		if roto:
+			x = Dano.X_ROTO
+			r["arco"] = true                          # metralla: el hielo roto sale despedido, pero a menos distancia que el arco del mojado
+			r["alcance_arco"] = METRALLA_ALCANCE
+		elif mojado > 0.0:
 			x = Dano.X_RAYO_MOJADO
 			r["arco"] = true
 	elif Materia.enfria(m):
@@ -918,16 +950,34 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	elif Materia.sopla(m):
 		if not elemental:                 # pesa demasiado: el viento no le corta el ataque
 			r["interrumpe"] = hechizo.interrumpe
+		if roto:
+			x = Dano.X_ROTO
+		elif quemando > 0.0:
+			var vecino: Combate3D = _vecino_llamarada()      # B2: LLAMARADA, el viento sobre quien arde lleva el fuego al vecino de delante
+			if vecino != null:
+				r["llamarada"] = vecino
+				r["quemando"] = maxf(quemando, LLAMARADA_QUEMA_MIN)
 	elif Materia.golpea(m):
 		r["lento"] = hechizo.ralentiza
+		if roto:
+			x = Dano.X_ROTO
+	if roto:
+		r["roto"] = true
+		r["congelado"] = 0.0
 	var avisos: Array = r["avisos"]
 	if conduce:
 		avisos.append(Mundo3D.R_ELECTROCUTADO)                # cada descarga que le llega es una reacción (no hay estado que dure)
+	if roto:
+		avisos.append(Mundo3D.R_ROTO)
+	if r["llamarada"] != null:
+		avisos.append(Mundo3D.R_LLAMARADA)
 	var ardia: bool = quemando > 0.0
 	if float(r["quemando"]) > 0.0 and not ardia:
 		avisos.append(Mundo3D.R_PRENDIDO)
 	elif ardia and float(r["quemando"]) <= 0.0:
 		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
+		if float(r["cegado"]) > 0.0:
+			avisos.append(Mundo3D.R_CEGADO)
 	var estaba_mojado: bool = mojado > 0.0
 	if estaba_mojado and float(r["mojado"]) <= 0.0:
 		avisos.append(Mundo3D.R_SECADO)                       # el fuego sobre mojado = vapor: lo seca
@@ -982,6 +1032,9 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	mojado = float(dec["mojado"])
 	quemando = float(dec["quemando"])
 	congelado = float(dec["congelado"])
+	if float(dec["cegado"]) > 0.0:
+		cegado = maxf(cegado, float(dec["cegado"]))
+		texto("Ciego", Color(0.8, 0.85, 0.9), 0.55)
 	if float(dec["lento"]) >= 0.0:
 		lento = float(dec["lento"])
 	if float(dec["interrumpe"]) >= 0.0:
@@ -989,9 +1042,15 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_carga = 0.0
 	if bool(dec["vapor"]):
 		texto_grande("¡Vapor!", Color(0.85, 0.9, 1.0))
+	if bool(dec["roto"]):
+		texto_grande("¡Roto!", COLOR_ROTO)
+	var vecino_llama: Variant = dec.get("llamarada", null)
+	if vecino_llama != null and is_instance_valid(vecino_llama):
+		texto_grande("¡Llamarada!", COLOR_LLAMARADA)
+		(vecino_llama as Combate3D).prender_por_contacto(float(dec["quemando"]))      # la misma quemadura que lleva (refrescada a LLAMARADA_QUEMA_MIN como mínimo)
 	if bool(dec["arco"]):
 		texto_grande("¡Descarga!", COLORES["rayo"])
-		_arco_cercano(base * 0.5)
+		_arco_cercano(base * 0.5, float(dec["alcance_arco"]))
 	elif el == "hielo" and (estaba_mojado or bool(dec["regado"])) and congelado > 0.0:
 		texto_grande("¡Congelado!", COLORES.get("hielo", Color(0.6, 0.9, 1.0)))
 	if bool(dec["regado"]):
@@ -1019,6 +1078,8 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:      # el empuje del viento (y la atracción) lo da Lanzador3D por push(): su fuerza_golpe es 0
 		push(d, hechizo.fuerza_golpe, dano > 0.0, dano, mult > 1.0)
+	elif bool(dec["roto"]) and d.length() > 0.01 and el != "viento":
+		push(d, ROTO_EMPUJE, true)                # B1: cae aunque el golpe no empuje (el viento ya empujó por `Lanzador3D._golpear`)
 	if bool(dec["aturde"]):
 		_aturdir(hechizo.aturde)
 	if dano > 0.0:
@@ -1046,6 +1107,38 @@ func _reaccionar(nombre: String, punto: Variant = null) -> void:
 	Mundo3D.avisar_reaccion(nombre, p, self)
 
 
+## B1: el hielo salta en pedazos (rótulo y aviso para el efecto, el feedback y la tinta). El daño y el empujón los pone quien lo llama.
+func _aviso_roto() -> void:
+	texto_grande("¡Roto!", COLOR_ROTO)
+	_reaccionar(Mundo3D.R_ROTO)
+
+
+## B2: el vecino más cercano que prendería una LLAMARADA del viento de `_dir_decision` (cono de ±LLAMARADA_SEMIANGULO°, a ≤ LLAMARADA_ALCANCE u), o null. Decisión pura:
+## no prende nada (lo hace `golpe`), así que la previsión puede preguntarla. Salta a quien ya arde o no puede prender (mojado, congelado): no aportaría nada.
+func _vecino_llamarada() -> Combate3D:
+	var d := Vector3(_dir_decision.x, 0.0, _dir_decision.z)
+	if d.length() < 0.01 or not is_inside_tree():
+		return null
+	d = d.normalized()
+	var cos_min: float = cos(deg_to_rad(LLAMARADA_SEMIANGULO))
+	var mejor: Combate3D = null
+	var dmin: float = LLAMARADA_ALCANCE + 0.0001
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n == self or not is_instance_valid(n) or not (n is Combate3D):
+			continue
+		var c: Combate3D = n as Combate3D
+		if c.muerto or c.esta_ardiendo() or not c.puede_prender():
+			continue
+		var v: Vector3 = c.position - position
+		v.y = 0.0
+		var dist: float = v.length()
+		if dist < 0.01 or dist >= dmin or v.normalized().dot(d) < cos_min:
+			continue
+		dmin = dist
+		mejor = c
+	return mejor
+
+
 func _aturdir(segundos: float) -> void:
 	if stun_timer <= 0.0:
 		_reaccionar(Mundo3D.R_ATURDIDO)                    # solo al empezar: volver a aturdir a uno ya aturdido no es un cambio
@@ -1060,9 +1153,9 @@ func aturdir_pulso(segundos: float) -> void:
 	_aturdir(segundos)
 
 
-func _arco_cercano(dano: float) -> void:
+func _arco_cercano(dano: float, alcance: float = ARCO_ALCANCE) -> void:
 	var mejor: Combate3D = null
-	var dmin: float = 4.5
+	var dmin: float = alcance
 	for n in get_tree().get_nodes_in_group("combate3d"):
 		if n == self or not is_instance_valid(n) or (n as Combate3D).muerto:
 			continue
@@ -1333,6 +1426,7 @@ func _cancelar_squash() -> void:
 func _efectos(delta: float) -> void:
 	_barra_t = maxf(0.0, _barra_t - delta)
 	_destello = maxf(0.0, _destello - delta)
+	cegado = maxf(0.0, cegado - delta)
 	if quemando > 0.0:
 		quemando -= delta
 		if quemando <= 0.0:
@@ -2091,6 +2185,8 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 func _ve(radio: float) -> bool:
 	if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		return false
+	if cegado > 0.0:
+		return false                  # B2: el vapor lo ciega; sin esto seguiría persiguiendo a quien ya no ve (todos los tipos pasan por aquí)
 	if _dist(jugador.position) > radio:
 		return false
 	# F4: en una zona con OSCURIDAD solo ve a la jugadora a ≤ `vista_enemigo_casillas` (3), salvo que su casilla esté iluminada (fuego, rayo, esporas: `Mundo3D.iluminar`).

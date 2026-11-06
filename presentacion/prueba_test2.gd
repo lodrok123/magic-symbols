@@ -1108,7 +1108,10 @@ func _ready() -> void:
 	# 13/10 (M5, paso 1): el terreno recibe el mapa UNA vez y contesta solo (letra, canal, lados abiertos…). `_bloqueadas`, `_celdas_canal`
 	# y `_giros` se comparten por referencia (aquí no se reasignan después); el mapa se COPIA: cambiar una letra ya es `Terreno3D.poner_letra`.
 	Terreno3D.cargar_datos(_mapa, _bloqueadas, _celdas_canal, _giros)
-	Terreno3D.fijar_cauce_hondo(cauce_hondo)      # cauce hondo: antes de construir el cauce (el setter no corre con el valor de serie)
+	# B4 (6/11): el material «hierba» de una casilla lo dice esta maqueta (`_es_hierba` mira también el tipo de suelo y las zonas V, no solo la letra `v`); sin esto, `puede_prender` no
+	# reconocería como hierba la que hoy prende y los mapas actuales dejarían de arder.
+	Terreno3D.estados.hierba_en = Callable(self, "_es_hierba")
+	Terreno3D.fijar_cauce_hondo(cauce_hondo)     # cauce hondo: antes de construir el cauce (el setter no corre con el valor de serie)
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 	# Bloque 4 EoW: escala del render 3D (EoW dibuja a 1408 × 792 y reescala). Por debajo de 1, FSR reescala con nitidez; el HUD no se toca.
 	if escala_render < 0.999:
@@ -5066,6 +5069,8 @@ func prever_hierba(elemento: String, c: Vector2i) -> String:
 
 ## ¿Puede empezar a prender la hierba de `c`? No si ya hay MAX_ARDIENDO casillas encendidas (una GPU integrada no lo aguanta) ni si está mojada (si no, el fuego vecino la reenciende al instante).
 func _puede_prender(c: Vector2i) -> bool:
+	if not Terreno3D.estados.puede_prender(c):
+		return false                            # B4: la tabla elemento × material (`REACCION_MATERIAL`): la hierba y la madera prenden; roca, tierra, arena y agua no
 	var ardiendo: int = 0
 	for k in _hf:
 		var fk: int = int((_hf[k] as Dictionary)["fase"])

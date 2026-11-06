@@ -70,7 +70,7 @@ const FRASCOS_INICIALES: int = 3              ## frascos llenos con los que empi
 ## (`premia_tinta` = false o grupo «muneco») no dan nada. Solo sube la BARRA hasta `maxima`; no toca los frascos. Ver `premiar_reaccion`.
 const TINTA_POR_REACCION: float = 20.0
 const REACCIONES_PREMIADAS: Dictionary = {"hundido": "¡Hundido!", "electrocutado": "¡Electrocutado!", "congelado": "¡Congelado!",
-	"mano_quemada": "¡Mano quemada!", "apagado": "¡Apagado!"}
+	"mano_quemada": "¡Mano quemada!", "apagado": "¡Apagado!", "roto": "¡Roto!", "llamarada": "¡Llamarada!"}   # 6/11 bloque B: el remate del congelado y el contagio del viento (reacciones de dos pasos)
 
 ## Coste por forma de `Receta3D.forma()` (+ las formas de la geometría). Lo que no esté aquí cuesta `COSTE_DEFECTO`.
 ## Valores de partida de la lámina del concepto; están aquí para equilibrarlos sin tocar código.

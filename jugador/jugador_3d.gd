@@ -43,6 +43,19 @@ const PILA_VENENO_MAX: int = 3
 const PILA_VENENO_DPS: float = 2.0
 const PILA_VENENO_S: float = 4.0
 const VENENO_PUEDE_MATAR: bool = false       ## false: el veneno (pilas, nubes, pantano) nunca baja la vida de 1
+## 6/11 (bloque B7, fuego amigo suave): `dano_ambiental` es el daño de lo que NO es un golpe (tu propia llama, tu suelo electrificado, la quemadura de un limo): respeta la invulnerabilidad,
+## sube la viñeta y el HUD, pero no empuja, no corta el gesto ni da hitstop (cada tic congelaría el juego). Como el veneno, no la mata: fallo que evita = morir quemada por tu propio hechizo.
+const AMBIENTAL_PUEDE_MATAR: bool = false
+const VINETA_AMBIENTAL: float = 0.3          ## intensidad de la viñeta roja de un tic ambiental (el golpe de un goblin usa 0,6-1,0)
+const COLOR_AMBIENTAL: Dictionary = {"fuego": Color(1.0, 0.5, 0.2), "rayo": Color(1.0, 0.92, 0.3)}
+## `aplicar_estado(elemento, segundos)`: los estados de personaje mínimos (D3 del limo). Agua → mojada (más lenta); hielo → ralentizada; fuego → quemada (daño por tics); rayo → aturdida (no hay aturdir
+## propio: se queda en ralentizada muy fuerte durante pocos segundos).
+const MOJADA_X: float = 0.8
+const HIELO_X: float = 0.5
+const RAYO_X: float = 0.3
+const RAYO_ATURDE_S: float = 0.6             ## el rayo no dura lo que el resto (ESTADO_ATAQUE_S del limo = 3 s): una descarga aturde un instante
+const QUEMADA_DANO: float = 2.0              ## por tic de la quemada
+const QUEMADA_TICK: float = 0.5
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
@@ -106,6 +119,10 @@ var _t_inv: float = 0.0
 ## 6/11 (Pablo, «El elemental»): ENRAIZADA. Las raíces del elemental de bosque la sujetan `_t_enraizada` s: no anda, no corre, no salta, no rueda y no la empuja nada; SÍ puede lanzar hechizos
 ## (la tinta, el libro y el cast no dependen de las piernas). Se pone con `enraizar(s)` (no se acorta si ya lo estaba más) y se quita sola, al morir o con `liberar_raices()`.
 var _t_enraizada: float = 0.0
+var _t_est_vel: float = 0.0                       ## 6/11 (`aplicar_estado`): s que le quedan al estado que la frena (mojada, ralentizada, aturdida)
+var _x_est_vel: float = 1.0                       ## ... y por cuánto multiplica su velocidad (el más fuerte de los activos)
+var _t_quemada: float = 0.0                       ## s que le quedan de quemada (2 de daño ambiental cada QUEMADA_TICK)
+var _tick_quemada: float = 0.0
 ## 6/11: el último `recibir_dano` lo paró la barrera (burbuja o cúpula del Lanzador3D). Se reinicia al principio de cada `recibir_dano`; lo lee quien acaba de pegar (el elemental, que se queda aturdido).
 var golpe_absorbido_por_barrera: bool = false
 var _beber_id: String = "pocion"                 ## F3: qué poción se está bebiendo (la grande tarda lo mismo)
@@ -615,6 +632,81 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel: viñeta roja, temblor y un hitstop corto
 
 
+## 6/11 (bloque B7): daño que no es un golpe (llama propia, suelo electrificado, quemada). Devuelve lo que de verdad quitó (0 si la invulnerabilidad lo paró, está muerta o no le quedaba vida que
+## quitar). Pasa por la defensa, la invulnerabilidad (`_t_inv`: una voltereta atraviesa la llama), la viñeta y el HUD; NO empuja, NO corta el gesto ni el golpe en curso y NO da hitstop.
+func dano_ambiental(cantidad: float, elemento: String = "") -> float:
+	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
+		return 0.0
+	cantidad = Dano.tras_defensa(cantidad, defensa_total())
+	var antes: float = vida
+	vida = maxf(0.0, vida - cantidad) if AMBIENTAL_PUEDE_MATAR else minf(vida, maxf(1.0, vida - cantidad))
+	var quitado: float = antes - vida
+	if quitado <= 0.0:
+		return 0.0
+	_t_sin_combate = 0.0
+	Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(round(quitado))), COLOR_AMBIENTAL.get(elemento, Color(1, 0.4, 0.35)), 0.8)
+	dano_recibido.emit(quitado)
+	vida_cambiada.emit(vida, Estado.i().vida_max)
+	if Sensacion3D.ACTIVA and is_inside_tree():
+		Sensacion3D._vineta(self, VINETA_AMBIENTAL)
+	if vida <= 0.0:
+		_morir()
+	return quitado
+
+
+## 6/11 (D3 del limo): `elemento` le deja un estado `segundos` s. Devuelve su nombre («mojada», «ralentizada», «quemada», «aturdida») o «» si ese elemento no deja ninguno (tierra, viento).
+func aplicar_estado(elemento: String, segundos: float) -> String:
+	if muerto or segundos <= 0.0:
+		return ""
+	var nombre: String = ""
+	var x: float = 1.0
+	var dur: float = segundos
+	match elemento:
+		"agua":
+			nombre = "mojada"
+			x = MOJADA_X
+			_t_quemada = 0.0                    # el agua apaga la quemada
+		"hielo":
+			nombre = "ralentizada"
+			x = HIELO_X
+		"rayo":
+			nombre = "aturdida"
+			x = RAYO_X
+			dur = minf(segundos, RAYO_ATURDE_S)
+		"fuego":
+			nombre = "quemada"
+			if _t_quemada <= 0.0:
+				_tick_quemada = QUEMADA_TICK
+			_t_quemada = maxf(_t_quemada, segundos)
+		_:
+			return ""
+	if x < 1.0:
+		if _t_est_vel <= 0.0 or x <= _x_est_vel:
+			_x_est_vel = x                      # se queda el estado más lento que esté activo
+		_t_est_vel = maxf(_t_est_vel, dur)
+	Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), nombre.capitalize(), COLOR_AMBIENTAL.get(elemento, Color(0.8, 0.9, 1.0)), 0.9)
+	return nombre
+
+
+func esta_quemada() -> bool:
+	return _t_quemada > 0.0 and not muerto
+
+
+## Multiplicador de velocidad de los estados de `aplicar_estado` (1 = sin estado).
+func mult_velocidad_estado() -> float:
+	return _x_est_vel if _t_est_vel > 0.0 else 1.0
+
+
+func _estados_paso(delta: float) -> void:
+	_t_est_vel = maxf(0.0, _t_est_vel - delta)
+	if _t_quemada > 0.0 and not muerto:
+		_t_quemada = maxf(0.0, _t_quemada - delta)
+		_tick_quemada -= delta
+		if _tick_quemada <= 0.0:
+			_tick_quemada = QUEMADA_TICK
+			dano_ambiental(QUEMADA_DANO, "fuego")
+
+
 func curar(cantidad: float) -> void:
 	vida = minf(Estado.i().vida_max, vida + cantidad)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
@@ -670,6 +762,8 @@ func _morir() -> void:
 	_t_beber = 0.0
 	_t_gesto = 0.0
 	_t_enraizada = 0.0
+	_t_est_vel = 0.0
+	_t_quemada = 0.0                     # morir quita los estados de `aplicar_estado`: no reaparece ardiendo
 	muerto = true
 	nadando = false
 	_lanzando = false
@@ -758,6 +852,7 @@ func _process(delta: float) -> void:
 			if vida <= 0.0:
 				_morir()
 	_veneno_pilas_paso(delta)
+	_estados_paso(delta)
 	var zona: Array = Mundo3D.estado_zona(Terreno3D.celda_de(position))        # F4: calor, frío, vendaval... (casi siempre [])
 	_actualizar_aguante(delta, zona)
 	if not zona.is_empty():
@@ -824,7 +919,7 @@ func _process(delta: float) -> void:
 		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b), los gestos (agacharse...) y coger o lanzar algo te dejan quieto hasta que acaban
 	if _t_enraizada > 0.0:
 		mov = Vector3.ZERO           # 6/11: las raíces del elemental te sujetan los pies (puedes lanzar, no andar)
-	var vel: float = _rampa_velocidad(correr and mov != Vector3.ZERO, delta) * (MULT_NADO if nadando else 1.0)
+	var vel: float = _rampa_velocidad(correr and mov != Vector3.ZERO, delta) * (MULT_NADO if nadando else 1.0) * mult_velocidad_estado()
 	_actualizar_corre_real(mov != Vector3.ZERO)
 	if carga != null:
 		vel *= carga.mult_vel()           # cargando: ×0,7 (CargarObjeto3D.COGIBLES)

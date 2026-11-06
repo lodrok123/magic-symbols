@@ -778,4 +778,5 @@ static func configurar(p_mundo: Node3D) -> void:
 	permanentes.clear()
 	y_puentes.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
+	estados.olvidar_materiales()         # B4: ni los materiales de la pieza `; material` del nivel anterior (`limpiar` no los toca: también corre al cargar una partida)
 	agua_sim = null

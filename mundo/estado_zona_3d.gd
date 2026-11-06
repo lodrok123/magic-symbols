@@ -87,6 +87,7 @@ func leer(nivel: String) -> void:
 
 ## Lo mismo que `leer`, sobre el texto de un mapa (las pruebas lo usan sin archivo).
 func leer_texto(texto: String) -> void:
+	Terreno3D.estados.leer_materiales(texto)         # B4 (6/11): las líneas `; material x y mat` del mismo mapa (se leen aquí porque este nodo ya recorre las líneas `;` y se monta después de `Terreno3D.configurar`)
 	var n: int = 0
 	for bruta in texto.split("\n"):
 		var linea: String = bruta.strip_edges()

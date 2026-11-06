@@ -377,6 +377,30 @@ El reloj oficial es un único diccionario, `EstadosSuelo3D.DURA` (`mundo/estados
 | **electrificada** | **6 s** | **6/11, bloque A5 (decisión de Pablo). Era 2 s desde el 3/11: el 6 s NO es un error**; con 2 s no daba tiempo a preparar nada encima. La renueva el `EmisorRayo3D` mientras dura su descarga |
 | **quemada** | **8 s** | **6/11, bloque A5. Antes no caducaba nunca** |
 | segada | no caduca | sin decidir |
+| **escombro** | **6 s** (`ESCOMBRO_S`) | **6/11, bloque B3.** Lo deja la tierra al pararse. Ralentiza ×0,7 y es sólido para proyectiles |
+| **vapor** | **4 s** (`VAPOR_S`) | **6/11, bloque B3.** Nube que deja el calor al secar mojado o deshelar, y el agua sobre lo quemado. Solo dato: quién lo use (ceguera) lo lee con `hay_vapor(celda)` |
+
+---
+
+## 4 ter. Bloque B del suelo (6/11): rayo, tierra y viento escriben; el material decide (`docs/PROPUESTAS_COMBATE_2026-11-06.md` §2 B3-B4, §6.3)
+
+**Estados nuevos** (sin canal en la imagen de estado: no se pintan en el suelo): `escombro` y `vapor`. `EstadosSuelo3D.factor_velocidad(celda)` (0,7 con escombro), `bloquea_proyectil(celda)` y `hay_vapor(celda)` son las preguntas; falta que jugador, enemigos y `HechizoVivo` las hagan (pendiente por conflicto, ver `DIARIO.md`).
+
+**Filas nuevas de `TRANSICIONES`** (columnas opcionales `con_algun`, `mantiene`, `rotulo`):
+
+| Llega ↓ / casilla → | seca | mojada | helada | electrificada | quemada |
+|---|---|---|---|---|---|
+| **viento** («sopla») | nada | **seca** | nada (el hielo pesa) | **limpia** | **limpia** |
+| **tierra** («escombro») | **escombro 6 s** | escombro | escombro | escombro | escombro |
+| **rayo** («descarga») | nada | **electrifica 6 s** (no acorta una permanente) | nada | renueva | nada |
+| **fuego** («calor») | nada | seca + **vapor 4 s** | charco + **vapor 4 s** | — | — |
+| **agua** | moja | hiela | nada | — | moja + **vapor 4 s** (la quemada se queda para su reloj) |
+
+El viento quita todo lo que pueda de una pasada (mojada, electrificada y quemada a la vez) salvo que la casilla esté helada. La tierra también cae sobre la hierba (es solo un estado), nunca sobre agua ni sobre una casilla ya sólida o con bloque encima. Rótulos de la previsión: Seca, Limpia, Escombro, Vapor, Electrifica.
+
+**Material por casilla (B4).** Vive en `EstadosSuelo3D` (no en `Terreno3D`): es el mismo tipo de dato que los estados y quien pregunta «¿arde? ¿se seca?» ya le pregunta a esta clase; `Terreno3D` solo aporta las letras. `material_de(celda)` resuelve en este orden: lo fijado (pieza `; material <x> <y> <mat>` o `; material <x0>,<y0>..<x1>,<y1> <mat>`, que lee `EstadoZona3D.leer_texto`, o `poner_material`) > la hierba que reconoce la maqueta (`hierba_en`, conectado a `_es_hierba`: mira también el tipo de suelo, no solo la letra `v`) > `MATERIAL_DE_LETRA` (`v` hierba, `~` agua, `#` roca, `b` madera) > `tierra`. Materiales: hierba, roca, tierra, madera, agua, arena. `limpiar()` (que corre al cargar partida) no los borra; `Terreno3D.configurar` (cambio de nivel) sí.
+
+**`REACCION_MATERIAL` (elemento × material).** Claves `prende`, `propaga`, `actua`, `seca_x`, `hiela`. `fuego × hierba` prende y propaga; `fuego × madera` prende sin propagarse; `fuego × roca/tierra/arena/agua` no prende (el calor sigue deshelando y secando charcos en cualquier suelo); `agua × arena` seca el doble de rápido (la mojada dura DURA/2 = 10 s); `tierra × agua` no hace escombro; `hielo × agua` hiela (lo ejecuta la simulación del agua). La maqueta pregunta `EstadosSuelo3D.puede_prender(celda)` desde `_puede_prender`; la propagación sigue siendo el autómata `_hf` (`propaga_fuego(celda)` es lo que debería consultar cuando haya más materiales que la hierba).
 
 ---
 

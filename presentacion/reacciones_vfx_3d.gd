@@ -23,7 +23,7 @@ extends RefCounted
 
 ## El catálogo cerrado, en el orden de A4 (+ `bloqueado`, propuesto).
 const CATALOGO: Array = ["prendido", "apagado_agua", "apagado_viento", "consumido", "mojado", "secado", "congelado", "derretido",
-	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado"]
+	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado", "roto", "llamarada", "cegado"]
 
 ## Efectos que existen (clave → qué hace). Se usa para validar la tabla en la prueba: una fila no puede apuntar a un efecto que no esté aquí.
 const EFECTOS: Array = ["llamarada", "llamas_cuerpo", "llamas_flecha", "apagar_vapor", "apagar_soplo", "ceniza", "mojar", "secar", "escarcha", "derretir",
@@ -44,6 +44,10 @@ const TABLA: Dictionary = {
 	"aturdido":       {"vfx": "estrellas",    "sfx": "aturdido",          "esc": 1.0},
 	"empujado":       {"vfx": "empujon",      "sfx": "empujado",          "esc": 1.0},
 	"bloqueado":      {"vfx": "escudo_golpe", "sfx": "escudo_golpe",      "esc": 1.0},
+	# 6/11 (bloque B, enemigo): efectos de partida con lo que ya existe (sin arte nuevo): el hielo salta en escarcha, la llamarada es la del prendido y el cegado el vapor del apagado.
+	"roto":           {"vfx": "escarcha",     "sfx": "congelar",          "esc": 1.3},
+	"llamarada":      {"vfx": "llamarada",    "sfx": "prender",           "esc": 1.3},
+	"cegado":         {"vfx": "apagar_vapor", "sfx": "siseo_apagado",     "esc": 1.2},
 }
 
 ## EXCEPCIONES por tipo de cosa: solo los campos que cambian.

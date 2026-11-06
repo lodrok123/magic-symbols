@@ -56,6 +56,8 @@ const MULT_RESISTE: float = 0.75
 ## más del doble de una ligera normal; multiplicando, el mojado favorece igual al rayo y al hielo.
 const X_RAYO_MOJADO: float = 1.5
 const X_HIELO_MOJADO: float = 1.5
+## 6/11 (bloque B1): ROTO = congelado + tierra, viento, rayo o golpe F. Fallo que evita: el congelado no tenía remate; ahora el golpe que lo rompe hace el doble. No se apila con X_RAYO_MOJADO (el remate manda).
+const X_ROTO: float = 2.0
 
 ## Suelo de la defensa: fracción de D que siempre pasa.
 const SUELO_DEF: float = 0.2
