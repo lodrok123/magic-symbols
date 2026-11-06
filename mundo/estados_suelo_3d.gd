@@ -47,6 +47,11 @@ signal caducado(c: Vector2i, estado: String)
 
 ## Canal de la textura de cada estado.
 const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
+## 6/11 (arte del entorno): el RGBA de arriba está lleno, así que el ESCOMBRO va en una SEGUNDA imagen (`textura_extra`): R escombro · G costra (el escombro que deja el magma al
+## apagarse en agua: es el mismo estado, pero con otra roca y el suelo más oscuro). Lo lee el shader del suelo (`estado_extra`).
+const CANAL_EXTRA: Dictionary = {"escombro": 0}
+## El material de una casilla cambió de verdad (la naturaleza germina la tierra → «hierba»). Lo oye la maqueta para pintar la hierba y meterla en su autómata de fuego.
+signal material_cambiado(c: Vector2i, material: String)
 
 ## Transiciones por acción sobre UNA casilla. Se recorren en orden y gana la PRIMERA fila que encaja (como el `match` que
 ## sustituyen, sacado de `_impacto_en_suelo` de la maqueta). Columnas:
@@ -182,6 +187,11 @@ var lado: int = 40
 var _img: Image = null
 var _tex: ImageTexture = null
 var _sucia: bool = true
+var _img2: Image = null               ## la imagen extra (escombro/costra); se rehace junto a `_img`
+var _tex2: ImageTexture = null
+## Casillas cuyo escombro es COSTRA de magma (lo marca `aplicar` cuando la fila se llama «costra»); se olvidan al caducar o quitarse el escombro.
+var _costra: Dictionary = {}          ## Vector2i -> true
+var _leyendo_mapa: bool = false
 
 
 func tiene(c: Vector2i, estado: String) -> bool:
@@ -219,6 +229,8 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 		queda.erase(c)
 		if estado == HELADA:
 			_escarcha.erase(c)       # sin helada no hay escarcha que recordar
+		if estado == ESCOMBRO:
+			_costra.erase(c)         # sin escombro no hay costra
 	_intensidad[estado] = inten
 	_queda[estado] = queda
 	if si == d.has(c):
@@ -413,6 +425,8 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 				continue         # C2: otro hielo sobre una casilla ya helada NO renueva sus 20 s (Pablo, 12/10; antes lo impedía el `_hielo.has` del Lanzador)
 			if String(e) == HELADA and not ya_helada:
 				_escarcha[c] = true
+			if String(e) == ESCOMBRO and String(fila.get("rotulo", "")) == "costra":
+				_costra[c] = true        # antes de `poner` (avisa por señal): quien dibuje el escombro ya sabe que es costra de magma
 			if bool(fila.get("mantiene", false)):
 				algo = mantener(c, String(e)) or algo      # B3: la descarga no acorta una electrificada que otro mantiene sin caducidad
 				continue
@@ -518,7 +532,10 @@ func poner_material(c: Vector2i, material: String) -> bool:
 	if not MATERIALES.has(material):
 		push_warning("EstadosSuelo3D: «%s» no es un material (%s)" % [material, ", ".join(MATERIALES)])
 		return false
+	var antes: String = String(_material.get(c, ""))
 	_material[c] = material
+	if antes != material and not _leyendo_mapa:
+		material_cambiado.emit(c, material)     # (al montar un mapa no avisa: no es una germinación en juego)
 	return true
 
 
@@ -539,6 +556,13 @@ func olvidar_materiales() -> void:
 
 ## B4 · lee las líneas `; material <x> <y> <material>` (una casilla) y `; material <x0>,<y0>..<x1>,<y1> <material>` (un rectángulo) de un texto de mapa. Una línea mala se avisa y se salta.
 func leer_materiales(texto: String) -> int:
+	_leyendo_mapa = true
+	var n: int = _leer_materiales(texto)
+	_leyendo_mapa = false
+	return n
+
+
+func _leer_materiales(texto: String) -> int:
 	var n: int = 0
 	for bruta in texto.split("\n"):
 		var linea: String = bruta.strip_edges()
@@ -583,10 +607,17 @@ func dimensionar(n: int) -> void:
 func textura() -> ImageTexture:
 	if _img == null or _img.get_width() != lado:
 		_img = Image.create_empty(lado, lado, false, Image.FORMAT_RGBA8)
+		_img2 = Image.create_empty(lado, lado, false, Image.FORMAT_RGBA8)
 		_tex = null
+		_tex2 = null
 		_sucia = true
 	if _sucia:
 		_img.fill(Color(0.0, 0.0, 0.0, 0.0))
+		_img2.fill(Color(0.0, 0.0, 0.0, 0.0))
+		for c in celdas(ESCOMBRO):
+			var pe: Vector2i = c
+			if pe.x >= 0 and pe.y >= 0 and pe.x < lado and pe.y < lado:
+				_img2.set_pixelv(pe, Color(intensidad_vista(pe, ESCOMBRO), 1.0 if _costra.has(pe) else 0.0, 0.0, 0.0))
 		for estado in CANAL.keys():
 			var k: int = int(CANAL[estado])
 			for c in celdas(String(estado)):
@@ -608,10 +639,23 @@ func textura() -> ImageTexture:
 				_img.set_pixelv(p2, col2)
 		if _tex == null:
 			_tex = ImageTexture.create_from_image(_img)
+			_tex2 = ImageTexture.create_from_image(_img2)
 		else:
 			_tex.update(_img)
+			_tex2.update(_img2)
 		_sucia = false
 	return _tex
+
+
+## La segunda imagen del estado (R escombro · G costra), SIEMPRE el mismo objeto como `textura()`; el shader del suelo la lee como `estado_extra`.
+func textura_extra() -> ImageTexture:
+	textura()
+	return _tex2
+
+
+## ¿El escombro de esta casilla es COSTRA de magma (y no tierra)? Lo mira quien dibuja las rocas pequeñas para elegir la roca de magma.
+func es_costra(c: Vector2i) -> bool:
+	return _costra.has(c) and tiene(c, ESCOMBRO)
 
 
 ## La misma imagen que sube `textura()`, al día (para leerla en CPU: pruebas, condiciones). No modificarla desde fuera.
@@ -687,4 +731,5 @@ func limpiar() -> void:
 	_escarcha.clear()
 	_avance.clear()
 	_frio_t.clear()
+	_costra.clear()
 	_sucia = true

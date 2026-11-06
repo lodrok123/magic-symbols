@@ -19,7 +19,8 @@ extends Node3D
 
 signal impacto(elemento: String, punto: Vector3)
 
-const SUELO_TIERRA: String = "res://arte/suelo_meshy/dirt_arriba.png"
+const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     ## el vapor de la hoja vapor.png (ver `vapor`)
+const SUELO_TIERRA: String ="res://arte/suelo_meshy/dirt_arriba.png"
 const ELEMENTOS: Array = ["fuego", "agua", "tierra", "viento", "rayo", "hielo"]
 ## Formas de un hechizo (la matriz receta -> forma de DISENO_FUTURO §3 reducida a lo que necesita el Test 3).
 ## proyectil = vuela hasta el punto · corro = anillo de manifestaciones alrededor del punto ·
@@ -1783,7 +1784,8 @@ static func atenuar(gp: GPUParticles3D, k: float) -> void:
 
 ## Bocanada de vapor (el fuego sobre un charco, el agua sobre brasas): 2,5 s.
 func vapor(p: Vector3) -> void:
-	_estallido(p + Vector3(0.0, 0.3, 0.0), "humo", 9, 2.5, 0.8, 0.8, false, Color(0.95, 0.95, 1.0), Vector3(0, 0.7, 0))
+	# 6/11: con la hoja `vapor.png` (24 fotogramas en bucle, tinte blanco-azulado) en vez de las bolas de «humo» de antes: lo usan la burbuja que se evapora, el hielo que caduca y el cruce magma×agua.
+	ARTE_ENTORNO.vapor_emisor(self, p + Vector3(0.0, 0.3, 0.0), maxf(escala, 0.1), false, 0.4)
 
 
 ## SALPICADURA en el agua (algo que emerge o cae a la superficie, p. ej. las losas del puente reactivo). Tres capas:

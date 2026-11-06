@@ -498,6 +498,17 @@ func _crear_bloque(b: Vector2i) -> void:
 	Caminar3D.decorar_bloque(self, padre, rect, _y)       # W5 (2/11): hojas bajo los árboles y motas/luciérnagas; hijos del bloque, se liberan con él
 
 
+## 6/11 (arte del entorno): el peso de hierba de una casilla cambió (la naturaleza germinó tierra) → rehace SOLO el bloque que contiene `p` (mundo). Con la misma semilla las matas que ya había salen
+## donde estaban y aparecen las nuevas. Si el bloque no existe (lejos del jugador) no hace nada: cuando se cree saldrá ya con el peso nuevo.
+func rehacer_bloque_en(p: Vector3) -> void:
+	var b := Vector2i(floori((p.x - _zona.position.x) / lado_bloque), floori((p.z - _zona.position.y) / lado_bloque))
+	if not _bloques.has(b):
+		return
+	(_bloques[b] as Node3D).queue_free()
+	_bloques.erase(b)
+	_crear_bloque(b)
+
+
 ## 0 briznas · 1 tarjetas pintadas · 2 las dos.
 func set_modo(m: int) -> void:
 	modo = posmod(m, 3)

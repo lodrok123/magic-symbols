@@ -14,6 +14,7 @@ extends Node3D
 ## llega a 30 m. El HUD enseña llamadas de dibujo, primitivas y memoria de vídeo para la tabla de §1.2.
 
 const TEST2 = preload("res://mundo/datos_nivel/datos_test2.gd")
+const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     # 6/11: escombro en relieve, vapor por casilla y brotes de naturaleza (sin class_name: no pide reimportar)
 
 const S: float = 2.3                ## lado de una casilla en unidades (la chibi mide ~1)
 const ALTO: float = S * 0.45        ## alto de un bloque de tierra
@@ -229,6 +230,13 @@ uniform vec3 color_escarcha : source_color = vec3(0.84, 0.94, 0.98);
 // `estado_ruido` y se corta ahí con un filo de `estado_filo` de ancho: el contorno sale irregular y pintado, no un cuadrado.
 uniform sampler2D estado_juego : hint_default_black, filter_linear, repeat_disable;
 uniform float estado_eow = 1.0;
+// 6/11 (arte del entorno): ESCOMBRO. No cabía en el RGBA de arriba: va en una segunda imagen (`Mundo3D.textura_estados_extra()`: R escombro · G costra de magma) y se pinta con
+// escombro_arriba.png (1024 cenital, repetible) encima del suelo y del quemado, debajo de lo mojado y lo helado. Sin textura (`escombro_fuerza` = 0) no pinta nada.
+uniform sampler2D estado_extra : hint_default_black, filter_linear, repeat_disable;
+uniform sampler2D t_escombro : source_color, filter_linear_mipmap, repeat_enable;
+uniform float escombro_fuerza = 0.0;
+uniform float escombro_escala = 1.0;      // repeticiones de la textura por cada tam_tex de mundo
+uniform vec3 costra_tinte = vec3(0.42, 0.36, 0.34);   // la costra de magma es la misma grava pero oscura y rojiza (la roca pequeña sí es la de magma)
 uniform float estado_ruido = 0.6;        // cuánto desplaza el ruido el contorno (en unidades del canal: 0,5 ≈ media casilla)
 uniform float estado_filo = 0.06;        // ancho del filo del contorno (en unidades del canal)
 // Quemado: albedo × carbón, un borde chamuscado hacia fuera y manchas de ceniza gris encima. Fuera de la hierba se pinta un poco menos.
@@ -499,6 +507,16 @@ void fragment() {
 		vec3 gris = color_ceniza_gris * (0.8 + 0.4 * r.a);
 		vec3 quemado = mix(col * chamusco_mult, mix(negro, gris, mancha * ceniza_gris), dentro);
 		col = mix(col, quemado, q);
+		// ESCOMBRO (segunda imagen de estado): grava encima del suelo, con el contorno cortado por ruido como los demás estados.
+		if (escombro_fuerza > 0.0) {
+			vec2 ex = texture(estado_extra, uvm).rg;
+			float ne = texture(campo, c / lado * 3.7 + vec2(0.63, 0.17)).g * 0.55 + texture(campo, c / lado * 8.3 + vec2(0.41, 0.77)).r * 0.45;
+			float fe = ex.r + (ne - 0.5) * estado_ruido;
+			float es = smoothstep(0.5 - estado_filo, 0.5 + estado_filo, fe) * escombro_fuerza;
+			vec3 grava = texture(t_escombro, t * escombro_escala).rgb;
+			grava *= mix(vec3(1.0), costra_tinte, clamp(ex.g * 2.0, 0.0, 1.0));
+			col = mix(col, grava, es);
+		}
 		// MOJADO: oscuro y azulado; el filo del charco algo más oscuro.
 		float fm = est.g + (nm - 0.5) * estado_ruido;
 		mo = smoothstep(0.5 - estado_filo, 0.5 + estado_filo, fm);
@@ -929,7 +947,8 @@ var _goblins: Array[Pj3D] = []
 var _jugador: Pj3D = null
 var _mat_agua: ShaderMaterial = null
 var _mat_suelo: ShaderMaterial = null
-var _tex_estado_juego: ImageTexture = null    ## `Mundo3D.textura_estados()` (R quemada · G mojada · B helada · A segada): la ÚNICA imagen de estado; la leen suelo, agua y hierba
+var _tex_estado_extra: ImageTexture = null    ## la segunda imagen de estado (R escombro · G costra), solo la lee el suelo
+var _tex_estado_juego: ImageTexture = null   ## `Mundo3D.textura_estados()` (R quemada · G mojada · B helada · A segada): la ÚNICA imagen de estado; la leen suelo, agua y hierba
 ## B2: lo PISADO (hierba aplastada por la chibi o el viento) no es un hecho del juego y no cabe en el estado oficial (avisaría a todo el juego a cada
 ## paso): textura propia de un canal (R8, una casilla por píxel, 0..1) que solo lee el shader de la hierba. Se levanta sola en `T_PISADO` s.
 var _img_pisado: Image = null
@@ -958,6 +977,10 @@ var _rugosidad: float = 0.5     ## relieve del suelo (tecla B): 0 · 0,5 · 1
 var _hierba: Hierba3D = null
 var _sin_hierba: Dictionary = {}          ## casillas con runa en el suelo: la hierba no la tapa
 var _img_mapa: Image = null
+var _arte_entorno: Node3D = null            ## ArteEntorno3D: lo que se ve de los estados escombro/vapor y de la hierba germinada
+var _tex_mapa: ImageTexture = null         ## la textura de `_img_mapa` que lee el shader del suelo (se actualiza al germinar una casilla)
+## 6/11 (arte del entorno): casillas donde la naturaleza ha GERMINADO la tierra en juego (`poner_material(c, "hierba")`). Cuentan como hierba para `_tipo_suelo`, `_es_hierba` y el fuego.
+var _germinadas: Dictionary = {}           ## Vector2i -> true
 var _img_zona_v: Image = null              ## solo las casillas ZONA_V (R = 1): el mapa de la hierba cuando `hierba_solo_en_zona_v`
 var _img_campo: Image = null
 var _camara: Camera3D = null
@@ -1057,6 +1080,11 @@ func _ready() -> void:
 	_rastrojo.lado = S
 	add_child(_rastrojo)
 	Terreno3D.estados.cambio.connect(_al_cambiar_estado_suelo)
+	Terreno3D.estados.material_cambiado.connect(_al_cambiar_material)     # la naturaleza germina la tierra: hay que pintar hierba y meterla en el autómata
+	_arte_entorno = ARTE_ENTORNO.new()                                     # escombro en relieve, vapor y brotes (ver arte_entorno_3d.gd)
+	_arte_entorno.name = "ArteEntorno"
+	add_child(_arte_entorno)
+	_arte_entorno.conectar(Terreno3D.estados)
 	_modo_nivel = usar_escena and HorneadorNivel.existe_nivel(nivel)      # nombre exacto: ver existe_nivel (Windows no distingue mayúsculas)
 	if reglas == "jugabilidad" or (reglas == "" and nivel == "jugabilidad"):
 		_reglas = Jugabilidad3D.new()
@@ -1305,6 +1333,8 @@ func _es_agua(l: String) -> bool:
 ## Tipo de suelo de una casilla para la mezcla: 0 hierba, 1 camino, 2 tierra, 3 piedra.
 func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
+	if _germinadas.has(c) and not _es_agua(l):
+		return 0            # germinada en juego (naturaleza sobre tierra mojada): suelo de hierba
 	if _reglas != null or _de_archivo or (_modo_nivel and nivel != "test2"):
 		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
 		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L" or l == "R":
@@ -1459,6 +1489,7 @@ func _aplicar_joints(mat: ShaderMaterial) -> void:
 
 func _construir_suelo() -> void:
 	# Mapa de tipos para el shader.
+	_germinadas.clear()       # un mapa nuevo empieza sin germinaciones de la partida anterior
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
 	for y in range(_lado):
 		for x in range(_lado):
@@ -1479,7 +1510,8 @@ func _construir_suelo() -> void:
 	sh.code = CODIGO_SUELO
 	var mat_suelo := ShaderMaterial.new()
 	mat_suelo.shader = sh
-	mat_suelo.set_shader_parameter("mapa", ImageTexture.create_from_image(img))
+	_tex_mapa = ImageTexture.create_from_image(img)
+	mat_suelo.set_shader_parameter("mapa", _tex_mapa)
 	mat_suelo.set_shader_parameter("campo", ImageTexture.create_from_image(_img_campo))
 	mat_suelo.set_shader_parameter("t_hierba", _tex(SUELO + "hierba_arriba.png"))
 	mat_suelo.set_shader_parameter("t_camino", _tex(SUELO + "path_arriba.png"))
@@ -1524,6 +1556,10 @@ func _construir_suelo() -> void:
 	# El estado oficial del juego (R quemada · G mojada · B helada · A segada) y el interruptor. La textura se vuelve a pedir cada fotograma
 	# (`_subir_estado_juego`): es siempre el mismo objeto salvo que el mapa cambie de tamaño; entonces la reparte al suelo, al agua y a la hierba.
 	mat_suelo.set_shader_parameter("estado_eow", 1.0 if estado_suelo_eow else 0.0)
+	# 6/11: el escombro del suelo (segunda imagen de estado + su textura). Si falta el PNG el shader no pinta escombro (escombro_fuerza = 0).
+	if ResourceLoader.exists(SUELO + "escombro_arriba.png"):
+		mat_suelo.set_shader_parameter("t_escombro", load(SUELO + "escombro_arriba.png") as Texture2D)
+		mat_suelo.set_shader_parameter("escombro_fuerza", 1.0)
 	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
 
@@ -2142,6 +2178,10 @@ func _subir_estado_juego() -> void:
 	if _mat_suelo == null:
 		return
 	var tex: ImageTexture = Mundo3D.textura_estados()
+	var extra: ImageTexture = Mundo3D.textura_estados_extra()
+	if extra != _tex_estado_extra:
+		_tex_estado_extra = extra
+		_mat_suelo.set_shader_parameter("estado_extra", extra)
 	if tex != _tex_estado_juego:
 		_tex_estado_juego = tex
 		_mat_suelo.set_shader_parameter("estado_juego", tex)
@@ -4665,6 +4705,8 @@ func _en_mapa(c: Vector2i) -> bool:
 ## Hierba en el sentido del 2D (letras v/G): casilla de tipo hierba, sin objeto encima y que no sea agua.
 func _es_hierba(c: Vector2i) -> bool:
 	var l: String = _letra(c)
+	if _germinadas.has(c):
+		return not _es_agua(l) and not _bloqueadas.has(c)      # germinada en juego: es hierba aunque la letra no sea `v` (y entra en el autómata del fuego)
 	if _solo_zona_v() and l != "v":
 		return false
 	return l != "#" and not _es_agua(l) and not _bloqueadas.has(c) and _tipo_suelo(c) == 0
@@ -5009,6 +5051,29 @@ func marcar_segada(c: Vector2i, si: bool, quemada: bool = false) -> void:
 func _al_cambiar_estado_suelo(c: Vector2i, estado: String, si: bool) -> void:
 	if estado == "segada":
 		marcar_segada(c, si)
+
+
+func _al_cambiar_material(c: Vector2i, material: String) -> void:
+	if material == "hierba":
+		germinar_hierba(c)
+
+
+## 6/11 (arte del entorno, pendiente de R1): la naturaleza germinó la casilla (`EstadosSuelo3D.poner_material(c, "hierba")`). La maqueta la da por hierba (`_germinadas`: `_tipo_suelo` y `_es_hierba`, o sea
+## el autómata del fuego, `prever_hierba` y `_hf`, la ven), repinta su pixel del mapa de tipos (el suelo pasa a verde), y pide a la hierba 3D que rehaga el bloque para que salgan las briznas.
+## No añade entrada a `_hf`: sin entrada es hierba FINA, que es lo que debe ser (brota alta solo si la naturaleza cae luego sobre ella). En agua no hace nada.
+func germinar_hierba(c: Vector2i) -> void:
+	if not _en_mapa(c) or _es_agua(_letra(c)) or _letra(c) == "#":
+		return                  # ni agua ni pared (los muros de árboles `#` no son suelo que germine)
+	_germinadas[c] = true
+	var tipo: Color = Color(0.0, 1.0, 0.0, 0.0) if (ORILLA_SIEMPRE and _junto_a_agua(c)) else Color(1.0, 0.0, 0.0, 0.0)
+	if _img_mapa != null and c.x < _img_mapa.get_width() and c.y < _img_mapa.get_height():
+		_img_mapa.set_pixelv(c, tipo)
+		if _tex_mapa != null:
+			_tex_mapa.update(_img_mapa)
+	if _img_zona_v != null and c.x < _img_zona_v.get_width() and c.y < _img_zona_v.get_height():
+		_img_zona_v.set_pixelv(c, Color(1.0, 0.0, 0.0, 0.0))
+	if _hierba != null and is_instance_valid(_hierba):
+		_hierba.rehacer_bloque_en(Vector3((float(c.x) + 0.5) * S, 0.0, (float(c.y) + 0.5) * S))
 
 
 func _al_cambiar_casilla(c: Vector2i, que: String) -> void:

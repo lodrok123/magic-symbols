@@ -94,6 +94,7 @@ Antorcha (= brasero), cadena, puerta de madera reactiva (= compuerta con `abre_c
 
 ## 2 bis. Arte que se usa (decisión de Pablo, 6/11)
 - **Magma** (costra del suelo y VFX): la roca estilizada ennegrecida, `arte/meshy/aprobacion3d/rocas_estilizadas/texturas/rocas_magma_{albedo,emisivo,normal,rough}.png` (y las piezas `roca_est_magma_*.glb` / `piedra_est_magma_*.glb` si la costra lleva volumen). Engancharla en cuanto R1 cierre `estados_suelo_3d.gd`.
+- **Concepto de magma (vídeo de Pablo, 6/11; fotogramas en `docs/capturas/referencias/magma_concepto/`):** base de TIERRA (roca oscura, sólida) con grietas que brillan en rojo-naranja-amarillo por el contorno; la bola rueda con estela de brasas, revienta en esquirlas incandescentes y deja en el suelo un cráter con pétalos de roca y grietas luminosas que se enfrían a gris (= la costra). Es la excepción al «nunca amarillo» del fuego: en el magma el amarillo es el calor de la grieta, no la llama. Pendiente: `MagmaToy` hermana de FuegoToy sobre la geometría de tierra (grietas emisivas con `rocas_magma_emisivo.png`, esquirlas al impacto, costra que se apaga).
 - **Pendiente de Pablo:** textura de escombro (pedrada), hoja de vapor; opcionales: runas de magma y naturaleza, hoja de naturaleza, hierba con brotes.
 
 ## 3. Decisiones pendientes de Pablo (del §12 del diseño)

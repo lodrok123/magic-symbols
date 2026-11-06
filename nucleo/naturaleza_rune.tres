@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RuneData" format=3]
 
 [ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://nucleo/rune_data.gd" id="1"]
-[ext_resource type="Texture2D" uid="uid://dpo4rsxwbveyr" path="res://art/fx/water.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://b655nusn6dist" path="res://art/fx/naturaleza.png" id="2"]
 [ext_resource type="Texture2D" path="res://art/ui/glyphs/naturaleza.png" id="4"]
 
 ; PROVISIONAL (6/11/2026, libro avanzado): derivado de agua + tierra (nucleo/combos_sellos.gd). Antes era «barro»; Pablo lo cambió por NATURALEZA para
@@ -21,5 +21,5 @@ persiste = 0.0
 empuje = 0.3
 deja = ""
 vfx_sheet = ExtResource("2")
-vfx_frames = 19
+vfx_frames = 18
 modificadores = { "veneno": { "op": "fija", "valor": 4.0 }, "veneno_dps": { "op": "fija", "valor": 3.0 }, "ralentiza": { "op": "fija", "valor": 2.0 }, "ralentiza_fuerza": { "op": "fija", "valor": 0.6 }, "fuerza_golpe": { "op": "fija", "valor": 900.0 }, "gravedad": { "op": "fija", "valor": 0.8 }, "impulso_salida": { "op": "fija", "valor": 1.8 }, "densidad": { "op": "fija", "valor": 1.2 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.5 }, "conductividad": { "op": "fija", "valor": 0.2 } }

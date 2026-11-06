@@ -163,6 +163,12 @@ static func textura_estados() -> ImageTexture:
 	return Terreno3D.estados.textura()
 
 
+## La segunda imagen del estado (R escombro · G costra de magma), para el shader del suelo. Misma idea que `textura_estados`.
+static func textura_estados_extra() -> ImageTexture:
+	textura_estados()
+	return Terreno3D.estados.textura_extra()
+
+
 ## La magia o un objeto avisa de un impacto para que la presentación pinte y suene. No decide qué se pinta.
 func avisar_impacto(punto: Vector3, elemento: String, radio: float = 0.0) -> void:
 	impacto.emit(punto, elemento, radio)

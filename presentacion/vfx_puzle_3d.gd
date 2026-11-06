@@ -1,6 +1,8 @@
 class_name VfxPuzle3D
 extends RefCounted
 
+const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     ## el vapor de la hoja vapor.png (ver `vapor`)
+
 ## EFECTOS DE LAS PIEZAS DE PUZLE (16/10, Pipeline, Fase 13.5). Salpicadura al mojar, chispas, vapor al secar, fogonazo del barril, polvo del
 ## derrumbe, y los del llenado del pozo (burbujas, caída del chorro). Todo son funciones estáticas que cuelgan nodos de `padre` y se
 ## limpian solas (como VfxKit3D): ninguna guarda estado salvo las texturas.
@@ -157,9 +159,8 @@ static func chispas(padre: Node3D, pos: Vector3, continuo: bool = false, esc: fl
 
 ## VAPOR (el agua al secarse, el hielo que se derrite): bocanadas blancas que suben y se abren.
 static func vapor(padre: Node3D, pos: Vector3, esc: float = 1.0, continuo: bool = false) -> GPUParticles3D:
-	return _emisor(padre, pos, "humo", 8 if continuo else 12, 1.7, 0.55 * esc, 0.55,
-		{"color": Color(0.95, 0.97, 1.0, 0.45), "gravedad": 0.5, "abanico": 25.0, "crece": true, "continuo": continuo,
-		"radio_emision": 0.25 * esc})
+	# 6/11: la hoja `vapor.png` (ver `ArteEntorno3D.vapor_emisor`), la misma de todo el vapor del juego. Antes: bolas de «humo» blancas.
+	return ARTE_ENTORNO.vapor_emisor(padre, pos, esc, continuo, 0.25)
 
 
 ## POLVO del derrumbe: nube parda que sale a ras de suelo en todas direcciones. `radio` = lo que se abre (u).

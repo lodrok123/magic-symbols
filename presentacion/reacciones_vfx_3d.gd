@@ -79,7 +79,8 @@ const EXCEPCIONES: Dictionary = {
 	"telarana": {"consumido": {"vfx": "", "sfx": ""}},
 }
 
-const FUNDIDO_ACOTADO: float = 0.2     ## s de fundido con que se corta un sonido acotado al tiempo de su efecto
+const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     ## la plantita de `naturaleza.png` (ver el caso «raices»)
+const FUNDIDO_ACOTADO: float = 0.2    ## s de fundido con que se corta un sonido acotado al tiempo de su efecto
 
 ## Sonidos en bucle que están sonando por nodo (instancia → reproductor), para cortarlos al apagar.
 static var _bucles: Dictionary = {}
@@ -166,6 +167,8 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 			var raices: RaicesElemental3D = RaicesElemental3D.avisar(padre, punto, 0.9 * esc, 0.05)
 			raices.brotar(Combate3D.ENRAIZADO_S)
 			raices.cerrar_sobre(punto)
+			# 6/11: y la plantita de `naturaleza.png` naciendo a sus pies (sin bucle: nace y se queda lo que dura el enraizado, luego se va).
+			ARTE_ENTORNO.brote(padre, punto, 0.5 * esc, Combate3D.ENRAIZADO_S)
 	var sfx: String = String(fila.get("sfx", ""))
 	if sfx != "":
 		var origen: Node = cuerpo if cuerpo != null and cuerpo.is_inside_tree() else padre
