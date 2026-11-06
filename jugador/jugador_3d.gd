@@ -101,6 +101,11 @@ var _t_lanzar: float = 0.0
 var _lanzando: bool = false
 var _t_golpe: float = 0.0
 var _t_inv: float = 0.0
+## 6/11 (Pablo, «El elemental»): ENRAIZADA. Las raíces del elemental de bosque la sujetan `_t_enraizada` s: no anda, no corre, no salta, no rueda y no la empuja nada; SÍ puede lanzar hechizos
+## (la tinta, el libro y el cast no dependen de las piernas). Se pone con `enraizar(s)` (no se acorta si ya lo estaba más) y se quita sola, al morir o con `liberar_raices()`.
+var _t_enraizada: float = 0.0
+## 6/11: el último `recibir_dano` lo paró la barrera (burbuja o cúpula del Lanzador3D). Se reinicia al principio de cada `recibir_dano`; lo lee quien acaba de pegar (el elemental, que se queda aturdido).
+var golpe_absorbido_por_barrera: bool = false
 var _beber_id: String = "pocion"                 ## F3: qué poción se está bebiendo (la grande tarda lo mismo)
 ## F4 (29/10): AGUANTE 0–100, la barra de las zonas con calor o frío. Baja `aguante_s` de la tabla por segundo (el frío ×`mojada_x` si estás mojada), a 0 quita `dano_s` de vida por segundo y
 ## fuera de todo estado sube `rellena_s` (20) por segundo. `protegida(estado)` lo anula. Se guarda en la partida (`jugadora.aguante`).
@@ -551,11 +556,33 @@ func curar_estado(estado: String) -> bool:
 	return false
 
 
+## 6/11: la sujetan unas raíces `segundos` s (ver `_t_enraizada`). No hace nada si está muerta.
+func enraizar(segundos: float) -> void:
+	if muerto or segundos <= 0.0:
+		return
+	if _t_enraizada <= 0.0:
+		Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), "¡Enraizada!", Color(0.75, 0.5, 0.25), 0.9)
+	_t_enraizada = maxf(_t_enraizada, segundos)
+	_vel_hielo = Vector3.ZERO
+	vel_suelo = Vector3.ZERO
+	_empuje = Vector3.ZERO
+
+
+func esta_enraizada() -> bool:
+	return _t_enraizada > 0.0 and not muerto
+
+
+func liberar_raices() -> void:
+	_t_enraizada = 0.0
+
+
 func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
+	golpe_absorbido_por_barrera = false
 	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
 		return
 	cantidad = Dano.tras_defensa(cantidad, defensa_total())   # F3: la misma fórmula que los enemigos, D_final = máx(0,2·D, D − DEF)
 	if lanz != null and lanz.absorber_golpe(cantidad, desde):
+		golpe_absorbido_por_barrera = true
 		return                                   # la barrera cúpula lo ha parado (6.3)
 	if hud_eow != null and hud_eow.consumibles.absorber(cantidad):
 		return                                   # 24/10: el Bálsamo protector se come el golpe (y se acaba)
@@ -640,6 +667,7 @@ func _morir() -> void:
 	_t_pegar = 0.0
 	_t_beber = 0.0
 	_t_gesto = 0.0
+	_t_enraizada = 0.0
 	muerto = true
 	nadando = false
 	_lanzando = false
@@ -716,6 +744,7 @@ func _process(delta: float) -> void:
 		pj.soltar_lanzar()                  # quita las motas y vuelve a idle
 	_t_golpe = maxf(0.0, _t_golpe - delta)
 	_t_inv = maxf(0.0, _t_inv - delta)
+	_t_enraizada = maxf(0.0, _t_enraizada - delta)
 	if _veneno_t > 0.0 and not muerto:
 		_veneno_t -= delta
 		_veneno_tick -= delta
@@ -782,7 +811,7 @@ func _process(delta: float) -> void:
 		if Input.is_action_pressed("mover_atras"):
 			entrada.y += 1.0
 	var correr: bool = libre and not apuntando_rapido and not lleva_carga() and Input.is_action_pressed("correr")     # A1: apuntando de pie-andando no se corre ni se salta
-	var salto: bool = libre and not apuntando_rapido and not lleva_carga() and salto_activo and Input.is_action_pressed("saltar")
+	var salto: bool = libre and not apuntando_rapido and not lleva_carga() and salto_activo and _t_enraizada <= 0.0 and Input.is_action_pressed("saltar")
 	# Las teclas son de PANTALLA: W = «hacia arriba» como la ve el jugador, sea cual sea el giro de la cámara (Q/E, de 90° en 90°).
 	# Se gira el vector de entrada lo mismo que la cámara; así la tecla que lleva hacia donde mira el personaje en pantalla
 	# sigue siendo la misma al girarla. Mismo cálculo que el mover propio de la maqueta (PruebaTest2._process): la voltereta,
@@ -791,6 +820,8 @@ func _process(delta: float) -> void:
 	_gestionar_acciones(libre, mov)
 	if _t_golpe > 0.0 or _t_beber > 0.0 or _lanzando or _t_gesto > 0.0 or _t_pegar > 0.0 or (carga != null and carga.quieta()):
 		mov = Vector3.ZERO           # el golpe te frena; beber, el clip de lanzar (6.2b), los gestos (agacharse...) y coger o lanzar algo te dejan quieto hasta que acaban
+	if _t_enraizada > 0.0:
+		mov = Vector3.ZERO           # 6/11: las raíces del elemental te sujetan los pies (puedes lanzar, no andar)
 	var vel: float = _rampa_velocidad(correr and mov != Vector3.ZERO, delta) * (MULT_NADO if nadando else 1.0)
 	_actualizar_corre_real(mov != Vector3.ZERO)
 	if carga != null:
@@ -808,6 +839,10 @@ func _process(delta: float) -> void:
 	var paso: Vector3 = (_vel_hielo if en_hielo else vel_suelo) * delta + _empuje * delta
 	if not zona.is_empty():
 		paso += _viento_paso(delta, zona)          # F4: el vendaval te empuja (salvo tras un muro)
+	if _t_enraizada > 0.0:
+		paso = Vector3.ZERO                        # 6/11: enraizada ni siquiera el viento o un empujón te mueven
+		vel_suelo = Vector3.ZERO
+		_vel_hielo = Vector3.ZERO
 	if _t_roll > 0.0:
 		mov = Vector3.ZERO
 		paso = _roll_dir * _roll_vel * delta       # voltereta: sustituye al andar
@@ -1012,7 +1047,7 @@ static func velocidad_hielo(v: Vector3, objetivo: Vector3, delta: float) -> Vect
 func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	var ctrl: bool = libre and not lleva_carga() and Input.is_action_pressed("voltereta")
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
-	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo
+	var puede_rodar: bool = _roll_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 and not ocupado and not nadando and en_suelo and _t_enraizada <= 0.0
 	if ctrl and not _roll_previa:
 		if puede_rodar:
 			_iniciar_voltereta(mov)

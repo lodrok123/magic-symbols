@@ -166,6 +166,34 @@ const ELEM_DANO_FOCO: float = 6.0              ## daño al jugador que pisa una 
 const ELEM_RADIO_FOCO: float = 1.0
 const ELEM_ORO: int = 150
 
+## --- ELEMENTAL V2 (6/11, Pablo aprobó «El elemental»): seis reglas nuevas + el destello de su debilidad ---
+## Interruptor general. `static var` y no `const` para poder apagarlo desde una prueba o un laboratorio y COMPARAR: con false el elemental es el del 8/10 (sin raíces, furia, helada
+## tras el agua, corteza, tirantes ni aturdimiento por barrera). Todo lo de abajo cuelga de él.
+static var ELEMENTAL_V2: bool = true
+## 1 · RAÍCES BAJO LA JUGADORA (anti-kite): si ella está LEJOS (más de ELEM_RAICES_DIST_MIN y dentro de lo que ve, RADIO_SOLTAR) y él la tiene como objetivo, marca bajo SUS PIES un círculo
+## (el rojo de `AvisoAtaque3D` + raíces que asoman); pasado ELEM_RAICES_AVISO s, si sigue dentro la sujeta y le hace daño. Sigue avanzando todo el rato (no se para a conjurar).
+const ELEM_RAICES_DIST_MIN: float = 8.0         ## u: por debajo de esto no conjura raíces (a esa distancia ya tiene las enredaderas y el puño)
+const ELEM_RAICES_RADIO: float = 1.8            ## u del círculo bajo la jugadora (≈ 0,8 casillas; 1 casilla = 2,3 u): corriendo se sale en el segundo del aviso, andando justo no
+const ELEM_RAICES_AVISO: float = 1.0            ## s entre que sale el círculo y brotan las raíces
+const ELEM_RAICES_ENRAIZA: float = 1.5          ## s que la sujetan (no anda, no rueda; SÍ lanza)
+const ELEM_RAICES_DANO: float = 15.0            ## daño de las raíces (pasa por su DEF como todo golpe)
+const ELEM_RAICES_CD: float = 7.0               ## s de recarga, aparte de la de las enredaderas (ELEM_CD_CONJURO)
+const ELEM_RAICES_CD_INICIAL: float = 2.0       ## s antes de poder lanzarlas por primera vez (no abre el combate con ellas)
+## 2 · ENFURECIDO MIENTRAS ARDE: más rápido y descansa menos entre puñetazos; su puñetazo prende la hierba de su área. Se acaba con la quemadura.
+const ELEM_FURIA_VEL: float = 1.3               ## × su velocidad
+const ELEM_FURIA_DESCANSO: float = 0.7          ## × ELEM_DESCANSO
+## 3 · AGUA + HIELO: el agua lo cura y, durante ELEM_REGADO_VENTANA s, un golpe de hielo lo CONGELA ELEM_REGADO_CONGELA s (sin el agua, el hielo solo lo congela lo que dice la runa: 1,5 s).
+## La ventana se gasta al congelarlo (así no se encadena).
+const ELEM_REGADO_VENTANA: float = 5.0
+const ELEM_REGADO_CONGELA: float = 4.0
+## 4 · CORTEZA DELANTERA: su DEF solo vale de frente (ángulo entre hacia dónde mira y hacia dónde está quien golpea < 90°). Por la espalda: DEF 0 y ×ELEM_ESPALDA_MULT. El glifo
+## ᚦ «perforar» (`Hechizo.perfora > 0`) se salta la DEF desde cualquier lado. Un golpe sin posición fiable (dirección cero) se trata como de frente.
+const ELEM_ESPALDA_MULT: float = 1.5
+## 6 · LA BARRERA LO ATURDE: si su puñetazo lo para la burbuja o cúpula de la jugadora, él queda aturdido (inmune al resto de aturdimientos, solo a este no).
+const ELEM_BARRERA_ATURDE: float = 1.5
+## 7 · DESTELLO DE DEBILIDAD: el fuego que le hace daño lo tiñe un instante de rojo anaranjado (nunca amarillo).
+const COLOR_FLASH_FUEGO_ELEM: Color = Color(1.0, 0.24, 0.05)
+
 ## --- Arquero (modelo goblin_archer*): dispara desde lejos y retrocede si te acercas ---
 const ARQUERO_ALCANCE: float = 6.5
 const ARQUERO_MIN: float = 2.4
@@ -362,6 +390,22 @@ var _alto_base: float = 1.7
 var _cd_conjuro: float = 4.0
 var _t_conjuro: float = 0.0             ## lo que queda del brillo / conjuro
 var _vides: Array = []                  ## Enredadera3D vinculadas
+## ELEMENTAL V2 (6/11). Estado de las reglas nuevas:
+var _cd_raices: float = ELEM_RAICES_CD_INICIAL    ## recarga de las raíces bajo la jugadora
+var _t_raices: float = 0.0              ## > 0 = hay un círculo de raíces avisando: s que faltan para que broten
+var _centro_raices: Vector3 = Vector3.ZERO
+var _aviso_raices: AvisoAtaque3D = null
+var _raices_vis: RaicesElemental3D = null
+var raices_lanzadas: int = 0            ## cuántas veces ha marcado raíces (para las pruebas)
+var raices_acertadas: int = 0           ## ... y cuántas atraparon a la jugadora
+var _t_regado: float = 0.0              ## > 0 = el agua lo acaba de regar: un golpe de hielo lo congela ELEM_REGADO_CONGELA s
+var _aturdido_v2: bool = false          ## el aturdimiento en curso es el de la barrera (el único que un elemental admite)
+var _tirantes: Dictionary = {}          ## id de enredadera -> TiranteEnredadera3D
+var _furia_vista: bool = false          ## estaba enfurecido en el fotograma anterior (para el aviso al empezar)
+var hierba_prendida: Array = []         ## casillas que su último puñetazo enfurecido ha prendido (para las pruebas)
+## Hacia dónde viaja el golpe que `decidir_golpe` está decidiendo (lo fijan `golpe` y `prever_golpe`; cero = sin posición fiable, se trata como de frente). Es un campo y no un
+## parámetro porque `Limo3D` y `Golem3D` sobrescriben `decidir_golpe(hechizo)` con un solo parámetro.
+var _dir_decision: Vector3 = Vector3.ZERO
 var _col: CollisionShape3D = null
 var _jefe_capa: CanvasLayer = null
 var _jefe_relleno: ColorRect = null
@@ -535,7 +579,8 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		r["v0"] = v0_de_empuje(f, true)
 		push(d, f, true)
 	if not parado and dano > 0.0:
-		dano = Dano.tras_defensa(dano, defensa)         # 29/10 (DANO_Y_TINTA): el golpe F también pasa por la defensa y su suelo (F = 5: goblin 2 → 3 · escudo 5 → 1)
+		var cz: Dictionary = corteza_contra(d)           # ELEMENTAL V2: la corteza delantera también vale para el golpe F (por la espalda: DEF 0 y ×1,5)
+		dano = Dano.tras_defensa(dano, float(cz["defensa"])) * float(cz["mult"])         # 29/10 (DANO_Y_TINTA): el golpe F también pasa por la defensa y su suelo (F = 5: goblin 2 → 3 · escudo 5 → 1)
 		r["dano"] = dano
 		_num_golpe = true
 		_num_elemento = ""
@@ -662,7 +707,9 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 		r["cubierto"] = true
 		r["escudo"] = escudo.reaccion_a(hechizo)
 	else:
+		_dir_decision = dir                           # ELEMENTAL V2: la corteza delantera necesita saber de dónde viene el golpe
 		var dec: Dictionary = decidir_golpe(hechizo)
+		_dir_decision = Vector3.ZERO
 		for k in dec:
 			r[k] = dec[k]
 		if not bool(dec["curado"]) and d.length() > 0.01 and hechizo.fuerza_golpe > 0.0:
@@ -786,13 +833,17 @@ func vel_mult() -> float:
 ##   vapor      fuego sobre mojado       arco   el rayo sobre mojado salta al más cercano
 ##   avisos     las reacciones de `Mundo3D.REACCIONES` que saltarían, EN ORDEN (electrocutado, prendido, apagado_agua, secado, mojado, congelado)
 ##   aturde     true si el golpe lo aturde (no al elemental)        veneno  true si le deja veneno
+##   ELEMENTAL V2: `defensa` es la efectiva de ESTE golpe (corteza delantera, `_dir_decision`; ᚦ perforar), `espalda` true = le da por detrás (DEF 0 y ×ELEM_ESPALDA_MULT sobre `dano`),
+##   `regado` true = hielo sobre el elemental recién regado: lo congela ELEM_REGADO_CONGELA s (y `golpe` gasta la ventana)
 func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var el: String = hechizo.elemento
 	var x: float = 1.0               # X: la reacción (rayo sobre mojado)
 	var suma_x: float = 0.0          # lo que SUMA la reacción (hielo sobre mojado)
-	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "bruto": 0.0, "defensa": defensa, "dano": 0.0,
+	var corteza: Dictionary = corteza_contra(_dir_decision, hechizo.perfora > 0)
+	var r: Dictionary = {"curado": false, "mult": multiplicador(el), "base": hechizo.dano, "bruto": 0.0, "defensa": float(corteza["defensa"]), "dano": 0.0,
 		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
-		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental}
+		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental,
+		"espalda": bool(corteza["espalda"]), "regado": false}
 	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
 	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
 	var m: Dictionary = Materia.de(hechizo)
@@ -816,6 +867,9 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 			r["arco"] = true
 	elif Materia.enfria(m):
 		r["congelado"] = hechizo.congela_mojado if mojado > 0.0 else hechizo.congela
+		if elemental and ELEMENTAL_V2 and _t_regado > 0.0:
+			r["congelado"] = maxf(float(r["congelado"]), ELEM_REGADO_CONGELA)       # ELEMENTAL V2: el agua lo ha dejado empapado de savia y agua: el hielo lo congela de verdad
+			r["regado"] = true
 		if mojado > 0.0:
 			suma_x = Dano.SUMA_HIELO_MOJADO
 		r["quemando"] = 0.0
@@ -842,7 +896,25 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	# 29/10 (DANO_Y_TINTA): D = (B·E · G · X + suma) × R y después la defensa: UN solo punto de cálculo (`Dano`). `hechizo.dano` ya es B·E (con el pigmento); G = `hechizo.potencia`.
 	r["base"] = hechizo.dano * hechizo.potencia * x + suma_x
 	r["bruto"] = Dano.bruto(hechizo.dano, hechizo.potencia, x, float(r["mult"]), suma_x)
-	r["dano"] = Dano.aplicar(hechizo.dano, hechizo.potencia, x, float(r["mult"]), defensa, suma_x)
+	r["dano"] = Dano.aplicar(hechizo.dano, hechizo.potencia, x, float(r["mult"]), float(corteza["defensa"]), suma_x) * float(corteza["mult"])
+	return r
+
+
+## ELEMENTAL V2 · CORTEZA DELANTERA. Qué DEF y qué multiplicador tiene este enemigo contra un golpe que VIAJA en `dir` (de quien golpea hacia él); `perfora` = el hechizo lleva ᚦ.
+## Solo el elemental con ELEMENTAL_V2 cambia algo: de frente (el ángulo entre su `mirada` y la dirección HACIA quien golpea es < 90°) tiene su DEF; por la espalda DEF 0 y ×ELEM_ESPALDA_MULT; con
+## ᚦ perforar ignora la DEF desde cualquier lado (por la espalda, además, el ×). Sin dirección fiable (cero, o él sin mirada) cuenta como de frente. Devuelve {defensa, mult, espalda}.
+func corteza_contra(dir: Vector3, perfora: bool = false) -> Dictionary:
+	var r: Dictionary = {"defensa": defensa, "mult": 1.0, "espalda": false}
+	if not (elemental and ELEMENTAL_V2):
+		return r
+	var d := Vector3(dir.x, 0.0, dir.z)
+	var f := Vector3(mirada.x, 0.0, mirada.z)
+	if d.length() > 0.01 and f.length() > 0.01 and f.normalized().dot(-d.normalized()) <= 0.0:
+		r["defensa"] = 0.0
+		r["mult"] = ELEM_ESPALDA_MULT
+		r["espalda"] = true
+	elif perfora:
+		r["defensa"] = 0.0
 	return r
 
 
@@ -853,7 +925,9 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if muerto or hechizo == null:
 		return
 	var el: String = hechizo.elemento
+	_dir_decision = direccion                             # ELEMENTAL V2: de dónde viene (corteza delantera)
 	var dec: Dictionary = decidir_golpe(hechizo)
+	_dir_decision = Vector3.ZERO
 	var estaba_mojado: bool = mojado > 0.0
 	if bool(dec["curado"]):
 		_agua_elemental()                # lo cura y lo agranda UNA vez; ni mojado ni barrera de agua que lo proteja
@@ -874,8 +948,12 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if bool(dec["arco"]):
 		texto_grande("¡Descarga!", COLORES["rayo"])
 		_arco_cercano(base * 0.5)
-	elif el == "hielo" and estaba_mojado and congelado > 0.0:
+	elif el == "hielo" and (estaba_mojado or bool(dec["regado"])) and congelado > 0.0:
 		texto_grande("¡Congelado!", COLORES.get("hielo", Color(0.6, 0.9, 1.0)))
+	if bool(dec["regado"]):
+		_t_regado = 0.0                                   # ELEMENTAL V2: la ventana del agua se gasta al congelarlo
+	if bool(dec["espalda"]):
+		texto("¡Por la espalda!", Color(1.0, 0.8, 0.45), 0.55)
 	for aviso in dec["avisos"]:
 		_reaccionar(String(aviso))       # A4: una vez por golpe, nunca por fotograma
 
@@ -1393,7 +1471,10 @@ func _ia(delta: float) -> void:
 		_mover_paso(_empuje * delta, true)          # empujado: SÍ puede acabar en el agua honda (y hundirse); andando por su cuenta, no
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(DECAIMIENTO_EMPUJE * delta, 0.0, 1.0))
 	if elemental:
-		stun_timer = 0.0
+		if _aturdido_v2 and stun_timer <= 0.0:
+			_aturdido_v2 = false
+		if not _aturdido_v2:
+			stun_timer = 0.0                        # pesa demasiado para aturdirse... salvo el aturdimiento de la barrera (ELEMENTAL V2, `_aturdir_barrera`)
 		interrupcion = 0.0
 	if _fase_empuje != FASE_NINGUNA:
 		# Volando o levantándose: ni anda, ni ataca, ni carga (el empuje horizontal de arriba sí sigue).
@@ -1440,7 +1521,7 @@ func _ia(delta: float) -> void:
 	if fijo and arquero:
 		_ia_arquero_fijo(delta)
 		return
-	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0)
+	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0) * (ELEM_FURIA_VEL if enfurecido() else 1.0)
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
 		if objetivo == null:
@@ -1491,7 +1572,7 @@ func _ia(delta: float) -> void:
 				_atacar(delta)
 			elif d.length() > 0.3:
 				_carga = 0.0
-				moviendo = 2 if vel > 0.8 else 1
+				moviendo = 2 if vel > 0.8 and not elemental else 1       # el elemental anda siempre (enfurecido, 0,91 pasaría el umbral y pondría el clip de correr, que no tiene)
 				_v_avance = v_base("run") * vel
 				var dir_p: Vector3 = _dir_hacia(meta, delta)
 				var atras: bool = false
@@ -1563,7 +1644,7 @@ func _atacar(delta: float) -> void:
 	if _carga >= PREPARAR_GOLPE:
 		_carga = 0.0
 		if elemental:
-			_descanso = ELEM_DESCANSO
+			_descanso = ELEM_DESCANSO * (ELEM_FURIA_DESCANSO if enfurecido() else 1.0)
 			_iniciar_ataque(1.0, ELEM_MOMENTO_GOLPE, _golpe_elemental)
 			return
 		_descanso = DESCANSO_GOLPE
@@ -2138,7 +2219,7 @@ func _animar() -> void:
 		# Pies resbalando: el clip `walk` (5,5 s) a velocidad 1 va más lento que el suelo. Se acelera lo justo.
 		var dur: float = pj.duracion("walk")
 		if dur > 0.0:
-			var vel_real: float = VEL_PERSEGUIR * ELEM_VEL * vel_mult()
+			var vel_real: float = VEL_PERSEGUIR * ELEM_VEL * vel_mult() * (ELEM_FURIA_VEL if enfurecido() else 1.0)
 			pj.set_velocidad_animacion(clampf(vel_real * dur / ELEM_ZANCADA_WALK, 0.5, 2.5))
 	var clip_andar: String = "run" if moviendo == 2 else "walk"
 	if es_goblin and moviendo > 0:
@@ -2191,6 +2272,8 @@ func _color_destello(el: String) -> Color:
 		return COLOR_FLASH_PIEDRA
 	if el == "veneno":
 		return Color(0.55, 0.9, 0.35)
+	if el == "fuego" and elemental and ELEMENTAL_V2:
+		return COLOR_FLASH_FUEGO_ELEM                 # ELEMENTAL V2: su punto débil se ve en rojo anaranjado puro (el naranja aclarado de los demás tiraba a amarillo claro)
 	return (COLORES[el] as Color).lerp(Color.WHITE, 0.35) if COLORES.has(el) else Color.WHITE
 
 
@@ -2204,7 +2287,8 @@ func _destello_fase() -> Array:
 	if _destello_continuo:
 		var cc: Color = _color_destello(_destello_el)
 		return blanco if cc == Color.WHITE else [cc, ENERGIA_FLASH_CONTINUO]
-	if not COLORES.has(_destello_el) or _destello_total - _destello < T_FLASH_BLANCO:
+	var fuego_elem: bool = _destello_el == "fuego" and elemental and ELEMENTAL_V2        # sin fase blanca: solo rojo/naranja
+	if not COLORES.has(_destello_el) or (_destello_total - _destello < T_FLASH_BLANCO and not fuego_elem):
 		return blanco
 	var energia: float = ENERGIA_FLASH_DEBIL if _destello_debil else ENERGIA_FLASH
 	if T_FLASH_FUNDIDO > 0.0 and _destello < T_FLASH_FUNDIDO:
@@ -2490,6 +2574,8 @@ func _k_ref() -> float:
 
 ## --- AGUA: lo cura y lo agranda una sola vez ---
 func _agua_elemental() -> void:
+	if ELEMENTAL_V2:
+		_t_regado = ELEM_REGADO_VENTANA            # ELEMENTAL V2: queda regado: un golpe de hielo en los próximos s lo congela (decidir_golpe)
 	health = minf(vida_max, health + ELEM_CURA_AGUA)
 	_barra_t = TIEMPO_BARRA
 	texto("+%d" % int(ELEM_CURA_AGUA), Color(0.5, 1.0, 0.6))
@@ -2540,6 +2626,129 @@ func _efectos_elemental(delta: float) -> void:
 	_vides = vivas
 	if cura > 0.0 and health < vida_max:
 		health = minf(vida_max, health + cura * delta)
+	if ELEMENTAL_V2:
+		_t_regado = maxf(0.0, _t_regado - delta)
+		_tirantes_elemental()
+		_raices_elemental(delta)
+		var furioso: bool = enfurecido()
+		if furioso and not _furia_vista:
+			texto("¡Enfurece!", Color(1.0, 0.35, 0.15), 0.3)
+		_furia_vista = furioso
+
+
+## ELEMENTAL V2 · 2. ¿Está enfurecido? Mientras arde (y solo mientras): ×ELEM_FURIA_VEL de velocidad, ×ELEM_FURIA_DESCANSO de descanso entre puñetazos y su puñetazo prende la hierba.
+func enfurecido() -> bool:
+	return ELEMENTAL_V2 and elemental and quemando > 0.0 and not muerto
+
+
+## ELEMENTAL V2 · 6. Su puñetazo lo ha parado la barrera de la jugadora: se queda aturdido ELEM_BARRERA_ATURDE s. Es el único aturdimiento que admite (`_ia` lo respeta con `_aturdido_v2`).
+func _aturdir_barrera() -> void:
+	_aturdido_v2 = true
+	_aturdir(ELEM_BARRERA_ATURDE)
+	texto_grande("¡Aturdido!", Color(0.9, 0.9, 1.0), 0.2)
+	_cancelar_raices()
+	PlayLog.event("elemental_aturdido_barrera", {"s": ELEM_BARRERA_ATURDE})
+
+
+## ELEMENTAL V2 · 5. Un tirante verde por cada enredadera VIVA (la que lo cura): se crea cuando la enredadera termina de brotar y se quita cuando arde, se deshace o muere el elemental.
+func _tirantes_elemental() -> void:
+	var vivos: Dictionary = {}
+	if not muerto:
+		for v in _vides:
+			if is_instance_valid(v) and (v as Enredadera3D).fase == Enredadera3D.Fase.VIVA:
+				vivos[(v as Node).get_instance_id()] = v
+	for id in _tirantes.keys():
+		if not vivos.has(id) or not is_instance_valid(_tirantes[id]):
+			if is_instance_valid(_tirantes[id]):
+				(_tirantes[id] as Node).queue_free()
+			_tirantes.erase(id)
+	for id in vivos.keys():
+		if not _tirantes.has(id) and mundo != null and is_instance_valid(mundo):
+			_tirantes[id] = TiranteEnredadera3D.crear(mundo, vivos[id] as Node3D, self)
+
+
+## Cuántos tirantes hay ahora (las pruebas: uno por enredadera viva).
+func n_tirantes() -> int:
+	var n: int = 0
+	for id in _tirantes:
+		if is_instance_valid(_tirantes[id]) and not (_tirantes[id] as Node).is_queued_for_deletion():
+			n += 1
+	return n
+
+
+## ELEMENTAL V2 · 1. RAÍCES BAJO LA JUGADORA. Cada fotograma: cuenta atrás de la recarga y del aviso; si toca y ella está lejos, las marca.
+func _raices_elemental(delta: float) -> void:
+	_cd_raices = maxf(0.0, _cd_raices - delta)
+	if _t_raices > 0.0:
+		if congelado > 0.0 or stun_timer > 0.0 or muerto:
+			_cancelar_raices()                     # un conjuro a medias se corta si lo congelan o lo aturden
+			return
+		_t_raices -= delta
+		if _t_raices <= 0.0:
+			_t_raices = 0.0
+			_brotar_raices()
+		return
+	if _cd_raices <= 0.0 and _quiere_raices():
+		_lanzar_raices()
+
+
+## ¿Marca raíces ahora? Ella a más de ELEM_RAICES_DIST_MIN y a la vista (RADIO_SOLTAR, con línea libre), él con ella de objetivo y libre para actuar.
+func _quiere_raices() -> bool:
+	if muerto or jugador == null or not is_instance_valid(jugador) or jugador.muerto or quieto:
+		return false
+	if objetivo == null or estado != "persigue" or congelado > 0.0 or stun_timer > 0.0 or _fase_empuje != FASE_NINGUNA or _hitstop > 0.0:
+		return false
+	var dist: float = _dist(jugador.position)
+	return dist > ELEM_RAICES_DIST_MIN and dist <= RADIO_SOLTAR and _ve(RADIO_SOLTAR)
+
+
+## Marca el círculo bajo los pies de la jugadora AHORA (donde está, no donde irá: hay que moverse). No para al elemental: sigue andando.
+func _lanzar_raices() -> void:
+	_cd_raices = ELEM_RAICES_CD
+	_t_raices = ELEM_RAICES_AVISO
+	_centro_raices = Vector3(jugador.position.x, Terreno3D.y_pies(Terreno3D.celda_de(jugador.position)), jugador.position.z)
+	raices_lanzadas += 1
+	_quitar_raices_vis()
+	_aviso_raices = AvisoAtaque3D.circulo(mundo, _centro_raices, ELEM_RAICES_RADIO, ELEM_RAICES_AVISO, self)
+	_raices_vis = RaicesElemental3D.avisar(mundo, _centro_raices, ELEM_RAICES_RADIO, ELEM_RAICES_AVISO)
+	texto("¡Raíces!", Color(0.85, 0.55, 0.3), 0.3)
+	PlayLog.event("elemental_raices", {"distancia": snappedf(_dist(jugador.position), 0.1)})
+
+
+## Se acaba el aviso: las raíces brotan. Si ella sigue dentro del círculo (y a su altura) y el golpe le entra (no lo para una voltereta ni la barrera), la sujeta y le hace daño.
+func _brotar_raices() -> void:
+	_aviso_raices = null                           # el aviso acaba solo en su instante
+	var atrapada: bool = false
+	if jugador != null and is_instance_valid(jugador) and not jugador.muerto:
+		var d: float = Vector2(jugador.position.x - _centro_raices.x, jugador.position.z - _centro_raices.z).length()
+		if d <= ELEM_RAICES_RADIO and absf(jugador.position.y - _centro_raices.y) < Terreno3D.ALTO_NIVEL:
+			var vida_antes: float = jugador.vida
+			jugador.recibir_dano(ELEM_RAICES_DANO, _centro_raices)
+			if jugador.vida < vida_antes:           # el golpe entró: si lo paró la barrera, el bálsamo o la invulnerabilidad de una voltereta, se libra
+				atrapada = true
+				jugador.enraizar(ELEM_RAICES_ENRAIZA)
+	if atrapada:
+		raices_acertadas += 1
+	if _raices_vis != null and is_instance_valid(_raices_vis):
+		_raices_vis.brotar(ELEM_RAICES_ENRAIZA if atrapada else 0.6)
+		if atrapada:
+			_raices_vis.cerrar_sobre(jugador.position)
+	_raices_vis = null
+	PlayLog.event("elemental_raices_brotan", {"atrapada": atrapada})
+
+
+func _cancelar_raices() -> void:
+	_t_raices = 0.0
+	if _aviso_raices != null and is_instance_valid(_aviso_raices):
+		_aviso_raices.cancelar()
+	_aviso_raices = null
+	_quitar_raices_vis()
+
+
+func _quitar_raices_vis() -> void:
+	if _raices_vis != null and is_instance_valid(_raices_vis):
+		_raices_vis.cancelar()
+	_raices_vis = null
 
 
 ## --- GOLPE: puñetazo al suelo con un ÁREA delante de él (no un punto) ---
@@ -2560,9 +2769,42 @@ func _golpe_elemental() -> void:
 	var delante: float = rel.dot(f)
 	var lado: float = absf(rel.dot(Vector3(-f.z, 0.0, f.x)))
 	var dentro: bool = delante >= -0.3 and delante <= ELEM_ALCANCE_GOLPE * k and lado <= ELEM_ANCHO_GOLPE * k
+	var barrera: bool = false
 	if dentro and absf(jugador.position.y - position.y) < Terreno3D.ALTO_NIVEL * 0.9:
 		jugador.recibir_dano(ELEM_DANO_GOLPE, position)
-	PlayLog.event("elemental_golpe", {"acierta": dentro})
+		barrera = ELEMENTAL_V2 and jugador.golpe_absorbido_por_barrera
+	if enfurecido():
+		_prender_hierba_golpe(f, k)
+	if barrera:
+		_aturdir_barrera()                              # ELEMENTAL V2: el puñetazo se estrella contra la barrera y lo deja aturdido
+	PlayLog.event("elemental_golpe", {"acierta": dentro, "barrera": barrera, "enfurecido": enfurecido()})
+
+
+## ELEMENTAL V2 · 2. Enfurecido, el puñetazo prende el suelo de su área (la misma que avisa y daña: `delante` de −0,3 a ELEM_ALCANCE_GOLPE·k, `lado` hasta ELEM_ANCHO_GOLPE·k). Reutiliza el impacto
+## de fuego de siempre: `Lanzador3D.impacto_filtrado("fuego", punto)` (el de las llamas de una enredadera: la maqueta prende la hierba, `al_impactar` hace el resto); sin lanzador
+## (pruebas, escenas sueltas) pasa la acción directa a `Mundo3D.aplicar_accion`. Deja en `hierba_prendida` las casillas a las que se lo ha pedido.
+func _prender_hierba_golpe(f: Vector3, k: float) -> void:
+	hierba_prendida.clear()
+	var lat := Vector3(-f.z, 0.0, f.x)
+	var ext: float = ELEM_ALCANCE_GOLPE * k + ELEM_ANCHO_GOLPE * k
+	var c0: Vector2i = Terreno3D.celda_de(position)
+	var n: int = int(ceil(ext / Terreno3D.casilla)) + 1
+	for cy in range(c0.y - n, c0.y + n + 1):
+		for cx in range(c0.x - n, c0.x + n + 1):
+			var c := Vector2i(cx, cy)
+			if not Terreno3D.en_mapa(c) or Terreno3D.es_agua(c):
+				continue
+			var rel: Vector3 = Terreno3D.centro_de(c) - position
+			rel.y = 0.0
+			var delante: float = rel.dot(f)
+			if delante < -0.3 or delante > ELEM_ALCANCE_GOLPE * k or absf(rel.dot(lat)) > ELEM_ANCHO_GOLPE * k:
+				continue
+			var punto := Vector3(position.x + rel.x, Terreno3D.y_pies(c), position.z + rel.z)
+			if lanz != null and is_instance_valid(lanz):
+				lanz.impacto_filtrado("fuego", punto)
+			else:
+				Mundo3D.aplicar_accion(AccionElemental.nueva("fuego", punto))
+			hierba_prendida.append(c)
 
 
 ## --- CONJURO: enredaderas delante, vinculadas a él ---
@@ -2649,6 +2891,11 @@ func _foco_enredadera(punto: Vector3, origen: Enredadera3D) -> void:
 
 
 func _morir_elemental() -> void:
+	_cancelar_raices()
+	for id in _tirantes.keys():
+		if is_instance_valid(_tirantes[id]):
+			(_tirantes[id] as Node).queue_free()
+	_tirantes.clear()
 	for v in _vides:
 		if is_instance_valid(v):
 			(v as Enredadera3D).deshacer()
