@@ -197,6 +197,10 @@ uniform float invade_hierba = 1.0;                                      // matas
 // `mapa_fuera` (R = 1 en agua, cauce seco y huecos) apaga las tiras junto a ellos: el agua y las orillas no llevan tira de suelo.
 uniform float joints_fuerza = 0.0;
 uniform sampler2D mapa_fuera : hint_default_black, filter_linear, repeat_disable;
+uniform sampler2D corros : hint_default_black, filter_linear, repeat_disable;      // 6/11: R corro de hierba · G calva (por casilla; ver `_textura_corros`)
+uniform float fuerza_corro = 0.0;                                                  // 0 = sin tinte (laboratorios, Test 2); la maqueta lo pone con `SUELO_CORROS`
+uniform vec3 tinte_corro = vec3(0.78, 0.90, 0.70);
+uniform vec3 tinte_calva = vec3(1.04, 0.98, 0.86);
 uniform vec4 joint_ct = vec4(0.55, 0.22, 0.9, 2.3);                     // camino→tierra: (ancho u, amplitud del ruido u, densidad 0-1, escala del grano)
 uniform vec4 joint_cp = vec4(0.50, 0.20, 0.85, 2.3);                    // camino→piedra
 uniform vec4 joint_tp = vec4(0.60, 0.25, 0.9, 2.3);                     // tierra→piedra
@@ -552,6 +556,11 @@ void fragment() {
 		col = mix(col, mix(col * vec3(0.8, 0.95, 1.05), color_escarcha * (0.9 + 0.2 * r.a), 0.7), he);
 		rug = mix(1.0, 0.35, mo);
 	}
+	// 6/11 (2.ª pasada, «más contraste»): bajo cada corro de hierba el suelo tira a verde oscuro y en las calvas a tierra clara (textura `corros`: R corro, G calva;
+	// la escribe la maqueta desde el campo de matas y `Hierba3D.es_calva`). Solo en hierba y suelo llano (w.r), no en camino, tierra ni piedra.
+	vec2 cr = texture(corros, c / lado).rg;
+	col = mix(col, col * tinte_corro, cr.r * fuerza_corro * w.r);
+	col = mix(col, col * tinte_calva, cr.g * fuerza_corro * w.r);
 	ALBEDO = col * brillo * (1.0 + (r.a - 0.5) * 2.0 * variacion);
 	ROUGHNESS = rug;
 	SPECULAR = espec;
@@ -2456,8 +2465,16 @@ func _sembrar_hierba() -> void:
 	_hierba.name = "Hierba"
 	_hierba.brillo = OSCURECER_SUELO
 	_hierba.albedos_eow = albedos_eow       # albedos
+	_hierba.procedural = detalle_en_bloques  # 6/11: matojos distintos entre sí y siembra agrupada (calvas y densidad por ruido)
+	_hierba.casilla = S
 	add_child(_hierba)
 	var matas: Callable = _mata_hierba if (hierba_en_matas and _solo_zona_v()) else Callable()     # 5/11: macizos con claros (ver _mata_hierba)
+	if matas.is_valid() and detalle_en_bloques and _mat_suelo != null:
+		# 6/11 (2.ª pasada): el suelo se tiñe bajo los corros y en las calvas (SUELO_CORROS), para que el corro se lea aunque la hierba sea baja
+		_mat_suelo.set_shader_parameter("corros", ImageTexture.create_from_image(_textura_corros()))
+		_mat_suelo.set_shader_parameter("fuerza_corro", float(SUELO_CORROS["fuerza"]))
+		_mat_suelo.set_shader_parameter("tinte_corro", SUELO_CORROS["tinte_corro"])
+		_mat_suelo.set_shader_parameter("tinte_calva", SUELO_CORROS["tinte_calva"])
 	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba, matas)
 	_hierba.set_estado(Mundo3D.textura_estados(), _tex_pisado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
 	if not hierba_completa and _jugador != null:
@@ -2529,7 +2546,15 @@ func _peso_hierba(x: float, z: float) -> float:
 	var e: float = 0.16
 	if _img_zona_v != null:
 		# Solo ZONA_V: el mismo borde ondulado de siempre, pero el mapa solo tiene esas casillas.
-		return smoothstep(0.5 - e, 0.5 + e, _bilineal(_img_zona_v, uvm, false).r)
+		var wz: float = smoothstep(0.5 - e, 0.5 + e, _bilineal(_img_zona_v, uvm, false).r)
+		if wz < 0.02 and detalle_en_bloques and l == ".":
+			# 6/11: el suelo llano lleva CORROS de hierba tupida y, entre ellos, matojos ralos y bajos (solo aspecto: `_es_hierba` no los cuenta, no arden)
+			var m: float = _mata_hierba(x, z)
+			if m >= float(HIERBA_RALA["corro_min"]):
+				return float(HIERBA_RALA["peso_corro"])
+			if m >= float(HIERBA_RALA["mata_min"]):
+				return float(HIERBA_RALA["peso_rala"])
+		return wz
 	var w0: Color = _bilineal(_img_mapa, uvm, false)
 	var wr: float = smoothstep(0.5 - e, 0.5 + e, w0.r)
 	var tot: float = wr + smoothstep(0.5 - e, 0.5 + e, w0.g) + smoothstep(0.5 - e, 0.5 + e, w0.b) \
@@ -4723,7 +4748,17 @@ const ALTO_HIERBA_CORTA: float = 0.55
 
 
 func _alto_hierba(x: float, z: float) -> float:
-	return ALTO_HIERBA_CORTA if _letra(Vector2i(floori(x / S), floori(z / S))) == "," else 1.0
+	var l: String = _letra(Vector2i(floori(x / S), floori(z / S)))
+	if l == ".":
+		# 6/11: en el suelo llano, los corros van altos y la hierba rala de entre medias, baja (HIERBA_RALA)
+		return float(HIERBA_RALA["alto_corro"]) if _mata_hierba(x, z) >= float(HIERBA_RALA["corro_min"]) else float(HIERBA_RALA["alto_rala"])
+	return ALTO_HIERBA_CORTA if l == "," else 1.0
+
+
+## 6/11 (Pablo: «quitar la planicie», y en la 2.ª pasada «más contraste»): en los niveles de zonas el suelo `.` no llevaba hierba 3D y la llanura del Bosque se veía plana.
+## Ahora, donde el campo de matas pasa de `corro_min`, sale un CORRO tupido y alto (peso_corro; Hierba3D lo sube además ×mata_alto_centro), y entre `mata_min` y
+## `corro_min`, matojos RALOS y bajos (peso_rala, alto_rala). Por debajo, nada. Solo aspecto: `_es_hierba` sigue sin contarlos (no arden).
+const HIERBA_RALA: Dictionary = {"peso_rala": 0.05, "mata_min": 0.35, "alto_rala": 0.35, "corro_min": 0.7, "peso_corro": 0.85, "alto_corro": 0.85}
 
 
 ## --- 5/11 (Pablo, playtest del Bosque 02): la hierba en MATAS y, en los claros, adornos pequeños ---
@@ -4733,6 +4768,33 @@ func _alto_hierba(x: float, z: float) -> float:
 @export var hierba_en_matas: bool = true
 ## Adornos pequeños (setas y piedrecitas pisables, sin colisión) en los claros de hierba: solo en el bosque (no en cueva ni lava).
 @export var adornos_en_claros: bool = true
+## 6/11 (Pablo: «en vez de esparcir… pequeños bloques; lo mismo con pedruscos y demás; quitar la planicie»): la hierba sale procedural (`Hierba3D.procedural`) y los
+## adornos van en CORROS por ruido (`ADORNOS`), con zonas sin ninguno. false = el reparto parejo de antes (capturas antes/después).
+@export var detalle_en_bloques: bool = true
+## Los corros de adornos: datos, no números sueltos. El ruido es `_vruido` (el del suelo y las matas), así que sale igual en cada partida y en cada horneado.
+const ADORNOS: Dictionary = {
+	"tam_corro": 5.5,        ## casillas: tamaño de las manchas del ruido que decide dónde hay corros de adornos (una mancha ≈ 1,5 × esto)
+	"umbral": 0.52,          ## por debajo de este valor del ruido no hay adornos: zona vacía
+	"suave": 0.18,           ## el corro entra de 0 a `prob_max` entre `umbral` y `umbral + suave`
+	"prob_max": 0.45,        ## probabilidad por casilla de llevar un grupo en el corazón de un corro (antes: 0,22 pareja en todo el mapa)
+	"max_total": 160,        ## tope de adornos en el mapa; con 19 mapas de cientos de piezas, cada uno es un lote más
+	# 2.ª pasada (Pablo: «grupos marcados de 3-5 con una o dos piedras grandes, pocos y bien separados; nada de piedras sueltas»)
+	"n_min": 3,              ## piedras por grupo…
+	"n_max": 5,              ## …(ambos inclusive); si no caben al menos `n_min` (piezas cerca, camino), el grupo entero se deshace: no quedan piedras sueltas
+	"grandes": 2,            ## las primeras `grandes` piedras del grupo salen grandes (escala `escala_grande`); el resto, pequeñas (`escala_pequena`)
+	"escala_grande": Vector2(1.15, 1.5),   ## (las piedras `piedra_est_1..4` son pisables y sin cuerpo: más grandes y la chibi las atravesaría a la vista)
+	"escala_pequena": Vector2(0.55, 0.9),
+	"radio_grupo": 0.75,     ## u: las piedras pequeñas se reparten a esta distancia como mucho de la grande
+	"separacion": 3,         ## casillas entre centros de grupos (Chebyshev): grupos pocos y bien separados
+	# flores y matas bajas en el BORDE de los corros de hierba (piezas que ya existen en arte/piezas; sin colisión, van a los lotes)
+	"borde_ids": ["flores_amarillas", "flores_colores", "helecho_ancho"],
+	"borde_mata": Vector2(0.12, 0.88),   ## valor del campo de matas en que un punto cuenta como borde de corro (la banda del smoothstep de las matas es estrecha)
+	"borde_prob": 0.30,      ## probabilidad por casilla de llevar una pieza de borde (la mayoría se descarta por no estar en la banda o por tener algo cerca)
+	"borde_escala": Vector2(0.7, 1.05),
+	"borde_max": 60,         ## tope de piezas de borde en el mapa
+}
+var _adornos_borde: int = 0
+var _adornos_borde_pos: Array[Vector3] = []
 const TAM_MATA: float = 3.2             ## tamaño de las manchas grandes, en casillas (el ruido de baja frecuencia: una mancha ≈ una vez y media esto)
 const TAM_MATA_FINA: float = 1.35       ## el segundo ruido, más fino, que rompe el contorno para que no sean óvalos limpios
 const PESO_MATA_FINA: float = 0.30      ## cuánto pesa el fino en la mezcla (el resto es el grande)
@@ -4744,6 +4806,8 @@ const SUAVE_MATA_ARRIBA: float = 0.12
 ## Cuánta «mata» hay en un punto del mundo (0 = claro, 1 = corazón de una mancha). Usa `_vruido` (el mismo ruido de valor que el suelo, hecho en CPU).
 ## Solo depende de (x, z), así que la hierba sale igual cada vez.
 func _mata_hierba(x: float, z: float) -> float:
+	if not _germinadas.is_empty() and _germinadas.has(Vector2i(floori(x / S), floori(z / S))):
+		return 1.0          # 6/11: lo que la naturaleza germinó es una mata entera (si cayera en un claro no se vería brotar nada)
 	if _rejilla_mata.is_empty():
 		_preparar_rejilla_mata()
 	# bilineal sobre la rejilla del ruido (4 lecturas en vez de 8 hashes por punto: la siembra pide este valor miles de veces por bloque)
@@ -4756,6 +4820,32 @@ func _mata_hierba(x: float, z: float) -> float:
 	var k: int = iz * _lado_mata + ix
 	var n: float = lerpf(lerpf(_rejilla_mata[k], _rejilla_mata[k + 1], tx), lerpf(_rejilla_mata[k + _lado_mata], _rejilla_mata[k + _lado_mata + 1], tx), tz)
 	return smoothstep(UMBRAL_MATA - SUAVE_MATA_ABAJO, UMBRAL_MATA + SUAVE_MATA_ARRIBA, n)
+
+
+## 6/11 (2.ª pasada): el tono del suelo bajo los corros (verde oscuro) y en las calvas (tierra clara). `fuerza` 0 = sin tinte. Lo lee el shader del suelo (`corros`).
+const SUELO_CORROS: Dictionary = {"fuerza": 1.0, "tinte_corro": Vector3(0.66, 0.82, 0.58), "tinte_calva": Vector3(1.08, 0.98, 0.82), "corro_desde": 0.35, "corro_hasta": 0.8}
+
+
+## Imagen RG (lado × RES_MATA): R = cuánto corro hay (el campo de matas, de `corro_desde` a `corro_hasta`), G = 1 en las casillas calvas de la hierba (`Hierba3D.es_calva`).
+func _textura_corros() -> Image:
+	var n: int = _lado * RES_MATA
+	var img := Image.create_empty(n, n, false, Image.FORMAT_RG8)
+	var sem: int = _hierba.semilla if _hierba != null else 7
+	for y in range(n):
+		for x in range(n):
+			var px: float = (float(x) + 0.5) / float(RES_MATA) * S
+			var pz: float = (float(y) + 0.5) / float(RES_MATA) * S
+			var c := Vector2i(x / RES_MATA, y / RES_MATA)
+			var l: String = _letra(c)
+			var corro: float = 0.0
+			var calva: float = 0.0
+			if l == "." or l == "," or l == "v":
+				corro = smoothstep(float(SUELO_CORROS["corro_desde"]), float(SUELO_CORROS["corro_hasta"]), _mata_hierba(px, pz))
+				if (l == "," or l == "v") and Hierba3D.es_calva(c, sem):
+					calva = 1.0
+					corro = 0.0
+			img.set_pixel(x, y, Color(corro, calva, 0.0, 1.0))
+	return img
 
 
 const RES_MATA: int = 4                 ## muestras del ruido de las matas por casilla (la mancha más fina mide 1,35 casillas: de sobra)
@@ -4797,16 +4887,69 @@ func _sembrar_adornos() -> void:
 	if variante != RocasEstilizadas.MUSGO:
 		return
 	var ocupado: Dictionary = _ocupacion_adornos()
+	var centros: Array[Vector2i] = []
+	_adornos_borde = 0
+	_adornos_borde_pos.clear()
 	for cz in range(_lado):
 		for cx in range(_lado):
 			var c := Vector2i(cx, cz)
 			var l: String = _letra(c)
 			if not (l == "." or l == "," or l == "v") or _bloqueadas.has(c) or _sin_hierba.has(c) or _celdas_pieza.has(c):
 				continue
-			if _hash(cx, cz, 91) % 1000 >= int(PROB_GRUPO_ADORNO * 1000.0):
+			if detalle_en_bloques and _hash(cx, cz, 94) % 1000 < int(float(ADORNOS["borde_prob"]) * 1000.0) and _adornos_borde < int(ADORNOS["borde_max"]):
+				_adorno_borde(c, ocupado)
+			if _hash(cx, cz, 91) % 1000 >= int(_prob_adorno(c) * 1000.0):
 				continue
+			if detalle_en_bloques:
+				if _n_adornos + int(ADORNOS["n_max"]) > int(ADORNOS["max_total"]):
+					break            # tope del mapa
+				var lejos: bool = true
+				for o in centros:
+					if maxi(absi(o.x - c.x), absi(o.y - c.y)) < int(ADORNOS["separacion"]):
+						lejos = false
+						break
+				if not lejos:
+					continue
+			var antes: int = _n_adornos
 			_grupo_adornos(c, ocupado)
-	print("Adornos de claro: ", _n_adornos, " (", _adornos_setas, " setas, ", _adornos_piedras, " piedrecitas)")
+			if _n_adornos > antes:
+				centros.append(c)
+	print("Adornos de claro: ", _n_adornos, " (", _adornos_setas, " setas, ", _adornos_piedras, " piedrecitas) + ", _adornos_borde, " de borde de corro")
+
+
+## 2.ª pasada: una flor o mata baja (ADORNOS.borde_ids) en una casilla del BORDE de un corro de hierba (campo de matas entre `borde_mata`). Sin colisión; determinista por casilla.
+func _adorno_borde(c: Vector2i, ocupado: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _hash(c.x, c.y, 95)
+	var p := _centro_celda(c, ALTO) + Vector3(rng.randf_range(-0.3, 0.3) * S, 0.0, rng.randf_range(-0.3, 0.3) * S)
+	var m: float = _mata_hierba(p.x, p.z)
+	var rango: Vector2 = ADORNOS["borde_mata"]
+	if m < rango.x or m > rango.y:
+		return
+	if not _lejos_de_no_hierba(p, c) or _cerca_de_algo(p, ocupado):
+		return
+	var ids: Array = ADORNOS["borde_ids"]
+	var real: String = _id_real(String(ids[rng.randi() % ids.size()]))
+	if _plantilla(real).is_empty():
+		return
+	var esc_r: Vector2 = ADORNOS["borde_escala"]
+	var esc: float = rng.randf_range(esc_r.x, esc_r.y)
+	if not _lotes.has(real):
+		_lotes[real] = []
+	(_lotes[real] as Array).append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * esc), Vector3(p.x, ALTO - HUNDIR, p.z)))
+	if not ocupado.has(c):
+		ocupado[c] = []
+	(ocupado[c] as Array).append(Vector2(p.x, p.z))
+	_adornos_borde_pos.append(p)
+	_adornos_borde += 1
+
+
+## Probabilidad de que la casilla `c` lleve un grupito de adornos: en corros por ruido (`ADORNOS`), 0 fuera de ellos; con `detalle_en_bloques` false, la pareja de antes.
+func _prob_adorno(c: Vector2i) -> float:
+	if not detalle_en_bloques:
+		return PROB_GRUPO_ADORNO
+	var n: float = _vruido(Vector2(float(c.x) + 0.5, float(c.y) + 0.5) / float(ADORNOS["tam_corro"]), 93)
+	return float(ADORNOS["prob_max"]) * smoothstep(float(ADORNOS["umbral"]), float(ADORNOS["umbral"]) + float(ADORNOS["suave"]), n)
 
 
 ## Un grupito (2-4) alrededor de un punto de la casilla `c`, de setas o de piedrecitas pisables.
@@ -4819,9 +4962,20 @@ func _grupo_adornos(c: Vector2i, ocupado: Dictionary) -> void:
 	var de_setas: bool = rng.randf() < PROB_SETAS_ADORNO
 	var variante: String = RocasEstilizadas.variante_de(estilo, nivel, String(get_meta("bioma", "")))
 	var id_seta: String = ADORNO_SETAS[rng.randi() % ADORNO_SETAS.size()]
+	# 2.ª pasada: grupos de piedras de n_min..n_max con `grandes` piedras grandes y el resto pequeñas alrededor; si no caben n_min, se deshace el grupo entero
+	var marcado: bool = detalle_en_bloques and not de_setas
+	if marcado:
+		n = int(ADORNOS["n_min"]) + rng.randi() % (int(ADORNOS["n_max"]) - int(ADORNOS["n_min"]) + 1)
+	var puestos: int = 0
+	var tam_lotes: Dictionary = {}
+	for id0 in _lotes:
+		tam_lotes[id0] = (_lotes[id0] as Array).size()
+	var n_pos0: int = _adornos_pos.size()
 	for i in range(n):
 		var ang: float = rng.randf() * TAU
 		var d: float = rng.randf_range(0.0, 0.5) if i > 0 else 0.0
+		if marcado:
+			d = rng.randf_range(0.35, float(ADORNOS["radio_grupo"])) if i >= int(ADORNOS["grandes"]) else rng.randf_range(0.0, 0.3) * float(i)
 		var p := Vector3(centro.x + cos(ang) * d, ALTO, centro.z + sin(ang) * d)
 		var cc: Vector2i = _celda_de(p)
 		if _letra(cc) == "v" or _letra(cc) == ",":
@@ -4841,7 +4995,11 @@ func _grupo_adornos(c: Vector2i, ocupado: Dictionary) -> void:
 				esc = rng.randf_range(0.7, 1.0)
 		else:
 			id = RocasEstilizadas.id_de("piedra_est_%d" % (1 + rng.randi() % 4), variante)
-			esc = rng.randf_range(0.65, 1.15) if i == 0 else rng.randf_range(0.5, 0.85)
+			if marcado:
+				var er: Vector2 = ADORNOS["escala_grande"] if i < int(ADORNOS["grandes"]) else ADORNOS["escala_pequena"]
+				esc = rng.randf_range(er.x, er.y)
+			else:
+				esc = rng.randf_range(0.65, 1.15) if i == 0 else rng.randf_range(0.5, 0.85)
 		var real: String = _id_real(id)
 		if _plantilla(real).is_empty():
 			continue
@@ -4850,10 +5008,24 @@ func _grupo_adornos(c: Vector2i, ocupado: Dictionary) -> void:
 		(_lotes[real] as Array).append(Transform3D(Basis(Vector3.UP, giro).scaled(Vector3.ONE * esc), Vector3(p.x, ALTO - HUNDIR, p.z)))
 		_adornos_pos.append(p)
 		_n_adornos += 1
+		puestos += 1
 		if id.begins_with("setas"):
 			_adornos_setas += 1
 		else:
 			_adornos_piedras += 1
+	if detalle_en_bloques and puestos < (int(ADORNOS["n_min"]) if marcado else 2):
+		# no cabe el grupo (ni dos setas juntas): fuera lo puesto (nada de piedras ni setas sueltas a medio camino)
+		for id1 in _lotes:
+			var arr: Array = _lotes[id1]
+			while arr.size() > int(tam_lotes.get(id1, 0)):
+				arr.pop_back()
+		while _adornos_pos.size() > n_pos0:
+			_adornos_pos.pop_back()
+		_n_adornos -= puestos
+		if marcado:
+			_adornos_piedras -= puestos
+		else:
+			_adornos_setas = maxi(_adornos_setas - puestos, 0)      # (aprox.: en un grupo de setas puede ir alguna piedrecita)
 
 
 ## Casilla (Vector2i) -> Array[Vector2] (x, z) de todo lo que ya hay puesto: decorado de lotes, el registro de `_poner`, marcadores del editor, las casillas de las

@@ -151,7 +151,8 @@ func _siembra() -> void:
 		await process_frame
 	var a: Dictionary = res[false]
 	var d: Dictionary = res[true]
-	_ok("2 con matas no hay MÁS briznas ni tarjetas que antes (coste igual o menor)", int(d["bri"]) + int(d["tar"]) <= int(a["bri"]) + int(a["tar"]),
+	# 6/11 (2.ª pasada de la hierba en bloques, DIARIO 418): los corros van ×2,2 de tupidos (`Hierba3D.AGRUPADO.mata_densidad_x`), así que con matas puede haber hasta un 25 % más de copias que sin ellas; los topes por bloque mandan
+	_ok("2 con matas no hay más de un 25 % más de briznas y tarjetas que sin ellas (coste acotado)", int(d["bri"]) + int(d["tar"]) <= (int(a["bri"]) + int(a["tar"])) * 1.25,
 		"briznas %d → %d (%.0f %%), tarjetas %d → %d (%.0f %%)" % [a["bri"], d["bri"], 100.0 * float(d["bri"]) / maxf(float(a["bri"]), 1.0), a["tar"], d["tar"], 100.0 * float(d["tar"]) / maxf(float(a["tar"]), 1.0)])
 	if DisplayServer.get_name() == "headless":
 		_aviso("3-4 densidad por casilla y límites de la hierba", "se saltan en headless (el MultiMesh no guarda las posiciones sin render): correr con ventana")

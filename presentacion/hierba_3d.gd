@@ -52,6 +52,39 @@ extends Node3D
 @export var bloques_por_fotograma: int = 2   ## como mucho, para repartir el coste al andar (bloques pequeños: 2 cuestan menos que 1 de los viejos)
 @export var brillo: float = 1.0              ## multiplica el color (la maqueta oscurece el suelo y la hierba igual)
 @export var albedos_eow: bool = true         ## albedos (22/10, `Albedos3D`): valor de las briznas y contraste/valor de las tarjetas igualados con el suelo; false = como antes (se pone antes de sembrar)
+## 6/11 (Pablo: «una hierba más procedural… en vez de esparcir, pequeños bloques»): cada matojo sale distinto (alto, ancho, inclinación, tono y fase del balanceo propios,
+## entre `TOPES.variantes` mallas de matojo) y la siembra se agrupa (`AGRUPADO`: casillas calvas y densidad por ruido). false = la hierba de antes (una malla, escala
+## uniforme, reparto parejo): lo usan las capturas antes/después. Se pone antes de `sembrar`.
+@export var procedural: bool = true
+@export var casilla: float = 2.3             ## lado de una casilla del mapa: la SEMILLA de la siembra es por casilla (`hash(semilla, cx, cz)`), así dos siembras (y dos horneados) dan lo mismo
+
+## TOPES por bloque (GPU integrada; 19 mapas con cientos de piezas). Si una casilla pide más, se ralea a partes iguales (`_ralear`): nunca se pasa.
+## Triángulos: un matojo son `briznas × 3` (cada brizna 2 tramos = 3 triángulos); una tarjeta o una flor, 2. A tope: 220 × 18 + 220 × 2 + 40 × 2 ≈ 4,5 k por bloque,
+## ×25 bloques visibles ≈ 112 k (docs/HIERBA_OPTIMIZACION.md pedía < 150 k).
+const TOPES: Dictionary = {
+	"matojos_por_bloque": 300,      ## 2.ª pasada (Pablo: «más contraste»): los corros van ×2,2 de tupidos; 300 × 15 + 300 × 2 + 40 × 2 ≈ 5,2 k triángulos, ×25 bloques ≈ 130 k
+	"tarjetas_por_bloque": 300,
+	"flores_por_bloque": 40,
+	"triangulos_por_bloque": 6000,
+	"variantes": 3,                 ## mallas de matojo distintas (4, 5 y 6 briznas, cada una con su curva); con `procedural` false, solo la de siempre
+}
+## AGRUPADO: lo que rompe la planicie DENTRO de las matas (el campo de matas con claros lo da quien siembra: `_mata_hierba` de la maqueta).
+const AGRUPADO: Dictionary = {
+	"tam_calva": 2.0,               ## casillas: tamaño del ruido de las CALVAS (manchas de 3-6 casillas sin matojos, tarjetas ni flores; antes, una casilla suelta al 14 %)
+	"umbral_calva": 0.64,           ## valor del ruido a partir del cual la casilla es calva (más alto = calvas más pequeñas y escasas)
+	"mata_alto_centro": 1.9,        ## 2.ª pasada: en el corazón de un corro los matojos son ×1,9 de altos…
+	"mata_alto_claro": 0.55,        ## …y en el claro ×0,55 (antes 1,3 y 0,8: `MATA_ALTURA_CENTRO/CLARO`, que siguen para `procedural` false)
+	"mata_densidad_x": 2.2,         ## …y la rejilla es ×2,2 de tupida (antes 1,7 `MATA_MULT_DENSIDAD`); con los topes por bloque
+	"tam_densidad": 3.1,            ## tamaño (u) del ruido de densidad: dentro de una mata, unas zonas más tupidas que otras
+	"densidad_min": 0.45,           ## fracción de la rejilla que sobrevive donde el ruido de densidad vale 0 (en 1 sobrevive todo)
+	"rejilla_x": 1.3,               ## la rejilla de briznas y tarjetas es 1,3× más tupida: las calvas y el ruido quitan ≈ un tercio, así el presupuesto de copias queda como antes, pero en corros
+	"alto_min": 0.60,               ## alto de un matojo: alto_matojo × [alto_min, alto_max] (antes 0,75–1,25)
+	"alto_max": 1.45,
+	"ancho_min": 0.75,              ## ancho (escala XZ) relativo al alto: [ancho_min, ancho_max]
+	"ancho_max": 1.25,
+	"inclinacion_max": 0.38,        ## rad: cada matojo se tumba un poco hacia un lado al azar
+	"tono": 0.07,                   ## desvío del tinte hacia amarillo (+) o azulado (−), dentro de la paleta: Color(v·(1+a), v, v·(1−a/2))
+}
 
 ## W2 (2/11, docs/REVISION_GAMEFEEL_30-10.md §11): la hierba se aparta con muelle. Lo afinable; lo alimenta `Caminar3D.actualizar` cada fotograma con `set_apartado`.
 static var APARTAR_FUERZA: float = 0.3            ## inclinación de las puntas al apartarse (las tarjetas, ×0,83: 0,25 como siempre)
@@ -112,7 +145,8 @@ void vertex() {
 	float cre = texture(crecida, uv_e).r;
 	VERTEX.y *= mix(1.0, 0.12, smoothstep(0.2, 0.8, e.r)) * mix(1.0, 1.7, cre) * mix(1.0, 0.85, mojado);   // 6.14: quemada = rastrojo muy corto
 	vec3 mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	float t = TIME * 1.7 + mundo.x * 0.55 + mundo.z * 0.35;
+	// INSTANCE_CUSTOM.a = fase propia del matojo (0..1; 1 = la de siempre): dos matojos vecinos no se mecen a la vez.
+	float t = TIME * 1.7 + mundo.x * 0.55 + mundo.z * 0.35 + INSTANCE_CUSTOM.a * 6.2832;
 	// Mojada pesa y se mueve menos; con escarcha está tiesa.
 	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
 	float meneo = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * rigidez;
@@ -272,6 +306,9 @@ var _tex_humedad: ImageTexture = null
 var _humedad: Dictionary = {}        ## Vector2i -> [mojada_hasta, escarcha_hasta, intensidad] (en segundos de `_reloj`)
 var _reloj: float = 0.0
 var _malla: ArrayMesh = null
+var _mallas: Array[ArrayMesh] = []         ## variantes de matojo (`TOPES.variantes`; la 0 es `_malla`, la de siempre)
+var _tris_variante: PackedInt32Array = PackedInt32Array()     ## triángulos de cada variante
+var _stats: Dictionary = {}                ## Vector2i bloque -> {matojos, tarjetas, flores, triangulos, casillas: {Vector2i: matojos}, huella: int}: lo que se midió al crearlo (vale en headless)
 var _quad_tarjeta: QuadMesh = null
 var _quad_flor: QuadMesh = null
 var _zona: Rect2 = Rect2()
@@ -331,6 +368,7 @@ func actualizar(pos: Vector3, todos: bool = false) -> void:
 			if ((b as Vector2i) - c).length_squared() > radio_liberar * radio_liberar:
 				(_bloques[b] as Node3D).queue_free()
 				_bloques.erase(b)
+				_stats.erase(b)
 	var n: int = 0
 	while (todos or n < bloques_por_fotograma) and not _pendientes.is_empty():
 		_crear_bloque(_pendientes.pop_front())
@@ -376,8 +414,16 @@ func _preparar() -> void:
 	_mat_matojo.set_shader_parameter("punta", color_punta)
 	_mat_matojo.set_shader_parameter("viento", viento)
 	_mat_matojo.set_shader_parameter("brillo", brillo)
-	_malla = _malla_matojo()
-	_malla.surface_set_material(0, _mat_matojo)
+	_mallas.clear()
+	_tris_variante.clear()
+	var formas: Array = [[99, 5, 0.7, 0.5], [131, 4, 0.85, 0.5], [173, 6, 0.55, 0.45]]     # [semilla, briznas, alto base, alto extra]: la 0 es la de siempre
+	for i in range(int(TOPES["variantes"]) if procedural else 1):
+		var f: Array = formas[i % formas.size()]
+		var m: ArrayMesh = _malla_matojo(int(f[0]), int(f[1]), float(f[2]), float(f[3]))
+		m.surface_set_material(0, _mat_matojo)
+		_mallas.append(m)
+		_tris_variante.append(int(f[1]) * 3)
+	_malla = _mallas[0]
 	if ResourceLoader.exists(atlas_tarjetas):
 		_mat_tarjeta = ShaderMaterial.new()
 		var sht := Shader.new()
@@ -408,21 +454,87 @@ func _crear_bloque(b: Vector2i) -> void:
 	var rect := Rect2(_zona.position + Vector2(b) * lado_bloque, Vector2(lado_bloque, lado_bloque)).intersection(_zona)
 	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
 		return
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash([semilla, b.x, b.y])
 	var padre := Node3D.new()
 	padre.name = "Bloque_%d_%d" % [b.x, b.y]
 	add_child(padre)
 	_bloques[b] = padre
-	# Briznas: rejilla con jitter; en el borde (peso 0,3-0,7) más altas, la "franja" que pisa el camino.
-	var matojos: Array[Transform3D] = []
-	var tintes_m: PackedColorArray = PackedColorArray()
+	# 6/11: la siembra va CASILLA a casilla con semilla propia (`hash(semilla, cx, cz)`): el bloque solo recorta. Así una casilla sale igual en cualquier bloque,
+	# en cualquier siembra y en cualquier horneado, y `rehacer_bloque_en` deja donde estaban las matas que ya había.
+	# (arrays normales, no Packed: se comparten por referencia entre `_sembrar_casilla` y `_ralear`; se empaquetan al final)
+	var acc: Dictionary = {"matojos": [], "tintes_m": [], "variante": [], "tarjetas": [], "tintes_t": [], "flores": [], "tintes_f": [],
+		"casillas": {}, "huella": 0}
+	var c0 := Vector2i(floori(rect.position.x / casilla + 0.001), floori(rect.position.y / casilla + 0.001))
+	var c1 := Vector2i(ceili(rect.end.x / casilla - 0.001) - 1, ceili(rect.end.y / casilla - 0.001) - 1)
+	for cz in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			_sembrar_casilla(Vector2i(cx, cz), rect, acc)
+	# Topes: se ralea a partes iguales, nunca se corta por un lado del bloque.
+	var n_m: int = _ralear([acc["matojos"], acc["tintes_m"], acc["variante"]], int(TOPES["matojos_por_bloque"]))
+	var n_t: int = _ralear([acc["tarjetas"], acc["tintes_t"]], int(TOPES["tarjetas_por_bloque"]))
+	var n_f: int = _ralear([acc["flores"], acc["tintes_f"]], int(TOPES["flores_por_bloque"]))
+	var variante: Array = acc["variante"]
+	var tris: int = _triangulos(variante, n_t, n_f)
+	if tris > int(TOPES["triangulos_por_bloque"]):
+		# Demasiados triángulos aun dentro de los topes de copias (todo matojos de 6 briznas, p. ej.): se ralean los matojos hasta entrar.
+		var sobra: float = float(tris - int(TOPES["triangulos_por_bloque"]))
+		var media: float = float(tris - n_t * 2 - n_f * 2) / maxf(float(n_m), 1.0)
+		n_m = _ralear([acc["matojos"], acc["tintes_m"], acc["variante"]], maxi(n_m - ceili(sobra / maxf(media, 1.0)), 0))
+		tris = _triangulos(variante, n_t, n_f)
+	# Un MultiMesh por variante de matojo ("briznas", "briznas_1", …), más tarjetas y flores.
+	for v in range(_mallas.size()):
+		var trs_v: Array[Transform3D] = []
+		var tin_v: PackedColorArray = PackedColorArray()
+		for i in range(n_m):
+			if int(variante[i]) == v:
+				trs_v.append((acc["matojos"] as Array)[i] as Transform3D)
+				tin_v.append((acc["tintes_m"] as Array)[i] as Color)
+		_multimalla(_mallas[v], trs_v, tin_v, padre, "briznas" if v == 0 else "briznas_%d" % v)
+	if _quad_tarjeta != null:
+		_multimalla(_quad_tarjeta, Array(acc["tarjetas"], TYPE_TRANSFORM3D, "", null), PackedColorArray(acc["tintes_t"]), padre, "tarjetas")
+	_multimalla(_quad_flor, Array(acc["flores"], TYPE_TRANSFORM3D, "", null), PackedColorArray(acc["tintes_f"]), padre, "flores")
+	_stats[b] = {"matojos": n_m, "tarjetas": n_t, "flores": n_f, "triangulos": tris, "casillas": acc["casillas"], "huella": acc["huella"]}
+	# Caja del bloque: el rectángulo + 1 u de margen (el viento y las tarjetas que miran a la cámara sobresalen).
+	var caja := AABB(Vector3(rect.position.x - 1.0, _y - 0.5, rect.position.y - 1.0),
+		Vector3(rect.size.x + 2.0, 2.5, rect.size.y + 2.0))
+	for h in padre.get_children():
+		(h as MultiMeshInstance3D).custom_aabb = caja
+	_aplicar_modo(padre)
+	Caminar3D.decorar_bloque(self, padre, rect, _y)       # W5 (2/11): hojas bajo los árboles y motas/luciérnagas; hijos del bloque, se liberan con él
+
+
+## La siembra de UNA casilla (briznas, tarjetas y flores), con su semilla, recortada al rectángulo del bloque. Acumula en `acc`.
+func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([semilla, c.x, c.y])
+	var rc := Rect2(float(c.x) * casilla, float(c.y) * casilla, casilla, casilla)
 	var con_matas: bool = _matas.is_valid()
-	var paso: float = 1.0 / sqrt(maxf(densidad * (MATA_MULT_DENSIDAD if con_matas else 1.0), 0.01))
-	for iz in range(int(rect.size.y / paso)):
-		for ix in range(int(rect.size.x / paso)):
-			var x: float = rect.position.x + (float(ix) + rng.randf()) * paso
-			var z: float = rect.position.y + (float(iz) + rng.randf()) * paso
+	var casillas: Dictionary = acc["casillas"]
+	casillas[c] = 0
+	# Calva: la casilla entera sin detalle (huecos entre corros), por ruido (manchas con forma, `es_calva`). En el corazón de una mata
+	# (matas ≥ 0,98: también la casilla que la naturaleza acaba de germinar) no hay calvas.
+	if procedural and es_calva(c, semilla):
+		if not con_matas or float(_matas.call(rc.get_center().x, rc.get_center().y)) < 0.98:
+			return
+	var alto_centro: float = float(AGRUPADO["mata_alto_centro"]) if procedural else MATA_ALTURA_CENTRO
+	var alto_claro: float = float(AGRUPADO["mata_alto_claro"]) if procedural else MATA_ALTURA_CLARO
+	var dens_mata: float = (float(AGRUPADO["mata_densidad_x"]) if procedural else MATA_MULT_DENSIDAD) if con_matas else 1.0
+	var matojos: Array = acc["matojos"]
+	var tintes_m: Array = acc["tintes_m"]
+	var variante: Array = acc["variante"]
+	var huella: int = int(acc["huella"])
+	# Briznas: rejilla con jitter; en el borde (peso 0,3-0,7) más altas, la "franja" que pisa el camino.
+	var rej_x: float = float(AGRUPADO["rejilla_x"]) if procedural else 1.0
+	var paso: float = 1.0 / sqrt(maxf(densidad * dens_mata * rej_x, 0.01))
+	var n_rej: int = ceili(casilla / paso)
+	for iz in range(n_rej):
+		for ix in range(n_rej):
+			var x: float = rc.position.x + (float(ix) + rng.randf()) * paso
+			var z: float = rc.position.y + (float(iz) + rng.randf()) * paso
+			var r_dens: float = rng.randf()
+			if not rc.has_point(Vector2(x, z)) or not rect.has_point(Vector2(x, z)):
+				continue
+			if procedural and r_dens > _densidad_local(x, z):
+				continue            # ruido de densidad: dentro de una mata, zonas más tupidas y zonas ralas
 			var m: float = 1.0
 			if con_matas:
 				m = float(_matas.call(x, z))
@@ -432,24 +544,53 @@ func _crear_bloque(b: Vector2i) -> void:
 			if w <= 0.02 or rng.randf() > w * 1.15:
 				continue
 			var borde: float = 1.0 - absf(w - 0.5) * 2.0
-			var s: float = alto_matojo * (0.75 + rng.randf() * 0.5) * (1.0 + borde * 0.6)
+			var s: float = alto_matojo * (1.0 + borde * 0.6)
+			var s_a: float
+			var base: Basis
+			var tinte: Color
+			if procedural:
+				s *= lerpf(float(AGRUPADO["alto_min"]), float(AGRUPADO["alto_max"]), rng.randf())
+				s_a = s * lerpf(float(AGRUPADO["ancho_min"]), float(AGRUPADO["ancho_max"]), rng.randf())
+				var incl: float = rng.randf() * float(AGRUPADO["inclinacion_max"])
+				base = Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, incl)
+				var v: float = 0.88 + rng.randf() * 0.2
+				var a: float = (rng.randf() * 2.0 - 1.0) * float(AGRUPADO["tono"])
+				tinte = Color(v * (1.0 + a), v, v * (1.0 - a * 0.5), rng.randf())      # alfa = fase del balanceo
+				variante.append(rng.randi() % _mallas.size())
+			else:
+				s *= 0.75 + rng.randf() * 0.5
+				s_a = s
+				base = Basis(Vector3.UP, rng.randf() * TAU)
+				var v0: float = 0.9 + rng.randf() * 0.2
+				tinte = Color(v0, v0 * (0.97 + rng.randf() * 0.06), v0 * (0.95 + rng.randf() * 0.08), 1.0)
+				variante.append(0)
 			if con_matas:
-				s *= lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m)
+				var k: float = lerpf(alto_claro, alto_centro, m)
+				s *= k
+				s_a *= k
 			if _alto.is_valid():
-				s *= float(_alto.call(x, z))
-			matojos.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s, s)), Vector3(x, _y, z)))
-			var v: float = 0.9 + rng.randf() * 0.2
-			tintes_m.append(Color(v, v * (0.97 + rng.randf() * 0.06), v * (0.95 + rng.randf() * 0.08)))
-	_multimalla(_malla, matojos, tintes_m, padre, "briznas")
+				var k2: float = float(_alto.call(x, z))
+				s *= k2
+				s_a *= k2
+			matojos.append(Transform3D(base.scaled(Vector3(s_a, s, s_a)), Vector3(x, _y, z)))
+			tintes_m.append(tinte)
+			casillas[c] = int(casillas[c]) + 1
+			huella = hash([huella, snappedf(x, 0.001), snappedf(z, 0.001), snappedf(s, 0.001)])
 	# Tarjetas pintadas: menos y algo más grandes; también más altas en el borde.
 	if _quad_tarjeta != null:
-		var trs: Array[Transform3D] = []
-		var tintes: PackedColorArray = PackedColorArray()
-		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas * (MATA_MULT_DENSIDAD if con_matas else 1.0), 0.01))
-		for iz in range(int(rect.size.y / paso_t)):
-			for ix in range(int(rect.size.x / paso_t)):
-				var x2: float = rect.position.x + (float(ix) + rng.randf()) * paso_t
-				var z2: float = rect.position.y + (float(iz) + rng.randf()) * paso_t
+		var trs: Array = acc["tarjetas"]
+		var tintes: Array = acc["tintes_t"]
+		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas * dens_mata * rej_x, 0.01))
+		var n_rt: int = ceili(casilla / paso_t)
+		for iz in range(n_rt):
+			for ix in range(n_rt):
+				var x2: float = rc.position.x + (float(ix) + rng.randf()) * paso_t
+				var z2: float = rc.position.y + (float(iz) + rng.randf()) * paso_t
+				var r_dens2: float = rng.randf()
+				if not rc.has_point(Vector2(x2, z2)) or not rect.has_point(Vector2(x2, z2)):
+					continue
+				if procedural and r_dens2 > _densidad_local(x2, z2):
+					continue
 				var m2: float = 1.0
 				if con_matas:
 					m2 = float(_matas.call(x2, z2))
@@ -459,9 +600,9 @@ func _crear_bloque(b: Vector2i) -> void:
 				if w2 <= 0.05 or rng.randf() > w2 * 1.1:
 					continue
 				var borde2: float = 1.0 - absf(w2 - 0.5) * 2.0
-				var s2: float = alto_tarjeta * (0.8 + rng.randf() * 0.45) * (1.0 + borde2 * 0.35)
+				var s2: float = alto_tarjeta * ((0.7 + rng.randf() * 0.6) if procedural else (0.8 + rng.randf() * 0.45)) * (1.0 + borde2 * 0.35)
 				if con_matas:
-					s2 *= lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m2)
+					s2 *= lerpf(alto_claro, alto_centro, m2)
 				if _alto.is_valid():
 					s2 *= float(_alto.call(x2, z2))
 				trs.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s2, s2, s2)), Vector3(x2, _y, z2)))
@@ -469,33 +610,100 @@ func _crear_bloque(b: Vector2i) -> void:
 				# Los dibujos con flor (0 y 1) salen menos que los de solo hierba (2 y 3).
 				var celda: float = [0.0, 1.0, 2.0, 2.0, 3.0, 3.0, 3.0][rng.randi() % 7]
 				tintes.append(Color(v2 * tinte_tarjetas.r, v2 * tinte_tarjetas.g, v2 * (0.96 + rng.randf() * 0.06) * tinte_tarjetas.b, (celda + 0.5) / 4.0))
-		_multimalla(_quad_tarjeta, trs, tintes, padre, "tarjetas")
-	# Flores: pocas, solo en hierba plena, a veces en grupitos de 2-3.
-	var flores: Array[Transform3D] = []
-	var tintes_f: PackedColorArray = PackedColorArray()
-	for i in range(int(rect.get_area() * flores_por_unidad)):
-		var x3: float = rect.position.x + rng.randf() * rect.size.x
-		var z3: float = rect.position.y + rng.randf() * rect.size.y
-		if con_matas and float(_matas.call(x3, z3)) < 0.35:
-			continue            # las flores crecen dentro de las matas, no sueltas en el claro
-		if float(_peso.call(x3, z3)) < 0.85:
-			continue
+				huella = hash([huella, snappedf(x2, 0.001), snappedf(z2, 0.001)])
+	# Flores: pocas, solo en hierba plena, a veces en grupitos de 2-3. Por casilla salen < 1 de media: la parte decimal es una probabilidad.
+	var flores: Array = acc["flores"]
+	var tintes_f: Array = acc["tintes_f"]
+	var esperadas: float = rc.get_area() * flores_por_unidad
+	var n_flor: int = int(esperadas) + (1 if rng.randf() < esperadas - floorf(esperadas) else 0)
+	for i in range(n_flor):
+		var x3: float = rc.position.x + rng.randf() * rc.size.x
+		var z3: float = rc.position.y + rng.randf() * rc.size.y
+		var r_m: float = float(_matas.call(x3, z3)) if con_matas else 1.0
+		var r_w: float = float(_peso.call(x3, z3))
 		var col: Color = COLORES_FLOR[rng.randi() % COLORES_FLOR.size()]
-		for k in range(1 + rng.randi() % 3):
+		var n_grupo: int = 1 + rng.randi() % 3
+		if not rect.has_point(Vector2(x3, z3)) or r_m < 0.35 or r_w < 0.85:
+			continue            # las flores crecen dentro de las matas, no sueltas en el claro
+		for k in range(n_grupo):
 			var p := Vector3(x3 + rng.randf_range(-0.18, 0.18), _y + 0.07 + rng.randf() * 0.05,
 				z3 + rng.randf_range(-0.18, 0.18))
 			var sf: float = 0.15 + rng.randf() * 0.06
 			var bf := Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.3, 0.3))
 			flores.append(Transform3D(bf.scaled(Vector3(sf, sf, sf)), p))
 			tintes_f.append(col)
-	_multimalla(_quad_flor, flores, tintes_f, padre, "flores")
-	# Caja del bloque: el rectángulo + 1 u de margen (el viento y las tarjetas que miran a la cámara sobresalen).
-	var caja := AABB(Vector3(rect.position.x - 1.0, _y - 0.5, rect.position.y - 1.0),
-		Vector3(rect.size.x + 2.0, 2.5, rect.size.y + 2.0))
-	for h in padre.get_children():
-		(h as MultiMeshInstance3D).custom_aabb = caja
-	_aplicar_modo(padre)
-	Caminar3D.decorar_bloque(self, padre, rect, _y)       # W5 (2/11): hojas bajo los árboles y motas/luciérnagas; hijos del bloque, se liberan con él
+	acc["huella"] = huella
+
+
+## ¿La casilla `c` es CALVA (mancha sin detalle)? Ruido de valor por casilla (`AGRUPADO.tam_calva`, `umbral_calva`), con la semilla: igual en cada siembra y horneado.
+## Estática para que el suelo de la maqueta pueda pintar la calva con otro tono.
+static func es_calva(c: Vector2i, sem: int) -> bool:
+	var n: float = HorneadorNivel._vruido((Vector2(c) + Vector2(0.5, 0.5)) / float(AGRUPADO["tam_calva"]), sem + 9)
+	return n > float(AGRUPADO["umbral_calva"])
+
+
+## Ruido de densidad (0..1 → `densidad_min`..1): el mismo ruido de valor del horneador (`HorneadorNivel._vruido`), con la semilla de la hierba. Determinista por (x, z).
+func _densidad_local(x: float, z: float) -> float:
+	var n: float = HorneadorNivel._vruido(Vector2(x, z) / float(AGRUPADO["tam_densidad"]), semilla + 5)
+	return lerpf(float(AGRUPADO["densidad_min"]), 1.0, n)
+
+
+## Deja como mucho `tope` elementos en cada uno de los arrays PARALELOS de `listas` (mismo tamaño todos), quitando a partes iguales (se queda
+## uno de cada `n / tope`, repartidos por todo el bloque). Los modifica en el sitio. Devuelve cuántos quedan.
+func _ralear(listas: Array, tope: int) -> int:
+	var n: int = (listas[0] as Array).size()
+	if n <= tope:
+		return n
+	var indices: PackedInt32Array = PackedInt32Array()
+	var paso_k: float = float(n) / float(maxi(tope, 1))
+	for k in range(tope):
+		indices.append(int(float(k) * paso_k))
+	for lista in listas:
+		var l: Array = lista
+		var quedan: Array = []
+		for i in indices:
+			quedan.append(l[i])
+		l.clear()
+		l.append_array(quedan)
+	return tope
+
+
+func _triangulos(variante: Array, n_t: int, n_f: int) -> int:
+	var tris: int = n_t * 2 + n_f * 2
+	for v in variante:
+		tris += _tris_variante[int(v)]
+	return tris
+
+
+## Lo medido al crear el bloque `b` (vale en headless, donde el MultiMesh no guarda las copias): {matojos, tarjetas, flores, triangulos, casillas: {casilla: matojos}, huella}.
+## Vacío si el bloque no existe.
+func estadisticas_bloque(b: Vector2i) -> Dictionary:
+	return _stats.get(b, {})
+
+
+## Matojos de la casilla `c` (−1 si su bloque no está creado).
+func matojos_en_casilla(c: Vector2i) -> int:
+	var p := Vector2((float(c.x) + 0.5) * casilla, (float(c.y) + 0.5) * casilla)
+	var b := Vector2i(floori((p.x - _zona.position.x) / lado_bloque), floori((p.y - _zona.position.y) / lado_bloque))
+	if not _stats.has(b):
+		return -1
+	return int(((_stats[b] as Dictionary)["casillas"] as Dictionary).get(c, 0))
+
+
+## Suma de todos los bloques creados: {matojos, tarjetas, flores, triangulos, bloques, casillas, casillas_vacias}.
+func estadisticas() -> Dictionary:
+	var r: Dictionary = {"matojos": 0, "tarjetas": 0, "flores": 0, "triangulos": 0, "bloques": _stats.size(), "casillas": 0, "casillas_vacias": 0, "max_triangulos_bloque": 0, "max_matojos_bloque": 0}
+	for b in _stats:
+		var s: Dictionary = _stats[b]
+		for k in ["matojos", "tarjetas", "flores", "triangulos"]:
+			r[k] = int(r[k]) + int(s[k])
+		r["max_triangulos_bloque"] = maxi(int(r["max_triangulos_bloque"]), int(s["triangulos"]))
+		r["max_matojos_bloque"] = maxi(int(r["max_matojos_bloque"]), int(s["matojos"]))
+		for c in (s["casillas"] as Dictionary):
+			r["casillas"] = int(r["casillas"]) + 1
+			if int((s["casillas"] as Dictionary)[c]) == 0:
+				r["casillas_vacias"] = int(r["casillas_vacias"]) + 1
+	return r
 
 
 ## 6/11 (arte del entorno): el peso de hierba de una casilla cambió (la naturaleza germinó tierra) → rehace SOLO el bloque que contiene `p` (mundo). Con la misma semilla las matas que ya había salen
@@ -506,6 +714,7 @@ func rehacer_bloque_en(p: Vector3) -> void:
 		return
 	(_bloques[b] as Node3D).queue_free()
 	_bloques.erase(b)
+	_stats.erase(b)
 	_crear_bloque(b)
 
 
@@ -519,7 +728,7 @@ func set_modo(m: int) -> void:
 func _aplicar_modo(padre: Node3D) -> void:
 	var hay_tarjetas: bool = _quad_tarjeta != null
 	for h in padre.get_children():
-		if h.name == "briznas":
+		if String(h.name).begins_with("briznas"):
 			(h as Node3D).visible = modo != 1 or not hay_tarjetas
 		elif h.name == "tarjetas":
 			(h as Node3D).visible = modo != 0
@@ -529,9 +738,9 @@ func _aplicar_modo(padre: Node3D) -> void:
 func numero_de_matojos() -> int:
 	var n: int = 0
 	for b in _bloques:
-		var br: Node = (_bloques[b] as Node).get_node_or_null("briznas")
-		if br != null:
-			n += (br as MultiMeshInstance3D).multimesh.instance_count
+		for h in (_bloques[b] as Node).get_children():
+			if h is MultiMeshInstance3D and String(h.name).begins_with("briznas"):
+				n += (h as MultiMeshInstance3D).multimesh.instance_count
 	return n
 
 
@@ -681,19 +890,19 @@ func set_viento(v: float) -> void:
 		_mat_tarjeta.set_shader_parameter("viento", v)
 
 
-## Un matojo: 5 briznas curvadas que salen del centro (alto 1, se escala por copia). UV.y = altura 0..1.
-func _malla_matojo() -> ArrayMesh:
+## Un matojo: `briznas` briznas curvadas que salen del centro (alto 1, se escala por copia). UV.y = altura 0..1. Con (99, 5, 0.7, 0.5) es el de siempre.
+func _malla_matojo(semilla_forma: int = 99, briznas: int = 5, alto_base: float = 0.7, alto_extra: float = 0.5) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 99
-	for i in range(5):
-		var ang: float = float(i) / 5.0 * TAU + rng.randf() * 0.5
+	rng.seed = semilla_forma
+	for i in range(briznas):
+		var ang: float = float(i) / float(briznas) * TAU + rng.randf() * 0.5
 		var dir := Vector3(cos(ang), 0.0, sin(ang))
 		var lado := Vector3(-dir.z, 0.0, dir.x)
-		var alto: float = 0.7 + rng.randf() * 0.5
+		var alto: float = alto_base + rng.randf() * alto_extra
 		var inclin: float = 0.18 + rng.randf() * 0.3
-		var ancho: float = 0.21 + rng.randf() * 0.06     ## más ancha: son 5 briznas y no 9
+		var ancho: float = (0.21 + rng.randf() * 0.06) * sqrt(5.0 / float(briznas))     ## más ancha: son 5 briznas y no 9 (con menos briznas, algo más anchas aún)
 		var base: Vector3 = dir * 0.12 * rng.randf()
 		var medio: Vector3 = base + dir * inclin * 0.35 + Vector3.UP * alto * 0.55
 		var punta: Vector3 = base + dir * inclin + Vector3.UP * alto
