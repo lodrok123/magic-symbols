@@ -282,7 +282,9 @@ func _pura_tinta_h4() -> void:
 	_ok("4b desglose sin ajustes = la tinta del juego (total = tinta_de, con los aportes de barrera y raido)", _c(float(Dano.desglose_tinta(junto)["total"]), Dano.tinta_de(junto)) and _c(float((Dano.desglose_tinta(junto)["aportes"] as Dictionary).get("barrera", -1.0)), 4.0) and _c(float((Dano.desglose_tinta(junto)["aportes"] as Dictionary).get("raido", -1.0)), 4.0))
 	# la decisión pendiente: continuo por Hechizo.persistente (tierra/hielo sin barrera cuestan el recargo; el haz con permanencia no)
 	var por_h: Dictionary = {"continuo_por_hechizo": true, "k_copia": 0.0, "k_hijo": 0.0, "aportes": nulos}
-	_ok("4b [CONTINUO_POR_HECHIZO] tierra + ᚱ sin barrera: 18 → 22,5 (cierra PENDIENTES 62)", _c(_tinta("tierra", {"linea_x": 2, "raido": 1}, por_h), 22.5) and _c(_tinta("hielo", {"linea_x": 2, "raido": 1}, por_h), 22.5))
+	# 6/11: la tierra con ᛁ ya no se queda (es el haz de púas): el sólido que cuesta el recargo es el que SE CONSTRUYE (ᛏ de tierra, ᛁ de hielo)
+	_ok("4b [CONTINUO_POR_HECHIZO] el sólido que se queda + ᚱ: 18 → 22,5 (cierra PENDIENTES 62)", _c(_tinta("tierra", {"altura": 2, "raido": 1}, por_h), 22.5) and _c(_tinta("hielo", {"linea_x": 2, "raido": 1}, por_h), 22.5))
+	_ok("4b [CONTINUO_POR_HECHIZO] tierra + ᛁᛁ + ᚱ (el haz de púas no se queda): 18 sin recargo", _c(_tinta("tierra", {"linea_x": 2, "raido": 1}, por_h), 18.0))
 	_ok("4b [CONTINUO_POR_HECHIZO] barrera + ᚱ y permanencia + ᚱ siguen en 22,5 y flecha + ᚱ en 18", _c(_tinta("agua", {"barrera": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("agua", {"permanencia": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("fuego", {"flecha": 1, "raido": 1}, por_h), 18.0))
 	_ok("4b [CONTINUO_POR_HECHIZO] ᛁᛁ + permanencia + ᚱ (un haz, no se queda): 34 → 34 sin recargo", _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}, por_h), 34.0) and _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}, {"k_copia": 0.0, "k_hijo": 0.0, "aportes": nulos}), 42.5))
 

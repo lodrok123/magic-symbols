@@ -12,7 +12,7 @@ const CASOS: Array = [
 	["tierra_muro", "tierra", {"barrera": 1, "linea_x": 2, "altura": 1}, Vector3(1.0, 0.0, 0.0), 1.0, [0.15, 0.4, 1.2]],      # 6/11 tarde: a 1 casilla (a 2 el muro del toy caía fuera del encuadre, tapado por el bloque sólido del Lanzador)
 	["viento_rafaga", "viento", {"flecha": 1}, Vector3(1.0, 0.0, 0.0), 0.0, [0.2, 0.45]],
 	["viento_haz", "viento", {"linea_x": 2}, Vector3(1.0, 0.0, 0.0), 0.0, [0.3, 1.0]],
-	["tierra_linea", "tierra", {"linea_x": 2}, Vector3(1.0, 0.0, 0.0), 0.0, [0.3, 0.6, 1.2]],                                      # 6/11 noche: OJO, para la lógica la tierra con ᛁ es un SÓLIDO largo (Hechizo.haz excluye «solido» desde el 29/10), no un haz: sale el muro sobre casillas; el HAZ de púas solo se ve en el lab (F7 / F9)
+	["tierra_linea", "tierra", {"linea_x": 2}, Vector3(1.0, 0.0, 0.0), 0.0, [0.3, 0.6, 1.2]],                                      # 7/11 (Pablo, «sí, haz de púas»): la tierra con ᛁ YA es un haz en el juego (`Hechizo.SOLIDOS_CON_HAZ`): salen las púas en secuencia que golpean y empujan, no el muro sobre casillas
 	["tierra_golpe", "tierra", {"flecha": 1}, Vector3(1.0, -0.9, 0.0), 0.0, [0.5, 0.7, 0.9, 1.3]],                                # la bola (lenta: tierra ×0,8) revienta contra el suelo: anillo + púas que asoman
 ]
 

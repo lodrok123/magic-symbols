@@ -92,6 +92,10 @@ const HAZ_ALCANCE_POR_GLIFO: float = 1.0      ## m más por cada ᛁ sucesiva
 const HAZ_ALCANCE_MAX: float = 6.0            ## m (≤ LIM_DISTANCIA)
 const HAZ_ANCHO: float = 0.35                 ## m de grosor del dibujo (el golpe cubre la casilla entera)
 const HAZ_DURA_S: float = 0.9                 ## s que se ve el haz (+ `permanencia`)
+## 6/11/2026 · decisión de Pablo («sí, haz de púas»): elementos SÓLIDOS que SÍ hacen haz con ᛁ. El 29/10 los sólidos quedaron fuera (una ᛁ de tierra o de hielo era un bloque ancho o largo,
+## porque «el haz no construye»); la TIERRA vuelve a entrar: su ᛁ es un HAZ DE PÚAS que recorre el suelo, golpea y EMPUJA a todo lo del recorrido (`earth_rune.fuerza_golpe`, la más alta), sin
+## levantar terreno — el muro de tierra sigue siendo solo de `barrera` (ᛝ). El HIELO no entra: su ᛁ sigue siendo el bloque largo que se construye. `VientoToy`/`TierraToy` dibujan la figura HAZ.
+const SOLIDOS_CON_HAZ: PackedStringArray = ["tierra"]
 ## Tamaño EN VUELO de un proyectil (hechizo con `velocidad` > 0, o sea el de la flecha) respecto a sus semiejes. Decisión de Pablo (21/10, tras el playtest): el proyectil de
 ## «flecha + elemento» medía 0,5 casillas de ancho (≈ 1,15 u, más que la chibi) y era demasiado grande; ahora mide la mitad. AJUSTABLE: 1.0 lo deja como estaba.
 ## Vive aquí y no en `RADIO_BASE_V2` porque de ese salen la barrera, el muro, la columna y el paso de cada glifo de eje, y el rasterizado de casillas de lo que está quieto.
@@ -335,7 +339,7 @@ var solido_quieto: bool:
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
 	get:
-		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and estado_materia != "solido" and not orbita     # 29/10: la tierra y el hielo con ᛁ son un bloque ancho o largo, no un chorro (el haz no construye) · 3/11 (R3): ni lo que orbita
+		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and (estado_materia != "solido" or SOLIDOS_CON_HAZ.has(elemento)) and not orbita     # 29/10: un sólido con ᛁ es un bloque ancho o largo, no un chorro (el haz no construye) · 6/11 (Pablo, «haz de púas»): la TIERRA es la excepción (ver SOLIDOS_CON_HAZ) · 3/11 (R3): ni lo que orbita
 ## Alcance del haz en m (0 si no es haz).
 var alcance_haz: float:
 	get:

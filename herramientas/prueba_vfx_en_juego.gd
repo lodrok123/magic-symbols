@@ -199,9 +199,15 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	if toys.size() != 1:
 		return
 	var t: Node3D = toys[0] as Node3D
-	if (el == "hielo" or el == "tierra") and nombre == "haz":
-		# el haz de un estado SÓLIDO no emite `haz` (la lógica lo trata como un volumen de hielo): el toy sale por `desde_hechizo` con la figura que dé `describir`
+	if el == "hielo" and nombre == "haz":
+		# el haz de un sólido que NO entra en `Hechizo.SOLIDOS_CON_HAZ` (el hielo) no emite `haz`: la lógica lo trata como su volumen y el toy sale por `desde_hechizo` con la figura de `describir`
+			# (la tierra SÍ es haz desde el 6/11, «haz de púas»: pasa por `VfxToyJuego._haz` y se mide como los demás elementos)
 		_ok("1 %s: un toy de su clase (figura %d, la de `describir`: el haz sólido no es un haz para la lógica)" % [etq, int(t.get("figura"))], t.get_script().get_global_name() == CLASES[el])
+		return
+	if el == "tierra" and nombre == "haz":
+		# 6/11 («haz de púas»): la tierra con ᛁ ya NO construye: es un haz que golpea y empuja el recorrido. Su toy es la figura HAZ (3), tan largo como el recorrido que midió la lógica, y no hay bloques que medir
+		_ok("1 %s: TierraToy con la figura HAZ (%d) a lo largo del recorrido (largo %.2f m) y SIN levantar terreno (%d bloques, %d alturas temporales)" % [etq, int(t.get("figura")), 2.0 * float(t.get("semieje_x")), _l._bloques.size(), Terreno3D.alturas_temporales.size()],
+			t.get_script().get_global_name() == CLASES[el] and int(t.get("figura")) == FuegoToy.Figura.HAZ and float(t.get("semieje_x")) > 0.5 and _l._bloques.is_empty() and Terreno3D.alturas_temporales.is_empty())
 		return
 	if el == "tierra" and not viaja:
 		# 6/11 (422): la tierra SÓLIDA que no viaja la levanta el Lanzador por casillas y el TierraToy es su única representación: mide las casillas reales × niveles, no los semiejes del Hechizo (sección 7 lo mira a fondo)
