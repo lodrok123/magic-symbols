@@ -380,6 +380,7 @@ var masa: float = 1.0                   ## kg relativos: el empuje se divide por
 var _k_golpe: float = 1.0               ## tarea P: fuerza visual del último empujón (v0 / V0_REF); lo leen el aplastamiento, el respingo y el polvo, y vuelve a 1 tras usarse
 var es_goblin: bool = false             ## 28/10: de la familia goblin (modelo `goblin_*`): lleva RITMO_GOBLIN
 var _niebla: NieblaCanouro3D = null   ## 5/11: niebla negra a ras de las patas del canouro (NieblaCanouro3D); null en el resto
+var _cv2: CanouroV2 = null              ## 6/11: el rediseño del canouro (acecho en círculo, niebla con juego; CanouroV2); null en el resto y con CanouroV2.CANOURO_V2 = false
 var _marcha: MarchaCuadrupedo3D = null  ## 4/11: la marcha del animal (loberno = lobo, canouro = hiena); null en el resto y con MarchaCuadrupedo3D.MARCHA_ANIMAL = false
 var _modo_marcha: String = ""           ## «» | «acecho» | «atras»: lo que pide la conducta del animal a la animación de andar
 var _ataque_visto: float = 0.0          ## `_ataque` del fotograma anterior (para saber cuándo acaba el ataque de un animal)
@@ -486,6 +487,7 @@ func _ready() -> void:
 		_marcha = MarchaCuadrupedo3D.para(pj)
 	if pj != null and pj.id == "canouro":
 		_niebla = NieblaCanouro3D.poner(pj, altura)      # 5/11: niebla negra a ras de las patas (Pablo)
+		_cv2 = CanouroV2.nuevo(self)                     # 6/11: stats propios, acecho en círculo, niebla con juego (Pablo)
 	var forma := CapsuleShape3D.new()
 	forma.radius = 0.7 * altura / ELEM_ALTO_REF if elemental else 0.32
 	forma.height = maxf(altura, 0.7)
@@ -518,6 +520,11 @@ func _ready() -> void:
 	# V5: el borde brillante del enemigo es del color de su debilidad (el mismo rombo que lleva sobre la cabeza): se lee de un vistazo con qué pegarle.
 	if pj != null:
 		pj.set_rol_visual("enemigo", (COLORES.get(debil, Pj3D.RIM_ENEMIGO) as Color).lerp(Color.WHITE, 0.25))
+
+
+## 6/11: ¿lo puede elegir la asistencia de apuntado (el `busca` de los proyectiles)? El canouro con niebla no: solo lo alcanza lo que llegue físicamente hasta él.
+func apuntable() -> bool:
+	return _cv2 == null or _cv2.apuntable()
 
 
 func _ultima_celda_ok() -> void:
@@ -924,6 +931,8 @@ func corteza_contra(dir: Vector3, perfora: bool = false) -> Dictionary:
 func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if muerto or hechizo == null:
 		return
+	if _cv2 != null:
+		_cv2.al_golpe(hechizo)                      # 6/11: el fuego disipa la niebla del canouro (este mismo golpe ya lo encuentra expuesto)
 	var el: String = hechizo.elemento
 	_dir_decision = direccion                             # ELEMENTAL V2: de dónde viene (corteza delantera)
 	var dec: Dictionary = decidir_golpe(hechizo)
@@ -1034,6 +1043,8 @@ func _arco_cercano(dano: float) -> void:
 func receive_damage(cantidad: float, _desde_nivel: int = 0) -> void:
 	if health <= 0.0:
 		return
+	if _cv2 != null:
+		cantidad *= _cv2.mult_dano()                # 6/11: canouro con niebla ×0,5 · expuesto (sin niebla) ×1,5
 	if escudo_natural != null and is_instance_valid(escudo_natural) and escudo_natural.activo():
 		cantidad = escudo_natural.absorber(cantidad, _num_elemento)     # E2: el escudo de naturaleza se come el daño (el fuego lo quema)
 		if cantidad <= 0.0:
@@ -1151,6 +1162,8 @@ func _physics_process(delta: float) -> void:
 			_fin_hitstop()
 		return
 	_efectos(delta)
+	if _cv2 != null:
+		_cv2.tick(delta)                            # 6/11: los relojes de la niebla del canouro
 	_ia(delta)
 	if _marcha != null:
 		_actualizar_marcha(delta)
@@ -1547,6 +1560,9 @@ func _ia(delta: float) -> void:
 		"persigue", "busca":
 			if arquero and estado == "persigue":
 				_ia_arquero(delta, vel)
+				return
+			if _cv2 != null and estado == "persigue":
+				_cv2.ia(delta, vel)             # 6/11: el canouro acecha en círculo, embiste, muerde y huye (CanouroV2)
 				return
 			var meta: Vector3 = jugador.position if estado == "persigue" else ultima_pos
 			var d: Vector3 = meta - position
@@ -1989,6 +2005,9 @@ func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 
 
 func _conectar() -> void:
+	if _cv2 != null:
+		_cv2.al_conectar()                          # 6/11: el mordisco del canouro (12 de daño; si la burbuja lo para, rebota y se aturde)
+		return
 	if muerto or jugador == null or not is_instance_valid(jugador) or stun_timer > 0.0 or interrupcion > 0.0 \
 			or congelado > 0.0:
 		return

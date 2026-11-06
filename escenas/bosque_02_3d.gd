@@ -79,6 +79,7 @@ const LIBRERA_DEFECTO: Vector2i = Vector2i(10, 11)
 const RECT_ESTE: Rect2i = Rect2i(16, 22, 20, 14)
 const CENTRO_PRADERA: Vector2i = Vector2i(21, 16)
 const ID_LOBERNO: String = "loberno"
+const ID_CANOURO: String = "canouro"
 
 const T_SONDEO: float = 0.1              ## s entre comprobaciones
 const ALCANCE_E: float = 2.7             ## unidades: hablar con la gente (la casilla mide 2,3)
@@ -128,6 +129,7 @@ var _celda_placa: Vector2i = PLACA_DEFECTO
 var _placa: Variant = null
 var _celda_elemental: Vector2i = ELEMENTAL_DEFECTO
 var _lobernos: Array = []
+var _canouros: Array = []
 var _asesino: Combate3D = null
 var _tronco_puente: TroncoPuente3D = null
 var _arquero_fijo: Combate3D = null
@@ -282,6 +284,8 @@ func _montar_marcadores_de_datos() -> void:
 				_tronco_puente.caido.connect(func() -> void: Flags.i().poner(F_TRONCO_PUENTE))
 			"loberno":
 				_crear_loberno(c)
+			"canouro":
+				_crear_canouro(c)
 			"asesino":
 				_asesino = Combate3D.invocar_asesino(m, _jug, _jug.lanz, m.call("_pos_marca", c, m.ALTO)) if _jug != null else null
 				if _asesino == null:
@@ -296,6 +300,17 @@ func _crear_loberno(c: Vector2i) -> void:
 		return
 	(m.get("_goblins") as Array).append(pj)
 	_lobernos.append(pj)
+	Combate3D.equipar(pj, m, _jug, _jug.lanz)
+
+
+## 6/11 (canouro v2): un canouro del bosque denso, igual que el loberno (modelo + combate). Si falta el GLB no sale y se avisa.
+func _crear_canouro(c: Vector2i) -> void:
+	var pj: Pj3D = m.call("_personaje", [ID_CANOURO], m.call("_pos_marca", c, m.ALTO))
+	if pj == null or _jug == null:
+		push_warning("Bosque 02: no se pudo crear el canouro de %s (¿falta arte/modelos/canouro.glb?)" % str(c))
+		return
+	(m.get("_goblins") as Array).append(pj)
+	_canouros.append(pj)
 	Combate3D.equipar(pj, m, _jug, _jug.lanz)
 
 
@@ -317,7 +332,7 @@ func _pj_cerca(c: Vector2i) -> Pj3D:
 	var mejor: float = 4.0
 	var res: Pj3D = null
 	for n in (m as Node).find_children("*", "Pj3D", true, false):
-		if n is Jugador3D or goblins.has(n) or _lobernos.has(n):
+		if n is Jugador3D or goblins.has(n) or _lobernos.has(n) or _canouros.has(n):
 			continue
 		var d: Vector3 = (n as Pj3D).position - centro
 		d.y = 0.0

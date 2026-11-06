@@ -85,6 +85,10 @@ void fragment() {
 var pj: Node3D = null
 var alto: float = 0.55
 var capas: Array[MeshInstance3D] = []
+## 6/11 (Pablo, canouro v2): cuánta niebla hay ahora (1 = entera, 0 = disipada). `disipar` la apaga con un fundido y `rebrotar` la devuelve; las láminas bajan su opacidad con ella.
+var densidad: float = 1.0
+var _densidad_meta: float = 1.0
+var _t_fundido: float = 0.5   ## s que tarda en ir de 0 a 1 (o al revés) la última orden
 
 
 ## Crea la niebla y la cuelga del Pj3D seguido. Devuelve null si ACTIVA es false.
@@ -144,8 +148,31 @@ func apagar() -> void:
 	set_process(false)
 
 
+## 6/11: la niebla se disipa (el fuego se la lleva) con un fundido de `t` s. Sigue en el árbol, solo invisible.
+func disipar(t: float = 0.6) -> void:
+	_densidad_meta = 0.0
+	_t_fundido = maxf(t, 0.01)
+
+
+## 6/11: la niebla vuelve a crecer hasta su densidad entera en `t` s.
+func rebrotar(t: float = 1.5) -> void:
+	_densidad_meta = 1.0
+	_t_fundido = maxf(t, 0.01)
+
+
+func _aplicar_densidad() -> void:
+	for k in range(capas.size()):
+		var mat: ShaderMaterial = capas[k].mesh.material as ShaderMaterial
+		if mat != null:
+			mat.set_shader_parameter("alfa", OPACIDAD * pow(OPACIDAD_POR_CAPA, float(k)) * densidad)
+		capas[k].visible = densidad > 0.002
+
+
 func _process(delta: float) -> void:
 	if pj == null or not is_instance_valid(pj):
 		return
 	global_position = global_position.lerp(pj.global_position, clampf(SUAVIZADO * delta, 0.0, 1.0))
 	global_rotation = Vector3.ZERO
+	if not is_equal_approx(densidad, _densidad_meta):
+		densidad = move_toward(densidad, _densidad_meta, delta / _t_fundido)
+		_aplicar_densidad()
