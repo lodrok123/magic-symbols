@@ -59,6 +59,20 @@ static var ALFA_VINETA_REAPARECER: float = 0.85                 ## U2: opacidad 
 static var COLOR_VINETA_REAPARECER: Color = Color(0.92, 1.0, 0.95)
 static var TEMBLOR_DANO: float = 0.35          ## intensidad de `Vfx3D.temblor` (0..1)
 static var HITSTOP_DANO: float = 0.05          ## s que se congela ella al recibir un golpe
+## E3 (6/11): el golpe recibido ESCALA con lo que quita. Fallo que evita: un arañazo y un mazazo daban el mismo temblor 0,35 y la misma viñeta, así que el daño no se leía en pantalla.
+static var TEMBLOR_GOLPE_MIN: float = 0.2      ## temblor (0..1) del golpe más leve…
+static var TEMBLOR_GOLPE_MAX: float = 0.5      ## …y del más fuerte
+static var FRACCION_GOLPE_GRANDE: float = 0.4  ## fracción de la vida máxima que quita un golpe «máximo» (a partir de ella, TEMBLOR_GOLPE_MAX)
+static var VIDA_BAJA: float = 0.25             ## fracción de la vida máxima por debajo de la cual hay aviso de vida baja (HUD) y el golpe que la deja así pega más fuerte
+static var HITSTOP_DANO_VIDA_BAJA: float = 0.12  ## s que se congela ella si el golpe le deja la vida por debajo de VIDA_BAJA (el momento que hay que sentir)
+static var VINETA_VIDA_BAJA: float = 1.3       ## la viñeta es × esto de opaca en ese golpe
+## E1 (6/11): JUICE ESCALADO POR LA POTENCIA DEL HECHIZO (`Dano.LIGERA/MEDIA/ALTA`, glifos de la receta). Fallo que evita: una chispa de 1 glifo y un haz de 5 se sentían igual.
+## Indexados por el nivel: ligera 0 (sin hitstop ni temblor), media, alta.
+static var HITSTOP_HECHIZO: Array[float] = [0.0, 0.06, 0.12]    ## s que se congela el mundo al SALIR y al IMPACTAR el hechizo
+static var TEMBLOR_HECHIZO: Array[float] = [0.0, 0.10, 0.20]    ## temblor de cámara (0..1) en esos dos momentos
+static var RETROCESO_HAZ: float = 1.6          ## u/s hacia atrás con que un haz empuja a la jugadora al salir (el empuje decae ×7/s: ~0,23 u). 0 = sin retroceso
+static var ultimo_juice: Dictionary = {}       ## lo último pedido, para las pruebas: {nivel, impacto, hitstop, temblor}
+static var ultimo_golpe: Dictionary = {}       ## lo último que decidió `dano_recibido`, para las pruebas: {cantidad, temblor, hitstop, vineta, vida_baja}
 
 # --- LOTE 2 · arranque del proyectil ---
 static var ARRANQUE: float = 0.7               ## sale a (1 + ARRANQUE) × su velocidad, aguanta rápido ~0,1 s, frena a ~0,65× y vuelve a la suya…
@@ -483,15 +497,56 @@ static func dano_recibido(j: Node3D, cantidad: float) -> void:
 		return
 	cuenta["dano"] = int(cuenta["dano"]) + 1
 	var fuerza: float = clampf(0.6 + cantidad / 40.0, 0.6, 1.0)
-	_vineta(j, fuerza)
+	# E3: lo que quita, en fracción de la vida máxima, decide el temblor; y si el golpe le deja menos de VIDA_BAJA, hitstop mayor y viñeta más opaca. `vida` ya está descontada aquí.
+	var vmax: float = maxf(Estado.i().vida_max, 1.0)
+	var k: float = clampf((cantidad / vmax) / maxf(FRACCION_GOLPE_GRANDE, 0.01), 0.0, 1.0)
+	var deja_baja: bool = j.get("vida") != null and float(j.get("vida")) / vmax < VIDA_BAJA
+	var temblor: float = lerpf(TEMBLOR_GOLPE_MIN, TEMBLOR_GOLPE_MAX, k)
+	var hitstop: float = HITSTOP_DANO_VIDA_BAJA if deja_baja else HITSTOP_DANO
+	var alfa_vineta: float = fuerza * (VINETA_VIDA_BAJA if deja_baja else 1.0)
+	ultimo_golpe = {"cantidad": cantidad, "temblor": temblor, "hitstop": hitstop, "vineta": alfa_vineta, "vida_baja": deja_baja}
+	_vineta(j, alfa_vineta)
 	var mundo: Variant = j.get("mundo")
 	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
 	if fx is Vfx3D and is_instance_valid(fx):
-		(fx as Vfx3D).temblor(TEMBLOR_DANO * fuerza)
+		(fx as Vfx3D).temblor(temblor)
 	if j.has_method("hitstop"):
-		j.call("hitstop", HITSTOP_DANO)
+		j.call("hitstop", hitstop)
 	cuenta["dano_son"] = int(cuenta["dano_son"]) + 1
 	Sfx.play(j, "dano_jugadora", clampf(1.1 - cantidad / 80.0, 0.75, 1.1) * randf_range(0.94, 1.06))      # lote 4: más grave cuanto mayor el golpe (y nunca dos iguales)
+
+
+## E1: el juice de un hechizo según su potencia (`Dano.LIGERA/MEDIA/ALTA`, = `Hechizo.nivel_potencia`). `impacto` false = acaba de SALIR; true = acaba de GOLPEAR algo.
+## Ligera no hace nada; media y alta congelan el mundo (enemigos y ella: HITSTOP_HECHIZO) y tiemblan la cámara (TEMBLOR_HECHIZO). Al salir un HAZ (`haz`) además empuja a la jugadora hacia atrás
+## (RETROCESO_HAZ) con `jugador.push`, que ya existe: no hace falta tocar `Jugador3D`. `lanz` da el VFX y la jugadora; sin él se busca el lanzador del grupo «player». Un hechizo con varios golpes
+## (un área) pide el juice una sola vez por quien llama (`HechizoVivo._juice_impacto`). Con ACTIVA = false no hace nada.
+static func juice_hechizo(nivel: int, impacto: bool, lanz: Lanzador3D = null, dir: Vector3 = Vector3.ZERO, haz: bool = false) -> void:
+	if not ACTIVA:
+		return
+	var n: int = clampi(nivel, 0, HITSTOP_HECHIZO.size() - 1)
+	var t_stop: float = HITSTOP_HECHIZO[n]
+	var k_temblor: float = TEMBLOR_HECHIZO[n]
+	ultimo_juice = {"nivel": n, "impacto": impacto, "hitstop": t_stop, "temblor": k_temblor, "retroceso": false}
+	if lanz == null:
+		var tree0: SceneTree = Engine.get_main_loop() as SceneTree
+		lanz = tree0.get_first_node_in_group("player") as Lanzador3D if tree0 != null else null
+	if lanz == null or not lanz.is_inside_tree():
+		return
+	if not impacto and haz and RETROCESO_HAZ > 0.0 and lanz.jugador != null and lanz.jugador.has_method("push"):
+		var d := Vector3(dir.x, 0.0, dir.z)
+		if d.length() > 0.01:
+			lanz.jugador.call("push", -d.normalized(), RETROCESO_HAZ)
+			ultimo_juice["retroceso"] = true
+	if k_temblor > 0.0:
+		var fx: Variant = lanz.get("fx")
+		if fx is Vfx3D and is_instance_valid(fx):
+			temblor_golpe(fx as Vfx3D, k_temblor)
+	if t_stop > 0.0:
+		for e in lanz.get_tree().get_nodes_in_group("combate3d"):
+			if is_instance_valid(e) and not bool((e as Object).get("muerto")) and (e as Object).has_method("_iniciar_hitstop"):
+				(e as Object).call("_iniciar_hitstop", t_stop)
+		if lanz.jugador != null and is_instance_valid(lanz.jugador) and lanz.jugador.has_method("hitstop"):
+			lanz.jugador.call("hitstop", t_stop)
 
 
 ## U2: la jugadora reaparece: una viñeta clara que se abre en `T_VINETA_REAPARECER` s y se apaga (la capa queda oculta). Devuelve la capa (null si `ACTIVA` es false).

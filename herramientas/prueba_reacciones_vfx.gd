@@ -203,7 +203,12 @@ func _correr() -> void:
 	fm.reaccion.emit("mojado", Vector3(3, 0, 3), pieza)
 	_ok(_mundo.find_children("*", "", true, false).size() > antes2, "emitir `reaccion` dispara el efecto sin más cableado")
 	ReaccionesVfx3D.conectar(fm, _mundo)
-	_ok(fm.get_signal_connection_list("reaccion").size() == 1, "conectar dos veces no duplica la conexión")
+	# 6/11 (E2): `conectar` engancha además el oyente de FeedbackReaccion3D; lo que no se debe duplicar es cada conexión, así que se cuenta por destinatario.
+	var propias: int = 0
+	for c in fm.get_signal_connection_list("reaccion"):
+		if (c["callable"] as Callable).get_object() == ReaccionesVfx3D:
+			propias += 1
+	_ok(propias == 1 and fm.get_signal_connection_list("reaccion").size() == 2, "conectar dos veces no duplica la conexión (una de ReaccionesVfx3D y una de FeedbackReaccion3D)")
 
 	print("FALLOS %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)

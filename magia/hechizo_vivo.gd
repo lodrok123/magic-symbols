@@ -174,6 +174,7 @@ var _final_hecho: bool = false             ## H2: ya saltó uno de los tres fina
 var reloj_vida: float = 0.0                ## s de juego desde que nació (`edad` solo cuenta los tramos de un proyectil): fecha los momentos de ejecución
 var _en_momento: bool = false             ## true mientras corren las acciones de un momento: un efecto que nace en él no dispara otro momento de este hechizo
 var _rechazado: bool = false              ## el hechizo se rechazó entero (altura que la materia no admite): no suelta ni su pulso
+var _juice_impacto: bool = false          ## E1 (6/11): ya pidió el temblor/hitstop de su primer impacto (un área que golpea a cinco, o un haz que perfora, lo hace UNA vez, no cinco: congelaría el mundo en tartamudeo)
 var seco: bool = false                     ## 28/10 · A2: modo «en seco» (`HechizoVivo.prever`): corre las MISMAS reglas pero no aplica nada: los golpes y las marcas de suelo se anotan en `prevision` en vez de darse
 var prevision: Dictionary = {}             ## A2: lo que haría el hechizo en seco: {golpes: [{obj, dir, punto, desde}], suelo: [{elemento, celda}], fin: Vector3 (INF = no se detuvo), causa: String, rebotes: int}
 ## A1 (2/11, VFX en el juego; solo DATOS para el dibujo, la lógica no los lee): el proyectil avisa de su fin y de sus rebotes con lo que el VFX necesita y antes no llegaba (la normal de la superficie y su material).
@@ -204,6 +205,8 @@ static func crear(hechizo: Hechizo, origen: Vector3, dir: Vector3, lanzador: Lan
 	if nuevo.casillas == 0 and not nuevo.proyectil and hechizo.resuena > 0.0 and not nuevo._rechazado:
 		nuevo._pulso_sin_volumen(origen)
 	if nuevo.casillas > 0:
+		if copia == 0 and hechizo.profundidad == 0:
+			Sensacion3D.juice_hechizo(hechizo.nivel_potencia, false, lanzador, dir, hechizo.haz)      # E1 (6/11): temblor e hitstop de la salida según su potencia; solo el hechizo lanzado, no sus hijos ni copias
 		nuevo.disparar_evento("al_nacer", origen, dir)
 		nuevo._arrancar_momentos(origen, dir)
 		nuevo._programar_extincion(origen, dir)
@@ -1350,6 +1353,9 @@ func _golpear(obj: Node, dir: Vector3, punto: Vector3, desde: Vector3) -> void:
 		(prevision["golpes"] as Array).append({"obj": obj, "dir": dir, "punto": punto, "desde": desde})
 		return
 	lanz._golpear(obj, data, dir, punto, 0, false, desde, h)
+	if not _juice_impacto and obj is Combate3D:
+		_juice_impacto = true
+		Sensacion3D.juice_hechizo(h.nivel_potencia, true, lanz)        # E1 (6/11): temblor e hitstop del impacto según su potencia, solo al dar a un enemigo
 	_tras_golpe(obj, punto, dir)
 
 

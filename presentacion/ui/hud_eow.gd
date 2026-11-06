@@ -33,6 +33,11 @@ static var DB_NO_PUEDES: float = -14.0         ## un consumible que no se puede 
 static var T_DESTELLO_S: float = 0.2           ## destello del círculo al equipar
 static var T_TEMBLOR_S: float = 0.15           ## temblor del círculo al rechazar
 static var T_GIRO_S: float = 0.15              ## el icono gira 180° al cambiar de consumible con R
+## E3 (6/11): AVISO DE VIDA BAJA. Fallo que evita: con 20 de 100 de vida la barra solo se ponía roja, y en pleno combate nadie mira la barra. Mientras la vida esté por debajo de
+## `Sensacion3D.VIDA_BAJA` (25 %) hay un borde rojo tenue en la pantalla y la barra de vida late; se apaga solo al curar. El latido SONORO ya existe (`DirectorSensacion`, lote 4): aquí no hay sonido.
+static var ALFA_BORDE_VIDA_BAJA: float = 0.28  ## opacidad máxima del borde rojo (la viñeta del golpe llega a 0,5–0,65, así que se distingue de ella)
+static var T_LATIDO_VIDA_BAJA_S: float = 1.2   ## s entre latido y latido del borde y de la barra (nunca más rápido)
+static var COLOR_BORDE_VIDA_BAJA: Color = Color(0.85, 0.05, 0.05)
 
 var jugador: Node = null
 var consumibles: Consumibles = Consumibles.new()
@@ -42,6 +47,9 @@ var _frascos: Frascos
 var _circulo: Circulo
 var _t_aviso: float = 0.0
 var _vida_vista: float = -1.0
+var aviso_vida_baja: bool = false              ## E3: la vida está por debajo de Sensacion3D.VIDA_BAJA (la prueba lo lee)
+var _borde_vida: ColorRect = null              ## E3: el borde rojo (la misma viñeta del golpe, a otra intensidad)
+var _t_latido_vida: float = 0.0
 
 
 func _ready() -> void:
@@ -51,6 +59,19 @@ func _ready() -> void:
 	raiz.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	raiz.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(raiz)
+	_borde_vida = ColorRect.new()                 # E3: primero, para que quede DETRÁS de las barras
+	_borde_vida.name = "BordeVidaBaja"
+	_borde_vida.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_borde_vida.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var sh := Shader.new()
+	sh.code = Sensacion3D.CODIGO_VINETA
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("color", COLOR_BORDE_VIDA_BAJA)
+	mat.set_shader_parameter("fuerza", 0.0)
+	_borde_vida.material = mat
+	_borde_vida.visible = false
+	raiz.add_child(_borde_vida)
 	var y0: float = Jugador3D.Y_BARRAS
 	_vida = BarraHud.new()
 	_vida.position = Vector2(X_PX, y0)
@@ -102,6 +123,23 @@ func _process(delta: float) -> void:
 	_t_aviso = maxf(0.0, _t_aviso - delta)
 	consumibles.actualizar(delta)
 	actualizar()
+	_latido_vida_baja(delta)
+
+
+## E3: mientras `aviso_vida_baja`, el borde rojo sube de golpe en cada latido y baja despacio (un latido cada T_LATIDO_VIDA_BAJA_S) y la barra de vida da su pulso a la vez. Apagado, nada.
+func _latido_vida_baja(delta: float) -> void:
+	if _borde_vida == null:
+		return
+	if not aviso_vida_baja:
+		_t_latido_vida = 0.0
+		return
+	var antes: float = _t_latido_vida
+	_t_latido_vida = fmod(_t_latido_vida + delta, maxf(T_LATIDO_VIDA_BAJA_S, 0.1))
+	if _t_latido_vida < antes and _vida != null:
+		_vida.pulso()                                # dio la vuelta: empieza un latido nuevo
+	var fase: float = _t_latido_vida / maxf(T_LATIDO_VIDA_BAJA_S, 0.1)
+	var k: float = 0.45 + 0.55 * exp(-4.0 * fase)
+	(_borde_vida.material as ShaderMaterial).set_shader_parameter("fuerza", ALFA_BORDE_VIDA_BAJA * k)
 
 
 ## Pone las barras y los frascos como están ahora (lo llama `_process`; público para las pruebas y las capturas).
@@ -111,6 +149,9 @@ func actualizar() -> void:
 	var vmax: float = maxf(Estado.i().vida_max, 1.0)
 	var v: float = float(jugador.get("vida"))
 	var fr: float = clampf(v / vmax, 0.0, 1.0)
+	aviso_vida_baja = Sensacion3D.ACTIVA and v > 0.0 and fr < Sensacion3D.VIDA_BAJA and not bool(jugador.get("muerto"))
+	if _borde_vida != null:
+		_borde_vida.visible = aviso_vida_baja
 	_vida.poner_fraccion(fr)
 	_vida.poner_color(COLOR_VIDA_ALTA if fr > 0.5 else (COLOR_VIDA_MEDIA if fr > 0.25 else COLOR_VIDA_BAJA))
 	_vida.poner_rotulo("Vida %d/%d" % [int(round(v)), int(vmax)])

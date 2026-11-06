@@ -112,6 +112,7 @@ static func conectar(mundo: Object, padre_fx: Node3D) -> bool:
 	var f := Callable(ReaccionesVfx3D, "_al_reaccionar")
 	if not mundo.is_connected("reaccion", f):
 		mundo.connect("reaccion", f)
+	FeedbackReaccion3D.conectar(mundo, padre_fx)         # E2 (6/11): anillo y tintineo propios de la reacción, donde esté su efecto
 	return true
 
 
