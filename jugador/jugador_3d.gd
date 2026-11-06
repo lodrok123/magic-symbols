@@ -1235,6 +1235,8 @@ func _iniciar_voltereta(mov: Vector3) -> void:
 	pj.mirar(_roll_dir, 1.0)
 	pj.rodar()                                     # 6.12: roll sin desplazamiento de cadera (lo movemos nosotros)
 	Sensacion3D.voltereta(self)                    # gamefeel lote 4: polvo a los pies y roce de tela
+	# C6: con fuego/hielo/agua seleccionado deja su estado en la casilla de la que sale (4 de tinta; ver VolteretaRastro). Antes de moverse, para que sea la de salida.
+	VolteretaRastro.dejar(lanz, tinta, Terreno3D.celda_de(position))
 	PlayLog.event("voltereta", {"dir": [_roll_dir.x, _roll_dir.z], "dur": dur})
 	_esquiva_con_premio()
 
