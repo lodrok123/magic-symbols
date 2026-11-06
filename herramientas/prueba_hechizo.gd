@@ -254,6 +254,16 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	# el origen distingue defecto, elemento, glifo y calidad
 	_ok(String(a.origen.get("solidez", "")) == "glifo:barrera" and String(a.origen.get("dano", "")) == "potencia" and String(a.origen.get("persiste", "")) == "calidad", "origen: %s (6/11, bloque A1: el daño del hielo, como el de todos, viene de la potencia; antes del .tres: «elemento»)" % str(a.origen))
 	_ok(Hechizo.defecto("copias") == 1 and Hechizo.defecto("semiejes") == Vector3(1, 1, 1) * Sigils.RADIO_BASE_V2, "defecto() lee del var")
+	# 7/11: lo que cambia un PAR de orden (C2) lleva el nombre del glifo que lo completa, no una etiqueta «orden» sin dueño: así `diferencia()` (que solo entiende «glifo:…») puede atribuirlo en el grimorio
+	var raf: Hechizo = Hechizo.construir(runes["fire"], {"flecha": 1, "repeticion": 1}, 1.0, false, ["flecha", "repeticion"])
+	_ok(raf.rafaga and String(raf.origen.get("dispersion", "")) == "glifo:repeticion" and String(raf.origen.get("separacion", "")) == "glifo:repeticion" and raf.dispersion == 0.0 and raf.separacion == 0.0,
+		"orden ᛇ antes de ᚠ: ráfaga, y dispersión y separación a 0 apuntadas a ᚠ (origen «%s»)" % String(raf.origen.get("dispersion", "")))
+	var sin_orden: Hechizo = Hechizo.construir(runes["fire"], {"flecha": 1, "repeticion": 1})
+	_ok(not sin_orden.rafaga and sin_orden.dispersion > 0.0, "sin orden de dibujo no hay ráfaga: la dispersión sigue en su defecto (%.1f)" % sin_orden.dispersion)
+	# …y `con()` NO recalcula el coste: la tinta es la de los glifos dibujados (lo que ya prometía su documentación). De esto vivía el desajuste de las copias de la ráfaga, que salen con `con({"copias": 1})`
+	var tinta_raf: float = raf.coste_tinta
+	_ok(is_equal_approx(raf.copiar().con({"copias": 1}).coste_tinta, tinta_raf) and is_equal_approx(raf.copiar().con({"copias": 4}).coste_tinta, tinta_raf),
+		"con(): tocar las copias no cambia el coste_tinta (%.2f, con 1 y con 4 copias)" % tinta_raf)
 	# la barrera ya NO tiene radio mínimo (18/10): el tamaño lo ponen solo los ejes; nace donde apuntas y cada glifo sucesivo suma 1 s
 	var barrera: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 1})
 	_ok(_casi(barrera.semiejes.x, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.z, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.y, Sigils.RADIO_BASE_V2), "barrera: sin ejes, x y z = radio base")

@@ -488,6 +488,8 @@ func _poner_disparador(corte: Dictionary) -> void:
 
 ## C2 (6/11/2026): aplica `ORDEN_PARES` al orden de dibujo. Guarda el orden (solo glifos conocidos, con alias resueltos) y enciende `rafaga` / `late` si el glifo `antes` aparece antes que el `despues`
 ## (primera aparición de cada uno). Sin ese orden (o con el par al revés) no toca nada: lo de siempre.
+## 7/11: lo que cambia el par se apunta al glifo de `despues` (el que lo completa: «glifo:repeticion», «glifo:pulso»), no a una etiqueta «orden» que no es de nadie. Así el grimorio sabe a quién
+## atribuir el cambio (`diferencia` solo entiende «glifo:…») y al jugador le dice la verdad: añadir ᚠ DESPUÉS de ᛇ es lo que pone las copias en fila.
 ## Ráfaga: solo un PROYECTIL se pone en fila; el abanico (dispersion) y el reparto lateral (separacion) se anulan para que las copias salgan por la MISMA línea (la previsión del indicador, que lee
 ## `copias` y `dispersion`, las dibuja ya en fila). Late: la barrera nace entera (`escala_nace` 1), no pequeña; el latido (crecer y encoger) lo hace HechizoVivo.
 func _aplicar_orden(orden: Array) -> void:
@@ -511,13 +513,13 @@ func _aplicar_orden(orden: Array) -> void:
 					intervalo_copias = INTERVALO_RAFAGA
 					dispersion = 0.0
 					separacion = 0.0
-					origen["dispersion"] = "orden"
-					origen["separacion"] = "orden"
+					origen["dispersion"] = "glifo:%s" % String(par["despues"])
+					origen["separacion"] = "glifo:%s" % String(par["despues"])
 			"late":
 				if solidez > 0.0 and crece > 0.0:
 					late = true
 					escala_nace = 1.0
-					origen["escala_nace"] = "orden"
+					origen["escala_nace"] = "glifo:%s" % String(par["despues"])
 
 
 ## Límites globales de seguridad (ESPEC §1.9), al final de `construir()` y de `con()`. Un semieje tampoco baja de `grosor_min`.
@@ -849,7 +851,12 @@ func con(cambios: Dictionary) -> Hechizo:
 			_tocados[String(campo)] = true
 		origen[String(campo)] = "lab"
 	_limitar()
+	# 7/11: el COSTE no se recalcula aquí. `_derivar` lo haría (la tinta mira copias, hijos y recargos) y eso rompía dos cosas: tocar `copias` en el laboratorio encarecía el hechizo —justo lo que
+	# dice el párrafo de arriba que no pasa— y, en el juego, cada copia de una ráfaga (`lanzar_hechizo` las saca con `con({"copias": 1})`) se abarataba, así que el hechizo que salía decía una tinta
+	# y el grimorio cobraba otra. La tinta es la de los glifos DIBUJADOS: se cobra una vez por lanzamiento, no por copia.
+	var tinta_dibujada: float = coste_tinta
 	_derivar()
+	coste_tinta = tinta_dibujada
 	return self
 
 

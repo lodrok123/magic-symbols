@@ -40,6 +40,10 @@ func _escenario() -> void:
 
 func _caso(elemento: String, glifos: Array) -> void:
 	var et: String = "%s %s" % [elemento, str(glifos)]
+	# 7/11: los vivos que queden de un caso anterior, fuera. El de limpiar al FINAL del caso no basta desde C2 (6/11): las copias de una ráfaga (ᛇ antes de ᚠ) salen con temporizador, cada
+	# `intervalo_copias` s, así que llegaban ya empezado el caso siguiente y `_vivos()[0]` medía el hechizo del caso anterior (un sólido quieto no cuelga ninguno y se quedaba con ese)
+	for v in _vivos():
+		(v as Node).queue_free()
 	_componer(elemento, glifos)
 	if glifos.is_empty():
 		var n0: int = Hechizo.construidos
@@ -106,7 +110,8 @@ func _copia_independiente() -> void:
 	var antes: Dictionary = h0.a_diccionario()
 	var c: Hechizo = lanzador.hechizo_de(datos)
 	_ok("copia: idéntica al preparado (el daño del pigmento se aplica una vez, en `_preparar_pagina`)", c.a_diccionario() == antes)
-	var fresco: Dictionary = Hechizo.construir(h0.fuente, datos["receta"].contadores, float(datos["calidad"])).a_diccionario()
+	# 7/11: con el ORDEN de dibujo, que desde C2 (6/11) es una entrada más de `construir` (ᛇ antes de ᚠ = ráfaga, y la ráfaga pone dispersión y separación a 0). Sin pasarlo, «de cero» sería otro hechizo
+	var fresco: Dictionary = Hechizo.construir(h0.fuente, datos["receta"].contadores, float(datos["calidad"]), false, (datos["receta"] as Lanzador3D.Receta3D).orden).a_diccionario()
 	var mult: float = lanzador.tinta.mult_dano("fuego") if lanzador.tinta != null else 1.0
 	_ok("copia: el preparado dice lo mismo que construir de cero salvo el pigmento (×%.2f)" % mult, _igual_menos_dano(antes, fresco) and is_equal_approx(float(antes["dano"]), float(fresco["dano"]) * mult))
 	c.altura_salida += 5.0
