@@ -886,6 +886,8 @@ func vel_mult() -> float:
 		m *= 0.75
 	if lento > 0.0:
 		m *= 0.6
+	if Terreno3D.estados != null:
+		m *= Terreno3D.estados.factor_velocidad(Terreno3D.celda_de(position))        # 6/11 (B3): el escombro frena a quien lo pisa; aqui, el unico punto de la velocidad
 	return m
 
 
@@ -2187,6 +2189,8 @@ func _ve(radio: float) -> bool:
 		return false
 	if cegado > 0.0:
 		return false                  # B2: el vapor lo ciega; sin esto seguiría persiguiendo a quien ya no ve (todos los tipos pasan por aquí)
+	if Terreno3D.estados != null and (Terreno3D.estados.hay_vapor(Terreno3D.celda_de(position)) or Terreno3D.estados.hay_vapor(Terreno3D.celda_de(jugador.position))):
+		return false                  # B3: una nube de vapor en su casilla o en la de ella corta la vista (el cegado de B2 es del enemigo; esto, del lugar)
 	if _dist(jugador.position) > radio:
 		return false
 	# F4: en una zona con OSCURIDAD solo ve a la jugadora a ≤ `vista_enemigo_casillas` (3), salvo que su casilla esté iluminada (fuego, rayo, esporas: `Mundo3D.iluminar`).

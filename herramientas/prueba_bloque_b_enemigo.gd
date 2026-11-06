@@ -127,6 +127,143 @@ func _escenario() -> void:
 	await _b7_fuego_amigo()
 	_b7_rayo()
 	await _estados()
+	await _remates()
+	await _limpiar()
+
+
+## 6/11 · remates del suelo (408): latido de la barrera `late`, el proyectil contra escombro, la velocidad en escombro, el vapor que ciega y el suelo electrificado que daña a la jugadora.
+func _remates() -> void:
+	var est: EstadosSuelo3D = Terreno3D.estados
+	# Latido: una solidez `late` bloquea la primera mitad de su periodo y se retrae la segunda; sin `late`, siempre bloquea.
+	var c0: Vector2i = Vector2i(12, FILA)
+	var p0: Vector3 = _pos(c0)
+	var s: Lanzador3D.SolidezV2 = Lanzador3D.SolidezV2.new()
+	s.celdas = {c0: true}
+	s.late = true
+	s.periodo_late = 0.6
+	var sin_late: Lanzador3D.SolidezV2 = Lanzador3D.SolidezV2.new()
+	sin_late.celdas = {c0: true}
+	var nunca: Vector2i = Vector2i(-99999, -99999)
+	var estados_latido: Array = []
+	for _i in range(4):
+		estados_latido.append(s.bloquea_a(p0, 0, nunca))
+		s.avanzar(0.6 + 0.01)
+		sin_late.avanzar(0.61)
+	_ok("R1 la barrera late: bloquea, se retrae, bloquea, se retrae (%s)" % str(estados_latido), estados_latido == [true, false, true, false])
+	_ok("R1 sin `late` bloquea siempre", sin_late.bloquea_a(p0, 0, nunca))
+	s.free()
+	sin_late.free()
+	_ok("R1 existe INTERVALO_LATIDO > 0", HechizoVivo.INTERVALO_LATIDO > 0.0)
+	var j: Jugador3D = _jugadora(Vector2i(12, FILA))
+	j._t_gesto = 0.0                       # `_b7_fuego_amigo` lo dejo en 0,5 s y con un gesto en curso no se puede lanzar
+	for z in lanzador._solideces_v2.duplicate():
+		if is_instance_valid(z):
+			(z as Node).queue_free()
+	await avanzar(2)
+	lanzador._salir_modo(true)
+	lanzador._preparado = {}
+	lanzador.select_page(0)                # sin cast_page (apunta y no lanza): como prueba_bloque_c, se coloca la secuencia y se lanza la pagina ya
+	lanzador.clear_sequence()
+	lanzador.place_element("tierra")
+	lanzador.place_sigil("barrera")
+	lanzador.place_sigil("pulso")
+	lanzador.cooldown_left[0] = 0.0
+	if lanzador.tinta != null:
+		lanzador.tinta.maxima = Tinta.MAXIMA_INICIAL
+		lanzador.tinta.frascos = Tinta.FRASCOS_INICIALES
+		lanzador.tinta.rellenar_barra()
+	_ok("R1 «barrera → pulso» se lanza", lanzador.lanzar_pagina_ya(0, j.position + Vector3(-2.5 * Terreno3D.casilla, 0, 0), Vector3(-1, 0, 0)))
+	await avanzar_s(0.6)
+	var late_vivas: int = 0
+	var total: int = 0
+	for z in lanzador._solideces_v2:
+		if is_instance_valid(z):
+			total += 1
+			if (z as Lanzador3D.SolidezV2).late:
+				late_vivas += 1
+	_ok("R1 «barrera → pulso» lanzado de verdad levanta una solidez que late (%d de %d)" % [late_vivas, total], total > 0 and late_vivas == total)
+	await _limpiar()
+	for z in lanzador._solideces_v2.duplicate():
+		if is_instance_valid(z):
+			(z as Node).queue_free()
+	await avanzar(2)
+
+	# Velocidad: el escombro frena a la jugadora y al enemigo; fuera, ×1.
+	var cv: Vector2i = Vector2i(12, FILA - 2)
+	var g: Combate3D = _goblin(_pos(cv))
+	var base_g: float = g.vel_mult()
+	est.poner(cv, EstadosSuelo3D.ESCOMBRO, true)
+	_ok("R3 enemigo en escombro: vel_mult ×%.2f (de %.2f)" % [g.vel_mult(), base_g], _c(g.vel_mult(), base_g * est.factor_velocidad(cv)) and g.vel_mult() < base_g - 0.001)
+	est.poner(cv, EstadosSuelo3D.ESCOMBRO, false)
+	_ok("R3 sin escombro vuelve a ×%.2f" % base_g, _c(g.vel_mult(), base_g))
+	j = _jugadora(cv)
+	var m0: float = j.mult_velocidad_estado()
+	est.poner(cv, EstadosSuelo3D.ESCOMBRO, true)
+	_ok("R3 jugadora en escombro: velocidad ×%.2f (de %.2f)" % [j.mult_velocidad_estado(), m0], _c(j.mult_velocidad_estado(), m0 * est.factor_velocidad(cv)) and j.mult_velocidad_estado() < m0 - 0.001)
+	est.poner(cv, EstadosSuelo3D.ESCOMBRO, false)
+	await _limpiar()
+
+	# Vapor: ni en su casilla ni en la de ella la ve.
+	j = _jugadora(Vector2i(11, FILA))
+	var e: Combate3D = _goblin(j.position + Vector3(3.5, 0, 0))
+	var ce: Vector2i = Terreno3D.celda_de(e.position)
+	var cj: Vector2i = Terreno3D.celda_de(j.position)
+	_ok("R4 (control) sin vapor la ve", e._ve(Combate3D.RADIO_DETECCION))
+	est.poner(ce, EstadosSuelo3D.VAPOR, true)
+	_ok("R4 vapor en la casilla del enemigo: no la ve", not e._ve(Combate3D.RADIO_DETECCION))
+	est.poner(ce, EstadosSuelo3D.VAPOR, false)
+	est.poner(cj, EstadosSuelo3D.VAPOR, true)
+	_ok("R4 vapor en la casilla de ella: no la ve", not e._ve(Combate3D.RADIO_DETECCION))
+	est.poner(cj, EstadosSuelo3D.VAPOR, false)
+	_ok("R4 y sin vapor la vuelve a ver", e._ve(Combate3D.RADIO_DETECCION))
+	await _limpiar()
+
+	# Electrificada: descarga (daño ambiental + aturdida) al pisarla, cada ELECTRIFICADA_TICK s; sin ella, nada; no mata.
+	j = _jugadora(Vector2i(12, FILA))
+	j.en_suelo = true
+	var ej: Vector2i = Terreno3D.celda_de(j.position)
+	var v0: float = j.vida
+	j._tick_electrica = 0.0
+	j._estados_paso(0.1)
+	_ok("R5 sin electrificar no pasa nada", _c(j.vida, v0))
+	est.poner(ej, EstadosSuelo3D.ELECTRIFICADA, true)
+	j._estados_paso(0.1)
+	var tic: float = Dano.tras_defensa(Jugador3D.ELECTRIFICADA_DANO, j.defensa_total())
+	_ok("R5 pisar la electrificada: descarga de %.1f (perdió %.2f) y la deja aturdida ×%.2f" % [tic, v0 - j.vida, j.mult_velocidad_estado()], tic > 0.0 and _c(v0 - j.vida, tic) and _c(j.mult_velocidad_estado(), 0.3))
+	var v1: float = j.vida
+	j._estados_paso(0.5)
+	_ok("R5 no vuelve a descargar antes de %.1f s" % Jugador3D.ELECTRIFICADA_TICK, _c(j.vida, v1))
+	j._estados_paso(Jugador3D.ELECTRIFICADA_TICK)
+	_ok("R5 y descarga de nuevo pasado el tic", _c(v1 - j.vida, tic))
+	j.vida = 1.5
+	j._tick_electrica = 0.0
+	j._estados_paso(0.1)
+	_ok("R5 no la mata (queda en %.1f)" % j.vida, j.vida >= 1.0 - 0.0001 and not j.muerto)
+	est.poner(ej, EstadosSuelo3D.ELECTRIFICADA, false)
+	j.vida = 1000.0
+	j._t_est_vel = 0.0
+	j._estados_paso(2.0)
+	_ok("R5 al irse la electrificada no daña", _c(j.vida, 1000.0))
+	j.vida = 1000.0
+
+	# Proyectil contra escombro: la flecha de fuego para en el escombro y no llega al goblin de detrás; sin escombro, sí.
+	await _limpiar()
+	var gl: Combate3D = _goblin(_pos(Vector2i(10, FILA)))
+	var vg: float = gl.health
+	var d1: Dictionary = _preparar(Vector2i(12, FILA), "fuego", ["flecha"])
+	_lanzar(d1, Vector3(-1, 0, 0))
+	await avanzar_s(2.0)
+	var dano_libre: float = vg - gl.health
+	_ok("R2 (control) sin escombro la flecha da al goblin (%.2f, arde %.1f, preparado %s)" % [dano_libre, gl.quemando, str(not d1.is_empty())], dano_libre > 0.0 or gl.quemando > 0.0)
+	await _limpiar()
+	var gl2: Combate3D = _goblin(_pos(Vector2i(10, FILA)))
+	var vg2: float = gl2.health
+	est.poner(Vector2i(11, FILA), EstadosSuelo3D.ESCOMBRO, true, 1.0, 30.0)
+	var d2: Dictionary = _preparar(Vector2i(12, FILA), "fuego", ["flecha"])
+	_lanzar(d2, Vector3(-1, 0, 0))
+	await avanzar_s(2.0)
+	_ok("R2 con escombro en medio la flecha se para: el goblin no recibe nada (%.2f)" % (vg2 - gl2.health), _c(vg2, gl2.health))
+	est.poner(Vector2i(11, FILA), EstadosSuelo3D.ESCOMBRO, false)
 	await _limpiar()
 
 

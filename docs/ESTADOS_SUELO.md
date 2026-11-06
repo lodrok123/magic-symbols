@@ -378,13 +378,13 @@ El reloj oficial es un único diccionario, `EstadosSuelo3D.DURA` (`mundo/estados
 | **quemada** | **8 s** | **6/11, bloque A5. Antes no caducaba nunca** |
 | segada | no caduca | sin decidir |
 | **escombro** | **6 s** (`ESCOMBRO_S`) | **6/11, bloque B3.** Lo deja la tierra al pararse. Ralentiza ×0,7 y es sólido para proyectiles |
-| **vapor** | **4 s** (`VAPOR_S`) | **6/11, bloque B3.** Nube que deja el calor al secar mojado o deshelar, y el agua sobre lo quemado. Solo dato: quién lo use (ceguera) lo lee con `hay_vapor(celda)` |
+| **vapor** | **4 s** (`VAPOR_S`) | **6/11, bloque B3.** Nube que deja el calor al secar mojado o deshelar, y el agua sobre lo quemado. Ciega: el enemigo con vapor en su casilla o en la de la jugadora no la ve (`hay_vapor(celda)` en `Combate3D._ve`) |
 
 ---
 
 ## 4 ter. Bloque B del suelo (6/11): rayo, tierra y viento escriben; el material decide (`docs/PROPUESTAS_COMBATE_2026-11-06.md` §2 B3-B4, §6.3)
 
-**Estados nuevos** (sin canal en la imagen de estado: no se pintan en el suelo): `escombro` y `vapor`. `EstadosSuelo3D.factor_velocidad(celda)` (0,7 con escombro), `bloquea_proyectil(celda)` y `hay_vapor(celda)` son las preguntas; falta que jugador, enemigos y `HechizoVivo` las hagan (pendiente por conflicto, ver `DIARIO.md`).
+**Estados nuevos** (sin canal en la imagen de estado: no se pintan en el suelo): `escombro` y `vapor`. `EstadosSuelo3D.factor_velocidad(celda)` (0,7 con escombro), `bloquea_proyectil(celda)` y `hay_vapor(celda)` son las preguntas, y ya las hacen (DIARIO 408): el escombro frena ×0,7 a la jugadora (`Jugador3D.mult_velocidad_estado`) y a los enemigos (`Combate3D.vel_mult`) y para al proyectil que entra en su casilla (`HechizoVivo._avanzar`); el vapor en la casilla del enemigo o en la de ella le impide verla (`Combate3D._ve`). Además, **pisar una casilla electrificada** descarga a la jugadora cada 1 s (`Jugador3D._suelo_electrico`): 2 de daño ambiental + aturdida 0,6 s, sin matarla.
 
 **Filas nuevas de `TRANSICIONES`** (columnas opcionales `con_algun`, `mantiene`, `rotulo`):
 

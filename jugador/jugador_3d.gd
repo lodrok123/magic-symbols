@@ -56,6 +56,8 @@ const RAYO_X: float = 0.3
 const RAYO_ATURDE_S: float = 0.6             ## el rayo no dura lo que el resto (ESTADO_ATAQUE_S del limo = 3 s): una descarga aturde un instante
 const QUEMADA_DANO: float = 2.0              ## por tic de la quemada
 const QUEMADA_TICK: float = 0.5
+const ELECTRIFICADA_DANO: float = 2.0        ## por descarga del suelo electrificado que pisa
+const ELECTRIFICADA_TICK: float = 1.0        ## s entre descargas (la primera, al pisarlo); 1 s y no 0,5 porque cada una la aturde 0,6 s y mas seguidas la dejarian sin moverse
 const TIEMPO_REAPARECER: float = 2.2
 const T_GOLPE: float = 0.35
 const T_LANZAR: float = 0.9
@@ -123,6 +125,7 @@ var _t_est_vel: float = 0.0                       ## 6/11 (`aplicar_estado`): s 
 var _x_est_vel: float = 1.0                       ## ... y por cuánto multiplica su velocidad (el más fuerte de los activos)
 var _t_quemada: float = 0.0                       ## s que le quedan de quemada (2 de daño ambiental cada QUEMADA_TICK)
 var _tick_quemada: float = 0.0
+var _tick_electrica: float = 0.0                  ## s hasta la proxima descarga del suelo electrificado (0 = la siguiente es inmediata)
 ## 6/11: el último `recibir_dano` lo paró la barrera (burbuja o cúpula del Lanzador3D). Se reinicia al principio de cada `recibir_dano`; lo lee quien acaba de pegar (el elemental, que se queda aturdido).
 var golpe_absorbido_por_barrera: bool = false
 var _beber_id: String = "pocion"                 ## F3: qué poción se está bebiendo (la grande tarda lo mismo)
@@ -694,11 +697,29 @@ func esta_quemada() -> bool:
 
 ## Multiplicador de velocidad de los estados de `aplicar_estado` (1 = sin estado).
 func mult_velocidad_estado() -> float:
-	return _x_est_vel if _t_est_vel > 0.0 else 1.0
+	# 6/11 (B3): el escombro de su casilla la frena (`EstadosSuelo3D.factor_velocidad`). Aqui y no en cada estado de movimiento: es el unico multiplicador que ya entra en `vel`.
+	var suelo: float = Terreno3D.estados.factor_velocidad(Terreno3D.celda_de(position)) if Terreno3D.estados != null else 1.0
+	return (_x_est_vel if _t_est_vel > 0.0 else 1.0) * suelo
+
+
+## 6/11 (B7): pisar una casilla ELECTRIFICADA te descarga cada `ELECTRIFICADA_TICK` s: `aplicar_estado("rayo")` (aturdida corta) + daño ambiental. En el aire o nadando no (no tocas el suelo).
+func _suelo_electrico(delta: float) -> void:
+	if muerto or not en_suelo or nadando or Terreno3D.estados == null:
+		_tick_electrica = 0.0
+		return
+	if not Terreno3D.estados.tiene(Terreno3D.celda_de(position), EstadosSuelo3D.ELECTRIFICADA):
+		_tick_electrica = 0.0
+		return
+	_tick_electrica -= delta
+	if _tick_electrica <= 0.0:
+		_tick_electrica = ELECTRIFICADA_TICK
+		aplicar_estado("rayo", RAYO_ATURDE_S)
+		dano_ambiental(ELECTRIFICADA_DANO, "rayo")
 
 
 func _estados_paso(delta: float) -> void:
 	_t_est_vel = maxf(0.0, _t_est_vel - delta)
+	_suelo_electrico(delta)
 	if _t_quemada > 0.0 and not muerto:
 		_t_quemada = maxf(0.0, _t_quemada - delta)
 		_tick_quemada -= delta

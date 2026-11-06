@@ -3530,7 +3530,15 @@ class SolidezV2 extends Node3D:
 	## ¿Para un proyectil que vuela a `n` niveles sobre el suelo? Nunca en la casilla `propia` (la de quien lanza: no se bloquea a sí mismo).
 	func bloquea_a(p: Vector3, n: int, propia: Vector2i) -> bool:
 		var c: Vector2i = Lanzador3D.celda_de(p)
-		return c != propia and celdas.has(c) and n < niveles
+		return c != propia and celdas.has(c) and n < niveles and not retraida()
+
+	## C2: latido de «barrera + pulso» (`Hechizo.late`). La barrera bloquea la primera mitad de cada `periodo_late` y se retrae la segunda (empieza bloqueando: nace entera).
+	var late: bool = false
+	var periodo_late: float = 0.6
+	var edad: float = 0.0
+
+	func retraida() -> bool:
+		return late and periodo_late > 0.0 and fmod(edad, periodo_late * 2.0) >= periodo_late
 
 	## Recibe un golpe de `dano`. Devuelve true si lo ha aguantado; al agotarse el aguante, el volumen se deshace.
 	func golpe(dano: float) -> bool:
@@ -3542,6 +3550,7 @@ class SolidezV2 extends Node3D:
 	## Avanza `delta` s (público: las pruebas lo llaman a mano).
 	func avanzar(delta: float) -> void:
 		vida -= delta
+		edad += delta
 		if vida <= 0.0:
 			queue_free()
 

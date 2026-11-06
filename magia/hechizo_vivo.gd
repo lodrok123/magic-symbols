@@ -67,7 +67,8 @@ const COLA_SOLIDEZ_S: float = 0.3
 ## 6/11 (bloque B7, fuego amigo suave; Magicka): las zonas vivas de TU hechizo (la llama que deja el fuego, la descarga de tu rayo sobre el agua que pisas) también te dañan. Fallo que evita: poner
 ## una barrera de fuego o un rayo sobre el agua no tenía riesgo ninguno, así que dónde la ponías daba igual. `static var` y no `const` para que las pruebas que no lo quieran lo apaguen.
 static var FUEGO_AMIGO: bool = true
-const DANO_PROPIO_POR_TIC: float = 2.0     ## lo que te quita cada pulso de la zona (el mismo `intervalo` que a los enemigos); pasa por tu defensa y tu invulnerabilidad (`Jugador3D.dano_ambiental`)
+const INTERVALO_LATIDO: float = 0.6      ## 6/11 (C2): s por mitad del latido de una barrera `late` cuando el hechizo no fija `intervalo` (0,25 s por defecto latiria demasiado rapido para verse)
+const DANO_PROPIO_POR_TIC: float = 2.0    ## lo que te quita cada pulso de la zona (el mismo `intervalo` que a los enemigos); pasa por tu defensa y tu invulnerabilidad (`Jugador3D.dano_ambiental`)
 const GRACIA_PROPIA_S: float = 0.6         ## s tras lanzar sin daño propio: el hechizo sale de TU casilla y sin esto te quemarías al nacer
 var _t_creado_ms: int = Time.get_ticks_msec()   ## cuándo nació este lanzamiento (la gracia de la descarga, que no tiene zona con reloj propio)
 ## 3/11 (R3): los orbes de ᛃ + ᚠ. Radio de la órbita = ORBITA_RADIO_BASE_CAS + ORBITA_RADIO_POR_SEMIEJE × el mayor de X y Z (casillas); una vuelta cada ORBITA_VUELTA_S s; dura persiste + permanencia (mínimo ORBITA_VIDA_MIN_S).
@@ -1331,6 +1332,9 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> Lanzador3D.Soli
 	s.elemento = String(ctx["elemento"])
 	s.linaje = linaje                                       # de quién es: los proyectiles de este mismo lanzamiento no chocan con ella (ver `_avanzar`)
 	var l: Lanzador3D = lanz                               # (ver _abrir_zona: el callback sobrevive a este nodo)
+	# C2: «barrera + pulso» (`Hechizo.late`): la barrera nace entera y late (se retrae y vuelve) al ritmo del pulso de la zona; sin `intervalo` propio, `INTERVALO_LATIDO`.
+	s.late = h.late
+	s.periodo_late = h.intervalo if h.intervalo > 0.0 else INTERVALO_LATIDO
 	l.mundo.add_child(s)
 	l._solideces_v2.append(s)
 	s.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), s))
@@ -1822,6 +1826,14 @@ func _avanzar(dt: float) -> bool:
 					_reflejado = true
 				return true
 			_contacto_celdas = [Lanzador3D.celda_de(nuevo)]
+			_terminar_o_volver("muro")
+			return false
+		# 6/11 (B3): el escombro del suelo (`EstadosSuelo3D.bloquea_proyectil`) para al proyectil al ENTRAR en su casilla. Solo al entrar (celda distinta de la actual): si no, el que nace encima
+		# de un escombro moriria en su primer paso.
+		var c_ant: Vector2i = Lanzador3D.celda_de(p)
+		var c_esc: Vector2i = Lanzador3D.celda_de(nuevo)
+		if c_esc != c_ant and Lanzador3D.en_mapa(c_esc) and Terreno3D.estados != null and Terreno3D.estados.bloquea_proyectil(c_esc):
+			_contacto_celdas = [c_esc]
 			_terminar_o_volver("muro")
 			return false
 		var sol_x: bool = Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(nuevo.x, p.y, p.z)), 0)
