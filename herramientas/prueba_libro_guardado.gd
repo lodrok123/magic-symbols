@@ -179,12 +179,12 @@ func _derivados() -> void:
 	_ok(Repertoire.tomar_por_escribir().is_empty(), "y tomarlos vacía la cola")
 	# El libro los recoge y los pone a escribirse.
 	Repertoire.derivados_descubiertos = [] as Array[String]
-	Repertoire.descubrir_derivado("barro")
+	Repertoire.descubrir_derivado("naturaleza")
 	var libro: Control = load("res://presentacion/ui/spellbook.gd").new()
 	libro.size = Vector2(1280.0, 720.0)
 	root.add_child(libro)
 	await process_frame
-	_ok(libro._empezar_escrituras() == 1 and libro._escribiendo.has("derivado:barro"), "Spellbook._empezar_escrituras pone el derivado en su cola de escritura", str(libro._escribiendo))
+	_ok(libro._empezar_escrituras() == 1 and libro._escribiendo.has("derivado:naturaleza"), "Spellbook._empezar_escrituras pone el derivado en su cola de escritura", str(libro._escribiendo))
 	libro.free()
 	g.free()
 	Repertoire.libro = ""

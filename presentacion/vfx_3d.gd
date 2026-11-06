@@ -31,6 +31,8 @@ const FORMAS: Array = ["proyectil", "corro", "columna", "muro", "bola", "pilar",
 const COLOR: Dictionary = {
 	"fuego": Color(1.0, 0.55, 0.25), "agua": Color(0.45, 0.75, 1.0), "tierra": Color(0.85, 0.66, 0.40),
 	"viento": Color(0.75, 0.97, 0.85), "rayo": Color(1.0, 0.93, 0.40), "hielo": Color(0.72, 0.92, 1.0),
+	# 6/11 (libro avanzado): los derivados de dos sellos. Sin entrada, `COLOR[elemento]` (que se usa a pelo en una docena de sitios) tiraría el juego al lanzarlos.
+	"magma": Color(0.95, 0.40, 0.12), "naturaleza": Color(0.45, 0.80, 0.30),
 }
 ## Nombre histórico de cada pieza (los de los antiguos sprites de vfx/) -> forma 3D de Formas3D.
 const FORMA_DE: Dictionary = {
@@ -899,9 +901,10 @@ func _pulso_crece(elemento: String, pie_origen: Vector3, centro: Vector3, radio:
 			mat = md
 		aro.add_child(hijo)
 	else:
+		var ep: String = String(PADRE_VFX.get(elemento, elemento))   # 6/11: magma y naturaleza usan la pieza de su padre (no tienen pieza propia aún)
 		var nombre: String = {"fuego": "llama", "agua": "salpicadura", "tierra": "pua", "viento": "remolino_viento", "rayo": "rayo",
-			"hielo": "cristal_hielo"}[elemento]
-		tam_pieza = {"fuego": 0.55, "agua": 0.5, "tierra": 0.45, "viento": 0.55, "rayo": 0.6, "hielo": 0.55}[elemento] * escala
+			"hielo": "cristal_hielo"}[ep]
+		tam_pieza = {"fuego": 0.55, "agua": 0.5, "tierra": 0.45, "viento": 0.55, "rayo": 0.6, "hielo": 0.55}[ep] * escala
 		var n: int = clampi(int(ceil(TAU * r / 0.42)), 12, 30)
 		for i in range(n):
 			var pz: MeshInstance3D = _pieza(nombre, aro, tam_pieza * randf_range(0.8, 1.25), Color.WHITE)
@@ -991,6 +994,9 @@ func _fragmentos(centro: Vector3, r: float, tipo: String, aro: Node3D) -> void:
 ## Campos: nucleo = color del interior (alfa = opacidad) · borde = color del borde brillante · flujo = hacia dónde corre el
 ## ruido (en unidades de modelo por segundo) · escala = tamaño del ruido · venas = 0..1 relámpagos sobre la superficie ·
 ## facetas = 0 (suave) o nº de niveles (aspecto cristal) · llamas = 0..1 más densidad abajo · particula = pieza que flota dentro.
+## 6/11 (libro avanzado): de qué elemento base toman la pieza y el perfil los derivados hasta que tengan VFX propio (magma = fuego, naturaleza = tierra).
+const PADRE_VFX: Dictionary = {"magma": "fuego", "naturaleza": "tierra"}
+
 const PERFIL: Dictionary = {
 	"fuego": {"nucleo": Color(1.0, 0.5, 0.08, 0.34), "borde": Color(1.0, 0.82, 0.25), "flujo": Vector3(0.0, -0.9, 0.0),
 		"escala": 2.6, "venas": 0.0, "facetas": 0, "llamas": 1.0, "particula": "brasa", "luz": Color(1.0, 0.6, 0.25)},
@@ -1934,7 +1940,7 @@ func _esfera_perfil(padre: Node3D, elemento: String, radio: float) -> MeshInstan
 	if _sh_cupula == null:
 		_sh_cupula = Shader.new()
 		_sh_cupula.code = CODIGO_CUPULA
-	var perfil: Dictionary = PERFIL[elemento]
+	var perfil: Dictionary = PERFIL[String(PADRE_VFX.get(elemento, elemento))]   # 6/11: derivados → perfil del padre
 	var mat := ShaderMaterial.new()
 	mat.shader = _sh_cupula
 	for k in ["nucleo", "borde", "flujo", "escala", "venas", "facetas", "llamas"]:

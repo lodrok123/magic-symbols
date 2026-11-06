@@ -168,7 +168,7 @@ const LIBROS: Dictionary = {
 		"guias": false,
 		# PÁGINA DERECHA del avanzado (fase 2, 6/11/2026; en px de lámina, para que Pablo las ajuste). La lámina genérica trae 4 × 3 círculos impresos (centros x 894 + 117·k,
 		# y 277 / 418 / 559) y debajo una franja de 5 cuadros (y ≈ 700). Fila 1 = los 4 sellos base (siempre), fila 2 = las 4 runas derivadas (gris hasta descubrirlas), y los GLIFOS
-		# van en la fila 3 y la franja (9 sitios). `leyenda_sellos` = 4 base + 4 derivadas, en ese orden (fuego, agua, tierra, viento · hielo, rayo, magma, barro).
+		# van en la fila 3 y la franja (9 sitios). `leyenda_sellos` = 4 base + 4 derivadas, en ese orden (fuego, agua, tierra, viento · hielo, rayo, magma, naturaleza).
 		"leyenda_sellos": [Vector2(894.0, 277.0), Vector2(1011.0, 277.0), Vector2(1128.0, 277.0), Vector2(1245.0, 277.0),
 				Vector2(894.0, 418.0), Vector2(1011.0, 418.0), Vector2(1128.0, 418.0), Vector2(1245.0, 418.0)],
 		"leyenda": [Vector2(894.0, 559.0), Vector2(1011.0, 559.0), Vector2(1128.0, 559.0), Vector2(1245.0, 559.0),
@@ -1788,7 +1788,7 @@ func _draw_legend() -> void:
 ## la mano la escribe, como un glifo de cofre) y la rejilla de glifos como siempre. Las posiciones son `LIBROS["avanzado"]["leyenda_sellos"]` y `["leyenda"]`.
 ## NO se pinta la tabla de reacciones («agua + viento = hielo»): la lámina genérica no tiene sitio libre (las 9 casillas de glifos ocupan la fila 3 y la franja de abajo).
 const BASE_AV: Array = ["fuego", "agua", "tierra", "viento"]
-const DERIVADOS_AV: Array = ["hielo", "rayo", "magma", "barro"]
+const DERIVADOS_AV: Array = ["hielo", "rayo", "magma", "naturaleza"]
 const GRIS_DERIVADO: Color = Color(0.42, 0.40, 0.38, 0.55)
 
 

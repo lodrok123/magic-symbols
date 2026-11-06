@@ -228,7 +228,7 @@ static var libro_conseguido: bool = false
 ## Huecos de glifo que ABRE cada libro de base (el resto se gana con `Mejoras.huecos_glifo`, que se suma encima). Un libro que no está aquí no toca los huecos.
 const HUECOS_BASE_LIBRO: Dictionary = {"bosque": 1, "avanzado": 4}
 
-## Runas derivadas ya descubiertas ("hielo", "rayo", "magma", "barro"): la página derecha del libro avanzado las pinta en color y el resto en gris. Persiste.
+## Runas derivadas ya descubiertas ("hielo", "rayo", "magma", "naturaleza"): la página derecha del libro avanzado las pinta en color y el resto en gris. Persiste.
 static var derivados_descubiertos: Array[String] = []
 
 ## Avisos del libro hacia quien lo escucha. Repertoire es estático y no puede tener señales: la señal vive en este objeto suelto (`Repertoire.avisos`).

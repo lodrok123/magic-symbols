@@ -51,7 +51,7 @@
 
 - **Zona de sellos** a la izquierda, redonda, con el anillo decorativo del núcleo de hoy ampliado. Es donde está «la magia»; mantener el círculo preserva la identidad del libro (`docs/referencia_grimorio.png`).
 - **Zona de glifos** a la derecha, cuadrada. Mismo tamaño útil.
-- **Fila de resultado** abajo: dos medallones de sello (◐ ◑) y, entre ellos o a la derecha, el medallón de la **runa resultante** cuando los dos sellos reaccionan (hielo, rayo, magma, barro); si se anulan, los dos medallones se apagan con un soplo de vapor o polvo y el resumen dice «Se anulan».
+- **Fila de resultado** abajo: dos medallones de sello (◐ ◑) y, entre ellos o a la derecha, el medallón de la **runa resultante** cuando los dos sellos reaccionan (hielo, rayo, magma, naturaleza); si se anulan, los dos medallones se apagan con un soplo de vapor o polvo y el resumen dice «Se anulan».
 - **6 huecos** en fila (o 2 × 3 como en la maqueta `s2g6`). La maqueta ya tiene medidas para 2 × 3: `paginas.json` `s2g6.huecos`.
 - La maqueta `s2g6` con el yin-yang en el núcleo sirve **como lámina de la fila de resultado**, no como zona de dibujo.
 
@@ -68,7 +68,7 @@ Mantener el círculo con 8 sectores y partir el núcleo en dos mitades (la maque
 | Sellos por página | 2. El tercero sustituye al **más antiguo** (hoy sustituye al único); deshacer lo recupera (`undo_history`). |
 | Orden de los sellos | No importa: fuego + agua = agua + fuego. La tabla se consulta con la pareja ordenada alfabéticamente. |
 | Opuestos (fuego/agua, tierra/viento) | **Se anulan en el libro, no al lanzar:** al cerrar el segundo, soplo de vapor o polvo, los dos medallones se vacían y el resumen avisa. No gasta tinta. La primera vez que ocurre, el grimorio escribe solo la regla en la página derecha (como escribe un glifo nuevo). |
-| Reacción | Pareja no opuesta → runa derivada (hielo, rayo, magma, barro) según la tabla de `PROPUESTAS_COMBATE_2026-11-06.md` §5.2. La página lanza **el derivado**; `Hechizo` sigue recibiendo un solo `RuneData`. |
+| Reacción | Pareja no opuesta → runa derivada (hielo, rayo, magma, naturaleza) según la tabla de `PROPUESTAS_COMBATE_2026-11-06.md` §5.2. La página lanza **el derivado**; `Hechizo` sigue recibiendo un solo `RuneData`. |
 | Runa descubierta | Al lanzar por primera vez un derivado, su runa se escribe en la página derecha. **Decisión pendiente:** si después se puede trazar directamente en la zona de sellos (propuesta: sí; así nivel 3 = runa descubierta + base cabe en los 2 huecos). |
 | Glifos por página | 6 (`Hechizo.MAX_GLIFOS`). Se abren con `Repertoire.max_sigils_per_page` como hoy (base del libro + `Mejoras.huecos_glifo`): el libro avanzado trae **4 abiertos** y los otros 2 se ganan (librera, cofre), para que cambiar de libro no lo dé todo de golpe. |
 | Un sello solo | Vale igual que hoy: el libro avanzado no obliga a dos. |
@@ -82,7 +82,7 @@ Mantener el círculo con 8 sectores y partir el núcleo en dos mitades (la maque
 
 Con 4 elementos base la lámina cambia:
 
-- **Fila de sellos:** 4 base siempre visibles (fuego, agua, tierra, viento) + **4 medallones de runa derivada** en gris hasta descubrirlas (hielo, rayo, magma, barro). La maqueta `s2g6` ya dibuja 6 círculos de elemento abajo (`paginas.json` `s2g6.elementos`): pasan a 8, o 4 + 4 en dos filas.
+- **Fila de sellos:** 4 base siempre visibles (fuego, agua, tierra, viento) + **4 medallones de runa derivada** en gris hasta descubrirlas (hielo, rayo, magma, naturaleza). La maqueta `s2g6` ya dibuja 6 círculos de elemento abajo (`paginas.json` `s2g6.elementos`): pasan a 8, o 4 + 4 en dos filas.
 - **Rejilla de glifos:** 4 × 3 = 12 casillas (maqueta `s2g6.rejilla_*`). Hoy hay 10 glifos de receta + 4 aparcados: cabe todo.
 - **Tabla de reacciones** descubiertas (opcional, segunda hoja al pasar página): «agua + viento = hielo», se va rellenando. Sirve de pista y de ficha de enemigo (idea de «fichas en el libro» de PROPUESTA_COMBATE §4).
 
@@ -100,7 +100,7 @@ Con 4 elementos base la lámina cambia:
 
 | # | qué | dónde | tamaño |
 |---|---|---|---|
-| L1 | Tabla de parejas → derivado y lista de opuestos; un `.tres` por derivado (hielo y rayo ya existen: `ice_rune.tres`, `lightning_rune.tres`; nuevos: magma, barro) con etiquetas heredadas | `nucleo/combos_sellos.gd` (nuevo), `nucleo/*.tres` | S |
+| L1 | Tabla de parejas → derivado y lista de opuestos; un `.tres` por derivado (hielo y rayo ya existen: `ice_rune.tres`, `lightning_rune.tres`; nuevos: magma, naturaleza) con etiquetas heredadas | `nucleo/combos_sellos.gd` (nuevo), `nucleo/*.tres` | S |
 | L2 | Página con dos sellos: `element2`, `element2_q`; `_add_element` rellena 1 o 2 y sustituye el más antiguo; `undo_last`, `clear_sequence`, `page_ready`, `page_element_data`, `_clave_ficha`, `resumen_pagina` | `magia/grimorio.gd:169, 492-525, 741, 762, 786-798, 214, 205-259` | M |
 | L3 | Resolver la pareja antes de construir: `receta_de_ficha` y `_preparar_pagina` llaman a la tabla; si se anulan, no se lanza; color del HUD por derivado | `lanzador_3d.gd:809, 907-915`, `page_hud.gd:53` | S |
 | L4 | Zonas de dibujo: `_sector_of_point` devuelve «sello» o «glifo» por zona; el glifo reconocido va al primer hueco libre con la escritura de la mano; nueva entrada en `LIBROS` con medidas `s2g6` | `spellbook.gd:120-155, 1400, 1567, 1809, 1929` | L |
@@ -119,7 +119,7 @@ Reparto: Opus diseña y revisa, Sonnet programa (L1–L3 y L7 primero, que no to
 ## 6. Arte y sonido que hace falta
 
 - **Lámina del libro avanzado** con las dos zonas de dibujo y la fila de resultado (base: `pagina_*_s2g6.png` y `docs/referencia_grimorio.png`; medidas en `docs/ARTE.md` §16).
-- **Runas de magma y barro** (hielo y rayo ya están en `docs/runas.png`), y sus medallones en gris.
+- **Runas de magma y naturaleza** (hielo y rayo ya están en `docs/runas.png`), y sus medallones en gris.
 - **Efecto de anulación** (soplo de vapor y polvareda sobre la página) y **efecto de reacción** (los dos medallones se funden en el tercero).
 - Sonido: anular, reaccionar, pasar al libro nuevo.
 

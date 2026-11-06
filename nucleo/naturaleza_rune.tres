@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="RuneData" format=3]
+
+[ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://nucleo/rune_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://dpo4rsxwbveyr" path="res://art/fx/water.png" id="2"]
+[ext_resource type="Texture2D" path="res://art/ui/glyphs/naturaleza.png" id="4"]
+
+; PROVISIONAL (6/11/2026, libro avanzado): derivado de agua + tierra (nucleo/combos_sellos.gd). Antes era «barro»; Pablo lo cambió por NATURALEZA para
+; reaprovechar lo que ya existe de los goblins (el veneno del chamán: `Hechizo.veneno` / `veneno_dps`, el estado `envenenado` de Combate3D y su rótulo «Veneno»,
+; la bola y la nube de veneno) y no iterar un elemento nuevo. Usa la hoja del agua hasta que haya VFX propio; el glifo es el de la runa jera (naturaleza.png).
+; El id «naturaleza» va en las etiquetas porque Objetos.elemento_de lo busca primero.
+[resource]
+script = ExtResource("1")
+rune_type = 13
+display_name = "Naturaleza"
+color = Color(0.35, 0.62, 0.22, 1)
+glyph = ExtResource("4")
+damage = 24.0
+tags = Array[String](["agua", "tierra", "naturaleza"])
+estado = "liquido"
+persiste = 0.0
+empuje = 0.3
+deja = ""
+vfx_sheet = ExtResource("2")
+vfx_frames = 19
+modificadores = { "veneno": { "op": "fija", "valor": 4.0 }, "veneno_dps": { "op": "fija", "valor": 3.0 }, "ralentiza": { "op": "fija", "valor": 2.0 }, "ralentiza_fuerza": { "op": "fija", "valor": 0.6 }, "fuerza_golpe": { "op": "fija", "valor": 900.0 }, "gravedad": { "op": "fija", "valor": 0.8 }, "impulso_salida": { "op": "fija", "valor": 1.8 }, "densidad": { "op": "fija", "valor": 1.2 }, "temperatura": { "op": "fija", "valor": 0.0 }, "humedad": { "op": "fija", "valor": 0.5 }, "conductividad": { "op": "fija", "valor": 0.2 } }

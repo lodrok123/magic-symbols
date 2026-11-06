@@ -129,20 +129,23 @@ func _sellos(l: Lanzador3D) -> void:
 ## --- 3. LA TABLA ---
 func _tabla() -> void:
 	var esperado: Dictionary = {["fuego", "agua"]: "anulan", ["tierra", "viento"]: "anulan", ["agua", "viento"]: "hielo",
-		["fuego", "viento"]: "rayo", ["fuego", "tierra"]: "magma", ["agua", "tierra"]: "barro"}
+		["fuego", "viento"]: "rayo", ["fuego", "tierra"]: "magma", ["agua", "tierra"]: "naturaleza"}
 	for par in esperado:
 		var directo: String = CombosSellos.resolver(par[0], par[1])
 		var inverso: String = CombosSellos.resolver(par[1], par[0])
 		_ok(directo == esperado[par] and inverso == esperado[par], "%s + %s = %s (y al revés)" % [par[0], par[1], esperado[par]], "%s / %s" % [directo, inverso])
 	_ok(CombosSellos.resolver("hielo", "fuego") == "" and CombosSellos.resolver("rayo", "agua") == "" and CombosSellos.resolver("fuego", "fuego") == "", "una pareja fuera de la tabla (con hielo, con rayo, dos iguales) da «»")
-	for id in ["hielo", "rayo", "magma", "barro"]:
+	for id in ["hielo", "rayo", "magma", "naturaleza"]:
 		var r: RuneData = CombosSellos.runa_de(id)
 		_ok(r != null and Objetos.elemento_de(r) == id, "el derivado «%s» tiene su runa y se reconoce como %s" % [id, id], str(Objetos.elemento_de(r)) if r != null else "sin runa")
 	var magma: RuneData = CombosSellos.runa_de("magma")
-	var barro: RuneData = CombosSellos.runa_de("barro")
+	var natura: RuneData = CombosSellos.runa_de("naturaleza")
 	_ok(magma.estado == "plasma" and magma.tags.has("fuego") and magma.tags.has("tierra") and magma.tags.has("magma"), "magma: plasma, con las etiquetas fuego, tierra y magma")
-	_ok(barro.estado == "liquido" and barro.tags.has("agua") and barro.tags.has("tierra") and barro.tags.has("barro") and barro.modificadores.has("ralentiza"), "barro: líquido, con las etiquetas agua, tierra y barro, y ralentiza")
-	_ok(magma.rune_type == Runes.Type.ELEMENT_MAGMA and barro.rune_type == Runes.Type.ELEMENT_BARRO and Runes.Type.ELEMENT_TIME < Runes.Type.ELEMENT_MAGMA, "sus tipos están AL FINAL del enum (no mueven los de los .tres ya guardados)")
+	_ok(natura.estado == "liquido" and natura.tags.has("agua") and natura.tags.has("tierra") and natura.tags.has("naturaleza") and natura.modificadores.has("veneno") and natura.modificadores.has("veneno_dps"), "naturaleza: líquido, con las etiquetas agua, tierra y naturaleza, y envenena (reusa Hechizo.veneno)")
+	_ok(magma.rune_type == Runes.Type.ELEMENT_MAGMA and natura.rune_type == Runes.Type.ELEMENT_NATURALEZA and Runes.Type.ELEMENT_TIME < Runes.Type.ELEMENT_MAGMA, "sus tipos están AL FINAL del enum (no mueven los de los .tres ya guardados)")
+	# 6/11: naturaleza reaprovecha el veneno del chamán: el hechizo construido lleva `veneno` > 0, que es lo que Combate3D.golpe mira para envenenar.
+	var hn: Hechizo = Hechizo.construir(natura, {})
+	_ok(hn.elemento == "naturaleza" and hn.veneno > 0.0 and hn.veneno_dps > 0.0, "el hechizo de naturaleza envenena (Hechizo.veneno %.1f s a %.1f/s)" % [hn.veneno, hn.veneno_dps])
 
 
 ## --- 4. LOS GLIFOS VAN AL PRIMER HUECO LIBRE ---
@@ -212,7 +215,7 @@ func _lanzar(l: Lanzador3D) -> void:
 	l.place_element("tierra")
 	l.add_sigil(Grimorio.dir_corona(0), "flecha")
 	l._preparado = {}
-	_ok(l._preparar_pagina(0) and (l._preparado["hechizo"] as Hechizo).elemento == "barro", "agua + tierra: sale barro")
+	_ok(l._preparar_pagina(0) and (l._preparado["hechizo"] as Hechizo).elemento == "naturaleza", "agua + tierra: sale naturaleza")
 	l.clear_sequence()
 	l.place_element("agua")
 	l.place_element("viento")

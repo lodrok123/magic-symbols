@@ -5,7 +5,7 @@ extends Node
 ##
 ## Se dibuja con el ratón en los dos círculos de ABAJO: el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Lo reconocido se coloca solo en el
 ## círculo mágico de ARRIBA: un sello en el medallón 1 o 2 (el tercero sustituye al más antiguo) y un glifo en el primer hueco libre de la corona.
-## Fuego + agua y tierra + viento se anulan; agua + viento = hielo, fuego + viento = rayo, fuego + tierra = magma, agua + tierra = barro.
+## Fuego + agua y tierra + viento se anulan; agua + viento = hielo, fuego + viento = rayo, fuego + tierra = magma, agua + tierra = naturaleza (veneno).
 ## Las medidas de todo (círculo mágico, medallones, huecos, zonas) están en `LIBROS["avanzado"]` de `presentacion/ui/spellbook.gd`: se ajustan ahí y se vuelve a abrir.
 ##
 ## Sin lanzador del juego: la página es la de un `Grimorio` pelado (no lanza nada ni gasta tinta); el resumen de arriba sale de él. Para probar el LANZAMIENTO (que los

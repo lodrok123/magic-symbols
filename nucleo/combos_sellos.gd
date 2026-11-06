@@ -21,15 +21,15 @@ const TABLA: Dictionary = {
 	"agua|viento": "hielo",
 	"fuego|viento": "rayo",
 	"fuego|tierra": "magma",
-	"agua|tierra": "barro",
+	"agua|tierra": "naturaleza",     # 6/11: era «barro»; Pablo lo cambió por naturaleza para reaprovechar el veneno de los goblins
 }
 
-## La runa de cada derivado. Hielo y rayo ya existían como sellos dibujables; magma y barro son provisionales (ver sus .tres).
+## La runa de cada derivado. Hielo y rayo ya existían como sellos dibujables; magma y naturaleza son provisionales (ver sus .tres).
 const RUNAS: Dictionary = {
 	"hielo": preload("res://nucleo/ice_rune.tres"),
 	"rayo": preload("res://nucleo/lightning_rune.tres"),
 	"magma": preload("res://nucleo/magma_rune.tres"),
-	"barro": preload("res://nucleo/barro_rune.tres"),
+	"naturaleza": preload("res://nucleo/naturaleza_rune.tres"),
 }
 
 ## Estados de una página con dos sellos (`de_ficha`).

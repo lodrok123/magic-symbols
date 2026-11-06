@@ -46,7 +46,7 @@ const PILA_DEFECTO: int = 9
 
 const ETIQUETAS: Array = ["rayo", "fuego", "hielo", "agua", "viento", "tierra"]
 ## Elementos que nacen de una pareja de sellos (`CombosSellos`) y no se dibujan: `elemento_de` los reconoce antes que a sus padres.
-const DERIVADOS: Array = ["magma", "barro"]
+const DERIVADOS: Array = ["magma", "naturaleza"]
 
 ## --- Categorías de la bolsa (Fase 14.3) ---
 ## La bolsa ordena SIEMPRE por categoría: primero los componentes (ingredientes), luego las pociones, al final los objetos clave (llaves
@@ -240,7 +240,7 @@ static func descripcion(id: String) -> String:
 static func elemento_de(rune_data: RuneData) -> String:
 	if rune_data == null:
 		return ""
-	# 6/11/2026 (libro avanzado): un derivado de pareja de sellos (magma, barro) lleva las etiquetas de sus dos padres («fuego, tierra»); sin esta mirada previa
+	# 6/11/2026 (libro avanzado): un derivado de pareja de sellos (magma, naturaleza) lleva las etiquetas de sus dos padres («fuego, tierra»); sin esta mirada previa
 	# el bucle de abajo devolvería el primero que encuentre (fuego) y el hechizo de magma saldría como fuego. No se añaden a ETIQUETAS: esa lista también
 	# indexa las tablas de plantas (PLANTAS, reacciones) y un id nuevo ahí rompería sus pruebas.
 	for d in DERIVADOS:

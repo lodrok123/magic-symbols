@@ -213,7 +213,7 @@ Los sellos que se dibujan son **cuatro: fuego, agua, tierra y viento**. **Hielo 
 | agua + viento | **HIELO** ❄ | sólido | `helada` | congela | la runa copo queda anotada |
 | fuego + viento | **RAYO** ⚡ (tormenta: el aire cargado) | energía | electrifica mojado | aturde, salta | la runa zigzag queda anotada; «rayo natural» |
 | fuego + tierra | **MAGMA** | plasma + sólido al enfriar | `lava` 8 s → roca | quema fuerte, atrapa al enfriar | puente de roca sobre agua |
-| agua + tierra | **BARRO** | líquido espeso | `barro` (×0,5, no conduce) | atrapa, apaga, aísla del rayo | el hielo lo vuelve firme |
+| agua + tierra | **NATURALEZA** (decisión de Pablo 6/11: antes «barro», con pocas aplicaciones) | líquido | — | envenena (`Hechizo.veneno`, el mismo del chamán) y ralentiza (raíces) | reaprovecha el veneno, la bola y la nube de los goblins |
 
 **Regla de uso de la runa descubierta (decisión para Pablo):** una vez descubierto el hielo, ¿se puede trazar el copo directamente en el núcleo como un sello más (gastando un solo hueco) o siempre hay que dibujar agua + viento? Propongo **sí, directamente**: así el nivel 3 cabe en dos huecos (copo + fuego) y la progresión es «descubrir runas», no «dibujar más».
 
@@ -249,7 +249,7 @@ Hielo + rayo es el único par de dos runas descubiertas que propongo; el resto d
 | fuego + rayo | **explosión** | energía, un solo pulso en área | `quemada` en el radio | daño alto en área, empuja, prende | rompe muros agrietados; mejor hechizo de área puro |
 | fuego + hielo | **niebla** | gas (lento, denso) | nada | ciega: los enemigos pierden a la jugadora; apaga lo que arde | sigilo; cruzar salas con arqueros |
 | fuego + viento | **llamarada** | gas + prende | `quemada` por donde pasa | prende y empuja; se propaga por hierba | limpiar hierba en línea; viento que lleva el fuego lejos |
-| agua + tierra | **barro** | líquido espeso | `barro` (ralentiza ×0,5, no conduce) | atrapa 2 s, apaga, aísla del rayo | frenar oleadas; el hielo lo vuelve suelo firme |
+| agua + tierra | **naturaleza** (antes barro) | líquido | — | envenenado 4 s a 3/s y ralentizado 2 s | daño sostenido sin gastar más tinta; reusa `envenenado` de Combate3D |
 | agua + rayo | **tormenta de charco** | líquido + energía | `electrificada` larga (10 s) | moja y aturde en cadena a todos los que pisan | trampa de suelo preparada |
 | agua + hielo | **granizo** | energía en arco (lluvia) | `helada` en el área | daño de área y congela | hielo a distancia sin línea de visión |
 | agua + viento | **hielo** (Pablo) | sólido | `helada` | congela; crea puente | la forma de obtener hielo antes de tener su sello |
@@ -288,7 +288,7 @@ Actualizada el 6/11 a **4 elementos base + 4 derivados** (§5.2). Para arte: un 
 | **hielo** | agua + viento | celeste | congelado 1,5 s (hoy) | helada: puente, resbala (hoy) | congelado se puede **romper** (B1) |
 | **rayo** | fuego + viento | amarillo/violeta | aturdido 1,2 s (hoy) | electrificada 6 s sobre mojada (A5) | salta al vecino a ≤ 4,5 u (hoy) |
 | **magma** | fuego + tierra | naranja oscuro | quemado fuerte + atrapado al enfriar | lava 8 s → roca (nuevo suelo) | hereda fuego y tierra |
-| **barro** | agua + tierra | marrón | embarrado: atrapado 2 s, apagado, aislado del rayo | barro: ×0,5 velocidad, no conduce | hereda agua y tierra |
+| **naturaleza** | agua + tierra | verde | envenenado 4 s (3/s) y ralentizado 2 s | — (sin estado de suelo propio) | hereda agua y tierra; antes era barro |
 
 ### 6.2 Elemento que LLEGA × estado que TIENE el enemigo
 
