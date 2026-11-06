@@ -191,8 +191,27 @@ func _huecos_y_variacion() -> void:
 	_ok("3 la densidad por casilla varía más que con la hierba de antes (CV)", float(p[0]) > float(a[0]) * 1.1, "CV %.2f antes → %.2f ahora · media %.1f → %.1f matojos/casilla" % [a[0], p[0], a[3], p[3]])
 	var ep: Dictionary = hp.estadisticas()
 	var ea: Dictionary = ha.estadisticas()
-	_ok("3 y no cuesta más: no hay más copias ni triángulos que antes", int(ep["matojos"]) + int(ep["tarjetas"]) <= int(ea["matojos"]) + int(ea["tarjetas"]) and int(ep["triangulos"]) <= int(ea["triangulos"]) * 1.05,
+	# 2.ª pasada (más contraste): los corros van ×2,2 de tupidos, así que el coste puede subir hasta un 35 % sobre la hierba de antes (los topes por bloque mandan)
+	_ok("3 y el coste queda acotado: como mucho +35 % de copias y de triángulos sobre la hierba de antes", int(ep["matojos"]) + int(ep["tarjetas"]) <= (int(ea["matojos"]) + int(ea["tarjetas"])) * 1.35 and int(ep["triangulos"]) <= int(ea["triangulos"]) * 1.35,
 		"copias %d → %d, triángulos %d → %d" % [int(ea["matojos"]) + int(ea["tarjetas"]), int(ep["matojos"]) + int(ep["tarjetas"]), ea["triangulos"], ep["triangulos"]])
+	# el escalón: en el corazón de un corro, los matojos son ≥ 1,6× más altos que en la hierba rala del llano (datos de las tablas)
+	_ok("3 el escalón corro/llano está en las tablas: altura ×%.2f en el corro frente a ×%.2f en lo ralo (≥ 1,6)" % [float(Hierba3D.AGRUPADO["mata_alto_centro"]) * float((_k("HIERBA_RALA") as Dictionary)["alto_corro"]), float(Hierba3D.AGRUPADO["mata_alto_claro"]) * float((_k("HIERBA_RALA") as Dictionary)["alto_rala"])],
+		float(Hierba3D.AGRUPADO["mata_alto_centro"]) * float((_k("HIERBA_RALA") as Dictionary)["alto_corro"]) >= 1.6 * float(Hierba3D.AGRUPADO["mata_alto_claro"]) * float((_k("HIERBA_RALA") as Dictionary)["alto_rala"]) and float(Hierba3D.AGRUPADO["mata_densidad_x"]) >= 2.0)
+	# las calvas tienen forma: hay calvas y, de las casillas calvas, la mayoría tiene otra calva pegada (manchas, no casillas sueltas)
+	var calvas: int = 0
+	var con_vecina: int = 0
+	var lado: int = int(_t.get("_lado"))
+	for z in range(lado):
+		for x in range(lado):
+			if Hierba3D.es_calva(Vector2i(x, z), 7):
+				calvas += 1
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					if Hierba3D.es_calva(Vector2i(x, z) + d, 7):
+						con_vecina += 1
+						break
+	_ok("3 las calvas son manchas con forma (la mayoría de las casillas calvas tiene otra calva pegada)", calvas > lado * lado * 0.05 and con_vecina >= calvas * 0.8, "%d calvas, %d con vecina" % [calvas, con_vecina])
+	var ms: Material = _t.get("_mat_suelo") as Material
+	_ok("3 el suelo lleva la textura de corros y el tinte (SUELO_CORROS)", ms is ShaderMaterial and (ms as ShaderMaterial).get_shader_parameter("corros") is Texture2D and float((ms as ShaderMaterial).get_shader_parameter("fuerza_corro")) > 0.0)
 	# variación: con procedural hay MultiMesh de las 3 variantes de matojo; sin él, solo "briznas"
 	var variantes_p: Dictionary = {}
 	var variantes_a: Dictionary = {}
@@ -207,7 +226,7 @@ func _huecos_y_variacion() -> void:
 	_ok("4 los matojos salen de %d mallas distintas (TOPES.variantes)" % int(Hierba3D.TOPES["variantes"]), variantes_p.size() == int(Hierba3D.TOPES["variantes"]), str(variantes_p.keys()))
 	_ok("4 con procedural = false es la hierba de antes: una sola malla", variantes_a.size() == 1 and variantes_a.has("briznas"), str(variantes_a.keys()))
 	_ok("4 el shader de las briznas lleva la fase propia del balanceo (INSTANCE_CUSTOM.a)", Hierba3D.CODIGO_MATOJO.contains("INSTANCE_CUSTOM.a * 6.2832"))
-	_ok("4 la tabla AGRUPADO tiene calvas, densidad, alto, ancho, inclinación y tono", ["p_calva", "tam_densidad", "densidad_min", "alto_min", "alto_max", "ancho_min", "ancho_max", "inclinacion_max", "tono"].all(func(k: String) -> bool: return Hierba3D.AGRUPADO.has(k)))
+	_ok("4 la tabla AGRUPADO tiene calvas, densidad, alto, ancho, inclinación y tono", ["tam_calva", "umbral_calva", "mata_alto_centro", "mata_alto_claro", "mata_densidad_x", "tam_densidad", "densidad_min", "alto_min", "alto_max", "ancho_min", "ancho_max", "inclinacion_max", "tono"].all(func(k: String) -> bool: return Hierba3D.AGRUPADO.has(k)))
 	hp.queue_free()
 	ha.queue_free()
 	await process_frame
@@ -243,6 +262,28 @@ func _adornos() -> void:
 			if not alguna:
 				fuera += 1
 	_ok("5 ningún adorno fuera de un corro", fuera == 0, "%d fuera" % fuera)
+	# 2.ª pasada: grupos marcados (≥ n_min piedras juntas, ninguna suelta), separados, y flores en los bordes de los corros
+	var piedras: Array = []
+	for p in pos:
+		piedras.append(Vector2((p as Vector3).x, (p as Vector3).z))
+	var sueltas: int = 0
+	for q in piedras:
+		var vecinas: int = 0
+		for o in piedras:
+			if o != q and (o as Vector2).distance_to(q as Vector2) < 2.0:
+				vecinas += 1
+		if vecinas < 1:
+			sueltas += 1
+	_ok("5 ningún adorno suelto: todos tienen otro del grupo a menos de 2 u", sueltas == 0, "%d sueltos de %d" % [sueltas, piedras.size()])
+	var borde: Array = _t.get("_adornos_borde_pos")
+	_ok("5 hay flores o matas bajas en los bordes de los corros, sin pasar del tope", borde.size() >= 5 and borde.size() <= int(tabla["borde_max"]), "%d (tope %d)" % [borde.size(), tabla["borde_max"]])
+	var mal_borde: int = 0
+	for p in borde:
+		var m: float = float(_t.call("_mata_hierba", (p as Vector3).x, (p as Vector3).z))
+		var rango: Vector2 = tabla["borde_mata"]
+		if m < rango.x - 1.0e-4 or m > rango.y + 1.0e-4:
+			mal_borde += 1
+	_ok("5 y todas están en el borde del corro (campo de matas dentro de borde_mata)", mal_borde == 0, "%d fuera" % mal_borde)
 	# con el interruptor apagado vuelve la probabilidad pareja de antes
 	_t.set("detalle_en_bloques", false)
 	var p0: float = float(_t.call("_prob_adorno", Vector2i(3, 3)))

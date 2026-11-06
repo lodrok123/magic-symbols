@@ -62,15 +62,19 @@ extends Node3D
 ## Triángulos: un matojo son `briznas × 3` (cada brizna 2 tramos = 3 triángulos); una tarjeta o una flor, 2. A tope: 220 × 18 + 220 × 2 + 40 × 2 ≈ 4,5 k por bloque,
 ## ×25 bloques visibles ≈ 112 k (docs/HIERBA_OPTIMIZACION.md pedía < 150 k).
 const TOPES: Dictionary = {
-	"matojos_por_bloque": 220,
-	"tarjetas_por_bloque": 220,
+	"matojos_por_bloque": 300,      ## 2.ª pasada (Pablo: «más contraste»): los corros van ×2,2 de tupidos; 300 × 15 + 300 × 2 + 40 × 2 ≈ 5,2 k triángulos, ×25 bloques ≈ 130 k
+	"tarjetas_por_bloque": 300,
 	"flores_por_bloque": 40,
-	"triangulos_por_bloque": 5000,
+	"triangulos_por_bloque": 6000,
 	"variantes": 3,                 ## mallas de matojo distintas (4, 5 y 6 briznas, cada una con su curva); con `procedural` false, solo la de siempre
 }
 ## AGRUPADO: lo que rompe la planicie DENTRO de las matas (el campo de matas con claros lo da quien siembra: `_mata_hierba` de la maqueta).
 const AGRUPADO: Dictionary = {
-	"p_calva": 0.14,                ## probabilidad de que una casilla de hierba salga CALVA (sin matojos ni tarjetas ni flores): huecos entre corros
+	"tam_calva": 2.0,               ## casillas: tamaño del ruido de las CALVAS (manchas de 3-6 casillas sin matojos, tarjetas ni flores; antes, una casilla suelta al 14 %)
+	"umbral_calva": 0.64,           ## valor del ruido a partir del cual la casilla es calva (más alto = calvas más pequeñas y escasas)
+	"mata_alto_centro": 1.9,        ## 2.ª pasada: en el corazón de un corro los matojos son ×1,9 de altos…
+	"mata_alto_claro": 0.55,        ## …y en el claro ×0,55 (antes 1,3 y 0,8: `MATA_ALTURA_CENTRO/CLARO`, que siguen para `procedural` false)
+	"mata_densidad_x": 2.2,         ## …y la rejilla es ×2,2 de tupida (antes 1,7 `MATA_MULT_DENSIDAD`); con los topes por bloque
 	"tam_densidad": 3.1,            ## tamaño (u) del ruido de densidad: dentro de una mata, unas zonas más tupidas que otras
 	"densidad_min": 0.45,           ## fracción de la rejilla que sobrevive donde el ruido de densidad vale 0 (en 1 sobrevive todo)
 	"rejilla_x": 1.3,               ## la rejilla de briznas y tarjetas es 1,3× más tupida: las calvas y el ruido quitan ≈ un tercio, así el presupuesto de copias queda como antes, pero en corros
@@ -506,19 +510,21 @@ func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
 	var con_matas: bool = _matas.is_valid()
 	var casillas: Dictionary = acc["casillas"]
 	casillas[c] = 0
-	# Calva: la casilla entera sin detalle (huecos entre corros). Se decide antes de nada para que el resto del azar no cambie. En el corazón de una mata
+	# Calva: la casilla entera sin detalle (huecos entre corros), por ruido (manchas con forma, `es_calva`). En el corazón de una mata
 	# (matas ≥ 0,98: también la casilla que la naturaleza acaba de germinar) no hay calvas.
-	var r_calva: float = rng.randf()
-	if procedural and r_calva < float(AGRUPADO["p_calva"]):
+	if procedural and es_calva(c, semilla):
 		if not con_matas or float(_matas.call(rc.get_center().x, rc.get_center().y)) < 0.98:
 			return
+	var alto_centro: float = float(AGRUPADO["mata_alto_centro"]) if procedural else MATA_ALTURA_CENTRO
+	var alto_claro: float = float(AGRUPADO["mata_alto_claro"]) if procedural else MATA_ALTURA_CLARO
+	var dens_mata: float = (float(AGRUPADO["mata_densidad_x"]) if procedural else MATA_MULT_DENSIDAD) if con_matas else 1.0
 	var matojos: Array = acc["matojos"]
 	var tintes_m: Array = acc["tintes_m"]
 	var variante: Array = acc["variante"]
 	var huella: int = int(acc["huella"])
 	# Briznas: rejilla con jitter; en el borde (peso 0,3-0,7) más altas, la "franja" que pisa el camino.
 	var rej_x: float = float(AGRUPADO["rejilla_x"]) if procedural else 1.0
-	var paso: float = 1.0 / sqrt(maxf(densidad * (MATA_MULT_DENSIDAD if con_matas else 1.0) * rej_x, 0.01))
+	var paso: float = 1.0 / sqrt(maxf(densidad * dens_mata * rej_x, 0.01))
 	var n_rej: int = ceili(casilla / paso)
 	for iz in range(n_rej):
 		for ix in range(n_rej):
@@ -559,7 +565,7 @@ func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
 				tinte = Color(v0, v0 * (0.97 + rng.randf() * 0.06), v0 * (0.95 + rng.randf() * 0.08), 1.0)
 				variante.append(0)
 			if con_matas:
-				var k: float = lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m)
+				var k: float = lerpf(alto_claro, alto_centro, m)
 				s *= k
 				s_a *= k
 			if _alto.is_valid():
@@ -574,7 +580,7 @@ func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
 	if _quad_tarjeta != null:
 		var trs: Array = acc["tarjetas"]
 		var tintes: Array = acc["tintes_t"]
-		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas * (MATA_MULT_DENSIDAD if con_matas else 1.0) * rej_x, 0.01))
+		var paso_t: float = 1.0 / sqrt(maxf(densidad_tarjetas * dens_mata * rej_x, 0.01))
 		var n_rt: int = ceili(casilla / paso_t)
 		for iz in range(n_rt):
 			for ix in range(n_rt):
@@ -596,7 +602,7 @@ func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
 				var borde2: float = 1.0 - absf(w2 - 0.5) * 2.0
 				var s2: float = alto_tarjeta * ((0.7 + rng.randf() * 0.6) if procedural else (0.8 + rng.randf() * 0.45)) * (1.0 + borde2 * 0.35)
 				if con_matas:
-					s2 *= lerpf(MATA_ALTURA_CLARO, MATA_ALTURA_CENTRO, m2)
+					s2 *= lerpf(alto_claro, alto_centro, m2)
 				if _alto.is_valid():
 					s2 *= float(_alto.call(x2, z2))
 				trs.append(Transform3D(Basis.IDENTITY.scaled(Vector3(s2, s2, s2)), Vector3(x2, _y, z2)))
@@ -627,6 +633,13 @@ func _sembrar_casilla(c: Vector2i, rect: Rect2, acc: Dictionary) -> void:
 			flores.append(Transform3D(bf.scaled(Vector3(sf, sf, sf)), p))
 			tintes_f.append(col)
 	acc["huella"] = huella
+
+
+## ¿La casilla `c` es CALVA (mancha sin detalle)? Ruido de valor por casilla (`AGRUPADO.tam_calva`, `umbral_calva`), con la semilla: igual en cada siembra y horneado.
+## Estática para que el suelo de la maqueta pueda pintar la calva con otro tono.
+static func es_calva(c: Vector2i, sem: int) -> bool:
+	var n: float = HorneadorNivel._vruido((Vector2(c) + Vector2(0.5, 0.5)) / float(AGRUPADO["tam_calva"]), sem + 9)
+	return n > float(AGRUPADO["umbral_calva"])
 
 
 ## Ruido de densidad (0..1 → `densidad_min`..1): el mismo ruido de valor del horneador (`HorneadorNivel._vruido`), con la semilla de la hierba. Determinista por (x, z).
