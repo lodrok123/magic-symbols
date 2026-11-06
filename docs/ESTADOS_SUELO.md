@@ -404,6 +404,33 @@ El viento quita todo lo que pueda de una pasada (mojada, electrificada y quemada
 
 ---
 
+## 4 quater (6/11): magma y naturaleza en el suelo (R1 de `docs/REACCIONES_ENTORNO_2026-11-06.md`)
+
+Misma mecánica que §4 ter: cada elemento es una acción (`ReaccionesSuelo3D.ACCION_DE`) con filas en `EstadosSuelo3D.TRANSICIONES`, y el material de la casilla (`REACCION_MATERIAL`) decide si actúa.
+
+| Elemento (acción) | Casilla | Resultado | Rótulo de la previsión |
+|---|---|---|---|
+| Magma (`magma`) | agua (material agua) | escombro 6 s (costra: bloquea proyectiles, frena) + vapor 4 s | Costra |
+| Magma | suelo MOJADO | quita la mojada; escombro + vapor | Costra |
+| Magma | suelo helado | funde como el fuego: quita la helada, deja mojada + vapor | Derrite |
+| Magma | hierba / madera | prende como el fuego (`puede_prender(c, "magma")`; la hierba la prende el autómata de la maqueta, `prever_hierba`) | Prende |
+| Magma | roca, tierra seca, arena seca | nada (el calor no deja estado) | — |
+| Naturaleza (`brota`) | hierba | brota como la hierba fina regada (`prever_hierba`) | Brota |
+| Naturaleza | tierra o arena MOJADA | germina: `poner_material(c, "hierba")`; la casilla sigue mojada | Germina |
+| Naturaleza | tierra o arena seca, roca, agua | nada | — |
+| Rayo | roca (seca o mojada) | nada: la roca no conduce (`REACCION_MATERIAL["rayo"]["roca"].actua = false`) | — |
+| Hielo | agua | hiela (ya existía) | Hiela |
+
+Las filas nuevas usan dos columnas opcionales: `clave_material` (la fila solo encaja si la tabla de materiales admite esa clave para el material de la casilla: `costra` en agua, `germina` en tierra/arena) y `material` (el material que deja `aplicar`).
+
+**Topes (principio LEGIBLE y rendimiento, Pablo 6/11).** Un hechizo no moja ni quema todo el escenario, y los estados viejos se van retirando poco a poco:
+- `ReaccionesSuelo3D.MAX_CASILLAS_POR_IMPACTO` (casillas que marca UN impacto, las más cercanas al punto primero; sin radio, una): agua 9, hielo 9, viento 9, fuego 4, magma 4, rayo 4, tierra 4, naturaleza = `MAX_BROTES_HECHIZO` = 6. La lista la da `casillas_de_impacto(elemento, punto, radio)`; `aplicar` y la previsión deben usar esa misma.
+- `EstadosSuelo3D.MAX_CASILLAS_VIVAS` (casillas con cada estado a la vez): mojada 60, helada 40, escombro 20, vapor 20, electrificada 30. Al superarlo, `poner` retira antes la casilla con MENOS reloj (la más vieja); lo que no caduca no se desaloja. `avanzar` desaloja además hasta `DESALOJO_POR_TICK` = 1 casilla por estado y tick si sobran, para que sea gradual.
+- Propagación del autómata de la maqueta: nunca más de `PROPAGA_POR_TICK` = 2 casillas nuevas por tick (la que no pudo reintenta en el siguiente) y siempre dentro de `MAX_ARDIENDO`. Antes de contagiar pregunta `propaga_fuego(c)`: la hierba contagia; la madera arde pero no pasa el fuego.
+- `Puzle3D.ESTADOS_CASILLA` acepta `escombro` y `vapor`: `si=casilla(x,y).escombro`.
+
+Prueba: `herramientas/prueba_reacciones_entorno_suelo.gd`.
+
 ## 5. Lo que el 3D tiene y el 2D no: solo aspecto
 
 - **Pisado (canal A)** y **hierba que se aparta** de la chibi (D4): **solo visuales**. No cambian nada del

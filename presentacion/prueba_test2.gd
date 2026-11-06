@@ -120,6 +120,7 @@ const SOMBRA_CONTACTO: Dictionary = {
 	"cristal_sanctuario": 0.6, "estandarte_goblin": 0.3, "pilar": 0.5, "raiz_mundo": 0.4, "roca_musgosa": 0.45, "rocas_pequenas": 0.36,
 	"tienda_goblin": 0.9, "torre_goblin": 0.9, "tinaja_ruina": 0.65, "tronco_musgoso": 0.46, "tronco_resina": 0.35,
 	"tronco_sin_resina": 0.32, "troncos_apilados": 0.38,
+	"nido": 0.3,     # 5/11: el nido de Meshy (ancho ~0,5) se apoya en el suelo; la colmena cuelga de un árbol y no lleva elipse
 }
 
 ## Estado de la hierba por casilla (ESTADOS_SUELO.md §1.2). Una casilla sin entrada es hierba FINA.
@@ -5050,9 +5051,13 @@ func _impacto_en_hierba(elemento: String, c: Vector2i) -> void:
 func prever_hierba(elemento: String, c: Vector2i) -> String:
 	var f: int = int((_hf[c] as Dictionary)["fase"]) if _hf.has(c) else 0
 	match elemento:
-		"fuego":
+		"fuego", "magma":
+			# R1 (6/11): la magma prende la hierba como el fuego (misma regla; `Terreno3D.estados.puede_prender` ya lo permite por material).
 			if (f == 0 or f == Fase.CRECIDA) and _puede_prender(c):
 				return "prende"
+		"naturaleza":
+			if f == 0:
+				return "brota"          # R1: lo mismo que el agua sobre hierba corta; si ya arde o está crecida, nada
 		"rayo":
 			if f == 0 or f == Fase.CRECIDA or f == Fase.PRENDIENDO:
 				return "arde"
@@ -5193,7 +5198,8 @@ func _avanzar_estado(dt: float) -> void:
 				ceniza.append(c)
 		# Contagio por frente: un círculo que crece desde la casilla; prende la primera hierba que toque y se acaba.
 		# 6.9a: el fuego salta solo a las 4 vecinas (sin diagonales) y espera T_SALTO s tras prender antes de contagiar.
-		if bool(d["contagia"]) and float(d["t"]) >= T_SALTO:
+		# R1: antes de contagiar se pregunta al material (`propaga_fuego`): la hierba propaga; la madera arde sola y no pasa el fuego a la vecina.
+		if bool(d["contagia"]) and float(d["t"]) >= T_SALTO and Terreno3D.estados.propaga_fuego(c):
 			d["frente"] = maxf(float(d["frente"]) + dt * FRENTE_VEL, 1.0)   # las vecinas están a 1: alcanzable ya
 			var fr: float = float(d["frente"])
 			if fr > FRENTE_MAX:
@@ -5207,6 +5213,8 @@ func _avanzar_estado(dt: float) -> void:
 					continue
 				var mejor := Vector2i(-1, -1)
 				var dm: float = 1.0e9
+				if prender.size() >= EstadosSuelo3D.PROPAGA_POR_TICK:
+					continue         # R1: tope de propagación por tick; `contagia` sigue true y esta casilla reintenta en el siguiente (el frente no se pierde)
 				for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 					var q: Vector2i = c + v
 					var dist: float = Vector2(v).length()

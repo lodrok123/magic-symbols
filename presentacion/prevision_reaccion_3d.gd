@@ -56,6 +56,8 @@ const ESTILO: Dictionary = {
 	"limpia": ["Limpia", Color(0.8, 0.95, 0.88)],              # B3: el viento quita lo electrificado o lo quemado del suelo
 	"escombro": ["Escombro", Color(0.78, 0.53, 0.35)],         # B3: la tierra deja escombro (ralentiza, sólido para proyectiles)
 	"vapor": ["Vapor", Color(0.92, 0.92, 0.95)],               # B3: el agua sobre lo quemado (o el calor sobre lo mojado) suelta una nube
+	"germina": ["Germina", Color(0.45, 0.78, 0.35)],           # R1: la naturaleza sobre tierra o arena mojada la convierte en hierba
+	"costra": ["Costra", Color(0.55, 0.38, 0.30)],             # R1: la magma sobre agua o casilla mojada deja una costra (escombro) y vapor
 	"electrifica": ["Electrifica", Color(1.0, 0.92, 0.3)],     # B3: el rayo sobre una casilla mojada
 	"descarga": ["Descarga", Color(1.0, 0.92, 0.3)],           # B5: el rayo que cruza el charco de un hechizo de agua descarga sobre toda la zona (el mismo amarillo eléctrico que «Electrocuta»)
 }

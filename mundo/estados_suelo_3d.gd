@@ -76,10 +76,18 @@ const TRANSICIONES: Array = [
 	{"accion": "escombro", "con": "", "sin": "", "quita": [], "pone": ["escombro"], "efecto": ""},
 	# B3 · RAYO: sobre casilla MOJADA electrifica (6 s); sobre seca, nada (no hay fila). Es lo mismo que hace `Lanzador3D.electrificar_celda` (que además cubre el agua).
 	{"accion": "descarga", "con": "mojada", "sin": "", "quita": [], "pone": ["electrificada"], "efecto": "", "mantiene": true},
+	# 6/11 (R1) · MAGMA: calor que además deja COSTRA (escombro 6 s: bloquea proyectiles y frena) si la casilla está mojada o es agua. Sobre hielo funde como el fuego; en el resto no deja estado
+	# (prender hierba y madera lo decide `REACCION_MATERIAL` + el autómata de la maqueta, como con el fuego).
+	{"accion": "magma", "con": "helada", "sin": "", "quita": ["helada"], "pone": ["mojada", "vapor"], "efecto": ""},
+	{"accion": "magma", "con": "mojada", "sin": "", "quita": ["mojada"], "pone": ["escombro", "vapor"], "efecto": "vapor", "rotulo": "costra"},
+	{"accion": "magma", "con": "", "sin": "", "quita": [], "pone": ["escombro", "vapor"], "efecto": "vapor", "rotulo": "costra", "clave_material": "costra"},      # casilla de AGUA (material agua)
+	# 6/11 (R1) · NATURALEZA: en tierra o arena MOJADA germina (el material pasa a hierba y la casilla sigue mojada). Sin mojar, o en roca/agua (`actua` false), no hay fila que encaje: no hace nada.
+	# La hierba de la maqueta brota por `prever_hierba`, no por aquí.
+	{"accion": "brota", "con": "mojada", "sin": "", "quita": [], "pone": ["mojada"], "efecto": "", "rotulo": "germina", "clave_material": "germina", "material": "hierba"},
 ]
 
 ## B3: de qué ELEMENTO viene cada acción (para consultar `REACCION_MATERIAL`, que habla de elementos). Una acción que no está aquí no mira el material.
-const ELEMENTO_DE_ACCION: Dictionary = {"agua": "agua", "frio": "hielo", "calor": "fuego", "sopla": "viento", "escombro": "tierra", "descarga": "rayo"}
+const ELEMENTO_DE_ACCION: Dictionary = {"agua": "agua", "frio": "hielo", "calor": "fuego", "sopla": "viento", "escombro": "tierra", "descarga": "rayo", "magma": "magma", "brota": "naturaleza"}
 
 ## B4 (6/11) · MATERIAL por casilla. Los valores posibles:
 const MATERIALES: PackedStringArray = ["hierba", "roca", "tierra", "madera", "agua", "arena"]
@@ -101,8 +109,26 @@ const REACCION_MATERIAL: Dictionary = {
 	},
 	"agua": {"arena": {"seca_x": 2.0}},
 	"tierra": {"agua": {"actua": false}},
-	"hielo": {"agua": {"hiela": true}},
+	"hielo": {"agua": {"hiela": true}, "hierba": {"hiela": true}, "tierra": {"hiela": true}, "arena": {"hiela": true}},
+	# 6/11 (R1): el rayo solo actúa si la casilla está mojada (fila `descarga`) y la roca no conduce; el agua sí (red electrificada).
+	"rayo": {"roca": {"actua": false}, "agua": {"conduce": true}},
+	# MAGMA: prende lo mismo que el fuego; sobre agua deja costra.
+	"magma": {
+		"hierba": {"prende": true, "propaga": true},
+		"madera": {"prende": true, "propaga": false},
+		"roca": {"prende": false}, "tierra": {"prende": false}, "arena": {"prende": false},
+		"agua": {"prende": false, "costra": true},
+	},
+	# NATURALEZA: germina en tierra/arena (si mojada), brota en hierba; roca y agua no la admiten.
+	"naturaleza": {"hierba": {"brota": true}, "tierra": {"germina": true}, "arena": {"germina": true}, "roca": {"actua": false}, "agua": {"actua": false}},
 }
+
+## 6/11 (R1, principio LEGIBLE y rendimiento): tope GLOBAL de casillas con cada estado. Al superarlo, `poner` retira antes la MÁS VIEJA (la que menos reloj le queda) y `avanzar` desaloja
+## hasta `DESALOJO_POR_TICK` de las que sobren por tick, para que el suelo se limpie poco a poco y no a golpe. Un estado sin tope (quemada, segada) o una casilla sin reloj (permanente) no se desaloja.
+const MAX_CASILLAS_VIVAS: Dictionary = {"mojada": 60, "helada": 40, "escombro": 20, "vapor": 20, "electrificada": 30}
+const DESALOJO_POR_TICK: int = 1
+## Casillas nuevas que puede prender/germinar la propagación del autómata de la maqueta en un tick (el resto espera al siguiente; nunca más de `MAX_ARDIENDO` encendidas a la vez).
+const PROPAGA_POR_TICK: int = 2
 
 ## Cuánto dura cada estado si quien lo pone no dice otra cosa (s; 0 = no caduca). El reloj es `Mundo3D._process` → `avanzar`.
 ## 27/10 (lote 3, cambio 1): el MOJADO se seca solo a los 20 s, lo mismo que el suelo que moja la simulación (`AguaSim3D.SECA_EN`).
@@ -170,6 +196,9 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 		push_warning("EstadosSuelo3D: estado desconocido «%s»" % estado)
 		return false
 	var d: Dictionary = _celdas.get(estado, {})
+	if si and not d.has(c):
+		_hacer_hueco(estado, c)      # tope global: antes de poner la nueva se retira la más vieja (puede cambiar `_celdas`, por eso se relee abajo)
+		d = _celdas.get(estado, {})
 	var inten: Dictionary = _intensidad.get(estado, {})
 	var queda: Dictionary = _queda.get(estado, {})
 	if si:
@@ -206,6 +235,33 @@ func poner(c: Vector2i, estado: String, si: bool, intensidad: float = 1.0, dura:
 	_celdas[estado] = d
 	_sucia = true
 	cambio.emit(c, estado, si)
+	return true
+
+
+## R1: si el estado está en su tope (`MAX_CASILLAS_VIVAS`), retira la casilla con MENOS reloj (la más vieja) para dejar hueco a `nueva`. Solo desaloja casillas que caducan.
+func _hacer_hueco(estado: String, nueva: Vector2i) -> void:
+	var tope: int = int(MAX_CASILLAS_VIVAS.get(estado, 0))
+	if tope <= 0:
+		return
+	while cuantas(estado) >= tope:
+		if not _desalojar_una(estado, nueva):
+			return
+
+
+func _desalojar_una(estado: String, salvo: Vector2i) -> bool:
+	var q: Dictionary = _queda.get(estado, {})
+	var peor := Vector2i(-1, -1)
+	var menos: float = INF
+	for c in q.keys():
+		if c == salvo or not tiene(c as Vector2i, estado):
+			continue
+		var r: float = float(q[c])
+		if r > 0.0 and r < menos:
+			menos = r
+			peor = c
+	if menos == INF:
+		return false
+	poner(peor, estado, false)
 	return true
 
 
@@ -283,6 +339,7 @@ func avanzar(dt: float) -> void:
 			ed.erase(c)
 	if estado_zona_en.is_valid():
 		_hielo_solo(dt)
+	_desalojo_gradual()
 	for estado in _queda.keys():
 		var q: Dictionary = _queda[estado]
 		var secado: float = float(SECADO.get(estado, 0.0))
@@ -299,6 +356,15 @@ func avanzar(dt: float) -> void:
 			if despues != "":
 				poner(c, despues, true)              # al_caducar: lo helado queda mojado (con la caducidad del mojado, `DURA`)
 			caducado.emit(c as Vector2i, String(estado))
+
+
+## R1: desalojo gradual de lo que sobre del tope (solo ocurre si algo bajó el tope o entró sin reloj): hasta `DESALOJO_POR_TICK` casillas por estado y tick.
+func _desalojo_gradual() -> void:
+	for estado in MAX_CASILLAS_VIVAS.keys():
+		var sobran: int = cuantas(String(estado)) - int(MAX_CASILLAS_VIVAS[estado])
+		for i in range(mini(sobran, DESALOJO_POR_TICK)):
+			if not _desalojar_una(String(estado), Vector2i(-9999, -9999)):
+				break
 
 
 ## F4: a qué velocidad corre el reloj de `estado` en `c` según la zona (1 = normal): el mojado se seca 1/`secado_x` veces más deprisa; lo helado con caducidad, 1/`hielo_dura_x`.
@@ -357,6 +423,9 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 				if not is_equal_approx(x, 1.0):
 					dura = float(DURA[MOJADA]) / maxf(x, 0.01)
 			algo = poner(c, String(e), true, 1.0, dura) or algo
+		if fila.has("material") and material_de(c) != String(fila["material"]):
+			poner_material(c, String(fila["material"]))     # R1: la naturaleza germina: la tierra pasa a ser hierba
+			algo = true
 		return {"cambio": algo, "efecto": String(fila["efecto"])}
 	return {"cambio": false, "efecto": ""}
 
@@ -383,6 +452,9 @@ func fila_para(c: Vector2i, accion: String) -> Dictionary:
 					break
 			if not alguno:
 				continue
+		# R1: la fila pide que el material de la casilla admita esa clave en la tabla (costra en agua, germina en tierra/arena).
+		if fila.has("clave_material") and not bool(reaccion(String(ELEMENTO_DE_ACCION.get(accion, "")), material_de(c), String(fila["clave_material"]), false)):
+			continue
 		return fila
 	return {}
 
@@ -395,7 +467,7 @@ func cambiaria(c: Vector2i, fila: Dictionary) -> bool:
 	for e in (fila["pone"] as Array):
 		if not tiene(c, String(e)):
 			return true
-	return false
+	return fila.has("material") and material_de(c) != String(fila["material"])
 
 
 ## B3 · ¿hay escombro (o lo que haga de él) que frene a quien pisa esta casilla? Producto de `FACTOR_VELOCIDAD` de los estados que tiene; 1 = normal.
@@ -451,8 +523,8 @@ func poner_material(c: Vector2i, material: String) -> bool:
 
 
 ## B4 · ¿puede el fuego ENCENDER esta casilla? Lo dice `REACCION_MATERIAL`: la hierba y la madera sí; roca, tierra, arena y agua no. La maqueta lo consulta en `_puede_prender`.
-func puede_prender(c: Vector2i) -> bool:
-	return bool(reaccion("fuego", material_de(c), "prende", false))
+func puede_prender(c: Vector2i, elemento: String = "fuego") -> bool:
+	return bool(reaccion(elemento, material_de(c), "prende", false))
 
 
 ## B4 · ¿lo que arde en esta casilla contagia a las vecinas? (la hierba sí; la madera arde sola). El autómata de la maqueta debería preguntarlo; hoy solo hay hierba.

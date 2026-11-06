@@ -481,7 +481,7 @@ static var _logro_en: Dictionary = {}                    ## nombre -> fotograma 
 const TERMINO_CASILLA: String = "casilla"
 ## F1: condición `tener.<objeto>` = hay al menos uno en la bolsa (`Estado.cuenta`). Palabra reservada, como `flag`.
 const TERMINO_TENER: String = "tener"
-const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua", "roca"]
+const ESTADOS_CASILLA: Array = ["mojada", "helada", "quemada", "electrificada", "segada", "agua", "roca", "escombro", "vapor"]
 ## Piezas que ya pone la maqueta por letra: la casilla de la pieza tiene que llevar esa letra.
 const LETRA_MAQUETA: Dictionary = {"tinaja": "u", "totem": "i", "emisor": "e", "brasero": "T", "seto": "z"}
 ## Trampas de pared (5/11): van en una casilla de MURO y miran a una casilla de suelo.

@@ -21,7 +21,15 @@ extends RefCounted
 
 ## Qué acción del estado es cada elemento. Agua, hielo y fuego son los canales de siempre (`_impacto_en_suelo`). 6/11 (bloque B3) el viento «sopla» (limpia), la tierra deja «escombro» y el
 ## rayo «descarga» (electrifica lo mojado): cada una tiene sus filas en `EstadosSuelo3D.TRANSICIONES`.
-const ACCION_DE: Dictionary = {"agua": "agua", "hielo": "frio", "fuego": "calor", "viento": "sopla", "tierra": "escombro", "rayo": "descarga"}
+const ACCION_DE: Dictionary = {"agua": "agua", "hielo": "frio", "fuego": "calor", "viento": "sopla", "tierra": "escombro", "rayo": "descarga", "magma": "magma", "naturaleza": "brota"}
+## 6/11 (R1) MAGMA y NATURALEZA. Magma = «calor» y, si la casilla está mojada o es agua, deja COSTRA (escombro 6 s + vapor); prende hierba y madera como el fuego (`REACCION_MATERIAL`, `puede_prender`).
+## Naturaleza = «brota»: en tierra/arena MOJADA germina (material → hierba, sigue mojada); en hierba brota (autómata de la maqueta, `prever_hierba`); en roca, agua o tierra seca no hace nada.
+## Cada una es una FILA de `EstadosSuelo3D.TRANSICIONES` (acciones «magma» y «brota»), no un `if`.
+
+## R1 · LEGIBLE (Pablo, 6/11): un impacto NO pinta todo el escenario. Máximo de casillas que marca UN impacto por elemento, las más cercanas al punto primero (`casillas_de_impacto`).
+## Un impacto sin radio (lo habitual: un proyectil) marca una sola. Los topes GLOBALES por estado están en `EstadosSuelo3D.MAX_CASILLAS_VIVAS`.
+const MAX_BROTES_HECHIZO: int = 6
+const MAX_CASILLAS_POR_IMPACTO: Dictionary = {"agua": 9, "hielo": 9, "fuego": 4, "magma": 4, "naturaleza": MAX_BROTES_HECHIZO, "rayo": 4, "viento": 9, "tierra": 4}
 ## B3: acciones que también alcanzan a la casilla de HIERBA (el resto es del autómata de la maqueta). El escombro es solo un estado: no toca la hierba, pero la tierra cae también sobre ella.
 const ACCIONES_EN_HIERBA: PackedStringArray = ["escombro"]
 ## Fases de la hierba de la maqueta (`PruebaTest2.Fase`; no tiene class_name, como en bosque_01_3d.gd).
@@ -58,19 +66,67 @@ static func clase_de(c: Vector2i) -> String:
 	return "suelo"
 
 
-## Aplica un impacto al estado del suelo. Devuelve lo que devolvió `EstadosSuelo3D.aplicar` ({cambio, efecto}) o {} si no tocaba nada.
-## Un chorro que dura (`duracion` > 0) no es un impacto por casilla y no hace nada.
+## R1: las casillas que marca un impacto de `elemento` en `punto` con `radio` (m; 0 = solo la del punto): las que caen dentro del radio, de la más cercana a la más lejana, hasta
+## `MAX_CASILLAS_POR_IMPACTO`. La previsión debe pedir ESTA lista (y no su propio círculo) para no prometer casillas que el tope recorta.
+static func casillas_de_impacto(elemento: String, punto: Vector3, radio: float = 0.0) -> Array:
+	var centro: Vector2i = Terreno3D.celda_de(punto)
+	var res: Array = []
+	if not Terreno3D.en_mapa(centro):
+		return res
+	var tope: int = int(MAX_CASILLAS_POR_IMPACTO.get(elemento, 1))
+	if radio <= 0.0 or tope <= 1:
+		return [centro]
+	var lado: float = maxf(Terreno3D.centro_de(Vector2i(1, 0)).distance_to(Terreno3D.centro_de(Vector2i(0, 0))), 0.01)
+	var n: int = int(ceil(radio / lado))
+	var cand: Array = []
+	for dy in range(-n, n + 1):
+		for dx in range(-n, n + 1):
+			var q: Vector2i = centro + Vector2i(dx, dy)
+			if not Terreno3D.en_mapa(q):
+				continue
+			var p: Vector3 = Terreno3D.centro_de(q)
+			var d: float = Vector2(p.x - punto.x, p.z - punto.z).length()
+			if q == centro or d <= radio:
+				cand.append([d if q != centro else -1.0, q])
+	cand.sort_custom(func(x, y): return float(x[0]) < float(y[0]))
+	for i in range(mini(tope, cand.size())):
+		res.append(cand[i][1])
+	return res
+
+
+## Aplica un impacto al estado del suelo. Devuelve lo que devolvió `EstadosSuelo3D.aplicar` ({cambio, efecto}) de la primera casilla que cambió (o la primera) más `casillas` (cuántas cambiaron),
+## o {} si no tocaba nada. Con `radio` marca hasta `MAX_CASILLAS_POR_IMPACTO` casillas (`casillas_de_impacto`). Un chorro que dura (`duracion` > 0) no es un impacto por casilla y no hace nada.
 static func aplicar(a: AccionElemental) -> Dictionary:
 	var accion: String = String(ACCION_DE.get(a.elemento, ""))
 	if accion == "" or a.duracion > 0.0:
 		return {}
-	var c: Vector2i = Terreno3D.celda_de(a.punto)
+	var primera: Dictionary = {}
+	var cambiaron: int = 0
+	for c in casillas_de_impacto(a.elemento, a.punto, a.radio):
+		var r: Dictionary = _aplicar_celda(accion, c)
+		if r.is_empty():
+			continue
+		if bool(r.get("cambio", false)):
+			cambiaron += 1
+			if primera.is_empty() or not bool(primera.get("cambio", false)):
+				primera = r
+		elif primera.is_empty():
+			primera = r
+	if not primera.is_empty():
+		primera = primera.duplicate()
+		primera["casillas"] = cambiaron
+	return primera
+
+
+static func _aplicar_celda(accion: String, c: Vector2i) -> Dictionary:
 	if not Terreno3D.en_mapa(c):
 		return {}
 	# H4 (DISENO_FUTURO §0b): agua y hielo solo existen a nivel 0; en altura el hechizo golpea el bloque, no el suelo de debajo. El fuego sí llega.
-	if accion != "calor" and Terreno3D.altura_en(c) >= 1:
+	if accion != "calor" and accion != "magma" and Terreno3D.altura_en(c) >= 1:
 		return {}
 	var clase: String = clase_de(c)
+	if clase == "agua" and accion == "magma":
+		return Terreno3D.estados.aplicar(c, accion)      # R1: la magma sobre agua deja costra y vapor (la fila exige material agua)
 	if clase == "hierba" and accion == "agua":
 		# 27/10: el agua sobre HIERBA también deja la casilla «mojada» para las reglas (`casilla(x,y).mojada`). Solo eso: la hierba no entra en
 		# la tabla de transiciones (el fuego de la hierba es del autómata de la maqueta y su escarcha de Hierba3D), y dura lo mismo que la
@@ -106,9 +162,14 @@ static func prever(elemento: String, c: Vector2i, solo_hierba: bool = false) -> 
 			return {}                                           # B3: salvo el escombro, lo de la hierba es del autómata de la maqueta (arriba)
 	if accion == "":
 		return {}
-	if accion != "calor" and Terreno3D.altura_en(c) >= 1:
+	if accion != "calor" and accion != "magma" and Terreno3D.altura_en(c) >= 1:
 		return {}                                           # H4: agua y hielo solo a nivel 0
 	if clase == "agua":
+		if accion == "magma":
+			var fm: Dictionary = Terreno3D.estados.fila_para(c, accion)
+			if not fm.is_empty() and Terreno3D.estados.cambiaria(c, fm):
+				return {"reaccion": "costra", "extra": {"clase": "agua", "efecto": String(fm["efecto"])}}
+			return {}
 		var sim: AguaSim3D = Terreno3D.agua_sim
 		var honda: bool = sim != null and sim.profundidad_casilla(c) > 0.05
 		match elemento:
