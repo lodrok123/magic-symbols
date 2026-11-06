@@ -2209,7 +2209,8 @@ func _vigilar_alturas(delta: float) -> void:
 	if _t_alturas < 0.5:
 		return
 	_t_alturas = 0.0
-	var h: int = Terreno3D.alturas.hash()
+	# 6/11 (422): el hash incluye las casillas de tierra temporal y si el TierraToy las representa (V en el lab lo cambia en caliente sin tocar `alturas`).
+	var h: int = Terreno3D.alturas.hash() ^ (Terreno3D.alturas_temporales.hash() * 31) ^ (1 if VfxToyJuego.usa_toy("tierra") else 0)
 	if h == _hash_alturas:
 		return
 	_hash_alturas = h
@@ -2219,6 +2220,8 @@ func _vigilar_alturas(delta: float) -> void:
 		var n: int = Terreno3D.altura_en(c)
 		if n <= 0:
 			continue
+		if VfxToyJuego.oculta_terraza(c as Vector2i):
+			continue          # 6/11 (422): la tierra temporal del Lanzador la representa SOLO el TierraToy (las rocas cubren la casilla); las terrazas fijas del nivel siguen igual
 		for v in dirs:
 			var vec: Vector2i = (c as Vector2i) + (v as Vector2i)
 			if not _en_mapa(vec) or _letra(vec) == "#":

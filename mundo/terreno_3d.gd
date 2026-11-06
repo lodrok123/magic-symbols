@@ -73,6 +73,10 @@ static var alto_agua: float = 2.3 * 0.45 * 0.6
 static var alturas: Dictionary = {}
 ## Alturas FIJAS que pone el nivel (una cornisa de un nivel): Vector2i -> int. No caducan.
 static var permanentes: Dictionary = {}
+## 6/11 (entrada 422): las casillas cuya altura de `alturas` viene de la tierra TEMPORAL del Lanzador (bloques `BloqueTierra` y columnas de barrera;
+## el hielo sólido y las cornisas fijas NO cuentan): Vector2i -> niveles. Solo lectura para el dibujo: cuando el TierraToy representa la tierra
+## (`VfxToyJuego.usa_toy("tierra")`), la maqueta no pinta terrazas en estas casillas. La escribe `Lanzador3D._recalcular`; la lógica no la lee.
+static var alturas_temporales: Dictionary = {}
 ## Altura a la que se pisa una casilla de puente «b» cuando el puente NO es una losa a ras del agua (el tronco-puente: se anda sobre
 ## su cara de arriba, 0,35 u por encima de la orilla). Vector2i -> y. Sin entrada, la «b» de siempre (alto_agua + 0,12).
 static var y_puentes: Dictionary = {}
@@ -775,6 +779,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
 	PROF_CAUCE = alto_suelo - fondo_cauce()
 	alturas.clear()
+	alturas_temporales.clear()
 	permanentes.clear()
 	y_puentes.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes

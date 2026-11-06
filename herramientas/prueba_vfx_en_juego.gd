@@ -66,6 +66,7 @@ func _initialize() -> void:
 	await _un_solo_renderizador()
 	await _de_serie()
 	await _toys_nuevos()
+	await _tierra_unica()
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -201,6 +202,32 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	if (el == "hielo" or el == "tierra") and nombre == "haz":
 		# el haz de un estado SÓLIDO no emite `haz` (la lógica lo trata como un volumen de hielo): el toy sale por `desde_hechizo` con la figura que dé `describir`
 		_ok("1 %s: un toy de su clase (figura %d, la de `describir`: el haz sólido no es un haz para la lógica)" % [etq, int(t.get("figura"))], t.get_script().get_global_name() == CLASES[el])
+		return
+	if el == "tierra" and not viaja:
+		# 6/11 (422): la tierra SÓLIDA que no viaja la levanta el Lanzador por casillas y el TierraToy es su única representación: mide las casillas reales × niveles, no los semiejes del Hechizo (sección 7 lo mira a fondo)
+		var celdas: Array = []
+		var niveles: int = 0
+		for b in _l._bloques:
+			celdas.append(b["celda"])
+			niveles = maxi(niveles, int(b["niveles"]))
+		var sx_t: float = float(t.get("semieje_x"))
+		var sy_t: float = float(t.get("semieje_y"))
+		var sz_t: float = float(t.get("semieje_z"))
+		var fig_t: int = int(t.get("figura"))
+		var cubre: bool
+		if fig_t == 2:
+			cubre = celdas.size() == 1 and niveles >= 2 and _cerca(2.0 * sx_t * VfxToyJuego.TIERRA_PILAR_EXTENSION, CASILLA, 0.02)
+		else:
+			cubre = celdas.size() == 1 and fig_t == 1 and _cerca(2.0 * sx_t, CASILLA, 0.02) and _cerca(2.0 * sz_t, CASILLA, 0.02)
+		_ok("1 %s: TierraToy (figura %d) que cubre el sólido real: %d casilla(s) %s × %d nivel(es), semiejes (%.2f, %.2f, %.2f)" % [etq, fig_t, celdas.size(), str(celdas), niveles, sx_t, sy_t, sz_t],
+			t is TierraToy and not celdas.is_empty() and cubre and _cerca(sy_t, float(niveles) * Terreno3D.ALTO_NIVEL, 0.01) and _cerca(t.global_position.y, suelo0, 0.05) and _calla_ve())
+		var m_t: Dictionary = _medir(t)
+		_ok("1 %s: presupuesto %d luz(ces) (0) y %d partículas (≤ 300)" % [etq, int(m_t["luces"]), int(m_t["part"])], int(m_t["luces"]) == 0 and int(m_t["part"]) <= 300)
+		var vida_t: float = maxf(5.5, float(h.persiste + h.permanencia) + 1.0)
+		var t0_t: int = Time.get_ticks_msec()
+		while is_instance_valid(t) and float(Time.get_ticks_msec() - t0_t) / 1000.0 < vida_t:
+			await process_frame
+		_ok("1 %s: al deshacerse la tierra el toy se va (a %.1f s ya no está)" % [etq, float(Time.get_ticks_msec() - t0_t) / 1000.0], not is_instance_valid(t) or t.is_queued_for_deletion())
 		return
 	_ok("1 %s: es un %s con la figura %d (la de `desde_hechizo`)" % [etq, CLASES[el], figura],
 		t.get_script().get_global_name() == CLASES[el] and int(t.get("figura")) == figura and bool(t.get("viaja")) == viaja)
@@ -579,3 +606,96 @@ func _toys_nuevos() -> void:
 	await _frames(3)
 	_ok("6 naturaleza: sin toy (%d) y VfxElemento3D la dibuja (proy %d)" % [_toys().size(), _ve.proyectiles()], _toys().is_empty() and _ve.proyectiles() >= 1)
 	print("resumen presupuesto nuevos: magma luces máx %d, partículas máx %d · viento luces máx %d, partículas máx %d · tierra luces máx %d, partículas máx %d" % [_max_luces["magma"], _max_part["magma"], _max_luces["viento"], _max_part["viento"], _max_luces["tierra"], _max_part["tierra"]])
+
+
+# ------------------------------------------------------------------ 7. la tierra sólida: el toy es la única representación (6/11, entrada 422) ------------------------------------------------------------------
+
+## Los Area3D «BloqueTierra» colgados del mundo.
+func _bloques_tierra() -> Array:
+	var r: Array = []
+	for n in _m.get_children():
+		if n.name.begins_with("BloqueTierra"):
+			r.append(n)
+	return r
+
+
+## ¿Se ve el bloque? (caja BoxMesh visible, o trozos `bloque_tierra_*` del vestido)
+func _bloque_dibujado(b: Node) -> Dictionary:
+	var caja: bool = false
+	var vestido: int = 0
+	for h in b.get_children():
+		if h is MeshInstance3D and (h as MeshInstance3D).mesh is BoxMesh and (h as MeshInstance3D).visible:
+			caja = true
+		if String(h.name).begins_with("bloque_tierra_"):
+			vestido += 1
+	return {"caja": caja, "vestido": vestido}
+
+
+func _tierra_unica() -> void:
+	print("== tierra sólida: con el toy encendido, el TierraToy es la única representación (ni caja, ni vestido, ni terraza)")
+	var glifos: Dictionary = {"barrera": 1, "linea_x": 2, "altura": 1}
+	for modo in ["procedural", "actual"]:
+		var toy: bool = modo == "procedural"
+		if toy:
+			_encender_todos()
+		else:
+			ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
+		_montar()
+		var h: Hechizo = _hz("tierra", glifos)
+		_lanzar(h)
+		await _frames(4)
+		var bloques: Array = _bloques_tierra()
+		var celdas: Array = []
+		for b in _l._bloques:
+			celdas.append(b["celda"])
+		var niveles: int = int(_l._bloques[0]["niveles"]) if not _l._bloques.is_empty() else 0
+		_ok("7 %s: el Lanzador levantó bloques de tierra (%d bloques, %d casillas %s, %d nivel/es) y `alturas_temporales` las apunta" % [modo, bloques.size(), celdas.size(), str(celdas), niveles],
+			bloques.size() >= 1 and celdas.size() >= 1 and niveles >= 1 and celdas.all(func(c: Vector2i) -> bool: return Terreno3D.alturas_temporales.get(c, 0) == Terreno3D.altura_en(c) and Terreno3D.altura_en(c) >= 1))
+		var dib: Array = bloques.map(_bloque_dibujado)
+		if toy:
+			_ok("7 procedural: ningún BloqueTierra con caja visible ni vestido (%s)" % str(dib), dib.all(func(d: Dictionary) -> bool: return not bool(d["caja"]) and int(d["vestido"]) == 0))
+			_ok("7 procedural: la maqueta NO pinta terraza en esas casillas (`oculta_terraza`)", celdas.all(func(c: Vector2i) -> bool: return VfxToyJuego.oculta_terraza(c)))
+			var ts: Array = _toys()
+			var t: Node3D = ts[0] as Node3D if ts.size() == 1 else null
+			var ancho_cas: int = 0
+			var fondo_cas: int = 0
+			if not celdas.is_empty():
+				var xs: Array = celdas.map(func(c: Vector2i) -> int: return c.x)
+				var zs: Array = celdas.map(func(c: Vector2i) -> int: return c.y)
+				fondo_cas = int(xs.max()) - int(xs.min()) + 1          # el tiro va por +X: el fondo son las casillas en X; el ancho, en Z
+				ancho_cas = int(zs.max()) - int(zs.min()) + 1
+			var sx: float = float(t.get("semieje_x")) if t != null else 0.0
+			var sy: float = float(t.get("semieje_y")) if t != null else 0.0
+			var sz: float = float(t.get("semieje_z")) if t != null else 0.0
+			_ok("7 procedural: UN TierraToy MURO que mide las casillas: ancho %.2f (%d × %.2f), fondo %.2f (1 casilla), alto %.2f (%d × %.3f)" % [2.0 * sx, ancho_cas, CASILLA, 2.0 * sz, sy, niveles, Terreno3D.ALTO_NIVEL],
+				t != null and t is TierraToy and int(t.get("figura")) == FuegoToy.Figura.MURO and _cerca(2.0 * sx, float(ancho_cas) * CASILLA, 0.02) and _cerca(2.0 * sz, float(fondo_cas) * CASILLA, 0.02) and fondo_cas == 1 and _cerca(sy, float(niveles) * Terreno3D.ALTO_NIVEL, 0.01))
+			var y_suelo: float = Terreno3D.alto_suelo
+			var cx: float = 0.0
+			var cz: float = 0.0
+			for c in celdas:
+				cx += Terreno3D.centro_de(c as Vector2i, 0.0).x / float(celdas.size())
+				cz += Terreno3D.centro_de(c as Vector2i, 0.0).z / float(celdas.size())
+			_ok("7 procedural: el toy se asienta en el suelo real (y %.3f = %.3f) y en el centro de sus casillas (%.2f, %.2f)" % [t.global_position.y if t != null else -1.0, y_suelo, cx, cz],
+				t != null and _cerca(t.global_position.y, y_suelo, 0.01) and _cerca(t.global_position.x, cx, 0.05) and _cerca(t.global_position.z, cz, 0.05))
+			await create_timer(0.7).timeout
+			var ys: Array = t.call("alturas_actuales") as Array if t != null else []
+			_ok("7 procedural: las rocas han subido (%d rocas, y máx %.2f ≥ 0)" % [ys.size(), float(ys.max()) if not ys.is_empty() else -9.0], not ys.is_empty() and float(ys.max()) >= -0.01)
+			# el Lanzador deshace la tierra (el tope o la caducidad): el toy se hunde en ese momento, no al acabar su vida
+			for b in _l._bloques.duplicate():
+				_l._deshacer_bloque(b)
+			await _frames(2)
+			var ap: AnimationPlayer = t.get_node_or_null("Anim") as AnimationPlayer if t != null else null
+			_ok("7 procedural: al deshacerse el bloque el toy se hunde ya (anim «%s») y `alturas_temporales` queda vacía" % (ap.current_animation if ap != null else "-"), ap != null and ap.current_animation == "morir" and Terreno3D.alturas_temporales.is_empty())
+		else:
+			_ok("7 actual: cada BloqueTierra lleva su vestido de 4 trozos (o la caja) como siempre (%s)" % str(dib), dib.all(func(d: Dictionary) -> bool: return bool(d["caja"]) or int(d["vestido"]) == 4))
+			_ok("7 actual: la maqueta sigue pintando la terraza (`oculta_terraza` false) y no hay toys (%d)" % _toys().size(), celdas.all(func(c: Vector2i) -> bool: return not VfxToyJuego.oculta_terraza(c)) and _toys().is_empty())
+	# el hielo sólido no cambia: con el toy encendido sigue con su caja
+	_encender_todos()
+	_montar()
+	var ok_h: bool = _l.construir_tierra(Vector2i(10, 10), true, {"elemento": "hielo"})
+	await _frames(1)
+	var bh: Array = []
+	for n in _m.get_children():
+		if n.name == "BloqueHielo":
+			bh.append(n)
+	_ok("7 hielo sólido con el toy encendido: BloqueHielo con su caja visible y sin apuntarse como tierra temporal", ok_h and bh.size() == 1 and bool(_bloque_dibujado(bh[0])["caja"]) and not Terreno3D.alturas_temporales.has(Vector2i(10, 10)) and Terreno3D.altura_en(Vector2i(10, 10)) == 1)

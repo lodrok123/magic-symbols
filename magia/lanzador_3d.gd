@@ -269,6 +269,8 @@ var conjuro_actual: Dictionary = {}     ## A1: {hechizo: Hechizo, carga: float} 
 ## Receta V2: sale UNA vez por hechizo, antes de materializarlo. Para el VFX del Pipeline: un dibujo por ESTADO escalado a (x, y, z).
 ## `g` = {x, y, z (semiejes en casillas), celdas: Array[Vector2i], niveles: int}; `props` = lo de Sigils.aplicar_v2 (viaja, solidez…).
 signal hechizo_v2(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary)
+## 6/11 (entrada 422): un bloque de tierra de la casilla se deshace (caducó, o lo echó el tope FIFO). Solo para el dibujo: el TierraToy que lo representa se hunde en ese momento.
+signal tierra_deshecha(celda: Vector2i)
 
 
 ## =====================================================================================================
@@ -2663,7 +2665,7 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 		if (b["celda"] as Vector2i) == c:
 			entrada = b
 	if entrada.is_empty():
-		entrada = {"celda": c, "niveles": 0, "nodos": [], "resta": float(opc.get("resta", DURACION_TIERRA)), "v2": bool(opc.get("v2", false))}
+		entrada = {"celda": c, "niveles": 0, "nodos": [], "resta": float(opc.get("resta", DURACION_TIERRA)), "v2": bool(opc.get("v2", false)), "elemento": String(opc.get("elemento", "tierra"))}
 		_bloques.append(entrada)
 	elif int(entrada["niveles"]) >= int(opc.get("apilar", MAX_TIERRA_APILADA)):
 		entrada["resta"] = float(opc.get("resta", DURACION_TIERRA))
@@ -2702,8 +2704,10 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	var mi := MeshInstance3D.new()
 	mi.mesh = caja
 	mi.position = desplaza
-	var facetado: bool = dibujar and VfxTierra.vestir_bloques and not es_hielo       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja (no al hielo)
-	mi.visible = dibujar and not facetado   # con el anillo de tierra dibujado encima, el bloque es solo colisión
+	# 6/11 (entrada 422, Pablo): con el TierraToy encendido (`VfxToyJuego.usa_toy("tierra")`) el toy es la ÚNICA representación de la tierra: ni caja ni vestido (el bloque queda solo colisión). El hielo no cambia.
+	var toy_tierra: bool = not es_hielo and VfxToyJuego.usa_toy("tierra")
+	var facetado: bool = dibujar and VfxTierra.vestir_bloques and not es_hielo and not toy_tierra       # 21/10: GANCHO de dibujo (VFX de tierra): 4 trozos facetados que emergen en vez de la caja (no al hielo)
+	mi.visible = dibujar and not facetado and not toy_tierra   # con el anillo de tierra dibujado encima, el bloque es solo colisión
 	bloque.add_child(mi)
 	var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * (float(n) - 0.5))
 	bloque.position = centro - Vector3(0, Terreno3D.ALTO_NIVEL * 0.6, 0)
@@ -2749,6 +2753,7 @@ func _deshacer_bloque(b: Dictionary) -> void:
 			tw.tween_callback(mi.queue_free)
 	_bloques.erase(b)
 	_recalcular(b["celda"] as Vector2i)
+	tierra_deshecha.emit(b["celda"] as Vector2i)
 
 
 ## Columna de barrera + levitación: sólida, subible (hasta 2 niveles) y bloquea proyectiles. Dura lo que el campo.
@@ -2787,16 +2792,24 @@ func campo_rune(campo: Node3D) -> RuneData:
 ## alturas[c] = lo más alto entre lo permanente, la tierra y las columnas de esa casilla.
 func _recalcular(c: Vector2i) -> void:
 	var n: int = int(Terreno3D.permanentes.get(c, 0))
+	var n_tierra: int = 0                   # 6/11 (422): lo que debe a la tierra temporal (bloques de tierra, no de hielo, y columnas): solo lo lee el dibujo
 	for b in _bloques:
 		if (b["celda"] as Vector2i) == c:
 			n = maxi(n, int(b["niveles"]))
+			if String(b.get("elemento", "tierra")) != "hielo":
+				n_tierra = maxi(n_tierra, int(b["niveles"]))
 	for k in _columnas:
 		if (k["celda"] as Vector2i) == c:
 			n = maxi(n, int(k["niveles"]))
+			n_tierra = maxi(n_tierra, int(k["niveles"]))
 	if n <= 0:
 		Terreno3D.alturas.erase(c)
 	else:
 		Terreno3D.alturas[c] = n
+	if n_tierra > 0 and n_tierra >= n:
+		Terreno3D.alturas_temporales[c] = n_tierra
+	else:
+		Terreno3D.alturas_temporales.erase(c)
 	if Terreno3D.agua_sim != null:
 		Terreno3D.agua_sim.refrescar_casilla(c)        # 11.4: la tierra levantada hace de presa; al caducar, el agua pasa
 
