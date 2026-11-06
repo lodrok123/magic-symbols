@@ -51,7 +51,10 @@
       {"elemento": "fuego", "glifos": ["flecha"]},
       {"elemento": "agua", "glifos": ["barrera", "linea"]},
       {"elemento": "", "glifos": []}
-    ]
+    ],
+    "libro": "bosque",
+    "libro_conseguido": false,
+    "derivados": []
   },
   "recetas_conocidas": ["pocion", "infusion_brezo", "tonico_tinta", "vida_1"],
   "estados": {

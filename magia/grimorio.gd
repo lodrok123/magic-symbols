@@ -176,6 +176,99 @@ func _ready() -> void:
 			"components": [],
 			"undo": [],
 		})
+	# Las páginas guardadas (partida cargada, cambio de nivel, cambio de libro) se leen aquí: antes `Repertoire.paginas` se guardaba pero nadie lo devolvía al libro y la
+	# partida cargada abría las tres páginas en blanco.
+	cargar_paginas()
+	Repertoire.avisos.libro_cambiado.connect(_al_cambiar_libro)
+
+
+func _exit_tree() -> void:
+	# Repertoire.avisos es estático y sobrevive a este nodo: sin soltarlo, el siguiente cambio de libro llamaría a un Grimorio que ya no está.
+	if Repertoire.avisos.libro_cambiado.is_connected(_al_cambiar_libro):
+		Repertoire.avisos.libro_cambiado.disconnect(_al_cambiar_libro)
+
+
+## --- GUARDADO DE LAS PÁGINAS (libro avanzado fase 2, 6/11/2026) ---
+## El orden de apertura de los huecos de glifo de los libros de sectores (el mismo `orden_huecos` de `Spellbook.LIBROS`; `prueba_libro_guardado` comprueba que no se separen).
+## Un libro que no está aquí (el de siempre) abre los ocho sectores por orden.
+const ORDEN_HUECOS_LIBRO: Dictionary = {"bosque": [2, 3, 1]}
+var _cargando: bool = false
+
+
+## Pasa las páginas del Grimorio a `Repertoire.paginas` (elemento, elemento2 y glifos EN ORDEN DE DIBUJO: el sector ya no importa). Se llama solo cuando una página cambia.
+func volcar_paginas() -> void:
+	if _cargando:
+		return
+	var lista: Array = []
+	for i in range(mini(PAGES, pages.size())):
+		var p: Dictionary = pages[i]
+		var glifos: Array = []
+		for c in (p["components"] as Array):
+			for s in (c["sigils"] as Array):
+				glifos.append(String(s))
+		var d: Dictionary = {"elemento": _gesture_name_of(p["element"]), "glifos": glifos}
+		var e2: String = _gesture_name_of(p["element2"])
+		if es_avanzado() and e2 != "":
+			d["elemento2"] = e2
+		lista.append(d)
+	Repertoire.paginas = lista
+
+
+## Rehace las páginas desde `Repertoire.paginas`: elemento → sello 1, elemento2 → sello 2 (solo en el avanzado) y los glifos, por orden, en los huecos que tenga el libro activo
+## (la corona del avanzado; `ORDEN_HUECOS_LIBRO` en los de sectores). Lo que sobre se apila en el último hueco antes que perderse. Las páginas que `paginas` no trae no se tocan.
+func cargar_paginas() -> void:
+	_cargando = true
+	var limite: int = Repertoire.max_sigils_per_page
+	for i in range(mini(PAGES, mini(pages.size(), Repertoire.paginas.size()))):
+		var src: Dictionary = Repertoire.paginas[i]
+		var p: Dictionary = pages[i]
+		(p["components"] as Array).clear()
+		(p["undo"] as Array).clear()
+		var e1: String = String(src.get("elemento", ""))
+		var e2: String = String(src.get("elemento2", "")) if es_avanzado() else ""
+		if e1 == "" and e2 != "":
+			e1 = e2
+			e2 = ""
+		p["element"] = GESTURE_TO_RUNE.get(e1, Runes.Type.NONE) if e1 != "" else Runes.Type.NONE
+		p["element2"] = GESTURE_TO_RUNE.get(e2, Runes.Type.NONE) if e2 != "" else Runes.Type.NONE
+		p["element_q"] = 1.0
+		p["element2_q"] = 1.0
+		p["element_viejo"] = 1
+		var n: int = 0
+		for g in (src.get("glifos", []) as Array):
+			if limite > 0 and n >= limite:
+				break
+			var comp: Dictionary = _component_en(p, _sector_de_orden(n))
+			(comp["sigils"] as Array).append(String(g))
+			(comp["quality"] as Array).append(1.0)
+			n += 1
+	_resumenes = [{}, {}, {}]
+	_cargando = false
+
+
+## El «sector» del glifo número `n` (en orden de dibujo) según el libro activo.
+func _sector_de_orden(n: int) -> Vector2:
+	if es_avanzado():
+		return dir_corona(mini(n, CORONA_ANGULOS.size() - 1))
+	var orden: Array = ORDEN_HUECOS_LIBRO.get(Repertoire.libro, [0, 1, 2, 3, 4, 5, 6, 7])
+	var k: int = int(orden[mini(n, orden.size() - 1)])
+	var angulo: float = TAU / float(HUECOS) * float(k)
+	return Vector2(cos(angulo), sin(angulo))
+
+
+## `_component_at` pero sobre una página cualquiera (no solo la activa).
+func _component_en(p: Dictionary, sector: Vector2) -> Dictionary:
+	for component in (p["components"] as Array):
+		if (component["direction"] as Vector2).is_equal_approx(sector):
+			return component
+	var creado: Dictionary = {"direction": sector, "sigils": [], "quality": []}
+	(p["components"] as Array).append(creado)
+	return creado
+
+
+## Cambio de libro (`Repertoire.cambiar_libro`): las páginas se conservan, se vuelven a colocar en los huecos del libro nuevo.
+func _al_cambiar_libro() -> void:
+	cargar_paginas()
 
 
 func _process(delta: float) -> void:
@@ -260,6 +353,8 @@ func _actualizar_resumen(i: int) -> void:
 	var ficha: Dictionary = pages[i]
 	var clave: String = _clave_ficha(ficha)
 	var previo: Dictionary = _resumenes[i]
+	if previo.is_empty() or String(previo["clave"]) != clave:
+		volcar_paginas()          # la página cambió: se guarda en Repertoire.paginas (la caché ya la hace gratis cuando no cambió)
 	var pareja: Dictionary = rune_de_ficha(ficha)          # libro avanzado: la runa con que se lanza (derivado), no el sello 1
 	var rune: RuneData = pareja["rune"]
 	var t: Tinta = get("tinta") as Tinta         # solo el lanzador del juego tiene tinta
@@ -617,6 +712,11 @@ func _poner_sello(rune: Runes.Type, calidad: float) -> void:
 		p["element2"] = rune
 		p["element2_q"] = calidad
 		p["element_viejo"] = 1
+	# Dos sellos que reaccionan descubren su runa derivada: se pinta en color en la página derecha y la mano la escribe. Va aquí y no al lanzar porque `_preparar_pagina`
+	# vive en Lanzador3D y la reacción ya se ve al cerrar el segundo sello. Deshacer no la «des-descubre»: lo aprendido, aprendido.
+	var pareja: Dictionary = CombosSellos.de_ficha(p)
+	if String(pareja["estado"]) == CombosSellos.REACCION:
+		Repertoire.descubrir_derivado(String(pareja["id"]))
 
 
 ## El nombre del gesto de un elemento (la clave de Repertoire) a partir

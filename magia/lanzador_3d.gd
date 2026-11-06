@@ -546,6 +546,7 @@ func _ready() -> void:
 	add_to_group("player")      # el libro busca ahí un nodo 2D desde el que sonar (Sfx)
 	Repertoire.aim_with_mouse = true
 	aplicar_progresion(progresion_de(mundo))
+	cargar_paginas()      # Grimorio._ready ya las leyó, pero ANTES de la progresión: con otro libro los huecos no coincidían
 	if agua_con_fisica and mundo != null:
 		montar_agua_sim()
 
@@ -572,9 +573,12 @@ static func aplicar_progresion(nombre: String) -> String:
 	# El nombre del nivel llega como lo escribe la escena («Bosque»); las progresiones van en minúsculas.
 	var clave: String = nombre if PROGRESIONES.has(nombre) else (nombre.to_lower() if PROGRESIONES.has(nombre.to_lower()) else "todo")
 	var p: Dictionary = PROGRESIONES[clave]
-	Repertoire.max_sigils_per_page = int(p["glifos_por_pagina"])
 	Repertoire.max_pages = int(p["paginas"])
-	Repertoire.libro = String(p.get("libro", ""))
+	# El libro avanzado se gana jugando (cofre → `Repertoire.cambiar_libro`): si ya se tiene, el nivel no lo pisa con su
+	# lámina ni con sus huecos base. Sin esto, una partida cargada con el avanzado volvía al «bosque» al montar el nivel.
+	if not Repertoire.libro_conseguido:
+		Repertoire.max_sigils_per_page = int(p["glifos_por_pagina"])
+		Repertoire.libro = String(p.get("libro", ""))
 	var cap: Array = p.get("capacidad", [0, 0])
 	Repertoire.fijar_capacidad(int(cap[0]), int(cap[1]))
 	Repertoire.set_active(PackedStringArray(p["sellos"]), PackedStringArray(p["glifos"]))

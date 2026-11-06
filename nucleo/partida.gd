@@ -316,6 +316,10 @@ static func nueva() -> void:
 	Misiones.nuevo()
 	Repertoire.reset_to_p0()
 	Repertoire.paginas = []
+	# El libro conseguido y las runas derivadas descubiertas son de la partida anterior: si no se olvidan, la nueva empezaría con el libro avanzado y sus medallones en color.
+	Repertoire.libro = ""
+	Repertoire.libro_conseguido = false
+	Repertoire.derivados_descubiertos = []
 	mundo = {}
 	recetas_conocidas = []
 	tinta = null

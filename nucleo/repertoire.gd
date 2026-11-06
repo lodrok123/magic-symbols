@@ -168,6 +168,7 @@ static func fijar_capacidad(elementos: int, glifos: int) -> void:
 ## el libro está abierto se ESCRIBE en su casilla de la página derecha (Spellbook), que así recuerda lo que has ido consiguiendo. Lo que
 ## activa un nivel al empezar o una partida cargada (`set_active`, `unlock_sigil` a secas) no se anota: ya estaba ahí.
 static var _por_escribir: PackedStringArray = PackedStringArray()
+const PREFIJO_DERIVADO: String = "derivado:"
 
 
 ## Desbloquea y, si era nuevo, lo deja pendiente de escribirse en el libro. Devuelve true si ERA NUEVO (como `unlock_sigil`).
@@ -182,7 +183,8 @@ static func conseguir_sigil(sigil_name: String) -> bool:
 static func tomar_por_escribir() -> PackedStringArray:
 	var lista := PackedStringArray()
 	for s in _por_escribir:
-		if _sigils.has(s):
+		# Una runa derivada recién descubierta va en la misma cola con el prefijo `derivado:` (no es un glifo: no está en `_sigils`).
+		if _sigils.has(s) or (s.begins_with(PREFIJO_DERIVADO) and derivados_descubiertos.has(s.substr(PREFIJO_DERIVADO.length()))):
 			lista.append(s)
 	_por_escribir = PackedStringArray()
 	return lista
@@ -218,8 +220,58 @@ static func reset_to_p0() -> void:
 static var paginas: Array = []
 
 
+## --- EL LIBRO COMO OBJETO (libro avanzado, fase 2, 6/11/2026; docs/LIBRO_AVANZADO_2026-11-06.md §4) ---
+## `libro_conseguido`: el libro lo ha dado la aventura (cofre), no la progresión del nivel. Persiste. Mientras sea true, `Lanzador3D.aplicar_progresion` NO debe
+## pisar `libro` (hoy lo hace: ver el informe de la fase 2); sin este bit, cargar una partida con el libro avanzado lo devolvería a «bosque» al montar el nivel.
+static var libro_conseguido: bool = false
+
+## Huecos de glifo que ABRE cada libro de base (el resto se gana con `Mejoras.huecos_glifo`, que se suma encima). Un libro que no está aquí no toca los huecos.
+const HUECOS_BASE_LIBRO: Dictionary = {"bosque": 1, "avanzado": 4}
+
+## Runas derivadas ya descubiertas ("hielo", "rayo", "magma", "barro"): la página derecha del libro avanzado las pinta en color y el resto en gris. Persiste.
+static var derivados_descubiertos: Array[String] = []
+
+## Avisos del libro hacia quien lo escucha. Repertoire es estático y no puede tener señales: la señal vive en este objeto suelto (`Repertoire.avisos`).
+class Avisos extends RefCounted:
+	## Se cambió de libro (`cambiar_libro`): el Grimorio rehace sus páginas desde `Repertoire.paginas`.
+	signal libro_cambiado
+
+static var avisos: Avisos = Avisos.new()
+
+
+## Cambia el libro que se lleva CONSERVANDO las páginas: `paginas` no se toca (elemento → sello 1, glifos → huecos por orden) y el Grimorio las recarga al oír `libro_cambiado`.
+## Abre los huecos base del libro nuevo y le suma lo ganado con `Mejoras.huecos_glifo`. Sin esto, cambiar a mano `libro` dejaba los huecos del anterior (el avanzado nacía con 1).
+## Marca `libro_conseguido`: a partir de aquí la progresión del nivel no debe volver a pisarlo.
+static func cambiar_libro(id: String) -> void:
+	libro = id
+	libro_conseguido = true
+	if HUECOS_BASE_LIBRO.has(id):
+		max_sigils_per_page = int(HUECOS_BASE_LIBRO[id])
+		# Mejoras recuerda lo último que puso: si el valor nuevo coincidiera con ese (bosque 1 + 3 ganados = 4 = base del avanzado) restaría lo «sumado» a una base que ya es limpia.
+		Mejoras._libro_puesto["max_sigils_per_page"] = -1
+		Mejoras._libro_sumado["max_sigils_per_page"] = 0
+		Mejoras.aplicar_todas(null, false)    # la base recién puesta ya no coincide con lo que Mejoras recuerda haber sumado: vuelve a sumar encima sin pisar
+	avisos.libro_cambiado.emit()
+
+
+## Anota una runa derivada como descubierta. Devuelve true si ERA NUEVA; entonces queda pendiente de escribirse en la página derecha (como un glifo de cofre).
+static func descubrir_derivado(id: String) -> bool:
+	if id == "" or derivados_descubiertos.has(id):
+		return false
+	derivados_descubiertos.append(id)
+	var clave: String = PREFIJO_DERIVADO + id
+	if not _por_escribir.has(clave):
+		_por_escribir.append(clave)
+	return true
+
+
+static func derivado_descubierto(id: String) -> bool:
+	return derivados_descubiertos.has(id)
+
+
 static func a_dic() -> Dictionary:
-	return {"sellos": Array(_elements), "glifos": Array(_sigils), "paginas": paginas.duplicate(true)}
+	return {"sellos": Array(_elements), "glifos": Array(_sigils), "paginas": paginas.duplicate(true),
+		"libro": libro, "libro_conseguido": libro_conseguido, "derivados": Array(derivados_descubiertos)}
 
 
 ## Sustituye sellos (elementos) y glifos conocidos y las páginas. Una clave que falte deja ESO como está (el repertorio de partida lo pone el nivel).
@@ -240,4 +292,17 @@ static func desde_dic(d: Dictionary) -> void:
 				var gs: Array = []
 				for g in (p as Dictionary).get("glifos", []):
 					gs.append(String(g))
-				paginas.append({"elemento": String((p as Dictionary).get("elemento", "")), "glifos": gs})
+				var pag: Dictionary = {"elemento": String((p as Dictionary).get("elemento", "")), "glifos": gs}
+				var e2: String = String((p as Dictionary).get("elemento2", ""))
+				if e2 != "":
+					pag["elemento2"] = e2          # solo el libro avanzado lo trae: una partida vieja (o del libro de siempre) no gana la clave
+				paginas.append(pag)
+	# El libro y lo descubierto. Una partida anterior a la fase 2 no trae estas claves: se queda lo que hubiera (el libro lo fija entonces la progresión del nivel).
+	if d.has("libro"):
+		libro = String(d["libro"])
+	if d.has("libro_conseguido"):
+		libro_conseguido = bool(d["libro_conseguido"])
+	if d.has("derivados"):
+		derivados_descubiertos = []
+		for x in d["derivados"]:
+			derivados_descubiertos.append(String(x))

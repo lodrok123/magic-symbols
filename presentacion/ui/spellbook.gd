@@ -166,6 +166,15 @@ const LIBROS: Dictionary = {
 		"radio": 235.0,
 		"nucleo": 120.0,
 		"guias": false,
+		# PÁGINA DERECHA del avanzado (fase 2, 6/11/2026; en px de lámina, para que Pablo las ajuste). La lámina genérica trae 4 × 3 círculos impresos (centros x 894 + 117·k,
+		# y 277 / 418 / 559) y debajo una franja de 5 cuadros (y ≈ 700). Fila 1 = los 4 sellos base (siempre), fila 2 = las 4 runas derivadas (gris hasta descubrirlas), y los GLIFOS
+		# van en la fila 3 y la franja (9 sitios). `leyenda_sellos` = 4 base + 4 derivadas, en ese orden (fuego, agua, tierra, viento · hielo, rayo, magma, barro).
+		"leyenda_sellos": [Vector2(894.0, 277.0), Vector2(1011.0, 277.0), Vector2(1128.0, 277.0), Vector2(1245.0, 277.0),
+				Vector2(894.0, 418.0), Vector2(1011.0, 418.0), Vector2(1128.0, 418.0), Vector2(1245.0, 418.0)],
+		"leyenda": [Vector2(894.0, 559.0), Vector2(1011.0, 559.0), Vector2(1128.0, 559.0), Vector2(1245.0, 559.0),
+				Vector2(882.0, 700.0), Vector2(978.0, 700.0), Vector2(1073.0, 700.0), Vector2(1165.0, 700.0), Vector2(1267.0, 700.0)],
+		"sello_tam": 58.0,
+		"glifo_tam": 54.0,
 		"avanzado": {
 			"circulo": {"centro": Vector2(435.0, 345.0), "radio": 140.0},       # el círculo mágico: marco de todo lo de arriba
 			"nucleo_radio": 76.0,                                               # anillo del núcleo, dentro de la corona
@@ -1723,6 +1732,9 @@ func _draw_legend() -> void:
 		return
 
 	_casillas_leyenda = []
+	if _avanzado():
+		_draw_legend_avanzado(caster)
+		return
 	var slot: int = 0
 	# Lámina con círculos de sello propios (bosque): los elementos van a los círculos y los glifos a la rejilla, contados por separado.
 	var ley_sellos: Array = _libro().get("leyenda_sellos", [])
@@ -1769,6 +1781,56 @@ func _draw_legend() -> void:
 		_trazo_casilla = _trazo_visible(gesture_name, false)
 		_draw_legend_slot(slot, glyph, gesture_name, INK,
 			_glifo_conocido(gesture_name, false), 0.0, false)
+		slot += 1
+
+
+## PÁGINA DERECHA DEL LIBRO AVANZADO (fase 2, 6/11/2026): fila de los 4 sellos base (siempre visibles), fila de las 4 runas derivadas (en gris hasta descubrirlas; al descubrirse
+## la mano la escribe, como un glifo de cofre) y la rejilla de glifos como siempre. Las posiciones son `LIBROS["avanzado"]["leyenda_sellos"]` y `["leyenda"]`.
+## NO se pinta la tabla de reacciones («agua + viento = hielo»): la lámina genérica no tiene sitio libre (las 9 casillas de glifos ocupan la fila 3 y la franja de abajo).
+const BASE_AV: Array = ["fuego", "agua", "tierra", "viento"]
+const DERIVADOS_AV: Array = ["hielo", "rayo", "magma", "barro"]
+const GRIS_DERIVADO: Color = Color(0.42, 0.40, 0.38, 0.55)
+
+
+func _draw_legend_avanzado(caster) -> void:
+	var ley_s: Array = _libro().get("leyenda_sellos", [])
+	var tam: float = _lam(float(_libro().get("sello_tam", 58.0)))
+	for i in range(BASE_AV.size()):
+		var nombre: String = String(BASE_AV[i])
+		var datos: RuneData = caster.rune_database.get(caster.GESTURE_TO_RUNE.get(nombre, Runes.Type.NONE))
+		if datos == null or datos.glyph == null:
+			continue
+		_trazo_casilla = _trazo_visible(nombre, true)
+		_draw_legend_slot(i, datos.glyph, datos.display_name, datos.color.darkened(CORE_GLYPH_DARKEN),
+			Repertoire.element_active(nombre) and _glifo_conocido(nombre, true), _glyph_angle(nombre), true)
+	for i in range(DERIVADOS_AV.size()):
+		var id: String = String(DERIVADOS_AV[i])
+		var runa: RuneData = CombosSellos.runa_de(id)
+		var punto: int = BASE_AV.size() + i
+		if runa == null or runa.glyph == null or punto >= ley_s.size():
+			continue
+		var at: Vector2 = _on_page(ley_s[punto])
+		var descubierto: bool = Repertoire.derivado_descubierto(id)
+		var clave: String = Repertoire.PREFIJO_DERIVADO + id
+		draw_arc(at, tam * 0.62, 0.0, TAU, 40, INK_SOFT if not descubierto else Color(runa.color.darkened(0.2), 0.55), _u(1.5), true)
+		if descubierto and _escribiendo.has(clave):
+			if _draw_escritura(clave, runa.glyph, at, tam, runa.color.darkened(CORE_GLYPH_DARKEN)):
+				continue
+		_draw_glyph(runa.glyph, at, tam * 0.8, runa.color.darkened(CORE_GLYPH_DARKEN) if descubierto else GRIS_DERIVADO, _glyph_angle(id))
+		if descubierto:
+			_draw_centered_text(at + Vector2(0.0, tam * 0.95), runa.display_name, Color(INK.r, INK.g, INK.b, 0.75))
+	var ley: Array = _libro().get("leyenda", [])
+	var slot: int = 0
+	for gesture_name in GestureLibrary.SIGILS:
+		if not Repertoire.sigil_active(gesture_name):
+			continue
+		if slot >= ley.size():
+			return
+		var glyph: Texture2D = Sigils.GLYPHS.get(gesture_name)
+		if glyph == null:
+			continue
+		_trazo_casilla = _trazo_visible(gesture_name, false)
+		_draw_legend_slot(slot, glyph, gesture_name, INK, _glifo_conocido(gesture_name, false), 0.0, false)
 		slot += 1
 
 
