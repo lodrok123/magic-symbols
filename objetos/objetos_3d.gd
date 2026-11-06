@@ -60,6 +60,10 @@ signal llama(encendida: bool)
 ## F3 (29/10, hoguera): la jugadora ha pulsado E junto a una fogata o un brasero ENCENDIDOS. Lleva la casilla de la pieza. Quien lo escucha (`Jugabilidad3D`) guarda la partida y abre
 ## la síntesis con `donde = hoguera`; el Reactivo no sabe nada de partidas ni de recetas.
 signal hoguera_abierta(celda: Vector2i)
+## R2: cambios de estado por reacción, uno por señal para que `Puzle3D` pueda oírlos (`SENALES` de escenas/puzle.gd, que no se toca desde aquí): `true` = empieza, `false` = termina.
+signal conduce_cambio(si: bool)      ## papel `conduce`: mojado lleva la corriente / se seca o se acaba el tiempo
+signal congelado_cambio(si: bool)    ## papel `congelable`: el hielo lo congela / se descongela
+signal enredado_cambio(si: bool)     ## la naturaleza lo traba / el fuego lo libera o se acaba el tiempo
 
 const GRUPO_ARDE: String = "flammable3d"
 const GRUPO_REACTIVO: String = "reactivo3d"
@@ -111,8 +115,8 @@ const P_PROPAGA_LLAMA: String = "propaga_llama"    ## mientras arde contagia a l
 const P_APAGA: String = "apaga"                    ## el agua o el frío APAGAN su llama (arde → sano). Es el nombre del plan: léase «se deja apagar»
 const P_MOJABLE: String = "mojable"                ## el agua lo MOJA estando sano y no prende durante T_MOJADO s (el cortafuegos); por defecto nadie lo tiene
 const P_PESADO: String = "pesado"                  ## cuenta como peso para las placas: entra en el grupo GRUPO_PESO
-const P_CONDUCE: String = "conduce"                ## lleva la corriente (el cristal emisor). Solo se declara: aún no lo lee nada (lo usarán A2–A4)
-const P_CONGELABLE: String = "congelable"          ## el frío lo congela. Solo se declara: aún no lo lee nada (lo usará A3: agua helada)
+const P_CONDUCE: String = "conduce"                ## lleva la corriente (el cristal emisor). R2: el agua lo MOJA y mojado entra en `Terreno3D.conductores` T_CONDUCE s (como el nexo); el calor lo seca
+const P_CONGELABLE: String = "congelable"          ## el frío lo CONGELA CONGELADO_S s (R2): no se activa, no se sacude y no arde; el calor lo descongela (distinto de `helable`, que es para siempre y se recoge)
 ## Tres papeles MÁS que el plan no nombra pero sin los cuales seguiría un `match tipo` en pie (Pablo lo dirá si prefiere otros nombres):
 const P_FUENTE_FUEGO: String = "fuente_fuego"      ## fuego de mapa (fogata, brasero): el calor lo ENCIENDE, no se consume (FUENTES da los números); el rayo no lo toca
 const P_ACTIVABLE: String = "activable"            ## se activa UNA vez con su `elemento` (tótem: calor · agua · rayo) y se queda
@@ -136,12 +140,12 @@ const PAPELES_POR_TIPO: Dictionary = {
 	"seto": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
 	"tronco": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
 	"telarana": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_HELABLE],          # F1: además se hiela
-	"arbol": [P_SACUDIBLE],                                                  # F1: pieza `arbol` de Puzle3D; también vale `+sacudible` en cualquier otra
-	"puerta_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
-	"torre_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA],
+	"arbol": [P_SACUDIBLE, P_CONGELABLE],                                                # F1: pieza `arbol` de Puzle3D; también vale `+sacudible` en cualquier otra
+	"puerta_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_CONGELABLE],
+	"torre_goblin": [P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_CONGELABLE],
 	"fogata": [P_FUENTE_FUEGO, P_APAGA],
 	"brasero": [P_FUENTE_FUEGO, P_APAGA],
-	"totem": [P_ACTIVABLE],
+	"totem": [P_ACTIVABLE, P_CONGELABLE],
 	"surtidor": [P_RECIBE_AGUA],
 	"emisor_rayo": [P_CONDUCE],
 	"puente": [],
@@ -153,7 +157,19 @@ const PAPELES_POR_TIPO: Dictionary = {
 const MATERIAL_POR_TIPO: Dictionary = {
 	"seto": "vegetal", "tronco": "madera", "puerta_goblin": "madera", "torre_goblin": "madera", "puente": "madera", "telarana": "tela",
 	"cuerda": "tela", "barril": "madera", "placa": "piedra", "pulsador": "piedra", "nexo_rayo": "metal",
+	"totem": "piedra", "arbol": "vegetal", "emisor_rayo": "metal",       # R2: sin material no hay respaldo (naturaleza enreda tótem y árbol; el magma calienta el metal)
 }
+
+## --- R2 (6/11/2026, docs/REACCIONES_ENTORNO_2026-11-06.md): relojes y dosis de los papeles `conduce`, `congelable` y del respaldo por material ---
+const T_CONDUCE: float = 30.0              ## s que un objeto `conduce` mojado lleva la corriente (los mismos que el nexo: NexoRayo3D.T_MOJADO)
+const CONGELADO_S: float = 6.0             ## s que el hielo deja congelado un `congelable`. 6 = lo que dura la helada del suelo en la práctica de un puzle: da tiempo a cruzar, no a quedarse
+const ENREDADO_S: float = 8.0              ## s que la naturaleza traba lo activable y lo sacudible (más que el hielo: la enredadera no se rompe con calor suave, pero el fuego la libera)
+const ESCARCHA_S: float = 6.0              ## s de escarcha del hielo sobre metal (no conduce ni se activa) o tela (la cuerda no cae aunque arda; ver Cuerda3D)
+const CALIENTE_S: float = 3.0              ## s que el magma deja al rojo el metal: no se puede activar
+const DOSIS_CALOR_MOJADO: int = 2          ## calores seguidos que pide prender algo `mojable` MOJADO (el primero lo seca); seco prende al primero. El magma salta la dosis
+const COLOR_HIELO: Color = Color(0.72, 0.9, 1.0)
+const COLOR_ENREDO: Color = Color(0.55, 0.85, 0.45)
+const COLOR_AL_ROJO: Color = Color(1.0, 0.55, 0.4)
 
 enum EstadoObj { SANO, ARDIENDO, CONSUMIDO }
 
@@ -208,6 +224,13 @@ var mojable: bool:
 	set(v):
 		_fijar_papel(P_MOJABLE, v)
 var _mojado_s: float = 0.0           ## s que le quedan empapado (se cuenta con el delta del juego, no con el reloj de pared)
+var _dosis_calor: int = 0            ## R2: calores recibidos estando mojado desde la última vez que se mojó (ver DOSIS_CALOR_MOJADO)
+var _conduce_s: float = 0.0          ## R2 (`conduce`): s que le quedan mojado y conduciendo
+var _congelado_s: float = 0.0        ## R2 (`congelable`): s que le quedan congelado
+var _enredado_s: float = 0.0         ## R2: s que le quedan enredado
+var _escarcha_s: float = 0.0         ## R2: s de escarcha (hielo sobre metal / tela)
+var _caliente_s: float = 0.0         ## R2: s al rojo (magma sobre metal)
+var _conduciendo: bool = false       ## R2: está registrado en Terreno3D.conductores ahora (para emitir `conduce_cambio` solo al cambiar)
 
 var _quemado_v: float = 0.0        ## V6: último valor de `quemado` aplicado (0..1)
 var _disolver_v: float = 0.0       ## V6: último valor de `disolver` aplicado (0..1)
@@ -493,6 +516,55 @@ func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 		return ""
 	# H6: decide por PROPIEDADES (Materia): las del Hechizo si viene, si no las del RuneData (sus números y, de respaldo, sus etiquetas)
 	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	var previa: Variant = _reaccion_previa(m)
+	if previa != null:
+		return String(previa)
+	var r: String = _reaccion_papeles(m)
+	return r if r != "" else _respaldo_material(m)
+
+
+## R2: lo que MANDA sobre los papeles. null = no decide nada, que siga la tabla de papeles; "" = decidido: no pasa nada.
+##  · enredado: solo el calor (fuego, magma) lo libera · congelado: solo el calor lo descongela. Nada más lo toca mientras dura.
+##  · naturaleza sobre lo activable o sacudible: lo ENREDA. Va antes que los papeles porque la naturaleza lleva humedad y, sin esto, el tótem de agua se activaría con ella.
+##  · magma sobre algo inflamable sano: prende aunque esté mojado (calor fuerte: salta la dosis). `on_spell_hit` quita la humedad antes.
+func _reaccion_previa(m: Dictionary) -> Variant:
+	var calor: bool = Materia.calienta(m)
+	if _enredado_s > 0.0:
+		return "libera" if calor else ""
+	if _congelado_s > 0.0:
+		return "derrite" if calor else ""
+	var elem: String = String(m.get("elemento", ""))
+	if elem == "naturaleza" and (tiene_papel(P_ACTIVABLE) or tiene_papel(P_SACUDIBLE)):
+		if activo or estado == EstadoObj.CONSUMIDO:
+			return ""
+		return "enreda" if _material_dice(m) == "enreda" else null
+	if elem == "magma" and tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not helada:
+		return "prende"
+	return null
+
+
+## Lo que `Materia.reaccion` dice de este objeto para `m`, con su estado actual.
+func _material_dice(m: Dictionary) -> String:
+	return Materia.reaccion(m, material(), {"mojado": esta_mojado(), "ardiendo": estado == EstadoObj.ARDIENDO, "helado": helada})
+
+
+## R2: respaldo por MATERIAL cuando los papeles no dicen nada: el hielo sobre metal o tela deja ESCARCHA, y el magma sobre metal lo pone al rojo (`calienta`).
+## Solo se aceptan esos dos resultados de `Materia.reaccion`: el resto de su tabla ya lo deciden los papeles (y aquí duplicarlo cambiaría juegos ya probados).
+func _respaldo_material(m: Dictionary) -> String:
+	var mat: String = material()
+	if mat == "":
+		return ""
+	var r: String = _material_dice(m)
+	if mat == "metal" and Materia.enfria(m) and r == "":
+		return "escarcha"           # la tabla de metal no tiene fila de frío (prueba_materia_propiedades la fija en ""): la escarcha se decide aquí
+	if r == "rigida" and mat == "tela":
+		return "escarcha"
+	if r == "calienta" and mat == "metal" and String(m.get("elemento", "")) == "magma" and tiene_papel(P_ACTIVABLE) and _caliente_s <= 0.0:
+		return "calienta"
+	return ""
+
+
+func _reaccion_papeles(m: Dictionary) -> String:
 	var calor: bool = Materia.calienta(m)
 	var rayo: bool = Materia.conduce(m)
 	var frio: bool = Materia.enfria(m)
@@ -501,10 +573,14 @@ func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 	if tiene_papel(P_INFLAMABLE):
 		if tiene_papel(P_HELABLE) and frio and estado == EstadoObj.SANO and not helada:
 			return "hiela"                                  # F1: la telaraña sana + hielo → se hiela (antes el frío no le hacía nada si no ardía)
+		if calor and esta_mojado() and estado == EstadoObj.SANO and not helada and _dosis_calor + 1 < DOSIS_CALOR_MOJADO:
+			return "seca"                                   # R2: mojado, el primer calor solo lo seca (dosis); el siguiente ya prende
 		if calor or rayo:
 			return "prende" if can_burn() else ""
 		if humedo and estado == EstadoObj.ARDIENDO and tiene_papel(P_APAGA):
 			return "apaga"
+		if frio and tiene_papel(P_CONGELABLE) and estado == EstadoObj.SANO and not helada:
+			return "congela"                                # R2: puerta o torre goblin sanas + hielo
 		if tiene_papel(P_MOJABLE) and agua and estado == EstadoObj.SANO:
 			return "moja"
 		if Materia.sopla(m) and estado == EstadoObj.ARDIENDO and tiene_papel(P_PROPAGA_LLAMA):
@@ -516,18 +592,68 @@ func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 		if humedo and is_lit and tiene_papel(P_APAGA):
 			return "apaga"
 		return ""
+	if frio and tiene_papel(P_CONGELABLE) and not activo:
+		return "congela"                                    # R2: tótem o árbol (lo que no arde) + hielo
 	if tiene_papel(P_ACTIVABLE):
-		return "activa" if (not activo and _le_toca(m)) else ""
+		return "activa" if (not activo and not _trabado() and _le_toca(m)) else ""
 	if tiene_papel(P_RECIBE_AGUA):
 		return "brota" if agua else ""
+	if tiene_papel(P_CONDUCE):
+		if agua:
+			return "moja"                                   # R2: mojado conduce T_CONDUCE s (volver a mojarlo los renueva)
+		if calor and _conduce_s > 0.0:
+			return "seca"
 	return ""
+
+
+## R2: ¿algo le impide activarse o sacudirse? (congelado, enredado, al rojo o con escarcha). Los que se mueven por empuje también deben mirarlo.
+func _trabado() -> bool:
+	return _congelado_s > 0.0 or _enredado_s > 0.0 or _caliente_s > 0.0 or _escarcha_s > 0.0
+
+
+func esta_congelado() -> bool:
+	return _congelado_s > 0.0
+
+
+func esta_enredado() -> bool:
+	return _enredado_s > 0.0
+
+
+func conduce_ahora() -> bool:
+	return _conduciendo
 
 
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	match reaccion_a(rune_data, hechizo):
 		"hiela":
 			_helar()
+		"congela":
+			_poner_congelado(true)
+		"derrite":
+			_poner_congelado(false)
+		"enreda":
+			_poner_enredado(true)
+		"libera":
+			_poner_enredado(false)
+		"escarcha":
+			_escarcha_s = ESCARCHA_S
+			_tinte_estado()
+			_actualizar_conductor()
+			set_process(true)
+		"calienta":
+			_caliente_s = CALIENTE_S
+			_tinte_estado()
+			set_process(true)
+		"seca":
+			if tiene_papel(P_INFLAMABLE):
+				_secar_lena()
+				_dosis_calor += 1
+			else:
+				_conduce_s = 0.0
+				_actualizar_conductor()
 		"prende":
+			if esta_mojado() and String(Materia.de(hechizo if hechizo != null else rune_data).get("elemento", "")) == "magma":
+				_secar_lena()                                    # R2: el magma es calor fuerte: se salta la dosis y quita la humedad en el mismo golpe
 			ignite(Lanzador3D.ultimo_impacto)
 		"apaga":
 			if tiene_papel(P_INFLAMABLE):
@@ -535,6 +661,12 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 			else:
 				_apagar_fuente()
 		"moja":
+			if tiene_papel(P_CONDUCE):
+				_conduce_s = T_CONDUCE
+				_actualizar_conductor()
+				set_process(true)
+				return
+			_dosis_calor = 0
 			if _mojado_s <= 0.0:
 				_reaccionar(Mundo3D.R_MOJADO)                  # solo si estaba seco: regar lo ya mojado solo alarga el tiempo, no es un cambio
 			_mojado_s = T_MOJADO
@@ -565,6 +697,15 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	if rune_data == null:
 		return false
 	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	var previa: Variant = _reaccion_previa(m)           # R2: enredado, congelado, naturaleza, magma (lo mismo que decide `reaccion_a`)
+	if previa != null:
+		return String(previa) != ""
+	if _spell_reacts_papeles(m):
+		return true
+	return _respaldo_material(m) != ""
+
+
+func _spell_reacts_papeles(m: Dictionary) -> bool:
 	var calor: bool = Materia.calienta(m)
 	var rayo: bool = Materia.conduce(m)
 	var frio: bool = Materia.enfria(m)
@@ -572,6 +713,8 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	var humedo: bool = Materia.moja(m) or frio
 	if tiene_papel(P_INFLAMABLE):
 		if tiene_papel(P_HELABLE) and frio and estado == EstadoObj.SANO and not helada:
+			return true
+		if frio and tiene_papel(P_CONGELABLE) and estado == EstadoObj.SANO and not helada:
 			return true
 		if calor or rayo:
 			return estado == EstadoObj.SANO and not helada
@@ -584,10 +727,14 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 		if calor:
 			return not is_lit
 		return humedo and is_lit and tiene_papel(P_APAGA)
+	if frio and tiene_papel(P_CONGELABLE) and not activo:
+		return true
 	if tiene_papel(P_ACTIVABLE):
-		return not activo and _le_toca(m)
+		return not activo and not _trabado() and _le_toca(m)
 	if tiene_papel(P_RECIBE_AGUA):
 		return agua
+	if tiene_papel(P_CONDUCE):
+		return agua or (calor and _conduce_s > 0.0)
 	return false
 
 
@@ -644,8 +791,8 @@ func _soltar(lista: Array) -> void:
 ## `sacudible`: el golpe F (o el atajo de las pruebas) sacude la pieza. Suelta la tabla `tronco_golpe` y devuelve la lista; [] si no es sacudible o aún no pasaron T_SACUDIR s desde la
 ## última vez (se sacude igual, pero no cae nada). `ahora` = reloj de juego en s (por defecto el del motor; las pruebas lo pasan).
 func sacudir(ahora: float = -1.0) -> Array:
-	if not tiene_papel(P_SACUDIBLE) or estado == EstadoObj.CONSUMIDO:
-		return []
+	if not tiene_papel(P_SACUDIBLE) or estado == EstadoObj.CONSUMIDO or _trabado():
+		return []                                           # R2: congelado, enredado o con escarcha no se sacude
 	var t: float = ahora if ahora >= 0.0 else Time.get_ticks_msec() / 1000.0
 	if visual != null and is_instance_valid(visual) and is_inside_tree():
 		var tw: Tween = create_tween()
@@ -740,7 +887,70 @@ func recoger_helado() -> bool:
 ## --- Objetos que arden ---
 
 func can_burn() -> bool:
-	return tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not esta_mojado() and not helada
+	return tiene_papel(P_INFLAMABLE) and estado == EstadoObj.SANO and not esta_mojado() and not helada and _congelado_s <= 0.0
+
+
+## R2: quita la humedad de la leña (el calor la seca; el magma, además, prende en el mismo golpe).
+func _secar_lena() -> void:
+	if _mojado_s <= 0.0:
+		return
+	_mojado_s = 0.0
+	PiezaFuego3D.mojado(visual, false)
+	_reaccionar(Mundo3D.R_SECADO)
+
+
+## R2: congela o descongela (`congelable`). Mientras dura no se activa, no se sacude y no arde; el reloj lo cuenta `_process`.
+func _poner_congelado(si: bool) -> void:
+	var antes: bool = _congelado_s > 0.0
+	_congelado_s = CONGELADO_S if si else 0.0
+	_tinte_estado()
+	if si:
+		set_process(true)
+		_reaccionar(Mundo3D.R_CONGELADO)
+	else:
+		_reaccionar(Mundo3D.R_DERRETIDO)
+	if antes != si:
+		congelado_cambio.emit(si)
+
+
+func _poner_enredado(si: bool) -> void:
+	var antes: bool = _enredado_s > 0.0
+	_enredado_s = ENREDADO_S if si else 0.0
+	_tinte_estado()
+	if si:
+		set_process(true)
+	if antes != si:
+		enredado_cambio.emit(si)
+
+
+## Tinte según el estado de más prioridad: congelado/escarcha (azul claro) · enredado (verde) · al rojo (rojizo) · ninguno (el color de siempre). No pisa a lo helado ni a lo que arde.
+func _tinte_estado() -> void:
+	if estado == EstadoObj.ARDIENDO or helada:
+		return
+	if _congelado_s > 0.0 or _escarcha_s > 0.0:
+		_pintar_tinte(1.0, COLOR_HIELO)
+	elif _enredado_s > 0.0:
+		_pintar_tinte(1.0, COLOR_ENREDO)
+	elif _caliente_s > 0.0:
+		_pintar_tinte(1.0, COLOR_AL_ROJO)
+	else:
+		_pintar_tinte(0.0)
+
+
+## `conduce`: ¿debe estar en Terreno3D.conductores? Mojado y sin escarcha. Emite `conduce_cambio` solo al cambiar.
+func _actualizar_conductor() -> void:
+	var debe: bool = _conduce_s > 0.0 and _escarcha_s <= 0.0
+	if debe == _conduciendo:
+		return
+	_conduciendo = debe
+	NexoRayo3D.poner_conductor(celda, debe)
+	conduce_cambio.emit(debe)
+
+
+func _exit_tree() -> void:
+	if _conduciendo:
+		_conduciendo = false
+		NexoRayo3D.poner_conductor(celda, false)       # una pieza que sale del árbol no deja la corriente pasando por su casilla
 
 
 ## ¿Está empapado (leña mojable regada hace menos de T_MOJADO s)? Mojado no prende, ni por hechizo ni por contagio.
@@ -779,10 +989,11 @@ func _process(delta: float) -> void:
 		if _mojado_s <= 0.0:
 			PiezaFuego3D.mojado(visual, false)
 			_reaccionar(Mundo3D.R_SECADO)
+	_avanzar_relojes(delta)
 	if rele_activo and is_lit:
 		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:
-		if _mojado_s <= 0.0 and not (rele_activo and is_lit):
+		if _mojado_s <= 0.0 and not (rele_activo and is_lit) and not _hay_relojes():
 			set_process(false)
 		return
 	_t += delta
@@ -794,6 +1005,41 @@ func _process(delta: float) -> void:
 		_contagiar(CONTAGIO, Vector3.ZERO)
 	if _t >= float(_num_combustible()[0]):
 		_consumir()
+
+
+## R2: cuenta atrás de los estados con reloj (conducción, congelado, enredado, escarcha, al rojo); al acabar cada uno avisa su señal y devuelve el color.
+func _hay_relojes() -> bool:
+	return _conduce_s > 0.0 or _congelado_s > 0.0 or _enredado_s > 0.0 or _escarcha_s > 0.0 or _caliente_s > 0.0
+
+
+func _avanzar_relojes(delta: float) -> void:
+	if not _hay_relojes():
+		return
+	var cambio_tinte: bool = false
+	if _conduce_s > 0.0:
+		_conduce_s = maxf(0.0, _conduce_s - delta)
+		if _conduce_s <= 0.0:
+			_actualizar_conductor()
+	if _escarcha_s > 0.0:
+		_escarcha_s = maxf(0.0, _escarcha_s - delta)
+		if _escarcha_s <= 0.0:
+			cambio_tinte = true
+			_actualizar_conductor()                      # acabada la escarcha vuelve a conducir lo que le quedara de mojado
+	if _caliente_s > 0.0:
+		_caliente_s = maxf(0.0, _caliente_s - delta)
+		cambio_tinte = cambio_tinte or _caliente_s <= 0.0
+	if _congelado_s > 0.0:
+		_congelado_s = maxf(0.0, _congelado_s - delta)
+		if _congelado_s <= 0.0:
+			cambio_tinte = true
+			congelado_cambio.emit(false)
+	if _enredado_s > 0.0:
+		_enredado_s = maxf(0.0, _enredado_s - delta)
+		if _enredado_s <= 0.0:
+			cambio_tinte = true
+			enredado_cambio.emit(false)
+	if cambio_tinte:
+		_tinte_estado()
 
 
 ## A4: avisa de una reacción con nombre (catálogo de Mundo3D.REACCIONES) en el centro de esta pieza. Qué se ve y suena lo decide el Pipeline.

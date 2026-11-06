@@ -275,7 +275,9 @@ const SENALES: Dictionary = {
 	"nexo": {"conduce": ["cambio", 1, true], "corta": ["cambio", 1, false]},
 	"barril": {"explota": ["explota", 2, null]},
 	"puerta": {"abierta": ["cambio", 1, true], "cerrada": ["cambio", 1, false]},
-	"totem": {"activado": ["activado", 2, null]},
+	"totem": {"activado": ["activado", 2, null],
+		# R2 (6/11): la naturaleza enreda el tótem y el hielo lo congela (señales de Reactivo3D); un puzle puede esperar a que lo liberen o descongelen.
+		"enredado": ["enredado_cambio", 1, true], "liberado": ["enredado_cambio", 1, false], "congelado": ["congelado_cambio", 1, true], "descongelado": ["congelado_cambio", 1, false]},
 	"tinaja": {"agua_llega": ["agua_llega", 0, null]},
 	"emisor": {"descarga": ["descarga", 1, null]},
 	"brasero": {"encendido": ["llama", 1, true], "apagado": ["llama", 1, false]},

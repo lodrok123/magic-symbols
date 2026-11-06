@@ -101,7 +101,8 @@ func _objetos() -> void:
 	cu.preparar(Vector2i(3, 4))
 	_poner(cu)
 	await process_frame
-	_ok("cuerda entera: calor y corriente sí; humedad, frío y viento no", cu.spell_reacts(calor) and cu.spell_reacts(rayo) and not cu.spell_reacts(humedo) and not cu.spell_reacts(frio) and not cu.spell_reacts(soplo))
+	# R2 (6/11): el frío SÍ reacciona con la cuerda entera (la escarcha la rigidiza: no cae aunque arda mientras dure); antes se fijaba que no.
+	_ok("cuerda entera: calor, corriente y frío sí; humedad y viento no", cu.spell_reacts(calor) and cu.spell_reacts(rayo) and cu.spell_reacts(frio) and not cu.spell_reacts(humedo) and not cu.spell_reacts(soplo))
 	cu.on_spell_hit(calor, Vector3.ZERO, _h(calor))
 	_ok("cuerda: temperatura +1 la prende", cu.estado == Cuerda3D.EstadoCuerda.ARDIENDO)
 	_ok("cuerda ardiendo: humedad y frío reaccionan (apagan); el viento no", cu.spell_reacts(humedo) and cu.spell_reacts(frio) and not cu.spell_reacts(soplo))

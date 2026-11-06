@@ -133,11 +133,16 @@ func _poner(si: bool) -> void:
 	if si == conduce:
 		return
 	conduce = si
-	if si:
-		Terreno3D.conductores[celda] = true
-	else:
-		Terreno3D.conductores.erase(celda)
+	poner_conductor(celda, si)
 	cambio.emit(si)
+
+
+## R2: la única escritura en `Terreno3D.conductores`. La comparte `Reactivo3D` (papel `conduce`: un emisor o una reja mojados) para no duplicar el patrón.
+static func poner_conductor(c: Vector2i, si: bool) -> void:
+	if si:
+		Terreno3D.conductores[c] = true
+	else:
+		Terreno3D.conductores.erase(c)
 
 
 func _process(delta: float) -> void:

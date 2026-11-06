@@ -26,6 +26,7 @@ const RADIO: float = 0.07
 const COLOR_ENTERA: Color = Color(0.62, 0.45, 0.25)
 const COLOR_ARDE: Color = Color(1.0, 0.5, 0.15)
 const COLOR_CENIZA: Color = Color(0.2, 0.17, 0.15)
+const COLOR_ESCARCHA: Color = Color(0.72, 0.9, 1.0)
 ## Dónde está la anilla en el modelo `cuerda_poste` (medido en su malla: el brazo sube hasta y≈1,87 y la anilla queda en x≈0,45). De ahí
 ## cuelga `cuerda_tensa` (1,3) y, de su nudo, `cuerda_cabo` (0,35): el conjunto llega justo al suelo. Es una estimación: hay que verlo en pantalla.
 const ANILLA_MODELO: Vector3 = Vector3(0.45, 1.65, -0.28)
@@ -36,6 +37,7 @@ var is_lit: bool = false                 ## arde (lo leen el barril, el contador
 var rota_ya: bool = false                ## ya se rompió (la condición `cuerda.rota` de Puzle3D)
 var sostiene: Node = null                ## lo que cae al romperse
 var _t: float = 0.0
+var _escarcha_s: float = 0.0             ## R2: s que le quedan rígida por el hielo; > 0 = no se rompe aunque arda
 var _cuerda: Node3D = null
 var _cabo: Node3D = null
 var _caida: Node3D = null                ## el cabo caído en el suelo (modelo `cuerda_caida`); solo con modelos
@@ -164,6 +166,8 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 		arder()
 	elif (Materia.riega(m) or Materia.enfria(m)) and estado == EstadoCuerda.ARDIENDO:
 		_apagar()
+	elif estado == EstadoCuerda.ENTERA and Materia.reaccion(m, "tela", {}) == "rigida":
+		_escarchar()
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
@@ -172,7 +176,9 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
 	if Materia.calienta(m) or Materia.conduce(m):
 		return estado == EstadoCuerda.ENTERA
-	return (Materia.riega(m) or Materia.enfria(m)) and estado == EstadoCuerda.ARDIENDO
+	if (Materia.riega(m) or Materia.enfria(m)) and estado == EstadoCuerda.ARDIENDO:
+		return true
+	return estado == EstadoCuerda.ENTERA and Materia.reaccion(m, "tela", {}) == "rigida"
 
 
 func carried_element() -> RuneData:
@@ -202,6 +208,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 func arder() -> void:
 	if estado != EstadoCuerda.ENTERA:
 		return
+	# R2: con escarcha `_t` arranca igual; `_process` no la rompe hasta que se acabe (no se pausa el reloj de ardiendo: la cuerda ya está al rojo bajo el hielo)
 	estado = EstadoCuerda.ARDIENDO
 	is_lit = true
 	_t = 0.0
@@ -235,13 +242,27 @@ func _apagar() -> void:
 
 
 func _process(delta: float) -> void:
+	if _escarcha_s > 0.0:
+		_escarcha_s = maxf(0.0, _escarcha_s - delta)
+		if _escarcha_s <= 0.0 and estado == EstadoCuerda.ENTERA:
+			_tenir(null)                                # se acabó la escarcha y no ardía: vuelve a ser la cuerda de siempre
 	if estado != EstadoCuerda.ARDIENDO:
+		if _escarcha_s <= 0.0:
+			set_process(false)
 		return
 	_t += delta
 	if _luz != null:
 		_luz.light_energy = 0.7 + 0.4 * absf(sin(_t * 18.0))
-	if _t >= T_ARDE:
+	# R2: con escarcha la cuerda está RÍGIDA: arde pero no cede; en cuanto se acaba la escarcha, si sigue ardiendo, se rompe.
+	if _t >= T_ARDE and _escarcha_s <= 0.0:
 		_romper()
+
+
+## R2: el hielo sobre la cuerda (tela) la deja rígida `Reactivo3D.ESCARCHA_S` s: aunque arda no cae mientras dure (ver `_process`).
+func _escarchar() -> void:
+	_escarcha_s = Reactivo3D.ESCARCHA_S
+	_tenir(COLOR_ESCARCHA, 0.0)
+	set_process(true)
 
 
 func _romper() -> void:

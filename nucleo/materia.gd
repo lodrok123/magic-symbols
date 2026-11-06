@@ -150,6 +150,16 @@ static func cumple(m: Dictionary, nombre: String) -> bool:
 	return false
 
 
+## R2 (6/11/2026, docs/REACCIONES_ENTORNO_2026-11-06.md §1.5): lo que hacen los elementos que NO se distinguen por números (magma y naturaleza se parecen a fuego y agua pero no
+## lo son), por MATERIAL. Se mira ANTES que la tabla de abajo, solo si `m.elemento` está aquí. Es dato: añadir una fila no toca código.
+##   «prende_fuerte» = calor que prende aunque el objeto esté mojado (el magma salta la dosis de calor) · «enreda» = traba lo activable y lo sacudible · "" = no hace nada.
+## El magma sobre piedra/metal/cristal sigue por la tabla normal (calienta, calienta, funde): ya lo dice `calienta(m)`.
+const REACCION_ELEMENTO: Dictionary = {
+	"magma": {"madera": "prende_fuerte", "vegetal": "prende_fuerte", "tela": "prende_fuerte"},
+	"naturaleza": {"madera": "enreda", "vegetal": "enreda", "tela": "enreda", "piedra": "enreda", "metal": "enreda", "cristal": ""},
+}
+
+
 ## MEJORAS_POTENCIA §5 en propiedades. `estado` = {mojado, ardiendo, helado, encendido…} (lo que falte es false). Devuelve la reacción que tendría la pieza, sin aplicarla:
 ## «prende», «apaga», «moja», «aviva», «hiela», «escarcha», «chamusca», «astilla», «crece», «congela», «agita», «calienta», «agrieta», «desprende», «oxida», «conduce», «funde»,
 ## «brilla», «carga», «rompe», «pesa», «rigida», «ondea»; «» si no pasa nada. Un material desconocido no reacciona.
@@ -158,6 +168,9 @@ static func reaccion(m: Dictionary, material: String, estado: Dictionary = {}) -
 	var ardiendo: bool = bool(estado.get("ardiendo", false))
 	var helado: bool = bool(estado.get("helado", false))
 	var sano: bool = not mojado and not ardiendo and not helado
+	var propia: Dictionary = REACCION_ELEMENTO.get(String(m.get("elemento", "")), {}) as Dictionary
+	if propia.has(material):
+		return String(propia[material])
 	match material:
 		"madera", "vegetal", "tela":
 			if ardiendo:
