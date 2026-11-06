@@ -61,6 +61,10 @@ func _escenario() -> void:
 		(g as Combate3D).quieto = true
 	var g0: Combate3D = gs[0]
 	var g1: Combate3D = gs[1]
+	# 6/11: durante los 10 fotogramas de arriba los guerreros ya andan y uno podía quedar fuera del radio de aliados del chamán (1.5 fallaba casi siempre):
+	# se ponen a 1,5 u de él antes de mirar las prioridades.
+	g0.position = Vector3(_ch.position.x + 1.5, g0.position.y, _ch.position.z)
+	g1.position = Vector3(_ch.position.x - 1.5, g1.position.y, _ch.position.z)
 
 	# ---- 1 · prioridades --------------------------------------------------------------------------------------------
 	print("--- 1 · prioridades")
