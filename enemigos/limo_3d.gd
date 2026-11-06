@@ -11,7 +11,10 @@ extends Combate3D
 ##   · Teñido, si le llega OTRA VEZ su elemento pasa a GRANDE: salta un 30 % más (alcance y altura) y hace el doble de daño (30).
 ##   · Grande, su elemento ya SOLO LO CURA (lo que le iba a hacer de daño, como mínimo CURA_MIN; quieto sobre su elemento, CURA_SUELO por segundo).
 ##   · Los demás elementos le hacen lo de siempre (la tabla de `Combate3D`: daño, estados, empuje); el golpe cuerpo a cuerpo (F) y el agua honda también.
-## Lo que NO hace todavía (PROPUESTA §4, sin pedir): dividirse con fuego, volverse un bloque empujable con hielo, ni llevar su elemento en el ataque.
+##   · D3 (6/11/2026, decidido el 27/10): el FUEGO lo DIVIDE (teñido de otro elemento: normal → dos pequeños, grande → dos normales, cada uno con la mitad de la vida y el mismo elemento;
+##     un pequeño con fuego MUERE; si no hay dos casillas libres alrededor no se divide y el golpe es el de siempre). El HIELO lo vuelve un BLOQUE EMPUJABLE T_BLOQUE s (teñido de otro
+##     elemento): se empuja con viento o con F, resbala, pisa placas y, si cae al agua honda, se hunde; al acabar el tiempo vuelve a ser limo con la vida que tuviera.
+##     Su acometida lleva su elemento a la jugadora (`_elemento_a_la_jugadora`).
 ##
 ## Cómo está hecho: es un `Combate3D` (vida, barra, estados, empujes, hundirse, tinta por reacción, previsión A2/A3, el vigía de los puzles: todo eso se hereda) SIN modelo Pj3D: su
 ## cuerpo es un `LimoVisual3D` (la gelatina hecha por código), hermano suyo en el mundo. Se sustituyen la IA, la decisión del golpe para su elemento (`decidir_golpe`, así la previsión
@@ -20,6 +23,7 @@ extends Combate3D
 signal tenido(elemento: String)
 signal crecio(tamano: float)
 signal curado(cantidad: float)
+signal dividido(hijos: Array)                 ## D3: se partió; los limos que dejó
 
 const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo", "tierra", "viento"]
 const VIDA: float = 30.0                    ## 29/10 (DANO_Y_TINTA): 60 → 30
@@ -40,9 +44,28 @@ const CURA_SUELO: float = 6.0                 ## vida/s quieto sobre su elemento
 const INTERVALO_SUELO: float = 0.25           ## s entre dos miradas a la casilla
 const GRACIA_SUELO: float = 1.0               ## s tras absorber en que el suelo no lo hace crecer: la llama que deja la misma flecha al pararse es la MISMA aplicación, no otra
 const ORO_LIMO: int = 5
+## --- D3 (6/11/2026): dividirse con fuego, bloque con hielo, el elemento en el ataque ---
+const DIVIDE_CON: String = "fuego"            ## el elemento que lo parte en dos (si no es el suyo)
+const BLOQUE_CON: String = "hielo"            ## el elemento que lo congela en un bloque empujable (si no es el suyo)
+const ESCALA_PEQUENO: float = 0.6             ## escala del limo pequeño (= LimoVisual3D.TAMANO_PEQUENO)
+const FRACCION_VIDA_HIJO: float = 0.5         ## cada hijo nace con esta fracción de la vida (máxima y actual) del que se divide
+const MULT_DANO_PEQUENO: float = 0.5          ## el pequeño pega la mitad (dos pequeños no deben pegar el doble que uno normal)
+const MASA_PEQUENO: float = 0.3
+const N_HIJOS: int = 2
+const T_BLOQUE: float = 8.0                   ## s que dura congelado en bloque antes de volver a ser limo
+const T_ESPERA_BLOQUE_MAX: float = 3.0        ## s extra que se espera a que un bloque aún en marcha se pare para deshacerlo (así reaparece en el centro de una casilla)
+const ESTADO_ATAQUE_S: float = 3.0            ## s del estado que su acometida aplica si la jugadora admite estados (`aplicar_estado`)
 
 var elemento: String = ""                     ## con qué está teñido («» = sin teñir)
 var grande: bool = false
+var pequeno: bool = false                     ## D3: nacido de una división (escala 0,6)
+var en_bloque: bool = false                   ## D3: congelado en un `BloqueLimo` (T_BLOQUE s)
+var bloque: BloqueLimo = null
+var t_bloque: float = 0.0                     ## s que le quedan de bloque
+var divisiones: int = 0                       ## veces que se ha dividido (pruebas)
+var se_dividio: bool = false                  ## desapareció al dividirse (no murió: sin botín ni «enemigo muerto»)
+var hijos: Array = []                         ## los limos que dejó al dividirse
+var efecto_ataque: String = ""                ## cómo llevó su elemento a la jugadora la última vez: «estado» | «suelo» | «» (pruebas)
 var cuerpo: LimoVisual3D = null
 var golpes_dados: int = 0                     ## acometidas que le dieron (pruebas)
 var acometidas: int = 0                       ## acometidas empezadas (pruebas)
@@ -60,13 +83,14 @@ var _t_gracia: float = 0.0
 
 
 ## Crea un limo en `pos` y lo cuelga de `p_mundo`. `p_elemento` = ya teñido; `p_grande` = ya grande (solo si está teñido).
-static func crear(p_mundo: Node3D, pos: Vector3, p_elemento: String = "", p_grande: bool = false) -> Limo3D:
+static func crear(p_mundo: Node3D, pos: Vector3, p_elemento: String = "", p_grande: bool = false, p_pequeno: bool = false) -> Limo3D:
 	var l := Limo3D.new()
 	l.mundo = p_mundo
 	l.position = pos
 	l.casa = pos
 	l.elemento = p_elemento if ELEMENTOS.has(p_elemento) else ""
 	l.grande = p_grande and l.elemento != ""
+	l.pequeno = p_pequeno and not l.grande
 	p_mundo.add_child(l, true)
 	return l
 
@@ -87,7 +111,7 @@ func _ready() -> void:
 	oro = ORO_LIMO
 	tabla_botin = "limo"
 	vida_max = VIDA
-	masa = 1.2 if grande else 0.6             # tarea P: ligero; el grande pesa el doble
+	masa = 1.2 if grande else (MASA_PEQUENO if pequeno else 0.6)             # tarea P: ligero; el grande pesa el doble
 	defensa = Dano.DEF_LIMO                  # 29/10 (DANO_Y_TINTA): 0
 	health = VIDA
 	tinte = Color.WHITE
@@ -101,8 +125,8 @@ func _ready() -> void:
 	cuerpo.position = position
 	if elemento != "":
 		cuerpo.cargar(elemento)
-	if grande:
-		cuerpo.tamano = LimoVisual3D.TAMANO_GRANDE
+	if grande or pequeno:
+		cuerpo.tamano = _tam()
 	altura = _alto()
 	var forma := CapsuleShape3D.new()
 	forma.radius = _radio_limo()
@@ -121,6 +145,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	# Lo quitan de la escena sin morir (el vigía de una sala ya limpia, cambio de nivel): el cuerpo se va con él. Muriendo, el cuerpo acaba su animación y se borra solo.
+	if bloque != null and is_instance_valid(bloque):
+		bloque.deshacer()                                    # D3: su bloque no se queda solo en el mundo
 	if not muerto and cuerpo != null and is_instance_valid(cuerpo):
 		cuerpo.queue_free()
 
@@ -136,21 +162,26 @@ func _buscar_jugador() -> void:
 			return
 
 
+## La escala de su cuerpo: pequeño 0,6 · normal 1 · grande 1,6.
+func _tam() -> float:
+	return LimoVisual3D.TAMANO_GRANDE if grande else (ESCALA_PEQUENO if pequeno else LimoVisual3D.TAMANO_NORMAL)
+
+
 func _alto() -> float:
-	return LimoVisual3D.ALTO * (LimoVisual3D.TAMANO_GRANDE if grande else LimoVisual3D.TAMANO_NORMAL)
+	return LimoVisual3D.ALTO * _tam()
 
 
 func _radio_limo() -> float:
-	return 0.45 * (LimoVisual3D.TAMANO_GRANDE if grande else LimoVisual3D.TAMANO_NORMAL)
+	return 0.45 * _tam()
 
 
 func _mult_salto() -> float:
 	return MULT_SALTO_GRANDE if grande else 1.0
 
 
-## El daño de su acometida: 15, el doble de grande.
+## El daño de su acometida: 15, el doble de grande, la mitad de pequeño.
 func dano_golpe() -> float:
-	return DANO * (MULT_DANO_GRANDE if grande else 1.0)
+	return DANO * (MULT_DANO_GRANDE if grande else (MULT_DANO_PEQUENO if pequeno else 1.0))
 
 
 ## u de su acometida (el grande, un 30 % más).
@@ -159,32 +190,45 @@ func alcance_acometida() -> float:
 
 
 func radio_golpe() -> float:
-	return RADIO_GOLPE * (LimoVisual3D.TAMANO_GRANDE if grande else LimoVisual3D.TAMANO_NORMAL)
+	return RADIO_GOLPE * (LimoVisual3D.TAMANO_GRANDE if grande else LimoVisual3D.TAMANO_NORMAL)    # el pequeño cubre como el normal: su tamaño no encoge el aviso
 
 
 ## =====================================================================================================
 ##  El elemento: teñirse, crecer, curarse
 ## =====================================================================================================
 
-## Qué le hace a ESTE limo que le llegue `el`: «tine» (sin teñir), «crece» (su elemento, aún normal), «cura» (su elemento, ya grande) o «» (otro elemento: lo de siempre).
+## Qué le hace a ESTE limo que le llegue `el`: «tine» (sin teñir), «crece» (su elemento, aún pequeño o normal), «cura» (su elemento, ya grande), D3: «divide» (fuego y no es de fuego, con
+## sitio alrededor), «muere» (fuego sobre un pequeño que no es de fuego: no puede partirse más), «bloque» (hielo y no es de hielo) o «» (lo de siempre: la tabla de `Combate3D`).
+## Fallo que evita lo de «sin sitio»: dividirse sin casillas libres dejaría a los hijos dentro de una pared; entonces el fuego le hace su daño normal.
 func accion_elemento(el: String) -> String:
-	if not ELEMENTOS.has(el):
+	if not ELEMENTOS.has(el) or en_bloque:
 		return ""
 	if elemento == "":
 		return "tine"
 	if el != elemento:
+		if el == DIVIDE_CON:
+			if pequeno:
+				return "muere"
+			return "divide" if _celdas_para_hijos().size() >= N_HIJOS else ""
+		if el == BLOQUE_CON and _puede_ser_bloque():
+			return "bloque"
 		return ""
 	return "cura" if grande else "crece"
 
 
 ## A2: con su elemento (o sin teñir) no hay daño, ni estado, ni empuje: se absorbe. `absorbe` dice cómo (la previsión lo pinta). El resto, la tabla de siempre.
+## D3: «divide» y «bloque» tampoco hacen daño (la transformación ES el golpe); «muere» le quita toda la vida.
 func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var r: Dictionary = super(hechizo)
 	var acc: String = accion_elemento(hechizo.elemento)
 	if acc == "":
 		return r
+	if acc == "muere":
+		r["dano"] = maxf(float(r["dano"]), health)
+		return r
 	r["curado"] = true
-	r["absorbe"] = acc
+	if acc == "tine" or acc == "crece" or acc == "cura":
+		r["absorbe"] = acc
 	r["mult"] = 1.0
 	r["base"] = 0.0
 	r["dano"] = 0.0
@@ -202,13 +246,40 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 
 
 func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
-	if muerto or hechizo == null:
+	if muerto or hechizo == null or en_bloque:
 		return
 	var acc: String = accion_elemento(hechizo.elemento)
-	if acc == "":
-		super(hechizo, direccion)
-		return
-	absorber(hechizo.elemento, acc, maxf(hechizo.dano, CURA_MIN), "hechizo")
+	match acc:
+		"":
+			super(hechizo, direccion)
+		"divide":
+			dividirse("hechizo")
+		"bloque":
+			congelar_en_bloque()
+		"muere":
+			_num_golpe = true                                   # que la muerte sepa que fue el fuego (carbón y sonido, `_elemento_letal`)
+			_num_elemento = hechizo.elemento
+			receive_damage(health + 1.0)
+			_num_golpe = false
+			PlayLog.event("limo_muere_fuego", {"pequeno": pequeno, "elemento": elemento})
+		_:
+			absorber(hechizo.elemento, acc, maxf(hechizo.dano, CURA_MIN), "hechizo")
+
+
+## D3: la previsión (A2/A3) pinta «Se divide», «¡Bloque!» o «Muere» por `reacciones_propias`, como el gólem; `PrevisionHechizo` no cambia. Los demás (tine, crece, cura) siguen por `absorbe`.
+func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}) -> Dictionary:
+	var r: Dictionary = super(hechizo, dir, empuje_previo)
+	r["reacciones_propias"] = []
+	if muerto or hechizo == null:
+		return r
+	match accion_elemento(hechizo.elemento):
+		"divide":
+			r["reacciones_propias"] = ["divide"]
+		"bloque":
+			r["reacciones_propias"] = ["bloque"]
+		"muere":
+			r["reacciones_propias"] = ["muere"]
+	return r
 
 
 ## Aplica una absorción. `cura` = la vida que da si `acc` es «cura».
@@ -225,12 +296,16 @@ func absorber(el: String, acc: String, cura: float = CURA_MIN, origen: String = 
 			_en_su_elemento = _elemento_del_suelo() == el      # teñirse sobre su elemento no lo hace crecer en el acto: tiene que salir y volver a entrar
 			tenido.emit(el)
 		"crece":
-			grande = true
-			masa = 1.2                                          # tarea P: crece, pesa el doble
-			cuerpo.cargar(el)                                 # el mismo elemento otra vez: LimoVisual3D crece (normal → grande)
+			if pequeno:
+				pequeno = false                                 # D3: un pequeño que recibe su elemento sube un escalón (pequeño → normal)
+				masa = 0.6
+			else:
+				grande = true
+				masa = 1.2                                      # tarea P: crece, pesa el doble
+			cuerpo.cargar(el)                                   # el mismo elemento otra vez: LimoVisual3D crece un escalón
 			_al_crecer()
 			texto_grande("¡Crece!", col, 0.25)
-			crecio.emit(LimoVisual3D.TAMANO_GRANDE)
+			crecio.emit(cuerpo.tamano)
 		"cura":
 			var antes: float = health
 			health = minf(vida_max, health + cura)
@@ -297,11 +372,245 @@ func _al_crecer() -> void:
 
 ## Nombre y rombo de la barra: del color de su elemento (sin teñir, blanco).
 func _rotular() -> void:
-	nombre = "Limo" + (" grande" if grande else "") + ((" de " + elemento) if elemento != "" else "")
+	nombre = "Limo" + (" grande" if grande else (" pequeño" if pequeno else "")) + ((" de " + elemento) if elemento != "" else "")
 	if _nombre_etiqueta != null:
 		_nombre_etiqueta.text = nombre
 	if _marca_debil != null:
 		_marca_debil.modulate = Pulso3D.color_de(elemento) if elemento != "" else Color.WHITE
+
+
+## =====================================================================================================
+##  D3: dividirse con fuego
+## =====================================================================================================
+
+## ¿Se puede poner un limo en esa casilla? La misma regla de «casilla pisable» con la que brinca (`_puede_estar_desde`), y además sin otro enemigo, bloque ni la jugadora encima.
+func _casilla_apta(c: Vector2i) -> bool:
+	if not Terreno3D.en_mapa(c) or Terreno3D.bloqueada(c) or Terreno3D.es_agua(c):
+		return false
+	if not _puede_estar_desde(position, Terreno3D.centro_de(c, Terreno3D.y_pies(c)), false, false):
+		return false
+	if BloqueEmpujable3D.en(c) != null:
+		return false
+	if not is_inside_tree():
+		return true
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n != self and is_instance_valid(n) and n is Combate3D and not (n as Combate3D).muerto and Terreno3D.celda_de((n as Node3D).position) == c:
+			return false
+	if jugador != null and is_instance_valid(jugador) and Terreno3D.celda_de(jugador.position) == c:
+		return false
+	return true
+
+
+## Hasta N_HIJOS casillas libres alrededor (primero las cuatro de al lado, luego las diagonales), donde se pondrían los hijos.
+func _celdas_para_hijos() -> Array:
+	var r: Array = []
+	var yo: Vector2i = Terreno3D.celda_de(position)
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+		if r.size() >= N_HIJOS:
+			break
+		if _casilla_apta(yo + (d as Vector2i)):
+			r.append(yo + (d as Vector2i))
+	return r
+
+
+## Se parte en N_HIJOS limos de un escalón menos (grande → normales, normal → pequeños), con el mismo elemento y la mitad de la vida cada uno. No muere: no suelta botín ni cuenta como
+## «enemigo muerto»; sus hijos heredan la casilla de partida (así el vigía de la sala los cuenta). false si no había sitio.
+func dividirse(origen: String = "hechizo") -> bool:
+	if muerto or en_bloque or pequeno:
+		return false
+	var celdas: Array = _celdas_para_hijos()
+	if celdas.size() < N_HIJOS:
+		return false
+	var col: Color = Pulso3D.color_de(elemento) if elemento != "" else Color.WHITE
+	hijos = []
+	for c in celdas:
+		var h: Limo3D = Limo3D.crear(mundo, Terreno3D.centro_de(c as Vector2i, Terreno3D.y_pies(c as Vector2i)), elemento, false, not grande)
+		h.casa = casa
+		h.quieto = quieto
+		h.vida_max = vida_max * FRACCION_VIDA_HIJO
+		h.health = health * FRACCION_VIDA_HIJO
+		h._rotular()
+		hijos.append(h)
+	divisiones += 1
+	texto_grande("¡Se divide!", col, 0.25)
+	Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_CAIDA)
+	PlayLog.event("limo_divide", {"origen": origen, "grande": grande, "elemento": elemento, "hijos": hijos.size(), "vida_hijo": snappedf(vida_max * FRACCION_VIDA_HIJO, 0.1)})
+	_desvanecer()
+	dividido.emit(hijos)
+	return true
+
+
+## Desaparece sin morir (se ha partido): sin botín, sin aviso de muerte; el cuerpo se aplasta y se va.
+func _desvanecer() -> void:
+	_quitar_aviso()
+	muerto = true
+	se_dividio = true
+	_accion = ""
+	collision_layer = 0
+	monitorable = false
+	remove_from_group("combate3d")
+	remove_from_group("goblins")
+	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
+		if n != null:
+			(n as Node3D).visible = false
+	var c: LimoVisual3D = cuerpo
+	if c != null and is_instance_valid(c):
+		c.cancelar_salto()
+		var tw: Tween = c.create_tween()
+		tw.tween_property(c, "scale", Vector3(1.5, 0.05, 1.5), 0.2).set_ease(Tween.EASE_IN)
+		tw.tween_callback(c.queue_free)
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(self):
+				queue_free())
+	else:
+		queue_free()
+
+
+## =====================================================================================================
+##  D3: el hielo lo vuelve un bloque empujable
+## =====================================================================================================
+
+func _puede_ser_bloque() -> bool:
+	var c: Vector2i = Terreno3D.celda_de(position)
+	return is_inside_tree() and BloqueEmpujable3D.en(c) == null and not Terreno3D.bloqueada(c) and not Terreno3D.es_agua(c)
+
+
+## Se congela en un `BloqueLimo` (un `BloqueEmpujable3D` de hielo) en su casilla durante T_BLOQUE s: él se queda quieto y fuera de los grupos de enemigos (el golpe F y los hechizos
+## encuentran al bloque, no a él) y su cuerpo, hecho cubo de hielo, va con el bloque. La vida y el elemento que tuviera se quedan como estaban.
+func congelar_en_bloque() -> bool:
+	if muerto or en_bloque or not _puede_ser_bloque():
+		return false
+	_cortar_accion()
+	_quitar_aviso()
+	en_bloque = true
+	t_bloque = T_BLOQUE
+	objetivo = null
+	var c: Vector2i = Terreno3D.celda_de(position)
+	bloque = BloqueLimo.new()
+	bloque.name = String(name) + "_bloque"
+	bloque.limo = self
+	bloque.preparar(c, "hielo", mundo)
+	mundo.add_child(bloque)
+	position.x = bloque.position.x
+	position.z = bloque.position.z
+	collision_layer = 0
+	remove_from_group("combate3d")
+	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
+		if n != null:
+			(n as Node3D).visible = false
+	if cuerpo != null and is_instance_valid(cuerpo):
+		cuerpo.cancelar_salto()
+		cuerpo.congelar(true)
+		cuerpo.position = position
+	texto_grande("¡Bloque!", Pulso3D.color_de("hielo"), 0.25)
+	PlayLog.event("limo_bloque", {"elemento": elemento, "vida": snappedf(health, 0.1), "celda": [c.x, c.y]})
+	return true
+
+
+## Cada fotograma de bloque: el limo y su cuerpo siguen al bloque; al acabar T_BLOQUE (y parado) vuelve a ser limo.
+func _vigilar_bloque(delta: float) -> void:
+	if bloque == null or not is_instance_valid(bloque):
+		_volver_de_bloque()                                  # lo quitaron de la escena (cambio de nivel): vuelve donde estaba
+		return
+	if not bloque.hundido:
+		position.x = bloque.position.x
+		position.z = bloque.position.z
+		position.y = bloque.position.y
+	if cuerpo != null and is_instance_valid(cuerpo):
+		cuerpo.position = position
+	t_bloque -= delta
+	if t_bloque <= -T_ESPERA_BLOQUE_MAX or (t_bloque <= 0.0 and not bloque.moviendo):
+		_volver_de_bloque()
+
+
+## El bloque se hundió en agua honda: el limo muere ahogado en esa casilla (`_hundirse` avisa «hundido», la tinta por reacción y el resto).
+func al_hundirse_bloque() -> void:
+	if muerto or not en_bloque:
+		return
+	en_bloque = false
+	var b: BloqueLimo = bloque
+	bloque = null
+	position.x = b.position.x
+	position.z = b.position.z
+	add_to_group("combate3d")
+	if cuerpo != null and is_instance_valid(cuerpo):
+		cuerpo.congelar(false)
+		cuerpo.position = position
+	_hundirse(Terreno3D.celda_de(position))
+
+
+## Vuelve a ser limo en la casilla donde quedó el bloque, con la vida que tuviera.
+func _volver_de_bloque() -> void:
+	if not en_bloque:
+		return
+	en_bloque = false
+	if bloque != null and is_instance_valid(bloque):
+		var c: Vector2i = bloque.celda
+		position = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
+		bloque.deshacer()
+	bloque = null
+	t_bloque = 0.0
+	collision_layer = Lanzador3D.CAPA_REACTIVO
+	add_to_group("combate3d")
+	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
+		if n != null:
+			(n as Node3D).visible = true
+	if cuerpo != null and is_instance_valid(cuerpo):
+		cuerpo.congelar(false)
+		cuerpo.position = position
+	_empuje = Vector3.ZERO
+	_descanso = PAUSA_BRINCO
+	Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_CAIDA)
+	PlayLog.event("limo_vuelve", {"vida": snappedf(health, 0.1)})
+
+
+## El bloque de hielo del limo: un `BloqueEmpujable3D` (se empuja con viento o con F, resbala, pisa placas) que además se HUNDE en el agua honda (el de verdad se para en la orilla) y
+## le dice al limo cuándo. Su cubo de hielo no se ve: lo que se ve es el cuerpo del limo, congelado.
+class BloqueLimo extends BloqueEmpujable3D:
+	var limo: Limo3D = null
+	var hundido: bool = false
+
+	func _ready() -> void:
+		super()
+		if _cuerpo != null:
+			_cuerpo.visible = false
+
+	## Como `_casilla_libre` del bloque, pero el agua honda también se puede pisar (y entonces se hunde). Fallo que evita: el bloque de hielo se quedaba en la orilla y el limo nunca se ahogaba.
+	func _casilla_libre(c: Vector2i, ref: Vector2i) -> bool:
+		if Terreno3D.en_mapa(c) and _agua_honda(c):
+			return Terreno3D.altura_en(c) == Terreno3D.altura_en(ref) and not (_ocupadas.has(c) and _ocupadas[c] != self) and not _hay_enemigo(c) and not _jugadora_en(c)
+		return super(c, ref)
+
+	func puede_moverse(dir: Vector2i) -> bool:
+		return not hundido and super(dir)
+
+	func _agua_honda(c: Vector2i) -> bool:
+		if Terreno3D.letra_de(c) == "b" or not Terreno3D.se_nada(c):
+			return false
+		return Terreno3D.agua_sim == null or Terreno3D.agua_sim.se_nada_en(c)
+
+	func _acabar_casilla() -> void:
+		super()
+		if not hundido and _agua_honda(celda):
+			hundido = true
+			call_deferred("_hundir")
+
+	func _hundir() -> void:
+		Terreno3D.liberar_celda(celda)
+		_olvidar(celda)
+		if limo != null and is_instance_valid(limo):
+			limo.al_hundirse_bloque()
+		queue_free()
+
+	## El limo vuelve a ser limo: el bloque se va y deja libre su casilla.
+	func deshacer() -> void:
+		if moviendo and _destino != celda:
+			Terreno3D.liberar_celda(_destino)               # en marcha ya había reservado la casilla de delante
+			_olvidar(_destino)
+		Terreno3D.liberar_celda(celda)
+		_olvidar(celda)
+		limo = null
+		queue_free()
 
 
 ## F4: el limo de FUEGO tampoco sufre el calor (los de calor se curan en el volcán); el resto, lo de siempre.
@@ -368,6 +677,9 @@ func puede_prender() -> bool:
 
 func _physics_process(delta: float) -> void:
 	if muerto:
+		return
+	if en_bloque:
+		_vigilar_bloque(delta)                      # D3: congelado en bloque no piensa ni se cura: solo espera (sus estados y su vida se quedan como estaban)
 		return
 	if jugador == null or not is_instance_valid(jugador):
 		_buscar_jugador()
@@ -527,7 +839,34 @@ func _aterrizar_golpe() -> void:
 			var fuera: Vector3 = rel.normalized() if rel.length() > 0.05 else mirada
 			jugador.push(fuera, EMPUJE_GOLPE)
 			golpes_dados += 1
+			efecto_ataque = _elemento_a_la_jugadora()
 	PlayLog.event("limo_golpe", {"acierta": dentro, "dano": dano_golpe() if dentro else 0.0})
+
+
+## D3: su acometida lleva su elemento a la jugadora. `Jugador3D` solo tiene el veneno como estado propio (sin `aplicar_estado`; mojada/quemada/etc. son del SUELO que pisa), así que:
+##   · si algún día tiene `aplicar_estado(elemento, segundos)`, se usa ese (devuelve «estado»);
+##   · si no, el estado se pone en la casilla donde está ella (`EstadosSuelo3D`): agua → mojada (esa sí la nota: aguante, calor), hielo → helada, fuego → quemada, rayo → electrificada
+##     (devuelve «suelo»). Tierra y viento no dejan nada. PENDIENTE por conflicto (`jugador_3d.gd`): un estado de personaje (ralentizada, quemada con tics, aturdida) para que lo del suelo
+##     no sea lo único que ella nota.
+func _elemento_a_la_jugadora() -> String:
+	if elemento == "" or jugador == null or not is_instance_valid(jugador):
+		return ""
+	if jugador.has_method("aplicar_estado"):
+		jugador.call("aplicar_estado", elemento, ESTADO_ATAQUE_S)
+		return "estado"
+	var c: Vector2i = Terreno3D.celda_de(jugador.position)
+	match elemento:
+		"agua":
+			Terreno3D.estados.aplicar(c, "agua")
+		"hielo":
+			Terreno3D.estados.aplicar(c, "frio")
+		"fuego":
+			Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, true)
+		"rayo":
+			Terreno3D.estados.poner(c, EstadosSuelo3D.ELECTRIFICADA, true)
+		_:
+			return ""
+	return "suelo"
 
 
 ## Golpeado, congelado, aturdido o empujado: el brinco o la acometida se cortan (y su aviso, si aún no había caído).

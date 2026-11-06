@@ -29,7 +29,7 @@ extends RefCounted
 ## Un proyectil con `retorna` se prevé solo en la ida.
 
 ## Prioridad de las reacciones de un enemigo para elegir la principal (la primera que aparece).
-const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "crece", "cura", "tine", "hunde", "lava", "resbala", "nucleo", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe", "piedra", "inmune"]
+const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "muere", "divide", "bloque", "crece", "cura", "tine", "hunde", "lava", "resbala", "nucleo", "electrocuta", "congela", "prende", "moja", "seca", "apaga", "aturde", "empuja", "ralentiza", "golpe", "piedra", "inmune"]
 ## Qué aviso de `Combate3D.decidir_golpe` (catálogo de Mundo3D.REACCIONES) es qué reacción del indicador.
 const DE_AVISO: Dictionary = {Mundo3D.R_ELECTROCUTADO: "electrocuta", Mundo3D.R_PRENDIDO: "prende", Mundo3D.R_APAGADO_AGUA: "apaga", Mundo3D.R_SECADO: "seca", Mundo3D.R_MOJADO: "moja", Mundo3D.R_CONGELADO: "congela"}
 ## Un empujón menor que esto (casillas) no cuenta como «empuja» para el indicador (todo golpe con daño empuja un poco: EMPUJE_MIN_CASILLAS).

@@ -18,6 +18,9 @@ const ESTILO: Dictionary = {
 	"tine": ["Lo absorbe", Color(0.85, 0.75, 1.0)],          # E1: el limo sin teñir se tiñe del elemento (no le hace daño)
 	"crece": ["¡Crece!", Color(1.0, 0.3, 0.25)],              # E1: el limo recibe su elemento: pasa a grande
 	"cura": ["Lo cura", Color(0.45, 1.0, 0.5)],               # E1: el limo grande recibe su elemento
+	"divide": ["Se divide", Color(1.0, 0.55, 0.2)],            # D3: el fuego parte al limo teñido de otro elemento en dos
+	"bloque": ["¡Bloque!", Color(0.55, 0.95, 1.0)],           # D3: el hielo vuelve al limo un bloque empujable
+	"muere": ["Muere", Color(1.0, 0.4, 0.15)],                # D3: el fuego sobre un limo pequeño (ya no puede partirse)
 	"hunde": ["¡Hunde!", Color(0.35, 0.6, 1.0)],
 	"piedra": ["Piedra", Color(0.72, 0.72, 0.76)],            # E3: el gólem de pie y armado no recibe daño
 	"inmune": ["Ni se inmuta", Color(0.72, 0.72, 0.76)],      # E3: el viento no mueve al gólem (sin hielo)
@@ -54,8 +57,47 @@ const ALTO_ROTULO_PIEZA: float = 1.3
 const LADO_SUELO: float = 0.62                           ## lado del cuadro de suelo, en casillas (las cajas del hechizo son de 0,9: este queda dentro y se distingue)
 const ALFA_SUELO: float = 0.55
 
+## E4 (6/11): junto al origen del indicador, «tinta 18 · recarga 2,0 s»: lo que cuesta la página preparada y cuándo vuelve. Fallo que evita: el coste sale de contar glifos y
+## su recarga de otra tabla, y la jugadora no podía saber qué le iba a costar un hechizo hasta que se negaba por falta de tinta. En rojo si no hay tinta para pagarla.
+const ALTO_TINTA: float = 0.45                           ## u sobre el origen donde flota el rótulo
+const ESCALA_TINTA: float = 0.8                          ## tamaño del rótulo (× el de los rótulos de reacción)
+const COLOR_TINTA: Color = Color(0.85, 0.92, 1.0)        ## con tinta suficiente
+const COLOR_TINTA_FALTA: Color = Color(1.0, 0.3, 0.25)   ## sin tinta suficiente (el mismo rojo que la barra de tinta baja del HUD)
+
 ## Lo pintado en el último `mostrar`, para las pruebas: [{que, reaccion, texto, celda, nodo}].
 var pintado: Array[Dictionary] = []
+var lanzador: Lanzador3D = null                          ## de quién se lee la página preparada; null = el primero del grupo «player» (el lanzador se añade ahí)
+var rotulo_tinta: Label3D = null
+
+
+## El texto del rótulo: coste de tinta (redondeado hacia arriba, como el aviso «Tinta insuficiente») y recarga en segundos con coma.
+static func texto_tinta(coste: float, recarga: float) -> String:
+	return "tinta %d · recarga %s s" % [int(ceil(coste)), ("%.1f" % recarga).replace(".", ",")]
+
+
+## Pone el rótulo de tinta en `origen` (se crea la primera vez). `falta` = no hay tinta suficiente (rojo).
+func mostrar_tinta(origen: Vector3, coste: float, recarga: float, falta: bool) -> void:
+	if rotulo_tinta == null:
+		rotulo_tinta = _crear("rotulo") as Label3D
+		rotulo_tinta.name = "RotuloTinta"
+		add_child(rotulo_tinta)
+	rotulo_tinta.text = texto_tinta(coste, recarga)
+	rotulo_tinta.modulate = COLOR_TINTA_FALTA if falta else COLOR_TINTA
+	rotulo_tinta.pixel_size = 0.0056 * ESCALA_TINTA
+	rotulo_tinta.global_position = origen + Vector3(0.0, ALTO_TINTA, 0.0)
+	rotulo_tinta.visible = true
+
+
+func _process(_delta: float) -> void:
+	var l: Lanzador3D = lanzador if lanzador != null else (get_tree().get_first_node_in_group("player") as Lanzador3D if is_inside_tree() else null)
+	if l == null or not is_instance_valid(l) or not l.modo_lanzar or l._preparado.is_empty() or not (l._preparado.get("hechizo") is Hechizo):
+		if rotulo_tinta != null:
+			rotulo_tinta.visible = false
+		return
+	var h: Hechizo = l._preparado["hechizo"]
+	var coste: float = Lanzador3D.tinta_prevista(h, l._preparado.get("rune") as RuneData, l.tinta)
+	var origen: Vector3 = l._origen_fijo if l._fijado else l._origen_vivo
+	mostrar_tinta(origen, coste, h.recarga, Lanzador3D.aviso_tinta(h, l._preparado.get("rune") as RuneData, l.tinta) != "")
 
 var _rotulos: Array[Label3D] = []
 var _anillos: Array[MeshInstance3D] = []

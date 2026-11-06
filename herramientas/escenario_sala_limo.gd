@@ -1,4 +1,4 @@
-extends "res://herramientas/escenario_base.gd"
+﻿extends "res://herramientas/escenario_base.gd"
 ## LA SALA DEL LIMO (28/10; mapas/SalaLimo.txt, escenas/PruebaSalaLimo.tscn): la pieza `limo` monta los tres limos con sus claves, el vigía los cuenta y, vencidos, aparece el cofre.
 ## Se dispara desde 2 casillas: el agua y la tierra vuelan en arco y a 1 casilla le pasan por encima al limo (mide 0,6 u).
 ## Los vence como en el juego: al de la izquierda con fuego (lo tiñe) y luego agua; al de fuego con agua; al grande de agua empujándolo con viento a la charca.
@@ -52,6 +52,39 @@ func _escenario() -> void:
 		and grande.elemento == "agua" and grande.grande)
 	_ok("1 en su casilla de partida", Terreno3D.celda_de(neutro.casa) == Vector2i(6, 2) and Terreno3D.celda_de(grande.casa) == Vector2i(14, 6))
 	_ok("1 la sala aún no está limpia", not Flags.i().tiene("salalimo.sala.limpia"))
+	# D3 (6/11/2026): el cuarto limo (agua, 9,5) y la placa (1,5): el hielo lo vuelve bloque, el viento lo lleva a la placa y luego a la charca, donde se hunde.
+	var agua: Limo3D = _z.nodo("limo_agua") as Limo3D
+	var placa: Pulsador3D = _z.nodo("placa_limo") as Pulsador3D
+	_ok("1 la pieza monta el limo de agua (9,5) y la placa (1,5)", agua != null and agua.elemento == "agua" and not agua.grande and Terreno3D.celda_de(agua.casa) == Vector2i(9, 5)
+		and placa != null and placa.celda == Vector2i(1, 5) and placa.modo == "presencia")
+	if agua == null or placa == null:
+		return
+	for l in [neutro, fuego, grande, agua]:
+		l.quieto = true                                      # que ninguno persiga a la jugadora mientras se prueba el bloque
+	_ok("1 la placa empieza sin pisar", not placa.activo)
+	await _lanzar_a(agua, "hielo", Vector2i(9, 3), Vector3(0, 0, 1))        # el hielo vuela en arco: desde 2 casillas, por el norte
+	_ok("2 el hielo vuelve al limo de agua un bloque (T_BLOQUE %.0f s)" % Limo3D.T_BLOQUE, agua.en_bloque and agua.bloque != null and Terreno3D.celda_de(agua.position) == Vector2i(9, 5))
+	var bq: BloqueEmpujable3D = agua.bloque
+	await _lanzar_a(agua, "viento", Vector2i(10, 5), Vector3(-1, 0, 0))     # viento desde el este: resbala al oeste hasta la pared
+	var ts: float = 0.0
+	while ts < 8.0 and is_instance_valid(bq) and (bq.moviendo or bq.empujones == 0):        # arranca despacio (media casilla pegado) y luego resbala a 0,25 s por casilla
+		ts += await avanzar_s(0.1)
+	_ok("2 el viento lo hace resbalar fila abajo hasta la placa (celda %s)" % str(bq.celda if is_instance_valid(bq) else "—"), is_instance_valid(bq) and bq.celda == Vector2i(1, 5))
+	_ok("2 el bloque pisa la placa (la activa)", placa.activo)
+	await avanzar_s(Limo3D.T_BLOQUE)
+	_ok("2 a los T_BLOQUE s vuelve a ser limo, sobre la placa, con su vida", not agua.en_bloque and agua.is_in_group("combate3d") and is_equal_approx(agua.health, Limo3D.VIDA)
+		and Terreno3D.celda_de(agua.position) == Vector2i(1, 5))
+	# De nuevo bloque, pero ahora hacia la charca (11..13, 4..5): se hunde y el limo muere hundido.
+	agua.position = _pos(Vector2i(9, 5))
+	await avanzar(3)
+	_ok("3 se congela otra vez", agua.congelar_en_bloque())
+	await _lanzar_a(agua, "viento", Vector2i(7, 5), Vector3(1, 0, 0))       # viento desde el oeste: resbala al este, a la charca
+	var t: float = 0.0
+	while t < 4.0 and is_instance_valid(agua) and not agua.muerto:
+		t += await avanzar_s(0.1)
+	_ok("3 el bloque cae a la charca y el limo muere hundido (%.1f s)" % t, not is_instance_valid(agua) or agua.se_hundio)
+	await avanzar_s(1.5)
+	_ok("3 el bloque desaparece y la charca y la fila quedan sin casillas bloqueadas", not Terreno3D.bloqueada(Vector2i(11, 5)) and not Terreno3D.bloqueada(Vector2i(10, 5)) and not Terreno3D.bloqueada(Vector2i(9, 5)))
 	# Al neutro: fuego lo tiñe; agua lo hiere hasta vencerlo.
 	neutro.position = _pos(Vector2i(5, 2))
 	await _lanzar_a(neutro, "fuego", Vector2i(7, 2), Vector3(-1, 0, 0))
