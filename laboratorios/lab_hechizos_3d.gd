@@ -15,6 +15,9 @@ extends LabRecetas3D
 ##        ↑/↓ elige, ←/→ cambia (Mayús ×10), G guarda en user://lab_hechizos.json, P imprime la tabla para volcarla a combate_3d.gd.
 ##   F4 VFX · lab_vfx_3d.gd (LabVfx3D): la MATRIZ DE APROBACIÓN de efectos (estado × volumen × propiedad × impacto): Pablo lanza cada celda y la marca
 ##        aprobada / rechazada / con nota; se guarda en user://vfx_aprobados.json (trabajo pendiente del Pipeline) y mide luces y partículas contra el presupuesto.
+##        6/11: los estados cubren también los derivados (magma, naturaleza, hielo) y F4 INSPECCIONA LOS TOYS del juego por el camino real (la maqueta conecta `VfxToyJuego`):
+##        al abrirla el dibujo procedural (`magic_symbols/vfx_procedural`) pasa a true, V lo apaga/enciende, F cambia el elemento de la fila entre toy y pieza antigua, y el HUD
+##        cuenta los toys que creó el último lanzamiento; al salir de F4 o cerrar el lab el ajuste vuelve a como estaba. Teclas de F4: ↑↓ eje · ←→ valor · Espacio lanza · A R N Supr Tab · V · F.
 ##   F5 Estados · lab_estados_3d.gd (LabEstados3D, A1+A2): el grafo de animación de la jugadora EN VIVO (estado pedido / real, clip, posición, velocidad), el estado del
 ##        libro y las últimas transiciones con el motivo si una regla las rechaza; Intro fuerza cada rol, B abre/cierra el libro, V cambia la velocidad del mundo.
 ## COMUNES: G guarda · P imprime · Numpad / cámara lateral ↔ de juego · L / . / , tiempo (TiempoLab3D).
@@ -809,6 +812,8 @@ func poner_pestana(p: int) -> void:
 	pestana = clampi(p, Pestana.RECETA, Pestana.ESTADOS)
 	if f5 != null and (pestana == Pestana.ESTADOS) != antes_estados:
 		f5.call("activar", pestana == Pestana.ESTADOS)          # F5 lleva la animación del personaje mientras está abierta
+	if f4 != null:
+		f4.call("activar", pestana == Pestana.VFX)              # 6/11: F4 enciende el dibujo procedural (los toys del juego) mientras está abierta
 	_actualizar_panel_modos()
 	_refrescar_hud()
 
@@ -1205,6 +1210,8 @@ func poner_elemento(e: String) -> void:
 
 func _exit_tree() -> void:
 	VfxEstado3D.plano = false
+	if f4 != null:
+		f4.call("activar", false)                               # el ajuste procedural vuelve a como estaba
 
 
 func _compacta_activa() -> bool:

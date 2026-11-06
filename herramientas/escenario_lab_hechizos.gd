@@ -896,14 +896,14 @@ func _escenario() -> void:
 		_ok("15 F6 sí alterna la interfaz completa ↔ compacta", not lab.ui_compacta)
 		_tecla_lab(KEY_F6)
 		_ok("15 …y vuelve", lab.ui_compacta)
-		_ok("15 la matriz tiene 6×4×5×4 = 480 celdas y 24 de criterio", LabVfx3D.total_celdas() == 480 and LabVfx3D.celdas_base().size() == 24)
+		_ok("15 la matriz tiene 9×4×5×4 = 720 celdas (6 estados de siempre + magma, naturaleza, hielo) y 24 de criterio", LabVfx3D.total_celdas() == 720 and LabVfx3D.celdas_base().size() == 24)
 		var claves: Dictionary = {}
-		for e in range(6):
+		for e in range(LabVfx3D.ESTADOS.size()):
 			for v in range(4):
 				for p in range(5):
 					for i in range(4):
 						claves[LabVfx3D.clave_de(e, v, p, i)] = true
-		_ok("15 cada celda tiene una clave distinta (%d)" % claves.size(), claves.size() == 480)
+		_ok("15 cada celda tiene una clave distinta (%d)" % claves.size(), claves.size() == 720)
 
 		# El hechizo de cada celda: elemento, volumen y propiedad.
 		var malos: PackedStringArray = []
@@ -1001,10 +1001,10 @@ func _escenario() -> void:
 			_aviso("F4 celdas base fuera de presupuesto (%d de 24)" % fuera.size(), "; ".join(fuera))
 		_ok("15 se midieron las 24", vfx.marcas.size() >= 24)
 
-		# Humo de la matriz entera: las 480 celdas se lanzan sin romper nada.
+		# Humo de la matriz entera: las 720 celdas se lanzan sin romper nada.
 		var cero: int = 0
 		var ceros_de: PackedStringArray = []
-		for e in range(6):
+		for e in range(LabVfx3D.ESTADOS.size()):
 			for v in range(4):
 				for p in range(5):
 					for i in range(4):
@@ -1014,8 +1014,8 @@ func _escenario() -> void:
 							ceros_de.append(vfx.clave())
 						await avanzar(1)
 		if cero > 0:
-			_aviso("F4 celdas que no salieron al lanzarlas (casillas = 0)", "%d de 480: %s" % [cero, ", ".join(ceros_de)])
-		_ok("15 las 480 celdas se pueden lanzar una tras otra sin romper el lab", lab.get("_l") != null)
+			_aviso("F4 celdas que no salieron al lanzarlas (casillas = 0)", "%d de 720: %s" % [cero, ", ".join(ceros_de)])
+		_ok("15 las 720 celdas se pueden lanzar una tras otra sin romper el lab", lab.get("_l") != null)
 		lab.limpiar_sala()
 		await avanzar_s(LabVfx3D.VENTANA_MEDIDA_S + 0.2)
 

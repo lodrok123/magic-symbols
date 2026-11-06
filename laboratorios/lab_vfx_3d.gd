@@ -4,7 +4,7 @@ extends RefCounted
 ## Pablo mira cada combinación lanzada en la sala y la marca aprobada / rechazada / con nota. Lo marcado se guarda en `user://vfx_aprobados.json`:
 ## esa lista es el trabajo pendiente del Pipeline (lo rechazado y lo que lleva nota).
 ##
-## La matriz son cuatro ejes:   estado (6) × volumen (4) × propiedad (5) × impacto (4) = 480 celdas.
+## La matriz son cuatro ejes:   estado (9: seis + los derivados magma, naturaleza y hielo) × volumen (4) × propiedad (5) × impacto (4) = 720 celdas (480 de los seis estados de siempre).
 ##   estado     sólido · líquido · plasma · energía · gas · campo   (cada uno con su elemento: tierra, agua, fuego, rayo, viento, tiempo)
 ##   volumen    esfera · X×3 · Y×2 · Z×3                           (N × el diámetro de la esfera base; se da por los semiejes del Hechizo)
 ##   propiedad  ninguna · viaja · copias · crece · solidez
@@ -19,7 +19,13 @@ extends RefCounted
 ##
 ## Lo monta `LabHechizos3D._montar_f4` y le pasa las teclas mientras F4 está abierta; `paso(delta)` lo llama el `_process` del lab.
 ## Teclas:  ↑ ↓ eje · ← → valor · Espacio lanza la celda · A aprueba · R rechaza · N nota rápida (rota) · Supr borra la marca ·
-##          Tab salta a la siguiente celda base sin marcar · G (la del lab) guarda también todo lo demás.
+##          Tab salta a la siguiente celda base sin marcar · G (la del lab) guarda también todo lo demás ·
+##          V enciende/apaga el dibujo PROCEDURAL (`ProjectSettings magic_symbols/vfx_procedural`, en caliente) · F pasa el elemento de la fila elegida de toy a pieza antigua y vuelta
+##          (edita `magic_symbols/vfx_procedural_elementos`).
+## DIBUJO PROCEDURAL (6/11): al abrir F4 el ajuste arranca en true (para inspeccionar los toys enganchados al juego por el camino real: LabHechizos3D cuelga de la maqueta, que conecta
+## `VfxToyJuego`) y al salir de F4 o cerrar el lab se devuelve a como estaba. El HUD dice si está encendido, qué toys hay, y tras cada lanzamiento cuántos toys creó `VfxToyJuego`
+## (`creados`, `vivos()`) y las luces y partículas medidas. Las filas «magma», «naturaleza» y «hielo» (estados 7–9, al final: las claves viejas no cambian) son los DERIVADOS del
+## juego (runas magma_rune, naturaleza_rune, ice_rune); no cuentan para el criterio de las 24 celdas base (los seis estados de siempre).
 
 const RUTA: String = "user://vfx_aprobados.json"
 const MAX_LUCES: int = 2
@@ -33,7 +39,11 @@ const SOLIDEZ: float = 1.0
 
 ## [id, elemento (.tres), nombre]
 const ESTADOS: Array = [["solido", "earth", "sólido"], ["liquido", "water", "líquido"], ["plasma", "fire", "plasma"],
-	["energia", "lightning", "energía"], ["gas", "wind", "gas"], ["campo", "time", "campo"]]
+	["energia", "lightning", "energía"], ["gas", "wind", "gas"], ["campo", "time", "campo"],
+	["magma", "magma", "magma"], ["naturaleza", "naturaleza", "naturaleza"], ["hielo", "ice", "hielo"]]       ## 6/11: los derivados, al final (fuego+tierra, agua+tierra, agua+viento)
+const ESTADOS_CRITERIO: int = 6             ## los seis primeros: son los del criterio de las 24 celdas base
+const AJUSTE_PROCEDURAL: String = "magic_symbols/vfx_procedural"
+const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
 ## [id, múltiplo del diámetro en X, en Y, en Z]
 const VOLUMENES: Array = [["esfera", 1.0, 1.0, 1.0], ["X3", 3.0, 1.0, 1.0], ["Y2", 1.0, 2.0, 1.0], ["Z3", 1.0, 1.0, 3.0]]
 const PROPIEDADES: Array = ["ninguna", "viaja", "copias", "crece", "solidez"]
@@ -57,6 +67,11 @@ var ultimo_mensaje: String = ""
 var lanzamientos: int = 0
 var guardar_al_marcar: bool = true          ## las pruebas lo apagan para no escribir en user://
 
+var _dentro: bool = false                   ## ¿F4 está abierta? (entonces el ajuste procedural lo lleva este nodo)
+var _prev_proc: Variant = null              ## el ajuste procedural de antes de abrir F4 (null = no existía)
+var _prev_lista: Variant = null
+var _elementos_fila: Dictionary = {}        ## estado (índice) -> elemento de su runa (cache del HUD)
+var _creados_antes: Dictionary = {}         ## `VfxToyJuego.creados` justo antes del último lanzamiento
 var _medida: Dictionary = {}                ## medida en curso: {clave, t, prox, base_luces, base_part, luces, part}
 var _ultima_medida: Dictionary = {}         ## la última terminada: {clave, luces, particulas}
 
@@ -89,7 +104,7 @@ static func es_base(e: int, v: int, p: int, _i: int) -> bool:
 ## Las 24 celdas del criterio: [[e, v, p, i], …] en orden estado → impacto.
 static func celdas_base() -> Array:
 	var r: Array = []
-	for e in range(ESTADOS.size()):
+	for e in range(ESTADOS_CRITERIO):
 		for i in range(IMPACTOS.size()):
 			r.append([e, 0, 0, i])
 	return r
@@ -164,6 +179,7 @@ func lanzar() -> int:
 	lab._jug.mirar_hacia(sa["dir"])
 	var guardados: Dictionary = (lab.cambios_hechizo as Dictionary).duplicate(true)
 	lab.cambios_hechizo.clear()                          # el mismo diccionario que ve el lanzador: aparte lo de F1 mientras sale
+	_creados_antes = _toys_creados()                     # los toys que cuente el HUD son los de ESTE lanzamiento
 	var previos: Array = _dibujo_por_estado(true)
 	var n: int = lab._l.lanzar_hechizo(hechizo(), sa["origen"], sa["dir"])
 	_dibujo_por_estado(false, previos)
@@ -250,6 +266,102 @@ func midiendo() -> bool:
 func en_presupuesto(k: String) -> bool:
 	var f: Dictionary = marcas.get(k, {})
 	return f.has("luces") and int(f["luces"]) <= MAX_LUCES and int(f["particulas"]) <= MAX_PARTICULAS
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Dibujo procedural (los toys del juego)
+# ---------------------------------------------------------------------------------------------------------------------
+
+## F4 se abre (o se cierra): el ajuste procedural se enciende y, al salir, vuelve a como estaba. Idempotente.
+func activar(si: bool) -> void:
+	if si == _dentro:
+		return
+	_dentro = si
+	if si:
+		_prev_proc = ProjectSettings.get_setting(AJUSTE_PROCEDURAL) if ProjectSettings.has_setting(AJUSTE_PROCEDURAL) else null
+		_prev_lista = ProjectSettings.get_setting(AJUSTE_ELEMENTOS) if ProjectSettings.has_setting(AJUSTE_ELEMENTOS) else null
+		ProjectSettings.set_setting(AJUSTE_PROCEDURAL, true)
+	else:
+		ProjectSettings.set_setting(AJUSTE_PROCEDURAL, _prev_proc)
+		ProjectSettings.set_setting(AJUSTE_ELEMENTOS, _prev_lista)
+
+
+func alternar_procedural() -> void:
+	ProjectSettings.set_setting(AJUSTE_PROCEDURAL, not VfxToyJuego.activo())
+	ultimo_mensaje = "dibujo procedural: %s" % ("SÍ (toys)" if VfxToyJuego.activo() else "NO (piezas de siempre)")
+
+
+## El elemento (nombre de Objetos) de la fila elegida: «fuego», «magma», «hielo»…
+func elemento_fila() -> String:
+	var e: int = int(sel[0])
+	if not _elementos_fila.has(e):
+		_elementos_fila[e] = String(hechizo([e, 0, 0, 0]).elemento)
+	return String(_elementos_fila[e])
+
+
+## Pasa el elemento de la fila elegida de toy a pieza antigua o al revés.
+func alternar_elemento() -> void:
+	var el: String = elemento_fila()
+	var lista: PackedStringArray = VfxToyJuego.elementos_activos()
+	var i: int = lista.find(el)
+	if i >= 0:
+		lista.remove_at(i)
+	else:
+		lista.append(el)
+	ProjectSettings.set_setting(AJUSTE_ELEMENTOS, ",".join(lista))
+	ultimo_mensaje = "«%s» se dibuja con %s%s" % [el, "el TOY" if VfxToyJuego.elementos_activos().has(el) else "la pieza de siempre",
+		"" if VfxToyJuego.ELEMENTOS.has(el) else " (el toy aún no sabe dibujarlo)"]
+
+
+func _enganche() -> VfxToyJuego:
+	if lab == null:
+		return null
+	return (lab as Node).get_tree().root.find_child("VfxToyJuego", true, false) as VfxToyJuego
+
+
+func _toys_creados() -> Dictionary:
+	var v: VfxToyJuego = _enganche()
+	return v.creados.duplicate() if v != null else {}
+
+
+## Toys que creó `VfxToyJuego` desde el último lanzamiento de F4: elemento -> cuántos.
+func toys_del_ultimo() -> Dictionary:
+	var r: Dictionary = {}
+	var ahora: Dictionary = _toys_creados()
+	for e in ahora:
+		var n: int = int(ahora[e]) - int(_creados_antes.get(e, 0))
+		if n > 0:
+			r[e] = n
+	return r
+
+
+func _linea_procedural() -> String:
+	var toys: PackedStringArray = []
+	for e in VfxToyJuego.elementos_activos():
+		if VfxToyJuego.ELEMENTOS.has(e):
+			toys.append(e)
+	var el: String = elemento_fila()
+	var t: String = "PROCEDURAL: %s · toys: %s · fila «%s»: %s   (V enciende/apaga · F toy ↔ pieza de esta fila)" % ["sí" if VfxToyJuego.activo() else "no", ",".join(toys),
+		el, "TOY" if VfxToyJuego.usa_toy(el) else "pieza de siempre"]
+	var v: VfxToyJuego = _enganche()
+	if v == null:
+		return t + "\nVfxToyJuego: no conectado"
+	var d: Dictionary = toys_del_ultimo()
+	var partes: PackedStringArray = []
+	var total: int = 0
+	for e in d:
+		partes.append("%s %d" % [e, int(d[e])])
+		total += int(d[e])
+	var luces: int = 0
+	var part: int = 0
+	if midiendo():
+		luces = int(_medida["luces"])
+		part = int(_medida["part"])
+	elif not _ultima_medida.is_empty():
+		luces = int(_ultima_medida["luces"])
+		part = int(_ultima_medida["particulas"])
+	return t + "\nÚltimo lanzamiento: %d toys creados (%s) · vivos %d · luces medidas %d · partículas %d%s" % [
+		total, ", ".join(partes) if not partes.is_empty() else "ninguno", v.vivos(), luces, part, " (midiendo…)" if midiendo() else ""]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -431,6 +543,10 @@ func tecla(k: InputEventKey) -> bool:
 			rotar_nota()
 		KEY_DELETE:
 			borrar_marca()
+		KEY_V:
+			alternar_procedural()
+		KEY_F:
+			alternar_elemento()
 		KEY_TAB:
 			if not siguiente_base_pendiente():
 				ultimo_mensaje = "las 24 celdas base ya tienen marca"
@@ -460,10 +576,11 @@ func texto() -> String:
 	var por_estado: PackedStringArray = []
 	for e in range(ESTADOS.size()):
 		por_estado.append("%s %d/%d" % [String(ESTADOS[e][2]), base_aprobadas_de(e), IMPACTOS.size()])
+	t.append(_linea_procedural())
 	t.append("Criterio (base: esfera · ninguna · 4 impactos): %d/%d → %s        Todas: %d aprobadas · %d rechazadas de %d" % [
 		base_aprobadas(), celdas_base().size(), "CUMPLIDO" if criterio_cumplido() else "pendiente", contar(APROBADO), contar(RECHAZADO), total_celdas()])
 	t.append("Por estado: " + " · ".join(por_estado))
-	t.append("↑↓ eje · ←→ valor · Espacio lanza · A aprueba · R rechaza · N nota · Supr borra · Tab siguiente base sin marcar · se guarda solo en %s" % RUTA)
+	t.append("↑↓ eje · ←→ valor · Espacio lanza · A aprueba · R rechaza · N nota · Supr borra · Tab siguiente base sin marcar · V procedural · F toy↔pieza · se guarda solo en %s" % RUTA)
 	if ultimo_mensaje != "":
 		t.append(ultimo_mensaje)
 	return "\n".join(t)

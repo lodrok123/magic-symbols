@@ -1,9 +1,9 @@
 class_name VfxToyJuego
 extends Node
 
-## EL FUEGO, EL AGUA, EL HIELO Y EL RAYO OFICIALES EN EL JUEGO (A1, 2/11/2026; hielo y rayo, B1, 2/11/2026: HieloToy / RayoToy, ≤ 1 luz por hechizo: solo el rayo la lleva; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
-## Selector: ProjectSettings `magic_symbols/vfx_procedural` (false por defecto). Con true, el fuego y el agua de los hechizos (HechizoVivo) se dibujan con `FuegoToy` / `AguaToy`
-## (`desde_hechizo(h)`: figura, semiejes y vuelo salen del Hechizo, sin tocar nada a mano por hechizo) en lugar de `VfxElemento3D` (que con el ajuste a true se calla para esos dos elementos)
+## EL FUEGO, EL AGUA, EL HIELO, EL RAYO, EL MAGMA, EL VIENTO Y LA TIERRA OFICIALES EN EL JUEGO (A1, 2/11/2026; hielo y rayo, B1, 2/11/2026: HieloToy / RayoToy; 6/11: MagmaToy / VientoToy / TierraToy, ≤ 1 luz por hechizo: la llevan el rayo y la bola de magma, o el FuegoToy hijo de un volumen de magma; viento y tierra, ninguna; docs/DIRECCION_2026-11-02.md §2.A y docs/ENGANCHE_VFX_TOY_2026-11-02.md).
+## Selector: ProjectSettings `magic_symbols/vfx_procedural` (false por defecto). Con true, los elementos de la lista (fuego, agua, rayo, magma, viento y tierra de serie) de los hechizos (HechizoVivo) se dibujan con `FuegoToy` / `AguaToy` / `RayoToy` / `MagmaToy` / `VientoToy` / `TierraToy`
+## (`desde_hechizo(h)`: figura, semiejes y vuelo salen del Hechizo, sin tocar nada a mano por hechizo) en lugar de `VfxElemento3D` (que con el ajuste a true se calla para esos elementos; «magma» se pregunta con su nombre, no con el de su pieza padre)
 ## y de la forma en la mano de `ConjuroVfx3D` (que tampoco la dibuja: la carga la hace el toy). Con false este nodo no hace nada: el juego dibuja lo de siempre. Los demás elementos no cambian.
 ## «La lógica decide, el VFX representa»: este nodo solo ESCUCHA y nunca toca la lógica. Lo que escucha:
 ##   · `Lanzador3D.conjuro_fase("forma")`  →  `empezar_carga` (brillo y chispas en la mano; datos del Hechizo en `Lanzador3D.conjuro_actual`);  «runa» o «disparo» sin hechizo → se cancela.
@@ -16,8 +16,8 @@ extends Node
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
 const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
-const ELEMENTOS_DEFECTO: String = "fuego,agua,rayo"      ## 5/11: el rayo (RayoToy) se enciende de serie junto al fuego y al agua; el hielo sigue con el dibujo de antes
-const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
+const ELEMENTOS_DEFECTO: String = "fuego,agua,rayo,magma,viento,tierra"      ## 6/11: magma, viento y tierra se encienden de serie (Pablo quiere verlos en el juego); el hielo sigue con el dibujo de antes
+const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo", "magma", "viento", "tierra"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
 const MAX_VIVOS: int = 12
 const VIDA_MIN: float = 1.0
 const VIDA_MAX: float = 25.0                  ## = VfxElemento3D.VIDA_MAX (el límite global persiste + permanencia)
@@ -30,7 +30,7 @@ const MAX_AGUA_ELECTRICA: int = 24            ## casillas de suelo electrificado
 const T_ENTIDAD_ELECTRICA: float = 1.2        ## s que dura el estado electrificado dibujado en una entidad tras cada descarga (renovable)
 
 ## Cuántos toys ha creado de cada elemento y el último (las pruebas y la captura lo leen).
-var creados: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0}
+var creados: Dictionary = {"fuego": 0, "agua": 0, "hielo": 0, "rayo": 0, "magma": 0, "viento": 0, "tierra": 0}
 var ultimo: Node3D = null
 var cargas: int = 0                           ## cargas en la mano empezadas
 
@@ -58,7 +58,7 @@ static func usa_toy(elemento: String) -> bool:
 	return ELEMENTOS.has(elemento) and activo() and elementos_activos().has(elemento)
 
 
-## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua,rayo» por defecto: el hielo sigue con el dibujo de antes hasta que Pablo lo apruebe).
+## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua,rayo,magma,viento,tierra» por defecto: el hielo sigue con el dibujo de antes hasta que Pablo lo apruebe).
 ## ÚNICO criterio del juego: VfxToyJuego, VfxElemento3D y ConjuroVfx3D preguntan aquí.
 static func elementos_activos() -> PackedStringArray:
 	var r: PackedStringArray = []
@@ -168,6 +168,12 @@ func _nuevo(elemento: String) -> Node3D:
 			t = HieloToy.new()
 		"rayo":
 			t = RayoToy.new()
+		"magma":
+			t = MagmaToy.new()
+		"viento":
+			t = VientoToy.new()
+		"tierra":
+			t = TierraToy.new()
 		_:
 			t = FuegoToy.new()
 	t.set("casilla", Terreno3D.casilla)
@@ -627,7 +633,7 @@ func _expirar(ref: WeakRef) -> void:
 	if t == null or not is_instance_valid(t) or not t.is_inside_tree():
 		return
 	if int(t.get("figura")) == 0:
-		if (t is AguaToy or t is HieloToy or t is RayoToy) and bool(t.get("area_al_impactar")):
+		if t.get("area_al_impactar") == true:      # sin lista de clases; FuegoToy no tiene la propiedad (get = null)
 			if t.has_meta("estalla_m"):
 				t.call("impactar_en", t.global_position, Vector3.UP, float(t.get_meta("estalla_m")))      # R5: con el radio de la lógica
 			else:
