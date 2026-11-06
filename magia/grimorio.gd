@@ -168,6 +168,11 @@ func _ready() -> void:
 		pages.append({
 			"element": Runes.Type.NONE,
 			"element_q": 1.0,
+			# Libro AVANZADO (6/11/2026): el segundo sello de la página y qué medallón (1 o 2) es el MÁS ANTIGUO, el que sustituye un tercer sello. El libro de siempre
+			# no los toca: element2 se queda en NONE y todo lo que los lee los ignora.
+			"element2": Runes.Type.NONE,
+			"element2_q": 1.0,
+			"element_viejo": 1,
 			"components": [],
 			"undo": [],
 		})
@@ -211,7 +216,42 @@ func resumen_pagina(indice: int = -1) -> Dictionary:
 
 
 func _clave_ficha(ficha: Dictionary) -> String:
-	return "%s|%s|%s" % [str(ficha["element"]), str(ficha.get("element_q", 1.0)), str(ficha["components"])]
+	# Con dos sellos la clave tiene que cambiar al cambiar el segundo: si no, el resumen cacheado seguiría diciendo «Fuego» tras añadir el agua.
+	return "%s|%s|%s|%s|%s" % [str(ficha["element"]), str(ficha.get("element_q", 1.0)), str(ficha.get("element2", Runes.Type.NONE)), str(ficha.get("element2_q", 1.0)), str(ficha["components"])]
+
+
+## ¿El libro activo es el AVANZADO (dos sellos por página, dos zonas de dibujo)? Solo ese guarda `element2`; el de siempre queda como estaba.
+static func es_avanzado() -> bool:
+	return Repertoire.libro == "avanzado"
+
+
+## La runa con que se LANZA una ficha: la del sello 1 (libro de siempre o un solo sello), el derivado si la pareja reacciona (`CombosSellos`), o null si se anulan.
+## Devuelve {rune, estado, id, nombre}: `estado` = CombosSellos.SIN_PAREJA / REACCION / SE_ANULAN / SIN_REACCION; `id` = el derivado ("" si no hay);
+## `nombre` = lo que enseña el libro («Magma», «Se anulan», «Fuego»; "" sin elemento). Un `element2` suelto en una ficha NO manda si el libro activo
+## no es el avanzado: así una prueba o un cambio de libro no pueden dejar una página de «bosque» con un sello fantasma.
+func rune_de_ficha(ficha: Dictionary) -> Dictionary:
+	var primera: RuneData = rune_database.get(ficha["element"])
+	var salida: Dictionary = {"rune": primera, "estado": CombosSellos.SIN_PAREJA, "id": "", "nombre": "" if primera == null else primera.display_name}
+	if not es_avanzado():
+		return salida
+	var par: Dictionary = CombosSellos.de_ficha(ficha)
+	salida["estado"] = par["estado"]
+	match String(par["estado"]):
+		CombosSellos.REACCION:
+			salida["rune"] = par["rune"]
+			salida["id"] = par["id"]
+			salida["nombre"] = (par["rune"] as RuneData).display_name
+		CombosSellos.SE_ANULAN:
+			salida["rune"] = null
+			salida["nombre"] = "Se anulan"
+	return salida
+
+
+## ¿Los dos sellos de esa página se anulan (fuego + agua, tierra + viento)? La pestaña y el HUD la pintan apagada.
+func pagina_anulada(indice: int) -> bool:
+	if indice < 0 or indice >= PAGES or indice >= pages.size():
+		return false
+	return String(rune_de_ficha(pages[indice])["estado"]) == CombosSellos.SE_ANULAN
 
 
 func _actualizar_resumen(i: int) -> void:
@@ -220,7 +260,8 @@ func _actualizar_resumen(i: int) -> void:
 	var ficha: Dictionary = pages[i]
 	var clave: String = _clave_ficha(ficha)
 	var previo: Dictionary = _resumenes[i]
-	var rune: RuneData = rune_database.get(ficha["element"])
+	var pareja: Dictionary = rune_de_ficha(ficha)          # libro avanzado: la runa con que se lanza (derivado), no el sello 1
+	var rune: RuneData = pareja["rune"]
 	var t: Tinta = get("tinta") as Tinta         # solo el lanzador del juego tiene tinta
 	var sello: String = "" if t == null else "%d|%d|%s" % [int(ceil(t.actual)), t.frascos, t.pigmento]
 	if not previo.is_empty() and String(previo["clave"]) == clave:
@@ -233,7 +274,7 @@ func _actualizar_resumen(i: int) -> void:
 	var montada: Dictionary = Lanzador3D.receta_de_ficha(ficha, rune, t)
 	var h: Hechizo = montada["hechizo"]
 	var elemento: String = Objetos.elemento_de(rune)
-	var vacia: bool = rune == null and (ficha["components"] as Array).is_empty()
+	var vacia: bool = rune == null and (ficha["components"] as Array).is_empty() and String(pareja["estado"]) != CombosSellos.SE_ANULAN
 	var anterior: Hechizo = previo.get("hechizo") as Hechizo
 	if anterior == null:
 		anterior = Lanzador3D.receta_de_ficha({"element": Runes.Type.NONE, "element_q": 1.0, "components": []}, null)["hechizo"]
@@ -250,14 +291,35 @@ func _actualizar_resumen(i: int) -> void:
 			glifos.append(g)
 	var ignorados: PackedStringArray = (montada["receta"] as RefCounted).get("ignorados")
 	var avisos: Array[String] = _avisos_de_pagina(i, ficha, rune, h, ignorados, t)
+	# Libro avanzado: el título de la página con dos sellos, «Magma · flecha ×2» (o «Se anulan»). Con un solo sello queda "" y el libro no pinta nada de más.
+	var estado_pareja: String = String(pareja["estado"])
+	var titulo: String = ""
+	if estado_pareja != CombosSellos.SIN_PAREJA:
+		var partes: PackedStringArray = PackedStringArray([String(pareja["nombre"])])
+		var cuentas: Dictionary = {}
+		for g in (montada["glifos"] as Array):
+			var nombre_g: String = Sigils.nombre_visible(String(g))
+			cuentas[nombre_g] = int(cuentas.get(nombre_g, 0)) + 1
+		if estado_pareja != CombosSellos.SE_ANULAN:
+			for nombre_g in cuentas:
+				partes.append(String(nombre_g) if int(cuentas[nombre_g]) == 1 else "%s ×%d" % [nombre_g, int(cuentas[nombre_g])])
+		titulo = " · ".join(partes)       # («Se anulan» y «Sin reacción» como aviso los pone `_avisos_de_pagina`)
 	_resumenes[i] = {"clave": clave, "sello": sello, "ignorados": ignorados, "hechizo": h, "rune": rune, "elemento": elemento, "resumen": h.resumen() if h != null else {},
 		"tinta_prevista": Lanzador3D.tinta_prevista(h, rune, t) if h != null else 0.0, "diferencia": dif, "frases": frases, "texto": texto, "glifos": glifos,
-		"avisos": avisos, "notas": Lanzador3D.notas_de(h), "vacia": vacia}
+		"avisos": avisos, "notas": Lanzador3D.notas_de(h), "vacia": vacia,
+		"pareja": estado_pareja, "nombre": String(pareja["nombre"]), "titulo": titulo}
 
 
 ## Los avisos de una página: lo que falta (elemento, glifos; con el texto de `cast_page`) y los de `Lanzador3D.avisos_de` (altura, sin uso, tinta). Una página sin nada dibujado no avisa de nada.
 func _avisos_de_pagina(i: int, ficha: Dictionary, rune: RuneData, h: Hechizo, ignorados: PackedStringArray, t: Tinta) -> Array[String]:
 	var avisos: Array[String] = []
+	# Libro avanzado: dos opuestos no son «sin elemento», son una página que no se lanza; y una pareja fuera de la tabla avisa de que se lanza el sello 1.
+	var estado_pareja: String = String(rune_de_ficha(ficha)["estado"])
+	if estado_pareja == CombosSellos.SE_ANULAN:
+		avisos.append("Se anulan")
+		return avisos
+	if estado_pareja == CombosSellos.SIN_REACCION:
+		avisos.append("Sin reacción")
 	if rune == null and (ficha["components"] as Array).is_empty():
 		return avisos
 	if rune == null:
@@ -514,15 +576,47 @@ func _add_element(strokes: Array) -> void:
 
 	# Un elemento nuevo sustituye al anterior: solo hay uno por hechizo,
 	# y así rectificar es simplemente volver a dibujarlo.
+	# (Libro avanzado: hay dos medallones y el tercero sustituye al más antiguo; lo resuelve `_poner_sello`.)
 	Sfx.play(self, "sello_ok")
-	undo_history.append({"kind": "element", "previous": current_element,
-		"previous_q": pages[page]["element_q"]})
-	current_element = rune
-	pages[page]["element_q"] = _calidad_elemento
+	_poner_sello(rune, _calidad_elemento)
 	PlayLog.event("trazo", {"tipo": "elemento", "nombre": gesture_name,
 		"calidad": snappedf(_calidad_elemento, 0.01), "metodo": METODO_TRAZO})
 	print("Elemento: ", rune_database[rune].display_name)
 	_actualizar_resumen(page)
+
+
+## Pone un sello en la página activa y apunta cómo deshacerlo. Libro de siempre: sustituye al único (como hacía `_add_element`).
+## Libro AVANZADO (dos medallones): el primero va al 1, el segundo al 2 y el tercero SUSTITUYE AL MÁS ANTIGUO (`element_viejo`), no siempre al 1:
+## con fuego, agua, tierra la página queda tierra + agua, y un cuarto sello (viento) sustituiría al agua, que ya es el más viejo.
+## El historial guarda una FOTO de los dos medallones: con solo el valor anterior del 1, deshacer un tercer sello dejaría el medallón 2 mal.
+func _poner_sello(rune: Runes.Type, calidad: float) -> void:
+	var p: Dictionary = pages[page]
+	var foto: Dictionary = {"kind": "element", "previous": p["element"], "previous_q": p["element_q"]}
+	if not es_avanzado():
+		undo_history.append(foto)
+		current_element = rune
+		p["element_q"] = calidad
+		return
+	foto["previous2"] = p["element2"]
+	foto["previous2_q"] = p["element2_q"]
+	foto["previous_viejo"] = p["element_viejo"]
+	undo_history.append(foto)
+	if p["element"] == Runes.Type.NONE:
+		p["element"] = rune
+		p["element_q"] = calidad
+		p["element_viejo"] = 1
+	elif p["element2"] == Runes.Type.NONE:
+		p["element2"] = rune
+		p["element2_q"] = calidad
+		p["element_viejo"] = 1
+	elif int(p["element_viejo"]) == 1:
+		p["element"] = rune
+		p["element_q"] = calidad
+		p["element_viejo"] = 2
+	else:
+		p["element2"] = rune
+		p["element2_q"] = calidad
+		p["element_viejo"] = 1
 
 
 ## El nombre del gesto de un elemento (la clave de Repertoire) a partir
@@ -572,7 +666,8 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	# Con el ratón apuntando, el sector ya no dice hacia dónde sale el hechizo,
 	# así que "una flecha vuela plana" no tiene con qué comprobarse: la
 	# restricción de eje solo existe cuando manda el sector.
-	if not Repertoire.aim_with_mouse and not Sigils.allowed_on(sigil_name, sector):
+	# Libro avanzado: el glifo se coloca solo en un hueco de la corona; ese «sector» no es una dirección de disparo y no puede vetar la flecha.
+	if not Repertoire.aim_with_mouse and not es_avanzado() and not Sigils.allowed_on(sigil_name, sector):
 		print("'", sigil_name, "' no vale hacia ahí: una flecha vuela plana.",
 			" Prueba con levitación, barrera o pilar.")
 		Sfx.play(self, "sello_no")                      # 31/10 (tarea U1): antes era un rechazo mudo
@@ -592,7 +687,8 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	# LA REGLA DEL LIBRO (3.1, DISENO_FUTURO §3): con el raton apuntando, UN GLIFO POR SECTOR.
 	# El sector es un hueco: ocupado, el segundo trazo se rechaza con aviso, no en silencio.
 	# (Sin raton cada sector sigue siendo un componente y los sellos se suman, como siempre.)
-	if Repertoire.aim_with_mouse and _sector_ocupado(sector):
+	# (Libro avanzado: cada glifo ocupa un hueco de la corona aunque no se apunte con el ratón.)
+	if (Repertoire.aim_with_mouse or es_avanzado()) and _sector_ocupado(sector):
 		Sfx.play(self, "sello_no")
 		var puesto: String = String(_component_at(sector)["sigils"][0])
 		print("Hueco ocupado: ya hay '", puesto, "' ahi. Borra con clic derecho o usa otro sector.")
@@ -622,10 +718,7 @@ func place_element(gesture_name: String) -> void:
 		_refuse_locked("elemento", gesture_name)
 		return
 	Sfx.play(self, "sello_ok")
-	undo_history.append({"kind": "element", "previous": current_element,
-		"previous_q": pages[page]["element_q"]})
-	current_element = GESTURE_TO_RUNE[gesture_name]
-	pages[page]["element_q"] = 1.0
+	_poner_sello(GESTURE_TO_RUNE[gesture_name], 1.0)
 	print("Elemento (paleta): ", gesture_name)
 	_actualizar_resumen(page)
 
@@ -635,13 +728,24 @@ func place_element(gesture_name: String) -> void:
 func place_sigil(sigil_name: String) -> void:
 	# Con el raton, un glifo por sector: la paleta va ocupando el primer hueco libre.
 	var hueco: Vector2 = Vector2.RIGHT
-	if Repertoire.aim_with_mouse:
+	if Repertoire.aim_with_mouse or es_avanzado():
 		hueco = _primer_hueco_libre()
 	add_sigil(hueco, sigil_name, 1.0)
 
 
 ## Los sectores del libro: ocho, el primero a la derecha (los mismos que calcula Spellbook).
 const HUECOS: int = 8
+
+## Libro AVANZADO: los 6 huecos de glifo de la corona del círculo mágico, como ángulos en grados (0 = derecha, sentido horario en pantalla; −90 = arriba).
+## Su «sector» es la dirección unitaria de cada ángulo y SOLO sirve para saber qué hueco está ocupado: no cambia el hechizo. El libro dibuja cada hueco en
+## su posición (`LIBROS["avanzado"]` de spellbook.gd) a partir de estos mismos ángulos, para que el hueco que dice el código y el que ve el jugador no puedan separarse.
+const CORONA_ANGULOS: Array = [-90.0, -30.0, 30.0, 90.0, 150.0, 210.0]
+
+
+## La dirección unitaria del hueco `i` de la corona del libro avanzado.
+static func dir_corona(i: int) -> Vector2:
+	var a: float = deg_to_rad(float(CORONA_ANGULOS[clampi(i, 0, CORONA_ANGULOS.size() - 1)]))
+	return Vector2(cos(a), sin(a))
 
 
 func _sector_ocupado(sector: Vector2) -> bool:
@@ -653,6 +757,11 @@ func _sector_ocupado(sector: Vector2) -> bool:
 
 ## El primer sector sin glifo; si estan todos llenos, la derecha (add_sigil lo rechazara).
 func _primer_hueco_libre() -> Vector2:
+	if es_avanzado():
+		for i in range(CORONA_ANGULOS.size()):
+			if not _sector_ocupado(dir_corona(i)):
+				return dir_corona(i)
+		return dir_corona(CORONA_ANGULOS.size() - 1)       # todos llenos: `add_sigil` lo rechaza con «Hueco ocupado»
 	for i in range(HUECOS):
 		var angulo: float = TAU / float(HUECOS) * float(i)
 		var dir := Vector2(cos(angulo), sin(angulo))
@@ -741,6 +850,11 @@ func undo_last() -> void:
 		"element":
 			current_element = last["previous"]
 			pages[page]["element_q"] = last.get("previous_q", 1.0)
+			# Libro avanzado: la foto trae también el segundo medallón y cuál era el más antiguo (en el de siempre no existen estas claves).
+			if last.has("previous2"):
+				pages[page]["element2"] = last["previous2"]
+				pages[page]["element2_q"] = last.get("previous2_q", 1.0)
+				pages[page]["element_viejo"] = int(last.get("previous_viejo", 1))
 			print("Deshecho el elemento.")
 		"sigil":
 			# Se quita el último sello de SU sector, no el último
@@ -764,6 +878,9 @@ func clear_sequence() -> void:
 		Sfx.play_ui("barrido", DB_VACIAR)               # 31/10 (tarea U1): solo si había algo que barrer
 	current_element = Runes.Type.NONE
 	pages[page]["element_q"] = 1.0
+	pages[page]["element2"] = Runes.Type.NONE           # libro avanzado: los DOS medallones, no solo el primero
+	pages[page]["element2_q"] = 1.0
+	pages[page]["element_viejo"] = 1
 	current_components.clear()
 	undo_history.clear()
 	stroke_points.clear()
@@ -787,6 +904,8 @@ func page_ready(indice: int) -> bool:
 	if indice < 0 or indice >= PAGES:
 		return false
 	var p: Dictionary = pages[indice]
+	if pagina_anulada(indice):
+		return false          # dos opuestos: la pestaña no se pinta como lista, no se puede lanzar
 	return p["element"] != Runes.Type.NONE and not p["components"].is_empty()
 
 
@@ -798,7 +917,8 @@ func page_element_data(indice: int) -> RuneData:
 	var tipo: Runes.Type = pages[indice]["element"]
 	if tipo == Runes.Type.NONE:
 		return null
-	return rune_database.get(tipo)
+	# Libro avanzado: la pestaña y el HUD pintan el color del DERIVADO (magma naranja oscuro...), y apagada (null) si los sellos se anulan.
+	return rune_de_ficha(pages[indice])["rune"]
 
 
 ## Al cerrar el libro se lanza la página en la que estabas. (El apuntado con ratón del 2D se retiró en M4: en 3D

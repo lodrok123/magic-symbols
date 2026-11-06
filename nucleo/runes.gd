@@ -32,6 +32,10 @@ enum Type {
 	ELEMENT_LIGHTNING,
 	ELEMENT_ICE,
 	ELEMENT_TIME,
+	## Los dos derivados del libro avanzado (6/11/2026, nucleo/combos_sellos.gd): también AL FINAL, por lo mismo. Nacen de una pareja de sellos,
+	## nunca se dibujan, y sus .tres guardan 12 y 13: si se colaran antes de TIME, el tiempo pasaría a ser magma en todo lo ya guardado.
+	ELEMENT_MAGMA,
+	ELEMENT_BARRO,
 }
 
 ## Cómo se despliega un elemento. Cada uno lleva además su propia

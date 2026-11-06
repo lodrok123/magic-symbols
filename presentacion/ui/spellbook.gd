@@ -152,6 +152,33 @@ const LIBROS: Dictionary = {
 		"bloque": Rect2(107.0, 86.0, 1240.0, 760.0), # las dos páginas (papel x 107–1347) con la cenefa (y ≈ 90–840)
 		"guias": false,
 	},
+	# LIBRO AVANZADO (6/11/2026, Pablo): DOS ZONAS DE DIBUJO en vez de huecos. Se activa con `Repertoire.libro = "avanzado"`; el de «bosque» no cambia.
+	# Arriba, el CÍRCULO MÁGICO (resultado, aquí no se dibuja): un núcleo con 2 medallones de sello y una corona con 6 huecos de glifo. Abajo, dos círculos de dibujo:
+	# el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Dónde dibujas decide qué es; lo reconocido se coloca solo arriba.
+	# Sin lámina pintada para esta distribución: se usa la genérica (grimorio.png, la de BOOK_TEXTURE, cuya página derecha de 4 × 3 círculos se queda como estaba) y todo
+	# lo de la izquierda se pinta por código (`_draw_avanzado`). `centro`, `radio` y `nucleo` son los de siempre A PROPÓSITO: de ahí cuelgan las pestañas, el resumen y la
+	# escala de todo lo demás (`_ui`); lo propio de este libro va en `avanzado`. Todo en PÍXELES DE LÁMINA (1470 × 1070) para que Pablo lo ajuste aquí.
+	# Medidas de partida: la página izquierda del grimorio.png mide ≈ 590 px de ancho útil (x 165–700) y las pestañas ocupan hasta y ≈ 190, así que el círculo mágico es
+	# de radio 140 y las zonas de dibujo de 100 (los 200/150 del encargo no caben en la lámina genérica). Quedan MÁS PEQUEÑAS de lo deseado: con lámina propia, subirlas.
+	"avanzado": {
+		"textura": "res://art/ui/grimorio.png",
+		"centro": Vector2(438.0, 427.0),
+		"radio": 235.0,
+		"nucleo": 120.0,
+		"guias": false,
+		"avanzado": {
+			"circulo": {"centro": Vector2(435.0, 345.0), "radio": 140.0},       # el círculo mágico: marco de todo lo de arriba
+			"nucleo_radio": 76.0,                                               # anillo del núcleo, dentro de la corona
+			"medallones": [Vector2(399.0, 345.0), Vector2(471.0, 345.0)],       # sello 1 y sello 2 (el 1 es el primero que se dibuja)
+			"medallon_radio": 30.0,
+			"corona_radio": 106.0,                                              # distancia del centro del círculo a cada hueco de glifo
+			"hueco_radio": 25.0,
+			# Los ángulos de los 6 huecos son `Grimorio.CORONA_ANGULOS` (−90°, −30°, 30°, 90°, 150°, 210°): son los «sectores» con que el libro marca los huecos ocupados.
+			"zona_sellos": {"centro": Vector2(290.0, 640.0), "radio": 100.0},   # aquí se dibujan los elementos: solo se comparan con sellos
+			"zona_glifos": {"centro": Vector2(585.0, 640.0), "radio": 100.0},   # aquí se dibujan los glifos: solo se comparan con glifos
+			"pista_y": 772.0,                                                   # las dos líneas de ayuda de abajo (la corona y las zonas ocupan donde van en los otros libros)
+		},
+	},
 }
 
 ## Marca de «este trazo no cae en ningún hueco abierto»: se descarta (no es un elemento, que es lo que daría Vector2.ZERO).
@@ -214,12 +241,70 @@ func _huecos_abiertos() -> Dictionary:
 
 ## ¿La lámina limita en qué huecos se puede poner un glifo? (sí si tiene `orden_huecos`). Lo pregunta la paleta de pruebas (F1).
 func restringe_huecos() -> bool:
+	if _avanzado():
+		return true            # los 6 huecos de la corona: la paleta de pruebas coloca cada glifo en uno, como un trazo dibujado
 	return not (_libro().get("orden_huecos", []) as Array).is_empty()
+
+
+## --- LIBRO AVANZADO (6/11/2026): dos zonas de dibujo ---
+## ¿Está activo el libro avanzado? (y su lámina cargada: si el PNG faltara, `_libro()` sale vacío y todo cae al libro de siempre.)
+func _avanzado() -> bool:
+	return Repertoire.libro == "avanzado" and not _av().is_empty()
+
+
+## Las medidas propias del libro avanzado (`LIBROS["avanzado"]["avanzado"]`), o {} si no es el activo.
+func _av() -> Dictionary:
+	return _libro().get("avanzado", {})
+
+
+## Zona de dibujo → clave de su entrada en `_av()`.
+const ZONAS_AV: Dictionary = {"sello": "zona_sellos", "glifo": "zona_glifos"}
+
+## Cuánto dura el vuelo de una runa recién reconocida desde su zona de dibujo hasta su sitio arriba, y el destello con que se asienta.
+const AV_VUELO: float = 0.45
+const AV_DESTELLO: float = 0.55
+
+
+## En qué zona de dibujo cae un punto de PANTALLA: "sello", "glifo" o "" (fuera de las dos: un trazo que nazca ahí se descarta).
+func _zona_de(pos: Vector2) -> String:
+	var av: Dictionary = _av()
+	for nombre in ZONAS_AV:
+		var z: Dictionary = av[ZONAS_AV[nombre]]
+		if pos.distance_to(_on_page(z["centro"])) <= _lam(float(z["radio"])):
+			return nombre
+	return ""
+
+
+## El hueco de la corona donde se coloca el siguiente glifo: el primero LIBRE por orden. Como «sector» manda la dirección de ese hueco (`Grimorio.dir_corona`).
+## Si están todos ocupados devuelve el último y el Grimorio lo rechaza con «Hueco ocupado».
+func _av_sector_glifo() -> Vector2:
+	var caster := _spellcaster()
+	var n: int = Grimorio.CORONA_ANGULOS.size()
+	for i in range(n):
+		var libre: bool = true
+		if caster != null:
+			for c in caster.components():
+				if (c["direction"] as Vector2).is_equal_approx(Grimorio.dir_corona(i)) and not (c["sigils"] as Array).is_empty():
+					libre = false
+					break
+		if libre:
+			return Grimorio.dir_corona(i)
+	return Grimorio.dir_corona(n - 1)
+
+
+## Posición (en px de LÁMINA) del hueco `i` de la corona.
+func _av_pos_hueco(i: int) -> Vector2:
+	var av: Dictionary = _av()
+	return (av["circulo"]["centro"] as Vector2) + Grimorio.dir_corona(i) * float(av["corona_radio"])
 
 
 ## Las direcciones (vectores unitarios, como las del Spellcaster) de los huecos de glifo abiertos, en el orden en que se abrieron.
 func sectores_abiertos() -> Array:
 	var l: Array = []
+	if _avanzado():
+		for i in range(Grimorio.CORONA_ANGULOS.size()):
+			l.append(Grimorio.dir_corona(i))
+		return l
 	var abiertos: Dictionary = _huecos_abiertos()
 	for k in (_libro().get("orden_huecos", []) as Array):
 		if abiertos.has(int(k)):
@@ -301,6 +386,7 @@ var library: GestureLibrary = GestureLibrary.get_shared()
 
 var stroke: PackedVector2Array = PackedVector2Array()
 var is_drawing: bool = false
+var _av_zona_gesto: String = ""      ## libro avanzado: en qué zona ("sello" / "glifo") nació el gesto en curso
 
 ## Los trazos del gesto que se está dibujando ahora mismo, y el tiempo
 ## que queda para darlo por cerrado. Ver _process().
@@ -904,6 +990,12 @@ const TOL_RECTIFICADO_GLIFO: float = 0.5
 ## que `_familia_asistencia`.
 func _escalas_rectificado() -> Vector2:
 	var base: float = _u(RADIUS)
+	# Libro avanzado: el temblor de la mano mide lo mismo en cualquier sitio (`base`); el tamaño de las formas, como en el libro de siempre: en la zona de sellos
+	# (≈ el núcleo de allí) la escala del círculo, y en la de glifos el RADIO DE LA ZONA, para que el tramo mínimo no funda los giros de una forma pequeña.
+	if _avanzado():
+		if not stroke_crudo.is_empty() and _zona_de(stroke_crudo[0]) == "glifo":
+			return Vector2(base * TOL_RECTIFICADO_GLIFO, _lam(float(_av()["zona_glifos"]["radio"])))
+		return Vector2(base, base)
 	var radios: Dictionary = _libro().get("hueco_radios", {})
 	if radios.is_empty() or stroke_crudo.is_empty():
 		return Vector2(base, base)
@@ -919,7 +1011,14 @@ func _escalas_rectificado() -> Vector2:
 func _begin_stroke(pos: Vector2) -> void:
 	# El trazo tiene que NACER dentro del círculo. Es la regla que hace
 	# del círculo algo más que decoración.
-	if pos.distance_to(_center()) > _radio_trazo():
+	# Libro avanzado: «el círculo» son las dos zonas de dibujo; fuera de ambas el trazo se descarta, y un gesto de varios trazos no puede saltar de una zona a la otra
+	# (se compararía contra el vocabulario equivocado a medias).
+	if _avanzado():
+		var zona: String = _zona_de(pos)
+		if zona == "" or (not pending_strokes.is_empty() and zona != _av_zona_gesto):
+			return
+		_av_zona_gesto = zona
+	elif pos.distance_to(_center()) > _radio_trazo():
 		return
 
 	is_drawing = true
@@ -942,7 +1041,11 @@ func _add_point(pos: Vector2) -> void:
 	# Salirse del círculo termina el trazo. Preferimos esto a recortar el
 	# punto contra el borde: recortar deformaría el gesto y haría que el
 	# reconocimiento fallara sin que se entienda por qué.
-	if pos.distance_to(_center()) > _radio_trazo():
+	if _avanzado():
+		if _zona_de(pos) != _av_zona_gesto:
+			_end_stroke()
+			return
+	elif pos.distance_to(_center()) > _radio_trazo():
 		_end_stroke()
 		return
 
@@ -1062,6 +1165,8 @@ func _process(delta: float) -> void:
 			_asist_sucio = false
 			_actualizar_asistencia()
 
+	if _avanzado():
+		_av_actualizar(delta)          # libro avanzado: el vuelo de la runa recién reconocida
 	if is_open and not _escribiendo.is_empty():
 		_avanzar_escrituras(delta)
 	if is_open:
@@ -1395,6 +1500,15 @@ func _sector_of_gesture() -> Vector2:
 
 
 func _sector_of_point(middle: Vector2) -> Vector2:
+	# Libro avanzado: la ZONA decide qué es. Zona de sellos = elemento (sector cero, como el núcleo de siempre), zona de glifos = el primer hueco libre de la
+	# corona, y fuera de las dos nada (SIN_HUECO, que `_commit_gesture` descarta).
+	if _avanzado():
+		match _zona_de(middle):
+			"sello":
+				return Vector2.ZERO
+			"glifo":
+				return _av_sector_glifo()
+		return SIN_HUECO
 	var offset := middle - _center()
 	# El sello (núcleo) puede no estar en el centro del círculo: dentro de él es un elemento.
 	if (middle - _on_page(_core_c())).length() < _u(_core_u()):
@@ -1927,6 +2041,9 @@ const CORE_GLYPH_SIZE: float = CORE_RADIUS * 1.44
 ## color y su glifo de la propia ficha del elemento (RuneData). Igual que
 ## el hechizo: esto no sabe qué elementos existen.
 func _draw_core(c: Vector2) -> void:
+	if _avanzado():
+		_draw_avanzado()        # el libro avanzado dibuja su propio núcleo (2 medallones), la corona y las zonas de dibujo
+		return
 	var caster := _spellcaster()
 	if caster == null:
 		return
@@ -2041,6 +2158,8 @@ func _slot_pos(c: Vector2, dir: Vector2) -> Vector2:
 
 
 func _draw_components(c: Vector2) -> void:
+	if _avanzado():
+		return                  # los glifos del libro avanzado los pinta `_draw_avanzado` en los huecos de su corona
 	var caster := _spellcaster()
 	if caster == null:
 		return
@@ -2139,9 +2258,159 @@ func _draw_barrier_glyph(pos: Vector2, dir: Vector2) -> void:
 	draw_line(pos + ala - canto, pos + ala + canto, INK, _u(3.0))
 
 
+## --- LIBRO AVANZADO: lo que se pinta (6/11/2026) ---
+## Arriba el círculo mágico (resultado: núcleo con 2 medallones y corona de 6 huecos) y abajo las dos zonas de dibujo, todo por código sobre la lámina genérica.
+## Una runa recién reconocida NO aparece de golpe: sale de su zona de dibujo, vuela al medallón o al hueco que le toca y se asienta con un destello dorado
+## (`_av_anim`, AV_VUELO + AV_DESTELLO s). No usa la mano de `_escribiendo` (esa escribe glifos en la página derecha, de arriba abajo): colocar una runa en
+## un hueco es un movimiento, no una escritura, y reutilizar la mano habría exigido tocar la cola de la página derecha.
+var _av_prev: Dictionary = {}              ## contenido de cada sitio el fotograma anterior (para ver qué es NUEVO)
+var _av_prev_pagina: int = -1
+var _av_anim: Dictionary = {}              ## sitio → segundos desde que se colocó (se borra al acabar el destello)
+
+
+## Lo que lleva cada sitio de la página activa: "m0" / "m1" (medallones, el id del tipo de elemento) y "h0".."h5" (huecos, el nombre del glifo). "" = vacío.
+func _av_firma() -> Dictionary:
+	var salida: Dictionary = {"m0": "", "m1": "", "h0": "", "h1": "", "h2": "", "h3": "", "h4": "", "h5": ""}
+	var caster := _spellcaster()
+	if caster == null:
+		return salida
+	var ficha: Dictionary = caster.pages[caster.page]
+	if int(ficha["element"]) != Runes.Type.NONE:
+		salida["m0"] = str(ficha["element"])
+	if int(ficha.get("element2", Runes.Type.NONE)) != Runes.Type.NONE:
+		salida["m1"] = str(ficha["element2"])
+	for i in range(Grimorio.CORONA_ANGULOS.size()):
+		salida["h%d" % i] = _av_glifo_del_hueco(i)
+	return salida
+
+
+## El sello de forma que se enseña en el hueco `i` de la corona ("" si está vacío): el mismo criterio que `_draw_sector_sigil` (manda el orden de la tabla).
+func _av_glifo_del_hueco(i: int) -> String:
+	var caster := _spellcaster()
+	if caster == null:
+		return ""
+	for c in caster.components():
+		if (c["direction"] as Vector2).is_equal_approx(Grimorio.dir_corona(i)) and not (c["sigils"] as Array).is_empty():
+			var sigils: Array = c["sigils"]
+			for nombre in Sigils.FORM:
+				if sigils.has(nombre):
+					return String(nombre)
+			return String(sigils[0])
+	return ""
+
+
+## Cada fotograma: ve qué sitio ha cambiado a «con algo nuevo» (un trazo reconocido) y arranca su vuelo; al cambiar de página o con el libro cerrado solo se pone al día.
+func _av_actualizar(delta: float) -> void:
+	var caster := _spellcaster()
+	if caster == null:
+		return
+	var ahora: Dictionary = _av_firma()
+	if not is_open or _av_prev_pagina != caster.page:
+		_av_anim.clear()
+	else:
+		for k in ahora:
+			if String(ahora[k]) != "" and String(ahora[k]) != String(_av_prev.get(k, "")):
+				_av_anim[k] = 0.0
+	_av_prev = ahora
+	_av_prev_pagina = caster.page
+	if _av_anim.is_empty():
+		return
+	for k in _av_anim.keys():
+		_av_anim[k] = float(_av_anim[k]) + delta
+		if float(_av_anim[k]) >= AV_VUELO + AV_DESTELLO:
+			_av_anim.erase(k)
+	queue_redraw()
+
+
+## Dibuja una runa en su sitio, o volando hacia él si es nueva (`sitio` = clave de `_av_anim`), y su destello al asentarse.
+func _av_pintar_runa(sitio: String, textura: Texture2D, destino: Vector2, origen: Vector2, lado: float, tinte: Color, angulo: float = 0.0) -> void:
+	var t: float = float(_av_anim.get(sitio, AV_VUELO + AV_DESTELLO))
+	var pos: Vector2 = destino
+	var tam: float = lado
+	if t < AV_VUELO:
+		var k: float = 1.0 - pow(1.0 - clampf(t / AV_VUELO, 0.0, 1.0), 3.0)
+		pos = origen.lerp(destino, k)
+		tam = lado * (1.0 + 0.6 * (1.0 - k))
+		draw_circle(pos, tam * 0.55, Color(ESCRITURA_ORO, 0.22))
+	elif t < AV_VUELO + AV_DESTELLO:
+		var f: float = 1.0 - (t - AV_VUELO) / AV_DESTELLO
+		draw_circle(destino, lado * 0.8, Color(ESCRITURA_ORO, 0.22 * f))
+		draw_arc(destino, lado * (0.8 + 0.3 * (1.0 - f)), 0.0, TAU, 40, Color(ESCRITURA_ORO, 0.7 * f), _u(2.0), true)
+	if textura != null:
+		_draw_glyph(textura, pos, tam, tinte, angulo)
+
+
+func _av_rotulo(centro: Vector2, texto: String) -> void:
+	var fuente: Font = ThemeDB.fallback_font
+	var tam: int = maxi(11, int(round(_lam(14.0))))
+	var ancho: float = fuente.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	draw_string(fuente, centro - Vector2(ancho * 0.5, 0.0), texto, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, INK_SOFT)
+
+
+func _draw_avanzado() -> void:
+	var caster := _spellcaster()
+	var av: Dictionary = _av()
+	# --- Las dos zonas de dibujo (abajo): un círculo tenue con su rótulo hasta que haya lámina pintada ---
+	for nombre in ZONAS_AV:
+		var z: Dictionary = av[ZONAS_AV[nombre]]
+		var zc: Vector2 = _on_page(z["centro"])
+		var zr: float = _lam(float(z["radio"]))
+		draw_circle(zc, zr, Color(INK.r, INK.g, INK.b, 0.05))
+		draw_arc(zc, zr, 0.0, TAU, 72, INK_SOFT, _u(2.0), true)
+		_av_rotulo(zc + Vector2(0.0, zr * 0.62), nombre)
+	# --- El círculo mágico (arriba): marco, núcleo, medallones y huecos ---
+	var cc: Vector2 = _on_page(av["circulo"]["centro"])
+	draw_arc(cc, _lam(float(av["circulo"]["radio"])), 0.0, TAU, 96, INK_SOFT, _u(2.0), true)
+	draw_arc(cc, _lam(float(av["nucleo_radio"])), 0.0, TAU, 64, INK_FAINT, _u(1.5), true)
+	if caster == null:
+		return
+	var ficha: Dictionary = caster.pages[caster.page]
+	var origen_sello: Vector2 = _on_page((av[ZONAS_AV["sello"]] as Dictionary)["centro"])
+	var origen_glifo: Vector2 = _on_page((av[ZONAS_AV["glifo"]] as Dictionary)["centro"])
+	var radio_med: float = _lam(float(av["medallon_radio"]))
+	var tipos: Array = [ficha["element"], ficha.get("element2", Runes.Type.NONE)]
+	var meds: Array = av["medallones"]
+	for j in range(meds.size()):
+		var mc: Vector2 = _on_page(meds[j])
+		var ocupado: bool = int(tipos[j]) != Runes.Type.NONE
+		draw_arc(mc, radio_med, 0.0, TAU, 40, INK_SOFT if ocupado else INK_FAINT, _u(1.5), true)
+		if not ocupado:
+			continue
+		var datos: RuneData = caster.rune_database.get(int(tipos[j]))
+		if datos != null and datos.glyph != null:
+			_av_pintar_runa("m%d" % j, datos.glyph, mc, origen_sello, radio_med * 1.8, datos.color.darkened(CORE_GLYPH_DARKEN), _glyph_angle(datos.display_name))
+	if caster.has_method("pagina_anulada") and caster.pagina_anulada(caster.page) and meds.size() >= 2:
+		# Opuestos: una cruz roja sobre los dos medallones (el resumen dice «Se anulan»).
+		var a: Vector2 = _on_page(meds[0])
+		var b: Vector2 = _on_page(meds[1])
+		var d: float = radio_med * 0.7
+		draw_line(a + Vector2(-d, -d), b + Vector2(d, d), RECORD_INK, _u(3.0), true)
+		draw_line(a + Vector2(-d, d), b + Vector2(d, -d), RECORD_INK, _u(3.0), true)
+	for i in range(Grimorio.CORONA_ANGULOS.size()):
+		var hc: Vector2 = _on_page(_av_pos_hueco(i))
+		var radio_h: float = _lam(float(av["hueco_radio"]))
+		var nombre_g: String = _av_glifo_del_hueco(i)
+		draw_arc(hc, radio_h, 0.0, TAU, 32, INK_SOFT if nombre_g != "" else INK_FAINT, _u(1.5), true)
+		if nombre_g == "":
+			continue
+		var glyph: Texture2D = Sigils.GLYPHS.get(nombre_g)
+		var angulo: float = EjesRecetaUi.giro_linea(nombre_g) if EjesRecetaUi.exenta_del_giro(nombre_g) else GestureLibrary.giro_glifo(Grimorio.dir_corona(i))
+		_av_pintar_runa("h%d" % i, glyph, hc, origen_glifo, radio_h * 1.75, INK, angulo)
+
+
 func _draw_hint(c: Vector2) -> void:
 	if is_recording:
 		_draw_record_banner(c)
+		return
+	# Libro avanzado: bajo el círculo mágico no hay sitio libre (están las dos zonas de dibujo), así que las dos líneas de ayuda van al pie de la página.
+	if _avanzado():
+		var y1: float = _on_page(Vector2(0.0, float(_av()["pista_y"]))).y
+		var lanz := _spellcaster()
+		if lanz and Time.get_ticks_msec() < lanz.feedback_until:
+			_draw_centered_text(Vector2(c.x, y1), lanz.feedback_text, RECORD_INK)
+		else:
+			_draw_centered_text(Vector2(c.x, y1), "T cierra y lanza · 1 2 3 pasan página", INK_SOFT)
+		_draw_centered_text(Vector2(c.x, y1 + _lam(20.0)), "dibuja abajo: sello a la izquierda, glifo a la derecha · clic derecho deshace", INK_SOFT)
 		return
 
 	# DOS LÍNEAS, NO TRES. La ventana mide 648 px de alto: con el centro
@@ -2314,6 +2583,12 @@ func _draw_resumen(c: Vector2) -> void:
 			notas.append(String(n))
 	if not notas.is_empty():
 		lineas.append([" · ".join(notas), Color(INK, 0.7)])
+	# Libro avanzado: la primera línea es el derivado con sus glifos («Magma · flecha ×2»); si los sellos se anulan es la ÚNICA («Se anulan»: no hay tinta ni daño que contar).
+	if String(r.get("titulo", "")) != "":
+		if String(r.get("pareja", "")) == CombosSellos.SE_ANULAN:
+			lineas = [[String(r["titulo"]), RECORD_INK]]
+		else:
+			lineas.insert(0, [String(r["titulo"]), INK])
 	var fuente: Font = ThemeDB.fallback_font
 	var tam: int = _u_font()
 	var paso: float = float(tam) + _u(3.0)

@@ -77,6 +77,10 @@ func _draw() -> void:
 			draw_circle(centro, radio, tinte)
 		else:
 			draw_circle(centro, radio, Color(0.3, 0.3, 0.34, 0.5))
+			# Libro avanzado: dos sellos opuestos (fuego + agua, tierra + viento) se anulan: la página sale apagada con una cruz roja, no como «vacía».
+			if caster.has_method("pagina_anulada") and caster.pagina_anulada(i):
+				draw_line(centro + Vector2(-radio, -radio) * 0.6, centro + Vector2(radio, radio) * 0.6, ROJO_NO, 2.5, true)
+				draw_line(centro + Vector2(-radio, radio) * 0.6, centro + Vector2(radio, -radio) * 0.6, ROJO_NO, 2.5, true)
 
 		# La recarga: un barrido oscuro sobre la parte que falta.
 		var resto: float = caster.page_cooldown_fraction(i)

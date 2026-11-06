@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="RuneData" format=3]
+
+[ext_resource type="Script" uid="uid://d4bxk32633c4n" path="res://nucleo/rune_data.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://d0rwltxsqguvf" path="res://art/fx/fire.png" id="2"]
+[ext_resource type="Texture2D" uid="uid://bxtke2717wha8" path="res://art/ui/glyphs/fuego.png" id="3"]
+
+; PROVISIONAL (6/11/2026, libro avanzado): derivado de fuego + tierra (nucleo/combos_sellos.gd). Reusa la hoja y el glifo del fuego hasta que haya arte
+; propio. El id «magma» va en las etiquetas porque Objetos.elemento_de lo busca primero: sin ello las etiquetas «fuego, tierra» lo harian pasar por fuego.
+[resource]
+script = ExtResource("1")
+rune_type = 12
+display_name = "Magma"
+color = Color(0.78, 0.27, 0.05, 1)
+glyph = ExtResource("3")
+damage = 55.0
+tags = Array[String](["fuego", "calor", "tierra", "magma"])
+estado = "plasma"
+persiste = 4.0
+empuje = 0.3
+deja = "quemado"
+vfx_sheet = ExtResource("2")
+vfx_frames = 18
+orient_to_travel = true
+modificadores = { "quema": { "op": "fija", "valor": 3.0 }, "fuerza_golpe": { "op": "fija", "valor": 900.0 }, "gravedad": { "op": "fija", "valor": 0.6 }, "densidad": { "op": "fija", "valor": 1.5 }, "temperatura": { "op": "fija", "valor": 1.0 }, "humedad": { "op": "fija", "valor": 0.0 }, "conductividad": { "op": "fija", "valor": 0.0 }, "dano_periodico": { "op": "fija", "valor": 40.0 } }

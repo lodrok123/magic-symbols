@@ -807,6 +807,15 @@ func escala_de_tiempo() -> float:
 ## (la peor de las del elemento y las de los glifos) y el `Hechizo` resultante, con el pigmento de daño si se da `tinta_`. SIN elemento (`rune` null) el hechizo se construye igual (coste, forma y recarga
 ## no dependen de la runa). Devuelve {receta, rune, calidad, glifos (los nombres, fundidos), hechizo (null si la runa no se puede lanzar)}. Lo usan `_preparar_pagina` y el libro (`Grimorio._actualizar_resumen`).
 static func receta_de_ficha(ficha: Dictionary, rune: RuneData, tinta_: Tinta = null) -> Dictionary:
+	# Libro avanzado (6/11/2026): con dos sellos la pareja se resuelve AQUÍ, antes de construir, y `Hechizo.construir` recibe un solo RuneData (el derivado).
+	# `rune` llega como el sello 1 (o ya como el derivado: resolver dos veces da lo mismo). Si se anulan, `rune` queda null y la receta sale «sin elemento»:
+	# quien lanza se niega antes (`_preparar_pagina`), así que esa receta solo la ve el libro para su resumen. Una pareja fuera de la tabla deja el sello 1.
+	if Grimorio.es_avanzado():
+		var par: Dictionary = CombosSellos.de_ficha(ficha)
+		if String(par["estado"]) == CombosSellos.REACCION:
+			rune = par["rune"]
+		elif String(par["estado"]) == CombosSellos.SE_ANULAN:
+			rune = null
 	var glifos: Array = []
 	var calidades: Array = []
 	for c in (ficha["components"] as Array):
@@ -825,7 +834,7 @@ static func receta_de_ficha(ficha: Dictionary, rune: RuneData, tinta_: Tinta = n
 	var hechizo: Hechizo = receta.hechizo(rune)
 	if hechizo != null and tinta_ != null and rune != null:
 		hechizo.dano *= tinta_.mult_dano(Objetos.elemento_de(rune))
-	return {"receta": receta, "rune": rune, "calidad": calidad, "glifos": glifos, "hechizo": hechizo}
+	return {"receta": receta, "rune": rune, "calidad": calidad, "glifos": glifos, "hechizo": hechizo}      # `rune`: la runa con que se construyó (el derivado, si lo hay)
 
 
 ## H7: los textos de rechazo/aviso de una página, UNA vez cada uno, para que el libro (antes de lanzar) y `_preparar_pagina` (al lanzar) no puedan decir cosas distintas. Cada uno es "" si no procede.
@@ -913,6 +922,22 @@ func _preparar_pagina(indice: int) -> bool:
 	if not Repertoire.element_active(_gesture_name_of(ficha["element"])):
 		_feedback("Ese elemento ya no está activo")
 		return false
+	# LIBRO AVANZADO (6/11/2026): la pareja de sellos se resuelve ANTES de construir el hechizo. Opuestos: no se lanza, no se cobra tinta (el cobro es al soltar,
+	# `lanzar_ahora`, y de aquí no se pasa) y se avisa por el mismo canal que «Aún sin uso». Pareja fuera de la tabla: se lanza el sello 1 y se avisa «Sin reacción».
+	# Con un solo sello (o en el libro de siempre) `rune_de_ficha` devuelve el de siempre y esto no hace nada.
+	var pareja: Dictionary = rune_de_ficha(ficha)
+	if es_avanzado() and int(ficha.get("element2", Runes.Type.NONE)) != Runes.Type.NONE \
+			and not Repertoire.element_active(_gesture_name_of(ficha["element2"])):
+		_feedback("Ese elemento ya no está activo")
+		return false
+	if String(pareja["estado"]) == CombosSellos.SE_ANULAN:
+		Sfx.play(self, "sello_no")
+		Sensacion3D.no_puedes(self, indice)
+		_feedback("Se anulan")
+		PlayLog.event("cast_anulado", {"pagina": indice + 1, "sellos": [String(CombosSellos.de_ficha(ficha)["a"]), String(CombosSellos.de_ficha(ficha)["b"])]})
+		return false
+	if String(pareja["estado"]) == CombosSellos.REACCION:
+		element_data = pareja["rune"]
 	if componentes.is_empty():
 		_feedback("A la página %d le falta algún glifo" % (indice + 1))
 		return false
@@ -934,6 +959,8 @@ func _preparar_pagina(indice: int) -> bool:
 		if not Repertoire.sigil_active(Sigils.repertorio_de(s)):
 			_feedback("Un glifo de la página ya no está activo")
 			return false
+	if String(pareja["estado"]) == CombosSellos.SIN_REACCION:
+		_feedback("Sin reacción")      # los dos sellos no reaccionan: sale el sello 1; si luego hay otro aviso (glifo sin uso...) pisa a este
 	var hechizo: Hechizo = montada["hechizo"]
 	if hechizo == null:
 		_feedback("La página %d no se puede lanzar" % (indice + 1))
@@ -966,7 +993,7 @@ func _preparar_pagina(indice: int) -> bool:
 
 	_preparado = {"indice": indice, "receta": receta, "rune": element_data, "calidad": calidad,
 		"glifos": glifos_pagina.duplicate(),
-		"elemento_nombre": _gesture_name_of(ficha["element"]),
+		"elemento_nombre": String(pareja["id"]) if String(pareja["id"]) != "" else _gesture_name_of(ficha["element"]),      # el derivado («magma») si la pareja reacciona
 		"hechizo": hechizo, "en_punto": hechizo.en_punto}      # 18/10: «nace donde apuntas» (cast on point); lo pide un glifo (la barrera)
 	return true
 
