@@ -402,7 +402,8 @@ func _actualizar_resumen(i: int) -> void:
 	_resumenes[i] = {"clave": clave, "sello": sello, "ignorados": ignorados, "hechizo": h, "rune": rune, "elemento": elemento, "resumen": h.resumen() if h != null else {},
 		"tinta_prevista": Lanzador3D.tinta_prevista(h, rune, t) if h != null else 0.0, "diferencia": dif, "frases": frases, "texto": texto, "glifos": glifos,
 		"avisos": avisos, "notas": Lanzador3D.notas_de(h), "vacia": vacia,
-		"pareja": estado_pareja, "nombre": String(pareja["nombre"]), "titulo": titulo}
+		"pareja": estado_pareja, "nombre": String(pareja["nombre"]), "titulo": titulo,
+		"orden_glifos": h.orden_glifos.duplicate() if h != null else []}      # C2: el orden de dibujo (flecha antes de repetición = ráfaga); la clave de la ficha ya lo distingue
 
 
 ## Los avisos de una página: lo que falta (elemento, glifos; con el texto de `cast_page`) y los de `Lanzador3D.avisos_de` (altura, sin uso, tinta). Una página sin nada dibujado no avisa de nada.

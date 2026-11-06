@@ -590,8 +590,10 @@ func _ciclo_de_vida() -> void:
 
 	# --- Orden de dibujo irrelevante y combinaciones que «salen solas» ---
 	var a: Array = _lanzar0(["flecha", "pulso", "repeticion", "linea_x"], "fire")
-	var b: Array = _lanzar0(["linea_x", "repeticion", "pulso", "flecha"], "fire")
-	_ok(a == b and a.size() > 3, "el orden de dibujo no cambia el resultado (%d casillas)" % a.size())
+	# 6/11 (C2): el orden SÍ cuenta en dos pares con significado (ᛇ antes de ᚠ = ráfaga; ᛒ antes de ᚷ = late; ver `Hechizo.ORDEN_PARES`). Esta comprobación sigue valiendo para todo lo demás: se reordena
+	# SIN invertir ninguno de esos pares (ᛇ sigue antes de ᚠ en las dos). `prueba_bloque_c` prueba que invertirlo SÍ cambia el hechizo.
+	var b: Array = _lanzar0(["linea_x", "flecha", "pulso", "repeticion"], "fire")
+	_ok(a == b and a.size() > 3, "el orden de dibujo no cambia el resultado salvo en los pares con significado (%d casillas)" % a.size())
 	# lanza de fuego que viaja y rebota, abanico de bolas de hielo, muro de agua que para flechas: sin tocar el código
 	var abanico: Array = _lanzar0(["repeticion", "repeticion", "flecha"], "ice")
 	_ok(_filas(abanico).size() >= 3 and _max_x(abanico) == 7, "ᚠᚠ + ᛇ + hielo: tres bolas en abanico que viajan (filas %s, x hasta %d)" % [_filas(abanico), _max_x(abanico)])

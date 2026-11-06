@@ -20,7 +20,8 @@ const LADO_CIRCULO_PX: float = 120.0
 const MARGEN_CIRCULO_PX: float = 14.0
 const T_AVISO_TINTA_S: float = 0.35
 const T_FLOTA_S: float = 1.3                    ## s que dura el «+20» flotando junto a la barra de tinta
-const T_SUBE_PX: float = 16.0                  ## px que sube mientras se desvanece
+const ROTULOS_GOLPE: Dictionary = {GolpeCuerpo.TIPO_TINTA_GOLPE: "", GolpeCuerpo.TIPO_TINTA_GOLPE_ESCUDO: "¡Escudo roto!"}    ## C5: rótulos de la tinta del golpe F ("" = solo el «+5»)
+const T_SUBE_PX: float = 16.0                 ## px que sube mientras se desvanece
 const COLOR_VIDA_ALTA: Color = Color(0.35, 0.85, 0.4)
 const COLOR_VIDA_MEDIA: Color = Color(1.0, 0.8, 0.25)
 const COLOR_VIDA_BAJA: Color = Color(1.0, 0.3, 0.25)
@@ -180,7 +181,9 @@ func _al_premiar_reaccion(tipo: String, cantidad: float) -> void:
 	if _tinta == null or not is_instance_valid(_tinta):
 		return
 	var l := Label.new()
-	l.text = "%s +%d" % [String(Tinta.REACCIONES_PREMIADAS.get(tipo, tipo)), int(round(cantidad))]
+	# C5 (6/11): el golpe F que acierta también entra por aquí; su rótulo es solo «+5» (o «¡Escudo roto! +10»), no el nombre de una reacción. Sin esto saldría «golpe +5».
+	var rotulo: String = String(ROTULOS_GOLPE[tipo]) if ROTULOS_GOLPE.has(tipo) else String(Tinta.REACCIONES_PREMIADAS.get(tipo, tipo))
+	l.text = ("%s +%d" % [rotulo, int(round(cantidad))]).strip_edges() if rotulo != "" else "+%d" % int(round(cantidad))
 	l.add_theme_font_size_override("font_size", 13)
 	l.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
 	l.add_theme_color_override("font_outline_color", Color.BLACK)

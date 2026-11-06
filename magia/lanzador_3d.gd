@@ -51,6 +51,22 @@ const ARRASTRE_MINIMO: float = 0.45        ## casillas: menos que esto es un cli
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
 const PREVER_REACCIONES: bool = true         ## 28/10 · A3: pintar en el indicador lo que el hechizo haría al soltar (PrevisionReaccion3D, con PrevisionHechizo.prever_rapido)
 const TIEMPO_PAGINA: float = 0.7            ## 27/10 · A1: Engine.time_scale en el lanzamiento RÁPIDO (mantener 1/2/3). Más suave que el 0,3 del libro porque aquí te mueves; Pablo lo afina en el playtest
+## 6/11/2026 · C1 SOBRECARGA DE PÁGINA (PROPUESTAS_COMBATE bloque C; Hades II, Omega): mantener 1/2/3 más de `T_SOBRECARGA` s (reloj real) antes de soltar lanza el hechizo sobrecargado: `Hechizo.potencia`
+## (la G de `Dano`, que `Combate3D.decidir_golpe` ya multiplica) pasa a `G_SOBRECARGA` y la tinta cuesta ×`TINTA_SOBRECARGA`. Solo en el lanzamiento RÁPIDO; el libro abierto no cambia. Sin tinta para el doble
+## sale normal, con aviso. Fallo que evita: sin esto el golpe fuerte de una página no tenía ningún precio que decidir y G seguía siendo un campo que nadie ponía.
+const T_SOBRECARGA: float = 0.8
+const G_SOBRECARGA: float = 1.5
+const TINTA_SOBRECARGA: float = 2.0
+const TEMBLOR_SOBRECARGA: float = 0.05        ## Vfx3D.temblor al completarse el anillo
+const AVISO_SIN_TINTA_SOBRECARGA: String = "Sin tinta para sobrecargar"
+const ROTULO_SOBRECARGA: String = "¡Sobrecarga!"
+const COLOR_ROTULO_SOBRECARGA: Color = Color(1.0, 0.82, 0.25)
+## C4 (6/11/2026): como mucho `MAX_BARRERAS_VIVAS` barreras de la jugadora a la vez (Echoes of Wisdom, la energía de Tri): al lanzar la siguiente, la más antigua se disuelve. Fallo que evita: apilar
+## barreras sin límite trivializaba el puzle y los combates (un muro por cada recarga de 3 s).
+const MAX_BARRERAS_VIVAS: int = 3
+const ROTULO_DISUELVE: String = "Se disuelve"
+const ALTO_ROTULO_DISUELVE: float = 1.2        ## u sobre el punto donde nació la barrera
+const COLOR_ROTULO_DISUELVE: Color = Color(0.8, 0.85, 0.95)
 
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
@@ -174,6 +190,8 @@ var _marca_alcance: MeshInstance3D = null
 var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
 var _prev_color: Color = Color.WHITE
 var _apuntado: Apuntado3D = null              ## 28/10: el recorrido real, las retículas y el motivo de «no se puede» del indicador (vive lo que el modo de lanzar)
+var t_mantener: float = 0.0                     ## C1: s reales que lleva pulsada la tecla de la página en el lanzamiento rápido (las pruebas lo leen)
+var barreras_vivas: Array = []                  ## C4: [{linaje, pos, vivo (WeakRef)}], de la más antigua a la más reciente; se limpia de las que ya murieron al lanzar
 var cursor_puesto: String = ""                 ## 28/10: el cursor de apuntar que está puesto («color|cruz»; vacío = el del sistema). Se cambia solo cuando cambia
 var _vista_reaccion: PrevisionReaccion3D = null   ## A3: los rótulos, anillos y cuadros de la reacción prevista (vive lo que el modo de lanzar)
 var _ts_antes: float = 1.0
@@ -1093,6 +1111,7 @@ func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 	_rapido = rapido
 	_pagina_rapida = pagina
 	_fijado = false
+	t_mantener = 0.0                              # C1: la sobrecarga cuenta desde que entra el modo rápido
 	_ms_modo = Time.get_ticks_msec()
 	_ts_antes = Engine.time_scale
 	var tiempo: float = TIEMPO_PAGINA if rapido else RALENTIZADO
@@ -1146,6 +1165,9 @@ func _salir_modo(lanzando: bool = false) -> void:
 	if _apuntado != null and is_instance_valid(_apuntado):
 		_apuntado.queue_free()
 	_apuntado = null
+	t_mantener = 0.0
+	if _page_hud != null and is_instance_valid(_page_hud) and _page_hud.has_method("sobrecarga"):
+		_page_hud.call("sobrecarga", -1)          # C1: el arco de la página se apaga al soltar o cancelar
 	_poner_cursor(Color.WHITE, false, false)
 	for m in _prev_casillas:
 		if is_instance_valid(m):
@@ -1283,9 +1305,47 @@ func _process(delta: float) -> void:
 			return
 		if _rapido:
 			_actualizar_raton_rapido()      # A1: ella se mueve aunque el ratón esté quieto: origen y previsualización se recalculan cada fotograma
+			_avanzar_sobrecarga(delta)      # C1
 		_pintar_marcadores()
 		if jugador != null:
 			jugador.call("mirar_hacia", _direccion_actual())
+
+
+## C1: ¿se puede pagar el doble de tinta de la página preparada `datos`? Sin tinta (laboratorios y pruebas sin barra) siempre.
+func puede_sobrecargar(datos: Dictionary) -> bool:
+	if datos.is_empty():
+		return false
+	if tinta == null:
+		return true
+	var elemento: String = Objetos.elemento_de(datos["rune"] as RuneData)
+	return tinta.puede_pagar((datos["receta"] as Receta3D).forma(), _coste_de(datos) * TINTA_SOBRECARGA, elemento)
+
+
+## C1: cada fotograma del lanzamiento rápido. Cuenta el tiempo REAL que lleva la tecla (el reloj del juego va a `TIEMPO_PAGINA`), pinta el anillo y el arco de la página y, al cruzar `T_SOBRECARGA`,
+## marca la página como sobrecargada (`_preparado["sobrecarga"]`, que la previsión y `lanzar_ahora` leen) con su pulso y su temblor; sin tinta para el doble avisa UNA vez y no marca nada.
+func _avanzar_sobrecarga(delta: float) -> void:
+	if _preparado.is_empty():
+		return
+	var antes: float = t_mantener
+	t_mantener += delta / maxf(Engine.time_scale, 0.05)
+	var cruza: bool = antes < T_SOBRECARGA and t_mantener >= T_SOBRECARGA
+	if cruza:
+		if puede_sobrecargar(_preparado):
+			_preparado["sobrecarga"] = true
+			if fx != null and is_instance_valid(fx):
+				fx.temblor(TEMBLOR_SOBRECARGA)
+			Sfx.play(self, "logro_pista")
+			PlayLog.event("sobrecarga_lista", {"pagina": int(_preparado["indice"]) + 1})
+		else:
+			_preparado["sobrecarga"] = false
+			avisar(AVISO_SIN_TINTA_SOBRECARGA)
+			_feedback(AVISO_SIN_TINTA_SOBRECARGA)
+	var lista: bool = bool(_preparado.get("sobrecarga", false))
+	var fraccion: float = clampf(t_mantener / T_SOBRECARGA, 0.0, 1.0)
+	if _apuntado != null and is_instance_valid(_apuntado) and jugador != null and jugador.is_inside_tree():
+		_apuntado.carga(fraccion, lista, jugador.global_position, lista or t_mantener < T_SOBRECARGA)
+	if _page_hud != null and is_instance_valid(_page_hud) and _page_hud.has_method("sobrecarga"):
+		_page_hud.call("sobrecarga", _pagina_rapida, fraccion, lista)
 
 
 func _soltar() -> void:
@@ -1342,8 +1402,15 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		if activo != "":
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}
 
+	# C1: la sobrecarga cuesta el doble. Se vuelve a comprobar AQUÍ (el único sitio del cobro): si entre el anillo y soltar la tinta bajó, sale normal con su aviso y se cobra lo de siempre.
+	if bool(datos.get("sobrecarga", false)) and not puede_sobrecargar(datos):
+		datos = datos.duplicate()
+		datos["sobrecarga"] = false
+		avisar(AVISO_SIN_TINTA_SOBRECARGA)
+		_feedback(AVISO_SIN_TINTA_SOBRECARGA)
+	var factor_tinta: float = TINTA_SOBRECARGA if bool(datos.get("sobrecarga", false)) else 1.0
 	if tinta != null:
-		tinta.gastar(forma, _coste_de(datos), elemento)       # E1: con el elemento, para la rebaja del pigmento
+		tinta.gastar(forma, _coste_de(datos) * factor_tinta, elemento)       # E1: con el elemento, para la rebaja del pigmento
 
 	# Recarga y coste al SOLTAR: durante el conjuro la página ya no se puede volver a lanzar.
 	cooldown_total[indice] = _recarga_de(datos)
@@ -1520,6 +1587,9 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
 	_sonar_fase_v2("disparo", elemento)
 	var hechizo: Hechizo = hechizo_de(datos)
+	if bool(datos.get("sobrecarga", false)):
+		Combate3D.flotante(mundo, _pos_mano() + Vector3(0.0, 0.5, 0.0), ROTULO_SOBRECARGA, COLOR_ROTULO_SOBRECARGA, 1.2)      # C1: el rótulo de lo que acaba de salir
+		PlayLog.event("sobrecarga", {"pagina": indice + 1, "g": G_SOBRECARGA, "tinta_x": TINTA_SOBRECARGA})
 	if float(datos.get("carga_en_mano", 0.0)) > 0.0 and hechizo != null:
 		hechizo.retardo = 0.0             # ⧖ carga: ya se esperó en la mano (`lanzar_ahora`)
 	desplaza_mano = _salida_de_mano(hechizo, origen)
@@ -1559,12 +1629,16 @@ func _recarga_de(datos: Dictionary) -> float:
 ## Devuelve null si la runa no se lanza.
 func hechizo_de(datos: Dictionary) -> Hechizo:
 	var preparado: Hechizo = datos.get("hechizo") as Hechizo
+	var hechizo: Hechizo = null
 	if preparado != null:
-		return preparado.copiar()
-	var rune: RuneData = datos["rune"]
-	var hechizo: Hechizo = (datos["receta"] as Receta3D).hechizo(rune)
-	if tinta != null and hechizo != null:
-		hechizo.dano *= tinta.mult_dano(Objetos.elemento_de(rune))         # E1: pigmento de daño del elemento. Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+		hechizo = preparado.copiar()
+	else:
+		var rune: RuneData = datos["rune"]
+		hechizo = (datos["receta"] as Receta3D).hechizo(rune)
+		if tinta != null and hechizo != null:
+			hechizo.dano *= tinta.mult_dano(Objetos.elemento_de(rune))         # E1: pigmento de daño del elemento. Se queda en el hechizo: golpe, área y escudo lo leen de ahí
+	if hechizo != null and bool(datos.get("sobrecarga", false)):
+		hechizo.potencia *= G_SOBRECARGA          # C1: la G de Dano (decidir_golpe ya la multiplica); aquí, y no en dano.gd, para que la previsión y el disparo vean lo mismo
 	return hechizo
 
 
@@ -1787,7 +1861,61 @@ func _materializar(receta: Receta3D, rune: RuneData, origen: Vector3, dir: Vecto
 func lanzar_hechizo(hechizo: Hechizo, origen: Vector3, dir: Vector3) -> int:
 	if hechizo == null:
 		return 0                                            # p. ej. una runa cinemática sin permiso (Hechizo.construir devolvió null)
-	return HechizoVivo.crear(_con_cambios(hechizo), origen, dir, self).casillas
+	hechizo = _con_cambios(hechizo)
+	# C2: ráfaga en fila (ᛇ antes de ᚠ). HechizoVivo no admite retardo entre copias, así que se lanza AQUÍ la primera sola y las demás cada `intervalo_copias` s por la misma línea (cada una un
+	# HechizoVivo de una copia). Sin esto las copias saldrían todas a la vez y la fila sería un solo disparo más grueso.
+	if hechizo.rafaga and hechizo.proyectil and hechizo.copias > 1 and hechizo.profundidad == 0 and hechizo.intervalo_copias > 0.0 and is_inside_tree():
+		var primera: Hechizo = hechizo.copiar().con({"copias": 1})
+		for i in range(1, hechizo.copias):
+			var tarda: float = float(i) * hechizo.intervalo_copias
+			get_tree().create_timer(tarda, false).timeout.connect(_lanzar_copia_rafaga.bind(primera.copiar(), origen, dir))
+		hechizo = primera
+	# C4: tope de barreras vivas. Antes de crear la nueva, las que sobren (la más antigua primero) se disuelven.
+	var es_barrera: bool = hechizo.solidez > 0.0 and hechizo.en_punto and hechizo.profundidad == 0
+	if es_barrera:
+		_hacer_sitio_barrera()
+	var vivo: HechizoVivo = HechizoVivo.crear(hechizo, origen, dir, self)
+	if es_barrera and vivo.casillas > 0:
+		barreras_vivas.append({"linaje": vivo.linaje, "pos": origen, "vivo": weakref(vivo)})
+	return vivo.casillas
+
+
+## C2: una copia que sale tarde de una ráfaga. Un temporizador atado al lanzador: si el lanzador muere antes, no llama.
+func _lanzar_copia_rafaga(copia: Hechizo, origen: Vector3, dir: Vector3) -> void:
+	if not is_inside_tree() or (jugador != null and bool(jugador.get("muerto"))):
+		return
+	HechizoVivo.crear(copia, origen, dir, self)
+
+
+## C4: ¿sigue viva esta barrera? Su lanzamiento tiene algún HechizoVivo vivo o alguna SolidezV2 suya en el mundo.
+func _barrera_viva(b: Dictionary) -> bool:
+	var v: Variant = (b["vivo"] as WeakRef).get_ref()
+	if v != null and is_instance_valid(v) and (v as Node).is_inside_tree() and not (v as Node).is_queued_for_deletion():
+		return true
+	for s in _solideces_v2:
+		if is_instance_valid(s) and s.linaje == b["linaje"] and not (s as Node).is_queued_for_deletion():
+			return true
+	return false
+
+
+## C4: deja sitio para UNA barrera más: quita de la lista las que ya murieron y disuelve las más antiguas hasta quedar en `MAX_BARRERAS_VIVAS - 1`. Disolver = el camino de muerte de siempre:
+## las SolidezV2 del lanzamiento se liberan (`queue_free`, lo mismo que cuando se agota su vida o su aguante) y su HechizoVivo también; con rótulo «Se disuelve» sobre ella.
+func _hacer_sitio_barrera() -> void:
+	var vivas: Array = []
+	for b in barreras_vivas:
+		if _barrera_viva(b):
+			vivas.append(b)
+	barreras_vivas = vivas
+	while barreras_vivas.size() >= MAX_BARRERAS_VIVAS:
+		var vieja: Dictionary = barreras_vivas.pop_front()
+		for s in _solideces_v2:
+			if is_instance_valid(s) and s.linaje == vieja["linaje"]:
+				(s as Node).queue_free()
+		var v: Variant = (vieja["vivo"] as WeakRef).get_ref()
+		if v != null and is_instance_valid(v):
+			(v as Node).queue_free()
+		Combate3D.flotante(mundo, (vieja["pos"] as Vector3) + Vector3(0.0, ALTO_ROTULO_DISUELVE, 0.0), ROTULO_DISUELVE, COLOR_ROTULO_DISUELVE)
+		PlayLog.event("barrera_disuelta", {"quedan": barreras_vivas.size()})
 
 
 ## HC5: sobrescrituras en vivo del laboratorio ({campo: valor}, ver Hechizo.EDITABLES). Vacío en el juego: el siguiente hechizo sale tal cual lo construyó `Hechizo.construir`.
@@ -2908,6 +3036,10 @@ class Receta3D extends SpellRecipe:
 	## Cuántas veces se dibujó cada glifo V2 (un multiconjunto: el orden de dibujo no cuenta).
 	var contadores: Dictionary = {}
 
+	## C2 (6/11/2026): el ORDEN de dibujo (un nombre V2 por glifo conocido). `contadores` sigue siendo el multiconjunto de siempre (coste, recarga, números); el orden solo lo lee
+	## `Hechizo._aplicar_orden` para los pares con significado (`Hechizo.ORDEN_PARES`).
+	var orden: Array[String] = []
+
 	## Se conserva porque el resto del Lanzador (campos antiguos, `_spread_points`) lo lee; en la V2 nunca vale true.
 	var line: bool = false
 
@@ -2918,6 +3050,7 @@ class Receta3D extends SpellRecipe:
 		var nombre: String = Sigils.glifo_v2(sigil_name)
 		if Sigils.GLIFOS.has(nombre):
 			contadores[nombre] = int(contadores.get(nombre, 0)) + 1
+			orden.append(nombre)
 			cooldown = Sigils.cooldown_v2(contadores)
 		else:
 			ignorados.append(sigil_name)
@@ -2931,14 +3064,14 @@ class Receta3D extends SpellRecipe:
 	var _h_runa: int = 0                                   ## id de instancia de la runa con la que se construyó `_h` (0 = sin elemento)
 
 	func _clave() -> String:
-		return "%s|%.4f" % [str(contadores), calidad]
+		return "%s|%.4f|%s" % [str(contadores), calidad, str(orden)]      # C2: el mismo multiconjunto en otro orden puede dar otro hechizo (ráfaga, latido)
 
 	## El `Hechizo` cacheado para ESTA runa (lo construye si no está). No lo toques: `hechizo()` devuelve una copia.
 	func _cacheado(rune: RuneData, permitir_cinematico: bool = false) -> Hechizo:
 		var id_runa: int = rune.get_instance_id() if rune != null else 0
 		if _h != null and _h_clave == _clave() and _h_runa == id_runa:
 			return _h
-		var h: Hechizo = Hechizo.construir(rune, contadores, calidad, permitir_cinematico)
+		var h: Hechizo = Hechizo.construir(rune, contadores, calidad, permitir_cinematico, orden)
 		if h == null:
 			return null                                    # runa cinemática sin permiso (ver Hechizo.construir)
 		h.ignorados.append_array(ignorados)
@@ -3356,6 +3489,8 @@ class ZonaV2 extends Node3D:
 	var dano_periodico: float = 0.0      ## puntos/s del pulso de plasma (el `dano_periodico` del Hechizo)
 	var tocados: Dictionary = {}         ## instance_id -> true: a quién ya le llegó el golpe entero
 	var _acum: float = 0.0
+	var edad: float = 0.0                ## 6/11 (B7): s que lleva abierta (la gracia del fuego amigo cuenta desde aquí)
+	var avisada_jugadora: bool = false   ## 6/11 (B7): ya salió el «¡Te quemas!» de esta zona (solo la primera vez)
 
 	func pulso() -> void:
 		if metodo_pulso != "" and lanz != null and is_instance_valid(lanz):
@@ -3364,6 +3499,7 @@ class ZonaV2 extends Node3D:
 	## Avanza `delta` s (público: las pruebas lo llaman a mano).
 	func avanzar(delta: float) -> void:
 		vida -= delta
+		edad += delta
 		_acum += delta
 		while _acum >= intervalo and vida > 0.0:
 			_acum -= intervalo

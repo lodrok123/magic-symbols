@@ -29,7 +29,14 @@ const RADIO_BLOQUE: float = 0.9
 const RADIO_SACUDIBLE: float = 0.8        ## un tronco: algo más ancho que un jarrón
 const SONIDO: String = "clavar"          ## golpe seco existente (Sfx); con algo tocado suena además «dano» más grave
 const SONIDO_TOCA: String = "dano"
-const TEMBLOR: float = 0.12              ## intensidad (0-1) del temblor de cámara (Vfx3D.temblor, el mismo mecanismo que los golpes de hechizo)
+## C5 (6/11/2026, PROPUESTAS_COMBATE bloque C · Death's Door: el cuerpo a cuerpo recarga el rango). Fallo que evita: el golpe F no gastaba tinta pero tampoco la devolvía, y con la barra vacía
+## no había razón para acercarse. Acertar a un enemigo VIVO (no el que para el escudo, no un muñeco) da `TINTA_GOLPE`; si su escudo ya está quemado o roto da `TINTA_GOLPE_ESCUDO` (la tinta
+## entra por `Tinta.recuperar`, sin pasar del máximo, y el HUD pinta el «+5» por la señal `reaccion_premiada` con los tipos de abajo).
+const TINTA_GOLPE: float = 5.0
+const TINTA_GOLPE_ESCUDO: float = 10.0
+const TIPO_TINTA_GOLPE: String = "golpe"
+const TIPO_TINTA_GOLPE_ESCUDO: String = "golpe_escudo"
+const TEMBLOR: float = 0.12             ## intensidad (0-1) del temblor de cámara (Vfx3D.temblor, el mismo mecanismo que los golpes de hechizo)
 
 
 ## ¿Cae `p` (posición de una pieza de radio `radio`) dentro del cono de quien está en `origen` mirando a `mirada`?
@@ -77,6 +84,22 @@ static func objetivos(arbol: SceneTree, origen: Vector3, mirada: Vector3) -> Dic
 	return r
 
 
+## C5: la tinta que devuelve el golpe `rc` (lo que contestó `recibir_golpe_cuerpo`) sobre `c`, ya sumada a `tinta`. 0 si no acertó (lo paró un escudo entero, ya estaba muerto, no hizo daño ni rompió
+## hielo), si es un muñeco/diana (`premia_tinta` false o grupo «muneco»: no se farmea) o si no hay barra. Devuelve lo que SUBIÓ de verdad (con la barra llena, 0).
+static func tinta_del_golpe(tinta: Tinta, c: Combate3D, rc: Dictionary) -> float:
+	if tinta == null or c == null or not is_instance_valid(c) or c.is_in_group("muneco") or c.premia_tinta == false:
+		return 0.0
+	if bool(rc.get("escudo", false)) or (float(rc.get("dano", 0.0)) <= 0.0 and not bool(rc.get("roto", false))):
+		return 0.0
+	var escudo_caido: bool = c.escudo != null and is_instance_valid(c.escudo) and (c.escudo.estado == "quemado" or c.escudo.estado == "roto")
+	var antes: float = tinta.actual
+	tinta.recuperar(TINTA_GOLPE_ESCUDO if escudo_caido else TINTA_GOLPE)
+	var ganada: float = tinta.actual - antes
+	if ganada > 0.0:
+		tinta.reaccion_premiada.emit(TIPO_TINTA_GOLPE_ESCUDO if escudo_caido else TIPO_TINTA_GOLPE, ganada)
+	return ganada
+
+
 ## Da el golpe: aplica a todo lo del cono lo que le toca y devuelve un resumen {enemigos, escudos, rompibles, bloques, hundira…} (lo que se apunta en el PlayLog).
 ## `jugador` pone el origen (sus pies) y el árbol; `mirada` la dirección del golpe.
 static func impactar(jugador: Node3D, mirada: Vector3) -> Dictionary:
@@ -90,6 +113,7 @@ static func impactar(jugador: Node3D, mirada: Vector3) -> Dictionary:
 		res["enemigos"] = int(res["enemigos"]) + 1
 		if bool(rc.get("escudo", false)):
 			res["escudos"] = int(res["escudos"]) + 1
+		res["tinta"] = float(res.get("tinta", 0.0)) + tinta_del_golpe(jugador.get("tinta") as Tinta, c as Combate3D, rc)
 	for o in ob["rompibles"]:
 		(o as Rompible3D).golpear(jugador.global_position)
 		res["rompibles"] = int(res["rompibles"]) + 1

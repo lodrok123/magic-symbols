@@ -395,7 +395,9 @@ func _escenario() -> void:
 		await avanzar_s(1.0)
 		_ok("10 el goblin se hunde en el agua honda (señal `hundido`)", bool(hundido[0]), "hundido %s" % str(hundido[0]))
 		await avanzar_s(0.5)
-		_ok("10 y la tinta sube +20 por «hundido» (C2)", _premios.size() == 1 and _premios[0][0] == "hundido" and is_equal_approx(float(_premios[0][1]), 20.0), str(_premios))
+		# 6/11 (C5): el golpe que acierta también devuelve su +5 (tipo «golpe»); se aparta para mirar solo el premio de la reacción.
+		var premios_reaccion: Array = _premios.filter(func(p: Array) -> bool: return p[0] != GolpeCuerpo.TIPO_TINTA_GOLPE)
+		_ok("10 y la tinta sube +20 por «hundido» (C2)", premios_reaccion.size() == 1 and premios_reaccion[0][0] == "hundido" and is_equal_approx(float(premios_reaccion[0][1]), 20.0), str(_premios))
 		_ok("10 sin gastar nada: la barra solo subió", _tinta() >= 20.0 - 0.001, "%.2f" % _tinta())
 		await avanzar_s(4.0)
 		_goblins.erase(g_ag)

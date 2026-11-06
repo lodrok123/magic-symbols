@@ -36,6 +36,22 @@ func temblar(indice: int, dur: float = 0.3) -> void:
 	_temblor_hasta = Time.get_ticks_msec() + int(_temblor_dur * 1000.0)
 
 
+## C1 (6/11/2026) · SOBRECARGA: mientras se mantiene 1/2/3 en el lanzamiento rápido, la página que se carga dibuja un arco que se llena (`fraccion` 0..1 de T_SOBRECARGA); cuando ya está lista
+## (`lista`) el círculo late en dorado hasta que se suelta. `indice` -1 lo apaga. Fallo que evita: el cambio a los 0,8 s no se veía en la barra de páginas, que es donde mira quien mantiene la tecla.
+const COLOR_SOBRECARGA: Color = Color(1.0, 0.82, 0.25)
+const LATIDO_SOBRECARGA_PX: float = 3.0            ## px que respira el aro dorado cuando está lista
+const VEL_LATIDO_SOBRECARGA: float = 0.018         ## rad por ms del latido (≈ 3 latidos por segundo)
+var _sobre_i: int = -1
+var _sobre_f: float = 0.0
+var _sobre_lista: bool = false
+
+
+func sobrecarga(indice: int, fraccion: float = 0.0, lista: bool = false) -> void:
+	_sobre_i = indice
+	_sobre_f = clampf(fraccion, 0.0, 1.0)
+	_sobre_lista = lista and indice >= 0
+
+
 func destello(indice: int, dur: float = 0.25) -> void:
 	_destello_i = indice
 	_destello_dur = maxf(dur, 0.05)
@@ -91,6 +107,9 @@ func _draw() -> void:
 			2.5 if activa else 1.5, true)
 		if k_no > 0.0:
 			draw_arc(centro, radio + 2.0, 0.0, TAU, 24, Color(ROJO_NO, k_no), 3.0, true)
+		if i == _sobre_i:
+			var latido: float = LATIDO_SOBRECARGA_PX * (0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * VEL_LATIDO_SOBRECARGA)) if _sobre_lista else 0.0
+			draw_arc(centro, radio + 5.0 + latido, -PI * 0.5, -PI * 0.5 + TAU * (1.0 if _sobre_lista else _sobre_f), 32, COLOR_SOBRECARGA if _sobre_lista else TINTA, 3.0, true)
 		if i == _destello_i:
 			var queda: float = float(_destello_hasta - Time.get_ticks_msec()) / 1000.0
 			if queda > 0.0:

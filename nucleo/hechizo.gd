@@ -19,6 +19,14 @@ extends RefCounted
 
 const EPS: float = 0.0001
 
+## C2 (6/11/2026): la UNA regla del orden. Un glifo de propiedad `antes` afecta a un glifo `despues` que viene DESPUÉS en el dibujo. Cada fila es un par con significado y el campo que enciende
+## cuando se cumple (el par al revés, o sin orden, deja el comportamiento de siempre). Añadir un par es una fila, no código.
+const INTERVALO_RAFAGA: float = 0.12      ## s entre copia y copia de una ráfaga (ᛇ antes de ᚠ)
+const ORDEN_PARES: Array = [
+	{"antes": "flecha", "despues": "repeticion", "campo": "rafaga"},
+	{"antes": "barrera", "despues": "pulso", "campo": "late"},
+]
+
 ## Los campos, por grupos, en el orden en que los enseñará el laboratorio (HC5). [nombre, grupo].
 ## Los campos nuevos de la ESPEC (19/10) se han metido en los grupos de siempre para no tocar el orden del lab: tiempo → movimiento, física → materia.
 const CAMPOS: Array = [
@@ -221,6 +229,13 @@ var calidad: float = 1.0
 var fuente: RuneData = null            ## el RuneData del elemento con que se construyó (HC2: aún lo piden Combate3D y los reactivos; HC3 lo sustituye por los campos)
 var glifos: Dictionary = {}            ## los contadores con que se construyó (nombre V2 -> n)
 var ignorados: PackedStringArray = PackedStringArray()   ## glifos que la tabla no conoce
+## 6/11/2026 · C2 (PROPUESTAS_COMBATE bloque C): el ORDEN de dibujo de los glifos (solo los conocidos, uno por glifo dibujado). `construir` sin orden lo deja vacío y la receta sigue siendo un
+## multiconjunto (el golden no cambia). Con orden, `ORDEN_PARES` decide qué pares con significado se cumplen: `rafaga` (ᛇ antes de ᚠ: las copias salen EN FILA una tras otra, cada `intervalo_copias` s,
+## en vez de en abanico) y `late` (ᛒ antes de ᚷ: la barrera nace entera y late en vez de crecer). Los lee `Lanzador3D.lanzar_hechizo` (ráfaga) y, para `late`, está pendiente de HechizoVivo.
+var orden_glifos: Array[String] = []
+var rafaga: bool = false
+var intervalo_copias: float = 0.0      ## s entre copia y copia de una ráfaga (0 = salen a la vez)
+var late: bool = false
 var profundidad: int = 0               ## 0 = el hechizo lanzado; un hijo creado por `crear_hijo` vale la del padre + 1 (tope MAX_PROFUNDIDAD)
 
 # --- Derivados (se calculan al final de `construir`) ---
@@ -337,7 +352,7 @@ static var construidos: int = 0
 ## Construye el hechizo de un elemento con unos glifos. `glifos` = nombre V2 -> cuántas veces (los nombres con alias, como «levitacion», se resuelven).
 ## `permitir_cinematico` (20/10): una runa cinemática (la del tiempo; `RuneData.cinematico`) solo se construye si quien llama lo pide con `true`, y solo lo hace una
 ## cinemática o un evento de guion; el libro y los laboratorios no lo pasan nunca. Sin él devuelve null (y avisa), no un hechizo «sin elemento» que pasaría por bueno.
-static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0, permitir_cinematico: bool = false) -> Hechizo:
+static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0, permitir_cinematico: bool = false, orden: Array = []) -> Hechizo:
 	construidos += 1
 	if elemento_rune != null and elemento_rune.cinematico and not permitir_cinematico:
 		push_warning("Hechizo.construir: «%s» es una runa cinemática (no la lanza el jugador); pide permitir_cinematico = true si es un evento de guion." % elemento_rune.display_name)
@@ -385,7 +400,42 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 		h.origen["permanencia"] = "calidad"
 	h._limitar()
 	h._derivar()
+	h._aplicar_orden(orden)          # C2: después de derivar (necesita saber si es un proyectil); sin orden no hace nada
 	return h
+
+
+## C2 (6/11/2026): aplica `ORDEN_PARES` al orden de dibujo. Guarda el orden (solo glifos conocidos, con alias resueltos) y enciende `rafaga` / `late` si el glifo `antes` aparece antes que el `despues`
+## (primera aparición de cada uno). Sin ese orden (o con el par al revés) no toca nada: lo de siempre.
+## Ráfaga: solo un PROYECTIL se pone en fila; el abanico (dispersion) y el reparto lateral (separacion) se anulan para que las copias salgan por la MISMA línea (la previsión del indicador, que lee
+## `copias` y `dispersion`, las dibuja ya en fila). Late: la barrera nace entera (`escala_nace` 1), no pequeña; el latido (crecer y encoger) lo hace HechizoVivo.
+func _aplicar_orden(orden: Array) -> void:
+	orden_glifos.clear()
+	rafaga = false
+	late = false
+	intervalo_copias = 0.0
+	for g in orden:
+		var v2: String = Sigils.glifo_v2(String(g))
+		if Sigils.GLIFOS.has(v2):
+			orden_glifos.append(v2)
+	for par in ORDEN_PARES:
+		var i_antes: int = orden_glifos.find(String(par["antes"]))
+		var i_despues: int = orden_glifos.find(String(par["despues"]))
+		if i_antes < 0 or i_despues < 0 or i_antes > i_despues:
+			continue
+		match String(par["campo"]):
+			"rafaga":
+				if proyectil and copias > 1:
+					rafaga = true
+					intervalo_copias = INTERVALO_RAFAGA
+					dispersion = 0.0
+					separacion = 0.0
+					origen["dispersion"] = "orden"
+					origen["separacion"] = "orden"
+			"late":
+				if solidez > 0.0 and crece > 0.0:
+					late = true
+					escala_nace = 1.0
+					origen["escala_nace"] = "orden"
 
 
 ## Límites globales de seguridad (ESPEC §1.9), al final de `construir()` y de `con()`. Un semieje tampoco baja de `grosor_min`.

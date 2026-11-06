@@ -43,6 +43,13 @@ const MAX_FANTASMAS: int = 8
 const TENUE_COPIAS: float = 0.42
 const ANGULO_REBOTE: float = 25.0
 const LADO_ROMBO_REBOTE: float = 0.32       ## u
+## C1 · anillo de carga de la sobrecarga: diámetro (u) alrededor de los pies, grosor y los dos colores (en curso / completo). Al completarse da un pulso que lo hincha y vuelve en `T_PULSO_CARGA` s.
+const DIAMETRO_CARGA: float = 1.7
+const ANCHO_CARGA_U: float = 0.12
+const COLOR_CARGA: Color = Color(0.85, 0.9, 1.0)
+const COLOR_CARGA_LISTA: Color = Color(1.0, 0.82, 0.25)
+const ESCALA_PULSO_CARGA: float = 1.35
+const T_PULSO_CARGA: float = 0.22
 
 const CODIGO_FANTASMA: String = """
 shader_type spatial;
@@ -144,6 +151,28 @@ void fragment() {
 }
 """
 
+## C1 (6/11/2026): el ANILLO DE CARGA de la sobrecarga. Un anillo que se llena en sentido horario desde arriba (`llenado` 0..1); lo no llenado queda tenue. Fallo que evita: mantener 1/2/3 no
+## decía NADA de que a los 0,8 s el hechizo cambiaba (más fuerte y el doble de tinta), y nadie lo descubriría.
+const CODIGO_CARGA: String = """
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
+uniform vec4 color : source_color = vec4(1.0);
+uniform float ancho = 0.14;
+uniform float llenado = 0.0;
+void fragment() {
+	vec2 p = (UV - 0.5) * 2.0;
+	float r = length(p);
+	float sd = abs(r - (1.0 - ancho * 0.5 - 0.03)) - ancho * 0.5;
+	float a = fract(atan(p.x, -p.y) / 6.28318);
+	float dentro = step(a, llenado);
+	float aa = fwidth(r) * 1.5;
+	float lleno = 1.0 - smoothstep(0.0, aa, sd);
+	float contorno = 1.0 - smoothstep(0.0, aa, sd - 0.03);
+	ALBEDO = mix(vec3(0.05), color.rgb, lleno);
+	ALPHA = max(lleno * mix(0.28, 0.98, dentro), contorno * 0.55) * color.a;
+}
+"""
+
 const CODIGO_CINTA: String = """
 shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled;
@@ -175,6 +204,7 @@ void fragment() {
 
 static var _sh_casilla: Shader = null
 static var _sh_disco: Shader = null
+static var _sh_carga: Shader = null
 static var _sh_cinta: Shader = null
 static var _sh_fantasma: Shader = null
 
@@ -197,6 +227,11 @@ var _rotulo: Label3D = null
 var _fantasmas: Array[MeshInstance3D] = []
 ## Para las pruebas: cada fantasma dibujado: {pie (en el suelo), radio, alto (u), elemento}.
 var fantasmas_dibujados: Array[Dictionary] = []
+## C1: el anillo de carga y lo que enseña (las pruebas lo leen). `carga_completa` pasa a true UNA vez, en el fotograma en que se llena (ahí da el pulso).
+var anillo_carga: MeshInstance3D = null
+var carga_dibujada: float = 0.0
+var carga_completa: bool = false
+var pulsos_carga: int = 0
 
 
 static func color_de(elemento: String, reserva: Color = Color.WHITE) -> Color:
@@ -205,6 +240,11 @@ static func color_de(elemento: String, reserva: Color = Color.WHITE) -> Color:
 
 static func _shader(cual: String) -> Shader:
 	match cual:
+		"carga":
+			if _sh_carga == null:
+				_sh_carga = Shader.new()
+				_sh_carga.code = CODIGO_CARGA
+			return _sh_carga
 		"casilla":
 			if _sh_casilla == null:
 				_sh_casilla = Shader.new()
@@ -286,6 +326,31 @@ static func pintar_disco(mi: MeshInstance3D, color: Color, cruz: bool = false) -
 	var m: ShaderMaterial = (mi.mesh as PlaneMesh).material as ShaderMaterial
 	m.set_shader_parameter("color", color)
 	m.set_shader_parameter("cruz", cruz)
+
+
+## C1: pinta el anillo de carga de la sobrecarga en `pos` (los pies de la jugadora). `fraccion` 0..1 = cuánto lleva de `T_SOBRECARGA`; `lista` = ya se puede soltar sobrecargado (cambia de color
+## y, la primera vez, da un pulso). Si la sobrecarga no se puede pagar el llamador pasa `posible` false: el anillo se llena igual pero en rojo y no se completa a dorado.
+func carga(fraccion: float, lista: bool, pos: Vector3, posible: bool = true) -> void:
+	if anillo_carga == null:
+		anillo_carga = Apuntado3D.disco(DIAMETRO_CARGA, COLOR_CARGA, ANCHO_CARGA_U)
+		var m := ShaderMaterial.new()
+		m.shader = _shader("carga")
+		m.set_shader_parameter("ancho", ANCHO_CARGA_U / (DIAMETRO_CARGA * 0.5))
+		(anillo_carga.mesh as PlaneMesh).material = m
+		add_child(anillo_carga)
+	anillo_carga.global_position = pos + Vector3(0.0, 0.04, 0.0)
+	carga_dibujada = clampf(fraccion, 0.0, 1.0)
+	var m2: ShaderMaterial = (anillo_carga.mesh as PlaneMesh).material as ShaderMaterial
+	m2.set_shader_parameter("llenado", carga_dibujada)
+	m2.set_shader_parameter("color", COLOR_NO if not posible else (COLOR_CARGA_LISTA if lista else COLOR_CARGA))
+	if lista and not carga_completa:
+		carga_completa = true
+		pulsos_carga += 1
+		var tw: Tween = anillo_carga.create_tween()
+		tw.tween_property(anillo_carga, "scale", Vector3.ONE * ESCALA_PULSO_CARGA, T_PULSO_CARGA * 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(anillo_carga, "scale", Vector3.ONE, T_PULSO_CARGA * 0.6)
+	elif not lista:
+		carga_completa = false
 
 
 func _ready() -> void:
