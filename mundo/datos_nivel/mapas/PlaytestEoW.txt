@@ -98,8 +98,10 @@
 ; --- SALA 7 FINAL INTEGRADO: sala cerrada con todo junto. Estanque honda NW (x 17-19, y 9-11) con un goblin guerrero W (18,12) al sur (viento = se hunde); goblin con ESCUDO W (20,13)
 ; ---   (el lab le cuelga el Escudo3D); brasero T (22,11) que el lab ENCIENDE con el ARQUERO justo debajo (22,12) (lo crea el lab: la flecha cruza la llama y llega ARDIENDO); tres
 ; ---   setos secos z (22,14), (23,14), (23,15); la HIERBA v (17,14) con un «COFRE DE PAJA» (un seto z en (17,15), rotulado por el lab) a su lado, y el cofre de verdad en (19,15).
-; ---   El cofre aparece si la sala esta limpia Y la hierba (17,14) NO esta quemada: quemarla (fuego a la hierba) castiga y el cofre ya no sale.
-; ---   Puertas con cerrojo: la del norte (20,8) y la del este (24,12); la del oeste (16,12) es muro (ver sala 6). Flags playtest.s7.limpia y playtest.s7.cofre.
+; ---   El cofre aparece si la sala esta limpia Y la hierba (17,14) NO se ha quemado: quemarla (fuego a la hierba) castiga y el cofre ya no sale.
+; ---   6/11: la casilla «quemada» caduca a los 8 s (bloque A5), asi que el castigo se guarda en la flag playtest.s7.hierba_quemada (la pone el lab
+; ---   al ver la casilla quemada) en vez de leer la casilla: antes el cofre aparecia solo al curarse la hierba.
+; ---   Puertas con cerrojo: la del norte (20,8) y la del este (24,12); la del oeste (16,12) es muro (ver sala 6). Flags playtest.s7.limpia, playtest.s7.cofre y playtest.s7.hierba_quemada.
 ; pieza s7_vigia vigia 23 9 de=17,9..23,15 flag=playtest.s7.limpia
 ; pieza s7_cerrojo cerrojo 20 8 celdas=20,8+24,12 sala=17,9..23,15 hasta=playtest.s7.limpia
 ; pieza s7_brasero brasero 22 11
@@ -107,7 +109,7 @@
 ; pieza s7_seto2 seto 23 14
 ; pieza s7_seto3 seto 23 15
 ; pieza s7_paja seto 17 15
-; pieza s7_cofre cofre 19 15 aparece_si=s7_vigia.todos+!casilla(17,14).quemada abierto=playtest.s7.cofre
+; pieza s7_cofre cofre 19 15 aparece_si=s7_vigia.todos+!flag.playtest.s7.hierba_quemada abierto=playtest.s7.cofre
 ; puzle s7_abre cuando=s7_vigia.todos_derrotados hace=s7_cerrojo.abrir
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################

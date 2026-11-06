@@ -134,6 +134,9 @@ const SALA7_HIERBA: Vector2i = Vector2i(17, 14)               ## la casilla que 
 const SALA7_PAJA: Vector2i = Vector2i(17, 15)                 ## ... y el «cofre de paja» (un seto) a su lado
 const SALA7_FLAG_LIMPIA: String = "playtest.s7.limpia"
 const SALA7_FLAG_COFRE: String = "playtest.s7.cofre"
+## 6/11: la casilla «quemada» caduca a los 8 s (bloque A5) y el cofre aparecía solo al curarse la hierba: el castigo se guarda en esta flag (la pone `_process`
+## la primera vez que ve la hierba quemada) y la condición del cofre del mapa la lee en vez de la casilla.
+const SALA7_FLAG_HIERBA: String = "playtest.s7.hierba_quemada"
 ## El goblin del escudo va con su IA de verdad (medido: ve al jugador, le planta cara y el escudo queda siempre de frente, ver SALA3_QUIETO) y AQUÍ NO HACE FALTA quitársela: en esta
 ## sala hay que derrotarlo, no rodearlo, y de frente se puede (la tierra rebota, el fuego prende el escudo, a los 3 s se consume y el siguiente disparo llega). Sin ajuste.
 
@@ -553,7 +556,7 @@ func _texto_sala_cerrada(n: int) -> String:
 	var t: String = "SALA %d · vigía: %s · cerrojo: %s · cofre: %s\n" % [n, "LIMPIA" if vigia.completo else ("quedan %d de %d" % [vigia.restantes(), vigia.vistos.size()] if not vigia.vistos.is_empty() else "sin ver enemigos"),
 		"CERRADO" if (c as Puzle3D.CerrojoPuzle).cerrado else "abierto", estado_cofre]
 	if n == 7:
-		var quemada: bool = Terreno3D.estados.tiene(SALA7_HIERBA, EstadosSuelo3D.QUEMADA)
+		var quemada: bool = Flags.i().tiene(SALA7_FLAG_HIERBA)
 		t += "  hierba %s: %s (el cofre pide sala limpia Y hierba SIN quemar)\n" % [str(SALA7_HIERBA), "QUEMADA: el cofre ya no aparecerá" if quemada else "intacta"]
 	return t
 
@@ -808,6 +811,9 @@ func _process(delta: float) -> void:
 	_reloj += delta
 	if _t_mensaje > 0.0:
 		_t_mensaje -= delta
+	# La hierba de la sala 7 se cura a los 8 s: el castigo queda en la flag para siempre (ver SALA7_FLAG_HIERBA).
+	if Terreno3D.estados != null and Terreno3D.estados.tiene(SALA7_HIERBA, EstadosSuelo3D.QUEMADA) and not Flags.i().tiene(SALA7_FLAG_HIERBA):
+		Flags.i().poner(SALA7_FLAG_HIERBA)
 	var n: int = sala_actual()
 	if n != _sala_anterior:
 		_sala_anterior = n

@@ -1046,10 +1046,12 @@ func _sala_7_quemando() -> void:
 	await avanzar_s(3.0)
 	_ok("7Q.10 sigue sin aparecer y el HUD avisa de que la hierba está quemada", cf.es_oculto and apariciones[0] == 0 and lab.texto_hud().contains("QUEMADA: el cofre ya no aparecerá") and not Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_COFRE), lab.texto_hud())
 	_ok("7Q.9b respuesta positiva de la vía quemando: «sala_limpia» y «puerta_abierta», y NINGÚN «cofre_aparece» (el cofre no existe)", _ln() == ["sala_limpia", "puerta_abierta"], str(_ln()))
-	# Control: la misma expresión SIN la hierba quemada sí se cumpliría (es la condición, no un fallo del vigía).
-	Terreno3D.estados.poner(h, "quemada", false)
-	_ok("7Q.11 (control) si la hierba no estuviera quemada la condición se cumpliría", z.cumple_expr(cf.expr))
-	Terreno3D.estados.poner(h, "quemada", true)
+	# Control: la misma expresión SIN la flag de hierba quemada sí se cumpliría (es la condición, no un fallo del vigía). 6/11: la condición lee la flag
+	# (SALA7_FLAG_HIERBA), no la casilla, porque la casilla «quemada» caduca a los 8 s y el cofre aparecía solo al curarse la hierba.
+	_ok("7Q.10b la flag %s está puesta (la casilla se cura a los 8 s; el castigo es la flag)" % LabPlaytestEoW3D.SALA7_FLAG_HIERBA, Flags.i().tiene(LabPlaytestEoW3D.SALA7_FLAG_HIERBA))
+	Flags.i().quitar(LabPlaytestEoW3D.SALA7_FLAG_HIERBA)
+	_ok("7Q.11 (control) sin la flag de hierba quemada la condición se cumpliría", z.cumple_expr(cf.expr))
+	Flags.i().poner(LabPlaytestEoW3D.SALA7_FLAG_HIERBA)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(LabPlaytestEoW3D.RUTA_GUARDADO))
 
 
