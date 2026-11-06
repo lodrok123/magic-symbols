@@ -245,4 +245,4 @@ func _diario() -> void:
 	var texto: String = FileAccess.get_file_as_string(ruta) if ruta != "" else ""
 	_ok("7.1 el PlayLog apunta «tinta_reaccion» con tipo y enemigo", texto.contains("\"evento\":\"tinta_reaccion\"") and texto.contains("\"tipo\":\"hundido\"") and texto.contains("\"enemigo\":"),
 		ruta)
-	_ok("7.2 la constante vale 20 y hay 7 tipos premiados (6/11: + roto y llamarada)", is_equal_approx(Tinta.TINTA_POR_REACCION, 20.0) and Tinta.REACCIONES_PREMIADAS.size() == 7)
+	_ok("7.2 la constante vale 20 y hay 8 tipos premiados (6/11: + roto y llamarada; R3: + enraizado)", is_equal_approx(Tinta.TINTA_POR_REACCION, 20.0) and Tinta.REACCIONES_PREMIADAS.size() == 8)

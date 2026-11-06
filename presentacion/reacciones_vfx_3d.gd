@@ -23,11 +23,11 @@ extends RefCounted
 
 ## El catálogo cerrado, en el orden de A4 (+ `bloqueado`, propuesto).
 const CATALOGO: Array = ["prendido", "apagado_agua", "apagado_viento", "consumido", "mojado", "secado", "congelado", "derretido",
-	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado", "roto", "llamarada", "cegado"]
+	"electrocutado", "hundido", "aturdido", "empujado", "bloqueado", "roto", "llamarada", "cegado", "enraizado"]
 
 ## Efectos que existen (clave → qué hace). Se usa para validar la tabla en la prueba: una fila no puede apuntar a un efecto que no esté aquí.
 const EFECTOS: Array = ["llamarada", "llamas_cuerpo", "llamas_flecha", "apagar_vapor", "apagar_soplo", "ceniza", "mojar", "secar", "escarcha", "derretir",
-	"descarga", "hundimiento", "estrellas", "empujon", "escudo_golpe", "escudo_roto", ""]
+	"descarga", "hundimiento", "estrellas", "empujon", "escudo_golpe", "escudo_roto", "raices", ""]
 
 ## PLANTILLA COMÚN (cualquier cosa).
 const TABLA: Dictionary = {
@@ -48,6 +48,8 @@ const TABLA: Dictionary = {
 	"roto":           {"vfx": "escarcha",     "sfx": "congelar",          "esc": 1.3},
 	"llamarada":      {"vfx": "llamarada",    "sfx": "prender",           "esc": 1.3},
 	"cegado":         {"vfx": "apagar_vapor", "sfx": "siseo_apagado",     "esc": 1.2},
+	# 6/11 (R3): las raíces del elemental (`RaicesElemental3D`, ya brotadas) alrededor del enemigo que la naturaleza sujeta.
+	"enraizado":      {"vfx": "raices",       "sfx": "empujado",          "esc": 1.0},
 }
 
 ## EXCEPCIONES por tipo de cosa: solo los campos que cambian.
@@ -159,6 +161,11 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		"empujon": VfxReaccion3D.empujon(padre, punto, Vector3.ZERO, esc)
 		"escudo_golpe": VfxReaccion3D.escudo_golpe(padre, punto, Vector3.UP, esc)
 		"escudo_roto": VfxReaccion3D.escudo_roto(padre, punto, false, esc)
+		"raices":
+			# R3: el corro de raíces del elemental, apretado a los pies del sujetado y dura lo que el enraizado (la mitad si estaba seco: ver `Combate3D.ENRAIZADO_S`).
+			var raices: RaicesElemental3D = RaicesElemental3D.avisar(padre, punto, 0.9 * esc, 0.05)
+			raices.brotar(Combate3D.ENRAIZADO_S)
+			raices.cerrar_sobre(punto)
 	var sfx: String = String(fila.get("sfx", ""))
 	if sfx != "":
 		var origen: Node = cuerpo if cuerpo != null and cuerpo.is_inside_tree() else padre

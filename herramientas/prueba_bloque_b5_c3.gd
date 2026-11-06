@@ -210,7 +210,7 @@ func _escenario() -> void:
 func _b5_tabla() -> void:
 	var c: Dictionary = HechizoVivo.CRUCES
 	_ok("B5 la tabla CRUCES: fuego×agua apaga · viento×fuego enciende · rayo×agua descarga (y nada más)",
-		c.size() == 3 and (c["fuego"] as Dictionary).keys() == ["agua"] and String(c["fuego"]["agua"]["accion"]) == "apagar"
+		c.size() == 4 and (c["magma"] as Dictionary).keys() == ["agua"] and String(c["magma"]["agua"]["accion"]) == "costra" and (c["fuego"] as Dictionary).keys() == ["agua"]   # 6/11 R3: + magma×agua and String(c["fuego"]["agua"]["accion"]) == "apagar"
 		and (c["viento"] as Dictionary).keys() == ["fuego"] and String(c["viento"]["fuego"]["accion"]) == "encender" and String(c["viento"]["fuego"]["a"]) == "fuego"
 		and (c["rayo"] as Dictionary).keys() == ["agua"] and String(c["rayo"]["agua"]["accion"]) == "descargar", str(c))
 	var previstas_ok: bool = true

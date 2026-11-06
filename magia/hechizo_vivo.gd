@@ -60,7 +60,12 @@ const CRUCES: Dictionary = {
 	"fuego": {"agua": {"accion": "apagar", "aviso": Mundo3D.R_APAGADO_AGUA, "previsto": "vapor"}},
 	"viento": {"fuego": {"accion": "encender", "a": "fuego", "runa": "res://nucleo/fire_rune.tres", "aviso": Mundo3D.R_LLAMARADA, "previsto": "llamarada"}},
 	"rayo": {"agua": {"accion": "descargar", "aviso": Mundo3D.R_ELECTROCUTADO, "previsto": "descarga"}},
+	# R3 (6/11): la lava en el agua hierve: vapor y, al enfriarse, costra (escombro 6 s). Se gasta el proyectil. «previsto» sigue siendo «vapor» (la costra no tiene rótulo propio).
+	"magma": {"agua": {"accion": "costra", "aviso": Mundo3D.R_APAGADO_AGUA, "previsto": "vapor"}},
 }
+## R3 (§10 de docs/REACCIONES_ENTORNO: presupuesto de 16 nodos conductores): lo máximo que SE SUMA a la zona del rayo por agua/conductor conectado (casillas fuera del volumen, por anillos desde la zona).
+## Fallo que evita: la búsqueda de `agua_conectada` llega a LIMITE_BUSQUEDA, así que un rayo en la orilla de un lago lo electrificaba entero (y golpeaba a todo lo que hubiera dentro).
+const MAX_NODOS_DESCARGA: int = 16
 const ZONA_AGUA_S: float = 6.0             ## B5: lo que dura el charco de un hechizo de agua como zona de cruce (el agua real sigue en AguaSim3D; esto es solo para que otro hechizo la reconozca)
 
 ## --- CICLO DE VIDA V2 (R3, 17/10; GLIFOS_RECETA §2.2 y §2.4; vida nueva: ESPEC_HECHIZO §0.3, 19/10) ---
@@ -1328,10 +1333,15 @@ func _descarga(ctx: Dictionary, area: Dictionary) -> int:
 	var vistas: Dictionary = {}
 	# C2 (3/11): la descarga de un rayo deja `electrificada` (2 s, `EstadosSuelo3D.DURA`) en el agua y los conductores que recorre. En seco solo se anota (no escribe estados). No cambia el daño ni la búsqueda.
 	var electrifica: bool = not seco and String(ctx["elemento"]) == "rayo"
+	var nodos: int = 0                                    # R3: casillas añadidas por conexión, fuera del volumen (ver MAX_NODOS_DESCARGA)
 	for c in ctx["celdas"]:
 		if vistas.has(c):
 			continue
 		for w in EmisorRayo3D.agua_conectada(c as Vector2i, conduce):
+			if not area.has(w):
+				if nodos >= MAX_NODOS_DESCARGA:
+					break
+				nodos += 1
 			area[w] = true
 			vistas[w] = true
 			if electrifica:
@@ -2062,9 +2072,11 @@ func _cruce(f: Dictionary, c: Vector2i, zonas: Array) -> void:
 	if seco:
 		(prevision["cruces"] as Array).append({"reaccion": String(f["previsto"]), "celda": c, "accion": String(f["accion"])})
 	match String(f["accion"]):
-		"apagar":
+		"apagar", "costra":
 			if not seco:
 				Terreno3D.estados.mantener(c, EstadosSuelo3D.VAPOR)
+				if String(f["accion"]) == "costra":
+					Terreno3D.estados.mantener(c, EstadosSuelo3D.ESCOMBRO)      # R3: la lava que se enfría deja costra (escombro 6 s: frena y para proyectiles)
 			_terminar("cruce")
 		"encender":
 			_transformar(f)

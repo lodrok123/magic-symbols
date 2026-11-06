@@ -244,6 +244,12 @@ const LLAMARADA_QUEMA_MIN: float = QUEMA_CONTACTO   ## s mínimos de quemadura q
 const CEGADO_S: float = 2.0
 const COLOR_ROTO: Color = Color(0.7, 0.92, 1.0)         ## rótulo «¡Roto!»: el hielo (celeste), como el de la previsión
 const COLOR_LLAMARADA: Color = Color(1.0, 0.45, 0.15)   ## rótulo «¡Llamarada!»: rojo-naranja, nunca amarillo
+## R3 (6/11, docs/REACCIONES_ENTORNO_2026-11-06.md): MAGMA = quema como el fuego + `lento` como la tierra (y sobre congelado lo derrite SIN romperlo: es calor, no golpe);
+## NATURALEZA = además del veneno de la runa, ENRAIZADO: no se mueve ni se deja empujar, pero sigue atacando a quien tenga al alcance (vel_mult 0 y no `congelado`, que le quita el ataque).
+## Fallo que evita: la naturaleza (humedad 0,5) pasaba por la rama del agua y a quien ardía lo APAGABA y a quien estaba mojado lo SECABA (`hechizo.moja` es 0); ahora no toca esos estados.
+const ENRAIZADO_S: float = 1.5                  ## s que lo sujetan las raíces; ×2 si estaba mojado (la tierra mojada agarra más)
+const MAGMA_LENTO_S: float = 2.0                ## s de `lento` que deja el magma (los mismos que la tierra)
+const COLOR_ENRAIZADO: Color = Color(0.45, 0.7, 0.25)   ## rótulo «¡Enraizado!»: el verde de la naturaleza
 ## Cae al agua: si tras un EMPUJE (o porque el suelo se le va: el hielo se derrite, el agua sube) su casilla es agua honda y no helada, se HUNDE: baja bajo la
 ## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
 ## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
@@ -318,6 +324,7 @@ var mojado: float = 0.0
 var congelado: float = 0.0
 var lento: float = 0.0
 var cegado: float = 0.0                 ## B2 (6/11): s que le quedan ciego (agua sobre quemado): `_ve` devuelve false
+var enraizado: float = 0.0              ## R3 (6/11): s que le quedan sujeto por raíces (naturaleza): `vel_mult` 0 y `push` no lo mueve; el ataque no se le quita
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
 
@@ -531,6 +538,8 @@ func _ready() -> void:
 	elemental = pj != null and pj.id == ID_ELEMENTAL
 	if elemental and not inmune_estados.has("veneno"):
 		inmune_estados.append("veneno")                 # no tiene carne que envenenar (ya lo ignoraba `golpe`)
+	if elemental and not inmune_estados.has("raices"):
+		inmune_estados.append("raices")                 # R3: es vegetal, las raíces de la naturaleza no lo sujetan
 	es_goblin = pj != null and pj.id.begins_with("goblin")
 	if es_goblin:
 		pj.ritmo = RITMO_GOBLIN
@@ -673,6 +682,8 @@ func push(direccion: Vector3, fuerza: float, suelo: bool = false, dano: float = 
 	var d := Vector3(direccion.x, 0.0, direccion.z)
 	if d.length() < 0.01 or muerto:
 		return
+	if enraizado > 0.0:
+		return                     # R3: las raíces lo agarran al suelo; ni se mueve ni cae (y no es un «empujado» que avisar)
 	var v0: float = v0_de_empuje(fuerza, suelo, dano, debil)
 	_k_golpe = clampf(v0 / Sensacion3D.V0_REF, 0.6, 1.6)
 	_empuje += d.normalized() * v0
@@ -879,7 +890,7 @@ func ritmo() -> float:
 
 
 func vel_mult() -> float:
-	if congelado > 0.0:
+	if congelado > 0.0 or enraizado > 0.0:
 		return 0.0
 	var m: float = 1.0
 	if mojado > 0.0:
@@ -902,6 +913,7 @@ func vel_mult() -> float:
 ##   aturde     true si el golpe lo aturde (no al elemental)        veneno  true si le deja veneno
 ##   ELEMENTAL V2: `defensa` es la efectiva de ESTE golpe (corteza delantera, `_dir_decision`; ᚦ perforar), `espalda` true = le da por detrás (DEF 0 y ×ELEM_ESPALDA_MULT sobre `dano`),
 ##   `regado` true = hielo sobre el elemental recién regado: lo congela ELEM_REGADO_CONGELA s (y `golpe` gasta la ventana)
+##   R3: `enraizado` s que quedan sujeto (naturaleza; el calor lo pone a 0 y `raices_quemadas` true); magma = quema + `lento` MAGMA_LENTO_S y, sobre congelado, `congelado` 0 con aviso «derretido» y sin «roto»
 func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	var el: String = hechizo.elemento
 	var x: float = 1.0               # X: la reacción (rayo sobre mojado)
@@ -911,7 +923,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		"mojado": mojado, "quemando": quemando, "congelado": congelado, "lento": -1.0, "interrumpe": -1.0,
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental,
 		"espalda": bool(corteza["espalda"]), "regado": false,
-		"roto": false, "llamarada": null, "cegado": 0.0, "alcance_arco": ARCO_ALCANCE}
+		"roto": false, "llamarada": null, "cegado": 0.0, "alcance_arco": ARCO_ALCANCE,
+		"enraizado": enraizado, "raices_quemadas": false}
 	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
 	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
 	var m: Dictionary = Materia.de(hechizo)
@@ -922,12 +935,26 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		return r
 	# B1 (6/11): congelado + tierra, viento o rayo = ROTO (daño ×X_ROTO, se acaba el hielo). Un congelado mojado también: el remate manda sobre el ×1,5 del mojado (no se apilan).
 	var roto: bool = congelado > 0.0 and (conduce or Materia.sopla(m) or Materia.golpea(m))
-	if Materia.calienta(m):
+	var naturaleza: bool = el == "naturaleza"
+	var derrite: bool = false          # R3: magma sobre congelado
+	if naturaleza:
+		# R3: ni moja ni apaga (ver ENRAIZADO_S). Las raíces no agarran a quien ARDE (se queman al nacer: nada) ni a quien es inmune (elemental: vegetal; gólem: piedra).
+		if quemando <= 0.0 and not inmune_a("raices"):
+			r["enraizado"] = maxf(enraizado, ENRAIZADO_S * (2.0 if mojado > 0.0 else 1.0))
+	elif Materia.calienta(m):
 		if mojado > 0.0:
 			r["mojado"] = 0.0
 			r["vapor"] = true
 		else:
 			r["quemando"] = maxf(hechizo.quema, ELEMENTAL_QUEMA) if elemental else hechizo.quema       # el elemental queda ardiendo un poco más: «ignite»
+		if enraizado > 0.0:
+			r["enraizado"] = 0.0                    # R3: el calor quema las raíces y lo libera
+			r["raices_quemadas"] = true
+		if el == "magma":
+			r["lento"] = MAGMA_LENTO_S              # R3: la lava pesa y pega: además de arder, lo frena como la tierra
+			if congelado > 0.0:
+				r["congelado"] = 0.0                # y derrite el hielo SIN romperlo (no hay golpe: `roto` es de tierra, viento y rayo)
+				derrite = true
 	elif riega:
 		r["mojado"] = hechizo.moja
 		r["quemando"] = 0.0
@@ -987,6 +1014,10 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		avisos.append(Mundo3D.R_MOJADO)
 	if float(r["congelado"]) > 0.0 and not (congelado > 0.0):
 		avisos.append(Mundo3D.R_CONGELADO)
+	if derrite:
+		avisos.append(Mundo3D.R_DERRETIDO)                    # R3: el magma lo derrite; `_efectos` ya no lo verá congelado, así que no lo avisa dos veces
+	if float(r["enraizado"]) > 0.0 and not (enraizado > 0.0):
+		avisos.append(Mundo3D.R_ENRAIZADO)
 	# 29/10 (DANO_Y_TINTA): D = (B·E · G · X + suma) × R y después la defensa: UN solo punto de cálculo (`Dano`). `hechizo.dano` ya es B·E (con el pigmento); G = `hechizo.potencia`.
 	r["base"] = hechizo.dano * hechizo.potencia * x + suma_x
 	r["bruto"] = Dano.bruto(hechizo.dano, hechizo.potencia, x, float(r["mult"]), suma_x)
@@ -1037,6 +1068,11 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	if float(dec["cegado"]) > 0.0:
 		cegado = maxf(cegado, float(dec["cegado"]))
 		texto("Ciego", Color(0.8, 0.85, 0.9), 0.55)
+	if float(dec["enraizado"]) > enraizado:
+		texto_grande("¡Enraizado!", COLOR_ENRAIZADO)
+	elif bool(dec["raices_quemadas"]):
+		texto("Raíces quemadas", COLOR_LLAMARADA, 0.55)
+	enraizado = float(dec["enraizado"])
 	if float(dec["lento"]) >= 0.0:
 		lento = float(dec["lento"])
 	if float(dec["interrumpe"]) >= 0.0:
@@ -1429,6 +1465,7 @@ func _efectos(delta: float) -> void:
 	_barra_t = maxf(0.0, _barra_t - delta)
 	_destello = maxf(0.0, _destello - delta)
 	cegado = maxf(0.0, cegado - delta)
+	enraizado = maxf(0.0, enraizado - delta)
 	if quemando > 0.0:
 		quemando -= delta
 		if quemando <= 0.0:

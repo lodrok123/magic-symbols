@@ -35,6 +35,7 @@ const FAMILIAS: Dictionary = {
 	"roto":          ["rompe_x2", 1.35, 1.7],      # 6/11 bloque B: el remate suena más agudo que el congelado (1,55)
 	"llamarada":     ["llamarada", 1.25, 0.9],
 	"cegado":        ["ciega", 0.9, 0.0],
+	"enraizado":     ["enraiza", 1.1, 0.8],        # 6/11 R3: tono grave, de raíz que agarra (la clave «enraiza» debe existir en PrevisionReaccion3D.ESTILO)
 }
 
 ## Lo último que se hizo, para las pruebas: {aviso, estilo, color, tono, anillo}.

@@ -58,7 +58,9 @@ const ESTILO: Dictionary = {
 	"germina": ["Germina", Color(0.45, 0.78, 0.35)],           # R1: la naturaleza sobre tierra o arena mojada la convierte en hierba
 	"costra": ["Costra", Color(0.55, 0.38, 0.30)],             # R1: la magma sobre agua o casilla mojada deja una costra (escombro) y vapor
 	# R2 (6/11): lo que devuelve `Reactivo3D.reaccion_a` con los papeles nuevos (congelable, conduce, naturaleza, magma, escarcha).
+	"derrite": ["Derrite", Color(0.6, 0.85, 1.0)],
 	"enreda": ["Enreda", Color(0.45, 0.78, 0.35)],
+	"enraiza": ["¡Enraizado!", Color(0.45, 0.7, 0.25)],      # R3: la naturaleza sujeta al enemigo con raíces
 	"libera": ["Libera", Color(1.0, 0.6, 0.3)],
 	"escarcha": ["Escarcha", Color(0.8, 0.95, 1.0)],
 	"calienta": ["Al rojo", Color(1.0, 0.45, 0.2)],

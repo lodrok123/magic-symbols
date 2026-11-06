@@ -55,3 +55,5 @@ func _al_reaccionar(nombre: String, _punto: Vector3, nodo: Node) -> void:
 			tinta.premiar_reaccion(c, "roto")
 		"llamarada":
 			tinta.premiar_reaccion(c, "llamarada")
+		"enraizado":
+			tinta.premiar_reaccion(c, "enraizado")

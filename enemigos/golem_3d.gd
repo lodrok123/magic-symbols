@@ -100,7 +100,7 @@ static func invocar_golem(p_mundo: Node3D, pos: Vector3, p_jugador: Jugador3D = 
 
 
 func _init() -> void:
-	inmune_estados = ["calor", "veneno"]      # F4: es piedra
+	inmune_estados = ["calor", "veneno", "raices"]      # F4: es piedra (R3: las raíces de la naturaleza tampoco lo sujetan)
 
 
 func _ready() -> void:

@@ -54,8 +54,11 @@ const R_BLOQUEADO: String = "bloqueado"
 const R_ROTO: String = "roto"
 const R_LLAMARADA: String = "llamarada"
 const R_CEGADO: String = "cegado"
+## 6/11 (R3): enraizado = la naturaleza sujeta al enemigo con raíces. NO entra en `AVISO_DE_CONTRATO`: el contrato son las siete capacidades de `Combate3D.REACCIONES` (prueba_catalogo_reacciones exige
+## que ambas listas midan lo mismo) y, como roto, llamarada y cegado, es un SUCESO nuevo, no una capacidad que cada tipo declare.
+const R_ENRAIZADO: String = "enraizado"
 const REACCIONES: PackedStringArray = [R_PRENDIDO, R_APAGADO_AGUA, R_APAGADO_VIENTO, R_CONSUMIDO, R_MOJADO, R_SECADO, R_CONGELADO, R_DERRETIDO,
-	R_ELECTROCUTADO, R_HUNDIDO, R_ATURDIDO, R_EMPUJADO, R_BLOQUEADO, R_ROTO, R_LLAMARADA, R_CEGADO]
+	R_ELECTROCUTADO, R_HUNDIDO, R_ATURDIDO, R_EMPUJADO, R_BLOQUEADO, R_ROTO, R_LLAMARADA, R_CEGADO, R_ENRAIZADO]
 ## El CONTRATO del enemigo (`Combate3D.REACCIONES`: lo que un enemigo SABE hacer, en infinitivo de estado: quemado, cae_al_agua…) y el AVISO que emite cuando le pasa (este catálogo). Son dos
 ## listas con un fin distinto (capacidades / sucesos), pero cada capacidad apunta a UN aviso: aquí está la traducción, en un solo sitio.
 const AVISO_DE_CONTRATO: Dictionary = {"quemado": R_PRENDIDO, "mojado": R_MOJADO, "congelado": R_CONGELADO, "electrocutado": R_ELECTROCUTADO,

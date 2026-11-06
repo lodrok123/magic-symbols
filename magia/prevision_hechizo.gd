@@ -29,10 +29,11 @@ extends RefCounted
 ## Un proyectil con `retorna` se prevé solo en la ida.
 
 ## Prioridad de las reacciones de un enemigo para elegir la principal (la primera que aparece).
-const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "muere", "divide", "bloque", "crece", "cura", "tine", "hunde", "lava", "resbala", "nucleo", "electrocuta", "rompe_x2", "llamarada", "congela", "prende", "moja", "seca", "apaga", "ciega", "aturde", "empuja", "ralentiza", "golpe", "piedra", "inmune"]
+const PRIORIDAD_ENEMIGO: PackedStringArray = ["bloquea", "muere", "divide", "bloque", "crece", "cura", "tine", "hunde", "lava", "resbala", "nucleo", "electrocuta", "rompe_x2", "llamarada", "congela", "derrite", "enraiza", "prende", "moja", "seca", "apaga", "ciega", "aturde", "empuja", "ralentiza", "golpe", "piedra", "inmune"]
 ## Qué aviso de `Combate3D.decidir_golpe` (catálogo de Mundo3D.REACCIONES) es qué reacción del indicador.
 const DE_AVISO: Dictionary = {Mundo3D.R_ELECTROCUTADO: "electrocuta", Mundo3D.R_PRENDIDO: "prende", Mundo3D.R_APAGADO_AGUA: "apaga", Mundo3D.R_SECADO: "seca", Mundo3D.R_MOJADO: "moja", Mundo3D.R_CONGELADO: "congela",
-	Mundo3D.R_ROTO: "rompe_x2", Mundo3D.R_LLAMARADA: "llamarada", Mundo3D.R_CEGADO: "ciega"}   # 6/11 bloque B: «rompe_x2» y no «rompe», que ya es la reacción de las piezas (Rompible, muro) y rotularía «Rompe ×2» en un muro
+	Mundo3D.R_ROTO: "rompe_x2", Mundo3D.R_LLAMARADA: "llamarada", Mundo3D.R_CEGADO: "ciega",
+	Mundo3D.R_ENRAIZADO: "enraiza", Mundo3D.R_DERRETIDO: "derrite"}   # 6/11 R3: naturaleza sujeta con raíces; el magma derrite al congelado (el «derrite» del suelo ya existe en ESTILO). Bloque B: «rompe_x2» y no «rompe», que ya es la reacción de las piezas (Rompible, muro) y rotularía «Rompe ×2» en un muro
 ## Un empujón menor que esto (casillas) no cuenta como «empuja» para el indicador (todo golpe con daño empuja un poco: EMPUJE_MIN_CASILLAS).
 const EMPUJE_VISIBLE_CASILLAS: float = 0.5
 
