@@ -1,15 +1,52 @@
 class_name NieblaCanouro3D
 extends Node3D
-## NIEBLA NEGRA A RAS DE LAS PATAS DEL CANOURO (5/11, encargo de Pablo: «niebla de color negro muy densa a ras de las patas del canouro»).
+## EL CANOURO COMO SOMBRA DE HUMO NEGRO (5/11, encargo de Pablo; 2.ª versión tras ver la primera: «debería oscurecerse todo y no poderse distinguir
+## la forma», con referencias de un perro-sombra negro de ojos blancos y de un espectro de humo). Tres piezas, todas afinables en `static var`:
+##  1. CUERPO NEGRO: la malla del animal se pinta sin luz y de negro casi puro (`material_override`): no se le ve ni el pelaje ni el volumen.
+##  2. HUMO DEL CUERPO: emisores de bocanadas negras colgados de los huesos (lomo, cuello, cabeza, cola, muslos y pies), en coordenadas del
+##     MUNDO: el humo se queda atrás y se deshace cuando el animal se mueve, y envolviéndolo borra su silueta.
+##  3. OJOS: dos puntos blancos que brillan, atados al hueso de la cabeza (lo único que se distingue de la masa negra).
+##  Y debajo sigue la NIEBLA A RAS DE SUELO de la 1.ª versión: láminas horizontales muy bajas con ruido que deriva en el mundo y se funde
+##  contra suelo y patas (técnica de `presentacion/niebla_foso_3d.gd`). El nodo sigue al animal con un pequeño retraso (SUAVIZADO).
 ##
-## Unas pocas láminas horizontales superpuestas, muy bajas (la más alta queda por debajo de la rodilla), con un shader de ruido que deriva
-## en coordenadas del MUNDO: cuando el animal se mueve arrastra la niebla en vez de llevarla pegada como una pegatina. El nodo la sigue con
-## un pequeño retraso (SUAVIZADO) para que se vea pesada.
-##
-## Referencias: `presentacion/niebla_foso_3d.gd` (lámina horizontal con ruido que deriva y fundido por profundidad, de donde sale la técnica)
-## y `presentacion/vfx_canouro_3d.gd` (humo de pies existente, `HUMO_COLORES`, de donde sale el negro).
+## Referencias: `presentacion/vfx_canouro_3d.gd` (humo de pies del laboratorio, de donde salen el negro y el emisor) y `niebla_foso_3d.gd`.
+## Ojo: con el cuerpo negro el destello de color de Combate3D al recibir un golpe (tiñe `_materiales`) no se ve: lo tapa el override.
 ##
 ## Uso: `NieblaCanouro3D.poner(pj, alto)` (lo hace Combate3D para el id "canouro"); se cuelga del Pj3D y se libera con él.
+
+## --- cuerpo ---
+## Pintar la malla de negro sin luz. false = el modelo se ve como siempre, solo con el humo encima.
+static var CUERPO_NEGRO: bool = true
+## Color del cuerpo (un poco por encima del humo para que la masa no sea plana del todo).
+static var CUERPO_COLOR: Color = Color(0.035, 0.035, 0.045)
+
+## --- humo del cuerpo ---
+## Huesos del rig «Wolf» de los que sale humo, con el tamaño de la bocanada (en alturas del modelo) y las bocanadas vivas de cada uno.
+static var HUMO_HUESOS: Array = [["Torso", 0.7, 40], ["Torso3", 0.65, 36], ["Neck2", 0.55, 28], ["Head", 0.55, 30], ["Tail1", 0.5, 24], ["Tail4", 0.42, 22], ["Tail7", 0.34, 18],
+	["FrontUpperLeg.L", 0.38, 18], ["FrontUpperLeg.R", 0.38, 18], ["BackUpperLeg.L", 0.42, 18], ["BackUpperLeg.R", 0.42, 18],
+	["FF.L", 0.3, 14], ["FF.R", 0.3, 14], ["FFB.L", 0.3, 14], ["FFB.R", 0.3, 14]]
+## Vida de cada bocanada (s): cuanto más larga, más humo queda atrás.
+static var HUMO_VIDA: float = 1.3
+## Velocidad de salida de la bocanada (u/s, hacia arriba con dispersión) y empuje hacia arriba.
+static var HUMO_VELOCIDAD: float = 0.12
+static var HUMO_SUBIDA: float = 0.08
+## Opacidad máxima de la bocanada (negro casi puro, mezcla normal: oscurece lo que hay detrás).
+static var HUMO_OPACIDAD: float = 0.85
+## Colores de la bocanada (nace, plena, sigue plena, se deshace) y en qué punto de su vida está cada uno (0..1).
+static var HUMO_COLORES: Array = [Color(0.02, 0.02, 0.03, 0.0), Color(0.02, 0.02, 0.03, 1.0), Color(0.03, 0.03, 0.04, 1.0), Color(0.05, 0.05, 0.07, 0.0)]
+static var HUMO_TIEMPOS: Array = [0.0, 0.1, 0.55, 1.0]
+
+## --- ojos ---
+static var OJOS: bool = true
+## Posición de cada ojo en el marco del hueso «Head» del rig (medida en los vértices blancos de la textura: X = su derecha, Y = hacia delante, Z = arriba).
+static var OJO_IZQ: Vector3 = Vector3(-0.04, 0.097, -0.003)
+static var OJO_DER: Vector3 = Vector3(0.04, 0.097, -0.003)
+## Radio del ojo (u del modelo a escala 1), color y tamaño del halo (× radio).
+static var OJO_RADIO: float = 0.011
+static var OJO_COLOR: Color = Color(0.85, 0.95, 1.0)
+static var OJO_HALO: float = 4.0
+
+## --- niebla a ras de suelo ---
 
 ## Radio de la niebla en ALTURAS del modelo (×0,55 en el juego ≈ 0,72 u).
 static var RADIO_ALTURAS: float = 1.3
@@ -85,6 +122,13 @@ void fragment() {
 var pj: Node3D = null
 var alto: float = 0.55
 var capas: Array[MeshInstance3D] = []
+var emisores: Array[GPUParticles3D] = []     ## humo del cuerpo (top_level, uno por hueso de HUMO_HUESOS que exista)
+var ojos: Array[MeshInstance3D] = []         ## los dos ojos (hijos de un BoneAttachment3D del esqueleto)
+var cuerpo: Array[MeshInstance3D] = []       ## mallas del animal pintadas de negro
+var _sk: Skeleton3D = null
+var _huesos: Array[int] = []
+var _atadura: BoneAttachment3D = null        ## la de los ojos
+var _ataduras: Array[BoneAttachment3D] = []  ## una por emisor de humo
 
 
 ## Crea la niebla y la cuelga del Pj3D seguido. Devuelve null si ACTIVA es false.
@@ -133,15 +177,212 @@ func montar() -> void:
 		mi.position = Vector3(0.0, float(ALTURAS_CAPAS[k]) * alto, 0.0)
 		add_child(mi)
 		capas.append(mi)
+	_montar_cuerpo()
+	_montar_humo()
+	_montar_ojos()
+
+
+## Esqueleto del animal (el Pj3D lo da con `_esqueleto`; si no, se busca).
+func _esqueleto() -> Skeleton3D:
+	if _sk != null:
+		return _sk
+	if pj != null and pj.has_method("_esqueleto"):
+		_sk = pj.call("_esqueleto") as Skeleton3D
+	if _sk == null and pj != null:
+		var l: Array[Node] = pj.find_children("*", "Skeleton3D", true, false)
+		if not l.is_empty():
+			_sk = l[0] as Skeleton3D
+	return _sk
+
+
+## 1. Cuerpo negro sin luz: override en cada malla del animal (no en la sombra de contacto ni en lo nuestro).
+func _montar_cuerpo() -> void:
+	if not CUERPO_NEGRO or pj == null:
+		return
+	var modelo: Node = pj.get("_modelo") if "_modelo" in pj else pj
+	if modelo == null:
+		modelo = pj
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = CUERPO_COLOR
+	for n in modelo.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.name == "sombra_contacto" or mi.get_parent() is BoneAttachment3D:
+			continue
+		mi.material_override = mat
+		cuerpo.append(mi)
+
+
+## 2. Humo del cuerpo: un emisor por hueso, colgado de un BoneAttachment3D (va con el hueso ya modificado por la marcha).
+func _montar_humo() -> void:
+	var sk: Skeleton3D = _esqueleto()
+	if sk == null:
+		push_warning("NieblaCanouro3D: el modelo no tiene esqueleto; sin humo del cuerpo ni ojos")
+		return
+	# Cada emisor cuelga de un BoneAttachment3D del esqueleto: va con el hueso sin ningún retraso (colocarlos a mano desde `_process` o desde
+	# `skeleton_updated` los dejaba un fotograma por detrás del animal, 2-8 cm según corriera). Las bocanadas son del MUNDO (`local_coords`
+	# false), así que se quedan atrás igual. El tamaño se divide por la escala heredada (Pj3D × esqueleto) para que `tam` sea en u del mundo.
+	for h in HUMO_HUESOS:
+		var i: int = sk.find_bone(String(h[0]))
+		if i < 0:
+			continue
+		var at := BoneAttachment3D.new()
+		at.name = "humo_" + String(h[0]).replace(".", "_")
+		sk.add_child(at)
+		at.bone_name = String(h[0])          # después de colgarla: antes de estar en el árbol no encuentra el hueso
+		var esc: float = maxf(at.global_transform.basis.get_scale().x, 0.0001)
+		var e: GPUParticles3D = crear_emisor(float(h[1]) * alto / esc, int(h[2]))
+		e.name = "emisor"
+		at.add_child(e)
+		_huesos.append(i)
+		emisores.append(e)
+		_ataduras.append(at)
+
+
+## Un emisor de bocanadas negras de tamaño `tam` (u del mundo) con `n` bocanadas vivas. Mezcla normal: el negro OSCURECE lo que hay detrás.
+static func crear_emisor(tam: float, n: int) -> GPUParticles3D:
+	var gp := GPUParticles3D.new()
+	gp.amount = n
+	gp.lifetime = HUMO_VIDA
+	gp.preprocess = HUMO_VIDA            # nace ya lleno de bocanadas: el canouro no aparece «limpio» el primer segundo
+	gp.local_coords = false
+	gp.emitting = true
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gp.visibility_aabb = AABB(Vector3(-4, -1, -4), Vector3(8, 5, 8))
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = Vector3.UP
+	pm.spread = 80.0
+	pm.initial_velocity_min = HUMO_VELOCIDAD * 0.4
+	pm.initial_velocity_max = HUMO_VELOCIDAD
+	pm.gravity = Vector3(0.0, HUMO_SUBIDA, 0.0)
+	pm.damping_min = 0.3
+	pm.damping_max = 0.7
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = tam * 0.25
+	pm.scale_min = tam * 0.7
+	pm.scale_max = tam * 1.1
+	# Crece mientras se deshace.
+	var curva := Curve.new()
+	curva.add_point(Vector2(0.0, 0.55))
+	curva.add_point(Vector2(0.4, 1.0))
+	curva.add_point(Vector2(1.0, 1.5))
+	var ct := CurveTexture.new()
+	ct.curve = curva
+	pm.scale_curve = ct
+	var g := Gradient.new()
+	g.offsets = PackedFloat32Array(HUMO_TIEMPOS)
+	var cols: PackedColorArray = PackedColorArray()
+	for c in HUMO_COLORES:
+		var cc: Color = c
+		cc.a *= HUMO_OPACIDAD
+		cols.append(cc)
+	g.colors = cols
+	var gt := GradientTexture1D.new()
+	gt.gradient = g
+	pm.color_ramp = gt
+	pm.angle_min = -180.0
+	pm.angle_max = 180.0
+	pm.angular_velocity_min = -25.0
+	pm.angular_velocity_max = 25.0
+	gp.process_material = pm
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	sm.billboard_keep_scale = true
+	sm.vertex_color_use_as_albedo = true
+	sm.albedo_texture = _mancha_densa()
+	var q := QuadMesh.new()
+	q.size = Vector2.ONE
+	q.orientation = PlaneMesh.FACE_Z
+	q.material = sm
+	gp.draw_pass_1 = q
+	return gp
+
+
+static var _t_densa: Texture2D = null
+
+## Mancha radial más cerrada que `VfxKit3D.mancha()` (alfa 0,45 a mitad de radio: las bocanadas salían GRISES, más claras que el cuerpo):
+## con HUMO_MANCHA el alfa se mantiene casi pleno hasta el 55 % del radio y cae en el borde.
+static var HUMO_MANCHA: Array = [[0.0, 0.55, 1.0], [1.0, 0.8, 0.0]]
+
+static func _mancha_densa() -> Texture2D:
+	if _t_densa == null:
+		_t_densa = VfxKit3D._radial(HUMO_MANCHA[0], HUMO_MANCHA[1])
+	return _t_densa
+
+
+## 3. Ojos: dos esferas sin luz con un halo (quad billboard aditivo), colgadas del hueso «Head» con un BoneAttachment3D (siguen a la animación y a la escala).
+func _montar_ojos() -> void:
+	var sk: Skeleton3D = _esqueleto()
+	if not OJOS or sk == null or sk.find_bone("Head") < 0:
+		return
+	_atadura = BoneAttachment3D.new()
+	_atadura.name = "OjosCanouro"
+	sk.add_child(_atadura)
+	_atadura.bone_name = "Head"
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = OJO_COLOR
+	mat.render_priority = 10
+	var halo := StandardMaterial3D.new()
+	halo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	halo.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	halo.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	halo.albedo_color = Color(OJO_COLOR.r, OJO_COLOR.g, OJO_COLOR.b, 0.6)
+	halo.albedo_texture = VfxKit3D.mancha()
+	halo.render_priority = 9
+	# OJO_IZQ/OJO_DER y OJO_RADIO están medidos en u del MODELO (Pj3D a escala 1), pero el esqueleto del GLB lleva su propia escala y lo que
+	# cuelga de un hueso la hereda: se divide por ella para que el ojo caiga en la cuenca y no por delante del morro.
+	var esc_sk: float = sk.global_transform.basis.get_scale().x / maxf(pj.global_transform.basis.get_scale().x, 0.0001)
+	if esc_sk < 0.0001:
+		esc_sk = 1.0
+	for p in [OJO_IZQ, OJO_DER]:
+		var mi := MeshInstance3D.new()
+		var s := SphereMesh.new()
+		s.radius = OJO_RADIO / esc_sk
+		s.height = OJO_RADIO * 2.0 / esc_sk
+		s.radial_segments = 12
+		s.rings = 6
+		mi.mesh = s
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = (p as Vector3) / esc_sk
+		_atadura.add_child(mi)
+		ojos.append(mi)
+		var h := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2.ONE * OJO_RADIO * OJO_HALO / esc_sk
+		h.mesh = q
+		h.material_override = halo
+		h.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.add_child(h)
 
 
 func radio() -> float:
 	return RADIO_ALTURAS * alto
 
 
+## Apaga todo (el canouro muere): niebla, humo (las bocanadas vivas terminan), ojos. El cuerpo negro se queda: un cadáver negro.
 func apagar() -> void:
 	visible = false
+	for e in emisores:
+		e.emitting = false
+	if _atadura != null and is_instance_valid(_atadura):
+		_atadura.visible = false
 	set_process(false)
+
+
+## Lo que cuelga del esqueleto no se libera con este nodo sino con el Pj3D; si alguien quita la niebla sola, que se lo lleve todo.
+func _exit_tree() -> void:
+	for a in _ataduras:
+		if is_instance_valid(a) and a.get_parent() != null and not a.is_queued_for_deletion():
+			a.queue_free()
+	if _atadura != null and is_instance_valid(_atadura) and not _atadura.is_queued_for_deletion():
+		_atadura.queue_free()
 
 
 func _process(delta: float) -> void:

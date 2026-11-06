@@ -95,10 +95,47 @@ func _escenario() -> void:
 	d.y = 0.0
 	# El canouro patrulla (~0,6 u/s): el retraso estacionario es v / SUAVIZADO ≈ 0,05 u, de ahí el margen.
 	_ok("C 30 fotogramas después la niebla sigue al animal (distancia horizontal %.3f < 0,1)" % d.length(), d.length() < 0.1)
+	# G · 2.ª versión: cuerpo negro, humo del cuerpo en los huesos, ojos en la cabeza
+	var negro: bool = not n.cuerpo.is_empty()
+	for mi in n.cuerpo:
+		var m: StandardMaterial3D = mi.material_override as StandardMaterial3D
+		negro = negro and m != null and m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED and m.albedo_color.r < 0.1 and m.albedo_color.g < 0.1 and m.albedo_color.b < 0.1
+	_ok("G el cuerpo del canouro va pintado de negro sin luz (%d mallas)" % n.cuerpo.size(), negro)
+	var sk: Skeleton3D = g.pj._esqueleto()
+	var ok_h: bool = n.emisores.size() == NieblaCanouro3D.HUMO_HUESOS.size() and n.emisores.size() >= 10
+	for e in n.emisores:
+		# Cuelgan de un BoneAttachment3D (no top_level); las bocanadas quedan en el mundo con local_coords false.
+		ok_h = ok_h and e.emitting and not e.local_coords and e.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF and not e.process_material.get("particle_flag_disable_z")
+	var ok_o: bool = n.ojos.size() == 2
+	for o in n.ojos:
+		ok_o = ok_o and o.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Se mide dentro de `skeleton_updated`: ahí la pose ya lleva los SkeletonModifier3D (MarchaCuadrupedo, ProporcionChibi), que es la que
+	# se pinta y la que siguen los BoneAttachment3D; fuera de la señal `get_bone_global_pose` da la pose sin modificar (lomo, cuello, cabeza
+	# y patas delanteras salían a 4-7 cm del humo).
+	var med: Array = [0.0, 0.0, 0]   # desvío máximo del humo, distancia máxima ojo-cabeza, poses medidas (la lambda no puede reasignar locales)
+	var medir := func() -> void:
+		med[2] += 1
+		for k in n.emisores.size():
+			var hueso: Vector3 = (sk.global_transform * sk.get_bone_global_pose(sk.find_bone(String(NieblaCanouro3D.HUMO_HUESOS[k][0])))).origin
+			med[0] = maxf(med[0], n.emisores[k].global_position.distance_to(hueso))
+		var cab: Vector3 = (sk.global_transform * sk.get_bone_global_pose(sk.find_bone("Head"))).origin
+		for o in n.ojos:
+			med[1] = maxf(med[1], o.global_position.distance_to(cab))
+	sk.skeleton_updated.connect(medir)
+	await avanzar(3)
+	sk.skeleton_updated.disconnect(medir)
+	var lejos: float = med[0]
+	var d_ojo: float = med[1]
+	ok_h = ok_h and int(med[2]) > 0
+	_ok("G %d emisores de humo encendidos, sin sombra y pegados a su hueso (desvío máximo %.3f u < 0,02 en %d poses)" % [n.emisores.size(), lejos, int(med[2])], ok_h and lejos < 0.02)
+	_ok("G dos ojos atados a la cabeza (a %.3f u del hueso Head < 0,25 × altura)" % d_ojo, ok_o and d_ojo < 0.25 * g.altura)
 	# D
 	g._morir()
 	await avanzar(2)
-	_ok("D al morir la niebla queda invisible", not n.visible)
+	var humo_parado: bool = true
+	for e in n.emisores:
+		humo_parado = humo_parado and not e.emitting
+	_ok("D al morir la niebla queda invisible, el humo deja de salir y los ojos se apagan", not n.visible and humo_parado and n.ojos.size() == 2 and not n.ojos[0].is_visible_in_tree())
 	_limpiar()
 	await avanzar(3)
 	# E
