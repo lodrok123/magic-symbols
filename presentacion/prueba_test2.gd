@@ -2456,6 +2456,8 @@ func _sembrar_hierba() -> void:
 	_hierba.name = "Hierba"
 	_hierba.brillo = OSCURECER_SUELO
 	_hierba.albedos_eow = albedos_eow       # albedos
+	_hierba.procedural = detalle_en_bloques  # 6/11: matojos distintos entre sí y siembra agrupada (calvas y densidad por ruido)
+	_hierba.casilla = S
 	add_child(_hierba)
 	var matas: Callable = _mata_hierba if (hierba_en_matas and _solo_zona_v()) else Callable()     # 5/11: macizos con claros (ver _mata_hierba)
 	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba, matas)
@@ -2529,7 +2531,10 @@ func _peso_hierba(x: float, z: float) -> float:
 	var e: float = 0.16
 	if _img_zona_v != null:
 		# Solo ZONA_V: el mismo borde ondulado de siempre, pero el mapa solo tiene esas casillas.
-		return smoothstep(0.5 - e, 0.5 + e, _bilineal(_img_zona_v, uvm, false).r)
+		var wz: float = smoothstep(0.5 - e, 0.5 + e, _bilineal(_img_zona_v, uvm, false).r)
+		if wz < 0.02 and detalle_en_bloques and l == "." and _mata_hierba(x, z) >= float(HIERBA_RALA["mata_min"]):
+			return float(HIERBA_RALA["peso"])      # 6/11: el suelo llano lleva matojos ralos y bajos en el corazón de los corros (solo aspecto: `_es_hierba` no los cuenta)
+		return wz
 	var w0: Color = _bilineal(_img_mapa, uvm, false)
 	var wr: float = smoothstep(0.5 - e, 0.5 + e, w0.r)
 	var tot: float = wr + smoothstep(0.5 - e, 0.5 + e, w0.g) + smoothstep(0.5 - e, 0.5 + e, w0.b) \
@@ -4723,7 +4728,15 @@ const ALTO_HIERBA_CORTA: float = 0.55
 
 
 func _alto_hierba(x: float, z: float) -> float:
-	return ALTO_HIERBA_CORTA if _letra(Vector2i(floori(x / S), floori(z / S))) == "," else 1.0
+	var l: String = _letra(Vector2i(floori(x / S), floori(z / S)))
+	if l == ".":
+		return float(HIERBA_RALA["alto"])      # 6/11: los matojos ralos del suelo llano (HIERBA_RALA), más bajos aún
+	return ALTO_HIERBA_CORTA if l == "," else 1.0
+
+
+## 6/11 (Pablo: «quitar la planicie»): en los niveles de zonas, el suelo `.` no lleva hierba 3D y la llanura del Bosque se veía plana. Ahora, en el corazón de los corros
+## (`_mata_hierba` ≥ mata_min) salen matojos RALOS (peso: ≈ un 14 % de la rejilla) y bajos (alto × 0,45). Solo aspecto: `_es_hierba` sigue sin contarlos (no arden).
+const HIERBA_RALA: Dictionary = {"peso": 0.12, "mata_min": 0.6, "alto": 0.45}
 
 
 ## --- 5/11 (Pablo, playtest del Bosque 02): la hierba en MATAS y, en los claros, adornos pequeños ---
@@ -4733,6 +4746,17 @@ func _alto_hierba(x: float, z: float) -> float:
 @export var hierba_en_matas: bool = true
 ## Adornos pequeños (setas y piedrecitas pisables, sin colisión) en los claros de hierba: solo en el bosque (no en cueva ni lava).
 @export var adornos_en_claros: bool = true
+## 6/11 (Pablo: «en vez de esparcir… pequeños bloques; lo mismo con pedruscos y demás; quitar la planicie»): la hierba sale procedural (`Hierba3D.procedural`) y los
+## adornos van en CORROS por ruido (`ADORNOS`), con zonas sin ninguno. false = el reparto parejo de antes (capturas antes/después).
+@export var detalle_en_bloques: bool = true
+## Los corros de adornos: datos, no números sueltos. El ruido es `_vruido` (el del suelo y las matas), así que sale igual en cada partida y en cada horneado.
+const ADORNOS: Dictionary = {
+	"tam_corro": 4.5,        ## casillas: tamaño de las manchas del ruido que decide dónde hay corros de adornos (una mancha ≈ 1,5 × esto)
+	"umbral": 0.50,          ## por debajo de este valor del ruido no hay adornos: zona vacía
+	"suave": 0.18,           ## el corro entra de 0 a `prob_max` entre `umbral` y `umbral + suave`
+	"prob_max": 0.60,        ## probabilidad por casilla de llevar un grupito en el corazón de un corro (antes: 0,22 pareja en todo el mapa)
+	"max_total": 160,        ## tope de adornos en el mapa (grupos de 2-4: unos 50-60 grupos); con 19 mapas de cientos de piezas, cada uno es un lote más
+}
 const TAM_MATA: float = 3.2             ## tamaño de las manchas grandes, en casillas (el ruido de baja frecuencia: una mancha ≈ una vez y media esto)
 const TAM_MATA_FINA: float = 1.35       ## el segundo ruido, más fino, que rompe el contorno para que no sean óvalos limpios
 const PESO_MATA_FINA: float = 0.30      ## cuánto pesa el fino en la mezcla (el resto es el grande)
@@ -4744,6 +4768,8 @@ const SUAVE_MATA_ARRIBA: float = 0.12
 ## Cuánta «mata» hay en un punto del mundo (0 = claro, 1 = corazón de una mancha). Usa `_vruido` (el mismo ruido de valor que el suelo, hecho en CPU).
 ## Solo depende de (x, z), así que la hierba sale igual cada vez.
 func _mata_hierba(x: float, z: float) -> float:
+	if not _germinadas.is_empty() and _germinadas.has(Vector2i(floori(x / S), floori(z / S))):
+		return 1.0          # 6/11: lo que la naturaleza germinó es una mata entera (si cayera en un claro no se vería brotar nada)
 	if _rejilla_mata.is_empty():
 		_preparar_rejilla_mata()
 	# bilineal sobre la rejilla del ruido (4 lecturas en vez de 8 hashes por punto: la siembra pide este valor miles de veces por bloque)
@@ -4803,10 +4829,20 @@ func _sembrar_adornos() -> void:
 			var l: String = _letra(c)
 			if not (l == "." or l == "," or l == "v") or _bloqueadas.has(c) or _sin_hierba.has(c) or _celdas_pieza.has(c):
 				continue
-			if _hash(cx, cz, 91) % 1000 >= int(PROB_GRUPO_ADORNO * 1000.0):
+			if _hash(cx, cz, 91) % 1000 >= int(_prob_adorno(c) * 1000.0):
 				continue
+			if detalle_en_bloques and _n_adornos + 4 > int(ADORNOS["max_total"]):
+				break            # tope del mapa
 			_grupo_adornos(c, ocupado)
 	print("Adornos de claro: ", _n_adornos, " (", _adornos_setas, " setas, ", _adornos_piedras, " piedrecitas)")
+
+
+## Probabilidad de que la casilla `c` lleve un grupito de adornos: en corros por ruido (`ADORNOS`), 0 fuera de ellos; con `detalle_en_bloques` false, la pareja de antes.
+func _prob_adorno(c: Vector2i) -> float:
+	if not detalle_en_bloques:
+		return PROB_GRUPO_ADORNO
+	var n: float = _vruido(Vector2(float(c.x) + 0.5, float(c.y) + 0.5) / float(ADORNOS["tam_corro"]), 93)
+	return float(ADORNOS["prob_max"]) * smoothstep(float(ADORNOS["umbral"]), float(ADORNOS["umbral"]) + float(ADORNOS["suave"]), n)
 
 
 ## Un grupito (2-4) alrededor de un punto de la casilla `c`, de setas o de piedrecitas pisables.
