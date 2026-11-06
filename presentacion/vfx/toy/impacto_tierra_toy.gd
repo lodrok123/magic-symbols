@@ -8,19 +8,35 @@ extends Node3D
 ## superficie que se abre en radial y se erosiona. SIN destello, sin luz, sin aditivos, sin GPUParticles3D. Todo se libera solo.
 ## Variantes: GOLPE (todo), FIN (se agota en el aire: terrones que caen y un poco de polvo), REBOTE (pequeño), AREA (zona: polvo ancho y muchas piedrecitas; la normal siempre es arriba).
 ## TAMAÑO: `radio` = radio de la roca que choca (m; referencia 0,4; el AREA, 1,8).
+## 3.ª versión (6/11 noche, referencias tierra_pack LEEME §2-3, solo la secuencia, estilo toon):
+##   GOLPE: un ANILLO de tierra que se abre en la superficie (quad `Anillo`, tierra_anillo.gdshader: disco facetado, borde claro, interior oscuro agrietado; crece 0 → 1 en T_ANILLO_ABRE s
+##   y se desvanece en T_ANILLO_VA s) con N_PUAS púas pequeñas (`Puas`, malla pua_1 de TierraToy, color plano) que ASOMAN en el centro y se RETIRAN; pocos cascotes; polvo pardo.
+##   AREA: NUBE de polvo pardo de dos tonos con el CENTRO MÁS CLARO (`Polvo` + `PolvoCentro`: bocanadas más grandes y claras) y cascotes facetados oscuros que salen en ESPIRAL baja y caen.
 
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
+const SH_ANILLO: String = "res://presentacion/vfx/toy/tierra_anillo.gdshader"
 
 enum Variante { GOLPE, FIN, REBOTE, AREA }
 
 const PARAMS: Dictionary = {
-	Variante.GOLPE: {"piedras": 28, "polvo": 14, "dur": 1.3},
-	Variante.FIN: {"piedras": 18, "polvo": 5, "dur": 1.1},
-	Variante.REBOTE: {"piedras": 12, "polvo": 6, "dur": 0.9},
-	Variante.AREA: {"piedras": 48, "polvo": 22, "dur": 1.8}}
+	Variante.GOLPE: {"piedras": 12, "polvo": 10, "dur": 1.3, "anillo": true, "centro": 0},
+	Variante.FIN: {"piedras": 18, "polvo": 5, "dur": 1.1, "anillo": false, "centro": 0},
+	Variante.REBOTE: {"piedras": 10, "polvo": 6, "dur": 0.9, "anillo": false, "centro": 0},
+	Variante.AREA: {"piedras": 30, "polvo": 20, "dur": 1.8, "anillo": false, "centro": 8}}
 const COS_SUELO: float = 0.7
 const GRAVEDAD: float = 9.8
+const N_PUAS: int = 3
+const T_ANILLO_ABRE: float = 0.15
+const T_ANILLO_VA: float = 0.6                       ## se desvanece entre T_PUAS_FUERA y T_PUAS_FUERA + T_ANILLO_VA
+const T_PUAS_ASOMAN: float = 0.05                    ## las púas empiezan a asomar
+const T_PUAS_SUBEN: float = 0.16                     ## lo que tardan en salir
+const T_PUAS_FUERA: float = 0.5                      ## cuándo empiezan a retirarse
+const T_PUAS_RETIRAN: float = 0.3
+## Polvo del CENTRO de la nube del área: más claro que el polvo de TierraToy (la nube más clara en el centro).
+const CENTRO_CLARO: Color = Color(0.86, 0.72, 0.55)
+const CENTRO_SOMBRA: Color = Color(0.70, 0.54, 0.37)
+const CENTRO_VIEJO: Color = Color(0.60, 0.48, 0.36)
 
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
@@ -36,6 +52,10 @@ var _polvo: Node3D = null
 var _pie: Array = []                       ## [{p0, v0, vida, tam, eje, vel_ang, rot0, tono}] en el espacio local del plano
 var _fin_t: float = 1.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _anillo: MeshInstance3D = null         ## GOLPE: el anillo que se abre en la superficie
+var _puas_mm: MultiMeshInstance3D = null   ## GOLPE: púas pequeñas que asoman y se retiran
+var _puas: Array = []                      ## [{pos, rot, w, h}] en el espacio local del plano
+var _polvo_centro: Node3D = null           ## AREA: bocanadas claras del centro
 
 
 static func crear(var_: Variante, normal_: Vector3, radio_: float) -> ImpactoTierraToy:
@@ -113,12 +133,17 @@ func _construir() -> void:
 			var lado: float = sqrt(1.0 - alto * alto)
 			var dir: Vector3 = Vector3(cos(ang) * lado, alto, sin(ang) * lado)
 			if variante == Variante.AREA:
-				pos = Vector3(cos(ang), 0.0, sin(ang)) * r * _rng.randf_range(0.1, 1.0) + Vector3(0, 0.05, 0)
-				vel = dir * _rng.randf_range(2.0, 5.0) * k
+				# espiral baja: salen de un anillo interior con velocidad sobre todo TANGENTE, algo radial y poco hacia arriba, y caen
+				var rad: Vector3 = Vector3(cos(ang), 0.0, sin(ang))
+				var tang: Vector3 = Vector3(-sin(ang), 0.0, cos(ang))
+				var k2: float = pow(r / 0.4, 0.4)                                           # el área es grande: la espiral se queda BAJA (menos que k)
+				pos = rad * r * _rng.randf_range(0.2, 0.5) + Vector3(0, 0.05, 0)
+				vel = (tang * _rng.randf_range(2.2, 3.8) + rad * _rng.randf_range(0.8, 2.0) + Vector3(0, _rng.randf_range(0.8, 1.8), 0)) * k2
 			else:
 				pos = Vector3(0, 0.03, 0)
 				vel = dir * _rng.randf_range(1.6, 4.2) * k
-		_pie.append({"p0": pos, "v0": vel, "vida": _rng.randf_range(0.7, 1.2), "tam": _rng.randf_range(0.04, 0.11) * sqrt(maxf(r / 0.4, 0.4)),
+		var tam_c: float = _rng.randf_range(0.03, 0.08) * pow(maxf(r / 0.4, 0.4), 0.35) if variante != Variante.FIN else _rng.randf_range(0.04, 0.11) * sqrt(maxf(r / 0.4, 0.4))      # cascotes pequeños (el FIN deshace la bola: como antes)
+		_pie.append({"p0": pos, "v0": vel, "vida": _rng.randf_range(0.7, 1.2), "tam": tam_c,
 			"eje": Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized(), "vel_ang": _rng.randf_range(4.0, 12.0),
 			"rot0": Basis.from_euler(Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)), "tono": _rng.randf()})
 	_mm = TierraToy.crear_mm("Piedrecitas", n_p, TierraToy.Piedras.malla_piedra(), 0.2)
@@ -128,8 +153,8 @@ func _construir() -> void:
 	_polvo = HumoToy.new()
 	_polvo.name = "Polvo"
 	_plano.add_child(_polvo)
-	var esc: float = sqrt(maxf(r / 0.4, 0.4)) if variante != Variante.AREA else 1.4
-	_polvo.call("montar", n_h, TierraToy.polvo_params(0.3 * esc, 0.85 * esc, 0.95 if variante != Variante.AREA else 1.3, Vector3(0, 0.3, 0), false))
+	var esc: float = sqrt(maxf(r / 0.4, 0.4)) if variante != Variante.AREA else 1.8
+	_polvo.call("montar", n_h, TierraToy.polvo_params(0.3 * esc, 0.85 * esc, 0.95 if variante != Variante.AREA else 1.4, Vector3(0, 0.3, 0), false))
 	for j in n_h:
 		var a2: float = TAU * float(j) / float(n_h) + _rng.randf_range(-0.25, 0.25)
 		var d2: Vector3 = Vector3(cos(a2), 0.0, sin(a2))
@@ -137,10 +162,68 @@ func _construir() -> void:
 			var d3: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized()
 			_polvo.call("emitir", d3 * r * 0.3, d3 * 0.8, 1.0, 0.8)
 		elif variante == Variante.AREA:
-			_polvo.call("emitir", d2 * r * _rng.randf_range(0.2, 0.7) + Vector3(0, 0.08, 0), d2 * _rng.randf_range(1.2, 2.4) * k, _rng.randf_range(0.8, 1.2), _rng.randf_range(0.8, 1.3))
+			_polvo.call("emitir", d2 * r * _rng.randf_range(0.25, 0.7) + Vector3(0, 0.1, 0), d2 * _rng.randf_range(1.0, 2.0) * k + Vector3(0, 0.3, 0), _rng.randf_range(0.8, 1.2), _rng.randf_range(0.9, 1.4))
 		else:
 			_polvo.call("emitir", d2 * r * 0.2 + Vector3(0, 0.05 + 0.08 * r, 0), d2 * _rng.randf_range(1.4, 2.6) * k + Vector3(0, 0.2, 0), _rng.randf_range(0.8, 1.2), _rng.randf_range(0.8, 1.2))
+	# AREA: el centro de la nube, más claro y más grande, sube despacio
+	var n_c: int = int(_p["centro"])
+	if n_c > 0:
+		_polvo_centro = HumoToy.new()
+		_polvo_centro.name = "PolvoCentro"
+		_plano.add_child(_polvo_centro)
+		var pc: Dictionary = TierraToy.polvo_params(0.5 * esc, 1.3 * esc, 1.5, Vector3(0, 0.45, 0), false)
+		pc["claro"] = CENTRO_CLARO
+		pc["sombra"] = CENTRO_SOMBRA
+		pc["viejo"] = CENTRO_VIEJO
+		pc["prioridad"] = 2
+		_polvo_centro.call("montar", n_c, pc)
+		for j in n_c:
+			var a3: float = TAU * float(j) / float(n_c) + _rng.randf_range(-0.3, 0.3)
+			var d3: Vector3 = Vector3(cos(a3), 0.0, sin(a3))
+			_polvo_centro.call("emitir", d3 * r * _rng.randf_range(0.05, 0.3) + Vector3(0, 0.25, 0), d3 * _rng.randf_range(0.3, 0.8) + Vector3(0, 0.6, 0), _rng.randf_range(0.9, 1.1), _rng.randf_range(0.9, 1.2))
+	# GOLPE: el anillo que se abre y las púas que asoman en el centro
+	if bool(_p["anillo"]):
+		var rc: float = clampf(r * 2.4, 0.5, 2.2)
+		_anillo = TierraToy.crear_quad_suelo("Anillo", 2.0 * rc, 2.0 * rc, SH_ANILLO, {"apertura": 0.0, "vida": 1.0, "semilla": _rng.randf(), "lados": 9}, Vector3(0, 0.02, 0), -2)
+		_anillo.rotation.y = _rng.randf() * TAU
+		_plano.add_child(_anillo)
+		_puas_mm = TierraToy.crear_mm("Puas", N_PUAS, TierraToy.malla_roca("pua_1"), 0.0, 0.0, 1.0, TierraToy.COLOR_PUA)
+		_plano.add_child(_puas_mm)
+		for j in N_PUAS:
+			var a4: float = TAU * float(j) / float(N_PUAS) + _rng.randf_range(-0.4, 0.4)
+			var d4: Vector3 = Vector3(cos(a4), 0.0, sin(a4))
+			var w: float = r * _rng.randf_range(0.5, 0.65)
+			_puas.append({"pos": d4 * r * _rng.randf_range(0.15, 0.4), "rot": HieloMallas._inclinar(d4, _rng.randf_range(0.1, 0.3), _rng.randf() * TAU), "w": w, "h": r * _rng.randf_range(0.75, 1.1)})      # pequeñas: asoman y se retiran
 	avanzar_a(0.0)
+
+
+## Altura (0..1 de su alto) de una púa del golpe en `t`: asoma con sobrepaso desde T_PUAS_ASOMAN, se queda y se retira desde T_PUAS_FUERA.
+static func altura_pua(t: float) -> float:
+	var sube: float = clampf((t - T_PUAS_ASOMAN) / T_PUAS_SUBEN, 0.0, 1.0)
+	var fuera: float = 1.0 + TierraToy.subida(sube)                                   # -1 → 0 (bajo tierra → su sitio), con el sobrepaso de las rocas
+	var retira: float = smoothstep(0.0, 1.0, clampf((t - T_PUAS_FUERA) / T_PUAS_RETIRAN, 0.0, 1.0))
+	return clampf(fuera * (1.0 - retira), 0.0, 1.2)
+
+
+## Apertura (0..1) y vida (1..0) del anillo del golpe en `t`.
+static func anillo_en(t: float) -> Dictionary:
+	return {"apertura": smoothstep(0.0, T_ANILLO_ABRE, t), "vida": 1.0 - smoothstep(T_PUAS_FUERA, T_PUAS_FUERA + T_ANILLO_VA, t)}
+
+
+## (pruebas) alturas (m) de las púas del golpe en `t` (vacío si no las hay).
+func puas_estado(t: float) -> Array:
+	var r: Array = []
+	for d in _puas:
+		r.append(float(d["h"]) * altura_pua(t))
+	return r
+
+
+## (pruebas) ¿hay anillo? y sus parámetros actuales.
+func anillo_estado() -> Dictionary:
+	if _anillo == null or not is_instance_valid(_anillo):
+		return {"hay": false}
+	var m: ShaderMaterial = _anillo.material_override as ShaderMaterial
+	return {"hay": true, "apertura": float(m.get_shader_parameter("apertura")), "vida": float(m.get_shader_parameter("vida")), "radio": (_anillo.mesh as PlaneMesh).size.x * 0.5}
 
 
 func _gravedad_local() -> Vector3:
@@ -182,9 +265,9 @@ func piedras_estado(t: float) -> Array:
 	return res
 
 
-## (piedras, bocanadas de polvo) que lleva.
+## (piedras, bocanadas de polvo contando las del centro) que lleva.
 func recuento() -> Array:
-	return [_pie.size(), int(_p.get("polvo", 0))]
+	return [_pie.size(), int(_p.get("polvo", 0)) + int(_p.get("centro", 0))]
 
 
 func _process(delta: float) -> void:
@@ -215,3 +298,19 @@ func avanzar_a(t: float) -> void:
 		var s: float = float(d["tam"]) * (1.0 - smoothstep(0.75, 1.0, u)) * 2.0 / TierraToy.lado_malla(mm.mesh)   # `tam` = radio; al final se hunde en el suelo (encoge)
 		mm.set_instance_transform(i, TierraToy.centrar(mm.mesh, rot * Basis.from_scale(Vector3.ONE * s), e["pos"]))
 		mm.set_instance_custom_data(i, Color(float(d["tono"]), 1.0, 0.0, 0.0))
+	if _anillo != null and is_instance_valid(_anillo):
+		var an: Dictionary = anillo_en(t)
+		var ma: ShaderMaterial = _anillo.material_override as ShaderMaterial
+		ma.set_shader_parameter("apertura", an["apertura"])
+		ma.set_shader_parameter("vida", an["vida"])
+	if _puas_mm != null and is_instance_valid(_puas_mm):
+		var mp: MultiMesh = _puas_mm.multimesh
+		var f: float = altura_pua(t)
+		for j in _puas.size():
+			var d: Dictionary = _puas[j]
+			var h: float = float(d["h"]) * f
+			if h < 0.003:
+				HieloMallas.ocultar(mp, j)
+				continue
+			mp.set_instance_transform(j, TierraToy.asentar(mp.mesh, d["rot"], float(d["w"]), h, float(d["w"]), d["pos"]))
+			mp.set_instance_custom_data(j, Color(0.3 + 0.2 * float(j), 1.0, 0.0, 0.0))

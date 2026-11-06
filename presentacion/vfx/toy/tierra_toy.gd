@@ -13,7 +13,14 @@ extends EfectoToy
 ## bosque. Sin luz, sin aditivos, sin GPUParticles3D: MultiMesh movidos por la CPU (uno por tipo de roca que use la figura, ≤ 5; ≤ MAX_BLOQUES rocas por figura).
 ## FIGURAS: BOLA = una piedra_est_0 (la más redonda) que gira al volar y suelta terrones (piedra_est_1) y polvo. MURO = hilera de roca_est_1 / 2 / 0 escaladas al ancho y alto de los
 ## semiejes, a trompicones, con piedras pequeñas al pie. PILAR = una roca_est_4 alta con cuatro roca_est_1 / 0 más bajas alrededor y piedras al pie. BARRERA = corona de rocas inclinadas hacia
-## dentro sobre la elipse del suelo. HAZ = hilera de púas (piedra_est_0 / 1 alargadas e inclinadas) que brotan hacia -Z.
+## dentro sobre la elipse del suelo, CERRADA ARRIBA con 2-3 losas (cúpula) y un destello de polvo al cerrarse. HAZ = PÚAS que brotan en secuencia (abajo).
+## 3.ª versión (6/11 noche, referencias de Pablo en docs/capturas/referencias/tierra_pack/, solo la SECUENCIA, nunca el estilo realista):
+##   HAZ («en vez de una línea tipo lanzallamas usa unas puntas que desplazan»): GRIETAS negras finas que corren por el suelo de la mano a la punta (tierra_grietas.gdshader en un quad)
+##   y detrás PÚAS cónicas facetadas de tierra (mallas propias low-poly `pua_0..2`: cono de 5-7 lados con ligera curva; color plano pardo, `plano` = 1 del shader) que brotan EN SECUENCIA
+##   de la mano a la punta (~0,05 s cada una), de MENOR a MAYOR, con 1-2 LAJAS (losas facetadas `laja_0..1`) que se levantan inclinadas en la base y cascotes que saltan; se quedan lo que
+##   dura el haz y se HUNDEN en orden inverso (la punta primero); las grietas se desvanecen. ≤ MAX_BLOQUES instancias en ≤ 5 MultiMesh, como antes.
+##   CARGA: además de la convergencia, un ANILLO DE AVISO de N_AVISO piedrecitas que gira a ras de suelo bajo los pies (`pies`) mientras se carga.
+##   El empuje lo hace la lógica (`fuerza_golpe` de la runa): el toy solo lo representa.
 ## Ciclo de vida de un proyectil de tierra, sobre UN SOLO nodo (igual que las hermanas):
 ##   empezar_carga(duracion, tam_final)  piedrecitas que CONVERGEN en la mano mientras la roca crece en ella. NO hace falta `lanzar()`.
 ##   progreso_carga() -> float · soltar(dir) · cancelar_carga() · impactar_en(pos, normal, escala) (ImpactoTierraToy GOLPE: piedrecitas con gravedad + nube de polvo pardo a ras de suelo)
@@ -32,7 +39,16 @@ const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fr
 const MALLAS_MURO: Array = ["roca_est_1", "roca_est_2", "roca_est_1", "roca_est_0", "roca_est_2", "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
 const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
 const MAX_TIPOS: int = 5                                              ## MultiMesh (tipos de roca) por figura como mucho
-const MALLAS_PUA: Array = ["piedra_est_0", "piedra_est_1"]
+const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas cónicas facetadas propias (malla_pua), color plano pardo
+const MALLAS_LAJA: Array = ["laja_0", "laja_1"]                      ## lajas de losa facetadas propias (malla_laja)
+const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
+const COLOR_PUA: Color = Color(0.56, 0.40, 0.25)                      ## pardo tierra del suelo del bosque (en juego ≈ 0,62·0,40·0,22), un punto más oscuro que el polvo claro
+const COLOR_LAJA: Color = Color(0.50, 0.36, 0.23)
+const PUAS_MAX: int = 14                                              ## púas de un haz (el resto hasta MAX_BLOQUES, lajas)
+const PASO_PUA_S: float = 0.05                                        ## s entre el brote de una púa y la siguiente
+const SUBE_PUA_S: float = 0.14                                        ## s que tarda cada púa en salir (con su sobrepaso)
+const N_AVISO: int = 8                                                ## piedrecitas del anillo de aviso de la carga
+const GIRO_AVISO: float = 2.6                                         ## rad/s del anillo de aviso
 ## Velo de Vfx3D.COLOR["piedra"] (0,72·0,58·0,42) sobre la textura, MUY ligero (un 10 %): la textura rocas_albedo ya es parda y con más velo salía rosada frente a los bloques grises del mapa.
 const TINTE_PIEDRA: Color = Color(0.98, 0.96, 0.93)
 
@@ -71,10 +87,19 @@ static var _mallas: Dictionary = {}        ## id ("roca_est_1") → Mesh, cargad
 
 
 ## La malla de la roca estilizada `id` (piedra_est_N / roca_est_N), cargada del GLB una vez (el mismo acceso que ImpactoMagmaToy.malla_piedra). Si faltara, una esfera de pocos lados.
+## Las ids `pua_N` y `laja_N` son las mallas PROPIAS low-poly del haz (malla_pua / malla_laja), generadas una vez.
 static func malla_roca(id: String) -> Mesh:
 	if _mallas.has(id):
 		return _mallas[id]
 	var m: Mesh = null
+	if id.begins_with("pua_"):
+		m = malla_pua(int(id.substr(4)))
+		_mallas[id] = m
+		return m
+	if id.begins_with("laja_"):
+		m = malla_laja(int(id.substr(5)))
+		_mallas[id] = m
+		return m
 	var ps: PackedScene = load(RUTA_ROCA % id) as PackedScene
 	if ps != null:
 		var n: Node = ps.instantiate()
@@ -92,6 +117,88 @@ static func malla_roca(id: String) -> Mesh:
 		m = s
 	_mallas[id] = m
 	return m
+
+
+## ¿Es una pieza propia del haz (púa o laja: color plano)?
+static func es_plana(id: String) -> bool:
+	return id.begins_with("pua_") or id.begins_with("laja_")
+
+
+## Triángulo con normal PLANA (vértices sin compartir: cada cara es una faceta).
+static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
+	var n: Vector3 = (b - a).cross(c - a)
+	if n.length() < 1.0e-9:
+		return
+	n = n.normalized()
+	for v in [a, b, c]:
+		st.set_normal(n)
+		st.set_uv(Vector2(0.5, 0.5))
+		st.add_vertex(v)
+
+
+## PÚA cónica facetada: cono de 5-7 lados con tres anillos (base, cintura, cuello) y punta, con una ligera CURVA hacia +X; base en y = 0, alto 1, radio de base 0,5 (se escala con `asentar`).
+## `variante` 0..2 cambia lados, curva y las irregularidades de los anillos.
+static func malla_pua(variante: int) -> ArrayMesh:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 101 + variante * 7
+	var lados: int = [6, 5, 7][variante % 3]
+	var curva: float = [0.22, 0.14, 0.3][variante % 3]
+	var alturas: Array = [0.0, 0.38, 0.72, 1.0]
+	var radios: Array = [0.5, 0.36, 0.17, 0.0]
+	var anillos: Array = []
+	for k in 4:
+		var h: float = float(alturas[k])
+		var desp: float = curva * h * h
+		var anillo: Array = []
+		for i in lados:
+			var a: float = TAU * float(i) / float(lados) + (0.0 if k == 0 else rng.randf_range(-0.12, 0.12))
+			var r: float = float(radios[k]) * (1.0 if k == 3 else rng.randf_range(0.82, 1.12))
+			anillo.append(Vector3(cos(a) * r + desp, h, sin(a) * r))
+		anillos.append(anillo)
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 3:
+		var abajo: Array = anillos[k]
+		var arriba: Array = anillos[k + 1]
+		for i in lados:
+			var j: int = (i + 1) % lados
+			if k == 2:
+				_tri(st, abajo[i], arriba[0], abajo[j])
+			else:
+				_tri(st, abajo[i], arriba[i], abajo[j])
+				_tri(st, abajo[j], arriba[i], arriba[j])
+	# base (cerrada, mirando abajo: por si asoma al salir inclinada)
+	var c: Vector3 = Vector3.ZERO
+	for i in lados:
+		var j: int = (i + 1) % lados
+		_tri(st, c, (anillos[0] as Array)[j], (anillos[0] as Array)[i])
+	return st.commit()
+
+
+## LAJA de losa facetada: polígono irregular de 5-6 lados extruido fino (alto 0,12 del lado), base en y = 0, lado ≈ 1.
+static func malla_laja(variante: int) -> ArrayMesh:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 211 + variante * 5
+	var lados: int = 5 + variante % 2
+	var grueso: float = 0.12
+	var abajo: Array = []
+	var arriba: Array = []
+	for i in lados:
+		var a: float = TAU * float(i) / float(lados) + rng.randf_range(-0.2, 0.2)
+		var r: float = rng.randf_range(0.38, 0.5)
+		var p: Vector3 = Vector3(cos(a) * r, 0.0, sin(a) * r)
+		abajo.append(p)
+		arriba.append(p + Vector3(rng.randf_range(-0.03, 0.03), grueso + rng.randf_range(-0.03, 0.03), rng.randf_range(-0.03, 0.03)))
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var ca: Vector3 = Vector3(0.0, grueso, 0.0)
+	for i in lados:
+		var j: int = (i + 1) % lados
+		_tri(st, ca, arriba[i], arriba[j])                      # tapa
+		_tri(st, Vector3.ZERO, abajo[j], abajo[i])              # fondo
+		_tri(st, abajo[i], arriba[i], abajo[j])                 # lados
+		_tri(st, abajo[j], arriba[i], arriba[j])
+	return st.commit()
 
 
 ## Lado mayor (x/z) de la huella de una malla, sin escalar.
@@ -232,7 +339,8 @@ static func material_roca(p: Dictionary = {}) -> ShaderMaterial:
 
 
 ## MultiMesh de `n` rocas (`malla`) con el material de la roca para instancias. `base_tierra` = 1: la base manchada de tierra (bloques que salen del suelo).
-static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0, base_tierra: float = 0.0) -> MultiMeshInstance3D:
+## `plano`: color plano (púas y lajas) en vez de la textura; `color_plano` el pardo que toque.
+static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0, base_tierra: float = 0.0, plano: float = 0.0, color_plano: Color = COLOR_PUA) -> MultiMeshInstance3D:
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_custom_data = true
@@ -243,9 +351,27 @@ static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0
 	var mi: MultiMeshInstance3D = MultiMeshInstance3D.new()
 	mi.name = nombre
 	mi.multimesh = mm
-	mi.material_override = material_roca({"instancias": 1.0, "oscurecer": oscurecer, "base_tierra": base_tierra})
+	mi.material_override = material_roca({"instancias": 1.0, "oscurecer": oscurecer, "base_tierra": base_tierra, "plano": plano, "color_plano": color_plano})
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.custom_aabb = AABB(Vector3.ONE * -40.0, Vector3.ONE * 80.0)
+	return mi
+
+
+## Quad tumbado en el suelo (PlaneMesh `ancho` × `largo`, centrado en `centro`) con un shader sin luz (grietas, anillo). `prioridad` de dibujo (-2: bajo el polvo y las rocas).
+static func crear_quad_suelo(nombre: String, ancho: float, largo: float, sh: String, params: Dictionary, centro: Vector3, prioridad: int = -2) -> MeshInstance3D:
+	var pm: PlaneMesh = PlaneMesh.new()
+	pm.size = Vector2(ancho, largo)
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = nombre
+	mi.mesh = pm
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(sh)
+	m.render_priority = prioridad
+	for k in params:
+		m.set_shader_parameter(k, params[k])
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = centro
 	return mi
 
 
@@ -312,6 +438,13 @@ var _bola_rota: bool = false
 var _haz_largo: float = 3.0
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
+var _haz_n: int = 0                     ## púas del haz (fija cuánto dura «nacer»: anticipación + n × PASO_PUA_S + SUBE_PUA_S)
+var _t_nacer_act: float = -1.0          ## duración de «nacer» con la que se montó la animación (para rehacerla si cambia)
+var _grietas: MeshInstance3D = null     ## HAZ: quad de grietas en el suelo
+var _brillo: MeshInstance3D = null      ## BARRERA: disco pardo-naranja tenue dentro de la cúpula que se apaga al cerrarse
+var _t_cerrada: float = -1.0            ## BARRERA: instante (s de vida) en que se cerró la cúpula
+var _c_aviso: MultiMeshInstance3D = null  ## CARGA: anillo de piedrecitas que gira a ras de suelo bajo los pies
+var _aviso_ang: float = 0.0
 var _y_act: Array = []                  ## (pruebas) desplazamiento vertical actual de cada bloque (m; < 0 = aún bajo tierra)
 
 
@@ -470,6 +603,9 @@ func _quitar_visual_carga() -> void:
 		var n: Node3D = _c_nodo
 		_c_nodo = null
 		_c_piedras = null
+		if _c_aviso != null and is_instance_valid(_c_aviso):
+			_c_aviso.visible = false           # el aviso se va con la suelta; las piedrecitas que convergen apuran su vida
+		_c_aviso = null
 		if is_inside_tree():
 			get_tree().create_timer(0.6).timeout.connect(n.queue_free)
 		else:
@@ -499,6 +635,7 @@ func _avanzar_carga(delta: float) -> void:
 			_c_escala = g * (1.0 + carga_respiro * env * resp)
 			_aplicar_escala_carga()
 			_emitir_carga(delta, p)
+			_avanzar_aviso(delta)
 		EstadoCarga.SOLTANDO:
 			_c_t += delta
 			var u: float = clampf(_c_t / T_SOLTAR, 0.0, 1.0)
@@ -543,6 +680,35 @@ func _montar_carga() -> void:
 	_c_nodo.add_child(_c_piedras)
 	_c_piedras.call("montar", 24, false)
 	_c_acc = 0.0
+	# anillo de AVISO: N_AVISO piedrecitas a ras de suelo bajo los pies, girando (la tierra se prepara)
+	_c_aviso = crear_mm("Aviso", N_AVISO, malla_roca("piedra_est_3"), 0.25)
+	_c_nodo.add_child(_c_aviso)
+	_aviso_ang = 0.0
+	_avanzar_aviso(0.0)
+
+
+## Gira el anillo de aviso: cada piedrecita en la elipse de radio `carga_radio × _c_r × 2` bajo los pies, tumbada, creciendo con el progreso de la carga.
+func _avanzar_aviso(delta: float) -> void:
+	if _c_aviso == null or not is_instance_valid(_c_aviso):
+		return
+	_aviso_ang += GIRO_AVISO * delta
+	var mm: MultiMesh = _c_aviso.multimesh
+	var r: float = maxf(_c_r, 0.1) * 2.2 * carga_radio
+	var crece: float = smoothstep(0.0, 0.25, _c_prog) if _est == EstadoCarga.CARGANDO else 0.0
+	var tam: float = maxf(_c_r, 0.1) * 0.22 * crece
+	for i in N_AVISO:
+		if tam < 0.001:
+			HieloMallas.ocultar(mm, i)
+			continue
+		var a: float = _aviso_ang + TAU * float(i) / float(N_AVISO)
+		var p: Vector3 = pies + Vector3(cos(a) * r, 0.02, sin(a) * r)
+		mm.set_instance_transform(i, asentar(mm.mesh, Basis(Vector3.UP, -a + float(i)), tam * 2.0, tam * 1.1, tam * 2.0, p))
+		mm.set_instance_custom_data(i, Color(float(i) / float(N_AVISO), 1.0, 0.0, 0.0))
+
+
+## (pruebas) ángulo acumulado del anillo de aviso y su radio.
+func estado_aviso() -> Dictionary:
+	return {"ang": _aviso_ang, "radio": maxf(_c_r, 0.1) * 2.2 * carga_radio, "vivo": _c_aviso != null and is_instance_valid(_c_aviso), "n": N_AVISO}
 
 
 ## Estado de la convergencia para las pruebas: piedrecitas vivas (local a la mano).
@@ -671,6 +837,9 @@ func lanzar(v: float = -1.0) -> void:
 		sube = 0.0
 		hunde = 0.0
 		_asentado = false
+		_t_cerrada = -1.0
+		for b in _bloques:
+			(b as Dictionary)["soltado"] = false
 		_avanzar_bloques(0.0)
 		_brote_anticipo()
 	super.lanzar(v)
@@ -741,6 +910,9 @@ func _construir() -> void:
 	_inclinable = null
 	_bloques = []
 	_bloques_mms = []
+	_grietas = null
+	_brillo = null
+	_t_cerrada = -1.0
 	_asentado = false
 	_hundiendo = false
 	_acc = 0.0
@@ -762,8 +934,10 @@ func _construir() -> void:
 
 
 ## Un bloque de la figura: roca `malla` (id) con la base en `pos`, giro `rot`, que ocupa `wx` × `h` × `wz` m, sale tras `retraso` (0..0,6 de la subida) y con su tono.
+## Claves opcionales: `dur` (fracción de `sube` que tarda en salir desde su retraso; -1 = lo que quede, como las rocas), `ret_hunde` (fracción de `hunde` a la que empieza a hundirse;
+## -1 = todas a la vez), `soltado` (ya soltó su polvo y su cascote al asentarse: púas), `techo` (BARRERA: losa de la cúpula, con pos.y > 0).
 static func _b(malla: String, pos: Vector3, rot: Basis, wx: float, h: float, wz: float, retraso: float, rng: RandomNumberGenerator) -> Dictionary:
-	return {"malla": malla, "pos": pos, "rot": rot, "wx": wx, "h": h, "wz": wz, "retraso": retraso, "tono": rng.randf(), "mm": 0, "idx": 0}
+	return {"malla": malla, "pos": pos, "rot": rot, "wx": wx, "h": h, "wz": wz, "retraso": retraso, "tono": rng.randf(), "mm": 0, "idx": 0, "dur": -1.0, "ret_hunde": -1.0, "soltado": false, "techo": false}
 
 
 ## Giro de una roca de la figura: media vuelta o no (la cara de atrás es otra roca) más un desvío `desvio` rad, y una pizca de inclinación `inclina` hacia un lado al azar.
@@ -794,7 +968,9 @@ func _montar_bloques(c: Node3D, capa: Array) -> void:
 	for id in grupos:
 		var lista: Array = grupos[id]
 		var k: int = _bloques_mms.size()
-		var mi: MultiMeshInstance3D = crear_mm("Bloques" if k == 0 else "Bloques_" + String(id), lista.size(), malla_roca(id), 0.0, 1.0)
+		var plano: bool = es_plana(String(id))
+		var mi: MultiMeshInstance3D = crear_mm("Bloques" if k == 0 else "Bloques_" + String(id), lista.size(), malla_roca(id), 0.0, 0.0 if plano else 1.0, 1.0 if plano else 0.0,
+			COLOR_LAJA if String(id).begins_with("laja_") else COLOR_PUA)
 		c.add_child(mi)
 		_bloques_mms.append(mi)
 		for j in lista.size():
@@ -871,12 +1047,13 @@ func _pilar(c: Node3D) -> void:
 	_montar_bloques(c, capa)
 
 
-## BARRERA: corona de rocas grandes (bloques, losas y alguna redonda) inclinadas hacia dentro sobre la elipse del suelo.
+## BARRERA: corona de rocas grandes (bloques, losas y alguna redonda) inclinadas hacia dentro sobre la elipse del suelo, CERRADA ARRIBA con tres losas (`techo`) que suben las últimas y
+## se encuentran sobre el centro: una CÚPULA. Dentro, un disco pardo-naranja muy tenue (`Brillo`) que se apaga en 0,4 s al cerrarse (sin luz).
 func _barrera(c: Node3D) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 41
 	var perim: float = FuegoToyMallas.perimetro_elipse(semieje_x, semieje_z)
-	var n: int = clampi(int(round(perim / 0.7)), 6, MAX_BLOQUES)
+	var n: int = clampi(int(round(perim / 0.7)), 6, MAX_BLOQUES - 3)
 	var capa: Array = []
 	for i in n:
 		var a: float = TAU * float(i) / float(n)
@@ -884,45 +1061,103 @@ func _barrera(c: Node3D) -> void:
 		var w: float = perim / float(n) * rng.randf_range(1.0, 1.15)
 		var id: String = MALLAS_MURO[(i * 3 + int(rng.randi() % 2)) % 5]                   # sin la alta (roca_est_4): la corona es baja y ancha
 		capa.append(_b(id, Vector3(d.x * semieje_x * 0.92, 0.0, d.z * semieje_z * 0.92), HieloMallas._inclinar(-d, rng.randf_range(0.25, 0.42), atan2(-d.x, -d.z) + (PI if rng.randf() < 0.5 else 0.0)), w, semieje_y * rng.randf_range(0.75, 1.0), w * 0.6, rng.randf_range(0.0, 0.2), rng))
+	# el techo: tres losas (roca_est_2) sobre la corona, cada una sobre un tercio, inclinadas hacia el centro, solapadas: cierran la cúpula
+	var r_t: float = maxf(semieje_x, semieje_z)
+	for k in 3:
+		var a2: float = TAU * float(k) / 3.0 + 0.4
+		var d2: Vector3 = Vector3(cos(a2), 0.0, sin(a2))
+		var w2: float = r_t * rng.randf_range(0.85, 1.0)
+		var b: Dictionary = _b("roca_est_2", Vector3(d2.x * semieje_x * 0.3, semieje_y * 0.8, d2.z * semieje_z * 0.3), HieloMallas._inclinar(-d2, rng.randf_range(0.65, 0.85), atan2(-d2.x, -d2.z)), w2, semieje_y * 0.28, w2 * 0.75, 0.3 + 0.06 * float(k), rng)
+		b["techo"] = true
+		capa.append(b)
 	_montar_bloques(c, capa)
+	var pm: PlaneMesh = PlaneMesh.new()
+	pm.size = Vector2.ONE * minf(semieje_x, semieje_z) * 1.3
+	_brillo = MeshInstance3D.new()
+	_brillo.name = "Brillo"
+	_brillo.mesh = pm
+	_brillo.position = Vector3(0, 0.03, 0)
+	_brillo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var sm: StandardMaterial3D = StandardMaterial3D.new()                                          # plano, sin luz, sin aditivo: un disco tenue que se apaga
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	sm.albedo_color = Color(0.80, 0.50, 0.26, 0.0)
+	sm.render_priority = -1
+	_brillo.material_override = sm
+	c.add_child(_brillo)
 
 
-## HAZ: hilera de púas de piedra (piedra_est_0 / 1 estiradas a lo alto e inclinadas hacia delante) que BROTAN del suelo hacia -Z (cada una sale después de la anterior), cada vez más bajas.
+## HAZ (3.ª versión): PÚAS cónicas facetadas (pua_0..2, color plano) que BROTAN del suelo hacia -Z EN SECUENCIA de la mano a la punta (cada una PASO_PUA_S s después de la anterior, cada
+## una tarda SUBE_PUA_S s en salir), de MENOR a MAYOR, inclinadas hacia delante, con 1-2 LAJAS inclinadas en su base (salen con su púa). Se hunden en orden inverso (`ret_hunde`: la punta
+## primero). Delante corren las GRIETAS (quad `Grietas`, tierra_grietas.gdshader: `avance` va por delante de las púas; `vida` se apaga al hundirse). ≤ MAX_BLOQUES piezas.
 func _haz(c: Node3D) -> void:
 	_haz_largo = semieje_x * 2.0
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
 	_haz_alt = maxf(semieje_y, 0.4)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 53
-	var n: int = clampi(int(round(_haz_largo / 0.3)), 4, MAX_BLOQUES)
+	var n: int = clampi(int(round(_haz_largo / 0.32)), 4, PUAS_MAX)
+	_haz_n = n
+	var t_nacer: float = _t_nacer_haz()
+	var dur_f: float = SUBE_PUA_S / t_nacer
 	var capa: Array = []
+	var lajas: Array = []
+	var n_lajas: int = mini(MAX_BLOQUES - n, n * 2)
 	for i in n:
 		var f: float = (float(i) + 0.5) / float(n)
-		var w: float = clampf(_haz_r * rng.randf_range(0.5, 0.75), 0.08, 0.6)
-		var lado: Vector3 = Vector3(rng.randf_range(-0.6, 0.6), 0.0, 0.0) * _haz_r
+		var crece: float = 0.45 + 0.75 * f                                                          # de menor (mano) a mayor (punta)
+		var w: float = clampf(_haz_r * rng.randf_range(0.6, 0.8) * crece, 0.08, 0.7)
+		var lado: float = rng.randf_range(-0.55, 0.55) * _haz_r
 		var id: String = MALLAS_PUA[i % MALLAS_PUA.size()]
-		capa.append(_b(id, Vector3(lado.x, 0.0, -f * _haz_largo), HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.15, 0.35), rng.randf_range(-0.3, 0.3)), w, _haz_alt * 2.0 * rng.randf_range(0.8, 1.2) * (1.15 - 0.5 * f), w * rng.randf_range(0.8, 1.0), f * 0.6, rng))
-	_montar_bloques(c, capa)
+		var ret: float = (0.05 + PASO_PUA_S * float(i)) / t_nacer
+		var pos: Vector3 = Vector3(lado, 0.0, -f * _haz_largo)
+		var b: Dictionary = _b(id, pos, HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.12, 0.3), rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)), w, _haz_alt * 2.0 * rng.randf_range(0.96, 1.04) * crece, w * rng.randf_range(0.85, 1.0), ret, rng)
+		b["dur"] = dur_f
+		b["ret_hunde"] = (1.0 - f) * 0.5
+		capa.append(b)
+		# lajas: 1-2 losas en la base, a un lado y a otro, levantadas hacia fuera (la losa del suelo se rompe y se alza)
+		var nl: int = 2 if (i % 3 != 1) else 1
+		for q in nl:
+			if lajas.size() >= n_lajas:
+				break
+			var al: float = (PI * 0.5 if q == 0 else -PI * 0.5) + rng.randf_range(-0.7, 0.7)
+			var dl: Vector3 = Vector3(sin(al), 0.0, cos(al))
+			var wl: float = w * rng.randf_range(0.9, 1.4)
+			var bl: Dictionary = _b(MALLAS_LAJA[(i + q) % MALLAS_LAJA.size()], pos + dl * (w * 0.55 + wl * 0.3) + Vector3(0, 0, rng.randf_range(-0.05, 0.05)), HieloMallas._inclinar(-dl, rng.randf_range(0.35, 0.7), rng.randf() * TAU), wl, wl * rng.randf_range(0.14, 0.2), wl, ret + 0.015, rng)
+			bl["dur"] = dur_f
+			bl["ret_hunde"] = (1.0 - f) * 0.5 + 0.03
+			lajas.append(bl)
+	_montar_bloques(c, capa + lajas)
+	_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.012}, Vector3(0, 0.02, -_haz_largo * 0.5))      # finas: ~1 cm
+	_grietas.rotation.y = PI                                                                      # UV.y = 0 en la mano (z = 0), 1 en la punta (z = -largo)
+	c.add_child(_grietas)
+
+
+## Lo que dura «nacer» en el haz: anticipación + una púa tras otra + la última saliendo.
+func _t_nacer_haz() -> float:
+	return 0.05 + PASO_PUA_S * float(maxi(_haz_n, 1)) + SUBE_PUA_S + 0.05
 
 
 func _anim_si_hace_falta() -> void:
 	var ap: AnimationPlayer = get_node_or_null("Anim") as AnimationPlayer
-	if ap != null and _figura_anim == int(figura):
+	var es_vol: bool = figura != Figura.BOLA
+	var nacer: float = T_NACER_BOLA
+	var morir_s: float = T_MORIR_BOLA
+	if figura == Figura.HAZ:
+		nacer = _t_nacer_haz()                      # depende de cuántas púas tenga (una tras otra)
+		morir_s = 0.8                               # se hunden en orden: la punta primero, la mano la última
+	elif es_vol:
+		nacer = T_NACER
+		morir_s = T_MORIR
+	if ap != null and _figura_anim == int(figura) and absf(_t_nacer_act - nacer) < 0.001:
 		return
 	if ap == null:
 		ap = AnimationPlayer.new()
 		ap.name = "Anim"
 		add_child(ap)
 	_figura_anim = int(figura)
-	var es_vol: bool = figura != Figura.BOLA
-	var nacer: float = T_NACER_BOLA
-	var morir_s: float = T_MORIR_BOLA
-	if figura == Figura.HAZ:
-		nacer = T_NACER_HAZ
-		morir_s = T_MORIR
-	elif es_vol:
-		nacer = T_NACER
-		morir_s = T_MORIR
+	_t_nacer_act = nacer
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	for nom in ["nacer", "vivir", "morir"]:
 		var an: Animation = Animation.new()
@@ -972,23 +1207,43 @@ func _avanzar_bloques(delta: float) -> void:
 	var hd: float = clampf(hunde, 0.0, 1.0)
 	var tt: float = Time.get_ticks_msec() * 0.001
 	_y_act = []
-	var k_ant: float = ANTICIPO if figura != Figura.HAZ else 0.05
+	var es_haz: bool = figura == Figura.HAZ
+	var k_ant: float = ANTICIPO if not es_haz else 0.0
 	var asentados: int = 0
+	var techo_puesto: bool = true
 	for j in _bloques.size():
 		var b: Dictionary = _bloques[j]
 		var ret: float = float(b["retraso"])
 		var h: float = float(b["h"]) * altura
-		var s: float = clampf((sb - k_ant - ret * (1.0 - k_ant)) / maxf(1.0 - k_ant - ret * (1.0 - k_ant), 0.01), 0.0, 1.0)
-		var y: float = subida(s) * h
+		var pos: Vector3 = b["pos"]
+		var alto_sube: float = h + maxf(pos.y, 0.0)                                 # lo que tiene que recorrer desde bajo tierra hasta su sitio (las losas del techo, más)
+		var dur: float = float(b.get("dur", -1.0))
+		var s: float
+		if dur > 0.0:
+			s = clampf((sb - ret) / dur, 0.0, 1.0)                                   # púas: cada una sale en su momento y tarda lo mismo
+		else:
+			s = clampf((sb - k_ant - ret * (1.0 - k_ant)) / maxf(1.0 - k_ant - ret * (1.0 - k_ant), 0.01), 0.0, 1.0)
+		var y: float = subida(s) * alto_sube
 		if s >= 0.95:
 			asentados += 1
-		var pos: Vector3 = b["pos"]
-		if sb < k_ant + ret or (hd > 0.0 and hd < 0.3):                              # anticipación: temblor antes de salir; al morir, tiembla antes de hundirse
+		elif bool(b.get("techo", false)):
+			techo_puesto = false
+		var rh: float = float(b.get("ret_hunde", -1.0))
+		var tiembla: bool = (sb < k_ant + ret) if not es_haz else (sb < ret and sb > ret - 0.08)
+		if hd > 0.0:
+			tiembla = tiembla or ((hd < 0.3) if rh < 0.0 else (hd >= rh and hd < rh + 0.08))
+		if tiembla:                                                                  # temblor antes de salir; al morir, antes de hundirse
 			pos += Vector3(sin(tt * 61.0 + float(j) * 1.7), 0.0, cos(tt * 53.0 + float(j))) * 0.015
 		if hd > 0.0:
-			y -= h * 1.05 * smoothstep(0.25, 1.0, hd)
+			if rh >= 0.0:
+				y -= alto_sube * 1.05 * smoothstep(rh + 0.04, rh + 0.42, hd)            # en orden (la punta del haz primero); a hunde = 1 todas bajo tierra
+			else:
+				y -= alto_sube * 1.05 * smoothstep(0.25, 1.0, hd)
+		if es_haz and s >= 0.62 and not bool(b["soltado"]) and delta > 0.0:
+			b["soltado"] = true
+			_cascotes_de(b)                                                          # al asomar del todo: cascotes y polvo de su base
 		_y_act.append(y)
-		var visible: bool = y > -h * 0.999 and h > 0.0005
+		var visible: bool = y > -alto_sube * 0.999 and h > 0.0005
 		var mi: MultiMeshInstance3D = _bloques_mms[int(b["mm"])]
 		if mi == null or not is_instance_valid(mi):
 			continue
@@ -999,8 +1254,83 @@ func _avanzar_bloques(delta: float) -> void:
 			mm.set_instance_custom_data(idx, Color(float(b["tono"]), 1.0, 0.0, 0.0))
 		else:
 			HieloMallas.ocultar(mm, idx)
+	_avanzar_grietas(sb, hd)
+	_avanzar_brillo(delta, techo_puesto and sb >= 0.999 and figura == Figura.BARRERA, hd)
 	if delta > 0.0 and is_inside_tree():
-		_polvo_de_bloques(delta, sb, hd, k_ant, asentados)
+		_polvo_de_bloques(delta, sb, hd, k_ant, asentados if not es_haz else 0)
+
+
+## HAZ: las grietas corren por delante de las púas (`avance` = hasta dónde ha llegado la secuencia, un tramo por delante) y se van al hundirse.
+func _avanzar_grietas(sb: float, hd: float) -> void:
+	if _grietas == null or not is_instance_valid(_grietas):
+		return
+	var m: ShaderMaterial = _grietas.material_override as ShaderMaterial
+	if m == null:
+		return
+	var t_n: float = _t_nacer_haz()
+	var avance: float = clampf((sb * t_n + 0.12) / maxf(t_n - SUBE_PUA_S, 0.05), 0.0, 1.0)      # en segundos: a la vez que brota la púa k, la grieta va unas púas por delante
+	m.set_shader_parameter("avance", avance)
+	m.set_shader_parameter("vida", (1.0 - smoothstep(0.0, 0.7, hd)) * smoothstep(0.0, 0.02, sb))
+
+
+## (pruebas) `avance` y `vida` de las grietas del haz (-1 si no las hay).
+func estado_grietas() -> Dictionary:
+	if _grietas == null or not is_instance_valid(_grietas) or not (_grietas.material_override is ShaderMaterial):
+		return {"avance": -1.0, "vida": -1.0}
+	var m: ShaderMaterial = _grietas.material_override as ShaderMaterial
+	return {"avance": float(m.get_shader_parameter("avance")), "vida": float(m.get_shader_parameter("vida"))}
+
+
+## BARRERA: al cerrarse la cúpula (las losas del techo asentadas) un destello de polvo y un disco pardo-naranja tenue dentro que se apaga en 0,4 s.
+func _avanzar_brillo(delta: float, cerrada: bool, hd: float) -> void:
+	if _brillo == null or not is_instance_valid(_brillo):
+		return
+	var sm: StandardMaterial3D = _brillo.material_override as StandardMaterial3D
+	if sm == null:
+		return
+	if cerrada and _t_cerrada < 0.0 and delta > 0.0 and _listo:                # solo con tiempo real: al construir (sube = 1 por defecto) no cuenta
+		_t_cerrada = 0.0
+		if _polvo != null and is_instance_valid(_polvo) and is_inside_tree():
+			var tr: Transform3D = global_transform
+			for q in 8:
+				var a: float = TAU * float(q) / 8.0
+				var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
+				_polvo.call("emitir", tr * (d * maxf(semieje_x, semieje_z) * 0.7 + Vector3(0, semieje_y * 0.9, 0)), tr.basis * (d * randf_range(1.0, 1.8) + Vector3(0, 0.5, 0)), 0.9, 1.1)
+	elif _t_cerrada >= 0.0:
+		_t_cerrada += delta
+	var alfa: float = 0.0
+	if _t_cerrada >= 0.0 and hd <= 0.0:
+		alfa = 0.3 * (1.0 - smoothstep(0.0, 0.4, _t_cerrada))
+	sm.albedo_color.a = alfa
+	_brillo.visible = alfa > 0.005
+
+
+## (pruebas) opacidad actual del brillo interior de la cúpula y segundos desde que se cerró (-1 si no se ha cerrado).
+func estado_brillo() -> Dictionary:
+	var a: float = 0.0
+	if _brillo != null and is_instance_valid(_brillo) and _brillo.material_override is StandardMaterial3D:
+		a = (_brillo.material_override as StandardMaterial3D).albedo_color.a
+	return {"alfa": a, "cerrada_hace": _t_cerrada}
+
+
+## Cascotes y polvo que saltan de la base de una púa al asomar del todo (y de una laja, menos).
+func _cascotes_de(b: Dictionary) -> void:
+	if _polvo == null or not is_instance_valid(_polvo) or _piedras == null or not is_instance_valid(_piedras) or not is_inside_tree():
+		return
+	var tr: Transform3D = global_transform
+	var k: float = clampf(chispas, 0.0, 1.0)
+	var w: float = float(b["wx"]) * ancho
+	var p0: Vector3 = b["pos"]
+	var es_laja: bool = String(b["malla"]).begins_with("laja_")
+	_piedras.set("suelo_y", global_position.y + 0.01)
+	for q in (1 if es_laja else 2):
+		var a: float = randf() * TAU
+		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
+		_polvo.call("emitir", tr * (p0 + d * w * 0.4 + Vector3(0, 0.05, 0)), tr.basis * (d * randf_range(0.8, 1.6) + Vector3(0, 0.4, 0)), 0.8, randf_range(0.6, 0.9) * sqrt(maxf(w, 0.3)))
+	if not es_laja and randf() < 0.9 * k:
+		var a2: float = randf() * TAU
+		var d2: Vector3 = Vector3(cos(a2), 0.0, sin(a2))
+		_piedras.call("emitir", tr * (p0 + Vector3(0, 0.1, 0) + d2 * w * 0.4), tr.basis * (d2 * randf_range(0.8, 1.8) + Vector3(0, randf_range(1.2, 2.2), 0)), randf_range(0.9, 1.4), randf_range(0.04, 0.08) * sqrt(maxf(w, 0.3)))
 
 
 ## El polvo de la construcción: en la anticipación sale de la base; al asentarse, polvo radial bajo + fragmentos que ruedan (una vez); al hundirse, polvo mientras baja.
@@ -1010,7 +1340,7 @@ func _polvo_de_bloques(delta: float, sb: float, hd: float, k_ant: float, asentad
 	var tr: Transform3D = global_transform
 	var k: float = clampf(chispas, 0.0, 1.0)
 	_piedras.set("suelo_y", global_position.y + 0.01)
-	if sb < k_ant + 0.2 and sb > 0.0 and asentados == 0:                               # anticipación (y los bloques que aún esperan su retraso): polvo que brota de la base
+	if sb < k_ant + 0.2 and sb > 0.0 and asentados == 0 and figura != Figura.HAZ:      # anticipación (y los bloques que aún esperan su retraso): polvo que brota de la base (el haz lo hace púa a púa)
 		_acc += 40.0 * k * delta
 		while _acc >= 1.0:
 			_acc -= 1.0
