@@ -42,6 +42,8 @@ const MAX_TIPOS: int = 5                                              ## MultiMe
 const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas cónicas facetadas propias (malla_pua), color plano pardo
 const MALLAS_LAJA: Array = ["laja_0", "laja_1"]                      ## lajas de losa facetadas propias (malla_laja)
 const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
+const SH_DECAL: String = "res://presentacion/vfx/toy/decal_suelo.gdshader"      ## 7/11: decal de suelo (se pega al relieve), referencia de LeLu que paso Pablo
+const TEX_MARCA_SUELO: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## mascara de grieta radial del pack de LeLu (negro opaco sobre fondo transparente)
 const COLOR_PUA: Color = Color(0.64, 0.47, 0.30)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
 const COLOR_LAJA: Color = Color(0.50, 0.36, 0.23)
 const PUAS_MAX: int = 14                                              ## púas de un haz (el resto hasta MAX_BLOQUES, lajas)
@@ -358,6 +360,27 @@ static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0
 	mi.material_override = material_roca({"instancias": 1.0, "oscurecer": oscurecer, "base_tierra": base_tierra, "plano": plano, "color_plano": color_plano})
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.custom_aabb = AABB(Vector3.ONE * -40.0, Vector3.ONE * 80.0)
+	return mi
+
+
+## 7/11/2026 (Pablo pasó la referencia de LeLu, CC0): DECAL DE SUELO. Una caja de `ancho` × `alto` × `largo` centrada en `centro` que pinta su máscara sobre lo que haya dentro, siga el
+## relieve que siga. Es lo que un quad tumbado no sabe hacer: en una cuesta o un escalón el quad flota o se mete en la tierra, y el decal se pega. Mismos nombres de parámetro que los
+## quads (`avance`, `vida`), así que lo anima el mismo código. El alto es lo que puede subir o bajar el suelo dentro de la marca: más alto, más cuesta aguanta, y más caja que descartar.
+static func crear_decal_suelo(nombre: String, ancho: float, largo: float, alto: float, params: Dictionary, centro: Vector3, prioridad: int = -2) -> MeshInstance3D:
+	var bm: BoxMesh = BoxMesh.new()
+	bm.size = Vector3(ancho, alto, largo)
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = nombre
+	mi.mesh = bm
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(SH_DECAL)
+	m.render_priority = prioridad
+	m.set_shader_parameter("media_caja", 0.5)
+	for k in params:
+		m.set_shader_parameter(k, params[k])
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = centro
 	return mi
 
 

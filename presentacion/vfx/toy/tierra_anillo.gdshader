@@ -13,6 +13,11 @@ uniform float ancho_borde : hint_range(0.02, 0.4) = 0.16;
 uniform vec3 color_borde : source_color = vec3(0.76, 0.58, 0.40);
 uniform vec3 color_interior : source_color = vec3(0.40, 0.27, 0.16);
 uniform vec3 color_grieta : source_color = vec3(0.06, 0.04, 0.03);
+// 7/11/2026 (texturas que bajó Pablo, LeLu VFX; su readme deja usarlas sin crédito): encima de las seis grietas radiales de código va una MARCA DE SUELO de verdad
+// (`T_Groundmark19.png`: grietas negras sobre blanco, con el centro roto), que es lo que da el reventón irregular que no sale de seis rectas. `marca_peso` 0 la apaga.
+uniform sampler2D marca_tex : source_color, filter_linear_mipmap;
+uniform float marca_peso : hint_range(0.0, 1.0) = 0.0;
+uniform float marca_giro = 0.0;                  // radianes: cada golpe la gira, para que dos seguidos no salgan calcados
 
 float hash1(float n) {
 	return fract(sin(n * 127.1 + semilla * 311.7) * 43758.5453);
@@ -51,6 +56,18 @@ void fragment() {
 	g *= step(0.08 * apertura, r) * (1.0 - borde);
 	vec3 col = mix(color_interior, color_borde, borde);
 	col = mix(col, color_grieta, g);
+	// la marca: se muestrea girada y encogida a lo que lleve abierto el disco, y lo OSCURO de la textura (las grietas) se lleva el color a `color_grieta`
+	if (marca_peso > 0.001) {
+		float cg = cos(marca_giro);
+		float sg = sin(marca_giro);
+		vec2 qm = vec2(q.x * cg - q.y * sg, q.x * sg + q.y * cg) / max(apertura, 0.01);
+		vec2 uvm = qm * 0.5 + 0.5;
+		if (uvm.x > 0.0 && uvm.x < 1.0 && uvm.y > 0.0 && uvm.y < 1.0) {
+			vec4 tm = texture(marca_tex, uvm);
+			float m = tm.a * (1.0 - tm.r);                      // grieta = píxel OPACO y oscuro (el fondo de la textura es transparente, no blanco)
+			col = mix(col, color_grieta, clamp(m, 0.0, 1.0) * marca_peso * (1.0 - borde));
+		}
+	}
 	ALBEDO = col;
 	ALPHA = vida;
 }

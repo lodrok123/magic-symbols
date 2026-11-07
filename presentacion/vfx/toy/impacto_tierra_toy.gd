@@ -16,6 +16,9 @@ extends Node3D
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const SH_ANILLO: String = "res://presentacion/vfx/toy/tierra_anillo.gdshader"
+const TEX_MARCA: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## marca de suelo (grietas negras sobre blanco) del pack de LeLu: su readme deja usarla sin credito
+const MARCA_PESO: float = 0.75                        ## cuanto pinta la marca de suelo sobre el interior del anillo (0 = solo las grietas de codigo)
+@export var color_marca: Color = Color(0.07, 0.05, 0.04)        ## color de la marca de suelo del anillo: el pardo casi negro de la tierra (el magma la pone carmesí)
 
 enum Variante { GOLPE, FIN, REBOTE, AREA }
 
@@ -184,9 +187,13 @@ func _construir() -> void:
 	# GOLPE: el anillo que se abre y las púas que asoman en el centro
 	if bool(_p["anillo"]):
 		var rc: float = clampf(r * 2.4, 0.5, 2.2)
-		_anillo = TierraToy.crear_quad_suelo("Anillo", 2.0 * rc, 2.0 * rc, SH_ANILLO, {"apertura": 0.0, "vida": 1.0, "semilla": _rng.randf(), "lados": 9}, Vector3(0, 0.02, 0), -2)
+		# 7/11: encima de las grietas de código, la MARCA DE SUELO de verdad (`T_Groundmark19.png`, del pack de LeLu que bajó Pablo), girada al azar en cada golpe
+		_anillo = TierraToy.crear_quad_suelo("Anillo", 2.0 * rc, 2.0 * rc, SH_ANILLO, {"apertura": 0.0, "vida": 1.0, "semilla": _rng.randf(), "lados": 9,
+			"marca_tex": load(TEX_MARCA), "marca_peso": MARCA_PESO, "marca_giro": _rng.randf() * TAU, "color_grieta": color_marca}, Vector3(0, 0.02, 0), -2)
 		_anillo.rotation.y = _rng.randf() * TAU
 		_plano.add_child(_anillo)
+		# 7/11: la marca como DECAL (`TierraToy.crear_decal_suelo`) se probó aquí y NO proyecta sobre el suelo en esta escena —solo pinta las rocas que caen dentro de la caja—, así que
+		# de momento la marca la pinta el propio anillo con la textura (`marca_tex`). El shader queda en el repo con el hallazgo escrito; ver el DIARIO 428.
 		_puas_mm = TierraToy.crear_mm("Puas", N_PUAS, TierraToy.malla_roca("pua_1"), 0.0, 0.0, 1.0, TierraToy.COLOR_PUA)
 		_plano.add_child(_puas_mm)
 		for j in N_PUAS:
