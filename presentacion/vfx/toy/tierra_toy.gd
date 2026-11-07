@@ -42,9 +42,13 @@ const MAX_TIPOS: int = 5                                              ## MultiMe
 const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas cónicas facetadas propias (malla_pua), color plano pardo
 const MALLAS_LAJA: Array = ["laja_0", "laja_1"]                      ## lajas de losa facetadas propias (malla_laja)
 const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
-const COLOR_PUA: Color = Color(0.56, 0.40, 0.25)                      ## pardo tierra del suelo del bosque (en juego ≈ 0,62·0,40·0,22), un punto más oscuro que el polvo claro
+const COLOR_PUA: Color = Color(0.64, 0.47, 0.30)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
 const COLOR_LAJA: Color = Color(0.50, 0.36, 0.23)
 const PUAS_MAX: int = 14                                              ## púas de un haz (el resto hasta MAX_BLOQUES, lajas)
+const ACLARA_PUA: float = 1.45                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
+const ANCHO_PUA: float = 0.42                                        ## ancho de la pua = este x su alto (7/11, video de tierra: roca estirada, no lamina)
+const PUA_ANCHO_MAX_R: float = 2.6                                    ## x el radio del haz: tope de ese ancho (que no se salga del corredor mas de la cuenta)
+const PUA_ALTO_MAX: float = 1.3                                        ## m de alto de una pua (antes salia de la altura de la mano: casi 2 m de aguja)
 const PASO_PUA_S: float = 0.05                                        ## s entre el brote de una púa y la siguiente
 const SUBE_PUA_S: float = 0.14                                        ## s que tarda cada púa en salir (con su sobrepaso)
 const N_AVISO: int = 8                                                ## piedrecitas del anillo de aviso de la carga
@@ -971,6 +975,10 @@ func _montar_bloques(c: Node3D, capa: Array) -> void:
 		var plano: bool = es_plana(String(id))
 		var mi: MultiMeshInstance3D = crear_mm("Bloques" if k == 0 else "Bloques_" + String(id), lista.size(), malla_roca(id), 0.0, 0.0 if plano else 1.0, 1.0 if plano else 0.0,
 			COLOR_LAJA if String(id).begins_with("laja_") else COLOR_PUA)
+		if plano:
+			# 7/11 (vídeo de tierra): la púa ya no corta a ras de suelo —su base tira al color de la tierra, como el resto de bloques— y lleva suelo de luz para no irse a negro en el Bosque
+			(mi.material_override as ShaderMaterial).set_shader_parameter("base_tierra", 1.0)
+			(mi.material_override as ShaderMaterial).set_shader_parameter("aclara_pua", ACLARA_PUA)
 		c.add_child(mi)
 		_bloques_mms.append(mi)
 		for j in lista.size():
@@ -1107,13 +1115,17 @@ func _haz(c: Node3D) -> void:
 	for i in n:
 		var f: float = (float(i) + 0.5) / float(n)
 		var crece: float = 0.45 + 0.75 * f                                                          # de menor (mano) a mayor (punta)
-		var w: float = clampf(_haz_r * rng.randf_range(0.6, 0.8) * crece, 0.08, 0.7)
+		# 7/11 (vídeo de tierra): la púa es una ROCA estirada, no una lámina. Antes el ancho salía del semieje Z del haz (0,17 m en el juego) y el alto de la mano (≈ 1,8 m): 1 a 20, una
+		# cuchilla. Ahora el ancho sale del ALTO (`ANCHO_PUA`), que es lo que hace que se lea como piedra, y el corredor del haz solo le pone un tope (`_haz_r × PUA_ANCHO_MAX_R`).
+		var alto: float = clampf(_haz_alt * 2.0 * rng.randf_range(0.96, 1.04) * crece, 0.2, PUA_ALTO_MAX)
+		var w: float = clampf(alto * ANCHO_PUA * rng.randf_range(0.85, 1.15), 0.12, maxf(_haz_r * PUA_ANCHO_MAX_R, 0.3))
 		var lado: float = rng.randf_range(-0.55, 0.55) * _haz_r
 		var id: String = MALLAS_PUA[i % MALLAS_PUA.size()]
 		var ret: float = (0.05 + PASO_PUA_S * float(i)) / t_nacer
 		var pos: Vector3 = Vector3(lado, 0.0, -f * _haz_largo)
-		var b: Dictionary = _b(id, pos, HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.12, 0.3), rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)), w, _haz_alt * 2.0 * rng.randf_range(0.96, 1.04) * crece, w * rng.randf_range(0.85, 1.0), ret, rng)
-		b["dur"] = dur_f
+		var b: Dictionary = _b(id, pos, HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.12, 0.3), rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)), w, alto, w * rng.randf_range(0.85, 1.0), ret, rng)
+		b["dur"] = dur_f * rng.randf_range(0.85, 1.2)                                               # cada púa tarda lo suyo en salir, no todas lo mismo
+		b["sobre"] = rng.randf_range(SOBREPASO * 0.6, SOBREPASO * 1.9)                              # …y se pasa de su sitio lo suyo: el easing por clave del vídeo
 		b["ret_hunde"] = (1.0 - f) * 0.5
 		capa.append(b)
 		# lajas: 1-2 losas en la base, a un lado y a otro, levantadas hacia fuera (la losa del suelo se rompe y se alza)
@@ -1186,12 +1198,14 @@ func _anim_si_hace_falta() -> void:
 
 # ------------------------------------------------------------------ subir, asentarse y hundirse ------------------------------------------------------------------
 
-## Desplazamiento vertical (fracción del alto, 0 = en su sitio, −1 = bajo tierra) de un bloque con `s` (0..1 tras su anticipación): sube deprisa, se pasa SOBREPASO y se asienta.
-static func subida(s: float) -> float:
+## Desplazamiento vertical (fracción del alto, 0 = en su sitio, −1 = bajo tierra) de un bloque con `s` (0..1 tras su anticipación): sube deprisa, se pasa `sobre` y se asienta.
+## 7/11 (vídeo de tierra de Pablo, `docs/capturas/referencias/tierra_video_godot/`): allí cada púa lleva SU easing a mano en la clave, no una curva igual para todas; aquí el sobrepaso
+## es por bloque (`b["sobre"]`, con SOBREPASO de defecto para todo lo demás: muro, pilar, barrera y el impacto, que no cambian).
+static func subida(s: float, sobre: float = SOBREPASO) -> float:
 	var u: float = clampf(s, 0.0, 1.0)
 	if u < 0.62:
-		return -1.0 + (1.0 + SOBREPASO) * smoothstep(0.0, 1.0, u / 0.62)
-	return SOBREPASO * (1.0 - smoothstep(0.0, 1.0, (u - 0.62) / 0.38))
+		return -1.0 + (1.0 + sobre) * smoothstep(0.0, 1.0, u / 0.62)
+	return sobre * (1.0 - smoothstep(0.0, 1.0, (u - 0.62) / 0.38))
 
 
 ## (pruebas) desplazamiento vertical actual (m) de cada bloque.
@@ -1223,7 +1237,7 @@ func _avanzar_bloques(delta: float) -> void:
 			s = clampf((sb - ret) / dur, 0.0, 1.0)                                   # púas: cada una sale en su momento y tarda lo mismo
 		else:
 			s = clampf((sb - k_ant - ret * (1.0 - k_ant)) / maxf(1.0 - k_ant - ret * (1.0 - k_ant), 0.01), 0.0, 1.0)
-		var y: float = subida(s) * alto_sube
+		var y: float = subida(s, float(b.get("sobre", SOBREPASO))) * alto_sube
 		if s >= 0.95:
 			asentados += 1
 		elif bool(b.get("techo", false)):

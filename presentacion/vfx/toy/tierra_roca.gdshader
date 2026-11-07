@@ -19,6 +19,9 @@ uniform float base_tierra : hint_range(0.0, 1.0) = 0.0;
 uniform float instancias : hint_range(0.0, 1.0) = 0.0;
 uniform float oscurecer : hint_range(0.0, 1.0) = 0.0;
 uniform float brillo : hint_range(0.3, 3.0) = 1.0;
+// 7/11: en el Bosque las púas del haz salían casi negras contra la hierba clara (caras muy inclinadas: el sol les da de canto y el ambiente no llega). Se sube el ALBEDO del color
+// plano, que es lo único que se puede tocar aquí: esta roca va con la luz de la escena y SIN emisión a propósito (regla del 6/11, la vigila `prueba_viento_tierra_toy`).
+uniform float aclara_pua : hint_range(1.0, 2.5) = 1.0;
 
 varying float altura;
 varying float tono;
@@ -34,7 +37,7 @@ void fragment() {
 	col = mix(col, color_base, base_tierra * (1.0 - smoothstep(0.0, 0.2, altura)) * 0.5);
 	col *= mix(0.88, 1.08, tono);
 	col *= 1.0 - 0.35 * oscurecer;
-	ALBEDO = col * brillo;
+	ALBEDO = col * mix(1.0, aclara_pua, plano) * brillo;
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.0;
