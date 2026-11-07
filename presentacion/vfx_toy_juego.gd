@@ -700,6 +700,11 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 		t.look_at(t.global_position + al, Vector3.UP)
 	t.call("lanzar", -1.0)
 	_ritmo_nacer(t, float(h.get_meta(META_RITMO_NACER, 1.0)))
+	# 7/11: la vida del haz (HAZ_DURA_S 0,9 s) puede ser MENOR que su «nacer» (el haz de tierra con 14 púas tarda 0,94 s en brotar): el hundimiento empezaba antes de que salieran las últimas y nunca
+	# se veían todas arriba. El dibujo aguanta al menos lo que tarda en nacer + una pausa; la lógica (daño, casillas) sigue con su HAZ_DURA_S.
+	var ap_n: AnimationPlayer = t.get_node_or_null("Anim") as AnimationPlayer
+	if ap_n != null and ap_n.has_animation("nacer"):
+		vida = maxf(vida, ap_n.get_animation("nacer").length / maxf(ap_n.speed_scale, 0.05) + 0.45)
 	_expira_en(t, maxf(vida, 0.3))
 
 

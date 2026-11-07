@@ -46,10 +46,10 @@ const MALLAS_LAJA: Array = ["laja_0", "laja_1"]                      ## lajas de
 const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
 const SH_DECAL: String = "res://presentacion/vfx/toy/decal_suelo.gdshader"      ## 7/11: decal de suelo (se pega al relieve), referencia de LeLu que paso Pablo
 const TEX_MARCA_SUELO: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## mascara de grieta radial del pack de LeLu (negro opaco sobre fondo transparente)
-const COLOR_PUA: Color = Color(0.64, 0.47, 0.30)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
-const COLOR_LAJA: Color = Color(0.50, 0.36, 0.23)
+const COLOR_PUA: Color = Color(0.56, 0.38, 0.24)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
+const COLOR_LAJA: Color = Color(0.56, 0.38, 0.24)               ## 7/11: igual que la púa (antes más oscura: las lajas inclinadas enseñaban su cara en sombra como un trazo negro)
 const PUAS_MAX: int = 14                                              ## púas de un haz (el resto hasta MAX_BLOQUES, lajas)
-const ACLARA_PUA: float = 1.45                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
+const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
 const ANCHO_PUA: float = 0.42                                        ## ancho de la pua = este x su alto (7/11, video de tierra: roca estirada, no lamina)
 const PUA_ANCHO_MAX_R: float = 2.6                                    ## x el radio del haz: tope de ese ancho (que no se salga del corredor mas de la cuenta)
 const PUA_ALTO_MAX: float = 1.3                                        ## m de alto de una pua (antes salia de la altura de la mano: casi 2 m de aguja)
@@ -87,6 +87,7 @@ const ANTICIPO: float = 0.1 / T_NACER   ## fracción de `sube` que dura el tembl
 const SOBREPASO: float = 0.1            ## cuánto se pasa de su sitio antes de asentarse (fracción del alto)
 const MAX_BLOQUES: int = 24
 const POLVO_FIG: int = 18
+const POLVO_FIG_HAZ: int = 72                                         ## el haz suelta ~5 bocanadas por púa y hasta 14 púas: reserva mayor para que no se recicle la nube de las primeras
 const PIEDRAS_FIG: int = 24
 
 
@@ -132,12 +133,19 @@ static func es_plana(id: String) -> bool:
 	return id.begins_with("pua_") or id.begins_with("laja_")
 
 
-## Triángulo con normal PLANA (vértices sin compartir: cada cara es una faceta).
-static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
+## Triángulo con normal PLANA (vértices sin compartir: cada cara es una faceta), con la normal HACIA FUERA de `centro` y el orden de los vértices de cara (horario visto desde fuera, como pide
+## Godot). 7/11: antes la normal salía de la regla de la mano derecha sin mirar el lado: la tapa de las lajas llevaba la normal hacia ABAJO y el sol la dejaba negra (los «trazos negros» del haz).
+static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, centro: Vector3) -> void:
 	var n: Vector3 = (b - a).cross(c - a)
 	if n.length() < 1.0e-9:
 		return
 	n = n.normalized()
+	if n.dot((a + b + c) / 3.0 - centro) > 0.0:
+		var x: Vector3 = b                                              # la mano derecha da antihorario desde fuera: se cambia el orden
+		b = c
+		c = x
+	else:
+		n = -n
 	for v in [a, b, c]:
 		st.set_normal(n)
 		st.set_uv(Vector2(0.5, 0.5))
@@ -201,12 +209,12 @@ static func malla_laja(variante: int) -> ArrayMesh:
 	var st: SurfaceTool = SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var ca: Vector3 = Vector3(0.0, grueso, 0.0)
+	var cl: Vector3 = Vector3(0.0, grueso * 0.5, 0.0)                    # centro de la losa: hacia fuera de aquí van las normales
 	for i in lados:
 		var j: int = (i + 1) % lados
-		_tri(st, ca, arriba[i], arriba[j])                      # tapa
-		_tri(st, Vector3.ZERO, abajo[j], abajo[i])              # fondo
-		_tri(st, abajo[i], arriba[i], abajo[j])                 # lados
-		_tri(st, abajo[j], arriba[i], arriba[j])
+		_tri(st, ca, arriba[i], arriba[j], cl)                  # tapa
+		_tri(st, abajo[i], arriba[i], abajo[j], cl)             # lados
+		_tri(st, abajo[j], arriba[i], arriba[j], cl)
 	return st.commit()
 
 
@@ -874,6 +882,7 @@ func lanzar(v: float = -1.0) -> void:
 		_t_cerrada = -1.0
 		for b in _bloques:
 			(b as Dictionary)["soltado"] = false
+			(b as Dictionary)["polvo_ya"] = false
 		_avanzar_bloques(0.0)
 		_brote_anticipo()
 	super.lanzar(v)
@@ -1166,7 +1175,7 @@ func _haz(c: Node3D) -> void:
 			var al: float = (PI * 0.5 if q == 0 else -PI * 0.5) + rng.randf_range(-0.7, 0.7)
 			var dl: Vector3 = Vector3(sin(al), 0.0, cos(al))
 			var wl: float = w * rng.randf_range(0.9, 1.4)
-			var bl: Dictionary = _b(MALLAS_LAJA[(i + q) % MALLAS_LAJA.size()], pos + dl * (w * 0.55 + wl * 0.3) + Vector3(0, 0, rng.randf_range(-0.05, 0.05)), HieloMallas._inclinar(-dl, rng.randf_range(0.35, 0.7), rng.randf() * TAU), wl, wl * rng.randf_range(0.14, 0.2), wl, ret + 0.015, rng)
+			var bl: Dictionary = _b(MALLAS_LAJA[(i + q) % MALLAS_LAJA.size()], pos + dl * (w * 0.55 + wl * 0.3) + Vector3(0, 0, rng.randf_range(-0.05, 0.05)), HieloMallas._inclinar(-dl, rng.randf_range(0.12, 0.3), rng.randf() * TAU), wl, wl * rng.randf_range(0.14, 0.2), wl, ret + 0.015, rng)
 			bl["dur"] = dur_f
 			bl["ret_hunde"] = (1.0 - f) * 0.5 + 0.03
 			lajas.append(bl)
@@ -1283,6 +1292,9 @@ func _avanzar_bloques(delta: float) -> void:
 				y -= alto_sube * 1.05 * smoothstep(rh + 0.04, rh + 0.42, hd)            # en orden (la punta del haz primero); a hunde = 1 todas bajo tierra
 			else:
 				y -= alto_sube * 1.05 * smoothstep(0.25, 1.0, hd)
+		if es_haz and s >= 0.08 and not bool(b.get("polvo_ya", false)) and delta > 0.0:
+			b["polvo_ya"] = true
+			_polvo_pua(b)                                                            # 7/11 (Pablo): la púa rompe el suelo y suelta su nube baja y corta
 		if es_haz and s >= 0.62 and not bool(b["soltado"]) and delta > 0.0:
 			b["soltado"] = true
 			_cascotes_de(b)                                                          # al asomar del todo: cascotes y polvo de su base
@@ -1355,6 +1367,21 @@ func estado_brillo() -> Dictionary:
 	if _brillo != null and is_instance_valid(_brillo) and _brillo.material_override is StandardMaterial3D:
 		a = (_brillo.material_override as StandardMaterial3D).albedo_color.a
 	return {"alfa": a, "cerrada_hace": _t_cerrada}
+
+
+## HAZ: la nube de polvo BAJA y CORTA de una púa (o laja) en el momento en que rompe el suelo: unas bocanadas anchas a ras de suelo que se abren hacia fuera y se van en ~0,5 s.
+func _polvo_pua(b: Dictionary) -> void:
+	if _polvo == null or not is_instance_valid(_polvo) or not is_inside_tree():
+		return
+	var tr: Transform3D = global_transform
+	var w: float = float(b["wx"]) * ancho
+	var p0: Vector3 = b["pos"]
+	var es_laja: bool = String(b["malla"]).begins_with("laja_")
+	var n: int = 1 if es_laja else 4
+	for q in n:
+		var a: float = randf() * TAU
+		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
+		_polvo.call("emitir", tr * (p0 + d * w * 0.3 + Vector3(0, 0.12, 0)), tr.basis * (d * randf_range(0.5, 1.1) + Vector3(0, 0.3, 0)), 0.6, randf_range(1.2, 1.7) * sqrt(maxf(w, 0.3)))
 
 
 ## Cascotes y polvo que saltan de la base de una púa al asomar del todo (y de una laja, menos).
@@ -1448,11 +1475,16 @@ func _montar_reservas() -> void:
 	_polvo = HumoToy.new()
 	_polvo.name = "Polvo"
 	add_child(_polvo)
-	_polvo.call("montar", POLVO_FIG, polvo_params(0.28 * sqrt(maxf(r / 0.4, 0.4)), 0.7 * sqrt(maxf(r / 0.4, 0.4)), 1.0, Vector3(0, 0.35, 0), true))
+	_polvo.call("montar", POLVO_FIG_HAZ if figura == Figura.HAZ else POLVO_FIG, polvo_params(0.28 * sqrt(maxf(r / 0.4, 0.4)), 0.7 * sqrt(maxf(r / 0.4, 0.4)), 1.0, Vector3(0, 0.35, 0), true))
 	_piedras = Piedras.new()
 	_piedras.name = "Terrones"
 	add_child(_piedras)
 	_piedras.call("montar", PIEDRAS_FIG, true)
+	# 7/11: polvo y piedras son top_level (sus posiciones son del MUNDO) pero su MultiMesh trae un custom_aabb de ±40 m alrededor del ORIGEN del mundo: en el juego (el toy a x = 84) la cámara los
+	# descartaba por fuera de su caja y el polvo y los cascotes no se veían nunca (en el lab, junto al origen, sí). Caja enorme: nunca se descartan.
+	for n in [_polvo, _piedras]:
+		for mi in (n as Node).find_children("*", "MultiMeshInstance3D", true, false):
+			(mi as MultiMeshInstance3D).custom_aabb = AABB(Vector3.ONE * -4000.0, Vector3.ONE * 8000.0)
 
 
 func _process(delta: float) -> void:
