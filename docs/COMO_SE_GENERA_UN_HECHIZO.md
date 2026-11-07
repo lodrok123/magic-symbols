@@ -1,4 +1,4 @@
-# Cómo se genera un hechizo en Magic Symbols
+# Cómo se genera un hechizo en Magic Symbols (y cómo se le hace el VFX)
 
 Contexto para empezar en frío (escrito el 7/11/2026). Resume la cadena entera, de lo que dibuja la jugadora a lo que se ve en pantalla, y dice en qué archivo vive cada pieza. Lo que no esté aquí, está en `docs/DIARIO.md` (entradas numeradas, lo último al final) y en `docs/ESPEC_HECHIZO.md`.
 
@@ -78,6 +78,67 @@ Para golpear a algo, ese algo implementa el contrato `on_spell_hit(rune_data, di
 
 **Reglas de rendimiento de este proyecto** (GPU integrada): los toys usan **MultiMesh por CPU**, **nada de `GPUParticles3D`**, y **una luz como mucho** por hechizo.
 
+## 7 bis. Cómo se hace un VFX aquí
+
+Esta es la parte práctica: qué hay que escribir para que un elemento tenga efecto, y con qué se juzga.
+
+### El contrato, de abajo arriba
+
+Son tres capas, cada una sobre la anterior:
+
+1. **`EfectoVfx3D`** (`presentacion/vfx/efectos/efecto_vfx_3d.gd`): el contrato mínimo de cualquier efecto. `preparar(volumen, dir, elemento)` lo escala al hechizo, `lanzar(vida)` lo pone en marcha, `morir()` lo apaga, `impactar()` para los proyectiles. La escena lleva el dibujo y un `AnimationPlayer` con **«nacer», «vivir» (en bucle) y «morir»**.
+2. **`EfectoToy`** (`presentacion/vfx/toy/`): añade los **diez mandos** que más cambian el aspecto, en castellano y con rango, para tocarlos en el inspector sin abrir código: altura, chisporroteo, blandura, ondulación, velocidad, brillo, halo, tono, chispas y luz. Cada instancia **duplica sus materiales al nacer**, así que mover un mando en una no toca a las demás. Fuera de los diez: `vida` y `aparicion` (0 apagado, 1 pleno; lo animan «nacer» y «morir»).
+3. **El toy del elemento** (`FuegoToy`, `AguaToy`, `HieloToy`, `RayoToy`, `MagmaToy`, `VientoToy`, `TierraToy`): la geometría se **construye por código** a partir de la figura y los tres semiejes, no se monta en el editor.
+
+### La API que todos comparten
+
+```gdscript
+definir(figura, x, y, z, vuela)   # figura + semiejes en METROS; la geometría se rehace sola
+desde_hechizo(h)                  # lee el Hechizo y rellena figura, tamaños y vuelo
+preparar(volumen, dir, elemento)  # lo que manda el lanzador por señal
+lanzar(vida)                      # vida ≤ 0 = la suya
+```
+
+Y el ciclo de un lanzamiento: `empezar_carga(duracion)` → `progreso_carga()` → `soltar(dir)` o `cancelar_carga()` → en el mundo, `impactar_en(pos, normal)`, `rebotar(...)`, `terminar_sin_choque()` → `finalizar(motivo)`.
+
+**Cinco figuras**, iguales para todos: `BOLA`, `MURO`, `PILAR`, `BARRERA`, `HAZ`. Los impactos son clases hermanas (`ImpactoXToy`) con variantes `GOLPE`, `FIN`, `REBOTE` y `AREA`.
+
+**El origen importa**: la bola va por su centro; muro, pilar y barrera, apoyados en el suelo y centrados; el haz sale de la mano hacia −Z. Un muro se alarga por su X local.
+
+### Las reglas que no se saltan
+
+- **GPU integrada**: los toys dibujan con **MultiMesh por CPU**. **Nada de `GPUParticles3D`**. **Una luz como mucho** por hechizo. Hay pruebas que lo miden y fallan si te pasas.
+- **El color sale de la paleta del mundo**, no de un color bonito suelto: la tierra usa la piedra del mapa, el polvo el pardo del suelo del Bosque. Y se juzga **sobre el suelo real del nivel**, no sobre el gris del laboratorio: un color que funciona en el lab puede cantar en el Bosque.
+- **Toon**: color plano, borde duro, sin degradados realistas. De una referencia se toma **la forma y la secuencia, no el estilo**.
+- **La lógica manda**: el toy no decide si hay daño, ni dónde llega; eso ya lo dijo el `Hechizo`. Si hace falta cambiar lo que pasa, se cambia la lógica, no el dibujo.
+- Nada aparece de golpe: todo tiene su **nacer**. Y ojo con que la vida del dibujo sea más corta que su nacer, porque entonces se muere a medio salir.
+
+### Cómo se engancha al juego
+
+`presentacion/vfx_toy_juego.gd` (`VfxToyJuego`) escucha las señales del lanzador y crea el toy que toque:
+
+- `_nuevo(elemento)` elige la clase, `_en_hechizo` / `_haz` montan la figura según lo que diga el `Hechizo`,
+- el ajuste `magic_symbols/vfx_procedural` lo enciende y `vfx_procedural_elementos` dice para qué elementos,
+- el dibujo antiguo (`VfxElemento3D`) se calla para esos elementos.
+
+Para **añadir un elemento**: una clase toy nueva con la misma API, su entrada en `_nuevo`, y meterlo en la lista del ajuste.
+
+### Cómo se comprueba
+
+Un VFX **no se da por bueno porque pase una prueba**: se mira. Pero las pruebas sí guardan lo que se puede medir.
+
+- **Pruebas** (`herramientas/prueba_vfx_toy.gd`, `prueba_viento_tierra_toy.gd`, `prueba_magma_toy.gd`, `prueba_vfx_en_juego.gd`, `prueba_lab_vfx_toys.gd`): que la API esté, que el presupuesto se cumpla (luces, partículas, vértices), que los tiempos del ciclo salgan, que el estilo no se rompa (sin `blend_add`, sin emisión donde no toca, borde duro).
+- **Capturas** (`herramientas/captura_*.gd`): **necesitan ventana**, o sea sin `--headless`. Escriben PNG en `docs/capturas/` y están para mirarlas. Las del juego (`captura_toys_nuevos_juego.gd`) sacan el efecto en el Bosque a varios tiempos; el número del nombre son centésimas de segundo.
+- **Laboratorios**: el de la comparativa (`LabVfxComparativa3D`, F6) tiene los siete elementos, los diez mandos en vivo y la tecla 4, que los pone **todos a la vez con la misma figura** para compararlos de un vistazo. El de hechizos (F4) tiene la matriz de aprobación.
+- **No se hacen laboratorios nuevos**: se amplían los que hay.
+
+### Trampas que ya nos han mordido
+
+- **Culling**: los MultiMesh de polvo y piedras son `top_level` y necesitan un `custom_aabb` grande. Con uno pequeño alrededor del origen del mundo, el efecto **desaparece entero** lejos del origen: en el laboratorio se ve y en el juego no.
+- **Normales**: al construir una malla a mano, calcular la normal sin mirar hacia qué lado cae deja caras **negras** bajo el sol.
+- **Transparencias**: una máscara de textura puede venir con el fondo transparente en vez de blanco; leer solo el canal rojo la saca invertida.
+- **Decal de suelo**: hay uno en `decal_suelo.gdshader` que proyecta sobre el relieve (lo que un quad tumbado no sabe hacer). Su caja tiene que ser de 1×1×1 **con el tamaño en la escala del nodo**, porque la prueba de «¿está dentro?» es contra ±0,5 en coordenadas locales.
+
 ## 8. Dónde está cada cosa
 
 | Archivo | Qué es |
@@ -89,7 +150,8 @@ Para golpear a algo, ese algo implementa el contrato `on_spell_hit(rune_data, di
 | `magia/lanzador_3d.gd` | grimorio, páginas, preparación, cobro, señales, servicios del mundo |
 | `magia/hechizo_vivo.gd` | la ejecución |
 | `presentacion/vfx_toy_juego.gd` | qué toy se crea para qué hechizo |
-| `presentacion/vfx/toy/*.gd` | los toys y sus shaders |
+| `presentacion/vfx/efectos/efecto_vfx_3d.gd` | el contrato mínimo de un efecto (preparar / lanzar / morir) |
+| `presentacion/vfx/toy/*.gd` | los toys, sus impactos y sus shaders |
 | `laboratorios/lab_hechizos_3d.gd` | el laboratorio de hechizos (F1 receta, F4 matriz de VFX) |
 | `laboratorios/lab_vfx_comparativa_3d.gd` | el laboratorio de VFX (tecla 4: los siete elementos a la vez) |
 
