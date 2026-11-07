@@ -1,4 +1,4 @@
-# Cómo se genera un hechizo en Magic Symbols (y cómo se le hace el VFX)
+# Cómo se genera un hechizo en Magic Symbols (con su VFX y sus reacciones)
 
 Contexto para empezar en frío (escrito el 7/11/2026). Resume la cadena entera, de lo que dibuja la jugadora a lo que se ve en pantalla, y dice en qué archivo vive cada pieza. Lo que no esté aquí, está en `docs/DIARIO.md` (entradas numeradas, lo último al final) y en `docs/ESPEC_HECHIZO.md`.
 
@@ -139,6 +139,39 @@ Un VFX **no se da por bueno porque pase una prueba**: se mira. Pero las pruebas 
 - **Transparencias**: una máscara de textura puede venir con el fondo transparente en vez de blanco; leer solo el canal rojo la saca invertida.
 - **Decal de suelo**: hay uno en `decal_suelo.gdshader` que proyecta sobre el relieve (lo que un quad tumbado no sabe hacer). Su caja tiene que ser de 1×1×1 **con el tamaño en la escala del nodo**, porque la prueba de «¿está dentro?» es contra ±0,5 en coordenadas locales.
 
+## 7 ter. Las reacciones con el entorno
+
+Lo que pasa **después** de que el hechizo toque algo. Dos mundos distintos: lo que le pasa al **suelo** y lo que le pasa a los **objetos**.
+
+### El suelo: estados con reloj, y una tabla
+
+`mundo/estados_suelo_3d.gd` (`EstadosSuelo3D`, datos puros). Cada casilla puede tener **varios estados a la vez** (mojada y electrificada, por ejemplo): mojada, helada, quemada, electrificada, vapor, escombro, segada… Cada uno guarda además **su intensidad** (0 a 1) y **su caducidad** en segundos.
+
+Lo importante es **cómo se decide el paso de un estado a otro**: con una **tabla** (`TRANSICIONES`), no con `if` encadenados. Cada fila dice «con esta acción, si la casilla está así, quita esto y pon esto». Por ejemplo: dos aguas hielan; el agua sobre quemada deja mojada y vapor; el calor sobre helada deja charco y vapor; el magma sobre mojada deja escombro y vapor, que es la costra. Hay otra tabla, `AL_CADUCAR`, para lo que queda cuando un estado se acaba: una helada que caduca deja la casilla mojada.
+
+Quien dibuja (la hierba, el suelo, el agua, los VFX) **no guarda su copia**: pregunta aquí o escucha `Mundo3D.casilla_cambio`. Hay una imagen de estado, un píxel por casilla, que leen todos.
+
+**Dos criterios de Pablo mandan sobre esto:**
+
+1. **Legible.** Un hechizo de agua no moja el escenario entero: cada impacto marca como mucho un tope de casillas, las más cercanas al punto, y cada estado dura lo suyo (mojada y helada 20 s, quemada 8 s, electrificada 6 s).
+2. **Propagación controlada.** Hay tope de casillas vivas por estado (60 mojadas, 40 heladas, 30 electrificadas…) y, al pasarlo, se desaloja primero la que menos reloj le queda. El contagio del fuego avanza pocas casillas por tick.
+
+### Los objetos: papeles, no tipos
+
+`objetos/objetos_3d.gd`. Un objeto no reacciona por ser «un seto», sino por sus **papeles**: inflamable, propaga llama, apaga, mojable, pesado, conduce, congelable, fuente de fuego… `PAPELES_POR_TIPO` da los de cada tipo y cada pieza los retoca con `+nombre` / `-nombre`. Un seto con `-inflamable` no prende; una telaraña con `+mojable` se moja. Una variante es **una diferencia de papeles**, no una clase nueva.
+
+El contagio del fuego es más rápido que la combustión, así que **la única forma de frenar un incendio es quitarle combustible**: por eso la leña mojada no prende durante unos segundos.
+
+### Cómo llega el golpe
+
+- Cualquier nodo que quiera reaccionar implementa **`on_spell_hit(rune_data, direccion, hechizo)`** (un `Area3D` en la capa de reactivos). Se decide por **las etiquetas de la runa, nunca por un `rune_type`**, y si el objeto declara el tercer argumento recibe el `Hechizo` entero: entonces mandan sus propiedades físicas (temperatura, humedad, conductividad, empuje) sobre las etiquetas.
+- Opcionales: `spell_reacts` (¿cambia algo de verdad?), `spell_passes_through` (reacciona pero no detiene), `spell_flies_over` (deja pasar a algunos: el agua al viento), `carried_element` (lo que el viento puede llevarse: una llama).
+- El reparto central es `Mundo3D.aplicar_accion`, que va a las reacciones del agua o del suelo, y los avisos salen por `Mundo3D.avisar_reaccion` con un **catálogo cerrado** de nombres (`R_*`: prendido, apagado, electrificado, empujado…). Ese catálogo es el que escuchan el sonido, el juice y los logros.
+
+### Dónde está el diseño
+
+`docs/REACCIONES_ENTORNO_PROPUESTA_PABLO_2026-11-06.md` es el diseño de Pablo, y `docs/REACCIONES_ENTORNO_2026-11-06.md` contrasta ese diseño con lo que hay en el repo, punto por punto, y recoge **las decisiones de aterrizaje**: estados discretos con reloj en vez de un vector continuo, papeles en vez de un recurso de material con 17 campos, **no se añaden glifos** y el barro se descarta (agua + tierra es naturaleza; el «suelo embarrado» del diseño es tierra mojada, que ya ralentiza). Ese documento también lista lo que **sigue pendiente de decisión de Pablo**.
+
 ## 8. Dónde está cada cosa
 
 | Archivo | Qué es |
@@ -152,6 +185,9 @@ Un VFX **no se da por bueno porque pase una prueba**: se mira. Pero las pruebas 
 | `presentacion/vfx_toy_juego.gd` | qué toy se crea para qué hechizo |
 | `presentacion/vfx/efectos/efecto_vfx_3d.gd` | el contrato mínimo de un efecto (preparar / lanzar / morir) |
 | `presentacion/vfx/toy/*.gd` | los toys, sus impactos y sus shaders |
+| `mundo/estados_suelo_3d.gd` | los estados del suelo y su tabla de transiciones |
+| `objetos/objetos_3d.gd` | los objetos reactivos y sus papeles |
+| `docs/REACCIONES_ENTORNO_*.md` | el diseño de las reacciones y su cobertura real |
 | `laboratorios/lab_hechizos_3d.gd` | el laboratorio de hechizos (F1 receta, F4 matriz de VFX) |
 | `laboratorios/lab_vfx_comparativa_3d.gd` | el laboratorio de VFX (tecla 4: los siete elementos a la vez) |
 
