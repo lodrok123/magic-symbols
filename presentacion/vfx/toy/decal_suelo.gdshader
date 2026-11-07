@@ -31,12 +31,6 @@ uniform float fundido_desde : hint_range(0.0, 1.0) = 0.3;
 uniform float fundido_hasta : hint_range(0.0, 1.0) = 0.8;
 uniform float fundido_curva : hint_range(0.1, 8.0) = 2.0;
 
-varying mat4 INV_MODELO;
-
-void vertex() {
-	INV_MODELO = inverse(MODEL_MATRIX);
-}
-
 vec3 mundo_desde_prof(float prof, vec2 uv_pantalla, mat4 inv_proy, mat4 inv_vista) {
 	vec4 pos_clip = vec4(uv_pantalla * 2.0 - 1.0, prof, 1.0);
 	vec4 pos_vista = inv_proy * pos_clip;
@@ -47,7 +41,8 @@ vec3 mundo_desde_prof(float prof, vec2 uv_pantalla, mat4 inv_proy, mat4 inv_vist
 void fragment() {
 	float prof = texture(DEPTH_TEXTURE, SCREEN_UV).x;
 	vec3 p_mundo = mundo_desde_prof(prof, SCREEN_UV, INV_PROJECTION_MATRIX, INV_VIEW_MATRIX);
-	vec4 p = INV_MODELO * vec4(p_mundo, 1.0);
+	// la inversa se calcula aquí y no con un `varying`: cuatro varyings de más por nada, y así no hay forma de que se pierdan por el camino
+	vec4 p = inverse(MODEL_MATRIX) * vec4(p_mundo, 1.0);
 	if (abs(p.x) > media_caja || abs(p.y) > media_caja || abs(p.z) > media_caja || vida < 0.01) {
 		discard;
 	}

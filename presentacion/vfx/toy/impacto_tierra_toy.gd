@@ -19,6 +19,10 @@ const SH_ANILLO: String = "res://presentacion/vfx/toy/tierra_anillo.gdshader"
 const TEX_MARCA: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## marca de suelo (grietas negras sobre blanco) del pack de LeLu: su readme deja usarla sin credito
 const MARCA_PESO: float = 0.75                        ## cuanto pinta la marca de suelo sobre el interior del anillo (0 = solo las grietas de codigo)
 @export var color_marca: Color = Color(0.07, 0.05, 0.04)        ## color de la marca de suelo del anillo: el pardo casi negro de la tierra (el magma la pone carmesí)
+@export var color_emision_marca: Color = Color(0.0, 0.0, 0.0)   ## lo que ARDE esa marca (0 en tierra; el magma la enciende)
+@export var emision_marca: float = 0.0
+const ALTO_DECAL: float = 1.6                         ## m de alto de la caja del decal: lo que puede subir o bajar el suelo dentro de la marca
+var _marca: MeshInstance3D = null                     ## la marca de suelo, como decal pegado al relieve
 
 enum Variante { GOLPE, FIN, REBOTE, AREA }
 
@@ -192,8 +196,11 @@ func _construir() -> void:
 			"marca_tex": load(TEX_MARCA), "marca_peso": MARCA_PESO, "marca_giro": _rng.randf() * TAU, "color_grieta": color_marca}, Vector3(0, 0.02, 0), -2)
 		_anillo.rotation.y = _rng.randf() * TAU
 		_plano.add_child(_anillo)
-		# 7/11: la marca como DECAL (`TierraToy.crear_decal_suelo`) se probó aquí y NO proyecta sobre el suelo en esta escena —solo pinta las rocas que caen dentro de la caja—, así que
-		# de momento la marca la pinta el propio anillo con la textura (`marca_tex`). El shader queda en el repo con el hallazgo escrito; ver el DIARIO 428.
+		# 7/11: la marca, además, como DECAL: se pega al relieve (en una cuesta un quad flota o se entierra). Del color se encarga `color_marca`, que el magma pone carmesí y encendido.
+		_marca = TierraToy.crear_decal_suelo("Marca", 2.4 * rc, 2.4 * rc, ALTO_DECAL, {"mascara": load(TEX_MARCA), "color": color_marca,
+			"color_emision": color_emision_marca, "emision": emision_marca, "vida": 1.0, "fuerza": 1.0}, Vector3(0, 0.0, 0), -3)
+		_marca.rotation.y = _rng.randf() * TAU
+		_plano.add_child(_marca)
 		_puas_mm = TierraToy.crear_mm("Puas", N_PUAS, TierraToy.malla_roca("pua_1"), 0.0, 0.0, 1.0, TierraToy.COLOR_PUA)
 		_plano.add_child(_puas_mm)
 		for j in N_PUAS:

@@ -367,11 +367,15 @@ static func crear_mm(nombre: String, n: int, malla: Mesh, oscurecer: float = 0.0
 ## relieve que siga. Es lo que un quad tumbado no sabe hacer: en una cuesta o un escalón el quad flota o se mete en la tierra, y el decal se pega. Mismos nombres de parámetro que los
 ## quads (`avance`, `vida`), así que lo anima el mismo código. El alto es lo que puede subir o bajar el suelo dentro de la marca: más alto, más cuesta aguanta, y más caja que descartar.
 static func crear_decal_suelo(nombre: String, ancho: float, largo: float, alto: float, params: Dictionary, centro: Vector3, prioridad: int = -2) -> MeshInstance3D:
+	# la caja es de 1×1×1 y el tamaño va en la ESCALA del nodo, no en `BoxMesh.size`: el shader prueba «¿está dentro?» contra ±`media_caja` en coordenadas LOCALES, y eso solo vale si
+	# la malla mide 1 (7/11: con `size` el test recortaba la caja a un metro central y el suelo quedaba fuera; las rocas, que caían dentro, sí se pintaban). `INV_MODEL_MATRIX` ya lleva
+	# la escala, también la que tenga el padre.
 	var bm: BoxMesh = BoxMesh.new()
-	bm.size = Vector3(ancho, alto, largo)
+	bm.size = Vector3.ONE
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = nombre
 	mi.mesh = bm
+	mi.scale = Vector3(ancho, alto, largo)
 	var m: ShaderMaterial = ShaderMaterial.new()
 	m.shader = load(SH_DECAL)
 	m.render_priority = prioridad
