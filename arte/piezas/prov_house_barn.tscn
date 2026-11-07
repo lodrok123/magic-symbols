@@ -1,0 +1,57 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_House_Barn.obj" id="1_25x3m"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_01_B.png" id="2_pyep2"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_N.png" id="3_y5ir3"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_01_B.png" id="4_xi73h"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_Normal.png" id="5_q6wvw"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="6_8u1wl"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="7_44igv"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1ksur"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("2_pyep2")
+normal_enabled = true
+normal_texture = ExtResource("3_y5ir3")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ww6b4"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("4_xi73h")
+normal_enabled = true
+normal_texture = ExtResource("5_q6wvw")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_66hf8"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("6_8u1wl")
+normal_enabled = true
+normal_texture = ExtResource("7_44igv")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_2hodp"]
+points = PackedVector3Array(-2.071694, 2.113372, 1.6001209, -1.314071, 2.0588427, -1.7246335, 2.3431194, 0.026880652, 1.1136804, 2.8038204, 3.0227897, 0.20302933, -2.0802882, 0.034909427, -1.1397817, 2.3444023, 0.026055805, -1.1464216, -2.803801, 2.7597268, -0.14718091, -2.1901245, -0.043809578, 0.90378505, 2.4530697, 1.8834672, -1.6366627, 2.4530697, 1.8834672, 1.6045402, -2.6281514, 1.9711549, -1.5490264, -2.1826708, 2.9887497, -0.05618852, -2.6281514, 1.9711549, 1.6045405, 2.4650612, 2.1904302, -1.4538873, -2.080851, 0.034879584, 1.107682, -1.7520976, 1.9711549, 1.6925112, 2.5031884, 2.11737, 1.5274725, -2.1940281, 2.9963229, 0.10587855, 2.8038204, 2.672039, -0.059544913, 2.5496316, 2.9674964, -0.055602748, -2.5321245, 2.1241257, -1.4930154, -2.803801, 2.672039, 0.11539332, -0.7882191, 1.9711549, 1.6925111, -2.1895757, 1.8834672, -1.6366625, -2.803801, 2.7597268, 0.20302957, -2.502744, 2.1172707, 1.5272105, 2.8038204, 2.672039, 0.11539308, -1.5769216, 2.1143463, -1.6349574, 2.8038204, 2.7597268, -0.14718115, -2.5411234, 2.8832486, -0.13489683, -2.2999105, 2.1676073, -1.4832897, -2.5212338, 2.8726828, 0.18094966)
+
+[node name="prov_house_barn" type="Node3D" unique_id=815738443]
+metadata/id = "prov_house_barn"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_House_Barn"
+metadata/lod = 0
+metadata/triangulos = 5876
+metadata/categoria = "edificio"
+
+[node name="modelo" type="Node3D" parent="." unique_id=619898238]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1488476269]
+transform = Transform3D(-2.0015843e-08, 0, 0.4579091, 0, 0.4579091, 0, -0.4579091, 0, -2.0015843e-08, -0.0051648617, 0, -2.3841858e-07)
+mesh = ExtResource("1_25x3m")
+surface_material_override/0 = SubResource("StandardMaterial3D_1ksur")
+surface_material_override/1 = SubResource("StandardMaterial3D_ww6b4")
+surface_material_override/2 = SubResource("StandardMaterial3D_66hf8")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1492459563]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=258043614]
+shape = SubResource("ConvexPolygonShape3D_2hodp")

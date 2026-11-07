@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Flower_01_c.obj" id="1_pwo8j"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="2_2sbjr"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vw5p7"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(1.1862745, 0.98039216, 0.36764708, 1)
+albedo_texture = ExtResource("2_2sbjr")
+
+[node name="prov_flower_01_c" type="Node3D" unique_id=424032042]
+metadata/id = "prov_flower_01_c"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Flower_01_c"
+metadata/lod = 0
+metadata/triangulos = 266
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=510174941]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1938016085]
+transform = Transform3D(0.5682585, 0, 0, 0, 0.5682585, 0, 0, 0, 0.5682585, -0.031874463, 0.02498235, 0.006673649)
+mesh = ExtResource("1_pwo8j")
+surface_material_override/0 = SubResource("StandardMaterial3D_vw5p7")

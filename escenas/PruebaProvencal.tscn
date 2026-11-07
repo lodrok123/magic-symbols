@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://chcoctbeeesis" path="res://presentacion/prueba_test2.gd" id="1_poc"]
+[ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
+[ext_resource type="Script" path="res://escenas/provencal_rotulos.gd" id="3_rot"]
+
+[node name="PruebaProvencal" type="Node3D"]
+script = ExtResource("1_poc")
+fuego_nuevo = true
+nivel = "Provencal"
+agua_fisica = true
+agua_corre = false
+radio_transparencia = 1.9
+adornos_en_claros = false
+hierba_en_matas = false
+detalle_en_bloques = false
+kit = "pruebas"
+zona_luz = "bosque"
+
+[node name="Puzles" type="Node" parent="."]
+script = ExtResource("2_pz")
+
+[node name="Rotulos" type="Node" parent="."]
+script = ExtResource("3_rot")

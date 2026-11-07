@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bdbp14h0yhp3f"
+path="res://.godot/imported/SM_Vines_Group_02_b.obj-8dc8014e8c1249f5a25f1a13422e2abe.mesh"
+
+[deps]
+
+files=["res://.godot/imported/SM_Vines_Group_02_b.obj-8dc8014e8c1249f5a25f1a13422e2abe.mesh"]
+
+source_file="res://arte/provencal/obj/SM_Vines_Group_02_b.obj"
+dest_files=["res://.godot/imported/SM_Vines_Group_02_b.obj-8dc8014e8c1249f5a25f1a13422e2abe.mesh", "res://.godot/imported/SM_Vines_Group_02_b.obj-8dc8014e8c1249f5a25f1a13422e2abe.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

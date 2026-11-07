@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Rock_Wall_02.obj" id="1_itkep"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rock_Walls_B.png" id="2_mxmqy"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rock_Walls_N.png" id="3_xduy5"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sswkr"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("2_mxmqy")
+normal_enabled = true
+normal_texture = ExtResource("3_xduy5")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_to66r"]
+points = PackedVector3Array(-0.6507354, 1.290958, -0.036620393, -1.0763483, 0.01477885, 0.34472513, -1.0018946, 0.07274232, 0.36495215, 1.1089803, 0.05080287, -0.3488359, -1.1316649, 0.23735365, -0.36735415, 0.94915307, 0.16436604, 0.3625645, -1.0893087, 1.2720299, 0.27861464, -0.03636515, 1.2594442, -0.25785854, -0.12996718, 1.2261115, 0.29018414, -0.9506275, 1.217322, -0.30790806, 0.94915307, 0.4929424, -0.36735424, -1.0636145, 0.05680228, -0.34540805, 0.94915307, 0.4929424, 0.14357315, -1.0950711, 0.9672295, 0.3625646, 0.96567565, 0.01905737, 0.30795458, -1.0950711, 0.23735365, 0.39911556, -1.0453675, 1.2669451, -0.2462634, 1.1682588, 0.20085984, -0.36735427, 0.340905, 0.026391447, -0.24097897, -0.24117763, 1.2947766, 0.27320787, 1.0587059, 0.16436604, 0.28954116, 0.94915307, 0.5294362, -0.002394883, 0.64676535, 0.061397623, -0.37687272, -1.1170143, 1.0934538, -0.0023947926, -1.0703101, 0.018382601, -0.0023947947, -0.06395776, 1.2171301, 0.22155136, -0.0649202, 1.0307194, -0.32714203, -1.0862603, 1.0814418, -0.30782574, 0.94915307, 0.5294362, -0.3308819, -1.0409064, 1.2991574, 0.27510148, 0.3598275, 0.8369789, 0.29207933, 0.9595687, 0.023092803, -0.105190486)
+
+[node name="prov_rock_wall_02" type="Node3D" unique_id=276257918]
+metadata/id = "prov_rock_wall_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Rock_Wall_02"
+metadata/lod = 0
+metadata/triangulos = 986
+metadata/categoria = "roca"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1399684514]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=538347204]
+transform = Transform3D(-3.44445e-08, 0, 0.7879983, 0, 0.7879983, 0, -0.7879983, 0, -3.44445e-08, 0, 0.004274103, 0.001440078)
+mesh = ExtResource("1_itkep")
+surface_material_override/0 = SubResource("StandardMaterial3D_sswkr")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=2014442438]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=134274668]
+shape = SubResource("ConvexPolygonShape3D_to66r")

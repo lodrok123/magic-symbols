@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Rock_Cliff_04.obj" id="1_j1qf4"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Cliff_B.png" id="2_oicim"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Cliff_N.png" id="3_3e044"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6x1op"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("2_oicim")
+normal_enabled = true
+normal_texture = ExtResource("3_3e044")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_n0x5a"]
+points = PackedVector3Array(-0.4305448, 3.670877, -0.8776943, 0.5395559, 1.2498397, 1.1322043, 0.5986314, 1.4073265, 1.0430055, 0.6837353, 0.4687574, -0.6180901, -0.87527555, 0.5853239, 0.44223496, 0.69533056, 4.2267485, 0.65847397, -0.5846779, 4.62704, 0.5795119, 0.97208613, 4.208636, -0.6228048, -0.9941869, 1.531397, -0.6816309, 0.61935955, 1.3732021, -1.1213437, 0.8778371, 0.6431974, 0.42834678, -0.16086048, 0.38735116, 1.0044775, -0.738074, 4.6640058, -0.12875651, -0.9967672, 2.855496, 0.43352187, 0.5474607, 4.1390805, -0.97776204, 1.0954577, 3.2024252, -0.054890428, -0.3049983, 0.51294124, -0.55556214, 0.40800497, 0.08451033, 0.79910594, 0.95256543, 1.3957164, -0.6791317, -0.29722735, 4.523816, 0.7799492, -0.7799846, 1.882699, -0.95393234, -0.09275119, 4.610182, -0.63656634, 0.051387504, 0.07598138, 0.22930582, 0.97144896, 4.2779245, 0.08543713, -0.2376435, 4.684064, 0.59376216, -0.08910466, 4.0453963, -0.96430963, -0.6449599, 4.5228205, -0.471993, -1.0641972, 1.6704102, 0.36294797, 0.5320381, 3.5369444, 0.9095867, 0.6104469, 0.4785236, 1.0638502, -0.9255445, 3.9005566, 0.15404305, -0.7986411, 0.6672727, 0.65200704)
+
+[node name="prov_rock_cliff_04" type="Node3D" unique_id=873532777]
+metadata/id = "prov_rock_cliff_04"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Rock_Cliff_04"
+metadata/lod = 0
+metadata/triangulos = 1428
+metadata/categoria = "roca"
+
+[node name="modelo" type="Node3D" parent="." unique_id=197427370]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=601813618]
+transform = Transform3D(0.70868206, 0, 0, 0, 0.70868206, 0, 0, 0, 0.70868206, 0, 2.3669066, -3.5762787e-07)
+mesh = ExtResource("1_j1qf4")
+surface_material_override/0 = SubResource("StandardMaterial3D_6x1op")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=813366737]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1068694554]
+shape = SubResource("ConvexPolygonShape3D_n0x5a")

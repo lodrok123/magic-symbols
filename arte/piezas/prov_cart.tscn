@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Cart.obj" id="1_ctcqr"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Cart_B.png" id="2_722di"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Cart_N.png" id="3_6eps8"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7qgwd"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_722di")
+normal_enabled = true
+normal_texture = ExtResource("3_6eps8")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_67x0t"]
+points = PackedVector3Array(0.42601633, 0.32961905, 0.6412046, 1.039623, 1.1371087, -0.41066194, -1.2406725, 0.5623045, -0.40541327, -0.19383067, 1.1823678, 0.40851155, 0.58844006, 0.01136834, -0.49517787, -1.2406725, 0.4847819, 0.40851158, 1.2406584, 1.066025, 0.4085115, 0.58844006, 0.01136834, 0.4981508, -0.19383067, 1.1823678, -0.4054133, 1.0854537, 0.5623045, -0.4830612, 0.27105454, 0.019528568, -0.5218851, 0.46487814, 0.44596177, -0.63823164, 1.1626918, 0.6007717, 0.4473354, 0.27105457, 0.019528568, 0.52485806, 1.2406584, 1.066025, -0.40541336, 1.1692536, 1.1477878, 0.3850857, -1.2406725, 0.4847819, -0.40541327, 0.77506137, 0.12017391, -0.49690652, -1.2406725, 0.5623045, 0.40851158, 0.54235905, 0.44596177, 0.6412046, 0.77506137, 0.12017391, 0.49987945, 0.46487814, 0.29091653, -0.63823164, 1.1694939, 1.1479042, -0.3820736, 1.0351354, 1.1347106, 0.41197106, 0.4648782, 0.44596177, 0.6412046, 0.542359, 0.44596177, -0.63823164, 0.69269884, 0.052724224, -0.4909716, 0.4648782, 0.29091653, 0.6412046, 0.69269884, 0.052724224, 0.49394456, 1.0497088, 0.494184, -0.40092498, 0.42601627, 0.32961905, -0.63823164, 0.84533507, 0.2325085, 0.4976838)
+
+[node name="prov_cart" type="Node3D" unique_id=923362733]
+metadata/id = "prov_cart"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Cart"
+metadata/lod = 0
+metadata/triangulos = 4578
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1464015300]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=153580497]
+transform = Transform3D(-2.9723743e-08, 0, 0.68, 0, 0.68, 0, -0.68, 0, -2.9723743e-08, 0.3741969, -0.0032878, 0.0083912015)
+mesh = ExtResource("1_ctcqr")
+surface_material_override/0 = SubResource("StandardMaterial3D_7qgwd")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1428054934]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=523724916]
+shape = SubResource("ConvexPolygonShape3D_67x0t")

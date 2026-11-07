@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WoodenBeam_05.obj" id="1_awstx"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_8qry4"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_hgm5r"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5b5dj"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_8qry4")
+normal_enabled = true
+normal_texture = ExtResource("3_hgm5r")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_xbrco"]
+points = PackedVector3Array(0.16769382, 1.15, 0.07809574, -0.22234501, 0.030709386, -0.088272706, -0.22234501, 0.030709386, 0.09491263, 0.0015482042, 2.2081928, -0.088272706, 0.12817362, 0.75207037, -0.07809574, 0.20505959, 2.3101737, 0.09491263, 0.0015482042, 2.2081928, 0.09491263, -0.039127775, -0.010173798, 0.09491263, 0.20505959, 2.3101737, -0.088272706, -0.039127775, -0.010173798, -0.088272706, 0.20056438, 1.4213431, -0.07809574, 0.06260601, 0.33619756, 0.09491263, 0.22544143, 1.9433608, 0.09491263, -0.22234501, 0.09180701, 0.09491263, -0.22234501, 0.09180701, -0.088272706, 0.18244721, 1.15, -0.07809574, 0.16433978, 2.3101737, -0.088272706, -0.018789785, 0.050923824, -0.088272706, -0.10018557, -0.010173798, 0.09491263, 0.123663805, 2.2897322, 0.09491263, -0.10018557, -0.010173798, -0.088272706, 0.042224184, 0.25465828, 0.09491263, 0.164369, 1.0054451, -0.07809574, 0.16433978, 2.3101737, 0.09491263, 0.123663805, 2.2897322, -0.088272706, 0.110095404, 0.66162264, -0.07809574, -0.018789785, 0.050923824, 0.09491263, 0.15109001, 1.0172344, 0.07809574)
+
+[node name="prov_woodenbeam_05" type="Node3D" unique_id=370324660]
+metadata/id = "prov_woodenbeam_05"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WoodenBeam_05"
+metadata/lod = 0
+metadata/triangulos = 52
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=267713316]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=815201319]
+transform = Transform3D(0.6178461, 0, 0, 0, 0.6178461, 0, 0, 0, 0.6178461, 3.1292439e-07, 1.15, 0)
+mesh = ExtResource("1_awstx")
+surface_material_override/0 = SubResource("StandardMaterial3D_5b5dj")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=999875439]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=621700719]
+shape = SubResource("ConvexPolygonShape3D_xbrco")

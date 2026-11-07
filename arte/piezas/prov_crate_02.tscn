@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Crate_02.obj" id="1_02ngc"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_B.png" id="2_h8t4m"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_N.png" id="3_fppvk"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0kjku"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_h8t4m")
+normal_enabled = true
+normal_texture = ExtResource("3_fppvk")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_klfho"]
+points = PackedVector3Array(0.40246096, 0.07402132, -0.26852414, 0.4090882, 0.7645015, 0.43677497, -0.26425976, 0.7987934, 0.43064168, 0.38844314, 0.7716392, -0.42911905, -0.39362898, 0.0028349832, -0.42039534, -0.41012365, 0.013733559, 0.4233651, -0.38932645, 0.7716666, -0.41579574, 0.39694524, 0.012445067, 0.42476675, 0.3928562, 0.0028349832, -0.42039534, -0.4054422, 0.7876576, 0.418528, 0.34687555, 0.8127541, 0.3472636, -0.31982493, -0.006916291, -0.26388553, 0.40244073, 0.6598281, 0.44456702, 0.40250993, 0.20824, -0.36253482, 0.336096, 0.8000322, 0.40378082, 0.31913376, 0.8127541, 0.3472636, 0.40248454, 0.060507234, -0.2550792)
+
+[node name="prov_crate_02" type="Node3D" unique_id=1321220863]
+metadata/id = "prov_crate_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Crate_02"
+metadata/lod = 0
+metadata/triangulos = 198
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1191011271]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1488990084]
+transform = Transform3D(0.613, 0, 0, 0, 0.613, 0, 0, 0, 0.613, 0, 0.009776737, 0)
+mesh = ExtResource("1_02ngc")
+surface_material_override/0 = SubResource("StandardMaterial3D_0kjku")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=753611627]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=669154273]
+shape = SubResource("ConvexPolygonShape3D_klfho")

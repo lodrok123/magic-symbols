@@ -1,0 +1,119 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_House_Passage.obj" id="1_35h6y"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_01_B.png" id="2_quxmm"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_N.png" id="3_f4pie"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="4_2l3ir"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="5_17n5b"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_B.png" id="6_ir3bk"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_N.png" id="7_bei6g"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Plaster_B.png" id="8_1c6sc"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Plaster_N.png" id="9_ycryb"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_B.png" id="10_qiyn7"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_N.png" id="11_ilmcw"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_TunnelProps_B.png" id="12_nklr7"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_TunnelProps_N.png" id="13_2768a"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Windows_B.png" id="14_cwbhl"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Windows_N.png" id="15_0ofog"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_01_B.png" id="16_hakdg"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_Normal.png" id="17_eg0dy"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Decals_B.png" id="18_iwrl1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_o5tcf"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("2_quxmm")
+normal_enabled = true
+normal_texture = ExtResource("3_f4pie")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6wkgb"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("4_2l3ir")
+normal_enabled = true
+normal_texture = ExtResource("5_17n5b")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ls3ey"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("6_ir3bk")
+normal_enabled = true
+normal_texture = ExtResource("7_bei6g")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_26st3"]
+albedo_color = Color(1.0637255, 1.004902, 0.88235295, 1)
+albedo_texture = ExtResource("8_1c6sc")
+normal_enabled = true
+normal_texture = ExtResource("9_ycryb")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yswim"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("10_qiyn7")
+normal_enabled = true
+normal_texture = ExtResource("11_ilmcw")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vribm"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("6_ir3bk")
+normal_enabled = true
+normal_texture = ExtResource("7_bei6g")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pnywb"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("12_nklr7")
+normal_enabled = true
+normal_texture = ExtResource("13_2768a")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qa0v8"]
+albedo_color = Color(0.425, 0.59999996, 0.75, 1)
+albedo_texture = ExtResource("14_cwbhl")
+normal_enabled = true
+normal_texture = ExtResource("15_0ofog")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7i8dp"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("16_hakdg")
+normal_enabled = true
+normal_texture = ExtResource("17_eg0dy")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_sshuf"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.6127451, 0.5686275, 0.60784316, 1)
+albedo_texture = ExtResource("18_iwrl1")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_38rwd"]
+points = PackedVector3Array(-2.4819703, 3.285156, 1.4503279, -3.212016, 2.2629035, -2.2003298, -3.212016, 2.1169858, -2.2003298, 4.526652, 0.5114769, -0.5939208, -4.0485954, 0.22254866, 0.12491357, 4.673027, 2.4088209, 1.8881664, 4.3793616, 2.9929063, -0.15565312, 0.5827582, 0.07330922, 1.7423633, 4.3793616, -0.073022865, -1.3237952, 0.8084561, 4.0013824, 0.66443455, -3.3574765, 0.07330922, -1.7620623, -4.6730223, 2.9929063, -0.3018849, 3.796606, 2.1169858, -1.4700272, 3.8122263, 0.13778327, 1.5435953, -1.021879, 3.431074, -1.1779915, 0.5827582, 2.4088209, 2.180631, -1.8556097, 3.966575, -0.14223015, -0.14545795, -0.073022865, 1.4503279, 1.0209686, 3.431074, 1.7423633, 2.62835, 1.3873974, 2.0343986, -4.526647, 2.701071, 0.2821861, -3.6502266, 2.4088209, -2.054098, -4.232196, 0.13993701, -0.29201257, -2.6707673, 0.24164644, 0.79142845, -1.4600893, 3.431074, 1.7423635, 4.5027423, 0.70793086, 1.115725, 0.7804287, 3.9335322, 0.12025547, -2.190135, 3.1392384, 1.5961313, 4.526652, 2.9929063, -0.009849817, -2.0147254, 3.857688, 0.5274428, -0.14545804, -0.073022865, -0.5939206, 4.2348166, 2.5547388, -0.8859563)
+
+[node name="prov_house_passage" type="Node3D" unique_id=425829643]
+metadata/id = "prov_house_passage"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_House_Passage"
+metadata/lod = 2
+metadata/triangulos = 7838
+metadata/categoria = "edificio"
+
+[node name="modelo" type="Node3D" parent="." unique_id=426273627]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1429103605]
+transform = Transform3D(-1.5222003e-08, 0, 0.34823886, 0, 0.34823886, 0, -0.34823886, 0, -1.5222003e-08, 0.11250067, 0.097534396, 0.47709084)
+mesh = ExtResource("1_35h6y")
+surface_material_override/0 = SubResource("StandardMaterial3D_o5tcf")
+surface_material_override/1 = SubResource("StandardMaterial3D_6wkgb")
+surface_material_override/2 = SubResource("StandardMaterial3D_ls3ey")
+surface_material_override/3 = SubResource("StandardMaterial3D_26st3")
+surface_material_override/4 = SubResource("StandardMaterial3D_yswim")
+surface_material_override/5 = SubResource("StandardMaterial3D_vribm")
+surface_material_override/6 = SubResource("StandardMaterial3D_pnywb")
+surface_material_override/7 = SubResource("StandardMaterial3D_qa0v8")
+surface_material_override/8 = SubResource("StandardMaterial3D_7i8dp")
+surface_material_override/9 = SubResource("StandardMaterial3D_sshuf")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1554451837]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1325702795]
+shape = SubResource("ConvexPolygonShape3D_38rwd")

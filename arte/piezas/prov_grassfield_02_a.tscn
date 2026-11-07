@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_GrassField_02_a.obj" id="1_02p2e"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="2_vxpoj"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_h4784"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.525, 0.8125, 0.325, 1)
+albedo_texture = ExtResource("2_vxpoj")
+
+[node name="prov_grassfield_02_a" type="Node3D" unique_id=1409742964]
+metadata/id = "prov_grassfield_02_a"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_GrassField_02_a"
+metadata/lod = 0
+metadata/triangulos = 202
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1769174228]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1855473393]
+transform = Transform3D(0.7332143, 0, 0, 0, 0.7332143, 0, 0, 0, 0.7332143, -0.042891562, 0.04779604, 0.016767144)
+mesh = ExtResource("1_02p2e")
+surface_material_override/0 = SubResource("StandardMaterial3D_h4784")

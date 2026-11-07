@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Rock_Small_03.obj" id="1_svqkp"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_B.png" id="2_tfg0a"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_N.png" id="3_ohcsr"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aou2h"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("2_tfg0a")
+normal_enabled = true
+normal_texture = ExtResource("3_ohcsr")
+
+[node name="prov_rock_small_03" type="Node3D" unique_id=1496285438]
+metadata/id = "prov_rock_small_03"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Rock_Small_03"
+metadata/lod = 0
+metadata/triangulos = 118
+metadata/categoria = "roca"
+
+[node name="modelo" type="Node3D" parent="." unique_id=244980128]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1398147165]
+transform = Transform3D(0.83579004, 0, 0, 0, 0.83579004, 0, 0, 0, 0.83579004, 0, 0.165, 0)
+mesh = ExtResource("1_svqkp")
+surface_material_override/0 = SubResource("StandardMaterial3D_aou2h")

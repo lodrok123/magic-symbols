@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Bush_03.obj" id="1_nnain"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_02_B.png" id="2_l7051"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ga185"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.41250002, 0.7, 0.3375, 1)
+albedo_texture = ExtResource("2_l7051")
+
+[node name="prov_bush_03" type="Node3D" unique_id=435003040]
+metadata/id = "prov_bush_03"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Bush_03"
+metadata/lod = 0
+metadata/triangulos = 62
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1796589587]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=381369259]
+transform = Transform3D(0.24539985, 0, 0, 0, 0.24539985, 0, 0, 0, 0.24539985, -0.010880902, 0.044282403, -0.0031534731)
+mesh = ExtResource("1_nnain")
+surface_material_override/0 = SubResource("StandardMaterial3D_ga185")

@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WaterMill_Wheel.obj" id="1_sbwlm"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WaterMill_Wheel_B.png" id="2_gxpey"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WaterMill_Wheel_N.png" id="3_1j1pj"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s3t23"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_gxpey")
+normal_enabled = true
+normal_texture = ExtResource("3_1j1pj")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_6lbpw"]
+points = PackedVector3Array(0.82189846, 1.8814814, -0.3386826, -0.19150846, 0.13888359, 0.13151532, -0.0367938, 0.12935972, 0.2623656, -0.7038426, 1.8663723, 0.2501778, -0.7016338, 0.38813353, -0.5132145, -0.77545357, 1.865149, -0.5132145, 0.7231311, 0.4736213, -0.47832996, 1.0522566, 1.1943688, 0.13527322, 0.16161399, 1.2581291, 0.6179894, -0.9581439, 0.778106, 0.13151538, 0.19618139, 2.1758504, 0.1346314, 0.7389786, 0.42395437, 0.2501294, 0.16150291, 1.2581931, -0.61075145, -1.1450146, 1.4589926, -0.36551768, 0.21364251, 2.267593, -0.35248214, -0.07358797, 0.12958753, -0.5132145, 0.7390085, 1.86626, 0.25013936, 1.1336561, 1.1273966, -0.35040063, -0.16161327, 1.2581291, 0.6179894, -0.7038137, 0.4238425, 0.25016767, 0.7230456, 1.8511055, -0.47827286, 0.5602256, 0.23871124, -0.3586157, -0.58066076, 2.0845366, -0.33777982, 3.3852416e-07, 2.1128588, 0.25015482, -1.0221803, 1.1610485, 0.13151538, -1.0190212, 0.75478894, -0.3697278, -0.22684357, 2.1662328, 0.13341063, 0.84918493, 0.4489149, -0.3697278, -0.034297153, 2.1263013, -0.47813278, -0.2036763, 0.07495248, -0.3697278, 0.567805, 2.156776, -0.35114998, -0.16109575, 1.0322767, -0.60920435)
+
+[node name="prov_watermill_wheel" type="Node3D" unique_id=1832627893]
+metadata/id = "prov_watermill_wheel"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WaterMill_Wheel"
+metadata/lod = 0
+metadata/triangulos = 1814
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1332810191]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=386447605]
+transform = Transform3D(-1.3722934e-08, 0, 0.31394413, 0, 0.31394413, 0, -0.31394413, 0, -1.3722934e-08, 3.5762787e-07, 1.1499996, 0.68719643)
+mesh = ExtResource("1_sbwlm")
+surface_material_override/0 = SubResource("StandardMaterial3D_s3t23")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=281047775]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=542274959]
+shape = SubResource("ConvexPolygonShape3D_6lbpw")

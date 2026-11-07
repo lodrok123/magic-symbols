@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Stool.obj" id="1_etpuj"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Cart_B.png" id="2_n7dsl"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Cart_N.png" id="3_ngqes"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vah2h"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_n7dsl")
+normal_enabled = true
+normal_texture = ExtResource("3_ngqes")
+
+[node name="prov_stool" type="Node3D" unique_id=1199499085]
+metadata/id = "prov_stool"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Stool"
+metadata/lod = 0
+metadata/triangulos = 134
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=962412499]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=951503753]
+transform = Transform3D(0.68, 0, 0, 0, 0.68, 0, 0, 0, 0.68, -3.2782555e-07, -0.00389436, 8.8751316e-05)
+mesh = ExtResource("1_etpuj")
+surface_material_override/0 = SubResource("StandardMaterial3D_vah2h")

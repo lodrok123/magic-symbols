@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Wooden_Arch_Tunnel.obj" id="1_fv0p7"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_TunnelProps_B.png" id="2_a2m3o"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_TunnelProps_N.png" id="3_8uei1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_v850r"]
+cull_mode = 2
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_a2m3o")
+normal_enabled = true
+normal_texture = ExtResource("3_8uei1")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_xdvmb"]
+points = PackedVector3Array(-0.47930223, 2.06739, 0.15463908, 0.8612334, 1.5742159, 0.05161413, 0.86538196, 1.6305374, -0.1479023, -0.8829342, -0.016823046, 0.15463911, -0.8829342, 1.6305374, -0.1479022, 0.81938004, 0.04090772, -0.10797042, 0.86538196, -0.016823046, 0.15463902, -0.8351259, 0.04090772, -0.10797034, 0.62990093, 2.000409, 0.15463904, 0.23859593, 2.043175, -0.13499144, -0.8156041, 1.798412, 0.1546391, -0.8156041, 0.52113354, -0.14790222, -0.7482739, 1.8660251, -0.14790222, 0.8317169, 0.5550455, -0.14790228, 0.69723105, 1.9330064, -0.14790228, 0.79805183, 1.832113, 0.15463904, 0.26010838, 2.1350033, 0.15463905, -0.2226509, 2.043891, -0.1350921, -0.8829342, 0.7566212, -0.1479022, 0.86538196, 0.8240238, -0.1479023, -0.24399558, 2.1350033, 0.15463908, 0.86505306, 1.4146473, 0.11653128, -0.6137881, 2.000409, 0.1546391, -0.3748514, 2.0088005, -0.13447621, 0.79805183, 1.798412, -0.14790228, 0.79805183, 0.52113354, -0.14790228, -0.8156041, 1.798412, -0.14790222, 0.49541503, 2.06739, 0.15463905, 0.39459425, 2.101302, 0.15463905, 0.8317169, 1.7314306, -0.14790228, -0.37848142, 2.101302, 0.15463908, -0.84926915, 0.5885361, -0.14790222)
+
+[node name="prov_wooden_arch_tunnel" type="Node3D" unique_id=1874940028]
+metadata/id = "prov_wooden_arch_tunnel"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Wooden_Arch_Tunnel"
+metadata/lod = 0
+metadata/triangulos = 88
+metadata/categoria = "edificio"
+
+[node name="modelo" type="Node3D" parent="." unique_id=932439872]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1197038973]
+transform = Transform3D(-2.0019815e-08, 0, 0.458, 0, 0.458, 0, -0.458, 0, -2.0019815e-08, 7.1525574e-07, -0.019293709, -4.4703484e-07)
+mesh = ExtResource("1_fv0p7")
+surface_material_override/0 = SubResource("StandardMaterial3D_v850r")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=879809573]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1856833518]
+shape = SubResource("ConvexPolygonShape3D_xdvmb")

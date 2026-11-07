@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bxq1o7d0escx2"
+path="res://.godot/imported/SM_WindMill_Palms.obj-3c3cc67d51b553bcf0a15db9bbdab554.mesh"
+
+[deps]
+
+files=["res://.godot/imported/SM_WindMill_Palms.obj-3c3cc67d51b553bcf0a15db9bbdab554.mesh"]
+
+source_file="res://arte/provencal/obj/SM_WindMill_Palms.obj"
+dest_files=["res://.godot/imported/SM_WindMill_Palms.obj-3c3cc67d51b553bcf0a15db9bbdab554.mesh", "res://.godot/imported/SM_WindMill_Palms.obj-3c3cc67d51b553bcf0a15db9bbdab554.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Bush_01.obj" id="1_xohmg"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_02_B.png" id="2_cvtqn"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yb2qt"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.41250002, 0.7, 0.3375, 1)
+albedo_texture = ExtResource("2_cvtqn")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_bdgbr"]
+points = PackedVector3Array(0.05529926, 0.6228116, 0.66880083, 0.88577616, 0.29076064, -0.16143495, -0.52598256, 0.06929307, 0.3918749, 0.027553111, 1.010405, 0.22590907, -0.80257696, 0.6228116, -0.13379654, -0.22129516, 0.06929307, -0.6044622, 0.27674818, 0.041622162, 0.4750611, 0.33206707, 0.899621, -0.41058695, 0.69189996, 0.5951407, 0.33659813, 0.38738596, 0.15230581, -0.60432667, -0.58130145, 0.67815346, 0.36423653, -0.7750042, 0.2077479, -0.38281307, -0.52598256, 0.7611662, -0.38281307, 0.74721885, 0.06929307, 0.115219995, -0.88581544, 0.26308972, 0.17049679, -0.33210632, 0.34620273, 0.66880083, 0.4981972, 0.2354188, 0.55797625, 0.52594334, 0.87195015, 0.17049679, -0.082911246, -0.013819933, 0.5026995, -0.2490413, 0.013951242, -0.46586373, 0.44287828, 0.512128, -0.60432667, -0.3043602, 0.5396986, -0.6321006, -0.6366203, 0.8441789, 0.0045309216, 0.74721885, 0.6228116, -0.24448562, 0.4981972, 0.65048254, 0.55797625, -0.02759236, 0.06929307, 0.641027, 0.05529926, 0.512128, -0.6875128, -0.05533851, 0.7058244, 0.641027, -0.58130145, 0.06929307, -0.43822536, -0.33210632, 0.87195015, -0.29976243, 0.7196461, 0.29076064, 0.39201042, -0.38742524, 0.29076064, -0.659739)
+
+[node name="prov_bush_01" type="Node3D" unique_id=128314744]
+metadata/id = "prov_bush_01"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Bush_01"
+metadata/lod = 0
+metadata/triangulos = 1584
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1452240591]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1135094462]
+transform = Transform3D(0.43756282, 0, 0, 0, 0.43756282, 0, 0, 0, 0.43756282, -0.040648937, 0.25367615, 0.008838475)
+mesh = ExtResource("1_xohmg")
+surface_material_override/0 = SubResource("StandardMaterial3D_yb2qt")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1733048331]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1828917546]
+shape = SubResource("ConvexPolygonShape3D_bdgbr")

@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Rock_Large_01.obj" id="1_qhmai"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_B.png" id="2_tocbl"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_N.png" id="3_r2t5p"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_avu8b"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("2_tocbl")
+normal_enabled = true
+normal_texture = ExtResource("3_r2t5p")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_3q0qa"]
+points = PackedVector3Array(-0.6285754, 1.0706073, -1.0445133, 0.9659662, 0.32371563, -0.34911183, 0.9615711, 0.17629492, -0.3475346, -0.5994769, 0.6205621, 1.5975147, 0.5625412, 1.3165997, 0.5941108, -0.27575937, 0.1353482, -1.0270805, 0.37375388, 0.7737324, -1.5736855, 0.26812172, 0.37266997, 1.5005555, -0.8193484, 0.23005489, 0.98468345, -0.87065303, 0.969126, 0.83891344, -0.89525557, 0.6217162, -0.9642588, 0.42575365, 0.06134373, -1.4763993, 0.26592177, 0.027701974, 0.39700928, -0.081958726, 1.2745328, -1.2039902, -0.2782063, 1.3145173, 0.6415833, 0.9082353, 0.6236587, -0.93959314, 0.17180212, 1.029747, 1.4818457, 0.66911703, 0.5225019, 1.1520175, -0.13439274, 0.5190829, -1.5830697, 0.70813847, 1.1660836, -0.24653822, -0.9986269, 0.46901593, 1.1696261, -0.58595747, 1.0249467, 1.3093041, -0.28434533, 0.2183711, 1.3624748, 0.7254264, 0.06639278, -1.2624952, -0.277075, 1.3611767, 0.09822251, -0.8844856, 0.4722026, -0.8523479, 0.11656359, 1.2662468, -1.1866966, 0.27674732, 0.5172479, 1.6510535, 0.6671908, 1.2220137, 0.49942267, 0.06668288, 0.033975124, -0.78658366, 0.31553268, 1.3675563, 0.6944793, 0.7789607, 0.26670504, -1.3686856)
+
+[node name="prov_rock_large_01" type="Node3D" unique_id=2130904859]
+metadata/id = "prov_rock_large_01"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Rock_Large_01"
+metadata/lod = 0
+metadata/triangulos = 3052
+metadata/categoria = "roca"
+
+[node name="modelo" type="Node3D" parent="." unique_id=413019126]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1709540446]
+transform = Transform3D(0.8904436, 0, 0, 0, 0.8904436, 0, 0, 0, 0.8904436, 0, 0.7, 0)
+mesh = ExtResource("1_qhmai")
+surface_material_override/0 = SubResource("StandardMaterial3D_avu8b")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1306848380]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=901998284]
+shape = SubResource("ConvexPolygonShape3D_3q0qa")
