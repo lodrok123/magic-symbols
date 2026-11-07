@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Crate_01.obj" id="1_71ftk"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_B.png" id="2_mgtm3"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_N.png" id="3_ng2mp"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ry2e5"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_mgtm3")
+normal_enabled = true
+normal_texture = ExtResource("3_ng2mp")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_mxj3j"]
+points = PackedVector3Array(0.40248924, 0.007221481, -0.08758588, -0.40846783, 0.0014302991, 0.39610234, 0.39307147, 0.77738386, 0.39342117, -0.39155838, 0.77592, -0.4037909, 0.39290032, 0.7772183, -0.39247128, -0.3918465, 0.77619874, 0.40494654, 0.38126272, 0.0031001258, 0.40717307, 0.39092636, 0.006177017, -0.39049733, -0.3968754, 0.00022808887, -0.39644638, 0.115037784, 0.7934698, -0.2936543, -0.37819916, 0.7879237, 0.23992369, 0.075598106, 0.77525073, -0.4030768, 0.36427525, 0.7864649, 0.27672434, -0.40498883, 0.0048002447, -0.37918848, 0.4043462, 0.005422719, -0.37850696, -0.36768165, 0.790106, -0.2784498, 0.39066583, 0.0064375442, 0.391016, -0.02520286, 0.7753031, 0.4039909, 0.36988965, 0.7924661, -0.29282975, -0.037766427, 0.006165594, 0.40400845, 0.113071755, 0.78669566, 0.28948653, -0.36363065, 0.78577596, 0.2888042)
+
+[node name="prov_crate_01" type="Node3D" unique_id=1393600003]
+metadata/id = "prov_crate_01"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Crate_01"
+metadata/lod = 0
+metadata/triangulos = 447
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=232752635]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=368649861]
+transform = Transform3D(0.613, 0, 0, 0, 0.613, 0, 0, 0, 0.613, 0, 9.9919e-05, 0)
+mesh = ExtResource("1_71ftk")
+surface_material_override/0 = SubResource("StandardMaterial3D_ry2e5")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=346032452]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1598763039]
+shape = SubResource("ConvexPolygonShape3D_mxj3j")

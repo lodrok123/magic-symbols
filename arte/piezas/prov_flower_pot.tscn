@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Flower_Pot.obj" id="1_kslhe"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flower_Pot_B.png" id="2_4bmhg"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flower_Pot_N.png" id="3_8hta0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_13u18"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("2_4bmhg")
+normal_enabled = true
+normal_texture = ExtResource("3_8hta0")
+
+[node name="prov_flower_pot" type="Node3D" unique_id=424633653]
+metadata/id = "prov_flower_pot"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Flower_Pot"
+metadata/lod = 0
+metadata/triangulos = 244
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1330693262]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=2070496946]
+transform = Transform3D(0.75418824, 0, 0, 0, 0.75418824, 0, 0, 0, 0.75418824, -0.22737154, 0.225, 0)
+mesh = ExtResource("1_kslhe")
+surface_material_override/0 = SubResource("StandardMaterial3D_13u18")

@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Fence_02.obj" id="1_u67tm"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_obto2"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_lgqbp"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_B.png" id="4_iuoi2"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_N.png" id="5_v7kcd"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dm221"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_obto2")
+normal_enabled = true
+normal_texture = ExtResource("3_lgqbp")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k06xp"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("4_iuoi2")
+normal_enabled = true
+normal_texture = ExtResource("5_v7kcd")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_quwdj"]
+points = PackedVector3Array(0.9491242, 1.3325132, -0.12185183, -1.0220747, -0.018240582, 0.060678985, -0.9491182, 0.9671909, 0.13369629, 0.9854881, -0.018240582, 0.0606789, -0.98548216, -0.018240582, -0.12185174, 1.0220808, 1.1134257, 0.1336962, -0.87593293, 1.259396, -0.12185174, 0.9491242, -0.018240582, -0.12185183, -0.9125256, 1.259396, 0.06067898, -1.1682166, 0.45642722, -0.012288272, 1.1682225, 0.9671909, -0.048809536, 0.9854881, 1.3325132, 0.0606789, 1.1682225, 1.1134257, 0.09717503, -0.87593293, 1.1134257, 0.13369629, -1.1682166, 0.3469495, 0.060678992, 0.9854881, 1.0038158, 0.1336962, 1.1682225, 0.78472805, -0.012288377, 1.0220808, 0.93083054, -0.12185183, 1.1682225, 1.1134257, -0.048809536, 1.1682225, 0.9671909, 0.09717503, -1.1313952, 0.20097926, -0.012288276, -1.1682166, 0.45642722, 0.060678992, -0.9125256, 1.0769331, -0.12185174, 0.839575, 1.3325132, -0.04880952, -0.9491182, 1.0769331, 0.13369629, 1.1682225, 0.78472805, 0.060678888, -0.98548216, 0.20097926, -0.12185174, 0.87593895, 1.3325132, 0.060678903, 1.0220808, 1.149786, -0.12185183, -1.1313952, 0.20097926, 0.06067899, -0.90742666, 1.2329408, -0.04640527, 1.0220808, 1.0404406, 0.1336962)
+
+[node name="prov_fence_02" type="Node3D" unique_id=283467035]
+metadata/id = "prov_fence_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Fence_02"
+metadata/lod = 0
+metadata/triangulos = 1952
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1389156825]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1311211988]
+transform = Transform3D(-3.294659e-08, 0, 0.7537302, 0, 0.7537302, 0, -0.7537302, 0, -3.294659e-08, 0.005429864, 0.035965744, 0.024618328)
+mesh = ExtResource("1_u67tm")
+surface_material_override/0 = SubResource("StandardMaterial3D_dm221")
+surface_material_override/1 = SubResource("StandardMaterial3D_k06xp")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1051313582]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=739112250]
+shape = SubResource("ConvexPolygonShape3D_quwdj")

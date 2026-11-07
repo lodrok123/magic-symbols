@@ -1,0 +1,93 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WaterMill_House.obj" id="1_upgkw"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_14anj"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_pwkjt"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_B.png" id="4_glsru"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_N.png" id="5_ypqv6"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Windows_B.png" id="6_pasrs"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Windows_N.png" id="7_trwae"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Plaster_B.png" id="8_26ekh"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Plaster_N.png" id="9_okihf"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_01_B.png" id="10_wei6t"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTiles_Normal.png" id="11_4u5s1"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_01_B.png" id="12_klard"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_RoofTileMeshes_N.png" id="13_rib3l"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_B.png" id="14_difeo"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_N.png" id="15_fo7lf"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2gkbw"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_14anj")
+normal_enabled = true
+normal_texture = ExtResource("3_pwkjt")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ydtaf"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("4_glsru")
+normal_enabled = true
+normal_texture = ExtResource("5_ypqv6")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0pyj2"]
+albedo_color = Color(0.425, 0.59999996, 0.75, 1)
+albedo_texture = ExtResource("6_pasrs")
+normal_enabled = true
+normal_texture = ExtResource("7_trwae")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dq6vd"]
+albedo_color = Color(1.0637255, 1.004902, 0.88235295, 1)
+albedo_texture = ExtResource("8_26ekh")
+normal_enabled = true
+normal_texture = ExtResource("9_okihf")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_188ou"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("10_wei6t")
+normal_enabled = true
+normal_texture = ExtResource("11_4u5s1")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ts6h7"]
+albedo_color = Color(1.0735295, 0.7009804, 0.43627453, 1)
+albedo_texture = ExtResource("12_klard")
+normal_enabled = true
+normal_texture = ExtResource("13_rib3l")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1f3ya"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("14_difeo")
+normal_enabled = true
+normal_texture = ExtResource("15_fo7lf")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_idml7"]
+points = PackedVector3Array(3.3486874, 3.415617, -1.8302133, -4.0362983, 4.129582, 1.9327936, -4.018424, 0.33568037, -1.5623682, 4.286991, -0.06644794, 0.8476738, 1.3386359, 4.219336, 2.0538225, -4.1264367, 4.161672, -1.7625084, -2.0092118, 0.3351428, 2.7237172, 1.3394753, 5.2907815, -0.088938184, 0.6697378, 3.8172078, -2.9027214, 3.1779494, 0.45519048, -1.4838506, 3.4821312, 2.47911, 1.651773, -4.1123075, 5.184385, -0.08622688, -4.018424, 0.3351428, 1.1160828, -1.8749284, 2.3452463, 2.8579218, -0.937464, 3.8172078, -2.9027214, -4.286151, 3.951609, 2.0538225, -3.9906359, 0.941365, 2.6170757, 4.286991, -0.06644794, 0.044138495, 1.3394753, 5.2907815, 0.31198362, 3.6164145, 3.2817535, -1.1608825, -1.8749284, 4.219336, 2.187463, -4.28699, 3.951609, -1.8302133, -3.8841405, 2.47911, 2.8579218, -4.095175, 5.1739497, 0.2970222, 0.26772752, 3.6833444, -2.9027214, 1.3394753, 3.6833444, -2.7685168, 0.80318177, 4.219336, 2.187463, 3.6164145, 2.7457619, 0.7140331, -3.7842247, 0.47178292, 2.56367, 4.286991, 0.20181687, 0.8476738, 4.018425, -0.06644794, 0.8476738, 3.4829705, 3.415617, -1.6965725)
+
+[node name="prov_watermill_house" type="Node3D" unique_id=927265363]
+metadata/id = "prov_watermill_house"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WaterMill_House"
+metadata/lod = 1
+metadata/triangulos = 11502
+metadata/categoria = "edificio"
+
+[node name="modelo" type="Node3D" parent="." unique_id=179546233]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=575117931]
+transform = Transform3D(5.4850426e-09, 0, -0.45996624, 0, 0.45996624, 0, 0.45996624, 0, 5.4850426e-09, 4.7683716e-07, 0.41277233, 4.7683716e-07)
+mesh = ExtResource("1_upgkw")
+surface_material_override/0 = SubResource("StandardMaterial3D_2gkbw")
+surface_material_override/1 = SubResource("StandardMaterial3D_ydtaf")
+surface_material_override/2 = SubResource("StandardMaterial3D_0pyj2")
+surface_material_override/3 = SubResource("StandardMaterial3D_dq6vd")
+surface_material_override/4 = SubResource("StandardMaterial3D_188ou")
+surface_material_override/5 = SubResource("StandardMaterial3D_ts6h7")
+surface_material_override/6 = SubResource("StandardMaterial3D_1f3ya")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=301172288]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=134279954]
+shape = SubResource("ConvexPolygonShape3D_idml7")

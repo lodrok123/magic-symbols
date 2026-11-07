@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Barrel_Open.obj" id="1_4ec44"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_B.png" id="2_yejbp"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_N.png" id="3_74vbe"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c6uwn"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_yejbp")
+normal_enabled = true
+normal_texture = ExtResource("3_74vbe")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_h82g5"]
+points = PackedVector3Array(0.28953877, 0.16453984, -0.034359705, -0.2977282, 0.187323, -0.01098104, -0.29748988, 0.18748184, 0.012502397, 0.24213013, 0.76161456, -0.06939101, 0.06635933, 0.5736818, 0.2922524, -0.12102202, 0.76297915, -0.22231163, 0.055223364, 0.057730284, -0.26996553, -0.050643757, 0.010834258, 0.24778824, -0.19191721, 0.7638001, 0.16551515, -0.19263932, 0.009278817, -0.16459711, 0.1946279, 0.014130608, 0.16400507, 0.15912102, 0.57303894, -0.25479963, 0.19462773, 0.7603482, 0.16400494, -0.28517205, 0.5631898, -0.10479147, -0.15446685, 0.18992859, 0.2562155, -0.10852222, 0.56221014, -0.2792474, 0.1952247, 0.012972979, -0.1629236, 0.2646684, 0.56214833, 0.14069374, -0.28451702, 0.5627889, 0.10608162, -0.24799246, 0.06135449, 0.1171203, 0.1484118, 0.17678379, 0.25805953, -0.15504365, 0.1892025, -0.25556785, 0.27644244, 0.5738123, -0.1158426, -0.050643824, 0.76364535, 0.24778853, -0.25014007, 0.7629177, -0.022682356, 0.055173088, 0.7635062, -0.24616647, -0.15537752, 0.5739929, 0.2576997, 0.22934918, 0.16608772, -0.18549418, -0.062139314, 0.19984078, 0.293748, 0.2759286, 0.20101653, 0.11715473, 0.30172658, 0.5633258, 0.0124327, 0.055283137, 0.18697825, -0.2938621)
+
+[node name="prov_barrel_open" type="Node3D" unique_id=809289291]
+metadata/id = "prov_barrel_open"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Barrel_Open"
+metadata/lod = 0
+metadata/triangulos = 896
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=171825952]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1155450888]
+transform = Transform3D(0.682, 0, 0, 0, 0.682, 0, 0, 0, 0.682, 0, 0, 0)
+mesh = ExtResource("1_4ec44")
+surface_material_override/0 = SubResource("StandardMaterial3D_c6uwn")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1074786422]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1134901939]
+shape = SubResource("ConvexPolygonShape3D_h82g5")

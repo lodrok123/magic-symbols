@@ -80,6 +80,7 @@ uniform float usa_orm = 0.0;
 uniform float usa_normal = 0.0;
 uniform float usa_vertex = 0.0;
 uniform float alfa_min = 0.12;
+uniform float recorte = 0.0;            // 7/11: recorte por alfa de la textura (follaje de tarjetas). 0 = sin recorte (todo lo que no era alpha scissor); > 0 = umbral del material de origen
 uniform float margen = 0.5;
 uniform vec3 uv_escala = vec3(1.0);
 uniform vec3 uv_desp = vec3(0.0);
@@ -195,6 +196,9 @@ void fragment() {
 	}
 	vec2 uv = UV * uv_escala.xy + uv_desp.xy;
 	vec4 a = texture(tex_albedo, uv) * color;
+	if (recorte > 0.0 && a.a < recorte) {
+		discard;
+	}
 	if (usa_vertex > 0.5) {
 		a *= COLOR;
 	}
@@ -305,7 +309,9 @@ static func convertir(origen: Material) -> Material:
 	if not _listo or not (origen is StandardMaterial3D):
 		return origen
 	var m: StandardMaterial3D = origen as StandardMaterial3D
-	if m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED or m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED \
+	# 7/11: el alpha scissor (follaje de tarjetas) SI se convierte: conserva su umbral (`recorte`) y su culling. Cualquier otra transparencia sigue sin convertirse.
+	var scissor: bool = m.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	if (m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED and not scissor) or m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED \
 			or m.billboard_mode != BaseMaterial3D.BILLBOARD_DISABLED or m.next_pass != null:
 		return origen
 	var cull: String = "cull_back"
@@ -343,6 +349,8 @@ static func convertir(origen: Material) -> Material:
 		sm.set_shader_parameter("usa_vertex", 1.0)
 	sm.set_shader_parameter("uv_escala", m.uv1_scale)
 	sm.set_shader_parameter("uv_desp", m.uv1_offset)
+	if scissor:
+		sm.set_shader_parameter("recorte", m.alpha_scissor_threshold)
 	sm.set_shader_parameter("alfa_min", ALFA_MIN)
 	sm.set_shader_parameter("margen", MARGEN_PROFUNDIDAD)
 	sm.set_shader_parameter("carbon_color", QUEMADO_CARBON)

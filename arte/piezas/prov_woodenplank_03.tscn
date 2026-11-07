@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WoodenPlank_03.obj" id="1_bwkfw"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_3eriv"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_wjyjs"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s73il"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_3eriv")
+normal_enabled = true
+normal_texture = ExtResource("3_wjyjs")
+
+[node name="prov_woodenplank_03" type="Node3D" unique_id=1784907930]
+metadata/id = "prov_woodenplank_03"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WoodenPlank_03"
+metadata/lod = 0
+metadata/triangulos = 36
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1153162546]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=945476571]
+transform = Transform3D(0.3846884, 0, 0, 0, 0.3846884, 0, 0, 0, 0.3846884, -1.7881393e-07, 0.025079377, -2.0116568e-07)
+mesh = ExtResource("1_bwkfw")
+surface_material_override/0 = SubResource("StandardMaterial3D_s73il")

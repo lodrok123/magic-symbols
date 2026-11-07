@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Vines_Group_04.obj" id="1_cmnta"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="2_vbhym"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r1frf"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.375, 0.625, 0.325, 1)
+albedo_texture = ExtResource("2_vbhym")
+
+[node name="prov_vines_group_04" type="Node3D" unique_id=1335936271]
+metadata/id = "prov_vines_group_04"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Vines_Group_04"
+metadata/lod = 0
+metadata/triangulos = 786
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1099143619]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1868258028]
+transform = Transform3D(0.26635474, 0, 0, 0, 0.26635474, 0, 0, 0, 0.26635474, -0.023296982, 2.4, -0.003385231)
+mesh = ExtResource("1_cmnta")
+surface_material_override/0 = SubResource("StandardMaterial3D_r1frf")

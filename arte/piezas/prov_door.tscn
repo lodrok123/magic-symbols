@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Door.obj" id="1_l70pj"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_B.png" id="2_ds6ls"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_N.png" id="3_ttukc"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_phttf"]
+cull_mode = 2
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_ds6ls")
+normal_enabled = true
+normal_texture = ExtResource("3_ttukc")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_pqom1"]
+points = PackedVector3Array(-0.09500106, 1.3902552, -0.07313497, 0.45232174, -0.010951459, -0.07313502, -0.4453263, -0.010951459, -0.073134944, -0.4453263, 1.0837069, 0.036317166, 0.45232174, 1.1712137, 0.014414664, 0.27711517, 0.44893944, 0.080091946, -0.4453263, 0.054884434, 0.036317166, 0.45232174, 1.1712137, -0.07313502, -0.4453263, 1.1712137, -0.073134944, 0.08002977, 1.3902552, 0.014414696, 0.45232174, 0.054884434, 0.036317088, 0.29899403, 0.6240903, 0.08009194, -0.22636203, 1.36831, 0.014414723, 0.2114786, 1.36831, -0.073134996, -0.33584416, 0.033076286, 0.03631716, 0.25514847, 1.3462274, 0.014414681, -0.40148073, 1.1494057, 0.036317162, 0.32078502, 0.033076286, 0.0363171, -0.22636203, 1.36831, -0.07313496, 0.32078502, 0.5801997, 0.08009194, -0.40148073, 1.2151043, 0.014414739, 0.32078502, 1.3026111, -0.07313501, 0.32078502, 1.3026111, 0.0144146755, -0.09500105, 1.3902552, 0.014414712, -0.31378958, 1.3026111, -0.07313495, 0.08002976, 1.3902552, -0.07313499, 0.2114786, 1.36831, 0.014414685, -0.1168799, 1.1494057, 0.03631714, 0.45232174, 0.1423912, 0.036317088, 0.27711517, 0.6240903, 0.080091946, 0.32078502, 0.4707476, 0.08009194, -0.31378958, 1.3026111, 0.0144147305)
+
+[node name="prov_door" type="Node3D" unique_id=268819386]
+metadata/id = "prov_door"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Door"
+metadata/lod = 0
+metadata/triangulos = 1224
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=239661330]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1401993572]
+transform = Transform3D(-0.458, 0, -4.003963e-08, 0, 0.458, 0, 4.003963e-08, 0, -0.458, 2.0861626e-07, 0.68965185, 2.0638108e-06)
+mesh = ExtResource("1_l70pj")
+surface_material_override/0 = SubResource("StandardMaterial3D_phttf")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=483595518]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=421431490]
+shape = SubResource("ConvexPolygonShape3D_pqom1")

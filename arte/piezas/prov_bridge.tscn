@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Bridge.obj" id="1_cuhw6"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_B.png" id="2_nn1ts"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Atlas_House_N.png" id="3_lnqe4"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="4_gv1gr"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="5_iaf55"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ijm4s"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_nn1ts")
+normal_enabled = true
+normal_texture = ExtResource("3_lnqe4")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0er7y"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("4_gv1gr")
+normal_enabled = true
+normal_texture = ExtResource("5_iaf55")
+
+[node name="prov_bridge" type="Node3D" unique_id=867427398]
+metadata/id = "prov_bridge"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Bridge"
+metadata/lod = 0
+metadata/triangulos = 5520
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1940012806]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=321580674]
+transform = Transform3D(-2.5402041e-08, 0, 0.581131, 0, 0.581131, 0, -0.581131, 0, -2.5402041e-08, -0.5086336, 0.17503026, -0.10895282)
+mesh = ExtResource("1_cuhw6")
+surface_material_override/0 = SubResource("StandardMaterial3D_ijm4s")
+surface_material_override/1 = SubResource("StandardMaterial3D_0er7y")

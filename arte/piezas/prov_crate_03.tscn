@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Crate_03.obj" id="1_y4d0i"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_B.png" id="2_wwh8n"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Crates_N.png" id="3_waxfg"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2wr5r"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_wwh8n")
+normal_enabled = true
+normal_texture = ExtResource("3_waxfg")
+
+[node name="prov_crate_03" type="Node3D" unique_id=1727066573]
+metadata/id = "prov_crate_03"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Crate_03"
+metadata/lod = 0
+metadata/triangulos = 204
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=732857388]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1489606191]
+transform = Transform3D(-2.679508e-08, 0, 0.613, 0, 0.613, 0, -0.613, 0, -2.679508e-08, 0, 9.8079996e-05, 0)
+mesh = ExtResource("1_y4d0i")
+surface_material_override/0 = SubResource("StandardMaterial3D_2wr5r")

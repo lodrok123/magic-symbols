@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Jar_02.obj" id="1_llrv0"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_B.png" id="2_umk08"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_N.png" id="3_378ir"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g56he"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_umk08")
+normal_enabled = true
+normal_texture = ExtResource("3_378ir")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_5ewoq"]
+points = PackedVector3Array(0.054997515, 0.16936018, -0.24753246, -0.046991214, 0.41237175, 0.3260529, -0.04777649, 0.33437195, 0.3317792, -0.31712088, 0.37363884, -0.030361675, 0.016784428, 0.7988533, -0.28837425, 0.3124956, 0.3735745, 0.08518606, -0.12575248, 0.840234, 0.124895856, -0.063207574, -0.0067590326, 0.21072522, 0.14954038, 0.8142304, 0.06854269, -0.1576192, -0.0067590326, -0.12646836, 0.20656763, -0.0067590326, -0.005046358, 0.2713345, 0.38689798, -0.15753196, 0.15733318, 0.2843654, 0.28932318, -0.26427996, 0.2972598, 0.18677086, -0.17396438, 0.3870036, -0.25867268, -0.19806284, -0.0067590326, 0.075834304, -0.12822135, 0.8081097, -0.076128475, 0.07666023, 0.81477654, 0.15382698, 0.055551395, 0.3088666, -0.3015325, 0.12561564, -0.0067590326, -0.15340614, 0.16612399, -0.0067590326, 0.14324608, 0.16908835, 0.39955613, 0.28765196, -0.008893097, 0.7448313, -0.32459602, -0.26145625, 0.39971426, -0.16884764, 0.14866205, 0.81198186, -0.040631957, -0.24749936, 0.41252634, 0.20892097, 0.16890125, 0.33609438, -0.25860652, 0.29791084, 0.28439674, -0.09416891, -0.060143214, 0.2584409, -0.2865098, 0.24506472, 0.39958787, 0.22384758, 0.3003416, 0.29609752, 0.124055065, -0.31881166, 0.2958811, 0.008068042)
+
+[node name="prov_jar_02" type="Node3D" unique_id=1279696033]
+metadata/id = "prov_jar_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Jar_02"
+metadata/lod = 0
+metadata/triangulos = 916
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=894822133]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1823627322]
+transform = Transform3D(1.4804983, 0, 0, 0, 1.4804983, 0, 0, 0, 1.4804983, 0, 0.017160455, 0)
+mesh = ExtResource("1_llrv0")
+surface_material_override/0 = SubResource("StandardMaterial3D_g56he")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1557817363]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=2109014010]
+shape = SubResource("ConvexPolygonShape3D_5ewoq")
