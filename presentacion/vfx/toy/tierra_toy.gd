@@ -15,8 +15,8 @@ extends EfectoToy
 ## semiejes, a trompicones, con piedras pequeñas al pie. PILAR = una roca_est_4 alta con cuatro roca_est_1 / 0 más bajas alrededor y piedras al pie. BARRERA = corona de rocas inclinadas hacia
 ## dentro sobre la elipse del suelo, CERRADA ARRIBA con 2-3 losas (cúpula) y un destello de polvo al cerrarse. HAZ = PÚAS que brotan en secuencia (abajo).
 ## 3.ª versión (6/11 noche, referencias de Pablo en docs/capturas/referencias/tierra_pack/, solo la SECUENCIA, nunca el estilo realista):
-##   HAZ («en vez de una línea tipo lanzallamas usa unas puntas que desplazan»): GRIETAS negras finas que corren por el suelo de la mano a la punta (tierra_grietas.gdshader en un quad)
-##   y detrás PÚAS cónicas facetadas de tierra (mallas propias low-poly `pua_0..2`: cono de 5-7 lados con ligera curva; color plano pardo, `plano` = 1 del shader) que brotan EN SECUENCIA
+##   HAZ («en vez de una línea tipo lanzallamas usa unas puntas que desplazan»): GRIETAS pardas finas (el color de la tierra del nivel) que corren por el suelo de la mano a la punta (tierra_grietas.gdshader en un quad)
+##   y detrás PÚAS de tierra con la FORMA de tres rocas del pack de LeLu (`arte/rocas_lelu/sm_rocks_objects.glb`: `pua_0` = stone5 cono, `pua_1` = stone6 cuña, `pua_2` = stone4 esquirla; 426 / 588 / 620 vértices, normalizadas a base en y = 0, alto 1, radio <= 0,5; color plano pardo, `plano` = 1 del shader: solo la forma, no su textura) que brotan EN SECUENCIA
 ##   de la mano a la punta (~0,05 s cada una), de MENOR a MAYOR, con 1-2 LAJAS (losas facetadas `laja_0..1`) que se levantan inclinadas en la base y cascotes que saltan; se quedan lo que
 ##   dura el haz y se HUNDEN en orden inverso (la punta primero); las grietas se desvanecen. ≤ MAX_BLOQUES instancias en ≤ 5 MultiMesh, como antes.
 ##   CARGA: además de la convergencia, un ANILLO DE AVISO de N_AVISO piedrecitas que gira a ras de suelo bajo los pies (`pies`) mientras se carga.
@@ -39,7 +39,9 @@ const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fr
 const MALLAS_MURO: Array = ["roca_est_1", "roca_est_2", "roca_est_1", "roca_est_0", "roca_est_2", "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
 const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
 const MAX_TIPOS: int = 5                                              ## MultiMesh (tipos de roca) por figura como mucho
-const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas cónicas facetadas propias (malla_pua), color plano pardo
+const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas con la forma de las rocas de LeLu (malla_pua), color plano pardo
+const RUTA_ROCAS_LELU: String = "res://arte/rocas_lelu/sm_rocks_objects.glb"
+const PUAS_LELU: Array = ["stone5", "stone6", "stone4"]                 ## roca del pack de cada variante de púa (cono, cuña, esquirla)
 const MALLAS_LAJA: Array = ["laja_0", "laja_1"]                      ## lajas de losa facetadas propias (malla_laja)
 const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
 const SH_DECAL: String = "res://presentacion/vfx/toy/decal_suelo.gdshader"      ## 7/11: decal de suelo (se pega al relieve), referencia de LeLu que paso Pablo
@@ -142,44 +144,45 @@ static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3) -> void:
 		st.add_vertex(v)
 
 
-## PÚA cónica facetada: cono de 5-7 lados con tres anillos (base, cintura, cuello) y punta, con una ligera CURVA hacia +X; base en y = 0, alto 1, radio de base 0,5 (se escala con `asentar`).
-## `variante` 0..2 cambia lados, curva y las irregularidades de los anillos.
+## PÚA: la forma de una roca del pack de LeLu (`arte/rocas_lelu/sm_rocks_objects.glb`; variante 0 -> stone5, 1 -> stone6, 2 -> stone4, la variante sin sufijo de cada una), NORMALIZADA como
+## el antiguo cono: base en y = 0, centrada en x/z, alto 1 y radio de base <= 0,5 (se escala con `asentar`). Solo se toma la FORMA: se quitan los materiales (manda el `material_override`
+## del MultiMesh, color plano pardo) y se conservan posiciones, normales y UV. Se calcula una vez (malla_roca la cachea).
 static func malla_pua(variante: int) -> ArrayMesh:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = 101 + variante * 7
-	var lados: int = [6, 5, 7][variante % 3]
-	var curva: float = [0.22, 0.14, 0.3][variante % 3]
-	var alturas: Array = [0.0, 0.38, 0.72, 1.0]
-	var radios: Array = [0.5, 0.36, 0.17, 0.0]
-	var anillos: Array = []
-	for k in 4:
-		var h: float = float(alturas[k])
-		var desp: float = curva * h * h
-		var anillo: Array = []
-		for i in lados:
-			var a: float = TAU * float(i) / float(lados) + (0.0 if k == 0 else rng.randf_range(-0.12, 0.12))
-			var r: float = float(radios[k]) * (1.0 if k == 3 else rng.randf_range(0.82, 1.12))
-			anillo.append(Vector3(cos(a) * r + desp, h, sin(a) * r))
-		anillos.append(anillo)
-	var st: SurfaceTool = SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for k in 3:
-		var abajo: Array = anillos[k]
-		var arriba: Array = anillos[k + 1]
-		for i in lados:
-			var j: int = (i + 1) % lados
-			if k == 2:
-				_tri(st, abajo[i], arriba[0], abajo[j])
-			else:
-				_tri(st, abajo[i], arriba[i], abajo[j])
-				_tri(st, abajo[j], arriba[i], arriba[j])
-	# base (cerrada, mirando abajo: por si asoma al salir inclinada)
-	var c: Vector3 = Vector3.ZERO
-	for i in lados:
-		var j: int = (i + 1) % lados
-		_tri(st, c, (anillos[0] as Array)[j], (anillos[0] as Array)[i])
-	return st.commit()
-
+	var nombre: String = PUAS_LELU[variante % PUAS_LELU.size()]
+	var origen: Mesh = null
+	var ps: PackedScene = load(RUTA_ROCAS_LELU) as PackedScene
+	if ps != null:
+		var n: Node = ps.instantiate()
+		for mi in n.find_children(nombre, "MeshInstance3D", true, false):
+			origen = (mi as MeshInstance3D).mesh
+			break
+		n.free()
+	var res: ArrayMesh = ArrayMesh.new()
+	if origen == null:
+		push_warning("TierraToy: no encuentro %s en %s" % [nombre, RUTA_ROCAS_LELU])
+		return res
+	var caja: AABB = origen.get_aabb()
+	var sy: float = 1.0 / maxf(caja.size.y, 0.001)                          # alto -> 1
+	var sxz: float = minf(sy, 1.0 / maxf(maxf(caja.size.x, caja.size.z), 0.001))   # nunca mas de 1 de ancho (radio 0,5): se estrecha X/Z, no el alto
+	var centro: Vector3 = caja.get_center()
+	for s in range(origen.get_surface_count()):
+		var arr: Array = origen.surface_get_arrays(s)
+		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL] if arr[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+		for k in range(vs.size()):
+			var p: Vector3 = vs[k]
+			vs[k] = Vector3((p.x - centro.x) * sxz, (p.y - caja.position.y) * sy, (p.z - centro.z) * sxz)
+			if k < ns.size():
+				ns[k] = Vector3(ns[k].x / sxz, ns[k].y / sy, ns[k].z / sxz).normalized()    # normal de una escala no uniforme
+		var datos: Array = []
+		datos.resize(Mesh.ARRAY_MAX)
+		datos[Mesh.ARRAY_VERTEX] = vs
+		if ns.size() == vs.size():
+			datos[Mesh.ARRAY_NORMAL] = ns
+		datos[Mesh.ARRAY_TEX_UV] = arr[Mesh.ARRAY_TEX_UV]
+		datos[Mesh.ARRAY_INDEX] = arr[Mesh.ARRAY_INDEX]
+		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, datos)
+	return res
 
 ## LAJA de losa facetada: polígono irregular de 5-6 lados extruido fino (alto 0,12 del lado), base en y = 0, lado ≈ 1.
 static func malla_laja(variante: int) -> ArrayMesh:
@@ -1123,7 +1126,7 @@ func _barrera(c: Node3D) -> void:
 	c.add_child(_brillo)
 
 
-## HAZ (3.ª versión): PÚAS cónicas facetadas (pua_0..2, color plano) que BROTAN del suelo hacia -Z EN SECUENCIA de la mano a la punta (cada una PASO_PUA_S s después de la anterior, cada
+## HAZ (3.ª versión): PÚAS con la forma de las rocas stone5 / stone6 / stone4 del pack de LeLu (pua_0..2, color plano) que BROTAN del suelo hacia -Z EN SECUENCIA de la mano a la punta (cada una PASO_PUA_S s después de la anterior, cada
 ## una tarda SUBE_PUA_S s en salir), de MENOR a MAYOR, inclinadas hacia delante, con 1-2 LAJAS inclinadas en su base (salen con su púa). Se hunden en orden inverso (`ret_hunde`: la punta
 ## primero). Delante corren las GRIETAS (quad `Grietas`, tierra_grietas.gdshader: `avance` va por delante de las púas; `vida` se apaga al hundirse). ≤ MAX_BLOQUES piezas.
 func _haz(c: Node3D) -> void:
@@ -1168,7 +1171,7 @@ func _haz(c: Node3D) -> void:
 			bl["ret_hunde"] = (1.0 - f) * 0.5 + 0.03
 			lajas.append(bl)
 	_montar_bloques(c, capa + lajas)
-	_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.012}, Vector3(0, 0.02, -_haz_largo * 0.5))      # finas: ~1 cm
+	_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.02}, Vector3(0, 0.02, -_haz_largo * 0.5))      # ~2 cm: una costura, no un pelo
 	_grietas.rotation.y = PI                                                                      # UV.y = 0 en la mano (z = 0), 1 en la punta (z = -largo)
 	c.add_child(_grietas)
 
@@ -1497,3 +1500,4 @@ func _emitir_bola(delta: float) -> void:
 			_acc -= 1.0
 			var loc2: Vector3 = Vector3(randf_range(-0.4, 0.4) * r, randf_range(-0.3, 0.3) * r, r * randf_range(0.8, 1.3))
 			_polvo.call("emitir", tr * loc2, _vel_mundo * 0.15 + tr.basis * Vector3(randf_range(-0.4, 0.4), 0.2, 0.2), 0.8, 0.8)
+

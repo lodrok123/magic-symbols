@@ -2,14 +2,18 @@ shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
 
 // GRIETAS DE TIERRA EN EL SUELO (6/11/2026, TierraToy HAZ; referencia docs/capturas/referencias/tierra_pack/LEEME.md §1, solo la SECUENCIA). Un quad tumbado (PlaneMesh) a lo largo
-// del haz: UV.y = 0 en la mano, 1 en la punta. Tres grietas NEGRAS finas que serpentean a lo largo con ramitas cortas, y que CORREN de la mano a la punta con `avance` (0..1: hasta
+// del haz: UV.y = 0 en la mano, 1 en la punta. Tres grietas finas (pardas, ver color_grieta) que serpentean a lo largo con ramitas cortas, y que CORREN de la mano a la punta con `avance` (0..1: hasta
 // dónde han llegado) antes de que broten las púas; se desvanecen con `vida`. Sin disco oscuro debajo (no es el cráter de magma): solo las líneas, a ras de suelo, toon (borde duro).
 
 uniform float avance : hint_range(0.0, 1.0) = 1.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float semilla = 0.0;
 uniform float grosor : hint_range(0.002, 0.08) = 0.022;
-uniform vec3 color_grieta : source_color = vec3(0.05, 0.035, 0.03);
+// 7/11: era casi negro (0,05·0,035·0,03) y en el Bosque, sobre hierba muy clara, daba un salto de contraste feo; ahora es el pardo de la tierra del nivel, la misma familia que la marca del golpe.
+// (el haz de MAGMA lo pisa con su naranja desde MagmaToy._puas_igneas)
+// 7/11 (2.ª vuelta): a la distancia de la cámara del juego, una línea fina y muy oscura sobre hierba clara daba un salto de contraste (se leía como tinta). Se busca que la grieta se corresponda
+// con la tierra del nivel: pardo oscuro del suelo del Bosque (no una sombra) y más gruesa (TierraToy le pasa `grosor` 0,02: ~2 cm, una costura).
+uniform vec3 color_grieta : source_color = vec3(0.34, 0.21, 0.12);
 
 float hash1(float n) {
 	return fract(sin(n * 127.1 + semilla * 311.7) * 43758.5453);

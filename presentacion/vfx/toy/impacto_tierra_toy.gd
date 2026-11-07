@@ -17,8 +17,8 @@ const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const SH_ANILLO: String = "res://presentacion/vfx/toy/tierra_anillo.gdshader"
 const TEX_MARCA: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## marca de suelo (grietas negras sobre blanco) del pack de LeLu: su readme deja usarla sin credito
-const MARCA_PESO: float = 0.75                        ## cuanto pinta la marca de suelo sobre el interior del anillo (0 = solo las grietas de codigo)
-@export var color_marca: Color = Color(0.07, 0.05, 0.04)        ## color de la marca de suelo del anillo: el pardo casi negro de la tierra (el magma la pone carmesí)
+const MARCA_PESO: float = 0.55                       ## cuanto pinta la marca de suelo sobre el interior del anillo (0 = solo las grietas de codigo)
+@export var color_marca: Color = Color(0.26, 0.16, 0.09)        ## color de la marca de suelo del anillo: el pardo de la tierra del Bosque (el suelo ronda 0,62·0,40·0,22) (el magma la pone carmesí)
 @export var color_emision_marca: Color = Color(0.0, 0.0, 0.0)   ## lo que ARDE esa marca (0 en tierra; el magma la enciende)
 @export var emision_marca: float = 0.0
 const ALTO_DECAL: float = 1.6                         ## m de alto de la caja del decal: lo que puede subir o bajar el suelo dentro de la marca

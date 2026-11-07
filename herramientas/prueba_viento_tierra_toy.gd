@@ -159,8 +159,16 @@ func _estilo() -> void:
 		_ok("%s: sin blend_add, sin EMISSION, unshaded, borde duro (discard)" % s2, c2.find("blend_add") < 0 and c2.find("EMISSION") < 0 and c2.find("unshaded") >= 0 and c2.find("discard") >= 0)
 	var pua: Mesh = TierraToy.malla_roca("pua_0")
 	var laja: Mesh = TierraToy.malla_roca("laja_0")
-	_ok("las púas y las lajas son mallas propias low-poly (pua_0 %d vértices, laja_0 %d), base en y = 0, alto 1 / fino, cacheadas" % [(pua.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size(), (laja.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()],
-		pua is ArrayMesh and laja is ArrayMesh and absf(pua.get_aabb().position.y) < 0.001 and absf(pua.get_aabb().size.y - 1.0) < 0.01 and (pua.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() <= 120
+	# 7/11: las púas ya no son conos generados a mano (≤ 120 vértices) sino las rocas stone5 / stone6 / stone4 del pack de LeLu (arte/rocas_lelu: 426 / 588 / 620 vértices), normalizadas a base en y = 0,
+	# alto 1 y radio <= 0,5; por eso el tope POR MALLA es 700. Lo que de verdad acota el coste es el total del haz (comprobación «un HAZ completo» más abajo).
+	var v_pua: Array = []
+	var puas_ok: bool = true
+	for k in 3:
+		var mp: Mesh = TierraToy.malla_roca("pua_%d" % k)
+		v_pua.append((mp.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+		puas_ok = puas_ok and mp is ArrayMesh and absf(mp.get_aabb().position.y) < 0.001 and absf(mp.get_aabb().size.y - 1.0) < 0.01 and int(v_pua[k]) <= 700 and mp.get_aabb().size.x <= 1.001 and mp.get_aabb().size.z <= 1.001
+	_ok("las púas son las rocas stone5 / stone6 / stone4 del pack (pua_0..2: %s vértices, tope 700 por malla), normalizadas (base en y = 0, alto 1, ancho <= 1) y las lajas son mallas propias (laja_0 %d), cacheadas" % [str(v_pua), (laja.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()],
+		pua is ArrayMesh and laja is ArrayMesh and puas_ok
 		and laja.get_aabb().size.y < 0.2 and TierraToy.malla_roca("pua_0") == pua and TierraToy.es_plana("pua_2") and TierraToy.es_plana("laja_1") and not TierraToy.es_plana("roca_est_1"))
 	_ok("las rocas del mapa existen (piedra_est_0..4, roca_est_0..4 y rocas_albedo.png)", ResourceLoader.exists(TierraToy.TEX_ALBEDO) and range(5).all(func(i: int) -> bool: return ResourceLoader.exists(TierraToy.RUTA_ROCA % ("piedra_est_%d" % i)) and ResourceLoader.exists(TierraToy.RUTA_ROCA % ("roca_est_%d" % i))))
 	var mb: Mesh = TierraToy.malla_roca("piedra_est_0")
@@ -353,6 +361,12 @@ func _tierra_haz() -> void:
 	for mi in e._bloques_mms:
 		mats_planos = mats_planos and float(((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("plano")) > 0.99
 	_ok("las púas y las lajas se pintan con color PLANO pardo (plano = 1), no con la textura", mats_planos)
+	# 7/11: coste de un HAZ completo = suma, por MultiMesh, de instancias × vértices de su malla; con las púas del pack (426-620 vértices) 14 púas dan ~7.550, el margen es corto a propósito
+	var vert_haz: int = 0
+	for mi in e._bloques_mms:
+		var mmh: MultiMesh = (mi as MultiMeshInstance3D).multimesh
+		vert_haz += mmh.instance_count * (mmh.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+	_ok("un HAZ completo no pasa de 9.000 vértices sumando todas sus instancias (mide %d en %d MultiMesh)" % [vert_haz, e._bloques_mms.size()], vert_haz > 0 and vert_haz <= 9000)
 	# secuencia: de la mano (z = 0) a la punta (z = -largo): retraso creciente con paso de 0,04-0,06 s; alturas crecientes
 	var orden_ok: bool = true
 	var pasos_ok: bool = true
