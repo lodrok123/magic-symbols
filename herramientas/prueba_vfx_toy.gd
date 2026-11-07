@@ -242,6 +242,16 @@ func _lab() -> void:
 	var consts: Dictionary = lab.get_script_constant_map()
 	var mandos: Array = consts.get("MANDOS_TOY", [])
 	_ok("MANDOS_TOY tiene los diez mandos", mandos.size() == 10)
+	# 7/11 (Pablo: «integra todo en un laboratorio para revisar todos los elementos»): la PARRILLA. Que estén los siete elementos con toy, su tecla y que la figura salga de la misma tabla que F7
+	var els: PackedStringArray = consts.get("ELEMENTOS_TOY", PackedStringArray())
+	var faltan: Array = []
+	for n in ["fuego", "agua", "hielo", "rayo", "magma", "viento", "tierra"]:
+		if not els.has(n):
+			faltan.append(n)
+	_ok("la parrilla recorre los siete elementos con toy (%d)" % els.size(), els.size() == 7 and faltan.is_empty(), "faltan " + str(faltan))
+	_ok("teclas de la parrilla: 4 la monta y 8 la rehace", cod.contains("KEY_4: parrilla(") and cod.contains("KEY_8: parrilla("))
+	_ok("la parrilla usa las figuras de F7 (FIGURAS_PARAM) y no una tabla aparte", cod.contains("FIGURAS_PARAM[_param_i]") and (consts.get("FIGURAS_PARAM", []) as Array).size() == 5)
+	_ok("lo que monta la parrilla va marcado (META_PARRILLA) para quitarlo sin tocar el resto", consts.has("META_PARRILLA") and cod.contains("has_meta(META_PARRILLA)"))
 	var e: Node3D = _cargar("BolaFuegoToy")
 	var r: Dictionary = _rangos(e)
 	e.free()
