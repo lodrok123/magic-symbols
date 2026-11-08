@@ -121,6 +121,18 @@ func _escenario() -> void:
 	_tecla_lab(KEY_F)
 	_ok("6 F lo devuelve a toy", VfxToyJuego.usa_toy("fuego"))
 
+	# --- E enciende/apaga la erosion de las cuatro bolas (VfxKit3D.usar_erosion) y avisa en el HUD
+	var ero0: bool = VfxKit3D.usar_erosion
+	_tecla_lab(KEY_E)
+	_ok("6b E invierte VfxKit3D.usar_erosion", VfxKit3D.usar_erosion == not ero0)
+	_ok("6b …y el HUD lo dice", lab.texto_hud().contains("erosion de las bolas: %s" % ("SI" if VfxKit3D.usar_erosion else "NO")) and lab.texto_hud().contains("E erosión"), lab.texto_hud().substr(0, 80))
+	_tecla_lab(KEY_E)
+	_ok("6b E otra vez la deja como estaba", VfxKit3D.usar_erosion == ero0)
+	_tecla_lab(KEY_E)
+	_tecla_lab(KEY_F1)
+	_ok("6b al salir de F4 la erosion vuelve a como estaba", VfxKit3D.usar_erosion == ero0)
+	_tecla_lab(KEY_F4)
+
 	# --- al salir de F4 el ajuste vuelve a como estaba
 	_tecla_lab(KEY_F1)
 	_ok("7 al salir de F4 el ajuste procedural vuelve a como estaba", VfxToyJuego.activo() == (bool(antes_val) if antes_proc else false))

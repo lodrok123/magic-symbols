@@ -15,7 +15,8 @@ uniform float brillo : hint_range(0.3, 3.0) = 1.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float velocidad : hint_range(0.1, 4.0) = 1.0;
 uniform float suave_prof : hint_range(0.0, 3.0) = 0.0;
-uniform sampler2D tex_prof : hint_depth_texture, repeat_disable, filter_nearest;
+#define NUCLEO_CON_PROF
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"      // declara tex_prof y nucleo_prof
 
 // Tonos por escalones: `v` 0..1 → hondo, claro y escarcha en `bandas` pasos (borde casi duro: el hielo se ve facetado).
 vec3 hielo_tonos(float v, float u_escarcha, float suave) {
@@ -28,13 +29,5 @@ vec3 hielo_tonos(float v, float u_escarcha, float suave) {
 
 // 0 pegado a la geometría de detrás, 1 a `dist` m o más. `vz` = VERTEX.z del fragmento.
 float hielo_prof(vec2 suv, float vz, float dist, mat4 inv_proy) {
-	if (dist <= 0.0) {
-		return 1.0;
-	}
-	float dp = texture(tex_prof, suv).r;
-	if (dp > 0.00001) {
-		vec4 w = inv_proy * vec4(suv * 2.0 - 1.0, dp, 1.0);
-		return clamp((-w.z / w.w + vz) / dist, 0.0, 1.0);
-	}
-	return 1.0;
+	return nucleo_prof(suv, vz, dist, inv_proy);
 }

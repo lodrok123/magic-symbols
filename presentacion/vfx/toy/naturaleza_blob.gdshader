@@ -11,11 +11,13 @@ uniform float blandura : hint_range(0.05, 0.9) = 0.35;
 uniform vec4 modulo : source_color = vec4(1.0);      // multiplica el color de instancia (para los quads sueltos, que no llevan color por instancia)
 varying vec4 tinte;
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	tinte = COLOR * modulo;
 	if (cartel) {
 		vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.x, 0.0), MODEL_MATRIX[3]);
+		MODELVIEW_MATRIX = nucleo_billboard(vec3(esc.x), VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 	}
 }
 

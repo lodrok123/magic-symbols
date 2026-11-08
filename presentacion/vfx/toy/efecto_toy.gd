@@ -34,6 +34,7 @@ var _halos: Array[ShaderMaterial] = []
 var _luz: OmniLight3D = null
 var _luz_base: float = 1.0
 var _cuerpo: Node3D = null
+var _mats_ero: Array[ShaderMaterial] = []     ## los de _mats cuyo shader trae erosion (uniform ero_inicio): la muerte sin choque les mueve "vida" y nada mas
 var _t: float = 0.0
 var _fase: float = 0.0
 ## Cuánto se adelanta la cabeza de la bola en vuelo (m, por -Z). FuegoToy lo escala con el tamaño de la bola.
@@ -52,6 +53,7 @@ func _recoger() -> void:
 	_cuerpo = get_node_or_null("Cuerpo") as Node3D
 	_mats.clear()
 	_halos.clear()
+	_mats_ero.clear()
 	for n in find_children("*", "GeometryInstance3D", true, false):
 		var g: GeometryInstance3D = n
 		var m: ShaderMaterial = g.material_override as ShaderMaterial
@@ -68,6 +70,12 @@ func _recoger() -> void:
 			_mats.append(m)
 			if m.next_pass is ShaderMaterial:
 				_mats.append(m.next_pass as ShaderMaterial)
+	for m2 in _mats:
+		if m2.shader != null:
+			for u in m2.shader.get_shader_uniform_list():
+				if u["name"] == "ero_inicio":
+					_mats_ero.append(m2)
+					break
 	_vuelo_part.clear()
 	for gp in find_children("*", "GPUParticles3D", true, false):
 		if (gp as Node).is_in_group("vuelo"):
@@ -208,6 +216,15 @@ func _set_chisporroteo(v: float) -> void:
 
 func _set_luz(v: float) -> void:
 	luz = v
+
+
+## Mueve SOLO "vida" de los materiales con erosion (1 = entero, 0 = comido), sin tocar "aparicion" ni la escala del cuerpo: lo usa la muerte sin choque (APAGANDO), que ya encoge la bola por su cuenta con _c_escala.
+## Con la erosion global apagada no hace nada (en esos shaders "vida" bajaria el alfa y cambiaria la silueta).
+func _vida_erosion(v: float) -> void:
+	if not _listo or not VfxKit3D.usar_erosion:
+		return
+	for m in _mats_ero:
+		m.set_shader_parameter("vida", v)
 
 
 func _set_aparicion(v: float) -> void:

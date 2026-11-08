@@ -164,6 +164,13 @@ const ELEMENTOS: Dictionary = {
 const VALIDADOS: Array = ["fuego", "agua"]
 static var _elementos: Dictionary = {}       ## nombre -> ElementoVfx (instancia, se crea la primera vez)
 
+## EROSION (7/11/2026, docs/estudios/VFX_DIAGNOSTICO_2026-11-07.md): encendida, las cuatro «bolas» (agua_esfera, fuego_lelu_bola, hielo_cristal, rayo_bola) se CONSUMEN por ruido
+## al morir (nucleo_toy.gdshaderinc: erosion_alfa) en vez de bajar el alfa. Apagada (por defecto) dan exactamente lo de antes. Es un global (declarado en project.godot): cambia a la vez
+## todos los materiales ya creados, para comparar A/B en la misma escena, como Ocluso3D.usar_rampa.
+static var usar_erosion: bool = false:
+	set(v):
+		usar_erosion = v
+		RenderingServer.global_shader_parameter_set("usar_erosion", v)
 ## Elemento con el que se construye lo siguiente (rampa, luz, partículas, marca). El Vfx3D lo pone justo antes de llamar a una de
 ## estas funciones; todas leen el perfil al crear sus materiales, así que no importa que cambie después.
 static var elemento: String = "fuego"

@@ -21,7 +21,7 @@ extends RefCounted
 ## Teclas:  ↑ ↓ eje · ← → valor · Espacio lanza la celda · A aprueba · R rechaza · N nota rápida (rota) · Supr borra la marca ·
 ##          Tab salta a la siguiente celda base sin marcar · G (la del lab) guarda también todo lo demás ·
 ##          V enciende/apaga el dibujo PROCEDURAL (`ProjectSettings magic_symbols/vfx_procedural`, en caliente) · F pasa el elemento de la fila elegida de toy a pieza antigua y vuelta
-##          (edita `magic_symbols/vfx_procedural_elementos`).
+##          (edita `magic_symbols/vfx_procedural_elementos`) · E enciende/apaga la EROSION de las cuatro bolas (`VfxKit3D.usar_erosion`, en caliente; al salir de F4 vuelve a como estaba).
 ## DIBUJO PROCEDURAL (6/11): al abrir F4 el ajuste arranca en true (para inspeccionar los toys enganchados al juego por el camino real: LabHechizos3D cuelga de la maqueta, que conecta
 ## `VfxToyJuego`) y al salir de F4 o cerrar el lab se devuelve a como estaba. El HUD dice si está encendido, qué toys hay, y tras cada lanzamiento cuántos toys creó `VfxToyJuego`
 ## (`creados`, `vivos()`) y las luces y partículas medidas. Las filas «magma», «naturaleza» y «hielo» (estados 7–9, al final: las claves viejas no cambian) son los DERIVADOS del
@@ -68,7 +68,8 @@ var lanzamientos: int = 0
 var guardar_al_marcar: bool = true          ## las pruebas lo apagan para no escribir en user://
 
 var _dentro: bool = false                   ## ¿F4 está abierta? (entonces el ajuste procedural lo lleva este nodo)
-var _prev_proc: Variant = null              ## el ajuste procedural de antes de abrir F4 (null = no existía)
+var _prev_ero: bool = false                 ## VfxKit3D.usar_erosion de antes de abrir F4 (E lo cambia; al salir vuelve)
+var _prev_proc: Variant = null             ## el ajuste procedural de antes de abrir F4 (null = no existía)
 var _prev_lista: Variant = null
 var _elementos_fila: Dictionary = {}        ## estado (índice) -> elemento de su runa (cache del HUD)
 var _creados_antes: Dictionary = {}         ## `VfxToyJuego.creados` justo antes del último lanzamiento
@@ -280,10 +281,18 @@ func activar(si: bool) -> void:
 	if si:
 		_prev_proc = ProjectSettings.get_setting(AJUSTE_PROCEDURAL) if ProjectSettings.has_setting(AJUSTE_PROCEDURAL) else null
 		_prev_lista = ProjectSettings.get_setting(AJUSTE_ELEMENTOS) if ProjectSettings.has_setting(AJUSTE_ELEMENTOS) else null
+		_prev_ero = VfxKit3D.usar_erosion
 		ProjectSettings.set_setting(AJUSTE_PROCEDURAL, true)
 	else:
 		ProjectSettings.set_setting(AJUSTE_PROCEDURAL, _prev_proc)
 		ProjectSettings.set_setting(AJUSTE_ELEMENTOS, _prev_lista)
+		VfxKit3D.usar_erosion = _prev_ero
+
+
+## E enciende/apaga la EROSION de las cuatro bolas (VfxKit3D.usar_erosion, global: vale en caliente para los toys ya creados) para comparar A/B lanzando hechizos de verdad.
+func alternar_erosion() -> void:
+	VfxKit3D.usar_erosion = not VfxKit3D.usar_erosion
+	ultimo_mensaje = "erosion de las bolas: %s" % ("SI (se consumen por ruido)" if VfxKit3D.usar_erosion else "NO (bajan el alfa, como antes)")
 
 
 func alternar_procedural() -> void:
@@ -545,6 +554,8 @@ func tecla(k: InputEventKey) -> bool:
 			borrar_marca()
 		KEY_V:
 			alternar_procedural()
+		KEY_E:
+			alternar_erosion()
 		KEY_F:
 			alternar_elemento()
 		KEY_TAB:
@@ -580,7 +591,7 @@ func texto() -> String:
 	t.append("Criterio (base: esfera · ninguna · 4 impactos): %d/%d → %s        Todas: %d aprobadas · %d rechazadas de %d" % [
 		base_aprobadas(), celdas_base().size(), "CUMPLIDO" if criterio_cumplido() else "pendiente", contar(APROBADO), contar(RECHAZADO), total_celdas()])
 	t.append("Por estado: " + " · ".join(por_estado))
-	t.append("↑↓ eje · ←→ valor · Espacio lanza · A aprueba · R rechaza · N nota · Supr borra · Tab siguiente base sin marcar · V procedural · F toy↔pieza · se guarda solo en %s" % RUTA)
+	t.append("↑↓ eje · ←→ valor · Espacio lanza · A aprueba · R rechaza · N nota · Supr borra · Tab siguiente base sin marcar · V procedural · F toy↔pieza · E erosión [%s] · se guarda solo en %s" % ["SÍ" if VfxKit3D.usar_erosion else "no", RUTA])
 	if ultimo_mensaje != "":
 		t.append(ultimo_mensaje)
 	return "\n".join(t)

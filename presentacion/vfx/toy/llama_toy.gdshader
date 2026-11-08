@@ -49,6 +49,8 @@ float fbm(vec2 p) {
 	return vnoise(p) * 0.65 + vnoise(p * 2.07 + 7.3) * 0.35;
 }
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	VERTEX.y *= altura;
 	VERTEX.x *= ancho;
@@ -62,7 +64,7 @@ void vertex() {
 			vec3 der = normalize(cross(vec3(0.0, 1.0, 0.0), a));
 			MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(der * esc.x, 0.0), vec4(0.0, esc.y, 0.0, 0.0), vec4(a * esc.z, 0.0), MODEL_MATRIX[3]);
 		} else {
-			MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.y, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.z, 0.0), MODEL_MATRIX[3]);
+			MODELVIEW_MATRIX = nucleo_billboard(esc, VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 		}
 	}
 }

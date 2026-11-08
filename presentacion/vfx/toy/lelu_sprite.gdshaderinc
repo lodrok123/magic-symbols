@@ -1,4 +1,4 @@
-﻿// SPRITE DE LE LU RECOLOREADO CON LA RAMPA DE LA BOLA (rama fuego-toy-carga-impacto, 1/11/2026).
+// SPRITE DE LE LU RECOLOREADO CON LA RAMPA DE LA BOLA (rama fuego-toy-carga-impacto, 1/11/2026).
 // Las texturas de assets/vfx/lelu_noise/ son en escala de grises (o, el flipbook, con color de explosión y humo): aquí solo se usa su FORMA (luminancia o alfa) y su luminancia como
 // «temperatura»; el color sale SIEMPRE de la rampa de la bola (FuegoToy._rampa_bola, blanco-amarillo → naranja). El tramo [lo, hi] de la rampa deja fuera su extremo rojo oscuro:
 // no puede salir rojo oscuro, ni gris, ni negro. `calor` desplaza la temperatura (se enfría con el tiempo).
@@ -22,10 +22,12 @@ uniform int fb_filas : hint_range(1, 8) = 1;
 uniform float fotograma = 0.0;
 uniform float fotograma_max = 0.0;
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	if (billboard == 1) {
 		vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.y, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.z, 0.0), MODEL_MATRIX[3]);
+		MODELVIEW_MATRIX = nucleo_billboard(esc, VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 	}
 }
 

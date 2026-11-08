@@ -135,6 +135,13 @@ pestana_siguiente={
 
 environment/defaults/default_clear_color=Color(0.05, 0.07, 0.06, 1)
 
+[shader_globals]
+
+usar_erosion={
+"type": "bool",
+"value": false
+}
+
 [magic_symbols]
 
 vfx_procedural=true
