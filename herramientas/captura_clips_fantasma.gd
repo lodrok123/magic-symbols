@@ -87,7 +87,9 @@ func _hoja(ap: AnimationPlayer, sk: Skeleton3D, clip: String) -> void:
 	var foco := Vector3(0, 0.48, 0)
 	var hoja := Image.create_empty(2560, 720, false, Image.FORMAT_RGB8)
 	# dos vistas por instante no caben: se usa frente para el ciclo y se confía en las hojas de poses para el lado
-	_cam.look_at_from_position(foco + Vector3(0.35, 0.08, 1.0).normalized() * 3.0, foco)
+	# Cámara a la ALTURA del foco, sin mirar hacia abajo: así una pieza vertical se ve vertical. Con la cámara inclinada, las
+	# verticales del mundo convergen y un bastón en el borde del encuadre parece torcido aunque esté recto.
+	_cam.look_at_from_position(foco + Vector3(0.35, 0.0, 1.0).normalized() * 3.0, foco)
 	for k in INSTANTES.size():
 		var t: float = largo * INSTANTES[k]
 		ap.play(clip)

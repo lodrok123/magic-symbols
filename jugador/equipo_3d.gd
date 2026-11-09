@@ -93,14 +93,19 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 ## 9/11 (Pablo: «haz que la cruz sea como un bastón»): a 1,45 mide 0,66 de alto, dos tercios del personaje, y el mango llega casi al
 ## suelo como una cruz procesional. El agarre sube al 0,30 de la pieza (antes 0,08): el puño va en MITAD del mango, no en su punta,
 ## que es como se lleva un bastón.
-const CRUZ_ESCALA: float = 1.15
+const CRUZ_ESCALA: float = 1.95
 const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajarla hasta el agarre se encarga PiezaVertical3D
-## Las dos se llevan DE PIE pase lo que pase con la mano. «agarre_y» va en unidades de la PIEZA, SIN escalar: PiezaVertical3D ya
-## lo multiplica por la escala. La cruz mide 0,454 y se agarra a 0,13 de su base, o sea en el tercio bajo del mango, como un
-## bastón: por encima del puño quedan 44 cm de cruz y por debajo 19 de mango.
-## «desplaz» las separa del cuerpo en el espacio del personaje (x = su izquierda, z = su frente), porque en la vertical exacta del
-## puño la cruz se mete dentro de la capa.
-const CRUZ_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.13, "desplaz": Vector3(-0.01, 0.0, 0.05)}
+## La cruz se SOSTIENE como el bastón de Marimanta y el del chamán: PiezaApoyada3D, que la planta en el suelo, la deja vertical y
+## solo la hace seguir a la mano. Es lo que hacía falta aquí: engancharse a `skeleton_updated` (o sea, colocar la pieza DESPUÉS de
+## que el esqueleto termine la pose) es justo lo que no conseguía hacer bien a mano.
+## `agarre_y` es la altura de la palma sobre el pie EN UNIDADES DE LA PIEZA: la mano cae a unos 0,35 del suelo y la escala es 1,95,
+## así que 0,35/1,95 = 0,179. Con esa escala la cruz mide 0,89, del suelo a por encima de la capucha, como una cruz procesional.
+const CRUZ_APOYO: Dictionary = {
+	# `dist_min_cuerpo` separa el PIE del eje del cuerpo. Puesto corto (0,11) el pie se planta pegado al personaje mientras la mano
+	# va 0,30 afuera, y el palo se inclina casi 30° para unirlos: a 0,30 el pie cae BAJO la mano y la cruz queda recta.
+	"agarre_y": 0.179, "giro": 0.0, "dist_min_cuerpo": 0.30, "desplaz_adelante": 0.05, "desplaz_lateral": -0.02,
+	"lado": -1.0, "z_min": 0.0, "z_max": 0.20}
+## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
 ## La palmatoria va también en la mano DERECHA (cada miembro de la procesión porta una sola cosa), así que usa el giro de esa mano,
@@ -180,7 +185,7 @@ const EQUIPO: Dictionary = {
 	# 9/11 (Pablo): la procesión son VARIOS iguales seguidos y cada uno porta UNA sola cosa. Por eso no hay un «santa_compana_rig»
 	# que lleve las dos: son dos variantes del mismo GLB (Pj3D.MODELO_DE), y cada una equipa su pieza en la mano DERECHA.
 	"santa_compana_cruz": [
-		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA), CRUZ_VERTICAL],
+		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA), CRUZ_APOYO],
 	],
 	"santa_compana_vela": [
 		["vela_santa", "RightHand", VELA_POS_DERECHA, VELA_GIRO_DERECHA, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA), VELA_VERTICAL],

@@ -42,14 +42,14 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_sk: Skeleton3D, p_hueso: int,
 	desplaz = datos.get(K_DESPLAZ, Vector3.ZERO) as Vector3
 	_pos_local = p_pieza.position
 	_escala_local = p_pieza.scale
-	set_process(true)
-
-
-func _process(_delta: float) -> void:
+	# Como PiezaApoyada3D: se coloca cuando el esqueleto YA ha terminado la pose del fotograma. Hacerlo en _process no vale, porque
+	# el hueso puede actualizarse después y la pieza queda con la orientación de la mano, no con la que se le acaba de fijar.
+	if not esqueleto.skeleton_updated.is_connected(actualizar):
+		esqueleto.skeleton_updated.connect(actualizar)
 	actualizar()
 
 
-## Pública para que las pruebas puedan llamarla sin esperar un fotograma.
+## Se llama desde `skeleton_updated`; pública para que las pruebas puedan forzarla sin esperar un fotograma.
 func actualizar() -> void:
 	if pieza == null or not is_instance_valid(pieza):
 		return
