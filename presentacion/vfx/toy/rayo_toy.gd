@@ -136,6 +136,8 @@ var _co_ult: float = -1.0
 var _haz_largo: float = 3.0
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
+## HAZ: dónde choca (lo rellena VfxToyJuego; ver FuegoToy.choques). Lo dibuja HazChoque.rayo (apagable con FuegoToy.haz_ideas).
+var choques: Array = []
 var _pos_luz: Vector3 = Vector3.ZERO
 var _semilla: int = 1
 
@@ -158,10 +160,14 @@ func _set_figura(v: Figura) -> void:
 
 func _set_crece(v: float) -> void:
 	crece = v
+	if figura == Figura.HAZ and _construido:
+		HazChoque.param(self, "crece", v)
 
 
 func _set_corte(v: float) -> void:
 	corte = v
+	if figura == Figura.HAZ and _construido:
+		HazChoque.param(self, "corte", v)
 
 
 func _set_x(v: float) -> void:
@@ -582,6 +588,8 @@ func _construir() -> void:
 		add_child(luz_nodo)
 	luz_nodo.omni_range = clampf(3.0 + 0.7 * extension(), 3.0, 9.0)
 	_montar_sello()
+	if figura == Figura.HAZ and FuegoToy.haz_ideas and not choques.is_empty():
+		HazChoque.rayo(cuerpo, choques, _haz_largo, _haz_alt, _haz_r)
 	_anim_si_hace_falta()
 
 

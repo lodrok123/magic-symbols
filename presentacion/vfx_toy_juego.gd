@@ -578,14 +578,35 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	var t: Node3D = _nuevo(elemento)
 	t.call("desde_hechizo", h)
 	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, maxf(desde.y - suelo, 0.4), Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5, false)
+	var al: Vector3 = Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
+	if "choques" in t:
+		t.set("choques", _choques_locales(hz.get("choques", []) as Array, desde, al))       # 9/11: la salpicadura y la luz del suelo se dibujan donde la lógica dice que choca
 	_colgar(t)
 	t.global_position = Vector3(desde.x, suelo, desde.z)
-	var al: Vector3 = Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
 	if al.length() > 0.01:
 		t.look_at(t.global_position + al, Vector3.UP)
 	t.call("lanzar", -1.0)
 	_ritmo_nacer(t, float(h.get_meta(META_RITMO_NACER, 1.0)))
 	_expira_en(t, maxf(vida, 0.3))
+
+
+## Los choques del haz (mundo: punto y normal) en el espacio del toy, que mira a -Z desde la mano (`al` = hacia dónde va el haz): [{d: m a lo largo, x: m a un lado, n: normal local}].
+## Se descartan los que quedan detrás de la mano o más allá del largo (no son del haz).
+static func _choques_locales(choques: Array, desde: Vector3, al: Vector3) -> Array:
+	var res: Array = []
+	if al.length() < 0.01:
+		return res
+	var fwd: Vector3 = al.normalized()
+	var der: Vector3 = fwd.cross(Vector3.UP).normalized()           # el +X local del toy tras look_at
+	var largo: float = al.length()
+	for ch in choques:
+		var p: Vector3 = (ch as Dictionary)["punto"] as Vector3
+		var n: Vector3 = (ch as Dictionary)["normal"] as Vector3
+		var d: float = (p - desde).dot(fwd)
+		if d < 0.1 or d > largo + 0.3:
+			continue
+		res.append({"d": d, "x": (p - desde).dot(der), "n": Vector3(n.dot(der), n.y, -n.dot(fwd)), "tipo": String((ch as Dictionary).get("tipo", "muro"))})
+	return res
 
 
 ## 5/11 (Pablo, el dragón de pared: «desacelera las llamas un 30 % para que crezcan menos rápido»): quien lanza el hechizo puede marcarlo con la meta `ritmo_nacer_vfx` (× la velocidad de «nacer»;

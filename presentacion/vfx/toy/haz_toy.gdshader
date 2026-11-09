@@ -50,6 +50,11 @@ uniform float rot_lamina = 0.0;            // giro (rad) de la lámina alrededor
 uniform float cuerpo = 0.0;                // relleno del centro (suma al campo de fuego en el centro)
 uniform float volutas = 1.0;               // amplitud de las bocanadas redondeadas (la anchura se hincha a lo largo)
 uniform float tam_bolas = 1.0;             // tamaño de las bolitas al cortarse (× más grandes)
+// 9/11 (ideas de la demo de gas de three.js): la punta se vuelve humo, el color no se quema y las lenguas hacen remolino
+uniform float humo : hint_range(0.0, 1.0) = 0.0;       // cuánto se ensancha, frena, enrojece y se vuelve humo pardo la punta (0 = como antes)
+uniform float tope_calor : hint_range(0.3, 1.0) = 1.0; // tope de la rampa: 0,7 = naranja (nunca el tramo amarillo); 1 = toda la rampa (como antes)
+uniform float remolino : hint_range(0.0, 1.0) = 0.5;   // distorsión tipo curl de las lenguas (en vez de un desplazamiento uniforme)
+uniform float abre_exp = 1.15;                         // >1: estrecho cerca de la mano y se abre sobre todo al final
 group_uniforms;
 
 varying float v_p;       // 0 en el origen, 1 en la punta (en la forma que se mueve con el corte)
@@ -71,8 +76,9 @@ void vertex() {
 	float boc2 = textureLod(ruido_a, vec2(along * 0.75 - t * 1.6, 0.4 + semilla), 0.0).r;
 	float bm = 0.72 + (0.55 * boc + 0.25 * boc2) * (0.5 + ondulacion * 0.6);
 	bm = mix(bm, 0.5 + (0.95 * boc + 0.4 * boc2) * (0.5 + ondulacion * 0.6), clamp(volutas - 1.0, 0.0, 1.0));
-	float base = r_origen + (r_fin - r_origen) * pow(clamp(p, 0.0, 1.0), 0.8);
+	float base = r_origen + (r_fin - r_origen) * pow(clamp(p, 0.0, 1.0), mix(0.8, abre_exp, humo));
 	float w = base * bm * grosor * ancho;
+	w *= 1.0 + 0.3 * humo * smoothstep(0.5, 0.95, p);                            // la punta se ensancha (la bocanada de humo)
 	w *= sqrt(clamp(1.0 - smoothstep(0.8, 1.05, p), 0.0, 1.0));                 // punta redondeada
 	w *= mix(1.0, smoothstep(corte * 0.7 - 0.02, corte * 0.7 + 0.22, sc), step(0.001, corte));   // cola suelta: acaba en punta redondeada, no en corte recto
 	w = mix(w, r_origen * 0.3, step(p, 0.0));
@@ -104,8 +110,17 @@ void fragment() {
 	float lat_m = v_lat * v_w;
 	float p = v_p;
 	// textura de lenguas y segundo ruido: corren a lo largo del chorro hacia fuera; los metros laterales son reales (la textura no se estira al ensanchar)
-	float l = texture(lenguas, vec2(lat_m * 1.4 + giro * t + sm, -along * 0.5 + t)).r;
-	float r2 = texture(ruido_a, vec2(lat_m * 1.0 + 0.37 + sm * 0.5, -along * 0.36 + t * 0.8)).r;
+	// pt: 0 cerca de la mano (chorro limpio, estrecho y rápido) → 1 en la punta (lenguas más grandes y lentas, que frenan)
+	float pt = smoothstep(0.3, 0.95, p) * humo;
+	// remolino: dos ruidos suaves desplazan las coordenadas de las lenguas (curl barato), más fuerte hacia la punta
+	vec2 rem = vec2(texture(ruido_v, vec2(along * 0.35 - t * 0.3 + sm, lat_m * 0.9)).r, texture(ruido_v, vec2(along * 0.35 - t * 0.3 + sm + 0.5, lat_m * 0.9 + 0.5)).r) - 0.5;
+	rem *= remolino * (0.5 + 0.9 * pt);
+	float lat_w = lat_m + rem.x * 0.55;
+	float along_w = along + rem.y * 1.1;
+	float l1 = texture(lenguas, vec2(lat_w * 1.4 + giro * t + sm, -along_w * 0.5 + t)).r;
+	float l2 = texture(lenguas, vec2(lat_w * 1.0 + giro * t * 0.5 + sm + 0.3, -along_w * 0.4 + t * 0.5)).r;
+	float l = mix(l1, l2, pt);
+	float r2 = texture(ruido_a, vec2(lat_w * 1.0 + 0.37 + sm * 0.5, -along_w * 0.36 + t * 0.8)).r;
 	float fino = texture(ruido_fino, vec2(lat_m * 2.2 + sm * 3.0, -along * 1.5 + t * 2.4)).r;
 	float f = l * 0.9 + (r2 - 0.5) * 0.9 * (0.5 + ondulacion) * (1.0 - 0.45 * clamp(volutas - 1.0, 0.0, 1.0)) - pow(d, 2.4) * fuerza_borde + desfase;
 	f -= smoothstep(0.5, 1.0, p) * (0.5 + (fino - 0.4) * 1.2 * chisporroteo) * 1.1;          // la punta se deshace
@@ -119,9 +134,21 @@ void fragment() {
 	a *= smoothstep(0.0, 0.03, p) * (1.0 - smoothstep(0.96, 1.04, p));
 	a *= 1.0 - smoothstep(0.86, 1.0, d);
 	a *= 1.0 - smoothstep(0.7, 1.0, corte);
-	float idx = clamp((f - umbral) * escala_rampa + calor_extra * (1.0 - smoothstep(0.0, 0.8, d)) + 0.18 * (1.0 - smoothstep(0.0, 0.6, p)) + 0.3 * cuerpo * (1.0 - smoothstep(0.0, 0.6, d)) * (1.0 - smoothstep(0.7, 1.0, p)), 0.0, 1.0);
+	float idx = (f - umbral) * escala_rampa + calor_extra * (1.0 - smoothstep(0.0, 0.8, d)) + 0.18 * (1.0 - smoothstep(0.0, 0.6, p)) + 0.3 * cuerpo * (1.0 - smoothstep(0.0, 0.6, d)) * (1.0 - smoothstep(0.7, 1.0, p));
+	// contraste sin amarillo: la rampa se corta en `tope_calor` (las capas solapadas se quedan naranjas, no se queman), el borde y la punta se enrojecen
+	idx -= humo * (0.2 * smoothstep(0.45, 1.0, d) + 0.28 * pt + 0.25 * corte);
+	idx = clamp(idx, 0.0, 1.0) * tope_calor;      // la rampa se comprime (no se recorta): el gradiente rojo → naranja se conserva
 	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
+	// humo pardo oscuro alrededor de la llama de la punta (donde el fuego se deshace); al soltarse el chorro (corte) las bolitas se apagan en humo en vez de seguir brillando
+	float fh = humo * smoothstep(0.4, 0.9, p);
+	float a_h = smoothstep(umbral - 0.32, umbral - 0.02, f) * fh * 0.62;
+	a_h *= (1.0 - smoothstep(0.8, 1.0, d)) * smoothstep(0.0, 0.03, p) * (1.0 - smoothstep(0.96, 1.04, p));
+	a_h *= 1.0 - smoothstep(0.55, 1.0, corte);
+	vec3 col_humo = vec3(0.30, 0.15, 0.09) * (0.75 + 0.5 * fino);
+	col = mix(col, col_humo * 1.5, humo * corte * 0.5);
 	float titila = 1.0 + 0.12 * chisporroteo * (sin(TIME * 9.3 + sm * 31.0) * 0.6 + sin(TIME * 14.1 + sm * 17.0) * 0.4);
+	float a_tot = max(a, a_h);
+	col = mix(col_humo, col, clamp(a / max(a_tot, 0.0001), 0.0, 1.0));
 	ALBEDO = col * brillo * titila;
-	ALPHA = clamp(a * transparencia * vida, 0.0, 1.0);
+	ALPHA = clamp(a_tot * transparencia * vida, 0.0, 1.0);
 }

@@ -123,7 +123,9 @@ const SEGURIDAD_S: float = 0.25             ## s tras nacer en los que NO hiere 
 const DESPLAZA_HIJO_U: float = 0.15         ## un hijo nace un poco por delante, para no chocar en el mismo punto que su padre
 const PASO_ESTELA_U: float = 0.5            ## cada cuántas unidades recorridas pide su `estela`
 const HAZ_BOCA_U: float = 0.4               ## RAYO: u que el haz nace por delante de la mano (el lanzallamas de siempre)
-const HAZ_PUNTA_Y_U: float = 0.1            ## RAYO: altura sobre el suelo (u) de la punta del dibujo
+const HAZ_TOPE_MARGEN_U: float = 0.12            ## VFX: el haz «chocó» si se quedó corto por más de esto (u) de lo que pedía; menos es el redondeo de la última casilla
+const HAZ_MAX_CHOQUES_VFX: int = 2                ## VFX: puntos de choque que se mandan al dibujo
+const HAZ_PUNTA_Y_U: float = 0.1           ## RAYO: altura sobre el suelo (u) de la punta del dibujo
 
 ## Cuántos hechizos vivos lleva un mismo lanzamiento (el padre y sus hijos comparten uno): el tope es Hechizo.MAX_VIVOS.
 class Linaje extends RefCounted:
@@ -474,13 +476,17 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	# con el alcance que le queda en vez de pararse en la primera. Cada tramo libre es un segmento; las casillas atravesadas no entran en el recorrido (siguen sin quemarse).
 	var segmentos: Array = []
 	var golpes_total: Array = []
+	var topes: Array = []                          # 9/11 (solo VFX): dónde se paró el haz contra algo (muro, bloque, barrera) en cada tramo; el final del alcance contra el suelo no cuenta
 	var inicio_s: Vector2 = o2
 	var restante_cas: float = h.alcance_haz
 	var atravesadas: int = 0
 	var fin2: Vector2 = o2
 	while true:
+		var pedido_m: float = restante_cas * cas
 		var tramo: Array = camino(inicio_s, d2, restante_cas, 0, true)
 		fin2 = (tramo.back()["p"] as Vector2) if not tramo.is_empty() else inicio_s
+		if inicio_s.distance_to(fin2) < pedido_m - cas * HAZ_TOPE_MARGEN_U:
+			topes.append(fin2)
 		segmentos.append([inicio_s, fin2])
 		golpes_total.append_array(golpes_camino)
 		restante_cas -= inicio_s.distance_to(fin2) / cas
@@ -521,7 +527,8 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	var volumen: Dictionary = {"x": g["x"], "y": g["y"], "z": g["z"], "celdas": celdas, "niveles": 1, "persiste": 0.0, "suelo": suelo,
 		"eventos": [{"t": 0.0, "pos": o2, "dir": d2}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": vida_vfx,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,
-		"haz": {"desde": mano, "hasta": punta, "ancho": Hechizo.HAZ_ANCHO * cas, "alcance": h.alcance_haz, "largo": largo}}
+		"haz": {"desde": mano, "hasta": punta, "ancho": Hechizo.HAZ_ANCHO * cas, "alcance": h.alcance_haz, "largo": largo,
+			"choques": _haz_choques(topes, golpes_total, o2, d2, mano.y)}}
 	if not seco:
 		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
@@ -733,6 +740,40 @@ func _estallar(dir: Vector3) -> void:
 	estallidos += 1
 	eventos_vistos.append("estallido")
 	_danar_area(h.radio_estallido, h.dano, _centro_volumen, dir)
+
+
+## SOLO PARA EL VFX (9/11, haz de fuego: «el fuego envuelve lo que golpea»): los puntos donde el haz CHOCA, a la altura de la mano. `topes` = donde se paró contra una casilla sólida o una barrera
+## (la normal es la de la cara golpeada, hacia el lanzador); `golpes` = lo que cruza (enemigos, objetos que reaccionan: la normal mira contra el haz). El final del alcance sin obstáculo NO es un choque.
+## Devuelve [{punto: Vector3, normal: Vector3, tipo: «muro» | «enemigo» | «objeto»}], el tope primero y luego lo cruzado por orden de distancia, como mucho `HAZ_MAX_CHOQUES_VFX`. No toca la lógica.
+func _haz_choques(topes: Array, golpes: Array, o2: Vector2, d2: Vector2, y: float) -> Array:
+	var res: Array = []
+	var cas: float = Terreno3D.casilla
+	for t in topes:
+		var fin: Vector2 = t
+		var sx: bool = absf(d2.x) > 0.05 and Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(fin.x + signf(d2.x) * cas * 0.3, 0.0, fin.y)), 0)
+		var sz: bool = absf(d2.y) > 0.05 and Lanzador3D.celda_solida(Lanzador3D.celda_de(Vector3(fin.x, 0.0, fin.y + signf(d2.y) * cas * 0.3)), 0)
+		var en_x: bool = (sx and not sz) or (sx == sz and absf(d2.x) >= absf(d2.y))          # la cara golpeada es la perpendicular a X o a Z (las casillas son rectas)
+		var n: Vector3 = Vector3(-signf(d2.x), 0.0, 0.0) if en_x else Vector3(0.0, 0.0, -signf(d2.y))
+		res.append({"punto": Vector3(fin.x, y, fin.y), "normal": n, "tipo": "muro"})
+	var cruzados: Array = []
+	var vistos: Dictionary = {}
+	for gp in golpes:
+		var obj: Node = gp["obj"] as Node
+		if obj == null or not is_instance_valid(obj) or vistos.has(obj.get_instance_id()):
+			continue
+		vistos[obj.get_instance_id()] = true
+		var pt: Variant = gp.get("punto", null)
+		if not (pt is Vector3):
+			continue
+		var p2 := Vector2((pt as Vector3).x, (pt as Vector3).z)
+		cruzados.append({"d": (p2 - o2).dot(d2), "punto": Vector3(p2.x, y, p2.y), "normal": Vector3(-d2.x, 0.0, -d2.y),
+			"tipo": "enemigo" if obj.is_in_group("combate3d") else "objeto"})
+	cruzados.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"]))
+	for cz in cruzados:
+		if res.size() >= HAZ_MAX_CHOQUES_VFX:
+			break
+		res.append({"punto": cz["punto"], "normal": cz["normal"], "tipo": cz["tipo"]})
+	return res.slice(0, HAZ_MAX_CHOQUES_VFX)
 
 
 ## `perfora` del haz: si justo delante de `desde` (a menos de media casilla) hay una casilla sólida o una barrera, sigue en línea recta hasta salir de ella (como mucho `max_m` metros) y devuelve

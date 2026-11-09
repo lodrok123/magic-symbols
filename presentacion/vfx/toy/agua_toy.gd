@@ -119,6 +119,8 @@ var _marcador: bool = false
 var _haz_cintas: Node3D = null          ## cintas enrolladas en el haz (giran despacio alrededor de su eje)
 var _haz_punta: Node3D = null           ## abanico de salpicadura y espuma al final del haz (sigue a la punta)
 var _haz_largo: float = 3.0
+## HAZ: dónde choca (lo rellena VfxToyJuego; ver FuegoToy.choques). Vacío = nada: el chorro acaba en su abanico de siempre. Lo dibuja HazChoque.agua (apagable con FuegoToy.haz_ideas).
+var choques: Array = []
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
 var _acc_haz: float = 0.0
@@ -705,6 +707,8 @@ func _haz(c: Node3D) -> void:
 		var pf: MeshInstance3D = AguaMallas.puff("Espuma%d" % k, Vector2(0.62, 0.95))
 		pf.set_meta("ang", TAU * float(k) / 3.0 + randf())
 		_haz_punta.add_child(pf)
+	if FuegoToy.haz_ideas and not choques.is_empty():
+		HazChoque.agua(c, choques, largo, _haz_alt, r)
 
 
 func _mi_agua(c: Node3D, nombre: String, malla: Mesh, mat: ShaderMaterial) -> MeshInstance3D:

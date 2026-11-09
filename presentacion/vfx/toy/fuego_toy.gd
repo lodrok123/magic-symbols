@@ -34,6 +34,18 @@ const PILAR_BASE_M: float = 0.45
 const PILAR_IRREG_CHARCO: float = 0.28
 const HAZ_R_ORIGEN: float = 0.012
 const HAZ_ABRE: float = 3.0
+## HAZ, ideas de la demo de gas de three.js (9/11/2026): salpicadura donde choca, punta de humo y luz en el suelo (ver `_haz`).
+const SH_SALPICADURA: String = "res://presentacion/vfx/toy/salpicadura_haz.gdshader"
+const SH_LUZ_SUELO: String = "res://presentacion/vfx/toy/luz_suelo_haz.gdshader"
+const HAZ_MAX_CHOQUES: int = 2                   ## puntos de choque que dibuja un haz (el final contra el obstáculo y, si hay sitio, el primer enemigo que cruza)
+const HAZ_MAX_SALPICADURAS: int = 6              ## tope en TODA la escena (varios dragones relanzando cada 0,8 s): pasado el tope el choque se queda sin salpicadura
+const HAZ_MAX_LUCES_SUELO: int = 6               ## ídem para las manchas de luz del suelo (decals)
+const HAZ_TOPE_CALOR: float = 0.38               ## tope de la rampa de la bola en el chorro y la salpicadura: naranja con contraste, nunca el tramo amarillo
+const HAZ_TOPE_NUCLEO: float = 0.5               ## el núcleo puede llegar un poco más arriba (un naranja claro), pero sigue sin amarillo
+const HAZ_LUZ_ANCHO: float = 3.6                 ## m de ancho de la caja del decal de luz del suelo
+const HAZ_LUZ_ALTO_MAX: float = 0.45             ## m sobre el suelo: lo más alto (hombros, cabezas) no se pinta
+const HAZ_GRUPO_SALPICADURA: StringName = &"salpicadura_haz"
+const HAZ_GRUPO_LUZ_SUELO: StringName = &"luz_suelo_haz"
 const SH_CABEZA: String = "res://presentacion/vfx/toy/cabeza_toy.gdshader"
 const SH_HALO: String = "res://presentacion/vfx/toy/halo_toy.gdshader"
 const SH_JIRON: String = "res://presentacion/vfx/toy/jiron_toy.gdshader"
@@ -66,6 +78,20 @@ const METROS_POR_REPETICION: float = 2.9
 ## HAZ: `crece` (0 → 1: el chorro sale del origen; lo anima «nacer») y `corte` (0 → 1: el chorro se suelta del origen, avanza y se rompe en bolitas; lo anima «morir»). Con 1 y 0 es el haz completo.
 @export_range(0.0, 1.0, 0.01) var crece: float = 1.0: set = _set_crece
 @export_range(0.0, 1.0, 0.01) var corte: float = 0.0: set = _set_corte
+## HAZ: dónde choca (lo rellena VfxToyJuego con lo que calcula la lógica; el final del alcance contra el suelo NO es un choque): [{d: m desde la mano a lo largo del haz, x: m a un lado del eje,
+## n: normal de la superficie en el espacio LOCAL del toy (hacia fuera de lo golpeado)}]. Vacío = sin choque: la punta acaba en humo. Hay que ponerlo ANTES de entrar en el árbol (o llamar a `reconstruir()`).
+var choques: Array = []
+## Interruptor de las tres ideas de la demo de gas (salpicadura, humo en la punta, luz en el suelo, color sin amarillo, remolino): false = el haz de antes (para las capturas antes/después y por si Pablo prefiere el viejo).
+static var haz_ideas: bool = true
+## FORMAS (BOLA, MURO, PILAR, BARRERA, validadas por Pablo): capas NUEVAS que solo se AÑADEN, cada una con su interruptor (true = se dibuja), sin tocar nada de lo que ya hay.
+##   luz_suelo_*        decal naranja-rojo en el suelo bajo la figura (sigue el terreno; no tiñe cuerpos): muro, pilar, barrera, y donde cae el impacto de la bola
+##   humo_cima_*        humo pardo oscuro que se suelta de la cima del muro y del pilar, donde la llama se frena
+## TODAS APAGADAS por defecto (9/11): en las capturas antes/después (docs/capturas/vfx_en_juego/haz_fuego_ideas/formas_fuego/) ninguna mejora clara lo que Pablo ya validó; las enciende quien las quiera.
+##   chispas_impacto    chispas con estela que salen del impacto de la bola, caen y quedan un instante brillando en el suelo
+static var formas_extra: Dictionary = {"luz_suelo_muro": false, "luz_suelo_pilar": false, "luz_suelo_barrera": false, "luz_suelo_impacto": false,
+	"humo_cima_muro": false, "humo_cima_pilar": false, "chispas_impacto": false}
+var _emisores_choque: Array = []       ## partículas que solo emiten con el chorro ya llegado (crece ≥ 0,85) y hasta que se suelta
+var _emisores_humo: Array = []
 
 static var _rampa_fuego: GradientTexture1D = null
 static var _rampa_bola: GradientTexture1D = null
@@ -160,6 +186,7 @@ func _set_z(v: float) -> void:
 func _set_crece(v: float) -> void:
 	crece = v
 	_param_mats("crece", v)
+	_emitir_haz()
 
 
 func _set_corte(v: float) -> void:
@@ -168,6 +195,21 @@ func _set_corte(v: float) -> void:
 	if _listo and figura == Figura.HAZ:
 		for h in _halos:
 			h.set_shader_parameter("vida", 1.0 - smoothstep(0.1, 0.7, v))      # el resplandor del origen se apaga al soltarse el chorro
+	_emitir_haz()
+
+
+## HAZ: las chispas y brasas del choque emiten cuando el chorro ya ha llegado y hasta que se suelta; el humo de la punta, un poco antes y hasta bien entrado el corte.
+func _emitir_haz() -> void:
+	if figura != Figura.HAZ:
+		return
+	var choque_on: bool = crece >= 0.85 and corte < 0.15
+	for gp in _emisores_choque:
+		if is_instance_valid(gp):
+			(gp as GPUParticles3D).emitting = choque_on
+	var humo_on: bool = crece >= 0.6 and corte < 0.6
+	for gp in _emisores_humo:
+		if is_instance_valid(gp):
+			(gp as GPUParticles3D).emitting = humo_on
 
 
 func _set_viaja(v: bool) -> void:
@@ -481,6 +523,7 @@ func _quitar_vuelo() -> void:
 
 func impactar_en(pos: Vector3, normal: Vector3 = Vector3.UP, escala: float = -1.0) -> Node3D:
 	var imp: Node3D = _crear_impacto(ImpactoFuegoToy.Variante.GOLPE, normal, escala, pos)
+	_extras_impacto(pos, normal, escala)
 	_est = EstadoCarga.NINGUNA
 	_quitar_vuelo()
 	if _luz != null:
@@ -686,6 +729,8 @@ func _construir() -> void:
 	for h in cuerpo.get_children():
 		cuerpo.remove_child(h)
 		h.free()
+	_emisores_choque.clear()
+	_emisores_humo.clear()
 	var luz: OmniLight3D = get_node_or_null("Luz") as OmniLight3D
 	if luz == null:
 		luz = OmniLight3D.new()
@@ -707,6 +752,7 @@ func _construir() -> void:
 			_barrera(cuerpo, luz)
 		Figura.HAZ:
 			_haz(cuerpo, luz)
+	_formas_extra(cuerpo)
 	_anim_si_hace_falta()
 
 
@@ -987,7 +1033,8 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	# ronda de Pablo (2/11, haz con cuerpo): más ancho (HAZ_ABRE), bocanadas redondeadas (volutas), centro lleno y claro (cuerpo), más opaco, bolitas grandes al cortarse y una lámina
 	# cruzada («Cruz», giro de 60° alrededor del eje) para que mirado casi a lo largo del haz (cámara del juego) siga habiendo volumen
 	var p: Dictionary = {"largo": largo, "r_origen": HAZ_R_ORIGEN, "r_fin": r, "crece": crece, "corte": corte,
-		"volutas": 2.0, "cuerpo": 0.3, "desfase": 1.05, "umbral": 0.24, "blandura": 0.42, "tam_bolas": 1.8, "transparencia": 1.0, "fuerza_borde": 1.0}
+		"volutas": 2.0, "cuerpo": 0.3, "desfase": 1.05, "umbral": 0.24, "blandura": 0.42, "tam_bolas": 1.8, "transparencia": 1.0, "fuerza_borde": 1.0,
+		"humo": 1.0 if haz_ideas else 0.0, "tope_calor": HAZ_TOPE_CALOR if haz_ideas else 1.0, "remolino": 0.55 if haz_ideas else 0.0}      # 9/11: la punta se vuelve humo, la rampa se corta en naranja (sin amarillo) y las lenguas hacen remolino
 	var ext: MeshInstance3D = _fuego(c, "Chorro", malla, Vector3(0, h, 0), p, 0, SH_HAZ, _rampa_de_bola())
 	ext.extra_cull_margin = 1.0
 	var pc: Dictionary = p.duplicate()
@@ -995,6 +1042,7 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	pc["semilla"] = 0.31
 	pc["grosor"] = 0.85
 	pc["v_chorro"] = 1.12
+	pc["humo"] = 0.7 if haz_ideas else 0.0
 	var cruz: MeshInstance3D = _fuego(c, "Cruz", malla, Vector3(0, h, 0), pc, 0, SH_HAZ, _rampa_de_bola())
 	cruz.extra_cull_margin = 1.0
 	var pn: Dictionary = p.duplicate()
@@ -1005,14 +1053,344 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	pn["desfase"] = 1.0
 	pn["cuerpo"] = 0.8
 	pn["rot_lamina"] = -0.5
+	pn["humo"] = 0.0                       # el núcleo es la parte limpia y caliente: no se vuelve humo
+	pn["tope_calor"] = HAZ_TOPE_NUCLEO if haz_ideas else 1.0
 	var nuc: MeshInstance3D = _fuego(c, "Nucleo", malla, Vector3(0, h, 0), pn, 1, SH_HAZ, _rampa_de_bola())
 	nuc.extra_cull_margin = 1.0
 	_halo(c, "Base", Vector2(2.4 * r + 0.4, 2.4 * r + 0.4), Vector3(0, h, 0), 0.4, 2.4, 2, Color(1.0, 0.28, 0.06))
 	var f: float = clampf(largo / (2.0 * REF_HAZ.x), 0.4, 3.0)
-	_trocitos(c, _cant(3.0, f, 1, 10), Vector3(r, r, largo * 0.15), Vector3(0, h, -largo * 0.8), 1.0)
+	# 9/11: en vez de las bolitas del final (Trocitos), la punta suelta bocanadas de humo pardo que suben y se deshacen
+	if haz_ideas:
+		_humo_punta(c, largo, h, r, f)
+	else:
+		_trocitos(c, _cant(3.0, f, 1, 10), Vector3(r, r, largo * 0.15), Vector3(0, h, -largo * 0.8), 1.0)
 	_particulas(c, "Chispas", _cant(10.0, f, 4, 40), 1.0, 0.07, Vector3(r, r, largo * 0.45), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
-		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", Vector3(0, h, -largo * 0.5), largo + 6.0)
-	_ajustar_luz(luz, Vector3(0, h, -largo * 0.4), 1.4, 5.0)
+		([Color(1.0, 0.55, 0.2, 0.0), Color(1.0, 0.5, 0.15, 1.0), Color(0.95, 0.32, 0.08, 0.0)] if haz_ideas else [Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)]), "chispas", Vector3(0, h, -largo * 0.5), largo + 6.0)
+	# idea 1 (el fuego envuelve lo que golpea) e idea 3 (luz en el suelo): solo con los choques que ha calculado la lógica
+	var cs: Array = []
+	for ch in (choques if haz_ideas else []):
+		if cs.size() >= HAZ_MAX_CHOQUES:
+			break
+		if ch is Dictionary and (ch as Dictionary).has("d"):
+			cs.append(ch)
+	for i in cs.size():
+		_salpicadura(c, cs[i] as Dictionary, h, r, i)
+	if haz_ideas:
+		_luz_suelo(c, largo, cs)
+	_ajustar_luz(luz, Vector3(0, h, -largo * (0.55 if not cs.is_empty() else 0.4)), 1.4, 5.0)
+
+
+# ---- FORMAS: capas añadidas (ver `formas_extra`) ----
+
+const FORMA_GRUPO_IMPACTO: StringName = &"impacto_extra_fuego"
+const FORMA_MAX_IMPACTOS: int = 4                  ## impactos con extras vivos a la vez en toda la escena
+
+
+func _formas_extra(c: Node3D) -> void:
+	var viejo: Node = get_node_or_null("LuzForma")
+	if viejo != null:
+		remove_child(viejo)
+		viejo.free()
+	match figura:
+		Figura.MURO:
+			if formas_extra.get("luz_suelo_muro", false):
+				_luz_forma(Vector2(2.0 * semieje_x + 1.8, 2.0 * semieje_z + 1.8), 0.6)
+			if formas_extra.get("humo_cima_muro", false):
+				var gp: GPUParticles3D = _humo_generico(c, "HumoCima", Vector3(0, semieje_y * 0.95, 0), Vector3(semieje_x * 0.8, 0.05, semieje_z), _cant(5.0, semieje_x / REF_MURO.x, 3, 12), 0.7)
+				gp.emitting = true
+		Figura.PILAR:
+			if formas_extra.get("luz_suelo_pilar", false):
+				var d: float = 2.0 * maxf(semieje_x, semieje_z) + 2.2
+				_luz_forma(Vector2(d, d), 0.6)
+			if formas_extra.get("humo_cima_pilar", false):
+				var gp: GPUParticles3D = _humo_generico(c, "HumoCima", Vector3(0, semieje_y * 0.97, 0), Vector3(semieje_x * 0.5, 0.05, semieje_z * 0.5), 6, 0.8)
+				gp.emitting = true
+		Figura.BARRERA:
+			if formas_extra.get("luz_suelo_barrera", false):
+				var d2: float = 2.0 * maxf(semieje_x, semieje_z) * 1.3
+				_luz_forma(Vector2(d2, d2), 0.5)
+
+
+## Decal de luz bajo la figura (explosion_suelo.gdshader, modo «calor»: resplandor del suelo). Cuelga de la raíz (no del Cuerpo, que se encoge con `aparicion`) y respira con ella.
+func _luz_forma(dim_xz: Vector2, calor: float) -> void:
+	var mi: MeshInstance3D = AvisoAreaFuego.decal(1.0)
+	mi.name = "LuzForma"
+	mi.scale = Vector3(dim_xz.x, AvisoAreaFuego.ALTO_CAJA, dim_xz.y)
+	mi.set_meta("calor", calor)
+	add_child(mi)
+	_calor_forma(aparicion)
+
+
+func _calor_forma(v: float) -> void:
+	var mi: Node = get_node_or_null("LuzForma")
+	if mi != null:
+		var m: ShaderMaterial = (mi as MeshInstance3D).material_override as ShaderMaterial
+		if m != null:
+			m.set_shader_parameter("calor", float(mi.get_meta("calor", 0.5)) * v)
+
+
+func _set_aparicion(v: float) -> void:
+	super._set_aparicion(v)
+	_calor_forma(v)
+
+
+## Extras del impacto de la bola: resplandor del suelo que se apaga y chispas con estela que caen. Cuelgan de un nodo propio (el toy se va) que se borra solo.
+func _extras_impacto(pos: Vector3, normal: Vector3, escala: float) -> void:
+	var padre: Node = get_parent()
+	if padre == null or not is_inside_tree():
+		return
+	var luz_on: bool = formas_extra.get("luz_suelo_impacto", false)
+	var ch_on: bool = formas_extra.get("chispas_impacto", false)
+	if not (luz_on or ch_on) or get_tree().get_nodes_in_group(FORMA_GRUPO_IMPACTO).size() >= FORMA_MAX_IMPACTOS:
+		return
+	var nodo: Node3D = Node3D.new()
+	nodo.name = "ImpactoExtra"
+	nodo.add_to_group(FORMA_GRUPO_IMPACTO)
+	padre.add_child(nodo)
+	nodo.global_position = pos
+	var r: float = _radio_impacto(escala)
+	if luz_on:
+		var mi: MeshInstance3D = AvisoAreaFuego.decal(1.0)
+		mi.scale = Vector3(2.0 * (r * 2.2 + 0.8), AvisoAreaFuego.ALTO_CAJA, 2.0 * (r * 2.2 + 0.8))
+		nodo.add_child(mi)
+		var m: ShaderMaterial = mi.material_override as ShaderMaterial
+		m.set_shader_parameter("calor", 0.8)
+		var tw: Tween = nodo.create_tween()
+		tw.tween_method(func(v: float) -> void: m.set_shader_parameter("calor", v), 0.8, 0.0, 0.9).set_ease(Tween.EASE_OUT)
+	if ch_on:
+		_chispas_estela(nodo, "ChispasImpacto", Vector3(0, 0.15, 0), normal if normal.length() > 0.01 else Vector3.UP, 10, true)
+		var br: GPUParticles3D = _brasas_suelo(nodo, "BrasasImpacto", Vector3(0, 0.05, 0), r * 1.2 + 0.4)
+		br.emitting = true
+		br.one_shot = true
+	nodo.get_tree().create_timer(1.5, false).timeout.connect(nodo.queue_free)
+
+
+## Cuántos nodos de un grupo hay vivos (los topes de salpicaduras y de manchas de luz son de toda la escena).
+func _vivos_de(grupo: StringName) -> int:
+	return get_tree().get_nodes_in_group(grupo).size() if is_inside_tree() else 0
+
+
+## IDEA 2: bocanadas de humo pardo oscuro en la punta del chorro; suben despacio, crecen y se deshacen (mezcla normal, no aditiva: tapan, no iluminan).
+func _humo_punta(c: Node3D, largo: float, h: float, r: float, f: float) -> void:
+	var gp: GPUParticles3D = _humo_generico(c, "Humo", Vector3(0, h, -largo * 0.82), Vector3(r * 0.8, r * 0.2, largo * 0.17), _cant(7.0, f, 3, 12), 1.0)
+	_emisores_humo.append(gp)
+
+
+## Humo pardo oscuro que sube y se deshace, desde una caja de emisión (mezcla normal). `fuerza` escala la velocidad de subida. Lo usan la punta del haz y la cima del muro y del pilar.
+func _humo_generico(c: Node3D, nombre: String, pos: Vector3, caja: Vector3, cant: int, fuerza: float) -> GPUParticles3D:
+	var gp: GPUParticles3D = GPUParticles3D.new()
+	gp.name = nombre
+	gp.position = pos
+	gp.amount = cant
+	gp.lifetime = 1.7
+	gp.local_coords = true
+	gp.fixed_fps = 0
+	gp.emitting = false
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gp.visibility_aabb = AABB(Vector3(-4, -3, -4), Vector3(8, 9, 8))
+	var pm: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	pm.emission_box_extents = caja
+	pm.direction = Vector3(0, 1, -0.3)
+	pm.spread = 28.0
+	pm.initial_velocity_min = 0.5 * fuerza
+	pm.initial_velocity_max = 1.1 * fuerza
+	pm.gravity = Vector3(0, 0.7 * fuerza, 0)
+	pm.scale_min = 0.8
+	pm.scale_max = 1.3
+	pm.color_ramp = _gradiente([Color(0.26, 0.13, 0.08, 0.0), Color(0.22, 0.11, 0.07, 1.0), Color(0.16, 0.09, 0.07, 0.0)], [0.0, 0.25, 1.0])
+	var curva: Curve = Curve.new()
+	curva.add_point(Vector2(0, 0.35))
+	curva.add_point(Vector2(1, 1.25))
+	var ct: CurveTexture = CurveTexture.new()
+	ct.curve = curva
+	pm.scale_curve = ct
+	gp.process_material = pm
+	var q: QuadMesh = QuadMesh.new()
+	q.size = Vector2(1.1, 1.1)
+	var sm: StandardMaterial3D = StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	sm.vertex_color_use_as_albedo = true
+	sm.albedo_texture = _textura_blanda()
+	sm.disable_receive_shadows = true
+	sm.render_priority = -1
+	q.material = sm
+	gp.draw_pass_1 = q
+	gp.add_to_group("humo_haz", true)
+	c.add_child(gp)
+	return gp
+
+
+## IDEA 1: salpicadura donde el haz choca. Una lámina pegada a la superficie (su normal es la de lo golpeado) con las llamas abriéndose en abanico por los lados, más chispas con estela que salen del
+## choque y brasas que caen y quedan un instante brillando en el suelo. `ch` = {d, x, n} (ver `choques`). Con el tope de la escena lleno no se dibuja.
+func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void:
+	if _vivos_de(HAZ_GRUPO_SALPICADURA) >= HAZ_MAX_SALPICADURAS:
+		return
+	var n: Vector3 = ch.get("n", Vector3(0, 0, 1)) as Vector3
+	n.y = 0.0
+	n = n.normalized() if n.length() > 0.01 else Vector3(0, 0, 1)
+	var p: Vector3 = Vector3(float(ch.get("x", 0.0)), h, -float(ch["d"]))
+	var tam: float = clampf(r * 2.6 + 0.3, 1.8, 3.6)
+	var q: QuadMesh = QuadMesh.new()
+	q.size = Vector2(tam, tam)
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = "Salpicadura%d" % i
+	mi.mesh = q
+	mi.material_override = _mat_fuego(SH_SALPICADURA, {"semilla": randf() * 4.0 + float(i) * 0.37, "tope_calor": HAZ_TOPE_CALOR}, 1, _rampa_de_bola())
+	var z: Vector3 = n
+	var x: Vector3 = Vector3.UP.cross(z).normalized()
+	mi.transform = Transform3D(Basis(x, Vector3.UP, z), p + n * 0.06)
+	mi.extra_cull_margin = 1.0
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.add_to_group(HAZ_GRUPO_SALPICADURA, true)
+	c.add_child(mi)
+	# la misma salpicadura TUMBADA en el suelo delante de lo golpeado: la cámara del juego mira a lo largo de Z, y una lámina vertical de normal X se vería de canto
+	var qs: QuadMesh = QuadMesh.new()
+	qs.size = Vector2(tam, tam)
+	qs.orientation = PlaneMesh.FACE_Y
+	var ms: MeshInstance3D = MeshInstance3D.new()
+	ms.name = "SalpicaduraSuelo%d" % i
+	ms.mesh = qs
+	ms.material_override = _mat_fuego(SH_SALPICADURA, {"semilla": randf() * 4.0 + float(i) * 0.37 + 1.3, "tope_calor": HAZ_TOPE_CALOR, "suelo": 1.0}, 1, _rampa_de_bola())
+	ms.position = Vector3(p.x, 0.16, p.z) + n * tam * 0.2
+	ms.extra_cull_margin = 1.0
+	ms.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	c.add_child(ms)
+	var gp: GPUParticles3D = _chispas_estela(c, "ChispasChoque%d" % i, p + n * 0.1, n, 8, false)
+	_emisores_choque.append(gp)
+	# brasas: puntos que quedan brillando un instante en el suelo, delante de lo golpeado
+	var br: GPUParticles3D = _brasas_suelo(c, "Brasas%d" % i, Vector3(p.x, 0.05, p.z) + n * 0.7, 0.75)
+	_emisores_choque.append(br)
+
+
+## Brasas: puntos que quedan brillando un instante en el suelo (partículas quietas en un disco de `radio`).
+func _brasas_suelo(c: Node, nombre: String, pos: Vector3, radio: float) -> GPUParticles3D:
+	var br: GPUParticles3D = GPUParticles3D.new()
+	br.name = nombre
+	br.position = pos
+	br.amount = 6
+	br.lifetime = 0.9
+	br.local_coords = true
+	br.fixed_fps = 0
+	br.emitting = false
+	br.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	br.visibility_aabb = AABB(Vector3(-4, -1, -4), Vector3(8, 3, 8))
+	var pb: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	pb.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pb.emission_sphere_radius = radio
+	pb.emission_shape_scale = Vector3(1, 0, 1)
+	pb.gravity = Vector3.ZERO
+	pb.initial_velocity_min = 0.0
+	pb.initial_velocity_max = 0.0
+	pb.color_ramp = _gradiente([Color(1.0, 0.5, 0.14, 0.0), Color(1.0, 0.45, 0.1, 0.95), Color(0.85, 0.16, 0.04, 0.0)], [0.0, 0.25, 1.0])
+	var cb: Curve = Curve.new()
+	cb.add_point(Vector2(0, 0.4))
+	cb.add_point(Vector2(0.25, 1.0))
+	cb.add_point(Vector2(1, 0.2))
+	var cbt: CurveTexture = CurveTexture.new()
+	cbt.curve = cb
+	pb.scale_curve = cbt
+	br.process_material = pb
+	var qb: QuadMesh = QuadMesh.new()
+	qb.size = Vector2(0.13, 0.13)
+	var smb: StandardMaterial3D = StandardMaterial3D.new()
+	smb.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	smb.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	smb.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	smb.vertex_color_use_as_albedo = true
+	smb.albedo_texture = _textura_chispa()
+	smb.disable_receive_shadows = true
+	qb.material = smb
+	br.draw_pass_1 = qb
+	br.add_to_group("brasas_choque", true)
+	c.add_child(br)
+	return br
+
+
+## Chispas con estela (RibbonTrailMesh): salen de `pos` hacia fuera (`n`) y hacia arriba, caen con gravedad y se apagan. `uno_solo`: una ráfaga y se acaba (el impacto de la bola).
+func _chispas_estela(c: Node, nombre: String, pos: Vector3, n: Vector3, cant: int, uno_solo: bool) -> GPUParticles3D:
+	var gp: GPUParticles3D = GPUParticles3D.new()
+	gp.name = nombre
+	gp.position = pos
+	gp.amount = cant
+	gp.lifetime = 0.75
+	gp.local_coords = true
+	gp.fixed_fps = 0
+	gp.emitting = uno_solo
+	gp.one_shot = uno_solo
+	gp.explosiveness = 0.85 if uno_solo else 0.0
+	gp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	gp.visibility_aabb = AABB(Vector3(-4, -3, -4), Vector3(8, 8, 8))
+	gp.trail_enabled = true
+	gp.trail_lifetime = 0.16
+	var pm: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	pm.direction = (n + Vector3(0, 0.9, 0)).normalized()
+	pm.spread = 55.0
+	pm.initial_velocity_min = 2.0
+	pm.initial_velocity_max = 4.2
+	pm.gravity = Vector3(0, -9.5, 0)
+	pm.scale_min = 0.7
+	pm.scale_max = 1.2
+	pm.color_ramp = _gradiente([Color(1.0, 0.55, 0.16, 1.0), Color(1.0, 0.42, 0.1, 1.0), Color(0.9, 0.2, 0.05, 0.0)], [0.0, 0.6, 1.0])
+	gp.process_material = pm
+	var cinta: RibbonTrailMesh = RibbonTrailMesh.new()
+	cinta.size = 0.07
+	cinta.sections = 3
+	cinta.section_length = 0.07
+	cinta.section_segments = 2
+	var sc: Curve = Curve.new()
+	sc.add_point(Vector2(0, 1.0))
+	sc.add_point(Vector2(1, 0.0))
+	cinta.curve = sc
+	var sm: StandardMaterial3D = StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.use_particle_trails = true
+	sm.vertex_color_use_as_albedo = true
+	sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	sm.disable_receive_shadows = true
+	cinta.material = sm
+	gp.draw_pass_1 = cinta
+	gp.add_to_group("chispas_choque", true)
+	c.add_child(gp)
+	return gp
+
+
+## IDEA 3: una mancha naranja-roja blanda en el suelo a lo largo del chorro, más fuerte en el punto de choque (decal que lee la profundidad: luz_suelo_haz.gdshader). Solo superficies horizontales
+## y a `alto_max` sobre el suelo: no tiñe a la jugadora ni a los enemigos. Late con el chorro y se apaga al soltarse. No es una luz de verdad: la luz del hechizo sigue siendo UNA.
+func _luz_suelo(c: Node3D, largo: float, cs: Array) -> void:
+	if _vivos_de(HAZ_GRUPO_LUZ_SUELO) >= HAZ_MAX_LUCES_SUELO:
+		return
+	var longitud: float = largo + 1.8
+	var centro_u: float = (largo + 0.6) * 0.5          # la caja cubre de u = -0,6 (detrás de la mano) a u = largo + 1,2 (pasada la punta, para el choque)
+	var dim: Vector3 = Vector3(HAZ_LUZ_ANCHO, AvisoAreaFuego.ALTO_CAJA, longitud)
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(SH_LUZ_SUELO)
+	m.render_priority = -2
+	m.set_shader_parameter("rampa", _rampa_de_bola())
+	m.set_shader_parameter("semilla", randf())
+	m.set_shader_parameter("dim", dim)
+	m.set_shader_parameter("centro_u", centro_u)
+	m.set_shader_parameter("largo", largo)
+	m.set_shader_parameter("centro_y", AvisoAreaFuego.CENTRO_Y)
+	m.set_shader_parameter("alto_max", HAZ_LUZ_ALTO_MAX)
+	for k in cs.size():
+		var ch: Dictionary = cs[k]
+		m.set_shader_parameter("choque_a" if k == 0 else "choque_b", Vector4(float(ch["d"]), float(ch.get("x", 0.0)), 1.3, 0.62))
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = "LuzSuelo"
+	var caja: BoxMesh = BoxMesh.new()
+	caja.size = Vector3.ONE
+	mi.mesh = caja
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.scale = dim
+	mi.position = Vector3(0.0, AvisoAreaFuego.CENTRO_Y, -centro_u)
+	mi.extra_cull_margin = 2.0
+	mi.add_to_group(HAZ_GRUPO_LUZ_SUELO, true)
+	c.add_child(mi)
 
 
 # ------------------------------------------------------------------ ladrillos ------------------------------------------------------------------
