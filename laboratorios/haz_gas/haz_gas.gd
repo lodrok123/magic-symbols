@@ -587,6 +587,8 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 	var noz: Vector3 = p["nozzle"]
 	var tg: Vector3 = p["target"]
 	var tipo: float = {"esfera": 0.0, "muro": 1.0, "campo": 3.0}.get(obstaculo, 2.0)
+	if modo_juego and not prims_dom.is_empty():
+		tipo = 3.0                  # en el juego el mundo real cuenta SIEMPRE (árboles y escalones junto a un haz que acaba al aire), haya tope o no
 	var c: Vector3 = muro_c if obstaculo == "muro" else p["shieldC"]
 	var h: Vector3 = muro_h
 	var cont: Vector3 = contacto()
@@ -616,7 +618,7 @@ func sd_obstaculo(w: Vector3) -> Array:
 		var d: Vector3 = w - (params["shieldC"] as Vector3)
 		var l: float = d.length()
 		return [l - float(params["shieldR"]), d / maxf(l, 0.001)]
-	if obstaculo == "campo":
+	if obstaculo == "campo" or (modo_juego and not prims_dom.is_empty()):
 		return sd_prims(prims_dom, w)
 	if obstaculo != "muro":
 		return [1000.0, Vector3.UP]

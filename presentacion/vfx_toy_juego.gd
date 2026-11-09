@@ -588,6 +588,22 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	t.call("lanzar", -1.0)
 	_ritmo_nacer(t, float(h.get_meta(META_RITMO_NACER, 1.0)))
 	_expira_en(t, maxf(vida, 0.3))
+	if elemento == "fuego" and _haz_con_gas(h, hz, suelo, vida):
+		HazGasJuego.solo_luz(t)              # el gas dibuja el chorro y la masa; del FuegoToy quedan la luz del suelo y la del hechizo
+
+
+## 9/11 (Pablo, prototipo A llevado al juego): el haz de FUEGO se dibuja con la simulación de gas toon (HazGasJuego) contra los sólidos reales, si hay RenderingDevice
+## (Forward+ / Mobile), el ajuste `magic_symbols/vfx_haz_gas` está encendido (lo está de serie) y no se ha llegado al tope de instancias. Si no, false: el FuegoToy HAZ de siempre.
+## Solo dibuja: lo que hace el haz (daño, alcance, ticks, choques) lo sigue decidiendo HechizoVivo.
+var gas: HazGasJuego = null
+
+
+func _haz_con_gas(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> bool:
+	if not HazGasJuego.disponible():
+		return false
+	if gas == null or not is_instance_valid(gas):
+		gas = HazGasJuego.conectar(_mundo)
+	return gas.haz(h, hz, suelo, vida) != null
 
 
 ## Los choques del haz (mundo: punto y normal) en el espacio del toy, que mira a -Z desde la mano (`al` = hacia dónde va el haz): [{d: m a lo largo, x: m a un lado, n: normal local}].
