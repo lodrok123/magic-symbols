@@ -36,6 +36,12 @@ thin fringe, individual grass blades, lichen speckle, ground plane, base, pedest
 sharp spikes, outline, black lines
 ```
 
+Y, solo para estos dos (ver §0 bis), lo que no puede salir **por un lado ni por el otro**:
+```
+cute, kawaii, adorable, big shiny eyes, eye highlight, sparkle, blush, rosy cheeks, smiling,
+teeth, fangs, blood, wounds, gore, red glowing eyes, claws, monster face, horror
+```
+
 ### Paleta (la de la chibi, `PROMPTS.md`)
 Hierba menta `#a8d9a0` · camino crema `#ffe8aa` · tierra melocotón `#e6b98f` · piedra gris lila `#dde0ea` ·
 sombra gris cálido `#69645b` · acento rosa `#f7c6d3` · oro `#f9d792`.
@@ -59,7 +65,33 @@ gastar el texturizado: cambiar el estilo después obliga a repetirlo todo.
 
 ---
 
-## Cómo se reparte el trabajo
+## 0 bis · Cómo dar miedo sin salirse del estilo (revisión del 9/11, segunda tanda)
+
+La segunda tanda **ya está en el estilo del juego** (chibi, pastel, textura plana): eso se da por bueno y no se toca. Lo que
+falta es que **den miedo**: salieron tiernos. El mouro parece un niño elfo con los ojos grandes y el ánima, un muñeco
+encapuchado simpático.
+
+El error de bulto sería arreglarlo con dientes, sangre, garras o cuencas rojas: eso **rompe el estilo**, desentona con el bosque
+pastel y además no es el juego que es. En una paleta así el miedo no viene del gore: viene de **una sola cosa que está mal**.
+Seis palancas, por orden de lo que más cambia con menos esfuerzo:
+
+| # | palanca | qué pedir |
+|---|---|---|
+| 1 | **El ojo sin brillo** | Es LA regla. Un ojo chibi da ternura por el **punto blanco de luz**; quítalo y el mismo ojo está muerto. El mouro: dos óvalos planos y negros, mate, **sin reflejo, sin iris, sin pupila, sin blanco**. *"flat matte black eyes, no highlight, no sparkle, no iris"* |
+| 2 | **Sin boca** | Ni sonrisa ni ceño: **nada**. Una cara sin boca no se puede leer, y lo que no se puede leer inquieta. |
+| 3 | **El hueco de la capucha vacío** | Lo que asusta del ánima es que **dentro no haya nadie**. Nada de barbilla rosada asomando: un vacío **plano y oscuro**, del mismo tono mire donde mire. En Godot se remata con un material sin iluminar dentro de la capucha. |
+| 4 | **Una proporción equivocada** | Siguen siendo chibi, pero **una** medida se va: **manos grandes de dedos largos** colgando quietas, y una figura algo más estirada (3,5 cabezas en vez de 3). Lo demás, igual que la familia. |
+| 5 | **La piel, muerta** | Fuera el melocotón y el rubor: **gris crema**, mismo valor en la cara que en las manos, sin color en las mejillas. La piel sana es la mitad de la ternura. |
+| 6 | **Algo torcido** | Todo lo demás es simétrico y quieto; **una** cosa no: la diadema un poco ladeada, el bajo de la mortaja más largo por un lado, tierra seca en el borde (ha salido de una tumba). |
+
+**Lo que NO se pide nunca:** dientes, colmillos, sangre, heridas, carne, ojos rojos, garras, cara de monstruo, cuerpo retorcido.
+Al negativo: `teeth, fangs, blood, wounds, gore, red glowing eyes, claws, monster face, horror, scary face`. El miedo lo ponen las
+seis palancas de arriba, no la cara.
+
+**Y la mitad del susto no está en el modelo.** Conviene saberlo antes de pedir más al prompt: estos dos **no andan**, se deslizan
+(piernas desvanecidas por material, sin pasos); la Compaña **gira la cabeza hacia la jugadora** sin dejar la fila; no hacen ruido
+al moverse y suenan solo las campanillas de la cruz; y la niebla a ras de suelo llega antes que ellos. Un modelo quieto y pálido
+con eso encima da más miedo que cualquier cosa que se le pinte a la textura.
 
 - **La familia manda.** Los dos personajes son de la familia del elfo: **chibi, unas 3 cabezas de alto**, cabeza grande, cuerpo y
   piernas cortos, manos y pies chicos y redondeados. Si salen esbeltos, el lore no se lee y además desentonan al lado de la
@@ -90,22 +122,31 @@ y que lleva mucho muerto: señorío antiguo, no harapos de mendigo.
 **Entrada:** captura de frente de `arte/modelos/elfo_base.glb` + [ESTILO] + este texto.
 
 ### Imagen de concepto
-> Same chibi game character style and SAME PROPORTIONS as the reference elf: about 3 heads tall, big head, short
-> body, short legs, small rounded hands and feet, long pointed ears. New character: the DEAD MOURO, an old
-> underground elf-lord who still guards his barrow. Face: calm and hollow, pale cream skin, two small simple dark
-> eye sockets with a tiny soft light dot inside each, a small straight mouth, no wrinkles, no veins, no teeth;
-> straight flat hair to the jaw, pale grey. Outfit, in BIG SIMPLE SHAPES: a long sleeveless tunic with one wide
-> band of simple geometric embroidery along the hem, split at the front so both legs are visible below the knees;
-> a mantle hanging from both shoulders whose lower edge is torn into FOUR wide pointed shapes, no fringe; a broad
-> flat belt with one square buckle; a thin plain circlet on the brow; bare feet. PALETTE: pale grey-lilac cloth,
-> cream skin, one soft gold accent on circlet and buckle, everything desaturated pastel. Flat hand-painted
-> texture with large colour areas, soft cel shading, matte. EMPTY HANDS: no weapon, no staff, no props. Full
-> body, front view, symmetrical A-pose with arms 35 degrees away from the body, palms down, fingers apart, legs
-> slightly apart, plain light background, soft even lighting.
+> Same chibi game character style as the reference elf, hand-painted and pastel, but NOT cute: this one is dead.
+> Proportions: still chibi and big-headed, but stretched a little, about 3.5 heads tall, with LONG THIN ARMS and
+> noticeably BIG HANDS with long fingers hanging still and open at the sides; short legs, small bare feet, long
+> pointed ears. New character: the DEAD MOURO, an old underground elf-lord who still guards his barrow. FACE:
+> perfectly symmetrical, blank and calm, GREY-CREAM dead skin with no blush and no pink, the same flat tone on
+> face and hands; the eyes are two plain narrow MATTE BLACK ovals, completely flat, with NO highlight, NO
+> sparkle, NO iris, NO white; NO MOUTH AT ALL, no nose shadow, no eyebrows, no wrinkles. Straight flat pale grey
+> hair cut level at the jaw, hanging without movement. Outfit in BIG SIMPLE SHAPES: a long sleeveless tunic with
+> one wide band of simple zig-zag embroidery along the hem, split at the front so both legs are visible below the
+> knees; a mantle hanging from both shoulders whose lower edge is torn into FOUR wide pointed shapes, no fringe;
+> a broad flat belt with one square buckle; a thin plain circlet on the brow, sitting SLIGHTLY CROOKED; a band of
+> dry earth staining the bottom of the tunic, painted as one soft flat shape. PALETTE: pale grey-lilac cloth,
+> grey-cream skin, one dull gold accent on circlet and buckle, desaturated pastel, nothing bright. Flat
+> hand-painted texture with large colour areas, soft cel shading, matte. EMPTY HANDS: no weapon, no staff, no
+> props. Full body, front view, symmetrical A-pose with arms 35 degrees away from the body, palms down, fingers
+> apart, legs slightly apart, plain light background, soft even lighting.
 
 **Si sale mal:**
-- **Sale esbelto, de persona:** *"chibi, about 3 heads tall, big head, short legs, like the reference elf"*. Es el fallo de la
+- **Sale tierno, de niño elfo:** es el fallo de la segunda tanda. Tres frases, por este orden:
+  *"flat matte black eyes, no highlight, no sparkle, no iris"* · *"no mouth at all"* · *"grey-cream dead skin, no blush, no pink
+  cheeks"*. Si solo se puede decir una, la de los ojos: el punto de luz del ojo es lo que lo hace mono.
+- **Sale esbelto, de persona:** *"chibi, big head, about 3.5 heads tall, short legs, like the reference elf"*. Fue el fallo de la
   primera tanda y el único que no se puede arreglar después.
+- **Las manos salen pequeñas y monas:** *"big hands with long fingers, hanging open and still"*. Son la proporción que se va de
+  sitio a propósito.
 - **Sale fotorrealista, con tela de foto y pliegues finos:** *"flat hand-painted texture, large colour areas, soft cel shading,
   matte, no photorealism"*.
 - **El manto acaba en fleco:** *"the torn edge is only four wide pointed shapes, no fringe, no thin strips"*.
@@ -116,8 +157,9 @@ y que lleva mucho muerto: señorío antiguo, no harapos de mendigo.
   dice que es un mouro.
 
 ### Meshy, de imagen a 3D
-> chibi undead elf lord, 3 heads tall, long split tunic, torn mantle, thin circlet, pastel grey lilac and cream,
-> hand-painted, A-pose, empty hands, game character, ready for rig, solid opaque, no transparency
+> chibi undead elf lord, blank face, flat matte black eyes, no mouth, grey dead skin, long thin arms and big
+> hands, long split tunic, torn mantle, crooked circlet, pastel grey lilac and cream, hand-painted, A-pose,
+> empty hands, game character, ready for rig, solid opaque, no transparency, not cute
 
 - **Nombre al instalar:** `mouro_espectro`.
 - **Altura en el juego:** 1,05 (un poco más que la jugadora: era un señor).
@@ -142,22 +184,33 @@ variantes.
 chibi».
 
 ### Imagen de concepto
-> Same chibi game character style and SAME PROPORTIONS as the reference elf: about 3 heads tall, big head, short
-> body, short legs, small rounded hands, bare feet. New character: a SOUL of the night procession, a small hooded
-> figure walking in a funeral train. Head covered by a big pointed HOOD that hangs forward, wide enough for the
-> big chibi head, leaving the face in flat shadow: inside the hood only a pale cream chin is visible, no eyes, no
-> nose. Outfit in BIG SIMPLE SHAPES: a hooded cloak over a plain shroud robe, closed at the chest with one simple
-> cord knot, both split at the front so the legs are visible below the knees, the lower hem cut into FIVE wide
-> pointed shapes, no fringe and no thin strips; wide loose sleeves ending at the wrist with the small bare hands
-> out. No armour, no jewellery, no belt, no insignia. PALETTE: pale cream linen for the robe and soft grey-lilac
-> for the cloak, so hood and robe read apart; desaturated pastel, flat hand-painted texture with large colour
-> areas, soft cel shading, matte, NO glow, NO transparency, NO candle, NO cross, NO props of any kind, solid
-> opaque. EMPTY HANDS: both hands open and empty. Full body, front view, symmetrical A-pose with arms 35 degrees
-> away from the body, palms down, fingers apart, legs slightly apart, plain light background, soft even lighting.
+> Same chibi game character style as the reference elf, hand-painted and pastel, but NOT cute: this is a dead
+> soul. Proportions: chibi and big-headed, stretched a little, about 3.5 heads tall, with LONG THIN ARMS and BIG
+> HANDS with long fingers hanging still and open at the sides. New character: a SOUL of the night procession
+> walking in a funeral train. Head covered by a big pointed HOOD hanging forward, and INSIDE THE HOOD THERE IS
+> NOBODY: a completely EMPTY flat dark void, one single even dark tone, NO face, NO chin, NO eyes, NO skin, no
+> shading inside, as if the hood were hollow. Outfit in BIG SIMPLE SHAPES: a hooded cloak over a plain shroud
+> robe, closed at the chest with one simple cord knot, both SPLIT AT THE FRONT so that both legs stay visible
+> below the knees (this is needed for the rig), the hem reaching mid-calf and cut into FIVE wide pointed shapes,
+> clearly longer on one side than on the other, no fringe and no thin strips; wide loose sleeves ending at the
+> wrist with the big bare grey-cream hands out, no blush, no pink. A band of dry earth stains the bottom of the
+> robe, painted as one soft flat shape. No armour, no jewellery, no belt, no insignia. PALETTE: pale cream linen
+> for the robe and soft grey-lilac for the cloak, so hood and robe read apart; desaturated pastel, nothing
+> bright; flat hand-painted texture with large colour areas, soft cel shading, matte, NO glow, NO transparency,
+> NO candle, NO cross, NO props of any kind, solid opaque. EMPTY HANDS: both hands open and empty. Full body,
+> front view, symmetrical A-pose with arms 35 degrees away from the body, palms down, fingers apart, plain light
+> background, soft even lighting.
 
 **Si sale mal:**
-- **Sale de persona, alto y delgado:** *"chibi, about 3 heads tall, big head, short legs"*. Fue el fallo de la primera tanda.
+- **Sale mono, de muñeco:** es el fallo de la segunda tanda, y aquí todo depende del hueco de la capucha:
+  *"inside the hood there is nobody, an empty flat dark void, no face, no chin, no skin"*. En la segunda tanda asomaba una
+  barbilla rosada y eso lo convierte en un niño con capucha.
+- **Sale de persona, alto y delgado:** *"chibi, big head, about 3.5 heads tall, short legs"*. Fue el fallo de la primera tanda.
+- **Las manos salen pequeñas:** *"big grey-cream hands with long fingers, hanging open and still"*.
 - **El bajo sale deshilachado en cien tiras:** *"the hem is five wide pointed shapes, no fringe, no thin strips"*.
+- **El faldón llega al suelo y tapa las piernas:** *"split at the front, both legs visible below the knees"*. Aquí hay que
+  aguantarse: **la geometría necesita piernas** o el autorig no anda. El «no tiene pies» lo pone el juego desvaneciendo el
+  material de la cadera hacia abajo (§7), no el modelo.
 - **Viene con la cruz o la vela puestas:** *"hands completely empty and open, no cross, no candle"*. Las dos son piezas sueltas
   (§3 y §4) o la cruz no podrá pasar de mano en mano.
 - **La capucha sale como un gorro o cae hacia atrás:** *"big pointed hood hanging forward over the face, face in shadow"*. Si cae
@@ -166,8 +219,9 @@ chibi».
 - **El faldón es un bloque:** *"cloak and robe split at the front, both legs visible below the knees"*.
 
 ### Meshy, de imagen a 3D
-> chibi hooded dead soul, 3 heads tall, big pointed hood with shadowed empty face, torn shroud cloak, pastel
-> cream and grey lilac, hand-painted, A-pose, empty hands, game character, ready for rig, solid opaque, no props
+> chibi hooded dead soul, big pointed hood with an empty dark void inside, no face, long thin arms and big
+> hands, torn shroud cloak, pastel cream and grey lilac, hand-painted, A-pose, empty hands, game character,
+> ready for rig, solid opaque, no props, not cute
 
 - **Nombre al instalar:** `anima_compana`.
 - **Altura en el juego:** 1,0. Las tres idénticas y a la misma altura: la fila se lee por la repetición.
@@ -246,9 +300,11 @@ geometría.
 > mound, wider than tall, with smooth simple surfaces: the turf is painted as flat mint-green areas with soft
 > edges over peach-brown earth, NO individual grass blades, no moss clumps, no lichen speckles. At its centre,
 > FOUR chunky rounded slabs of pale grey-lilac stone stand leaning slightly inwards and frame a clean SQUARE
-> opening, dark and empty inside, like a dolmen whose capstone is missing; the square must stay clean so a flat
-> slab can rest on top. Around the foot of the mound, SIX big rounded stones, evenly spaced and clearly
-> separated, and ONE flat slab lying on the grass. Chunky readable shapes, flat hand-painted texture with large
+> opening, like a dolmen whose capstone is missing; ONE of the four is clearly tilted and sunken lower than the
+> others, so the ring is not tidy. The opening is a FLAT BLACK VOID: no inner walls, no floor, no bottom
+> visible, one single even black shape, as if the hole had no end. The square must stay clean so a flat slab can
+> rest on top. Around the foot of the mound, SIX big rounded stones, evenly spaced and clearly separated, and
+> ONE flat slab lying on the grass. Chunky readable shapes, flat hand-painted texture with large
 > colour areas, soft cel shading, matte, low contrast. No treasure, no bones, no props, no glow, no fog. Three
 > quarter view from slightly above, plain light background.
 
@@ -257,6 +313,9 @@ geometría.
   blades, no lichen, hand-painted, no photorealism"*. Fue el fallo de la primera tanda y además mata el presupuesto de
   triángulos.
 - **Las piedras del borde salen muchas y pequeñas:** *"only six big rounded stones, clearly separated"*.
+- **Sale simpática, como un donut de piedras:** la de la segunda tanda estaba en estilo pero era amable. Dos frases:
+  *"the opening is a flat black void with no visible floor or inner walls"* y *"one of the four slabs tilted and sunken"*. Un
+  agujero con fondo es un pozo; uno sin fondo es una tumba.
 - **Sale cerrada o con la tapa puesta:** *"the capstone is missing, the shaft is open"*. La tapa es la pieza §6.
 - **El hueco sale redondo o pequeño:** *"a clean square opening, wide enough for a flat slab to rest on it"*.
 - **Sale un dolmen de pie tipo Stonehenge:** *"a low earth mound, not standing stones"*.
@@ -308,6 +367,10 @@ Para que no se encargue de más y para que quede claro qué falta por hacer en e
 | la llama del candil y el halo de la fila en la oscuridad | `llama_tira8` y la luz de zona que ya existen |
 | la niebla a ras de suelo de la procesión | VFX de nube, el mismo molde que la nube de veneno |
 | la hierba del montículo | `Hierba3D`, que la siembra por casilla |
+| el negro sin fondo del hueco de la mámoa y del interior de la capucha | material sin iluminar (`unshaded`), para que no cambie con la luz de la zona: es lo que lo hace un vacío y no una sombra |
+| que no anden, que se deslicen sin pasos | sin clip de `walk` en el movimiento: avance por código, como el limo |
+| que la Compaña te mire sin salirse de la fila | giro del hueso del cuello hacia la jugadora, como el apuntado |
+| el silencio: ni pisadas ni voz, solo las campanillas de la cruz | `Sfx`, al montar el encuentro |
 | el tinte del elemento al golpearlos | `Combate3D`, sin tocar nada: por eso los modelos vienen pálidos y opacos |
 
 ## Orden de generación
@@ -317,6 +380,12 @@ Para que no se encargue de más y para que quede claro qué falta por hacer en e
 3. **`mouro_espectro`**.
 4. **`candil_compana`**, cuando haya una sala a oscuras donde luzca.
 
-Y antes de nada: **una sola prueba de estilo**. Generar primero el ánima con la captura de `elfo_base` y ponerla al lado de la
-jugadora. Si casa, sigue todo lo demás; si no, se ajusta el bloque [ESTILO] **antes** de generar las otras seis, que es justo lo
-que `PROMPTS.md` lleva diciendo desde octubre y lo que no hicimos en la primera tanda.
+Y antes de nada: **una sola prueba**. Generar primero el ánima con la captura de `elfo_base` y ponerla al lado de la jugadora.
+Dos preguntas, en este orden:
+
+1. **¿Es del juego?** Mismas proporciones, textura a trozos planos, paleta pastel. Esto ya se consiguió en la segunda tanda.
+2. **¿Da miedo?** Tapa la capucha con el dedo: si lo que queda parece un muñeco, falta §0 bis. La prueba buena es enseñársela a
+   alguien sin contexto: si dice «qué mono», no vale.
+
+Si falla cualquiera de las dos, se ajusta **antes** de generar las otras seis, que es justo lo que `PROMPTS.md` lleva diciendo
+desde octubre.
