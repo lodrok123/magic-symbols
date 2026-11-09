@@ -19,7 +19,7 @@ layout(set = 1, binding = 0, std140) uniform Parametros {
 	vec4 k1;         // expansion, cool, sootFade, dustFade
 	vec4 k2;         // buoyancy, weight, drag, wind
 	vec4 k3;         // push, confine, subgrid, viscosity
-	vec4 k4;         // turbulence, -, -, -
+	vec4 k4;         // turbulence, paleta (0 demo, 1 pablo), acantilado (1 si se dibuja), -
 	vec4 key_pos;    // xyz lampara azul (keyPos), w -
 	vec4 mundo_lo;   // WORLD.min
 	vec4 mundo_tam;  // WORLD.size
@@ -139,13 +139,18 @@ Haz haz_en(vec3 w, sampler3D ruido) {
 float densidad_humo(vec4 s) { return s.y * 1.9 + s.z * 0.7; }                 // smokeDensity: el hollin es denso, el polvo fino
 float extincion(vec4 s) { return s.y * 1.9 + s.z * 0.7 + s.x * 0.4; }        // extinction: el gas caliente queda casi claro
 vec3 luz_suave(vec3 c) { return c / (c.x * 1.6 + 1.0); }                      // softLight
-vec3 color_fuego(float T) {                                                    // fireColor: rojo en el borde, naranja casi todo; blanco solo en el nucleo mas caliente
+// fireColor: rojo en el borde, naranja casi todo; blanco solo en el nucleo mas caliente.
+// PALETA (k4.y): 0 = la de la demo tal cual; 1 = «pablo» (por defecto en el lab): rojos y naranjas con contraste, NUNCA amarillo ni blanco quemado.
+// Se cambian solo los dos tramos calientes (el «yellow» de la demo pasa a naranja hondo y el «white» a naranja vivo); el rojo y el naranja son los de la demo.
+#define PALETA P.k4.y
+vec3 color_fuego(float T) {
 	const vec3 red = vec3(1.0, 0.03, 0.015);
 	const vec3 orange = vec3(1.0, 0.2, 0.015);
-	const vec3 yellow = vec3(1.0, 0.42, 0.05);
-	const vec3 white = vec3(1.0, 0.72, 0.32);
+	vec3 yellow = PALETA > 0.5 ? vec3(1.0, 0.27, 0.02) : vec3(1.0, 0.42, 0.05);
+	vec3 white = PALETA > 0.5 ? vec3(1.0, 0.34, 0.05) : vec3(1.0, 0.72, 0.32);
 	vec3 c = mix(mix(mix(red, orange, smoothstep(0.16, 0.5, T)), yellow, smoothstep(0.75, 1.25, T)), white, smoothstep(1.4, 2.1, T));
 	return c * pow(max(T - 0.2, 0.0), 1.9);
 }
 // holdHue: comprime la luz brillante A LO LARGO DE SU COLOR (divide los tres canales por el pico) para que el fuego espeso se quede naranja y no se vaya a crema.
-vec3 sostener_tono(vec3 c) { return c / (max(max(c.x, c.y), c.z) * 0.22 + 1.0); }
+// Con la paleta «pablo» la compresion es mas fuerte (0,5 en vez de 0,22): el pico queda por debajo de donde el ACES empieza a lavar el naranja.
+vec3 sostener_tono(vec3 c) { return c / (max(max(c.x, c.y), c.z) * (PALETA > 0.5 ? 0.5 : 0.22) + 1.0); }

@@ -72,7 +72,7 @@ void main() {
 		vec3 v = mix(V.xyz, air, DT * 1.6) + vec3(0.0, -7.0, 0.0) * DT;
 		Pp.xyz += v * DT;
 		if (Pp.y < 0.04) { Pp.y = 0.04; v.y = abs(v.y) * 0.35; }
-		if (Pp.z < WLO.z + 0.1) { v.z = abs(v.z) * 0.3; }
+		if (P.k4.z > 0.5 && Pp.z < WLO.z + 0.1) { v.z = abs(v.z) * 0.3; }        // el acantilado (k4.z = 0 en la vista de juego, donde no se dibuja)
 		vec3 n;
 		float d = obst_sd(Pp.xyz, n);
 		if (d < 0.0) {

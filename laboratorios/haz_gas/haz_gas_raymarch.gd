@@ -55,9 +55,8 @@ func _crear() -> void:
 	if _rd == null:
 		return
 	for n in ["raymarch", "temporal", "compone"]:
-		var sf: RDShaderFile = load(HazGasSolver.DIR_SH + n + ".glsl") as RDShaderFile
-		var sp: RDShaderSPIRV = sf.get_spirv()
-		if sp.compile_error_compute != "":
+		var sp: RDShaderSPIRV = HazGasSolver.spirv(_rd, n)
+		if sp.compile_error_compute != "" or sp.bytecode_compute.is_empty():
 			push_error("HazGasRaymarch: %s.glsl no compila:\n%s" % [n, sp.compile_error_compute])
 			return
 		_sh[n] = _rd.shader_create_from_spirv(sp, n)

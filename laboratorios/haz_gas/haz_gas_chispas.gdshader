@@ -27,7 +27,9 @@ void vertex() {
 	calor = clamp(P.w / 1.2, 0.0, 1.0);
 }
 
+uniform float paleta = 1.0;     // 0 = la de la demo; 1 = «pablo»: el mismo trazo pero naranja (menos ganancia y menos verde), sin llegar a blanco
+
 void fragment() {
-	ALBEDO = vec3(1.0, 0.42, 0.1) * (calor * calor * 16.0 + 0.6);
+	ALBEDO = paleta > 0.5 ? vec3(1.0, 0.3, 0.05) * (calor * calor * 6.0 + 0.6) : vec3(1.0, 0.42, 0.1) * (calor * calor * 16.0 + 0.6);
 	ALPHA = 1.0;
 }

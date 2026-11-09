@@ -11,7 +11,7 @@ extends Node3D
 ## (vista «juego»: la boquilla en la mano de la jugadora del lab); todo lo que dibuja recibe mundo_a_dominio.
 ## Lo abre el LabVfxComparativa3D con Mayús+F12 (esfera → muro → nada). Teclas dentro: ver AYUDA.
 
-const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · O obstáculo (esfera / muro) · 1-4 calidad (low med high ultra) · T filtro temporal · P pausa · Mayús+F12 salir"
+const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · O obstáculo (esfera / muro) · 1-4 calidad (low med high ultra) · K paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
 const WORLD_MIN: Vector3 = HazGasSolver.WORLD_MIN
 const WORLD_SIZE: Vector3 = HazGasSolver.WORLD_SIZE
 const DT: float = HazGasSolver.DT
@@ -34,6 +34,7 @@ var params: Dictionary = {
 	"thickness": 0.75, "relief": 0.7, "edge": 0.35, "smokeAlbedo": 0.3, "flameBody": 5.0, "emitGain": 6.5, "fireOnSmoke": 2.2, "farOnSmoke": 1.6,
 	"fireOnRock": 7.0, "lampOnSmoke": 720.0, "lampOnRock": 3.2, "keyPos": Vector3(-12.5, 1.8, 1.5),
 	"saturacion": 1.3, "vineta": 1.0,
+	"paleta": 1.0,              ## 1 = «pablo» (rojos y naranjas, nunca amarillo ni blanco: tecla K), 0 = la de la demo tal cual
 }
 var calidad: String = "low"
 var obstaculo: String = "esfera"            ## «esfera» (el escudo de la demo), «muro» (caja) o «nada»
@@ -209,8 +210,11 @@ func entorno() -> Environment:
 		_env.ambient_light_color = Color(0, 0, 0)
 		_env.ambient_light_energy = 0.0
 		_env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
-		_env.tonemap_mode = Environment.TONE_MAPPER_ACES       # renderer.toneMapping = ACESFilmicToneMapping, exposición 0,85
-		_env.tonemap_exposure = 0.85
+		# renderer.toneMapping = ACESFilmicToneMapping con exposición 0,85. El ACESFilmic de three hace color · exposición / 0,6 y el ajuste de Hill; el ACES de
+		# Godot hace el MISMO ajuste con color · 1,8 · exposición y divide por el blanco mapeado. 1,8 · 0,787 = 0,85 / 0,6 y blanco 16 (el ajuste ya está en su asíntota).
+		_env.tonemap_mode = Environment.TONE_MAPPER_ACES
+		_env.tonemap_exposure = 0.85 / 0.6 / 1.8
+		_env.tonemap_white = 16.0
 		# bloom(min(hdr, 9), 0.32, 0.55, 1.1) de main.js: en Godot, el glow (umbral 1,1, aditivo, niveles medios y anchos)
 		_env.glow_enabled = true
 		_env.glow_hdr_threshold = 1.1
@@ -262,6 +266,7 @@ func _process(delta: float) -> void:
 		m.set_shader_parameter("lamp_on_rock", params["lampOnRock"])
 		m.set_shader_parameter("key_pos", params["keyPos"])
 	_mat_chispas.set_shader_parameter("dominio_a_mundo", Projection(global_transform))
+	_mat_chispas.set_shader_parameter("paleta", params["paleta"])
 	_medir(delta)
 
 
@@ -288,7 +293,7 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		p["expansion"], p["cool"], p["sootFade"], p["dustFade"],
 		p["buoyancy"], p["weight"], p["drag"], p["wind"],
 		p["push"], p["confine"], p["subgrid"], p["viscosity"],
-		p["turbulence"], 0.0, 0.0, 0.0,
+		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, 0.0,
 		kp.x, kp.y, kp.z, 0.0,
 		WORLD_MIN.x, WORLD_MIN.y, WORLD_MIN.z, 0.0,
 		WORLD_SIZE.x, WORLD_SIZE.y, WORLD_SIZE.z, 0.0])
@@ -349,10 +354,10 @@ func _medir(delta: float) -> void:
 		_acum_gpu.clear()
 		if _linea != null:
 			var r: Vector3i = solver.res
-			_linea.text = "%s %dx%dx%d  %.1fM celdas  %d fps  gpu %.1f ms (sim %.1f · luz %.1f · chispas %.2f · volumen %.1f · fotograma entero %.1f)  %s%s%s" % [
+			_linea.text = "%s %dx%dx%d  %.1fM celdas  %d fps  gpu %.1f ms (sim %.1f · luz %.1f · chispas %.2f · volumen %.1f · fotograma entero %.1f)  %s · paleta %s%s%s" % [
 				calidad, r.x, r.y, r.z, solver.celdas / 1.0e6, roundi(fps), float(gpu_ms.get("total", 0.0)),
 				float(gpu_ms.get("gas", 0.0)) + float(gpu_ms.get("velocidad", 0.0)), float(gpu_ms.get("luz", 0.0)), float(gpu_ms.get("chispas", 0.0)),
-				float(gpu_ms.get("volumen", 0.0)), gpu_viewport_ms, obstaculo, " · CHORRO APAGADO" if float(params["beamOn"]) < 0.5 else "", " · PAUSA" if pausa else ""]
+				float(gpu_ms.get("volumen", 0.0)), gpu_viewport_ms, obstaculo, "pablo" if float(params["paleta"]) > 0.5 else "demo", " · CHORRO APAGADO" if float(params["beamOn"]) < 0.5 else "", " · PAUSA" if pausa else ""]
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------ cámara
@@ -404,6 +409,8 @@ func _input(ev: InputEvent) -> void:
 				crear_solver("ultra")
 			KEY_T:
 				temporal = not temporal
+			KEY_K:
+				params["paleta"] = 0.0 if float(params["paleta"]) > 0.5 else 1.0
 			KEY_P:
 				pausa = not pausa
 			KEY_H:

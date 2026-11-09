@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## CAPTURAS del PORT de la demo de gas (laboratorios/haz_gas/, Mayús+F12 del LabVfxComparativa3D). NECESITA VENTANA (compute shaders):
-##   godot --path . --resolution 1280x720 --script res://herramientas/captura_gas_haz.gd -- [carpeta] [casos: esfera,muro] [vistas: demo,cerca,contra,juego] [tiempos: 1,3,6] [calidad: low]
+##   godot --path . --resolution 1280x720 --script res://herramientas/captura_gas_haz.gd -- [carpeta] [casos: esfera,muro] [vistas: demo,cerca,contra,juego] [tiempos: 1,3,6] [calidad: low] [paleta: pablo|demo]
 ## Escribe <carpeta>/<caso>_<vista>_<t>s.png (t = segundos de simulación desde que se enciende) y <caso>_<vista>_apagado.png (1,5 s tras apagar el chorro con ESPACIO).
 ## Vistas (en coordenadas de la demo): demo = la cámara inicial de main.js; cerca = baja y cerca del choque (como demo_ref/demo_4 y demo_6); contra = desde detrás de la jugadora
 ## (como demo_ref/demo_5); juego = el dominio escalado en la mano de la jugadora con la cámara del juego (ortográfica, 30°).
@@ -11,6 +11,7 @@ var _casos: PackedStringArray = ["esfera", "muro"]
 var _vistas: PackedStringArray = ["demo", "cerca", "contra", "juego"]
 var _tiempos: PackedFloat32Array = [1.0, 3.0, 6.0]
 var _calidad: String = "low"
+var _paleta: String = "pablo"
 var _lab: Node3D = null
 const CAMARAS: Dictionary = {
 	"demo": [Vector3(2.5, 6, 23), Vector3(1.4, 2.4, 0), 32.0],
@@ -36,6 +37,8 @@ func _correr() -> void:
 		_tiempos = PackedFloat32Array(Array(a[3].split(",")).map(func(s): return float(s)))
 	if a.size() > 4 and a[4] != "":
 		_calidad = a[4]
+	if a.size() > 5 and a[5] != "":
+		_paleta = a[5]
 	if not _dir.is_absolute_path():
 		_dir = ProjectSettings.globalize_path(_dir)
 	DirAccess.make_dir_recursive_absolute(_dir)
@@ -53,6 +56,7 @@ func _correr() -> void:
 				print("FALLO: el gas no arranca (¿sin ventana?)")
 				quit(1)
 				return
+			g.params["paleta"] = 1.0 if _paleta == "pablo" else 0.0
 			if g.calidad != _calidad:
 				g.crear_solver(_calidad)
 			if CAMARAS.has(vista):
@@ -61,15 +65,19 @@ func _correr() -> void:
 			for t in _tiempos:
 				await _hasta_paso(g, int(t * 60.0))
 				await RenderingServer.frame_post_draw
-				_guardar("%s_%s_%ds.png" % [caso, vista, int(t)] if t >= 1.0 else "%s_%s_%03dms.png" % [caso, vista, int(t * 1000.0)])
+				_guardar("%s%s_%s_%ds.png" % [caso, _sufijo(), vista, int(t)])
 			g.chorro(false)
 			await _hasta_paso(g, g.frame + 90)
 			await RenderingServer.frame_post_draw
-			_guardar("%s_%s_apagado.png" % [caso, vista])
+			_guardar("%s%s_%s_apagado.png" % [caso, _sufijo(), vista])
 			print("  gpu %s %s: %s · fotograma %.1f ms" % [caso, vista, str(g.gpu_ms), g.gpu_viewport_ms])
 	_lab.call("haz_gas", 0)
 	print("CAPTURAS en " + _dir)
 	quit()
+
+
+func _sufijo() -> String:
+	return "" if _paleta == "pablo" else "_paletademo"
 
 
 func _hasta_paso(g: HazGas, n: int) -> void:

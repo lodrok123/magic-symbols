@@ -310,13 +310,37 @@ func _datos_chispas() -> PackedByteArray:
 	return f.to_byte_array()
 
 
-func _cargar(nombre: String) -> bool:
+## SPIR-V de un compute shader de DIR_SH. Se compila desde el TEXTO (con los #include expandidos aquí): el importador de Godot no vuelve a compilar un .glsl
+## cuando solo cambia un .glslinc que incluye (mira el md5 del .glsl), y se quedaban versiones viejas. Si no se puede leer el texto (exportado), el importado.
+static func spirv(r: RenderingDevice, nombre: String) -> RDShaderSPIRV:
+	var texto: String = FileAccess.get_file_as_string(DIR_SH + nombre + ".glsl")
+	if texto != "" and r != null:
+		var fuente: RDShaderSource = RDShaderSource.new()
+		fuente.language = RenderingDevice.SHADER_LANGUAGE_GLSL
+		fuente.source_compute = _expandir(texto.replace("#[compute]", ""))
+		var sp: RDShaderSPIRV = r.shader_compile_spirv_from_source(fuente, false)
+		if sp.compile_error_compute == "":
+			return sp
+		push_error("HazGas: %s.glsl no compila desde el texto:\n%s" % [nombre, sp.compile_error_compute])
 	var sf: RDShaderFile = load(DIR_SH + nombre + ".glsl") as RDShaderFile
-	if sf == null:
-		push_error("HazGasSolver: no carga %s.glsl (¿falta --import?)" % nombre)
-		return false
-	var sp: RDShaderSPIRV = sf.get_spirv()
-	if sp.compile_error_compute != "":
+	return sf.get_spirv() if sf != null else RDShaderSPIRV.new()
+
+
+static func _expandir(texto: String) -> String:
+	var r: PackedStringArray = PackedStringArray()
+	for linea in texto.split("\n"):
+		var l: String = linea.strip_edges()
+		if l.begins_with("#include \""):
+			var inc: String = l.trim_prefix("#include \"").trim_suffix("\"")
+			r.append(_expandir(FileAccess.get_file_as_string(DIR_SH + inc)))
+		else:
+			r.append(linea)
+	return "\n".join(r)
+
+
+func _cargar(nombre: String) -> bool:
+	var sp: RDShaderSPIRV = spirv(rd, nombre)
+	if sp.compile_error_compute != "" or sp.bytecode_compute.is_empty():
 		push_error("HazGasSolver: %s.glsl no compila:\n%s" % [nombre, sp.compile_error_compute])
 		return false
 	var sh: RID = rd.shader_create_from_spirv(sp, nombre)
