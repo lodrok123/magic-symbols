@@ -116,10 +116,15 @@ const EXTRAS: Dictionary = {
 ##   Unsteady_Walk  anda tambaleándose, de ánima: el que porta la vela
 ## Las entradas van por ID DE PERSONAJE, no por GLB, porque las dos variantes comparten modelo (ver Pj3D.MODELO_DE).
 const RUTA_CLIPS_SANTA: String = "res://arte/meshy/santa_compana_clips.glb"
+## 9/11 (Pablo: «mira cómo no está bien al andar»): el andar va con el nombre «Walking», NO con el rol «walk». Pj3D.SINONIMOS
+## busca el rol walk como ["walking", "walk"] EN ESE ORDEN, así que mientras el clip se llamó «walk» el juego seguía andando con
+## el «Walking» de la elfa y el andar de cada portador no se usaba nunca. Y ese Walking es el que se ve cruzado: medido con
+## herramientas/medidas_piernas_clip.gd, junta los pies a 0,045 cuando en reposo están a 0,196 (anda sobre una línea, y con la
+## túnica ancha las piernas se solapan). Unsteady_Walk los separa 0,12-0,26 y Spear_Walk, 0,068.
 const FUENTE_SANTA_CRUZ: Dictionary = {
-	"ruta": RUTA_CLIPS_SANTA, "referencia": "Spear_Walk", "clips": {"walk": "Spear_Walk", "run": "Running"}}
+	"ruta": RUTA_CLIPS_SANTA, "referencia": "Spear_Walk", "clips": {"Walking": "Spear_Walk", "run": "Running"}}
 const FUENTE_SANTA_VELA: Dictionary = {
-	"ruta": RUTA_CLIPS_SANTA, "referencia": "Walking", "clips": {"walk": "Unsteady_Walk", "run": "Running"}}
+	"ruta": RUTA_CLIPS_SANTA, "referencia": "Walking", "clips": {"Walking": "Unsteady_Walk", "run": "Running"}}
 
 const FUENTES: Dictionary = {
 	"elfo_base": [

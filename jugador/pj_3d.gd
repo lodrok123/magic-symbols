@@ -1533,14 +1533,14 @@ const CORRECCION_POSTURA: Dictionary = {
 		"mixamorig_RightHand": Vector3(12.0, 0.0, -0.5),
 		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
 	},
-	# PENDIENTE (Pablo, 9/11): el de la vela tiene que llevar el brazo derecho «como de sostener una bandera», con el codo doblado
-	# y la palmatoria a la altura del pecho. Probado y NO conseguido: subir el hombro (RightArm −30) saca el brazo en horizontal,
-	# como quien ofrece algo, y doblar el codo con el eje X (+22) solo acerca la mano al cuerpo, sin subirla. Medido con
-	# medidas_giro_brazo.gd: en este esqueleto NINGÚN eje del antebrazo sube la mano más de 0,015 a 25°, así que el codo no es
-	# donde hay que tocar. Lo más rápido es sacar los grados del panel del LabHumanoide3D, como se hizo con Marimanta.
+	# 9/11: el de la vela también sale del panel del LabHumanoide3D (Pablo), con la postura de «sostener una bandera». El brazo
+	# derecho se abre desde el HOMBRO (RightShoulder −37,5) y el codo solo lo acompaña (−5): medido con medidas_giro_brazo.gd,
+	# en este esqueleto NINGÚN eje del antebrazo sube la mano más de 0,015 a 25°, así que el codo no es donde hay que tocar y
+	# mis intentos de doblarlo (RightArm −30, codo +22 en X) no valían.
 	"santa_compana_vela": {
-		"mixamorig_RightArm": Vector3(14.0, 0.0, 0.0),
-		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
+		"mixamorig_LeftShoulder": Vector3(17.0, 0.0, -2.0),
+		"mixamorig_RightShoulder": Vector3(-37.5, 0.0, 0.0),
+		"mixamorig_RightForeArm": Vector3(-5.0, 0.0, 0.0),
 	},
 	"woodland_wanderer": {
 		"mixamorig_LeftShoulder": Vector3(0.0, 19.0, 0.0),
