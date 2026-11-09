@@ -1520,6 +1520,22 @@ func _aplicar_factor_zancada() -> void:
 ## TODOS los clips del personaje: q_nueva = giro · q_clip (giro en el espacio del hueso padre, mismo orden de ejes que Quaternion.from_euler,
 ## igual que el laboratorio). Arregla la postura del modelo de Meshy sin tocar el GLB, así que sobrevive a re-exportarlo.
 const CORRECCION_POSTURA: Dictionary = {
+	# Santa Compaña (9/11, Pablo: «los brazos están muy pegados al cuerpo, tienen que estar más separados»). Medido con
+	# herramientas/medidas_giro_brazo.gd sobre este esqueleto: con los brazos colgando, CUALQUIER giro del hueso Arm los levanta,
+	# y el eje X es el que más los separa por grado (a 25° abre 0,111 y sube 0,119; el eje Y abre más, 0,149, pero sube 0,271).
+	"santa_compana_cruz": {
+		"mixamorig_RightArm": Vector3(14.0, 0.0, 0.0),
+		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
+	},
+	# PENDIENTE (Pablo, 9/11): el de la vela tiene que llevar el brazo derecho «como de sostener una bandera», con el codo doblado
+	# y la palmatoria a la altura del pecho. Probado y NO conseguido: subir el hombro (RightArm −30) saca el brazo en horizontal,
+	# como quien ofrece algo, y doblar el codo con el eje X (+22) solo acerca la mano al cuerpo, sin subirla. Medido con
+	# medidas_giro_brazo.gd: en este esqueleto NINGÚN eje del antebrazo sube la mano más de 0,015 a 25°, así que el codo no es
+	# donde hay que tocar. Lo más rápido es sacar los grados del panel del LabHumanoide3D, como se hizo con Marimanta.
+	"santa_compana_vela": {
+		"mixamorig_RightArm": Vector3(14.0, 0.0, 0.0),
+		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
+	},
 	"woodland_wanderer": {
 		"mixamorig_LeftShoulder": Vector3(0.0, 19.0, 0.0),
 		"mixamorig_LeftHand": Vector3(0.0, 0.0, 31.5),

@@ -70,6 +70,7 @@ func _initialize() -> void:
 				continue
 			lib.add_animation(c, an)
 			puestos.append(c)
+	_corregir_postura(lib)
 	ap.add_animation_library("", lib)
 	print("clips traducidos: ", puestos)
 	if puestos.is_empty():
@@ -79,6 +80,26 @@ func _initialize() -> void:
 	for c in puestos:
 		await _hoja(ap, sk, c)
 	quit(0)
+
+
+## Mismo giro fijo por hueso que aplica Pj3D (CORRECCION_POSTURA), para que la foto enseñe la postura del juego y no la del GLB.
+func _corregir_postura(lib: AnimationLibrary) -> void:
+	if not Pj3D.CORRECCION_POSTURA.has(_id):
+		return
+	var giros: Dictionary = Pj3D.CORRECCION_POSTURA[_id]
+	print("corrección de postura: ", giros.keys())
+	for nombre in lib.get_animation_list():
+		var an: Animation = lib.get_animation(nombre)
+		for t in range(an.get_track_count()):
+			if an.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+				continue
+			var hueso: String = str(an.track_get_path(t)).get_slice(":", 1)
+			if not giros.has(hueso):
+				continue
+			var g: Vector3 = giros[hueso]
+			var extra: Quaternion = Quaternion.from_euler(Vector3(deg_to_rad(g.x), deg_to_rad(g.y), deg_to_rad(g.z)))
+			for i in range(an.track_get_key_count(t)):
+				an.track_set_key_value(t, i, extra * (an.track_get_key_value(t, i) as Quaternion))
 
 
 func _hoja(ap: AnimationPlayer, sk: Skeleton3D, clip: String) -> void:
