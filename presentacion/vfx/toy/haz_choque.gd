@@ -30,7 +30,23 @@ static func param(toy: Node, nombre: String, v: float) -> void:
 				m.set_shader_parameter(nombre, v)
 
 
-## Hasta `FuegoToy.HAZ_MAX_CHOQUES` choques válidos de la lista (cada uno {d, x, n}).
+## Largo con el que se DIBUJA el haz: se corta en el primer choque contra un TOPE (muro, casilla sólida, barrera; no los enemigos ni objetos que atraviesa), un poco dentro (MARGEN_TOPE).
+## Sin tope (o con `FuegoToy.haz_ideas` = false) es `largo`. Así nada del chorro (malla, punta, humo, luz) queda detrás del obstáculo.
+const MARGEN_TOPE: float = 0.04
+static func largo_corte(choques: Array, largo: float) -> float:
+	if not FuegoToy.haz_ideas:
+		return largo
+	var corte: float = largo
+	for ch in choques:
+		if not (ch is Dictionary and (ch as Dictionary).has("d")):
+			continue
+		var tipo: String = String((ch as Dictionary).get("tipo", "muro"))
+		if tipo == "enemigo" or tipo == "objeto":
+			continue
+		corte = minf(corte, maxf(float((ch as Dictionary)["d"]) + MARGEN_TOPE, 0.3))
+	return corte
+
+## Hasta FuegoToy.HAZ_MAX_CHOQUES choques válidos de la lista (cada uno {d, x, n}).
 static func validos(choques: Array) -> Array:
 	var cs: Array = []
 	for ch in choques:

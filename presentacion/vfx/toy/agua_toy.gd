@@ -656,7 +656,7 @@ func _bola(c: Node3D) -> void:
 ## shader de agua (agua_haz.gdshader): tubo translúcido celeste con flujo rápido hacia fuera, un núcleo más claro y más fino, 2 cintas enrolladas, gotas que se desprenden a lo largo y caen, y un
 ## abanico de salpicadura (SparklesF21 recoloreado + espuma + gotas hacia delante) donde termina. `crece` lo hace salir y `corte` lo suelta y lo rompe en gotas.
 func _haz(c: Node3D) -> void:
-	_haz_largo = semieje_x * 2.0
+	_haz_largo = HazChoque.largo_corte(choques, semieje_x * 2.0)       # se corta en el primer tope (muro)
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
 	_haz_alt = maxf(semieje_y, 0.4)
 	var largo: float = _haz_largo

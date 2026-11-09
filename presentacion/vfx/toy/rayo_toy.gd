@@ -549,7 +549,7 @@ func _construir() -> void:
 		h.free()
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
-	_haz_largo = semieje_x * 2.0
+	_haz_largo = HazChoque.largo_corte(choques, semieje_x * 2.0) if figura == Figura.HAZ else semieje_x * 2.0       # el haz se corta en el primer tope (muro)
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
 	_haz_alt = maxf(semieje_y, 0.4)
 	var cap: int = N_TRAZOS_BOLA

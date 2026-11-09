@@ -219,8 +219,22 @@ func _correr() -> void:
 		await process_frame
 		var chq: Array = hz.choques
 		_ok("11 lab con muro (%s): el haz tiene 1 choque en su cara, normal hacia la jugadora" % el, chq.size() == 1 and absf(float(chq[0]["x"])) < 0.01 and (chq[0]["n"] as Vector3).z > 0.9, str(chq))
+		var dc: float = float(chq[0]["d"]) if not chq.is_empty() else 0.0
+		var ext: float = -1.0
+		if hz is RayoToy or hz is AguaToy:
+			ext = hz._haz_largo
+		else:
+			ext = float(((hz.find_child("Chorro", true, false) as MeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("largo"))
+		_ok("11 lab con muro (%s): el haz se dibuja SOLO hasta la cara del muro (d %.2f, dibuja %.2f; el largo completo es %.2f)" % [el, dc, ext, hz.semieje_x * 2.0], ext <= dc + 0.05 and ext >= dc - 0.01 and ext < hz.semieje_x * 2.0 - 0.3)
 		_ok("11 lab con muro (%s): el toy dibuja la salpicadura" % el, hz.find_child("Salpicadura*", true, false) != null)
 	lab.call("alternar_muro_haz")
+	lab.call("poner_elemento", "fuego")
+	for el2 in ["fuego", "agua", "rayo"]:
+		lab.call("poner_elemento", el2)
+		var h3 = lab.call("fuego_param", 4)
+		await process_frame
+		var l3: float = h3._haz_largo if (h3 is RayoToy or h3 is AguaToy) else float(((h3.find_child("Chorro", true, false) as MeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("largo"))
+		_ok("11 lab sin muro (%s): el haz vuelve a su largo completo" % el2, absf(l3 - h3.semieje_x * 2.0) < 0.05, "%.2f vs %.2f" % [l3, h3.semieje_x * 2.0])
 	lab.call("poner_elemento", "fuego")
 	var sinm = lab.call("fuego_param", 4)
 	await process_frame

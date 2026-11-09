@@ -1026,7 +1026,7 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 ## redondeada y deshecha, hacia -Z a la altura máx(y, 0,4). Una tira con billboard de eje a lo largo del haz (haz_toy.gdshader: volumen desde cualquier ángulo) y un núcleo más fino y caliente dentro.
 ## `crece` (0 → 1, «nacer») lo hace salir; `corte` (0 → 1, «morir») lo suelta del origen, lo deja avanzar y lo rompe en bolitas.
 func _haz(c: Node3D, luz: OmniLight3D) -> void:
-	var largo: float = semieje_x * 2.0
+	var largo: float = HazChoque.largo_corte(choques, semieje_x * 2.0)       # se corta en el primer tope (muro): nada del chorro detrás
 	var r: float = semieje_z * HAZ_ABRE
 	var h: float = maxf(semieje_y, 0.4)
 	var malla: ArrayMesh = FuegoToyMallas.haz_cono(largo, HAZ_R_ORIGEN, r)
