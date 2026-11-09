@@ -46,6 +46,8 @@ F_RAMPA_CABEZA = 0.05
 LEJOS_TELA = 0.050            # el brazo del destino es mas largo que el del donante, asi que su PIEL tambien se separa algo del maniqui:
                               # por debajo de este umbral se transfiere normal, y solo lo muy despegado (la capa llega a 0,12) es tela
 R_BRAZO = 0.050               # un vertice a menos de esto del eje del brazo nunca es tela: es piel del brazo o manga
+UMBRAL_PIEL = 0.015           # verde - azul por encima de esto = piel (beige); por debajo, tela lila. Ver color_por_vertice
+K_MANO_MAX = 1.20             # si la mano saliera escalada mas que esto, el eje medido no es el brazo: se descarta la medida
 F_PEGADO_PIERNA = 0.045       # a menos de esto del eje de una pierna, la tela sigue a la pierna; mas lejos, a la cadera
 
 PRINCIPALES = ["Hips", "Spine", "Spine1", "Spine2", "Neck", "Head", "HeadTop_End"] + [
@@ -151,7 +153,58 @@ def comprobar_orientacion(vs, huesos, pre):
 # ---------------------------------------------------------------------------------------------------------------------------------------
 #  Encaje: el esqueleto del donante escalado a la malla nueva
 # ---------------------------------------------------------------------------------------------------------------------------------------
-def eje_brazo(vs, signo, z0, alto, z_hombro):
+def color_por_vertice(obj):
+    """Color base de cada vertice, muestreado de la textura del material por su UV. Lista vacia si no se puede.
+
+    Hace falta para separar PIEL de TELA cuando la geometria no basta: en un encapuchado los brazos van por DENTRO de la capa,
+    asi que el punto mas externo de cada rebanada es un pico de la capa y no la mano. Con el color, la mano (beige) y la capa
+    (lila) se distinguen aunque esten a la misma altura.
+    """
+    me = obj.data
+    if not me.uv_layers:
+        return []
+    img = None
+    for ranura in obj.material_slots:
+        m = ranura.material
+        if m is None or not m.use_nodes:
+            continue
+        for n in m.node_tree.nodes:
+            if n.type == "TEX_IMAGE" and n.image is not None and n.image.size[0] > 0:
+                # el base color es el que alimenta Base Color del Principled; si no se puede saber, el primero
+                img = n.image
+                for sal in n.outputs[0].links:
+                    if sal.to_socket.name == "Base Color":
+                        break
+                else:
+                    continue
+                break
+        if img is not None:
+            break
+    if img is None:
+        return []
+    w, h = img.size
+    px = list(img.pixels)          # RGBA en float, de una vez (leerlo por indice es lentisimo)
+    uv = me.uv_layers.active.data
+    col = [None] * len(me.vertices)
+    for p in me.polygons:
+        for li in p.loop_indices:
+            vi = me.loops[li].vertex_index
+            if col[vi] is not None:
+                continue
+            u, v = uv[li].uv
+            x = min(w - 1, max(0, int(u * w)))
+            y = min(h - 1, max(0, int(v * h)))
+            i = (y * w + x) * 4
+            col[vi] = (px[i], px[i + 1], px[i + 2])
+    return [c if c is not None else (0.5, 0.5, 0.5) for c in col]
+
+
+def es_piel(c):
+    """La piel del modelo tira a amarillo (verde por encima de azul); la capa lila, al reves."""
+    return c[1] >= c[2] + UMBRAL_PIEL
+
+
+def eje_brazo(vs, signo, z0, alto, z_hombro, piel=None):
     """Polilinea del eje de un brazo, medida en la malla: por rebanadas de altura, el centro del CLUSTER MAS EXTERNO en x.
 
     Hace falta porque el brazo del destino y el del donante no estan en la misma A-pose (el donante se abre a 32 grados y el
@@ -161,15 +214,20 @@ def eje_brazo(vs, signo, z0, alto, z_hombro):
     puntos = []
     f0 = (z_hombro - z0) / alto
     n = 14
+    idx = range(len(vs))
     for i in range(n + 1):
         f = f0 - (f0 - 0.30) * i / n
         z = z0 + alto * f
-        s = [v for v in vs if abs(v.z - z) < alto * 0.013 and v.x * signo > 0.085]
+        s = [j for j in idx if abs(vs[j].z - z) < alto * 0.013 and vs[j].x * signo > 0.085]
+        if piel is not None:
+            solo = [j for j in s if piel[j]]
+            # si a esa altura casi no hay piel (manga larga, brazo tapado), se deja la rebanada en blanco en vez de medir tela
+            s = solo if len(solo) >= 6 else []
         if len(s) < 8:
             continue
-        s.sort(key=lambda v: -v.x * signo)
+        s.sort(key=lambda j: -vs[j].x * signo)
         ext = s[:max(6, int(len(s) * 0.35))]
-        c = sum(ext, Vector()) / len(ext)
+        c = sum((vs[j] for j in ext), Vector()) / len(ext)
         puntos.append(Vector((c.x, c.y, z)))
     return puntos
 
@@ -192,10 +250,9 @@ def sobre_polilinea(pts, f):
     return pts[-1].copy()
 
 
-def encajar_brazos(huesos, pre, pos, vs_dst, alto):
+def encajar_brazos(huesos, pre, pos, vs_dst, alto, piel=None):
     """Mueve ForeArm, Hand y los dedos al eje real del brazo del destino, conservando las fracciones del donante."""
     z0 = 0.0
-    hijos = hijos_de(huesos)
     for lado, signo in (("Left", 1.0), ("Right", -1.0)):
         nA, nF, nH = pre + lado + "Arm", pre + lado + "ForeArm", pre + lado + "Hand"
         punta_don = huesos.get(pre + lado + "HandMiddle4", huesos[nH])["cola"]
@@ -204,7 +261,7 @@ def encajar_brazos(huesos, pre, pos, vs_dst, alto):
         f1 = (f_don - a_don).length / tot
         f2 = (h_don - a_don).length / tot
 
-        pts = eje_brazo(vs_dst, signo, z0, alto, pos[nA].z)
+        pts = eje_brazo(vs_dst, signo, z0, alto, pos[nA].z, piel)
         if len(pts) < 4:
             print("  brazo %s: no se pudo medir el eje (%d rebanadas), se deja el escalado" % (lado, len(pts)))
             continue
@@ -215,6 +272,9 @@ def encajar_brazos(huesos, pre, pos, vs_dst, alto):
         punta_new = pts[-1]
         viejo_F, viejo_H = pos[nF].copy(), pos[nH].copy()
         k_mano = (punta_new - nuevo_H).length / max((punta_don - h_don).length, 1e-6)
+        if k_mano > K_MANO_MAX:
+            print("  brazo %s: la mano saldria x%.2f, el eje medido no es el brazo; se deja el escalado" % (lado, k_mano))
+            continue
         pos[nF] = nuevo_F
         pos[nH] = nuevo_H
         # los dedos cuelgan de Hand: se mueven con el y se escalan con la mano
@@ -494,8 +554,16 @@ def main():
     print("destino: %d vertices, alto %.4f" % (len(vs), alto))
     comprobar_orientacion(vs, huesos, pre)
 
+    cols = color_por_vertice(obj)
+    piel = None
+    if cols:
+        piel = [es_piel(c) for c in cols]
+        print("color: %d vertices de piel, %d de tela (de %d)" % (sum(piel), len(piel) - sum(piel), len(piel)))
+    else:
+        print("color: sin textura legible, el eje del brazo se mide solo por geometria")
+
     pos, kz, kxy = posiciones_escaladas(huesos, caja_don, vs)
-    pos = encajar_brazos(huesos, pre, pos, vs, alto)
+    pos = encajar_brazos(huesos, pre, pos, vs, alto, piel)
     for n in ("Hips", "Spine2", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot"):
         p = pos[pre + n]
         print("  %-12s (%6.3f, %6.3f, %6.3f)" % (n, p.x, p.y, p.z))

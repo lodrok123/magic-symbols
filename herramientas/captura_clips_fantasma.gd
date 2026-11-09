@@ -5,9 +5,12 @@ extends SceneTree
 ##   Godot --path . --resolution 1280x720 --script res://herramientas/captura_clips_fantasma.gd
 ## Salida en res://docs/capturas/fantasma_rig/: clip_<nombre>.png, una hoja de cuatro instantes del ciclo (frente) por clip.
 
-const DIR: String = "res://docs/capturas/fantasma_rig"
-const GLB: String = "res://arte/modelos/fantasma_elfo_rig.glb"
+## Sin argumentos usa el fantasma; con `-- <id>` usa res://arte/modelos/<id>.glb y guarda en res://docs/capturas/<id>/.
+const ID_POR_DEFECTO: String = "fantasma_elfo_rig"
 const FUENTE: String = "res://arte/modelos/chibi_elf.glb"
+var _id: String = ID_POR_DEFECTO
+var DIR: String = ""
+var GLB: String = ""
 const CLIPS: Array[String] = ["Walking", "Running", "Idle", "MageSoellCast001", "Dead"]
 ## Fracciones del clip que se fotografían (un ciclo de paso se lee bien en cuartos).
 const INSTANTES: Array[float] = [0.0, 0.25, 0.5, 0.75]
@@ -16,6 +19,15 @@ var _cam: Camera3D = null
 
 func _initialize() -> void:
 	await process_frame
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	_id = args[0] if args.size() > 0 and args[0] != "" else ID_POR_DEFECTO
+	GLB = "res://arte/modelos/%s.glb" % _id
+	DIR = "res://docs/capturas/%s" % _id
+	if not ResourceLoader.exists(GLB):
+		push_error("no existe " + GLB)
+		quit(1)
+		return
+	print("modelo: ", GLB)
 	DirAccess.make_dir_recursive_absolute(DIR)
 	_entorno()
 	_cam = Camera3D.new()
@@ -31,7 +43,7 @@ func _initialize() -> void:
 	var lib := AnimationLibrary.new()
 	var puestos: Array[String] = []
 	for c in CLIPS:
-		var an: Animation = ClipsFamilia.traducir_clip("fantasma_elfo_rig", FUENTE, c, modelo, sk)
+		var an: Animation = ClipsFamilia.traducir_clip(_id, FUENTE, c, modelo, sk)
 		if an == null:
 			print("NO se pudo traducir: ", c)
 			continue
