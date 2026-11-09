@@ -88,13 +88,6 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 const CRUZ_ESCALA: float = 0.8
 const CRUZ_POS: Vector3 = Vector3(-0.027, 0.091, 0.043)     # puño + 6,4 cm hacia abajo: el mango dentro de la mano
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
-## Las dos se llevan SIEMPRE DE PIE (PiezaVertical3D). Sin esto, basta cambiar de clip para que se tuerzan: con el andar que cierra
-## la mano sobre un mango (`Spear_Walk`) la mano va como quien porta una lanza y la cruz salía horizontal, cruzando el cuerpo.
-## `agarre_y` es la altura del punto de agarre dentro de la pieza (en sus propias unidades, 0 = su base), y es la que cae en el puño.
-## «desplaz» separa la pieza del cuerpo en el espacio del personaje (x = su izquierda, z = su frente): en la vertical exacta del puño
-## la cruz quedaba metida dentro de la capa, con solo el mango y una campanilla asomando.
-const CRUZ_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.09, "desplaz": Vector3(-0.05, 0.0, 0.07)}
-const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(0.0, 0.0, 0.03)}
 const VELA_ESCALA: float = 0.55          # la palmatoria mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo
 const VELA_POS: Vector3 = Vector3(-0.007, 0.072, -0.023)    # puño + 3 cm hacia abajo: el platillo justo bajo la mano
 const VELA_GIRO: Vector3 = Vector3(48.3, -171.8, -176.3)
@@ -168,8 +161,8 @@ const EQUIPO: Dictionary = {
 	# arte/modelos/reliquias.glb (lámina de cuatro objetos de Meshy) partida con tools/separar_piezas.py; las otras dos piezas (el
 	# brocal del pozo y la losa con musgo) son de escenario y están en arte/modelos. Medidas en CRUZ_* y VELA_*.
 	"santa_compana_rig": [
-		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA), CRUZ_VERTICAL],
-		["vela_santa", "LeftHand", VELA_POS, VELA_GIRO, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA), VELA_VERTICAL],
+		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA)],
+		["vela_santa", "LeftHand", VELA_POS, VELA_GIRO, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA)],
 	],
 }
 
@@ -216,19 +209,11 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 		p.set_meta("equipo_id", String(datos[0]))     # para que quien lo necesite lo encuentre (Pj3D.poner_equipo_visible)
 		at.add_child(p)
 		if datos.size() > 5 and datos[5] is Dictionary:
-			var extra: Dictionary = datos[5] as Dictionary
-			if extra.get("vertical", false):
-				# Pieza que se lleva SIEMPRE DE PIE aunque la mano gire (la cruz de la Santa Compaña): PiezaVertical3D.
-				var vert := PiezaVertical3D.new()
-				vert.name = "Vertical"
-				at.add_child(vert)
-				vert.preparar(p, modelo, sk, hueso, extra)
-			else:
-				# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
-				var apoyo := PiezaApoyada3D.new()
-				apoyo.name = "Apoyo"
-				at.add_child(apoyo)
-				apoyo.preparar(p, modelo, sk, hueso, extra)
+			# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
+			var apoyo := PiezaApoyada3D.new()
+			apoyo.name = "Apoyo"
+			at.add_child(apoyo)
+			apoyo.preparar(p, modelo, sk, hueso, datos[5] as Dictionary)
 		puestas.append(p)
 	return puestas
 

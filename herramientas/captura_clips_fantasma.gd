@@ -12,8 +12,6 @@ var _id: String = ID_POR_DEFECTO
 var DIR: String = ""
 var GLB: String = ""
 const CLIPS: Array[String] = ["Walking", "Running", "Idle", "MageSoellCast001", "Dead"]
-## Roles y alternativas que solo existen cuando el modelo está en ClipsFamilia.FUENTES (el andar con la mano cerrada, por ejemplo).
-const EXTRA: Array[String] = ["walk", "run", "Mixamo_AndarInestable"]
 ## Fracciones del clip que se fotografían (un ciclo de paso se lee bien en cuartos).
 const INSTANTES: Array[float] = [0.0, 0.25, 0.5, 0.75]
 var _cam: Camera3D = null
@@ -48,22 +46,13 @@ func _initialize() -> void:
 	modelo.add_child(ap)
 	var lib := AnimationLibrary.new()
 	var puestos: Array[String] = []
-	# Si el modelo está registrado en ClipsFamilia se usan SUS fuentes (como en el juego): así se ve qué clip gana cada rol.
-	if ClipsFamilia.tiene_fuente(_id):
-		var todos: Dictionary = ClipsFamilia.clips_para(_id, modelo, sk)
-		print("clips de familia: ", todos.keys().size(), " -> ", todos.keys())
-		for c in CLIPS + EXTRA:
-			if todos.has(c):
-				lib.add_animation(String(c), todos[c] as Animation)
-				puestos.append(String(c))
-	else:
-		for c in CLIPS:
-			var an: Animation = ClipsFamilia.traducir_clip(_id, FUENTE, c, modelo, sk)
-			if an == null:
-				print("NO se pudo traducir: ", c)
-				continue
-			lib.add_animation(c, an)
-			puestos.append(c)
+	for c in CLIPS:
+		var an: Animation = ClipsFamilia.traducir_clip(_id, FUENTE, c, modelo, sk)
+		if an == null:
+			print("NO se pudo traducir: ", c)
+			continue
+		lib.add_animation(c, an)
+		puestos.append(c)
 	ap.add_animation_library("", lib)
 	print("clips traducidos: ", puestos)
 	if puestos.is_empty():
