@@ -1234,7 +1234,7 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	n.y = 0.0
 	n = n.normalized() if n.length() > 0.01 else Vector3(0, 0, 1)
 	var p: Vector3 = Vector3(float(ch.get("x", 0.0)), h, -float(ch["d"]))
-	var tam: float = clampf(r * 2.6 + 0.3, 1.8, 3.6)
+	var tam: float = clampf(r * 1.6, 1.2, 2.2)
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2(tam, tam)
 	var mi: MeshInstance3D = MeshInstance3D.new()
@@ -1250,13 +1250,13 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	c.add_child(mi)
 	# la misma salpicadura TUMBADA en el suelo delante de lo golpeado: la cámara del juego mira a lo largo de Z, y una lámina vertical de normal X se vería de canto
 	var qs: QuadMesh = QuadMesh.new()
-	qs.size = Vector2(tam * 0.8, tam * 0.8)
+	qs.size = Vector2(tam * 0.55, tam * 0.55)
 	qs.orientation = PlaneMesh.FACE_Y
 	var ms: MeshInstance3D = MeshInstance3D.new()
 	ms.name = "SalpicaduraSuelo%d" % i
 	ms.mesh = qs
 	ms.material_override = _mat_fuego(SH_SALPICADURA, {"semilla": randf() * 4.0 + float(i) * 0.37 + 1.3, "tope_calor": HAZ_TOPE_CALOR, "suelo": 1.0}, 1, _rampa_de_bola())
-	ms.position = Vector3(p.x, 0.16, p.z) + n * tam * 0.2
+	ms.position = Vector3(p.x, 0.16, p.z) + n * 0.12
 	ms.extra_cull_margin = 1.0
 	ms.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(ms)
