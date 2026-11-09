@@ -109,6 +109,18 @@ const EXTRAS: Dictionary = {
 ##   · «clips»: {nombre en el destino: nombre en la fuente}. Vacío = todos los de la fuente con su propio nombre;
 ##   · «centrar» (opcional): nombres de clip de la fuente cuya cadera se centra sobre el personaje (`_centrar_cadera`).
 ## Si dos fuentes dan el mismo nombre de clip, gana la primera.
+## SANTA COMPAÑA (9/11): la Willow Fernstep de Meshy pasada por Mixamo (los mismos 65 huesos que jugadora_base, más headfront), recortada a
+## esqueleto y clips con arte/meshy/solo_clips.py (0,3 MB; el GLB con malla son 19 MB y no entra en el repo). De los cuatro clips que trae,
+## el que importa es `Spear_Walk`: anda con la mano CERRADA sobre un mango, que es lo que pide la cruz de campanillas; el `Walking` de la elfa
+## lleva la mano abierta y la cruz parecía ir suelta al lado. Va antes que chibi_elf en la lista para que su `walk` gane.
+##   walk  Spear_Walk (andar con la mano cerrada)     run  Running
+##   Mixamo_AndarInestable  Unsteady_Walk, el andar tambaleante: alternativa para mirar, de momento no es ningún rol.
+const RUTA_CLIPS_SANTA: String = "res://arte/meshy/santa_compana_clips.glb"
+const FUENTE_CLIPS_SANTA: Dictionary = {
+	"ruta": RUTA_CLIPS_SANTA, "referencia": "Spear_Walk", "clips": {
+		"walk": "Spear_Walk", "run": "Running", "Mixamo_AndarInestable": "Unsteady_Walk",
+	}}
+
 const FUENTES: Dictionary = {
 	"elfo_base": [
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
@@ -129,6 +141,16 @@ const FUENTES: Dictionary = {
 			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
 		}},
 		FUENTE_MIXAMO_ANCIANA,       # 5/11: Mixamo_Rezar, alternativa para mirar (los Old_Man_* se retiraron: no sujetan el bastón)
+	],
+	# Santa Compaña (9/11): el rig sale de tools/autorig_fantasma.py con el fantasma de donante, así que su esqueleto es el de elfo_base y
+	# hereda los 22 clips de la elfa. El andar lo pisa Spear_Walk, que cierra la mano sobre la cruz (FUENTE_CLIPS_SANTA, va primera).
+	"santa_compana_rig": [
+		FUENTE_CLIPS_SANTA,
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+	],
+	# Fantasma elfo (9/11): mismo esqueleto que elfo_base (tools/autorig_fantasma.py), así que le valen los clips de la elfa tal cual.
+	"fantasma_elfo_rig": [
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
