@@ -1523,8 +1523,14 @@ const CORRECCION_POSTURA: Dictionary = {
 	# Santa Compaña (9/11, Pablo: «los brazos están muy pegados al cuerpo, tienen que estar más separados»). Medido con
 	# herramientas/medidas_giro_brazo.gd sobre este esqueleto: con los brazos colgando, CUALQUIER giro del hueso Arm los levanta,
 	# y el eje X es el que más los separa por grado (a 25° abre 0,111 y sube 0,119; el eje Y abre más, 0,149, pero sube 0,271).
+	# 9/11: el brazo DERECHO sale del panel del LabHumanoide3D (Pablo), que es como se resolvió Marimanta. Sustituye al ajuste
+	# anterior de 14° en el hombro: el giro de RightShoulder ya abre el brazo, y el del antebrazo (80,5° en Y) es el que lo dobla
+	# para sostener el bastón, que es lo que no conseguí midiendo.
 	"santa_compana_cruz": {
-		"mixamorig_RightArm": Vector3(14.0, 0.0, 0.0),
+		"mixamorig_RightShoulder": Vector3(-70.0, 0.0, 0.0),
+		"mixamorig_RightArm": Vector3(2.0, -3.0, -1.5),
+		"mixamorig_RightForeArm": Vector3(18.5, 80.5, -12.0),
+		"mixamorig_RightHand": Vector3(12.0, 0.0, -0.5),
 		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
 	},
 	# PENDIENTE (Pablo, 9/11): el de la vela tiene que llevar el brazo derecho «como de sostener una bandera», con el codo doblado

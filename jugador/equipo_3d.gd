@@ -106,8 +106,11 @@ const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajar
 const CRUZ_APOYO: Dictionary = {
 	# `dist_min_cuerpo` separa el PIE del eje del cuerpo. Puesto corto (0,11) el pie se planta pegado al personaje mientras la mano
 	# va 0,30 afuera, y el palo se inclina casi 30° para unirlos: a 0,30 el pie cae BAJO la mano y la cruz queda recta.
-	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.05, "desplaz_lateral": -0.02,
-	"lado": -1.0, "z_min": 0.0, "z_max": 0.20}
+	# 9/11 (Pablo, con una línea roja sobre la captura): con el brazo ya en su sitio, la cruz se plantaba por DELANTE de la mano
+	# y el palo pasaba rozando los dedos en vez de entre ellos. `desplaz_adelante` la lleva hacia el frente del personaje hasta
+	# el puño, y `z_max` tiene que dar margen para eso (a 0,20 topaba antes de llegar).
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.22, "desplaz_lateral": -0.02,
+	"lado": -1.0, "z_min": 0.0, "z_max": 0.40}
 ## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
