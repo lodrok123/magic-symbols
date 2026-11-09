@@ -90,9 +90,11 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 const CRUZ_ESCALA: float = 0.55
 const CRUZ_POS: Vector3 = Vector3(-0.020, 0.078, 0.029)     # puño + 4,4 cm hacia abajo (0,08 de la pieza a esta escala)
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
-const VELA_ESCALA: float = 0.55          # la palmatoria mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo
-const VELA_POS: Vector3 = Vector3(-0.007, 0.072, -0.023)    # puño + 3 cm hacia abajo: el platillo justo bajo la mano
-const VELA_GIRO: Vector3 = Vector3(48.3, -171.8, -176.3)
+## La palmatoria va también en la mano DERECHA (cada miembro de la procesión porta una sola cosa), así que usa el giro de esa mano,
+## el mismo que la cruz. Mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo.
+const VELA_ESCALA: float = 0.55
+const VELA_POS_DERECHA: Vector3 = Vector3(-0.011, 0.060, 0.010)   # puño + 1,7 cm hacia abajo: el platillo justo bajo la mano
+const VELA_GIRO_DERECHA: Vector3 = Vector3(-44.6, 119.4, -153.1)
 
 const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
@@ -162,9 +164,13 @@ const EQUIPO: Dictionary = {
 	# Santa Compaña (9/11): la cruz de campanillas en la mano DERECHA y la palmatoria con la vela en la IZQUIERDA. Las dos salen de
 	# arte/modelos/reliquias.glb (lámina de cuatro objetos de Meshy) partida con tools/separar_piezas.py; las otras dos piezas (el
 	# brocal del pozo y la losa con musgo) son de escenario y están en arte/modelos. Medidas en CRUZ_* y VELA_*.
-	"santa_compana_rig": [
+	# 9/11 (Pablo): la procesión son VARIOS iguales seguidos y cada uno porta UNA sola cosa. Por eso no hay un «santa_compana_rig»
+	# que lleve las dos: son dos variantes del mismo GLB (Pj3D.MODELO_DE), y cada una equipa su pieza en la mano DERECHA.
+	"santa_compana_cruz": [
 		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA)],
-		["vela_santa", "LeftHand", VELA_POS, VELA_GIRO, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA)],
+	],
+	"santa_compana_vela": [
+		["vela_santa", "RightHand", VELA_POS_DERECHA, VELA_GIRO_DERECHA, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA)],
 	],
 }
 

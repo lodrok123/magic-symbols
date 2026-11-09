@@ -232,6 +232,10 @@ const MODELO_DE: Dictionary = {
 	# 16/10 (Pablo, Bosque 01) se había elegido `loberno.glb`; 17/10 Pablo dice que es una versión antigua y que el bueno es `emberheart` (Meshy,
 	# esqueleto «Wolf», DIARIO 56): vuelve aquí. `loberno.glb` y `emberstride.glb` quedan sin uso (a borrar por el Pipeline, dueño de arte/modelos).
 	"loberno": "emberheart",
+	# Santa Compaña (9/11): la procesión son VARIOS iguales seguidos y cada uno porta UNA cosa, así que el cuerpo es el mismo
+	# GLB y lo único que cambia es la pieza de Equipo3D.EQUIPO: la cruz de campanillas o la palmatoria con la vela.
+	"santa_compana_cruz": "santa_compana_rig",
+	"santa_compana_vela": "santa_compana_rig",
 	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 
@@ -262,7 +266,7 @@ static var sombra_contacto_activa: bool = true     ## la mancha suave bajo los p
 static var pbr_juguete_activo: bool = true         ## rugosidad media-alta en vez de 1,0 (sin ello no hay brillo de plástico)
 
 ## V5 punto 5: shader de juguete (rampa de 3 tonos + matcap, sin PBR) en lugar del StandardMaterial3D. false = lo de antes. Constantes en MaterialPersonaje3D
-## (MATCAP_INTENSIDAD, SOMBRA_JUGUETE_COLOR, PISO_SOMBRA, BRILLO_LUZ). Hay que fijarlo ANTES de cargar() el personaje.
+## (MATCAP_INTENSIDAD, PISO_SOMBRA, BRILLO_LUZ; el color de la sombra es el global `amb_sombra_pers` de Ambiente3D). Hay que fijarlo ANTES de cargar() el personaje.
 static var material_juguete: bool = true
 var _juguete: Array = []                           ## [material de control, ShaderMaterial, último estado copiado] por superficie opaca
 
@@ -697,10 +701,10 @@ func sincronizar_juguete() -> void:
 			e[2] = [base.albedo_color, base.emission_enabled, base.emission, base.emission_energy_multiplier, base.shading_mode]
 
 
-## Color de la sombra suave de los personajes de juguete (frío o cálido según la zona).
+## Color de la sombra suave de los personajes de juguete (frío o cálido según la zona). Desde el bloque de ambiente es un global
+## (`amb_sombra_pers`): cambia para TODOS los personajes y criaturas a la vez, no por material. Nadie lo llama en el juego, solo la prueba.
 func set_sombra_juguete(c: Color) -> void:
-	for e in _juguete:
-		(e[1] as ShaderMaterial).set_shader_parameter("sombra_color", Vector3(c.r, c.g, c.b))
+	Ambiente3D.poner_sombra_pers(c, Ambiente3D.sombra_pers().w)
 
 
 func set_modo_luz(m: int) -> void:
