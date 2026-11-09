@@ -93,7 +93,10 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 ## 9/11 (Pablo: «haz que la cruz sea como un bastón»): a 1,45 mide 0,66 de alto, dos tercios del personaje, y el mango llega casi al
 ## suelo como una cruz procesional. El agarre sube al 0,30 de la pieza (antes 0,08): el puño va en MITAD del mango, no en su punta,
 ## que es como se lleva un bastón.
-const CRUZ_ESCALA: float = 1.95
+## El GLB de la cruz salía de Meshy con el MANGO a 38° de la vertical dentro del propio archivo. Colgada de la mano no se nota,
+## pero plantada en el suelo con PiezaApoyada3D, que pone la pieza recta, lo que se veía torcido era el palo. Enderezada con
+## tools/enderezar_pieza.py queda a 1,3° y mide 0,514 de alto (antes 0,454, porque el palo ya no va en diagonal).
+const CRUZ_ESCALA: float = 1.73                             # 0,514 × 1,73 = 0,89: del suelo a por encima de la capucha
 const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajarla hasta el agarre se encarga PiezaVertical3D
 ## La cruz se SOSTIENE como el bastón de Marimanta y el del chamán: PiezaApoyada3D, que la planta en el suelo, la deja vertical y
 ## solo la hace seguir a la mano. Es lo que hacía falta aquí: engancharse a `skeleton_updated` (o sea, colocar la pieza DESPUÉS de
@@ -103,7 +106,7 @@ const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajar
 const CRUZ_APOYO: Dictionary = {
 	# `dist_min_cuerpo` separa el PIE del eje del cuerpo. Puesto corto (0,11) el pie se planta pegado al personaje mientras la mano
 	# va 0,30 afuera, y el palo se inclina casi 30° para unirlos: a 0,30 el pie cae BAJO la mano y la cruz queda recta.
-	"agarre_y": 0.179, "giro": 0.0, "dist_min_cuerpo": 0.30, "desplaz_adelante": 0.05, "desplaz_lateral": -0.02,
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.05, "desplaz_lateral": -0.02,
 	"lado": -1.0, "z_min": 0.0, "z_max": 0.20}
 ## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
