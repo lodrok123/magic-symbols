@@ -51,7 +51,7 @@ func _correr() -> void:
 		for vista in _vistas:
 			_lab.call("haz_gas", 0)
 			await _esperar(3)
-			var g: HazGas = _lab.call("haz_gas", 1 if caso == "esfera" else 2, "juego" if vista == "juego" else "demo")
+			var g: HazGas = _lab.call("haz_gas", 1 if caso == "esfera" else 2, "juego" if vista == "juego" else "demo", false)    # el dibujo REALISTA (el toon: captura_gas_toon.gd)
 			if g == null or not g.listo():
 				print("FALLO: el gas no arranca (¿sin ventana?)")
 				quit(1)

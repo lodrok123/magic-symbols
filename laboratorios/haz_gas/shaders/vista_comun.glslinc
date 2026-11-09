@@ -5,10 +5,14 @@
 #define SET_VISTA 2
 #endif
 layout(set = SET_VISTA, binding = 0, std140) uniform Vista {
-	mat4 inv_vp;       // NDC de Godot RD (z de 0 a 1, invertida) -> dominio
+	mat4 inv_vp;       // NDC de OpenGL (z de -1 a 1; de Camera3D.get_camera_projection) -> dominio
 	vec4 tam;          // xy tamano del volumen (media resolucion), zw tamano de la pantalla completa
 	vec4 marcha;       // x pasos, y fotograma % 64, z ¿hay profundidad?, w -
 	vec4 look0;        // thickness, relief, edge, smokeAlbedo
 	vec4 look1;        // flameBody, emitGain, fireOnSmoke, farOnSmoke
 	vec4 look2;        // lampOnSmoke, saturacion, vineta, -
+	vec4 toon0;        // MODO TOON (raymarch_toon.glsl): umbral, blandura, contraste, tope de la rampa
+	vec4 toon1;        // k_T, k_combustible, amplitud del ruido, escala del ruido (1/m del dominio)
+	vec4 toon2;        // umbral del humo, opacidad del humo, escala de la rampa, tiempo
+	vec4 toon3;        // velocidad de subida de las lenguas, chisporroteo, profundidad del color (m), -
 } V;

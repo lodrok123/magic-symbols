@@ -161,7 +161,7 @@ func _montar_cadena(half: Vector3i, quarter: Vector3i, eighth: Vector3i) -> void
 
 
 ## Un paso de simulación (DT = 1/60 s) más luz y chispas, como simulate() de main.js (sin el raymarch, que va en HazGasRaymarch).
-func paso(parametros: PackedFloat32Array, medir: bool = true) -> void:
+func paso(parametros: PackedFloat32Array, medir: bool = true, con_luz: bool = true) -> void:
 	if not valido:
 		return
 	rd.buffer_update(ubo, 0, parametros.size() * 4, parametros.to_byte_array())
@@ -173,7 +173,8 @@ func paso(parametros: PackedFloat32Array, medir: bool = true) -> void:
 	_correr(_vel_pasos)
 	if medir:
 		rd.capture_timestamp("vel_fin")
-	_correr(_luz_pasos)
+	if con_luz:
+		_correr(_luz_pasos)
 	if medir:
 		rd.capture_timestamp("luz_fin")
 	_correr(_chispas_pasos)

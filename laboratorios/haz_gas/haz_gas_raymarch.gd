@@ -19,6 +19,12 @@ var temporal: bool = true
 var con_profundidad: bool = true
 var medir: bool = true
 var depurar: bool = false
+## MODO TOON (raymarch_toon.glsl): el dibujo con el lenguaje de FuegoToy. toon_param = [umbral, blandura, contraste, tope, k_T, k_c, amplitud, escala, umbral_humo,
+## opacidad_humo, escala_rampa, tiempo, sube, chisporroteo, profundidad_color, -]; toon_tex = RIDs de RenderingDevice de [lenguas, ruido_a, ruido_fino, rampa] (los pone HazGas).
+var toon: bool = false
+var toon_param: PackedFloat32Array = PackedFloat32Array()
+var toon_tex: Array[RID] = []
+var _muestreo_repite: RID
 
 var _rd: RenderingDevice = null
 var _sh: Dictionary = {}
@@ -42,7 +48,7 @@ func _init() -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE and _rd != null:
-		for t in [_crudo, _salida, _historia, _vista_ubo, _muestreo, _muestreo_cercano]:
+		for t in [_crudo, _salida, _historia, _vista_ubo, _muestreo, _muestreo_cercano, _muestreo_repite]:
 			if t.is_valid():
 				_rd.free_rid(t)
 		for n in _sh:
@@ -54,20 +60,26 @@ func _crear() -> void:
 	_rd = RenderingServer.get_rendering_device()
 	if _rd == null:
 		return
-	for n in ["raymarch", "temporal", "compone"]:
+	for n in ["raymarch", "raymarch_toon", "temporal", "compone"]:
 		var sp: RDShaderSPIRV = HazGasSolver.spirv(_rd, n)
 		if sp.compile_error_compute != "" or sp.bytecode_compute.is_empty():
 			push_error("HazGasRaymarch: %s.glsl no compila:\n%s" % [n, sp.compile_error_compute])
 			return
 		_sh[n] = _rd.shader_create_from_spirv(sp, n)
 		_sh[n + "_pl"] = _rd.compute_pipeline_create(_sh[n])
-	_vista_ubo = _rd.uniform_buffer_create(16 * 4 + 16 * 5)
+	_vista_ubo = _rd.uniform_buffer_create(16 * 4 + 16 * 9)
 	var s: RDSamplerState = RDSamplerState.new()
 	s.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
 	s.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
 	_muestreo = _rd.sampler_create(s)
 	var sc: RDSamplerState = RDSamplerState.new()
 	_muestreo_cercano = _rd.sampler_create(sc)
+	var sr: RDSamplerState = RDSamplerState.new()
+	sr.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
+	sr.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
+	sr.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT
+	sr.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT
+	_muestreo_repite = _rd.sampler_create(sr)
 	_listo = true
 
 
@@ -113,10 +125,17 @@ func _render_callback(_tipo: int, render_data: RenderData) -> void:
 		var col: Vector4 = inv[c]
 		v.append_array([col.x, col.y, col.z, col.w])
 	v.append_array([tv.x, tv.y, tam.x, tam.y])
-	v.append_array([float(solver.calidad["steps"]), float(_fotograma % 64) if temporal else 0.0, 1.0 if con_profundidad else 0.0, 1.0 if depurar else 0.0])
+	var es_toon: bool = toon and toon_tex.size() == 4 and toon_param.size() == 16
+	v.append_array([float(solver.calidad["steps"]) * (1.5 if es_toon else 1.0), float(_fotograma % 64) if temporal and not es_toon else 0.0, 1.0 if con_profundidad else 0.0, 1.0 if depurar else 0.0])
 	v.append_array(aspecto.slice(0, 4))
 	v.append_array(aspecto.slice(4, 8))
 	v.append_array([aspecto[8], aspecto[9], aspecto[10], 0.0])
+	if toon_param.size() == 16:
+		v.append_array(toon_param)
+	else:
+		var ceros: PackedFloat32Array = PackedFloat32Array()
+		ceros.resize(16)
+		v.append_array(ceros)
 	_rd.buffer_update(_vista_ubo, 0, v.size() * 4, v.to_byte_array())
 	_fotograma += 1
 
@@ -129,9 +148,14 @@ func _render_callback(_tipo: int, render_data: RenderData) -> void:
 		_s(4, profundidad, _muestreo_cercano), _i(5, _crudo)]
 	var pc_r: PackedByteArray = PackedByteArray()          # el bloque «Rejilla» de gas_comun (no se usa aquí, pero el pipeline lo declara)
 	pc_r.resize(32)
-	_despacha("raymarch", [u_gas, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
+	if es_toon:
+		var u_t: Array = [_s(0, solver.gas[0], _muestreo), _s(1, solver.vel[0], _muestreo), _s(2, profundidad, _muestreo_cercano), _s(3, toon_tex[0], _muestreo_repite),
+			_s(4, toon_tex[1], _muestreo_repite), _s(5, toon_tex[2], _muestreo_repite), _s(6, toon_tex[3], _muestreo), _i(7, _crudo)]
+		_despacha("raymarch_toon", [u_t, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
+	else:
+		_despacha("raymarch", [u_gas, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
 	var fuente: RID = _crudo
-	if temporal:
+	if temporal and not es_toon:          # el toon no lleva ruido de marcha (sin desfase IGN): sin filtro temporal, el borde queda nítido
 		# 2-3. resolve y copia
 		var ut: Array = [_i(0, _crudo), _i(1, _historia), _i(2, _salida)]
 		var pc: PackedByteArray = PackedByteArray()

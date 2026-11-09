@@ -535,13 +535,15 @@ func haz_masa(modo: int) -> void:
 ## 0 apagado · 1 contra la esfera escudo de la demo · 2 contra el muro (caja). vista: «demo» (la escena y la cámara de la demo) o «juego» (el dominio escalado con la
 ## boquilla en la mano de la jugadora y la cámara del juego). Mientras está puesto se esconden el suelo, los cubos, el sol y el panel del lab y el entorno pasa a
 ## negro con ACES y glow (como la demo); al quitarlo vuelve todo. F12 sin Mayús sigue siendo la «versión CPU» (bocanadas) para comparar.
+## 9/11, prototipo A: por defecto el gas se DIBUJA en TOON (el lenguaje de FuegoToy) y entonces el lab se queda como siempre (suelo, cubos, sol, entorno) y la vista
+## es la del juego; R (dentro del modo) alterna con el dibujo realista, que vuelve al escenario negro de la demo. toon = false para empezar en realista.
 var _gas: HazGas = null
 var _gas_modo: int = 0
 var _gas_ocultos: Array = []
 var _gas_env_previo: Environment = null
 
 
-func haz_gas(modo: int, vista: String = "demo") -> HazGas:
+func haz_gas(modo: int, vista: String = "", toon: bool = true) -> HazGas:
 	_gas_modo = clampi(modo, 0, 2)
 	if _gas_modo == 0:
 		_quitar_gas()
@@ -556,24 +558,41 @@ func haz_gas(modo: int, vista: String = "demo") -> HazGas:
 		_gas.dir_juego = _dir
 		_gas.jugadora_juego = _pj
 		_gas.obstaculo = "esfera" if _gas_modo == 1 else "muro"
-		_gas.vista = vista
+		_gas.toon = toon
+		_gas.vista = vista if vista != "" else ("juego" if toon else "demo")
 		_gas_ocultos.clear()
-		for n in get_children():
-			if n is VisualInstance3D and (n.name == "Suelo" or String(n.name).begins_with("Cubo") or n.name == "Sol") and n.visible:
-				n.visible = false
-				_gas_ocultos.append(n)
 		var we: WorldEnvironment = get_node_or_null("Ambiente") as WorldEnvironment
-		add_child(_gas)
 		if we != null:
 			_gas_env_previo = we.environment
-			we.environment = _gas.entorno()
+		_gas.dibujo_cambiado.connect(_gas_escenario)
+		add_child(_gas)
+		_gas_escenario(toon)
 		_panel_visible = false
 		poner_camara(0)
 	else:
 		_gas.poner_obstaculo("esfera" if _gas_modo == 1 else "muro")
-		if vista != _gas.vista:
+		if vista != "" and vista != _gas.vista:
 			_gas.poner_vista(vista)
 	return _gas
+
+
+## El escenario del lab según el dibujo del gas: toon = el lab de siempre (para juzgarlo como en el juego); realista = suelo, cubos y sol escondidos y entorno negro de la demo.
+func _gas_escenario(toon: bool) -> void:
+	for n in _gas_ocultos:
+		if is_instance_valid(n):
+			n.visible = true
+	_gas_ocultos.clear()
+	var we: WorldEnvironment = get_node_or_null("Ambiente") as WorldEnvironment
+	if toon:
+		if we != null and _gas_env_previo != null:
+			we.environment = _gas_env_previo
+		return
+	for n in get_children():
+		if n is VisualInstance3D and (n.name == "Suelo" or String(n.name).begins_with("Cubo") or n.name == "Sol") and n.visible:
+			n.visible = false
+			_gas_ocultos.append(n)
+	if we != null and _gas != null:
+		we.environment = _gas.entorno()
 
 
 func _quitar_gas() -> void:

@@ -16,6 +16,11 @@ extends SceneTree
 ##     el esquema colocado de la demo no llega a 0, ver el comentario en _pruebas_gpu)
 ##   · las chispas (las 1000, 2 s mirando cada fotograma) no atraviesan el suelo ni el obstáculo
 ##   · con el chorro apagado, el fuego se apaga (T total cae)
+## MODO TOON (prototipo A, dibujo con el lenguaje de FuegoToy en el entorno normal del lab, cámara del juego), contra la esfera y el muro tras 5 s:
+##   · el fuego no tiene amarillo: en los píxeles de fuego (volumen opaco, saturado y claro) el tono H del HSV está en el rojo-naranja de la rampa de la bola
+##     (H < 40°) y casi ninguno cae en el amarillo (45-70°); saturación media alta
+##   · el borde no es borroso: ancho medio de la transición del volumen (alfa entre 0,1 y 0,9) acotado en píxeles de pantalla (se informa también el realista)
+##   · hay humo pardo (píxeles de humo oscuros con tono pardo)
 ## y mide ms de GPU (marcas de tiempo del RenderingDevice) por calidad: low, med, high. Imprime FALLOS: n al final.
 
 var _fallos: int = 0
@@ -52,6 +57,9 @@ func _correr() -> void:
 	for caso in ([] if solo_ms else ["esfera", "muro"]):
 		print("== GPU: %s" % caso)
 		await _pruebas_gpu(caso)
+	for caso in ([] if solo_ms else ["esfera", "muro"]):
+		print("== TOON: %s" % caso)
+		await _pruebas_toon(caso)
 	print("== ms de GPU por calidad (contra la esfera, media de 240 fotogramas tras 60 de calentamiento)")
 	await _medir_calidades()
 	_lab.call("haz_gas", 0)
@@ -89,7 +97,7 @@ func _pruebas_cpu() -> void:
 func _pruebas_gpu(caso: String) -> void:
 	_lab.call("haz_gas", 0)
 	await _esperar(3)
-	var g: HazGas = _lab.call("haz_gas", 1 if caso == "esfera" else 2, "demo")
+	var g: HazGas = _lab.call("haz_gas", 1 if caso == "esfera" else 2, "demo", false)
 	_ok("%s: el gas arranca (shaders compilados, RenderingDevice)" % caso, g != null and g.listo())
 	if g == null or not g.listo():
 		return
@@ -307,11 +315,96 @@ func _divergencias_celda(g: HazGas) -> Vector2:
 	return Vector2(antes, despues) / maxf(n, 1)
 
 
+func _pruebas_toon(caso: String) -> void:
+	_lab.call("haz_gas", 0)
+	await _esperar(3)
+	var g: HazGas = _lab.call("haz_gas", 1 if caso == "esfera" else 2, "juego", true)
+	_ok("%s toon: arranca en toon con la cámara del juego" % caso, g != null and g.listo() and g.toon and g.vista == "juego")
+	if g == null or not g.listo():
+		return
+	g.get_node("HudGas").visible = false
+	await _hasta(g, 300)
+	await RenderingServer.frame_post_draw
+	var a: Dictionary = _analiza_volumen(g)
+	_ok("%s toon: hay fuego en pantalla" % caso, int(a["fuego"]) > 2000, "%d píxeles de fuego" % int(a["fuego"]))
+	_ok("%s toon: fuego SIN amarillo (H 45-70° en < 1 %% de los píxeles de fuego) y tono rojo-naranja" % caso, float(a["amarillo"]) < 0.01 and float(a["h_medio"]) < 40.0,
+		"amarillo %.2f %% · H medio %.1f° · H p95 %.1f° · S media %.2f" % [float(a["amarillo"]) * 100.0, float(a["h_medio"]), float(a["h_p95"]), float(a["s_media"])])
+	_ok("%s toon: saturación alta en el fuego (media > 0,7)" % caso, float(a["s_media"]) > 0.7, "%.2f" % float(a["s_media"]))
+	_ok("%s toon: borde no borroso (transición media < 6 px de pantalla)" % caso, float(a["borde_px"]) < 6.0 and float(a["borde_px"]) > 0.0, "%.2f px" % float(a["borde_px"]))
+	_ok("%s toon: hay humo pardo" % caso, int(a["humo"]) > 200, "%d píxeles · H medio %.1f°" % [int(a["humo"]), float(a["h_humo"])])
+	print("  INFO %s toon: volumen %.2f ms · total %.2f ms de GPU" % [caso, float(g.gpu_ms.get("volumen", 0.0)), float(g.gpu_ms.get("total", 0.0))])
+	# el realista, mismo instante y cámara, para comparar el ancho del borde
+	g.poner_toon(false)
+	await _esperar(6)
+	await RenderingServer.frame_post_draw
+	var b: Dictionary = _analiza_volumen(g)
+	print("  INFO %s realista: transición media del borde %.2f px (toon %.2f px)" % [caso, float(b["borde_px"]), float(a["borde_px"])])
+	_ok("%s: el toon tiene el borde más nítido que el realista" % caso, float(a["borde_px"]) < float(b["borde_px"]))
+	g.poner_toon(true)
+
+
+## Mira el volumen (la textura de media resolución que compone el efecto: rgb premultiplicado, a = fondo que queda) y la pantalla:
+## píxeles de fuego (alfa > 0,9, claro y saturado en pantalla), su tono; humo (alfa > 0,5 y color del volumen oscuro); ancho del borde (píxeles con alfa entre 0,1 y 0,7
+## por cada cruce de 0,4 en horizontal y vertical, en píxeles de pantalla).
+func _analiza_volumen(g: HazGas) -> Dictionary:
+	var img: Image = root.get_viewport().get_texture().get_image()
+	var rd: RenderingDevice = RenderingServer.get_rendering_device()
+	var tv: Vector2i = g.efecto._tam_vol
+	var datos: PackedByteArray = rd.texture_get_data(g.efecto._crudo, 0)
+	var esc: Vector2 = Vector2(img.get_width(), img.get_height()) / Vector2(tv)
+	var fuego: int = 0
+	var amarillo: int = 0
+	var hs: Array = []
+	var s_suma: float = 0.0
+	var humo: int = 0
+	var h_humo: float = 0.0
+	var parcial: int = 0
+	var cruces: int = 0
+	var alfa: PackedFloat32Array = PackedFloat32Array()
+	alfa.resize(tv.x * tv.y)
+	for y in tv.y:
+		for x in tv.x:
+			var o: int = (y * tv.x + x) * 8
+			var al: float = 1.0 - datos.decode_half(o + 6)
+			alfa[y * tv.x + x] = al
+			if al > 0.1 and al < 0.7:          # el humo opaco llega a 0,8 y el fuego a 0,95: lo de en medio es borde
+				parcial += 1
+			var c: Color = img.get_pixel(clampi(int((x + 0.5) * esc.x), 0, img.get_width() - 1), clampi(int((y + 0.5) * esc.y), 0, img.get_height() - 1))
+			var lin: Vector3 = Vector3(datos.decode_half(o), datos.decode_half(o + 2), datos.decode_half(o + 4)) / maxf(al, 0.001)
+			if al > 0.9 and c.s > 0.5 and c.v > 0.45 and maxf(lin.x, maxf(lin.y, lin.z)) > 0.15:
+				fuego += 1
+				var h: float = c.h * 360.0
+				if h > 300.0:
+					h -= 360.0
+				hs.append(h)
+				s_suma += c.s
+				if h >= 45.0 and h <= 70.0:
+					amarillo += 1
+			elif al > 0.5 and maxf(lin.x, maxf(lin.y, lin.z)) < 0.12 and c.s > 0.25:
+				humo += 1
+				h_humo += c.h * 360.0
+	for y in tv.y:
+		for x in tv.x - 1:
+			if (alfa[y * tv.x + x] - 0.4) * (alfa[y * tv.x + x + 1] - 0.4) < 0.0:
+				cruces += 1
+	for y in tv.y - 1:
+		for x in tv.x:
+			if (alfa[y * tv.x + x] - 0.4) * (alfa[(y + 1) * tv.x + x] - 0.4) < 0.0:
+				cruces += 1
+	hs.sort()
+	var hm: float = 0.0
+	for h in hs:
+		hm += h
+	return {"fuego": fuego, "amarillo": float(amarillo) / maxf(fuego, 1), "h_medio": hm / maxf(hs.size(), 1), "h_p95": float(hs[int(hs.size() * 0.95)]) if hs.size() > 0 else 0.0,
+		"s_media": s_suma / maxf(fuego, 1), "humo": humo, "h_humo": h_humo / maxf(humo, 1),
+		"borde_px": float(parcial) / maxf(cruces, 1) * esc.x}
+
+
 func _medir_calidades() -> void:
 	for q in ["low", "med", "high"]:
 		_lab.call("haz_gas", 0)
 		await _esperar(3)
-		var g: HazGas = _lab.call("haz_gas", 1, "demo")
+		var g: HazGas = _lab.call("haz_gas", 1, "demo", false)
 		g.crear_solver(q)
 		g.camara_en(Vector3(2.5, 6, 23), Vector3(1.4, 2.4, 0), 32.0)
 		await _hasta(g, 60)

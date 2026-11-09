@@ -99,3 +99,22 @@ fuego y la lámpara azul con humo azulado al otro lado. Suelo medido: (100, 28, 
   mezcla), con tope (2-3) y reciclado; o un único dominio compartido si los haces están cerca.
 - **Estilo**: el juego es de bordes recortados; este volumen es suave. Si se integra habría que decidir con Pablo si se quiere el volumen tal cual o un umbral/banda sobre él.
 - **Plataformas**: necesita Forward+ o Mobile con RenderingDevice (no Compatibility) y compute; sin ventana no hay nada (las pruebas de GPU van con ventana).
+
+## Prototipo A (9/11): MODO TOON con el lenguaje de FuegoToy
+
+La simulación es la misma; solo cambia el DIBUJO (`shaders/raymarch_toon.glsl`). Es el modo **por defecto** de Mayús+F12 y se ve en el entorno NORMAL del lab (suelo, cubos, sol, cámara del juego). **R** alterna toon / realista (el realista vuelve al escenario negro de la demo), con la misma simulación y la misma cámara.
+
+- **Superficie, no densidad**: campo de fuego f = T + 0,5·combustible; se busca el primer punto del rayo con f > umbral (0,3) y se refina con 5 bisecciones; opacidad = smoothstep(umbral − blandura/2, umbral + blandura/2, f máximo del rayo) · 0,95 (blandura 0,22, la de fuego_lelu).
+- **Lenguas**: en la franja del borde, f se deforma con las MISMAS texturas de FuegoToy (T_FirePanningCyl45 como lenguas, T_PerlinNoise como ruido_a, T_Noise1 como ruido_fino con chisporroteo 0,6), proyectadas en tres planos pesados por la dirección del rayo (los verticales con lenguas que suben, el horizontal sin dirección), arrastradas por la velocidad del gas con un mapa de flujo de dos fases.
+- **Color**: rampa de la bola de FuegoToy (`_rampa_de_bola`, sRGB a lineal), índice (f − umbral) en los 0,6 m de dentro de la superficie, pow(contraste 1,1) y tope 0,62 (= HAZ_TOPE_CALOR): rojo en el borde, naranja en el cuerpo, naranja claro en el centro del chorro, nunca el tramo amarillo. Sin ACES propio, sin glow extra, sin viñeta, sin luz por volúmenes (sus pasadas ni se ejecutan).
+- **Humo**: solo hollín (el polvo de la demo, de 1-3 celdas, enseñaba la rejilla en bloques), franja parda plana de dos tonos (los del humo de FuegoToy y del haz, en sRGB), opacidad 0,8, mismo borde; delante de la llama solo tapa donde el hollín manda (si no salen manchas de suciedad).
+- **Chispas**: las mismas, con mezcla normal y el color de las chispas del haz de FuegoToy.
+- Esfera y muro con el gris del muro de prueba del lab. Vista nueva **lateral** (escala de juego, cámara de mundo como la de las capturas del haz). Sin mancha de luz en el suelo (`luz_suelo_haz`): no la he puesto.
+
+**Coste** (RTX 3070, low, 1280×720): volumen toon 1,7-5,2 ms (cámara del juego 1,7-3,4; lateral ~5), frente a 0,4-0,6 ms del realista. La simulación sin las pasadas de luz cuesta ~0,3-0,5 ms. Es caro: 72 pasos por rayo con ruido de 2 fases × 3 planos × 3 texturas en el borde.
+
+**Prueba** (`prueba_gas_haz.gd`, con ventana, 0 fallos): en los píxeles de fuego el H medio es ~19°, el p95 ~36° y no hay ninguno en 45-70°; S media 0,88; transición del borde ~2 px de pantalla (realista: 4-7 px); hay humo pardo (H ~16°).
+
+**Capturas**: `docs/capturas/vfx_en_juego/haz_gas_toon/` (`<toon|realista|fuegotoy>_<esfera|muro>_<juego|lateral>_<1s|3s|6s|apagado>.png` y `HOJA_RESUMEN.jpg`). Script: `herramientas/captura_gas_toon.gd`.
+
+**Opinión**: el color, el borde y las lenguas son ya los del fuego aprobado (misma rampa, mismo umbral y blandura). Contra la esfera se lee como una bola de FuegoToy grande que envuelve el escudo, y se ve bien. Lo que todavía delata la simulación: (1) contra la cara plana del muro el fuego se aplasta en una lámina y salen cantos rectos y algún peine vertical, que es la rejilla de 0,19 m de la demo vista de canto; (2) al disiparse, el hollín queda en manchas pardas deshilachadas, no en bocanadas; (3) es mucho más GRANDE que el haz del juego (la masa ocupa el tamaño del obstáculo) y no tiene el resplandor ni la mancha de luz del FuegoToy. Si Pablo ve el canto del muro como rejilla, la opción B sería no dibujar el campo sino emitir bocanadas (las láminas billboard de FuegoToy) donde la simulación diga que hay fuego (un MultiMesh leído del gas), que esconde la rejilla del todo.

@@ -11,7 +11,7 @@ extends Node3D
 ## (vista «juego»: la boquilla en la mano de la jugadora del lab); todo lo que dibuja recibe mundo_a_dominio.
 ## Lo abre el LabVfxComparativa3D con Mayús+F12 (esfera → muro → nada). Teclas dentro: ver AYUDA.
 
-const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · O obstáculo (esfera / muro) · 1-4 calidad (low med high ultra) · K paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
+const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · O obstáculo (esfera / muro) · 1-4 calidad (low med high ultra) · R dibujo TOON / realista · K paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
 const WORLD_MIN: Vector3 = HazGasSolver.WORLD_MIN
 const WORLD_SIZE: Vector3 = HazGasSolver.WORLD_SIZE
 const DT: float = HazGasSolver.DT
@@ -21,7 +21,7 @@ const MANDOS: Array = [["wind", "Viento", 30.0], ["push", "Empuje tras el choque
 ## Muro del lab como obstáculo (caja): misma cara delantera que la piel de la esfera de la demo (x = -0,1), 1 m de grueso, 4,8 de alto, 4,4 de ancho.
 const MURO_C: Vector3 = Vector3(-0.6, 2.4, 0.0)
 const MURO_H: Vector3 = Vector3(0.5, 2.4, 2.2)
-const VISTAS: PackedStringArray = ["demo", "orbita", "juego"]
+const VISTAS: PackedStringArray = ["demo", "orbita", "juego", "lateral"]          ## «lateral»: el dominio a escala de juego (como «juego») visto de lado con la cámara propia
 const ESCALA_JUEGO: float = 0.35              ## vista «juego»: metros del lab por metro de la demo (dominio de 8,4 x 4,2 x 4,2 m)
 
 ## params.js makeParams (valores de la demo)
@@ -47,6 +47,21 @@ var camara_juego: Camera3D = null
 var mano_juego: Vector3 = Vector3(0, 0.7, -0.5)
 var dir_juego: Vector3 = Vector3(0, 0, -1)
 var jugadora_juego: Node3D = null
+
+## MODO TOON (prototipo A de Pablo, 9/11): la simulación es la misma; cambia SOLO EL DIBUJO por el lenguaje del fuego aprobado del juego (fuego_lelu + la rampa
+## de la bola de FuegoToy, raymarch_toon.glsl), visto en el entorno NORMAL del lab. false = el dibujo realista de la demo. Tecla R. Por defecto, toon.
+signal dibujo_cambiado(es_toon: bool)
+var toon: bool = true
+## Mandos del dibujo toon (los de fuego_lelu.gdshaderinc donde existen: umbral 0,3, blandura 0,22, contraste 1,1, chisporroteo 0,6; tope 0,62 = HAZ_TOPE_CALOR).
+var toon_params: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.1, "tope": 0.62, "k_T": 1.0, "k_c": 0.5, "amplitud": 0.45, "escala": 0.45,
+	"umbral_humo": 0.9, "opacidad_humo": 0.8, "escala_rampa": 1.0, "sube": 0.9, "chisporroteo": 0.6, "profundidad": 0.6}
+const TEX_LELU: String = "res://assets/vfx/lelu_noise/"
+var _toon_tex: Array = []                   ## [lenguas, ruido_a, ruido_fino, rampa de la bola]: las MISMAS texturas que FuegoToy._mat_fuego
+var _esfera: MeshInstance3D = null
+var _mat_muro_roca: ShaderMaterial = null
+var _mat_lab: StandardMaterial3D = null
+var _mat_chispas_real: ShaderMaterial = null
+var _mat_chispas_toon: ShaderMaterial = null
 
 var solver: HazGasSolver = null
 var efecto: HazGasRaymarch = null
@@ -96,6 +111,8 @@ func _ready() -> void:
 	_compositor = Compositor.new()
 	_compositor.compositor_effects = [efecto]
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	FuegoToy._rampas()
+	_toon_tex = [load(TEX_LELU + "T_FirePanningCyl45.png"), load(TEX_LELU + "T_PerlinNoise_Tiled.png"), load(TEX_LELU + "T_Noise1_tiled.png"), FuegoToy._rampa_de_bola()]
 	crear_solver(calidad)
 	poner_obstaculo(obstaculo)
 	poner_vista(vista)
@@ -130,7 +147,8 @@ func crear_solver(q: String, jacobi: int = 0) -> bool:
 		m.set_shader_parameter("luz", _tex_luz)
 		m.set_shader_parameter("luz_lejos", _tex_lejos)
 		m.set_shader_parameter("clave", _tex_clave)
-	_mat_chispas.set_shader_parameter("estado", _tex_chispas)
+	_mat_chispas_real.set_shader_parameter("estado", _tex_chispas)
+	_mat_chispas_toon.set_shader_parameter("estado", _tex_chispas)
 	frame = 0
 	_acum_gpu.clear()
 	return true
@@ -142,8 +160,9 @@ func _liberar_solver() -> void:
 	for m in _mat_roca:
 		for n in ["luz", "luz_lejos", "clave"]:
 			m.set_shader_parameter(n, null)
-	if _mat_chispas != null:
-		_mat_chispas.set_shader_parameter("estado", null)
+	for mc in [_mat_chispas_real, _mat_chispas_toon]:
+		if mc != null:
+			mc.set_shader_parameter("estado", null)
 	_tex_luz = null
 	_tex_lejos = null
 	_tex_clave = null
@@ -163,6 +182,8 @@ func poner_obstaculo(tipo: String) -> void:
 	obstaculo = tipo
 	if _muro != null:
 		_muro.visible = tipo == "muro"
+	if _esfera != null:
+		_aplicar_dibujo()
 	if _defensor != null:
 		_defensor.position = Vector3((params["shieldC"] as Vector3).x - 0.2, 0, 0) if tipo != "muro" else Vector3(MURO_C.x - MURO_H.x - 0.9, 0, 0)
 	if listo():
@@ -171,7 +192,8 @@ func poner_obstaculo(tipo: String) -> void:
 
 func poner_vista(v: String) -> void:
 	vista = v if v in VISTAS else "demo"
-	if vista == "juego" and camara_juego != null and is_instance_valid(camara_juego):
+	var de_juego: bool = vista in ["juego", "lateral"] and camara_juego != null and is_instance_valid(camara_juego)
+	if de_juego:
 		# La boquilla delante de la jugadora, el chorro a lo largo de su dirección y el suelo del dominio en su suelo. ESCALA_JUEGO deja el chorro
 		# (boquilla → piel del escudo, 9,5 m en la demo) en ~3,3 m, el largo del haz del juego; la boquilla queda a 0,5 m del suelo (la mano está a 0,7).
 		var s: float = ESCALA_JUEGO
@@ -179,22 +201,64 @@ func poner_vista(v: String) -> void:
 		var b: Basis = Basis(x * s, Vector3.UP * s, x.cross(Vector3.UP) * s)
 		var en_suelo: Vector3 = Vector3(mano_juego.x, 0.0, mano_juego.z)
 		global_transform = Transform3D(b, en_suelo - b * ((params["nozzle"] as Vector3) * Vector3(1, 0, 1)))
-		camara_juego.compositor = _compositor
-		camara_juego.make_current()
-		_cam.compositor = null
-		_acantilado.visible = false
-		_atacante.visible = false
+		if vista == "juego":
+			camara_juego.compositor = _compositor
+			camara_juego.make_current()
+			_cam.compositor = null
+		else:
+			camara_juego.compositor = null
+			_cam.compositor = _compositor
+			_cam.make_current()
+			camara_en_lateral()
 	else:
 		global_transform = Transform3D.IDENTITY
 		if camara_juego != null and is_instance_valid(camara_juego) and camara_juego.compositor == _compositor:
 			camara_juego.compositor = null
 		_cam.compositor = _compositor
+		_cam.fov = 32.0
 		_cam.make_current()
-		_acantilado.visible = true
-		_atacante.visible = true
 	if jugadora_juego != null and is_instance_valid(jugadora_juego):
-		jugadora_juego.visible = vista == "juego"
-	_colocar_camara()
+		jugadora_juego.visible = de_juego
+	_aplicar_dibujo()
+	if vista != "lateral":
+		_colocar_camara()
+
+
+## Cámara propia en coordenadas de MUNDO (las capturas del toon la ponen igual que la del FuegoToy del lab).
+func camara_mundo(desde: Vector3, mira: Vector3, fov: float = 60.0) -> void:
+	_cam.fov = fov
+	_cam.global_position = desde
+	_cam.look_at(mira, Vector3.UP)
+
+
+## Vista «lateral»: de lado al chorro y algo alta, a escala de juego (como las capturas laterales del haz del juego: herramientas/captura_haz_masa.gd).
+func camara_en_lateral() -> void:
+	_cam.fov = 40.0
+	_cam.global_transform = global_transform * Transform3D(Basis(), Vector3(2.0, 6.5, 19.0))
+	_cam.look_at(global_transform * Vector3(1.5, 2.2, 0.0), Vector3.UP)
+
+
+## R: dibujo toon (lenguaje de FuegoToy, entorno normal del lab) o realista (el de la demo, escenario negro). La simulación no se toca.
+func poner_toon(si: bool) -> void:
+	toon = si
+	_aplicar_dibujo()
+	dibujo_cambiado.emit(toon)
+
+
+## Qué se ve de la escena de la demo según el dibujo y la vista. Toon: nada del escenario negro (ni roca, ni acantilado, ni siluetas): el suelo y el sol son los del
+## lab, la esfera y el muro llevan el gris del muro de prueba del lab y las chispas el color de las del FuegoToy.
+func _aplicar_dibujo() -> void:
+	if _suelo == null:
+		return
+	var de_juego: bool = vista in ["juego", "lateral"] and camara_juego != null
+	_suelo.visible = not toon
+	_acantilado.visible = not toon and not de_juego
+	_atacante.visible = not toon and not de_juego
+	_defensor.visible = not toon
+	_esfera.visible = toon and obstaculo == "esfera"
+	_muro.material_override = _mat_lab if toon else _mat_muro_roca
+	_chispas_mi.material_override = _mat_chispas_toon if toon else _mat_chispas_real
+	_mat_chispas = _chispas_mi.material_override as ShaderMaterial
 
 
 func chorro(encendido: bool) -> void:
@@ -243,7 +307,7 @@ func _process(delta: float) -> void:
 		tg.z = sin(t * 0.43) * 0.7
 		params["target"] = tg
 		var datos: PackedFloat32Array = parametros_gpu(t)
-		RenderingServer.call_on_render_thread(solver.paso.bind(datos, true))
+		RenderingServer.call_on_render_thread(solver.paso.bind(datos, true, not toon))     # el toon no usa la luz por volúmenes
 		frame += 1
 	if vista == "orbita":
 		_mover_camara(frame * DT)
@@ -257,15 +321,27 @@ func _process(delta: float) -> void:
 		efecto.proyeccion = cam_act.get_camera_projection()
 		efecto.camara = cam_act.global_transform
 	efecto.temporal = temporal
+	efecto.toon = toon
+	if toon:
+		var tp: Dictionary = toon_params
+		efecto.toon_param = PackedFloat32Array([tp["umbral"], tp["blandura"], tp["contraste"], tp["tope"], tp["k_T"], tp["k_c"], tp["amplitud"], tp["escala"],
+			tp["umbral_humo"], tp["opacidad_humo"], tp["escala_rampa"], frame * DT, tp["sube"], tp["chisporroteo"], tp["profundidad"], 0.0])
+		var rids: Array[RID] = []
+		for tx in _toon_tex:
+			var r: RID = RenderingServer.texture_get_rd_texture((tx as Texture2D).get_rid()) if tx != null else RID()
+			if r.is_valid():
+				rids.append(r)
+		efecto.toon_tex = rids
 	efecto.aspecto = PackedFloat32Array([params["thickness"], params["relief"], params["edge"], params["smokeAlbedo"], params["flameBody"], params["emitGain"],
-		params["fireOnSmoke"], params["farOnSmoke"], params["lampOnSmoke"], params["saturacion"], params["vineta"]])
+		params["fireOnSmoke"], params["farOnSmoke"], params["lampOnSmoke"], 1.0 if toon else params["saturacion"], 0.0 if toon else params["vineta"]])
 	var m2d_p: Projection = Projection(m2d)
 	for m in _mat_roca:
 		m.set_shader_parameter("mundo_a_dominio", m2d_p)
 		m.set_shader_parameter("fire_on_rock", params["fireOnRock"])
 		m.set_shader_parameter("lamp_on_rock", params["lampOnRock"])
 		m.set_shader_parameter("key_pos", params["keyPos"])
-	_mat_chispas.set_shader_parameter("dominio_a_mundo", Projection(global_transform))
+	for mc in [_mat_chispas_real, _mat_chispas_toon]:
+		mc.set_shader_parameter("dominio_a_mundo", Projection(global_transform))
 	_mat_chispas.set_shader_parameter("paleta", params["paleta"])
 	_medir(delta)
 
@@ -409,6 +485,8 @@ func _input(ev: InputEvent) -> void:
 				crear_solver("ultra")
 			KEY_T:
 				temporal = not temporal
+			KEY_R:
+				poner_toon(not toon)
 			KEY_K:
 				params["paleta"] = 0.0 if float(params["paleta"]) > 0.5 else 1.0
 			KEY_P:
@@ -469,9 +547,24 @@ func _montar_escena() -> void:
 	bm.size = MURO_H * 2.0
 	_muro.mesh = bm
 	_muro.position = MURO_C
-	_muro.material_override = _roca(sh, roca, 2, 3.0)
+	_mat_muro_roca = _roca(sh, roca, 2, 3.0)
+	_muro.material_override = _mat_muro_roca
 	_muro.visible = false
 	add_child(_muro)
+	# Modo toon: la esfera y el muro con el gris del muro de prueba del lab (lab_vfx_comparativa_3d.gd _muro_haz), iluminados por el sol del lab.
+	_mat_lab = StandardMaterial3D.new()
+	_mat_lab.albedo_color = Color(0.5, 0.5, 0.52)
+	_mat_lab.roughness = 0.95
+	_esfera = MeshInstance3D.new()
+	_esfera.name = "EsferaGas"
+	var sm: SphereMesh = SphereMesh.new()
+	sm.radius = float(params["shieldR"])
+	sm.height = float(params["shieldR"]) * 2.0
+	_esfera.mesh = sm
+	_esfera.position = params["shieldC"]
+	_esfera.material_override = _mat_lab
+	_esfera.visible = false
+	add_child(_esfera)
 	# figures.js
 	var mat_fig: ShaderMaterial = ShaderMaterial.new()
 	mat_fig.shader = load("res://laboratorios/haz_gas/haz_gas_figura.gdshader") as Shader
@@ -481,8 +574,11 @@ func _montar_escena() -> void:
 	add_child(_defensor)
 	_atacante = _jugadora_atacante(mat_fig)
 	# sparks.js: 1000 quads instanciados
-	_mat_chispas = ShaderMaterial.new()
-	_mat_chispas.shader = load("res://laboratorios/haz_gas/haz_gas_chispas.gdshader") as Shader
+	_mat_chispas_real = ShaderMaterial.new()
+	_mat_chispas_real.shader = load("res://laboratorios/haz_gas/haz_gas_chispas.gdshader") as Shader
+	_mat_chispas_toon = ShaderMaterial.new()
+	_mat_chispas_toon.shader = load("res://laboratorios/haz_gas/haz_gas_chispas_toon.gdshader") as Shader
+	_mat_chispas = _mat_chispas_real
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	var q: QuadMesh = QuadMesh.new()
