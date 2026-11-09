@@ -73,7 +73,7 @@ uniform float tam_tex = 4.6;
 uniform float brillo = 0.78;
 uniform float contraste = 1.2;
 uniform float contraste_lecho = 0.6;           // 1 = la textura tal cual; 0 = todo al color medio (el fondo se ve con poco contraste bajo el agua)
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 // Cáusticas (luz aditiva y suave sobre el fondo).
 uniform float causticas = 0.22;
 uniform float caus_escala = 1.25;
@@ -158,7 +158,7 @@ void fragment() {
 void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
@@ -176,7 +176,7 @@ uniform sampler2D t_albedo : source_color, filter_linear_mipmap, repeat_enable;
 uniform vec3 tinte = vec3(1.0);
 uniform float brillo = 0.78;
 uniform float contraste = 1.2;
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 uniform float mece = 0.0;
 uniform float base_malla = 0.0;
 uniform float altura_malla = 0.4;
@@ -220,7 +220,7 @@ void fragment() {
 void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
@@ -390,6 +390,7 @@ static func smoothf(a: float, b: float, x: float) -> float:
 ## Material del bloque del lecho (sustituye al del suelo bajo el agua con el filtro). `brillo` = el del suelo (OSCURECER_SUELO).
 static func crear_material(brillo: float = 0.78) -> ShaderMaterial:
 	if _shader == null:
+		Ambiente3D.preparar_global()   # el shader declara `amb_sombra`
 		_shader = Shader.new()
 		_shader.code = CODIGO
 	var m := ShaderMaterial.new()
@@ -594,6 +595,7 @@ static func _modelo(id: String, objetivo: float, por_alto: bool, mece: bool, bri
 ## Material de un adorno: su textura de albedo (la del .glb), la luz de dibujo animado del lecho y, en las algas, el balanceo.
 static func _material_adorno(malla: Mesh, mece: bool, brillo: float) -> ShaderMaterial:
 	if _shader_adorno == null:
+		Ambiente3D.preparar_global()
 		_shader_adorno = Shader.new()
 		_shader_adorno.code = CODIGO_ADORNO
 	var m := ShaderMaterial.new()

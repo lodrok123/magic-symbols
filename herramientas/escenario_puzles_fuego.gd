@@ -89,6 +89,8 @@ func _f1_natural() -> void:
 	for i in range(3):
 		_ok("F1.2.%d fuego + flecha al brasero %d sale" % [i + 1, i + 1], await _fuego_a(casillas[i], origenes[i]))
 		_ok("F1.3.%d el brasero %d arde y el contador va a %d/4" % [i + 1, i + 1, i + 1], _arde(bs[i]) and ct.encendidos == i + 1, "contador %d/%d" % [ct.encendidos, ct.total()])
+		var llama_vertical: FuegoToy = bs[i].get("_llama") as FuegoToy
+		_ok("F1.3.%d llama vertical en el cuenco" % [i + 1], llama_vertical != null and llama_vertical.figura == FuegoToy.Figura.PILAR and llama_vertical.position.y > 0.0)
 	_ok("F1.4 con 3/4 la puerta sigue cerrada", not ct.completo and not bool(puerta.get("abierta")))
 	_ok("F1.5 fuego + flecha al cuarto brasero sale", await _fuego_a(casillas[3], origenes[3]))
 	_ok("F1.6 con 4/4 el contador completa y la puerta se abre", ct.completo and bool(puerta.get("abierta")), "contador %d/%d" % [ct.encendidos, ct.total()])

@@ -352,6 +352,15 @@ static func tiempo_caida(geo: Dictionary) -> float:
 
 ## Hace que ocurra lo que dice el Hechizo: avisa al VFX, y cada tanda de casillas cobra vida a su hora. Devuelve cuántas casillas ocupa (0 = rechazado).
 func _materializar(origen: Vector3, dir: Vector3) -> int:
+	if h.es_plataforma_tierra():
+		var celdas: Array[Vector2i] = lanz.celdas_plataforma_tierra(h, origen, dir)
+		if not seco:
+			lanz.plataforma_tierra_lanzada.emit()
+			if not celdas.is_empty():
+				lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+				lanz.levantar_plataforma_tierra(celdas, h.persiste + h.permanencia)
+		_celdas_volumen = celdas
+		return celdas.size()
 	if h.orbita:
 		return _materializar_orbita(origen, dir)          # 3/11 (R3): ᛃ sin flecha y con ᚠ: las copias orbitan al lanzador
 	if h.haz:

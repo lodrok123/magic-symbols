@@ -272,6 +272,10 @@ uniform float lecho = 0.5;                    // 16/10: fuerza del LECHO falso (
 uniform float prof_lecho = 0.9;               // cuánto se desplaza el lecho por unidad de profundidad (paralaje)
 uniform vec3 color_lecho : source_color = vec3(0.16, 0.38, 0.55);     // el fondo visto a través: más oscuro y frío que la arena
 uniform vec3 color_causticas : source_color = vec3(0.72, 0.93, 1.0);  // las redes de luz que dibuja el agua sobre el lecho
+uniform float filo_ribera = 1.0;
+uniform sampler2D electricidad_mapa : hint_default_black, filter_linear, repeat_disable;
+uniform float electricidad_extension = 1.0;
+uniform bool electricidad_activa = false;
 uniform float transicion_orilla = 0.08;       // profundidad (u) en la que la espuma de la orilla se funde con el agua
 uniform float orilla_dist_0 = 0.30;           // 22/10: a menos de esta distancia (u) del contorno del agua la espuma y el ruido de borde valen entero…
 uniform float orilla_dist_1 = 0.70;           // …y a más de esta, nada (ver ORILLA_DIST_* en GDScript); el menisco usa 1,5 veces estas distancias
@@ -281,7 +285,7 @@ uniform float tam_franja = 0.8;               // tamaño de las franjas de la co
 uniform float vel_franja = 0.55;              // ciclos por segundo del flow map
 uniform float brillo = 1.0;
 uniform float contraste = 1.2;
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 
 // 22/10 (agua EoW) · REFRACCIÓN. Con `refraccion` = 1 el fondo que se ve a través del agua es la pantalla ya dibujada (lo opaco: el lecho de verdad y los
 // bloques bajo la lámina), desplazada por la inclinación de las olas. Para eso el agua pasa a ser «opaca» (ALPHA = 1) y su mezcla por alfa la hace ella misma:
@@ -864,7 +868,7 @@ void fragment() {
 	// 24/10 (bordes EoW) · la línea clara de la orilla ondula despacio (ruido de baja frecuencia en el valor de la profundidad): sigue el contorno pero no es una recta de regla.
 	float ondula_linea = (ruido(pm.xz * orilla_linea_escala + vec2(TIME * 0.03, -TIME * 0.02)) - 0.5) * orilla_linea_ruido;
 	float linea = 1.0 - smoothstep(0.0, trans, prof_e + (borde - 0.5) * 0.04 + ondula_linea);
-	linea *= linea * cerca_orilla;      // 22/10: la espuma de orilla solo junto al contorno (una lámina somera lejos de él no es espuma)
+	linea *= linea * cerca_orilla * filo_ribera;      // 22/10: la espuma de orilla solo junto al contorno (una lámina somera lejos de él no es espuma)
 	float men = (1.0 - smoothstep(trans, trans * 3.5, prof_e)) * menisco * (0.55 + 0.45 * borde) * cerca_menisco;
 	float espuma = clamp(max(linea, max(manchas * 0.85, cresta * 0.8 * cr_f)), 0.0, 1.0);
 	// CAÍDAS (15/10): donde la superficie se inclina de verdad es una cascada: vetas blancas que bajan por ella; en la BASE (el trocito que
@@ -1000,6 +1004,23 @@ void fragment() {
 		ALBEDO = ce * brillo;
 		ALPHA = alfa_f;
 	}
+	if (electricidad_activa) {
+		vec2 uv_carga = pm.xz / electricidad_extension;
+		ivec2 tam_carga = textureSize(electricidad_mapa, 0);
+		ivec2 celda_carga = clamp(ivec2(floor(uv_carga * vec2(tam_carga))), ivec2(0), tam_carga - ivec2(1));
+		float carga = texelFetch(electricidad_mapa, celda_carga, 0).b;
+		if (carga > 0.0) {
+			// La celda delimita el peligro. El filtrado redondea el borde por dentro.
+			float huella = min(carga, texture(electricidad_mapa, uv_carga).b) * (1.0 - hielo);
+			vec2 traza = pm.xz * vec2(2.4, 4.2);
+			float pliegue = ruido(pm.xz * 4.3 + vec2(TIME * 1.8, 0.0));
+			float veta = abs(ruido(traza + vec2(pliegue, -TIME * 2.2)) - 0.5);
+			float hilo = 1.0 - smoothstep(0.018, 0.11, veta);
+			ALBEDO *= mix(vec3(1.0), vec3(0.60, 0.65, 0.92), huella);
+			EMISSION *= mix(vec3(1.0), vec3(0.52, 0.57, 0.84), huella);
+			EMISSION += vec3(0.34, 0.45, 1.0) * huella * (0.13 + 0.48 * hilo);
+		}
+	}
 	ROUGHNESS = rugosidad;
 	SPECULAR = 0.5 * v_spec;
 }
@@ -1007,7 +1028,7 @@ void fragment() {
 void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
@@ -1034,7 +1055,7 @@ uniform float bandas = 3.0;
 uniform float menisco = 0.55;
 uniform float brillo = 1.0;
 uniform float contraste = 1.2;
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 // 22/10 (agua filtro): paredes casi transparentes, del color de lo hondo, con el filo claro del menisco.
 uniform float filtro = 0.0;
 uniform vec3 filtro_hondo : source_color = vec3(0.06, 0.33, 0.38);
@@ -1070,7 +1091,7 @@ void fragment() {
 void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
@@ -1227,6 +1248,7 @@ func enlazar(p_sim: AguaSim3D) -> void:
 		return
 	_construir_malla()
 	if _mat == null:
+		Ambiente3D.preparar_global()   # el shader declara `amb_sombra`
 		var sh := Shader.new()
 		sh.code = CODIGO
 		_mat = ShaderMaterial.new()
@@ -1420,7 +1442,7 @@ func ajustar(nombre: String, valor: Variant) -> void:
 		_ajustes_pendientes[nombre] = valor          # 24/10: aún no hay material (se pide antes de enlazar la simulación): se aplica en cuanto exista (`_process`)
 	if _mat != null:
 		_mat.set_shader_parameter(nombre, valor)
-	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "prof_color", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste", "sombra_tinte"]:
+	if _mat_pared != null and nombre in ["color_somero_est", "color_hondo_est", "color_espuma", "prof_clara", "prof_rio", "prof_color", "alfa_clara", "alfa_rio", "bandas", "menisco", "brillo", "contraste"]:
 		_mat_pared.set_shader_parameter(nombre, valor)
 
 
@@ -1938,6 +1960,7 @@ func _montar_paredes() -> void:
 		_paredes.extra_cull_margin = 4096.0           # la malla se rehace y sus cajas no se miden: que nunca se recorte
 		add_child(_paredes)
 	if _mat_pared == null:
+		Ambiente3D.preparar_global()
 		var sh := Shader.new()
 		sh.code = CODIGO_PARED
 		_mat_pared = ShaderMaterial.new()

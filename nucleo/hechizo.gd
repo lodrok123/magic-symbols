@@ -335,6 +335,23 @@ var radio_estallido: float:
 var solido_quieto: bool:
 	get:
 		return estado_materia == "solido" and not haz and not (viaja or velocidad > 0.0)
+
+## Tierra sola levanta un escalón. Con Barrera, cada Línea lo prolonga en la dirección apuntada,
+## independientemente de cómo se dibujó la raya en el libro.
+func es_plataforma_tierra() -> bool:
+	if elemento != "tierra" or not solido_quieto or orbita:
+		return false
+	var lineas: int = glifos_linea()
+	var barreras: int = int(glifos.get("barrera", 0))
+	if n_glifos != lineas + barreras + int(glifos.get("permanencia", 0)):
+		return false
+	return (lineas == 0 and barreras == 0) or (lineas > 0 and barreras > 0)
+
+
+## Longitud máxima, antes de que el terreno recorte el tramo.
+func longitud_plataforma_tierra() -> int:
+	return 1 + glifos_linea() if es_plataforma_tierra() else 0
+
 ## RAYO (21/10): ¿es un haz? = se dibujó alguna ᛁ (`linea_x`/`linea_z`) y no hay barrera (`solidez`) ni flecha (`distancia_max`). Ver `HAZ_*`. Sale de los glifos y de dos campos, así que si el laboratorio
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:

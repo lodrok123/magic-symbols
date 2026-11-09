@@ -216,6 +216,8 @@ var _bloques: Array = []                ## tierra construida: {celda, niveles, n
 var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): ZonaV2
 var zonas_cruce: Array = []             ## 6/11 (B5): zonas SIN pulso que otro hechizo reconoce al cruzarlas (el charco del agua): ZonaV2. Aparte de `_zonas_v2` a propósito: el limo y las pruebas cuentan esas como zonas de pulso
 var _solideces_v2: Array = []           ## SolidezV2 vivas: lo que bloquea proyectiles y aguanta golpes (propiedad `solidez`)
+var _plataformas_tierra: Array[Dictionary] = []
+const ALTO_PLATAFORMA_TIERRA: float = 0.45
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
 var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
 var _t_hielo: float = 0.0
@@ -271,6 +273,7 @@ var conjuro_actual: Dictionary = {}     ## A1: {hechizo: Hechizo, carga: float} 
 signal hechizo_v2(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary)
 ## 6/11 (entrada 422): un bloque de tierra de la casilla se deshace (caducó, o lo echó el tope FIFO). Solo para el dibujo: el TierraToy que lo representa se hunde en ese momento.
 signal tierra_deshecha(celda: Vector2i)
+signal plataforma_tierra_lanzada
 
 
 ## =====================================================================================================
@@ -904,6 +907,10 @@ static func notas_de(hechizo: Hechizo) -> Array[String]:
 	var salida: Array[String] = []
 	if hechizo != null and hechizo.en_punto:
 		salida.append("Nace donde apuntas")
+	if hechizo != null:
+		var largo: int = hechizo.longitud_plataforma_tierra()
+		if largo > 1:
+			salida.append("Puente: hasta %d casillas de suelo firme" % largo)
 	return salida
 
 
@@ -963,7 +970,7 @@ func _preparar_pagina(indice: int) -> bool:
 		return false
 	if String(pareja["estado"]) == CombosSellos.REACCION:
 		element_data = pareja["rune"]
-	if componentes.is_empty():
+	if componentes.is_empty() and Objetos.elemento_de(element_data) != "tierra":
 		_feedback("A la página %d le falta algún glifo" % (indice + 1))
 		return false
 	if cooldown_left[indice] > 0.0:
@@ -1810,6 +1817,8 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	var valido: bool = GeometriaV2.aviso_materia(g, _preparado.get("rune") as RuneData) == ""
 	var alto: float = Terreno3D.ALTO_NIVEL * float(GeometriaV2.niveles(g) - 1)
 	var motivo: String = ""
+	var hechizo: Hechizo = _preparado.get("hechizo") as Hechizo
+	var plataforma: bool = hechizo != null and hechizo.es_plataforma_tierra()
 	if valido and (alto > 0.0 or bool(_preparado.get("en_punto", false))):
 		motivo = rechazo_de_construccion(_preparado, origen)
 	var prevision: Array = PrevisionHechizo.prever_rapido(self, _preparado, origen, dir) if valido and motivo == "" else []
@@ -1817,6 +1826,10 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	var vuela: bool = not (recorrido.get("caminos", []) as Array).is_empty()
 	_marca_alcance.visible = bool(_preparado.get("en_punto", false))
 	var cs: Array = [] if vuela else GeometriaV2.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla)
+	if plataforma:
+		cs = celdas_plataforma_tierra(hechizo, origen, dir)
+		if cs.is_empty():
+			cs = [celda_de(origen)]
 	var no_vale: bool = not valido or motivo != ""
 	while _prev_casillas.size() < cs.size():
 		var mi := MeshInstance3D.new()
@@ -1832,14 +1845,15 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 		if not mi.visible:
 			continue
 		var c: Vector2i = cs[i]
-		var h: float = 0.06 + alto
+		var h: float = ALTO_PLATAFORMA_TIERRA if plataforma else 0.06 + alto
 		var tam := Vector3(Terreno3D.casilla * 0.9, h, Terreno3D.casilla * 0.9)
 		(mi.mesh as BoxMesh).size = tam
 		mi.set_instance_shader_parameter("tam", tam)
 		var mat: ShaderMaterial = mi.material_override as ShaderMaterial
 		mat.set_shader_parameter("color", Apuntado3D.COLOR_NO if no_vale else _prev_color)
 		mat.set_shader_parameter("invalido", no_vale)
-		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
+		var base: float = y_pies(celda_de(origen)) if plataforma and motivo == "" else y_pies(c)
+		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, base + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
 	Apuntado3D.pintar_disco(_marca_origen, Apuntado3D.COLOR_NO if no_vale else _prev_color)
 	_poner_cursor(Apuntado3D.COLOR_NO if no_vale else _prev_color, no_vale)
 	if _apuntado != null and is_instance_valid(_apuntado):
@@ -2610,6 +2624,10 @@ static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) 
 func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false) -> String:
 	if not en_mapa(c):
 		return "fuera del mapa"
+	if Terreno3D.es_vacio(c):
+		return "no hay suelo"
+	if Terreno3D.plataformas_tierra.has(c):
+		return "ya hay una plataforma"
 	# El agua de un río está «bloqueada» por sí misma: el hielo que la hiela no se rechaza por eso (hielo quieto sobre agua = helarla, como antes), la tierra sí.
 	var hiela_agua: bool = sobre_agua and es_agua(c)
 	if not sobre_agua:
@@ -2642,14 +2660,104 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3) -> String:
 	if h == null or not h.solido_quieto:
 		return ""
 	# Una barrera (solidez > 0) protege con su SolidezV2 aunque el bloque de tierra de debajo no quepa (el muro que nace en tu propia casilla y te cubre: escenario_bosque_01_v01 4.6): se lanza como siempre.
-	if h.solidez > 0.0:
+	if h.solidez > 0.0 and not h.es_plataforma_tierra():
 		return ""
 	if h.en_punto:
 		var lejos: Vector3 = origen - (jugador as Node3D).position
 		lejos.y = 0.0
 		if lejos.length() > ALCANCE_ORIGEN * Terreno3D.casilla + TOLERANCIA_ALCANCE_U:
 			return "queda fuera de tu alcance"
-	return puede_construir_en(celda_de(origen), h.niveles, rune.deja == "helado")
+	var c: Vector2i = celda_de(origen)
+	if h.es_plataforma_tierra():
+		return _rechazo_anclaje_tierra(c)
+	return puede_construir_en(c, h.niveles, rune.deja == "helado")
+
+
+func _rechazo_anclaje_tierra(c: Vector2i) -> String:
+	var motivo: String = puede_construir_en(c)
+	if motivo != "":
+		return motivo
+	return "la plataforma necesita suelo firme" if Terreno3D.hielo_fisico(c) or Terreno3D.altura_en(c) != 0 else ""
+
+
+## Se extiende por casillas contiguas de suelo firme en el eje dominante del apuntado.
+func celdas_plataforma_tierra(h: Hechizo, origen: Vector3, dir: Vector3) -> Array[Vector2i]:
+	var c: Vector2i = celda_de(origen)
+	var celdas: Array[Vector2i] = []
+	var largo: int = h.longitud_plataforma_tierra()
+	if largo == 0 or _rechazo_anclaje_tierra(c) != "":
+		return celdas
+	celdas.append(c)
+	var paso := Vector2i(0, -1)
+	if absf(dir.x) > absf(dir.z):
+		paso = Vector2i(1 if dir.x > 0.0 else -1, 0)
+	elif dir.z > 0.0:
+		paso.y = 1
+	var base: float = y_pies(c)
+	for i in range(1, largo):
+		c += paso
+		if _rechazo_anclaje_tierra(c) != "" or not is_equal_approx(y_pies(c), base):
+			break
+		celdas.append(c)
+	return celdas
+
+
+func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float) -> void:
+	var base: float = y_pies(celdas[0])
+	var centro: Vector3 = (centro_de(celdas[0], base) + centro_de(celdas.back(), base)) * 0.5
+	var ext: Vector2i = (celdas.back() - celdas[0]).abs() + Vector2i.ONE
+	var tamano := Vector3(float(ext.x) * Terreno3D.casilla, ALTO_PLATAFORMA_TIERRA, float(ext.y) * Terreno3D.casilla)
+	var pieza := Area3D.new()
+	pieza.name = "PlataformaTierra"
+	pieza.collision_layer = 1
+	pieza.collision_mask = 0
+	pieza.monitoring = false
+	pieza.add_to_group("peso")
+	var forma := BoxShape3D.new()
+	forma.size = tamano
+	var colision := CollisionShape3D.new()
+	colision.shape = forma
+	pieza.add_child(colision)
+	var visual := MeshInstance3D.new()
+	visual.mesh = TierraToy.malla_roca(TierraToy.MALLA_LOSA)
+	visual.material_override = TierraToy.material_roca({"base_tierra": 1.0})
+	visual.transform = TierraToy.asentar(visual.mesh, Basis.IDENTITY, tamano.x, tamano.y, tamano.z, Vector3.DOWN * tamano.y * 0.5)
+	pieza.add_child(visual)
+	mundo.add_child(pieza)
+	pieza.global_position = centro - Vector3.UP * ALTO_PLATAFORMA_TIERRA * 0.5
+	pieza.create_tween().tween_property(pieza, "global_position:y", centro.y + ALTO_PLATAFORMA_TIERRA * 0.5, 0.25)
+	for c in celdas:
+		Terreno3D.plataformas_tierra[c] = base + ALTO_PLATAFORMA_TIERRA
+	_plataformas_tierra.append({"celdas": celdas, "nodo": pieza, "resta": maxf(vida, 1.0)})
+
+
+func _avanzar_plataformas_tierra(delta: float) -> void:
+	for plataforma in _plataformas_tierra.duplicate():
+		plataforma["resta"] = float(plataforma["resta"]) - delta
+		var resta: float = plataforma["resta"]
+		var pieza: Area3D = plataforma["nodo"]
+		pieza.visible = resta > AVISO_CADUCA or int(resta * 6.0) % 2 == 0
+		if resta <= 0.0:
+			_deshacer_plataforma_tierra(plataforma)
+
+
+func _deshacer_plataforma_tierra(plataforma: Dictionary) -> void:
+	var celdas: Array[Vector2i] = plataforma["celdas"]
+	for c in celdas:
+		Terreno3D.plataformas_tierra.erase(c)
+	_plataformas_tierra.erase(plataforma)
+	var pj: Jugador3D = jugador as Jugador3D
+	if is_instance_valid(pj):
+		var c: Vector2i = celda_de(pj.position)
+		if celdas.has(c) and (Terreno3D.es_vacio(c) or es_agua(c)):
+			pj.caer_de_plataforma(c, celdas[0])
+	var pieza: Area3D = plataforma["nodo"]
+	pieza.visible = true
+	pieza.remove_from_group("peso")
+	pieza.set_deferred("monitorable", false)
+	var tw: Tween = pieza.create_tween()
+	tw.tween_property(pieza, "position:y", pieza.position.y - ALTO_PLATAFORMA_TIERRA, 0.2)
+	tw.tween_callback(pieza.queue_free)
 
 
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
@@ -2819,6 +2927,7 @@ func _recalcular(c: Vector2i) -> void:
 ## =====================================================================================================
 
 func _avanzar_caducidades(delta: float) -> void:
+	_avanzar_plataformas_tierra(delta)
 	for b in _bloques.duplicate():
 		b["resta"] = float(b["resta"]) - delta
 		var aviso: bool = float(b["resta"]) < AVISO_CADUCA

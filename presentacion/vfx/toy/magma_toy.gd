@@ -606,6 +606,7 @@ func _volumen(c: Node3D) -> void:
 func _puas_igneas(c: Node3D) -> void:
 	var t := TierraToy.new()
 	t.name = "PuasIgneas"
+	t.linea_ignea = true
 	t.definir(TierraToy.Figura.HAZ, semieje_x, semieje_y, semieje_z, false)
 	t.aparicion = aparicion
 	c.add_child(t)

@@ -108,6 +108,7 @@ var en_suelo: bool = true
 var bloqueado: bool = false
 var salto_activo: bool = true         ## R4 (17/10): false = Espacio no salta (el laboratorio de recetas usa Espacio para lanzar)
 var vy: float = 0.0
+var _caida_plataforma: Dictionary = {}
 var puntos_inicio: Vector3 = Vector3.ZERO
 ## La pantalla de «Has muerto» (Fase 14.3). Si existe, ella decide cuándo reaparece el jugador; si no, reaparece solo a los TIEMPO_REAPARECER.
 var pantalla_muerte: PantallaMuerte = null
@@ -1403,6 +1404,8 @@ func _mover_con_choque(paso: Vector3) -> void:
 
 ## ¿Cabe el jugador (de pie, a su altura actual) en esa posición?
 func _puede_estar(p: Vector3) -> bool:
+	if not _caida_plataforma.is_empty():
+		return false
 	if TroncoEstanque3D.bloquea_a(p, position.y) and not TroncoEstanque3D.bloquea_a(position, position.y):
 		return false                       # 22/10: el tronco del estanque (aún en el fondo del cauce) no se atraviesa
 	var c: Vector2i = Terreno3D.celda_de(p)
@@ -1411,7 +1414,7 @@ func _puede_estar(p: Vector3) -> bool:
 	if c == actual:
 		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, position):
 			return false                   # dentro de una casilla bloqueada solo se roza lo que no es el objeto
-		return Terreno3D.en_mapa(c)
+		return Terreno3D.en_mapa(c) or Terreno3D.plataformas_tierra.has(c)
 	if parcial and Terreno3D.choca_huella(c, p):
 		return false
 	var nivel: int = Terreno3D.altura_en(actual)
@@ -1428,6 +1431,16 @@ func _puede_estar(p: Vector3) -> bool:
 
 func _vertical(delta: float, salto: bool) -> void:
 	var c: Vector2i = Terreno3D.celda_de(position)
+	if not _caida_plataforma.is_empty():
+		if c != _caida_plataforma["celda"] or Terreno3D.plataformas_tierra.has(c):
+			_caida_plataforma.clear()
+		else:
+			vy -= GRAVEDAD * delta
+			position.y += vy * delta
+			if position.y <= float(_caida_plataforma["fondo"]):
+				_volver_a_suelo_seguro(c)
+			_salto_antes = salto
+			return
 	var agua: bool = Terreno3D.se_nada(c)          # el canal de ruinas con agua se vadea (P3): es_agua, pero no se nada
 
 	if nadando:
@@ -1475,6 +1488,36 @@ func _vertical(delta: float, salto: bool) -> void:
 	# Por si algo ha cambiado el suelo justo debajo (el hielo se derrite bajo los pies ya apoyados)
 	if en_suelo and agua and not nadando and position.y <= Terreno3D.superficie_agua(c) + 0.3:
 		_cambiar_nado(true)
+
+
+func caer_de_plataforma(celda: Vector2i, anclaje: Vector2i) -> void:
+	var fondo: float = position.y - 0.9
+	if not Terreno3D.es_vacio(celda) and Terreno3D.es_agua(celda):
+		fondo = minf(Terreno3D.superficie_agua(celda), position.y - 0.45)
+	_caida_plataforma = {"celda": celda, "anclaje": anclaje, "fondo": fondo}
+	en_suelo = false
+	vy = minf(vy, 0.0)
+
+
+func _volver_a_suelo_seguro(desde: Vector2i) -> void:
+	var destino: Vector2i = _caida_plataforma["anclaje"]
+	var distancia: int = 2147483647
+	var lado: int = Terreno3D.lado_del_mapa()
+	for z in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, z)
+			var d: int = (c - desde).length_squared()
+			if d >= distancia:
+				continue
+			if not Terreno3D.plataformas_tierra.has(c):
+				if Terreno3D.es_agua(c) or not Terreno3D.pisable(c, 0, true, maxi(MAX_NIVELES_SUBIBLES, tope_niveles_nivel), false):
+					continue
+			destino = c
+			distancia = d
+	_caida_plataforma.clear()
+	position = Terreno3D.centro_de(destino, Terreno3D.y_pies(destino))
+	vy = 0.0
+	en_suelo = true
 
 
 func _cambiar_nado(n: bool) -> void:

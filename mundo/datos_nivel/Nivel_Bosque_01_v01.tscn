@@ -27,6 +27,8 @@
 [ext_resource type="PackedScene" path="res://arte/piezas/pino_2.tscn" id="24_xoy1s"]
 [ext_resource type="PackedScene" path="res://arte/piezas/roca_musgosa.tscn" id="25_hffel"]
 [ext_resource type="PackedScene" path="res://arte/piezas/roca_grande.tscn" id="26_al0ne"]
+[ext_resource type="PackedScene" path="res://arte/piezas/colmena.tscn" id="27_colm1"]
+[ext_resource type="PackedScene" path="res://arte/piezas/nido.tscn" id="28_nido1"]
 
 [node name="Nivel_Bosque_01_v01" type="Node3D" unique_id=1643133698]
 metadata/lado = 52
@@ -44,6 +46,20 @@ data = {
 }
 
 [node name="Piezas" type="Node3D" parent="." unique_id=992274100]
+
+[node name="colmena_13_11" type="Node3D" parent="Piezas" unique_id=1105124527 instance=ExtResource("27_colm1")]
+transform = Transform3D(0.70710678, 0, -0.70710678, 0, 1, 0, 0.70710678, 0, 0.70710678, 31.3, 2.45, 25.6)
+metadata/id = "colmena"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="nido_12_11" type="Node3D" parent="Piezas" unique_id=1105124528 instance=ExtResource("28_nido1")]
+transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 29.2, 1.005, 26.15)
+metadata/id = "nido"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
 
 [node name="empalizada_goblin_35_1" type="Node3D" parent="Piezas" unique_id=1810521383 instance=ExtResource("4_g0l2i")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.65, 1.005, 3.45)

@@ -236,7 +236,7 @@ var _quemado_v: float = 0.0        ## V6: último valor de `quemado` aplicado (0
 var _disolver_v: float = 0.0       ## V6: último valor de `disolver` aplicado (0..1)
 var _mats: Array = []            ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
-var _llama: Node3D = null
+var _llama: FuegoToy = null
 var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
 var _luz: OmniLight3D = null
 var _t: float = 0.0
@@ -359,6 +359,9 @@ func cambiar_visual(nuevo: Node3D, datos: Array = []) -> void:
 			_ajustar_cuerpo(caja, _forma_cuerpo)
 		if is_lit and _luz != null and is_instance_valid(_luz):
 			_luz.position.y = float(datos[0]) + 0.7
+		if is_lit and is_instance_valid(_llama) and tiene_papel(P_FUENTE_FUEGO):
+			_llama.position.y = float(datos[0])
+			_llama.definir(FuegoToy.Figura.PILAR, float(datos[2]), 1.15 * float(datos[1]), float(datos[2]))
 	_pintar_tinte(0.0 if is_lit else 1.0)
 
 
@@ -967,7 +970,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	_t = 0.0
 	_t_contagio = 0.0
 	var d: Array = _num_combustible()
-	_llama = fx.llamas(global_position, float(d[1]), float(d[2]))
+	_llama = VfxReaccion3D.llama_vertical(self, Vector3.ZERO, float(d[2]), 1.15 * float(d[1]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
 	LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
@@ -1102,7 +1105,7 @@ func _quitar_fuego() -> void:
 	Sfx3D.parar(_snd_fuego)
 	_snd_fuego = null
 	if _llama != null and is_instance_valid(_llama):
-		fx.apagar(_llama)
+		_llama.morir()
 	_llama = null
 	if _luz != null and is_instance_valid(_luz):
 		_luz.queue_free()
@@ -1200,14 +1203,13 @@ func _encender(con_efectos: bool) -> void:
 	if con_efectos:
 		_reaccionar(Mundo3D.R_PRENDIDO)             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
 	var d: Array = _num_fuente()
-	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
+	_llama = VfxReaccion3D.llama_vertical(self, Vector3.UP * float(d[0]), float(d[2]), 1.15 * float(d[1]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1 * mult_luz, 3.0 * (1.0 + (mult_luz - 1.0) * 0.5), Vector3(0.0, float(d[0]) + 0.7, 0.0))
 	LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_pintar_tinte(0.0)
 	_pintar_emision(Color(1.0, 0.55, 0.25), 0.25)
 	if con_efectos:
-		fx.chispazo(global_position + Vector3(0.0, float(d[0]) + 0.3, 0.0), "fuego")
 		activado.emit(tipo, "fuego")
 	llama.emit(true)
 	if rele_activo:

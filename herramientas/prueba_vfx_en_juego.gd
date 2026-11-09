@@ -163,7 +163,10 @@ func _con_selector_apagado() -> void:
 			_lanzar(_hz(el, s[1] as Dictionary))
 		await _frames(3)
 		_ok("0 %s: ningún FuegoToy, AguaToy, HieloToy ni RayoToy en el mundo (creados %s)" % [el, str(_tj.creados)], _toys().is_empty() and int(_tj.creados["fuego"]) == 0 and int(_tj.creados["agua"]) == 0 and int(_tj.creados["hielo"]) == 0 and int(_tj.creados["rayo"]) == 0 and int(_tj.creados["magma"]) == 0 and int(_tj.creados["viento"]) == 0 and int(_tj.creados["tierra"]) == 0)
-		_ok("0 %s: VfxElemento3D dibuja como siempre (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= 4 and (_ve.haces() == 1 or ((el == "hielo" or el == "tierra") and _ve.haces() <= 1)))      # el haz de hielo lo dibuja VfxHielo y no cuenta como haz en VfxElemento3D
+		var volumenes: int = 3 if el == "tierra" else 4
+		_ok("0 %s: VfxElemento3D dibuja las formas que no son plataformas (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= volumenes and (_ve.haces() == 1 or ((el == "hielo" or el == "tierra") and _ve.haces() <= 1)))
+		if el == "tierra":
+			_ok("0 tierra: la plataforma tiene representación con el selector apagado", _m.get_node_or_null("PlataformaTierra") != null)
 		_ok("0 %s: sin toy no se ve nada nuevo en el conjuro (ConjuroVfx3D sigue dibujando su forma)" % el, true)
 
 
@@ -192,6 +195,9 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	await _frames(3)
 	var etq: String = "%s · %s" % [el, nombre]
 	var toys: Array = _toys()
+	if h.es_plataforma_tierra():
+		_ok("1 %s: se dibuja una plataforma con superficie plana" % etq, _m.get_node_or_null("PlataformaTierra") != null and toys.is_empty() and _calla_ve())
+		return
 	if toys.is_empty() and el == "hielo" and (not is_instance_valid(hv) or bool(hv.get("_rechazado"))):
 		_ok("1 %s: la lógica rechaza este hechizo de hielo (altura del bloque: cast_rechazado_altura): no hay nada que dibujar" % etq, true)
 		return
@@ -407,8 +413,11 @@ func _carga_en_la_mano() -> void:
 		_lanzar(hm)
 		await create_timer(0.8).timeout
 		var vivos: Array = _toys().filter(func(n: Node) -> bool: return not n.is_queued_for_deletion())
-		_ok("3 %s: con un muro la carga de la mano se apaga y queda UN toy: el muro (toys vivos %d, figura %s)" % [el, vivos.size(), str(vivos[0].get("figura")) if vivos.size() > 0 else "-"],
-			(not is_instance_valid(tm) or tm.is_queued_for_deletion() or tm == vivos[0]) and vivos.size() == 1 and int(vivos[0].get("figura")) == 1)
+		if hm.es_plataforma_tierra():
+			_ok("3 tierra: la carga se retira al aparecer la plataforma", vivos.is_empty() and _m.get_node_or_null("PlataformaTierra") != null)
+		else:
+			_ok("3 %s: con un muro la carga de la mano se apaga y queda UN toy: el muro (toys vivos %d, figura %s)" % [el, vivos.size(), str(vivos[0].get("figura")) if vivos.size() > 0 else "-"],
+				vivos.size() == 1 and (not is_instance_valid(tm) or tm.is_queued_for_deletion() or tm == vivos[0]) and int(vivos[0].get("figura")) == 1)
 		# sin disparo (la jugadora muere): la carga se retira al empezar otro conjuro
 		_montar()
 		_l.conjuro_actual = {"hechizo": h, "carga": 0.0}
@@ -476,11 +485,14 @@ func _de_serie() -> void:
 		var toy: bool = el == "fuego" or el == "agua"
 		for s in SEIS:
 			_montar()
-			_lanzar(_hz(el, s[1] as Dictionary))
+			var forma: Hechizo = _hz(el, s[1] as Dictionary)
+			_lanzar(forma)
 			await _frames(3)
 			var n: int = _toys().size()
 			var etq: String = "%s · %s" % [el, String(s[0])]
-			if toy:
+			if forma.es_plataforma_tierra():
+				_ok("5 %s: la plataforma conserva su dibujo" % etq, n == 0 and _m.get_node_or_null("PlataformaTierra") != null and _calla_ve())
+			elif toy:
 				_ok("5 %s: UN toy (%d) y VfxElemento3D se calla (proy %d, vol %d, haces %d)" % [etq, n, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], n == 1 and _ve.proyectiles() == 0 and _ve.volumenes() == 0 and _ve.haces() == 0)
 			else:
 				var dibuja: bool = _ve.proyectiles() + _ve.volumenes() + _ve.haces() >= 1 or el == "hielo"      # el hielo sólido lo dibuja también VfxHielo fuera de VfxElemento3D
@@ -576,6 +588,9 @@ func _toys_nuevos() -> void:
 		_lanzar(hz)
 		await _frames(4)
 		var ts2: Array = _toys()
+		if hz.es_plataforma_tierra():
+			_ok("6 tierra · %s: plataforma propia, sin dibujo duplicado" % caso[0], _m.get_node_or_null("PlataformaTierra") != null and ts2.is_empty() and _calla_ve())
+			continue
 		var rep: int = int((caso[1] as Dictionary).get("repeticion", 1))
 		_ok("6 tierra · %s: %d TierraToy (creados %d), luces %d (0), VfxElemento3D callado" % [caso[0], ts2.size(), int(_tj.creados["tierra"]), _luces_de(ts2)], ts2.size() >= 1 and ts2.size() == int(_tj.creados["tierra"]) and ts2.all(func(n: Node) -> bool: return n is TierraToy) and _luces_de(ts2) == 0 and (rep < 2 or ts2.size() >= 2 or String(caso[0]) == "proyectil") and _calla_ve())
 	# TIERRA proyectil: impacto

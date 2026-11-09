@@ -36,6 +36,7 @@ static var SOL_INCLINACION_EXTRA: float = 0.0       ## grados que se SUMAN al `s
 ## Multiplican la energía del sol y del ambiente de cualquier zona, encima del ciclo. 1 = como siempre.
 ## 5/11: AMBIENTE_FACTOR se escribe en `sky_energy_multiplier`/`ground_energy_multiplier` del cielo, porque con el ambiente tomado del cielo (`AMBIENT_SOURCE_SKY`, contribución 1)
 ## `ambient_light_energy` no cambia nada (medido 5/11: a 0 la sombra seguía al 77 % del sol; la energía del cielo a 0,5 la deja en ≈ 50 %).
+const META_FACTORES_LOCALES: StringName = &"factores_luz_locales"
 static var SOL_FACTOR: float = 1.0
 static var AMBIENTE_FACTOR: float = 1.0
 const ZONAS: Dictionary = {
@@ -126,14 +127,20 @@ static func siguiente(actual: String) -> String:
 	return String(ORDEN[(i + 1) % ORDEN.size()])
 
 
+## Multiplicadores de ambiente y sol de esta escena. Los perfiles y sus mezclas siguen siendo la fuente de color.
+static func _factores_locales(env: Environment) -> Vector2:
+	return env.get_meta(META_FACTORES_LOCALES, Vector2.ONE) if env != null else Vector2.ONE
+
+
 ## Pone la zona en el entorno y el sol. No crea nodos: modifica los que le pasan. Devuelve false (sin tocar nada) si la zona no existe.
 static func aplicar(env: Environment, sol: DirectionalLight3D, zona: String) -> bool:
 	if not ZONAS.has(zona):
 		return false
 	var z: Dictionary = ZONAS[zona]
+	var factores: Vector2 = _factores_locales(env)
 	if sol != null:
 		sol.light_color = z["sol_color"]
-		sol.light_energy = float(z["sol_energia"]) * SOL_FACTOR
+		sol.light_energy = float(z["sol_energia"]) * SOL_FACTOR * factores.y
 		sol.rotation_degrees = Vector3(float(z["sol_pitch"]), float(z["sol_yaw"]), 0.0)
 		sol.directional_shadow_mode = int(z.get("sombra_modo", SOMBRA_MODO)) as DirectionalLight3D.ShadowMode
 		sol.directional_shadow_max_distance = float(z.get("sombra_distancia", SOMBRA_DISTANCIA))
@@ -174,9 +181,10 @@ static func mezclar(a: Dictionary, b: Dictionary, t: float) -> Dictionary:
 static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictionary) -> void:
 	if v.is_empty():
 		return
+	var factores: Vector2 = _factores_locales(env)
 	if sol != null:
 		sol.light_color = v["sol_color"]
-		sol.light_energy = float(v["sol_energia"]) * SOL_FACTOR
+		sol.light_energy = float(v["sol_energia"]) * SOL_FACTOR * factores.y
 		sol.rotation_degrees = Vector3(clampf(float(v["sol_pitch"]) + SOL_INCLINACION_EXTRA, -89.0, -5.0), float(v["sol_yaw"]), 0.0)
 		sol.shadow_opacity = SOMBRA_OPACIDAD
 		# 5/11: el blur y la distancia también se reescriben aquí: con el ciclo en marcha este es el único sitio que escribe en el sol cada fotograma, y si no SOMBRA_BLUR (panel F3, capa 1) no se veía.
@@ -196,9 +204,9 @@ static func aplicar_valores(env: Environment, sol: DirectionalLight3D, v: Dictio
 	mat.ground_horizon_color = medio
 	mat.ground_bottom_color = abajo
 	# 5/11: la energía real del ambiente la fija el cielo (ver AMBIENTE_FACTOR).
-	mat.sky_energy_multiplier = AMBIENTE_FACTOR
-	mat.ground_energy_multiplier = AMBIENTE_FACTOR
-	env.ambient_light_energy = float(v["ambiente_energia"]) * AMBIENTE_FACTOR
+	mat.sky_energy_multiplier = AMBIENTE_FACTOR * _factores_locales(env).x
+	mat.ground_energy_multiplier = AMBIENTE_FACTOR * _factores_locales(env).x
+	env.ambient_light_energy = float(v["ambiente_energia"]) * AMBIENTE_FACTOR * factores.x
 
 
 ## La sombra de una zona (lo que no se interpola): al terminar el cambio.
@@ -223,8 +231,8 @@ static func ambiente_dos_colores(env: Environment, arriba: Color, abajo: Color, 
 	mat.sky_curve = 0.15
 	mat.ground_curve = 0.15
 	# 5/11: la energía real del ambiente la fija el cielo (ver AMBIENTE_FACTOR).
-	mat.sky_energy_multiplier = AMBIENTE_FACTOR
-	mat.ground_energy_multiplier = AMBIENTE_FACTOR
+	mat.sky_energy_multiplier = AMBIENTE_FACTOR * _factores_locales(env).x
+	mat.ground_energy_multiplier = AMBIENTE_FACTOR * _factores_locales(env).x
 	mat.sun_angle_max = 0.0              # sin disco de sol pintado en el cielo: el sol real es la DirectionalLight3D
 	var cielo := Sky.new()
 	cielo.sky_material = mat
@@ -232,7 +240,7 @@ static func ambiente_dos_colores(env: Environment, arriba: Color, abajo: Color, 
 	env.sky = cielo
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_sky_contribution = 1.0
-	env.ambient_light_energy = energia
+	env.ambient_light_energy = energia * _factores_locales(env).x
 
 
 ## --- Agua EoW (22/10, PLAN_EOW_VISUAL §1.6): UNA SONDA POR SALA. ---

@@ -97,7 +97,7 @@ void fragment() {
 ## (albedo_color, emisión) y `Pj3D.sincronizar_juguete()` lo copia cada fotograma a los uniforms de este shader. Así Combate3D no se toca.
 ##  - Color: textura del modelo × `albedo_color` (el tinte), sin normal map ni especular PBR (un normal map de Meshy ensucia el aspecto plano).
 ##  - Luz (función light()): half-lambert con rampa de 3 tonos suaves (smoothstep) × sombras del sol (ATTENUATION); la parte en sombra NO es negra:
-##    recibe `sombra_color` (frío/cálido según la zona) × `piso_sombra`.
+##    recibe `amb_sombra_pers` (global de Ambiente3D; frío/cálido según la zona) × `piso_sombra`.
 ##  - MATCAP: textura de esfera PROCEDURAL (`textura_matcap()`, un lóbulo suave arriba-izquierda; ver su comentario) indexada por la normal en espacio de
 ##    vista. Se suma como emisión proporcional al color (no lava el color) con `matcap_intensidad`: el brillo ancho de plástico de juguete.
 ##  - `plano` = 1 (modo_luz 0 del laboratorio): sin luz, sin matcap, color puro (equivale al UNSHADED de antes).
@@ -111,7 +111,7 @@ uniform vec4 emision : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float emision_energia = 0.0;
 uniform sampler2D matcap : filter_linear, repeat_disable;
 uniform float matcap_intensidad : hint_range(0.0, 1.5) = 0.35;
-uniform vec3 sombra_color : source_color = vec3(0.62, 0.62, 0.85);
+global uniform vec4 amb_sombra_pers;   // lo que llega a la sombra del personaje (rgb) y contraste (a): Ambiente3D
 uniform float piso_sombra : hint_range(0.0, 1.0) = 0.3;
 uniform float brillo_luz : hint_range(0.3, 1.5) = 0.85;
 uniform float plano = 0.0;
@@ -130,14 +130,13 @@ void light() {
 	float w = dot(NORMAL, LIGHT) * 0.5 + 0.5;
 	float tono = 0.5 * smoothstep(0.15, 0.40, w) + 0.5 * smoothstep(0.55, 0.80, w);
 	float lit = tono * ATTENUATION;
-	vec3 pasos = mix(sombra_color * piso_sombra, vec3(brillo_luz), lit);
+	vec3 pasos = mix(amb_sombra_pers.rgb * piso_sombra, vec3(brillo_luz), lit);
 	DIFFUSE_LIGHT += LIGHT_COLOR / PI * pasos * (1.0 - plano);
 }
 """
 
 ## Cuánto brilla el matcap, el suelo de la sombra tintada y la compensación de brillo de la rampa (más generosa que Lambert).
 const MATCAP_INTENSIDAD: float = 0.35
-const SOMBRA_JUGUETE_COLOR: Color = Color(0.62, 0.62, 0.85)   ## sombra fría y suave (violeta-azulada); en zonas cálidas se puede cambiar con Pj3D.set_sombra_juguete
 const PISO_SOMBRA: float = 0.3
 const BRILLO_LUZ: float = 0.85
 const MATCAP_TAMANO: int = 64
@@ -166,6 +165,7 @@ static func textura_matcap() -> ImageTexture:
 
 ## El material de juguete para una superficie opaca. `base` es el StandardMaterial3D duplicado del modelo (de él salen la textura y el color de partida).
 static func juguete(base: StandardMaterial3D) -> ShaderMaterial:
+	Ambiente3D.preparar_global()   # antes de compilar: el shader declara amb_sombra_pers
 	var sh := Shader.new()
 	sh.code = CODIGO_JUGUETE.replace("cull_back", "cull_disabled") if base.cull_mode == BaseMaterial3D.CULL_DISABLED else CODIGO_JUGUETE   # la elfa viene a doble cara
 	var m := ShaderMaterial.new()
@@ -175,7 +175,6 @@ static func juguete(base: StandardMaterial3D) -> ShaderMaterial:
 		m.set_shader_parameter("albedo_tex", base.albedo_texture)
 	m.set_shader_parameter("matcap", textura_matcap())
 	m.set_shader_parameter("matcap_intensidad", MATCAP_INTENSIDAD)
-	m.set_shader_parameter("sombra_color", Vector3(SOMBRA_JUGUETE_COLOR.r, SOMBRA_JUGUETE_COLOR.g, SOMBRA_JUGUETE_COLOR.b))
 	m.set_shader_parameter("piso_sombra", PISO_SOMBRA)
 	m.set_shader_parameter("brillo_luz", BRILLO_LUZ)
 	copiar_estado(base, m)

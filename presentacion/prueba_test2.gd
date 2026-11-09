@@ -276,7 +276,7 @@ uniform vec2 alb_tierra = vec2(1.0);
 uniform vec2 alb_piedra = vec2(1.0);
 uniform float alb_mip = 12.0;
 uniform float contraste = 2.5;                                          // rampa de luz: 1 = como el PBR · 4 = cel
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);      // lo que llega a la sombra: frío y pastel
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 // Rugosidad: relieve fino por mapa de normales (ruido generado si no hay textura). Con la rampa de luz, los bultos
 // salen como moteado claro/oscuro, que es lo que hace que la arena y la tierra no parezcan una lámina lisa.
 uniform sampler2D normal_suelo : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -285,6 +285,16 @@ uniform sampler2D normal_suelo : hint_normal, filter_linear_mipmap, repeat_enabl
 uniform sampler2D mojado_fisico : hint_default_black, filter_linear, repeat_disable;
 uniform vec4 mojado_rect = vec4(0.0, 0.0, 1.0, 1.0);   // x0, z0, ancho y alto (u) de la zona que cubre la textura
 uniform float mojado_activo = 0.0;
+uniform sampler2D ribera_mascara : hint_default_black, filter_linear, repeat_disable;
+uniform bool ribera_activa = false;
+uniform sampler2D manta_bosque : hint_default_black, filter_linear, repeat_disable;
+uniform bool manta_bosque_activa = false;
+uniform bool junta_vegetal_suave = false;
+uniform bool junta_piedra_suave = false;
+uniform bool ruina_integrada = false;
+uniform vec2 centro_ruina;
+uniform bool acceso_cueva_integrado = false;
+uniform bool respetar_especular_luz = false;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
@@ -414,12 +424,62 @@ void fragment() {
 		s = w.r + w.g + w.b + w.a;
 	}
 	w /= max(s, 0.0001);
+	float apaga = 1.0 - smoothstep(0.05, 0.4, texture(mapa_fuera, uvm).r);
+	float junta_vegetal = 0.0;
+	if (junta_vegetal_suave) {
+		// La mezcla filtrada de los materiales da una transición más ancha que el umbral de cada casilla.
+		float seco = w0.g + w0.b;
+		junta_vegetal = smoothstep(0.01, 0.17, w0.r) * smoothstep(0.01, 0.17, seco);
+		junta_vegetal *= apaga * (1.0 - smoothstep(0.04, 0.20, w0.a));
+			w = mix(w, w0 / max(dot(w0, vec4(1.0)), 0.0001), junta_vegetal);
+	}
+	float junta_piedra = 0.0;
+	if (junta_piedra_suave) {
+		// Solo el contorno de la piedra mezcla con el terreno vecino; el dibujo de las juntas interiores se conserva.
+		junta_piedra = smoothstep(0.01, 0.18, w0.a) * smoothstep(0.01, 0.18, w0.r + w0.g + w0.b) * apaga;
+		w = mix(w, w0 / max(dot(w0, vec4(1.0)), 0.0001), junta_piedra);
+	}
 	vec2 t = pm.xz / tam_tex;
 	float m = smoothstep(0.3, 0.7, r.b);
+	vec3 losa = mp(t, m);
+	if (ruina_integrada && junta_piedra > 0.0) {
+		// El sedimento ocupa primero los tonos hundidos de la losa y deja visibles las caras claras.
+		float cerca_ruina = 1.0 - smoothstep(4.0, 8.0, distance(pm.xz, centro_ruina));
+		float relieve_losa = dot(losa, vec3(0.2126, 0.7152, 0.0722));
+		float grano = (texture(campo, c / lado * 7.0).g - 0.5) * 0.14;
+		float asoma = smoothstep(0.34, 0.67, w.a + (relieve_losa - 0.35) * 0.70 + grano);
+		float piedra = mix(w.a, asoma, junta_piedra * cerca_ruina * 0.94);
+		w.rgb *= (1.0 - piedra) / max(1.0 - w.a, 0.0001);
+		w.a = piedra;
+	}
 	vec3 col = mh(t, m) * w.r + mc(t, m) * w.g
-		+ mt(t, m) * w.b + mp(t, m) * w.a;
-	float apaga = 1.0 - smoothstep(0.05, 0.4, texture(mapa_fuera, uvm).r);   // joints: junto a agua, cauce o huecos no hay tira
+		+ mt(t, m) * w.b + losa * w.a;
+	if (junta_vegetal > 0.0) {
+		// Un tono intermedio menos saturado en el centro, sin deslavar el interior de la hierba o de la tierra.
+		float medio = 1.0 - abs(2.0 * w.r - 1.0);
+		float valor = dot(col, vec3(0.2126, 0.7152, 0.0722));
+		col = mix(col, vec3(valor * 1.04, valor, valor * 0.83), junta_vegetal * medio * 0.33);
+	}
+	if (manta_bosque_activa) {
+		float copa = texture(manta_bosque, c / lado).r;
+		copa *= 0.68 + 0.32 * smoothstep(0.25, 0.72, r.a);
+		float suelo_vegetal = clamp(w.r + w.b + w.g * 0.22, 0.0, 1.0);
+		vec3 humus = mix(mt(t, m), col * vec3(0.76, 0.75, 0.68), 0.42);
+		col = mix(col, humus, copa * suelo_vegetal * 0.82);
+	}
+	float humedad_ribera = 0.0;
+	if (ribera_activa) {
+		// Un solo campo da la transición de sedimento y la humedad de contacto.
+		float ribera = texture(ribera_mascara, c / lado).r;
+		ribera = clamp(ribera + (r.g - 0.5) * 0.35 * smoothstep(0.0, 0.25, ribera), 0.0, 1.0);
+		float sedimento = smoothstep(0.04, 0.70, ribera);
+		humedad_ribera = smoothstep(0.48, 0.98, ribera);
+		vec3 limo = mix(mc(t, m), mt(t, m), 0.52);
+		col = mix(col, limo, sedimento * 0.82);
+		col *= mix(vec3(1.0), vec3(0.62, 0.68, 0.65), humedad_ribera);
+	}
 	if (par_fuerza > 0.0) {
+		float relieve_piedra = mix(1.0, 0.28, junta_piedra);
 		vec3 cg = mc(t, m);
 		vec3 cb = mt(t, m);
 		vec3 ca = mp(t, m);
@@ -433,14 +493,14 @@ void fragment() {
 			float mk = joint_migas(0.0, joint_ct, sdp, vec4(0.0, 1.0, -1.0, 0.0), nrmj, c, pm.xz, cg, joint_tinte_ct, cmj) * pw * apaga * joints_fuerza;
 			col = mix(col, cmj, mk);
 		}
-		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw, sdp, nrmj), pw * par_fuerza);
+		col = mix(col, pareja(cg, ca, vec4(0.0, 1.0, 0.0, -1.0), par_lame.y, par_ruido.y, uvm, fino, pw, sdp, nrmj), pw * par_fuerza * relieve_piedra);
 		if (joints_fuerza > 0.0 && pw > 0.0) {      // camino→piedra
-			float mk = joint_migas(1.0, joint_cp, sdp, vec4(0.0, 1.0, 0.0, -1.0), nrmj, c, pm.xz, cg, joint_tinte_cp, cmj) * pw * apaga * joints_fuerza;
+			float mk = joint_migas(1.0, joint_cp, sdp, vec4(0.0, 1.0, 0.0, -1.0), nrmj, c, pm.xz, cg, joint_tinte_cp, cmj) * pw * apaga * joints_fuerza * relieve_piedra;
 			col = mix(col, cmj, mk);
 		}
-		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw, sdp, nrmj), pw * par_fuerza);
+		col = mix(col, pareja(cb, ca, vec4(0.0, 0.0, 1.0, -1.0), par_lame.z, par_ruido.z, uvm, fino, pw, sdp, nrmj), pw * par_fuerza * relieve_piedra);
 		if (joints_fuerza > 0.0 && pw > 0.0) {      // tierra→piedra
-			float mk = joint_migas(2.0, joint_tp, sdp, vec4(0.0, 0.0, 1.0, -1.0), nrmj, c, pm.xz, cb, joint_tinte_tp, cmj) * pw * apaga * joints_fuerza;
+			float mk = joint_migas(2.0, joint_tp, sdp, vec4(0.0, 0.0, 1.0, -1.0), nrmj, c, pm.xz, cb, joint_tinte_tp, cmj) * pw * apaga * joints_fuerza * relieve_piedra;
 			col = mix(col, cmj, mk);
 		}
 	}
@@ -455,15 +515,22 @@ void fragment() {
 		if (gl > 0.2) {
 			float sb = (0.5 - texture(mapa, uvm).r) / gl * celda;
 			vec2 nb = -gb / gl;                                               // hacia el otro suelo
+			float suaviza_borde = 0.0;
+			if (junta_vegetal_suave || junta_piedra_suave) {
+				vec4 vecino = texture(mapa, uvm + nb * (0.75 / lado));
+				float seco = junta_vegetal_suave ? vecino.g + vecino.b : 0.0;
+				float piedra = junta_piedra_suave ? vecino.a : 0.0;
+				suaviza_borde = smoothstep(0.15, 0.64, seco + piedra) * apaga;
+			}
 			float fb = smoothstep(0.2, 0.5, gl);                              // en esquinas y huecos sueltos el gradiente es poco fiable: se apaga
 			// La hierba pegada a la frontera, más oscura (solo en su lado).
 			float oscuro = (1.0 - smoothstep(0.0, 1.2 * borde_ancho, -sb)) * step(sb, 0.0);
-			col *= mix(1.0, borde_oscuro, oscuro * w.r * fb * borde_fuerza);
+			col *= mix(1.0, borde_oscuro, oscuro * w.r * fb * borde_fuerza * (1.0 - suaviza_borde));
 			// La hierba invade la tierra: matas sueltas (manchas de ruido) en la tierra junto a la frontera, cada vez más raras.
 			if (invade_hierba > 0.0 || joints_fuerza > 0.0) {
 				float mata = smoothstep(0.58, 0.66, texture(campo, c / lado * 5.3).b + (texture(campo, c / lado * 9.1).g - 0.5) * 0.35);
 				float cerca = (1.0 - smoothstep(0.1, 1.5 * borde_ancho + 0.6, sb)) * step(0.0, sb);
-				col = mix(col, mh(t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza);
+				col = mix(col, mh(t, m) * borde_tinte, mata * cerca * w.b * fb * invade_hierba * borde_fuerza * mix(1.0, 0.22, suaviza_borde));
 				// joints (hierba→camino, hierba→piedra): matas sueltas sobre el camino y entre las losas, con su propio alcance.
 				if (joints_fuerza > 0.0) {
 					float cj = (1.0 - smoothstep(0.1, max(dot(w.gba, joint_matas_ancho), 0.11), sb)) * step(0.0, sb);
@@ -476,7 +543,7 @@ void fragment() {
 				vec4 ot = texture(mapa, uvm + nb * (0.75 / lado));          // qué hay al otro lado de la frontera: camino (G) o piedra (A); tierra no tiene fila
 				vec3 rgbl;
 				float al = lamina_tira(ot.a > ot.g ? 4.0 : 3.0, nb, sb + (texture(campo, c / lado).a - 0.5) * 0.5, pm.xz, rgbl);
-				cubre = al * clamp(ot.g + ot.a, 0.0, 1.0) * apaga * fb * joints_fuerza * joints_lamina;
+				cubre = al * clamp(ot.g + ot.a, 0.0, 1.0) * apaga * fb * joints_fuerza * joints_lamina * (1.0 - suaviza_borde);
 				col = mix(col, rgbl * mix(vec3(1.0), borde_tinte, 0.5), cubre);       // el tinte de las hojas, a medias: la hierba del atlas ya es del tono bueno
 			}
 			// La franja: v = 0 en su lado de hierba (65 % del alto) y v = 1 en el lado deshilachado (35 %), que cae sobre el otro suelo.
@@ -484,10 +551,17 @@ void fragment() {
 			if (vb > 0.0 && vb < 1.0) {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
-				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre));
+				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre) * (1.0 - suaviza_borde));
 			}
 
 		}
+	}
+	float humedad_cueva = 0.0;
+	if (acceso_cueva_integrado) {
+		vec2 acceso = (pm.xz - centro_ruina) / vec2(5.2, 2.9);
+		humedad_cueva = 1.0 - smoothstep(0.10, 1.0, length(acceso));
+		vec3 roca_fria = mix(col * vec3(0.65, 0.75, 0.82), losa * vec3(0.59, 0.73, 0.77), 0.48);
+		col = mix(col, roca_fria, humedad_cueva * 0.88);
 	}
 	// Estado por celda (ESTADOS_SUELO.md §4). uvm ya lleva el ruido de borde: la ceniza y el charco quedan orgánicos.
 	vec4 e = texture(estado_juego, uvm);
@@ -562,8 +636,8 @@ void fragment() {
 	col = mix(col, col * tinte_corro, cr.r * fuerza_corro * w.r);
 	col = mix(col, col * tinte_calva, cr.g * fuerza_corro * w.r);
 	ALBEDO = col * brillo * (1.0 + (r.a - 0.5) * 2.0 * variacion);
-	ROUGHNESS = rug;
-	SPECULAR = espec;
+	ROUGHNESS = min(rug, mix(1.0, 0.62, max(humedad_ribera, humedad_cueva * 0.65)));
+	SPECULAR = max(espec, humedad_ribera * 0.22);
 	// Relieve: dos escalas del mismo mapa (gruesa y fina) para que no se vea la repetición; la escarcha lo alisa,
 	// la hierba lo suaviza (sus briznas ya dan textura) y la piedra lo marca más.
 	vec2 tr = pm.xz / tam_rugosidad;
@@ -586,13 +660,14 @@ void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		// Rampa suave en vez de coseno: tapa clara, sombra fría. ATTENUATION lleva la sombra proyectada.
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
-	// El suelo mojado brilla un poco (el seco no tiene especular).
+	// La luz portátil conserva el relieve sin convertir la humedad en un reflejo blanco.
 	vec3 h = normalize(VIEW + LIGHT);
-	SPECULAR_LIGHT += pow(max(dot(NORMAL, h), 0.0), 40.0) * (1.0 - ROUGHNESS) * LIGHT_COLOR * ATTENUATION;
+	float especular_luz = respetar_especular_luz && !LIGHT_IS_DIRECTIONAL ? SPECULAR_AMOUNT : 1.0;
+	SPECULAR_LIGHT += pow(max(dot(NORMAL, h), 0.0), 40.0) * (1.0 - ROUGHNESS) * LIGHT_COLOR * ATTENUATION * especular_luz;
 }
 """
 
@@ -619,7 +694,7 @@ uniform float fuerza_normal = 0.5;      // 6.16: más ondas (antes 0,35)
 uniform float ancho_espuma = 0.16;
 uniform float brillo = 1.0;
 uniform float contraste = 1.5;
-uniform vec3 sombra_tinte : source_color = vec3(0.34, 0.36, 0.46);
+global uniform vec4 amb_sombra;     // lo que llega a la sombra (rgb) y contraste base (a): Ambiente3D
 // 13/10 · AGUA ESTILIZADA (el aspecto de paddy-exe/Godot-3D-Stylized-Water, MIT, rehecho sin profundidad de escena):
 // facetas planas que se inclinan con las olas (low-poly), dos tonos en bandas por la distancia a la orilla, línea de espuma
 // nítida junto a tierra y manchas de espuma de dos ruidos que corren en sentidos opuestos. 0 = el agua pintada de antes.
@@ -707,7 +782,7 @@ void fragment() {
 void light() {
 	if (LIGHT_IS_DIRECTIONAL) {
 		float luz = smoothstep(0.0, 1.0, clamp(dot(NORMAL, LIGHT) * contraste, 0.0, 1.0)) * ATTENUATION;
-		DIFFUSE_LIGHT += mix(sombra_tinte, vec3(1.0), luz) * LIGHT_COLOR / PI;
+		DIFFUSE_LIGHT += mix(amb_sombra.rgb, vec3(1.0), luz) * LIGHT_COLOR / PI;
 	} else {
 		DIFFUSE_LIGHT += max(dot(NORMAL, LIGHT), 0.0) * ATTENUATION * LIGHT_COLOR / PI;
 	}
@@ -1219,6 +1294,11 @@ func _ready() -> void:
 	_colocar_empujables()
 	_sembrar_adornos()
 	_construir_lotes()
+	if _contacto_tex != null:
+		_construir_ruina_integrada()
+		_tex_manta_bosque = _generar_manta_bosque()
+		_mat_suelo.set_shader_parameter("manta_bosque", _tex_manta_bosque)
+		_mat_suelo.set_shader_parameter("manta_bosque_activa", _materiales_integrados)
 	_sembrar_hierba()
 	_ambiente()
 	for b in _bibliotecas:
@@ -1251,6 +1331,17 @@ func _ready() -> void:
 	_hud.add_theme_constant_override("outline_size", 6)
 	capa.add_child(_hud)
 	_actualizar_hud()
+	if _contacto_tex != null:
+		_contacto_aviso = Label.new()
+		capa.add_child(_contacto_aviso)
+		_contacto_aviso.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_contacto_aviso.offset_left = -265.0
+		_contacto_aviso.offset_right = -12.0
+		_contacto_aviso.offset_top = 82.0
+		_contacto_aviso.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_contacto_aviso.add_theme_constant_override("outline_size", 6)
+		_contacto_aviso.add_theme_color_override("font_outline_color", Color.BLACK)
+		_actualizar_aviso_contacto()
 	_precalentar(capa)
 	Jugador3D.montar(self)
 	# 16/10 (T6b): el VFX del conjuro (voluta del libro a la mano y forma en la mano, por elemento). Escucha `conjuro_fase` del Lanzador3D del Juego.
@@ -1496,6 +1587,245 @@ func _aplicar_joints(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("joints_ancho4", anchos[4])
 
 
+var _contacto_img: Image
+var _contacto_tex: ImageTexture
+var _contacto_colores: Array[Color] = []
+var _contacto_rocas: Array[ShaderMaterial] = []
+var _contacto_activo: bool = true
+var _ribera_activa: bool = true
+@export_group("Ribera curva", "ribera_")
+## Ruido de la silueta. La frecuencia se mide en coordenadas de mundo.
+@export var ribera_ruido: FastNoiseLite
+## Ancho de partida de la pendiente, en unidades de mundo.
+@export_range(0.06, 0.85, 0.01) var ribera_ancho: float = 0.48
+## Cuánto puede ensancharse o estrecharse la ribera por el ruido.
+@export_range(0.0, 0.75, 0.01) var ribera_amplitud: float = 0.48
+@export_group("")
+var _ribera_curva: MeshInstance3D
+var _tramos_ribera: Array = []
+var _forma_ribera_activa: bool = true
+var _contacto_aviso: Label
+var _copas_integradas: bool = true
+var _descarga_integrada: bool = true
+var _materiales_integrados: bool = true
+var _junta_vegetal_suave: bool = true
+var _junta_piedra_suave: bool = true
+var _ruina_integrada: bool = true
+var _detalle_ruina: Node3D
+var _ribera_con_cantos: bool = true
+var _cantos_ribera: MultiMeshInstance3D
+var _vistas_abiertas: bool = true
+var _arboles_vista: Array[Dictionary] = []
+var _entrada_cueva_integrada: bool = true
+var _piedras_umbral: MultiMeshInstance3D
+var _marca_cueva: MeshInstance3D
+var _materiales_musgo: Array[ShaderMaterial] = []
+const RuinaVegetacion = preload("res://presentacion/ruina_vegetacion_3d.gd")
+var _tex_manta_bosque: ImageTexture
+var _materiales_copas: Array[ShaderMaterial] = []
+const VERDES_COPA: Dictionary = {
+	"pino": Color("6C8652"),
+	"pino_2": Color("6C8652"),
+	"arbol_redondo": Color("8B9B58"),
+	"arbol_redondo_2": Color("8B9B58"),
+	"arbol_viejo": Color("7A904F"),
+	"sauce": Color("82985E"),
+}
+
+
+## Albedo medio por material, en lineal y en la misma cuadrícula que el suelo.
+## El filtrado suaviza el cambio en el contacto sin leer el suelo ya iluminado.
+func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
+	if nivel != "Bosque_01_v01":
+		return
+	for familia in ["hierba", "camino", "tierra", "piedra"]:
+		var tex: Texture2D = mat.get_shader_parameter("t_" + familia)
+		var media: Vector3 = Albedos3D.media_lineal(tex)
+		var ajuste: Vector2 = mat.get_shader_parameter("alb_" + familia)
+		_contacto_colores.append(Color(media.x, media.y, media.z) * ajuste.y)
+	_contacto_img = Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBF)
+	for y in range(_lado):
+		for x in range(_lado):
+			_pintar_contacto(Vector2i(x, y))
+	_contacto_tex = ImageTexture.create_from_image(_contacto_img)
+
+
+func _pintar_contacto(c: Vector2i) -> void:
+	var tipo: Color = _img_mapa.get_pixelv(c)
+	var indice: int = 0 if tipo.r > 0.5 else (1 if tipo.g > 0.5 else (2 if tipo.b > 0.5 else 3))
+	_contacto_img.set_pixelv(c, _contacto_colores[indice])
+
+
+func _construir_ruina_integrada() -> void:
+	var arcos: Array = _lotes.get("arco_ruina", [])
+	if arcos.is_empty():
+		return
+	var ubicacion: Transform3D = arcos[0]
+	var plantas: ArrayMesh = RuinaVegetacion.enredaderas(_plantilla("arco_ruina"))
+	if plantas == null:
+		return
+	_detalle_ruina = Node3D.new()
+	_detalle_ruina.name = "DetalleRuina"
+	_detalle_ruina.transform = ubicacion
+	_props.add_child(_detalle_ruina)
+	var enredaderas := MeshInstance3D.new()
+	enredaderas.name = "Enredaderas"
+	enredaderas.mesh = plantas
+	enredaderas.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_detalle_ruina.add_child(enredaderas)
+	for lado in [-1.0, 1.0]:
+		var sombra: MeshInstance3D = SombraContacto3D.poner(_detalle_ruina, 1.50, 1.62, 0.024, 0.44)
+		sombra.position.x = lado * 1.02
+	_mat_suelo.set_shader_parameter("centro_ruina", Vector2(ubicacion.origin.x, ubicacion.origin.z))
+	_aplicar_ruina_integrada()
+	_montar_umbral_cueva(ubicacion)
+	_aplicar_acceso_cueva.call_deferred()
+
+
+func _montar_umbral_cueva(ubicacion: Transform3D) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = BordePiedras3D._malla_canto(true)
+	mm.instance_count = 5
+	for i in mm.instance_count:
+		var lado: float = -1.0 if i % 2 == 0 else 1.0
+		var p := Vector3(lado * (0.85 + 0.13 * floorf(float(i) * 0.5)), 0.006, -0.75 - 0.18 * i)
+		var tam: float = 0.32 + 0.035 * i
+		var base := Basis(Vector3.UP, i * 1.17)
+		mm.set_instance_transform(i, Transform3D(base.scaled(Vector3(tam * 1.2, 0.12, tam)), p))
+		mm.set_instance_color(i, Color("758680").lerp(Color("84938B"), float(i) / 4.0))
+	_piedras_umbral = MultiMeshInstance3D.new()
+	_piedras_umbral.name = "PiedrasUmbralCueva"
+	_piedras_umbral.multimesh = mm
+	_piedras_umbral.transform = ubicacion
+	_props.add_child(_piedras_umbral)
+
+
+func _aplicar_acceso_cueva() -> void:
+	_mat_suelo.set_shader_parameter("acceso_cueva_integrado", _entrada_cueva_integrada)
+	_piedras_umbral.visible = _entrada_cueva_integrada
+	if _marca_cueva == null:
+		for salida in get_tree().get_nodes_in_group("salida_nivel"):
+			if salida is SalidaNivel3D and salida.destino == "Cueva:desde_bosque" and is_ancestor_of(salida):
+				_marca_cueva = salida.get_node_or_null("marca_46_18") as MeshInstance3D
+				break
+	if _marca_cueva != null:
+		_marca_cueva.visible = not _entrada_cueva_integrada
+
+
+func _aplicar_ruina_integrada() -> void:
+	_detalle_ruina.visible = _ruina_integrada
+	_mat_suelo.set_shader_parameter("ruina_integrada", _ruina_integrada)
+	for mat in _materiales_musgo:
+		mat.set_shader_parameter("musgo_ruina", 0.92 if _ruina_integrada else 0.0)
+
+
+func _preparar_musgo_ruina(mat: Material, caja: AABB) -> void:
+	if mat is ShaderMaterial and caja.size.y > 0.001:
+		var sm: ShaderMaterial = mat
+		sm.set_shader_parameter("musgo_altura", Vector2(caja.position.y, caja.size.y))
+		_materiales_musgo.append(sm)
+
+
+func _preparar_contacto_roca(mat: Material, caja: AABB) -> void:
+	if not mat is ShaderMaterial or caja.size.y <= 0.001:
+		return
+	var sm: ShaderMaterial = mat
+	sm.set_shader_parameter("contacto_suelo", _contacto_tex)
+	sm.set_shader_parameter("fuerza_contacto", 0.7 if _contacto_activo else 0.0)
+	sm.set_shader_parameter("contacto_extension", float(_lado) * S)
+	sm.set_shader_parameter("piedra_mate", 0.85 if _materiales_integrados else 0.0)
+	sm.set_shader_parameter("contacto_altura", Vector2(caja.position.y, caja.position.y + caja.size.y * 0.60))
+	_contacto_rocas.append(sm)
+
+
+func _preparar_paleta_copa(mat: Material, objetivo: Color) -> void:
+	if mat is ShaderMaterial:
+		var sm: ShaderMaterial = mat
+		sm.set_shader_parameter("paleta_copa", objetivo)
+		sm.set_shader_parameter("fuerza_paleta_copa", 0.80 if _copas_integradas else 0.0)
+		_materiales_copas.append(sm)
+
+
+## Cada copa aporta una mancha suave. Los máximos conservan el mismo tono
+## cuando se solapan varios árboles en un grupo.
+func _generar_manta_bosque() -> ImageTexture:
+	const MUESTRAS: int = 8
+	var medida: int = _lado * MUESTRAS
+	var pixeles_por_unidad: float = float(MUESTRAS) / S
+	var img := Image.create_empty(medida, medida, false, Image.FORMAT_R8)
+	for id in VERDES_COPA:
+		for transformacion: Transform3D in _lotes.get(id, []):
+			var pos: Vector3 = transformacion.origin
+			var centro := Vector2(pos.x, pos.z) * pixeles_por_unidad
+			var escala: Vector3 = transformacion.basis.get_scale().abs()
+			var radio: float = clampf(maxf(escala.x, escala.z) * 3.7, 1.8, 5.0) * pixeles_por_unidad
+			for y in range(maxi(floori(centro.y - radio), 0), mini(ceili(centro.y + radio), medida)):
+				for x in range(maxi(floori(centro.x - radio), 0), mini(ceili(centro.x + radio), medida)):
+					var d: float = centro.distance_to(Vector2(x + 0.5, y + 0.5)) / radio
+					var cobertura: float = 1.0 - smoothstep(0.18, 1.0, d)
+					if cobertura > img.get_pixel(x, y).r:
+						img.set_pixel(x, y, Color(cobertura, 0.0, 0.0))
+	return ImageTexture.create_from_image(img)
+
+
+func _alternar_materiales_bosque() -> void:
+	_materiales_integrados = not _materiales_integrados
+	_mat_suelo.set_shader_parameter("manta_bosque_activa", _materiales_integrados)
+	if _hierba != null:
+		_hierba.poner_manta_bosque(_tex_manta_bosque, _materiales_integrados)
+	for mat in _contacto_rocas:
+		mat.set_shader_parameter("piedra_mate", 0.85 if _materiales_integrados else 0.0)
+
+
+func _alternar_contacto() -> void:
+	_contacto_activo = not _contacto_activo
+	if _hierba != null:
+		_hierba.poner_contacto_suelo(_contacto_tex, _contacto_activo)
+	for mat in _contacto_rocas:
+		mat.set_shader_parameter("fuerza_contacto", 0.7 if _contacto_activo else 0.0)
+	_actualizar_aviso_contacto()
+
+
+func _actualizar_aviso_contacto() -> void:
+	var modo: String = "B · Vegetación integrada" if _contacto_activo else "A · Original"
+	var orilla: String = "Orilla integrada" if _ribera_activa else "Orilla original"
+	var forma: String = "Silueta curva" if _forma_ribera_activa else "Silueta recta"
+	var copas: String = "Copas integradas" if _copas_integradas else "Copas originales"
+	var descarga: String = "Descarga integrada" if _descarga_integrada else "Descarga original"
+	var suelo: String = "Suelo y rocas integrados" if _materiales_integrados else "Suelo y rocas originales"
+	var junta: String = "Junta suave" if _junta_vegetal_suave else "Junta original"
+	var piedra: String = "Junta de piedra suave" if _junta_piedra_suave else "Junta de piedra original"
+	var ruina: String = "Ruina integrada" if _ruina_integrada else "Ruina original"
+	var tramos: String = "Cantos" if _ribera_con_cantos else "Sin cantos"
+	var vistas: String = "Vistas abiertas" if _vistas_abiertas else "Vistas originales"
+	var cueva: String = "Umbral integrado" if _entrada_cueva_integrada else "Umbral original"
+	_contacto_aviso.text = "Mayús+F7/F8/F9  |  " + tramos + " · " + vistas + " · " + cueva + "\nMayús+F3  |  " + ruina + "\nMayús+F4  |  " + piedra + "\nMayús+F6  |  " + junta + "\nMayús+F2  |  " + suelo + "\nF6  |  " + modo + "\nF5  |  " + orilla + "\nF4  |  " + forma + "\nF2  |  " + copas + "\nMayús+F5  |  " + descarga
+
+
+## Campo de cercanía a la ribera fija, en coordenadas del suelo.
+## El ancho es inferior a una casilla, así que basta extender cada celda de agua a sus vecinas.
+func _mascara_ribera() -> ImageTexture:
+	const MUESTRAS: int = 8
+	const ANCHO: float = 0.72
+	var medida: int = _lado * MUESTRAS
+	var mapa := Image.create_empty(medida, medida, false, Image.FORMAT_R8)
+	for y in range(_lado):
+		for x in range(_lado):
+			if not _es_agua(_letra(Vector2i(x, y))):
+				continue
+			var esquina := Vector2i(x, y) * MUESTRAS
+			for py in range(maxi(esquina.y - MUESTRAS, 0), mini(esquina.y + MUESTRAS * 2, medida)):
+				for px in range(maxi(esquina.x - MUESTRAS, 0), mini(esquina.x + MUESTRAS * 2, medida)):
+					var local := (Vector2(px, py) + Vector2(0.5, 0.5) - Vector2(esquina)) / float(MUESTRAS)
+					var fuera: Vector2 = local - local.clamp(Vector2.ZERO, Vector2.ONE)
+					var peso: float = 1.0 - fuera.length() / ANCHO
+					if peso > mapa.get_pixel(px, py).r:
+						mapa.set_pixel(px, py, Color(peso, 0.0, 0.0))
+	return ImageTexture.create_from_image(mapa)
+
+
 func _construir_suelo() -> void:
 	# Mapa de tipos para el shader.
 	_germinadas.clear()       # un mapa nuevo empieza sin germinaciones de la partida anterior
@@ -1515,6 +1845,7 @@ func _construir_suelo() -> void:
 				var lz: String = _letra(Vector2i(x, y))
 				_img_zona_v.set_pixel(x, y, Color(1.0 if lz == "v" or lz == "," else 0.0, 0.0, 0.0, 0.0))     # `,` = hierba corta (9.6)
 	_img_campo = _campo_ruido(_lado * 8)
+	Ambiente3D.preparar_global()   # el shader declara amb_sombra
 	var sh := Shader.new()
 	sh.code = CODIGO_SUELO
 	var mat_suelo := ShaderMaterial.new()
@@ -1553,6 +1884,7 @@ func _construir_suelo() -> void:
 		mat_suelo.set_shader_parameter("espec_mojado", MOJADO_CUEVA_ESPEC)
 		mat_suelo.set_shader_parameter("rug_mojado", MOJADO_CUEVA_RUG)
 	mat_suelo.set_shader_parameter("celda", S)
+	mat_suelo.set_shader_parameter("respetar_especular_luz", has_node("LuzPortatilCueva"))
 	mat_suelo.set_shader_parameter("lado", float(_lado))
 	mat_suelo.set_shader_parameter("tam_tex", S * 2.0)
 	mat_suelo.set_shader_parameter("brillo", OSCURECER_SUELO)
@@ -1571,6 +1903,12 @@ func _construir_suelo() -> void:
 		mat_suelo.set_shader_parameter("escombro_fuerza", 1.0)
 	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
+	_preparar_contacto_suelo(mat_suelo)
+	if _contacto_tex != null:
+		mat_suelo.set_shader_parameter("ribera_mascara", _mascara_ribera())
+		mat_suelo.set_shader_parameter("junta_vegetal_suave", _junta_vegetal_suave)
+		mat_suelo.set_shader_parameter("junta_piedra_suave", _junta_piedra_suave)
+		mat_suelo.set_shader_parameter("ribera_activa", _ribera_activa)
 
 	var mat_lado: StandardMaterial3D
 	if estilo == "cueva" and ResourceLoader.exists(SUELO + "pared_foso_cueva.png"):
@@ -1581,6 +1919,7 @@ func _construir_suelo() -> void:
 		mat_lado.albedo_color = mat_lado.albedo_color * PARED_FOSO_BRILLO
 	else:
 		mat_lado = _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
+	Ambiente3D.preparar_global()
 	var sha := Shader.new()
 	sha.code = CODIGO_AGUA
 	_mat_agua = ShaderMaterial.new()
@@ -2148,6 +2487,36 @@ func _construir_bordes_agua(mat_lado: Material) -> void:
 	_bordes.sobresale_labio = BORDE_LABIO_SOBRESALE
 	add_child(_bordes)
 	_bordes.construir(bordes, S, mat_lado, _mat_suelo if bisel_suelo else null)     # V3: el labio lleva el shader del suelo (la tapa continúa por encima de la arista)
+	if _contacto_tex != null and agua_fisica and not bordes.is_empty():
+		_ribera_curva = MeshInstance3D.new()
+		_ribera_curva.name = "RiberaCurva"
+		_tramos_ribera = bordes
+		_ribera_curva.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_ribera_curva)
+		_aplicar_forma_ribera()
+
+
+func _aplicar_forma_ribera() -> void:
+	if _forma_ribera_activa:
+		_ribera_curva.mesh = BordePiedras3D.malla_ribera_curva(
+			_tramos_ribera, S, _mat_suelo, ribera_ruido, ribera_ancho, ribera_amplitud
+		)
+		_actualizar_cantos_ribera()
+	_ribera_curva.visible = _forma_ribera_activa
+	if _cantos_ribera != null:
+		_cantos_ribera.visible = _forma_ribera_activa and _ribera_con_cantos
+	var labio: Node3D = _bordes.get_node_or_null("labio") as Node3D
+	if labio != null:
+		labio.visible = not _forma_ribera_activa
+
+
+func _actualizar_cantos_ribera() -> void:
+	if _cantos_ribera == null:
+		_cantos_ribera = MultiMeshInstance3D.new()
+		_cantos_ribera.name = "CantosRibera"
+		_cantos_ribera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_cantos_ribera)
+	_cantos_ribera.multimesh = _bordes.cantos_ribera(_tramos_ribera, S, ribera_ruido, ribera_ancho, ribera_amplitud)
 
 
 ## V3 · LABIO DEL BORDE DEL MAPA. Los bloques de tierra que dan al vacío (el borde del cuadrado, o una casilla « » sin suelo) enseñan una pared con
@@ -2191,6 +2560,8 @@ func _subir_estado_juego() -> void:
 	if extra != _tex_estado_extra:
 		_tex_estado_extra = extra
 		_mat_suelo.set_shader_parameter("estado_extra", extra)
+		if _contacto_tex != null and _agua_render != null:
+			_agua_render.ajustar("electricidad_mapa", extra)
 	if tex != _tex_estado_juego:
 		_tex_estado_juego = tex
 		_mat_suelo.set_shader_parameter("estado_juego", tex)
@@ -2480,6 +2851,9 @@ func _sembrar_hierba() -> void:
 		_mat_suelo.set_shader_parameter("tinte_calva", SUELO_CORROS["tinte_calva"])
 	_hierba.sembrar(Rect2(0.0, 0.0, float(_lado) * S, float(_lado) * S), ALTO, _peso_hierba, not hierba_completa, _alto_hierba, matas)
 	_hierba.set_estado(Mundo3D.textura_estados(), _tex_pisado, S, float(_lado))     # después de sembrar: es ahí donde se crean los materiales
+	if _contacto_tex != null:
+		_hierba.poner_contacto_suelo(_contacto_tex, _contacto_activo)
+		_hierba.poner_manta_bosque(_tex_manta_bosque, _materiales_integrados)
 	if not hierba_completa and _jugador != null:
 		_hierba.actualizar(_jugador.position, true)     # lo que se ve al empezar, de golpe; el resto al andar
 
@@ -3240,6 +3614,27 @@ func _plantilla(id: String) -> Array:
 					Ocluso3D.poner_viento(parte[2] as Material, fuerza, malla)
 					if viva:
 						Ocluso3D.poner_apartar(parte[2] as Material, 1.0, malla)
+		if _contacto_tex != null and transparencia_jugador and (id.begins_with("piedra_est_") or id in ["roca_musgosa", "roca_grande", "rocas_pequenas"]):
+			var caja: AABB = malla.get_aabb()
+			if parte[2] != null:
+				_preparar_contacto_roca(parte[2] as Material, caja)
+			else:
+				for i in range(malla.get_surface_count()):
+					_preparar_contacto_roca(malla.surface_get_material(i), caja)
+		if _contacto_tex != null and transparencia_jugador and VERDES_COPA.has(id):
+			var objetivo: Color = VERDES_COPA[id]
+			if parte[2] != null:
+				_preparar_paleta_copa(parte[2] as Material, objetivo)
+			else:
+				for i in range(malla.get_surface_count()):
+					_preparar_paleta_copa(malla.surface_get_material(i), objetivo)
+		if _contacto_tex != null and transparencia_jugador and id == "arco_ruina":
+			var caja_ruina: AABB = malla.get_aabb()
+			if parte[2] != null:
+				_preparar_musgo_ruina(parte[2] as Material, caja_ruina)
+			else:
+				for i in range(malla.get_surface_count()):
+					_preparar_musgo_ruina(malla.surface_get_material(i), caja_ruina)
 		parte[0] = malla
 	_plantillas[id] = res
 	return res
@@ -3272,6 +3667,32 @@ func _mallas_de(n: Node, acum: Transform3D, res: Array) -> void:
 ## decenas de llamadas, y cada trozo con su caja para que Godot no dibuje (ni sombree) lo que queda fuera de cámara.
 const BLOQUE_LOTE: float = S * 7.0
 
+## Ajusta solo la altura visual de las copas que enmarcan el acceso.
+## Se conserva el punto de apoyo y se aplica también al lote de sombras.
+func _transformar_vista(id: String, mm: MultiMesh, indice: int, colocacion: Transform3D, local: Transform3D) -> void:
+	var original: Transform3D = colocacion * local
+	var arcos: Array = _lotes.get("arco_ruina", [])
+	if _contacto_tex == null or not VERDES_COPA.has(id) or arcos.is_empty():
+		mm.set_instance_transform(indice, original)
+		return
+	var arco: Transform3D = arcos[0]
+	var p: Vector3 = colocacion.origin - arco.origin
+	if absf(p.x) > 5.0 or p.z < -0.5 or p.z > 6.0:
+		mm.set_instance_transform(indice, original)
+		return
+	var altura: float = lerpf(0.60, 0.82, smoothstep(1.8, 5.4, absf(p.x)))
+	var bajo := Transform3D(colocacion.basis.scaled(Vector3(1.0, altura, 1.0)), colocacion.origin) * local
+	_arboles_vista.append({"malla": mm, "indice": indice, "original": original, "bajo": bajo})
+	mm.set_instance_transform(indice, bajo if _vistas_abiertas else original)
+
+
+func _alternar_vistas() -> void:
+	_vistas_abiertas = not _vistas_abiertas
+	for entrada in _arboles_vista:
+		var mm: MultiMesh = entrada["malla"]
+		mm.set_instance_transform(entrada["indice"], entrada["bajo" if _vistas_abiertas else "original"])
+
+
 func _construir_lotes() -> void:
 	for id in _lotes:
 		var trozos: Dictionary = {}
@@ -3290,7 +3711,7 @@ func _construir_lotes() -> void:
 				mm.instance_count = copias.size()
 				var local: Transform3D = parte[1]
 				for i in range(copias.size()):
-					mm.set_instance_transform(i, (copias[i] as Transform3D) * local)
+					_transformar_vista(String(id), mm, i, copias[i], local)
 				var mi := MultiMeshInstance3D.new()
 				mi.name = "lote_%s_%d_%d" % [String(id), k.x, k.y]
 				mi.multimesh = mm
@@ -3310,7 +3731,7 @@ func _construir_lotes() -> void:
 						mms.mesh = reducida
 						mms.instance_count = mm.instance_count
 						for i in range(mm.instance_count):
-							mms.set_instance_transform(i, mm.get_instance_transform(i))
+							_transformar_vista(String(id), mms, i, copias[i], local)
 						var mis := MultiMeshInstance3D.new()
 						mis.name = mi.name + "_sombra"
 						mis.multimesh = mms
@@ -3579,13 +4000,13 @@ func _colocar_letras() -> void:
 						_reactivo_pieza("fogata", "fogata", c, ALTO, true, false, -1.0, "", true)
 					else:
 						_poner("fogata", c, ALTO, true, false)
-						_fuego(_centro_celda(c, ALTO + 0.1), false)
+						_fuego(_centro_celda(c, ALTO + 0.1))
 				"T":
 					if objetos_reactivos:
 						_reactivo_pieza("brasero", "brasero", c, ALTO, true, false)
 					else:
 						_poner("brasero", c, ALTO, true, false)
-						_fuego(_centro_celda(c, ALTO + 1.25), false, 0.6)
+						_fuego(_centro_celda(c, ALTO + 1.25), 0.6)
 				"n", "Q":
 					var tendero: Pj3D = poner_puesto(c, PJ_LIBRERA if l == "n" else PJ_ALQUIMISTA)
 					if _reglas != null:
@@ -4641,10 +5062,10 @@ func _particulas(ruta: String, p: Vector3, cantidad: int, vida: float, caja: Vec
 	return gp
 
 
-## Fuego: llamas 3D, brasas y humo (Vfx3D.fuego_fijo), con luz cálida. `barrera` = muro de llamas que ocupa la casilla.
-func _fuego(p: Vector3, barrera: bool, escala: float = 1.0, eje: Vector3 = Vector3.RIGHT) -> void:
-	_fx.fuego_fijo(p, barrera, escala, eje, S)
-	LuzTitila3D.aplicar(_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.6 if barrera else 1.1, 4.0 if barrera else 3.0))
+## Hoguera o brasero decorativo en mapas sin objetos reactivos.
+func _fuego(p: Vector3, escala: float = 1.0) -> void:
+	VfxReaccion3D.llama_vertical(_fx, p, 0.24 * escala, 1.15 * escala)
+	LuzTitila3D.aplicar(_luz(p + Vector3(0, 0.8 * escala, 0), Color(1.0, 0.6, 0.3), 1.1, 3.0))
 
 
 func _esporas(p: Vector3) -> void:
@@ -5175,7 +5596,7 @@ func _impacto_en_suelo(elemento: String, c: Vector2i) -> void:
 		return                    # rayo (descarga: lo hace el VFX), tierra y viento: no cambian canales del suelo.
 	var e: EstadosSuelo3D = Terreno3D.estados
 	if elemento == "fuego" and e.tiene(c, EstadosSuelo3D.MOJADA) and not e.tiene(c, EstadosSuelo3D.HELADA):
-		_fx.vapor(_centro_celda(c, ALTO))      # el charco se seca con vapor (el hielo, en cambio, pasa a charco sin vapor)
+		VfxReaccion3D.vapor(_fx, _centro_celda(c, ALTO))      # el charco se seca con vapor (el hielo, en cambio, pasa a charco sin vapor)
 	if not _juego_aplica_estado():
 		e.aplicar(c, accion)
 
@@ -5195,7 +5616,7 @@ func _impacto_en_agua(elemento: String, c: Vector2i) -> void:
 				if not agua_fisica:
 					_poner_placa_hielo(c)      # con agua física el hielo lo dibuja AguaRender3D desde la simulación (11.14)
 		"fuego":
-			_fx.vapor(_centro_celda(c, ALTO_AGUA))      # hierve; el hielo no se derrite
+			VfxReaccion3D.vapor(_fx, _centro_celda(c, ALTO_AGUA))      # hierve; el hielo no se derrite
 
 
 ## El Mundo3D avisa de que algo cambió en una casilla. Aquí solo se redibuja: el dato ya lo tiene el mundo.
@@ -5245,6 +5666,9 @@ func germinar_hierba(c: Vector2i) -> void:
 		_img_mapa.set_pixelv(c, tipo)
 		if _tex_mapa != null:
 			_tex_mapa.update(_img_mapa)
+		if _contacto_img != null:
+			_pintar_contacto(c)
+			_contacto_tex.update(_contacto_img)
 	if _img_zona_v != null and c.x < _img_zona_v.get_width() and c.y < _img_zona_v.get_height():
 		_img_zona_v.set_pixelv(c, Color(1.0, 0.0, 0.0, 0.0))
 	if _hierba != null and is_instance_valid(_hierba):
@@ -5264,7 +5688,7 @@ func _al_impacto_mundo(punto: Vector3, elemento: String, _radio: float) -> void:
 	match elemento:
 		"vapor":
 			if _fx != null:
-				_fx.vapor(punto)
+				VfxReaccion3D.vapor(_fx, punto)
 		"hielo_desde":
 			if _agua_render != null and _agua_render.has_method("hielo_desde"):
 				_agua_render.hielo_desde(punto)
@@ -5528,11 +5952,69 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo:
 		return
 	match k.keycode:
+		KEY_F2:
+			if k.shift_pressed and _tex_manta_bosque != null:
+				_alternar_materiales_bosque()
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+			elif not _materiales_copas.is_empty():
+				_copas_integradas = not _copas_integradas
+				for mat in _materiales_copas:
+					mat.set_shader_parameter("fuerza_paleta_copa", 0.80 if _copas_integradas else 0.0)
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
 		KEY_F3:
-			if _panel_luz != null:
+			if k.shift_pressed and _detalle_ruina != null:
+				_ruina_integrada = not _ruina_integrada
+				_aplicar_ruina_integrada()
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+			elif _panel_luz != null:
 				_panel_luz.alternar()
+		KEY_F4:
+			if k.shift_pressed and _contacto_tex != null:
+				_junta_piedra_suave = not _junta_piedra_suave
+				_mat_suelo.set_shader_parameter("junta_piedra_suave", _junta_piedra_suave)
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+			elif _ribera_curva != null:
+				_forma_ribera_activa = not _forma_ribera_activa
+				_aplicar_forma_ribera()
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+		KEY_F5:
+			if _contacto_tex != null:
+				if k.shift_pressed and _agua_render != null:
+					_descarga_integrada = not _descarga_integrada
+					_agua_render.ajustar("electricidad_activa", _descarga_integrada)
+				else:
+					_ribera_activa = not _ribera_activa
+					_mat_suelo.set_shader_parameter("ribera_activa", _ribera_activa)
+					_ajustar_filo_ribera()
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+		KEY_F6:
+			if _contacto_tex != null:
+				if k.shift_pressed:
+					_junta_vegetal_suave = not _junta_vegetal_suave
+					_mat_suelo.set_shader_parameter("junta_vegetal_suave", _junta_vegetal_suave)
+					_actualizar_aviso_contacto()
+				else:
+					_alternar_contacto()
+				get_viewport().set_input_as_handled()
 		KEY_F9:
-			_hornear_con_aviso()
+			if k.shift_pressed:
+				var luz_boca: SpotLight3D = get_node_or_null("LuzBocaCueva") as SpotLight3D
+				if luz_boca != null:
+					luz_boca.visible = not luz_boca.visible
+					get_viewport().set_input_as_handled()
+				elif _piedras_umbral != null:
+					_entrada_cueva_integrada = not _entrada_cueva_integrada
+					_aplicar_acceso_cueva()
+					_actualizar_aviso_contacto()
+					get_viewport().set_input_as_handled()
+			else:
+				_hornear_con_aviso()
 		KEY_F10:
 			_alternar_capa_agua()
 		KEY_Z, KEY_C:
@@ -5556,6 +6038,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 			if _jugador != null:
 				_jugador.set_modo_luz(1 - _jugador.modo_luz)
 		KEY_F7:
+			if k.shift_pressed and _cantos_ribera != null:
+				_ribera_con_cantos = not _ribera_con_cantos
+				_cantos_ribera.visible = _forma_ribera_activa and _ribera_con_cantos
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+				return
 			# 14.2 (a): enciende/apaga el diorama (el desenfoque del fondo) para comparar capturas.
 			diorama = not diorama
 			print("Diorama (desenfoque del fondo): %s" % ("sí" if diorama else "no"))
@@ -5582,6 +6070,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_mat_suelo.set_shader_parameter("contraste", _contraste)
 			_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
 		KEY_F8:
+			var luz_portatil: Node = get_node_or_null("LuzPortatilCueva")
+			if k.shift_pressed and luz_portatil != null:
+				luz_portatil.alternar_vista()
+				get_viewport().set_input_as_handled()
+				return
+			if k.shift_pressed and not _arboles_vista.is_empty():
+				_alternar_vistas()
+				_actualizar_aviso_contacto()
+				get_viewport().set_input_as_handled()
+				return
 			# 20/10 (203): enciende/apaga el VFX por ESTADO de la materia (VfxEstado3D), apagado de serie. Para compararlo con el de elemento.
 			var ve: VfxEstado3D = get_node_or_null("VfxEstado3D") as VfxEstado3D
 			if ve != null:
@@ -6025,6 +6523,11 @@ const BRILLO_CHISPAS_CANAL: float = 3.0
 const TAM_CHISPAS_CANAL: float = 3.0
 
 
+func _ajustar_filo_ribera() -> void:
+	if _contacto_tex != null and _agua_render != null:
+		_agua_render.ajustar("filo_ribera", 0.42 if _ribera_activa else 1.0)
+
+
 ## 12/10 (Fase 11.7) · Agua física: AguaRender3D dibuja la simulación del Lanzador. Si la simulación aún no existe (el Lanzador la crea
 ## al cargar el nivel, 11.3), el dibujo se enlaza solo en cuanto aparece. En el editor (VistaSuelo) no se monta: sigue el agua pintada.
 func _montar_agua_fisica() -> void:
@@ -6046,6 +6549,11 @@ func _montar_agua_fisica() -> void:
 	if _adornos_lecho != null:
 		_agua_render.enlazar_adornos(_adornos_lecho)        # adornos agua: las algas siguen la corriente
 	add_child(_agua_render)
+	_ajustar_filo_ribera()
+	if _contacto_tex != null:
+		_agua_render.ajustar("electricidad_mapa", _tex_estado_extra)
+		_agua_render.ajustar("electricidad_extension", float(_lado) * S)
+		_agua_render.ajustar("electricidad_activa", _descarga_integrada)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()
 	reloj.wait_time = 0.125

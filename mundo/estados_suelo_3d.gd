@@ -154,7 +154,7 @@ const AL_CADUCAR: Dictionary = {"helada": "mojada"}
 ## es sí/no y dura lo de `DURA`; lo que pinta la imagen sube en SUBE s al mojarse (el agua empapa) y baja en los últimos SECADO s
 ## (se seca). Un estado sin fila aquí se pinta con su intensidad tal cual, como siempre.
 const SUBE: Dictionary = {"mojada": 0.8}
-const SECADO: Dictionary = {"mojada": 8.0}
+const SECADO: Dictionary = {"mojada": 8.0, "electrificada": 0.55}
 
 var _celdas: Dictionary = {}          ## estado -> Dictionary(Vector2i -> true)
 var _intensidad: Dictionary = {}      ## estado -> Dictionary(Vector2i -> float 0..1); sin entrada = 1
@@ -618,6 +618,13 @@ func textura() -> ImageTexture:
 			var pe: Vector2i = c
 			if pe.x >= 0 and pe.y >= 0 and pe.x < lado and pe.y < lado:
 				_img2.set_pixelv(pe, Color(intensidad_vista(pe, ESCOMBRO), 1.0 if _costra.has(pe) else 0.0, 0.0, 0.0))
+		for c in celdas(ELECTRIFICADA):
+			var celda: Vector2i = c
+			if not Rect2i(0, 0, lado, lado).has_point(celda):
+				continue
+			var col_extra: Color = _img2.get_pixelv(celda)
+			col_extra.b = intensidad_vista(celda, ELECTRIFICADA)
+			_img2.set_pixelv(celda, col_extra)
 		for estado in CANAL.keys():
 			var k: int = int(CANAL[estado])
 			for c in celdas(String(estado)):
@@ -647,7 +654,7 @@ func textura() -> ImageTexture:
 	return _tex
 
 
-## La segunda imagen del estado (R escombro · G costra), SIEMPRE el mismo objeto como `textura()`; el shader del suelo la lee como `estado_extra`.
+## Segunda imagen del estado: R escombro · G costra · B electricidad. Suelo y agua comparten la misma textura.
 func textura_extra() -> ImageTexture:
 	textura()
 	return _tex2

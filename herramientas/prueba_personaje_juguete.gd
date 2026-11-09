@@ -165,9 +165,11 @@ func _correr() -> void:
 	_ok(float(s0.get_shader_parameter("plano")) == 0.0, "modo_luz 1 vuelve a la luz con rampa")
 
 	# 4 · sombra tintada configurable
+	var sombra_ant: Vector4 = Ambiente3D.sombra_pers()
 	jug.set_sombra_juguete(Color(0.9, 0.7, 0.6))
-	var sc: Vector3 = (jug._juguete[0][1] as ShaderMaterial).get_shader_parameter("sombra_color")
-	_ok(sc.x > sc.z, "set_sombra_juguete cambia el color de la sombra")
+	var sc: Vector4 = Ambiente3D.sombra_pers()
+	_ok(sc.x > sc.z and is_equal_approx(sc.w, sombra_ant.w), "set_sombra_juguete cambia el color del global amb_sombra_pers (y respeta su contraste)")
+	Ambiente3D.poner_sombra_pers(Color(sombra_ant.x, sombra_ant.y, sombra_ant.z), sombra_ant.w)
 
 	# 5 · interruptor
 	Pj3D.material_juguete = false
