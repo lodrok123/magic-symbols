@@ -8,6 +8,12 @@ var _raiz: Node3D = null
 
 
 func _initialize() -> void:
+	# Estas aserciones describen las geometrías de la variante clásica.
+	const Trazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")
+	Trazos.prueba_reeboo = false
+	Trazos.prueba_descarga = false
+	Trazos.prueba_cinta = false
+	Trazos.prueba_toon = false
 	_correr()
 
 

@@ -123,6 +123,11 @@ var _nuc: float = 1.0                       ## BOLA: intensidad del núcleo en e
 var _chispas_v: Array = []                  ## BOLA en vuelo: chispas que se quedan atrás [{p (mundo), v, edad, vida, tam}]
 var _t_chispa: float = 0.0
 var _trazos: MultiMeshInstance3D = null     ## los tramos de la línea quebrada
+var _cinta: MeshInstance3D = null
+var _cintas: Array = []
+var _estela_mundo: Array[Vector3] = []
+var _reloj_estela: float = 0.0
+var _ruido_descarga: FastNoiseLite = null
 var _brillos: MultiMeshInstance3D = null    ## destellos: núcleo de la bola, puntas, postes y chispas
 var _lista: Array = []                      ## los tramos del último redibujo [{a, b, ancho, alfa, halo, parpadeo, fase}] (pruebas)
 var _brillos_n: int = 0                     ## destellos puestos en el último redibujo (pruebas)
@@ -136,6 +141,18 @@ var _co_ult: float = -1.0
 var _haz_largo: float = 3.0
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
+var _golpe_haz: MultiMeshInstance3D = null
+var _inicio_haz: float = -1.0
+var _contacto_haz: float = -1.0
+var _frame_contacto_haz: int = -1
+var _nube_tormenta: Node3D = null
+var _cupula_barrera: MeshInstance3D = null
+var _material_tormenta: ShaderMaterial = null
+var _inicio_tormenta: float = -1.0
+var _ultimo_impacto_tormenta: int = -1
+const CARGA_TORMENTA: float = 0.11
+const PERIODO_TORMENTA: float = 0.21
+const CAIDA_TORMENTA: float = 0.055
 var _pos_luz: Vector3 = Vector3.ZERO
 var _semilla: int = 1
 
@@ -259,7 +276,7 @@ func empezar_carga(duracion: float, tam_final: Variant = null) -> void:
 	_pop = false
 	_bola_rota = false
 	if _cuerpo != null:
-		_cuerpo.visible = carga_bola_visible
+		_cuerpo.visible = carga_bola_visible and not RayoTrazos.prueba_reeboo
 	_montar_carga()
 	_aplicar_escala_carga()
 
@@ -317,7 +334,7 @@ func _set_carga_radio(v: float) -> void:
 func _set_carga_bola_visible(v: bool) -> void:
 	carga_bola_visible = v
 	if _est == EstadoCarga.CARGANDO and _cuerpo != null:
-		_cuerpo.visible = v
+		_cuerpo.visible = v and not RayoTrazos.prueba_reeboo
 
 
 ## Las chispas, los arcos y el halo de la carga se desvanecen en `dur` s y se liberan solas.
@@ -349,6 +366,8 @@ func _avanzar_carga(delta: float) -> void:
 			var resp: float = sin(_c_t * TAU * RESPIRO_HZ)
 			_c_escala = g * (1.0 + carga_respiro * env * resp)
 			_aplicar_escala_carga()
+			if _c_nodo != null and _c_nodo.top_level:
+				_c_nodo.global_transform = global_transform
 			if _c_visual != null and is_instance_valid(_c_visual):
 				_c_visual.call("poner", _c_escala, p)
 		EstadoCarga.SOLTANDO:
@@ -389,6 +408,10 @@ func _montar_carga() -> void:
 	_c_nodo = Node3D.new()
 	_c_nodo.name = "Carga"
 	add_child(_c_nodo)
+	if RayoTrazos.prueba_reeboo:
+		# Al soltar el proyectil, las últimas chispas se apagan junto a la mano.
+		_c_nodo.top_level = true
+		_c_nodo.global_transform = global_transform
 	_c_visual = CargaRayo.new()
 	_c_visual.name = "Convergencia"
 	_c_nodo.add_child(_c_visual)
@@ -558,6 +581,7 @@ func _construir() -> void:
 			cap = N_TRAZOS_BARRERA
 	_esfera = null
 	_halo_bola = null
+	_cinta = null
 	_chispas_v = []
 	if figura == Figura.BOLA:
 		_halo_bola = RayoTrazos.crear_destellos("Halo", 1, -1)          # detrás de la esfera
@@ -568,6 +592,26 @@ func _construir() -> void:
 	cuerpo.add_child(_trazos)
 	_brillos = RayoTrazos.crear_destellos("Brillos", N_BRILLOS)
 	cuerpo.add_child(_brillos)
+	_golpe_haz = null
+	_nube_tormenta = null
+	_cupula_barrera = null
+	if figura == Figura.HAZ and RayoTrazos.prueba_descarga:
+		_golpe_haz = RayoTrazos.crear_golpe_haz()
+		cuerpo.add_child(_golpe_haz)
+	if figura == Figura.PILAR and RayoTrazos.prueba_reeboo:
+		_montar_nube_tormenta(cuerpo)
+	if figura == Figura.BARRERA and RayoTrazos.prueba_reeboo:
+		var malla := SphereMesh.new()
+		malla.radius = 1.0
+		malla.height = 2.0
+		malla.radial_segments = 48
+		malla.rings = 24
+		_cupula_barrera = MeshInstance3D.new()
+		_cupula_barrera.name = "CupulaElectrica"
+		_cupula_barrera.mesh = malla
+		_cupula_barrera.material_override = RayoTrazos.material(RayoTrazos.DIR + "rayo_cupula.gdshader")
+		_cupula_barrera.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		cuerpo.add_child(_cupula_barrera)
 	_lista = []
 	_cr_ult = -1.0
 	_co_ult = -1.0
@@ -678,6 +722,8 @@ func _set_proyectil(v: bool) -> void:
 func _aplicar_vuelo(v: bool) -> void:
 	if not v:
 		_cola_f = 0.0
+		_estela_mundo.clear()
+		_reloj_estela = 0.0
 	elif _cola_f <= 0.0:
 		_cola_f = 0.0001
 
@@ -687,6 +733,18 @@ func _soltar_chispas() -> void:
 
 
 # ------------------------------------------------------------------ redibujo ------------------------------------------------------------------
+
+func lanzar(v: float = -1.0) -> void:
+	_inicio_haz = -1.0
+	_contacto_haz = -1.0
+	_frame_contacto_haz = -1
+	_inicio_tormenta = -1.0
+	_ultimo_impacto_tormenta = -1
+	if _golpe_haz != null or _nube_tormenta != null:
+		crece = 0.0
+		corte = 0.0
+	super.lanzar(v)
+
 
 func _process(delta: float) -> void:
 	super._process(delta)
@@ -698,15 +756,58 @@ func _process(delta: float) -> void:
 			_vel_mundo = (global_position - _ult_pos) / delta
 		_ult_pos = global_position
 		_tiene_ult = true
+	if RayoTrazos.prueba_cinta and proyectil:
+		_muestrear_estela(delta)
+	var cambia_tormenta: bool = _nube_tormenta != null and _actualizar_tormenta()
 	_t_red += delta
 	var cambia: bool = absf(crece - _cr_ult) > 0.02 or absf(corte - _co_ult) > 0.02
-	if _t_red >= T_REDIBUJO or cambia:
+	var cambia_espejo: bool = figura == Figura.HAZ and RayoTrazos.prueba_descarga and _fase_espejo(_t) != _fase_espejo(_t - _t_red)
+	if _t_red >= T_REDIBUJO or cambia or cambia_espejo or cambia_tormenta:
 		_redibujar(false)
+	if _golpe_haz != null:
+		_actualizar_golpe_haz()
 	_avanzar_chispas_vuelo(delta)
 	_actualizar_luz()
 	if _sello != null and is_instance_valid(_sello) and not _sello_cerrado and (corte > 0.05 or _est == EstadoCarga.APAGANDO):
 		_sello_cerrado = true
 		_sello.cerrar()
+
+
+func _actualizar_golpe_haz() -> void:
+	var fotograma: int = Engine.get_process_frames()
+	if _inicio_haz < 0.0 and crece > 0.02:
+		_inicio_haz = _t
+	if _contacto_haz < 0.0 and crece >= 0.98:
+		_contacto_haz = _t
+		_frame_contacto_haz = fotograma
+	var mm: MultiMesh = _golpe_haz.multimesh
+	var origen := Vector3(0, _haz_alt, 0)
+	var contacto := origen + Vector3.FORWARD * maxf(0.0, _haz_largo - 0.065)
+	var apagado: float = 1.0 - clampf(corte, 0.0, 1.0)
+	var salida: float = clampf((_t - _inicio_haz) / 0.11, 0.0, 1.0) if _inicio_haz >= 0.0 else 1.0
+	var escala: float = clampf(_haz_r / 0.4, 0.65, 1.35)
+	RayoTrazos.poner_destello(mm, 0, origen, lerpf(0.9, 1.6, salida) * escala, (1.0 - salida) * apagado, 0.0, 0.2)
+	var fotograma_golpe: int = fotograma - _frame_contacto_haz
+	if RayoTrazos.prueba_reeboo:
+		if _frame_contacto_haz >= 0 and fotograma_golpe == 0:
+			_impacto_reeboo(contacto, escala * 0.70, Basis.IDENTITY)
+		return
+	var llegada: float = clampf((_t - _contacto_haz) / 0.16, 0.0, 1.0) if _contacto_haz >= 0.0 else 1.0
+	RayoTrazos.poner_destello(mm, 1, contacto, lerpf(1.65, 2.5, llegada) * escala, (1.0 - llegada) * apagado, 0.0, 0.65)
+	if _frame_contacto_haz >= 0 and fotograma_golpe < 2:
+		RayoTrazos.poner_destello(mm, 2, contacto, (1.9 + float(fotograma_golpe) * 0.38) * escala, apagado, 1.0, 0.3, float(fotograma_golpe))
+	else:
+		RayoTrazos.ocultar(mm, 2)
+
+
+func _impacto_reeboo(punto: Vector3, escala: float, orientacion: Basis) -> void:
+	var escena := preload("res://presentacion/vfx/toy/reeboo_hit_spark/hit_spark_rayo.tscn")
+	var impacto := escena.instantiate() as Node3D
+	impacto.transform = Transform3D(orientacion.scaled(Vector3.ONE * escala), punto)
+	_cuerpo.add_child(impacto)
+	(impacto.get_node("Sparks") as GPUParticles3D).finished.connect(impacto.queue_free)
+	for emisor: GPUParticles3D in impacto.get_children():
+		emisor.restart()
 
 
 func _actualizar_luz() -> void:
@@ -745,6 +846,7 @@ func _redibujar(forzar: bool) -> void:
 	if _rng.randf() < 0.10:
 		_fl = 0.2                                                           # de vez en cuando casi se apaga: parpadea
 	var lista: Array = []
+	_cintas.clear()
 	var bril: Array = []                                                    # [{pos, tam, alfa, estrella}]
 	var cr: float = clampf(crece, 0.0, 1.0)
 	var co: float = clampf(corte, 0.0, 1.0)
@@ -765,6 +867,17 @@ func _redibujar(forzar: bool) -> void:
 	_brillos_n = bril.size()
 	_bril_lista = bril
 	RayoTrazos.volcar(_trazos.multimesh, lista)
+	if not _cintas.is_empty() and _cinta == null:
+		_cinta = RayoTrazos.crear_cinta()
+		_cuerpo.add_child(_cinta)
+		var material_cinta := _cinta.material_override as ShaderMaterial
+		material_cinta.set_shader_parameter("brillo", brillo)
+		material_cinta.set_shader_parameter("velocidad", velocidad)
+		material_cinta.set_shader_parameter("chisporroteo", chisporroteo)
+		material_cinta.set_shader_parameter("fase_descarga", float(_semilla % 127) * 0.37)
+		_mats.append(material_cinta)
+	if _cinta != null:
+		RayoTrazos.volcar_cintas(_cinta, _cintas, ancho)
 	_lista = lista
 	var mb: MultiMesh = _brillos.multimesh
 	for i in (N_FIJOS_BOLA if figura == Figura.BOLA else N_BRILLOS):       # en la bola, del 24 en adelante son las chispas que caen detrás (cada fotograma)
@@ -873,24 +986,31 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 	var ub: float = clampf((co - 0.25) / 0.75, 0.0, 1.0)                              # 0 → 1: el reventón
 	var kr: float = lerpf(1.0, 0.3, smoothstep(0.0, 0.6, co))                         # la esfera se contrae
 	var vuelo: float = smoothstep(0.0, 1.0, _cola_f) if proyectil else 0.0
+	var vuelo_reeboo: bool = proyectil and RayoTrazos.prueba_reeboo
 	_pos_luz = Vector3.ZERO
 	_nuc = (NUCLEO_MIN + (1.0 - NUCLEO_MIN) * smoothstep(0.2, 1.0, _fl)) * (1.0 - smoothstep(0.5, 0.75, co))
 	if _esfera != null and is_instance_valid(_esfera):
 		_esfera.visible = _nuc > 0.01
-		_esfera.scale = Vector3(rx, ry, rz * (1.0 + 0.14 * vuelo)) * kr
+		var escala_vuelo: float = lerpf(1.0, 0.74, vuelo) if vuelo_reeboo else 1.0
+		_esfera.scale = Vector3(rx, ry, rz * (1.0 + 0.14 * vuelo)) * kr * escala_vuelo
 		var ms: ShaderMaterial = _esfera.material_override as ShaderMaterial
 		if ms != null:
 			ms.set_shader_parameter("intensidad", _nuc)
 			ms.set_shader_parameter("agitacion", 0.45 + 0.4 * vuelo)
+			ms.set_shader_parameter("difusion", vuelo if vuelo_reeboo else 0.0)
 	if _halo_bola != null and is_instance_valid(_halo_bola):
-		RayoTrazos.poner_destello(_halo_bola.multimesh, 0, Vector3.ZERO, r * (3.0 + 0.6 * vuelo) * lerpf(1.0, 0.5, co), (0.26 + 0.1 * vuelo) * _nuc * pow(1.0 - co, 1.5), 0.0, 0.0, 0.0)
+		var halo_radio: float = 3.0 + (2.2 if vuelo_reeboo else 0.6) * vuelo
+		var halo_alfa: float = (0.26 + (0.48 if vuelo_reeboo else 0.1) * vuelo) * _nuc
+		RayoTrazos.poner_destello(_halo_bola.multimesh, 0, Vector3.ZERO, r * halo_radio * lerpf(1.0, 0.5, co), halo_alfa * pow(1.0 - co, 1.5), 0.0, 0.0, 0.0)
 	if proyectil:
 		# destello de cabeza: solo en vuelo
-		bril.append({"pos": Vector3.ZERO, "tam": r * 5.0 * kr, "alfa": 1.0 * clampf(env + 0.25, 0.0, 1.0) * vuelo, "estrella": 1.0})      # referencia en vídeo: núcleo muy brillante con destello en estrella
+		var tam_frente: float = 2.8 if RayoTrazos.prueba_toon else 5.0
+		var estrella: float = 0.25 if vuelo_reeboo else 1.0
+		bril.append({"pos": Vector3.ZERO, "tam": r * tam_frente * kr, "alfa": clampf(env + 0.25, 0.0, 1.0) * vuelo, "estrella": estrella})
 	var vivo: float = 1.0 - ub
-	if co < 0.9:
+	if co < 0.9 and not vuelo_reeboo:
 		# SEIS arcos que recorren la superficie (meridianos quebrados, de un lado a otro)
-		for k in 6:
+		for k in (3 if proyectil and RayoTrazos.prueba_descarga else 6):
 			var d0: Vector3 = _dir_azar()
 			var eje: Vector3 = d0.cross(_dir_azar())
 			eje = eje.normalized() if eje.length() > 0.05 else Vector3.RIGHT
@@ -903,7 +1023,7 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 			RayoTrazos.trazar(lista, pts, g * 0.42, 0.98 * env * vivo, 1.0, 1.0, 0.5, float(k))
 		# CUATRO que saltan hacia fuera (más lejos que antes: «arcos que salen de la cabeza») y vuelven a la superficie
 		if ub <= 0.0:
-			for k2 in 4:
+			for k2 in (2 if proyectil and RayoTrazos.prueba_descarga else 4):
 				var da: Vector3 = _dir_azar()
 				var eje2: Vector3 = da.cross(_dir_azar())
 				eje2 = eje2.normalized() if eje2.length() > 0.05 else Vector3.RIGHT
@@ -919,13 +1039,10 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 				RayoTrazos.trazar(lista, pts2, g * 0.4, 0.95 * env, 1.0, 1.0, 0.6, 7.0 + float(k2))
 				bril.append({"pos": pts2[2], "tam": r * 0.5, "alfa": 0.7 * env, "estrella": 0.9})
 	if proyectil and co < 0.5:
-		# ESTELA RECTA Y FINA (referencia en vídeo: una línea blanca casi recta detrás de la cabeza, que se afina): nace dentro de la esfera, casi sin desviación, y un hilo aún más fino que la acompaña
-		var largo: float = r * COLA_BOLA * vuelo
-		var z0: float = r * 0.5
-		var pc: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0, z0), Vector3(0, 0, z0 + largo), 6, 0.05 * r, _rng)
-		_afilado(lista, pc, g * 0.62, g * 0.12, 0.98 * env, 0.3 * env, 0.8, 0.35, 3.0)
-		var pc2: PackedVector3Array = RayoTrazos.camino(Vector3(0.12 * r, 0.06 * r, z0), Vector3(-0.1 * r, 0.05 * r, z0 + largo * 0.7), 5, 0.1 * r, _rng)
-		_afilado(lista, pc2, g * 0.3, g * 0.08, 0.7 * env, 0.25 * env, 0.8, 0.5, 4.0)
+		if vuelo_reeboo:
+			_estela_proyectil_reeboo(r, vuelo, env)
+		else:
+			_estela_bola(lista, r, g, vuelo, env)
 	if es_zona() and co < 0.5:
 		# ZONA (referencia en vídeo, «Area of effect»): descargas que CAEN del cielo dentro del sello, de vez en cuando (a 20 Hz: una de cada dos redibujos)
 		var rs: float = radio_sello()
@@ -955,6 +1072,9 @@ func _gen_bola(lista: Array, bril: Array, env: float) -> void:
 ## PILAR = COLUMNA DE DESCARGA (referencia en vídeo, «Ultimate»: un rayo GRUESO que cae del cielo sobre un sello circular y se RAMIFICA al tocar el suelo, con chispas): de 2 a 4 rayos entrelazados que CAEN de la cima
 ## (`crece` = hasta dónde han llegado; el primero, el tronco, es un 60 % más grueso), cada uno con dos ramas; destello arriba y en el suelo, raíces que reptan por el suelo al llegar y chispas. El sello circular lo pone `_montar_sello`.
 func _gen_pilar(lista: Array, bril: Array, env: float, cr: float) -> void:
+	if _nube_tormenta != null:
+		_gen_tormenta(bril, cr)
+		return
 	var rx: float = semieje_x
 	var rz: float = semieje_z
 	var alto: float = semieje_y
@@ -992,9 +1112,134 @@ func _gen_pilar(lista: Array, bril: Array, env: float, cr: float) -> void:
 		bril.append({"pos": Vector3(cos(a3) * rx * 1.3, 0.12, sin(a3) * rz * 1.3), "tam": 0.3 + 0.2 * rm, "alfa": 0.8 * env * smoothstep(0.7, 1.0, cr), "estrella": 0.9})
 
 
+func _montar_nube_tormenta(cuerpo: Node3D) -> void:
+	_nube_tormenta = Node3D.new()
+	_nube_tormenta.name = "NubeTormenta"
+	_nube_tormenta.position.y = clampf(semieje_y, 2.8, 4.4)
+	_nube_tormenta.hide()
+	cuerpo.add_child(_nube_tormenta)
+	_material_tormenta = ShaderMaterial.new()
+	_material_tormenta.shader = preload("res://presentacion/vfx/toy/rayo_nube_tormenta.gdshader")
+	_material_tormenta.set_shader_parameter("centros", PackedVector3Array([
+		Vector3(-0.76, -0.03, 0.02), Vector3(-0.48, 0.12, -0.17),
+		Vector3(-0.12, 0.23, -0.17), Vector3(0.28, 0.18, -0.20),
+		Vector3(0.62, 0.07, -0.09), Vector3(0.76, -0.04, 0.13),
+		Vector3(0.38, -0.07, 0.33), Vector3(-0.05, -0.11, 0.42),
+		Vector3(-0.49, -0.08, 0.31), Vector3(0.03, -0.01, 0.04),
+	]))
+	var malla := BoxMesh.new()
+	malla.size = Vector3(2.68, 1.16, 2.30)
+	malla.material = _material_tormenta
+	var volumen := MeshInstance3D.new()
+	volumen.mesh = malla
+	volumen.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	volumen.scale = Vector3.ONE * radio_sello()
+	_nube_tormenta.add_child(volumen)
+
+
+func _pie_tormenta(indice: int) -> Vector3:
+	var angulo: float = float(indice) * 2.39996 + float(_semilla % 31) * 0.2
+	var distancia: float = radio_sello() * (0.43 + 0.13 * float(indice % 3))
+	return Vector3(cos(angulo) * distancia, 0.055, sin(angulo) * distancia)
+
+
+func _actualizar_tormenta() -> bool:
+	if _inicio_tormenta < 0.0 and crece > 0.02:
+		_inicio_tormenta = _t
+		var camara := get_viewport().get_camera_3d()
+		if camara != null:
+			var derecha: Vector3 = camara.global_basis.x
+			derecha.y = 0.0
+			var eje: Vector3 = _cuerpo.global_basis.inverse() * derecha
+			_nube_tormenta.rotation.y = atan2(-eje.z, eje.x)
+	var vida_nube: float = smoothstep(0.0, 1.0, crece) * (1.0 - clampf(corte, 0.0, 1.0))
+	_nube_tormenta.visible = vida_nube > 0.01
+	_nube_tormenta.scale = Vector3.ONE * lerpf(0.52, 1.0, vida_nube)
+	_material_tormenta.set_shader_parameter("vida", vida_nube)
+	var tiempo: float = _t - _inicio_tormenta - CARGA_TORMENTA
+	if _inicio_tormenta < 0.0 or tiempo < 0.0 or corte > 0.0:
+		_material_tormenta.set_shader_parameter("relampago", 0.0)
+		return false
+	var indice: int = int(tiempo / PERIODO_TORMENTA)
+	var edad: float = fposmod(tiempo, PERIODO_TORMENTA)
+	_material_tormenta.set_shader_parameter("relampago", 1.0 - smoothstep(0.025, 0.11, edad))
+	if edad >= CAIDA_TORMENTA and indice != _ultimo_impacto_tormenta:
+		_ultimo_impacto_tormenta = indice
+		_impacto_reeboo(_pie_tormenta(indice), 0.36, Basis(Vector3.RIGHT, -PI * 0.5))
+		return true
+	return edad < CAIDA_TORMENTA
+
+
+func _gen_tormenta(bril: Array, cr: float) -> void:
+	if _inicio_tormenta < 0.0:
+		return
+	var edad_nube: float = _t - _inicio_tormenta
+	var vida_nube: float = smoothstep(0.0, 1.0, cr) * (1.0 - clampf(corte, 0.0, 1.0))
+	_chispas_borde_tormenta(bril, edad_nube, vida_nube)
+	var tiempo: float = edad_nube - CARGA_TORMENTA
+	if tiempo < 0.0 or corte > 0.0:
+		return
+	var indice: int = int(tiempo / PERIODO_TORMENTA)
+	var edad: float = fposmod(tiempo, PERIODO_TORMENTA)
+	var alfa: float = cr * (1.0 - smoothstep(CAIDA_TORMENTA + 0.025, PERIODO_TORMENTA - 0.015, edad))
+	if alfa < 0.01:
+		return
+	var pie: Vector3 = _pie_tormenta(indice)
+	var cima := Vector3(pie.x, _nube_tormenta.position.y - 0.13, pie.z)
+	var orientacion := Basis(Vector3.UP, float(indice) * 2.39996) * Basis(Vector3.RIGHT, -PI * 0.5)
+	_dibujar_descarga(cima, pie, orientacion, 0.17, alfa, minf(edad / CAIDA_TORMENTA, 1.0))
+	bril.append({"pos": cima, "tam": 0.64, "alfa": alfa * 0.8, "estrella": 0.5})
+	_chispas_nacimiento_tormenta(bril, cima, indice, edad, cr)
+
+
+func _chispas_borde_tormenta(bril: Array, edad_nube: float, vida_nube: float) -> void:
+	if vida_nube <= 0.01:
+		return
+	var radio: float = radio_sello()
+	var periodo: float = 0.38
+	for i in 12:
+		var reloj: float = edad_nube + float(i) * 0.107
+		var edad: float = fposmod(reloj, periodo)
+		var duracion: float = 0.12 + float(i % 4) * 0.022
+		if edad >= duracion:
+			continue
+		var u: float = edad / duracion
+		var angulo: float = float(i) * 2.39996 + floor(reloj / periodo) * 1.31 + float(_semilla % 31)
+		var pos := Vector3(cos(angulo) * 1.12, 0.16 * sin(angulo * 3.0), sin(angulo) * 0.81)
+		pos *= radio * (0.96 + 0.17 * u)
+		pos.y -= 0.18 * u
+		var pulso: float = smoothstep(0.0, 0.17, u) * (1.0 - smoothstep(0.30, 1.0, u))
+		bril.append({
+			"pos": _nube_tormenta.transform * pos,
+			"tam": (0.13 + float(i % 3) * 0.035) * (1.0 - 0.33 * u),
+			"alfa": vida_nube * pulso * 0.85,
+			"estrella": 0.88,
+		})
+
+
+func _chispas_nacimiento_tormenta(bril: Array, cima: Vector3, indice: int, edad: float, cr: float) -> void:
+	for i in 8:
+		var duracion: float = 0.074 + float(i % 4) * 0.019
+		if edad >= duracion:
+			continue
+		var u: float = edad / duracion
+		var angulo: float = float(i) * 2.39996 + float(indice) * 1.61
+		var salida := Vector3(cos(angulo), -0.35 - float(i % 3) * 0.36, sin(angulo))
+		var distancia: float = 0.08 + edad * (3.0 + float(i % 4) * 1.3)
+		bril.append({
+			"pos": cima + salida * distancia,
+			"tam": (0.15 + float(i % 3) * 0.042) * (1.0 - 0.40 * u),
+			"alfa": cr * (1.0 - smoothstep(0.25, 1.0, u)),
+			"estrella": 1.0,
+		})
+
+
 ## MURO = CORTINA DE ARCOS VERTICALES densos sobre una LÍNEA BRILLANTE en el suelo (referencia en vídeo, «Wall»). Semiejes: x = ANCHO, y = ALTO de los arcos, z = fondo (los arcos se reparten en él). Un arco cada ~0,2 m de ancho,
 ## cada uno de una altura distinta (de la mitad a la entera) y algo inclinado; la línea del suelo es un hilo recto y blanco con destellos. `crece` los hace saltar en cadena de izquierda a derecha.
 func _gen_muro(lista: Array, bril: Array, env: float, cr: float) -> void:
+	if RayoTrazos.prueba_reeboo:
+		_gen_muro_descargas(bril, env, cr)
+		return
 	var a: float = semieje_x
 	var b: float = semieje_z
 	var alto: float = semieje_y
@@ -1040,8 +1285,68 @@ func _gen_muro(lista: Array, bril: Array, env: float, cr: float) -> void:
 		RayoTrazos.trazar(lista, RayoTrazos.camino(p0, p1, 3, 0.06 + 0.03 * alto, _rng), g * 0.4, 0.7 * env, tr2, 0.7, 0.7, float(i2) * 5.0)
 
 
+## Descargas que se cruzan a distintas alturas. Los contactos con el suelo son puntuales.
+func _gen_muro_descargas(bril: Array, env: float, cr: float) -> void:
+	if cr <= 0.01:
+		return
+	var alto: float = semieje_y * cr
+	var ancho_muro: float = semieje_x * 2.0
+	var cantidad: int = clampi(ceili(ancho_muro / maxf(semieje_y * 0.95, 0.8)), 4, 9)
+	var grueso: float = clampf(semieje_y * 0.10, 0.085, 0.21)
+	_pos_luz = Vector3(0.0, alto * 0.42, 0.0)
+	for i in cantidad:
+		var reloj: float = _t * velocidad / (0.19 + float(i % 4) * 0.041) + float(i) * 0.37
+		var ciclo: float = floorf(reloj)
+		var fase: float = reloj - ciclo
+		var pulso: float = smoothstep(0.0, 0.10, fase) * (1.0 - smoothstep(0.59, 1.0, fase))
+		var alfa: float = env * cr * pulso
+		if alfa < 0.015:
+			continue
+		var variacion: float = sin(ciclo * 3.23 + float(i) * 4.17 + float(_semilla % 97))
+		var centro: float = (float(i) + 0.5 + variacion * 0.22) / float(cantidad)
+		var alcance: float = (1.20 + 0.24 * float(i % 3)) / float(cantidad)
+		var x0: float = lerpf(-semieje_x, semieje_x, clampf(centro - alcance, 0.0, 1.0))
+		var x1: float = lerpf(-semieje_x, semieje_x, clampf(centro + alcance, 0.0, 1.0))
+		var z: float = clampf(semieje_z * 0.55, 0.03, 0.48) * sin(float(i) * 2.41 + ciclo)
+		var pie: bool = (i + int(ciclo)) % 3 != 1
+		var altura_inicio: float = 0.05 if pie else maxf(0.05, alto * 0.58)
+		var inicio := Vector3(x0, altura_inicio, z)
+		var fin := Vector3(x1, alto * (0.35 + 0.15 * variacion) + 0.05, -z)
+		if (i + int(ciclo)) % 2 != 0:
+			var intercambio: Vector3 = inicio
+			inicio = fin
+			fin = intercambio
+		var elevacion: float = alto * (0.20 + 0.17 * float(i % 3) + 0.10 * variacion)
+		var arco: PackedVector3Array = _trazo_muro_descarga(inicio, fin, elevacion, alto, 16)
+		_guardar_cinta(arco, grueso, grueso * 0.52, alfa, alfa * 0.78)
+		var nudo: Vector3 = arco[5 + i % 4]
+		var x_rama: float = lerpf(nudo.x, x1 if i % 2 == 0 else x0, 0.73)
+		var contacto := Vector3(x_rama, 0.05, -z * 0.7)
+		var rama: PackedVector3Array = _trazo_muro_descarga(nudo, contacto, alto * 0.08, alto, 8)
+		_guardar_cinta(rama, grueso * 0.54, grueso * 0.09, alfa * 0.86, alfa * 0.51)
+		bril.append({"pos": contacto, "tam": 0.22 + grueso, "alfa": alfa * 0.60, "estrella": 0.45})
+
+
+func _trazo_muro_descarga(inicio: Vector3, fin: Vector3, elevacion: float, alto: float, pasos: int) -> PackedVector3Array:
+	var trazo := PackedVector3Array([inicio])
+	var amplitud: float = clampf(alto * 0.48, 0.06, 0.66)
+	for i in range(1, pasos):
+		var u: float = float(i) / float(pasos)
+		var guia: Vector3 = inicio.lerp(fin, u)
+		guia.y += (sin(PI * u) + 0.32 * sin(TAU * u)) * elevacion
+		var punto: Vector3 = _muestra_descarga(guia, _t - (1.0 - u) * 0.07, amplitud * sin(PI * u))
+		punto.x = clampf(punto.x, -semieje_x, semieje_x)
+		punto.y = clampf(punto.y, 0.05, alto + 0.05)
+		trazo.append(punto)
+	trazo.append(fin)
+	return trazo
+
+
 ## BARRERA = ARO CHISPEANTE sobre el elipsoide (centro a 0,4·y como la del fuego): tres aros quebrados a 0,12·y, 0,65·y y 1,2·y (el radio sigue la curva del elipsoide) y cuatro arcos que los unen. `crece` cierra los aros.
 func _gen_barrera(lista: Array, bril: Array, env: float, cr: float) -> void:
+	if _cupula_barrera != null:
+		_gen_cupula_electrica(bril, env, cr)
+		return
 	var x: float = semieje_x
 	var y: float = semieje_y
 	var z: float = semieje_z
@@ -1073,9 +1378,53 @@ func _gen_barrera(lista: Array, bril: Array, env: float, cr: float) -> void:
 	bril.append({"pos": Vector3(0, 0.1, 0), "tam": (x + z) * 1.2, "alfa": 0.2 * env, "estrella": 0.0})
 
 
+func _gen_cupula_electrica(bril: Array, env: float, cr: float) -> void:
+	var crecimiento: float = lerpf(0.62, 1.0, smoothstep(0.0, 1.0, cr))
+	var radio: float = minf(semieje_x, semieje_z)
+	var alto: float = maxf(semieje_y, radio * 0.64)
+	var centro := Vector3.UP * (alto * 0.48 * crecimiento)
+	var radios := Vector3(semieje_x, alto * 0.72, semieje_z) * crecimiento
+	_cupula_barrera.position = centro
+	_cupula_barrera.scale = radios
+	var material := _cupula_barrera.material_override as ShaderMaterial
+	material.set_shader_parameter("aparicion_cupula", cr * (1.0 - clampf(corte, 0.0, 1.0)))
+	_pos_luz = centro
+	var grueso: float = clampf(radio * 0.11, 0.045, 0.14)
+	for i in 7:
+		var reloj: float = _t * velocidad / (0.17 + 0.043 * float(i % 4)) + float(i) * 0.37
+		var ciclo: float = floorf(reloj)
+		var fase: float = reloj - ciclo
+		var alfa: float = env * cr * smoothstep(0.0, 0.10, fase) * (1.0 - smoothstep(0.56, 1.0, fase))
+		if alfa < 0.02:
+			continue
+		var angulo: float = float(i) * 2.39996 + ciclo * 1.71 + float(_semilla % 31) * 0.2
+		var latitud: float = 0.14 + 0.43 * sin(angulo * 1.73 + float(i))
+		var giro: float = (0.55 + 0.29 * float(i % 3)) * lerpf(0.48, 1.0, smoothstep(0.0, 0.52, fase))
+		var desnivel: float = 0.75 * sin(angulo * 2.13)
+		var arco := PackedVector3Array()
+		for j in 11:
+			var u: float = float(j) / 10.0
+			var a: float = angulo + giro * u
+			var l: float = clampf(latitud + desnivel * u + 0.18 * sin(u * PI), -0.61, 1.22)
+			var normal := Vector3(cos(a) * cos(l), sin(l), sin(a) * cos(l))
+			var pos: Vector3 = centro + normal * radios * 1.014
+			var tangente := Vector3(-sin(a), 0.0, cos(a))
+			var ruido: Basis = Basis(tangente, normal.cross(tangente), normal)
+			arco.append(_muestra_descarga(pos, _t - u * 0.07, grueso * 1.7 * sin(u * PI), ruido))
+		_guardar_cinta(arco, grueso * (1.0 if i % 3 == 0 else 0.57), grueso * 0.12, alfa, alfa * 0.46)
+		if i % 2 == 0:
+			bril.append({"pos": arco[6], "tam": grueso * 2.5, "alfa": alfa * 0.66, "estrella": 0.8})
+
+
 ## HAZ = TUBO DE ENERGÍA recto entre la mano (el origen) y el objetivo (hacia -Z, a la altura máx(y, 0,4)) con arcos que se ENROSCAN alrededor y destellos en los dos extremos (referencia en vídeo, «Beam»): un tronco casi recto
 ## y grueso (blanco con el halo del rayo), una segunda línea fina con algo de desviación, dos hélices de arcos cortos que lo rodean (cambian de fase en cada redibujo) y tres ramas. `crece` lo extiende de golpe hasta la punta.
 func _gen_haz(lista: Array, bril: Array, env: float, cr: float) -> void:
+	if RayoTrazos.prueba_descarga:
+		_gen_haz_descarga(bril, env, cr)
+		return
+	if RayoTrazos.prueba_toon:
+		_gen_haz_toon(lista, bril, env, cr)
+		return
 	var largo: float = _haz_largo
 	var alt: float = _haz_alt
 	_pos_luz = Vector3(0, alt, -largo * 0.5)
@@ -1106,3 +1455,295 @@ func _gen_haz(lista: Array, bril: Array, env: float, cr: float) -> void:
 	bril.append({"pos": Vector3(0, alt, -largo * cr), "tam": 1.0 + _haz_r * 2.0, "alfa": 0.95 * env * smoothstep(0.5, 1.0, cr), "estrella": 0.95})
 	for k in 3:
 		bril.append({"pos": Vector3(_rng.randf_range(-0.2, 0.2), alt + _rng.randf_range(-0.2, 0.2), -largo * _rng.randf_range(0.2, 1.0) * cr), "tam": 0.25, "alfa": 0.7 * env, "estrella": 0.9})
+
+
+func _estela_bola(lista: Array, r: float, g: float, vuelo: float, env: float) -> void:
+	if RayoTrazos.prueba_cinta:
+		_estela_cinta(r, g, vuelo, env)
+		return
+	var largo: float = r * COLA_BOLA * vuelo
+	var z0: float = r * 0.5
+	if RayoTrazos.prueba_toon:
+		var intensidad: float = maxf(env, 0.55) * vuelo
+		var grueso: float = g * 1.65
+		var origen := Vector3(0, 0, z0)
+		var punta := origen + Vector3.BACK * largo * 2.15
+		var arco := Vector3(1.0, 1.1, 0.0) * r * 1.45 * vuelo
+		var quiebro := Vector3(-0.35, 1.0, 0.0) * r * 1.15 * vuelo
+		var tronco := _relampago(origen, punta, arco, quiebro)
+		_afilado(lista, tronco, grueso, grueso * 0.14, intensidad, intensidad * 0.65, 0.78, 0.18, 3.0)
+		var rama := PackedVector3Array([tronco[2], tronco[3] - arco * 1.45, punta - arco * 0.9])
+		_afilado(lista, rama, grueso * 0.55, grueso * 0.1, intensidad, intensidad * 0.40, 0.66, 0.22, 4.0)
+		return
+	var pc := RayoTrazos.camino(Vector3(0, 0, z0), Vector3(0, 0, z0 + largo), 6, 0.05 * r, _rng)
+	_afilado(lista, pc, g * 0.62, g * 0.12, 0.98 * env, 0.3 * env, 0.8, 0.35, 3.0)
+	var pc2 := RayoTrazos.camino(Vector3(0.12 * r, 0.06 * r, z0), Vector3(-0.1 * r, 0.05 * r, z0 + largo * 0.7), 5, 0.1 * r, _rng)
+	_afilado(lista, pc2, g * 0.3, g * 0.08, 0.7 * env, 0.25 * env, 0.8, 0.5, 4.0)
+
+
+## Una estela tenue sigue el recorrido; los arcos nacen en la cabeza y se abren al aire.
+func _estela_proyectil_reeboo(r: float, vuelo: float, env: float) -> void:
+	var alfa: float = maxf(env, 0.56) * vuelo
+	if alfa <= 0.01:
+		return
+	var estela := PackedVector3Array([Vector3.ZERO])
+	var restante: float = r * 6.0
+	for muestra in _estela_mundo:
+		var local: Vector3 = _cuerpo.to_local(muestra)
+		var tramo: float = estela[-1].distance_to(local)
+		if tramo < r * 0.25:
+			continue
+		estela.append(estela[-1].lerp(local, minf(1.0, restante / tramo)))
+		restante -= tramo
+		if restante <= 0.0:
+			break
+	if estela.size() > 1:
+		_cintas.append({
+			"puntos": estela, "ancho": r * 1.25, "punta": r * 0.35,
+			"alfa": alfa * 0.43, "alfa_punta": 0.0, "suave": true,
+		})
+	var plano_vista: Basis = _plano_proyectil_en_vista()
+	var espejo := Transform3D(plano_vista * Basis.from_scale(Vector3(1.0, 1.0, -1.0)) * plano_vista.inverse(), Vector3.ZERO)
+	var reflejos: Array[Dictionary] = []
+	for i in 5:
+		var reloj: float = _t * velocidad / (0.105 + 0.027 * float(i)) + float(i) * 0.43
+		var fase: float = fposmod(reloj, 1.0)
+		var angulo: float = float(i) * 2.39996 + sin(floorf(reloj) * 2.3 + float(_semilla % 97)) * 0.85
+		var radial := Vector3(cos(angulo), sin(angulo), 0.0)
+		var lado := Vector3(-radial.y, radial.x, 0.0)
+		var largo: float = r * (2.7 + 0.65 * float(i % 3)) * lerpf(0.62, 1.13, smoothstep(0.0, 0.65, fase))
+		var salida: Vector3 = (radial + Vector3.BACK * (0.32 + 0.35 * float(i % 3))) * largo
+		var pulso: float = alfa * lerpf(1.0, 0.58, smoothstep(0.55, 1.0, fase)) * (1.0 if i < 3 else 0.68)
+		var origen: Vector3 = radial * r * 0.28
+		var curva: Vector3 = (lado + Vector3.BACK * 0.65) * largo * 0.30
+		var arco: PackedVector3Array = _relampago(origen, origen + salida, curva, lado * largo * 0.18)
+		_guardar_cinta(arco, r * (0.43 if i < 3 else 0.24), r * 0.075, pulso, pulso * 0.56)
+		if i == 1 or i == 2:
+			# Copia los dos trazos animados, sin volver a sortear su forma ni su pulso.
+			reflejos.append({"puntos": espejo * arco, "ancho": r * 0.43, "punta": r * 0.075,
+				"alfa": pulso, "alfa_punta": pulso * 0.56})
+		if i < 3:
+			var punta_rama: Vector3 = arco[2] + (radial * 0.48 - lado * 0.66 + Vector3.BACK * 0.50) * largo * 0.65
+			var rama: PackedVector3Array = _relampago(arco[2], punta_rama, -lado * largo * 0.12, radial * largo * 0.075)
+			_guardar_cinta(rama, r * 0.20, r * 0.042, pulso * 0.80, pulso * 0.38)
+	_cintas.append_array(reflejos)
+
+
+## Da el eje de vuelo en pantalla para reflejar los rayos de la bola.
+func _plano_proyectil_en_vista() -> Basis:
+	var camara := get_viewport().get_camera_3d()
+	if camara == null:
+		return Basis.IDENTITY
+	var centro: Vector3 = _cuerpo.global_position
+	var destino: Vector3 = centro - _cuerpo.global_basis.z
+	var direccion: Vector2 = camara.unproject_position(destino) - camara.unproject_position(centro)
+	direccion = direccion.normalized() if direccion.length_squared() > 0.25 else Vector2.RIGHT
+	var vista: Basis = camara.global_basis.orthonormalized()
+	var frente: Vector3 = vista.x * direccion.x - vista.y * direccion.y
+	var arriba: Vector3 = vista.z.cross(frente)
+	# Compensa la escala de aparición del cuerpo para que la X no se aplaste.
+	var base_local: Basis = _cuerpo.global_basis
+	return base_local.inverse() * Basis(vista.z, arriba, -frente).scaled(Vector3.ONE * base_local.z.length())
+
+
+## Las posiciones ya recorridas se guardan en mundo, también al rebotar.
+func _muestrear_estela(delta: float) -> void:
+	_reloj_estela += delta
+	if _reloj_estela < 0.020 and not _estela_mundo.is_empty():
+		return
+	_reloj_estela = 0.0
+	if not _estela_mundo.is_empty() and _estela_mundo[0].distance_to(global_position) < 0.035:
+		if _estela_mundo.size() > 1:
+			_estela_mundo.pop_back()
+		return
+	_estela_mundo.push_front(global_position)
+	if _estela_mundo.size() > 10:
+		_estela_mundo.pop_back()
+
+
+func _estela_cinta(r: float, g: float, vuelo: float, env: float) -> void:
+	var camino := PackedVector3Array([Vector3(0, 0, r * 0.20)])
+	var largo: float = 0.0
+	for p in _estela_mundo:
+		var local: Vector3 = _cuerpo.to_local(p)
+		var tramo: float = camino[-1].distance_to(local)
+		if tramo < r * 0.48:
+			continue
+		largo += tramo
+		camino.append(local)
+		if largo >= r * 7.0:
+			break
+	if camino.size() < 2:
+		return
+	for i in range(1, camino.size()):
+		var u: float = float(i) / float(camino.size() - 1)
+		var quiebre: float = (1.0 if i % 2 == 1 else -1.0) * _rng.randf_range(0.48, 0.95)
+		if RayoTrazos.prueba_descarga:
+			quiebre *= 0.34 if i % 3 == 1 else 1.75
+		camino[i] += Vector3(0.36 * quiebre, sin(u * PI) * 0.65 + quiebre, 0) * r * smoothstep(0.0, 0.5, u)
+	var alfa: float = maxf(env, 0.48) * vuelo
+	_guardar_cinta(camino, g * (1.13 if RayoTrazos.prueba_descarga else 1.55), 0.009, alfa, alfa * 0.28)
+	if camino.size() >= 4:
+		if RayoTrazos.prueba_descarga:
+			# Guías que se abren en un cono hacia atrás. Cada una deja su propia estela.
+			for i in 7:
+				var angulo: float = float(i) * TAU / 7.0 + 0.5
+				var salida := Vector3(cos(angulo), sin(angulo), 1.7 + 0.23 * float(i % 3)) * r
+				var nudo: Vector3 = _rama_descarga(camino[i / 2], salida, g * (0.27 + 0.13 * float(i % 3)), alfa, i)
+				if i % 2 == 0:
+					var bifurcacion := Vector3(-sin(angulo), cos(angulo), 0.8) * r
+					_rama_descarga(nudo, bifurcacion, g * 0.22, alfa * 0.83, i + 7)
+			return
+		var medio: int = camino.size() / 2
+		var rama := PackedVector3Array([camino[1], camino[medio] + Vector3(0.45, -0.65, 0) * r, camino[-1] + Vector3(0.8, -0.65, 0) * r])
+		_guardar_cinta(rama, g * 0.6, 0.008, alfa * 0.8, alfa * 0.13)
+
+
+func _guardar_cinta(pts: PackedVector3Array, grosor: float, punta: float, alfa: float, alfa_punta: float) -> void:
+	_cintas.append({"puntos": pts, "ancho": grosor, "punta": punta, "alfa": alfa, "alfa_punta": alfa_punta})
+
+
+## La curva marca la silueta y los quiebros se leen a escala de juego. Solo se agita el interior.
+func _relampago(origen: Vector3, punta: Vector3, arco: Vector3, quiebro: Vector3) -> PackedVector3Array:
+	return PackedVector3Array([
+		origen,
+		origen.lerp(punta, 0.19) + arco * 0.7,
+		origen.lerp(punta, 0.39) + arco + quiebro * _rng.randf_range(0.65, 1.0),
+		origen.lerp(punta, 0.47) + arco * 0.86 - quiebro * _rng.randf_range(0.8, 1.1),
+		origen.lerp(punta, 0.74) + arco * 0.6 + quiebro * _rng.randf_range(0.35, 0.65),
+		punta,
+	])
+
+
+## El tronco conserva el origen y el contacto. Las ramas nacen en sus quiebros.
+func _gen_haz_toon(lista: Array, bril: Array, env: float, cr: float) -> void:
+	var origen := Vector3(0, _haz_alt, 0)
+	var punta := origen + Vector3.FORWARD * _haz_largo
+	var arco := Vector3(-0.42, 1.0, 0.0) * minf(_haz_largo * 0.22, 1.2)
+	var quiebro := Vector3(-0.38, 1.0, 0.0) * minf(_haz_largo * 0.16, 0.92)
+	var tronco := _relampago(origen, punta, arco, quiebro)
+	_pos_luz = tronco[2].lerp(tronco[3], 0.5)
+	var grueso: float = _grosor(_haz_r / 0.45 * 0.6) * 1.23
+	var alfa: float = env * 0.65 + 0.25 * pow(1.0 - clampf(corte, 0.0, 1.0), 1.5)
+	var progreso: float = cr * float(tronco.size() - 1)
+	var tramo: int = mini(int(progreso), tronco.size() - 2)
+	var frente: Vector3 = tronco[tramo].lerp(tronco[tramo + 1], progreso - float(tramo))
+	if RayoTrazos.prueba_cinta:
+		if cr > 0.0:
+			var visible := tronco.slice(0, int(ceil(progreso)))
+			visible.append(frente)
+			var detalle := PackedVector3Array([origen])
+			for i in range(1, visible.size()):
+				var a: Vector3 = visible[i - 1]
+				var b: Vector3 = visible[i]
+				var desvio: Vector3 = Vector3(0.4, 1.0, 0.0) * minf(a.distance_to(b) * 0.13, 0.12)
+				detalle.append(a.lerp(b, 0.47) + desvio * _rng.randf_range(-1.0, 1.0))
+				detalle.append(b)
+			_guardar_cinta(detalle, grueso * 0.71, grueso * 0.37, alfa, alfa * 0.88)
+	else:
+		RayoTrazos.trazar(lista, tronco, grueso, alfa, cr, 0.82, 0.18, 0.0, 0.75)
+	if cr >= 0.4:
+		var alta := PackedVector3Array([tronco[2], tronco[2].lerp(tronco[4], 0.53) + arco * 0.52, tronco[4] + arco * 0.6 - quiebro * 0.6])
+		if RayoTrazos.prueba_cinta:
+			_guardar_cinta(alta, grueso * 0.44, 0.01, alfa, alfa * 0.45)
+		else:
+			_afilado(lista, alta, grueso * 0.5, grueso * 0.12, alfa, alfa * 0.45, 0.66, 0.24, 4.0)
+	if cr >= 0.6:
+		var baja := PackedVector3Array([tronco[3], tronco[3].lerp(tronco[4], 0.58) - arco * 0.46, tronco[4] - arco * 0.42 + quiebro * 0.53])
+		if RayoTrazos.prueba_cinta:
+			_guardar_cinta(baja, grueso * 0.42, 0.01, alfa, alfa * 0.52)
+		else:
+			_afilado(lista, baja, grueso * 0.48, grueso * 0.12, alfa, alfa * 0.52, 0.66, 0.24, 6.0)
+	bril.append({"pos": origen, "tam": 0.34, "alfa": env * 0.7, "estrella": 0.45})
+	bril.append({"pos": frente, "tam": 0.42, "alfa": env * cr, "estrella": 0.55})
+
+
+## Tronco irregular y bifurcaciones abiertas. Los extremos vienen del haz real.
+func _gen_haz_descarga(bril: Array, env: float, cr: float) -> void:
+	var origen := Vector3(0, _haz_alt, 0)
+	var punta := origen + Vector3.FORWARD * _haz_largo
+	var grueso: float = _grosor(_haz_r / 0.45 * 0.6) * 1.03
+	var alfa: float = env * 0.68 + 0.28 * (1.0 - clampf(corte, 0.0, 1.0))
+	var frente: Vector3 = _dibujar_descarga(origen, punta, Basis.IDENTITY, grueso, alfa, cr)
+	if _fase_espejo(_t):
+		# Refleja también los nudos y el ruido respecto al eje que une los contactos.
+		var espejo := Transform3D(Basis.from_scale(Vector3(1, -1, 1)), Vector3(0, 2.0 * _haz_alt, 0))
+		for cinta: Dictionary in _cintas:
+			var puntos: PackedVector3Array = cinta["puntos"]
+			cinta["puntos"] = espejo * puntos
+		frente = espejo * frente
+		_pos_luz = espejo * _pos_luz
+	bril.append({"pos": origen, "tam": 0.38, "alfa": env, "estrella": 0.65})
+	bril.append({"pos": frente, "tam": 0.48, "alfa": env * cr, "estrella": 0.65})
+
+
+func _dibujar_descarga(origen: Vector3, punta: Vector3, orientacion: Basis, grueso: float, alfa: float, cr: float) -> Vector3:
+	var escala: float = minf(origen.distance_to(punta), 7.0)
+	var tronco := PackedVector3Array([origen])
+	var u: Array[float] = [0.12, 0.25, 0.32, 0.45, 0.49, 0.61, 0.73, 0.77, 0.90]
+	var alto: Array[float] = [0.055, 0.105, 0.050, 0.148, 0.118, 0.050, 0.085, 0.017, 0.039]
+	for i in u.size():
+		var punto: Vector3 = origen.lerp(punta, u[i]) + orientacion.y * alto[i] * escala
+		tronco.append(_muestra_descarga(punto, _t, minf(escala * 0.055, 0.33), orientacion))
+	tronco.append(punta)
+	_pos_luz = tronco[4]
+	var avance: float = cr * float(tronco.size() - 1)
+	var tramo: int = mini(int(avance), tronco.size() - 2)
+	var frente: Vector3 = tronco[tramo].lerp(tronco[tramo + 1], avance - float(tramo))
+	if cr > 0.0:
+		var visible := tronco.slice(0, int(ceil(avance)))
+		visible.append(frente)
+		_guardar_cinta(visible, grueso, grueso * 0.50, alfa, alfa * 0.89)
+	var direcciones := PackedVector3Array([
+		Vector3(0.10, -0.11, -0.13), Vector3(-0.045, 0.24, -0.23),
+		Vector3(-0.14, 0.05, -0.17), Vector3(0.075, -0.20, -0.23),
+		Vector3(-0.13, 0.15, -0.18), Vector3(0.14, -0.10, -0.12),
+		Vector3(-0.07, 0.13, -0.11), Vector3(0.035, -0.085, -0.08),
+		Vector3(-0.05, 0.07, -0.045),
+	])
+	for i in direcciones.size():
+		if avance < float(i + 1):
+			break
+		var salida: Vector3 = orientacion * direcciones[i] * escala
+		var nudo: Vector3 = _rama_descarga(tronco[i + 1], salida, grueso * (0.35 + 0.10 * float(i % 3)), alfa, i, orientacion)
+		var giro: float = 1.0 if i % 2 == 0 else -1.0
+		var desvio: Vector3 = orientacion * Vector3(0.08 * giro, 0.08 * giro, -0.07) * escala
+		_rama_descarga(nudo, salida * 0.27 + desvio, grueso * 0.26, alfa * 0.84, i + direcciones.size(), orientacion)
+		if i % 3 == 1:
+			_rama_descarga(nudo, salida * 0.42 - desvio, grueso * 0.29, alfa * 0.91, i + 2 * direcciones.size(), orientacion)
+	return frente
+
+
+func _fase_espejo(tiempo: float) -> bool:
+	return int(floor((tiempo + 0.00001) / T_REDIBUJO)) % 2 != 0
+
+
+func _rama_descarga(origen: Vector3, salida: Vector3, ancho_rama: float, alfa: float, indice: int, orientacion: Basis = Basis.IDENTITY) -> Vector3:
+	var vida_rama: float = 0.105 + float(indice % 4) * 0.028
+	var fase: float = fposmod(_t * velocidad + float(indice) * 0.074, vida_rama) / vida_rama
+	var extension: float = lerpf(0.30, 1.14, smoothstep(0.0, 0.62, fase))
+	var intensidad: float = alfa * lerpf(1.0, 0.22, smoothstep(0.55, 1.0, fase))
+	var rama := PackedVector3Array([origen])
+	for i in range(1, 7):
+		var u: float = float(i) / 6.0
+		var guia: Vector3 = origen + salida * u * extension
+		var tiempo_muestra: float = _t - (1.0 - u) * vida_rama * fase
+		var amplitud: float = minf(salida.length() * 0.29, 0.36) * smoothstep(0.0, 0.55, u)
+		rama.append(_muestra_descarga(guia, tiempo_muestra, amplitud, orientacion))
+	_guardar_cinta(rama, ancho_rama, 0.006, intensidad, intensidad * 0.45)
+	return rama[3]
+
+
+## Como en el tutorial, se perturba cada muestra de la guía antes de unir la estela.
+func _muestra_descarga(punto: Vector3, tiempo: float, amplitud: float, orientacion: Basis = Basis.IDENTITY) -> Vector3:
+	if _ruido_descarga == null:
+		_ruido_descarga = FastNoiseLite.new()
+		_ruido_descarga.seed = _semilla
+		_ruido_descarga.noise_type = FastNoiseLite.TYPE_VALUE
+		_ruido_descarga.frequency = 10.0
+		_ruido_descarga.fractal_octaves = 3
+	var mundo: Vector3 = _cuerpo.to_global(punto)
+	var coords: Vector3 = mundo + Vector3(0.71, 1.9, -1.03) * tiempo * velocidad
+	var lateral: float = _ruido_descarga.get_noise_3dv(coords)
+	var vertical: float = _ruido_descarga.get_noise_3dv(coords + Vector3(13.5, 9.2, -8.7))
+	return punto + (orientacion.x * lateral + orientacion.y * vertical) * amplitud * chisporroteo

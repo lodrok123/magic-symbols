@@ -146,3 +146,5 @@ usar_erosion={
 
 vfx_procedural=true
 vfx_procedural_elementos="fuego,agua,rayo,magma,viento,tierra"
+vfx_rayo_revisado=true
+vfx_viento_revisado=true

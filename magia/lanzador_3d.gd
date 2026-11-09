@@ -1470,7 +1470,8 @@ func _conjurar(datos: Dictionary, origen: Vector3, dir: Vector3, tiempos: Array)
 	# 2. La voluta del libro a la mano.
 	var libro_p: Vector3 = _pos_libro()
 	conjuro_fase.emit("voluta", elemento, libro_p)
-	_voluta(libro_p, color, float(tiempos[1]))
+	if not VfxToyJuego.usa_cast_propio(elemento):
+		_voluta(libro_p, color, float(tiempos[1]))
 	await get_tree().create_timer(float(tiempos[1]), false).timeout
 	# 3. La forma se crece en la mano.
 	var mano: Vector3 = _pos_mano()
@@ -1514,7 +1515,8 @@ func _conjurar_punto(datos: Dictionary, origen: Vector3, dir: Vector3) -> void:
 	await get_tree().create_timer(maxf(t_runa, 0.001), false).timeout
 	var libro_p: Vector3 = _pos_libro()
 	conjuro_fase.emit("voluta", elemento, libro_p)
-	_voluta(libro_p, color, t_voluta)
+	if not VfxToyJuego.usa_cast_propio(elemento):
+		_voluta(libro_p, color, t_voluta)
 	await get_tree().create_timer(maxf(t_voluta, 0.001), false).timeout
 	var punto: Vector3 = _pos_cast_point()
 	conjuro_fase.emit("forma", elemento, punto)
@@ -2137,6 +2139,14 @@ func _solidez_refleja_en(p: Vector3, excepto: Object = null) -> bool:
 	return false
 
 
+## Normal de un muro de viento al tocarlo una flecha física. La primera solidez tiene prioridad.
+func normal_rebote_flecha(p: Vector3) -> Vector3:
+	for s in _solideces_v2:
+		if is_instance_valid(s) and s.contiene(p):
+			return s.normal_flecha if not s.retraida() else Vector3.ZERO
+	return Vector3.ZERO
+
+
 ## Algo AJENO (la flecha de un goblin) está en `p`: si un volumen con solidez lo contiene, lo para y aguanta `dano`. Devuelve true si lo ha parado.
 func solidez_para(p: Vector3, dano: float) -> bool:
 	for s in _solideces_v2:
@@ -2181,9 +2191,14 @@ func _golpear(obj: Node, rune: RuneData, dir: Vector3, punto: Vector3, nivel: in
 	var empuje: Dictionary = empuje_de_golpe(obj, rune, dir, punto, atrae, desde, hechizo)
 	if not empuje.is_empty():
 		obj.call("push", empuje["dir"], empuje["fuerza"])
+	var sopla: bool = Materia.sopla(Materia.de(hechizo if hechizo != null else rune))
 	if not obj.has_method("on_spell_hit"):
+		if sopla and not empuje.is_empty():
+			VfxToyJuego.aura_viento(obj, 0.85)
 		return false
 	var reacciona: bool = reacciona_a(obj, rune, dir, hechizo)
+	if sopla and (reacciona or not empuje.is_empty()):
+		VfxToyJuego.aura_viento(obj, 0.85)
 	if activable and reacciona and fx != null and is_instance_valid(fx):
 		fx.chispazo(punto, Objetos.elemento_de(rune))        # la chispa nace en el punto de activación
 	ultimo_impacto = punto
@@ -3534,6 +3549,7 @@ class SolidezV2 extends Node3D:
 	var vida: float = 1.0
 	var aguante: float = 30.0
 	var refleja: bool = false
+	var normal_flecha: Vector3 = Vector3.ZERO  ## cara del muro de viento que desvía flechas físicas
 	var elemento: String = ""
 	var linaje: Object = null            ## el lanzamiento (HechizoVivo.Linaje) que la levantó: sus propios proyectiles no chocan con ella (null = de nadie: la ven todos)
 

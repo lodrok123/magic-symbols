@@ -13,6 +13,22 @@ const SH_DESTELLO: String = DIR + "rayo_destello.gdshader"
 const SH_BOLA: String = DIR + "rayo_bola.gdshader"                           ## cuerpo esférico de la bola (mezcla normal, fresnel)
 const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 
+## Las variantes anteriores siguen disponibles para las comparativas del laboratorio.
+static var prueba_reeboo: bool = _usar_rayo_revisado()
+static var prueba_descarga: bool = prueba_reeboo or OS.get_cmdline_user_args().has("rayo-descarga")
+static var prueba_cinta: bool = prueba_descarga or OS.get_cmdline_user_args().has("rayo-cinta")
+static var prueba_toon: bool = prueba_cinta or OS.get_cmdline_user_args().has("rayo-toon")
+
+
+static func _usar_rayo_revisado() -> bool:
+	var argumentos := OS.get_cmdline_user_args()
+	if argumentos.has("rayo-reeboo"):
+		return true
+	for variante in ["rayo-descarga", "rayo-cinta", "rayo-toon"]:
+		if argumentos.has(variante):
+			return false
+	return bool(ProjectSettings.get_setting("magic_symbols/vfx_rayo_revisado", true))
+
 
 ## ShaderMaterial del rayo con la textura y la paleta del rayo del juego (rayo_paleta.gd), más `p`.
 static func material(shader: String, p: Dictionary = {}, prioridad: int = 0) -> ShaderMaterial:
@@ -56,6 +72,78 @@ static func crear_trazos(nombre: String, n: int, prioridad: int = 1) -> MultiMes
 
 static func crear_destellos(nombre: String, n: int, prioridad: int = 2) -> MultiMeshInstance3D:
 	return _crear_mm(nombre, n, SH_DESTELLO, {"instancias": 1.0}, prioridad)
+
+
+static func crear_golpe_haz() -> MultiMeshInstance3D:
+	return _crear_mm("GolpeHaz", 3, DIR + "rayo_golpe_haz.gdshader", {}, 4)
+
+
+static func crear_cinta() -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.name = "CintaElectrica"
+	mi.mesh = ArrayMesh.new()
+	mi.material_override = material(DIR + "rayo_cinta.gdshader", {"descarga": prueba_descarga}, 1)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return mi
+
+
+## Cada codo comparte un par de vértices entre sus dos tramos.
+static func volcar_cintas(mi: MeshInstance3D, cintas: Array, ancho: float, irregular: bool = true) -> void:
+	var malla := mi.mesh as ArrayMesh
+	malla.clear_surfaces()
+	var cam := mi.get_viewport().get_camera_3d()
+	var base_mundo: Basis = mi.global_basis
+	if cintas.is_empty() or cam == null or is_zero_approx(base_mundo.determinant()):
+		return
+	var vista: Vector3 = (base_mundo.inverse() * cam.global_basis.z).normalized()
+	var vertices := PackedVector3Array()
+	var uv := PackedVector2Array()
+	var colores := PackedColorArray()
+	var indices := PackedInt32Array()
+	for cinta in cintas:
+		var pts: PackedVector3Array = cinta["puntos"]
+		var suave: bool = cinta.get("suave", false)
+		var n: int = pts.size() - 1
+		var base: int = vertices.size()
+		var largo: float = 0.0
+		for i in pts.size():
+			var anterior: Vector3 = pts[i] - pts[maxi(i - 1, 0)]
+			var siguiente: Vector3 = pts[mini(i + 1, n)] - pts[i]
+			largo += anterior.length()
+			var lado_a: Vector3 = vista.cross(anterior).normalized()
+			var lado_b: Vector3 = vista.cross(siguiente).normalized()
+			if lado_a.is_zero_approx():
+				lado_a = lado_b
+			if lado_b.is_zero_approx():
+				lado_b = lado_a
+			var lado: Vector3 = (lado_a + lado_b).normalized()
+			if lado.is_zero_approx():
+				lado = lado_b
+			var mitra: float = 1.0 / maxf(lado.dot(lado_b), 0.60)
+			var u: float = float(i) / float(n)
+			var radio: float = lerpf(cinta["ancho"], cinta["punta"], u) * ancho * 0.5
+			if irregular and prueba_descarga and not suave:
+				radio *= 0.76 + 0.24 * sin(largo * 10.0 + float(base) * 0.81)
+			var color := Color(0.0 if suave else 1.0, cinta.get("tinte", 1.0), 1.0, lerpf(cinta["alfa"], cinta["alfa_punta"], u))
+			vertices.append(pts[i] - lado * radio * mitra)
+			vertices.append(pts[i] + lado * radio * mitra)
+			var uv_largo: float = largo if irregular else u
+			uv.append(Vector2(0.0, uv_largo))
+			uv.append(Vector2(1.0, uv_largo))
+			colores.append(color)
+			colores.append(color)
+			if i < n:
+				var j: int = base + i * 2
+				indices.append_array(PackedInt32Array([j, j + 1, j + 2, j + 2, j + 1, j + 3]))
+	if vertices.is_empty():
+		return
+	var datos: Array = []
+	datos.resize(Mesh.ARRAY_MAX)
+	datos[Mesh.ARRAY_VERTEX] = vertices
+	datos[Mesh.ARRAY_TEX_UV] = uv
+	datos[Mesh.ARRAY_COLOR] = colores
+	datos[Mesh.ARRAY_INDEX] = indices
+	malla.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, datos)
 
 
 ## La ESFERA de la bola de rayo (radio 1: se escala con los semiejes): núcleo blanco-amarillo con fresnel, en mezcla normal (rayo_bola.gdshader). Un MeshInstance3D, no cuenta como partícula.
@@ -124,7 +212,7 @@ static func camino(a: Vector3, b: Vector3, n: int, amp: float, rng: RandomNumber
 
 
 ## Añade a `lista` los tramos del camino `pts` hasta la fracción `hasta` (0..1) de su recorrido (el último tramo se corta). Cada tramo: {a, b, ancho, alfa, halo, parpadeo, fase}. Devuelve los tramos añadidos.
-static func trazar(lista: Array, pts: PackedVector3Array, ancho: float, alfa: float, hasta: float = 1.0, halo: float = 1.0, parpadeo: float = 0.4, fase: float = 0.0) -> int:
+static func trazar(lista: Array, pts: PackedVector3Array, ancho: float, alfa: float, hasta: float = 1.0, halo: float = 1.0, parpadeo: float = 0.4, fase: float = 0.0, ancho_final: float = 1.0) -> int:
 	var n: int = pts.size() - 1
 	var tope: float = clampf(hasta, 0.0, 1.0) * float(n)
 	var k: int = 0
@@ -134,7 +222,8 @@ static func trazar(lista: Array, pts: PackedVector3Array, ancho: float, alfa: fl
 			break
 		var f: float = clampf(tope - u0, 0.0, 1.0)
 		var b: Vector3 = pts[i].lerp(pts[i + 1], f)
-		lista.append({"a": pts[i], "b": b, "ancho": ancho, "alfa": alfa, "halo": halo, "parpadeo": parpadeo, "fase": fase + float(i) * 0.37})
+		var grosor: float = ancho * lerpf(1.0, ancho_final, u0 / float(maxi(n - 1, 1)))
+		lista.append({"a": pts[i], "b": b, "ancho": grosor, "alfa": alfa, "halo": halo, "parpadeo": parpadeo, "fase": fase + float(i) * 0.37})
 		k += 1
 	return k
 

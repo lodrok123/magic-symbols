@@ -24,6 +24,9 @@ enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ }
 enum EstadoCarga { NINGUNA, CARGANDO, SOLTANDO, APAGANDO, CANCELANDO }
 
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
+const CorrientesViento = preload("res://presentacion/vfx/toy/viento_corrientes.gd")
+static var prueba_corrientes: bool = OS.get_cmdline_user_args().has("viento-concepto") or bool(
+	ProjectSettings.get_setting("magic_symbols/vfx_viento_revisado", true))
 
 const REF_BOLA: Vector3 = Vector3(0.4, 0.4, 0.4)
 const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
@@ -88,6 +91,7 @@ var _c_nodo: Node3D = null
 var _c_humo: Node3D = null
 var _c_hojas: Node3D = null
 var _c_cintas: Array = []
+var _c_corrientes: CorrientesViento = null
 var _c_acc: float = 0.0
 var _pop: bool = false
 var _humo: Node3D = null                ## reserva de jirones de la figura (local al Cuerpo)
@@ -103,6 +107,9 @@ var _t_fig: float = 0.0
 var _haz_largo: float = 3.0
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
+var _corrientes: CorrientesViento = null
+var _bola_viento: MeshInstance3D = null
+var _edad_rafaga: float = 0.0
 
 
 # ================================================================== HOJAS POR CPU ==================================================================
@@ -313,7 +320,6 @@ func empezar_carga(duracion: float, tam_final: Variant = null) -> void:
 	_c_r = r
 	definir(Figura.BOLA, r, r, r, false)
 	proyectil = false
-	_aplicar_vuelo(false)
 	aparicion = 1.0
 	if _ap != null:
 		_ap.stop()
@@ -322,6 +328,7 @@ func empezar_carga(duracion: float, tam_final: Variant = null) -> void:
 	_c_prog = 0.0
 	_c_escala = carga_tam_inicial
 	_est = EstadoCarga.CARGANDO
+	_aplicar_vuelo(false)
 	_pop = false
 	if _cuerpo != null:
 		_cuerpo.visible = carga_bola_visible
@@ -349,7 +356,7 @@ func soltar(dir: Vector3 = Vector3.ZERO) -> void:
 		_c_desde = _c_escala
 	_c_t = 0.0
 	_est = EstadoCarga.SOLTANDO
-	_quitar_visual_carga()
+	_quitar_visual_carga(-global_basis.z)
 
 
 func cancelar_carga() -> void:
@@ -368,10 +375,29 @@ func _set_carga_bola_visible(v: bool) -> void:
 
 
 ## La convergencia deja de emitir; lo emitido se erosiona solo y el nodo «Carga» se libera al cabo de 0,8 s.
-func _quitar_visual_carga() -> void:
+func _quitar_visual_carga(direccion: Vector3 = Vector3.ZERO) -> void:
 	if _c_nodo != null and is_instance_valid(_c_nodo):
 		var n: Node3D = _c_nodo
 		_c_nodo = null
+		if is_instance_valid(_c_corrientes):
+			var trazo: CorrientesViento = _c_corrientes
+			_c_corrientes = null
+			var dispara: bool = direccion.length_squared() > 0.001
+			if dispara:
+				var d: Vector3 = direccion.normalized()
+				n.look_at(n.global_position + d, Vector3.UP if absf(d.y) < 0.99 else Vector3.FORWARD)
+			var figura_salida: StringName = &"SALIDA" if dispara else &"CARGA"
+			var radio := Vector3.ONE * _c_r * carga_radio
+			var tiempo: float = _c_t * velocidad
+			var progreso: float = _c_prog
+			var grosor: float = ancho
+			var fundido := n.create_tween()
+			fundido.tween_method(func(u: float) -> void:
+				var alfa: float = 1.0 if dispara else 1.0 - u
+				trazo.dibujar(figura_salida, radio, tiempo + u * 0.18, alfa, grosor, u if dispara else progreso),
+				0.0, 1.0, 0.22 if dispara else 0.14)
+			fundido.tween_callback(n.queue_free)
+			return
 		_c_humo = null
 		_c_hojas = null
 		_c_cintas = []
@@ -406,7 +432,12 @@ func _avanzar_carga(delta: float) -> void:
 			var resp: float = sin(_c_t * TAU * RESPIRO_HZ)
 			_c_escala = g * (1.0 + carga_respiro * env * resp)
 			_aplicar_escala_carga()
-			_emitir_carga(delta, p)
+			if is_instance_valid(_c_corrientes):
+				_c_nodo.global_transform = global_transform
+				_c_corrientes.dibujar(&"CARGA", Vector3.ONE * _c_r * carga_radio, _c_t * velocidad,
+					smoothstep(0.0, 0.075, _c_t), ancho, p)
+			else:
+				_emitir_carga(delta, p)
 		EstadoCarga.SOLTANDO:
 			_c_t += delta
 			var u: float = clampf(_c_t / T_SOLTAR, 0.0, 1.0)
@@ -446,6 +477,12 @@ func _montar_carga() -> void:
 	_c_nodo = Node3D.new()
 	_c_nodo.name = "Carga"
 	add_child(_c_nodo)
+	if prueba_corrientes:
+		_c_nodo.top_level = true
+		_c_nodo.global_transform = global_transform
+		_c_corrientes = CorrientesViento.new()
+		_c_nodo.add_child(_c_corrientes)
+		return
 	_c_humo = HumoToy.new()
 	_c_humo.name = "Convergencia"
 	_c_nodo.add_child(_c_humo)
@@ -644,23 +681,46 @@ func _construir() -> void:
 	_humo = null
 	_estela = null
 	_hojas = null
+	_corrientes = null
+	_bola_viento = null
 	_cintas = []
 	_acc = 0.0
 	_acc_h = 0.0
 	_t_fig = 0.0
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
-	match figura:
-		Figura.BOLA:
-			_bola(cuerpo)
-		Figura.HAZ:
-			_haz(cuerpo)
-		Figura.PILAR:
-			_pilar(cuerpo)
-		Figura.MURO:
-			_muro(cuerpo)
-		_:
-			_barrera(cuerpo)
+	if not prueba_corrientes or figura == Figura.BOLA:
+		match figura:
+			Figura.BOLA:
+				_bola(cuerpo)
+			Figura.HAZ:
+				_haz(cuerpo)
+			Figura.PILAR:
+				_pilar(cuerpo)
+			Figura.MURO:
+				_muro(cuerpo)
+			_:
+				_barrera(cuerpo)
+	if prueba_corrientes:
+		_corrientes = CorrientesViento.new()
+		_corrientes.name = "CorrientesViento"
+		cuerpo.add_child(_corrientes)
+		if figura == Figura.BOLA:
+			var esfera := SphereMesh.new()
+			esfera.radial_segments = 24
+			esfera.rings = 12
+			var material := ShaderMaterial.new()
+			material.shader = preload("res://presentacion/vfx/toy/viento_bola.gdshader")
+			material.render_priority = 1
+			_bola_viento = MeshInstance3D.new()
+			_bola_viento.name = "BolaDeViento"
+			_bola_viento.mesh = esfera
+			_bola_viento.material_override = material
+			_bola_viento.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			_bola_viento.hide()
+			cuerpo.add_child(_bola_viento)
+		elif figura == Figura.PILAR:
+			_hojas = _hojas_de(cuerpo, HOJAS_FIG, false, -0.5)
 	_anim_si_hace_falta()
 
 
@@ -782,16 +842,57 @@ func _set_proyectil(v: bool) -> void:
 
 
 func _aplicar_vuelo(v: bool) -> void:
+	_edad_rafaga = 0.0
 	if _estela != null and is_instance_valid(_estela):
-		_estela.visible = v
+		_estela.visible = v and _corrientes == null
+	if _corrientes != null and figura == Figura.BOLA:
+		var mostrar_jirones: bool = not v and _est != EstadoCarga.CARGANDO
+		_humo.visible = mostrar_jirones
+		_hojas.visible = mostrar_jirones
+		for cinta: MeshInstance3D in _cintas:
+			cinta.visible = mostrar_jirones
 
 
 func _process(delta: float) -> void:
 	super._process(delta)
 	_avanzar_carga(delta)
 	_t_fig += delta
+	if _bola_viento != null:
+		var en_carga: bool = _est == EstadoCarga.CARGANDO or _est == EstadoCarga.CANCELANDO
+		var radio: float = maxf(0.17, maxf(semieje_x, semieje_z))
+		_bola_viento.visible = proyectil or en_carga
+		_bola_viento.scale = Vector3.ONE * radio * 0.99
+		_bola_viento.position.z = -radio * 0.68 * smoothstep(0.0, 0.10, _edad_rafaga) if proyectil else 0.0
+		if en_carga:
+			return
+	if _corrientes != null and (figura != Figura.BOLA or proyectil):
+		_actualizar_corrientes(delta)
+		return
 	_girar_cintas(delta)
 	_emitir_figura(delta)
+
+
+func _actualizar_corrientes(delta: float) -> void:
+	var ejes := Vector3(semieje_x, semieje_y * altura, semieje_z)
+	if figura == Figura.HAZ:
+		ejes = Vector3(semieje_x * 2.0, maxf(semieje_y, 0.4), semieje_z * FuegoToy.HAZ_ABRE)
+	elif figura == Figura.BARRERA:
+		ejes.y = maxf(ejes.y, minf(ejes.x, ejes.z) * 0.63)
+	var opacidad: float = aparicion * clampf(_c_escala, 0.0, 1.0)
+	var estela: float = 1.0
+	if figura == Figura.BOLA:
+		_edad_rafaga += delta
+		estela = smoothstep(0.02, 0.22, _edad_rafaga)
+	_corrientes.dibujar(StringName(Figura.keys()[figura]), ejes, _t_fig * velocidad, opacidad, ancho, estela)
+	if figura != Figura.PILAR or _hojas == null or opacidad < 0.10:
+		return
+	_acc_h += delta * 10.0 * clampf(chispas, 0.0, 1.0)
+	while _acc_h >= 1.0:
+		_acc_h -= 1.0
+		var a: float = randf() * TAU
+		var pie := Vector3(cos(a) * ejes.x * 0.46, 0.08, sin(a) * ejes.z * 0.46)
+		var empuje := Vector3(-sin(a) * ejes.x * 2.0, ejes.y * 0.68, cos(a) * ejes.z * 2.0)
+		_hojas.emitir(pie, empuje, 0.7, 0.16, Vector3.ZERO, 4.0)
 
 
 func _girar_cintas(delta: float) -> void:

@@ -60,6 +60,35 @@ static func usa_toy(elemento: String) -> bool:
 	return ELEMENTOS.has(elemento) and activo() and elementos_activos().has(elemento)
 
 
+static func usa_cast_propio(elemento: String) -> bool:
+	const RayoTrazos = preload("res://presentacion/vfx/toy/rayo_trazos.gd")
+	return ((elemento == "rayo" and RayoTrazos.prueba_reeboo)
+		or (elemento == "viento" and VientoToy.prueba_corrientes)) and usa_toy(elemento)
+
+
+static func aura_viento(obj: Node, duracion: float, levita: bool = false) -> void:
+	const AuraViento = preload("res://presentacion/vfx/toy/viento_aura.gd")
+	if not VientoToy.prueba_corrientes or not usa_toy("viento") or not obj is Node3D or not obj.is_inside_tree():
+		return
+	var aura := obj.get_node_or_null("AuraViento") as AuraViento
+	if aura == null:
+		var ancla := obj as Node3D
+		if obj is Limo3D and is_instance_valid(obj.cuerpo):
+			ancla = obj.cuerpo
+		elif obj is Combate3D or obj is Jugador3D:
+			var modelo := obj.get("pj") as Node3D
+			if is_instance_valid(modelo):
+				ancla = modelo
+		aura = AuraViento.new()
+		aura.name = "AuraViento"
+		aura.ancla = ancla
+		aura.dimensiones = _dimensiones(ancla)
+		aura.desfase_y = -aura.dimensiones.x * 0.5 if obj is RigidBody3D else 0.0
+		aura.top_level = true
+		obj.add_child(aura)
+	aura.renovar(duracion, levita)
+
+
 ## 6/11 (entrada 422, Pablo): con el toy de tierra encendido, el TierraToy es la ÚNICA representación de la tierra temporal del Lanzador: ni la caja/vestido del `BloqueTierra`
 ## (lo calla `Lanzador3D.construir_tierra`) ni la terraza de la maqueta en esa casilla (lo pregunta `PruebaTest2._vigilar_alturas` aquí). Las terrazas fijas y el hielo no cambian.
 static func oculta_terraza(c: Vector2i) -> bool:
@@ -208,7 +237,12 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 	match fase:
 		"runa":
 			_retirar_carga()                       # lo que quedara de un conjuro anterior que no llegó a disparar
+		"voluta":
+			if usa_cast_propio(elemento) and _lanzador != null and _lanzador.has_method("_pos_cast_point"):
+				_empezar_carga(elemento, _lanzador.call("_pos_cast_point") as Vector3)
 		"forma":
+			if usa_cast_propio(elemento) and is_instance_valid(_carga) and _carga_el == elemento:
+				return
 			if usa_toy(elemento):
 				_empezar_carga(elemento, posicion)
 

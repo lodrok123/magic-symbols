@@ -187,23 +187,28 @@ func _dibujar_entidad(lista: Array, bril: Array, env: float) -> void:
 
 ## SUPERFICIE: arcos que saltan por una casilla de agua (a ras: y = 0) y chispas intermitentes.
 func _dibujar_superficie(lista: Array, bril: Array, env: float) -> void:
-	var g: float = 0.05
+	var toon: bool = RayoTrazos.prueba_toon
+	var g: float = 0.13 if toon else 0.05
+	var limite := Vector2(ancho_x, ancho_z) * (0.46 if toon else 0.5)
 	for k in HUECOS_SUPERFICIE:
 		if _rng.randf() > P_ENCENDIDO:
 			continue
 		_huecos_vivos += 1
-		var a: Vector3 = Vector3(_rng.randf_range(-0.5, 0.5) * ancho_x, 0.03, _rng.randf_range(-0.5, 0.5) * ancho_z)
+		var a: Vector3 = Vector3(_rng.randf_range(-limite.x, limite.x), 0.03, _rng.randf_range(-limite.y, limite.y))
 		var ang: float = _rng.randf() * TAU
-		var largo: float = _rng.randf_range(0.4, 0.9)
+		var largo: float = _rng.randf_range(0.55, 0.95) * minf(ancho_x, ancho_z) if toon else _rng.randf_range(0.4, 0.9)
 		var b: Vector3 = a + Vector3(cos(ang), 0.0, sin(ang)) * largo
-		b.x = clampf(b.x, -0.5 * ancho_x, 0.5 * ancho_x)
-		b.z = clampf(b.z, -0.5 * ancho_z, 0.5 * ancho_z)
-		var pts: PackedVector3Array = RayoTrazos.camino(a, b, 4, 0.07, _rng)
+		b.x = clampf(b.x, -limite.x, limite.x)
+		b.z = clampf(b.z, -limite.y, limite.y)
+		var pts: PackedVector3Array = RayoTrazos.camino(a, b, 4, 0.19 if toon else 0.07, _rng)
 		for q in pts.size():
 			var pq: Vector3 = pts[q]
 			pq.y = 0.03 + (0.04 * sin(PI * float(q) / float(pts.size() - 1)) if _rng.randf() < 0.5 else 0.0)
+			if toon:
+				pq.x = clampf(pq.x, -limite.x, limite.x)
+				pq.z = clampf(pq.z, -limite.y, limite.y)
 			pts[q] = pq
-		RayoTrazos.trazar(lista, pts, g, 0.9 * env, 1.0, 0.8, 0.6, float(k))
+		RayoTrazos.trazar(lista, pts, g, 0.9 * env, 1.0, 0.8, 0.25 if toon else 0.6, float(k), 0.2 if toon else 1.0)
 		bril.append({"pos": pts[0], "tam": 0.16, "alfa": 0.8 * env, "estrella": 0.9})
 	for s in 4:
 		if _rng.randf() < 0.45 and bril.size() < N_BRILLOS:

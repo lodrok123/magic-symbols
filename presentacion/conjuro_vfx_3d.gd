@@ -166,7 +166,8 @@ func _al_fase(fase: String, elemento: String, posicion: Vector3) -> void:
 			limpiar()                    # lo que quedara de un conjuro anterior que no llegó a disparar
 			_mano = posicion
 		"voluta":
-			voluta(elemento, posicion, _mano, float(t[1]))
+			if not VfxToyJuego.usa_cast_propio(elemento):
+				voluta(elemento, posicion, _mano, float(t[1]))
 		"forma":
 			_mano = posicion
 			_resolver_origen(elemento)

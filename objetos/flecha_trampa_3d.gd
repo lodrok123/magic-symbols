@@ -21,6 +21,7 @@ var dueno: Node = null
 var recorrido: float = 0.0
 var causa_fin: String = ""
 var vivo: bool = true
+var _desviada: bool = false
 
 
 ## Dispara una flecha desde `origen` hacia `d`. Devuelve el nodo, colgado del padre de `dueno`.
@@ -72,6 +73,20 @@ func _physics_process(delta: float) -> void:
 			lanz.burbuja_recibe("", nuevo, null)
 			_acabar("burbuja")
 			return
+		if not _desviada:
+			var normal: Vector3 = lanz.normal_rebote_flecha(nuevo)
+			if normal != Vector3.ZERO:
+				_desviada = true
+				dir = dir.bounce(normal).normalized()
+				look_at(global_position + dir, Vector3.UP)
+				if VientoToy.prueba_corrientes and VfxToyJuego.usa_toy("viento"):
+					var cara: Vector3 = normal if dir.dot(normal) >= 0.0 else -normal
+					var soplo := ImpactoVientoToy.crear(ImpactoVientoToy.Variante.REBOTE, cara, 0.26)
+					soplo.name = "SoploReboteMuroViento"
+					soplo.paleta_verde = true
+					get_parent().add_child(soplo, true)
+					soplo.global_position = nuevo
+				return
 		if lanz.solidez_para(nuevo, Combate3D.DANO_FLECHA):
 			_acabar("barrera")
 			return

@@ -2039,11 +2039,14 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 	if not is_instance_valid(flecha) or flecha.has_meta("parada"):
 		return
 	var p: Vector3 = origen.lerp(destino, k)
+	var anterior: Vector3 = flecha.position
 	flecha.position = p
 	if lanz != null and lanz.burbuja_contiene(p):
 		flecha.set_meta("parada", true)            # `_flecha_llega` (si el tween llega a llamarla en este mismo paso) no hace daño
 		lanz.burbuja_recibe("", p, self)
 		flecha.queue_free()
+	elif lanz != null and _desviar_flecha(flecha, anterior, destino - origen, p):
+		return
 	elif lanz != null and lanz.solidez_para(p, DANO_FLECHA):
 		flecha.set_meta("parada", true)            # R3: un volumen con solidez (propiedad de la receta V2) para la flecha y aguanta el golpe
 		flecha.queue_free()
@@ -2053,6 +2056,21 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 			_encender_flecha(flecha)
 		if flecha.has_meta("ardiendo"):
 			_prender_en(p, RADIO_FLECHA_FUEGO)
+
+
+func _desviar_flecha(flecha: Node3D, anterior: Vector3, trayectoria: Vector3, contacto: Vector3) -> bool:
+	var normal: Vector3 = lanz.normal_rebote_flecha(contacto)
+	if normal == Vector3.ZERO:
+		return false
+	var salida: Vector3 = trayectoria.normalized().bounce(normal)
+	flecha.set_meta("parada", true)
+	flecha.set_meta("desviada", true)
+	flecha.position = anterior
+	flecha.look_at(flecha.global_position + salida, Vector3.UP)
+	var desvio: Tween = flecha.create_tween()
+	desvio.tween_property(flecha, "position", anterior + salida * VEL_FLECHA * 0.2, 0.2)
+	desvio.tween_callback(flecha.queue_free)
+	return true
 
 
 ## ¿Toca la flecha, en `p`, algo que ESTÁ ARDIENDO y pasa la llama? Objetos (fogata/brasero encendidos, seto en llamas…) y otros enemigos ardiendo.
@@ -2153,6 +2171,8 @@ func _prender_en(p: Vector3, radio: float) -> void:
 func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 	var ardiendo: bool = false
 	if is_instance_valid(flecha):
+		if flecha.has_meta("desviada"):
+			return
 		var parada: bool = flecha.has_meta("parada")
 		ardiendo = flecha.has_meta("ardiendo")
 		flecha.queue_free()

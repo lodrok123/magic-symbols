@@ -41,6 +41,8 @@ var _log: Contador = null
 
 
 func _initialize() -> void:
+	# Las aserciones de humo y convergencia usan el toy clásico.
+	VientoToy.prueba_corrientes = false
 	_log = Contador.new()
 	OS.add_logger(_log)
 	_correr()

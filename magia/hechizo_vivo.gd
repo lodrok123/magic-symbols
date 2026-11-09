@@ -718,6 +718,18 @@ func _avanzar_columna(dt: float) -> void:
 	for obj in dentro:
 		if obj.has_method("elevar"):
 			obj.call("elevar", alto, dt)
+			if elemento == "viento" and not (obj is Jugador3D and obj.nadando):
+				VfxToyJuego.aura_viento(obj, 0.55, true)
+			elevados += 1
+		elif elemento == "viento" and obj is RigidBody3D:
+			var cuerpo := obj as RigidBody3D
+			if cuerpo.freeze:
+				continue
+			var suelo: float = Terreno3D.y_pies(Terreno3D.celda_de(cuerpo.global_position))
+			var diferencia: float = suelo + alto - cuerpo.global_position.y
+			cuerpo.sleeping = false
+			cuerpo.linear_velocity.y = clampf(diferencia * 7.0, -2.0, 5.0)
+			VfxToyJuego.aura_viento(cuerpo, 0.55, true)
 			elevados += 1
 
 
@@ -1307,9 +1319,12 @@ static func golpe_propio(lanzador: Lanzador3D, celdas: Dictionary, elemento: Str
 ## PULSO DE GAS: empuja con `empuje` (0-1) × FUERZA_EMPUJE por segundo, en la dirección de la mirada. Los reactivos (no los enemigos: ya se empujan
 ## aquí) reciben el golpe del elemento una vez.
 static func pulso_gas(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
+	var sopla: bool = Materia.sopla(Materia.de(z.rune))
 	for e in nodos_en(lanzador, "combate3d", z.celdas):
 		if e.has_method("push"):
 			e.call("push", z.dir, Lanzador3D.FUERZA_EMPUJE * z.rune.empuje * z.intervalo)
+			if sopla:
+				VfxToyJuego.aura_viento(e, maxf(0.65, z.intervalo + 0.22))
 	for obj in nodos_en(lanzador, "reactivo3d", z.celdas):
 		if z.tocados.has(obj.get_instance_id()):
 			continue
@@ -1374,6 +1389,11 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> Lanzador3D.Soli
 	s.aguante = h.resistencia
 	s.refleja = refleja
 	s.elemento = String(ctx["elemento"])
+	if s.elemento == "viento" and maxf(h.semieje_x, h.semieje_z) >= 2.0 * minf(h.semieje_x, h.semieje_z) - 0.0001:
+		var direccion: Vector3 = ctx.get("dir", Vector3.ZERO)
+		if h.semieje_z > h.semieje_x:
+			direccion = Vector3(-direccion.z, 0.0, direccion.x)
+		s.normal_flecha = Vector3(direccion.x, 0.0, direccion.z).normalized()
 	s.linaje = linaje                                       # de quién es: los proyectiles de este mismo lanzamiento no chocan con ella (ver `_avanzar`)
 	var l: Lanzador3D = lanz                               # (ver _abrir_zona: el callback sobrevive a este nodo)
 	# C2: «barrera + pulso» (`Hechizo.late`): la barrera nace entera y late (se retrae y vuelve) al ritmo del pulso de la zona; sin `intervalo` propio, `INTERVALO_LATIDO`.
@@ -1400,7 +1420,8 @@ func _solidez_sigue(ctx: Dictionary, solidez: float, refleja: bool) -> void:
 	if s == null:
 		if reg.has("nodo"):
 			return                                          # la rompieron a golpes a mitad de camino: no se rehace
-		s = _solidez({"data": ctx["data"], "elemento": ctx["elemento"], "niveles": ctx["niveles"], "celdas": ocupa, "vida": vida}, solidez, refleja)
+		s = _solidez({"data": ctx["data"], "elemento": ctx["elemento"], "niveles": ctx["niveles"],
+			"celdas": ocupa, "vida": vida, "dir": ctx["dir"]}, solidez, refleja)
 		_solideces_sigue[copia] = {"nodo": s}
 	else:
 		antes = s.celdas
@@ -1688,6 +1709,8 @@ func _danar_area(radio: float, dano: float, pos: Vector3, dir: Vector3) -> void:
 		al_j.y = 0.0
 		if al_j.length() <= alcance + RADIO_ENEMIGO_U:
 			lanz.jugador.call("recibir_dano", dano, pos)
+			if elemento == "viento":
+				VfxToyJuego.aura_viento(lanz.jugador, 0.85)
 
 
 ## Hijos: `cuantos` copias del hechizo (con `cambios` encima y SIN eventos, salvo que los traigan en «eventos»), repartidas en un abanico de `abanico` grados
@@ -2157,6 +2180,8 @@ func _golpes_del_paso() -> void:
 		if al_j.length() <= _radio_u + RADIO_ENEMIGO_U and lanz.jugador.has_method("recibir_dano"):
 			_golpeo_lanzador = true
 			lanz.jugador.call("recibir_dano", h.dano, p)
+			if elemento == "viento":
+				VfxToyJuego.aura_viento(lanz.jugador, 0.85)
 			disparar_evento("al_golpear", p, v.normalized(), {"obj": lanz.jugador})
 
 
