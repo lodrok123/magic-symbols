@@ -146,6 +146,8 @@ func llamas(suelo: Vector3, esc: float, radio: float, lenguas: int = 0) -> Node3
 			raiz.add_child(l)
 			LuzTitila3D.aplicar(l)
 			l.tree_exited.connect(func() -> void: _luces_activas -= 1)
+	if lenguas == 0 and esc > 0.7:
+		HumoRegla.enganchar_suelo(raiz, radio)            # humo por regla (HumoRegla.capas["suelo"], apagado por defecto): solo la hierba ardiendo, no un brasero ni un enemigo
 	return raiz
 
 
@@ -1786,6 +1788,8 @@ static func atenuar(gp: GPUParticles3D, k: float) -> void:
 func vapor(p: Vector3) -> void:
 	# 6/11: con la hoja `vapor.png` (24 fotogramas en bucle, tinte blanco-azulado) en vez de las bolas de «humo» de antes: lo usan la burbuja que se evapora, el hielo que caduca y el cruce magma×agua.
 	ARTE_ENTORNO.vapor_emisor(self, p + Vector3(0.0, 0.3, 0.0), maxf(escala, 0.1), false, 0.4)
+	if is_inside_tree():
+		HumoRegla.enganchar_vapor(self, to_global(p + Vector3(0.0, 0.2, 0.0)), maxf(escala, 0.1))          # vapor por regla (HumoRegla.capas["vapor"], apagado por defecto)
 
 
 ## SALPICADURA en el agua (algo que emerge o cae a la superficie, p. ej. las losas del puente reactivo). Tres capas:

@@ -44,6 +44,8 @@ const COS_ABERTURA: float = 0.18          ## cos del ángulo máximo respecto a 
 const COS_MIN_CORONA: float = 0.2
 const T_LAMINA: float = 0.2               ## s que dura la lámina de salpicadura
 
+## true: el agua cae sobre algo que ARDE; con `HumoRegla.capas["vapor"]` encendida levanta vapor (nada lo pone en el juego todavía: lo pone quien sepa que hay fuego; el lab lo pone con la tecla 8).
+var sobre_fuego: bool = false
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
 @export_range(0.05, 4.0, 0.01, "or_greater") var radio: float = 0.4
@@ -302,6 +304,8 @@ func _process(delta: float) -> void:
 		return
 	if _t < 0.0:
 		_t = 0.0
+		if sobre_fuego:
+			HumoRegla.enganchar_vapor(get_parent(), global_position + Vector3(0, 0.1, 0), clampf(radio / 0.4, 0.7, 2.0))      # vapor por regla (apagado por defecto)
 	_t += delta
 	avanzar_a(_t)
 	if _t >= _fin_t:

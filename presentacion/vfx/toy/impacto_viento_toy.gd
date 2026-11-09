@@ -147,6 +147,7 @@ func estado() -> Dictionary:
 func _process(delta: float) -> void:
 	if _p.is_empty():
 		return
+	HumoRegla.enganchar_polvo(self, "polvo_viento")           # polvo por regla (apagado por defecto): el soplo a ras de suelo levanta polvo (una sola vez por impacto)
 	_t += delta
 	if _t >= _fin_t:
 		queue_free()

@@ -1093,14 +1093,19 @@ func _formas_extra(c: Node3D) -> void:
 	if viejo != null:
 		remove_child(viejo)
 		viejo.free()
+	HumoRegla.quitar_de(self)           # humo por regla (HumoRegla.capas, apagado por defecto): se rehace con la figura
 	match figura:
+		Figura.HAZ:
+			HumoRegla.enganchar_haz(self, choques, maxf(semieje_y, 0.4))
 		Figura.MURO:
+			HumoRegla.enganchar_cima(self, "muro")
 			if formas_extra.get("luz_suelo_muro", false):
 				_luz_forma(Vector2(2.0 * semieje_x + 1.8, 2.0 * semieje_z + 1.8), 0.6)
 			if formas_extra.get("humo_cima_muro", false):
 				var gp: GPUParticles3D = _humo_generico(c, "HumoCima", Vector3(0, semieje_y * 0.95, 0), Vector3(semieje_x * 0.8, 0.05, semieje_z), _cant(5.0, semieje_x / REF_MURO.x, 3, 12), 0.7)
 				gp.emitting = true
 		Figura.PILAR:
+			HumoRegla.enganchar_cima(self, "pilar")
 			if formas_extra.get("luz_suelo_pilar", false):
 				var d: float = 2.0 * maxf(semieje_x, semieje_z) + 2.2
 				_luz_forma(Vector2(d, d), 0.6)

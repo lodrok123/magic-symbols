@@ -323,6 +323,9 @@ func _tick() -> void:
 		var h: Hechizo = _hechizo.copiar()
 		h.set_meta(VfxToyJuego.META_RITMO_NACER, RITMO_LLAMAS)
 		lanzar_hechizo_vivo(h, origen_chorro(), dir)
+	if HumoRegla.capas["dragon"]:           # humo por regla (apagado por defecto): donde el chorro se frena, en su punta
+		var punta: Vector3 = global_position + dir * largo_chorro_u()
+		HumoRegla.enganchar_dragon(self, Vector3(punta.x, boca_mundo().y - 0.2, punta.z), dir)
 	ticks += 1
 	if jugadora_en_chorro() and herir_jugadora(DANO_TICK, boca_mundo()):
 		golpes_jugadora += 1

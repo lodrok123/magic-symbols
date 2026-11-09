@@ -211,7 +211,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no")) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -262,6 +262,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_0: diez_muros()
 		KEY_X: limpiar()
 		KEY_F: alternar_muro_haz()
+		KEY_8: alternar_humo_regla()
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
 
@@ -383,7 +384,9 @@ func _nombre_toy(e: Node) -> String:
 func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
 	match elemento:
 		"agua":
-			return ImpactoAguaToy.crear(variante as ImpactoAguaToy.Variante, normal, radio)
+			var ia: ImpactoAguaToy = ImpactoAguaToy.crear(variante as ImpactoAguaToy.Variante, normal, radio)
+			ia.sobre_fuego = true            # el lab hace como si el agua cayera sobre brasas: con la tecla 8 (HumoRegla.capas["vapor"]) levanta vapor por regla
+			return ia
 		"hielo":
 			return ImpactoHieloToy.crear(variante as ImpactoHieloToy.Variante, normal, radio)
 		"rayo":
@@ -456,6 +459,14 @@ func _poner_param(e, giro: float) -> void:
 	ultimo_efecto = e
 	if e.viaja:
 		_lanzar_param_en_vuelo()
+
+
+## 8: HUMO POR REGLA (presentacion/vfx/toy/humo_regla.gd) encendido / apagado en TODAS sus capas (HumoRegla.capas) para lo que se cree a partir de ahora; la figura viva de F7 / F9 / Z se rehace para que lo dibuje.
+## Con fuego: impacto de la bola (G, B, N), cima de muro y pilar (F7 / F9), haz donde choca (F7 haz + F). Con agua: B / N / P levantan vapor (el lab los trata como agua sobre brasas). Tierra y viento: B / N polvo a ras de suelo.
+func alternar_humo_regla() -> void:
+	HumoRegla.poner_todas(not HumoRegla.hay_alguna())
+	if _param != null and is_instance_valid(_param):
+		fuego_param(maxi(_param_i, 0))
 
 
 ## F: alterna el MURO de prueba del haz. Con muro, todo haz (F7 / F9 / Z / V / ejes) recibe un choque en su cara; se rehace el haz vivo para que lo dibuje.

@@ -160,6 +160,8 @@ static func chispas(padre: Node3D, pos: Vector3, continuo: bool = false, esc: fl
 ## VAPOR (el agua al secarse, el hielo que se derrite): bocanadas blancas que suben y se abren.
 static func vapor(padre: Node3D, pos: Vector3, esc: float = 1.0, continuo: bool = false) -> GPUParticles3D:
 	# 6/11: la hoja `vapor.png` (ver `ArteEntorno3D.vapor_emisor`), la misma de todo el vapor del juego. Antes: bolas de «humo» blancas.
+	if not continuo and padre != null and padre.is_inside_tree():
+		HumoRegla.enganchar_vapor(padre, padre.to_global(pos), esc)          # vapor por regla (HumoRegla.capas["vapor"], apagado por defecto)
 	return ARTE_ENTORNO.vapor_emisor(padre, pos, esc, continuo, 0.25)
 
 
