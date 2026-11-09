@@ -188,7 +188,7 @@ pero las cuatro preguntas que de verdad deciden si el tramo está equilibrado so
 ## B3 bis · Enemigos por GLIFO: la lista entera
 
 Esto sustituye y amplía B3. **Ninguno existe hoy**: es una lista de arquetipos para cribar. La columna de la derecha queda vacía
-a propósito: el siguiente paso es cruzarla con bichos de la **mitología ibérica y celta** para que cada uno tenga cara, nombre y
+a propósito: el siguiente paso es cruzarla con bichos de las **leyendas de la península ibérica** para que cada uno tenga cara, nombre y
 sitio, en vez de ser «el enemigo del glifo X».
 
 **Tres reglas que cumple toda la lista:**
@@ -200,25 +200,25 @@ sitio, en vez de ser «el enemigo del glifo X».
 3. **Un enemigo, un glifo.** Los que piden dos (columna + barrera, buscar + perforar) son élites de segunda pasada, no de la
    primera.
 
-| runa | glifo | id provisional | cómo se comporta | por qué ese glifo lo resuelve | salida alternativa | reutiliza | mitología (pendiente) |
+| runa | glifo | id provisional | cómo se comporta | por qué ese glifo lo resuelve | salida alternativa | reutiliza | ser (ver B3 ter) |
 |---|---|---|---|---|---|---|---|
-| ᛇ | **flecha** | `reventon` | corre directo a ti y **estalla al contacto**; cuerpo a cuerpo es un mal cambio | hay que matarlo **antes de que llegue**: alcance, y cada flecha suma una casilla (tope 6) | barrera para que estalle contra ella | `aviso_ataque_3d` | |
-| ◇ | **barrera** | `escupidor` | fijo a distancia, suelta ráfagas de tres proyectiles seguidos y no se mueve | la barrera **bloquea proyectiles** y deja avanzar; sin ella el pasillo es un embudo | cobertura del escenario, si la sala la tiene | `trampa_flechas_3d`, `guardian_barrera_3d` | |
-| ᛁ | **línea** (haz) | `procesion` | tres bichos flacos que caminan **en fila india** por un carril y se reponen por un extremo | un trazo de línea los coge **a los tres de una pasada**; uno a uno llegan igual de rápido que mueren | matarlos por turnos, aguantando el goteo | haz (`SOLIDOS_CON_HAZ`, `Hechizo.haz`) | |
-| ᛏ | **altura** | `colgado` | se queda **por encima** del plano del suelo (cornisa, rama, vuelo bajo) y pica en vertical | sin altura el hechizo le pasa por debajo: es la prueba limpia de que ᛏ sube de verdad | esperar a que baje a picar (ventana corta) | `GeometriaV2.aviso_materia` | |
-| ᚷ | **crecer** | `enjambre_disperso` | muchos pequeños que **se abren en cuanto empiezas a dibujar**: el impacto puntual acierta a uno | lo que **crece mientras vive** los barre a todos aunque se separen | pulso ᚱ, si ya lo tienes | `colmena_3d`, limos pequeños | |
-| ᚱ | **pulso** | `soterrado` | se entierra y solo asoma un instante para golpear; apuntarle es perder el turno | el pulso **no se apunta**: sale en área al final y lo saca del suelo | barrera encima del montículo y esperar | `estalagmita_pulso_3d`, `receptor_pulso_3d` | |
-| ᛉ | **permanencia** | `rebrote` | muere y **vuelve a brotar en su casilla a los 4 s**, indefinidamente | hay que **ocupar la casilla** un rato: lo que se queda (zona, bloque, charco) impide el rebrote | matarlo y correr antes de que vuelva | `enredadera_3d`, `raices_elemental_3d` | |
-| ᚠ | **repetición** | `tres_cargas` | escudo de tres cargas que **se recarga entero a los 2 s** de dejar de recibir golpes | solo cae con **varios impactos seguidos**: una copia por glifo (hasta 4) | encadenar dos páginas a mano, si la recarga da | `escudo_3d` (vida propia) | |
-| Λ | **rebote** | `aculado` | pelea desde un nicho o una esquina donde **no hay tiro directo** | el rebote le llega por la pared; es el P09 llevado al combate | rodear, si la sala deja (con coste de posición) | pared sólida, `Hechizo` bounces | |
-| ᚦ | **perforar** | `escudero` | va **delante** de otro enemigo, con el escudo por delante, y no se separa de él | perforar **atraviesa** al escudero y le llega al de atrás (tope 3 enemigos) | matar al escudero primero, que es el que menos duele | `Escudo3D.bloquea_proyectiles` (ya bloquea el tiro frontal) | |
-| ᛃ | **retorno** | `caparazon` | **invulnerable de frente**, blando por la espalda; siempre te encara | el proyectil **vuelve** y le pega en la espalda al pasar | pulso por detrás, o rodearlo mientras ataca | `escarabajo_coraza` de la propuesta anterior | |
-| ᚨ | **buscar** | `fatuo` | flota en zigzag y **nunca está donde apuntas**; parpadea | el proyectil **se imanta** al enemigo más cercano del cono (±60/90/120°) | área grande, mucho más cara en tinta | `Hechizo` buscar (ya en `lab_geometrias_3d`) | |
-| — | **carga** (retardo) | `compas` | escudo que **abre y cierra con ritmo fijo** y bien telegrafiado | la carga **retrasa 1 s por glifo** y pega más: se prepara para que caiga en la ventana | acertar a mano en la ventana, sin el extra de daño | `aviso_ataque_3d` (el telegrafiado ya existe) | |
-| — | **posición** | `nidal` | no pelea: **pone crías** desde un nido que está fuera del eje de tiro | posición **nace donde señalas**: se golpea el nido, no al bicho | matar crías sin parar (no acaba nunca) | `nido_3d`, `colmena_3d` | |
-| — | **atracción** | `huidizo` | mantiene la distancia, retrocede en cuanto te acercas y dispara desde el borde | la atracción **tira de él** y lo saca de su sitio (al agua, a la lava, a tu alcance) | acorralarlo contra una pared de la sala | `atraccion` (`Sigils`), `lava_3d` | |
-| — | **espejo** | `pinza` | **dos a la vez, uno delante y uno detrás**, sincronizados | el espejo sale **también hacia atrás**: una página para los dos | girarse entre golpe y golpe, perdiendo tiempo | pareja de guerreros, IA actual | |
-| — | **amplificar** | `coraza_umbral` | **ignora todo golpe por debajo de un umbral** (se ve: el impacto rebota sin número) | amplificar **duplica el daño** del hechizo: hay que pasar el umbral en **un** impacto | golpe F cargado, si llega al umbral | fórmula de `Dano` (DEF), `Combate3D._numero` | |
+| ᛇ | **flecha** | `reventon` | corre directo a ti y **estalla al contacto**; cuerpo a cuerpo es un mal cambio | hay que matarlo **antes de que llegue**: alcance, y cada flecha suma una casilla (tope 6) | barrera para que estalle contra ella | `aviso_ataque_3d` | **Dip** |
+| ◇ | **barrera** | `escupidor` | fijo a distancia, suelta ráfagas de tres proyectiles seguidos y no se mueve | la barrera **bloquea proyectiles** y deja avanzar; sin ella el pasillo es un embudo | cobertura del escenario, si la sala la tiene | `trampa_flechas_3d`, `guardian_barrera_3d` | **Cuélebre** |
+| ᛁ | **línea** (haz) | `procesion` | tres bichos flacos que caminan **en fila india** por un carril y se reponen por un extremo | un trazo de línea los coge **a los tres de una pasada**; uno a uno llegan igual de rápido que mueren | matarlos por turnos, aguantando el goteo | haz (`SOLIDOS_CON_HAZ`, `Hechizo.haz`) | **Santa Compaña** |
+| ᛏ | **altura** | `colgado` | se queda **por encima** del plano del suelo (cornisa, rama, vuelo bajo) y pica en vertical | sin altura el hechizo le pasa por debajo: es la prueba limpia de que ᛏ sube de verdad | esperar a que baje a picar (ventana corta) | `GeometriaV2.aviso_materia` | **Nuberu** |
+| ᚷ | **crecer** | `enjambre_disperso` | muchos pequeños que **se abren en cuanto empiezas a dibujar**: el impacto puntual acierta a uno | lo que **crece mientras vive** los barre a todos aunque se separen | pulso ᚱ, si ya lo tienes | `colmena_3d`, limos pequeños | **Galtzagorriak** |
+| ᚱ | **pulso** | `soterrado` | se entierra y solo asoma un instante para golpear; apuntarle es perder el turno | el pulso **no se apunta**: sale en área al final y lo saca del suelo | barrera encima del montículo y esperar | `estalagmita_pulso_3d`, `receptor_pulso_3d` | **Ramidreju** |
+| ᛉ | **permanencia** | `rebrote` | muere y **vuelve a brotar en su casilla a los 4 s**, indefinidamente | hay que **ocupar la casilla** un rato: lo que se queda (zona, bloque, charco) impide el rebrote | matarlo y correr antes de que vuelva | `enredadera_3d`, `raices_elemental_3d` | **Mouro da mámoa** |
+| ᚠ | **repetición** | `tres_cargas` | escudo de tres cargas que **se recarga entero a los 2 s** de dejar de recibir golpes | solo cae con **varios impactos seguidos**: una copia por glifo (hasta 4) | encadenar dos páginas a mano, si la recarga da | `escudo_3d` (vida propia) | **Herensuge** |
+| Λ | **rebote** | `aculado` | pelea desde un nicho o una esquina donde **no hay tiro directo** | el rebote le llega por la pared; es el P09 llevado al combate | rodear, si la sala deja (con coste de posición) | pared sólida, `Hechizo` bounces | **Tartalo** |
+| ᚦ | **perforar** | `escudero` | va **delante** de otro enemigo, con el escudo por delante, y no se separa de él | perforar **atraviesa** al escudero y le llega al de atrás (tope 3 enemigos) | matar al escudero primero, que es el que menos duele | `Escudo3D.bloquea_proyectiles` (ya bloquea el tiro frontal) | **Jentil con la losa** |
+| ᛃ | **retorno** | `caparazon` | **invulnerable de frente**, blando por la espalda; siempre te encara | el proyectil **vuelve** y le pega en la espalda al pasar | pulso por detrás, o rodearlo mientras ataca | `escarabajo_coraza` de la propuesta anterior | **Tarasca** |
+| ᚨ | **buscar** | `fatuo` | flota en zigzag y **nunca está donde apuntas**; parpadea | el proyectil **se imanta** al enemigo más cercano del cono (±60/90/120°) | área grande, mucho más cara en tinta | `Hechizo` buscar (ya en `lab_geometrias_3d`) | **Fogo fátuo** |
+| — | **carga** (retardo) | `compas` | escudo que **abre y cierra con ritmo fijo** y bien telegrafiado | la carga **retrasa 1 s por glifo** y pega más: se prepara para que caiga en la ventana | acertar a mano en la ventana, sin el extra de daño | `aviso_ataque_3d` (el telegrafiado ya existe) | **Basilisco** |
+| — | **posición** | `nidal` | no pelea: **pone crías** desde un nido que está fuera del eje de tiro | posición **nace donde señalas**: se golpea el nido, no al bicho | matar crías sin parar (no acaba nunca) | `nido_3d`, `colmena_3d` | **Cabra Cabriola** |
+| — | **atracción** | `huidizo` | mantiene la distancia, retrocede en cuanto te acercas y dispara desde el borde | la atracción **tira de él** y lo saca de su sitio (al agua, a la lava, a tu alcance) | acorralarlo contra una pared de la sala | `atraccion` (`Sigils`), `lava_3d` | **Mãe d'Água** |
+| — | **espejo** | `pinza` | **dos a la vez, uno delante y uno detrás**, sincronizados | el espejo sale **también hacia atrás**: una página para los dos | girarse entre golpe y golpe, perdiendo tiempo | pareja de guerreros, IA actual | **Caballucos del Diablu** |
+| — | **amplificar** | `coraza_umbral` | **ignora todo golpe por debajo de un umbral** (se ve: el impacto rebota sin número) | amplificar **duplica el daño** del hechizo: hay que pasar el umbral en **un** impacto | golpe F cargado, si llega al umbral | fórmula de `Dano` (DEF), `Combate3D._numero` | **Ojáncanu** |
 
 **Los cuatro que elegiría para la primera pasada** (ver el cruce con mitología en B3 ter, que cambia tres de ellos), porque
 enseñan cosas distintas y ninguno pide piezas nuevas de peso:
@@ -231,9 +231,14 @@ solo se hace si el juego lo pide alguna vez.
 
 ---
 
-## B3 ter · El cruce con la mitología ibérica y celta
+## B3 ter · El cruce con las leyendas de la península ibérica
 
-Un ser por arquetipo. La regla del cruce: **el mito tiene que pagar el glifo**. No vale ponerle un nombre bonito a `tres_cargas`;
+Un ser por arquetipo, **solo de la península** (9/11: decisión de Pablo de priorizar lo peninsular). El fondo céltico sigue
+dentro, pero por donde le toca: Galicia, Asturias y Cantabria. Los cuatro irlandeses y galeses de la primera versión
+(Abhartach, el ojo de Balor, Caoránach y el Afanc) salen y entran cuatro peninsulares en su sitio; el mouro, la cabra y la madre
+del agua traen además a Portugal, que faltaba.
+
+La regla del cruce no cambia: **el mito tiene que pagar el glifo**. No vale ponerle un nombre bonito a `tres_cargas`;
 si el bicho elegido no trae de su leyenda la razón por la que ese glifo es la respuesta, no sirve y se busca otro. Por eso la
 última columna es la importante: dice **qué cambia del arquetipo** al adoptar el mito, y en tres casos el mito mejora la mecánica.
 
@@ -245,20 +250,25 @@ si el bicho elegido no trae de su leyenda la razón por la que ese glifo es la r
 | ᛏ **altura** | **Nuberu** | Asturias | el hombre de las nubes: trae el granizo **desde arriba**, y cuando pierde el sombrero cae y queda a merced | no: el arquetipo pedía justo eso. La salida alternativa («esperar a que baje») **ya está en el mito** (tirarle el sombrero) |
 | ᚷ **crecer** | **Galtzagorriak** | País Vasco (gemelos: los **minairons** del Pirineo catalán y aragonés) | diablillos rojos que se guardan en un alfiletero y, suelta la tapa, **se multiplican y se desparraman** si no se les da trabajo | no: es el enjambre que se abre al ver el trazo. El alfiletero es el generador de la sala |
 | ᚱ **pulso** | **Ramidreju** | Cantabria | bicho alargado, nacido de una comadreja muy vieja, que **excava** y sale a buscar lo enterrado | no: topo que asoma un instante. El mito explica por qué no se le puede apuntar |
-| ᛉ **permanencia** | **Abhartach** | Irlanda | el jefe no-muerto que **volvía de la tumba** una y otra vez hasta que lo enterraron boca abajo bajo un tejo | no, y es el mejor encaje de la lista: «ocupar la casilla» es literalmente el entierro del mito |
+| ᛉ **permanencia** | **Mouro da mámoa** | Galicia y norte de Portugal | el mouro encantado **vuelve a su túmulo** mientras la mámoa siga abierta; se acaba con él cerrándola, no matándolo | no, y es el mejor encaje de la lista: «ocupar la casilla» es literalmente **tapar la mámoa**, y el montículo marca la casilla sin necesidad de rótulo |
 | ᚠ **repetición** | **Herensuge** | País Vasco | dragón de **siete cabezas** que rebrotan si no se le remata | **sí**: las tres cargas pasan a ser **tres cabezas**, y «se recarga el escudo» pasa a ser «la cabeza vuelve a crecer». Más legible de lejos que una barra de escudo |
 | Λ **rebote** | **Tartalo** | País Vasco | cíclope que pelea **metido en su cueva** y tapona la entrada; al héroe solo le queda el ingenio | no: nicho sin tiro directo. Tiene la pared del rebote por definición |
 | ᚦ **perforar** | **Jentil con la losa** | País Vasco (jentilak / mairuak) | gigantes que levantaron los dólmenes y **tiraban piedras**: uno avanza con la losa por delante | no: la losa **es** el escudo, y que perforar atraviese la piedra es la fantasía del glifo |
 | ᛃ **retorno** | **Tarasca** | Península (dragón de Corpus) | dragón-tortuga de caparazón que desfila: **impenetrable por arriba y por delante**, blando debajo y detrás | no: el caparazón ya estaba en el mito antes que en la mecánica |
-| ᚨ **buscar** | **Fogo fátuo** | Galicia (y el farol del *Pwca* galés) | luz que baila, **nunca está donde parece** y lleva al caminante al tremedal | no. Ojo: su hermano el **carbunclo** (la piedra que brilla en la frente) sirve de recompensa visible |
-| **carga** (retardo) | **Fomoré del ojo** (linaje de **Balor**) | Irlanda | el párpado que **cuatro hombres levantan** y, abierto, arrasa lo que mira | no, y el telegrafiado sale del mito: el párpado **es** el compás. Es el enemigo más vistoso de la lista |
-| **posición** | **Caoránach** | Irlanda (Lough Derg) | madre de monstruos: **no pelea, pare**; la mataron yendo a por ella, no a por su prole | no: se golpea la madre/el nido, no a las crías |
-| **atracción** | **Afanc** | Gales | monstruo del lago al que hubo que **sacar del agua con cadenas y bueyes** para poder con él | **sí, y para bien**: en vez de un cobarde a distancia, un bicho **invulnerable mientras está en el agua honda**. Hay que tirar de él hasta la orilla. Reutiliza `nivel_agua_3d` y hace del agua un terreno, no un decorado |
+| ᚨ **buscar** | **Fogo fátuo** | Galicia (las *luces de ánimas* del resto de la meseta son lo mismo) | luz que baila, **nunca está donde parece** y lleva al caminante al tremedal | no. Ojo: su hermano el **carbunclo** (la piedra que brilla en la frente) sirve de recompensa visible |
+| **carga** (retardo) | **Basilisco** | toda la península (castellano, catalán, portugués) | nace del huevo de un gallo y **mata con la mirada**: el peligro no es su cuerpo, es el instante en que abre los ojos | no, y el telegrafiado sale del mito: los párpados **son** el compás. Nota para después: que se mate **enseñándole su reflejo** apunta a la barrera que refleja (`rebote` + barrera), si algún día se quiere mover de glifo |
+| **posición** | **Cabra Cabriola** | Portugal (y el *Papão* como prima) | no pelea: manda a **sus cabritos** desde la cueva donde se esconde, y a ella hay que ir a buscarla | no: se golpea la cueva/el nido, no a las crías |
+| **atracción** | **Mãe d'Água** | Portugal (hermana de la *moura da fonte* gallega) | la madre del agua **tira de quien se asoma** a la poza y se lo lleva al fondo | **sí, y para bien**: su tirón es su ataque, y el jugador le devuelve el suyo. Es **invulnerable mientras está en el agua honda** (ahí se cura): hay que sacarla a la orilla. Reutiliza `nivel_agua_3d` y hace del agua un terreno, no un decorado |
 | **espejo** | **Caballucos del Diablu** | Cantabria (noche de San Juan) | siete caballos del diablo que cruzan el cielo; **dos de ellos** te toman por delante y por detrás | no: la pinza sincronizada. Dos de los siete, no los siete |
 | **amplificar** | **Ojáncanu** | Cantabria | gigante de un ojo, fuerza descomunal, al que **solo se mata arrancándole su único pelo blanco**: los golpes pequeños no le hacen nada | no: el umbral de daño **es** el pelo blanco. Y da la señal visual gratis (el pelo se ve) |
 
-**Reparto**, para que no se note que vienen de un sitio: Asturias 2 · Cantabria 3 · Galicia 2 · País Vasco 4 · Cataluña 1 (+1
-gemelo) · Irlanda 3 · Gales 1. Ninguno repetido, ninguno inventado.
+**Reparto**, para que no se note que vienen de un sitio: País Vasco 4 · Cantabria 3 · Portugal 2 (+1 compartido con Galicia) ·
+Asturias 2 · Galicia 2 · Cataluña 1 (+1 gemelo pirenaico) · pan-ibéricos 2 (Tarasca y Basilisco). Diecisiete seres, ninguno
+repetido, ninguno inventado y ninguno de fuera de la península.
+
+**Aviso de reparto:** el País Vasco carga con cuatro (galtzagorriak, Herensuge, Tartalo y el jentil) y tres de ellos son
+gigantes o dragones. Si se quiere repartir más, el **Tartalo** (Λ rebote) es el más fácil de sustituir por su primo gallego el
+**Olláparo**, que es el mismo cíclope de cueva.
 
 **Los cuatro de la primera pasada, revisados tras el cruce.** Cambian tres respecto a B3 bis, porque el mito los hace más
 legibles por el mismo precio:
@@ -321,7 +331,7 @@ Marca: **sí** / **no** / **cambiar: …**
 | 11 | B1 · Los cinco objetos anti-estado + ampliar `curar_estado` a los cuatro estados | |
 | 12 | B2 · Los cuatro escalones de poción/tónico + arreglar el `match id` | |
 | 13 | B3 ter · Los cuatro de la primera pasada: **Jentil con la losa** (ᚦ), **Herensuge** (ᚠ), **Ojáncanu** (amplificar), **Santa Compaña** (ᛁ) | |
-| 13b | B3 ter · Los tres cambios que trae el mito: Dip se engancha en vez de estallar · la Santa Compaña se pasa la cruz · el Afanc es invulnerable en el agua honda | |
+| 13b | B3 ter · Los tres cambios que trae el mito: Dip se engancha en vez de estallar · la Santa Compaña se pasa la cruz · la Mãe d'Água es invulnerable en el agua honda | |
 | 13c | B3 ter · Guardar `Trasgu`, `Guaxa` y `Xana` como mecánicas para más adelante (no son del grimorio) | |
 | 14 | B4 · `PT-X1` el pasillo envenenado, para cerrar el bucle con la síntesis | |
 | 15 | B5 · Tres eventos nuevos de `PlayLog` y tabla de resultados | |
