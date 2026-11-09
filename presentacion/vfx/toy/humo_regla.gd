@@ -19,7 +19,7 @@ extends Node3D
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const SH: String = "res://presentacion/vfx/toy/humo_regla.gdshader"
 const GRUPO: StringName = &"humo_regla"
-const MAX_VIVAS: int = 320
+const MAX_VIVAS: int = 420
 const MAX_EMISORES: int = 20
 
 enum Materia { HUMO, VAPOR, POLVO }
@@ -43,16 +43,18 @@ const OLVIDO_HOLLIN: float = 0.45
 const POLVO_AIRE_MIN: float = 0.8
 const POLVO_ALTURA: float = 3.2
 const POLVO_OLVIDO: float = 0.35
-const T_SALIDA: float = 0.78             ## temperatura con la que sale una bocanada de llama (la llama ya algo gastada: el hollín empieza en cuanto se frena)
+const T_SALIDA: float = 0.62             ## temperatura con la que sale una bocanada de llama (la llama ya algo gastada: el hollín empieza en cuanto se frena)
+const FRAC_LLAMA_MURO: float = 0.45     ## a qué fracción del semieje y está la parte alta de la llama del muro (el humo nace dentro de ella)
+const FRAC_LLAMA_PILAR: float = 0.34
 const POLVO_OLVIDO_ALTO: float = 2.5     ## el polvo envejece (1 + esto · altura) veces más deprisa por encima del suelo
 
 const PALETAS: Dictionary = {
-	Materia.HUMO: {"claro": Color(0.62, 0.52, 0.46), "sombra": Color(0.42, 0.33, 0.30), "hollin": Color(0.30, 0.20, 0.16), "hollin_sombra": Color(0.17, 0.11, 0.10), "viejo": Color(0.27, 0.22, 0.21),
-		"rend": 1.3, "olvido": OLVIDO_HOLLIN, "flota": 0.9, "sube": 0.35, "arrastre": 1.2, "tam_ini": 0.4, "tam_fin": 1.1, "vida": 2.4},
-	Materia.VAPOR: {"claro": Color(0.97, 0.98, 1.0), "sombra": Color(0.76, 0.84, 0.93), "hollin": Color(0.97, 0.98, 1.0), "hollin_sombra": Color(0.76, 0.84, 0.93), "viejo": Color(0.84, 0.90, 0.96),
-		"rend": 2.2, "olvido": 0.5, "flota": 0.9, "sube": 0.7, "arrastre": 1.0, "tam_ini": 0.4, "tam_fin": 1.2, "vida": 1.9},
-	Materia.POLVO: {"claro": Color(0.82, 0.70, 0.52), "sombra": Color(0.56, 0.43, 0.28), "hollin": Color(0.82, 0.70, 0.52), "hollin_sombra": Color(0.56, 0.43, 0.28), "viejo": Color(0.50, 0.41, 0.31),
-		"rend": 0.0, "olvido": POLVO_OLVIDO, "flota": 0.0, "sube": 0.12, "arrastre": 1.6, "tam_ini": 0.3, "tam_fin": 0.9, "vida": 1.5},
+	Materia.HUMO: {"claro": Color(0.62, 0.52, 0.46), "sombra": Color(0.42, 0.33, 0.30), "hollin": Color(0.36, 0.26, 0.22), "hollin_sombra": Color(0.25, 0.18, 0.16), "prio": -1, "viejo": Color(0.58, 0.53, 0.51), "opacidad": 0.82, "erosion": 0.4,
+		"rend": 1.3, "olvido": OLVIDO_HOLLIN, "flota": 0.9, "sube": 0.35, "arrastre": 1.2, "tam_ini": 0.2, "tam_fin": 1.05, "vida": 2.4},
+	Materia.VAPOR: {"claro": Color(0.94, 0.98, 1.0), "sombra": Color(0.50, 0.65, 0.82), "hollin": Color(0.94, 0.98, 1.0), "hollin_sombra": Color(0.50, 0.65, 0.82), "viejo": Color(0.78, 0.88, 0.96), "opacidad": 0.97, "erosion": 0.4,
+		"rend": 3.0, "olvido": 0.7, "flota": 1.2, "sube": 1.3, "arrastre": 1.1, "tam_ini": 0.25, "tam_fin": 1.0, "vida": 1.3},
+	Materia.POLVO: {"claro": Color(0.82, 0.70, 0.52), "sombra": Color(0.56, 0.43, 0.28), "hollin": Color(0.82, 0.70, 0.52), "hollin_sombra": Color(0.56, 0.43, 0.28), "viejo": Color(0.74, 0.65, 0.52), "opacidad": 0.85, "erosion": 0.4,
+		"rend": 0.0, "olvido": POLVO_OLVIDO, "flota": 0.0, "sube": 0.12, "arrastre": 1.6, "tam_ini": 0.16, "tam_fin": 0.7, "vida": 1.5},
 }
 static var _materiales: Dictionary = {}
 
@@ -197,16 +199,17 @@ static func material_de(m: int) -> ShaderMaterial:
 	var q: Dictionary = PALETAS[m]
 	var sm: ShaderMaterial = ShaderMaterial.new()
 	sm.shader = load(SH)
-	sm.render_priority = 1
+	sm.render_priority = int(q.get("prio", 1))      # el humo va DETRÁS de la llama (-1): no la tapa
 	sm.set_shader_parameter("ruido", load(HumoToy.TEX_RUIDO))
 	sm.set_shader_parameter("color_claro", q["claro"])
 	sm.set_shader_parameter("color_sombra", q["sombra"])
 	sm.set_shader_parameter("color_hollin", q["hollin"])
 	sm.set_shader_parameter("color_hollin_sombra", q["hollin_sombra"])
 	sm.set_shader_parameter("color_viejo", q["viejo"])
-	sm.set_shader_parameter("erosion", 0.8)
+	sm.set_shader_parameter("erosion", float(q.get("erosion", 0.4)))
+	sm.set_shader_parameter("opacidad", float(q.get("opacidad", 0.9)))
 	sm.set_shader_parameter("umbral", 0.42)
-	sm.set_shader_parameter("ruido_borde", 0.22)
+	sm.set_shader_parameter("ruido_borde", 0.34)
 	_materiales[m] = sm
 	return sm
 
@@ -439,7 +442,8 @@ static func quitar_de(fuego: Node) -> void:
 		fuego.remove_meta(&"humo_regla_emisor")
 
 
-## La bola de fuego al CHOCAR (ImpactoFuegoToy, en su primer fotograma): salen bocanadas calientes y rápidas por la superficie; se frenan contra ella y AHÍ se vuelven humo. En vuelo no hay nada.
+## RONDA 2 (Pablo: «pegotes pardos que parecen piedras»): bocanadas pequeñas al nacer, MUCHAS y solapadas (fuentes continuas), que crecen y se aclaran al subir; nacen DENTRO de la llama y suben sin hueco.
+## La bola de fuego al CHOCAR (ImpactoFuegoToy, en su primer fotograma): nace en el punto de impacto, sale poco y se frena enseguida contra la superficie; ahí se vuelve humo. En vuelo no hay nada.
 static func enganchar_impacto_fuego(imp: Node3D) -> HumoRegla:
 	if not _activa("impacto_bola") or not imp.is_inside_tree() or imp.has_meta(&"humo_regla") or imp.get_parent() is ExplosionFuegoToy:
 		return null
@@ -449,23 +453,16 @@ static func enganchar_impacto_fuego(imp: Node3D) -> HumoRegla:
 	var n: Vector3 = (imp.get("normal") as Vector3).normalized()
 	var r: float = float(imp.get("radio"))
 	var k: float = clampf(r / 0.4, 0.6, 2.2)
-	var e: HumoRegla = crear(Materia.HUMO, _escena_de(imp), imp.global_position, {"n": 18, "escala": k, "arrastre": 3.0, "vida": 2.2})
+	var e: HumoRegla = crear(Materia.HUMO, _escena_de(imp), imp.global_position, {"n": 44, "escala": k, "arrastre": 3.2, "vida": 2.2, "flota": 1.0, "sube": 0.5})
 	if e == null:
 		return null
-	var base: Vector3 = imp.global_position + n * 0.12 * k
-	var t1: Vector3 = n.cross(Vector3.UP)
-	t1 = (t1 if t1.length() > 0.1 else n.cross(Vector3.RIGHT)).normalized()
-	var t2: Vector3 = n.cross(t1).normalized()
-	for i in 14:
-		var a: float = TAU * float(i) / 14.0 + e._rng.randf_range(-0.3, 0.3)
-		var lateral: Vector3 = t1 * cos(a) + t2 * sin(a)
-		var d: Vector3 = (lateral * 0.85 + n * e._rng.randf_range(0.15, 0.5) + Vector3.UP * 0.2).normalized()
-		e.soltar(base + lateral * 0.1 * k, d * e._rng.randf_range(3.6, 6.4) * k, T_SALIDA, e._rng.randf_range(0.8, 1.2))
+	e.anadir_fuente({"local": Vector3.ZERO + (e.global_transform.basis.inverse() * n) * 0.1 * k, "caja": Vector3(0.12, 0.12, 0.12) * k, "dir": e.global_transform.basis.inverse() * (n + Vector3.UP * 0.35).normalized(),
+		"v": Vector2(1.0, 2.4) * k, "abanico": 75.0, "ritmo": 55.0, "temp": T_SALIDA, "tam_k": 0.9, "dura": 0.45})
 	e.cerrar()
 	return e
 
 
-## CIMA de MURO y PILAR de fuego: la llama sube rápida y se frena arriba; donde se frena suelta hollín. Cuelga de la raíz del FuegoToy (sigue al toy) y se calla al apagarse él (`aparicion`).
+## CIMA de MURO y PILAR de fuego: nace DENTRO de la parte alta de la llama (solapando sus puntas) y sube desde ahí en un penacho continuo. Sigue al toy y se calla al apagarse él (`aparicion`).
 static func enganchar_cima(fuego: Node3D, clave: String) -> HumoRegla:
 	if not _activa(clave) or not fuego.is_inside_tree() or fuego.get_parent() is ExplosionFuegoToy:       # las lenguas del barril ya llevan su propia capa
 		return null
@@ -475,20 +472,21 @@ static func enganchar_cima(fuego: Node3D, clave: String) -> HumoRegla:
 	var k: float = clampf(sy / 1.5, 0.6, 1.6)
 	var ancho: float = sx * 0.8 if clave == "muro" else sx * 0.5
 	var fondo: float = sz if clave == "muro" else sz * 0.5
-	var e: HumoRegla = _seguidor(fuego, {"n": 48, "escala": k, "arrastre": 1.4, "vida": 2.4})
+	var y0: float = sy * (FRAC_LLAMA_MURO if clave == "muro" else FRAC_LLAMA_PILAR)
+	var e: HumoRegla = _seguidor(fuego, {"n": 110, "escala": k, "arrastre": 1.0, "vida": 2.6})
 	if e == null:
 		return null
-	e.anadir_fuente({"local": Vector3(0, sy * 0.9, 0), "caja": Vector3(ancho, 0.05, fondo), "dir": Vector3.UP, "v": Vector2(0.9, 1.8) * k, "abanico": 22.0,
-		"ritmo": clampf(4.0 + ancho * 2.0, 6.0, 16.0), "temp": T_SALIDA, "tam_k": 1.0,
+	e.anadir_fuente({"local": Vector3(0, y0, 0), "caja": Vector3(ancho, y0 * 0.12, fondo), "dir": Vector3.UP, "v": Vector2(0.45, 1.1) * k, "abanico": 14.0,
+		"ritmo": clampf(12.0 + ancho * 5.0, 16.0, 36.0), "temp": T_SALIDA, "tam_k": 1.0,
 		"escala_fn": func() -> float: return clampf((float(fuego.get("aparicion")) - 0.7) / 0.3, 0.0, 1.0) if is_instance_valid(fuego) else 0.0})
 	return e
 
 
-## HAZ de fuego contra un tope: en cada `choque` {d, x, n} (espacio local del toy) el chorro se frena y se abre: ahí sale el humo. Cuelga de la raíz del toy.
+## HAZ de fuego contra un tope: en cada `choque` {d, x, n} (espacio local del toy) el chorro se frena y se abre: ahí, DENTRO de la salpicadura, sale el humo. Sigue al toy.
 static func enganchar_haz(fuego: Node3D, choques: Array, h: float) -> HumoRegla:
 	if not _activa("haz") or not fuego.is_inside_tree() or choques.is_empty():
 		return null
-	var e: HumoRegla = _seguidor(fuego, {"n": 40, "escala": 1.0, "arrastre": 2.4, "vida": 2.2})
+	var e: HumoRegla = _seguidor(fuego, {"n": 90, "escala": 0.9, "arrastre": 2.4, "vida": 2.3})
 	if e == null:
 		return null
 	var cuantos: int = 0
@@ -499,66 +497,63 @@ static func enganchar_haz(fuego: Node3D, choques: Array, h: float) -> HumoRegla:
 		var n: Vector3 = (ch as Dictionary).get("n", Vector3(0, 0, 1)) as Vector3
 		n.y = 0.0
 		n = n.normalized() if n.length() > 0.01 else Vector3(0, 0, 1)
-		e.anadir_fuente({"local": Vector3(float((ch as Dictionary).get("x", 0.0)), h, -float((ch as Dictionary)["d"])) + n * 0.15, "caja": Vector3(0.25, 0.3, 0.25), "dir": (n + Vector3(0, 0.5, 0)).normalized(),
-			"v": Vector2(2.5, 4.5), "abanico": 55.0, "ritmo": 10.0, "temp": T_SALIDA, "tam_k": 0.9})
+		e.anadir_fuente({"local": Vector3(float((ch as Dictionary).get("x", 0.0)), h, -float((ch as Dictionary)["d"])) + n * 0.1, "caja": Vector3(0.3, 0.25, 0.1), "dir": (n + Vector3(0, 0.6, 0)).normalized(),
+			"v": Vector2(0.9, 2.2), "abanico": 55.0, "ritmo": 24.0, "temp": T_SALIDA, "tam_k": 0.9})
 	return e
 
 
-## EXPLOSIÓN del barril (ExplosionFuegoToy): la onda sale rápida (limpia) y se frena a unos metros: el anillo de humo nace ahí, no en el centro.
+## EXPLOSIÓN del barril: una tanda de bocanadas pequeñas y rápidas a ras del suelo que se frenan y forman el cuerpo de humo, y una columna que sube del centro (fuente corta).
 static func enganchar_barril(expl: Node3D) -> HumoRegla:
 	if not _activa("barril") or not expl.is_inside_tree() or expl.has_meta(&"humo_regla"):
 		return null
 	expl.set_meta(&"humo_regla", true)
 	var radio: float = float(expl.get("radio"))
 	var k: float = clampf(radio / 2.6, 0.5, 2.0)
-	var e: HumoRegla = crear(Materia.HUMO, _escena_de(expl), expl.global_position, {"n": 40, "escala": 1.2 * k, "arrastre": 2.0, "vida": 2.8})
+	var e: HumoRegla = crear(Materia.HUMO, _escena_de(expl), expl.global_position, {"n": 130, "escala": 1.15 * k, "arrastre": 2.0, "vida": 2.8})
 	if e == null:
 		return null
-	for i in 26:
-		var a: float = TAU * float(i) / 26.0 + e._rng.randf_range(-0.12, 0.12)
-		var d: Vector3 = Vector3(cos(a), e._rng.randf_range(0.15, 0.45), sin(a)).normalized()
-		e.soltar(expl.global_position + Vector3(0, 0.3 * k, 0) + d * 0.2 * k, d * e._rng.randf_range(5.0, 9.0) * k, T_SALIDA, e._rng.randf_range(0.9, 1.3))
+	for i in 40:
+		var a: float = TAU * float(i) / 40.0 + e._rng.randf_range(-0.1, 0.1)
+		var d: Vector3 = Vector3(cos(a), e._rng.randf_range(0.1, 0.35), sin(a)).normalized()
+		e.soltar(expl.global_position + Vector3(0, 0.25 * k, 0) + d * 0.3 * k, d * e._rng.randf_range(2.5, 5.5) * k, T_SALIDA, e._rng.randf_range(0.7, 1.1))
+	e.anadir_fuente({"local": Vector3(0, 0.5 * k, 0), "caja": Vector3(0.5, 0.2, 0.5) * k, "dir": Vector3.UP, "v": Vector2(0.8, 2.0) * k, "abanico": 25.0, "ritmo": 40.0, "temp": T_SALIDA, "tam_k": 1.0, "dura": 1.2})
 	e.cerrar()
 	return e
 
 
-## Punta del chorro del DRAGÓN: `punta` (mundo) es donde el haz llega al tope; sale una tanda de bocanadas hacia atrás/arriba.
+## Punta del chorro del DRAGÓN (mundo): una fuente corta de bocanadas hacia atrás y arriba, desde el interior de la salpicadura.
 static func enganchar_dragon(padre: Node3D, punta: Vector3, dir: Vector3) -> HumoRegla:
 	if not _activa("dragon") or padre == null or not padre.is_inside_tree():
 		return null
-	var e: HumoRegla = crear(Materia.HUMO, padre, punta, {"n": 14, "escala": 1.1, "arrastre": 2.4, "vida": 2.2})
+	var e: HumoRegla = crear(Materia.HUMO, padre, punta, {"n": 44, "escala": 1.0, "arrastre": 2.4, "vida": 2.3})
 	if e == null:
 		return null
-	for i in 5:
-		var d: Vector3 = (-dir * e._rng.randf_range(0.2, 0.8) + Vector3(e._rng.randf_range(-0.5, 0.5), e._rng.randf_range(0.3, 0.9), e._rng.randf_range(-0.5, 0.5))).normalized()
-		e.soltar(punta + Vector3(e._rng.randf_range(-0.2, 0.2), 0, e._rng.randf_range(-0.2, 0.2)), d * e._rng.randf_range(3.2, 5.2), T_SALIDA, e._rng.randf_range(0.8, 1.1))
+	e.anadir_fuente({"local": Vector3.ZERO, "caja": Vector3(0.25, 0.2, 0.25), "dir": (-dir + Vector3.UP * 0.9).normalized(), "v": Vector2(0.9, 2.2), "abanico": 50.0, "ritmo": 28.0,
+		"temp": T_SALIDA, "tam_k": 0.9, "dura": 0.7})
 	e.cerrar()
 	return e
 
 
-## SUELO ardiendo (Vfx3D.llamas con fuego pleno): cuelga de la raíz de las llamas y se va con ellas. Un hilo continuo de bocanadas pequeñas que suben despacio.
+## SUELO ardiendo (Vfx3D.llamas con fuego pleno): cuelga de la raíz de las llamas. Un hilo continuo que nace dentro de las lenguas y sube despacio.
 static func enganchar_suelo(raiz: Node3D, radio: float) -> HumoRegla:
 	if not _activa("suelo") or raiz == null or not raiz.is_inside_tree():
 		return null
-	var e: HumoRegla = crear(Materia.HUMO, raiz, raiz.global_position, {"n": 20, "escala": clampf(0.5 + radio, 0.7, 1.3), "arrastre": 1.2, "vida": 2.4})
+	var e: HumoRegla = crear(Materia.HUMO, raiz, raiz.global_position, {"n": 40, "escala": clampf(0.5 + radio, 0.7, 1.2), "arrastre": 1.1, "vida": 2.4})
 	if e == null:
 		return null
 	e.name = "HumoReglaSuelo"
-	e.anadir_fuente({"local": Vector3(0, 0.55, 0), "caja": Vector3(maxf(radio, 0.2), 0.05, maxf(radio, 0.2)), "dir": Vector3.UP, "v": Vector2(0.8, 1.5), "abanico": 20.0, "ritmo": 4.0, "temp": T_SALIDA, "tam_k": 0.9})
+	e.anadir_fuente({"local": Vector3(0, 0.4, 0), "caja": Vector3(maxf(radio, 0.2), 0.12, maxf(radio, 0.2)), "dir": Vector3.UP, "v": Vector2(0.4, 0.9), "abanico": 18.0, "ritmo": 8.0, "temp": T_SALIDA, "tam_k": 0.9})
 	return e
 
 
-## VAPOR (agua sobre fuego): una tanda de bocanadas calientes y lentas que suben; se enfrían y se vuelven vapor blanco. `esc` = tamaño (1 = el de Vfx3D.vapor).
+## VAPOR (agua sobre fuego): denso al nacer, sube deprisa y se disipa antes que el humo. `esc` = tamaño (1 = el de Vfx3D.vapor).
 static func enganchar_vapor(padre: Node, pos: Vector3, esc: float = 1.0) -> HumoRegla:
 	if not _activa("vapor") or padre == null or not padre.is_inside_tree():
 		return null
-	var e: HumoRegla = crear(Materia.VAPOR, padre, pos, {"n": 14, "escala": clampf(esc, 0.4, 2.0), "arrastre": 1.1, "vida": 1.9})
+	var e: HumoRegla = crear(Materia.VAPOR, padre, pos, {"n": 40, "escala": clampf(esc, 0.4, 2.0), "arrastre": 1.1, "vida": 1.4})
 	if e == null:
 		return null
-	for i in 8:
-		var a: float = e._rng.randf() * TAU
-		var d: Vector3 = Vector3(cos(a) * e._rng.randf_range(0.1, 0.5), 1.0, sin(a) * e._rng.randf_range(0.1, 0.5)).normalized()
-		e.soltar(pos + Vector3(cos(a), 0, sin(a)) * 0.15 * esc, d * e._rng.randf_range(1.4, 2.6) * esc, T_SALIDA, e._rng.randf_range(0.8, 1.2))
+	e.anadir_fuente({"local": Vector3(0, 0.1 * esc, 0), "caja": Vector3(0.35, 0.1, 0.35) * esc, "dir": Vector3.UP, "v": Vector2(1.6, 3.2) * esc, "abanico": 28.0, "ritmo": 50.0, "temp": T_SALIDA, "tam_k": 1.0, "dura": 0.5})
 	e.cerrar()
 	return e
 
@@ -573,9 +568,9 @@ static func enganchar_polvo(imp: Node3D, clave: String) -> HumoRegla:
 	imp.set_meta(&"humo_regla", true)
 	var r: float = float(imp.get("radio"))
 	var k: float = clampf(r / 0.4, 0.7, 2.5)
-	var e: HumoRegla = crear(Materia.POLVO, _escena_de(imp), imp.global_position, {"n": 22, "escala": k, "y_suelo": imp.global_position.y, "arrastre": 1.8, "vida": 1.5})
+	var e: HumoRegla = crear(Materia.POLVO, _escena_de(imp), imp.global_position, {"n": 48, "escala": k, "y_suelo": imp.global_position.y, "arrastre": 1.8, "vida": 1.5})
 	if e == null:
 		return null
-	e.anadir_aire(imp.global_position, 0.25 * k + 0.1, (6.0 if clave == "polvo_viento" else 4.5) * sqrt(k), 0.55, 90.0)
+	e.anadir_aire(imp.global_position, 0.25 * k + 0.1, (6.0 if clave == "polvo_viento" else 4.5) * sqrt(k), 0.6, 160.0)
 	e.cerrar()
 	return e

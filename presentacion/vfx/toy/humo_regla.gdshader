@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_always, blend_mix, fog_disabled;
+render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, fog_disabled;
 
 // HUMO TOON (6/11/2026, docs/HUMO_TOON_2026-11-06.md; la referencia es el «Stylized Smoke» de Gabriel Aguiar). Una BOCANADA por instancia de MultiMesh (quad billboard):
 //   · SILUETA DE POMPAS: cuatro discos solapados (su reparto sale de la semilla de la instancia) con el borde «nuboso» por el ruido de nubes, y BORDE DURO (umbral + discard, sin alfa blanda).
@@ -14,6 +14,7 @@ render_mode unshaded, cull_disabled, depth_draw_always, blend_mix, fog_disabled;
 uniform vec3 color_claro : source_color = vec3(0.93, 0.93, 0.95);
 uniform vec3 color_sombra : source_color = vec3(0.62, 0.62, 0.70);
 uniform vec3 color_viejo : source_color = vec3(0.55, 0.52, 0.58);
+uniform float opacidad : hint_range(0.0, 1.0) = 0.9;                          // opacidad al nacer (baja con la edad)
 uniform vec3 color_hollin : source_color = vec3(0.30, 0.20, 0.16);          // tono claro de la bocanada cargada de hollín (a = 1)
 uniform vec3 color_hollin_sombra : source_color = vec3(0.17, 0.11, 0.10);   // y su sombra plana
 uniform float erosion : hint_range(0.0, 1.0) = 0.8;             // cuánto se carcome al morir (0 = se encoge sin erosión)
@@ -89,5 +90,7 @@ void fragment() {
 	vec3 claro = mix(c0, color_viejo, vieja);
 	vec3 osc = mix(s0, color_viejo * 0.72, vieja);
 	ALBEDO = mix(claro, osc, sombra);
-	ALPHA = 1.0;
+	// RONDA 2: la bocanada se ACLARA y se vuelve translucida al envejecer y su borde se ablanda (las viejas se funden con las vecinas: penacho continuo, no pegotes)
+	float blando = 0.015 + 0.3 * smoothstep(0.1, 1.0, edad);
+	ALPHA = opacidad * (1.0 - 0.85 * smoothstep(0.2, 1.0, edad)) * smoothstep(corte, corte + blando, campo);
 }

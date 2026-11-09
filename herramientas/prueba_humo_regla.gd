@@ -235,6 +235,7 @@ func _nace_donde_debe() -> void:
 	_ok("al CHOCAR: se crea el impacto y UN emisor de humo", imp is ImpactoFuegoToy and _hr().size() == 1, str(_hr().size()))
 	var h: HumoRegla = _hr()[0] if not _hr().is_empty() else null
 	if h != null:
+		await _esperar(0.3)
 		_ok("el emisor está en el choque (hay bocanadas vivas junto al punto)", h.vivas() >= 8 and (h.estados()[0]["pos"] as Vector3).distance_to(dest) < 1.5)
 		await _esperar(0.9)
 		_ok("al principio no hay humo y luego se ve: el hollín crece al frenarse (> 0,3 en 0,9 s)", h.hollin_max() > 0.3, str(h.hollin_max()))
@@ -285,7 +286,7 @@ func _nace_donde_debe() -> void:
 			var min_y: float = 99.0
 			for d in hf.estados():
 				min_y = minf(min_y, (d["pos"] as Vector3).y)
-			_ok("%s: nacen en la CIMA (nada por debajo de 0,7 · alto)" % clave, min_y > s.y * 0.7, "min y %.2f de alto %.2f" % [min_y, s.y])
+			_ok("%s: nacen en la parte alta de la llama (nada por debajo de 0,15 · alto)" % clave, min_y > s.y * 0.15, "min y %.2f de alto %.2f" % [min_y, s.y])
 		HumoRegla.capas[clave] = false
 		f.reconstruir()
 		_ok("%s: apagada la capa y reconstruido, el emisor desaparece" % clave, not f.has_meta(&"humo_regla_emisor"))
@@ -351,7 +352,9 @@ func _nace_donde_debe() -> void:
 	_ok("dragón apagado: nada", HumoRegla.enganchar_dragon(_raiz, Vector3.ZERO, Vector3.RIGHT) == null)
 	HumoRegla.capas["dragon"] = true
 	var dr: HumoRegla = HumoRegla.enganchar_dragon(_raiz, Vector3(5, 1, 0), Vector3.RIGHT)
-	_ok("dragón encendido: un emisor en la punta del chorro", dr != null and dr.vivas() == 5 and (dr.estados()[0]["pos"] as Vector3).distance_to(Vector3(5, 1, 0)) < 0.5)
+	if dr != null:
+		dr.avanzar(0.2)
+	_ok("dragón encendido: un emisor en la punta del chorro", dr != null and dr.vivas() >= 3 and (dr.estados()[0]["pos"] as Vector3).distance_to(Vector3(5, 1, 0)) < 1.0)
 	HumoRegla.capas["dragon"] = false
 	_limpiar()
 
