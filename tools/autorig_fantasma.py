@@ -31,10 +31,13 @@ from mathutils.bvhtree import BVHTree
 from mathutils.interpolate import poly_3d_calc
 
 TEXTURA = 1024
-LEJOS_MAX = 0.06              # un vertice a mas de esto (m) de la superficie del maniqui no recibe pesos por transferencia
+LEJOS_MAX = 0.13              # un vertice a mas de esto (m) de la superficie del maniqui no recibe pesos por transferencia.
+                              # 9/11: subido de 0,06 a 0,13. Los pesos por segmento de hueso son un apaño que salta de un hueso a
+                              # otro entre vertices vecinos, y esos saltos son los que RASGAN la tunica al animar; la transferencia
+                              # desde el maniqui, aunque sea desde lejos, es continua.
 PESO_MIN = 0.02
 MAX_INFLUENCIAS = 4
-N_SUAVIZADO = 3
+N_SUAVIZADO = 8               # 9/11: de 3 a 8. Con ropa suelta, las fronteras entre reglas (tela/transferencia) se ven como picos
 FACTOR_SUAVIZADO = 0.5
 
 # Cabeza rigida: por encima de Z_CABEZA (fraccion de la altura) todo es del hueso Head (cara, orejas puntiagudas, melena, diadema).
@@ -539,6 +542,10 @@ def main():
     ruta_don = a[0] if len(a) > 0 else os.path.join(r, "arte", "modelos", "elfo_base.glb")
     ruta_dst = a[1] if len(a) > 1 else os.path.join(r, "arte", "modelos", "fantasma_elfo.glb")
     salida = a[2] if len(a) > 2 else os.path.join(r, "arte", "modelos", "fantasma_elfo_rig.glb")
+    # Cuarto argumento «sin_brazos»: no medir el eje del brazo en la malla y quedarse con el escalado del donante. Hace falta
+    # cuando los brazos del destino van PEGADOS al torso y tapados por la ropa (el encapuchado): ahí la medida confunde la túnica
+    # del pecho con el brazo y acaba metiendo la muñeca dentro del cuerpo. Si el donante ya tiene esa misma pose, sobra medir.
+    sin_brazos = "sin_brazos" in a
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     huesos, vs_don, pesos_don, tris_don, caja_don = leer_donante(ruta_don)
@@ -563,7 +570,10 @@ def main():
         print("color: sin textura legible, el eje del brazo se mide solo por geometria")
 
     pos, kz, kxy = posiciones_escaladas(huesos, caja_don, vs)
-    pos = encajar_brazos(huesos, pre, pos, vs, alto, piel)
+    if sin_brazos:
+        print("brazos: SIN medir, se deja el escalado del donante")
+    else:
+        pos = encajar_brazos(huesos, pre, pos, vs, alto, piel)
     for n in ("Hips", "Spine2", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot"):
         p = pos[pre + n]
         print("  %-12s (%6.3f, %6.3f, %6.3f)" % (n, p.x, p.y, p.z))
