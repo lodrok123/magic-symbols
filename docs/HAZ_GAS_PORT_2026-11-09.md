@@ -142,3 +142,32 @@ La simulación es la misma; solo cambia el DIBUJO (`shaders/raymarch_toon.glsl`)
   3. Con un umbral absoluto de vuelta (2 u/s), los casos con M ≥ 2 daban un 3-5,7 %: el chapoteo del choque escala con la masa. Si se quiere absoluto, el parámetro es el viento o el empuje × M.
   4. Con una caja alta, el fuego la rodea por los lados y apenas pasa por encima (32 celdas).
 - **Capturas**: `docs/capturas/vfx_en_juego/haz_gas_procedural/` (`HOJA_LATERAL.jpg`, `HOJA_JUEGO.jpg`; `captura_gas_procedural.gd`).
+
+## En el JUEGO (9/11): el haz de gas toon contra cualquier sólido
+
+**Enganche**: `presentacion/vfx_toy_juego.gd` `_haz`. Para el FUEGO, si `HazGasJuego.disponible()` (`magic_symbols/vfx_haz_gas` = true, que es lo de serie, y un RenderingDevice: Forward+ o Mobile; no Compatibility ni --headless), lo dibuja `HazGasJuego` (`presentacion/vfx/toy/haz_gas_juego.gd`) con el HazGas en `modo_juego`. Si no hay gas disponible o se llega al tope (2 instancias a la vez), se dibuja el FuegoToy HAZ de siempre (`haz_ideas`). Con gas, el FuegoToy se crea igual, pero se queda solo con su **luz** (`luz_suelo_haz` y la OmniLight, con su vida y su latido). El **humo por regla** no se toca: su capa «haz» está apagada de serie y el gas ya hace su propio humo. La lógica (daño, alcance, ticks, choques) no cambia; la prueba lo comprueba.
+
+**Campo de sólidos**: `solido.glsl` calcula la distancia con signo y la normal a la resolución del gas, como el mínimo sobre una lista de primitivas analíticas en coordenadas del dominio. No hace falta JFA: es exacto fuera de los sólidos y barato.
+- Las **casillas** del nivel que caen en el dominio siguen la misma regla que la lógica (Terreno3D): bloqueadas, fuera del mapa o con hielo gordo = caja de 1,5 casillas de alto; cornisas, escalones y tierra = caja hasta `y_pies`. El suelo de la mano cierra el dominio.
+- Los **enemigos** (grupo `combate3d`) son cápsulas con su CapsuleShape3D.
+- Los **bloques empujables** (grupo `empujable`) son cajas con su BoxShape3D.
+- El **tope que la rejilla no explica** (una barrera ᛜ) es una pared fina en el punto del choque.
+- Lo dinámico se mira cada fotograma y el campo se rehace si algo se ha movido. Lo leen la piel y el wrap, la condición de contorno de la presión y las chispas. El raymarch corta contra la profundidad real de la escena.
+
+**Dominio**: `derivar_haz` con la entrada del Hechizo real (`FuegoToy.describir`: largo = alcance, radio; el eje a la altura real de la mano) y el **primer tope** de `HechizoVivo._haz_choques` (obstáculo «campo» a esa distancia; sin tope, «nada»). En el juego el mundo real cuenta siempre: con o sin tope, el tipo es 3. El haz de la lógica es FIJO desde que se lanza, así que el dominio no se mueve aunque la jugadora ande o gire: dibujo y daño coinciden. Un haz nuevo casi igual (a menos de 0,35 casillas, 10° y tope a menos de media casilla) REUTILIZA el dominio vivo: el dragón no parpadea. La masa se apaga 2,5 s después del último haz y se libera. Los shaders se compilan una vez al cargar el nivel (`HazGasSolver.precompilar`).
+
+**Prueba** (`herramientas/prueba_haz_gas_juego.gd`, con ventana: 102 OK, 0 fallos). Bosque 01: al aire de frente y en diagonal, muro, muro en diagonal, esquina, roca, bloque empujable, goblin, tres goblins en fila contra un muro, barrera ᛜ, cornisa y haz largo ᛁ×6; lab de puzles de fuego: el dragón F7.
+- En todos: chorro caliente (T del eje 0,59-0,97), gas que pasa del plano de la cara (45-86 % con tope), nada llega hacia la jugadora, ningún gas visible dentro de casillas, enemigos ni bloques, y sin amarillo (≤ 0,23 %).
+- Tope de instancias, fallback con el ajuste apagado y lógica igual (19,9 de daño, largo 9,2 m y 1 choque, con y sin gas).
+- Dragón: un solo dominio que se reutiliza.
+- Sin ventana: AVISO, y comprueba que el haz sale con el FuegoToy.
+
+**Coste** (RTX 3070, 1280×720, calidad low): 2,4-7,2 ms de GPU por haz. De frente, unos 4; en diagonal y en esquina, 6-7, porque el dominio orientado cubre más píxeles. Con 2 a la vez, hasta ~12 ms.
+
+**Lo que no está bien todavía**:
+1. Al apagarse el haz (0,9 s) la masa se enfría bajo el umbral del toon en ~0,5 s: a 1,6 s casi no queda fuego ni humo visible. Si Pablo quiere que se quede más, el parámetro es el enfriamiento (`cool`) o el umbral del humo después del corte.
+2. La foto del dragón sale tapada por el decorado del lab.
+3. Los muros del juego son cajas de casilla: contra una cara plana el fuego se aplasta y se notan cantos rectos, como en el lab.
+4. Coste: 2 haces de gas en diagonal llevan la GPU a ~12 ms.
+
+**Capturas**: `docs/capturas/vfx_en_juego/haz_gas_juego/` (`<caso>_juego.jpg`, `_juego_16.jpg`, `_lateral.jpg`, dragón y `HOJA_RESUMEN.jpg`).
