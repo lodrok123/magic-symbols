@@ -85,8 +85,10 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 ## espacio de RightHand y a (−0,006, +0,052, −0,001) en el de LeftHand. A eso se le suma bajar la pieza por su propio eje para que
 ## el puño quede sobre el MANGO y no en su extremo: en el espacio del hueso, «abajo del mundo» es (−0,32, +0,64, +0,70) por la
 ## derecha y (−0,04, +0,66, −0,75) por la izquierda.
-const CRUZ_ESCALA: float = 0.8
-const CRUZ_POS: Vector3 = Vector3(-0.027, 0.091, 0.043)     # puño + 6,4 cm hacia abajo: el mango dentro de la mano
+## 9/11 (Pablo: «no queda, es demasiado alargado»): la cruz iba a 0,8, o sea 0,36 de alto en un personaje de 0,95, y llegaba de la
+## cintura a por encima de la capucha. A 0,55 mide 0,25, un cuarto del personaje, que es lo que se lleva en una mano.
+const CRUZ_ESCALA: float = 0.55
+const CRUZ_POS: Vector3 = Vector3(-0.020, 0.078, 0.029)     # puño + 4,4 cm hacia abajo (0,08 de la pieza a esta escala)
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
 const VELA_ESCALA: float = 0.55          # la palmatoria mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo
 const VELA_POS: Vector3 = Vector3(-0.007, 0.072, -0.023)    # puño + 3 cm hacia abajo: el platillo justo bajo la mano
