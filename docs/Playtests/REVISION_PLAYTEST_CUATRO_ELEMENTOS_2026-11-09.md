@@ -250,7 +250,7 @@ si el bicho elegido no trae de su leyenda la razón por la que ese glifo es la r
 | ᛏ **altura** | **Nuberu** | Asturias | el hombre de las nubes: trae el granizo **desde arriba**, y cuando pierde el sombrero cae y queda a merced | no: el arquetipo pedía justo eso. La salida alternativa («esperar a que baje») **ya está en el mito** (tirarle el sombrero) |
 | ᚷ **crecer** | **Galtzagorriak** | País Vasco (gemelos: los **minairons** del Pirineo catalán y aragonés) | diablillos rojos que se guardan en un alfiletero y, suelta la tapa, **se multiplican y se desparraman** si no se les da trabajo | no: es el enjambre que se abre al ver el trazo. El alfiletero es el generador de la sala |
 | ᚱ **pulso** | **Ramidreju** | Cantabria | bicho alargado, nacido de una comadreja muy vieja, que **excava** y sale a buscar lo enterrado | no: topo que asoma un instante. El mito explica por qué no se le puede apuntar |
-| ᛉ **permanencia** | **Mouro da mámoa** | Galicia y norte de Portugal | el mouro encantado **vuelve a su túmulo** mientras la mámoa siga abierta; se acaba con él cerrándola, no matándolo | no, y es el mejor encaje de la lista: «ocupar la casilla» es literalmente **tapar la mámoa**, y el montículo marca la casilla sin necesidad de rótulo |
+| ᛉ **permanencia** | **Mouro espectral** (el mouro da mámoa) | Galicia y norte de Portugal | el mouro encantado **vuelve a su túmulo** mientras la mámoa siga abierta; se acaba con él cerrándola, no matándolo | no, y es el mejor encaje de la lista: «ocupar la casilla» es literalmente **tapar la mámoa**, y el montículo marca la casilla sin necesidad de rótulo |
 | ᚠ **repetición** | **Herensuge** | País Vasco | dragón de **siete cabezas** que rebrotan si no se le remata | **sí**: las tres cargas pasan a ser **tres cabezas**, y «se recarga el escudo» pasa a ser «la cabeza vuelve a crecer». Más legible de lejos que una barra de escudo |
 | Λ **rebote** | **Tartalo** | País Vasco | cíclope que pelea **metido en su cueva** y tapona la entrada; al héroe solo le queda el ingenio | no: nicho sin tiro directo. Tiene la pared del rebote por definición |
 | ᚦ **perforar** | **Jentil con la losa** | País Vasco (jentilak / mairuak) | gigantes que levantaron los dólmenes y **tiraban piedras**: uno avanza con la losa por delante | no: la losa **es** el escudo, y que perforar atraviese la piedra es la fantasía del glifo |
@@ -265,6 +265,13 @@ si el bicho elegido no trae de su leyenda la razón por la que ese glifo es la r
 **Reparto**, para que no se note que vienen de un sitio: País Vasco 4 · Cantabria 3 · Portugal 2 (+1 compartido con Galicia) ·
 Asturias 2 · Galicia 2 · Cataluña 1 (+1 gemelo pirenaico) · pan-ibéricos 2 (Tarasca y Basilisco). Diecisiete seres, ninguno
 repetido, ninguno inventado y ninguno de fuera de la península.
+
+**Encaje con el lore (9/11, Pablo):** en el juego **los mouros ya existen y son los «elfos»**, así que el de ᛉ no es una criatura
+nueva sino **un mouro muerto**: misma familia que `elfo_base`, señorío antiguo y seco, no un fantasma genérico. La Santa Compaña
+se respeta tal como es en la leyenda y lo que cambia es el aspecto: **espectral y no-muerto**, no aldeanos con vela. Los modelos
+de los dos están encargados en [`arte/meshy/PROMPTS_MOUROS_SANTA_COMPANA.md`](../../arte/meshy/PROMPTS_MOUROS_SANTA_COMPANA.md)
+(siete piezas: los dos personajes, la cruz y el candil sueltos, la mámoa, su losa, y la lista de lo que NO se pide a Meshy
+porque es material de Godot).
 
 **Aviso de reparto:** el País Vasco carga con cuatro (galtzagorriak, Herensuge, Tartalo y el jentil) y tres de ellos son
 gigantes o dragones. Si se quiere repartir más, el **Tartalo** (Λ rebote) es el más fácil de sustituir por su primo gallego el
