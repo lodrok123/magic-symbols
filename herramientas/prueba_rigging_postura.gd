@@ -36,6 +36,10 @@ const APOYO_ALTO: float = 0.012
 const ZANCADA_MIN: float = 0.75
 const ZANCADA_MAX: float = 1.25
 const ALTO: float = 1.0
+## E · tope de hundimiento (ver `_tope_hundimiento`). Margen pequeño: el tope deja el hueso más bajo justo en el suelo, así que lo que se
+## mide aquí es el error de muestreo, no holgura de verdad.
+const TOPE_MUESTRAS: int = 30
+const TOPE_HUNDE_MAX: float = 0.01
 
 var _fallos: int = 0
 var _final: Dictionary = {}
@@ -133,9 +137,61 @@ func _correr() -> void:
 				else:
 					print("INFO  ", msg2)
 					print("INFO  ", msg3)
+	# E · TOPE DE HUNDIMIENTO
+	await _tope_hundimiento()
 	print("INFO  tiempo %.1f s" % ((Time.get_ticks_msec() - t0) / 1000.0))
 	print("RESULTADO rigging_postura · FALLOS: %d" % _fallos)
 	quit(_fallos)
+
+
+## E · El retarget sube o baja cada clip una cantidad FIJA, medida con el reposo de pie, y eso no vale cuando el clip tumba o arrodilla al
+## personaje: ahí el cuerpo acababa bajo el suelo (Dead −0,130 del alto en la jugadora, −0,229 en la Santa Compaña). ClipsFamilia pone ahora
+## un tope por fotograma (ver APOYO_FUERA y SUELO_Y). Aquí se comprueba en los clips que lo necesitaban, y en los dos extremos de proporción
+## que tenemos: la jugadora y el fantasma encapuchado, que comparten los clips de la elfa y tienen piernas muy distintas.
+## No entran las manos: al rodar pasan por el suelo a propósito y subir la figura por un meñique haría botar la voltereta. Tampoco los huesos
+## que no son del esqueleto animado (la capa de la jugadora): los mueve la ropa, el retarget no responde de ellos, y una capa que roza el
+## suelo al rodar es normal. Contándolos, esta misma prueba pedía levantar a la jugadora 0,18 del alto por un pliegue de tela.
+func _tope_hundimiento() -> void:
+	for id in ["jugadora_base", "santa_compana_vela"]:
+		var pj := Pj3D.new()
+		root.add_child(pj)
+		pj.cargar(String(id))
+		pj.set_alto(ALTO)
+		await process_frame
+		var ap: AnimationPlayer = pj._ap
+		var sk: Skeleton3D = (pj.find_children("*", "Skeleton3D", true, false)[0]) as Skeleton3D
+		if pj._arbol != null:
+			pj._arbol.active = false
+		ap.active = true
+		var alto: float = pj.alto_modelo() * pj.scale.y
+		for clip in ["Dead", "RollDodge", "ChargedGroundSlam"]:
+			if not ap.has_animation(clip):
+				continue
+			var largo: float = ap.get_animation(clip).length
+			var peor: float = INF
+			var cual: String = ""
+			for k in range(TOPE_MUESTRAS + 1):
+				ap.play(clip)
+				ap.seek(largo * float(k) / float(TOPE_MUESTRAS), true)
+				sk.force_update_all_bone_transforms()
+				for i in range(sk.get_bone_count()):
+					var n: String = sk.get_bone_name(i)
+					if not n.begins_with("mixamorig"):
+						continue        # la capa y demás añadidos del destino: ver arriba
+					var del_brazo: bool = false
+					for fuera in ClipsFamilia.APOYO_FUERA:
+						if n.contains(fuera):
+							del_brazo = true
+							break
+					if del_brazo:
+						continue
+					var y: float = ((sk.global_transform * sk.get_bone_global_pose(i).origin).y - pj.global_position.y) / alto
+					if y < peor:
+						peor = y
+						cual = n
+			ok(peor >= -TOPE_HUNDE_MAX, "E %s %s: nada del tronco ni de las piernas bajo el suelo (lo peor, %s a %+.3f del alto; tope −%.3f)" % [
+				id, clip, cual, peor, TOPE_HUNDE_MAX])
+		pj.queue_free()
 
 
 ## Carga el personaje `id` (vestido como en el juego) y mide: reposo, cada rol de ROLES_A al 10/50/90 % a pelo y con los modificadores, y los ciclos de walk y run.

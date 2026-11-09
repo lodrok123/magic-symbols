@@ -6,6 +6,7 @@ extends SceneTree
 ## Salida en res://docs/capturas/fantasma_rig/: clip_<nombre>.png, una hoja de cuatro instantes del ciclo (frente) por clip.
 
 ## Sin argumentos usa el fantasma; con `-- <id>` usa res://arte/modelos/<id>.glb y guarda en res://docs/capturas/<id>/.
+## Con `-- <id> <clip> [clip...]` fotografía ESOS clips en vez de los de CLIPS (para mirar uno concreto: una muerte, una voltereta).
 const ID_POR_DEFECTO: String = "fantasma_elfo_rig"
 const FUENTE: String = "res://arte/modelos/chibi_elf.glb"
 var _id: String = ID_POR_DEFECTO
@@ -24,6 +25,9 @@ func _initialize() -> void:
 	await process_frame
 	var args: PackedStringArray = OS.get_cmdline_user_args()
 	_id = args[0] if args.size() > 0 and args[0] != "" else ID_POR_DEFECTO
+	var pedidos: Array[String] = []
+	for i in range(1, args.size()):
+		pedidos.append(String(args[i]))
 	# El id puede ser una VARIANTE que comparte GLB (Pj3D.MODELO_DE): el cuerpo sale del modelo y el equipo, del id.
 	_glb = String(Pj3D.MODELO_DE.get(_id, _id))
 	GLB = "res://arte/modelos/%s.glb" % _glb
@@ -58,12 +62,12 @@ func _initialize() -> void:
 	if ClipsFamilia.tiene_fuente(_id):
 		var todos: Dictionary = ClipsFamilia.clips_para(_id, modelo, sk)
 		print("clips de la variante: ", todos.keys().size())
-		for c in CLIPS + EXTRA:
+		for c in (pedidos if not pedidos.is_empty() else CLIPS + EXTRA):
 			if todos.has(c):
 				lib.add_animation(String(c), todos[c] as Animation)
 				puestos.append(String(c))
 	else:
-		for c in CLIPS:
+		for c in (pedidos if not pedidos.is_empty() else CLIPS):
 			var an: Animation = ClipsFamilia.traducir_clip(_glb, FUENTE, c, modelo, sk)
 			if an == null:
 				print("NO se pudo traducir: ", c)
