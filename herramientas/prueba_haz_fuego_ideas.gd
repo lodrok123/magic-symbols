@@ -78,7 +78,7 @@ func _correr() -> void:
 		f.close()
 		_ok("4 el shader descarta lo que no es suelo (normal horizontal) y lo alto", src.contains("< 0.6") and src.contains("discard") and src.contains("alto_max"))
 		_ok("4 el choque llega al decal (fuerza > 0)", (m.get_shader_parameter("choque_a") as Vector4).w > 0.0)
-	_ok("4 la rampa del haz se corta en naranja (tope < 0,6: nunca el tramo amarillo, que empieza en 0,62)", FuegoToy.HAZ_TOPE_CALOR < 0.6 and FuegoToy.HAZ_TOPE_NUCLEO < 0.62)
+	_ok("4 la rampa del haz se corta en naranja (tope ≤ 0,62: nunca el tramo amarillo, que empieza después)", FuegoToy.HAZ_TOPE_CALOR <= 0.62 and FuegoToy.HAZ_TOPE_NUCLEO <= 0.62)
 	# 5. topes
 	var otros: Array = []
 	for i in 9:

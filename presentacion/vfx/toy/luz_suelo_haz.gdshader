@@ -15,7 +15,7 @@ uniform float largo = 4.0;                    // m del haz
 uniform float crece : hint_range(0.0, 1.0) = 1.0;
 uniform float corte : hint_range(0.0, 1.0) = 0.0;
 uniform float semilla = 0.0;
-uniform float fuerza : hint_range(0.0, 1.0) = 0.5;           // opacidad máxima de la mancha a lo largo del chorro
+uniform float fuerza : hint_range(0.0, 1.0) = 0.8;           // opacidad máxima de la mancha a lo largo del chorro
 uniform vec4 choque_a = vec4(-1.0, 0.0, 1.2, 0.0);            // (u, x, radio, fuerza); fuerza 0 = sin choque
 uniform vec4 choque_b = vec4(-1.0, 0.0, 1.2, 0.0);
 uniform float centro_y = 0.4;                                 // m sobre el suelo del centro de la caja
@@ -74,7 +74,7 @@ void fragment() {
 		ALBEDO = tinte.rgb;
 		ALPHA = clamp(a * tinte.a, 0.0, 0.9);
 	} else {
-		ALBEDO = llama(mix(0.0, 0.12, clamp(a * 1.3, 0.0, 1.0)));
-		ALPHA = clamp(a, 0.0, 0.9);
+		ALBEDO = llama(mix(0.02, 0.3, clamp(a * 1.4, 0.0, 1.0)));
+		ALPHA = clamp(a * 1.15, 0.0, 0.92);
 	}
 }

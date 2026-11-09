@@ -53,6 +53,8 @@ uniform float tam_bolas = 1.0;             // tamaño de las bolitas al cortarse
 // 9/11 (ideas de la demo de gas de three.js): la punta se vuelve humo, el color no se quema y las lenguas hacen remolino
 uniform float humo : hint_range(0.0, 1.0) = 0.0;       // cuánto se ensancha, frena, enrojece y se vuelve humo pardo la punta (0 = como antes)
 uniform float tope_calor : hint_range(0.3, 1.0) = 1.0; // tope de la rampa: 0,7 = naranja (nunca el tramo amarillo); 1 = toda la rampa (como antes)
+uniform float nucleo_claro : hint_range(0.0, 1.0) = 0.0;   // cuánto se aclara el núcleo hacia color_claro (0 = como antes)
+uniform vec3 color_claro : source_color = vec3(1.0, 0.55, 0.30);
 uniform float remolino : hint_range(0.0, 1.0) = 0.5;   // distorsión tipo curl de las lenguas (en vez de un desplazamiento uniforme)
 uniform float abre_exp = 1.15;                         // >1: estrecho cerca de la mano y se abre sobre todo al final
 group_uniforms;
@@ -137,8 +139,10 @@ void fragment() {
 	float idx = (f - umbral) * escala_rampa + calor_extra * (1.0 - smoothstep(0.0, 0.8, d)) + 0.18 * (1.0 - smoothstep(0.0, 0.6, p)) + 0.3 * cuerpo * (1.0 - smoothstep(0.0, 0.6, d)) * (1.0 - smoothstep(0.7, 1.0, p));
 	// contraste sin amarillo: la rampa se corta en `tope_calor` (las capas solapadas se quedan naranjas, no se queman), el borde y la punta se enrojecen
 	idx -= humo * (0.2 * smoothstep(0.45, 1.0, d) + 0.28 * pt + 0.25 * corte);
-	idx = clamp(idx, 0.0, 1.0) * tope_calor;      // la rampa se comprime (no se recorta): el gradiente rojo → naranja se conserva
-	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
+	float ir = clamp(idx * 0.85, 0.0, 1.0);
+	// la rampa llega solo a tope_calor (rojo oscuro, rojo, naranja) y el núcleo se aclara hacia un naranja-salmón cálido (nucleo_claro), nunca al amarillo: conserva tres o cuatro tonos
+	vec3 col = mix(texture(rampa, vec2(ir * tope_calor, 0.5)).rgb, texture(rampa_azul, vec2(ir * tope_calor, 0.5)).rgb, tono);
+	col = mix(col, color_claro, nucleo_claro * smoothstep(0.72, 0.95, ir));
 	// humo pardo oscuro alrededor de la llama de la punta (donde el fuego se deshace); al soltarse el chorro (corte) las bolitas se apagan en humo en vez de seguir brillando
 	float fh = humo * smoothstep(0.4, 0.9, p);
 	float a_h = smoothstep(umbral - 0.32, umbral - 0.02, f) * fh * 0.62;

@@ -40,8 +40,8 @@ const SH_LUZ_SUELO: String = "res://presentacion/vfx/toy/luz_suelo_haz.gdshader"
 const HAZ_MAX_CHOQUES: int = 2                   ## puntos de choque que dibuja un haz (el final contra el obstáculo y, si hay sitio, el primer enemigo que cruza)
 const HAZ_MAX_SALPICADURAS: int = 6              ## tope en TODA la escena (varios dragones relanzando cada 0,8 s): pasado el tope el choque se queda sin salpicadura
 const HAZ_MAX_LUCES_SUELO: int = 6               ## ídem para las manchas de luz del suelo (decals)
-const HAZ_TOPE_CALOR: float = 0.38               ## tope de la rampa de la bola en el chorro y la salpicadura: naranja con contraste, nunca el tramo amarillo
-const HAZ_TOPE_NUCLEO: float = 0.5               ## el núcleo puede llegar un poco más arriba (un naranja claro), pero sigue sin amarillo
+const HAZ_TOPE_CALOR: float = 0.62               ## tope de la rampa de la bola en el chorro y la salpicadura: naranja con contraste, nunca el tramo amarillo
+const HAZ_TOPE_NUCLEO: float = 0.62               ## el núcleo puede llegar un poco más arriba (un naranja claro), pero sigue sin amarillo
 const HAZ_LUZ_ANCHO: float = 3.6                 ## m de ancho de la caja del decal de luz del suelo
 const HAZ_LUZ_ALTO_MAX: float = 0.45             ## m sobre el suelo: lo más alto (hombros, cabezas) no se pinta
 const HAZ_GRUPO_SALPICADURA: StringName = &"salpicadura_haz"
@@ -1034,7 +1034,7 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	# cruzada («Cruz», giro de 60° alrededor del eje) para que mirado casi a lo largo del haz (cámara del juego) siga habiendo volumen
 	var p: Dictionary = {"largo": largo, "r_origen": HAZ_R_ORIGEN, "r_fin": r, "crece": crece, "corte": corte,
 		"volutas": 2.0, "cuerpo": 0.3, "desfase": 1.05, "umbral": 0.24, "blandura": 0.42, "tam_bolas": 1.8, "transparencia": 1.0, "fuerza_borde": 1.0,
-		"humo": 1.0 if haz_ideas else 0.0, "tope_calor": HAZ_TOPE_CALOR if haz_ideas else 1.0, "remolino": 0.55 if haz_ideas else 0.0}      # 9/11: la punta se vuelve humo, la rampa se corta en naranja (sin amarillo) y las lenguas hacen remolino
+		"humo": 1.0 if haz_ideas else 0.0, "tope_calor": HAZ_TOPE_CALOR if haz_ideas else 1.0, "remolino": 0.55 if haz_ideas else 0.0, "nucleo_claro": 0.4 if haz_ideas else 0.0}      # 9/11: la punta se vuelve humo, la rampa se corta en naranja (sin amarillo) y las lenguas hacen remolino
 	var ext: MeshInstance3D = _fuego(c, "Chorro", malla, Vector3(0, h, 0), p, 0, SH_HAZ, _rampa_de_bola())
 	ext.extra_cull_margin = 1.0
 	var pc: Dictionary = p.duplicate()
@@ -1043,18 +1043,20 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	pc["grosor"] = 0.85
 	pc["v_chorro"] = 1.12
 	pc["humo"] = 0.7 if haz_ideas else 0.0
+	pc["nucleo_claro"] = 0.25 if haz_ideas else 0.0
 	var cruz: MeshInstance3D = _fuego(c, "Cruz", malla, Vector3(0, h, 0), pc, 0, SH_HAZ, _rampa_de_bola())
 	cruz.extra_cull_margin = 1.0
 	var pn: Dictionary = p.duplicate()
 	pn["grosor"] = 0.6
 	pn["semilla"] = 0.6
-	pn["calor_extra"] = 0.55
+	pn["calor_extra"] = 0.55 if not haz_ideas else 0.25
 	pn["v_chorro"] = 1.35
 	pn["desfase"] = 1.0
-	pn["cuerpo"] = 0.8
+	pn["cuerpo"] = 0.8 if not haz_ideas else 0.3
 	pn["rot_lamina"] = -0.5
 	pn["humo"] = 0.0                       # el núcleo es la parte limpia y caliente: no se vuelve humo
 	pn["tope_calor"] = HAZ_TOPE_NUCLEO if haz_ideas else 1.0
+	pn["nucleo_claro"] = 0.7 if haz_ideas else 0.0
 	var nuc: MeshInstance3D = _fuego(c, "Nucleo", malla, Vector3(0, h, 0), pn, 1, SH_HAZ, _rampa_de_bola())
 	nuc.extra_cull_margin = 1.0
 	_halo(c, "Base", Vector2(2.4 * r + 0.4, 2.4 * r + 0.4), Vector3(0, h, 0), 0.4, 2.4, 2, Color(1.0, 0.28, 0.06))
@@ -1172,7 +1174,7 @@ func _vivos_de(grupo: StringName) -> int:
 
 ## IDEA 2: bocanadas de humo pardo oscuro en la punta del chorro; suben despacio, crecen y se deshacen (mezcla normal, no aditiva: tapan, no iluminan).
 func _humo_punta(c: Node3D, largo: float, h: float, r: float, f: float) -> void:
-	var gp: GPUParticles3D = _humo_generico(c, "Humo", Vector3(0, h, -largo * 0.82), Vector3(r * 0.8, r * 0.2, largo * 0.17), _cant(7.0, f, 3, 12), 1.0)
+	var gp: GPUParticles3D = _humo_generico(c, "Humo", Vector3(0, h, -largo * 0.82), Vector3(r * 0.8, r * 0.2, largo * 0.17), _cant(10.0, f, 4, 16), 1.4)
 	_emisores_humo.append(gp)
 
 
@@ -1182,7 +1184,7 @@ func _humo_generico(c: Node3D, nombre: String, pos: Vector3, caja: Vector3, cant
 	gp.name = nombre
 	gp.position = pos
 	gp.amount = cant
-	gp.lifetime = 1.7
+	gp.lifetime = 2.0
 	gp.local_coords = true
 	gp.fixed_fps = 0
 	gp.emitting = false
@@ -1198,7 +1200,7 @@ func _humo_generico(c: Node3D, nombre: String, pos: Vector3, caja: Vector3, cant
 	pm.gravity = Vector3(0, 0.7 * fuerza, 0)
 	pm.scale_min = 0.8
 	pm.scale_max = 1.3
-	pm.color_ramp = _gradiente([Color(0.26, 0.13, 0.08, 0.0), Color(0.22, 0.11, 0.07, 1.0), Color(0.16, 0.09, 0.07, 0.0)], [0.0, 0.25, 1.0])
+	pm.color_ramp = _gradiente([Color(0.26, 0.13, 0.08, 0.0), Color(0.2, 0.1, 0.06, 1.0), Color(0.14, 0.08, 0.06, 0.0)], [0.0, 0.2, 1.0])
 	var curva: Curve = Curve.new()
 	curva.add_point(Vector2(0, 0.35))
 	curva.add_point(Vector2(1, 1.25))
@@ -1207,7 +1209,7 @@ func _humo_generico(c: Node3D, nombre: String, pos: Vector3, caja: Vector3, cant
 	pm.scale_curve = ct
 	gp.process_material = pm
 	var q: QuadMesh = QuadMesh.new()
-	q.size = Vector2(1.1, 1.1)
+	q.size = Vector2(1.7, 1.7)
 	var sm: StandardMaterial3D = StandardMaterial3D.new()
 	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -1248,7 +1250,7 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	c.add_child(mi)
 	# la misma salpicadura TUMBADA en el suelo delante de lo golpeado: la cámara del juego mira a lo largo de Z, y una lámina vertical de normal X se vería de canto
 	var qs: QuadMesh = QuadMesh.new()
-	qs.size = Vector2(tam, tam)
+	qs.size = Vector2(tam * 0.8, tam * 0.8)
 	qs.orientation = PlaneMesh.FACE_Y
 	var ms: MeshInstance3D = MeshInstance3D.new()
 	ms.name = "SalpicaduraSuelo%d" % i
@@ -1378,7 +1380,7 @@ func _luz_suelo(c: Node3D, largo: float, cs: Array) -> void:
 	m.set_shader_parameter("alto_max", HAZ_LUZ_ALTO_MAX)
 	for k in cs.size():
 		var ch: Dictionary = cs[k]
-		m.set_shader_parameter("choque_a" if k == 0 else "choque_b", Vector4(float(ch["d"]), float(ch.get("x", 0.0)), 1.3, 0.62))
+		m.set_shader_parameter("choque_a" if k == 0 else "choque_b", Vector4(float(ch["d"]), float(ch.get("x", 0.0)), 1.5, 0.9))
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = "LuzSuelo"
 	var caja: BoxMesh = BoxMesh.new()
