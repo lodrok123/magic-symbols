@@ -207,5 +207,23 @@ func _correr() -> void:
 	root.add_child(mu2)
 	await process_frame
 	_ok("10 apagadas: el muro es exactamente el de antes (sin LuzForma ni HumoCima)", mu2.get_node_or_null("LuzForma") == null and mu2.find_child("HumoCima", true, false) == null)
+	# 11. el MURO de prueba del lab (tecla F): con muro, el haz de cada elemento recibe su choque y dibuja la salpicadura; sin muro, nada
+	var lab: Node3D = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
+	root.add_child(lab)
+	await process_frame
+	lab.call("alternar_muro_haz")
+	for el in ["fuego", "agua", "rayo"]:
+		lab.call("poner_elemento", el)
+		var hz = lab.call("fuego_param", 4)
+		await process_frame
+		await process_frame
+		var chq: Array = hz.choques
+		_ok("11 lab con muro (%s): el haz tiene 1 choque en su cara, normal hacia la jugadora" % el, chq.size() == 1 and absf(float(chq[0]["x"])) < 0.01 and (chq[0]["n"] as Vector3).z > 0.9, str(chq))
+		_ok("11 lab con muro (%s): el toy dibuja la salpicadura" % el, hz.find_child("Salpicadura*", true, false) != null)
+	lab.call("alternar_muro_haz")
+	lab.call("poner_elemento", "fuego")
+	var sinm = lab.call("fuego_param", 4)
+	await process_frame
+	_ok("11 lab sin muro: sin choques ni salpicadura", sinm.choques.is_empty() and sinm.find_child("Salpicadura*", true, false) == null)
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)

@@ -4,7 +4,7 @@ extends Node3D
 ## un plano de 20×20 m, cuatro cubos, la jugadora montada como el juego (Pj3D.cargar + set_alto, con su clip de andar) y los tres efectos de
 ## presentacion/vfx/efectos instanciados DIRECTAMENTE (sin pasar por el sistema de hechizos: aquí se juzga el aspecto, no la integración).
 ## Teclas:  1 bola de fuego · 2 muro de fuego · 3 columna de fuego · 0 diez muros a la vez (medida de fps) · X limpia ·
-##          C cámara (juego → cerca 2 m → lejos 10 m) · flechas / WASD andar · H oculta el panel.
+##          C cámara (juego → cerca 2 m → lejos 10 m) · flechas / WASD andar · H oculta el panel · F alterna un MURO de prueba a 2/3 del largo del haz (los haces F7/F9 reciben su choque: salpicadura).
 ## Prueba 2 (fuego toon, docs/PRUEBA2_VFX_TOON_2026-11-01.md): 5 muro de fuego toon · 6 columna toon · 7 bola toon · 9 diez muros toon · RePág / AvPág eligen uno de los diez mandos · + / − lo suben y bajan ·
 ##          Retroceso lo devuelve a su valor de origen · el panel enseña los diez con su valor (el elegido va con «>»). Valen para los muros toon que nazcan después y para el vivo.
 ## El panel muestra fps, luces y partículas vivas (el mismo recuento que LabVfx3D._luces_y_particulas) y las teclas.
@@ -96,6 +96,8 @@ var _param_ej: int = 0                             ## ejemplo de hechizo de F9
 var _valores_toy: Dictionary = {}                  ## propiedad -> valor actual (lo que nazca después nace con él)
 var _valores_carga: Dictionary = {}                ## mandos de la carga movidos con Q / E
 var _mando_carga: int = 0                          ## el elegido con T
+var _muro_haz_activo: bool = false                  ## F: muro de prueba del haz puesto
+var _muro_haz_nodo: Node3D = null
 var _pared: Node3D = null                          ## la pared de prueba de los impactos (la crea G / B / R, la quita X)
 var camara_fija: Dictionary = {}                   ## {desde, mira}: si no está vacío, las cámaras cerca / lejos usan esto (lo usan las capturas)
 
@@ -208,7 +210,7 @@ func _process(delta: float) -> void:
 	_seguir_camara()
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
-		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · C cámara · flechas andar · H panel\n%s"
+		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · C cámara · flechas andar · H panel\n%s"
 			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga()) if _panel_visible else ""
 
 
@@ -259,6 +261,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_9: _toy = false; diez_muros(true)
 		KEY_0: diez_muros()
 		KEY_X: limpiar()
+		KEY_F: alternar_muro_haz()
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
 
@@ -432,8 +435,10 @@ func fuego_hechizo(i: int) -> Node3D:
 func _poner_param(e, giro: float) -> void:
 	_quitar_param()
 	_aplicar_mandos_toy(e)
-	_efectos.add_child(e)
 	var pie: Vector3 = _pj.global_position
+	if e.figura == FuegoToy.Figura.HAZ:       # los choques han de estar ANTES de entrar en el árbol (el haz se construye en _ready), como en VfxToyJuego
+		_muro_haz(e, e.semieje_x * 2.0, pie + _dir * 0.5, _dir.rotated(Vector3.UP, giro))
+	_efectos.add_child(e)
 	match e.figura:
 		FuegoToy.Figura.BOLA:
 			e.global_position = pie + _dir * DISTANCIA_EFECTO + Vector3(0, 1.0, 0)
@@ -453,6 +458,48 @@ func _poner_param(e, giro: float) -> void:
 		_lanzar_param_en_vuelo()
 
 
+## F: alterna el MURO de prueba del haz. Con muro, todo haz (F7 / F9 / Z / V / ejes) recibe un choque en su cara; se rehace el haz vivo para que lo dibuje.
+func alternar_muro_haz() -> void:
+	_muro_haz_activo = not _muro_haz_activo
+	if not _muro_haz_activo:
+		_quitar_muro_haz()
+	if _param != null and is_instance_valid(_param) and _param.figura == FuegoToy.Figura.HAZ:
+		var sx: Vector3 = Vector3(_param.semieje_x, _param.semieje_y, _param.semieje_z)
+		var e = fuego_param(_param_i)
+		e.semieje_x = sx.x
+		e.semieje_y = sx.y
+		e.semieje_z = sx.z
+
+
+## Pone (o quita) el muro a 2/3 del largo del haz `e` (ya colocado y orientado) y le da el choque con el MISMO formato que el juego: VfxToyJuego._choques_locales (punto y normal de mundo → {d, x, n}).
+## El haz se dibuja con su largo completo y el choque solo marca dónde salpica, como en el juego.
+func _muro_haz(e, largo: float, desde: Vector3, dir: Vector3) -> void:
+	if not _muro_haz_activo:
+		e.choques = []
+		return
+	var d: float = largo * 2.0 / 3.0
+	var punto: Vector3 = desde + dir * d
+	_quitar_muro_haz()
+	_muro_haz_nodo = MeshInstance3D.new()
+	_muro_haz_nodo.name = "MuroHaz"
+	var bm: BoxMesh = BoxMesh.new()
+	bm.size = Vector3(1.0, 2.4, 0.3)
+	_muro_haz_nodo.mesh = bm
+	var mt: StandardMaterial3D = StandardMaterial3D.new()
+	mt.albedo_color = Color(0.5, 0.5, 0.52)
+	mt.roughness = 0.95
+	_muro_haz_nodo.material_override = mt
+	add_child(_muro_haz_nodo)
+	_muro_haz_nodo.global_position = Vector3(punto.x, 1.2, punto.z) + dir * 0.15       # la cara delantera queda justo en el punto
+	_muro_haz_nodo.look_at(_muro_haz_nodo.global_position + dir, Vector3.UP)
+	e.choques = VfxToyJuego._choques_locales([{"punto": Vector3(punto.x, 1.0, punto.z), "normal": -dir, "tipo": "muro"}], desde, dir * largo)
+
+
+func _quitar_muro_haz() -> void:
+	if _muro_haz_nodo != null and is_instance_valid(_muro_haz_nodo):
+		_muro_haz_nodo.queue_free()
+	_muro_haz_nodo = null
+
 func _quitar_param() -> void:
 	if _param != null and is_instance_valid(_param):
 		_bolas = _bolas.filter(func(b: Dictionary) -> bool: return b["nodo"] != _param)
@@ -466,6 +513,8 @@ func eje_param(eje: int, signo: int) -> void:
 	if _param == null or not is_instance_valid(_param):
 		fuego_param(maxi(_param_i, 0))
 	var f: float = PASO_EJE if signo > 0 else 1.0 / PASO_EJE
+	if _param.figura == FuegoToy.Figura.HAZ:
+		_muro_haz(_param, (clampf(_param.semieje_x * f, 0.05, 8.0) if eje == 0 else _param.semieje_x) * 2.0, _param.global_position, -_param.global_basis.z)
 	match eje:
 		0: _param.semieje_x = clampf(_param.semieje_x * f, 0.05, 8.0)
 		1: _param.semieje_y = clampf(_param.semieje_y * f, 0.05, 8.0)
@@ -648,6 +697,7 @@ func limpiar() -> void:
 	if _pared != null and is_instance_valid(_pared):
 		_pared.queue_free()
 	_pared = null
+	_quitar_muro_haz()
 
 
 # ---------------------------------------------------------------- carga e impacto del fuego (FuegoToy / ImpactoFuegoToy) ----------------------------------------------------------------
