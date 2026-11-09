@@ -125,7 +125,9 @@ void main() {
 	vec3 color = vec3(0.0);
 	float trans = 1.0;
 	if (tFar > tNear) {
+		// el paso no puede ser más grueso que el chorro: como mucho 1,2 celdas de gas (toon3.w = celda), con tope; si no, los chorros finos salen a trozos
 		int pasos = int(V.marcha.x);
+		if (V.toon3.w > 0.0) pasos = clamp(int(ceil((tFar - tNear) / (1.2 * V.toon3.w))), pasos, 320);
 		float dl = (tFar - tNear) / float(pasos);
 		float f_max = -1.0, h_max = -1.0;
 		float t_fuego = 1e9, t_humo = 1e9;

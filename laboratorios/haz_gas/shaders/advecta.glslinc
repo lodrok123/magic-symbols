@@ -15,7 +15,7 @@ vec3 retroceso_gas(sampler3D vel, sampler3D flujo, vec3 uvw) {
 	vec3 escala = vec3(DT) / WTAM;
 	vec3 w = uvw * WTAM;
 	float t = TIEMPO;
-	vec3 fino = FLUJO(flujo, w, 4.5, vec3(t * 0.09)) + FLUJO(flujo, w.zxy, 2.3, vec3(t * -0.13)) * 0.7;
+	vec3 fino = FLUJO(flujo, w, 4.5 * ESC_M, vec3(t * 0.09)) + FLUJO(flujo, w.zxy, 2.3 * ESC_M, vec3(t * -0.13)) * 0.7;
 	float amp = (length(textureLod(vel, uvw, 0.0).xyz) * 0.06 + 0.15) * SUBGRID;
 	return retroceso(vel, uvw, escala) - fino * amp * escala;
 }

@@ -26,8 +26,8 @@ void main() {
 
 	// Choque: el chorro alimenta un fuego en la piel del escudo. Las llamas que envuelven la esfera nacen aqui.
 	vec3 off = w - P.contacto.xyz;
-	float gust = textureLod(ruido, w * 0.05 + vec3(TIEMPO * 0.25, 0.6, 0.1), 0.0).x * 1.4;
-	float flare = exp(dot(off, off) * -0.9) * BEAM_ON * gust;
+	float gust = textureLod(ruido, w * (0.05 / ESC_M) + vec3(TIEMPO * 0.25, 0.6, 0.1), 0.0).x * 1.4;
+	float flare = exp(dot(off, off) * -0.9 / (ESC_M * ESC_M)) * BEAM_ON * gust;
 	fuel = max(fuel, flare);
 	T = max(T, flare * 1.9);
 

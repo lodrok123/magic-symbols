@@ -11,9 +11,7 @@ extends Node3D
 ## (vista «juego»: la boquilla en la mano de la jugadora del lab); todo lo que dibuja recibe mundo_a_dominio.
 ## Lo abre el LabVfxComparativa3D con Mayús+F12 (esfera → muro → nada). Teclas dentro: ver AYUDA.
 
-const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · O obstáculo (esfera / muro) · 1-4 calidad (low med high ultra) · R dibujo TOON / realista · K paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
-const WORLD_MIN: Vector3 = HazGasSolver.WORLD_MIN
-const WORLD_SIZE: Vector3 = HazGasSolver.WORLD_SIZE
+const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · U/J largo · I/K alto · O/L ancho · B obstáculo (esfera / caja / nada) · N/M su tamaño · V/F su distancia · 1-4 calidad · R dibujo TOON / realista · Y paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
 const DT: float = HazGasSolver.DT
 ## config.js TUNABLES: [nombre en params, etiqueta, máximo]
 const MANDOS: Array = [["wind", "Viento", 30.0], ["push", "Empuje tras el choque", 30.0], ["turbulence", "Turbulencia", 150.0], ["confine", "Remolinos", 80.0],
@@ -22,7 +20,19 @@ const MANDOS: Array = [["wind", "Viento", 30.0], ["push", "Empuje tras el choque
 const MURO_C: Vector3 = Vector3(-0.6, 2.4, 0.0)
 const MURO_H: Vector3 = Vector3(0.5, 2.4, 2.2)
 const VISTAS: PackedStringArray = ["demo", "orbita", "juego", "lateral"]          ## «lateral»: el dominio a escala de juego (como «juego») visto de lado con la cámara propia
-const ESCALA_JUEGO: float = 0.35              ## vista «juego»: metros del lab por metro de la demo (dominio de 8,4 x 4,2 x 4,2 m)
+const ESCALA_JUEGO: float = 0.35              ## vista «juego» con la configuración EXACTA de la demo: metros del lab por unidad de la demo
+
+## Dominio y obstáculo de ESTA instancia (los de la demo, o los que deriva derivar_haz en el modo procedural).
+var mundo_lo: Vector3 = HazGasSolver.WORLD_MIN
+var mundo_tam: Vector3 = HazGasSolver.WORLD_SIZE
+var muro_c: Vector3 = MURO_C
+var muro_h: Vector3 = MURO_H
+var escala_masa: float = 1.0                ## M (ver gas_comun.glslinc ESC_M): 1 = la demo
+var metros_por_unidad: float = ESCALA_JUEGO ## en las vistas de juego: metros del lab por unidad del dominio
+var res_dominio: Vector3i = Vector3i.ZERO   ## rejilla de gas propia (ZERO = la de la calidad)
+var haz_cfg: Dictionary = {}                ## entrada del modo procedural (vacío = la demo tal cual); ver derivar_haz
+var haz_der: Dictionary = {}                ## lo que se deriva de haz_cfg
+var _target_base: Vector3 = Vector3(-1.2, 2.0, 0.0)
 
 ## params.js makeParams (valores de la demo)
 var params: Dictionary = {
@@ -113,9 +123,7 @@ func _ready() -> void:
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 	FuegoToy._rampas()
 	_toon_tex = [load(TEX_LELU + "T_FirePanningCyl45.png"), load(TEX_LELU + "T_PerlinNoise_Tiled.png"), load(TEX_LELU + "T_Noise1_tiled.png"), FuegoToy._rampa_de_bola()]
-	crear_solver(calidad)
-	poner_obstaculo(obstaculo)
-	poner_vista(vista)
+	configurar_haz(haz_cfg)              # crea la simulación, la geometría y la vista (vacío = la demo tal cual)
 
 
 func _exit_tree() -> void:
@@ -129,7 +137,7 @@ func _exit_tree() -> void:
 func crear_solver(q: String, jacobi: int = 0) -> bool:
 	_liberar_solver()
 	calidad = q if HazGasSolver.CALIDADES.has(q) else "low"
-	solver = HazGasSolver.new(calidad, jacobi)
+	solver = HazGasSolver.new(calidad, jacobi, res_dominio, mundo_lo, mundo_tam)
 	RenderingServer.call_on_render_thread(solver.crear)
 	if not solver.valido:
 		push_warning("HazGas: sin RenderingDevice no hay gas (las pruebas de GPU necesitan ventana)")
@@ -177,6 +185,182 @@ func listo() -> bool:
 	return solver != null and solver.valido
 
 
+# ------------------------------------------------------------------------------------------------------------------------------------------------ PROCEDURAL
+
+## Haz de referencia del lab (FuegoToy.REF_HAZ, la figura «haz» de F7): largo 3 m, radio 0,15, eje a 0,5 m; esfera de 0,8 m a 2/3 del largo (el F12 del lab).
+const HAZ_REF: Dictionary = {"largo": 3.0, "ancho": 0.15, "alto": 0.5, "obstaculo": "esfera", "tam": 0.8, "dist": 2.0}
+const L_CHORRO: float = 10.6          ## unidades que mide SIEMPRE el chorro (boquilla → objetivo en la demo): la unidad de longitud del modo procedural
+const H_DEMO: float = 0.1875          ## celda de gas de la demo en calidad low (24 / 128)
+const RES_MAX: Vector3i = Vector3i(320, 192, 192)
+
+
+## MODO PROCEDURAL (9/11, Pablo: «que cambios en la longitud, en el ancho, etc. sigan haciendo que se respete la estructura»). De los datos del haz del juego
+## {largo (m, = 2 · semieje_x), ancho (m, radio = semieje_z), alto (m, eje = semieje_y), obstaculo ("esfera" | "caja" | "nada"), tam (m: radio de la esfera o
+## semialtura de la caja, que tiene las proporciones del muro de prueba del lab 1 x 2,4 x 0,3), dist (m de la mano a la cara del obstáculo)} saca TODO lo demás:
+##   · s = largo / L_CHORRO m por unidad: el chorro mide siempre lo mismo en unidades, así que la velocidad del chorro, el viento, el empuje, la flotación, el
+##     enfriamiento, el arrastre y los tiempos de la demo NO cambian (la estructura a lo largo del chorro es la misma por construcción);
+##   · w = (ancho / 0,15) / (largo / 3): el grosor relativo al largo → beamR0 = 0,3 w, beamR1 = 0,8 w;
+##   · el obstáculo en unidades (tam / s, dist / s) y M = max(R1 / 0,8, tamaño del obstáculo / el de la demo) = la escala TRANSVERSAL de la masa: con ella se escalan
+##     la piel y el tirón (wrap) del escudo, el radio y las ráfagas de la alimentación (y su punto, a 0,35 M de la piel), el bamboleo del eje y del objetivo, los
+##     periodos de la turbulencia y del desgarro fino, las lenguas del toon y los márgenes del dominio;
+##   · el DOMINIO: 2,6 detrás de la boquilla, 7,7 M más allá del obstáculo (o 10,8 M más allá del final del chorro sin obstáculo), 7,9 M por encima, 3,9 M a los lados;
+##   · la CELDA: h = 0,1875 · clamp(min(M, R1 / 0,8), 0,5, 2): el radio del chorro tiene siempre ~4 celdas y la masa la misma resolución que en la demo. La
+##     rejilla se ajusta (múltiplo de 8) y, si pasa de RES_MAX, la celda crece (se avisa en «celda_crecida»).
+## Devuelve un diccionario con todo (también lo usa la prueba sin GPU).
+static func derivar_haz(cfg: Dictionary) -> Dictionary:
+	var c: Dictionary = HAZ_REF.duplicate()
+	c.merge(cfg, true)
+	var largo: float = maxf(float(c["largo"]), 0.2)
+	var s: float = largo / L_CHORRO
+	var w: float = (float(c["ancho"]) / 0.15) / (largo / 3.0)
+	var r0: float = 0.3 * w
+	var r1: float = 0.8 * w
+	var nz_y: float = maxf(float(c["alto"]) / s, r1 * 0.6)
+	var tipo: String = c["obstaculo"]
+	var d_u: float = float(c["dist"]) / s
+	var tam_u: float = float(c["tam"]) / s
+	var noz: Vector3 = Vector3(0.0, nz_y, 0.0)
+	var centro: Vector3 = Vector3.ZERO
+	var semi: Vector3 = Vector3.ZERO        ## caja: semiejes (x a lo largo del chorro)
+	var radio: float = 0.0
+	var obst_tam_rel: float = 0.0
+	var objetivo: Vector3
+	var lejos_x: float                       ## x del final del obstáculo (o del chorro) aguas abajo
+	var arriba: float                        ## y más alta del obstáculo (o del eje)
+	var lado: float                          ## semiancho del obstáculo en z
+	if tipo == "esfera" and d_u < L_CHORRO * 1.2:
+		radio = tam_u
+		centro = Vector3(-(d_u + radio), nz_y * (2.0 / 1.5), 0.0)            # como la demo: el centro un poco por encima del eje (2 frente a 1,5)
+		objetivo = Vector3(-(d_u + minf(1.1, radio * 0.5)), centro.y, 0.0)   # la demo apunta 1,1 dentro de la piel
+		obst_tam_rel = radio / 2.1
+		lejos_x = centro.x - radio
+		arriba = centro.y + radio
+		lado = radio
+	elif tipo == "caja" and d_u < L_CHORRO * 1.2:
+		var k: float = tam_u / 1.2
+		semi = Vector3(0.15, 1.2, 0.5) * k
+		centro = Vector3(-(d_u + semi.x), semi.y, 0.0)
+		objetivo = Vector3(-(d_u + minf(1.1, semi.x)), minf(nz_y + 0.3, semi.y * 1.8), 0.0)
+		obst_tam_rel = maxf(semi.y, semi.z) / 2.4
+		lejos_x = centro.x - semi.x
+		arriba = semi.y * 2.0
+		lado = semi.z
+	else:
+		tipo = "nada"
+		objetivo = Vector3(-L_CHORRO, nz_y + 0.5, 0.0)
+		lejos_x = objetivo.x
+		arriba = nz_y
+		lado = 0.0
+	var m: float = clampf(maxf(r1 / 0.8, obst_tam_rel), 0.4, 3.0)
+	var margen_x: float = (10.8 if tipo == "nada" else 7.7) * m
+	var x_lo: float = minf(lejos_x, objetivo.x) - margen_x
+	var x_hi: float = 2.6
+	var y_hi: float = maxf(maxf(arriba + 7.9 * m, nz_y + 6.0 * m), nz_y + (10.5 * m if tipo == "nada" else 0.0))
+	var z_semi: float = maxf(6.0 * m, lado + 3.9 * m)
+	var h: float = H_DEMO * clampf(minf(m, r1 / 0.8), 0.5, 2.0)
+	var tam: Vector3 = Vector3(x_hi - x_lo, y_hi, 2.0 * z_semi)
+	var crecida: bool = false
+	var res: Vector3i = Vector3i(ceili(tam.x / h / 8.0) * 8, ceili(tam.y / h / 8.0) * 8, ceili(tam.z / h / 8.0) * 8)
+	var f: float = maxf(maxf(float(res.x) / RES_MAX.x, float(res.y) / RES_MAX.y), float(res.z) / RES_MAX.z)
+	if f > 1.0:
+		h *= f
+		crecida = true
+		res = Vector3i(ceili(tam.x / h / 8.0) * 8, ceili(tam.y / h / 8.0) * 8, ceili(tam.z / h / 8.0) * 8)
+	res = res.max(Vector3i(16, 16, 16))
+	var tam_real: Vector3 = Vector3(res) * h
+	var lo: Vector3 = Vector3(x_hi - tam_real.x, 0.0, -tam_real.z * 0.5)
+	return {"cfg": c, "s": s, "w": w, "M": m, "beamR0": r0, "beamR1": r1, "nozzle": noz, "target": objetivo, "obstaculo": tipo,
+		"centro": centro, "radio": radio, "semi": semi, "res": res, "h": h, "lo": lo, "tam": tam_real, "celda_crecida": crecida,
+		"keyPos": Vector3(lo.x - 0.5, 1.8 * m, 1.5 * m)}
+
+
+## Configuración procedural de un Hechizo REAL de haz: FuegoToy.describir (la misma regla que el juego) da el largo (x = semilargo), el eje (y) y el radio (z).
+static func cfg_de_hechizo(h: Hechizo, obstaculo_: String = "esfera", tam: float = 0.8, dist_rel: float = 2.0 / 3.0) -> Dictionary:
+	var d: Dictionary = FuegoToy.describir(h)
+	var largo: float = float(d["x"]) * 2.0
+	return {"largo": largo, "ancho": float(d["z"]), "alto": float(d["y"]), "obstaculo": obstaculo_, "tam": tam, "dist": largo * dist_rel}
+
+
+## Pone el modo procedural con esta entrada y rehace la simulación (y la geometría y la vista). cfg vacío = la demo tal cual.
+func configurar_haz(cfg: Dictionary) -> void:
+	haz_cfg = cfg.duplicate()
+	if haz_cfg.is_empty():
+		haz_der = {}
+		mundo_lo = HazGasSolver.WORLD_MIN
+		mundo_tam = HazGasSolver.WORLD_SIZE
+		res_dominio = Vector3i.ZERO
+		escala_masa = 1.0
+		metros_por_unidad = ESCALA_JUEGO
+		muro_c = MURO_C
+		muro_h = MURO_H
+		params["nozzle"] = Vector3(9.4, 1.5, 0.0)
+		_target_base = Vector3(-1.2, 2.0, 0.0)
+		params["target"] = _target_base
+		params["shieldC"] = Vector3(-2.2, 2.0, 0.0)
+		params["shieldR"] = 2.1
+		params["beamR0"] = 0.3
+		params["beamR1"] = 0.8
+		params["keyPos"] = Vector3(-12.5, 1.8, 1.5)
+	else:
+		var d: Dictionary = derivar_haz(haz_cfg)
+		haz_der = d
+		mundo_lo = d["lo"]
+		mundo_tam = d["tam"]
+		res_dominio = d["res"]
+		escala_masa = d["M"]
+		metros_por_unidad = d["s"]
+		obstaculo = {"esfera": "esfera", "caja": "muro"}.get(String(d["obstaculo"]), "nada")
+		if obstaculo == "muro":
+			muro_c = d["centro"]
+			muro_h = d["semi"]
+		if obstaculo == "esfera":
+			params["shieldC"] = d["centro"]
+			params["shieldR"] = d["radio"]
+		params["nozzle"] = d["nozzle"]
+		_target_base = d["target"]
+		params["target"] = _target_base
+		params["beamR0"] = d["beamR0"]
+		params["beamR1"] = d["beamR1"]
+		params["keyPos"] = d["keyPos"]
+	if is_inside_tree():
+		_aplicar_geometria()
+		crear_solver(calidad)
+		poner_vista(vista)
+
+
+## Rehace las mallas del obstáculo, el defensor y el acantilado con el dominio y el obstáculo de ahora.
+func _aplicar_geometria() -> void:
+	if _muro == null:
+		return
+	(_muro.mesh as BoxMesh).size = muro_h * 2.0
+	_muro.position = muro_c
+	_muro.visible = obstaculo == "muro"
+	var sm: SphereMesh = _esfera.mesh as SphereMesh
+	sm.radius = float(params["shieldR"])
+	sm.height = float(params["shieldR"]) * 2.0
+	_esfera.position = params["shieldC"]
+	_acantilado.position = Vector3(0, 20, mundo_lo.z)
+	_defensor.position = Vector3((params["shieldC"] as Vector3).x - 0.2, 0, 0) if obstaculo != "muro" else Vector3(muro_c.x - muro_h.x - 0.9, 0, 0)
+	_aplicar_dibujo()
+
+
+## Cambia un valor de la entrada procedural (×f) y rehace. Lo usan las teclas U/J, I/K, O/L, N/M, V/F.
+func cambiar_haz(clave: String, f: float) -> void:
+	var c: Dictionary = HAZ_REF.duplicate() if haz_cfg.is_empty() else haz_cfg.duplicate()
+	c[clave] = clampf(float(c[clave]) * f, 0.05, 30.0)
+	configurar_haz(c)
+
+
+func _texto_haz() -> String:
+	if haz_der.is_empty():
+		return "configuración EXACTA de la demo (U/J I/K O/L para pasar al modo procedural)"
+	var c: Dictionary = haz_der["cfg"]
+	var r: Vector3i = haz_der["res"]
+	return "HAZ largo %.2f m (U/J) · alto %.2f (I/K) · ancho %.2f (O/L) · obstáculo %s (B) tam %.2f (N/M) a %.2f m (V/F)  →  %.3f m/u · M %.2f · R %.2f→%.2f u · rejilla %dx%dx%d, celda %.3f u%s" % [
+		float(c["largo"]), float(c["alto"]), float(c["ancho"]), String(haz_der["obstaculo"]), float(c["tam"]), float(c["dist"]), float(haz_der["s"]),
+		float(haz_der["M"]), float(haz_der["beamR0"]), float(haz_der["beamR1"]), r.x, r.y, r.z, float(haz_der["h"]), " (CELDA CRECIDA: tope de rejilla)" if haz_der["celda_crecida"] else ""]
+
+
 ## «esfera»: el escudo de la demo (invisible: lo dibuja el gas). «muro»: la caja del lab. Vacía el gas (si no, queda gas dentro del nuevo sólido).
 func poner_obstaculo(tipo: String) -> void:
 	obstaculo = tipo
@@ -185,7 +369,7 @@ func poner_obstaculo(tipo: String) -> void:
 	if _esfera != null:
 		_aplicar_dibujo()
 	if _defensor != null:
-		_defensor.position = Vector3((params["shieldC"] as Vector3).x - 0.2, 0, 0) if tipo != "muro" else Vector3(MURO_C.x - MURO_H.x - 0.9, 0, 0)
+		_defensor.position = Vector3((params["shieldC"] as Vector3).x - 0.2, 0, 0) if tipo != "muro" else Vector3(muro_c.x - muro_h.x - 0.9, 0, 0)
 	if listo():
 		crear_solver(calidad)
 
@@ -196,7 +380,7 @@ func poner_vista(v: String) -> void:
 	if de_juego:
 		# La boquilla delante de la jugadora, el chorro a lo largo de su dirección y el suelo del dominio en su suelo. ESCALA_JUEGO deja el chorro
 		# (boquilla → piel del escudo, 9,5 m en la demo) en ~3,3 m, el largo del haz del juego; la boquilla queda a 0,5 m del suelo (la mano está a 0,7).
-		var s: float = ESCALA_JUEGO
+		var s: float = metros_por_unidad
 		var x: Vector3 = -dir_juego.normalized()
 		var b: Basis = Basis(x * s, Vector3.UP * s, x.cross(Vector3.UP) * s)
 		var en_suelo: Vector3 = Vector3(mano_juego.x, 0.0, mano_juego.z)
@@ -234,6 +418,16 @@ func camara_mundo(desde: Vector3, mira: Vector3, fov: float = 60.0) -> void:
 ## Vista «lateral»: de lado al chorro y algo alta, a escala de juego (como las capturas laterales del haz del juego: herramientas/captura_haz_masa.gd).
 func camara_en_lateral() -> void:
 	_cam.fov = 40.0
+	if not haz_der.is_empty():
+		# modo procedural: de lado al tramo boquilla → masa, a una distancia que lo abarca entero (el encuadre escala con el hechizo)
+		var noz: Vector3 = haz_der["nozzle"]
+		var fin: Vector3 = haz_der["target"]
+		var m: float = float(haz_der["M"])
+		var centro: Vector3 = (noz + fin) * 0.5 + Vector3(-1.5 * m, 1.2 * m, 0.0)
+		var d: float = (noz.x - fin.x) * 0.85 + 9.0 * m
+		_cam.global_transform = global_transform * Transform3D(Basis(), centro + Vector3(0.0, 0.3 * d, d))
+		_cam.look_at(global_transform * centro, Vector3.UP)
+		return
 	_cam.global_transform = global_transform * Transform3D(Basis(), Vector3(2.0, 6.5, 19.0))
 	_cam.look_at(global_transform * Vector3(1.5, 2.2, 0.0), Vector3.UP)
 
@@ -303,8 +497,8 @@ func _process(delta: float) -> void:
 		_acum = 0.0
 		var t: float = frame * DT
 		var tg: Vector3 = params["target"]
-		tg.y = 2.0 + sin(t * 0.7) * 0.5
-		tg.z = sin(t * 0.43) * 0.7
+		tg.y = _target_base.y + sin(t * 0.7) * 0.5 * escala_masa
+		tg.z = _target_base.z + sin(t * 0.43) * 0.7 * escala_masa
 		params["target"] = tg
 		var datos: PackedFloat32Array = parametros_gpu(t)
 		RenderingServer.call_on_render_thread(solver.paso.bind(datos, true, not toon))     # el toon no usa la luz por volúmenes
@@ -324,8 +518,8 @@ func _process(delta: float) -> void:
 	efecto.toon = toon
 	if toon:
 		var tp: Dictionary = toon_params
-		efecto.toon_param = PackedFloat32Array([tp["umbral"], tp["blandura"], tp["contraste"], tp["tope"], tp["k_T"], tp["k_c"], tp["amplitud"], tp["escala"],
-			tp["umbral_humo"], tp["opacidad_humo"], tp["escala_rampa"], frame * DT, tp["sube"], tp["chisporroteo"], tp["profundidad"], 0.0])
+		efecto.toon_param = PackedFloat32Array([tp["umbral"], tp["blandura"], tp["contraste"], tp["tope"], tp["k_T"], tp["k_c"], tp["amplitud"], float(tp["escala"]) / escala_masa,
+			tp["umbral_humo"], tp["opacidad_humo"], tp["escala_rampa"], frame * DT, tp["sube"], tp["chisporroteo"], tp["profundidad"], mundo_tam.x / float(solver.res.x)])
 		var rids: Array[RID] = []
 		for tx in _toon_tex:
 			var r: RID = RenderingServer.texture_get_rd_texture((tx as Texture2D).get_rid()) if tx != null else RID()
@@ -337,6 +531,8 @@ func _process(delta: float) -> void:
 	var m2d_p: Projection = Projection(m2d)
 	for m in _mat_roca:
 		m.set_shader_parameter("mundo_a_dominio", m2d_p)
+		m.set_shader_parameter("mundo_lo", mundo_lo)
+		m.set_shader_parameter("mundo_tam", mundo_tam)
 		m.set_shader_parameter("fire_on_rock", params["fireOnRock"])
 		m.set_shader_parameter("lamp_on_rock", params["lampOnRock"])
 		m.set_shader_parameter("key_pos", params["keyPos"])
@@ -352,8 +548,8 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 	var noz: Vector3 = p["nozzle"]
 	var tg: Vector3 = p["target"]
 	var tipo: float = {"esfera": 0.0, "muro": 1.0}.get(obstaculo, 2.0)
-	var c: Vector3 = p["shieldC"] if obstaculo != "muro" else MURO_C
-	var h: Vector3 = MURO_H
+	var c: Vector3 = p["shieldC"] if obstaculo != "muro" else muro_c
+	var h: Vector3 = muro_h
 	var cont: Vector3 = contacto()
 	var kp: Vector3 = p["keyPos"]
 	return PackedFloat32Array([
@@ -361,7 +557,7 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		tg.x, tg.y, tg.z, p["beamSpeed"],
 		c.x, c.y, c.z, tipo,
 		h.x, h.y, h.z, p["shieldR"],
-		1.0, 0.0, 0.0, p["wrap"],
+		1.0, 0.0, 0.0, float(p["wrap"]) * escala_masa,
 		0.0, 1.0, 0.0, t,
 		0.0, 0.0, 1.0, DT,
 		cont.x, cont.y, cont.z, p["beamR0"],
@@ -369,10 +565,10 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		p["expansion"], p["cool"], p["sootFade"], p["dustFade"],
 		p["buoyancy"], p["weight"], p["drag"], p["wind"],
 		p["push"], p["confine"], p["subgrid"], p["viscosity"],
-		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, 0.0,
+		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
 		kp.x, kp.y, kp.z, 0.0,
-		WORLD_MIN.x, WORLD_MIN.y, WORLD_MIN.z, 0.0,
-		WORLD_SIZE.x, WORLD_SIZE.y, WORLD_SIZE.z, 0.0])
+		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0,
+		mundo_tam.x, mundo_tam.y, mundo_tam.z, 0.0])
 
 
 ## Distancia con signo al obstáculo y su normal (la misma que obst_sd de gas_comun.glslinc). [sd, n]
@@ -383,8 +579,8 @@ func sd_obstaculo(w: Vector3) -> Array:
 		return [l - float(params["shieldR"]), d / maxf(l, 0.001)]
 	if obstaculo != "muro":
 		return [1000.0, Vector3.UP]
-	var q: Vector3 = w - MURO_C
-	var hq: Vector3 = q.abs() - MURO_H
+	var q: Vector3 = w - muro_c
+	var hq: Vector3 = q.abs() - muro_h
 	var afuera: float = hq.max(Vector3.ZERO).length()
 	var dentro: float = minf(maxf(hq.x, maxf(hq.y, hq.z)), 0.0)
 	var n: Vector3
@@ -405,7 +601,7 @@ func contacto() -> Vector3:
 	if obstaculo == "nada":
 		return params["target"]
 	var r: Array = sd_obstaculo(noz)
-	return noz - (r[1] as Vector3) * (float(r[0]) - 0.35)
+	return noz - (r[1] as Vector3) * (float(r[0]) - 0.35 * escala_masa)
 
 
 func _medir(delta: float) -> void:
@@ -430,10 +626,10 @@ func _medir(delta: float) -> void:
 		_acum_gpu.clear()
 		if _linea != null:
 			var r: Vector3i = solver.res
-			_linea.text = "%s %dx%dx%d  %.1fM celdas  %d fps  gpu %.1f ms (sim %.1f · luz %.1f · chispas %.2f · volumen %.1f · fotograma entero %.1f)  %s · paleta %s%s%s" % [
+			_linea.text = "%s %dx%dx%d  %.1fM celdas  %d fps  gpu %.1f ms (sim %.1f · luz %.1f · chispas %.2f · volumen %.1f · fotograma entero %.1f)  %s · paleta %s%s%s\n" % [
 				calidad, r.x, r.y, r.z, solver.celdas / 1.0e6, roundi(fps), float(gpu_ms.get("total", 0.0)),
 				float(gpu_ms.get("gas", 0.0)) + float(gpu_ms.get("velocidad", 0.0)), float(gpu_ms.get("luz", 0.0)), float(gpu_ms.get("chispas", 0.0)),
-				float(gpu_ms.get("volumen", 0.0)), gpu_viewport_ms, obstaculo, "pablo" if float(params["paleta"]) > 0.5 else "demo", " · CHORRO APAGADO" if float(params["beamOn"]) < 0.5 else "", " · PAUSA" if pausa else ""]
+				float(gpu_ms.get("volumen", 0.0)), gpu_viewport_ms, obstaculo, "pablo" if float(params["paleta"]) > 0.5 else "demo", " · CHORRO APAGADO" if float(params["beamOn"]) < 0.5 else "", " · PAUSA" if pausa else ""] + _texto_haz()
 
 
 # ------------------------------------------------------------------------------------------------------------------------------------------------ cámara
@@ -473,8 +669,33 @@ func _input(ev: InputEvent) -> void:
 				chorro(float(params["beamOn"]) < 0.5)    # main.js beamToggled
 			KEY_C:
 				poner_vista(VISTAS[(VISTAS.find(vista) + 1) % VISTAS.size()] if camara_juego != null else ("orbita" if vista == "demo" else "demo"))
+			KEY_U:
+				cambiar_haz("largo", 1.2)
+			KEY_J:
+				cambiar_haz("largo", 1.0 / 1.2)
+			KEY_I:
+				cambiar_haz("alto", 1.2)
+			KEY_K:
+				cambiar_haz("alto", 1.0 / 1.2)
 			KEY_O:
-				poner_obstaculo("muro" if obstaculo == "esfera" else "esfera")
+				cambiar_haz("ancho", 1.2)
+			KEY_L:
+				cambiar_haz("ancho", 1.0 / 1.2)
+			KEY_N:
+				cambiar_haz("tam", 1.0 / 1.2)
+			KEY_M:
+				cambiar_haz("tam", 1.2)
+			KEY_V:
+				cambiar_haz("dist", 1.0 / 1.2)
+			KEY_F:
+				cambiar_haz("dist", 1.2)
+			KEY_B:
+				if haz_cfg.is_empty():
+					poner_obstaculo("muro" if obstaculo == "esfera" else "esfera")
+				else:
+					var c: Dictionary = haz_cfg.duplicate()
+					c["obstaculo"] = {"esfera": "caja", "caja": "nada"}.get(String(c.get("obstaculo", "esfera")), "esfera")
+					configurar_haz(c)
 			KEY_1:
 				crear_solver("low")
 			KEY_2:
@@ -487,7 +708,7 @@ func _input(ev: InputEvent) -> void:
 				temporal = not temporal
 			KEY_R:
 				poner_toon(not toon)
-			KEY_K:
+			KEY_Y:
 				params["paleta"] = 0.0 if float(params["paleta"]) > 0.5 else 1.0
 			KEY_P:
 				pausa = not pausa
@@ -538,15 +759,15 @@ func _montar_escena() -> void:
 	pa.size = Vector2(90, 40)
 	pa.orientation = PlaneMesh.FACE_Z
 	_acantilado.mesh = pa
-	_acantilado.position = Vector3(0, 20, WORLD_MIN.z)
+	_acantilado.position = Vector3(0, 20, mundo_lo.z)
 	_acantilado.material_override = _roca(sh, roca, 1, 4.0)
 	add_child(_acantilado)
 	_muro = MeshInstance3D.new()
 	_muro.name = "MuroGas"
 	var bm: BoxMesh = BoxMesh.new()
-	bm.size = MURO_H * 2.0
+	bm.size = muro_h * 2.0
 	_muro.mesh = bm
-	_muro.position = MURO_C
+	_muro.position = muro_c
 	_mat_muro_roca = _roca(sh, roca, 2, 3.0)
 	_muro.material_override = _mat_muro_roca
 	_muro.visible = false
@@ -603,8 +824,8 @@ func _roca(sh: Shader, tex: Texture2D, modo: int, llanura: float) -> ShaderMater
 	m.set_shader_parameter("roca", tex)
 	m.set_shader_parameter("modo", modo)
 	m.set_shader_parameter("llanura", llanura)
-	m.set_shader_parameter("mundo_lo", WORLD_MIN)
-	m.set_shader_parameter("mundo_tam", WORLD_SIZE)
+	m.set_shader_parameter("mundo_lo", mundo_lo)
+	m.set_shader_parameter("mundo_tam", mundo_tam)
 	m.set_shader_parameter("mundo_a_dominio", Projection(Transform3D.IDENTITY))
 	_mat_roca.append(m)
 	return m

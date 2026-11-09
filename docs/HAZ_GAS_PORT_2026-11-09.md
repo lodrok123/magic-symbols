@@ -118,3 +118,27 @@ La simulación es la misma; solo cambia el DIBUJO (`shaders/raymarch_toon.glsl`)
 **Capturas**: `docs/capturas/vfx_en_juego/haz_gas_toon/` (`<toon|realista|fuegotoy>_<esfera|muro>_<juego|lateral>_<1s|3s|6s|apagado>.png` y `HOJA_RESUMEN.jpg`). Script: `herramientas/captura_gas_toon.gd`.
 
 **Opinión**: el color, el borde y las lenguas son ya los del fuego aprobado (misma rampa, mismo umbral y blandura). Contra la esfera se lee como una bola de FuegoToy grande que envuelve el escudo, y se ve bien. Lo que todavía delata la simulación: (1) contra la cara plana del muro el fuego se aplasta en una lámina y salen cantos rectos y algún peine vertical, que es la rejilla de 0,19 m de la demo vista de canto; (2) al disiparse, el hollín queda en manchas pardas deshilachadas, no en bocanadas; (3) es mucho más GRANDE que el haz del juego (la masa ocupa el tamaño del obstáculo) y no tiene el resplandor ni la mancha de luz del FuegoToy. Si Pablo ve el canto del muro como rejilla, la opción B sería no dibujar el campo sino emitir bocanadas (las láminas billboard de FuegoToy) donde la simulación diga que hay fuego (un MultiMesh leído del gas), que esconde la rejilla del todo.
+
+## Modo PROCEDURAL (9/11): la estructura se respeta al cambiar el haz
+
+`HazGas.derivar_haz(cfg)` construye la simulación (y los dos dibujos) desde los datos del haz del juego: **largo** (2·semieje_x), **ancho** (radio, semieje_z), **alto** (eje, semieje_y) y el **obstáculo** (esfera / caja con las proporciones del muro del lab / nada, su tamaño y su distancia a la mano). `cfg_de_hechizo(h)` saca largo, eje y radio de un Hechizo real con `FuegoToy.describir`. Es el modo por defecto del toon en Mayús+F12. La demo exacta sigue en el realista sin cfg.
+
+- **Escala de longitud**: s = largo / 10,6 m por unidad. El chorro mide siempre 10,6 u, así que la velocidad del chorro (34), el viento (8), el empuje, la flotación, el enfriamiento, el arrastre y los tiempos de la demo NO cambian: a lo largo del chorro la estructura es la misma por construcción.
+- **Grosor**: w = (ancho/0,15)/(largo/3). beamR0 = 0,3w y beamR1 = 0,8w.
+- **Escala transversal**: M = max(R1/0,8, tamaño del obstáculo / el de la demo), entre 0,4 y 3. Escalan con M (`ESC_M` en los shaders): la piel (0,5) y el wrap del escudo, el radio (0,9) y las ráfagas de la alimentación y su punto (0,35), el bamboleo del eje y del objetivo, los periodos de la turbulencia (16, 9) y del desgarro fino (4,5, 2,3), las lenguas del toon y los márgenes del dominio (2,6 detrás, 7,7M aguas abajo o 10,8M sin obstáculo, 7,9M encima, 3,9M a los lados).
+- **Celda**: h = 0,1875·clamp(min(M, R1/0,8), 0,5, 2). La rejilla se ajusta (de 88×56×64 a 280×176×176) con tope 320×192×192. El raymarch toon da pasos de ≤ 1,2 celdas.
+- **Teclas** dentro de Mayús+F12: U/J largo, I/K alto, O/L ancho (×1,2), B obstáculo (esfera → caja → nada), N/M su tamaño, V/F su distancia. Cada cambio rehace la simulación. El rótulo enseña los valores y lo derivado. La paleta pasa a Y.
+- **Prueba** (`prueba_gas_haz.gd -- barrido`, con ventana): 20 casos (largo ×0,5/1/2 × ancho ×0,5/1/2, alto ×0,7/1,5, esfera 0,4/1,2, caja 0,7/1,4, sin obstáculo, ᚲ+ᛁ, ᚲ+ᛁᛁᛁ, ᚲ+ᛁ+ᛏ, ᚲ+ᛁ+ᚷ), todos OK:
+  - eje caliente (T 0,73-1,40);
+  - hollín del eje ≤ 1/2 del de la masa (cociente 2,4-13);
+  - gas pasado el ecuador / canto (23-64 %);
+  - nada vuelve (u_x > 2·M en < 2 %);
+  - nada dentro, sin NaN, sin amarillo;
+  - extensión lateral de la masa / M = 2,16-2,96 (referencia 2,58);
+  - sin obstáculo, el chorro se abre ×1,7 y acaba en humo.
+- **Límites honestos**:
+  1. ᛏ y ᚷ no cambian el haz (`describir` solo mira el alcance: radio 0,40 y eje 0,9 fijos), así que esos casos son idénticos a ᚲ+ᛁ.
+  2. Con largo ×2 y ancho ×0,5 (w = 0,25), R0 = 0,075 u = 0,8 celdas: la simulación lo sostiene, pero el chorro toon se rompe en el tramo medio. Lo arregla bajar el tope inferior de la celda (0,5 → 0,25) y subir RES_MAX, o un dominio más estrecho alrededor del chorro.
+  3. Con un umbral absoluto de vuelta (2 u/s), los casos con M ≥ 2 daban un 3-5,7 %: el chapoteo del choque escala con la masa. Si se quiere absoluto, el parámetro es el viento o el empuje × M.
+  4. Con una caja alta, el fuego la rodea por los lados y apenas pasa por encima (32 celdas).
+- **Capturas**: `docs/capturas/vfx_en_juego/haz_gas_procedural/` (`HOJA_LATERAL.jpg`, `HOJA_JUEGO.jpg`; `captura_gas_procedural.gd`).

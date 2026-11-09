@@ -63,13 +63,21 @@ var _todas: Array[RID] = []
 var pasos_dados: int = 0
 
 
+## Dominio de ESTE solver (por defecto el de la demo; el modo procedural de HazGas.derivar_haz lo cambia con la rejilla).
+var mundo_lo: Vector3 = WORLD_MIN
+var mundo_tam: Vector3 = WORLD_SIZE
+
+
 ## jacobi: si es > 0, cambia las iteraciones de Jacobi de la calidad (solo para la prueba de convergencia de la proyección).
-func _init(calidad_nombre: String = "low", jacobi: int = 0) -> void:
+## res_forzada / lo / tam: rejilla y dominio propios (celdas cúbicas: tam = res · h). Vector3i.ZERO = los de la calidad y la demo.
+func _init(calidad_nombre: String = "low", jacobi: int = 0, res_forzada: Vector3i = Vector3i.ZERO, lo: Vector3 = WORLD_MIN, tam: Vector3 = WORLD_SIZE) -> void:
 	nombre_calidad = calidad_nombre if CALIDADES.has(calidad_nombre) else "low"
 	calidad = (CALIDADES[nombre_calidad] as Dictionary).duplicate()
 	if jacobi > 0:
 		calidad["jacobi"] = jacobi
-	res = calidad["res"]
+	res = calidad["res"] if res_forzada == Vector3i.ZERO else res_forzada
+	mundo_lo = lo
+	mundo_tam = tam
 	celdas = res.x * res.y * res.z
 
 
@@ -379,6 +387,6 @@ func _paso(nombre: String, uniformes: Array, tam: Vector3i) -> Dictionary:
 	pc.encode_s32(0, tam.x)
 	pc.encode_s32(4, tam.y)
 	pc.encode_s32(8, tam.z)
-	pc.encode_float(16, WORLD_SIZE.x / float(tam.x))
+	pc.encode_float(16, mundo_tam.x / float(tam.x))
 	return {"pipeline": sh["pipeline"], "set0": rd.uniform_set_create(uniformes, sh["shader"], 0), "set1": sh["set_ubo"], "pc": pc,
 		"grupos": Vector3i(ceili(tam.x / 4.0), ceili(tam.y / 4.0), ceili(tam.z / 4.0))}

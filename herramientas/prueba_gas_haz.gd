@@ -54,12 +54,21 @@ func _correr() -> void:
 	root.add_child(_lab)
 	await _esperar(5)
 	var solo_ms: bool = "ms" in OS.get_cmdline_user_args()          # -- ms : solo la medida de tiempos
+	if "barrido" in OS.get_cmdline_user_args():                      # -- barrido : solo el barrido procedural
+		await _barrido()
+		_lab.call("haz_gas", 0)
+		await _esperar(3)
+		print("FALLOS: %d" % _fallos)
+		quit(1 if _fallos > 0 else 0)
+		return
 	for caso in ([] if solo_ms else ["esfera", "muro"]):
 		print("== GPU: %s" % caso)
 		await _pruebas_gpu(caso)
 	for caso in ([] if solo_ms else ["esfera", "muro"]):
 		print("== TOON: %s" % caso)
 		await _pruebas_toon(caso)
+	if not solo_ms:
+		await _barrido()
 	print("== ms de GPU por calidad (contra la esfera, media de 240 fotogramas tras 60 de calentamiento)")
 	await _medir_calidades()
 	_lab.call("haz_gas", 0)
@@ -398,6 +407,183 @@ func _analiza_volumen(g: HazGas) -> Dictionary:
 	return {"fuego": fuego, "amarillo": float(amarillo) / maxf(fuego, 1), "h_medio": hm / maxf(hs.size(), 1), "h_p95": float(hs[int(hs.size() * 0.95)]) if hs.size() > 0 else 0.0,
 		"s_media": s_suma / maxf(fuego, 1), "humo": humo, "h_humo": h_humo / maxf(humo, 1),
 		"borde_px": float(parcial) / maxf(cruces, 1) * esc.x}
+
+
+
+
+## BARRIDO PROCEDURAL (9/11, Pablo: «que cambios en la longitud, en el ancho, etc. sigan haciendo que se respete la estructura»). Cada caso es la entrada de
+## HazGas.derivar_haz (la que da el haz del juego); en todos se miden las MISMAS invariantes, en unidades del dominio y relativas a la escala del caso (M, radios):
+##   eje: T media en el núcleo del primer tramo del chorro (t 0,1-0,45 hasta el choque, r < 0,5 R) > 0,6 y su hollín < 1/2 del de la masa;
+##   envuelve: fracción del gas caliente junto al obstáculo (sd < 2 M) que está PASADO su ecuador / canto (detrás del centro) > 3 %, y hay gas por encima de él;
+##   humo: hollín medio de la masa (junto al obstáculo; sin obstáculo, el final del chorro) > 2 × el del núcleo del chorro (en los chorros finos el núcleo son 1-2 celdas);
+##   vuelve: gas caliente que va hacia la lanzadora (u_x > 2·M u/s: relativo al tamaño de la masa) < 3 % y casi nada detrás de la boquilla;
+##   dentro: ninguna celda con gas dentro del obstáculo; NaN: ninguno;
+##   escala: extensión lateral de la masa (p90 de |z| del gas caliente aguas abajo del choque) / M dentro de ×0,5..×2 de la del caso de referencia;
+##   sin obstáculo: el chorro se abre (radio del gas caliente al final > 1,4 × al principio) y acaba en humo;
+##   toon (cámara lateral encuadrada con el caso): sin amarillo.
+const BARRIDO: Array = [
+	["ref (3 m, 0,15, 0,5; esfera 0,8 a 2 m)", {}],
+	["largo x0,5", {"largo": 1.5, "dist": 1.0}], ["largo x2", {"largo": 6.0, "dist": 4.0}],
+	["ancho x0,5", {"ancho": 0.075}], ["ancho x2", {"ancho": 0.3}],
+	["largo x0,5 ancho x0,5", {"largo": 1.5, "dist": 1.0, "ancho": 0.075}], ["largo x0,5 ancho x2", {"largo": 1.5, "dist": 1.0, "ancho": 0.3}],
+	["largo x2 ancho x0,5", {"largo": 6.0, "dist": 4.0, "ancho": 0.075}], ["largo x2 ancho x2", {"largo": 6.0, "dist": 4.0, "ancho": 0.3}],
+	["alto x0,7", {"alto": 0.35}], ["alto x1,5", {"alto": 0.75}],
+	["esfera 0,4", {"tam": 0.4}], ["esfera 1,2", {"tam": 1.2}],
+	["caja 0,7", {"obstaculo": "caja", "tam": 0.7}], ["caja 1,4", {"obstaculo": "caja", "tam": 1.4}],
+	["sin obstáculo", {"obstaculo": "nada"}],
+	["hechizo ᚲ+ᛁ", {"linea_x": 1}], ["hechizo ᚲ+ᛁᛁᛁ", {"linea_x": 3}], ["hechizo ᚲ+ᛁ+ᛏ", {"linea_x": 1, "levitacion": 1}], ["hechizo ᚲ+ᛁ+ᚷ", {"linea_x": 1, "pulso": 1}],
+]
+var tabla_barrido: Array = []
+
+
+## Entrada del caso: los hechizos se construyen de verdad (Hechizo.construir con la runa de fuego) y pasan por FuegoToy.describir (HazGas.cfg_de_hechizo).
+static func cfg_caso(c: Dictionary) -> Dictionary:
+	if c.has("linea_x"):
+		var h: Hechizo = Hechizo.construir(load("res://nucleo/fire_rune.tres") as RuneData, c)
+		return HazGas.cfg_de_hechizo(h)
+	var r: Dictionary = HazGas.HAZ_REF.duplicate()
+	r.merge(c, true)
+	return r
+
+
+func _barrido() -> void:
+	print("== BARRIDO PROCEDURAL (toon, 5 s cada caso)")
+	var ref_ext: float = -1.0
+	for caso in BARRIDO:
+		var nombre: String = caso[0]
+		var cfg: Dictionary = cfg_caso(caso[1])
+		_lab.call("haz_gas", 0)
+		await _esperar(3)
+		var g: HazGas = _lab.call("haz_gas", 1, "lateral", true, cfg)
+		if g == null or not g.listo():
+			_ok("%s: arranca" % nombre, false)
+			continue
+		g.get_node("HudGas").visible = false
+		await _hasta(g, 300)
+		await RenderingServer.frame_post_draw
+		var vis: Dictionary = _analiza_volumen(g)
+		g.pausa = true
+		await _esperar(2)
+		var m: Dictionary = _medidas(g)
+		g.pausa = false
+		if ref_ext < 0.0:
+			ref_ext = float(m["ext"])
+		var d: Dictionary = g.haz_der
+		var hay_obst: bool = String(d["obstaculo"]) != "nada"
+		var ok_eje: bool = float(m["T_eje"]) > 0.6 and float(m["soot_eje"]) < float(m["soot_masa"]) / 2.0
+		var ok_env: bool = (not hay_obst) or (float(m["detras"]) > 0.03 and int(m["encima"]) > 0)
+		var ok_humo: bool = float(m["soot_masa"]) > 2.0 * float(m["soot_eje"]) and float(m["soot_masa"]) > 0.01
+		var ok_vuelve: bool = float(m["vuelve"]) < 0.03 and float(m["detras_boquilla"]) < 0.01
+		var ok_abre: bool = hay_obst or float(m["abre"]) > 1.4
+		var ok_esc: bool = float(m["ext"]) > ref_ext * 0.5 and float(m["ext"]) < ref_ext * 2.0
+		var ok_amar: bool = float(vis["amarillo"]) < 0.01 and int(vis["fuego"]) > 300
+		var todo: bool = ok_eje and ok_env and ok_humo and ok_vuelve and ok_abre and ok_esc and ok_amar and int(m["dentro"]) == 0 and int(m["nan"]) == 0
+		var fila: String = "%-28s | %5.3f %4.2f %3dx%3dx%3d | T_eje %4.2f%s hollín eje/masa %.3f/%.3f%s | detrás %4.1f%% encima %4d%s | vuelve %4.1f%%%s | dentro %d nan %d | ext/M %4.2f (ref %4.2f)%s | abre %4.2f%s | amarillo %4.2f%% (%d px)%s" % [
+			nombre, float(d["s"]), float(d["M"]), d["res"].x, d["res"].y, d["res"].z, float(m["T_eje"]), "" if float(m["T_eje"]) > 0.6 else "!", float(m["soot_eje"]), float(m["soot_masa"]), "" if ok_humo and ok_eje else "!",
+			float(m["detras"]) * 100.0, int(m["encima"]), "" if ok_env else "!", float(m["vuelve"]) * 100.0, "" if ok_vuelve else "!", int(m["dentro"]), int(m["nan"]),
+			float(m["ext"]), ref_ext, "" if ok_esc else "!", float(m["abre"]), "" if ok_abre else "!", float(vis["amarillo"]) * 100.0, int(vis["fuego"]), "" if ok_amar else "!"]
+		tabla_barrido.append(fila)
+		_ok("barrido %s: la estructura se respeta" % nombre, todo, fila)
+	print("== TABLA DEL BARRIDO (s m/u · M · rejilla | ...; «!» = lo que falla)")
+	for f in tabla_barrido:
+		print("  " + f)
+
+
+## Medidas estructurales del gas (en unidades del dominio). Lee gas y velocidad; con rejillas grandes, una celda de cada 2 por eje.
+func _medidas(g: HazGas) -> Dictionary:
+	var s: HazGasSolver = g.solver
+	var d: Dictionary = g.haz_der
+	var res: Vector3i = s.res
+	var half: Vector3i = res / 2
+	var gas: PackedByteArray = s.leer(s.gas[0])
+	var vel: PackedByteArray = s.leer(s.vel[0])
+	var paso: int = 2 if s.celdas > 1500000 else 1
+	var noz: Vector3 = d["nozzle"]
+	var tg: Vector3 = d["target"]
+	var mm: float = float(d["M"])
+	var hay_obst: bool = String(d["obstaculo"]) != "nada"
+	var contacto: Vector3 = g.contacto()
+	var eje: Vector3 = (tg - noz).normalized()
+	var l_choque: float = (contacto - noz).dot(eje) if hay_obst else (tg - noz).length()
+	var centro: Vector3 = d["centro"]
+	var arriba: float = (centro.y + float(d["radio"])) if String(d["obstaculo"]) == "esfera" else ((d["semi"] as Vector3).y * 2.0 if hay_obst else 0.0)
+	var r = {"T_eje": 0.0, "soot_eje": 0.0, "soot_masa": 0.0, "detras": 0.0, "encima": 0, "vuelve": 0.0, "detras_boquilla": 0.0, "dentro": 0, "nan": 0, "ext": 0.0, "abre": 0.0}
+	var n_eje: int = 0
+	var n_masa: int = 0
+	var n_cerca: int = 0
+	var n_detras: int = 0
+	var n_cal: int = 0
+	var n_vuelve: int = 0
+	var t_total: float = 0.0
+	var t_atras: float = 0.0
+	var zs: Array = []
+	var r_ini: Array = []
+	var r_fin: Array = []
+	var tam: Vector3 = s.mundo_tam
+	var lo: Vector3 = s.mundo_lo
+	var margen_dentro: float = -maxf(0.25 * mm, 2.0 * tam.x / res.x)
+	for z in range(0, res.z, paso):
+		for y in range(0, res.y, paso):
+			for x in range(0, res.x, paso):
+				var o: int = ((z * res.y + y) * res.x + x) * 8
+				var T: float = gas.decode_half(o)
+				var so: float = gas.decode_half(o + 2)
+				if is_nan(T) or is_nan(so) or is_inf(T):
+					r["nan"] += 1
+					continue
+				if T < 0.02 and so < 0.005:
+					continue
+				var w: Vector3 = (Vector3(x, y, z) + Vector3(0.5, 0.5, 0.5)) / Vector3(res) * tam + lo
+				var sd: float = float(g.sd_obstaculo(w)[0])
+				if hay_obst and sd < margen_dentro and T + so > 1e-3:
+					r["dentro"] += 1
+				t_total += T
+				if w.x > noz.x + 1.0:
+					t_atras += T
+				var t: float = (w - noz).dot(eje)
+				var rad: float = (w - noz - eje * t).length()
+				var tr: float = t / maxf(l_choque, 0.01)
+				var radio_chorro: float = lerpf(float(d["beamR0"]), float(d["beamR1"]), clampf(t / (tg - noz).length(), 0.0, 1.0))
+				if tr > 0.1 and tr < 0.45 and rad < 0.5 * radio_chorro:
+					r["T_eje"] += T
+					r["soot_eje"] += so
+					n_eje += 1
+				var en_masa: bool = (sd > 0.05 and sd < 3.0 * mm and w.x < contacto.x + mm) if hay_obst else (tr > 0.8)
+				if en_masa:
+					r["soot_masa"] += so
+					n_masa += 1
+				if T > 0.15:
+					var vi: Vector3i = (Vector3i(x, y, z) / 2).clamp(Vector3i.ZERO, half - Vector3i.ONE)
+					var vo: int = ((vi.z * half.y + vi.y) * half.x + vi.x) * 8
+					n_cal += 1
+					if vel.decode_half(vo) > 2.0 * mm and tr > 0.05:     # relativo: las velocidades de la masa escalan con su tamaño
+						n_vuelve += 1
+					if hay_obst and sd < 2.0 * mm:
+						n_cerca += 1
+						if w.x < centro.x:
+							n_detras += 1
+						if w.y > arriba - 0.25 * mm:
+							r["encima"] += 1
+					if (hay_obst and w.x < contacto.x + mm) or (not hay_obst and tr > 0.5):
+						zs.append(absf(w.z))
+					if not hay_obst:
+						if tr > 0.1 and tr < 0.3:
+							r_ini.append(rad)
+						elif tr > 0.8 and tr < 1.0:
+							r_fin.append(rad)
+	r["T_eje"] = float(r["T_eje"]) / maxf(n_eje, 1)
+	r["soot_eje"] = float(r["soot_eje"]) / maxf(n_eje, 1)
+	r["soot_masa"] = float(r["soot_masa"]) / maxf(n_masa, 1)
+	r["detras"] = float(n_detras) / maxf(n_cerca, 1)
+	r["vuelve"] = float(n_vuelve) / maxf(n_cal, 1)
+	r["detras_boquilla"] = t_atras / maxf(t_total, 1e-6)
+	zs.sort()
+	r["ext"] = (float(zs[int(zs.size() * 0.9)]) if zs.size() > 0 else 0.0) / mm
+	r_ini.sort()
+	r_fin.sort()
+	if r_ini.size() > 0 and r_fin.size() > 0:
+		r["abre"] = float(r_fin[int(r_fin.size() * 0.9)]) / maxf(float(r_ini[int(r_ini.size() * 0.9)]), 1e-3)
+	return r
 
 
 func _medir_calidades() -> void:

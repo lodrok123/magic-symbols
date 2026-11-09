@@ -31,7 +31,7 @@ void main() {
 	vec4 v = texelFetch(vel_in, c, 0);
 	vec3 w = mundo_de(uvw);
 	float t = TIEMPO;
-	vec3 eddies = FLUJO(flujo, w, 16.0, vec3(0.0, t * -0.05, t * 0.03)) + FLUJO(flujo, w.yzx, 9.0, vec3(t * 0.07, 0.0, t * -0.04)) * 0.7;
+	vec3 eddies = FLUJO(flujo, w, 16.0 * ESC_M, vec3(0.0, t * -0.05, t * 0.03)) + FLUJO(flujo, w.yzx, 9.0 * ESC_M, vec3(t * 0.07, 0.0, t * -0.04)) * 0.7;
 	float stir = gs.x + gs.y * 0.3 + length(v.xyz) * 0.04;
 	vec3 shred = eddies * stir * TURBULENCE;
 

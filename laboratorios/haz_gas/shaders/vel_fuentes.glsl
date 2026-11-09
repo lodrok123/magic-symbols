@@ -33,7 +33,7 @@ void main() {
 
 	vec3 nrm;
 	float d = obst_sd(w, nrm);
-	float skin = 1.0 - smoothstep(0.0, 0.5, d);
+	float skin = 1.0 - smoothstep(0.0, 0.5 * ESC_M, d);
 	u -= nrm * min(dot(u, nrm), 0.0) * skin;
 	// Direccion de arte: un tiron suave hacia la piel mantiene las llamas envolviendo la esfera pasado su ecuador.
 	u -= nrm * skin * WRAP * DT;

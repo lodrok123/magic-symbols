@@ -543,7 +543,9 @@ var _gas_ocultos: Array = []
 var _gas_env_previo: Environment = null
 
 
-func haz_gas(modo: int, vista: String = "", toon: bool = true) -> HazGas:
+## cfg: entrada del modo PROCEDURAL de HazGas (derivar_haz: largo, ancho, alto, obstaculo, tam, dist). Sin cfg: en toon, el haz de referencia del lab contra la
+## esfera (0,8 m) o el muro de prueba (1 x 2,4 x 0,3 m, semialtura 1,2) a 2 m; en realista, la demo tal cual. Dentro: U/J I/K O/L B N/M V/F (ver HazGas.AYUDA).
+func haz_gas(modo: int, vista: String = "", toon: bool = true, cfg: Dictionary = {}) -> HazGas:
 	_gas_modo = clampi(modo, 0, 2)
 	if _gas_modo == 0:
 		_quitar_gas()
@@ -559,6 +561,10 @@ func haz_gas(modo: int, vista: String = "", toon: bool = true) -> HazGas:
 		_gas.jugadora_juego = _pj
 		_gas.obstaculo = "esfera" if _gas_modo == 1 else "muro"
 		_gas.toon = toon
+		if not cfg.is_empty():
+			_gas.haz_cfg = cfg
+		elif toon:
+			_gas.haz_cfg = _gas_cfg_lab(_gas_modo)
 		_gas.vista = vista if vista != "" else ("juego" if toon else "demo")
 		_gas_ocultos.clear()
 		var we: WorldEnvironment = get_node_or_null("Ambiente") as WorldEnvironment
@@ -570,10 +576,24 @@ func haz_gas(modo: int, vista: String = "", toon: bool = true) -> HazGas:
 		_panel_visible = false
 		poner_camara(0)
 	else:
-		_gas.poner_obstaculo("esfera" if _gas_modo == 1 else "muro")
+		if not cfg.is_empty():
+			_gas.configurar_haz(cfg)
+		elif not _gas.haz_cfg.is_empty():
+			var c: Dictionary = _gas.haz_cfg.duplicate()
+			c.merge(_gas_cfg_lab(_gas_modo), true)
+			_gas.configurar_haz(c)
+		else:
+			_gas.poner_obstaculo("esfera" if _gas_modo == 1 else "muro")
 		if vista != "" and vista != _gas.vista:
 			_gas.poner_vista(vista)
 	return _gas
+
+
+func _gas_cfg_lab(modo: int) -> Dictionary:
+	var c: Dictionary = HazGas.HAZ_REF.duplicate()
+	c["obstaculo"] = "esfera" if modo == 1 else "caja"
+	c["tam"] = RADIO_ESFERA_HAZ if modo == 1 else 1.2
+	return c
 
 
 ## El escenario del lab según el dibujo del gas: toon = el lab de siempre (para juzgarlo como en el juego); realista = suelo, cubos y sol escondidos y entorno negro de la demo.

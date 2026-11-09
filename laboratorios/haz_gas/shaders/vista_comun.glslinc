@@ -14,5 +14,5 @@ layout(set = SET_VISTA, binding = 0, std140) uniform Vista {
 	vec4 toon0;        // MODO TOON (raymarch_toon.glsl): umbral, blandura, contraste, tope de la rampa
 	vec4 toon1;        // k_T, k_combustible, amplitud del ruido, escala del ruido (1/m del dominio)
 	vec4 toon2;        // umbral del humo, opacidad del humo, escala de la rampa, tiempo
-	vec4 toon3;        // velocidad de subida de las lenguas, chisporroteo, profundidad del color (m), -
+	vec4 toon3;        // velocidad de subida de las lenguas, chisporroteo, profundidad del color (m), celda de gas (u; el paso máximo del raymarch toon)
 } V;
